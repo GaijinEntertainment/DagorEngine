@@ -1,0 +1,8 @@
+WARNING: w274 (iterator-in-lambda) Iterator 'v' is trying to be captured in closure.
+testData/static_analyser/w274.nut:6:17
+
+foreach (v in [1, 2, 3])
+  tab.append(@() v)
+                 ^
+
+

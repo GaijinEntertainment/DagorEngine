@@ -1,0 +1,52 @@
++ basic animations
++ input box (text)
++ button
++ drag and drop
++ text area
++ sounds
++ box, solid, frame
++ image
++ nineRect
++ vector Image
++ simple layouts: horizontal and veritcal flows, flex, gap, 
++ text(dynamic, static-inscription), text-styling
+
+darg basics:
+- key for diff virtual dom
+- persist
+basic samples
+- simple rendObjs:
+  + text overflow - elipsis (not working for STEXT)
+  + videos
+  - lottie
+  -? image: pixel-to-pixel
+  - circullar progress
+- simple layouts: table
+- ?simple layouts: placing in certain positions
+- timers
+- simple HUDs: rtPropertyUpdate, transform
+
+interactive UI, basics
+- tooltip
+- checkbox
+- radiobutton
+- combobox
+- spinner input
+- select
+- password - show last symbol for 1 second before replacing it to * char
+
+input
+- touchpad control
+
+advanced layouts
++ advanced layouts: scrolling, scrollbar
++ advanced layouts: resize, move
+- layout animations
+- accordeon/sliding bar/collapsible bar
+- tree control
+- property grid
+-------
+- rich text (underline, bold, italic, strike, captilize, lowered, color tags, subscript, superscript)
+- panels (blur!)
+- gradients rendobj
+- rounded rectangle robj (or vector canvas with inner border style)

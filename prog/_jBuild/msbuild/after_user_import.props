@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
+  <PropertyGroup>
+    <Platform>$(MSPlatform)</Platform>
+    <ShowAllFiles Condition="'$(ReplaceWildcardsInProjectItems)' == 'true'">true</ShowAllFiles>
+  </PropertyGroup>
+
+  <Import Condition="!$(DesignTimeBuild)" Project="$(MSBuildThisFileDirectory)config.internal.props" />
+</Project>

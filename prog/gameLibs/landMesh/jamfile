@@ -1,0 +1,37 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/landMesh ;
+
+TargetType  = lib ;
+Target      = gameLibs/landMesh.lib ;
+
+if $(DclipmapUseRiVtex) = yes {
+  Target = $(Target:S=~RiVtex.lib) ;
+  CPPopt = -DCLIPMAP_USE_RI_VTEX ;
+}
+
+Sources =
+  landMicroDetails.cpp
+  lmeshManager.cpp
+  lmeshRenderer.cpp
+#  clipmap.cpp
+  virtualtexture.cpp
+  landRayTracer.cpp
+  lmeshRendererGlue.cpp
+  lastClip.cpp
+  biomeQuery.cpp
+  heightmapQuery.cpp
+  lmeshMirroring.cpp
+  lmeshHoles.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/gamePhys/collision
+;
+
+UseProgLibs =
+  gameLibs/heightmap
+  3rdPartyLibs/eastl
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

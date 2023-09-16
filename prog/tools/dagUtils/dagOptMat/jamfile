@@ -1,0 +1,38 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/dagUtils/DagOptMat ;
+DriverLinkage   = static ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = util/DagOptMat.exe ;
+OutDir      = $(Root)/tools/util/ ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  mat_remap.cpp
+  loadDagFile2.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/baseUtil
+  engine2/ioSys
+  engine2/math
+  engine2/lib3d
+  engine2/startup
+  engine2/drv/drv3d_null
+  engine2/perfMon/daProfilerStub
+
+  tools/libTools/util
+  tools/libTools/staticGeom
+  tools/libTools/dagFileRW
+  tools/libTools/dtx
+;
+UseProgLibs +=
+  3rdPartyLibs/eastl
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

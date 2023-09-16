@@ -1,0 +1,84 @@
+* optimize CPU compatibility (currently it is 5msec!)
+
++ quad tree rendering
+  + geo morphing
+  * autoscale (remove unimportant vs_samplers) with blending/fading
+  * correct water lod determ (using projection)
+
++ MRT for preparing gradients
+
++ make shore distance field working
++ remove bullshit
++ generateMipmaps when needed only/flush for dx9 with bullshit dip
++ gpGpu FFT implementation!
+  + updateH0 on GPU
+  + do not create all CPU data if we use GpGPU
+  + render FFT without setting constant (save in vertex data) (SAVE CPU!)
+  + check formats - float16/short for fft
+  * check argb8 for gradients/check if argb8 is enough for energy
+
++ calculate shore distance field on GPU for render
++ DX9
+  + half texel offsets in FFT!
++ OPENGL
++ GLES2
+* blur foam in wind direction only (so, no foam appears ahead of wave)
+- rerrange displacements? instead of 4 texture * 3components, make 3 textures with 4 components
+
++ dx/ps4 compute FFT implementation
+  + optimize h0
+  * calculate only used cascades?
+  * optimize const buffer setting
+- cuda FFT implementation
+
+* foam/wakes
+  + make two(four?) wake cascades  (2hrs)
+  + calculate normals/gradients 1hrs
+  + initial distortion based on tank squircle (or box) and speed and water_level (6hrs)
+   * (and may be wind_dir, shore dir)
+  + water_level (0.5 hrs)
+  + instability 1hrs
+  + multiple wake points (2hrs)
+  + multiple obstruction tanks (2hrs)
+  + main obstruction tank (1hrs)
+  + switch off wake, when nothing is there (2hrs)
+  + choose correct filter (3, 5 or 6?) 1hrs
+  + nanofilter 1hrs
+  + finalize game code 2hrs
+  + obstruction (using heightmap) (2hrs)
+  * ambient waves & initial distortion based on waves/shore instead of water_level(4hrs)
+  ? make it for planes
+  ? make it for ships
+    * foam for ships
+
+* tanks enhancing
+
++ compatibility
+  + remove foam in compatibility
+  + optimize shader in compatibility/vertex buffer
+  + enhance quality in tanks compatibility
+  + some kind of displacement in ships compatibility
+  + shoreline in compatibility
+
++ settings!
+  + no reflection, no refraction, 2 cascades only, no shore, etc
+  + optional blending (no refraction)
+
+
+Physics:
++ CPU, 2 cascades (128, 64), lerp
+   + based on time get
+   + speed up displacement using sse
+   + replace halves with fixed point? (speed up and precisement)
++ relax new frame generation with time (we only need 3-4 frames per second!)
+* simplified shoreline/distancefield on CPU
+* (optimization) ignore cascades which are not providing enough result
+? (optimization) shorts instead of halves
+* (optimization) optimize getting displacements if there are in the same int coordinates
+
++ replace sse with v_*
+
+bugs:
+* lod discontinuity
+* bbox for heightmap should be increased in XZ space (it is displacements, not heightmap)
++ build heightmap doesn't work correctly on small shore_size (frustum culling!)

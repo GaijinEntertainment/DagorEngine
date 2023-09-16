@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/objectEditor ;
+
+TargetType  = lib ;
+Target      = tools/libTools/objectEditor.lib ;
+
+UseWTL      = yes ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+
+Sources =
+  ec_objectEditor.cpp
+  ec_rendEdObject.cpp
+  ec_ObjectEditorBar.cpp
+;
+
+
+if $(DriverLinkage) != dynamic { UseProgLibs = engine2/baseUtil ; } # for watchdog
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

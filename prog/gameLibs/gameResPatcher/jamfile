@@ -1,0 +1,16 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/gameResPatcher ;
+
+TargetType  = lib ;
+Target      = gameLibs/gameResPatcher.lib ;
+
+Sources =
+  resUpdUtil.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine2
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

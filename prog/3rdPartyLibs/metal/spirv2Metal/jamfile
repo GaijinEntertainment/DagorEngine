@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/metal/spirv2Metal ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/metal/spirv2Metal.lib ;
+
+Sources =
+  spirv_cfg.cpp
+  spirv_cross.cpp
+  spirv_cross_parsed_ir.cpp
+  spirv_parser.cpp
+  spirv_cpp.cpp
+  spirv_glsl.cpp
+  spirv_msl.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/metal/glslang/SPIRV
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

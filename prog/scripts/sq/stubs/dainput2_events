@@ -1,0 +1,23 @@
+return {
+  EventHidGlobalInputSink = class {
+    name = "EventHidGlobalInputSink"
+/*
+    [0] = 0 //t0_msec = 0:uint
+    [1] = 0 //dev = device: int
+    [2] = true// pressed : bool
+    [3] = 0 //button_id, use resolve_button_id in darg if needed
+*/
+  }
+
+  EventDaInputInit = class { name = "EventDaInputInit" }
+
+  EventDaInputActionTriggered = class { name = "EventDaInputActionTriggered"
+//    [0] = null // action : action_handle_t
+//    [1] = 1 // duration_ms : uint16
+  }
+
+  EventDaInputActionTerminated = class { name = "EventDaInputActionTerminated"
+  //    [0] = null // action : action_handle_t
+  //    [1] = 1 // duration_ms : uint16
+  }
+}

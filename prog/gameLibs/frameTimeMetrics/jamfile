@@ -1,0 +1,15 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/frameTimeMetrics ;
+
+TargetType  = lib ;
+Target      = gameLibs/frameTimeMetrics.lib ;
+
+Sources =
+  aggregator.cpp
+;
+
+AddIncludes = 
+  $(Root)/prog/gameLibs/publicInclude 
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

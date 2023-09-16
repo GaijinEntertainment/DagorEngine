@@ -1,0 +1,19 @@
+include shaders_tools11.blk
+
+"@override:outDumpName":t="../../tools/common/compiledShaders/tools.exp"
+outMiniDumpName:t="../../tools/common/compiledShaders/tools.exp"
+
+"@delete:source" {}
+source
+{
+  includePath:t="./source"
+  include "../../../../prog/samples/commonShaders/shadersList.blk"
+  file:t = "testMat.sh"
+  file:t = "testTree.sh"
+  file:t = "testMatAO.sh"
+  file:t = "./source/heightmap.sh"
+  //file:t = "./source/layered.sh"
+  file:t = "./source/sponza.sh"
+}
+
+"@delete:explicit_var_ref" {}

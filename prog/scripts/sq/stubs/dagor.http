@@ -1,0 +1,18 @@
+let  function abort(a) {
+  assert(["integer"].contains(type(a)), @() $"type of argument should be one of: 'integer'")
+}
+
+let function request(a) {
+  assert(["table"].contains(type(a)), @() $"type of argument should be one of: 'table'")
+}
+
+return {
+  abort
+  httpAbort = abort
+  request
+  httpRequest = request
+
+  HTTP_SUCCESS = 0
+  HTTP_FAILED = 1
+  HTTP_ABORTED = 2
+}

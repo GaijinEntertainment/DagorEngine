@@ -1,0 +1,435 @@
+
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/assimp/code ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/assimp.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+#Logging_SRCS
+  Common/DefaultLogger.cpp
+#Common_SRCS
+  Common/Assimp.cpp
+  Common/Compression.cpp
+  Common/BaseImporter.cpp
+  Common/BaseProcess.cpp
+  Common/PostStepRegistry.cpp
+  Common/ImporterRegistry.cpp
+  Common/DefaultIOStream.cpp
+  Common/IOSystem.cpp
+  Common/DefaultIOSystem.cpp
+  Common/ZipArchiveIOSystem.cpp
+  Common/Importer.cpp
+  Common/SGSpatialSort.cpp
+  Common/VertexTriangleAdjacency.cpp
+  Common/SpatialSort.cpp
+  Common/SceneCombiner.cpp
+  Common/ScenePreprocessor.cpp
+  Common/SkeletonMeshBuilder.cpp
+  Common/StandardShapes.cpp
+  Common/TargetAnimation.cpp
+  Common/RemoveComments.cpp
+  Common/Subdivision.cpp
+  Common/scene.cpp
+  Common/Bitmap.cpp
+  Common/Version.cpp
+  Common/CreateAnimMesh.cpp
+  Common/simd.cpp
+  Common/material.cpp
+  Common/AssertHandler.cpp
+  Common/Exceptional.cpp
+  Common/Base64.cpp
+#CApi_SRCS
+  CApi/CInterfaceIOWrapper.cpp
+#STEPParser_SRCS
+  AssetLib/STEPParser/STEPFileReader.cpp
+  AssetLib/STEPParser/STEPFileEncoding.cpp
+#MaterialSystem_SRCS =
+  Material/MaterialSystem.cpp
+#PostProcessing_SRCS
+  PostProcessing/CalcTangentsProcess.cpp
+  PostProcessing/ComputeUVMappingProcess.cpp
+  PostProcessing/ConvertToLHProcess.cpp
+  PostProcessing/EmbedTexturesProcess.cpp
+  PostProcessing/FindDegenerates.cpp
+  PostProcessing/FindInstancesProcess.cpp
+  PostProcessing/FindInvalidDataProcess.cpp
+  PostProcessing/FixNormalsStep.cpp
+  PostProcessing/DropFaceNormalsProcess.cpp
+  PostProcessing/GenFaceNormalsProcess.cpp
+  PostProcessing/GenVertexNormalsProcess.cpp
+  PostProcessing/PretransformVertices.cpp
+  PostProcessing/ImproveCacheLocality.cpp
+  PostProcessing/JoinVerticesProcess.cpp
+  PostProcessing/LimitBoneWeightsProcess.cpp
+  PostProcessing/RemoveRedundantMaterials.cpp
+  PostProcessing/RemoveVCProcess.cpp
+  PostProcessing/SortByPTypeProcess.cpp
+  PostProcessing/SplitLargeMeshes.cpp
+  PostProcessing/TextureTransform.cpp
+  PostProcessing/TriangulateProcess.cpp
+  PostProcessing/ValidateDataStructure.cpp
+  PostProcessing/OptimizeGraph.cpp
+  PostProcessing/OptimizeMeshes.cpp
+  PostProcessing/DeboneProcess.cpp
+  PostProcessing/ProcessHelper.cpp
+  PostProcessing/MakeVerboseFormat.cpp
+  PostProcessing/ScaleProcess.cpp
+  PostProcessing/ArmaturePopulate.cpp
+  PostProcessing/GenBoundingBoxesProcess.cpp
+  PostProcessing/SplitByBoneCountProcess.cpp
+;
+
+C4D =
+  AssetLib/C4D/C4DImporter.cpp
+;
+
+AMF =
+  AssetLib/AMF/AMFImporter.cpp
+  AssetLib/AMF/AMFImporter_Geometry.cpp
+  AssetLib/AMF/AMFImporter_Material.cpp
+  AssetLib/AMF/AMFImporter_Postprocess.cpp
+;
+
+3DS =
+  AssetLib/3DS/3DSConverter.cpp
+  AssetLib/3DS/3DSLoader.cpp
+;
+
+AC =
+  AssetLib/AC/ACLoader.cpp
+;
+
+ASE =
+  AssetLib/ASE/ASELoader.cpp
+  AssetLib/ASE/ASEParser.cpp
+;
+
+ASSBIN =
+  AssetLib/Assbin/AssbinLoader.cpp
+;
+
+B3D =
+  AssetLib/B3D/B3DImporter.cpp
+;
+
+BVH =
+  AssetLib/BVH/BVHLoader.cpp
+;
+
+COLLADA =
+  AssetLib/Collada/ColladaHelper.cpp
+  AssetLib/Collada/ColladaLoader.cpp
+  AssetLib/Collada/ColladaParser.cpp
+;
+
+DXF =
+  AssetLib/DXF/DXFLoader.cpp
+;
+
+CSM =
+  AssetLib/CSM/CSMLoader.cpp
+;
+
+HMP =
+  AssetLib/HMP/HMPLoader.cpp
+;
+
+IRRMESH =
+  AssetLib/Irr/IRRMeshLoader.cpp
+  AssetLib/Irr/IRRShared.cpp
+;
+
+IQM =
+  AssetLib/IQM/IQMImporter.cpp
+;
+
+IRR =
+  AssetLib/Irr/IRRLoader.cpp
+  AssetLib/Irr/IRRShared.cpp
+;
+
+LWO =
+  AssetLib/LWO/LWOAnimation.cpp
+  AssetLib/LWO/LWOBLoader.cpp
+  AssetLib/LWO/LWOLoader.cpp
+  AssetLib/LWO/LWOMaterial.cpp
+;
+
+LWS =
+  AssetLib/LWS/LWSLoader.cpp
+;
+
+M3D =
+  AssetLib/M3D/M3DImporter.cpp
+  AssetLib/M3D/M3DWrapper.cpp
+;
+
+MD2 =
+  AssetLib/MD2/MD2Loader.cpp
+;
+
+MD3 =
+  AssetLib/MD3/MD3Loader.cpp
+;
+
+MD5 =
+  AssetLib/MD5/MD5Loader.cpp
+  AssetLib/MD5/MD5Parser.cpp
+;
+
+MDC =
+  AssetLib/MDC/MDCLoader.cpp
+;
+
+MDL =
+  AssetLib/MDL/MDLLoader.cpp
+  AssetLib/MDL/MDLMaterialLoader.cpp
+  AssetLib/MDL/HalfLife/HL1MDLLoader.cpp
+  AssetLib/MDL/HalfLife/UniqueNameGenerator.cpp
+;
+
+
+NFF =
+  AssetLib/NFF/NFFLoader.cpp
+;
+
+NDO =
+  AssetLib/NDO/NDOLoader.cpp
+;
+
+OFF =
+  AssetLib/OFF/OFFLoader.cpp
+;
+
+OBJ =
+  AssetLib/Obj/ObjFileImporter.cpp
+  AssetLib/Obj/ObjFileMtlImporter.cpp
+  AssetLib/Obj/ObjFileParser.cpp
+;
+
+OGRE =
+  AssetLib/Ogre/OgreImporter.cpp
+  AssetLib/Ogre/OgreStructs.cpp
+  AssetLib/Ogre/OgreBinarySerializer.cpp
+  AssetLib/Ogre/OgreXmlSerializer.cpp
+  AssetLib/Ogre/OgreMaterial.cpp
+;
+
+OPENGEX =
+  AssetLib/OpenGEX/OpenGEXImporter.cpp
+;
+
+PLY =
+  AssetLib/Ply/PlyLoader.cpp
+  AssetLib/Ply/PlyParser.cpp
+;
+
+MS3D =
+  AssetLib/MS3D/MS3DLoader.cpp
+;
+
+COB =
+  AssetLib/COB/COBLoader.cpp
+;
+
+BLEND =
+  AssetLib/Blender/BlenderLoader.cpp
+  AssetLib/Blender/BlenderDNA.cpp
+  AssetLib/Blender/BlenderScene.cpp
+  AssetLib/Blender/BlenderModifier.cpp
+  AssetLib/Blender/BlenderBMesh.cpp
+  AssetLib/Blender/BlenderTessellator.cpp
+  AssetLib/Blender/BlenderCustomData.cpp
+;
+
+IFC =
+  AssetLib/IFC/IFCLoader.cpp
+  AssetLib/IFC/IFCReaderGen1_2x3.cpp
+  AssetLib/IFC/IFCReaderGen2_2x3.cpp
+  AssetLib/IFC/IFCUtil.cpp
+  AssetLib/IFC/IFCGeometry.cpp
+  AssetLib/IFC/IFCMaterial.cpp
+  AssetLib/IFC/IFCProfile.cpp
+  AssetLib/IFC/IFCCurve.cpp
+  AssetLib/IFC/IFCBoolean.cpp
+  AssetLib/IFC/IFCOpenings.cpp
+;
+
+XGL =
+  AssetLib/XGL/XGLLoader.cpp
+;
+
+FBX =
+  AssetLib/FBX/FBXImporter.cpp
+  AssetLib/FBX/FBXParser.cpp
+  AssetLib/FBX/FBXTokenizer.cpp
+  AssetLib/FBX/FBXConverter.cpp
+  AssetLib/FBX/FBXUtil.cpp
+  AssetLib/FBX/FBXDocument.cpp
+  AssetLib/FBX/FBXProperties.cpp
+  AssetLib/FBX/FBXMeshGeometry.cpp
+  AssetLib/FBX/FBXMaterial.cpp
+  AssetLib/FBX/FBXModel.cpp
+  AssetLib/FBX/FBXAnimation.cpp
+  AssetLib/FBX/FBXNodeAttribute.cpp
+  AssetLib/FBX/FBXDeformer.cpp
+  AssetLib/FBX/FBXBinaryTokenizer.cpp
+  AssetLib/FBX/FBXDocumentUtil.cpp
+;
+
+Q3D =
+  AssetLib/Q3D/Q3DLoader.cpp
+;
+
+Q3BSP =
+  AssetLib/Q3BSP/Q3BSPFileParser.cpp
+  AssetLib/Q3BSP/Q3BSPFileImporter.cpp
+;
+
+RAW =
+  AssetLib/Raw/RawLoader.cpp
+;
+
+SIB =
+  AssetLib/SIB/SIBImporter.cpp
+;
+
+SMD =
+  AssetLib/SMD/SMDLoader.cpp
+;
+
+STL =
+  AssetLib/STL/STLLoader.cpp
+;
+
+TERRAGEN =
+  AssetLib/Terragen/TerragenLoader.cpp
+;
+
+3D =
+  AssetLib/Unreal/UnrealLoader.cpp
+;
+
+X =
+  AssetLib/X/XFileImporter.cpp
+  AssetLib/X/XFileParser.cpp
+;
+
+X3D =
+  AssetLib/X3D/X3DImporter.cpp
+  AssetLib/X3D/X3DImporter_Geometry2D.cpp
+  AssetLib/X3D/X3DImporter_Geometry3D.cpp
+  AssetLib/X3D/X3DImporter_Group.cpp
+  AssetLib/X3D/X3DImporter_Light.cpp
+  AssetLib/X3D/X3DImporter_Metadata.cpp
+  AssetLib/X3D/X3DImporter_Networking.cpp
+  AssetLib/X3D/X3DImporter_Postprocess.cpp
+  AssetLib/X3D/X3DImporter_Rendering.cpp
+  AssetLib/X3D/X3DImporter_Shape.cpp
+  AssetLib/X3D/X3DImporter_Texturing.cpp
+  AssetLib/X3D/X3DGeoHelper.cpp
+  AssetLib/X3D/X3DXmlHelper.cpp
+;
+
+GLTF =
+  AssetLib/glTF/glTFCommon.cpp
+  AssetLib/glTF/glTFImporter.cpp
+  #AssetLib/glTF2/glTF2Importer.cpp
+;
+
+3MF =
+  AssetLib/3MF/XmlSerializer.cpp
+  AssetLib/3MF/D3MFImporter.cpp
+  AssetLib/3MF/D3MFOpcPackage.cpp
+;
+
+MMD =
+  AssetLib/MMD/MMDImporter.cpp
+  AssetLib/MMD/MMDPmxParser.cpp
+;
+
+Sources += $(OBJ) $(FBX) $(COLLADA) $(GLTF) $(3DS) ;
+
+CPPopt +=
+  -DASSIMP_BUILD_NO_OWN_ZLIB=1
+  -DRAPIDJSON_HAS_STDSTRING=1
+
+  -DASSIMP_BUILD_NO_EXPORT=1
+  -DASSIMP_BUILD_NO_X_IMPORTER
+  -DASSIMP_BUILD_NO_AMF_IMPORTER
+  #-DASSIMP_BUILD_NO_3DS_IMPORTER
+  -DASSIMP_BUILD_NO_MD3_IMPORTER
+  -DASSIMP_BUILD_NO_MDL_IMPORTER
+  -DASSIMP_BUILD_NO_MD2_IMPORTER
+  -DASSIMP_BUILD_NO_PLY_IMPORTER
+  -DASSIMP_BUILD_NO_ASE_IMPORTER
+  #-DASSIMP_BUILD_NO_OBJ_IMPORTER
+  -DASSIMP_BUILD_NO_HMP_IMPORTER
+  -DASSIMP_BUILD_NO_SMD_IMPORTER
+  -DASSIMP_BUILD_NO_MDC_IMPORTER
+  -DASSIMP_BUILD_NO_MD5_IMPORTER
+  -DASSIMP_BUILD_NO_STL_IMPORTER
+  -DASSIMP_BUILD_NO_LWO_IMPORTER
+  -DASSIMP_BUILD_NO_DXF_IMPORTER
+  -DASSIMP_BUILD_NO_NFF_IMPORTER
+  -DASSIMP_BUILD_NO_RAW_IMPORTER
+  -DASSIMP_BUILD_NO_SIB_IMPORTER
+  -DASSIMP_BUILD_NO_OFF_IMPORTER
+  -DASSIMP_BUILD_NO_AC_IMPORTER
+  -DASSIMP_BUILD_NO_BVH_IMPORTER
+  -DASSIMP_BUILD_NO_IRRMESH_IMPORTER
+  -DASSIMP_BUILD_NO_IRR_IMPORTER
+  -DASSIMP_BUILD_NO_Q3D_IMPORTER
+  -DASSIMP_BUILD_NO_B3D_IMPORTER
+  #-DASSIMP_BUILD_NO_COLLADA_IMPORTER
+  -DASSIMP_BUILD_NO_TERRAGEN_IMPORTER
+  -DASSIMP_BUILD_NO_CSM_IMPORTER
+  -DASSIMP_BUILD_NO_3D_IMPORTER
+  -DASSIMP_BUILD_NO_LWS_IMPORTER
+  -DASSIMP_BUILD_NO_OGRE_IMPORTER
+  -DASSIMP_BUILD_NO_OPENGEX_IMPORTER
+  -DASSIMP_BUILD_NO_MS3D_IMPORTER
+  -DASSIMP_BUILD_NO_COB_IMPORTER
+  -DASSIMP_BUILD_NO_BLEND_IMPORTER
+  -DASSIMP_BUILD_NO_Q3BSP_IMPORTER
+  -DASSIMP_BUILD_NO_NDO_IMPORTER
+  -DASSIMP_BUILD_NO_IFC_IMPORTER
+  -DASSIMP_BUILD_NO_XGL_IMPORTER
+  #-DASSIMP_BUILD_NO_FBX_IMPORTER
+  -DASSIMP_BUILD_NO_ASSBIN_IMPORTER
+  #-DASSIMP_BUILD_NO_GLTF1_IMPORTER
+  -DASSIMP_BUILD_NO_GLTF2_IMPORTER
+  -DASSIMP_BUILD_NO_C4D_IMPORTER
+  -DASSIMP_BUILD_NO_3MF_IMPORTER
+  -DASSIMP_BUILD_NO_X3D_IMPORTER
+  -DASSIMP_BUILD_NO_MMD_IMPORTER
+  -DASSIMP_BUILD_NO_M3D_IMPORTER
+  -DASSIMP_BUILD_NO_IQM_IMPORTER
+;
+
+CPPopt +=
+  -DASSIMP_FBX_USE_PAGE_ALLOCATOR
+;
+
+UseProgLibs +=
+   3rdPartyLibs/arc/unzip
+   3rdPartyLibs/eastl
+;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/assimp
+  $(Root)/prog/3rdPartyLibs/assimp/code
+  $(Root)/prog/3rdPartyLibs/assimp/include
+  $(Root)/prog/3rdPartyLibs/assimp/include
+  $(Root)/prog/3rdPartyLibs/assimp/contrib/pugixml/src
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  (Root)/prog/3rdPartyLibs/eastl/include
+  $(Root)/prog/3rdPartyLibs/arc/unzip
+  $(Root)/prog/3rdPartyLibs/arc/zlib-ng
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

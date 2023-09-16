@@ -1,0 +1,16 @@
+WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
+testData/static_analyser/w248_andor.nut:4:28
+
+    let a = list != null && list.len() == 0
+    let b = list != null || list.len() == 0
+                            ^---
+
+
+WARNING: w228 (declared-never-used) let 'riIsEmptyGroup' was declared but never used.
+testData/static_analyser/w248_andor.nut:1:0
+
+let function riIsEmptyGroup(x) {
+^--
+    let list = x?.list
+
+

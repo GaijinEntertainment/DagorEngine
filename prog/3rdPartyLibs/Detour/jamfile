@@ -1,0 +1,38 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/Detour ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/Detour.lib ;
+
+Sources =
+  Source/detourAlloc.cpp
+  Source/detourAssert.cpp
+  Source/detourCommon.cpp
+  Source/detourNavMesh.cpp
+  Source/detourNavMeshDagor.cpp
+  Source/detourNavMeshBuilder.cpp
+  Source/detourNavMeshQuery.cpp
+  Source/detourNavMeshQueryDagor.cpp
+  Source/detourNode.cpp
+  Source/detourTileCache.cpp
+  Source/detourTileCacheBuilder.cpp
+  Source/detourPathCorridor.cpp
+  Source/detourObstacleAvoidance.cpp
+;
+
+AddIncludes = $(Root)/prog/3rdPartyLibs/Detour/Include ;
+
+CPPopt += -D_RELEASE ;
+
+if $(Platform) = linux64 || $(PlatformSpec) = clang {
+  if $(Platform) in win32 win64 xboxOne scarlett {
+    CPPopt += -fp:fast /clang:-fno-unsafe-math-optimizations ;
+  } else {
+    CPPopt += -ffast-math ;
+    if ! $(Platform) in iOS nswitch { CPPopt += -fno-unsafe-math-optimizations ; }
+  }
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

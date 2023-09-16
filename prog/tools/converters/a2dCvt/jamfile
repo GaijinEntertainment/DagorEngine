@@ -1,0 +1,32 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/a2dCvt ;
+ConsoleExe      = yes ;
+
+
+TargetType  = exe ;
+Target      = util/a2dConverter.exe ;
+
+OutDir          = $(Root)/tools/converters ;
+#CopyTo          = $(Root)/$(Location) ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+
+Sources =         
+  a2dCvt.cpp
+  old_animChannels.cpp
+  con_main.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/perfMon/daProfilerStub
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

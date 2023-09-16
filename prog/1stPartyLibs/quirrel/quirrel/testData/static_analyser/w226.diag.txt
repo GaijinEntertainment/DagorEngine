@@ -1,0 +1,8 @@
+WARNING: w226 (return-different-types) Function can return different types.
+testData/static_analyser/w226.nut:3:4
+
+let function x(y) { //-declared-never-used
+    ^
+  if (y == 1)
+
+

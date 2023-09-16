@@ -1,0 +1,508 @@
+include "shader_global.sh"
+include "cloud_mask.sh"
+
+int fx_create_cmd = 0;
+interval fx_create_cmd: fx_create_tracer < 1, fx_create_segment;
+
+int fx_instancing_type = 0;
+interval fx_instancing_type: fx_instancing_consts < 1, fx_instancing_sbuf;
+
+interval special_vision : special_vision_off<1, thermal_vision;
+
+texture tracer_tail_tex;
+
+float tail_lighting_directional_scale = 1.0;
+float tail_num_particles = 1000.0;
+float tail_length_meters = 800.0;
+float tailParticleExtension = 1.5;
+float tailFadeInRcp = 0.1;
+
+float head_projection_hk = 1.0;
+float tracer_beam_time = 0.0;
+//
+float4 head_noise_params = float4(0.3, 0.03, 50.0, 0);
+//x = 0..n - noise frequency
+//y = 0..n - scale of the noise
+//z = 0..n - noise view scale
+//w = 0..n - border size for aa
+float4 head_shape_params = float4(0.05, 2.0, 2.0, 25.0);
+//x = 0..1 - length of the arrow at the start
+//y = 0..n - hdr compatibility multipler
+//z = 0..1 - inv length of the fade at the end
+//w = 0..n - hdr multipler
+float4 front_sprite_params = float4(0.25, 1.25, 0.99999, 0.0);
+//x = MIN_FRONT_SPRITE_PROJ_SIZE
+//y = MAX_FRONT_SPRITE_PROJ_SIZE
+//z = MIN_FRONT_SPRITE_ANGLE
+float tracer_start_color_fade_time_inv = 4.0;
+//x = 0..n - inv fade time for start tracer color
+
+int tracer_prim_type = 0;
+interval tracer_prim_type: tracer_prim_type_dir < 1, tracer_prim_type_caps;
+
+block(scene) tracer_frame
+{
+  supports global_frame;
+
+  (vs) {
+    globtm@f44 = globtm;
+    hk_btime_tlen_tnum@f4 = (head_projection_hk, tracer_beam_time, tail_length_meters, tail_num_particles);
+    tail_extension_fade_htlen@f3 = (tailParticleExtension, tailFadeInRcp, head_shape_params.z, 0);
+    local_view_y@f3 = local_view_y;
+    head_noise_params@f4 = head_noise_params;
+
+    screen_pos_to_texcoord@f4 = screen_pos_to_texcoord;
+    front_sprite_params@f4 = float4(front_sprite_params.x, front_sprite_params.y, front_sprite_params.z, tracer_start_color_fade_time_inv);
+
+    tracer_sun_color_0@f3 = (
+      sun_color_0.r,
+      sun_color_0.g,
+      sun_color_0.b,
+      0);
+    tracer_sky_color@f4 = (
+      sky_color.r,
+      sky_color.g,
+      sky_color.b,
+      tail_lighting_directional_scale);
+  }
+  (ps) {
+    head_noise_params@f4 = head_noise_params;
+    head_shape_params@f4 = head_shape_params;
+  }
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    FOG_PS_STCODE()
+    INIT_ZNZFAR()
+  }
+}
+
+shader fx_create_cmd_cs
+{
+  ENABLE_ASSERT(cs)
+  hlsl {
+    #include "../tracer/tracer.hlsli"
+    #include <tracerConsts.hlsli>
+  }
+  hlsl(cs) {
+    uint commandsCount: register(c0);
+##if fx_create_cmd == fx_create_tracer
+    GPUFxTracerCreate commands[FX_TRACER_MAX_CREATE_COMMANDS]: register(c1);
+    RWStructuredBuffer<GPUFxTracer> dataBuffer: register(u0);
+##else
+    GPUFxSegmentCreate commands[FX_TRACER_MAX_CREATE_COMMANDS]: register(c1);
+    RWStructuredBuffer<GPUFxSegment> dataBuffer: register(u0);
+##endif
+    [numthreads(FX_TRACER_COMMAND_WARP_SIZE, 1, 1)]
+    void main(uint3 dtId: SV_DispatchThreadID)
+    {
+      uint commandId = dtId.x;
+      if (commandId >= commandsCount)
+        return;
+      structuredBufferAt(dataBuffer, commands[commandId].id) = commands[commandId].data;
+    }
+  }
+  compile("cs_5_0", "main");
+}
+
+shader tracer_head
+{
+  supports tracer_frame;
+  dont_render;
+
+  channel float2 tc[0] = tc[0];
+  channel float3 tc[1] = extra[0];
+
+  texture diffuse_tex = material.texture.diffuse;
+  (ps) { diffuse_tex@smp2d = diffuse_tex; }
+}
+
+macro USE_TRACER_DECODE_DATA()
+  hlsl {
+##if fx_instancing_type == fx_instancing_sbuf
+    #define FX_HEAD_NUM_REGISTERS FX_HEAD_MAX_SUPPORTED_NUM_REGISTERS
+##else
+    #define FX_HEAD_NUM_REGISTERS FX_HEAD_MIN_SUPPORTED_NUM_REGISTERS
+##endif
+    #include "../tracer/tracer.hlsli"
+    #include <tracerConsts.hlsli>
+  }
+endmacro
+
+shader tracer_head2
+{
+  supports tracer_frame;
+  render_trans;
+
+  cull_mode = none;
+
+  z_write = false;
+  z_test = true;
+
+  blend_src = one; blend_dst = sa;
+  blend_asrc = zero; blend_adst = one;
+
+  USE_ATEST_1()
+
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    INIT_HDR_STCODE()
+  }
+  USE_HDR()
+  DECL_POSTFX_TC_VS_DEP()
+  GET_CLOUD_VOLUME_MASK()
+  FOG_PS_NO_STCODE()
+  USE_TRACER_DECODE_DATA()
+
+  hlsl {
+    #include <noise/Value1D.hlsl>
+
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 tc_size                  : TEXCOORD0;
+      float3 dtc_dista_drad           : TEXCOORD1;
+      float4 screenTexcoord           : TEXCOORD2;
+      float4 tracerHeadColor1         : TEXCOORD3;
+      float3 hcol2                    : TEXCOORD4;
+      float3 pointToEye               : TEXCOORD5;
+    };
+
+    #define PIX_BORDER_AA 3
+  ##if tracer_prim_type == tracer_prim_type_caps
+    #define ARROW_SHAPE 1.0
+    #define ARROW_SHAPE_VIEW_SCALE 0.0
+    #define LEN_DOT_MUL 5
+    #define LEN_FRONT_DOT_MUL 50
+  ##else
+    #define ARROW_SHAPE 0.5
+    #define ARROW_SHAPE_VIEW_SCALE 5.0
+  ##endif
+  }
+
+  hlsl(ps) {
+    half4 tracer_head_ps(VsOutput input) : SV_Target
+    {
+      float lenHalf = input.tc_size.z;
+      float rad = input.tc_size.w;
+      float radSq = pow2(rad);
+      float2 distVec = input.tc_size.xy * input.tc_size.zw;
+
+      distVec.y += (noise_value1D(input.dtc_dista_drad.x) * 2.0 - 1.0) * input.dtc_dista_drad.z;
+
+      float signDistVec = sign(distVec.x);
+      float2 rvec = float2(distVec.x - (lenHalf - rad) * signDistVec, distVec.y);
+      float rvecSq = dot(rvec, rvec);
+      float rvecRadSq = pow2(rvec.y);
+      bool corners = rvec.x * signDistVec > 0;
+      if ((rvecSq > radSq && corners) || rvecRadSq > radSq)
+        discard;
+
+      float border = 1 - (corners ? sqrt(rvecSq) : abs(rvec.y)) / rad;
+      float4 color = lerp(float4(input.hcol2.rgb, 0), input.tracerHeadColor1, pow2(border));
+
+      half depthMask = get_cloud_volume_mask(input.screenTexcoord);
+      float4 res = float4(color.rgb, color.a * input.dtc_dista_drad.y * depthMask);
+      // near fade
+      res.a *= saturate(input.screenTexcoord.w - input.screenTexcoord.z);
+      if (res.a <= 0)
+        discard;
+
+      res.rgb = pack_hdr(apply_fog(res.rgb * head_shape_params.w, input.pointToEye.xyz)).rgb;
+      ##if special_vision == thermal_vision
+      res.g = dot(float3(0.33, 0.33, 0.33), res.rgb) * 1000.0f / 2550.0f;
+      res.rb = 0;
+      ##endif
+      return float4(res.rgb * res.a, 1);
+    }
+  }
+  compile("target_ps", "tracer_head_ps");
+
+  hlsl(vs) {
+##if fx_instancing_type == fx_instancing_sbuf
+    float4 headData[FX_HEAD_MAXIUM_REGISTERS]: register(c70);
+    StructuredBuffer<GPUFxTracerDynamic> tracerDynamicBuffer : register(t2);
+    StructuredBuffer<GPUFxSegment> segmentBuffer : register(t3);
+    StructuredBuffer<GPUFXTracerType> tracerTypeBuffer : register(t4);
+##else
+    float4 headData[FX_HEAD_MINIMUM_SUPPORTED_REGISTERS]: register(c70);
+##endif
+
+    struct VsInput
+    {
+      HW_BASE_VERTEX_ID_OPTIONAL
+      HW_VERTEX_ID
+    };
+
+    VsOutput tracer_head_vs(VsInput input)
+    {
+      USE_VERTEX_ID_WITHOUT_BASE_OFFSET(input)
+
+      VsOutput output;
+
+      int headId = input.vertexId / FX_HEAD_VERTICES_PER_PARTICLE;
+      int vPosId = input.vertexId % FX_HEAD_VERTICES_PER_PARTICLE;
+
+      GPUFXHeadProcessed head;
+##if fx_instancing_type == fx_instancing_sbuf
+      GPUFXHead headH;
+      UNPACK_FX_HEAD(headData, headId, headH);
+      GET_FX_HEAD_PROCESSED(headH, tracerTypeBuffer, tracerDynamicBuffer, segmentBuffer, head);
+##else
+      UNPACK_FX_HEAD_PROCESSED(headData, headId, head);
+##endif
+
+      float2 vPos = float2(vPosId == 0 || vPosId == 1 ? -1.0 : 1.0, vPosId == 0 || vPosId == 3 ? -1.0 : 1.0);
+      float3 wPos = head.worldPos;
+      // vibrating
+      float headRadius = head.radius * lerp(1, hk_btime_tlen_tnum.y, head.beam);
+      float headHalfLen = head.worldSize;
+
+  ##if tracer_prim_type == tracer_prim_type_caps
+      float vShift = 1.0f;
+      //vShift = clamp(dot(world_view_pos - head.worldPos, head.worldDir) / headHalfLen, -1.0, 1.0);
+      //vShift = vShift > 0 ? -1.0 : 1.0;
+      wPos += head.worldDir * headHalfLen * vShift;
+      vPos.x -= vShift;
+  ##endif
+
+      float3 eyeVec = world_view_pos - wPos;
+      float eyeDist = length(eyeVec);
+      float eyeDistRcp = rcp(eyeDist);
+      float3 eyeVecNorm = (world_view_pos - wPos) * eyeDistRcp;
+      float viewDot = abs(dot(eyeVecNorm, head.worldDir));
+      float viewDotInv = 1 - viewDot;
+      float3 sideVec = head.worldDir;
+      float3 upVec = normalize(cross(sideVec, eyeVecNorm));
+
+  ##if tracer_prim_type == tracer_prim_type_caps
+      float lenFrontDot = saturate(viewDotInv * LEN_FRONT_DOT_MUL);
+      vPos.x += vShift * (1 - lenFrontDot);
+      vShift = lerp(0, vShift, lenFrontDot);
+  ##endif
+
+      float pixWorldSize = screen_pos_to_texcoord.y * eyeDist * rcp(hk_btime_tlen_tnum.x);
+      float pixBorderSize = pixWorldSize * PIX_BORDER_AA;
+
+  ##if tracer_prim_type == tracer_prim_type_caps
+      float lenDot = saturate(viewDotInv * LEN_DOT_MUL);
+      sideVec = cross(eyeVecNorm, upVec);
+  ##else
+      float lenDot = 1;
+      float lenTexelSize = headHalfLen * hk_btime_tlen_tnum.x * eyeDistRcp;
+      if (lenTexelSize < front_sprite_params.x || (lenTexelSize < front_sprite_params.y && viewDot > front_sprite_params.z))
+      {
+        sideVec = cross(eyeVecNorm, upVec);
+        lenDot = saturate(length(float2(dot(head.worldDir, upVec), dot(head.worldDir, sideVec))));
+      }
+  ##endif
+
+      // add borders for aa (an additional border can be ommited if we want more thin tracers)
+      float worldBorder = pixWorldSize * max(head_noise_params.w, head.minPixelSize);
+      // sizes
+      float ySize = max(headRadius + worldBorder, pixBorderSize);
+      float xSize = max(headHalfLen * lenDot + worldBorder, ySize);
+      float distMaxRad = min(head_noise_params.y * viewDotInv, xSize - pixBorderSize);
+      float2 localTc = float2(vPos.x, vPos.y * (1 + distMaxRad / ySize));
+  ##if tracer_prim_type == tracer_prim_type_caps
+      localTc.x += vShift;
+  ##endif
+      float distTc = (localTc.x * xSize) * head_noise_params.x;
+      float3 worldPos = wPos + sideVec * vPos.x * xSize + upVec * vPos.y * (ySize + distMaxRad);
+
+      float4 projPos = mul(float4(worldPos, 1.0), globtm);
+      float distAlpha = saturate(pow2(0.5 * (headHalfLen + headRadius) / pixWorldSize));
+      ##if tracer_prim_type != tracer_prim_type_caps
+      // tail fade
+      distAlpha *= lerp(pow2(saturate((localTc.x * 0.5 + 0.5) * tail_extension_fade_htlen.z)), 1, head.beam);
+      ##endif
+
+      output.pos = projPos;
+
+##if fx_instancing_type == fx_instancing_sbuf
+      float startColorFade = saturate((head.time - head.tracerStartTime) * front_sprite_params.w);
+      output.tracerHeadColor1 = float4(lerp(head.tracerStartColor1, head.tracerHeadColor1.rgb, startColorFade), head.tracerHeadColor1.a);
+      output.hcol2 = lerp(head.tracerStartColor2, head.tracerHeadColor2, startColorFade);
+##else
+      output.tracerHeadColor1 = head.tracerHeadColor1;
+      output.hcol2 = head.tracerHeadColor2;
+##endif
+
+      // Use ySize for x dimension to make an arrowed shape
+      output.tc_size = float4(localTc, lerp(xSize, ySize, (1 - head.beam) * lerp(1, ARROW_SHAPE, saturate(ARROW_SHAPE_VIEW_SCALE * viewDotInv))), ySize);
+      output.dtc_dista_drad = float3(distTc, distAlpha, distMaxRad);
+      output.screenTexcoord = float4(
+        projPos.xy * RT_SCALE_HALF + float2(0.5, 0.5) * projPos.w,
+        projPos.z,
+        projPos.w);
+      if (headRadius <= 0)
+        output.pos = float4(-2, -2, 1, 1);
+      output.pointToEye = eyeVec;
+
+      return output;
+    }
+  }
+  compile("target_vs", "tracer_head_vs");
+}
+
+shader tracer_tail
+{
+  supports tracer_frame;
+  supports global_const_block;
+  render_trans;
+
+  cull_mode = none;
+
+  z_write = false;
+  z_test = true;
+
+  blend_src = one; blend_dst = isa;
+  blend_asrc = one; blend_adst = isa;
+
+  USE_ATEST_1()
+
+  (ps) { diffuse_tex@smp2d = tracer_tail_tex; }
+
+  channel short2 pos = pos;
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    INIT_HDR_STCODE()
+  }
+  USE_HDR()
+  INIT_SUN_STCODE()
+  DECL_POSTFX_TC_VS_DEP()
+  GET_CLOUD_VOLUME_MASK()
+  FOG_PS_NO_STCODE()
+  USE_INDIRECT_DRAW()
+  USE_TRACER_DECODE_DATA()
+  DISABLE_ASSERT_STAGE(vs)
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 diffuseTexcoord  : TEXCOORD0;
+      float4 color            : TEXCOORD1;
+      float4 screenTc         : TEXCOORD2;
+      float3 pointToEye       : TEXCOORD3;
+    };
+  }
+
+  hlsl(ps) {
+    float4 tracer_tail_ps(VsOutput input) : SV_Target
+    {
+      half4 diffuse = tex2D(diffuse_tex, input.diffuseTexcoord);
+      diffuse *= input.color;
+      diffuse.rgb = pack_hdr(apply_fog(diffuse.rgb, input.pointToEye)).rgb;
+      float opacity = diffuse.a * get_cloud_volume_mask(input.screenTc);
+      clip_alpha(opacity);
+      ##if special_vision == thermal_vision
+        diffuse.r = dot(float3(0.33, 0.33, 0.33), diffuse.rgb) * 120.0f/255.0f;
+        diffuse.gb = 0;
+      ##endif
+      return float4(diffuse.rgb * opacity, opacity);
+    }
+  }
+  compile("target_ps", "tracer_tail_ps");
+
+  hlsl(vs) {
+##if fx_instancing_type == fx_instancing_sbuf
+    StructuredBuffer<TailParticle> tailParticles : register(t0);
+    StructuredBuffer<GPUFxTracer> tracerBuffer : register(t1);
+    StructuredBuffer<GPUFxTracerDynamic> tracerDynamicBuffer : register(t2);
+    StructuredBuffer<GPUFxSegment> segmentBuffer : register(t3);
+##else
+    float4 tracerData[FX_TRACER_DATA_NUM_REGISTERS]: register(c70);
+##endif
+
+    struct VsInput
+    {
+      int2 pos: POSITION;
+##if fx_instancing_type == fx_instancing_sbuf
+      int2 instance_id: TEXCOORD0;
+      HW_BASE_VERTEX_ID_OPTIONAL
+      HW_VERTEX_ID
+  ##if hardware.ps4 || hardware.ps5  //PS4 adds vertex offset to vertexId, DX11 is not
+      uint vertexIdOffset: S_VERTEX_OFFSET_ID;
+  ##endif
+##else
+      float3 perlin: TEXCOORD0;
+##endif
+    };
+
+    VsOutput tracer_tail_vs(VsInput input)
+    {
+##if fx_instancing_type == fx_instancing_sbuf
+      USE_VERTEX_ID_WITHOUT_BASE_OFFSET(input)
+##endif
+      VsOutput output;
+
+      GPUFxTracer tracer;
+      GPUFxTracerDynamic tracerDynamic;
+      GPUFxSegmentProcessed segment;
+      int partId = input.pos.x / FX_VERTICES_PER_PARTICLE;
+      int divisor = input.pos.y;
+
+##if fx_instancing_type == fx_instancing_sbuf
+      GET_FX_TRACER(input.instance_id.x, hk_btime_tlen_tnum.z, hk_btime_tlen_tnum.w, tracerBuffer, tracerDynamicBuffer, segmentBuffer, tracer, tracerDynamic, segment);
+ ##if hardware.ps4 || hardware.ps5
+      int localPartId = (input.vertexId - input.vertexIdOffset) / FX_VERTICES_PER_PARTICLE * divisor;
+ ##else
+      int localPartId = input.vertexId / FX_VERTICES_PER_PARTICLE * divisor;
+ ##endif
+      int tnum = hk_btime_tlen_tnum.w;
+      TailParticle particle = structuredBufferAt(tailParticles, (partId + input.instance_id.x) % tnum);
+##else
+      int partOffs = 0;
+      UNPACK_FX_TRACER(tracerData, tracer, tracerDynamic, segment, partOffs);
+      int localPartId = partId - partOffs;
+      TailParticle particle;
+      particle.perlin = input.perlin.xy;
+      particle.rv = input.perlin.z;
+##endif
+
+      int vPosId = input.pos.x % FX_VERTICES_PER_PARTICLE;
+      float2 vPos = float2(vPosId == 0 || vPosId == 1 ? -1.0 : 1.0, vPosId == 0 || vPosId == 3 ? -1.0 : 1.0);
+      float segmLen = localPartId / hk_btime_tlen_tnum.w;
+
+      int partCount = (tracerDynamic.partCountSegmentId % FX_TRACER_PACK_BIT) % FX_TRACER_BITS_PART_COUNT;
+      float idc = saturate((partId + (hk_btime_tlen_tnum.w - partCount)) / hk_btime_tlen_tnum.w);
+      float dc = (1.0 - idc);
+      float opacity = tracer.tailColor.a * idc * idc;
+
+      float3 centerPos = segment.worldPos + segment.worldDir * (segmLen * hk_btime_tlen_tnum.z + tail_extension_fade_htlen.x * (divisor - 1));
+      float3 forward = normalize(centerPos - world_view_pos);
+      float3 right = normalize(cross(local_view_y, forward));
+      float3 up = cross(right, forward);
+
+      float3 relativeCornerOffset = (right * vPos.x + up * vPos.y);
+      float tailExtension = tail_extension_fade_htlen.x * divisor;
+      float extension = clamp(tailExtension * dot(segment.worldDir, relativeCornerOffset), -1, 1);
+      float3 cornerOffset =
+        (dc * tracer.tailParticleHalfSize.x + tracer.tailParticleHalfSize.y) * relativeCornerOffset
+        + tailExtension * extension * segment.worldDir;
+      cornerOffset *= saturate(opacity * 5); // Fade out particle size.
+
+      float4 worldPosResult = float4(centerPos + dc * dc * (segment.tmX * particle.perlin.x + segment.tmY * particle.perlin.y) + cornerOffset, 1);
+      output.pos = mul(worldPosResult, globtm);
+
+      float2 uvOffs = float2(particle.rv < 0.25 || (particle.rv >= 0.5 && particle.rv < 0.75) ? 0 : 0.5, particle.rv < 0.5 ? 0.0 : 0.5);
+      output.diffuseTexcoord.xy = uvOffs + (vPos.xy * 0.5 + 0.5) * 0.5;
+      float3 worldDu = relativeCornerOffset - segment.worldDir * dot(segment.worldDir, relativeCornerOffset);
+      float3 worldDv = -forward;
+
+      float3 sunColor = tracer_sun_color_0 * tracer_sky_color.a;
+      float3 skyColor = tracer_sky_color.xyz + tracer_sun_color_0 * (1 - tracer_sky_color.a);
+      float3 normal = normalize(worldDu + SQRT_SAT(1.0 - dot(worldDu, worldDu)) * worldDv);
+      half3 lighting = saturate(dot(normal, -from_sun_direction.xyz)) * sunColor + skyColor;
+      output.color.rgb = 2 * tracer.tailColor.rgb * lighting;
+      output.color.a = opacity * saturate((output.pos.w - tailExtension) * tail_extension_fade_htlen.y);
+
+      output.screenTc = output.pos;
+      output.screenTc.xy = output.pos.xy * RT_SCALE_HALF + float2(0.50001, 0.50001) * output.pos.w;
+      output.pointToEye = world_view_pos - worldPosResult.xyz;
+      return output;
+    }
+  }
+  compile("target_vs", "tracer_tail_vs");
+}
+

@@ -1,0 +1,37 @@
+ConsoleExe = yes ;
+Platform = win64 ;
+
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/customContentTool/extractUtil ;
+
+TargetType  = exe ;
+MultiTarget =
+  util/extractSkins
+  util/extractDecals
+;
+
+OutDir = $(Root)/$(Location) ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+;
+
+Sources(util/extractSkins) = extractSkins.cpp con_main.cpp ;
+Sources(util/extractDecals) = extractDecals.cpp con_main.cpp ;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/baseUtil
+  engine2/ioSys
+  engine2/startup
+  engine2/math
+  engine2/perfMon/daProfilerStub
+  tools/libTools/assetMgr
+  tools/libTools/util
+  3rdPartyLibs/hash
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

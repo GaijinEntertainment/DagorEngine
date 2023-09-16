@@ -1,0 +1,26 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/haptic ;
+TargetType  = lib ;
+Target      = gameLibs/haptic.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude/haptic
+;
+
+Sources =
+  haptic.cpp
+;
+
+if $(Platform) = android {
+  Sources +=
+    android/haptic_vibration.cpp
+  ;
+} else if $(Platform) = iOS {
+  Sources +=
+    iOS/haptic_vibration.mm
+  ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,26 @@
+﻿/* Strings for User Notification of a crash */
+"crashDialogHeader" = "%@ uygulaması beklenmedik şekilde kapandı.";
+"crashDialogMsg" = "Sistem ve diğer uygulamalar etkilenmedi. Sorunun tanımlanabilmesine yardımcı olmanız için %@ne gönderilmek üzere bir rapor oluşturuldu.";
+
+"noCrashDialogHeader" = "%@ uygulaması bir hatayla karşılaştı.";
+"noCrashDialogMsg" = "Sistem ve diğer uygulamalar etkilenmedi. %2$@'nun iyileştirilmesine yardımcı olabilmeniz için %1$@ne gönderilmek üzere bir rapor oluşturuldu.";
+
+"commentsMsg" = "Lütfen çökmeden önce olanları açıklayarak sorunu çözmemize yardımcı olun.";
+"emailMsg" = "E-posta adresinizi bildirmeniz, gerektiğinde sizinle iletişim kurabilmemizi sağlayacak.";
+
+"commentsPlaceholder" = "isteğe bağlı yorum";
+"emailPlaceholder" = "seçime bağlı";
+
+"emailLabel" = "E-posta:";
+"privacyLabel" = "Gizlilik Politikası";
+
+"sendReportButton" = "Raporu Gönder";
+"cancelButton" = "İptal";
+"noSendButton" = "Tamam";
+"privacyPolicyURL" = "http://www.google.com/privacypolicy.html";
+
+"countdownMsgSecondsPlural" = "%d saniye kaldı.";
+"countdownMsgSecondSingular" = "%d saniye kaldı.";
+
+"countdownMsgMinutesPlural" = "%d dakika kaldı.";
+"countdownMsgMinuteSingular" = "%d dakika kaldı.";

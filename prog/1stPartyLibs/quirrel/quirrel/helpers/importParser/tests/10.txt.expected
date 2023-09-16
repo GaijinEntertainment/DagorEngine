@@ -1,0 +1,5 @@
+math(math):
+dagor2.math(m):
+generic/std.nut(std): id=Matrix, path=types.TMatrix; id=point, path=types.Point2;
+module2(module2): id=, path=*;
+#strict-compile:yes

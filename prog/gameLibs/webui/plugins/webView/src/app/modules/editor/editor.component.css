@@ -1,0 +1,63 @@
+.log textarea, .log code {
+    display: block;
+    width: 100%;
+    /*height: 95%;*/
+    border: 0px;
+    white-space: pre;
+    /*margin-top: 100px;*/
+}
+
+#log-stream {
+    white-space: pre;
+    height: 56%;
+    display: block;
+    overflow-y: scroll;
+    font-size: 14px;
+}
+
+:host >>> tr.disabled, a.disabled, .edit-mode-disabled {
+    opacity: 0.5;
+}
+
+.block-with-border {
+    border: solid 1px black;
+    padding: 10px;
+    margin-top: -1px;
+}
+
+.fixed-panel-top {
+    position: fixed;
+    top: 0;
+    z-index: 100;
+}
+
+.fixed-panel-right {
+    position: fixed;
+    right: 0;
+    z-index: 100;
+}
+
+.menu-button {
+    position: fixed;
+    right: 0;
+    top: 0;
+    z-index: 200;
+}
+
+span.extender {
+    visibility: hidden;
+    width: 0px;
+    display: inline-block;
+}
+
+:host >>> .unit-row {
+    height: 36px;
+}
+
+:host >>> .card-block-no-padding .card-body {
+    padding: 0;
+}
+
+:host >>> .fixed-panel-right .card-body {
+    padding: 0;
+}

@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/pageAsg ;
+
+TargetType  = lib ;
+Target      = tools/libTools/pageAsg.lib ;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+
+Sources =
+  asg_data.cpp
+  asg_export.cpp
+  asg_scheme.cpp
+  asg_nodes.cpp
+  asg_cond_parser.cpp
+  asg_anim_load.cpp
+  asg_anim_save.cpp
+  asg_anim_tree.cpp
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

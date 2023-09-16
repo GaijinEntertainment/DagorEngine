@@ -1,0 +1,44 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/unittest-cpp ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/unittest-cpp.lib ;
+
+AddIncludes     =  $(Root)/prog/3rdPartyLibs/unittest-cpp ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+  UnitTest++/AssertException.cpp
+  UnitTest++/Checks.cpp
+  UnitTest++/CompositeTestReporter.cpp
+  UnitTest++/CurrentTest.cpp
+  UnitTest++/DeferredTestReporter.cpp
+  UnitTest++/DeferredTestResult.cpp
+  UnitTest++/MemoryOutStream.cpp
+  UnitTest++/ReportAssert.cpp
+  UnitTest++/Test.cpp
+  UnitTest++/TestDetails.cpp
+  UnitTest++/TestList.cpp
+  UnitTest++/TestReporter.cpp
+  UnitTest++/TestReporterStdout.cpp
+  UnitTest++/TestResults.cpp
+  UnitTest++/TestRunner.cpp
+  UnitTest++/TimeConstraint.cpp
+  UnitTest++/XmlTestReporter.cpp
+  UnitTest++/RequiredCheckException.cpp
+  UnitTest++/RequiredCheckTestReporter.cpp
+  UnitTest++/ThrowingTestReporter.cpp
+;
+
+if $(Platform) in win32 win64 {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/unittest-cpp/UnitTest++/win32 ;
+  Sources += UnitTest++/Win32/TimeHelpers.cpp ;
+}
+else {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/unittest-cpp/UnitTest++/posix ;
+  Sources += UnitTest++/Posix/TimeHelpers.cpp UnitTest++/Posix/SignalTranslator.cpp ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

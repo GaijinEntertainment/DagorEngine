@@ -1,0 +1,14 @@
+return {
+  function dump_all(a) { }
+  function reset_all() { }
+  function register_logerr_monitor(a, b) { }
+  function dump_cur_vm(a) {
+    assert(["integer"].contains(type(a)), @() $"type of argument should be one of: 'integer'")
+  }
+  function unregister_logerr_interceptor(a) { }
+  function clear_logerr_interceptors(...) { }
+  function register_logerr_interceptor(a, b) { }
+  function set_huge_alloc_threshold(a) { }
+  function reset_cur_vm() { }
+  function get_memory_allocated_kb() { }
+}

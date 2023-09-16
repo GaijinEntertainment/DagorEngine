@@ -1,0 +1,20 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditor3/services/lightSrv ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditor3/services/lightSrv.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+
+Sources =
+  lightSrv.cpp
+  ltMgr.cpp
+  exportSHLT.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

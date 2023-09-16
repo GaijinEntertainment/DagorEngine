@@ -1,0 +1,13 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/daECS ;
+
+TargetType  = util ;
+Target      = externalLibs ;
+
+# ProjectUseQuirrel = sq3r ;
+
+Dependencies =
+  $(Root)/$(Location)/core/jamfile
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

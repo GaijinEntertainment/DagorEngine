@@ -1,0 +1,33 @@
+include "shader_global.sh"
+include "volume_light_distant_common.sh"
+
+texture mip_gen_input_tex;
+float4 mip_gen_input_tex_size;
+
+shader volfog_mip_gen_cs
+{
+  local float4 mip_gen_output_tex_size_inv = (2.0/mip_gen_input_tex_size.x, 2.0/mip_gen_input_tex_size.y,0,0);
+  (cs) {
+    mip_gen_input_tex@smp2d = mip_gen_input_tex;
+    mip_gen_output_tex_size@f2 = (mip_gen_input_tex_size.x*0.5, mip_gen_input_tex_size.y*0.5, 0, 0);
+    mip_gen_tr@f4 = (mip_gen_output_tex_size_inv.x, mip_gen_output_tex_size_inv.y, 0.5*mip_gen_output_tex_size_inv.x, 0.5*mip_gen_output_tex_size_inv.y);
+  }
+
+  hlsl(cs) {
+    RWTexture2D<float2>  OutputMip : register(u7);
+
+    [numthreads( RAYMARCH_WARP_SIZE, RAYMARCH_WARP_SIZE, 1 )]
+    void MipGen( uint2 dtId : SV_DispatchThreadID, uint2 tid : SV_GroupThreadID )
+    {
+      if (any(dtId >= (uint2)mip_gen_output_tex_size.xy))
+        return;
+      float2 tc = float2(dtId) * mip_gen_tr.xy + mip_gen_tr.zw;
+      float4 startStep4 = mip_gen_input_tex.GatherRed(mip_gen_input_tex_samplerstate, tc);
+      float4 occlusionWeight4 = mip_gen_input_tex.GatherGreen(mip_gen_input_tex_samplerstate, tc);
+      float occlusionWeight = max4(occlusionWeight4.x, occlusionWeight4.y, occlusionWeight4.z, occlusionWeight4.w);
+      float startStep = max4(startStep4.x, startStep4.y, startStep4.z, startStep4.w);
+      OutputMip[dtId] = float2(startStep, occlusionWeight);
+    }
+  }
+  compile("target_cs", "MipGen");
+}

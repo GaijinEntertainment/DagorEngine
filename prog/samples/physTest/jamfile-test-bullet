@@ -1,0 +1,5 @@
+Root    ?= ../../.. ;               # directory where 'prog' located
+PhysEngine = BULLET ;
+
+include $(Root)/prog/samples/physTest/jamfile-phys-test ;
+include $(Root)/prog/_jBuild/build.jam ;

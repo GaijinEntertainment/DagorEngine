@@ -1,0 +1,34 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/image/libpng-1.4.22 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/image/libpng-1.4.22.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+Target = $(Target:S=~z$(UseZlibVer).lib) ;
+
+AddIncludes = $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer) ;
+
+Sources =
+  png.c
+  pngerror.c
+  pngget.c
+  pngmem.c
+  pngpread.c
+  pngread.c
+  pngrio.c
+  pngrtran.c
+  pngrutil.c
+  pngset.c
+  pngtrans.c
+  pngwio.c
+  pngwrite.c
+  pngwtran.c
+  pngwutil.c
+;
+
+CPPopt = -D__B_CORE -DPNG_NO_CONSOLE_IO -DPNG_NO_WRITE_FLUSH ;
+
+if $(Platform) in win64 xboxOne scarlett { Copt += /wd4267 ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

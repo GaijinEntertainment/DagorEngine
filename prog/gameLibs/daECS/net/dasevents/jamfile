@@ -1,0 +1,32 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/daECS/net/dasevents ;
+
+TargetType  = lib ;
+Target      = gameLibs/daECS/net/dasevents.lib ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/1stPartyLibs/quirrel/sqrat/include
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+
+SourceES =
+  dasEventES.cpp.inl
+;
+
+if $(ProjectUseQuirrel) && $(ProjectUseQuirrel) in sq3r sq3r+ {
+  # UseQuirrel = sq3r ;
+  CPPopt += -DUSE_SQRAT_CONFIG ;
+}
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

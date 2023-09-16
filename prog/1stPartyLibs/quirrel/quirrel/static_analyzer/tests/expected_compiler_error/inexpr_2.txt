@@ -1,0 +1,5 @@
+//expect:error
+
+local x;
+if (x := { y := 5 })
+  print(2)

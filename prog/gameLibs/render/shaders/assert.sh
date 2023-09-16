@@ -1,0 +1,131 @@
+
+buffer assertion_buffer;
+int shader_class_id = -1;
+int stack_id = -1;
+
+interval vertex_density_allowed: no < 1, yes;
+assume vertex_density_allowed = no;
+
+interval debug_mode_enabled: no < 1, yes;
+assume debug_mode_enabled = no;
+bool DEBUG = debug_mode_enabled == yes;
+
+macro DEFINE(val)
+  bool val = true;
+endmacro
+
+macro DEFINED(val)
+  (maybe(val))
+endmacro
+
+macro G_ASSERT(expr, msg)
+  if (!(expr)) {
+    error(msg);
+  }
+endmacro
+
+macro BEGIN_ONCE(name)
+  if (!DEFINED(name)) {
+    DEFINE(name)
+endmacro
+
+macro END_ONCE()
+  }
+endmacro
+
+hlsl {
+  void _assert(bool e, uint id,
+              float v0 = 0, float v1 = 0, float v2 = 0, float v3 = 0,
+              float v4 = 0, float v5 = 0, float v6 = 0, float v7 = 0,
+              float v8 = 0, float v9 = 0, float v10 = 0, float v11 = 0,
+              float v12 = 0, float v13 = 0, float v14 = 0, float v15 = 0);
+}
+
+macro DISABLE_ASSERT_STAGE(stage)
+  BEGIN_ONCE(disable_assert)
+  hlsl(stage) {
+    void _assert(bool e, uint id,
+                float v0, float v1, float v2, float v3,
+                float v4, float v5, float v6, float v7,
+                float v8, float v9, float v10, float v11,
+                float v12, float v13, float v14, float v15) {}
+  }
+  END_ONCE()
+endmacro
+
+macro ENABLE_ASSERT_STAGE(stage)
+  if (DEBUG) {
+    (stage) {
+      shader_id@i1 = shader_class_id;
+      stack_id@i1 = stack_id;
+      assertion_buffer@uav = assertion_buffer hlsl {
+        #include "assert.hlsli"
+        RWStructuredBuffer<AssertEntry> assertion_buffer@uav;
+      }
+    }
+    hlsl(stage) {
+      void _assert(bool expr, uint assert_message_id,
+                  float var0, float var1, float var2, float var3,
+                  float var4, float var5, float var6, float var7,
+                  float var8, float var9, float var10, float var11,
+                  float var12, float var13, float var14, float var15)
+      {
+        if (expr)
+          return;
+
+        int asserted = 0;
+        InterlockedCompareExchange(assertion_buffer[shader_id].asserted, 0, 1, asserted);
+        if (asserted == 1)
+          return;
+
+        assertion_buffer[shader_id].assert_message_id = assert_message_id;
+        assertion_buffer[shader_id].stack_id = stack_id;
+        assertion_buffer[shader_id].variables[0] = var0;
+        assertion_buffer[shader_id].variables[1] = var1;
+        assertion_buffer[shader_id].variables[2] = var2;
+        assertion_buffer[shader_id].variables[3] = var3;
+        assertion_buffer[shader_id].variables[4] = var4;
+        assertion_buffer[shader_id].variables[5] = var5;
+        assertion_buffer[shader_id].variables[6] = var6;
+        assertion_buffer[shader_id].variables[7] = var7;
+        assertion_buffer[shader_id].variables[8] = var8;
+        assertion_buffer[shader_id].variables[9] = var9;
+        assertion_buffer[shader_id].variables[10] = var10;
+        assertion_buffer[shader_id].variables[11] = var11;
+        assertion_buffer[shader_id].variables[12] = var12;
+        assertion_buffer[shader_id].variables[13] = var13;
+        assertion_buffer[shader_id].variables[14] = var14;
+        assertion_buffer[shader_id].variables[15] = var15;
+      }
+    }
+  } else {
+    DISABLE_ASSERT_STAGE(stage)
+  }
+endmacro
+
+interval assert_enabled_for_stage: no < 1, ps < 2, cs;
+assume assert_enabled_for_stage = no;
+
+macro ENABLE_ASSERT(stage)
+  G_ASSERT(assert_enabled_for_stage == no || assert_enabled_for_stage == stage,
+           "You are trying to enable `assert` again with a different stage")
+  BEGIN_ONCE(enable_assert)
+    assume assert_enabled_for_stage = stage;
+    if (assert_enabled_for_stage == ps) {
+      ENABLE_ASSERT_STAGE(ps)
+
+      // Currently we don't support @uav in a vertex shader
+      DISABLE_ASSERT_STAGE(vs)
+    } else if (assert_enabled_for_stage == cs) {
+      ENABLE_ASSERT_STAGE(cs)
+    } else {
+      error("Unsupported stage for enabling assert");
+    }
+  END_ONCE()
+endmacro
+
+macro NO_DYNSTCODE()
+  if (!DEBUG && vertex_density_allowed == no) {
+    no_dynstcode;
+  }
+endmacro

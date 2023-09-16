@@ -1,0 +1,5 @@
++ make 'brightness' in each node, default (just scale) - in vertex shader. Scales result
+* ensure depth target is big enough (can be done in application layer)
+* change fmt is not working correctly
+* node without out pins not working correctly
+* preview node

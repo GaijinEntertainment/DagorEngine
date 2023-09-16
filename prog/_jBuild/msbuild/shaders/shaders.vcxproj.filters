@@ -1,0 +1,430 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="enlisted">
+      <UniqueIdentifier>{bdb41e7a-6baf-4bf7-9b83-20d8bb0635a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="active_matter">
+      <UniqueIdentifier>{e0008278-4cb4-4880-9864-aa54cda46842}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cuisine_royale">
+      <UniqueIdentifier>{77a21268-791d-46ca-9e81-5fdf62409966}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="beyond_the_door">
+      <UniqueIdentifier>{2964F9BB-E01D-499B-A6E6-6CC9F73563C3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="outer_space">
+      <UniqueIdentifier>{ed1d6d5e-1d2d-4792-8a7e-fc448aafdd50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="skyquake">
+      <UniqueIdentifier>{b446692e-6631-461c-ad8a-9ac8e8e0e9d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="skyquake_wtm">
+      <UniqueIdentifier>{5b5f1805-6487-446b-99b1-159d7bcb3304}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="to_the_sky">
+      <UniqueIdentifier>{b0ba0875-156a-4966-b3dd-f91fb5b4ac98}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_dx12_fast.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_compat_pc11.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_compat11.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_compat12.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_dx12.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_dx12x.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_dx12xs.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_metal.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_metal_ios.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_pc11.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_pc11_fast.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_ps4.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_ps4_sdb.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_ps5.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_ps5_agsd.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_spirv.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_spirv_android.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_spirv_android_miniui.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_spirv_compat.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_spirv_nswitch.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_spirv_oculus.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_spirv_rt.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_tools.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\enlisted\prog\shaders\compile_shaders_xboxOne.bat">
+      <Filter>enlisted</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_compat_pc11.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_compat11.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_compat12.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_dx12.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_dx12_fast.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_dx12x.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_dx12xs.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_metal.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_metal_ios.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_pc11.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_pc11_fast.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_ps4.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_ps4_sdb.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_ps5.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_ps5_agsd.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_spirv.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_spirv_android.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_spirv_android_miniui.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_spirv_compat.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_spirv_nswitch.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_spirv_oculus.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_spirv_rt.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_tools.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\active_matter\prog\shaders\compile_shaders_xboxOne.bat">
+      <Filter>active_matter</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_compat_pc11.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_compat11.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_compat12.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_dx12.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_dx12_fast.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_dx12x.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_dx12xs.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_metal.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_metal_ios.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_pc11.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_pc11_fast.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_ps4.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_ps4_sdb.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_ps5.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_ps5_agsd.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_spirv.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_spirv_android.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_spirv_android_forward.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_spirv_android_miniui.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_spirv_compat.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_spirv_nswitch.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_spirv_rt.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_tools.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\cuisine_royale\prog\shaders\compile_shaders_xboxOne.bat">
+      <Filter>cuisine_royale</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\outerSpace\prog\shaders\compile_shaders_pc11.bat">
+      <Filter>outer_space</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\outerSpace\prog\shaders\compile_shaders_tools.bat">
+      <Filter>outer_space</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_dx12x.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_dx12xs.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_metal.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_metal_compatibility.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_metal_ios_compatibility.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_miniUi.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_pc11.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_pc11_comp.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_pc11_comp_fsh40.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_pc11_debug.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_pc11_fast.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_pc12.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_pc12_comp.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_ps4.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_ps4_compatibility.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_ps4_sdb.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_ps5.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_ps5_agsd.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_ps5_compatibility.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_spirv.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_spirv_compatibility.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_tools.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_xboxOne.bat">
+      <Filter>skyquake</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_android_wtm.bat">
+      <Filter>skyquake_wtm</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_pcspirv_wtm.bat">
+      <Filter>skyquake_wtm</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_pc11_wtm.bat">
+      <Filter>skyquake_wtm</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_ios_wtm.bat">
+      <Filter>skyquake_wtm</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\skyquake\prog\shaders\compile_shaders_tools_wtm.bat">
+      <Filter>skyquake_wtm</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_compat_pc11.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_compat11.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_compat12.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_dx12.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_dx12_fast.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_dx12x.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_dx12xs.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_metal.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_metal_ios.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_pc11.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_pc11_fast.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_ps4.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_ps4_sdb.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_ps5.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_ps5_agsd.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_spirv.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_spirv_android.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_spirv_android_miniui.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_spirv_compat.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_spirv_nswitch.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_spirv_oculus.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_spirv_rt.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_tools.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\to_the_sky\prog\shaders\compile_shaders_xboxOne.bat">
+      <Filter>to_the_sky</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\beyond_the_door\prog\shaders\compile_shaders_dx12.bat">
+      <Filter>beyond_the_door</Filter>
+    </Bat>
+    <Bat Include="..\..\..\..\beyond_the_door\prog\shaders\compile_shaders_pc11.bat">
+      <Filter>beyond_the_door</Filter>
+    </Bat>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,118 @@
+include "wetness_inc.sh"
+
+texture wake_gradients_tex;
+texture wake_ht_tex;
+float4 world_to_wake = (1,1,1,1);
+float wake_ht_scale = 0.075;
+float4 wake_main_dir =(0,0,0,1);
+
+macro INIT_WAKE()
+  if (wake_gradients_tex!=NULL)
+  {
+    (ps) {
+      wake_gradients_tex@smpArray = wake_gradients_tex;
+      world_to_wake@f4 = world_to_wake;
+    }
+  }
+  else
+  {
+    USE_WATER_RIPPLES()
+  }
+endmacro
+
+macro INIT_WAKE_VS(tid, sid)
+  if (support_texture_array != on)
+  {
+    hlsl(vs) {
+      #define WAKE_VS_OFF 1
+    }
+  }
+  else if (wake_gradients_tex != NULL)
+  {
+    (vs) {
+      world_to_wake@f4 = (world_to_wake.x, world_to_wake.y, world_to_wake.z, wake_ht_scale);
+      wake_ht@smp2d = wake_ht_tex;
+    }
+    hlsl(vs)
+    {
+      #define WAKE_ON 1
+    }
+  }
+  else
+  {
+    USE_WATER_RIPPLES_DISPL(vs)
+  }
+
+  (ps) { wake_main_dir@f4 = wake_main_dir; }
+endmacro
+
+macro USE_WAKE_VS()
+  hlsl(vs)
+  {
+    half get_wake_height( float3 worldPos )
+    {
+    #if WAKE_VS_OFF
+      return 0;
+    #elif WAKE_ON
+      float2 wake_tc0 = worldPos.xz*world_to_wake.x+world_to_wake.yz;
+      half h0 = tex3Dlod( wake_ht, float4( wake_tc0, 0, 0 ) ).x;
+      return h0 * world_to_wake.w;
+    #else
+      return get_water_ripples_displace(worldPos);
+    #endif
+    }
+  }
+endmacro
+
+macro USE_WAKE()
+  hlsl(ps) {
+    ##if wake_gradients_tex!=NULL
+    #define WAKE_ON 1
+
+    half3 get_wake_gradient(float3 worldPos)
+    {
+      float2 wake_tc0 = worldPos.xz*world_to_wake.x+world_to_wake.yz;
+      float2 wake_tc1 = wake_tc0*0.5+0.25;
+
+      float sizeInMeters0 = world_to_wake.w;
+      //return pack_hdr(0.5+(tex2D(wake_ht_tex, wake_tc0.xy).x+tex2D(wake_ht_tex, wake_tc1.xy).y)*0.5);
+      half2 wake_grad0 = tex3Dlod(wake_gradients_tex, float4(wake_tc0.xy,0,0)).xy;
+      half2 wake_grad1 = tex3Dlod(wake_gradients_tex, float4(wake_tc1.xy,1,0)).xy;
+      half2 wake_grad = wake_grad0+wake_grad1;
+      return half3(wake_grad.xy, sizeInMeters0);
+    }
+    float3 get_wake_normal(float3 worldPos, out half wakeEffect)//should be removed!
+    {
+      float2 wake_tc0 = worldPos.xz*world_to_wake.x+world_to_wake.yz;
+      float2 wake_tc1 = wake_tc0*0.5+0.25;
+
+      float sizeInMeters0 = world_to_wake.w;
+      //return pack_hdr(0.5+(tex2D(wake_ht_tex, wake_tc0.xy).x+tex2D(wake_ht_tex, wake_tc1.xy).y)*0.5);
+      half2 wake_grad0 = tex3Dlod(wake_gradients_tex, float4(wake_tc0.xy,0,0)).xy;
+      half2 wake_grad1 = tex3Dlod(wake_gradients_tex, float4(wake_tc1.xy,1,0)).xy;
+      half2 wake_grad = wake_grad0+wake_grad1;
+      half2 wake_strength = abs(wake_grad0)+6*abs(wake_grad1);
+      
+      //float3 wake_normal0 = normalize(half3(hor0, ver0, sizeInMeters0));
+      //float3 wake_normal1 = normalize(half3(hor1, ver1, sizeInMeters1));
+      //float3 wake_normal = RNM_ndetail(wake_normal1, wake_normal0);
+      float3 wake_normal = normalize(half3(wake_grad.xy, sizeInMeters0));
+      wakeEffect = saturate((wake_strength.x+wake_strength.y)*2);
+      return wake_normal;
+    }
+    ##else
+      #define WAKE_ON 0
+
+      float3 get_wake_normal(float3 worldPos, out half wakeEffect)
+      {
+        float3 norm = get_water_ripples_normal(worldPos);
+        wakeEffect = (norm.x + norm.z) > 0 ? 1.0 : 0.0;
+        return norm.xzy;
+      }
+      half3 get_wake_gradient(float3 worldPos)
+      {
+        return get_water_ripples_gradient(worldPos).xzy;
+      }
+    ##endif
+  }
+endmacro

@@ -1,0 +1,34 @@
+//
+// Dagor Tech 6.5
+// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
+// (for conditions of use see prog/license.txt)
+//
+#pragma once
+
+// Controls data flags
+enum
+{
+  CONTROL_DATA_TYPE_INT = 1 << 0,
+  CONTROL_DATA_TYPE_FLOAT = 1 << 1,
+  CONTROL_DATA_TYPE_STRING = 1 << 2,
+  CONTROL_DATA_TYPE_BOOL = 1 << 3,
+  CONTROL_DATA_TYPE_COLOR = 1 << 4,
+  CONTROL_DATA_TYPE_POINT2 = 1 << 5,
+  CONTROL_DATA_TYPE_POINT3 = 1 << 6,
+  CONTROL_DATA_TYPE_POINT4 = 1 << 7,
+  CONTROL_DATA_TYPE_GRADIENT = 1 << 8,
+  CONTROL_DATA_TYPE_CONTROL_POINTS = 1 << 9,
+  CONTROL_DATA_TYPE_SPLINE_COEF = 1 << 10,
+  CONTROL_DATA_TYPE_MATRIX = 1 << 11,
+  CONTROL_DATA_TYPE_TEXT_GRADIENT = 1 << 12,
+  CONTROL_DATA_TYPE_USER = 1 << 13,
+
+  // for indirect fill
+
+  CONTROL_DATA_MIN_MAX_STEP = 1 << 25,
+  CONTROL_DATA_PREC = 1 << 26,
+  CONTROL_DATA_STRINGS = 1 << 27,
+  CONTROL_DATA_SELECTION = 1 << 28,
+  CONTROL_CAPTION = 1 << 29,
+  CONTROL_BUTTON_PICTURES = 1 << 30,
+};

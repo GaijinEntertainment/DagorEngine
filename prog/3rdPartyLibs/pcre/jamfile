@@ -1,0 +1,84 @@
+Root           ?= ../../.. ;
+Location        = prog/3rdPartyLibs/pcre ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/pcre.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+
+if $(Platform) in win32 win64 xboxOne scarlett
+{
+  AddIncludes = $(Root)/$(Location)/win32 ;
+  Sources = win32/pcre_chartables.c ;
+}
+else if $(Platform) in android ps4 ps5
+{
+  AddIncludes = $(Root)/$(Location)/linux32 ;
+  Sources = linux32/pcre_chartables.c ;
+}
+else if $(Platform) in linux64
+{
+  AddIncludes = $(Root)/$(Location)/linux64 ;
+  Sources = linux64/pcre_chartables.c ;
+}
+else if $(Platform) in nswitch
+{
+  AddIncludes = $(Root)/$(Location)/linux64 ;
+  Sources = linux64/pcre_chartables.c ;
+}
+else if $(Platform) in macosx iOS tvOS
+{
+  AddIncludes = $(Root)/$(Location)/macosx ;
+  Sources = macosx/pcre_chartables.c ;
+}
+
+AddIncludes +=
+  $(Root)/$(Location)/pcre
+;
+
+
+Sources +=
+  pcre/pcre_byte_order.c
+  pcre/pcre_compile.c
+  pcre/pcre_config.c
+  pcre/pcre_dfa_exec.c
+  pcre/pcre_exec.c
+  pcre/pcre_fullinfo.c
+  pcre/pcre_get.c
+  pcre/pcre_globals.c
+  pcre/pcre_jit_compile.c
+  pcre/pcre_maketables.c
+  pcre/pcre_newline.c
+  pcre/pcre_ord2utf8.c
+  pcre/pcre_printint.c
+  pcre/pcre_refcount.c
+  pcre/pcre_string_utils.c
+  pcre/pcre_study.c
+  pcre/pcre_tables.c
+  pcre/pcre_ucd.c
+  pcre/pcre_valid_utf8.c
+  pcre/pcre_version.c
+  pcre/pcre_xclass.c
+
+  pcre/pcrecpp.cc
+  pcre/pcre_scanner.cc
+  pcre/pcre_stringpiece.cc
+  pcre/pcrecpp_nostl.cc
+;
+
+
+
+CPPopt =
+  -DHAVE_CONFIG_H
+;
+
+Copt =
+  -DHAVE_CONFIG_H
+;
+
+if $(PlatformSpec) in gcc4 clang {
+  CPPopt += -Wno-unused-parameter ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

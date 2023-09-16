@@ -1,0 +1,11 @@
+//expect:error
+
+local x = null
+
+if (function() {
+      x := 3
+      return x
+   })
+{
+  print(x)
+}

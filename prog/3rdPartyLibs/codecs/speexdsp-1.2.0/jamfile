@@ -1,0 +1,66 @@
+Root           ?= ../../../.. ;
+Location        = prog/3rdPartyLibs/codecs/speexdsp-1.2.0 ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/codecs/speexdsp-1.2.0.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+
+AddIncludes =
+  $(Root)/$(Location)/include
+;
+
+Copt += -DHAVE_CONFIG_H ;
+
+if $(Platform) in win32 win64 xboxOne scarlett {
+  AddIncludes += $(Root)/$(Location)/win32 ;
+  Copt += /wd4267 ;
+}
+else {
+  AddIncludes += $(Root)/$(Location) ;
+}
+
+if $(Platform) in ps4 ps5 {
+  Copt += -Wno-incompatible-pointer-types ;
+}
+
+
+if $(Platform) in win32 win64 xboxOne scarlett {
+  Copt += -FI../speex_mangle.h ;
+} else if $(Platform) in ps4 ps5 linux64 macosx iOS tvOS android nswitch {
+  Copt += -include ../speex_mangle.h ;
+} else {
+  Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+}
+
+if $(Platform) in ps4 ps5 linux64 || ( $(Platform) = macosx && $(MacOSXArch) = x86_64 )  {
+  Copt += -DUSE_SSE -DUSE_SSE2 ;
+}
+if ( $(Platform) = android && $(AndroidArch) = arm64-v8a ) ||
+   ( $(Platform) = nswitch ) ||
+   ( $(Platform) = macosx && $(MacOSXArch) = arm64 ) ||
+   ( $(Platform) = iOS && $(iOSArch) = arm64 ) ||
+   ( $(Platform) = tvOS && $(tvOSArch) = arm64 ) {
+  Copt += -DUSE_NEON ;
+}
+
+Sources =
+  libspeexdsp/buffer.c
+  libspeexdsp/fftwrap.c
+  libspeexdsp/filterbank.c
+  libspeexdsp/jitter.c
+  libspeexdsp/kiss_fft.c
+  libspeexdsp/kiss_fftr.c
+  libspeexdsp/mdf.c
+  libspeexdsp/preprocess.c
+  libspeexdsp/resample.c
+  libspeexdsp/scal.c
+  libspeexdsp/smallft.c
+;
+
+if $(PlatformSpec) in gcc4 clang {
+  CPPopt += -Wno-unused-parameter ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

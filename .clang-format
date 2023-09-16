@@ -1,0 +1,60 @@
+---
+BasedOnStyle: Microsoft
+AlignAfterOpenBracket: DontAlign
+AlignConsecutiveMacros:
+  Enabled:         true
+  AcrossEmptyLines: false
+  AcrossComments:  true
+  AlignCompound:   false
+  PadOperators:    false
+AlignEscapedNewlines: Left
+AllowShortEnumsOnASingleLine: true
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AlwaysBreakTemplateDeclarations: Yes
+BraceWrapping:
+  AfterCaseLabel:  true
+  AfterUnion:      true
+  BeforeLambdaBody: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+BreakConstructorInitializers: AfterColon
+ColumnLimit:     135
+CommentPragmas:  '^-V\d+'
+ConstructorInitializerIndentWidth: 2
+ContinuationIndentWidth: 2
+ForEachMacros:
+  - FOR_EACH_RG_LAYER_DO
+  - FOR_EACH_PRIMARY_RG_LAYER_DO
+  - FOR_EACH_RG_LAYER_RENDER
+  - ITERATE_OVER_SUBFX
+StatementMacros: ['DAG_DECLARE_NEW', 'decl_ptr', 'decl_dclass_hdr', 'decl_class_name', 'decl_issubof']
+IfMacros: ['IF_CONSTEXPR']
+IndentCaseLabels: true
+IndentWidth:     2
+MacroBlockBegin: "^(\
+BEGIN_BITFIELD_TYPE|\
+decl_dclass|\
+decl_dclass_and_id|\
+(DX12|VULKAN)_BEGIN_CONTEXT_COMMAND(_EXT_[0-9])?|\
+ITERATE_OVER_OBJECT_POOL(_(LOCK|BEG))?|\
+BINDUMP_BEGIN_LAYOUT|\
+BINDUMP_BEGIN_EXTEND_LAYOUT\
+)$"
+MacroBlockEnd: "^(\
+END_BITFIELD_TYPE|\
+end_dclass_decl|\
+(DX12|VULKAN)_END_CONTEXT_COMMAND|\
+ITERATE_OVER_OBJECT_POOL_(UNLOCK|END|RESTORE|DESTROY)|\
+BINDUMP_END_LAYOUT|\
+BINDUMP_END_LAYOUT\
+)$"
+MaxEmptyLinesToKeep: 2
+PackConstructorInitializers: NextLine
+PenaltyBreakOpenParenthesis: 1
+PenaltyBreakComment: 1
+SortIncludes:    Never
+TabWidth:        2
+...

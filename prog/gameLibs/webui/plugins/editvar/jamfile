@@ -1,0 +1,26 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/webui/plugins/editvar ;
+
+TargetType  = lib ;
+Target      = gameLibs/webui/plugins/editvar.lib ;
+
+AddIncludes =  
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/dagorInclude
+;
+
+Sources =
+  editVarPlugin.cpp
+;
+
+SourceStr =
+  editVar.html
+;
+
+for s in $(SourceStr) { StringifySourceFile $(s) : $(s).inl : editVarPlugin.cpp ; }
+
+
+include $(Root)/prog/_jBuild/build.jam ;

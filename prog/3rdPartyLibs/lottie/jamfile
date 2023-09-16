@@ -1,0 +1,71 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/lottie ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/lottie.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+_INCLUDE = ;
+
+AddIncludes =
+  $(Root)/$(Location)/inc
+  $(Root)/$(Location)/src/vector
+  $(Root)/$(Location)/src/vector/freetype
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+;
+
+Sources =
+  src/lottie/lottieanimation.cpp
+  src/lottie/lottieitem.cpp
+  src/lottie/lottieitem_capi.cpp
+  src/lottie/lottiekeypath.cpp
+  src/lottie/lottieloader.cpp
+  src/lottie/lottiemodel.cpp
+  src/lottie/lottieparser.cpp
+  src/lottie/lottieproxymodel.cpp
+  src/vector/varenaalloc.cpp
+  src/vector/vbezier.cpp
+  src/vector/vbitmap.cpp
+  src/vector/vbrush.cpp
+  src/vector/vdrawhelper_common.cpp
+  src/vector/vdasher.cpp
+  src/vector/vdebug.cpp
+  src/vector/vdrawable.cpp
+  src/vector/vdrawhelper.cpp
+  src/vector/velapsedtimer.cpp
+  src/vector/vimageloader.cpp
+  src/vector/vinterpolator.cpp
+  src/vector/vmatrix.cpp
+  src/vector/vpainter.cpp
+  src/vector/vpath.cpp
+  src/vector/vpathmesure.cpp
+  src/vector/vraster.cpp
+  src/vector/vrect.cpp
+  src/vector/vrle.cpp
+  src/vector/freetype/v_ft_stroker.cpp
+  src/vector/freetype/v_ft_raster.cpp
+  src/vector/freetype/v_ft_math.cpp
+  src/vector/stb/stb_image.cpp
+;
+
+if $(Platform) in win32 win64 linux64 xboxOne scarlett ps4 ps5 || ( $(Platform) = macosx && $(MacOSXArch) = x86_64 ) {
+  Sources += src/vector/vdrawhelper_sse2.cpp ;
+}
+if $(Platform) in android iOS tvOS nswitch || ( $(Platform) = macosx && $(MacOSXArch) = arm64 ) {
+  Sources += src/vector/vdrawhelper_neon.cpp ;
+  CPPopt += -D__NO_GAS_WITH_CPP__ ;
+}
+
+CPPopt += -DLOTTIE_STATIC
+          -DEA_NO_HAVE_CPP11_MUTEX=0
+          -DEASTL_CPP11_MUTEX_ENABLED=0
+          -DEASTL_THREAD_SUPPORT_AVAILABLE=0
+          -DV_NAMESPACE=rlottie
+  ;
+
+if $(PlatformSpec) in vc14 { CPPopt += /wd4577 ; }
+
+ExplicitLicenseUsed += $(Root)/prog/3rdPartyLibs/rapidjson ;
+
+include $(Root)/prog/_jBuild/build.jam ;

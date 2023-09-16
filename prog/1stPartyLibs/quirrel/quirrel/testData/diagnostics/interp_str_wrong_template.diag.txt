@@ -1,0 +1,7 @@
+ERROR: expected 'IDENTIFIER'
+testData/diagnostics/interp_str_wrong_template.nut:3:12
+
+println($"{{{{{{{{")
+            ^
+
+

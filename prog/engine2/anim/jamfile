@@ -1,0 +1,37 @@
+Root    ?= ../../.. ;
+Location = prog/engine2/anim ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = engine2/anim.lib ;
+
+Sources =
+  animBlendCtrl.cpp
+  animPostBlendCtrl.cpp
+  animIKCtrl.cpp
+  animFABRIKCtrl.cpp
+  animChannels.cpp
+  animGraph.cpp
+  animGraphDbg.cpp
+  animStateHolder.cpp
+  simpleNodeAnim.cpp
+;
+
+CPPopt = -D__B_CORE ;
+
+if $(PlatformSpec) = clang
+{
+  CPPopt += -Wno-undefined-bool-conversion ;
+}
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+;
+
+if $(DagorAnim_MEASURE_PERF) {
+  local suf = ~pm$(DagorAnim_MEASURE_PERF) ;  if $(DagorAnim_MEASURE_PERF_FRAMES) { suf = $(suf)-$(DagorAnim_MEASURE_PERF_FRAMES) ; }
+  Target = $(Target:S=)$(suf).lib ;
+  CPPopt += -DMEASURE_PERF=$(DagorAnim_MEASURE_PERF) -DMEASURE_PERF_FRAMES=$(DagorAnim_MEASURE_PERF_FRAMES) ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

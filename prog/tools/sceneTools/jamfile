@@ -1,0 +1,32 @@
+Platform ?= win64 ;
+Config   ?= rel ;
+
+Root    ?= ../../.. ;
+Location = prog/tools/sceneTools ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = util ;
+Target      = sceneTools_all ;
+
+local JamList =
+  customContentTool/extractUtil
+  resClean
+  resDiff
+  wsos
+  csvUtil
+  dbldUtil
+  dumpGrp
+  findDup
+  levelCacheUtil
+  resUpdate
+  strmBuild
+  utils
+  vromfsHash
+  vromfsPacker
+;
+
+Dependencies =
+  $(Root)/$(Location)/$(JamList)/jamfile
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

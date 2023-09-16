@@ -1,0 +1,27 @@
+if $(OS) = NT { Platform ?= win64 ; }
+
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/cachesim ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/cachesim.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+  CacheSimInternals.cpp
+  CacheSimWindows.cpp
+  Md5.cpp
+  PlatformWindows.cpp
+;
+
+UseProgLibs =
+  3rdPartyLibs/udis86
+;
+
+AddLibs = 
+  Kernel32.lib
+  Psapi.lib
+  ;
+
+include $(Root)/prog/_jBuild/build.jam ;

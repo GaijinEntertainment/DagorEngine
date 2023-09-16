@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/codecs/libogg-1.1.3 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/codecs/libogg-1.1.3.lib ;
+
+AddIncludes =
+  $(Root)/$(Location)/../include 
+;
+
+
+Sources =
+  src/bitwise.c
+  src/framing.c
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

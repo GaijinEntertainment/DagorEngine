@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/arc/unzip ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/arc/unzip.lib ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/arc/unzip
+;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+  crypt.c
+  ioapi.c
+  unzip.c
+;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/arc/zlib-ng
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,113 @@
+Root    ?= ../../../.. ;
+Location = prog/engine2/drv/drv3d_commonCode ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine2/drv/drv3d_commonCode.lib ;
+
+Sources =
+  drvDecl.cpp
+  gpuMem.cpp
+  gpuVendor.cpp
+  gpuConfig.cpp
+  display.cpp
+  d3dToTexFmt.cpp
+  basetexture.cpp
+  d3d_initialSettings.cpp
+  drv_utils.cpp
+  dxgi_utils.cpp
+  stereoHelper.cpp
+  hangHandler.cpp
+  ICrashFallback.cpp
+  drv_returnAddrStore.cpp
+  resUpdateBufferGeneric.cpp
+  renderPassGeneric.cpp
+  resourceActivationGeneric.cpp
+;
+
+if $(Platform) = macosx {
+  Sources +=
+    gpuMemM.mm
+    macosx/macWnd.mm
+  ;
+}
+
+if $(Platform) in macosx iOS tvOS {
+  Sources +=
+    displayM.mm
+  ;
+}
+
+if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
+if [ GLOB $(Root)/prog/3rdPartyLibs/nvsdk_ngx : * ] { CPPopt += -DHAS_NVSDK_NGX ; }
+
+if $(Platform) in win64 win32 && -DHAS_NVAPI in $(CPPopt) {
+  Sources +=
+    nvLowLatency.cpp
+  ;
+  switch $(Platform) {
+    case win32 : AddLibs += $(Root)/prog/3rdPartyLibs/nvapi/x86/nvapi.lib ;
+    case win64 : AddLibs += $(Root)/prog/3rdPartyLibs/nvapi/amd64/nvapi64.lib ;
+  }
+}
+else {
+  Sources +=
+    nvLowLatencyStub.cpp
+  ;
+}
+
+if ! $(Platform) in xboxOne scarlett {
+  AddIncludes +=
+    $(Root)/prog/3rdPartyLibs/nvapi
+    $(Root)/prog/3rdPartyLibs/reflexStats
+    $(Root)/prog/3rdPartyLibs/adl_sdk
+    $(Root)/prog/3rdPartyLibs/ags_sdk/include
+  ;
+}
+
+if $(Platform) in ps4 ps5 {
+  Sources +=
+    sony/base_texture.cpp
+    sony/base_buffer.cpp
+    sony/base_shader_state.cpp
+    sony/d3d_frontend_common.cpp
+    sony/bindless.cpp
+    sony/command_queue_dump.cpp
+    sony/info_panel_common.cpp
+    sony/driver_common.cpp
+    sony/sampler.cpp
+    sony/res_heaps.cpp
+  ;
+}
+
+switch $(Platform) {
+  case win32 : AddLibs += $(Root)/prog/3rdPartyLibs/adl_sdk/atimgpud_s_x86.lib Advapi32.lib ;
+  case win64 : AddLibs += $(Root)/prog/3rdPartyLibs/adl_sdk/atimgpud_s_x64.lib Advapi32.lib ;
+}
+
+if $(DlssEnabled) = yes && $(Platform) = win64 && -DHAS_NVSDK_NGX in $(CPPopt) {
+  Target = engine2/drv/drv3d_commonCode~dlss.lib ;
+  if $(Config) = dbg {
+    AddLibs += $(Root)/prog/3rdPartyLibs/nvsdk_ngx/Lib/x64/nvsdk_ngx_s_dbg.lib ;
+  } else {
+    AddLibs += $(Root)/prog/3rdPartyLibs/nvsdk_ngx/Lib/x64/nvsdk_ngx_s.lib ;
+  }
+  Sources += ngx_wrapper_base.cpp ;
+  CPPopt += -DNV_WINDOWS ;
+  CPPopt += -DNGX_ENABLE_DEPRECATED_GET_PARAMETERS ; # remove this line once GetParameters is removed from DLSS
+} else {
+  Sources += ngx_wrapper_base_stub.cpp ;
+}
+AddIncludes += $(Root)/prog/3rdPartyLibs/nvsdk_ngx/Include ;
+
+AddIncludes +=
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine2/drv/drv3d_commonCode
+  $(Root)/prog/engine2/drv/drv3d_commonCode/sony
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;
+

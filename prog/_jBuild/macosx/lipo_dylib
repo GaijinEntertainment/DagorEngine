@@ -1,0 +1,2 @@
+#!/bin/bash
+/usr/bin/lipo -thin $1 -output $2 $2 2>/dev/null

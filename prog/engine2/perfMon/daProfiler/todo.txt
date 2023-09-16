@@ -1,0 +1,109 @@
++ broken summary when gpu was off after it has been on
++ early shutdown profiler (before everything else!)
+* sync stop sampling on crash
+
++ spikes name - save all spikes to same file
++ auto-capture dump  - save all spikes to same file
+
+*? timeouts for blocking sockets on message receive - otherwise we can stuck (if server is with bug)
+* sampling only option (like VerySleepy)
++ more settings: spike before/after frames,
+
++ handshake
+  Enum.TryParse(targetName, true, out target);
+* messages
+  +  Connected,
+  +  Disconnect
+  +  StartInfiniteCapture,
+  +  StopInfiniteCapture,
+  +  CancelInfiniteCapture,
+  +  Capture
+  +  SetSettings
+  +  GetSettings data response
+  *  TurnSampling
+  *  CancelProfiling
+
++ tool: deferred symbols resolve (so from file we load first callstacks, and only then - addresses.)
++ different ring dump and prepared ring dump result
+* stream line packs can be send directly, without memory copy (symbols)
++ set default spikes info - can't be in static constructor...
++ gpu to cpu calibration - should be based on get_cpu_ticks_reference. but get_cpu_ticks_reference doesn't return _both frequencies_!
+  fix get_cpu_ticks_reference to return freq, implement gpu calibration.
++ use gpu clock and add frameNo to cpu and gpu frame attach
++ add avg/min/max info to thread
++ history in a reasonable format (like optick or something)
+* move all platform link-time-dependency to platform
++ infinite frame buffer (not ring buffer) when live profiling
+  + firstNeededTick is always 0 (never free events)
+  + frames in another chunkedStorage array
+  + dump infinite frame buffer to server (or to disk)
+  + name for file profiles
+  + path for file profiles
+
+* rarely calibrate gpu time. If last calibration was within reasonable amount of time (i.e. ~256 frames, or ring buffer) - do not calibrate gpu
+- gpu spikes
+
+dump format dump:
+  + frames?
+  + colors
+  + GPU
+    + GPU full drawstat (explicit type)
+    + frameNo
+  + callstacks
+    + change optick format to ours (reverse call stack, do not process wstring, etc)!
+    + modules
+    + cache symbols during resolve (in dev build, optimizes several profiling called)
+  + compression (otherwise too big)
+  + infinite profiling dump
+  + custom tags (strings)
+  * summary
+ + do not even try to resolve stacks in production, doesn't make any sense.
+* Optick: open source c++ file
+live: * webserver (optick or thread microprofiler)
++ dump history
+* legacy: dump stats _between_ frames (instead of skipping one frame).
+
+sampling:
++ sampling call stacks should support ringbuffer
++ sampling in spikes using same data as spikes
++ very sleepy format dump
+* selective sampling (only in events of description X)
+
+Spikes:
++ save spikes to file
++ end of gpu frame - spikes now have too many frames... (calibration)
++ in dev: correct spikes threshold
++ in production: no save_spikes by default
++ save three frames before spike and three after. (to give better picture of what spike is)
+
+Tool:
++ SetSettings to be called on settings changed
++ restarted tool doesn't connect to server!
++ callstack filtering
++ add to github, so we can track releases and such
++ tool: add explicit marker "begin dump/frame group" in timeLine - otherwise hard to navigate
++ in tool Disconnect should cancel connection, and any other connection should cause "connected" state
++ sampling: filtered callstacks in tool (only callstacks within selected Event)
+* function call: "root" callstacks in tool (like VS does)
++ resolve callstacks in production with minidump (and with network communication in dev build)
+ * very sleepy provides additionally minidump. Do the same.
+
+others
++ in release mode do not pass/save __FILE__
++ daProfilerNetServer.cpp #only in dev mode
++ daProfilerFileDump.cpp #only on PC
++ logical mem leak when active profile - we disable freeing, and then something is never unfreed
++ mem limit
++ check threads/mt support
++ in dev save continuous captures to same file (do not change file name)
++ in production save to same files (spike and captures)
++ support XBox sampling
+* support ETW/StartTrace (like Optick)
+*   sync, wait time
+* on posix we should use lagCatcher like profiler to get callstacks (basically timer with signal)
+* prepare Dump events should be in reversed order - avoid loosing threads event data
+*- hang in callstacks on dll unload
+* threadlocal counters (for low level)
+
++ dag->da
++ dump: add vlq for descriptions and DS

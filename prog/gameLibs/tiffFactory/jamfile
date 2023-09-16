@@ -1,0 +1,22 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/tiffFactory ;
+
+TargetType  = lib ;
+Target      = gameLibs/tiffFactory.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+Target = $(Target:S=~z$(UseZlibVer).lib) ;
+
+Sources =
+  regImageLoadTiff.cpp
+;
+
+AddIncludes +=
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
+;
+
+
+CPPopt += -D__B_CORE ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,58 @@
+1. Submitting client
+   prepares data, fills DataBlock
+   creates sourceData
+   serialize & transfer sourceData to server
+
+     IDistribCompSubmittingClientTask *cli;
+     GeneralSaveCB cwr;
+     cli = DistribCompProvider2::newTask ( _MAKE4C('STLM'));
+     cli->writeSourceData ( task_blk, cwr );
+     sendPacket(cwr.getData());
+
+2. Server
+   receives serialized sourceData
+   prepares and creates Task
+   sends sourceData to client (when start task)
+   sends passData to client (when start pass)
+   sends series of compData to clients (to compute units)
+   when all units computed, finalizes pass
+
+     receivePacket(crd);
+     IDistribCompServerTask* svr;
+     svr = DistribCompProvider2::receiveServerTask(crd);
+     svr->prepareAndSaveTask(disk_cwr, homedir);
+
+     make_storage ( svr->getCompUnitNum(), svr->getCompUnitSize());
+     save_storage();
+
+     /*
+     svr = DistribCompProvider2::loadServerTask(disk_crd);
+     load_storage();
+     */
+
+     svr->writeSourceData ( cwr ); sendPacked(cwr.getData());
+     svr->startPass ( pass_no, cwr ); sendPacked(cwr.getData());
+     while ( !compute_all_points ) {
+       svr->writeComputeData ( start, num, cwr ); sendPacked(cwr.getData());
+       receivePacket(crd); storageUpdate(crd);
+     }
+     svr->finishPass ( pass_no, storage );
+
+3. Computing client
+   receives sourceData from server (if not exist, generally once)
+   receives passData to client (on each pass)
+   receives compData, computes units, sends results
+
+     receivePacket(crd);
+     IDistribCompComputingClientTask* cli;
+     cli = loadClientTask(crd);
+
+     receivePacket(crd);
+     cli->receivePassData(crd);
+
+     receivePacket(crd);
+     cli->beginComputing();
+     cli->computeUnits(start, count, crd, storage );
+     cli->endComputing();
+
+     sendPacket(storage );

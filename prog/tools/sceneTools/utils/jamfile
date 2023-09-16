@@ -1,0 +1,34 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/utils ;
+ConsoleExe = yes ;
+Config = rel ;
+
+TargetType  = exe ;
+OutDir = $(Root)/tools/dagor3_cdk/daLight/utils ;
+#CopyTo = $(Root)/$(Location) ;
+
+MultiTarget =
+  tools/sceneTools/ltout2img.exe
+  tools/sceneTools/detClientMask.exe
+;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+Sources(tools/sceneTools/ltout2img.exe)     = ltout2img.cpp ;
+Sources(tools/sceneTools/ltdir2img.exe)     = ltdir2img.cpp ;
+Sources(tools/sceneTools/detClientMask.exe) = detClientMask.cpp ;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/image
+  tools/libTools/util
+  tools/libTools/dtx
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

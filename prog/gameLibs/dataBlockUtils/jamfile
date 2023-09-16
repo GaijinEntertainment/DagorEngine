@@ -1,0 +1,27 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/dataBlockUtils ;
+
+TargetType  = lib ;
+Target      = gameLibs/dataBlockUtils.lib ;
+
+AddIncludes =
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  interpolateBlk.cpp
+  blk2json.cpp
+  blkUtils.cpp
+  blkIterator.cpp
+;
+
+UseProgLibs +=
+  1stPartyLibs/jsoncpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

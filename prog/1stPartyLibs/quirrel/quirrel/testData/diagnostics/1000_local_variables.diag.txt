@@ -1,0 +1,2 @@
+ERROR: internal compiler error: too many locals
+testData/diagnostics/1000_local_variables.nut:-1:-1

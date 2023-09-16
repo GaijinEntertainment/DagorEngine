@@ -1,0 +1,15 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/math/clipper-4.x ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/math/clipper-4.x.lib ;
+
+Sources =
+  clipper.cpp
+;
+
+CPPopt  = -DNEED_LL_ABS ;
+
+if $(Platform) = win64 { CPPopt += /wd4267 ; } # no support for > 4G vertices
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,10 @@
+{
+  let foo = FUNCTION foo(this) {
+    x = "asdf"
+    println(x)
+    let bar = FUNCTION bar(this) {
+      let a = x
+    }
+    bar()
+  }
+}

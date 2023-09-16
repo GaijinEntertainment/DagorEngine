@@ -1,0 +1,9 @@
+Root    ?= ../../.. ;
+Location = prog/tools/ShaderCompiler2 ;
+if $(OS) = NT {
+  include $(Root)/$(Location)/jamfile-hlsl11 ;
+} else if $(OS) = MACOSX {
+  include $(Root)/$(Location)/jamfile-hlsl2metal ;
+} else {
+  Exit OS=$(OS) is not supported! ;
+}

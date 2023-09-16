@@ -1,0 +1,6 @@
++ is_blob should be compile time in das
++ delete string in serialization after sendEvent (new daScript version needed)
++ const correctness for iterators
+* two different ES functions for is_blob/vs serializable events (remove if in event fun)
+* two different ES function if fully resolved query (re-register function, remove_if)
+* do not copy in memory event.getName(). We only need it for hot reload, we can instead flush all events before hot reload (it is reasonable to do anyway!)

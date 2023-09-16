@@ -1,0 +1,10 @@
+*.html.inl
+*.js.inl
+*.sh.inl
+*.hlsl.inl
+*.eot.inl
+*.svg.inl
+*.ttf.inl
+*.woff.inl
+*.woff2.inl
+*.css.inl

@@ -1,0 +1,252 @@
+include "dagi_volmap_gi.sh"
+include "gbuffer.sh"
+include "skyLight.sh"
+include "gi_dynamic_light_helper.sh"
+include "globtm.sh"
+include "static_shadow.sh"
+include "csm.sh"
+
+int ssgi_total_scene_mark_dipatch = 8192;
+int ssgi_current_frame;
+int inlineRTBindlessRange;
+
+macro RAY_CAST_INLINE_RT(code)
+  RAY_CAST_VOXELS_CASCADE(code)
+  INIT_VOXELS_HEIGHTMAP_HELPERS(code)
+  INIT_STATIC_SHADOW_CS()
+  USE_STATIC_SHADOW_CS()
+  INIT_VOXELS_25D(code)
+  USE_VOXELS_25D(code)
+  SAMPLE_VOXELS_25D(code)
+
+  INIT_CSM_SHADOW(code)
+  USE_CSM_SHADOW(code, 4, get_pcf_csm_shadow)
+
+  INIT_SKY_DIFFUSE_BASE(code)
+  USE_SKY_DIFFUSE_BASE(code)
+
+  INIT_ZNZFAR_STAGE(cs)
+
+  GI_DYNAMIC_LIGHT_HELPER(cs)
+
+  SSGI_INIT_VOLMAP_GI_VARS(code)
+  SSGI_JUST_USE_VOLMAP_GI_AMBIENT_VOLMAP(code)
+  ENABLE_ASSERT(code)
+
+  supports global_const_block;
+
+  (code) {
+    ssgi_current_frame@f2 = (ssgi_current_frame * ssgi_total_scene_mark_dipatch, ssgi_total_scene_mark_dipatch,0,0);
+    globtm@f44[] = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
+    bindlessRange@i1 = (inlineRTBindlessRange);
+  }
+
+  hlsl(code) {
+    #include <dagi_brigthnes_lerp.hlsl>
+    struct Vertex {
+      float4 pos;
+    };
+    RaytracingAccelerationStructure accelerationStructure : register(t23);
+    ByteAddressBuffer indices[] : BINDLESS_REGISTER(t, 1);
+    StructuredBuffer<Vertex> vertices[] : BINDLESS_REGISTER(t, 2);
+    //from D3D12RayTracingSimpleLighting
+    uint3 load3x16BitIndices(int idx, uint offsetBytes)
+    {
+        uint3 result;
+
+        // ByteAdressBuffer loads must be aligned at a 4 byte boundary.
+        // Since we need to read three 16 bit indices: { 0, 1, 2 }
+        // aligned at a 4 byte boundary as: { 0 1 } { 2 0 } { 1 2 } { 0 1 } ...
+        // we will load 8 bytes (~ 4 indices { a b | c d }) to handle two possible index triplet layouts,
+        // based on first index's offsetBytes being aligned at the 4 byte boundary or not:
+        //  Aligned:     { 0 1 | 2 - }
+        //  Not aligned: { - 0 | 1 2 }
+        const uint dwordAlignedOffset = offsetBytes & ~3;
+        uint index = bindlessRange + idx * 2 + 1;
+        ByteAddressBuffer buffer = indices[NonUniformResourceIndex(index)];
+        const uint2 four16BitIndices = loadBuffer2(buffer, dwordAlignedOffset);
+
+        // Aligned: { 0 1 | 2 - } => retrieve first three 16bit indices
+        if (dwordAlignedOffset == offsetBytes)
+        {
+            result.x = four16BitIndices.x & 0xffff;
+            result.y = (four16BitIndices.x >> 16) & 0xffff;
+            result.z = four16BitIndices.y & 0xffff;
+        }
+        else // Not aligned: { - 0 | 1 2 } => retrieve last three 16bit indices
+        {
+            result.x = (four16BitIndices.x >> 16) & 0xffff;
+            result.y = four16BitIndices.y & 0xffff;
+            result.z = (four16BitIndices.y >> 16) & 0xffff;
+        }
+
+        return result;
+    }
+
+    half4 inline_raytrace(uint startCascade, float3 worldPos, float3 worldDir, DIST_TYPE dist, out float rayDist)
+    {
+      float floorHt = ssgi_get_heightmap_2d_height(worldPos);
+      float3 voxelSize = getSceneVoxelSize(startCascade);
+      worldPos.y = max(floorHt + voxelSize.y + 0.1, worldPos.y);
+      RAY_FLAG flags = RAY_FLAG_NONE;
+      RayDesc ray;
+      ray.Origin = worldPos;
+      ray.Direction = worldDir;
+      ray.TMin = 0.0;
+      ray.TMax = dist;
+      RayQuery<RAY_FLAG_FORCE_OPAQUE |
+                RAY_FLAG_CULL_FRONT_FACING_TRIANGLES |
+                RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> q;
+      q.TraceRayInline(
+        accelerationStructure,
+        flags, // OR'd with flags above
+        0xff,
+        ray);
+      q.Proceed();
+      rayDist = dist+1;
+      half4 ret = half4(0.0, 0.0, 0.0, 1.0);
+      if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+      {
+        rayDist = q.CommittedRayT();
+        float3 hitPos = worldPos.xyz + worldDir * q.CommittedRayT();
+        const uint indexSizeInBytes = 2;
+        const uint indicesPerTriangle = 3;
+        const uint triangleIndexStride = indicesPerTriangle * indexSizeInBytes;
+        uint baseIndex = q.CommittedPrimitiveIndex() * triangleIndexStride;
+        uint3 triangleIndices = load3x16BitIndices(q.CommittedInstanceID(), baseIndex);
+        uint index = bindlessRange + q.CommittedInstanceID() * 2;
+        float3 v0 = structuredBufferAt(vertices[NonUniformResourceIndex(index)], triangleIndices.x).pos.xyz,
+          v1 = structuredBufferAt(vertices[NonUniformResourceIndex(index)], triangleIndices.y).pos.xyz,
+          v2 = structuredBufferAt(vertices[NonUniformResourceIndex(index)], triangleIndices.z).pos.xyz;
+        float3 e0 = v1 - v0, e1 = v2 - v0;
+        float3 n = cross(e1, e0);
+        float3x3 mat = (float3x3)q.CommittedObjectToWorld4x3();
+
+        float invVoxelSizeY = 1./getScene25dVoxelSizeY();
+        float3 coordF = float3(scene25dWorldPosToCoordF(hitPos.xz), min(hitPos.y - floorHt, float(VOXEL_25D_RESOLUTION_Y-1)) * invVoxelSizeY );
+        uint2 wrapCoord = wrapSceneVoxel25dCoord(int2(coordF.xy));
+        n = normalize(mul(n, mat));
+        float3 emission = 0;
+        float3 data = 1;
+        ##if gi_quality != only_ao
+          getVoxel25dColor(int3(wrapCoord, coordF.z), data, emission);
+        ##endif
+
+        half3 ambient = (half3)0;
+        get_ambient(hitPos, n, 1, ambient);
+
+        float3 pointToEye = world_view_pos - hitPos;
+        half shadow = getStaticShadow(hitPos) * get_csm_shadow(pointToEye, 0.0).x;
+        half3 dynColor = getDynamicLighting(n, data.rgb, hitPos);
+        ret = half4(data * (shadow * max(0, dot(n, -from_sun_direction)) * sun_color_0 + ambient) + emission + dynColor, 0.0);
+      }
+      return ret;
+    }
+
+    half4 trace_heightmap(float3 rayPos, float3 rayDir, float rayLength, out float3 hitPos)
+    {
+      const int stepCount = 8;
+      rayPos.xz = calcTcLow(rayPos.xz);
+      rayDir.xz *= world_to_hmap_low.xy;
+      rayDir *= rayLength / stepCount;
+
+      rayPos.y = (rayPos.y - heightmap_scale.y) / heightmap_scale.x; //encode height
+      rayDir.y /= heightmap_scale.x;
+
+      half4 ret = half4(0, 0, 0, 1);
+      float3 prevRayPos = rayPos;
+      for (int i = 0; i <= stepCount; ++i, prevRayPos = rayPos, rayPos += rayDir)
+      {
+        BRANCH
+        if (getHeightLowLod(rayPos.xz, 0) > rayPos.y)
+        {
+          for (int j = 0; j < 4; ++j)
+          {
+            float3 mid = (prevRayPos + rayPos) * 0.5;
+            if (getHeightLowLod(mid.xz, 0) > mid.y)
+              rayPos = mid;
+            else
+              prevRayPos = mid;
+          }
+          rayPos.xz -= world_to_hmap_low.zw;
+          rayPos.xz /= world_to_hmap_low.xy;
+          rayPos.y = decode_height(rayPos.y);
+          getVoxelSceneValueAt(rayPos, ret);
+          break;
+        }
+      }
+      hitPos = rayPos;
+      return ret;
+    }
+
+    void trace_vegetation(uint cascade, int maxIteration,
+      inout float3 rayPos, float3 rayDir, DIST_TYPE rayLength, inout half4 result)
+    {
+      float stepSize = min(rayLength, getSceneVoxelStep(cascade));
+      float3 coordF = sceneWorldPosToCoordF(rayPos, cascade);
+      float2 dd = get_box_intersect_cascade(cascade, rayPos, rayDir);
+      rayDir *= stepSize;
+      float3 coordStepF = sceneWorldPosToCoordMoveF(rayDir, cascade);
+      int to = min(int(min(dd.y, rayLength) / stepSize), maxIteration);
+      rayPos += to * rayDir;
+      for ( int i = 0; i < to; ++i, coordF += coordStepF)
+      {
+        int3 wrapCoord = wrapSceneVoxelCoord(int3(coordF), cascade);
+        half alpha = getVoxelsAlpha(wrapCoord, cascade);
+        BRANCH
+        if (alpha > 0.0f && alpha < 1.0f)
+        {
+          half3 voxelColor = getVoxelsColor(wrapCoord, cascade);
+          result.rgb += result.a * voxelColor;
+          result.a *= 1.0f - alpha;
+          if (result.a < 0.05f)
+            break;
+        }
+      }
+    }
+
+    void trace_vegetation(uint startCascade, float3 rayPos, float3 rayDir, DIST_TYPE rayLength, inout half4 result)
+    {
+      float floorHt = ssgi_get_heightmap_2d_height(rayPos);
+      float3 voxelSize = getSceneVoxelSize(startCascade);
+      rayPos.y = max(floorHt + voxelSize.y + 0.1f, rayPos.y);
+      trace_vegetation(0, 4, rayPos, rayDir, rayLength, result);
+      if (result.a > 0.05f)
+        trace_vegetation(1, 64, rayPos, rayDir, rayLength, result);
+    }
+
+    float3 raycast_loop(uint startCascade, float3 worldPos, float3 worldDir, DIST_TYPE dist, float max_start_dist)
+    {
+      float3 hitPos;
+      half4 ret = trace_heightmap(worldPos, worldDir, dist, hitPos);
+      float3 ray = worldPos - hitPos;
+      float rayDistTillHmap = length(ray);
+      float commitedRayDist;
+      half4 collGeomColor = inline_raytrace(startCascade, worldPos, worldDir, min(dist, rayDistTillHmap), commitedRayDist);
+      if (commitedRayDist <= rayDistTillHmap)
+        ret = collGeomColor;
+
+      float rayLength = min(dist, min(commitedRayDist, rayDistTillHmap));
+      half4 vegColor = half4(0,0,0,1);
+      trace_vegetation(startCascade, worldPos, worldDir, rayLength, vegColor);
+      ret.rgb = vegColor.rgb + ret.rgb * vegColor.a;  // blend vegetation additively
+      ret.a *= vegColor.a;
+      BRANCH
+      if (ret.a>0.01)
+        ret.rgb = ret.rgb + texCUBElod(envi_probe_specular, float4(worldDir,1)).rgb*ret.a;
+      return ret.rgb;
+    }
+  }
+endmacro
+
+macro RAY_CAST_VOXELS_AND_INLINE_RT_INIT(code)
+  RAY_CAST_VOXELS_VARS(code)
+  if (gi_quality == raytracing)
+  {
+    RAY_CAST_INLINE_RT(code)
+  }
+  else
+  {
+    RAY_CAST_VOXELS(code)
+  }
+endmacro

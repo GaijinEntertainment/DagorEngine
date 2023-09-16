@@ -1,0 +1,24 @@
+Root    ?= ../../.. ;
+Location = prog/engine2/lowLatency ;
+
+TargetType  = lib ;
+Target      = engine2/lowLatency.lib ;
+
+AddIncludes = $(Root)/prog/engine2/sharedInclude ;
+
+if $(LowLatencyFrameworkCompilation) = yes {
+  Target = $(Target:S=-comp.lib) ;
+  Sources =
+    lowLatency.cpp
+    latencyDebugRenderer.cpp
+  ;
+} else {
+  Target = $(Target:S=-nocomp.lib) ;
+  Sources = lowLatencyStub.cpp ;
+}
+
+UseProgLibs =
+  engine2/profilerTracker ;
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

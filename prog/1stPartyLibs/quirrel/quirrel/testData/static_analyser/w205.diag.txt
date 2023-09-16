@@ -1,0 +1,9 @@
+WARNING: w205 (unreachable-code) Unreachable code after 'return'.
+testData/static_analyser/w205.nut:5:4
+
+  return
+    callback()
+    ^---------
+}
+
+

@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/AssetViewer/Nodes ;
+
+TargetType  = lib ;
+Target      = tools/AssetViewer/Nodes.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  main.cpp
+  nodes.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,36 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/dag2composit ;
+ConsoleExe      = yes ;
+
+
+TargetType  = exe ;
+Target      = util/dag2composit.exe ;
+
+OutDir          = $(Root)/tools/util ;
+CopyTo          = $(Root)/$(Location) ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+
+Sources =
+  dagCvt.cpp
+  con_main.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/lib3d
+  engine2/drv/drv3d_null
+  engine2/perfMon/daProfilerStub
+
+  tools/libTools/util
+  tools/libTools/dagFileRW
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

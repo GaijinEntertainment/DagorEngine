@@ -1,0 +1,40 @@
+/*
+  NOTE! This implementation's logic is not equivalent to native!
+  It only may be used as first approximation.
+*/
+
+let storage = {}
+
+let function makeKey(path) {
+  let tp = type(path)
+  if (tp=="array") {
+    assert(path.len()>0)
+    return "\x01".join(path)
+  }
+  else if (tp=="string") {
+    assert(path.len()>0)
+    return path
+  }
+  else
+    assert(false)
+  return path
+}
+
+
+return {
+  ndbTryRead = function(path) {
+    return storage?[makeKey(path)]
+  }
+  ndbRead = function(path) {
+    return storage[makeKey(path)]
+  }
+  ndbWrite = function(path, value) {
+    storage[makeKey(path)] <- value
+  }
+  ndbExists = function(path) {
+    return makeKey(path) in storage
+  }
+  ndbDelete = function(path) {
+    delete storage[makeKey(path)]
+  }
+}

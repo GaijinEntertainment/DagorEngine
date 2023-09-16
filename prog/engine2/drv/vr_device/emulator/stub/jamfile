@@ -1,0 +1,11 @@
+Root    ?= ../../../../../.. ;
+Location = prog/engine2/drv/vr_device/emulator/stub ;
+
+TargetType  = lib ;
+Target      = engine2/drv/vr_device/vrEmulatorStub.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources = vrEmulatorStub.cpp ;
+
+include $(Root)/prog/_jBuild/build.jam ;

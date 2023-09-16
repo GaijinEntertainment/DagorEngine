@@ -1,0 +1,10 @@
+return {
+  initGraphicsAutodetect = @() null
+  isGpuBenchmarkRunning = @() null
+  startGpuBenchmark = @() null
+  closeGraphicsAutodetect = @() null
+  getGpuBenchmarkDuration = @() null
+  getPresetFor60Fps = @() null
+  getPresetForMaxQuality = @() null
+  getPresetForMaxFPS = @() null
+}

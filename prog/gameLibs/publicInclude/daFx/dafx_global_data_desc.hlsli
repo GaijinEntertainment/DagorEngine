@@ -1,0 +1,1 @@
+#define DAFX_GLOBAL_DATA_SIZE (128*4)

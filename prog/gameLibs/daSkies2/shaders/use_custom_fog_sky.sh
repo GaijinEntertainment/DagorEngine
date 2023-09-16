@@ -1,0 +1,34 @@
+
+macro NO_CUSTOM_FOG(code)
+  hlsl(code) {
+    #define apply_sky_custom_fog(a,b,c)
+    #define get_volumetric_light_sky(a,b) float4(0,0,0,1)
+  }
+endmacro
+define_macro_if_not_defined CUSTOM_FOG(code)
+  NO_CUSTOM_FOG(code)
+endmacro
+
+define_macro_if_not_defined USE_VOLFOG_DITHERING_NOISE(code)
+  hlsl(code) {
+    #define get_volfog_dithered_screen_tc(a,b) 0
+  }
+endmacro
+
+
+int use_custom_fog = 1;
+interval use_custom_fog : no < 1, yes;
+
+int shadow_frame;
+
+macro USE_CUSTOM_FOG_SKY(code)
+  USE_VOLFOG_DITHERING_NOISE(code)
+  if (use_custom_fog == yes)
+  {
+    CUSTOM_FOG(code)
+  }
+  else
+  {
+    NO_CUSTOM_FOG(code)
+  }
+endmacro

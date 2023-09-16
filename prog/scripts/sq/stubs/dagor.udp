@@ -1,0 +1,7 @@
+return {
+  send = @(_socket_id, _host, _port, _data) true
+  bind = @(_socket_id, _host, _port) true
+  close_socket = @(_socket_id) null
+  socket_error = @(_socket_id) null
+  last_error = @() null
+}

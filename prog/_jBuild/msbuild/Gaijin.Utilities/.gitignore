@@ -1,0 +1,5 @@
+.vs/
+**/*.vcxproj.user
+src/bin/
+src/obj/
+src/Properties/launchSettings.json

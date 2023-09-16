@@ -1,0 +1,22 @@
+Root    ?= ../../../.. ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/shaderCacheWarmup ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/shaderCacheWarmup.lib ;
+
+AddIncludes =
+  $(Root)/prog/daNetGame
+  $(Root)/prog/engine2
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  shaderCacheWarmup.cpp
+  startup.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,7 @@
+ERROR: too many digits for an Hex number
+testData/diagnostics/hex_overflow.nut:1:8
+
+println(0x1_0000_0000_0000_0000)
+        ^----------------------
+
+

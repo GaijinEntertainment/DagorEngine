@@ -1,0 +1,19 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/renderViewports ;
+
+TargetType  = lib ;
+Target      = tools/libTools/renderViewports.lib ;
+
+Sources =
+  RenderViewport.cpp
+  cachedViewports.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+CPPopt = ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

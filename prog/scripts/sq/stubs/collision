@@ -1,0 +1,30 @@
+local {Point3} = require("dagor.math")
+
+return {
+  ETF_LMESH          = 1
+  ETF_FRT            = 2
+  ETF_RI             = 4
+  ETF_RESTORABLES    = 8
+  ETF_OBJECTS_GROUP  = 16
+  ETF_STRUCTURES     = 32
+  ETF_HEIGHTMAP      = 64
+  ETF_STATIC         = 128
+  ETF_RI_TREES       = 256
+  ETF_RI_PHYS        = 512
+  ETF_DEFAULT        = 127
+  ETF_ALL            = -513
+
+  EPL_DEFAULT     = 1
+  EPL_STATIC      = 2
+  EPL_KINEMATIC   = 4
+  EPL_DEBRIS      = 8
+  EPL_SENSOR      = 16
+  EPL_CHARACTER   = 32
+  EPL_ALL         = -1
+
+  function traceray(from, to, t) {
+    assert(from instanceof Point3, "from should be Point3")
+    assert(to instanceof Point3, "to should be Point3")
+    assert(type(t)=="float", "t should be float")
+  }
+}

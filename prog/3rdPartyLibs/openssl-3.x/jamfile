@@ -1,0 +1,75 @@
+Root  ?= ../../.. ;
+Location = prog/3rdPartyLibs/openssl-3.x ;
+
+EnableZlibForSSL ?= yes ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/openssl_3_x.lib ;
+
+include $(Root)/$(Location)/ssl-options.jam ;
+Target = $(Target:S=~z$(UseZlibVer).lib) ;
+if $(NoASM) {
+  Target = $(Target:S=~noasm.lib) ;
+}
+
+if $(UseSystemOpenSSL) = yes {
+  Exit "System provided OpenSSL is enabled, refusing to build statically linked one" ;
+}
+
+UseProgLibs += 3rdPartyLibs/openssl-3.x/crypto ;
+
+Sources +=
+  [ CollectC providers/common : securitycheck_fips.c ]
+  [ CollectC providers/common/der ]
+  [ CollectC providers/implementations/asymciphers ]
+  [ CollectC providers/implementations/ciphers : cipher_rc4_hmac_md5_hw.c ]
+  [ CollectC providers/implementations/digests ]
+  [ CollectC providers/implementations/encode_decode ]
+  [ CollectC providers/implementations/exchange ]
+  [ CollectC providers/implementations/kdfs ]
+  [ CollectC providers/implementations/kem ]
+  [ CollectC providers/implementations/keymgmt ]
+  [ CollectC providers/implementations/macs : blake2_mac_impl.c ]
+  [ CollectC providers/implementations/rands ]
+  [ CollectC providers/implementations/signature ]
+  [ CollectC providers/implementations/storemgmt ]
+
+  providers/baseprov.c
+  providers/defltprov.c
+  providers/nullprov.c
+  providers/prov_running.c
+
+  gaijin_stubs/getenv.c
+;
+
+Sources +=
+  [ CollectC ssl ]
+  [ CollectC ssl/record ]
+  [ CollectC ssl/statem ]
+;
+
+if $(Platform) in win32 win64 xboxOne scarlett {
+  Sources += providers/implementations/rands/seeding/rand_win.c ;
+}
+else if $(Platform) = nswitch {
+  Sources += providers/implementations/rands/seeding/rand_nswitch.c ;
+}
+else {
+  Sources += providers/implementations/rands/seeding/rand_unix.c ;
+}
+
+if $(EnableZlibForSSL) = yes {
+  Copt += -DZLIB ;
+}
+
+if $(PlatformSpec) = gcc4 {
+  if $(Sanitize) = thread {
+    Copt += -fno-sanitize=thread ;
+  }
+}
+
+if $(Platform) in win32 win64 {
+  AddLibs += Ws2_32.lib Advapi32.lib ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

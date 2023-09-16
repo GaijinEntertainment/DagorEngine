@@ -1,0 +1,29 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/webBrowserHelper ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/webBrowserHelper.lib ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+;
+
+Sources = sqEventDispatch.cpp ;
+
+if $(Platform) in win32 win64 && $(Dedicated) != yes {
+  Sources += webBrowser.cpp ;
+  UseProgLibs += 1stPartyLibs/webbrowser ;
+} else {
+  Sources += webBrowserStub.cpp ;
+}
+
+
+include $(Root)/prog/_jBuild/build.jam ;

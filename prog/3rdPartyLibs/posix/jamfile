@@ -1,0 +1,35 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/posix ;
+StrictCompile = yes ;
+
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/posix.lib ;
+
+if $(Platform) in ps4 ps5 {
+  Sources = src/ps4/resolve.c
+            src/ps4/access.c
+            src/ps4/inet_ntoa.c
+            src/ps4/timegm.c
+            ;
+  AddIncludes = $(Root)/$(Location)/include/ps4 ;
+}
+
+if $(Platform) in win32 win64 xboxOne scarlett {
+  Sources = src/inet_ntop.c
+            src/inet_pton.c ;
+}
+
+if $(Platform) in nswitch {
+  Sources =
+    src/nswitch/inet.cpp
+    src/nswitch/devrandom.cpp
+    src/nswitch/gmtime_s.cpp
+    src/nswitch/sys_stat.cpp
+  ;
+}
+
+include $(Root)/prog/_jBuild/add_null_include.jam ;
+include $(Root)/prog/_jBuild/build.jam ;

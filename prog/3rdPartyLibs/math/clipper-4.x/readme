@@ -1,0 +1,155 @@
+============================================================
+Clipper Change Log
+============================================================
+
+v4.5.5 - 8 October 2011
+* Bugfix: Fixed an obscure bug in Clipper's JoinCommonEdges 
+  method. 
+* Update: Replaced IsClockwise function with Orientation 
+  function. The orientation issues affecting OffsetPolygons 
+  should now be finally resolved.
+* Change: The Area function once again returns a signed value.
+ 
+v4.5.1 - 28 September 2011
+* Deleted: The UseFullCoordinateRange property has been 
+  deleted since integer range is now managed implicitly. 
+* BugFix: Minor bug in OffsetPolygon mitering. 
+* Change: C# JoinType enum moved from Clipper class to 
+  ClipperLib namespace. 
+* Change: The Area function now returns the absolute area 
+  (irrespective of orientation). 
+* Change: The IsClockwise function now requires a second 
+  parameter - YAxisPositiveUpward - to accommodate displays 
+  with Y-axis oriented in either direction
+
+v4.4.4 - 10 September 2011
+* Change: Deleted jtButt from JoinType (used by the 
+  OffsetPolygons function). 
+* BugFix: Fixed another minor bug in OffsetPolygons function. 
+* Update: Further improvements to the help file
+
+v4.4.3 - 29 August 2011
+* BugFix: fixed a minor rounding issue in OffsetPolygons 
+  function (affected C++ & C# translations). 
+* BugFix: fixed a minor bug in OffsetPolygons' function 
+  declaration (affected C++ translation only). 
+* Change: 'clipper' namespace changed to 'ClipperLib' 
+  namespace in both C++ and C# code to remove the ambiguity 
+  between the Clipper class and the namespace. (This also 
+  required numerous updates to the accompanying demos.)
+
+v4.4.2 - 26 August 2011
+* BugFix: minor bugfixes in Clipper. 
+* Update: the OffsetPolygons function has been significantly 
+  improved by offering 4 different join styles. 
+
+v4.4.0 - 6 August 2011
+* BugFix: A number of minor bugs have been fixed that mostly 
+  affected the new ExPolygons structure. 
+
+v4.3.0 - 17 June 2011
+* New: ExPolygons structure that explicitly associates 'hole' 
+  polygons with their 'outer' container polygons.
+* New: Execute method overloaded so the solution parameter 
+  can now be either Polygons or ExPolygons.  
+* BugFix: Fixed a rare bug in solution polygons orientation. 
+
+v4.2.8 - 21 May 2011
+* Update: JoinCommonEdges() improved once more. 
+* BugFix: Several minor bugs fixed. 
+
+v4.2.6 - 1 May 2011
+* Bugfix: minor bug in SlopesEqual function.
+* Update: Merging of output polygons sharing common edges 
+  has been significantly inproved
+
+v4.2.4 - 26 April 2011
+Input polygon coordinates can now contain the full range of 
+signed 64bit integers (ie +/-9,223,372,036,854,775,807). This 
+means that floating point values can be converted to and from 
+Clipper's 64bit integer coordinates structure (IntPoint) and  
+still retain a precision of up to 18 decimal places. However, 
+since the large-integer math that supports this expanded range 
+imposes a small cost on performance (~15%), a new property 
+UseFullCoordinateRange has been added to the Clipper class to 
+allow users the choice of whether or not to use this expanded 
+coordinate range. If this property is disabled, coordinate values 
+are restricted to +/-1,500,000,000.
+
+v4.2 - 12 April 2011
+JoinCommonEdges() code significantly improved plus other minor 
+improvements.
+
+v4.1.2 - 9 April 2011
+* Update: Minor code tidy. 
+* Bugfix: Possible endless loop in JoinCommonEdges() in clipper.pas.
+
+v4.1.1 - 8 April 2011
+* Update: All polygon coordinates are now stored as 64bit integers
+  (though they're still restricted to range -1.5e9 to +1.5e9 pending 
+  the inclusion of code supporting 64bit math).
+* Change: AddPolygon and AddPolygons methods now return boolean 
+  values. 
+* Bugfix: Bug in JoinCommonEdges() caused potential endless loop. 
+* Bugfix: Bug in IsClockwise(). (C++ code only)
+
+v4.0 - 5 April 2011
+* Clipper 4 is a major rewrite of earlier versions. The biggest 
+  change is that floating point values are no longer used, 
+  except for the storing of edge slope values. The main benefit 
+  of this is the issue of numerical robustness has been 
+  addressed. Due to other major code improvements Clipper v4 
+  is approximately 40% faster than Clipper v3. 
+* The AddPolyPolygon method has been renamed to AddPolygons. 
+* The IgnoreOrientation property has been removed. 
+* The clipper_misc library has been merged back into the 
+  main clipper library.
+  
+v3.1.0 - 17 February 2011
+* Bugfix: Obscure bug in TClipperBase.SetDx method that caused 
+  problems with very small edges ( edges <1/1000th pixel in size).
+  
+v3.0.3 - 9 February 2011
+* Bugfix: Significant bug, but only in C# code.
+* Update: Minor refactoring.
+
+v3.0 - 31 January 2011
+* Update: Major rewrite of the portion of code that calculates 
+  the output polygons' orientation.
+* Update: Help file significantly improved.
+* Change: Renamed ForceOrientation property to IgnoreOrientation. 
+  If the orientation of output polygons is not important, or can 
+  be managed separately, clipping routines can be sped up by about 
+  60% by setting IgnoreOrientation to true. Defaults to false.
+* Change: The OffsetPolygon and Area functions have been moved to 
+  the new unit - clipper_misc. 
+
+2.99 - 15 January 2011
+* Bugfix: Obscure bug in AddPolygon method could cause an endless loop. 
+
+2.8 - 20 November 2010
+* Updated: Output polygons which previously shared a common 
+  edge are now merged. 
+* Changed: The orientation of outer polygons is now clockwise 
+  when the display's Y axis is positive downwards (as is 
+  typical for most Windows applications). Inner polygons 
+  (holes) have the opposite orientation.
+* Added: Support module for Cairo Graphics Library (with demo). 
+* Updated: C# and C++ demos.
+
+2.522 - 15 October 2010
+* Added C# translation (thanks to Olivier Lejeune) and 
+  a link to Ruby bindings (thanks to Mike Owens).
+
+2.0 - 30 July 2010
+* Clipper now clips using both the Even-Odd (alternate) and 
+  Non-Zero (winding) polygon filling rules. (Previously Clipper 
+  assumed the Even-Odd rule for polygon filling.)
+  
+1.4c - 16 June 2010
+* Added C++ support for AGG graphics library 
+  
+1.2s - 2 June 2010
+* Added C++ translation of clipper.pas
+
+1.0 - 9 May 2010

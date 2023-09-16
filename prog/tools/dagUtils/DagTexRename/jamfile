@@ -1,0 +1,31 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/dagUtils/DagTexRename ;
+DriverLinkage   = static ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = util/texren.exe ;
+OutDir      = $(Root)/tools/util ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  texren.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/lib3d
+  engine2/perfMon/daProfilerStub
+  engine2/drv/drv3d_null
+  tools/libTools/util
+  tools/libTools/dagFileRW
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

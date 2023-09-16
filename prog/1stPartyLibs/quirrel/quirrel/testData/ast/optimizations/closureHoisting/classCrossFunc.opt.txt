@@ -1,0 +1,17 @@
+{
+  local z = 0
+  let foo = FUNCTION foo(this, x, y) {
+    let $ch0 = FUNCTION (classCrossFunc.nut:7)(this) {
+      RETURN x + 10
+    }
+    RETURN FUNCTION (classCrossFunc.nut:3)(this) {
+      let c = CLASS {
+        "x" <- 10
+        "zed" <- FUNCTION zed(this) {
+          RETURN $ch0() + this.x
+        }
+      }
+      RETURN c().zed()
+    }
+  }
+}

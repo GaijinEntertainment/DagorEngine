@@ -1,0 +1,41 @@
+#include "revision.h"
+#ifdef __GNUC__
+#include "winresrc.h"
+#else
+#include "winres.h"
+#endif
+
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#pragma code_page(1252)
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION VER_FILEVERSION
+ PRODUCTVERSION VER_FILEVERSION
+ FILEFLAGSMASK VS_FF_DEBUG
+#ifdef _DEBUG
+ FILEFLAGS VS_FF_DEBUG
+#endif
+ FILEOS VOS_NT
+ FILETYPE VFT_DLL
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004B0"
+        BEGIN
+            VALUE "Comments", "Licensed under a 3-clause BSD license"
+            VALUE "CompanyName", "ASSIMP Team"
+            VALUE "FileDescription", "Open Asset Import Library"
+            VALUE "FileVersion", VER_FILEVERSION_STR
+            VALUE "InternalName", "assimp"
+            VALUE "LegalCopyright", VER_COPYRIGHT_STR
+            VALUE "OriginalFilename", VER_ORIGINAL_FILENAME_STR
+            VALUE "ProductName", "Open Asset Import Library"
+            VALUE "ProductVersion", VER_FILEVERSION_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 65001
+    END
+END
+

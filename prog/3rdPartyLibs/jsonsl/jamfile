@@ -1,0 +1,10 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/jsonsl ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/jsonsl.lib ;
+Sources = jsonsl.c ;
+
+include $(Root)/prog/_jBuild/build.jam ;

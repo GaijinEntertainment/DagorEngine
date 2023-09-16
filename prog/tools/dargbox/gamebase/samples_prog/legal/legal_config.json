@@ -1,0 +1,14 @@
+{
+  "legal_docs_fall_back": {
+    "privacypolicy":1681821489,
+    "termsofservice":1681820778,
+    "eula": 1681821657,
+    "gamerules": 1681821726,
+    "gamerules-wt": 1680275797
+  },
+  "legal_docs_ids" : [ "privacypolicy", "termsofservice", "eula",  "gamerules",  "gamerules-wt" ],
+  "languages_codes" : {
+    "English":"en"
+  }
+}
+

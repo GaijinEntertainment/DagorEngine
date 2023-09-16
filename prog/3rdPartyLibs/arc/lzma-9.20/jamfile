@@ -1,0 +1,14 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/arc/lzma-9.20 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/arc/lzma-9.20.lib ;
+
+Sources =
+  LzmaDec.c
+  LzmaEnc.c
+  LzFind.c
+;
+Copt = -D_7ZIP_ST -D__B_MINICORE ;
+
+include $(Root)/prog/_jBuild/build.jam ;

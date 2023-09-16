@@ -1,0 +1,83 @@
+DriverLinkage = dynamic ;
+Platform ?= win64 ;
+UseD3DMulti = yes ;
+UseD3DMultiList = DX11 ;
+
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/impostorBaker/tool ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = exe ;
+Target      = tools/sceneTools/impostorBaker.exe ;
+
+OutDir         = $(Root)/tools/dagor3_cdk/bin ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/gameLibs/rendInst
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+;
+
+Sources =
+  dagored_main.cpp
+  engine.cpp
+  option_parser.cpp
+;
+
+UseProgLibs =
+  engine2/startup
+  engine2/coreUtil
+  engine2/math
+  engine2/lib3d
+  engine2/image
+  engine2/shaders
+  engine2/workCycle
+
+  engine2/drv/drv3d_pc_multi
+
+  engine2/gameRes
+  engine2/scene
+  engine2/sceneRay
+  engine2/guiBase
+  engine2/animChar
+  engine2/phys/physCommon
+
+  commonFx/commonFxGame
+
+  tools/libTools/assetMgr
+  tools/libTools/assetMgrHlp
+  tools/libTools/util
+  tools/libTools/sepGui
+  tools/libTools/dtx
+
+  gameLibs/rendInst
+  gameLibs/rendInst/riFx/stub
+  gameLibs/render
+  gameLibs/render/nodeBasedShader/stub
+  gameLibs/ecs/rendInst/stub
+  gameLibs/daECS/gameResStub
+
+  tools/libTools/shaderResBuilder
+  tools/sceneTools/impostorBaker/impostorUtil
+  tools/sceneTools/daEditor3/services/dxpFactory
+
+  3rdPartyLibs/image/libpng-1.4.22
+  3rdPartyLibs/image/psdRead
+  3rdPartyLibs/arc/zlib-$(UseZlibVer)
+
+  gameLibs/daECS/gameResStub
+  gameLibs/ecs/rendInst/stub
+;
+
+ImportProgLibs = tools/libTools/daKernel ;
+CoExportProgDlls = $(ImportProgLibs) ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

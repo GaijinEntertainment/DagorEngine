@@ -1,0 +1,1 @@
+Serializes component value.

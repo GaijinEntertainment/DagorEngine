@@ -1,0 +1,23 @@
+Root ?= ../../../../.. ;
+Loc = gameLibs/gamePhys/collision/customRendinstTrace ;
+Location = prog/$(Loc) ;
+
+TargetType  = lib ;
+Target      = $(Loc).lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  customRendinstTrace.cpp
+;
+
+UseProgLibs +=
+  gameLibs/landMesh
+;
+
+include $(Root)/prog/_jBuild/build.jam ;
+

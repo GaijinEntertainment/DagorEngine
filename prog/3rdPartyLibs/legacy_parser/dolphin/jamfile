@@ -1,0 +1,35 @@
+APP = dolphin ;
+
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/legacy_parser/$(APP) ;
+
+switch $(OS) {
+  case MACOSX : Platform = macosx ;
+  case LINUX :  Platform = linux64 ;
+  case NT :     Platform = win64 ;
+  case * : Exit unsupported OS=$(OS) ;
+}
+if $(Platform) in macosx { PlatformSpec = clang64 ; } else { PlatformSpec = clang ; }
+Config         = rel ;
+StrictCompile  = no ;
+FullOOPEnabled = yes ;
+
+OutDir     =  $(Root)/$(Location)/.. ;
+ConsoleExe = yes ;
+
+TargetType = exe ;
+Target     = $(APP).exe ;
+
+AddIncludes =
+  $(Root)/$(Location)/nstl
+  $(Root)/$(Location)/hash
+;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+
+CPPopt += -D__B_NO_MEM_BASE_INCLUDE=1 -Wno-potentially-evaluated-expression ;
+
+if $(Platform) in linux64 macosx { CPPopt += -funsigned-char -Wno-deprecated-declarations ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

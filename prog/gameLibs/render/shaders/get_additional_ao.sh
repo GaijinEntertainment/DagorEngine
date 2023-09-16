@@ -1,0 +1,36 @@
+include "heightmap_common.sh"
+include "depth_above.sh"
+include "capsuledAO.sh"
+include "dagi_quality.sh"
+
+texture esm_ao_target_tex; 
+
+macro APPLY_ADDITIONAL_AO(code)
+  if (in_editor_assume == no)
+  {
+    INIT_DEPTH_AO_STAGE(code)
+    USE_DEPTH_AO_STAGE(code)
+    USE_CAPSULE_AO(code)
+  }
+  if (esm_ao_target_tex != NULL)
+  {
+    (code) { esm_ao_target_tex@smp2d = esm_ao_target_tex; }
+  }
+  hlsl(code) {
+    float getAdditionalAmbientOcclusion(float ao, float3 worldPos, float3 worldNormal, float2 screenTc)
+    {
+      ##if in_editor_assume == no && gi_quality == off
+        ao *= 0.5 + 0.5 * getWorldBlurredAO(worldPos);
+      ##endif
+      #if !MOBILE_DEVICE
+        ##if in_editor_assume == no
+          ao = getCapsulesOcclusion(ao, worldPos, worldNormal);
+          ##if esm_ao_target_tex != NULL
+            ao = min(ao, tex2Dlod(esm_ao_target_tex, float4(screenTc, 0, 0)).r);
+          ##endif
+        ##endif
+      #endif
+      return ao;
+    }
+  }
+endmacro

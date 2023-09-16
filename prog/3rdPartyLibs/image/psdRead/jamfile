@@ -1,0 +1,13 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/image/psdRead ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/image/psdRead.lib ;
+
+
+Sources =
+  psd.cpp
+  bmgImage.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

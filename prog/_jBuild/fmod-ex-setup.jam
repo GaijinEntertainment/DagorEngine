@@ -1,0 +1,23 @@
+if ! $(__FMODEX_SETUP_INCLUDED) {
+  __FMODEX_SETUP_INCLUDED = 1 ;
+
+  if $(FmodEx) = src {
+    local fmod_root = $(Root)/prog/3rdPartyLibs/fmod4 ;
+    FmodIncPath = $(fmod_root) $(fmod_root)/src $(fmod_root)/tools/fmod_event/src $(fmod_root)/tools/fmod_event_net/src ;
+    FmodUseProgLib = 3rdPartyLibs/$(fmod_root:D=) ;
+  }
+  else if $(FmodEx) {
+    FmodIncPath = $(_DEVTOOL)/fmod-$(FmodEx)/$(Platform)/inc ;
+    FmodLibPath = $(_DEVTOOL)/fmod-$(FmodEx)/$(Platform)/lib ;
+
+    if $(Platform) = android {
+      FmodIncPath = $(_DEVTOOL)/fmod-$(FmodEx)/android/inc ;
+      FmodLibPath = $(_DEVTOOL)/fmod-$(FmodEx)/android/lib ;
+    }
+    if $(Platform) = tvOS {
+      FmodIncPath = $(_DEVTOOL)/fmod-$(FmodEx)/iOS/inc ;
+      FmodLibPath = $(_DEVTOOL)/fmod-$(FmodEx)/iOS/lib ;
+    }
+    if ! [ GLOB $(FmodIncPath[1]) : * ] { exit FMOD Ex SDK not found in $(FmodIncPath[1]), please update ; }
+  }
+}

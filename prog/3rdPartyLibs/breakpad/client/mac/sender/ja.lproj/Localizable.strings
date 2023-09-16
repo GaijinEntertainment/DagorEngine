@@ -1,0 +1,26 @@
+﻿/* Strings for User Notification of a crash */
+"crashDialogHeader" = "アプリケーション %@ は予期せず終了しました。";
+"crashDialogMsg" = "Mac OS Xとほかのアプリケーションには影響しません。問題を特定するためのレポートを %@ に送信することができます。";
+
+"noCrashDialogHeader" = "アプリケーション %@ で予期しないエラーが起きました。";
+"noCrashDialogMsg" = "Mac OS Xとほかのアプリケーションには影響しません。レポートを %1$@ に送信していただくと、%2$@ を改善する手助けになります。";
+
+"commentsMsg" = "終了する直前にあなたが行ったことをレポートしていただけると、問題解決の手助けになります。";
+"emailMsg" = "必要な時に私たち開発者から連絡を取ってもよいのであれば、メールアドレスを入力してください。";
+
+"commentsPlaceholder" = "コメント（任意）";
+"emailPlaceholder" = "（任意）";
+
+"emailLabel" = "メール：";
+"privacyLabel" = "プライバシーポリシー";
+
+"sendReportButton" = "レポートを送信";
+"cancelButton" = "キャンセル";
+"noSendButton" = "OK";
+"privacyPolicyURL" = "http://www.google.com/privacypolicy.html";
+
+"countdownMsgSecondsPlural" = "あと %d 秒";
+"countdownMsgSecondSingular" = "あと %d 秒";
+
+"countdownMsgMinutesPlural" = "あと %d 分";
+"countdownMsgMinuteSingular" = "あと %d 分";

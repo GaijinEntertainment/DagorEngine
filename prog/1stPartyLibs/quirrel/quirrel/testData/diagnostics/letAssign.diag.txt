@@ -1,0 +1,8 @@
+ERROR: can't assign to binding 'y' (probably declaring using 'local' was intended, but 'let' was used)
+testData/diagnostics/letAssign.nut:4:0
+
+let y = 30
+y = 40
+^
+
+

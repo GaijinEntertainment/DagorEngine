@@ -1,0 +1,113 @@
+
+include "shader_global.sh"
+
+hlsl {
+#include "BRDF.hlsl"
+#include "monteCarlo.hlsl"
+#include "scrambleTea.hlsl"
+#include "hammersley.hlsl"
+}
+
+shader preintegrateEnvi
+{
+  no_ablend;
+  //USE_ROUGH_TO_MIP()
+  color_write = rgb;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput integrate_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos.xy, 0, 1);
+      output.tc = pos.xy;
+
+      return output;
+    }
+  }
+
+  //use PS4_DEF_TARGET_FMT_UNORM16_ABGR() with G16R16
+
+  hlsl(ps) {
+    float3 preintegrateBRDF( uint2 Random, float linear_roughness, float NoV )
+    {
+      float3 V;
+      float linearRoughness = linear_roughness;
+      float ggxAlpha = linearRoughness*linearRoughness;
+      V.x = sqrt( 1.0f - NoV * NoV ); // sin
+      V.y = 0;
+      V.z = NoV;            // cos
+
+      float A = 0;
+      float B = 0;
+      float diffuseFresnel = 0;
+
+      #define MIN_NUM_FILTER_SAMPLES 64//32
+      #define MAX_NUM_FILTER_SAMPLES 1024//64 for perf
+      #define loop_uint uint
+
+      loop_uint NUM_FILTER_SAMPLES = MIN_NUM_FILTER_SAMPLES+(MAX_NUM_FILTER_SAMPLES-MIN_NUM_FILTER_SAMPLES)*(1-NoV);
+
+      LOOP
+      for( loop_uint i = 0; i < NUM_FILTER_SAMPLES; i++ )
+      {
+        float2 E = hammersley( uint(i), NUM_FILTER_SAMPLES, Random );
+
+        {
+          float3 H = importance_sample_GGX_NDF( E, linearRoughness ).xyz;
+          float3 L = 2 * dot( V, H ) * H - V;
+
+          float NoL = saturate( L.z );
+          float NoH = saturate( H.z );
+          float VoH = saturate( dot( V, H ) );
+          FLATTEN
+          if( NoL > 0 )
+          {
+            float Vis = BRDF_geometricVisibility(ggxAlpha, NoV, NoL, VoH);
+            float NoL_Vis_PDF = NoL * Vis * (4 * VoH / NoH);
+
+            float Fc = pow5(1 - VoH);
+            A += (1 - Fc) * NoL_Vis_PDF;
+            B += Fc * NoL_Vis_PDF;
+          }
+        }
+        {
+          float3 L = cosine_sample_hemisphere( E ).xyz;
+          float3 H = normalize(V + L);
+          float NdotL = saturate( L.z );
+          float NdotH = saturate( H.z );
+          float VdotH = saturate( dot( V, H ) );
+
+          // diffuse Disney preIntegration
+          diffuseFresnel += BRDF_diffuse(1, linearRoughness, NoV, NdotL, VdotH, NdotH).x;
+        }
+      }
+      return float3( A, B, diffuseFresnel ) * (1.0f/NUM_FILTER_SAMPLES);
+    }
+
+    result_float3 integrate_ps(VsOutput In HW_USE_SCREEN_POS): SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(In.pos);
+      uint2 Random = scramble_TEA( uint2(screenpos.xy) );
+      float2 tc = (floor(screenpos.xy)+0.5)/float2(128.0, 32.0);
+      return make_result_float3(preintegrateBRDF( Random, tc.y, tc.x));
+    }
+  }
+  compile("target_vs", "integrate_vs");
+  compile("target_ps", "integrate_ps");
+}
+

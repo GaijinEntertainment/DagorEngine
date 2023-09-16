@@ -1,0 +1,128 @@
+skies:
++ restore panorama
++ strata clouds lighting
++ strata clouds fog (reimplement)
++ normalize(skies_sun_light_dir.xy) is const
++ cpu transmittance - lazy evaluation. it is good enough, and performance wise unimportant (as happens rarely)
++ cpu scattering 
+  + lazy evaluation - only single scattering, unless we make async copy
+  + copy textures back from GPU, and sample them (as soon as they are ready)
+    + make async copy, to avoid stall!
+    + and re-evaluate ambient colors, when copy arrived
+  + hashmap with invalidation (and deprecation) for queries, instead of current complex logic.
+    just clear hashmap when data is invalid
++ set params
++ render without GS (using compute)
+  - we can also render without GS (using RTARGETS)
++ fix solar_irradiance
++ #define ISunBright - remove everywhere!
++ panorama with all clouds in one call (so we can make temporal blending)
++ layered fog //todo: use shader code in CPU
+  + remove leftovers
++ we should sparsely constantly reprepare inscatter
++ fix moon + sun rendering and aerial scattering
++ lowres skies - we should use non-linear parametrization, which increase texels density near horizon
+   this can optimize renderSkies almost 10 times (0.3msec on Xb1 in half res), and make it virtually free
+   That is proven to be almost working in Unreal Skies (probably without sun, ofc, but we can store it's visibility in alpha)
+     however, somehow we need to avoid 'pole' in the bottom...
+
++ LIGHTSHAFTS(from clouds on sky, may be from landscape as well)
+
+clouds:
+ + TAA is incorrect
+ + copy clouds from sample
+ + setCloudsParams
+ + setCloudsOfs - float point overflow
+ + close and temporal clouds should be optional. cube doesn't need either, reflection doesn't need 'close'!
+ + direct render clouds (for cubes and such)
+   - tileDistance for direct render (not optimizing when small)!
+   + autodetect tile size (use max)
+ + clouds volume
+   + we should actually check if it works
+ + clouds shadow
+ + fog is incorrect. prepared fog is only on closer dist, and for clouds we need far dist
+   + change parametrization, so far dist is also there. Allocate _some_ space for it and don't use it for opaque geom.
+ + clouds shadow 2d
+   * clouds 'no shadow texture' to be created (1x1x1 or 1x1 white cleared)
+   * calculate scrolling esm shadows for clouds - fuck that shit!
+
+ + disappear clouds towards the max dist (simply blend out)
+ + clouds distant scattering...
+ + check if panorama works fine with one sequence (can be)
+ + 16bit transmittance should be fine..
+ + lighting - use voltex, so altitude is in layers, and 2d is distance
+   + fix moon blending
+   + we should have explicit variable which is 0 when sun is sun and 1 when moon is moon (and lerp when both lights re visible)
+ + lighting - use one voltex for strata and clouds
+ + frustum_check optimization
+ + delayed gpu readback of 'no clouds' and 'min/max altitude'
+ * TAA
+   + clouds tile 'non empty' count (TAA and apply wins only on empty tiles) (in buffer)
+   * float2 histCrd = historyUV*screenSize - 0.5; !- should be exact size of prev depth
+   * special case if we are not checking for discontinuities (such as reflection/cube)
+     * use inv globtm in this same special case so it works with oblique matrix
+     * optimize it for main screen
+ * bilateral apply
+   + close plane texture
+   + try to move 'close texture' closer (right now it is 1km, seem to be OK with 256/512m
+     * it should actually depend on movement speed, as it also helps to hide reprojection issues
+   + support non 5.0 target
+   + close plane bilateral or at least bicubic (or IQ bicubic approximation)
+     * ?close plane bilateral
+
+  + optimize clouds_close_layer_outside, so it samples from not downsampled depth, and yet fast (with parallel sum)
+    this will increase cases where close color is just empty
+  + clouds_close_layer_outside should cause indirect dispatch, i.e. no point of tracing close layer if there is nothing there
+  * apply: do not sample close layer if it is empty.
+    we can write to some rwbuffer in rendering of close colors (many writes), or make additional pass (many reads)
+
+ + TAA and apply with draw indirect. We have two combinations: closelayer on/off, tiles on/off. insted of branching, use draw(dispatch) indirect of both 4 combinations (ofc, only one is valid)
+   + this saves up to 20% of apply pass
+
+   see clouds todo as well
+
+ + custom apply (for telescope)
+ + shadow on mie from at least clouds or land as well (i.e. lightshafts, so there is no false scattering)
+ ?* clouds_optimized_fog.hlsl (reimplement)
+
+general:
+  + save/load (including clouds) with pseudo random fixed position
+  + prepared skies is part of skies data
+  * extract panorama to sep class
+  * make better panorama (no blending, temporal, always only from fixed altitude)
+  * no point in lowResSkies. lowResSkies can be rendered directly to temporalClouds result
+  * split daSkies cpu and daSkiesGPU. daSkies CPU only loads data and implements astronomy
+
+  * skies (and clouds) can't rely on viewVec when rendering reflections.
+
+panorama:
+  + apply scattering once
+  + reflection broken with panorama
+  + alpha panorama (currenly ommited, can be optimized)
+  + one pass panorama
+  + make blending of super sampling of panorama
+  + fix strata clodus loading
+  * use just two textures for panorama blending
+integration:
+  cpu clouds functions should not be called   getCloudsShadow, getDensityUp, getCloudsDensityFiltered
+  + custom apply - telescope. why would we need custom apply? Just apply customly!
+mem optimizations:
+  * gen field - use smaller temp buffer, use several calls (instead of one big)
+  * load noise.
+  * if gen compressed noise - generate directly compressed noise, or just remove temp textures at least
+
+projects (Enl, WT):
+  * optimize apply in deferred resolve, in particles, and all other places
+
+light shaft general improvements:
++ separate skies LUT into rayleigh and mie textures (due to significant phase function effect, it will inrease quality a lot)
++ we shouldn't trace sky when panorama is on (it is useless).
++ optimal panoramic scattering parametrization for panorama (since we only render clouds 'above', and currently half of LUT is 'below', it was chosen for cubic)
++ reduce mem usage for cubic
++ do not allocate memory for cubic temporal. It can't be temporal, one is always not used
+
+optimizations:
+mem:
+  * reduce mem usage for screen when we are not in 'planes' mode (explicit settings pass). I.e. free skies lut.
+enhancements:
+  * explicit settings for different games

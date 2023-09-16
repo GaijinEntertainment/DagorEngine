@@ -1,0 +1,4 @@
+  <type descr="sh" name="sh" exts="/\.sh$/i">
+    <load name="base/sh.hrc"/>
+    <scheme name="shader"/>
+  </type>

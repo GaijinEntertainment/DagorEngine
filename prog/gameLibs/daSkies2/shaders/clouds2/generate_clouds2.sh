@@ -1,0 +1,260 @@
+include "hardware_defines.sh"
+include "writeToTex.sh"
+
+//changing this parameters would cause to recalculate noise
+//if we store noise as asset (texture), it won't be possible to change them
+float clouds_perlin_worley_dilation = 0.3;
+float clouds_worley_erosion = 1.0;
+float clouds_shape_gamma = 1.25;
+int clouds_detail_tex_size = 32;
+int clouds_shape_tex_size_xz = 128;
+int clouds_shape_tex_size_y = 128;
+
+macro GEN_CLOUD(stage)
+  if (shader == gen_cloud_shape_cs || shader == gen_cloud_shape_ps)
+  {
+    (stage) {
+      clouds_perlin_worley_params@f4 = (clouds_perlin_worley_dilation, clouds_worley_erosion, clouds_shape_gamma, 0);
+      clouds_tex_inv_size@f2 = (1./clouds_shape_tex_size_xz, 1./clouds_shape_tex_size_y,0,0);
+    }
+  }
+  else
+  {
+    (stage) { clouds_tex_inv_size@f1 = (1./clouds_detail_tex_size,0,0,0); }
+  }
+  hlsl(stage) {
+    #define GEN_CLOUD_SHAPE 1
+    #define GEN_CLOUD_DETAIL2 2
+    ##if shader==gen_cloud_shape_cs || shader == gen_cloud_shape_ps
+      #define GEN_CLOUD_TYPE GEN_CLOUD_SHAPE
+    ##elif shader==gen_cloud_detail || shader == gen_cloud_detail_ps
+      #define GEN_CLOUD_TYPE GEN_CLOUD_DETAIL
+    ##endif
+    #include <common_functions.hlsl>
+    #include <noise_functions.hlsl>
+    #include <cloud_settings.hlsli>
+
+    float remap(float originalValue, float originalMin, float originalMax, float newMin, float newMax)
+    {
+      return newMin + (((originalValue - originalMin) / (originalMax - originalMin)) * (newMax - newMin));
+    }
+    float dilate_perlin_worley_original(float p, float w, float x) {
+      return remap(p, w*x, 1.0, 0., 1.0);
+    }
+    float dilate_perlin_worley(float p, float w, float x) {
+      float curve = 0.75;
+      if(x < 0.5) {
+        x = x/0.5;
+        float n = p + w * x;
+        return n * lerp(1, 0.5, pow(x, curve));
+      } else {
+        x = (x-0.5)/0.5;
+        float n = w + p * (1.0 - x);
+        return n * lerp(0.5, 1.0, pow(x, 1.0/curve));
+      }
+    }
+    float get_worley_3_octaves2(float3 p, float s) {
+      float3 xyz = p;
+
+      float worley_value1 = voronoi(xyz, 1.0 * s, false).r;
+      float worley_value2 = voronoi(xyz, 2.0 * s, false).r;
+      float worley_value3 = voronoi(xyz, 4.0 * s, false).r;
+
+      return (1- (worley_value1 + worley_value2 * 0.5 + worley_value3 * 0.25));
+    }
+  }
+
+  hlsl(stage) {
+    #if GEN_CLOUD_TYPE == GEN_CLOUD_SHAPE
+    float4 get_cloud_shape_base(float3 xyz)
+    {
+      // The single most important value to get right. All other values should be hardcoded,
+      // but it would be nice to have this one exposed as a [0,1] slider. It controls how
+      // fluffy (perlin) or billowy (worley) the clouds look
+      float perlin_to_worley_ratio    =  clouds_perlin_worley_params.x;
+
+      // Texture 1
+      float texture1_r_perlin_low     = -0.9;
+      float texture1_r_perlin_high    =  0.9;
+      float texture1_r_worley_low     =  0.0;
+      float texture1_r_worley_high    =  1.0;
+      float texture1_gba_worley_low   =  0.0;
+      float texture1_gba_worley_high  =  1.0;
+
+      // Build the perlin and worley noise of each channel of the first 3d texture. Each stage is
+      // has it's values remmaped to a range which exploits the RGBA8 efficiently
+      float perlin_r = get_perlin_7_octaves(xyz, 4.0, 2.0, 0.5);
+      float worley_r = get_worley_3_octaves2(xyz, 7.0);
+      float worley_g = get_worley_3_octaves2(xyz, 6.0);
+      float worley_b = get_worley_3_octaves2(xyz, 11.0);
+      float worley_a = get_worley_3_octaves2(xyz, 23.0);
+
+      // Remap the values
+      //perlin_r = saturate(perlin_r*2);
+      perlin_r = set_range(perlin_r, texture1_r_perlin_low, texture1_r_perlin_high);
+      //worley_r = set_range(worley_r, texture1_r_worley_low, texture1_r_worley_high);
+      //worley_g = set_range(worley_g, texture1_gba_worley_low, texture1_gba_worley_high);
+      //worley_b = set_range(worley_b, texture1_gba_worley_low, texture1_gba_worley_high);
+      //worley_a = set_range(worley_a, texture1_gba_worley_low, texture1_gba_worley_high);
+
+      // Combining the two noises (this is what they refer as "dilating" the perlin noise)
+      //float worley_perlin = dilate_perlin_worley(perlin_r, worley_r, perlin_to_worley_ratio);
+      float worley_perlin = dilate_perlin_worley_original(perlin_r, 1-worley_r, perlin_to_worley_ratio);
+      float4 ret = float4(worley_perlin, worley_g, worley_b, worley_a);
+      return ret;
+    }
+    float get_cloud_shape(float3 xyz) {
+      float4 ret = get_cloud_shape_base(xyz);
+      float result = saturate(remap(ret.x, -clouds_perlin_worley_params.y*(1.0 - dot(float3(ret.y, ret.z, ret.w), float3(0.625, 0.25, 0.124))), 1.0, 0, 1.0));
+
+      return pow(result, clouds_perlin_worley_params.z);
+      //return remap(ret.x, dot(float3(ret.y, ret.z, ret.w), float3(0.625, 0.25, 0.125)), 1.0, 0, 1.0);
+    }
+    #else
+    float3 get_cloud_detail_base(float3 xyz)
+    {
+      float texture2_low              = -0.2;
+      float texture2_high             =  1.0;
+
+      // Build the lower resolution worley noise of each channel of the first 3d texture. Each stage is
+      // has it's values remmaped to a range which exploits the RGBA8 efficiently
+      float worley_value_r = get_worley_3_octaves2(xyz, 2);//was 10
+      float worley_value_g = get_worley_3_octaves2(xyz, 7);//was 15
+      float worley_value_b = get_worley_3_octaves2(xyz, 11);////was 20
+
+      // Remap the values
+      //worley_value_r = set_range(worley_value_r, texture2_low, texture2_high);
+      //worley_value_g = set_range(worley_value_g, texture2_low, texture2_high);
+      //worley_value_b = set_range(worley_value_b, texture2_low, texture2_high);
+
+      float3 ret = float3(worley_value_r, worley_value_g, worley_value_b);
+      return ret;
+    }
+    float get_cloud_detail(float3 xyz) {
+      float3 ret = get_cloud_detail_base(xyz);
+      //return dot(ret.rgb, float3(0.625, 0.25, 0.125));
+      return dot(ret.rgb, float3(0.425, 0.35, 0.35));//not normalized
+      return dot(ret.rgb, float3(0.625, 0.35, 0.25));//not normalized
+    }
+    #endif
+  }
+endmacro
+
+shader gen_cloud_shape_cs, gen_cloud_detail_cs
+{
+  GEN_CLOUD(cs)
+
+  hlsl(cs) {
+    RWTexture3D<float> output : register(u0);
+
+    [numthreads(CLOUD_WARP_SIZE, CLOUD_WARP_SIZE, CLOUD_WARP_SIZE)]
+    void cs_main(uint3 tid : SV_DispatchThreadID) {
+
+      #if GEN_CLOUD_TYPE == GEN_CLOUD_SHAPE
+        float3 xyz = (((float3)tid.xyz+0.5)*clouds_tex_inv_size.xxy).xzy;
+        output[tid] = get_cloud_shape(xyz);
+      #elif GEN_CLOUD_TYPE == GEN_CLOUD_DETAIL
+        output[tid] = 1-get_cloud_detail((float3(tid.xyz)+0.5)*clouds_tex_inv_size);
+      #endif
+    }
+  }
+
+  compile("cs_5_0", "cs_main")
+}
+
+shader gen_cloud_shape_ps, gen_cloud_detail_ps
+{
+  if (hardware.metal)
+  {
+    dont_render;
+  }
+  WRITE_TO_VOLTEX_TC()
+  GEN_CLOUD(ps)
+
+  hlsl(ps) {
+    float ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      #if GEN_CLOUD_TYPE == GEN_CLOUD_SHAPE
+        float3 xyz = float3(input.texcoord, input.slice_index * clouds_tex_inv_size.y).xzy;
+        return get_cloud_shape(xyz);
+      #elif GEN_CLOUD_TYPE == GEN_CLOUD_DETAIL
+        return 1 - get_cloud_detail(float3(input.texcoord, input.slice_index * clouds_tex_inv_size));
+      #endif
+    }
+  }
+
+  compile("target_ps", "ps_main")
+}
+
+macro GEN_CURL_CLOUDS(code)
+  hlsl(code) {
+    #include <common_functions.hlsl>
+    #include <noise_functions.hlsl>
+    #include <cloud_settings.hlsli>
+    half toneMap(half L, half invWhite)
+    {
+      return (1 + L * invWhite) / (L + 1);
+    }
+    float2 getCurl(uint2 st)
+    {
+      float3 xyz = float3(((float2)st.xy+0.5)/CLOUD_CURL_RES, 0.275);
+      float3 curl_values = curl_noise(xyz, 2)*0.5;//curl noise can return more than -1..1
+      //return encode_curl(curl_values);
+      //return encode_curl(curl_values*0.5);
+      //use tonemapping, to keep within reasonable values
+      float3 abs_curl = abs(curl_values);
+      float3 tonemapped = abs_curl*lerp(1, float3(toneMap(abs_curl.x,0.33), toneMap(abs_curl.y,0.33), toneMap(abs_curl.z,0.33)), saturate(abs_curl));//reinhard tonemap
+      //float3 tonemapped = abs_curl*lerp(1, rcp(1+abs_curl)*1.3, saturate(abs_curl));//reinhard tonemap
+      return encode_curl(sign(curl_values)*tonemapped);
+    }
+  }
+endmacro
+
+shader gen_curl_clouds_2d//, gen_curl_clouds_2d_compressed
+{
+  GEN_CURL_CLOUDS(cs)
+
+  hlsl(cs) {
+    RWTexture2D<float2> output : register(u0);
+    [numthreads(CLOUD_WARP_SIZE_2D, CLOUD_WARP_SIZE_2D, 1)]
+    void cs_main(uint3 tid : SV_DispatchThreadID) { output[tid.xy] =  getCurl(tid.xy); }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+shader gen_curl_clouds_2d_ps
+{
+  WRITE_TO_TEX2D_TC()
+  GEN_CURL_CLOUDS(ps)
+
+  hlsl(ps) {
+    float2 main_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      return getCurl(uint2(input.texcoord * CLOUD_CURL_RES));
+    }
+  }
+  compile("target_ps", "main_ps")
+}
+
+shader gen_curl_clouds_3d
+{
+  hlsl(cs) {
+    #include <common_functions.hlsl>
+    #include <noise_functions.hlsl>
+    #include <cloud_settings.hlsli>
+
+    RWTexture3D<float2> output : register(u0);
+
+    [numthreads(CLOUD_WARP_SIZE, CLOUD_WARP_SIZE, CLOUD_WARP_SIZE)]
+    void cs_main(uint3 tid : SV_DispatchThreadID) {
+      float3 xyz = (tid+0.5)/32.;
+      float3 curl_values = curl_noise(xyz, 2);
+
+      curl_values = set_ranges_signed(curl_values, -1, 1);
+      //curl_values.z = 0;
+
+      output[tid] = encode_curl(curl_values);
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}

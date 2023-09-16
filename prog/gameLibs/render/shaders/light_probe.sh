@@ -1,0 +1,264 @@
+include "shader_global.sh"
+include "monteCarlo.sh"
+include "roughToMip.sh"
+
+define_macro_if_not_defined SUPPORT_GLOBAL_FRAME()
+endmacro
+
+int relight_mip = 0;
+interval relight_mip: glossy_mip < 1, rough_mip;
+hlsl {
+  #include <get_cubemap_vector.hlsl>
+}
+
+int integrate_face = 6;
+interval integrate_face: integrate_face_one<6, integrate_face_all;
+
+shader specular_cube
+{
+  SUPPORT_GLOBAL_FRAME()
+  no_ablend;
+  USE_ROUGH_TO_MIP()
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput light_probe_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos, 0, 1);
+      output.tc = pos;
+
+      return output;
+    }
+  }
+
+  (ps) { relight_mip@f2 = (relight_mip,integrate_face,0,0); }
+  hlsl(ps) {
+    TextureCube dynamic_cube_tex:register(t7);
+    SamplerState dynamic_cube_tex_samplerstate:register(s7);
+
+    struct MRT_OUTPUT
+    {
+      half4 color0:SV_Target0;
+      ##if integrate_face == integrate_face_all
+      half4 color1:SV_Target1;
+      half4 color2:SV_Target2;
+      half4 color3:SV_Target3;
+      half4 color4:SV_Target4;
+      half4 color5:SV_Target5;
+      ##endif
+    };
+
+    MRT_OUTPUT light_probe_ps(VsOutput input)
+    {
+      /*float3 outColor[6] = {
+        float3(1,0,0),
+        float3(0,1,0),
+        float3(0,0,1),
+        float3(1,1,0),
+        float3(1,0,1),
+        float3(0,0,0)
+      };
+      /*/
+      float4 outColor[6];
+      float linearRoughness = ComputeReflectionCaptureRoughnessFromMip(relight_mip.x);
+      float ggxAlpha = linearRoughness*linearRoughness;
+      half4 result;
+      ##if integrate_face == integrate_face_all
+      UNROLL
+      for (int unroll_cubeFace = 0; unroll_cubeFace < 6; ++unroll_cubeFace)
+      ##else
+      int unroll_cubeFace = int(relight_mip.y);
+      ##endif
+      {
+        float3 R = normalize(GetCubemapVector(input.tc, unroll_cubeFace));
+        #define MIN_NUM_FILTER_SAMPLES 32
+        #define MAX_NUM_FILTER_SAMPLES 128
+        ##if relight_mip == glossy_mip
+          result = texCUBElod(dynamic_cube_tex, float4(R.xyz,0) );
+        ##else
+        float weight = 0;
+        float4 res = 0;
+        uint numSamples = lerp(MIN_NUM_FILTER_SAMPLES, MAX_NUM_FILTER_SAMPLES, linearRoughness);
+        LOOP
+        for ( int i = 0; i < numSamples; ++i )
+        {
+          float2 E = hammersley( i, numSamples, 0 );
+
+          float3 H = tangent_to_world( importance_sample_GGX_NDF( E, linearRoughness ).xyz, R );
+          float3 L = 2 * dot( R, H ) * H - R;
+          float NoL = saturate( dot( R, L ) );
+          half4 cubeTex = texCUBElod( dynamic_cube_tex, float4(L.xyz,0) );
+          res += half4(h3nanofilter(cubeTex.xyz) * NoL, cubeTex.w);
+          weight += NoL;
+        }
+        result = half4(res.xyz*rcp(weight+0.0001f), res.w*rcp((float)numSamples));
+        ##endif
+        ##if integrate_face == integrate_face_all
+        outColor[unroll_cubeFace] = result;
+        ##endif
+      }
+      //*/
+      MRT_OUTPUT res;
+      ##if integrate_face == integrate_face_all
+      res.color0 = outColor[0];
+      res.color1 = outColor[1];
+      res.color2 = outColor[2];
+      res.color3 = outColor[3];
+      res.color4 = outColor[4];
+      res.color5 = outColor[5];
+      ##else
+      res.color0 = result;
+      ##endif
+      return res;
+    }
+  }
+  compile("target_vs", "light_probe_vs");
+  compile("target_ps", "light_probe_ps");
+}
+
+texture dynamic_cube_tex_1;
+texture dynamic_cube_tex_2;
+float dynamic_cube_tex_level = 0;
+float dynamic_cube_tex_blend = 0;
+int blend_faces = 0;
+interval blend_faces : first<1, second;
+
+shader blend_light_probes
+{
+  SUPPORT_GLOBAL_FRAME()
+
+  cull_mode  = none;
+  z_test = false;
+  z_write = false;
+  no_ablend;
+
+  (ps) {
+    dynamic_cube_tex_1@smpCube = dynamic_cube_tex_1;
+    dynamic_cube_tex_2@smpCube = dynamic_cube_tex_2;
+    dynamic_cube_tex_blend_level@f2 = (dynamic_cube_tex_blend, dynamic_cube_tex_level,0,0);
+  }
+  USE_HDR_SH()
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+
+
+  hlsl(vs) {
+    VsOutput blend_cubes_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos.x, pos.y, 1, 1);
+      output.tc = pos.xy;
+      return output;
+    }
+  }
+
+
+  hlsl(ps) {
+    struct MRT_OUTPUT
+    {
+      half4 color0:SV_Target0;
+      half4 color1:SV_Target1;
+      half4 color2:SV_Target2;
+      #if !JUST_THREE_FACES
+      half4 color3:SV_Target3;
+      half4 color4:SV_Target4;
+      half4 color5:SV_Target5;
+      #define FACES
+      #endif
+    };
+
+    MRT_OUTPUT blend_cubes_ps(VsOutput input)
+    {
+      half4 outColor[6];
+      #define BLEND_FACE(faceNo, target)\
+      {\
+        float3 tc = GetCubemapVector(input.tc, faceNo);\
+        fixed4 cube1 = texCUBElod(dynamic_cube_tex_1, float4(tc, dynamic_cube_tex_blend_level.y));\
+        fixed4 cube2 = texCUBElod(dynamic_cube_tex_2, float4(tc, dynamic_cube_tex_blend_level.y));\
+        target.rgb = lerp(cube1.rgb, cube2.rgb, dynamic_cube_tex_blend_level.x);\
+        target.a = 1;\
+      }
+
+      MRT_OUTPUT res;
+      #if !JUST_THREE_FACES
+      BLEND_FACE(0, res.color0);
+      BLEND_FACE(1, res.color1);
+      BLEND_FACE(2, res.color2);
+      BLEND_FACE(3, res.color3);
+      BLEND_FACE(4, res.color4);
+      BLEND_FACE(5, res.color5);
+      #else
+      ##if blend_faces == first
+      BLEND_FACE(0, res.color0);
+      BLEND_FACE(1, res.color1);
+      BLEND_FACE(2, res.color2);
+      ##else
+      BLEND_FACE(3, res.color0);
+      BLEND_FACE(4, res.color1);
+      BLEND_FACE(5, res.color2);
+      ##endif
+      #endif
+      return res;
+    }
+  }
+  compile("target_vs", "blend_cubes_vs");
+  compile("target_ps", "blend_cubes_ps");
+}
+
+texture tex;
+float4x4 probetm;
+int blend_face_no = 0;
+
+shader blend_light_probe_face
+{
+  SUPPORT_GLOBAL_FRAME()
+
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+  no_ablend;
+
+  (ps) {
+    dynamic_cube_tex_1@smpCube = dynamic_cube_tex_1;
+    tex@smp2d = tex;
+    probetm@f44 = probetm;
+    blend_face_no@f1 = (blend_face_no);
+  }
+
+  POSTFX_VS_TEXCOORD(1, texcoord)
+
+  hlsl(ps) {
+    half4 blend_cube_face_ps(VsOutput input) : SV_Target
+    {
+      float3 tc = GetCubemapVector(input.texcoord, int(blend_face_no+0.01));
+      tc = mul(float4(tc, 0), probetm).xyz;
+      half3 cube = texCUBElod(dynamic_cube_tex_1, float4(tc, 0)).rgb;
+      half4 face = tex2D(tex, input.texcoord);
+      return half4(lerp(cube, face.rgb, face.a), 1);
+    }
+  }
+
+  compile("target_ps", "blend_cube_face_ps");
+}

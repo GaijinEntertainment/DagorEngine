@@ -1,0 +1,35 @@
+Root    ?= ../../../.. ;
+local LibPath = gameLibs/dasModules/camera ;
+Location = prog/$(LibPath) ;
+Target      = $(LibPath).lib ;
+
+StrictCompile = yes ;
+TargetType  = lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+
+SourceDAS =
+;
+
+for s in $(SourceDAS) { StringifySourceFile $(s) : $(s).inl : $(s:S=.cpp) ; }
+
+CPPopt = -D__B_CORE ;
+Copt   = -D__B_CORE ;
+
+if $(Platform) in win32 win64 {
+  CPPopt += /wd4548 ; # devtools\win.sdk.100\Include\10.0.10586.0\ucrt\malloc.h(160): warning C4548: expression before comma has no effect; expected expression with side-effect
+}
+
+UseProgLibs =
+  1stPartyLibs/daScript
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

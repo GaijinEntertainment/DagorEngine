@@ -1,0 +1,40 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/AssetViewer/Entity ;
+
+TargetType  = lib ;
+Target      = tools/AssetViewer/Entity.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sceneTools/impostorBaker
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine2/sharedInclude
+;
+
+Sources =
+  assetStatsFiller.cpp
+  entity.cpp
+  entityMatEditor.cpp
+  entityMatFileResource.cpp
+  entityMatProperties.cpp
+  objPropEditor.cpp
+  objPropDlg.cpp
+  shaderPropSeparators.cpp
+  colorDlgAppMat.cpp
+  compositeEditor.cpp
+  compositeEditorCopyDlg.cpp
+  compositeEditorGizmoClient.cpp
+  compositeEditorPanel.cpp
+  compositeEditorToolbar.cpp
+  compositeEditorTree.cpp
+  compositeEditorTreeData.cpp
+  compositeEditorTreeDataNode.cpp
+  compositeEditorUndo.cpp
+  compositeEditorViewport.cpp
+  outlineRenderer.cpp
+  pixelPerfectEntitySelector.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,1 @@
+This macro implements `qmacro_expr` expression reification. Expected input is a block expression (ExprMakeBlock over ExprBlock). It applies reification rules to the expression, and returns first expression in the block.

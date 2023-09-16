@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">
+  <Rule Name="Bat"
+        PageTemplate="tool"
+        DisplayName="Batch Script"
+        SwitchPrefix=""
+        Order="300">
+
+    <Rule.Categories>
+      <Category Name="General" DisplayName="General" />
+    </Rule.Categories>
+
+    <Rule.DataSource>
+      <DataSource Persistence="ProjectFile" ItemType="Bat" Label="" HasConfigurationCondition="true" />
+    </Rule.DataSource>
+
+    <StringProperty Subtype="file" Name="CommandLineArgs" DisplayName="Command Line Arguments" Description="The .bat file will be executed with the given arguments." Category="General" />
+  </Rule>
+</ProjectSchemaDefinitions>

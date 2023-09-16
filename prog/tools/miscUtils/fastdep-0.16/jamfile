@@ -1,0 +1,33 @@
+Config       = rel ;
+Exceptions   = yes ;
+Rtti         = yes ;
+
+Root           ?= ../../../.. ;
+Location        = prog/tools/miscUtils/fastdep-0.16 ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = util/fastdep-g.exe ;
+OutDir      = $(Root)/$(Location) ;
+
+AddIncludes     = $(Root)/$(Location)/external ;
+
+Sources =
+  CheckVersion.cpp
+  CompileState.cpp
+  Define.cpp
+  Element.cpp
+  Expression.cpp
+  fastdep.cpp
+  FileCache.cpp
+  FileStructure.cpp
+  If.cpp
+  Include.cpp
+  MappedFile.cpp
+  realpath.cpp
+  Sequence.cpp
+;
+
+CPPopt = /wd4290 /wd4390 -D__B_NO_MEM_BASE_INCLUDE ;
+
+include $(Root)/prog/_jBuild/build.jam ;

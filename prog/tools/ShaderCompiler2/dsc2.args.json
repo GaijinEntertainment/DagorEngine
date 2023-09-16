@@ -1,0 +1,235 @@
+{
+  "FileVersion": 2,
+  "Id": "ad581a6f-d314-4d7c-85a3-bc2b945eb052",
+  "Items": [
+    {
+      "Id": "be288c10-96cf-4f31-a1e6-0f35b8a7852f",
+      "Command": "Shader BLK",
+      "ExclusiveMode": true,
+      "Items": [
+        {
+          "Id": "e4f0a073-a321-4634-9d42-cf43806739a0",
+          "Command": "Enlisted",
+          "ExclusiveMode": true,
+          "Items": [
+            {
+              "Id": "45598e0c-2ff3-4da1-b2c7-f8a75a84157a",
+              "Command": "Default",
+              "Items": [
+                {
+                  "Id": "b3bc0fcd-b7f7-4d8f-923f-206a26fdc8f4",
+                  "Command": "./shaders_$(ToolAdditionalName).blk"
+                },
+                {
+                  "Id": "34293333-e5e3-4ba4-afba-647e1da98fab",
+                  "Command": "-o ../../../_output/enlisted/shaders~$(ToolAdditionalName)"
+                }
+              ]
+            },
+            {
+              "Id": "d1fc80b6-0b1a-4233-80e4-81851ccc429c",
+              "Command": "DX11",
+              "Items": [
+                {
+                  "Id": "8c46c7bd-22a3-4b14-96df-aacc7fa86adb",
+                  "Command": "./shaders_pc11.blk"
+                },
+                {
+                  "Id": "af17e1c8-0ac8-4573-b145-53275725c4f5",
+                  "Command": "-o ../../../_output/enlisted/shaders~pc11"
+                }
+              ]
+            },
+            {
+              "Id": "2e05d0ea-e519-4fd4-825a-517010db8061",
+              "Command": "DX12",
+              "Items": [
+                {
+                  "Id": "7f249c0d-1947-45fa-84ac-330e4b66f2ae",
+                  "Command": "./shaders_dx12.blk"
+                },
+                {
+                  "Id": "88c83821-2629-4865-bd0f-9b67ca650554",
+                  "Command": "-o ../../../_output/enlisted/shaders~dx12"
+                }
+              ]
+            },
+            {
+              "Id": "f601fa9b-7681-4faa-bb5d-490e052f344b",
+              "Command": "SpirV",
+              "Items": [
+                {
+                  "Id": "42b0e6ab-a87a-4fcd-b387-810a8ed60604",
+                  "Command": "./shaders_spirv.blk"
+                },
+                {
+                  "Id": "65172991-fd25-41b2-89a1-88f3e0493ef6",
+                  "Command": "-o ../../../_output/enlisted/shaders~spirv"
+                }
+              ]
+            },
+            {
+              "Id": "2e417502-a86c-4312-a3d3-b8e240bbd886",
+              "Command": "PS4",
+              "Items": [
+                {
+                  "Id": "e945c357-c7a0-490a-b283-a9678d5687d2",
+                  "Command": "./shaders_ps4.blk"
+                },
+                {
+                  "Id": "17a18566-7b0d-491e-aeea-527cf737d4f0",
+                  "Command": "-o ../../../_output/enlisted/shaders~ps4"
+                }
+              ]
+            },
+            {
+              "Id": "5b6a97ff-b491-4299-9ef5-405c8d1d3f89",
+              "Command": "PS5",
+              "Items": [
+                {
+                  "Id": "fbed3558-216c-41ee-bca0-1ceaf7a87590",
+                  "Command": "./shaders_ps5.blk"
+                },
+                {
+                  "Id": "08265eac-7a93-40a5-95f1-b580f08f984e",
+                  "Command": "-o ../../../_output/enlisted/shaders~ps5"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Id": "2a12d4eb-ed9a-4332-a1f4-2106ed08c997",
+          "Command": "Skyquake",
+          "ExclusiveMode": true,
+          "Items": [
+            {
+              "Id": "a690b952-738d-465b-a70c-9a7a86c59cc3",
+              "Command": "Default",
+              "Items": [
+                {
+                  "Id": "90045a96-b2e3-4bfa-a4c1-ae0dd3752fdc",
+                  "Command": "./shaders_$(ToolAdditionalName).blk"
+                },
+                {
+                  "Id": "b0537c32-357e-425c-8742-186336126fcb",
+                  "Command": "-o ../../../_output/skyquake/shaders~$(ToolAdditionalName)"
+                }
+              ]
+            },
+            {
+              "Id": "e2e47b95-3812-425d-aba1-90670532c838",
+              "Command": "DX11",
+              "Items": [
+                {
+                  "Id": "6ff7bfe6-c046-4c99-8928-bc1d6e4c7b62",
+                  "Command": ".\\shaders_pc11.blk"
+                },
+                {
+                  "Id": "a2efa0bb-0b1c-49ee-837e-b43b25d6be36",
+                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~pc11"
+                }
+              ]
+            },
+            {
+              "Id": "67393fa8-255b-4b05-8fa6-cb2153aebb9e",
+              "Command": "DX12",
+              "Items": [
+                {
+                  "Id": "5fd17d07-2805-4fbe-8ea2-5c716b7aab5b",
+                  "Command": ".\\shaders_pc12.blk"
+                },
+                {
+                  "Id": "58dcc3be-7466-4a3b-8b90-a1aa8e5d60be",
+                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~pc12"
+                }
+              ]
+            },
+            {
+              "Id": "e107199d-ad62-442d-bc72-1c014ea2d939",
+              "Command": "SpirV",
+              "Items": [
+                {
+                  "Id": "93d1f43b-0cd0-40e2-95ab-ab7505bfa42f",
+                  "Command": ".\\shaders_spirv.blk"
+                },
+                {
+                  "Id": "26308e2f-cade-49e0-adca-a65e0c1f2bb5",
+                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~spirv"
+                }
+              ]
+            },
+            {
+              "Id": "9a861b00-a508-454c-b23b-5c02dac93455",
+              "Command": "PS4",
+              "Items": [
+                {
+                  "Id": "3252668b-3e6c-48c6-9c7a-0a21ad34d3b4",
+                  "Command": ".\\shaders_ps4.blk"
+                },
+                {
+                  "Id": "08c0a490-5978-4ab7-81cc-fafda1ee8414",
+                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~ps4"
+                }
+              ]
+            },
+            {
+              "Id": "ec3693e8-fc06-4ecb-98c5-765a485284d2",
+              "Command": "PS5",
+              "Items": [
+                {
+                  "Id": "ba7d6e26-deec-4b52-a013-5bfe5aafc3fa",
+                  "Command": ".\\shaders_ps5.blk"
+                },
+                {
+                  "Id": "d06b1639-90e9-403a-aa1b-db86727e5a02",
+                  "Command": "-o ..\\..\\..\\_output\\skyquake\\shaders~ps5"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Id": "4a1d9063-5512-459d-abb6-6e61470f877e",
+      "Command": "-q"
+    },
+    {
+      "Id": "d66a5610-4ec7-4732-812e-4baf19ca4ae5",
+      "Command": "-shaderOn"
+    },
+    {
+      "Id": "12375595-146d-43cf-a0f8-1a6a1bcfe9c5",
+      "Command": "-nodisassembly"
+    },
+    {
+      "Id": "18c419f3-ecee-4001-9431-cc3e10ce419a",
+      "Command": "-commentPP"
+    },
+    {
+      "Id": "ead6f110-ebb0-46d7-8159-416b49561a78",
+      "Command": "-codeDumpErr"
+    },
+    {
+      "Id": "d851ea2f-8129-4176-a54f-12ff6cbd011d",
+      "Command": "-bones_start 70"
+    },
+    {
+      "Id": "dc7946b6-caa7-42b9-9e12-64df14bd7811",
+      "Command": "-maxVSF 4096"
+    },
+    {
+      "Id": "ebfc2d30-39d4-4dd6-a932-ecd444258a98",
+      "Command": "-belownormal"
+    },
+    {
+      "Id": "573b3679-f983-4f04-874d-8a89ed2006dd",
+      "Command": "-wx"
+    },
+    {
+      "Id": "26232a7d-4c5c-4d1f-9ea9-749cbffe10b2",
+      "Command": "-r"
+    }
+  ]
+}

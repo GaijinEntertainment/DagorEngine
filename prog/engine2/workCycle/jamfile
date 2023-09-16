@@ -1,0 +1,128 @@
+Root    ?= ../../.. ;
+Location = prog/engine2/workCycle ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine2/workCycle.lib ;
+
+Sources =
+  gameSetts.cpp
+  gameActRate.cpp
+  gameSceneSelect.cpp
+  gameSceneRenderer.cpp
+  resetSpentTime.cpp
+  workCycle.cpp
+  workCyclePerf.cpp
+  initVideo.cpp
+  initNullJoystick.cpp
+  initNullKeyb.cpp
+  initNullMouse.cpp
+  commonStart.cpp
+  mainWndProc.cpp
+;
+
+CPPopt = -D__B_CORE ;
+if $(Platform) in win32 win64 xboxOne scarlett {
+  Sources +=
+    initJoystick.cpp
+    initJoystickXInput.cpp
+    initKeybWin.cpp
+    initMouseWin.cpp
+    idleCycle.cpp
+  ;
+}
+if $(Platform) in win32 win64 { Sources += windows/threadedWindow.cpp ; }
+if $(Platform) in xboxOne scarlett {
+  Sources +=
+    xbox/keyboard.cpp
+    xbox/IME.cpp
+  ;
+}
+
+if $(Platform) in ps4 ps5 {
+  Sources +=
+    sony/idleCycle.cpp
+    sony/initGamepad.cpp
+    sony/IME.cpp
+  ;
+}
+
+if $(Platform) = ps5 {
+  AddLibs +=
+    -lSceShare_stub_weak
+  ;
+}
+
+if $(Platform) = macosx {
+  Sources +=
+    macosx/macIdleCycle.mm
+    initKeybWin.cpp
+    initMouseWin.cpp
+  ;
+}
+
+if $(Platform) = iOS {
+  Sources +=
+    macosx/iosIdleCycle.mm
+    initJoystick.cpp
+    initKeybWin.cpp
+    initMouseWin.cpp
+  ;
+}
+
+if $(Platform) = tvOS {
+  Sources +=
+    macosx/iosIdleCycle.mm
+    macosx/initRemoteControl.mm
+    initKeybWin.cpp
+    initMouseWin.cpp
+  ;
+}
+
+if $(Platform) in linux64 {
+  Sources +=
+    idleCycle.cpp
+    initKeybWin.cpp
+    initMouseWin.cpp
+    initJoystickSteam.cpp
+  ;
+  if $(LinuxUseX11) = yes {
+    CPPopt += -DUSE_X11 ;
+    Target = $(Target:S=~x11.lib) ;
+    AddLibs += -lX11 ;
+  }
+}
+
+if $(Platform) in android {
+  Sources +=
+    idleCycle.cpp
+    initJoystick.cpp
+    initKeybWin.cpp
+    initMouseWin.cpp
+  ;
+}
+
+if $(Platform) in nswitch {
+  Sources +=
+    idleCycle.cpp
+    initKeybWin.cpp
+    initMouseWin.cpp
+  ;
+}
+
+AddIncludes = $(Root)/prog/engine2/sharedInclude ;
+
+UseProgLibs =
+  engine2/perfMon
+  engine2/lowLatency
+  engine2/coreUtil
+;
+if $(Config) in dbg dev {
+  UseProgLibs += engine2/consoleProc ;
+}
+
+UseProgLibs += engine2/drv/vr_device ;
+
+include $(Root)/prog/_jBuild/build.jam ;

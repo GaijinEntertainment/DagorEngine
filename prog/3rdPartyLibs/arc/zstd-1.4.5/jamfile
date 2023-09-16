@@ -1,0 +1,36 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/arc/zstd-1.4.5 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/arc/zstd-1.4.5.lib ;
+
+
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/arc/zstd-1.4.5
+  $(Root)/prog/3rdPartyLibs/arc/zstd-1.4.5/common
+  $(Root)/prog/3rdPartyLibs/arc/zstd-1.4.5/compress
+  $(Root)/prog/3rdPartyLibs/arc/zstd-1.4.5/decompress
+  $(Root)/prog/3rdPartyLibs/arc/zstd-1.4.5/dictBuilder
+  $(Root)/prog/3rdPartyLibs/arc/zstd-1.4.5/legacy
+;
+
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+local AllSrcFolder_C =
+  common
+  compress
+  decompress
+  dictBuilder
+  legacy
+  src/builtin
+  src/simulate
+  src/misc
+;
+
+AutoscanBuildLists $(AllSrcFolder_C) : *.c       : Sources ;
+
+Copt = -DZSTD_LEGACY_SUPPORT -DXXH_CPU_LITTLE_ENDIAN=1 ;
+
+include $(Root)/prog/_jBuild/build.jam ;

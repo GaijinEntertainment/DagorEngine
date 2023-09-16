@@ -1,0 +1,9 @@
+WARNING: w274 (iterator-in-lambda) Iterator 'x' is trying to be captured in closure.
+testData/static_analyser/w274_2.nut:5:23
+
+foreach (_, x in a) {
+    m.append(@() print(x))
+                       ^
+    m.each(@(_p) print(x))
+
+

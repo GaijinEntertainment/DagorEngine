@@ -1,0 +1,4 @@
+;
+function_can_return_string = fn_can_return_string
+function_should_return_bool_prefix = returnBool
+function_should_return_something_prefix = make

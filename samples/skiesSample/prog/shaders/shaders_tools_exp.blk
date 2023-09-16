@@ -1,0 +1,18 @@
+include shaders_tools11.blk
+
+"@override:outDumpName":t="../../tools/common/compiledShaders/tools.exp"
+outMiniDumpName:t="../../tools/common/compiledShaders/tools.exp"
+
+"@delete:source" {}
+source
+{
+  includePath:t="./source"
+  file:t = "testMat.sh"
+  file:t = "testTree.sh"
+  file:t = "testMatAO.sh"
+  file:t = "./source/heightmap.sh"
+}
+
+"@delete:explicit_var_ref" {}
+
+"@override:common_assume_static" { "@override:in_editor_assume":i=1; }

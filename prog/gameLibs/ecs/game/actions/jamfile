@@ -1,0 +1,21 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/ecs/game/actions ;
+
+TargetType  = lib ;
+Target      = gameLibs/ecs/game/actions.lib ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+GenESSourceFile actionES.cpp.inl ;
+
+UseProgLibs +=
+;
+
+include $(Root)/prog/_jBuild/build.jam ;
+

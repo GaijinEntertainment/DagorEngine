@@ -1,0 +1,34 @@
+shader_root_dir:t="."
+outDumpName:t="../../../../tools/dargbox/shaders/gameSpirV"
+
+incDir:t="../../../gameLibs/render/shaders"
+
+source
+{
+  includePath:t="./source"
+  include shadersList.blk
+}
+
+common_valid_variants {
+}
+
+common_assume_vars {
+}
+
+
+Compile
+{
+  fsh:t = SpirV-5.0
+  assume_vars {
+    particles_buffer_id:i=8
+    static_shadows_custom_fxaa:i=0
+    grass_use_quads_index_buffer:i=0
+    mobile_render:i=0
+  }
+}
+
+explicit_var_ref
+{
+  ref:t=world_view_pos
+  ref:t=global_transp_r
+}

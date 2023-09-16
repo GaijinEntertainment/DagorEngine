@@ -1,0 +1,22 @@
+Platform ?= win64 ;
+Config   ?= rel ;
+
+Root    ?= ../../.. ;
+Location = prog/tools/converters ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = util ;
+Target      = converters_all ;
+
+local JamList =
+  ddsxCvt
+  ddsConverter
+  ddsx2dds
+  GuiTex
+;
+
+Dependencies =
+  $(Root)/$(Location)/$(JamList)/jamfile
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

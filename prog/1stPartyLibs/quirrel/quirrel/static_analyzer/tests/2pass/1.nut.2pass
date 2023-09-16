@@ -1,0 +1,2 @@
+::fn1 <- function fn1() {}
+global const PERSISTENT_DATA_PARAMS = "PERSISTENT_DATA_PARAMS"

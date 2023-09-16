@@ -1,0 +1,21 @@
+if $(OS) = NT { Platform ?= win64 ; }
+PlatformSpec_win64 ?= clang ;
+
+Root    ?= ../../../../../.. ;
+Location = prog/3rdPartyLibs/phys/bullet-3/test/gtest-1.7.0 ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/phys/bullet-3/test/gtest-1.7.0.lib ;
+
+Sources =
+  src/gtest-all.cc
+;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/phys/bullet-3/test/gtest-1.7.0/include
+  $(Root)/prog/3rdPartyLibs/phys/bullet-3/test/gtest-1.7.0
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

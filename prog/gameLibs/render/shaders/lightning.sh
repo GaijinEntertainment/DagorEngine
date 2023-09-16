@@ -1,0 +1,105 @@
+float lightning_current_bottom = 0.0;
+float lightning_step_size = 1;
+
+float lightning_inverse_height_difference = 1.0;
+float lightning_top_height = 1000.0;
+float lightning_vert_noise_scale = 100.0;
+float lightning_vert_noise_strength = 0.0;
+float lightning_vert_noise_time_multiplier = 10.0;
+float lightning_vert_noise_speed = 1.0;
+
+float lightning_emissive_multiplier = 1.0;
+
+macro INIT_LIGHTNING()
+(vs) {
+    animation_time@f1 = (time_phase(0, 0));
+    lightning_noise_params@f3 = (lightning_vert_noise_strength * lightning_vert_noise_time_multiplier, lightning_vert_noise_scale, lightning_vert_noise_speed, 0);
+  }
+  static float4 emission_color;
+  (ps) {
+    emission_color@f4 = emission_color;
+    lightning_bolt_params@f3 = (lightning_current_bottom, lightning_emissive_multiplier, lightning_step_size, 0.0);
+    lightning_height_params@f2 = (lightning_top_height, lightning_inverse_height_difference, 0, 0);
+  }
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 texcoord_lighting    : TEXCOORD0;
+      float3 pointToEye           : TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float4 normal               : NORMAL;
+      float2 texcoord             : TEXCOORD0;
+      INIT_BONES_VSINPUT(TEXCOORD4, TEXCOORD5)
+    };
+  }
+endmacro
+
+macro LIGHTNING_VS()
+  hlsl(vs) {
+    #include "noise/Value1D.hlsl"
+
+    VsOutput lightning_bolt_vs(VsInput input)
+    {
+      VsOutput output;
+
+      float3 forward = float3(1, 0, 0);
+      float3 right = float3(0, 0, 1);
+      float2 noise = float2(
+        noise_value1D((input.pos.x + frac(animation_time * lightning_noise_params.z)) * lightning_noise_params.y),
+        noise_value1D((input.pos.z + frac(animation_time * lightning_noise_params.z)) * lightning_noise_params.y)
+      );
+      input.pos += (forward * noise.x +  right * noise.y) * lightning_noise_params.x;
+
+      float3 eyeToPoint;
+      float3 worldDu;
+      float3 worldDv;
+      float3 worldNormal;
+      float3 localNormal = input.normal.xyz;
+
+      float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
+      instance_skinning(
+        input,
+        input.pos,
+        localNormal,
+        localDu,
+        localDv,
+        eyeToPoint,
+        output.pos,
+        worldNormal,
+        worldDu,
+        worldDv);
+
+      output.texcoord_lighting.xy = input.texcoord;
+      output.texcoord_lighting.z = luminance(GetSkySHDiffuse(normalize(worldNormal)));
+      output.pointToEye.xyz = -eyeToPoint;
+      return output;
+    }
+  }
+  compile("target_vs", "lightning_bolt_vs");
+endmacro
+
+macro LIGHTNING_PS()
+  hlsl(ps) {
+    half4 lightning_bolt_ps(VsOutput input) : SV_Target0
+    {
+      half4 diffuseColor = half4(get_emission_color().xyz, 1.0);
+      diffuseColor.a = min(lightning_bolt_params.y, 1.0f);
+      float3 worldPos = world_view_pos.xyz - input.pointToEye.xyz;
+      diffuseColor.rgb *= lerp(1, MAX_EMISSION, get_emission_color().w) * lightning_bolt_params.y * input.texcoord_lighting.z;
+      float fadeinVal = saturate((lightning_height_params.x - worldPos.y) * lightning_height_params.y);
+      diffuseColor.a *= fadeinVal;
+      diffuseColor.rgb *= pow4(fadeinVal);
+      if (floor(worldPos.y * lightning_bolt_params.z) < lightning_bolt_params.x)
+        diffuseColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
+      return half4(pack_hdr(diffuseColor.rgb), diffuseColor.a);
+    }
+  }
+  compile("target_ps", "lightning_bolt_ps");
+endmacro

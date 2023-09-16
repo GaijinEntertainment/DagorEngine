@@ -1,0 +1,24 @@
+light_initial_ambient_voxels_cs {
+  invalid {gi_quality:i = 2;}
+}
+
+light_initialize_culling_cs {
+  invalid {gi_quality:i = 2;}
+}
+
+light_initialize_culling_check_age_cs {
+  invalid {gi_quality:i = 2;}
+}
+
+light_initialize_ambient_voxels_cs {
+  invalid {gi_quality:i = 2;}
+}
+
+light_partial_initialize_ambient_voxels_cs {
+  invalid {gi_quality:i = 2;}
+}
+
+light_ss_ambient_voxels_cs {
+  invalid {gi_quality:i = 2;}
+}
+

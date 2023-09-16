@@ -1,0 +1,62 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/freetype/harfbuzz-2.6.4 ;
+ConsoleExe = yes ;
+
+TargetType = exe ;
+OutDir     = $(Root)/$(Location)/test ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+MultiTarget =
+  hb_info
+  hb_test
+  hb_test-array
+  hb_test-bimap
+  hb_test-buffer-serialize
+  hb_test-gpos-size-params
+  hb_test-gsub-would-substitute
+  hb_test-number
+  hb_test-ot-glyphname
+  hb_test-ot-meta
+  hb_test-ot-name
+  hb_test-unicode-ranges
+;
+
+if $(PlatformSpec) = clang { # these tests fail to compile with VC
+  MultiTarget +=
+    hb_test-algs
+    hb_test-iter
+    hb_test-meta
+  ;
+}
+
+Sources(hb_info) = src/main.cc ;
+Sources(hb_test) = src/test.cc ;
+
+Sources(hb_test-algs) = src/test-algs.cc ;
+Sources(hb_test-array) = src/test-array.cc ;
+Sources(hb_test-bimap) = src/test-bimap.cc ;
+Sources(hb_test-buffer-serialize) = src/test-buffer-serialize.cc ;
+Sources(hb_test-gpos-size-params) = src/test-gpos-size-params.cc ;
+Sources(hb_test-gsub-would-substitute) = src/test-gsub-would-substitute.cc ;
+Sources(hb_test-iter) = src/test-iter.cc ;
+Sources(hb_test-meta) = src/test-meta.cc ;
+Sources(hb_test-number) = src/test-number.cc ;
+Sources(hb_test-ot-glyphname) = src/test-ot-glyphname.cc ;
+Sources(hb_test-ot-meta) = src/test-ot-meta.cc ;
+Sources(hb_test-ot-name) = src/test-ot-name.cc ;
+Sources(hb_test-unicode-ranges) = src/test-unicode-ranges.cc ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/freetype/harfbuzz-2.6.4/src
+  $(Root)/prog/3rdPartyLibs/freetype/freetype-2.8/include
+;
+
+UseProgLibs =
+  3rdPartyLibs/freetype/harfbuzz-2.6.4
+  3rdPartyLibs/freetype/freetype-2.8
+;
+
+CPPopt = -D__B_NO_MEM_BASE_INCLUDE=1 -D_CRT_SECURE_NO_WARNINGS -DHAVE_FREETYPE ;
+if $(Platform) in linux64 { CPPopt += -DHAVE_PTHREAD ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

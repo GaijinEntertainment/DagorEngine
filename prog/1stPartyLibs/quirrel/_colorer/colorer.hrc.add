@@ -1,0 +1,4 @@
+  <type descr="quirrel" name="das" exts="/\.nut/i">
+    <load name="scripts/quirrel.hrc"/>
+    <scheme name="Quirrel"/>
+  </type>

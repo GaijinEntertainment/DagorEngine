@@ -1,0 +1,29 @@
+; base_path = prog/scripts/scripts/  ; adds basepaths (relative to this .sqconfig)
+; mount = alias=prog/scripts/mount/  ; adds mount paths (relative to this .sqconfig)
+; allowed_native_modules = dagor.debug DataBlock
+
+; execute = print("hello\n")  ; execute some quirrel script, line by line of "execute"
+
+; execute_file = stub.nut  ; execute some .nut file (ralative to this .sqconfig)
+
+use_libs_by_default = yes  ; what to do if library not found in this config
+register_dagor_fs = yes  ; module dagor.fs: scan_folder, file_exists, ...
+register_dagor_fs_vrom = yes  ; module dagor.fs.vrom: scan_vrom_folder
+sqstd_register_io_lib = yes  ; see quirrel doc
+sqstd_register_base_libs = yes  ; math, string, iostream
+sqstd_register_system_lib = yes  ; system lib
+sqstd_register_datetime_lib = yes  ; datetime lib
+sqrat_bind_dagor_logsys = yes  ; modules: dagor.debug, dagor.assertf, dagor.debug_dump_stack ...
+register_utf8 = yes  ; roottable: class utf8, utf8.strtr, utf8.charCount ...
+sqrat_bind_datablock_module = yes  ; 'DataBlock' module: Point2, Point3, TMatrix, Color4 ...
+register_json = yes  ; 'json' module
+sqrat_bind_dagor_math_module = yes  ; 'dagor.math', 'dagor.random' and 'hash' modules: Point2, Point3, TMatrix, Color4 ...
+register_dagor_http = yes  ; 'dagor.http' module
+register_reg_exp = yes  ; roottable: class regexp2, regexp2.match, regexp2.fullmatch, regexp2.replace
+yupfile_parse lib = yes  ; get_str, get_int
+register_dagor_time_module = yes  ; get_time_msec
+register_dagor_shell_module = yes  ; shell_execute
+register_dagor_iso8601_module = yes  ; module dagor.iso8601: parse_unix_time, format_unix_time ...
+register_jwt = yes  ; JWT decode
+register_base64 = yes  ; base64 encode/decode
+register_frp = yes  ; Watched/Computed

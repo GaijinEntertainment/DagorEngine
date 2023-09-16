@@ -1,0 +1,15 @@
+
+fxList =
+  trailFlowFx
+  lightFx
+  dafxSparks
+  dafxModfx
+  dafxCompound
+;
+if $(SkipFlowAnCompoundPS) != yes {
+  fxList += compoundPs flowPs2 ;
+}
+
+if $(SkipWTPS) != yes {
+  fxList += emitterFlowPs animPlanesFx animPlanes2Fx ;
+}

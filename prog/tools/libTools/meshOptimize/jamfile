@@ -1,0 +1,18 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/meshOptimize ;
+
+TargetType  = lib ;
+Target      = tools/libTools/meshOptimize.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude/libtools
+;
+
+Sources =
+  mxQMetric3.cpp
+  quadrics.cpp
+;
+
+CPPopt = -DSAFETY ;
+
+include $(Root)/prog/_jBuild/build.jam ;

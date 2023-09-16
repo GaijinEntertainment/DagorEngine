@@ -1,0 +1,41 @@
+Root    ?= ../../.. ;
+Location = prog/1stPartyLibs/webbrowser ;
+Config ?= rel ;
+
+TargetType  = lib ;
+Target      = 1stPartyLibs/webbrowser.lib ;
+
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes = $(Root)/prog/3rdPartyLibs/flatbuffers/include ;
+
+Sources =
+  lib/webbrowser.cpp
+  lib/host.cpp
+  lib/unicodeString.cpp
+  lib/ipc/channel.cpp
+  lib/ipc/shmem.cpp
+  lib/ipc/socket.cpp
+  lib/ipc/process.cpp
+;
+
+AddLibs += rpcrt4.lib ;
+
+CPPopt +=
+  -DUNICODE
+  -D_UNICODE
+  -D_HAS_EXCEPTIONS=0
+  -DNOMINMAX
+  /wd5031 # pragma warning(pop): likely mismatch, popping warning state pushed in different file (flatbuffers.h)
+  /wd4623 # default constructor was implicitly defined as deleted (generated from schema)
+;
+
+if $(Config) = dbg {
+  CPPopt += 
+    /wd4548 # malloc.h(160) - expression vefore comma has no effect
+  ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

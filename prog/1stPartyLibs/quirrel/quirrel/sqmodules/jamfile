@@ -1,0 +1,25 @@
+Root    ?= ../../../../.. ;
+Location = prog/1stPartyLibs/quirrel/quirrel/sqmodules ;
+
+TargetType = lib ;
+Target = 1stPartyLibs/quirrel/quirrel/sqmodules.lib ;
+
+AddIncludes =
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/1stPartyLibs/eastl/include
+;
+
+Sources =
+  sqmodules.cpp
+  path.cpp
+;
+
+CPPopt = -D__B_CORE ;
+if $(Platform) = win64 { CPPopt += -wd4267 ; }
+
+Copt   = $(CPPopt) ;
+
+ExplicitLicenseUsed += $(Root)/prog/1stPartyLibs/quirrel/quirrel ;
+
+include $(Root)/prog/_jBuild/build.jam ;

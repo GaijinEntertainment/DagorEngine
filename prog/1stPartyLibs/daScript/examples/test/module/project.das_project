@@ -1,0 +1,10 @@
+require strings
+require daslib/strings_boost
+
+include common.das_project
+include foo/foo.das_module
+
+[export]
+def include_get( inc,from:string ) : string
+    print("including {inc} from {from}\n")
+    return "{get_das_root()}/examples/test/module/include/{inc}"

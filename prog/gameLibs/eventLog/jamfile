@@ -1,0 +1,28 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/eventLog ;
+
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/eventLog.lib ;
+
+Sources =
+  dataHelpers.cpp
+  eventLog.cpp
+  errorLog.cpp
+  httpRequest.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/1stPartyLibs/sysinfo
+;
+
+UseProgLibs +=
+  1stPartyLibs/jsoncpp
+  1stPartyLibs/sysinfo
+  gameLibs/asyncHTTPClient
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

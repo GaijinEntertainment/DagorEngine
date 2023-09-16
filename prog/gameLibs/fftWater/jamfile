@@ -1,0 +1,38 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/fftWater ;
+
+TargetType  = lib ;
+Target      = gameLibs/fftWater.lib ;
+
+Sources =
+  wake.cpp
+  waterRender.cpp
+  waterRenderGpGPU.cpp
+  waterRenderCSGPU.cpp
+  gpuFetch.cpp
+  waterPhys.cpp
+  fftWater.cpp
+  fftWaterUtils.cpp
+  distanceField.cpp
+  flowMap.cpp
+  waterCommon.cpp
+  fftCPU/FFT_CPU_Simulation.cpp 
+;
+
+AddIncludes = 
+#  $(Root)/prog/3rdPartyLibs/waveWorks2/include
+  $(Root)/prog/gameLibs/publicInclude 
+  $(Root)/prog/gameLibs/fftWater/fftCPU
+;
+
+AddLibs = 
+#  $(Root)/prog/3rdPartyLibs/waveWorks/lib/win32/gfsdk_waveworks.win32.lib 
+;
+
+UseProgLibs =
+#  3rdPartyLibs/waveWorks2
+  gameLibs/heightmap
+  engine2/lib3d
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

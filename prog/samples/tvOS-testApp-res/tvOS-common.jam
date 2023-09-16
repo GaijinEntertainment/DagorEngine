@@ -1,0 +1,27 @@
+BundleID    ?= com.gaijinent.$(BundleName) ;
+BundleTitle ?= $(BundleName) ;
+
+Make_Apple_OutDir ;
+
+if $(tvOSArch) != i386 {
+  CertName = \"iPhone\ Developer:\ Build\ Server\" ;
+
+  SignatureOpt =
+    --force --sign $(CertName)
+    --entitlements $(Root)/prog/samples/tvOS-testApp-res/testApp.entitlements.plist
+    --timestamp=none
+  ;
+}
+
+BundleCopy =
+  @$(Root)/prog/_jBuild/tvOS/generic.pkgInfo                      PkgInfo
+  @$(Root)/prog/samples/tvOS-testApp-res/testApp.mobileprovision  embedded.mobileprovision
+;
+BundlePlist =
+  @$(Root)/prog/_jBuild/tvOS/generic.info.plist  Info.plist
+;
+
+BundlePng =
+;
+
+BundleLang = en ru ;

@@ -1,0 +1,393 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>Rendinst Colors</title>
+
+<style>
+  .notSelected
+  {
+    background-color: white;
+  }
+  .selected
+  {
+    background-color: gray;
+  }
+</style>
+
+</head>
+<body>
+
+<script src="../colorpicker/colorPicker.js">/* direct */</script>
+<script src="colorPicker.js">/* from plugin */</script>
+
+<div id="table_div" style="-moz-user-select: none; -webkit-user-select: none; -ms-user-select:none; user-select:none;-o-user-select:none;">
+...
+</div>
+
+
+
+<script>
+"use strict";
+
+var client = new XMLHttpRequest();
+var clientBusy = false;
+var clientPost = new XMLHttpRequest();
+var clientId = "id:" + Date.now();
+var errorState = false;
+var attached = false;
+var queryQueue = [];
+var lastRespondTime = null;
+
+var rendinstNames = [];
+var marked = [];
+var newMarked = [];
+
+function query(q, callback, body)
+{
+  if (q.indexOf("state") !== 0 && q.indexOf("alldata") !== 0)
+    console.log("query: " + q);
+
+  if (!attached && q.indexOf('attach') !== 0)
+    return;
+
+  if (!body)
+    body = null;
+
+  if (clientBusy)
+  {
+    if (queryQueue.length < 1000)
+    {
+      var a = {};
+      a.query = q;
+      a.callback = callback;
+      a.body = body;
+      queryQueue.push(a);
+      return;
+    }
+    else
+    {
+      alert("Out of queryQueue max length");
+      return;
+    }
+  }
+
+  clientBusy = true;
+
+  client.onerror = function()
+  {
+    console.log("ERROR '" + client._query + "': " + client.status + " " + client.statusText);
+    onDetach();
+  }
+
+  client.onabort = function()
+  {
+    console.log("ABORT: " + client.status + " " + client.statusText);
+    onDetach();
+  }
+
+  client.onload = function()
+  {
+    if (client.status != 200)
+    {
+      console.log("ERROR(2) '" + client._query + "': " + client.status + " " + client.statusText);
+      onDetach();
+      return;
+    }
+
+    lastRespondTime = Date.now();
+
+    clientBusy = false;
+
+    if (callback)
+    {
+      callback(client.responseText);
+      callback = null;
+    }
+
+    var q = queryQueue.shift();
+    if (q)
+      query(q.query, q.callback, q.body);
+  }
+
+  try
+  {
+    client._query = q;
+    client.open(body ? 'POST' : 'GET', 'rendinst_colors?' + q, true);
+    client.send(body);
+  }
+  catch (err)
+  {
+    attached = false;
+  }
+}
+
+
+function onAttach(callback)
+{
+  queryQueue = [];
+  attached = true;
+  var cb = callback;
+  query('attach', function(text)
+    {
+      attached = true;
+      cb();
+    });
+  attached = false;
+}
+
+
+function onDetach()
+{
+  //query('detach', false);
+  attached = false;
+}
+
+
+
+function makeButtonHtml(name, colorHex)
+{
+  return "<button id=\"id_" + name + "\" style=\"background-color:#" + colorHex.slice(0, 6) + "\" data-color=\"" + colorHex +
+         "\", name=\"id_" + name + "\"" +
+         "onclick=\"show_color_picker_hex(this, 'id_" + name + "', onColorChanged); event.stopPropagation();\" onmousedown=\"event.stopPropagation();\">" +
+         "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" +
+         "</button>";
+}
+
+function makeRendinstHtml(name, colorHexFrom, colorHexTo, num)
+{
+  return "<div id=\"div_" + num + "\" class=\"notSelected\" onmousedown=\"on_ri_mouse_down(" + num +
+         ", event)\" onmousemove=\"on_ri_mouse_move(" + num + ", event)\"  onmouseup=\"on_ri_mouse_up(" + num + ", event); event.stopPropagation();\" >" +
+         "<span style=\"width:350px; display:inline-block;\">" + name + "</span>" +
+         makeButtonHtml(":colorFrom:" + name, colorHexFrom) +
+         makeButtonHtml(":colorTo:" + name, colorHexTo) +
+         "<button onmousedown=\"event.stopPropagation();\" onclick=\"copyToClipboard('" + name + "'); event.stopPropagation();\">Copy to Clipboard</button>" +
+         "</div>";
+}
+
+function colorHexToE3dcolor(c)
+{
+  return "" + parseInt(c.slice(0, 2), 16) + ", " +
+              parseInt(c.slice(2, 4), 16) + ", " +
+              parseInt(c.slice(4, 6), 16) + ", " +
+              parseInt(c.slice(6, 8), 16);
+}
+
+function copyToClipboard(name)
+{
+  var systemCopyClipboard = function(str)
+  {
+    const el = document.createElement('textarea');
+    el.value = str;
+    el.setAttribute('readonly', '');
+    el.style.position = 'absolute';
+    el.style.left = '-9999px';
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+  };
+
+  var fromId = "id_:colorFrom:" + name;
+  var toId = "id_:colorTo:" + name;
+  var fromColorHex = document.getElementById(fromId).dataset.color;
+  var toColorHex = document.getElementById(toId).dataset.color;
+  var s = "  colorFrom:c = " + colorHexToE3dcolor(fromColorHex) + "\n";
+  s += "  colorTo:c = " + colorHexToE3dcolor(toColorHex);
+  systemCopyClipboard(s);
+}
+
+function onColorChanged(color4FloatStr, e3dcolorHexStr, varId)
+{
+  var name = varId.split(":")[2];
+
+  var _fromId = "id_:colorFrom:" + name;
+  var _toId = "id_:colorTo:" + name;
+  var _fromColorHex = document.getElementById(_fromId).dataset.color;
+  var _toColorHex = document.getElementById(_toId).dataset.color;
+
+
+  var div = document.getElementById(varId).parentElement;
+  var divNum = parseInt(div.id.split("_")[1], 10);
+
+  if (!marked[divNum])
+  {
+    var q = "setcolor&" + name + "&" + _fromColorHex + "&" + _toColorHex;
+    query(q);
+  }
+  else
+  {
+    for (var i = 0; i <= marked.length; i++)
+      if (marked[i])
+      {
+        name = rendinstNames[i];
+        var fromId = "id_:colorFrom:" + name;
+        var toId = "id_:colorTo:" + name;
+        document.getElementById(fromId).style.backgroundColor = "#" + _fromColorHex.slice(0, 6);
+        document.getElementById(toId).style.backgroundColor = "#" + _toColorHex.slice(0, 6);
+        document.getElementById(fromId).dataset.color = _fromColorHex;
+        document.getElementById(toId).dataset.color = _toColorHex;
+
+        var q = "setcolor&" + name + "&" + _fromColorHex + "&" + _toColorHex;
+        query(q);
+      }
+  }
+}
+
+
+var first_ri = -1;
+var last_ri = -1;
+var ctrlPressed = false;
+
+function updateSelection()
+{
+  var mn = Math.min(first_ri, last_ri);
+  var mx = Math.max(first_ri, last_ri);
+  for (var i = 0; i < marked.length; i++)
+  {
+    var m = ctrlPressed ? marked[i] : false;
+
+    if (i >= mn && i <= mx)
+      newMarked[i] = true;
+    else
+      newMarked[i] = false;
+
+    m ^= newMarked[i];
+    document.getElementById("div_" + i).className = m ? "selected" : "notSelected";
+  }
+}
+
+function on_ri_mouse_down(n, e)
+{
+  if (e.button != 0)
+    return;
+
+  first_ri = n;
+  last_ri = n;
+  ctrlPressed = e.ctrlKey;
+  updateSelection();
+}
+
+function on_ri_mouse_move(n, e)
+{
+  if (first_ri >= 0)
+  {
+    last_ri = n;
+    updateSelection();
+  }
+}
+
+function on_ri_mouse_up(n, e)
+{
+  if (e.button != 0)
+    return;
+
+  if (first_ri >= 0)
+  {
+    last_ri = n;
+    updateSelection();
+    bakeMarked();
+    first_ri = -1;
+  }
+}
+
+function bakeMarked()
+{
+  for (var i = 0; i < marked.length; i++)
+  {
+    if (ctrlPressed)
+      marked[i] ^= newMarked[i];
+    else
+      marked[i] = newMarked[i];
+
+    newMarked[i] = false;
+  }  
+}
+
+window.addEventListener("mouseup", function(e) {
+  if (e.button != 0)
+    return;
+
+  if (first_ri >= 0)
+  {
+    updateSelection();
+    bakeMarked();
+    first_ri = -1;
+    last_ri = -1;
+  }
+});
+
+function queryAllData()
+{
+  query("alldata", function(text)
+    {
+      if (!text || !text.length)
+        return;
+
+      try
+      {
+        var json = JSON.parse(text);
+      }
+      catch (err)
+      {
+        console.log("ERROR: invalid JSON: " + text);
+        return;
+      }
+
+      var array = json.array;
+      array.sort(function(a, b) {return a.name.localeCompare(b.name);});
+
+      var html = "";
+      rendinstNames = [];
+      marked = [];
+      newMarked = [];
+      for (var i = 0; i < array.length; i++)
+      {
+        rendinstNames.push(array[i].name);
+        marked.push(false);
+        newMarked.push(false);
+        html += makeRendinstHtml(array[i].name, array[i].colorFrom, array[i].colorTo, i);
+      }
+      document.getElementById("table_div").innerHTML = html;
+
+    }, null);
+}
+
+
+function test()
+{
+  var array = [
+    {name:"name1", colorFrom:"FF001122", colorTo:"FF001122"},
+    {name:"name2", colorFrom:"11771122", colorTo:"22339922"},
+    {name:"name3", colorFrom:"11234522", colorTo:"74552322"}
+  ];
+
+  var html = "";
+  rendinstNames = [];
+  marked = [];
+
+  array.sort(function(a, b) {return a.name.localeCompare(b.name);});
+
+  for (var i = 0; i < array.length; i++)
+  {
+    rendinstNames.push(array[i].name);
+    marked.push(false);
+    newMarked.push(false);
+    html += makeRendinstHtml(array[i].name, array[i].colorFrom, array[i].colorTo, i);
+  }
+
+  document.getElementById("table_div").innerHTML = html;
+}
+
+
+window.addEventListener("load", function()
+{
+  console.log("window.onload()");
+  onAttach(queryAllData);
+//  test();
+});
+
+
+</script>
+
+</body>
+</html>

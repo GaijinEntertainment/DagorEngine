@@ -1,0 +1,34 @@
+ReproducibleExeBuild = yes ;
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/resDiff ;
+ConsoleExe = yes ;
+
+TargetType  = exe ;
+Target      = tools/resDiffUtil ;
+
+OutDir = $(Root)/tools/dagor3_cdk/util ;
+
+Sources =
+  resDiffUtil.cpp
+  cmain.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine2
+  $(Root)/prog/tools/sharedInclude
+;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/perfMon/daProfilerStub
+  tools/libTools/util
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

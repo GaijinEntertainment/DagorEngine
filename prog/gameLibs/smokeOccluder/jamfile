@@ -1,0 +1,25 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/smokeOccluder ;
+
+TargetType  = lib ;
+Target      = gameLibs/smokeOccluder/smokeOccluder.lib ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+;
+
+SourceES =
+  smokeOccluderES.cpp.inl
+;
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+UseProgLibs +=
+  gameLibs/daECS/core
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

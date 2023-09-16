@@ -1,0 +1,107 @@
+UseQuirrel = sq3r ;
+
+APP             = dasEcsUnitTest ;
+APP_FOLDER      = gameLibs/daECS/$(APP) ;
+
+Root    ?= ../../../.. ;
+Location = prog/$(APP_FOLDER) ;
+if $(Config) != rel {
+  CheckedContainers ?= yes ;
+}
+
+UseLLDLink ?= yes ;
+NeedDasAotCompile ?= no ;
+
+include $(Root)/prog/_jBuild/defaults.jam ; # Note - $(Platform) is not defined before this line
+
+OutDir      = $(Root)/tools/util ;
+#OutDir      =  $(Root)/$(Location) ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = das_ecs_test ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/daECS/dasEcsUnitTest
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+if $(NeedDasAotCompile) = yes {
+  local host_platform = ;
+  local jam = $(Root)/$(Location)/aot/jamfile ;
+
+  if $(Platform) in win64 ps4 ps5 xboxOne android nswitch { host_platform = win64 ; }
+  else if $(Platform) in win32 { host_platform = win32 ; }
+  else if $(Platform) in linux64 { host_platform = linux64 ; }
+  else if $(Platform) in macosx iOS tvOS { host_platform = macosx ; }
+
+  if $(host_platform) {
+    BuildJams = $(jam) ;
+    platform on $(jam:G=JAM) = -sPlatform=$(host_platform)  ;
+    config on $(jam:G=JAM) = -sConfig=dev ;
+    platform_spec on $(jam:G=JAM) = \  ;
+    platform_spec_xx on $(jam:G=JAM) = \  ;
+    nopdb on $(jam:G=JAM) = \  ;
+    checkonly on $(jam:G=JAM) = \  ;
+    if $(CheckedContainers) = yes {
+      config on $(jam:G=JAM) += -sCheckedContainers=yes ;
+      DAS_AOT_COMPILER = $(Root)/tools/util/das_ecs_test-aot-c-dev ;
+    } else {
+      DAS_AOT_COMPILER = $(Root)/tools/util/das_ecs_test-aot-dev ;
+    }
+    # DAS_AOT_COMPILER_OPT = -- --config aot_config.blk -sConfig $(Config) ;
+    if $(OS) = NT { DAS_AOT_COMPILER = $(DAS_AOT_COMPILER).exe ; }
+  } else {
+    NeedDasAotCompile = ;
+  }
+}
+
+local AllSrcFolder_DAS =
+  tests
+;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+
+if $(DAS_AOT_COMPILER) { AutoscanBuildLists $(AllSrcFolder_DAS) : *.das : Sources ; }
+
+if $(NeedDasAotCompile) = yes {
+  Sources += dasModules/aot/aot.cpp ;
+} else {
+  Sources += dasModules/stub/aotstub.cpp ;
+}
+
+UseMemoryDebugLevel ?= off ;
+Sanitize ?= disabled ;
+
+if $(Sanitize) != disabled { UseProgLibs += engine2/memory/rtlStdMemory ; } else { UseProgLibs += engine2/memory ; }
+
+if $(Sanitize) = disabled && $(Config) != rel { UseMemoryDebugLevel = dbg ; }
+
+UseProgLibs +=
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/perfMon
+  engine2/math
+  engine2/baseUtil
+  engine2/ioSys
+  engine2/startup
+  engine2/workCycle
+  gameLibs/daECS/core
+  gameLibs/daECS/io/datablock
+  gameLibs/daECS/utility
+  gameLibs/ecs/scripts/das
+  gameLibs/dasModules/common
+  gameLibs/daECS/gameResStub
+;
+
+
+if $(Config) = rel {
+  ForceLogs = yes ;
+}
+
+ForcePdb = yes ;
+include $(Root)/prog/_jBuild/build.jam ;

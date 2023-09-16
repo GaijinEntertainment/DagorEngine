@@ -1,0 +1,1 @@
+from "file.nut" as file2 import *

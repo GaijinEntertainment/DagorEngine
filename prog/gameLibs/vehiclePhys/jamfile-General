@@ -1,0 +1,23 @@
+
+AddIncludes +=
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  rayCar.cpp
+  rayCarDamping.cpp
+  physCarGameRes.cpp
+  physCarParams.cpp
+  createPhysCar.cpp
+  tireTracks.cpp
+;
+
+CPPopt += -DRayCar=$(PhysName:U)RayCar -DLegacyRenderableRayCar=$(PhysName:U)LegacyRenderableRayCar ;
+
+
+UseProgLibs =
+  gameLibs/vehiclePhys/carDynamics
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,20 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/webui/plugins/tvOS ;
+
+TargetType  = lib ;
+Target      = gameLibs/webui/plugins/tvOS.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/webui
+  $(Root)/prog/dagorInclude
+;
+
+Sources =
+  tvosplugins.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,16 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/coolConsole ;
+
+TargetType  = lib ;
+Target      = tools/libTools/coolConsole.lib ;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  coolConsole.cpp
+;
+
+
+#CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

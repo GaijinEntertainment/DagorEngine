@@ -1,0 +1,719 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>ECS Viewer</title>
+
+<style>
+  .searchInvitation
+  {
+    color: gray;
+    font-style: italic;
+  }
+
+  .searchResult
+  {
+    position: absolute;
+    left: 0px;
+    top: 33px;
+    width: 450px;
+    height: calc(99vh - 33px);
+    overflow: auto;
+    padding: 5px;
+    font-family: Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;
+    font-size: 10pt;
+  }
+
+  .elementViewer
+  {
+    position: absolute;
+    left: 460px;
+    top: 33px;
+    width: 450px;
+    height: calc(99vh - 33px);
+    overflow: auto;
+    padding: 5px;
+    font-family: Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;
+    font-size: 10pt;
+  }
+
+  .listEntityCount
+  {
+    color:#aaa;
+    font-size: 8pt;
+    font-weight: bold;
+  }
+
+  .listItemTypeCO
+  {
+    color:#1A1;
+    font-size: 8pt;
+    font-weight: bold;
+  }
+
+  .listItemTypeES
+  {
+    color:#12A;
+    font-size: 8pt;
+    font-weight: bold;
+  }
+
+  .listItemTypeTE
+  {
+    color:#919;
+    font-size: 8pt;
+    font-weight: bold;
+  }
+
+  .listItemNameUsed
+  {
+    color:black;
+    cursor: pointer;
+  }
+
+  .listItemNameNotUsed
+  {
+    color:#aaa;
+    cursor: pointer;
+  }
+
+  .compRO
+  {
+    color:#000;
+    cursor: pointer;
+  }
+
+  .compRW
+  {
+    color:#000;
+    cursor: pointer;
+  }
+
+  .compTE
+  {
+    color:#000;
+    cursor: pointer;
+  }
+
+  .compROPrefix
+  {
+    color:#4e2;
+    font-size: 8pt;
+    font-weight: bold;
+  }
+
+  .compRWPrefix
+  {
+    color:#e42;
+    font-size: 8pt;
+    font-weight: bold;
+  }
+
+  .grayed
+  {
+    color:gray;
+  }
+
+  .detached
+  {
+    color:red;
+    font-size: 12pt;
+    font-weight: bold;
+  }
+
+</style>
+
+</head>
+<body>
+
+<div id="searchDiv" style="position: absolute; left: 0px; top: 0px; width: 100%; height: 32px; background-color: #eee; font-family: arial;">
+  <input id="searchInput" class="searchInvitation" style="width: 450px; margin: 5px;" value="Search..."
+  onfocus="onSearchFocus(this);"
+  onkeyup="onSearchChange(this.value, event);">
+
+  <span class = "detached" id="detachedIndicator" style="visibility:hidden;"> Detached. Press F5 to reattach.</span>
+
+</div>
+
+<div id="searchResultDiv" class="searchResult">No items loaded</div>
+
+<div id="viewer0" class="elementViewer">...</div>
+<div id="viewer1" class="elementViewer" style="left:calc(460px + 460px);">...</div>
+
+
+<script>
+
+
+var client = new XMLHttpRequest();
+var clientBusy = false;
+var clientPost = new XMLHttpRequest();
+var clientId = "id:" + Date.now();
+var errorState = false;
+var attached = false;
+var queryQueue = [];
+
+var titlesList = {
+    "ES": "Entity System",
+    "TE": "Template",
+    "CO": "Component"
+  };
+
+
+function query(q, callback, body)
+{
+  if (q.indexOf("state") !== 0 && q.indexOf("alldata") !== 0)
+    console.log("query: " + q);
+
+  if (!attached && q.indexOf('attach') !== 0)
+    return;
+
+  if (!body)
+    body = null;
+
+  if (clientBusy)
+  {
+    if (queryQueue.length < 1000)
+    {
+      var a = {};
+      a.query = q;
+      a.callback = callback;
+      a.body = body;
+      queryQueue.push(a);
+      return;
+    }
+    else
+    {
+      alert("Out of queryQueue max length");
+      return;
+    }
+  }
+
+  clientBusy = true;
+
+  client.onerror = function()
+  {
+    console.log("ERROR '" + client._query + "': " + client.status + " " + client.statusText);
+    onDetach();
+  }
+
+  client.onabort = function()
+  {
+    console.log("ABORT: " + client.status + " " + client.statusText);
+    onDetach();
+  }
+
+  client.onload = function()
+  {
+    if (client.status != 200)
+    {
+      console.log("ERROR(2) '" + client._query + "': " + client.status + " " + client.statusText);
+      onDetach();
+      return;
+    }
+
+    lastRespondTime = Date.now();
+
+    clientBusy = false;
+
+    if (callback)
+    {
+      callback(client.responseText);
+      callback = null;
+    }
+
+    var q = queryQueue.shift();
+    if (q)
+      query(q.query, q.callback, q.body);
+  }
+
+  try
+  {
+    client._query = q;
+    client.open(body ? 'POST' : 'GET', 'ecsviewer?' + q, true);
+    client.send(body);
+  }
+  catch (err)
+  {
+    attached = false;
+  }
+}
+
+
+function onAttach(callback)
+{
+  queryQueue = [];
+  attached = true;
+  var cb = callback;
+  query('attach', function(text)
+    {
+      attached = true;
+      cb();
+    });
+  attached = false;
+}
+
+
+function onDetach()
+{
+  //query('detach', false);
+  attached = false;
+}
+
+
+
+var sys = [];
+var comp = [];
+var templates = [];
+var sortByName = false; // false - sort by execution order
+
+var lastSearchString = "";
+var lastPanels = {};
+
+
+function compareNames(a, b)
+{
+  if (a.name > b.name) return 1;
+  if (a.name < b.name) return -1;
+  return 0;
+}
+
+function compareSystemId(a, b)
+{
+  if (a.id > b.id) return 1;
+  if (a.id < b.id) return -1;
+  return 0;
+}
+
+function onSearchFilter(str)
+{
+  lastSearchString = str;
+  var list = [];
+
+  for (var i = 0; i < sys.length; i++)
+    if (str === "" || sys[i].name.toLowerCase().indexOf(str) >= 0 || sys[i].id == str)
+      list.push(sys[i]);
+
+  for (var i = 0; i < comp.length; i++)
+    if (str === "" || comp[i].name.toLowerCase().indexOf(str) >= 0)
+      list.push(comp[i]);
+
+  for (var i = 0; i < templates.length; i++)
+    if (str === "" || templates[i].name.toLowerCase().indexOf(str) >= 0)
+      list.push(templates[i]);
+
+  if (sortByName)
+    list.sort(compareNames);
+
+  var html = "";
+
+  for (var i = 0; i < list.length; i++)
+  {
+    var item = list[i];
+    var usedClass = !item.compRW || item.used ? "listItemNameUsed" : "listItemNameNotUsed";
+    var classText = item.compRW ? "ES" : (item.ancestry ? "TE" : "CO");
+    var className = "listItemType" + classText;
+    var fnText = 'showInfo(\'viewer0\', \'viewer1\', \''+classText+'\', \''+item.name+'\');';
+
+    html += '<div id="list' + i + '" class="' + usedClass + '" title="' + titlesList[classText] +
+      '" onmousedown=\"' + fnText + '\"'+
+      '><span class="' + className + '">' + classText + '</span>&nbsp;' + item.name;
+
+    if (classText === "ES")
+      html += '&nbsp;<span class="listEntityCount" title="Entities count">' + item.entities + '</span>';
+
+    html += '</div>';
+  }
+
+  document.getElementById("searchResultDiv").innerHTML = html;
+}
+
+function onSearchChange(value, ev)
+{
+  onSearchFilter(value.trim().toLowerCase());
+
+  if (ev.keyCode === 13)
+  {
+    var element = document.getElementById("list0");
+    if (element)
+      element.onmousedown.apply(element);
+  }
+}
+
+function onSearchFocus(elem)
+{
+  if (elem.className === 'searchInvitation')
+  {
+    elem.className = '';
+    elem.value = '';
+  }
+}
+
+function onSwitchUsed(idx)
+{
+  sys[idx].used = 1 - sys[idx].used;
+  var elements = document.getElementsByClassName("_used_" + idx);
+  for (var i = 0; i < elements.length; i++)
+    elements[i].innerText = "" + sys[idx].used;
+
+  query('set_used&' + sys[idx].name + '&' + sys[idx].used,
+    function (text)
+    {
+      queryAllData();
+    }, null);
+}
+
+function makeNbSpace(s)
+{
+  if (s.indexOf(" ") >= 0)
+    return s.split(" ").join("&nbsp;");
+  else
+    return s;
+}
+
+function getMaxTypeLen(arr)
+{
+  var len = 0;
+  for (var i = 0; i < arr.length; i++)
+    if (arr[i].attrType && arr[i].attrType.length > len)
+      len = arr[i].attrType.length;
+
+  return len;
+}
+
+
+var nbSpaces = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+nbSpaces += nbSpaces + nbSpaces;
+
+function complement(s, len)
+{
+  if (s.length < len)
+    return s + nbSpaces.substring(0, (len - s.length) * 6);
+  else
+    return s;
+}
+
+function getInfoHTML(targetPanel, nextPanel, classText, name, innerList, attrList)
+{
+  var html = "";
+  if (classText === "ES")
+  {
+    for (var i = 0; i < sys.length; i++)
+      if (sys[i].name === name)
+      {
+        html += '<span class="grayed">ES:</span> ' + name + '<br><span class="grayed">ID:</span> ' + sys[i].id +
+          '<br><span class="grayed">Entities:</span> ' + sys[i].entities + '<br>' +
+          '<br><span class="grayed">Used:</span> <span class="_used_'+i+'">' +  sys[i].used + '</span>' +
+          ' <button onmousedown="onSwitchUsed(' + i + '); this.blur();">switch</button><br>';
+
+        html += "<br>";
+        html += '<span class="grayed">Components:</span><br>';
+
+        var maxTypeLen = Math.max(getMaxTypeLen(sys[i].compRW), getMaxTypeLen(sys[i].compRO));
+
+        for (var r = 0; r < 2; r++)
+        {
+          var allComp = (r == 0) ? sys[i].compRW.slice(0) : sys[i].compRO.slice(0);
+          allComp.sort(compareNames);
+
+          for (var j = 0; j < allComp.length; j++)
+          {
+            var c = allComp[j];
+            var onmousedown = 'onmousedown=\"showInfo(\'' + nextPanel + '\', \'' + targetPanel + '\', \'CO\', \'' + c.name + '\'); \"';
+            html += '<div class="' + (r == 0 ? 'compRW' : 'compRO') + '" ' + onmousedown + '><span class="' +
+              (r == 0 ? 'compRWPrefix' : 'compROPrefix') + '">' + (r == 0 ? 'RW' : 'RO') + '</span>&nbsp;' +
+              '<span class="listEntityCount"' + (c.optional ? 'title="Optional" >?' : '>&nbsp;') + '</span>&nbsp;' +
+              '<span class="listEntityCount">' + complement(c.attrType, maxTypeLen) + '</span>&nbsp;' +
+              c.name + '</div>';
+          }
+        }
+
+        break;
+      }
+  }
+  else if (classText === "CO")
+  {
+    for (var i = 0; i < comp.length; i++)
+      if (comp[i].name === name)
+      {
+        html += '<span class="grayed">Component:</span> ' + name + '<br>';
+
+        html += "<br>";
+        html += '<span class="grayed">In systems:</span><br>';
+
+        var allSyst = comp[i].inSystems.slice(0);
+        allSyst.sort(sortByName ? compareNames : compareSystemId);
+
+        var maxTypeLen = getMaxTypeLen(allSyst);
+
+        for (var j = 0; j < allSyst.length; j++)
+        {
+          var s = allSyst[j];
+          var usedClass = s.used ? "listItemNameUsed" : "listItemNameNotUsed";
+          var onmousedown = 'onmousedown=\"showInfo(\'' + nextPanel + '\', \'' + targetPanel + '\', \'ES\', \'' + s.name + '\'); \"';
+          html += '<div class="' + ('comp' + s._role) + '" ' + onmousedown + '><span class="' +
+            ('comp' + s._role + 'Prefix') + '">' + (s._role) + '</span>&nbsp;' +
+            '<span class="listEntityCount"' + (s.optional ? ' title="Optional">?' : '>&nbsp;') + '</span>&nbsp;' +
+            '<span class="listEntityCount">' + complement(s.attrType, maxTypeLen) + '</span>&nbsp;' +
+            '<span class="' + usedClass + '">' + s.name + '</span>&nbsp;' +
+            '<span class="listEntityCount" title="Entities count">' + s.entities + '</span>' +
+            '</div>';
+        }
+
+        html += "<br>";
+        html += '<span class="grayed">In templates:</span><br>';
+
+        var allTemp = [];
+        function isAttrPresent(compName, template)
+        {
+          for (var p = 0; p < template.components.length; p++)
+            if (template.components[p].name === compName)
+              return true;
+
+          for (var p = 0; p < template.ancestry.length; p++)
+            if (template.ancestry[p] !== template.name)
+              for (var w = 0; w < templates.length; w++)
+                if (templates[w].name === template.ancestry[p])
+                {
+                  if (isAttrPresent(compName, templates[w]))
+                    return true;
+
+                  break;
+                }
+
+          return false;
+        }
+
+
+        for (var w = 0; w < templates.length; w++)
+          if (isAttrPresent(name, templates[w]))
+            allTemp.push(templates[w].name);
+
+        allTemp.sort();
+
+        for (var j = 0; j < allTemp.length; j++)
+        {
+          var onmousedown = 'onmousedown=\"showInfo(\'' + nextPanel + '\', \'' + targetPanel + '\', \'TE\', \'' + allTemp[j] + '\'); \"';
+          html += '<div class="compTE" ' + onmousedown + "'>&nbsp;&nbsp;" + allTemp[j] + '</div>';
+        }
+
+        break;
+      }
+  }
+  else if (classText === "TE")
+  {
+    for (var i = 0; i < templates.length; i++)
+      if (templates[i].name === name)
+      {
+        if (!attrList)
+          attrList = [];
+
+        var temp = templates[i];
+        html += '<span class="grayed">Template:</span> ' + name + '<br>';
+
+        html += '<br>';
+        html += '<span class="grayed">Attributes:</span><br>';
+
+        var allAttr = temp.components;
+        allAttr.sort(compareNames);
+
+        var maxTypeLen = getMaxTypeLen(allAttr);
+
+        for (var j = 0; j < allAttr.length; j++)
+        {
+          var c = allAttr[j];
+          var onmousedown = 'onmousedown=\"showInfo(\'' + nextPanel + '\', \'' + targetPanel + '\', \'CO\', \'' + c.name + '\'); \"';
+          html += '<div class="compTE" ' + onmousedown + "'>" +
+            '<span class="listEntityCount"' + (c.optional ? 'title="? - Optional">?' : '>&#8729;') + '</span>' +
+            '<span class="listEntityCount"' + (c.ch_event ? 'title="e - Change Event">e' : '>&#8729;') + '</span>' +
+            '<span class="listEntityCount"' + (c.replicated ? 'title="r - Replicated">r' : '>&#8729;') + '</span>' +
+            '<span class="listEntityCount"' + (c.hidden ? 'title="h - Hidden">h' : '>&#8729;') + '</span>&nbsp;' +
+            '<span class="listEntityCount">' + complement(c.attrType, maxTypeLen) + '</span>&nbsp;' +
+            '<span ' + (attrList.indexOf(c.name) >= 0 ? 'class = "listItemNameNotUsed"' : '') + '>' + c.name + '</span></div>';
+          attrList.push(c.name);
+        }
+
+
+        if (!innerList)
+        {
+    /*      html += '<span class="grayed">In systems:</span><br>';
+
+          var allSyst = comp[i].inSystems.slice(0);
+          allSyst.sort(sortByName ? compareNames : compareSystemId);
+
+          for (var j = 0; j < allSyst.length; j++)
+          {
+            var s = allSyst[j];
+            var usedClass = s.used ? "listItemNameUsed" : "listItemNameNotUsed";
+            var onmousedown = 'onmousedown=\"showInfo(\'' + nextPanel + '\', \'' + targetPanel + '\', \'ES\', \'' + s.name + '\'); \"';
+            html += '<div class="compES" ' + onmousedown + '><span class="' +
+              ('comp' + s._role + 'Prefix') + '">' + (s._role) + '</span>&nbsp;' +
+              '<span class="listEntityCount">' + (s.optional ? "OPT" : "&nbsp;&nbsp;&nbsp;") + '</span>&nbsp;' +
+              '<span class="listEntityCount">' + (s.attrType ? makeNbSpace(s.attrType) : "&nbsp;&nbsp;&nbsp;") + '</span>&nbsp;' +
+              '<span class="' + usedClass + '">' + s.name + '</span>&nbsp;' +
+              '<span class="listEntityCount">' + s.entities + '</span>' +
+              '</div>';
+          }
+    */
+        }
+
+
+        html += '<br>';
+        html += '<span class="grayed">Parents:</span><br>';
+
+        var allTemp = temp.ancestry; // don't sort
+
+        for (var j = 0; j < allTemp.length; j++)
+        {
+          var name = allTemp[j];
+          if (name != temp.name)
+          {
+            var onmousedown = 'onmousedown=\"showInfo(\'' + nextPanel + '\', \'' + targetPanel + '\', \'TE\', \'' + name + '\'); \"';
+            html += '<div class="compTE" ' + onmousedown + "'>&nbsp;&nbsp;" + name + '</div>';
+          }
+        }
+
+
+        html += '<br>-------------------------------------------------------<br>';
+
+        if (!innerList)
+        {
+          for (var j = 0; j < allTemp.length; j++)
+            if (allTemp[j] != temp.name)
+              html += getInfoHTML(targetPanel, nextPanel, classText, allTemp[j], true, attrList);
+        }
+
+        break;
+      }
+  }
+
+  return html;
+}
+
+function showInfo(targetPanel, nextPanel, classText, name)
+{
+  lastPanels[targetPanel] = {nextPanel: nextPanel, classText: classText, name: name};
+
+  var panel = document.getElementById(targetPanel);
+
+  panel.innerHTML = getInfoHTML(targetPanel, nextPanel, classText, name);
+}
+
+function buildComponentArray()
+{
+  function makeClone(obj)
+  {
+    return JSON.parse(JSON.stringify(obj));
+  }
+
+
+  comp = [];
+  var names = [];
+  var idx = -1;
+  for (var i = 0; i < sys.length; i++)
+  {
+    for (var rw = 0; rw < 2; rw++)
+    {
+      var role = rw == 0 ? "RO" : "RW";
+      var c = rw == 0 ? sys[i].compRO : sys[i].compRW;
+
+      for (var j = 0; j < c.length; j++)
+      {
+        idx = names.indexOf(c[j].name);
+        var rec = makeClone(c[j]);
+        rec.name = sys[i].name;
+        rec.used = sys[i].used;
+        rec.entities = sys[i].entities;
+        rec._role = role;
+
+        if (idx < 0)
+        {
+          names.push(c[j].name);
+          comp.push({name: c[j].name, inSystems:[rec]});
+        }
+        else
+        {
+          comp[idx].inSystems.push(rec);
+        }
+      }
+    }
+  }
+}
+
+/*
+function test()
+{
+  sys = [
+    { name: "main_es", compRW:[ {name:"health", mandatory:1, attribute:1}, {name:"mana", mandatory:0, attribute:1} ], compRO:[], events:[], used:1, id:1 },
+    { name: "test_es", compRW:[], compRO:[{name:"health", mandatory:1, attribute:1}], events:[], used:1, id:2 },
+    { name: "not_used_test3_es", compRW:[{name:"health", mandatory:1, attribute:1}], events:[], compRO:[], used:0, id:3 },
+    { name: "very_very_long_name_entity_system", compRW:[], compRO:[{name:"very_very_long_component_name___1", mandatory:1, attribute:1}], events:[], used:1, id:423 }
+  ];
+
+  buildComponentArray();
+
+  onSearchFilter("");
+}*/
+
+
+function onTimer()
+{
+  document.getElementById("detachedIndicator").style.visibility = attached ? "hidden" : "visible";
+
+  if (clientBusy)
+    return;
+
+  queryAllData();
+}
+
+function queryAllData()
+{
+  query("alldata", function(text)
+    {
+      if (!text || !text.length)
+        return;
+
+      try
+      {
+        var json = JSON.parse(text);
+        var s = json.systems;
+        if (!s)
+        {
+          console.log("ERROR: 'systems' not found in JSON: " + text);
+          return;
+        }
+        else
+        {
+          sys = s;
+          templates = json.templates;
+        }
+      }
+      catch (err)
+      {
+        console.log("ERROR: invalid JSON: " + text);
+        return;
+      }
+
+      buildComponentArray();
+
+      onSearchFilter(lastSearchString);
+
+      for (var key in lastPanels)
+        showInfo(key, lastPanels[key].nextPanel, lastPanels[key].classText, lastPanels[key].name);
+
+    }, null);
+}
+
+window.addEventListener("load", function()
+{
+  console.log("window.onload()");
+//  test();
+
+  onAttach(queryAllData);
+  window.setInterval("onTimer()", 1000);
+});
+
+
+
+</script>
+
+</body>
+</html>

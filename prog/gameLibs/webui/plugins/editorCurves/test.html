@@ -1,0 +1,32 @@
+<body bgcolor="#555">
+<div id="steps_div"></div>
+<br>
+<div id="polynom_div"></div>
+<br>
+<div id="linear_div"></div>
+<br>
+<div id="monotonic_div"></div>
+<br>
+<div id="preview_div"></div>
+
+<script src="curveEditor.js"></script>
+
+<script>
+
+  document.getElementById("steps_div").innerHTML = make_curve_editor_html(
+    "curve0", "0.0,0.0, 0.333, 0.0, 0.666, 0.0, 1.0, 0.0  /*0.0,0.0, 0.333, 0.0, 0.666, 0.0, 1.0, 0.0*/", null, "gray", null, "steps", true);
+
+  document.getElementById("polynom_div").innerHTML = make_curve_editor_html(
+    "curve1", "0,0,0,0  /*0.0,0.0, 0.333, 0.0, 0.666, 0.0, 1.0, 0.0*/", null, "gray", null, "polynom", true);
+
+  document.getElementById("linear_div").innerHTML = make_curve_editor_html(
+    "curve2", "0,0,0,0,0,0,0,0,0  /*0.0,0.0, 0.333, 0.0, 0.666, 0.0, 1.0, 0.0*/", null, "gray", null, "piecewise_linear", true);
+
+  document.getElementById("monotonic_div").innerHTML = make_curve_editor_html(
+    "curve3", "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  /*0.0,0.0, 0.333, 0.0, 0.666, 0.0, 1.0, 0.0*/", null, "gray", null, "piecewise_monotonic", true);
+
+  document.getElementById("preview_div").innerHTML = make_curve_gradient_html(
+    "preview1", ["curve_editor_canv_curve1", "curve_editor_canv_curve2", "curve_editor_canv_curve3"]);
+
+</script>
+</body>

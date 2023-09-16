@@ -1,0 +1,22 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/winGuiWrapper ;
+
+TargetType  = lib ;
+Target      = tools/libTools/winGuiWrapper.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+#  $(Root)/prog/engine2/sharedInclude
+;
+
+Sources =
+  wgw_dialogs.cpp
+  wgw_dialogs_ex.cpp
+  wgw_input.cpp
+  wgw_busy.cpp
+  wgw_timer.cpp
+  wgw_file_update.cpp
+  wgw_clipboard.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

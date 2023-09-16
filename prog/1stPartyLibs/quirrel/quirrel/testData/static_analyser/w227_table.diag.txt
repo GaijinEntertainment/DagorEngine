@@ -1,0 +1,7 @@
+WARNING: w228 (declared-never-used) let 'fx' was declared but never used.
+testData/static_analyser/w227_table.nut:3:0
+
+let fx = 10
+^-----
+
+

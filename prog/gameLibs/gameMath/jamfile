@@ -1,0 +1,24 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/gameMath ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/gameMath.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/
+;
+
+Sources =
+  constructConvex.cpp
+  convexUtils.cpp
+  interpolateTabUtils.cpp
+  mathUtils.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;
+
+

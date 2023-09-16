@@ -1,0 +1,64 @@
+include "shader_global.sh"
+
+
+texture debug_tex;
+float4 debug_color_swizzle = (1,1,1,0);
+
+shader debug_gbuffer
+{
+  // setup constants
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  // init channels
+  channel float2 pos = pos;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc:  TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float2 pos: POSITION;
+    };
+
+
+    VsOutput debug_vs(VsInput v)
+    {
+      VsOutput o;
+
+      o.pos = float4(v.pos, 1, 1);
+      o.tc = v.pos*float2(0.5, -0.5) + float2(0.50001, 0.50001);
+
+      return o;
+    }
+  }
+  compile("target_vs", "debug_vs");
+
+  (ps){
+    debug_tex@smp2d = debug_tex;
+    debug_color_swizzle@f4 = debug_color_swizzle;
+  }
+
+  hlsl(ps) {
+
+    float4 debug_ps(VsOutput v): SV_Target
+    {
+      float4 src = tex2D(debug_tex, v.tc);
+      float4 ret = src*debug_color_swizzle;
+      if (dot(debug_color_swizzle,1) > 1.1)
+        return ret;
+      else if (dot(debug_color_swizzle,1) < 0)
+        return abs(dot(ret,debug_color_swizzle)*2-1);
+      else
+        return dot(ret,1)*rcp(dot(debug_color_swizzle,1));
+    }
+  }
+  compile("target_ps", "debug_ps");
+}

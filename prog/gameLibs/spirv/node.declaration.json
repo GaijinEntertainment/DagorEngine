@@ -1,0 +1,277 @@
+{
+  "no-node-properties" : [
+    "forward-typedef",
+    "adds-property",
+    "debug",
+    "function-end",
+    "enable-capability",
+    "set-execution-mode",
+    "set-execution-mode-id",
+    "export-entry-point",
+    "set-memory-model",
+    "call-extended-grammar",
+    "load-extended-grammar",
+    "enable-extension",
+    "control-flow"
+  ],
+  "no-param-node-properties" : [
+    "forward-typedef",
+    "adds-property",
+    "debug",
+    "function-end",
+    "enable-capability",
+    "set-execution-mode",
+    "set-execution-mode-id",
+    "export-entry-point",
+    "set-memory-model",
+    "call-extended-grammar",
+    "load-extended-grammar",
+    "enable-extension",
+    "control-flow",
+    "nop"
+  ],
+  "nodes": [
+    {
+      "comment": "Basic root node",
+      "name": "Node",
+      "properties" : ["nop"]
+    },
+    {
+      "comment": "Any node that has a result id",
+      "name": "Id",
+      "parent": "Node",
+      "map-type": "IdRef",
+      "properties" : ["allocates-id"]
+    },
+    {
+      "comment": "Any node that defines a new type",
+      "map-type": "IdResultType",
+      "name": "Typedef",
+      "parent": "Id",
+      "properties" : ["typedef"]
+    },
+    {
+      "comment": "Any node that has a result id and a result type",
+      "name": "Operation",
+      "parent": "Id",
+      "properties": [
+        "result-type"
+      ]
+    },
+    {
+      "comment": "Any operation that consumes one input",
+      "name": "UnaryOperation",
+      "parent": "Operation",
+      "properties" : ["unary"]
+    },
+    {
+      "comment": "Any operation that consumes two inputs",
+      "name": "BinaryOperation",
+      "parent": "Operation",
+      "properties" : ["binary"]
+    },
+    {
+      "comment": "Any operation that consumes three inputs",
+      "name": "TrinaryOperation",
+      "parent": "Operation",
+      "properties" : ["trinary"]
+    },
+    {
+      "comment": "Any operation that consumes more than three inputs",
+      "name": "MultinaryOperation",
+      "parent": "Operation",
+      "properties" : ["multinary"]
+    },
+    {
+      "comment": "Any node that does not produce any result but has side effects on the execution environment",
+      "name": "Action",
+      "parent": "Node",
+      "properties" : ["action"]
+    },
+    {
+      "comment": "A action that consumes one input",
+      "name": "UnaryAction",
+      "parent": "Action",
+      "properties" : ["unary"]
+    },
+    {
+      "comment": "A action that consumes two inputs",
+      "name": "BinaryAction",
+      "parent": "Action",
+      "properties" : ["binary"]
+    },
+    {
+      "comment": "A action that consumes three inputs",
+      "name": "TrinaryAction",
+      "parent": "Action",
+      "properties" : ["trinary"]
+    },
+    {
+      "comment": "A action that consumes more than three inputs",
+      "name": "MultinaryAction",
+      "parent": "Action",
+      "properties" : ["multinary"]
+    },
+    {
+      "comment": "A operation that operates on images",
+      "name": "ImageOperation",
+      "parent": "Operation",
+      "properties" : ["image-op", "sampled-image-op"]
+    },
+    {
+      "comment": "A action that operates on images",
+      "name": "ImageAction",
+      "parent": "Action",
+      "properties" : ["image-op", "sampled-image-op"]
+    },
+    {
+      "comment": "A constant",
+      "name": "Constant",
+      "parent": "Operation",
+      "properties" : ["constant"]
+    },
+    {
+      "comment": "A constant composed of multiple constants",
+      "name": "ConstantComposite",
+      "parent": "Constant",
+      "properties" : ["composite-constant"]
+    },
+    {
+      "comment": "A constant sampler",
+      "name": "ConstantSampler",
+      "parent": "Constant",
+      "properties" : ["sampler-constant"]
+    },
+    {
+      "comment": "A specialization constant",
+      "name": "SpecConstant",
+      "parent": "Operation",
+      "properties" : ["spec-constant"]
+    },
+    {
+      "comment": "A specialization constant of multiple specialization constants",
+      "name": "SpecConstantComposite",
+      "parent": "SpecConstant",
+      "properties" : ["composite-constant"]
+    },
+    {
+      "comment": "A specialization operation that consumes at least one (spec) constant that produces a new specialization constant",
+      "name": "SpecConstantOperation",
+      "parent": "SpecConstant",
+      "properties" : ["spec-op"]
+    },
+    {
+      "comment": "A variable backed by memory",
+      "name": "Variable",
+      "parent": "Operation",
+      "properties": [
+        "variable"
+      ]
+    },
+    {
+      "comment": "A function",
+      "properties": [
+        "function-begin"
+      ],
+      "name": "Function",
+      "parent": "Operation"
+    },
+    {
+      "comment": "The phi node",
+      "properties": [
+        "phi"
+      ],
+      "name": "Phi",
+      "parent": "Operation"
+    },
+    {
+      "comment": "A instruction block",
+      "properties": [
+        "block-begin"
+      ],
+      "name": "Block",
+      "parent": "Id"
+    },
+    {
+      "comment": "Ends a block",
+      "properties": [
+        "ends-block"
+      ],
+      "name": "BlockEnd",
+      "parent": "Node"
+    },
+    {
+      "comment": "Branches to a different block",
+      "properties": [
+        "branch",
+        "branch-conditional"
+      ],
+      "name": "Branch",
+      "parent": "BlockEnd"
+    },
+    {
+      "comment": "Ends the program",
+      "properties": [
+        "abort"
+      ],
+      "name": "Exit",
+      "parent": "BlockEnd"
+    },
+    {
+      "comment": "Ends function",
+      "properties": [
+        "exit-function"
+      ],
+      "name": "Return",
+      "parent": "BlockEnd"
+    },
+    {
+      "comment": "Switch construct",
+      "properties": [
+        "switch-section"
+      ],
+      "name": "Switch",
+      "parent": "BlockEnd"
+    },
+    {
+      "comment": "Function call",
+      "properties": [
+        "function-call"
+      ],
+      "name": "FunctionCall",
+      "parent": "Operation"
+    },
+    {
+      "comment": "Scoped operation",
+      "properties": [
+        "scoped"
+      ],
+      "name": "ScopedOperation",
+      "parent": "Operation"
+    },
+    {
+      "comment": "Scoped action",
+      "properties": [
+        "scoped"
+      ],
+      "name": "ScopedAction",
+      "parent": "Action"
+    },
+    {
+      "comment": "Grouped action",
+      "properties": [
+        "grouped"
+      ],
+      "name": "GroupedAction",
+      "parent": "ScopedAction"
+    },
+    {
+      "comment": "Grouped operation",
+      "properties": [
+        "grouped"
+      ],
+      "name": "GroupedOperation",
+      "parent": "ScopedOperation"
+    }
+  ]
+}

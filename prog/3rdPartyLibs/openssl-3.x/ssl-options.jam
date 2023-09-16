@@ -1,0 +1,131 @@
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)/include
+  $(Root)/$(Location)
+  $(Root)/$(Location)/crypto/include
+  $(Root)/$(Location)/crypto/modes
+  $(Root)/$(Location)/providers/implementations/include
+  $(Root)/$(Location)/providers/common/include
+  $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
+;
+
+rule FindInList
+{
+  for e in $(2)
+  {
+    if $(1) = $(e)
+    {
+      return true ;
+    }
+  }
+  return "" ;
+}
+
+rule SourceGlob
+{
+  local list = [ GLOB $(Root)/$(Location)/$(1) : $(2) ] ;
+  if $(3)
+  {
+    local result ;
+    for f in $(list)
+    {
+      if ! [ FindInList $(f:D=) : $(3) ]
+      {
+        result += $(f) ;
+      }
+    }
+    return $(result:D=$(1)) ;
+  }
+  else
+  {
+    return $(list:D=$(1)) ;
+  }
+}
+
+rule CollectC
+{
+  return [ SourceGlob $(1) : *.c : $(2) ] ;
+}
+
+if $(Platform) in win32 win64 xboxOne scarlett {
+  ASMExt = asm ;
+} else {
+  ASMExt = s ;
+}
+
+rule CollectASM
+{
+  return [ SourceGlob $(1) : *.$(ASMExt) : $(2) ] ;
+}
+
+if $(Platform) in win32 android macosx tvOS iOS nswitch ps5 {
+  NoASM = true ;
+}
+
+Copt += -DMODULESDIR=\\\"\\\" -DOPENSSLDIR=\\\"\\\" -DENGINESDIR=\\\"\\\" ;
+Copt += -DOPENSSL_NO_UI_CONSOLE -DDSO_NONE -DOPENSSL_NO_INLINE_ASM -DOPENSSL_NO_KTLS ;
+Copt += -DOPENSSL_NO_ENGINE ;
+
+if ! $(NoASM) {
+  Copt += -DOPENSSL_CPUID_OBJ -DOPENSSL_BN_ASM_MONT -DSHA1_ASM -DSHA256_ASM -DSHA512_ASM -DRC4_ASM -DMD5_ASM -DAES_ASM -DGHASH_ASM -DKECCAK1600_ASM ;
+}
+
+if $(Platform) in ps4 ps5 nswitch android iOS tvOS {
+  Copt += -DOPENSSL_NO_ASYNC ;
+}
+
+if $(Platform) in xboxOne scarlett ps4 ps5 nswitch {
+  Copt += -DOPENSSL_NO_SECURE_MEMORY ;
+}
+
+
+if $(Platform) in win32 win64 xboxOne scarlett {
+  Copt += -DNDEBUG
+          -DOPENSSL_SYS_WIN32
+          -DOPENSSL_NO_EC_NISTP_64_GCC_128
+          -DUNICODE
+          -D_UNICODE
+  ;
+
+  Copt += -wd4090 ;
+  if $(Platform) != win32 {
+    Copt += -wd4133 ;
+  }
+
+  if $(Platform) in xboxOne scarlett {
+    Copt += -DOPENSSL_SYS_XBOX ;
+    if $(Platform) = xboxOne {
+      Copt += -DOPENSSL_SYS_XBOX_ONE ;
+    } else {
+      Copt += -DOPENSSL_SYS_XBOX_SCARLETT ;
+    }
+  }
+
+  if $(Platform) = win32 {
+    Copt += -DOPENSSL_IA32_SSE2 ;
+  }
+
+  #if $(Platform) in win32 win64 {
+  #   AddLibs += advapi32.lib ws2_32.lib gdi32.lib crypt32.lib user32.lib ;
+  #}
+} else if $(Platform) in ps4 ps5 {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ;
+  Copt +=
+    -DNO_SYSLOG
+    -DNO_SYS_UN_H
+    -DOPENSSL_USE_IPV6=0
+    -DOPENSSL_USE_UN=0
+    -DOPENSSL_SYS_PLAYSTATION
+    -Dgmtime_r=gmtime_s
+  ;
+
+} else if $(Platform) = nswitch {
+  Copt +=
+    -DNO_SYSLOG
+    -DOPENSSL_USE_IPV6=0
+    -DOPENSSL_SYS_NSWITCH
+    -DOPENSSL_NO_MUTEX_ERRORCHECK
+    -Dgai_strerror=strerror
+  ;
+}

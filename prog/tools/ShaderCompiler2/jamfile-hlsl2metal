@@ -1,0 +1,73 @@
+Root    ?= ../../.. ;
+Location = prog/tools/ShaderCompiler2 ;
+OutputSuffix = nofm ;
+
+FullOOPEnabled = no ;
+WError ?= no ; # treat all warnings as errors
+
+include $(Root)/$(Location)/jamfile-common ;
+
+if $(OS) = NT {
+  Target = tools/dsc2-metal.exe ;
+}
+else if $(OS) = MACOSX {
+  Target = tools/dsc2-metal ;
+}
+else {
+  Exit OS=$(OS) is not supported! ; # Probably supported but no tests were made to check it
+}
+
+Sources +=
+  hlsl2metal/HLSL2MetalCommon.cpp
+  hlsl2metal/asmShaderHLSL2Metal.cpp
+  hlsl2spirv/HLSL2SpirvCommon.cpp
+  hlsl2metal/asmShaderHLSL2MetalGlslang.cpp
+  hlsl2metal/spirv2MetalCompiler.cpp
+  hlsl2metal/asmShaderHLSL2MetalDXC.cpp
+  hlsl2metal/hlsl2spirvCompile.cpp
+;
+
+AddIncludes +=
+  $(Root)/prog/3rdPartyLibs/metal
+  $(Root)/prog/3rdPartyLibs/metal/glslang
+  $(Root)/prog/3rdPartyLibs/vulkan/include
+  $(Root)/prog/3rdPartyLibs/vulkan/spirv-tools/include
+  $(Root)/$(Location)/hlsl2spirv
+  $(Root)/prog/3rdPartyLibs/vulkan/smol-v/source
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine2/drv/drv3d_Metal
+;
+
+UseProgLibs +=
+  3rdPartyLibs/hash
+  3rdPartyLibs/metal/glslang
+  3rdPartyLibs/vulkan/smol-v
+  3rdPartyLibs/metal/spirv2Metal
+  3rdPartyLibs/eastl
+  3rdPartyLibs/vulkan/spirv-tools
+  gameLibs/folders
+  gameLibs/spirv
+;
+
+if $(OS) = NT {
+  AddLibs += D3dcompiler.lib ;
+}
+
+CPPopt += -D_CROSS_TARGET_METAL=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT ;
+# -D_HAS_ITERATOR_DEBUGGING=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 ;
+
+if $(Platform) in win32 win64
+{
+  GlobalCPPopt = /fp:precise ;
+}
+else
+{
+  CPPopt += -Wno-comment -Wno-writable-strings -Wno-int-to-pointer-cast -Wno-switch -Wno-tautological-constant-out-of-range-compare
+         -Wno-undefined-bool-conversion
+         -D_STD_RTL_MEMORY=1
+  ;
+
+  GlobalCPPopt = -Wno-deprecated-declarations -Wno-overriding-t-option -fno-fast-math ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

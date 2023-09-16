@@ -1,0 +1,16 @@
+
+AN ERROR HAS OCCURRED [the index 'a' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyser/w275_complex.nut line [11]
+
+LOCALS
+[someBound] false
+[sb] NULL
+[ab] NULL
+[bgs] NULL
+[d] NULL
+[bar] CLOSURE=FN:bar
+[foo] CLOSURE=FN:foo
+[vargv] ARRAY=[]
+[this] TABLE={}

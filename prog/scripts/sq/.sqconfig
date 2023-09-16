@@ -1,0 +1,39 @@
+;
+base_path = .
+
+mount = %darg=../sq/daRg/
+mount = %daeditor=../sq/daeditor/
+mount = %sqstd=../sq/std/
+
+base_path = stubs/
+
+use_libs_by_default = no ; what to do if library not found in this config
+
+register_dagor_fs = yes ; dagor.scan_folder
+register_dagor_time_module = yes
+register_json = yes ; parse_json, string_to_json
+register_std_string_native_module = yes ; string.format, string.lstrip, string.split ...
+sqrat_bind_dagor_math_module = yes
+register_dir_extensions = yes ; dagor.scan_folder
+sqrat_bind_dagor_logsys = yes ; dagor.debug, dagor.assertf, dagor.debug_dump_stack ...
+sqrat_bind_dagor_3d = yes ; get_cur_view_itm
+register_utf8 = yes ; class utf8, utf8.strtr, utf8.charCount ...
+extend_sq_base_lib = yes ; __get, __update, __merge ...
+register_base_lib_extras = yes ; min, max, clamp
+sqrat_bind_dagor_math = yes ; IPoint2, Point3, TMatrix, Color4 ...
+register_frp = yes
+register_base64 = yes
+sqrat_bind_datablock_module = yes
+sqstd_register_io_lib = yes
+sqstd_register_base_libs = yes
+
+;sqstd_register_bloblib_native_module = no ; class blob.blob, blob.blob.swap4, blob.blob.swap2 ...
+;
+;sqstd_register_iolib_native_module = no ; class io.file, io.file.writeblob, io.file.len, io.file.close ...
+register_reg_exp = yes ; class regexp2, regexp2.match, regexp2.replace ...
+;register_dagor_basic_api = no ; dagor.runScript, dagor.includeOnce, dagor.debug, find_files_in_folder, |racevar ...
+
+function_result_must_be_utilized = tryLoad
+function_should_return_something_prefix = mk
+function_calls_lambda_inplace = sharedWatched combine update
+function_can_return_string = loc

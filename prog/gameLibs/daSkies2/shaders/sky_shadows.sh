@@ -1,0 +1,2 @@
+define_macro_if_not_defined USE_SKIES_SHADOWS(code)
+endmacro

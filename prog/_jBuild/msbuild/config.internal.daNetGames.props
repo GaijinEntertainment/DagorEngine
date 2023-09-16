@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Choose>
+    <When Condition="'$(_Platform)' == 'win32' or '$(_Platform)' == 'win64'">
+      <PropertyGroup>
+        <JamOutput>$(OutDir)$(GameName)$(NameSuffix).exe</JamOutput>
+        <ExeName>$(GameName)$(NameSuffix).exe</ExeName>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(_Platform)' == 'gdk'">
+      <PropertyGroup>
+        <JamOutput>$(OutDir)$(GameName)$(NameSuffix).exe</JamOutput>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(_Platform)' == 'scarlett'">
+      <PropertyGroup>
+        <JamOutput>$(OutDir)$(GameName)$(NameSuffix).exe</JamOutput>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(_Platform)' == 'ps4'">
+      <PropertyGroup>
+        <JamOutput>$(OutDir)$(GameName)$(NameSuffix).self</JamOutput>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(_Platform)' == 'ps5'">
+      <PropertyGroup>
+        <JamOutput>$(OutDir)$(GameName)$(NameSuffix).self</JamOutput>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(_Platform)' == 'android'">
+      <PropertyGroup>
+        <JamOutput>$(OutDir)$(GameName)$(NameSuffix).apk</JamOutput>
+        <PackagePath>$(JamOutput)</PackagePath>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(_Platform)' == 'linux64'">
+      <PropertyGroup>
+        <RemoteGameDir>$(RemoteDeployDir)$(RelativeGameDir.Replace('\', '/'))</RemoteGameDir>
+        <RemoteOutDir>$(RemoteGameDir)$(daPlatform)/</RemoteOutDir>
+        <JamOutput>$(RemoteOutDir)$(GameName)$(NameSuffix)</JamOutput>
+      </PropertyGroup>
+    </When>
+  </Choose>
+</Project>

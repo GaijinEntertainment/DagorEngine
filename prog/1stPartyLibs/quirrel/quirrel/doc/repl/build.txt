@@ -1,0 +1,7 @@
+Build instructions:
+
+* Install Emscripten SDK
+* mkdir build
+* cd build
+* emcmake cmake ..
+* emmake make

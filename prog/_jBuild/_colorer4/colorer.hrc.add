@@ -1,0 +1,4 @@
+  <type descr="jamfile" name="jamfile" exts="/(\.(jam)$)|(jamfile$)|(jamfile[^\.]*$)|(j\~[^\.]*$)/i">
+    <load name="base/jamfile.hrc"/>
+    <scheme name="jamfile"/>
+  </type>

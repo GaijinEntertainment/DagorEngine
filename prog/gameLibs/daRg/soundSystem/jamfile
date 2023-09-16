@@ -1,0 +1,27 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daRg/soundSystem ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/daRg/soundSystem.lib ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+;
+
+Sources = uiSoundSystem.cpp ;
+
+UseProgLibs +=
+  gameLibs/soundSystem
+  gameLibs/soundSystem/quirrel
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

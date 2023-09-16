@@ -1,0 +1,82 @@
+# breakpad libraries
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/breakpad ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/breakpad.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+Target = $(Target:S=~z$(UseZlibVer).lib) ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/breakpad
+  $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine2/kernel
+;
+
+UseProgLibs = 3rdPartyLibs/arc/zlib-$(UseZlibVer) ;
+
+if $(Platform) in win32 win64 {
+
+  CPPopt += -DUNICODE ;
+  UseProgLibs +=
+    3rdPartyLibs/breakpad/common/windows
+  ;
+
+  Sources =
+    client/windows/crash_generation/minidump_generator.cc
+    client/windows/crash_generation/client_info.cc
+    client/windows/crash_generation/crash_generation_client.cc
+    client/windows/handler/exception_handler.cc
+  ;
+}
+
+if $(Platform) in linux64 {
+  UseProgLibs +=
+    3rdPartyLibs/breakpad/common
+    3rdPartyLibs/breakpad/common/linux
+  ;
+
+  Sources =
+    client/linux/crash_generation/crash_generation_client.cc
+    client/linux/minidump_writer/linux_dumper.cc
+    client/linux/minidump_writer/linux_ptrace_dumper.cc
+    client/linux/minidump_writer/linux_core_dumper.cc
+    client/linux/minidump_writer/minidump_writer.cc
+    client/linux/microdump_writer/microdump_writer.cc
+    client/linux/handler/exception_handler.cc
+    client/linux/handler/minidump_descriptor.cc
+    client/linux/dump_writer_common/thread_info.cc
+    client/linux/dump_writer_common/ucontext_reader.cc
+    client/linux/dump_writer_common/seccomp_unwinder.cc
+    client/linux/log/log.cc
+    client/minidump_file_writer.cc
+  ;
+}
+
+if $(Platform) in macosx {
+  UseProgLibs +=
+    3rdPartyLibs/breakpad/common
+    3rdPartyLibs/breakpad/common/mac
+  ;
+
+  Sources =
+    client/mac/handler/breakpad_nlist_64.cc
+    client/mac/handler/dynamic_images.cc
+    client/mac/handler/exception_handler.cc
+    client/mac/handler/minidump_generator.cc
+    client/mac/handler/protected_memory_allocator.cc
+    client/minidump_file_writer.cc
+  ;
+
+  AddLibs += -lpthread ;
+
+}
+
+if $(PlatformSpec) in clang {
+  CPPopt += -Wno-stack-protector ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;
+

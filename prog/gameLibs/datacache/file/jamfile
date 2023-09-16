@@ -1,0 +1,51 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/datacache/file ;
+StrictCompile = yes ;
+Test ?= no ;
+
+if $(Test) != yes {
+  TargetType  = lib ;
+  Target      = gameLibs/datacache/file.lib ;
+} else {
+  TargetType      = exe ;
+  Target          = tests.exe ;
+  ConsoleExe      = yes ;
+  OutDir          = $(Root)/$(Location) ;
+}
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs =
+  3rdPartyLibs/eastl
+  gameLibs/datacache/common
+;
+
+Sources =
+  filebackend.cpp
+  fileentry.cpp
+  fileutil.cpp
+;
+
+if $(Test) = yes {
+  Sources += tests.cpp ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/unittest-cpp ;
+  UseProgLibs +=
+    engine2/memory
+    engine2/kernel
+    engine2/osApiWrappers
+    engine2/baseUtil
+    engine2/ioSys
+    engine2/math
+
+    3rdPartyLibs/unittest-cpp
+  ;
+}
+
+Test = no ; # do not interfere with other libs
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,24 @@
+return {
+  DE4_MODE_CREATE_ENTITY = "DE4_MODE_CREATE_ENTITY"
+  get_instance = @() null
+  get_scene_filepath = @() "scene"
+  clear_entity_save_order = @() null
+  add_entity_save_order_comp = @(_name) null
+  clear_groups = @() null
+  add_group_require = @(_group, _rule) null
+  add_group_variant = @(_group, _rule) null
+  add_group_variext = @(_group, _rule, _tmpl) null
+  get_ecs_tags = @() []
+  set_start_work_mode = @(_mode) null
+  get_point_action_op = @() ""
+  get_point_action_mod = @() 0
+  get_point_action_has_pos = @() false
+  get_point_action_pos = @() null
+  get_point_action_ext_id = @() ""
+  get_point_action_ext_name = @()""
+  get_point_action_ext_mtx = @() null
+  get_point_action_ext_eid = @() 0
+  get_point_action_ext_sph = @() null
+  gather_ri_by_sphere = @() null
+  get_ri_from_entity = @() null
+}

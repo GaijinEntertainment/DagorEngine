@@ -1,0 +1,406 @@
+include "shader_global.sh"
+include "gbuffer.sh"
+include "taa_inc.sh"
+
+float4 downsample_from = (1280, 720,0,0);
+float4 downsample_to = (1280, 720,0,0);
+
+float4 downsample_uv_transform = (1, 1, 0, 0);
+int4 downsample_uv_transformi = (0, 0, 0, 0);
+
+int downsample_depth_type = 0;
+interval downsample_depth_type: gbuf_depth_far < 1, gbuf_depth_far_close < 2, mip_far < 3, mip_far_close < 4, other;
+
+int has_checkerboard_depth = 0;
+interval has_checkerboard_depth: no < 1, yes;
+
+int has_motion_vectors = 0;//only for first pass
+interval has_motion_vectors: no < 1, yes;
+
+int has_normal = 0;
+interval has_normal: no < 1, yes;
+
+int depth_format_target = 0;
+interval depth_format_target: no < 1, far_depth_format < 2, close_depth_format < 3, checker_depth_format;
+
+int checkerboard_jitter = 0;
+
+texture downsample_depth_from;
+texture downsample_closest_depth_from;
+texture resolved_motion_vectors;
+
+float4x4 motion_vec_reproject_tm;
+int resolve_motion_vectors = 0;
+interval resolve_motion_vectors: no < 1, yes;
+
+macro DOWNSAMPLE_DEPTH2X_CORE(code)
+  ENABLE_ASSERT(code)
+
+  hlsl(code) { #define toonshading 0 }
+
+  if (downsample_depth_type == other && has_checkerboard_depth == no) {dont_render;}
+  if (downsample_depth_type == gbuf_depth_far || downsample_depth_type == gbuf_depth_far_close || downsample_depth_type == other && has_checkerboard_depth == yes)
+  {
+    if (has_motion_vectors == yes)
+    {
+      hlsl { #define HAS_MOTION_VEC 1 }
+      if (resolve_motion_vectors == no)
+      {
+        if (resolved_motion_vectors != NULL) {
+          (code) { downsample_motion_from@smp2d = resolved_motion_vectors; }
+          hlsl (code) { #define motion_uv_transform float4(1, 1, 0, 0) }
+        }
+        else {
+          (code) {
+            downsample_motion_from@smp2d = motion_gbuf;
+            motion_uv_transform@f4 = downsample_uv_transform;
+          }
+        }
+      }
+      else
+      {
+        INIT_READ_MOTION_BUFFER_BASE(code)
+        USE_READ_MOTION_BUFFER_BASE(code)
+        INIT_MOTION_VEC_ENCODE(code)
+        USE_MOTION_VEC_ENCODE(code)
+
+        (code) {
+          motion_vec_reproject_tm@f44 = motion_vec_reproject_tm;
+        }
+        hlsl { #define PROJECT_MOTION_VEC 1 }
+      }
+    }
+    if (has_normal == yes)
+    {
+      hlsl { #define HAS_NORMAL 1 }
+      INIT_READ_GBUFFER_BASE(code)
+      hlsl {#define decodeEmissionColor(a) float3(0,0,0)}
+      USE_READ_GBUFFER_NORMAL_BASE(code)
+    }
+  }
+
+  bool has_close_depth = downsample_depth_type == gbuf_depth_far_close || downsample_depth_type == mip_far_close;
+  bool has_far_depth = downsample_depth_type == gbuf_depth_far || downsample_depth_type == mip_far || has_close_depth;
+
+  if (has_far_depth)
+  {
+    hlsl { #define HAS_FAR_DEPTH 1 }
+  }
+  if (has_close_depth)
+  {
+    hlsl { #define HAS_CLOSE_DEPTH 1 }
+    // Closest depth is sampled from an external texture only in `mip_far_close`
+    // Without this if, framegrpah validation gets angry as
+    // `downsample_closest_depth_from` contains `close_depth` from last
+    // frame which is not active and will produce garbage when read.
+    if (downsample_depth_type == mip_far_close)
+    {
+      hlsl { #define DEDICATED_CLOSEST_INPUT 1 }
+      (code) { downsample_closest_depth_from@smp2d = downsample_closest_depth_from; }
+    }
+  }
+  if (has_checkerboard_depth == yes)
+  {
+    hlsl { #define HAS_CHECKER_DEPTH 1 }
+    (code) { checkerboard_jitter@i1 = (checkerboard_jitter, 0, 0, 0); }
+  }
+
+  if (depth_format_target == far_depth_format)
+  {
+    if (!has_far_depth) {dont_render;}
+    hlsl { #define FAR_DEPTH_FORMAT 1 }
+  }
+  if (depth_format_target == close_depth_format)
+  {
+    if (!has_close_depth) {dont_render;}
+    hlsl { #define CLOSE_DEPTH_FORMAT 1 }
+  }
+  if (depth_format_target == checker_depth_format)
+  {
+    if (has_checkerboard_depth != yes) {dont_render;}
+    hlsl { #define CHECKER_DEPTH_FORMAT 1 }
+  }
+
+  (code) {
+    downsample_far_depth_from@smp2d = downsample_depth_from;
+    downsample_from@f4 = (downsample_from.x, downsample_from.y, 1.0/downsample_from.x, 1.0/downsample_from.y);
+    downsample_to@f4 = (downsample_to.x, downsample_to.y, 1.0/downsample_to.x, 1.0/downsample_to.y);
+    downsample_uv_transform@f4 = downsample_uv_transform;
+    downsample_uv_transformi@i2 = downsample_uv_transformi;
+  }
+
+  //fixme: that is only correct if we downsample from exactly 2x size of current rt.
+  //if our source is not pow2, than we should use other algorithm! (sampling with offset from texcture coords sampled left or just textureGather).
+  hlsl(code) {
+    struct DSOutput
+    {
+      float  farDepth;
+      float  closeDepth;
+      float  checkerDepth;
+      float4 normal;
+      float2 motion;
+    };
+
+    #define depth_min(a,b) max(a,b)
+    #define depth_max(a,b) min(a,b)
+
+    DSOutput downsample2x(int2 scr, float2 tc)
+    {
+      DSOutput result = (DSOutput)0;
+
+      scr = clamp(scr, int2(0,0), int2(downsample_from.xy) - int2(2,2));
+      scr += downsample_uv_transformi;
+
+      #if HAS_FAR_DEPTH || HAS_CLOSE_DEPTH && !DEDICATED_CLOSEST_INPUT || HAS_CHECKER_DEPTH
+        float src0 = texelFetch(downsample_far_depth_from, scr, 0).x;
+        float src1 = texelFetchOffset(downsample_far_depth_from, scr, 0, int2(1,0)).x;
+        float src2 = texelFetchOffset(downsample_far_depth_from, scr, 0, int2(0,1)).x;
+        float src3 = texelFetchOffset(downsample_far_depth_from, scr, 0, int2(1,1)).x;
+        float farDepth = depth_max(depth_max(src0, src1), depth_max(src2, src3));//reverse depth - far distance
+        #if (HAS_CLOSE_DEPTH || HAS_CHECKER_DEPTH) && !DEDICATED_CLOSEST_INPUT
+          float closeDepth = depth_min(depth_min(src0, src1), depth_min(src2, src3));
+        #endif
+      #endif
+
+      #if (HAS_CHECKER_DEPTH || HAS_CLOSE_DEPTH) && DEDICATED_CLOSEST_INPUT
+        float c_src0 = texelFetch(downsample_closest_depth_from, scr, 0).x;
+        float c_src1 = texelFetchOffset(downsample_closest_depth_from, scr, 0, int2(1,0)).x;
+        float c_src2 = texelFetchOffset(downsample_closest_depth_from, scr, 0, int2(0,1)).x;
+        float c_src3 = texelFetchOffset(downsample_closest_depth_from, scr, 0, int2(1,1)).x;
+        float closeDepth = depth_min(depth_min(c_src0, c_src1), depth_min(c_src2, c_src3));
+      #endif
+
+      #if HAS_FAR_DEPTH
+        result.farDepth = farDepth;
+      #endif
+      #if HAS_CLOSE_DEPTH
+        result.closeDepth = closeDepth;
+      #endif
+      #if HAS_CHECKER_DEPTH
+        result.checkerDepth = ((checkerboard_jitter + (scr.x >> 1) + (scr.y >> 1)) & 1) ? closeDepth : farDepth;
+      #endif
+
+      #if HAS_NORMAL
+        #if HAS_CHECKER_DEPTH
+          float depthToCheck = result.checkerDepth;
+        #else
+          float depthToCheck = result.farDepth;
+        #endif
+        int2 nrmTcOfst = depthToCheck == src0 ? int2(0,0) : (depthToCheck == src1 ? int2(1,0) : (depthToCheck == src2 ? int2(0,1) : int2(1,1)));
+        float3 normal;
+        half smoothness;
+        // downsample_from.zw is based on the size of a view. With a side-by-side view, we make sure to get to the
+        // range of downsample_from.zw, then transform back.
+        float2 normalUV = scr - downsample_uv_transformi;
+        normalUV = (float2(normalUV+nrmTcOfst)+float2(0.5,0.5))*downsample_from.zw;
+        readPackedGbufferNormalSmoothness(normalUV, normal, smoothness);
+        result.normal = float4(normal*0.5+0.5, farDepth == 0 ? 0 : smoothness);
+      #endif
+
+      #if HAS_MOTION_VEC
+        #if PROJECT_MOTION_VEC
+          float2 uv = (scr - downsample_uv_transformi + float2(0.5, 0.5)) * downsample_from.zw;
+          if(getDynamic(uv))
+          {
+            result.motion = readMotionBuffer(uv);
+          }
+          else
+          {
+            float4 prevUV = mul(motion_vec_reproject_tm, float4(uv, src0, 1.0f));
+            prevUV.xy /= prevUV.w;
+            prevUV.xy += downsample_uv_transform.zw;
+            float2 motionUV = prevUV.xy - uv;
+            result.motion = encode_motion_vector(float2(motionUV.x * 2.0f, motionUV.y * -2.0f));
+          }
+        #else
+          float2 motionTc = tc * motion_uv_transform.xy + motion_uv_transform.zw;
+          result.motion = tex2Dlod(downsample_motion_from, float4(motionTc, 0, 0)).xy;
+        #endif
+      #endif
+
+      return result;
+    }
+  }
+endmacro
+
+shader downsample_depth2x
+{
+  POSTFX_VS(1)
+  DOWNSAMPLE_DEPTH2X_CORE(ps)
+
+  cull_mode = none;
+  if (depth_format_target != no)
+  {
+    z_write = true;
+    z_test = true;
+  } else
+  {
+    z_write = false;
+    z_test = false;
+  }
+
+  hlsl(ps) {
+    struct MRTOutput
+    {
+      #if HAS_FAR_DEPTH
+        #if FAR_DEPTH_FORMAT
+          float farDepth : SV_Depth;
+        #else
+          float farDepth : SV_Target0;
+        #endif
+      #endif
+      #if HAS_CLOSE_DEPTH
+        #if CLOSE_DEPTH_FORMAT
+          float closeDepth : SV_Depth;
+        #else
+          float closeDepth : SV_Target1;
+        #endif
+      #endif
+      #if HAS_CHECKER_DEPTH
+        #if CHECKER_DEPTH_FORMAT
+          float checkerDepth : SV_Depth;
+        #else
+          float checkerDepth : SV_Target2;
+        #endif
+      #endif
+      #if HAS_NORMAL
+        float4 normal : SV_Target3;
+      #endif
+      #if HAS_MOTION_VEC
+        float2 motion : SV_Target4;
+      #endif
+    };
+
+    ##if hardware.ps4 || hardware.ps5
+      #if HAS_FAR_DEPTH && !FAR_DEPTH_FORMAT
+        #pragma PSSL_target_output_format(target 0 FMT_32_AR)
+      #endif
+      #if HAS_CLOSE_DEPTH && !CLOSE_DEPTH_FORMAT
+        #pragma PSSL_target_output_format(target 1 FMT_32_AR)
+      #endif
+      #if HAS_CHECKER_DEPTH && !CHECKER_DEPTH_FORMAT
+        #pragma PSSL_target_output_format(target 2 FMT_32_AR)
+      #endif
+      #if HAS_MOTION_VEC
+//        select appropriate mvec format (2x32 or 4x16)
+//        #pragma PSSL_target_output_format(target 4 FMT_32_GR)
+      #endif
+    ##endif
+
+    MRTOutput downsample_ps(float4 screenpos:VPOS)
+    {
+      MRTOutput result;
+      int2 scr = int2(floor(screenpos.xy))*2;
+      DSOutput ds = downsample2x(scr, screenpos.xy * downsample_from.zw * 2);
+
+      #if HAS_FAR_DEPTH
+        result.farDepth = ds.farDepth;
+      #endif
+
+      #if HAS_CLOSE_DEPTH
+        result.closeDepth = ds.closeDepth;
+      #endif
+
+      #if HAS_CHECKER_DEPTH
+        result.checkerDepth = ds.checkerDepth;
+      #endif
+
+      #if HAS_NORMAL
+        result.normal = ds.normal;
+      #endif
+
+      #if HAS_MOTION_VEC
+        result.motion = ds.motion;
+      #endif
+
+      return result;
+    }
+  }
+  compile("target_ps", "downsample_ps");
+}
+
+shader downsample_depth2x_cs
+{
+  if (hardware.fsh_5_0)
+  {
+    DOWNSAMPLE_DEPTH2X_CORE(cs)
+
+    hlsl(cs) {
+      #if HAS_FAR_DEPTH
+        RWTexture2D< float > farDepth : register(u0);
+      #endif
+      #if HAS_CLOSE_DEPTH
+        RWTexture2D< float > closeDepth : register(u1);
+      #endif
+      #if HAS_CHECKER_DEPTH
+        RWTexture2D< float > checkerDepth : register(u2);
+      #endif
+      #if HAS_NORMAL
+        RWTexture2D< float4 > normal : register(u3);
+      #endif
+      #if HAS_MOTION_VEC
+        RWTexture2D< float2 > motion : register(u4);
+      #endif
+
+      [numthreads( 8, 8, 1 )]
+      void downsample_cs(uint3 DTid : SV_DispatchThreadID)
+      {
+        if (any(DTid.xy >= downsample_to.xy))
+          return;
+
+        int2   scr = DTid.xy * 2;
+        float2 tc  = DTid.xy * downsample_to.zw;
+
+        DSOutput ds = downsample2x(scr, tc);
+
+        #if HAS_FAR_DEPTH
+          farDepth[DTid.xy] = ds.farDepth;
+        #endif
+
+        #if HAS_CLOSE_DEPTH
+          closeDepth[DTid.xy] = ds.closeDepth;
+        #endif
+
+        #if HAS_CHECKER_DEPTH
+          checkerDepth[DTid.xy] = ds.checkerDepth;
+        #endif
+
+        #if HAS_NORMAL
+          normal[DTid.xy] = ds.normal;
+        #endif
+
+        #if HAS_MOTION_VEC
+          motion[DTid.xy] = ds.motion;
+        #endif
+      }
+    }
+    compile("target_cs", "downsample_cs");
+  }
+  else
+  {
+    dont_render;
+  }
+}
+
+shader copy_depth
+{
+  supports none;
+  supports global_frame;
+
+  z_func=always;
+  cull_mode=none;
+  no_ablend;
+  color_write=0;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+  hlsl(ps) {
+    Texture2D tex:register(t15);
+    SamplerState tex_samplerstate:register(s15);
+    void downsample_ps(VsOutput IN, out float depth : SV_Depth)
+    {
+      depth = tex2D(tex, IN.tc).x;
+    }
+  }
+
+  compile("target_ps", "downsample_ps");
+}

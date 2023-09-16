@@ -1,0 +1,16 @@
+HINT: h270 (extent-to-append) It is better to use 'append(A, B, ...)' instead of 'extend([A, B, ...])'.
+testData/static_analyser/w270.nut:3:0
+
+::handlersManager[::PERSISTENT_DATA_PARAMS].extend([ "curControlsAllowMask", "isCurSceneBgBlurred" ])
+^----------------------------------------------------------------------------------------------------
+
+
+
+AN ERROR HAS OCCURRED [the index 'handlersManager' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyser/w270.nut line [3]
+
+LOCALS
+[vargv] ARRAY=[]
+[this] TABLE={}

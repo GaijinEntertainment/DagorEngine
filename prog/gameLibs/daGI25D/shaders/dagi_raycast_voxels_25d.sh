@@ -1,0 +1,141 @@
+include "dagi_scene_voxels_common_25d.sh"
+macro RAY_CAST_VOXELS_25D(code)
+  INIT_VOXELS_25D(code)
+  USE_VOXELS_25D(code)
+  SAMPLE_VOXELS_25D(code)
+  INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(code)
+  INIT_VOXELS_HEIGHTMAP_ALBEDO_25D(code)
+
+  hlsl(code) {
+    float3 ray_box_intersection_normal(float3 wpos, float3 wdir, float3 bmin, float3 bmax)
+    {
+      float3 startOfs = (abs(wdir) > 1e-6) ? max(0, (((wdir >= 0.0f) ? bmin : bmax) - wpos) / wdir) : 0;
+      float maxStart = max3(startOfs.x, startOfs.y, startOfs.z);
+      return (maxStart == startOfs.x ? float3(-sign(wdir.x),0,0) : maxStart == startOfs.y ? float3(0, -sign(wdir.y),0) : float3(0, 0, -sign(wdir.z)));
+    }
+
+    uint raycast_25d_coord_fix(inout float3 worldPos)//inside alpha
+    {
+      float2 coordF = scene25dWorldPosToCoordF(worldPos.xz);
+      uint2 wrappedCoord2 = wrapSceneVoxel25dCoord(coordF.xy);
+      float floorHt = getVoxel25dFloorCoord(wrappedCoord2);
+      worldPos.y = max(floorHt*getScene25dVoxelSizeY()+0.01, worldPos.y);//+0.5*getScene25dVoxelSizeY()
+      float coordY = worldPos.y*getScene25dVoxelInvSizeY() - floorHt;//
+
+      uint3 coordPart = uint3(frac(float3(coordF.xy, coordY))*2)&1;
+      uint bitShift = (coordPart.x + (coordPart.y<<1) + (coordPart.z<<2));
+      uint3 sampleCoord = uint3(wrappedCoord2, int(coordY));
+      return getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(sampleCoord))&(1U<<(bitShift + getAlphaShift(sampleCoord)));
+    }
+
+    uint raycast_25d_coord_gen_int(out float3 coordF, out float floorHt, float3 worldPos, float3 wdir, uint maxDist, bool sampleDetailed)//using coords
+    {
+      wdir *= getScene25dVoxelStep();
+      coordF = float3(scene25dWorldPosToCoordF(worldPos.xz), worldPos.y*getScene25dVoxelInvSizeY());
+      float3 coordStepF = float3(scene25dWorldPosToCoordMoveF(wdir.xz), wdir.y*getScene25dVoxelInvSizeY());
+      BRANCH
+      if (sampleDetailed)
+      {
+        UNROLL
+        for (uint i = 0; i < 8; ++i)
+        {
+          uint2 wrappedCoord2 = wrapSceneVoxel25dCoord(coordF.xy);
+          floorHt = getVoxel25dFloorCoord(wrappedCoord2);
+          float coordY = coordF.z - floorHt;//
+          if (coordY < 0)
+            return 1;
+
+          uint3 coordPart = uint3(frac(float3(coordF.xy, coordY))*2)&1;
+          uint bitShift = (coordPart.x + (coordPart.y<<1) + (coordPart.z<<2));
+          uint3 sampleCoord = uint3(wrappedCoord2, int(coordY));
+
+          if (sampleCoord.z >= VOXEL_25D_RESOLUTION_Y)
+          {
+            coordF += coordStepF;
+            continue;
+          }
+
+          if (getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(sampleCoord))&(1U<<(bitShift + getAlphaShift(sampleCoord))))
+            return 2;
+          coordF += coordStepF;
+        }
+        maxDist -= 4;
+      }
+
+      coordStepF+=coordStepF;
+      LOOP
+      for (uint i = 0; i < maxDist; ++i)
+      {
+        uint2 wrappedCoord2 = wrapSceneVoxel25dCoord(coordF.xy);
+        floorHt = getVoxel25dFloorCoord(wrappedCoord2);
+        float coordY = coordF.z - floorHt;//
+        if (coordY < 0)
+          return 1;
+
+        uint3 sampleCoord = uint3(wrappedCoord2, coordY);
+
+        if (sampleCoord.z >= VOXEL_25D_RESOLUTION_Y)
+        {
+          coordF += coordStepF;
+          continue;
+        }
+
+        if (getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(sampleCoord))&(0xFFU<<getAlphaShift(sampleCoord)))
+          return 2;
+        coordF += coordStepF;
+      }
+      return 0;
+    }
+
+    float3 raycast_25d_coord(inout float3 worldPos, inout float3 voxel_normal, out float3 emission, float3 wdir, uint maxDist, bool sampleDetailed)//using coords
+    {
+      float3 coordF;
+      float floorHt;
+      uint ret = raycast_25d_coord_gen_int(coordF, floorHt, worldPos, wdir, maxDist, sampleDetailed);
+      worldPos = float3(coordF.xy*getScene25dVoxelSizeXZ()+getScene25dVoxelOrigin(), coordF.z*getScene25dVoxelSizeY()).xzy;
+      BRANCH
+      if (ret == 2)
+      {
+        float coordY = coordF.z - floorHt;//
+        uint3 sampleCoord = uint3(wrapSceneVoxel25dCoordF(coordF.xy), coordY);
+      ##if gi_quality != only_ao
+        float3 albedo = 0;
+        getVoxel25dColor(sampleCoord, albedo, emission);
+      ##else
+        float3 albedo = 1;
+      ##endif
+        float2 bbminXZ = floor(worldPos.xz/getScene25dVoxelSizeXZ())*getScene25dVoxelSizeXZ();
+        float3 bbmin = float3(bbminXZ, floorHt + floor(coordY)*getScene25dVoxelSizeY()).xzy;
+        voxel_normal = ray_box_intersection_normal(worldPos - wdir*3, wdir, bbmin, bbmin + getScene25dVoxelSize());
+        //voxel_normal = -wdir;
+        return albedo;
+      }
+      BRANCH
+      if (ret == 1)
+      {
+        emission = 0;
+        voxel_normal = ssgi_get_heightmap_2d_height_25d_normal(worldPos.xz);
+      ##if gi_quality != only_ao
+        float3 albedo=ssgi_get_heightmap_2d_height_25d_diffuse(worldPos.xz);
+        albedo.b = max(albedo.b, 1e-6);
+      ##else
+        float3 albedo = 1;
+      ##endif
+        return albedo;
+      }
+      emission = 0;
+      return 0;
+    }
+
+    half3 raycast_25d_coord_base(inout float3 worldPos, out float3 voxel_normal, out float3 emission, float3 worldDir, uint max_dist)
+    {
+      if (raycast_25d_coord_fix(worldPos))
+      {
+        float voxelSizeXZ = getScene25dVoxelSizeXZ();
+        worldPos += (0.5f*sqrt(3.f))*voxelSizeXZ*worldDir;
+      }
+      return raycast_25d_coord(worldPos, voxel_normal, emission, worldDir, max_dist, true);
+      //todo: ao
+    }
+  }
+endmacro

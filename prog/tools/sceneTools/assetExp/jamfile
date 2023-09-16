@@ -1,0 +1,46 @@
+Platform ?= win64 ;
+
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/assetExp ;
+DriverLinkage ?= dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = util ;
+Target      = DaExport_all ;
+
+Dependencies =
+  $(Root)/$(Location)/jamfile-main
+  $(Root)/$(Location)/jamfile-job
+;
+
+if $(DriverLinkage) = dynamic {
+Dependencies +=
+  $(Root)/$(Location)/jamfile-dll
+  $(Root)/$(Location)/exporters/jamfile-a2d
+  $(Root)/$(Location)/exporters/jamfile-model
+  $(Root)/$(Location)/exporters/jamfile-physobj
+  $(Root)/$(Location)/exporters/jamfile-fx
+  $(Root)/$(Location)/exporters/jamfile-tex
+  $(Root)/$(Location)/exporters/jamfile-anim
+  $(Root)/$(Location)/exporters/jamfile-fastphys
+  $(Root)/$(Location)/exporters/jamfile-land
+  $(Root)/$(Location)/exporters/jamfile-mat
+  $(Root)/$(Location)/exporters/jamfile-locShader
+  $(Root)/$(Location)/exporters/jamfile-collision
+  $(Root)/$(Location)/exporters/jamfile-impostorData
+  $(Root)/$(Location)/refProviders/jamfile-efx
+  $(Root)/$(Location)/refProviders/jamfile-spline
+  $(Root)/$(Location)/refProviders/jamfile-composit
+;
+if [ GLOB $(Root)/prog/gameLibs/vehiclePhys : * ] {
+  Dependencies += $(Root)/prog/gameLibs/vehiclePhys/exporters/jamfile ;
+}
+if [ GLOB $(Root)/prog/gameLibs/gamePhys/phys/shipSections : * ] {
+  Dependencies += $(Root)/prog/gameLibs/gamePhys/phys/shipSections/exporters/jamfile ;
+}
+if [ GLOB $(Root)/prog/3rdPartyLibs/phys/fractureTool : * ] {
+  Dependencies += $(Root)/$(Location)/exporters/jamfile-apexDestr ;
+}
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

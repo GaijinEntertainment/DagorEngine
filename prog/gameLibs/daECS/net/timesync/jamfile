@@ -1,0 +1,16 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/daECS/net/timesync ;
+
+TargetType  = lib ;
+Target      = gameLibs/daECS/net/timesync.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+
+include $(Root)/prog/_jBuild/build.jam ;

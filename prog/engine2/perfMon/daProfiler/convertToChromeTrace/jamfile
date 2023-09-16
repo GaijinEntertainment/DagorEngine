@@ -1,0 +1,35 @@
+APP             = convertToChromeTrace ;
+APP_FOLDER      = daProfiler/$(APP) ;
+Root           ?= ../../../../.. ;
+Location        = prog/engine2/perfMon/$(APP_FOLDER) ;
+ConsoleExe      = yes ;
+
+Platform ?= win64 ;
+
+TargetType  = exe ;
+Target      = util/$(APP).exe ;
+OutDir      = $(Root)/tools/util ;
+  
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/baseUtil
+  engine2/ioSys
+  engine2/perfMon/daProfilerStub
+  3rdPartyLibs/eastl
+;
+
+Sources =
+  convert.cpp
+  ../daProfilerSaveDump.cpp
+  ../daProfilerPlatform.cpp
+  ../daProfilerSymbolsCache.cpp
+  ../daProfilePageAllocator.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

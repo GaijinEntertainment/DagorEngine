@@ -1,0 +1,67 @@
+include "shader_global.sh"
+include "gbuffer.sh"
+include "postfx_inc.sh"
+include "viewVecVS.sh"
+include "globtm.sh"
+include "giHelpers/common_collision_render.sh"
+
+shader render_collision
+{
+  //cull_mode = none;
+  cull_mode = cw;
+
+  hlsl {
+    struct VsOutput
+    {
+      centroid VS_OUT_POSITION(pos)
+      float3 pointToEye    : TEXCOORD0;
+      nointerpolation float3 diffuseColor         : TEXCOORD2;
+    };
+  }
+  (vs) {world_view_pos@f3=world_view_pos;}
+  hlsl(ps) {
+    float3 gi_collision_ps(VsOutput ps_input INPUT_VFACE):SV_Target
+    {
+      VsOutput input = ps_input;
+      half3 worldNormal = normalize(cross(ddy(input.pointToEye), ddx(input.pointToEye)));
+      worldNormal.xyz = MUL_VFACE(worldNormal.xyz);
+      float fresnel = saturate(1 - abs(dot(worldNormal, normalize(input.pointToEye).xyz)));
+      fresnel = saturate(lerp(0.04, 0.5, pow4(fresnel)));
+      return saturate(dot(worldNormal, normalize(float3(1,1,1))*0.5)) + fresnel;
+    }
+  }
+
+  COMMON_COLLISION_RENDER()
+
+  DISABLE_ASSERT_STAGE(vs)
+  hlsl(vs) {
+    VsOutput gi_collision_vs(VsInput input, uint id : SV_InstanceID)
+    {
+      VsOutput output;
+      float3 diffuseColor = 0.06;
+
+      float3 localPos = input.pos;
+      uint inst = id;
+      #if USE_MULTI_DRAW
+        inst = input.id;
+      #endif
+      uint baseInst = get_immediate_dword_0();
+      uint finalInstId = baseInst + inst;
+      uint matrixOffset = finalInstId;
+      matrixOffset *= 3;
+      float3 worldLocalX = float3(structuredBufferAt(matrices, matrixOffset).x, structuredBufferAt(matrices, matrixOffset + 1).x, structuredBufferAt(matrices, matrixOffset + 2).x);
+      float3 worldLocalY = float3(structuredBufferAt(matrices, matrixOffset).y, structuredBufferAt(matrices, matrixOffset + 1).y, structuredBufferAt(matrices, matrixOffset + 2).y);
+      float3 worldLocalZ = float3(structuredBufferAt(matrices, matrixOffset).z, structuredBufferAt(matrices, matrixOffset + 1).z, structuredBufferAt(matrices, matrixOffset + 2).z);
+      float3 worldLocalPos = float3(structuredBufferAt(matrices, matrixOffset).w, structuredBufferAt(matrices, matrixOffset + 1).w, structuredBufferAt(matrices, matrixOffset + 2).w);
+      float3 worldPos = localPos.x * worldLocalX + localPos.y * worldLocalY + localPos.z * worldLocalZ + worldLocalPos;
+      output.pos = mul(float4(worldPos, 1), globtm);
+      output.pointToEye = world_view_pos - worldPos;
+      output.diffuseColor = diffuseColor.rgb;
+
+      return output;
+    }
+  }
+
+  compile("target_ps", "gi_collision_ps");
+  compile("target_vs", "gi_collision_vs");
+}

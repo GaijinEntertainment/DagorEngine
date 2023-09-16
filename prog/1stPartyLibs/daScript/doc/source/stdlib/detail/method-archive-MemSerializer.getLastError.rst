@@ -1,0 +1,1 @@
+Returns last serialization error.

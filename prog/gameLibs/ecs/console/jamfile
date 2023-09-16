@@ -1,0 +1,29 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/ecs/console ;
+
+TargetType  = lib ;
+Target      = gameLibs/ecs/console.lib ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine2/consoleProc
+;
+
+Sources =
+  ecsConsole.cpp
+;
+
+UseProgLibs +=
+  3rdPartyLibs/eastl
+;
+
+SourceES =
+;
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

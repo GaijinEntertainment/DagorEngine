@@ -1,0 +1,8 @@
+return {
+  function set_clipboard_text(a) {
+    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
+  }
+  function get_clipboard_text() {
+    return ""
+  }
+}

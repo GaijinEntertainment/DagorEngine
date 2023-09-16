@@ -1,0 +1,3 @@
+return {
+  set_window_activation_handler = @(...) null
+}

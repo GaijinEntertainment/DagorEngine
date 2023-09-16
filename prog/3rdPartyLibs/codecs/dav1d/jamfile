@@ -1,0 +1,125 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/codecs/dav1d ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/codecs/dav1d.lib ;
+
+AddIncludes = 
+  $(Root)/$(Location)
+  $(Root)/$(Location)/src
+  $(Root)/$(Location)/generated
+  $(Root)/$(Location)/include
+  $(Root)/$(Location)/include/common
+  $(Root)/$(Location)/include/dav1d
+  $(Root)/$(Location)/tools
+;
+if $(Platform) in win64 xboxOne scarlett {
+  AddIncludes += $(Root)/$(Location)/generated/win64 ;
+}
+
+if $(Platform) = win32 {
+  AddIncludes += $(Root)/$(Location)/generated/win32 ;
+}
+
+if $(Platform) = macosx {
+  if $(MacOSXArch) = arm64 {
+    AddIncludes += $(Root)/$(Location)/generated/macosx_arm64 ;
+  } else {
+    AddIncludes += $(Root)/$(Location)/generated/macosx_x86_64 ;
+  }
+}
+
+if $(Platform) in iOS tvOS {
+  AddIncludes += $(Root)/$(Location)/generated/macosx_arm64 ;
+}
+
+if $(Platform) in ps4 ps5 {
+  AddIncludes += $(Root)/$(Location)/generated/ps ;
+}
+
+if $(Platform) = linux64 {
+  AddIncludes += $(Root)/$(Location)/generated/linux ;
+}
+
+if $(Platform) in android nswitch {
+  if $(Platform) != android || $(AndroidArch) = arm64-v8a {
+    AddIncludes += $(Root)/$(Location)/generated/android/aarch64 ;
+  } else {
+    AddIncludes += $(Root)/$(Location)/generated/android/arm ;
+  }
+}
+
+Sources = ;
+
+AutoscanBuildLists src tools/input : *.c : Sources ;
+
+if $(Platform) in win64 win32 xboxOne scarlett && $(PlatformSpec) != clang {
+  AddIncludes += $(Root)/$(Location)/include/compat/msvc ;
+}
+
+if $(Platform) = linux64 && $(PlatformSpec) != clang {
+  AddIncludes += $(Root)/$(Location)/include/compat/gcc ;
+}
+
+if $(Platform) in ps4 ps5 {
+  AddIncludes += $(Root)/$(Location)/include/compat/ps ;
+}
+
+if ( -D_WIN32_WINNT=0x0501 in $(GlobalCPPopt) ) {
+  Exit -D_WIN32_WINNT=0x0501 not supported ;
+}
+
+if $(Platform) in win32 win64 xboxOne scarlett {
+  Sources += src/win32/thread.c ;
+}
+if $(Platform) in win32 win64 xboxOne scarlett ps4 ps5 linux64 {
+  AutoscanBuildLists src/x86 : *.asm : Sources : (16_(sse|avx)|filmgrain_common) ;
+  AutoscanBuildLists src/x86 : *.c : Sources ;
+}
+
+if $(Platform) = macosx {
+  if $(MacOSXArch) = arm64 {
+    AutoscanBuildLists src/arm/64 : *.S : Sources  ;
+    AutoscanBuildLists src/arm : *.c : Sources ;
+  } else {
+    AutoscanBuildLists src/x86 : *.asm : Sources : (16_(sse|avx)|filmgrain_common) ;
+    AutoscanBuildLists src/x86 : *.c : Sources ;
+  }
+}
+
+if $(Platform) in iOS tvOS {
+  AutoscanBuildLists src/arm/64 : *.S : Sources  ;
+  AutoscanBuildLists src/arm : *.c : Sources ;
+}
+
+if $(Platform) in android nswitch {
+  AutoscanBuildLists src/arm : *.c : Sources ;
+  if $(Platform) != android || $(AndroidArch) = arm64-v8a {
+    AutoscanBuildLists src/arm/64 : *.S : Sources  ;
+    ASMopt += --target=aarch64-linux-android21 ;
+  } else {
+    AutoscanBuildLists src/arm/32 : *.S : Sources  ;
+    ASMopt += --target=armv7a-linux-androideabi19 ;
+  }
+}
+
+
+if $(Platform) = win32 || ( $(Platform) = macosx && ! $(MacOSXArch) in arm64 ) {
+  ASMopt += --prefix _ ;
+} else if ( $(Platform) = macosx && $(MacOSXArch) in arm64 ) {
+  ASMopt += -DPREFIX -target arm64-apple-macos -mmacosx-version-min=$(MacOSXMinVer) ;
+} else if ( $(Platform) in iOS tvOS ) {
+  ASMopt += -DPREFIX -target arm64-apple-ios -miphoneos-version-min=$(iOSMinVer) ;
+}
+
+Copt += -DBITDEPTH=8 ;
+
+if $(Platform) in win32 win64 xboxOne scarlett && $(PlatformSpec) != clang {
+  Copt += /wd4028 /wd4244 /wd4267 /wd4996 /wd4090 /wd4133 ;
+} else {
+  Copt += -Wno-incompatible-pointer-types ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

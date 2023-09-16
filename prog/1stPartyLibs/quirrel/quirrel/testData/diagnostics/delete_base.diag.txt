@@ -1,0 +1,7 @@
+ERROR: can't delete 'base'
+testData/diagnostics/delete_base.nut:1:0
+
+delete base
+^----------
+
+

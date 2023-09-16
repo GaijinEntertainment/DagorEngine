@@ -1,0 +1,23 @@
+switch $(OS) {
+  case NT     : Platform  ?= win32 ;
+  case MACOSX : Platform  ?= macosx ;
+  case LINUX  : Platform  ?= linux64 ;
+}
+AndroidArch ?= arm64-v8a ;
+
+if $(Platform) in win32 win64 macosx linux64 ps4 ps5 xboxOne scarlett {
+  PlatformDataFormatCode ?= PC ;
+} else if $(Platform) in iOS {
+  PlatformDataFormatCode ?= iOS ;
+} else if $(Platform) in android {
+  PlatformDataFormatCode ?= and ;
+} else {
+  PlatformDataFormatCode ?= PC ; # unknown, let it be PC format
+}
+
+ComSpec ?= $(COMSPEC) ;
+
+for t in $(JAMTARGETS) { # process target-keywords (with special meaning)
+  if $(t) in mkdevtools clean this nocare depjam cache clean clean_all { Depends $(t) : all ; }
+}
+

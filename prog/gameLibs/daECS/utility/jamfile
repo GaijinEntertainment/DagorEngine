@@ -1,0 +1,24 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daECS/utility ;
+
+TargetType  = lib ;
+Target      = gameLibs/daECS/utility.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/eastl/include
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  createInstantiated.cpp
+  instantiateDependencies.cpp
+  enumDescription.cpp
+;
+
+UseProgLibs +=
+  gameLibs/daECS/core
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

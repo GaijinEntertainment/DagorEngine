@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Any|x64">
+      <Configuration>Any</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup>
+    <ProjectGuid>{be418570-77ca-4379-9ba1-157cc6c71bcb}</ProjectGuid>
+    <ReadOnlyProject>true</ReadOnlyProject>
+    <OutDir>$(SolutionDir)_output\</OutDir>
+    <IntDir>$(OutDir)msbuild\</IntDir>
+    <ProjectDir>$(MSBuildThisFileDirectory)</ProjectDir>
+    <ProgDir>$(SolutionDir)prog\</ProgDir>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <BuildLog>
+      <Path>$(IntDir)$(MSBuildProjectName).log</Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <ProjectFiles Include="prog\prog.vcxproj" />
+    <ProjectFiles Include="active_matter\prog\active_matter.vcxproj" />
+    <ProjectFiles Include="beyond_the_door\prog\beyond_the_door.vcxproj" />
+    <ProjectFiles Include="cuisine_royale\prog\cuisine_royale.vcxproj" />
+    <ProjectFiles Include="enlisted\prog\enlisted.vcxproj" />
+    <ProjectFiles Include="modern_conflict\prog\modern_conflict.vcxproj" />
+    <ProjectFiles Include="outerSpace\prog\outer_space.vcxproj" />
+    <ProjectFiles Include="skyquake\prog\skyquake.vcxproj" />
+    <ProjectFiles Include="to_the_sky\prog\to_the_sky.vcxproj" />
+    <ProjectFiles Include="samples\skiesSample\prog\skiesSample.vcxproj" />
+    <ProjectFiles Include="prog\samples\testDeferred\testDeferred.vcxproj" />
+    <ProjectFiles Include="prog\samples\testDrv3d\testDrv3d.vcxproj" />
+    <ProjectFiles Include="prog\tools\ShaderCompiler2\ShaderCompiler2.vcxproj" />
+  </ItemGroup>
+
+  <Target Name="ExecCommands">
+    <Exec Command="$(ProgDir)fix_dependencies.cmd" WorkingDirectory="$(ProgDir)" IgnoreExitCode="True" />
+
+    <PropertyGroup>
+      <UpdateCommand>@(ProjectFiles)</UpdateCommand>
+    </PropertyGroup>
+    <Exec Command="git checkout $(UpdateCommand.Replace(';', ' '))" WorkingDirectory="$(SolutionDir)" />
+  </Target>
+  <Target Name="Build" DependsOnTargets="ExecCommands" />
+  <Target Name="Rebuild" DependsOnTargets="ExecCommands" />
+  <Target Name="Clean" DependsOnTargets="ExecCommands" />
+
+  <Target Name="GetGeneratedFiles" />
+  <Target Name="GetProjectReferencesInfo" />
+  <Target Name="GetAssemblyReferences" />
+  <Target Name="GetClCommandLineForReference" />
+  <Target Name="GetWinMDReferences" />
+  <Target Name="GetComReferences" />
+  <Target Name="GetSDKReferences" />
+  <Target Name="GetProjectReferences" />
+  <Target Name="GetForeignReferences" />
+  <Target Name="GetResolvedReferences" />
+  <Target Name="GetResolvedSDKReferences" />
+  <Target Name="ResolveProjectReferencesDesignTime" />
+  <Target Name="GetProjectDirectories" Returns="@(_ProjectDirectories)">
+    <ItemGroup>
+      <_ProjectDirectories Include="dummy">
+        <ProjectDir>$(ProjectDir)</ProjectDir>
+      </_ProjectDirectories>
+    </ItemGroup>
+  </Target>
+  <Target Name="GetClCommandLines" Returns="@(ClCommandLines)">
+    <ItemGroup>
+      <ClCommandLines Include="/c">
+        <ConfigurationOptions>true</ConfigurationOptions>
+        <Files />
+        <WorkingDirectory>$(ProjectDir)</WorkingDirectory>
+      </ClCommandLines>
+    </ItemGroup>
+  </Target>
+</Project>

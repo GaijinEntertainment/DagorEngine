@@ -1,0 +1,11 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/arc/fastlz ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/arc/fastlz.lib ;
+
+Sources =
+  fastlz.c
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

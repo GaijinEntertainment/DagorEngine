@@ -1,0 +1,37 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/res2Asset ;
+ConsoleExe      = yes ;
+
+
+TargetType  = exe ;
+Target      = util/res2AssetCvt.exe ;
+
+OutDir          = $(Root)/tools/converters ;
+CopyTo          = $(Root)/$(Location) ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+
+Sources =
+  resCvt.cpp
+  copyDag.cpp
+  con_main.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/lib3d
+  engine2/perfMon/daProfilerStub
+
+  tools/libTools/util
+  tools/libTools/dagFileRw
+  tools/libTools/staticGeom
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

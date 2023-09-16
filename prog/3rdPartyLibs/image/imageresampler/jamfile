@@ -1,0 +1,12 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/image/imageresampler ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/image/imageresampler.lib ;
+
+
+Sources =
+  resampler.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

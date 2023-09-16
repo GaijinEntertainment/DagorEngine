@@ -1,0 +1,1 @@
+JSON input stream token.

@@ -1,0 +1,190 @@
+local isComps = @(c) type(c ?? [])=="array"
+local callableTypes = ["function","table","instance"]
+local function isCallable(v) {
+  return callableTypes.indexof(type(v)) != null && (v.getfuncinfos() != null)
+}
+
+let allowedKwargTypes = { table = true, ["class"] = true, instance = true }
+
+local function kwarg(func){
+  assert(isCallable(func), "kwarg can be applied only to functions as first arguments")
+  local infos = func.getfuncinfos()
+  local funcargs = infos.parameters.slice(1)
+  local defargs = infos.defparams
+  local argsnum = funcargs.len()
+  local isvargved = infos.varargs==1
+  local kfuncargs = {}
+  local mandatoryparams = []
+  local defparamsStartFrom = argsnum-defargs.len()
+  foreach (idx, arg in funcargs) {
+    if (idx >= defparamsStartFrom) {
+      kfuncargs[arg] <- defargs[idx-defparamsStartFrom]
+    }
+    else{
+      kfuncargs[arg] <-null
+      mandatoryparams.append(arg)
+    }
+  }
+  return isvargved ? function(params, ...) {
+        if (type(params) not in allowedKwargTypes)
+          assert(false, @() $"param of function can be only hashable (table, class, instance), found:'{type(params)}'")
+        local nonManP = mandatoryparams.filter(@(p) p not in params)
+        if (nonManP.len() > 0)
+          assert(false, @() "not all mandatory parameters provided: {0}".subst(nonManP.len()==1 ? $"'{nonManP[0]}'" : nonManP.reduce(@(a,b) $"{a},'{b}'")))
+        local posarguments = funcargs.map(@(kv) params[kv])
+        posarguments.insert(0, this)
+        return func.acall(posarguments.extend(vargv))
+      }
+    : function(params=kfuncargs) {
+        if (type(params) not in allowedKwargTypes)
+          assert(false, @() $"param of function can be only hashable (table, class, instance), found:'{type(params)}'")
+        local nonManP = mandatoryparams.filter(@(p) p not in params)
+        if (nonManP.len() > 0)
+          assert(false, "not all mandatory parameters provided: {0}".subst(nonManP.len()==1 ? $"'{nonManP[0]}'" : nonManP.reduce(@(a,b) $"{a},'{b}'")))
+        local posarguments = funcargs.map(@(kv) kv in params ? params[kv] : kfuncargs[kv])
+        posarguments.insert(0, this)
+        return func.acall(posarguments)
+      }
+}
+
+return {
+  set_callback_timer = @(func, time, repeat=false) assert(type(func) =="function" && type(time) == "float" && type(repeat) == "boolean")
+  set_callback_timer_rt = @(_cb, _time, _bool) null
+  clear_callback_timer = @(func) assert(type(func) == "function")
+  clear_timer = @(obj) assert("eid" in obj && "id" in obj)
+  set_timer = kwarg(function(_eid, id, _interval, _repeat=false) {
+    assert(type(id) == "string")
+  })
+
+  INVALID_ENTITY_ID = 0
+  COMP_FLAG_REPLICATED="COMP_FLAG_REPLICATED"
+  COMP_FLAG_CHANGE_EVENT="COMP_FLAG_CHANGE_EVENT"
+  EVCAST_UNICAST = "EVCAST_UNICAST"
+  EVCAST_BROADCAST = "EVCAST_BROADCAST"
+
+  TYPE_OBJECT = "TYPE_OBJECT"
+  TYPE_ARRAY =  "TYPE_ARRAY"
+  TYPE_SHARED_OBJECT = "TYPE_SHARED_OBJECT"
+  TYPE_SHARED_ARRAY =  "TYPE_SHARED_ARRAY"
+  TYPE_EID =  "TYPE_EID"
+  TYPE_TAG = "TYPE_TAG"
+  TYPE_INT64 = "TYPE_INT64"
+  TYPE_UINT64 = "TYPE_UINT64"
+  TYPE_COLOR =  "TYPE_COLOR"
+  TYPE_FLOAT =  "TYPE_FLOAT"
+  TYPE_INT =  "TYPE_INT"
+  TYPE_BOOL =  "TYPE_BOOL"
+  TYPE_STRING =  "TYPE_STRING"
+  TYPE_POINT2 =  "TYPE_POINT2"
+  TYPE_IPOINT2 =  "TYPE_IPOINT2"
+  TYPE_IPOINT3 = "TYPE_IPOINT3"
+  TYPE_POINT3 =  "TYPE_POINT3"
+  TYPE_POINT4 =  "TYPE_POINT4"
+  TYPE_DPOINT3 = "TYPE_DPOINT3"
+  TYPE_MATRIX =  "TYPE_MATRIX"
+  TYPE_INT_LIST = "TYPE_INT_LIST"
+  TYPE_UINT16_LIST = "TYPE_UINT16_LIST"
+  TYPE_STRING_LIST = "TYPE_STRING_LIST"
+  TYPE_EID_LIST = "TYPE_EID_LIST"
+  TYPE_FLOAT_LIST = "TYPE_FLOAT_LIST"
+  TYPE_POINT2_LIST = "TYPE_POINT2_LIST"
+  TYPE_POINT3_LIST = "TYPE_POINT3_LIST"
+  TYPE_POINT4_LIST = "TYPE_POINT4_LIST"
+  TYPE_IPOINT2_LIST = "TYPE_IPOINT2_LIST"
+  TYPE_IPOINT3_LIST = "TYPE_IPOINT3_LIST"
+  TYPE_BOOL_LIST = "TYPE_BOOL_LIST"
+  TYPE_TMATRIX_LIST = "TYPE_TMATRIX_LIST"
+  TYPE_COLOR_LIST = "TYPE_COLOR_LIST"
+  TYPE_INT64_LIST = "TYPE_INT64_LIST"
+  CompArray = class {
+    name = "CompArray"
+    getAll = @() []
+  }
+  CompObject = class {
+    name = "CompObject"
+    getAll = @() []
+  }
+  CompEidList = class {
+    name = "CompEidList"
+    getAll = @() []
+  }
+  CompStringList =  class {
+    name = "CompStringList"
+    getAll = @() []
+  }
+  CompTMatrixList =  class {
+    name = "CompTMatrixList"
+    getAll = @() []
+  }
+  get_component_name_by_idx = @(_idx) null
+  calc_hash = @(str) assert(type(str)=="string")
+  calc_hash_int = @(str) assert(type(str)=="string")
+  SqQuery = class{
+    constructor(name, components, ...){
+      assert(type(name)=="string", "sqQuery name of incorrect type, should be string")
+      assert(type(components)=="table", "components of incorrect type")
+      assert([components?.rw,components?.no,components?.rq].reduce(@(a,b) a && isComps(b), isComps(components?.ro)))
+      assert(vargv.len()<2, "query can be created with optional filterstring or without anything")
+      if (vargv.len()==1) {
+        assert(["string"].indexof(type(vargv[0]))!=null, "squery ctor can have optional filter string")
+      }
+    }
+    function perform(...){
+      assert(vargv.len() > 0 && vargv.len() <= 3, "incorrect number of arguments. Perform should have 1 - 3 args")
+      assert(["integer","function"].indexof(type(vargv[0]))!=null, "first argument of perform should be int or callback")
+      local isSingleEid = type(vargv[0]) == "integer"
+      assert(!isSingleEid || vargv.len() > 1, "too few arguments for perform with eid, callback should be second argument")
+      local callbackArg = isSingleEid ? vargv[1] : vargv[0]
+      assert(type(callbackArg) == "function", "perform should be called with callback as first argument or after eid")
+      local filterstringArg = isSingleEid ? vargv?[2] : vargv?[1]
+      if (filterstringArg != null)
+        assert(type(filterstringArg) == "string", "perform last optional argument (filterstring) should be string")
+    }
+  }
+  EventEntityCreated =  class{name = "EventEntityCreated"}
+  EventScriptReloaded =  class{name = "EventScriptReloaded"}
+  EventComponentChanged = class{name = "EventComponentChanged"}
+  EventComponentsDisappear = class{name = "EventComponentsDisappear"}
+  EventComponentsAppear = class{name = "EventComponentsAppear"}
+  EventEntityDestroyed = class{name="EventEntityDestroyed"}
+  EventEntityRecreated = class{name="EventEntityRecreated"}
+  register_entity_system = function(name,events,comps,params={}){
+    assert(type(name)=="string")
+    assert(type(comps)=="table")
+    assert(type(events)=="table")
+    assert(type(params)=="table")
+  }
+  EntityId = @(eidAsInt) eidAsInt //should be ecs.EID_TYPE
+  register_sq_event = function(name, _eventType=null){
+    assert(type(name)=="string")
+  }
+  clear_vm_entity_systems = @() null
+  start_es_loading = @() null
+  end_es_loading = @() null
+  recreateEntityWithTemplates = function(params){assert(type(params)=="table" && params?.eid != null)}
+  obsolete_dbg_get_comp_val = function(eid, component, optional_val=null) {
+    assert(type(eid)=="integer" && type(component) == "string")
+    return optional_val
+  }
+  obsolete_dbg_set_comp_val = @(eid, component, _value) assert(type(eid)=="integer" && type(component) == "string")
+  _dbg_get_all_comps_inspect = @(_eid) {}
+  _dbg_get_comp_val_inspect = @(_eid, _compName) null
+  get_comp_flags = @(_eid, _compName) []
+  get_comp_type = @(_eid, _compName) this.TYPE_STRING
+  update_component = @(_eid, _compName) null
+  g_entity_mgr = {
+    getEntityTemplateName = @(_eid) null
+    performQuery = function(comps, handler){
+      assert(type(handler)=="function")
+      assert(type(comps)=="table")
+    }
+    performFilteredQuery = function(comps, handler, filter){
+      assert(type(handler)=="function")
+      assert(type(comps)=="table")
+      assert(type(filter)=="string")
+    }
+    getTemplateDB = @() {getTemplateByName = @(name) assert(type(name)=="string")}
+    broadcastEvent = @(_event) null
+    createEntity = @(_tpl, _comps, _onCreate = @(_eid) null) null
+  }
+}

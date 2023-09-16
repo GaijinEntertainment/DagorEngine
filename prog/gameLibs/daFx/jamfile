@@ -1,0 +1,28 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/daFx ;
+
+TargetType  = lib ;
+Target      = gameLibs/dafx.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  binds.cpp
+  render.cpp
+  systems.cpp
+  shaders.cpp
+  buffers.cpp
+  culling.cpp
+  context.cpp
+  emitters.cpp
+  instances.cpp
+  globalData.cpp
+  frameBoundaryBufferManager.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

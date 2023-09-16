@@ -1,0 +1,44 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/wsos ;
+include $(Root)/prog/tools/tools_setup.jam ;
+ConsoleExe = yes ;
+
+TargetType  = exe ;
+Target      = tools/wsos ;
+
+if $(OS) = LINUX {
+    Platform ?= linux64 ;
+} else {
+    Platform ?= win32 ;
+}
+
+
+OutDir = $(Root)/tools/dagor3_cdk/util ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+if $(Platform) = linux64 { OutDir = $(OutDir)-linux64 ; }
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  wsos.cpp
+  cmain.cpp
+  japan.cpp
+  chinese.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/coreUtil
+  engine2/perfMon/daProfilerStub
+  tools/libTools/util
+;
+
+if $(Platform) = linux64 { UseProgLibs += engine2/osApiWrappers/messageBox/stub ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

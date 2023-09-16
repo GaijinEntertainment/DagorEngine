@@ -1,0 +1,20 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/visualConsole ;
+
+TargetType  = lib ;
+Target      = gameLibs/visualConsole.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  visualConsole.cpp
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

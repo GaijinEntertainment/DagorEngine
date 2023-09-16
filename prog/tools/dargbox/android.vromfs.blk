@@ -1,0 +1,58 @@
+output_and:t ="../../../tools/dargbox/android.vromfs.bin"
+pack:b=true
+
+allowMkDir:b=yes
+
+rootFolder:t="."
+
+sign_private_key:t=""
+sign_digest:t="sha256"
+
+
+folder {
+  path:t="../../../tools/dargbox/fonts"
+  dest_path:t="fonts"
+  scan_folder:b=true
+  scan_subfolders:b=false
+  wildcard:t=*
+}
+
+
+folder {
+  path:t="../../../tools/dargbox/ui"
+  dest_path:t="ui"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*
+}
+
+
+folder {
+  path:t="../../../tools/dargbox/browser"
+  dest_path:t="browser"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*
+}
+
+folder {
+  path:t="gamebase/samples_prog"
+  dest_path:t="samples"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*
+}
+
+folder {
+  path:t="../../../tools/dargbox"
+  dest_path:t="."
+  scan_folder:b=true
+  scan_subfolders:b=false
+  wildcard:t="settings-android.blk"
+}
+
+exclude
+{
+  //exclude:t="(gameData.*|config.*|gui.*|levels.*)[/\\]_[\w\.]*\.blk$"
+  exclude:t="CVS"
+}

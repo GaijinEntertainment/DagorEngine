@@ -1,0 +1,279 @@
+﻿
+
+Gaijin End User License Agreement
+- - - - -
+
+IMPORTANT NOTICE: PLEASE READ THIS DOCUMENT CAREFULLY BEFORE ACCEPTING, AND MAKE SURE YOU HAVE REACHED THE AGE OF 16 OR ANY OTHER AGE THAT MAY BE REQUIRED IN ACCEPTING THIS DOCUMENT IN ACCORDANCE WITH THE LAWS OF YOUR COUNTRY OF RESIDENCE. YOU CAN FIND OUT MORE DETAILS ABOUT THE PERMISSIBLE AGE IN SECTION 8 OF THIS DOCUMENT BELOW. THE ENGLISH VERSION OF THIS DOCUMENT IS THE ONLY ORIGINAL VERSION AND SHALL PREVAIL IN THE EVENT OF ANY DIFFERENCES, QUESTIONS, OR DISPUTES CONCERNING THE MEANING, FORM, VALIDITY, OR INTERPRETATION.
+
+Depiction of any real-world weapon or vehicle in the Games does not mean participation in product development, sponsorship, or endorsement of any weapon or vehicle manufacturer.
+
+This End User License Agreement (“EULA”) constitutes a legal agreement between you (“User,” also “you,” “your,” “Player” in the EULA) and Gaijin, which means one of the following legal entities (depending on the circumstances described immediately below): 
+
+— When the Games are provided directly to the User (e.g., Gaijin Website): Gaijin Network Ltd, with its registered address at Ifigeneias street 63, Office 302, 2003 Strovolos, Nicosia, Cyprus; 
+— When the Games are provided via third-party platforms (e.g., Steam, PlayStation Network, Xbox Live, GOG, Google Play Store, Apple App Store): Gaijin Distribution Kft., with its registered address at Hungária körút 162-166, 1146 Budapest, Hungary.
+
+Gaijin can also be referred to as “we,” “us,” and “our” in the EULA.
+
+This EULA shall be a part of [Gaijin Terms and Conditions / https://legal.gaijin.net] as defined in the [Terms of Service / https://legal.gaijin.net/termsofservice] and grants you a license (“License”) to the use of our videogame(-s) (“Games” or “Game”) published by Gaijin on any platform (Windows, Xbox, PlayStation, iOS, Android, etc.), including, but not limited to, War Thunder, Crossout, Star Conflict, CRSED: F.O.A.D., Enlisted, Age of Water, and/or any other Gaijin video game that has been installed by you, subject to your accepting our Terms and Conditions and stipulations and limitations specified in such Terms and Conditions and herein.
+
+Before installing or starting to use any of our Games, you shall read and accept this EULA and other [Terms and Conditions / https://legal.gaijin.net], where you can learn how we deliver our Services and process your personal data.
+
+The capitalized terms (words) not defined in this document should be interpreted as provided by the Terms of Service.
+
+1. GRANT OF LICENSE
+
+1.1. We hereby grant you the right to store, download, install, execute, and display the latest version of the applicable Game client for the platforms (computer devices, whether desktop, laptop, mobile, or, in particular, gaming consoles) for which the Games were specifically designed by Gaijin and, at the same time, with the sole and only purpose of your playing the Game(s).
+
+1.2. Although we call the License “License to the Game,” the aforementioned rights relate solely to the Game client, which Gaijin deliberately made available for download, further installation, and launch. Please note that you are not permitted to store, download, modify, or otherwise use any part of the Game which does not constitute its client (client-side of the Game), including, amongst others, any backend part (server-side) of the Game and the In-Game Items (please also check Section 6 of this EULA to find more about the use of In-Game Items in Gaijin’s Games). The License allows you to interact with non-client parts of the Game solely as made technically available by Gaijin within the Games, provided Gaijin has the right to change the methods of such technical interaction.
+
+1.3. The License granted to you under this EULA is:
+
+— non-exclusive - you are not the only User (licensee), and we may grant the same or any other license to any of our Games to others;
+— for personal use only - you can use the Game only on your personal device (which is used solely for your personal purposes and primarily by you), and your use of the Game explicitly excludes any commercial or other non-personal use;
+— limited - you can use the Games only for the purposes and by means as provided by this EULA and the Terms and Conditions;
+— revocable - this means that we can terminate the License in some instances, as provided in Section 12 of this EULA below;
+— non-transferable - this means the License is granted solely to you, and you cannot assign, sublicense or otherwise transfer it to any other person (whether individual or entity). For the avoidance of doubt, your rights and obligations under the License are non-transferable, whether in whole or in part.
+
+1.4. The Games are licensed, not sold. It means you do not acquire any property or other rights to a digital copy of any of the Games unless otherwise provided by applicable law as a mandatory rule. You are also not granted any rights that are not expressly stated in this EULA or the Terms and Conditions.
+
+2. LICENSE TERM AND TERRITORY
+
+2.1. The License term starts from the date of your accepting this EULA and lasts until this EULA is suspended or terminated as stipulated in Section 12 below.
+
+2.2. You can use the Game worldwide unless otherwise specified by Gaijin on the Game’s official Website, within the Game Client, on a physical copy of the Game, or by any other means of Gaijin's only choice. Gaijin has the right to unilaterally change the territory of the License in the way stipulated in paragraph 11.2 of our Terms of Service.
+
+3. LICENSE LIMITATIONS
+
+3.1. License granted to you under this EULA has certain limitations. Gaijin has the right to terminate your License if you violate the limitations provided in this Section.
+
+3.2. You hereby unconditionally agree and guarantee that you WILL NOT do (or attempt to do or facilitate doing) under any circumstances the following:
+
+3.2.1. No transfer
+
+— sell, lend, rent, sublicense, publish, distribute, transfer in any other way the Game (or a copy thereof), in whole or in part, to any third party;
+— allow third parties to benefit from utilizing the Game through timeshare contracts, service contracts, or otherwise, including any commercial exploitation.
+
+3.2.2. No derivative works or reverse engineering
+
+— change, modify, translate, create derivative works of, reverse engineer, derive source code from, disassemble, decompile the Game in whole or in part, or commit other actions specified by paragraph 4.3 of the Terms of Service.
+
+3.2.3. No malicious or deceiving use
+
+— modify server code (including the use of cheats, hacks, etc.);
+— exploit flaws in Game mechanics (exploits, bugs, etc.);
+— use software that automates the game process (bots, mods), changes gameplay or functionality of the Game, grants an advantage over other players not using such software, or otherwise changes the gaming experience, whether yours or any other player’s;
+— use any third-party software which may anyhow interfere with the Game which is not authorized by Gaijin for a particular Game(s) or related services, unless such use is permitted by law as a mandatory rule;
+— destroy, disable (or assist in destroying, disabling) any computer or server used to support the Game and related services; to upload any files that contain malicious code, including viruses, spyware, trojans, worms, intentionally corrupted data, or any other files that may damage, or interfere with, the Games and related services; organize, assist or take part in any type of cyberattacks, including, without limitation, denial of service, and commit any other actions or attempts to disrupt the Games and related services;
+— use the Game, knowingly or unintentionally, in violation of any applicable law or regulation, or contribute to a violation of any applicable law or regulation;
+— make available, offer, advertise, promote and otherwise distribute any of the aforementioned means of malicious or deceiving use.
+
+3.2.4. No circumventing or manipulating use
+
+— engage in any act in conflict with the spirit or intended use of the Game and related services (as reasonably determined by us), including but not limited to circumventing or manipulating the Game, game mechanics, and the rules set forth by the Terms and Conditions and this EULA.
+
+3.2.5. No commercial use
+
+— use the Game or parts of it for commercial purposes, including, but not limited to: (1) to interact with or facilitate commercial advertising or commercial offers, or (2) to transfer In-Game Items by means other than explicitly provided by the Game or other Gaijin services.
+
+3.2.6. No services rendering
+
+— use the Game, or parts thereof, to render any in-game services, including to other Users, in exchange for service fees or any other consideration, which explicitly include, without limitation, in-game leveling, crew leveling, and item collection services, mission performance, fighting in battles in exchange for payment or resource grinding services.
+
+3.2.7. No transmitting unauthorized information
+
+— use the Game to share unauthorized information, including, but not limited to, unsolicited emails, junk mail, spam, and any material promoting malware, spyware, and downloads.
+
+3.2.8. No unauthorized connections
+
+— use, facilitate, create or maintain any unauthorized connections to the Game, including, without limitation, (1) any connection to any unauthorized server that emulates or attempts to emulate any part of the Game, or (2) any connection using programs, specialized tools, software not permitted by Gaijin.
+
+3.2.9. No mining of hidden data
+
+— mine or otherwise collect any Game data not intended for display during normal (as intended by Gaijin) exploitation of such Game.
+
+3.2.10. Terms of Service limitations
+
+— otherwise use the Game in a way contrary to the Terms of Service, including Sections 3 and 4 of this EULA. For your convenience, here are some examples of such prohibited use:
+
+i) utilizing illegal or otherwise non-appropriate usernames (or nicknames), such as the names of terrorists, Nazi leaders, or Nazi war criminals; 
+
+ii) making available through the Games any material or information or committing other actions that infringe any third-party right (including any individual or legal entity);
+
+iii) publishing nudity, sexual, excessively violent, offensive, or otherwise inappropriate content, as well as distributing the links to such content or using the Game by any means for these purposes;
+
+iv) posting abusive, threatening, obscene, defamatory, libelous, or racially, sexually, religiously, or otherwise objectionable or offensive information, as well as distributing the links to such information or using the Game by any means for these purposes.
+
+3.3. This list is not exhaustive; please also see our Terms of Service to learn more about the use of, and the applicable limitations to, Gaijin services, including the Games.
+
+4. PROPRIETARY RIGHTS AND DIGITAL RIGHTS MANAGEMENT
+
+4.1. You agree that the computer code, visual images, sounds, systems, ideas, methods of operation, documentation, and other information contained in the Games are intellectual property and/or the valuable trade secrets of Gaijin or its suppliers and/or licensors and are protected by intellectual property, civil and criminal law.
+
+4.2. You also understand that the Games are a commercial product operated by Gaijin at its sole discretion.
+
+4.3. To prevent unauthorized use of the Game, Gaijin may utilize specific technical means (DRM tools, anti-cheat solutions, etc.) designed to prevent such unauthorized use of our Games and our intellectual property and other rights. For example, Gaijin utilizes Easy Anti-Cheat for that purpose (for more information, please visit Easy Anti-Cheat official website, available at [https://www.easy.ac]). Furthermore, Gaijin may also use such technical means to ensure that you use an original copy of the Game and do not violate the Terms and Conditions.
+
+5. DEMO ACCESS
+
+From time to time, Gaijin may provide certain Users of Gaijin’s choice access to a particular Game or to a Gaijin Account intended solely for launching and playing the Game for a short time specified by Gaijin and typically without charging any fee for such access (the “Demo Access”). However, Gaijin does not guarantee to Demo Access holders the safety of their game progress, In-Game Items, or the possibility of transferring their Demo Account data to their personal Gaijin Account.
+
+6. IN-GAME ITEMS AND APPLICABLE FEES
+
+6.1. Gaijin’s Games are usually distributed on a free basis (unless otherwise explicitly stated by Gaijin or its distribution partners). Regardless of the distribution basis (paid, free, or otherwise), Gaijin usually offers for “real world” money the right to use the optional in-game data indented to extend or improve your gameplay and in-game experience, such as in-game virtual currency (for which you can buy other In-Game Items), DLCs, characters and virtual objects (vehicles, weapons, mounts, military equipment, etc.), as well as skins for them, any consumables and other items/features modifying your gameplay and enhancing your in-game experience (collectively, “In-Game Items”). Such In-Game Items constitute an integral part of the relevant Game, and the License covers their use to the same extent as the Game, including any and all applicable limitations. In-Game Items being offered or sold for one Gaijin’s Game are not compatible with any other game unless otherwise expressly facilitated and permitted by Gaijin.
+
+6.2. The In-Game Items made available through the Gaijin services are licensed, not sold. The method and usage of the specific In-Game Items may depend on certain game mechanics and/or gameplay purposes. 
+
+6.3. Any fees (whether in the form of In-Game currency or “real world” money) paid by you in exchange for any In-Game Items are non-refundable and cannot be exchanged for another In-Game Item unless: 
+
+— such refund or exchange is explicitly and unambiguously consented to by Gaijin (for example, you can trade virtual currency for another In-Game Item strictly to the extent expressly allowed in the applicable Game);
+— otherwise is provided by the Terms of Service;
+— otherwise provided by applicable law as a mandatory rule.
+
+PLEASE TAKE INTO CONSIDERATION THAT GAIJIN DOES NOT MAKE ANY REFUNDS IN CASE OF, WITHOUT LIMITATION, YOUR GAIJIN ACCOUNT DELETION OR ITS OTHER EXPIRATION, LICENSE REVOCATION, OR OTHER EULA TERMINATION ON ANY GROUNDS.
+
+6.4. Please also see our Terms of Service for more details on charging and billing any applicable fees made within Gaijin services (including store and marketplace for which we may invoke the additional rules being a part of the Terms and Conditions), including our Games. Please pay special attention to Sections 5 and 6 thereof.
+
+7. GAME RULES AND SANCTIONS FOR BREACH
+
+7.1. Gaijin has the right to establish the Game Rules for all or any particular Game. Such rules regulate (or sometimes limit) your behavior in our Games when communicating or otherwise interacting with other Players. Please read out carefully the Game Rules available at [https://legal.gaijin.net/gamerules] before playing our Games. 
+
+7.2. When you breach the Game Rules, or your behavior is otherwise not consistent with them, we have the right, at our sole reasonable discretion, to invoke the following sanctions against you, depending on the seriousness of your breach or inappropriate behavior and the stipulations of the Game Rules with regard to particular violations:
+
+— suspend your access to the “game chat” functionality in the Game;
+— facilitate renaming of your nickname or editing other information of your Gaijin Account if such information violates Game Rules or the Terms and Conditions;
+— limit the number of connections to the server, as well as the duration of each connection within a specific time;
+— suspend or restrict your use of any of our Games where you violated the Games Rules;
+— temporarily limit some functionality of the Gaijin Account;
+— suspend or delete your Gaijin Account;
+— impose other sanctions provided by the Game Rules.
+
+7.3. Failure to comply with the Game Rules constitutes a material breach of the Terms and Conditions. For your information purposes, “Material breach” means a substantial and serious violation of a legally binding agreement (which is the Terms and Conditions in this situation) that gives your contractual counterparty (which is Gaijin under the Terms and Conditions) lawful ground for immediate unilateral termination of such agreement and seeking any available remedies for such violation (which can be monetary ones, such as damages or compensation that you may have to reimburse).
+
+7.4. Please note if we choose to delete your Gaijin Account, you will never be able to access it anymore. In such case, we are also entitled to prohibit you from accessing our Games in the future.
+
+7.5. Gaijin independently decides on the violation and the applicable sanctions, including, at Gaijin’s sole discretion, by automatic means (for example, utilizing Easy Anti-Cheat mentioned in Section 4 above). However, you have the right to appeal Gaijin’s decision by contacting our Customer Support Service (for more details, please see Section 15 hereof).
+
+7.6. If you encounter another User violating our Game Rules, including when such violations interfere with your right to play the Game, you can report them via in-Game tools designed for reporting or, as such tools are not available, via our Customer Support Service.
+
+8. AGE RESTRICTIONS
+
+8.1. Besides the minimum age necessary to accept the Terms and Conditions (including this EULA) as stipulated by the Terms and Conditions (16 years old or other age of necessary legal capacity in your country), please take into consideration that each Game also has its age rating or limitations (e.g., PEGI, ESRB depending on your region). 
+
+8.2. Depending on your applicable law, if you (or your child who intends to play the Game) are under the minimum required age, you shall do the following:
+
+— Refrain from using our Games;
+— Consult your parents or legal guardian whether you can play the Game;
+— Do other actions as required by the laws of your country.
+
+IF YOU ARE UNDER 16 YEARS OLD (OR ANOTHER AGE THAT IS NECESSARY TO FULLY ACCEPT LEGALLY BINDING DOCUMENTS IN YOUR COUNTRY), PLEASE ASK YOUR PARENT OR GUARDIAN TO REVIEW THIS DOCUMENT AND APPROVE YOUR PLAY. YOU CANNOT PLAY OUR GAMES WITHOUT SUCH A CONSENT.
+
+9. HEALTH PRECAUTIONS
+
+9.1. You understand and agree that Game audiovisual content may aggravate epileptic and other neurological disorders. If you tend to such diseases, we strongly recommend you consulting to your doctor before playing our Games or refuse to play; Gaijin is not responsible for any direct or indirect consequences of playing a Game in such a situation. 
+
+9.2. You also acknowledge that continuous playing can lead to excessive fatigue that can provoke certain diseases, including impaired vision, various forms of spinal deformities, neuroses, and other health disorders. You are independently responsible for keeping track of the time spent while playing our Games, organizing breaks/rest, taking proper position while playing, and undertaking other precautions to keep your health safe. 
+
+10. SYSTEM AND TECHNICAL REQUIREMENTS
+
+10.1. Please note that the requirements mentioned below may periodically change, including in respect of the same Game. It is mostly connected with the changes to the Game being made by Gaijin from time to time, according to Section 11 of this EULA. Nevertheless, Gaijin also reserves the right to change such requirements in respect of any Games at its sole discretion.
+
+10.1.1. Minimum requirements. Each Game is designed to be run on one or several specific platforms (operating systems or devices). In some cases, a Game may have its minimum technical requirements for your device (e.g., in terms of CPU, GPU, RAM, free storage, etc.), which are indicated by Gaijin on the Game’s official website, Game’s official page on a third party gaming platform or by other means at Gaijin’s discretion. Please ensure your platform meets such a minimum. Otherwise, Gaijin does not guarantee the Game’s launch or functioning and is not responsible for other flaws in the Game’s work. You are solely responsible for having sufficient device resources to store and launch the Game, including free Ram, storage, CPU and GPU load, etc.
+
+10.1.2. Recommended requirements. For informational purposes and your convenience, we usually publish our Games' recommended requirements concerning your device's technical parameters. Please pay attention that such recommended requirements are designed for information purposes only and do not guarantee flawless functioning of the Game nor imply any other guarantee or warranty. For the avoidance of doubt, if a platform (whether device or operating system) is stated as a “recommended requirement” for a Game, it means the Game is designed to operate solely on such a platform. The same applies to other “recommended requirements,” which are clear to be necessary from the context.
+
+10.1.3. Internet connection requirement. Usually, Gaijin’s Games require a stable high-speed Internet connection to work correctly and provide a good gaming experience. Please consider that Gaijin is not responsible for any flaws in Game work arising from the quality (including speed, reachability of Gaijin servers and response time, or so-called “ping”) of your Internet connection.
+
+11. PATCHES, UPDATES, AND MODIFICATIONS
+
+11.1. To ensure the best level of services, user experience, and Gaijin services efficiency within the Games, we need to patch, update and modify our Games from time to time. That usually results in mandatory and/or automatic updates of our Games, and the older versions may not launch or operate until you update them. 
+
+11.2. Gaijin has the right to change the software code of the Game at any time at its sole discretion. Such changes may affect, among others, the functionality of the Game and its other content. For instance, we can add or remove Game content or features, fix bugs and errors, make balance changes, etc.
+
+11.3. Please pay special attention that some patches, updates, and modifications may require (and over time will require) higher technical requirements to your device, or increase the device resources consumption by the Game, otherwise they may lead (and over time will lead) to performance drop of the Game and/or lower graphics or other settings.
+
+11.4. By accepting this EULA, you confirm and acknowledge that your refusal to update the Game may make its further use by you impossible, and this EULA shall be deemed suspended until you update the Game.
+
+12. LICENSE TERMINATION
+
+12.1. Termination by User. You can terminate this EULA immediately by permanently stopping the use of our Games and deleting them from your device.
+
+12.2. Termination by Gaijin. We have the right to both suspend or permanently terminate this EULA (which also means restricting your access to any of our Games) in the following cases:
+
+— if you materially breach this EULA or the Terms and Conditions;
+— if you breach the Game Rules in the manner and to the extent provided by such Game Rules;
+— if we suspend or delete your Gaijin account on the grounds provided in our Terms of Service;
+— if we cease operating and distributing the Game or otherwise stop giving access to the Game, subject to reasonable prior notification;
+— on other grounds as provided by the Terms and Conditions.
+
+12.3. In case of License termination as stated in this Section of EULA, or on the other grounds provided by the Terms and Conditions, we will not have any future obligations or liabilities before you.
+
+12.4. When done by Gaijin, License termination shall have its effect immediately unless otherwise explicitly indicated by Gaijin or required by applicable law as a mandatory rule.
+
+12.5. License termination is safe to any obligations and liabilities of you and Gaijin that emerged and existed before the termination.
+
+PLEASE NOTE THAT TERMINATION OF THE TERMS AND CONDITIONS OR THE TERMS OF SERVICE, OR SUSPENDING OF THIS EULA, LEAD TO THE CONSEQUENT LICENSE TERMINATION/SUSPENSION.
+
+13. ADDITIONAL PLATFORM TERMS
+
+If you get access to the Game through third-party platforms, you shall be solely responsible for ensuring you use such platforms and any accounts on them (such as Apple App Store, PlayStation, or Xbox account) in accordance with the policies applicable to such platforms and accounts. Please refer to the specific platforms’ terms below.
+
+In any case, such third-party platforms shall not be responsible for this EULA breach or any Gaijin omissions. This EULA in no way aims to change any of the agreements between third-party platforms and you; the terms of such agreements shall always prevail over this EULA in anything related to the use of such platforms and the use of their intellectual property.
+
+Please be aware that Gaijin shall comply with all requirements of third-party platforms to provide you with the opportunity to have access to the Games through those platforms. Therefore, Gaijin may be required to change this EULA to comply with third-party platform requirements.
+
+Any questions in this regard shall be directed to the Support Service as specified in Section 15 of this EULA.
+
+13.1. Apple App Store Additional Terms
+
+The following additional terms and conditions apply to the Games available on any Apple, Inc.  iPhone or iPad personal devices (“Apple”):
+
+-	This EULA is concluded as specified earlier between Gaijin and you, not with Apple which carries no obligations under this EULA and which cannot be responsible for any breaches of this EULA, including any Game’s deficiencies and malfunction. Usage of the Games provided via Apple shall be according to the usage rules set forth in the Apple Media Services Terms and Conditions or the Volume Content Terms, such usage rules shall prevail over the terms of this EULA. 
+
+	As specified in paragraph 1.3 of this EULA the License granted to you is non-transferable and, therefore,  shall be limited to the right to store the Game only in the memory of Apple products you own or control, and execute and display the Game only on Apple products that you own or control according to the Usage Rules set forth in the Apple Media Services Terms and Conditions, except for Apple products that you do not own and control but associated with you via Family Sharing, volume purchasing, or legally valid contracts.
+
+-	Apple is not responsible for providing any maintenance and support of the Games.
+
+-	Gaijin is solely responsible for any Games warranties, whether express or implied by law.  Apple does not have warranty obligations with respect to the Game.  Any claims, losses, liabilities, damages, costs or expenses attributable to any failure to conform to any warranty is Gaijin sole responsibility. The only exception is that in the event of any failure of the Game to conform with any applicable warranty (express or implied) you may notify Apple, and Apple will refund the purchase price for the Game.
+
+-	Apple is not responsible for addressing any your claims or any third-party claims relating to the Game, including, but not limited to: (i) product liability claims; (ii) any claim that the Game fails to conform to any applicable legal or regulatory requirement; and (iii) claims arising under consumer protection or similar legislation, including in connection with Game’s use of the HealthKit and HomeKit frameworks.
+
+-	In the event of any third-party claims that the Games infringes third party’s intellectual property rights, Gaijin shall be solely responsible for the investigation, defense, settlement and discharge of any such intellectual property infringement claim (if and to the extent required under this EULA).
+
+-	You represent that you are not located in any U.S. embargoed countries or on the U.S. Treasury Department's list of Specially Designated Nationals or the U.S. Department of Commerce Denied Persons list or Entity List.
+
+-	You agree that this EULA does not confer any rights or remedies on any person other than the parties to this EULA. Notwithstanding the foregoing, Apple or its subsidiary is third party beneficiary of this EULA, and upon your acceptance of this EULA, Apple or its subsidiary will have the right (and will be deemed to have accepted the right) to enforce this Agreement against you as a third-party beneficiary thereof.
+
+13.2. Sony Additional License Terms
+
+If you play the Game on PlayStation computer entertainment system available for use on your PlayStation devices, the following additional terms and conditions apply with respect to playing Game on PlayStation:
+
+a) for SIEA:
+
+Purchase and use of items are subject to the Network Terms of Service and User Agreement. This online service has been sublicensed to you by Sony Interactive Entertainment America.
+
+b) for SIEE:
+
+Any content purchased in an in-game store will be purchased from Sony Interactive Entertainment Network Europe Limited (“SIENE”) and be subject to PlayStation™Network Terms of Service and User Agreement which is available on the PlayStation™Store. Please check usage rights for each purchase as these may differ from item to item. Unless otherwise shown, content available in any in-game store has the same age rating as the game.
+
+13.3. Microsoft Additional License Terms
+
+If you play the Game on Xbox platform, the following additional terms and conditions apply with respect to playing Game on Xbox:
+
+-	you shall be subject to any policies that apply to Xbox use, including the Microsoft Services Agreement available at [https://www.microsoft.com/en/servicesagreement/]
+
+-	Gaijin shall be solely liable under this EULA, Microsoft or its affiliates are not licensor under this EULA, Microsoft or its affiliates are not responsible for the proper functioning of the Game and any warranties compliance, so, no claims for damages with regards to the Game can be addressed to Microsoft or its affiliates.  
+
+-	Microsoft or its affiliates shall not provide any maintenance and support of the Games, such maintenance and support is Gaijin sole responsibility.
+
+Microsoft’s applicable agreements, including Xbox Live terms shall in any case prevail over this EULA, which is inapplicable to the relationships between you and Microsoft or its affiliates.
+
+14. MISCELLANEOUS
+
+In all other aspects regarding the grant of License which are not specified by this EULA, including but not limited to governing law and jurisdiction, warranty disclaimer, indemnification, EULA update and modification, severability, assignment and termination, the relevant provisions of Terms of Service shall apply to this EULA.
+
+15. CONTACT INFORMATION
+
+To contact Gaijin, please use our Support Service website currently available at [https://support.gaijin.net].
+
+Last updated: 18.04.2023
+

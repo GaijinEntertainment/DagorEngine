@@ -1,0 +1,20 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/IEditorCoreBase ;
+
+TargetType  = lib ;
+Target      = tools/libTools/IEditorCoreBase.lib ;
+
+UseWTL      = yes ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+
+Sources =
+  ec_IEditorCoreBaseImpl.cpp
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

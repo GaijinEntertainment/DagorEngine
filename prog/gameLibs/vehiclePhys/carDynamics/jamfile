@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/vehiclePhys/carDynamics ;
+
+TargetType  = lib ;
+Target      = gameLibs/vehiclePhys/carDynamics.lib ;
+
+AddIncludes +=
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  carModel.cpp
+  engineModel.cpp
+  drivelineModel.cpp
+  gearboxModel.cpp
+  differentialModel.cpp
+  tireForces2.cpp
+  polyLineInt.cpp
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

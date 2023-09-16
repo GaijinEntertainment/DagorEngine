@@ -1,0 +1,23 @@
+entity {
+  _template:t="testEntity"
+}
+entity {
+  _template:t="ballistics"
+}
+entity {
+  _template:t="ballistics2"
+}
+
+entity {
+  _template:t="testDasEvent"
+}
+entity {
+  _template:t="testTrackable"
+}
+entity {
+  _template:t="testTrackable2"
+}
+
+entity {
+  _template:t="testCppComponent"
+}

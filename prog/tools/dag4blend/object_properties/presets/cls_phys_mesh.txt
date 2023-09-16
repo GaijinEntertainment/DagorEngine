@@ -1,0 +1,5 @@
+renderable:b=no
+collidable:b=yes
+isPhysCollidable:b=no
+isTraceable:b=yes
+collision:t=mesh

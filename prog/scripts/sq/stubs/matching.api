@@ -1,0 +1,9 @@
+return {
+  listen_notify = @(...) null
+  listen_rpc = @(...) null
+  logout = @() null
+  dial = @(...) null
+  call = @(...) null
+  notify = @(...) null
+  send_response = @(...) null
+}

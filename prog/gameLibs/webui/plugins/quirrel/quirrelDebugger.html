@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>__PLUGIN_TITLE__ (Quirrel Debugger)</title>
+<link href="http://quirrel.io/doc/_static/nut.ico" rel="icon" type="image/x-icon" />
+</head>
+<body style="background:#fff; font-family:Consolas; font-size:small;">
+<div style="height:100%;">
+<button type="button" onclick="onAttach()">Attach</button>
+<button type="button" onclick="onDetach()">Detach</button>
+<button type="button" onclick="onRun()">Run (F8)</button>
+<button type="button" onclick="onPause()">Pause</button>
+<button type="button" onclick="onStepOver()">Step Over (F10)</button>
+<button type="button" onclick="onStepInto()">Step Into (F11)</button>
+<button type="button" onclick="onStepOut()">Step Out</button>
+<button type="button" onclick="onClearBreakpoints()">Clear BP</button>
+<button type="button" onclick="onClearCoverage()">Clear Coverage</button>
+<button type="button" onclick="onBreakOnEvent()" id="break_on_event">event</button>
+<button type="button" onclick="onStartProfiler()" id="start_stop_profiler">Start Profiler</button>
+<div id="attached_state">...</div> <div id="full_file_name">...</div>
+<table style="height:600px; border: 1px solid black;">
+  <tr>
+    <td style="vertical-align: top;">
+      <input id="file_filter" type="text" style="width:175px; height:15px" oninput="updateSourcesList()">
+      <div id="file_list" style="width: 180px; height:579px; vertical-align: top; white-space:pre; overflow-x:auto; overflow-y:scroll;">
+      ...
+      </div>
+    </td>
+    <td style="vertical-align:top;">
+      <div id="code_div" style="width: 1000px; height:600px; vertical-align:top; overflow-x:auto; overflow-y:scroll;">
+      <table style="vertical-align:top;">
+      <tr>
+        <td style="width: 40px; vertical-align: top;">
+          <div id="line_numbers" style="vertical-align: top; white-space:pre; line-height: 1.25em;">
+          ...
+          </div>
+        </td>
+        <td style="width: 18px; vertical-align: top;">
+          <div id="line_states" style="vertical-align: top; white-space:pre; line-height: 1.25em;">
+          ...
+          </div>
+        </td>
+        <td style="width: 270px; vertical-align: top;">
+          <div id="source" style="vertical-align: top; white-space:pre; line-height: 1.25em;">
+          ...
+          </div>
+        </td>
+      </tr>
+      </table>
+      </div>
+    </td>
+    <td style="vertical-align: top;">
+      <div id="local_vars" style="width: 320px; height:600px; vertical-align: top; white-space:pre; overflow-x:auto; overflow-y:scroll;">
+      ...
+      </div>
+    </td>
+  </tr>
+</table>
+
+<table style="height:32px">
+  <tr>
+    <td style="vertical-align: top;" id="script_stack0">
+    </td>
+    <td style="vertical-align: top; width: 20px;" id="script_stack_arrow0">
+    </td>
+    <td style="vertical-align: top;" id="script_stack1">
+    </td>
+    <td style="vertical-align: top; width: 20px;" id="script_stack_arrow1">
+    </td>
+    <td style="vertical-align: top;" id="script_stack2">
+    </td>
+    <td style="vertical-align: top; width: 20px;" id="script_stack_arrow2">
+    </td>
+    <td style="vertical-align: top;" id="script_stack3">
+    </td>
+    <td style="vertical-align: top; width: 20px;" id="script_stack_arrow3">
+    </td>
+    <td style="vertical-align: top;" id="script_stack4">
+    </td>
+    <td style="vertical-align: top; width: 20px;" id="script_stack_arrow4">
+    </td>
+    <td style="vertical-align: top;" id="script_stack5">
+    </td>
+    <td style="vertical-align: top; width: 20px;" id="script_stack_arrow5">
+    </td>
+    <td style="vertical-align: top;" id="script_stack6">
+    </td>
+    <td style="vertical-align: top; width: 20px;" id="script_stack_arrow6">
+    </td>
+    <td style="vertical-align: top;" id="script_stack7">
+    </td>
+    <td style="vertical-align: top; width: 20px;" id="script_stack_arrow7">
+    </td>
+    <td style="vertical-align: top;" id="script_stack8">
+    </td>
+    <td style="vertical-align: top; width: 20px;" id="script_stack_arrow8">
+    </td>
+    <td style="vertical-align: top;" id="script_stack9">
+    </td>
+    <td style="vertical-align: top; width: 20px;" id="script_stack_arrow9">
+    </td>
+    <td style="vertical-align: top;" id="script_stack10">
+    </td>
+  </tr>
+</table>
+
+<div id="error_text" style="vertical-align: top; white-space:pre; visibility:collapse; background-color:#ffaa44;"></div>
+<input id="immediate" type="text" style="width:500px" onkeydown="if (event.keyCode == 13) onRunImmediate()">
+<button type="button" onclick="onRunImmediate()">Get</button>
+<button type="button" onclick="onTraceVar()">Trace Var</button>
+<div id="immediate_result" style="vertical-align: top; white-space:pre;"></div>
+
+</div>
+
+
+<script>
+
+var sources = [];
+var sourcesListHtml = "";
+var currentSource = null;
+var clientBusy = false;
+var queryQueue = [];
+var attached = false;
+var clientId = "id:" + Date.now();
+var prevExecLine = -1;
+var prevExecFile = "";
+var gotoSourceOnNextBreak = true;
+var showingStackTop = true;
+var errorState = false;
+var breakOnEvent = 0;
+var saveName = "__PLUGIN_TITLE__".split(" ").join("_").split("=").join("_");
+var mainTitle = "__PLUGIN_TITLE__ (Quirrel Debugger)";
+
+var interfaceState =
+  {
+    file : "",
+    scrollPos : -1,
+    filter : "",
+    immediate : ""
+  };
+
+function leadingZeroes(s)
+{
+  if (s.length == 1)
+    return '000' + s;
+  if (s.length == 2)
+    return '00' + s;
+  if (s.length == 3)
+    return '0' + s;
+  return s;
+}
+
+
+async function query(q, body)
+{
+  return new Promise(resolve =>
+  {
+    if (!attached && q.indexOf('attach') !== 0)
+    {
+      resolve(null);
+      return;
+    }
+
+    if (q.indexOf("state") !== 0)
+      console.log("query: " + q);
+
+    if (!body)
+      body = null;
+
+    var client = new XMLHttpRequest();
+
+    client.onerror = function()
+    {
+      console.log("ERROR '" + client._query + "': " + client.status + " " + client.statusText);
+      onDetach();
+      resolve(null);
+    }
+
+    client.onabort = function()
+    {
+      console.log("ABORT: " + client.status + " " + client.statusText);
+      onDetach();
+      resolve(null);
+    }
+
+    client.onload = function()
+    {
+      if (client.status != 200)
+      {
+        console.log("ERROR(2) '" + client._query + "': " + client.status + " " + client.statusText);
+        onDetach();
+        resolve(null);
+        return;
+      }
+
+      lastRespondTime = Date.now();
+      resolve(client.responseText);
+      clientBusy = false;
+
+      if (queryQueue.length > 0)
+      {
+        console.log("Sending query from queue");
+        var fn = queryQueue.shift();
+        fn();
+      }
+    }
+
+    function doSendQuery()
+    {
+      try
+      {
+        clientBusy = true;
+        client._query = q;
+        client.open(body ? 'POST' : 'GET', '__PLUGIN_NAME__?' + q, true);
+        client.send(body);
+      }
+      catch (err)
+      {
+        attached = false;
+        resolve(null);
+      }
+    }
+
+    if (clientBusy)
+    {
+      if (queryQueue.length === 0 || q.indexOf("state") !== 0)
+        queryQueue.push(doSendQuery);
+    }
+    else
+    {
+      doSendQuery();
+    }
+
+  });
+}
+
+
+var blinkInterval = null;
+var blinkState = true;
+var lastStopBlickTime = Date.now();
+
+function startBlinkTitle()
+{
+  if (Date.now() - lastStopBlickTime < 1000)
+    return;
+
+  if (!blinkInterval)
+    blinkInterval = setInterval(function()
+      {
+        document.title = blinkState ? mainTitle : "----------------------------";
+        blinkState = !blinkState;
+      }, 500);
+}
+
+function stopBlinkTitle()
+{
+  lastStopBlickTime = Date.now();
+  if (blinkInterval)
+  {
+    clearInterval(blinkInterval);
+    blinkInterval = null;
+    blinkState = true;
+    document.title = mainTitle;
+  }
+}
+
+
+async function setBreakOnEvent(state)
+{
+  if (state == 0)
+    document.getElementById("break_on_event").innerHTML = "Break on Event (F12) : OFF";
+  else
+    document.getElementById("break_on_event").innerHTML = "Break on Event (F12) : ON";
+
+  breakOnEvent = state;
+  await query("break_on_event=" + state);
+}
+
+async function onBreakOnEvent()
+{
+  await setBreakOnEvent(1 - breakOnEvent);
+}
+
+async function setBreakpoint(lineNum, isSet)
+{
+  console.log("setBreakpoint()");
+  if (!currentSource)
+    return;
+
+  await query('breakpoint_' + (isSet ? 'set' : 'remove') + '=' + currentSource.fullName + '&line=' + lineNum);
+  await currentSource.updateLineNums();
+}
+
+async function onAttach()
+{
+  attached = true;
+  await query('attach');
+  await setBreakOnEvent(0);
+  if (attached)
+  {
+    await loadSourcesList();
+    await updateSourcesList();
+
+    var s = window.localStorage.getItem(saveName);
+    if (s)
+    {
+      interfaceState = JSON.parse(s);
+      if (await gotoSourceByName(interfaceState.file))
+        document.getElementById("code_div").scrollTop = interfaceState.scrollPos;
+
+      if (interfaceState.filter.length > 0)
+      {
+        document.getElementById("file_filter").value = interfaceState.filter;
+        await updateSourcesList();
+      }
+
+      document.getElementById("immediate").value = interfaceState.immediate;
+    }
+    document.getElementById("attached_state").innerHTML = 'Attached';
+  }
+}
+
+function onDetach()
+{
+  if (!attached)
+    return;
+  console.log("onDetach()");
+  attached = true;
+  query('detach', false);
+  attached = false;
+  document.getElementById("attached_state").innerHTML = '<div style="background:#f30; color:#fff;">Detached. Press F5 to attach.</div>';
+}
+
+function onRun()
+{
+  showingStackTop = true;
+  gotoSourceOnNextBreak = true;
+  errorState = false;
+  query('run');
+}
+
+function onPause()
+{
+  showingStackTop = true;
+  gotoSourceOnNextBreak = true;
+  query('pause');
+}
+
+function onStepInto()
+{
+  showingStackTop = true;
+  gotoSourceOnNextBreak = true;
+  query('step_into');
+}
+
+function onStepOut()
+{
+  showingStackTop = true;
+  gotoSourceOnNextBreak = true;
+  query('step_out');
+}
+
+function onStepOver()
+{
+  showingStackTop = true;
+  gotoSourceOnNextBreak = true;
+  query('step_over');
+}
+
+async function onClearBreakpoints()
+{
+  await query('breakpoint_remove_all');
+  await currentSource.updateLineNums();
+}
+
+async function onClearCoverage()
+{
+  await query('clear_coverage');
+  if (currentSource)
+    await currentSource.updateCoverage();
+}
+
+async function onRunImmediate()
+{
+  var text = document.getElementById("immediate").value;
+  var result = await query('immediate=' + window.btoa(text.trim()) +
+                     '&cmd=' + window.btoa('%s'));
+  if (result === null)
+    return;
+
+  result = result.replace(/&/g, '&amp;');
+  result = result.replace(/</g, '&lt;');
+  result = result.replace(/>/g, '&gt;');
+  document.getElementById("immediate_result").innerHTML = result;
+}
+
+async function setImmediateExpression(expression)
+{
+  document.getElementById("immediate").value = expression;
+  await onRunImmediate();
+}
+
+
+function isAlphaNumeric(str)
+{
+  var code, i, len;
+
+  for (i = 0, len = str.length; i < len; i++)
+  {
+    code = str.charCodeAt(i);
+    if (!(code > 47 && code < 58) && // numeric (0-9)
+        !(code > 64 && code < 91) && // upper alpha (A-Z)
+        !(code > 96 && code < 123))  // lower alpha (a-z)
+    {
+      return false;
+    }
+  }
+  return true;
+};
+
+function splitToContainerAndKey(s)
+{
+  if (s[s.length - 1] === ';')
+    s = s.slice(0, s.length - 1).trim();
+
+  if (s.length == 0)
+    return {container: '', key: ''};
+
+  key = [];
+  cont = [];
+
+
+  var quoteKey = true;
+  s = (" " + s).split('');
+  var depth = 0;
+  if (s[s.length - 1] === ']')
+  {
+    quoteKey = false;
+    for (var i = s.length - 1; i >= 0; i--)
+    {
+      if (s[i] === ']')
+      {
+        depth++;
+      }
+      else if (s[i] === '[')
+      {
+        depth--;
+      }
+
+      if (depth === 0)
+      {
+        key = key.reverse();
+        cont = s.slice(0, i);
+        break;
+      }
+      else if (depth !== 1 || s[i] !== ']')
+        key.push(s[i]);
+    }
+  }
+  else if (isAlphaNumeric(s[s.length - 1]) || s[s.length - 1] === '_' || s[s.length - 1] === ' ')
+  {
+    for (var i = s.length - 1; i >= 0; i--)
+    {
+      if (isAlphaNumeric(s[i]) || s[i] === '_' || s[i] === ' ')
+        key.push(s[i]);
+      else
+      {
+        key = key.reverse();
+        cont = s.slice(0, i);
+        break;
+      }
+    }
+  }
+  else
+  {
+    key = s.slice(0);
+    cont = [];
+  }
+
+  key = key.join('').trim();
+  if (quoteKey)
+    key = '"' + key + '"';
+
+  cont = cont.join('').trim();
+
+  if (cont === ":")
+    cont = "";
+
+  if (cont.length === 0)
+    cont = "::getroottable()";
+
+  return {key: key, container: cont};
+}
+
+async function onTraceVar()
+{
+  var text = document.getElementById("immediate").value.trim();
+
+  var res = splitToContainerAndKey(text);
+  console.log('tracevar: container:' + res.container + ' key:' + res.key);
+
+  var result = await query('immediate=' + window.btoa(res.container + ', ' + res.key) +
+                     '&cmd=' + window.btoa('tracevar(%s)'));
+  if (result === null)
+    return;
+
+  result = result.replace(/&/g, '&amp;');
+  result = result.replace(/</g, '&lt;');
+  result = result.replace(/>/g, '&gt;');
+  document.getElementById("immediate_result").innerHTML = result;
+}
+
+function getShortFileName(full_name)
+{
+  var short_name = "";
+  for (var i = full_name.length - 1; i >= 0; i--)
+    if (full_name[i] != '/' && full_name[i] != '\\')
+      short_name = full_name[i] + short_name;
+    else
+      break;
+
+  return short_name;
+}
+
+var insideComment = false;
+
+String.prototype.splice = function( idx, rem, s ) {
+    return (this.slice(0,idx) + s + this.slice(idx + Math.abs(rem)));
+};
+
+function resetColorer()
+{
+  insideComment = false;
+}
+
+function getSyntaxColor(colorCode)
+{
+  switch (colorCode)
+  {
+    case 'i':              // identifier, operator
+      return "#000000";
+    case 'c':              // comment
+      return "#B0B0B0";
+    case 's':              // string
+      return "#009900";
+    case 'n':              // number
+      return "#F000F0";
+    default:
+      return "#FF0000";
+  }
+}
+
+
+function colorize(line)
+{
+  if (line.length == 0)
+    return "";
+
+  line = line + " ";
+  var syntax = "";
+  var insideQString = false;
+
+  for (var i = 0; i < line.length; i++)
+  {
+    var s = line[i];
+    if (insideComment)
+    {
+      syntax += 'c';
+      if (s == '*' && line[i+1] == '/')
+      {
+        syntax += 'c';
+        i++;
+        insideComment = false;
+      }
+      continue;
+    }
+
+    if (insideQString)
+    {
+      syntax += 's';
+      if (s == '"' && (i == 0 || line[i-1] != '\\'))
+        insideQString = false;
+      continue;
+    }
+
+    if (s == '/' && line[i+1] == '*')
+    {
+      insideComment = true;
+      syntax += 'c';
+      continue;
+    }
+
+    if (s == '/' && line[i+1] == '/')
+    {
+      for (; i < line.length; i++)
+        syntax += 'c';
+      i--;
+      continue;
+    }
+
+    if (s == '"')
+    {
+      insideQString = true;
+      syntax += 's';
+      continue;
+    }
+
+    if (s >= '0' && s <= '9')
+    {
+      for (; i < line.length && ((line[i] >= '0' && line[i] <= '9') || (line[i] == '.') || (line[i] == 'x')); i++)
+        syntax += 'n';
+      i--;
+      continue;
+    }
+
+    if ((s >= 'a' && s <= 'z') || (s >= 'A' && s <= 'Z') || s == '_')
+    {
+      //var ident = "";
+      for (; i < line.length &&
+             ((line[i] >= 'a' && line[i] <= 'z') || (line[i] >= 'A' && line[i] <= 'Z') || line[i] == '_' || (line[i] >= '0' && line[i] <= '9'))
+           ; i++)
+      {
+        syntax += 'i';
+        //ident += line[i];
+      }
+      i--;
+
+      // TODO: colorize reserved words
+      continue;
+    }
+
+    syntax += 'i';
+  }
+
+  var prev = 'i';
+  for (var i = line.length - 2; i >= 0; i--)
+    if (i == 0 || syntax[i-1] != syntax[i])
+      line = line.splice(i, 0, (i>0 ? '</span>':'') + '<span style="color:' + getSyntaxColor(syntax[i]) + '">');
+
+  return line + '</span>';
+}
+
+var SourceFile = function ()
+{
+  this.fullName = "";
+  this.shortName = "";
+  this.text = null;
+  this.html = null;
+  this.lineCount = 0;
+
+  this.init = function(full_name)
+  {
+    this.fullName = full_name;
+    this.shortName = getShortFileName(full_name);
+  }
+
+  this.updateLineNums = async function()
+  {
+    console.log("updateLineNums()");
+
+    var breakPoints = [];
+
+    var lineNumbersHtml = "";
+    for (var i = 0; i < this.lineCount; i++)
+    {
+      lineNumbersHtml += "<div id='ln" + (i+1) + "' onclick='setBreakpoint(" + (i+1) + ",true)' style=''>"
+                           + leadingZeroes((i+1).toString()) + "</div>";
+    }
+
+    var responseText = await query('breaks=' + this.fullName);
+    if (responseText === null)
+      return;
+
+    document.getElementById("line_numbers").innerHTML = lineNumbersHtml;
+
+    var lines = responseText.split('%');
+    for (var i = 0; i < lines.length; i++)
+    {
+      var elem = document.getElementById("ln" + lines[i]);
+      if (elem)
+      {
+        elem.style.backgroundColor = "#ff3311";
+        elem.setAttribute('onclick', "setBreakpoint(" + lines[i] + ",false)");
+      }
+    }
+  }
+
+  this.updateCoverage = async function()
+  {
+    console.log("updateCoverage()");
+
+    var lineStatesHtml = "";
+    var responseText = await query('get_coverage=' + this.fullName);
+    if (responseText === null)
+      return;
+
+    var counts = responseText.split('%');
+    var ptr = 0;
+    var state = 0;
+
+    var i = 0;
+    for (; i < this.lineCount;)
+    {
+      if (ptr >= counts.length)
+        break;
+
+      var m = parseInt(counts[ptr++]);
+      for (var c = 0; c < m && i < this.lineCount; c++, i++)
+        lineStatesHtml += "<div id='st" + (i+1) + "' style='color:#bbb'>--</div>";
+
+      if (ptr >= counts.length)
+        break;
+
+      var m = parseInt(counts[ptr++]);
+      for (var c = 0; c < m && i < this.lineCount; c++, i++)
+        lineStatesHtml += "<div id='st" + (i+1) + "' style='color:#aaa'>@@</div>";
+    }
+
+    for (; i < this.lineCount; i++)
+      lineStatesHtml += "<div id='st" + (i+1) + "' style='color:#bbb; white-space:pre'>- </div>";
+
+    document.getElementById("line_states").innerHTML = lineStatesHtml;
+  }
+
+  this.load = async function()
+  {
+    console.log("load()");
+    this.lineCount = 0;
+
+    var responseText = await query('file=' + this.fullName);
+    if (responseText === null || !attached)
+    {
+      this.text = null;
+      this.html = null;
+      return;
+    }
+
+    this.text = responseText;
+    var lines = this.text.split(/\r\n|\r|\n/g);
+    this.html = "";
+
+    resetColorer();
+    for (var i = 0; i < lines.length; i++)
+    {
+      this.lineCount++;
+      var line = lines[i];
+      line = line.replace(/&/g, '&amp;');
+      line = line.replace(/</g, '&lt;');
+      line = line.replace(/>/g, '&gt;');
+      line = colorize(line);
+      if (line.length == 0)
+        line = " ";
+      this.html += "<div>" + line + "</div>";
+    }
+  }
+}
+
+async function gotoSource(num)
+{
+  console.log("gotoSource " + num);
+  currentSource = sources[num];
+  if (currentSource.text == null)
+    await currentSource.load();
+
+  var sourceElem = document.getElementById("source");
+  sourceElem.innerHTML = currentSource.html;
+
+  await currentSource.updateLineNums();
+  await currentSource.updateCoverage();
+
+  var fullFileNameElem = document.getElementById("full_file_name");
+  fullFileNameElem.innerHTML = currentSource.fullName;
+
+  return currentSource.html && currentSource.html.length > 0;
+}
+
+async function gotoSourceByName(name)
+{
+  var num = -1;
+  for (var i = 0; i < sources.length; i++)
+    if (sources[i].fullName == name)
+      num = i;
+
+  if (num >= 0)
+    return await gotoSource(num);
+  else
+    return false;
+}
+
+async function loadSourcesList()
+{
+  console.log("loadSourcesList()");
+  sources = [];
+
+  var responseText = await query('sources=all');
+
+  if (!attached || responseText === null)
+    return;
+
+  var lines = responseText.split('%');
+
+  for (var i = 0; i < lines.length; i++)
+  {
+    sources.push(new SourceFile());
+    sources[sources.length - 1].init(lines[i]);
+  }
+}
+
+async function updateSourcesList()
+{
+  sourcesListHtml = "";
+  numAddedSources = 0;
+  lastAddedSourceIndex = -1;
+  for (var i = 0; i < sources.length; i++)
+  {
+    if (sources[i].shortName.toLowerCase().indexOf(getFilterText()) < 0)
+      continue;
+    sourcesListHtml += "<div style='cursor:pointer' onclick='gotoSource("+i+")'>" + sources[i].shortName + "</div>";
+    ++numAddedSources;
+    lastAddedSourceIndex = i;
+  }
+  var fileListElem = document.getElementById("file_list");
+  fileListElem.innerHTML = sourcesListHtml;
+  if (numAddedSources == 1)
+    await gotoSource(lastAddedSourceIndex);
+}
+
+function getFilterText()
+{
+  return document.getElementById("file_filter").value.toLowerCase();
+}
+
+async function updateLocals()
+{
+  var text = await query('locals');
+  if (text === null)
+    return null;
+
+  text = text.replace(/&/g, '&amp;');
+  text = text.replace(/</g, '&lt;');
+  text = text.replace(/>/g, '&gt;');
+
+  var lines = text.split(/\r\n|\r|\n/g);
+  var html = "";
+
+  var maxLinesPerValue = 5;
+
+  var valueLines = 0;
+
+  for (var i = 0; i < lines.length; i++)
+  {
+    var style = "";
+    var line = lines[i];
+    if (line.length == 0)
+      line = " ";
+
+    if (line[0] == "[")
+      valueLines = 0;
+    else
+      valueLines++;
+
+    if (valueLines >= maxLinesPerValue)
+    {
+      if (valueLines == maxLinesPerValue)
+        html += "<div>...</div>";
+
+      continue;
+    }
+
+    if (line.length > 3)
+    {
+      if (line[0] == '[' && (line[1] != '@' && line[1] != ']'))
+      {
+        var varName = "";
+        for (var j = 1; j < line.length && line[j] != ']'; j++)
+          varName += line[j];
+        style = "style='cursor:pointer' onclick='setImmediateExpression(\"" + varName + "\")'>";
+      }
+    }
+
+    html += "<div " + style + ">" + line + "</div>";
+  }
+
+  document.getElementById("local_vars").innerHTML = html;
+}
+
+async function updateStack()
+{
+  var text = await query('stack');
+  if (!text || text === "")
+  {
+    for (var depth = 0; depth < 10; depth++)
+      document.getElementById("script_stack" + depth).innerHTML = "";
+
+    return;
+  }
+
+  var lines = text.split('%');
+
+  for (var depth = 0; depth < 10; depth++)
+  {
+    document.getElementById("script_stack" + depth).innerHTML = "";
+    document.getElementById("script_stack_arrow" + depth).innerHTML = "";
+  }
+
+  var depth = 0;
+
+  for (var i = 0; i < lines.length && depth < 10; i+=3, depth++)
+  {
+    var fn = "showExecutionPosition('"+ lines[i+1] +"', "+lines[i+2]+", " + i/3 + ", true)";
+    fn = ' onclick="' + fn.replace(/\\/g, '\\\\') + '"';
+    var stackHtml = "<div style='cursor:pointer'"+fn+">" + lines[i] + "</div>" +
+                "<div style='color:#aaa; cursor:pointer'"+fn+">" + getShortFileName(lines[i+1]) + "(" + lines[i+2] + ")</div>";
+    document.getElementById("script_stack" + depth).innerHTML = stackHtml;
+
+    if (i < lines.length - 3)
+      document.getElementById("script_stack_arrow" + depth).innerHTML = "&lt;&lt;";
+  }
+
+}
+
+async function showExecutionPosition(execFile, execLine, depth, scrollToPosition)
+{
+  if (scrollToPosition && (!currentSource || currentSource.fullName != execFile))
+    await gotoSourceByName(execFile);
+
+  var elem = document.getElementById("st" + prevExecLine);
+  if (elem)
+    elem.style.backgroundColor = "#ffffff";
+
+
+  showingStackTop = (depth == 0);
+
+  if (currentSource && currentSource.fullName == execFile)
+  {
+    var codeElem = document.getElementById("code_div");
+    elem = document.getElementById("st" + execLine);
+    if (elem && codeElem)
+    {
+      var topStackColor = errorState ? "#ff4411" : "#1122ff";
+      elem.style.backgroundColor = (depth > 0) ? "#aabbff" : topStackColor;
+
+      if (scrollToPosition)
+      {
+        var rect1 = elem.getBoundingClientRect();
+        var rect2 = codeElem.getBoundingClientRect();
+
+        var rect2top = rect2.top + 120;
+        var rect2bottom = rect2.bottom - 120;
+        if (rect1.top < rect2top)
+          codeElem.scrollTop += rect1.top - rect2top;
+
+        if (rect1.bottom > rect2bottom)
+          codeElem.scrollTop += rect1.bottom - rect2bottom;
+      }
+    }
+  }
+
+  prevExecLine = execLine;
+  prevExecFile = execFile;
+}
+
+
+var prevQueryText = "";
+
+async function onTimer()
+{
+  if (!attached)
+    return;
+
+  interfaceState.file = currentSource ? currentSource.fullName : "";
+  interfaceState.filter = document.getElementById("file_filter").value;
+  interfaceState.immediate = document.getElementById("immediate").value;
+  interfaceState.scrollPos = document.getElementById("code_div").scrollTop;
+
+  window.localStorage.setItem(saveName, JSON.stringify(interfaceState));
+
+  var text = await query('state');
+  if (text === null || text === "0" || text.length === 0)
+  {
+    showingStackTop = true;
+    gotoSourceOnNextBreak = true;
+
+    var elem = document.getElementById("st" + prevExecLine);
+    if (elem)
+      elem.style.backgroundColor = "#ffffff";
+
+    return;
+  }
+
+  if (prevQueryText != text)
+    startBlinkTitle();
+
+  prevQueryText = text;
+
+  errorState = (text[0] == 2);
+
+  var lines = text.split('%');
+  var execFile = lines[1];
+  var execLine = parseInt(lines[2]);
+
+  if (errorState)
+  {
+    var error = atob(lines[3]);
+    error = error.replace(/&/g, '&amp;');
+    error = error.replace(/</g, '&lt;');
+    error = error.replace(/>/g, '&gt;');
+    document.getElementById("error_text").innerHTML = error;
+    document.getElementById("error_text").style["visibility"] = "visible";
+  }
+  else
+    document.getElementById("error_text").style["visibility"] = "collapse";
+
+  if (gotoSourceOnNextBreak)
+  {
+    await updateStack();
+    await updateLocals();
+    if (currentSource)
+      await currentSource.updateCoverage();
+  }
+
+  if (showingStackTop)
+    await showExecutionPosition(execFile, execLine, 0, gotoSourceOnNextBreak);
+
+  gotoSourceOnNextBreak = false;
+}
+
+
+function onStartProfiler()
+{
+  var btn = document.getElementById("start_stop_profiler");
+  btn.onclick = onStopProfiler;
+  btn.innerText = "Stop Profiler";
+  query("profiler_start");
+}
+
+
+async function onStopProfiler()
+{
+  var btn = document.getElementById("start_stop_profiler");
+  btn.onclick = onStartProfiler;
+  btn.innerText = "Start Profiler";
+  var result = await query("profiler_stop");
+  document.getElementById("immediate_result").innerText = result;
+}
+
+
+window.addEventListener("load", async function()
+{
+  console.log("window.onload()");
+  await onAttach();
+  if (attached)
+    window.setInterval("onTimer()", 200);
+});
+
+
+
+window.addEventListener("mousemove", function(event) { stopBlinkTitle(); });
+window.addEventListener("mousedown", function(event) { stopBlinkTitle(); });
+window.addEventListener("mouseup", function(event) { stopBlinkTitle(); });
+window.addEventListener("focus", function(event) { stopBlinkTitle(); });
+
+window.addEventListener("keydown", function(event)
+{
+  stopBlinkTitle();
+
+  if (event.keyCode === 119) // F8
+  {
+    event.preventDefault();
+    onRun()
+  }
+
+  if (event.keyCode === 121) // F10
+  {
+    event.preventDefault();
+    onStepOver();
+  }
+
+  if (event.keyCode === 122) // F11
+  {
+    event.preventDefault();
+    onStepInto();
+  }
+
+  if (event.keyCode === 123) // F12
+  {
+    event.preventDefault();
+    onBreakOnEvent();
+  }
+});
+
+
+</script>
+
+</body>
+</html>

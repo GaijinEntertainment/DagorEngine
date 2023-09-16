@@ -1,0 +1,29 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/projectiveDecals ;
+
+TargetType  = lib ;
+Target      = gameLibs/projectiveDecals.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  projectiveDecals.cpp
+  projectiveDecalsBuffer.cpp
+  resizableProjectiveDecals.cpp
+  ringBufferProjectiveDecals.cpp
+;
+
+UseProgLibs +=
+  engine2/lib3d
+  gameLibs/render
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

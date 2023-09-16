@@ -1,0 +1,17 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/metaballsSystem ;
+
+TargetType  = lib ;
+Target      = gameLibs/metaballsSystem.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  metaballs.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

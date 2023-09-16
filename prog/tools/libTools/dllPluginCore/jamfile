@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/dllPluginCore ;
+
+TargetType  = lib ;
+Target      = tools/libTools/dllPluginCore.lib ;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  core.cpp
+  brush.cpp
+  d3dReset.cpp
+;
+
+UseProgLibs =
+  engine2/math
+  engine2/drv/drv3d_use_d3di
+  tools/libTools/objectEditor
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

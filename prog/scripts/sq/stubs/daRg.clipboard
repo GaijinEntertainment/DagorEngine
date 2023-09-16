@@ -1,0 +1,3 @@
+return {
+  set_clipboard_text = @(s) assert(type(s)=="string")
+}

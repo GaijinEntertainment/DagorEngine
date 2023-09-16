@@ -1,0 +1,11 @@
+import public "options.proto";
+
+package serialization_presets;
+
+message db
+{
+  option (ser_types) = "binary";
+  option (ser_save_fn) = "saveToDB";
+  option (ser_load_fn) = "loadFromDB";
+  option (ser_gen_flags) = "char";
+}

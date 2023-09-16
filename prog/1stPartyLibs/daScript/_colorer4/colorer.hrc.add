@@ -1,0 +1,4 @@
+  <type descr="das" name="das" exts="/\.das$/i">
+    <load name="scripts/das.hrc"/>
+    <scheme name="DaScript"/>
+  </type>

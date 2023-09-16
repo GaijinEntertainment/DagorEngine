@@ -1,0 +1,14 @@
+//g_default_clear_ps_src
+struct v2p { float4 pos : SV_POSITION; float4 color : TEXCOORD0; };
+struct MRT
+{
+  float4 o0 : SV_Target0;
+  float4 o1 : SV_Target1;
+  float4 o2 : SV_Target2;
+  float4 o3 : SV_Target3;
+  float4 o4 : SV_Target4;
+  float4 o5 : SV_Target5;
+  float4 o6 : SV_Target6;
+  float4 o7 : SV_Target7;
+};
+MRT main(v2p i) { MRT r;r.o0 = r.o1 = r.o2 = r.o3 = r.o4 = r.o5 = r.o6 = r.o7 = i.color; return r;}

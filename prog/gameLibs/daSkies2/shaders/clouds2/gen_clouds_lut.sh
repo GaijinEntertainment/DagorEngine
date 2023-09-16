@@ -1,0 +1,284 @@
+include "sky_shader_global.sh"
+include "clouds_density_height_lut.sh"
+include "clouds_alt_fraction.sh"
+include "writeToTex.sh"
+float4 clouds_height_fractions = (1.25, 0, 3, -2);
+float4 clouds_layers_types = (0,1, 0, 0.5);
+
+macro BASE_DENSITY_HEIGHT_GRADIENT(code)
+  (code) {
+    clouds_height_fractions@f4 = clouds_height_fractions;height_fraction_to_meters@f1 = (clouds_thickness2*1000,0,0,0);
+    clouds_layers_types@f4 = clouds_layers_types;
+  }
+  hlsl(code) {
+  float bottomRounding(float heightFraction, float mn, float mx, float cloudType)
+  {
+    //heightFraction *= height_fraction_to_meters*0.0002;
+    float roundBottomHeight = saturate(heightFraction*lerp(mn, mx, pow2(cloudType)));
+    //roundBottomHeight = saturate(heightFraction*10);
+    return roundBottomHeight;
+  }
+  float polynom2_approx(float v, float root0, float root1)//0 at roots, 1 in between roots
+  {
+    return saturate((v-root0)*(root1-v)*1./(0.25*pow2(root1-root0)));
+  }
+  //'mushroom' or 'anvil'-like cumulonimbus clouds have thinner part
+  float cumuloNimbusMushroomEffect(float heightFraction, float cloudType)
+  {
+    float cumuloNimbusHole = polynom2_approx(cloudType, 0.7, 0.99);//not all cumulonimbus will be affected
+    return cumuloNimbusHole*pow2(polynom2_approx(heightFraction, 0.21, 0.68));//probably should be in meters
+  }
+  float getDensityHeightGradient(float heightFraction, float cloudType)//todo: sample from LUT?
+  {
+    //return lerp(getStratoDensity(heightFraction, 1-cloudType), getCumulusDensity(heightFraction, cloudType), pow(cloudType, 0.1));
+    float stratusFactor = saturate(1.0 - cloudType * 2.0);
+    float stratoCumulusFactor = 1.0 - abs(cloudType - 0.5) * 2.0;
+    float cumulusFactor = saturate(cloudType*2 - 1);
+    //return stratusFactor*getStratusGradient(heightFraction) + stratoCumulusFactor*getStratoCumulusGradient(heightFraction) + cumulusFactor*getCumulusGradient(heightFraction);
+
+    float2 gradient_stratocumulus = float2(0.1, 0.3);
+    float2 gradient_cumulus = float2(0.2, 1.0);
+    float2 gradient_cumulonimbus = float2(0.75, 1.0);
+    float2 gradient = (gradient_stratocumulus * stratusFactor) + (gradient_cumulus * stratoCumulusFactor) + (gradient_cumulonimbus * cumulusFactor);
+
+    // For now we hardcode the lower part of the gradient as [0.0, 0.1]. This
+    // gives acceptable results and saves a lot of opps when ray marching!
+    float coverage2 = 1.0 - saturate((heightFraction - gradient.x) / (gradient.y - gradient.x));
+
+    return coverage2;
+
+    //float4 baseGradient = stratusFactor * STRATUS_GRADIENT + stratoCumulusFactor * STRATOCUMULUS_GRADIENT + cumulusFactor * CUMULUS_GRADIENT;
+    // gradicent computation (see Siggraph 2017 Nubis-Decima talk)
+    //return remap(heightFraction, baseGradient.x, baseGradient.y, 0.0, 1.0) * remap(heightFraction, baseGradient.z, baseGradient.w, 1.0, 0.0);
+    //return saturate((smoothstep(baseGradient.x, baseGradient.y, heightFraction) - smoothstep(baseGradient.z, baseGradient.w, heightFraction))/heightFraction);
+    //return saturate((smoothstep(baseGradient.x, baseGradient.y, heightFraction) - smoothstep(baseGradient.z, baseGradient.w, heightFraction)));
+  }
+  float getErosion(float heightFraction, float cloudType, float cloud_coverage)
+  {
+    float cumulusErosion = 0.2*(0.1 + (heightFraction + 0.25)*(1-cloud_coverage));
+    float strataErosion = 0.2*lerp(1, 0.5, cloud_coverage);
+    return lerp(strataErosion, cumulusErosion, cloudType);
+  }
+  float remap_cloud_type(float cloud_type_variance, float2 param)
+  {
+    return saturate(cloud_type_variance*param.y + param.x)*0.5;
+  }
+  void getCloudsTypeParamsMath(float base_cloud_type, float heightFraction,
+     out float density_height_gradient1, out float density_height_gradient2, out float erodeLevel0, out float erodeLevel1)
+  {
+    float cumuloNimbusCloudStr = saturate(base_cloud_type*2-1);
+    float cumuloNimbusCloudStrStrong = saturate(base_cloud_type*4-3);
+    //float stratoCumuloType = (2*base_cloud_type);float stratoCumuloTypeVariance = (2*stratoCumuloType - 1);
+    float stratoCumuloTypeVariance = (4*base_cloud_type - 1);//stratoCumuloType = 2*base_cloud_type, variance = stratoCumuloType*2-1
+    float cloud_type1 = remap_cloud_type(stratoCumuloTypeVariance, clouds_layers_types.xy);
+    cloud_type1 = lerp(cloud_type1, 1, cumuloNimbusCloudStr);
+    float heightFraction1 = saturate(heightFraction*clouds_height_fractions.x + clouds_height_fractions.y);
+    heightFraction1 = lerp(heightFraction1, heightFraction, cumuloNimbusCloudStr);
+    density_height_gradient1 = getDensityHeightGradient(heightFraction1, cloud_type1)*bottomRounding(heightFraction1, 8+cumuloNimbusCloudStr*8, 12+cumuloNimbusCloudStr*8, cloud_type1);
+
+    float heightFraction2 = saturate(heightFraction*clouds_height_fractions.z + clouds_height_fractions.w);
+    float cloud_type2 = remap_cloud_type(stratoCumuloTypeVariance, clouds_layers_types.zw);
+    cloud_type2 = lerp(cloud_type2, 1, cumuloNimbusCloudStr);
+    density_height_gradient2 = getDensityHeightGradient(heightFraction2, cloud_type2)*bottomRounding(lerp(heightFraction2, heightFraction, cumuloNimbusCloudStrStrong), 10, 14, cloud_type2);//1-cloud_type
+    //density_height_gradient2 = lerp(density_height_gradient2, getDensityHeightGradient(heightFraction, cloud_type2), cumuloNimbusCloudStr);
+    //density_height_gradient2 = 1-abs(heightFraction2*2-1);
+    //density_height_gradient2 = lerp(1-pow2(heightFraction2*2-1), 1-abs(heightFraction2*2-1);
+    float erodeLevel0_1 = getErosion(heightFraction1, cloud_type1, 0);
+    float erodeLevel1_1 = getErosion(heightFraction1, cloud_type1, 1);
+    float erodeLevel0_2 = getErosion(heightFraction2, cloud_type2, 0);
+    float erodeLevel1_2 = getErosion(heightFraction2, cloud_type2, 1);
+    float maxCoverage = density_height_gradient1+density_height_gradient2+1e-6;
+    float w1 = (density_height_gradient1+1e-6)/maxCoverage, w2 = density_height_gradient2/maxCoverage;
+    erodeLevel0 = erodeLevel0_1*w1+ erodeLevel0_2*w2; erodeLevel1 = erodeLevel1_1*w1+ erodeLevel1_2*w2;
+    //erodeLevel0 = getErosion(heightFraction, cloud_type1, 0); erodeLevel1 = getErosion(heightFraction, cloud_type1, 1);
+    erodeLevel0 *= saturate(heightFraction*height_fraction_to_meters*0.001);
+    erodeLevel1 *= saturate(heightFraction*height_fraction_to_meters*0.001);
+  }
+}
+endmacro
+
+shader gen_clouds_types_lut//todo: use compute where compute is available
+{
+  cull_mode = none;
+
+  z_write = false;
+  z_test = false;
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+  hlsl(vs) {
+    VsOutput clouds_type_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.xy, 1, 1);
+      output.tc = screen_to_texcoords(pos);
+      return output;
+    }
+  }
+  compile("target_vs", "clouds_type_vs");
+  BASE_DENSITY_HEIGHT_GRADIENT(ps)
+  DENSITY_HEIGHT_GRADIENT_LUT(ps)
+  hlsl(ps) {
+    #include <cloud_settings.hlsli>
+    #include <noise_functions.hlsl>
+    float4 clouds_type_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      float heightFraction, cloud_type1;
+      decodeCloudsTypeTC(input.tc, cloud_type1, heightFraction);
+
+      float density_height_gradient1, density_height_gradient2;
+      float erodeLevel0, erodeLevel1;
+
+      getCloudsTypeParamsMath(cloud_type1, heightFraction, density_height_gradient1, density_height_gradient2, erodeLevel0, erodeLevel1);
+      return float4(density_height_gradient1, density_height_gradient2, erodeLevel0, (erodeLevel0-erodeLevel1));
+   }
+  }
+  compile("target_ps", "clouds_type_ps");
+}
+
+
+//float clouds_light_blend;
+float clouds_ambient_desaturation = 0.5;
+
+texture skies_irradiance_texture;
+texture skies_transmittance_texture;
+include "atmosphere.sh"
+include "moon.sh" 
+float4 skies_sun_moon_effect;
+macro GEN_CLOUDS_LIGHTING(code)
+  TOTAL_CLOUDS_MIN_MAX()
+  (code) {
+    skies_transmittance_texture@smp2d = skies_transmittance_texture;
+    skies_irradiance_texture@smp2d = skies_irradiance_texture;
+    clouds_altitudes@f4 = (maxCloudsThickness, minCloudsAlt, 0,0);
+    clouds_ambient_desaturation@f1 = (clouds_ambient_desaturation);//clouds_light_blend
+
+    skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
+    skies_primary_sun_color@f3 = skies_primary_sun_color;
+    skies_secondary_sun_light_dir@f3 = skies_secondary_sun_light_dir;
+    skies_secondary_sun_color@f3 = skies_secondary_sun_color;
+  }
+  ATMO(code)
+  GET_ATMO(code)
+  hlsl(code) {
+    #include <cloud_settings.hlsli>
+    float getAltitude(int layer)
+    {
+      float altParam = (layer+0.5)/(CLOUDS_LIGHT_TEXTURE_WIDTH);//it is not a mistake. we prefer not to sample at actually lowest/highest clouds points, as there are less clouds there
+      float altitude = altParam*clouds_altitudes.x + clouds_altitudes.y;
+      float alt = max(altitude,0.01)+theAtmosphere.bottom_radius;
+      return alt;
+    }
+    float3 r_muS_moonMuS(Length r, float2 tc)
+    {
+      float2 wpXZ = tc*(MAX_CLOUDS_DIST_LIGHT_KM*2) - float2(MAX_CLOUDS_DIST_LIGHT_KM,MAX_CLOUDS_DIST_LIGHT_KM);
+      float3 pointPos = normalize(float3(wpXZ,r))*r;
+      //pointPos = float3(wpXZ,r);
+      Number mu_s = dot(pointPos, skies_primary_sun_light_dir) / r;
+      Number moon_s = dot(pointPos, skies_secondary_sun_light_dir) / r;
+      return float3(r, mu_s, moon_s);
+    }
+    float3 getIrradiance(float3 r_muS_moonMuS)
+    {
+      float3 res = GetIrradiance(theAtmosphere, SamplerTexture2DFromName(skies_irradiance_texture), r_muS_moonMuS.x, r_muS_moonMuS.y)*skies_primary_sun_color+
+                   GetIrradiance(theAtmosphere, SamplerTexture2DFromName(skies_irradiance_texture), r_muS_moonMuS.x, r_muS_moonMuS.z)*skies_secondary_sun_color
+                   ;//clouds_light_moon_effect__blend.x);
+      res = lerp(res, dot(res, half3(0.299, 0.587, 0.114)).xxx, clouds_ambient_desaturation);//see frostbite clouds. To simulate multiple scattering for ambient color, just desaturate it
+      res/=PI;//ambient phase function is 1/PI
+      return res;
+    }
+    float3 getTransmittance(float3 r_muS_moonMuS)
+    {
+      float3 res = GetTransmittanceToSun(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture), r_muS_moonMuS.x, r_muS_moonMuS.y)*skies_primary_sun_color+
+                   GetTransmittanceToSun(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture), r_muS_moonMuS.x, r_muS_moonMuS.z)*skies_secondary_sun_color
+                   ;//clouds_light_moon_effect__blend.x);
+      return res;
+    }
+    float3 clouds_light(int2 tci, int layer)
+    {
+      if (layer<CLOUDS_LIGHT_TEXTURE_WIDTH)
+        return getTransmittance(r_muS_moonMuS(getAltitude(layer), (tci+0.5)/8.));
+      else
+        return getIrradiance(r_muS_moonMuS(getAltitude(layer-CLOUDS_LIGHT_TEXTURE_WIDTH), (tci+0.5)/8.));
+    }
+  }
+endmacro
+
+shader gen_clouds_light_texture_cs
+{
+  GEN_CLOUDS_LIGHTING(cs)
+  hlsl(cs) {
+    RWTexture3D<float3> output : register(u0);
+    [numthreads(8, 8, 1)]
+    void cs_main(uint3 tid : SV_DispatchThreadID)
+    {
+      output[tid] = clouds_light(tid.xy, tid.z);
+    }
+  }
+  compile("cs_5_0", "cs_main");
+}
+
+shader gen_clouds_light_texture_ps
+{
+  if (hardware.metal)
+  {
+    dont_render;
+  }
+  GEN_CLOUDS_LIGHTING(ps)
+  WRITE_TO_VOLTEX()
+  hlsl(ps) {
+    half3 ps_main(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      return clouds_light(int2(screenpos.xy), input.slice_index);
+    }
+  }
+  compile("target_ps", "ps_main");
+}
+
+//we actually not use it at all
+include "clouds_erosion_lut.sh"
+shader gen_clouds_erosion_lut//todo: use compute where compute is available
+{
+  cull_mode = none;
+  color_write = rg;
+  z_write = false;
+  z_test = false;
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+  hlsl(vs) {
+    VsOutput clouds_type_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.xy, 1, 1);
+      output.tc = screen_to_texcoords(pos);
+      return output;
+    }
+  }
+  compile("target_vs", "clouds_type_vs");
+  EROSION_HEIGHT_MATH(ps)
+  hlsl(ps) {
+    #include <cloud_settings.hlsli>
+    #include <noise_functions.hlsl>
+    float2 clouds_type_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target
+    {
+      float d0 = erosionFunctionMath(input.tc.x, 0), d1 = erosionFunctionMath(input.tc.x, 1);
+      return float2(d0, d0-d1);
+   }
+  }
+  compile("target_ps", "clouds_type_ps");
+}

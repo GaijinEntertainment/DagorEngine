@@ -1,0 +1,25 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/gpuObjects ;
+
+TargetType  = lib ;
+Target      = gameLibs/gpuObjects.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  gpuObjects.cpp
+;
+
+SourceES =
+  volumePlacerES.cpp.inl
+;
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

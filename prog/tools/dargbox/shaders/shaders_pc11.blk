@@ -1,0 +1,28 @@
+shader_root_dir:t="."
+outDumpName:t="../../../../tools/dargbox/shaders/game"
+
+incDir:t="../../../gameLibs/render/shaders"
+
+source
+{
+  includePath:t="./source"
+  include shadersList.blk
+}
+
+common_valid_variants {}
+
+common_assume_vars {}
+
+Compile
+{
+  fsh:t = 4.0
+  assume_vars {
+    support_texture_array:i=1
+    mobile_render:i=0
+  }
+}
+
+explicit_var_ref
+{
+  include common_var_ref.blk
+}

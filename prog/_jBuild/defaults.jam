@@ -1,0 +1,536 @@
+if ! $(__DEFAULTS_INCLUDED) {
+  if $(JAMVERSION) != 2.5-G8 {
+    Exit Jam 2.5-G8 required (found: $(JAMVERSION))! Please, update. ;
+  }
+  __DEFAULTS_INCLUDED = 1 ;
+
+  Root      ?= ./ ;
+
+  NOCARE $(Root)/prog/platform.jam ;
+  include $(Root)/prog/platform.jam ;
+
+  include $(Root)/prog/_jBuild/defPlatform.jam ;
+
+  PlatformSpec_win32 ?= vc16 ;
+  PlatformSpec_win64 ?= vc16 ;
+  PlatformSpec_xboxOne ?= clang ;
+  PlatformSpec_scarlett ?= clang ;
+  PlatformSpec_ps4 ?= clang ;
+  PlatformSpec_ps5 ?= clang ;
+  PlatformSpec_macosx ?= clang64 ;
+  PlatformSpec_iOS ?= clang ;
+  PlatformSpec_tvOS ?= clang ;
+  PlatformSpec_nswitch ?= clang ;
+  PlatformSpec_android ?= clang ;
+  PlatformSpec_linux64 ?= gcc4 ;
+  CLangVer ?= 15.0.7 ;
+  DefaultCPPStd = 17 ;
+  CPPStd ?= 17 ;
+  Sanitize ?= disabled ;
+  NoMemBaseInclude ?= no ;
+
+  switch $(Platform) {
+    case win32 :   PlatformSpec ?= $(PlatformSpec_win32) ;
+    case win64 :   PlatformSpec ?= $(PlatformSpec_win64) ;
+    case xboxOne : PlatformSpec ?= $(PlatformSpec_xboxOne) ;
+    case scarlett : PlatformSpec ?= $(PlatformSpec_scarlett) ;
+    case ps4 :     PlatformSpec ?= $(PlatformSpec_ps4) ;
+    case ps5 :     PlatformSpec ?= $(PlatformSpec_ps5) ;
+    case macosx :  PlatformSpec ?= $(PlatformSpec_macosx) ;
+    case iOS :     PlatformSpec ?= $(PlatformSpec_iOS) ;
+    case tvOS :    PlatformSpec ?= $(PlatformSpec_tvOS) ;
+    case nswitch : PlatformSpec ?= $(PlatformSpec_nswitch) ;
+    case linux64 : PlatformSpec ?= $(PlatformSpec_linux64) ;
+    case android : PlatformSpec ?= $(PlatformSpec_android) ;
+    case * :       PlatformSpec ?= none ;
+  }
+  if $(PlatformSpec) = vc17
+  {
+    VCUpdateVer ?= 17.5.4 ;
+  } else if $(PlatformSpec) = vc16
+  {
+    VCUpdateVer ?= 16.10.3 ;
+  } else if $(PlatformSpec) = vc15
+  {
+    VCUpdateVer ?= 15.9.5 ;
+  } else
+  {
+    VCUpdateVer ?= 3 ;
+  }
+
+  if $(PlatformSpec) = clang {
+    IncludeSystemDir ?= -isystem ;
+    IncludeMSVCDir ?= -imsvc ;
+  }
+
+  IncludeSystemDir ?= -I ;
+  IncludeMSVCDir ?= -I ;
+
+  DefQtVer      = 4.7.3 ;
+
+  Config        ?= dev ;
+  CoreLinkage   ?= static ;
+  DriverLinkage ?= static ;
+  StarForce     ?= no ;
+  VMProtect     ?= no ;
+  GdkVer        ?= 230303 ;
+  GdkWinVer     ?= 10.0.19041.0 ;
+  GdkVcVer      ?= vc2019_16.10.3 ;
+  PS4SdkVer     ?= 1050 ;
+  local 1050 = 700 ;
+  local 850 = 300 ;
+  PS4CrossGenSdkVer ?= $($(PS4SdkVer)) ;
+  PS5SdkVer     ?= 700 ;
+  MacOSXVer     ?= 11.0 ;
+  MacOSXMinVer  ?= $(MacOSXVer) ;
+  MacOSXArch    ?= x86_64 ;
+  iOSVer        ?= 15.0 ;
+  iOSMinVer     ?= $(iOSVer) ;
+  iOSArch       ?= arm64 ;
+  tvOSVer       ?= 11.4 ;
+  tvOSMinVer    ?= $(tvOSVer) ;
+  tvOSArch      ?= arm64 ;
+  AndroidNdkVer ?= r25c ;
+  AndroidApiVer ?= 33 ;
+  AndroidSdkTarget ?= $(AndroidApiVer) ;
+  AndroidApiMinVer ?= 28 ;
+  NSwitchSdkVer ?= 1624 ;
+  WinSdkVer     ?= win.sdk.100 ;
+  DirectXVer    ?= jun2010 ;
+  UseD3DMulti   ?= no ;
+  MSVectorcall  ?= no ;
+  DefBulletSdkVer  ?= 3 ;
+  BulletSdkVer  ?= $(DefBulletSdkVer) ;
+  ForceLogs     ?= no ;
+  DefaultSNCOptimization ?= yes ;
+  UseLtoJobs    ?= 0 ;
+  TencentEnabled ?= no ;
+  CheckOnly     ?= no ;
+  ForcePdb      ?= no ;
+  DefOpenSSLVer = 3.x ;
+  OpenSSLVer    ?= $(DefOpenSSLVer) ;
+  UseZlibVer    ?= ng ;
+  OpenXrVer     ?= 1.0.16 ;
+  DlssEnabled   ?= no ;
+  XessEnabled   ?= no ;
+  Fsr2Enabled   ?= no ;
+  BundleVersion ?= 1.0.0 ;
+
+  if $(Platform) = nswitch {
+    # 3.x fails silently somewhere deep inside of macro hell
+    OpenSSLVer = 1.1 ;
+  }
+
+  if ! $(Platform) in win32 win64 { DisableUsingPCH ?= yes ; }
+
+  if ( $(Platform) in macosx iOS tvOS ) && $(Config) = dbg {
+    DisableFusion ?= yes ;
+  } else {
+    DisableFusion ?= no ;
+  }
+
+  if $(Config) = dbg {
+    CheckedContainers ?= yes ;
+    StackProtection ?= yes ;
+  } else if $(Config) = rel {
+    CheckedContainers = no ;
+    StackProtection ?= no ;
+  } else {
+    CheckedContainers ?= no ;
+    StackProtection ?= no ;
+  }
+  if $(Sanitize) = address {
+    StackProtection = no ;
+  }
+
+  if $(Platform) in macosx iOS { SSEVersion = ; } # use only default SSEVersion for these platforms
+  if $(Platform) in macosx iOS win64 {
+    SSEVersion ?= 4 ;
+  }
+  SSEVersion ?= 2 ;
+  VCMathOption ?= -fp:fast ;
+
+  if $(FullOOPEnabled) = yes {
+    Exceptions ?= yes ;
+    CatchSEH ?= yes ;
+    Rtti ?= yes ;
+  } else if $(Config) in dbg dev {
+    Exceptions ?= yes ;
+    CatchSEH ?= yes ;
+    Rtti ?= no ;
+  } else {
+    Exceptions ?= no ;
+    CatchSEH ?= no ;
+    Rtti ?= no ;
+  }
+  
+  UseWholeOpt ?= no ;
+  UseMemTracker ?= no ;
+
+  if $(UseMemTracker) != no {
+    UseMemoryDebugLevel = mtrk ;
+  }
+
+  if $(Config) in rel irel { MimDebug ?= 0 ; }
+  else { MimDebug ?= 2 ; }
+
+  if $(Config) = dbg {
+    FastLink ?= yes ; # this speed-up linking but pdb become dependand on obj output
+  }
+
+  if $(Platform) = win32 || $(Platform) = macosx {
+    if $(QtVer) = def { QtVer = $(DefQtVer) ; }
+    if $(QtVer) { QtVerStatic ?= no ; }
+  } else {
+    QtVer = ;
+    QtVerStatic = ;
+  }
+
+  switch $(Platform) {
+    case win32 :   PhysXSdk ?= 2.8.4 ;
+    case win64 :   PhysXSdk ?= 2.8.4 ;
+    case * :       PhysXSdk ?= none ;
+  }
+
+  if $(OS) = MACOSX {
+    if ! $(_DEVTOOL) && [ GLOB /devtools : * ] { _DEVTOOL = /devtools ; }
+    _DEVTOOL ?= /var/devtools ;
+    XcodeVER ?= Xcode ;
+
+    if ! [ GLOB $(_DEVTOOL)/mac : * ] || mkdevtools in $(JAMTARGETS) {
+      if ! mkdevtools in $(JAMTARGETS) { echo NOTICE\: \"$(_DEVTOOL)/mac/\" not found, trying to construct it ; }
+
+      if [ GLOB /Applications/$(XcodeVER).app/Contents/Developer/usr/bin : * ] {
+        echo Found Xcode at /Applications/$(XcodeVER).app/Contents/Developer ;
+        GLOBAL_BuildDevtool = build_devtool_macosx_xcode ;
+      } else {
+        exit FATAL\: Failed to find Xcode path ;
+      }
+    }
+
+    include $(Root)/prog/_jBuild/macosx/setup-ver.jam ;
+    include $(Root)/prog/_jBuild/iOS/setup-ver.jam ;
+    include $(Root)/prog/_jBuild/tvOS/setup-ver.jam ;
+  }
+  if $(OS) = LINUX {
+    GDEVTOOL ?= $(HOME)/devtools ;
+  }
+
+  if ! $(_DEVTOOL) && ! $(GDEVTOOL) { 
+    EXIT 'GDEVTOOL' (or '_DEVTOOL') env-variable must be defined (in UPPERCASE!), aborting ; 
+  }
+  _DEVTOOL ?= $(GDEVTOOL) ;
+  # construct _DEVTOOL_RE compatible with regexp syntax
+  local split = [ MATCH "([^\\\/]*)([\\\/])(.*)" : $(_DEVTOOL) ] ;
+  _DEVTOOL_RE = $(split[1]) ;
+  local _devtool_s = $(_DEVTOOL_RE) ;
+
+  while $(split[2])
+  {
+    local next_split = [ MATCH "([^\\\/]*)([\\\/])(.*)" : $(split[3]) ] ;
+    if $(next_split[2])
+    {
+      _DEVTOOL_RE = $(_DEVTOOL_RE)[\\\\\\\/]$(next_split[1]) ;
+      _devtool_s = $(_devtool_s)/$(next_split[1]) ;
+      split = $(next_split) ;
+    }
+    else
+    {
+      _DEVTOOL_RE = $(_DEVTOOL_RE)[\\\\\\\/]$(split[3]) ;
+      _devtool_s = $(_devtool_s)/$(split[3]) ;
+      break ;
+    }
+  }
+  _DEVTOOL_RE ?= $(_DEVTOOL) ;
+  _DEVTOOL = $(_devtool_s) ;
+  if $(GDEVTOOL) { GDEVTOOL = $(_devtool_s) ; }
+
+  PhysXSdkPath = $(_DEVTOOL)/PhysX.SDK.$(PhysXSdk) ;
+  _DXSDK_DIR   = $(_DEVTOOL)/dx9.sdk ;
+
+  if $(FmodStudio) = src {
+    local fmod_root = $(Root)/prog/3rdPartyLibs/fmodStudio ;
+    FmodIncPath = $(fmod_root)/fsbank_api/src $(fmod_root)/core_api/src $(fmod_root)/studio_api/src ;
+    FmodUseProgLib = 3rdPartyLibs/$(fmod_root:D=) ;
+    if $(Platform) = android {
+      FmodStudioLowLibPath = $(_DEVTOOL)/fmod-studio-$(FmodStudioVersion)/core/$(Platform)/lib/$(AndroidArch) ;
+    }
+
+    local fmod_platform = $(Platform) ;
+    switch $(Platform) {
+      case win32    : fmod_platform = win ;
+      case win64    : fmod_platform = win ;
+      case linux64  : fmod_platform = linux ;
+      case ps5      : fmod_platform = pentagon ;
+      case xboxOne  : fmod_platform = gamecore ;
+      case macosx   : fmod_platform = mac ;
+      case scarlett : fmod_platform = gamecore ;
+    }
+    FmodIncPath += $(fmod_root)/core_api/platforms/$(fmod_platform)/src ;
+  }
+  else if $(FmodStudio) {
+    include $(Root)/prog/_jBuild/fmod-studio-setup.jam ;
+  }
+
+  OpenXrSdkPath = $(_DEVTOOL)/openxr-$(OpenXrVer) ;
+  if $(VRDeviceSupport) = yes && ! [ GLOB $(OpenXrSdkPath) : * ] {
+    exit OpenXr SDK not found in $(OpenXrSdkPath), please update devtools ;
+  }
+
+  if $(GOUT_ROOT) {
+    local slashes = [ MATCH "(.*[\\])" : $(GOUT_ROOT) ] ;
+    if $(slashes) { exit GOUT_ROOT\=$(GOUT_ROOT) must not contain '\\' slashes! ; }
+    _OutputRoot = $(GOUT_ROOT) ;
+  } else {
+    _OutputRoot = $(Root)/_output ;
+  }
+
+  # mangle target name (based on Config and Platform);
+  #   params: ( target )
+  rule MangleTargetName
+  {
+    # list of target types that will use mangling target name
+    local _MangledTargetTypes =
+      exe
+      dll
+    ;
+
+    local target = $(1:B)$(1:S) ;
+
+    if ! $(TargetType) in $(_MangledTargetTypes) {
+      return $(target) ;
+    }
+
+    if $(Sanitize) != disabled {
+      local address = asan ;
+      local thread = tsan ;
+      local leak = lsan ;
+      local undefined = ubsan ;
+      target = $(target:B)-$($(Sanitize))$(target:S) ;
+    }
+
+    if $(Config) != rel {
+      target = $(target:B)-$(Config)$(target:S) ;
+    }
+
+    return $(target) ;
+  }
+  rule AutoCompleteTargetName
+  {
+    local type = $(2) ;
+    type ?= $(TargetType) ;
+    if $(1:S) { return $(1) ; }
+    if $(type) = exe {
+      if $(Platform) in win32 win64 xboxOne scarlett { return $(1).exe ; }
+      if $(Platform) in ps4 ps5 { return $(1).self ; }
+      if $(Platform) in android { return $(1:B=)/$(1:B).apk ; }
+    } else if $(type) = dll {
+      if $(Platform) in win32 win64 xboxOne { return $(1).dll ; }
+      if $(Platform) in ps4 ps5 { return $(1).prx ; }
+      if $(Platform) in android { return $(1).so ; }
+      if $(Platform) in macosx iOS tvOS { return $(1).dylib ; }
+      if $(Platform) in linux64 { if $(1:D) { return $(1:D)/lib$(1:D=:S=.so) ; } else { return lib$(1:D=:S=.so) ; } }
+    }
+    return $(1) ;
+  }
+  rule MakeEffectiveTarget
+  {
+    local type = $(2) ;
+    type ?= $(TargetType) ;
+    if ! $(type) in exe dll { return $(1) ; }
+    return [ AutoCompleteTargetName [ MangleTargetName $(1) ] : $(type) ] ;
+  }
+
+  rule Make_Apple_OutDir
+  {
+    if ! $(Platform) in iOS tvOS { exit unexpeted Platform\=$(Platform) ; }
+    local t = [ MangleTargetName $(Target) ] ;
+    local id = $(MangledBundleID) ;
+    id ?= $(BundleID) ;
+
+    OutDir = $(HOME)/$(Platform)Apps-$($(Platform)Arch)/$(id)/$(t).app ;
+  }
+
+  rule SetupOutputDir
+  {
+    local out ;
+
+    if $(Platform) in xboxOne scarlett {
+      if $(PlatformSpec) = clang {
+        PlatformOutputDir ?= $(PlatformSpec)-$(CLangVer)-$(GdkVcVer) ;
+      } else {
+        PlatformOutputDir ?= $(PlatformSpec)-$(GdkVcVer) ;
+      }
+    } else if $(PlatformSpec) in vc14 vc14u vc15 vc16 vc17 && $(VCUpdateVer) {
+      PlatformOutputDir ?= $(PlatformSpec)-$(VCUpdateVer) ;
+    } else if $(PlatformSpec) = clang && $(Platform) in win32 win64 {
+      PlatformOutputDir ?= $(PlatformSpec)~$(CLangVer) ;
+    }
+
+    PlatformOutputDir ?= $(PlatformSpec) ;
+
+    if $(Platform) = ps4 {
+      if $(PS4CrossGenSdkVer) = none {
+        out = $(Platform)~$(PS4SdkVer)~$(PlatformOutputDir)~$(Config) ;
+      } else {
+        out = $(Platform)~$(PS4SdkVer)~$(PS4CrossGenSdkVer)~$(PlatformOutputDir)~$(Config) ;
+      }
+    } else if $(Platform) = ps5 {
+      out = $(Platform)~$(PS5SdkVer)~$(PlatformOutputDir)~$(Config) ;
+    } else if $(Platform) in xboxOne scarlett {
+      out = $(Platform)~$(GdkVer)~$(PlatformOutputDir)~$(Config) ;
+    } else if $(Platform) = macosx {
+      out = $(Platform)~$(MacOSXVer)~m$(MacOSXMinVer) ;
+      if $(MacOSXArch) = arm64 {
+        local ver = [ MATCH "([^\.]+)\.(.+)" : $(MacOSXMinVer) ] ;
+        if ! $(ver[0]) || ! $(ver[0]) in 11 12 13 14 15 { Exit MacOSXArch=$(MacOSXArch) requires MacOSXMinVer 11+ ($(MacOSXMinVer) is not allowed) ; }
+      }
+      if $(MacOSXArch) != x86_64 { out = $(out)~$(MacOSXArch) ; }
+      out = $(out)~$(PlatformOutputDir)~$(Config) ;
+    } else if $(Platform) = iOS {
+      out = $(Platform)~$(iOSVer)~m$(iOSMinVer)~$(iOSArch)~$(PlatformOutputDir)~$(Config) ;
+    } else if $(Platform) = tvOS {
+      out = $(Platform)~$(tvOSVer)~m$(tvOSMinVer)~$(tvOSArch)~$(PlatformOutputDir)~$(Config) ;
+    } else if $(Platform) = android {
+      out = $(Platform)~sdk$(AndroidSdkTarget)~$(AndroidApiVer)~m$(AndroidApiMinVer)~$(AndroidNdkVer)~$(AndroidArch)~$(PlatformOutputDir)~$(Config) ;
+    } else if $(Platform) = nswitch {
+      out = $(Platform)~$(NSwitchSdkVer)~$(PlatformOutputDir)~$(Config) ;
+    } else if $(Platform) in win32 win64 {
+      local ver = [ MATCH "([^\.]+)\.([^\.]+)\.(.*)" : $(WinSdkVer) ] ;
+      if ! $(ver[3] { ver = [ MATCH "([^\.]+)\.(.*)" : $(WinSdkVer) ] ; }
+      if ( ! $(ver[2]) ) || ( ! $(ver[1]) in win win32 ) { Exit bad WinSdkVer\=$(WinSdkVer) ; }
+      if $(ver[2]) = sdk && $(ver[3]) { ver = $(ver[3]) ; } else { ver = $(ver[2-]:J) ; }
+      out = $(Platform)~$(ver)~$(PlatformOutputDir)~$(Config) ;
+    } else {
+      out = $(Platform)~$(PlatformOutputDir)~$(Config) ;
+    }
+
+    if $(CPPStd) != $(DefaultCPPStd) {
+      out = $(out)~cpp$(CPPStd) ;
+    }
+
+    if $(Platform) in win32 win64 linux64 macosx && $(UseD3DMulti) = yes {
+      if ! -D_TARGET_D3D_MULTI in $(GlobalCPPopt) { GlobalCPPopt += -D_TARGET_D3D_MULTI ; }
+      out = $(out)~m ;
+    } else if $(Platform) in macosx iOS tvOS {
+      out = $(out)~MTL ;
+    }
+
+    if $(MSVectorcall) = yes && $(Platform) in win32 win64 xboxOne scarlett {
+      out = $(out)~v ;
+    }
+
+    if $(QtVer) { if $(QtVerStatic) = yes { out = $(out)~qt$(QtVer)s ; } else { out = $(out)~qt$(QtVer) ; } }
+
+    if $(DriverLinkage) = dynamic {
+      out = $(out)~krnlimp ;
+      if $(CoreLinkage) = dynamic { out = $(out)~coreimp ; }
+    }
+
+    if $(Platform) in win32 win64 macosx linux64 {
+      out = $(out)~s$(SSEVersion) ;
+    }
+    if $(Platform) in win32 win64 xboxOne scarlett {
+      switch $(VCMathOption) {
+        case -fp:fast : # default choice and output name
+        case -fp:precise : out = $(out)~fp ;
+        case -fp:strict :  out = $(out)~fs ;
+        case * : Exit Unsupported VCMathOption\=$(VCMathOption) ;
+      }
+    }
+    if $(StarForce) = yes {
+      out = $(out)~sf ;
+    }
+    if $(VMProtect) = yes {
+      out = $(out)~vmp ;
+    }
+    if $(ForceLogs) = yes {
+      if ! -DDAGOR_FORCE_LOGS=1 in $(GlobalCPPopt) { GlobalCPPopt += -DDAGOR_FORCE_LOGS=1 ; }
+      out = $(out)~log ;
+    }
+    if $(Demo) = yes {
+      out = $(out)~demo ;
+    }
+    if $(Exceptions) != no {
+      out = $(out)~ex ;
+      if $(CatchSEH) != yes {
+        out = $(out)ns ;
+      }
+    }
+    if $(Rtti) != no {
+      out = $(out)~rtti ;
+    }
+    if $(Sanitize) != disabled {
+      out = $(out)~san~$(Sanitize) ;
+    }
+    if $(CxxStdLib) = libc++ {
+      out = $(out)~libcxx ;
+    }
+    if $(OutputSuffix) {
+      out = $(out)~$(OutputSuffix) ;
+    }
+    if $(UseLtoJobs) != 0 {
+      out = $(out)~lto ;
+    }
+    if $(CheckedContainers) = yes {
+      local defines = -D_DEBUG_TAB_ ;
+      for d in $(defines) { if ! $(d) in $(GlobalCPPopt) { GlobalCPPopt += $(d) ; } }
+      out = $(out)~c ;
+    }
+    if $(StackProtection) = no && $(Sanitize) != address {
+      out = $(out)~nosp ;
+    }
+    if $(CheckOnly) = yes {
+      out = $(out)~co ;
+    }
+    if $(DisableFusion) = yes {
+      GlobalCPPopt += -DDAS_FUSION=0 ;
+      out = $(out)~nofn ;
+    }
+
+    if $(NoMemBaseInclude) = yes {
+      if ! -D__B_NO_MEM_BASE_INCLUDE in $(GlobalCPPopt) { GlobalCPPopt += -D__B_NO_MEM_BASE_INCLUDE ; }
+      out = $(out)~nmb ;
+    }
+
+    if $(UseWholeOpt) != no {
+      out = $(out)~who ;
+    }
+
+    if $(UseSystemOpenSSL) = yes {
+      out = $(out)~sslsys ;
+    } else if $(OpenSSLVer) != $(DefOpenSSLVer) {
+      out = $(out)~ssl$(OpenSSLVer) ;
+    }
+
+    if $(Platform) in android && $(UseAndroidGameActivity) = yes {
+      out = $(out)~gact ;
+    }
+
+    _Output   = $(_OutputRoot)/$(out) ;
+    _PrintedOutput   = [$(out)] ;
+  }
+
+  SetupOutputDir ;
+
+  if ( clean in $(JAMTARGETS) ) || ( this in $(JAMTARGETS) ) { GLOBAL_OmitDependencies = 1 ; }
+  if nocare in $(JAMTARGETS) { GLOBAL_IncludesNoCare = 1 ; }
+  if depjam in $(JAMTARGETS) { GLOBAL_DependOnJam = 1 ; }
+  if cache in $(JAMTARGETS) { GLOBAL_CacheDryRun = 1 ; }
+  if clean in $(JAMTARGETS) { GLOBAL_CleanObj = clean ; }
+  else if clean_all in $(JAMTARGETS) { GLOBAL_CleanObj = clean_all ; }
+
+  CODE_CHECK ?= rem if not errorlevel 1 call $(Root)/prog/_jBuild/_codeCheck/cc-dev.exe -d -r$(Root) ;
+
+
+  # prepare command line to call another jam (used in some rules)
+  if $(OS) = NT {
+    if ! $(ComSpec) { Exit Neither ComSpec, nor COMSPEC env var found ; }
+    JAM_EXE = $(ComSpec) /C jam.exe ;
+  } else if $(OS) in MACOSX LINUX {
+    JAM_EXE = jam ;
+  }
+
+  include $(Root)/prog/_jBuild/jCommonRules.jam ;
+  NotFile ALL_CODEGEN_TARGET ;
+}

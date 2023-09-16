@@ -1,0 +1,6 @@
+#define CARVE_VERSION "@CARVE_VERSION@"
+
+#cmakedefine CARVE_DEBUG
+#cmakedefine CARVE_DEBUG_WRITE_PLY_DATA
+
+#cmakedefine CARVE_USE_EXACT_PREDICATES

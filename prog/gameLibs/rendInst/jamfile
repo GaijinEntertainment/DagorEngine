@@ -1,0 +1,74 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/rendInst ;
+
+TargetType  = lib ;
+Target      = gameLibs/rendInst.lib ;
+
+HaveRenderer ?= yes ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  clipmapShadow.cpp
+  dumpCollisions.cpp
+  rendInstCommon.cpp
+  rendInstGen.cpp
+  rendInstGenLand.cpp
+  rendInstGenRender.cpp
+  rendInstGenExtraRender.cpp
+  rendInstGenCollision.cpp
+  rendInstGenExtra.cpp
+  rendInstGenExtraMaxHeight.cpp
+  rendInstGenDebris.cpp
+  rendInstGenGlobals.cpp
+  rendInstGenClipShadows.cpp
+  rendInstGenDepthShadows.cpp
+  rendInstRotationPalette.cpp
+  rendInstGenRtTools.cpp
+  rendInstUtil.cpp
+  rendInstStubRes.cpp
+  riGrid.cpp
+  riShaderConstBuffers.cpp
+  riGen/extraRender/consoleHandler.cpp
+
+  debug/collisionVisualization.cpp
+;
+
+if $(HaveRenderer) = yes {
+  Sources += impostorTextureMgr.cpp ;
+  Sources += gpuObjs.cpp ;
+} else {
+  Sources += stub/impostorTextureMgr.cpp ;
+  Sources += stub/gpuObjs.cpp ;
+  Target = $(Target:S=~nrdr.lib) ;
+}
+
+CPPopt = -DUSE_GRID_FOR_RI=true ;
+
+UseProgLibs =
+  gameLibs/render/texcompressors
+  gameLibs/render/primitiveObjects
+  gameLibs/render/debug3dSolid
+  engine2/lib3d
+  engine2/libFx
+  engine2/consoleProc
+  3rdPartyLibs/regExp
+  gameLibs/gpuObjects
+;
+
+if $(Config) != rel
+{
+  UseProgLibs += gameLibs/render/debugMesh ;
+}
+else
+{
+  UseProgLibs += gameLibs/render/debugMesh/stub ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

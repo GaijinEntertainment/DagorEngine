@@ -1,0 +1,17 @@
+Root    ?= ../../../../../.. ;
+Location = prog/3rdPartyLibs/phys/bullet-3/Extras/ConvexDecomposition ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType = lib ;
+Target     = 3rdPartyLibs/phys/bullet-3/Extras/ConvexDecomposition.lib ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/phys/bullet-3/src
+;
+
+AutoscanBuildLists . : *.cpp : Sources ;
+
+include $(Root)/prog/3rdPartyLibs/phys/bullet-3/setup.jam ;
+
+include $(Root)/prog/_jBuild/build.jam ;

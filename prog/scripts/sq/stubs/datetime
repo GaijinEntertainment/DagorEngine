@@ -1,0 +1,9 @@
+return {
+  function clock(...) { }
+  function time() { }
+  function date(...) {
+    //assert(["float", "integer"].contains(type(a)), @() $"type of argument should be one of: 'float' 'integer'")
+    //assert(["float", "integer"].contains(type(b)), @() $"type of argument should be one of: 'float' 'integer'")
+    return {sec=0, min=0, hour=0, day=0, month=0, year=0, wday=0, yday=0}
+  }
+}

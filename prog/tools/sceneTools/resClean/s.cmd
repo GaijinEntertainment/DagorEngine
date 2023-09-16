@@ -1,0 +1,1 @@
+@..\..\..\..\tools\dagor3_cdk\util\resCleanUtil-dev.exe -clean d:/dagor4/skyquake/gameOnline/content/patch/res

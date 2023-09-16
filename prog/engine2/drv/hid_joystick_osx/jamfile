@@ -1,0 +1,20 @@
+Platform ?= macosx ;
+
+Root    ?= ../../../.. ;
+Location = prog/engine2/drv/hid_joystick_osx ;
+
+TargetType  = lib ;
+Target      = engine2/drv/hid_joystick_osx.lib ;
+
+Sources =
+  joy_create.cpp
+  joy_classdrv.cpp
+  joy_device.cpp
+  joy_composite.cpp
+
+  osx_hid_util.cpp
+;
+
+CPPopt = -Wno-nonnull ; # for IOHIDManagerRegisterDeviceMatchingCallback and IOHIDManagerRegisterDeviceRemovalCallback
+
+include $(Root)/prog/_jBuild/build.jam ;

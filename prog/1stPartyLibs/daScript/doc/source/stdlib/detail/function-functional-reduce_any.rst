@@ -1,0 +1,1 @@
+reduce with lambda

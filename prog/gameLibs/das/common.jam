@@ -1,0 +1,21 @@
+include $(Root)/prog/_jBuild/defaults.jam ;
+if $(GLOBAL_DependOnJam) { DependOnJams += $(Root)/prog/gameLibs/das/common.jam ; } # to handle depjam case
+
+SetupOutputDir ;
+
+Sources = pull.cpp ;
+
+if $(DAS_AOT_COMPILER) {
+  include $(Root)/prog/_jBuild/jCommonRules.jam ;
+
+  Target = $(Target:S=-aot.lib) ;
+  AutoscanBuildLists . : *.das : Sources ;
+
+  AddIncludes =
+    $(Root)/prog/1stPartyLibs/daScript/include
+    $(Root)/prog/gameLibs/publicInclude
+  ;
+  CPPopt = -DBUILD_AOT_LIB ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

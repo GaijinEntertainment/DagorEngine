@@ -1,0 +1,150 @@
+
+dump_grammar_to_file=true;
+method=SLR1;
+default_member_name_is_nothing=true;
+
+code_in_h={
+#include "whale.h"
+#include "classes.h"
+};
+
+terminal id, string, number, hexnum(TerminalHexNumber),
+	code(TerminalCode);
+terminal "->", ";", "::"(TerminalScope);
+terminal "="(TerminalAssign);
+terminal ",", "/", ":";
+terminal "|"(TerminalOr), "&"(TerminalAnd), "~"(TerminalNot);
+terminal "(", ")", "[", "]";
+terminal "*", "+", "e";
+terminal "<", ">", "<=", ">=", "=="(TerminalEqual), "!=";
+
+terminal "terminal"(TerminalKwTerminal), "nonterminal"(TerminalKwNonterminal),
+	"external"(TerminalKwExternal), "class"(TerminalKwClass),
+	"nothing"(TerminalKwNothing), "true"(TerminalKwTrue),
+	"false"(TerminalKwFalse), "iteration_pair"(TerminalKwIterationPair),
+	"create"(TerminalKwCreate), "update"(TerminalKwUpdate),
+	"connect_up"(TerminalKwConnectUp), "precedence"(TerminalKwPrecedence);
+
+precedence concatenation;
+precedence "|" < "&" < concatenation < "~" < "*" < "=";
+precedence concatenation = id = string = "(" = "[" = "e" = "iteration_pair" =
+	"create" = "update" = "connect_up" = "precedence" = code;
+precedence "*" = "+";
+
+S -> ((terminal-statement | nonterminal-statement | class-statement |
+	rule-statement | precedence-statement | option-statement |
+	invalid-statement)=statements)+;
+
+terminal-statement -> "terminal" ((id | string)=names ["(" type-expression=types ["," external-type-expression=external_types] ")"] / ",") ";";
+nonterminal-statement ->
+	( "nonterminal"=kw (id=names ["(" type-expression=internal_types ["," external-type-expression=external_types] ")"] / ",") |
+	"external"=kw (id=names ["(" external-type-expression=external_types ")" ] / ",") )
+	";";
+//nonterminal-statement -> ("nonterminal" | "external")=kw iteration_pair(id=names ["(" type-expression=internal_types ["," external-type-expression=external_types] ")"], ",") ";";
+class-statement -> "class" type-expression=expr ";";
+rule-statement -> id=left ["(" type-expression=type ")"] "->"=arrow expression=right ";";
+precedence-statement -> "precedence" (precedence-expression=expr / ",") ";";
+option-statement -> id=left [ "[" ((id | string)=middle / ",") "]" ] "="
+	((id | string | number | hexnum | "true" | "false" | code)=right / ",") ";";
+invalid-statement -> error ";";
+
+type-expression(NonterminalTypeExpression) -> id=name [":" id=base_name];
+
+external-type-expression(NonterminalExternalTypeExpression) ->
+	id=id ["<" (external-type-expression=template_arguments / ",") ">"] exttype-expr-1=expr1;
+	
+nonterminal exttype-expr-1(NonterminalExternalTypeExpressionOne);
+
+exttype-expr-1(NonterminalExternalTypeExpressionOneI) -> ("*"=asterisks)* ["&"=ampersand] precedence(>",");
+exttype-expr-1(NonterminalExternalTypeExpressionOneII) -> "::" external-type-expression=expr;
+
+member-expression(NonterminalMemberExpressionNothing) -> "nothing"=kw;
+member-expression(NonterminalMemberExpressionInternal) -> [id=scope "::"] id=name;
+member-expression(NonterminalMemberExpressionExternal) -> "(" external-type-expression=type [id=scope "::"] id=name ")";
+member-expression(NonterminalMemberExpressionBoth) -> "(" [id=scope1 "::"] id=name1 "," external-type-expression=type2 [id=scope2 "::"] id=name2 ")";
+
+precedence-expression -> ((id | string | "*")=operands ["(" id=associativity ")"] / ("=" | "==" | "<" | ">")=comparison_operators);
+
+nonterminal expression(NonterminalExpression);
+expression(NonterminalExpressionDisjunction) -> expression=expr1 "|" expression=expr2;
+expression(NonterminalExpressionConjunction) -> expression=expr1 "&"=op expression=expr2;
+expression(NonterminalExpressionConcatenation) -> expression=expr1 expression=expr2 precedence(concatenation);
+expression(NonterminalExpressionComplement) -> "~"=op expression=expr;
+expression(NonterminalExpressionOmittable) -> "[" expression=expr "]";
+expression(NonterminalExpressionInParentheses) -> "(" expression=expr ")";
+expression(NonterminalExpressionIteration) -> expression=expr ("*" | "+")=sign;
+expression(NonterminalExpressionIterationPair) -> "iteration_pair"=kw "(" expression=expr1 "," expression=expr2 ")" |
+	"(" expression=expr1 "/"=kw expression=expr2 ")";
+expression(NonterminalExpressionEpsilon) -> "e";
+expression(NonterminalExpressionSymbol) -> (id | string)=symbol;
+expression(NonterminalExpressionMemberName) -> expression=expr "=" member-expression=expr_m;
+expression(NonterminalExpressionCreate) -> "create"=kw;
+expression(NonterminalExpressionUpdate) -> "update"=kw;
+expression(NonterminalExpressionConnectUp) -> "connect_up"=kw { data.variables.connect_up_operators_are_used=true; };
+expression(NonterminalExpressionCode) -> code=code;
+expression(NonterminalExpressionPrecedence) -> "precedence"=kw "("
+	(["<" | "<=" | ">" | ">=" | "==" | "!=" | "="]=comparison_operators (id | string | "*")=operands / ",")
+	")";
+
+code_in_class[NonterminalExpressionIteration]={
+	bool reflexive;
+	int local_iterator_number;
+	SymbolNumber body_sn;
+	int iterator_nn;
+	NonterminalExpressionIteration() : body_sn(SymbolNumber::error())
+	{
+	}
+};
+code_in_class[NonterminalExpressionIterationPair]={
+	int local_iterator_number;
+	SymbolNumber body1_sn, body2_sn;
+	int iterator_nn;
+	NonterminalExpressionIterationPair() : body1_sn(SymbolNumber::error()),
+		body2_sn(SymbolNumber::error())
+	{
+	}
+};
+code_in_class[NonterminalExpressionSymbol]={
+	SymbolNumber sn;
+	ClassHierarchy::DataMember *data_member_i, *data_member_e; // both null means 'nothing'.
+	int number_of_iterations;
+	std::vector<ClassHierarchy::DataMember *> data_members_in_bodies; // [0] - the outer body
+	NonterminalExpressionSymbol() : sn(SymbolNumber::error())
+	{
+		data_member_i=NULL;
+		data_member_e=NULL;
+	}
+};
+code_in_class[NonterminalExpressionCreate]={
+	int local_creator_number;
+	std::vector<int> creator_nn;
+};
+code_in_class[NonterminalExpressionUpdate]={
+	int local_updater_number;
+	std::vector<int> updater_nn;
+};
+code_in_class[NonterminalExpressionConnectUp]={
+	bool used_after_make_operator;
+};
+code_in_class[NonterminalExpressionCode]={
+	int invoker_nn;
+	NonterminalExpressionCode() : invoker_nn(-1) {}
+};
+code_in_class[NonterminalMemberExpression]={
+	bool is_nothing, i_specified, e_specified;
+	Terminal *scope_i, *name_i;		// 'i' stands for internal,
+	NonterminalExternalTypeExpression *type_e;
+	Terminal *scope_e, *name_e;		// 'e' stands for external.
+	Terminal *t;
+	ClassHierarchy::DataMember *data_member_i, *data_member_e;
+	int number_of_affected_symbols;
+	NonterminalMemberExpression()
+	{
+		is_nothing=false, i_specified=false, e_specified=false;
+		scope_i=NULL, name_i=NULL;
+		type_e=NULL, scope_e=NULL, name_e=NULL;
+		t=NULL;
+		data_member_i=NULL, data_member_e=NULL;
+		number_of_affected_symbols=0;
+	}
+};

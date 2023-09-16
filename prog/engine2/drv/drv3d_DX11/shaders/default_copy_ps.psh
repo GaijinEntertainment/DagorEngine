@@ -1,0 +1,6 @@
+//default_copy_ps
+struct v2p { float4 pos : SV_POSITION; float2 texcrd : TEXCOORD0; };
+Texture2D tex; SamplerState st; float4 main(v2p i) : SV_Target
+{
+  return tex.Sample(st, i.texcrd);
+}

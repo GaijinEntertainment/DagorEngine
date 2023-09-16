@@ -1,0 +1,6 @@
+"<ID|readonly|noverify>";"<Russian>";"<English>";"<Comments>";"<max_chars>"
+"_ignore/this/row";"Compensates error in reading rows 3 and 4";;;
+"_ignore/muntiline";"Row 3 col 1 line 1
+"unexpected/row";"This row breaks another multiline row";"It leads to columns shift and unexpected texts mess in game";;
+Row 3 col 1 line 2";"Row 3 col 2 line 1
+Row 3 col 2 line 2";;

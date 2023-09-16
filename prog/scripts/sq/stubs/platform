@@ -1,0 +1,18 @@
+local {get_arg_value_by_name} = require("dagor.system")
+
+return {
+  get_platform_string_id = @() get_arg_value_by_name("platform") ?? "stub"
+  get_locale_country = @() get_arg_value_by_name("country") ?? "__"
+  get_console_model = @() get_arg_value_by_name("console_model") ?? "PC"
+  get_console_model_revision = @(_consoleModel) ""
+  get_platform_sdk = @() get_arg_value_by_name("sdk") ?? "none"
+  get_default_lang = @() "English"
+  XBOXONE = "XBOXONE"
+  XBOXONE_S = "XBOXONE_S"
+  XBOXONE_X = "XBOXONE_X"
+  XBOX_LOCKHART = "XBOX_LOCKHART"
+  XBOX_ANACONDA = "XBOX_ANACONDA"
+  PS4 = "PS4"
+  PS4_PRO = "PS4_PRO"
+  NINTENDO_SWITCH = "NINTENDO_SWITCH"
+}

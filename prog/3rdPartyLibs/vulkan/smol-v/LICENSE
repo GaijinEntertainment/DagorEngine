@@ -1,0 +1,13 @@
+Code itself: **Public Domain**.
+
+There is 3rd party code under the testing framework (`testing/external`); it is not required for
+using SMOL-V. Most of that code ([glslang](https://github.com/KhronosGroup/glslang),
+[LZ4](https://github.com/Cyan4973/lz4), [Zstd](https://github.com/facebook/zstd)) is BSD-licensed,
+and taken from github repositories of the respective projects. [miniz](https://github.com/richgel999/miniz)
+is public domain.
+
+There are SPIR-V binary shader dumps under `tests/spirv-dumps` for compression testing;
+these are not required for using SMOL-V. Not sure how to appropriately
+"license" them (but hey they are kinda useless by themselves out of context),
+so I'll go with this: "Binary shader dumps under 'tests' folder are only to be
+used for SMOL-V testing". Details on them:

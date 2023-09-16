@@ -1,0 +1,2 @@
+
+bool process_alphabet();

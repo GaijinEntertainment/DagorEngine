@@ -1,0 +1,109 @@
+namespace ipc.msg;
+
+enum LogLevel : byte { ERR = 0, WARN, INFO, DBG }
+table Log{
+  level:LogLevel;
+  msg:string (required);
+}
+
+
+table MouseMove{
+  x:short;
+  y:short;
+}
+
+
+table MouseWheel{
+  x:short;
+  y:short;
+  dx:short;
+  dy:short;
+}
+
+
+enum MouseButtonId : byte { LEFT = 0, MIDDLE, RIGHT }
+table MouseButton{
+  x:short;
+  y:short;
+  btn:MouseButtonId;
+  isUp:bool = false;
+}
+
+
+enum KeyEventType : byte { PRESS = 0, RELEASE, CHAR }
+table Key{
+  winKey:ulong;
+  nativeKey:long;
+  isSysKey:bool = false;
+  modifiers:byte;
+  eventType:KeyEventType = PRESS;
+}
+
+
+table ViewResize{
+  width:short;
+  height:short;
+  key:string;
+}
+
+
+table ViewUpdate{}
+table BrowserShow{}
+table BrowserHide{}
+table BrowserStop{}
+
+table BrowserRefresh{}
+table BrowserInitialized{}
+table BrowserStarted{}
+table BrowserExited{}
+
+
+table BrowserError{
+  error:int = 0;
+}
+
+
+enum PageState : byte { UNDEFINED = 0, CREATED, LOADED, CLOSED, ABORTED, FAILED }
+enum PageType : byte { UNDEFINED = 0, POPUP, TAB, WINDOW }
+table PageStateChanged{
+  state:PageState = UNDEFINED;
+  type:PageType = UNDEFINED;
+  id:uint = 0;
+  url:string;
+  title:string;
+  error:string;
+  canBack:bool;
+  canForward:bool;
+}
+
+
+table GoForward{}
+table GoBack{}
+
+
+table Paint{
+  width:ushort;
+  height:ushort;
+}
+
+
+table Go{
+  url:string (required);
+}
+
+table BrowserClose{}
+
+table WindowMethod{
+  name:string (required);
+  parametersCnt:uint = 0;
+}
+
+table WindowMethodCall{
+  name:string (required);
+  p1:string;
+  p2:string;
+}
+
+table Popup{
+  url:string (required);
+}

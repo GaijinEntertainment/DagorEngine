@@ -1,0 +1,122 @@
+include "shader_global.sh"
+
+shader yuv_movie
+{
+  z_test=false;
+
+  cull_mode=none;
+
+  channel short2 pos = pos;
+  channel color8 vcol = vcol;
+  channel short2 tc = tc mul_4k;
+  channel short2 tc[1] = tc[1];
+
+  dynamic texture texY;
+  dynamic texture texU;
+  dynamic texture texV;
+  dynamic float4 viewportRect;
+
+  dynamic int transparent = 0;
+  interval transparent: transOff < 1, transOn < 2, transNonpremultiplied < 3, transAdditive;
+
+  dynamic int useColorMatrix = 0;
+  interval useColorMatrix: cmOff < 1, cmUsed;
+  dynamic float4 colorMatrix0;
+  dynamic float4 colorMatrix1;
+  dynamic float4 colorMatrix2;
+  dynamic float4 colorMatrix3;
+
+  (vs) {
+    viewport@f4 = viewportRect;
+  }
+
+  (ps) {
+    yImage@smp2d = texY;
+    uImage@smp2d = texU;
+    vImage@smp2d = texV;
+  }
+
+  if (useColorMatrix == cmUsed)
+  {
+    (ps) { colorMatrix0@f4 = colorMatrix0; }
+    (ps) { colorMatrix1@f4 = colorMatrix1; }
+    (ps) { colorMatrix2@f4 = colorMatrix2; }
+    (ps) { colorMatrix3@f4 = colorMatrix3; }
+  }
+
+  if (transparent == transOn)
+  {
+    blend_src = one; blend_dst = isa;
+    NO_ATEST()
+  }
+  else if (transparent == transNonpremultiplied)
+  {
+    blend_src = sa; blend_dst = isa;
+    blend_asrc = 1; blend_adst = isa;
+    USE_ATEST_1()
+  }
+  else if (transparent == transAdditive)
+  {
+    blend_src = one; blend_dst = one;
+    NO_ATEST()
+  }
+  else
+  {
+    NO_ATEST()
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 col: TEXCOORD0;
+      float2 tc:  TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      int2 pos: POSITION;
+      float4 col: COLOR0;
+      int2 tc0: TEXCOORD0;
+    };
+
+    VsOutput yuv_vs(VsInput input)
+    {
+      VsOutput output;
+      output.pos = float4(input.pos*viewport.xy+viewport.zw, 1, 1);
+      output.col = BGRA_SWIZZLE(input.col);
+      output.tc  = input.tc0/4096.0;
+      return output;
+    }
+  }
+  compile("target_vs", "yuv_vs");
+
+  hlsl(ps) {
+    float4 yuv_ps(VsOutput input) : SV_Target
+    {
+      float4 result;
+      float3 yuvcolor;
+
+      yuvcolor.x = tex2D(yImage, input.tc).r;
+      yuvcolor.y = tex2D(uImage, input.tc).r-0.5;
+      yuvcolor.z = tex2D(vImage, input.tc).r-0.5;
+
+      result.r = yuvcolor.x + 1.402 * yuvcolor.z;
+      result.g = yuvcolor.x - 0.344136 * yuvcolor.y - 0.714136 * yuvcolor.z;
+      result.b = yuvcolor.x + 1.773 * yuvcolor.y;
+      result.a = 1;
+
+      ##if useColorMatrix == cmUsed
+        result = float4(dot(colorMatrix0,result), dot(colorMatrix1,result), dot(colorMatrix2,result), dot(colorMatrix3,result));
+      ##endif
+
+      result *= input.col;
+
+      return result;
+    }
+  }
+
+  compile("target_ps", "yuv_ps");
+}

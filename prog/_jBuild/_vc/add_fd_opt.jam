@@ -1,0 +1,7 @@
+for t in $(Target) {
+  local pdb_path = _$(t:B=$($(t)__CodeName):S=.pdb) ;
+  pdb_path ?= _$(t:S=.pdb) ;
+
+  $(t)__CPP_OPT += -Fd$(_Output)/$(pdb_path) ;
+  $(t)__C_OPT   += -Fd$(_Output)/$(pdb_path) ;
+}

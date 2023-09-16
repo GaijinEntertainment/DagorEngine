@@ -1,0 +1,26 @@
+﻿/* Strings for User Notification of a crash */
+"crashDialogHeader" = "Das Programm %@ wurde unerwartet beendet.";
+"crashDialogMsg" = "Das Betriebssystem und andere Programme sind nicht davon betroffen. Ein Fehler Bericht wurde erstellt den Sie an %@ senden können um bei der Behebung des Problems zu helfen.";
+
+"noCrashDialogHeader" = "Das Programm %@ hat einen Fehler festgestellt.";
+"noCrashDialogMsg" = "Das Betriebssystem und andere Programme sind nicht davon betroffen. Ein Fehler Bericht wurde erstellt den Sie an %@ senden können um bei der Verbesserung von %2$@ zu helfen.";
+
+"commentsMsg" = "Bitte helfen Sie uns bei der Behebung des Problems indem Sie beschreiben was vor dem Absturz geschah.";
+"emailMsg" = "Wenn Sie Ihre Email Adresse angeben können wir Sie kontaktieren falls wir mehr Informationen benötigen.";
+
+"commentsPlaceholder" = "zusätzliche Kommentare";
+"emailPlaceholder" = "freiwillig";
+
+"emailLabel" = "Email:";
+"privacyLabel" = "Datenschutz Richtlininien";
+
+"sendReportButton" = "Bericht senden";
+"cancelButton" = "Abbrechen";
+"noSendButton" = "OK";
+"privacyPolicyURL" = "http://www.google.com/privacypolicy.html";
+
+"countdownMsgSecondsPlural" = "%d Sekunden verbleibend.";
+"countdownMsgSecondSingular" = "%d Sekunde verbleibend.";
+
+"countdownMsgMinutesPlural" = "%d Minuten verbleibend.";
+"countdownMsgMinuteSingular" = "%d Minute verbleibend.";

@@ -1,0 +1,19 @@
+let
+    foo_files = [[auto[]
+        "random"
+    ]]
+
+def module_foo(req,from:string) : module_info
+    let request <- split_by_chars(req,"./")
+    if request[0]!="foo"
+        return [[auto "", "", ""]]
+    if length(request)==1
+        return [[auto "foo", DAS_PAK_ROOT + "foo/foo_main.das", ""]]
+    if length(request)==2
+        if has_value(foo_files,request[1])
+            return [[auto "foo_" + request[1], DAS_PAK_ROOT + "foo/foo_" + request[1] + ".das",""]]
+    return [[auto "", "", ""]]
+
+[init]
+def register_foo
+    push(modules,@@module_foo)

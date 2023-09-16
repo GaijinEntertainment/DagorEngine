@@ -1,0 +1,33 @@
+
+    +-------------------+
+    |                   |
+	|      DDS 1        |
+	|                   |
+    + - - - - - - - - - +
+    |                   |
+	|      DDS 2        |
+	|                   |
+    + - - - - - - - - - +
+    |                   |
+	|       ...         |
+	|                   |
+    + - - - - - - - - - +
+    |                   |
+	|      DDS N        |
+	|                   |
+    + - - - - - - - - - +
+    |                   |
+    |     DTX-footer    |
+    |                   |
+    +-------------------+
+    |  format version   +	ui32
+    +-------------------+
+
+
+Note:
+
+if texture is RGBE 8888, 
+then DDS header DDSURFACEDESC2::ddpfPixelFormat.dwFourCC 
+will contain FourCC code 'R' 'G' 'B' 'E' but all other 
+flags mark texture as R8G8B8A8
+

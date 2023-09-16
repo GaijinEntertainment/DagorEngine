@@ -1,0 +1,71 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/image/tiff-4.4.0 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/image/tiff-4.4.0.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+	tif_aux.c
+	tif_close.c
+	tif_codec.c
+	tif_color.c
+	tif_compress.c
+	tif_dir.c
+	tif_dirinfo.c
+	tif_dirread.c
+	tif_dirwrite.c
+	tif_dumpmode.c
+	tif_error.c
+	tif_extension.c
+	tif_fax3.c
+	tif_fax3sm.c
+	tif_flush.c
+	tif_getimage.c
+	tif_jbig.c
+	tif_jpeg.c
+	tif_jpeg_12.c
+	tif_lerc.c
+	tif_luv.c
+	tif_lzma.c
+	tif_lzw.c
+	tif_next.c
+	tif_ojpeg.c
+	tif_open.c
+	tif_packbits.c
+	tif_pixarlog.c
+	tif_predict.c
+	tif_print.c
+	tif_read.c
+	tif_strip.c
+	tif_swab.c
+	tif_thunder.c
+	tif_tile.c
+	tif_version.c
+	tif_warning.c
+	tif_webp.c
+	tif_write.c
+	tif_zip.c
+	tif_zstd.c
+
+	tif_stream.cxx
+;
+
+if $(Platform) in win32 win64 { Sources += tif_win32.c ; }
+if $(Platform) in linux64 macosx { Sources += tif_unix.c ; }
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/image/tiff-4.4.0
+  $(Root)/prog/3rdPartyLibs/image/jpeg-6b
+  $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
+;
+
+UseProgLibs =
+  3rdPartyLibs/image/jpeg-6b
+  3rdPartyLibs/arc/zlib-$(UseZlibVer)
+;
+
+Copt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

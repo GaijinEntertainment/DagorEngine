@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/sqConsole ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/sqConsole.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+;
+
+
+Sources =
+  sqConsole.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

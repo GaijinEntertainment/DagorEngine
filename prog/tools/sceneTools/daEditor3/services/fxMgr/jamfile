@@ -1,0 +1,23 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditor3/services/fxMgr ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditor3/services/fxMgr.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+
+Sources =
+  fxMgrService.cpp
+;
+
+UseProgLibs =
+  gameLibs/render/heatHaze
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

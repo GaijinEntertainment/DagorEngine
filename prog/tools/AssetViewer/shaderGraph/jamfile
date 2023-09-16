@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/AssetViewer/shaderGraph ;
+
+TargetType  = lib ;
+Target      = tools/AssetViewer/shaderGraph.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  shaderGraph.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

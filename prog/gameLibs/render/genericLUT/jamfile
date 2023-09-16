@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/genericLUT ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/genericLUT.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  genericLUT.cpp
+  commonLUT.cpp
+  colorGradingLUT.cpp
+  fullColorGradingLUT.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

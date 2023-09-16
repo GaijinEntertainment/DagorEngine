@@ -1,0 +1,45 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/bsp ;
+UsingStaticCore = yes ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = tools/util/bsp2dag.exe ;
+
+OutDir          = $(Root)/tools/converters ;
+
+
+Sources =
+  winmain_con.cpp
+  bsp.cpp
+;
+
+
+AddIncludes     =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/tools/converters/
+  $(Root)/prog/tools/converters/bsp
+  $(Root)/prog/tools/converters/bsp/tier1
+  #$(Root)/prog/engine2/sharedInclude
+;
+
+
+UseProgLibs =
+  tools/libTools/dagFileRW
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/image
+  engine2/perfMon/daProfilerStub
+;
+
+
+CPPopt = -D__B_MAIN ;
+
+#LINKopt = -opt:ref -map -verbose ;
+
+include $(Root)/prog/_jBuild/build.jam ;

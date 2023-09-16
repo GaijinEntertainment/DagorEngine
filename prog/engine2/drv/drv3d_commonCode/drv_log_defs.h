@@ -1,0 +1,5 @@
+#pragma once
+
+#define LOGLEVEL_DEBUG _MAKE4C('D3DD')
+#define LOGLEVEL_WARN  _MAKE4C('D3DW')
+#define LOGLEVEL_ERR   _MAKE4C('D3DE')

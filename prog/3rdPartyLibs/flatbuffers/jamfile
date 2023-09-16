@@ -1,0 +1,23 @@
+Root           ?= ../../.. ;
+Location        = prog/3rdPartyLibs/flatbuffers ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/flatbuffers.lib ;
+
+AddIncludes = 
+  $(Root)/$(Location)/include
+;
+
+local AllSources = 
+  code_generators.cpp
+  idl_parser.cpp
+  idl_gen_text.cpp
+  reflection.cpp
+  util.cpp
+;
+
+Sources =
+  $(AllSources:D=src)
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

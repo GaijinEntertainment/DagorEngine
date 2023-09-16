@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/appsflyer ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/appsflyer.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+;
+
+Sources = appsflyer_binding.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

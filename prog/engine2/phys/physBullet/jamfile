@@ -1,0 +1,40 @@
+Root    ?= ../../../.. ;
+Location = prog/engine2/phys/physBullet ;
+
+TargetType  = lib ;
+Target      = engine2/phys/physBullet.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+if $(BulletSdkVer) != $(DefBulletSdkVer) { Target = $(Target:S=~bt$(BulletSdkVer)$(Target:S)) ; }
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/3rdPartyLibs/phys/bullet-$(BulletSdkVer)/src
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+
+Sources =
+  bulletPhysics.cpp
+  bulletPhysObject.cpp
+  bulletPhysRagdoll.cpp
+  bulletPhysSysInst.cpp
+  bulletLoadPhysScene.cpp
+  bulletRayCar.cpp
+  bulletAlloc.cpp
+  bulletDbgRender.cpp
+  btDagorHeightfieldTerrainShape.cpp
+;
+
+UseProgLibs = 
+  engine2/phys/physCommon
+  3rdPartyLibs/phys/bullet-$(BulletSdkVer)
+  gameLibs/render/dynmodelRenderer
+;
+
+
+
+CPPopt = -D__B_CORE -DUSE_BULLET_PHYSICS ;
+
+include $(Root)/prog/3rdPartyLibs/phys/bullet-$(BulletSdkVer)/setup.jam ;
+include $(Root)/prog/_jBuild/build.jam ;

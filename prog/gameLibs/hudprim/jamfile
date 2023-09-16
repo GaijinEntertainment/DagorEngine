@@ -1,0 +1,15 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/hudprim ;
+
+TargetType  = lib ;
+Target      = gameLibs/hudprim.lib ;
+
+AddIncludes = 
+  $(Root)/prog/gameLibs/publicInclude 
+;
+
+Sources =
+  hudPrimitives.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

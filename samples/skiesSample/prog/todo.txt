@@ -1,0 +1,134 @@
+!!
++ STARS!!
++ MOON
+*? LIGHTSHAFTS(from clouds on sky)
+!!
+
++ CPU clouds generation should be the same, as GPU
+* better noise for generation (make it look more like SIMU)
+*? assymetry/persistency cohesion
+
++ final layers != real_layers. We can ignore (remove) some layers above unwanted threshold AFTER calculation.
+  It can be, that even only one (current) layer is ok, even for mountains! If so, we can completely remove one parameter parametrization (current altitude of camera) for DX9, and tanks.
+
++ clouds lighting - remove constants from shader (sun light, ambient light): 1hrs
+  
++ on "simul" parametrization optimization we can spend more space for "lower" part (non linearily?), since it is more important -2hrs
+
++/- remove seam between 'sky' (planet) and ground - 3hrs
+  + use preparedInscatter on distances smaller, than prepared - 2hrs
+  * use same BRDF(ambient, specular) - unnessary for sample
+
++/- replace analyticalTransmittance with some (simul, cloud) parametrization (especially for clouds...)? - 2hrs
+  + replace analyticalTransmittance with simul paramterization - 1hrs
+  - replace analyticalTransmittance for flat clouds with same parametrization as inscatter proved to be slower - 1hrs
+
++ use inscattered sun 
+
++ clouds scattering simplification - we obviously can not use 80km distance limit for clouds, but real scattering is too slow!
+  + make it even simpler - we have fixed number of optimization layers, we need to rely on them (i.e. calculate three rays, and then only interpolate) 2hrs
+  + make few layers...? right now it is very fast, and OK, but for 2d clouds we will need more layers anyway...
+
++ clouds vertical shift optimize: 2hrs
+
++ also phaseFunctions, half_view, etc are constant for all fogs calculations
+
+* atmospheric scattering
+ + make render to 3d tex
+ *? optimize single scattering (what for? we use it only for sky as is, all others are precomputed...)
+   //todo: make adaptive step computations?
+ + optimize sky rendering (we dont want to integrate single scattering on sky). Remove const parametrization.
+   + optimize sky rendering: nonlinear mu
+   + remove constant 'r' computations
+   + calculate clouds overcast if too cloudy (humidity), for both single and multiple scattering. 6hrs
+   *? optimize preparing using preparedSkyInscatter (one tex2D lookup + one 4D is better than two tex4D)
+
++/- fix optimization (in simul parametrization) - 4hrs. Only incorrect on very big altitudes, simply remove it on high alt
+
+* On DX9, we can either competely remove multiple scattering (leaving only single scattering) or use only one layer of it, which is still 2d texture, in simul parametrization.
+* use 2d textures only as render target, for dx9
++? optimize for current altitude (for planes)
+
+* clouds lighting
+  * planet shadow from planet (when sun below horizon) and more accurate sun color (at least make sense in panorama)
+    * when rendering for tanks, using straight-forward brute-force calculation, or - 2hrs
+    * using some kind of LUT texture. - 2hrs
+  * optimize clouds scattering?
+
+  *? precompute clouds light scattering with vertical shift?
+
++ clouds light response tweak -2hrs
+* layer of 2d clouds:
+  + optimize fog (precomputed layer) - 1hrs
+  + generalize (remove variables from hardcode) - 1hrs
+  + optimize suncolor (precomputed layer) - 1hrs
+    * switch to constant color if sun is high enough (optimization)
+  * flowmap - 1hrs
+  * cleanup code - 1hrs
++ CPU fog (1hrs)
+* "apply" with ray casting (for planes) - 3hrs
+*? render everything in one dip (ray cast 2d clouds, sky and stars) 6hrs
++ regen buttons - 1hrs
++ relight buttons - 1hrs
+
++ make daskies clouds: 8hrs
+  + prepareSkyForAltitudeToken
+  + waterSkyAltitude (if in plane) - 1hrs (should check)
+  + LowResCloudsRenderer (in planes or if clouds are moving quickly, we need lowRes for water and lowRes for screen) - 2hrs
+  + remove console - 2hrs
+  + remove ui - 2hrs
+  + invalidation on data change -2hrs
+  + invalidate colors on data change -1hrs
+  + panorama blending -1hrs
+  + invalidate panorama  -1hrs
+  + CPU fog/sun/sky (2hrs)
+    + sky (irradiance)?
+  + make cpu visibility - 2hrs
+  + make cpu only part (visibility, server) works with no render - 2hrs
+  + shadow from clouds - 2hrs
+  + volume fog (some simple mask) - 2hrs
+    * volume fog when in panorama (render some simple mask)- 2hrs
+
+  * remove fixme - 6hrs
+  * make fly-through-clouds effect (flycube, 2hrs)
+
+
++ cube update: 4hrs
+* water
+  * clipplane 1hrs
+  * correctly apply envi (clouds overwritten by water) 1hrs
+  * water cube. 2hrs
+    Water cube doesn't have clouds in it (at least if reflection is on), and it also should not be integrated with pixels below horizon
+  + water on sky: 4hrs
+* integrate to SQ: DX11 - 16hrs, OGL-6hrs, DX9 - 6hrs
+
+
+Optimizations:
++ remove inscatter subexpressions(phase functions) to precomputed constants (like we did in simul) 2hrs
+* remove mie_height inversion from shaders 1hrs
+* unroll cloud loop
+* fix tile optimization for planes: 6hrs
++ make clouds fog render only on change
+* memory optimization: may be we don't need all prepared data for cube tex
++ optimize below panorama (we can make below panorama, instead of per-frame update, and half of space is now wasted)
++   We can also render lower half it to main panorama, changing space (say, in 1% of texture, i.e. in few texels)
+*? optimize cpuFog using LUT transmittance
+
+!!
+* layer of fog! ~8hrs
+!!
+
+GUI
++ GUI Render tab - 1hrs
++ GUI Save/load settings
+
+BUGS
++ animated clouds requires two blending panoramas... - 3hrs
++ render and apply low res skies/strata clouds (2x at least, 4x is also ok) - 2hrs
+
++ set prev_globtm - 0.5hrs
++ set pre_globtm for temporal correctly (and for SLI) - 0.5hrs
+* tile optimization
+* temporal apply with mountains
++ panorama below view.y = 0 - 1hrs
+* on intel 3000 we have to _downscale_ clouds from 256x256x32 to 128x128x16 - 2hrs

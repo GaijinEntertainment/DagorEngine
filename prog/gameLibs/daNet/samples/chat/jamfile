@@ -1,0 +1,28 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/daNet/samples/chat ;
+ConsoleExe = yes ;
+TargetType = exe ;
+Target = chat ;
+OutDir = $(Root)/$(Location) ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  chat.cpp
+;
+
+UseProgLibs =
+  engine2/memory
+  engine2/kernel
+  engine2/osApiWrappers
+  engine2/baseUtil
+  engine2/ioSys
+  engine2/perfMon/daProfilerStub
+
+  gameLibs/daNet
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

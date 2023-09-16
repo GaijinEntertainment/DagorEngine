@@ -1,0 +1,39 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/objLib2Asset ;
+ConsoleExe      = yes ;
+
+
+TargetType  = exe ;
+Target      = util/objLibCvt.exe ;
+
+OutDir          = $(Root)/tools/converters ;
+CopyTo          = $(Root)/$(Location) ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+
+Sources =
+  objLibCvt.cpp
+  con_main.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/lib3d
+  engine2/drv/drv3d_null
+  engine2/perfMon/daProfilerStub
+
+  tools/libTools/staticGeom
+  tools/libTools/dagFileRW
+  tools/libTools/dtx
+
+  tools/libTools/util
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

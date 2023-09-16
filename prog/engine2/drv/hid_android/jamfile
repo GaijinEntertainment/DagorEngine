@@ -1,0 +1,24 @@
+Root    ?= ../../../.. ;
+Location = prog/engine2/drv/hid_android ;
+Platform ?= android ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine2/drv/hid_android.lib ;
+
+Sources =
+  and_sensor.cpp
+  ms_classdrv.cpp
+  ms_device.cpp
+  kbd_classdrv.cpp
+  joy_acc_gyro_classdrv.cpp
+  joy_acc_gyro_create.cpp
+  joy_acc_gyro_device.cpp
+  joy_helper_android.cpp
+  ime_android.cpp
+;
+
+AddIncludes = $(Root)/prog/engine2/sharedInclude ;
+
+include $(Root)/prog/_jBuild/build.jam ;

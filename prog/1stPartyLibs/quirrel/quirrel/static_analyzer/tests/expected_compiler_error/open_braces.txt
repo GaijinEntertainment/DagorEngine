@@ -1,0 +1,4 @@
+//expect:error
+
+{
+x = 6

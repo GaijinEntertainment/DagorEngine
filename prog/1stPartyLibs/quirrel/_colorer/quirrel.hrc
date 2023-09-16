@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<!DOCTYPE hrc SYSTEM "../hrc.dtd">
+<?xml-stylesheet type="text/xsl" href="../hrc.xsl"?>
+<!--
+    Quirrel 4.0 colorer scheme
+-->
+<hrc>
+
+<include name="base/c.hrc"/>
+
+<scheme name="quirrelComments">
+   <regexp match="/\s+$/" region0="dError"/>
+   <block start="/\/\/(\=\=\=?!)|(\*\*\*?!)|(\!\!)/" end="/$/" scheme="Comment"
+       region="dTodo"/>
+   <block start="/\/\//" end="/$/" scheme="Comment" region="dComment"/>
+   <block start="/\/\*/" end="/\*\//" scheme="quirrelComments"
+       region="dComment" region00="dpOpenStruct" region10="dpCloseStruct"/>
+</scheme>
+
+
+<scheme name="sqStringMultiline">
+   <block start='/\@"/' end='/"/' scheme="sqStringM" region="dString"/>
+   <block start='/"/' end='/"|$/' scheme="sqStringCore" region="cString"/>
+</scheme>
+
+<scheme name="sqStringM">
+   <regexp match='/\\\\$/' region0="dError"/>
+   <regexp match='/\\[^xX0-7]/' region0="cString2"/>
+   <regexp match='/\\$/' region0="cString2"/>
+   <regexp match='/\\x|X[\da-fA-F]{1,8}/' region0="cString2"/>
+   <regexp match='/\\[0-7]{1,12}/' region0="cString2"/>
+   <regexp match='/\%[\-\+\#0]*?[\d\*]*(\.[\d\*]+)?[Ll]?[SsCcsuidopxXnEefgG]/' region0="cString2"/>
+</scheme>
+
+<scheme name="sqStringCore">
+   <regexp match='/\\\\$/' region0="dError"/>
+   <regexp match='/\\[^xX0-7]/' region0="cString2"/>
+   <regexp match='/\\$/' region0="cString2"/>
+   <regexp match='/\\x|X[\da-fA-F]{1,8}/' region0="cString2"/>
+   <regexp match='/\\[0-7]{1,12}/' region0="cString2"/>
+   <regexp match='/\%[\-\+\#0]*?[\d\*]*(\.[\d\*]+)?[Ll]?[SsCcsuidopxXnEefgG]/' region0="cString2"/>
+   <regexp match='/[^\"]$/' region0="dError"/>
+</scheme>
+
+<scheme name="Quirrel">
+   <!-- Comments -->
+   <inherit scheme="quirrelComments"/>
+   <regexp match="/\s+$/" region0="dError"/>
+
+   <regexp match="/^\M\s* function \s+ ([\w_]+) /x" region1="dFunction"/>
+   
+
+   <inherit scheme="mPairedBrackets">
+     <virtual scheme="mPairedBrackets" subst="quirrel"/>
+   </inherit>
+
+   <!-- Numbers -->
+   <regexp match="/\b0x|X[\da-fA-F]+\B/" region0="dNumber"/>
+   <regexp match="/\b[0-9.]+(e|E[\-+]?\d+)?\B/" region0="dNumber"/>
+   <regexp match="/\b(0)([0-7]+)\B/" region0="dNumber"/>
+
+   <!-- Default delegates -->
+   <regexp match="/\.(__merge)/" region1 = "dLabel"/>
+   <regexp match="/\.(__update)/" region1 = "dLabel"/>
+   <regexp match="/\.(tostring)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(tofloat)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(tointeger)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(tochar)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(weakref)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(len)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(slice)/" region1 = "dLabel"/>
+   <regexp match="/\.(tolower)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(toupper)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(rawget)/" region1 = "dLabel"/>
+   <regexp match="/\.(rawset)/" region1 = "dLabel"/>
+   <regexp match="/\.(rawdelete)/" region1 = "dLabel"/>
+   <regexp match="/\.(rawin)/" region1 = "dLabel"/>
+   <regexp match="/\.(clear)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(filter)/" region1 = "dLabel"/>
+   <regexp match="/\.(append)/" region1 = "dLabel"/>
+   <regexp match="/\.(push)/" region1 = "dLabel"/>
+   <regexp match="/\.(extend)/" region1 = "dLabel"/>
+   <regexp match="/\.(pop)/" region1 = "dLabel"/>
+   <regexp match="/\.(top)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(insert)/" region1 = "dLabel"/>
+   <regexp match="/\.(remove)/" region1 = "dLabel"/>
+   <regexp match="/\.(contains)/" region1 = "dLabel"/>
+   <regexp match="/\.(indexof)/" region1 = "dLabel"/>
+   <regexp match="/\.(findindex)/" region1 = "dLabel"/>
+   <regexp match="/\.(findvalue)/" region1 = "dLabel"/>
+   <regexp match="/\.(resize)/" region1 = "dLabel"/>
+   <regexp match="/\.(sort)/" region1 = "dLabel"/>
+   <regexp match="/\.(reverse)/" region1 = "dLabel"/>
+   <regexp match="/\.(clear)/" region1 = "dLabel"/>
+   <regexp match="/\.(map)/" region1 = "dLabel"/>
+   <regexp match="/\.(apply)/" region1 = "dLabel"/>
+   <regexp match="/\.(join)/" region1 = "dLabel"/>
+   <regexp match="/\.(concat)/" region1 = "dLabel"/>
+   <regexp match="/\.(split)/" region1 = "dLabel"/>
+   <regexp match="/\.(split)/" region1 = "dLabel"/>
+   <regexp match="/\.(reduce)/" region1 = "dLabel"/>
+   <regexp match="/\.(filter)/" region1 = "dLabel"/>
+   <regexp match="/\.(each)/" region1 = "dLabel"/>
+   <regexp match="/\.(call)/" region1 = "dLabel"/>
+   <regexp match="/\.(pcall)/" region1 = "dLabel"/>
+   <regexp match="/\.(acall)/" region1 = "dLabel"/>
+   <regexp match="/\.(pacall)/" region1 = "dLabel"/>
+   <regexp match="/\.(bindenv)/" region1 = "dLabel"/>
+   <regexp match="/\.(getfuncinfos)/" region1 = "dLabel"/>
+   <regexp match="/\.(instance)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(getattributes)/" region1 = "dLabel"/>
+   <regexp match="/\.(setattributes)/" region1 = "dLabel"/>
+   <regexp match="/\.(newmember)/" region1 = "dLabel"/>
+   <regexp match="/\.(getclass)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\.(getstatus)/" region1 = "dLabel"/>
+   <regexp match="/\.(wakeup)/" region1 = "dLabel"/>
+   <regexp match="/\.(wakeupthrow)/" region1 = "dLabel"/>
+   <regexp match="/\.(getstackinfos)/" region1 = "dLabel"/>
+   <regexp match="/\.(ref)/" region1 = "dLabel"/>
+
+   <!-- Strings -->
+   <inherit scheme="sqStringMultiline"/>
+   <!--
+   <inherit scheme="sqString"/>
+   -->
+   <inherit scheme="cSymbol"/>
+
+   <keywords region="dKeyword">
+      <word name="break"/>
+      <word name="base"/>
+      <word name="catch"/>
+      <word name="case"/>
+      <word name="class"/>
+      <word name="clone"/>
+      <word name="const"/>
+      <word name="global"/>
+      <word name="constructor"/>
+      <word name="continue"/>
+      <word name="do"/>
+      <word name="default"/>
+      <word name="delete"/>
+      <word name="else"/>
+      <word name="else"/>
+      <word name="enum"/>
+      <word name="extends"/>
+      <word name="for"/>
+      <word name="foreach"/>
+      <word name="function"/>
+      <word name="if"/>
+      <word name="in"/>
+      <word name="not in"/>
+      <word name="instanceof"/>
+      <word name="local"/>
+      <word name="let"/>
+      <word name="resume"/>
+      <word name="return"/>
+      <word name="static"/>
+      <word name="switch"/>
+      <word name="this"/>
+      <word name="throw"/>
+      <word name="try"/>
+      <word name="typeof"/>
+      <word name="while"/>
+      <word name="yield"/>
+      <word name="__LINE__"/>
+      <word name="__FILE__"/>
+      <word name="null"/>
+      <word name="true"/>
+      <word name="false"/>
+   </keywords>
+
+   <keywords region="dSymbol">
+   <!-- [\s|$|\w|\d|punc](operator)[\s|$|\w|\d|punc]-->
+      <symb name=";"/>
+      <symb name="="/>
+      <symb name="+"/>
+      <symb name="-"/>
+      <symb name="/"/>
+      <symb name="%"/>
+      <symb name="%="/>
+      <symb name="*="/>
+      <symb name="-="/>
+      <symb name="+="/>
+      <symb name="*"/>
+      <symb name="&amp;"/>
+      <symb name="&amp;&amp;"/>
+      <symb name="|"/>
+      <symb name="||"/>
+      <symb name="^"/>
+      <symb name=","/>
+      <symb name=":"/>
+      <symb name="!"/>
+      <symb name="!="/>
+      <symb name="~"/>
+      <symb name="&lt;="/>
+      <symb name="&lt;"/>
+      <symb name="&gt;&gt;"/>
+      <symb name="&gt;&gt;&gt;&gt;"/>
+      <symb name="&gt;"/>
+      <symb name="&gt;="/>
+      <symb name="&lt;=&gt;"/>
+      <symb name="%"/>
+      <symb name="?"/>
+      <symb name="&lt;-"/>
+      <symb name="=="/>
+      <symb name="!="/>
+      <symb name="++"/>
+      <symb name="--"/>
+   <!-- [\s|$](operator)[\w|\d]-->
+      <symb name="::"/>
+   <!-- [\w\d](operator)[\w|\d]-->
+      <symb name="."/>
+      <symb name="?."/>
+   </keywords>
+   <keywords region="dLabel">
+      <word name="require"/>
+      <word name="array"/>
+      <word name="seterrorhandler"/>
+      <word name="callee"/>
+      <word name="setdebughook"/>
+      <word name="getroottable"/>
+      <word name="getconsttable"/>
+      <word name="assert"/>
+      <word name="print"/>
+      <word name="println"/>
+      <word name="error"/>
+      <word name="errorln"/>
+      <word name="compilestring"/>
+      <word name="collectgarbage"/>
+      <word name="resurrectunreachable"/>
+      <word name="type"/>
+      <word name="getstackinfos"/>
+      <word name="newthread"/>
+      <word name="suspend"/>
+      <word name="min"/>
+      <word name="max"/>
+      <word name="clamp"/>
+      <word name="getobjflags"/>
+      <word name="freeze"/>
+      <word name="getbuildinfo"/>
+     <!-- metamethods-->
+      <word name="_cmp"/>
+      <word name="_set"/>
+      <word name="_get"/>
+      <word name="_newslot"/>
+      <word name="_delslot"/>
+      <word name="_add"/>
+      <word name="_sub"/>
+      <word name="_mul"/>
+      <word name="_div"/>
+      <word name="_modulo"/>
+      <word name="_unm"/>
+      <word name="_typeof"/>
+      <word name="_call"/>
+      <word name="_cloned"/>
+      <word name="_nexti"/>
+      <word name="_tostring"/>
+      <word name="_inherited"/>
+      <word name="_newmember"/>
+    <!-- default delegates-->
+   </keywords>
+
+
+</scheme>
+
+</hrc>

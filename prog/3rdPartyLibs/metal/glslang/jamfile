@@ -1,0 +1,104 @@
+Root           ?= ../../../.. ;
+Location        = prog/3rdPartyLibs/metal/glslang ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/metal/glslang.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes = 
+  $(Root)/$(Location)/../spirv-tools/include
+  $(Root)/$(Location)/glslang
+  $(Root)/$(Location)/glslang/Include
+  $(Root)/$(Location)
+  $(Root)/$(Location)/OGLCompilersDLL
+;
+
+
+Sources =
+  glslang/GenericCodeGen/CodeGen.cpp
+  glslang/GenericCodeGen/Link.cpp
+  glslang/MachineIndependent/Constant.cpp
+  glslang/MachineIndependent/glslang_tab.cpp
+  glslang/MachineIndependent/InfoSink.cpp
+  glslang/MachineIndependent/Initialize.cpp
+  glslang/MachineIndependent/Intermediate.cpp
+  glslang/MachineIndependent/intermOut.cpp
+  glslang/MachineIndependent/IntermTraverse.cpp
+  glslang/MachineIndependent/limits.cpp
+  glslang/MachineIndependent/linkValidate.cpp
+  glslang/MachineIndependent/parseConst.cpp
+  glslang/MachineIndependent/ParseHelper.cpp
+  glslang/MachineIndependent/PoolAlloc.cpp
+  glslang/MachineIndependent/reflection.cpp
+  glslang/MachineIndependent/RemoveTree.cpp
+  glslang/MachineIndependent/Scan.cpp
+  glslang/MachineIndependent/ShaderLang.cpp
+  glslang/MachineIndependent/SymbolTable.cpp
+  glslang/MachineIndependent/Versions.cpp
+  glslang/MachineIndependent/propagateNoContraction.cpp
+  glslang/MachineIndependent/ParseContextBase.cpp
+  glslang/MachineIndependent/SpirvIntrinsics.cpp
+  glslang/MachineIndependent/iomapper.cpp
+  glslang/MachineIndependent/preprocessor/Pp.cpp
+  glslang/MachineIndependent/preprocessor/PpAtom.cpp
+  glslang/MachineIndependent/preprocessor/PpContext.cpp
+  glslang/MachineIndependent/preprocessor/PpScanner.cpp
+  glslang/MachineIndependent/preprocessor/PpTokens.cpp
+  glslang/MachineIndependent/attribute.cpp
+  glslang/HLSL/hlslGrammar.cpp
+  glslang/HLSL/hlslOpMap.cpp
+  glslang/HLSL/hlslParseHelper.cpp
+  glslang/HLSL/hlslScanContext.cpp
+  glslang/HLSL/hlslTokenStream.cpp
+  glslang/HLSL/hlslParseables.cpp
+  glslang/HLSL/hlslAttributes.cpp
+  SPIRV/disassemble.cpp
+  SPIRV/doc.cpp
+  SPIRV/GlslangToSpv.cpp
+  SPIRV/SpvBuilder.cpp
+  SPIRV/SPVRemapper.cpp
+  SPIRV/InReadableOrder.cpp
+  SPIRV/Logger.cpp
+  SPIRV/SpvPostProcess.cpp
+  # SPIRV/SpvTools.cpp
+  OGLCompilersDLL/InitializeDll.cpp
+;
+
+
+if $(Platform) in win32 win64 {
+  AddIncludes += 
+    $(Root)/$(Location)/glslang/OSDependent/Windows
+  ;
+  Sources += 
+    glslang/OSDependent/Windows/main.cpp
+    glslang/OSDependent/Windows/ossource.cpp
+  ;
+  CPPopt =
+    /d2Zi+
+    -DWIN32
+    -DNDEBUG
+    -D_CONSOLE
+    -DGENERIC_COMPILER
+    -DYYDEBUG=0
+    -DENABLE_HLSL=1
+  ;
+}
+else if $(Platform) = macosx {
+  AddIncludes +=
+    $(Root)/$(Location)/glslang/OSDependent/Unix
+  ;
+  Sources +=
+   glslang/OSDependent/Unix/ossource.cpp
+  ;
+  CPPopt =
+    -DNDEBUG
+    -D_CONSOLE
+    -DGENERIC_COMPILER
+    -DYYDEBUG=0
+    -DENABLE_HLSL=1
+    ;
+}
+
+
+include $(Root)/prog/_jBuild/build.jam ;

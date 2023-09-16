@@ -1,0 +1,45 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "project": {
+    "name": "webview"
+  },
+  "apps": [
+    {
+      "root": "app",
+      "outDir": "dist",
+      "baseHref": "/webview/",
+      "assets": [
+        "assets",
+        "favicon.ico"
+      ],
+      "index": "index.html",
+      "main": "main.ts",
+      "polyfills": "polyfills.ts",
+      "test": "test.ts",
+      "tsconfig": "tsconfig.app.json",
+      "testTsconfig": "tsconfig.spec.json",
+      "prefix": "my",
+      "styles": [
+        "assets/styles.css",
+        "../vendor/bootstrap/css/bootstrap-4.0.0.min.css",
+        "../vendor/font-awesome/css/font-awesome.min.css",
+        "../node_modules/angular-tree-component/dist/angular-tree-component.css",
+        "../node_modules/@swimlane/ngx-datatable/src/themes/bootstrap.scss",
+        "../node_modules/jsoneditor/dist/jsoneditor.min.css"
+      ],
+      "scripts": [],
+      "environmentSource": "environments/environment.ts",
+      "environments": {
+        "dev": "environments/environment.ts",
+        "prod": "environments/environment.prod.ts"
+      }
+    }
+  ],
+  "defaults": {
+    "styleExt": "css",
+    "serve": {
+      "port": 4010
+    },
+    "component": {}
+  }
+}

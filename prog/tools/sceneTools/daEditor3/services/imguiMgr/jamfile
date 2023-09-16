@@ -1,0 +1,26 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditor3/services/imguiMgr ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditor3/services/imguiMgr.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  imguiManager.cpp
+;
+
+UseProgLibs =
+  engine2/drv/hid_joystick
+  engine2/drv/hid_gamepad_xinput
+  engine2/drv/hid_dinput
+  gameLibs/imguiInput
+  gameLibs/ecs/input
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

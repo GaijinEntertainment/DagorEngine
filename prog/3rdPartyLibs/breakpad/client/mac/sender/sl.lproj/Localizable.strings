@@ -1,0 +1,26 @@
+﻿/* Strings for User Notification of a crash */
+"crashDialogHeader" = "Program %@ se je nepričakovano zaprl.";
+"crashDialogMsg" = "Sistem in ostali programi niso bili prizadeti. Ustvarjeno je bilo poročilo, ki ga lahko pošljete %@, da pomagate pri identifikaciji težave.";
+
+"noCrashDialogHeader" = "Program %@ je naletel na težavo.";
+"noCrashDialogMsg" = "Sistem in ostali programi niso bili prizadeti. Ustvarjeno je bilo poročilo, ki ga lahko pošljete %1$@, da pomagate izboljšati %2$@.";
+
+"commentsMsg" = "Prosimo, pomagajte nam razrešiti težavo z opisom dogodkov, ki so se zgodili, preden se je program sesul. Poročilo naj bo napisano v angleščini.";
+"emailMsg" = "Vaš e-poštni naslov nam bo omogočil stopiti v stik z vami, če bomo potrebovali več podatkov o sesutju vašega programa.";
+
+"commentsPlaceholder" = "neobvezne dodatne pripombe";
+"emailPlaceholder" = "neobvezno";
+
+"emailLabel" = "E-pošta:";
+"privacyLabel" = "Politika zasebnosti";
+
+"sendReportButton" = "Pošlji poročilo";
+"cancelButton" = "Prekliči";
+"noSendButton" = "V redu";
+"privacyPolicyURL" = "http://www.google.com/privacypolicy.html";
+
+"countdownMsgSecondsPlural" = "%d s do konca.";
+"countdownMsgSecondSingular" = "%d sekunda do konca.";
+
+"countdownMsgMinutesPlural" = "%d min do konca.";
+"countdownMsgMinuteSingular" = "%d minuta do konca.";

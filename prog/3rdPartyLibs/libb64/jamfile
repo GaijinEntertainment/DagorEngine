@@ -1,0 +1,15 @@
+Root     ?= ../../.. ;
+Location = prog/3rdPartyLibs/libb64 ;
+Target   = 3rdPartyLibs/libb64.lib ;
+
+TargetType  = lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+AddIncludes = $(Root)/$(Location)/include ;
+
+Sources =
+  src/cdecode.c
+  src/cencode.c
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

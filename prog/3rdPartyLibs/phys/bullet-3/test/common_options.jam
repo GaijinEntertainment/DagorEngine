@@ -1,0 +1,32 @@
+btAlignedAllocator = \# include \"LinearMath/btAlignedAllocator.cpp\" ;
+Sources += btAlignedAllocator.jamvar ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/phys/bullet-3/src
+  $(Root)/prog/3rdPartyLibs/phys/bullet-3/test/gtest-1.7.0/include
+;
+
+UseProgLibs =
+  engine2/memory/rtlStdMemory
+  engine2/kernel
+  engine2/osApiWrappers
+  engine2/baseUtil
+  engine2/perfMon/daProfilerStub
+  3rdPartyLibs/eastl
+  3rdPartyLibs/phys/bullet-3
+  3rdPartyLibs/phys/bullet-3/test/gtest-1.7.0
+;
+
+include $(Root)/prog/3rdPartyLibs/phys/bullet-3/setup.jam ;
+if $(Platform) in win64 xboxOne scarlett { CPPopt += /wd4267 ; }
+
+if $(PlatformSpec) = clang {
+  CPPopt += -Wno-format -Wno-undefined-inline ;
+  if $(Platform) in win32 win64 xboxOne scarlett {
+    CPPopt += -fp:fast /clang:-fno-unsafe-math-optimizations ;
+  } else {
+    CPPopt += -ffast-math -fno-unsafe-math-optimizations ;
+  }
+}
+
+if $(GLOBAL_DependOnJam) { DependOnJams += $(Root)/prog/3rdPartyLibs/phys/bullet-3/test/common_options.jam ; } # to handle depjam case

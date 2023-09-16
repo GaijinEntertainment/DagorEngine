@@ -1,0 +1,56 @@
+Root    ?= ../../../.. ;
+Location = prog/1stPartyLibs/webbrowser/helper ;
+Config = rel ; # force, we want only one executable
+
+include $(Root)/prog/3rdPartyLibs/cef3/select.jam ; # Get CEF3 versions
+TargetType = exe ;
+Target = $(Cef3Version)/cefprocess ;
+# StrictCompile = yes ;
+
+OutDir ?= $(Root)/webbrowser ;
+
+if ! $(Platform) in win32 win64 {
+  Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+}
+
+NoMemBaseInclude = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+include $(Root)/prog/3rdPartyLibs/cef3/select.jam ; # defaults.jam resets CEF includes and libs
+
+Sources =
+  main.cpp
+  endpoint.cpp
+
+  cef/app.cpp
+  cef/client.cpp
+  cef/browserList.cpp
+  cef/cookies.cpp
+  cef/javaScriptHandler.cpp
+
+  helper.rc
+  version.inc.c
+;
+
+AddIncludes +=
+  $(Root)/prog/1stPartyLibs/webbrowser/lib
+  $(Root)/prog/3rdPartyLibs/flatbuffers/include
+;
+
+UseProgLibs += 1stPartyLibs/webbrowser ;
+
+if $(Platform) in win32 win64 {
+  CPPopt += -DUNICODE -D_UNICODE ;
+  AddLibs += Shell32.lib ;
+}
+
+if $(Platform) = win32 {
+  Manifest = $(Root)/$(Location)/helper.exe.manifest ;
+} else if $(Platform) = win64 {
+  Manifest = $(Root)/$(Location)/helper64.exe.manifest ;
+}
+
+if $(BUILD_NUMBER) != "" { ALWAYS $(Location)/version.inc.c ; }
+CPPopt += -D_HAS_EXCEPTIONS=0 -DNOMINMAX ;
+
+include $(Root)/prog/_jBuild/build.jam ;

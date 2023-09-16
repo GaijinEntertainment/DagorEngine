@@ -1,0 +1,12 @@
+Root    ?= ../../../.. ;
+Location = prog/engine2/drv/hid_dinput ;
+
+TargetType  = lib ;
+Target      = engine2/drv/hid_dinput.lib ;
+
+Sources =
+  di_data.cpp
+  di_init.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,368 @@
+Script panel wrapper help, by ti, 2011
+
+//==========================================================================
+
+Base sceme
+
+EXAMPLE:
+
+scheme <-
+{
+  controls =
+  [
+    // controls
+  ]
+}
+
+//------------------------------------------------------------------------
+
+Base control parameters (with default values):
+
+type = "group"
+name = "noname"
+caption = name
+disabled = false
+visible = true
+extensible = false
+onChange = NULL (change callback)
+
+EXAMPLE:
+
+scheme <-
+{
+  controls =
+  [
+    {
+      name = "player"
+      caption = "player_teamA"
+      type = "group"
+      controls = [
+        { name = "wing", type = "target_object", target_type = "unit" extensible= true, itemsCount=[1,8]}
+        { name = "army" type = "enum_int"  def = 1 options = [1,2] }
+      ]
+    }
+  ]
+}
+
+//------------------------------------------------------------------------
+
+Global routines:
+
+getControl("scheme/full_control_name_with_slashes")
+
+EXAMPLE:
+
+scheme <- {
+  controls =   [
+    {name = "attack_type", type = "enum_text",
+      extensible = true, itemsCount =[0,1]
+      options=["fire_at_will","fire_at_will_gnd"] def="fire_at_will"
+        onChange = function()
+        {
+          if (value=="attack_target"||"kill_target") {
+            getControl("scheme/target").disabled = false
+            getControl("scheme/target").visible = true
+          }
+          else{
+            getControl("scheme/target").disabled = true
+            getControl("scheme/target").visible = false
+          }
+        }
+    }
+  ]
+}
+
+//------------------------------------------------------------------------
+
+Extensibles - group of same controls
+
+extensible = true, 
+itemsCount = [min,max]
+remove_confirm = false (for controls), true (for groups)
+is_renameble = false (new style of renameble extensible groups)
+
+EXAMPLE:
+
+{name = "randomObjectsCount", type = "int", def = 1, extensible = true, itemsCount = [0,1]}
+
+//==========================================================================
+
+CONSTROLS:
+
+Group
+Simple group
+Text
+Int
+Int with track
+Real
+Real with track
+Color
+Point2
+Point3
+Point4
+Int point2
+Int point3
+Matrix
+Combo text/int/real boxes
+File/Folder
+Target/Target or custom text
+Gradient
+Text gradient
+Curve editor
+
+//------------------------------------------------------------------------
+
+Group
+
+type = "group"
+def = false (is minimized)
+controls = []
+
+EXAMPLE:
+
+{
+  name = "stars"
+  type = "group"
+  def = false
+  controls = [
+    { name = "latitude" type = "real" def = 48}
+  ]
+}
+
+//------------------------------------------------------------------------
+
+Simple group
+
+type = "uncollapsible_group"
+controls = []
+
+//------------------------------------------------------------------------
+
+Text
+
+type = "text"
+def = ""
+value = ""
+
+EXAMPLE:
+
+{ name = "filename", type = "text", def="zzz"}
+
+//------------------------------------------------------------------------
+
+Int/Int with track
+
+type = "int"/"ranged_int"
+def = 0
+value = 0
+min = INT_MIN
+max = INT_MAX
+step = 1
+
+
+EXAMPLE:
+
+{ name = "month" type = "int", def = 1,min = 1,max = 12,step = 1}
+
+//------------------------------------------------------------------------
+
+Real/Real with track
+
+type = "real"/"ranged_real"
+def = 0
+value = 0
+min = -FLT_MAX
+max = FLT_MAX
+step = 0.01
+
+
+EXAMPLE:
+
+{ name = "pressure" type = "real" def = 760 }
+
+//------------------------------------------------------------------------
+
+Bool
+
+type = "bool"
+def = false
+value = false
+
+EXAMPLE:
+
+{ name = "optionalTakeOff" type="bool" def=false}
+
+//------------------------------------------------------------------------
+
+Color:
+
+type = "color"
+def = [0, 0, 0, 0]
+value = [0, 0, 0, 0]
+
+EXAMPLE:
+
+{name = "colorForObjects", type = "color",  def=[255, 255, 255, 0]}
+
+//------------------------------------------------------------------------
+
+Point2/Point3/Point4
+
+type = "point2"/"point3"/"point4"
+def = [0.0, 0.0 (, 0.0, 0.0)]
+value = [0.0, 0.0(, 0.0, 0.0)]
+
+EXAMPLE:
+
+{name = "delayForObjects", type = "point2",  def=[0.0,0.0]}
+
+//------------------------------------------------------------------------
+
+Int point2/Int point3
+
+type = "ipoint2"/"ipoint3"
+def = [0, 0 (, 0)]
+value = [0, 0(, 0)]
+
+EXAMPLE:
+
+{name = "delayForObjects", type = "ipoint2",  def=[1,1]}
+
+//------------------------------------------------------------------------
+
+Matrix
+
+type = "matrix"
+def = [[1,0,0],[0,1,0],[0,0,1],[0,0,0]]
+value = [[1,0,0],[0,1,0],[0,0,1],[0,0,0]]
+
+EXAMPLE:
+
+{ name = "testmatrix" type = "matrix" value=[[1,2,3],[4,5,6],[7,8,9],[0,0,0]] }
+
+//------------------------------------------------------------------------
+
+Combo text/int/real boxes
+
+type = "enum_text"/"enum_int"/"enum_real"
+def = ""/0/0.0
+value = ""/0/0.0
+options = []
+
+EXAMPLE:
+
+{name="side", type="enum_text", def="player" options=["player","ally","enemy"]}
+{name = "army" type = "enum_int"  def = 1 options = [1,2]}
+
+//------------------------------------------------------------------------
+
+File
+
+type = "target_file"
+options = [] (extension filters)
+def = ""
+value = ""
+folder = "" (base folder)
+
+EXAMPLE:
+
+{ name = "filename", type = "target_file", def="", options = ["Missions|*.blk"], 
+folder = APP_DIR + "develop/", value = "library/"}
+
+//------------------------------------------------------------------------
+
+Folder
+
+type = "target_folder"
+def = ""
+value = ""
+folder = "" (base folder)
+
+EXAMPLE:
+
+{ name = "folder", type = "target_folder", folder = APP_DIR, value = "develop/levels"}
+
+//------------------------------------------------------------------------
+
+Target/Target or custom text
+
+type = "target_object"/"object_or_text"
+value = ""
+def = ""
+target_type = "default"
+filter = ""
+
+EXAMPLE:
+
+{ name = "grassAsset", type = "target_object", target_type = "asset", filter = "grass"}
+{ name = "missionDebriefing" type = "object_or_text", target_type = "locStr" value = "" }
+
+//------------------------------------------------------------------------
+
+Gradient
+
+type = "gradient"
+value = def = [{x = 0.0 color = [0,0,0,255]}, {x = 1.0 color = [255, 255, 255, 255]}]
+min = 2
+max = 100
+mark = 0
+
+EXAMPLE:
+
+{
+  name = "test_gradient10"
+  type = "gradient"
+  caption = "Test gradient"
+  value = [{x = 0.0, color = [0,0,0,255]}, {x = 0.5, color = [0,255,0,255]}, {x = 1.0, color = [255, 255, 255, 255]}]
+  min = 2
+  max = 3
+}
+
+//------------------------------------------------------------------------
+
+Text gradient
+
+type = "text_gradient"
+value = def = [{x = 0.0 text = "start"}, {x = 1.0 text = "end"}]
+target_type = "default"
+filter = ""
+min = 2
+max = 100
+mark = 0
+
+EXAMPLE:
+
+{
+  name = "test_gradient20"
+  type = "text_gradient"
+  caption = "Test gradient"
+  value = [{x = 0.0 text = "start"}, {x = 0.7 text = "0.7"}, {x = 1.0 text = "end"}]
+  min = 2
+  max = 4
+}
+
+
+//------------------------------------------------------------------------
+
+Curve editor
+
+type = "curve"
+def = value = [[0,0],[1,1]] (array of points)
+min = 2 (min points count)
+max = 100 (max points count)
+options = [0, 0, 0, 0] (coordinates limits [x0, y0, x1, y1])
+height = 60
+mark = 0
+
+EXAMPLE:
+
+{
+  name = "test_curve"
+  type = "curve"
+  caption = "Test curve"
+  options = [0,-180,1,180]
+  def = [[0,-90],[1,90]]
+  height = 200
+}
+
+//------------------------------------------------------------------------

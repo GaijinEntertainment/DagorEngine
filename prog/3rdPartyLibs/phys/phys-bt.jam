@@ -1,0 +1,4 @@
+CPPopt += -DUSE_BULLET_PHYSICS ;
+AddIncludes += $(Root)/prog/3rdPartyLibs/phys/bullet-$(BulletSdkVer)/src ;
+UseProgLibs += engine2/phys/physBullet ;
+include $(Root)/prog/3rdPartyLibs/phys/bullet-$(BulletSdkVer)/setup.jam ;

@@ -1,0 +1,7 @@
+  ref:t=world_view_pos
+  ref:t=global_transp_r
+  ref:t=dynamic_cube_tex
+  ref:t=shadow_cascade_tm_const_no
+  ref:t=shadow_cascade_tc_mul_offset_const_no
+  ref:t=ssaoProjInfo
+  ref:t=heightmap_scale_offset

@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html>
+<style type="text/css">
+  body {
+    font-family: roboto, verdana, arial;
+    font-size: 9pt;
+    color: black;
+  }
+
+  .caption {
+    background-color: #eef;
+    border: 3px solid #eef;
+    user-select:none;
+    -moz-user-select:-moz-none;
+    -webkit-user-select:none;
+    margin-bottom: 5px;
+  }
+
+  .panel {
+    border: 3px solid #ccc;
+    background-color: #ccc;
+    width: 250px;
+    margin-bottom: 7px;
+    user-select: none;
+    -moz-user-select: -moz-none;
+    -webkit-user-select: none;
+  }
+
+  select:disabled {
+    color: #999;
+  }
+
+  .movable {
+    position: absolute;
+    background-color: #236;
+    width: 300px;
+    height: 200px;
+  }
+
+  .slider {
+    border: 0px;
+    margin: 0px;
+    width: 99%;
+  }
+
+  .editbox {
+    width: 75px;
+    border: 0px;
+    margin: 2px;
+    font-size: 8pt;
+  }
+
+  button{
+    margin: 2px;
+    font-size: 8pt;
+  }
+
+  select{
+    min-width: 75px;
+    margin: 2px;
+    font-size: 8pt;
+  }
+
+  .checkbox {
+    margin: 2px;
+    font-size: 8pt;
+  }
+
+  [draggable] {
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .column {
+    display: inline-block;
+    width: 270px;
+    vertical-align: top;
+  }
+
+</style>
+
+<head>
+<meta charset="UTF-8">
+<title>Var Editor</title>
+</head>
+<body bgcolor="#444" ondrop="drop(event)" ondragover="allowDrop(event)">
+
+<div id="workspace">
+  <div id="_column0" class="column">span0</div>
+  <div id="_column1" class="column">span1</div>
+  <div id="_column2" class="column">span2</div>
+  <div id="_column3" class="column">span3</div>
+  <div id="_column4" class="column">span3</div>
+</div>
+
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+
+<script src="colorPicker.js"></script>
+<script src="curveEditor.js"></script>
+<script src="../colorpicker/colorPicker.js"></script>
+<script src="../editorCurves/curveEditor.js"></script>
+
+<script type="text/javascript">
+
+var client = new XMLHttpRequest();
+var errorState = false;
+var attached = false;
+
+
+function query(q, callDetach, callback)
+{
+  if (q != "state")
+    console.log("query: " + q);
+
+  if (!attached)
+    return;
+
+  if (typeof callDetach === 'undefined')
+    callDetach = true;
+
+  client.open('GET', 'editvar?' + q, true);
+
+  client.onreadystatechange = function()
+  {
+    if (client.readyState != 4)
+      return;
+
+    if (client.status != 0 && client.status != 200)
+    {
+      if (callDetach)
+      {
+        console.log("ERROR: " + client.status + " " + client.statusText);
+        onDetach();
+      }
+      return;
+    }
+
+    if (typeof callback !== 'undefined')
+      callback(client.responseText);
+  }
+
+  client.send(null);
+}
+
+function onAttach()
+{
+  attached = true;
+  query('layout', true, function(text)
+    {
+      if (text.length > 0)
+      {
+        createWorkspaceFromText(text);
+        attached = true;
+      }
+    });
+  attached = false;
+}
+
+function onDetach()
+{
+  query('detach', false);
+  attached = false;
+}
+
+function allowDrop(event)
+{
+  event.preventDefault();
+}
+
+function drop(event)
+{
+  event.preventDefault();
+  var data = event.dataTransfer.getData("Text");
+  if (data)
+  {
+    var ix = Math.max(Math.min(Math.trunc((event.pageX) / 270), 4), 0);
+    var panel = document.getElementById("_panel." + data);
+    if (panel)
+    {
+      var target = document.getElementById("_column" + ix);
+      if (panel.parentElement != target)
+      {
+        target.appendChild(panel);
+        window.localStorage.setItem("_col." + data, "" + ix);
+      }
+    }
+  }
+}
+
+
+function onTimer()
+{
+  if (!attached)
+    return;
+
+  if (client.readyState == 0 || client.readyState == 4)
+    query('state', true, function(text)
+      {
+        if (text.length > 0)
+          updateWorkspaceFromText(text);
+      });
+}
+
+function makeId(component, panel, variable)
+{
+  return component + "." + panel + "." + variable;
+}
+
+function makeName(panel, variable)
+{
+  return panel + "." + variable;
+}
+
+function onEditChange(value, panel, variable)
+{
+  if (value == "")
+    return;
+
+  var sliderId = makeId("slider", panel, variable);
+  var slider = document.getElementById(sliderId);
+  if (slider)
+    slider.value = value;
+
+  query("setvar&" + makeName(panel, variable) + "&" + value);
+}
+
+function onSliderChange(value, panel, variable)
+{
+  var editId = makeId("edit", panel, variable);
+  var edit = document.getElementById(editId);
+  if (edit)
+    edit.value = value;
+
+  query("setvar&" + makeName(panel, variable) + "&" + value);
+}
+
+function onCheckboxChange(value, panel, variable)
+{
+  value = value ? 1 : 0;
+  query("setvar&" + makeName(panel, variable) + "&" + value);
+}
+
+function onSelectChange(value, panel, variable)
+{
+  query("setvar&" + makeName(panel, variable) + "&" + value);
+}
+
+function onColorChanged(color4FloatStr, e3dcolorHexStr, varId)
+{
+  query("setvar&" + varId + "&" + e3dcolorHexStr);
+}
+
+function onCurveChanged(varId, valueStr)
+{
+  query("setvar&" + varId + "&" + valueStr);
+}
+
+function onButtonChange(value, panel, variable)
+{
+  if (panel === "*system" && variable === "copy_to_clipboard")
+  {
+    query("copy_to_clipboard");
+  }
+  else
+  {
+    value = parseInt(value, 10) ? 1 : 0;
+    query("setvar&" + makeName(panel, variable) + "&" + (1 - value));
+  }
+}
+
+function onCaptionClick(panel)
+{
+  var plus = document.getElementById("_plus." + panel);
+  var cont = document.getElementById("_cont." + panel);
+  if (cont.style.display == "none")
+  {
+    cont.style.display = "block";
+    plus.innerHTML = "<b>-</b>&nbsp;";
+    window.localStorage.removeItem("_hidden." + panel);
+  }
+  else
+  {
+    cont.style.display = "none";
+    plus.innerHTML = "<b>+</b>&nbsp;";
+    window.localStorage.setItem("_hidden." + panel, "1");
+  }
+}
+
+function onDragStart(event, panel)
+{
+  event.dataTransfer.setData("Text", panel);
+  event.currentTarget.style.opacity = "0.7";
+}
+
+function onDragEnd(event, panel)
+{
+  event.currentTarget.style.opacity = "1.0";
+}
+
+
+function createWorkspaceFromText(text)
+{
+  text = "bool_button%*system%copy_to_clipboard%1%:" + text;
+
+  var panelNames = [];
+
+  function quotes(text)
+  {
+    return "\"" + text + "\"";
+  }
+
+  function div(panel, variable, text)
+  {
+    return "<div id='" + makeId("div", panel, variable) + "'" +
+      " name='" + makeName(panel, variable) + "'>" + text + "</div>\n"
+  }
+
+  function edit(panel, variable, min_v, max_v, def_v, step)
+  {
+    return "<input class='editbox' id='" + makeId("edit", panel, variable) + "'" +
+      " name='" + makeName(panel, variable) + "' type='number' min='" + min_v +
+      "' max='" + max_v + "' value='" + def_v + "' step='" + step + "'" +
+      " onchange='onEditChange(this.value, " + quotes(panel) + ", " + quotes(variable) + " );'/>";
+  }
+
+  function slider(panel, variable, min_v, max_v, def_v, step)
+  {
+    return "<input class='slider' id='" + makeId("slider", panel, variable) + "'" +
+      " name='" + makeName(panel, variable) + "' type='range' min='" + min_v +
+      "' max='" + max_v + "' value='" + def_v + "' step='" + step + "'" +
+      " onchange='onSliderChange(this.value, " + quotes(panel) + ", " + quotes(variable) + " );'/>";
+  }
+
+  function checkbox(panel, variable, def_v)
+  {
+    return "<label><input id='" + makeId("checkbox", panel, variable) + "'" +
+      " name='" + makeName(panel, variable) + "' type='checkbox' " +
+      (def_v == "0" ? "" : "checked") +
+      " onchange='onCheckboxChange(this.checked, " + quotes(panel) + ", " + quotes(variable) + " );'/>"+variable+"</label>";
+  }
+
+  function button(panel, variable, def_v)
+  {
+    return "<button id='" + makeId("button", panel, variable) + "'" +
+      " name='" + makeName(panel, variable) + "' " +
+      " onclick='onButtonChange(" + def_v + ", " + quotes(panel) + ", " + quotes(variable) + " );'>"+variable+"</button>";
+  }
+
+  function select(panel, variable, def_v, values)
+  {
+    var res = "<select id='" + makeId("select", panel, variable) + "'" +
+      " name='" + makeName(panel, variable) + "'" +
+      " onchange='onSelectChange(this.selectedIndex, " + quotes(panel) + ", " + quotes(variable) + " );'>";
+
+    for (var i = 0; i < values.length; i++)
+    {
+      var v = values[i].trim();
+      res += "<option " + (i == def_v ? "selected" : "") + " value='" + v + "'>" + v + "</option>";
+    }
+    res += "</select>";
+    return res;
+  }
+
+  function colorPicker(panel, variable, def_v)
+  {
+    return "<button id='" + makeId("color", panel, variable) + "'" +
+      " style='background:#" + def_v.substring(0, 6) +";'  " +
+      " data-color='" + def_v + "'"+
+      " name='" + makeName(panel, variable) + "' " +
+      " onclick='show_color_picker_hex(this, \"" + makeName(panel, variable) + "\",onColorChanged);'>" +
+      "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</button>";
+  }
+
+
+  function curveEditor(panel, variable, def_v, interpolation)
+  {
+    var add_and_remove = true;
+    var bck_curves = null;
+    var style = "gray";
+
+    return make_curve_editor_html(makeName(panel, variable), def_v, onCurveChanged, style, bck_curves, interpolation, add_and_remove);
+  }
+
+
+  function makePanel(panel)
+  {
+    panelNames.push(panel);
+    return "<div class='panel' id='_panel." + panel + "' >" +
+      "<div class='caption' onclick='onCaptionClick(\"" + panel + "\");' draggable='true'"+
+      " ondragstart = 'onDragStart(event, \"" + panel + "\")'"+
+      " ondragend = 'onDragEnd(event, \"" + panel + "\")'"+
+      " >" +
+      "<span id='_plus." + panel + "' ><b>-</b>&nbsp;</span>" + panel + "</div><div id='_cont." + panel + "'>";
+  }
+
+  function floatStep(step, min_v, max_v)
+  {
+    if (!step || step === "")
+      step = 0.001;
+    var d = max_v - min_v;
+    return Math.max(step, d / 1000);
+  }
+
+  function toBool(val)
+  {
+    if (val == "0" || val == "false" || val == "FALSE" || val == "NULL")
+      return false;
+    else
+      return true;
+  }
+
+  var panels = [];
+  var panelName = "";
+
+  var lines = text.split("%:");
+  for (var i = 0; i < lines.length; i++)
+    if (lines[i].length > 1)
+    {
+      console.log("cr: " + lines[i]);
+      var html = "";
+      var params = lines[i].split("%");
+
+      if (params[0] == "int_editbox")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var min_v = params[3];
+        var max_v = params[4];
+        var def_v = params[5];
+
+        html += div(panelName, v, v + edit(panelName, v, min_v, max_v, def_v, 1));
+      }
+      else if (params[0] == "float_editbox")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = params[3];
+
+        html += div(panelName, v, v + edit(panelName, v, min_v, max_v, def_v, floatStep(0.0001, min_v, max_v)));
+      }
+      else if (params[0] == "point2_editbox")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = params[3];
+        var values = def_v.split(",");
+
+        html += div(panelName, v + "@",
+          v + "<br>" + edit(panelName, v + "@0", -1e20, 1e20, values[0], 0.001) +
+                       edit(panelName, v + "@1", -1e20, 1e20, values[1], 0.001)
+          );
+      }
+      else if (params[0] == "point3_editbox")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = params[3];
+        var values = def_v.split(",");
+
+        html += div(panelName, v + "@",
+          v + "<br>" + edit(panelName, v + "@0", -1e20, 1e20, values[0], 0.001) +
+                       edit(panelName, v + "@1", -1e20, 1e20, values[1], 0.001) +
+                       edit(panelName, v + "@2", -1e20, 1e20, values[2], 0.001)
+          );
+      }
+      else if (params[0] == "ipoint2_editbox")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = params[3];
+        var values = def_v.split(",");
+
+        html += div(panelName, v + "@",
+          v + "<br>" + edit(panelName, v + "@0", -1e20, 1e20, values[0], 1) +
+                       edit(panelName, v + "@1", -1e20, 1e20, values[1], 1)
+          );
+      }
+      else if (params[0] == "ipoint3_editbox")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = params[3];
+        var values = def_v.split(",");
+
+        html += div(panelName, v + "@",
+          v + "<br>" + edit(panelName, v + "@0", -1e20, 1e20, values[0], 1) +
+                       edit(panelName, v + "@1", -1e20, 1e20, values[1], 1) +
+                       edit(panelName, v + "@2", -1e20, 1e20, values[2], 1)
+          );
+      }
+      else if (params[0] == "int_slider")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var min_v = params[3];
+        var max_v = params[4];
+        var def_v = params[5];
+
+        html += div(panelName, v, v + edit(panelName, v, min_v, max_v, def_v, 1) + "<br>" +
+          slider(panelName, v, min_v, max_v, def_v, 1));
+      }
+      else if (params[0] == "float_slider")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var min_v = params[3];
+        var max_v = params[4];
+        var def_v = params[5];
+        var step = floatStep(params[6], min_v, max_v);
+
+        html += div(panelName, v, v + edit(panelName, v, min_v, max_v, def_v, step) + "<br>" +
+          slider(panelName, v, min_v, max_v, def_v, step));
+      }
+      else if (params[0] == "bool_checkbox")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = toBool(params[3]);
+
+        html += div(panelName, v, checkbox(panelName, v, def_v));
+      }
+      else if (params[0] == "bool_button")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = toBool(params[3]);
+
+        html += div(panelName, v, button(panelName, v, def_v));
+      }
+      else if (params[0] == "int_combobox")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = params[3];
+        var values = params[4].split(",");
+
+        html += div(panelName, v, v + select(panelName, v, def_v, values));
+      }
+      else if (params[0] == "e3dcolor")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = params[3];
+
+        html += div(panelName, v, v + colorPicker(panelName, v, def_v));
+      }
+      else if (params[0] == "linear_curve")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = params[3];
+
+        html += div(panelName, v, v + "<br>" + curveEditor(panelName, v, def_v, "piecewise_linear"));
+      }
+      else if (params[0] == "polynom_curve")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = params[3];
+
+        html += div(panelName, v, v + curveEditor(panelName, v, def_v, "polynom"));
+      }
+      else if (params[0] == "steps_curve")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = params[3];
+
+        html += div(panelName, v, v + curveEditor(panelName, v, def_v, "steps"));
+      }
+      else if (params[0] == "monotonic_curve")
+      {
+        panelName = params[1];
+        var v = params[2];
+        var def_v = params[3];
+
+        html += div(panelName, v, v + curveEditor(panelName, v, def_v, "piecewise_monotonic"));
+      }
+      else
+        alert("invalid param type: " + params[0] + " for " + params[2]);
+
+
+      if (panels[panelName] === undefined)
+        panels[panelName] = makePanel(panelName);
+
+      panels[panelName] += html;
+    }
+
+  for (var k = 0; k <= 4; k++)
+  {
+    var sum = "";
+    for (var key in panels)
+    {
+      var ix = window.localStorage.getItem("_col." + key);
+      if (!ix)
+        ix = 0;
+      else
+        ix = parseInt(ix, 10);
+
+      if (k == ix)
+        sum += panels[key] + "</div></div>\n";
+    }
+
+    document.getElementById("_column" + k).innerHTML = sum;
+  }
+
+  for (i in panelNames)
+  {
+    var hidden = (window.localStorage.getItem("_hidden." + panelNames[i]) == "1")
+    if (hidden)
+      onCaptionClick(panelNames[i]);
+  }
+}
+
+function updateWorkspaceFromText(text)
+{
+  var lines = text.split("%:");
+  for (var i = 0; i < lines.length; i++)
+    if (lines[i].length > 1)
+    {
+      console.log("upd: " + lines[i]);
+
+      if (lines[i] == "refresh_layout")
+      {
+        location.reload();
+        continue;
+      }
+
+      var params = lines[i].split("%");
+      var name = params[0];
+      var cmd = params[1];
+      var newValue = params[2];
+
+      if (cmd === "enable")
+      {
+        var elems = document.getElementsByName(name);
+        for (var k = 0; k < elems.length; k++)
+          elems[k].disabled = !parseInt(newValue, 10);
+
+        if (elems.length === 0)
+          for (var t = 0; t < 3; t++)
+          {
+            var elems = document.getElementsByName(name + "@" + t);
+            for (var k = 0; k < elems.length; k++)
+              elems[k].disabled = !parseInt(newValue, 10);
+          }
+      }
+      else if (cmd === "value")
+      {
+        var elems = document.getElementsByName(name);
+        for (var k = 0; k < elems.length; k++)
+        {
+          elems[k].value = newValue;
+          elems[k].checked = !!parseInt(newValue, 10);
+
+          if (elems[k].dataset.color)
+          {
+            elems[k].dataset.color = newValue;
+            elems[k].style.background = "#" + newValue.substring(0, 6);
+          }          
+        }
+
+        if (elems.length === 0)
+        {
+          var values = newValue.split(",");
+          for (var t = 0; t < values.length; t++)
+          {
+            var elems = document.getElementsByName(name + "@" + t);
+            for (var k = 0; k < elems.length; k++)
+              elems[k].value = values[t];
+          }
+        }
+      }
+    }
+}
+
+function test()
+{
+  var text = "int_editbox%panel_name%var_edit_int%-10%20%5%:" + 
+             "int_slider%panel_name%var_slider_int%-10%20%5%:" +
+             "float_editbox%panel_name%var_edit_float%-10%20%5%:" +
+             "float_slider%panel_name%var_slider_float%-10%20%5%0.002%:" +
+             "bool_checkbox%panel_name%var_checkbox1%0%:" +
+             "bool_checkbox%panel_name%var_checkbox0%1%:" +
+             "bool_button%panel_name%var_button0%1%:" +
+             "int_combobox%panel_name%var_combobox0%2%512,1024, 2048, 4096%:" +
+             "point2_editbox%panel_name%var_edit_point2%5,3.4%:" +
+             "point3_editbox%panel_name%var_edit_point3%5.4,-3.4,1.1%:" +
+             "polynom_curve%panel_name%var_edit_curve%%:" +
+             "";
+
+
+  text += "int_editbox%panel_name2%var_edit_int%-10%20%5%:" + 
+           "int_slider%panel_name2%var_slider_int%-10%20%5%:" +
+           "float_editbox%panel_name5%var_edit_float%-10%20%5%:" +
+           "e3dcolor%panel_name5%var_edit_color%01020304%:" +
+           "e3dcolor%panel_name5%var_edit_color2%fa02ffff%:" +
+           "float_slider%panel_name2%var_slider_float%-10%20%5%0.002%:" +
+           "bool_checkbox%panel_name3%var_checkbox1%0%:" +
+           "bool_checkbox%panel_name3%var_checkbox0%1%:" +
+           "bool_button%panel_name3%var_button0%1%:" +
+           "int_combobox%panel_name3%var_combobox0%2%512,1024, 2048, 4096%:" +
+           "";
+
+  createWorkspaceFromText(text);
+
+
+  text = "panel_name5.var_edit_color%value%06070809%:" +
+         "panel_name.var_edit_int%enable%0%:" + 
+         "panel_name.var_slider_int%enable%0%:" +
+         "panel_name.var_edit_float%enable%0%:" +
+         "panel_name.var_slider_float%enable%0%:" +
+         "panel_name.var_checkbox1%enable%0%:" +
+         "panel_name.var_checkbox0%enable%0%:" +
+         "panel_name.var_button0%enable%0%:" +
+         "panel_name.var_combobox0%enable%0%:" +
+         "";
+
+  updateWorkspaceFromText(text);
+
+  text = "panel_name.var_edit_int%value%2%:" + 
+         "panel_name.var_slider_int%value%2%:" +
+         "panel_name.var_edit_float%value%2%:" +
+         "panel_name.var_slider_float%value%2%:" +
+         "panel_name.var_checkbox1%value%0%:" +
+         "panel_name.var_checkbox0%value%1%:" +
+         "panel_name.var_button0%value%1%:" +
+         "panel_name.var_combobox0%value%512%:" +
+         "panel_name.var_edit_point2%value%99.99,-88.88%:" +
+         "";
+
+  updateWorkspaceFromText(text);
+
+  text = "panel_name.var_edit_int%enable%1%:" + 
+         "panel_name.var_slider_int%enable%1%:" +
+         "panel_name.var_edit_float%enable%1%:" +
+         "panel_name.var_slider_float%enable%1%:" +
+         "panel_name.var_checkbox1%enable%1%:" +
+         "panel_name.var_checkbox0%enable%1%:" +
+         "panel_name.var_button0%enable%1%:" +
+         "panel_name.var_combobox0%enable%1%:" +
+         "panel_name.var_edit_point2%enable%0%:" +
+         "";
+
+  updateWorkspaceFromText(text);
+}
+
+
+window.addEventListener("load", function()
+{
+  console.log("window.onload()");
+  //test();
+
+  onAttach();
+  window.setInterval("onTimer()", 200);
+});
+
+</script>
+
+</body>
+</html>

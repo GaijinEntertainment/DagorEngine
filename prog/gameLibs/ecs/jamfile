@@ -1,0 +1,21 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/ecs ;
+
+TargetType  = util ;
+Target      = externalLibs ;
+
+ProjectUseQuirrel = sq3r ;
+
+Dependencies =
+  $(Root)/$(Location)/anim/jamfile
+  $(Root)/$(Location)/input/jamfile
+  $(Root)/$(Location)/phys/jamfile
+  $(Root)/$(Location)/render/jamfile
+  $(Root)/$(Location)/camera/jamfile
+  $(Root)/$(Location)/gameres/jamfile
+  $(Root)/$(Location)/scripts/sq/jamfile
+  $(Root)/$(Location)/game/weapons/jamfile
+  $(Root)/$(Location)/gamePhys/jamfile
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

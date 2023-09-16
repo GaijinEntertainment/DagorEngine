@@ -1,0 +1,10 @@
+float4 globtm_psf_0;
+float4 globtm_psf_1;
+float4 globtm_psf_2;
+float4 globtm_psf_3;
+
+macro INIT_AND_USE_GLOBTM(code)
+  (code) {
+    globtm@f44[] = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
+  }
+endmacro

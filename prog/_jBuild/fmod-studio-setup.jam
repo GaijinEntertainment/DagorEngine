@@ -1,0 +1,91 @@
+FmodStudioSoSuffix = [ MATCH "[0-9]+\.0*([0-9]+)\.0*([0-9]+)" : $(FmodStudio) ] ;
+FmodStudioSoSuffix = .$(FmodStudioSoSuffix[1]).$(FmodStudioSoSuffix[2]) ;
+
+FmodStudioRoot ?= $(_DEVTOOL)/fmod-studio-$(FmodStudio) ;
+local FmodStudioCoreFolder = ;
+switch $(FmodStudio) {
+  case 1.* : FmodStudioCoreFolder = lowlevel ;
+  case *   : FmodStudioCoreFolder = core ;
+}
+FmodIncPath =
+  $(FmodStudioRoot)/$(FmodStudioCoreFolder)/$(Platform)/inc
+  $(FmodStudioRoot)/studio/$(Platform)/inc
+;
+
+FmodStudioLowLibPath = $(FmodStudioRoot)/$(FmodStudioCoreFolder)/$(Platform)/lib ;
+FmodStudioApiLibPath = $(FmodStudioRoot)/studio/$(Platform)/lib ;
+if $(Platform) = linux64 {
+  FmodStudioLowLibPath = $(FmodStudioLowLibPath)/x86_64 ;
+  FmodStudioApiLibPath = $(FmodStudioApiLibPath)/x86_64 ;
+} else if $(Platform) = android {
+  FmodStudioLowLibPath = $(FmodStudioLowLibPath)/$(AndroidArch) ;
+  FmodStudioApiLibPath = $(FmodStudioApiLibPath)/$(AndroidArch) ;
+} else if $(Platform) = nswitch {
+  #fmod 2.02.14 or higher does not have nx32 nx64 folders
+  if $(FmodStudio) in 2.02.14 2.02.15 {
+    FmodStudioLowLibPath = $(FmodStudioLowLibPath) ;
+    FmodStudioApiLibPath = $(FmodStudioApiLibPath) ;
+  } else {
+    FmodStudioLowLibPath = $(FmodStudioLowLibPath)/nx64 ;
+    FmodStudioApiLibPath = $(FmodStudioApiLibPath)/nx64 ;
+  }
+}
+
+local libname_suffix = ;
+switch $(Platform) {
+  case win32 : libname_suffix = _vc.lib ;
+  case win64 : libname_suffix = _vc.lib ;
+  case linux64 : libname_suffix = .so$(FmodStudioSoSuffix) ;
+  case macosx : libname_suffix = .dylib ;
+
+  case xboxOne : libname_suffix = _vc.lib ;
+  case ps4 : libname_suffix = _stub_weak.a ;
+  case ps5 : libname_suffix = _stub_weak.a ;
+
+  case iOS : libname_suffix = _iphoneos.a ;
+  case tvOS : libname_suffix =  _appletvos.a ;
+  case android : libname_suffix =  .so ;
+  case nswitch : libname_suffix =  .a ;
+}
+
+if $(Platform) in xboxOne scarlett {
+  FmodIncPath =
+    $(FmodStudioRoot)/$(FmodStudioCoreFolder)/GDK/inc
+    $(FmodStudioRoot)/studio/GDK/inc
+  ;
+  FmodStudioLowLibPath = $(FmodStudioRoot)/$(FmodStudioCoreFolder)/GDK/lib/$(Platform) ;
+  FmodStudioApiLibPath = $(FmodStudioRoot)/studio/GDK/lib/$(Platform) ;
+  libname_suffix = .lib ;
+}
+
+local soname_suffix = $(libname_suffix) ;
+
+if $(Config) != rel { libname_suffix = L$(libname_suffix) ; }
+
+# when concatenating with empty variable/list result is always empty.
+# http://david.freetype.org/jam/jam-language-1.html
+local lib_prefix = "" ;
+if $(Platform) in linux64 macosx ps4 ps5 android iOS tvOS nswitch {
+  lib_prefix = lib ;
+}
+
+FmodStaticLibs =
+  $(FmodStudioLowLibPath)/$(lib_prefix)fmod$(libname_suffix)
+  $(FmodStudioApiLibPath)/$(lib_prefix)fmodstudio$(libname_suffix)
+;
+
+if $(Platform) in ps4 ps5 {
+  soname_suffix = .prx ;
+} else if $(Platform) in win32 win64 xboxOne scarlett {
+  soname_suffix = .dll ;
+}
+
+if $(Config) != rel { soname_suffix = L$(soname_suffix) ; }
+FmodStudioSharedLibs =
+  $(FmodStudioLowLibPath)/$(lib_prefix)fmod$(soname_suffix)
+  $(FmodStudioApiLibPath)/$(lib_prefix)fmodstudio$(soname_suffix)
+;
+
+soname_suffix = ;
+lib_prefix = ;
+libname_suffix = ;

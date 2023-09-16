@@ -1,0 +1,73 @@
+if ! $(__TEX_ATLAS_BUILD_INCLUDED) { if ! $(Root) { Exit 'Root' variable not defined, aborting ; } __TEX_ATLAS_BUILD_INCLUDED = 1 ;
+
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+TEX_ATLAS_BUILD_TOOL = $(Root)/tools/dagor3_cdk/util64/guiTex-dev.exe ;
+
+actions quietly build_tex_atlas
+{
+#async
+  echo building tex-atlas $(1:D=)
+  mkdir $(1:D)
+  del $(1)
+  mkdir $(blk:D)
+  echo $(blk_hdr) Input { sort:t=vert; $(content) } >$(blk)
+
+  set_filter $(blk).log /./
+  call_filtered $(TEX_ATLAS_BUILD_TOOL) $(blk) -odir:$(1:D) -mkbundle -cache:$(blk:D) -ddsx:$(PlatformDataFormatCode) -q
+
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  del debug
+  set ERRORLEVEL=0
+  goto end
+
+  :failed
+  clr_filters
+  call $(ComSpec) /C type #\( $(blk).log )\#
+  del debug
+  set ERRORLEVEL=13
+  :end
+}
+
+# AddToAtlas Target : Location : [wildcards]
+rule AddToAtlas
+{
+  if $(OS) != NT { Echo skipping AddToAtlas $(1) on OS\=$(OS) ; return ; }
+  if ! [ GLOB $(TEX_ATLAS_BUILD_TOOL:D) : $(TEX_ATLAS_BUILD_TOOL:D=) ] { Echo skipping AddToAtlas $(1) due to missing $(TEX_ATLAS_BUILD_TOOL) ; return ; }
+
+  local Target = $(Root)/$(1) ;
+  local Location = $(2) ;
+  local target_name = [ MATCH ([^\.]+)\.ta\.bin : $(Target:D=) ] ;
+  local wildcards = $(3) ;
+  local src ;
+
+  wildcards ?= *.tga *.png *.jpg ;
+  for wc in $(wildcards) { src += [ GLOB $(Root)/$(Location) : $(wc) ] ; }
+  Depends $(Target) : $(src) ;
+
+  if ! $($(1)__inited) {
+    $(1)__inited = yes ;
+    if [ MATCH (~) : $(Target) ] { Exit tilda in Target\=$(Target) is not permitted ; }
+
+    blk on $(Target) = $(Root)/_output/texAtlas~$(PlatformDataFormatCode)/$(1:S=-src.blk) ;
+    blk_hdr on $(Target) = Output \{
+      width\:r\=128\;
+      height\:r\=1024\;
+      format\:t=\"rgba\"\;
+      mips\:i\=1\;
+      texture\:t\=\"$(target_name)\"\;
+      coord\:t\=\"$(target_name)\"\;
+    \} ;
+
+    ALWAYS $(Target) ;
+    Depends all : $(Target) ;
+    build_tex_atlas $(Target) ;
+  }
+
+  for s in $(src) { if [ MATCH (~) : $(s) ] { Exit tilda is not permitted in source filename\: $(s) ; } }
+  content on $(Target) += file\:t\=\"$(src)\"\; ;
+}
+
+NotFile __empty_pseudo_target ; Depends all : __empty_pseudo_target ;
+
+}

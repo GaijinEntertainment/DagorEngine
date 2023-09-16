@@ -1,0 +1,16 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/unwrapMapping ;
+
+TargetType  = lib ;
+Target      = tools/libTools/unwrapMapping.lib ;
+
+Sources =
+  autoUnwrap.cpp
+;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+CPPopt = ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

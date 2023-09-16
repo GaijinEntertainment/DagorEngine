@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/codecs/libogg-1.1.3 ;
+ConsoleExe = yes ;
+
+TargetType  = exe ;
+Target      = libogg-1.1.3-bitwise.exe ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+OutDir = $(Root)/$(Location)/_$(Platform) ;
+
+AddIncludes =
+  $(Root)/$(Location)/../include
+;
+
+
+Sources =
+  src/bitwise.c
+;
+UseProgLibs = engine2/memory/rtlStdMemoryMin ;
+
+Copt = -D_V_SELFTEST ;
+
+include $(Root)/prog/_jBuild/build.jam ;

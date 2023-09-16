@@ -1,0 +1,25 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/decalMatrices ;
+
+TargetType  = lib ;
+Target      = gameLibs/decalMatrices.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  decalsMatrices.cpp
+;
+
+UseProgLibs +=
+  engine2/lib3d
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

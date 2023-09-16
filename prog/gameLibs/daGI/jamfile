@@ -1,0 +1,32 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/daGI ;
+
+TargetType  = lib ;
+Target      = gameLibs/daGI.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+  $(Root)/$(Location)/shaders
+;
+
+Sources =
+  giWalls.cpp
+  giWindows.cpp
+  gi3d.cpp
+  voxelized_scene.cpp
+  envi_cube.cpp
+  poisson.cpp
+  global_vars.cpp
+;
+
+UseProgLibs +=
+  engine2/lib3d
+  gameLibs/daGI25D
+  gameLibs/textureUtil
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

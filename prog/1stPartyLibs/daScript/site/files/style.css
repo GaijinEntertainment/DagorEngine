@@ -1,0 +1,110 @@
+﻿* {
+  box-sizing: border-box;
+}
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+body {
+  background: #fff;
+  color: #333;
+  font: 16px/25px 'Source Sans Pro', georgia, serif;
+}
+
+#menu {
+  background-color: maroon;
+  font-size: medium;
+  font-weight: bold;
+  text-align: center;
+}
+#menu > a {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+}
+#menu a:visited {
+  text-decoration: none;
+  color: white;
+}
+#menu a:link {
+  text-decoration: none;
+  color: white;
+}
+#menu a:hover {
+  text-decoration: none;
+  color: #cd8c58;
+}
+
+main {
+  box-sizing: content-box;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  max-width: 100ch;
+}
+
+.intro {
+  margin-top: 3rem;
+  display: flex;
+  flex-wrap: wrap;
+}
+.intro img {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0 auto;
+  position: relative;
+  left: -10px; /* The current logo has weird extra space on the left */
+}
+.intro > h1 {
+  flex-basis: 192px;
+  flex-basis: calc(192px + 2rem);
+  flex-grow: 1;
+  margin: 0 auto;
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+}
+.news {
+  flex-basis: 60ch;
+  flex-grow: 99;
+}
+.news p {
+  font-family: 'Tahoma', Helvetica, sans-serif;
+  font-size: 1.3rem;
+  color: black;
+  margin-top: 0.5rem;
+}
+
+h2 {
+  font: 400 1.625rem 'Lato', helvetica, arial, sans-serif;
+  color: #39c;
+}
+a {
+  color: #3399cc;
+  text-decoration: none;
+  transition: color 0.2s, text-shadow 0.2s;
+  outline: none;
+}
+a:hover {
+  color: #143352;
+}
+
+.snippets pre {
+  color: #3d4d5c;
+  font: 13px 'Source Code Pro', Menlo, Monaco, Consolas, monospace;
+  background: #fcfcfc;
+  border-radius: 2px;
+  border: dashed 1px #dae2e7;
+  padding: 0.5rem;
+  overflow: auto;
+}
+
+footer {
+  margin-top: 2rem;
+  border-top: 1px solid #000;
+  text-align: center;
+  color: gray;
+}
+
+iframe {
+  max-width: 100%;
+}

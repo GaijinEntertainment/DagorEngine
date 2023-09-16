@@ -1,0 +1,63 @@
+RefRemapBlock{
+  Texture{
+    pathin:t="./"
+    pathout:t="D:/_TEST2/"
+  }
+
+  Material{
+    classin:t="isl_bump"
+    classout:t="isl_dynamic_bump"
+  }
+
+  NodeBlockScript{
+    scriptin:t="lighting:t=~"default~""
+    scriptout:t="lighting:t=~"vltm~""
+  }
+
+  NodeBlockScript{
+    scriptin:t="collidable:b=yes"
+    scriptout:t="collidable:b=no"
+  }
+}
+
+InstRemapBlock{
+  Texture{
+    pathin:t="./"
+    pathout:t="D:/_TEST2/"
+  }
+
+  Material{
+    classin:t="isl_bump"
+    classout:t="isl_dynamic_bump"
+  }
+
+  NodeBlockScript{
+    scriptin:t="renderable:b=yes"
+    scriptout:t="renderable:b=no"
+  }
+
+  NodeBlockScript{
+    scriptin:t="cast_shadows:b=yes"
+    scriptout:t="cast_shadows:b=no"
+  }
+
+  NodeBlockScript{
+    scriptin:t="cast_on_self:b=yes"
+    scriptout:t="cast_on_self:b=no"
+  }
+
+  NodeBlockScript{
+    scriptin:t="lighting:t=~"default~""
+    scriptout:t="lighting:t=~"vltm~""
+  }
+
+  NodeBlockScript{
+    scriptin:t="linked_resource:t=~"~""
+    scriptout:t="linked_resource:t=~"%s_ref_rendinst~""
+  }
+
+  NodeBlockData{
+    flgin:i=7
+    flgout:i=4
+  }
+}

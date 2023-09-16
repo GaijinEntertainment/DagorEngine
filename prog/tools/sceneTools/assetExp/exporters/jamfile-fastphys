@@ -1,0 +1,32 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/assetExp/exporters ;
+DriverLinkage   = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = dll ;
+Target = tools/sceneTools/fastPhysExp.dll ;
+
+OutDir = $(Root)/tools/dagor3_cdk/bin/plugins/dabuild ;
+if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/dabuild ; }
+
+Sources =
+  fastPhysExp.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+UseProgLibs = 
+  engine2/startup
+  engine2/math
+  engine2/perfMon
+
+  tools/libTools/assetMgr
+  tools/libTools/fastPhysData
+  tools/libTools/dagFileRw
+;
+
+ImportProgLibs = tools/libTools/daKernel ;
+
+include $(Root)/prog/_jBuild/build.jam ;

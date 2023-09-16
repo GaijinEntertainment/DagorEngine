@@ -1,0 +1,26 @@
+  file:t = "skies2/query_rain_map.sh"
+  file:t = "skies2/render_skies2.sh"
+  file:t = "skies2/precompute_skies_ms.sh"
+  file:t = "skies2/prepareAltScattering.sh"
+
+  file:t = "clouds2/clouds_trace_ray.sh"
+  file:t = "clouds2/generate_clouds2.sh"
+  file:t = "clouds2/gen_weather.sh"
+  file:t = "clouds2/gen_clouds_lut.sh"
+  file:t = "clouds2/daClouds2.sh"
+  file:t = "clouds2/daCloudsTaa.sh"
+  file:t = "clouds2/daCloudsApply.sh"
+  file:t = "clouds2/downsampleCloudsField.sh"
+  file:t = "clouds2/clouds_field_gen.sh"
+  file:t = "clouds2/clouds_shadow_volume_gen.sh"
+  file:t = "clouds2/compress_voltex.sh"
+  file:t = "clouds2/clouds_volume_gen.sh" 
+  file:t = "clouds2/clouds_hole_gen.sh" 
+  file:t = "clouds2/clouds_shadow_2d_gen.sh" 
+  file:t = "clouds2/strata_clouds.sh" 
+  //file:t = "render_skies.sh"//to be removed
+  //file:t = "precompute_skies.sh"//to be removed
+
+  file:t = "daStars.sh"
+  file:t = "applyPanorama.sh"
+  file:t = "applySkies.sh"

@@ -1,0 +1,23 @@
+Root    ?= ../../../../../.. ;
+Location = prog/1stPartyLibs/quirrel/quirrel/helpers/importParser ;
+ConsoleExe = yes ;
+
+TargetType  = exe ;
+Target      = 1stPartyLibs/quirrel/importParser ;
+OutDir      = $(Root)/tools/test/importParserTest ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(Platform) = win64 { Target = $(Target)-64 ; }
+if $(Platform) = linux64 { OutDir = $(OutDir)-$(Platform) ; }
+
+Sources =
+  importParserTest.cpp
+;
+
+UseProgLibs =
+;
+
+CPPopt = -D__B_NO_MEM_BASE_INCLUDE=1 ;
+
+include $(Root)/prog/_jBuild/build.jam ;

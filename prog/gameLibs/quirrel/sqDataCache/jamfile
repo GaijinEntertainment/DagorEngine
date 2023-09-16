@@ -1,0 +1,25 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/sqDataCache ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/datacache.lib ;
+
+AddIncludes =
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine2/sharedInclude
+;
+
+UseProgLibs =
+  gameLibs/datacache
+  gameLibs/folders
+;
+
+Sources =
+  datacache.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

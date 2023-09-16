@@ -1,0 +1,27 @@
+return {
+  send_counter = function(metric, value, tags={}) {
+    assert(type(metric)=="string")
+    assert(type(value)=="integer")
+    assert(type(tags)=="table")
+  }
+  send_gauge = function(metric, value, tags={}) {
+    assert(type(metric)=="string")
+    assert(type(value)=="integer")
+    assert(type(tags)=="table")
+  }
+  send_gauge_dec = function(metric, value, tags={}) {
+    assert(type(metric)=="string")
+    assert(type(value)=="integer")
+    assert(type(tags)=="table")
+  }
+  send_gauge_inc = function(metric, value, tags={}) {
+    assert(type(metric)=="string")
+    assert(type(value)=="float")
+    assert(type(tags)=="table")
+  }
+  send_profile = function(metric, value, tags={}) {
+    assert(type(metric)=="string")
+    assert(type(value)=="integer")
+    assert(type(tags)=="table")
+  }
+}

@@ -1,0 +1,19 @@
+* text=auto
+*.cpp text
+*.h text
+*.cc text
+*.c text
+*.hpp text
+*.inl text
+*.inc text
+*.jam text
+*jamfile text
+*.py text
+*.nut text
+*.as text
+*.tis text
+*.png binary
+*.jpg binary
+*.sh text text
+*.plist text eol=lf
+*compile_shaders*.sh text eol=lf

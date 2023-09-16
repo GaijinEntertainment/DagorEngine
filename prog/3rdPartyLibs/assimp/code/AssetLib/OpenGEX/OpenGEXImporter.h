@@ -1,0 +1,209 @@
+/*
+Open Asset Import Library (assimp)
+----------------------------------------------------------------------
+
+Copyright (c) 2006-2022, assimp team
+
+
+All rights reserved.
+
+Redistribution and use of this software in source and binary forms,
+with or without modification, are permitted provided that the
+following conditions are met:
+
+* Redistributions of source code must retain the above
+copyright notice, this list of conditions and the
+following disclaimer.
+
+* Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the
+following disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+* Neither the name of the assimp team, nor the names of its
+contributors may be used to endorse or promote products
+derived from this software without specific prior
+written permission of the assimp team.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+----------------------------------------------------------------------
+*/
+#pragma once
+#ifndef AI_OPENGEX_IMPORTER_H
+#define AI_OPENGEX_IMPORTER_H
+
+#ifndef ASSIMP_BUILD_NO_OPENGEX_IMPORTER
+
+#include <assimp/BaseImporter.h>
+#include <assimp/mesh.h>
+
+#include <EASTL/vector.h>
+#include <EASTL/list.h>
+#include <EASTL/map.h>
+#include <EASTL/shared_ptr.h>
+#include <EASTL/unique_ptr.h>
+
+namespace ODDLParser {
+    class DDLNode;
+    struct Context;
+}
+
+struct aiNode;
+struct aiMaterial;
+struct aiCamera;
+struct aiLight;
+
+namespace Assimp {
+namespace OpenGEX {
+
+struct MetricInfo {
+    enum Type {
+        Distance = 0,
+        Angle,
+        Time,
+        Up,
+        Max
+    };
+
+    eastl::string m_stringValue;
+    float m_floatValue;
+    int m_intValue;
+
+    MetricInfo(): m_stringValue( ), m_floatValue( 0.0f ), m_intValue( -1 ) {}
+};
+
+/** @brief  This class is used to implement the OpenGEX importer
+ *
+ *  See http://opengex.org/OpenGEX.pdf for spec.
+ */
+class OpenGEXImporter : public BaseImporter {
+public:
+    /// The class constructor.
+    OpenGEXImporter();
+
+    /// The class destructor.
+    ~OpenGEXImporter() override = default;
+
+    /// BaseImporter override.
+    bool CanRead( const eastl::string &file, IOSystem *pIOHandler, bool checkSig ) const override;
+
+protected:
+    /// BaseImporter override.
+    void InternReadFile( const eastl::string &file, aiScene *pScene, IOSystem *pIOHandler ) override;
+
+    /// BaseImporter override.
+    virtual const aiImporterDesc *GetInfo() const override;
+
+    /// BaseImporter override.
+    virtual void SetupProperties( const Importer *pImp ) override;
+
+    void handleNodes( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleMetricNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleNameNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleObjectRefNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleMaterialRefNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleGeometryNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleCameraNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleLightNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleGeometryObject( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleCameraObject( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleLightObject( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleTransformNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleMeshNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleVertexArrayNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleIndexArrayNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleMaterialNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleColorNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleTextureNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleParamNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void handleAttenNode( ODDLParser::DDLNode *node, aiScene *pScene );
+    void copyMeshes( aiScene *pScene );
+    void copyCameras( aiScene *pScene );
+    void copyLights( aiScene *pScene );
+    void copyMaterials( aiScene *pScene );
+    void resolveReferences();
+    void pushNode( aiNode *node, aiScene *pScene );
+    aiNode *popNode();
+    aiNode *top() const;
+    void clearNodeStack();
+    void createNodeTree( aiScene *pScene );
+
+private:
+    struct VertexContainer {
+        eastl::vector<aiVector3D> m_vertices;
+        size_t m_numColors;
+        aiColor4D *m_colors;
+        eastl::vector<aiVector3D> m_normals;
+        size_t m_numUVComps[ AI_MAX_NUMBER_OF_TEXTURECOORDS ];
+        aiVector3D *m_textureCoords[ AI_MAX_NUMBER_OF_TEXTURECOORDS ];
+
+        VertexContainer();
+        ~VertexContainer();
+
+        VertexContainer( const VertexContainer & ) = delete;
+        VertexContainer &operator = ( const VertexContainer & ) = delete;
+    };
+
+    struct RefInfo {
+        enum Type {
+            MeshRef,
+            MaterialRef
+        };
+
+        aiNode *m_node;
+        Type m_type;
+        eastl::vector<eastl::string> m_Names;
+
+        RefInfo( aiNode *node, Type type, eastl::vector<eastl::string> &names );
+        ~RefInfo() = default;
+
+        RefInfo( const RefInfo & ) = delete;
+        RefInfo &operator = ( const RefInfo & ) = delete;
+    };
+
+    struct ChildInfo {
+        using NodeList = eastl::list<aiNode*>;
+        eastl::list<aiNode*> m_children;
+    };
+    ChildInfo *m_root;
+    using NodeChildMap = eastl::map<aiNode*, eastl::unique_ptr<ChildInfo> >;
+    NodeChildMap m_nodeChildMap;
+
+    eastl::vector<eastl::unique_ptr<aiMesh> > m_meshCache;
+    using ReferenceMap = eastl::map<eastl::string, size_t>;
+    eastl::map<eastl::string, size_t> m_mesh2refMap;
+    eastl::map<eastl::string, size_t> m_material2refMap;
+
+    ODDLParser::Context *m_ctx;
+    MetricInfo m_metrics[ MetricInfo::Max ];
+    aiNode *m_currentNode;
+    VertexContainer m_currentVertices;
+    aiMesh *m_currentMesh;  // not owned, target is owned by m_meshCache
+    aiMaterial *m_currentMaterial;
+    aiLight *m_currentLight;
+    aiCamera *m_currentCamera;
+    int m_tokenType;
+    eastl::vector<aiMaterial*> m_materialCache;
+    eastl::vector<aiCamera*> m_cameraCache;
+    eastl::vector<aiLight*> m_lightCache;
+    eastl::vector<aiNode*> m_nodeStack;
+    eastl::vector<eastl::unique_ptr<RefInfo> > m_unresolvedRefStack;
+};
+
+} // Namespace OpenGEX
+} // Namespace Assimp
+
+#endif // ASSIMP_BUILD_NO_OPENGEX_IMPORTER
+
+#endif // AI_OPENGEX_IMPORTER_H

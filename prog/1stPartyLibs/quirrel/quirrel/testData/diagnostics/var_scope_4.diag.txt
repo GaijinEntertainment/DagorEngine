@@ -1,0 +1,9 @@
+ERROR: Unknown variable [x]
+testData/diagnostics/var_scope_4.nut:8:10
+
+  case 1:
+    print(x);
+          ^
+    break;
+
+

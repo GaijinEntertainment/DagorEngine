@@ -1,0 +1,22 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/webui/plugins/shadervars ;
+
+TargetType  = lib ;
+Target      = gameLibs/webui/plugins/shadervars.lib ;
+
+AddIncludes =  
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/webui
+  $(Root)/prog/dagorInclude
+;
+
+Sources =
+  shaderPlugin.cpp
+;
+
+StringifySourceFile shaderVars.html : shaderVars.html.inl : shaderPlugin.cpp : ;
+
+include $(Root)/prog/_jBuild/build.jam ;

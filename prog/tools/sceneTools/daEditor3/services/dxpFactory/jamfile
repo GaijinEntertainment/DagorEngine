@@ -1,0 +1,19 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditor3/services/dxpFactory ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditor3/services/dxpFactory.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+;
+
+
+Sources =
+  dxpFactory.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

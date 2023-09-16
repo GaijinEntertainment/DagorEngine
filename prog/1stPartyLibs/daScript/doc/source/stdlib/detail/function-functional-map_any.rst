@@ -1,0 +1,1 @@
+map with lambda

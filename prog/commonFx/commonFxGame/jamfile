@@ -1,0 +1,40 @@
+Root    ?= ../../.. ;
+Location = prog/commonFx/commonFxGame ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = commonFx/commonFxGame.lib ;
+
+
+AddIncludes     =
+  $(Root)/prog/commonFx/commonFxGame
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+
+include $(Root)/prog/commonFx/fxList.jam ;
+
+
+Sources =
+  paramScriptsPool.cpp
+  stdTrailPath.cpp
+  dafxSparksCpu.cpp
+  dafxModfxSystem.cpp
+  modfx/modfx_cpu.cpp
+
+  $(fxList).cpp
+;
+
+if $(SkipWTPS) != yes {
+  Sources += commonFx.cpp ;
+}
+
+UseProgLibs =
+  gameLibs/daFx
+;
+
+if $(Platform) = win32 && $(PlatformSpec) != clang && $(Config) in dbg dev { # this workarounds FPEs within hlsl-compat scalar code
+  CPPopt += /arch:SSE2 ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

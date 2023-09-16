@@ -1,0 +1,25 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/nodeBasedShader/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/nodeBasedShaderStub.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  nodeBasedShaderStub.cpp
+;
+
+UseProgLibs =
+  gameLibs/nodeBasedShaderManager/stub
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

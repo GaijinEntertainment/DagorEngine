@@ -1,0 +1,25 @@
+Root    ?= ../../../../../.. ;
+local LibPath = 1stPartyLibs/daScript/modules/dasStdDlg ;
+Location = prog/$(LibPath) ;
+Target      = $(LibPath)~stub.lib ;
+
+StrictCompile = yes ;
+TargetType  = lib ;
+
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+
+AddIncludes =
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+Sources += src/dasStdDlg.cpp src/dasStdDlgNotImplemented.cpp ;
+
+
+UseProgLibs +=
+  1stPartyLibs/daScript
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

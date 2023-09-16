@@ -1,0 +1,25 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/heightmap ;
+
+TargetType  = lib ;
+Target      = gameLibs/heightmap.lib ;
+
+Sources =
+  heightmapCompressError.cpp
+  heightmapRenderer.cpp
+  heightmapPhysHandler.cpp
+  heightmapTesselationData.cpp
+  heightmapCulling.cpp
+  heightmapHandler.cpp
+;
+
+AddIncludes = 
+  $(Root)/prog/gameLibs/publicInclude 
+;
+
+UseProgLibs +=
+  engine2/heightMapLand
+  gameLibs/frustumCulling
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

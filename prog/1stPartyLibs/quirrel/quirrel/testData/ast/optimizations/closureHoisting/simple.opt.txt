@@ -1,0 +1,8 @@
+{
+  let $ch0 = FUNCTION (simple.nut:3)(this, a, b) {
+    RETURN a + b
+  }
+  let foo = FUNCTION foo(this, x, y) {
+    RETURN $ch0
+  }
+}

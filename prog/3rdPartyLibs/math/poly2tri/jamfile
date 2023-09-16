@@ -1,0 +1,16 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/math/poly2tri ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/math/poly2tri.lib ;
+
+Sources =
+  common/shapes.cc
+  sweep/advancing_front.cc
+  sweep/cdt.cc
+  sweep/sweep.cc
+  sweep/sweep_context.cc
+;
+CPPopt = -D__B_NO_MEM_BASE_INCLUDE=1 ;
+
+include $(Root)/prog/_jBuild/build.jam ;

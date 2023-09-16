@@ -1,0 +1,34 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/dagUtils/riMerge ;
+DriverLinkage   = static ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = util/riMerge.exe ;
+OutDir      = $(Root)/tools/util ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  riMerge.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/baseUtil
+  engine2/ioSys
+  engine2/math
+  engine2/lib3d
+  engine2/startup
+  engine2/perfMon/daProfilerStub
+  engine2/drv/drv3d_null
+
+  tools/libTools/util
+  tools/libTools/staticGeom
+  tools/libTools/dagFileRW
+  tools/libTools/dtx
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

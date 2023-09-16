@@ -1,0 +1,18 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/cables/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/cables/stub.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  cablesStub.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

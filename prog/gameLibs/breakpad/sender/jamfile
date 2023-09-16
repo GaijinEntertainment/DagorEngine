@@ -1,0 +1,94 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/breakpad/sender ;
+Config = rel ; # we don't want dbg/dev bprerort executables
+TargetType = exe ;
+Target = bpreport ;
+StrictCompile = yes ;
+
+PlatformSpec_win32 ?= vc16 ;
+PlatformSpec_win64 ?= vc16 ;
+
+# workaround broken FL/x.H which will try to include Xlib.H on win64
+if $(Platform) = win64 {
+  echo "FLTK is broken on Win64, falling back to 32 bit" ;
+  Platform = win32 ;
+}
+
+UseLLDLink = no ; #lld-link can not chose between WinMain in exe and wWinMain in lib correctly
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/breakpad
+  $(Root)/prog/3rdPartyLibs/libcurl/include
+  $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
+  $(Root)/prog/3rdPartyLibs/arc/libzip/lib
+;
+
+if $(Platform) = macosx {
+  AddIncludes += $(_DEVTOOL)/fltk-1.3.8 ;
+} else {
+  AddIncludes += $(_DEVTOOL)/fltk-1.3.4 ;
+}
+
+UseProgLibs =
+  3rdPartyLibs/libcurl
+  3rdPartyLibs/arc/libzip
+  3rdPartyLibs/arc/zlib-$(UseZlibVer)
+  engine2/osApiWrappers
+  engine2/memory/rtlStdMemoryMin
+  engine2/perfMon/daProfilerStub
+  engine2/perfMon/perfTimerStub
+;
+
+Sources =
+  configuration.cpp
+  upload.cpp
+  files.cpp
+  lang.cpp
+  ui.cpp
+  sender.cpp
+  dagorStubs.cpp
+  stats.cpp
+  log.cpp
+;
+
+if $(Platform) = linux64 {
+  Sources += linux/main.cpp ;
+  LINKopt = -L$(_DEVTOOL)/fltk-1.3.4/lib/linux ;
+
+  AddLibs +=
+    -lfltk-minimal
+    -lX11
+  ;
+} else if $(Platform) in win32 win64 {
+  Sources += windows/main.cpp ;
+  CPPopt += -DUNICODE -D_UNICODE ;
+  LINKopt += -libpath:$(_DEVTOOL)/fltk-1.3.4/lib/win ;
+  AddLibs += fltk.lib ;
+  CPPopt += # fltk headers:
+    /wd4191 # 'type cast': unsafe conversion from 'Fl_Callback1 (__cdecl *)' to 'Fl_Callback (__cdecl *)'
+    /wd4458 # declaration hides class member
+    /wd4100 # 'unreferenced formal parameter
+    /wd4266 # function is hidden
+  ;
+} else if $(Platform) = macosx {
+  Sources += mac/main.mm ;
+  LINKopt += -L$(_DEVTOOL)/fltk-1.3.8/lib/macosx ;
+  AddLibs += -lfltk ;
+}
+
+if $(UseSystemOpenSSL) != yes {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
+  UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer) ;
+}
+
+CPPopt +=
+  -D__B_NO_MEM_BASE_INCLUDE
+  -DCURL_STATICLIB
+  -D_HAS_EXCEPTIONS=0
+  -DZIP_EXTERN=
+;
+
+include $(Root)/prog/_jBuild/build.jam ;
+

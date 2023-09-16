@@ -1,0 +1,80 @@
+macro USE_THERMAL_SIGNATURE()
+  hlsl(ps) {float getThermalSignature(float3 color, float temperature) {return dot(float3(0.33, 0.33, 0.33), color) * temperature;}}
+endmacro
+
+macro USE_GBUF_TO_TEMPERATURE_BASE()
+  hlsl {
+    #define THERMAL_SHADING_NORMAL 0
+    #define THERMAL_SHADING_LANDSCAPE 1
+    #define THERMAL_SHADING_FOLIAGE 2
+    #define THERMAL_SHADING_SELFILLUM 3
+    #define THERMAL_SHADING_DYNAMIC 4
+  }
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    hlsl(ps)
+    {
+      #define gbuffer_temperature_base float4(26.0/255.0, 15.0/255.0, 10.0/255.0, 50.0/255.0)
+      #define gbuffer_temperature_add float4(15.0/255.0, 15.0/255.0, 30.0/255.0, 100.0/255.0)
+      #define baseGbufTemp 0.0/255.0
+    }
+  }
+
+  hlsl(ps)
+  {
+    float gbufferToTemperatureBase(ProcessedGbuffer gbuffer, float material, float3 pointToEye, float shadow)
+    {
+      float gbufTemp = baseGbufTemp;
+      gbuffer.diffuseColor = half(1.0) - gbuffer.diffuseColor;
+      float baseColorDot = dot(gbuffer.diffuseColor, 0.33);
+      if (material == THERMAL_SHADING_NORMAL)
+      {
+        gbufTemp += gbuffer_temperature_base.x*baseColorDot;
+        gbufTemp += 1.5*gbuffer_temperature_add.x*gbuffer.linearRoughness;
+        gbufTemp += gbuffer_temperature_add.z*gbuffer.metallness;
+        gbufTemp *= shadow;
+      }
+      else if (material == THERMAL_SHADING_LANDSCAPE)
+      {
+        gbufTemp += gbuffer_temperature_base.y*baseColorDot;
+        gbufTemp += gbuffer_temperature_add.x*gbuffer.linearRoughness;
+        gbufTemp += gbuffer_temperature_add.y*(gbuffer.reflectance);
+        gbufTemp *= (1 - 0.7*saturate(max(max(gbuffer.specularColor.r, gbuffer.specularColor.g), gbuffer.specularColor.b)));
+        gbufTemp *= shadow;
+      }
+      else if (material == THERMAL_SHADING_FOLIAGE)
+      {
+        gbufTemp += gbuffer_temperature_base.z*baseColorDot;
+        gbufTemp += 0.5*gbuffer_temperature_add.x*gbuffer.linearRoughness;
+        gbufTemp += 0.5*gbuffer_temperature_add.y*(half(1.0) - gbuffer.translucency);
+        gbufTemp *= shadow;
+      }
+      else if (material == THERMAL_SHADING_DYNAMIC)
+      {
+        gbufTemp += gbuffer_temperature_base.x*baseColorDot;
+        gbufTemp += 1.5*gbuffer_temperature_add.x*gbuffer.linearRoughness;
+        gbufTemp += gbuffer_temperature_add.w;
+        gbufTemp *= shadow;
+      }
+      else // THERMAL_SHADING_SELFILLUM
+      {
+        gbufTemp += gbuffer_temperature_base.w*baseColorDot;
+        gbufTemp += gbuffer_temperature_add.x*gbuffer.linearRoughness;
+        gbufTemp += gbuffer_temperature_add.w*dot(gbuffer.emissionColor, 0.33);
+      }
+      return gbufTemp * (0.6 + 0.4*dot(normalize(pointToEye), gbuffer.normal));
+    }
+
+    float impostorDiffuseToTemperature(float3 diffuse)
+    {
+      diffuse = 1 - diffuse;
+      float baseColorDot = dot(diffuse, 0.33);
+      float gbufTemp = baseGbufTemp;
+      gbufTemp += gbuffer_temperature_base.z*baseColorDot;
+      gbufTemp += 0.1*gbuffer_temperature_add.x;
+      gbufTemp += 0.1*gbuffer_temperature_add.y;
+      return gbufTemp;
+    }
+  }
+endmacro

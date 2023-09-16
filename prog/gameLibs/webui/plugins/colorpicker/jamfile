@@ -1,0 +1,30 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/webui/plugins/colorpicker ;
+
+TargetType  = lib ;
+Target      = gameLibs/webui/plugins/colorpicker.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  colorpicker.cpp
+;
+
+SourceJS =
+  colorGradient.js
+  colorPicker.js
+  cookie.js
+;
+
+UseProgLibs =
+  gameLibs/colorPipette
+;
+
+for s in $(SourceJS) { StringifySourceFile $(s) : $(s).inl : colorpicker.cpp ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

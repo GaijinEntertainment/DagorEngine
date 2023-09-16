@@ -1,0 +1,6 @@
+return {
+  subscribe = @(_event_name, _handler) null
+  subscribe_onehit = @(_event_name, _handler) null
+  send = @(_event_name, _payload) null
+  send_foreign = @(_event_name, _payload) null
+}

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <Import Project="$(SolutionDir)prog\_jBuild\msbuild\projectConfigurations.props" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}</ProjectGuid>
+    <GameType>sample</GameType>
+    <ReplaceWildcardsInProjectItems>true</ReplaceWildcardsInProjectItems>
+    <GameDir>$(MSBuildProjectDirectory)\..\game\</GameDir>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)default.props" />
+  <PropertyGroup Label="Configuration" />
+  <Import Project="$(MSBuildToolsDir)config.props" />
+  <PropertyGroup />
+  <Import Project="$(MSBuildToolsDir)common.targets" />
+  <ItemGroup Label="Wildcard">
+    <CppSource Include="**\*.cpp" />
+    <CppHeader Include="**\*.h;**\*.inl" />
+    <bat Include="**\*.bat;**\*.cmd" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,41 @@
+Root    ?= ../../../../.. ;
+Location = prog/3rdPartyLibs/convert/nvtt-2.0.7/tools ;
+Config = rel ;
+ConsoleExe = yes ;
+
+TargetType  = exe ;
+MultiTarget =
+  nvtt/tools/nvcompress.exe
+  nvtt/tools/nvdecompress.exe
+  nvtt/tools/nvassemble.exe
+  nvtt/tools/nvddsinfo.exe
+  nvtt/tools/nvimgdiff.exe
+  nvtt/tools/nvzoom.exe
+;
+OutDir = $(Root)/$(Location)/out ;
+
+Sources(nvtt/tools/nvcompress.exe) = compress.cpp ;
+Sources(nvtt/tools/nvdecompress.exe) = decompress.cpp ;
+Sources(nvtt/tools/nvassemble.exe) = assemble.cpp ;
+Sources(nvtt/tools/nvddsinfo.exe) = ddsinfo.cpp ;
+Sources(nvtt/tools/nvimgdiff.exe) = imgdiff.cpp ;
+Sources(nvtt/tools/nvzoom.exe) = resize.cpp ;
+
+AddIncludes = $(Root)/prog/3rdPartyLibs/convert/nvtt-2.0.7 ;
+
+if $(Platform) in win32 win64 { CPPopt += -DWIN32 -D_WINDOWS -D_USRDLL ; }
+CPPopt =
+  -DWIN32 -D_WINDOWS -D_USRDLL -DNVTT_EXPORTS -D__SSE2__ -D__SSE__ -D__MMX__
+;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/baseUtil
+  3rdPartyLibs/convert/nvtt-2.0.7
+  3rdPartyLibs/image/jpeg-6b
+  3rdPartyLibs/eastl
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,20 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/reachability ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/reachability.lib ;
+Platform   ?= iOS ;
+
+Sources +=
+  source/Reachability.m
+;
+
+CPPopt += -F SystemConfiguration ;
+
+AddIncludes =
+    $(Root)/prog/3rdPartyLibs/reachability/include
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

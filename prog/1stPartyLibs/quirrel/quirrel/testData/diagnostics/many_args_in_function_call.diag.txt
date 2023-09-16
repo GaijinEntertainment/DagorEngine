@@ -1,0 +1,2 @@
+ERROR: internal compiler error: too many locals
+testData/diagnostics/many_args_in_function_call.nut:-1:-1

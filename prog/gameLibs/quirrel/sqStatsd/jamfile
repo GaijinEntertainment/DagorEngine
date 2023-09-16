@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+
+Location = prog/gameLibs/quirrel/sqStatsd ;
+StrictCompile = yes ;
+UseQuirrel = sq3+ sq3r sq3r+ ;
+ProjectUseQuirrel ?= sq3r+ ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/sqStatsd.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine2/sharedInclude
+;
+
+Sources =
+  sqStatsd.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

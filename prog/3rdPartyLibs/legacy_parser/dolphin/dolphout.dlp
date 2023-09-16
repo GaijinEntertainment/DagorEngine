@@ -1,0 +1,131 @@
+
+start_conditions MAIN, CPP_CODE;
+
+append_data_member=true;
+store_lexeme_in_string=false;
+allow_inclusion_cycle_between_whale_and_dolphin=false;
+
+code_in_class={ int brace_count; };
+code_in_constructor={ brace_count=0; };
+
+any-char -> '\t' | '\n' | '\r' | condition(c>=' ');
+digit -> "0".."9";
+hex-digit -> digit | "A".."F" | "a".."f";
+non-digit -> "A".."Z" | "a".."z" | "_";
+whitespace-char -> '\t' | '\n' | '\r' | ' ';
+s-char -> condition(c>=' ' & c!='"' & c!="\\" & c<128) |
+	"\\" condition(c>=' ' & c<128);
+c-char -> condition(c>=' ' & c!="'" & c!="\\" & c<128) |
+	"\\" condition(c>=' ' & c<128);
+
+c-comment -> "/*" (any-char* & ~contains("*/")) "*/";
+cpp-comment -> "//" condition(c in any-char & c!='\n')* '\n';
+whitespace -> (whitespace-char | c-comment | cpp-comment)+;
+
+identifier -> non-digit (non-digit | digit | "-")* & ~(#* "-" | "-" #*);
+number -> digit+;
+hex-number -> "0x" hex-digit+;
+string -> '"' s-char* '"' | "'" c-char* "'";
+old-style-cpp-code -> "@@" (any-char* & ~contains("@@")) "@@";
+
+whitespace <MAIN> ==> { };
+error ==> {
+	if(start_condition==CPP_CODE)
+		cout << "Lexical error in code starting at line " << line()
+			<< " column " << column() << ".\n";
+	else
+		cout << "Lexical error at line " << line()
+			<< " column " << column() << ".\n";
+	
+	return make_token<Whale::TerminalError>();
+};
+eof ==> {
+	if(start_condition==CPP_CODE)
+	{
+		cout << "End of file encountered while reading code starting "
+			<< "at line " << line() << " column " << column() << ".\n";
+		set_start_condition(MAIN);
+		return make_token<Whale::TerminalError>();
+	}
+	else
+		return make_token<Whale::TerminalEOF>();
+};
+
+"return"<MAIN> ==> TerminalKwReturn;
+"skip"<MAIN> ==> TerminalKwSkip;
+"append"<MAIN> ==> TerminalKwAppend;
+"condition"<MAIN> ==> TerminalKwCondition;
+"range"<MAIN> ==> TerminalKwRange;
+"contains"<MAIN> ==> TerminalKwContains;
+"eof"<MAIN> ==> TerminalKwEof;
+"error"<MAIN> ==> TerminalKwError;
+"in"<MAIN> ==> TerminalKwIn;
+"true"<MAIN> ==> TerminalKwTrue;
+"false"<MAIN> ==> TerminalKwFalse;
+"start_conditions"<MAIN> ==> TerminalKwStartConditions;
+
+"e" | "epsilon" <MAIN> ==> TerminalE;
+
+keyword -> "return" | "skip" | "append" | "condition" | "range" |
+	"contains" | "eof" | "error" | "in" | "true" | "false" |
+	"start_conditions" | "e" | "epsilon";
+
+"::=" | "->" <MAIN> ==> TerminalArrow;
+";"<MAIN> ==> TerminalSemicolon;
+","<MAIN> ==> TerminalComma;
+"|"<MAIN> ==> TerminalOr;
+"&"<MAIN> ==> TerminalAnd;
+"~"<MAIN> ==> TerminalNot;
+"#"<MAIN> ==> TerminalSharpSign;
+"@"<MAIN> ==> TerminalCommercialAt;
+"/"<MAIN> ==> TerminalSlash;
+".."<MAIN> ==> TerminalTwoDots;
+
+"<"<MAIN> ==> TerminalLess;
+">"<MAIN> ==> TerminalGreater;
+"<="<MAIN> ==> TerminalLessOrEqual;
+">="<MAIN> ==> TerminalGreaterOrEqual;
+"=="<MAIN> ==> TerminalEqual;
+"!="<MAIN> ==> TerminalNotEqual;
+
+"("<MAIN> ==> TerminalLeftParenthesis;
+")"<MAIN> ==> TerminalRightParenthesis;
+"["<MAIN> ==> TerminalLeftBracket;
+"]"<MAIN> ==> TerminalRightBracket;
+"*"<MAIN> ==> TerminalLoneAsterisk;
+"+"<MAIN> ==> TerminalLonePlus;
+"==>" | "=>" <MAIN> ==> TerminalImplication;
+"="<MAIN> ==> TerminalAssign;
+
+string<MAIN> ==> TerminalString;
+'"' s-char* | "'" c-char* <MAIN> ==> {
+	cout << "Unterminated string at line " << line()
+		<< " column " << column() << ".\n";
+	
+	return make_token<Whale::TerminalError>();
+};
+
+number<MAIN> ==> TerminalNumber;
+hex-number<MAIN> ==> TerminalHexNumber;
+identifier & ~keyword <MAIN> ==> TerminalId;
+
+old-style-cpp-code <MAIN> ==> TerminalCode;
+"{"<MAIN> ==> {
+	set_start_condition(CPP_CODE);
+	brace_count=1;
+	append=true;
+};
+"{"<CPP_CODE> ==> { brace_count++; append=true; };
+"}"<CPP_CODE> ==> {
+	brace_count--;
+	if(brace_count==0)
+	{
+		set_start_condition(MAIN);
+		return make_token<Whale::TerminalCode>();
+	}
+	else
+		append=true;
+};
+
+(whitespace | string | any-char+ & ~contains("{" | "}" | "/*" | "//" | '"' |
+	"'") & ~(any-char* "/"))+ <CPP_CODE> ==> { append=true; };

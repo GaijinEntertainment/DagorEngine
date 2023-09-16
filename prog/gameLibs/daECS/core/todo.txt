@@ -1,0 +1,93 @@
+Improvements:
+  * (re)create Async safe
+    + instantiate templates only in main thread
+    + entDesc and allocateOne to be thread-safe
+    + constrainedMode to be int
+    + remove reCreateEntityFromSync!
+    * explicit add/sub for templates!
+    * remove createEntitySync with template name (instantiate template)
+
+Important optimizations:
+  * instantiate all templates first
+  + AnyComponentChange should be replaced with direct callback for replication.
+    that has to be called only on entities that has replication
+      archetypes.getArchetypeCombinedTypeFlags(archetype) & COMPONENT_TYPE_REPLICATION
+    and only on replicated components (those that can be replicated in general, using dataComponent flag)
+  + optimize ES (remove ES from esList in event/update systems if there is no archetypes matching it).
+    around 50% of all queries are called on missing archetypes, wasting like 50%!
+  + archetypeTrackingQueue split into two arrays, one for eids, one for archetypes
+  - performQueryST can be done without gathering queries
+  * optimization: useES (es that don't have any _entities_ to work them, can be skipped)
+    harder to achieve
++ small optimizations
+  + EventSet->custom container, reduce allocations
+
++ create deferred
++ asyncCreate
++ validation of ES
++ special ES without anything (for update only)
++ optimal hashmap
++ templatesDB
++ gen serialization
++ replication
++ data inspection
++ filtering query
++ async resource loading/onLoaded
+  + support re-create while loading
++ singleton creation
++ Get for loading entities
+- unicast query (?broadcast query) for loading entities
+- gcComponentManagers
++ validate singleton templates (to be singleton) before creation, to disallow double creation of singltones.
+  Likely would require iteration over all entities in archetype (as archetype can belong to non-singleton entities) and check their templates.
++ immediate on loaded for entities with all loaded resources
++ optimize squirrel binding (resolve types/type sizes only once for query)
+
+* io
+  + template loading should be able to load components types that are not _YET_ registered (and probably we should only register them on template instantiation)
+  ? component registration (from ES)
+  + templates inheritance
+  + tracked/replicated components copy creation
+  + Scene
+  * after reading templatesDB, add 'skipped' components to dataComponents filtered Components, so they can't be instanced at all, even by initializators
+  + hash collision verification
+
+* codegen
+  + initial codegen (based on ECS20), support true/false type (using filtering by type)
+  * optimal codegen:
+    * unicast events can skip loops
+    * broadcast events/updates can make do/while loop
+    * and one-two component queries can use restricted pointer as loop-counter
+  * filtering query codegen (with any lambda)
++ hash collision for ES components verification (with other ES, or with other dataComponents)
+
++ optimize scheduleTrackChangedCheck(EntityId eid, uint32_t archetypeId, component_index_t cidx). we only care if there is 'tracked' components in archetype, and only for existence of copy in archetype
+
+* filter out tagged dependent components (false positive if component is filter out, but there is declared dependent in component manager type)
+
+* protocol
+  net protocol is digest/hash of used types/components.
+  All used types should have same flags&size, and all used components should have same types (may be flags?)
++ optimize events! (like it was in ecs20)
++ optimize deserialization. Only construction has to be deserialized to ChildComponent, everything else - directly to components
++ parallel_for
++ metadata about components
++ queries map (if query is same as old one by desc). This is both performance and memory optimization, as we don't need update already up-to-date query.
++ garbage collection on acrhetypes 
+  * and queries
++ event queue with custom new (optimize deferred event creation). Use 4kb pages allocator for events, instead of heapnew.
++ one common queue for events and creation
++ enable/disable ES
++ optimization: do not check type in code generated queries (with preprocessor). We verify types when registeting queries.
++ optimization: archetype haveReplicated
++ optimization: archetype hasCreatable
++ optimization: remove +ro.start +rw.start from QueryView. It is not needed, as we store all in one array, and codegen knows exactly.
+
++ optimization: do not store type code for generated queries. Save some performance (most of queries are generated anyway)
++ optimization: not sure if archetype has to has it's component sizes (as they are same for component, and we store components anyway)
+  We'd better store all rw+ro components in one array and provide rw.count in query desc (and addressing will be by constants only, no add).
+* optimization: intern all strings (especially for templates)
+
+* queriesShrink (if query removed)
+- generation of acrhetypes (if archetype could be replaced/shrinked)
+* singleton should be for components, not templates

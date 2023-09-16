@@ -1,0 +1,25 @@
+actions together quietly build_devtool_macosx_xcode
+{
+  echo --- Building $(_DEVTOOL) directory for XCode 4.3.x+
+  echo mkdir $(_DEVTOOL)/mac
+  call mkdir -p $(_DEVTOOL)/mac/SDKs
+
+  echo link $(_DEVTOOL)/mac/usr       <- /Applications/$(XcodeVER).app/Contents/Developer/usr
+  call ln -fhs /Applications/$(XcodeVER).app/Contents/Developer/usr $(_DEVTOOL)/mac/usr
+  echo link $(_DEVTOOL)/mac/Platforms <- /Applications/$(XcodeVER).app/Contents/Developer/Platforms
+  call ln -fhs /Applications/$(XcodeVER).app/Contents/Developer/Platforms $(_DEVTOOL)/mac/Platforms
+  echo link $(_DEVTOOL)/mac/Toolchain <- /Applications/$(XcodeVER).app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain
+  call ln -fhs /Applications/$(XcodeVER).app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain $(_DEVTOOL)/mac/Toolchain
+  call ln -s /usr/bin/dsymutil $(_DEVTOOL)/mac/usr/bin/dsymutil
+
+  echo link $(_DEVTOOL)/mac/SDKs/MacOSX.platform          <- /Applications/$(XcodeVER).app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
+  call ln -fhs /Applications/$(XcodeVER).app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs $(_DEVTOOL)/mac/SDKs/MacOSX.platform
+  echo link $(_DEVTOOL)/mac/SDKs/iPhoneOS.platform        <- /Applications/$(XcodeVER).app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs
+  call ln -fhs /Applications/$(XcodeVER).app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs $(_DEVTOOL)/mac/SDKs/iPhoneOS.platform
+  echo link $(_DEVTOOL)/mac/SDKs/iPhoneSimulator.platform <- /Applications/$(XcodeVER).app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs
+  call ln -fhs /Applications/$(XcodeVER).app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs $(_DEVTOOL)/mac/SDKs/iPhoneSimulator.platform
+  echo link $(_DEVTOOL)/mac/SDKs/AppleTVOS.platform        <- /Applications/${XcodeVER}.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs
+  call ln -fhs /Applications/$(XcodeVER).app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs $(_DEVTOOL)/mac/SDKs/AppleTVOS.platform
+  echo link $(_DEVTOOL)/mac/SDKs/AppleTVSimulator.platform <- /Applications/${XcodeVER}.app/Contents/Developer/Platforms/AppleTVSimulator.platform/Developer/SDKs
+  call ln -fhs /Applications/$(XcodeVER).app/Contents/Developer/Platforms/AppleTVSimulator.platform/Developer/SDKs $(_DEVTOOL)/mac/SDKs/AppleTVSimulator.platform
+}

@@ -1,0 +1,18 @@
+Root    ?= ../../../.. ;
+
+Location            = prog/gameLibs/contentUpdater/utils ;
+TargetType          = lib ;
+Target              = gameLibs/contentUpdater/utils.lib ;
+StrictCompile       ?= yes ;
+UseQuirrel         = sq3r ;
+
+Sources =
+  pathUtils.cpp
+  version.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

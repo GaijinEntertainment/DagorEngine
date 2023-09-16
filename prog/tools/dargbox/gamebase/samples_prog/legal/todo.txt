@@ -1,0 +1,4 @@
+  * confirm versions on legal.gaijin.net
+  * save information about status of saving confirmed data on server and use it to cofirm
+  ? for config use common received data
+  * gamepad

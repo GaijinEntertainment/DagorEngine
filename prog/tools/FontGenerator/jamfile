@@ -1,0 +1,54 @@
+FreeTypeVer = 2.8 ;
+
+Root    ?= ../../.. ;
+Location = prog/tools/FontGenerator ;
+include $(Root)/prog/tools/tools_setup.jam ;
+ConsoleExe  = yes ;
+Platform ?= win64 ;
+
+TargetType  = exe ;
+Target      = tools/fontgen2.exe ;
+
+OutDir      = $(Root)/tools/dagor3_cdk/util ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+
+
+Sources =
+  winmain_con.cpp
+  fontgenerator.cpp
+  fontfilesave.cpp
+  freeTypeFont.cpp
+;
+
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/freetype/freetype-$(FreeTypeVer)/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+;
+
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/image
+  engine2/perfMon/daProfilerStub
+
+  tools/libTools/dtx
+  tools/libTools/util
+  3rdPartyLibs/freetype/freetype-$(FreeTypeVer)
+  3rdPartyLibs/image/psdRead
+  3rdPartyLibs/image/libpng-1.4.22
+  3rdPartyLibs/image/avif
+  3rdPartyLibs/image/jpeg-6b
+;
+
+
+#LINKopt = -verbose ;
+
+include $(Root)/prog/_jBuild/build.jam ;

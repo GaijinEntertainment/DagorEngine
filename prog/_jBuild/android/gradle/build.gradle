@@ -1,0 +1,162 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+ext.signedRelease = project.findProperty("RELEASE_SIGN") ?: false
+ext.apkName = project.findProperty("APK_NAME") ?: null
+ext.minSdk = project.findProperty("MIN_SDK").toInteger() ?: 24
+ext.targetSdk = project.findProperty("TARGET_SDK").toInteger() ?: 26
+
+ext.versionCode = project.findProperty("VERSION_CODE") ?: 1
+ext.versionName = project.findProperty("VERSION_NAME") ?: "1.0"
+
+def hasProjectGradle = project.hasProperty("PROJECT_FILE") ?: false
+
+if (hasProjectGradle == true)
+{
+  apply from: "${PROJECT_FILE}"
+}
+
+println "generating ${signedRelease ? "signed" : "unsigned"} apk(aab) (sdk ${ext.targetSdk}) ${signedRelease ? "(key: " + RELEASE_KEY_ALIAS + ")" : ""}"
+
+buildscript {
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.4.3'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+
+    gradle.projectsEvaluated {
+        tasks.withType(JavaCompile) {
+            options.compilerArgs << "-Xlint:deprecation"
+        }
+    }
+}
+
+apply plugin: 'com.android.application'
+
+android {
+  compileSdkVersion targetSdk
+  buildToolsVersion "29.0.2"
+
+  lintOptions {
+    // suppres android:debuggable=true error in our maifest file
+    checkReleaseBuilds false
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+
+  if (apkName != null) {
+    // copy from gradle's output dir to project's root for easer jam access
+    applicationVariants.all { variant ->
+      variant.outputs.all { output ->
+        outputFileName = apkName
+        def taskSuffix = variant.name.capitalize()
+        def assembleTaskName = "assemble${taskSuffix}"
+        if (tasks.findByName(assembleTaskName)) {
+            def copyAPKFolderTask = tasks.create(name: "copy${taskSuffix}", type: org.gradle.api.tasks.Copy) {
+                description "Archive/copy APK folder to a root dir."
+                def sourceFolder = "${buildDir}/outputs/apk/${output.baseName.replace("-", "/")}"
+                def destinationFolder = projectDir
+                from(sourceFolder)
+                into destinationFolder
+                eachFile { file ->
+                    file.path = file.name // so we have a "flat" copy
+                }
+                includeEmptyDirs = false
+            }
+            tasks[assembleTaskName].finalizedBy = [copyAPKFolderTask]
+        }
+      }
+    }
+  }
+
+  sourceSets {
+    main {
+      java.srcDirs = ['src']
+      res.srcDirs = ['res']
+      jniLibs.srcDirs = ['libs']
+      assets.srcDirs = ['assets']
+      manifest.srcFile 'AndroidManifest.xml'
+    }
+  }
+
+  defaultConfig {
+      minSdkVersion minSdk
+      targetSdkVersion targetSdk
+      versionCode versionCode
+      versionName versionName
+      ndk {
+        abiFilters 'arm64-v8a'
+      }
+  }
+
+  buildTypes {
+    release {
+      // Add this extension
+      //firebaseCrashlytics {
+
+          // Enable processing and uploading of native symbols to Firebase servers.
+          // By default, this is disabled to improve build speeds.
+          // This flag must be enabled to see properly-symbolicated native
+          // stack traces in the Crashlytics dashboard.
+
+          //nativeSymbolUploadEnabled true
+          //unstrippedNativeLibsDir file("unstripped_libs")
+          //upload obfuscate file to crashlytics if proguard file is present
+          //if (project.file("proguard-project.txt").exists()) {
+            //mappingFileUploadEnabled true
+          //}
+      // }
+
+      if (signedRelease == "true") {
+        if (project.file("proguard-project.txt").exists()) {
+          minifyEnabled true
+          proguardFile getDefaultProguardFile('proguard-android-optimize.txt')
+          proguardFile 'proguard-project.txt'
+          println("Obfuscating java code")
+        } else {
+          minifyEnabled false
+        }
+        signingConfig = android.signingConfigs.create("release") {
+          it.storeFile rootProject.file(RELEASE_STORE_FILE)
+          it.storePassword RELEASE_STORE_PASSWORD
+          it.keyAlias RELEASE_KEY_ALIAS
+          it.keyPassword RELEASE_KEY_PASSWORD
+        }
+      } else {
+       minifyEnabled false
+       signingConfig = null
+      }
+    }
+
+    debug {
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+    }
+  }
+}
+
+
+if (ext.targetSdk < 30)
+{
+  dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:support-v4:'+ targetSdk + '.0.0'
+  }
+} else {
+  dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+  }
+}

@@ -1,0 +1,3 @@
+removed on 2023/04/14:
+  dagor4/prog/_jBuild/_jam-2.5-src  (refer to https://github.com/GaijinEntertainment/jam-G8 now)
+  dagor4/prog/_jBuild/_codeCheck    (not used since .clang-format and clang_format.py used)

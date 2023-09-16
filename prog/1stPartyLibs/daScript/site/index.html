@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="en-us" http-equiv="Content-Language" />
+    <meta content="en" name="language" />
+    <meta
+        content="daScript is high-performance strong statically typed programming language designed to be data oriented in C++ environment."
+        name="description" />
+    <meta content="game development, programming language, programming, programming, development, open source"
+        name="keywords" />
+    <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
+    <title>daScript - The High Performance Programming Language</title>
+    <link href="doc/_static/daScript.ico" rel="icon" type="image/x-icon" />
+    <link
+        href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700,400italic,700italic|Source+Code+Pro:400|Lato:400|Sanchez:400italic,400"
+        rel="stylesheet" type="text/css" />
+    <link href="files/style.css" rel="stylesheet" type="text/css" />
+    <script charset="utf-8" src="files/button.js"></script>
+</head>
+
+<body>
+    <header>
+        <nav id="menu">
+            <a href="#overview">Overview</a>
+            <a href="#look">What does it look like?</a>
+            <a href="#download">Download</a>
+            <a href="#devstate">Development State</a>
+            <a href="#performance">Performance</a>
+            <a href="#work">Work in Progress</a>
+            <a href="#documentation">Documentation</a>
+            <a href="#sandbox">Sandbox</a>
+            <a href="https://github.com/GaijinEntertainment/daScript/wiki">Wiki</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="intro">
+            <h1>
+                <img src="doc/_static/daScript.png" alt="daScript" width="192" height="192" />
+            </h1>
+
+            <div class="news">
+                <h2>News</h2>
+                <p>
+                    As of May 1st, 2023, version 0.4 of daScript has been released. The development team is currently working on the next major release,
+                    which will include a fully featured JIT compiler. This JIT compiler is currently available as a preview.
+                </p>
+                <p>
+                    daScript now happily runs in the web browser. <a href="https://gaijinentertainment.github.io/try-dascript/">Check it out</a>.
+                </p>
+                <p>
+                    We now have <a href="https://borisbat.github.io/dascf-blog">an official blog</a>
+                </p>
+                <p>
+                    November 18th, 2021: version 0.3 released.
+                </p>
+                <p>
+                    September 5th,  2020: version 0.2 released.
+                </p>
+                <p>
+                    24 August 2020: A lot of documentation has been added.<br>
+                    <a href="https://tiorun.gaijin.team/##S0ksTi7KLCj5/z86taIgv6gklislNU0hNzEzj0sBCAqKMvNKNJQ8UnNy8nUUwvOLclIUlTS5/v8HAA" title="daScript – Try It Online">tio.run sandbox</a>
+                    added.
+                </p>
+                <p>
+                    28 October 2019: Benchmarks has been updated. All lang compilers
+                    were built in LLVM8.0, architecture AVX.
+                </p>
+                <p>
+                    15 August 2019: <b>daScript site</b> has been released, check it
+                    out.
+                </p>
+            </div>
+        </div>
+
+        <h2 id="overview">Overview</h2>
+
+        <p>
+            daScript is a high-level programming language that features strong static typing.
+            It is designed to provide <b>high performance</b> and serves as an embeddable 'scripting' language
+            for C++ applications that require fast and reliable performance, such as <b>games</b> or <b>back end/servers</b>.
+            Additionally, it functions effectively as a standalone programming language.
+        </p>
+
+        <p>daScript is:</p>
+        <ul>
+            <li>
+                <b>Extremely fast</b> programming language that can rival compiled or JIT languages even in interpreter mode.
+                It consistently outperforms dynamically interpreted scripting languages such as Lua. When used in AOT mode,
+                daScript is often faster than naively written C++ due to its SSE-friendly POD-types, and it even surpasses some
+                of the best JIT VMs like V8 or LuaJIT. As a result, there's no need to rewrite your daScript code in C++ to optimize your application.
+            </li>
+            <li>
+                <b>Safe and versatile</b> programming language that provides all the benefits of static typing. Many errors that would break an
+                application in runtime in languages like Lua or JavaScript won't even compile in daScript. Additionally, due to its support for
+                generics, type inference, and macros, daScript is easy and fluid to use. Safety is a fundamental pillar of daScript's design,
+                making it safer in many cases than languages like C++ or Java.
+            </li>
+            <li>
+                Real <b>embedded</b> programming language that requires no external dependencies other than a C++17 compiler. Its interop capabilities
+                are both super easy to use and safe, as is expected from any embedded scripting language that's meant to call native code.
+            </li>
+        </ul>
+        <p>
+            daScript offers a wide range of features like:
+        </p>
+        <ul>
+            <li>amazing performance</li>
+            <li>strong static typing</li>
+            <li>instant hot reload</li>
+            <li>Ruby-like blocks</li>
+            <li>semantic indenting</li>
+            <li>lexical scoping</li>
+            <li>high performance interpretation</li>
+            <li>Ahead-of-Time compilation (optimization for release build)</li>
+            <li>generators</li>
+            <li>generics and type inference</li>
+            <li>macros</li>
+            <li>optional types (i.e. pointers)</li>
+            <li>native HW friendly POD types</li>
+            <li>C++ friendly and fast interop</li>
+            <li>semi-manual memory management</li>
+            <li>
+                fast and easy-to-reset execution context, allowing automatic burst
+                free memory management for stored procedures
+                <br />
+                no memory leaks with no GC/reference counting cost.
+            </li>
+            <li>extendable type and function system</li>
+            <li>
+                cheap multi-threading support - explicit separation of execution
+                context and code context.
+            </li>
+            <li>
+                Open Source
+                <a href="https://opensource.org/licenses/BSD-3-Clause">BSD licence</a>
+            </li>
+            <li>
+                powerful embedding API
+                <ul>
+                    <li>e.g. functions can be defined by scripts or in C++</li>
+                    <li>
+                        e.g. objects can fully exist in the Context or be bound to native
+                        code
+                    </li>
+                    <li>and more</li>
+                </ul>
+            </li>
+        </ul>
+
+        <p>
+            daScript takes inspiration from languages like Python, Ruby, Kotlin, and Haxe when it comes to its explicitness and readability.
+            However, it is also designed to be extremely fast, making it an ideal choice for performance-critical applications.
+        </p>
+
+        <p>
+            A Visual Studio Code extension is available for daScript, providing comprehensive support for the language. This extension offers features
+            such as code diagnostics, code completion, code navigation, hints, and more. Additionally, it provides a rich debugging environment, allowing
+            developers to easily debug their daScript code. It also includes a profiler for measuring and optimizing code performance. You can find this
+            extension on the Visual Studio Code Marketplace at the following link:
+            <a href="https://marketplace.visualstudio.com/items?itemName=profelis.dascript-plugin">https://marketplace.visualstudio.com/items?itemName=profelis.dascript-plugin</a>.
+        </p>
+
+        <h2 id="look">What Does it look like?</h2>
+        <p>
+            daScript's syntax is reminiscent of (Typed) Python, while its static strong typed nature is similar to ML or Zig.
+            Its POD types are closely aligned with hardware/machine types. Additionally, the language makes use of type inference,
+            as can be seen in the following Fibonacci code snippet.
+        </p>
+
+        <div class="snippets">
+            <pre><code>def fibR(n)
+    if (n < 2)
+        return n
+    else
+        return fibR(n - 1) + fibR(n - 2)
+
+def fibI(n)
+    var last = 0
+    var cur = 1
+    for i in range(0, n-1)
+        let tmp = cur
+        cur += last
+        last = tmp
+    return cur</code></pre>
+            Also, for those who for some reason prefer curly brackets over Python-style indenting, it is also possible to write:
+            <pre><code>
+def fibR(n) {
+    if (n < 2) {
+        return n;
+    } else {
+        return fibR(n - 1) + fibR(n - 2);
+    }
+}
+def fibI(n) {
+    var last = 0;
+    var cur = 1;
+    for i in range(0, n-1); {
+        let tmp = cur;
+        cur += last;
+        last = tmp;
+    }
+    return cur;
+}</code></pre>
+        (Note that within curly brackets semicolons (;) are required to separate statements).
+        </div>
+
+        <h2 id="devstate">Development state</h2>
+        <p>
+            daScript's current version is 0.4, and it's already being used in production projects at Gaijin Entertainment.
+            Until the release of version 1.0, there will be no patches or fixes for older versions.
+            Instead, all updates and fixes will be made available exclusively in the master branch.
+        </p>
+        <p>
+            daScript has been successfully compiled and run on a wide range of platforms, including Windows (x86 & x64), Linux (x64),
+            macOS, Xbox One, Xbox One Series X, PlayStation 4, PlayStation 5, Nintendo Switch, iOS, Android, and WebAssembly.
+        </p>
+        <p>
+            Has been tested with the following compilers with C++17 support:
+        </p>
+        <blockquote>
+            <p>
+                MS Visual C++ 17, 19, and 22 (x86 &amp; x64)<br />
+                Linux GCC<br />
+                LLVM 7 and above<br />
+            </p>
+        </blockquote>
+        <p>
+            To compile, daScript requires support for C++17.
+        </p>
+
+        <h2 id="performance">Performance</h2>
+        <p>
+            As an interpreted language, daScript typically outperforms everything, including the blazing fast <b>LuaJIT</b>.
+        </p>
+        <p>
+            daScript particularly excels in interop with C++ functions, providing an easy and seamless experience when it comes to integrating new functions and types.
+        </p>
+        <p>
+            The overhead of data-oriented processing in interpretation mode in daScript is comparable to C++ in Debug mode, as demonstrated by the Particles sample.
+        </p>
+
+        <iframe frameborder="0" scrolling="no" width="1100" height="250"
+            src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQxwlQklQkAgZKQLyhV6fY-Peknok6Xafitg3AuP7IARmnFGmPxCXFcNa5no5Mhp-eNGpYdZWKtfToY/pubhtml?gid=1640974160&amp;single=true&amp;widget=false&amp;headers=false&amp;chrome=false"></iframe>
+        <p>
+            As a compiled Ahead-of-Time language, daScript is significantly faster than both LuaJIT and Chrome JS, both of which have extremely fast Just-in-Time compilers.
+        </p>
+        <p>
+            In terms of performance, daScript is nearly on par with naive C++ (compiled with clang-cl llvm 8.0.1 with all optimizations), typically differing by no more than 10%. In some cases, daScript can even outperform C++.
+        </p>
+        <p>
+            It is worth noting that unlike Just-in-Time compilation, Ahead-of-Time compilation can be used on any platform, including those with signed binary executables like iOS or consoles.
+        </p>
+        <iframe frameborder="0" scrolling="no" width="1100" height="250"
+            src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQxwlQklQkAgZKQLyhV6fY-Peknok6Xafitg3AuP7IARmnFGmPxCXFcNa5no5Mhp-eNGpYdZWKtfToY/pubhtml?gid=59293637&amp;single=true&amp;widget=false&amp;headers=false&amp;chrome=false&amp;"></iframe>
+        <p> All times are in <b>milliseconds</b>, all results are measured as best-out-of-20 runs on Intel Core i5.
+        </p>
+        <p>All samples for all languages in comparison are available in
+            <a href="https://github.com/GaijinEntertainment/daScript/tree/master/examples/profile/tests">GitHub</a>
+        </p>
+        <p>
+            You can also compare performance online in a sandbox:<br><b>
+              <a href="https://tiorun.gaijin.team/##tVQ9T8MwEN3zK05MiRJVbRBLaFiYsgASI2Iw6bUcpHawLxUg/ntxnDhVSwW0CEse7uO9u/eUeCZMqanm9VrjS0MagdHwjVZzqjAIDOumZLi6fnjCkgOwp1aGmJSEDOaVEnzqsiusVEn8tskGM5xDU88EY7gSGkTWs0QOIEaeKM7FyMM7VLvCLS0dTDmMyYTW4m3aU1x0HHPl6kDSt7l0e/rBNh1tcabfkJ5DqRrJGUne8FPLroVcYDhOXD0ahvg9e7rtScVf1rfx4A/EuYv3epQW/yCo2FFEkvhHNRoNvaNHJnA2tqcrtVCCHMaHyM677yikOE4ontibRluN3g/fOBmNk9Te01E/VhiDmkPK8wrlgh8HVVbWHb7WSvO907cUJMPNqvtVurJzYjCnzVTIwIpFlaedvLr7d0KXTE5qoZnKCg08k8SlsIE5iWD6sWt6Olg38b79giqxK1U2mu3nLI4kvYzjr4T9q5BlLvC48Kh1D5lQbEZo5EZLsK8SBuv1Jw" title="daScript – Particles">Particles in interpreted daScript vs. C++.</a>
+              vs. <a href="https://tiorun.gaijin.team/##nVPtauMwEPxtPcVSKMTUFk5L4ThI/@cdCkFnS1e1iiQkuU1S8urnW/m7NGlJBZalnVnN7shWNctVzZ5laBplSqZA1LoM0miobcUC31jmgiwVX9iUAFhqjae7Vf@@sfSVK7obkX2P7HtkPyKHHjn0yIFwXRFyUnQxiPqUJMI4kJkFqUFaJp2foVAZksCpUpN4@nmFjeev3DG1CXLLZydmUJpah9hqqwsrKPoYRDGI43ORAF/LrS/qqBX5wuoJPWX3hH62/CJX1j@yZX3GFzKGMfn9SIZzlhncFzjaqwzsj@JUas9dmKmTJHnHJ8FmYvIOJwk3UFBM3o@b2wwO4@buGLMSbHvIWA7s27hoqXd0eUTWMe1KHN2wzgip@EZiEd0SHRA69tP55rifWYHHDbTBjI7mA7aABLyDEiMvi7QFhe4XHWvLma8drz4QIe@yW54UUQeFABVRGx6mpPDEdRtbTbHYDfSz46F2LaNrMs9zIg19cxI/YR@c1H8pNrJlYXE1XdGL1BxDsvS/4Zr@Eo/6Kpvbcp9N3w4W@91PtSyKNNaTpulF4viLKNxUPy5ifa6KpvlnbMz0Tf5shPgP" title="Lua (LuaJIT) – Particles">Particles in interpreted LuaJit.</a>
+            </b>
+            <br><i>(These tests above are straightforward copy-paste of examples in
+            <a href="https://github.com/GaijinEntertainment/daScript/tree/master/examples/profile/tests">GitHub</a>
+            running on some virtualized CPU in some cloud, so only relative performance matters. Your mileage may vary.)
+            </i>
+        </p>
+
+        <h2 id="work">Work in Progress</h2>
+        <p></p>
+        <ul>
+            <li>Just-in-time and LLVM AoT backend</li>
+            <li>AOT optimizations</li>
+            <li>Tutorials</li>
+        </ul>
+
+        <h2 id="documentation">Documentation</h2>
+
+        <h3>daScript 0.4</h3>
+        <p>
+            Online
+            <a href="doc/index.html">daScript 0.4 reference manual and Standard Libraries manual</a>
+        </p>
+        <p>
+            Offline Reference Manual (<a href="doc/dascript.pdf">PDF</a>)<br />
+            Offline Standard Libraries Manual (<a href="doc/dascriptstdlib.pdf">PDF</a>)
+        </p>
+
+        <h2 id="sandbox">Sandbox</h2>
+
+        <p>
+            <a href="https://gaijinentertainment.github.io/try-dascript/" title="daScript – Try It Online">Try it in your browser</a>
+            implemented with Emscripten, runs in your browser</a>.
+            <br />
+            <a href="https://tiorun.gaijin.team/##S0ksTi7KLCj5/z86taIgv6gklislNU0hNzEzj0sBCAqKMvNKNJQ8UnNy8nUUwvOLclIUlTS5/v8HAA" title="daScript – Try It Online">Try it online</a>
+            implemented with <a href="https://tio.run">tio.run fork</a>.
+        </p>
+
+        <h2 id="download">Download</h2>
+
+        <h3>GitHub Repository</h3>
+        <p>
+            daScript's GitHub repository is
+            <a href="https://github.com/GaijinEntertainment/daScript">here</a>
+        </p>
+        <h3>Authors blog</h3>
+        <p>
+            <a href="https://borisbat.github.io/dascf-blog">Boris Batkin blog on daScript (in English)</a>
+        </p>
+        <h3>Other useful links</h3>
+        <p>
+            <a href="https://github.com/profelis/daScript-plugin">Language server plugin for VSCode with auto-completion, help, etc - itself written in daScript.</a><br />
+            <a href="https://github.com/imp5imp5/dasbox/">dasBox - simple framework allowing create games in daScript.</a><br />
+            <a href="https://80.lv/articles/a-look-at-the-current-state-of-independent-gamedev-software-production/">Article on history of daScript.</a><br />
+            <a href="https://spiiin.github.io/tags/dascript/">Spiiin's blog on daScript (in Russian)</a><br />
+        </p>
+    </main>
+
+    <footer>
+        <p>
+            Copyright ©2023 <a href="https://gaijin.net">Gaijin Entertainment</a>| All
+            Rights Reserved.
+        </p>
+    </footer>
+</body>
+
+</html>

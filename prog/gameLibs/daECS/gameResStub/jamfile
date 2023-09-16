@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daECS/gameResStub ;
+
+TargetType  = lib ;
+Target      = gameLibs/daECS/gameResStub.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  gameResStub.cpp
+;
+
+UseProgLibs +=
+  #gameLibs/daECS/gameres
+  gameLibs/daECS/core
+  3rdPartyLibs/eastl
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

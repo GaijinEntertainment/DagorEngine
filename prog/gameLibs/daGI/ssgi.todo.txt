@@ -1,0 +1,138 @@
+
++ stochastic selection - 2h
+  * optimize - preselect by biggest random
++ a bit of invisible volmaps (due to trilinear filtering)?
+
++ separate ssgi voxels from other voxels, and set vars
++ better (non)intersection/occlusion (use 4x4 instead of 2x2 fetching). Speeds up temporality, reduce amount of work. -4h
+
++ toroidal for volmap - 4h
++ 'fill in' volmap for toroidal - 4h
++ 'fill in' volmap (envi probe?) - 2h
++ smooth border - 4h
+
++ dispatch for only invalid parts (instead of return in shader) - 4h
+
++ prioritize 'never filled' intersected volmap voxels (3rd list of volmap voxels?) - 2hr
++ set temporal age based on difference in current and previous color - 2h
+
++ optimize get ambient - 4h
+
++ toroidal for voxels - 4h
++ 'fill in' voxels for toroidal - 4h
++ dispatch for only invalid parts (instead of return in shader)
++ two (toroidal) cascades for voxel scene - 4h
+- select pt closer to camera if possible (if any pt is visible choose 0.5*(random_pt + ray_from_pt_to_eye intersects box)
+
++ temporal voxel scene - 2h
++ try SRGB8_A8 voxel scene data (instead of R11G11B10 + R8). (srgb8 is slower, but less memory. Can make sense for better averaging on initial fill)
+
++ different queue/and shader for 'empty' voxels (when temporal value is zero)
+  use much bigger queue & much faster shader.
+
+- better screen space fill raycast
++ faster voxel tracing - 4h
++ CPU cull frustum volmap - dispatch not for all volmap, but for partial (visible) - 1h
+
++ two cascades for volmap - 4h
+  + fill ith cascades from i+1 th cascade 2h
+  + fill cascades using depth above heightmap. (simple shadowing based on depth above)
+  + combine two cascades into one texture
+
++ optimization (remove copystructurescount and append buffers - it is just useless copy. Use atomics)
++ separate lib and integration to enlisted - 6hr
+
++ group rays groups by direction (more coherent, cone) - 4h (optimization)
+
+* one bit for 'in voxels' for all threads. Currently we calculate same exact for all threads, it probably can be just one bit in a data. there is available bit there (in a bin)
+
++ last voxel scene cascade should be 2.5d (height based) - 8h.
+  + We also should probably use alpha as 8 bits (2x2x2) to prvoide better details (coarser color than detail) - 4h
+  + voxelize RI albedo (not collision)
+    + invisible roofs
+    + skip small ri
+    + trees (6hr)
+    * ri decals (4hr)
++ second volmap cascade should be 2.5d volmap (height based)- 8hr.
+  + faster calculation for non-intersecting probes in such cascade
+  * allow "min-quality" (only 2.5d cascade) - 3hr
+  * "low-quality" (one bounce only, no feedback) (do something with trees)
+  ? * "medium-quality" (feedback, until converged) (do something with trees)
+  * "high-quality" - multiple-bounce, feedback
+  *RTX support
+* optimize lighting. probably just copy border probes from cascade1 to cascade0, to avoid 'filtering' in shader. (todo: measure it)
++ todo: use only one texture for all cube side (since it is atlased anyway) - 4h
+
++ window volumes and building volumes - 8h
+
++ first raycast initialization (64 rays). Do culling separately from lighting (unless teleported) - 2h
++ first raycast initialization. Copy 2.5d cascade, then raycast intersected - 3h
+  ? Use 32 rays for non-intersecting probes of cascade1 (we currently don't ray cast at all non intersecting at cascade0)
+    Probably doesn't make sense, as culling is already rather fast
+* frustum culling in groups first (hierarchial). Cull 4x4x4 groups first, using just frustum and occlusion for 64x64x32 it is only 16x16x8==2048, and can be run as 4x4x4) - 4hr
+* first raycast initialization. Fill 'initialize' queue during culling.
+
+* two different shaders for intersecting/non-intersecting volmap voxels queues.
+   Non-intersecting can have less threads (rays) and check only coarse voxel scene. They also don't need to check for walls (as they don't intersect anything!) 4h
+
+* add 2 more queue - already fully converged voxels (same as intersected/non-intersected, but use only if there are no non-converged). - 4h
+
++ We can also check 'intersection' by just using voxel scene appropriate cascade (one sample) - 2h
+
+* try use A8 as one bit voxel data (basially colors are twice coarse than existence data). If we keep two textures (R11G11B10 + R8) it can be even more coarse (say, 4 times). Doesn't make much sense
+*? use twice coarser colors, than alpha (2h). better tracing, more memory
+
++ 'clear' voxel scene - 2h (remove scene voxels, when something happen)
+
+* specular
+  * voxel cone tracing where ssr is not sufficitent
+  * use probe based on result of tracing
+
+* Enlisted: better initial scene.
+  + make faster selection (using tiled scene) - 2h
+  + use fallback vtex instead of lastclip - 1h
+  + Use worldAO + ambient for lighting - 2h.
+  + use pre-built VB (cached in one dynamic VBO) - 4h
+  * use average albedo for rendinst or per-vertex color - 4h
+    we can't do that. So instead 
+      + a) voxelize big enough RI directly (measure it). 4hr
+      - b) toroidal update of map 'above' and below (floors and ceilings), with positions (height) for both cascades.
+         That provides a lot of colored data (and very fast), but no walls.
+  * use faster selection (using tiled scene) - 1h
+  * dynamic rendinst (mark) - 1h
+  * collision rendinst using instancing - 2h
+  * use instancing/separate const buffer for voxelize collision?
+
+todo:
++ outdoor GI cascade
+    + outdoor probes is 2.5d with (probaly just voxel cone tracing, not tracing of everything)
+    + outdoor scene is also 2.5d
+    + only one calc (first bounce)
++ windows
+  * use CB for windows?
+
++ indor volumes/convexes. (to be used for filtering (example in deferred_light) and for tracing)
+  * grid for walls
+  * optimize 'initialize' for walls (use one first convex, remove loop)
+  * only first few selected (and frustum visible) walls for filtering in frame
+
+* indoor/outdoor GI
+*  (lowest) quality option: only use one outdoor cascade (for indoor/outdoor), and only sky occlusion
+*  (low) quality option: detailed cascade to be calculated and sampled only for and inside indoors volumes. Lower quality outside,
+   but a bit faster and better convergence
+*  (high) quality option: detailed cascade to be calculated twice (indor/outdor) and sampled using indoors volumes. Outdoor calculated only outdoor, indoor - only indoor.
+*  (very high) quality option: raytraced. Can utilize HW RT (or can be emulated, using compute shaders and stackless KD).
+  Currently we raytrace and bilateral blur per pixel, that is too slow (10msec + 5 msc blur). 
+    We can speed up by:
+      * using 4 (offsetted) frames and reproject (and discard if invalid) them. Raytacing will be 1/4 speed, same as blur. (3msec)
+      * using just half res (no reprojection)
+      * create full probe of 1/8 resolution (64 speed up, need full sphere, i.e. at least 256 rays.). Can be TAAed and blurred as well.
+        On bilateral upscale we can fallback to probes.
+        worth trying!
+
++ support resolution change
+* support driver reset
+* specular GI - trace one cone, use it for parallax and/or use result.
+* use average albedo for rendinst or per-vertex color
+? use faster RI selection (using tiled scene)
+* dynamic rendinst should mark themselves as such in gbuffer (based on scene) - 2h

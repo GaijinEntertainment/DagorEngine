@@ -1,0 +1,88 @@
+# VCUpdateVer ?= 15.9.5 ;
+# PlatformSpec_win32 ?= vc15 ;
+
+Root    ?= ../../.. ;
+Location = prog/1stPartyLibs/daScript ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+#WPO in win32 msvc2015 produces buggy code
+if $(Platform) = win32 && $(UseWholeOpt) = yes && ! $(PlatformSpec) in clang vc15 vc16 vc17 {
+  CPPopt += /GL- ;
+  Copt += /GL- ;
+}
+
+if $(PlatformSpec) in gcc4 {
+  CPPopt += -Wno-stringop-overflow ;
+}
+
+TargetType  = lib ;
+Target      = 1stPartyLibs/daScript.lib ;
+AddIncludes =
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/1stPartyLibs/daScript/include/modules/uriparser
+  $(Root)/prog/3rdPartyLibs/uriparser/include
+;
+
+if $(daScript_MaxFunctionArgs) {
+  Target = $(Target:S=~ma$(daScript_MaxFunctionArgs).lib) ;
+  CPPopt += -DDAS_MAX_FUNCTION_ARGUMENTS=$(daScript_MaxFunctionArgs) ;
+}
+
+if $(daScript_Fusion) {
+  Target = $(Target:S=~f$(daScript_Fusion).lib) ;
+  CPPopt += -DDAS_FUSION=$(daScript_Fusion) ;
+}
+
+if $(daScript_trackAllocations) = 1 {
+  Target = $(Target:S=~ta$(daScript_trackAllocations).lib) ;
+  CPPopt += -DDAS_TRACK_ALLOCATIONS=$(daScript_trackAllocations) ;
+}
+
+if $(Platform) = macosx {
+  CPPopt += -Wno-deprecated-declarations ;
+}
+
+if $(daScript_ConsoleExe) = yes {
+  Target = $(Target:S=~s$(Target:S)) ;
+  CPPopt += -DDAS_DEFAULT_STDOUT ;
+}
+
+BuiltinFolder = src/builtin ;
+StringifySourceFile $(BuiltinFolder)/rtti.das : $(BuiltinFolder)/rtti.das.inc : $(BuiltinFolder)/module_builtin_rtti.cpp : "--full-string" ;
+StringifySourceFile $(BuiltinFolder)/fio.das : $(BuiltinFolder)/fio.das.inc : $(BuiltinFolder)/module_builtin_fio.cpp : "--full-string" ;
+StringifySourceFile $(BuiltinFolder)/builtin.das : $(BuiltinFolder)/builtin.das.inc : $(BuiltinFolder)/module_builtin_das.cpp : "--full-string" ;
+StringifySourceFile $(BuiltinFolder)/ast.das : $(BuiltinFolder)/ast.das.inc : $(BuiltinFolder)/module_builtin_ast.cpp : "--full-string" ;
+StringifySourceFile $(BuiltinFolder)/network.das : $(BuiltinFolder)/network.das.inc : $(BuiltinFolder)/module_builtin_network.cpp : "--full-string" ;
+StringifySourceFile $(BuiltinFolder)/debugger.das : $(BuiltinFolder)/debugger.das.inc : $(BuiltinFolder)/module_builtin_debugger.cpp : "--full-string" ;
+
+local AllSrcFolder_CPP = 
+  src/ast
+  src/builtin
+  src/simulate
+  src/misc
+  src/parser
+  src/modules/uriparser
+;
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
+
+local ExcOpt ;
+if $(Platform) in win32 win64 xboxOne scarlett {
+  ExcOpt += /EHsc -D_HAS_EXCEPTIONS=1 -DDAS_ENABLE_EXCEPTIONS=1 ;
+  if $(PlatformSpec) = clang { ExcOpt += -Wno-macro-redefined ; } # for _HAS_EXCEPTIONS=0 -> 1 overwrite
+} else {
+  ExcOpt += -fexceptions -DDAS_ENABLE_EXCEPTIONS=1 ;
+}
+for s in $(Sources) {
+  switch $(s) {
+    case *_exceptions.cpp : opt on $(s) = $(ExcOpt) ;
+  }
+}
+
+UseProgLibs +=
+  3rdPartyLibs/eastl
+  3rdPartyLibs/uriparser
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

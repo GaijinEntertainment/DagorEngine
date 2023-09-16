@@ -1,0 +1,49 @@
+output_PC:t ="../../../tools/dargbox/darg.vromfs.bin"
+output_and:t ="../../../tools/dargbox/darg.and.vromfs.bin"
+output_iOS:t ="../../../tools/dargbox/darg.iOS.vromfs.bin"
+pack:b=true
+
+allowMkDir:b=yes
+
+rootFolder:t="."
+
+sign_private_key:t=""
+sign_digest:t="sha256"
+
+
+
+folder {
+  path:t="../../../prog/scripts/sq/daRg"
+  dest_path:t="sq/darg"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.nut
+}
+
+folder {
+  path:t="gamebase/samples"
+  dest_path:t="samples_prog"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*
+}
+
+folder {
+  path:t="gamebase/"
+  dest_path:t="./"
+  scan_folder:b=true
+  scan_subfolders:b=false
+  wildcard:t=init.nut
+}
+
+folder {
+  path:t="../../../prog/scripts/sq/std"
+  dest_path:t="sq/std"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.nut
+}
+
+exclude {
+//  exclude:t="(gameData.*|config.*|gui.*|levels.*)[/\\]_[\w\.]*\.blk$"
+}

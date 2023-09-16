@@ -1,0 +1,17 @@
+WARNING: w203 (bitwise-bool-paren) Result of bitwise operation used in boolean expression. Perhaps parentheses are missing?
+testData/static_analyser/w203.nut:7:18
+
+if (condition1 || condition2 || condition3 | condition4)
+                  ^------------------------------------
+  ::print("ok")
+
+
+
+AN ERROR HAS OCCURRED [the index 'x' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyser/w203.nut line [2]
+
+LOCALS
+[vargv] ARRAY=[]
+[this] TABLE={}

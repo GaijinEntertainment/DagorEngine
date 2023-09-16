@@ -1,0 +1,81 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/freetype/harfbuzz-2.6.4 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/freetype/harfbuzz-2.6.4.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+  src/hb-blob.cc
+  src/hb-buffer-serialize.cc
+  src/hb-buffer.cc
+  src/hb-draw.cc
+  src/hb-common.cc
+  src/hb-face.cc
+  src/hb-font.cc
+  src/hb-map.cc
+  src/hb-ot-cff1-table.cc
+  src/hb-ot-cff2-table.cc
+  src/hb-ot-name.cc
+  src/hb-ot-tag.cc
+  src/hb-set.cc
+  src/hb-shape.cc
+  src/hb-shape-plan.cc
+  src/hb-shaper.cc
+  src/hb-static.cc
+  src/hb-unicode.cc
+  src/hb-ucd.cc
+  src/hb-number.cc
+
+  src/hb-fallback-shape.cc
+
+  src/hb-aat-layout.cc
+  src/hb-aat-map.cc
+  src/hb-ot-face.cc
+  src/hb-ot-font.cc
+  src/hb-ot-metrics.cc
+  src/hb-ot-layout.cc
+  src/hb-ot-color.cc
+  src/hb-ot-map.cc
+  src/hb-ot-math.cc
+  src/hb-ot-shape.cc
+  src/hb-ot-shape-complex-arabic.cc
+  src/hb-ot-shape-complex-default.cc
+  src/hb-ot-shape-complex-hangul.cc
+  src/hb-ot-shape-complex-hebrew.cc
+  src/hb-ot-shape-complex-indic.cc
+  src/hb-ot-shape-complex-indic-table.cc
+  src/hb-ot-shape-complex-khmer.cc
+  src/hb-ot-shape-complex-myanmar.cc
+  src/hb-ot-shape-complex-thai.cc
+  src/hb-ot-shape-complex-use.cc
+  src/hb-ot-shape-complex-use-table.cc
+  src/hb-ot-shape-complex-vowel-constraints.cc
+  src/hb-ot-shape-normalize.cc
+  src/hb-ot-shape-fallback.cc
+  src/hb-ot-var.cc
+  src/hb-ot-meta.cc
+
+  src/hb-ft.cc
+;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/freetype/harfbuzz-2.6.4/src
+  $(Root)/prog/3rdPartyLibs/freetype/freetype-2.8/include
+;
+
+CPPopt =
+  -D__B_NO_MEM_BASE_INCLUDE=1
+  -D_CRT_SECURE_NO_WARNINGS
+
+  -DHAVE_FREETYPE
+  -DHB_NO_GETENV
+;
+
+if $(Platform) = win64 { CPPopt += -wd4267 ; }
+if $(Platform) in ps4 ps5 linux64 android nswitch { CPPopt += -DHAVE_PTHREAD ; }
+if $(Platform) in xboxOne nswitch { CPPopt += -DHB_NO_MMAP ; }
+if $(Platform) in xboxOne { CPPopt += -Dgeneric=m_generic ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

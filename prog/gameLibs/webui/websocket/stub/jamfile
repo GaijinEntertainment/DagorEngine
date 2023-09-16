@@ -1,0 +1,18 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/webui/websocket/stub ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/webuiWebSocketStub.lib ;
+
+AddIncludes =  
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  webSocketStream.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

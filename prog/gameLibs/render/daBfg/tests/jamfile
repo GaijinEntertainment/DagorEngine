@@ -1,0 +1,61 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+ConsoleExe = yes ;
+PlatformSpec_win64 = clang ;
+CheckedContainers ?= yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/daBfg/tests ;
+
+TargetType  = exe ;
+OutDir      = $(Root)/$(Location)/bin/$(Platform) ;
+Target      = testFrameGraph ;
+
+if $(PlatformSpec) in clang clang64
+{
+  # These warnings are enabled by default on some systems and are
+  # caught by BS but not while developing. Manually enabling them saves
+  # BS' and my time.
+  CPPopt +=
+    -Wc++11-narrowing
+    -Wswitch
+    -Wbitfield-constant-conversion
+  ;
+}
+
+UseProgLibs =
+  engine2/memory
+  engine2/kernel
+  engine2/osApiWrappers
+  engine2/baseUtil
+  engine2/ioSys
+  engine2/math
+
+  3rdPartyLibs/EASTL
+  3rdPartyLibs/unittest-cpp
+
+  engine2/perfMon/daProfilerStub
+  engine2/perfMon/perfTimerStub
+;
+
+AddIncludes =
+  $(Root)/$(Location)/..
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/unittest-cpp
+;
+
+Sources =
+  main.cpp
+  packer.cpp
+  performance.cpp
+;
+
+AllSrcFolder_CPP =
+  ../resourceScheduling/packers/
+;
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,28 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/datacache ;
+TargetType  = lib ;
+Target      = gameLibs/datacache.lib ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  datacache.cpp
+;
+
+UseProgLibs +=
+  gameLibs/datacache/common
+  gameLibs/datacache/file
+  gameLibs/datacache/web
+;
+
+if $(UseSystemOpenSSL) != yes {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
+  UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer) ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

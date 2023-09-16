@@ -1,0 +1,1140 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Russian (Russia) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
+LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_FREECAM DIALOG 0, 0, 107, 56
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Free!",IDC_FREECAM_ON,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,1,44,98,10
+    CONTROL         "",IDC_MOVE_SPEED,"CustEdit",WS_TABSTOP,61,4,28,10
+    CONTROL         "",IDC_ROT_SPEED,"CustEdit",WS_TABSTOP,61,17,28,10
+    LTEXT           "Move speed",IDC_STATIC,11,5,46,8
+    LTEXT           "Rotate speed",IDC_STATIC,9,19,46,8
+    CONTROL         "",IDC_TURBO,"CustEdit",WS_TABSTOP,61,30,28,10
+    LTEXT           "Turbo effect",IDC_STATIC,9,31,46,8
+END
+
+IDD_UV_UTILS DIALOG 0, 0, 109, 120
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "TEST",IDC_TCSRC,"CustEdit",WS_TABSTOP,25,10,20,10
+    CONTROL         "",IDC_TCDST,"CustEdit",WS_TABSTOP,69,10,20,10
+    RTEXT           "from:",IDC_STATIC,5,10,18,10
+    RTEXT           "to:",IDC_STATIC,51,10,10,10
+    PUSHBUTTON      "Copy",IDC_TCCOPY,5,24,24,12
+    PUSHBUTTON      "Swap",IDC_TCSWAP,29,24,24,12
+    PUSHBUTTON      "Move",IDC_TCMOVE,53,24,24,12
+    PUSHBUTTON      "U<->V",IDC_TCXCHG,33,89,23,12
+    PUSHBUTTON      "1-V",IDC_TCFLIPV,81,89,23,12
+    PUSHBUTTON      "1-U",IDC_TCFLIPU,57,89,23,12
+    CONTROL         "",IDC_TCUK,"CustEdit",WS_TABSTOP,17,63,25,10
+    RTEXT           "U x",IDC_STATIC,2,63,13,10
+    CONTROL         "",IDC_TCVK,"CustEdit",WS_TABSTOP,57,63,25,10
+    RTEXT           "V x",IDC_STATIC,42,63,13,10
+    PUSHBUTTON      "X",IDC_TCMUL,85,62,20,12
+    CONTROL         "",IDC_TCUO,"CustEdit",WS_TABSTOP,17,74,25,10
+    RTEXT           "U +",IDC_STATIC,2,74,13,10
+    CONTROL         "",IDC_TCVO,"CustEdit",WS_TABSTOP,57,74,25,10
+    RTEXT           "V +",IDC_STATIC,42,74,13,10
+    PUSHBUTTON      "+",IDC_TCADD,85,74,20,12
+    CONTROL         "selected faces only",IDC_APPLYSELECTEDFACES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,33,49,73,10
+    CONTROL         "",IDC_TCMAPA,"CustEdit",WS_TABSTOP,12,49,18,9
+    LTEXT           "ch",IDC_STATIC,2,50,9,8
+    PUSHBUTTON      "CopyBuffer",IDC_TCCOPYBUF,5,39,44,8
+    PUSHBUTTON      "PasteBuffer",IDC_TCPASTEBUF,53,39,44,8
+    CONTROL         "",IDC_FID,"CustEdit",WS_TABSTOP,5,105,18,10
+    PUSHBUTTON      "Select face",IDC_SELFACE,25,104,40,12
+    PUSHBUTTON      "vertex",IDC_SELVERT,67,104,37,12
+    PUSHBUTTON      "Kill",IDC_TCKILL,81,24,24,12
+    PUSHBUTTON      "TC Info",IDC_TCINFO,5,88,26,14
+END
+
+IDD_POLYBUMP DIALOGEX 0, 0, 108, 267
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Start",IDC_START,0,251,33,12
+    PUSHBUTTON      "HighPoly",IDC_HIGHPOLY,0,6,33,12
+    PUSHBUTTON      "LowPoly",IDC_LOWPOLY,0,20,33,12
+    COMBOBOX        IDC_WIDTH,19,198,33,84,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_HEIGHT,67,198,33,84,CBS_DROPDOWN | CBS_OEMCONVERT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "W:",IDC_STATIC,5,201,12,9
+    LTEXT           "H:",IDC_STATIC,56,200,10,9
+    GROUPBOX        "Output",IDC_STATIC,1,177,105,67
+    COMBOBOX        IDC_EXPAND,33,213,33,56,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Expand:",IDC_STATIC,5,216,25,9
+    LTEXT           "",IDC_HIGHPOLYNAME,43,7,56,10
+    LTEXT           "",IDC_LOWPOLYNAME,43,20,56,10
+    CONTROL         "",IDC_FDIST_PERCENT,"CustEdit",WS_TABSTOP,39,90,25,10
+    GROUPBOX        "Forward Ray Shooting",IDC_STATIC,1,80,105,46
+    LTEXT           "Ray length",IDC_STATIC,3,91,34,9
+    LTEXT           "",IDC_FDIST_CM,39,101,61,10
+    CONTROL         "Use latest hit",IDC_LATEST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,112,57,10,WS_EX_RIGHT
+    CONTROL         "",IDC_BDIST_PERCENT,"CustEdit",WS_TABSTOP,40,140,23,10
+    GROUPBOX        "Backward Ray Shooting",IDC_STATIC,1,130,105,41
+    LTEXT           "Ray length",IDC_STATIC,3,141,36,9
+    CONTROL         "Slider1",IDC_BACK_WEIGHT,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,34,161,53,8
+    LTEXT           "Weight",IDC_STATIC,4,160,26,9
+    LTEXT           "max",IDC_STATIC,89,159,14,10
+    LTEXT           "% of lowpoly",IDC_STATIC,64,141,42,8
+    LTEXT           "",IDC_BDIST_CM,40,150,60,9
+    LTEXT           "% of lowpoly",IDC_STATIC,65,91,41,8
+    LTEXT           "Output path",IDC_OUTPUTPATH,5,229,80,12,SS_CENTERIMAGE | SS_SUNKEN
+    PUSHBUTTON      "...",IDC_SET_OUTPUTPATH,87,229,15,12
+    LTEXT           "Space",IDC_STATIC,5,186,27,9
+    COMBOBOX        IDC_SPACE,32,184,64,42,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_MAPCHANNEL,38,37,29,43,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Map chan",IDC_STATIC,3,38,33,9
+    CONTROL         "Selected faces",IDC_SELFACES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,51,59,12,WS_EX_RIGHT
+END
+
+IDD_DIALOG1 DIALOG 10, 10, 97, 29
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_VISIBLE | WS_BORDER
+FONT 10, "Arial Black"
+BEGIN
+    RTEXT           "Test",IDC_STATIC,7,12,21,8
+END
+
+IDD_OBJECT_PROPERTIES_EDITOR DIALOGEX 0, 0, 176, 238
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "Object Properties"
+FONT 8, "MS Sans Serif", 400, 0, 0xCC
+BEGIN
+    CONTROL         "`",IDC_WORLD_NORMAL_X,"CustEdit",WS_TABSTOP,83,7,22,10
+    CONTROL         "",IDC_WORLD_NORMAL_Y,"CustEdit",WS_TABSTOP,107,7,22,10
+    CONTROL         "",IDC_WORLD_NORMAL_Z,"CustEdit",WS_TABSTOP,131,7,22,10
+    CONTROL         "",IDC_LOCAL_NORMAL_X,"CustEdit",WS_TABSTOP,83,18,22,10
+    CONTROL         "",IDC_LOCAL_NORMAL_Y,"CustEdit",WS_TABSTOP,107,18,22,10
+    CONTROL         "",IDC_LOCAL_NORMAL_Z,"CustEdit",WS_TABSTOP,131,18,22,10
+    CONTROL         "Force VSS",IDC_FORCE_VSS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,35,135,12
+    CONTROL         "",IDC_VSS_SAMPLE_STEP,"CustEdit",WS_TABSTOP,83,49,40,10
+    CONTROL         "",IDC_VSS_SAMPLE_SCALE,"CustEdit",WS_TABSTOP,83,60,40,10
+    CONTROL         "",IDC_LIGHTMAP_SAMPLE_SIZE,"CustEdit",WS_TABSTOP,83,72,40,10
+    CONTROL         "",IDC_VISIBILITY_RANGE,"CustEdit",WS_TABSTOP,83,92,40,10
+    CONTROL         "Self shadowing",IDC_SELF_SHADOWING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,110,135,12
+    CONTROL         "",IDC_FLARE_ANGLE_FROM,"CustEdit",WS_TABSTOP,83,133,22,10
+    CONTROL         "",IDC_FLARE_ANGLE_TO,"CustEdit",WS_TABSTOP,121,133,22,10
+    CONTROL         "",IDC_FLARE_SIZE,"CustEdit",WS_TABSTOP,83,144,40,10
+    CONTROL         "",IDC_FLARE_FAR_SIZE,"CustEdit",WS_TABSTOP,83,155,40,10
+    CONTROL         "",IDC_FLARE_RANGE,"CustEdit",WS_TABSTOP,83,166,40,10
+    CONTROL         "",IDC_FLARE_FAR_RANGE,"CustEdit",WS_TABSTOP,83,177,40,10
+    LTEXT           "World normal (x, y, z):",IDC_STATIC,7,8,72,8
+    LTEXT           "VSS sample step:",IDC_STATIC,7,50,72,8
+    LTEXT           "VSS sample scale:",IDC_STATIC,8,61,72,8
+    LTEXT           "Lightmap sample size:",IDC_STATIC,8,74,72,8
+    LTEXT           "Visibility range:",IDC_STATIC,7,94,72,8
+    LTEXT           "Flare angles (from, to):",IDC_STATIC,7,134,72,8
+    LTEXT           "Flare size:",IDC_STATIC,7,146,72,8
+    LTEXT           "Flare far size:",IDC_STATIC,7,157,72,8
+    LTEXT           "Flare far range:",IDC_STATIC,7,179,72,8
+    LTEXT           "Flare range:",IDC_STATIC,7,168,72,8
+    LTEXT           "Physical material:",IDC_STATIC,7,221,62,8
+    CONTROL         "",IDC_VSS_SAMPLE_STEP_SPIN,"SpinnerControl",0x0,124,49,7,10
+    CONTROL         "",IDC_VSS_SAMPLE_SCALE_SPIN,"SpinnerControl",0x0,124,60,7,10
+    CONTROL         "",IDC_LIGHTMAP_SAMPLE_SIZE_SPIN,"SpinnerControl",0x0,124,72,7,10
+    CONTROL         "",IDC_VISIBILITY_RANGE_SPIN,"SpinnerControl",0x0,124,92,7,10
+    CONTROL         "",IDC_FLARE_SIZE_SPIN,"SpinnerControl",0x0,124,144,7,10
+    CONTROL         "",IDC_FLARE_FAR_SIZE_SPIN,"SpinnerControl",0x0,124,155,7,10
+    CONTROL         "",IDC_FLARE_RANGE_SPIN,"SpinnerControl",0x0,124,166,7,10
+    CONTROL         "",IDC_FLARE_FAR_RANGE_SPIN,"SpinnerControl",0x0,124,177,7,10
+    LTEXT           "*Diff.",IDC_IDC_WORLD_NORMAL_DIFF,156,7,19,8
+    LTEXT           "*Diff.",IDC_LOCAL_NORMAL_DIFF,156,18,19,8
+    LTEXT           "Local normal (x, y, z):",IDC_STATIC,7,19,72,8
+    LTEXT           "*Diff.",IDC_VSS_SAMPLE_STEP_DIFF,156,48,19,8
+    LTEXT           "*Diff.",IDC_VSS_SAMPLE_SCALE_DIFF,156,60,19,8
+    LTEXT           "*Diff.",IDC_LIGHTMAP_SAMPLE_SIZE_DIFF,156,72,19,8
+    LTEXT           "*Diff.",IDC_VISIBILITY_RANGE_DIFF,156,92,19,8
+    LTEXT           "*Diff.",IDC_FLARE_ANGLE_DIFF,156,133,19,8
+    LTEXT           "*Diff.",IDC_FLARE_SIZE_DIFF,156,142,19,8
+    LTEXT           "*Diff.",IDC_FORCE_VSS_DIFF,156,34,19,8
+    LTEXT           "*Diff.",IDC_SELF_SHADOWING_DIFF,156,111,19,8
+    LTEXT           "*Diff.",IDC_FLARE_FAR_SIZE_DIFF,156,154,19,8
+    LTEXT           "*Diff.",IDC_FLARE_RANGE_DIFF,156,166,19,8
+    LTEXT           "*Diff.",IDC_FLARE_FAR_RANGE_DIFF,156,178,19,8
+    LTEXT           "*Diff.",IDC_PHYSICAL_MATERIAL_DIFF,156,220,19,8
+    CONTROL         "`",IDC_FLARE_COLOR_R,"CustEdit",WS_TABSTOP,83,188,17,10
+    CONTROL         "",IDC_FLARE_COLOR_G,"CustEdit",WS_TABSTOP,101,188,17,10
+    CONTROL         "",IDC_FLARE_COLOR_B,"CustEdit",WS_TABSTOP,119,188,17,10
+    LTEXT           "Flare color (r, g, b):",IDC_STATIC,7,189,72,8
+    LTEXT           "*Diff.",IDC_FLARE_COLOR_DIFF,156,188,19,8
+    CONTROL         "",IDC_FLARE_Z_OFFSET,"CustEdit",WS_TABSTOP,83,199,40,10
+    LTEXT           "Flare Z offset:",IDC_STATIC,7,201,72,8
+    CONTROL         "",IDC_FLARE_Z_OFFSET_SPIN,"SpinnerControl",0x0,124,199,7,10
+    LTEXT           "*Diff.",IDC_FLARE_Z_OFFSET_DIFF,156,199,19,8
+    CONTROL         "",IDC_FLARE_ANGLE_FROM_SPIN,"SpinnerControl",0x0,106,133,7,10
+    CONTROL         "",IDC_FLARE_ANGLE_TO_SPIN,"SpinnerControl",0x0,144,133,7,10
+    CONTROL         "",IDC_PHYSICAL_MATERIAL,"CustEdit",WS_TABSTOP,64,220,90,10
+    CONTROL         "Custom1",IDC_FLARE_COLOR,"ColorSwatch",WS_TABSTOP,137,188,15,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_FREECAM, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 54
+    END
+
+    IDD_UV_UTILS, DIALOG
+    BEGIN
+        LEFTMARGIN, 2
+        BOTTOMMARGIN, 117
+    END
+
+    IDD_POLYBUMP, DIALOG
+    BEGIN
+        RIGHTMARGIN, 106
+        BOTTOMMARGIN, 263
+    END
+
+    IDD_DIALOG1, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 28
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 20
+    END
+
+    IDD_OBJECT_PROPERTIES_EDITOR, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 175
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 231
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_FREECAM_ACC ACCELERATORS
+BEGIN
+    "A",            IDR_FREE_LEFT,          VIRTKEY, NOINVERT
+    "A",            IDR_FREET_LEFT,         VIRTKEY, SHIFT, NOINVERT
+    "D",            IDR_FREE_RIGHT,         VIRTKEY, NOINVERT
+    "D",            IDR_FREET_RIGHT,        VIRTKEY, SHIFT, NOINVERT
+    "Q",            IDR_FREE_UP,            VIRTKEY, NOINVERT
+    "Q",            IDR_FREET_UP,           VIRTKEY, SHIFT, NOINVERT
+    "S",            IDR_FREE_BACKW,         VIRTKEY, NOINVERT
+    "S",            IDR_FREET_BACKW,        VIRTKEY, SHIFT, NOINVERT
+    VK_SPACE,       IDR_FREE,               VIRTKEY, NOINVERT
+    "W",            IDR_FREE_FORW,          VIRTKEY, NOINVERT
+    "W",            IDR_FREET_FORW,         VIRTKEY, SHIFT, NOINVERT
+    "Z",            IDR_FREE_DOWN,          VIRTKEY, NOINVERT
+    "Z",            IDR_FREET_DOWN,         VIRTKEY, SHIFT, NOINVERT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_POLYBUMP DLGINIT
+BEGIN
+    IDC_WIDTH, 0x403, 3, 0
+0x3631, "\000" 
+    IDC_WIDTH, 0x403, 3, 0
+0x3233, "\000" 
+    IDC_WIDTH, 0x403, 3, 0
+0x3436, "\000" 
+    IDC_WIDTH, 0x403, 4, 0
+0x3231, 0x0038, 
+    IDC_WIDTH, 0x403, 4, 0
+0x3532, 0x0036, 
+    IDC_WIDTH, 0x403, 4, 0
+0x3135, 0x0032, 
+    IDC_WIDTH, 0x403, 5, 0
+0x3031, 0x3432, "\000" 
+    IDC_WIDTH, 0x403, 5, 0
+0x3032, 0x3834, "\000" 
+    IDC_HEIGHT, 0x403, 3, 0
+0x3631, "\000" 
+    IDC_HEIGHT, 0x403, 3, 0
+0x3233, "\000" 
+    IDC_HEIGHT, 0x403, 3, 0
+0x3436, "\000" 
+    IDC_HEIGHT, 0x403, 4, 0
+0x3231, 0x0038, 
+    IDC_HEIGHT, 0x403, 4, 0
+0x3532, 0x0036, 
+    IDC_HEIGHT, 0x403, 4, 0
+0x3135, 0x0032, 
+    IDC_HEIGHT, 0x403, 5, 0
+0x3031, 0x3432, "\000" 
+    IDC_HEIGHT, 0x403, 5, 0
+0x3032, 0x3834, "\000" 
+    IDC_EXPAND, 0x403, 5, 0
+0x6f6e, 0x656e, "\000" 
+    IDC_EXPAND, 0x403, 4, 0
+0x6c61, 0x006c, 
+    IDC_EXPAND, 0x403, 2, 0
+0x0031, 
+    IDC_EXPAND, 0x403, 2, 0
+0x0032, 
+    IDC_EXPAND, 0x403, 2, 0
+0x0034, 
+    IDC_EXPAND, 0x403, 2, 0
+0x0038, 
+    IDC_EXPAND, 0x403, 3, 0
+0x3631, "\000" 
+    IDC_EXPAND, 0x403, 3, 0
+0x3233, "\000" 
+    IDC_SPACE, 0x403, 3, 0
+0x3631, "\000" 
+    IDC_SPACE, 0x403, 3, 0
+0x3233, "\000" 
+    IDC_SPACE, 0x403, 3, 0
+0x3436, "\000" 
+    IDC_SPACE, 0x403, 1, 0
+"\000" 
+    IDC_MAPCHANNEL, 0x403, 3, 0
+0x3631, "\000" 
+    IDC_MAPCHANNEL, 0x403, 3, 0
+0x3233, "\000" 
+    IDC_MAPCHANNEL, 0x403, 5, 0
+0x3031, 0x3432, "\000" 
+    IDC_MAPCHANNEL, 0x403, 5, 0
+0x3032, 0x3834, "\000" 
+    0
+END
+
+#endif    // Russian (Russia) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_FONTUTIL DIALOG 0, 0, 108, 25
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    PUSHBUTTON      "Export font data",IDC_EXPORT,5,5,98,15
+END
+
+IDD_DAGORMAT DIALOG 0, 0, 265, 404
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "",IDC_AMB,"ColorSwatch",WS_TABSTOP,50,20,40,14
+    RTEXT           "Ambient:",IDC_STATIC,5,20,40,14,SS_CENTERIMAGE
+    CONTROL         "",IDC_DIFF,"ColorSwatch",WS_TABSTOP,50,35,40,14
+    RTEXT           "Diffuse:",IDC_STATIC,5,35,40,14,SS_CENTERIMAGE
+    CONTROL         "",IDC_SPEC,"ColorSwatch",WS_TABSTOP,50,50,40,14
+    RTEXT           "Specular:",IDC_STATIC,5,50,40,14,SS_CENTERIMAGE
+    CONTROL         "",IDC_EMIS,"ColorSwatch",WS_TABSTOP,50,65,40,14
+    RTEXT           "Emissive:",IDC_STATIC,5,65,40,14,SS_CENTERIMAGE
+    CONTROL         "",IDC_SHIN,"CustEdit",WS_TABSTOP,135,52,20,10
+    CONTROL         "",IDC_SHIN_S,"SpinnerControl",WS_TABSTOP,156,52,7,10
+    RTEXT           "Shininess:",IDC_STATIC,90,50,40,14,SS_CENTERIMAGE
+    CONTROL         "2 sided",IDC_2SIDED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,98,20,40,14
+    CONTROL         "",IDC_CLASSNAME,"CustEdit",WS_TABSTOP,50,5,162,12
+    RTEXT           "Class name:",IDC_STATIC,0,5,45,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_SCRIPT,5,279,207,120,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL
+    CONTROL         "",IDC_TEX0,"CustButton",WS_TABSTOP,12,85,173,10
+    RTEXT           "0:",IDC_STATIC,0,85,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX1,"CustButton",WS_TABSTOP,12,97,173,10
+    RTEXT           "1:",IDC_STATIC,0,97,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX2,"CustButton",WS_TABSTOP,12,109,173,10
+    RTEXT           "2:",IDC_STATIC,0,109,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX3,"CustButton",WS_TABSTOP,12,121,173,10
+    RTEXT           "3:",IDC_STATIC,0,121,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX4,"CustButton",WS_TABSTOP,12,133,173,10
+    RTEXT           "4:",IDC_STATIC,0,133,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX5,"CustButton",WS_TABSTOP,12,145,173,10
+    RTEXT           "5:",IDC_STATIC,0,145,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX6,"CustButton",WS_TABSTOP,12,157,173,10
+    RTEXT           "6:",IDC_STATIC,0,157,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX7,"CustButton",WS_TABSTOP,12,169,173,10
+    RTEXT           "7:",IDC_STATIC,0,169,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX8,"CustButton",WS_TABSTOP,12,181,173,10
+    RTEXT           "8:",IDC_STATIC,0,181,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX9,"CustButton",WS_TABSTOP,12,193,173,10
+    RTEXT           "9:",IDC_STATIC,0,193,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX10,"CustButton",WS_TABSTOP,12,205,173,10
+    RTEXT           "10:",IDC_STATIC,0,205,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX11,"CustButton",WS_TABSTOP,12,217,173,10
+    RTEXT           "11:",IDC_STATIC,0,217,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX12,"CustButton",WS_TABSTOP,12,229,173,10
+    RTEXT           "12:",IDC_STATIC,0,229,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX13,"CustButton",WS_TABSTOP,12,241,173,10
+    RTEXT           "13:",IDC_STATIC,0,241,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX14,"CustButton",WS_TABSTOP,12,253,173,10
+    RTEXT           "14:",IDC_STATIC,0,253,10,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX15,"CustButton",WS_TABSTOP,12,265,173,10
+    RTEXT           "15:",IDC_STATIC,0,265,10,10,SS_CENTERIMAGE
+END
+
+IDD_EXPUTIL DIALOGEX 0, 0, 108, 389
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    PUSHBUTTON      "Export DAG",IDC_EXPORT,5,5,98,15
+    RTEXT           "Dagor path",IDC_DAGORPATH,5,348,80,12,SS_CENTERIMAGE | SS_SUNKEN
+    PUSHBUTTON      "...",IDC_SET_DAGORPATH,88,348,15,12
+    CONTROL         "hid",IDC_EXPHIDDEN,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,5,52,15,10
+    CONTROL         "sel",IDC_EXPSEL,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,20,52,15,10
+    CONTROL         "mesh",IDC_EXPMESH,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,38,52,20,10
+    CONTROL         "no vnorm",IDC_EXP_NO_VNORM,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,5,62,35,10
+    CONTROL         "hlp",IDC_EXPHELPER,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,88,52,15,10
+    CONTROL         "lt",IDC_EXPLIGHT,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,58,52,14,10
+    CONTROL         "cam",IDC_EXPCAM,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,72,52,15,10
+    GROUPBOX        "Animation",IDC_STATIC,1,76,106,156,BS_CENTER
+    CONTROL         "",IDC_AEND,"CustEdit",WS_TABSTOP,75,87,28,10
+    CONTROL         "",IDC_ASTART,"CustEdit",WS_TABSTOP,39,87,28,10
+    CTEXT           "-",IDC_STATIC,67,87,8,10,SS_CENTERIMAGE
+    CONTROL         "range:",IDC_ARANGE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,87,34,10
+    CONTROL         "",IDC_POSEPS,"CustEdit",WS_TABSTOP,28,102,25,10
+    RTEXT           "~pos:",IDC_STATIC,3,102,23,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_SCLEPS,"CustEdit",WS_TABSTOP,28,111,25,10
+    RTEXT           "~scl:",IDC_STATIC,3,111,23,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_ROTEPS,"CustEdit",WS_TABSTOP,78,102,25,10
+    RTEXT           "~rot:",IDC_STATIC,54,102,23,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_ORTEPS,"CustEdit",WS_TABSTOP,78,111,25,10
+    RTEXT           "~ort:",IDC_STATIC,54,111,23,10,SS_CENTERIMAGE
+    CONTROL         "Export light targets",IDC_EXPLTARG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,324,75,10
+    CONTROL         "Export camera targets",IDC_EXPCTARG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,335,85,10
+    CONTROL         "mat",IDC_EXPMATER,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,46,62,15,10
+    CONTROL         "mopt",IDC_EXPMATEROPT,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,62,62,25,10
+    CONTROL         "spl",IDC_EXPSPLINE,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,88,62,15,10
+    PUSHBUTTON      "Export Anim v2 (rev 1.8)",IDC_EXPORT_ANIM2,8,132,93,15
+    CONTROL         "Don't optimize POS",IDC_DONT_REDUCE_POS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,163,94,10
+    CONTROL         "Don't optimize ROTATE",IDC_DONT_REDUCE_ROT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,172,92,10
+    CONTROL         "Don't optimize SCALE",IDC_DONT_REDUCE_SCL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,182,90,10
+    PUSHBUTTON      "Export Adv. Camera v1",IDC_EXPORT_CAMERA2,13,257,84,15
+    GROUPBOX        "",IDC_STATIC,1,271,106,50
+    CONTROL         "Loop anim",IDC_LOOP_ANIM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,193,90,10
+    CONTROL         "",IDC_ORIGIN_LINVEL_EPS,"CustEdit",WS_TABSTOP,26,217,25,10
+    RTEXT           "~pos:",IDC_STATIC,4,217,20,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_ORIGIN_ANGVEL_EPS,"CustEdit",WS_TABSTOP,76,217,25,10
+    RTEXT           "~rot:",IDC_STATIC,52,217,23,10,SS_CENTERIMAGE
+    CTEXT           "Origin velocity export accuracy",IDC_STATIC,3,206,101,10,SS_CENTERIMAGE
+    PUSHBUTTON      "Export Physics",IDC_EXPORT_PHYS,8,281,93,15
+    PUSHBUTTON      "Calc masses",IDC_CALC_MOMJ,8,302,50,15
+    CONTROL         "on export",IDC_CALC_MOMJ_ON_EXPORT,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | BS_FLAT | WS_TABSTOP,61,302,39,15
+    PUSHBUTTON      "Export instances",IDC_EXPORT_INSTANCES,11,367,84,15
+    COMBOBOX        IDC_EXPORT_MODE,5,33,98,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Export Mode",IDC_STATIC,5,24,41,8
+END
+
+IDD_DAGUTIL DIALOG 0, 0, 110, 156
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    RTEXT           "Dagor path",IDC_DAGORPATH,6,9,80,12,SS_CENTERIMAGE | SS_SUNKEN
+    PUSHBUTTON      "...",IDC_SET_DAGORPATH,88,9,15,12
+    LTEXT           "Dagor base path:",IDC_STATIC,6,0,62,9
+    PUSHBUTTON      "Copy Note Track",IDC_GET_NTRK,5,82,98,12
+    PUSHBUTTON      "Paste Note Track",IDC_PUT_NTRK,5,101,98,12
+    PUSHBUTTON      "Convert spaces",IDC_CONVERT_SPACES,5,28,98,12
+    PUSHBUTTON      "Import Milkshape Anim",IDC_IMPORT_MS_ANIM,5,46,98,12
+    PUSHBUTTON      "Remove degenerates",IDC_REMOVE_DEGENERATES,5,64,98,12
+    PUSHBUTTON      "Brightness Power Calculator",IDC_EDIT_BRIGHTNESS,5,119,98,12
+    PUSHBUTTON      "Select Floor",IDC_SELECT_FLOOR,5,138,98,12
+END
+
+IDD_DUMMY_PARAM DIALOG 0, 0, 108, 20
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "",IDC_SIZ,"CustEdit",WS_TABSTOP,50,5,45,10
+    CONTROL         "",IDC_SIZE_S,"SpinnerControl",WS_TABSTOP,96,5,7,10
+    RTEXT           "Size:",IDC_STATIC,5,5,40,10,SS_CENTERIMAGE
+END
+
+IDD_LOGROLL DIALOGEX 0, 0, 108, 41
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    PUSHBUTTON      "(Re)open log",IDC_OPEN_LOG,8,4,92,14
+    PUSHBUTTON      "Clear log",IDC_CLEAR_LOG,8,23,92,14
+END
+
+IDD_DAGORMAT2 DIALOG 0, 0, 308, 572
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "",IDC_AMB,"ColorSwatch",WS_TABSTOP,75,30,40,10
+    LTEXT           "Ambient:",IDC_STATIC,35,30,35,8,SS_CENTERIMAGE
+    CONTROL         "",IDC_DIFF,"ColorSwatch",WS_TABSTOP,75,45,40,10
+    LTEXT           "Diffuse:",IDC_STATIC,35,45,34,8,SS_CENTERIMAGE
+    CONTROL         "",IDC_SPEC,"ColorSwatch",WS_TABSTOP,160,30,40,10
+    LTEXT           "Specular:",IDC_STATIC,120,30,35,8,SS_CENTERIMAGE
+    CONTROL         "",IDC_EMIS,"ColorSwatch",WS_TABSTOP,160,45,40,10
+    LTEXT           "Emissive:",IDC_STATIC,120,45,35,8,SS_CENTERIMAGE
+    CONTROL         "2 sided",IDC_2SIDED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,60,40,8
+    LTEXT           "Class:",IDC_STATIC,10,11,20,8,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX0,"CustButton",WS_TABSTOP,115,75,90,10
+    RTEXT           "0:",IDC_STATIC,10,75,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX1,"CustButton",WS_TABSTOP,115,86,90,10
+    RTEXT           "1:",IDC_STATIC,10,86,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX2,"CustButton",WS_TABSTOP,115,97,90,10
+    RTEXT           "2:",IDC_STATIC,10,97,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX3,"CustButton",WS_TABSTOP,115,108,90,10
+    RTEXT           "3:",IDC_STATIC,10,108,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX4,"CustButton",WS_TABSTOP,115,119,90,10
+    RTEXT           "4:",IDC_STATIC,10,119,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX5,"CustButton",WS_TABSTOP,115,130,90,10
+    RTEXT           "5:",IDC_STATIC,10,130,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX6,"CustButton",WS_TABSTOP,115,141,90,10
+    RTEXT           "6:",IDC_STATIC,10,141,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX7,"CustButton",WS_TABSTOP,115,152,90,10
+    RTEXT           "7:",IDC_STATIC,10,152,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX8,"CustButton",WS_TABSTOP,115,163,90,10
+    RTEXT           "8:",IDC_STATIC,10,163,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX9,"CustButton",WS_TABSTOP,115,174,90,10
+    RTEXT           "9:",IDC_STATIC,10,174,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX10,"CustButton",WS_TABSTOP,115,185,90,10
+    RTEXT           "10:",IDC_STATIC,10,185,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX11,"CustButton",WS_TABSTOP,115,196,90,10
+    RTEXT           "11:",IDC_STATIC,10,196,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX12,"CustButton",WS_TABSTOP,115,207,90,10
+    RTEXT           "12:",IDC_STATIC,10,207,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX13,"CustButton",WS_TABSTOP,115,218,90,10
+    RTEXT           "13:",IDC_STATIC,10,218,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX14,"CustButton",WS_TABSTOP,115,229,90,10
+    RTEXT           "14:",IDC_STATIC,10,229,8,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_TEX15,"CustButton",WS_TABSTOP,115,240,90,10
+    RTEXT           "15:",IDC_STATIC,10,240,8,10,SS_CENTERIMAGE
+    COMBOBOX        IDC_CLASSNAME,35,10,167,99,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_TEXNAME0,"CustStatus",WS_TABSTOP,20,75,91,10
+    CONTROL         "",IDC_TEXNAME1,"CustStatus",WS_TABSTOP,20,86,91,10
+    CONTROL         "",IDC_TEXNAME2,"CustStatus",WS_TABSTOP,20,97,91,10
+    CONTROL         "",IDC_TEXNAME3,"CustStatus",WS_TABSTOP,20,108,91,10
+    CONTROL         "",IDC_TEXNAME4,"CustStatus",WS_TABSTOP,20,119,91,10
+    CONTROL         "",IDC_TEXNAME5,"CustStatus",WS_TABSTOP,20,130,91,10
+    CONTROL         "",IDC_TEXNAME6,"CustStatus",WS_TABSTOP,20,141,91,10
+    CONTROL         "",IDC_TEXNAME7,"CustStatus",WS_TABSTOP,20,152,91,10
+    CONTROL         "",IDC_TEXNAME8,"CustStatus",WS_TABSTOP,20,163,91,10
+    CONTROL         "",IDC_TEXNAME9,"CustStatus",WS_TABSTOP,20,174,91,10
+    CONTROL         "",IDC_TEXNAME10,"CustStatus",WS_TABSTOP,20,185,91,10
+    CONTROL         "",IDC_TEXNAME11,"CustStatus",WS_TABSTOP,20,196,91,10
+    CONTROL         "",IDC_TEXNAME12,"CustStatus",WS_TABSTOP,20,207,91,10
+    CONTROL         "",IDC_TEXNAME13,"CustStatus",WS_TABSTOP,20,218,91,10
+    CONTROL         "",IDC_TEXNAME14,"CustStatus",WS_TABSTOP,20,229,91,10
+    CONTROL         "",IDC_TEXNAME15,"CustStatus",WS_TABSTOP,20,240,91,10
+    PUSHBUTTON      "Add",IDC_PARAM_NEW,160,60,40,10
+    CONTROL         "2 sided real",IDC_2SIDEDREAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,100,60,50,8
+    GROUPBOX        "ParamStart",IDC_STATIC,12,256,54,16,NOT WS_VISIBLE
+END
+
+IDD_DAGORPAR_NEW DIALOG 0, 0, 212, 166
+STYLE DS_SYSMODAL | DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Add new parameter"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,50,140,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,115,140,50,14
+    COMBOBOX        IDC_PARAM_NAME,7,16,195,120,CBS_SIMPLE | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Parameters:",IDC_STATIC,10,8,195,8
+END
+
+IDD_DAGORPAR_TEXT DIALOG 0, 0, 211, 11
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "StaticType",IDC_STATIC,1,1,56,8
+    CONTROL         "",IDC_PAR_TEXT_VALUE,"CustEdit",WS_TABSTOP,57,0,108,11
+    PUSHBUTTON      "Delete",IDC_PARAM_DELETE,168,1,23,10,WS_DISABLED
+END
+
+IDD_DAGORPAR_REAL DIALOG 0, 0, 198, 10
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "StaticType",IDC_STATIC,1,1,54,8
+    CONTROL         "",IDC_PAR_REAL_VALUE,"CustEdit",WS_TABSTOP,57,0,92,10
+    CONTROL         "",IDC_PAR_REAL_VALUE_SPINNER,"SpinnerControl",WS_TABSTOP,155,0,10,10
+    PUSHBUTTON      "Delete",IDC_PARAM_DELETE,167,0,24,10,WS_DISABLED
+END
+
+IDD_DAGORPAR_ENUM DIALOG 0, 0, 191, 23
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    PUSHBUTTON      "Delete",IDC_PARAM_DELETE,167,13,24,10,WS_DISABLED
+    LTEXT           "StaticType",IDC_STATIC,1,1,66,8
+END
+
+IDD_DAGORPAR_RANGE DIALOG 0, 0, 198, 10
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "StaticType",IDC_STATIC,1,1,35,8
+    CONTROL         "",IDC_PAR_RANGE_VALUE,"CustEdit",WS_TABSTOP,57,0,92,10
+    CONTROL         "",IDC_PAR_RANGE_SPINNER,"SpinnerControl",WS_TABSTOP,155,0,10,10
+    PUSHBUTTON      "Delete",IDC_PARAM_DELETE,167,0,24,10,WS_DISABLED
+END
+
+IDD_DAGORPAR_COLOR DIALOG 0, 0, 198, 14
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "StaticType",IDC_STATIC,1,1,54,8
+    CONTROL         "",IDC_PAR_COLOR_VALUE,"ColorSwatch",WS_TABSTOP,50,0,40,14
+    PUSHBUTTON      "Delete",IDC_PARAM_DELETE,167,2,24,10,WS_DISABLED
+END
+
+IDD_MatConvUtil DIALOG 0, 0, 108, 117
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    PUSHBUTTON      "auto by name",IDC_AUTO,5,5,98,14
+    PUSHBUTTON      "simple vertex-lighted",IDC_SIMPLE_VLTMAP,5,20,98,14
+    PUSHBUTTON      "simple lightmapped",IDC_SIMPLE_LIGHTMAP,5,35,98,14
+    PUSHBUTTON      "alpha blend vertex-lighted",IDC_ABLEND_VLTMAP,5,50,98,14
+    CONTROL         "2 sided",IDC_2SIDED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,85,40,10
+    CONTROL         "2 sided real",IDC_REAL2SIDED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,51,85,50,10
+    PUSHBUTTON      "alpha blend lightmapped",IDC_ABLEND_LIGHTMAP,5,65,98,14
+    CONTROL         "",IDC_ATEST,"CustEdit",WS_TABSTOP,73,100,28,10
+    LTEXT           "Alpha-test value:",IDC_STATIC,5,100,64,10
+END
+
+IDD_RBDUMMY_PARAM DIALOG 0, 0, 108, 20
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "",IDC_SIZ,"CustEdit",WS_TABSTOP,50,5,45,10
+    CONTROL         "",IDC_SIZE_S,"SpinnerControl",WS_TABSTOP,96,5,7,10
+    RTEXT           "Size:",IDC_STATIC,5,5,40,10,SS_CENTERIMAGE
+END
+
+IDD_SCATTER DIALOG 0, 0, 108, 95
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    PUSHBUTTON      "Generate",IDC_GENOBJSURF,1,83,106,8
+    CONTROL         "",IDC_SELSET,"CustEdit",WS_TABSTOP,32,0,62,10
+    CONTROL         "",IDC_OBJNUM,"CustEdit",WS_TABSTOP,28,11,27,10
+    CONTROL         "",IDC_OBJGENSEED,"CustEdit",WS_TABSTOP,81,11,25,10
+    LTEXT           "Setname",-1,2,1,29,8
+    LTEXT           "Num:",-1,6,11,20,9
+    LTEXT           "Seed:",-1,59,11,21,8
+    CONTROL         "app.normal",IDC_GS_SET2NORM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,54,50,8
+    CONTROL         "use smgr",IDC_GS_USESMGR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,61,54,40,8
+    CONTROL         "",IDC_GS_SLOPE,"CustEdit",WS_TABSTOP,73,62,27,10
+    LTEXT           "Slope:",-1,52,64,23,8
+    CONTROL         "rotatez",IDC_GS_ROTATEZ,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,64,38,8
+    CONTROL         "selelected faces",IDC_GS_SELFACES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,72,72,9
+    LTEXT           "scale",-1,2,38,19,8
+    CONTROL         "",IDC_GS_SCALEXY,"Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,44,46,9,8
+    CONTROL         "",IDC_GS_SCALEZ,"Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,79,46,8,8
+    CONTROL         "",IDC_GS_SCALEXYS,"CustEdit",WS_TABSTOP,27,35,16,10
+    CONTROL         "",IDC_GS_SCALEXYE,"CustEdit",WS_TABSTOP,45,35,16,10
+    CONTROL         "",IDC_GS_SCALEZS,"CustEdit",WS_TABSTOP,67,35,16,10
+    CONTROL         "",IDC_GS_SCALEZE,"CustEdit",WS_TABSTOP,85,35,16,10
+    LTEXT           "indenpently",-1,3,46,38,8
+    LTEXT           "xy",-1,40,27,8,8
+    LTEXT           "z",-1,81,27,8,8
+END
+
+IDD_SPLINES_AND_SMOOTH DIALOG 0, 0, 108, 120
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "",IDC_GRASSHT,"CustEdit",WS_TABSTOP,17,0,25,10
+    RTEXT           "ht:",-1,1,0,13,10
+    CONTROL         "",IDC_GRASSTILE,"CustEdit",WS_TABSTOP,57,0,25,10
+    RTEXT           "tile:",-1,41,0,13,10
+    CONTROL         "",IDC_GRASSSEGS,"CustEdit",WS_TABSTOP,27,13,20,10
+    RTEXT           "segs:",-1,1,13,23,10
+    PUSHBUTTON      "Extrude",IDC_MAKEGRASS,59,26,45,12
+    CONTROL         "up",IDC_GRASSUP,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,87,0,16,10
+    CONTROL         "norm",IDC_GRASSUSETANG,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,85,13,20,10
+    PUSHBUTTON      "Project",IDC_PROJSPL,59,53,45,12
+    CONTROL         "",IDC_PJS_OPTANGLE,"CustEdit",WS_TABSTOP,31,41,25,10
+    RTEXT           "opt.ang.:",-1,1,41,28,10
+    CONTROL         "",IDC_PJS_OPTSEGLEN,"CustEdit",WS_TABSTOP,79,41,25,10
+    RTEXT           "o.seg:",-1,57,41,21,10
+    CONTROL         "",IDC_PJS_MAXSEGLEN,"CustEdit",WS_TABSTOP,31,54,25,10
+    RTEXT           "maxseg:",-1,1,54,28,10
+    CONTROL         "",IDC_GRASSGRAVITY,"CustEdit",WS_TABSTOP,61,13,20,10
+    RTEXT           "g:",-1,49,13,10,10
+    CONTROL         "",IDC_GRASSSTEPS,"CustEdit",WS_TABSTOP,31,27,25,10
+    RTEXT           "steps:",-1,1,27,28,10
+    CONTROL         "selected faces",IDC_SMOOTHSEL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,1,68,59,9
+    PUSHBUTTON      "Smooth",IDC_MESHSMOOTH,1,105,41,11
+    CONTROL         "u <-> v",IDC_TM_DIVIDEDIR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,1,79,41,9
+    CONTROL         "use smooth grps",IDC_USE_SMOOTH,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,44,79,63,9
+    CONTROL         "",IDC_SHARPNESS,"CustEdit",WS_TABSTOP,37,92,17,10
+    CONTROL         "",IDC_SMTHITERATIONS,"CustEdit",WS_TABSTOP,90,90,17,10
+    CONTROL         "",IDC_AROUND,"CustEdit",WS_TABSTOP,89,68,18,10
+    LTEXT           "sharpness:",-1,1,92,34,9
+    LTEXT           "iterations:",-1,59,92,29,8
+    LTEXT           "eps:",-1,71,68,14,9
+END
+
+IDD_MATERIALS DIALOG 0, 0, 108, 135
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    PUSHBUTTON      "Show maps on s.o.",IDC_SHOWALLMAPS,4,50,65,12
+    PUSHBUTTON      "StdMat -> DagorMat",IDC_STD2DAGMAT,4,65,98,12
+    CONTROL         "",IDC_CLSNAME,"CustEdit",WS_TABSTOP,39,99,63,10
+    RTEXT           "Mat class:",-1,0,99,37,10,SS_CENTERIMAGE
+    PUSHBUTTON      "Hide",IDC_HIDEMAPS,72,50,30,12
+    PUSHBUTTON      "Convert maxtures to matid",IDC_MAX2MAT,4,117,98,12
+    PUSHBUTTON      "DagorMat -> StdMat",IDC_DAGMAT2STDMAT,4,80,98,12
+    PUSHBUTTON      "Dagor->Dagor from cfg",IDC_CONVERT,5,20,95,10
+    PUSHBUTTON      "Collapse materials",IDC_COLLAPSE,5,10,95,10
+    PUSHBUTTON      "Dagor->Dagor New",IDC_CONVERT_NEW,5,0,95,10
+    PUSHBUTTON      "Enumerate",IDC_ENUMERATE,5,31,95,10
+END
+
+IDD_OBJECT_PROPERTIES_FROM_BLK DIALOGEX 0, 0, 221, 286
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "Object properties"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    CONTROL         "RollTest",IDC_ROLLUPWINDOW,"RollupWindow",WS_TABSTOP,1,0,220,286
+END
+
+IDD_MAX_GENERAL_ROLLUP DIALOGEX 0, 0, 213, 238
+STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
+EXSTYLE WS_EX_TOOLWINDOW
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+END
+
+IDD_DAGOR_BRIGHTNESS DIALOGEX 0, 0, 255, 238
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "Brightness Power Calculator"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Calculate",IDC_CALC,195,7,50,14
+    CONTROL         "CustEdit",IDC_CUSTOM,"CustEdit",WS_TABSTOP,144,7,50,14
+END
+
+IDD_DAGOR_LOG_WINDOW DIALOGEX 0, 0, 303, 238
+STYLE DS_SETFONT | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "Dagor Log"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_LOGTEXT,8,7,285,224,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_FONTUTIL, DIALOG
+    BEGIN
+        LEFTMARGIN, 1
+        RIGHTMARGIN, 107
+        BOTTOMMARGIN, 24
+    END
+
+    IDD_DAGORMAT, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 199
+    END
+
+    IDD_EXPUTIL, DIALOG
+    BEGIN
+        LEFTMARGIN, 1
+        RIGHTMARGIN, 107
+        BOTTOMMARGIN, 387
+    END
+
+    IDD_DAGUTIL, DIALOG
+    BEGIN
+        LEFTMARGIN, 1
+        RIGHTMARGIN, 109
+        BOTTOMMARGIN, 131
+    END
+
+    IDD_DUMMY_PARAM, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 19
+    END
+
+    IDD_LOGROLL, DIALOG
+    BEGIN
+        LEFTMARGIN, 1
+        RIGHTMARGIN, 107
+        BOTTOMMARGIN, 40
+    END
+
+    IDD_DAGORMAT2, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 571
+    END
+
+    IDD_DAGORPAR_NEW, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 205
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 159
+    END
+
+    IDD_DAGORPAR_TEXT, DIALOG
+    BEGIN
+        RIGHTMARGIN, 204
+        BOTTOMMARGIN, 10
+    END
+
+    IDD_DAGORPAR_REAL, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 9
+    END
+
+    IDD_DAGORPAR_ENUM, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 22
+    END
+
+    IDD_DAGORPAR_RANGE, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 9
+    END
+
+    IDD_MatConvUtil, DIALOG
+    BEGIN
+        LEFTMARGIN, 1
+        RIGHTMARGIN, 107
+        BOTTOMMARGIN, 101
+    END
+
+    IDD_RBDUMMY_PARAM, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 19
+    END
+
+    IDD_SCATTER, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 91
+    END
+
+    IDD_SPLINES_AND_SMOOTH, DIALOG
+    BEGIN
+        LEFTMARGIN, 1
+        RIGHTMARGIN, 107
+        BOTTOMMARGIN, 116
+    END
+
+    IDD_MATERIALS, DIALOG
+    BEGIN
+        LEFTMARGIN, 1
+        RIGHTMARGIN, 107
+        BOTTOMMARGIN, 130
+    END
+
+    IDD_MAX_GENERAL_ROLLUP, DIALOG
+    BEGIN
+        LEFTMARGIN, 8
+        RIGHTMARGIN, 162
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 231
+    END
+
+    IDD_DAGOR_BRIGHTNESS, DIALOG
+    BEGIN
+        LEFTMARGIN, 8
+        RIGHTMARGIN, 245
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 231
+    END
+
+    IDD_DAGOR_LOG_WINDOW, DIALOG
+    BEGIN
+        LEFTMARGIN, 8
+        RIGHTMARGIN, 293
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 231
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_EXPUTIL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_LOGROLL AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_DAGOR_LOG_WINDOW AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_UTIL_CAT            "Dagor Dagorrat"
+    IDS_FONTUTIL_NAME       "Dagor Font Export"
+    IDS_FONTUTIL_ROLL       "Font Data Exporter"
+    IDS_FONTDATA_FILES      "Dagor Font Data (*.fd)"
+    IDS_SAVE_FONTDATA_TITLE "Save Font Data"
+    IDS_FILE_EXISTS         "Overwrite %s ?"
+    IDS_FONTERR_HDNEBASE    "There must be the same number of HDIVs, BASEs and CHARS"
+    IDS_FONTERR_NOHDIV      "No HDIVs"
+    IDS_FONTERR_VDOUTU      "VDIV out of horizontal [0;256] range"
+    IDS_FONTERR_VDOUTV      "VDIV out of HDIVs"
+    IDS_FILE_CREATE_ERR     "Error creating output file"
+    IDS_FONTERR_VDEVEN      "Number of VDIVs in HDIV must be odd"
+    IDS_DAGORMAT            "DagorMat"
+    IDS_AMB_COLOR           "Ambient Color"
+    IDS_DIFF_COLOR          "Diffuse Color"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_SPEC_COLOR          "Specular Color"
+    IDS_EMIS_COLOR          "Emissive Color"
+    IDS_COLOR_CHANGE        "color change"
+    IDS_PARAM_CHANGE        "parameter change"
+    IDS_DAGORMAT_LONG       "Dagor Dagorrat Material"
+    IDS_EXPUTIL_NAME        "Dagor Scene Export"
+    IDS_EXPUTIL_ROLL        "Dagor Scene Exporter"
+    IDS_SCENE_FILES         "Dagor Scene (*.dag)"
+    IDS_SAVE_SCENE_TITLE    "Save Dagor Scene"
+    IDS_FILE_WRITE_ERR      "Error writing output file"
+    IDS_CHOOSE_DAGOR_PATH   "Choose Dagor Base Path"
+    IDS_NONE                "(none)"
+    IDS_FILE_OPEN_ERR       "Error opening file"
+    IDS_FILE_READ_ERR       "Error reading file"
+    IDS_INVALID_DAGFILE     "Invalid DAG file"
+    IDS_DAGIMP              "DAG Import"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DAGIMP_LONG         "Dagor Dagorrat Scene File"
+    IDS_AUTHOR              "Aleksey Volynskov"
+    IDS_COPYRIGHT           "(c) Aleksey Volynskov, 2000"
+    IDS_DAGIMP_SHORT        "Dagor Scene"
+    IDS_DAGUTIL_NAME        "Dagor Utility"
+    IDS_DAGUTIL_ROLL        "Dagor Utility"
+    IDS_Dummy               "DHelper"
+    IDS_DUMMY_ROLL          "Dagor Helper"
+    IDS_DAGOR_CAT           "Dagor"
+    IDS_WARNING             "Warning"
+    IDS_NONORT_ANIM         "Non-uniform scale in non-local space detected.\nExported animation won't match the current one."
+    IDS_NONORT_SELSET       "Objects with wrong animation"
+    IDS_EXPLOG_ROLL         "Dagor Log"
+    IDS_CALC_NODE_KEYS      "%s: seg %d/%d"
+    IDS_DAGORMAT2_LONG      "Dagor Dagorrat Material 2"
+    IDS_DAGORPAR_TEXT_LONG  "Text parameter"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_SCATTER_ROLL        "Scatter"
+    IDS_SPLINES_AND_SMOOTH_ROLL "Spline & smooth"
+    IDS_MATERIALS_ROLL      "Materials"
+    IDS_UV_UTILS_ROLL       "UV utils"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DAGORPAR_REAL_LONG  "Real parameter"
+    IDS_DAGORPAR_RANGE_LONG "Range parameter"
+    IDS_DAGORPAR_ENUM_LONG  "Enum parameter"
+    IDS_DAGORMAT2           "DagorMat2"
+    IDS_SAVE_ANIM2_TITLE2   "Save Dagor Anim v2 data..."
+    IDS_ANIM2_FILES         "Dagor Anim v2 (*.a2d)"
+    IDS_SAVE_CAMERA_TITLE   "Save Dagor Adv. Camera v1..."
+    IDS_CAMERA_FILES        "Dagor Adv. Camera (*.cam)"
+    IDS_MatConvUtil_NAME    "Convert to Dagor Material"
+    IDS_MatConvUtil_ROLL    "Convert to Dagor Material"
+    IDS_RBHelper            "DagorRBody"
+    IDS_RBDUMMY_ROLL        "Dagor Rigid Body"
+    IDS_GET_NT_ERR          "Select 1 object with 1 note track"
+    IDS_PUT_NT_ERR          "Select 1 object"
+    IDS_NO_NTRK             "No note track"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DAGEXP_LONG         "Dagor Reseditor export file"
+    IDS_DAGEXP_SHORT        "Dagor grp"
+    IDS_DAGEXP              "Dagor export"
+    IDS_DAGORPAR_COLOR_LONG "Color parameter"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_SEL_1_OBJ           "Please select 1 object"
+    IDS_MUST_BE_EDMESH      "Please select editable mesh with no modifiers"
+    IDS_LTMAP_ERR           "Error applying map"
+    IDS_LTMAP_OK            "OK , %d%% of map area used."
+    IDS_OBJS_RENDERED       "%d objects rendered."
+    IDS_CANT_SAVE_BITMAP    "Can't save bitmap."
+    IDS_NO_SEL              "No objects selected."
+    IDS_FREECAM             "Free! Camera"
+    IDS_FREE_FORW           "Forward"
+    IDS_FREE_BACKW          "Backward"
+    IDS_FREE_LEFT           "Left"
+    IDS_FREE_RIGHT          "Right"
+    IDS_FREE_UP             "UP"
+    IDS_FREE_DOWN           "Down"
+    IDS_DAGFREECAM_UTIL_NAME "Free the Camera"
+    IDS_FREET_FORW          "Turbo forw"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FREET_BACKW         "Turbo back"
+    IDS_FREET_LEFT          "Turbo left"
+    IDS_FREET_RIGHT         "Turbo right"
+    IDS_FREET_UP            "Turbo up"
+    IDS_FREET_DOWN          "Turbo down"
+    IDS_MAPOP_PERFORMED     "Map operation successfully made"
+    IDS_MAPOP_NOTPERFORMED  "Map operation not made"
+    IDS_MUST_BE_SPLINE      "Please select spline shape"
+    IDS_NO_SUCHSELSET       "No such selection set: <%s>"
+    IDS_DAGOR_EXPORT_IFACE  "Dagor Export Interface"
+    IDS_NOFACES_NODES       "Renderable objects without triangles exist in the scene, see export log."
+    IDS_POLYBUMPUTIL_NAME   "Gaijin PolyBump"
+    IDS_SELECT_OUTPUT       "Select output"
+    IDS_FILTER_TARGA        "TARGA bitmap (*.tga)"
+    IDS_FILTER_TARGA_DESC   "*.tga"
+    IDS_FILTER_ALL          "All files (*.*)"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DAGOR_IMPORT_IFACE  "Dagor Import Interface"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FILTER_ALL_DESC     "*.*"
+    IDS_FILE_REPLACE        "File already exists. Overwrite it?"
+    IDS_SAVE_AS             "Save as"
+    IDS_EMPTYSELECTION      "Face selection is empty! "
+    IDS_INVALIDMAPCHANNEL   "Invalid or empty map channel"
+    IDS_CANCELLED           "Canceled."
+    IDS_CANTCONVERT_HIGHPOLYNODE 
+                            "Can't convert highpoly model to Editable Mesh."
+    IDS_CANTCONVERT_LOWPOLYNODE "Can't convert lowpoly model to Editable Mesh"
+    IDS_INVALID_HIGHPOLYNODE 
+                            "Invalid high poly model (Not an object or not selected)"
+    IDS_INVALID_LOWPOLYNODE "Invalid low poly model (Not an object or not selected)"
+    IDS_CANTWRITE_FILE      "Can't write output file."
+    IDS_SUCCESS             "Building normal map done."
+    IDS_DEGENERATE_TRIANGLES 
+                            "There are degenerate triangles in the scene, see export log."
+    IDS_BIG_MESHES          "There are big meshes in the scene, see export log."
+    IDS_NON_DAGOR_MATERIALS "There are non-dagor materials in the scene, see export log."
+    IDS_SUB_SUB_MATERIALS   "There are Multi/Sub-Object materials in Multi/Sub-Object materials, see export log."
+END
+
+STRINGTABLE
+BEGIN
+    IDS_ABSOLUTE_PATHS      "There are textures with absolute path in the scene, see export log."
+    IDS_OBJECT_PROPERTIES_EDITOR_NAME "Object Properties Editor"
+    IDS_PHYS_FILES          "Dagor Physical System (*.dphys)"
+    IDS_SAVE_PHYS_TITLE     "Save Dagor Physical System..."
+    IDS_NO_SMOOTHING        "There triangles in the scene with NO smoothing, see export log."
+END
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

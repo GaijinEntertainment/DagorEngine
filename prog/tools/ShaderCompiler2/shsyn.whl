@@ -1,0 +1,532 @@
+// syntax analizer: dagor shaders 2
+
+//----- Settings -------------------------------------------------
+lexical_analyzer_class = ShaderLexParser;
+lexical_analyzer_file = "shlex.h";
+generate_tokens       = true;
+tokens_file           = shsyntok;
+tokens_namespace      = SHADER_TOKENS;
+
+method=SLR1;
+reuse_iterators=true;
+whale_class            = ShaderSyntaxParser;
+whale_namespace        = ShaderTerminal;
+dump_conflicts_to_file = false;
+dump_grammar_to_file   = false;
+generate_sten=false;
+garbage=false;
+error_garbage=false;
+stdnamespace=eastl;
+
+//----- Symbols description ---------------------------------------------------
+
+terminal
+         int-number(SHTOK_intnum),
+         real-number(SHTOK_floatnum),
+         string(SHTOK_string),
+         ident(SHTOK_ident),
+         type_ident(SHTOK_type_ident),
+         "{"  (SHTOK_beg),
+         "}"  (SHTOK_end),
+         "("  (SHTOK_lpar),
+         ")"  (SHTOK_rpar),
+         "["  (SHTOK_lbrk),
+         "]"  (SHTOK_rbrk),
+         ","  (SHTOK_comma),
+         "."  (SHTOK_dot),
+         ";"  (SHTOK_semi),
+         ":"  (SHTOK_colon),
+         "="  (SHTOK_assign),
+         "==" (SHTOK_eq),
+         "!=" (SHTOK_noteq),
+         "!"  (SHTOK_not),
+         "||" (SHTOK_or),
+         "&&" (SHTOK_and),
+         "+"  (SHTOK_plus),
+         "-"  (SHTOK_minus),
+         "*"  (SHTOK_mul),
+         "/"  (SHTOK_div),
+         "<"  (SHTOK_smaller),
+         ">"  (SHTOK_greater),
+         "<=" (SHTOK_smallereq),
+         ">=" (SHTOK_greatereq),
+         "always_referenced" (SHTOK_always_referenced),
+         "no_warnings" (SHTOK_no_warnings),
+         "undefined_value" (SHTOK_undefined_value),
+         "ambient" (SHTOK_ambient),
+         "blend_asrc" (SHTOK_blend_asrc),
+         "blend_adst" (SHTOK_blend_adst),
+         "blend_src" (SHTOK_blend_src),
+         "blend_dst" (SHTOK_blend_dst),
+         "channel" (SHTOK_channel),
+         "int4" (SHTOK_int4),
+         "float4x4" (SHTOK_float4x4),
+         "color8" (SHTOK_color8),
+         "cull_mode" (SHTOK_cull_mode),
+         "alpha_to_coverage" (SHTOK_alpha_to_coverage),
+         "view_instances" (SHTOK_view_instances),
+         "diffuse" (SHTOK_diffuse),
+         "dont_render" (SHTOK_dont_render),
+         "dynamic" (SHTOK_dynamic),
+         "else" (SHTOK_else),
+         "emissive" (SHTOK_emissive),
+         "extra" (SHTOK_extra),
+         "false" (SHTOK__false),
+         "float" (SHTOK_float),
+         "float1" (SHTOK_float1),
+         "float2" (SHTOK_float2),
+         "float3" (SHTOK_float3),
+         "float4" (SHTOK_float4),
+         "pc" (SHTOK_pc),
+         "dx11" (SHTOK_dx11),
+         "dx12" (SHTOK_dx12),
+         "xbox" (SHTOK_xbox),
+         "scarlett" (SHTOK_scarlett),
+         "ps4" (SHTOK_ps4),
+         "ps5" (SHTOK_ps5),
+         "vulkan" (SHTOK_vulkan),
+         "metal" (SHTOK_metal),
+         "metaliOS" (SHTOK_metaliOS),
+         "fsh_4_0" (SHTOK_fsh_4_0),
+         "fsh_4_1" (SHTOK_fsh_4_1),
+         "fsh_5_0" (SHTOK_fsh_5_0),
+         "bindless" (SHTOK_bindless),
+         "globtm" (SHTOK_globtm),
+         "projtm" (SHTOK_projtm),
+         "viewprojtm" (SHTOK_viewprojtm),
+         "hardware" (SHTOK_hardware),
+         "if" (SHTOK_if),
+         "include" (SHTOK_include),
+         "include_optional" (SHTOK_include_optional),
+         "int" (SHTOK_int),
+         "bool" (SHTOK_bool),
+         "maybe" (SHTOK_maybe),
+         "error" (SHTOK__error),
+         "mesh" (SHTOK_mesh),
+         "local_view_x" (SHTOK_local_view_x),
+         "local_view_y" (SHTOK_local_view_y),
+         "local_view_z" (SHTOK_local_view_z),
+         "local_view_pos" (SHTOK_local_view_pos),
+         "world_local_x" (SHTOK_world_local_x),
+         "world_local_y" (SHTOK_world_local_y),
+         "world_local_z" (SHTOK_world_local_z),
+         "world_local_pos" (SHTOK_world_local_pos),
+         "material" (SHTOK_material),
+         "none" (SHTOK_none),
+         "norm" (SHTOK_norm),
+         "pos" (SHTOK_pos),
+         "no_dynstcode" (SHTOK_no_dynstcode),
+         "assume" (SHTOK_assume),
+         "shader" (SHTOK_shader),
+         "block" (SHTOK_block),
+         "supports" (SHTOK_supports),
+         "short2" (SHTOK_short2),
+         "short4" (SHTOK_short4),
+         "slope_z_bias" (SHTOK_slope_z_bias),
+         "specular" (SHTOK_specular),
+         "static" (SHTOK_static),
+         "tc" (SHTOK_tc),
+         "texture" (SHTOK_texture),
+         "buffer" (SHTOK_buffer),
+         "const_buffer" (SHTOK_const_buffer),
+         "render_stage" (SHTOK_render_stage),
+         "render_trans" (SHTOK_render_trans),
+         "true" (SHTOK__true),
+         "ubyte4" (SHTOK_ubyte4),
+         "vcol" (SHTOK_vcol),
+         "z_bias" (SHTOK_z_bias),
+         "two_sided" (SHTOK_two_sided),
+         "z_write" (SHTOK_z_write),
+         "z_test" (SHTOK_z_test),
+         "z_func" (SHTOK_z_func),
+         "real_two_sided" (SHTOK_real_two_sided),
+         "interval" (SHTOK_interval),
+         "immediate_dword_count" (SHTOK_immediate_dword_count),
+         "macro" (SHTOK_macro),
+         "define_macro_if_not_defined" (SHTOK_define_macro_if_not_defined),
+         "endmacro" (SHTOK_endmacro),
+         "NULL" (SHTOK_NULL),
+         "local" (SHTOK_local),
+         "global" (SHTOK_global),
+         "const" (SHTOK_const),
+         "register" (SHTOK_register),
+         "signed_pack" (SHTOK_signed_pack),
+         "unsigned_pack" (SHTOK_unsigned_pack),
+         "mul_1k" (SHTOK_mul_1k),
+         "mul_2k" (SHTOK_mul_2k),
+         "mul_4k" (SHTOK_mul_4k),
+         "mul_8k" (SHTOK_mul_8k),
+         "mul_16k" (SHTOK_mul_16k),
+         "mul_32767" (SHTOK_mul_32767),
+         "bounding_pack" (SHTOK_bounding_pack),
+         "no_ablend" (SHTOK_no_ablend),
+         "stencil" (SHTOK_stencil),
+         "stencil_func" (SHTOK_stencil_func),
+         "stencil_ref" (SHTOK_stencil_ref),
+         "stencil_pass" (SHTOK_stencil_pass),
+         "stencil_fail" (SHTOK_stencil_fail),
+         "stencil_zfail" (SHTOK_stencil_zfail),
+         "color_write" (SHTOK_color_write),
+         hlsl_text (SHTOK_hlsl_text),
+         hlsl (SHTOK_hlsl),
+         "compile" (SHTOK_compile),
+         "short2n" (SHTOK_short2n),
+         "short4n" (SHTOK_short4n),
+         "ushort2n" (SHTOK_ushort2n),
+         "ushort4n" (SHTOK_ushort4n),
+         "half2" (SHTOK_half2),
+         "half4" (SHTOK_half4),
+         "udec3" (SHTOK_udec3),
+         "dec3n" (SHTOK_dec3n),
+         "optional" (SHTOK_optional);
+
+nonterminal S(NonterminalS);
+
+//----- Fragments of my code ------------------------------------------------
+code_in_class          = {
+  private:
+    bool were_errors;
+  protected:
+    virtual void add_shader(shader_decl *d) {}
+    virtual void add_block(block_decl *d) {}
+    virtual void add_global_var(global_var_decl *d) {}
+    virtual void add_global_interval(interval &i) {}
+    virtual void add_global_assume(assume_stat &a) {}
+    virtual void add_global_bool(bool_decl &d) {}
+    virtual void add_hlsl(hlsl_global_decl_class &d) {}
+  public:
+    bool success() const { return !were_errors; }
+
+    ShaderLexParser& get_lex_parser() {return lexical_analyzer;}
+};
+
+code_in_constructor    = {
+  were_errors=false;
+};
+
+code_in_h_before_all            = {
+  #include "shlex.h"
+  #include "parser/base_par.h"
+  using namespace BaseParNamespace;
+};
+
+code_in_h            = {
+};
+
+code_in_h_after_all            = {
+};
+
+code_in_cpp            = {
+  #include "shsem.h"
+  #include "ShLog.h"
+  using namespace ShaderParser;
+  #pragma optimize("", off)
+  #pragma optimize("ityb2", on)
+};
+
+//----- Syntax description -------------------------------------------------
+
+S -> (declaration=decl)*;
+
+declaration(declaration) ->
+  shader-decl=shader |
+  block-decl=block |
+  global-decl=global_decl |
+  (interval-decl=inteval_decl {add_global_interval(*(n->inteval_decl));}) |
+  hlsl-global-decl |
+  (assume-stat=global_assume {add_global_assume(*(n->global_assume));}) |
+  (bool-decl=global_bool_decl {add_global_bool(*(n->global_bool_decl));}) |
+  error=nothing {were_errors=true;};
+
+shader-decl(shader_decl) ->
+  "shader"=nothing iteration_pair(ident=name, ","=nothing)
+  "{"=nothing (shader-stat=stat)* "}"=nothing
+  {add_shader(n);};
+
+block-decl(block_decl) ->
+  "block"=nothing "("=nothing ident=block_scope ")"=nothing ident=name
+  "{"=nothing (block-stat=stat)* "}"=nothing
+  {add_block(n);};
+
+shader-stat(shader_stat) ->
+  sh-if-stat=if_stat |
+  bool-decl=bool_decl |
+  zbias-state-stat=zbias_state | state-stat=state |
+  external-state-block = external_block |
+  immediate-const-block = immediate_const_block |
+  supports-stat=supports |
+  render-stage-stat=render_stage |
+  assume-stat=assume |
+  error-stat=error |
+  channel-decl=channel | shader-directive=dir |
+  static-decl=static_decl | interval-decl=interval_decl |
+  local-decl=local_decl |
+  hlsl-local-decl=hlsl_decl_var |
+  hlsl-compile=hlsl_compile_var |
+  (error=error_val [";"=nothing])
+  {sh_report_error(n, *this);};
+
+block-stat(block_stat) ->
+  block-if-stat=if_stat | local-decl=local_decl |
+  state-stat=state | immediate-const-block = immediate_const_block |
+  external-state-block=external_block | supports-stat=supports;
+
+
+local-var-type(local_var_type) ->
+  ("float4"|"float"|"int4"|"float4x4")=type;
+
+local-decl(local_var_decl) ->
+  "local"=nothing local-var-type=type ident=name
+  "="=nothing arithmetic-expr=expr
+  ";"=nothing;
+
+arithmetic-unary-op(arithmetic_unary_op) ->
+  ("+" | "-")=op;
+
+arithmetic-expr(arithmetic_expr) ->
+  (arithmetic-expr-md=lhs [(("+"|"-")=op arithmetic-expr-md=rhs)*]);
+
+arithmetic-expr-md(arithmetic_expr_md) ->
+  (arithmetic-operand=lhs [(("*"|"/")=op arithmetic-operand=rhs)*]);
+
+arithmetic-color-mask(arithmetic_color_mask) ->
+  "."=nothing ident=channel;
+
+arithmetic-func(arithmetic_func) ->
+  ident=func_name
+  "("=nothing [iteration_pair(arithmetic-expr=param, ","=nothing)] ")"=nothing;
+
+arithmetic-operand(arithmetic_operand) ->
+  (([arithmetic-unary-op=unary_op] ident=var_name) |
+  (signed-real=real_value) |
+  ([arithmetic-unary-op=unary_op] arithmetic-color=color_value) |
+  ([arithmetic-unary-op=unary_op] arithmetic-func=func) |
+  ([arithmetic-unary-op=unary_op] "("=nothing arithmetic-expr=expr ")"=nothing))
+  [arithmetic-color-mask=cmask];
+
+arithmetic-color(arithmetic_color) ->
+  ["float4"=nothing]
+  "("=decl
+  arithmetic-expr=expr0 [","=nothing
+  arithmetic-expr=expr1 [","=nothing
+  arithmetic-expr=expr2 [","=nothing
+  arithmetic-expr=expr3 ]]]
+  ")"=nothing;
+
+static-var-type(static_var_type) ->
+  ("const_buffer"|"buffer"|"texture"|"float4"|"int4"|"float4x4"|"float"|"int")=type;
+
+static-var-mode(static_var_mode) -> ("static"|"dynamic")=mode;
+
+static-decl(static_var_decl) ->
+  [static-var-mode=mode] static-var-type=type ident=name
+  ["="=nothing sh-init-value=init]
+  ["no_warnings"=no_warnings]
+  ";"=nothing;
+
+global-decl(global_var_decl) ->
+  static-var-type=type ident=name ["["=nothing int-number=size "]"=nothing]
+  ["="=nothing ((arithmetic-expr=expr)|("{"=nothing arithmetic-expr=arr0 (","=nothing arithmetic-expr=arrN)* "}"=nothing))]
+  ["undefined_value"=undefined]
+  ["always_referenced"=is_always_referenced]
+  ";"=nothing
+  {add_global_var(n);};
+
+interval-var-decl(interval_var) ->
+  ident=name "<"=nothing signed-real=val ","=nothing;
+
+interval-decl(interval)->
+  ["optional"=is_optional] "interval"=nothing ident=name ":"=nothing
+  (interval-var-decl=var_decl)+
+   ident=last_var_name
+  ";"=nothing;
+
+bool-decl(bool_decl) ->
+  "bool"=nothing ident=name "="=nothing bool-expr=expr ";"=nothing;
+
+sh-mat-color(shader_mat_color) ->
+  ("diffuse" | "emissive" | "specular" | "ambient")=color;
+
+sh-mat-texture(shader_mat_texture) -> "texture"=tex
+  (("."=nothing "diffuse"=tex_name) |
+  ("["=nothing int-number=tex_num "]"=nothing))
+;
+
+sh-init-value(shader_init_value) ->
+  "material"=mat "."=nothing (
+    sh-mat-color=color | sh-mat-texture=tex
+  ) | arithmetic-expr=expr;
+
+block-if-stat(block_if) -> "if"=nothing "("=nothing bool-expr=expr ")"=nothing
+  "{"=nothing (block-stat=true_stat)* "}"=nothing
+  [ "else"=nothing (
+    ( "{"=nothing (block-stat=false_stat)* "}"=nothing ) |
+    ( block-if-stat=else_if )
+  ) ];
+
+sh-if-stat(shader_if) -> "if"=nothing "("=nothing bool-expr=expr ")"=nothing
+  "{"=nothing (shader-stat=true_stat)* "}"=nothing
+  [ "else"=nothing (
+    ( "{"=nothing (shader-stat=false_stat)* "}"=nothing ) |
+    ( sh-if-stat=else_if )
+  ) ];
+
+bool-expr(bool_expr) ->
+  and-expr=value | bool-expr=a "||"=nothing and-expr=b;
+
+and-expr(and_expr) ->
+  not-expr=value | and-expr=a "&&"=nothing not-expr=b;
+
+not-expr(not_expr) ->
+  ["!"=is_not] bool-value=value;
+
+equal-op(equal_op) ->
+  ("=="|"!="|"<"|"<="|">"|">=")=op;
+
+hardware-support(hardware_support) ->
+  ("metal"|"metaliOS"|"vulkan"|"pc"|"dx11"|"dx12"|"xbox"|"scarlett"|"ps4"|"ps5"|"fsh_4_0"|"fsh_5_0"|"mesh"|"bindless")=var;
+
+bool-value(bool_value) ->
+  ("shader"=nothing equal-op=cmpop ident=shader) |
+  ("hardware"=nothing "."=nothing hardware-support=hw) |
+  ("two_sided"=two_sided) |
+  ("real_two_sided"=real_two_sided) |
+  ("true"=true_value) |
+  ("false"=false_value) |
+  (ident=interval_ident equal-op=cmpop ident=interval_value) |
+  (ident=texture_name equal-op=cmpop "NULL"=nothing) |
+  (ident=bool_var) |
+  ("maybe"=maybe "("=nothing ident=maybe_bool_var ")"=nothing) |
+  ("("=nothing bool-expr=expr ")"=nothing);
+
+
+hlsl-global-decl(hlsl_global_decl_class) ->
+  (hlsl=nothing ["("=nothing ident=ident ")"=nothing])
+  hlsl_text=text
+  {add_hlsl(*n);};
+
+hlsl-local-decl(hlsl_local_decl_class) ->
+  (hlsl=nothing ["("=nothing ident=ident ")"=nothing])
+  hlsl_text=text;
+
+hlsl-compile(hlsl_compile_class) ->
+  "compile"=nothing
+  "("=nothing
+  string=profile
+  ","=nothing
+  string=entry
+  ")"=nothing
+  [";"=nothing];
+
+signed-real(signed_real) ->
+  [("+"|"-")=sign] (real-number|int-number)=value;
+
+shader-register(shader_register) ->
+  ident=reg
+  ["["=nothing
+  int-number=index
+  [("+"|"-")=sign int-number=offset]
+  "]"=nothing];
+
+
+channel-type(channel_type) ->
+  ("float1"|"float2"|"float3"|"float4"|"short2"|"short4"|"ubyte4"|"color8"
+  |"short2n"|"short4n"|"ushort2n"|"ushort4n"|"half2"|"half4"|"udec3"|"dec3n")=type;
+
+channel-usage(channel_usage) ->
+  ("pos"|"norm"|"tc"|"vcol"|"extra")=usage;
+
+channel-usage-index(channel_usage_index) ->
+  "["=nothing int-number=index "]"=nothing;
+
+channel-decl(channel_decl) ->
+  "channel"=nothing
+  channel-type=type
+  channel-usage=usg [channel-usage-index=usgi]
+  "="=nothing
+  channel-usage=src_usg [channel-usage-index=src_usgi]
+  [("signed_pack"|"unsigned_pack"|"mul_1k"|"mul_2k"|"mul_4k"|"mul_8k"|"mul_16k"|"mul_32767"|"bounding_pack")=modifier]
+  ";"=nothing;
+
+state-value(state_value) -> (
+  ident|"none"|"true"|"false"|int-number|real-number
+)=value;
+
+state-var(state_var) ->
+  ("blend_src"|"blend_dst"|"blend_asrc"|"blend_adst"|"cull_mode"|"alpha_to_coverage"|"view_instances"
+  |"stencil"|"stencil_func"|"stencil_ref"|"stencil_pass"|"stencil_fail"|"stencil_zfail"
+  |"color_write"|"z_write"|"z_test"|"z_func"
+  )=var;
+
+state-stat(state_stat) ->
+  state-var=var ["["=nothing int-number=index "]"=nothing] "="=nothing ["static"=static_var]
+  state-value=value
+  ";"=nothing;
+
+zbias-state-stat(zbias_state_stat) ->
+  ("z_bias"|"slope_z_bias")=var "="=nothing
+  (ident=value | signed-real = const_value)
+  ";"=nothing;
+
+external-var-name(external_var_name) ->
+  (ident|"diffuse"|"specular"|"globtm"|"projtm"|"viewprojtm"|"local_view_x"|"local_view_y"|"local_view_z"|"local_view_pos"|
+  "world_local_x"|"world_local_y"|"world_local_z"|"world_local_pos")=name
+  type_ident=nameSpace;
+
+external-var-value-single(external_var_value_single) ->
+  ("globtm"|"projtm"|"viewprojtm"|"local_view_x"|"local_view_y"|"local_view_z"|"local_view_pos"|
+   "world_local_x"|"world_local_y"|"world_local_z"|"world_local_pos")=builtin_var
+  | arithmetic-expr=expr;
+
+external-variable(external_variable) ->
+  (external-var-name=var ["["=par "]"=nothing] "="=nothing external-var-value-single=val
+   [hlsl=nothing hlsl_text = hlsl_var_text])
+  [";"=nothing];
+
+external-register(external_register) ->
+  external-var-name=var ":"=nothing
+  "register"=nothing "("=nothing ident=shader_var ")"=nothing
+  [hlsl=nothing hlsl_text = hlsl_var_text]
+  [";"=nothing];
+
+external-variable-array(external_variable_array) ->
+  (external-var-name=var  ["["=par "]"=nothing] "="=nothing "{"=nothing external-var-value-single=arr0 (","=nothing external-var-value-single=arrN)* "}"=nothing
+   [hlsl=nothing hlsl_text = hlsl_var_text])
+  [";"=nothing];
+
+external-state-block(external_state_block) -> "("=nothing ident=scope ")"=nothing "{"=nothing
+  (state-block-stat=state_block_stat)*
+  "}"=nothing
+  [";"=nothing];
+
+state-block-stat(state_block_stat) ->
+  state-block-if-stat=state_block_if_stat |
+  (external-variable = var) | (external-variable-array = arr) | (external-register = reg);
+
+state-block-if-stat(state_block_if_stat) -> "if"=nothing "("=nothing bool-expr=expr ")"=nothing
+  "{"=nothing (state-block-stat=true_stat)* "}"=nothing
+  [ "else"=nothing (
+    ( "{"=nothing (state-block-stat=false_stat)* "}"=nothing ) |
+    ( state-block-if-stat=else_if )
+  ) ];
+
+immediate-const-block(immediate_const_block) -> "("=nothing ident=scope ")"=nothing "{"=nothing
+   "immediate_dword_count"=nothing "="=nothing int-number=count ";"=nothing
+  "}"=nothing
+  [";"=nothing];
+
+shader-directive(shader_directive) ->
+  ("dont_render"|"no_ablend"|"render_trans"|"no_dynstcode")=command
+  ";"=nothing;
+
+render-stage-stat(render_stage_stat) ->
+  "render_stage"=nothing (ident=name | string=name_s) ";"=nothing ;
+
+assume-stat(assume_stat) ->
+  "assume"=nothing ident=interval "="=nothing ident=value ";"=nothing ;
+
+error-stat(error_stat) ->
+  "error"=nothing "("=nothing string=message ")"=nothing ";"=nothing;
+
+supports-stat(supports_stat) ->
+  "supports"=nothing iteration_pair((ident|"none")=name, ","=nothing) ";"=nothing ;

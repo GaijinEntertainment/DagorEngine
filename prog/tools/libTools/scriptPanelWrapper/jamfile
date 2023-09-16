@@ -1,0 +1,26 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/scriptPanelWrapper ;
+UseQuirrel = sq3r+ ;
+
+TargetType  = lib ;
+Target      = tools/libTools/scriptPanelWrapper.lib ;
+
+AddIncludes = 
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+;
+
+Sources =
+  spw_main.cpp
+  spw_param_base.cpp
+  spw_param.cpp
+  spw_ext.cpp
+;
+
+UseProgLibs =
+  engine2/coreUtil
+  gameLibs/quirrel/bindQuirrelEx
+  gameLibs/quirrel/sqModules
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

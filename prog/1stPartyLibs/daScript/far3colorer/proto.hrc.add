@@ -1,0 +1,4 @@
+  <prototype name="das" group="main" description="Das">
+    <location link="das/das-far-3.hrc"/>
+    <filename>/\.(w?das)$/i</filename>
+  </prototype>

@@ -1,0 +1,196 @@
+Root  ?= ../../../.. ;
+Location = prog/3rdPartyLibs/openssl-3.x ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/openssl_3_x/crypto.lib ;
+if $(NoASM) {
+  Target = $(Target:S=~noasm.lib) ;
+}
+
+include $(Root)/$(Location)/ssl-options.jam ;
+
+UseProgLibs += 3rdPartyLibs/openssl-3.x/crypto/sha ;
+
+ECSourcesInt128 =
+  ecp_nistp224.c
+  ecp_nistp256.c
+  ecp_nistp521.c
+;
+
+Sources =
+  crypto/asn1_dsa.c
+  crypto/bsearch.c
+  crypto/context.c
+  crypto/core_algorithm.c
+  crypto/core_fetch.c
+  crypto/core_namemap.c
+  crypto/cpt_err.c
+  crypto/cpuid.c
+  crypto/ctype.c
+  crypto/cversion.c
+  crypto/der_writer.c
+  crypto/dllmain.c
+  crypto/ebcdic.c
+  crypto/ex_data.c
+  crypto/info.c
+  crypto/init.c
+  crypto/initthread.c
+  crypto/mem.c
+  crypto/mem_sec.c
+  crypto/o_dir.c
+  crypto/o_fopen.c
+  crypto/o_init.c
+  crypto/o_str.c
+  crypto/o_time.c
+  crypto/packet.c
+  crypto/param_build.c
+  crypto/param_build_set.c
+  crypto/params.c
+  crypto/params_dup.c
+  crypto/params_from_text.c
+  crypto/passphrase.c
+  crypto/provider.c
+  crypto/provider_child.c
+  crypto/provider_conf.c
+  crypto/provider_core.c
+  crypto/provider_predefined.c
+  crypto/punycode.c
+  crypto/self_test_core.c
+  crypto/sparse_array.c
+  crypto/trace.c
+  crypto/uid.c
+  crypto/dso/dso_openssl.c
+  crypto/dso/dso_lib.c
+  crypto/dso/dso_err.c
+  crypto/dso/dso_dl.c
+
+  [ CollectC crypto/aes : aes_core.c aes_cbc.c ]
+  [ CollectC crypto/aria ]
+  [ CollectC crypto/asn1 ]
+  [ CollectC crypto/async ]
+  [ CollectC crypto/bf ]
+  [ CollectC crypto/bio ]
+  [ CollectC crypto/blake2 ]
+  [ CollectC crypto/bn : bn_sparc.c ]
+  [ CollectC crypto/buffer ]
+  [ CollectC crypto/camellia : camellia.c cmll_cbc.c ]
+  [ CollectC crypto/cast ]
+  [ CollectC crypto/cmac ]
+  [ CollectC crypto/cmp ]
+  [ CollectC crypto/cms ]
+  [ CollectC crypto/comp ]
+  [ CollectC crypto/conf ]
+  [ CollectC crypto/crmf ]
+  [ CollectC crypto/ct ]
+  [ CollectC crypto/des : ncbc_enc.c ]
+  [ CollectC crypto/dh ]
+  [ CollectC crypto/dsa ]
+  [ CollectC crypto/ec : $(ECSourcesInt128) ecp_nistz256_table.c ]
+  [ CollectC crypto/ec/curve448 ]
+  [ CollectC crypto/ec/curve448/arch_32 ]
+  [ CollectC crypto/ec/curve448/arch_64 ]
+  [ CollectC crypto/encode_decode ]
+  [ CollectC crypto/err ]
+  [ CollectC crypto/ess ]
+  [ CollectC crypto/evp ]
+  [ CollectC crypto/ffc ]
+  [ CollectC crypto/hmac ]
+  [ CollectC crypto/http ]
+  [ CollectC crypto/idea ]
+  [ CollectC crypto/kdf ]
+  [ CollectC crypto/lhash ]
+  [ CollectC crypto/md4 ]
+  [ CollectC crypto/md5 ]
+  [ CollectC crypto/mdc2 ]
+  [ CollectC crypto/modes ]
+  [ CollectC crypto/objects ]
+  [ CollectC crypto/ocsp ]
+  [ CollectC crypto/pem ]
+  [ CollectC crypto/pkcs12 ]
+  [ CollectC crypto/pkcs7 ]
+  [ CollectC crypto/property ]
+  [ CollectC crypto/rand ]
+  [ CollectC crypto/rc2 ]
+  [ CollectC crypto/rc4 : rc4_enc.c rc4_skey.c ]
+  [ CollectC crypto/rc5 ]
+  [ CollectC crypto/ripemd ]
+  [ CollectC crypto/rsa ]
+  [ CollectC crypto/seed ]
+  [ CollectC crypto/siphash ]
+  [ CollectC crypto/sm2 ]
+  [ CollectC crypto/sm3 ]
+  [ CollectC crypto/sm4 ]
+  [ CollectC crypto/srp ]
+  [ CollectC crypto/stack ]
+  [ CollectC crypto/store ]
+  [ CollectC crypto/ts ]
+  [ CollectC crypto/txt_db ]
+  [ CollectC crypto/ui ]
+  [ CollectC crypto/whrlpool : wp_block.c ]
+  [ CollectC crypto/x509 ]
+  [ CollectC crypto/x509v3 ]
+
+  crypto/poly1305/poly1305.c
+;
+
+if $(NoASM) {
+  Sources += crypto/aes/aes_core.c
+             crypto/aes/aes_cbc.c
+             crypto/chacha/chacha_enc.c
+             crypto/mem_clr.c
+             crypto/whrlpool/wp_block.c
+             crypto/camellia/camellia.c
+             crypto/camellia/cmll_cbc.c
+             crypto/rc4/rc4_enc.c
+             crypto/rc4/rc4_skey.c
+  ;
+}
+
+if ! $(NoASM) {
+  Sources +=
+    [ CollectASM crypto/aes ]
+    [ CollectASM crypto/bn ]
+    [ CollectASM crypto/camellia ]
+    [ CollectASM crypto/chacha ]
+    [ CollectASM crypto/ec ]
+    [ CollectASM crypto/md5 ]
+    [ CollectASM crypto/modes ]
+    [ CollectASM crypto/poly1305 ]
+    [ CollectASM crypto/rc4 ]
+    [ CollectASM crypto/whrlpool ]
+  ;
+}
+
+if $(Platform) in win32 win64 xboxOne scarlett {
+  Sources +=
+    crypto/threads_win.c
+    crypto/async/arch/async_win.c
+  ;
+} else if $(Platform) in ps4 ps5 iOS nswitch android {
+  Sources +=
+    crypto/async/arch/async_null.c
+    crypto/threads_pthread.c
+    crypto/ec/$(ECSourcesInt128)
+  ;
+} else if $(Platform) in linux64 macosx tvOS {
+  Sources +=
+    crypto/async/arch/async_posix.c
+    crypto/threads_pthread.c
+    crypto/ec/$(ECSourcesInt128)
+  ;
+
+  if $(PlatformSpec) in gcc4 {
+    # false positive from gcc13 "rsaz_exp_x2.c:496:16: error: iteration 19 invokes undefined behavior"
+    Copt += -Wno-aggressive-loop-optimizations ;
+  }
+}
+
+if $(PlatformSpec) = gcc4 {
+  if $(Sanitize) = thread {
+    Copt += -fno-sanitize=thread ;
+  }
+}
+
+ExplicitLicenseUsed += $(Root)/$(Location) ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,41 @@
+Platform ?= win64 ;
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/findDup ;
+include $(Root)/prog/tools/tools_setup.jam ;
+ConsoleExe  = yes ;
+
+TargetType  = exe ;
+Target      = tools/findDup.exe ;
+
+OutDir = $(Root)/tools/dagor3_cdk/util ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+
+
+Sources =
+  winmain_con.cpp
+  duplicateFinder.cpp
+  checker.cpp
+;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+;
+
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/perfMon/daProfilerStub
+
+  tools/libTools/dtx
+  tools/libTools/util
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

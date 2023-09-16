@@ -1,0 +1,28 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/ecs/delayedAct ;
+
+TargetType  = lib ;
+Target      = gameLibs/ecs/delayedAct.lib ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  actInThread.cpp
+;
+
+delayedAct_es_pull = daECS/core/componentType.h actInThread_pull ;
+
+delayedAct_es_pull +=
+  actInThread
+;
+
+delayedAct_es_pull_action = make_es_pull_cpp ;
+
+Sources += delayedAct_es_pull.jamvar ;
+
+include $(Root)/prog/_jBuild/build.jam ;

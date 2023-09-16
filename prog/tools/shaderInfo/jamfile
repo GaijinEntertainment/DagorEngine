@@ -1,0 +1,41 @@
+Root    ?= ../../.. ;
+Location = prog/tools/shaderInfo ;
+include $(Root)/prog/tools/tools_setup.jam ;
+ConsoleExe = yes ;
+
+TargetType  = exe ;
+Target      = tools/util/shaderInfo.exe ;
+OutDir      = $(Root)/tools/dagor3_cdk/util ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; } else { CopyTo = $(GDEVTOOL)/util ; }
+
+AddIncludes =
+  $(Root)/prog/engine2/shaders
+  $(Root)/prog/engine2/sharedInclude
+;
+
+Sources =
+  shaderInfo.cpp
+  main.cpp
+  shaders.cpp
+;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/lib3d
+  engine2/drv/drv3d_null
+  3rdPartyLibs/eastl
+  engine2/shaders
+  engine2/perfMon/daProfilerStub
+;
+
+AddLibs =
+  d3dcompiler.lib
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,238 @@
+﻿
+
+Gaijin Terms of Service
+- - - - -
+
+IMPORTANT NOTICE: PLEASE NOTE THAT SECTION 12 OF THESE TERMS CONTAINS BINDING ARBITRATION AND CLASS ACTION WAIVER PROVISIONS THAT AFFECT YOUR RIGHTS REGARDING HOW TO RESOLVE DISPUTES. PLEASE READ PARAGRAPH 12.4 CAREFULLY BEFORE ACCEPTING THESE TERMS. 
+
+EXCEPT FOR CERTAIN TYPES OF DISPUTES, YOU AGREE THAT ANY DISPUTES ARISING BETWEEN YOU AND GAIJIN WILL BE RESOLVED BY BINDING, INDIVIDUAL ARBITRATION, AND YOU WAIVE YOUR RIGHT TO PARTICIPATE IN ANY CLASS-ACTION LAWSUIT OR CLASS-WIDE ARBITRATION.
+
+These Terms of Service (“Terms”) are part of the Terms and Conditions (as defined below) and govern your use of Gaijin's Services. Some of the Services are also regulated by additional instruments if explicitly provided by the Terms and Conditions. 
+
+IF YOU DO NOT AGREE WITH THE TERMS OR ANY OF THE DOCUMENTS WHICH REGULATE THE USE OF THE SERVICES AND ARE AN INTEGRAL PART OF THE TERMS AND CONDITIONS, PLEASE, STOP USING OUR SERVICES. THE ENGLISH VERSION OF THE TERMS AND CONDITIONS (INCLUDING THESE TERMS) IS THE ONLY ORIGINAL VERSION. IT SHALL PREVAIL IN THE EVENT OF ANY DIFFERENCES, QUESTIONS, OR DISPUTES CONCERNING THE MEANING, FORM, VALIDITY, OR INTERPRETATION THERE.
+
+— DEFINITIONS
+
+
+“Service/Services” means any digital product of Gaijin, e.g., Website, Games, mobile applications (e.g., Gaijin Pass app or Assistant for War Thunder), or other services such as Gaijin Store (store.gaijin.net) and Gaijin Marketplace (trade.gaijin.net), including any available information and/or content. Content may include any intellectual property, e.g., databases, trademarks, software, text, design, graphics, video-/audio materials, films, messages, pictures, architecture, etc.
+
+“Gaijin” means one of the following legal entities (depending on the circumstances described right below): 
+
+— When Services are provided directly to the User - Gaijin Network Ltd, with its registered address at Ifigeneias street 63, Office 302, 2003 Strovolos, Nicosia, Cyprus; 
+— When Services are offered via third-party platforms (e.g., Steam, PlayStation Network, Xbox Live, GOG, Google Play Store, Apple App Store) - Gaijin Distribution Kft., with its registered address at Hungária körút 162-166, 1146 Budapest, Hungary.
+
+Gaijin can also be referred to as “we,” “us,” or “our” in the Terms.
+
+“User” means the user of any Service. The User can also be referred to as “you” or “your” in the Terms. If you do not agree to these Terms, you should not use any of the Services, and, at the same time, you cannot be deemed a User in the meaning of this definition.
+
+“Website” means any website operated by Gaijin, including but not limited to [gaijin.net / https://gaijin.net/], [store.gaijin.net / https://store.gaijin.net/], [warthunder.com / https://warthunder.com/], [crossout.net / https://crossout.net/], [star-conflict.com / https://star-conflict.com/], [crsed.net / https://crsed.net/], [enlisted.net / https://enlisted.net/].
+
+“Games” means any of the videogames published and/or licensed by Gaijin under EULA to Users on any platform (i.e., Windows, Xbox, PlayStation, iOS, Android, etc.), including but not limited to War Thunder, Crossout, Star Conflict, CRSED: F.O.A.D., Enlisted, Age of Water, and others.
+
+“Account” means a personal Gaijin account registered by the User to use the Services.
+
+“Terms and Conditions” mean any of the documents regulating the Services provision by Gaijin, including those specified below:
+
+— Basic User Agreements
+
+[Terms of Service / https://legal.gaijin.net/termsofservice] (this document)
+
+[End User License Agreement / https://legal.gaijin.net/eula] (“EULA”)
+
+— Personal Data and Cookies
+
+[Privacy Policy / https://legal.gaijin.net/privacypolicy] 
+
+[Cookies Policy / https://legal.gaijin.net/cookie/] 
+
+— Buying/Trading
+
+[Store Policy / https://legal.gaijin.net/storepolicy]
+
+[Trade Policy / https://legal.gaijin.net/tradepolicy]
+
+— User-Generated Content
+
+[Contribution Agreement / https://legal.gaijin.net/contribution] 
+
+[Guidelines for Content Creators / https://legal.gaijin.net/contentrules] 
+
+[WT Live Copyright Compliance Policy / https://legal.gaijin.net/wt-compliance-policy] 
+
+— Rules of Behaviour
+
+[Game Rules / https://legal.gaijin.net/gamerules] 
+
+[Community Guidelines / https://legal.gaijin.net/communityguidelines] 
+
+— Rules for Events
+
+[Tournament Rules / https://legal.gaijin.net/tournamentrules] 
+
+[General Rules for Promotional Events / https://legal.gaijin.net/promorules] 
+
+and other documents, agreements, policies, rules, or guidelines (if any more) available on [https://legal.gaijin.net].
+
+The Terms and Conditions form an essential part of the Terms. By accepting the Terms, you also acknowledge and agree with the provisions of the Terms and Conditions. Any reference to the Terms and Conditions herein shall also apply to these Terms unless otherwise explicitly stated.
+
+PLEASE NOTE that the Websites (related to Games or other Services) can provide additional regulations, including documents governing the relations between you and Gaijin, other than the Terms and conditions defined above.
+
+— USE OF SERVICES— The Services are NOT offered to Users under the age of 16 (unless you are a parent or legal guardian and the Services are intended for your child upon your consent). Accepting the Terms and using the Services confirms that you are 16 years of age or older. Gaijin may provide or limit the provision of the Services to Users of another age if it complies with local laws. If you are a parent or legal guardian, you shall monitor your Account to restrict use by minors, and you shall deny access to children under the age of 16. You accept full responsibility for any use of the Service by minors in connection with your Account. You are solely responsible for minors using your credit card or another payment instrument (e.g., PayPal and Facebook Credits).
+— At its sole discretion, Gaijin may require confirmation of the User's age at any time.
+— Some Services may be inappropriate for people with epilepsy, seizures, or other diseases requiring health precautions. The User should decide on their own whether Services may harm their health. If so, the User shall immediately stop using the Services. We recommend consulting medical services before using the Services. 
+— The User shall not use Services if Gaijin has previously banned the User for violating the Terms and Conditions (including these Terms).
+— The Services may be updated and modified without the User's consent or notification. To the extent permitted by law, the Services are provided on an “AS IS” and “AS AVAILABLE” basis. Gaijin does not guarantee meeting the User's needs and expectations unless otherwise explicitly and unambiguously stipulated by the Terms and Conditions.
+— Gaijin reserves the right to stop providing the Services at any time, either permanently or temporarily, without any compensation or refund in the events described in paragraph 3.8 below or of reasonable notice.
+— The Services may not be accessible in some countries, and Gaijin, at its sole discretion, has the right to limit the provision of Services in any area at any given time. In this case, the Terms and Conditions shall be deemed void in such areas, and no Gaijin's obligations shall arise hereunder.
+— At its sole discretion, or as long as may be reasonable, Gaijin may provide technical support for the Services from time to time for free. The User agrees that technical support, maintenance works, or other circumstances may make Services inaccessible and cause outages. The User agrees that outages caused by technical support, maintenance works, or other causes are typical and do not affect Service quality. 
+— Some Services may be offered via various third-party gaming platforms (Steam, PlayStation, Xbox, etc.). The use of such platforms is subject to their terms and conditions. Gaijin does not regulate or control the User's usage of such platforms; any reference to third-party platforms is given by Gaijin “AS IS,” without warranty of any kind, either express or implied.
+— The User acknowledges and agrees that Gaijin is under no obligation to provide the User with any specific support or maintenance in connection with the provision of Services unless such duty is imposed on Gaijin under applicable law. However, subject to other provisions of these Terms, Gaijin will endeavor to help the User with any problems or questions you may have with the Services. You can contact our Support Service as instructed in Section 13 below. To accelerate the response to your request, please provide Gaijin's representatives with all the information they need to solve the problem in a reasonable time.
+— The Services may include links to third-party websites. These linked websites are not under the control of Gaijin, and Gaijin is not responsible for any content or link contained in a linked website. Gaijin is providing these links only as a convenience, and the inclusion of any link does not imply endorsement of the website by Gaijin. Your use of the third-party website may be subject to that third party's terms and conditions and/or privacy policies. We recommend reading them carefully before agreeing to them.
+— The User shall keep all correspondence with Gaijin confidential, including its Support Service. Any information received from Gaijin (or any of its representatives), including, without limitations, technical, customer, or other support issues, is confidential and shall not be made public or disclosed to any third party unless explicitly permitted by Gaijin.
+
+
+
+— ACCOUNT— To use some of the Services, the User creates an Account and provides the information necessary for providing the Services as specified in Gaijin's Privacy Policy. 
+— The User is solely responsible for providing accurate and true information and keeping it up-to-date without prejudice to the data subject’s right to rectification as specified in Gaijin’s Privacy Policy. This provision does not apply to the username (unique User’s identifier). Offensive, illegal, and otherwise non-appropriate usernames are prohibited.
+— The User is NOT allowed to provide any information that refers to third persons or false identities or other information, the provision of which (including, without limitations, through publication) infringes third-party rights or any applicable law.
+— The User shall not create multiple Accounts.
+— The User shall keep the Account login and password strictly confidential. The User is solely responsible for maintaining the login details' confidentiality and preventing unauthorized access to the Account. Any use of the Account with the User’s login and password shall be carried out by the User. The User shall immediately notify Gaijin if there is any breach or misuse of the User’s Account.
+— The User shall not sell (or buy), rent, exchange, or give away an Account. 
+— The User shall use Services and Account for non-commercial, personal, and lawful purposes only. Such purposes shall correspond with the Services' nature, purpose, or functions. 
+— Gaijin may, at its discretion, deactivate or delete the User’s Account without any notice in the following cases:— if the User violates any provision of Terms and Conditions (including these Terms) or there is any reasonable suspicion of the User’s failure to comply with them;
+— if the User fails to confirm reaching the age according to paragraph 2.1 above or duly receiving parental consent;
+— if the User exercises one of their data subject rights according to Gaijin’s Privacy Policy (for example, right to restrict processing, right to erasure), making maintenance of the Account by Gaijin impossible;
+— if someone else uses the User’s Account to engage in activity that violates these Terms;
+— if Gaijin ceases offering the Services and/or their part.
+
+
+
+— The User may delete an Account at any time. 
+— Deactivation or deletion of the Account either by the User or by Gaijin leads to termination of the Terms and Conditions (including these Terms). Gaijin is not required to provide refunds, benefits, or other compensation if the User requests the deletion of an Account or the Account is deleted according to paragraph 3.8 of these Terms.
+— The User’s Account that has been continually inactive for 5 or more years may be deleted by Gaijin upon prior notice sent to the email associated with the Account. After deletion, all Gaijin Coins, Skins, and other in-game items on the User’s Account disappear and cannot be restored.
+— The User acknowledges that the User has no ownership or other proprietary rights in the Account. Gaijin grants access to the Account solely for providing the User the Services.
+
+
+
+— INTELLECTUAL PROPERTY— All rights to the Services and associated intellectual property rights, including right, title, and interest, are owned by Gaijin, or Gaijin has the right to provide them. Unless otherwise specified in the Terms and Conditions, Gaijin grants the User a non-exclusive, non-sublicensable, non-transferable, limited license to use the Services in accordance with their functions solely for private, non-commercial use, subject to compliance with the Terms and Conditions (including these Terms). 
+— If the User intends to use some of the Services, for example, Games, the User accepts EULA, being an integral part of the Terms and Conditions and governing the use of such Services. 
+— With respect to all provided Services and the relevant content and information, the User shall not:— infringe Gaijin’s intellectual property rights and use any portion of the Services for any purpose other than its intended purpose;
+— copy, distribute, resell, assign, rent, lease, reproduce, adapt, sub-license, publicly perform, modify, decompile, reverse-engineer, translate, disassemble, delete technical protection measures, or create derivative works;
+— use viruses, malware, or spyware;
+— delete or modify copyright, patent, trademark notices, etc. 
+
+
+
+— Should the User provide Gaijin with any copyrighted materials owned by the User, Gaijin acquires a perpetual, irrevocable, transferable, sublicensable, and royalty-free license to use such materials on any territory without limitations of terms and purposes without the User being mentioned as the owner of such materials. The User is not allowed to provide any materials unless they have an authorized right to do so. By providing any materials, the User represents and warrants that such materials do not infringe the privacy rights, property rights, or any other right or interest of any person or entity and are free of viruses, spyware, worms, adware, or other malicious code. Gaijin does not claim any ownership rights in User's materials, and nothing in these Terms and Conditions (including these Terms) should be construed as limiting any User’s rights to use and exploit the User's materials.
+— Gaijin does not check the User's right to provide any materials and their originality. Gaijin shall bear no responsibility for the content of such materials. The User uses other User's materials at their own risk and responsibility. For any objectionable content (whether illegal or infringing on your rights), please get in touch with Gaijin Support. 
+— Gaijin reserves the right to remove any materials provided by the User without any notice.
+
+
+
+— FORUM AND COMMUNICATION— The User may communicate with other users via messages through Services (e.g., Website forum, commentaries, or in-game chats). Gaijin may impose additional rules for such communication, for instance, by incorporating them in the Terms and Conditions.
+— The User may also contact Gaijin via messages through Services, forums, or email. 
+
+
+
+— MARKETPLACE, STORE, AND PAID SERVICES— Some Services provide Users with the right to acquire and exchange in-game items (the use of which is covered by EULA) at the Store or Marketplace. Gaijin may impose additional rules for such acquisition and exchange, for instance, by incorporating them into the Terms and Conditions.
+— Provision of some Services (including obtaining the right to use in-game items) may require payment. Such payments shall be made as provided by Section 7 below and in accordance with other Gaijin’s rules/instructions, including in the Terms and Conditions.
+
+
+
+— CHARGES AND BILLING— The User agrees to pay all fees (which may include any applicable taxes) incurred by the User or anyone using the User’s Account. The price of any product, service, or entitlement purchased through the Services is the price specified at the time of the User’s purchase. Gaijin may revise the pricing for any product and services offered through the Service at any time.
+— When conducting online purchases with the Services, the User must provide true, accurate, and complete information about them and use non-fraudulent means of payment. Suppose the User provides any untrue, inaccurate or incomplete personal or financial information, or Gaijin has reasonable grounds to suspect any information is false, inaccurate, or incomplete. In that case, Gaijin has the right to annul the related financial transaction and to refer to relevant authorities with the details of such an incident.
+— All purchases made through the Services are non-refundable regardless of the payment method, except as provided under the applicable law. The User assumes full responsibility for confirming that the phone, computer, or other device has the proper software and is compatible with the products, applications, or services purchased, downloaded, or otherwise obtained through the Services.
+— Purchases of Services through third-party platforms are regulated in accordance with the terms and conditions of the relevant platform. Please contact the relevant store or payment platform directly with any questions regarding payments, billing, or refunds. Gaijin does not control these processes.
+
+
+
+— USER’S CONDUCT— When using the Services, the User is NOT allowed to do the following:— post, publish, send, promote, cite, and put a link to information that:— infringes third-party rights, including intellectual property rights,
+— is of advertising or promotion in nature,
+— is offensive, including religiously, sexually, racially, nationally, personally, or otherwise,
+— uses defamatory, abusive, or threatening language,
+— contains nudity or is of a sexual or pornographic nature,
+— is unlawful, deceptive, or fraudulent, 
+— invades someone’s privacy,
+— contains harassment or promotes and encourages harassment or excessive violence, 
+— encourages a criminal offense or gives rise to civil liability,
+— otherwise violates the Terms and Conditions (including these Terms) or the applicable law.
+
+
+
+— intentionally affect any other party's use and experience of the Service;
+— try to gain unauthorized access to the Services or someone else’s Account, or collect information from or through the Services other than the Terms and Conditions permitted.
+
+
+
+— The list mentioned above is non-exhaustive. Gaijin decides on the consequences of violating the User's conduct rules in each case independently at its sole discretion, including deactivating or deleting the User’s Account. You have the right to object to Gaijin’s decision by contacting our Support Service with providing sufficient proof of non-violation. 
+
+
+
+— SERVICE TESTING— Gaijin may provide the User with a limited, non-transferable, non-exclusive, revocable right to use test versions of Services to identify errors and help improve their functionality. User's participation in Service testing is subject to Terms and Conditions (including these Terms). Such testing may include alpha and beta tests, including closed ones, which shall remain confidential as provided by paragraph 9.3 below.
+— Participation in tests is free and personal. Transferring access (as well as the right to access) to the Services to third parties is prohibited.
+— All information (including, without limitation, any comment, idea, or other feedback) acquired and/or provided by the User during the closed tests shall be deemed strictly confidential. The User must not disclose any information about the Service that is revealed at the stage of closed Service testing, including but not limited to information about the features of the functionality of Services, gameplay, and plot. The User also must not publish or transfer to third parties screenshots of the Services, screen recordings containing closed Services, information about errors found in the Service, stream gameplay (or any other use of Services) in real-time, as well as perform other actions to disclose any information about the Services. This confidentiality statement is valid indefinitely or for the longest possible period permitted by applicable law if indefinite validity is not permitted. The User agrees that irreparable damage would occur in case of a violation of such confidentiality. Gaijin is entitled to full compensation for the harm sustained as a consequence.
+— Test versions of the Services may become unavailable at any time at Gaijin’s discretion, as well as the User’s progress, achievements, in-game items, and other data. Service testing is provided for testing on an "AS IS" basis, and Gaijin makes no warranty to the User of any kind, neither express nor implied.
+
+
+
+— WARRANTY DISCLAIMER AND INDEMNIFICATION— The Services are used at the User’s own risk and with the agreement that the User will be solely responsible for any damage to the User's device, loss of data, or other harm that results from such activities. Gaijin does NOT make any warranties in respect to the Services unless otherwise expressly specified in these Terms and Conditions, including, without limitation, Services being accessible, risk-free, fit for a particular purpose, error-free and suitable, and unharmful for User's health and well-being. Contractors, agents, dealers, or distributors of Gaijin or any other third party shall not have a right to modify this limited warranty or make any additional warranties unless Gaijin agrees to it in writing.
+— The User will indemnify and keep indemnified Gaijin and its agents, employees, directors, successors, assignees, and licensees from and against any and all claims, liabilities, losses, costs, and damages (including legal fees and expenses) arising directly or indirectly in connection with or related to User's conduct or violation of the Terms and Conditions (including these Terms).
+— In no event shall Gaijin or any of its affiliates be liable for any direct, indirect, consequential, punitive, special, or incidental damages (including, without limitation, damages for loss of business, contract, revenue, data, information, or business interruption), under any theory of liability, resulting from, arising out of or in connection with the use of or inability to use the Services or the content, products, service, the statements or actions of any third party on or through the Services, any unauthorized access to or alteration of your transmission or data, any information that is sent or received, or not sent or received, any failure to store data, any loss of data, loss or damage to files, content, and/or any Services available, even if Gaijin has been advised of the possibility of such damages. This limitation shall not apply to liability for a death or a personal injury to the extent the applicable law prohibits such limitation. Furthermore, as some jurisdictions do not allow or limit the exclusion or limitation of liability for consequential or incidental damages or do not allow the exclusion or limitation of implied warranties, the above limitation may not apply in particular circumstances.
+
+
+
+— MISCELLANEOUS— The Terms and Conditions (including these Terms) are legally binding upon all Users and constitute a written agreement between the User and Gaijin.
+— The Terms and Conditions (including these Terms) may be updated and changed from time to time. Gaijin will notify the User of significant changes to the Terms and Conditions by posting the amended Terms and Conditions or, in the case of material modification, by sending a request to the User to accept or reject the amended Terms and Conditions (if the User has an Account). If the User continues to use the Services after a change or update, this constitutes the User’s acceptance of the amended Terms and Conditions.
+— Should the User have a dispute with Gaijin, the Terms and Conditions apply in the version when Gaijin receives a relevant notice from the User.
+— The User shall not assign any rights or obligations under the Terms and Conditions to third parties. However, Gaijin reserves the right to assign its rights and obligations under the Terms and Conditions to any third party at its sole discretion. In case of an assignment, Gaijin will update the Terms and Conditions.
+— The provisions of the Terms and Conditions (or any of their integral part) are severable, and invalidity, illegality, or unenforceability of any provision shall not affect the validity, legality, or enforceability of the remainder of the Terms and Conditions. If any provision of the Terms and Conditions is held invalid, illegal, or unenforceable in any respect for any reason, this shall not affect any other provision, and the Terms and Conditions shall be construed as if such invalid, illegal or unenforceable provision was not a part of the Terms and Conditions that shall be carried out as nearly as possible in accordance with the original terms and intent. 
+
+
+
+
+
+12.  GOVERNING LAW AND DISPUTE RESOLUTION
+
+12.1.	The Terms and Conditions (including these Terms) and any claims or disputes arising out of or in connection with them are governed by the laws of the Republic of Cyprus, except for the cases below.
+
+— For residents in the USA and Canada, any dispute arising out of or related to the Terms and Conditions (including these Terms) shall be governed in all respects by the laws of the State of California, USA, without regard to conflict of law provisions (especially, United States Federal Arbitration Act regulating interpretation and enforcement of the agreement to arbitrate and no class actions provisions).
+— For residents in Australia, any dispute arising out of or related to the Terms and Conditions (including these Terms) shall be governed in all by the applicable laws of Australia.
+— In terms of the [Contribution Agreement / https://legal.gaijin.net/contribution], governing law and dispute resolution are stipulated by the [Contribution Agreement / https://legal.gaijin.net/contribution].
+
+12.2.	In the event of any dispute arising out of or in connection with these Terms, You and Gaijin shall negotiate such dispute within 60 calendar days following the receipt of a written notice of dispute.
+
+Such written notice must be sent physically by mail to the address stated in Section 1 of these Terms and electronically to the email address [legal@gaijin.net / mailto:legal@gaijin.net], and must contain the following information:
+
+— the full name and contact information of the claimant and its representative (if any);
+— description of the nature and basis of the claim and dispute;
+— description of the performance requested from Gaijin according to and in connection with the claim.
+
+12.3.	If the dispute cannot be resolved by negotiation (as prescribed in paragraph 12.2), to the extent permitted by applicable law all disputes shall be resolved by binding confidential arbitration. 
+
+12.3.1. For Users resident in the European Union and elsewhere in the world (except for the USA, Canada, and Australia):
+
+— You may use the [Online Dispute Resolution platform / https://ec.europa.eu/consumers/odr] offered by the European Commission as an out-of-court alternative to resolve disputes. Arbitration in such case shall be initiated in the Out-of-court Dispute Settlement Body for Consumers and Entrepreneurs e.V. (Außergerichtliche Streitbeilegungsstelle für Verbraucher und Unternehmer e.V.) in Germany (Hohe Straße 11, 04107 Leipzig), which decision shall be binding, subject to the procedure prescribed by the Regulation on consumer Online Dispute Resolution (ODR), as stipulated by EU Regulation No 2006/2004 and Directive 2009/22/EC, as of the date of commencement of a dispute (more information at: [https://ec.europa.eu/consumers/odr]). The language of the arbitration shall be English;
+— Any legal claim or dispute (if it is impossible to apply the provisions of the paragraph above concerning the arbitration) You may file against Gaijin must be resolved exclusively by a court located in Cyprus.
+
+12.3.2. For Users resident in the USA and Canada or otherwise make any claim against Gaijin in those countries:
+
+— Any legal claim, dispute, or other controversies between You and Gaijin arising out of or otherwise relating in any way to Terms and Conditions (including these Terms) shall be resolved in confidential binding arbitration conducted before one commercial arbitrator from the American Arbitration Association (“AAA”) (Binding Arbitration). AAA’s rules and procedures will be used for the arbitration, including the Consumer Arbitration Rules. But if there is a conflict between these Terms and Conditions (including these Terms) and AAA’s rules and procedures, then we will follow these Terms. The arbitration shall be initiated in San Francisco, State of California, USA. You and Gaijin agree to submit to the personal jurisdiction of that court to compel arbitration, to stay the proceeding pending arbitration, or to confirm, modify, vacate, or enter judgment on the award entered by the arbitrator. The language of the arbitration shall be English. You acknowledge that you are voluntarily and knowingly forfeiting your right to a trial by jury and to otherwise proceed in a lawsuit in state or federal court. The arbitrator’s award shall be final and binding on you and Gaijin and may be entered as a judgment in any court of competent jurisdiction.
+
+12.3.3. For Users resident in Australia:
+
+— Any legal claim, dispute, or other controversies between You and Gaijin arising out of or otherwise relating in any way to Terms and Conditions (including these Terms) shall be resolved in accordance with the applicable Australian laws (e.g., brought in local small claims court).
+
+NOTE: You expressly agree that in terms of claims and disputes not subject to the arbitration agreement above (or if such arbitration cannot be applied for whatever reason), exclusive jurisdiction for any claim or action arising out of or relating to the Terms and Conditions (including these Terms) shall be the state courts of the Republic of Cyprus, and You expressly consent to the exercise of personal jurisdiction of such courts.
+
+12.4.	CLASS ACTION WAIVER. YOU EXPRESSLY AGREE THAT NO OTHER DISPUTES SHALL BE JOINED OR MERGED WITH YOUR DISPUTE, WHETHER IN A CLASS ARBITRATION OR OTHERWISE. YOU AND GAIJIN AGREE THAT THERE IS NO RIGHT OR AUTHORITY TO ARBITRATE ANY DISPUTE ON A CLASS-ACTION BASIS OR TO CLASS-ACTION PROCEDURES, THERE IS NO RIGHT OR AUTHORITY FOR ANY DISPUTE TO BE SUBMITTED AS REPRESENTATIVE OR AS A PRIVATE ATTORNEY GENERAL, AND NO ARBITRATION MAY BE COMBINED WITH ANY OTHER ARBITRATION.
+
+— CONTACT INFORMATION— To contact Gaijin, please use our Support Service portal, currently available at [https://support.gaijin.net].
+
+
+
+
+
+Last updated: 18.04.2023
+
+
+

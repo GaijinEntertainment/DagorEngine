@@ -1,0 +1,20 @@
+;
+base_path = ../
+mount = %sqstd=../sq/std
+
+use_libs_by_default = yes ; what to do if library not found in this config
+register_dir_extensions = yes ; dagor.scan_folder
+register_dagor_fs=yes
+sqstd_register_base_io_libs = yes ; system and io base lib modules
+sqrat_bind_dagor_logsys = yes ; dagor.debug, dagor.assertf, dagor.debug_dump_stack ...
+register_reg_exp = yes ; class regexp2, regexp2.match, regexp2.replace ...
+register_utf8 = yes ; class utf8, utf8.strtr, utf8.charCount ...
+register_json = yes ; parse_json, string_to_json
+sqrat_bind_dagor_math = yes ; Point2, Point3, TMatrix, Color4 ... and random
+register_dagor_iso8601_module = yes ; module dagor.iso8601: parse_unix_time, format_unix_time ...
+register_frp = yes
+
+function_result_must_be_utilized = tryLoad
+function_should_return_something_prefix = mk
+function_calls_lambda_inplace = sharedWatched combine update
+function_can_return_string = loc

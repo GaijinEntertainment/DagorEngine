@@ -1,0 +1,35 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/devices ;
+
+TargetType  = lib ;
+Target      = gameLibs/devices.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes = 
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  dataExport.cpp
+;
+
+if $(Platform) in win32 win64 {
+  Sources +=
+    jetSeat.cpp
+    trackIR.cpp
+  ;
+} else if $(Platform) in ps4 ps5 {
+  Sources +=
+    ps4HeadTrack.cpp
+    stub/jetSeatStub.cpp
+  ;
+  AddLibs += -lSceFace_stub_weak ;
+  UseProgLibs += engine2/drv/camera_sony ;
+} else {
+  Exit $(Platform) is not supported: use devices/stub library instead ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;
+

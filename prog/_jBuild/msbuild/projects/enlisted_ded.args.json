@@ -1,0 +1,199 @@
+{
+  "FileVersion": 2,
+  "Id": "5a310407-ec21-43aa-94bb-0fa95e66b55e",
+  "Items": [
+    {
+      "Id": "8b7e97c9-8f3a-4918-ab3b-5b2b18959f09",
+      "Command": "Bots",
+      "ExclusiveMode": true,
+      "Items": [
+        {
+          "Id": "6b5e5489-5afd-4cb3-a88b-feb85492de8b",
+          "Command": "2",
+          "Items": [
+            {
+              "Id": "90ee08cc-a448-4136-a275-a952b2d26fff",
+              "Command": "-botpop:2"
+            }
+          ]
+        },
+        {
+          "Id": "328f24b1-dc6a-4677-b921-77b0a344d1d8",
+          "Command": "4",
+          "Items": [
+            {
+              "Id": "a8443baa-e74e-4b98-ab60-f27ea9e4f5d3",
+              "Command": "-botpop:4"
+            }
+          ]
+        },
+        {
+          "Id": "634b7194-4698-4062-968d-3a234d3261f2",
+          "Command": "6",
+          "Items": [
+            {
+              "Id": "c9e5e648-0e8b-43a8-ac1f-9ae3609956df",
+              "Command": "-botpop:6"
+            }
+          ]
+        },
+        {
+          "Id": "2fae8715-de8d-437c-926e-67b953e63981",
+          "Command": "10",
+          "Items": [
+            {
+              "Id": "71e53a13-1cae-4467-aef6-b704c5485688",
+              "Command": "-botpop:10"
+            }
+          ]
+        },
+        {
+          "Id": "a0adcc78-3712-4b66-ad72-e5ac97340627",
+          "Command": "20",
+          "Items": [
+            {
+              "Id": "8a58ec99-7d0d-4556-b9f7-e46b31dd9a3d",
+              "Command": "-botpop:20"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Id": "b200e1a1-545b-47e2-a5ff-bfbe3b2d6d46",
+      "Command": "Circuit",
+      "ExclusiveMode": true,
+      "Items": [
+        {
+          "Id": "a8ddb756-40a5-4f4d-8262-8f5087688a5b",
+          "Command": "-config:circuit:t=moon"
+        },
+        {
+          "Id": "600214f8-3a76-470e-bcf2-cfb87a158143",
+          "Command": "-config:circuit:t=sun"
+        },
+        {
+          "Id": "f8ade4d1-4256-4492-8317-c75956b427d0",
+          "Command": "-config:circuit:t=ganymede"
+        },
+        {
+          "Id": "a3ee3d79-ebcf-48bc-86d6-7b6d18ffd4cf",
+          "Command": "-config:circuit:t=jupiter "
+        }
+      ]
+    },
+    {
+      "Id": "9f9f79ac-3386-4da3-840e-d1bc74affabc",
+      "Command": "Dedicated server",
+      "Items": [
+        {
+          "Id": "ada9fe1e-ecbb-4aec-9106-b926dc2ec326",
+          "Command": "--listen"
+        },
+        {
+          "Id": "8dd47da9-d072-48da-9e2f-8041d7e1fab6",
+          "Command": "-noeac"
+        }
+      ]
+    },
+    {
+      "Id": "b14edf8b-60d0-4f28-b4ed-6d98dcea6235",
+      "Command": "Enable menu",
+      "ExclusiveMode": true,
+      "Items": [
+        {
+          "Id": "c3d3f342-7acc-492f-988d-cbde8733efb7",
+          "Command": "-config:disableMenu:b=no"
+        },
+        {
+          "Id": "f9e2f848-24ea-4770-a867-4948152b425b",
+          "Command": "-config:disableMenu:b=yes"
+        }
+      ]
+    },
+    {
+      "Id": "399149ba-0049-4938-b3fc-a5e241781cb5",
+      "Command": "Map selection",
+      "ExclusiveMode": true,
+      "Items": [
+        {
+          "Id": "b81dd5cf-cf94-4bcc-b3ca-305125a4eefa",
+          "Command": "-scene:gameData/scenes/berlin_chancellery_dom.blk"
+        },
+        {
+          "Id": "366d03e2-f181-4954-9213-0fd1c64e479e",
+          "Command": "-scene:gameData/scenes/tunisia_gorge_dom.blk"
+        },
+        {
+          "Id": "2a12dfd9-7ac0-496c-9052-9b79ec3ddc02",
+          "Command": "-scene:gamedata/scenes/enlisted_berlin_benchmark.blk"
+        },
+        {
+          "Id": "ab69b893-6e5e-4332-81de-e23bd0f34114",
+          "Command": "-scene:gamedata/scenes/enlisted_berlin_benchmark_clear.blk"
+        },
+        {
+          "Id": "b2e847ea-eb77-450d-8b9a-aa1fa0b6839d",
+          "Command": "-scene:gamedata/scenes/enlisted_moscow_benchmark.blk"
+        },
+        {
+          "Id": "7a746448-b93a-4efd-993e-a0e74fe96c87",
+          "Command": "-scene:gamedata/scenes/enlisted_moscow_benchmark_clear.blk"
+        },
+        {
+          "Id": "c0f69d12-346a-4673-ab48-2477e7fd197c",
+          "Command": "-scene:gamedata/scenes/enlisted_normandy_coast_benchmark.blk"
+        },
+        {
+          "Id": "243558e6-f72d-402b-b612-ab9d0a17b192",
+          "Command": "-scene:gamedata/scenes/enlisted_normandy_coast_benchmark_clear.blk"
+        },
+        {
+          "Id": "abce43d3-3826-4ced-8937-77748324e97e",
+          "Command": "-scene:gamedata/scenes/normandy_beach_inv.blk"
+        },
+        {
+          "Id": "61a56d01-66cd-457a-86fc-c3424ff2dc9b",
+          "Command": "-scene:gamedata/scenes/volokolamsk_forestry_inv.blk"
+        },
+        {
+          "Id": "1e776325-eb91-45ca-8eeb-b16e84d71f4b",
+          "Command": "-scene:gamedata/scenes/tank_phys_test_level.blk"
+        }
+      ]
+    },
+    {
+      "Id": "128b9adb-cd38-49d6-9c61-b0c1d2b41b9f",
+      "Command": "Miscellaneous",
+      "Items": [
+        {
+          "Id": "829c8184-7f8c-4b06-831b-52bdae2244d2",
+          "Command": "-es_tag:dasDebug"
+        },
+        {
+          "Id": "4b2f1c6e-b13b-4c34-a72a-91ae87f7dbbc",
+          "Command": "-es_tag:ecsDebug"
+        }
+      ]
+    },
+    {
+      "Id": "197b711d-f1a0-44f7-bf99-5846507f1cb4",
+      "Command": "Use addon VromSrc",
+      "ExclusiveMode": true,
+      "Items": [
+        {
+          "Id": "a84f00dd-716e-46f2-8301-852eedee1fc2",
+          "Command": "-config:debug/useAddonVromSrc:b=no"
+        },
+        {
+          "Id": "4d219803-f300-494b-9a9e-8e5fc10e8ba6",
+          "Command": "-config:debug/useAddonVromSrc:b=yes"
+        },
+        {
+          "Id": "9b1d574d-7a62-4bf7-b7c9-af9850982db3",
+          "Command": "-config:debug/useAddonVromSrc:b=yes -config:debug/vromfsFirstPriority:b=no"
+        }
+      ]
+    }
+  ]
+}

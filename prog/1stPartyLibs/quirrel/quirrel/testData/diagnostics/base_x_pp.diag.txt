@@ -1,0 +1,7 @@
+ERROR: argument of inc/dec operation is not assignable
+testData/diagnostics/base_x_pp.nut:1:0
+
+base.x++
+^-----
+
+

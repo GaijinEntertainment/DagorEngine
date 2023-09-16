@@ -1,0 +1,32 @@
+ReproducibleExeBuild = yes ;
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/renamer ;
+ConsoleExe = yes ;
+
+TargetType  = exe ;
+Target      = tools/renamer ;
+
+OutDir = $(Root)/tools/dagor3_cdk/util ;
+
+Sources =
+  renamer.cpp
+  cmain.cpp
+;
+
+AddIncludes =
+;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/perfMon/daProfilerStub
+  gameLibs/gameResPatcher
+  tools/libTools/util
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

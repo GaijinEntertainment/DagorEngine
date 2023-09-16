@@ -1,0 +1,119 @@
+#Platform ?= xbox360 ;
+#Platform ?= ps3 ;
+#Platform ?= macosx ;
+if $(OS) = NT {
+  Platform ?= win64 ;
+  PlatformSpec ?= clang ;
+}
+
+Root    ?= ../../.. ;
+Location = samples/testGI/prog ;
+
+UseD3DMulti ?= yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = exe ;
+Target      = samples/testGI-$(Platform) ;
+
+if $(UseWholeOpt) != yes {
+  UseLLDLink ?= yes ;
+}
+
+OutDir = $(Root)/$(Location)/../game ;
+
+AddIncludes =
+  $(Root)/prog/samples/commonFramework
+  $(Root)/prog/gameLibs/publicInclude 
+;
+
+Sources =
+#  perlinNoise.cpp
+  test_app.cpp
+  test_main.cpp
+;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/coreUtil
+  engine2/math
+  engine2/lib3d
+  engine2/image
+  engine2/shaders
+  engine2/workCycle
+  engine2/guiBase
+  engine2/scene
+  engine2/sceneRay
+
+  engine2/gameRes
+  engine2/perfMon
+  engine2/streaming
+
+  samples/commonFramework
+
+
+  gameLibs/render/lruCollision
+  gameLibs/webui
+  gameLibs/daSkies2
+  gameLibs/render
+  gameLibs/visualConsole
+  gameLibs/fftWater
+  gameLibs/heightmap
+  engine2/consoleProc
+  gameLibs/daEditor4
+  gameLibs/daGI
+;
+
+#UseRootLibs = xblades2/prog/anim ;
+
+if $(Platform) in win32 win64 {
+  UseProgLibs +=
+    engine2/drv/hid_mouse
+    engine2/drv/hid_keyboard
+    engine2/drv/hid_nulldrv
+  ;
+  UseProgLibs += engine2/drv/drv3d_pc_multi ;
+  AddLibs +=
+    Ws2_32.lib ;
+
+} else if $(Platform) = macosx {
+  BundleName = testGI ;
+  Sources += macosx_main.mm ;
+  UseProgLibs +=
+    engine2/drv/hid_mouse
+    engine2/drv/hid_keyboard
+    engine2/drv/hid_nulldrv
+  ;
+
+  include $(Root)/prog/samples/macOS-testApp-res/macOS-common.jam ;
+
+} else if $(Platform) in ps4 ps5 {
+  UseProgLibs +=
+    engine2/drv/hid_sony
+    engine2/drv/drv3d_ps4
+  ;
+  AddLibs =
+    -lScePerf_stub_weak
+  ;
+} else if $(Platform) = android {
+  UseProgLibs +=
+    engine2/drv/drv3d_vulkan
+    engine2/drv/hid_android
+    engine2/drv/hid_nulldrv
+  ;
+
+  AndroidAppID = com.gaijinent.testApp.testGI ;
+  AndroidIcon = ../Android-testApp-res/icon.png ;
+  AndroidAppIconName = Test Gl ;
+  AndroidCopyToDevice = default ;
+
+} else {
+  Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+}
+ 
+include $(Root)/prog/_jBuild/build.jam ;

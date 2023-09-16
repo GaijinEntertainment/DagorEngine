@@ -1,0 +1,41 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/assetExp/exporters ;
+DriverLinkage   = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = dll ;
+Target = tools/sceneTools/modelExp.dll ;
+
+OutDir = $(Root)/tools/dagor3_cdk/bin/plugins/dabuild ;
+if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/dabuild ; }
+
+Sources = modelExp.cpp modelExpUtil.cpp exp_tools.cpp exp_skeleton_tools.cpp
+  exp_rendInst.cpp exp_dynModel.cpp exp_skeleton.cpp exp_rndGrass.cpp ;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+UseProgLibs = 
+  engine2/startup
+  engine2/math
+
+  engine2/lib3d
+  engine2/shaders
+  engine2/drv/drv3d_null
+  engine2/sceneRay
+  engine2/perfMon
+
+  tools/libTools/assetMgr
+  tools/libTools/assetMgrHlp
+  tools/libTools/shaderResBuilder
+  tools/libTools/dagFileRW
+  tools/libTools/util
+  engine2/image
+  tools/libTools/ambientOcclusion
+;
+
+#Sources += geomSimplify.cpp ;
+
+ImportProgLibs = tools/libTools/daKernel ;
+CPPopt = -D_DEBUG_TAB_ ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<!-- under visual studio command prompt, run: mc .\etw.man -->
+<instrumentationManifest xsi:schemaLocation="http://schemas.microsoft.com/win/2004/08/events eventman.xsd" xmlns="http://schemas.microsoft.com/win/2004/08/events" xmlns:win="http://manifests.microsoft.com/win/2004/08/windows/events" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:trace="http://schemas.microsoft.com/win/2004/08/events/trace">
+    <instrumentation>
+        <events>
+            <provider name="microsoft-windows-mimalloc" guid="{138f4dbb-ee04-4899-aa0a-572ad4475779}" symbol="ETW_MI_Provider" resourceFileName="dummy" messageFileName="dummy">
+                <events>
+                    <event symbol="ETW_MI_ALLOC" value="100" version="1" level="win:Informational" template="ETW_CUSTOM_HEAP_ALLOC_DATA">
+                    </event>
+                    <event symbol="ETW_MI_FREE" value="101" version="1" level="win:Informational" template="ETW_CUSTOM_HEAP_FREE_DATA">
+                    </event>
+                </events>
+                <templates>
+                    <template tid="ETW_CUSTOM_HEAP_ALLOC_DATA">
+                        <data name="Address" inType="win:UInt64" outType="xs:unsignedLong">
+                        </data>
+                        <data name="Size" inType="win:UInt64" outType="xs:unsignedLong">
+                        </data>
+                    </template>
+                    <template tid="ETW_CUSTOM_HEAP_FREE_DATA">
+                        <data name="Address" inType="win:UInt64" outType="xs:unsignedLong">
+                        </data>
+                        <data name="Size" inType="win:UInt64" outType="xs:unsignedLong">
+                        </data>
+                    </template>
+                </templates>
+            </provider>
+        </events>
+    </instrumentation>
+</instrumentationManifest>

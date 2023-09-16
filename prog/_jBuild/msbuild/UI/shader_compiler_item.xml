@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="ShaderCompilerConfiguration"
+      DisplayName="Shader Compiler"
+      PageTemplate="generic"
+      Description="Shader Compiler Configuration"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.Categories>
+    <Category Name="ShaderCompiler" DisplayName="Shader Compiler" Description="Shader Compiler Configuration" />
+  </Rule.Categories>
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" ItemType="ShaderCompiler"/>
+  </Rule.DataSource>
+  <StringProperty Name="Command" DisplayName="Compile command" Category="ShaderCompiler" Description="This command will be called to compile the shader." />
+  <StringProperty Name="Arguments" DisplayName="Compiler arguments" Category="ShaderCompiler" Description="The compiler will use this/these arguments." />
+</Rule>

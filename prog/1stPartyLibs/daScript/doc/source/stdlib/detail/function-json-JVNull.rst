@@ -1,0 +1,1 @@
+Creates `JsonValue` representing `null`.

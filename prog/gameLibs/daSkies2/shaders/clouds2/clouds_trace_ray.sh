@@ -1,0 +1,102 @@
+include "hardware_defines.sh"
+include "cloudsDensity.sh"
+include "base_distance_to_clouds.sh"
+include "writeToTex.sh"
+float skies_planet_radius = 6360;
+float4 world_view_pos;
+
+macro TRACE_CLOUDS(stage)
+  //RAY_INTERSECT_TWO()
+  local float4 offseted_view_pos = (world_view_pos.x + clouds_origin_offset.x, world_view_pos.y, world_view_pos.z + clouds_origin_offset.y, 0);
+  SAMPLE_CLOUDS_DENSITY_TEXTURE(stage, offseted_view_pos)
+  BASE_DISTANCE_TO_CLOUDS(stage)
+  (stage)
+  {
+    skies_planet_radius@f1 = (skies_planet_radius);
+    clouds_origin_offset@f3 = (clouds_origin_offset.x, 0, clouds_origin_offset.y, 0);
+  }
+  hlsl(stage) {
+    #include <distance_to_clouds.hlsl>
+    float2 trace_ray(float3 origin, float3 dir, float dist, float threshold, float step_size)
+    {
+      float dist0, dist1;
+      float Rh = origin.y*0.001+skies_planet_radius;
+      base_distance_to_clouds(-dir.y, dist0, dist1, Rh, Rh*Rh); dist0*=1000;dist1*=1000;
+      if (dist0 > dist || dist1<0 || dist1<dist0)
+        return float2(-1,0);
+      dist = min(dist, dist1);
+      origin += dist0*dir; dist -= dist0;
+      dist = max(dist, 1e-6);
+      uint e = max(2, ceil(dist/step_size));
+      step_size = dist/e;
+      float sigmaDs = CLOUDS_SIGMA*step_size;
+      float t = step_size;
+      float transmittance = 1;
+      origin += clouds_origin_offset + get_clouds_hole_pos_vec();
+      LOOP
+      for (uint i = 0; i < e; ++i, t += step_size)
+      {
+        float heightFraction;
+        float3 sample_pos = origin + t*dir;
+        float cloudDensity = sampleCloudDensity(sample_pos, 1, 0, heightFraction, false);
+        //this is for near plane transition. Only needed for first sequence. Cost up to 0.1ms
+        if (cloudDensity <= 0.0000001)
+          continue;
+        //beers law
+        //cloudDensity *= sqrt(saturate(dist*distMulAdd.x + distMulAdd.y));//smoothstep(0, 1, (dist*distMulAdd.x + distMulAdd.y));
+        float beers_term = exp2(cloudDensity * sigmaDs);
+        transmittance *= beers_term;
+        if (transmittance < threshold)
+          return float2(t, transmittance);
+      }
+      return float2(-1, transmittance);
+    }
+  }
+endmacro
+
+int trace_rays_count;
+
+shader trace_clouds_cs
+{
+  TRACE_CLOUDS(cs)
+  (cs) { trace_rays_count@f1 = (trace_rays_count); }
+  hlsl(cs) {
+    float4 rays[32*2]:register(c8);
+    RWStructuredBuffer<uint> output : register(u0);
+    [numthreads(32, 1, 1)]
+    void cs_main(uint dtid : SV_DispatchThreadID) {
+      if (dtid >= uint(trace_rays_count))
+        return;
+      float4 pos_threshold = rays[dtid*2], dir_dist = rays[dtid*2+1];
+      float step_size = max(32.0, dir_dist.w/128);
+      float2 result = trace_ray(pos_threshold.xyz, dir_dist.xyz, dir_dist.w, pos_threshold.w, step_size);
+      output[dtid] = (result.x < 0 ? 65535 : clamp(uint(result.x/dir_dist.w*65534+.499f), 0, 65534)) | (clamp(uint(result.y*65535+0.499f), 0, 65535) << 16);
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+shader trace_clouds_ps
+{
+  cull_mode = none;
+
+  POSTFX_VS(0)
+
+  TRACE_CLOUDS(ps)
+  (ps) { trace_rays_count@f1 = (trace_rays_count); }
+  hlsl(ps) {
+    float4 rays[64] : register(c15);
+    float4 lastreg : register(c79);
+    float2 ps_main(float4 pos : VPOS) : SV_Target0
+    {
+      int dtid = (int)floor(pos.x);
+      if (dtid >= uint(trace_rays_count))
+        return 0;
+      float4 pos_threshold = rays[dtid*2], dir_dist = rays[dtid*2+1];
+      float step_size = max(32.0, dir_dist.w/128);
+      float2 result = trace_ray(pos_threshold.xyz, dir_dist.xyz, dir_dist.w, pos_threshold.w, step_size);
+      return float2(result.x < 0 ? -1 : result.x / dir_dist.w, saturate(result.y));
+    }
+  }
+  compile("target_ps", "ps_main")
+}

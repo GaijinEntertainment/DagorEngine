@@ -1,0 +1,15 @@
+import public "serializationPresets.proto";
+
+message TestItem
+{
+  option (serializable) = "versioned; binary; db";
+
+  optional string name = 1;
+}
+
+message TestMessage
+{
+  option (serializable) = "versioned; binary; db";
+
+  repeated  TestItem items          = 1  [(hash_map_key) = "string"];
+}

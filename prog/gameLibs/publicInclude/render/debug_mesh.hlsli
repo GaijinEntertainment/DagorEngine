@@ -1,0 +1,1 @@
+static const int DEBUG_MESH_COLORS__MAX = 6;

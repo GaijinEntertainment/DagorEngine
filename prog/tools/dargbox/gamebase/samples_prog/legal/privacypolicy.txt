@@ -1,0 +1,338 @@
+
+
+Gaijin Privacy Policy
+- - - - -
+
+This Privacy Policy reflects Gaijin Entertainment (“Gaijin,” also “we,” “us”) in processing the personal data of our users: how we collect and use your personal data, it also covers your rights to such personal data processing. It covers data processing when you install and play video games owned and distributed by Gaijin (“Games”), both when you use our desktop or mobile Games or use other gaming platforms, surf our websites, or otherwise use our products and services, as well as when you are attending the events that we are organizing (“Services”).
+
+This Privacy Policy is a part of the Terms and Conditions, which include the documents regulating the Services provision by Gaijin, including [the Terms of Service / https://legal.gaijin.net/termsofservice].
+
+— WHO WE ARE
+
+
+Your data is processed by Gaijin, meaning the following legal entities (depending on which Services you use or otherwise interact with Gaijin):
+
+— Gaijin Network Ltd, with its registered address at Ifigeneias street 63, Office 302, 2003 Strovolos, Nicosia, Cyprus; 
+— Gaijin Distribution Kft., with its registered address at Hungaria korut 162-166, 1146 Budapest, Hungary.
+
+For certain personal data processing, our partners are also considered data controllers. For example, when you access our Services through gaming consoles or platforms, or the Services are provided together with other entities.
+
+The primary point for contacting us is [the Gaijin Support Portal / https://support.gaijin.net/hc]. You may also contact us at [privacy@gaijin.net / mailto:privacy@gaijin.net] or the following address: Ifigeneias street 63, Office 302, 2003 Strovolos, Nicosia, Cyprus (Gaijin Network Ltd). Please also see Section 14 of this Privacy Policy for more contact information.
+
+— WHAT DATA DO WE PROCESS— Data that you provide to us yourself
+
+
+
+
+
+While using our Services, you are providing us with certain information, usually when you register and manage your Gaijin Account; use Gaijin websites; play Gaijin games or use other Services, purchase goods and services provided by Gaijin; participate in discussions on forums and Gaijin social media; participate in our surveys; request and receive support or customer service or communicate with us over a claim. 
+
+Such data may include the following categories:
+
+Contact information. Most of our Services, such as Games and events, can be used only with a registered account (Gaijin Account or accounts at platforms which we are partnering with). Registration data primarily includes your email address and nickname. You can also add your mobile phone number and a second email to enable better security and the possibility of restoring your account if you lose access to your primary registered email. If you are a child or otherwise limited in a legal capacity, we may also ask you to provide the contact details of your parent, guardian, or another legal representative.
+
+Data provided to Gaijin Support. We collect the information that you submit with your requests to Gaijin while communicating with us on such requests. Whenever you submit your request to Gaijin Support via email or at the Gaijin Support portal through your Gaijin Account, or an email not linked to a Gaijin Account without logging in to your Gaijin Account, we collect the data you provide with the request, such as (1) your email, name, nickname; (2) your message; (3) your gameplay data; (4) your purchases and payment information; (5) other information you submit with a request.
+
+Security data. When some security issues occur, we may ask you to answer security questions to verify your identity. As an answer, we may expect information containing your unique user data, which should be reasonably known only to the owner of a Gaijin Account, such as your email, nickname, login data, location data, and gameplay data.
+
+— Data that we collect automatically
+
+
+Your browser and device may transmit some information while you interact with Gaijin Services, including:
+
+Identification information. We may collect data on your use of our Services to ensure the security of our users, improve user experience with our Services, develop new Services and make our existing Services better. For example, the identification data might include (1) your user ID, (2) approximate location data (IP address and related information, such as a country and a city), and, without limitation, (3) language preferences.
+
+In addition, to enhance the security of your account, we provide Gaijin Pass as a tool for additional control over your Gaijin Account. The application generates unique codes which may be used to log in to your Gaijin Account. If you are using a Gaijin Pass, we also collect your device information to link the application to your account for verification codes.
+
+Device data. To adjust our Services for the device and any other circumstances of your usage, we collect information about your device to ensure the compatibility, functionality, and security of our Services, together with adjustment to your location. These might include such information as device ID, MAC address, approximate location, language settings, time zone, and localization settings, device information, operating system, installed applications, phone network operator, network type and connection, Internet connection speed, screen resolution, and orientation, device hardware characteristics (CPU, GPU, RAM and ROM size, battery, etc.) and other software and hardware information about your device. 
+
+Purchases data. We collect information on the purchases made with our Services to enable a user’s purchase in-game items in your Gaijin Account. We also collect the type (and amount, where applicable) of each in-game item purchased by you and linked to your identification data, as well as its cost to reflect these purchases in your Gaijin Account. Due to the tax regulations, we also collect information on the payer. Therefore, we only process limited compulsory data on users' purchases, which includes a purchaser’s name and address, the amount of payment, and other tax information. 
+
+Cookies and similar technologies. We may use cookies and similar tracking technologies (such as web beacons, pixels, device ID, etc.) to recognize you and/or your device for the purposes described in this Privacy Policy. For more details about our use of cookie files, please see our [Cookies Policy / https://legal.gaijin.net/cookie].
+
+— Data that is collected while you use our Games
+
+
+While you are using our Services, first of all, by playing our Games, we may collect the data generated in the gaming process and associated with your profile. These data include the following:
+
+Game data. We may collect data about your in-game actions, data about your in-game interactions with other players, the duration of your gaming sessions, and data about choices made within gameplay. In addition, we may collect recordings of your gameplay but will keep them for a limited time and further delete it.
+
+Your content. We collect the data you make available while using our Services, such as your messages posted while playing our Games and your posts and comments on our forums, social media pages, and groups. 
+
+Device performance information. We may collect data on the performance of the device which you are using to access our Services, such as crushes reports, technical errors while playing our Games, and information on losing your Internet connection.
+
+Events data. Suppose you are participating in events related to our Games, organized by Gaijin or our partners, we may collect information on your performance in these events and data that you are making available during such events.
+
+— Data that we receive from third parties
+
+
+We may receive certain data from our partners, affiliates, and vendors that assist us in providing the Services to our users. These data include the following:
+
+Data from gaming platforms. Some of our Games within the Services are accessible through independent platforms, such as PlayStation, Xbox, Nintendo Switch, and mobile platforms. To provide you with our Services via such platforms and respect your preferences there, we are collecting such information as user IDs assigned to a user by a platform, email address, approximate location, language, and other identifying information collected by a platform, information about your purchases in a platform’s store, and your specific preferences relevant to the Services. 
+
+Advertising and analytical data. From time to time, we engage our business partners and vendors for advertising and marketing analysis. Such third parties provide us with (1) enhanced data as a result of data analysis to improve our Services and user experience with using our Services; (2) anti-fraud data to track fraud in advertising.
+
+Payment details. Our payment providers collect your credit card details, e-wallet details, or any other payment details in connection with your purchase details and nickname. These details depend on the payment method you use to purchase our paid Services. We only collect payment verification data and do not have access to these payment details.
+
+We do not collect information from public sources, such as social media, public registries, etc.
+
+— FOR WHAT PURPOSES DO WE PROCESS YOUR DATA?
+
+
+We collect and process your data for the following purposes:
+
+Providing you with our Services. To use any of our Services, you agree to our contractual Terms and Conditions comprising a set of legal documents. Performing this contract from our side requires us to process your personal data to:
+
+— register your Gaijin Account;
+— provide you access to our Games and other Services;
+— process payments that you make in connection with our Services;
+— enable the paid Services on your request;
+— manage our Services;
+— provide you with technical information and administrative support for your comfortable use of our Services.
+
+For this purpose, the processed personal data may include all the categories of data that either you provide to us, we collect while you are using our Services, or we receive from our partners.
+
+Legal basis for data processing: contract performance (Terms and Conditions).
+
+Development and improvement of our Services and user experience. It is crucial for us to upgrade our services and improve your experience when using them, as well as to design new services. Therefore, apart from performing our obligations under any Terms and Conditions to provide you with quality Services, we have a legitimate interest in processing data that might be necessary, namely to:
+
+— improve and develop the Services;
+— improve your user experience with our Services;
+— facilitate and enhance the security of your Gaijin Account and your data that we are processing;
+— interact with you on forums and social media;
+— inform you regarding updates and improvements made to our Services, send you relevant security alerts and technical notifications;
+— advise you on events, competitions, and special offers that we provide for our Services;
+— respond to and process users’ claims, complaints, and other requests.
+
+Personal data being processed for these purposes usually includes device and purchase data; game data and device performance information, events data; data from gaming platforms, advertising, and analytical data, as well as other data necessary for the specified purposes.
+
+Legal basis for data processing: contract performance (Terms and Conditions); our legitimate interest (to improve our Services and tailor them to user’s interests).
+
+Personalization of your preferences. To keep you updated on the news related to our Services, we may inform you about updates and our new Services or features within the Services. We may also notify you from time to time about updates to our Terms and Conditions.
+
+For this purpose, we usually process your contact information and identification information.
+
+Legal basis for data processing: consent (provided when you choose which news you want to receive); contract performance (on updates to Terms and Conditions).
+
+Regulatory compliance. To follow the requirements set in laws applicable to Gaijin and its activities, as well as performing requests from authorized state or municipal bodies under applicable laws, sometimes we have to process your personal data under a legal obligation within the relevant legal framework. In each case, we accurately assess whether a specific legal obligation requires data processing.
+
+The data which might be necessary for this purpose includes all the categories of data that we are processing. The most common examples are purchase data and contact information.
+
+Legal basis for data processing: compliance with legal obligations.
+
+Claims management. If we become involved in a dispute, either as a claimant, defendant, or a third party, we may need to process the personal data required to duly support and prove the position in an individual case. This applies both to negotiations and dispute resolution with authorized bodies.
+
+The data which might be needed for this purpose includes all the categories of data that we are processing, depending on the claim in question.
+
+Legal basis for data processing: our legitimate interest (to handle a claim and support our position on it).
+
+Performing our contractual obligations. We may offer users partnering in activities related to our Services, for example, when a user contributes to creating the content related to our Services. We process your personal data to fulfill our obligations in such partnering activities. These might include identification information, your content, and your payment details.
+
+Legal basis for data processing: contract performance (such as [Gaijin Contribution Agreement / https://legal.gaijin.net/contribution], [Gaijin General Rules for Promotional Events) / https://legal.gaijin.net/promorules], compliance with legal obligations (for further reporting).
+
+Other purposes. We may ask for your consent to collect and process your personal data for other purposes.
+
+Once we approach you for such processing, we will ask for your consent for specific categories of personal data.
+
+Legal basis for data processing: your consent.
+
+— HOW DO WE SHARE DATA?
+
+
+We do not sell, rent, release, disclose, disseminate, make available, transfer, or otherwise communicate your personal data to third parties for monetary or another valuable consideration.
+
+However, we do share data in very limited cases with our partners, service providers, and affiliates, including those located outside the European Economic Area (EEA).
+
+— With whom do we share data?
+
+
+Gaming platforms. We share your data with our business partners involved in Games distribution to enable access to our Services from those platforms and to enable user support and all the features related to our Services for those users who are playing our Games through gaming platforms. Some of these partners are located outside the EEA. For example, these are Microsoft operating Xbox, Nintendo with Nintendo Switch, and Sony operating PlayStation. 
+
+Payment services providers. We are engaging authorized payment services providers to process payments for our Services. Depending on your region, your data might be shared with those payment service providers who are licensed and operate in the respective region and country.
+
+Anti-cheat systems. We may monitor your activities while using the Services and analyze the devices and software you are using to ensure your following [Gaijin Terms of Services / https://legal.gaijin.net/termsofservice] and [EULA / https://legal.gaijin.net/eula], including prevention of cheating and fraud in our Games, and monitoring toxicity.
+
+Advertising partners. From time to time, we engage advertising partners to assist us with their tracking and analytical tools. For example, we may share anonymized information on your device, location and purchases, and use of the Services. In some cases, their third-party partners may enhance these data with the information they already have, including the data about you.
+
+Operating partners. We are engaging server hosting providers to store the data necessary to provide our Services online.
+
+Service providers. We may share data with our third-party services providers, for example, software developers or administrative services providers.
+
+Affiliates. We may share personal data with companies within the Gaijin group and affiliated entities. 
+
+Auditors. When an audit or financial reporting obligation is imposed on us by applicable law, we share data with third parties to comply with these obligations. We are carefully assessing each case and sharing the narrowest scope of data possible.
+
+Governmental bodies. We share data with governmental bodies, directly or through our partners, when it is prescribed by applicable law, legally requested by authorized bodies, or otherwise necessary to protect the rights or interests of our users or our own. We carefully assess each case and share the narrowest possible data.
+
+Gaijin users. Other users of our Services may see some of your data when some Services features allow so. For example, your nickname, avatar (profile photo), and the data of your linked accounts (including Steam, PSN, and Apple Game Center accounts) are visible to other players. They can also see any content you post publicly within our Services and social networks (public messages on forums, attached files, etc.), or some of your game results (data of in-game ratings or leaderboards) and achievements.
+
+Additionally, we may ask for your specific consent to share your personal data with other third parties. In this case, we will specify those third parties, the scope of data to be shared, purposes, and further details on relevant data processing.
+
+— Transferring your data abroad
+
+
+We operate all over the world, and therefore we may transfer your data to third parties in different countries, including those which are located outside the European Economic Area (EEA). We make all our efforts, including those imposed on us by applicable law, to ensure an adequate level of personal data protection in each case. Some countries to which we transfer your data may not have the same data protection laws as your jurisdiction. 
+
+However, in such cases, we are taking reasonable steps to assure that third parties to whom we transfer any personal information provide sufficient protection of your data. In particular, Gaijin undertakes appropriate physical, technical, and administrative security measures to ensure your data is adequately protected.
+
+— HOW LONG DO WE PROCESS YOUR DATA
+
+
+We process your data for as long as our processing purposes, the legal retention periods, and our legitimate interests require it, or storage is a technical necessity.
+
+We keep your personal data for as long as it is required considering our processing purposes (including while your Gaijin Account is active according to the Terms and Conditions) and our legitimate interests, regulatory or technical requirements regarding data storage. If there are no contrary legal or contractual obligations, we will delete or anonymize your data once the storage or processing period has expired.
+
+Please consider that we have the right to continue to retain some of your user data even after complying with your request to delete such data in the following cases:
+
+— we have the lawful basis to further processing your data other than consent from you (for instance, we may be required to do so to comply with applicable laws, such as tax or accounting regulations, know-your-customer, anti-money laundering, or other legal requirements and obligations);
+— your user data has been anonymized in a way it cannot be used to identify you and therefore is no longer your personal identifiable data.
+
+— CHILDREN’S DATA
+
+
+We acknowledge the importance of protecting children’s data and confirm our special duty to act accordingly. Thus, we take additional steps to verify the user’s age and limit access to our Services for those who have not reached the appropriate age limit.
+
+We do not intentionally collect, store or otherwise process any personal data of users under the age of 16 unless we are furnished with consent from their parent, guardian, or another holder of parental responsibility.
+
+If you are a parent, guardian, or another holder of parental responsibility, and you want to withdraw your previously given consent, or you find out that your child has provided us with their personal data without your consent, or you believe that we have unintentionally collected your child’s data and processed such data in violation of applicable law, please send us a request for the removal of such data by contacting [Gaijin Support / https://support.gaijin.net/hc]. To proceed with such a request, we may ask you to provide us with conclusive evidence that:
+
+— the child has not yet reached 16 or the minimum age of consent in accordance with their applicable legislation, and
+— you are the holder of parental responsibility for such a child.
+
+If it comes that we have unintentionally collected personal data of a child under 16 (or a child who has not reached the age of consent in accordance with applicable law) without the consent of that child’s holder of parental responsibility, we will take all reasonable steps to erase this information as soon as possible, unless we are legally obliged to keep these data.
+
+We strongly encourage parents, legal guardians, or other holders of parental responsibility to instruct their children never to disclose their real names, addresses, phone numbers, financial information, or any other sensitive data about themselves when using our services, in-game chats, on the websites (forums, commentaries, etc.) and otherwise on the Internet.
+
+— HOW DO WE SECURE DATA
+
+
+We are constantly working on the creation, improvement, and further implementation of both administrative and technical measures for securing your data. These measures are aimed at protecting your data from any unauthorized actions which can be carried out by third parties or occur incidentally, such as unauthorized access, disclosure, alteration, destruction, or other malicious use of your data, as well as incidental loss or corruption of such data. We undertake all reasonable steps and measures which are necessary to ensure your data is treated securely and in accordance with this Privacy Policy.
+
+Please consider that we maintain some of our servers where we store information containing your data outside the EEA.
+
+— AUTOMATED DECISION-MAKING AND ONLINE TRACKING
+
+
+Gaijin itself does not use your data for profiling or other means of automated decision-making that could affect you, including your access to the services or other rights under the Terms and Conditions. 
+
+At the same time, some of our partners, as described in Section 4 (How We Share Data), may apply automated decision-making while processing the data we share with them (for example, for anti-cheat and unfair play prevention purposes).
+
+We use various techniques on our website that allow us, and third parties engaged by us, to recognize you during your use of our website and possibly to track you through several visits. This data is essentially used to enhance and personalize your experience with our websites. This works in such a way that our systems or systems of our partners recognize you (by sending so-called “cookies” to your browser for further identification) when you are entering any Gaijin website, and tailor the website settings and content to your preferences and previous experience.
+
+— WHAT ARE YOUR RIGHTS— What right related to your personal data you have 
+
+
+
+
+
+You have the following rights in relation to our data processing, depending on the applicable data protection laws.
+
+Right to be informed. You have the right to be informed about how we collect and use personal data.
+
+Right to access. You have the right to request us to show what data we are holding on you and provide you with a copy of those.
+
+Right to rectification. You have the right to request us to correct your personal data if it is inaccurate, incomplete, outdated, incorrect, unlawfully received, or no longer relevant for the purpose of processing.
+
+Right to erasure (“right to be forgotten”). You can request Gaijin to erase any of your data unless we have to continue processing some of your personal information under applicable law.
+
+Right to data portability. You have the right to ask to provide your data in a structured, commonly used machine-readable format or to request Gaijin to directly transmit those data to a third party where it is technically possible and reasonable.
+
+Right to restrict processing. You have the right to restrict the use of your data in certain circumstances entirely or in part unless we have to continue processing some of your personal information under applicable law.
+
+Right to withdraw consent. Where your data are processed based on your freely given consent, you have the right to withdraw your previously given consent at any time.
+
+Right to object. You have the right to object to processing your personal data at any time. 
+
+Right to object automated processing. Where data processing based exclusively on automated decision-making or profiling takes place, you have the right to object to such processing. 
+
+— How to exercise your rights
+
+
+If you want to exercise any of these rights with respect to Gaijin processing your personal data, please submit your request to [Gaijin Support / https://support.gaijin.net/hc] after signing in to your Gaijin Account. We ask you to sign in with your Gaijin Account to ensure that it is you and to limit cases where third parties have access to your personal data or in any way affect processing your personal data and exercising your data subject rights.
+
+It might happen that you have lost access to your Gaijin Account. In this case, you are still welcome to exercise your rights. When receiving your unidentified request to Gaijin Support, we may ask for your security data for your identification to restore access to your Gaijin Account. Usually, these are questions referring to your account and Game data, which are reasonably known only to you.
+
+You also have the above-mentioned data subject rights regarding personal data processed by our partners as independent controllers. You may contact those partners to exercise your rights.
+
+— Data erasure
+
+
+If you decided to erase the data that we have on you, we would delete your data where it is possible considering other users and our obligations to store data under applicable law.
+
+Please note that data erasure would lead to complete irrevocable deletion of your Gaijin Account. This means that, after the deletion, you will be unable to restore your game progress, acquired in-game assets, and currencies.
+
+We will first suspend an account while eliciting all the personal data that we have on you. This means that you will not have access to our Services. As a rule, we delete personal data in 30 days. However, if we need some more time to consider technical issues and the complexity of the request, we will anyway complete the erasure request within 2 months.
+
+If you decide to restore the account after submitting your data erasure request, you may send us a request through [Gaijin Support / https://support.gaijin.net/hc] within 30 days after you suspended your account. We will restore your Gaijin Account and let you know if the deletion process still needs to be completed. Otherwise, we will permanently delete your account and your personal data after the expiration of this suspension period.
+
+— HOW TO WITHDRAW YOUR CONSENT
+
+
+You can withdraw your consent to process your data under this Privacy Policy at any time by initiating the deletion of your Gaijin Account through your account settings and following the instructions provided by Gaijin after you send such a deletion request. 
+
+If you wish to withdraw your consent in respect of a particular processing purpose, please contact us at [Gaijin Support Portal / https://support.gaijin.net/hc]. However, we reserve the right to cease providing you the services if your withdrawal is not consistent with providing services in the manner prescribed by the Terms and Conditions. Please note that such withdrawal does not impact the validity of the consent before withdrawal, and we reserve the right to process your data on another lawful basis if permitted by applicable law.
+
+Please also note that uninstalling our game (or any application related to our services) from your device does not automatically result in consent withdrawal or deleting your personal data from our servers.
+
+— FOR CALIFORNIA RESIDENTS
+
+
+This section applies only to those users who reside in California, U.S.
+
+California consumer protection laws give the residents of California the following rights on data protection: to request disclosure of what personal data we collect about you; to delete these data; to opt-out of the sale of personal data (if any sale takes place). We do respect these guarantees and ensure the execution of these rights for our users who reside in California.
+
+Data disclosure or sale
+
+In the last 12 months, we have not sold any of your personal data as defined by California law. With all due respect to our users, we also do not have any plans to sell your personal data in the future. 
+
+This means that we do not disclose your personal data to third parties on a commercial basis for further use for their purposes. We only disclose data to provide you with high-quality Services, to improve your experience with our Services and their marketing and other purposes which are described in Section 4 of this Privacy Policy.
+
+Your rights
+
+Under the laws of California, you have the following rights regarding your personal information:
+
+Right to know. As a California resident, you have the right to know about the personal information Gaijin collected about you 12 months before the request and how these data are used and shared.
+
+Right to data portability. If you are a resident of California, you have the right to request us to provide you with your personal information in a readily usable format so that you can transfer this information to another entity. 
+
+Right to delete. You have the right to request the deletion of personal information that Gaijin has on you or shared with third parties. Deletion of your personal information means a permanent deletion of your Gaijin Account. Once your Gaijin Account is deleted, no data can be restored, including your game progress and purchases made within our Services.
+
+Right to opt-in or opt-out. Being a California resident, you can opt out of the sale of personal information as defined under California law. 
+
+Right to be free from discrimination. Californian law restricts any discrimination based on exercising your rights on personal information, for example, providing different quality of goods or services, offering different prices, or setting penalties.
+
+To learn how to execute your rights, please see Section 9 above.
+
+— FOR NEVADA RESIDENTS
+
+
+This section applies only to those users who reside in Nevada, USA.
+
+If you are a Nevada resident and you have purchased any Gaijin services (including in-game items), Nevada law allows you to opt out from selling any covered information as defined by Nevada law (for example, name, home address, email address, telephone number, and other information that makes a person identifiable). 
+
+Gaijin is not selling or planning to sell any personal data on users to third parties. However, the right to opt out from selling the covered information is reserved in case Gaijin starts selling this data in the future.
+
+— UPDATES
+
+
+We may change this Privacy Policy from time to time.
+
+The version published at [https://legal.gaijin.net/privacypolicy] is the current version.
+
+In the event of substantial changes, the updated policy shall be subject to a relevant update notice and refreshing your consent. Unless you agree with the revised version of this document, we reserve the right to suspend providing you with our services which require your data processing by us. In case of minor changes, no notice follows: you undertake to check such changes yourself. Any updates to this Privacy Policy come into effect the next day after the updated version of the Privacy Policy is published.
+
+— CONTACT US
+
+
+If you have any questions about Gaijin processing personal data or do not agree with the way we handle personal data processing and data protection, feel free to contact us. 
+
+The primary point of contact is[the Gaijin Support Portal / https://support.gaijin.net/hc]. You may also contact us via email at [privacy@gaijin.net / mailto:privacy@gaijin.net] or via postal mail at the following address: Ifigeneias street 63, Office 302, 2003 Strovolos, Nicosia, Cyprus (Gaijin Network Ltd).
+
+If you have further questions or a complaint, please contact our Data Protection Officer at [dpo@gaijin.net / mailto:dpo@gaijin.net], or send a letter to Gaijin Network Ltd at Ifigeneias street 63, Office 302, 2003 Strovolos, Nicosia, Cyprus (attention to: Data Protection Officer).
+
+You are also entitled to submit a complaint with our lead supervisory data protection authority in Cyprus or in the country where you are located. 
+
+Last updated: 18.04.2023
+
+
+

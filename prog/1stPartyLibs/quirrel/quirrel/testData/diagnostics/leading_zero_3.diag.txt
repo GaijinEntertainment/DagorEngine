@@ -1,0 +1,7 @@
+ERROR: leading 0 is not allowed, octal numbers are not supported
+testData/diagnostics/leading_zero_3.nut:1:6
+
+print(00.1)
+      ^
+
+

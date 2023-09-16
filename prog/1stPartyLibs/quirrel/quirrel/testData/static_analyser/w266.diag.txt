@@ -1,0 +1,18 @@
+WARNING: w266 (forgotten-do) 'while' after the statement list (forgot 'do' ?)
+testData/static_analyser/w266.nut:5:2
+
+  ::x++
+} while (::x)
+  ^
+::x--
+
+
+
+AN ERROR HAS OCCURRED [the index 'x' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyser/w266.nut line [4]
+
+LOCALS
+[vargv] ARRAY=[]
+[this] TABLE={}

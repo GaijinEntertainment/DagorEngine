@@ -1,0 +1,13 @@
+let dw = require_optional("dagor.workcyle")
+if (dw != null)
+  return dw
+
+return {
+  add_cycle_action = @(...) null
+  defer = @(func) assert(type(func)=="function")
+  deferOnce = @(func) assert(type(func)=="function")
+  setTimeout = @(time, func, _id=null) assert(type(func)=="function") && assert(["integer","float"].contains(type(time)))
+  resetTimeout = @(time, func, _id=null) assert(type(func)=="function") && assert(["integer","float"].contains(type(time)))
+  clearTimer = @(_func_or_id) null
+  setInterval = @(time, func, _id=null) assert(type(func)=="function") && assert(["integer","float"].contains(type(time)))
+}

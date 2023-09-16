@@ -1,0 +1,228 @@
+include "gi_heightmap_25d.sh"
+include "dagi_quality.sh"
+
+texture gi_25d_volmap;
+float4  gi_25d_volmap_origin;
+float4  gi_25d_volmap_size;
+float4  gi_25d_volmap_tc;
+buffer gi_25d_intersection;
+
+macro GI_INIT_25D_BUFFER(code)
+  (code) {
+    gi_25d_intersection@buf = gi_25d_intersection hlsl {
+      ByteAddressBuffer gi_25d_intersection@buf;
+      #define HAS_GI_25D_BUFFER 1
+    }
+  }
+endmacro
+
+//copy paste, remove
+define_macro_if_not_defined INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(code)
+  hlsl(code) {
+    float ssgi_get_heightmap_2d_height_25d(float2 worldPosXZ) {return -2;}
+    float ssgi_get_heightmap_2d_height_25d_volmap(float2 worldPosXZ) {return -2;}
+    float3 ssgi_get_heightmap_2d_height_25d_normal(float2 worldPosXZ) {return float3(0,1,0);}
+  }
+endmacro
+define_macro_if_not_defined INIT_VOXELS_HEIGHTMAP_ALBEDO_25D(code)
+  hlsl(code) {
+    float3 ssgi_get_heightmap_2d_height_25d_diffuse(float2 worldPosXZ) { return half3(0.5,0.7,0.5);}
+  }
+endmacro
+//end of copy paste
+
+macro VOLMAP_INTERSECTION_25D(code)
+  hlsl(code) {
+    #if !HAS_GI_25D_BUFFER
+      #error GI_INIT_25D_BUFFER macros should be called
+    #endif
+    #ifndef VOLMAP_INTERSECTION_25D
+    #define VOLMAP_INTERSECTION_25D 1
+    #include <dagi_volmap_buffer_encode.hlsl>
+    bool is_intersected_25d_unsafe(uint3 wrappedCoord)
+    {
+      uint bit;
+      uint at = get_intersected_bit_address(wrappedCoord, bit);
+      return (loadBuffer(gi_25d_intersection, at)&(1U<<bit)) != 0;
+    }
+    bool is_intersected_25d(uint3 coord)
+    {
+      coord.xy = coord.xy % GI_25D_RESOLUTIONU.xy;
+      coord.z = min(coord.z, GI_25D_RESOLUTIONU.z - 1);
+      return is_intersected_25d_unsafe(coord);
+    }
+    float get_volmap_25d_floor(uint2 wrappedCoord)
+    {
+      return asfloat(loadBuffer(gi_25d_intersection, get_volmap_floor_addr_unsafe(wrappedCoord)));
+    }
+    #endif
+  }
+endmacro
+
+macro SAMPLE_INIT_VOLMAP_25D(code)
+  (code) {
+    gi_25d_volmap@smp3d = gi_25d_volmap;
+    gi_25d_volmap_tc@f4 = gi_25d_volmap_tc;
+  }
+  GI_INIT_25D_BUFFER(code)
+endmacro
+
+macro GI_USE_25D_AMBIENT_VOLMAP(code, channels)
+  hlsl(code) {
+    #define SAMPLE_25D_AMBIENT_VOLMAP(texcoord) tex3Dlod(gi_25d_volmap, float4(texcoord, 0)).channels
+    #define FETCH_25D_AMBIENT_VOLMAP(ucoord) gi_25d_volmap[ucoord].channels
+  }
+endmacro
+
+macro SAMPLE_VOLMAP_25D(code)
+  if (gi_quality == only_ao)
+  {
+    GI_USE_25D_AMBIENT_VOLMAP(code, rrr)
+  }
+  else
+  {
+    GI_USE_25D_AMBIENT_VOLMAP(code, rgb)
+  }
+  VOLMAP_INTERSECTION_25D(code)
+
+  hlsl(code) {
+    #include <dagi_volmap_consts_25d.hlsli>
+    #if !VOLMAP_INTERSECTION_25D
+      #error SAMPLE_INIT_VOLMAP_25D macros should be called
+    #endif
+    float sample_25d_volmap(float3 worldPos, float3 normal, inout float3 ambient)
+    {
+      float normalOfs = 1.0;//probably make it customizable with size
+      worldPos += normal*normalOfs;//simplest normal filtering
+      float2 xz = worldPos.xz*gi_25d_volmap_tc.x + 0.5;
+      float2 absxz = abs(worldPos.xz*gi_25d_volmap_tc.x + gi_25d_volmap_tc.zw);//-0.5..0.5. gi_25d_volmap_tc.zw = world_view_pos.xz*gi_25d_volmap_tc.x!
+      float effect = float(all(absxz < 0.5-0.5/GI_25D_RESOLUTIONF.x));
+      #if !HARD_GI_VIGNETTE
+      effect *= saturate((4-0.5/GI_25D_RESOLUTIONF.x)-8*absxz.x)*saturate((4-0.5/GI_25D_RESOLUTIONF.x)-8*absxz.y);
+      #endif
+      if (effect==0)
+        return 0;
+
+      uint2 coord2d = uint2(int2(floor(xz*GI_25D_RESOLUTIONF.xy - 0.5))) % GI_25D_RESOLUTIONU.xy;
+      #if VOLMAP_25D_HEIGHTMAP_LINEAR_SAMPLING
+        float floorHt = ssgi_get_heightmap_2d_height_25d_volmap(worldPos.xz);
+      #else
+        float floorHt = get_volmap_25d_floor(coord2d);
+      #endif
+      float tcY = sqrt(max(0, (worldPos.y-floorHt)*gi_25d_volmap_tc.y));
+      #if HARD_GI_VIGNETTE
+      effect *= tcY < 1;
+      #else
+      effect *= saturate(4-tcY*4);
+      #endif
+      if (effect==0)
+        return 0;
+
+      float y = clamp(tcY, 0.5/GI_25D_RESOLUTIONF.z, (GI_25D_RESOLUTIONF.z-0.5)/(GI_25D_RESOLUTIONF.z));
+      float3 yy = y*1./6.0 + (normal<0 ? float3(1./6, 3./6, 5./6) : float3(0./6, 2./6, 4./6));
+      float3 nSquared = normal * normal;
+      ambient = nSquared.x*SAMPLE_25D_AMBIENT_VOLMAP(float3(xz,yy.x))+
+                nSquared.y*SAMPLE_25D_AMBIENT_VOLMAP(float3(xz,yy.y))+
+                nSquared.z*SAMPLE_25D_AMBIENT_VOLMAP(float3(xz,yy.z));
+      return effect;
+    }
+  }
+endmacro
+
+macro SAMPLE_VOLMAP_25D_NOT_INTERSECTED(code)
+  SAMPLE_VOLMAP_25D(code)
+  hlsl(code) {
+    bool sample_25d_volmap_no_vignette_cube_no_intersected(float3 worldPos,
+      inout float3 col0,
+      inout float3 col1,
+      inout float3 col2,
+      inout float3 col3,
+      inout float3 col4,
+      inout float3 col5)
+    {
+      float2 xz = worldPos.xz*gi_25d_volmap_tc.x + 0.5;
+      if (any(abs(worldPos.xz*gi_25d_volmap_tc.x + gi_25d_volmap_tc.zw) >= (0.5-1./GI_25D_RESOLUTIONF.x)))//since we sample intersected +1
+        return false;
+
+      uint2 coord2d = uint2(int2(floor(xz*GI_25D_RESOLUTIONF.xy - 0.5))) % GI_25D_RESOLUTIONU.xy;
+      float floorHt = get_volmap_25d_floor(coord2d);
+      float tcY = sqrt(max(0, (worldPos.y-floorHt)*gi_25d_volmap_tc.y));
+      if (tcY >= 1-0.5/GI_25D_RESOLUTIONF.z)
+        return false;
+      float y = clamp(tcY, 0.5/GI_25D_RESOLUTIONF.z, (GI_25D_RESOLUTIONF.z-0.5)/(GI_25D_RESOLUTIONF.z));
+      int3 coord = int3(coord2d, uint(clamp(y*GI_25D_RESOLUTIONF.z, 0, GI_25D_RESOLUTIONF.z-1)));//since +1 in coord
+
+      BRANCH
+      if (is_intersected_25d(coord+int3(0,0,0)) ||
+          is_intersected_25d(coord+int3(1,0,0)) ||
+          is_intersected_25d(coord+int3(0,1,0)) ||
+          is_intersected_25d(coord+int3(1,1,0)) ||
+          is_intersected_25d(coord+int3(0,0,1)) ||
+          is_intersected_25d(coord+int3(1,0,1)) ||
+          is_intersected_25d(coord+int3(0,1,1)) ||
+          is_intersected_25d(coord+int3(1,1,1)))
+        return false;//we can of course sample it anyway, but it would be re-initialized, so why bother
+
+      y *= (1./6);
+      col0 = SAMPLE_25D_AMBIENT_VOLMAP(float3(xz,y + 0./6.));
+      col1 = SAMPLE_25D_AMBIENT_VOLMAP(float3(xz,y + 1./6.));
+      col2 = SAMPLE_25D_AMBIENT_VOLMAP(float3(xz,y + 2./6.));
+      col3 = SAMPLE_25D_AMBIENT_VOLMAP(float3(xz,y + 3./6.));
+      col4 = SAMPLE_25D_AMBIENT_VOLMAP(float3(xz,y + 4./6.));
+      col5 = SAMPLE_25D_AMBIENT_VOLMAP(float3(xz,y + 5./6.));
+      return true;
+    }
+
+  }
+endmacro
+
+macro USE_VOLMAP_25D(code)
+  (code) {
+    gi_25d_volmap_origin@f4 = gi_25d_volmap_origin;
+    gi_25d_volmap_size@f4 = gi_25d_volmap_size;//can fit more
+  }
+  hlsl(code) {
+    #include <dagi_volmap_consts_25d.hlsli>
+    float getGI25DVolmapSizeXZ() {return gi_25d_volmap_size.x;}
+    float getGI25DVolmapSizeY() {return gi_25d_volmap_size.y;}
+    float3 getGI25DVolmapSize() {return gi_25d_volmap_size.xyx;}
+    //float getgi25dMaxHeight() {return gi_25d_volmap_size.z;}
+    float getGI25DVolmapStep() {return gi_25d_volmap_size.w;}
+
+    float2 getGI25DVolmapOrigin() {return gi_25d_volmap_origin.xy;}
+    void getGI25DVolmapBox(out float2 bmin, out float2 bmax)
+    {
+      bmin = gi_25d_volmap_origin.xy;
+      //bmax = scene_voxels_bmax[cascade].xyz;
+      bmax = bmin + (GI_25D_RESOLUTIONF.xy*getGI25DVolmapSizeXZ());//todo: can be const, but now it is two instructions
+    }
+
+    uint2 wrapGI25dCoord(int2 coord) {return int2(coord + int2(gi_25d_volmap_origin.zw))&uint2(GI_25D_RESOLUTIONU.xy-1);}
+    uint2 unwrapGI25dCoord(int2 coord) {return int2(coord + (int2(GI_25D_RESOLUTIONU.xy)-int2(gi_25d_volmap_origin.zw)))&uint2(GI_25D_RESOLUTIONU.xy-1);}
+
+    float2 gi25dWorldPosToCoordF(float2 worldPosXZ)
+    {
+      return (worldPosXZ-getGI25DVolmapOrigin())/getGI25DVolmapSizeXZ();//todo: can be optimized to madd
+    }
+
+    float2 gi25dWorldPosToCoordMoveF(float2 worldDirXZ)
+    {
+      return worldDirXZ/getGI25DVolmapSizeXZ();//todo: one division, can be replaced with mul
+    }
+
+    int2 gi25dWorldPosToCoord(float2 worldPosXZ)
+    {
+      return int2(floor(gi25dWorldPosToCoordF(worldPosXZ)));
+    }
+
+    float2 gi25dCoordToWorldPos(int2 coord)
+    {
+      float voxelSize = getGI25DVolmapSizeXZ();
+      return (coord.xy+0.5)*voxelSize + getGI25DVolmapOrigin();//can be optimized to madd
+    }
+    float2 gi25dCoordRoundedToWorldPos(float2 coord)
+    {
+      return (floor(coord.xy)+0.5)*getGI25DVolmapSizeXZ() + getGI25DVolmapOrigin();//can be optimized to madd
+    }
+  }
+endmacro

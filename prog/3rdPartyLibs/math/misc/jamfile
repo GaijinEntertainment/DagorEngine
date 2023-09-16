@@ -1,0 +1,11 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/math/misc ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/math/misc.lib ;
+
+Sources =
+  polyLineReduction.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

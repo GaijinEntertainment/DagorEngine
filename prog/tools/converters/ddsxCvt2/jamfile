@@ -1,0 +1,40 @@
+ConsoleExe = yes ;
+DriverLinkage = dynamic ;
+
+if $(OS) = LINUX {
+  Platform ?= linux64 ;
+} else if $(OS) = NT {
+  Platform ?= win64 ;
+}
+
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/ddsxCvt2 ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = exe ;
+Target      = util/ddsxCvt2 ;
+
+OutDir = $(Root)/tools/dagor3_cdk/bin ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+if $(Platform) = linux64 { OutDir = $(Root)/tools/dagor3_cdk/bin-linux64 ; }
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  ddsxConverter2.cpp
+  con_main.cpp
+;
+
+UseProgLibs =
+  engine2/startup
+  engine2/math
+  tools/libTools/dtx
+  tools/libTools/assetMgr
+  tools/libTools/assetMgrHlp
+  tools/libTools/util
+;
+ImportProgLibs = tools/libTools/daKernel ;
+CoExportProgDlls = $(ImportProgLibs) ;
+if $(Platform) = linux64 { ImportsRelativeDir = . ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

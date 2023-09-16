@@ -1,0 +1,37 @@
+Root    ?= ../../.. ;
+Location = prog/engine2/animChar ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = engine2/animChar.lib ;
+
+Sources =
+  animCharacter2.cpp
+  animCharBase.cpp
+  animCharRend.cpp
+  animate2ndPass.cpp
+  animMkGraphVars.cpp
+  animMkGraphLibF.cpp
+;
+
+UseProgLibs =
+  engine2/anim
+  engine2/phys/fastPhys
+;
+
+AddIncludes = $(Root)/prog/engine2/sharedInclude ;
+
+CPPopt = -D__B_CORE ;
+
+if $(PlatformSpec) = clang
+{
+  CPPopt += -Wno-undefined-bool-conversion ;
+}
+
+if $(DagorAnim_MEASURE_PERF) {
+  local suf = ~pm$(DagorAnim_MEASURE_PERF) ;  if $(DagorAnim_MEASURE_PERF_FRAMES) { suf = $(suf)-$(DagorAnim_MEASURE_PERF_FRAMES) ; }
+  Target = $(Target:S=)$(suf).lib ;
+  CPPopt += -DMEASURE_PERF=$(DagorAnim_MEASURE_PERF) -DMEASURE_PERF_FRAMES=$(DagorAnim_MEASURE_PERF_FRAMES) ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<!DOCTYPE hrc SYSTEM "../hrc.dtd">
+<?xml-stylesheet type="text/xsl" href="../hrc.xsl"?>
+<hrc>
+
+<include name="base/c.hrc"/>
+
+<scheme name="jamfileVariables">
+   <keywords region="dString">
+      <word name="OS"/>
+      <word name="OSPLAT"/>
+      <word name="MAC"/>
+      <word name="NT"/>
+      <word name="OS2"/>
+      <word name="UNIX"/>
+      <word name="VMS"/>
+      <word name="JAMDATE"/>
+      <word name="JAMUNAME"/>
+      <word name="JAMVERSION"/>
+      <word name="JAMSHELL"/>
+      <word name="HDRSCAN"/>
+      <word name="HDRRULE"/>
+      <word name="SEARCH"/>
+      <word name="LOCATE"/>
+      <word name="SPLITPATH"/>
+      <word name="HDRPATTERN"/>
+   </keywords>
+
+   <keywords region="dParam">
+      <word name="Platform"/>
+      <word name="Root"/>
+      <word name="Location"/>
+      <word name="TargetType"/>
+      <word name="Target"/>
+      <word name="OutDir"/>
+      <word name="MasterPreInclude"/>
+      <word name="AddIncludes"/>
+      <word name="Sources"/>
+      <word name="UseProgLibs"/>
+      <word name="CPPopt"/>
+      <word name="Copt"/>
+      <word name="ASMopt"/>
+      <word name="TitleLocation"/>
+      <word name="TitleID"/>
+      <word name="CODE_CHECK"/>
+      <word name="JAMTARGETS"/>
+      <word name="PlatformSpec"/>
+      <word name="PlatformSpec_win32"/>
+      <word name="PlatformSpec_win64"/>
+      <word name="PlatformSpec_macosx"/>
+      <word name="PlatformSpec_linux64"/>
+      <word name="PlatformSpec_iOS"/>
+      <word name="PlatformSpec_android"/>
+      <word name="PlatformSpec_ps4"/>
+      <word name="PlatformSpec_ps5"/>
+      <word name="PlatformSpec_xboxOne"/>
+      <word name="PlatformSpec_scarlett"/>
+      <word name="Config"/>
+      <word name="CoreLinkage"/>
+      <word name="DriverLinkage"/>
+      <word name="StarForce"/>
+      <word name="_OutputRoot"/>
+      <word name="StrictCompile"/>
+      <word name="Dependencies"/>
+      <word name="BuildJams"/>
+      <word name="ConsoleExe"/>
+      <word name="UseDefAppLibs"/>
+      <word name="AddLibs"/>
+      <word name="LINKopt"/>
+      <word name="UsingStaticCore"/>
+      <word name="UseDirectX"/>
+      <word name="UseWTL"/>
+      <word name="LINKopt"/>
+      <word name="Resources"/>
+      <word name="CopyTo"/>
+      <word name="MultiTarget"/>
+      <word name="BaseAddress"/>
+      <word name="TmpDir"/>
+      <word name="SharedFiles"/>
+      <word name="Assets"/>
+      <word name="JamfilePath"/>
+      <word name="JamfileRoot"/>
+      <word name="AddLibsBefore"/>
+      <word name="PreAddIncludes"/>
+      <word name="DefFile"/>
+      <word name="UseRootLibs"/>
+      <word name="ImportProgLibs"/>
+      <word name="CoExportProgDlls"/>
+      <word name="SrcFiles"/>
+      <word name="SrcDir"/>
+      <word name="SrcFilesEx"/>
+      <word name="DestDir"/>
+      <word name="CopyFileRule"/>
+      <word name="DirectXVer"/>
+      <word name="GDEVTOOL"/>
+      <word name="_DEVTOOL"/>
+      <word name="_DEVTOOL_RE"/>
+      <word name="PhysXSdk"/>
+      <word name="PhysXSdkPath"/>
+      <word name="_DXSDK_DIR"/>
+      <word name="GOUT_ROOT"/>
+      <word name="FmodEx"/>
+      <word name="FmodStudio"/>
+      <word name="FmodIncPath"/>
+      <word name="FmodLibPath"/>
+      <word name="FmodUseProgLib"/>
+      <word name="ForceLogs"/>
+   </keywords>
+</scheme>
+
+<scheme name="varPairedBrackets">
+   <block start="/(\{)/" end="/(\})/" scheme="jamfile"
+          region00="dSymbol2" region01="dpOpenStruct"
+          region10="dSymbol2" region11="dpCloseStruct"/>
+   <block start="/\$\(/" end="/\)/" scheme="jamfile"
+          region00="dSymbol" region01="dpOpenStruct"
+          region10="dSymbol" region11="dpCloseStruct"/>
+     <block start="/(\bactions\s.*)(\{)|$/" end="/(\})/" scheme="jamActions"
+          region01="dSymbol" region02="cStructOp" region00="dpOpenStruct"
+          region10="dSymbol" region11="dpCloseStruct"/>
+</scheme>
+
+<scheme name="jamActions">
+  <inherit scheme="jamfileVariables"/>
+
+  <regexp match='/^(\s)*:[^\s]+/' region0="dPath"/>
+
+  <block start="/\$\(/" end="/\)/" scheme="jamfileVariables"
+          region00="dSymbol" region01="dpOpenStruct"
+          region10="dSymbol" region11="dpCloseStruct"/>
+
+  <block start="/\#\\\(/" end="/\)\\\#/" scheme="Comment" region="dPod"/>
+
+  <keywords region="dKeyWord">
+    <word name="#async"/>
+    <word name="quietly"/>
+    <word name="together"/>
+    <word name="echo"/>
+    <word name="echo_cvt"/>
+    <word name="mkdir"/>
+    <word name="copyfile"/>
+    <word name="del"/>
+    <word name="rem"/>
+    <word name="set"/>
+    <word name="goto"/>
+    <word name="if"/>
+    <word name="not"/>
+    <word name="exist"/>
+    <word name="call"/>
+    <word name="call_filtered"/>
+    <word name="set_filter"/>
+    <word name="clr_filters"/>
+    <word name="enter_critsec"/>
+    <word name="leave_critsec"/>
+    <word name="{"/>
+  </keywords>
+
+  <keywords region="dString">
+    <word name="ERRORLEVEL"/>
+    <word name="errorlevel"/>
+  </keywords>
+</scheme>
+
+<scheme name="jamfile">
+   <inherit scheme="jamfileVariables"/>
+
+   <inherit scheme="varPairedBrackets">
+     <virtual scheme="varPairedBrackets" subst="jamfile"/>
+   </inherit>
+
+   <block start="/#/" end="/$/" scheme="Comment" region="dComment"/>
+   <regexp match='/[^\s\\];/' region0="dError"/>
+   <regexp match='/;[^\s]/' region0="dError"/>
+   <regexp match='/\:[SBDGJ]=/' region0="dText"/>
+   <regexp match='/[^\s?!+]=/' region0="dError"/>
+   <regexp match='/=[^\s?!+]/' region0="dError"/>
+
+   <keywords region="dKeyWord">
+      <word name="rulename"/>
+      <word name="actions"/>
+      <word name="break"/>
+      <word name="continue"/>
+      <word name="for"/>
+      <word name="in"/>
+      <word name="if"/>
+      <word name="else"/>
+      <word name="while"/>
+      <word name="include"/>
+      <word name="local"/>
+      <word name="on"/>
+      <word name="return"/>
+      <word name="rule"/>
+      <word name="switch"/>
+      <word name="case"/>
+      <word name="DEPENDS"/>
+      <word name="Depends"/>
+      <word name="INCLUDES"/>
+      <word name="Includes"/>
+      <word name="ALWAYS"/>
+      <word name="LEAVES"/>
+      <word name="NOCARE"/>
+      <word name="NoCare"/>
+      <word name="NOTFILE"/>
+      <word name="NotFile"/>
+      <word name="NOUPDATE"/>
+      <word name="NoUpdate"/>
+      <word name="TEMPORARY"/>
+      <word name="Temporary"/>
+      <word name="ECHO"/>
+      <word name="Echo"/>
+      <word name="echo"/>
+      <word name="EXIT"/>
+      <word name="Exit"/>
+      <word name="exit"/>
+      <word name="GLOB"/>
+      <word name="MATCH"/>
+      <word name="="/>
+      <word name=";"/>
+      <word name="+="/>
+      <word name="!="/>
+      <word name="on"/>
+      <word name="?="/>
+      <word name="!"/>
+      <word name="->"/>
+   </keywords>
+</scheme>
+
+</hrc>

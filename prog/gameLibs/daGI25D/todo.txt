@@ -1,0 +1,15 @@
++ last voxel scene cascade should be 2.5d (height based) - 8h.
+  + We also should probably use alpha as 8 bits (2x2x2) to prvoide better details (coarser color than detail) - 4h
+  + voxelize RI albedo (not collision)
+    + invisible roofs
+    + skip small ri
+    + trees (6hr)
+    * ri decals (4hr)
+
+* 4 components gi (sky occlusion)
+* better 2.5d scene voxels locations (i.e. quadric or something)
+* reduce spike on teleportation:
+  1) just voxelize
+  2) first pass (if 4 components gi, can be non-intersected; otherwise: just lower 4 texels)
+  3) second pass (if 4 components gi; otherwise: just higher 6 texels)
+  4) only after that teleport 3d scene

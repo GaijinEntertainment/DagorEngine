@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+Location = prog/engine2/perfMon/perfTimerStub ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine2/perfTimerStub.lib ;
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine2/perfMon
+  $(Root)/prog/engine2/perfMon/daProfiler
+;
+
+Sources =
+  perfTimerStub.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

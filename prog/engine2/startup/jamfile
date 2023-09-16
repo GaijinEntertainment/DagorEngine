@@ -1,0 +1,68 @@
+Root    ?= ../../.. ;
+Location = prog/engine2/startup ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine2/startup.lib ;
+
+Sources =
+  checkCpuid.cpp
+  globals.cpp
+  globals3d.cpp
+  initCrt.cpp
+  loadSettings.cpp
+  applyCmdline.cpp
+  mbReport.cpp
+  inpDevClsDrv.cpp
+  regCommonGameTex.cpp
+  regCommonToolTex.cpp
+  regTexCreateDds.cpp
+  regTexCreateLoadable.cpp
+  setDefFileTF.cpp
+  setDefSymTF.cpp
+  splashScreen_stub.cpp
+  memReport.cpp
+  memReportRef.cpp
+
+  joy_data.cpp
+  kbd_data.cpp
+  ms_data.cpp
+;
+
+if $(Platform) in win32 win64 {
+  Sources +=
+    mbWinReport.cpp
+  ;
+}
+if $(Platform) in ps4 ps5 { Sources += splashScreen_sony.cpp ; }
+
+if $(Platform) in nswitch {
+  Sources +=
+    nswitchMemory.cpp
+  ;
+
+  if $(UseNxProfiler) = yes || $(EnableRenderDoc) = yes {
+    Target = $(Target:S=~sdev.lib) ;
+    CPPopt += -DNX_HARDWARE_SDEV=1 ;
+
+    if $(UseNxMemoryTracker) = yes && $(UseNxProfiler) = yes {
+      CPPopt += -DUSE_NX_MEMORY_TRACKER=1 ;
+      Target = $(Target:S=~nmp.lib) ;
+    }
+  } else if $(UseNxMemoryTracker) = yes {
+    Exit UseNxMemoryTracker=yes requires UseNxProfiler=yes ;
+  }
+}
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/3rdPartyLibs
+;
+if $(DriverLinkage) = dynamic { UseProgLibs = engine2/memory/rtlOverride ; }
+
+CPPopt += -D__B_CORE ;
+
+UseProgLibs += 3rdPartyLibs/eastl ;
+
+include $(Root)/prog/_jBuild/build.jam ;

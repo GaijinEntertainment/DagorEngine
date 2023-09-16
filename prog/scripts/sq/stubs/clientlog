@@ -1,0 +1,3 @@
+return {
+  send_error_log = @(name, params) assert(type(name)=="string" || type(params)=="table")
+}

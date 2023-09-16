@@ -1,0 +1,47 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/t3d2dag ;
+UsingStaticCore = yes ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = tools/converters/t3d2dag.exe ;
+
+OutDir = $(Root)/tools/converters/t3d2dag ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/tools
+;
+
+AddLibs =
+;
+
+Sources =
+  winmain_con.cpp
+  T3dloader.cpp
+  tokenizer.cpp
+  Polygon.cpp
+  t3d2dag.cpp
+  math/Color.cpp
+  math/Plane.cpp
+  math/Vertex.cpp
+;
+
+UseProgLibs =
+  tools/libTools/dagFileRW
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/image
+  engine2/lib3d
+  engine2/perfMon/daProfilerStub
+;
+
+
+CPPopt = -DDOUBLE=double ; 
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,68 @@
+include "sky_shader_global.sh"
+include "dagi_scene_voxels_common.sh"
+include "dagi_inline_raytrace.sh"
+include "viewVecVS.sh"
+include "dagi_volmap_gi.sh"
+int debug_inline_rt_raydist = 0;
+interval debug_inline_rt_raydist: off<1, on;
+
+buffer debug_inline_rt_constants;
+
+shader debug_inline_rt_cs
+{
+  USE_AND_INIT_VIEW_VEC_CS()
+  RAY_CAST_VOXELS_VARS(cs)
+  SSGI_INIT_VOLMAP_GI_SEVERAL_CASCADES_CBUF(cs)
+  RAY_CAST_INLINE_RT(cs)
+  ENABLE_ASSERT(cs)
+  (cs) {
+    constants@cbuf = debug_inline_rt_constants hlsl {
+      struct ConstantValues
+      {
+        float4 origin;
+        float4 minMax;
+        float4 depthRange;
+
+        float2 iResolution;
+      };
+      ConstantBuffer<ConstantValues> constants@cbuf;
+    }
+  }
+  hlsl(cs) {
+    RWTexture2D<float4> outputImage : register(u0);
+
+    [numthreads(8, 8, 1)]
+    void main(uint gId : SV_GroupIndex, uint3 dtId : SV_DispatchThreadID)
+    {
+      const float2 pixelCenter = float2(dtId.xy) + 0.5;
+      const float2 inUV = pixelCenter * constants.iResolution;
+      float3 worldDir = lerp_view_vec(inUV);
+      float3 worldPos = constants.origin.xyz;
+
+##if debug_inline_rt_raydist == on
+      float3 hitPos;
+      half4 ret = trace_heightmap(worldPos, worldDir, constants.minMax[1], hitPos);
+      float3 ray = worldPos - hitPos;
+      float rayDistSq = dot(ray, ray);
+
+      float commitedRayDist = 0;
+      half4 collGeomColor = inline_raytrace(0, worldPos, worldDir, constants.minMax[1], commitedRayDist);
+      if (commitedRayDist * commitedRayDist <= rayDistSq)
+      {
+        float c = commitedRayDist / constants.minMax[1];
+        outputImage[dtId.xy] = half4(c, c, c, 1.0);
+      }
+      else
+      {
+        float rayDist = sqrt(rayDistSq);
+        float c = rayDist / constants.minMax[1];
+        outputImage[dtId.xy] = half4(c, c, c, 1.0);
+      }
+##else
+      float3 color = raycast_loop(0, worldPos, worldDir, constants.minMax[1], constants.minMax[0]);
+      outputImage[dtId.xy] = float4(color, 1.f);
+##endif
+    }
+  }
+  compile("cs_6_5", "main");
+}

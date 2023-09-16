@@ -1,0 +1,9 @@
+include "shaders_pc11.blk"
+
+"@override:outDumpName":t="../../game/compiledShaders/gameDX12"
+"@override:Compile" {
+  "@override:fsh":t="5.0"
+  "@override:assume_static" {
+    "@override:is_gather4_supported":i=1
+  }
+}

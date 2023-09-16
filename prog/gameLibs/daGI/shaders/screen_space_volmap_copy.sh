@@ -1,0 +1,171 @@
+include "sky_shader_global.sh"
+include "viewVecVS.sh"
+include "frustum.sh"
+include "dagi_volmap_gi.sh"
+include "dagi_scene_voxels_common.sh"
+include "dagi_helpers.sh"
+//include "gpu_occlusion.sh"
+//include "sample_voxels.sh"
+hlsl {
+  #include "dagi_common_types.hlsli"
+}
+float4 ambient_voxels_move_ofs;
+float4 ssgi_start_copy_slice;
+float4 ssgi_copy_indices;
+buffer frustum_visible_ambient_voxels;
+buffer gi_ambient_cube;
+
+shader ssgi_copy_to_volmap_cs, ssgi_copy_from_volmap_cs
+{
+  INIT_VOXELS(cs)
+  USE_VOXELS(cs)
+  SSGI_USE_VOLMAP_GI_COORD(cs)
+  GI_USE_AMBIENT_VOLMAP(cs)
+  (cs) {
+    ambient_voxels_move_ofs@f4 = ambient_voxels_move_ofs;
+    start_copy_slice@f3 = ssgi_start_copy_slice;
+    copy_indices@f4 = ssgi_copy_indices;
+  }
+  if (shader == ssgi_copy_from_volmap_cs)
+  {
+    (cs) {
+      gi_ambient_volmap@smp3d = gi_ambient_volmap;
+      ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal;
+    }
+  }
+  else
+  {
+    SAMPLE_VOXELS(cs)
+    VOXEL_SCENE_INTERSECTION(cs)
+    (cs) {
+      voxelColors@buf = frustum_visible_ambient_voxels hlsl {
+        StructuredBuffer<uint> voxelColors@buf;
+      }
+      gi_ambient_cube@buf = gi_ambient_cube hlsl {
+        #include <dagi_envi_cube_consts.hlsli>
+        StructuredBuffer<AmbientCube> gi_ambient_cube@buf;
+      }
+    }
+  }
+
+  hlsl(cs) {
+    #include <pixelPacking/PixelPacking_R11G11B10.hlsl>
+    ##if (shader == ssgi_copy_to_volmap_cs)
+      RWTexture3D<float3>  gi_ambient_volmap : register(u6);
+      RWTexture3D<float>   ssgi_ambient_volmap_temporal : register(u7);
+    ##else
+      RWStructuredBuffer<uint> voxelColors: register(u6);
+    ##endif
+
+    void ssgi_filter_normal_trilinear(inout float3 tcFrac, float3 normal, float minNormalW)
+    {
+      float3 wZ0 = (1-tcFrac)*max(-normal.xzy, minNormalW);
+      float3 wZ1 = (tcFrac)*max(normal.xzy, minNormalW);
+      tcFrac = wZ1*rcp(wZ0+wZ1);
+    }
+
+    [numthreads(4, 4, 4)]
+    void ssgi_copy_volmap_cs( uint3 dtId : SV_DispatchThreadID )//uint3 gId : SV_GroupId,
+    {
+      uint cascadeId = ambient_voxels_move_ofs.w;
+      cascadeId = 0;//currently we only have two cascades
+      uint3 coord = dtId + uint3(start_copy_slice);
+
+      if (cascadeId >= MAX_VOLMAP_CASCADES)
+        return;
+      if (any(coord >= uint3(volmap_xz_dim(cascadeId).xx,volmap_y_dim(cascadeId))))
+        return;
+      float3 worldPos;
+      if (getMovedWorldPos(int3(coord), cascadeId, ambient_voxels_move_ofs.xzy, worldPos))
+        return;
+
+      uint startId = dot(dtId, uint4(copy_indices).xyz)*6;
+
+      uint nextCascadeId = cascadeId+1;//currently
+      float3 tc = ambientWorldPosToTc(worldPos, nextCascadeId);
+      bool outOfCascade = any( abs(tc*2-1) > 0.99 );
+
+      float3 col[6];
+      ##if (shader == ssgi_copy_from_volmap_cs)
+        //float temporalEffect = 0;
+        BRANCH//rarely taken
+        if ( outOfCascade )
+        {
+          UNROLL
+          for (uint i = 0; i < 6; ++i)
+            voxelColors[startId+i] = 0;
+        } else
+        {
+          float3 sourceTc = tc;
+          tc = clamp(tc, ssgi_ambient_volmap_tcclamp(nextCascadeId).xxz, ssgi_ambient_volmap_tcclamp(nextCascadeId).yyw);
+          tc.xy -= ssgi_ambient_volmap_tc_ofs2d(nextCascadeId).xy;
+          //temporalEffect = tex3Dlod(ssgi_ambient_volmap_temporal, float4(tc.xy, tc.z*ssgi_cascade_tc_mul_ofs(nextCascadeId).x + ssgi_cascade_tc_mul_ofs(nextCascadeId).y, 0)).x;
+          tc.z *= (1./6)*ssgi_cascade_tc_mul_ofs(nextCascadeId).x;
+          #define FILTER_GEOM_DIR 1
+          #if FILTER_GEOM_DIR
+          //filter:
+          float3 fullVolmapResolution = get_fullVolmapResolution.xyz;
+          float3 invFullVolmapResolution = get_invFullVolmapResolution;
+          float3 tcMul = tc*fullVolmapResolution-0.5;
+          float3 tcFloor = floor(tcMul);
+          float3 tcFrac = tcMul-tcFloor;//frac(tcMul);
+          float3 tcFracP = tcFrac, tcFracN = tcFrac;
+
+          ssgi_filter_normal_trilinear(tcFracP, float3(1,1,1), 0.5);
+          ssgi_filter_normal_trilinear(tcFracN, -float3(1,1,1), 0.5);
+
+          float3 tcP = (tcFloor+0.5+tcFracP)*invFullVolmapResolution, tcN = (tcFloor+0.5+tcFracN)*invFullVolmapResolution;
+          tcP.z += ssgi_cascade_tc_mul_ofs(nextCascadeId).y;tcN.z += ssgi_cascade_tc_mul_ofs(nextCascadeId).y;
+          tc.z += ssgi_cascade_tc_mul_ofs(nextCascadeId).y;
+          #else
+          tc.z += ssgi_cascade_tc_mul_ofs(nextCascadeId).y;
+          float3 tcP = tc, tcN = tc;
+          #endif
+          float negOfs = (1./6.)*ssgi_cascade_tc_mul_ofs(nextCascadeId).x;
+          col[0] = SAMPLE_AMBIENT_VOLMAP(float3(tcP.x, tc.y, tc.z));
+          col[1] = SAMPLE_AMBIENT_VOLMAP(float3(tcN.x, tc.y, tc.z + negOfs));
+          col[2] = SAMPLE_AMBIENT_VOLMAP(float3(tc.x, tcP.y, tc.z + negOfs * 2));
+          col[3] = SAMPLE_AMBIENT_VOLMAP(float3(tc.x, tcN.y, tc.z + negOfs * 3));
+          col[4] = SAMPLE_AMBIENT_VOLMAP(float3(tc.xy, tcP.z + negOfs * 4));
+          col[5] = SAMPLE_AMBIENT_VOLMAP(float3(tc.xy, tcN.z + negOfs * 5));
+
+          UNROLL
+          for (uint i = 0; i < 6; ++i)
+            voxelColors[startId+i] = Pack_R11G11B10_FLOAT_LOG(col[i]);
+        }
+
+      ##elif (shader == ssgi_copy_to_volmap_cs)
+        float val = 0.0;
+        BRANCH
+        if (outOfCascade)//unitialized
+        {
+          col[0] = gi_ambient_cube[0].col[0].rgb;
+          col[1] = gi_ambient_cube[0].col[1].rgb;
+          col[2] = gi_ambient_cube[0].col[2].rgb;
+          col[3] = gi_ambient_cube[0].col[3].rgb;
+          col[4] = gi_ambient_cube[0].col[4].rgb;
+          col[5] = gi_ambient_cube[0].col[5].rgb;
+        } else
+        {
+          UNROLL
+          for (uint i = 0; i < 6; ++i)
+            col[i] = Unpack_R11G11B10_FLOAT_LOG(voxelColors[startId+i]);
+          //we can't rely on quality of data copied from next cascade, if it is intersecting opaque surfaces, so recast it
+          bool nextCascadeIntersects = getIntersection(worldPos, ssgi_ambient_volmap_crd_to_world0_xyz(nextCascadeId).x);
+          val = nextCascadeIntersects ? 0.0 : SSGI_TEMPORAL_COPIED_VALUE; //means copied (still not initialized reasonable)!
+        }
+        ssgi_ambient_volmap_temporal[uint3(coord.xy, coord.z + ssgi_cascade_z_crd_ofs(cascadeId))] = val;
+
+        coord.z += ssgi_cascade_z_crd_ofs(cascadeId)*6;
+        uint z_ofs = volmap_y_dim(0); // TODO:: volmap_y_dim(cascadeId) ???
+        gi_ambient_volmap[coord] = col[0];coord.z+=z_ofs;
+        gi_ambient_volmap[coord] = col[1];coord.z+=z_ofs;
+        gi_ambient_volmap[coord] = col[2];coord.z+=z_ofs;
+        gi_ambient_volmap[coord] = col[3];coord.z+=z_ofs;
+        gi_ambient_volmap[coord] = col[4];coord.z+=z_ofs;
+        gi_ambient_volmap[coord] = col[5];
+     ##endif
+    }
+  }
+  compile("cs_5_0", "ssgi_copy_volmap_cs");
+}

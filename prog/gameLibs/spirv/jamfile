@@ -1,0 +1,69 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/spirv ;
+
+
+TargetType  = lib ;
+Target      = gameLibs/spirv.lib ;
+
+DontUseVulkanGlslang ?= no ;
+
+Sources +=
+  traits_table.cpp
+  module_writer.cpp
+  module_reader.cpp
+  module_builder.cpp
+  atomic_counter_resolve_pass.cpp
+  compile_header_pass.cpp
+  dxc_bugfix_pass.cpp
+  rename_entry_points_pass.cpp
+  semantic_resolve_pass.cpp
+  structure_layout_validation_pass.cpp
+  reflection_cleanup_pass.cpp
+  compiler_dxc.cpp
+;
+
+AddIncludes +=
+  $(Root)/prog/3rdPartyLibs/vulkan/glslang
+  $(Root)/prog/3rdPartyLibs/vulkan/include
+  $(Root)/prog/3rdPartyLibs/vulkan/hlslcc/include
+  $(Root)/prog/3rdPartyLibs/vulkan/spirv-tools/include
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+if $(Platform) != macosx {
+  AddIncludes += $(_DEVTOOL)/DXC/include
+;
+} else {
+  AddIncludes += $(_DEVTOOL)/DXC-mac/include
+;
+  UseProgLibs += gameLibs/folders
+;
+}
+
+UseProgLibs +=
+  3rdPartyLibs/vulkan/spirv-tools
+;
+
+if $(DontUseVulkanGlslang) = no {
+  Sources +=
+    compiler.cpp
+  ;
+
+  UseProgLibs +=
+    3rdPartyLibs/vulkan/glslang
+  ;
+} else {
+  Sources +=
+    glslangStub.cpp
+  ;
+  Target = $(Target:S=~n.lib) ;
+}
+
+CPPopt = -D_CROSS_TARGET_SPIRV=1
+;
+if $(Platform) = macosx {
+  CPPopt += -Wno-switch -Wno-ambiguous-reversed-operator
+;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

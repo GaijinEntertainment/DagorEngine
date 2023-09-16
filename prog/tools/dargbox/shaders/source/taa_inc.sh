@@ -1,0 +1,14 @@
+macro INIT_MOTION_VEC_ENCODE(stage)
+endmacro
+
+macro USE_MOTION_VEC_ENCODE(stage)
+hlsl(stage) {
+  float2 encode_motion_vector(float4 out_pos, float4 out_pos_prev) { return 0; }
+}
+endmacro
+
+macro USE_MOTION_VEC_MASK_ONLY()
+hlsl(ps) {
+  float2 encode_motion_mask() { return 0; }
+}
+endmacro

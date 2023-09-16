@@ -1,0 +1,19 @@
+Root    ?= ../../../../../.. ;
+Location = prog/gameLibs/webui/plugins/shaderEditors/stub ;
+
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/webui/plugins/shaderEditorsStub.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/dagorInclude
+;
+
+Sources =
+  shaderEditorsStub.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

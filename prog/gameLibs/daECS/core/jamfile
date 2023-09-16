@@ -1,0 +1,28 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daECS/core ;
+
+TargetType  = lib ;
+Target      = gameLibs/daECS/core.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+#Sources = entityManagerQuery.cpp  ;
+
+UseProgLibs +=
+  engine2/baseUtil
+  3rdPartyLibs/eastl
+  3rdPartyLibs/regExp
+;
+
+if $(PlatformSpec) = clang
+{
+#  CPPopt = /clang:-fsave-optimization-record ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

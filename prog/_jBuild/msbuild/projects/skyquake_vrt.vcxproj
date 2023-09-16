@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="dbg_win32|x64">
+      <Configuration>dbg_win32</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="dev_win32|x64">
+      <Configuration>dev_win32</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="rel_win32|x64">
+      <Configuration>rel_win32</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+
+    <ProjectConfiguration Include="dbg_win64|x64">
+      <Configuration>dbg_win64</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="dev_win64|x64">
+      <Configuration>dev_win64</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="rel_win64|x64">
+      <Configuration>rel_win64</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+
+    <ProjectConfiguration Include="dbg_ps5|x64">
+      <Configuration>dbg_ps5</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="dev_ps5|x64">
+      <Configuration>dev_ps5</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="rel_ps5|x64">
+      <Configuration>rel_ps5</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{2825dbf0-b3ef-4f8c-b711-ce665007425a}</ProjectGuid>
+    <GameName>aces</GameName>
+    <GameType>skyquake</GameType>
+    <SkyQuakeDir>$(SolutionDir)skyquake_vrt\</SkyQuakeDir>
+    <ProjectRootDir>$(SolutionDir)skyquake\prog\</ProjectRootDir>
+    <GameDir>$(SkyQuakeDir)game\</GameDir>
+    <SkipProjectConfiguration>true</SkipProjectConfiguration>
+  </PropertyGroup>
+  <Import Project="..\projectConfigurations.props" />
+  <Import Project="$(MSBuildToolsDir)default.props" />
+  <PropertyGroup Label="Configuration">
+    <AdjunctOptions>$(AdjunctOptions) -fjamfile-vrt</AdjunctOptions>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)config.props" />
+  <PropertyGroup />
+  <Import Project="$(MSBuildToolsDir)common.targets" />
+</Project>

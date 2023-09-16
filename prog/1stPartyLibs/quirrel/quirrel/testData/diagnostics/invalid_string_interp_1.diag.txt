@@ -1,0 +1,7 @@
+ERROR: unfinished string
+testData/diagnostics/invalid_string_interp_1.nut:1:11
+
+println($"{")
+           ^-
+
+

@@ -1,0 +1,22 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/scriptHelpers ;
+
+TargetType  = lib ;
+Target      = tools/libTools/scriptHelpers.lib ;
+
+Sources =
+  scriptGradientBox.cpp
+  ScriptCurves.cpp
+  ScriptGui.cpp
+  ScriptLoad.cpp
+  scriptPanel.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+CPPopt = ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

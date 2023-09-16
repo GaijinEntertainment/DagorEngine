@@ -1,0 +1,38 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/movie ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/movie.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes = 
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  initNative.cpp
+  initTheora.cpp
+  fullScreenMovie.cpp
+  drawSubtitles.cpp
+  movieAspectRatio.cpp
+;
+
+UseProgLibs =
+  engine2/videoPlayer
+
+  3rdPartyLibs/codecs/libogg-1.1.3
+  3rdPartyLibs/codecs/libtheora-1.0
+;
+
+if [ GLOB $(Root)/prog/gameLibs/daGUI : jamfile ] {
+  Sources +=
+    daGuiBhvMovie.cpp
+    daGuiPlayer.cpp
+  ;
+  AddIncludes += $(Root)/prog/gameLibs/daGUI ; # for webcache.h
+  UseProgLibs += gameLibs/daGUI ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,7 @@
+switch $(ProjectUseQuirrel) {
+  case sq3* : UseProgLibs += 1stPartyLibs/quirrel/quirrel ;
+}
+if $(ProjectUseQuirrel) in sq3+ sq3r+ &&
+   $(Target:S=) != 1stPartyLibs/quirrel/sqplus~$(ProjectUseQuirrel) {
+  UseProgLibs += 1stPartyLibs/quirrel/sqplus ;
+}

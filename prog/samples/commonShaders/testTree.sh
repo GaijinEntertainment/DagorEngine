@@ -1,0 +1,176 @@
+include "shader_global.sh"
+include "gbuffer.sh"
+include "psh_derivate.sh"
+include "psh_tangent.sh"
+
+shader tree_simple, tree_colored
+{
+  no_ablend;
+
+  channel float3 pos = pos;
+  channel float3 norm = norm;
+  channel float2 tc[0] = tc[0];
+
+  texture tex = material.texture.diffuse;
+  texture normalMap = material.texture[2];
+
+  (ps)
+  {
+    tex@static = tex;
+    normalmap@static = normalMap;
+  }
+  (vs){
+    globtm@f44 = globtm;
+    world_view_pos@f3 = world_view_pos;
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc:  TEXCOORD0;
+      float3 norm:  NORMAL;
+      float3 p2e:  TEXCOORD1;
+      ##if (shader == tree_colored)
+      float ao: TEXCOORD2;
+      ##endif
+    };
+  }
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos: POSITION;
+      float3 norm: NORMAL;
+      float2 tc: TEXCOORD0;
+      ##if (shader == tree_colored)
+      float4 vcol: COLOR0;
+      ##endif
+    };
+
+    float rand(float2 co)
+    {
+        return frac(sin(dot(co.xy, float2(12.9898,78.233))) * 43758.5453);
+    }
+    VsOutput test_vs(VsInput input, uint id : SV_InstanceID)
+    {
+      VsOutput output;
+      float3 pos = input.pos;
+      /*float2 instXZ = float2(id%33,id/33);
+      float randomPos = instXZ;
+      float angle = rand(id+0.2);
+      float sinRot = sin(angle*2*PI);
+      float cosRot = cos(angle*2*PI);
+      pos *= 1+(rand(id+0.31)*2-1)*0.1;
+      pos.xz = float2(pos.x*sinRot+pos.z*cosRot, -pos.x*sinRot+pos.z*cosRot);
+      pos.xz += (instXZ + float2(rand(id), rand(id+0.1)))*0.75;*/
+      output.pos = mul(float4(pos, 1), globtm);
+      output.p2e = world_view_pos-pos;
+      float3 vertexNormal = input.norm;
+      //vertexNormal = float3(normalize(pos.xz),vertexNormal.y*0.25).xzy;
+      output.norm = vertexNormal;
+      output.tc.xy  = input.tc;
+      ##if (shader == tree_colored)
+      output.ao = input.vcol.a;
+      ##endif
+      return output;
+    }
+  }
+  USE_PIXEL_TANGENT_SPACE()
+  WRITE_GBUFFER()
+  if (shader == tree_colored)
+  {
+    channel color8 vcol[0] = extra[53];
+    (ps){ world_view_pos@f3 = world_view_pos; }
+    cull_mode = none;
+    hlsl(ps) {
+
+      GBUFFER_OUTPUT test_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE)
+      {
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        half4 albedo = tex2DBindless(get_tex(), input.tc.xy);
+        clip(albedo.a-0.5);
+        half4 normal_glossiness = tex2DBindless(get_normalmap(), input.tc.xy);
+        UnpackedGbuffer result;
+        init_gbuffer(result);
+        float3 normal;
+        normal.xy = (normal_glossiness.ag*2-1);
+        normal.z = sqrt(saturate(1-dot(normal.xy, normal.xy)));
+
+        half glossiness = normal_glossiness.r;
+        half translucency = normal_glossiness.b;
+        half metallness = 0;
+
+
+        //init_albedo_roughness(result, albedo_roughness);
+        init_albedo(result, albedo.xyz);
+        init_smoothness(result, normal_glossiness.r);
+        float3 worldPos = world_view_pos - input.p2e;
+        float3 vertexNormal = normalize(input.norm);
+        //float3 fakeNormal = normalize(worldPos - float3(0,2,0));
+        float3 outNormal = perturb_normal( normal, vertexNormal, input.p2e, input.tc);
+        //outNormal = normalize(lerp(outNormal, fakeNormal, translucency));
+        //outNormal = MUL_VFACE(outNormal);
+        outNormal = dot(input.p2e,outNormal)<0 ? -outNormal : outNormal;
+        init_normal(result, outNormal);
+        //init_normal(result, normalize(input.norm));
+        init_translucency(result, translucency);
+        init_ao(result, input.ao);
+        init_material(result, SHADING_FOLIAGE);
+        return encode_gbuffer(result, screenpos);
+      }
+    }
+  } else
+  {
+    USE_PIXEL_TANGENT_SPACE()
+    hlsl(ps) {
+      #define PARALLAX_TEX tex
+      #define PARALLAX_ATTR a
+      #define num_parallax_iterations 5
+      #define parallax_tex2dlod(tex, tc) tex2DLodBindless(get_##tex(), tc)
+      #define parallax_tex2d(tex, tc) tex2DBindless(get_##tex(), tc)
+      #include "parallax.hlsl"
+
+      GBUFFER_OUTPUT test_ps(VsOutput input HW_USE_SCREEN_POS)
+      {
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        float2 texCoord;
+
+        float3 inputNormal = normalize(input.norm);
+        half3x3 tangent = cotangent_frame( inputNormal, input.p2e, input.tc );
+        float3 viewDir;
+        viewDir.x = dot(input.p2e, tangent[0]);
+        viewDir.y = dot(input.p2e, tangent[1]);
+        viewDir.z = dot(input.p2e, tangent[2]);
+        viewDir = normalize(viewDir);
+        half4 albedo;
+        //texCoord = get_parallax(viewDir.xy, input.tc, 0.05);
+        texCoord = input.tc;
+        albedo = tex2DBindless(get_tex(), texCoord);
+
+        half4 normal_glossiness = tex2DBindless(get_normalmap(), texCoord);
+        UnpackedGbuffer result;
+        init_gbuffer(result);
+        float3 normal;
+        normal.xy = (normal_glossiness.ag*2-1);
+        normal.z = sqrt(saturate(1-dot(normal.xy, normal.xy)));
+
+        half metallness = 0;
+
+
+        //init_albedo_roughness(result, albedo_roughness);
+        init_albedo(result, albedo.xyz);
+        init_smoothness(result, normal_glossiness.r);
+        init_normal(result, perturb_normal( normal, inputNormal, input.p2e, input.tc));
+        //init_normal(result, normalize(input.norm));
+        init_metalness(result, metallness);
+        init_ao(result, 0.6+0.4*albedo.a*albedo.a);
+        init_material(result, 0);
+        return encode_gbuffer(result, screenpos);
+      }
+    }
+  }
+
+  compile("target_vs", "test_vs");
+  compile("target_ps", "test_ps");
+}
+

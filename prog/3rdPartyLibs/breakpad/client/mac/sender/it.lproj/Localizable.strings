@@ -1,0 +1,26 @@
+﻿/* Strings for User Notification of a crash */
+"crashDialogHeader" = "L'applicazione %@ si è chiusa improvvisamente.";
+"crashDialogMsg" = "Il sistema e le altre applicazioni non ne hanno risentito. È stato creato un rapporto che si può inviare a %@ per aiutare nell'identificazione del problema.";
+
+"noCrashDialogHeader" = "L'applicazione %@ ha riscontrato un errore.";
+"noCrashDialogMsg" = "Il sistema e le altre applicazioni non ne hanno risentito. È stato creato un rapporto che si può inviare a %1$@ per aiutare a migliorare %2$@.";
+
+"commentsMsg" = "Ti preghiamo di aiutarci a risolvere il problema descrivendo cosa è successo prima del blocco.";
+"emailMsg" = "Fornendo il tuo indirizzo e-mail, potremo contattarti nel caso che abbiamo bisogno di più dettagli.";
+
+"commentsPlaceholder" = "commenti facoltativi";
+"emailPlaceholder" = "facoltativo";
+
+"emailLabel" = "E-mail:";
+"privacyLabel" = "Informativa sulla privacy";
+
+"sendReportButton" = "Invia il rapporto";
+"cancelButton" = "Annulla";
+"noSendButton" = "OK";
+"privacyPolicyURL" = "http://www.google.com/privacypolicy.html";
+
+"countdownMsgSecondsPlural" = "mancano %d secondi.";
+"countdownMsgSecondSingular" = "manca %d secondo.";
+
+"countdownMsgMinutesPlural" = "mancano %d minuti.";
+"countdownMsgMinuteSingular" = "manca %d minuto.";

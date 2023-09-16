@@ -1,0 +1,19 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/latencyFlash ;
+
+TargetType  = lib ;
+Target      = gameLibs/latencyFlash.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+
+Sources =
+  latencyInputListener.cpp
+;
+
+UseProgLibs += gameLibs/ecs/input ;
+
+include $(Root)/prog/_jBuild/build.jam ;

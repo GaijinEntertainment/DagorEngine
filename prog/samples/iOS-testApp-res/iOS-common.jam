@@ -1,0 +1,27 @@
+BundleID    ?= com.gaijinent.$(BundleName) ;
+BundleTitle ?= $(BundleName) ;
+
+Make_Apple_OutDir ;
+
+if $(iOSArch) != i386 {
+  CertName ?= \"iPhone\ Developer:\ Build\ Server\" ;
+
+  SignatureOpt =
+    -f -s $(CertName)
+    --entitlements   $(Root)/prog/samples/iOS-testApp-res/testApp.entitlements.plist
+  ;
+}
+
+BundleCopy =
+  @$(Root)/prog/_jBuild/iOS/generic.pkgInfo                      PkgInfo
+  @$(Root)/prog/samples/iOS-testApp-res/testApp.mobileprovision  embedded.mobileprovision
+;
+BundlePlist =
+  @$(Root)/prog/_jBuild/iOS/generic.info.plist  Info.plist
+;
+
+BundlePng =
+  @$(Root)/prog/samples/iOS-testApp-res/testApp.png   Icon.png
+;
+
+BundleLang = en ru ;

@@ -1,0 +1,62 @@
+Root     ?= ../../.. ;
+
+Location  = prog/gameLibs/folders ;
+Target    = gameLibs/folders.lib ;
+TargetType     = lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources = folders.cpp ;
+
+if $(Platform) in win32 win64 {
+  Sources +=
+    platform/windows.cpp
+    platform/common.cpp
+  ;
+}
+
+if $(Platform) = linux64 {
+  Sources +=
+    platform/linux.cpp
+    platform/common.cpp
+  ;
+}
+
+if $(Platform) = macosx {
+  Sources +=
+    platform/macos.cpp
+    platform/common.cpp
+  ;
+}
+
+if $(Platform) in xboxOne scarlett {
+  Sources += platform/xbox.cpp ;
+}
+
+if $(Platform) in ps4 ps5 {
+  Sources += platform/sony.cpp ;
+  UseProgLibs +=
+    gameLibs/sony
+  ;
+}
+
+if $(Platform) = nswitch {
+  Sources += platform/nswitch.cpp ;
+}
+
+if $(Platform) = iOS {
+  Sources +=
+    platform/ios.cpp
+    platform/common.cpp
+  ;
+}
+
+if $(Platform) = android {
+  Sources += platform/android.cpp ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,14 @@
+Platform ?= win64 ;
+
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/impostorBaker ;
+include $(Root)/prog/tools/tools_setup.jam ;
+TargetType  = util ;
+Target      = ImpostorBaker ;
+
+Dependencies =
+  $(Root)/$(Location)/impostorUtil/jamfile
+  $(Root)/$(Location)/tool/jamfile
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

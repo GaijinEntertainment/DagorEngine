@@ -1,0 +1,29 @@
+Root    ?= ../../../../.. ;
+
+Location = prog/gameLibs/gamePhys/collision/rendinst ;
+UsingStaticCore = yes ;
+
+StrictCompile = yes ;
+
+TargetType  = lib ;
+local TargetLib = gameLibs/gamePhys/collision/rendinst/rendinstCollision ;
+if $(UseApex) = yes { TargetLib = $(TargetLib)~apex ; }
+Target = $(TargetLib).lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  rendinstCollisionWrapper.cpp
+  rendinstCollisionUserInfo.cpp
+  rendinstContactResultWrapper.cpp
+;
+
+if $(UseApex) = yes { CPPopt += -DENABLE_APEX=1 ; }
+
+include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
+include $(Root)/prog/_jBuild/build.jam ;
+

@@ -1,0 +1,318 @@
+Root    ?= ../../.. ;
+Location = prog/tools/dargbox ;
+
+if $(OS) = NT { Platform ?= win64 ; }
+include $(Root)/prog/_jBuild/defPlatform.jam ; # $(Platform) is defined after this line
+
+#Config = rel ;
+include $(Root)/prog/tools/tools_setup.jam ;
+UseQuirrel = sq3r ;
+SqVarTrace ?= yes ;
+LinuxUseX11 = yes ;
+
+Config ?= dev ;
+TargetType  = exe ;
+
+Target      = tools/dargbox ;
+
+switch $(Platform) {
+  case win64 :   Target      = tools/dargbox-64 ;
+}
+
+if $(Config) = rel { # this is only needed to build with warnings-as-errors
+  ForceLogs = yes ;
+}
+
+
+OutDir = $(Root)/tools/dargbox ;
+if $(Platform) in android iOS { OutDir = $(OutDir)/$(Platform) ; }
+
+if ( $(Platform) in win32 win64 linux64 ) { UseD3DMulti ?= yes ; }
+
+if $(Platform) in win32 win64 && [ GLOB $(Root)/prog/gameLibs/vr : * ] {
+  VRDeviceSupport ?= yes ;
+}
+
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/gameLibs/daRg
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine2/drv
+;
+
+Sources =
+  app.cpp
+  main.cpp
+  joystick.cpp
+  scriptBindings.cpp
+  initScript.cpp
+  gamelib/input.cpp
+;
+
+if $(Platform) = macosx {
+  Sources +=
+    gamelib/soundMac.mm
+  ;
+} else {
+  Sources +=
+    gamelib/sound.cpp
+  ;
+}
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/coreUtil
+  engine2/math
+  engine2/lib3d
+  engine2/image
+  engine2/shaders
+  engine2/workCycle
+  
+  engine2/guiBase
+
+  engine2/libFx
+  engine2/gameRes
+  commonFx/commonFxGame
+
+  gameLibs/webui
+  gameLibs/daRg
+  gameLibs/folders
+  gameLibs/visualConsole
+  gameLibs/render
+  gameLibs/webvromfs
+  gameLibs/ioEventsPoll
+  gameLibs/quirrel/bindQuirrelEx
+  gameLibs/quirrel/http
+  gameLibs/quirrel/sqConsole
+  gameLibs/quirrel/base64
+  gameLibs/quirrel/sqDebugger
+  gameLibs/quirrel/nestdb
+  gameLibs/quirrel/udp
+  engine2/perfMon
+  engine2/consoleProc
+  tools/libTools/util
+
+  3rdPartyLibs/image/libpng-1.4.22
+  3rdPartyLibs/image/jpeg-6b
+  3rdPartyLibs/image/avif
+  3rdPartyLibs/image/psdRead
+  3rdPartyLibs/lottie
+
+  1stPartyLibs/daScript
+;
+
+if $(Platform) in win32 win64 {
+  UseProgLibs +=
+    engine2/drv/hid_mouse
+    engine2/drv/hid_keyboard
+    engine2/drv/hid_joystick
+    engine2/drv/hid_dinput
+    engine2/drv/hid_gamepad_xinput
+  ;
+}
+else if $(Platform) = linux64 {
+  UseProgLibs +=
+    engine2/drv/hid_mouse
+    engine2/drv/hid_keyboard
+    engine2/drv/hid_joystick_linux
+    engine2/osApiWrappers/messageBox
+  ;
+}
+else if $(Platform) = android {
+
+  ReproducibleExeBuild = no ;
+  UseProgLibs += engine2/drv/hid_android engine2/drv/hid_nullDrv ;
+  UseProgLibs += engine2/drv/drv3d_vulkan ;
+
+  #BundleCopy = bin/inp-and.vromfs.bin   assets/inp-and.vromfs.bin ;
+  BundleCopy = ;
+
+
+  local JavaActivitySrcName = Dargbox ;
+  AndroidJavaClass = com.gaijinent.dargbox.Dargbox ;
+  AndroidAppID = com.gaijinent.dargbox ;
+  AndroidIcon = ../../samples/Android-testApp-res/icon.png ;
+  AndroidAppIconName = Dargbox ;
+  #AndroidStrings = android-strings.xml ; # use if you need customized strings.xml. For just app_name use AndroidAppIconName
+  #AndroidBanner = platform/android.bundle/common/res/banner.png ;
+
+  BundleName = dargbox ;
+
+  BundleCopy +=
+    $(Root)/tools/dargbox/darg.and.vromfs.bin    assets/darg.and.vromfs.bin
+    $(Root)/tools/dargbox/android.vromfs.bin     assets/android.vromfs.bin
+    $(Root)/tools/dargbox/shaders/gameSpirV.ps50.shdump.bin assets/shaders/gameSpirV.ps50.shdump.bin
+
+    platform/android.bundle/src/$(JavaActivitySrcName).java      src/com/gaijinent/$(BundleName)/$(JavaActivitySrcName).java
+    platform/android.bundle/src/DagorCommonActivity.java      src/com/gaijinent/common/DagorCommonActivity.java
+    platform/android.bundle/src/DagorBaseActivity.java      src/com/gaijinent/common/DagorBaseActivity.java
+
+    @$(Root)/prog/engine2/drv/hid_android/NvSoftInput.java     src/com/nvidia/Helpers/NvSoftInput.java
+  ;
+
+  if $(Config) != rel {
+    local vulkan_libs = ;
+    if $(AndroidNdkVer) in r23b {
+      vulkan_libs = libVkLayer_khronos_validation.so ;
+    } else if $(AndroidNdkVer) in r25c {
+      # no more vulkan layers in ndk
+    } else {
+      vulkan_libs =
+        libVkLayer_core_validation.so
+        libVkLayer_object_tracker.so
+        libVkLayer_parameter_validation.so
+        libVkLayer_threading.so
+        libVkLayer_unique_objects.so
+      ;
+    }
+    for l in $(vulkan_libs) {
+      BundleCopy +=
+        @$(_DEVTOOL)/android-ndk-$(AndroidNdkVer)/sources/third_party/vulkan/src/build-android/jniLibs/$(AndroidArch)/$(l)
+          libs/$(AndroidArch)/$(l)
+      ;
+    }
+  }
+}
+else if $(Platform) = iOS {
+  Sources +=
+    platform/ios_main.mm
+  ;
+  UseProgLibs += engine2/drv/hid_iOS engine2/drv/hid_nullDrv ;
+  UseProgLibs += engine2/drv/drv3d_Metal ;
+
+  LINKopt += -framework AVFoundation ;
+
+  BundleID = com.gaijinent.dargbox ;
+  BundleName = dargbox ;
+
+  BundlePlist =
+    @$(Root)/prog/_jBuild/iOS/generic.info.plist ../Info.plist ;
+
+  BundleCopy = ;
+}
+else if $(Platform) = macosx {
+  OutDir = $(Root)/tools/dargbox/dargbox.app/Contents/MacOS ;
+
+  Sources +=
+    platform/macosx_main.mm
+  ;
+
+  UseProgLibs +=
+    engine2/imgui/stub  #<--- workaround against render -> dafx -> imgui dependency
+    engine2/drv/hid_mouse
+    engine2/drv/hid_keyboard
+    engine2/drv/hid_joystick_osx
+    engine2/drv/hid_nulldrv
+    engine2/osApiWrappers/messageBox
+  ;
+  if $(UseStubDriver) = yes {
+    UseProgLibs += engine2/drv/drv3d_stub ;
+  } else {
+    UseProgLibs += engine2/drv/drv3d_Metal ;
+  }
+
+  GlobalCPPopt += -Wno-deprecated-declarations ;
+
+  LINKopt += -framework CoreAudio -framework AudioUnit ;
+
+  BundleID = com.gaijinent.dargbox ;
+  BundleName = dargbox ;
+
+  BundlePlist =
+    @$(Root)/prog/_jBuild/macosx/generic.info.plist ../Info.plist ;
+  BundleCopy =
+    #platform/macosx.bundle/warThunder.icns ../Resources/warThunder.icns
+  ;
+#  SignatureOpt ?=
+#    -f -s \"Developer\ ID\ Application:\ Gaijin\ Entertainment\ Corporation\"
+#    --ignore-resources
+#  ;
+  if $(SignatureOpt) = none { SignatureOpt = ; }
+}
+else if $(Platform) = nswitch {
+  nspdBinariesDir = $(Root)/$(Location)/nsp-dargbox ;
+
+  if $(Config) = rel {
+    nspdBinariesDir =  $(Root)/$(Location)/nsp-dargbox-nspd ;
+  }
+
+  _NSPD_ROOT_DIR = $(nspdBinariesDir)/dargbox.nspd ;
+  SamplesDir = $(Root)/$(Location)/../../samples ;
+
+  ApplicationGenerateProjectMetaScript = platform/nswitch/generate_nxapp_nmeta.py ;
+
+  _NSP_APP_PATH = $(Root)/$(Location)/../dargbox-$(Config).nsp ;
+  _NSPD_BASENAME = $(nspdBinariesDir)/dargbox-$(Config) ;
+  _NSPD_CODE_DIR = $(_NSPD_ROOT_DIR)/program0.ncd/code ;
+  _NSPD_CONTENT_DIR = $(Root)/$(Location)/../../../tools/dargbox ;
+
+  ApplicationDescSrc = $(Root)/$(Location)/platform/nswitch/application.desc ;
+  ApplicationSpecMeta = $(Root)/$(Location)/platform/nswitch/application.aarch64.lp64.nmeta ;
+
+  AddIncludes +=
+    $(Root)/prog/3rdPartyLibs/math
+  ;
+
+  UseProgLibs +=
+    engine2/drv/drv3d_vulkan
+    3rdPartyLibs/posix
+    engine2/drv/hid_nswitch
+    engine2/drv/hid_nulldrv
+    gameLibs/nswitch
+    gameLibs/nswitch/account
+    gameLibs/nswitch/assets
+    gameLibs/nswitch/savedata
+    engine2/osApiWrappers/messageBox
+  ;
+
+  AddLibs +=
+    $(_OASIS_LIBS_DIR)/libnn_init_memory.a
+    $(_OASIS_LIBS_DIR)/libnn_gfx.a
+    $(_OASIS_LIBS_DIR)/libnn_mii_draw.a
+  ;
+}
+else {
+  Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+}
+
+
+if ! $(Platform) in android nswitch {
+  if $(UseD3DMulti) = yes {
+    UseProgLibs += engine2/drv/drv3d_pc_multi ;
+  }
+}
+
+if $(Platform) = win32 { UseMemoryDebugLevel = dbg ; }
+
+
+if $(VRDeviceSupport) = yes {
+  BundleCopy +=
+    @$(OpenXrSdkPath)/$(Platform)/bin/openxr_loader.dll openxr_loader.dll
+    @$(OpenXrSdkPath)/$(Platform)/bin/openxr_loader.pdb openxr_loader.pdb
+  ;
+  Sources += vr.cpp vrInput.cpp ;
+  UseProgLibs += gameLibs/vr ;
+  CPPopt += -DHAS_VR ;
+} else {
+  Sources += vrStub.cpp ;
+}
+
+if [ GLOB $(Root)/prog/gameLibs/quirrel/matchingModule : jamfile ] {
+  UseProgLibs += gameLibs/matchingClient gameLibs/quirrel/matchingModule 1stPartyLibs/matching gameLibs/quirrel/sqext ;
+  CPPopt += -DHAS_MATCHING_MODULE ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,149 @@
+Platform ?= win64 ;
+
+Root    ?= ../../../.. ;
+Location = prog/engine2/drv/drv3d_DX12 ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = engine2/drv/drv3d_DX12.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+  init_d3di.cpp
+  dx12.cpp
+  device.cpp
+  device_queue.cpp
+  swapchain.cpp
+  format_store.cpp
+  device_context.cpp
+  device_context_cmd_log.cpp
+  shader.cpp
+  texture.cpp
+  pipeline.cpp
+  pipeline_cache.cpp
+  bindless.cpp
+  resource_memory_heap.cpp
+  resource_memory_heap_heap_components.cpp
+  resource_update_buffer.cpp
+  resource_usage_debugger.cpp
+;
+
+CPPopt = -DINSIDE_DRIVER ;
+# do not include stuff that depends on wrl, including wrl is a mess
+CPPopt += -DD3DX12_NO_STATE_OBJECT_HELPERS ;
+
+if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
+if [ GLOB $(Root)/prog/3rdPartyLibs/nvsdk_ngx : * ] { CPPopt += -DHAS_NVSDK_NGX ; }
+
+if $(Platform) in win32 win64 {
+  Sources +=
+    platform_pc.cpp
+    debug/gpu_capture.cpp
+    debug/global_state.cpp
+    debug/device_state_pc.cpp
+    debug/gpu_postmortem_dagor_trace.cpp
+    debug/gpu_postmortem_microsoft_dred.cpp
+    debug/pipeline_resource_reporter.cpp
+  ;
+  if [ GLOB $(Root)/prog/3rdPartyLibs/aftermath : * ] {
+    CPPopt += -DHAS_GF_AFTERMATH ;
+    Sources += debug/gpu_postmortem_nvidia_aftermath.cpp ;
+  }
+} else if $(Platform) in xboxOne scarlett {
+  CPPopt += /wd4062 ; # enumerator 'XXX' in switch of enum 'YYY' is not handled
+  AddLibs += PIXEvt.lib ;
+  if $(Platform) = xboxOne {
+    AddLibs += d3d12_x.lib xg_x.lib ;
+  } else {
+    AddLibs += d3d12_xs.lib xg_xs.lib ;
+  }
+  Sources +=
+    platform_xbox.cpp
+  ;
+}
+
+if $(Platform) in win32 win64 xboxOne scarlett {
+  CPPopt += -FId3d_config.h ;
+}
+
+if $(Platform) in win64 {
+  CPPopt += -DUSE_PIX=1 ;
+  AddLibs += $(Root)/prog/3rdPartyLibs/winpixeventruntime/bin/x64/WinPixEventRuntime.lib ;
+  AddLibs += delayimp.lib -delayload:WinPixEventRuntime.dll ;
+}
+
+if ( $(Platform) in win32 win64 xboxOne scarlett ) {
+  CPPopt += -DUSE_RESOURCE_HEAPS=1 ;
+}
+
+if $(Config) != rel {
+  UseProgLibs += gameLibs/imguiInput ;
+} else {
+  UseProgLibs += gameLibs/imguiInput/stub ;
+}
+
+if $(EnableBreakpad) = yes {
+  UseProgLibs += gameLibs/breakpad/binder ;
+} else {
+  UseProgLibs += gameLibs/breakpad/stub ;
+}
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine2/drv/drv3d_commonCode
+  $(Root)/prog/engine2/drv/drv3d_dx12
+  $(Root)/prog/engine2/shaders
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/d3dx12
+  $(Root)/prog/3rdPartyLibs/aftermath/2022.2.0.22145/include
+  $(Root)/prog/3rdPartyLibs/winpixeventruntime/Include
+  $(Root)/prog/3rdPartyLibs/imgui
+;
+
+if $(DlssEnabled) = yes && $(Platform) = win64 {
+  Target = $(Target:B) ~dlss ;
+  Target = $(Target:J="") ;
+  Target = $(Target:S=.lib) ;
+  Sources += ngx_wrapper.cpp ;
+  CPPopt += -DNV_WINDOWS ;
+  CPPopt += -DNGX_ENABLE_DEPRECATED_GET_PARAMETERS ; # remove this line once GetParameters is removed from DLSS
+} else {
+  Sources += ngx_wrapper_stub.cpp ;
+}
+
+if $(XessEnabled) = yes && $(Platform) = win64 && [ GLOB $(Root)/prog/3rdPartyLibs/xess_sdk : * ] {
+  Target = $(Target:B) ~xess ;
+  Target = $(Target:J="") ;
+  Target = $(Target:S=.lib) ;
+  Sources += xess_wrapper.cpp ;
+} else {
+  Sources += xess_wrapper_stub.cpp ;
+}
+
+if $(Fsr2Enabled) = yes && $(Platform) = win64 {
+  Target = $(Target:B)~fsr2.lib ;
+  Sources += fsr2_wrapper.cpp ;
+  UseProgLibs += 3rdPartyLibs/fsr2 ;
+} else {
+  Sources += fsr2_wrapper_stub.cpp ;
+}
+
+AddIncludes += $(Root)/prog/3rdPartyLibs/nvsdk_ngx/Include ;
+
+# for GPU crash dump sending
+if $(Platform) in win32 win64 {
+  UseProgLibs +=
+    gameLibs/eventLog
+    1stPartyLibs/jsoncpp ;
+
+  AddIncludes += $(Root)/prog/1stPartyLibs/jsoncpp/include ;
+}
+
+UseProgLibs +=
+  engine2/drv/drv3d_commonCode
+  engine2/shaders
+  gameLibs/dxil
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

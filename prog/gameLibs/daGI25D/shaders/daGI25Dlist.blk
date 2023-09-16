@@ -1,0 +1,4 @@
+  file:t = "dagi_debug_scene_25d.sh"
+  file:t = "dagi_scene_voxels_25d.sh"
+  file:t = "dagi_volmap_25d.sh"
+  file:t = "dagi_debug_volmap_25d.sh"

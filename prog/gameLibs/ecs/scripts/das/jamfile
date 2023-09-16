@@ -1,0 +1,41 @@
+Root    ?= ../../../../.. ;
+local LibPath = gameLibs/ecs/scripts/das ;
+Location = prog/$(LibPath) ;
+Target      = $(LibPath).lib ;
+TargetType  = lib ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+SourceDAS =
+  ecs.das
+;
+
+
+for s in $(SourceDAS) { StringifySourceFile $(s) : $(s).inl : das_ecs_bindings.cpp ; }
+
+UseProgLibs +=
+  1stPartyLibs/daScript
+;
+
+if $(Platform) in win32 win64 xboxOne scarlett
+{
+  CPPopt = /bigobj ;
+}
+
+if [ GLOB $(Root)/prog/gameLibs/daECS/net : * ] {
+  CPPopt += -DHAS_DANET ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

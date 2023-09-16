@@ -1,0 +1,34 @@
+Root  ?= ../../../../.. ;
+Location = prog/3rdPartyLibs/openssl-3.x ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/openssl-3.x/crypto/sha.lib ;
+if $(NoASM) {
+  Target = $(Target:S=~noasm.lib) ;
+}
+
+include $(Root)/$(Location)/ssl-options.jam ;
+
+if $(UseSystemOpenSSL) = yes {
+  Exit "System provided OpenSSL is enabled, refusing to build statically linked one" ;
+}
+
+Sources =
+  crypto/cryptlib.c
+  [ CollectC crypto/sha : keccak1600.c ]
+;
+
+if $(NoASM) {
+  Sources += crypto/mem_clr.c
+             crypto/sha/keccak1600.c
+  ;
+}
+else {
+  Sources += [ CollectASM crypto/sha ]
+             crypto/x86_64cpuid.$(ASMExt)
+  ;
+}
+
+ExplicitLicenseUsed += $(Root)/$(Location) ;
+
+include $(Root)/prog/_jBuild/build.jam ;

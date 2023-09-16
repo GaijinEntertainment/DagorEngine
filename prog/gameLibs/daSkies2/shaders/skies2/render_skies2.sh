@@ -1,0 +1,531 @@
+include "sky_shader_global.sh"
+include "renderSkiesInc.sh"
+include "postfx_inc.sh"
+include "viewVecVS.sh"
+include "roughToMip.sh"
+include "panorama.sh"
+include "skies_special_vision.sh"
+include "skies_shadows.sh"
+include "skies_rainmap.sh"
+include "use_custom_fog_sky.sh"
+
+
+float4 prepare_resolution = (1, 1, 1, 1);
+texture prev_skies_view_lut_tex;
+texture prev_skies_view_lut_mie_tex;
+float4 prev_skies_min_max_horizon_mu;
+float4 prev_globtm_no_ofs_psf_0;
+float4 prev_globtm_no_ofs_psf_1;
+float4 prev_globtm_no_ofs_psf_2;
+float4 prev_globtm_no_ofs_psf_3;
+//float4 prev_view_vecLT;
+//float4 prev_view_vecRT;
+//float4 prev_view_vecLB;
+//float4 prev_view_vecRB;
+float4 reprojected_world_view_pos;
+int skies_frustum_scattering_frame;
+int skies_continue_temporal = 1;
+float4 prepare_origin;
+
+macro TRACE_SKY(code, use_origin, use_sun_light_dir_x, use_sun_light_dir_y, use_sun_light_dir_z)
+  (code) {  skies_ms_texture@smp2d = skies_ms_texture; }
+  SKY_CLOUDS_SHADOWS(code, use_origin, use_sun_light_dir_x, use_sun_light_dir_y, use_sun_light_dir_z)
+  ATMO(code)
+  hlsl(code) {
+    half3 traceSky(float3 origin, float3 viewVect, float3 sunDir, float shadowOffset, float2 raymarch_steps, out half3 transmittance, out half3 noMie, out half3 mie)
+    {
+      float3 view_direction = viewVect.xzy;
+      float3 sun_direction = sunDir.xzy;
+      float3 camera = float3(0,0,max(origin.y*0.001, 0.1) + theAtmosphere.bottom_radius);
+      if (abs(camera.z - theAtmosphere.top_radius)<0.01)
+        camera.z = theAtmosphere.top_radius+0.01;
+      Length r = camera.z;
+      Number mu = view_direction.z;
+      Number nu = dot(view_direction, sun_direction);
+      SingleScatteringResult ss = IntegrateScatteredLuminanceMS(
+        theAtmosphere,
+        SamplerTexture2DFromName(skies_transmittance_texture),
+        SamplerTexture2DFromName(skies_ms_texture),
+        origin, viewVect*1000, shadowOffset,//only for shadows
+        32, true, raymarch_steps,
+        r, mu, nu, sun_direction.z,
+        RayIntersectsGround(theAtmosphere, r, mu));
+      float3 colorMul = theAtmosphere.solar_irradiance;
+      transmittance = ss.Transmittance;
+      noMie = (ss.ms + ss.ray*RayleighPhaseFunction(nu))*colorMul;
+      mie = ss.mie*colorMul;
+      //return (ss.ms + (ss.ray+ss.mie*MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, nu))*RayleighPhaseFunction(nu))*colorMul;
+      return (ss.L)*colorMul;
+    }
+  }
+endmacro
+float4 skies_sun_moon_effect;
+
+macro SKIES_VIEW_LUT_TEX_PREPARE(code)
+  SKIES_RAINMAP(code)
+  (code) {
+    prev_skies_view_lut_tex@smp2d = prev_skies_view_lut_tex;
+    prev_skies_view_lut_mie_tex@smp2d = prev_skies_view_lut_mie_tex;
+    prev_skies_min_max_horizon_mu@f4 = prev_skies_min_max_horizon_mu;
+    prev_globtm_no_ofs_psf@f44 = { prev_globtm_no_ofs_psf_0, prev_globtm_no_ofs_psf_1, prev_globtm_no_ofs_psf_2, prev_globtm_no_ofs_psf_3 };
+    skies_frustum_scattering_frame@f1= (skies_frustum_scattering_frame);
+    skies_continue_temporal@f1 = (skies_continue_temporal*2-1,0,0,0);
+    skies_transmittance_texture@smp2d = skies_transmittance_texture;
+    skies_min_max_horizon_mu@f4 = skies_min_max_horizon_mu;
+    skies_panoramic_scattering@f1 = (skies_panoramic_scattering);
+    prepare_resolution@f4 = (1/prepare_resolution.x,1/prepare_resolution.y, prepare_resolution.x, prepare_resolution.y);
+  }
+  VIEW_VEC_OPTIMIZED(code)
+  SKIES_LUT_ENCODING(code)
+  GET_ATMO(code)
+  TRACE_SKY(code, prepare_origin, skies_primary_sun_light_dir.x, skies_primary_sun_light_dir.z, skies_primary_sun_light_dir.y)
+  BASE_FOG_MATH(code)
+
+  (code) {
+    skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
+    skies_primary_sun_color@f3 = skies_primary_sun_color;
+    skies_secondary_sun_light_dir@f3 = skies_secondary_sun_light_dir;
+    skies_secondary_sun_color@f4 = skies_secondary_sun_color;
+  }
+
+  hlsl(code) {
+    struct RetSkiesLut
+    {
+      half4 noPhaseScatter;
+      half3 miePhaseScatter;
+    };
+    #include <fp16_aware_lerp.hlsl>
+
+    RetSkiesLut daskies_sky(float3 viewVect, float2 texcoord, float2 screenpos)
+    {
+      float3 view = normalize(viewVect);
+      view = skies_tc_to_view(texcoord.y, viewVect, skies_min_max_horizon_mu);
+      if (skies_panoramic_scattering)
+        view = get_panoramic_scattering_view(texcoord);
+      float4 reprojectedViewVec = mul(float4(viewVect*100, 0), prev_globtm_no_ofs_psf);
+      //reprojectedViewVec = mul(float4(view*1000, 0), globtm);
+      //float4 prevClip = reprojected_world_view_pos + reprojectedViewVec;
+      float4 prevClip = reprojectedViewVec;
+      float2 prevScreen = prevClip.w > 0 ? prevClip.xy*rcp(prevClip.w) : float2(2,2);
+      float2 prevUV = prevScreen.xy*float2(0.5, -0.5) + float2(0.5, 0.5);
+      float2 dimensions = prepare_resolution.zw;
+      float2 diff = abs((prevUV - texcoord)*dimensions*0.5);
+      float newFrameWeight = lerp(0.05, 0.09, saturate(max(diff.x, diff.y)));
+      #if SKIES_LUT_ENCODING
+        if (prev_skies_min_max_horizon_mu.w >= 0)
+          prevUV.y = skies_view_to_tc_y(prevUV.y, view.y, prev_skies_min_max_horizon_mu);
+      #endif
+      if (skies_panoramic_scattering)
+      {
+        prevUV = texcoord;
+        newFrameWeight = 0.09;
+      }
+
+      bool canReproject = max(abs(prevUV.x*2-1), abs(prevUV.y*2-1)) < skies_continue_temporal &&
+        ((prev_skies_min_max_horizon_mu.w >= 0 == skies_min_max_horizon_mu.w >= 0) || skies_panoramic_scattering);
+      //canReproject = false;
+
+      half3 transmittance;
+      uint frameOver = 4;
+      float randomOfs = ((uint(skies_frustum_scattering_frame)%frameOver + uint(screenpos.x)*2789 + uint(screenpos.y)*2791)%frameOver)/float(frameOver);
+      half3 noMieInscatter, skyMieInscatter;
+      traceSky(shadow_origin, view, skies_primary_sun_light_dir.xzy, randomOfs, canReproject ? 2*float2(16,32) : 3*float2(16,32), transmittance, noMieInscatter, skyMieInscatter);
+      noMieInscatter *= skies_primary_sun_color.rgb;
+      skyMieInscatter *= skies_primary_sun_color.rgb;
+      //skyMieInscatter = 0; skyInscatter *= skies_primary_sun_color.rgb;
+      half4 skyInscatter = half4(noMieInscatter, dot(transmittance, 1./3));
+      BRANCH
+      if (skies_secondary_sun_color.w > 0)
+      {
+        half3 transmittance2;
+        half3 noMieInscatter2, mieInscatter2;
+        //todo: remove shadows from moon, use only statistical shadows. it is not correct anyway
+        skyInscatter.rgb += traceSky(shadow_origin, view, skies_secondary_sun_light_dir.xzy, randomOfs, canReproject ? float2(12,24) : float2(16,32), transmittance2, noMieInscatter2, mieInscatter2)*skies_secondary_sun_color.rgb;
+      }
+
+      if (canReproject)
+      {
+        float2 ofs = 0.0625/dimensions;
+        half4 old =
+          tex2Dlod(prev_skies_view_lut_tex, float4(prevUV + float2(-ofs.x, -ofs.y),0,0))+
+          tex2Dlod(prev_skies_view_lut_tex, float4(prevUV + float2(+ofs.x, -ofs.y),0,0))+
+          tex2Dlod(prev_skies_view_lut_tex, float4(prevUV + float2(-ofs.x, +ofs.y),0,0))+
+          tex2Dlod(prev_skies_view_lut_tex, float4(prevUV + float2(+ofs.x, +ofs.y),0,0));
+        half3 oldMie =
+          tex2Dlod(prev_skies_view_lut_mie_tex, float4(prevUV + float2(-ofs.x, -ofs.y),0,0)).rgb+
+          tex2Dlod(prev_skies_view_lut_mie_tex, float4(prevUV + float2(+ofs.x, -ofs.y),0,0)).rgb+
+          tex2Dlod(prev_skies_view_lut_mie_tex, float4(prevUV + float2(-ofs.x, +ofs.y),0,0)).rgb+
+          tex2Dlod(prev_skies_view_lut_mie_tex, float4(prevUV + float2(+ofs.x, +ofs.y),0,0)).rgb;
+        old*=0.25;
+        oldMie*=0.25;
+        //separate mie (so phase function can be done on apply) can actually be faster then blurring
+        //todo:
+        //old = tex2Dlod(prev_skies_view_lut_tex, float4(prevUV,0,0)).rgb;
+        skyInscatter = fp16_aware_lerp_filtered(old, skyInscatter, newFrameWeight);
+        skyMieInscatter = fp16_aware_lerp_filtered(oldMie, skyMieInscatter, newFrameWeight);
+      }
+      RetSkiesLut ret;
+      ret.noPhaseScatter = skyInscatter;
+      ret.miePhaseScatter = skyMieInscatter;
+      return ret;
+    }
+  }
+endmacro
+
+shader skies_view_lut_tex_prepare_ps
+{
+  cull_mode=none;
+  z_write=false;
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
+  SKIES_VIEW_LUT_TEX_PREPARE(ps)
+  hlsl(ps) {
+    struct MRT
+    {
+      half4 ret0:SV_Target0;
+      half4 ret1:SV_Target1;
+    };
+    MRT daskies_sky_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      RetSkiesLut res = daskies_sky(input.viewVect, input.texcoord, screenpos.xy);
+      MRT ret;
+      ret.ret0 = res.noPhaseScatter;
+      ret.ret1 = half4(res.miePhaseScatter,0);
+      return ret;
+    }
+  }
+  compile("target_ps", "daskies_sky_ps");
+}
+
+shader skies_view_lut_tex_prepare_cs
+{
+  cull_mode=none;
+  z_write=false;
+  USE_PS5_WAVE32_MODE()
+  SKIES_VIEW_LUT_TEX_PREPARE(cs)
+  hlsl(cs) {
+    RWTexture2D<float4> output0 : register(u0);
+    RWTexture2D<float4> output1 : register(u1);
+##if hardware.ps5
+    [numthreads(8, 2, 1)]
+##else
+    [numthreads(8, 8, 1)]
+##endif
+    void daskies_sky_cs(uint2 dtId : SV_DispatchThreadID)
+    {
+      float2 screenpos = dtId + 0.5;
+      float2 texcoord = screenpos*prepare_resolution.xy;
+      float3 viewVect = getViewVecOptimized(texcoord.xy);
+      RetSkiesLut ret = daskies_sky(viewVect, texcoord, screenpos.xy);
+      output0[dtId] = ret.noPhaseScatter;
+      output1[dtId] = half4(ret.miePhaseScatter,0);
+    }
+  }
+  compile("cs_5_0", "daskies_sky_cs");
+}
+
+macro RENDER_SKIES()
+  INIT_SKY_GROUND_COLOR()
+  GET_SKY_GROUND_COLOR()
+  (ps) {
+    skies_transmittance_texture@smp2d = skies_transmittance_texture;
+    use_camera_altitude@f2 = (max(0.01, (skies_world_view_pos.y-min_ground_offset)/1000), skies_planet_radius + max(0.01, (skies_world_view_pos.y-min_ground_offset)/1000),0,0);
+    skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
+    //skies_primary_sun_light_dir@f4 = (skies_primary_sun_light_dir.x, skies_primary_sun_light_dir.y, skies_primary_sun_light_dir.z,
+    //  1./(max(0.000001, sqrt(skies_primary_sun_light_dir.x*skies_primary_sun_light_dir.x+skies_primary_sun_light_dir.y*skies_primary_sun_light_dir.y))));
+  }
+  USE_SKIES_SUN_COLOR(ps)
+
+  ATMO(ps)
+  GET_ATMO(ps)
+
+  hlsl(ps) {
+    #include "atmosphere/preparedScattering2.hlsl"
+    //float pow2(float a){return a*a;}
+    float getR()
+    {
+      Length r = use_camera_altitude.y;
+      FLATTEN
+      if (abs(r - theAtmosphere.top_radius)<0.01)//this is constant!. todo: optimize me
+        r = theAtmosphere.top_radius+0.01;
+      return r;
+    }
+    float dist_to_plane(float mu, float def)
+    {
+      return mu < -0.001 ? -use_camera_altitude.x/mu : def;
+    }
+    float dist_to_earth_plane(float distToPlanet, float distToPlane)
+    {
+      float TRANSITION_DISTANCE = 20.;
+      return lerp(distToPlane, distToPlanet, saturate((distToPlane*(1./TRANSITION_DISTANCE) - (80./TRANSITION_DISTANCE))));
+    }
+    float3 getLitGroundAndDist(PreparedGroundData data, Length r, float3 viewVect, out float distToEarth)
+    {
+      float3 camera = float3(0,0,r);
+      float3 view_direction = viewVect.xzy;
+      float3 sun_direction = skies_primary_sun_light_dir.xyz;
+      Number mu = view_direction.z;
+      Number atmosphereMu = mu;//fixme: we should compute it correctly!
+      Length atmosphereR = r;//fixme: we should compute it correctly!
+      distToEarth = -1;
+      if (view_direction.z>0)
+        return 0;
+      float distance_to_intersection = DistanceToBottomAtmosphereBoundarySigned(theAtmosphere, r, mu);
+      if (distance_to_intersection < 0.0)
+        return 0;
+      float3 pos = camera + view_direction * distance_to_intersection;
+
+      // Compute the radiance reflected by the ground.
+      //float distToGround = distance_to_intersection;
+      float distToGround = dist_to_plane(mu, 10000000);
+      float3 ground = get_ground_lit_color(pos, sun_direction, view_direction, 0, data);
+      distToEarth = dist_to_earth_plane(distance_to_intersection, distToGround);
+      return ground;
+    }
+  }
+endmacro
+
+shader skies_render_screen
+{
+  cull_mode=none;
+  z_write=false;
+  INIT_SKIES_LUT(ps)
+  USE_SKIES_LUT(ps)
+  local float rad = (max(0.01, (skies_world_view_pos.y-min_ground_offset)/1000) + skies_planet_radius);
+  local float rRG = (skies_planet_radius / rad);
+  //local float Rh = (1/(max(0.01, (skies_world_view_pos.y-min_ground_offset)/1000)/skies_planet_radius + 1));
+  (ps) {
+    skies_world_view_pos@f3 = skies_world_view_pos;
+    skies_panoramic_scattering@f1 = (skies_panoramic_scattering);
+    mu_horizon@f2 = (1-rRG*rRG, -sqrt(1-rRG*rRG),0,0);
+    //mu_horizon@f1 = (-sqrt(1-Rh*Rh),0,0,0);
+    //skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
+  }
+  hlsl {
+    #define SKIES_RENDER_TO_FRUSTUM 1
+  }
+  /*
+  //for reference ray
+  hlsl {
+    #define REFERENCE_SKIES 1
+  }
+  (ps) {
+    skies_primary_sun_color@f3 = skies_primary_sun_color;
+    skies_secondary_sun_color@f3 = skies_secondary_sun_color;
+    skies_secondary_sun_light_dir@f3 = skies_secondary_sun_light_dir;
+  }
+  //*/
+
+  INIT_BRUNETON_FOG(ps)
+  BASE_USE_BRUNETON_FOG(ps)
+  TRACE_SKY(ps, skies_world_view_pos, skies_primary_sun_light_dir.x, skies_primary_sun_light_dir.z, skies_primary_sun_light_dir.y)//this is only for shadows on earth in WT
+  RENDER_SKIES()
+  SKY_HDR()
+  USE_SPECIAL_VISION()
+  INIT_ZNZFAR_STAGE(ps)
+  USE_CUSTOM_FOG_SKY(ps)
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
+
+  hlsl(ps) {
+    half3 renderSkyWithGround(PreparedGroundData data, Length r, half4 skyInscatter, float3 viewVect, float2 scattering_lut_tc, bool use_tc)
+    {
+      float3 view_direction = viewVect.xzy;
+      float3 sun_direction = skies_primary_sun_light_dir.xyz;
+      float shadow_length = 0;
+      Number mu = view_direction.z;
+      Number atmosphereMu = mu;//fixme: we should compute it correctly!
+      Length atmosphereR = r;//fixme: we should compute it correctly!
+      float3 radiance = skyInscatter.rgb;
+      float distToEarth;
+      //float distToGround = distance_to_intersection;
+      float3 ground = getLitGroundAndDist(data, r, viewVect, distToEarth);
+      if (distToEarth>=0)
+      {
+        DimensionlessSpectrum groundTransmittance = 0;
+        #if SKIES_RENDER_TO_FRUSTUM
+        float skyLerp = saturate(distToEarth * skies_panoramic_scattering__inv_distance.y*1000*4-3);//saturate(distToEarth/80 - 1);
+        //float skyLerp = saturate(distToEarth/80 - 1);
+        BRANCH
+        if (skyLerp < 1 && use_tc)//
+        {
+           IrradianceSpectrum groundInscatter = skyInscatter.rgb;
+           get_scattering_tc_fog(scattering_lut_tc, viewVect, distToEarth*1000, groundTransmittance, groundInscatter);
+           if (skyLerp > 0)
+            groundTransmittance = lerp(groundTransmittance, GetTransmittance(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture), atmosphereR, atmosphereMu, distToEarth, true), skyLerp);
+          radiance = lerp(groundInscatter.rgb, skyInscatter.rgb, skyLerp);
+        } else
+        #endif
+        {
+          groundTransmittance = GetTransmittance(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture), atmosphereR, atmosphereMu, distToEarth, true);
+        }
+        radiance += ground * groundTransmittance;
+      }
+      //return 1.0 - exp(-radiance*10);
+      return radiance;
+    }
+
+    float3 getSkyColor(PreparedGroundData data, Length r, float2 screenTC, float3 view)
+    {
+      float2 scatteringLutTC = screenTC;
+      #if REFERENCE_SKIES
+        half3 transmittance;
+        half3 noMieInscatter, skyMieInscatter;
+        half4 skyInscatter;
+        skyInscatter.rgb = traceSky(skies_world_view_pos, view, skies_primary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter)*skies_primary_sun_color.rgb;
+        skyInscatter.a = dot(transmittance, 1./3);
+        skyInscatter.rgb += traceSky(skies_world_view_pos, view, skies_secondary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter)*skies_secondary_sun_color.rgb;
+      #else
+        float2 skiesLutTC = get_skies_lut_tc(screenTC, view);
+        if (skies_panoramic_scattering)
+        {
+          skiesLutTC = get_panoramic_scattering_tc(view);
+          scatteringLutTC = skiesLutTC;
+        }
+        float primaryNu = dot(view, skies_primary_sun_light_dir.xzy);
+        float miePhase = MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, primaryNu)*RayleighPhaseFunction(primaryNu);
+        float4 skyInscatter = sample_skies_scattering_color_tc(skiesLutTC, view, miePhase);
+      #endif
+      return renderSkyWithGround(data, r, skyInscatter, view, scatteringLutTC, true);
+    }
+    half4 daskies_sky_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      float2 screenTC = input.texcoord;
+      float3 view = normalize(input.viewVect);
+      Length r = getR();
+
+      float2 scatteringLutTC = screenTC;
+      #if REFERENCE_SKIES
+        half3 transmittance;
+        half3 noMieInscatter, skyMieInscatter;
+        half4 skyInscatter;
+        skyInscatter.rgb = traceSky(skies_world_view_pos, view, skies_primary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter)*skies_primary_sun_color.rgb;
+        skyInscatter.a = dot(transmittance, 1./3);
+        skyInscatter.rgb += traceSky(skies_world_view_pos, view, skies_secondary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter)*skies_secondary_sun_color.rgb;
+      #else
+        float2 skiesLutTC = get_skies_lut_tc(screenTC, view);
+        if (skies_panoramic_scattering)
+        {
+          skiesLutTC = get_panoramic_scattering_tc(view);
+          scatteringLutTC = skiesLutTC;
+        }
+        float primaryNu = dot(view, skies_primary_sun_light_dir.xzy);
+        float miePhase = MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, primaryNu)*RayleighPhaseFunction(primaryNu);
+        float4 skyInscatter = sample_skies_scattering_color_tc(skiesLutTC, view, miePhase);
+      #endif
+      float mu_hor = -sqrt(mu_horizon.x);//we have to keep sqrt in shader, otherwise results differ
+      float eps = 0.0015;
+      bool lerpColors = abs(view.y-mu_hor) < eps;
+      float3 viewBelow = float3(normalize(view.xz)*sqrt(1- pow2(mu_hor - eps)), mu_hor - eps).xzy;
+
+      float distToGroundPlane = dist_to_plane(view.y, -1);
+      PreparedGroundData data;
+      prepare_ground_data(view.xzy, max(0, distToGroundPlane), data);
+
+      float3 res = getSkyColor(data, r, screenTC, lerpColors ? viewBelow : view);
+      BRANCH
+      if (abs(view.y-mu_hor) < eps)
+      {
+        float3 viewAbove = float3(normalize(view.xz)*sqrt(1- pow2(mu_hor + eps)), mu_hor + eps).xzy;
+        //res = lerp(renderSkyWithGround(skyInscatter, view, scatteringLutTC, true), renderSkyWithGround(skyInscatter, view, scatteringLutTC, true), (view.y-(mu_hor - eps))/(2*eps));
+        res = lerp(res, getSkyColor(data, r, screenTC, viewAbove), (view.y-(mu_hor - eps))/(2*eps));
+        //res = getSkyColor(screenTC, viewAbove);
+      }
+      //return res;
+
+      float nu = dot(view, real_skies_sun_light_dir.xzy);
+      BRANCH
+      if (visibleSun(nu) && !RayIntersectsGround(theAtmosphere, r, view.y) && real_skies_sun_color.x>0)
+      {
+        // If the view ray intersects the Sun, add the Sun radiance.
+        DimensionlessSpectrum sun_transmittance = GetTransmittanceToTopAtmosphereBoundary(
+            theAtmosphere,
+            SamplerTexture2DFromName(skies_transmittance_texture),
+            r, view.y);
+        sun_transmittance = color_scatter_loss(skyInscatter, sun_transmittance);
+        if (sun_transmittance.x > 0 )
+          res += calcSunColor(nu, sun_transmittance, real_skies_sun_color.rgb);
+      }
+
+      float4 res4 = float4(res, 0);
+      applySpecialVision(res4);
+      return half4(pack_hdr(res4.rgb).rgb, 0);
+    }
+  }
+  compile("target_ps", "daskies_sky_ps");
+}
+
+shader skyPanorama
+{
+  cull_mode=none;
+  z_write=false;
+  USE_POSTFX_VERTEX_POSITIONS()
+  SKIES_RAINMAP(ps)
+  TRACE_SKY(ps, prepare_origin, skies_primary_sun_light_dir.x, skies_primary_sun_light_dir.z, skies_primary_sun_light_dir.y)
+  RENDER_SKIES()
+  (ps) {
+    skies_world_view_pos@f3 = prepare_origin;
+    //skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
+    skies_primary_sun_color@f3 = skies_primary_sun_color;
+    skies_secondary_sun_light_dir@f3 = skies_secondary_sun_light_dir;
+    skies_secondary_sun_color@f4 = skies_secondary_sun_color;
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+  (ps) { tc_pos_ofs@f4 = panoramaTC; skies_panorama_mu_horizon@f1 = (skies_panorama_mu_horizon);}
+  (vs) { tc_pos_ofs@f4 = panoramaTC; }
+  hlsl(vs) {
+    VsOutput daskies_sky_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos, 0, 1);
+      output.tc = screen_to_texcoords(pos);
+      if (tc_pos_ofs.z != 0)
+        output.tc = output.tc * tc_pos_ofs.zw + tc_pos_ofs.xy;
+      return output;
+    }
+  }
+  hlsl(ps) {
+    half3 daskies_sky_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      float2 texcoord = input.tc.xy;
+      GENERATE_PANORAMA_VIEWVECT(texcoord)
+      GENERATE_PANORAMA_PATCH_VIEWVECT(texcoord)
+
+      if (tc_pos_ofs.z == 0)
+        viewVect = patchView;
+      float3 view = normalize(viewVect);
+      half3 transmittance;
+      //todo: add random ofs from panoram
+      half3 noMie, mie;
+      half3 skyInscatter = traceSky(shadow_origin, view, skies_primary_sun_light_dir.xzy, 0, 2*float2(16,32), transmittance, noMie, mie)*skies_primary_sun_color.rgb;
+      BRANCH
+      if (skies_secondary_sun_color.w > 0)
+      {
+        half3 transmittance2;
+        //todo: remove shadows from moon, use only statistical shadows. it is not correct anyway
+        skyInscatter += traceSky(shadow_origin, view, skies_secondary_sun_light_dir.xzy, 0, float2(12,24), transmittance2,noMie, mie)*skies_secondary_sun_color.rgb;
+      }
+      float3 res = skyInscatter;
+      float distToEarth;
+      PreparedGroundData data;
+      prepare_ground_data(view.xzy, max(0, dist_to_plane(view.y, -1)), data);
+      float3 ground = getLitGroundAndDist(data, getR(), viewVect, distToEarth);
+      if (distToEarth>=0)
+        res += ground * transmittance;//use integrated transmittance, and now other scattering
+      return res;
+    }
+  }
+  compile("target_vs", "daskies_sky_vs");
+  compile("target_ps", "daskies_sky_ps");
+}

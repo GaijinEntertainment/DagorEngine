@@ -1,0 +1,25 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/fx ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/fx.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  bloom_ps.cpp
+  ui_blurring.cpp
+  blurredUI.cpp
+  demonPostFx.cpp
+  postfx.cpp
+  auroraBorealis.cpp
+  lightning.cpp
+  flare.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,69 @@
+# https://github.com/bulletphysics/bullet3.git
+# rev 39b8de74df93721add193e5b3d9ebee579faebf8
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/phys/bullet-3 ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/phys/bullet-3.lib ;
+
+local _SrcDirs =
+  src # includes btBulletCollisionAll.cpp btBulletDynamicsAll.cpp btLinearMathAll.cpp
+  src/Bullet3Collision/BroadPhaseCollision
+  src/Bullet3Collision/NarrowPhaseCollision
+  src/Bullet3Common
+  src/Bullet3Dynamics
+  src/Bullet3Dynamics/ConstraintSolver
+  src/Bullet3Geometry
+  src/BulletInverseDynamics
+  src/BulletInverseDynamics/details
+  src/BulletSoftBody
+  src/BulletSoftBody/BulletReducedDeformableBody
+
+  Extras/Serialize/BulletWorldImporter
+  Extras/Serialize/BulletFileLoader
+  #src/Bullet3Serialize/Bullet2FileLoader
+;
+
+if $(Platform) in win32 win64 macosx linux64 android {
+  _SrcDirs +=
+    src/Bullet3OpenCL/BroadphaseCollision
+    src/Bullet3OpenCL/Initialize
+    src/Bullet3OpenCL/NarrowphaseCollision
+    src/Bullet3OpenCL/ParallelPrimitives
+    src/Bullet3OpenCL/Raycast
+    src/Bullet3OpenCL/RigidBody
+    src/clew
+  ;
+  if $(Platform) = macosx { AddLibs = "-framework OpenCL" ; }
+}
+
+if $(Platform) in xboxOne ps4 { CPPopt += -DUSE_FMA=0 ; }
+
+if $(Platform) in nswitch { CPPopt += -Wno-unsupported-floating-point-opt ; }
+
+AutoscanBuildLists $(_SrcDirs) : *.cpp : Sources ;
+AutoscanBuildLists $(_SrcDirs) : *.c : Sources ;
+
+AddIncludes = $(Root)/$(Location)/src ;
+
+include $(Root)/$(Location)/setup.jam ;
+if $(Platform) in win32 win64 { CPPopt += -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS ; }
+if $(Platform) in win64 xboxOne scarlett { CPPopt += /wd4267 ; }
+if $(Platform) in xboxOne scarlett { CPPopt += -DSetThreadIdealProcessor(X,Y)= ; }
+
+if $(PlatformSpec) in gcc4 clang { CPPopt += -Wno-unused-parameter -Wno-uninitialized -Wno-macro-redefined ; }
+if $(Platform) = linux64 || $(PlatformSpec) = clang {
+  if $(Platform) in win32 win64 xboxOne scarlett {
+    CPPopt += -fp:fast /clang:-fno-unsafe-math-optimizations ;
+  } else {
+    CPPopt += -ffast-math ;
+    if ! $(Platform) in iOS nswitch { CPPopt += -fno-unsafe-math-optimizations ; }
+  }
+}
+if $(PlatformSpec) in clang {
+  CPPopt += -Wno-unknown-warning-option -Wno-single-bit-bitfield-constant-conversion ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

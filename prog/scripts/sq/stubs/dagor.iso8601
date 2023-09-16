@@ -1,0 +1,6 @@
+return {
+  function parse_unix_time(...) { }
+  function format_unix_time(...) { }
+  function parse_msec(...) { }
+  function format_msec(...) { }
+}

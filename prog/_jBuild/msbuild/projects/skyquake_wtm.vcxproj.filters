@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="develop">
+      <UniqueIdentifier>{8cbdfa18-5207-4b61-b7b5-0973180f564a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="scripts">
+      <UniqueIdentifier>{3ed34d50-0e22-45cf-ab1d-d7c616869ee3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="develop\gameBase">
+      <UniqueIdentifier>{972ed196-eeb9-4282-939d-db7dfbf52d14}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gameBase">
+      <UniqueIdentifier>{8bc7fa8d-7afd-40b6-a17e-c1c836a05574}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Bat Include="$(SkyQuakeDir)develop\build_all_vroms.bat" />
+    <Bat Include="$(SkyQuakeDir)develop\gameBase\create_vfsroms.bat">
+      <Filter>develop\gameBase</Filter>
+    </Bat>
+    <Bat Include="$(ProjectRootDir)scripts\create_vfsroms_wtm.bat">
+      <Filter>scripts</Filter>
+    </Bat>
+    <Bat Include="$(ProjectRootDir)gameBase\create_vfsroms_wtm.bat">
+      <Filter>gameBase</Filter>
+    </Bat>
+  </ItemGroup>
+</Project>

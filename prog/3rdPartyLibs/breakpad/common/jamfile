@@ -1,0 +1,48 @@
+Root    ?= ../../../.. ;
+BreakpadRoot = prog/3rdPartyLibs/breakpad ;
+Location = $(BreakpadRoot)/common ;
+Platform ?= linux64 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/breakpad/common.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(Platform) = macosx {
+  CPPopt += -Wno-deprecated-declarations ;
+}
+
+AddIncludes += $(Root)/$(BreakpadRoot) ;
+
+if $(Platform) in linux64 macosx {
+  Sources =
+    dwarf_cfi_to_module.cc
+    dwarf_cu_to_module.cc
+    dwarf_line_to_module.cc
+    language.cc
+    module.cc
+    stabs_reader.cc
+    stabs_to_module.cc
+    string_conversion.cc
+    convert_UTF.c
+    simple_string_dictionary.cc
+    md5.cc
+  ;
+}
+
+# Normally we should check if a.out.h or mach-o/nlist.h actually
+# exists  but I know of no way to do this with jam
+# It is needed to compile StabsReader properly
+if $(Platform) in linux64 {
+  CPPopt += -DHAVE_A_OUT_H=1 ;
+} else if $(Platform) in macosx {
+  CPPopt += -DHAVE_MACH_O_NLIST_H=1 ;
+}
+
+if $(PlatformSpec) in gcc4 clang {
+  CPPopt += -Wno-unused-parameter ;
+}
+
+ExplicitLicenseUsed += $(Root)/prog/3rdPartyLibs/breakpad ;
+
+include $(Root)/prog/_jBuild/build.jam ;

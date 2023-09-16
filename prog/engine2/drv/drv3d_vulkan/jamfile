@@ -1,0 +1,223 @@
+Root    ?= ../../../.. ;
+Location = prog/engine2/drv/drv3d_vulkan ;
+StrictCompile = yes ;
+LinuxUseX11 ?= yes ;
+
+TargetType  = lib ;
+Target      = engine2/drv/drv3d_vulkan.lib ;
+
+if $(Platform) = android && $(UseOpenGL) {
+  Exit drv3d_vulkan for $(Platform) requires unset UseOpenGL ;
+}
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(Platform) = linux64 && $(LinuxUseX11) != yes { Exit $(Target) requires LinuxUseX11\=yes under $(Platform) ; }
+
+Sources =
+  #utils
+  util/backtrace.cpp
+  util/fault_report.cpp
+
+  #engine visible interface
+  vulkan.cpp
+  d3d_resource_update_buffer.cpp
+  d3d_framebuffer.cpp
+  d3d_render_pass.cpp
+  d3d_bindless.cpp
+  init_d3di.cpp
+  buffer.cpp
+  buffer_locktransfer.cpp
+  texture.cpp
+
+  #common stuff
+  driver.cpp
+  swapchain.cpp
+  vulkan_loader.cpp
+  vulkan_instance.cpp
+  vulkan_device.cpp
+
+  #platform/vendor
+  vendor_nvidia.cpp
+  vendor_amd.cpp
+
+  #execution
+  device_context.cpp
+  device_context_fault_report.cpp
+  device_context/execution_context.cpp
+  device_context/base_context.cpp
+  device_context/render_pass.cpp
+  render_work.cpp
+  timeline.cpp
+  frame_info.cpp
+  temp_buffers.cpp
+  cleanup_queue.cpp
+
+  #shader
+  shader/program.cpp
+  shader/pipeline_description.cpp
+  shader/program_database.cpp
+  shader/spirv_extractor.cpp
+  shader/debug_program.cpp
+  shader/shader_info.cpp
+
+  #pipeline
+  raytrace/pipeline.cpp
+  pipeline/manager.cpp
+  pipeline/stage_state_base.cpp
+  pipeline/main_pipelines.cpp
+  pipeline/variated_graphics.cpp
+  render_state_system.cpp
+
+  #resources & memory
+  bindless.cpp
+  device_memory.cpp
+  device_memory_pages.cpp
+  device_resource.cpp
+  resource_manager.cpp
+  resource_allocators.cpp
+  image_resource.cpp
+  buffer_resource.cpp
+  raytrace_as_resource.cpp
+  render_pass_resource.cpp
+  render_pass_resource_fb.cpp
+  render_pass_resource_convert.cpp
+
+  #debug stuff
+  execution_markers.cpp
+  debug_ui.cpp
+  debug_ui_memory.cpp
+  debug_ui_resources.cpp
+
+  #state
+  graphics_state.cpp
+  compute_state.cpp
+  pipeline_state.cpp
+  pipeline_state_pending_references.cpp
+  raytrace_state.cpp
+  dynamic_graphics_state.cpp
+  front_framebuffer_state.cpp
+  front_render_pass_state.cpp
+  back_scope_state.cpp
+  execution_state.cpp
+
+  #state fields
+  state_field_compute.cpp
+  state_field_graphics.cpp
+  state_field_execution_context.cpp
+  state_field_raytrace.cpp
+  state_field_resource_binds.cpp
+  state_field_framebuffer.cpp
+  state_field_render_pass.cpp
+
+  #wrappers
+  pipeline_barrier.cpp
+  device_queue.cpp
+  subpass_dependency.cpp
+  pipeline_cache_file.cpp
+
+  #uncat
+  query_pools.cpp
+  device.cpp
+  render_pass.cpp
+  descriptor_set.cpp
+  device_memory_report.cpp
+;
+
+CPPopt = -DINSIDE_DRIVER ;
+if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
+if [ GLOB $(Root)/prog/3rdPartyLibs/nvsdk_ngx : * ] { CPPopt += -DHAS_NVSDK_NGX ; }
+
+if $(Platform) in android win32 win64 linux32 linux64 && $(Config) != rel {
+  Sources += renderDoc_capture_module.cpp ;
+} else {
+  Sources += renderDoc_capture_module_stub.cpp ;
+}
+
+if $(Platform) in win32 win64 {
+  Sources +=
+    os_win32.cpp
+  ;
+  AddLibs +=
+    Wintrust.lib
+  ;
+} else if $(Platform) in linux32 linux64 {
+  Sources +=
+    os_linux.cpp
+  ;
+  AddLibs += -lX11 ;
+} else if $(Platform) in nswitch {
+  Sources +=
+    os_nswitch.cpp
+  ;
+
+  if $(UseNxProfiler) = yes && $(UseNxMemoryTracker) = yes {
+    CPPopt += -DUSE_NX_MEMORY_TRACKER=1 ;
+    Target = $(Target:S=~nmp.lib) ;
+  }
+} else if $(Platform) in macosx {
+  Sources +=
+    os_macosx.mm
+  ;
+} else if $(Platform) in android {
+  Sources +=
+    os_android.cpp
+  ;
+}
+
+if $(Config) != rel {
+  UseProgLibs += gameLibs/imguiInput ;
+} else {
+  UseProgLibs += gameLibs/imguiInput/stub ;
+}
+
+if $(Platform) in win32 win64 xboxOne scarlett { CPPopt += -FId3d_config.h ; } else { CPPopt += -include $(Root)/$(Location)/d3d_config.h ; }
+if $(Platform) = linux64 { CPPopt += -DUSE_X11 ; }
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine2/drv/drv3d_commonCode
+  $(Root)/prog/engine2/drv/drv3d_vulkan
+  $(Root)/prog/3rdPartyLibs/vulkan/include
+  $(Root)/prog/3rdPartyLibs/nvapi
+  $(Root)/prog/3rdPartyLibs/vulkan/smol-v/source
+  $(Root)/prog/3rdPartyLibs/vulkan/spirv-tools/include
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/vulkan/moltenVK/include
+  $(Root)/prog/3rdPartyLibs/imgui
+;
+
+if $(Platform) in android {
+  AddIncludes += $(_DEVTOOL)/agdk/include ;
+  if $(AndroidNdkVer) in r23b {
+    if $(AndroidApiVer) in 29 {
+      AddLibs += $(_DEVTOOL)/agdk/libs/arm64-v8a_API29_NDK23_cpp_static_Release/libswappy_static.a ;
+    } else if $(AndroidApiVer) in 31 {
+      AddLibs += $(_DEVTOOL)/agdk/libs/arm64-v8a_API31_NDK23_cpp_static_Release/libswappy_static.a ;
+    } else {
+      Exit Add libraries for AGDK for Android API $(AndroidApiVer) and NDK $(AndroidNdkVer) ;
+    }
+  } else if $(AndroidNdkVer) in r25c {
+    # published original agdk has another libs structure without NDK and API dependencies
+    # if you want to use it then update AGDK and set correct lib here
+  } else {
+    Exit Add libraries for AGDK for Android API $(AndroidApiVer) and NDK $(AndroidNdkVer) ;
+  }
+}
+
+if $(Config) != rel && $(Platform) in win32 win64 {
+  AddIncludes +=
+  $(Root)/prog/3rdPartyLibs/vulkan/glslang
+   ;
+  UseProgLibs +=
+    3rdPartyLibs/vulkan/glslang
+    3rdPartyLibs/vulkan/spirv-tools
+    gameLibs/spirv
+   ;
+}
+UseProgLibs +=
+  engine2/drv/drv3d_commonCode
+  3rdPartyLibs/vulkan/smol-v
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

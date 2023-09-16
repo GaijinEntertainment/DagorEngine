@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/csgFaceRemover ;
+
+TargetType  = lib ;
+Target      = tools/libTools/csgFaceRemover.lib ;
+
+AddIncludes = 
+  $(Root)/prog/tools/sharedInclude 
+;
+
+Sources =
+  csgFaceRemover.cpp
+  geomContainerRemover.cpp 
+;
+
+
+UseProgLibs =
+  tools/libTools/staticGeom
+  3rdPartyLibs/math/carve
+;
+
+include $(Root)/prog/3rdPartyLibs/math/carve/carve-options.jam ;
+include $(Root)/prog/_jBuild/build.jam ;

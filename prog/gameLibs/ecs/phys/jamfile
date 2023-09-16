@@ -1,0 +1,40 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/ecs/phys ;
+
+TargetType  = lib ;
+Target      = gameLibs/ecs/phys.lib ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  collRes.cpp
+  collResFromEcs.cpp
+  collResFromRI.cpp
+;
+
+UseProgLibs +=
+  3rdPartyLibs/eastl
+;
+
+SourceES =
+  particlePhysSys.cpp
+  animPhysES.cpp.inl
+  animCharFastPhysES.cpp.inl
+  physBodyES.cpp.inl
+  ragdollES.cpp.inl
+  physVarsES.cpp.inl
+  gravityES.cpp.inl
+  turretControlES.cpp.inl
+;
+
+include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

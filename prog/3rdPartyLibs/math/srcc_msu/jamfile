@@ -1,0 +1,12 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/math/srcc_msu ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/math/srcc_msu.lib ;
+
+Sources =
+  is01r_c.c
+;
+
+include $(Root)/prog/_jBuild/add_null_include.jam ;
+include $(Root)/prog/_jBuild/build.jam ;

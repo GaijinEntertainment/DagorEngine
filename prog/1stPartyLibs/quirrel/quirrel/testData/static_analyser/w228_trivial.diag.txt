@@ -1,0 +1,8 @@
+WARNING: w228 (declared-never-used) let 'refreshOnWindowActivate' was declared but never used.
+testData/static_analyser/w228_trivial.nut:5:0
+
+function refreshOnWindowActivate(repeatAmount = 1, refreshPeriodSec = 10.0) {
+^-------
+    readyRefreshTime = 0
+
+

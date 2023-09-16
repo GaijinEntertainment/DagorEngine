@@ -1,0 +1,8 @@
+WARNING: w233 (const-in-bool-expr) Constant in a boolean expression.
+testData/static_analyser/w233.nut:4:19
+
+::flags <- 0x2040
+::aspect_ratio <- (::flags && 0x40)
+                   ^--------------
+
+

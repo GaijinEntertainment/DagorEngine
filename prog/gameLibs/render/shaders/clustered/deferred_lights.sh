@@ -1,0 +1,164 @@
+include "lights_cb.sh"
+
+int dynamic_lights_far_specular = 1;
+interval dynamic_lights_far_specular:off<1, on;
+
+macro DEFERRED_LIGHTS_COMMON_SHADER()
+  channel float3 pos = pos;
+  //cull_mode = none;
+
+  z_test = true;
+  z_write = false;
+  blend_src = 1; blend_dst = 1;
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos        : POSITION;
+    };
+  }
+  hlsl(ps) {
+    ##if (dynamic_lights_far_specular != off)
+    #define DYNAMIC_LIGHTS_SPECULAR 1
+    ##endif
+  }
+  hlsl(ps) {
+    #define LAMBERT_LIGHT 1
+    #define DYNAMIC_LIGHTS_EARLY_EXIT 0
+  }
+endmacro
+
+macro DEFERRED_OMNI_LIGHTS_VS_SHADER()
+  INIT_AND_USE_OMNI_LIGHTS_CB(vs)
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      //float4 point2Eye_id: TEXCOORD0;
+      float4 pos_and_radius: TEXCOORD1;
+      float4 color_and_attenuation: TEXCOORD2;
+      #if OMNI_SHADOWS
+        float4 shadow_tc_to_atlas: TEXCOORD3;
+      #endif
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput deferred_lights_vs(VsInput input, uint omni_light_index : SV_InstanceID)
+    {
+      VsOutput output;
+      ##if hardware.metal // had to do this weird int conversions cause hlsl has insertBits calls which won't compile in metal because of signed/unsigned mismatch
+      RenderOmniLight ol = omni_lights_cb[int(omni_light_index)];
+      ##else
+      RenderOmniLight ol = omni_lights_cb[omni_light_index];
+      ##endif
+      float4 pos_and_radius = ol.posRadius;
+      float3 worldPos = pos_and_radius.xyz + input.pos.xyz*pos_and_radius.w*1.15;//because it is actually not a sphere, we need to scale up
+      float4 color_and_attenuation = getFinalColor(ol, worldPos);
+
+      output.pos = mul(float4(worldPos, 1), globtm);
+      output.color_and_attenuation = color_and_attenuation;
+      output.pos_and_radius = pos_and_radius;
+      #if OMNI_SHADOWS
+        output.shadow_tc_to_atlas = getOmniLightShadowData(index);
+      #endif
+      #if LIGHT_LIMIT_SIZE
+        output.pos_and_radius.w = min(output.pos_and_radius.w, LIGHT_LIMIT_SIZE);
+      #endif
+      return output;
+    }
+  }
+endmacro
+
+macro DEFERRED_OMNI_LIGHTS_PS_SHADER()
+  hlsl(ps) {
+    #include "punctualLights.hlsl"
+    bool deferred_omni_light(VsOutput input, float4 screenpos, out float2 tc, out float3 view, out float dist, out float w, out float3 result)
+    {
+      #include "readDeferredGbuffer.hlsl"
+      float4 color_and_attenuation = input.color_and_attenuation;
+      result = perform_point_light(worldPos.xyz, view, NoV, gbuffer, gbuffer.specularColor, dynamicLightsSpecularStrength, gbuffer.ao, pos_and_radius, color_and_attenuation, shadowTcToAtlas, screenpos.xy);//use gbuffer.specularColor for equality with point_lights.sh
+      result *= pointLightsFinalAO;
+      return true;
+    }
+  }
+endmacro
+
+macro DEFERRED_SPOT_LIGHTS_VS_SHADER()
+  INIT_SPOT_LIGHTS_CB(vs)
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      //float4 point2Eye_id: TEXCOORD0;
+      nointerpolation float3 id_texId_scale : TEXCOORD0;
+      float4 pos_and_radius: TEXCOORD1;
+      float4 color_and_attenuation: TEXCOORD2;
+      float4 dir_angle: TEXCOORD3;
+    };
+  }
+
+  hlsl(vs) {
+    float3 tangent_to_world( float3 vec, float3 tangentZ )
+    {
+      float3 up = abs(tangentZ.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
+      float3 tangentX = normalize( cross( up, tangentZ ) );
+      float3 tangentY = cross( tangentZ, tangentX );
+      return tangentX * vec.x + tangentY * vec.y + tangentZ * vec.z;
+    }
+
+    VsOutput deferred_lights_vs(VsInput input, uint spot_light_index : SV_InstanceID)
+    {
+      VsOutput output;
+      ##if hardware.metal // had to do this weird int conversions cause hlsl has insertBits calls which won't compile in metal because of signed/unsigned mismatch
+      RenderSpotLight sl = spot_lights_cb[int(spot_light_index)];
+      ##else
+      RenderSpotLight sl = spot_lights_cb[spot_light_index];
+      ##endif
+      float4 pos_and_radius    = sl.lightPosRadius;
+      float4 color_and_attenuation = sl.lightColorAngleScale;
+      color_and_attenuation.w = abs(color_and_attenuation.w);
+      float4 dir_angle = sl.lightDirectionAngleOffset;
+
+      const float lightAngleScale = color_and_attenuation.a;
+      const float lightAngleOffset = dir_angle.a;
+      float2 texId_scale = sl.texId_scale.xy;
+
+      float cosOuter = -lightAngleOffset/lightAngleScale;
+      float halfTan = sqrt(1/(cosOuter*cosOuter)-1);
+      
+      float3 ofs = tangent_to_world(float3(input.pos.xy*halfTan, input.pos.z), dir_angle.xyz );
+
+      //float3 worldPos = pos_and_radius.xyz + ofs*pos_and_radius.w;
+      float3 worldPos = pos_and_radius.xyz + ofs.xyz*pos_and_radius.w;
+
+      output.id_texId_scale = float3(spot_light_index, texId_scale);
+      output.pos = mul(float4(worldPos, 1), globtm);
+      output.color_and_attenuation = color_and_attenuation;
+      output.pos_and_radius = pos_and_radius;
+      output.dir_angle = dir_angle;
+      return output;
+    }
+  }
+endmacro
+
+macro DEFERRED_SPOT_LIGHTS_PS_SHADER()
+  hlsl(ps) {
+    #include "punctualLights.hlsl"
+    bool deferred_spot_light(VsOutput input, float4 screenpos, out float2 tc, out float3 view, out float dist, out float w, out float3 result)
+    {
+      //float2 tc = (IN.screenPos.xy/IN.screenPos.w)*float2(0.5, -0.5) + float2(0.5,0.5);//fixme:better use screenpos?
+      #include "readDeferredGbuffer.hlsl"
+      float4 lightPosRadius = input.pos_and_radius;
+      float4 lightColor = input.color_and_attenuation;
+      float4 lightDirection = input.dir_angle;
+      uint spot_light_index = input.id_texId_scale.x;
+      float2 texId_scale = input.id_texId_scale.yz;
+      #define EXIT_STATEMENT return false
+      //direct copy from deferred
+      #include "oneSpotLight.hlsl"
+      //-direct copy from deferred
+      result = lightBRDF*pointLightsFinalAO;
+      return true;
+    }
+  }
+endmacro

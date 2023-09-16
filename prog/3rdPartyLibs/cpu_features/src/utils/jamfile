@@ -1,0 +1,27 @@
+Root           ?= ../../../../.. ;
+Location        = prog/3rdPartyLibs/cpu_features/src/utils ;
+Config         ?= dev ;
+
+TargetType      = exe ;
+ConsoleExe      = yes ;
+Target          = list_cpu_features.exe ;
+OutDir          = $(Root)/$(Location) ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/cpu_features/include
+;
+
+
+Sources =
+  list_cpu_features.c
+;
+
+
+UseProgLibs =
+  3rdPartyLibs/cpu_features
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

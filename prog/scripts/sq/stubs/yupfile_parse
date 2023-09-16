@@ -1,0 +1,10 @@
+return {
+  function getStr(a, b) {
+    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
+    assert(["string"].contains(type(b)), @() $"type of argument should be one of: 'string'")
+  }
+  function getInt(a, b) {
+    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
+    assert(["string"].contains(type(b)), @() $"type of argument should be one of: 'string'")
+  }
+}

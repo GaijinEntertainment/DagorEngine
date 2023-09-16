@@ -1,0 +1,18 @@
+Root    ?= ../../.. ;
+Location = prog/tools/ShaderCompiler2 ;
+if $(OS) != NT { Exit OS=$(OS) is not supported! ; }
+
+Rtti ?= no ;
+
+include $(Root)/$(Location)/jamfile-common ;
+
+Target = tools/dsc2-hlsl11.exe ;
+
+Sources += hlsl11transcode/asmShaders11.cpp ;
+
+AddLibs += D3dcompiler.lib
+;
+
+CPPopt += -D_CROSS_TARGET_DX11=1 -DBINDUMP_TARGET_BE=0 ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,42 @@
+return {
+  BAD_ACTION_HANDLE = 0xFFFF
+  BAD_ACTION_SET_HANDLE = 0xFFFF
+  get_actions_count = @() 0
+  get_action_handle_by_ord = @(_i) null
+  get_action_handle = @(...) 0
+  set_double_click_time = @(dur_ms) assert(type(dur_ms)=="integer")
+  set_long_press_time = @(dur_ms) assert(type(dur_ms)=="integer")
+  get_double_click_time = @() 1
+  get_long_press_time = @() 1
+  get_group_tag_str_for_action = @(_action) null
+  get_action_bindings_text = @(_id) ["", "", "", ""]
+  sq_format_ctrl_name = function(...) {return null}
+  format_ctrl_name = function(...) {return null}
+  BTN_pressed = 0
+  BTN_pressed_long = 1
+  BTN_pressed2 = 2
+  BTN_pressed3 = 3
+  BTN_released = 4
+  BTN_released_short = 5
+  BTN_released_long = 6
+  DEV_none = 0
+  DEV_kbd = 1
+  DEV_pointing = 2
+  DEV_gamepad = 3
+  DEV_joy = 4
+  DEV_nullstub = 31
+  GAMEPAD_VENDOR_UNKNOWN = -1
+  GAMEPAD_VENDOR_MICROSOFT = 0x45e
+  GAMEPAD_VENDOR_SONY = 0x54c
+  GAMEPAD_VENDOR_NINTENDO = 0x57e
+  set_main_gamepad_stick_dead_zone = @(_idx, _val) null
+  get_main_gamepad_stick_dead_zone = @(_idx) 0.1
+  get_user_config_base_preset = @() "default"
+  is_user_config_customized = @() true
+  get_default_preset_prefix = @() "content/common/config/default"
+  is_action_binding_set = @(_action_handle, column) assert(type(column)=="integer") ?? true
+  set_actions_binding_column_active = @(column, active) assert(type(column)=="integer" && type(active)=="bool")
+  get_actions_binding_column_active = @(column) assert(type(column)=="integer")
+  set_analog_stick_action_smooth_value = @(_action, _aim_smooth_amount) null
+  save_user_config = @(_cfg, _save_all_bindings_if_any_changed) null
+}

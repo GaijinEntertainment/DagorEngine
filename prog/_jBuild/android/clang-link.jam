@@ -1,0 +1,564 @@
+#  to be included in jBuild.jam
+
+# variants: ant gradle
+AndroidBuildEngine ?= gradle ;
+
+VRDeviceSupport ?= no ;
+
+ForceCreateAAB ?= no ;
+
+AndroidProguard ?= none ;
+
+SubGame ?= none ;
+
+rule ProcessLinkTarget
+{
+  local _LIBS =
+     c m log dl android
+     stdc++ c++abi c++_static
+  ;
+
+  if $(AndroidNdkVer) in r23b r25c {
+    _LIBS += clang_rt.builtins-aarch64-android ;
+  } else {
+    _LIBS += gcc ;
+  }
+
+  if $(TargetType) = exe
+  {
+    if $(BundleCopy) { ProcessBundleCopy $(BundleCopy) ; BundleCopy = ; } # process it here to force actual AndroidJavaCode value
+
+    # configure build engine specific settings
+    local stage_dir = $($(Target)__TmpDir)/android ;
+    local jbuild_dir = $(Root)/prog/_jBuild/$(Platform) ;
+    local jni_libs = $(stage_dir)/libs/$(AndroidArch) ;
+    local unstripped_libs = $(stage_dir)/unstripped_libs/$(AndroidArch) ;
+
+    local _LINK_OPT =
+      -shared -nostdlib
+      -Wl,--no-undefined
+      -Wl,-z,noexecstack
+      -Wl,--build-id
+      -Wl,--gc-sections
+    ;
+
+    _LINK_OPT += -L$(_A_NDK_DIR)/sources/cxx-stl/llvm-libc++/libs/$(AndroidArch) ;
+    _LINK_OPT += -L$(_A_NDK_SYSROOT_USR_LIB) ;
+    _LINK_OPT += -L$(_A_TC_ROOT)/lib64/clang/$(_AndroidClangVer)/lib/linux ;
+    if $(AndroidArch) in arm64-v8a {
+      _LINK_OPT += -L$(_A_NDK_DIR)/toolchains/aarch64-linux-android-4.9/prebuilt/$(_A_NDK_PREBUILT_SUFFIX)/lib/gcc/aarch64-linux-android/4.9.x ;
+      _LINK_OPT += -L$(_A_NDK_DIR)/toolchains/llvm/prebuilt/$(_A_NDK_PREBUILT_SUFFIX)/lib64/clang/$(_AndroidClangVer)/lib/linux/aarch64 ;
+       if $(AndroidNdkVer) in r25c {
+        _LINK_OPT += -L$(_A_NDK_SYSROOT_USR_LIB)/.. ;
+      }
+    } else {
+      _LINK_OPT += -L$(_A_NDK_DIR)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(_A_NDK_PREBUILT_SUFFIX)/lib/gcc/arm-linux-androideabi/4.9.x/armv7-a ;
+    }
+
+    if $(Config) = rel || $(Config) = irel { }
+
+    if $(Config) = rel {
+      _LINK_OPT += "-Wl,-Map,"$(OutDir)/$(Target:S=.android.map) ;
+    } else {
+      _LINK_OPT += "-Wl,-Map,"$($(Target)__TmpDir)/$(Target:S=.map) ;
+      if ! android:debuggable=\"true\" in $(AndroidAppProps) { AndroidAppProps += android:debuggable=\"true\" ; }
+    }
+
+    if $(AndroidUploadCrashlyticsSymbols) = yes {
+      AndroidGenerateDebugSymbols = 1 ;
+    }
+
+    $(Target)__LINK      = $(_LINK) ;
+    $(Target)__LINK_OPT  = $(_LINK_OPT) $(LINKopt) ;
+
+    local app = $(AndroidAppID) ;  app ?= com.gaijinent.testApp ;
+    local proj = $(Target:B) ;
+    local orientation = $(AndroidScreenOrientation) ; orientation ?= sensorLandscape ;
+    local sign_opt = ;
+
+    local ver_code = $(AndroidVersionCode) ;
+    local ver_name = $(AndroidVersionName) ;
+    local state_not_need = $(AndroidStateNotNeed) ; # false - prevent from auto restart game on crash or kill
+    ver_code ?= 1 ;
+    ver_name ?= 1.0 ;
+    state_not_need ?= true ;
+
+    local libName = $(proj) ;
+
+    if ! $(AndroidKey) {
+      AndroidKey = @$(jbuild_dir)/gaijin-debug.keystore ;
+      AndroidKeyAlias = debug ;
+      AndroidKeyPassw = gaijin ;
+    }
+    if $(AndroidKey) {
+      local key = $(AndroidKey) ;
+      local alias = $(AndroidKeyAlias) ;
+      local passw = $(AndroidKeyPassw) ;
+      alias ?= gaijin ;
+      if $(key) && $(passw) {
+        sign_opt = $(key:B) $(alias) $(passw) ;
+        ProcessBundleCopy $(key) $(key:B) ;
+      } else if $(Config) = rel {
+        Exit AndroidKey and AndroidKeyPassw must be set for Android release build ;
+      } else {
+        echo missing AndroidKeyAlias or AndroidKeyPassw, fallback to gaijin-debug.keystore ;
+        sign_opt = gaijin-debug debug gaijin ;
+        ProcessBundleCopy @$(jbuild_dir)/gaijin-debug.keystore gaijin-debug ;
+      }
+    }
+
+    local postlink =
+      mkdir $(jni_libs) "
+ "    del $(jni_libs)/$(Target:D=) "
+ "    copyfile $($(Target)__TmpDir)/$(proj).so $(jni_libs)/lib$(libName).so "
+ "
+    ;
+
+    if $(UseVersionSelector) = yes {
+      postlink += copyfile $($(Target)__TmpDir)/$(VersionSelectorMangledTarget).so $(jni_libs)/lib$(VersionSelectorMangledTarget).so "
+ " ;
+    }
+
+    if android:debuggable=\"true\" in $(AndroidAppProps) {
+      local  gdb_folder = none ;
+      switch $(AndroidArch) {
+        case armeabi-v7a : gdb_folder = android-arm ;
+        case arm64-v8a :   gdb_folder = android-arm64 ;
+      }
+      postlink += copyfile $(_A_NDK_DIR)/prebuilt/$(gdb_folder)/gdbserver/gdbserver $(jni_libs)/gdbserver "
+ " ;
+    }
+    postlink +=
+      mkdir $(stage_dir)/src "
+ "    mkdir $(OutDir) "
+ "    copyfile $($(Target)__TmpDir)/$(proj).so $(OutDir)/lib$(proj).so "
+ "
+    ;
+
+    if $(AndroidGenerateDebugSymbols) {
+      postlink +=
+        mkdir $(unstripped_libs) "
+"       copyfile $(jni_libs)/lib$(proj).so $(unstripped_libs)/lib$(proj).so "
+"
+      ;
+    }
+
+    postlink +=
+      call $(_A_STRIP_EXE) --strip-debug $(jni_libs)/lib$(libName).so "
+ "
+    ;
+
+    AndroidExternalLibs ?= ;
+
+    if $(AndroidExternalLibs) {
+    postlink +=
+      call $(PYTHON_EXE) $(jbuild_dir)/update_java_external_libs.py $(stage_dir)/src $(AndroidExternalLibs) "
+ "
+      ;
+    }
+
+    local base_activity = android.app.NativeActivity ;
+    if $(UseAndroidGameActivity) = yes {
+      base_activity = com.google.androidgamesdk.GameActivity ;
+    }
+
+    postlink +=
+      call $(PYTHON_EXE) $(jbuild_dir)/update_java_native_activity.py $(stage_dir)/src $(base_activity) "
+  "
+    ;
+
+    local input_manifest = $(jbuild_dir)/AndroidManifest.template ;
+    if $(AndroidManifest) {
+      ProcessBundleCopy $(AndroidManifest) AndroidManifest.template ;
+      input_manifest = $(stage_dir)/AndroidManifest.template ;
+      AndroidManifest = ;
+    }
+
+    # process AndroidManifest even if it's customized
+    local java_cls = $(AndroidJavaClass) ;
+    java_cls ?= .none ;
+    local tv_flag = android ;
+    if $(AndroidBanner) { tv_flag = android-TV ; }
+    local app_attr = $(AndroidAppProps) ;
+    app_attr ?= android:appCategory=\"game\" ;
+    if $(java_cls) = .none && $(AndroidJavaCode) != yes {
+      app_attr += android:hasCode=\"false\" ;
+    } else {
+      app_attr += android:hasCode=\"true\" ;
+    }
+    if $(AndroidRoundIcon) {
+        app_attr += android:roundIcon=\"@mipmap/icon_round\" ;
+    }
+    local game_id = $(AndroidGameID) ;
+    local main_lib = $(proj) ;
+    game_id ?= \"\" ;
+    oculus_version ?= none ;
+
+    if $(AndroidActivities) {
+      local android_theme = "@style/Theme.AppCompat.Light.NoActionBar" ;
+      if (UseAndroidGameActivity) = yes {
+        android_theme = "@style/Application.Fullscreen" ;
+      }
+
+      for act in $(AndroidActivities) {
+        postlink +=
+          call $(PYTHON_EXE) $(jbuild_dir)/make_activity_xml.py $(act) --outdir=$(stage_dir) --ARG_SCR_ORI=$(orientation) --ARG_THEME=$(android_theme)"
+    "
+        ;
+      }
+    }
+
+    postlink +=
+      set ANDROID_APP_ATTR= $(app_attr) "
+"      call $(PYTHON_EXE) $(jbuild_dir)/make_manifest_xml.py $(input_manifest) $(stage_dir)/AndroidManifest.xml $(main_lib) $(app) $(orientation) $(AndroidSdkTarget) $(AndroidApiMinVer) $(java_cls) $(tv_flag) $(ver_code) $(ver_name) $(state_not_need) $(VRDeviceSupport) $(game_id) $(oculus_version) \" $(app_attr) \" "
+"
+    ;
+
+    if $(AndroidResources) {
+      if $(SubGame) != none {
+        for cf in $(AndroidResources) {
+            BundleCopyMasks +=
+              platform/android.bundle/$(Game)_$(SubGame)/res/$(cf)
+                res/$(cf)
+                  *.png
+            ;
+            BundleCopyMasks +=
+              platform/android.bundle/$(Game)_$(SubGame)/res/$(cf)
+                res/$(cf)
+                  *.xml
+            ;
+        }
+      } else {
+        for cf in $(AndroidResources) {
+            BundleCopyMasks +=
+              platform/android.bundle/$(Game)/res/$(cf)
+                res/$(cf)
+                  *.png
+            ;
+            BundleCopyMasks +=
+              platform/android.bundle/$(Game)/res/$(cf)
+                res/$(cf)
+                  *.xml
+            ;
+        }
+      }
+      AndroidResources = ;
+      AndroidIcon = ;
+      AndroidBanner = ;
+      AndroidStrings = ;
+      AndroidLayout = ;
+    } else {
+      if $(AndroidIcon) {
+        ProcessBundleCopy $(AndroidIcon) res/mipmap/icon.png ;
+        AndroidIcon = ;
+      }
+      if $(AndroidRoundIcon) {
+        ProcessBundleCopy $(AndroidRoundIcon) res/mipmap/icon.png ;
+        AndroidRoundIcon = ;
+      }
+      if $(AndroidBanner) {
+        ProcessBundleCopy $(AndroidBanner) res/drawable/banner.png ;
+        AndroidBanner = ;
+      }
+      if $(AndroidStrings) {
+        ProcessBundleCopy $(AndroidStrings) res/values/strings.xml ;
+        AndroidStrings = ;
+      } else {
+        AndroidAppIconName ?= Sample Dagor ;
+        postlink +=
+          call $(PYTHON_EXE) $(jbuild_dir)/make_strings_xml.py $(stage_dir)/res/values/strings.xml \"$(AndroidAppIconName:J=\ )\" "
+  " ;
+      }
+      if $(AndroidLayout) {
+        ProcessBundleCopy $(AndroidLayout) res/layout/main.xml ;
+        AndroidLayout = ;
+      }
+    }
+
+    local build_cfg = none ;
+    local build_cfg_bundle = none ;
+    local build_command = none ;
+    local build_command_bundle = none ;
+    local apk_name = none ;
+    local apk_name_full = none ;
+    local bundle_name = none ;
+    local bundle_name_full = none ;
+    local bundle_make = $(ForceCreateAAB) ;
+
+    switch $(AndroidBuildEngine) {
+      case ant : {
+
+        bundle_make = no ;
+
+        postlink +=
+          call $(jbuild_dir)/ant/make_build_xml.cmd $(stage_dir)/build.xml $(_A_ADK_DIR) $(proj) $(AndroidApiVer) $(sign_opt) "
+  " ;
+
+        build_cfg = debug ;
+        switch $(Config) {
+          case dev : build_cfg = release ;
+          case rel : build_cfg = release ;
+          case irel : build_cfg = instrument ;
+        }
+        if $(sign_opt) && $(Config) = dev { build_cfg = release ; }
+
+        local build_cfg_suffix = $(build_cfg) ;
+        switch $(Config) {
+          case irel : build_cfg_suffix = instrumented ;
+        }
+        if ! $(sign_opt) && $(Config) = rel { build_cfg_suffix = release-unsigned ; }
+
+        apk_name = $(proj)-$(build_cfg_suffix).apk ;
+        apk_name_full = $(stage_dir)/bin/$(apk_name) ;
+
+        build_command = call $(_A_ANT_HOME)/bin/ant.bat -quiet -f $(stage_dir)/build.xml $(build_cfg) ;
+      }
+
+      case gradle : {
+
+        build_cfg = assembleDebug ;
+        build_cfg_bundle = bundleDebug ;
+        switch $(Config) {
+          case dev :
+            build_cfg = assembleRelease ;
+            build_cfg_bundle = bundleRelease ;
+          case rel :
+            build_cfg = assembleRelease ;
+            build_cfg_bundle = bundleRelease ;
+            bundle_make = yes ;
+          case irel :
+            build_cfg = assembleRelease ;
+            build_cfg_bundle = bundleRelease ;
+            bundle_make = yes ;
+        }
+        if $(sign_opt) && $(Config) = dev {
+          build_cfg = assembleRelease ;
+          build_cfg_bundle = bundleRelease ;
+        }
+
+        local build_cfg_suffix = debug ;
+        switch $(Config) {
+          case dev : build_cfg_suffix = release ;
+          case rel : build_cfg_suffix = release ;
+          case irel : build_cfg_suffix = instrumented ;
+        }
+        if ! $(sign_opt) && $(Config) = rel { build_cfg_suffix = release-unsigned ; }
+
+        apk_name = $(proj)-$(build_cfg_suffix).apk ;
+        apk_name_full = $(stage_dir)/$(apk_name) ;
+
+        bundle_name = android-$(build_cfg_suffix).aab ;
+        bundle_name_full = $(stage_dir)/build/outputs/bundle/$(build_cfg_suffix)/$(bundle_name) ;
+        mapping_file = $(stage_dir)/build/outputs/mapping/$(build_cfg_suffix)/mapping.txt ;
+
+        # optional extra configuration in project gradle file
+        if $(AndroidGradleFile) && $(AndroidGradleFile) != none {
+          ProcessBundleCopy $(AndroidGradleFile) project.gradle ;
+          AndroidGradleFile = project.gradle ;
+        } else {
+          AndroidGradleFile = none ;
+        }
+
+        if $(AndroidRootGradleFile) {
+          postlink +=
+            copyfile $(AndroidRootGradleFile) $(stage_dir)/build.gradle "
+"
+        ;
+        } else {
+          postlink +=
+            copyfile $(jbuild_dir)/gradle/build.gradle $(stage_dir)/build.gradle "
+"
+        ;
+        }
+
+        if $(AndroidProguard) && $(AndroidProguard) != none && $(Config) = rel {
+          ProcessBundleCopy $(AndroidProguard) proguard-project.txt ;
+          AndroidProguard = proguard-project.txt ;
+        } else {
+          AndroidProguard = none ;
+        }
+
+        # Otherwise mac ignores previously set JAVA_HOME and tries to use default one
+        if $(OS) = MACOSX {
+          postlink += set JAVA_HOME=$(_A_JAVA_HOME)"
+"
+;
+        }
+
+        postlink +=
+          call $(PYTHON_EXE) $(jbuild_dir)/gradle/make_gradle_cfg.py $(stage_dir) $(_A_ADK_DIR) $(apk_name) $(AndroidGradleFile) $(ver_code) $(ver_name) $(AndroidApiMinVer) $(AndroidSdkTarget) $(sign_opt) "
+"
+        ;
+
+        build_command = call $(_A_GRADLE_CMD) $(build_cfg) --quiet --no-daemon --project-dir=$(stage_dir) ;
+        build_command_bundle = call $(_A_GRADLE_CMD) $(build_cfg_bundle) --quiet --no-daemon --project-dir=$(stage_dir) ;
+
+      }
+    }
+
+    postlink +=
+      del $(apk_name_full) "
+ "    echo Making APK "
+ "    $(build_command) "
+ "    if not exist $(apk_name_full) goto failed "
+ "    copyfile $(apk_name_full) $(OutDir)/$(Target:D=:S=).apk "
+ "  ;
+
+    if $(bundle_make) = yes {
+      postlink +=
+        del $(bundle_name_full) "
+ "      echo Making AAB "
+ "      $(build_command_bundle) "
+ "      if not exist $(bundle_name_full) goto failed "
+ "      copyfile $(bundle_name_full) $(OutDir)/$(Target:D=:S=).aab "
+ "    ;
+    }
+
+    if $(Config) = rel && $(AndroidProguard) != none {
+      postlink +=
+        if exist $(mapping_file) copyfile $(mapping_file) $(OutDir)/$(Target:D=:S=)_obfuscate.txt "
+"
+      ;
+    }
+
+    if $(AndroidUploadCrashlyticsSymbols) = yes && $(Config) = rel {
+      postlink +=
+        call $(_A_GRADLE_CMD) uploadCrashlyticsSymbolFileRelease --quiet --no-daemon --project-dir=$(stage_dir)"
+ "    ;
+    }
+
+    if $(AndroidCopyToDevice) {
+      local dest_dev = ;
+      if $(AndroidCopyToDevice) != "default" { dest_dev = -s $(AndroidCopyToDevice) ; }
+      postlink +=
+        call $(_A_ADK_DIR)/platform-tools/adb.exe $(dest_dev) install -r $(OutDir)/$(Target:D=:S=).apk "
+   "  ;
+    }
+
+    $(Target)__POSTLINK_CMD = $(postlink) ;
+    LinkExeSetBuildStamp $(Target) ;
+  }
+  else if $(TargetType) = lib
+  {
+    $(Target)__LINK     = $(_LIB) ;
+    $(Target)__LINK_OPT = $(LINKopt) ;
+  }
+  else if $(TargetType) = dll
+  {
+    local _LINK_OPT =
+      -shared -nostdlib
+      -Wl,--no-undefined
+      -Wl,-z,noexecstack
+      -Wl,--gc-sections
+    ;
+    _LINK_OPT += -L$(_A_NDK_DIR)/sources/cxx-stl/llvm-libc++/libs/$(AndroidArch) ;
+    _LINK_OPT += -L$(_A_NDK_SYSROOT_USR_LIB) ;
+    _LINK_OPT += -L$(_A_TC_ROOT)/lib64/clang/$(_AndroidClangVer)/lib/linux ;
+    if $(AndroidArch) in arm64-v8a {
+      _LINK_OPT += -L$(_A_NDK_DIR)/toolchains/aarch64-linux-android-4.9/prebuilt/$(_A_NDK_PREBUILT_SUFFIX)/lib/gcc/aarch64-linux-android/4.9.x ;
+      _LINK_OPT += -L$(_A_NDK_DIR)/toolchains/llvm/prebuilt/$(_A_NDK_PREBUILT_SUFFIX)/lib64/clang/$(_AndroidClangVer)/lib/linux/aarch64 ;
+      if $(AndroidNdkVer) in r25c {
+        _LINK_OPT += -L$(_A_NDK_SYSROOT_USR_LIB)/.. ;
+      }
+    } else {
+      _LINK_OPT += -L$(_A_NDK_DIR)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(_A_NDK_PREBUILT_SUFFIX)/lib/gcc/arm-linux-androideabi/4.9.x/armv7-a ;
+    }
+
+    if $(Config) = rel || $(Config) = irel { }
+
+    if $(Config) = rel {
+      _LINK_OPT += "-Wl,-Map,"$(OutDir)/$(Target:S=.map) ;
+    } else {
+      _LINK_OPT += "-Wl,-Map,"$($(Target)__TmpDir)/$(Target:S=.map) ;
+    }
+
+    $(Target)__LINK      = $(_LINK) ;
+    $(Target)__LINK_OPT  = $(_LINK_OPT) $(LINKopt) ;
+    $(Target)__POSTLINK_CMD =
+        copyfile $($(Target)__TmpDir)/$(Target:D=) $(OutDir)/$(Target:D=) "
+ "      call $(_A_STRIP_EXE) --strip-debug $(OutDir)/$(Target:D=)
+    ;
+    LinkExeSetBuildStamp $(Target) ;
+  }
+
+  local _ADD_LIBS = $(1) ;
+
+  if $(TargetType) in exe dll {
+    _ADD_LIBS +=  -l$(_LIBS) ;
+  }
+  $(Target)__LINK_LIBS = $(_ADD_LIBS) ;
+}
+
+rule SignPackageRule
+{
+}
+
+rule ProcessBundleCopy
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[2]) ;
+  local out = $($(Target)__TmpDir)/android ;
+
+  MakeDirectory $(out)/$(dest) : $(out)/$(dest:D) ;
+  Depends $(OutDir)/$(Target) : $(out)/$(dest) ;
+  Depends $(out)/$(dest) : $(src) ;
+  file on $(out)/$(dest) = $(dest) ;
+  raw_copy_file $(out)/$(dest) : $(src) ;
+
+  if ! $(AndroidJavaCode) && $(dest:S) = .java { AndroidJavaCode = yes ; }
+  if $(1[3]) { ProcessBundleCopy $(1[3-]) ; }
+}
+
+actions together quietly link_target
+{
+#async
+#respfile
+  set JAVA_HOME=$(_A_JAVA_HOME)
+  set ANDROID_HOME=$(_A_ADK_DIR)
+  set ANDROID_NDK_ROOT=$(_A_NDK_DIR)
+  set ANT_HOME=$(_A_ANT_HOME)
+  $(prelink_cmd)
+  echo linking $(1:B).so
+  del $(tmp_dir)/$(1:B).so
+  set Path=$(_A_GCC_BIN)
+  call $(link) $(link_opt) $(obj_list) $(_A_NDK_SYSROOT_USR_LIB)/crtbegin_so.o -Wl,--start-group $(link_libs) -Wl,--end-group -o $(tmp_dir)/$(1:B).so
+  if errorlevel 1 goto failed
+  $(postlink_cmd)
+  if errorlevel 1 goto failed
+  echo ----------------------------------------------------------------------
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  echo SUCCESSFULLY built $(1:B)$(1:S)  $(_PrintedOutput)
+  goto end
+
+  :failed
+  echo FAILED to build $(1:B)$(1:S) [Error #%errorlevel%] $(_PrintedOutput)
+  set ERRORLEVEL=13
+
+  :end
+  echo .
+}
+
+actions together quietly lib_target
+{
+#async
+#respfile
+  echo creating lib $(1:B)$(1:S)
+  del $(1)
+  call $(link[1]) rc $(link_opt) $(1) $(obj_list)
+  echo ----------------------------------------------------------------------
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  rem call $(link[2]) $(1)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  echo SUCCESSFULLY built $(1:B)$(1:S)  $(_PrintedOutput)
+  goto end
+
+  :failed
+  echo FAILED to build $(1:B)$(1:S) [Error #%errorlevel%] $(_PrintedOutput)
+  set ERRORLEVEL=13
+
+  :end
+  echo .
+}

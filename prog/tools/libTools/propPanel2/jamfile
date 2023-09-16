@@ -1,0 +1,98 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/propPanel2 ;
+
+TargetType  = lib ;
+Target      = tools/libTools/propPanel2.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  c_window_base.cpp
+  c_panel_base.cpp
+  c_panel_control.cpp
+  c_panel_placement.cpp
+  c_window_controls.cpp
+  c_util.cpp
+  c_control_event_handler.cpp
+  c_indirect.cpp
+
+  comWnd/dialog_window.cpp
+  comWnd/panel_window.cpp
+  comWnd/tool_window.cpp
+  comWnd/treeview_panel.cpp
+  comWnd/list_dialog.cpp
+  comWnd/color_dialog.cpp
+  comWnd/curve_color_dialog.cpp
+  comWnd/comControls/color_curve.cpp
+  comWnd/color_correction_info.cpp
+  comWnd/scintilla_window.cpp
+  comWnd/search_replace_dialog.cpp
+
+  panelControls/p_base.cpp
+  panelControls/p_button.cpp
+  panelControls/p_check_box.cpp
+  panelControls/p_edit_box.cpp
+  panelControls/p_file_edit_box.cpp
+  panelControls/p_file_button.cpp
+  panelControls/p_target_button.cpp
+  panelControls/p_group_box.cpp
+  panelControls/p_indent.cpp
+  panelControls/p_placeholder.cpp
+  panelControls/p_radio_group.cpp
+  panelControls/p_separator.cpp
+  panelControls/p_spin_edit_int.cpp
+  panelControls/p_spin_edit_float.cpp
+  panelControls/p_static.cpp
+  panelControls/p_tab_panel.cpp
+  panelControls/p_tab_page.cpp
+  panelControls/p_track_bar_float.cpp
+  panelControls/p_track_bar_int.cpp
+  panelControls/p_toolbar.cpp
+  panelControls/p_tool_button.cpp
+  panelControls/p_radio_button.cpp
+  panelControls/p_point4.cpp
+  panelControls/p_point3.cpp
+  panelControls/p_point2.cpp
+  panelControls/p_list_box.cpp
+  panelControls/p_multi_select_list_box.cpp
+  panelControls/p_group.cpp
+  panelControls/p_gradient_box.cpp
+  panelControls/p_text_gradient.cpp
+  panelControls/p_gradient_plot.cpp
+  panelControls/p_curve_edit.cpp
+  panelControls/p_combo_box.cpp
+  panelControls/p_color_box.cpp
+  panelControls/p_color_controls.cpp
+  panelControls/p_simple_color.cpp
+  panelControls/p_container.cpp
+  panelControls/p_extensible_container.cpp
+  panelControls/p_extensible_group.cpp
+  panelControls/p_tree.cpp
+  panelControls/p_matrix.cpp
+
+  windowControls/w_window.cpp
+  windowControls/w_simple_controls.cpp
+  windowControls/w_tree.cpp
+  windowControls/w_toolbar.cpp
+  windowControls/w_tab.cpp
+  windowControls/w_curve_math.cpp
+  windowControls/w_curve.cpp
+  windowControls/w_gradient.cpp
+  windowControls/w_gradient_plot.cpp
+  windowControls/w_text_gradient.cpp
+  windowControls/w_spin_edit.cpp
+  windowControls/w_boxes.cpp
+  windowControls/w_color_button.cpp
+  windowControls/w_track.cpp
+  windowControls/w_group_button.cpp
+  windowControls/w_updown.cpp
+  windowControls/w_ext_buttons.cpp
+;
+
+UseProgLibs =
+  3rdPartyLibs/math/srcc_msu
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

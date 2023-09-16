@@ -1,0 +1,6 @@
+fastdep is licensed under the GNU public library as found in the
+COPYING file included in this package.
+
+A local copy of libgnugetopt from FreeBSD, derived from GNU libc is
+included, also under the GNU public license.
+

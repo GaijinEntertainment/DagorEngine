@@ -1,0 +1,13 @@
+/tools/
+/samples/physTest
+/samples/*/develop
+/samples/*/game*
+/samples/*/tools
+/samples/*/application.blk
+/outerSpace/develop
+/outerSpace/game*
+/outerSpace/tools
+/outerSpace/application.blk
+/_output/
+*.pyc
+*.das.inl

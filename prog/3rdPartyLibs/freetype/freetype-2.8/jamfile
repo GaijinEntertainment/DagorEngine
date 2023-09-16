@@ -1,0 +1,240 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/freetype/freetype-2.8 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/freetype/freetype-2.8.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/freetype/freetype-2.8/include
+  $(Root)/prog/3rdPartyLibs/freetype/freetype-2.8/src
+;
+
+rule AddSrcList { Sources += $(1)/$(2).c ; }
+
+Sources = ;
+
+AddSrcList src/autofit :
+  afangles
+  afblue
+  afcjk
+  afdummy
+  afglobal
+  afhints
+  afindic
+  aflatin
+  afloader
+  afmodule
+  afpic
+  afranges
+  afshaper
+  afwarp
+;
+AddSrcList src/base :
+  basepic
+  ftadvanc
+  ftcalc
+  ftdbgmem
+  ftgloadr
+  fthash
+  ftobjs
+  ftoutln
+  ftpic
+  ftrfork
+  ftsnames
+  ftstream
+  fttrigon
+  ftutil
+
+  ftapi
+  ftbbox
+  ftbdf
+  ftbitmap
+  ftcid
+  ftdebug
+  ftfntfmt
+  ftfstype
+  ftgasp
+  ftglyph
+  ftgxval
+  ftinit
+  ftlcdfil
+  ftmm
+  ftotval
+  ftpatent
+  ftpfr
+  ftstroke
+  ftsynth
+  ftsystem
+  fttype1
+  ftwinfnt
+;
+AddSrcList src/bdf :
+  bdfdrivr
+  bdflib
+;
+AddSrcList src/cache :
+  ftcbasic
+  ftccache
+  ftcglyph
+  ftcimage
+  ftcmanag
+  ftccmap
+  ftcmru
+  ftcsbits
+;
+AddSrcList src/cff :
+  cffcmap
+  cffdrivr
+  cffgload
+  cffload
+  cffobjs
+  cffparse
+  cffpic
+  cf2arrst
+  cf2blues
+  cf2error
+  cf2font
+  cf2ft
+  cf2hints
+  cf2intrp
+  cf2read
+  cf2stack
+;
+AddSrcList src/cid :
+  cidgload
+  cidload
+  cidobjs
+  cidparse
+  cidriver
+;
+AddSrcList src/gxvalid :
+  gxvbsln
+  gxvcommn
+  gxvfeat
+  gxvjust
+  gxvkern
+  gxvlcar
+  gxvmod
+  gxvmort
+  gxvmort0
+  gxvmort1
+  gxvmort2
+  gxvmort4
+  gxvmort5
+  gxvmorx
+  gxvmorx0
+  gxvmorx1
+  gxvmorx2
+  gxvmorx4
+  gxvmorx5
+  gxvopbd
+  gxvprop
+  gxvtrak
+;
+AddSrcList src/otvalid :
+  otvbase
+  otvcommn
+  otvgdef
+  otvgpos
+  otvgsub
+  otvjstf
+  otvmath
+  otvmod
+;
+AddSrcList src/pcf :
+  pcfdrivr
+  pcfread
+  pcfutil
+;
+AddSrcList src/pfr :
+  pfrcmap
+  pfrdrivr
+  pfrgload
+  pfrload
+  pfrobjs
+  pfrsbit
+;
+AddSrcList src/psaux :
+  afmparse
+  psauxmod
+  psconv
+  psobjs
+  t1cmap
+  t1decode
+;
+AddSrcList src/pshinter :
+  pshalgo
+  pshglob
+  pshmod
+  pshpic
+  pshrec
+;
+AddSrcList src/psnames :
+  psmodule
+  pspic
+;
+AddSrcList src/raster :
+  ftraster
+  ftrend1
+  rastpic
+;
+AddSrcList src/sfnt :
+  pngshim
+  sfdriver
+  sfntpic
+  sfobjs
+  ttbdf
+  ttcmap
+  ttkern
+  ttload
+  ttmtx
+  ttpost
+  ttsbit
+;
+AddSrcList src/smooth :
+  ftgrays
+  ftsmooth
+  ftspic
+;
+AddSrcList src/truetype :
+  ttdriver
+  ttgload
+  ttgxvar
+  ttinterp
+  ttobjs
+  ttpic
+  ttpload
+  ttsubpix
+;
+AddSrcList src/type1 :
+  t1afm
+  t1driver
+  t1gload
+  t1load
+  t1objs
+  t1parse
+;
+AddSrcList src/type42 :
+  t42drivr
+  t42objs
+  t42parse
+;
+AddSrcList src/winfonts :
+  winfnt
+;
+#AddSrcList src/bzip2 : ftbzip2 ;
+#AddSrcList src/gzip  : ftgzip ;
+#AddSrcList src/lzw   : ftlzw ;
+
+Copt = -DFT2_BUILD_LIBRARY ;
+
+if $(Platform) = macosx { Sources += src/base/ftmac.c ; }
+
+if $(Platform) = win64 && $(PlatformSpec) != clang { Copt += /wd4267 ; } # conversion from 'size_t' to 'int', possible loss of data
+
+if $(PlatformSpec) in gcc4 clang {
+  CPPopt += -Wno-unused-parameter ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

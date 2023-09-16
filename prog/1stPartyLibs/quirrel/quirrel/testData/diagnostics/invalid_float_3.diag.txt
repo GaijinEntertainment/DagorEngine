@@ -1,0 +1,7 @@
+ERROR: malformed number
+testData/diagnostics/invalid_float_3.nut:1:8
+
+println(1.2.3.4)
+        ^--
+
+

@@ -1,0 +1,8 @@
+ERROR: expected hex digits after '0x'
+testData/diagnostics/need_space_after_hex.nut:2:9
+
+let x = 123
+println([0xx][1])
+         ^-
+
+

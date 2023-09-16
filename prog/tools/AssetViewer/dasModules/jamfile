@@ -1,0 +1,22 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/AssetViewer/dasModules ;
+
+StrictCompile = yes ;
+TargetType  = lib ;
+Target      = tools/AssetViewer/dasModules.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+Sources =
+  app.cpp
+;
+
+
+UseProgLibs =
+  1stPartyLibs/daScript
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

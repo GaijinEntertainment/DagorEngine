@@ -1,0 +1,146 @@
+
+method=SLR1;
+//dump_lr_automaton_to_file=true;
+//dump_grammar_to_file=true;
+//dump_precedence_to_file=true;
+//generate_verbose_prints=true;
+
+lexical_analyzer_file="dolphout.h";
+code_in_h={
+#include "intervals.h"
+#include <string>
+};
+
+terminal id(TerminalId), str(TerminalString), num(TerminalNumber),
+	hexnum(TerminalHexNumber), cpp-code(TerminalCode);
+terminal "->"(TerminalArrow), ";"(TerminalSemicolon);
+terminal "==>"(TerminalImplication), "="(TerminalAssign);
+terminal ","(TerminalComma), "/"(TerminalSlash);
+terminal "|"(TerminalOr), "&"(TerminalAnd), "~"(TerminalNot);
+terminal "("(TerminalLeftParenthesis), ")"(TerminalRightParenthesis);
+terminal "["(TerminalLeftBracket), "]"(TerminalRightBracket);
+terminal "*"(TerminalLoneAsterisk), "+"(TerminalLonePlus);
+terminal "#"(TerminalSharpSign), "@"(TerminalCommercialAt);
+terminal ".."(TerminalTwoDots), "e"(TerminalE);
+
+terminal "<"(TerminalLess), ">"(TerminalGreater),
+	"<="(TerminalLessOrEqual), ">="(TerminalGreaterOrEqual),
+	"=="(TerminalEqual), "!="(TerminalNotEqual);
+
+terminal "return"(TerminalKwReturn), "skip"(TerminalKwSkip),
+	"append"(TerminalKwAppend), "code"(TerminalKwCode),
+	"call"(TerminalKwCall), "condition"(TerminalKwCondition),
+	"range"(TerminalKwRange), "contains"(TerminalKwContains),
+	"in"(TerminalKwIn), "eof"(TerminalKwEof), "error"(TerminalKwError),
+	"true"(TerminalKwTrue), "false"(TerminalKwFalse),
+	"start_conditions"(TerminalKwStartConditions);
+
+precedence cat_rule, complement_rule, shift_other;
+precedence shift_other = id = str = num = hexnum = "(" = "[" = "e" = "#" =
+	"condition" = "range" = "contains" = "~";
+precedence "|" < "&" < shift_other < cat_rule < complement_rule < "*" = "+" < "..";
+precedence "[" < cat_rule;
+
+S -> ((rule-statement | action-statement |
+	start-conditions-statement | option-statement |
+	invalid-statement)=statements)+;
+
+rule-statement -> id=left "->"=arrow expression=right ";"=nothing;
+action-statement -> (pair-of-expressions | "eof" | "error")=expr
+	["<" start-conditions-expression=start_conditions ">"] "==>"=arrow action=action;
+start-conditions-statement -> "start_conditions" iteration_pair(id=names, ","=nothing) ";";
+option-statement -> id=left "=" iteration_pair((id | str | num | hexnum | "true" | "false" | cpp-code)=right, ",") ";";
+invalid-statement -> error ";";
+
+expression(NonterminalExpressionDisjunction) -> expression=expr1 "|"=nothing expression=expr2;
+expression(NonterminalExpressionConjunction) -> expression=expr1 "&"=nothing expression=expr2;
+expression(NonterminalExpressionConcatenation) -> expression=expr1 expression=expr2 precedence(cat_rule);
+expression(NonterminalExpressionComplement) -> "~"=nothing expression=expr precedence(complement_rule);
+expression(NonterminalExpressionOmittable) -> "["=nothing expression=expr "]"=nothing;
+expression(NonterminalExpressionInParentheses) -> "("=nothing expression=expr ")"=nothing;
+expression(NonterminalExpressionIteration) -> expression=expr ("*" | "+")=sign;
+expression(NonterminalExpressionCondition) -> "condition"=nothing "("=nothing expression-c=condition ")"=nothing;
+expression(NonterminalExpressionRange) -> "range"=range_kw "("=nothing expression-s=first_expr ","=nothing expression-s=last_expr ")"=nothing |
+						expression-s=first_expr ".."=range_kw expression-s=last_expr;
+expression(NonterminalExpressionContains) -> "contains" "("=nothing expression=expr ")"=nothing;
+expression(NonterminalExpressionEpsilon) -> "e"=nothing;
+expression(NonterminalExpressionSymbol) -> expression-s=expr;
+expression(NonterminalExpressionSharpSign) -> "#"=op;
+
+expression-s -> (id | str | num | hexnum)=symbol;
+
+expression-c(NonterminalExpressionC_Disjunction) -> expression-c=expr1 "|"=nothing expression-c=expr2;
+expression-c(NonterminalExpressionC_Conjunction) -> expression-c=expr1 "&"=nothing expression-c=expr2;
+expression-c(NonterminalExpressionC_Complement) -> "~"=nothing expression-c=expr;
+expression-c(NonterminalExpressionC_InParentheses) -> "("=nothing expression-c=expr ")"=nothing;
+expression-c(NonterminalExpressionC_Comparison) -> expression-s=left ("<" | ">" | "<=" | ">=" | "==" | "!=")=comparison_operator expression-s=right;
+expression-c(NonterminalExpressionC_In) -> expression-s=c "in"=nothing id=symbol;
+expression-c(NonterminalExpressionC_Constant) -> ("true" | "false")=true_or_false;
+
+pair-of-expressions -> expression=expr ["/"=nothing
+	(expression=lookahead | [expression=lookahead] ["~"]=not_eof "eof"=eof)
+];
+
+start-conditions-expression(NonterminalStartConditionsExpressionList) -> iteration_pair(id=names, ","=nothing);
+start-conditions-expression(NonterminalStartConditionsExpressionAsterisk) -> "*";
+
+action(NonterminalActionReturn) -> ["return"=kw] (id | str | num | hexnum)=return_value ";";
+action(NonterminalActionSkip) -> "skip"=kw ";";
+action(NonterminalActionCodeII) -> cpp-code=code [";"=semicolon];
+
+
+code_in_class[NonterminalExpression]={
+	enum ExpansionStatus
+	{
+		NOT_EXPANDED, EXPANDED, CANNOT_BE_EXPANDED, TRIVIALLY_EXPANDED
+	};
+	ExpansionStatus expansion_status;
+	UnionOfIntervals<int> *expanded; // !=NULL <==> expansion_status==EXPANDED
+	NonterminalExpression()
+	{
+		expansion_status=NOT_EXPANDED;
+		expanded=NULL;
+	}
+};
+code_in_class[NonterminalExpressionIteration]={ bool reflexive; };
+code_in_class[NonterminalExpressionRange]={ int first, last; };
+code_in_class[NonterminalExpressionS]={
+	bool is_nts; // true if it is a nonterminal symbol
+	int nn; // nonterminal number, if it is a nonterminal
+	std::vector<int> s; // a string of terminals, if it isn't a nonterminal
+	NonterminalExpressionS()
+	{
+		is_nts=false;
+		nn=-1;
+	}
+};
+code_in_class[NonterminalExpressionC_Comparison]={
+	enum Operation { EQ, NE, LT, LE, GT, GE };
+	static Operation swap_operands(Operation op)
+	{
+		if(op==EQ) return EQ;
+		else if(op==NE) return NE;
+		else if(op==LT) return GT;
+		else if(op==LE) return GE;
+		else if(op==GT) return LT;
+		else if(op==GE) return LE;
+		else throw op;
+	}
+	static const char *operation_to_s(Operation op)
+	{
+		if(op==EQ) return "==";
+		else if(op==NE) return "!=";
+		else if(op==LT) return "<";
+		else if(op==LE) return "<=";
+		else if(op==GT) return ">";
+		else if(op==GE) return ">=";
+		else throw op;
+	}
+	// it means the expression can be rewritten as
+	// 'c actual_operation symbol'
+ 	int symbol;
+ 	Operation actual_operation;
+};
+code_in_class[NonterminalExpressionC_In]={ int nn; };
+code_in_class[NonterminalExpressionC_Constant]={ bool value; };
+code_in_class[NonterminalActionCodeII]={ std::string s; };

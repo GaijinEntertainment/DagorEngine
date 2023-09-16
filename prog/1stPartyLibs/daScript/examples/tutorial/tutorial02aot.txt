@@ -1,0 +1,24 @@
+This tutorial demonstrates how to setup AOT infrastructure for projects with custom modules.
+CMakeLists.txt has details in tutorial02aot section
+
+Typically setting up project for AOT can be accomplished in 3 steps.
+
+0. Module needs to be setup as separate compilation unit or collection of includes.
+    Additionally module needs to specify aotRequire include and aot type.
+    See tutorial02module.cpp for details.
+    This step can be fully accomplished without any other project modifications.
+
+1. Setup AOT utility.
+    All custom modules needs to be available for the AOT utility.
+    For that we setup custom AOT utility executable.
+    See tutorial02_dasaot.cpp for details.
+
+2. Setup AOT target.
+    This is pure 'project setup' set to ensure that .das files are converted to .das.cpp files.
+    This step calls our custom dasAot utility and performs the conversion.
+    See CMakeLists.txt for details.
+
+3. Setup main tutorial executable.
+    results of the step 2 (in form of .das.cpp files) need to be compiled and linked with the application
+    Ahead-of-time functions need to be linked to the context after the simulation stage
+    See tutorial02aot.cpp for details

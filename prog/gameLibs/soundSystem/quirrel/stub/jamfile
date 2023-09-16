@@ -1,0 +1,22 @@
+Root    ?= ../../../../.. ;
+
+Location = prog/gameLibs/soundSystem/quirrel/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/soundSystemSq/stub.lib ;
+StrictCompile = yes ;
+
+UseQuirrel = sq3r ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/quirrel/sqrat/include
+;
+
+Sources =
+  soundSystemSqStub.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

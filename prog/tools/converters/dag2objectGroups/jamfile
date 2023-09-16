@@ -1,0 +1,50 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/dag2objectGroups ;
+ConsoleExe      = yes ;
+
+
+TargetType  = exe ;
+Target      = util/dag2obGroups.exe ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+OutDir          = $(Root)/tools/util ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+
+Sources =
+  dag_main.cpp
+  cvt_main.cpp
+
+  dag2obGroups.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+
+  engine2/drv/drv3d_null
+  engine2/lib3d
+  engine2/shaders
+
+  engine2/image
+
+  engine2/ioSys
+  engine2/perfMon/daProfilerStub
+
+  tools/libTools/util
+
+  tools/libTools/dagFileRW
+  tools/libTools/staticGeom
+  tools/libTools/dtx
+
+
+  3rdPartyLibs/image/psdRead
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

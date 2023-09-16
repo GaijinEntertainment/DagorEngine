@@ -1,0 +1,9 @@
+WARNING: w220 (potentially-nulled-container) 'foreach' on potentially nullable expression.
+testData/static_analyser/w220.nut:4:15
+
+let function foo(a){ //-declared-never-used
+  foreach(x in a?.y()) {
+               ^-----
+    ::print(x)
+
+

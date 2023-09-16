@@ -1,0 +1,67 @@
+#repl-root {
+  display: none; /* shown by script after initialization */
+  height: 100vh;
+}
+
+.editor-container {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 8px;
+}
+.editor-container:first-child {
+  margin-right: 0;
+}
+.editor-header {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  list-style: none;
+}
+
+.editor-header > li {
+  list-style: none;
+}
+
+.editor-header > li:last-child {
+  margin-left: auto;
+}
+.editor-header > li > span {
+  height: 38px;
+  line-height: 38px;
+}
+.editor-header > li > a {
+  height: 38px;
+  line-height: 38px;
+  padding: .3em .5em;
+  border: 1px solid red;
+}
+.editor-area {
+  flex: 1;
+  border: 1px solid lightgray;
+}
+.editor-info {
+  margin-top: 6px;
+  height: 160px;
+  border: 1px solid lightgray;
+  padding: 8px;
+  overflow-y: auto;
+}
+.editor-info li {
+  cursor: pointer;
+}
+.editor-sub-header {
+  padding: 4px 8px;
+}
+
+.output {
+  border: 1px solid lightgray;
+  padding: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+button#btn-run {
+  padding: 0.25rem 1rem;
+}

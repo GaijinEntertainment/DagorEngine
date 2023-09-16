@@ -1,0 +1,31 @@
+buffer collision_voxelization_tm;
+int gi_voxelize_use_multidraw;
+interval gi_voxelize_use_multidraw: off<1, on;
+
+
+macro COMMON_COLLISION_RENDER()
+  channel half4 pos=pos;
+
+  (vs) { globtm@f44 = globtm; } //not changing
+
+  (vs) {
+    matrices@buf = collision_voxelization_tm hlsl { StructuredBuffer<float4> matrices@buf; };
+  }
+  (vs) {immediate_dword_count = 1;}
+  if (gi_voxelize_use_multidraw == on)
+  {
+    USE_INDIRECT_DRAW()
+  }
+  hlsl(vs) {
+    ##if gi_voxelize_use_multidraw == on
+      #define USE_MULTI_DRAW 1
+    ##endif
+    struct VsInput
+    {
+      float3 pos: POSITION;  // W defaults to 1.
+      #if USE_MULTI_DRAW
+      int id: TEXCOORD0;
+      #endif
+    };
+  }
+endmacro

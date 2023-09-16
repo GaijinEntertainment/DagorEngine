@@ -1,0 +1,82 @@
+
+---- Introduction ----
+
+Detex is a low-level library that can be used to decompress textures and
+texture blocks, as well as convert between a variety of pixel formats. It has
+been developed using Linux, but is probably usable on other platforms without
+too much effort.
+
+Features include:
+
+- Decompression of texture blocks compressed using formats including
+  BC1/DXT1/S3TC, BC2, BC3, BC4/RGTC1, BC5/RGTC2, BC6 (BPTC_FLOAT), BC7 (BPTC),
+  ETC1 and the ETC2 family.
+- Flexible pixel format conversion functions between a variety of formats,
+  including many uncompressed formats and mapping HDR textures.
+- Loading and saving of KTX and DDS texture files.
+
+Included is a simple texture file viewer program (detex-view) as well as a
+command-line utility to convert between texture file formats (detex-convert).
+Also included is a validation program (detex-validate) along with a set of test
+texture files (test-texture*.*)
+
+---- Installation ----
+
+The libary configuration (static or shared, and installation paths) can be set
+in the file Makefile.conf. Compilation as a static library is recommended. Run
+make to compile the library, sudo make install to install. Compilation requires
+gcc.
+
+Run make programs to compile the programs detex-validate, detex-view and
+detex-convert. Compilation of detex-convert requires the presence of libpng12
+development headers (package libpng12-dev in Debian-based Linux distributions).
+Compilation of detex-view and detex-validate requires the presence of GTK+ 3
+development headers (package libgtk-3-dev in Debian). To install detex-view and
+detex-convert, run make install-programs.
+
+---- detex-convert ----
+
+detex-convert is a command-line utility that converts between different texture
+formats and texture file formats as well as PNG files. Both KTX and DDS texture
+files are supported, with support for a large number of compressed and
+uncompressed texture formats. The program also supports PNG files for input or
+output and writing raw output (without header).
+
+The command-line syntax is as follows:
+
+	detex-convert [<OPTIONS>] <INPUTFILE> <OUTPUTFILE>
+
+The input file and output file are mandatory. The type of input and output file
+is auto-detected based on the extension (.ktx, .dds, .raw or .png). Without any
+options, the program will convert between different texture file formats.
+
+The following options are recognized:
+
+--format <VALUE>, --format=<VALUE>, synonyms: -f, -o, --output-format
+
+	Set the output format. The input texture will be converted to this
+	format and written to the output file. Conversion from uncompressed to
+	compressed formats is not supported.
+
+--input-format <VALUE>, --input-format=<VALUE>, synonym: -i
+
+	Override the input format. Normally, the input texture format is
+        detected from the input file, this option overrides that value.
+
+--decompress, synonym: -d
+
+	When converting from a compressed input file, perform decompression to
+	an uncompressed format that matches the compressed the texture format
+	(for example, BC1/S3TC textures are decompressed to RGB8 format). When
+	the output file is a PNG file, this option is not necessary.
+
+--quiet
+
+	Suppress messages.
+
+---- Library documentation ----
+
+At present, there is no specific documentation for library functions. However,
+the functions are fairly self-explanatory and the library header file detex.h
+contains a short description of what each function does.
+

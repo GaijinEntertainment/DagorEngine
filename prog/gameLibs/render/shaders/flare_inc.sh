@@ -1,0 +1,107 @@
+float flare_star_scale = 0.02;
+float flare_star_ray = 900.0;
+float flare_halo_space_mul = 1.0;
+float flare_ghosts_space_mul = 1.0;
+int flare_enabled = 0;
+int flare_use_covering = 0;
+texture flareLenseCovering; // dust, dirt, etc.
+texture flareSrcGlob;
+
+macro INIT_FLARE_TEXTURES(sampler_name)
+  hlsl
+  {
+    #define flareSrc_samplerstate sampler_name
+    #define flareLenseCovering_samplerstate sampler_name
+
+  }
+  (ps) {
+    flareSrc@tex2d = flareSrcGlob;
+    flareLenseCovering@tex2d = flareLenseCovering;
+  }
+endmacro
+
+macro INIT_FLARE_SAMPLERS()
+  (ps) {
+    flareSrc@smp2d = flareSrcGlob;
+    flareLenseCovering@smp2d = flareLenseCovering;
+  }
+endmacro
+
+macro INIT_FLARE_PARAMS()
+  (ps) {
+    flare_params@f2 = (flare_halo_space_mul, flare_ghosts_space_mul, 0, 0);
+  }
+endmacro
+
+macro INIT_FLARE()
+  (ps) {
+    flareEnabled@i2 = (flare_enabled, flare_use_covering, 0, 0);
+    flareStarScale@f4 = (flare_star_scale, 0, 0, 0);
+    flareStarRay@f4 = (flare_star_ray, 1.0/flare_star_ray, 0, 0);
+  }
+  (vs) {
+    local_view_x@f3 = local_view_x;
+    local_view_z@f3 = local_view_z;
+  }
+  hlsl {
+    #define INIT_FLARE_VS(ROTATE_TC) float rotate: ROTATE_TC;
+  }
+  hlsl(vs) {
+    #define FILL_FLARE_VS(vsOut) { vsOut.rotate = 0.5+local_view_x.z*3+local_view_z.y*3;}
+  }
+  hlsl(ps) {
+    float2 rand2(float2 co)
+    {
+      return frac(sin(co.xy*12.9898) * 43758.5453);
+    }
+
+    float fast_atan2(float y, float x)
+    {
+      float pi = 3.141593;
+      float coeff_1 = pi / 4.0;
+      float coeff_2 = 3.0 * coeff_1;
+      //float abs_y = abs(y) + 1e-10;//to fix nan in 0, 0
+      float abs_y = abs(y);
+      float angle, r;
+      float x_add_abs_y = (x + abs_y);
+      float x_sub_abs_y = (x - abs_y);
+      angle = ( x >= 0.0 ) ?
+              (coeff_1 - coeff_1 * x_sub_abs_y * rcp(x_add_abs_y)) :
+              (coeff_2 + coeff_1 * x_add_abs_y * rcp(x_sub_abs_y));
+      return sign(y) * angle;
+    }
+    half4 flare_value(float2 texcoord, float rotate)
+    {
+        if (!flareEnabled.x)
+          return half4(0.0, 0.0, 0.0, 0.0);
+
+        float2 suv = texcoord.xy*2.0 - 1.0;
+        float angle = fast_atan2(suv.y, suv.x);
+        float n_a = frac(angle*(1/PI) + rotate);
+
+        float t_c = n_a * flareStarRay.x;
+        float f_c = frac(t_c);
+        float2 i_a_c_b_c = floor(float2(t_c,t_c)+float2(0,1));
+        i_a_c_b_c *= flareStarRay.y;
+        float2 r_a_c_b_c = rand2(i_a_c_b_c);
+
+        float r_c = lerp(r_a_c_b_c.x, r_a_c_b_c.y, f_c);
+
+        float radius = length(suv) * 0.45;
+        half starFish = half((r_c*0.4+0.6) * pow ( 1.0 - abs(radius-0.40), 4 ));
+
+        //return starFish;
+
+        float shift = 1.0 + r_c * flareStarScale.x * (0.5 + 0.5*dot(suv, suv));
+        float2 nuv = suv * shift * 0.5 + 0.5;
+
+        half4 src = h4tex2D(flareSrc, nuv);
+        BRANCH
+        if (flareEnabled.y)
+          src *= h4tex2D(flareLenseCovering, texcoord.xy) + starFish;
+        else
+          src *= starFish * half(0.8) + half(0.2);
+        return src;
+    }
+  }
+endmacro

@@ -1,0 +1,4 @@
+#directive1 #directive2:yes
+/* werwert */  #complex-directive:no
+local a = require("x.nut")
+return a.x

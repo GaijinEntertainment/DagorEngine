@@ -1,0 +1,4 @@
+if $(DabuildEmbeddedInGame) = yes { return ; }
+SSEVersion = 2 ;
+VCMathOption = -fp:precise ;
+ReproducibleExeBuild = yes ;

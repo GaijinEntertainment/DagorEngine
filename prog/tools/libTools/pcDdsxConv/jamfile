@@ -1,0 +1,68 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/pcDdsxConv ;
+include $(Root)/prog/tools/tools_setup.jam ;
+Config = rel ;
+
+if $(OS) = LINUX {
+  Platform ?= linux64 ;
+} else if $(OS) = NT {
+  Platform ?= win64 ;
+}
+
+
+TargetType = dll ;
+Target     = tools/libTools/pcDdsxConv ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+OutDir    ?= $(Root)/tools/dagor3_cdk/bin/plugins/ddsx ;
+if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/ddsx ; }
+
+Sources =
+  ddsxConvPc.cpp
+  main_mem.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/dagorInclude
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/tools/sharedInclude
+;
+
+AddLibs =
+  advapi32.lib
+  gdi32.lib
+  user32.lib
+;
+
+if $(Platform) = linux64 {
+  Target = $(Target).so ;
+  OutDir = $(Root)/tools/dagor3_cdk/bin-linux64/plugins/ddsx ;
+  AddLibs = ;
+  LINKopt = --no-undefined ;
+}
+
+if $(iOS_exp) = yes {
+  Target = tools/libTools/iosDdsxConv.dll ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/convert/nvtt-2.0.7 ;
+
+  CPPopt = -DIOS_EXP -DBUILD_FOR_GLES3  ;
+  UseProgLibs =
+    3rdPartyLibs/convert/nvtt-2.0.7
+    3rdPartyLibs/image/avif
+    3rdPartyLibs/image/jpeg-6b
+  ;
+}
+
+if $(Tegra_exp) = yes {
+  Target = tools/libTools/andDdsxConv.dll ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/convert/nvtt-2.0.7 ;
+
+  CPPopt = -DTEGRA_EXP -DBUILD_FOR_GLES3  ;
+  UseProgLibs =
+    3rdPartyLibs/convert/nvtt-2.0.7
+    3rdPartyLibs/image/jpeg-6b
+  ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

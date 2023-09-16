@@ -1,0 +1,32 @@
+WinSdkVer  = win.sdk.100 ;
+Platform ?= win64 ;
+
+Root    ?= ../../../.. ;
+Location = prog/tools/ShaderCompiler2/dx12 ;
+
+TargetType = lib ;
+Target = tools/dx12.lib ;
+
+Sources +=
+  asmShaderDXIL.cpp
+;
+
+AddIncludes +=
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs +=
+  3rdPartyLibs/hash
+  gameLibs/dxil
+;
+
+AddLibs =
+  D3dcompiler.lib # Still needs old FXC as preprocessor as DXC uses proper C preprocessor rules and not the strange MS ones
+;
+
+CPPopt = -D_CROSS_TARGET_DX12_DXIL=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT
+  # use only when it is really necessary and avoid committing it because it breaks dbg builds
+  #-D_HAS_ITERATOR_DEBUGGING=1
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

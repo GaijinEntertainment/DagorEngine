@@ -1,0 +1,34 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/mkGrpCache ;
+ConsoleExe = yes ;
+
+TargetType  = exe ;
+Target      = tools/mkGrpCache.exe ;
+
+OutDir = $(Root)/tools/util ;
+#CopyTo = $(Root)/$(Location) ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2
+;
+
+Sources =
+  mkGrpCache.cpp
+  cmain.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/perfMon/daProfilerStub
+  tools/libTools/util
+  tools/libTools/dtx
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

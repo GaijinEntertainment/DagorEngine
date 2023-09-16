@@ -1,0 +1,34 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/uriparser ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/uriparser.lib ;
+
+Sources =
+  src/UriCommon.c
+  src/UriCompare.c
+  src/UriEscape.c
+  src/UriFile.c
+  src/UriIp4Base.c
+  src/UriIp4.c
+  src/UriMemory.c
+  src/UriNormalizeBase.c
+  src/UriNormalize.c
+  src/UriParseBase.c
+  src/UriParse.c
+  src/UriQuery.c
+  src/UriRecompose.c
+  src/UriResolve.c
+  src/UriShorten.c
+;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/uriparser/include
+  $(Root)/prog/3rdPartyLibs/uriparser/src
+;
+
+CPPopt += -DURI_STATIC_BUILD=1
+          -DURI_NO_UNICODE=1
+  ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,1 @@
+bit-castable float4

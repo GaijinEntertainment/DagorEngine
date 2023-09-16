@@ -1,0 +1,11 @@
+local R = prog/gameLibs/render/daBfg ;
+Sources +=
+  $(R)/api/dasModules/frameGraphModule.cpp
+;
+opt on $(R)/api/dasModules/frameGraphModule.cpp = -I$(Root)/$(R) ;
+DasToStringify += $(R)/api/dasModules/frameGraphModule.das $(R)/api/dasModules/frameGraphModule.das.inl $(R)/api/dasModules/frameGraphModule.cpp ;
+DABFG_ENABLE_DAECS_INTEGRATION = yes ;
+DABFG_ENABLE_DAS_INTEGRATION = yes ;
+UseProgLibs +=
+  gameLibs/render/daBfg
+;

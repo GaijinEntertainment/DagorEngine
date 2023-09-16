@@ -1,0 +1,64 @@
+diff --git a/prog/3rdPartyLibs/metal/glslang/glslang/MachineIndependent/ParseContextBase.cpp b/prog/3rdPartyLibs/metal/glslang/glslang/MachineIndependent/ParseContextBase.cpp
+index 282ecca0e07..3855856cca1 100644
+--- a/prog/3rdPartyLibs/metal/glslang/glslang/MachineIndependent/ParseContextBase.cpp
++++ b/prog/3rdPartyLibs/metal/glslang/glslang/MachineIndependent/ParseContextBase.cpp
+@@ -605,7 +605,13 @@ void TParseContextBase::growGlobalUniformBlock(const TSourceLoc& loc, TType& mem
+     if (typeList)
+         type->setStruct(typeList);
+     TTypeLoc typeLoc = {type, loc};
+-    globalUniformBlock->getType().getWritableStruct()->push_back(typeLoc);
++	auto & struc = * globalUniformBlock->getType().getWritableStruct();
++	struc.push_back(typeLoc);
++
++	std::sort(struc.begin(), struc.end(), [](const auto& a, const auto& b)
++	{
++		return a.type->getQualifier().layoutOffset < b.type->getQualifier().layoutOffset;
++	});
+ 
+     // Insert into the symbol table.
+     if (firstNewMember == 0) {
+@@ -616,7 +622,7 @@ void TParseContextBase::growGlobalUniformBlock(const TSourceLoc& loc, TType& mem
+             error(loc, "failed to insert the global constant buffer", "uniform", "");
+     } else {
+         // This is a follow-on request; we need to amend the first insert
+-        symbolTable.amend(*globalUniformBlock, firstNewMember);
++        symbolTable.amend(*globalUniformBlock, 0);
+     }
+ 
+     ++firstNewMember;
+diff --git a/prog/3rdPartyLibs/metal/glslang/glslang/MachineIndependent/SymbolTable.h b/prog/3rdPartyLibs/metal/glslang/glslang/MachineIndependent/SymbolTable.h
+index 40ca3da532c..892e1196a87 100644
+--- a/prog/3rdPartyLibs/metal/glslang/glslang/MachineIndependent/SymbolTable.h
++++ b/prog/3rdPartyLibs/metal/glslang/glslang/MachineIndependent/SymbolTable.h
+@@ -359,6 +359,7 @@ public:
+     virtual const TAnonMember* getAsAnonMember() const override { return this; }
+     virtual const TVariable& getAnonContainer() const { return anonContainer; }
+     virtual unsigned int getMemberNumber() const { return memberNumber; }
++	void setMemberNumber(unsigned int m) { memberNumber = m; }
+ 
+     virtual const TType& getType() const override
+     {
+@@ -449,10 +450,19 @@ public:
+     bool insertAnonymousMembers(TSymbol& symbol, int firstMember)
+     {
+         const TTypeList& types = *symbol.getAsVariable()->getType().getStruct();
+-        for (unsigned int m = firstMember; m < types.size(); ++m) {
+-            TAnonMember* member = new TAnonMember(&types[m].type->getFieldName(), m, *symbol.getAsVariable(), symbol.getAsVariable()->getAnonId());
+-            if (! level.insert(tLevelPair(member->getMangledName(), member)).second)
+-                return false;
++        for (unsigned int m = firstMember; m < types.size(); ++m)
++		{
++			if (level.find(types[m].type->getFieldName()) != level.end())
++			{
++				TAnonMember* member = (TAnonMember*)level[types[m].type->getFieldName()];
++				member->setMemberNumber(m);
++			}
++			else
++			{
++				TAnonMember* member = new TAnonMember(&types[m].type->getFieldName(), m, *symbol.getAsVariable(), symbol.getAsVariable()->getAnonId());
++				if (!level.insert(tLevelPair(member->getMangledName(), member)).second)
++					return false;
++			}
+         }
+ 
+         return true;

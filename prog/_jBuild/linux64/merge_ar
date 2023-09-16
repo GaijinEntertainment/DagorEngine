@@ -1,0 +1,52 @@
+#!/bin/bash
+if [ $# -lt 3 ] 
+then 
+  exit 0
+fi 
+
+mkdir /tmp/linux_ar > /dev/null
+rm -f /tmp/linux_ar/lst
+
+DIR=$(pwd)
+cd /tmp/linux_ar
+
+if [ ${1:0:1} == '/' ]
+then
+  PREFIX_OUT=
+else
+  PREFIX_OUT=$DIR/
+fi
+
+rm -f $PREFIX_OUT$1
+
+for lib in ${@:3}
+do
+  if [ ${lib:0:1} == '/' ]
+  then
+    PREFIX=
+  else
+    PREFIX=$DIR/
+  fi
+
+  $2 t $PREFIX$lib | grep 'o$' >/tmp/linux_ar/lst
+  LST=$(</tmp/linux_ar/lst)
+  for ((pass = 1; pass < 8; pass++))
+  do
+    rm -f *
+    for obj in ${LST}
+    do
+      $2 xN $pass $PREFIX$lib $obj 2>/dev/null
+    done
+    ls *.o >lst_x 2>/dev/null
+    LSTX=$(<lst_x)
+    if [ "$LSTX" == "" ]
+    then
+      break
+    fi  
+    $2 -qc $PREFIX_OUT$1 $LSTX
+  done
+done
+
+cd "$DIR"
+rm -f /tmp/linux_ar/*
+rmdir /tmp/linux_ar > /dev/null

@@ -1,0 +1,3 @@
+renderable:b=no
+collidable:b=no
+occluder:b=yes

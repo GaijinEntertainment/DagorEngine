@@ -1,0 +1,11 @@
+
+AN ERROR HAS OCCURRED [the index 'w' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyser/w248_chain.nut line [7]
+
+LOCALS
+[a] 10
+[x] TABLE={}
+[vargv] ARRAY=[]
+[this] TABLE={}

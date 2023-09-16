@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/AssetViewer/TifMask ;
+
+TargetType  = lib ;
+Target      = tools/AssetViewer/TifMask.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  tifMask.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

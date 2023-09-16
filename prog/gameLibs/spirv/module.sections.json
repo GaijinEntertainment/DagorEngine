@@ -1,0 +1,154 @@
+{
+  "info" : [
+    "This file specifies in which sections a SPIR-V module is divided and which kinds of instructions are allowed to be in them",
+    "TODO: TypesVariablesAndConstants and following are unfinished",
+    "Properties:",
+    "header-section : special section which holds the header",
+    "variadic : Can be a arbitrary (including 0) sequence of this sections",
+    "once : This section has to be there exactly one time",
+    "typedef : Can hold any type definition",
+    "constant : can hold any constant specification",
+    "sepc-constant : can hold any sepc-constant specification",
+    "variable : can hold variables",
+    "function-declaration : can hold function declarations (w/o body)",
+    "function-definition : can hold function definitions (w/ body)"
+  ],
+  "module-sections" : [
+    {
+      "name" : "Header",
+      "properties" : [
+        "header-section"
+      ]
+    },
+    {
+      "name" : "Capability",
+      "parent" : "Header",
+      "properties" : [
+        "variadic", "capabilities"
+      ],
+      "instructions" : [
+        "OpCapability"
+      ]
+    },
+    {
+      "name" : "ExtensionEnable",
+      "parent" : "Capability",
+      "properties" : [
+        "variadic", "extension-enable"
+      ],
+      "instructions" : [
+        "OpExtension"
+      ]
+    },
+    {
+      "name" : "ExtendedGrammarLoad",
+      "parent" : "ExtensionEnable",
+      "properties" : [
+        "variadic", "extended-grammar-load"
+      ],
+      "instructions" : [
+        "OpExtInstImport"
+      ]
+    },
+    {
+      "name" : "SetMemoryModel",
+      "parent" : "ExtendedGrammarLoad",
+      "properties" : [
+        "once", "set-memory-model"
+      ],
+      "instructions" : [
+        "OpMemoryModel"
+      ]
+    },
+    {
+      "name" : "EntryPoint",
+      "parent" : "SetMemoryModel",
+      "properties" : [
+        "variadic", "entry-point"
+      ],
+      "instructions" : [
+        "OpEntryPoint"
+      ]
+    },
+    {
+      "name" : "ExecutionMode",
+      "parent" : "EntryPoint",
+      "properties" : [
+        "variadic", "execution-mode"
+      ],
+      "instructions" : [
+        "OpExecutionMode",
+        "OpExecutionModeId"
+      ]
+    },
+    {
+      "name" : "DebugString",
+      "parent" : "ExecutionMode",
+      "properties" : [
+        "variadic", "string", "source-extension", "source"
+      ],
+      "instructions" : [
+        "OpString",
+        "OpSourceExtension",
+        "OpSource",
+        "OpSourceContinued"
+      ]
+    },
+    {
+      "name" : "DebugName",
+      "parent" : "DebugString",
+      "properties" : [
+        "variadic", "name"
+      ],
+      "instructions" : [
+        "OpName",
+        "OpMemberName"
+      ]
+    },
+    {
+      "name" : "ModuleProcessingInfo",
+      "parent" : "DebugName",
+      "properties" : [
+        "variadic", "module-processed"
+      ],
+      "instructions" : [
+        "OpModuleProcessed"
+      ]
+    },
+    {
+      "name" : "Annotation",
+      "parent" : "ModuleProcessingInfo",
+      "properties" : [
+        "variadic", "decoration"
+      ],
+      "instructions" : [
+        "OpDecorate",
+        "OpMemberDecorate",
+        "OpGroupDecorate",
+        "OpGroupMemberDecorate",
+        "OpDecorationGroup"
+      ]
+    },
+    {
+      "name" : "TypeVariableAndConstant",
+      "parent" : "Annotation",
+      "properties" : [
+        "variadic", "typedef", "constant", "sepc-constant", "variable", "undef"
+      ]
+    },
+    {
+      "name" : "FunctionDeclaration",
+      "parent" : "TypeVariableAndConstant",
+      "properties" : [
+        "variadic", "function-declaration"
+      ]
+    },
+    {
+      "name" : "FunctionDefinition",
+      "parent" : "FunctionDeclaration",
+      "properties" : [
+        "variadic", "function-definition"
+      ]
+    }
+  ]
+}

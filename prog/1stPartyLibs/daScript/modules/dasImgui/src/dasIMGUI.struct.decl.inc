@@ -1,0 +1,35 @@
+// this file is generated via daScript automatic C++ binder
+// all user modifications will be lost after this file is re-generated
+
+MAKE_EXTERNAL_TYPE_FACTORY(ImDrawListSharedData,ImDrawListSharedData);
+MAKE_EXTERNAL_TYPE_FACTORY(ImFontBuilderIO,ImFontBuilderIO);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiContext,ImGuiContext);
+MAKE_EXTERNAL_TYPE_FACTORY(ImNewWrapper,ImNewWrapper);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiStyle,ImGuiStyle);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiIO,ImGuiIO);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiInputTextCallbackData,ImGuiInputTextCallbackData);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiSizeCallbackData,ImGuiSizeCallbackData);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiPayload,ImGuiPayload);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiTableColumnSortSpecs,ImGuiTableColumnSortSpecs);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiTableSortSpecs,ImGuiTableSortSpecs);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiOnceUponAFrame,ImGuiOnceUponAFrame);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiTextFilter,ImGuiTextFilter);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiTextRange,ImGuiTextFilter::ImGuiTextRange);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiTextBuffer,ImGuiTextBuffer);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiStorage,ImGuiStorage);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiStoragePair,ImGuiStorage::ImGuiStoragePair);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiListClipper,ImGuiListClipper);
+MAKE_EXTERNAL_TYPE_FACTORY(ImDrawCmd,ImDrawCmd);
+MAKE_EXTERNAL_TYPE_FACTORY(ImDrawVert,ImDrawVert);
+MAKE_EXTERNAL_TYPE_FACTORY(ImDrawCmdHeader,ImDrawCmdHeader);
+MAKE_EXTERNAL_TYPE_FACTORY(ImDrawChannel,ImDrawChannel);
+MAKE_EXTERNAL_TYPE_FACTORY(ImDrawListSplitter,ImDrawListSplitter);
+MAKE_EXTERNAL_TYPE_FACTORY(ImDrawList,ImDrawList);
+MAKE_EXTERNAL_TYPE_FACTORY(ImDrawData,ImDrawData);
+MAKE_EXTERNAL_TYPE_FACTORY(ImFontConfig,ImFontConfig);
+MAKE_EXTERNAL_TYPE_FACTORY(ImFontGlyph,ImFontGlyph);
+MAKE_EXTERNAL_TYPE_FACTORY(ImFontGlyphRangesBuilder,ImFontGlyphRangesBuilder);
+MAKE_EXTERNAL_TYPE_FACTORY(ImFontAtlasCustomRect,ImFontAtlasCustomRect);
+MAKE_EXTERNAL_TYPE_FACTORY(ImFontAtlas,ImFontAtlas);
+MAKE_EXTERNAL_TYPE_FACTORY(ImFont,ImFont);
+MAKE_EXTERNAL_TYPE_FACTORY(ImGuiViewport,ImGuiViewport);

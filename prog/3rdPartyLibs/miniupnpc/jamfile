@@ -1,0 +1,46 @@
+Root           ?= ../../.. ;
+Location        = prog/3rdPartyLibs/miniupnpc ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/miniupnpc.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)
+;
+
+if $(Platform) in win32 win64 {
+  AddIncludes += $(Root)/$(Location)/_build_win32 ;
+  Copt += -D_CRT_SECURE_NO_WARNINGS -DWINSOCK_DEPRECATED_NO_WARNINGS /wd4267 ;
+} else if $(Platform) in linux64 {
+  AddIncludes += $(Root)/$(Location)/_build_linux ;
+} else if $(Platform) in macosx {
+  AddIncludes += $(Root)/$(Location)/_build_macosx ;
+} else {
+  Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+}
+
+Sources =
+  connecthostport.c
+  igd_desc_parse.c
+  minisoap.c
+  minissdpc.c
+  miniupnpc.c
+  miniwget.c
+  minixml.c
+  portlistingparse.c
+  receivedata.c
+  upnpcommands.c
+  upnpdev.c
+  upnperrors.c
+  upnpreplyparse.c
+;
+
+if $(PlatformSpec) in gcc4 clang {
+  Copt += -Wno-unused-parameter ;
+}
+
+Copt += -DMINIUPNPC_SET_SOCKET_TIMEOUT=1 -DMINIUPNPC_GET_SRC_ADDR=1 ;
+
+include $(Root)/prog/_jBuild/build.jam ;

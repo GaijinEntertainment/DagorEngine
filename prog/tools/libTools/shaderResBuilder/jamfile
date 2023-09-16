@@ -1,0 +1,39 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/shaderResBuilder ;
+
+TargetType  = lib ;
+Target      = tools/libTools/shaderResBuilder.lib ;
+
+Sources =
+  shaderMeshData.cpp
+  shSkinMeshData.cpp
+  shaderMeshCacheOpt.cpp
+  globalVertexDataConnector.cpp
+  meshDataSave.cpp
+  processMat.cpp
+  validateLods.cpp
+
+  dynSceneResSrc.cpp
+  rendInstResSrc.cpp
+
+  tristrip/stripobj.cpp
+  tristrip/tristrip.cpp
+
+  forsythTriangleReorderopt.cpp 
+;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/tools/sceneTools/impostorBaker
+;
+
+UseProgLibs =
+  3rdPartyLibs/meshoptimizer
+  3rdPartyLibs/eastl
+;
+
+CPPopt = -D_DEBUG_TAB_ ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,15 @@
+use_libs_by_default = no ; what to do if library not found in this config
+sqrat_bind_dagor_math_module = yes
+sqstd_register_io_lib = yes
+sqstd_register_system_lib = no
+sqstd_register_base_libs = yes
+sqstd_register_datetime_lib=yes
+sqrat_bind_datablock_module = yes
+register_dagor_fs = yes ; dagor.scan_folder
+register_dagor_time_module = yes
+sqrat_bind_dagor_logsys = yes ; dagor.debug, dagor.assertf, dagor.debug_dump_stack ...
+register_json = yes ; parse_json, string_to_json
+sqrat_bind_dagor_math = yes ; Point2, Point3, TMatrix, Color4 ... and random
+register_sqrat_reg_exp = yes ; class regexp2, regexp2.match, regexp2.fullmatch, regexp2.replace
+
+use_real_root = yes

@@ -1,0 +1,5 @@
+return {
+  function scan_vrom_folder(a) {
+    assert(["table"].contains(type(a)), @() $"type of argument should be one of: 'table'")
+  }
+}

@@ -1,0 +1,84 @@
+include "dagi_scene_voxels_common_25d.sh"
+include "dagi_quality.sh"
+
+float4 scene_25d_voxels_invalid_start_width;
+
+shader ssgi_clear_scene_25d_cs
+{
+  INIT_VOXELS_25D(cs)
+  USE_VOXELS_25D(cs)
+  INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(cs)
+  ENABLE_ASSERT(cs)
+  (cs) { scene_25d_voxels_invalid_start_width@f4 = scene_25d_voxels_invalid_start_width; }
+
+  hlsl(cs) {
+    RWByteAddressBuffer scene_25d_buf:register(u0);
+
+##if gi_quality != only_ao
+    #define VOXEL_25D_USE_COLOR 1
+##endif
+    #include "dagi_voxels_25d_encoding.hlsl"
+
+    [numthreads(4, VOXEL_25D_RESOLUTION_Y, 1)]
+    void ssgi_clear_scene_cs( uint2 dtId : SV_DispatchThreadID )//
+    {
+      int2 istart = int2(scene_25d_voxels_invalid_start_width.xy);
+      uint2 iwidth = uint2(scene_25d_voxels_invalid_start_width.zw);
+      if (dtId.x >= iwidth.x*iwidth.y)
+        return;
+      int2 coord = istart + int2(dtId.x%iwidth.x, dtId.x/iwidth.x);
+      uint2 wrappedCoord2 = (coord + (int(VOXEL_25D_RESOLUTION_X)/2).xx)&uint(uint(VOXEL_25D_RESOLUTION_X)-1);
+      uint3 coord3 = uint3(wrappedCoord2, dtId.y);
+    #ifdef VOXEL_25D_USE_COLOR
+      storeBuffer(scene_25d_buf, getColorBlockAddress(coord3), 0);
+    #endif
+      //!! only works if coord / istart is always aligned to alphablock size (2x2)!
+      if (all((coord3.xy&1) == 0))//since we store 2x2 blocks in 4 bytes
+        storeBuffer(scene_25d_buf, getAlphaBlockAddress(coord3), 0);
+      if (coord3.z==0)
+      {
+        int2 coordWP = int2(wrappedCoord2.xy - int2(scene_25d_voxels_origin.zw))&uint(VOXEL_25D_RESOLUTION_X-1);
+        float floorHt = ssgi_get_heightmap_2d_height_25d(scene25DCoordToWorldPos(coordWP))*getScene25dVoxelInvSizeY();
+        storeBuffer(scene_25d_buf, getFloorBlockAddress(wrappedCoord2.xy), asuint(floorHt));
+      }
+    }
+  }
+  compile("cs_5_0", "ssgi_clear_scene_cs");
+}
+
+shader ssgi_clear_scene_25d_full_cs
+{
+  INIT_VOXELS_25D(cs)
+  USE_VOXELS_25D(cs)
+  INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(cs)
+  ENABLE_ASSERT(cs)
+  (cs) { scene_25d_voxels_invalid_start_width@f4 = scene_25d_voxels_invalid_start_width; }
+  hlsl(cs) {
+  ##if gi_quality != only_ao
+    #define VOXEL_25D_USE_COLOR 1
+  ##endif
+    #include "dagi_voxels_25d_encoding.hlsl"
+    RWByteAddressBuffer scene_25d_buf:register(u0);
+    //RWByteAddressBuffer buf:register(u1);
+    [numthreads(8, 8, 1)]
+    void ssgi_clear_scene_cs( uint3 dtId : SV_DispatchThreadID )//
+    {
+      //uint address = dtId.x + dtId.y*VOXEL_25D_RESOLUTION_X + dtId.z*VOXEL_25D_RESOLUTION_Z*VOXEL_25D_RESOLUTION_X;
+      //scene_25d_buf.InterlockedAnd(getAlphaBlockAddress(dtId), 0<<getAlphaShift(dtId));
+      if (any(dtId >= VOXEL_25D_RESOLUTIONU))
+        return;
+      if (all((dtId.xy&1) == 0))//since we store 2x2 blocks in 4 bytes
+        storeBuffer(scene_25d_buf, getAlphaBlockAddress(dtId), 0);
+    #ifdef VOXEL_25D_USE_COLOR
+      storeBuffer(scene_25d_buf, getColorBlockAddress(dtId), 0);
+    #endif
+      if (dtId.z == 0)
+      {
+        int2 coord = int2(dtId.xy - int2(scene_25d_voxels_origin.zw))&uint(VOXEL_25D_RESOLUTION_X-1);
+        float floorHt = ssgi_get_heightmap_2d_height_25d(scene25DCoordToWorldPos(coord))*getScene25dVoxelInvSizeY();
+        storeBuffer(scene_25d_buf, getFloorBlockAddress(dtId.xy), asuint(floorHt));
+      }
+    }
+  }
+  compile("cs_5_0", "ssgi_clear_scene_cs");
+}

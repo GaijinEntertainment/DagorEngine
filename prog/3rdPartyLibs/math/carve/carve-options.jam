@@ -1,0 +1,12 @@
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes +=
+  $(Root)/prog/3rdPartyLibs/math/carve/include
+;
+
+CPPopt +=
+  -DWIN32 -DNDEBUG
+  -DCARVE_NODEBUG
+  -DCARVE_USE_EXACT_PREDICATES
+;
+if $(Platform) = win64 { CPPopt += -wd4267 ; } # no support for > 4G vertices

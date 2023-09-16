@@ -1,0 +1,49 @@
+return {
+  status_string = @(...) ""
+  get_xbox_login_url = @() ""
+  get_steam_link_token = @() ""
+  get_distr = @() ""
+  set_auth_token_renew_fail_cb =  @(cb) assert(type(cb)=="function")
+  get_user_info = @() null
+  get_kongzhong_fcm = @() 0
+  get_kongzhong_accountid = @() ""
+  get_authenticated_url = function(base_url, host, evt_name) {
+    assert(type(host)=="string")
+    assert(type(base_url)=="string")
+    assert(type(evt_name)=="string")
+    return base_url
+  }
+  get_authenticated_url_sso = function(url, host, service, evt_name) {
+    assert(type(url)=="string")
+    assert(type(host)=="string")
+    assert(type(service)=="string")
+    assert(type(evt_name)=="string")
+    return url
+  }
+  get_kongzhong_authenticated_url = function(url, evt_name) {
+    assert(type(evt_name)=="string")
+    return url
+  }
+  YU2_OK = "YU2_OK"
+  YU2_WRONG_PARAMETER = "YU2_WRONG_PARAMETER"
+  token_renew_fail_event = "auth.token_renew_fail"
+  get_country_code = @() ""
+  get_stoken = @(eventbus_name) eventbus_name
+  ecs_events = ["auth.login",
+                "auth.login_2step",
+                "auth.login_steam",
+                "auth.login_epic",
+                "auth.login_live",
+                "auth.login_psn",
+                "auth.login_nswitch",
+                "auth.login_googleplay",
+                "auth.login_dmm",
+                "auth.get_authenticated_url",
+                "auth.get_authenticated_url_sso",
+                "auth.get_steam_link_token",
+                "auth.get_remote_version_async",
+                "auth.token_renew_fail"
+  ]
+
+  login_live = @(...) null
+}

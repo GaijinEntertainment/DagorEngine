@@ -1,0 +1,16 @@
+return {
+  get_user_system_info = @() {}
+  get_battery = @() -1.0
+  is_charging = @() -1 //disable: -named-like-return-bool
+  get_thermal_state = @() 0
+  inline_raytracing_available = @() false
+  get_battery_capacity_mah = @() -1
+  get_network_connection_type = @() -1
+  TS_NORMAL = 0
+  TS_LIGHT = 1
+  TS_MODERATE = 2
+  TS_SEVERE = 3
+  TS_CRITICAL = 4
+  TS_EMERGENCY = 5
+  TS_SHUTDOWN = 6
+}

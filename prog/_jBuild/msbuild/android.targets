@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <UsingTask TaskName="GenerateApkRecipe" AssemblyFile="$(AndroidTaskPath)Microsoft.Build.CPPTasks.Android.dll"/>
+
+  <Target Name="_CreateApkRecipeFile" AfterTargets="Build;Rebuild" DependsOnTargets="$(CommonBuildOnlyTargets);_AssignProjectReferencesPlatformType;_GetObjIntermediatePaths;GetAdditionalLibraries;GetNativeTargetPath">
+    <GenerateApkRecipe SoPaths="@(NMakeSoLibs);@(AdditionalLibrary->'%(Fullpath)')"
+                       IntermediateDirs=""
+                       Configuration=""
+                       Platform="$(MSPlatform)"
+                       Abi="$(TargetAndroidABI)"
+                       RecipeFiles="@(DirectDependenciesRecipelistFile)"
+                       OutputFile="$(_ApkRecipeFile)" />
+
+    <!-- Output for cleaning -->
+    <ItemGroup>
+      <FileWrites Include="$(_ApkRecipeFile)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

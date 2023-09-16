@@ -1,0 +1,19 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/daGame ;
+#StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/daGame.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  netUnit.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;
+

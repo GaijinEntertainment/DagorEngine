@@ -1,0 +1,26 @@
+# Setup paths for both clients and libcef_dll, they MUST match
+if $(Platform) = macosx {
+  Cef3Version ?= 2623 ;
+} else {
+  Cef3Version ?= 4896 ;
+}
+
+Cef3SrcRoot ?= 3rdPartyLibs/cef3/v$(Cef3Version) ;
+UseProgLibs += $(Cef3SrcRoot)/libcef_dll ;
+
+if $(Cef3Version) = 2623 { # legacy file layout, platform-specific headers
+  Cef3 ?= $(_DEVTOOL)/cef3/$(Platform) ;
+  Cef3Libs ?= $(Cef3)/lib ;
+  AddIncludes +=
+    $(Cef3)          # Used by CEF3 headers internally
+    $(Cef3)/include  # We include CEF3 headers directly
+  ;
+} else { # New layout, headers and code in one place
+  Cef3 ?= $(_DEVTOOL)/cef3-$(Cef3Version) ;
+  Cef3Libs ?= $(Cef3)/$(Platform) ;
+  AddIncludes +=
+    $(Root)/prog/$(Cef3SrcRoot)
+    $(Root)/prog/$(Cef3SrcRoot)/include
+  ;
+}
+

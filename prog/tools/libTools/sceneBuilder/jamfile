@@ -1,0 +1,25 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/sceneBuilder ;
+
+TargetType  = lib ;
+Target      = tools/libTools/sceneBuilder.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+;
+
+Sources =
+  nsb_ver.cpp
+  nsb_LightmappedScene.cpp
+  nsb_calcLmMapping.cpp
+  nsb_LmsLoad.cpp
+  nsb_LmsSave.cpp
+  nsb_StaticVisualScene.cpp
+  nsb_StdTonemapper.cpp
+  nsb_savelightmaps.cpp
+  nsb_export_lt.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

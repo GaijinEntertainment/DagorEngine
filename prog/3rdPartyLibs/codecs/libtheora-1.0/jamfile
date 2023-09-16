@@ -1,0 +1,96 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/codecs/libtheora-1.0 ;
+
+IncludeEncoder  ?= no ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+if $(IncludeEncoder) = yes {
+  Target = 3rdPartyLibs/codecs/libtheora-1.0-e.lib ;
+} else {
+  Target = 3rdPartyLibs/codecs/libtheora-1.0.lib ;
+}
+
+AddIncludes =
+  $(Root)/$(Location)/../include
+;
+
+local dec_src =
+  apiwrapper.c
+  bitpack.c
+  decapiwrapper.c
+  decinfo.c
+  decode.c
+  dequant.c
+  fragment.c
+  huffdec.c
+  idct.c
+  info.c
+  internal.c
+  quant.c
+  state.c
+;
+local dec_asm_src =
+  x86_vc/mmxfrag.c
+  x86_vc/mmxidct.c
+  x86_vc/mmxloopfilter.c
+  x86_vc/mmxstate.c
+  x86_vc/x86state.c
+;
+
+local enc_src =
+  blockmap.c
+  dct.c
+  dct_decode.c
+  dct_encode.c
+  dsp.c
+  encapiwrapper.c
+  encode.c
+  encoder_huffman.c
+  encoder_idct.c
+  encoder_quant.c
+  encoder_toplevel.c
+  frarray.c
+  frinit.c
+  mcomp.c
+  misc_common.c
+  pb.c
+  pp.c
+  reconstruct.c
+  scan.c
+;
+local enc_asm_src =
+  x86_32_vs/dsp_mmx.c
+  x86_32_vs/fdct_mmx.c
+  x86_32_vs/recon_mmx.c
+;
+
+
+Sources = lib/dec/$(dec_src) ;
+Copt    = ;
+
+if $(IncludeEncoder) = yes {
+  Sources += lib/enc/$(enc_src) ;
+  AddIncludes += $(Root)/$(Location)/lib/enc
+;
+} else {
+  Sources += lib/enc/encoder_disabled.c ;
+}
+
+if $(Platform) = win32 {
+  Sources += lib/dec/$(dec_asm_src) ;
+  Copt    += -DUSE_ASM ;
+  if $(IncludeEncoder) = yes { Sources += lib/enc/$(enc_asm_src) ; }
+}
+
+# warning 4554| '>>' : check operator precedence for possible error; use parentheses to clarify precedence
+if $(Platform) in win32 win64 xboxOne scarlett { Copt += /wd4554 ; }
+if $(Platform) in ps4 ps5 { Copt += -Wno-shift-op-parentheses ; }
+if $(PlatformSpec) in clang clang64 { Copt += -Wno-logical-op-parentheses -Wno-parentheses -Wno-tautological-compare ; }
+
+if $(PlatformSpec) in gcc4 clang {
+  CPPopt += -Wno-unused-parameter ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

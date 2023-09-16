@@ -1,0 +1,25 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/AssetViewer/FastPhys ;
+
+TargetType  = lib ;
+Target      = tools/AssetViewer/FastPhys.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  fastPhys.cpp
+  fastPhysEd.cpp
+  fastPhysPanel.cpp
+  fastPhysObject.cpp
+  fastPhysBone.cpp
+  fastPhysClipper.cpp
+  fastPhysPoint.cpp
+  fastPhysChar.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

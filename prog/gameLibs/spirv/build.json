@@ -1,0 +1,26 @@
+{
+  "info" : [
+    "Generating source from the various SPIR-V def files is very complicated and needs many steps",
+    "This file declares file name and their uses to make everything simpler"
+  ],
+  "grammars" : {
+    "core" : "../../3rdPartyLibs/vulkan/spirv-tools/external/spirv-headers/include/spirv/unified1/spirv.core.grammar.json",
+    "GLSL.std.450" : "../../3rdPartyLibs/vulkan/spirv-tools/external/spirv-headers/include/spirv/unified1/extinst.glsl.std.450.grammar.json",
+    "SPV_AMD_gcn_shader" :"../../3rdPartyLibs/vulkan/spirv-tools/external/spirv-headers/include/spirv/unified1/extinst.spv-amd-gcn-shader.grammar.json",
+    "SPV_AMD_shader_ballot" : "../../3rdPartyLibs/vulkan/spirv-tools/external/spirv-headers/include/spirv/unified1/extinst.spv-amd-shader-ballot.grammar.json",
+    "SPV_AMD_shader_explicit_vertex_parameter" : "../../3rdPartyLibs/vulkan/spirv-tools/external/spirv-headers/include/spirv/unified1/extinst.spv-amd-shader-explicit-vertex-parameter.grammar.json",
+    "SPV_AMD_shader_trinary_minmax" : "../../3rdPartyLibs/vulkan/spirv-tools/external/spirv-headers/include/spirv/unified1/extinst.spv-amd-shader-trinary-minmax.grammar.json"
+  },
+  "node-declarations" : "node.declaration.json",
+  "instruction-property-overrides" : "instruction.properties.override.json",
+  "instruction-properties" : "instruction.properties.json",
+  "module-sections-info" : "module.sections.json",
+  "spec-op-white-list" : "spec.ops.whit.list.json",
+  "generated-cpp-source-file-name" : "traits_table.cpp",
+  "generated-cpp-header-file-name" : "../publicInclude/spirv/traits_table.h",
+  "base-cpp-header-file-name" : "traits_table_base.h",
+  "module-writer-file-name" : "module_writer.cpp",
+  "module-reader-file-name" : "module_reader.cpp",
+  "module-decoder-file-name" : "module_decoder.h",
+  "module-node-file-name" : "module_nodes.h"
+}

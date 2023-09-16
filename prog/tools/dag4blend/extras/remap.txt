@@ -1,0 +1,11 @@
+dynamic_perlin_layered:rendinst_perlin_layered
+
+rendinst_deferred_decal:rendinst_blend_diffuse_decal
+
+rendinst_deferred_modulate2x_decal:rendinst_modulate2x_diffuse_decal
+
+dynamic_simple:rendinst_simple
+dynamic_simple_uv:rendinst_simple_uv
+
+dynamic_layered:rendinst_layered
+dynamic_layered_uv:rendinst_layered_uv

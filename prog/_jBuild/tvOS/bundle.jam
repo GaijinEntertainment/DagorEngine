@@ -1,0 +1,186 @@
+actions together quietly raw_sym_link
+{
+  echo * rel symlink NOT WORKS ON TVOS USE COPY:  $(1) <-- $(src)
+  #call ln -fhs "$(src)" $(1)
+  #if not exist $(1) set errorlevel=13
+  set errorlevel=13
+}
+
+actions together quietly convert_png_file
+{
+  echo * convert PNG to: $(png)
+  copyfile $(2) $(1)
+  call $(_DEVTOOL)/mac/Platforms/AppleTVOS.platform/Developer/usr/bin/iphoneos-optimize -strip-PNG-text $(1)
+  if not exist $(1) set errorlevel=13
+}
+
+actions together quietly convert_plist_file
+{
+  echo * build PLIST to: $(1)
+  copyfile $(2) $(2).repl
+  del $(1)
+  call sed -i "" $(opt) $(2).repl
+  call plutil -convert binary1 -o $(1) $(2).repl
+  del $(2).repl
+  if not exist $(1) set errorlevel=13
+}
+
+actions together quietly convert_strings_file
+{
+  echo * converting loc strings: $(1)
+  call plutil -convert binary1 -o $(1) $(2)
+  if not exist $(1) set errorlevel=13
+}
+
+actions together quietly make_lang_file
+{
+  echo * create lang:    $(lang)
+  mkdir $(1:D)
+  copyfile /dev/null $(1)
+  if not exist $(1) set errorlevel=13
+}
+
+actions together quietly sign_package
+{
+  echo ------- signing package -------
+  call touch -c "$(dir)"
+  call xattr -rc "$(dir)"
+  call codesign $(opt) "$(dir)"
+}
+
+actions together quietly convert_xib_file
+{
+  echo * compile XIB to: $(xib)
+  call ibtool $(2) --compile $(1)
+  if not exist $(1) set errorlevel=13
+}
+
+rule SignPackageRule
+{
+  SignTarget = $(OutDir)/_CodeSignature/CodeResources ;
+
+  Depends $(SignTarget) : $(OutDir)/$(Target) ;
+  Depends all : $(SignTarget) ;
+  if $(tvOSArch) != i386 && $(SignatureOpt) {
+    dir on $(SignTarget) = $(OutDir) ;
+    opt on $(SignTarget) = $(SignatureOpt) ;
+    sign_package $(SignTarget) ;
+  }
+}
+
+rule ProcessBundleCopy
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[2]) ;
+
+  MakeDirectory $(OutDir)/$(dest) : $(OutDir)/$(dest:D) ;
+  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; }
+  Depends $(OutDir)/$(dest) : $(Root)/$(Location)/$(src) ;
+  file on $(OutDir)/$(dest) = $(dest) ;
+  raw_copy_file $(OutDir)/$(dest) : $(Root)/$(Location)/$(src) ;
+
+  if $(1[3]) { ProcessBundleCopy $(1[3-]) ; }
+}
+
+rule ProcessBundleSymlink
+{
+  local dest = $(1[1]) ;
+  local rel_src = $(1[2]) ;
+
+  MakeDirectory all : $(OutDir)/$(dest:D) ;
+  Depends $(OutDir)/$(dest) : $(OutDir)/$(dest:D)/$(rel_src) ;
+  NOCARE $(OutDir)/$(dest:D)/$(rel_src) ;
+  Depends all : $(OutDir)/$(dest) ;
+  src on $(OutDir)/$(dest) = $(rel_src) ;
+  raw_sym_link $(OutDir)/$(dest) : $(OutDir)/$(dest:D)/$(rel_src) ;
+
+  if $(1[3]) { ProcessBundleSymlink $(1[3-]) ; }
+}
+
+rule ProcessBundlePng
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[2]) ;
+
+  MakeDirectory all : $(OutDir)/$(dest:D) ;
+  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; }
+  Depends $(OutDir)/$(dest) : $(Root)/$(Location)/$(src) ;
+  png on $(OutDir)/$(dest) = $(dest) ;
+  convert_png_file $(OutDir)/$(dest) : $(Root)/$(Location)/$(src) ;
+
+  if $(1[3]) { ProcessBundlePng $(1[3-]) ; }
+}
+
+rule ProcessBundleCustomLang
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[2]) ;
+
+  MakeDirectory all : $(OutDir)/$(dest:D) ;
+  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; }
+  Depends $(OutDir)/$(dest) : $(src) ;
+  lngs on $(OutDir)/$(dest) = $(dest) ;
+  convert_strings_file $(OutDir)/$(dest) : $(src) ;
+
+  if $(1[3]) { ProcessBundleCustomLang $(1[3-]) ; }
+}
+
+rule ProcessBundleXib
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[2]) ;
+
+  MakeDirectory all : $(OutDir)/$(dest:D) ;
+  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; }
+  Depends $(OutDir)/$(dest) : $(Root)/$(Location)/$(src) ;
+  xib on $(OutDir)/$(dest) = $(dest) ;
+  convert_xib_file $(OutDir)/$(dest) : $(Root)/$(Location)/$(src) ;
+
+  if $(1[3]) { ProcessBundleXib $(1[3-]) ; }
+}
+
+rule ProcessBundlePlist
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[2]) ;
+
+  MakeDirectory all : $(OutDir)/$(dest:D) ;
+  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; }
+  Depends $(OutDir)/$(dest) : $(Root)/$(Location)/$(src) ;
+  plist on $(OutDir)/$(dest) = $(dest) ;
+  local uiOrient       = $(BundleUiOrient) ;
+  local devOrient      = $(BundleDevOrient) ;
+  local devOrientIpad  = $(BundleDevOrientIPad) ;
+  uiOrient      ?= UIInterfaceOrientationLandscapeLeft ;
+  devOrient     ?= <string>UIInterfaceOrientationLandscapeLeft</string>\ <string>UIInterfaceOrientationLandscapeRight</string> ;
+  devOrientIpad ?= <string>UIInterfaceOrientationLandscapeLeft</string>\ <string>UIInterfaceOrientationLandscapeRight</string> ;
+  opt on $(OutDir)/$(dest) =
+    "-e "\"s|%TVOS_VER%|$(tvOSMinVer)|g\"
+    "-e "\"s|%BUNDLE_EXE%|$(Target:B)|g\"
+    "-e "\"s|%BUNDLE_ID%|$(BundleID)|g\"
+    "-e "\"s|%BUNDLE_VERSION%|$(BundleVersion)|g\"
+    "-e "\"s|%BUNDLE_BUILD_NUMBER%|$(BundleBuildNumber)|g\"
+    "-e "\"s|%BUNDLE_NAME%|$(BundleName)|g\"
+    "-e "\"s|%BUNDLE_TITLE%|$(BundleTitle)|g\"
+  ;
+  convert_plist_file $(OutDir)/$(dest) : $(Root)/$(Location)/$(src) ;
+
+  if $(1[3]) { ProcessBundlePlist $(1[3-]) ; }
+}
+
+rule ProcessBundleLang
+{
+  for t in $(1) {
+    local dest = $(OutDir)/$(t).lproj/InfoPlist.strings ;
+    if $(SignTarget) { Depends $(SignTarget) : $(dest) ; }
+    lang on $(dest) = $(t).lproj ;
+    make_lang_file $(dest) ;
+  }
+}
+
+rule CopySignatures
+{
+# do nothing
+}
+
+include $(Root)/prog/_jBuild/macosx/mkdevtools.jam ;

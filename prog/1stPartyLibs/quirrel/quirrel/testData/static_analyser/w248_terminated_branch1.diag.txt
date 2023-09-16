@@ -1,0 +1,26 @@
+WARNING: w210 (potentially-nulled-index) Potentially nullable expression used as array index.
+testData/static_analyser/w248_terminated_branch1.nut:19:12
+
+        res[t] <- {}
+        res[nu] <- {}
+            ^-
+      }
+
+
+WARNING: w210 (potentially-nulled-index) Potentially nullable expression used as array index.
+testData/static_analyser/w248_terminated_branch1.nut:23:10
+
+      res[t][g] <- d
+      res[nu][g] <- d
+          ^-
+    }
+
+
+WARNING: w228 (declared-never-used) let 'bar' was declared but never used.
+testData/static_analyser/w248_terminated_branch1.nut:8:0
+
+function bar() {
+^--
+    let c = a.value
+
+

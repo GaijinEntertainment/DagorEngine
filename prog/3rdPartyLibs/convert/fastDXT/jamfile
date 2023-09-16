@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/convert/fastDXT ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/convert/fastDXT.lib ;
+
+Sources =
+  fastDXT.cpp
+  rygDXT.cpp
+;
+
+if $(Platform) in win32 win64 xboxOne scarlett linux64 ps4 ps5 || ( $(Platform) = macosx && $(MacOSXArch) = x86_64 ) {
+  CPPopt += -DDXT_INTR=1 ;
+}
+
+
+AddIncludes = $(Root)/prog/3rdPartyLibs/convert/fastDXT ;
+
+include $(Root)/prog/_jBuild/build.jam ;

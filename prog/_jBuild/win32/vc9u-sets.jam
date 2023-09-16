@@ -1,0 +1,41 @@
+#  Setup for MS Visual C++ 8 compiler for Win32 (to be included from jBuild.jam)
+
+_OBJ_SUFFIX  = .obj ;
+
+_VC_DIR      = $(_DEVTOOL)/vc2008 ;
+include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
+C_preopt_DirectXVer = jun2010 ;
+
+if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\Y\\Soft\\forDevelopers\\devtools\\vc2008.7z ; }
+if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: \"$(_WIN_SDK)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\Y\\Soft\\forDevelopers\\devtools\\$(WinSdkVer).7z ; }
+
+_LINK         = $(_VC_DIR)/bin/link.exe /machine:x86 ;
+_LIB          = $(_VC_DIR)/bin/lib.exe /machine:x86 ;
+_CPP_COMPILER = $(_VC_DIR)/bin/cl.exe ;
+_C_COMPILER   = $(_VC_DIR)/bin/cl.exe ;
+_ASM_COMPILER = $(_DEVTOOL)/nasm/nasmw.exe -f win32 --prefix _ ;
+_MASM_COMPILER = $(_VC_DIR)/bin/ml.exe -c -nologo ;
+
+_DEP_COMPILER = $(Root)/prog/_jBuild/fastdep-g.exe --cVC80 ;
+
+_RC_COMPILER    = $(_WIN_SDK_BIN)/rc.exe /x /i$(_WIN_SDK_INC) /i$(_VC_DIR)/Include ;
+_MT_UTIL        = $(_WIN_SDK_BIN)/mt.exe ;
+_CVTRES_EXE     = $(_VC_DIR)/bin/cvtres.exe /MACHINE:X86 /NOLOGO ;
+
+_INCLUDE      = $(_WIN_SDK_INC) $(_VC_DIR)/include ;
+_LIBPATH      = $(_VC_DIR)/lib $(_WIN_SDK_LIB) ;
+
+# make linker cmd-line ###
+for lib in $(_LIBPATH) {
+  _LINK += -libpath:$(lib) ;
+}
+
+# make compiler cmd-line ###
+_CPP_BASE_INCLUDES = -X -I$(MasterPreInclude) ;
+_C_BASE_INCLUDES   = -X -I$(MasterPreInclude) ;
+
+for inc in $(_INCLUDE) {
+  _CPP_BASE_INCLUDES += -I$(inc) ;
+  _C_BASE_INCLUDES   += -I$(inc) ;
+  _DEP_COMPILER += --x$(inc) ;
+}

@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/datacache/common ;
+TargetType  = lib ;
+Target      = gameLibs/datacache/common.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+;
+
+Sources =
+  trace.cpp
+;
+
+if $(DriverLinkage) != dynamic { UseProgLibs += engine2/kernel ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

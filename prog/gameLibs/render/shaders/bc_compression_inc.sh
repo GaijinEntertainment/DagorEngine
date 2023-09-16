@@ -1,0 +1,447 @@
+
+macro INIT_BC_COMPRESSION()
+
+  cull_mode  = none;
+  z_test = false;
+  z_write = false;
+  no_ablend;
+
+  channel float4 pos = pos;
+
+  hlsl
+  {
+    struct VsOutput
+    {
+      VS_OUT_POSITION( pos )
+      float4 tex    : TEXCOORD0;
+#ifdef BC_COMPRESSION_USE_MIPS
+      float src_mip : TEXCOORD1;
+#endif
+#ifdef BC_COMPRESSION_FOR_CUBE
+      float src_face : TEXCOORD2;
+#endif
+    };
+  }
+  DECL_POSTFX_TC_VS_RT()
+  hlsl(vs)
+  {
+    VsOutput bc_compressor_vs( float4 pos : POSITION )
+    {
+      VsOutput output;
+      output.pos = float4( pos.x, pos.y, 0.f, 1.f );
+      output.tex.xy = pos.xy * RT_SCALE_HALF + float2( 0.5f, 0.5f );
+#ifdef BC_COMPRESSION_USE_MIPS
+      float2 size = pos.zw / exp2(src_dst_mip__src_face.y);
+      output.src_mip = src_dst_mip__src_face.x;
+#else
+      float2 size = pos.zw;
+#endif
+#ifdef BC_COMPRESSION_FOR_CUBE
+      output.src_face = src_dst_mip__src_face.z;
+#endif
+      float2 invSize = float2(1,1)/size;
+      output.tex.xy = output.tex.xy - min(2*invSize, 0.5);
+      output.tex.zw = invSize;
+      return output;
+    }
+  }
+
+  hlsl(ps)
+  {
+    #include "get_cubemap_vector.hlsl"
+    #include "bc_compression.hlsl"
+
+    // 4x4 lookup
+#ifdef BC_COMPRESSION_FOR_CUBE
+    void get_texels( float4 texTc, out half4 texels[16], float src_mip, float src_face )
+#else
+    void get_texels( float4 texTc, out half4 texels[16], float src_mip )
+#endif
+    {
+      float2 src_texel_size  = texTc.zw;
+#ifdef BC_COMPRESSION_FOR_CUBE
+  #ifdef BC_COMPRESSION_USE_MIPS
+        #define GET_TEXEL(x, y) texels[y * 4 + x] = texCUBElod(src_tex, float4(GetCubemapVector2(texTc.xy + (float2(x, y) + 0.5) * src_texel_size, src_face), src_mip));
+  #else
+        #define GET_TEXEL(x, y) texels[y * 4 + x] = texCUBE(src_tex, GetCubemapVector2(texTc.xy + (float2(x, y) + 0.5) * src_texel_size, src_face));
+  #endif
+#else
+  #ifdef BC_COMPRESSION_USE_MIPS
+        #define GET_TEXEL(x, y) texels[y * 4 + x] = tex2Dlod( src_tex, float4( texTc.xy + float2( x, y ) * src_texel_size, 0, src_mip ) );
+  #else
+        #define GET_TEXEL(x, y) texels[y * 4 + x] = tex2D( src_tex, texTc.xy + float2( x, y ) * src_texel_size );
+  #endif
+#endif
+      GET_TEXEL(0,0);GET_TEXEL(1,0);GET_TEXEL(2,0);GET_TEXEL(3,0);
+      GET_TEXEL(0,1);GET_TEXEL(1,1);GET_TEXEL(2,1);GET_TEXEL(3,1);
+      GET_TEXEL(0,2);GET_TEXEL(1,2);GET_TEXEL(2,2);GET_TEXEL(3,2);
+      GET_TEXEL(0,3);GET_TEXEL(1,3);GET_TEXEL(2,3);GET_TEXEL(3,3);
+      #undef GET_TEXEL
+    }
+  }
+
+endmacro // INIT_BC_COMPRESSION
+
+//
+// BC1 color compression internal funcs
+//
+macro USE_R5G6B5_2BPP_COMPRESSION(code)
+
+  hlsl(code)
+  {
+    // pack 8 texels for pack_r5g6b5_2bpp_block
+    int pack_2bpp_8_texels( half4 texels[16], int offset, half3 min_color, half3 color_vec, float inv_color_len )
+    {
+      uint res = 0;
+
+      UNROLL
+      for ( uint i = 0 ; i < 8 ; ++i )
+      {
+        float progr = dot( texels[i + offset].rgb - min_color, color_vec ) * inv_color_len; // color progress on color line
+        //float3 cmp = step(float3( 1.f / 4.f+0.0000001, 2.f / 4.f+0.0000001, 3.f / 4.f +0.0000001), progr.xxx); // checking region
+        int3 cmp = progr.xxx >= float3( 1.f / 4.f+0.0000001, 2.f / 4.f+0.0000001, 3.f / 4.f +0.0000001); // checking region
+        //float3 cmp = progr.xxx > float3( 1.f / 4.f, 2.f / 4.f, 3.f / 4.f ); // checking region
+        // cmp res - bin output
+        // c0 = max_color, c1 = min_color
+        // 000 - 0|1 (0x01)
+        // 100 - 1|1 (0x03)
+        // 110 - 1|0 (0x02)
+        // 111 - 0|0 (0x00)
+        //uint val = 1 + dot( cmp, int3( 2, -1, -2 ) ); // convert cmp to bin pack
+        int val = (((1 + cmp.x*2) - cmp.y) - cmp.z*2);
+
+        res |= uint(val) << (2*i); // bit offset
+      }
+
+      return res;
+    }
+
+    // pack 64b block (4x16), r5g6b5 min/max color and 4x4 values 2bpp
+    int4 pack_r5g6b5_2bpp_block( half4 texels[16], half4 min_color, half4 max_color )
+    {
+      const int3 color_convert = int3( 0x1f, 0x3f, 0x1f ); // r5g6b5 normalization
+
+      int3 min_color_int = min_color.rgb * color_convert;
+      int3 max_color_int = max_color.rgb * color_convert;
+
+      int packed_min_color = (min_color_int.x << 11) + (min_color_int.y << 5) + (min_color_int.z);
+      int packed_max_color = (max_color_int.x << 11) + (max_color_int.y << 5) + (max_color_int.z);
+      //int packed_min_color = dot( min_color_int, packing_convert );
+      //int packed_max_color = dot( max_color_int, packing_convert );
+
+      if ( packed_min_color == packed_max_color ) // early out
+        return int4( packed_max_color, 0x00, 0x00, 0x00 );
+
+      // check than c0 > c1, otherwise - swap em
+      half4 tmp_min = min_color;
+      half4 tmp_max = max_color;
+
+      min_color = packed_max_color > packed_min_color ? tmp_min : tmp_max;
+      max_color = packed_max_color > packed_min_color ? tmp_max : tmp_min;
+
+      // color line
+      float3 color_vec = max_color.rgb - min_color.rgb;
+      float inv_color_len = rcp(length( color_vec ));
+      color_vec *= inv_color_len;
+
+      int4 res;
+      res.r = packed_min_color > packed_max_color ? packed_min_color : packed_max_color;//max
+      res.g = packed_min_color < packed_max_color ? packed_min_color : packed_max_color;//min( packed_min_color, packed_max_color );
+      res.b = pack_2bpp_8_texels( texels, 0, min_color.rgb, color_vec, inv_color_len );
+      res.a = pack_2bpp_8_texels( texels, 8, min_color.rgb, color_vec, inv_color_len );
+
+      return res;
+    }
+  }
+
+endmacro // USE_R5G6B5_2BPP_COMPRESSION
+
+//
+// BC1 color compression debug funcs
+//
+macro USE_R5G6B5_2BPP_COMPRESSION_DEBUG(code)
+
+  hlsl(code)
+  {
+    // DEBUG: unpack color value
+    float3 unpack_r5g6b5( int value )
+    {
+      const float3 color_convert = float3( 0x1f, 0x3f, 0x1f ); // r5g6b5 normalization
+      const int3 packing_convert = int3( 0x0800, 0x0020, 0x0001 ); // r5g6b5 bit offset
+
+      int3 color_int;
+      color_int.r = value >> 11;
+      color_int.g = ( value - color_int.r * packing_convert.x ) >> 5;
+      color_int.b = value - ( value / packing_convert.y ) * packing_convert.y;
+
+      return color_int / color_convert;
+    }
+
+    // DEBUG: unpack compressed values for PSNR check
+    int pack_2bpp_8_texels_psnr( half4 texels[16], int offset, int data, int packed_color0, int packed_color1 )
+    {
+      float3 color0 = unpack_r5g6b5( packed_color0 );
+      float3 color1 = unpack_r5g6b5( packed_color1 );
+
+      int res = 0;
+
+      for ( int i = 0 ; i < 8 ; ++i )
+      {
+        // unpack data
+        int ndata = data / 0x04;
+        int idx = data - ndata * 0x04;
+        data = ndata;
+
+        float3 col = 0.f;
+        
+        if ( packed_color0 > packed_color1 )
+        {
+          if ( idx == 0 )
+            col = color0;
+          else if ( idx == 1 )
+            col = color1;
+          else if ( idx == 2 )
+            col = ( 2.f * color0 + color1 ) / 3.f;
+          else if ( idx == 3 )
+            col = ( color0 + 2.f * color1 ) / 3.f;
+        }
+        else
+        {
+          if ( idx == 0 )
+            col = color0;
+          else if ( idx == 1 )
+            col = color1;
+          else if ( idx == 2 )
+            col = ( color0 + color1 ) / 2.f;
+          else if ( idx == 3 )
+            col = float3( 0.f, 0.f, 0.f );
+        }
+
+        // check with reference color
+        float noise = 0.f;
+        noise += abs( texels[i + offset].r - col.r );
+        noise += abs( texels[i + offset].g - col.g );
+        noise += abs( texels[i + offset].b - col.b );
+
+        // relative value, tune it!
+        const float noise_factor = 2.f;
+        float progr = noise * noise_factor;
+
+        // pack res
+        float3 cmp = progr.xxx > float3( 1.f / 4.f, 2.f / 4.f, 3.f / 4.f );
+        float val = 1.0 + dot( cmp, float3( 2, -1, -2 ) );
+
+        res += int(val) << (2*i); // bit offset
+      }
+
+      return res;
+    }
+
+    // DEBUG: PSNR check
+    int4 pack_r5g6b5_2bpp_psnr_block( half4 texels[16], half4 min_color, half4 max_color )
+    {
+      int4 ref = pack_r5g6b5_2bpp_block( texels, min_color, max_color );
+
+      int4 res;
+      res.x = 0xffff;
+      res.y = 0;
+      res.z = pack_2bpp_8_texels_psnr( texels, 0, ref.z, ref.x, ref.y );
+      res.w = pack_2bpp_8_texels_psnr( texels, 8, ref.w, ref.x, ref.y );
+      return res;
+    }
+  }
+
+endmacro // USE_R5G6B5_2BPP_COMPRESSION_DEBUG
+
+//
+// BC3-alpha / BC5-xy compression internal funcs
+//
+macro USE_X8_3BPP_COMPRESSION(code)
+
+  hlsl(code)
+  {
+    #ifndef bc4_type
+      #define bc4_type half4
+    #endif
+    // pack 8 texels for pack_x8_3bpp_block
+    int pack_3bpp_8_texels( bc4_type texels[16], int component, int offset, half min_color, float inv_color_len )
+    {
+      uint res = 0;
+      // cmp res - bin output
+      // c0 = max_color, c1 = min_color
+      // 0000/000 - 0|0|1 (0x01)
+      // 1000/000 - 1|1|1 (0x07)
+      // 1100/000 - 1|1|0 (0x06)
+      // 1110/000 - 1|0|1 (0x05)
+      // 1111/000 - 1|0|0 (0x04)
+      // 1111/100 - 0|1|1 (0x03)
+      // 1111/110 - 0|1|0 (0x02)
+      // 1111/111 - 0|0|0 (0x00)
+      #define ONE_TEXEL(i)\
+        {\
+          float progr = ( texels[i + offset][component] - min_color ) *inv_color_len;  /*value progress on color line*/\
+          int4 cmp1 = progr.xxxx > float4( 1.f / 8.f, 2.f / 8.f, 3.f / 8.f, 4.f / 8.f );\
+          int3 cmp2 = progr.xxx > float3( 5.f / 8.f, 6.f / 8.f, 7.f / 8.f );\
+          int val = 1.0 + dot( cmp1, int4( 6, -1, -1, -1 ) ) + dot( cmp2, int3( -1, -1, -2 ) );  /*convert cmp to bin pack*/\
+          res |= uint(val) << (3*i); /* bit offset*/\
+        }
+      ONE_TEXEL(0)ONE_TEXEL(1)ONE_TEXEL(2)ONE_TEXEL(3)
+      ONE_TEXEL(4)ONE_TEXEL(5)ONE_TEXEL(6)ONE_TEXEL(7)
+      #undef ONE_TEXEL
+
+      return res;
+    }
+
+    // prepare values for x8_3bpp (x:packed colors, yz:texels) 
+    int3 prepare_x8_3bpp_block( bc4_type texels[16], int component, bc4_type min_color, bc4_type max_color )
+    {
+      const int color_convert = 0xff; // x8 normalization
+      const int2 packing_convert = int2( 0x01, 0x0100 ); // x8x8 bit offset
+      half2 colors = half2( max_color[component], min_color[component] ); // c0 > c1
+
+      int2 colors_int = colors * color_convert;
+      int packed_colors = colors_int.x + (colors_int.y << 8);//dot( colors_int, packing_convert );
+
+      if ( colors_int.x == colors_int.y ) // early out
+        return int3( colors_int.x, 0x00, 0x00 );
+
+      float inv_color_len = rcp(max_color[component] - min_color[component]);
+
+      int3 values;
+      values.x = packed_colors;
+      values.y = pack_3bpp_8_texels( texels, component, 0, min_color[component], inv_color_len );
+      values.z = pack_3bpp_8_texels( texels, component, 8, min_color[component], inv_color_len );
+
+      return values;
+    }
+
+    // 64 bits block (4x16)
+    int4 pack_x8_3bpp_block_4x16( bc4_type texels[16], int component, bc4_type min_color, bc4_type max_color )
+    {
+      int3 values = prepare_x8_3bpp_block( texels, component, min_color, max_color );
+
+      int2 repacked_x_values;
+      repacked_x_values.x = values.y >> 16; // bits tail
+      repacked_x_values.y = values.y - ( repacked_x_values.x << 16 ); // bits head
+
+      int2 repacked_y_values;
+      repacked_y_values.x = values.z >> 8; // bits tail
+      repacked_y_values.y = values.z - ( repacked_y_values.x << 8 ); // bits head
+
+      // x - x8x8 colors
+      // y - first block head (16)
+      // z - first block tail (8) and second block head (8)
+      // w - second block tail (8)
+      int4 packed_block;
+      packed_block.x = values.x;
+      packed_block.y = repacked_x_values.y;
+      packed_block.z = repacked_x_values.x + ( repacked_y_values.y << 8 );
+      packed_block.w = repacked_y_values.x;
+
+      return packed_block;
+    }
+
+    // 64 bits block (2x32)
+    int2 pack_x8_3bpp_block_2x32( bc4_type texels[16], int component, bc4_type min_color, bc4_type max_color )
+    {
+      int3 values = prepare_x8_3bpp_block( texels, component, min_color, max_color );
+
+      int2 repacked_x_values;
+      repacked_x_values.x = values.y >> 16; // bits tail
+      repacked_x_values.y = values.y - (repacked_x_values.x << 16); // bits head
+
+      // x - x8x8 colors and values first block head (16 bits)
+      // y - values first block tail (8 bits) and full second block (24 bits)
+      int2 packed_block;
+      packed_block.x = values.x + (repacked_x_values.y << 16);
+      packed_block.y = repacked_x_values.x + (values.z << 8);
+
+      return packed_block;
+    }
+  }
+
+endmacro // USE_X8_3BPP_COMPRESSION
+
+//
+// BC1 (DXT1) ready-to-use func
+//
+macro USE_BC1_COMPRESSION(code)
+
+  USE_R5G6B5_2BPP_COMPRESSION(code)
+
+  hlsl(code)
+  {
+    int4 pack_bc1_block( half4 texels[16], half4 min_color, half4 max_color )
+    {
+      int4 res16 = pack_r5g6b5_2bpp_block( texels, min_color, max_color );
+      return int4(res16.r + (res16.g << 16), res16.b + (res16.a << 16), 0, 0);
+    }
+  }
+
+endmacro // USE_BC1_COMPRESSION
+
+//
+// BC3 (DXT5) ready-to-use func
+//
+macro USE_BC3_COMPRESSION(code)
+
+  USE_R5G6B5_2BPP_COMPRESSION(code)
+  USE_X8_3BPP_COMPRESSION(code)
+
+  hlsl(code)
+  {
+    int4 pack_bc3_block( half4 texels[16], half4 min_color, half4 max_color )
+    {
+      int2 alpha_block = pack_x8_3bpp_block_2x32( texels, 3, min_color, max_color );
+      int4 color_block = pack_r5g6b5_2bpp_block( texels, min_color, max_color );
+
+      int4 res;
+      res.r = alpha_block.x;
+      res.g = alpha_block.y;
+      res.b = color_block.r + (color_block.g << 16); // two r5g6b5 min/max block
+      res.a = color_block.b + (color_block.a << 16); // color block
+
+      return res;
+    }
+  }
+endmacro // USE_BC3_COMPRESSION
+
+//
+// BC4 (ATI1N) ready-to-use func
+//
+macro USE_BC4_COMPRESSION(code)
+
+  USE_X8_3BPP_COMPRESSION(code)
+
+  hlsl(code)
+  {
+    int4 pack_bc4_block( bc4_type texels[16], bc4_type min_color, bc4_type max_color )
+    {
+      int4 res16 = pack_x8_3bpp_block_4x16( texels, 0, min_color, max_color );
+      return int4(res16.r + (res16.g << 16), res16.b + (res16.a << 16), 0, 0);
+    }
+  }
+endmacro // USE_BC4_COMPRESSION
+
+//
+// BC5 (ATI2N) ready-to-use func
+//
+macro USE_BC5_COMPRESSION(code)
+
+  USE_X8_3BPP_COMPRESSION(code)
+
+  hlsl(code)
+  {
+    #ifndef bc5_type
+      #define bc5_type half4
+    #endif
+    int4 pack_bc5_block( bc5_type texels[16], bc5_type min_color, bc5_type max_color )
+    {
+      int4 res;
+      res.xy = pack_x8_3bpp_block_2x32( texels, 0, min_color, max_color );
+      res.zw = pack_x8_3bpp_block_2x32( texels, 1, min_color, max_color );
+      return res;
+    }
+  }
+endmacro // USE_BC5_COMPRESSION
+

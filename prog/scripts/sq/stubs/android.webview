@@ -1,0 +1,6 @@
+
+return {
+  show = @(url, false, url) false
+  hide = @() null
+  isShown= @() false
+}

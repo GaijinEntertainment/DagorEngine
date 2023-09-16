@@ -1,0 +1,29 @@
+Root     ?= ../../.. ;
+
+Location  = prog/gameLibs/ioEventsPoll ;
+Target    = gameLibs/ioEventsPoll.lib ;
+TargetType     = lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/libev
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+if $(Platform) in ps4 ps5 {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ;
+}
+
+if $(Platform) in win32 win64 xboxOne scarlett {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/win32 ;
+}
+
+if $(Platform) in macosx iOS tvOS {
+  CPPopt = -Wno-c++1z-compat-mangling ;
+}
+
+UseProgLibs += 3rdPartyLibs/libev ;
+Sources = ioEventsPoll.cpp ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,6 @@
+shlex.cpp
+shlex.h
+shsyn.cpp
+shsyn.h
+shsyntok.h
+*.hlsl.inl

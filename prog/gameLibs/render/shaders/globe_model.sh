@@ -1,0 +1,518 @@
+include "sky_shader_global.sh"
+include "brunetonSkies.sh"
+include "viewVecVS.sh"
+include "gbuffer.sh"
+include "psh_tangent.sh"
+include "globe_model_inc.sh"
+include "csm.sh"
+
+texture globe_color_tex;
+texture globe_normals_tex;
+texture globe_clouds_ocean_tex;
+texture globe_shadows_tex;
+texture source_tex;
+texture skies_ms_texture;
+
+float4 globe_slice_tex_size = (4096.0, 2048.0, 1.0, 0);
+float4 globe_uv_window = (1, 1, 0, 0);
+float globe_sky_light_mul = 1;
+float globe_sun_light_mul = 1;
+float globe_initial_angle = 0;
+float4 globe_clouds_color = (1.0, 1.0, 1.0, 1.0);
+float4 globe_saturate_color = (1.0, 1.0, 1.0, 0.0);
+float4 globe_tsize_wk_hk = float4(1920, 1080, 1.0, 1.0);
+
+float globe_rotate_speed = 0.0005;
+int globe_rotate_mode = 0;
+interval globe_rotate_mode: globe_rotate_planet < 1, globe_rotate_clouds;
+
+float4 globe_skies_light_dir;
+float4 globe_skies_light_color;
+float4 globe_skies_light_pos;
+
+shader globe_model
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = true;
+
+  blend_src = one; blend_dst = sa;
+  blend_asrc = one; blend_adst = zero;
+
+  if (use_extended_global_frame_block == yes)
+  {
+    INIT_CSM_SHADOW_STCODE(ps)
+    INIT_STATIC_SHADOW_BASE_STCODE(ps)
+  }
+
+  SKY_HDR()
+
+  USE_AND_INIT_VIEW_VEC_VS()
+
+  hlsl(ps) {
+    #define NO_LAYERED_FOG 1
+
+    #define ORIGIN_ALWAYS_IN_ATMOSPHERE 0
+    #define HAS_TRANSMITTANCE_SAMPLER 1
+    #define PREPARED_SKY_INSCATTER 0
+    #define SEPARATE_SINGLE_SCATTERING 12
+    #define USE_SUN_ON_SKY 0
+
+    #define SKY_AMBIENT_DISABLED 1
+    #define FOG_DISABLED 1
+
+    #define BRDF_DIFFUSE DIFFUSE_OREN_NAYAR
+    #define SPECULAR_DISABLED 0
+    #undef BRDF_SPEC_G
+    #define BRDF_SPEC_G SPEC_G_SMITH_CORRELATED_APPROX
+
+    #define toonshading 0
+  }
+  hlsl {
+    #define ORIGIN_CAN_BE_IN_SPACE 1
+  }
+  //BRUNETON_SKIES()
+
+  PACK_UNPACK_GBUFFER()
+  USE_PIXEL_TANGENT_SPACE()
+  _INIT_SUN_STCODE()
+  GLOBE_MODEL_GAME_SPECIFICS()
+
+  POSTFX_VS_VIEWVEC(0, dir)
+  (ps) {
+    globe_color_tex@smp2d = globe_color_tex;
+    globe_normals_tex@smp2d = globe_normals_tex;
+    globe_clouds_ocean_tex@smp2d = globe_clouds_ocean_tex;
+    globe_shadows_tex@smp2d = globe_shadows_tex;
+    scroll_time@f1 = (scroll_time);
+    tex_size@f4 = (globe_slice_tex_size.x, globe_slice_tex_size.y, 1/globe_slice_tex_size.x, 1/globe_slice_tex_size.y);
+    tex_num_lods@f1 = (globe_slice_tex_size.z);
+    globe_uv_window@f4 = globe_uv_window;
+    globe_sky_light_mul@f1 = (globe_sky_light_mul);
+    globe_sun_light_mul@f1 = (globe_sun_light_mul);
+    globe_initial_angle@f1 = (globe_initial_angle);
+    globe_clouds_color@f4 = globe_clouds_color;
+    globe_saturate_color@f4 = globe_saturate_color;
+    globe_tsize_wk_hk@f4 = (globe_tsize_wk_hk.x, globe_tsize_wk_hk.y, globe_tsize_wk_hk.z, globe_tsize_wk_hk.w);
+    globe_rotate_speed@f1 = (globe_rotate_speed);
+    skies_planet_radius@f1 = (skies_planet_radius);
+    bruneton_camera_position@f3 = globe_skies_light_pos;
+    skies_sun_color@f4 = globe_skies_light_color;
+    skies_primary_sun_light_dir@f3 = globe_skies_light_dir;
+    skies_ms_texture@smp2d = skies_ms_texture;
+    skies_transmittance_texture@smp2d = skies_transmittance_texture;
+  }
+  hlsl (ps)
+  {
+    #define NIGHT_BLEND_K 0.1
+
+    #define SHADOWMAP_ENABLED 1
+    float getShadow(float3 worldPos, float d_unused, float r_unused, float mu_unused)
+    {
+      //Not phyiscally correct, just uses the night approximation from calc_ground_color
+      float3 dir = -skies_primary_sun_light_dir.xzy; //=from_sun_dir if not using GMT
+      float3 vec = worldPos; //daSkies has the center of the Earth in the origo
+
+      float sunDot = dot(dir, normalize(vec));
+      float nightBlend = saturate(-sunDot / NIGHT_BLEND_K);
+      return nightBlend;
+    }
+  }
+  ATMO(ps)
+  GET_ATMO(ps)
+
+  hlsl(ps) {
+    #define NIGHT_LIGHT_COLOR half3(0.643, 0.600, 0.349)
+    #define NIGHT_AO 0.01
+    #define DAY_AO 0.1
+    #define CLOUDS_THRESHOLD 0.2
+    #define CLOUDS_NORMAL_BLEND_K 2.0
+    #define DUV_TOLERANCE 0.2
+    #define SHADOWS_ANGLE_SPEED 0.005
+    #define SHADOWS_OFFSET 5.0
+    #define CLOUDS_BICUBIC_SAMPLING 0
+    #define CLOUDS_ADD_NOISE 1
+    #define CLOUDS_DETAILED_NORMAL 0
+    #define CLOUDS_VARYING_ALBEDO 1
+    #define CLOUDS_BURLEY_PHASE 0
+
+    #define NORMAL_BICUBIC_SAMPLING 1
+    #define DIFFUSE_FXAA_SAMPLE 1
+    #define DIFFUSE_BICUBIC_SAMPLING 1
+
+    #include <tex2d_bicubic_weights.hlsl>
+    #include <psh_derivate.hlsl>
+    float henyey_greenstein(float g, float cos0)
+    {
+      float g2 = g * g;
+      float h = 1 + g2 - 2 * g * cos0;
+      return (0.5 * 0.079577) + (0.5/(4)) * (1 - g2) / (h * h * rsqrt(h));//pre divided by pi
+      //return 1./(4) * (1 - g2) / (h * h * rsqrt(h));// pre divided by PI
+    }
+
+    half2 sampleClouds(float2 uv2, float curLod)
+    {
+      float2 uvOfs = (perlin_noise_sample(float2(uv2.x*51*0.5, uv2.y*51)).xy*2-1)*0.00031;//globe texture isn't square
+      uv2 += uvOfs;
+      #if CLOUDS_BICUBIC_SAMPLING
+      //return tex2Dlod(globe_clouds_ocean_tex, half4(uv2, 0, mip)).xy;
+      float sharpening = 0.5;//0 - blur, 0.5 - nothing, 1 - sharpen.
+      BicubicSharpenWeights weights;
+      float mipScale = exp2(curLod+1);//since clouds are twice smaller!
+      float2 sz = tex_size.xy/mipScale, isz = mipScale*tex_size.zw;
+      compute_bicubic_sharpen_weights(uv2, sz, isz, sharpening, weights);
+      float2 c10 = tex2Dlod(globe_clouds_ocean_tex, float4(weights.uv0,0,curLod)).xy;
+      float2 c01 = tex2Dlod(globe_clouds_ocean_tex, float4(weights.uv1,0,curLod)).xy;
+      float2 c11 = tex2Dlod(globe_clouds_ocean_tex, float4(weights.uv2,0,curLod)).xy;
+      float2 c21 = tex2Dlod(globe_clouds_ocean_tex, float4(weights.uv3,0,curLod)).xy;
+      float2 c12 = tex2Dlod(globe_clouds_ocean_tex, float4(weights.uv4,0,curLod)).xy;
+      return (c10 * weights.w0 + c01 * weights.w1 + c11 * weights.w2 + c21 * weights.w3 + c12 * weights.w4) / weights.weightsSum;
+      #endif
+      return tex2Dlod(globe_clouds_ocean_tex, half4(uv2, 0, curLod)).xy;
+    }
+
+    half4 AdaptiveSampleColorTexture( float2 pos, float2 texSize, float2 invSize, float lod )
+    {
+      //invSize*=0.5;
+      float2 offset = float2(invSize.x, invSize.y);//square textrues
+      half3 adaptive_lumaC = half3(0.4472331058763405, 0.8780128198976986, 0.1705169701334543);
+      half3 lumaC = invSize.x*adaptive_lumaC;
+      float2 halfInvSize = 0.5*invSize;
+      //half3 lumaC = invSize.x*half3(0.299,0.587,0.114);//more correct, less halo, but less detail
+      float2 dir;
+      //more smoother cross NE/SW/NW/SE - more alu
+      float4 fxaaConsolePosPos = float4(pos - invSize, pos + invSize);
+      half4 Nw = tex2Dlod(globe_color_tex, float4(fxaaConsolePosPos.xy,0,lod));
+      half4 Sw = tex2Dlod(globe_color_tex, float4(fxaaConsolePosPos.xw,0,lod));
+      half4 Ne = tex2Dlod(globe_color_tex, float4(fxaaConsolePosPos.zy,0,lod));
+      half4 Se = tex2Dlod(globe_color_tex, float4(fxaaConsolePosPos.zw,0,lod));
+
+      half lumaNw = dot(Nw.rgb,lumaC);
+      half lumaSw = dot(Sw.rgb,lumaC);
+      half lumaNe = dot(Ne.rgb,lumaC);
+      half lumaSe = dot(Se.rgb,lumaC);
+
+      half dirSwMinusNe = lumaSw - lumaNe;
+      half dirSeMinusNw = lumaSe - lumaNw;
+
+      dir.x = dirSwMinusNe + dirSeMinusNw;
+      dir.y = dirSwMinusNe - dirSeMinusNw;
+
+      half4 centerTap = tex2Dlod(globe_color_tex, float4(pos,0,lod));
+
+      dir = clamp(dir, -halfInvSize, halfInvSize);//limit halo
+      //dir *= invSize;
+      //dir = clamp(dir, -invSize*0.5, invSize*0.5);//reduces 'halo'
+
+      //dir1 *= 2.0;//can improve detail, but produces 'halo'
+      half4 rgbyN1 = tex2Dlod(globe_color_tex, float4(pos.xy - dir,0,lod));
+      half4 rgbyP1 = tex2Dlod(globe_color_tex, float4(pos.xy + dir,0,lod));
+
+      half4 rgbyA = (rgbyN1 + rgbyP1) * 0.5;
+      //float2 maxDXDY = abs(ddx(pos)+ddy(pos));
+      //half weight = 0.5*saturate(max(maxDXDY.x, maxDXDY.y)/invSize.x)+0.5;
+      float2 maxDXDY = fwidth(pos);
+      half weight = saturate(max(maxDXDY.x*texSize.x, maxDXDY.y*texSize.y));
+      return lerp(rgbyA, centerTap, weight);
+    }
+
+    void sampleDiffuseAndNormal(float2 uv1, float groundLod, out half3 diffuseColor, out half2 normalMap)
+    {
+      float sharpening = 0.5;//0 - blur, 0.5 - nothing, 1 - sharpen.
+      //float2 dim; globe_clouds_ocean_tex.GetDimensions(dim.x, dim.y);
+      //this is same as uv/weights as clouds!!!
+      BicubicSharpenWeights weights;
+      float mipScale = exp2(groundLod);
+      float2 sz = tex_size.xy/mipScale, isz = mipScale*tex_size.zw;
+      compute_bicubic_sharpen_weights(uv1, sz, isz, sharpening, weights);
+      #if DIFFUSE_FXAA_SAMPLE
+        diffuseColor = AdaptiveSampleColorTexture(uv1, sz, isz, groundLod).rgb;
+      #elif DIFFUSE_BICUBIC_SAMPLING
+      {
+        half3 c10 = tex2Dlod(globe_color_tex, float4(weights.uv0,0,groundLod)).xyz;
+        half3 c01 = tex2Dlod(globe_color_tex, float4(weights.uv1,0,groundLod)).xyz;
+        half3 c11 = tex2Dlod(globe_color_tex, float4(weights.uv2,0,groundLod)).xyz;
+        half3 c21 = tex2Dlod(globe_color_tex, float4(weights.uv3,0,groundLod)).xyz;
+        half3 c12 = tex2Dlod(globe_color_tex, float4(weights.uv4,0,groundLod)).xyz;
+        diffuseColor = (c10 * weights.w0 + c01 * weights.w1 + c11 * weights.w2 + c21 * weights.w3 + c12 * weights.w4) / weights.weightsSum;
+      }
+      #else
+      diffuseColor = tex2Dlod(globe_color_tex, half4(uv1, 0, groundLod)).rgb;
+      #endif
+
+      ##if globe_normals_tex != NULL
+        #if NORMAL_BICUBIC_SAMPLING
+        {
+          half2 c10 = tex2Dlod(globe_normals_tex, float4(weights.uv0,0,groundLod)).xy;
+          half2 c01 = tex2Dlod(globe_normals_tex, float4(weights.uv1,0,groundLod)).xy;
+          half2 c11 = tex2Dlod(globe_normals_tex, float4(weights.uv2,0,groundLod)).xy;
+          half2 c21 = tex2Dlod(globe_normals_tex, float4(weights.uv3,0,groundLod)).xy;
+          half2 c12 = tex2Dlod(globe_normals_tex, float4(weights.uv4,0,groundLod)).xy;
+          normalMap = (c10 * weights.w0 + c01 * weights.w1 + c11 * weights.w2 + c21 * weights.w3 + c12 * weights.w4) / weights.weightsSum;
+        }
+        #else
+          normalMap = tex2Dlod(globe_normals_tex, half4(uv1, 0, groundLod)).rg;
+        #endif
+      ##else
+        normalMap = half2(0.5, 0.5);
+      ##endif
+    }
+
+    float get_camera_radius(float3 camera) { return length(camera); }
+
+    float SQRT(float f, float err)
+    {
+      return f >= 0.0 ? sqrt(f) : err;
+    }
+
+    half4 calc_ground_color(float3 camera, float3 v, float3 s, float3 s_color)
+    {
+      #define CALC_SPHERE_DIN(radius) \
+        float din = 0; \
+        float r = get_camera_radius(camera); \
+        float rMu = dot(camera, v); \
+        float deltaSq = SQRT(rMu * rMu - r * r + radius * radius, 1e30); \
+        din = max(-rMu - deltaSq, 0.0);
+      #define CALC_SPHERE_UV(uv_offset, out_pos, out_uv) \
+        out_pos = camera + din * v; \
+        float phi = atan2(out_pos.y, out_pos.x); \
+        float theta = atan2(SQRT(out_pos.x * out_pos.x + out_pos.y * out_pos.y, 1e30), out_pos.z); \
+        out_uv = frac(float2(0.5 * phi / PI + 0.5, theta / PI) + uv_offset + float2(globe_initial_angle, 0.0)); \
+        out_uv = out_uv * globe_uv_window.xy + globe_uv_window.zw;
+
+      float2 uv1 = 0, uvClouds = 0, uvGlobe = 0;
+      float3 wpos1 = camera;
+      {
+        CALC_SPHERE_DIN(skies_planet_radius);
+
+        if (globe_uv_window.z == 0 && globe_uv_window.w == 0)
+        {
+          BRANCH
+          if (din <= 0)
+            return half4(0, 0, 0, 0);
+        }
+        else
+        {
+          BRANCH
+          if (din <= 0)
+            discard;
+        }
+
+        ##if globe_rotate_mode == globe_rotate_clouds
+        CALC_SPHERE_UV(float2(0, 0), wpos1, uv1);
+        ##else
+        CALC_SPHERE_UV(float2(scroll_time * globe_rotate_speed, 0), wpos1, uv1);
+        ##endif
+        BRANCH
+        if (uv1.x < 0 || uv1.y < 0 || uv1.x > 1 || uv1.y > 1)
+          discard;
+
+        uvGlobe = uv1.xy/globe_uv_window.xy-globe_uv_window.zw/globe_uv_window.xy;
+        ##if globe_rotate_mode == globe_rotate_clouds
+        {
+          float3 wposClouds;
+          CALC_SPHERE_UV(float2(scroll_time * globe_rotate_speed, 0), wposClouds, uvClouds);
+        }
+        ##else
+        uvClouds = uvGlobe;
+        ##endif
+      }
+
+      float3 pointToEye = camera.xyz - wpos1;
+      float3 vertexNormal = normalize(wpos1);
+      float groundLod = log2(tex_size.y * (length(camera)-skies_planet_radius*0.5) / (skies_planet_radius * globe_tsize_wk_hk.w * globe_tsize_wk_hk.y));
+      float VdotN = dot(vertexNormal, v);
+      groundLod = lerp(groundLod, groundLod+1, pow5(1-abs(VdotN)));
+      groundLod = clamp(groundLod, 0.0, tex_num_lods - 1);
+
+      half3 diffuseColor;
+      half2 normalMap;
+      sampleDiffuseAndNormal(uv1, groundLod, diffuseColor, normalMap);
+
+  ##if globe_clouds_ocean_tex != NULL
+      float cloudsLod = max(groundLod-1,0);//since clouds are twice lower
+      half2 clouds_oceans = sampleClouds(uvClouds, cloudsLod);
+      half cloudsMap = clouds_oceans.x;
+      float detailTiling = 41;
+      half cloudsNoise = perlin_noise_sample_lod(float4(uvClouds*detailTiling,0,groundLod)).r;
+      cloudsMap*=cloudsMap;
+      #if CLOUDS_ADD_NOISE
+        cloudsMap = max(0, cloudsMap*((cloudsNoise*1.1-0.05)));
+        cloudsMap *= 1.5;
+      #endif
+      cloudsMap *= 1.1;
+    ##if globe_rotate_mode == globe_rotate_clouds
+      half oceanMap = tex2Dlod(globe_clouds_ocean_tex, half4(uvGlobe, 0, cloudsLod)).g;
+    ##else
+      half oceanMap = clouds_oceans.y;
+    ##endif
+      ##if globe_shadows_tex != NULL
+        half shadowsMap = tex2Dlod(globe_shadows_tex, float4(uvGlobe,0,0)).r;
+      ##else
+        half shadowsMap = 0;
+      ##endif
+  ##else
+      half cloudsMap = 0;
+      half oceanMap = 1;
+      half shadowsMap = 0;
+      half cloudsNoise = 0;
+  ##endif
+
+      float4 cloudsIntegratedScatteringTransmittance = float4(0,0,0,1);
+      if (cloudsMap>0)
+      {
+        float3 view = normalize(pointToEye);
+        float cos0 = -dot(view, s);
+        float phaseFunction = henyey_greenstein(-0.2, cos0);
+        //phaseFunction = 0.5*(dot(vertexNormal, s)+phaseFunction);
+        float3 cloudNormal = vertexNormal;
+        #if CLOUDS_DETAILED_NORMAL
+        {
+          half dBs, dBt;
+          float noiseTiling = 20;
+          float2 detailTcDDX = ddx(uv1)*noiseTiling;
+          float2 detailTcDDY = ddy(uv1)*noiseTiling;
+          float2 detailTc = uv1*noiseTiling;
+          float bump_scale = 120.0/noiseTiling;
+          float bumpheight = perlin_noise_sample(detailTc).r*bump_scale;//todo: use tex2Dlod with fixed lod (under log scaled by noiseTiling)
+          dBs = perlin_noise_sample(detailTc + detailTcDDX).r *bump_scale - bumpheight;
+          dBt = perlin_noise_sample(detailTc + detailTcDDY).r *bump_scale - bumpheight;
+          half3 detailedNormal = perturb_normal_height(vertexNormal, pointToEye, dBs, dBt);//perturb_normal_height(vertexNormal, pointToEye, bumpheight*cloudsNoise);//
+          //detailedNormal = perturb_normal_height(vertexNormal, pointToEye, bumpheight*cloudsNoise);//
+          cloudNormal = detailedNormal;
+        }
+        #endif
+
+        float NoL = dot(cloudNormal, s);
+        float3 H = normalize(view + s);
+        float NoH = saturate( dot(cloudNormal, H) );
+        float VoH = saturate( dot(view, H) );
+        float NoV = abs(dot(cloudNormal, view));
+
+        float cloudsDiffuse = 1;//lambert
+        #if CLOUDS_BURLEY_PHASE
+        cloudsDiffuse = diffuseBurley( 1, 1, NoV, NoL, VoH ).x;//burley
+        #endif
+        #if CLOUDS_VARYING_ALBEDO
+        {
+          float albedo_tiling = 11;
+          float perlin = perlin_noise_sample(uv1*albedo_tiling).r;//todo: use tex2Dlod with fixed lod (under log scaled by albedo_tiling)
+          cloudsDiffuse *= sqrt(perlin)*0.5+0.5;
+        }
+        #endif
+        phaseFunction = cloudsDiffuse*NoL;//
+        half3 luminance = globe_clouds_color.rgb*phaseFunction*s_color;
+        const float sigmaDs = -4.0;
+        float beers_term = exp(cloudsMap * sigmaDs);
+        float3 integScatt = ( luminance - luminance * beers_term );//analytical integral for beers law. Scattering term is always (cloudDensity*sigma), and integral is divided by (cloudDensity*sigma), so it is just not needed
+        //const float3 integScatt = ( luminance * -cloudDensity * sigmaDs);//simple integral
+
+        cloudsIntegratedScatteringTransmittance = float4(integScatt, beers_term);
+      }
+
+      // has been decided to switch off night lighting completely because an existing illumination
+      // map does not meet ww2 conditions
+      half nightLight = 0; //diffuseColor.a;
+      //half clouds = saturate((cloudsMap - CLOUDS_THRESHOLD) / (1.0 - CLOUDS_THRESHOLD));
+      half ocean = saturate(1-oceanMap*2);
+      normalMap.rg = lerp(normalMap.rg, float2(0.5, 0.5), ocean);
+      //normalMap.rg = lerp(float2(0.5, 0.5), normalMap.rg, (1.0 - ocean) * (1.0 - clouds));
+
+      float3 worldNormal = perturb_normal_precise(restore_normal(normalMap.rg), vertexNormal, pointToEye, uv1);
+      //worldNormal = lerp(worldNormal, vertexNormal, saturate(clouds * CLOUDS_NORMAL_BLEND_K));
+      float sunDot = dot(s, vertexNormal);
+      float nightBlend = saturate(-sunDot / NIGHT_BLEND_K);
+      //half3 color = lerp(diffuseColor.rgb, globe_clouds_color.rgb, clouds);
+      half3 color = diffuseColor.rgb;
+      color = lerp(color.rgb, NIGHT_LIGHT_COLOR, nightLight * nightBlend);
+      half cloudsAO = (1-cloudsIntegratedScatteringTransmittance.a);
+      half ao = lerp(saturate(DAY_AO + cloudsAO), saturate(NIGHT_AO + nightLight), nightBlend);
+
+      UnpackedGbuffer gbuf;
+      init_gbuffer(gbuf);
+      init_albedo(gbuf, color);
+      init_smoothness(gbuf, lerp(0.05, 0.4, ocean));
+      init_normal(gbuf, worldNormal);
+      init_metalness(gbuf, 0);
+      init_ao(gbuf, ao);
+      init_shadow(gbuf, saturate(sunDot / NIGHT_BLEND_K) * (1.0 - shadowsMap));
+
+      float4 ret = resolve_gbuffer(gbuf, pointToEye, s, s_color, camera.xyz, -1);
+      ret.rgb = cloudsIntegratedScatteringTransmittance.rgb*(1.0-pow4(1.0-saturate(sunDot))) + ret.rgb*cloudsIntegratedScatteringTransmittance.a;
+      return ret;
+    }
+
+    half4 globe_model_ps(VsOutput input) : SV_Target
+    {
+      float3 view = normalize(input.dir).xyz;
+      float3 camera = bruneton_camera_position;
+
+      float r = get_camera_radius(camera);
+      float mu = dot(camera, view) / r;
+      float nu = dot(view, skies_primary_sun_light_dir.xzy);
+
+      SingleScatteringResult ss = IntegrateScatteredLuminanceMS(
+        theAtmosphere,
+        SamplerTexture2DFromName(skies_transmittance_texture),
+        SamplerTexture2DFromName(skies_ms_texture),
+        camera, view, 0,
+        12, false, float2(24, 32),
+        r, mu, nu, skies_primary_sun_light_dir.z,
+        RayIntersectsGround(theAtmosphere, r, mu));
+      float3 inscatterColor = ss.L;
+      float3 scatterLoss = ss.Transmittance;
+
+      //scatterLoss = lerp(float3(1, 1, 1), scatterLoss, globe_sky_light_mul);//it is NOT needed. Was introduced because there was no mie
+      //inscatterColor = lerp(float3(0, 0, 0), inscatterColor, globe_sky_light_mul);//NOT needed. Was introduced because there was no mie
+      //inscatterColor = lerp(inscatterColor, luminance(inscatterColor) * globe_saturate_color.rgb, globe_saturate_color.a);//NOT needed. Was introduced because there was no mie
+
+      half4 groundColor = calc_ground_color(bruneton_camera_position.xzy, view.xzy, skies_primary_sun_light_dir.xyz, skies_sun_color.rgb * globe_sun_light_mul * scatterLoss / PI);
+      return half4(groundColor.rgb * scatterLoss + inscatterColor.rgb, 1.0 - groundColor.a);
+    }
+  }
+  compile("target_ps", "globe_model_ps");
+
+}
+
+shader globe_model_apply_low
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = true;
+
+  blend_src = one; blend_dst = sa;
+  blend_asrc = zero; blend_adst = sa;
+
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  (ps) {
+    source_tex@smp2d = source_tex;
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 screenUV: TEXCOORD0;
+    };
+  }
+
+  hlsl(ps) {
+    half4 globe_model_apply_low_ps(VsOutput input) : SV_Target
+    {
+      return tex2Dlod(source_tex, float4(input.screenUV, 0, 0));
+    }
+  }
+  compile("target_ps", "globe_model_apply_low_ps");
+
+  hlsl(vs) {
+    VsOutput globe_model_apply_low_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      output.pos = float4(getPostfxVertexPositionById(vertexId), 0, 1);
+      output.screenUV = output.pos.xy * float2(0.5, HALF_RT_TC_YSCALE) + 0.5;
+      return output;
+    }
+  }
+  compile("target_vs", "globe_model_apply_low_vs");
+}

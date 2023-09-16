@@ -1,0 +1,72 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/bindQuirrelEx ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+ProjectUseQuirrel ?= sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/bindQuirrelEx.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/3rdPartyLibs/pcre/pcre
+  $(Root)/prog/3rdPartyLibs/utf8
+;
+
+if $(Platform) in ps4 ps5 {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ;
+}
+
+Sources =
+  sqRegExp.cpp
+  sqUtf8.cpp
+  autoBind.cpp
+;
+
+if $(ProjectUseQuirrel) in sq3r sq3r+ {
+  Sources +=
+    bindSqrat.cpp
+    sqratDagorMath.cpp
+    sqratDagorDebug.cpp
+    logerrSqInterceptor.cpp
+    sqratDataBlock.cpp
+    sqratIso8601Time.cpp
+    random.cpp
+    hash.cpp
+    platformMisc.cpp
+    dagorSystem.cpp
+    dagorTime.cpp
+    dagorWorkCycle.cpp
+    dagorFS.cpp
+    dagorShell.cpp
+    dagorClipboard.cpp
+    localization.cpp
+    helpers.cpp
+  ;
+
+  if $(Platform) = macosx {
+    Sources +=
+      dagorSystemMac.mm
+    ;
+  }
+}
+
+CPPopt = -D__B_CORE ;
+Copt   = -D__B_CORE ;
+
+if $(Platform) in win32 win64 {
+  CPPopt += /wd4548 ; # devtools\win.sdk.100\Include\10.0.10586.0\ucrt\malloc.h(160): warning C4548: expression before comma has no effect; expected expression with side-effect
+}
+
+if $(PlatformSpec) in gcc4 {
+  CPPopt += -Wno-uninitialized ; # disable false-positive heuristics from gcc 11
+}
+
+
+UseProgLibs = 3rdPartyLibs/pcre gameLibs/iso8601Time ;
+
+include $(Root)/prog/_jBuild/build.jam ;

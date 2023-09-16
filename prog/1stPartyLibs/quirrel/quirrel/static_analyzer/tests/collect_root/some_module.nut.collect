@@ -1,0 +1,12 @@
+global const CONST_X = "x"
+::global_fn <- function global_fn(aaa, bbb, ccc = 3) { print($"{aaa},{bbb},{ccc}") }
+
+local function fn1(_xxx, _yyy) {}
+local function fn2(_xxx, _yyy, _zzz) {}
+
+print("some test\n")
+
+return {
+  fn1
+  fn2
+}

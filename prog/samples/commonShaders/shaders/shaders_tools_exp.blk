@@ -1,0 +1,17 @@
+include shaders_tools11.blk
+
+"@override:outDumpName":t="../../../../samples/sampleShaders/tools/common/compiledShaders/tools.exp"
+outMiniDumpName:t="../../../../samples/sampleShaders/tools/common/compiledShaders/tools.exp"
+
+"@delete:source" {}
+source
+{
+  includePath:t="./source"
+  include "../../commonShaders/shadersList.blk"
+  file:t = "testMat.sh"
+  file:t = "testTree.sh"
+  file:t = "testMatAO.sh"
+  file:t = "./source/dynamic_masked_chrome.sh"
+}
+
+"@delete:explicit_var_ref" {}

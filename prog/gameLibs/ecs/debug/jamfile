@@ -1,0 +1,28 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/ecs/debug ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/ecs/debug.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  
+;
+
+UseProgLibs +=
+  3rdPartyLibs/eastl
+;
+
+local AllSourcesES = [ GLOB $(Root)/$(Location) : *.cpp.inl ] ;
+SourceES = $(AllSourcesES:D=) ;
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

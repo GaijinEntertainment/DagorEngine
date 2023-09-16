@@ -1,0 +1,28 @@
+
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/sqJwt ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/sqJwt.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/3rdPartyLibs/libb64/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+;
+
+Sources =
+  sqJwt.cpp
+;
+
+UseProgLibs =
+  gameLibs/digitalSignature
+  gameLibs/jsonUtils
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

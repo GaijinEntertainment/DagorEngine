@@ -1,0 +1,153 @@
+include "shader_global.sh"
+include "gbuffer.sh"
+include "psh_derivate.sh"
+include "normaldetail.sh"
+include "edge_tesselation.sh"
+
+texture hmap_ldetail;
+texture heightmap;
+float4 world_to_hmap_low = (1,1,1,1);
+float4 tex_hmap_inv_sizes = (1/2048,1/2048,0,0);
+float4 heightmap_scale = (20,0,0,0);
+
+shader heightmap
+{
+  no_ablend;
+  HEIGHTMAP_DECODE_EDGE_TESSELATION()
+  //cull_mode = none;
+
+  (vs) {
+    hmap_ldetail@smp2d = hmap_ldetail;
+    globtm@f44 = globtm;
+    world_to_hmap_low@f4 = world_to_hmap_low;
+    heightmap_scale@f2 = heightmap_scale;
+    world_view_pos@f3 = world_view_pos;
+  }
+
+  hlsl(vs) {
+    #define decode_height(a) ((a)*heightmap_scale.x+heightmap_scale.y)
+
+    //#define  patchDim 16
+    //#define  patchDimPlus1 17
+    float2 decodeWorldPosXZ(float2 inPos input_used_instance_id)
+    {
+      float4 instance_const = heightmap_scale_offset[instance_id.x];
+      int4 border = decode_edge_tesselation(instance_const.y);
+
+      inPos.y = adapt_edge_tesselation(inPos.y, inPos.x == 0 ? border.x : (inPos.x == patchDim ? border.y : 1));
+      inPos.x = adapt_edge_tesselation(inPos.x, inPos.y == 0 ? border.z : (inPos.y == patchDim ? border.w : 1));
+      /*float2 xyNorm = posXZ.xy/patchDim;
+      float2 xyNormAbs = abs(xyNorm*2-1);
+      posXZ.y = lerp(posXZ.y, adapt_edge_tesselation(posXZ.y, xyNorm.x < 0.5 ? border.x : (xyNorm.x > 0.5 ? border.y : 1)), xyNormAbs.x);
+      posXZ.x = lerp(posXZ.x, adapt_edge_tesselation(posXZ.x, xyNorm.y < 0.5 ? border.z : (xyNorm.y > 0.5 ? border.w : 1)), xyNormAbs.y);*/
+
+      //float lodSize = exp2(lodNo)*heightmap_grid_cell_offset_lod.x*rcp(exp2(subDiv));
+      //return lodSize*inPos+heightmap_scale_offset[instance_id.x].zw*lodSize*patchDim+heightmap_grid_cell_offset_lod.yz;
+      return decodeWorldPosXZConst(instance_const, inPos);
+    }
+    float getHeight(float2 worldPosXZ)
+    {
+      float2 tc_low = worldPosXZ*world_to_hmap_low.xy + world_to_hmap_low.zw;
+      float height = tex2Dlod(hmap_ldetail, float4(tc_low,0,0)).r;
+      float decodedHeight = decode_height(height);
+      return decodedHeight;
+    }
+    float3 getWorldPos(float2 inPos input_used_instance_id)
+    {
+      float3 worldPos;
+      worldPos.xz = decodeWorldPosXZ(inPos used_instance_id);
+      //float2 heightmapRegion = float2(10000, 10000);
+      //worldPos.xz = clamp(worldPos.xz, -heightmapRegion, heightmapRegion);
+      worldPos.y = getHeight(worldPos.xz);
+      return worldPos;
+    }
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 p2e:  TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput test_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+    {
+      DECODE_VERTEXID_POSXZ
+      VsOutput output;
+      float3 worldPos = getWorldPos(posXZ USED_INSTANCE_ID);
+      output.pos = mul(float4(worldPos, 1), globtm);
+      //if (heightmap_scale_offset[instance_id.x].y == 0)
+      //output.pos = 2;
+      output.p2e.xyz = world_view_pos-worldPos;
+      //heightmap_scale_offset[instance_id.x].y;
+      return output;
+    }
+  }
+  //cull_mode = none;
+
+
+  USE_PIXEL_TANGENT_SPACE()
+  WRITE_GBUFFER()
+  (ps) {
+    sizes@f4 = (tex_hmap_inv_sizes.x/world_to_hmap_low.x/heightmap_scale.x, 0, 0, 0);
+    tex_hmap_inv_sizes@f4 = (tex_hmap_inv_sizes.x, tex_hmap_inv_sizes.y, 1/tex_hmap_inv_sizes.x, 1/tex_hmap_inv_sizes.y);
+    world_to_hmap_low@f4 = world_to_hmap_low;
+    world_view_pos@f3 = world_view_pos;
+    heightmap@smp2d = heightmap;
+  }
+  USE_NORMAL_DETAIL()
+
+  hlsl(ps) {
+    #define sizeInMeters (sizes.x)
+
+    float getTexel(float2 p)
+    {
+      return h1tex2D(heightmap, p);
+    }
+
+    half3 getNormalLow(float2 pos)
+    {
+      float3 offset = float3(tex_hmap_inv_sizes.x, 0, tex_hmap_inv_sizes.y);
+      half W = getTexel(float2(pos.xy - offset.xy));
+      half E = getTexel(float2(pos.xy + offset.xy));
+      half N = getTexel(float2(pos.xy - offset.yz));
+      half S = getTexel(float2(pos.xy + offset.yz));
+      return normalize(half3(W-E, sizeInMeters, -N+S));
+    }
+    half3 getWorldNormal(float3 worldPos)
+    {
+      half3 normal;
+      float2 worldPosXZ = worldPos.xz;
+      float2 tc_low = worldPosXZ*world_to_hmap_low.xy + world_to_hmap_low.zw;
+      normal = getNormalLow(tc_low);
+      return normal;
+    }
+
+    GBUFFER_OUTPUT test_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE)
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      float3 worldPos = world_view_pos.xyz-input.p2e.xyz;
+      float3 worldNormal = getWorldNormal(worldPos.xyz).xyz;
+
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+      float2 worldPosXZ = worldPos.xz;
+      float2 tc_low = worldPosXZ*world_to_hmap_low.xy + world_to_hmap_low.zw;
+
+      //texCoord = input.tc;
+      half3 albedo = half3(0.15,0.2, 0.05);
+      //albedo = input.p2e.w;
+
+      //init_albedo_roughness(result, albedo_roughness);
+      init_ao(result, 1);
+      init_albedo(result, albedo.xyz);
+      init_smoothness(result, 0.01);
+      init_normal(result, worldNormal);
+      return encode_gbuffer(result, screenpos);
+    }
+  }
+  compile("target_vs", "test_vs");
+  compile("target_ps", "test_ps");
+}

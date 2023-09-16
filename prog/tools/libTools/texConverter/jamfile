@@ -1,0 +1,16 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/texConverter ;
+
+TargetType  = lib ;
+Target      = tools/libTools/texConverter.lib ;
+
+Sources =
+  TextureConverterDlg.cpp
+;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+CPPopt = ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

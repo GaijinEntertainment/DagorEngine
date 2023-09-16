@@ -1,0 +1,3 @@
+return {
+  setObjPrintFunc = @(_) null
+}

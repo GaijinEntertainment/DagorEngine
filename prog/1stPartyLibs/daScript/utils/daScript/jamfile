@@ -1,0 +1,56 @@
+Root    ?= ../../../../.. ;
+Location = prog/1stPartyLibs/daScript/utils/daScript ;
+ConsoleExe = yes ;
+
+TargetType  = exe ;
+Target      = 3rdPartyLibs/scripts/das ;
+OutDir      = $(Root)/tools/util ;
+
+daScript_ConsoleExe ?= yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(Platform) = win64 { Target = $(Target)-64 ; }
+
+Sources =
+  main.cpp 
+  ../../dagorAdapter/da_dummy.cpp
+  ../../dagorAdapter/da.cpp 
+;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/perfMon
+  engine2/memory/rtlStdMemory
+#  engine2/memory/rtlOverride
+  engine2/baseUtil
+#  engine2/ioSys
+  engine2/startup
+  engine2/math
+
+  3rdPartyLibs/eastl
+  1stPartyLibs/daScript
+  gameLibs/daECS/core
+  gameLibs/ecs/scripts/das
+  gameLibs/dasModules/common
+  engine2/perfMon/daProfilerStub
+;
+CPPopt = -D__B_CORE ;
+
+# warning 6269| Possibly incorrect order of operations: dereference ignored
+# warning 6202| Buffer overrun for 'msg.s', which is possibly stack allocated, in call to '_snprintf': length '258' exceeds buffer size '1'
+# warning 6386| Buffer overrun: accessing 'argument 1', the writable size is '1' bytes, but '258' bytes might be written
+# warning 4312| conversion to a type of greater size on win64
+if $(Platform) in win32 win64 && $(PlatformSpec) != clang  {
+#  CPPopt += /wd6269 /wd6202 /wd6386 /wd4312 ;
+}
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+Copt   = $(CPPopt) ;
+
+include $(Root)/prog/_jBuild/build.jam ;

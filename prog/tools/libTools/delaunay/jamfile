@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/delaunay ;
+
+TargetType  = lib ;
+Target      = tools/libTools/delaunay.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude/libtools
+;
+
+Sources =
+  cmdline.cpp
+  greedy.cpp
+  GreedyInsert.cpp
+  Heap.cpp
+  output.cpp
+  Quadedge.cpp
+  Subdivision.cpp
+;
+
+CPPopt = -DSAFETY -FIdelmem.h ;
+
+include $(Root)/prog/_jBuild/build.jam ;

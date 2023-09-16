@@ -1,0 +1,30 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/detex ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/detex.lib ;
+
+Sources = bits.c
+  bptc-tables.c
+  clamp.c
+  convert.c
+  dds.c
+  decompress-bc.c
+  decompress-bptc-float.c
+  decompress-bptc.c
+  decompress-eac.c
+  decompress-etc.c
+  decompress-rgtc.c
+  division-tables.c
+  ktx.c
+  raw.c
+  texture.c
+;
+
+if $(PlatformSpec) in gcc4 clang {
+  Copt += -Wno-unused-parameter ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

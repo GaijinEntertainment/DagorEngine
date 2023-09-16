@@ -1,0 +1,22 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/pathFinder/tileCache/stub ;
+StrictCompile = yes ;
+TargetType  = lib ;
+Target      = gameLibs/pathFinder/tileCacheStub.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes = 
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/Detour/Include
+;
+
+Sources =
+  tileCacheStub.cpp
+;
+
+UseProgLibs +=
+  3rdPartyLibs/Detour
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

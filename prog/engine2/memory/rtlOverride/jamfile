@@ -1,0 +1,14 @@
+Root    ?= ../../../.. ;
+Location = prog/engine2/memory/rtlOverride ;
+
+TargetType  = lib ; 
+Target      = engine2/memory/rtlOverride.lib ;
+
+Sources =
+  stubRtl.cpp
+;
+
+
+CPPopt = -D__B_NO_MEM_BASE_INCLUDE=1 ;
+
+include $(Root)/prog/_jBuild/build.jam ;

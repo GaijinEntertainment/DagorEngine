@@ -1,0 +1,21 @@
+outDir:t=".storage"
+indexFile:t="downloadable_decals.blk"
+type:t="decal"
+texRoot:t="D:\dagor2\skyquake\develop\assets"
+cacheDir:t=".cache-d"
+
+lod0 {
+  fmt:t="DXT1|DXT5"
+  addrU:t="border"; addrV:t="border"
+  hqMip:i=0; mqMip:i=0; lqMip:i=1
+  gamma:r=2.2
+  maxTexSz:i=8192
+}
+
+lod1 {
+  fmt:t="DXT1|DXT5"
+  addrU:t="border"; addrV:t="border"
+  hqMip:i=1; mqMip:i=2; lqMip:i=2
+  gamma:r=2.2
+  maxTexSz:i=256
+}

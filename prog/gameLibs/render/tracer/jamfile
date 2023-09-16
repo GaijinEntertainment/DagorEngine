@@ -1,0 +1,19 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/tracer ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/tracer.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  tracer.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

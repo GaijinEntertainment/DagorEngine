@@ -1,0 +1,31 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/assetMgrHlp ;
+
+TargetType  = lib ;
+Target      = tools/libTools/assetMgrHlp.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+;
+
+Sources =
+  assetBuildCache.cpp
+  assetExpCache.cpp
+  texConvCache.cpp
+  reloadTexAsset.cpp
+  refProviders.cpp
+  assetLocalProps.cpp
+  assetMgrHlp.cpp
+;
+
+UseProgLibs =
+  3rdPartyLibs/hash
+;
+
+if $(DabuildEmbeddedInGame) = yes {
+  Target  = $(Target:S=~emb.lib) ;
+  CPPopt += -D_TARGET_EXPORTERS_STATIC ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

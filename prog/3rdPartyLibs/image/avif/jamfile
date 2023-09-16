@@ -1,0 +1,48 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/image/avif ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/image/avif.lib ;
+
+
+AddIncludes     = $(Root)/prog/3rdPartyLibs/image/avif ;
+
+
+Sources =
+  src/alpha.c
+  src/avif.c
+#  src/codec_aom.c
+  src/codec_dav1d.c
+#  src/codec_libgav1.c
+#  src/codec_rav1e.c
+#  src/codec_svt.c
+  src/colr.c
+  src/diag.c
+  src/exif.c
+  src/io.c
+  src/mem.c
+  src/obu.c
+  src/rawdata.c
+  src/read.c
+  src/reformat.c
+  src/reformat_libsharpyuv.c
+  src/reformat_libyuv.c
+  src/scale.c
+  src/stream.c
+  src/utils.c
+  src/write.c
+;
+
+UseProgLibs +=
+  3rdPartyLibs/codecs/dav1d
+;
+
+AddIncludes =
+  $(Root)/$(Location)/include
+  $(Root)/prog/3rdPartyLibs/codecs/dav1d/include
+;
+
+
+CPPopt = -D__B_CORE -DAVIF_CODEC_DAV1D=1 ;
+
+include $(Root)/prog/_jBuild/build.jam ;

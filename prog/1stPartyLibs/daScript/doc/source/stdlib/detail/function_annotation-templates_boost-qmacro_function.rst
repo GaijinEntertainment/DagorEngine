@@ -1,0 +1,1 @@
+This macro implements `qmacro_function` expression reification. Expected input is a block expression (ExprMakeBlock over ExprBlock). It applies reification rules to the expression, and returns a FunctionPtr. New function matches block signature, as well as the block body.

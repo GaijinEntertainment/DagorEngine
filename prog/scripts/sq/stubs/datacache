@@ -1,0 +1,14 @@
+return {
+  init_cache = @(...) null
+  get_all_entries = @(_cache_name) []
+  request_entry = @(_cache_name, _entry_key) null
+  abort_requests = @(_cache_name) null
+  del_entry = @(_cache_name, entry_key) entry_key
+  get_cache_entries = @(name) name
+  ERR_UNKNOWN = -1
+  ERR_OK = 0
+  ERR_PENDING = 40
+  ERR_IO = 44
+  ERR_ABORTED = 48
+  ERR_MEMORY_LIMIT = 49
+}

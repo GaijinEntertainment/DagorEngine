@@ -1,0 +1,78 @@
+﻿.body {
+	background-color: #ffffff;
+  color: #333333;
+	margin: 0;
+	text-align: left;
+  font: 16px/25px "Source Sans Pro", georgia, serif;
+	/* background: #FFFFFF url('images/bkground.gif') ; */
+}
+
+#menu{
+	background-color:maroon;
+	font-size:medium;
+	font-weight:bold;
+	text-align:left;
+    vertical-align:middle;
+}
+
+#menu a:visited		{ text-decoration: none; color: white}
+#menu a:link		{ text-decoration: none; color: white}
+#menu a:hover 		{ text-decoration: none; color: #cd8c58}
+
+#donation { font-size:x-small;color:orange;text-align:center;}
+
+.newsupdate {
+	font-family:"Tahoma", Helvetica, sans-serif;
+	font-size: 130%;
+	color:black;
+}
+
+.bigwords{
+	text-align:left;
+	/*word-spacing:0px;*/
+}
+
+a {
+  color: #3399cc;
+  text-decoration: none;
+  transition: color 0.2s, text-shadow 0.2s;
+  outline: none;
+}
+a:hover 		{
+  color: #143352;
+}
+
+
+.labels { 
+  font: 400 26px "Lato", helvetica, arial, sans-serif;
+  letter-spacing: 1px;
+  height: 8em;
+  color: #3399cc;
+}
+
+.snippets {
+  color: #3d4d5c;
+  font: 13px "Source Code Pro", Menlo, Monaco, Consolas, monospace;
+  background: #fcfcfc;
+  border-radius: 2px;
+  border: dashed 1px #dae2e7;
+  padding: 5px;
+}
+
+.copyright {
+	text-align: center;
+	color:gray;
+}
+#line{
+	background-color:Black;
+	width:100%;
+	height:1px;
+	float:left;
+}
+
+.whitened
+ {
+   color: #FFFFFF;
+}
+
+

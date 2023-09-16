@@ -1,0 +1,976 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style = "text/css">
+
+  body
+  {
+    font-size: 14px;
+    font-family: arial;
+    font-weight: normal;
+    font-style: normal;
+    color: white;
+    background: #333;
+  }
+
+  .svgMainClass
+  {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .elemSpecialSelectClass
+  {
+    fill:none;
+    stroke-width:3.5px;
+/*    stroke-dasharray:4, 4;*/
+    stroke:#fff;
+    pointer-events: none;
+  }
+
+  .elemRectClass
+  {
+    fill:rgba(200,200,200, 0.8);
+    stroke-width:2px;
+    stroke:#000;
+  }
+
+  .blockRectClass
+  {
+    fill:rgba(0,0,0, 0.2);
+    stroke-width:2px;
+    stroke:#000;
+  }
+
+  .selectedElemRectClass
+  {
+    fill:rgb(255,255,220);
+    stroke-width:2px;
+    stroke:#000;
+  }
+
+  .elemPinClass
+  {
+    fill:rgb(0,180,255);
+    stroke-width:2px;
+    stroke:#000;
+  }
+
+  .elemMainPinClass
+  {
+    fill:rgb(0,180,255);
+    stroke-width:3.3px;
+    stroke:#000;
+  }
+
+  .elemTextClass
+  {
+    font-size: 14px;
+    dominant-baseline: text-before-edge;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-weight: normal;
+    font-stretch: condensed;
+    font-style: normal;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    overflow: hidden;
+    cursor: default;
+  }
+
+
+  .elemOuterTextClass
+  {
+    fill: #ddd;
+/*    text-shadow: 1px 1px 2px black;*/
+    font-size: 14px;
+    dominant-baseline: text-before-edge;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-weight: normal;
+    font-stretch: condensed;
+    font-style: normal;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    overflow: hidden;
+    cursor: default;
+  }
+
+  .elemCommentClass
+  {
+    fill: white;
+    text-shadow: 1px 1px 2px black;
+    font-size: 14px;
+    dominant-baseline: text-before-edge;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-weight: normal;
+    font-stretch: condensed;
+    font-style: normal;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    overflow: hidden;
+    cursor: default;
+  }
+
+  .commentTextClass
+  {
+    fill: black;
+    font-size: 30px;
+    dominant-baseline: text-before-edge;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-weight: normal;
+    font-stretch: condensed;
+    font-style: normal;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    overflow: hidden;
+    cursor: default;
+  }
+
+
+
+  .listClass
+  {
+    overflow-y: scroll;
+    border:1px solid #eee;
+    padding:4px;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: default;
+  }
+
+  .invisibleClass
+  {
+    display: none;
+  }
+
+  .listClickableItem
+  {
+    cursor: pointer;
+  }
+
+  .hintClass
+  {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 14px;
+    font-family: arial;
+    font-weight: normal;
+    font-style: normal;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: default;
+    padding: 5px;
+    pointer-events: none;
+  }
+
+  .statusBarClass
+  {
+    background-color: rgba(0, 0, 0, 0.7);
+    box-sizing: border-box;
+    position: absolute;
+    width: 100%;
+    top: 0px;
+    left: 0px;
+    color: white;
+    font-size: 14px;
+    font-family: arial;
+    font-weight: normal;
+    font-style: normal;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: default;
+    padding: 5px;
+    pointer-events: none;
+  }
+
+  .errorClass
+  {
+    background-color: rgba(250, 40, 10, 0.9);
+    color: white;
+    pointer-events: auto;
+    font-weight: bold;
+  }
+
+  .selectedFilteredElem
+  {
+    border: 2px solid white;
+    border-radius: 2px;
+    padding: 1px;
+    background-color: rgb(0, 0, 0);
+  }
+
+  .splashScreenClass
+  {
+    background-color: rgb(255, 255, 255);
+    color: black;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+    box-sizing: border-box;
+  }
+
+  .sidePanelClass
+  {
+    background-color: rgb(255, 255, 255);
+    color: white;
+    position: absolute;
+    width: 212px;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+    box-sizing: border-box;
+  }
+
+</style>
+</head>
+<body>
+
+<div style="position:absolute; top:0px; left:0px; width:100%; height:100%; cursor: default;"
+  id="backgroundDiv"
+  onmousedown="globalMouseDown(event)"
+  ondblclick="globalMouseDblClick(event)"
+  onwheel="globalOnWheel(event)"
+  ondragover="globalAllowDrop(event)"
+  ondrop="globalDoDropElem(event)">
+</div>
+
+<svg id="mainSvg" viewBox="0 0 1024 1024" class="svgMainClass" draggable="false" visibility="visible">
+  <rect id = "specialSelectSvg" class="elemSpecialSelectClass" x="0" y="0" width="100" height="10" visibility="hidden" />
+  <g id="edgesSvg"></g>
+  <g id="elemsSvg"></g>
+  <circle id="pinSelectSvg" cx="100" cy="100" r="12" fill="transparent"/>
+  <circle id="resizeSvg" cx="100" cy="100" r="40" fill="transparent"/>
+  <rect id = "selectSvg" x="0" y="0" width="10" height="10" fill="transparent"/>
+  <line id = "lineSvg" x1="0" y1="0" x2="100" y2="100" stroke="transparent" stroke-width="2"/>
+</svg>
+
+
+<span class="hintClass" style="position:absolute; top:40px; left:230px;">
+  <span id="hintFrom"></span>
+  <span>--</span>
+  <span id="hintTo"></span>
+</span>
+
+<span class="statusBarClass">
+  &nbsp;
+  <span style="position:absolute; left:232px;">Items: <span id="statusElemCount">0</span></span>
+  <span id="statusFileName" style="position:absolute; left:322px;">Press Ctrl+'O' to open file or 'N' to create new file</span>
+</span>
+
+<div id="errorMsgDiv" class="hintClass errorClass" style="position:absolute; top:68px; left:230px; visibility:hidden;"
+  onmousedown="onErrorMouseDown(event)">
+...
+</div>
+
+
+<div class="sidePanelClass" style="background:#444; border:1px solid #eee;">
+  <div id="categoriesDiv" class="listClass" style="height:125px; width:100%; box-sizing:border-box;">
+    <div class="listClickableItem">Initializing...</div>
+  </div>
+
+  <div id="elementsDiv" class="listClass" style="height:calc(100% - 125px); width:100%; box-sizing:border-box;">
+  </div>
+
+  <div id="elemFilterDiv" class="listClass"
+    style="position:absolute; background:#444; left:0px; top:0px; height:100%; width:100%; box-sizing:border-box; border:1px solid #eee; visibility:hidden;"
+    onclick="document.getElementById('elemFilterEdit').focus();"
+    >
+
+    <input id="elemFilterEdit" value="value" style = "width:100%; box-sizing:border-box;"
+      onkeyup="globalOnFilterKeyPress(event)" onkeydown="globalOnFilterKeyDown(event)">
+    <div id="elemFilterItems">Error</div>
+  </div>
+
+  <div id="openGraphDiv" class="listClass"
+    style="position:absolute; background:#444; left:0px; top:-1px; height:calc(100% + 2px); width:200%; box-sizing:border-box; border:1px solid #eee; visibility:hidden;"
+    onclick="document.getElementById('openGraphEdit').focus();"
+    >
+
+    <div style="color:#aaa; margin: 0px 0px 5px 0px;">Open Graph:</div>
+    <input id="openGraphEdit" value="value" style = "width:100%; box-sizing:border-box;"
+      onkeyup="globalOnOpenKeyPress(event)" onkeydown="globalOnOpenKeyDown(event)">
+    <div id="openGraphItems">Error</div>
+  </div>
+</div>
+
+<div id="propValuesDiv" class="listClass"
+  style="background:#444; border:solid 1px #eee; position:absolute; top:0px; right:0px; height:100%; width:212px; box-sizing:border-box;">
+</div>
+
+
+<textarea id="bigTextArea" readonly="1" cols="40" rows="5" style="position:absolute; top:10%; left:10%; width:80%; height:80%; border-box; visibility:hidden;"
+  onkeydown="onBigTextAreaKeyDown(event)">
+</textarea>
+
+<input id="clipboardEditBox" value="" style="position:absolute; left:-100px; top:-100px; width:1px; height:1px; visibility:hidden;"/>
+
+<div id="splashScreenDiv" class="splashScreenClass" style="padding: 10px;">
+__SPLASH_SCREEN_TEXT__
+</div>
+
+<script src="../colorpicker/colorPicker.js">/* direct */</script>
+<script src="../colorpicker/colorGradient.js">/* direct */</script>
+<script src="stubNodesSettings.js">/* direct */</script>
+<script src="../../../../../tools/dagor3_cdk/commonData/graphEditor/builder/nodeUtils.js">/* direct */</script>
+<script src="../editorCurves/curveEditor.js">/* direct */</script>
+<script src="../../../../../tools/dagor3_cdk/commonData/graphEditor/builder/graphEditor.js">/* direct */</script>
+
+<script src="colorPicker.js">/* from plugin */</script>
+<script src="colorGradient.js">/* from plugin */</script>
+<script src="curveEditor.js">/* from plugin */</script>
+<script src="__PLUGIN_NAME__?nodesSettings.js">/* from plugin */</script>
+<script src="__PLUGIN_NAME__?userScript.js">/* from plugin, must be after nodesSettings */</script>
+<script src="__PLUGIN_NAME__?nodeUtils.js">/* from plugin */</script>
+<script src="__PLUGIN_NAME__?graphEditor.js">/* from plugin */</script>
+
+<script>
+"use strict";
+
+
+var client = new XMLHttpRequest();
+var clientBusy = false;
+var clientPost = new XMLHttpRequest();
+var clientId = "id:" + Date.now();
+var errorState = false;
+var attached = false;
+var lastErrorString = null;
+var prevErrorString = null;
+var lastRespondTime = Date.now();
+
+var queryQueue = [];
+var queryFileCache = {};
+
+
+function query(q, callback, body)
+{
+  if (q.indexOf("state&") != 0)
+    console.log("query: " + q);
+
+  if (!attached)
+    return;
+
+  if (!body)
+    body = null;
+
+
+  if (q && q.indexOf("get_json_files&") == 0 && body && body.length > 1)
+  {
+    if (queryFileCache[q + body])
+    {
+      callback(queryFileCache[q + body]);
+      return;
+    }
+  }
+
+  if (clientBusy)
+  {
+    if (queryQueue.length < 1000)
+    {
+      var a = {};
+      a.query = q;
+      a.callback = callback;
+      a.body = body;
+      queryQueue.push(a);
+      return;
+    }
+    else
+    {
+      alert("Out of queryQueue max length");
+      return;
+    }
+  }
+
+  clientBusy = true;
+
+  client.onerror = function()
+  {
+    console.log("ERROR '" + client._query + "': " + client.status + " " + client.statusText);
+    onDetach();
+  }
+
+  client.onabort = function()
+  {
+    console.log("ABORT: " + client.status + " " + client.statusText);
+    onDetach();
+  }
+
+  client.onload = function()
+  {
+    if (client.status != 200)
+    {
+      console.log("ERROR(2) '" + client._query + "': " + client.status + " " + client.statusText);
+      onDetach();
+      return;
+    }
+
+    lastRespondTime = Date.now();
+
+    clientBusy = false;
+
+    if (callback)
+    {
+      if (client._query.indexOf("get_json_files&") == 0)
+        queryFileCache[client._query + client._body] = client.responseText;
+
+      callback(client.responseText);
+      callback = null;
+    }
+
+    var q = queryQueue.shift();
+    if (q)
+      query(q.query, q.callback, q.body);
+  }
+
+  try
+  {
+    client._query = q;
+    client._body = body;
+    client.open(body ? 'POST' : 'GET', '__PLUGIN_NAME__?' + q, true);
+    client.send(body);
+  }
+  catch (err)
+  {
+    attached = false;
+  }
+}
+
+
+function onAttach()
+{
+  queryQueue = [];
+  attached = true;
+  query('attach&' + clientId, function(text)
+    {
+      attached = true;
+    });
+  attached = false;
+}
+
+
+function onDetach()
+{
+  //query('detach', false);
+  globalLockChange = false;
+  attached = false;
+}
+
+
+function doScrollToCategory(id)
+{
+  var elem = document.getElementById("cat:" + id);
+  if (elem)
+    elem.scrollIntoView(true);
+}
+
+
+function doStartDragElem(ev)
+{
+  if (!ev.target.dataset)
+    return;
+
+  ev.dataTransfer.setData("text", ev.target.dataset.name);
+  draggingElementName = ev.target.dataset.name;
+}
+
+function makeComponentId(component, panel, variable)
+{
+  return component + "/." + panel + "/." + variable;
+}
+
+function makeComponentName(panel, variable)
+{
+  return panel + "/." + variable;
+}
+
+
+function updateInternalVariable(panel, variable, newValue)
+{
+  var idx = parseInt(panel, 10);
+  var elem = idx >= 0 ? editor.elems[idx] : editor.graphElem;
+  if (elem)
+  {
+    var varsDesc = elem.desc.properties;
+    for (var i = 0; i < varsDesc.length; i++)
+      if (varsDesc[i].name === variable)
+      {
+        if (varsDesc[i].type === "float")
+        {
+          newValue = newValue.replace(",", ".").replace(" ", "");
+
+          if (newValue.indexOf(".") < 0 && newValue.indexOf("e") < 0 && newValue.indexOf("E") < 0)
+            newValue += ".0";
+        }
+
+        if (varsDesc[i].type === "int")
+        {
+          var s = newValue;
+          newValue = "";
+          var leadingZeroes = true;
+
+          for (var j = 0; j < s.length; j++)
+          {
+            var ch = s.charCodeAt(j);
+            var isNum = (ch >= 48 && ch <= 57);
+            if (isNum && leadingZeroes)
+            {
+              if (s[j] === "0")
+                continue;
+              else
+                leadingZeroes = false;
+            }
+
+            if (s[j] === "-" || s[j] === "+" || isNum)
+              newValue += s[j];
+            else if (s[j] !== " ")
+              break;
+          }
+
+          if (newValue === "")
+            newValue = "0";
+        }
+
+        elem.propValues[i] = newValue;
+        elem.updatePinCaptions();
+      }
+
+    editor.onChanged();
+  }
+}
+
+
+function onEditChange(value, panel, variable)
+{
+  var sliderId = makeComponentId("slider", panel, variable);
+  var slider = document.getElementById(sliderId);
+  if (slider)
+    slider.value = value;
+
+  updateInternalVariable(panel, variable, value);
+}
+
+
+function onSliderChange(value, panel, variable)
+{
+  var editId = makeComponentId("edit", panel, variable);
+  var edit = document.getElementById(editId);
+  if (edit)
+    edit.value = value;
+
+  updateInternalVariable(panel, variable, value);
+}
+
+
+function onSelectChange(value, panel, variable)
+{
+  updateInternalVariable(panel, variable, value);
+}
+
+
+function onColorChanged(color4FloatStr, e3dcolorHexStr, varId)
+{
+  var v = varId.split("/.");
+  updateInternalVariable(v[0], v[1], color4FloatStr);
+}
+
+
+function onCurveChanged(varId, valueStr)
+{
+  var v = varId.split("/.");
+  updateInternalVariable(v[0], v[1], valueStr);
+}
+
+
+function onGradientChanged(varId, valueStr)
+{
+  var v = varId.split("/.");
+  updateInternalVariable(v[0], v[1], valueStr);
+
+  var canv = document.getElementById("grad_canv_" + varId);
+  if (canv)
+  {
+    var grad = new ColorGradient(false);
+    grad.initFromGradientStr(valueStr);
+    grad.renderGradient(canv);
+    editor.displayPropValues();
+  }
+}
+
+
+function globalMouseDown(event)
+{
+  event.preventDefault();
+  if (document.activeElement)
+    document.activeElement.blur();
+
+  if (globalLockInput || globalLockChange)
+    return;
+
+  editor.onMouseDown(event);
+}
+
+
+function globalMouseDblClick(event)
+{
+  event.preventDefault();
+
+  if (globalLockInput || globalLockChange)
+    return;
+
+  editor.onMouseDblClick(event);
+}
+
+
+function globalOnWheel(event)
+{
+  if (globalLockInput || globalLockChange)
+    return;
+
+  editor.onWheel(event);
+}
+
+
+function globalMouseUp(event)
+{
+  if (globalLockInput || globalLockChange)
+    return;
+
+  editor.onMouseUp(event);
+}
+
+
+function globalMouseMove(event)
+{
+  if (globalLockInput || globalLockChange)
+    return;
+
+  editor.onMouseMove(event);
+}
+
+
+function globalOnKeyDown(event)
+{
+  if (globalLockInput || globalLockChange)
+    return;
+
+  editor.onKeyDown(event);
+}
+
+
+function globalOnKeyUp(event)
+{
+  if (globalLockInput || globalLockChange)
+    return;
+
+  editor.onKeyUp(event);
+}
+
+
+function globalAllowDrop(event)
+{
+  if (globalLockInput || globalLockChange)
+    return;
+
+  globalMouseUp(event);
+  event.preventDefault();
+  return true;
+}
+
+
+function globalDoDropElem(event)
+{
+  if (globalLockInput || globalLockChange)
+    return;
+
+  event.preventDefault();
+
+  var name = "";
+  if (!event.dataTransfer) // fixed firefox behavior (dataTransfer can be null at first drag and drop)
+  {
+    if (!draggingElementName)
+      return;
+    else
+      name = draggingElementName;
+  }
+  else
+  {
+    name = event.dataTransfer.getData("text");
+  }
+
+  draggingElementName = null;
+  var pos = editor.screenToWorld(event.pageX, event.pageY);
+  if (name != "undefined")
+  {
+    if (name.indexOf("create new ") === 0)
+    {
+      var typeName = name.slice("create new ".length).trim();
+      var n = prompt("Enter name:", "");
+      lastRespondTime = Date.now();
+
+      if (n && n.length >= 0)
+      {
+        if (nodeDescriptions.descriptionWithNameExistsGlobally(n))
+        {
+          alert("ERROR: Name '" + n + "' is already taken.");
+          return;
+        }
+      }
+
+      if (!n || n.length == 0)
+        return;
+
+      n = editor.makeSafeFilename(n);
+      query("new_graph&" + clientId + "&" + n + "&" + typeName + "&" + pos[0] + ":" + pos[1], null, editor.emptyGraphStr);
+    }
+    else
+    {
+      var desc = nodeDescriptions.findDescriptionByName(name);
+      if (desc)
+      {
+        var idx = editor.addElem(pos[0], pos[1], desc, -1);
+      //  if (editor.checkForExplodeSubgraph(idx) == false)
+        editor.onChanged();
+      }
+    }
+  }
+}
+
+
+function onBigTextAreaKeyDown(event)
+{
+  if (event.keyCode == 27 || event.keyCode == 32 || event.keyCode == 13)
+    editor.bigTextArea.style.visibility = "hidden";
+}
+
+
+function onErrorMouseDown(event)
+{
+  if (lastErrorString && lastErrorString.indexOf("error:") == 0)
+    query("command&" + clientId + "&get_compiler_log", null);
+}
+
+
+function processGraphCommands(buf)
+{
+  if (buf.indexOf("%subgraph_desc:") == 0)
+  {
+    console.log("%subgraph_desc:");
+    var commaIdx = buf.indexOf(",");
+    var category = buf.substring("%subgraph_desc:".length, commaIdx);
+    editor.saveDescriptionNames();
+    nodeDescriptions.replaceSubgraphDescriptions(category, '{"descriptions":[' + buf.slice(commaIdx + 1) + "]}");
+    editor.restoreDescriptions();
+    onTimer();
+    return;
+  }
+
+  if (buf.indexOf("%graph:") == 0)
+  {
+    console.log("%graph:");
+    buf = buf.slice("%graph:".length);
+
+    if (buf !== "not_inited")
+      editor.splashScreenDiv.style.visibility = "hidden";
+    else
+      buf = "";
+
+    editor.parseGraph(buf.length > 2 ? buf : editor.emptyGraphStr, true);
+    editor.resetHistory();
+    editor.onChanged(false, true);
+    onTimer();
+    return;
+  }
+
+  if (buf.indexOf("%additional_includes:") == 0)
+  {
+    console.log("%additional_includes:");
+    buf = buf.slice("%additional_includes:".length);
+    editor.parseAdditionalIncludes(buf);
+    onTimer();
+    return;
+  }
+
+  if (buf.indexOf("%file_names:") == 0)
+  {
+    console.log("%file_names:");
+    buf = buf.slice("%file_names:".length);
+    openGraphDialog.setFileList(buf);
+    onTimer();
+    return;
+  }
+
+  if (buf.indexOf("%new_elem:") == 0)
+  {
+    console.log(buf);
+    buf = buf.slice("%new_elem:".length);
+    var p = buf.split(":");
+    var descName = p[0];
+    var typeName = p[1]; // unused
+    var creationX = parseFloat(p[2]);
+    var creationY = parseFloat(p[3]);
+    var desc = nodeDescriptions.findDescriptionByName(descName);
+    if (desc)
+    {
+      editor.addElem(creationX, creationY, desc, -1);
+      editor.onChanged();
+    }
+
+    onTimer();
+    return;
+  }
+
+  if (buf.indexOf("%compiler_log:") == 0)
+  {
+    console.log("%compiler_log:");
+    buf = buf.slice("%compiler_log:".length);
+    editor.bigTextArea.style.visibility = "visible";
+    editor.bigTextArea.value = buf;
+    setTimeout(function(){editor.bigTextArea.focus(); editor.bigTextArea.setSelectionRange(0, 0);}, 10);
+    onTimer();
+    return;
+  }
+
+  if (buf.indexOf("%generated_code:") == 0)
+  {
+    console.log("%generated_code:");
+    buf = buf.slice("%generated_code:".length);
+    editor.bigTextArea.style.visibility = "visible";
+    editor.bigTextArea.value = buf;
+    setTimeout(function(){editor.bigTextArea.focus(); editor.bigTextArea.setSelectionRange(0, 0);}, 10);
+    onTimer();
+    return;
+  }
+  
+  var commands = buf.split("%");
+  for (var i = 0; i < commands.length; i++)
+  {
+    var cmd = commands[i];
+    if (cmd.length > 1)
+    {
+      if (cmd.indexOf("id:") != 0)
+        console.log("received command: " + cmd);
+
+      editor.onCommand(cmd);
+    }
+  }
+}
+
+
+function onTimer()
+{
+  if (prevErrorString != lastErrorString)
+  {
+    if (lastErrorString)
+    {
+      var elem = document.getElementById("errorMsgDiv");
+      elem.style.visibility = "visible";
+      elem.innerText = " " + lastErrorString + " ";
+    }
+    else
+    {
+      var elem = document.getElementById("errorMsgDiv");
+      elem.style.visibility = "hidden";
+    }
+    prevErrorString = lastErrorString;
+  }
+
+  if (!attached)
+  {
+    lastErrorString = "Detached";
+    document.body.style.background = "#510";
+    return;
+  }
+
+  if (attached)
+  {
+    var time = Date.now();
+    if (time - lastRespondTime > 4000)
+      lastErrorString = "Not responding: " + Math.round((time - lastRespondTime) * 0.001);
+  }
+
+  if (!clientBusy)
+    query("state&" + clientId, function(text)
+      {
+        if (text && text.length)
+          processGraphCommands(text);
+      });
+
+  if (loadedWithErrors)
+  {
+    lastErrorString = "Loaded with errors";
+    document.body.style.background = "#014";
+    return;
+  }
+
+  document.body.style.background = "#333";
+}
+
+
+var oldOnLoadHandler = window.onload;
+window.onload = function()
+{
+  if (oldOnLoadHandler)
+    oldOnLoadHandler();
+
+  renderEnabled = true;
+  pluginName = "__PLUGIN_NAME__";
+
+  typeConv = new TypeConv();
+
+  nodeDescriptions = new NodeDescriptions();
+  nodeDescriptions.update();
+
+  editor = new GraphEditor();
+  editor.init();
+
+  openGraphDialog = new OpenGraphDialog();
+//  openGraphDialog.showDialog();
+//  openGraphDialog.setFileList("file1%file2%");
+
+  window.addEventListener("mouseup", globalMouseUp);
+  window.addEventListener("mousemove", globalMouseMove);
+  window.addEventListener("keydown", globalOnKeyDown);
+  window.addEventListener("keyup", globalOnKeyUp);
+
+  onAttach();
+  window.setInterval("onTimer()", 200);
+
+  window.addEventListener("focus", function()
+  {
+    queryFileCache = {};
+    if (globalLockInput)
+      return;
+    query("onfocus&" + clientId);
+  });
+}
+
+
+
+</script>
+</body>

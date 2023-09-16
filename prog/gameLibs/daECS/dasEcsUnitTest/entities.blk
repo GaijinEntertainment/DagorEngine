@@ -1,0 +1,109 @@
+
+testCppComponent {
+  "some_component2:SomeComponent"{}
+}
+
+a {
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  int_variable:i=10
+}
+
+testEntity {
+  "ecs_array_int_float_point2_1_2_21:array"{
+    a:i = 1
+    b:r = 2
+    c:p2 = 2,1
+  }
+  "ecs_object_int_float_point2_1_2_21:object"{
+    int:i = 1
+    float:r = 2
+    point2:p2 = 2,1
+  }
+  "shared_str:shared:t"{value:t=sample_shared_str;}
+}
+
+ballistics {
+  pos:p3= 0,0,0
+  vel:p3= 1,0,1
+}
+ballistics2 {
+  _extends:t = ballistics
+  no_int_value:i =101
+}
+
+testDasEvent {
+  ev_pos:p3= 0,0,0
+  ev_vel:p3= 1,0,1
+  ev_val:i=0
+}
+
+justInt {
+  just_int_variable:i = 0
+}
+
+testReCreate1 {
+  some_int_var1:i = 0
+  "ecs_array_int_1:array"{
+    a:i = 1
+    _track:b=yes
+  }
+  _tracked:t="some_int_var1"
+}
+
+testReCreate2 {
+  _extends:t=testReCreate1
+  some_int_var2:i = 0
+}
+
+testReCreateMemLeak {
+  _extends:t=testReCreate2
+  string_variable:t="11i2hoshisdhsidhksjdhksdjhkadhkjhdsikabhskdhakdh"
+}
+
+testReCreateInit1
+{
+  _group {
+    some_int_var2:i = 0
+    _track:b=yes
+  }
+  //_tracked:t="some_int_var2"
+}
+
+testReCreateInit2
+{
+  _extends:t=testReCreateInit1
+  some_int_var3:i = 0
+}
+
+testTrackable
+{
+  trackable:b=false
+  _tracked:t="trackable"
+}
+
+testTrackable2
+{
+  trackable2:b=true
+  _tracked:t="trackable2"
+}
+
+checkUnicastTwice {
+  "some:SomeComponent"{}
+  "checkUnicastTwice:tag" {}
+}
+
+unicastAfterCreateEntity
+{
+  some_int_var:i = 0
+  "unicastAfterCreateEntity:tag" {}
+}
+
+entityWith_tracked_int_var1 {
+  tracked_int_var1:i = 0
+ _tracked:t="tracked_int_var1"
+}
+
+entityWith_tracked_int_var1_and_2 {
+  _extends:t = entityWith_tracked_int_var1
+  not_tracked_int_var2:i = 0
+}

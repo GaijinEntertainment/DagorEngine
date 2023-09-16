@@ -1,0 +1,38 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/daEditor3/Occluders ;
+DriverLinkage = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+UseWTL      = yes ;
+
+TargetType  = dll ;
+Target      = tools/sceneTools/daEditor3/occluders.dll ;
+OutDir      = $(Root)/tools/dagor3_cdk/bin/plugins/de3x ;
+if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/de3x ; }
+
+AddIncludes = 
+  $(Root)/prog/tools/sharedInclude 
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+;
+
+Sources =
+  main_occ.cpp
+  plugin_occ.cpp
+  objEd_occ.cpp
+  Occluder.cpp
+;
+
+
+UseProgLibs =
+  tools/sceneTools/daEditor3/de3dllCore
+  tools/libTools/winGuiWrapper
+;
+
+ImportProgLibs =
+  tools/libTools/daKernel
+;
+
+LINKopt = -def:$(Root)/prog/tools/sceneTools/daEditor3/de3dllCore/de3_plugin.def ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

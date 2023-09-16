@@ -1,0 +1,108 @@
+rule AddQtCompileOpt
+{
+  _CPP_OPT = -I$(_QT_DIR)/include/Qt$(UseQtLibs) -I$(_QT_DIR)/include/Qt$(DefQtLibs)
+             -DQT_$(UseQtLibs:U)_LIB -DQT_$(DefQtLibs:U)_LIB
+             $(_CPP_OPT) ;
+  $(Target)__MOC_OPT = -I$(_QT_DIR)/include/Qt$(UseQtLibs) -I$(_QT_DIR)/include/Qt$(DefQtLibs) -DQT_$(UseQtLibs:U)_LIB -DQT_$(DefQtLibs:U)_LIB $(dll_opt) ;
+}
+
+rule AddQtLinkOpt
+{
+  if $(TargetType) = exe || $(TargetType) = dll {
+    local qt_libs = $(_QT_DIR)/lib/QtCore $(_QT_DIR)/lib/QtGui $(_QT_DIR)/lib/Qt$(UseQtLibs) $(_QT_DIR)/lib/Qt$(DefQtLibs) ;
+    if $(Config) = dbg {
+      _ADD_LIBS += $(qt_libs)d4.lib ;
+    } else {
+      _ADD_LIBS += $(qt_libs)4.lib ;
+    }
+  }
+}
+
+# rule how to compile QT .ui target
+#   params: ( target_pathname : sources : target )
+rule CompileUI
+{
+  local tgt = $($(3)__OutDir)/$(3) ;
+  local ui_h = $(Root)/$(1) ;
+  LOCATE on $(2) = $(Root) ;
+  Depends $(ui_h) : $(2) ;
+  Depends $(tgt) : $(ui_h) ;
+  compile_qt_ui $(ui_h) : $(2) ;
+}
+
+# rule how to compile QT .moc target
+#   params: ( target_pathname : sources : target )
+rule CompileMOC
+{
+  Depends $(1) : $(Root)/$(2) ;
+  MakeDirectory $(1) : $(1:D) ;
+  opt  on $(1) = $($(3)__MOC_OPT) ;
+  compile_qt_moc $(1) : $(Root)/$(2) ;
+
+  local obj = $(1:S=$(_OBJ_SUFFIX)) ;
+  Depends $(obj) : $(1) ;
+  MakeDirectory $(obj) : $(obj:D) ;
+
+  cpp_opt   on $(obj) = $($(3)__CPP_OPT) ;
+  pre_opt   on $(obj) = $($(3)__PRE_OPT) ;
+
+  compile_cpp $(obj) : $(1) ;
+}
+
+# rule how to compile QT .qrc target
+#   params: ( target_pathname : sources : target )
+rule CompileQRC
+{
+  Depends $(1) : $(Root)/$(2) ;
+  MakeDirectory $(1) : $(1:D) ;
+  compile_qt_rcc $(1) : $(Root)/$(2) ;
+
+  local obj = $(1:S=$(_OBJ_SUFFIX)) ;
+  Depends $(obj) : $(1) ;
+  MakeDirectory $(obj) : $(obj:D) ;
+
+  cpp_opt   on $(obj) = $($(3)__CPP_OPT) ;
+  pre_opt   on $(obj) = $($(3)__PRE_OPT) ;
+
+  compile_cpp $(obj) : $(1) ;
+}
+
+
+actions quietly compile_qt_ui
+{
+#async
+  echo QT-uic $(2:D=)
+  call $(_QT_UIC) -o $(1) $(2)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  goto end
+  :failed
+  set ERRORLEVEL=13
+  :end
+}
+
+actions quietly compile_qt_moc
+{
+#async
+  echo QT-moc $(2:D=)
+  call $(_QT_MOC) $(opt) $(_CPP_BASE_INCLUDES) -o $(1) $(2)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  goto end
+  :failed
+  set ERRORLEVEL=13
+  :end
+}
+
+actions quietly compile_qt_rcc
+{
+#async
+  echo QT-rcc $(2:D=)
+  call $(_QT_RCC) -o $(1) $(2)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  goto end
+  :failed
+  set ERRORLEVEL=13
+  :end
+}

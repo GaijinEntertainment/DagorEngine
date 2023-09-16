@@ -1,0 +1,47 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/ecs/render ;
+
+TargetType  = lib ;
+Target      = gameLibs/ecs/render.lib ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  animCharUtils.cpp
+;
+
+UseProgLibs +=
+  3rdPartyLibs/eastl
+;
+
+SourceES =
+  decalsES.cpp.inl
+  animCharNodeDebugES.cpp.inl
+  animCharParamsDebugES.cpp.inl
+  bulletHolesES.cpp.inl
+  animRandomNodeHiderES.cpp.inl
+  tonemapES.cpp.inl
+  shaderVarsES.cpp.inl
+  resPtrES.cpp.inl
+  postfxRendererES.cpp.inl
+  RTPoolES.cpp.inl
+  shadersES.cpp.inl
+;
+
+if [ GLOB $(Root)/prog/gameLibs/ecs/phys : * ] && [ GLOB $(Root)/prog/gameLibs/gamePhys/ballistics : * ] {
+  CPPopt += -DHAS_ECS_PHYS ;
+}
+
+if $(Config) != rel { SourceES += animCharDbgRenderES.cpp.inl ; }
+
+include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

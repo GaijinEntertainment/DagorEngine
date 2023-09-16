@@ -1,0 +1,23 @@
+Platform ?= win32 ;
+Root    ?= ../../../.. ;
+Location = prog/engine2/drv/hid_gamepad_xinput ;
+
+TargetType  = lib ;
+Target      = engine2/drv/hid_gamepad_xinput.lib ;
+
+Sources =
+  gamepad_classdrv.cpp
+  gamepad_device.cpp
+  gamepad_create.cpp
+
+  mouse_emu.cpp
+  keyboard_emu.cpp
+;
+
+if $(Platform) in xboxOne scarlett { Sources += gamepad_composite.cpp ; }
+
+if $(DriverLinkage) != dynamic { UseProgLibs = engine2/baseUtil ; } # for watchdog
+
+AddIncludes = $(Root)/prog/engine2/sharedInclude ;
+
+include $(Root)/prog/_jBuild/build.jam ;

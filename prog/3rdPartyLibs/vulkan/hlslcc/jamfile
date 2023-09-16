@@ -1,0 +1,71 @@
+Root           ?= ../../../.. ;
+Location        = prog/3rdPartyLibs/vulkan/hlslcc ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/vulkan/hlslcc.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes = 
+  $(Root)/$(Location)/Include
+  $(Root)/$(Location)/src/cbstring
+  $(Root)/$(Location)/src/internal_includes
+  $(Root)/$(Location)/src
+  $(Root)/$(Location)
+  $(Root)/prog/engine2/drv/drv3d_Metal
+;
+
+
+Sources =
+  src/ControlFlowGraph.cpp
+  src/ControlFlowGraphUtils.cpp
+  src/DataTypeAnalysis.cpp
+  src/Declaration.cpp
+  src/decode.cpp
+  src/HLSLcc.cpp
+  src/HLSLccToolkit.cpp
+  src/HLSLCrossCompilerContext.cpp
+  src/Instruction.cpp
+  src/LoopTransform.cpp
+  src/Operand.cpp
+  src/reflect.cpp
+  src/Shader.cpp
+  src/ShaderInfo.cpp
+  src/toGLSL.cpp
+  src/toGLSLDeclaration.cpp
+  src/toGLSLInstruction.cpp
+  src/toGLSLOperand.cpp
+  src/toMetal.cpp
+  src/toMetalDeclaration.cpp
+  src/toMetalInstruction.cpp
+  src/toMetalOperand.cpp
+  src/UseDefineChains.cpp
+  src/cbstring/bsafe.c
+  src/cbstring/bstraux.c
+  src/cbstring/bstrlib.c
+;
+
+
+if $(Platform) in win32 win64 {
+  CPPopt =
+    /d2Zi+
+    -DWIN32
+    -DNDEBUG
+    -D_CONSOLE
+    -DGENERIC_COMPILER
+    -DYYDEBUG=0
+    -DEXCLUDE_PSTDINT
+    -FIstdint.h
+  ;
+}
+
+if $(PlatformSpec) = clang { CPPopt += -Wno-comment -Wno-deprecated-register ; }
+if $(Platform) = win64 { CPPopt += -wd4267 ; }
+
+if $(Platform) in macosx {
+  CPPopt += -Wno-comment -Wno-switch -Wno-null-conversion -Wno-c++11-narrowing -Wno-deprecated-declarations -Wno-error ;
+} else {
+  if $(PlatformSpec) != clang { CPPopt += /TP ; }
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,142 @@
++ raycast weather + clouds
++ erosion level should be LUT sampled or depend on cloud Type
+* 'rain clouds' - sigma should depend on something like "clouds height above" or "cloud coverage*cloudtype" or "rain map"
+
+optimizations:
+  + probably integrate ambient separately from sun, to save multiplication per step (with a cost of register pressure?).
+  + replace exp with exp2!
+  + optimize get_alt_fraction
+  + tiled distance (like it used to be)
+    * optimize lowres sample (it is now texture, while we we should use buffer of 1 bit)
+  + distance field (faster skip empty spaces)
+  + precomputed fog (fogHelper) is a bit faster on Xbox1
+  - use constant colors when sun is relatively high (interval). Only on sunset/noon it makes sense to have the texture.
+  + 'near' clouds should be not rendering if too far to clouds layer
+  + 'near' clouds should be not rendering when there is not inside clouds
+    + simple compute shader can check if there any non transparent texels within frustum (frustum bbox of 2048 dist)
+  - tonemap clouds to srgb (CLOUDS_TONEMAPPED_TO_SRGB), use current exposure
+  + optimize taa
+  + remove layer if it is invisible (no humidity)
+    at least make altitudes within visible layer
+  + optimize clouds_close_layer_outside, so it samples from not downsampled depth, and yet fast (with parallel sum)
+    this will increase cases where close color is just empty
+  + clouds_close_layer_outside should cause indirect dispatch, i.e. no point of tracing close layer if there is nothing there
+  * apply: do not sample close layer if it is empty.
+    we can write to some rwbuffer in rendering of close colors (many writes), or make additional pass (many reads)
+traversal:
+  + crossfade of sequences
+  + flickering of slice
+  + sequences as different loops
+
+* noise
+  + generate noise mips (at least for 3d tex)
+  ?worley noise seem to be completely off, as well as perlin/worley. Use Frostbite one
+  + stable noise?
+  +low freq - one channel noise
+  +high freq - one channel noise
+  + curl noise usage
+  + try curl noise instead of second noise.
+  - compress curl noise (ATI2N) (tested, difference is neglible)
+
+* lighting:
+   +HG phase
+     + HG phase should probably be with constant lerp param, like in Frostbite paper
+   +sun steps
+     ?cone step + noise seem to be ineffective
+   +beer law
+   ?+ powder - original doesn't seem to work for me, changed is too dark.
+   + multiple scattering
+     + normalize contribution from MS
+     + with artist driven 'not normal' param
+   + texture for ambient and sun (below and above) (4x2 texture)
+     + 4 points should be more than enough, that would provide nice gradient of colors
+     - use constant colors when sun is relatively high (interval). Only on sunset/noon it makes sense to have the texture.
+     - blend the texture from these constants, when sunsetting
+     + change blend parameter speed, so it is looking more linear
+   + ambient
+     + different top/bottom cloud ambient
+     * toroidal exp shadows from above (ambient).
+   * add planet shadow?
+   ? exponential shadow maps
+     * snap texel
+     * utilize texture space on sunset
+     * calculate LS in c++
+     * toroidal update
+     * multiple cascades
+
+   * vol shadows
+     general:
+       + MS + ambient
+       + temporal update (limited samples per frame use blending with queue).
+       *? slower temporal update (use same light_dir for each lerp step)
+       * ambient is currently extremely slow.
+         * only calc ambient where density around isn't zero
+         * precalc dir samples
+         * use exp shadows from above instead...?
+         + calc irradiance on layers once
+         + CLOUDS_LIGHT_SAMPLES - should be setting (extern constant)
+
+     * around camera (for better quality):
+       * should has it's own origin, not skies_world_view_pos?
+       * toroidal update
+       * multiple cascades (add few rays + cascade)
+     * CLOUDS_LIGHT_SAMPLES - should be setting (extern constant)
+   + getShadowStepSize() - should be preshader
+
++ Weighted scattering
++ atmospheric scattering (weighted depth)
+
++ clouds should affect atmospheric scattering!
+  + update while moving, at lest the slice that is point to sun (slice 0)
+* temporal render
+  ? relax old distance as well
+  + taa history clipping speed should depend on movement (requires relaxed distance)
+  + ?froxels instead
+  - 'far' clouds to be rendered in additional plane with simplified taa (no clipping, just reproject from infinity)
+
++ reprojection
+  'Planes'
+    * close distance
+      + on apply render first few slices (in 1/2 res compared to reprojected)
+      + use gbuffer depth mip (we divide by 2 close distance!)
+      + apply with bilateral
+      * add another reprojection for first slices (may be immediate ping-pong? or add blurred?)
+      * optimize first slices
+    + render temporal in YcoCgTonemapped space (so avoid conversion of 9 samples, and convert one)
+    + add gbuffer depth
+    + optimize taa
+    + apply with bilateral upscale
+  'Shooter'
+    + immediately reproject (ping-pong, instead of TAA) - only 'far' clouds option.
+
+* params:
+  + extinction
+  + freqency and gamma for both densities.
+  + humidity
+  + cloud types per layer
+  + expose turbulence (curl)
+  + expose clouds_average_weight/clouds_target_field_res_xz
+
+  * changing params in realtime should cause temporal update of ambient (not invalidate)
+  + rainmap
+  + layer2 'above' cumulonimbus should not have flat bottom
+
++ shadows from clouds on terrain
+
+* Bugs:
+  + something off when outside clouds layer
+  * something when intersecting
+  * too much invalidation on clouds causes not full shadow update (not noticeable as we dont do that)
+
+Wind:
+  + wind direction in shader should be explicit
+  + wind offsetting sampling
+  + wind reproj
++ panorama render
+  ? supersample+jitter startpos with blending (especially on low res). Just render 4 times sky + clouds
+
+* final touches
+  * remove uncompressed noise textures
+  * do not use ATI1N textures on broken Intel
+  ? ATI1N compression directly into temp buffer (for mip 0)
+  * light on clouds (explosions)

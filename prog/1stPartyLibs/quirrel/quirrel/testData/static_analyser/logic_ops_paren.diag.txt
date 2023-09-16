@@ -1,0 +1,51 @@
+WARNING: w202 (and-or-paren) Priority of the '&&' operator is higher than that of the '||' operator. Perhaps parentheses are missing?
+testData/static_analyser/logic_ops_paren.nut:5:8
+
+let a = x && y || z
+        ^----------
+let b = x || y && z
+
+
+WARNING: w202 (and-or-paren) Priority of the '&&' operator is higher than that of the '||' operator. Perhaps parentheses are missing?
+testData/static_analyser/logic_ops_paren.nut:6:8
+
+let a = x && y || z
+let b = x || y && z
+        ^----------
+let c = (x && y) || z
+
+
+WARNING: w203 (bitwise-bool-paren) Result of bitwise operation used in boolean expression. Perhaps parentheses are missing?
+testData/static_analyser/logic_ops_paren.nut:10:8
+
+let e = x || y | z
+        ^---------
+let f = x || y & z
+
+
+WARNING: w203 (bitwise-bool-paren) Result of bitwise operation used in boolean expression. Perhaps parentheses are missing?
+testData/static_analyser/logic_ops_paren.nut:11:8
+
+let e = x || y | z
+let f = x || y & z
+        ^---------
+let g = x && y | z
+
+
+WARNING: w203 (bitwise-bool-paren) Result of bitwise operation used in boolean expression. Perhaps parentheses are missing?
+testData/static_analyser/logic_ops_paren.nut:12:8
+
+let f = x || y & z
+let g = x && y | z
+        ^---------
+let h = x && y & z
+
+
+WARNING: w203 (bitwise-bool-paren) Result of bitwise operation used in boolean expression. Perhaps parentheses are missing?
+testData/static_analyser/logic_ops_paren.nut:13:8
+
+let g = x && y | z
+let h = x && y & z
+        ^---------
+
+

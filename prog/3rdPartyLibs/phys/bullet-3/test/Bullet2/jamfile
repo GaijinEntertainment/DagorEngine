@@ -1,0 +1,28 @@
+if $(OS) = NT { Platform ?= win64 ; }
+PlatformSpec_win64 ?= clang ;
+
+Root    ?= ../../../../../.. ;
+Location = prog/3rdPartyLibs/phys/bullet-3/test/Bullet2 ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+ConsoleExe = yes ;
+TargetType = exe ;
+Target     = physBullet/$(Location:B) ;
+OutDir     = $(Root)/$(Location)/../_bin ;
+Config     = rel ;
+
+local _SrcDirs =
+  Source
+  Source/Tests
+;
+
+AutoscanBuildLists $(_SrcDirs) : *.cpp : Sources ;
+
+include $(Root)/prog/3rdPartyLibs/phys/bullet-3/test/common_options.jam ;
+AddIncludes +=
+  $(Root)/$(Location)/Source
+  $(Root)/$(Location)/Source/Tests
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

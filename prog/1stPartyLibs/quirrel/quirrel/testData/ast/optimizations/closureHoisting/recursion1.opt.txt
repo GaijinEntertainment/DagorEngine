@@ -1,0 +1,11 @@
+{
+  let $ch0 = FUNCTION qux(this, c, d) {
+    RETURN c(d)
+  }
+  let foo = FUNCTION foo(this, x, y) {
+    let bar = FUNCTION bar(this, a, b) {
+      let qux = $ch0
+      RETURN qux(bar, b)
+    }
+  }
+}

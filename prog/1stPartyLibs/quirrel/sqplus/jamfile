@@ -1,0 +1,25 @@
+Root    ?= ../../../.. ;
+Location = prog/1stPartyLibs/quirrel/sqplus ;
+UseQuirrel = sq3+ ;
+
+TargetType  = lib ;
+Target      = 1stPartyLibs/quirrel/sqplus.lib ;
+
+Sources =
+  sqAux.cpp
+  sqPlus.cpp
+  squirrelObject.cpp
+  squirrelVM.cpp
+  compileScriptFile.cpp
+;
+
+CPPopt = -D__B_CORE ;
+Copt   = -D__B_CORE ;
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,8 @@
+ERROR: can't assign to expression
+testData/diagnostics/assign_to_expr.nut:2:0
+
+local x
+x-- = 1
+^----
+
+

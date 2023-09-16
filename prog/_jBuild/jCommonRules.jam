@@ -1,0 +1,275 @@
+# general-purpose python-based file stringifier
+if $(OS) = NT { PYTHON_EXE ?= $(_DEVTOOL)/python3/python3.exe ; PYTHON_EXE ?= $(GDEVTOOL)/python3/python3.exe ; }
+else if $(OS) in MACOSX { PYTHON_EXE ?= python3 ; }
+else if $(OS) in LINUX { PYTHON_EXE ?= python3 ; }
+
+actions together quietly null_action
+{
+}
+
+# directory creation action
+actions together quietly MkDir
+{
+  if not exist $(1) mkdir $(1)
+}
+
+# directory creation rules
+rule MakeDirectory
+{
+  local _dir = $(>:G=:J=\\) ;
+
+  if $(>)
+  {
+    #LOCATE on $(<) = $(_dir) ;
+    Depends $(<) : $(_dir[1]:G=dir) ;
+
+    # Make a directory and all its parent directories;
+    # ignore timestamps on directories: we only care if they exist.
+    NoUpdate $(_dir[1]:G=dir) ;
+
+    MkDir $(_dir[1]:G=dir) ;
+  }
+}
+
+actions quietly stringify_source_file
+{
+#sync
+  echo Generate C string for: $(2:D=)
+  call $(PYTHON_EXE) $(Root)/prog/_jBuild/_scripts/stringify.py $(opt) $(2) $(1)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  goto end
+:failed
+  del $(1)
+  set ERRORLEVEL=13
+:end
+}
+
+actions quietly generate_es
+{
+#async
+  echo GenerateES binding for: $(2:D=)
+  set DAGOR_CLANG_DIR=$(_DEVTOOL)/LLVM-$(CLangVer)
+  call $(PYTHON_EXE) $(Root)/prog/_jBuild/_scripts/gen_es.py $(2) $(1) $(2:D=) $(opt) $(_CPP_COMPILER[2-]) $($(target)__PRE_OPT) $(_CPP_BASE_INCLUDES) $($(target)__CPP_OPT) $$$ $(es_opt)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  goto end
+:failed
+  del $(1)
+  set ERRORLEVEL=13
+:end
+}
+
+# concatenates (prefix : suffix) and simplifies path
+rule SimplifyComposedPath
+{
+  local prefix = $(1) ;
+  local suffix = $(2) ;
+  local rest = [ MATCH "^\.\.\/(.*)" : $(suffix) ] ;
+  while $(rest) && $(prefix) {
+    suffix = $(rest) ;
+    prefix = $(prefix:D) ;
+    rest = [ MATCH "^\.\.\/(.*)" : $(suffix) ] ;
+  }
+  return $(prefix)/$(suffix) ;
+}
+
+# converts source file to C string constant using python script
+# dst : [target] 
+rule GenESSourceFile
+{
+  local dst_nm = $(1:S=.gen.es.cpp) ;
+  local src = $(Location)/$(1) ;
+  local dst = $(Location)/$(dst_nm) ;
+  local tgt = $(Target) ;
+  if $(UseQuirrel) && $(TargetType) = lib { tgt = $(tgt:S=~$(UseQuirrel).lib) ; }
+
+  LOCATE on $(src) = $(Root) ;
+  LOCATE on $(dst) = $(Root) ;
+
+  NOCARE $(Root)/$(dst) ;
+  if ! $(JAM_CWD) { exit Outdated jam executable: JAM_CWD isn't supported ; }
+  NOCARE [ SimplifyComposedPath $(JAM_CWD) : $(Root)/$(dst) ] ;
+  if $(OS) = NT { NOCARE [ SimplifyComposedPath $(JAM_CWD:L) : $(Root:L)/$(dst:L) ] ; }
+
+  if $(1) in $(Sources) {
+    local new_src = ;
+    for s in $(Sources) { if $(s) != $(1) { new_src += $(s) ; } }
+    Sources = $(new_src) ;
+  }
+  if ! $(dst_nm) in $(Sources) { Sources += $(dst_nm) ; }
+
+  Includes $(dst) : $(src) ;
+
+  SkipGenES ?= no ;
+  if $(SkipGenES) = yes {
+    return ;
+  }
+
+  ForceGenES ?= no ;
+  if $(ForceGenES) = no {
+    if ! $(Platform) in win32 win64 linux64 { return ; }
+  }
+  if ! $(PYTHON_EXE) { Exit Unsupported HOST\: $(OS) ; }
+
+  if $(CheckCodeGen) != yes { Depends $(dst) : $(src) ; }
+
+  if $(GLOBAL_DependOnJam) {
+    Depends $(dst) :
+      $(Root)/prog/_jBuild/_scripts/gen_es.py
+      $(Root)/prog/_jBuild/_scripts/gen_es30.py
+      $(Root)/prog/_jBuild/_scripts/clang_ecs_parser.py
+      $(Root)/prog/_jBuild/jCommonRules.jam
+    ;
+  }
+  target on $(dst) = [ MakeEffectiveTarget $(tgt) ] ;
+  es_opt on $(dst) = $(EcsGenOpt) ;
+  generate_es $(dst) : $(src) ;
+  Depends ALL_CODEGEN_TARGET : $(dst) ;
+
+  if $(CheckCodeGen) = yes {
+    opt on $(dst) = CHECK ;
+    dst = $(dst:G=check) ;
+
+    LOCATE on $(dst) = $(Root) ;
+    ALWAYS $(dst) ;
+    Depends $(dst) : $(src) ;
+    target on $(dst) = [ MakeEffectiveTarget $(tgt) ] ;
+    opt on $(dst) = CHECK ;
+    es_opt on $(dst) = $(EcsGenOpt) ;
+
+    generate_es $(dst) : $(src) ;
+    Depends ALL_CODEGEN_TARGET : $(dst) ;
+    Depends all : $(dst) ;
+  }
+}
+
+# converts source file to C string constant using python script
+# dst : src : consumer : opts
+rule StringifySourceFile
+{
+  if ! $(PYTHON_EXE) { Exit Unsupported HOST\: $(OS) ; }
+
+  local src = $(Location)/$(1) ;
+  local dst = $(Location)/$(2) ;
+  local usr = $(Location)/$(3) ;
+
+  LOCATE on $(src) = $(Root) ;
+  LOCATE on $(dst) = $(Root) ;
+  LOCATE on $(usr) = $(Root) ;
+
+  Depends $(dst) : $(src) ;
+  opt on $(dst) = $(4) ;
+  NOCARE $(Root)/$(dst) ;
+  if ! $(JAM_CWD) { exit Outdated jam executable: JAM_CWD isn't supported ; }
+  NOCARE [ SimplifyComposedPath $(JAM_CWD) : $(Root)/$(dst) ] ;
+  if $(OS) = NT { NOCARE [ SimplifyComposedPath $(JAM_CWD:L) : $(Root:L)/$(dst:L) ] ; }
+
+  Includes $(usr) : $(dst) ;
+  stringify_source_file $(dst) : $(src) ;
+  Depends ALL_CODEGEN_TARGET : $(dst) ;
+}
+
+rule BuildValidJamString
+{
+  local spec_sym = ";=\"{}#():\\" ;
+  local match_str = ([^$(spec_sym)]*)([$(spec_sym)])(.*) ;
+
+  local split = [ MATCH $(match_str) : $(1:J=\ ) ] ;
+  if ! $(split) { return $(1:J=\ ) ; }
+
+  local result = $(split[1]) ;
+  while $(split[2]) {
+    result += \\$(split[2]) ;
+    split = [ MATCH $(match_str) : $(split[3]) ] ;
+    result += $(split[1]) ;
+  }
+  return $(result:J) ;
+}
+
+rule StrToCIdent
+{
+  local ident = $(1) ;
+  local spec_sym = "\\~\\#\\@\\$\\:\\.\\-" ;
+  local match_str = ([^$(spec_sym)]*)([$(spec_sym)])(.*) ;
+  local split = [ MATCH $(match_str) : $(ident) ] ;
+  while $(split) {
+    ident = $(split[1])_$(split[3]) ;
+    split = [ MATCH $(match_str) : $(ident) ] ;
+  }
+  return $(ident) ;
+}
+
+rule AutoscanBuildLists # folder_list : wildcard : dest_var : excl_regexp
+{
+  for sd in $(1) {
+    local s = [ GLOB $(Root)/$(Location)/$(sd) : $(2) ] ;
+    s = $(s:D=$(sd)) ;
+    if $(4) {
+      for f in $(s) { if ! [ MATCH "($(4))" : $(f) ] { $(3) += $(f) ; } }
+    } else {
+      $(3) += $(s) ;
+    }
+  }
+}
+
+if $(OS) = NT {
+  actions together quietly raw_copy_file
+  {
+    echo * copy file to:   $(file)
+    set_filter nul /1 file\(s\) copied/
+    call_filtered $(ComSpec) /C copy /Y /B /V #\( $(2) $(1) )\#
+    clr_filters
+    if not exist $(1) set errorlevel=13
+  }
+} else {
+  actions together quietly raw_copy_file
+  {
+    echo * copy file to:   $(file)
+    call cp $(2) $(1)
+    $(post_copy_cmd)
+    if not exist $(1) set errorlevel=13
+  }
+}
+
+rule BundleCopyFile
+{
+  local dest = $(OutDir)/$(2) ;
+  local src = [ LocationBasedToAbsPath $(3) ] ;
+
+  Depends $(1) : $(dest) ;
+  MakeDirectory $(dest) : $(dest:D) ;
+  Depends $(dest) : $(src) ;
+  file on $(dest) = $(2) ;
+  raw_copy_file $(dest) : $(src) ;
+}
+
+if ! $(Platform) in macosx android nswitch iOS tvOS {
+  rule ProcessBundleCopy
+  {
+    BundleCopyFile $(OutDir)/$(Target) : $(1[2]) : $(1[1]) ;
+    if $(1[3]) { ProcessBundleCopy $(1[3-]) ; }
+  }
+}
+
+rule Make_DAS_pull_AOT
+{
+  local nm  = [ MATCH ([^~]+).* : $(1:B) ] ;
+  return [ StrToCIdent $(nm)_DAS_pull_AOT ] ;
+}
+
+actions together quietly make_es_pull_cpp
+{
+#async
+  echo $(var_name) = $(ref_var) ; >$(1:S=.jam)
+  call $(PYTHON_EXE) $(Root)/prog/_jBuild/_scripts/make_es_pull_cpp.py $(1) $(var)
+}
+make_es_pull_cpp_DEPS = $(Root)/prog/_jBuild/_scripts/make_es_pull_cpp.py ;
+
+actions together quietly make_module_pull_cpp
+{
+#async
+  echo $(var_name) = $(ref_var) ; >$(1:S=.jam)
+  call $(PYTHON_EXE) $(Root)/prog/_jBuild/_scripts/make_module_pull_cpp.py $(1) $(var)
+}
+make_module_pull_cpp_DEPS = $(Root)/prog/_jBuild/_scripts/make_module_pull_cpp.py ;

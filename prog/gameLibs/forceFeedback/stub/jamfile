@@ -1,0 +1,22 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/forceFeedback/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/forceFeedbackStub.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  forceFeedbackStub.cpp
+;
+
+UseProgLibs =
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,1 @@
+Generates random month string.

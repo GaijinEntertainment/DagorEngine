@@ -1,0 +1,28 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/webui/plugins/ecsviewer ;
+
+TargetType  = lib ;
+Target      = gameLibs/webui/plugins/ecsviewer.lib ;
+
+AddIncludes =  
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs
+  $(Root)/prog/dagorInclude
+;
+
+Sources =
+  ecsViewerPlugin.cpp
+  ecsViewerPluginListener.cpp
+;
+
+SourceHTML =
+  ecsViewer.html
+;
+
+
+for s in $(SourceHTML) { StringifySourceFile $(s) : $(s).inl : ecsViewerPlugin.cpp ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

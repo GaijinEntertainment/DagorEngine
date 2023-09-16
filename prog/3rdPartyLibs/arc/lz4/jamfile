@@ -1,0 +1,16 @@
+Root           ?= ../../../.. ;
+Location        = prog/3rdPartyLibs/arc/lz4 ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/arc/lz4.lib ;
+
+AddIncludes =
+  $(Root)/$(Location)
+;
+
+Sources =
+  lz4.c
+  lz4hc.c
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

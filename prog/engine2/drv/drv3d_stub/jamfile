@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/engine2/drv/drv3d_stub ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = engine2/drv/drv3d_stub.lib ;
+
+Sources =
+  d3d_stub.cpp
+  init_d3di.cpp
+;
+
+CPPopt = -DD3DSTUBBED=1  -DINSIDE_DRIVER ;
+if $(Platform) in win32 win64 xboxOne scarlett { CPPopt += -FId3d_config.h ; } else { CPPopt += -include $(Root)/$(Location)/d3d_config.h ; }
+
+AddIncludes = 
+  $(Root)/prog/engine2/sharedInclude 
+  $(Root)/prog/engine2/drv/drv3d_commonCode
+;
+
+UseProgLibs = engine2/drv/drv3d_commonCode ;
+
+include $(Root)/prog/_jBuild/build.jam ;

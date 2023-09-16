@@ -1,0 +1,172 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>Auto Drey</title>
+</head>
+<body style="font-family: Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;">
+
+<div id="connection_status" style="background-color:#eee; position:absolute; top:0px; left:0px; width:100%; box-sizing:border-box; padding:4px;">Detached</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div id="errors_list" style="white-space: pre;">
+  Reload scripts to run static analyzer.
+</div>
+
+<script>
+"use strict";
+
+var client = new XMLHttpRequest();
+var clientBusy = false;
+var clientPost = new XMLHttpRequest();
+var clientId = "id:" + Date.now();
+var errorState = false;
+var attached = false;
+var queryQueue = [];
+var lastRespondTime = null;
+
+var lastMarker = ""
+
+
+function query(q, callback, body)
+{
+  if (q.indexOf("state") !== 0 && q.indexOf("alldata") !== 0)
+    console.log("query: " + q);
+
+  if (!attached && q.indexOf('attach') !== 0)
+    return;
+
+  if (!body)
+    body = null;
+
+  if (clientBusy)
+  {
+    if (queryQueue.length < 1000)
+    {
+      var a = {};
+      a.query = q;
+      a.callback = callback;
+      a.body = body;
+      queryQueue.push(a);
+      return;
+    }
+    else
+    {
+      alert("Out of queryQueue max length");
+      return;
+    }
+  }
+
+  clientBusy = true;
+
+  client.onerror = function()
+  {
+    console.log("ERROR '" + client._query + "': " + client.status + " " + client.statusText);
+    onDetach();
+  }
+
+  client.onabort = function()
+  {
+    console.log("ABORT: " + client.status + " " + client.statusText);
+    onDetach();
+  }
+
+  client.onload = function()
+  {
+    if (client.status != 200)
+    {
+      console.log("ERROR(2) '" + client._query + "': " + client.status + " " + client.statusText);
+      onDetach();
+      return;
+    }
+
+    lastRespondTime = Date.now();
+
+    clientBusy = false;
+
+    if (callback)
+    {
+      callback(client.responseText);
+      callback = null;
+    }
+
+    var q = queryQueue.shift();
+    if (q)
+      query(q.query, q.callback, q.body);
+  }
+
+  try
+  {
+    client._query = q;
+    client.open(body ? 'POST' : 'GET', 'auto_drey?' + q, true);
+    client.send(body);
+  }
+  catch (err)
+  {
+    attached = false;
+  }
+}
+
+
+function onAttach(callback)
+{
+  queryQueue = [];
+  attached = true;
+  var cb = callback;
+  query('attach', function(text)
+    {
+      document.getElementById("connection_status").innerText = "Attached";
+      attached = true;
+      cb();
+    });
+  attached = false;
+}
+
+
+function onDetach()
+{
+  //query('detach', false);
+  attached = false;
+  document.getElementById("connection_status").innerText = "Detached";
+}
+
+
+function queryAllData()
+{
+  query('get_output_marker', function(curMarker)
+  {
+    if (curMarker.length > 0 && curMarker != lastMarker)
+    {
+      query('get_output_text', function(text)
+      {
+        lastMarker = curMarker;
+        var a = text.split("\n");
+        var html = "";
+        for (var i = 0; i < a.length; i++)
+          html += "<div>" + a[i] + "</div>";
+        document.getElementById("errors_list").innerHTML = html;
+      });
+    }
+  });
+}
+
+function onTimer()
+{
+  if (clientBusy)
+    return;
+
+  queryAllData();
+}
+
+
+window.addEventListener("load", function()
+{
+  console.log("window.onload()");
+  onAttach(queryAllData);
+  window.setInterval("onTimer()", 500);
+});
+
+
+</script>
+
+</body>
+</html>

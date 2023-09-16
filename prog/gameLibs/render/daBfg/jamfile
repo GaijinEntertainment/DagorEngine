@@ -1,0 +1,103 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/daBfg ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/daBfg.lib ;
+
+
+if $(PlatformSpec) in clang clang64
+{
+  # These warnings are enabled by default on some systems and are
+  # caught by BS but not while developing. Manually enabling them saves
+  # BS' and my time.
+  CPPopt +=
+    -Wc++11-narrowing
+    -Wswitch
+    -Wbitfield-constant-conversion
+  ;
+}
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+  $(Root)/prog/3rdPartyLibs/imgui
+;
+
+Sources =
+  nodes/nodeTracker.cpp
+  nodes/nodeExecutor.cpp
+  nodes/nodeStateDeltas.cpp
+  nodeScheduling/nodeScheduler.cpp
+  resourceScheduling/resourceScheduler.cpp
+  resourceScheduling/nativeResourceScheduler.cpp
+  resourceScheduling/poolResourceScheduler.cpp
+  resourceUsage.cpp
+  backend.cpp
+  intermediateRepresentation.cpp
+  multiplexingInternal.cpp
+
+  api/detail/virtualResourceHandleBase.cpp
+  api/detail/virtualResourceRequestBase.cpp
+  api/bfg.cpp
+  api/registry.cpp
+  api/stateRequest.cpp
+  api/virtualPassRequest.cpp
+;
+
+if $(DABFG_ENABLE_DAS_INTEGRATION) = yes {
+  AddIncludes +=
+    $(Root)/prog/1stPartyLibs/daScript/include
+  ;
+  Sources +=
+    api/dasModules/enumerations.cpp
+    api/dasModules/frameGraphModule.cpp
+    api/dasModules/nodeDataAnnotation.cpp
+    api/dasModules/structureAnnotations.cpp
+  ;
+  SourceDAS =
+    api/dasModules/frameGraphModule.das
+  ;
+  if $(DABFG_ENABLE_DAECS_INTEGRATION) = yes {
+    Sources += api/dasModules/nodeEcsRegistration.cpp ;
+  }
+  else {
+    Sources += api/dasModules/nodeEcsRegistrationStub.cpp ;
+  }
+  UseProgLibs += 1stPartyLibs/daScript ;
+  for s in $(SourceDAS) { StringifySourceFile $(s) : $(s).inl : $(s:S=.cpp) ; }
+}
+if $(DABFG_ENABLE_DAECS_INTEGRATION) = yes {
+  SourceES =
+    ecs/frameGraphNodeES.cpp.inl
+  ;
+  for s in $(SourceES) { GenESSourceFile $(s) ; }
+}
+AllSrcFolder_CPP =
+  resourceScheduling/packers
+;
+
+
+if $(Config) in dbg dev {
+  Sources +=
+    debug/graphVisualization.cpp
+    debug/resourceVisualization.cpp
+    debug/resourceValidation.cpp
+    debug/globalStatesValidation.cpp
+    debug/textureVisualization.cpp
+  ;
+  UseProgLibs +=
+    3rdPartyLibs/imgui
+    3rdPartyLibs/imgui-node-editor
+    engine2/imgui
+    engine2/imgui/util
+    gameLibs/graphLayouter
+  ;
+} else {
+  Sources += debug/backendDebugStub.cpp ;
+}
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
+include $(Root)/prog/_jBuild/build.jam ;

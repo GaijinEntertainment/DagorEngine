@@ -1,0 +1,9 @@
+WARNING: w208 (potentially-nulled-assign) Assignment to potentially nullable expression.
+testData/static_analyser/w208.nut:3:0
+
+local x = { z = {y = 3}}
+x.z?.y <- 6
+^-----
+::print(x.z.y)
+
+

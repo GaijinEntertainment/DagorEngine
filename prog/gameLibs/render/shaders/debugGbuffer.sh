@@ -1,0 +1,357 @@
+include "shader_global.sh"
+include "ssao_use.sh"
+include "gbuffer.sh"
+include "ssr_use.sh"
+include "viewVecVS.sh"
+include "stencil_inc.sh"
+include "clustered/lights_cb.sh"
+include "taa_inc.sh"
+
+macro MODE(mode, num)
+  mode < num,
+endmacro
+
+macro LAST_MODE(mode)
+  mode;
+endmacro
+
+macro DEBUG_MESH_MODE(mode)
+endmacro
+
+int show_gbuffer=0;
+interval show_gbuffer:
+include "debugGbufferModes.h"
+
+define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
+endmacro
+
+float overdraw_range;
+
+buffer lights_list always_referenced;
+buffer z_binning_lookup always_referenced;
+float max_lights_distance = 500;
+float lights_degug_mode = 0;
+
+shader debug_final_gbuffer
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  INIT_ZNZFAR()
+  ENABLE_ASSERT(ps)
+  USE_EMISSION_DECODE_COLOR_MAP(ps)
+
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  INIT_LOAD_DEPTH_GBUFFER()
+  INIT_LOAD_STENCIL_GBUFFER()
+
+  (ps) {
+    screen_size@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+    show_gbuffer@i1 = (show_gbuffer);
+    overdraw_range@f1 = (overdraw_range);
+    lights_degug_mode@f1 = (lights_degug_mode);
+
+    lights_list@buf = lights_list hlsl { StructuredBuffer<uint> lights_list@buf; };
+    z_binning_lookup@buf = z_binning_lookup hlsl { StructuredBuffer<uint> z_binning_lookup@buf; };
+    inv_lights_distance@f1 = (1 / max_lights_distance, 0, 0, 0);
+  }
+
+  hlsl(ps) {
+    #define toonshading 0
+    #include <tiled_light_consts.hlsli>
+
+    ##if !(hardware.ps4 || hardware.ps5)
+      uint BitFieldMask(uint ones_width, uint offset)
+      {
+        return ((1U << ones_width) - 1) << offset;
+      }
+    ##endif
+
+    #define MERGE_MASK(m) (m)
+    uint depth_to_z_bin(float depth)
+    {
+      return clamp(int((depth * inv_lights_distance) * Z_BINS_COUNT), 0, Z_BINS_COUNT - 1);
+    }
+
+    uint2 screen_uv_to_tile_idx(float2 screenpos)
+    {
+      return uint2(screenpos) / TILE_EDGE;
+    }
+
+    half4 get_dynamic_lights_count(float3 worldPos, float w, float2 screenpos)
+    {
+      half3 result = 0;
+      uint2 tiledGridSize = (screen_size.xy + TILE_EDGE - 1) / TILE_EDGE;
+
+      uint2 tileIdx = screen_uv_to_tile_idx(screenpos);
+      uint tileOffset = (tileIdx.x * tiledGridSize.y + tileIdx.y) * DWORDS_PER_TILE;
+
+      half3 dynamicLighting = 0;
+
+      uint zbinsOmni = structuredBufferAt(z_binning_lookup, depth_to_z_bin(w));
+      uint omniBinsBegin = zbinsOmni >> 16;
+      uint omniBinsEnd = zbinsOmni & 0xFFFF;
+      uint mergedOmniBinsBegin = MERGE_MASK(omniBinsBegin);
+      uint mergedOmniBinsEnd = MERGE_MASK(omniBinsEnd);
+      uint omniLightsBegin = mergedOmniBinsBegin >> 5;
+      uint omniLightsEnd = mergedOmniBinsEnd >> 5;
+      uint omniMaskWidth = clamp((int)omniBinsEnd - (int)omniBinsBegin + 1, 0, 32);
+      uint omniWord = 0;
+
+      for (omniWord = omniLightsBegin; omniWord <= omniLightsEnd; ++omniWord)
+      {
+        uint mask = structuredBufferAt(lights_list, tileOffset + omniWord);
+        //return float(mask)*0.1;
+        // Mask by ZBin mask
+        uint localMin = clamp((int)omniBinsBegin - (int)(omniWord << 5), 0, 31);
+        // BitFieldMask op needs manual 32 size wrap support
+        uint zbinMask = omniMaskWidth == 32 ? (uint)(0xFFFFFFFF) : BitFieldMask(omniMaskWidth, localMin);
+        mask &= zbinMask;
+        uint mergedMask = MERGE_MASK(mask);
+
+        LOOP
+        while (mergedMask)
+        {
+          uint bitIdx = firstbitlow(mergedMask);
+          uint omni_light_index = omniWord * BITS_IN_UINT + bitIdx;
+          mergedMask ^= (1U << bitIdx);
+
+          dynamicLighting += float3(0, 0.05, 1);
+        }
+      }
+
+      uint zbinsSpot = structuredBufferAt(z_binning_lookup, depth_to_z_bin(w) + Z_BINS_COUNT);
+      uint spotBinsBegin = zbinsSpot >> 16;
+      uint spotBinsEnd = zbinsSpot & 0xFFFF;
+      uint mergedSpotBinsBegin = MERGE_MASK(spotBinsBegin);
+      uint mergedSpotBinsEnd = MERGE_MASK(spotBinsEnd);
+      uint spotLightsBegin = (mergedSpotBinsBegin >> 5) + DWORDS_PER_TILE / 2;
+      uint spotLightsEnd = (mergedSpotBinsEnd >> 5) + DWORDS_PER_TILE / 2;
+      uint spotMaskWidth = clamp((int)spotBinsEnd - (int)spotBinsBegin + 1, 0, 32);
+      uint spotWord = DWORDS_PER_TILE / 2;
+
+      for (spotWord = spotLightsBegin; spotWord <= spotLightsEnd; ++spotWord)
+      {
+        uint mask = structuredBufferAt(lights_list, tileOffset + spotWord);
+        // Mask by ZBin mask
+        uint localMin = clamp((int)spotBinsBegin - (int)((spotWord - DWORDS_PER_TILE / 2) << 5), 0, 31);
+        // BitFieldMask op needs manual 32 size wrap support
+        uint zbinMask = spotMaskWidth == 32 ? (uint)(0xFFFFFFFF) : BitFieldMask(spotMaskWidth, localMin);
+        mask &= zbinMask;
+        uint mergedMask = MERGE_MASK(mask);
+
+        LOOP
+        while (mergedMask)
+        {
+          uint bitIdx = firstbitlow(mergedMask);
+          uint spot_light_index = (spotWord - DWORDS_PER_TILE / 2) * BITS_IN_UINT + bitIdx;
+          mergedMask ^= (1U << bitIdx);
+
+          dynamicLighting += float3(0.05, 0, 1);
+        }
+      }
+      if (lights_degug_mode > 0)
+        return float4(dynamicLighting.xy, 1, 1);
+      if (dynamicLighting.z > 30)
+        return float4(1, 1, 1, 1);
+      if (dynamicLighting.z > 24)
+        return float4(1, 0, 1, 1);
+      if (dynamicLighting.z > 16)
+        return float4(0.8, 0, 0, 1);
+      if (dynamicLighting.z > 8)
+        return float4(0, 0.8, 0.8, 1);
+      if (dynamicLighting.z > 4)
+        return float4(0, 0.8, 0, 1);
+      if (dynamicLighting.z > 0)
+        return float4(0, 0.5, 0, 1);
+      return float4(0, 0, 0, 1);
+    }
+  }
+
+  USING_SSAO()
+  USING_SSR()
+
+  USE_AND_INIT_VIEW_VEC_PS()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+  POSTFX_VS_TEXCOORD(1, texcoord)
+  INIT_READ_MOTION_BUFFER()
+  USE_READ_MOTION_BUFFER()
+  INIT_MOTION_VEC_DECODE(ps)
+  USE_MOTION_VEC_DECODE(ps)
+
+  if (show_gbuffer >= debug_mesh)
+  {
+    supports global_const_block;
+    hlsl(ps) {
+      #include <debug_mesh.hlsli>
+      #include "luminance_heatmap.hlsli"
+
+      bool is_overdraw_mode()
+      {
+        int first_debug_mesh_mode =
+        #define MODE(mode, num) 1 +
+        #define LAST_MODE(mode) 0;
+        #define DEBUG_MESH_MODE(mode) const int mode ## _mode = first_debug_mesh_mode++;
+        #include <render/debugGbufferModes.h>
+        return show_gbuffer == overdraw_mode;
+      }
+
+      half3 debug_mesh_get_color(int value)
+      {
+        static const half3 DEBUG_MESH_COLORS[DEBUG_MESH_COLORS__MAX + 1] = {
+          half3(1,1,1), // 0  : white
+          half3(1,0,0), // 1  : red
+          half3(1,1,0), // 2  : yellow
+          half3(0,1,0), // 3  : green
+          half3(0,1,1), // 4  : cyan
+          half3(0,0,1), // 5  : blue
+          half3(1,0,1), // 6+ : magenta
+        };
+        return DEBUG_MESH_COLORS[clamp(value, 0, DEBUG_MESH_COLORS__MAX)];
+      }
+      #define LOD_DIFFUSE_WEIGHT 0.1
+      #define LOD_AMBIENT_WEIGHT 0.5
+    }
+  }
+
+  hlsl(ps) {
+    #include <envi_brdf.hlsl>
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    float4 debug_ps(VsOutput input): SV_Target
+    {
+      // for now, only depth or stencil can be used, but not both of them
+      ##if show_gbuffer < debug_mesh
+      float w = linearize_z(readGbufferDepth(input.texcoord), zn_zfar.zw);
+
+      BRANCH
+      if (w >= zn_zfar.y)
+        return 0;
+      ##endif
+
+      SSAO_TYPE ssao = getSSAO(input.texcoord * screen_size.xy).SSAO_ATTRS;
+
+      UnpackedGbuffer gbuf = unpackGbuffer(readPackedGbuffer(input.texcoord));
+      ProcessedGbuffer gbuffer = processGbuffer(gbuf);
+
+      float3 viewVect = lerp(lerp(view_vecLT, view_vecRT, input.texcoord.x), lerp(view_vecLB, view_vecRB, input.texcoord.x), input.texcoord.y).xyz;
+      float NdotV = dot(gbuffer.normal, normalize(viewVect));
+      float NoV = abs( NdotV ) + 1e-5;
+
+      ##if show_gbuffer == lights
+        return get_dynamic_lights_count(viewVect*w, w, input.texcoord.xy * screen_size.xy);
+      ##elif show_gbuffer == emission
+        return half4(gbuffer.emissionColor, 1);
+      ##elif show_gbuffer >= debug_mesh
+        float2 res;
+        depth_gbuf_read.GetDimensions(res.x, res.y);
+        uint stencil = stencilFetch(depth_gbuf_stencil, (int2)round(input.texcoord.xy * res));
+
+        if (is_overdraw_mode()) {
+          float strength = clamp(float(stencil), 0, overdraw_range) / overdraw_range;
+          return luminance_heatmap(strength);
+        }
+
+        half3 diffuse = stencil == 0 ? gbuffer.diffuseColor : debug_mesh_get_color(stencil - 1);
+        diffuse = lerp(diffuse, gbuffer.diffuseColor, LOD_DIFFUSE_WEIGHT);
+
+        float3 lightDir = -from_sun_direction.xyz;
+        float NoL = dot(gbuffer.normal, lightDir);
+
+        float3 result = diffuse * lerp(max(NoL, 0), 1, LOD_AMBIENT_WEIGHT);
+        return half4(result,1);
+      ##elif show_gbuffer == baseColor
+        return half4(accurateLinearToSRGB(gbuf.albedo),1);
+      ##elif show_gbuffer == diffuseColor
+        return half4(accurateLinearToSRGB(gbuffer.diffuseColor),1);
+      ##elif show_gbuffer == specularColor
+        return gbuffer.metallness > 0 ? half4(accurateLinearToSRGB(gbuffer.specularColor),1) : half4(accurateLinearToSRGB(saturate(gbuffer.specularColor.rrr/0.16)).x,0,0,1);
+      ##elif show_gbuffer == normal
+        return half4(gbuffer.normal*0.5+0.5,1);
+      ##elif show_gbuffer == smoothness
+        return half4(gbuf.smoothness.xxx,1);
+      ##elif show_gbuffer == metallness
+        return half4(gbuffer.metallness.xxx,1);
+      ##elif show_gbuffer == translucency
+        return half4(gbuffer.translucency.xxx,1);
+      ##elif show_gbuffer == depth
+        return half2(w/64.0,1).xxxy;
+      ##elif show_gbuffer == ssao
+        return half4(ssao.xxx, 1);
+      ##elif show_gbuffer == wsao
+        return ssao.WSAO_ATTR;
+      ##elif show_gbuffer == preshadow
+        return gbuffer.shadow;
+      ##elif show_gbuffer == ao
+        return half4(gbuffer.ao.xxx,1);
+      ##elif show_gbuffer == albedo_ao
+        return gbuffer.extracted_albedo_ao;
+      ##elif show_gbuffer == finalAO
+        half finalAO = gbuffer.ao*gbuffer.extracted_albedo_ao*ssao.x;
+        return half4(finalAO.xxx,1);
+      ##elif show_gbuffer == ssr
+        return half4(accurateLinearToSRGB(getSSR(gbuffer.linearRoughness, input.texcoord).rgb)*EnvBRDFApprox( gbuffer.specularColor, gbuffer.linearRoughness, NoV).x,1);
+      ##elif show_gbuffer == ssrStrength
+        return getSSR(gbuffer.linearRoughness, input.texcoord).a;
+      ##elif show_gbuffer == materialType
+        #ifdef GBUFFER_HAS_DYNAMIC_BIT
+        half one = 1 - 0.5 * gbuffer.dynamic;
+        #else
+        half one = 1;
+        #endif
+        if (gbuffer.material == 2)
+          return half4(0, one, 0, 1);
+        else if (gbuffer.material == 1)
+          return half4(one.xx, 0, 1);
+        else if (gbuffer.material == 3)
+          return half4(one * 0.5, one.xx, 1);
+        return half4(one.xxx, 1);
+      ##elif show_gbuffer == reflectance
+        return half4(gbuf.reflectance.xxx, 1);
+      ##elif show_gbuffer == velocity
+        const float mean = 0.5;
+        const float std = 3;
+        return half4(decode_motion_vector(readMotionBuffer(input.texcoord)) * std + mean, 0, 1);
+      ##elif show_gbuffer == isHeroCockpit
+        #ifdef GBUFFER_HAS_HERO_COCKPIT_BIT
+          return half4(gbuffer.isHeroCockpit.xxx, 1);
+        #else
+          return half4(0, 0, 0, 1);
+        #endif
+      ##endif
+      return 0;
+    }
+  }
+  compile("target_ps", "debug_ps");
+}
+
+float4 gbuffer_fix_color;
+int debug_fix_gbuffer = 0;
+interval debug_fix_gbuffer:fix0<1, fix1<2, fix2;
+
+shader debug_fill_gbuffer
+{
+  supports global_frame;
+  supports none;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  POSTFX_VS(1)
+
+  (ps) { gbuffer_fix_color@f4 = gbuffer_fix_color; }
+  hlsl(ps) {
+    ##if debug_fix_gbuffer == fix0
+      #define TARGET SV_Target0
+    ##elif debug_fix_gbuffer == fix1
+      #define TARGET SV_Target1
+    ##else
+      #define TARGET SV_Target2
+    ##endif
+    half4 debug_ps():TARGET { return gbuffer_fix_color; }
+  }
+  compile("target_ps", "debug_ps");
+}

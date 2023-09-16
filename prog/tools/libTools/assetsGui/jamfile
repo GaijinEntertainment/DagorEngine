@@ -1,0 +1,15 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/assetsGui ;
+
+TargetType  = lib ;
+Target      = tools/libTools/assetsGui.lib ;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  av_globalState.cpp
+  av_selObjDlg.cpp
+  av_view.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

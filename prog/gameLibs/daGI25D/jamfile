@@ -1,0 +1,26 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/daGI25D ;
+
+TargetType  = lib ;
+Target      = gameLibs/daGI25D.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+  $(Root)/$(Location)/shaders
+;
+
+Sources =
+  global_vars.cpp
+  scene.cpp
+  irradiance.cpp
+;
+
+UseProgLibs +=
+  engine2/lib3d
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

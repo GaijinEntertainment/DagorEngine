@@ -1,0 +1,5 @@
+return {
+  function shell_execute(a) {
+    assert(["table"].contains(type(a)), @() $"type of argument should be one of: 'table'")
+  }
+}

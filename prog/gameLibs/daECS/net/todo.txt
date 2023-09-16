@@ -1,0 +1,16 @@
+* optimize deserialization. Only construction has to be deserialized to ChildComponent, everything else - directly to components (as they already created).
+* for replication (not construction) we don't have to load component and type.
+   We already know the type on client (32 bit instead of 64 bit for each attribute)! It is still stateless!
+* for replication of component we actually don't need to replicate event full component!
+   We can maintain state (vector_set with mapping of server component_index  to client server)(12 bit instead of 32 bit). That can reduce each packet with 5 components from AT LEAST 40 bytes to 8 bytes.
+   (this is kinda state...)
+* optimization:compVers initialization (in constructor) is exactly same for all templates. Cache it in template.
+* hidden flag (to skip component replication)
+* 1) construction serialization. store template unique_id / hash of name, not template name (it is too expensive). For 5000 doors we actually send about 5000*16 = 80kb per connection of exactly same data.
+* 2) construction serialization. serialize template, if it is different on server (serialize it only once!). This is for safety of independent server update.
+* 1+2 construction serialization. Simplest implementation. - On first serialization of template to connection, fully serialize whole template (with name and it's unique id),
+   and then just reference to this id (which is likely less than 16 bit).
+     With that we always replicate templates (which can actually not be needed if it is same on client), but do it only once on initial replication.
+     Likely to be rather small trafic. If we check some digest (on connection), it is even smaller (only template if + template name is replicated once).
+
++ construction serialization. check if component is same as in template, and do not serialize it then. Saves traffic.

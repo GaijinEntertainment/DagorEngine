@@ -1,0 +1,50 @@
+Root    ?= ../../.. ;
+Location = prog/tools/ShaderCompiler2 ;
+if $(OS) != NT { Exit OS=$(OS) is not supported! ; }
+
+FullOOPEnabled = no ;
+
+include $(Root)/$(Location)/jamfile-common ;
+
+Target = tools/dsc2-dx12.exe ;
+
+AddIncludes +=
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs +=
+  tools/ShaderCompiler2/dx12
+;
+
+CPPopt += -D_CROSS_TARGET_DX11=1 -D_CROSS_TARGET_DX12=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT
+  -DUSE_BINDLESS_FOR_STATIC_TEX=1
+  # use only when it is really necessary and avoid committing it because it breaks dbg builds
+  #-D_HAS_ITERATOR_DEBUGGING=1
+;
+
+if [ GLOB $(_DEVTOOL)/xbox.gdk.$(GdkVer) : * ] {
+local xbox_one_dlls =
+  dxcompiler_x.dll
+  newbe.dll
+  sc_dll.dll
+  scdxil.dll
+;
+
+local scarlett_dlls =
+  dxcompiler_xs.dll
+  newbe_xs.dll
+  xbsc_xs.dll
+;
+
+for l in $(xbox_one_dlls) {
+  BundleCopy += @$(_DEVTOOL)/xbox.gdk.$(GdkVer)/$(GdkVer)/GXDK/bin/XboxOne/$(l) xbox_one/$(l) ;
+  ALWAYS $(_DEVTOOL)/xbox.gdk.$(GdkVer)/$(GdkVer)/GXDK/bin/XboxOne/$(l) ;
+}
+
+for l in $(scarlett_dlls) {
+  BundleCopy += @$(_DEVTOOL)/xbox.gdk.$(GdkVer)/$(GdkVer)/GXDK/bin/Scarlett/$(l) xbox_scarlett/$(l) ;
+  ALWAYS $(_DEVTOOL)/xbox.gdk.$(GdkVer)/$(GdkVer)/GXDK/bin/Scarlett/$(l) ;
+}
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

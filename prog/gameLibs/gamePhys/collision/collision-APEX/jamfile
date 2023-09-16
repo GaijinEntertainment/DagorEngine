@@ -1,0 +1,10 @@
+UseApex = yes ;
+
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/gamePhys/collision/collision-APEX/.. ;
+UsingStaticCore = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/gamePhys/collision/collision-APEX.lib ;
+
+include $(Root)/prog/gameLibs/gamePhys/collision/jamfile-General ;

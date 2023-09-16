@@ -1,0 +1,6 @@
+return {
+  command = @(_cmd) false
+  register_command = @(func, name="", desc="", argsDesc="")
+    assert(type(func) == "function" && type(name)=="string" && type(desc)=="string" && type(argsDesc)=="string")
+  setObjPrintFunc = @(_func) null
+}

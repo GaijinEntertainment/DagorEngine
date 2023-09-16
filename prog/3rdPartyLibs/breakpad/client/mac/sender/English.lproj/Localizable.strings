@@ -1,0 +1,26 @@
+﻿/* Strings for User Notification of a crash */
+"crashDialogHeader" = "The application %@ has quit unexpectedly.";
+"crashDialogMsg" = "The system and other applications have not been affected. A report has been created that you can send to %@ to help identify the problem.";
+
+"noCrashDialogHeader" = "The application %@ encountered an error.";
+"noCrashDialogMsg" = "The system and other applications have not been affected. A report has been created that you can send to %1$@ to help improve %2$@.";
+
+"commentsMsg" = "Please help us fix the problem by describing what happened before the crash.";
+"emailMsg" = "Providing your email address will allow us to contact you in case we need more details.";
+
+"commentsPlaceholder" = "optional comments";
+"emailPlaceholder" = "optional";
+
+"emailLabel" = "Email:";
+"privacyLabel" = "Privacy Policy";
+
+"sendReportButton" = "Send Report";
+"cancelButton" = "Cancel";
+"noSendButton" = "OK";
+"privacyPolicyURL" = "http://www.google.com/privacypolicy.html";
+
+"countdownMsgSecondsPlural" = "%d seconds remaining.";
+"countdownMsgSecondSingular" = "%d second remaining.";
+
+"countdownMsgMinutesPlural" = "%d minutes remaining.";
+"countdownMsgMinuteSingular" = "%d minute remaining.";

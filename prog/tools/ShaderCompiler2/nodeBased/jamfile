@@ -1,0 +1,80 @@
+ReproducibleExeBuild = yes ;
+WinSdkVer  = win.sdk.100 ;
+
+ProjectAllowsOodle = yes ;
+
+Platform ?= win64 ;
+
+Root    ?= ../../../.. ;
+Location = prog/tools/ShaderCompiler2/nodeBased ;
+
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+
+Target = tools/dsc2-nodeBased.exe ;
+
+OutDir      = $(Root)/tools/dagor3_cdk/util ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+
+NodeBasedCompiler = yes ;
+DontUseVulkanGlslang = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+  main.cpp
+  dx11.cpp
+  spirv.cpp
+  dx12.cpp
+  metal.cpp
+  winmain_con.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/tools/ShaderCompiler2/hlsl2spirv
+  $(Root)/prog/tools/ShaderCompiler2/hlsl2metal
+  $(Root)/prog/tools/ShaderCompiler2/hlsl11transcode
+  $(Root)/prog/tools/ShaderCompiler2/dx12
+  $(Root)/prog/engine2/drv/drv3d_pc_multi # for d3d::compile_compute_shader_hlsl()
+;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/perfMon/daProfilerStub
+  gameLibs/nodeBasedShaderManager
+  gameLibs/webui/plugins/shaderEditors
+
+  tools/ShaderCompiler2/hlsl2spirv
+  tools/ShaderCompiler2/hlsl2metal
+  tools/ShaderCompiler2/dx12
+  3rdPartyLibs/regExp
+;
+UseMemoryDebugLevel = off ;
+
+CPPopt = -DBINDUMP_TARGET_BE=0 -DIS_OFFLINE_SHADER_COMPILER=1 ;
+
+if [ GLOB $(Root)/prog/tools/ShaderCompiler2/ps4transcode :  jamfile ] {
+  Sources +=
+    pssl.cpp
+    ps5.cpp
+  ;
+  AddIncludes +=
+    $(Root)/prog/tools/ShaderCompiler2/ps4transcode
+    $(Root)/prog/tools/ShaderCompiler2/ps5transcode
+  ;
+  UseProgLibs +=
+    tools/ShaderCompiler2/ps4transcode
+    tools/ShaderCompiler2/ps5transcode
+  ;
+  CPPopt += -DHAS_PS4_PS5_TRANSCODE ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

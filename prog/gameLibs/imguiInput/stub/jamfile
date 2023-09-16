@@ -1,0 +1,19 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/imguiInput/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/imguiInput/stub.lib ;
+
+Sources =
+  imguiInput_stub.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs =
+  engine2/imgui/stub
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

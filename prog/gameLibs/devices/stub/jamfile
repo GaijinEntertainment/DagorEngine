@@ -1,0 +1,19 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/devices/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/devices/stub.lib ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  ../dataExport.cpp
+  jetSeatStub.cpp
+;
+
+if ! $(Platform) in ps4 { Sources += trackIRStub.cpp ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

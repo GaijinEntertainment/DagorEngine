@@ -1,0 +1,687 @@
+include "sky_shader_global.sh"
+include "pbr.sh"
+include "gbuffer.sh"
+include "MonteCarlo.sh"
+include "roughToMip.sh"
+//include "skyLight.sh"
+include "ssao_use.sh"
+include "tile_lighting.sh"
+include "punctualLights.sh"
+
+include "ssr_use.sh"
+include "csm.sh"
+
+include "normaldetail.sh"
+include "viewVecVS.sh"
+include "invGlobTm.sh"
+include "clouds_vars.sh"
+include "sq_clouds_shadow.sh"
+include "static_shadow.sh"
+include "use_prefiltered_gf.sh"
+
+int dynamic_lights_count = 0;
+interval dynamic_lights_count: lights_off<1, lights_on;
+int dynamic_lights_cb_const_no = 60;
+
+float4 shadow_cascade_depth_range;
+
+//float csm_bias = 0.9997;//0.9997;
+//float csm_cockpit_bias = 0.999965;//0.99995;
+
+float4 stereo_params = (0, 0, 0, 0);
+
+float csm_distance = 1000;
+
+texture combined_shadows;
+
+
+macro COMMON_RESOLVE()
+  (vs) {world_view_pos@f3 = world_view_pos;}
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+
+    to_sun_direction@f3 = (-from_sun_direction.x, -from_sun_direction.y, -from_sun_direction.z, 0.0)
+    sun_color_0__shadow_intens@f4 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, cloud_shadow_intensity);
+  }
+  USE_SUN()
+  //INIT_HDR_STCODE()
+  //USE_HDR()
+  SKY_HDR()
+  STANDARD_BRDF_SHADING()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+  BRUNETON_FOG()
+
+  USE_ROUGH_TO_MIP()
+  INIT_SKY()
+  USE_SKY()
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  USE_AND_INIT_VIEW_VEC_VS()
+endmacro
+
+macro USE_SUN()
+hlsl(ps) {
+  #define cloud_shadow_intensity_const (sun_color_0__shadow_intens.w)
+  #define sun_color_0 (sun_color_0__shadow_intens.rgb)
+}
+endmacro
+
+texture screen_ambient;
+int deferred_lighting_mode = 0;
+interval deferred_lighting_mode: result<1, light<2, diffuse_light<3, direct_light<4, indirect_light;
+
+shader deferred_shadow_to_buffer
+{
+  z_write = false;
+  z_test = false;
+
+  (ps) { combined_shadows@smp2d = combined_shadows; }
+
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  INIT_LOCAL_SPECULAR()
+  COMMON_RESOLVE()
+  cull_mode = none;
+
+  //fixme: in case of (depth_bounds_support == no_bounds)
+  //z_test = false should be true ONLY for cascade other than [0, something]
+
+  SQ_INIT_CLOUDS_SHADOW()
+  SQ_CLOUDS_SHADOW()
+
+  if (ssao_tex != NULL)
+  {
+    INIT_SSAO()
+    USE_SSAO()
+  } else
+  {
+    hlsl(ps) {
+      #define getSSAO(w, ssaotc) 1
+    }
+  }
+
+  if (ssr_target != NULL)
+  {
+    if (ssao_tex == NULL)
+    {
+      (ps) { downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex; }
+    }
+    INIT_USE_SSR()
+    USE_SSR()
+  } else
+  {
+    hlsl(ps) {
+      #define getSSR(a,b) half4(0,0,0,0)
+    }
+  }
+
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 texcoord     : TEXCOORD0;
+      float3 viewVect     : TEXCOORD1;
+##if ssao_tex != NULL
+      float2 ssaoTexcoord : TEXCOORD2;
+##endif
+    };
+  }
+
+  if (dynamic_lights_count != lights_off)
+  {
+    hlsl(ps) {
+      ##if (ssr_target != NULL)
+
+      #define DYNAMIC_LIGHTS_SPECULAR 1
+
+      ##endif
+      #define LAMBERT_LIGHT 1
+    }
+    ONE_POINT_LIGHT()
+    hlsl(ps) {
+      #define MAX_LIGHTS 5
+      float4 lights_cb[MAX_LIGHTS*2]:register(c60);
+      float4 lights_box_center_count:register(c70);
+      float3 lights_box_extent:register(c71);
+      #define CSM_LAST_REG_NOT_NEEDED 1
+    }
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  (vs) { screen_size@f2 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0); }
+
+  hlsl(vs) {
+    VsOutput deferred_shadow_to_buffer_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.xy, 1, 1);
+      output.texcoord.xy = screen_to_texcoords(pos);
+      output.texcoord.zw = screen_to_texcoords(pos) * screen_size;
+##if ssao_tex != NULL
+      output.ssaoTexcoord = pos.xy * RT_SCALE_HALF + ssao_pos_to_texcoord.zw;
+##endif
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+
+  (ps) { screen_ambient@smp2d = screen_ambient; }
+  if (oculus == oculus_on)
+  {
+    (ps) { stereo_params@f4 = stereo_params; }
+  }
+
+  USE_PREINTEGRATED_GF()
+
+
+  hlsl(ps) {
+    half3 MultiBounce(half AO, half3 Albedo)
+    {
+      half3 A = 2 * Albedo - 0.33;
+      half3 B = -4.8 * Albedo + 0.64;
+      half3 C = 2.75 * Albedo + 0.69;
+      return max(AO, ((AO * A + B) * AO + C) * AO);
+    }
+    half4 deferred_shadow_per_sample(VsOutput input, float2 stereoParams, float w, ProcessedGbuffer gbuffer, float csmShadow)
+    {
+      //SUN
+      half3 lightColor = sun_color_0.rgb;
+      ##if deferred_lighting_mode != result
+        gbuffer.diffuseColor = 1;
+        ##if deferred_lighting_mode != light
+          gbuffer.specularColor = 0;
+        ##endif
+        ##if deferred_lighting_mode != light
+          gbuffer.specularColor = 0;
+        ##endif
+        ##if deferred_lighting_mode == indirect_light
+          lightColor = 0;
+        ##endif
+      ##endif
+
+      float3 lightDir = to_sun_direction.xyz;
+
+      float3 pointToEye = -input.viewVect * w;
+      float3 pointToEyeOfs = pointToEye;
+      float4 worldPos = float4(world_view_pos.xyz - pointToEyeOfs, 1);
+      half ssao = getSSAO(w, input.ssaoTexcoord);
+
+      half4 ssrReflections = getSSR(gbuffer.linearRoughness, input.texcoord.xy);
+      half enviSSR = (1-ssrReflections.a);
+
+      float geometryFactor = 1;
+      float3 enviLightingNormal = gbuffer.normal;
+
+      float distSq = dot(pointToEye,pointToEye);
+      float invRsqrt = rsqrt(distSq);
+      float3 view  = pointToEye*invRsqrt;
+      float dist = rcp(invRsqrt);
+
+      half translucencyStrength = gbuffer.translucency;
+
+      float NdotV = dot(gbuffer.normal, view);
+      float3 reflectionVec = 2 * NdotV * gbuffer.normal - view;
+      float NoV = abs( NdotV ) + 1e-5;
+      float alpha = pow2(gbuffer.linearRoughness);
+
+      half enviAO = gbuffer.ao * ssao;//we still modulate by albedo color, so we don't need micro AO
+      half enviAmbientAO = enviAO;//we still modulate by albedo color, so we don't need micro AO
+      half specularAOcclusion = computeSpecOcclusion(NoV, enviAO, alpha);// dice spec occlusion
+      specularAOcclusion = max(0.5 * enviAO, specularAOcclusion);
+
+      half3 specularColor = gbuffer.specularColor*(specularAOcclusion*gbuffer.extracted_albedo_ao);
+
+      FLATTEN
+      if (gbuffer.material == SHADING_FOLIAGE)
+      {
+        //gbuffer.normal = dot(view, gbuffer.normal)<0 ? -gbuffer.normal : gbuffer.normal;
+        //NoL = abs(NoL);
+      }
+      float NoL = dot(gbuffer.normal, lightDir);
+      half3 result = 0;
+      bool subSurface = isSubSurfaceShader(gbuffer.material) && translucencyStrength > 1.0/255;
+      bool needShadow = NoL>0 || subSurface;
+
+      half otherShadow = clouds_shadow(worldPos.xyz);
+      //half trees_shadow = min(cloudShadow, vsmShadow);
+
+      csmShadow = min(csmShadow, gbuffer.shadow);
+      half shadow = min(csmShadow, otherShadow);
+      //shadow *= saturate(NoL * 6 - 0.2);//fake: reduce shadow artifacts in specular!
+
+      //SUN
+      BRANCH
+      if (NoL>0 && shadow>0)
+      {
+        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, alpha, gbuffer.linearRoughness, specularColor*enviSSR, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal)*(shadow)*lightColor;
+      }
+      ##if (dynamic_lights_count != lights_off)
+      /*BRANCH
+      if (all( abs(lights_box_center_count.xyz-worldPos.xyz) < lights_box_extent))
+      {
+        half3 dynamicLighting = 0;
+        UNROLL
+        for (int light_index = 0; light_index < int(lights_box_center_count.w); light_index+=2)
+        //for (int light_index = 0; light_index < 16; light_index+=2)
+        {
+          float4 pos_and_radius = lights_cb[light_index];
+          float4 color_and_specular = lights_cb[light_index+1];
+          dynamicLighting += perform_point_light(worldPos.xyz, view, NoV, gbuffer, gbuffer.specularColor, pos_and_radius, color_and_specular);//use gbuffer.specularColor for equality with point_lights.sh
+        }
+        half pointLightsFinalAO = (gbuffer.ao*0.5+0.5);//we don't use ssao, since we don't want to use it in point_lights.sh (works much faster)
+        result += dynamicLighting*pointLightsFinalAO;
+      }*/
+      ##endif
+
+      BRANCH
+      if (subSurface && ((gbuffer.material == SHADING_FOLIAGE) || (shadow > 0)))
+      //##else
+      //BRANCH
+      //if (gbuffer.material == SHADING_SUBSURFACE && shadow > 0)
+      //##endif
+      {
+        half EdotL = saturate(dot(view, -lightDir));
+        half PowEdotL = pow4(EdotL);
+        half LdotNBack = -NoL;
+        //float exponent = 8;
+        //PowEdotL = PowEdotL * (exponent + 1) / (2.0f * PI);// Modified phong energy conservation.
+
+        // Energy conserving wrap
+        half diffuseWrap = .6f;
+        half backDiffuse = saturate(LdotNBack * (diffuseWrap * diffuseWrap) + (1 - diffuseWrap) * diffuseWrap);//division by PI omitted intentionally, lightColor is divided by Pi
+        half viewDependenceAmount = .5f;
+        half backShading = lerp(backDiffuse, PowEdotL, viewDependenceAmount);
+        half backShadow = gbuffer.material == SHADING_FOLIAGE ? min(lerp(csmShadow.x, 1, 0.25*saturate(1-4*view.y)), otherShadow) : shadow;
+
+        result += (enviAO * backShading * backShadow) * lightColor * gbuffer.translucencyColor;
+      }
+      //SUN-
+      //envi
+      //specularColor *=specularAOcclusion;
+      //specularColor *= 0.5+0.5*specularAOcclusion;//hack: other
+      float3 lightProbeReflectionVec = reflectionVec;
+      float3 roughR = getRoughReflectionVec(lightProbeReflectionVec.xyz, enviLightingNormal, alpha);
+
+      float roughMip = ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness);
+      half2 AB = getEnviBRDF_AB_LinearRoughness(gbuffer.linearRoughness, NoV).xy;
+      half3 enviBRDF = specularColor * AB.x + saturate( INV_MIN_IOR * specularColor.g ) * AB.y;
+
+      /*FLATTEN
+      if (gbuffer.material == SHADING_FOLIAGE)
+      {
+        enviBRDF *= float3(0.3,0.5,0.3);
+      }
+        enviBRDF = 1;
+        roughMip = 0;
+        roughR = reflectionVec;*/
+      //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(reflectionVec, 0)).rgb);
+      //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
+      //half3 environmentAmbientReflection = geometryFactor*gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
+      half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
+      float3 giAmbient = tex2Dlod(screen_ambient, float4(input.texcoord.xy,0,0)).xyz;
+      {
+        //https://www.activision.com/cdn/research/Volumetric_Global_Illumination_at_Treyarch.pdf
+        //another (much faster) fake from Volumetric Global Illumination at Treyarch
+        float mipForTrick =  gbuffer.linearRoughness*NUM_PROBE_MIPS;
+        float maximumSpecValue = max3( 1.26816, 9.13681 * exp2( 6.85741 - 2 * mipForTrick ) * NdotV, 9.70809 * exp2( 7.085 - mipForTrick - 0.403181 * pow2(mipForTrick)) * NdotV );
+        #if ORIGINAL_TREYARCH
+          float adjustedMaxSpec = luminance(giAmbient) * maximumSpecValue;
+          float specLum = luminance( environmentAmbientReflection );
+          float3 reflection = environmentAmbientReflection * (adjustedMaxSpec / ( adjustedMaxSpec + specLum ));
+        #else
+          //colored version
+          maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
+          float3 adjustedMaxSpec = giAmbient * maximumSpecValue;
+          float3 reflection = environmentAmbientReflection * (adjustedMaxSpec / ( adjustedMaxSpec + environmentAmbientReflection + 0.001));//avoid nans
+        #endif
+        environmentAmbientReflection = reflection;
+      }
+      //environmentAmbientReflection *= 0.8 + 0.2*shadow;
+      //return environmentAmbientReflection.rgbr;
+      //return distToIntersect > 0 ? environmentAmbientReflection.rgbr : 0;
+
+      //half4 ssrReflections = tex2Dlod(ssr_target, float4(input.texcoord,0,0));
+      //half3 environmentAmbientUnoccludedLighting = GetSkySHDiffuse(gbuffer.normal);
+##if ssao_tex != NULL
+      half3 localIndirect = MultiBounce(ssao, gbuffer.diffuseColor);
+      //enviAmbientAO = gbuffer.ao;//uncomment this line to stop _squaring_ gtao!
+##else
+      half localIndirect = 1;
+##endif
+      half3 environmentAmbientUnoccludedLighting = giAmbient*gbuffer.diffuseColor * localIndirect;
+      half3 environmentAmbientLighting = (enviAmbientAO * geometryFactor)*environmentAmbientUnoccludedLighting;
+      environmentAmbientReflection *= lerp(1, enviAO, gbuffer.translucency);//g.amelihin asked for that hack
+      half3 totalReflection = environmentAmbientReflection*enviSSR + ssrReflections.rgb*enviBRDF;//enviBRDF
+      ##if deferred_lighting_mode == direct_light
+        environmentAmbientUnoccludedLighting = 0;
+        environmentAmbientReflection = 0;
+        totalReflection = 0;
+        environmentAmbientLighting = 0;
+      ##endif
+
+
+      BRANCH
+      //if (subSurface)//gbuffer.material == SHADING_FOLIAGE)//fixme: use that only for foliage?
+      if (gbuffer.material == SHADING_FOLIAGE)
+      {
+        environmentAmbientLighting += enviAO*GetSkySHDiffuse(-gbuffer.normal)*gbuffer.translucencyColor;
+      }
+      //totalReflection = 0;
+      //totalReflection = environmentAmbientReflection;
+
+      //half3 reflection = totalReflection+environmentAmbientLighting;//correct                                                                                  
+      half3 reflection = environmentAmbientLighting + totalReflection;//*enviAO - tri-ace formula
+      //return reflection.rgbr;
+      //half3 reflection = totalReflection+environmentAmbientLighting;//correct
+      result += reflection;
+      result = result*(1-gbuffer.emission_part) + gbuffer.emissionColor;
+
+      //envi-
+
+      apply_bruneton_fog(-view, dist, result);
+      //result.rgb = apply_fog(result.rgb, pointToEye);
+      result.rgb = pack_hdr(result.rgb).rgb;
+      return half4(result,1);
+    }
+
+    half get_combined_shadows_simple( VsOutput input )
+    {
+      return tex2Dlod( combined_shadows, float4( input.texcoord.xy, 0, 0 ) ).x;
+    }
+
+    half4 deferred_shadow_to_buffer_ps(VsOutput input
+        ) : SV_Target0
+    {
+      int2 tci = int2(input.texcoord.zw);
+
+      half shadow = get_combined_shadows_simple( input );
+      //return shadow;
+
+      float rawDepth = readGbufferDepth(input.texcoord.xy);
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      BRANCH
+      if (w>=zn_zfar.y)
+        return 0;
+      //float rawDepth = texelFetch(depth_gbuf, tci, 0).x;
+      //if (rawDepth<=0)//to return faster
+      //  return 0;
+      //float w = linearize_z(rawDepth);
+
+      float2 stereoParams = float2(0, 0);
+
+      return deferred_shadow_per_sample(input, stereoParams, w, readProcessedGbuffer(input.texcoord.xy),shadow);
+    }
+  }
+
+  compile("target_vs", "deferred_shadow_to_buffer_vs");
+  compile("target_ps", "deferred_shadow_to_buffer_ps");
+}
+
+shader deferred_simple
+{
+  hlsl {
+    #define SPECULAR_DISABLED 1 // fixme; should we use specular anyway?
+    //#define BRDF_DIFFUSE DIFFUSE_LAMBERT
+  }
+  INIT_LOCAL_SPECULAR()
+  COMMON_RESOLVE()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  
+  cull_mode  = none;
+  z_write = false;
+  z_test = false;
+
+  //fixme: in case of (depth_bounds_support == no_bounds)
+  //z_test = false should be true ONLY for cascade other than [0, something]
+  SQ_INIT_CLOUDS_SHADOW()
+  SQ_CLOUDS_SHADOW()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord     : TEXCOORD0;
+      #if NO_OBLIQUE_TRANSFORMATIONS
+      float3 viewVect     : TEXCOORD1;
+      #endif
+    };
+  }
+
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  USE_AND_INIT_INV_GLOBTM_PS()
+
+  INIT_STATIC_SHADOW()
+  USE_STATIC_SHADOW()
+
+  hlsl(vs) {
+
+    VsOutput deferred_simple_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.xy, 1, 1);
+      output.texcoord = screen_to_texcoords(pos);
+      #if NO_OBLIQUE_TRANSFORMATIONS
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+      #endif
+
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    half4 deferred_simple_ps(VsOutput input) : SV_Target0
+    {
+      float rawDepth = readGbufferDepth(input.texcoord.xy);
+      #if NO_OBLIQUE_TRANSFORMATIONS
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      if (w>=zn_zfar.y)
+        return 0;
+      float3 pointToEye = -input.viewVect * w;
+      float4 worldPos = float4(world_view_pos - pointToEye, 1);
+      #else
+      if (rawDepth<=0)
+        return 0;
+      float4 farpos = float4(input.texcoord.xy * 2 - 1, rawDepth, 1.);
+      farpos.y = -farpos.y;
+      float4 worldpos_prj = mul(farpos, globtm_inv);
+      float4 worldPos = worldpos_prj / worldpos_prj.w;
+      float3 pointToEye = world_view_pos.xyz - worldPos.xyz;
+      #endif
+
+      float distSq = dot(pointToEye,pointToEye);
+      float invRsqrt = rsqrt(distSq);
+      float3 view  = pointToEye*invRsqrt;
+      float dist = rcp(invRsqrt);
+
+      ProcessedGbuffer gbuffer = readProcessedGbuffer(input.texcoord);
+      gbuffer.diffuseColor = lerp(gbuffer.diffuseColor, gbuffer.specularColor, gbuffer.metallness);//fixme: basically, use raw albedo, and save couple instructions!
+
+      float geometryFactor = 1;
+      float3 enviLightingNormal = gbuffer.normal;
+
+      half translucencyStrength = gbuffer.translucency;
+
+      float NdotV = dot(gbuffer.normal, view);
+      float3 reflectionVec = 2 * NdotV * gbuffer.normal - view;
+      float NoV = abs( NdotV ) + 1e-5;
+      float alpha = pow2(gbuffer.linearRoughness);
+
+      half enviAO = gbuffer.ao;//we still modulate by albedo color, so we don't need micro AO
+      half3 specularColor = 0;
+      //SUN
+      float3 lightDir = to_sun_direction;
+      half3 lightColor = sun_color_0;
+
+      FLATTEN
+      if (gbuffer.material == SHADING_FOLIAGE)
+      {
+        //gbuffer.normal = dot(view, gbuffer.normal)<0 ? -gbuffer.normal : gbuffer.normal;
+        //NoL = abs(NoL);
+      }
+      float NoL = dot(gbuffer.normal, lightDir);
+      half3 result = 0;
+      bool subSurface = isSubSurfaceShader(gbuffer.material);
+
+      half vsmShadow = 1;
+      half otherShadow = clouds_shadow(worldPos.xyz);
+      //half trees_shadow = min(cloudShadow, vsmShadow);
+      half csmShadow = getStaticShadow(worldPos.xyz);
+      csmShadow = min(gbuffer.shadow, csmShadow);
+      half shadow = min(csmShadow, otherShadow);
+
+      //SUN
+      BRANCH
+      if (NoL>0 && shadow>0)
+      {
+        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, alpha, gbuffer.linearRoughness, specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal)*shadow*lightColor;
+      }
+
+      BRANCH
+      if (subSurface)
+      {
+        half EdotL = saturate(dot(view, -lightDir));
+        half PowEdotL = pow4(EdotL);
+        half LdotNBack = -NoL;
+        //float exponent = 8;
+        //PowEdotL = PowEdotL * (exponent + 1) / (2.0f * PI);// Modified phong energy conservation.
+
+        // Energy conserving wrap
+        half diffuseWrap = .6f;
+        half backDiffuse = saturate(LdotNBack * (diffuseWrap * diffuseWrap) + (1 - diffuseWrap) * diffuseWrap);//division by PI omitted intentionally, lightColor is divided by Pi
+        half viewDependenceAmount = .5f;
+        half backShading = lerp(backDiffuse, PowEdotL, viewDependenceAmount);
+        half backShadow = gbuffer.material == SHADING_FOLIAGE ? min(lerp(csmShadow, 1, 0.25), otherShadow) : shadow;
+
+        result += (enviAO * backShading * backShadow) * lightColor * gbuffer.translucencyColor;
+      }
+      //SUN-
+      //envi
+      //specularColor *=specularAOcclusion;
+      //specularColor *= 0.5+0.5*specularAOcclusion;//hack: other
+      float3 lightProbeReflectionVec = reflectionVec;
+      float3 roughR = getRoughReflectionVec(lightProbeReflectionVec.xyz, enviLightingNormal, alpha);
+      float roughMip = ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness);
+      half enviBRDF = EnvBRDFApproxNonmetal(gbuffer.linearRoughness, NoV)*(1-translucencyStrength);
+      half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
+      //environmentAmbientReflection = 0;
+
+      half3 environmentAmbientUnoccludedLighting = GetSkySHDiffuse(enviLightingNormal)*gbuffer.diffuseColor;
+      half3 environmentAmbientLighting = (enviAO * geometryFactor)*environmentAmbientUnoccludedLighting;
+      half3 totalReflection = environmentAmbientReflection;
+
+      BRANCH
+      if (subSurface)//fixme: use that only for foliage?
+      {
+        environmentAmbientLighting += enviAO*GetSkySHDiffuse(-gbuffer.normal)*gbuffer.translucencyColor;
+      }
+      half3 reflection = environmentAmbientLighting + totalReflection;//*enviAO - tri-ace formula
+      result += reflection;
+      result = result*(1-gbuffer.emission_part) + gbuffer.emissionColor;
+
+      //envi-
+
+      apply_bruneton_fog(-view, dist, result);
+      //result.rgb = apply_fog(result.rgb, pointToEye);
+      result.rgb = pack_hdr(result.rgb).rgb;
+      return half4(result,1);
+    }
+  }
+
+  compile("target_vs", "deferred_simple_vs");
+  compile("target_ps", "deferred_simple_ps");
+}
+
+shader combine_shadows
+{
+  no_ablend;
+
+  
+  cull_mode  = none;
+
+  z_test = false;
+  z_write = false;
+  (ps) {
+    csm_distance@f1 = (csm_distance);
+    world_view_pos@f4 = world_view_pos;
+  }
+  if (oculus == oculus_on)
+  {
+    (ps) { stereo_params@f4 = stereo_params; }
+  }
+  (vs) { screen_size@f2 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0); }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  USE_AND_INIT_VIEW_VEC_VS()
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  INIT_STATIC_SHADOW()
+  USE_STATIC_SHADOW()
+
+  INIT_CSM_SHADOW(ps)
+  USE_CSM_SHADOW_DEF_NUM()
+
+
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 viewVect : TEXCOORD0;
+      float2 texcoord : TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+
+    VsOutput shadows_to_target_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4( pos.xy, 1, 1 );
+      output.texcoord.xy = screen_to_texcoords(pos);
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+
+  hlsl(ps)
+  {
+    half4 shadows_to_target_ps(VsOutput input) : SV_Target0
+    {
+      float rawDepth = readGbufferDepth(input.texcoord.xy);
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      float3 pointToEye = -input.viewVect * w;
+##if oculus == oculus_on
+      pointToEye -= stereo_params.xyz;
+##endif
+      float4 worldPos = float4( world_view_pos.xyz - pointToEye, 1.f );
+      //return getStaticShadow(worldPos);
+
+      half3 csmShadow = half3( 1, 9, 1 );
+      BRANCH
+      if ( w < csm_distance.x && w > zn_zfar.x )
+        csmShadow = get_csm_shadow( pointToEye, w );
+
+      csmShadow.x = csmShadow.x * lerp(1, getStaticShadow(worldPos.xyz), 1-pow4(1-csmShadow.z));
+
+      return csmShadow.xxxx;
+    }
+  }
+
+  compile("target_vs", "shadows_to_target_vs");
+  compile("target_ps", "shadows_to_target_ps");
+}

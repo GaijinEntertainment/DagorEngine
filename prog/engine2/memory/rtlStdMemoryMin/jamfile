@@ -1,0 +1,10 @@
+Root    ?= ../../../.. ;
+Location = prog/engine2/memory/rtlStdMemoryMin ;
+TargetType  = lib ;
+Target      = engine2/memory/rtlStdMemoryMin.lib ;
+
+Sources = rtlStdMemoryMin.cpp ;
+
+CPPopt = -D__B_MINICORE ;
+
+include $(Root)/prog/_jBuild/build.jam ;

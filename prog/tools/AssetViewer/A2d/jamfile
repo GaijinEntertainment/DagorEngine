@@ -1,0 +1,19 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/AssetViewer/A2d ;
+
+TargetType  = lib ;
+Target      = tools/AssetViewer/a2d.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  main.cpp
+  a2d.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

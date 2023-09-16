@@ -1,0 +1,198 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/daEditor3 ;
+DriverLinkage = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+Platform ?= win64 ;
+
+UseD3DMulti = yes ;
+UseD3DMultiList = DX9 DX11 stub ;
+
+TargetType  = exe ;
+Target = tools/sceneTools/daEditor3/daEditor3x.exe ;
+OutDir      = $(Root)/tools/dagor3_cdk/bin ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+;
+
+Sources =
+  dagored.cpp
+  srvEngine.cpp
+
+  de_aboutdlg.cpp
+  de_apphandler.cpp
+  de_appwnd.cpp
+  de_appwndConCmd.cpp
+  de_clipping.cpp
+  de_engine.cpp
+  de_exportlevel.cpp
+  de_ExportToDagDlg.cpp
+  de_version.cpp
+  dagored_main.cpp
+  plugin_dlg.cpp
+  de_startdlg.cpp
+  de_workspace.cpp
+  de_ProjectSettings.cpp
+  de_screenshotMetaInfoLoader.cpp
+  de_viewportWindow.cpp
+  SplashScreen.cpp
+  de_batch.cpp
+  de_environment.cpp
+  de_ecsPull.cpp
+  car_camera_elem.cpp
+
+  pluginService/de_IDagorPhysImpl.cpp
+  _res/de.rc
+;
+
+UseProgLibs =
+  engine2/memory/rtlOverride
+  engine2/startup
+  engine2/math
+  engine2/lib3d
+  engine2/shaders
+  engine2/guiBase
+  engine2/workCycle
+  
+  engine2/drv/drv3d_pc_multi
+  engine2/drv/hid_dinput
+  engine2/drv/hid_mouse
+  engine2/drv/hid_keyboard
+  engine2/drv/hid_joystick
+  engine2/drv/hid_gamepad_xinput
+
+  engine2/anim
+  engine2/animChar
+  engine2/gameRes
+
+  engine2/phys/fastPhys
+  engine2/libFx
+  engine2/image
+  engine2/coreUtil
+  engine2/scene
+  engine2/sceneRay
+
+  engine2/streaming
+
+  tools/libTools/propPanel2
+  tools/libTools/sepGui
+
+  tools/libTools/util
+  tools/libTools/renderViewports
+  tools/libTools/renderUtil
+  tools/libTools/shaderResBuilder
+  tools/libTools/EditorCore
+  tools/libTools/IEditorCoreBase
+  tools/libTools/IEditorCore
+  tools/libTools/ObjCreator3D
+
+  engine2/phys/physCommon
+  engine2/phys/physBullet
+
+  engine2/perfMon
+  engine2/consoleProc
+
+  tools/libTools/dagFileRW
+  tools/libTools/dtx
+  tools/libTools/texConverter
+  tools/libTools/staticGeom
+  tools/libTools/staticGeomImp
+  tools/libTools/sceneBuilder
+  tools/libTools/unwrapMapping
+  tools/libTools/coolConsole
+  tools/libTools/delaunay
+
+  tools/libTools/assetMgr
+  tools/libTools/assetsGui
+  tools/libTools/assetMgrHlp
+  
+  tools/libTools/winGuiWrapper
+
+  tools/sceneTools/daEditor3/Environment
+  tools/sceneTools/daEditor3/Clipping
+  tools/sceneTools/daEditor3/Clipping/bullet_write
+  tools/sceneTools/daEditor3/scnExport
+  tools/sceneTools/daEditor3/ssView
+  tools/sceneTools/daEditor3/binSceneView
+
+  tools/sceneTools/daEditor3/services/dynRenderSrv
+  tools/sceneTools/daEditor3/services/riMgr
+  tools/sceneTools/daEditor3/services/prefabMgr
+  tools/sceneTools/daEditor3/services/fxMgr
+  tools/sceneTools/daEditor3/services/efxMgr
+  tools/sceneTools/daEditor3/services/physobjMgr
+  tools/sceneTools/daEditor3/services/gameobjMgr
+  tools/sceneTools/daEditor3/services/compositMgr
+  tools/sceneTools/daEditor3/services/entFilters
+  tools/sceneTools/daEditor3/services/bitMaskMgr
+  tools/sceneTools/daEditor3/services/hmapSrv
+  tools/sceneTools/daEditor3/services/assetSrv
+  tools/sceneTools/daEditor3/services/builtSceneView
+  tools/sceneTools/daEditor3/services/lightSrv
+  tools/sceneTools/daEditor3/services/fileTracker
+  tools/sceneTools/daEditor3/services/invalidEntityMgr
+  tools/sceneTools/daEditor3/services/dxpFactory
+  tools/sceneTools/daEditor3/services/carCamera
+  tools/sceneTools/daEditor3/services/animCharMgr
+  tools/sceneTools/daEditor3/services/dynModelMgr
+  tools/sceneTools/daEditor3/services/skiesSrv
+  tools/sceneTools/daEditor3/services/colorRangeSrv
+  tools/sceneTools/daEditor3/services/grassSrv
+  tools/sceneTools/daEditor3/services/waterSrv
+  tools/sceneTools/daEditor3/services/csgEntMgr
+  tools/sceneTools/daEditor3/services/waterProjFxSrv
+  tools/sceneTools/daEditor3/services/cableSrv
+  tools/sceneTools/daEditor3/services/splineGenSrv
+  tools/sceneTools/daEditor3/services/ecsMgr
+  tools/sceneTools/daEditor3/services/webui
+  tools/sceneTools/daEditor3/services/wind
+
+  3rdPartyLibs/image/psdRead
+  3rdPartyLibs/image/libpng-1.4.22
+  3rdPartyLibs/arc/zlib-$(UseZlibVer)
+  3rdPartyLibs/hash
+
+  commonFx/commonFxGame
+  gameLibs/render
+  gameLibs/rendInst
+  gameLibs/render/cables
+  gameLibs/render/dof
+  gameLibs/render/wind
+  gameLibs/render/nodeBasedShader
+  gameLibs/render/fx
+  gameLibs/nodeBasedShaderManager/stub
+  gameLibs/ecs/rendInst/stub
+  gameLibs/daFx
+  gameLibs/eventLog
+
+  gameLibs/vehiclePhys/vehiclePhys-BULLET
+  gameLibs/landMesh
+  gameLibs/textureUtil
+
+  gameLibs/imguiInput
+;
+
+ImportProgLibs = tools/libTools/daKernel ;
+CoExportProgDlls = $(ImportProgLibs) ;
+
+
+AddLibs +=
+  advapi32.lib
+  htmlhelp.lib
+  psapi.lib
+;
+
+if ! $(DagoredRel) {
+  LINKopt = -opt:noref ;
+}
+
+
+include $(Root)/prog/_jBuild/build.jam ;

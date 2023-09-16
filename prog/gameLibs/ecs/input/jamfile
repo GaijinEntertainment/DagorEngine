@@ -1,0 +1,33 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/ecs/input ;
+
+TargetType  = lib ;
+Target      = gameLibs/ecs/input.lib ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  esHidEventRouter.cpp
+  input.cpp
+  debugInputEvents.cpp
+;
+
+SourceES =
+  rumbleES.cpp.inl
+;
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+if $(ProjectUseQuirrel) && $(ProjectUseQuirrel) in sq3r sq3r+ {
+  UseProgLibs +=
+    gameLibs/daInput
+  ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

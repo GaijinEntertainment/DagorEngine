@@ -1,0 +1,42 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/findUnusedTex ;
+DriverLinkage = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+ConsoleExe      = yes ;
+Platform ?= win64 ;
+
+TargetType  = exe ;
+Target      = tools/findUnusedTex.exe ;
+
+OutDir = $(Root)/tools/dagor3_cdk/bin ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+
+
+Sources =
+  unusedTextureChecker.cpp
+  
+  tex_checker.cpp
+;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+;
+
+
+UseProgLibs =
+  engine2/startup
+  engine2/math
+
+  tools/libTools/dtx
+  tools/libTools/util
+  
+  tools/libTools/assetMgr
+  tools/libTools/assetMgrHlp
+;
+
+ImportProgLibs = tools/libTools/daKernel ;
+CoExportProgDlls = $(ImportProgLibs) ;
+
+include $(Root)/prog/_jBuild/build.jam ;

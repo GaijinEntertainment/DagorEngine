@@ -1,0 +1,409 @@
+{
+  "info" : [
+    "This file contains overrides for some instructions for which auto_extract_propertis.py can not generate the correct properties",
+    "This is because some meta data the is required to decide which kind of operation they are not included in normal grammar json files",
+    "In instructions section, specific overrides are provided to override auto generated ones"
+  ],
+  "instructions" : [
+    {
+      "opname" : "OpNop",
+      "grammar" : "core",
+      "properties" : [
+        "nop"
+      ]
+    },
+    {
+      "opname" : "OpLabel",
+      "grammar" : "core",
+      "properties" : [
+        "allocates-id",
+        "block-begin"
+      ]
+    },
+    {
+      "opname": "OpFunction",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "result-type",
+        "function-begin"
+      ]
+    },
+    {
+      "opname": "OpFunctionParameter",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "result-type",
+        "function-parameter",
+        "variable"
+      ]
+    },
+    {
+      "opname": "OpFunctionEnd",
+      "grammar": "core",
+      "properties": [
+        "function-end"
+      ]
+    },
+    {
+      "opname": "OpFunctionCall",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "result-type",
+        "function-call"
+      ]
+    },
+    {
+      "opname": "OpDecorate",
+      "grammar": "core",
+      "properties": [
+        "adds-property"
+      ]
+    },
+    {
+      "opname": "OpMemberDecorate",
+      "grammar": "core",
+      "properties": [
+        "adds-property",
+        "member-property"
+      ]
+    },
+    {
+      "opname": "OpDecorationGroup",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "create-property-group"
+      ]
+    },
+    {
+      "opname": "OpGroupDecorate",
+      "grammar": "core",
+      "properties": [
+        "adds-property",
+        "use-property-group"
+      ]
+    },
+    {
+      "opname": "OpGroupMemberDecorate",
+      "grammar": "core",
+      "properties": [
+        "adds-property",
+        "member-property",
+        "use-property-group"
+      ]
+    },
+    {
+      "opname": "OpDecorateId",
+      "grammar": "core",
+      "properties": [
+        "adds-property",
+        "property-type-id"
+      ]
+    },
+    {
+      "opname": "OpDecorateStringGOOGLE",
+      "grammar": "core",
+      "properties": [
+        "adds-property",
+        "property-type-string"
+      ]
+    },
+    {
+      "opname": "OpMemberDecorateStringGOOGLE",
+      "grammar": "core",
+      "properties": [
+        "adds-property",
+        "member-property",
+        "property-type-string"
+      ]
+    },
+    {
+      "opname": "OpDecorateString",
+      "grammar": "core",
+      "properties": [
+        "adds-property",
+        "property-type-string"
+      ]
+    },
+    {
+      "opname": "OpMemberDecorateString",
+      "grammar": "core",
+      "properties": [
+        "adds-property",
+        "member-property",
+        "property-type-string"
+      ]
+    },
+    {
+      "opname": "OpKill",
+      "grammar": "core",
+      "properties": [
+        "ends-block",
+        "abort"
+      ]
+    },
+    {
+      "opname": "OpReturn",
+      "grammar": "core",
+      "properties": [
+        "ends-block",
+        "exit-function"
+      ]
+    },
+    {
+      "opname": "OpReturnValue",
+      "grammar": "core",
+      "properties": [
+        "ends-block",
+        "exit-function",
+        "function-result"
+      ]
+    },
+    {
+      "opname": "OpUnreachable",
+      "grammar": "core",
+      "properties": [
+        "ends-block"
+      ]
+    },
+    {
+      "opname": "OpSourceContinued",
+      "grammar": "core",
+      "properties": [
+        "debug",
+        "continue-source-code"
+      ]
+    },
+    {
+      "opname": "OpSource",
+      "grammar": "core",
+      "properties": [
+        "debug",
+        "source-code",
+        "source-language"
+      ]
+    },
+    {
+      "opname": "OpSourceExtension",
+      "grammar": "core",
+      "properties": [
+        "debug",
+        "source-code-extension"
+      ]
+    },
+    {
+      "opname": "OpName",
+      "grammar": "core",
+      "properties": [
+        "debug",
+        "object-name"
+      ]
+    },
+    {
+      "opname": "OpMemberName",
+      "grammar": "core",
+      "properties": [
+        "debug",
+        "object-member-name"
+      ]
+    },
+    {
+      "opname": "OpString",
+      "grammar": "core",
+      "properties": [
+        "source-file",
+        "allocates-id"
+      ]
+    },
+    {
+      "opname": "OpLine",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "begin-source-position"
+      ]
+    },
+    {
+      "opname": "OpNoLine",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "end-source-position"
+      ]
+    },
+    {
+      "opname": "OpExtension",
+      "grammar": "core",
+      "properties": [
+        "enable-extension"
+      ]
+    },
+    {
+      "opname": "OpExtInstImport",
+      "grammar": "core",
+      "properties": [
+        "load-extended-grammar",
+        "allocates-id"
+      ]
+    },
+    {
+      "opname": "OpExtInst",
+      "grammar": "core",
+      "properties": [
+        "call-extended-grammar",
+        "allocates-id",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpMemoryModel",
+      "grammar": "core",
+      "properties": [
+        "set-memory-model"
+      ]
+    },
+    {
+      "opname": "OpEntryPoint",
+      "grammar": "core",
+      "properties": [
+        "export-entry-point"
+      ]
+    },
+    {
+      "opname": "OpExecutionMode",
+      "grammar": "core",
+      "properties": [
+        "set-execution-mode"
+      ]
+    },
+    {
+      "opname": "OpExecutionModeId",
+      "grammar": "core",
+      "properties": [
+        "set-execution-mode-id"
+      ]
+    },
+    {
+      "opname": "OpCapability",
+      "grammar": "core",
+      "properties": [
+        "enable-capability"
+      ]
+    },
+    {
+      "opname": "OpBranch",
+      "grammar": "core",
+      "properties": [
+        "ends-block",
+        "branch"
+      ]
+    },
+    {
+      "opname": "OpBranchConditional",
+      "grammar": "core",
+      "properties": [
+        "ends-block",
+        "branch-conditional"
+      ]
+    },
+    {
+      "opname": "OpSwitch",
+      "grammar": "core",
+      "properties": [
+        "ends-block",
+        "switch-section"
+      ]
+    },
+    {
+      "opname": "OpVariable",
+      "grammar": "core",
+      "properties": [
+        "variable",
+        "global-variable",
+        "allocates-id",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpModuleProcessed",
+      "grammar": "core",
+      "properties": [
+        "debug",
+        "module-processing-step"
+      ]
+    },
+    {
+      "opname": "OpLoopMerge",
+      "grammar": "core",
+      "properties": [
+        "control-flow",
+        "loop-merge"
+      ]
+    },
+    {
+      "opname": "OpSelectionMerge",
+      "grammar": "core",
+      "properties": [
+        "control-flow",
+        "selection-merge"
+      ]
+    },
+    {
+      "opname": "OpImageTexelPointer",
+      "grammar": "core",
+      "properties": [
+        "variable",
+        "allocates-id",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpAccessChain",
+      "grammar": "core",
+      "properties": [
+        "variable",
+        "allocates-id",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpInBoundsAccessChain",
+      "grammar": "core",
+      "properties": [
+        "variable",
+        "allocates-id",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpPtrAccessChain",
+      "grammar": "core",
+      "properties": [
+        "variable",
+        "allocates-id",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpInBoundsPtrAccessChain",
+      "grammar": "core",
+      "properties": [
+        "variable",
+        "allocates-id",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpUndef",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "result-type",
+        "undef"
+      ]
+    }
+  ]
+}

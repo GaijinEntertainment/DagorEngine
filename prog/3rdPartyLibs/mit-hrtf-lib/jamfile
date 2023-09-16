@@ -1,0 +1,15 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/mit-hrtf-lib ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/mit-hrtf-lib.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)/include
+;
+
+Sources = source/mit_hrtf_lib.c ;
+
+include $(Root)/prog/_jBuild/build.jam ;

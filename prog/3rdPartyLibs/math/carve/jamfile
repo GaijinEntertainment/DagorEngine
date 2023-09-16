@@ -1,0 +1,45 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/math/carve ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/math/carve.lib ;
+
+Sources =
+  lib/aabb.cpp
+  lib/carve.cpp
+  lib/convex_hull.cpp
+  lib/csg.cpp
+  lib/csg_collector.cpp
+  lib/edge.cpp
+  lib/face.cpp
+  lib/geom.cpp
+  lib/geom2d.cpp
+  lib/geom3d.cpp
+  lib/intersect.cpp
+  lib/intersection.cpp
+  lib/intersect_classify_edge.cpp
+  lib/intersect_classify_group.cpp
+#  lib/intersect_classify_simple.cpp
+  lib/intersect_debug.cpp
+  lib/intersect_face_division.cpp
+  lib/intersect_group.cpp
+  lib/intersect_half_classify_group.cpp
+  lib/math.cpp
+  lib/mesh.cpp
+  lib/octree.cpp
+  lib/pointset.cpp
+  lib/polyhedron.cpp
+  lib/polyline.cpp
+  lib/shewchuk_predicates.cpp
+  lib/tag.cpp
+  lib/timing.cpp
+  lib/triangle_intersection.cpp
+  lib/triangulator.cpp
+;
+
+CPPopt = -DHAVE_CONFIG_H ;
+
+include $(Root)/$(Location)/carve-options.jam ;
+include $(Root)/prog/_jBuild/build.jam ;

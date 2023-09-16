@@ -1,0 +1,6 @@
+Root    ?= ../../.. ;               # directory where 'prog' located
+PhysEngine = JOLT ;
+if $(OS) = NT { Platform = win64 ; }
+
+include $(Root)/prog/samples/physTest/jamfile-phys-test ;
+include $(Root)/prog/_jBuild/build.jam ;

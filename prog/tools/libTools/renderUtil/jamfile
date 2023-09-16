@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/renderUtil ;
+
+TargetType  = lib ;
+Target      = tools/libTools/renderUtil.lib ;
+
+Sources =
+  dynRenderBuf.cpp
+  positionReconstructionFromDepth.cpp
+;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+CPPopt = ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

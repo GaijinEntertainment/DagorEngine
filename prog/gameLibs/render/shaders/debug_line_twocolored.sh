@@ -1,0 +1,62 @@
+include "shader_global.sh"
+include "gbuffer.sh"
+
+shader debug_line_twocolored
+{
+  channel float3 pos  = pos;
+  channel color8 vcol = vcol; //2 colors packed as 4:4:4:4
+
+  blend_src = sa;
+  blend_dst = isa;
+  z_test  = false;
+
+  hlsl
+  {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc           : TEXCOORD0;
+      float4 color_front  : TEXCOORD1;
+      float4 color_behind : TEXCOORD2;
+    };
+  }
+
+  (vs)
+  {
+    globtm@f44 = globtm;
+  }
+
+  hlsl (vs)
+  {
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float4 vcol                 : COLOR0;
+    };
+
+    VsOutput line_vs(VsInput input)
+    {
+      VsOutput output;
+      output.pos = mulPointTm(input.pos, globtm);
+      uint4 packedColor = saturate(input.vcol) * 255;
+      output.tc = output.pos.xy / output.pos.w * float2(0.5, -0.5) + 0.5;
+      output.color_front  = float4(packedColor >> 4) / 15.0;
+      output.color_behind = float4(packedColor & 15) / 15.0;
+      return output;
+    }
+  }
+  compile("target_vs", "line_vs");
+
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  hlsl(ps)
+  {
+    float4 line_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float depth = GET_SCREEN_POS(input.pos).z;
+      float gbufferDepth = readGbufferDepth(input.tc);
+      return depth > gbufferDepth ? input.color_front : input.color_behind;
+    }
+  }
+  compile("target_ps", "line_ps");
+}

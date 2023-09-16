@@ -1,0 +1,37 @@
+texture cloud_volume;
+float4 cloud_volume_res = (32, 16, 32, 50000);//last one is distance
+
+
+macro INIT_CLOUD_VOLUME_MASK(code)
+  (code) {
+    cloud_volume@smp3d = cloud_volume;
+    cloud_volume_remap@f1 = (1./cloud_volume_res.w,0,0,0);
+  }
+endmacro
+macro USE_CLOUD_VOLUME_MASK(code)
+  hlsl(code) {
+    half get_screen_cloud_volume_mask(float2 scrTexcoord, float w)
+    {
+      return h4tex3D(cloud_volume, float3(scrTexcoord.xy, sqrt(saturate(w*cloud_volume_remap)))).x;
+    }
+  }
+endmacro
+
+macro USE_CLOUD_VOLUME_MASK_VS()
+  hlsl(vs) {
+    half get_screen_cloud_volume_mask(float2 scrTexcoord, float w)
+    {
+      return tex3Dlod(cloud_volume, float4(scrTexcoord.xy, sqrt(saturate(w*cloud_volume_remap)), 0)).x;
+    }
+  }
+endmacro
+
+macro CLOUD_VOLUME_MASK()
+  INIT_CLOUD_VOLUME_MASK(ps)
+  USE_CLOUD_VOLUME_MASK(ps)
+endmacro
+
+macro CLOUD_VOLUME_MASK_VS()
+  INIT_CLOUD_VOLUME_MASK(vs)
+  USE_CLOUD_VOLUME_MASK_VS()
+endmacro

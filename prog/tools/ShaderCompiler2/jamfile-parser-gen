@@ -1,0 +1,93 @@
+Root    ?= ../../.. ;
+Location = prog/tools/ShaderCompiler2 ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+DOLPHIN_EXE = $(Root)/prog/3rdPartyLibs/legacy_parser/dolphin.exe ;
+WHALE_EXE = $(Root)/prog/3rdPartyLibs/legacy_parser/whale.exe ;
+
+for parser in $(WHALE_EXE) $(DOLPHIN_EXE) {
+  local jam = $(parser:S=)/jamfile ;
+  nopdb on $(jam:G=JAM) = \  ;
+  checkonly on $(jam:G=JAM) = \  ;
+
+  if ! [ GLOB $(parser:D) : $(parser:D=) ] { Depends $(parser) : $(jam:G=JAM) ; Always $(jam) ; }
+  BuildJams += $(jam) ;
+}
+
+actions quietly generate_dolphin
+{
+#sync
+  echo Generate LEX for $(2:D=)
+  call $(DOLPHIN_EXE) $(2)
+  if errorlevel 1 goto failed
+  if not exist $(2:S=.cpp) goto failed
+  if not exist $(2:S=.h) goto failed
+  goto end
+:failed
+  del $(2:S=.cpp)
+  del $(2:S=.h)
+  set ERRORLEVEL=13
+:end
+}
+actions quietly generate_whale
+{
+#sync
+  echo Generate SYN for $(2:D=)
+  del $(2:S=tok.h)
+  call $(WHALE_EXE) $(2)
+  if errorlevel 1 goto failed
+  if not exist $(2:S=.cpp) goto failed
+  if not exist $(2:S=.h) goto failed
+  if not exist $(2:S=tok.h) goto failed
+  goto end
+:failed
+  del $(2:S=.cpp)
+  del $(2:S=.h)
+  del $(2:S=tok.h)
+  set ERRORLEVEL=13
+:end
+}
+
+rule GenerateDolphinLex
+{
+  local src = $(Location)/$(1) ;
+  local dst = $(src:S=.cpp) $(src:S=.h) ;
+
+  LOCATE on $(src) = $(Root) ;
+  LOCATE on $(dst) = $(Root) ;
+  Depends $(dst) : $(src) $(DOLPHIN_EXE) ;
+
+  NOCARE $(dst) $(Root)/$(dst) $(Root)/$(Location)/$(Root)/$(dst) ;
+  for d in $(dst) { NOCARE [ SimplifyComposedPath $(JAM_CWD) : $(Root)/$(d) ] ; }
+  if $(OS) = NT { for d in $(dst) { NOCARE [ SimplifyComposedPath $(JAM_CWD:L) : $(Root:L)/$(d:L) ] ; } }
+
+  generate_dolphin $(dst) : $(src) ;
+  Depends ALL_CODEGEN_TARGET : $(dst) ;
+}
+rule GenerateWhaleSyn
+{
+  local src = $(Location)/$(1) ;
+  local dst = $(src:S=.cpp) $(src:S=.h) $(src:S=tok.h) ;
+
+  LOCATE on $(src) = $(Root) ;
+  LOCATE on $(dst) = $(Root) ;
+  Depends $(dst) : $(src) $(WHALE_EXE) ;
+
+  NOCARE $(dst) $(Root)/$(dst) $(Root)/$(Location)/$(Root)/$(dst) ;
+  for d in $(dst) { NOCARE [ SimplifyComposedPath $(JAM_CWD) : $(Root)/$(d) ] ; }
+  if $(OS) = NT { for d in $(dst) { NOCARE [ SimplifyComposedPath $(JAM_CWD:L) : $(Root:L)/$(d:L) ] ; } }
+
+  generate_whale $(dst) : $(src) ;
+  Depends ALL_CODEGEN_TARGET : $(dst) ;
+}
+
+rule DependOnGeneratedHeaders
+{
+  Includes $(1) : $(2)lex.h $(2)syn.h $(2)syntok.h ;
+}
+
+GenerateDolphinLex shlex.dlp ;
+GenerateWhaleSyn   shsyn.whl ;
+
+Depends all : ALL_CODEGEN_TARGET ;

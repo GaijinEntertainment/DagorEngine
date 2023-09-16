@@ -1,0 +1,21 @@
+Root    ?= ../../../../.. ;
+local LibPath = gameLibs/daECS/io/datablock ;
+Location = prog/$(LibPath) ;
+TargetType  = lib ;
+Target      = $(LibPath).lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine2/dagorInclude
+;
+
+Sources =
+  dataBlockReader.cpp
+;
+
+UseProgLibs += gameLibs/daECS/utility ;
+
+if $(DriverLinkage) != dynamic { UseProgLibs += engine2/ioSys ; } # for datablock
+
+include $(Root)/prog/_jBuild/build.jam ;

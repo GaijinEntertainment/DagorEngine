@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Quirrel REPL</title>
+  <link rel="stylesheet" href="repl.css" media="all">
+  <link rel="icon" type="image/x-icon" href="repl.ico">
+</head>
+
+<body>
+
+<div id="repl-root">
+  <div class="editor-container">
+    <ul class="editor-header">
+      <li><span>Source code</span></li>
+      <li><span><button id="btn-run">Run (F9)</button></span></li>
+    </ul>
+    <pre id="source-editor" class="editor-area"></pre>
+  </div>
+  <div class="editor-container">
+    <ul class="editor-header">
+      <li><span>Result</span></li>
+      <li></li>
+    </ul>
+    <pre id="output" class="output"></pre>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="replmain.js"></script>
+<script src="sqjsrepl.js"></script>
+
+</body>
+</html>

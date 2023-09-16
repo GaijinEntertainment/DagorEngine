@@ -1,0 +1,86 @@
+include "shader_global.sh"
+include "esm_shadows_inc.sh"
+include "postfx_inc.sh"
+include "gaussian_blur.sh"
+
+int esm_slice = 0;
+int gauss_direction = 0;
+interval gauss_direction: horizontal < 1, vertical;
+
+texture esm_blur_src;
+
+shader esm_blur
+{
+  supports global_frame;
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+  no_ablend;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  hlsl(vs) {
+    VsOutput esm_blur_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 inpos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(inpos, 0, 1);
+      output.tc = screen_to_texcoords(inpos);
+      return output;
+    }
+  }
+
+  (ps) {
+    esm_invResolution_slice@f3 = (1.0 / esm_params.x, 1.0 / esm_params.y, esm_slice, 0);
+  }
+  if (gauss_direction == horizontal)
+  {
+    (ps) { esm_blur_src@smpArray = esm_blur_src; }
+  }
+  else
+  {
+    (ps) { esm_blur_src@smp2d = esm_blur_src; }
+  }
+
+  hlsl(ps)
+  {
+    #define GAUSSIAN_BLUR_STEPS_COUNT 4
+    #define GAUSSIAN_BLUR_COLOR_TYPE float2
+
+    void gaussianBlurSampleColor(float2 centre_uv, float2 tex_coord_offset, out GAUSSIAN_BLUR_COLOR_TYPE out_color)
+    {
+    ##if gauss_direction == horizontal // First pass - take from array.
+      out_color = tex3Dlod(esm_blur_src, float4(centre_uv + tex_coord_offset, esm_invResolution_slice.z, 0)).rg +
+                  tex3Dlod(esm_blur_src, float4(centre_uv - tex_coord_offset, esm_invResolution_slice.z, 0)).rg;
+    ##else
+      out_color = tex2Dlod(esm_blur_src, float4(centre_uv + tex_coord_offset, 0, 0)).rg +
+                  tex2Dlod(esm_blur_src, float4(centre_uv - tex_coord_offset, 0, 0)).rg;
+    ##endif
+    }
+  }
+
+  USE_GAUSSIAN_BLUR()
+
+  hlsl(ps) {
+    GAUSSIAN_BLUR_COLOR_TYPE esm_blur_ps(VsOutput input) : SV_Target
+    {
+      float2 min_max_uv = float2(0,1);
+    ##if gauss_direction == horizontal
+      return GaussianBlur(input.tc, float2(esm_invResolution_slice.x, 0));
+    ##else
+      return GaussianBlur(input.tc, float2(0, esm_invResolution_slice.y));
+    ##endif
+    }
+  }
+
+  compile("target_vs", "esm_blur_vs");
+  compile("target_ps", "esm_blur_ps");
+}

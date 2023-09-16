@@ -1,0 +1,32 @@
+fastdep 0.15 (http://www.irule.be/bvh/c++/fastdep/)
+Copyright Bart Vanhauwaert and all (see AUTHORS), 2001, 2002, 2003
+
+Contents of this package
+
+COPYING		terms of use and license for this package
+README		this file
+INSTALL		installation guide
+CHANGELOG	changes from version to version
+TODO			non-implemented features
+AUTHORS		about the authors
+build/		build scripts
+config/		configuration scripts
+doc/			documentation on fastdep (html/pdf)
+tests/		regression tests
+
+
+
+This is a rough outline of what is supposed to become a fast
+dependency generator. (Faster than gcc anyway) 
+
+Full (?) installation guide is in the file INSTALL
+
+To compile (without checking dependencies) do
+
+	./configure
+
+and
+
+	gmake
+
+(On Linux you may generally use make.)

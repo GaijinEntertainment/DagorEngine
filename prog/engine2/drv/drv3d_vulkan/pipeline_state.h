@@ -1,0 +1,69 @@
+// defines full draw/dispatch ready state that can be applied to execution state
+#pragma once
+#include "util/tracked_state.h"
+#include "compute_state.h"
+#include "raytrace_state.h"
+#include "graphics_state2.h"
+
+namespace drv3d_vulkan
+{
+
+struct PipelineStateStorage
+{
+  FrontComputeState compute;
+  FrontGraphicsState graphics;
+#if D3D_HAS_RAY_TRACING
+  FrontRaytraceState raytrace;
+#endif
+
+  void reset() {}
+  void dumpLog() const { debug("PipelineStateStorage end"); }
+
+  VULKAN_TRACKED_STATE_STORAGE_CB_DEFENITIONS();
+};
+class PipelineState : public TrackedState<PipelineStateStorage, FrontComputeState, FrontGraphicsState
+#if D3D_HAS_RAY_TRACING
+                        ,
+                        FrontRaytraceState
+#endif
+                        >
+{
+  StateFieldResourceBinds *stageResources[STAGE_MAX_ACTIVE];
+
+  template <typename T>
+  bool handleObjectRemovalInResBinds(T object)
+  {
+    bool ret = false;
+    for (uint32_t i = 0; i < STAGE_MAX_ACTIVE; ++i)
+      ret |= stageResources[i]->handleObjectRemoval(object);
+    return ret;
+  }
+
+  template <typename T>
+  bool isReferencedByResBinds(T object) const
+  {
+    for (uint32_t i = 0; i < STAGE_MAX_ACTIVE; ++i)
+      if (stageResources[i]->isReferenced(object))
+        return true;
+    return false;
+  }
+
+  void fillResBindFields();
+
+public:
+  template <typename T>
+  bool handleObjectRemoval(T object);
+
+  template <typename T>
+  bool isReferenced(T object) const;
+
+  bool processBufferDiscard(Buffer *old_buffer, const BufferRef &new_ref, uint32_t buf_flags);
+
+  PipelineState();
+  PipelineState(const PipelineState &from);
+
+  StateFieldResourceBinds &getStageResourceBinds(ShaderStage stage) { return *stageResources[stage]; }
+  void markResourceBindDirty(ShaderStage stage);
+};
+
+} // namespace drv3d_vulkan

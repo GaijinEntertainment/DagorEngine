@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/AssetViewer/Custom ;
+
+TargetType  = lib ;
+Target      = tools/AssetViewer/Custom.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  custom.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,7 @@
+* Transforms
+* Usable color classes, type conversions
+* Color operations (mixing/blending)
+* Compile-time validation using function annotations
+* Extended bounding box class (limits, not only sizes)
+? Textures
+

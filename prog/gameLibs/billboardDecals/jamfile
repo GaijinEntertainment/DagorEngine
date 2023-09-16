@@ -1,0 +1,31 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/billboardDecals ;
+
+TargetType  = lib ;
+Target      = gameLibs/billboardDecals.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+#  bentCones.cpp
+  billboardDecals.cpp
+  matProps.cpp
+;
+
+UseProgLibs +=
+  engine2/lib3d
+  gameLibs/decalMatrices
+;
+
+CPPopt = ;
+if [ GLOB $(Root)/prog/gameLibs/propsRegistry : * ] {
+  CPPopt += -DHAS_PROPS_REGISTRY ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

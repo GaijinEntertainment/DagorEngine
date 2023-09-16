@@ -1,0 +1,43 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/webui ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/webui.lib ;
+
+AddIncludes =  
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/dagorInclude
+  $(Root)/prog/engine2/sharedInclude # kind of hack for access to shaders implementation
+;
+
+Sources =
+  httpserver.cpp
+  bson.cpp
+;
+
+local Plugins = gameLibs/webui/plugins ;
+UseProgLibs =
+  $(Plugins)/colorpicker
+  $(Plugins)/dagor
+  $(Plugins)/editvar
+  $(Plugins)/grapheditor
+  $(Plugins)/profiler
+  $(Plugins)/screenshot
+  $(Plugins)/shadervars
+  $(Plugins)/quirrel
+  $(Plugins)/autoDrey
+;
+
+if $(Platform) = tvOS {
+  UseProgLibs +=
+    $(Plugins)/tvOS
+  ;
+}
+
+Plugins = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

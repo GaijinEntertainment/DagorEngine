@@ -1,0 +1,562 @@
+include "sky_shader_global.sh"
+include "pbr.sh"
+include "gbuffer.sh"
+include "MonteCarlo.sh"
+include "roughToMip.sh"
+//include "skyLight.sh"
+include "ssao_use.sh"
+include "viewVecVS.sh"
+include "invGlobTm.sh"
+
+include "dagi_volmap_gi.sh"
+include "dagi_helpers.sh"
+include "dagi_scene_voxels_common.sh"
+include "dagi_volmap_common_25d.sh"
+
+texture current_ambient;
+int ambient_blur_x = 0;
+interval ambient_blur_x:blur_y<1, blur_x;
+
+
+texture prev_ambient;
+
+float4 prev_globtm_psf_0;
+float4 prev_globtm_psf_1;
+float4 prev_globtm_psf_2;
+float4 prev_globtm_psf_3;
+
+float4 prev_view_vecLT;
+float4 prev_view_vecRT;
+float4 prev_view_vecLB;
+float4 prev_view_vecRB;
+float4 prev_world_view_pos;
+
+
+macro AMBIENT_REPROJECTION()
+  (ps) { prev_globtm_psf@f44 = { prev_globtm_psf_0, prev_globtm_psf_1, prev_globtm_psf_2, prev_globtm_psf_3 }; }
+
+  hlsl(ps) {
+    #define USE_SIMPLE_TAA 1
+    #define AMBIENT_TYPE half3
+    void reproject_ambient(inout AMBIENT_TYPE ssao, float3 worldPos, float2 screenTC, float w, out float weight)
+    {
+      float3 useWorldPos = worldPos;
+      float defaultBlend = 0.97;
+      float4 prevClip = mul(float4(useWorldPos,1), prev_globtm_psf);
+      float2 prevScreen = prevClip.w > 0 ? prevClip.xy*rcp(prevClip.w) : float2(2,2);
+      float3 oldUv_weight = float3(prevScreen.xy*float2(0.5,-0.5) + float2(0.5,0.5), 1);
+
+      float prevTcAbs = max(abs(prevScreen.x), abs(prevScreen.y));
+      float curTcAbs = max(abs(screenTC.x*2-1), abs(screenTC.y*2-1));
+      oldUv_weight.z = prevTcAbs < 1 ? defaultBlend : 0;
+
+
+      AMBIENT_TYPE prevTarget = tex2Dlod(prev_ambient, float4(oldUv_weight.xy, 0,0));
+      weight = oldUv_weight.z;
+      ssao = lerp(ssao, prevTarget, weight);
+    }
+  }
+endmacro
+
+float4 reproject_psf_0;
+float4 reproject_psf_1;
+float4 reproject_psf_2;
+float4 reproject_psf_3;
+float4 taa_filter0;
+float4 taa_filter1;
+float4 taa_jitter_offset;
+float taa_filter2;
+float taa_clamping_gamma_factor;
+float taa_new_frame_weight;
+float taa_sharpening_factor;
+float taa_motion_difference_max_inv;
+float taa_motion_difference_max_weight;
+float taa_luminance_max;
+int taa_restart_temporal;
+
+float taa_end_frame_blur_weight = 0.4;
+float taa_new_frame_weight_for_motion;
+float taa_new_frame_weight_dynamic;
+float taa_new_frame_weight_dynamic_for_motion;
+float taa_new_frame_weight_motion_lerp0;
+float taa_new_frame_weight_motion_lerp1;
+
+shader taa_ambient
+{
+  no_ablend;
+
+  cull_mode  = none;
+
+  z_test = false;
+  z_write = false;
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  USE_AND_INIT_VIEW_VEC_VS()
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  (ps) {
+    reproject_psf@f44 = {reproject_psf_0, reproject_psf_1, reproject_psf_2, reproject_psf_3};
+    taa_filter0@f4 = taa_filter0;
+    taa_filter1@f4 = taa_filter1;
+    taa_filter2@f4 = (taa_filter2, taa_motion_difference_max_inv, taa_motion_difference_max_weight, taa_restart_temporal);
+    taa_params@f4 = (1.9/*taa_clamping_gamma_factor*/, taa_new_frame_weight, 0/*taa_sharpening_factor*/, taa_luminance_max);//taa_sharpening_factor
+    taa_params1@f4 = (
+      1.0/(taa_end_frame_blur_weight - taa_new_frame_weight),
+      taa_new_frame_weight / (taa_end_frame_blur_weight - taa_new_frame_weight), -taa_new_frame_weight_motion_lerp0/taa_new_frame_weight_motion_lerp1, 1.0 / taa_new_frame_weight_motion_lerp1);
+    taa_params2@f4 = (taa_new_frame_weight, taa_new_frame_weight_for_motion, taa_new_frame_weight_dynamic, taa_new_frame_weight_dynamic_for_motion);
+
+  }
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER_NORMAL()
+
+  INIT_SKY_DIFFUSE()
+  USE_SKY_DIFFUSE()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 viewVect : TEXCOORD0;
+      float2 texcoord : TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput shadows_to_target_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4( pos.xy, 1, 1 );
+      output.texcoord.xy = screen_to_texcoords(pos);
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+
+
+  SSGI_USE_VOLMAP_GI(ps)
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+    current_ambient@smp2d = current_ambient;
+    prev_ambient@smp2d = prev_ambient;
+    screen_pos_to_texcoord@f4 = screen_pos_to_texcoord;
+    jitter_offset@f2 = taa_jitter_offset;
+  }
+  ///AMBIENT_REPROJECTION()
+
+  hlsl(ps){
+    //StructuredBuffer<float> Exposure : register(t7);
+
+    #define TAA_USE_AABB_CLIPPING 0
+    #define TAA_VARIANCE_CLIPPING 1
+    #define TAA_VARIANCE_CLIP_WITH_MINMAX_INSET 1
+    #define TAA_VARIANCE_CLIP_WITH_MINMAX_INSET_MAX 1.5
+    #define TAA_VARIANCE_CLIP_WITH_MINMAX_INSET_MIN 1.5
+    //#define TAA_DISTANCE_FOR_VARIANCE_CLIPPING 8
+    //#define TAA_SAMPLER_OBJECT_MOTION some_sampler
+
+    #define TAA_RESTART_TEMPORAL_X taa_filter2.w
+    //if TAA_RESTART_TEMPORAL_X  is 1, we restart temporality weights
+    //#define TAA_USE_ANTI_FLICKER_FILTER_DISTANCE_START 4
+    //TemporalParams[0].x
+    #define TAA_CLAMPING_GAMMA taa_params.x
+    //#define TAA_NEW_FRAME_WEIGHT taa_params.y
+    #define TAA_SHARPENING_FACTOR taa_params.z
+    #define TAA_LUMINANCE_MAX taa_params.w
+
+    #define TAA_NEW_FRAME_WEIGHT taa_params2.x
+    #define TAA_FRAME_WEIGHT_BLUR_F0 taa_params1.x
+    #define TAA_FRAME_WEIGHT_BLUR_F1 taa_params1.y
+    #define TAA_NEW_FRAME_MOTION_WEIGHT_LERP_0 taa_params1.z
+    #define TAA_NEW_FRAME_MOTION_WEIGHT_LERP_1 taa_params1.w
+
+    #define TAA_MOTION_DIFFERENCE_MAX_INVERSE taa_filter2.y
+    #define TAA_MOTION_DIFFERENCE_MAX_WEIGHT taa_filter2.z
+    #define HAS_DYNAMIC 0
+    #define TAA_MOTION_DIFFERENCE 0
+    //#define TAA_USE_OPTIMIZED_NEIGHBORHOOD 1
+
+    #define TAA_OUTPUT_FRAME_WEIGHT 1
+    #include "temporalAA.hlsl"
+
+    half3 shadows_to_target_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      #if NO_RAYTRACE
+        half3 cambient = tex2Dlod(current_ambient, float4(input.texcoord.xy,0,0));
+        return cambient;
+      #elif USE_SIMPLE_TAA
+        half3 cambient = tex2Dlod(current_ambient, float4(input.texcoord.xy,0,0));
+        float rawDepth = readGbufferDepth(input.texcoord.xy);
+        BRANCH
+        if (rawDepth==0)
+          return cambient;
+        float w = linearize_z(rawDepth, zn_zfar.zw);
+
+        float3 pointToEye = -input.viewVect * w;
+        float3 worldPos = world_view_pos.xyz - pointToEye;
+
+        //return lerp(cambient, tex2Dlod(ssao_prev_tex, float4(input.texcoord.xy,0,0)), 0.03);
+        float weight;
+        reproject_ambient(cambient, worldPos, input.texcoord.xy, w, weight);
+        if (weight == 0)
+        {
+          float3 normal;
+          half smoothness;
+          readPackedGbufferNormalSmoothness(input.texcoord.xy, normal, smoothness);
+          half3 ambient = GetSkySHDiffuse(normal);
+          get_ambient(worldPos, normal, ambient);
+          cambient = lerp(cambient, ambient, 0.95);
+        }
+        return cambient;
+      #else
+        float rawDepth = readGbufferDepth(input.texcoord.xy);
+        float4 history;
+        //float exposure = Exposure[0];
+        float exposure = 1;
+        float2 tc = input.texcoord;
+        float frameWeight;
+        TAAParams params;
+        params.depthUVTransform = float4(1, 1, 0, 0);
+        params.screenUV = input.texcoord;
+        params.displayResolution = 1/screen_pos_to_texcoord.xy;
+        params.displayResolutionInverse = screen_pos_to_texcoord.xy;
+        params.renderResolution = params.displayResolution;
+        params.renderResolutionInverse = params.displayResolutionInverse;
+        params.upsamplingRatio = 1;
+        params.jitterOffset = jitter_offset;
+        params.exposure = 1;
+        params.reprojectionMatrix = reproject_psf;
+        TAA(history.a, history.rgb,
+                 current_ambient, current_ambient_samplerstate,
+                 depth_gbuf_read, depth_gbuf_read_samplerstate,
+                 prev_ambient, prev_ambient_samplerstate,
+                 params, frameWeight);
+
+        /*
+        if (frameWeight == 1)//todo: output probe lighting ambient!
+        {
+          float3 normal;
+          half smoothness;
+          readPackedGbufferNormalSmoothness(input.texcoord.xy, normal, smoothness);
+          half3 ambient = GetSkySHDiffuse(normal);
+          float w = linearize_z(rawDepth, zn_zfar.zw);
+
+          float3 pointToEye = -input.viewVect * w;
+          float3 worldPos = world_view_pos.xyz - pointToEye;
+          get_ambient(worldPos, normal, ambient);
+          history.xyz = lerp(history.xyz, ambient, 0.95);
+        }*/
+        return history.xyz;
+      #endif
+    }
+  }
+
+  compile("target_vs", "shadows_to_target_vs");
+  compile("target_ps", "shadows_to_target_ps");
+}
+
+
+float4 globtm_psf_0;
+float4 globtm_psf_1;
+float4 globtm_psf_2;
+float4 globtm_psf_3;
+
+shader blur_ambient
+{
+  no_ablend;
+
+  
+  cull_mode  = none;
+
+  z_test = false;
+  z_write = false;
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  USE_AND_INIT_VIEW_VEC_VS()
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  (ps) {
+    globtm_psf@f44 = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
+    local_view_x@f3 = local_view_x;
+  }
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER_NORMAL()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 viewVect : TEXCOORD0;
+      float2 texcoord : TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput shadows_to_target_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4( pos.xy, 0, 1 );
+      output.texcoord.xy = screen_to_texcoords(pos);
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+
+  USE_AND_INIT_VIEW_VEC_PS()
+
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+    current_ambient@smp2d = current_ambient;
+  }
+
+  (ps) {screen_size@f4 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,screen_pos_to_texcoord.x,screen_pos_to_texcoord.y);}
+
+  hlsl(ps) {
+    static const float WORLD_RADIUS = 0.3;
+    static const float MAX_RADIUS_IN_PIXELS = 32.0;
+    struct SampleData
+    {
+      float3 viewPosition;
+      float3 worldNormal;
+      float3 color;
+    };
+    float GetKernelRadiusPixels(float screenTCX, float3 viewPos, float IterViewRadius)
+    {
+      viewPos += IterViewRadius*local_view_x;
+      float2 p1 = mul(float4(viewPos, 1.0), globtm_psf).xw;
+
+      float pixelRadius = abs(screenTCX - p1.x / p1.y) * 0.5 * screen_size.x;
+      return pixelRadius;
+    }
+    float lengthSquared(float3 a){return dot(a,a);}
+    float normalDistributionUnscaled2(float X2, float Std)
+    {
+      // Typically we set standard deviation to be 2/3 of the filter radius
+      // as it covers more than 95% of the energy
+      //return 1;
+      return exp(-X2 * rcp(2.0f*pow2(2.0 / 3.0) * Std * Std));//pow2(2.0 / 3.0)
+    }
+
+    float3 colorCompress(float3 color)
+    {
+      float luma = luminance(color);
+      return color * rcp(1 + luma);
+    }
+
+    float3 colorDecompress(float3 color)
+    {
+      float luma = luminance(color);
+      return color * rcp(1 - luma);
+    }
+
+    SampleData fetchSampleData(float2 UV)
+    {
+      UV = (floor(UV*screen_size.xy)+0.5)*screen_size.zw;
+      half3 color = tex2Dlod(current_ambient, float4(UV,0,0)).xyz;
+      float3 normal;
+      half smoothness;
+      readPackedGbufferNormalSmoothness(UV, normal, smoothness);
+
+      float rawDepth = readGbufferDepth(UV);
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      float3 viewPos = w*lerp(lerp(view_vecLT, view_vecRT, UV.x), lerp(view_vecLB, view_vecRB, UV.x), UV.y);
+
+      SampleData Out;
+      Out.viewPosition = viewPos;
+      Out.worldNormal = normal;
+      Out.color = colorCompress(color);
+      return Out;
+    }
+
+    float computeSampleWeightBasedOnWorldPosition(float3 viewPos, float3 sampleviewPosition, float worldFilterRadius)
+    {
+      return normalDistributionUnscaled2(lengthSquared(viewPos - sampleviewPosition), worldFilterRadius);
+    }
+    float getNormalWeight(float3 worldNormal, float3 offsetWorldNormal)
+    {
+      return saturate(dot(worldNormal, offsetWorldNormal)) >= 0.985 ? 1 : 0;
+      return pow8(saturate(dot(worldNormal, offsetWorldNormal)));
+    }
+    void processSample(
+      inout float3 filteredValue,
+      inout float weight,
+      float2 centerUV,
+      SampleData center,
+      float2 offsetXY,
+      float worldFilterRadius
+    )
+    {
+      float2 offsetUV = centerUV + offsetXY * screen_size.zw;
+
+      // Converting this branch to predicates increases register pressure and reduces perf on GV100.
+      [branch] if (any(offsetUV < 0.0f) || any(offsetUV > 1.0f))
+        return;
+
+      SampleData offsetedSample = fetchSampleData(offsetUV);
+      float normalWeight = getNormalWeight(center.worldNormal, offsetedSample.worldNormal);
+      float positionWeight = computeSampleWeightBasedOnWorldPosition(center.viewPosition, offsetedSample.viewPosition, worldFilterRadius);
+      //normalWeight = positionWeight = 1;
+
+      const float sampleWeight = normalWeight * positionWeight;
+
+      filteredValue += offsetedSample.color * sampleWeight;
+      weight += sampleWeight;
+    }
+
+    half3 ambient_blur_ps(VsOutput input): SV_Target0
+    {
+      //return tex2Dlod(current_ambient, float4(input.texcoord,0,0)).xyz;
+      SampleData center = fetchSampleData(input.texcoord);
+      /*##if (ambient_blur_x==blur_x)
+      return tex2Dlod(current_ambient, float4(input.texcoord+screen_size.zw*0.5,0,0)).xyz;
+      ##endif
+      return tex2Dlod(current_ambient, float4(input.texcoord,0,0)).xyz;*/
+
+      float3 worldPos = world_view_pos.xyz + center.viewPosition;
+
+      float KernelRadiusPixels = GetKernelRadiusPixels(input.texcoord.x*2-1, worldPos, WORLD_RADIUS);
+      KernelRadiusPixels = lerp(32, 8, saturate(length(center.viewPosition)*0.05));
+      const float2 g_Offsets32[32] =
+      {
+        float2(-0.1078042, -0.6434212),
+        float2(-0.1141091, -0.9539828),
+        float2(-0.1982531, -0.3867292),
+        float2(-0.5254982, -0.6604451),
+        float2(-0.1820032, -0.0936076),
+        float2(-0.4654744, -0.2629388),
+        float2(-0.7419540, -0.4592809),
+        float2(-0.7180300, -0.1888005),
+        float2(-0.9541028, -0.0789064),
+        float2(-0.6718881,  0.1745270),
+        float2(-0.3968981,  0.1973703),
+        float2(-0.8614085,  0.4183342),
+        float2(-0.5961362,  0.6559430),
+        float2(-0.0866527,  0.2057932),
+        float2(-0.3287578,  0.7094890),
+        float2(-0.0408453,  0.5730602),
+        float2(-0.0678108,  0.8920295),
+        float2( 0.2702191,  0.9020523),
+        float2( 0.2961993,  0.4006296),
+        float2( 0.5824130,  0.7839746),
+        float2( 0.6095408,  0.4801217),
+        float2( 0.5025840,  0.2096348),
+        float2( 0.2740403,  0.0734566),
+        float2( 0.9130731,  0.4032195),
+        float2( 0.7560658,  0.1432026),
+        float2( 0.6737013, -0.1910683),
+        float2( 0.8628370, -0.3914889),
+        float2( 0.7032576, -0.5988359),
+        float2( 0.4578032, -0.4541197),
+        float2( 0.1706552, -0.3115532),
+        float2( 0.2061829, -0.5709705),
+        float2( 0.3269635, -0.9024802)
+      };
+
+      const float2 g_Offsets64[64] =
+      {
+        float2(-0.0065114, -0.1460582),
+        float2(-0.0303039, -0.9686066),
+        float2(-0.1029292, -0.8030527),
+        float2(-0.1531820, -0.6213900),
+        float2(-0.3230599, -0.8868585),
+        float2(-0.1951447, -0.3146919),
+        float2(-0.3462451, -0.6440054),
+        float2(-0.3455329, -0.4411035),
+        float2(-0.6277606, -0.6978221),
+        float2(-0.6238620, -0.4722686),
+        float2(-0.3958989, -0.2521870),
+        float2(-0.8186533, -0.4641639),
+        float2(-0.6481082, -0.2896534),
+        float2(-0.9109314, -0.1374674),
+        float2(-0.6602813, -0.0511829),
+        float2(-0.3327182, -0.0034168),
+        float2(-0.9708222,  0.0864033),
+        float2(-0.7995708,  0.1496022),
+        float2(-0.4509301,  0.1788653),
+        float2(-0.1161801,  0.0573019),
+        float2(-0.6471452,  0.2481229),
+        float2(-0.8052469,  0.4099220),
+        float2(-0.4898830,  0.3552727),
+        float2(-0.6336213,  0.4714487),
+        float2(-0.6885121,  0.7122980),
+        float2(-0.4522108,  0.5375718),
+        float2(-0.1841745,  0.2540318),
+        float2(-0.2724991,  0.5243348),
+        float2(-0.3906980,  0.8645544),
+        float2(-0.1517160,  0.7061030),
+        float2(-0.1148268,  0.9200021),
+        float2(-0.0228051,  0.5112054),
+        float2( 0.0387527,  0.6830538),
+        float2( 0.0556644,  0.3292533),
+        float2( 0.1651443,  0.8762763),
+        float2( 0.3430057,  0.7856857),
+        float2( 0.3516012,  0.5249697),
+        float2( 0.2562977,  0.3190902),
+        float2( 0.5771080,  0.7862252),
+        float2( 0.6529276,  0.6084227),
+        float2( 0.5189329,  0.4425537),
+        float2( 0.8118719,  0.4586847),
+        float2( 0.3119081,  0.1337896),
+        float2( 0.5046800,  0.1606769),
+        float2( 0.6844428,  0.2401899),
+        float2( 0.8718888,  0.2715452),
+        float2( 0.1815740,  0.0086135),
+        float2( 0.9897170,  0.1209020),
+        float2( 0.6336590,  0.0174913),
+        float2( 0.8165796,  0.0200828),
+        float2( 0.4508830, -0.0892848),
+        float2( 0.9695752, -0.1212535),
+        float2( 0.5904603, -0.2048051),
+        float2( 0.7404402, -0.3184013),
+        float2( 0.9107504, -0.3932986),
+        float2( 0.2479053, -0.2340817),
+        float2( 0.7222927, -0.5845174),
+        float2( 0.4767374, -0.4289174),
+        float2( 0.4893593, -0.7637584),
+        float2( 0.2963522, -0.6137760),
+        float2( 0.1755842, -0.4334003),
+        float2( 0.1360411, -0.7557332),
+        float2( 0.1855755, -0.9548430),
+        float2( 0.0002820, -0.5056334)
+      };
+      #define OFFSETS g_Offsets64
+      #define SAMPLE_NUM 64
+
+      float3 filteredValue = center.color;
+      //discard;
+      float weight = 1.0;
+      for (uint s = 0; s < SAMPLE_NUM; s++)
+      {
+  ##if (ambient_blur_x==blur_x)
+    float2 offset = OFFSETS[s].xy * KernelRadiusPixels;
+  ##else
+    float2 offset = OFFSETS[s].yx * KernelRadiusPixels;
+  ##endif
+        processSample(
+          filteredValue,
+          weight,
+          input.texcoord,
+          center,
+          offset,
+          WORLD_RADIUS
+        );
+      }
+      return colorDecompress(filteredValue/weight);
+    }
+  }
+
+  compile("target_vs", "shadows_to_target_vs");
+  compile("target_ps", "ambient_blur_ps");
+}
+

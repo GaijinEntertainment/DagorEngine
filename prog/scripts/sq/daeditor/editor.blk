@@ -1,0 +1,12 @@
+tex{
+  dynAtlas:b=yes
+  rtTex:b=yes
+  name:t="editor"
+  size:ip2=256,64
+  maxAllowedPicSz:ip2=40,40
+  premultiplyAlpha:b=yes
+  margin:i=1
+  picSrcFolder:t="%daeditor/images"
+  picReserve:i=16
+  refHRes:i=1080
+}

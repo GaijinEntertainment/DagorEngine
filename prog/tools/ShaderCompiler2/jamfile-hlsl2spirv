@@ -1,0 +1,36 @@
+Root    ?= ../../.. ;
+Location = prog/tools/ShaderCompiler2 ;
+
+FullOOPEnabled = no ;
+
+include $(Root)/$(Location)/jamfile-common ;
+
+if $(OS) = NT {
+  Target = tools/dsc2-spirv.exe ;
+} else if $(OS) = MACOSX {
+  Target = tools/dsc2-spirv ;
+} else {
+  Exit OS=$(OS) is not supported! ;
+}
+
+AddIncludes +=
+  $(Root)/prog/3rdPartyLibs/vulkan/include
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs +=
+  tools/ShaderCompiler2/hlsl2spirv
+  3rdPartyLibs/regExp
+;
+
+CPPopt += -D_CROSS_TARGET_SPIRV=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT
+  # use only when it is really necessary and avoid committing it because it breaks dbg builds
+  #-D_HAS_ITERATOR_DEBUGGING=1
+;
+
+if $(Platform) = macosx {
+  CPPopt += -Wno-switch
+;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

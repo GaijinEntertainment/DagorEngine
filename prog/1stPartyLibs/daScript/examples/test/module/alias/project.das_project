@@ -1,0 +1,49 @@
+require strings
+require daslib/strings_boost
+
+typedef
+    module_info = tuple<string;string;string> const
+
+var
+    DAS_PAK_ROOT = "./"
+
+var
+    modules : array< function<(req,from:string):module_info> >
+
+def module_default(req,from:string) : module_info
+    let rs <- split_by_chars(req,"./")
+    var fr <- split_by_chars(from,"/")
+    let alias_name = rs[length(rs)-1]
+    if length(fr)==0
+        let mod_name = join(rs,"_")
+        return [[auto mod_name, req + ".das", alias_name]]
+    else
+        pop(fr)
+        for se in rs
+            push(fr,se)
+        let path_name = join(fr,"/") + ".das"
+        let mod_name = build_string() <| $ (var writer)
+            var skip_first = true
+            for elem in fr
+                if skip_first
+                    skip_first = false
+                else
+                    write(writer, "_")
+                if elem == "."
+                    write(writer, "dot")
+                elif elem == ".."
+                    write(writer, "dotdot")
+                else
+                    write(writer, elem)
+        return [[auto mod_name, path_name, alias_name]]
+
+[export]
+def module_get(req,from:string) : module_info
+    for mod in modules
+        let res = invoke(mod,req,from)
+        if res._0 != ""
+            return res
+    return module_default(req,from)
+
+
+

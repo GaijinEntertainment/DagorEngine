@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="WindowsRemoteDebugger"
+      DisplayName="Remote Windows Debugger"
+      PageTemplate="debugger"
+      Description="Remote Windows Debugger options"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.DataSource>
+    <DataSource Persistence="UserFile" />
+  </Rule.DataSource>
+
+  <StringProperty Name="RemoteDebuggerServerName" DisplayName="Remote Server Name"
+                Description="Specifies a remote server name."
+                F1Keyword="VC.Project.IVCRemoteDebugPageObject.RemoteMachine"/>
+
+  <EnumProperty Name="RemoteDebuggerConnection" DisplayName="Connection"
+                Description="Specifies the connection type."
+                F1Keyword="VC.Project.IVCRemoteDebugPageObject.Remote">
+    <EnumValue Name="RemoteWithAuthentication" DisplayName="Remote with Windows authentication"
+               Description="Remote with Windows authentication" />
+    <EnumValue Name="RemoteWithoutAuthentication" DisplayName="Remote with no authentication"
+               Description="Remote with no authentication" />
+  </EnumProperty>
+
+  <StringProperty Name="RemoteRootDir" DisplayName="Remote RootDir"
+                Description="Specifies the path of game's directory on the remote computer."
+                F1Keyword="VC.Project.IVCRemoteDebugPageObject.WorkingDirectory"/>
+
+  <StringProperty Name="RemoteDebuggerCommand" DisplayName="Remote Command"
+                Description="The debug command to execute."
+                F1Keyword="VC.Project.IVCRemoteDebugPageObject.RemoteCommand"/>
+  <StringProperty Name="RemoteDebuggerCommandArguments" DisplayName="Remote Command Arguments"
+                Description="The command line arguments to pass to the application."
+                F1Keyword="VC.Project.IVCRemoteDebugPageObject.CommandArguments">
+    <Argument Property="RemoteDebuggerCommand" />
+  </StringProperty>
+
+  <StringProperty Name="RemoteDebuggerWorkingDirectory" DisplayName="Working Directory"
+                Description="The application's working directory. By default, the directory containing the project file."
+                Subtype="folder"
+                Visible="false"
+                F1Keyword="VC.Project.IVCRemoteDebugPageObject.WorkingDirectory"/>
+
+  <StringListProperty Name="RemoteDebuggerEnvironment" DisplayName="Environment"
+                      Description="Specifies the environment for the debugee, or variables to merge with existing environment."
+                      Separator="&#xA;"
+                      F1Keyword="VC.Project.IVCRemoteDebugPageObject.Environment"/>
+
+  <BoolProperty Name="RemoteDebuggerAttach" DisplayName="Attach"
+                Description="Specifies whether the debugger should attempt to attach to an existing process when debugging starts."
+                F1Keyword="VC.Project.IVCRemoteDebugPageObject.Attach"/>
+
+  <StringProperty Name="DeploymentDirectory" DisplayName="Deployment Directory"
+                Description="When debugging on a remote machine, if you want the contents of the project output (except for PDB files) to be copied to the remote machine, specify the path here"
+                F1Keyword="VC.Project.IVCRemoteDebugPageObject.DeploymentDirectory"/>
+  <StringListProperty Name="AdditionalFiles" DisplayName="Additional Files to Deploy"
+                Description="When debugging on a remote machine, files and directories specified here (besides the project output) are copied to the Deployment Directory if one was specified."
+                Subtype="file"
+                F1Keyword="VC.Project.IVCRemoteDebugPageObject.AdditionalFiles"/>
+  <BoolProperty Name="RemoteDebuggerDeployDebugCppRuntime" DisplayName="Deploy Visual C++ Debug Runtime Libraries"
+                Description="Specifies whether to deploy the debug runtime libraries for the active platform."
+                F1Keyword="VC.Project.IVCRemoteDebugPageObject.Remote"/>
+  <BoolProperty Name="RemoteDebuggerDeployCppRuntime" DisplayName="Deploy Visual C++ Runtime Libraries"
+                Description="Specifies whether to deploy the runtime libraries for the active platform."
+                F1Keyword="VC.Project.IVCRemoteDebugPageObject.Remote"/>
+</Rule>

@@ -1,0 +1,53 @@
+APP             = ecs30 ;
+APP_FOLDER      = gameLibs/daECS/sample ;
+
+Root    ?= ../../../.. ;
+Location = prog/$(APP_FOLDER) ;
+
+if $(Config) != rel { CheckedContainers ?= yes ; }
+
+include $(Root)/prog/_jBuild/defaults.jam ; # Note - $(Platform) is not defined before this line
+
+if $(Platform) in win32 win64 && $(PlatformSpec) != clang {
+  PlatformSpec ?= vc16 ;
+  if $(PlatformSpec) = vc16 {
+    VCUpdateVer ?= 16.10.3 ;
+  }
+}
+
+OutDir      =  $(Root)/$(Location) ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = daECS_benchmark ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+
+if $(Platform) = win32 && $(Config) != rel { UseMemoryDebugLevel = dbg ; }
+
+UseProgLibs +=
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/perfMon
+  engine2/math
+  engine2/baseUtil
+  engine2/ioSys
+  engine2/startup
+  gameLibs/daECS/core
+  gameLibs/daECS/io/datablock
+;
+
+
+if $(Config) = rel {
+  ForceLogs = yes ;
+}
+ForcePdb = yes ;
+include $(Root)/prog/_jBuild/build.jam ;

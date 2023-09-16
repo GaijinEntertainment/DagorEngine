@@ -1,0 +1,110 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/arc/zlib-ng ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/arc/zlib-ng.lib ;
+
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes     = $(Root)/prog/3rdPartyLibs/arc/zlib-ng ;
+
+
+Sources =
+  adler32.c
+  chunkset.c
+  compare256.c
+  compress.c
+  cpu_features.c
+  crc32.c
+  crc32_comb.c
+  crc32_fold.c
+  deflate.c
+  deflate_fast.c
+  deflate_huff.c
+  deflate_medium.c
+  deflate_quick.c
+  deflate_rle.c
+  deflate_slow.c
+  deflate_stored.c
+  functable.c
+  gzlib.c
+  gzread.c
+  gzwrite.c
+  infback.c
+  inffast.c
+  inflate.c
+  inftrees.c
+  insert_string.c
+  insert_string_roll.c
+  slide_hash.c
+  trees.c
+  uncompr.c
+  zutil.c
+;
+
+Allx86Sources =
+  adler32_ssse3.c
+  chunkset_sse2.c
+  compare256_sse2.c
+  crc32_fold_pclmulqdq.c
+  crc32_fold_vpclmulqdq.c
+  insert_string_sse42.c
+  slide_hash_sse2.c
+  x86_features.c
+;
+
+AllAVX2Sources =
+  slide_hash_avx2.c
+  chunkset_avx.c
+  compare256_avx2.c
+  adler32_avx2.c
+#  adler32_avx512.c
+#  adler32_avx512_vnni.c
+;
+
+AllNEONSources =
+  adler32_neon.c
+  arm_features.c
+  chunkset_neon.c
+  slide_hash_neon.c
+;
+
+AllACLESources =
+  crc32_acle.c
+  insert_string_acle.c
+;
+
+Copt += -DZLIB_COMPAT=1 ;
+
+if $(Platform) in win32 win64 linux64 xboxOne scarlett ps4 ps5 {
+  Sources +=  $(Allx86Sources:D=arch/x86) ;
+  Copt += -DX86_FEATURES -DX86_SSE2 -DX86_SSE2_CHUNKSET -DX86_SSE2_SLIDEHASH ;
+  if $(Platform) = win64 { Copt += -wd4267 ; }
+}
+
+if $(Platform) in win64 linux64 xboxOne scarlett ps4 ps5 {
+  Copt += -DX86_SSSE3 ;
+}
+
+if $(Platform) in scarlett ps5 {
+  Sources += $(AllAVX2Sources:D=arch/x86) ;
+  Copt += -DX86_SSE42_CRC_HASH -DX86_SSE42_CRC_INTRIN -DX86_SSE42_CMP_STR -DX86_AVX_CHUNKSET ;
+}
+
+if $(Platform) in scarlett ps5 {
+  Copt += -DX86_AVX2 -DX86_AVX2_ADLER32 ;
+}
+
+if $(Platform) in nswitch android iOS {
+  Sources += $(AllNEONSources:D=arch/arm) ;
+  Copt += -DARM_FEATURES -DARM_NEON_SLIDEHASH -DARM_NEON_CHUNKSET -DARM_NEON_ADLER32 -DARM_NEON_HASLD4 ;
+}
+
+if $(Platform) in nswitch {
+  Sources += $(AllACLESources:D=arch/arm) ;
+  Copt += -DARM_ACLE_CRC_HASH ;
+}
+
+include $(Root)/prog/_jBuild/add_null_include.jam ;
+include $(Root)/prog/_jBuild/build.jam ;

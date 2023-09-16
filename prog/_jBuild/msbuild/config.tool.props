@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Choose>
+    <When Condition="'$(_Platform)' == 'win32' or '$(_Platform)' == 'win64'" />
+    <When Condition="'$(_Platform)' == 'gdk'" />
+    <When Condition="'$(_Platform)' == 'scarlett'" />
+    <When Condition="'$(_Platform)' == 'ps4'" />
+    <When Condition="'$(_Platform)' == 'ps5'" />
+    <When Condition="'$(_Platform)' == 'android'" />
+    <When Condition="'$(_Platform)' == 'linux64'">
+      <PropertyGroup>
+        <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
+      </PropertyGroup>
+    </When>
+  </Choose>
+</Project>

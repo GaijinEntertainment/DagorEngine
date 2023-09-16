@@ -1,0 +1,26 @@
+﻿/* Strings for User Notification of a crash */
+"crashDialogHeader" = "De toepassing %@ is onverwachts gestopt.";
+"crashDialogMsg" = "Het systeem en andere toepassingen zijn niet beïnvloed. Een rapport is klaargemaakt dat u kan versturen naar %@ om het probleem te helpen identificeren.";
+
+"noCrashDialogHeader" = "De toepassing %@ is een fout tegengekomen.";
+"noCrashDialogMsg" = "Het systeem en andere toepassingen zijn niet beïnvloed. Een rapport is klaargemaakt dat u kan versturen naar %1$@ om %2$@ te helpen verbeteren.";
+
+"commentsMsg" = "Help ons het probleem op te lossen door te beschrijven wat er gebeurde voor de crash.";
+"emailMsg" = "Als u uw email adres opgeeft, kunnen we u contacteren indien wij meer details nodig hebben.";
+
+"commentsPlaceholder" = "Eventuele opmerkingen";
+"emailPlaceholder" = "optioneel";
+
+"emailLabel" = "E-mail";
+"privacyLabel" = "Privacy richtlijnen";
+
+"sendReportButton" = "Verstuur rapport";
+"cancelButton" = "Annuleer";
+"noSendButton" = "Ok";
+"privacyPolicyURL" = "http://www.google.com/privacypolicy.html";
+
+"countdownMsgSecondsPlural" = "%d seconden resterend.";
+"countdownMsgSecondSingular" = "%d second resterend.";
+
+"countdownMsgMinutesPlural" = "%d minuten resterend.";
+"countdownMsgMinuteSingular" = "%d minuut resterend.";

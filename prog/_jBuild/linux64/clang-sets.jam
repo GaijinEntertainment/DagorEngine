@@ -1,0 +1,82 @@
+#  Setup for clang compiler for LINUX 64-bit (to be included from jBuild.jam)
+
+_OBJ_SUFFIX  = .o ;
+
+local _DEF_COM_CMDLINE =
+  -pipe -c -msse$(SSEVersion) -m64 -MMD
+  -Wno-trigraphs -Wno-multichar -Wformat -Wno-unused-value -Wabsolute-value
+  -Wuninitialized -Wno-inline-new-delete -Wno-unknown-warning-option
+  -Wno-deprecated-register -Wno-invalid-offsetof -Wno-address-of-packed-member
+  -Wno-expansion-to-defined -Wno-logical-not-parentheses -Wno-c++1z-compat
+  -Wno-undefined-var-template -Wno-inconsistent-missing-override
+  -Wno-deprecated-builtins # for EASTL that uses deprecated builtins. remove after EASTL update
+  -ffunction-sections -fdata-sections -fno-omit-frame-pointer
+  -ffast-math -ffinite-math-only -minline-all-stringops
+  -fdiagnostics-absolute-paths
+  "\"-D__forceinline=inline __attribute__((always_inline))\"" -D__cdecl= -D__stdcall= -D__fastcall=
+  -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE
+  -D_snprintf=snprintf
+  -D_vsnprintf=vsnprintf
+  -Dstricmp=strcasecmp
+  -Dstrnicmp=strncasecmp
+  -D_TARGET_PC=3 -D_TARGET_PC_LINUX=3 -D_TARGET_STATIC_LIB=1
+  -D_TARGET_64BIT=1
+  -D__LINUX__=64
+  -D_TARGET_SIMD_SSE=$(SSEVersion)
+  -Di_strlen=(int)strlen
+  -D__STDC_CONSTANT_MACROS
+;
+if $(DriverLinkage) = static { _DEF_COM_CMDLINE += -D_TARGET_STATIC_LIB=1 ; }
+
+local STDLIB_COMP = -stdlib=libstdc++ ;
+local STDLIB_LINK = -stdlib=libstdc++ -lstdc++ ;
+
+if $(CxxStdLib) = libc++ {
+  STDLIB_COMP = -stdlib=libc++ ;
+  STDLIB_LINK = -stdlib=libc++ -lc++ -lc++abi ;
+}
+
+local _DEF_C_CMDLINE = -std=c99 ;
+local _DEF_CPP_CMDLINE = -std=c++$(CPPStd) -Wno-invalid-offsetof $(STDLIB_COMP) ;
+
+if $(Exceptions) != yes {
+  _DEF_CPP_CMDLINE += -fno-exceptions ;
+} else {
+  _DEF_CPP_CMDLINE += -fexceptions -DDAGOR_EXCEPTIONS_ENABLED=1 ;
+}
+
+if $(Rtti) != yes {
+  _DEF_CPP_CMDLINE += -fno-rtti ;
+} else {
+  _DEF_CPP_CMDLINE += -frtti ;
+}
+
+_LINK         = clang -pipe -m64 -rdynamic -isysroot /usr/include $(STDLIB_LINK) -lm ;
+_LINK_DLL     = clang -pipe -m64 -isysroot /usr/include -shared ;
+
+if $(Sanitize) != disabled {
+  _LINK = $(_LINK) -fsanitize=$(Sanitize) ;
+  _LINK_DLL  = $(_LINK_DLL) -fsanitize=$(Sanitize) ;
+  _DEF_COM_CMDLINE = $(_DEF_COM_CMDLINE) -fsanitize=$(Sanitize) ;
+}
+
+_LIB          = ar ranlib ;
+_C_COMPILER   = $(DISTCC) clang $(_DEF_COM_CMDLINE) $(_DEF_C_CMDLINE) ;
+_CPP_COMPILER = $(DISTCC) clang $(_DEF_COM_CMDLINE) $(_DEF_CPP_CMDLINE) ;
+_ASM_COMPILER = nasm -f elf64 ;
+_GAS_COMPILER = $(DISTCC) clang -g -c ;
+
+
+_INCLUDE      = $(Root)/prog/dagorInclude $(Root)/prog/1stPartyLibs $(Root)/prog/3rdPartyLibs ;
+
+# make compiler cmd-line ###
+_CPP_BASE_INCLUDES = "-iwithprefix "$(MasterPreInclude) "-I "$(MasterPreInclude) -I /usr/include "-I "$(Root)/prog/3rdPartyLibs/eastl/include ;
+_C_BASE_INCLUDES   = "-iwithprefix "$(MasterPreInclude) "-I "$(MasterPreInclude) -I /usr/include ;
+
+
+for inc in $(_INCLUDE) {
+  _CPP_BASE_INCLUDES += -I $(inc) ;
+  _C_BASE_INCLUDES   += -I $(inc) ;
+}
+
+_DEF_C_CMDLINE = ;

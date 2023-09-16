@@ -1,0 +1,81 @@
+Root    ?= ../../.. ;
+Location = prog/engine2/image ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine2/image~z$(UseZlibVer).lib ;
+
+Sources =
+  loadTga.cpp
+  saveTga.cpp
+  loadJpeg.cpp
+  saveJpeg.cpp
+  jpgCommon.cpp
+  jpgRead.cpp
+  jpgWrite.cpp
+  loadPsd.cpp
+  loadPng.cpp
+  loadAvif.cpp
+  savePng.cpp
+  loadTiff.cpp
+  saveTiff.cpp
+  loadImage.cpp
+  loadDds.cpp
+  imgAlloc.cpp
+  resampleImage.cpp
+  regImageLoadAny.cpp
+  regImageLoadJpeg.cpp
+  regImageLoadPsd.cpp
+  regImageLoadTga.cpp
+  regImageLoadTiff.cpp
+  regImageLoadPng.cpp
+  regImageLoadSvg.cpp
+  regImageLoadLottie.cpp
+  regImageLoadAvif.cpp
+;
+
+if ( $(Platform) in win32 win64 ps4 ps5 macosx linux64 xboxOne scarlett nswitch android ) {
+  Sources +=
+    dxtCompress.cpp
+  ;
+  UseProgLibs +=
+    3rdPartyLibs/convert/fastDXT
+  ;
+  AddIncludes +=
+    $(Root)/prog/3rdPartyLibs/convert/fastDXT
+  ;
+#    UseProgLibs +=
+#      3rdPartyLibs/convert/squish
+#    ;
+#    AddIncludes +=
+#      $(Root)/prog/3rdPartyLibs/convert
+#    ;
+#    CPPopt += -DUSE_SQUISHED ;
+} else {
+  Sources +=
+    dxtCompressStub.cpp
+  ;
+}
+
+AddIncludes +=
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
+  $(Root)/prog/3rdPartyLibs/binPack2D/include
+  $(Root)/prog/3rdPartyLibs/image/avif/include
+  $(Root)/prog/3rdPartyLibs
+;
+
+if $(PlatformSpec) in gcc4 {
+  CPPopt += -Wno-uninitialized ; # disable false-positive heuristics from gcc 11
+}
+UseProgLibs +=
+  3rdPartyLibs/image/imageresampler
+  3rdPartyLibs/lottie
+;
+
+ExplicitLicenseUsed += $(Root)/prog/3rdPartyLibs/nanosvg ;
+
+CPPopt += -D__B_CORE ;
+
+include $(Root)/prog/_jBuild/build.jam ;

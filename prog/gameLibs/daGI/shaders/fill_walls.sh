@@ -1,0 +1,103 @@
+include "sky_shader_global.sh"
+include "dagi_scene_voxels_common.sh"
+
+//int current_walls_count;
+
+shader fill_walls_grid_range_cs
+{
+  supports none;
+  supports global_frame;
+  USE_WALLS_BASE(cs)
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #include <gi_walls.hlsli>
+    RWStructuredBuffer<WallGridType>  grid : register(u0);
+    //RWStructuredBuffer<uint>  gridCnt : register(u1);
+    [numthreads(4, 4, 4)]
+    void grid_walls_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint3 coord = dtId;
+      if (any(coord >= uint3(WALLS_GRID_XZ, WALLS_GRID_Y, WALLS_GRID_XZ)))
+        return;
+      uint gridI = coord.x + coord.y*WALLS_GRID_XZ + coord.z*(WALLS_GRID_XZ*WALLS_GRID_Y);
+      //uint gridI = coord.y + coord.x*WALLS_GRID_Y + coord.z*(WALLS_GRID_XZ*WALLS_GRID_Y);
+      float3 cellSize = float3(wallsGridCellSize.x, wallsGridCellSize.y, wallsGridCellSize.x);
+      float3 lt = wallsGridLT.xyz + float3(coord)*cellSize;
+      float3 rb = lt + cellSize;
+
+      float3 center = lt + 0.5*cellSize;
+      //float boxSize = 3*sqrt(0.5)*wallsGridLT.w + 2.f;//2 is max Filter
+      float3 boxSize = 0.5*cellSize;//2 is max Filter
+      float filterSize = 3.f;//2 is max Filter
+      float3 filterScale = 1+filterSize/boxSize;
+
+      uint walls[MAX_WALLS_CELL_COUNT];
+      {
+        UNROLL
+        for (uint i = 0; i < MAX_WALLS_CELL_COUNT;++i)
+          walls[i] = 0;
+      }
+      uint wallCnt = 0;
+      for (uint wi = 0; wi < current_walls_count && wallCnt < MAX_WALLS_CELL_COUNT; ++wi)
+      {
+        uint wallId = wi;
+        uint convex = wallsList[wallId];
+        bool intersect = true;
+        bool inside = true;
+        uint planeStart = convex&((1U<<24)-1), planeCount = (convex>>24);
+        for (uint pi = planeStart, pie = pi + planeCount; pi < pie; pi+=6)
+        {
+          float centerDist[6] = {
+            dot(center, planeList[pi+0].xyz) + planeList[pi+0].w,
+            dot(center, planeList[pi+1].xyz) + planeList[pi+1].w,
+            dot(center, planeList[pi+2].xyz) + planeList[pi+2].w,
+            dot(center, planeList[pi+3].xyz) + planeList[pi+3].w,
+            dot(center, planeList[pi+4].xyz) + planeList[pi+4].w,
+            dot(center, planeList[pi+5].xyz) + planeList[pi+5].w,
+          };
+          float sizeProjection[6] = {
+            dot(abs(planeList[pi+0].xyz), boxSize),
+            dot(abs(planeList[pi+1].xyz), boxSize),
+            dot(abs(planeList[pi+2].xyz), boxSize),
+            dot(abs(planeList[pi+3].xyz), boxSize),
+            dot(abs(planeList[pi+4].xyz), boxSize),
+            dot(abs(planeList[pi+5].xyz), boxSize)
+          };
+          inside = inside &&
+                    ( centerDist[0] < sizeProjection[0]) &&
+                    ( centerDist[1] < sizeProjection[1]) &&
+                    ( centerDist[2] < sizeProjection[2]) &&
+                    ( centerDist[3] < sizeProjection[3]) &&
+                    ( centerDist[4] < sizeProjection[4]) &&
+                    ( centerDist[5] < sizeProjection[5]);
+          intersect = intersect ||
+                    ( abs(centerDist[0]) < filterScale.x*sizeProjection[0]) ||
+                    ( abs(centerDist[1]) < filterScale.x*sizeProjection[1]) ||
+                    ( abs(centerDist[2]) < filterScale.y*sizeProjection[2]) ||
+                    ( abs(centerDist[3]) < filterScale.y*sizeProjection[3]) ||
+                    ( abs(centerDist[4]) < filterScale.z*sizeProjection[4]) ||
+                    ( abs(centerDist[5]) < filterScale.z*sizeProjection[5]);
+
+          intersect = inside && intersect;
+          if (!inside)
+            break;
+        }
+        if (intersect)
+        {
+          walls[wallCnt] = convex;
+          wallCnt++;
+        }
+      }
+
+      WallGridType result = 0;
+      {
+        UNROLL
+        for (uint i = 0; i < MAX_WALLS_CELL_COUNT;++i)
+          result[i] = walls[i];
+      }
+      structuredBufferAt(grid, gridI) = result;
+    }
+  }
+  compile("cs_5_0", "grid_walls_cs");
+}
+//*/

@@ -1,0 +1,51 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/mimalloc ;
+
+TargetType = lib ;
+Target     = 3rdPartyLibs/mimalloc.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(MimDebug) != 0 { Target = $(Target:B)~dbg$(MimDebug).lib ; }
+
+Sources =
+  src/alloc.c
+  src/alloc-aligned.c
+  src/alloc-posix.c
+  src/arena.c
+  src/bitmap.c
+  src/heap.c
+  src/init.c
+  src/libc.c
+  src/options.c
+  src/os.c
+  src/page.c
+  src/random.c
+  src/segment.c
+  src/segment-map.c
+  src/stats.c
+;
+
+AddIncludes = $(Root)/$(Location)/include $(Root)/$(Location)/mimalloc/include ;
+
+CPPopt = -DMI_DEBUG=$(MimDebug) ;
+
+if $(Platform) in win32 win64 {
+  AddLibs += Advapi32.lib ;
+  Sources += src/prim/windows/prim.c ;
+  CPPopt += -wd4055 -wd4054 ;
+} else if $(Platform) in nswitch {
+  CPPopt += -D__unix__ ;
+} else if $(Platform) in xboxOne scarlett {
+  Sources += src/prim/windows/prim.c ;
+  CPPopt += -DMI_MINIMAL_STAT_PROCESS_INFO -DMI_NO_LARGE_PAGE_SUPPORT -DMI_NO_NUMA_SUPPORT -DMI_NO_GETENV -DMI_NO_CPUTS -DMI_NO_WINTERNL ;
+  if $(Platform) = scarlett && $(PlatformSpec) = clang { CPPopt += -D__PRFCHWINTRIN_H ; }
+} else if $(Platform) in ps4 ps5 {
+  if $(Platform) = ps4 { AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ; } # for stdatomic.h which is missing on ps4
+  CPPopt += -DMI_NO_GETENV -D"getenv(n)=0" -D__wasi__ ; # hacks to disable unsupported/undesired functionality
+  CPPopt += -DMI_PADDING=0 ; # TLS is failing to init with padding. TODO? figure out whats wrong
+} else {
+  Sources += src/prim/unix/prim.c ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

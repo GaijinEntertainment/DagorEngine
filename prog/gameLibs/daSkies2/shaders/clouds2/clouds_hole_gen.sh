@@ -1,0 +1,268 @@
+include "hardware_defines.sh"
+include "cloudsShadowVolume.sh"
+include "postfx_inc.sh"
+
+float4 clouds_hole_target_alt;
+float4 clouds_hole_light_dir;
+buffer clouds_hole_buf;
+float clouds_hole_density;
+
+macro USE_CLOUDS_HOLE(stage)
+  (stage) {clouds_shadows_volume@smp = clouds_shadows_volume hlsl {Texture3D<float2> clouds_shadows_volume@smp; }}
+  (stage) {clouds_hole_density@f1 = (clouds_hole_density);}
+  hlsl(stage) {
+    #include <cloud_settings.hlsli>
+    float downsampledShadow(uint2 dtid, float inv_res)
+    {
+      float2 tc = float2(dtid*CLOUDS_HOLE_DOWNSAMPLE+1)*inv_res;//bi-linear filtration + 2x manual downsample.
+      float2 o = float2(inv_res*2, 0);
+
+      return saturate(1-(
+                         min(min(tex3Dlod(clouds_shadows_volume, float4(tc, 0, 0)).x,
+                                 tex3Dlod(clouds_shadows_volume, float4(tc + o.xy,0,0)).x),
+                             min(tex3Dlod(clouds_shadows_volume, float4(tc + o.yx,0,0)).x,
+                                 tex3Dlod(clouds_shadows_volume, float4(tc + o.xx,0,0)).x))*0.7
+                         +
+                         (tex3Dlod(clouds_shadows_volume, float4(tc - o.xx,0,0)).x +
+                          tex3Dlod(clouds_shadows_volume, float4(tc + float2(2*o.x,  -o.x),0,0)).x +
+                          tex3Dlod(clouds_shadows_volume, float4(tc + float2(-o.x,  2*o.x),0,0)).x +
+                          tex3Dlod(clouds_shadows_volume, float4(tc + float2(2*o.x, 2*o.x),0,0)).x)*0.25*0.3)
+                     );
+    }
+
+    #define COORD_BITS 7 // 6 should be enough! we encode from 0 to 63
+    #define SHADOW_BITS 8
+    #define SHADOW_SHIFT (30-SHADOW_BITS)
+    #define LEN_SHIFT (2*COORD_BITS)
+    #define LEN_BITS (30 - LEN_SHIFT - SHADOW_BITS)
+    uint getHole(uint2 dtid) {
+      float3 dim;
+      clouds_shadows_volume.GetDimensions(dim.x, dim.y, dim.z);
+      uint shadow = clamp(downsampledShadow(dtid, rcp(dim.x))*((1U<<SHADOW_BITS) - 1.) + 0.5f, 0, (1U<<SHADOW_BITS)-1);
+      uint threshold = clamp(clouds_hole_density * ((1U<<SHADOW_BITS) - 1.) + 0.5f, 0, (1U<<SHADOW_BITS)-1);
+      uint shadow_weighted = abs(int(shadow) - int(threshold));
+      uint dim4 = uint(dim.x) / CLOUDS_HOLE_DOWNSAMPLE;
+      float2 tc = (dtid+0.5)/dim4 - 0.5;
+      float lenToCenter = saturate(length(tc)/sqrt(0.5));
+      uint lentoCenterEnc = clamp(lenToCenter*((1U<<LEN_BITS) - 1), 0, (1U<<LEN_BITS)-1);//so min will automatically find closest to center
+      return (shadow_weighted<<SHADOW_SHIFT) | (lentoCenterEnc<<LEN_SHIFT) | ((dtid.y<<COORD_BITS)|dtid.x);
+    }
+  }
+endmacro
+
+shader clouds_hole_cs
+{
+  USE_CLOUDS_HOLE(cs)
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    groupshared uint thread_result[8*8];
+    RWStructuredBuffer<uint> holePosition : register(u0);//layer's opaque pixels count
+    [numthreads(8, 8, 1)]
+    void clouds_hole_cs(uint2 dtid : SV_DispatchThreadID, uint flatIdx : SV_GroupIndex)
+    {
+      uint ret = getHole(dtid);
+      thread_result[flatIdx] = ret;
+      GroupMemoryBarrierWithGroupSync();
+
+      const int WARP_SIZE = 32;
+      UNROLL
+      for (uint i = WARP_SIZE; i > 0; i >>= 1)
+      {
+        if (flatIdx<i)
+        {
+          ret = min(ret, thread_result[flatIdx+i]);
+          thread_result[flatIdx] = ret;
+        }
+        GroupMemoryBarrierWithGroupSync();
+      }
+
+      if (flatIdx == 0)
+        InterlockedMin(structuredBufferAt(holePosition, 0), ret);
+    }
+  }
+  compile("cs_5_0", "clouds_hole_cs");
+}
+
+shader clouds_hole_ps
+{
+  blend_src = 1;
+  blend_dst = 1;
+  // On c++ side: blend_op = max
+  // We must use max instead of min, becouse we cannot fill texture with
+  // value bigger than float(1) [need maxfloat for min]. So we invert value.
+  cull_mode = none;
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      uint2 pos2d : TEXCOORD0;
+    };
+  }
+  hlsl(vs) {
+    #include <cloud_settings.hlsli>
+    VsOutput clouds_hole_vs(uint vertexId : SV_VertexID, uint inst_id : SV_InstanceID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos, 1, 1);
+      output.pos2d = uint2(inst_id / CLOUDS_HOLE_GEN_RES, inst_id % CLOUDS_HOLE_GEN_RES);
+      return output;
+    }
+  }
+  USE_CLOUDS_HOLE(ps)
+  hlsl(ps) {
+    float clouds_hole_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0 {
+      uint ret = getHole(input.pos2d) ^ ((1u << 31) - 1); // invert, becouse we cannot set more than 1 from cpu-side => we use blend_op max instead min
+      // Encode 31 bit uint as float
+      uint fraction = ret & ((1U << 23) - 1); // 23 bits
+      uint exponent = ((ret >> 23) & ((1u << 7) - 1)) + 1; // 7 bits; we cannot use 0x00 and 0xFF, so we add 1
+      return asfloat((exponent << 23) | fraction);
+    }
+  }
+  compile("target_vs", "clouds_hole_vs");
+  compile("target_ps", "clouds_hole_ps");
+}
+
+macro USE_CLOUDS_HOLE_POS(stage)
+  (stage) {
+      clouds_weather_size@f1 = (clouds_weather_size);
+    clouds_hole_target_alt@f4 = clouds_hole_target_alt;
+    clouds_hole_light_dir@f3 = clouds_hole_light_dir;
+  }
+
+  hlsl(stage) {
+    #include <daFx/dafx_def.hlsli>
+    #include <cloud_settings.hlsli>
+
+    float4 calcHolePosBufferData(uint holeEncode, float alt, float weatherSize, float3 lightDir, float3 holeTarget)
+    {
+      float2 ofs = float2(((holeEncode&0x7F) + 0.5) / CLOUDS_HOLE_GEN_RES, (((holeEncode>>7)&0x7F) + 0.5) / CLOUDS_HOLE_GEN_RES);
+      float2 holePos = (ofs - float2(0.5, 0.5)) * weatherSize;
+      holePos -= max(alt, 0.f)*lightDir.xz / max(lightDir.y, 0.01f) + holeTarget.xz;
+      return float4(holePos.x, holePos.y, holePos.x/weatherSize, holePos.y/weatherSize);
+    }
+  }
+endmacro
+
+shader clouds_hole_pos_cs
+{
+  USE_CLOUDS_HOLE_POS(cs)
+  ENABLE_ASSERT(cs)
+  (cs) { clouds_hole_buf@buf = clouds_hole_buf hlsl
+  {
+    StructuredBuffer<int> clouds_hole_buf@buf;
+  }}
+  hlsl(cs)
+  {
+    RWTexture2D<float4> holePosition : register(u0);
+
+    [numthreads(1, 1, 1)]
+    void clouds_hole_pos_cs()
+    {
+      if ((structuredBufferAt(clouds_hole_buf, 0)>>22) < 220)
+      {
+        holePosition[uint2(0, 0)] = calcHolePosBufferData(clouds_hole_buf[0], clouds_hole_target_alt.w, clouds_weather_size, clouds_hole_light_dir, clouds_hole_target_alt.xyz);
+      }
+      else
+      {
+        holePosition[uint2(0, 0)] = float4(0, 0, 0, 0);
+      }
+    }
+  }
+
+  compile("cs_5_0", "clouds_hole_pos_cs");
+}
+
+texture clouds_hole_tex;
+
+shader clouds_hole_pos_ps
+{
+  cull_mode = none;
+
+  POSTFX_VS(0)
+
+  USE_CLOUDS_HOLE_POS(ps)
+  (ps) {clouds_hole_tex@tex = clouds_hole_tex hlsl {Texture2D<float> clouds_hole_tex@tex; }}
+  hlsl(ps) {
+    float4 clouds_hole_pos_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      uint holeEncode = asuint(clouds_hole_tex[uint2(0, 0)]);
+      // We use alfa blening to calculate max, so we should use float32
+      // Decode 30 bit uint from float
+      uint fraction = (holeEncode & ((1U << 23) - 1)); // 23 bits
+      uint exponent = ((holeEncode >> 23) & ((1u << 8) - 1)) - 1; // 7 bits
+      holeEncode = (exponent << 23) | fraction;
+      holeEncode ^= ((uint)1 << 30) - 1; // invert 30 lower bits (becouse of we cannot fill the texture with values > 1)
+
+      float4 holePosition = float4(0, 0, 0, 0);
+      if ((holeEncode>>22) < 220)
+      {
+        holePosition = calcHolePosBufferData(holeEncode, clouds_hole_target_alt.w, clouds_weather_size, clouds_hole_light_dir, clouds_hole_target_alt.xyz);
+      }
+
+      return holePosition;
+    }
+  }
+
+  compile("target_ps", "clouds_hole_pos_ps");
+}
+/*shader clouds_hole_offset
+{
+  (cs) {clouds_shadows_volume@smp3d = clouds_shadows_volume;}
+  hlsl(cs) {
+    float downsampledShadow(uint2 dtid, float inv_res)
+    {
+      float2 tc = float2(dtid*4+1)*inv_res;//bi-linear filtration + 2x manual downsample.
+      float2 o = float2(inv_res*2, 0);
+
+      return saturate(1-(tex3Dlod(clouds_shadows_volume, float4(tc, 0, 0)).x+
+                         tex3Dlod(clouds_shadows_volume, float4(tc + o.xy,0,0)).x+
+                         tex3Dlod(clouds_shadows_volume, float4(tc + o.yx,0,0)).x+
+                         tex3Dlod(clouds_shadows_volume, float4(tc + o.xx,0,0)).x)*0.25);
+    }
+
+    #define COORD_BITS 8//8 should be enough! we encode divided by 4!
+    #define SHADOW_BITS 8
+    #define SHADOW_SHIFT (32-SHADOW_BITS)
+    #define LEN_SHIFT (2*COORD_BITS)
+    #define LEN_BITS (32 - LEN_SHIFT - SHADOW_BITS)
+    groupshared uint thread_result[8*8];
+    RWStructuredBuffer<uint> holePosition : register(u0);//layer's opaque pixels count
+    [numthreads(8, 8, 1)]
+    void cs_main(uint2 dtid : SV_DispatchThreadID, uint flatIdx : SV_GroupIndex)
+    {
+      float3 dim;
+      clouds_shadows_volume.GetDimensions(dim.x, dim.y, dim.z);
+      uint shadow = clamp(downsampledShadow(dtid, rcp(dim.x))*((1<<SHADOW_BITS) - 1), 0, (1<<SHADOW_BITS)-1);
+      uint dim4 = uint(dim.x)/4;
+      float2 tc = (dtid+0.5)/dim4 - 0.5;
+      float lenToCenter = saturate(length(tc)/sqrt(0.5));
+      uint lentoCenterEnc = clamp(lenToCenter*((1<<LEN_BITS) - 1), 0, (1<<LEN_BITS)-1);//so min will automatically find closest to center
+      uint ret = (shadow<<SHADOW_SHIFT) | (lentoCenterEnc<<LEN_SHIFT) | ((dtid.y<<COORD_BITS)|dtid.x);
+      thread_result[flatIdx] = ret;
+      GroupMemoryBarrierWithGroupSync();
+
+      const int WARP_SIZE = 32;
+      UNROLL
+      for (uint i = WARP_SIZE; i > 0; i >>= 1)
+      {
+        if (flatIdx<i)
+        {
+          uint ret2 = thread_result[flatIdx+i];
+          //FLATTEN
+          if (ret2 < ret)
+          {
+            ret = ret2;
+            thread_result[flatIdx] = ret;
+          }
+        }
+        GroupMemoryBarrierWithGroupSync();
+      }
+
+      if (flatIdx == 0)
+        InterlockedMin(holePosition[0], ret);
+    }
+  }
+  compile("cs_5_0", "cs_main");
+}*/

@@ -1,0 +1,6 @@
+return {
+  client_request_unicast_net_sqevent = function(eid, _event) {::assert(::type(eid)=="integer")}
+  client_request_broadcast_net_sqevent = function(event) {::assert(::type(event)=="instance")}
+  server_send_net_sqevent = function(_eid, _evt, _to_whom=null) {}
+  server_broadcast_net_sqevent = function(_evt, _to_whom=null) {}
+}

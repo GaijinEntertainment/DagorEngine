@@ -1,0 +1,22 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/arc/brotli ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/arc/brotli.lib ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/arc/brotli/common
+  $(Root)/prog/3rdPartyLibs/arc/brotli/include
+;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+local AllSrcFolder_C =
+  enc
+  dec
+  common
+;
+
+AutoscanBuildLists $(AllSrcFolder_C) : *.c       : Sources ;
+
+include $(Root)/prog/_jBuild/build.jam ;

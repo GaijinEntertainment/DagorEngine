@@ -1,0 +1,20 @@
+switch $(ProjectUseQuirrel) {
+  case sq3+ : AddIncludes +=
+    $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+    $(Root)/prog/1stPartyLibs/quirrel/sqplus
+    $(Root)/prog/1stPartyLibs/quirrel/quirrel
+  ;
+  case sq3r : AddIncludes +=
+    $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+    $(Root)/prog/1stPartyLibs/quirrel/sqrat/include
+    $(Root)/prog/1stPartyLibs/quirrel/quirrel
+  ;
+  case sq3r+ : AddIncludes +=
+    $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+    $(Root)/prog/1stPartyLibs/quirrel/sqrat/include
+    $(Root)/prog/1stPartyLibs/quirrel/sqplus
+    $(Root)/prog/1stPartyLibs/quirrel/quirrel
+  ;
+  case * :
+    Exit Unsupported ProjectUseQuirrel\=\"$(ProjectUseQuirrel)\"  ;
+}

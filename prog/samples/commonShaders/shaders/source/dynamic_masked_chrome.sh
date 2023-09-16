@@ -1,0 +1,197 @@
+include "shader_global.sh"
+include "dynamic_simple_inc.sh"
+include "gbuffer.sh"
+include "normaldetail.sh"
+
+shader dynamic_masked_chrome, dynamic_masked_chrome_bump
+{
+  texture tex = material.texture.diffuse;
+  (ps) { diffuse_tex@static = tex; }
+
+  static int atest = 0;
+  interval atest: atestOff < 1, atestOn;
+  if (atest == atestOn)
+  {
+    USE_ATEST_HALF()
+  }
+  else
+  {
+    NO_ATEST()
+  }
+  (vs) {world_view_pos@f3 = world_view_pos;}
+  (ps) {world_view_pos@f3 = world_view_pos;}
+
+  if (shader == dynamic_masked_chrome_bump)
+  {
+    hlsl {
+      #define SPECULAR_DISABLED 0
+    }
+
+    static int not_use_fxaa = 0;
+
+    interval not_use_fxaa: no<1, yes;
+
+    texture normalMap = material.texture[2];
+
+    texture normalDetail = material.texture[4];
+    texture maskDetail = material.texture[5];
+
+    texture metallMap = material.texture[6];
+  }
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, one_bone<2, two_bones<3, three_bones<4, four_bones;
+
+  //if (num_bones == no_bones)
+  //{
+  //  channel float1 tc[6] = extra[55];
+  //}
+
+  DYNAMIC_SIMPLE_VS_ATEST_CHOOSE()
+
+
+
+//---------------------------------------------------
+// PS stuff.
+//---------------------------------------------------
+  if (shader == dynamic_masked_chrome_bump)
+  {
+  }
+
+  if (dyn_model_render_pass == render_pass_xray || dyn_model_render_pass == render_pass_normals)
+  {
+    if (shader == dynamic_masked_chrome_bump)
+    {
+      XRAY_RENDER_USE(pointToEye__polishing, normal, float4(1, 1, 1, 1))
+    }
+    else
+    {
+      XRAY_RENDER_USE(pointToEye, normal, float4(1, 1, 1, 1))
+    }
+  }
+  else if (dyn_model_render_pass == render_to_depth || dyn_model_render_pass == render_pass_velocity)
+  {
+    SPECIAL_RENDER_ALPHATEST_CHOOSE()
+  }
+  else
+  {
+    WRITE_GBUFFER()
+    if (shader==dynamic_masked_chrome)
+    {
+      hlsl(ps) {
+        GBUFFER_OUTPUT main_ps_dynamic_masked_chrome(VsOutput input)
+        {
+          // Get diffuse.
+          half4 diffuseColor = tex2D(diffuse_tex, input.diffuseTexcoord.xy);
+          clip_alpha(diffuseColor.a);
+          half smoothness = 0.5;
+          UnpackedGbuffer result;
+          init_gbuffer(result);
+          init_albedo(result, diffuseColor.rgb);
+          init_smoothness(result, smoothness);
+          init_normal(result, input.normal.xyz);
+          init_metalness(result, 0);
+          init_ao(result, 1);
+          return encode_gbuffer(result, input.pointToEye);
+        }
+      }
+      compile("target_ps", "main_ps_dynamic_masked_chrome");
+    }
+    else if (shader==dynamic_masked_chrome_bump)
+    {
+
+      (ps) { normalmap_tex@static = normalMap; }
+      if (normalDetail != NULL)
+      {
+        (ps) { normalDetail@static = normalDetail; }
+        USE_NORMAL_DETAIL()
+        if (maskDetail != NULL)
+        {
+          (ps) { maskDetail@static = maskDetail; }
+        }
+      }
+      if (metallMap != NULL)
+      {
+        (ps) { metallMap@static = metallMap; }
+      }
+      if (dyn_model_render_pass == render_pass_cockpit)
+      {
+        if (not_use_fxaa == yes)// && enable_cockpit_illumination == enable_cockpit_illumination_on)
+        {
+          //no fxaa on tools!
+          (ps) { cockpit_illumination_color@f4 = (cockpit_illumination_color*enable_cockpit_illumination); }
+        }
+      }
+
+      USE_PIXEL_TANGENT_SPACE()
+
+
+      hlsl(ps) {
+        half overlay_single(half base, half blend)
+        {
+          return (base < 0.5 ? (2.0 * base * blend) : (1.0 - 2.0 * (1.0 - base) * (1.0 - blend)));
+        }
+
+        GBUFFER_OUTPUT dynamic_masked_chrome_bump_ps(VsOutput input INPUT_VFACE)
+        {
+          half4 diffuseColor = h4tex2D(diffuse_tex, input.diffuseTexcoord.xy);
+          clip_alpha(diffuseColor.a);
+
+          half4 resultColor;
+          half4 packedNormalMap = tex2D(normalmap_tex, input.diffuseTexcoord.xy);
+          half3 normalMap = unpack_ag_normal(packedNormalMap);
+          ##if normalDetail != NULL
+            half4 packedNormalMapDetail = tex2D(normalDetail, input.diffuseTexcoord.xy*8.13);
+            ##if maskDetail != NULL
+              packedNormalMapDetail.rag = lerp(packedNormalMapDetail.rag, float3(0.5, 0.5, 0.5), 1.0/8.0*tex2D(maskDetail, input.diffuseTexcoord.xy).g);
+            ##else
+              packedNormalMapDetail.rag = packedNormalMapDetail.rag*(1.0/8.0) +(float3(0.5, 0.5, 0.5)*7.0/8.0);
+            ##endif
+            half3 normalMapDetail = unpack_ag_normal(packedNormalMapDetail);
+            normalMap = RNM_ndetail(normalMap, normalMapDetail);
+            packedNormalMap.r = overlay_single(packedNormalMap.r, packedNormalMapDetail.r);
+          ##endif
+
+          #if VERTEX_TANGENT
+          half3 worldNormal = normalMap.x * input.dU + normalMap.y * input.dV.xyz + normalMap.z * input.normal;
+          worldNormal = normalize(worldNormal);
+          #else
+          half3 worldNormal = perturb_normal_precise(normalMap, input.normal, input.pointToEye__polishing.xyz, input.diffuseTexcoord.xy );
+          #endif
+
+          // Shadow.
+
+          float3 worldPos = world_view_pos - input.pointToEye__polishing.xyz;
+
+          // Lighting.
+
+          half metallness = packedNormalMap.b;
+          half glossiness = packedNormalMap.r;
+
+          half smoothness = glossiness;
+          smoothness = saturate(smoothness + input.pointToEye__polishing.w);
+          half diffuseLum = luminance(diffuseColor.rgb);
+          half ao = saturate(diffuseLum*(1./0.01));
+          SET_IF_IS_BACK_FACE(ao, 0)     // and non-reflective.
+          SET_IF_IS_BACK_FACE(smoothness, 0)     // and non-reflective.
+          UnpackedGbuffer result;
+          init_gbuffer(result);
+          ##if (metallMap != NULL)
+            half darkness = saturate(diffuseLum*(1/0.04));
+            diffuseColor.rgb = lerp(diffuseColor.rgb, tex2D(metallMap, input.diffuseTexcoord.xy*31.1).rgb*diffuseColor.rgb*darkness, pow2(metallness));
+          ##endif
+          #if USE_PAINTED_COLOR
+            diffuseColor.rgb *= get_paint_color(input.paint_uv, diffuseColor.a);
+          #endif
+          init_albedo(result, diffuseColor.rgb);
+          init_smoothness(result, smoothness);
+          init_normal(result, worldNormal);
+          init_metalness(result, 1-pow2(1-metallness));
+          init_ao(result, ao);
+          return encode_gbuffer(result, input.pointToEye__polishing.xyz);
+        }
+      }
+      compile("target_ps", "dynamic_masked_chrome_bump_ps");
+    }
+  }
+}

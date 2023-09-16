@@ -1,0 +1,22 @@
+done:
++ getEntityComponent() with external string hashes (static const int my_string_hash = eastl::hash<const char*>("my_string"))
++ attribute change event (ecs::EET_ATTRIBUTE_CHANGED)
++ replication component (component that serialization components changes and sends it to network). Depend on ecs::EET_ATTRIBUTE_CHANGED
++ entity systems/components iterator
++ builder/assembler - subsytem that build entities runtime from DSL
++ entities iterator
++ exlicit dependencies between entity systems
++ support for > 64 event types (eastl::bitset<> for EventMask)
++ support for > 64 entity system types
++ string table/immutable strings for attribute names
++ optimize broadcast message code path (to avoid linear scan via all entities)
++ script component extension (need abstract script system first (CryEngine/Valve style))
+
+todo:
+* string interning for object keys
+* forbid change types for components with setAttribute/operator= (implement special api for that use case)
+* implement EventService/MessageSource concept (does it needed for anything else besides message sending?)
+? weak dependencies (used in dependencies resolution of entity systems but doesn't pull dependencies by itself)
+? separate priorities for each update stage
+? log tracing (for debug)
+? check and fix recursive callback/entity systems addition/removal

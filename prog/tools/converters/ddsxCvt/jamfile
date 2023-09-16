@@ -1,0 +1,36 @@
+Config = rel ;
+ConsoleExe = yes ;
+Platform ?= win64 ;
+ProjectAllowsOodle = yes ;
+
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/ddsxCvt ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = exe ;
+Target      = util/ddsxCvt.exe ;
+
+OutDir = $(Root)/tools/dagor3_cdk/util ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+#CopyTo = $(Root)/$(Location) ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+Sources =         
+  ddsxConverter.cpp
+  con_main.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/perfMon/daProfilerStub
+  tools/libTools/dtx
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

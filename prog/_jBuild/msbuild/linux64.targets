@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import Project="$(ProjectRootDir)deploy.props" Condition="!$(DesignTimeBuild) and Exists('$(ProjectRootDir)deploy.props')" />
+  <Import Project="deploy.$(GameType).props" Condition="!$(DesignTimeBuild) and !Exists('$(ProjectRootDir)deploy.props') and Exists('deploy.$(GameType).props')" />
+
+  <ItemGroup Condition="!$(DesignTimeBuild)">
+    <SourcesToCopy Include="$(ProjectDir)**\*" />
+    <SourcesToCopy Include="$(SolutionDir)launcher\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\_jBuild\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\_jBuild\_scripts\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\_jBuild\linux64\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\1stPartyLibs\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\3rdPartyLibs\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\commonFx\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\dagorInclude\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\daNetGame\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\daNetGameLibs\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\engine2\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\gameLibs\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\tools\sharedInclude\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\tools\libTools\util\**\*" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <RelativeRemoteJamDir>jam-2.5-G8-binaries-2019/centos-7-64/</RelativeRemoteJamDir>
+    <RemoteJamDir>$(RemoteGDEVTOOL)$(RelativeRemoteJamDir)</RemoteJamDir>
+
+    <RemoteBuildCommandLine>_DEVTOOL=$(RemoteGDEVTOOL) $(RemoteJamDir)$(JamBuildCommandLine)</RemoteBuildCommandLine>
+    <RemoteReBuildCommandLine>_DEVTOOL=$(RemoteGDEVTOOL) $(RemoteJamDir)$(JamReBuildCommandLine)</RemoteReBuildCommandLine>
+    <RemoteCleanCommandLine>_DEVTOOL=$(RemoteGDEVTOOL) $(RemoteJamDir)$(JamCleanCommandLine)</RemoteCleanCommandLine>
+
+    <RelativeProjectPath>$([MSBuild]::MakeRelative($(SolutionDir), $(ProjectDir)))</RelativeProjectPath>
+    <RelativeProjectPath>$(RelativeProjectPath.Replace('\', '/'))</RelativeProjectPath>
+    <RemoteProjectDir>$(RemoteDeployDir)$(RelativeProjectPath)</RemoteProjectDir>
+    <RemoteIntDir>$(RemoteDeployDir)_output/</RemoteIntDir>
+
+    <RemoteDebuggerCommand>$(JamOutput)</RemoteDebuggerCommand>
+    <RemoteDebuggerWorkingDirectory>$(RemoteGameDir)</RemoteDebuggerWorkingDirectory>
+  </PropertyGroup>
+
+  <Target Name="_FixupRemoteIntelliSenseIncludes" BeforeTargets="GetClCommandLines" DependsOnTargets="_ResolveRemoteTarget;FixupCLCompileOptions;InitGetClCommandLines">
+    <ComputeHeaders
+      ProjectDir="$(ProjectDir)"
+      RemoteProjectDir="$(RemoteProjectDir)"
+      TargetLinuxPlatform="$(TargetLinuxPlatform)"
+      IncludePath="$(IncludePath)"
+      LinuxIncludePath="$(LinuxIncludePath)"
+      RemoteTargetId="$(ResolvedRemoteTargetId)"
+      CCompiler="$(RemoteCCompileToolExe)"
+      CppCompiler="$(RemoteCppCompileToolExe)"
+      CStandard="$(CLanguageStandard)"
+      CppStandard="$(CppLanguageStandard)"
+      Sources="">
+      <Output TaskParameter="CIntelliSenseIncludePath" PropertyName="CIntelliSenseIncludePath"/>
+      <Output TaskParameter="CppIntelliSenseIncludePath" PropertyName="CppIntelliSenseIncludePath"/>
+    </ComputeHeaders>
+    <ItemGroup>
+      <CppSource>
+        <AdditionalIncludeDirectories Condition="'%(Identity)'!=''" >$(CppIntelliSenseIncludePath);@(CppSource->'%(AdditionalIncludeDirectories)')</AdditionalIncludeDirectories>
+      </CppSource>
+      <CppSource2>
+        <AdditionalIncludeDirectories Condition="'%(Identity)'!=''" >$(CppIntelliSenseIncludePath);@(CppSource2->'%(AdditionalIncludeDirectories)')</AdditionalIncludeDirectories>
+      </CppSource2>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="PrepareFilesToCopyRemotely" BeforeTargets="_ConsolidateSourcesToCopy" Returns="@(FinalSourcesToCopyRemotely)">
+    <ItemGroup>
+      <FinalSourcesToCopyRemotely Include="@(SourcesToCopy)" Condition="
+        '%(Extension)' != '.dll' and
+        '%(Extension)' != '.exe' and
+        '%(Extension)' != '.lib' and
+        '%(Extension)' != '.bat' and
+        '%(Extension)' != '.cmd' and
+        '%(Extension)' != '.doc' and
+        '%(Extension)' != '.vcxproj'" />
+    </ItemGroup>
+    <ItemGroup Condition="!$(SkipDataFilesCopy)" >
+      <FinalSourcesToCopyRemotely Include="@(LayoutSourceFiles)" Condition="
+        !$([System.String]::Copy('%(RelativeDir)').Contains('CVS')) and
+        !$([System.String]::Copy('%(Identity)').StartsWith('.#'))" />
+    </ItemGroup>
+
+    <CreateProperty Value="$(RemoteDeployDir)">
+      <Output TaskParameter="Value" PropertyName="RemoteProjectDir" />
+    </CreateProperty>
+  </Target>
+
+  <Target Name="_ConsolidateSourcesToCopy" Condition="'$(LocalRemoteCopySources)' != 'false'">
+  </Target>
+
+  <Target Name="RestoreRemoteProjectDir" AfterTargets="_CopySources">
+    <CreateProperty Value="$(RemoteDeployDir)$(RelativeProjectPath)">
+      <Output TaskParameter="Value" PropertyName="RemoteProjectDir" />
+    </CreateProperty>
+  </Target>
+</Project>

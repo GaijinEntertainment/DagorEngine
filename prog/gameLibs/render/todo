@@ -1,0 +1,179 @@
+
+
++ fake hdr adaptation bugfix (lowbrightscale should be performed in output shader, or eliminated)
++ billboard lod - finish
++ self shadow on facing leaves
+
+
+
++ billboard/imposters
+  12 hours
+  + lods
+    2 hours
+  + imposters
+    2 hours
+
++ atmospheric light scattering
+  6 hours
+
++ dynamic lighting
+  8 hours
+
++ soft particles
+  4 hours
+  + deferred transparency only adapted, no overbright (if 8bit)
+  + split transparent objects
+  + lighting particles
+    3 hours
+  * mist
+    3 hours
+
++ heightmap mesh
+  8 hours
+
++ grass optimization
+  6 hours
+
+* Postfx
+  + depth motion blur
+    2 hours
+  * haze
+    3 hours
+  + vignete
+    2 hours
+  + depth of field
+    6 hours
+
++ alpha_blend shader
+  2 hours
++ billboard shader (leaves)
+  4 hours
++ dynamic shader
+  6 hours
++ animchar simple shader
+  2 hours
++ animchar light scattering shader(?)
+  2 hours
++ carpaint shader
+  8 hours
++ car_glass shader
+  3 hours
++ grass shader
+  4 hours
+
++ water
+  8 hours
+  + check
+    2hrs
+  * finish plane
+    1 hr
+
++ rain
+  8 hours
+  + plane (1hr)
+  + no rain on forced normals(2 more instructions for all now. Should be optimized!)
+  + valid puddles!
+  * grass - just make it darker (0.5hr)
+  * hmap - make it darker, add reflection, puddles (0.5hr)
+  * better raindrops!
+
+* AO
+  + Per-vertex car paint (4hrs)
+  + Lightmaps/Vltmap (4 hours)
+  * Per-vertex (dyn objects, render instances) (4 hrs)
+
+
++ fresnel bump everywhere
+  4 hours
+
+
+others
+  + constants (znear, zfar, render_target_w/h)
+
+* shadows
+  + CSM up to 4
+    2 hours
+  + zbias when writing to output (instead of reading)
+    2 hours
+  + clouds shadows
+    3 hours
+  + Shadow Objects - valid shadow determination
+    4 hours
+  + XPSM/TSM
+    6 hours
+  + variance shadows from hmap
+    6 hours
+    + work with 16bits float
+    + autogen mipmaps (if suppported).
+    + support non-filtered targets (check on target hw)
+    + lazy evaluation(!)
+    * valid bbox for hmap - remove hardcoded crap
+  + slope_zbias
+    1 hours
+  + irregular filtering (4+8 taps, according to first 4. on 2.0 - just 8, I guess).
+    8 hours
+
+* alpha_blend shadows(?)
+  1 hours
+
++ ss ambient occlusion
+  + non leaking shadow blur
+    2 hours
+  + depth down sampling
+    2 hours
+  + 4x4 rot instead of 64
+    1 hours
++ ambient shadows
+  * min blend ?
+    1 hours
+
++ what a fuck with building scene tracks.
+  just bad normal map
++ dynamic shaders working
+
++ HDR
+  4 hours
+  + glow (2 hours)
+  + star-glow (2 hours)
+  + volume_fog (2 hours)
+  + global hdr_overbright
+  + water init after postfx/world render
+  + starglow treshold (?)
+  + fix puddles
+
++ normal maps test (UV8)
+  4 hours
+
+heightmap
+  + heightmap shader
+    4 hours
+  + heightmap sided shader (canyon)
+    2 hours
+
++ lightmaps/AO
+  4 hours
+
++ tools
+  all should work in editor
+  assetviewer - material tuning?
+
+* optimizations
+  + combine sun and amb shadows in one texture
+
+  + r16 for depth
+  + ATI depth for shadows and scene depth
+    4 hours
+  + ATI fetch4
+    4 hours
+  + NVIDIA HW shadow maps
+    6 hours
+  + occluders
+  + NVIDIA HW shadow maps optimizations
+    4 hours
+  + visibility_finder for RI
+    2 hrs
+  + sort front-to-back RI
+    2 hrs
+  * hw occluders
+  * ATI depth for scene depth(?)
+    2 hours

@@ -1,0 +1,23 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/daECS/net/replay ;
+
+TargetType  = lib ;
+Target      = gameLibs/daECS/net/replay.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+;
+
+Sources =
+  replay.cpp
+  stubs.cpp
+;
+
+UseProgLibs +=
+  engine2/ioSys
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

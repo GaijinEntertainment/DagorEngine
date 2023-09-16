@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
+
+  <ContentType Name="Natvis" DisplayName="Natvis" ItemType="Natvis" />
+  <ItemType Name="Natvis" DisplayName="Natvis" />
+  <FileExtension Name=".natvis" ContentType="Natvis" />
+
+</ProjectSchemaDefinitions>

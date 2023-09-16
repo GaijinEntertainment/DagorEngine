@@ -1,0 +1,35 @@
+ReproducibleExeBuild = yes ;
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/resUpdate ;
+ConsoleExe = yes ;
+Exceptions = yes ;
+
+TargetType  = exe ;
+Target      = tools/resUpd.exe ;
+
+OutDir = $(Root)/tools/dagor3_cdk/util ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  resUpdate.cpp
+  cmain.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/perfMon/daProfilerStub
+  gameLibs/gameResPatcher
+  tools/libTools/util
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

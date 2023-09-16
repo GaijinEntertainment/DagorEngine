@@ -1,0 +1,42 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/plants2asset ;
+ConsoleExe      = yes ;
+
+
+TargetType  = exe ;
+Target      = util/plants2asset.exe ;
+
+OutDir          = $(Root)/tools/converters ;
+# CopyTo          = $(Root)/$(Location) ;
+
+AddIncludes     = 
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/tools/sceneTools
+;
+
+UseWTL          = yes ;
+
+Sources =
+  gridCvt.cpp
+  con_main.cpp
+  mgr.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/lib3d
+  engine2/workCycle
+  engine2/drv/drv3d_null
+
+  tools/libTools/util
+
+  3rdPartyLibs/image/tiff-4.4.0
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

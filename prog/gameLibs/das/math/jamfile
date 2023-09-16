@@ -1,0 +1,9 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/das/math ;
+
+include $(Root)/prog/_jBuild/defPlatform.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
+
+TargetType  = lib ;
+Target = gameLibs/das/math.lib ;
+
+include $(Root)/$(Location)/../common.jam ;

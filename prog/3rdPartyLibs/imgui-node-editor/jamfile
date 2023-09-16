@@ -1,0 +1,25 @@
+Root           ?= ../../.. ;
+Location        = prog/3rdPartyLibs/imgui-node-editor ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/imgui-node-editor.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/prog/3rdPartyLibs/imgui
+;
+
+Sources =
+  crude_json.cpp
+  imgui_canvas.cpp
+  imgui_node_editor_api.cpp
+  imgui_node_editor.cpp
+;
+
+UseProgLibs +=
+  3rdPartyLibs/imgui
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

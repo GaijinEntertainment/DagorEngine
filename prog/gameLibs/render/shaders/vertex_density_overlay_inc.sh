@@ -1,0 +1,125 @@
+include "assert.sh"
+
+buffer vertexDensityAccumulator;
+int vertexDensityHalfSize = 2048;
+int vertexDensityUAVReg = 6 always_referenced;
+int vertexDensityAcmRadius = 8;
+int vertexDensityAcmWeight = 1;
+float vertexDensityOverlayBlendFactor = 0.5;
+
+macro VERTEX_DENSITY_INIT_VS()
+  if (vertex_density_allowed == yes)
+  {
+    (vs) {
+      vertexDensityHalfSize@f1 = (vertexDensityHalfSize)
+      hlsl {
+        //hardcoded register because our compiler can't in VS UAVs
+        RWByteAddressBuffer vertexDensityAccumulator : register(u6);
+      }
+    }
+  }
+endmacro
+
+macro VERTEX_DENSITY_INIT_PS()
+  if (vertex_density_allowed == yes)
+  {
+    (ps) {
+      vertexDensityHalfSize@f1 = (vertexDensityHalfSize)
+      vertexDensityAccumulator@uav = vertexDensityAccumulator hlsl {
+        RWByteAddressBuffer vertexDensityAccumulator@uav;
+      }
+      vertexDensityAcmRadius@f1 = (vertexDensityAcmRadius)
+      vertexDensityAcmWeight@f1 = (vertexDensityAcmWeight)
+      vertexDensityOverlayBlendFactor@f1 = (vertexDensityOverlayBlendFactor)
+    }
+  }
+endmacro
+
+macro VERTEX_DENSITY_WRITE()
+  if (vertex_density_allowed == yes)
+  {
+    hlsl(vs) {
+      void writeVertexDensityPos(float4 pos)
+      {
+        //clip geometry that is behind the camera
+        if ((pos.z < 0) || (pos.w < 0))
+          return;
+
+        float2 ndcf = pos.xy / pos.w;
+        //clamp geometry that is viewport clipped to see if we rendering a lot of offscreen geometry
+        ndcf = clamp(ndcf, float2(-1,-1), float2(1,1));
+
+        //renorm to square UAV range
+        int2 ndci = ndcf * vertexDensityHalfSize;
+        ndci += vertexDensityHalfSize;
+        ndci = clamp(ndci, int2(0,0), int2(vertexDensityHalfSize,vertexDensityHalfSize)*2);
+
+        uint ov;
+        vertexDensityAccumulator.InterlockedAdd(ndci.x + ndci.y * vertexDensityHalfSize * 2, 1u, ov);
+      }
+    }
+  } else {
+    hlsl(vs) {
+      #define writeVertexDensityPos(a)
+    }
+  }
+endmacro
+
+macro VERTEX_DENSITY_READ()
+  if (vertex_density_allowed == yes)
+  {
+    hlsl(ps) {
+      half3 readVertexDensityPos(float2 uv)
+      {
+        int i;
+        int j;
+        uint acm = 0;
+
+        //remap input coords to UAV coords
+        uv = float2(uv.x, 1-uv.y);
+        int2 fullRange = int2(vertexDensityHalfSize, vertexDensityHalfSize) * 2;
+        int2 basePoint = uv * vertexDensityHalfSize * 2;
+
+        //accumulate in square range
+        LOOP
+        for (i = -vertexDensityAcmRadius; i < vertexDensityAcmRadius; ++i)
+        {
+          LOOP
+          for (j = -vertexDensityAcmRadius; j < vertexDensityAcmRadius; ++j)
+          {
+            int2 coord = basePoint + int2(i,j);
+            coord = clamp(coord, int2(0,0), fullRange);
+            acm += vertexDensityAccumulator.Load(coord.x + coord.y * fullRange.x);
+          }
+        }
+        //early exit if we did not accumulated anything
+        if (acm <= 0)
+          return half3(0,0,0);
+
+        //by default if for every point of accumulation range we have a vertex - it is treated as MAX on heatmap
+        int maxAcm = vertexDensityAcmRadius * vertexDensityAcmRadius * vertexDensityAcmWeight;
+        int chunk = maxAcm / 3;
+
+        //map to 3 chunks, red is dense, blue is sparse
+        int b = 0;
+        int g = 0;
+        int r = 0;
+
+        if (acm > chunk * 2)
+          r = acm - chunk * 2;
+        else if (acm > chunk)
+          g = clamp(acm - chunk, 0, chunk);
+        else
+          b = clamp(acm, 0, chunk);
+
+        //normalize to 1
+        return half3(r, g, b) / chunk;
+      }
+    }
+  } else {
+    hlsl (ps) {
+      #define readVertexDensityPos(tc) half3(0,0,0)
+    }
+
+  }
+endmacro

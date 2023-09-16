@@ -1,0 +1,12 @@
+Root    ?= ../../.. ;
+Location = prog/tools/ShaderCompiler2 ;
+
+include $(Root)/$(Location)/jamfile-common ;
+
+Target = tools/dsc2-stub.exe ;
+
+Sources += ;
+
+CPPopt += -D_CROSS_TARGET_DX11=1 -D_CROSS_TARGET_EMPTY=1 -DBINDUMP_TARGET_BE=0 ;
+
+include $(Root)/prog/_jBuild/build.jam ;

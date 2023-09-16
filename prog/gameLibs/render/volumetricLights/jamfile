@@ -1,0 +1,16 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/render/volumetricLights ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/volumetricLights.lib ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  volumetricLights.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

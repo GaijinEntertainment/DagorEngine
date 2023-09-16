@@ -1,0 +1,26 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/daEditor3/Clipping ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+UseWTL      = yes ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditor3/clipping.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+
+Sources =
+  collision_panel.cpp
+  ClippingPlugin.cpp
+  DagListDlg.cpp
+  dagor_rt_write.cpp
+  main.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

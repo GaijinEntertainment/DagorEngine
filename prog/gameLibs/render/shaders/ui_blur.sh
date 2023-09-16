@@ -1,0 +1,245 @@
+include "shader_global.sh"
+include "shader_gamma_inc.sh"
+
+texture blur_src_tex;
+texture blur_background_tex;
+float4 blur_pixel_offset;
+float4 blur_src_tex_size;
+float4 blur_dst_tex_size;
+float blur_bw = 0;
+
+macro COMMON_UI_DOWNSAMPLE()
+  supports none;
+  supports global_frame;
+
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+
+  (vs) {
+    texSize@f4 = (blur_dst_tex_size.x, blur_dst_tex_size.y, blur_dst_tex_size.x * 2.0, blur_dst_tex_size.y * -2.0);
+  }
+
+  hlsl(vs) {
+    int4 quads[4078]:register(c16);
+    #if !SHADER_COMPILER_DXC
+    int4 last:register(c4095);//compiler inability to determ size
+    #endif
+
+    VsOutput main_vs(uint vertexId : SV_VertexID, uint instance_id : SV_InstanceID)
+    {
+      int4 quad = quads[instance_id.x];
+
+      int2 vertex[4] =
+      {
+        { quad.x, quad.y },
+        { quad.x, quad.w },
+        { quad.z, quad.y },
+        { quad.z, quad.w }
+      };
+
+      VsOutput o;
+      o.pos = float4(vertex[vertexId].xy * texSize.zw + float2(-1, 1), 0.f, 1.f);
+      o.tc = vertex[vertexId].xy * texSize.xy;
+      return o;
+    }
+  }
+
+  compile("target_vs", "main_vs");
+endmacro
+
+shader ui_downsample_4x4
+{
+  color_write = rgb;
+  COMMON_UI_DOWNSAMPLE()
+  INIT_SHADER_GAMMA()
+  USE_SHADER_GAMMA()
+  (ps) {
+    src_tex@smp2d = blur_src_tex;
+    texSize__bw@f2 = (blur_src_tex_size.x, blur_src_tex_size.y, 0, 0);
+  }
+  hlsl(ps) {
+    #include "tonemapHelpers/ui_blurred_tonemap.hlsl"
+    half3 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    {
+      float2 texSize = texSize__bw.xy;
+      float2 tc = IN.tc - texSize.xy;
+      half3 col0 = undo_shader_gamma(tex2D(src_tex, tc.xy).rgb);
+      half3 col1 = undo_shader_gamma(tex2D(src_tex, tc.xy+float2(texSize.x*2,0)).rgb);
+      half3 col2 = undo_shader_gamma(tex2D(src_tex, tc.xy+float2(0, texSize.y*2)).rgb);
+      half3 col3 = undo_shader_gamma(tex2D(src_tex, tc.xy+texSize*2).rgb);
+      half3 res = (col0+col1+col2+col3)*0.25;
+      res = additional_ui_blurred_tonemap(res);
+      return res;
+    }
+  }
+
+  compile("target_ps", "main_ps");
+}
+
+shader ui_downsample_4x4_and_blend
+{
+  color_write = rgb;
+  COMMON_UI_DOWNSAMPLE()
+  (ps) {
+    src_tex@smp2d = blur_src_tex;
+    backg_tex@smp2d = blur_background_tex;
+    texSize__bw@f3 = (blur_src_tex_size.x, blur_src_tex_size.y, blur_bw, 0);
+  }
+  INIT_SHADER_GAMMA()
+  USE_SHADER_GAMMA()
+  hlsl(ps) {
+    #include "tonemapHelpers/ui_blurred_tonemap.hlsl"
+    half3 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    {
+      float2 texSize = texSize__bw.xy;
+      half bw = texSize__bw.z;
+      float2 tc = IN.tc - texSize.xy;
+
+      half4 col0 = tex2D(src_tex, tc.xy);
+      col0.rgb = undo_shader_gamma(col0.rgb);
+      half4 col1 = tex2D(src_tex, tc.xy+float2(texSize.x*2,0));
+      col1.rgb = undo_shader_gamma(col1.rgb);
+      half4 col2 = tex2D(src_tex, tc.xy+float2(0, texSize.y*2));
+      col2.rgb = undo_shader_gamma(col2.rgb);
+      half4 col3 = tex2D(src_tex, tc.xy+texSize*2);
+      col3.rgb = undo_shader_gamma(col3.rgb);
+      half4 src_color = (col0+col1+col2+col3)*0.25;
+
+      col0.rgb = tex2D(backg_tex, tc.xy).rgb;
+      col1.rgb = tex2D(backg_tex, tc.xy+float2(texSize.x*2,0)).rgb;
+      col2.rgb = tex2D(backg_tex, tc.xy+float2(0, texSize.y*2)).rgb;
+      col3.rgb = tex2D(backg_tex, tc.xy+texSize*2).rgb;
+      half3 backg_color = (col0.rgb+col1.rgb+col2.rgb+col3.rgb)*0.25;
+
+      half3 tonemapped_backg_color = additional_ui_blurred_tonemap(backg_color);
+      half3 res = lerp(tonemapped_backg_color, src_color.rgb, src_color.w);
+      res = lerp(res, luminance(res), bw);
+      res = additional_ui_blurred_tonemap(res);
+      res = apply_shader_gamma(res);
+      return res;
+    }
+  }
+
+  compile("target_ps", "main_ps");
+}
+
+shader ui_downsample_blur
+{
+  COMMON_UI_DOWNSAMPLE()
+  (ps) {
+    _tex0@smp2d = blur_src_tex;
+    texSize__bw@f3 = (blur_src_tex_size.x, blur_src_tex_size.y, blur_bw, 0);
+  }
+
+  hlsl(ps) {
+    float3 Box4(float3 p0, float3 p1, float3 p2, float3 p3)
+    {
+      return (p0 + p1 + p2 + p3) * 0.25f;
+    }
+    half4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    {
+      float2 TexSize = texSize__bw.xy;
+
+      #define addBlock(block) block+=tex
+
+      half3 blockTL = 0, blockTR = 0, blockBR = 0, blockBL = 0;
+      half3 tex;
+      float2 tc = IN.tc;
+
+      tex = tex2D(_tex0, tc.xy + float2(-2, -2) * TexSize.xy).rgb;
+      addBlock(blockTL);
+
+      tex = tex2D(_tex0, tc.xy + float2( 0, -2) * TexSize.xy).rgb;
+      addBlock(blockTL);addBlock(blockTR);
+
+      tex = tex2D(_tex0, tc.xy + float2( 2, -2) * TexSize.xy).rgb;
+      addBlock(blockTR);
+
+      tex = tex2D(_tex0, tc.xy + float2(-2,  0) * TexSize.xy).rgb;
+      addBlock(blockTL);addBlock(blockBL);
+
+      tex = tex2D(_tex0, tc.xy + float2( 0,  0) * TexSize.xy).rgb;
+      addBlock(blockTL);addBlock(blockTR);addBlock(blockBR);addBlock(blockBL);
+
+      tex = tex2D(_tex0, tc.xy + float2( 2,  0) * TexSize.xy).rgb;
+      addBlock(blockTR);addBlock(blockBR);
+
+      tex = tex2D(_tex0, tc.xy + float2(-2,  2) * TexSize.xy).rgb;
+      addBlock(blockBL);
+
+      tex = tex2D(_tex0, tc.xy + float2( 0,  2) * TexSize.xy).rgb;
+      addBlock(blockBL);addBlock(blockBR);
+
+      tex = tex2D(_tex0, tc.xy + float2( 2,  2) * TexSize.xy).rgb;
+      addBlock(blockBR);
+
+      half3 blockCC = 0;
+      tex = tex2D(_tex0, tc.xy + float2(-1, -1) * TexSize.xy).rgb;
+      addBlock(blockCC);
+      tex = tex2D(_tex0, tc.xy + float2( 1, -1) * TexSize.xy).rgb;
+      addBlock(blockCC);
+      tex = tex2D(_tex0, tc.xy + float2( 1,  1) * TexSize.xy).rgb;
+      addBlock(blockCC);
+      tex = tex2D(_tex0, tc.xy + float2(-1,  1) * TexSize.xy).rgb;
+      addBlock(blockCC);
+
+      blockTL /= 4; blockTR /= 4; blockBR /= 4; blockBL /= 4; blockCC /= 4;
+      half3 res = 0.5 * blockCC + 0.125 * (blockTL + blockTR + blockBR + blockBL);
+      res = lerp(res, luminance(res), texSize__bw.z);
+      return half4(res, 1);
+    }
+  }
+
+  compile("target_ps", "main_ps");
+}
+
+shader ui_additional_blur
+{
+  COMMON_UI_DOWNSAMPLE()
+  (ps) {
+    src_tex@smp2d = blur_src_tex;
+    pixel_offset@f2 = blur_pixel_offset;
+  }
+  hlsl(ps) {
+    half3 GaussianBlur( float2 centreUV, float2 pixelOffset )
+    {
+        half3 colOut = 0;
+
+        ##if compatibility_mode == compatibility_mode_on
+          #define stepCount 2
+          float gWeights[stepCount]={0.450429,0.0495707};
+          float gOffsets[stepCount]={0.53608,2.06049};
+        ##else
+          #define stepCount 3
+          float gWeights[stepCount]={0.329654,0.157414,0.0129324};
+          float gOffsets[stepCount]={0.622052,2.274,4.14755};
+        ##endif
+
+        UNROLL
+        for( int i = 0; i < stepCount; i++ )
+        {
+          float2 texCoordOffset = gOffsets[i] * pixelOffset;
+          half3 col = tex2Dlod( src_tex, float4(centreUV + texCoordOffset,0,0) ).rgb + tex2Dlod( src_tex, float4(centreUV - texCoordOffset,0,0) ).rgb;
+          colOut += gWeights[i] * col;
+        }
+        return colOut;
+        #undef stepCount
+    }
+
+    half4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    {
+      return half4(GaussianBlur(IN.tc.xy, pixel_offset),1);
+    }
+  }
+
+  compile("target_ps", "main_ps");
+}

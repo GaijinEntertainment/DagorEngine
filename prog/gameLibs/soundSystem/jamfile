@@ -1,0 +1,64 @@
+Root    ?= ../../.. ;
+
+Location = prog/gameLibs/soundSystem ;
+
+TargetType  = lib ;
+Target      = gameLibs/soundSystem.lib ;
+StrictCompile = yes ;
+
+FmodStudio ?= src ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if ! $(FmodStudio) { Exit $(Target) requires FmodStudio set ; }
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+AddIncludes += $(FmodIncPath) ;
+if $(FmodStudio) = src {
+  CPPopt += -DFMOD_SRC_VERSION=1 ;
+}
+else
+{
+  CPPopt += -DFMOD_SRC_VERSION=0 ;
+  Target = $(Target:S=-$(FmodStudio).lib) ;
+  AddLibs += $(FmodStaticLibs) ;
+}
+
+Sources =
+  vars.cpp
+  events.cpp
+  streams.cpp
+  banks.cpp
+  attributes.cpp
+  delayed.cpp
+  update.cpp
+  mixing.cpp
+  soundSystem.cpp
+  dagorFmodStudioAudioSys.cpp
+  dsp.cpp
+  nullAudio.cpp
+  userCreatedSound.cpp
+  eventInstanceStealing.cpp
+  visualLabels.cpp
+;
+
+if $(Config) = rel {
+  Sources += stub/debugStub.cpp ;
+} else {
+  Sources += debug.cpp ;
+}
+
+if $(Platform) in win32 win64 xboxOne scarlett {
+  CPPopt += /wd4505 ; # warning C4505: 'FMOD_ErrorString': unreferenced local function has been removed
+}
+
+UseProgLibs =
+  engine2/coreUtil
+  $(FmodUseProgLib)
+;
+
+include $(Root)/prog/_jBuild/build.jam ;
+
+# exit $(FmodIncPath) ;

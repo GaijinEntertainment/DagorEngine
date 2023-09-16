@@ -1,0 +1,34 @@
+ReproducibleExeBuild = yes ;
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/levelCacheUtil ;
+ConsoleExe = yes ;
+
+TargetType  = exe ;
+Target      = tools/levelCacheUtil.exe ;
+
+OutDir = $(Root)/tools/dagor3_cdk/util ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2
+;
+
+Sources =
+  scnCacheUtil.cpp
+  cmain.cpp
+;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/perfMon/daProfilerStub
+  tools/libTools/util
+  tools/libTools/dtx
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

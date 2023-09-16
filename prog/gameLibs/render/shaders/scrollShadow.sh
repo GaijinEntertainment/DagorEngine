@@ -1,0 +1,60 @@
+include "shader_global.sh"
+include "postfx_inc.sh"
+
+float4 tile_change_depth_scale_ofs;
+int tile_read_depth_2d = 1;
+interval tile_read_depth_2d: off<1, on;
+int tile_change_depth_source_tex_const_no = 6 always_referenced;
+
+shader tile_read_depth_ps, tile_write_depth_ps
+{
+  supports global_frame;
+  cull_mode = none;
+  no_ablend;
+
+  POSTFX_VS(0)
+
+  (ps) { immediate_dword_count = 1; }
+  if (shader == tile_read_depth_ps)
+  {
+    z_test = false;
+    z_write = false;
+    (ps) { tile_change_depth_scale_ofs@f4 = tile_change_depth_scale_ofs; }
+    hlsl (ps) {
+      ##if tile_read_depth_2d == on
+        Texture2D source_tex: register(t6);
+      ##else
+        Texture2DArray source_tex: register(t6);
+      ##endif
+      float tile_read_depth_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+      {
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        uint xy_ofs = get_immediate_dword_0();
+        int2 srcXY = int2(screenpos.xy)+int2(xy_ofs&0xFFFF, xy_ofs>>16);
+        ##if tile_read_depth_2d == on
+        float src = source_tex[srcXY].x;
+        ##else
+        float src = source_tex[int3(srcXY, tile_change_depth_scale_ofs.z)].x;
+        ##endif
+        return src < 1.0 ? saturate(src*tile_change_depth_scale_ofs.x + tile_change_depth_scale_ofs.y) : 1.0;
+      }
+    }
+
+    compile("target_ps", "tile_read_depth_ps");
+  }
+  else
+  {
+    color_write = 0;
+    hlsl (ps) {
+      Texture2D source_tex: register(t6);
+      float tile_write_depth_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Depth
+      {
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        uint xy_ofs = get_immediate_dword_0();
+        return source_tex[int2(screenpos.xy)-int2(xy_ofs&0xFFFF, xy_ofs>>16)].x;
+      }
+    }
+
+    compile("target_ps", "tile_write_depth_ps");
+  }
+}

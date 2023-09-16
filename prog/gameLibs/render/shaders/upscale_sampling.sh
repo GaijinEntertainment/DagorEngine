@@ -1,0 +1,103 @@
+include "shader_global.sh"
+include "gbuffer.sh"
+
+texture downsampled_checkerboard_depth_tex;
+
+float4 upscale_target_size;
+
+macro UPSCALE_SAMPLING_CORE(code)
+  ENABLE_ASSERT(code)
+  USE_DECODE_DEPTH_STAGE(code)
+  INIT_ZNZFAR_STAGE(code)
+  INIT_LOAD_DEPTH_GBUFFER_BASE(code)
+  USE_LOAD_DEPTH_GBUFFER_BASE(code)
+
+  (code) {
+    lowres_tex_size@f4 = lowres_tex_size;
+  }
+
+  if (downsampled_checkerboard_depth_tex != NULL)
+  {
+    (code) { half_res_depth_tex@smp2d = downsampled_checkerboard_depth_tex; }
+  }
+  else
+  {
+    (code) { half_res_depth_tex@smp2d = downsampled_far_depth_tex; }
+  }
+
+  hlsl(code) {
+    float upscale_sampling(float2 screenpos)
+    {
+      // Assumes lowres = floor(highres/2).
+      float2 screenpos_scaled = 0.5 * screenpos;
+
+      const float BASE_THRESHOLD = 0.05;
+      float rawDepth = loadGbufferDepth(int2(screenpos));
+      float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
+
+      float4 halfResRawDepth = half_res_depth_tex.GatherRed(half_res_depth_tex_samplerstate, screenpos_scaled * lowres_tex_size.zw);
+
+      float4 halfResLinearDepth = linearize_z4(halfResRawDepth);
+      float threshold = BASE_THRESHOLD * linearDepth;
+
+      float4 depthDiff = abs(halfResLinearDepth - linearDepth.xxxx);
+      bool4 depthMatched = depthDiff < threshold.xxxx;
+      uint encodedMatches = (depthMatched.x ? 0x8 : 0) + (depthMatched.y ? 0x4 : 0) + (depthMatched.z ? 0x2 : 0) + (depthMatched.w ? 0x1 : 0);
+      if (encodedMatches == 0)
+      {
+        threshold = min4(depthDiff.x, depthDiff.y, depthDiff.z, depthDiff.w);
+        bool4 depthMatched = depthDiff == threshold.xxxx;
+        encodedMatches = (depthMatched.x ? 0x8 : 0) + (depthMatched.y ? 0x4 : 0) + (depthMatched.z ? 0x2 : 0) + (depthMatched.w ? 0x1 : 0);
+      }
+      const float MAX_VALUE = 255.0;
+
+      int2 top_left = frac(screenpos_scaled.yx) < 0.5;
+      int finalEncoded = 16*(2*top_left.x + top_left.y) + encodedMatches;
+
+      return finalEncoded / MAX_VALUE;
+    }
+  }
+endmacro
+
+shader upscale_sampling
+{
+  cull_mode  = none;
+  z_test = false;
+  z_write = false;
+
+  POSTFX_VS(0)
+  UPSCALE_SAMPLING_CORE(ps)
+
+  hlsl(ps) {
+    float upscale_sampling_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      return upscale_sampling(GET_SCREEN_POS(input.pos).xy);
+    }
+  }
+
+  compile("target_ps", "upscale_sampling_ps");
+}
+
+shader upscale_sampling_cs
+{
+  UPSCALE_SAMPLING_CORE(cs)
+
+  (cs) {
+    upscale_target_size@f4 = (upscale_target_size.x, upscale_target_size.y, 1.0 / upscale_target_size.x, 1.0 / upscale_target_size.y);
+  }
+
+  hlsl(cs) {
+    RWTexture2D<float> target : register(u0);
+
+    [numthreads( 8, 8, 1 )]
+    void upscale_sampling_cs(uint3 DTid : SV_DispatchThreadID)
+    {
+      if (any(DTid.xy >= upscale_target_size.xy))
+        return;
+
+      target[DTid.xy] = upscale_sampling(DTid.xy + 0.5);
+    }
+  }
+
+  compile("target_cs", "upscale_sampling_cs");
+}

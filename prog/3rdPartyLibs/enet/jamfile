@@ -1,0 +1,61 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/enet ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/enet.lib ;
+
+Sources =
+  callbacks.c
+  compress.c
+  host.c
+  list.c
+  packet.c
+  peer.c
+  protocol.c
+;
+
+if $(Platform) in win32 win64 xboxOne scarlett { Sources += win32.c ; }
+if $(Platform) in ps4 ps5 macosx iOS tvOS linux64 android { Sources += unix.c ; }
+
+AddIncludes = $(Root)/prog/3rdPartyLibs/enet/include ;
+
+if $(Platform) in win32 win64
+{
+  AddLibs += winmm.lib ws2_32.lib ;
+}
+else if $(Platform) in ps4 ps5
+{
+  CPPopt +=
+    # options
+    -DHAS_SOCKLEN_T -DHAS_INET_NTOP -DHAS_INET_PTON -DHAS_MSGHDR_FLAGS -DSOMAXCONN=128
+    # mappings
+    -DPF_INET=AF_INET
+  ;
+}
+else if $(Platform) in macosx iOS tvOS linux64 android
+{
+  CPPopt +=
+    # options
+    -DHAS_SOCKLEN_T -DHAS_POLL -DHAS_INET_NTOP -DHAS_INET_PTON -DHAS_MSGHDR_FLAGS -DSOMAXCONN=128
+  ;
+}
+else if $(Platform) in nswitch
+{
+  Sources += unix.c ;
+  Sources += unix_nswitch.cpp ;
+
+  UseProgLibs = 3rdPartyLibs/posix ;
+
+  CPPopt +=
+    # options
+    -DHAS_SOCKLEN_T -DHAS_FCNTL -DHAS_INET_NTOP -DHAS_INET_PTON -DHAS_MSGHDR_FLAGS -DSOMAXCONN=128
+  ;
+}
+
+if $(PlatformSpec) in gcc4 clang {
+  CPPopt += -Wno-unused-parameter ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

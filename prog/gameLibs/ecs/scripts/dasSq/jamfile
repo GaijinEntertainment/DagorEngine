@@ -1,0 +1,28 @@
+Root    ?= ../../../../.. ;
+local LibPath = gameLibs/ecs/scripts/dasSq ;
+Location = prog/$(LibPath) ;
+TargetType  = lib ;
+Target      = $(LibPath).lib ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+#Sources = sqcoredaECS.cpp sqevent.cpp timers.cpp ;
+
+UseProgLibs +=
+  gameLibs/quirrel/quirrel_json
+  gameLibs/ecs/scripts/sq
+  gameLibs/ecs/scripts/das
+  gameLibs/quirrel/sqModules
+  gameLibs/quirrel/bindQuirrelEx
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

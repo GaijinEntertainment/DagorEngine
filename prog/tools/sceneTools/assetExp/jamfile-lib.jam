@@ -1,0 +1,46 @@
+Platform ?= win64 ;
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/assetExp ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daBuild.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine2
+;
+
+Sources =
+  cmain.cpp
+  jobPool.cpp
+
+  loadPlugins.cpp
+  texExport.cpp
+  resExport.cpp
+  daBuild.cpp
+  assetExport.cpp
+;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/ioSys
+  engine2/baseUtil
+  engine2/startup
+  engine2/math
+  engine2/gameRes
+  engine2/lib3d
+
+  tools/libTools/assetMgr
+  tools/libTools/assetMgrHlp
+  tools/libTools/util
+  tools/libTools/dtx
+  3rdPartyLibs/hash
+  tools/sceneTools/assetExp/refProviders
+  tools/sceneTools/assetExp/exporters
+;
+
+CPPopt = -D_TARGET_DABUILD_STATIC ;
+
+include $(Root)/prog/_jBuild/build.jam ;

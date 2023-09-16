@@ -1,0 +1,12 @@
+UseQuirrel = sq3r ;
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/das/ecs ;
+
+include $(Root)/prog/_jBuild/defPlatform.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
+
+TargetType  = lib ;
+Target = gameLibs/das/ecs.lib ;
+
+include $(Root)/$(Location)/../common.jam ;
+
+AddIncludes += $(Root)/prog/1stPartyLibs/daScript/modules/dasQuirrel/src ;

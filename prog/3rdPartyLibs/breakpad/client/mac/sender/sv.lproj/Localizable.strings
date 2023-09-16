@@ -1,0 +1,26 @@
+﻿/* Strings for User Notification of a crash */
+"crashDialogHeader" = "Programmet %@ har oväntat avslutats.";
+"crashDialogMsg" = "Det här har inte påverkat systemet eller några andra program. En rapport har skapats som du kan skicka till %@ för att hjälpa till att hitta problemet.";
+
+"noCrashDialogHeader" = "Programmet %@ råkade ut för ett fel.";
+"noCrashDialogMsg" = "Det här har inte påverkat systemet eller några andra program. En rapport har skapats som du kan skicka till %1$@ för att hjälpa till att förbättra %2$@;";
+
+"commentsMsg" = "Hjälp oss gärna att lösa det här problemet genom att beskriva vad du gjorde innan programmet kraschade.";
+"emailMsg" = "Om du anger din e-postadress kan vi kontakta dig om vi behöver mer detaljer kring problemet.";
+
+"commentsPlaceholder" = "kommentarer (frivilligt)";
+"emailPlaceholder" = "frivilligt";
+
+"emailLabel" = "E-postadress:";
+"privacyLabel" = "Sekretesspolicy";
+
+"sendReportButton" = "Skicka kraschrapport";
+"cancelButton" = "Avbryt";
+"noSendButton" = "OK";
+"privacyPolicyURL" = "http://www.google.com/privacypolicy.html";
+
+"countdownMsgSecondsPlural" = "%d sekunder återstår.";
+"countdownMsgSecondSingular" = "%d sekund återstår.";
+
+"countdownMsgMinutesPlural" = "%d minuter återstår.";
+"countdownMsgMinuteSingular" = "%d minut återstår.";

@@ -1,0 +1,18 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/AssetViewer/csgEntity ;
+
+TargetType  = lib ;
+Target      = tools/AssetViewer/csgEntity.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  csgEntity.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

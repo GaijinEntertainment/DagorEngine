@@ -1,0 +1,22 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditor3/services/bitMaskMgr ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditor3/services/bitMaskMgr.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+
+Sources =
+  bitMaskMgr.cpp
+;
+
+UseProgLibs =
+  3rdPartyLibs/image/tiff-4.4.0
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

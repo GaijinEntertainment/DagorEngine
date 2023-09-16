@@ -1,0 +1,18 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/collision ;
+
+TargetType  = lib ;
+Target      = tools/libTools/collision.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  exportCollisionNodeType.cpp
+  vhacdMeshChecker.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,242 @@
+include "sky_shader_global.sh"
+include "viewVecVS.sh"
+include "distanceToClouds2.sh"
+include "clouds_density_height_lut.sh"
+include "cloudsDensity.sh"
+include "writeToTex.sh"
+
+
+float4 clouds_field_res;//.xy - xz&y of res, .zw - xz&y of target res
+float clouds_average_weight = 0.5;
+texture clouds_field_volume_tmp;
+
+macro GEN_FIELD(code)
+  local float4 offseted_view_pos  = (0,0,0,0);
+  SAMPLE_CLOUDS_DENSITY_MATH(code, offseted_view_pos)
+
+  (code) {
+    clouds_alt_to_world@f2 = (clouds_thickness2*1000, clouds_start_altitude2*1000,0,0);
+    clouds_field_res@f4 = (clouds_field_res.x, clouds_field_res.y, 1./clouds_field_res.x, 1./clouds_field_res.y);
+    clouds_average_weight@f1 = (clouds_average_weight);
+    samples_count@f2 = (clouds_field_res.z/clouds_field_res.x + 0.5, clouds_field_res.w/clouds_field_res.y + 0.5,0, 0)
+  }
+  hlsl(code) {
+    float get_density(float3 tc)
+    {
+      float3 worldPos = float3((tc.xy-0.5)*WEATHER_SIZE, tc.z*clouds_alt_to_world.x + clouds_alt_to_world.y).xzy;
+      return sampleCloudDensityMath(worldPos, 0, tc.z);
+    }
+    float getFinalDensity(uint3 tid)
+    {
+      float result = 0;
+      uint samples_count_xz = max(1, floor(samples_count.x));
+      uint samples_count_y = max(1, floor(samples_count.y));
+      BRANCH
+      if (max(samples_count_xz, samples_count_y) >= 2)//that's for preserve of conservative assumption, that lowres clouds should still produce at least same (or worser) clouds occlusion (i.e. reducing quality won't increase advantage)
+      {
+        float avg = 0;
+        float3 tc = tid.xyz*clouds_field_res.zzw;
+        float3 ofs = clouds_field_res.zzw*float2(1./samples_count_xz, 1./samples_count_y).xxy;
+        tc += ofs*0.5;
+        float samples_count = samples_count_xz*samples_count_xz*samples_count_y;
+
+        for (uint y = 0; y<samples_count_y; ++y)
+        {
+          for (uint xz = 0; xz<samples_count_xz*samples_count_xz; ++xz)
+          {
+            float3 useTc = tc + float3(int(xz%samples_count_xz), int(xz/samples_count_xz), y)*ofs;
+            float dens = get_density(useTc);
+            result = max(result, dens);
+            avg += dens;
+          }
+        }
+        result = lerp(result, avg*1./samples_count, clouds_average_weight);
+      } else
+        result = get_density((tid.xyz+0.5f)*clouds_field_res.zzw);
+      result*=0.5;//encode
+
+      float encodedResult = result >= 0.5/255 ? ceil(result*255)/255.0 : 0;//zero should be zero
+      return encodedResult;
+    }
+  }
+endmacro
+
+shader gen_cloud_field
+{
+  GEN_FIELD(cs)
+  hlsl(cs) {
+    RWTexture3D<float> output : register(u0);
+    RWTexture2D<float> layerHt : register(u1);//layer's opaque pixels count
+    [numthreads(CLOUD_WARP_SIZE, CLOUD_WARP_SIZE, CLOUD_WARP_SIZE)]
+    void cs_main(uint3 tid : SV_DispatchThreadID) {
+      float encodedResult = getFinalDensity(tid);
+      if (encodedResult > 0)
+        layerHt[uint2(tid.z, 0)] = 1;//instead of interlocked, use plain simple write. So it is all or nothing (but way faster!)
+      output[tid] = encodedResult;
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+shader gen_cloud_field_ps
+{
+  if (hardware.metal)
+  {
+    dont_render;
+  }
+  GEN_FIELD(ps)
+  WRITE_TO_VOLTEX_TC()
+  hlsl(ps) {
+    float ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      uint3 tid = dispatchThreadID(input);
+      return getFinalDensity(tid);
+    }
+  }
+  compile("target_ps", "ps_main");
+}
+
+macro WRITE_TO_TEX1D_SUMZ()
+  z_test=false;
+  z_write=false;
+  cull_mode=none;
+  blend_src=1; blend_dst=1;
+
+  (vs) {
+    dispatch_size@f3 = (dispatch_size);
+  }
+  (ps) {
+    dispatch_size@f3 = (dispatch_size);
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord : TEXCOORD0;
+      nointerpolation uint2 pos2d : TEXCOORD1;
+    };
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  hlsl(vs) {
+    VsOutput vs_main(uint vertexId : SV_VertexID, uint inst_id : SV_InstanceID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos, 1, 1);
+      output.pos2d = uint2(inst_id / uint(dispatch_size.y), inst_id % uint(dispatch_size.y));
+      output.texcoord = screen_to_texcoords(pos);
+      return output;
+    }
+  }
+  compile("target_vs", "vs_main");
+endmacro
+
+shader gen_cloud_layers_non_empty
+{
+  WRITE_TO_TEX1D_SUMZ()
+
+  (ps) {
+    clouds_field_volume@smp = clouds_field_volume hlsl {
+      Texture3D<float> clouds_field_volume@smp;
+    };
+  }
+  hlsl(ps) {
+    float ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      uint3 tid = uint3(input.pos2d, floor(input.texcoord.x * dispatch_size.z));
+      return clouds_field_volume[tid].x > 0 ? 1 : 0;
+    }
+  }
+  compile("target_ps", "ps_main");
+}
+
+shader gen_cloud_layers_non_empty_cmpr
+{
+  WRITE_TO_TEX1D_SUMZ()
+
+  (ps) {
+    clouds_field_volume_tmp@smp = clouds_field_volume_tmp hlsl {
+      Texture3D<uint2> clouds_field_volume_tmp@smp;
+    };
+  }
+  hlsl(ps) {
+    float ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      uint3 tid = uint3(input.pos2d, floor(input.texcoord.x * dispatch_size.z));
+      return (clouds_field_volume_tmp[tid].x & 0xff) > 0 ? 1 : 0; // max_color
+    }
+  }
+  compile("target_ps", "ps_main");
+}
+
+macro USE_GEN_CLOUD_FIELD(stage)
+  hlsl(stage) {
+    #if _HARDWARE_METAL
+    // have to use half2 instead of half1 here because of metal (it doesn't compile half1)
+      #define bc4_type half2
+    #else
+      #define bc4_type half1
+    #endif
+  }
+  USE_BC4_COMPRESSION(stage)
+  GEN_FIELD(stage)
+  hlsl(stage) {
+    void get_texels(uint3 tid, out bc4_type texels[16], inout bc4_type minV, inout bc4_type maxV)
+    {
+      uint3 srcId = uint3(tid.x<<2, tid.y<<2, tid.z);
+      #define GET_TEXEL(x, y)\
+      {\
+        bc4_type v = getFinalDensity(srcId + uint3(x,y,0));\
+        texels[x+(y*4)] = v; minV = min(minV, v);maxV = max(maxV, v);\
+      }
+
+      GET_TEXEL(0,0);GET_TEXEL(1,0);GET_TEXEL(2,0);GET_TEXEL(3,0);
+      GET_TEXEL(0,1);GET_TEXEL(1,1);GET_TEXEL(2,1);GET_TEXEL(3,1);
+      GET_TEXEL(0,2);GET_TEXEL(1,2);GET_TEXEL(2,2);GET_TEXEL(3,2);
+      GET_TEXEL(0,3);GET_TEXEL(1,3);GET_TEXEL(2,3);GET_TEXEL(3,3);
+    }
+  }
+endmacro
+
+include "bc_compression_inc.sh"
+shader gen_cloud_field_cmpr
+{
+  USE_GEN_CLOUD_FIELD(cs)
+  hlsl(cs) {
+    RWTexture3D<uint2> output : register(u0);
+    RWTexture2D<float> layerHt : register(u1);//layer's opaque pixels count
+    [numthreads(4, 4, 4)]
+    void cs_main(uint3 tid : SV_DispatchThreadID)
+    {
+      bc4_type texels[4*4], minV = 2, maxV = -2;
+      get_texels(tid, texels, minV, maxV);
+      output[tid] = pack_bc4_block( texels, minV, maxV ).xy;
+      if (maxV.x > 0)
+        layerHt[uint2(tid.z, 0)] = 1;//instead of interlocked, use plain simple write. So it is all or nothing (but way faster!)
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+shader gen_cloud_field_cmpr_ps
+{
+  if (hardware.metal)
+  {
+    dont_render;
+  }
+  USE_GEN_CLOUD_FIELD(ps)
+  WRITE_TO_VOLTEX_TC()
+  hlsl(ps) {
+    uint2 ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      uint3 tid = dispatchThreadID(input);
+      bc4_type texels[4*4], minV = 2, maxV = -2;
+      get_texels(tid, texels, minV, maxV);
+      return pack_bc4_block( texels, minV, maxV ).xy;
+    }
+  }
+  compile("target_ps", "ps_main")
+}

@@ -1,0 +1,26 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/http ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/http.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+;
+
+UseProgLibs =
+  gameLibs/quirrel/quirrel_json
+  gameLibs/quirrel/sqEventBus
+  1stPartyLibs/jsoncpp
+;
+
+Sources =
+  sqHttpClient.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

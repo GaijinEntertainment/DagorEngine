@@ -1,0 +1,7 @@
+WARNING: w215 (ternary-priority) The '?:' operator has lower priority than the '??' operator. Perhaps the '?:' operator works in a different way than it was expected.
+testData/static_analyser/w215_nullc.nut:8:9
+
+let _u = o?.u ?? s ? s / r : 0.0
+         ^--------
+
+

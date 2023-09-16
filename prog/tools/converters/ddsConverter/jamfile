@@ -1,0 +1,36 @@
+ReproducibleExeBuild = yes ;
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/ddsConverter ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = util/ddsConverter.exe ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+OutDir          = $(Root)/tools/dagor3_cdk/util ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  ddsConverter.cpp
+  con_main.cpp
+;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/image
+  engine2/drv/drv3d_null
+  engine2/perfMon/daProfilerStub
+  tools/libTools/util
+  tools/libTools/dtx
+  3rdPartyLibs/image/psdRead
+  3rdPartyLibs/image/libpng-1.4.22
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

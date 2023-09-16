@@ -1,0 +1,404 @@
+from "frp" import Watched
+let dw = require_optional("dagor.workcyle")
+
+//This is list of all darg native functions and consts, to use in mockups
+
+let function Color(r,g,b,a=255) {
+  return (a.tointeger() << 24) + (r.tointeger() << 16) + (g.tointeger() << 8) + b.tointeger()
+}
+
+let timeoutStub = function(timeout, func){
+  assert([type(0),type(0.0)].indexof(type(timeout))!=null, "timeout should number")
+  assert(type(func)==type(type), "function should be function")
+  func()
+}
+
+let setTimeout = dw?.setTimeout ?? timeoutStub
+let resetTimeout = dw?.resetTimeout ?? timeoutStub
+let setInterval = dw?.setInterval ?? timeoutStub
+let clearTimer = dw?.clearTimer ?? @(func) assert(type(func)==type(type), "function should be function")
+
+let Element = class {
+  function getScreenPosX(){return 0;}
+  function getScreenPosY(){return 0;}
+  function getHeight() {return 0;}
+  function getWidth() {return 0;}
+  function getContentWidth() {return 0;}
+  function getContentHeight() {return 0;}
+  function getScrollOffsX() {return 0;}
+  function getScrollOffsY() {return 0;}
+}
+
+let ScrollHandler = class {
+  function scrollToX(_val) {}
+  function scrollToY(_val) {}
+  function scrollToChildren(_val) {}
+  elem = null
+  function subscribe(func){
+    assert(type(func)=="function")
+  }
+  constructor() {
+    this.elem = Element()
+  }
+}
+
+let gui_scene = {
+  setShutdownHandler = @(_val) null
+  circleButtonAsAction = false
+  setXmbFocus = @(_v) null
+  xmbMode = Watched(true)
+  isActive = Watched(true)
+  getCompAABBbyKey = @(_key) [0,0,1,1]
+  keyboardLocks = Watched(0)
+  keyboardLayout = Watched("ru")
+  config = {
+    defaultFont = 0
+    defaultFontSize = 10
+    kbCursorControl = false
+    gamepadCursorSpeed = 1.0
+    defSceneBgColor = Color(10,10,10,160)
+    setClickButtons = @(_list) null
+    getClickButtons = @() ["J:A"]
+    gamepadCursorControl = true
+    reportNestedWatchedUpdate = false
+    gamepadCursorDeadZone = 0.05
+    gamepadCursorNonLin = 1.5
+    gamepadCursorHoverMinMul = 0.005
+    gamepadCursorHoverMaxMul = 0.1
+    gamepadCursorHoverMaxTime = 0.5
+    gamepadCursorAxisH = 0
+    gamepadCursorAxisV = 1
+    clickRumbleEnabled = true
+    clickRumbleLoFreq = 0.6
+    clickRumbleHiFreq = 0
+    clickRumbleDuration = 0.04
+    dirPadRepeatDelay = 0.6
+    dirPadRepeatTime = 0.2
+  }
+  cursorOverStickScroll = Watched(true)
+  cursorOverClickable = Watched(true)
+  cursorPresent = Watched(true)
+  updateCounter = Watched(true)
+  hoveredClickableInfo = Watched(null)
+  getJoystickAxis = @(_val) {deadzone = 0 id = 0, resolution=0.01}
+  setHotkeysNavHandler = function(func){assert(type(func)=="function")}
+  setUpdateHandler = function(_dt) {}
+  setInterval
+  setTimeout
+  resetTimeout
+  clearTimer
+  getAllObservables = @() []
+  addPanel = function(_idx, _desc){return 0}
+  removePanel = function(_idx){return 0}
+  setConfigProps = function(tbl) {assert(type(tbl)=="table", "params must be passed as table")}
+}
+
+let axis = class{
+ deadzone = 0
+ resolution = 0.05
+ value = 4
+}
+
+let darg = {
+  resolve_button_id = @(st) assert(type(st)=="string")
+  anim_play = @(_trigger) null
+  anim_skip = @(_trigger) null
+  anim_skip_delay = @(_trigger) null
+  AXIS_R_THUMB_V = axis()
+  AXIS_R_THUMB_H = axis()
+  AXIS_L_THUMB_V = axis()
+  AXIS_L_THUMB_H = axis()
+
+  Color
+  gui_scene
+  set_kb_focus = @(_val) null
+  capture_kb_focus = @(_val) null
+  Fonts = {}
+  move_mouse_cursor = @(_where) null
+  calc_comp_size = @(_comp) [0,0]
+  calc_str_box = @(_txt, _params = null) [0,0]
+  getFontDefHt = function(fontname) { assert(type(fontname)=="string"); return 0; }
+  getFontInitialHt = function(fontname) { assert(type(fontname)=="string"); return 0; }
+  setFontDefHt = function(fontname, height) { assert(type(fontname)=="string" && type(height) =="integer") }
+  locate_element_source = @(_elem) null
+  get_element_info = @(_elem) null
+  load_das = function(filename) { assert(type(filename)=="string"); return {}; }
+
+  ScrollHandler
+  ElemGroup = @() {}
+  Picture = class{
+    constructor(_file){}
+  }
+  PictureImmediate = class{
+    constructor(_file){}
+  }
+  LottieAnimation = class {
+    constructor(_file){}
+  }
+  Cursor = function Cursor(val) {return val}
+
+  anim_start = @(_anim) null
+  anim_request_stop = @(_anim) null
+  anim_stop = @(_anim) null
+
+  fontH = @(height) height
+
+  flex = @(weight=1) weight*100
+
+  sw = @(val) val*1920/100
+  sh = @(val) val*1080/100
+  pw = @(val) val
+  ph = @(val) val
+  elemw = @(val) val
+  elemh = @(val) val
+  get_font_metrics = @(v) assert(type(v)=="integer")
+  MoveToAreaTarget = class{ function set(_l,_t,_r,_b){}; function clear(){}}
+}
+
+
+global enum AnimProp{
+  color
+  bgColor
+  fgColor
+  fillColor
+  borderColor
+  opacity
+  rotate
+  scale
+  translate
+  fValue
+  picSaturate
+  brightness
+}
+
+global enum Behaviors {
+  Button = "Button"
+  TextArea = "TextArea"
+  TextInput = "TextInput"
+  Slider = "Slider"
+  Pannable = "Pannable"
+  Pannable2touch = "Pannable2touch"
+  SwipeScroll = "SwipeScroll"
+  MoveResize = "MoveResize"
+  ComboPopup = "ComboPopup"
+  SmoothScrollStack = "SmoothScrollStack"
+  Marquee = "Marquee"
+  TrackMouse = "TrackMouse"
+  WheelScroll = "WheelScroll"
+  ScrollEvent = "ScrollEvent"
+  InspectPicker = "InspectPicker"
+  RtPropUpdate = "RtPropUpdate"
+  RecalcHandler = "RecalcHandler"
+  DragAndDrop = "DragAndDrop"
+  FpsBar = "FpsBar"
+  LatencyBar = "LatencyBar"
+  OverlayTransparency = "OverlayTransparency"
+  BoundToArea = "BoundToArea"
+  Movie = "Movie"
+  Parallax = "Parallax"
+  PieMenu = "PieMenu"
+  TransitionSize = "TransitionSize"
+  Browser = "Browser"
+  MoveToArea = "MoveToArea"
+  ProcessPointingInput = "ProcessPointingInput"
+  ElementEditor = "ElementEditor"
+  EatInput = "EatInput"
+}
+
+
+global const ROBJ_IMAGE = "ROBJ_IMAGE"
+global const ROBJ_MOVIE = "ROBJ_MOVIE"
+global const ROBJ_TEXTAREA = "ROBJ_TEXTAREA"
+global const ROBJ_9RECT = "ROBJ_9RECT"
+global const ROBJ_BOX = "ROBJ_BOX"
+global const ROBJ_SOLID = "ROBJ_SOLID"
+global const ROBJ_FRAME = "ROBJ_FRAME"
+global const ROBJ_PROGRESS_CIRCULAR = "ROBJ_PROGRESS_CIRCULAR"
+global const ROBJ_VECTOR_CANVAS = "ROBJ_VECTOR_CANVAS"
+global const VECTOR_POLY = "VECTOR_POLY"
+global const ROBJ_MASK = "ROBJ_MASK"
+global const ROBJ_PROGRESS_LINEAR = "ROBJ_PROGRESS_LINEAR"
+global const ROBJ_BROWSER = "ROBJ_BROWSER"
+global const ROBJ_WORLD_BLUR = "ROBJ_WORLD_BLUR"
+global const ROBJ_WORLD_BLUR_PANEL = "ROBJ_WORLD_BLUR_PANEL"
+global const ROBJ_TEXT = "ROBJ_TEXT"
+global const ROBJ_INSCRIPTION = "ROBJ_INSCRIPTION"
+global const ROBJ_XRAYDOLL = "ROBJ_XRAYDOLL"
+global const ROBJ_DAS_CANVAS = "ROBJ_DAS_CANVAS"
+
+global const FLOW_PARENT_RELATIVE = "PARENT_RELATIVE"
+global const FLOW_HORIZONTAL = "FLOW_HORIZONTAL"
+global const FLOW_VERTICAL = "FLOW_VERTICAL"
+
+global const ALIGN_LEFT = "ALIGN_LEFT"
+global const ALIGN_CENTER ="ALIGN_CENTER"
+global const ALIGN_RIGHT="ALIGN_RIGHT"
+global const ALIGN_TOP="ALIGN_TOP"
+global const ALIGN_BOTTOM="ALIGN_BOTTOM"
+
+global const DIR_UP = "DIR_UP"
+global const DIR_DOWN = "DIR_DOWN"
+global const DIR_LEFT = "DIR_LEFT"
+global const DIR_RIGHT = "DIR_RIGHT"
+
+global const KEEP_ASPECT_FILL = "KEEP_ASPECT_FILL"
+global const KEEP_ASPECT_NONE = false
+global const KEEP_ASPECT_FIT  = true
+
+global const VECTOR_WIDTH="VECTOR_WIDTH"
+global const VECTOR_COLOR="VECTOR_COLOR"
+global const VECTOR_OPACITY="VECTOR_OPACITY"
+global const VECTOR_FILL_COLOR="VECTOR_FILL_COLOR"
+global const VECTOR_LINE="VECTOR_LINE"
+global const VECTOR_ELLIPSE="VECTOR_ELLIPSE"
+global const VECTOR_RECTANGLE="VECTOR_RECTANGLE"
+global const VECTOR_MID_COLOR = "VECTOR_MID_COLOR"
+global const VECTOR_OUTER_LINE="VECTOR_OUTER_LINE"
+global const VECTOR_CENTER_LINE="VECTOR_CENTER_LINE"
+global const VECTOR_LINE_INDENT_PCT="VECTOR_LINE_INDENT_PCT"
+global const VECTOR_LINE_INDENT_PX="VECTOR_LINE_INDENT_PX"
+global const VECTOR_LINE_DASHED = "VECTOR_LINE_DASHED"
+global const VECTOR_SECTOR="VECTOR_SECTOR"
+global const VECTOR_INVERSE_POLY="VECTOR_INVERSE_POLY"
+global const VECTOR_TM_OFFSET="VECTOR_TM_OFFSET"
+global const VECTOR_NOP="VECTOR_NOP"
+
+global const FFT_NONE="FFT_NONE"
+global const FFT_SHADOW="FFT_SHADOW"
+global const FFT_GLOW="FFT_GLOW"
+global const FFT_BLUR="FFT_BLUR"
+global const FFT_OUTLINE="FFT_OUTLINE"
+
+global const O_HORIZONTAL="O_HORIZONTAL"
+global const O_VERTICAL="O_VERTICAL"
+
+global const TOVERFLOW_CLIP="TOVERFLOW_CLIP"
+global const TOVERFLOW_CHAR="TOVERFLOW_CHAR"
+global const TOVERFLOW_WORD="TOVERFLOW_WORD"
+global const TOVERFLOW_LINE="TOVERFLOW_LINE"
+global const EVENT_BREAK = "EVENT_BREAK"
+global const EVENT_CONTINUE= "EVENT_CONTINUE"
+
+
+global const Linear = "Linear"
+
+global const InQuad = "InQuad"
+global const OutQuad = "OutQuad"
+global const InOutQuad = "InOutQuad"
+
+global const InCubic = "InCubic"
+global const OutCubic = "OutCubic"
+global const InOutCubic = "InOutCubic"
+
+global const InQuintic = "InQuintic"
+global const OutQuintic = "OutQuintic"
+global const InOutQuintic = "InOutQuintic"
+
+global const InQuart = "InQuart"
+global const OutQuart = "OutQuart"
+global const InOutQuart = "InOutQuart"
+
+global const InSine = "InSine"
+global const OutSine = "OutSine"
+global const InOutSine = "InOutSine"
+
+global const InCirc = "InCirc"
+global const OutCirc = "OutCirc"
+global const InOutCirc = "InOutCirc"
+
+global const InExp = "InExp"
+global const OutExp = "OutExp"
+global const InOutExp = "InOutExp"
+
+global const InElastic = "InElastic"
+global const OutElastic = "OutElastic"
+global const InOutElastic = "InOutElastic"
+
+global const InBack = "InBack"
+global const OutBack = "OutBack"
+global const InOutBack = "InOutBack"
+
+global const InBounce = "InBounce"
+global const OutBounce = "OutBounce"
+global const InOutBounce = "InOutBounce"
+
+global const InOutBezier = "InOutBezier"
+global const CosineFull = "CosineFull"
+
+global const InStep = "InStep"
+global const OutStep = "OutStep"
+
+global const Blink = "Blink"
+global const DoubleBlink = "DoubleBlink"
+global const BlinkSin = "BlinkSin"
+global const BlinkCos = "BlinkCos"
+
+global const Discrete8 = "Discrete8"
+
+global const Shake4 = "Shake4"
+global const Shake6 = "Shake6"
+
+
+global const S_KB_FOCUS  = 0x0001
+global const S_HOVER     = 0x0002
+global const S_TOP_HOVER = 0x0004
+global const S_DRAG      = 0x0008
+
+global const S_MOUSE_ACTIVE  = 0x0010
+global const S_KBD_ACTIVE    = 0x0020
+global const S_HOTKEY_ACTIVE = 0x0040
+global const S_TOUCH_ACTIVE  = 0x0080
+global const S_JOYSTICK_ACTIVE = 0x0100
+global const S_VR_ACTIVE     = 0x0200
+global const S_ACTIVE        = 0x03F0
+
+global const MR_NONE="MR_NONE"
+global const MR_T="MR_T"
+global const MR_R="MR_R"
+global const MR_B="MR_B"
+global const MR_L="MR_L"
+global const MR_LT="MR_LT"
+global const MR_RT="MR_RT"
+global const MR_LB="MR_LB"
+global const MR_RB="MR_RB"
+global const MR_AREA="MR_AREA"
+global const SIZE_TO_CONTENT="SIZE_TO_CONTENT"
+global const DEVID_KEYBOARD = 1
+global const DEVID_MOUSE = 2
+global const DEVID_JOYSTICK = 3
+global const DEVID_TOUCH = 4
+global const DEVID_VR = 5
+global const KBD_BIT_CAPS_LOCK = 0
+global const PANEL_ANCHOR_NONE = -1
+global const PANEL_ANCHOR_SCENE = 0
+global const PANEL_ANCHOR_VRSPACE = 1
+global const PANEL_ANCHOR_HEAD = 2
+global const PANEL_ANCHOR_LEFTHAND = 3
+global const PANEL_ANCHOR_RIGHTHAND = 4
+global const PANEL_ANCHOR_ENTITY = 5
+global const PANEL_GEOMETRY_NONE = -1
+global const PANEL_GEOMETRY_RECTANGLE = 0
+global const PANEL_RC_NONE = 0
+global const PANEL_RC_FACE_LEFT_HAND = 1
+global const PANEL_RC_FACE_RIGHT_HAND = 2
+global const PANEL_RC_FACE_HEAD = 3
+global const PANEL_RC_FACE_HEAD_LOCK_Y = 4
+global const PANEL_RC_FACE_ENTITY = 5
+global const PANEL_POINT_EVENT_ENTER = 0
+global const PANEL_POINT_EVENT_LEAVE = 1
+global const PANEL_POINT_EVENT_MOVE = 2
+global const PANEL_RENDER_CAST_SHADOW = 1
+global const PANEL_RENDER_OPAQUE = 2
+
+global const FMT_NO_WRAP = 0x01
+global const FMT_KEEP_SPACES = 0x02
+global const FMT_IGNORE_TAGS = 0x04
+global const FMT_HIDE_ELLIPSIS = 0x08
+global const FMT_AS_IS = 0xFF
+
+global const XMB_STOP = 0
+global const XMB_CONTINUE = 1
+
+global const R_PROCESSED = 1
+
+return darg

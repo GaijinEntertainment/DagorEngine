@@ -1,0 +1,59 @@
+Root    ?= ../../.. ;
+Location = prog/samples/commonFramework ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType = lib ;
+Target     = samples/commonFramework.lib ;
+
+Sources =
+  de3_splash.cpp
+  de3_worldRenderer.cpp
+  de3_tpsCamera.cpp
+  de3_camUtil.cpp
+  de3_envi.cpp
+  de3_gui.cpp
+  de3_benchmark.cpp
+  de3_loghandler.cpp
+;
+AddIncludes = $(Root)/prog/gameLibs/publicInclude ;
+
+if $(Platform) in win32 win64 macosx iOS tvOS android nswitch linux64 {
+  Sources +=
+    de3_freeCam_mk.cpp
+  ;
+}
+if $(Platform) in win32 win64 {
+  Sources +=
+    de3_gui_win.cpp
+  ;
+}
+else {
+  Sources +=
+    de3_gui_stub.cpp
+  ;
+}
+if $(Platform) in xboxOne scarlett ps4 ps5 android {
+  Sources +=
+    de3_freeCam_joy.cpp
+  ;
+}
+
+UseProgLibs =
+  engine2/consoleProc
+  gameLibs/ecs/input
+  gameLibs/frameTimeMetrics
+;
+
+if $(Config) != rel {
+  UseProgLibs +=
+    gameLibs/imguiInput
+  ;
+} else {
+  UseProgLibs +=
+    gameLibs/imguiInput/stub
+  ;
+}
+UseProgLibs += engine2/imgui/util ;
+
+include $(Root)/prog/_jBuild/build.jam ;

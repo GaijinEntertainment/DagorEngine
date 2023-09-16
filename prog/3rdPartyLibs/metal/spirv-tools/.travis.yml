@@ -1,0 +1,89 @@
+# Linux Build Configuration for Travis
+
+language: cpp
+
+os:
+  - linux
+  - osx
+
+# Use Ubuntu 14.04 LTS (Trusty) as the Linux testing environment.
+dist: trusty
+sudo: false
+
+# Use the default Xcode environment for Xcode.
+
+env:
+  # Each line is a set of environment variables set before a build.
+  # Thus each line represents a different build configuration.
+  - BUILD_TYPE=Release
+  - BUILD_TYPE=Debug
+
+compiler:
+  - clang
+  - gcc
+
+matrix:
+  fast_finish: true
+  include:
+    # Additional build using Android NDK
+    - env: BUILD_NDK=ON
+  exclude:
+    # Skip GCC builds on macOS.
+    - os: osx
+      compiler: gcc
+
+cache:
+  apt: true
+
+git:
+  depth: 1
+
+branches:
+  only:
+    - master
+
+before_install:
+  - if [[ "$BUILD_NDK" == "ON" ]]; then
+      git clone --depth=1 https://github.com/urho3d/android-ndk.git $HOME/android-ndk;
+      export ANDROID_NDK=$HOME/android-ndk;
+      git clone --depth=1 https://github.com/taka-no-me/android-cmake.git $HOME/android-cmake;
+      export TOOLCHAIN_PATH=$HOME/android-cmake/android.toolchain.cmake;
+    fi
+
+before_script:
+  - git clone --depth=1 https://github.com/KhronosGroup/SPIRV-Headers external/spirv-headers
+  - git clone --depth=1 https://github.com/google/googletest          external/googletest
+
+script:
+  - mkdir build && cd build
+  - if [[ "$BUILD_NDK" == "ON" ]]; then
+      cmake -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_PATH}
+            -DANDROID_NATIVE_API_LEVEL=android-9
+            -DCMAKE_BUILD_TYPE=Release
+            -DANDROID_ABI="armeabi-v7a with NEON"
+            -DSPIRV_BUILD_COMPRESSION=ON
+            -DSPIRV_SKIP_TESTS=ON ..;
+    else
+      cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DSPIRV_BUILD_COMPRESSION=ON ..;
+    fi
+  # Due to the limitation of Travis platform, we cannot start too many concurrent jobs.
+  # Otherwise GCC will panic with internal error, possibility because of memory issues.
+  - make -j4
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      export NPROC=`nproc`;
+    else
+      export NPROC=`sysctl -n hw.ncpu`;
+    fi
+  - if [[ "$BUILD_NDK" != "ON" ]]; then ctest -j${NPROC} --output-on-failure --timeout 300; fi
+
+
+notifications:
+  email:
+    recipients:
+      - antiagainst@google.com
+      - awoloszyn@google.com
+      - dneto@google.com
+      - ehsann@google.com
+      - qining@google.com
+    on_success: change
+    on_failure: always

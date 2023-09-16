@@ -1,0 +1,24 @@
+Short mention when to update spir-v tooling:
+- DXC / glsang (for HLSLcc path) generate shaders with new spir-v spec
+- render backend needs new spir-v spec support for some reason
+- Otherwise update is not required as neither can the new features be produced nor consumed
+
+Short instruction how to update spir-v tooling to new spir-v version:
+- update 3rdPartyLibs/vulkan/spirv-tools/external/spirv-headers to latest spir-v headers from https://github.com/KhronosGroup/SPIRV-Headers
+- update 3rdPartyLibs/vulkan/spirv-tools to latest spir-v tools from https://github.com/KhronosGroup/SPIRV-Tools
+- ensure python 2.7 and clang-format can be run from cmd line
+- run update_defs.cmd
+- if everything went well tools are up to date
+- if some drastic new things have been added the following files may need to be updated:
+ + build.json - extend extension listing with json spec for extension with extended ops
+ + instruction.properties.override.json - to add property overrides for auto_extrace_properties.py, use only for special case overrides
+ + auto_extract_properties.py - if new properties are needed and/or new ways of detecting them is needed
+ + node.declaration.json - to add new node types and/or properties to map to nodes
+ + module.sections.json - if new spir-v module sections have been added
+ + spec.ops.whit.list.json - if new instructions are allowed to be used with OpSpecOp
+
+Notes:
+- does not handle OpenCL debug / dwarf interop extension correctly (also no need for it)
+- OpenCL language extension not build (no need)
+
+Current version is 1.3 with extensions of rev 4

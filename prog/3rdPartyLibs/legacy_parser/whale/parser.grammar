@@ -1,0 +1,145 @@
+	Context-free grammar:
+S' -> S
+S -> S-IteratorI
+terminal-statement -> "terminal" terminal-statement-IteratorI ";"
+nonterminal-statement -> "nonterminal" nonterminal-statement-IteratorI ";"
+nonterminal-statement -> "external" nonterminal-statement-IteratorII ";"
+class-statement -> "class" type-expression ";"
+rule-statement -> id "->" expression ";"
+rule-statement -> id "(" type-expression ")" "->" expression ";"
+precedence-statement -> "precedence" precedence-statement-IteratorI ";"
+option-statement -> id "=" option-statement-IteratorII ";"
+option-statement -> id "[" option-statement-IteratorI "]" "=" option-statement-IteratorII ";"
+invalid-statement -> error ";"
+type-expression -> id
+type-expression -> id ":" id
+external-type-expression -> id exttype-expr-1
+external-type-expression -> id "<" external-type-expression-IteratorI ">" exttype-expr-1
+exttype-expr-1 -> e
+exttype-expr-1 -> exttype-expr-1-IteratorI
+exttype-expr-1 -> exttype-expr-1-IteratorI "&"
+exttype-expr-1 -> "::" external-type-expression
+exttype-expr-1 -> "&"
+member-expression -> id
+member-expression -> id "::" id
+member-expression -> "(" external-type-expression id "::" id ")"
+member-expression -> "(" external-type-expression id ")"
+member-expression -> "(" id "::" id "," external-type-expression id "::" id ")"
+member-expression -> "(" id "::" id "," external-type-expression id ")"
+member-expression -> "(" id "," external-type-expression id "::" id ")"
+member-expression -> "(" id "," external-type-expression id ")"
+member-expression -> "nothing"
+precedence-expression -> precedence-expression-IteratorI
+expression -> expression expression
+expression -> expression "=" member-expression
+expression -> expression "|" expression
+expression -> expression "&" expression
+expression -> expression "*"
+expression -> expression "+"
+expression -> id
+expression -> string
+expression -> code
+expression -> "~" expression
+expression -> "(" expression "/" expression ")"
+expression -> "(" expression ")"
+expression -> "[" expression "]"
+expression -> "e"
+expression -> "iteration_pair" "(" expression "," expression ")"
+expression -> "create"
+expression -> "update"
+expression -> "connect_up"
+expression -> "precedence" "(" expression-IteratorI ")"
+S-BodyI -> terminal-statement
+S-BodyI -> nonterminal-statement
+S-BodyI -> class-statement
+S-BodyI -> rule-statement
+S-BodyI -> precedence-statement
+S-BodyI -> option-statement
+S-BodyI -> invalid-statement
+S-IteratorI -> S-BodyI
+S-IteratorI -> S-IteratorI S-BodyI
+terminal-statement-BodyIa -> id
+terminal-statement-BodyIa -> id "(" type-expression "," external-type-expression ")"
+terminal-statement-BodyIa -> id "(" type-expression ")"
+terminal-statement-BodyIa -> string
+terminal-statement-BodyIa -> string "(" type-expression "," external-type-expression ")"
+terminal-statement-BodyIa -> string "(" type-expression ")"
+terminal-statement-BodyIb -> ","
+terminal-statement-IteratorI -> terminal-statement-BodyIa
+terminal-statement-IteratorI -> terminal-statement-IteratorI terminal-statement-BodyIb terminal-statement-BodyIa
+nonterminal-statement-BodyIa -> id
+nonterminal-statement-BodyIa -> id "(" type-expression "," external-type-expression ")"
+nonterminal-statement-BodyIa -> id "(" type-expression ")"
+nonterminal-statement-BodyIb -> ","
+nonterminal-statement-IteratorI -> nonterminal-statement-BodyIa
+nonterminal-statement-IteratorI -> nonterminal-statement-IteratorI nonterminal-statement-BodyIb nonterminal-statement-BodyIa
+nonterminal-statement-BodyIIa -> id
+nonterminal-statement-BodyIIa -> id "(" external-type-expression ")"
+nonterminal-statement-BodyIIb -> ","
+nonterminal-statement-IteratorII -> nonterminal-statement-BodyIIa
+nonterminal-statement-IteratorII -> nonterminal-statement-IteratorII nonterminal-statement-BodyIIb nonterminal-statement-BodyIIa
+precedence-statement-BodyIa -> precedence-expression
+precedence-statement-BodyIb -> ","
+precedence-statement-IteratorI -> precedence-statement-BodyIa
+precedence-statement-IteratorI -> precedence-statement-IteratorI precedence-statement-BodyIb precedence-statement-BodyIa
+option-statement-BodyIa -> id
+option-statement-BodyIa -> string
+option-statement-BodyIb -> ","
+option-statement-IteratorI -> option-statement-BodyIa
+option-statement-IteratorI -> option-statement-IteratorI option-statement-BodyIb option-statement-BodyIa
+option-statement-BodyIIa -> id
+option-statement-BodyIIa -> string
+option-statement-BodyIIa -> number
+option-statement-BodyIIa -> hexnum
+option-statement-BodyIIa -> code
+option-statement-BodyIIa -> "true"
+option-statement-BodyIIa -> "false"
+option-statement-BodyIIb -> ","
+option-statement-IteratorII -> option-statement-BodyIIa
+option-statement-IteratorII -> option-statement-IteratorII option-statement-BodyIIb option-statement-BodyIIa
+external-type-expression-BodyIa -> external-type-expression
+external-type-expression-BodyIb -> ","
+external-type-expression-IteratorI -> external-type-expression-BodyIa
+external-type-expression-IteratorI -> external-type-expression-IteratorI external-type-expression-BodyIb external-type-expression-BodyIa
+exttype-expr-1-BodyI -> "*"
+exttype-expr-1-IteratorI -> exttype-expr-1-BodyI
+exttype-expr-1-IteratorI -> exttype-expr-1-IteratorI exttype-expr-1-BodyI
+precedence-expression-BodyIa -> id
+precedence-expression-BodyIa -> id "(" id ")"
+precedence-expression-BodyIa -> string
+precedence-expression-BodyIa -> string "(" id ")"
+precedence-expression-BodyIa -> "*"
+precedence-expression-BodyIa -> "*" "(" id ")"
+precedence-expression-BodyIb -> "="
+precedence-expression-BodyIb -> "<"
+precedence-expression-BodyIb -> ">"
+precedence-expression-BodyIb -> "=="
+precedence-expression-IteratorI -> precedence-expression-BodyIa
+precedence-expression-IteratorI -> precedence-expression-IteratorI precedence-expression-BodyIb precedence-expression-BodyIa
+expression-BodyIa -> id
+expression-BodyIa -> string
+expression-BodyIa -> "=" id
+expression-BodyIa -> "=" string
+expression-BodyIa -> "=" "*"
+expression-BodyIa -> "*"
+expression-BodyIa -> "<" id
+expression-BodyIa -> "<" string
+expression-BodyIa -> "<" "*"
+expression-BodyIa -> ">" id
+expression-BodyIa -> ">" string
+expression-BodyIa -> ">" "*"
+expression-BodyIa -> "<=" id
+expression-BodyIa -> "<=" string
+expression-BodyIa -> "<=" "*"
+expression-BodyIa -> ">=" id
+expression-BodyIa -> ">=" string
+expression-BodyIa -> ">=" "*"
+expression-BodyIa -> "==" id
+expression-BodyIa -> "==" string
+expression-BodyIa -> "==" "*"
+expression-BodyIa -> "!=" id
+expression-BodyIa -> "!=" string
+expression-BodyIa -> "!=" "*"
+expression-BodyIb -> ","
+expression-IteratorI -> expression-BodyIa
+expression-IteratorI -> expression-IteratorI expression-BodyIb expression-BodyIa

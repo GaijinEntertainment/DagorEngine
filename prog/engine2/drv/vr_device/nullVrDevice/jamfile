@@ -1,0 +1,17 @@
+Root    ?= ../../../../.. ;
+Location = prog/engine2/drv/vr_device/nullVrDevice ;
+
+TargetType  = lib ;
+Target      = engine2/drv/vr_device/nullVrDevice.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+;
+
+Sources =
+  nullVrDevice.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

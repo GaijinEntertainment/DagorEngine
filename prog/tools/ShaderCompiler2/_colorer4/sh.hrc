@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<!DOCTYPE hrc SYSTEM "../hrc.dtd">
+<?xml-stylesheet type="text/xsl" href="../hrc.xsl"?>
+<hrc>
+
+<include name="regions.hrc"/>
+<include name="defines.hrc"/>
+
+<define name="dNamespace"    value="dString"/>
+<define name="dState"        value="dString"/>
+<define name="dStateValue"   value="dNumDec"/>
+<define name="dType"         value="dNumDec"/>
+<define name="dHlslKeyword"  value="dParam"/>
+<define name="dHlslIntrinsic"  value="dParam"/>
+<define name="dHlslType"     value="dParam"/>
+<define name="dHlslSemantic" value="dNumDec"/>
+<define name="dHlslPreProc"  value="dDirective"/>
+<define name="dHlslPreProc2"  value="dNumHex"/>
+
+<scheme name="commonSyntax">
+   <inherit scheme="mCHexNumb"/>
+   <inherit scheme="mFloatNumb"/>
+   <inherit scheme="mDecNumb"/>
+   <inherit scheme="mStdStr"/>
+   <regexp match="/\c(0x[\da-fA-F]*?([^\s\W\da-fA-F]).*?)\B/i" region0="dError"/>
+
+   <regexp match="/\/\/.*$/" region0="dComment"/>
+   <block  start="/\/\*/" end="/\*\//" scheme="Comment"
+           region="dComment" region00="dpOpenStruct" region10="dpCloseStruct"/>
+
+   <regexp match='/\b[a-zA-Z_]\w*\s*(@)(f[1234]|(44))\B/' region1="dKeyword" region2="dString"/>
+   <regexp match='/\b[a-zA-Z_]\w*\s*(@)((c?buf)|(tex)|(shd))\B/' region1="dKeyword" region2="dString"/>
+   <regexp match='/\b[a-zA-Z_]\w*\s*(@)(smp((2d)|(3d)|(Array)|(Cube)|(CubeArray)))\B/' region1="dKeyword" region2="dString"/>
+   <regexp match='/\b[a-zA-Z_]\w*\s*(@)([vpc]s[fib]\B)/' region1="dKeyword" region2="dString"/>
+   <keywords region="dHlslPreProc2">
+      <word name="immediate_dword_count"/>
+      <word name="globtm"/>
+      <word name="local_view_x"/>
+      <word name="local_view_y"/>
+      <word name="local_view_z"/>
+      <word name="local_view_pos"/>
+      <word name="world_local_x"/>
+      <word name="world_local_y"/>
+      <word name="world_local_z"/>
+      <word name="world_local_pos"/>
+   </keywords>
+
+   <keywords region="dSymbol">
+      <symb name=";"/><symb name="="/><symb name="+"/><symb name="-"/>
+      <symb name="/"/><symb name="*"/><symb name="&amp;"/><symb name="|"/>
+      <symb name="^"/><symb name="("/><symb name=")"/><symb name="["/>
+      <symb name="]"/><symb name=","/><symb name="."/><symb name=":"/>
+      <symb name="!"/><symb name="~"/><symb name="&lt;"/><symb name="&gt;"/>
+      <symb name="%"/><symb name="?"/><symb name="#"/>
+   </keywords>
+</scheme>
+
+<scheme name="CPrePro">
+   <inherit scheme="commonSyntax"/>
+
+   <keywords region="dHlslPreProc">
+      <word name="declare"/>
+      <word name="elif"/>
+      <word name="else"/>
+      <word name="endif"/>
+      <word name="error"/>
+      <word name="if"/>
+   </keywords>
+</scheme>
+
+<scheme name="CPrePro2">
+   <inherit scheme="commonSyntax"/>
+
+   <keywords region="dHlslPreProc2">
+      <word name="pragma"/>
+      <word name="define"/>
+      <word name="undef"/>
+      <word name="elif"/>
+      <word name="else"/>
+      <word name="endif"/>
+      <word name="error"/>
+      <word name="if"/>
+      <word name="ifdef"/>
+      <word name="ifndef"/>
+      <word name="include"/>
+      <word name="line"/>
+      <word name="__LINE__"/>
+      <word name="__FILE__"/>
+   </keywords>
+</scheme>
+
+<scheme name="hlslBase">
+   <block  start="/^\s*##/" end="/^ | ([^\\]?#1) $/x" scheme="cPrePro" region="dHlslPreProc"/>
+   <block  start="/^\s*#/" end="/^ | ([^\\]?#1) $/x" scheme="cPrePro2" region="dHlslPreProc2"/>
+   <inherit scheme="commonSyntax"/>
+
+   <regexp match="/\b((bool)|(int)|(uint)|(fixed)|(half)|(float)|(double))[1-4]\B/" region0="dHlslType"/>
+   <regexp match="/\b((bool)|(int)|(uint)|(fixed)|(half)|(float)|(double))[1-4]x[1-4]\B/" region0="dHlslType"/>
+
+   <keywords ignorecase="ignorecase" region="dHlslKeyword">
+      <word name="BlendState"/>
+      <word name="Bool"/>
+      <word name="Break"/>
+      <word name="CBuffer"/>
+      <word name="Compile"/>
+      <word name="Const"/>
+      <word name="Continue"/>
+      <word name="DepthStencilState"/>
+      <word name="DepthStencilView"/>
+      <word name="Discard"/>
+      <word name="Do"/>
+      <word name="Double"/>
+      <word name="Else"/>
+      <word name="Extern"/>
+      <word name="False"/>
+      <word name="Float"/>
+      <word name="For"/>
+      <word name="GeometryShader"/>
+      <word name="Half"/>
+      <word name="If"/>
+      <word name="In"/>
+      <word name="Inline"/>
+      <word name="Inout"/>
+      <word name="Int"/>
+      <word name="Matrix"/>
+      <word name="Namespace"/>
+      <word name="Nointerpolation"/>
+      <word name="Out"/>
+      <word name="Pass"/>
+      <word name="PixelShader"/>
+      <word name="RasterizerState"/>
+      <word name="RenderTargetView"/>
+      <word name="Return"/>
+      <word name="Register"/>
+      <word name="Sampler"/>
+      <word name="sampler"/>
+      <word name="Sampler1D"/>
+      <word name="Sampler2D"/>
+      <word name="Sampler3D"/>
+      <word name="SamplerCUBE"/>
+      <word name="hsampler"/>
+      <word name="hsampler1D"/>
+      <word name="hsampler2D"/>
+      <word name="hsampler3D"/>
+      <word name="hsamplerCUBE"/>
+      <word name="fxsampler"/>
+      <word name="fxsampler1D"/>
+      <word name="fxsampler2D"/>
+      <word name="fxsampler3D"/>
+      <word name="fxsamplerCUBE"/>
+      <word name="fltsampler"/>
+      <word name="fltsampler1D"/>
+      <word name="fltsampler2D"/>
+      <word name="fltsampler3D"/>
+      <word name="fltsamplerCUBE"/>
+      <word name="sampler_state"/>
+      <word name="SamplerComparisonState"/>
+      <word name="Shared"/>
+      <word name="Stateblock"/>
+      <word name="Stateblock_state"/>
+      <word name="Static"/>
+      <word name="String"/>
+      <word name="Struct"/>
+      <word name="Switch"/>
+      <word name="TBuffer"/>
+      <word name="Technique"/>
+      <word name="Technique10"/>
+      <word name="texture1"/>
+      <word name="Texture1D"/>
+      <word name="Texture1D"/>
+      <word name="Texture1DArray"/>
+      <word name="texture2D"/>
+      <word name="Texture2D"/>
+      <word name="Texture2DArray"/>
+      <word name="Texture2DMS"/>
+      <word name="Texture2DMSArray"/>
+      <word name="texture3D"/>
+      <word name="Texture3D"/>
+      <word name="texturecube"/>
+      <word name="TextureCube"/>
+      <word name="True"/>
+      <word name="Typedef"/>
+      <word name="Uniform"/>
+      <word name="Vector"/>
+      <word name="VertexShader"/>
+      <word name="Void"/>
+      <word name="Volatile"/>
+      <word name="While"/>
+   </keywords>
+
+   <keywords region="dHlslIntrinsic">
+      <word name="abs"/>
+      <word name="acos"/>
+      <word name="all"/>
+      <word name="any"/>
+      <word name="asfloat"/>
+      <word name="asin"/>
+      <word name="asint"/>
+      <word name="asuint"/>
+      <word name="atan"/>
+      <word name="atan2"/>
+      <word name="ceil"/>
+      <word name="clamp"/>
+      <word name="clip"/>
+      <word name="cos"/>
+      <word name="cosh"/>
+      <word name="cross"/>
+      <word name="D3DCOLORtoUBYTE4"/>
+      <word name="ddx"/>
+      <word name="ddy"/>
+      <word name="degrees"/>
+      <word name="determinant"/>
+      <word name="distance"/>
+      <word name="dot"/>
+      <word name="exp"/>
+      <word name="exp2"/>
+      <word name="faceforward"/>
+      <word name="floor"/>
+      <word name="fmod"/>
+      <word name="frac"/>
+      <word name="frexp"/>
+      <word name="fwidth"/>
+      <word name="GetRenderTargetSampleCount"/>
+      <word name="GetRenderTargetSamplePosition"/>
+      <word name="isfinite"/>
+      <word name="isinf"/>
+      <word name="isnan"/>
+      <word name="ldexp"/>
+      <word name="length"/>
+      <word name="lerp"/>
+      <word name="lit"/>
+      <word name="log"/>
+      <word name="log10"/>
+      <word name="log2"/>
+      <word name="max"/>
+      <word name="min"/>
+      <word name="modf"/>
+      <word name="mul"/>
+      <word name="noise"/>
+      <word name="normalize"/>
+      <word name="pow"/>
+      <word name="radians"/>
+      <word name="reflect"/>
+      <word name="refract"/>
+      <word name="round"/>
+      <word name="rsqrt"/>
+      <word name="saturate"/>
+      <word name="sign"/>
+      <word name="sin"/>
+      <word name="sincos"/>
+      <word name="sinh"/>
+      <word name="smoothstep"/>
+      <word name="sqrt"/>
+      <word name="step"/>
+      <word name="tan"/>
+      <word name="tanh"/>
+      <word name="tex1D"/>
+      <word name="tex1Dbias"/>
+      <word name="tex1Dgrad"/>
+      <word name="tex1Dlod"/>
+      <word name="tex1Dproj"/>
+      <word name="tex2D"/>
+      <word name="tex2Dbias"/>
+      <word name="tex2Dgrad"/>
+      <word name="tex2Dlod"/>
+      <word name="tex2Dproj"/>
+      <word name="tex3D"/>
+      <word name="tex3Dbias"/>
+      <word name="tex3Dgrad"/>
+      <word name="tex3Dlod"/>
+      <word name="tex3Dproj"/>
+      <word name="texCUBE"/>
+      <word name="texCUBEbias"/>
+      <word name="texCUBEgrad"/>
+      <word name="texCUBElod"/>
+      <word name="texCUBEproj"/>
+      <word name="h4tex2D"/>
+      <word name="h4tex2Dbias"/>
+      <word name="h4tex2Dgrad"/>
+      <word name="h4tex2Dlod"/>
+      <word name="h4tex2Dproj"/>
+      <word name="h4tex3D"/>
+      <word name="h4tex3Dbias"/>
+      <word name="h4tex3Dgrad"/>
+      <word name="h4tex3Dlod"/>
+      <word name="h4tex3Dproj"/>
+      <word name="h4texCUBE"/>
+      <word name="h4texCUBEbias"/>
+      <word name="h4texCUBEgrad"/>
+      <word name="h4texCUBElod"/>
+      <word name="h4texCUBEproj"/>
+      <word name="transpose"/>
+   </keywords>
+
+   <!-- Reserverd keywords -->
+   <keywords region="dError">
+      <word name="auto"/>
+      <word name="case"/>
+      <word name="catch"/>
+      <word name="char"/>
+      <word name="class"/>
+      <word name="const_cast"/>
+      <word name="default"/>
+      <word name="delete"/>
+      <word name="dynamic_cast"/>
+      <word name="enum"/>
+      <word name="explicit"/>
+      <word name="friend"/>
+      <word name="goto"/>
+      <word name="long"/>
+      <word name="mutable"/>
+      <word name="new"/>
+      <word name="operator"/>
+      <word name="private"/>
+      <word name="protected"/>
+      <word name="public"/>
+      <word name="reinterpret_cast"/>
+      <word name="short"/>
+      <word name="signed"/>
+      <word name="sizeof"/>
+      <word name="static_cast"/>
+      <word name="template"/>
+      <word name="this"/>
+      <word name="throw"/>
+      <word name="try"/>
+      <word name="typename"/>
+      <word name="union"/>
+      <word name="unsigned"/>
+      <word name="using"/>
+      <word name="virtual"/>
+   </keywords>
+
+   <regexp match="/\b((SV_IsFrontFace)|(SV_InstanceID)|(SV_Depth)|(SV_Position)|(SV_Target)|(COLOR)|(NORMAL)|(POSITION))[0-1]\B/" region0="dHlslSemantic"/>
+   <regexp match="/\bTEXCOORD[0-9]\B/" region0="dHlslSemantic"/>
+   <regexp match="/\bTEXCOORD1[0-5]\B/" region0="dHlslSemantic"/>
+
+   <keywords region="dHlslSemantic">
+      <word name="BINORMAL"/>
+      <word name="BINORMAL0"/>
+      <word name="BLENDINDICES"/>
+      <word name="BLENDINDICES0"/>
+      <word name="BLENDWEIGHT"/>
+      <word name="BLENDWEIGHT0"/>
+      <word name="COLOR"/>
+      <word name="NORMAL"/>
+      <word name="POSITION"/>
+      <word name="POSITIONT"/>
+      <word name="PSIZE"/>
+      <word name="TANGENT"/>
+      <word name="TANGENT0"/>
+      <word name="TEXCOORD"/>
+      <word name="FOG"/>
+      <word name="PSIZE"/>
+      <word name="PSIZE0"/>
+      <word name="TESSFACTOR"/>
+      <word name="TESSFACTOR0"/>
+      <word name="VFACE"/>
+      <word name="VPOS"/>
+      <word name="DEPTH"/>
+      <word name="DEPTH0"/>
+   </keywords>
+</scheme>
+
+
+<scheme name="hlsl">
+   <inherit scheme="hlslBase"/>
+   <inherit scheme="mPairedBrackets">
+     <virtual scheme="mPairedBrackets" subst="hlsl"/>
+   </inherit>
+</scheme>
+
+<scheme name="shader">
+   <inherit scheme="mPairedBrackets">
+     <virtual scheme="mPairedBrackets" subst="shader"/>
+   </inherit>
+   <block start="/^\s*(hlsl)\s*(\{)\s*/" end="/\s*(\})/"
+          scheme="hlsl"
+          region00="dSymbol2" region02="dpOpenStruct"
+          region10="dSymbol2" region11="dpCloseStruct"/>
+   <block start="/^\s*(hlsl)\s*\(\s*[vhdgpc]s\s*\)\s*(\{)\s*/" end="/\s*(\})/"
+          scheme="hlsl"
+          region00="dSymbol2" region02="dpOpenStruct"
+          region10="dSymbol2" region11="dpCloseStruct"/>
+   <block start="/^\s*\(\s*[vpc]s\s*\)\s*(\{)\s*/" end="/\s*(\})/"
+          scheme="commonSyntax"
+          region00="dSymbol2" region02="dpOpenStruct"
+          region10="dSymbol2" region11="dpCloseStruct"/>
+
+   <regexp match="/^\s*(hlsl)[^\{]*$/" region0="dError"/>
+   <regexp match="/^\s*(hlsl)\s*\(\s*(([^pv].)|([pv][^s])|([pv]s[^\s])[^\s]*)\)\s*\{/" region2="dError"/>
+   <regexp match="/^\s*\(\s*(([^vpc].)|([vpc][^s])|([vpc]s[^\s])[^\s]*)\)\s*\{/" region2="dError"/>
+
+   <inherit scheme="commonSyntax"/>
+   
+   <keywords region="dKeyWord">
+      <word name="shader"/>
+      <word name="channel"/>
+      <word name="init"/>
+      <word name="compile"/>
+      <word name="static"/>
+      <word name="dynamic"/>
+      <word name="public"/>
+      <word name="block"/>
+      <word name="supports"/>
+      <word name="interval"/>
+      <word name="use"/>
+      <word name="const"/>
+      <word name="local"/>
+      <word name="dont_render"/>
+      <word name="no_dynstcode"/>
+      <word name="render_stage"/>
+      <word name="render_trans"/>
+      <word name="use_lightmap"/>
+      <word name="no_ablend"/>
+      <word name="lighting"/>
+      <word name="two_sided"/>
+      <word name="real_two_sided"/>
+      <word name="if"/>
+      <word name="else"/>
+      <word name="signed_pack"/>
+      <word name="unsigned_pack"/>
+      <word name="mul_1k"/>
+      <word name="mul_2k"/>
+      <word name="mul_4k"/>
+      <word name="mul_8k"/>
+      <word name="mul_16k"/>
+      <word name="int"/>
+      <word name="real"/>
+      <word name="color4"/>
+      <word name="texture"/>
+      <word name="buffer"/>
+      <word name="const_buffer"/>
+      <word name="hardware"/>
+      <word name="mat"/>
+   </keywords>
+
+   <keywords region="dType">
+      <word name="float"/>
+      <word name="float1"/>
+      <word name="float2"/>
+      <word name="float3"/>
+      <word name="float4"/>
+      <word name="short2"/>
+      <word name="short4"/>
+      <word name="ubyte4"/>
+      <word name="color8"/>
+      <word name="short2n"/>
+      <word name="short4n"/>
+      <word name="ushort2n"/>
+      <word name="ushort4n"/>
+      <word name="half2"/>
+      <word name="half4"/>
+      <word name="udec3"/>
+      <word name="dec3n"/>
+   </keywords>
+
+   <keywords region="dState">
+      <word name="blend_src"/>
+      <word name="blend_dst"/>
+      <word name="blend_asrc"/>
+      <word name="blend_adst"/>
+      <word name="cull_mode"/>
+      <word name="alpha_to_coverage"/>
+      <word name="view_instances"/>
+      <word name="stencil"/>
+      <word name="stencil_func"/>
+      <word name="stencil_ref"/>
+      <word name="stencil_pass"/>
+      <word name="stencil_fail"/>
+      <word name="stencil_zfail"/>
+      <word name="color_write"/>
+      <word name="z_write"/>
+      <word name="z_test"/>
+      <word name="z_bias"/>
+      <word name="slope_z_bias"/>
+      <word name="atest_value"/>
+      <word name="atest_func"/>
+      <word name="fog_color"/>
+      <word name="fog"/>
+      <word name="fog_density"/>
+      <word name="pos"/>
+      <word name="norm"/>
+      <word name="tc"/>
+      <word name="vcol"/>
+      <word name="lightmap"/>
+      <word name="extra"/>
+      <word name="diffuse"/>
+      <word name="emissive"/>
+      <word name="specular"/>
+      <word name="ambient"/>
+      <word name="chrome"/>
+   </keywords>
+
+   <keywords region="dStateValue">
+      <word name="globtm"/>
+      <word name="true"/>
+      <word name="false"/>
+      <word name="none"/>
+      <word name="local_view_x"/>
+      <word name="local_view_y"/>
+      <word name="local_view_z"/>
+      <word name="local_view_pos"/>
+      <word name="world_local_x"/>
+      <word name="world_local_y"/>
+      <word name="world_local_z"/>
+      <word name="world_local_pos"/>
+      <word name="pc"/>
+      <word name="dx11"/>
+      <word name="dx12"/>
+      <word name="xbox"/>
+      <word name="scarlett"/>
+      <word name="vulkan"/>
+      <word name="metal"/>
+      <word name="ps4"/>
+      <word name="ps5"/>
+      <word name="fsh_4_0"/>
+      <word name="fsh_4_1"/>
+      <word name="fsh_5_0"/>
+   </keywords>
+
+   <keywords region="dDirective">
+      <word name="define"/>
+      <word name="include"/>
+      <word name="undef"/>
+      <word name="macro"/>
+      <word name="endmacro"/>
+      <word name="delmacro"/>
+   </keywords>
+</scheme>
+
+</hrc>

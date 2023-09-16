@@ -1,0 +1,17 @@
++ optimize vertex shaders
++ optimize pixel shaders with gather
++ use initial downsample from initial bloom 
++/- use initial coc from min (closest) downsampled depth (it is faster, but unfortunately making closest depth is slower)
+- use initial downsample from initial bloom + initial coc in first gather pass (tried, was slower). May be after other optimizations
++ write normalized CoC in alpha (currently 0..4)
++ use R8 for tiles (instead of R16F)
+* only near/only far DoF (currently supported in postFX shader, partially (only far can be off) in gather&downsample; c++ code still creat all textures)
+  * create textures only when needed
+* generate taps only on change
+* optimize dof apply in postfx using depth bounds
+  * very far slice (from far_focus_end to zfar) - no need to sample depth, it is obviously very far
+  * focus slice (from near_focus_start to far_focus_start) - no need to sample dof
+   typically that is most part of the screen!
+
+* bloom can&should bloom from farLayer, if farLayer present
+* check near dof at some point

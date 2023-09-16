@@ -1,0 +1,11 @@
+return {
+  unmute_player_by_uid = @(val) assert(type(val)=="integer")
+  mute_player_by_uid = @(val) assert(type(val)=="integer")
+  set_record_device = @(val) assert(type(val)=="integer")
+  set_record_volume = @(val) assert(type(val)=="float")
+  set_playback_volume = @(val) assert(type(val)=="float")
+  set_recording  = @(val) assert(type(val)=="bool")
+  enable_mic = @(val) assert(type(val)=="bool")
+  enable_voice = @(val) assert(type(val)=="bool")
+  set_callbacks = @(val) assert(type(val)=="table" || val==null)
+}

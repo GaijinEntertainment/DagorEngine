@@ -1,0 +1,39 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/ecs/game/generic ;
+
+TargetType  = lib ;
+Target      = gameLibs/ecs/generic.lib ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/1stPartyLibs/quirrel/sqrat/include
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+;
+
+UseProgLibs +=
+  3rdPartyLibs/eastl
+;
+
+if $(ProjectUseQuirrel) && $(ProjectUseQuirrel) in sq3r sq3r+ {
+  # UseQuirrel = sq3r ;
+  CPPopt += -DUSE_SQRAT_CONFIG ;
+  Sources +=
+    bindAnimSq.cpp
+  ;
+}
+
+SourceES = ;
+AutoscanBuildLists . : *ES.cpp.inl : SourceES ;
+
+include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

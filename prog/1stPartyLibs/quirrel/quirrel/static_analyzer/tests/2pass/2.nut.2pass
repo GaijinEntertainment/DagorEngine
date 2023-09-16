@@ -1,0 +1,4 @@
+let function fn2() { //-declared-never-used
+  fn1()
+  print(PERSISTENT_DATA_PARAMS)
+}

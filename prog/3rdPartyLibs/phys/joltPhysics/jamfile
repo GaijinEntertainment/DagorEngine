@@ -1,0 +1,47 @@
+# https://github.com/jrouwe/JoltPhysics.git
+# rev c52a6cedf8e2034bbe9ff7c17cc19ca41c0420c8
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/phys/joltPhysics ;
+if $(OS) = NT { Platform ?= win64 ; }
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+local supp = win32 win64 linux64 xboxOne scarlett android nswitch macosx iOS tvOS ps4 ps5 ;
+if ! $(Platform) in $(supp) { Exit Jolt\: Platform\=$(Platform) is not supported, must be one of: $(supp) ; }
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/phys/joltPhysics.lib ;
+
+local _SrcDirs =
+  Jolt/AABBTree
+  Jolt/Core
+  Jolt/Geometry
+  Jolt/Math
+  Jolt/ObjectStream
+  Jolt/Physics
+  Jolt/Physics/Body
+  Jolt/Physics/Character
+  Jolt/Physics/Collision
+  Jolt/Physics/Collision/BroadPhase
+  Jolt/Physics/Collision/Shape
+  Jolt/Physics/Constraints
+  Jolt/Physics/Ragdoll
+  Jolt/Physics/Vehicle
+  Jolt/Skeleton
+  Jolt/TriangleGrouper
+  Jolt/TriangleSplitter
+;
+
+Sources += Jolt/RegisterTypes.cpp ;
+
+AddIncludes = $(Root)/$(Location) ;
+include $(Root)/$(Location)/setup.jam ;
+
+if $(Platform) in win32 win64 { CPPopt += -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS ; }
+if $(Config) in dev dbg { _SrcDirs += Jolt/Renderer ; }
+if $(Platform) in win32 && $(PlatformSpec) != clang { CPPopt += -fp:precise ; }
+
+AutoscanBuildLists $(_SrcDirs) : *.cpp : Sources ;
+
+include $(Root)/prog/_jBuild/build.jam ;
+

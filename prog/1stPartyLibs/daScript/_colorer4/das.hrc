@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<!DOCTYPE hrc SYSTEM "../hrc.dtd">
+<?xml-stylesheet type="text/xsl" href="../hrc.xsl"?>
+<hrc>
+
+<include name="regions.hrc"/>
+<include name="defines.hrc"/>
+
+<define name="dType"        value="dNumDec"/>
+<define name="dPreProc"     value="dDirective"/>
+
+<scheme name="mFloatNumb2">
+   <regexp match="/\c \. \d+ ([eE][\-+]?\d+)? ([lLfFdD]?)/x"
+           region0="dNumFloat" region2="dNumSuffix"/>
+   <regexp match="/\b \d+\.\d* ([eE][\-+]?\d+)? ([lLfFdD]?)\B/x"
+           region0="dNumFloat" region2="dNumSuffix"/>
+   <regexp match="/\b \d+ ([eE][\-+]?\d+) ([lLfFdD]?)\B/x"
+           region0="dNumFloat" region2="dNumSuffix"/>
+   <regexp match="/\b \d+\.\d*/x"
+           region0="dNumFloat" region2="dNumSuffix"/>
+</scheme>
+
+
+<scheme name="dasString">
+   <regexp match='/\{.*?\}/' region0="dStringQuote"/>
+</scheme>
+
+<scheme name="String">
+     <block start='/\"/' end='/\"/' scheme="dasString" region="dString"/>
+</scheme>
+
+<scheme name="mCComments">
+  <block start="/\/\//" end="/$/" scheme="Comment" region="dComment"/>
+  <block start="/\/\*/" end="/\*\//" scheme="Comment"
+      region="dComment" region00="dpOpenStruct" region10="dpCloseStruct"/>
+</scheme>
+
+
+<scheme name="commonSyntax">
+   <inherit scheme="mCHexNumb"/>
+   <inherit scheme="mFloatNumb2"/>
+   <inherit scheme="mDecNumb"/>
+   <inherit scheme="String"/>
+   <inherit scheme="mCComments"/>
+   <regexp match="/\c(0x[\da-fA-F]*?([^\s\W\da-fA-F]).*?)\B/i" region0="dError"/>
+
+   <keywords region="dSymbol">
+      <symb name=";"/><symb name="="/><symb name="+"/><symb name="-"/>
+      <symb name="/"/><symb name="*"/><symb name="&amp;"/><symb name="|"/>
+      <symb name="^"/><symb name="("/><symb name=")"/><symb name="["/>
+      <symb name="]"/><symb name=","/><symb name="."/><symb name=":"/>
+      <symb name="!"/><symb name="~"/><symb name="&lt;"/><symb name="&gt;"/>
+      <symb name="%"/><symb name="?"/><symb name="#"/>
+   </keywords>
+</scheme>
+
+<scheme name="DaScript">
+   <regexp match="/^\[\w+\]/x" region0="dPreProc"/>
+   <inherit scheme="mPairedBrackets">
+     <virtual scheme="mPairedBrackets" subst="DaScript"/>
+   </inherit>
+   <inherit scheme="commonSyntax"/>
+
+
+   <keywords region="dKeyWord">
+      <word name="def"/>
+      <word name="require"/>
+      <word name="options"/>
+      <word name="let"/>
+      <word name="var"/>
+      <word name="if"/>
+      <word name="elif"/>
+      <word name="else"/>
+      <word name="break"/>
+      <word name="continue"/>
+      <word name="let in scope"/>
+      <word name="for"/>
+      <word name="in"/>
+      <word name="return"/>
+      <word name="struct"/>
+      <word name="false"/>
+      <word name="true"/>
+      <word name="panic"/>
+      <word name="recover"/>
+      <word name="deref"/>
+      <word name="typeinfo"/>
+      <word name="new"/>
+      <word name="delete"/>
+   </keywords>
+
+   <keywords region="dType">
+      <word name="int"/>
+      <word name="int2"/>
+      <word name="int3"/>
+      <word name="int4"/>
+      <word name="uint"/>
+      <word name="uint2"/>
+      <word name="uint3"/>
+      <word name="uint4"/>
+      <word name="float"/>
+      <word name="float2"/>
+      <word name="float3"/>
+      <word name="float4"/>
+      <word name="int64"/>
+      <word name="uint64"/>
+      <word name="double"/>
+
+      <word name="block"/>
+      <word name="string"/>
+      <word name="table"/>
+      <word name="array"/>
+   </keywords>
+</scheme>
+
+</hrc>

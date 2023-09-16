@@ -1,0 +1,20 @@
+
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/sqDrey ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/sqDrey.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine2/sharedInclude
+;
+
+Sources =
+  sqDrey.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

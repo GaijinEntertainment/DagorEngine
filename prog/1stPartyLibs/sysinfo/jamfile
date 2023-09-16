@@ -1,0 +1,28 @@
+Root    ?= ../../.. ;
+Location = prog/1stPartyLibs/sysinfo ;
+
+TargetType  = lib ;
+Target      = 1stPartyLibs/sysinfo.lib ;
+
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+
+if $(Platform) in win32 win64 {
+  AddIncludes +=
+    $(Root)/3rdPartyLibs/eastl/include
+  ;
+
+
+  Sources =
+    win/systemId.cpp
+  ;
+
+  AddLibs += advapi32.lib ;
+
+} else {
+  Sources = stub/sysinfo.cpp ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

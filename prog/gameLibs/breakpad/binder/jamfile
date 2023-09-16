@@ -1,0 +1,39 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/breakpad/binder ;
+
+StrictCompile = yes ;
+
+TargetType = lib ;
+Target = gameLibs/breakpad/binder.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if ! $(Platform) in win32 win64 linux64 macosx {
+  Exit FATAL: $(Target) is not supported for Platform\=$(Platform). Use stub library instead. ;
+}
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/breakpad
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs =
+  1stPartyLibs/sysinfo
+  3rdPartyLibs/breakpad
+  3rdPartyLibs/eastl
+  engine2/osApiWrappers
+  engine2/startup
+  gameLibs/folders
+;
+
+Sources =
+  callbacks.cpp
+  binder.cpp
+;
+
+if $(PlatformSpec) in vc9 vc10 vc11 vc12 vc14 {
+  CPPopt += -wd4548 ; # expression before comma has no effect; expected expression with side-effect
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/sqEventBus ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/sqEventBus.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+;
+
+UseProgLibs =
+  gameLibs/quirrel/sqCrossCall
+;
+
+Sources =
+  sqEventBus.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

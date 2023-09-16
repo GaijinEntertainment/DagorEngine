@@ -1,0 +1,24 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/ObjCreator3d ;
+
+TargetType  = lib ;
+Target      = tools/libTools/ObjCreator3d.lib ;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  ObjCreator3d.cpp
+  stairs.cpp
+  plane.cpp
+  sphere.cpp
+  box.cpp
+  cylinder.cpp
+  polymesh.cpp
+  loft.cpp
+  capsule.cpp
+;
+
+
+#CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

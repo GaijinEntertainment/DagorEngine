@@ -1,0 +1,19 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/decals ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/decals.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  dynamicDecals.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

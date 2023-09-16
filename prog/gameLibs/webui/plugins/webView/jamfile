@@ -1,0 +1,38 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/webui/plugins/webView ;
+
+TargetType  = lib ;
+Target      = gameLibs/webui/plugins/webview.lib ;
+
+AddIncludes =  
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/dagorInclude
+;
+
+Sources =
+  webViewPlugin.cpp
+;
+
+SourcesWeb =
+;
+
+SourcesWebFolders = 
+  web
+  web/assets
+;
+
+AutoscanBuildLists $(SourcesWebFolders) : *.eot : SourcesWeb ;
+AutoscanBuildLists $(SourcesWebFolders) : *.svg : SourcesWeb ;
+AutoscanBuildLists $(SourcesWebFolders) : *.ttf : SourcesWeb ;
+AutoscanBuildLists $(SourcesWebFolders) : *.woff : SourcesWeb ;
+AutoscanBuildLists $(SourcesWebFolders) : *.woff2 : SourcesWeb ;
+AutoscanBuildLists $(SourcesWebFolders) : *.js : SourcesWeb ;
+AutoscanBuildLists $(SourcesWebFolders) : *.css : SourcesWeb ;
+AutoscanBuildLists $(SourcesWebFolders) : *.html : SourcesWeb ;
+
+for s in $(SourcesWeb) { StringifySourceFile $(s) : $(s).inl : webViewPlugin.cpp : --array ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

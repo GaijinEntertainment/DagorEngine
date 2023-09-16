@@ -1,0 +1,18 @@
+actions together quietly compile_rc
+{
+#async
+  echo compiling RC: $(2:D=)
+  set_filter nul /(Resource Compiler Version)|(All rights reserved)|(^$)/
+  call_filtered $(_RC_COMPILER) $(rc_opt) /fo $(1:S=) $(2)
+  clr_filters
+  if errorlevel 1 goto failed
+  call $(_CVTRES_EXE) /out:$(1) $(1:S=)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  call $(_DEP_COMPILER) $(pre_opt) $(_C_BASE_INCLUDES) $(rc_opt) --o$(1:S=.d) $(2:G=)
+  if not exist $(1:S=.d) goto failed
+  goto end
+  :failed
+  set ERRORLEVEL=13
+  :end
+}

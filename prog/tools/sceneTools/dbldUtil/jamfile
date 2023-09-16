@@ -1,0 +1,63 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/dbldUtil ;
+include $(Root)/prog/tools/tools_setup.jam ;
+ConsoleExe = yes ;
+ProjectAllowsOodle = yes ;
+
+TargetType  = exe ;
+Target      = tools/dbldUtil.exe ;
+
+OutDir = $(Root)/tools/dagor3_cdk/util ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  dbldUtil.cpp
+  dbldDeps.cpp
+  cmain.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/coreUtil
+  engine2/math
+  tools/libTools/util
+  tools/libTools/dtx
+
+  engine2/shaders
+  engine2/lib3d
+  engine2/gameRes
+  engine2/anim
+  engine2/animChar
+  engine2/phys/physCommon
+  engine2/phys/fastPhys
+  engine2/scene
+  engine2/sceneRay
+  engine2/image
+  engine2/libFx
+  commonFx/commonFxGame
+  gameLibs/render
+  gameLibs/rendInst
+  gameLibs/rendInst/riFx/stub
+  gameLibs/render/nodeBasedShader/stub
+  gameLibs/landMesh
+  engine2/drv/drv3d_stub
+  engine2/perfMon
+  engine2/guiBase
+  engine2/imgui/stub
+
+  gameLibs/daECS/gameResStub
+  gameLibs/ecs/rendInst/stub
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

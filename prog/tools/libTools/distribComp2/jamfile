@@ -1,0 +1,16 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/distribComp2 ;
+
+TargetType  = lib ;
+Target      = tools/libTools/distribComp2.lib ;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  distribComp2.cpp
+;
+
+CPPopt = ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

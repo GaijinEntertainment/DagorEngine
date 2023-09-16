@@ -1,0 +1,576 @@
+include "decals.sh"
+
+texture dyn_decals_noise;
+
+macro DYNAMIC_DECALS_PARAMS()
+  hlsl(ps)
+  {
+    #include <render/decals/dynamic_decals_params.hlsli>
+  }
+endmacro
+
+// Uncomment this and define DYNAMIC_DECALS_TWEAKING in dynamicDecalsParams.hlsl to tweak decal params and unlock console vars
+/*
+float4 dyn_decals_params = (1.0, 0.4, 20, 0.2);
+float4 dyn_decals_params2 = (2, 10.0, 0, 0);
+
+float4 dyn_decals_cutting_color = (0.4, 0.4, 0.4, 1.0);
+float4 dyn_decals_burn_color = (0.01, 0.01, 0.01, 0.8);
+float4 dyn_decals_wood_color = (0.9, 0.71, 0.38, 1.0);
+float4 dyn_decals_fabric_color = (0.9, 0.8, 0.5, 1.0);
+
+float4 dyn_decals_steel_hole_noise = (3.0, 1.0, 0.7, 0.9);
+float4 dyn_decals_wood_hole_noise = (1.0, 1.0, 0.65, 1.5);
+float4 dyn_decals_fabrics_hole_noise = (1.0, 1.0, 0.65, 1.5);
+float4 dyn_decals_steel_wreackage_noise = (1.0, 1.0, 0.0, 0.0);
+float4 dyn_decals_wood_wreackage_noise = (1.0, 1.0, 0.0, 0.0);
+float4 dyn_decals_fabric_wreackage_noise = (1.0, 1.0, 0.0, 0.0);
+float4 dyn_decals_holes_burn_mark_noise = (0.2, 2.0, 3.0, 1.0);
+
+float4 dyn_decals_diff_mark_params = (1.3, 0.03, 3.0, 0.0); //mult/min/max
+float4 dyn_decals_burn_mark_params = (2.0, 0.03, 3.0, 0.0); //mult/min/max
+
+
+float dyn_decals_smoothness = 0.3;
+float dyn_decals_metallness = 0.6;
+
+macro DYNAMIC_DECALS_PARAMS()
+  dyn_decals_params@f4 = (dyn_decals_params); // noise_scale, noise_uv_mul, color_dist_mul, rim_dist_mul
+  dyn_decals_params2@f4 = (dyn_decals_params2);
+  dyn_decals_cutting_color@f4 = (dyn_decals_cutting_color);
+  dyn_decals_burn_color@f4 = dyn_decals_burn_color;
+  dyn_decals_wood_color@f4 = dyn_decals_wood_color;
+  dyn_decals_fabric_color@f4 = dyn_decals_fabric_color;
+  dyn_decals_material@f2 = float4(dyn_decals_smoothness, dyn_decals_metallness, 0, 0);
+  dyn_decals_steel_hole_noise@f4 = dyn_decals_steel_hole_noise;
+  dyn_decals_wood_hole_noise@f4 = dyn_decals_wood_hole_noise;
+  dyn_decals_fabrics_hole_noise@f4 = dyn_decals_fabrics_hole_noise;
+  dyn_decals_steel_wreackage_noise@f4 = dyn_decals_steel_wreackage_noise;
+  dyn_decals_wood_wreackage_noise@f4 = dyn_decals_wood_wreackage_noise;
+  dyn_decals_fabric_wreackage_noise@f4 = dyn_decals_fabric_wreackage_noise;
+  dyn_decals_holes_burn_mark_noise@f4 = dyn_decals_holes_burn_mark_noise;
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    (ps) {
+      dyn_decals_diff_mark_params@f4 = dyn_decals_diff_mark_params;
+      dyn_decals_burn_mark_params@f4 = dyn_decals_burn_mark_params;
+    }
+  }
+endmacro
+*/
+
+macro INIT_DYNAMIC_DECALS()
+  (ps) {
+    dyn_noise@smp2d = dyn_decals_noise;
+  }
+  DYNAMIC_DECALS_PARAMS()
+endmacro
+
+macro USE_DYNAMIC_DECALS(start_params_no, cutting_planes, capsule_holes, sphere_holes, burn_marks)
+  hlsl(ps) {
+    #define DIFF_MARK_BORDER 10
+    #define MAX_CAPSULES 10
+    #define MAX_SPHERES 15 // for boats
+
+    #define MATERIAL_TYPE_STEEL 0
+    #define MATERIAL_TYPE_WOOD 1
+    #define MATERIAL_TYPE_FABRIC 2
+
+    #define MIN_SAMPLING_DIST 4.8 //need to reduce to something like 1.5
+    #define MIN_SAMPLING_DIST_DIFF 1.7 //need to reduce to something like 2.5
+
+
+    #define dyn_decals_burn_noise float4(0.2, 2, 0, 0)
+
+    struct DynCapsule
+    {
+      float4 botR;
+      float4 top;
+    };
+
+    struct DynPlane
+    {
+      float4 plane;
+    };
+
+    struct DynSphere
+    {
+      float4 sphere;
+    };
+
+    struct DynDecals
+    {
+      float3 modelPos;
+      float3 modelNormal;
+      float2 modelUV;
+      float2 dynrend_params_offset_count;
+      float2 texcoord;
+
+      int orMode;
+      int capsuleHolesCount;
+      int sphereHolesCount;
+      int burnMarksCount;
+      int capsuleBurnMarksCount;
+
+      int material;
+
+      float4 uvRad;
+      float4 uvNorm;
+      float distNoise;
+      float dist;
+      float clipDist;
+      float rimDist;
+      float diffDist;
+
+      float rimDistGm;
+      float diffDistGm;
+
+      float alphaIn;
+      float alphaOut;
+
+      float alphaInGm;
+      float alphaOutGm;
+    };
+
+    float unpack_value(uint value, float precision, float minValue, float maxValue)
+    {
+      return minValue + (value / precision) * (maxValue - minValue);
+    }
+
+    void make_ortho_basis(float3 forward, out float3 left, out float3 up)
+    {
+      if (any(forward.yz))
+      {
+        left = float3(0, -forward.z, forward.y);
+        up = float3(forward.y * forward.y + forward.z * forward.z, -forward.x * forward.y, -forward.x * forward.z);
+      }
+      else
+      {
+        left = float3(-forward.z, 0, forward.x);
+        up = float3(-forward.x * forward.y, forward.x * forward.x + forward.z * forward.z, -forward.y * forward.z);
+      }
+    }
+
+    float2 box_projection(float3 vec, float3 normal)
+    {
+      return abs(normal.x) > 0.707 ? vec.yz : (abs(normal.y) > 0.707 ? vec.xz : vec.xy);
+    }
+
+    float cut_stab(int or_mode, float d0, float d1, float d2)
+    {
+      return or_mode == 1 ? min(min(d0, d1), d2) : max(max(d0, d1), d2);
+    }
+
+    float cut_plane_tail(int or_mode, float d0, float d1, float d2, float d3, float d4)
+    {
+      return or_mode == 1 ? min(min(min(min(d0, d1), d2), d3), d4) : max(d0, d4);
+    }
+
+    float cut_plane_wing(int or_mode, float d0, float d1, float d2, float d3)
+    {
+      return or_mode == 1 ? min(min(min(d0, d1), d2), d3) : max(max(max(d0, d1), d2), d3);
+    }
+
+    float prepare_dyn_planes(DynDecals decals, int offset, out float4 uv_rad, out float4 uv_norm, out int material)
+    {
+      #define D_PLANE(plane_no) \
+        float4 value##plane_no = GET_DYNREND_PARAM(offset + plane_no, decals.dynrend_params_offset_count); \
+        value##plane_no.w = unpack_value((asuint(value##plane_no.w) & 0x1fffffff), 0x1fffffff, -100, 100); \
+        float d##plane_no = dot(float4(decals.modelPos, 1.0), value##plane_no);
+      D_PLANE(0); D_PLANE(1); D_PLANE(2); D_PLANE(3); D_PLANE(4); D_PLANE(5); D_PLANE(6); D_PLANE(7); D_PLANE(8); D_PLANE(9); D_PLANE(10);
+      #define GET_PLANE(plane_no) \
+        float4 plane##plane_no = GET_DYNREND_PARAM(offset + plane_no, decals.dynrend_params_offset_count); \
+        plane##plane_no.w = unpack_value((asuint(plane##plane_no.w) & 0x1fffffff), 0x1fffffff, -100, 100);
+      GET_PLANE(0); GET_PLANE(1); GET_PLANE(2); GET_PLANE(3); GET_PLANE(4); GET_PLANE(5);
+
+      float distMin = 1000.0;
+      float distAbs = distMin;
+      float distAbsMin = distMin;
+      float4 minPlane = float4(0, 0, 0, -1);
+      int planeIndex = -1;
+      #define CUT_PLANE_DIST(p0, dist, index) \
+        distAbs = abs(dist); \
+        minPlane = distAbs < distAbsMin ? p0 : minPlane; \
+        planeIndex = distAbs < distAbsMin ? index : planeIndex; \
+        distAbsMin = min(distAbsMin, distAbs); \
+        distMin = min(distMin, dist);
+      
+      CUT_PLANE_DIST(plane0, cut_plane_wing(decals.orMode, d0, d6, d7, d9), 0);
+      CUT_PLANE_DIST(plane1, cut_plane_wing(decals.orMode, d1, d6, d8, d9), 1);
+      CUT_PLANE_DIST(plane2, cut_plane_tail(decals.orMode, d2, d3, d4, d5, d9), 2);
+      CUT_PLANE_DIST(plane3, cut_stab(decals.orMode, d3, d9, d10), 3);
+      CUT_PLANE_DIST(plane4, cut_stab(decals.orMode, d4, d9, d10), 4);
+      CUT_PLANE_DIST(plane5, cut_stab(decals.orMode, d5, d9, d10), 5);
+      
+      float materialParam = GET_DYNREND_PARAM(offset + planeIndex, decals.dynrend_params_offset_count).w;
+      materialParam = (asuint(materialParam) & 0x60000000) >> 29u;
+      material = materialParam;
+
+      uv_norm = float4(minPlane.xyz, 0);
+      uv_rad = float4(box_projection(decals.modelPos, minPlane.xyz), 0, sign(minPlane.w));
+
+      return distMin;
+    }
+
+    struct DynCapsuleResult
+    {
+      float dist;
+      float distFromTop;
+      int index;
+    };
+
+    DynCapsuleResult prepare_dyn_capsules(DynDecals decals, int count, int offset, out float4 uv_rad, out float4 uv_norm,
+      int firstExcludedSphereId = -1, int secondExcludedSphereId = -1)
+    {
+      DynCapsuleResult result = (DynCapsuleResult)0;
+      uv_rad = 0;
+      uv_norm = 0;
+      result.dist = 1000;
+      result.index = -1;
+      result.distFromTop = 0;
+      if (count > 0)
+      {
+        float dist = 0;
+        float3 distVec = 0;
+        float3 minDistVec = 0;
+        float4 minPrim = 0;
+        float3 lineVec = 0;
+        #define DYN_CAPSULE_DIST(capsule) \
+          lineVec = capsule.botR.xyz - capsule.top.xyz; \
+          distVec = decals.modelPos.xyz - capsule.top.xyz; \
+          float relativLength = min(max(0, dot(distVec, lineVec) / dot(lineVec, lineVec)), 1.0); \
+          distVec = distVec - relativLength * lineVec; \
+          float lengthSqVec = dot(distVec, distVec); \
+          dist = length(distVec) - capsule.botR.w; \
+          minDistVec = dist < result.dist ? distVec : minDistVec; \
+          minPrim = dist < result.dist ? float4(capsule.top.xyz, capsule.botR.w) : minPrim; \
+          result.index = dist < result.dist ? i : result.index; \
+          result.dist = min(dist, result.dist); \
+          result.distFromTop = max(relativLength, result.distFromTop);
+
+        LOOP
+        for (int i = 0; i < min(MAX_CAPSULES, count); ++i)
+        {
+          if (i == firstExcludedSphereId || i == secondExcludedSphereId)
+            continue;
+          DynCapsule dynCapsule;
+          dynCapsule.botR = GET_DYNREND_PARAM(offset + i * 2, decals.dynrend_params_offset_count);
+          dynCapsule.top = GET_DYNREND_PARAM(offset + i * 2 + 1, decals.dynrend_params_offset_count);
+          DYN_CAPSULE_DIST(dynCapsule);
+        }
+
+        uv_norm = float4(-minDistVec / max(result.dist + minPrim.w, 0.001), 1);
+        uv_rad = float4(uv_norm.xz, dot(minPrim.xyz, float3(1, 1, 1)), minPrim.w);
+
+        return result;
+      }
+      return result;
+    }
+
+    struct DynSphereResult
+    {
+      int index;
+      float4 sphere;
+      float dist;
+      float3 distVec;
+    };
+
+     DynSphereResult prepare_dyn_spheres_ground_model(DynDecals decals, int count, int offset, int stride)
+    {
+      DynSphereResult result = (DynSphereResult)0;
+      result.dist = 1000;
+      LOOP
+      for (int i = 0; i < min(MAX_SPHERES, count); ++i)
+      {
+        DynSphere sph;
+        sph.sphere = GET_DYNREND_PARAM(offset + i * stride, decals.dynrend_params_offset_count);
+        float3 distVec = decals.modelPos.xyz - sph.sphere.xyz;
+        float dist = length(distVec) - sph.sphere.w;
+        result.index = dist < result.dist ? i : result.index;
+        result.distVec = dist < result.dist ? distVec : result.distVec;
+        result.sphere = dist < result.dist ? sph.sphere : result.sphere;
+        result.dist = min(dist, result.dist);
+      }
+      return result;
+    }
+
+    DynSphereResult prepare_dyn_spheres(DynDecals decals, int count, int offset, int stride, int maxAmount,
+      int firstExcludedSphereId = -1, int secondExcludedSphereId = -1)
+    {
+      DynSphereResult result = (DynSphereResult)0;
+      result.dist = 1000;
+      result.index = -1;
+
+      LOOP
+      for (int i = 0; i < min(maxAmount, count); ++i)
+      {
+        if (i == firstExcludedSphereId || i == secondExcludedSphereId)
+          continue;
+        DynSphere sph;
+        sph.sphere = GET_DYNREND_PARAM(offset + i * stride, decals.dynrend_params_offset_count);
+        float3 distVec = decals.modelPos.xyz - sph.sphere.xyz;
+        float lengthSqVec = dot(distVec, distVec);
+
+        if (lengthSqVec > MIN_SAMPLING_DIST_DIFF)
+          continue;
+
+        float dist = length(distVec) - sph.sphere.w;
+        result.index = dist < result.dist ? i : result.index;
+        result.distVec = dist < result.dist ? distVec : result.distVec;
+        result.sphere = dist < result.dist ? sph.sphere : result.sphere;
+        result.dist = min(dist, result.dist);
+      }
+      return result;
+    }
+    void get_dyn_sphere_norm_uv(DynSphereResult dyn_sphere, out float4 uv_norm, out float4 uv_rad)
+    {
+      uv_norm = float4(-dyn_sphere.distVec / max(dyn_sphere.dist + dyn_sphere.sphere.w, 0.001), 1);
+      uv_rad = float4(uv_norm.xz, dot(dyn_sphere.sphere.xyz, float3(1, 1, 1)), dyn_sphere.sphere.w);
+    }
+
+    float2 get_dyn_sphere_model_uv(DynDecals decals, DynSphereResult dyn_sphere, float4 precomputed_cos_sin)
+    {
+      float3x3 R = float3x3(float3(precomputed_cos_sin.w * precomputed_cos_sin.x, precomputed_cos_sin.w * precomputed_cos_sin.y, precomputed_cos_sin.z),
+                            float3(precomputed_cos_sin.z * precomputed_cos_sin.x, precomputed_cos_sin.z * precomputed_cos_sin.y, -precomputed_cos_sin.w),
+                            float3(-precomputed_cos_sin.y, precomputed_cos_sin.x, 0));
+
+      float3 modelNormalRotated = mul(decals.modelNormal, R);
+      float3 modeldistVecRotated = mul(dyn_sphere.distVec, R);
+
+      return box_projection(modeldistVecRotated, modelNormalRotated) / max(dyn_sphere.sphere.w, 0.001) * 0.5 + 0.5;
+    }
+
+    bool set_dyn_layer_ground_model(inout DynDecals decals, float dist, float4 uv_rad, float4 uv_norm, bool clip, bool diff, bool rim)
+    {
+      float uvOffset = uv_rad.z;
+      float radius = abs(uv_rad.w);
+      float noiseSample = h4tex2D(dyn_noise, uvOffset + dyn_decals_params.y * uv_rad.xy * radius).a;
+      float radiusNoise = uv_rad.w * (-0.5 + noiseSample);
+      float radiusNoiseSign = sign(radiusNoise);
+      radiusNoise = abs(radiusNoise);
+      float distNoise = radiusNoiseSign * min(dyn_decals_params.x * radiusNoise, radius);
+      dist += distNoise;
+      bool sel = dist < decals.dist;
+      decals.uvRad = sel ? uv_rad : decals.uvRad;
+      decals.uvNorm = sel ? uv_norm : decals.uvNorm;
+      decals.distNoise = sel ? distNoise : decals.distNoise;
+      decals.dist = min(decals.dist, dist);
+      decals.clipDist = clip ? min(decals.clipDist, dist) : decals.clipDist;
+      decals.rimDistGm = rim ? min(decals.rimDistGm, dist) : decals.rimDistGm;
+      decals.diffDistGm = diff ? min(decals.diffDistGm, dist) : decals.diffDistGm;
+      return sel;
+    }
+
+    void set_dyn_layer(inout DynDecals decals, float dist, float4 uv_rad, float4 uv_norm, bool clip, bool diff, bool rim, int material,
+      float4 rand_noises = float4(1.0, 1.0, 0.0, 0.0), float4 rim_rand_noises = float4(1.0, 1.0, 0.0, 0.0),
+      float4 rim_params = float4(1.0, 0.0, 10.0, 0.0), float4 diff_params = float4(1.0, 0.0, 10.0, 0.0))
+    {
+      float uvOffset = uv_rad.z;
+      float radius = abs(uv_rad.w);
+      float rimDist = dist;
+      float diffDist = max(diff_params.y, min(diff_params.z, dist / diff_params.x));
+
+      float noiseSample = tex2Dlod(dyn_noise, float4(uvOffset + dyn_decals_params.y * uv_rad.xy * rand_noises.x, 0, 0)).a * rand_noises.y +
+        tex2Dlod(dyn_noise, float4(uvOffset + dyn_decals_params.y * uv_rad.xy * rand_noises.z, 0, 0)).a * rand_noises.w;
+      float radiusNoise = uv_rad.w * (-0.5 + noiseSample);
+      float radiusNoiseSign = sign(radiusNoise);
+      radiusNoise = abs(radiusNoise);
+      float distNoise = radiusNoiseSign * min(dyn_decals_params.x * radiusNoise, radius);
+      diffDist += distNoise;
+
+      dist += distNoise;
+      bool sel = dist < decals.dist;
+      decals.uvRad = sel ? uv_rad : decals.uvRad;
+      decals.uvNorm = sel ? uv_norm : decals.uvNorm;
+      decals.distNoise = sel ? distNoise : decals.distNoise;
+      decals.dist = min(decals.dist, dist);
+      decals.clipDist = clip ? min(decals.clipDist, dist) : decals.clipDist;
+      decals.material = diff && (diffDist < decals.diffDist) ? material
+        : decals.material;
+      decals.diffDist = diff ? min(decals.diffDist, diffDist) : decals.diffDist;
+
+
+      float rimNoiseSample = tex2Dlod(dyn_noise, float4(uvOffset + dyn_decals_params.y * uv_rad.xy * rim_rand_noises.x, 0, 0)).a * rim_rand_noises.y +
+      tex2Dlod(dyn_noise,float4(uvOffset + dyn_decals_params.y * uv_rad.xy * rim_rand_noises.z, 0, 0)).a * rim_rand_noises.w;
+      rimDist = dist - max(diff_params.y, min(diff_params.z, uv_rad.w * rim_params.x * rimNoiseSample));
+      decals.rimDist = rim ? min(decals.rimDist, rimDist) : decals.rimDist;
+    }
+
+    void init_dyn_decals(out DynDecals decals, float3 model_pos, float3 model_normal, float2 dynrend_params_offset_count, float2 texcoord)
+    {
+      int offset = start_params_no;
+
+      decals = (DynDecals)0;
+      decals.modelPos = model_pos;
+      decals.modelNormal = model_normal;
+      decals.modelUV = box_projection(model_pos, model_normal);
+      decals.dynrend_params_offset_count = dynrend_params_offset_count;
+      decals.texcoord = texcoord;
+
+      float4 hdr1 = GET_DYNREND_PARAM(offset, decals.dynrend_params_offset_count);
+      offset += 1;
+      float4 hdr2 = GET_DYNREND_PARAM(offset, decals.dynrend_params_offset_count);
+      offset += 1;
+
+      decals.orMode = (int)hdr1.x;
+      decals.capsuleHolesCount = (int)hdr1.y;
+      decals.sphereHolesCount = (int)hdr1.z;
+      decals.burnMarksCount = (int)hdr1.w;
+      decals.capsuleBurnMarksCount = (int)hdr2.w;
+
+      decals.material = 0;
+
+      decals.dist = 1000;
+      decals.clipDist = 1000;
+      decals.rimDist = 1000;
+      decals.diffDist = 1000;
+      decals.diffDistGm = 1000;
+      decals.rimDistGm = 1000;
+    #if cutting_planes
+    {
+      float4 uvRad;
+      float4 uvNorm;
+      int material = 0;
+      float dist = prepare_dyn_planes(decals, offset, uvRad, uvNorm, material);
+      float4 randNoise = material == MATERIAL_TYPE_STEEL ? dyn_decals_steel_wreackage_noise.xywz
+        : material == MATERIAL_TYPE_WOOD ? dyn_decals_wood_wreackage_noise.xyzw : dyn_decals_fabric_wreackage_noise.rgba;
+      set_dyn_layer(decals, dist, uvRad, uvNorm, true, true, false, material, randNoise,
+        float4(1.0, 0.0, 10.0, 0.0), float4(1.0, 0.0, 10.0, 0.0));
+    }
+    #endif
+      offset += 11;
+    #if capsule_holes
+    {
+      int firstSphereIndex = -1;
+      int secondSphereIndex = -1;
+      for (int i = 0; i<3; ++i)
+      {
+        DynCapsuleResult dynCapsule = (DynCapsuleResult)0;
+        float4 uvRad;
+        float4 uvNorm;
+        dynCapsule = prepare_dyn_capsules(decals, decals.capsuleHolesCount, offset, uvRad, uvNorm, firstSphereIndex, secondSphereIndex);
+
+        if (dynCapsule.index < 0)
+          break;
+        if (i == 0)
+          firstSphereIndex = dynCapsule.index;
+        if (i == 1)
+          secondSphereIndex = dynCapsule.index;
+
+        int isExplodedMaterial = (dynCapsule.index > -1) ? GET_DYNREND_PARAM(offset + dynCapsule.index * 2 + 1, decals.dynrend_params_offset_count).w : 0.0;
+        bool isExploded = (isExplodedMaterial & 1) > 0;
+        int material = (isExplodedMaterial & 6) >> 1;
+        float4 noiseComponent = material == MATERIAL_TYPE_STEEL ? dyn_decals_steel_hole_noise.rgba
+          : material == MATERIAL_TYPE_WOOD ? dyn_decals_wood_hole_noise.rgba : dyn_decals_fabrics_hole_noise.rgba;
+
+##if compatibility_mode == compatibility_mode_off
+        float4 burnMarkParams = dyn_decals_burn_mark_params;
+        float4 diffMarkParams = dyn_decals_diff_mark_params;
+##else
+        float4 burnMarkParams = float4(1.3, 0, 9.0, 0.0);
+        float4 diffMarkParams = float4(1.3, 0, 9.0, 0.0);
+##endif
+        set_dyn_layer(decals, dynCapsule.dist, uvRad, uvNorm, true, true, isExploded, material,
+          noiseComponent, dyn_decals_holes_burn_mark_noise, burnMarkParams, diffMarkParams);
+      }
+    }
+    #endif
+      offset += decals.capsuleHolesCount * 2;
+    #if sphere_holes
+    {
+      DynSphereResult dynSphere = prepare_dyn_spheres_ground_model(decals, decals.sphereHolesCount, offset, 1);
+
+      float4 uv_norm, uv_rad;
+      get_dyn_sphere_norm_uv(dynSphere, uv_norm, uv_rad);
+      set_dyn_layer_ground_model(decals, dynSphere.dist, uv_rad, uv_norm, true, true, false);
+    }
+    #endif
+      offset += decals.sphereHolesCount * 1;
+    #if burn_marks
+    {
+      DynSphereResult dynSphere = prepare_dyn_spheres_ground_model(decals, decals.burnMarksCount, offset, 1);
+
+      float4 uv_norm, uv_rad;
+      get_dyn_sphere_norm_uv(dynSphere, uv_norm, uv_rad);
+      set_dyn_layer_ground_model(decals, dynSphere.dist, uv_rad, uv_norm, false, false, true);
+    }
+    #endif
+      offset += decals.burnMarksCount * 1;
+
+      decals.alphaIn = saturate(1.0 - pow4(saturate(decals.diffDist * dyn_decals_params.z)));
+      decals.alphaOut = saturate(1.0 - pow4(saturate(decals.rimDist * dyn_decals_params2.x)));
+
+      decals.alphaInGm = saturate(1.0 - pow4(saturate(decals.diffDistGm * dyn_decals_params.z)));
+      decals.alphaOutGm = saturate(1.0 - pow4(saturate(decals.rimDistGm * dyn_decals_params2.x)));
+      float alphaIn2 = pow4(saturate(-decals.rimDistGm * dyn_decals_params2.y));
+      decals.alphaInGm = lerp(decals.alphaIn, 1.0, alphaIn2);
+    }
+
+    void clip_dyn_decals(DynDecals decals)
+    {
+      #if cutting_planes || capsule_holes || sphere_holes || diff_marks
+        clip(decals.clipDist);
+      #endif
+    }
+
+    void apply_dyn_decals_local_normal(DynDecals decals, inout half3 local_normal)
+    {
+      int inv = (dot(decals.modelNormal, local_normal) > 0 ? 1 : -1) * decals.uvNorm.w;
+      local_normal = half3(lerp(float3(local_normal), decals.uvNorm.xyz * (inv != 0 ? inv : 1), 0.5 * decals.alphaIn * (decals.alphaIn < 1)));
+    }
+
+    void apply_dyn_decals_base(DynDecals decals, inout float3 diffuseColor, inout half metallness, inout half smoothness)
+    {
+      diffuseColor.rgb = half3(lerp(diffuseColor.rgb, dyn_decals_burn_color.rgb, dyn_decals_burn_color.a * decals.alphaOut * (1.0 - decals.alphaIn)));
+      metallness = half(lerp(metallness, dyn_decals_material.y, decals.alphaIn));
+      smoothness = half(lerp(smoothness, dyn_decals_material.x, decals.alphaIn));
+    #if diff_marks
+      diffuseColor.rgb = half3(lerp(diffuseColor.rgb, decals.diffColAtlas.rgb , decals.diffColAtlas.a * (1.0 - decals.alphaIn)));
+      metallness = half(lerp(metallness, decals.diffMetalness, decals.diffColAtlas.a * (1.0 - decals.alphaIn)));
+      smoothness = half(lerp(smoothness, decals.diffSmoothness, decals.diffColAtlas.a * (1.0 - decals.alphaIn)));
+    #endif
+    }
+
+    void apply_dyn_decals_base_gm(DynDecals decals, inout half3 diffuseColor, inout half metallness, inout half smoothness)
+    {
+      diffuseColor.rgb = half3(lerp(diffuseColor.rgb, dyn_decals_burn_color.rgb, dyn_decals_burn_color.a * decals.alphaOutGm * (1.0 - decals.alphaInGm)));
+      metallness = half(lerp(metallness, dyn_decals_material.y, decals.alphaInGm));
+      smoothness = half(lerp(smoothness, dyn_decals_material.x, decals.alphaInGm));
+    }
+
+    void apply_dyn_decals_camouflage(DynDecals decals, inout half3 diffuseColor, inout half metallness, inout half smoothness, inout half camouflage)
+    {
+      apply_dyn_decals_base_gm(decals, diffuseColor, metallness, smoothness);
+      camouflage = half(lerp(camouflage, 0.h, pow2(decals.alphaOutGm)));
+    }
+
+    void apply_dyn_decals_diffuse(DynDecals decals, inout half3 diffuseColor, inout half metallness, inout half smoothness)
+    {
+      apply_dyn_decals_base(decals, diffuseColor, metallness, smoothness);
+      float3 diffCol = float3(0.0, 0.0, 0.0);
+
+      BRANCH
+      if (decals.material == MATERIAL_TYPE_STEEL)
+      {
+        float gradientX = ddx(decals.texcoord.x);
+        float gradientY = ddx(decals.texcoord.y);
+        diffCol = tex2Dlod(dyn_noise, float4(decals.modelUV * dyn_decals_params.w, 0, 0)).rgb;
+      }
+      else
+        diffCol = decals.material == MATERIAL_TYPE_WOOD ? dyn_decals_wood_color.rgb : dyn_decals_fabric_color.rgb;
+
+      diffuseColor.rgb = half3(lerp(diffuseColor.rgb, dyn_decals_cutting_color.rgb, decals.alphaIn));
+      diffuseColor.rgb = half3(lerp(diffuseColor.rgb, diffCol, decals.alphaIn));
+    }
+
+    float cut_dyn_decals(float3 model_pos, float3 model_norm, float2 dynrend_params_offset_count, float2 texcoord)
+    {
+      DynDecals decals;
+      init_dyn_decals(decals, model_pos, model_norm, dynrend_params_offset_count, texcoord);
+      clip_dyn_decals(decals);
+      return decals.dist;
+    }
+
+    #define cut_planes(model_pos, dynrend_params_offset_count) cut_dyn_decals(model_pos, float3(0, 1, 0), dynrend_params_offset_count, float2(1, 1))
+  }
+endmacro

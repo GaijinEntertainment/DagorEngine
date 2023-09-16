@@ -1,0 +1,95 @@
+2003/10/28 fastdep-0.16
+	Implement boolean operators in #if [Pete Gonzalez]
+	Adds support for  Windows MinGW GCC and MS VisualC++.NET [Jack T. Goral]
+	Adds Jamfile for compilation with Jam [Jack T. Goral]
+	Make gcc style predefined symbols defined as in -DPARAMETER=3 [Pierric Descamps]
+	Fix unportable configure sh for NetBSD [Julio M. Merino Vidal]
+	Set object filename extension through a command line [Arne Varholm]
+	Man page [Zenaan Harkness]
+	Compilation fixes + makefile for MS VC6 [Alexander Bartolich]
+
+2003/01/15 fastdep-0.15
+	Fix parsing bug : tab is also valid whitespace in #ifdef lines
+	[Daniel Brahneborg]
+	Add -O switch to specify object dir
+	[Daniel Brahneborg]
+	Use local copy of libgnugetopt on platforms not using GNU libc
+
+2002/11/29 fastdep-0.14
+
+	Compilation and build fixes for FreeBSD [Robert Sandilands]
+	Revert braindead /usr exclusion from 0.13 [Robert Sandilands]
+	Don't process include files found in /usr/include
+	Reduce number of stat and open calls by 50% to 90% [idea from code by Richard Cownie]
+	Reworked the build system and introduced a small configuration script
+	Better manual in docbook (converted to dvi/ps/pdf/html)
+
+2002/10/26 fastdep-0.13
+
+	Fix compilation error, cout needs std:: prefix in fastdep.cc [Jelbert Treeve]
+	Don't barf if tabs are used as whitespace between #, define and the macro body
+	--debug switch to print out what happens
+	Don't follow includes in /usr directory
+	--atleastversion to check version in scripts
+
+2002/08/12 fastdep-0.12
+
+	Also follow <...> includes, but silently ignore them when we can't find
+	them (assuming they are system headers) [Sébastien de Menten]
+	Strip ending newline and carriage returns from include directories
+	[Chris Lambacher]
+	Add -D switch to add always defined symbols (same as gcc)
+
+2002/07/15 fastdep-0.11
+
+	Fix when a filename begins the same as the current directory [Chris
+	Lambacher]
+	-o parameter to direct output to a file instead of stdout
+	Add a spec file to generate RPMS
+
+2002/06/01 fastdep-0.10
+	--extraincludes parameter to read extra includes directories from a filename
+	-q parameter for a quite mode (don't complain when no files found)
+	Fixes in the build process under cygwin
+	Pass .o/.cc names in a filename for linking/dependency generation 
+	to avoid exhausting limited size of the command line parameters 
+	buffer in cygwin
+	[items by : Chris Lambacher]
+	
+2002/05/02 fastdep-0.09
+	Fixed brain dead bug as shown by new testcase (asterix-comment)
+	Fixed bug when using absolute filenames in #includes
+	Added --stdinclude parameter (defaults to /usr/include)
+	Added --compile parameter to generate a build rule instead of
+	a simple dependency
+	Added -d parameter to strip directory part from the output object name
+	[all items by : Robert Sandilands <rsandila@netscape.net>]
+
+2002/04/25 fastdep-0.08
+	Macros without parameters are now evaluated in #if/#elif expressions
+	Improved a (small) bit on the documentation
+
+2002/04/09 fastdep-0.07
+	--version and -v switches to print version information
+
+2002/04/07 fastdep-0.06
+	Add missing #include <iostream> to fix compilation on gcc 3.x
+
+2002/03/18 fastdep-0.05
+	Begin with a library of regression tests
+	Evaluate expressions after #if
+
+2002/03/10 fastdep-0.04
+	Preliminary support for #if and #elif
+
+2002/01/10 fastdep-0.03
+	Emit right dependencies for cross-directory includes
+
+2002/01/08 fastdep-0.02
+	Correct include file behaviour in the face of multiple directories
+
+2001/12/31 fastdep-0.01
+	Add installation scheme
+
+2001/12/29 fastdep
+	First version. Don't know about #if and #elif

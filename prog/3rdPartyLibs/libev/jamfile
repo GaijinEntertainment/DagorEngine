@@ -1,0 +1,33 @@
+Root     ?= ../../.. ;
+Location = prog/3rdPartyLibs/libev ;
+Target   = 3rdPartyLibs/libev.lib ;
+TargetType  = lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+  ev.c
+;
+
+if $(Platform) in ps4 ps5 {
+  UseProgLibs = 3rdPartyLibs/posix ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ;
+}
+
+if $(Platform) = nswitch {
+  Sources += ev_nswitch.cpp ;
+
+  UseProgLibs = 3rdPartyLibs/posix ;
+}
+
+if $(Platform) = linux64 && $(Sanitize) = thread {
+  Copt += -Wno-tsan ;
+}
+
+if $(PlatformSpec) in gcc4 clang {
+  Copt += -Wno-unused-parameter ;
+}
+
+MasterPreInclude  = ;
+CPPopt = -DHAVE_CONFIG_H ;
+include $(Root)/prog/_jBuild/build.jam ;

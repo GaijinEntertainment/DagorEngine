@@ -1,0 +1,19 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditor3/services/builtSceneView ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditor3/services/builtSceneView.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+
+Sources =
+  sceneView.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

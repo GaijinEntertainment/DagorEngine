@@ -1,0 +1,19 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/hdrRender ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/hdrRender.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  hdrRender.cpp
+  hdrDecoder.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

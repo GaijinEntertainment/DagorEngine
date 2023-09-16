@@ -1,0 +1,23 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/covers ;
+StrictCompile = yes ;
+TargetType  = lib ;
+Target      = gameLibs/covers.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/Detour/Include
+;
+
+Sources =
+  covers.cpp
+;
+
+UseProgLibs +=
+  3rdPartyLibs/Detour
+  engine2/scene
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

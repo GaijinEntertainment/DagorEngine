@@ -1,0 +1,9 @@
+BundleID    ?= com.gaijinent.$(BundleName) ;
+if $(UseD3DMulti) = yes {
+  OutDir = $(OutDir)/$(BundleName)-m.app/Contents/MacOS ;
+  UseProgLibs += engine2/drv/drv3d_pc_multi ;
+} else {
+  OutDir = $(OutDir)/$(BundleName)-Metal.app/Contents/MacOS ;
+  UseProgLibs += engine2/drv/drv3d_Metal ;
+}
+BundlePlist = @$(Root)/prog/_jBuild/macosx/generic.info.plist ../Info.plist ;

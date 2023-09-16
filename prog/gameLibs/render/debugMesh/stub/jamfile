@@ -1,0 +1,18 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/debugMesh/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/debugMeshStub.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  debugMesh.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

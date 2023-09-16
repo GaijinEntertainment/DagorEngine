@@ -1,0 +1,32 @@
+Root        ?= ../../../../.. ;
+BreakpadRoot = prog/3rdPartyLibs/breakpad ;
+Location     = $(BreakpadRoot)/common/linux ;
+Platform    ?= linux64 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/breakpad/common/linux.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes += $(Root)/$(BreakpadRoot) ;
+Sources =
+  dump_symbols.cc
+  elf_symbols_to_module.cc
+  file_id.cc
+  guid_creator.cc
+  synth_elf.cc
+  elfutils.cc
+  guid_creator.cc
+  linux_libc_support.cc
+  memory_mapped_file.cc
+  safe_readlink.cc
+  crc32.cc
+;
+
+if $(PlatformSpec) in gcc4 clang {
+  CPPopt += -Wno-unused-parameter ;
+}
+
+ExplicitLicenseUsed += $(Root)/prog/3rdPartyLibs/breakpad ;
+
+include $(Root)/prog/_jBuild/build.jam ;

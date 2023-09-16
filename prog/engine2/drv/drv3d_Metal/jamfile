@@ -1,0 +1,67 @@
+Platform ?= macosx ;
+
+Root    ?= ../../../.. ;
+Location = prog/engine2/drv/drv3d_Metal ;
+
+TargetType  = lib ;
+Target      = engine2/drv/drv3d_Metal.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(Platform) = macosx {
+  local ver = [ MATCH "([^\.]+)\.(.+)" : $(MacOSXMinVer) ] ;
+  if ! ( ( $(ver[1]) in 11 12 ) || ( $(ver[1]) = 10 && ( $(ver[2]) in 11 12 13 14 15 ) ) ) {
+    echo MacOSXMinVer\=$(MacOSXMinVer) not supported, 10.11+ is required for Metal ;
+  }
+
+  # Metal driver code can be compiled for macOS 11
+  # but metal raytracing shaders can be compiled
+  # only since macOS 12 (ray queries were added only in Metal 2.4)
+  if ( $(ver[1]) in 12 13 14 ) {
+    CPPopt += -DAPPLE_RT_SUPPORTED=1 ;
+  }
+}
+
+if $(Platform) = iOS { # Our minimum supported version already supports RT completely
+  CPPopt += -DAPPLE_RT_SUPPORTED=1 ;
+}
+
+Sources =
+  buffers.mm
+  vdecl.mm
+  program.mm
+  shader.mm
+  shadersPreCache.mm
+  texture.mm
+  metalview.mm
+  render.mm
+  init_d3di.cpp
+  d3d_buffers.mm
+  d3d_unimplemented.cpp
+  d3d_shaders.mm
+  d3d_texture.mm
+  d3d_rtarget.mm
+  d3d_states.mm
+  d3d_tm.mm
+  d3d_render_main.mm
+  d3d_raytracing.mm
+;
+
+CPPopt += -include $(Root)/$(Location)/d3d_config.h ;
+CPPopt += -DINSIDE_DRIVER ;
+
+if $(UseMetalfx) = yes {
+  CPPopt += -DUSE_METALFX_UPSCALE=1 ;
+}
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine2/drv/drv3d_commonCode
+;
+
+UseProgLibs =
+  engine2/drv/drv3d_commonCode
+  3rdPartyLibs/hash
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

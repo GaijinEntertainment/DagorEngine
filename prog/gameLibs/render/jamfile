@@ -1,0 +1,146 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render ;
+
+TargetType  = lib ;
+Target      = gameLibs/render.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/binPack2D/include
+  $(Root)/$(Location)
+  $(Root)/$(Location)/shaders
+;
+
+Sources =
+#  bentCones.cpp
+  bigLightsShadows.cpp
+  tdrGpu.cpp
+  toroidalStaticShadows/toroidalStaticShadowCascade.cpp
+  toroidalStaticShadows/shadowDepthScroller.cpp
+  toroidalStaticShadows/toroidalStaticShadows.cpp
+  load_texture_array.cpp
+  preIntegratedGF.cpp 
+  noiseTex.cpp
+  noiseTexData.cpp
+  gpuGrass.cpp
+  ssao_common.cpp
+  ssao.cpp
+  gtao.cpp
+  mobile_ssao.cpp
+  tireTracks.cpp
+  clipmapDecals.cpp
+  burningDecals.cpp
+  clouds.cpp
+  deferredRenderer.cpp
+  deferredRT.cpp
+  psm.cpp
+  rain.cpp
+  shaderVars.cpp
+  waterObjects.cpp
+  xcsm.cpp
+  variance.cpp
+  fog.cpp
+  iesTextureManager.cpp
+  omniLightsManager.cpp
+  spotLightsManager.cpp
+  rainSnowCone.cpp
+  distortion.cpp
+  antialiasing.cpp
+  partialDxtRender.cpp
+  dynamicCube.cpp
+  dynamicLightProbe.cpp
+  randomGrass.cpp
+  landMask.cpp
+  editorGrass.cpp
+  waterProjFx.cpp
+  sphHarmCalc.cpp
+  cascadeShadows.cpp
+#  staticShadows.cpp
+  lightCube.cpp
+  downsampleDepth.cpp
+  screenSpaceReflections.cpp
+  tileDeferredLighting.cpp
+  grassTranslucency.cpp
+  viewVecs.cpp
+  set_reprojection.cpp
+  debugTexOverlay.cpp
+  debugTonemapOverlay.cpp
+  debugMultiTextOverlay.cpp
+  heroWetness.cpp
+  motionBlur.cpp
+  globe.cpp
+  waterFoamTrail.cpp
+  commonMeshManager.cpp
+  smokeTracers.cpp
+  beamTracers.cpp
+  frustumClusters.cpp
+  shadowSystem.cpp
+  clusteredLights.cpp
+  dstReadbackLights.cpp
+  temporalAA.cpp
+  toroidalHeightmap.cpp
+  mipRenderer.cpp
+  depthAOAboveRenderer.cpp
+  whiteTex.cpp
+  lightProbe.cpp
+  debugLightProbeSpheres.cpp
+  debugIndoorBoxes.cpp
+  lightProbeSpecularCubesContainer.cpp
+  debugBoxRenderer.cpp
+  debugGbuffer.cpp
+  screenDroplets.cpp
+  atlasTexManager.cpp
+  coherentNoise.cpp
+  tiledLights.cpp
+  backBufferHolder.cpp
+  gpuVisibilityTest.cpp
+  voltexRenderer.cpp
+  emissionColorMaps.cpp
+  esmShadows.cpp
+  esmAo.cpp
+  dynamicQuality.cpp
+  dynamicResolution.cpp
+  gpuWatchMs.cpp
+  graphicsAutodetect.cpp
+  vertexDensityOverlay.cpp
+  grassify.cpp
+;
+
+UseProgLibs +=
+  engine2/lib3d
+  gameLibs/render/texcompressors
+  gameLibs/render/primitiveObjects
+  gameLibs/render/fx
+  gameLibs/frustumCulling
+  gameLibs/render/volumetricLights
+  gameLibs/render/dynmodelRenderer
+;
+
+if $(Config) != rel
+{
+  UseProgLibs += gameLibs/render/debugMesh ;
+}
+else
+{
+  UseProgLibs += gameLibs/render/debugMesh/stub ;
+}
+
+CPPopt = ;
+
+if $(Platform) in win32 win64
+{
+  AddLibs += OleAut32.lib ;
+}
+else if $(Platform) = ps4
+{
+}
+
+if $(Platform) in android
+{
+  Sources += androidScreenRotation.cpp ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

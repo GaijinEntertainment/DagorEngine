@@ -1,0 +1,3 @@
+return {
+  decode = @(jwt, key) assert(type(jwt)=="string") && assert(type(key)=="string")
+}

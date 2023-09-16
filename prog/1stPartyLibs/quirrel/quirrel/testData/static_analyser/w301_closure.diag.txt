@@ -1,0 +1,15 @@
+
+AN ERROR HAS OCCURRED [the index 'null' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyser/w301_closure.nut line [8]
+
+LOCALS
+[tree] NULL
+[dp] NULL
+[d] TABLE={}
+[foo] CLOSURE=FN:foo
+[cr] NULL
+[c] NULL
+[vargv] ARRAY=[]
+[this] TABLE={}

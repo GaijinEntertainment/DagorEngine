@@ -1,0 +1,20 @@
+Root    ?= ../../../../../.. ;
+Location = prog/gameLibs/gamePhys/phys/rendinstDestrRefl/stub ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/gamePhys/phys/rendinstDestrRefl_stub.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/gamePhys/phys/rendinstRefl
+;
+
+Sources =
+  rdrstub.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;
+

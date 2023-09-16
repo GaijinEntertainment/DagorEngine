@@ -1,0 +1,131 @@
+include "shader_global.sh"
+include "fullTonemap.sh"
+
+int tonemap_sim_rt = 0;
+interval tonemap_sim_rt:four<5, eight;
+int lut_size = 32;
+int first_lut_rslice = 0;
+
+define_macro_if_not_defined transformColor(code)
+  hlsl {
+    float3 transformBeforeWhiteBalance(float3 a){return a;}
+    float3 transformBeforeColorGrading(float3 a){return a;}
+    float3 transformAfterColorGrading(float3 a){return a;}
+    float3 applyPostTonemapCorrection(float3 a){return a;}//won't go to HDR
+  }
+endmacro
+
+define_macro_if_not_defined tonemappedColorToDevice(code)
+  hlsl {
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    float3 toDevice(float3 tonemapedColor, float3 linearColor, float3 balancedColor, float3 gradedColor )
+    {
+      return accurateLinearToSRGB(tonemapedColor);
+      //if ACES1000
+      //return linearToST2084(ACESOutputTransforms1000( gradedColor ));
+    }
+  }
+endmacro
+
+macro MAKE_TONEMAP(code)
+  FULL_TONEMAP(code)
+  transformColor(code)
+  tonemappedColorToDevice(code)
+  hlsl(code) {
+    #include <tonemapHelpers/tonemapLUTSpace.hlsl>
+    float3 makeTonemap(float3 lutPos)
+    {
+      float3 linearColor = lut_log_to_linear( lutPos ) - lut_log_to_linear( 0 );
+      float3 balancedColor = applyWhiteBalance( transformBeforeWhiteBalance(linearColor) );
+      float3 gradedColor = transformAfterColorGrading(applyColorGrading(transformBeforeColorGrading(balancedColor)));
+      float3 tonemapedColor = applyPostTonemapCorrection(applyTonemap(gradedColor));
+      return toDevice(tonemapedColor, linearColor, balancedColor, gradedColor);
+    }
+  }
+endmacro
+
+macro RENDER_FULL_TONEMAP_LUT()
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+  color_write = rgb;
+  MAKE_TONEMAP(ps)
+
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  hlsl(vs) {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+    };
+    VsOutput integrate_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos.xy, 0, 1);
+      return output;
+    }
+  }
+  (ps) { first_lut_rslice@f2=(first_lut_rslice, 1.0/(lut_size-1),0,0); }
+  hlsl(ps) {
+    struct MRT_OUTPUT
+    {
+      half3 color0:SV_Target0;
+      half3 color1:SV_Target1;
+      half3 color2:SV_Target2;
+      half3 color3:SV_Target3;
+      ##if tonemap_sim_rt == eight
+      half3 color4:SV_Target4;
+      half3 color5:SV_Target5;
+      half3 color6:SV_Target6;
+      half3 color7:SV_Target7;
+      ##endif
+    };
+
+    MRT_OUTPUT integrate_ps(float4 screenpos_ : VPOS)
+    {
+      float2 screenpos = floor(screenpos_.xy);
+      float startSlice = first_lut_rslice.x;
+      MRT_OUTPUT ret = (MRT_OUTPUT)0;
+      ret.color0 = makeTonemap(first_lut_rslice.y*float3(screenpos, startSlice+0));
+      ret.color1 = makeTonemap(first_lut_rslice.y*float3(screenpos, startSlice+1));
+      ret.color2 = makeTonemap(first_lut_rslice.y*float3(screenpos, startSlice+2));
+      ret.color3 = makeTonemap(first_lut_rslice.y*float3(screenpos, startSlice+3));
+      ##if tonemap_sim_rt == eight
+      ret.color4 = makeTonemap(first_lut_rslice.y*float3(screenpos, startSlice+4));
+      ret.color5 = makeTonemap(first_lut_rslice.y*float3(screenpos, startSlice+5));
+      ret.color6 = makeTonemap(first_lut_rslice.y*float3(screenpos, startSlice+6));
+      ret.color7 = makeTonemap(first_lut_rslice.y*float3(screenpos, startSlice+7));
+      ##endif
+      return ret;
+    }
+  }
+  compile("target_vs", "integrate_vs");
+  compile("target_ps", "integrate_ps");
+endmacro
+// if you want to have render version, just add this three lines to your project file
+// shader render_full_tonemap_lut
+//{
+//  RENDER_FULL_TONEMAP_LUT()
+//}
+
+macro FULL_TONEMAP_COMPUTE()
+  MAKE_TONEMAP(cs)
+
+  (cs) { lut_size@f2=(lut_size, 1.0/(lut_size-1),0,0); }
+  hlsl(cs) {
+    RWTexture3D<float3>  lut : register(u0);
+
+    [numthreads(4, 4, 4)]
+    void make_lut_cs(uint3 tId : SV_DispatchThreadID)
+    {
+      lut[tId] = makeTonemap(lut_size.y*float3(tId));
+    }
+  }
+  compile("target_cs", "make_lut_cs");
+endmacro
+//if you want to have compute version, just add this three lines to your project file
+//shader compute_full_tonemap
+//{
+//  FULL_TONEMAP_COMPUTE()
+//}

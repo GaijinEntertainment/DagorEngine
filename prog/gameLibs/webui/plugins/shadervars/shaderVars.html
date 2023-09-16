@@ -1,0 +1,41 @@
+<script type='text/javascript'>
+function on_color(i)
+{
+  var color = document.getElementById('color'+i).value;
+  document.getElementById('sh_val_'+i).innerHTML = color;
+  var x = new XMLHttpRequest();
+  x.open('GET', 'shader_vars?color='+escape(color)+'&id='+i, true);
+  x.send();
+}
+
+function on_edit_box(i) 
+{
+  var val = document.getElementById('edit_box_'+i).value;
+  if (!isNaN(val))
+    document.getElementById('slider_'+i).value = val;
+  val = "" + parseFloat(val);
+  document.getElementById('sh_val_'+i).innerHTML = val;
+  var x = new XMLHttpRequest();
+  x.open('GET', 'shader_vars?range='+val+'&id='+i, true);
+  x.send();
+}
+
+function on_slider(i) 
+{
+  var slider_val = document.getElementById('slider_'+i).value;
+  document.getElementById('edit_box_'+i).value = slider_val;
+  document.getElementById('sh_val_'+i).innerHTML = slider_val;
+  var x = new XMLHttpRequest();
+  x.open('GET', 'shader_vars?range='+slider_val+'&id='+i, true);
+  x.send();
+}
+
+function shadervars_color_cb(color4FloatStr, e3dcolorHexStr, varId)
+{
+  var x = new XMLHttpRequest();
+  x.open('GET', 'shader_vars?color4=' + color4FloatStr.replace(' ', '') + '&id=' + varId, true);
+  x.send();
+}
+</script>
+
+<script src="colorPicker.js"></script>

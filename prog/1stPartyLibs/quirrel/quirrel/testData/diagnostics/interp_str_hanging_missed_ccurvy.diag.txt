@@ -1,0 +1,7 @@
+ERROR: unfinished string
+testData/diagnostics/interp_str_hanging_missed_ccurvy.nut:3:16
+
+println($"{foo()")
+                ^-
+
+

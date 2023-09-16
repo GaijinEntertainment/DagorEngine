@@ -1,0 +1,74 @@
+include "sky_shader_global.sh"
+include "gbuffer.sh"
+texture combined_shadows;
+texture screen_ambient;
+
+int ambient_per_pixel_trace;
+interval ambient_per_pixel_trace:off<1, on;
+
+macro LIGHT_VOXELS_SCENE_HELPER(code)
+
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER_BASE(code)
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER_BASE(code)
+  (code) {
+    from_sun_direction@f3 = from_sun_direction;
+    sun_color_0@f3 = sun_color_0;
+    combined_shadows@smp2d = combined_shadows;
+    screen_ambient@smp2d = screen_ambient;
+  }
+  INIT_SKY_DIFFUSE_BASE(code)
+  USE_SKY_DIFFUSE_BASE(code)
+  SAMPLE_INIT_VOLMAP_25D(code)
+  SAMPLE_VOLMAP_25D(code)
+  (code) { gi_25d_volmap_size@f4 = gi_25d_volmap_size; }//can fit more
+  hlsl(cs) {
+    #include <BRDF.hlsl>
+  }
+
+  hlsl(code) {
+    int get_voxel_scene_gbuffer_color(float2 tc, float w, float3 worldPos, out float3 next_color, out float next_alpha, float3 baseCoord, float3 voxel_size, uint cascade)
+    {
+      next_color = 0; next_alpha = 0;
+      ProcessedGbuffer gbuffer = readProcessedGbuffer(tc);
+      #if GBUFFER_HAS_DYNAMIC
+      if (gbuffer.dynamic)
+        return 0;
+      #endif
+      float3 lightDir = -from_sun_direction.xyz;
+      half3 lightColor = sun_color_0.rgb;
+      float NoL = dot(lightDir, gbuffer.normal);
+      float3 enviLight = GetSkySHDiffuse(gbuffer.normal);
+      ##if ambient_per_pixel_trace == on
+        half3 ambientColor = tex2Dlod(screen_ambient, float4(tc,0,0)).rgb;//todo: may be use mip
+      ##else
+        half3 giAmbient = enviLight;
+        float3 filteredWorldPos=worldPos;
+        half giAmount = get_ambient3d(filteredWorldPos, gbuffer.normal, enviLight, giAmbient);
+        BRANCH
+        if (giAmount < 1)
+        {
+          half3 ambient25d = enviLight;
+          half ambient25dAmount = sample_25d_volmap(filteredWorldPos, gbuffer.normal, ambient25d);
+          enviLight = lerp(enviLight, ambient25d, ambient25dAmount);
+        }
+        half3 ambientColor = lerp(enviLight, giAmbient, giAmount);
+      ##endif
+      half3 translucentLight = 0, backAmbientLight = 0;
+      float shadow = gbuffer.shadow*tex2Dlod(combined_shadows, float4(tc,0,0)).x;
+      next_alpha = 1;
+      if (gbuffer.material == SHADING_FOLIAGE)//minimum representable translucency is 1./16
+      {
+        next_alpha = clamp(1-gbuffer.translucency, 1./OLD_ALPHA_MAX_VALUE, 1-1.5/OLD_ALPHA_MAX_VALUE);
+        translucentLight = saturate(foliageSSSBackDiffuseAmount(NoL)*shadow)*lightColor;
+        backAmbientLight = GetSkySHDiffuse(-gbuffer.normal);
+        get_ambient(worldPos, -gbuffer.normal, enviLight, backAmbientLight);
+      }
+      half3 diffuseColor = lerp(gbuffer.diffuseColor, gbuffer.specularColor, gbuffer.metallness);
+      next_color = diffuseColor*(saturate(NoL*shadow)*lightColor + (gbuffer.ao * ambientColor)) +
+        gbuffer.translucencyColor*(translucentLight + gbuffer.ao * backAmbientLight);
+      return 1;
+    }
+  }
+endmacro

@@ -1,0 +1,8 @@
+if ! $(__BUILD_INCLUDED) {
+  if ! $(Root) { 
+    EXIT 'Root' variable not defined, aborting ; 
+  }
+
+  __BUILD_INCLUDED = 1 ;
+  include $(Root)/prog/_jBuild/jBuild.jam ;
+}

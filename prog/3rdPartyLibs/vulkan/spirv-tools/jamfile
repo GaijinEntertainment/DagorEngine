@@ -1,0 +1,252 @@
+Root           ?= ../../../.. ;
+Location        = prog/3rdPartyLibs/vulkan/spirv-tools ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/vulkan/spirv-tools.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes = 
+  $(Root)/$(Location)
+  $(Root)/$(Location)/include
+  $(Root)/$(Location)/source
+  $(Root)/$(Location)/source/opt
+  $(Root)/$(Location)/source/util
+  $(Root)/$(Location)/source/val
+  $(Root)/$(Location)/external/spirv-headers/include
+  $(Root)/$(Location)/external/spirv-headers/include/spirv/unified1
+;
+
+
+Sources =
+  source/assembly_grammar.cpp
+  source/binary.cpp
+  source/diagnostic.cpp
+  source/disassemble.cpp
+  source/enum_string_mapping.cpp
+  source/extensions.cpp
+  source/ext_inst.cpp
+  source/libspirv.cpp
+  source/link/linker.cpp
+  source/name_mapper.cpp
+  source/opcode.cpp
+  source/operand.cpp
+  source/opt/aggressive_dead_code_elim_pass.cpp
+  source/opt/amd_ext_to_khr.cpp
+  source/opt/basic_block.cpp
+  source/opt/block_merge_pass.cpp
+  source/opt/block_merge_util.cpp
+  source/opt/build_module.cpp
+  source/opt/ccp_pass.cpp
+  source/opt/cfg.cpp
+  source/opt/cfg_cleanup_pass.cpp
+  source/opt/code_sink.cpp
+  source/opt/combine_access_chains.cpp
+  source/opt/compact_ids_pass.cpp
+  source/opt/composite.cpp
+  source/opt/constants.cpp
+  source/opt/const_folding_rules.cpp
+  source/opt/control_dependence.cpp
+  source/opt/convert_to_half_pass.cpp
+  source/opt/convert_to_sampled_image_pass.cpp
+  source/opt/copy_prop_arrays.cpp
+  source/opt/dataflow.cpp
+  source/opt/dead_branch_elim_pass.cpp
+  source/opt/dead_insert_elim_pass.cpp
+  source/opt/dead_variable_elimination.cpp
+  source/opt/debug_info_manager.cpp
+  source/opt/decoration_manager.cpp
+  source/opt/def_use_manager.cpp
+  source/opt/desc_sroa.cpp
+  source/opt/desc_sroa_util.cpp
+  source/opt/dominator_analysis.cpp
+  source/opt/dominator_tree.cpp
+  source/opt/eliminate_dead_constant_pass.cpp
+  source/opt/eliminate_dead_functions_pass.cpp
+  source/opt/eliminate_dead_functions_util.cpp
+  source/opt/eliminate_dead_members_pass.cpp
+  source/opt/feature_manager.cpp
+  source/opt/fix_storage_class.cpp
+  source/opt/flatten_decoration_pass.cpp
+  source/opt/fold.cpp
+  source/opt/folding_rules.cpp
+  source/opt/fold_spec_constant_op_and_composite_pass.cpp
+  source/opt/freeze_spec_constant_value_pass.cpp
+  source/opt/function.cpp
+  source/opt/graphics_robust_access_pass.cpp
+  source/opt/if_conversion.cpp
+  source/opt/inline_exhaustive_pass.cpp
+  source/opt/inline_opaque_pass.cpp
+  source/opt/inline_pass.cpp
+  source/opt/instruction.cpp
+  source/opt/instruction_list.cpp
+  source/opt/instrument_pass.cpp
+  source/opt/inst_bindless_check_pass.cpp
+  source/opt/inst_buff_addr_check_pass.cpp
+  source/opt/inst_debug_printf_pass.cpp
+  source/opt/interp_fixup_pass.cpp
+  source/opt/ir_context.cpp
+  source/opt/ir_loader.cpp
+  source/opt/licm_pass.cpp
+  source/opt/local_access_chain_convert_pass.cpp
+  source/opt/local_redundancy_elimination.cpp
+  source/opt/local_single_block_elim_pass.cpp
+  source/opt/local_single_store_elim_pass.cpp
+  source/opt/loop_dependence.cpp
+  source/opt/loop_dependence_helpers.cpp
+  source/opt/loop_descriptor.cpp
+  source/opt/loop_fission.cpp
+  source/opt/loop_fusion.cpp
+  source/opt/loop_fusion_pass.cpp
+  source/opt/loop_peeling.cpp
+  source/opt/loop_unroller.cpp
+  source/opt/loop_unswitch_pass.cpp
+  source/opt/loop_utils.cpp
+  source/opt/mem_pass.cpp
+  source/opt/merge_return_pass.cpp
+  source/opt/module.cpp
+  source/opt/optimizer.cpp
+  source/opt/pass.cpp
+  source/opt/pass_manager.cpp
+  source/opt/pch_source_opt.cpp
+  source/opt/private_to_local_pass.cpp
+  source/opt/propagator.cpp
+  source/opt/reduce_load_size.cpp
+  source/opt/redundancy_elimination.cpp
+  source/opt/register_pressure.cpp
+  source/opt/relax_float_ops_pass.cpp
+  source/opt/remove_duplicates_pass.cpp
+  source/opt/remove_unused_interface_variables_pass.cpp
+  source/opt/replace_desc_array_access_using_var_index.cpp
+  source/opt/replace_invalid_opc.cpp
+  source/opt/scalar_analysis.cpp
+  source/opt/scalar_analysis_simplification.cpp
+  source/opt/scalar_replacement_pass.cpp
+  source/opt/set_spec_constant_default_value_pass.cpp
+  source/opt/simplification_pass.cpp
+  source/opt/spread_volatile_semantics.cpp
+  source/opt/ssa_rewrite_pass.cpp
+  source/opt/strength_reduction_pass.cpp
+  source/opt/strip_debug_info_pass.cpp
+  source/opt/strip_nonsemantic_info_pass.cpp
+  source/opt/struct_cfg_analysis.cpp
+  source/opt/types.cpp
+  source/opt/type_manager.cpp
+  source/opt/unify_const_pass.cpp
+  source/opt/upgrade_memory_model.cpp
+  source/opt/value_number_table.cpp
+  source/opt/vector_dce.cpp
+  source/opt/workaround1209.cpp
+  source/opt/wrap_opkill.cpp
+  source/parsed_operand.cpp
+  source/pch_source.cpp
+  source/print.cpp
+  source/reduce/change_operand_reduction_opportunity.cpp
+  source/reduce/change_operand_to_undef_reduction_opportunity.cpp
+  source/reduce/conditional_branch_to_simple_conditional_branch_opportunity_finder.cpp
+  source/reduce/conditional_branch_to_simple_conditional_branch_reduction_opportunity.cpp
+  source/reduce/merge_blocks_reduction_opportunity.cpp
+  source/reduce/merge_blocks_reduction_opportunity_finder.cpp
+  source/reduce/operand_to_const_reduction_opportunity_finder.cpp
+  source/reduce/operand_to_dominating_id_reduction_opportunity_finder.cpp
+  source/reduce/operand_to_undef_reduction_opportunity_finder.cpp
+  source/reduce/pch_source_reduce.cpp
+  source/reduce/reducer.cpp
+  source/reduce/reduction_opportunity.cpp
+  source/reduce/reduction_opportunity_finder.cpp
+  source/reduce/reduction_pass.cpp
+  source/reduce/reduction_util.cpp
+  source/reduce/remove_block_reduction_opportunity.cpp
+  source/reduce/remove_block_reduction_opportunity_finder.cpp
+  source/reduce/remove_function_reduction_opportunity.cpp
+  source/reduce/remove_function_reduction_opportunity_finder.cpp
+  source/reduce/remove_instruction_reduction_opportunity.cpp
+  source/reduce/remove_selection_reduction_opportunity.cpp
+  source/reduce/remove_selection_reduction_opportunity_finder.cpp
+  source/reduce/remove_struct_member_reduction_opportunity.cpp
+  source/reduce/remove_unused_instruction_reduction_opportunity_finder.cpp
+  source/reduce/remove_unused_struct_member_reduction_opportunity_finder.cpp
+  source/reduce/simple_conditional_branch_to_branch_opportunity_finder.cpp
+  source/reduce/simple_conditional_branch_to_branch_reduction_opportunity.cpp
+  source/reduce/structured_construct_to_block_reduction_opportunity.cpp
+  source/reduce/structured_construct_to_block_reduction_opportunity_finder.cpp
+  source/reduce/structured_loop_to_selection_reduction_opportunity.cpp
+  source/reduce/structured_loop_to_selection_reduction_opportunity_finder.cpp
+  source/software_version.cpp
+  source/spirv_endian.cpp
+  source/spirv_fuzzer_options.cpp
+  source/spirv_optimizer_options.cpp
+  source/spirv_reducer_options.cpp
+  source/spirv_target_env.cpp
+  source/spirv_validator_options.cpp
+  source/table.cpp
+  source/text.cpp
+  source/text_handler.cpp
+  source/util/bit_vector.cpp
+  source/util/parse_number.cpp
+  source/util/string_utils.cpp
+  source/util/timer.cpp
+  source/val/basic_block.cpp
+  source/val/construct.cpp
+  source/val/function.cpp
+  source/val/instruction.cpp
+  source/val/validate.cpp
+  source/val/validate_adjacency.cpp
+  source/val/validate_annotation.cpp
+  source/val/validate_arithmetics.cpp
+  source/val/validate_atomics.cpp
+  source/val/validate_barriers.cpp
+  source/val/validate_bitwise.cpp
+  source/val/validate_builtins.cpp
+  source/val/validate_capability.cpp
+  source/val/validate_cfg.cpp
+  source/val/validate_composites.cpp
+  source/val/validate_constants.cpp
+  source/val/validate_conversion.cpp
+  source/val/validate_debug.cpp
+  source/val/validate_decorations.cpp
+  source/val/validate_derivatives.cpp
+  source/val/validate_execution_limitations.cpp
+  source/val/validate_extensions.cpp
+  source/val/validate_function.cpp
+  source/val/validate_id.cpp
+  source/val/validate_image.cpp
+  source/val/validate_instruction.cpp
+  source/val/validate_interfaces.cpp
+  source/val/validate_layout.cpp
+  source/val/validate_literals.cpp
+  source/val/validate_logicals.cpp
+  source/val/validate_memory.cpp
+  source/val/validate_memory_semantics.cpp
+  source/val/validate_misc.cpp
+  source/val/validate_mode_setting.cpp
+  source/val/validate_non_uniform.cpp
+  source/val/validate_primitives.cpp
+  source/val/validate_scopes.cpp
+  source/val/validate_small_type_uses.cpp
+  source/val/validate_type.cpp
+  source/val/validation_state.cpp
+;
+
+CPPopt =
+  -DNDEBUG
+  -D_CONSOLE
+  -DGENERIC_COMPILER
+  -DYYDEBUG=0
+;
+
+if $(Platform) in win32 win64 {
+  CPPopt +=
+    /d2Zi+
+    -DWIN32
+  ;
+}
+
+if $(Platform) in macosx {
+  CPPopt +=
+    -Wno-deprecated-declarations
+  ;
+}
+
+
+include $(Root)/prog/_jBuild/build.jam ;

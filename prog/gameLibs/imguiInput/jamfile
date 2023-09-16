@@ -1,0 +1,23 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/imguiInput ;
+
+TargetType  = lib ;
+Target      = gameLibs/imguiInput.lib ;
+
+Sources =
+  imguiInput.cpp
+  imguiInputHandler.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs =
+  3rdPartyLibs/eastl
+  3rdPartyLibs/imgui
+  engine2/imgui
+  gameLibs/daInput
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

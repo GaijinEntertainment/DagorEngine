@@ -1,0 +1,16 @@
+local dagorMath = require("dagor.math")
+local Point3 =  dagorMath.Point3
+return {
+  function rayhit_normalized(from, to, t) {
+    assert(from instanceof Point3, "from should be Point3")
+    assert(to instanceof Point3, "to should be Point3")
+    assert(type(t)=="float", "t should be float")
+    return true
+  }
+  function traceray_normalized(from, to, t){
+    assert(from instanceof Point3, "from should be Point3")
+    assert(to instanceof Point3, "to should be Point3")
+    assert(type(t)=="float", "t should be float")
+    return 1.0
+  }
+}

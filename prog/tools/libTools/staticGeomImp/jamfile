@@ -1,0 +1,16 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/staticGeomImp ;
+
+TargetType  = lib ;
+Target      = tools/libTools/staticGeomImp.lib ;
+
+Sources =
+  staticGeomImport.cpp
+;
+
+AddIncludes = $(Root)/prog/tools/sharedInclude ;
+
+CPPopt = ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

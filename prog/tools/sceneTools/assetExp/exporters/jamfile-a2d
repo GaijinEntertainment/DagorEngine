@@ -1,0 +1,39 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/assetExp/exporters ;
+DriverLinkage   = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = dll ;
+MultiTarget =
+  tools/sceneTools/a2dExp.dll
+;
+
+OutDir = $(Root)/tools/dagor3_cdk/bin/plugins/dabuild ;
+if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/dabuild ; }
+
+Sources(tools/sceneTools/a2dExp.dll) = a2dExp.cpp a2dOptimizer.cpp exp_skeleton_tools.cpp exp_tools.cpp ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+UseProgLibs =
+  engine2/startup
+
+  tools/libTools/assetMgr
+  tools/libTools/util
+
+  engine2/startup
+  engine2/math
+
+  engine2/lib3d
+  engine2/drv/drv3d_null
+
+  tools/libTools/assetMgrHlp
+  tools/libTools/shaderResBuilder
+  tools/libTools/dagFileRW
+;
+
+ImportProgLibs = tools/libTools/daKernel ;
+
+include $(Root)/prog/_jBuild/build.jam ;

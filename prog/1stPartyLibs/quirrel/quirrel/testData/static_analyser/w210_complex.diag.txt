@@ -1,0 +1,29 @@
+WARNING: w210 (potentially-nulled-index) Potentially nullable expression used as array index.
+testData/static_analyser/w210_complex.nut:10:6
+
+foo(x[y])
+      ^
+foo(x?[y])
+
+
+WARNING: w210 (potentially-nulled-index) Potentially nullable expression used as array index.
+testData/static_analyser/w210_complex.nut:14:12
+
+foo(x.y?[10].y?[y])
+foo(x.y.z.u[y])
+            ^
+foo(x.y?.z.u[y])
+
+
+
+AN ERROR HAS OCCURRED [the index 'null' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyser/w210_complex.nut line [10]
+
+LOCALS
+[x] TABLE={}
+[y] NULL
+[foo] CLOSURE=FN:foo
+[vargv] ARRAY=[]
+[this] TABLE={}

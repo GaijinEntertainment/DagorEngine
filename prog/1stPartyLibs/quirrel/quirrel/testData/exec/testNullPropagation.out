@@ -1,0 +1,4 @@
+begin A._get() call
+testField passed
+begin A._get() call
+testIndex passed

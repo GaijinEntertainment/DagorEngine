@@ -1,0 +1,31 @@
+Root           ?= ../../../.. ;
+Location        = prog/3rdPartyLibs/vulkan/smol-v ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/vulkan/smol-v.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes = 
+  $(Root)/$(Location)/source
+;
+
+
+Sources =
+  source/smolv.cpp
+;
+
+
+if $(Platform) in win32 win64 {
+  CPPopt =
+    /d2Zi+
+    -DWIN32
+    -DNDEBUG
+    -D_CONSOLE
+    -DGENERIC_COMPILER
+    -DYYDEBUG=0
+  ;
+}
+
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,50 @@
+WinSdkVer  = win.sdk.100 ;
+Platform ?= win64 ;
+
+Root    ?= ../../../.. ;
+Location = prog/tools/ShaderCompiler2/hlsl2spirv ;
+
+TargetType = lib ;
+Target = tools/hlsl2spirv.lib ;
+
+Sources += 
+  asmShaderSpirV.cpp
+  HLSL2SpirVCommon.cpp
+;
+
+AddIncludes +=
+  $(Root)/prog/3rdPartyLibs/vulkan/glslang
+  $(Root)/prog/3rdPartyLibs/vulkan/include
+  $(Root)/prog/3rdPartyLibs/vulkan/smol-v/source
+  $(Root)/prog/3rdPartyLibs/vulkan/hlslcc/include
+  $(Root)/prog/3rdPartyLibs/vulkan/spirv-tools/include
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs +=
+  3rdPartyLibs/hash
+  3rdPartyLibs/vulkan/smol-v
+  3rdPartyLibs/vulkan/hlslcc 
+  3rdPartyLibs/vulkan/spirv-tools 
+  3rdPartyLibs/eastl
+  gameLibs/spirv
+;
+
+if $(DontUseVulkanGlslang) = no {
+  UseProgLibs +=
+    3rdPartyLibs/vulkan/glslang
+  ;
+}
+
+if $(Platform) != macosx
+{
+  AddLibs += D3dcompiler.lib
+;
+}
+
+CPPopt = -D_CROSS_TARGET_SPIRV=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT
+  # use only when it is really necessary and avoid committing it because it breaks dbg builds
+  #-D_HAS_ITERATOR_DEBUGGING=1
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

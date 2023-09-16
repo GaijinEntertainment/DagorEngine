@@ -1,0 +1,9 @@
+WARNING: w224 (empty-body) 'while' operator has an empty body.
+testData/static_analyser/w224_while.nut:8:18
+
+      break;
+  } while (x < 6) ;
+                  ^
+}
+
+

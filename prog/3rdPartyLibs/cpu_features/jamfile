@@ -1,0 +1,85 @@
+Root           ?= ../../.. ;
+Location        = prog/3rdPartyLibs/cpu_features ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/cpu_features.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)/include
+  $(Root)/$(Location)/include/internal
+;
+
+CpuFeaturesProcessorType ?= x86 ;
+CpuFeaturesIsUnix ?= no ;
+
+Copt += -DSTACK_LINE_READER_BUFFER_SIZE=1024 ;
+
+Sources =
+  src/filesystem.c
+  src/stack_line_reader.c
+  src/string_view.c
+;
+
+
+if $(Platform) = android || ( $(Platform) = macosx && $(MacOSXArch) = arm64 ) {
+  CpuFeaturesIsUnix = yes ;
+  if $(AndroidArch) = arm64-v8a || ( $(Platform) = macosx && $(MacOSXArch) = arm64 ) {
+
+    # aarch64-none-linux-android
+    CpuFeaturesProcessorType = aarch64 ;
+
+    Sources +=
+      src/impl_aarch64_linux_or_android.c
+    ;
+
+  } else {
+
+    # armv7-none-linux-androideabi
+    CpuFeaturesProcessorType = arm ;
+
+    Sources +=
+      src/impl_arm_linux_or_android.c
+    ;
+  }
+} else if $(Platform) = linux64 {
+  CpuFeaturesIsUnix = yes ;
+  Sources +=
+    src/impl_x86_linux_or_android.c
+  ;
+} else if $(Platform) = macosx {
+  CpuFeaturesIsUnix = yes ;
+  Copt += -DHAVE_SYSCTLBYNAME ;
+  Sources +=
+    src/impl_x86_macos.c
+  ;
+} else if $(Platform) in ps4 ps5 {
+  Sources +=
+    src/impl_x86_ps4_ps5.c
+  ;
+} else if $(Platform) in scarlett xboxOne {
+  Sources +=
+    src/impl_x86_windows.c
+  ;
+} else if $(Platform) in win32 win64 {
+  Sources +=
+    src/impl_x86_windows.c
+  ;
+} else {
+  # nswitch
+  # tvOS
+  # iOS
+  exit $(Target)":" "Error: unsupported platform:" $(Platform) ;
+}
+
+
+if $(CpuFeaturesIsUnix) = yes && $(CpuFeaturesProcessorType) != x86 {
+  Copt += -DHAVE_DLFCN_H ;
+  Sources +=
+    src/hwcaps.c
+  ;
+}
+
+
+include $(Root)/prog/_jBuild/build.jam ;

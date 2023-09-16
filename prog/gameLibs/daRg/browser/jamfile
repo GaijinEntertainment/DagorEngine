@@ -1,0 +1,37 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daRg/browser ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/daRg/browser.lib ;
+StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+;
+
+Sources = uiBehaviorBinding.cpp ;
+
+if $(HaveEmbeddedBrowser) = yes {
+  Sources +=
+    robjBrowser.cpp
+    bhvBrowser.cpp
+  ;
+  UseProgLibs +=
+    gameLibs/webBrowserHelper
+  ;
+} else {
+  Sources +=
+    robjBrowserStub.cpp
+    bhvBrowserStub.cpp
+  ;
+}
+
+
+include $(Root)/prog/_jBuild/build.jam ;

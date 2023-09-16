@@ -1,0 +1,50 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/converters/Quake2Dag ;
+UsingStaticCore = yes ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = tools/util/quake2dag.exe ;
+
+OutDir = $(Root)/tools/converters ;
+
+
+Sources =
+  winmain_con.cpp
+  arglist.cpp
+  fload.cpp
+  loadbmp.cpp
+  main.cpp
+  patch.cpp
+  q3bsp.cpp
+  q3shader.cpp
+  stringdict.cpp
+  vformat.cpp
+;
+
+
+AddIncludes     =
+  $(Root)/prog/tools/sharedInclude
+  #$(Root)/prog/engine2/sharedInclude
+;
+
+
+UseProgLibs =
+  tools/libTools/dagFileRW
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/image
+  engine2/perfMon/daProfilerStub
+;
+
+
+CPPopt = -D__B_MAIN ;
+
+#LINKopt = -opt:ref -map -verbose ;
+
+include $(Root)/prog/_jBuild/build.jam ;

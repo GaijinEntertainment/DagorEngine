@@ -1,0 +1,50 @@
+outDir:t=".storage"
+indexFile:t="downloadable_skins.blk"
+type:t="skin"
+texRoot:t="D:\dagor2\skyquake\develop\assets"
+cacheDir:t=".cache-s"
+
+cvtSuffix {
+ "norm":t="(.*_n(_dmg|_expl|_inside)?)\*$"
+}
+diffSuffix:t="_dmg";
+
+lod0 {
+  fmt:t="DXT1|DXT5"
+  mipFilter:t="filterKaiser";mipFilterAlpha:r=40;mipFilterStretch:r=2
+  gamma:r=2.2
+  hqMip:i=0; mqMip:i=1; lqMip:i=2
+  addrU:t="wrap"; addrV:t="wrap"
+  maxTexSz:i=8192
+  rtMipGen:b=yes
+  baseTexTolerance:c=8,4,4,4
+}
+"@clone-last:lod2" {
+  "@override:maxTexSz":i=1024
+}
+"@clone-last:lod1" {
+  "@override:maxTexSz":i=256
+  "@delete:rtMipGen":b=no
+  disableDiff:b=yes
+}
+
+lod0norm {
+  fmt:t="DXT1|DXT5"
+  mipFilter:t="filterKaiser";mipFilterAlpha:r=40;mipFilterStretch:r=2
+  gamma:r=1
+  swizzleARGB:t="RAG0"
+  hqMip:i=0; mqMip:i=1; lqMip:i=1
+  addrU:t="wrap"; addrV:t="wrap"
+  aniFunc:t="abs"; anisotropy:i=16
+  maxTexSz:i=8192
+  rtMipGen:b=yes
+  baseTexTolerance:c=12,7,7,7
+}
+"@clone-last:lod2norm" {
+  "@override:maxTexSz":i=1024
+}
+"@clone-last:lod1norm" {
+  "@override:maxTexSz":i=256
+  "@delete:rtMipGen":b=no
+  disableDiff:b=yes
+}

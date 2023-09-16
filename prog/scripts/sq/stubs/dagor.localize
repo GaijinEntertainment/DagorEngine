@@ -1,0 +1,31 @@
+return {
+  function getCurrentLanguage() {
+    return "English"
+  }
+  function loc(key, ...) {
+    assert(["string", "null"].contains(type(key)), @() $"type of argument should be one of: 'string' 'null'")
+    return key
+  }
+  function doesLocTextExist(key) {
+    assert(["string"].contains(type(key)), @() $"type of argument should be one of: 'string'")
+    return false
+  }
+  function getLocTextForLang(key, _lang) {
+    return key
+  }
+  function getLocTextExCI(a, ...) {
+    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
+    return a
+  }
+  function getLocTextEx(a, ...) {
+    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
+    return a
+  }
+  function getLocText(a) {
+    return a
+  }
+  function initLocalization(a, b = "") {
+    assert(["instance"].contains(type(a)), @() $"type of argument should be one of: 'instance'")
+    assert(["string"].contains(type(b)), @() $"type of argument should be one of: 'string'")
+  }
+}

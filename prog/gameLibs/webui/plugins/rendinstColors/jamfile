@@ -1,0 +1,26 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/webui/plugins/rendinstColors ;
+
+TargetType  = lib ;
+Target      = gameLibs/webui/plugins/rendinstColors.lib ;
+
+AddIncludes =  
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/dagorInclude
+;
+
+Sources =
+  rendinstColorsPlugin.cpp
+;
+
+SourceHTML =
+  rendinstColors.html
+;
+
+
+for s in $(SourceHTML) { StringifySourceFile $(s) : $(s).inl : rendinstColorsPlugin.cpp ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

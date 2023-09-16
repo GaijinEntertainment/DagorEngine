@@ -1,0 +1,7 @@
+WARNING: w210 (potentially-nulled-index) Potentially nullable expression used as array index.
+testData/static_analyser/w210.nut:5:9
+
+::f <- x[y?["a"]]
+         ^-------
+
+

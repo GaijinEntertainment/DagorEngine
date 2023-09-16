@@ -1,0 +1,21 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/assetExp/exporters/scriptHelpersLt ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/assetExp/exporters/scriptHelpersLt.lib ;
+
+Sources =
+  ScriptCurves.cpp
+  ScriptGradientBox.cpp
+  ScriptGui.cpp
+  ScriptLoad.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+CPPopt = ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

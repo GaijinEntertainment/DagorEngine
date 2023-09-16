@@ -1,0 +1,8 @@
+return {
+  function sha1(a) {
+    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
+  }
+  function md5(a) {
+    assert(["string"].contains(type(a)), @() $"type of argument should be one of: 'string'")
+  }
+}

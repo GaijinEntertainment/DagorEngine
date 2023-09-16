@@ -1,0 +1,8 @@
+ERROR: Unknown variable [x]
+testData/diagnostics/const_scope_5.nut:4:8
+
+else
+  print(x)
+        ^
+
+

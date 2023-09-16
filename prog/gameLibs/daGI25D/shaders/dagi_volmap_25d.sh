@@ -1,0 +1,288 @@
+include "sky_shader_global.sh"
+//include "ssgi_helpers.sh"
+//include "sample_voxels.sh"
+include "dagi_raycast_voxels_25d.sh"
+include "dagi_volmap_common_25d.sh"
+include "gi_25d_light_helper.sh"
+hlsl {
+  #include "dagi_volmap_consts_25d.hlsli"
+}
+float4 gi_25d_volmap_invalid_start_width;
+
+define_macro_if_not_defined INIT_VOXELS_HEIGHTMAP_HELPERS(code)
+  hlsl(code) {
+    float ssgi_get_heightmap_2d_height(float3 worldPos) {return worldPos.y-100;}
+  }
+endmacro
+
+define_macro_if_not_defined INIT_LIGHT_25D_HELPERS(code)
+  hlsl(code) {
+    half3 light_voxel(float3 worldPos, half3 normal, half3 albedo, float3 emission) {
+      return 0;
+      float3 lightDir = normalize(float3(1,2,0.6));//fixme: sun light dir
+      half3 lightColor = 1;//fixme: sun light col
+      half shadow = 1;//fixme:sun shadow
+      return albedo.rgb * lightColor * (saturate(dot(normal,lightDir))*shadow) + emission;
+    }
+  }
+endmacro
+
+shader gi_mark_intersected_25d_cs_2, gi_mark_intersected_25d_cs_4
+{
+  USE_VOLMAP_25D(cs)
+  INIT_VOXELS_25D(cs)
+  USE_VOXELS_25D(cs)
+  SAMPLE_VOXELS_25D(cs)
+  INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(cs)
+  ENABLE_ASSERT(cs)
+
+  (cs) { gi_25d_volmap_invalid_start_width@f4 = gi_25d_volmap_invalid_start_width; }
+
+  hlsl(cs) {
+    #include <dagi_volmap_buffer_encode.hlsl>
+    RWByteAddressBuffer intersected:register(u0);
+    bool checkCoord(float2 coordF, float coordY, uint2 wrapCoord)
+    {
+      uint3 coordPart = uint3(frac(float3(coordF.xy, coordY))*2)&1;
+      uint bitShift = (coordPart.x + (coordPart.y<<1) + (coordPart.z<<2));
+      uint bitMask = 1U<<bitShift;
+      uint3 sampleCoord = uint3(wrapCoord, coordY);
+      return (getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(sampleCoord))&(bitMask<<(getAlphaShift(sampleCoord))));
+    }
+
+    bool isIntersectedProbeNaive(float3 center, float halfX, float minY, float maxY)
+    {
+      float2 minB = center.xz - halfX*2, maxB = center.xz + halfX*2;
+      float2   coord_LT = scene25dWorldPosToCoordF(minB),
+               coord_RB = scene25dWorldPosToCoordF(maxB);
+      float2 steps = ceil((coord_RB-coord_LT)/0.5);
+      float2 stepSize = (coord_RB-coord_LT)/steps;
+      float minYCoord = minY*getScene25dVoxelInvSizeY();
+      for (float y = coord_LT.y; y <= coord_RB.y; y+=stepSize.y)
+      for (float x = coord_LT.x; x <= coord_RB.x; x+=stepSize.x)
+      {
+        uint2 wrapCoord = wrapSceneVoxel25dCoordF(float2(x,y));
+        float floorHt = getVoxel25dFloorCoord(wrapCoord);
+        if (minYCoord < floorHt)
+          return true;
+        else
+        {
+          float minCoordY = (minYCoord - floorHt), maxCoordY = maxY*getScene25dVoxelInvSizeY() - floorHt;
+          float stepsZ = ceil((maxCoordY-minCoordY)/0.5);
+          float stepZ = (maxCoordY-minCoordY)/stepsZ;
+          for (float z = minCoordY; z <= maxCoordY; z+=stepZ)
+            if (checkCoord(float2(x,y), z, wrapCoord))
+              return true;
+        }
+      }
+      return false;
+    }
+
+    bool isIntersectedProbe(float3 center, float halfX, float minY, float maxY)
+    {
+      uint2  sampleCN = wrapSceneVoxel25dCoordF(scene25dWorldPosToCoordF(center.xz-.75));
+      float floorHt = getVoxel25dFloorCoord(sampleCN);
+      float minCoordY = (minY*getScene25dVoxelInvSizeY() - floorHt),
+            cenCoordY = (0.5*(minY+maxY)*getScene25dVoxelInvSizeY() - floorHt),
+            maxCoordY = (maxY*getScene25dVoxelInvSizeY() - floorHt);
+      if (minCoordY < 0)
+        return true;
+      uint2 sampleLT = (sampleCN + (sampleCN&1))&(VOXEL_25D_RESOLUTION_X-1);
+      //uint2 sampleLT = wrapSceneVoxel25dCoordF(scene25dWorldPosToCoordF(center.xz+.25));
+      return 0
+            |(getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(uint3(sampleCN, minCoordY))))
+            |(getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(uint3(sampleCN, cenCoordY))))
+            |(getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(uint3(sampleCN, maxCoordY))))
+            |(getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(uint3(sampleLT, minCoordY))))
+            |(getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(uint3(sampleLT, cenCoordY))))
+            |(getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(uint3(sampleLT, maxCoordY))))
+            ;
+      //return (getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(sampleCoord))&(0xFF<<(getAlphaShift(sampleCoord))));
+    }
+    ##if shader == gi_mark_intersected_25d_cs_2
+    [numthreads(4, 4, 2)]
+    ##else
+    [numthreads(4, 4, 4)]
+    ##endif
+    void mark_voxels_cs( uint3 gId : SV_GroupID, uint3 gtId : SV_DispatchThreadID, uint tid : SV_GroupIndex)
+    {
+      //uint at = gId.x
+      //if (tid == 0)
+      //  intersected[at] = 0;
+      //GroupMemoryBarrier();
+      if (any(gtId.xy >= uint2(gi_25d_volmap_invalid_start_width.zw)))
+        return;
+      int3 coord = int3(gtId) + int3(gi_25d_volmap_invalid_start_width.xy, 0);
+      float3 worldPos;
+      uint3 wrappedCoord = uint3((coord.xy + (int(GI_25D_RESOLUTION_X)/2).xx)&uint(uint(GI_25D_RESOLUTION_X)-1), gtId.z);
+      worldPos.xz = (coord.xy+0.5)*getGI25DVolmapSizeXZ();
+      float floorHt = ssgi_get_heightmap_2d_height_25d_volmap(worldPos.xz);//todo: should be heavily optimized
+      worldPos.y = floorHt + (pow2(coord.z+0.5f)/GI_25D_RESOLUTION_Y)*getGI25DVolmapSizeY();
+      float2 minMaxY = floorHt + (float2(pow2(coord.z-0.25), pow2(coord.z+1.25))/GI_25D_RESOLUTION_Y)*getGI25DVolmapSizeY();
+
+      uint bit;
+      uint at = get_intersected_bit_address(wrappedCoord, bit);
+
+      bool isIntersected = coord.z <= 3;//lower probes are intersecting ground
+      BRANCH
+      if (!isIntersected)
+        isIntersected = isIntersectedProbe(worldPos, getGI25DVolmapSizeXZ()*0.5, minMaxY.x, minMaxY.y);
+
+      if (gId.z == 0 && gtId.z == 0)
+        storeBuffer(intersected, get_volmap_floor_addr_unsafe(wrappedCoord.xy), asuint(floorHt));
+      if (isIntersected)
+        intersected.InterlockedOr(at, 1u<<bit);
+      else
+        intersected.InterlockedAnd(at, ~(1u<<bit));
+    }
+  }
+  compile("cs_5_0", "mark_voxels_cs");
+}
+
+shader gi_compute_light_25d_cs_4_4, gi_compute_light_25d_cs_4_8, gi_compute_light_25d_cs_8_4
+{
+  USE_VOLMAP_25D(cs)
+  RAY_CAST_VOXELS_25D(cs)
+  INIT_LIGHT_25D_HELPERS(cs)
+  GI_INIT_25D_BUFFER(cs)
+  ENABLE_ASSERT(cs)
+  (cs) {
+    gi_25d_volmap_invalid_start_width@f4 = gi_25d_volmap_invalid_start_width;
+    envi_probe_specular@smpCube = envi_probe_specular;
+  }
+
+  VOLMAP_INTERSECTION_25D(cs)
+
+  hlsl(cs) {
+##if gi_quality == only_ao
+    RWTexture3D<float>  gi_25d_ambient_volmap : register(u0);
+##else
+    RWTexture3D<float3>  gi_25d_ambient_volmap : register(u0);
+##endif
+
+    #include <fibonacci_sphere.hlsl>
+    #include <dagi_integrate_ambient_cube.hlsl>
+    #define NUM_POISSON_SAMPLES_LOW 32
+    #define NUM_POISSON_SAMPLES NUM_POISSON_SAMPLES_LOW
+    #define POISSON_SAMPLES POISSON_SAMPLES_LOW
+    #include <poisson_256.hlsl>
+    #undef NUM_POISSON_SAMPLES
+    #undef POISSON_SAMPLES
+
+    #define NUM_POISSON_SAMPLES_HIGH 64//128?
+    #define NUM_POISSON_SAMPLES NUM_POISSON_SAMPLES_HIGH
+    #define POISSON_SAMPLES POISSON_SAMPLES_HIGH
+    #include <poisson_256.hlsl>
+    #undef NUM_POISSON_SAMPLES
+    #undef POISSON_SAMPLES
+
+    void raycast_light(uint3 coord, float3 worldPos, uint gix)
+    {
+      float4 col0=0, col1=0, col2=0, col3=0, col4=0, col5=0;
+      float3 ambientCol0=0, ambientCol1=0, ambientCol2=0, ambientCol3=0, ambientCol4=0, ambientCol5=0;
+
+      bool isIntersected = coord.z <= 3;//enhance quality if low enough (objects are moving there). Use multiplications of 2.
+      BRANCH
+      if (!isIntersected)
+        isIntersected = is_intersected_25d_unsafe(coord);
+      #if WAVE_INTRINSICS
+        isIntersected = (bool)WaveReadFirstLane(WaveAllBitOr(uint(isIntersected)));
+      #endif
+      bool rHigh = isIntersected;
+      uint loopCnt = rHigh ? NUM_POISSON_SAMPLES_HIGH : NUM_POISSON_SAMPLES_LOW;
+      float coordFix = 0;
+      BRANCH
+      if (isIntersected)
+      {
+        FLATTEN
+        if (raycast_25d_coord_fix(worldPos))
+        {
+          coordFix = (0.5f*sqrt(2))*getScene25dVoxelSizeXZ();//full voxelSize is - 0.5*sqrt(3) (0.5 is because alpha voxelSize is twice smaller). We use only 2d diagonal though
+        }
+      }
+      float ambientAmount = 0;
+      LOOP for (uint i = 0; i < loopCnt; ++i)
+      {
+        float3 enviLightDir = rHigh ? POISSON_SAMPLES_HIGH[i].xyz : POISSON_SAMPLES_LOW[i].xyz;
+        float3 normal;
+        float3 emission;
+        float3 wpos = worldPos, wdir=enviLightDir;
+        wpos += wdir*coordFix;
+        half3 ret = raycast_25d_coord(wpos, normal, emission, wdir, TRACE_DIST_IN_COORD, isIntersected);
+##if gi_quality != only_ao
+        half3 enviLightColor;
+        BRANCH
+        if (ret.z != 0)
+        {
+          half3 ambient;
+          enviLightColor = light_voxel_ambient(wpos, normal, ret.rgb, emission, ambient);
+          integrate_cube(enviLightDir, ambient, ambientCol0, ambientCol1, ambientCol2, ambientCol3, ambientCol4, ambientCol5);
+        } else
+        {
+          enviLightColor = texCUBElod(envi_probe_specular, float4(wdir,1)).rgb;
+          ambientAmount += 1.;
+        }
+        integrate_cube_alpha(enviLightDir, float4(enviLightColor,1), col0,col1,col2,col3,col4,col5);
+##else
+        BRANCH
+        if (ret.z == 0)
+          integrate_cube_scalar(enviLightDir, 1.0, ambientCol0.r, ambientCol1.r, ambientCol2.r, ambientCol3.r, ambientCol4.r, ambientCol5.r);
+##endif
+      }
+
+##if gi_quality != only_ao
+      col0.w=rcp(col0.w);
+      col1.w=rcp(col1.w);
+      col2.w=rcp(col2.w);
+      col3.w=rcp(col3.w);
+      col4.w=rcp(col4.w);
+      col5.w=rcp(col5.w);
+      //col0.w=col1.w=col2.w=col3.w=col4.w=col5.w=4./loopCnt;
+      float parallelAmbWeight = (0.05 + ambientAmount*0.95/(loopCnt-1));//we assume all everything has same AO as our current position
+      col0.rgb = (col0.rgb + parallelAmbWeight*ambientCol0.rgb)*col0.w;
+      col1.rgb = (col1.rgb + parallelAmbWeight*ambientCol1.rgb)*col1.w;
+      col2.rgb = (col2.rgb + parallelAmbWeight*ambientCol2.rgb)*col2.w;
+      col3.rgb = (col3.rgb + parallelAmbWeight*ambientCol3.rgb)*col3.w;
+      col4.rgb = (col4.rgb + parallelAmbWeight*ambientCol4.rgb)*col4.w;
+      col5.rgb = (col5.rgb + parallelAmbWeight*ambientCol5.rgb)*col5.w;
+
+      gi_25d_ambient_volmap[coord] = col0.rgb; coord.z += GI_25D_RESOLUTION_Y;
+      gi_25d_ambient_volmap[coord] = col1.rgb; coord.z += GI_25D_RESOLUTION_Y;
+      gi_25d_ambient_volmap[coord] = col2.rgb; coord.z += GI_25D_RESOLUTION_Y;
+      gi_25d_ambient_volmap[coord] = col3.rgb; coord.z += GI_25D_RESOLUTION_Y;
+      gi_25d_ambient_volmap[coord] = col4.rgb; coord.z += GI_25D_RESOLUTION_Y;
+      gi_25d_ambient_volmap[coord] = col5.rgb;
+##else
+      float ambWeight = 4./loopCnt;
+      gi_25d_ambient_volmap[coord] = ambWeight * ambientCol0.r; coord.z += GI_25D_RESOLUTION_Y;
+      gi_25d_ambient_volmap[coord] = ambWeight * ambientCol1.r; coord.z += GI_25D_RESOLUTION_Y;
+      gi_25d_ambient_volmap[coord] = ambWeight * ambientCol2.r; coord.z += GI_25D_RESOLUTION_Y;
+      gi_25d_ambient_volmap[coord] = ambWeight * ambientCol3.r; coord.z += GI_25D_RESOLUTION_Y;
+      gi_25d_ambient_volmap[coord] = ambWeight * ambientCol4.r; coord.z += GI_25D_RESOLUTION_Y;
+      gi_25d_ambient_volmap[coord] = ambWeight * ambientCol5.r;
+##endif
+    }
+
+    ##if shader == gi_compute_light_25d_cs_4_4
+    [numthreads(4, 4, 2)]
+    ##elif shader == gi_compute_light_25d_cs_4_8
+    [numthreads(4, 8, 2)]
+    ##elif shader == gi_compute_light_25d_cs_8_4
+    [numthreads(8, 4, 2)]
+    ##endif
+    void light_voxels_cs( uint3 dtId : SV_DispatchThreadID, uint gix : SV_GroupIndex)//
+    {
+      if (any(dtId.xy>=uint2(gi_25d_volmap_invalid_start_width.zw)))
+        return;
+      int3 coord = int3(dtId) + int3(gi_25d_volmap_invalid_start_width.xy, 0);
+      float3 worldPos;
+      uint3 wrappedCoord = uint3((coord.xy + (int(GI_25D_RESOLUTION_X)/2).xx)&uint(uint(GI_25D_RESOLUTION_X)-1), coord.z);
+      worldPos.xz = (coord.xy+0.5)*getGI25DVolmapSizeXZ();
+      //float floorHt = ssgi_get_heightmap_2d_height_25d_volmap(worldPos.xz);//todo: should be heavily optimized
+      float floorHt = get_volmap_25d_floor(wrappedCoord.xy);//
+      worldPos.y = floorHt + (pow2(coord.z+0.5f)/GI_25D_RESOLUTION_Y)*getGI25DVolmapSizeY();
+      raycast_light(wrappedCoord, worldPos, gix);
+    }
+  }
+  compile("cs_5_0", "light_voxels_cs");
+}

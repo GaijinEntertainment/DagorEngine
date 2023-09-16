@@ -1,0 +1,2 @@
+local a = require("x.nut")
+return a.x

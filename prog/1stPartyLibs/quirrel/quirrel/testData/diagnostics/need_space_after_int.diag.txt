@@ -1,0 +1,8 @@
+ERROR: malformed number
+testData/diagnostics/need_space_after_int.nut:2:9
+
+local f = 333
+println([5f][1])
+         ^
+
+

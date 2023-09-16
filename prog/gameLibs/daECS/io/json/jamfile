@@ -1,0 +1,23 @@
+Root         ?= ../../../../.. ;
+local LibPath = gameLibs/daECS/io/json ;
+Location      = prog/$(LibPath) ;
+TargetType    = lib ;
+Target        = $(LibPath).lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  json.cpp
+;
+
+UseProgLibs =
+  1stPartyLibs/jsoncpp
+  3rdPartyLibs/eastl
+  gameLibs/daECS/core
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

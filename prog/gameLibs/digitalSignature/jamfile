@@ -1,0 +1,20 @@
+Root     ?= ../../.. ;
+Location  = prog/gameLibs/digitalSignature ;
+TargetType     = lib ;
+Target    = gameLibs/digitalSignature.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+if $(UseSystemOpenSSL) = yes {
+}
+else {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
+}
+
+Sources = digitalSignatureCheck.cpp ;
+
+include $(Root)/prog/_jBuild/build.jam ;

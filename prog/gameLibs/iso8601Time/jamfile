@@ -1,0 +1,32 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/iso8601Time ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/iso8601Time.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+if $(Platform) in ps4 ps5 {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ;
+}
+
+Sources =
+  iso8601Time.cpp
+;
+
+CPPopt = -D__B_CORE ;
+Copt   = -D__B_CORE ;
+
+if $(Platform) in win32 win64 {
+  CPPopt += /wd4548 ; # devtools\win.sdk.100\Include\10.0.10586.0\ucrt\malloc.h(160): warning C4548: expression before comma has no effect; expected expression with side-effect
+}
+
+UseProgLibs =  ;
+
+include $(Root)/prog/_jBuild/build.jam ;

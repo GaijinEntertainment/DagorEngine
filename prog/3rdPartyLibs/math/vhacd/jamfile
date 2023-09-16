@@ -1,0 +1,11 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/math/vhacd ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/math/vhacd.lib ;
+
+Sources =
+  vhacd.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

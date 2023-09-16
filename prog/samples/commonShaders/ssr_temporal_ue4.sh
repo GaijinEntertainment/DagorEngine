@@ -1,0 +1,366 @@
+// Faster but less accurate luma computation. 
+// Luma includes a scaling by 4.
+float Luma4(float3 Color)
+{
+	return (Color.g * 2.0) + (Color.r + Color.b);
+}
+
+// Optimized HDR weighting function.
+float HdrWeight4(float3 Color, float Exposure) 
+{
+	return rcp(Luma4(Color) * Exposure + 4.0);
+}
+
+float HdrWeightY(float Color, float Exposure) 
+{
+	return rcp(Color * Exposure + 1.0);
+}
+
+float HdrWeightG(float3 Color, float Exposure) 
+{
+	return rcp(Color.g * Exposure + 1.0);
+}
+
+float HdrWeightG_(float Color, float Exposure) 
+{
+	return rcp(Color * Exposure + 1.0);
+}
+
+
+// Optimized HDR weighting function.
+float HdrWeight4_(float Color, float Exposure) 
+{
+	return rcp(Color * Exposure + 4.0);
+}
+
+// Optimized HDR weighting inverse.
+float HdrWeightInv4(float3 Color, float Exposure) 
+{
+	return 4.0 * rcp(Luma4(Color) * (-Exposure) + 1.0);
+}
+
+float HdrWeightInvG(float3 Color, float Exposure) 
+{
+	return rcp(Color.g * (-Exposure) + 1.0);
+}
+
+float HdrWeightInvY(float Color, float Exposure) 
+{
+	return rcp(Color * (-Exposure) + 1.0);
+}
+
+float HdrWeightInv4_(float Color, float Exposure) 
+{
+	return 4.0 * rcp(Color * (-Exposure) + 1.0);
+}
+
+float HdrWeightInvG_(float Color, float Exposure) 
+{
+	return rcp(Color * (-Exposure) + 1.0);
+}
+
+
+// This returns exposure normalized linear luma from a PerceptualLuma4().
+float LinearLuma4(float Channel, float Exposure) 
+{
+	return Channel * HdrWeightInv4_(Channel, Exposure);
+}
+
+// This returns exposure normalized linear luma from a PerceptualLuma4().
+float LinearLumaG(float Channel, float Exposure) 
+{
+	return Channel * HdrWeightInvG_(Channel, Exposure);
+}
+
+
+float PerceptualLuma4(float3 Color, float Exposure) 
+{
+	float L = Luma4(Color);
+	return L * HdrWeight4_(L, Exposure);
+}
+
+float PerceptualLumaG(float3 Color, float Exposure) 
+{
+	return Color.g * HdrWeightG_(Color.g, Exposure);
+}
+
+
+
+float Luma(float3 Color) 
+{
+		// This seems to work better (less same luma ghost trails).
+		// CCIR 601 function for luma.
+		return dot(Color, float3(0.299, 0.587, 0.114));
+}
+
+float HighlightCompression(float Channel) 
+{
+	return Channel * rcp(1.0 + Channel);
+}
+	
+float HighlightDecompression(float Channel) 
+{
+	return Channel * rcp(1.0 - Channel);
+}
+
+float PerceptualLuma(float3 Color, float Exposure) 
+{
+	return sqrt(HighlightCompression(Luma(Color) * Exposure));
+}
+
+float LinearLuma(float Channel) 
+{
+	// This returns exposure normalized linear luma from a PerceptualLuma().
+	return HighlightDecompression(Channel * Channel);
+}
+
+// Intersect ray with AABB, knowing there is an intersection.
+//   Dir = Ray direction.
+//   Org = Start of the ray.
+//   Box = Box is at {0,0,0} with this size.
+// Returns distance on line segment.
+float IntersectAABB(float3 Dir, float3 Org, float3 Box)
+{
+	float3 RcpDir = rcp(Dir);
+	float3 TNeg = (  Box  - Org) * RcpDir;
+	float3 TPos = ((-Box) - Org) * RcpDir;
+	return max(max(min(TNeg.x, TPos.x), min(TNeg.y, TPos.y)), min(TNeg.z, TPos.z));
+}
+
+float HistoryClamp(float3 History, float3 Filtered, float3 NeighborMin, float3 NeighborMax)
+{
+	float3 Min = min(Filtered, min(NeighborMin, NeighborMax));
+	float3 Max = max(Filtered, max(NeighborMin, NeighborMax));	
+	float3 Avg2 = Max + Min;
+	float3 Dir = Filtered - History;
+	float3 Org = History - Avg2 * 0.5;
+	float3 Scale = Max - Avg2 * 0.5;
+	return saturate(IntersectAABB(Dir, Org, Scale));	
+}
+
+float HdrWeight(float3 Color, float Exposure) 
+{
+	return rcp(max(Luma(Color) * Exposure, 1.0));
+}
+
+float4 HdrLerp(float4 ColorA, float4 ColorB, float Blend, float Exposure) 
+{
+	float BlendA = (1.0 - Blend) * HdrWeight(ColorA.rgb, Exposure);
+	float BlendB =        Blend  * HdrWeight(ColorB.rgb, Exposure);
+	float RcpBlend = rcp(BlendA + BlendB);
+	BlendA *= RcpBlend;
+	BlendB *= RcpBlend;
+	return ColorA * BlendA + ColorB * BlendB;
+}
+
+
+    void ssr_temporal_ps(VsOutput input, out half4 OutColor:SV_Target)
+    {
+      float4 CameraMotion[5];
+      float SampleWeights[9];
+      float LowpassWeights[9];
+      //float InExposureScale = InExposureScaleVignette.x;
+      float InExposureScale = 1;
+      #define AA_LERP 8
+      #define AA_NAN 1
+      #define PostprocessInput0 ssr_new_target
+      #define PostprocessInput0Sampler ssr_new_target_samplerstate
+      #define PostprocessInput1 ssr_prev_target
+      #define PostprocessInput1Sampler ssr_prev_target_samplerstate
+      #define SceneDepthTexture downsampled_far_depth_tex
+      #define SceneDepthTextureSampler downsampled_far_depth_tex_samplerstate
+      float4 UVAndScreenPos = float4(input.texcoord, input.texcoord*float2(2,-2) - float2(1,-1));
+
+      //#include "PostProcessTemporalCommon.usf"
+
+// 1 = Use tighter AABB clamp for history.
+// 0 = Use simple min/max clamp.
+#ifndef AA_AABB
+    #define AA_AABB 1
+#endif
+
+// 1 = Use filtered sample.
+// 0 = Use center sample.
+#ifndef AA_FILTERED
+    #define AA_FILTERED 1
+#endif
+
+// 1 = Use extra lowpass filter for quality bump.
+// 0 = Don't use.
+#ifndef AA_LOWPASS
+    #define AA_LOWPASS 1
+#endif
+
+// 1 = Use higher quality round clamp.
+// 0 = Use lower quality but faster box clamp.
+#ifndef AA_ROUND
+    #define AA_ROUND 1
+#endif
+
+// 1 = Use extra clamp to avoid NANs
+// 0 = Don't use.
+#ifndef AA_NAN
+    #define AA_NAN 1
+#endif
+
+    // FIND MOTION OF PIXEL AND NEAREST IN NEIGHBORHOOD
+    // ------------------------------------------------
+    float3 PosN;// Position of this pixel, possibly later nearest pixel in neighborhood.
+    PosN.xy = UVAndScreenPos.zw * float2(0.5, -0.5) + float2(0.5, 0.5); // View position [0 to 1] flipped in Y.
+    PosN.z = SceneDepthTexture.SampleLevel(SceneDepthTextureSampler, UVAndScreenPos.xy, 0).r;
+    // Screen position of minimum depth.
+    float2 VelocityOffset = float2(0.0, 0.0);
+    // Camera motion for pixel or nearest pixel (in ScreenPos space).
+    float ScaleM = 1.0 / (dot(PosN, CameraMotion[0].xyz) + CameraMotion[0].w);
+    float2 BackN;
+    BackN.x = -2.0 * ((PosN.x * ((CameraMotion[1].x * PosN.y) + (CameraMotion[1].y * PosN.z) + CameraMotion[1].z)) + (CameraMotion[1].w * PosN.y) + (CameraMotion[2].x * PosN.x * PosN.x) + (CameraMotion[2].y * PosN.z) + CameraMotion[2].z) * ScaleM;
+    BackN.y =  2.0 * ((PosN.y * ((CameraMotion[3].x * PosN.x) + (CameraMotion[3].y * PosN.z) + CameraMotion[3].z)) + (CameraMotion[3].w * PosN.x) + (CameraMotion[4].x * PosN.y * PosN.y) + (CameraMotion[4].y * PosN.z) + CameraMotion[4].z) * ScaleM;
+    float2 BackTemp = BackN * ViewportSize.xy;
+    // Save the amount of pixel offset of just camera motion, used later as the amount of blur introduced by history.
+    float HistoryBlurAmp = 2.0;
+    float HistoryBlur = saturate(abs(BackTemp.x) * HistoryBlurAmp + abs(BackTemp.y) * HistoryBlurAmp);
+    float Velocity = sqrt(dot(BackTemp, BackTemp));
+    // Easier to do off screen check before conversion.
+    // BackN is in units of 2pixels/viewportWidthInPixels
+    // This converts back projection vector to [-1 to 1] offset in viewport.
+    BackN = UVAndScreenPos.zw - BackN;
+    bool OffScreen = max(abs(BackN.x), abs(BackN.y)) >= 1.0;
+    // Also clamp to be on screen (fixes problem with DOF).
+    // The .z and .w is the 1/width and 1/height.
+    // This clamps to be a pixel inside the viewport.
+    BackN.x = clamp(BackN.x, -1.0, 1.0 );
+    BackN.y = clamp(BackN.y, -1.0, 1.0 );
+    // Convert from [-1 to 1] to view rectangle which is somewhere in [0 to 1].
+    // The extra +0.5 factor is because ScreenPosToPixel.zw is incorrectly computed
+    // as the upper left of the pixel instead of the center of the pixel.
+    //BackN = (BackN * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5) * PostprocessInput0Size.zw;
+    BackN = BackN * float2(0.5, -0.5) + 0.5;
+
+    // FILTER PIXEL (RESAMPLE TO REMOVE JITTER OFFSET) AND GET NEIGHBORHOOD
+    // --------------------------------------------------------------------
+    // 012
+    // 345
+    // 678
+        float4 Neighbor0 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(-1, -1));
+        float4 Neighbor1 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( 0, -1));
+        float4 Neighbor2 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( 1, -1));
+        float4 Neighbor3 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(-1,  0));
+        float4 Neighbor4 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
+        float4 Neighbor5 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( 1,  0));
+        float4 Neighbor6 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(-1,  1));
+        float4 Neighbor7 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( 0,  1));
+        float4 Neighbor8 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( 1,  1));
+            Neighbor0.rgb *= HdrWeight4(Neighbor0.rgb, InExposureScale);
+            Neighbor1.rgb *= HdrWeight4(Neighbor1.rgb, InExposureScale);
+            Neighbor2.rgb *= HdrWeight4(Neighbor2.rgb, InExposureScale);
+            Neighbor3.rgb *= HdrWeight4(Neighbor3.rgb, InExposureScale);
+            Neighbor4.rgb *= HdrWeight4(Neighbor4.rgb, InExposureScale);
+            Neighbor5.rgb *= HdrWeight4(Neighbor5.rgb, InExposureScale);
+            Neighbor6.rgb *= HdrWeight4(Neighbor6.rgb, InExposureScale);
+            Neighbor7.rgb *= HdrWeight4(Neighbor7.rgb, InExposureScale);
+            Neighbor8.rgb *= HdrWeight4(Neighbor8.rgb, InExposureScale);
+        #if AA_FILTERED
+            float4 Filtered = 
+                Neighbor0 * SampleWeights[0] +
+                Neighbor1 * SampleWeights[1] +
+                Neighbor2 * SampleWeights[2] +
+                Neighbor3 * SampleWeights[3] +
+                Neighbor4 * SampleWeights[4] +
+                Neighbor5 * SampleWeights[5] +
+                Neighbor6 * SampleWeights[6] +
+                Neighbor7 * SampleWeights[7] +
+                Neighbor8 * SampleWeights[8];
+            #if AA_LOWPASS
+                float4 FilteredLow = 
+                    Neighbor0 * LowpassWeights[0] +
+                    Neighbor1 * LowpassWeights[1] +
+                    Neighbor2 * LowpassWeights[2] +
+                    Neighbor3 * LowpassWeights[3] +
+                    Neighbor4 * LowpassWeights[4] +
+                    Neighbor5 * LowpassWeights[5] +
+                    Neighbor6 * LowpassWeights[6] +
+                    Neighbor7 * LowpassWeights[7] +
+                    Neighbor8 * LowpassWeights[8];
+            #else
+                float4 FilteredLow = Filtered;
+            #endif
+        #else
+            // Unfiltered.
+            float4 Filtered = Neighbor4;
+            float4 FilteredLow = Neighbor4;
+        #endif
+            float4 NeighborMin2 = min(min(Neighbor0, Neighbor2), min(Neighbor6, Neighbor8));        
+            float4 NeighborMax2 = max(max(Neighbor0, Neighbor2), max(Neighbor6, Neighbor8));        
+            float4 NeighborMin = min(min(min(Neighbor1, Neighbor3), min(Neighbor4, Neighbor5)), Neighbor7);     
+            float4 NeighborMax = max(max(max(Neighbor1, Neighbor3), max(Neighbor4, Neighbor5)), Neighbor7);     
+            NeighborMin2 = min(NeighborMin2, NeighborMin);
+            NeighborMax2 = max(NeighborMax2, NeighborMax);
+            NeighborMin = NeighborMin * 0.5 + NeighborMin2 * 0.5;
+            NeighborMax = NeighborMax * 0.5 + NeighborMax2 * 0.5;
+
+    // FETCH HISTORY
+    // -------------
+    OutColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0);
+            OutColor.rgb *= HdrWeight4(OutColor.rgb, InExposureScale);
+
+    // FIND LUMA OF CLAMPED HISTORY
+    // ----------------------------
+    // Save off luma of history before the clamp.
+            float LumaMin = Luma4(NeighborMin.rgb);
+            float LumaMax = Luma4(NeighborMax.rgb);
+            float LumaHistory = Luma4(OutColor.rgb);
+    float LumaContrast = LumaMax - LumaMin;
+        #if AA_AABB
+            // Clamp history, this uses color AABB intersection for tighter fit.
+            // Clamping works with the low pass (if available) to reduce flicker.
+            float ClampBlend = HistoryClamp(OutColor.rgb, FilteredLow.rgb, NeighborMin.rgb, NeighborMax.rgb);
+            OutColor.rgba = lerp(OutColor.rgba, FilteredLow.rgba, ClampBlend);
+        #else
+            OutColor = clamp(OutColor, NeighborMin, NeighborMax);
+        #endif
+
+    // ADD BACK IN ALIASING TO SHARPEN
+    // -------------------------------
+    #if AA_FILTERED
+        // Blend in non-filtered based on the amount of sub-pixel motion.
+        float AddAliasing = saturate(HistoryBlur) * 0.5;
+        float LumaContrastFactor = 32.0;
+        AddAliasing = saturate(AddAliasing + rcp(1.0 + LumaContrast * LumaContrastFactor));
+        Filtered.rgb = lerp(Filtered.rgb, Neighbor4.rgb, AddAliasing);
+    #endif
+            float LumaFiltered = Luma4(Filtered.rgb);
+        
+    // COMPUTE BLEND AMOUNT 
+    // --------------------
+    // Replace history with minimum difference of history from min or max neighborhood.
+    LumaHistory = min(abs(LumaMin-LumaHistory), abs(LumaMax-LumaHistory));
+    float HistoryAmount = (1.0/8.0) + HistoryBlur * (1.0/8.0);
+    float HistoryFactor = LumaHistory * HistoryAmount * (1.0 + HistoryBlur * HistoryAmount * 8.0);
+    float BlendFinal = saturate(HistoryFactor * rcp(LumaHistory + LumaContrast));
+
+    // Offscreen feedback resets.
+        float FixedLerp = 1.0/float(AA_LERP);
+    if(OffScreen) 
+    {
+        OutColor = Filtered;
+        FixedLerp = 1.0;
+    }
+    
+    // DO FINAL BLEND BETWEEN HISTORY AND FILTERED COLOR
+    // -------------------------------------------------
+        OutColor = lerp(OutColor, Filtered, FixedLerp);
+        // Convert back into linear.
+            OutColor.rgb *= HdrWeightInv4(OutColor.rgb, InExposureScale);
+    #if AA_NAN
+        // Transform NaNs to black, transform negative colors to black.
+        OutColor.rgb = -min(-OutColor.rgb, 0.0);
+    #endif
+
+
+
+#undef AA_AABB
+#undef AA_FILTERED
+#undef AA_LOWPASS
+#undef AA_NAN
+    }
+

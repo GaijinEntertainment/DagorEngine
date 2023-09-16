@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemDefinitionGroup>
+    <LayoutSourceFiles>
+      <LinkDir />
+      <LinkName>%(Filename)%(Extension)</LinkName>
+    </LayoutSourceFiles>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <LayoutSourceFiles Include="$(NMakeOutput)" />
+  </ItemGroup>
+
+  <Choose>
+    <When Condition="'$(_Platform)' == 'gdk' or '$(_Platform)' == 'scarlett'">
+      <ItemGroup>
+        <LayoutSourceFiles Include="$(OutDir)*.dll" />
+        <LayoutSourceFiles Include="$(OutDir)gameos.xvd" />
+        <LayoutSourceFiles Include="$(OutDir)MicrosoftGame.config" />
+        <LayoutSourceFiles Include="$(GameDir)*.bin" />
+        <LayoutSourceFiles Include="$(GameDir)config.blk" />
+        <LayoutSourceFiles Include="$(GameDir)$(ProjectName).config.blk" />
+      </ItemGroup>
+
+      <ItemGroup Condition="'$(_Platform)' == 'gdk'">
+        <LayoutSourceFiles Include="$(GameDir)compiledShaders\gameDX12x.ps50.shdump.bin">
+          <LinkDir>compiledShaders\</LinkDir>
+          <LinkName>%(LinkDir)%(Filename)%(Extension)</LinkName>
+        </LayoutSourceFiles>
+      </ItemGroup>
+
+      <ItemGroup Condition="'$(_Platform)' == 'scarlett'">
+        <LayoutSourceFiles Include="$(GameDir)compiledShaders\gameDX12xs.ps50.shdump.bin">
+          <LinkDir>compiledShaders\</LinkDir>
+          <LinkName>%(LinkDir)%(Filename)%(Extension)</LinkName>
+        </LayoutSourceFiles>
+      </ItemGroup>
+    </When>
+
+    <When Condition="'$(_Platform)' == 'linux64'">
+      <ItemGroup>
+        <LayoutSourceFiles Remove="$(NMakeOutput)" />
+        <LayoutSourceFiles Include="$(OutDir)*.so" />
+
+        <LayoutSourceFiles Include="$(GameDir)*" />
+
+        <LayoutSourceFiles Include="$(GameDir)compiledShaders\game.ps50.shdump.bin">
+          <LinkDir>compiledShaders\</LinkDir>
+          <LinkName>%(LinkDir)%(Filename)%(Extension)</LinkName>
+        </LayoutSourceFiles>
+
+        <LayoutSourceFiles Include="$(GameDir)compiledShaders\gameSpirV.ps50.shdump.bin">
+          <LinkDir>compiledShaders\</LinkDir>
+          <LinkName>%(LinkDir)%(Filename)%(Extension)</LinkName>
+        </LayoutSourceFiles>
+      </ItemGroup>
+    </When>
+  </Choose>
+
+  <ItemGroup>
+    <LayoutSourceFiles Include="$(GameDir)content\**\*">
+      <LinkDir>content\%(RecursiveDir)</LinkDir>
+      <LinkName>%(LinkDir)%(Filename)%(Extension)</LinkName>
+    </LayoutSourceFiles>
+    <LayoutSourceFiles Include="$(GameDir)content.hq\**\*">
+      <LinkDir>content.hq\%(RecursiveDir)</LinkDir>
+      <LinkName>%(LinkDir)%(Filename)%(Extension)</LinkName>
+    </LayoutSourceFiles>
+    <LayoutSourceFiles Include="$(GameDir)locales\*">
+      <LinkDir>locales\</LinkDir>
+      <LinkName>%(LinkDir)%(Filename)%(Extension)</LinkName>
+    </LayoutSourceFiles>
+    <LayoutSourceFiles Include="$(OutDir)media\*">
+      <LinkDir>media\</LinkDir>
+      <LinkName>%(LinkDir)%(Filename)%(Extension)</LinkName>
+    </LayoutSourceFiles>
+    <LayoutSourceFiles Include="$(GameDir)sound\**\*">
+      <LinkDir>sound\%(RecursiveDir)</LinkDir>
+      <LinkName>%(LinkDir)%(Filename)%(Extension)</LinkName>
+    </LayoutSourceFiles>
+    <LayoutSourceFiles Include="$(GameDir)ui\*.vromfs.bin">
+      <LinkDir>ui\</LinkDir>
+      <LinkName>%(LinkDir)%(Filename)%(Extension)</LinkName>
+    </LayoutSourceFiles>
+  </ItemGroup>
+</Project>

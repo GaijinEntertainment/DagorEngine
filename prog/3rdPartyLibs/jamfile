@@ -1,0 +1,52 @@
+# Engine core libraries
+Root    ?= ../.. ;
+Location = prog/3rdPartyLibs ;
+TargetType  = util ;
+Target      = externalLibs ;
+
+Dependencies =
+  $(Root)/prog/3rdPartyLibs/arc/bzip2-1.0.3/jamfile
+  $(Root)/prog/3rdPartyLibs/arc/libzip/jamfile
+  $(Root)/prog/3rdPartyLibs/arc/lzma-9.20/jamfile
+  $(Root)/prog/3rdPartyLibs/arc/snappy-1.1.9/jamfile
+  $(Root)/prog/3rdPartyLibs/arc/zlib-ng/jamfile
+  $(Root)/prog/3rdPartyLibs/arc/zstd-1.4.5/jamfile
+  $(Root)/prog/3rdPartyLibs/arc/fastlz/jamfile
+
+  $(Root)/prog/3rdPartyLibs/image/jpeg-6b/jamfile
+  $(Root)/prog/3rdPartyLibs/image/psdRead/jamfile
+  $(Root)/prog/3rdPartyLibs/image/libpng-1.4.22/jamfile
+  $(Root)/prog/3rdPartyLibs/image/tiff-4.4.0/jamfile
+
+  $(Root)/prog/3rdPartyLibs/codecs/libogg-1.1.3/jamfile
+  $(Root)/prog/3rdPartyLibs/codecs/libtheora-1.0/jamfile
+  $(Root)/prog/3rdPartyLibs/codecs/opus-1.1/jamfile
+  $(Root)/prog/3rdPartyLibs/codecs/speexdsp-1.2.0/jamfile
+
+  $(Root)/prog/3rdPartyLibs/convert/fastDXT/jamfile
+
+  $(Root)/prog/3rdPartyLibs/phys/bullet-$(BulletSdkVer)/jamfile
+
+  $(Root)/prog/3rdPartyLibs/freetype/freetype-2.8/jamfile
+
+  $(Root)/prog/3rdPartyLibs/detex/jamfile
+  $(Root)/prog/3rdPartyLibs/meshoptimizer/jamfile
+;
+
+include $(Root)/prog/_jBuild/build.jam ;
+
+# code removed:
+#   OpenTNL
+#   arc/lzham
+#   facegen
+#   fmod
+#   freetype/freetype-2.3.1
+#   freetype/freetype-2.3.11
+#   freetype/freetype-2.4.6
+#   gameswf
+#   image/tiff-3.9.5
+#   radiant
+#   libtorrent-0.16.13
+#   libtorrent-0.16.16
+#   libtorrent-1.0.0-RC3
+#   yuGameClient 

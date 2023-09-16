@@ -1,0 +1,37 @@
+include "payloads.fbs";
+
+namespace ipc.msg;
+
+union Payload{
+  Log,
+  MouseMove,
+  MouseWheel,
+  MouseButton,
+  Key,
+  ViewResize,
+  ViewUpdate,
+  BrowserShow,
+  BrowserHide,
+  BrowserStop,
+  BrowserRefresh,
+  BrowserInitialized,
+  BrowserStarted,
+  BrowserExited,
+  BrowserError,
+  PageStateChanged,
+  GoForward,
+  GoBack,
+  Go,
+  Paint,
+  BrowserClose,
+  WindowMethod,
+  WindowMethodCall,
+  Popup
+}
+
+table AnyMessage{
+  browserId:int;
+  payload:Payload (required);
+}
+
+root_type AnyMessage;

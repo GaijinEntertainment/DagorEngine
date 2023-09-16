@@ -1,0 +1,67 @@
+if ! $(__VROMFS_BUILD_INCLUDED) { if ! $(Root) { Exit 'Root' variable not defined, aborting ; } __VROMFS_BUILD_INCLUDED = 1 ;
+
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+VROMFS_BUILD_TOOL = $(Root)/tools/dagor3_cdk/util/vromfsPacker-dev.exe ;
+
+actions quietly build_vromfs
+{
+#async
+  echo building vromfs $(1:D=)
+  mkdir $(1:D)
+  del $(1)
+  mkdir $(blk:D)
+  echo $(blk_hdr) $(folders) >$(blk)
+
+  set_filter $(blk).log /./
+  call_filtered $(VROMFS_BUILD_TOOL) $(blk) -out:$(1) -platform:$(PlatformDataFormatCode)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  goto end
+
+  :failed
+  clr_filters
+  call $(ComSpec) /C type #\( $(blk).log )\#
+  set ERRORLEVEL=13
+  :end
+}
+
+# AddToVromfs Target : folderAttr : [deps]
+rule AddToVromfs
+{
+  if $(OS) != NT { Echo skipping AddToVromfs $(1) on OS\=$(OS) ; return ; }
+  if ! [ GLOB $(VROMFS_BUILD_TOOL:D) : $(VROMFS_BUILD_TOOL:D=) ] { Echo skipping AddToVromfs $(1) due to missing $(VROMFS_BUILD_TOOL) ; return ; }
+
+  local Target = $(Root)/$(1) ;
+
+  if ! $($(1)__inited) {
+    $(1)__inited = yes ;
+    if [ MATCH (~) : $(Target) ] { Exit tilda in Target\=$(Target) is not permitted ; }
+
+    blk on $(Target) = $(Root)/_output/vromfs~$(PlatformDataFormatCode)/$(1:S=-src.blk) ;
+    blk_hdr on $(Target) =
+      rootFolder\:t\=\"$(Root)\"\;
+      output\:t\=\"$(Target)\"\;
+      sign_private_key\:t\=\"\"\;
+    ;
+
+    ALWAYS $(Target) ;
+    Depends all : $(Target) ;
+    build_vromfs $(Target) ;
+  }
+
+  if [ MATCH (~) : $(2) ] { Exit tilda in folder \{ $(2) \} is not permitted ; }
+  folders on $(Target) += folder\{ $(2) \} ;
+  Depends $(Target) : $(Root)/$(3) ;
+}
+# VromfsFolderAttr SrcPath : DestPath : wildcards : [files | folders]
+rule VromfsFolderAttr
+{
+  local blk = path\:t\=\"$(1)\"\; dest_path\:t\=\"$(2)\"\; wildcard\:t\=\"$(3)\"\; ;
+  if ! files in $(4) { blk += scan_files\:b\=no\; ; }
+  if ! folders in $(4) { blk += scan_subfolders\:b\=no\; ; }
+  return $(blk) ;
+}
+
+NotFile __empty_pseudo_target ; Depends all : __empty_pseudo_target ;
+
+}

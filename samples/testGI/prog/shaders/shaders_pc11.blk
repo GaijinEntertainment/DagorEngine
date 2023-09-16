@@ -1,0 +1,56 @@
+shader_root_dir:t="."
+outDumpName:t="../../game/compiledShaders/game"
+
+include common_inc_dirs.blk 
+
+source
+{
+  includePath:t="./source"
+
+  include "../../../../prog/samples/commonShaders/shadersList.blk"
+  include "../../../../prog/gameLibs/daGI/shaders/daGIList.blk"
+  include fftWaterList.blk
+  include shadersList.blk
+  include "../../../../prog/gameLibs/daSkies2/shaders/daSkiesList.blk"
+  include renderLibsList.blk
+}
+
+common_valid_variants
+{
+  include "../../../../prog/gameLibs/daGI/shaders/daGIvariants.blk"
+}
+
+common_assume_vars
+{
+gi_volmap_hmap:i=0
+}
+
+Compile
+{
+  fsh:t = 5.0
+  assume_vars {
+    render_inline_raytracing:i=0
+    dynamic_lights_count:i = 0
+    in_editor_assume:i=0
+    shore_waves_on:i= 0
+    water_foam_tex:i = 0
+    wake_gradients_tex:i=0
+    water_refraction_tex:i = 1
+    water_reflection_tex:i = 1
+    support_texture_array:i=1
+    is_gather4_supported:i = 0
+    hero_ao:i = 0
+    num_of_cascades:i=4
+    compatibility_mode:i = 0
+    mobile_render:i=0
+    render_inline_raytracing:i = 0
+    use_postfx:i = 1
+    use_extended_global_frame_block:i=0
+  }
+}
+
+explicit_var_ref
+{
+  include common_var_ref.blk
+  include water_var_ref.blk
+}

@@ -1,0 +1,46 @@
+include "shader_global.sh"
+include "postfx_inc.sh"
+include "viewVecVS.sh"
+include "gbuffer.sh"
+include "indoor_light_probes.sh"
+
+shader debug_indoor_probes_on_screen
+{
+  supports global_frame;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(1, texcoord, viewVect)
+  INIT_ZNZFAR()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  USE_INDOOR_LIGHT_PROBES()
+  ENABLE_ASSERT(ps)
+
+  hlsl(ps) {
+    float3 debug_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
+    {
+      float rawDepth = readGbufferDepth(input.texcoord.xy);
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      float3 pointToEye = -input.viewVect * w;
+      float3 worldPos = world_view_pos.xyz - pointToEye;
+
+      float3 normal;
+      half smoothness;
+      readPackedGbufferNormalSmoothness(input.texcoord, normal, smoothness);
+      float4 reflection__weight = use_indoor_probes(worldPos, normal, 0, 0);
+
+      float3 background = float3(0, 1, 0);
+
+      return lerp(reflection__weight.rgb, background, reflection__weight.a);
+    }
+  }
+
+  compile("target_ps", "debug_ps");
+}

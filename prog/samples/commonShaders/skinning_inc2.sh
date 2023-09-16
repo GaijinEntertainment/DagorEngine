@@ -1,0 +1,158 @@
+macro WORLD_LOCAL_VS()
+(vs) {
+  globtm@f44 = globtm;
+  world_local_x_vs@f3 = world_local_x;
+  world_local_y_vs@f3 = world_local_y;
+  world_local_z_vs@f3 = world_local_z;
+  world_local_pos_vs@f3 = world_local_pos;
+}
+endmacro
+
+macro INIT_NO_SKINNING()
+hlsl(vs) {
+    #define INIT_BONES_VSINPUT(t1, t2)
+}
+endmacro
+
+macro INIT_HAS_SKINNING()
+hlsl(vs) {
+##if num_bones != one_bone
+    #define INIT_BONES_VSINPUT(t1, t2)\
+      float4 packedBoneIndices    : t1;\
+      float4 boneWeights          : t2;
+##else
+    #define INIT_BONES_VSINPUT(t1, t2)\
+      float4 packedBoneIndices    : t1;
+##endif
+}
+endmacro
+
+macro NO_SKINNING_VS()
+WORLD_LOCAL_VS()
+hlsl(vs) {
+  void instance_skinning(
+    in VsInput input,
+    in float4 vertex_pos,
+    in float3 vertex_normal,
+    in float3 vertex_du,
+    in float3 vertex_dv,
+    out float4 world_pos,
+    out float4 output_pos,
+    out float3 world_normal,
+    out float3 world_du,
+    out float3 world_dv)
+  {
+    world_pos = float4(vertex_pos.x * world_local_x_vs + vertex_pos.y * world_local_y_vs + vertex_pos.z * world_local_z_vs + world_local_pos_vs, 1.);
+    world_normal = vertex_normal.x * world_local_x_vs + vertex_normal.y * world_local_y_vs + vertex_normal.z * world_local_z_vs;
+    #if VERTEX_TANGENT
+    world_du = vertex_du.x * world_local_x_vs + vertex_du.y * world_local_y_vs + vertex_du.z * world_local_z_vs;
+    world_dv = vertex_dv.x * world_local_x_vs + vertex_dv.y * world_local_y_vs + vertex_dv.z * world_local_z_vs;
+    #else
+    world_du = world_dv = 0;
+    #endif
+    output_pos = mul(vertex_pos, globtm);
+  }
+}
+endmacro
+
+macro HAS_SKINNING_VS()
+WORLD_LOCAL_VS()
+
+hlsl(vs) {
+  struct bone_t { float4 r0, r1, r2; };
+  float3 mul_bone(float4 p4, bone_t m) { return float3(dot(m.r0, p4), dot(m.r1, p4), dot(m.r2, p4)); }
+  float3 mul_bone3(float3 p3, bone_t m) { float4 p4 = float4(p3, 0); return float3(dot(m.r0, p4), dot(m.r1, p4), dot(m.r2, p4)); }
+  float3 mul_bone3m(float3 p3, float3x3 m3) { return mul(m3, p3); }
+  #define MAX_BONES 24
+  //ConstantBuffer bones
+  //{
+    float4 boneTmArray[MAX_BONES*3] : register(c70);
+  //};
+  bone_t skinning_matrix(in VsInput input)
+  {
+    float4 packed_bone_indices = input.packedBoneIndices;
+    int4 boneIndices = D3DCOLORtoUBYTE4(packed_bone_indices.zyxw);
+    bone_t skinnedTm;
+
+    int4 bi = clamp(boneIndices, 0, MAX_BONES-1)*3;
+## if num_bones != one_bone
+    float4 bw = input.boneWeights;
+## endif
+
+## if num_bones == one_bone
+    skinnedTm.r0 = boneTmArray[bi.x+0];
+    skinnedTm.r1 = boneTmArray[bi.x+1];
+    skinnedTm.r2 = boneTmArray[bi.x+2];
+## elif num_bones == two_bones
+    skinnedTm.r0 = boneTmArray[bi.x+0] * bw.x + boneTmArray[bi.y+0] * bw.y;
+    skinnedTm.r1 = boneTmArray[bi.x+1] * bw.x + boneTmArray[bi.y+1] * bw.y;
+    skinnedTm.r2 = boneTmArray[bi.x+2] * bw.x + boneTmArray[bi.y+2] * bw.y;
+## elif num_bones == three_bones
+    skinnedTm.r0 = boneTmArray[bi.x+0] * bw.x + boneTmArray[bi.y+0] * bw.y + boneTmArray[bi.z+0] * bw.z;
+    skinnedTm.r1 = boneTmArray[bi.x+1] * bw.x + boneTmArray[bi.y+1] * bw.y + boneTmArray[bi.z+1] * bw.z;
+    skinnedTm.r2 = boneTmArray[bi.x+2] * bw.x + boneTmArray[bi.y+2] * bw.y + boneTmArray[bi.z+2] * bw.z;
+## elif num_bones == four_bones
+    skinnedTm.r0 = boneTmArray[bi.x+0] * bw.x + boneTmArray[bi.y+0] * bw.y + boneTmArray[bi.z+0] * bw.z + boneTmArray[bi.w+0] * bw.w;
+    skinnedTm.r1 = boneTmArray[bi.x+1] * bw.x + boneTmArray[bi.y+1] * bw.y + boneTmArray[bi.z+1] * bw.z + boneTmArray[bi.w+1] * bw.w;
+    skinnedTm.r2 = boneTmArray[bi.x+2] * bw.x + boneTmArray[bi.y+2] * bw.y + boneTmArray[bi.z+2] * bw.z + boneTmArray[bi.w+2] * bw.w;
+## endif
+
+    return skinnedTm;
+  }
+
+  void instance_skinning(
+    in VsInput input,
+    in float4 vertex_pos,
+    in float3 vertex_normal,
+    in float3 vertex_du,
+    in float3 vertex_dv,
+    out float4 world_pos,
+    out float4 output_pos,
+    out float3 world_normal,
+    out float3 world_du,
+    out float3 world_dv)
+  {
+    bone_t skinnedTm = skinning_matrix(input);
+
+    world_pos = float4(mul_bone(vertex_pos, skinnedTm), 1.);
+    float3x3 wtm = float3x3(
+      world_local_x_vs.x, world_local_y_vs.x, world_local_z_vs.x,
+      world_local_x_vs.y, world_local_y_vs.y, world_local_z_vs.y,
+      world_local_x_vs.z, world_local_y_vs.z, world_local_z_vs.z);
+
+    wtm = mul(wtm, float3x3(skinnedTm.r0.xyz, skinnedTm.r1.xyz, skinnedTm.r2.xyz));
+
+    world_normal = normalize(mul_bone3m(vertex_normal, wtm));
+    #if VERTEX_TANGENT
+    world_du = normalize(mul_bone3m(vertex_du, wtm));
+    world_dv = normalize(mul_bone3m(vertex_dv, wtm));
+    #else
+    world_du = world_dv = 0;
+    #endif
+
+    output_pos = mul(world_pos, globtm);
+    world_pos.xyz += world_local_pos_vs;
+  }
+}
+endmacro
+
+macro OPTIONAL_SKINNING_SHADER()
+if (num_bones == no_bones)
+{
+  NO_SKINNING_VS()
+} else
+{
+  HAS_SKINNING_VS()
+}
+endmacro
+
+macro INIT_OPTIONAL_SKINNING()
+if (num_bones == no_bones)
+{
+  INIT_NO_SKINNING()
+} else
+{
+  INIT_HAS_SKINNING()
+}
+endmacro
+

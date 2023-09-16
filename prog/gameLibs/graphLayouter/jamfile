@@ -1,0 +1,16 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/graphLayouter ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/graphLayouter.lib ;
+
+Sources =
+  defaultGraphLayouter.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

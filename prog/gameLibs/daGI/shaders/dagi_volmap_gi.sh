@@ -1,0 +1,556 @@
+include "hardware_defines.sh"
+include "dagi_scene_voxels_common.sh"
+include "dagi_quality.sh"
+
+texture gi_ambient_volmap;
+texture ssgi_ambient_volmap_temporal;
+buffer VolmapCBuffer;
+texture octahedral_distances;
+texture dead_probes;
+float ssgi_temporal_weight_limit;
+int cascade_id;
+
+//texture ssgi_ambient_volmap_floor;
+hlsl {
+  #include "dagi_temporal_consts.hlsli"
+}
+
+macro SSGI_INIT_VOLMAP_GI_SEVERAL_CASCADES_CBUF(code)
+(code) {
+  VolmapCBuffer@cbuf = VolmapCBuffer hlsl {
+    #include "dagi_volmap_cb.hlsli"
+    cbuffer VolmapCBuffer@cbuf
+    {
+      VolmapCB volmap[MAX_VOLMAP_CASCADES];
+      //float4 world_to_last_cascade_floor;
+    };
+  }
+}
+endmacro
+
+macro SSGI_USE_VOLMAP_GI_CBUF_BASE(code)
+  //ssgi_ambient_volmap_floor sampler_postfix = ssgi_ambient_volmap_floor;
+hlsl(code) {
+  #ifndef VolmapCBuffer_DEFINED
+    #define VolmapCBuffer_DEFINED 1
+    #include "dagi_volmap_cb.hlsli"
+    //cbuffer VolmapCBuffer : register( VOLMAP_CB_INDEX )
+    //{
+    //  VolmapCB volmap[MAX_VOLMAP_CASCADES];
+    //  //float4 world_to_last_cascade_floor;
+    //};
+    //sampler2D ssgi_ambient_volmap_floor sampler_postfix;
+    #define volmap_xz_dim(i) (volmap[0].xz_dim)//intentionally use [0] instead of [1], as xz_dimension is same!
+    #define volmap_y_dim(i) (volmap[i].y_dim)
+
+    #define ssgi_ambient_volmap_box0_xyz(i) (volmap[i].box0.xyz)
+    #define ssgi_ambient_volmap_box1_xyz(i) (volmap[i].box1.xyz)
+    #define ssgi_ambient_volmap_tcclamp(i) (volmap[i].tcclamp)
+    #define ssgi_ambient_volmap_tcclamp_double(i) (volmap[i].tcClampDouble)
+    #define ssgi_ambient_volmap_vignette_consts(i) (volmap[i].vignetteConsts)
+    #define ssgi_cascade_z_crd_ofs(i) (volmap[i].cascade_z_ofs)
+    #define ssgi_cascade_tc_mul_ofs(i) (volmap[i].cascade_z_tc_mul_add)
+    #define ambientTcToCoordF(tc, i) (float3(tc.xy*volmap_xz_dim(i), tc.z*volmap_y_dim(i))-0.5)
+    #define ambientTcToCoord(tc, i)  (int3(floor(ambientTcToCoordF(tc, i))))
+
+    #define ssgi_ambient_volmap_crd_to_world0_xyz(i) (volmap[i].voxelSize.xyx)//can be potentially faster to use cascade == 0 ? voxelSize : voxelSize*multiplier. cmove faster than indirection
+    #define ssgi_ambient_volmap_crd_to_world1_xyz(i) (volmap[i].coord_to_world_add.xyz)
+    #define ssgi_ambient_volmap_cascade_use_floor(i) (volmap[i].use_floor)
+    #define ssgi_ambient_volmap_crd_ofs_xz(i) (volmap[i].crd_ofs_xz)
+    #define ssgi_ambient_volmap_tc_ofs2d(i) (volmap[i].tc_ofs.xy)
+    #define ssgi_ambient_volmap_crd_pofs_2d_uint(i) (volmap[i].crd_pofs_uint2.xy)
+    #define ssgi_ambient_volmap_crd_nofs_2d_uint(i) (volmap[i].crd_nofs_uint2.xy)
+    #define ssgi_get_max_voxels_in_bin(i) (volmap[i].max_voxels_per_bin.xyz)
+    #define ssgi_get_max_non_initial_voxels(i) (volmap[i].max_voxels_per_bin.w)
+    #define get_fullVolmapResolution (volmap[0].fullVolmapResolution)
+    #define get_invFullVolmapResolution (volmap[0].invFullVolmapResolution)
+    #define ambientWorldPosToTc(worldPos, i) ((worldPos).xzy*ssgi_ambient_volmap_box0_xyz(i).xzy + ssgi_ambient_volmap_box1_xyz(i).xzy)
+    #define ambientOffsettedCoordToWorldPos(coordF, i)  ((coordF).xzy*ssgi_ambient_volmap_crd_to_world0_xyz(i) + ssgi_ambient_volmap_crd_to_world1_xyz(i))
+    float getProbeDiagonalSize(uint i) {return ssgi_ambient_volmap_crd_to_world0_xyz(i).y*sqrt(3);}//length(ssgi_ambient_volmap_crd_to_world0_xyz(i))
+    uint3 ambientOffsetCoord(uint3 coord, uint i)
+    {
+      //float3 coordF = coord;
+      return uint3((coord.xy + ssgi_ambient_volmap_crd_pofs_2d_uint(i).xy)%volmap_xz_dim(i), coord.z);
+    }
+    int3 ambientOffsetCoord2(uint3 coord, uint i)
+    {
+      return uint3((coord.xy + ssgi_ambient_volmap_crd_nofs_2d_uint(i).xy) % volmap_xz_dim(i).x, coord.z);
+    }
+    #define ambientCoordToWorldPos(coord, i) (ambientOffsettedCoordToWorldPos(ambientOffsetCoord(coord, i), i))
+
+    #include "dagi_move_cascade.hlsl"
+  #endif
+}
+endmacro
+
+macro SSGI_USE_VOLMAP_GI_CBUF(code)
+  hlsl(code) {
+    #define NO_GRADIENTS_IN_SHADER 1
+  }
+  SSGI_USE_VOLMAP_GI_CBUF_BASE(code)
+endmacro
+
+macro SSGI_USE_VOLMAP_GI_COORD( code )
+  (code) {
+    cascade_id@i1 = (cascade_id)
+  }
+  SSGI_INIT_VOLMAP_GI_SEVERAL_CASCADES_CBUF(code)
+  SSGI_USE_VOLMAP_GI_CBUF(code)
+endmacro
+
+macro SSGI_USE_VOLMAP_GI_TC( code )
+  SSGI_USE_VOLMAP_GI_CBUF(code)
+endmacro
+
+macro SSGI_USE_VOLMAP_GI_TC_BASE( code )
+  SSGI_USE_VOLMAP_GI_CBUF_BASE(code)
+endmacro
+
+float4 ssgi_current_world_origin;
+
+macro SSGI_INIT_VOLMAP_GI_VARS( code )
+  (code)
+  {
+    gi_ambient_volmap@smp3d = gi_ambient_volmap;
+    ssgi_current_world_origin@f3 = ssgi_current_world_origin;
+    octahedral_distances@tex = octahedral_distances hlsl { Texture2DArray<float>octahedral_distances@tex; }
+    dead_probes@tex = dead_probes hlsl { Texture2DArray<float>dead_probes@tex; }
+  }
+endmacro
+
+macro SSGI_INIT_VOLMAP_GI( code )
+  SSGI_INIT_VOLMAP_GI_VARS(code)
+  SSGI_INIT_VOLMAP_GI_SEVERAL_CASCADES_CBUF(code)
+endmacro
+
+macro GI_USE_AMBIENT_VOLMAP_BASE(code, channels)
+  hlsl(code) {
+    #define SAMPLE_AMBIENT_VOLMAP(texcoord)            tex3Dlod(gi_ambient_volmap, float4(texcoord, 0)).channels
+    #define FETCH_AMBIENT_VOLMAP(texcoord)             gi_ambient_volmap[texcoord].channels
+  }
+endmacro
+
+macro GI_USE_AMBIENT_VOLMAP(code)
+  if (gi_quality == only_ao) {
+    GI_USE_AMBIENT_VOLMAP_BASE(code, rrr)
+  } else {
+    GI_USE_AMBIENT_VOLMAP_BASE(code, rgb)
+  }
+endmacro
+
+macro SSGI_JUST_USE_VOLMAP_GI_BASE_INTERNAL(code)
+  hlsl(code) {
+    #if !DO_NOT_FILTER_GI_AMBIENT_BY_NORMAL_WEIGHT
+      #ifndef FILTER_BY_NORMAL_WEIGHT
+        #define FILTER_BY_NORMAL_WEIGHT 0.2
+      #endif
+    #endif
+    void ssgi_filter_normal_trilinear(inout float3 tcFrac, float3 normal, float minNormalW)
+    {
+      float3 wZ0 = (1-tcFrac)*max(-normal.xzy, minNormalW);
+      float3 wZ1 = (tcFrac)*max(normal.xzy, minNormalW);
+      tcFrac = wZ1*rcp(wZ0+wZ1);
+    }
+    #if !USE_ADDITIONAL_TRILINEAR_FILTERING
+      void ssgi_filter_trilinear(float3 tcFloor, inout float3 tcFrac, float3 normal, float3 texelSize){}
+    #endif
+
+    bool isInsideCascade(float3 worldPos, const uint cascade)
+    {
+      float3 hardTc = ambientWorldPosToTc(worldPos, cascade);
+      return all( abs(hardTc*2-1) < ssgi_ambient_volmap_tcclamp_double(cascade).xxy);
+    }
+
+    struct SampledAmbientCube{half3 x,y,z;};//only half of cube, based on normal distance
+
+    SampledAmbientCube sampleUnfilteredAmbientCube(float3 tc, float3 isNegative, float3 normal, uint cascade)
+    {
+      tc.z *= 1./6.0;
+      SampledAmbientCube ambient;
+      float3 tcz = tc.zzz + isNegative+float3(0,1./3, 2./3);
+      tcz = tcz*ssgi_cascade_tc_mul_ofs(cascade).x+ssgi_cascade_tc_mul_ofs(cascade).yyy;
+      ambient.x = SAMPLE_AMBIENT_VOLMAP(float3(tc.xy, tcz.x));
+      ambient.y = SAMPLE_AMBIENT_VOLMAP(float3(tc.xy, tcz.y));
+      ambient.z = SAMPLE_AMBIENT_VOLMAP(float3(tc.xy, tcz.z));
+      return ambient;
+    }
+
+    SampledAmbientCube sampleFilteredAmbientCube(float3 worldPos, float3 tc, float3 isNegative, float3 normal, uint cascade, bool useFiltering, float w)
+    {
+      tc.z *= 1./6.0;
+      SampledAmbientCube ambient;
+      tc.z*=ssgi_cascade_tc_mul_ofs(cascade).x;
+      if (useFiltering)
+      {
+        //float3 tcMul = tc*fullVolmapResolution.xyz-0.5;
+        float3 tcMul = tc*get_fullVolmapResolution.xyz + get_fullVolmapResolution.www;
+        float3 tcFloor = floor(tcMul);
+        float3 tcFrac = tcMul-tcFloor;//frac(tcMul);
+        //tcFrac.z = (normal.xzy>0 ? 1-(1-tcFrac)*max(1-normal.xzy, 0.1) : tcFrac*max(1+normal.xzy, 0.1)).z;//
+        ssgi_filter_normal_trilinear(tcFrac, normal, w*(cascade+1));
+        ssgi_filter_trilinear(tcFloor, tcFrac, normal, ssgi_ambient_volmap_crd_to_world0_xyz(cascade));
+        tc = (tcFloor+0.5+tcFrac) * get_invFullVolmapResolution;
+      }
+      float3 tcz = tc.zzz + (isNegative+float3(0,1./3, 2./3))*ssgi_cascade_tc_mul_ofs(cascade).x+ssgi_cascade_tc_mul_ofs(cascade).yyy;
+      ambient.x = SAMPLE_AMBIENT_VOLMAP(float3(tc.xy, tcz.x));
+      ambient.y = SAMPLE_AMBIENT_VOLMAP(float3(tc.xy, tcz.y));
+      ambient.z = SAMPLE_AMBIENT_VOLMAP(float3(tc.xy, tcz.z));
+      return ambient;
+    }
+
+    SampledAmbientCube get_ambient_cube_unfiltered(float3 worldPos, float3 worldNormal)
+    {
+      uint cascade = isInsideCascade(worldPos, 0) ? 0 : 1;//todo: check for cascade 1/2.5d also!
+      float3 tc = ambientWorldPosToTc(worldPos, cascade);
+      tc = clamp(tc, ssgi_ambient_volmap_tcclamp(cascade).xxz, ssgi_ambient_volmap_tcclamp(cascade).yyw);
+      tc.xy -= ssgi_ambient_volmap_tc_ofs2d(cascade).xy;
+      return sampleUnfilteredAmbientCube(tc, ( worldNormal < 0.0 ) ? 1./6.0 : 0, worldNormal, cascade);
+    }
+    half3 calcAmbientNsq(float3 nSquared, SampledAmbientCube cube) { return nSquared.x * cube.x + nSquared.y * cube.y + nSquared.z * cube.z;}
+    half3 calcAmbient(float3 normal, SampledAmbientCube cube) {return calcAmbientNsq(normal*normal, cube);}
+
+    half3 sampleUnfilteredAmbient(float3 worldPos, float3 nSquared, float3 tc, float3 isNegative, uint index, float3 normal, bool useFiltering)
+    {
+      #if defined(FILTER_BY_NORMAL_WEIGHT)
+        SampledAmbientCube cube = sampleFilteredAmbientCube(worldPos, tc, isNegative, normal, index, useFiltering, FILTER_BY_NORMAL_WEIGHT);
+      #else
+        SampledAmbientCube cube = sampleUnfilteredAmbientCube(tc, isNegative, normal, index);
+      #endif
+      return calcAmbientNsq(nSquared, cube);
+    }
+
+    ##if (gi_quality == raytracing)
+      #include "octahedral.hlsl"
+      #include "octahedral_tile_side_length.hlsli"
+      half3 getFilteredAmbient(float3 nSquared, float3 tc, float3 isNegative, uint index, float3 worldPos, float3 worldNormal)
+      {
+        uint3 dead_dim;
+        dead_probes.GetDimensions(dead_dim.x, dead_dim.y, dead_dim.z);
+        worldPos += (0.1 + index * 0.2) * worldNormal; // bias, use larger bias for cruder cascade to eliminate artifacts
+        float3 octDim = float3(volmap_xz_dim(index).xx/*64*/, volmap_y_dim(index)/*32 cascade0;32+24 cascade1*/);
+        float3 tcMul = tc * octDim - 0.5;
+        float3 tcFloor = floor(tcMul);
+        float3 tcFrac = tcMul - tcFloor;//frac(tcMul);
+        float3 alpha = tcFrac;
+
+        int3 baseProbeCoord = ambientTcToCoord(tc, index);
+        float3 baseProbeWorldPos = ambientCoordToWorldPos(baseProbeCoord, index);
+
+        tc.z *= 1./6.0;
+        tc.z *= ssgi_cascade_tc_mul_ofs(index).x;
+
+        tc = (floor(tc * get_fullVolmapResolution.xyz - 0.5) + 0.5) * get_invFullVolmapResolution;
+
+        float3 tcz = tc.zzz + (isNegative+float3(0,1./3, 2./3))*ssgi_cascade_tc_mul_ofs(index).x + ssgi_cascade_tc_mul_ofs(index).yyy;
+
+        uint3 octahedral_distances_dim;
+        octahedral_distances.GetDimensions(octahedral_distances_dim.x, octahedral_distances_dim.y, octahedral_distances_dim.z);
+        half3 sumIrradiance = 0.0;
+        half sumWeight = 0.0;
+        const float probeSize = getProbeDiagonalSize(index);
+        UNROLL
+        for (int i = 0; i < 8; ++i) {
+            uint3 offset = uint3(i, i >> 1, i >> 2) & 1;
+            int3 probeCoord = int3(baseProbeCoord + offset);
+            float3 probeWorldPos = ambientCoordToWorldPos(probeCoord, index);
+
+            float3 tcOct = ambientWorldPosToTc(probeWorldPos, index);
+            tcOct.xy -= ssgi_ambient_volmap_tc_ofs2d(index).xy;
+
+            tcOct.z *= ssgi_cascade_tc_mul_ofs(index).x;
+            tcOct.z += ssgi_cascade_tc_mul_ofs(index).y;
+            tcOct.z *= volmap_y_dim(0) + volmap_y_dim(1) - 0.001;
+            tcOct.xy = float2(probeCoord.xy * OCTAHEDRAL_TILE_SIDE_LENGTH) / octahedral_distances_dim.xy;
+
+            float3 tcDead = float3((float2(probeCoord.xy) + 0.5f) / dead_dim.xy, tcOct.z);
+            if (dead_probes.SampleLevel(gi_ambient_volmap_samplerstate, tcDead, 0) > 0.6)
+              continue;
+
+            float3 offsetF = float3(offset) * get_invFullVolmapResolution;
+
+            half3 probeIrradiance = nSquared.x * SAMPLE_AMBIENT_VOLMAP(float3(tc.xy, tcz.x) + offsetF) +
+                                    nSquared.y * SAMPLE_AMBIENT_VOLMAP(float3(tc.xy, tcz.y) + offsetF) +
+                                    nSquared.z * SAMPLE_AMBIENT_VOLMAP(float3(tc.xy, tcz.z) + offsetF);
+            float3 trilinear = offset ? alpha : 1 - alpha;
+            float weight = trilinear.x * trilinear.y * trilinear.z;
+
+            float3 trueDirectionToProbe = normalize(probeWorldPos - worldPos);
+            weight *= pow2((dot(trueDirectionToProbe, worldNormal) + 1.0) * 0.5) + 0.2;
+
+            float3 probeToBiasedPointDirection = worldPos - probeWorldPos;
+
+            float distanceToBiasedPoint = length(probeToBiasedPointDirection);
+            probeToBiasedPointDirection *= 1.0 / distanceToBiasedPoint;
+
+            float2 octOffsetF = octEncode(probeToBiasedPointDirection/*-1..+1*/); /*-1..+1*/
+            octOffsetF = octOffsetF * 0.5 + 0.5; /*0..1*/
+            octOffsetF = octOffsetF * OCTAHEDRAL_TILE_SIDE_LENGTH / octahedral_distances_dim.xy;
+            octOffsetF = clamp(octOffsetF, 0.5 / octahedral_distances_dim.xy, (float(OCTAHEDRAL_TILE_SIDE_LENGTH) - 0.5) / octahedral_distances_dim.xy);
+
+            float visibility = octahedral_distances.SampleLevel(gi_ambient_volmap_samplerstate, tcOct + float3(octOffsetF.xy, 0), 0);
+            float distToObstacle = visibility;
+            float distToProbe = length(probeWorldPos - worldPos);
+
+            float occlusionDist = min(0.0, distToObstacle - distToProbe / probeSize);
+
+            float shadow = exp2(15.0 * occlusionDist);
+            weight = max(0.000001, weight * shadow);
+
+            sumWeight += weight;
+            sumIrradiance += weight * probeIrradiance;
+        }
+        return sumIrradiance / sumWeight;
+      }
+    ##endif
+    float getHardAmbientVignette(float3 worldPos, const uint cascade)
+    {
+      float3 hardTc = ambientWorldPosToTc(worldPos, cascade);
+      return all( abs(hardTc*2-1) < ssgi_ambient_volmap_tcclamp_double(cascade).xxy);
+    }
+    float getSoftAmbientVignette(float3 worldPos, const uint cascade)
+    {
+      float3 offsettedWorldPos = worldPos + (volmap[cascade].alignedOrigin - ssgi_current_world_origin);
+      float3 tc = ambientWorldPosToTc(offsettedWorldPos, cascade);
+      float4 vignetteConsts = ssgi_ambient_volmap_vignette_consts(cascade);
+      float3 vignette = saturate(abs(tc*2-1)*vignetteConsts.xxy + vignetteConsts.zzw);
+      //use externally provided consts (in same CB, per cascade)
+      //float GI_MOVEMENT_THRESHOLD = 2;
+      //float texelDisappearWidth = 1./4; float2 halfDistInTexels = float2(32, 16);//fixme: we should use not hardcoded resolution
+      //float3 vignette = saturate( abs(tc*2-1)*
+      //  (texelDisappearWidth*halfDistInTexels.xxy) - ((halfDistInTexels.xxy-GI_MOVEMENT_THRESHOLD)*texelDisappearWidth - 1));
+      return getHardAmbientVignette(worldPos, cascade)*saturate(1-dot( vignette, vignette ));
+    }
+    float getAmbientVignette(float3 worldPos, const uint cascade)
+    {
+      #if HARD_GI_VIGNETTE
+        return getHardAmbientVignette(worldPos, cascade);
+      #else
+        return getSoftAmbientVignette(worldPos, cascade);
+      #endif
+    }
+
+    float get_ambient3d_unfiltered_cascade(float3 worldPos, float3 nSquared, float3 isNegative, half3 env_color, inout half3 cambient, uint cascade, float3 normal, bool useFiltering)
+    {
+      float3 tc = ambientWorldPosToTc(worldPos, cascade);
+      float vignetteWeight = getAmbientVignette(worldPos, cascade);
+      BRANCH
+      if (vignetteWeight > 0.000001)
+      {
+        tc = clamp(tc, ssgi_ambient_volmap_tcclamp(cascade).xxz, ssgi_ambient_volmap_tcclamp(cascade).yyw);
+        tc.xy -= ssgi_ambient_volmap_tc_ofs2d(cascade).xy;
+        ##if (gi_quality == raytracing)
+          cambient = getFilteredAmbient(nSquared, tc, isNegative, cascade, worldPos, normal);
+        ##else
+          cambient = sampleUnfilteredAmbient(worldPos, nSquared, tc, isNegative, cascade, normal, useFiltering);
+          ##if (gi_quality == only_ao)
+            cambient *= env_color;
+          ##endif
+        ##endif
+      }
+      return vignetteWeight;
+    }
+
+    float get_ambient3d_unfiltered(float3 worldPos, float3 worldNormal, half3 env_color, inout half3 cambient, bool useFiltering)
+    {
+      float3 nSquared = worldNormal * worldNormal;
+      float3 isNegative = ( worldNormal < 0.0 ) ? 1./6.0 : 0;
+      float weight0 = get_ambient3d_unfiltered_cascade(worldPos, nSquared, isNegative, env_color, cambient, 0, worldNormal, useFiltering);
+      float minWeight0 = 0.9999;
+      BRANCH
+      if (weight0 > minWeight0)
+        return saturate(weight0+(1-minWeight0));
+      else
+      {
+        half3 cambient1 = cambient;
+        float weight1 = get_ambient3d_unfiltered_cascade(worldPos, nSquared, isNegative, env_color, cambient1, 1, worldNormal, useFiltering);
+        cambient = lerp(cambient1, cambient, weight0);
+        return weight1;
+      }
+    }
+
+    /*float get_ambient3d_filtered(float3 worldPos, float3 worldNormal, half3 env_color, inout half3 cambient)
+    {
+      float3 tc = ambientWorldPosToTc(worldPos, 1);
+      if (any( (tc>1+ssgi_ambient_volmap_tcclamp(1).xxz)) | any((tc<-ssgi_ambient_volmap_tcclamp(1).xxz)))//==
+        return 0;
+
+      float3 nSquared = worldNormal * worldNormal;
+
+      float texelDisappearWidth = 1./4; float halfDistInTexels = 32;
+      float3 vignette = saturate( abs(ambientWorldPosToTc(worldPos + ssgi_ambient_volmap_world_ofs(1), 1)*2-1)*
+        (texelDisappearWidth*halfDistInTexels) - ((halfDistInTexels-1)*texelDisappearWidth - 1));
+      float vignetteWeight = saturate(1-dot( vignette, vignette ));
+
+      tc = clamp(tc, ssgi_ambient_volmap_tcclamp(1).xxz, ssgi_ambient_volmap_tcclamp(1).yyw);
+
+      uint index = 1;
+      float3 tc2 = ambientWorldPosToTc(worldPos, 0);
+      half3 lowAmbient = 0; half lowWeight = 1;
+      if (all((tc2>=ssgi_ambient_volmap_tcclamp(0).xxz)) & all((tc2<=ssgi_ambient_volmap_tcclamp(0).yyw)))
+      {
+        tc2 = clamp(tc2, ssgi_ambient_volmap_tcclamp(0).xxz, ssgi_ambient_volmap_tcclamp(0).yyw);
+        float3 tc2_use = float3(tc2.xy - ssgi_ambient_volmap_tc_ofs2d(cascade).xy, tc2.z);
+        index = 0;
+        tc = tc2;
+        vignetteWeight = 1;
+      }
+
+      float3 coordF = ambientTcToCoordF(tc, index);
+      coordF = clamp(coordF, 0, float3(volmap_xz_dim(index).xx, volmap_y_dim(index)) - 1);
+      int3 baseGridCoord = int3(coordF);
+      int3 isNegative = ( worldNormal < 0.0 ) ? volmap_y_dim(index).xxx : 0;
+      isNegative += (ssgi_cascade_z_crd_ofs(index)+ssgi_cascade_z_crd_ofs(index)).xxx;
+      float3 baseProbePos = ambientOffsettedCoordToWorldPos(baseGridCoord, index);//ambientTcToWorldPos(ambientCoordToTc(probeGridCoord));//
+      //ambient = length(baseProbePos-worldPos)*0.5;
+      //return;
+
+      float3 alpha = frac(coordF);
+      float3 triWeights = 1-alpha;
+
+      half3 sumIrradiance = 0;
+      half sumWeight = 0;
+      UNROLL
+      for (int i = 0; i < 8; ++i) {
+          // Compute the offset grid coord and clamp to the probe grid boundary
+          uint3  offset = uint3(i, i >> 1, i >> 2) & 1;
+          int3  probeGridCoord = clamp(baseGridCoord + int3(offset), 0, int3(volmap_xz_dim(index).xx, volmap_y_dim(index)) - 1);
+          probeGridCoord = ambientOffsetCoord2(probeGridCoord, index);
+
+          // Compute the trilinear weights based on the grid cell vertex to smoothly
+          // transition between probes. Avoid ever going entirely to zero because that
+          // will cause problems at the border probes.
+          float3 trilinear = offset ? alpha : 1 - alpha;//lerp(1 - alpha, alpha, offset);
+          float weight = trilinear.x * trilinear.y * trilinear.z;
+
+          // Make cosine falloff in tangent plane with respect to the angle from the surface to the probe so that we never
+          // test a probe that is *behind* the surface.
+          // It doesn't have to be cosine, but that is efficient to compute and we must clip to the tangent plane.
+          float3 probePos = baseProbePos + ssgi_ambient_volmap_crd_to_world0_xyz(index)*offset.xzy;
+          float3 pointToProbe =  probePos - worldPos;
+          //probeToPoint.y = 0;
+
+          float3 dir = normalize(pointToProbe);
+          float dirWeight = max(0.01, dot(dir, worldNormal));
+
+          weight *= dirWeight;
+          //weight *= max(ssgi_ambient_volmap_temporal[probeGridCoord+ssgi_cascade_z_crd_ofs(index)]*4, 0.01);
+          //weight = i < 4 ? weight:0;
+
+          // Avoid zero weight
+          //weight = max(0.00001, weight);
+          sumWeight += weight;
+
+          half3 probeIrradiance = nSquared.x * ssgi_ambient_volmap_cube_x[probeGridCoord+int3(0,0,isNegative.x)].rgb +
+                                  nSquared.y * ssgi_ambient_volmap_cube_y[probeGridCoord+int3(0,0,isNegative.y)].rgb +
+                                  nSquared.z * ssgi_ambient_volmap_cube_z[probeGridCoord+int3(0,0,isNegative.z)].rgb;
+
+
+          sumIrradiance += weight * probeIrradiance;
+      }
+      cambient = sumIrradiance / sumWeight;
+
+      return vignetteWeight;
+    }*/
+
+    // NOTE: env_color parameter is required for only_ao GI mode
+    float get_ambient3d(float3 worldPos, float3 worldNormal, half3 env_color, inout half3 cambient)
+    {
+      #define NO_FILTERING 1
+      #if NO_FILTERING
+        return get_ambient3d_unfiltered(worldPos, worldNormal, env_color, cambient, true);
+      #else
+        return get_ambient3d_filtered(worldPos, worldNormal, env_color, cambient);
+      #endif
+    }
+
+    /*half get_ambient2d(float3 worldPosOrigin, float3 worldNormal, half3 env_color, inout half3 cambient)
+    {
+      float3 worldPos = worldPosOrigin;
+      float3 tc = ambientWorldPosToTc(worldPos, LAST_VOLMAP_CASCADE);
+      if (any( (tc>1+ssgi_ambient_volmap_tcclamp(LAST_VOLMAP_CASCADE).xxz)) | any((tc<-ssgi_ambient_volmap_tcclamp(LAST_VOLMAP_CASCADE).xxz)))//==
+        return 0;
+
+      float3 nSquared = worldNormal * worldNormal;
+
+      float3 vignette = saturate( abs(ambientWorldPosToTc(worldPos + ssgi_ambient_volmap_world_ofs(LAST_VOLMAP_CASCADE), 1)*2-1) * 10 - 9 );
+      float vignetteWeight = saturate(1-dot( vignette, vignette ));
+
+      tc = clamp(tc, ssgi_ambient_volmap_tcclamp(LAST_VOLMAP_CASCADE).xxz, ssgi_ambient_volmap_tcclamp(LAST_VOLMAP_CASCADE).yyw);
+
+      float3 isNegative = ( worldNormal < 0.0 ) ? 0.5 : 0;
+      tc -= ssgi_ambient_volmap_crd_ofs(LAST_VOLMAP_CASCADE)*rcp(float3(volmap_xz_dim(LAST_VOLMAP_CASCADE).xx, volmap_y_dim(LAST_VOLMAP_CASCADE)));//fixme: replace with const
+      tc.z = clamp(frac(tc.z), ssgi_ambient_volmap_tcclamp(LAST_VOLMAP_CASCADE).z, ssgi_ambient_volmap_tcclamp(LAST_VOLMAP_CASCADE).w);
+
+      cambient = sampleUnfilteredAmbient(nSquared, tc, isNegative, LAST_VOLMAP_CASCADE);
+      return vignetteWeight;
+    }*/
+
+    void get_ambient(float3 worldPos, float3 worldNormal, half3 env_color, inout half3 ambient)
+    {
+      half3 cambient = ambient;
+      half w = get_ambient3d(worldPos, worldNormal, env_color, cambient);
+      ambient = lerp(ambient, cambient, w);
+    }
+  }
+endmacro
+
+macro SSGI_JUST_USE_VOLMAP_GI_BASE(code)
+  SSGI_USE_VOLMAP_GI_TC(code)
+  SSGI_JUST_USE_VOLMAP_GI_BASE_INTERNAL(code)
+endmacro
+
+macro SSGI_JUST_USE_VOLMAP_GI_TC_BASE(code)
+  SSGI_USE_VOLMAP_GI_TC_BASE(code)
+  SSGI_JUST_USE_VOLMAP_GI_BASE_INTERNAL(code)
+endmacro
+
+macro SSGI_JUST_USE_VOLMAP_GI(code)
+  GI_USE_AMBIENT_VOLMAP(code)
+  SSGI_JUST_USE_VOLMAP_GI_BASE(code)
+endmacro
+
+macro SSGI_JUST_USE_VOLMAP_GI_AMBIENT_VOLMAP(code)
+  GI_USE_AMBIENT_VOLMAP(code)
+  SSGI_JUST_USE_VOLMAP_GI_TC_BASE(code)
+endmacro
+
+macro SSGI_USE_VOLMAP_GI( code )
+  SSGI_INIT_VOLMAP_GI( code )
+  SSGI_JUST_USE_VOLMAP_GI( code )
+endmacro
+
+macro SSGI_USE_VOLMAP_GI_AMBIENT_VOLMAP( code )
+  SSGI_INIT_VOLMAP_GI( code )
+  SSGI_JUST_USE_VOLMAP_GI_AMBIENT_VOLMAP( code )
+endmacro
+
+macro SSGI_NO_VOLMAP_GI(code)
+  hlsl(code) {
+    #define get_ambient(worldPos, worldNormal, env_color, ambient)
+    #define get_ambient3d(worldPos, worldNormal, env_color, cambient) 0
+    #define get_ambient3d_unfiltered_cascade(worldPos, nSquared, isNegative, env_color, cambient, cascade, normal, useFiltering) 0
+    #define get_ambient3d_unfiltered(worldPos, worldNormal, env_color, cambient, useFiltering) 0
+  }
+endmacro
+
+macro SSGI_INIT_VOLMAP_GI_AUTO( code)
+  if (gi_quality != off)
+  {
+    SSGI_INIT_VOLMAP_GI( code)
+  }
+endmacro
+
+macro SSGI_JUST_USE_VOLMAP_GI_AUTO( code )
+  if (gi_quality != off)
+  {
+    SSGI_JUST_USE_VOLMAP_GI( code)
+  } else
+  {
+    SSGI_NO_VOLMAP_GI(code)
+  }
+endmacro
+
+macro SSGI_USE_VOLMAP_GI_AUTO( code )
+  SSGI_INIT_VOLMAP_GI_AUTO(code)
+  SSGI_JUST_USE_VOLMAP_GI_AUTO(code)
+endmacro

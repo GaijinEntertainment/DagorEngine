@@ -1,0 +1,16 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/statsd ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/statsd.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes = $(Root)/prog/gameLibs/publicInclude ;
+Sources =
+  statsd.cpp
+  log.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

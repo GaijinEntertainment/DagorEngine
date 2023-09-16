@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="{ARG_PROJ_DOMAIN}"
+  android:versionCode="{ARG_VER_CODE}"
+  android:versionName="{ARG_VER_NAME}">
+  <uses-permission android:name="android.permission.INTERNET"/>
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+  <uses-permission android:name="android.permission.VIBRATE" />
+  <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+  <application android:icon="@mipmap/icon" android:label="@string/app_name" {ANDROID_APP_ATTR} >
+    {GMS_APP_ID}
+    {ARG_VR_DEVICE_SUPPORT}
+    {OCULUS_VERSION}
+    <activity
+      {ARG_MAIN_ACT}{ARG_TYPE_TV_BANNER}
+      android:launchMode="singleTask"
+      android:label="@string/app_name"
+      android:configChanges="orientation|screenSize|uiMode|keyboard|keyboardHidden|mcc|mnc"
+      android:alwaysRetainTaskState="true"
+      android:clearTaskOnLaunch="false"
+      android:hardwareAccelerated="true"
+      android:resizeableActivity="false"
+      android:screenOrientation="{ARG_SCR_ORI}"
+      android:stateNotNeeded="{ARG_STATE_NOT_NEED}"
+      android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+      <meta-data android:name="android.app.lib_name" android:value="{ARG_LIB}" />
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+        <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+      </intent-filter>
+    </activity>
+  </application>
+  <uses-sdk android:minSdkVersion="{ARG_MIN_SDK}" android:targetSdkVersion="{ARG_TGT_SDK}" />{ARG_TYPE_TV_NAME}
+  <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+  <uses-feature android:name="android.hardware.gamepad" android:required="false" />
+  <uses-feature android:name="android.hardware.vulkan.compute" android:version="0" android:required="true" />
+  <uses-feature android:name="android.hardware.vulkan.level" android:version="0" android:required="true" />
+  <uses-feature android:name="android.hardware.vulkan.version" android:version="0x400003" android:required="true" />
+</manifest>

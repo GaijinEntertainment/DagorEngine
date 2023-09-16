@@ -1,0 +1,537 @@
+// lexical parser: dagor shaders 2
+
+start_conditions MAIN, HLSL_BEGIN, HLSL;
+
+//----- Setup parameters ----------------------------------------------------
+generate_tokens          = false;
+tokens_file              = shsyntok;
+tokens_namespace         = SHADER_TOKENS;
+tokens_prefix            = SHTOK_;
+
+input_stream_class               = "ParserInputStream*";
+how_to_check_eof                 = "$s->eof()";
+how_to_get_character_from_stream = "$c=$s->get()";
+
+store_lexeme_in_string   = true;
+dolphin_class            = ShaderLexParser;
+eat_character_upon_error = false;
+append_data_member       = true;
+
+stdnamespace=eastl;
+
+//--------------------------------------------------------------------
+
+(comment | string | any-char+ & ~contains("{" | "}" | "/*" | "//" | '"' |
+  "'") & ~(any-char* "/")) <HLSL> ==> {
+  append=true;
+};
+
+
+s-string->  '"' (('~' condition(c in any-char & ~(c in new-line-char))) |
+  (condition(c in any-char & (c!='"' & c!='~' & ~(c in new-line-char)))))*;
+string->  s-string '"';
+
+identifier -> non-digit (non-digit | digit)* & ~keyword;
+
+type-identifier -> '@' non-digit (non-digit | digit)*;
+
+int-number -> decimal-literal | hexadecimal-literal;
+
+decimal-literal-> (digit)+;
+
+hexadecimal-literal-> (('0x' | '0X') hex-digit+) | (digit hex-digit* ('h' | 'H'));
+nonzero-digit-> range('1','9');
+
+real-number-> fractional-constant [exponent-part] |
+                  digit+ exponent-part;
+
+fractional-constant-> [digit+] '.' digit+ |
+                      digit+ '.';
+
+exponent-part->    ('e'|'E') [('+'|'-')] digit+;
+
+//----- Internal definitions ------------------------------------------------
+digit       -> range('0','9');
+hex-digit   -> digit | range('a','f') | range('A','F');
+non-digit   -> range('a','z') | range('A','Z') | '_';
+
+incomplete-comment -> "/*" ~contains("*/");
+//incomplete-comment -> "/*" (m-line-comment | any-char)*;
+//incomplete-comment -> "/*" (~contains("/*") "/*" incomplete-comment "*/")* ~contains("*/");
+
+m-line-comment -> incomplete-comment "*/";
+
+comment -> m-line-comment |
+  '//' (any-char & ~new-line-char)* new-line;
+
+any-char    -> condition(true);
+
+new-line-char -> '\n' | '\r';
+
+new-line -> '\r\n' | new-line-char;
+space -> '\t' | ' ';
+
+//----- Action descriptions -------------------------------------------------
+
+//(space)+ <MAIN> ==> white;
+//new-line <MAIN> ==> newline;
+//comment <MAIN> ==> comment;
+(space | comment | new-line)+ <MAIN> ==> {};
+
+hlsl-text-start -> "hlsl";
+
+hlsl-text-start <MAIN> ==> {
+  set_start_condition(HLSL_BEGIN);
+  return SHTOK_hlsl;
+};
+
+'(' <HLSL_BEGIN> ==> lpar;
+')' <HLSL_BEGIN> ==> rpar;
+identifier <HLSL_BEGIN> ==> ident;
+(space | comment | new-line)+ <HLSL_BEGIN> ==> {};
+
+"{" <HLSL_BEGIN> ==> {
+  set_start_condition(HLSL);
+  append = false;
+  braceCount = 1;
+};
+
+"{" <HLSL> ==> {
+  braceCount++;
+  append = true;
+};
+
+"}" <HLSL> ==> {
+  braceCount--;
+  if (braceCount == 0)
+  {
+    set_start_condition(MAIN);
+    lexeme[lexeme.length() - 1] = ' ';
+
+    char *p = lexeme.data() + lexeme.length() - 1;
+    while (p > lexeme.data() && strchr(" \n\r\t\v", *p))
+      p--;
+    G_ASSERT(int(lexeme.length()+1) >= int(p-lexeme.data()+3));
+    p ++; *p = '\n'; p ++; *p = '\0';
+
+    return SHTOK_hlsl_text;
+  }
+  append = true;
+};
+
+
+//unprocessed-text <MAIN> => unprocessed_text;
+//hlsl-text <MAIN> => hlsl_text;
+
+type-identifier <MAIN> ==> type_ident;
+identifier  <MAIN> ==> ident;
+real-number <MAIN> ==> floatnum;
+int-number  <MAIN> ==> intnum;
+string      <MAIN> ==> string;
+
+'ambient' <MAIN> => ambient;
+'blend_asrc' <MAIN> => blend_asrc;
+'blend_adst' <MAIN> => blend_adst;
+'blend_src' <MAIN> => blend_src;
+'blend_dst' <MAIN> => blend_dst;
+'channel' <MAIN> => channel;
+'int4' <MAIN> => int4;
+'float4x4' <MAIN> => float4x4;
+'color8' <MAIN> => color8;
+'cull_mode' <MAIN> => cull_mode;
+'alpha_to_coverage' <MAIN> => alpha_to_coverage;
+'view_instances' <MAIN> => view_instances;
+'diffuse' <MAIN> => diffuse;
+'dont_render' <MAIN> => dont_render;
+'dynamic' <MAIN> => dynamic;
+'else' <MAIN> => else;
+'emissive' <MAIN> => emissive;
+'extra' <MAIN> => extra;
+'false' <MAIN> => _false;
+'float' <MAIN> => float;
+'float1' <MAIN> => float1;
+'float2' <MAIN> => float2;
+'float3' <MAIN> => float3;
+'float4' <MAIN> => float4;
+'pc' <MAIN> => pc;
+'dx11' <MAIN> => dx11;
+'dx12' <MAIN> => dx12;
+'xbox' <MAIN> => xbox;
+'scarlett' <MAIN> => scarlett;
+'ps4' <MAIN> => ps4;
+'ps5' <MAIN> => ps5;
+'vulkan' <MAIN> => vulkan;
+'metal' <MAIN> => metal;
+'metaliOS' <MAIN> => metaliOS;
+'fsh_4_0' <MAIN> => fsh_4_0;
+'fsh_5_0' <MAIN> => fsh_5_0;
+'bindless' <MAIN> => bindless;
+'globtm' <MAIN> => globtm;
+'projtm' <MAIN> => projtm;
+'viewprojtm' <MAIN> => viewprojtm;
+'hardware' <MAIN> => hardware;
+'if' <MAIN> => if;
+'include' <MAIN> => include;
+'include_optional' <MAIN> => include_optional;
+'int' <MAIN> => int;
+'bool' <MAIN> => bool;
+'local_view_x' <MAIN> => local_view_x;
+'local_view_y' <MAIN> => local_view_y;
+'local_view_z' <MAIN> => local_view_z;
+'local_view_pos' <MAIN> => local_view_pos;
+'world_local_x' <MAIN> => world_local_x;
+'world_local_y' <MAIN> => world_local_y;
+'world_local_z' <MAIN> => world_local_z;
+'world_local_pos' <MAIN> => world_local_pos;
+'material' <MAIN> => material;
+'none' <MAIN> => none;
+'norm' <MAIN> => norm;
+'pos' <MAIN> => pos;
+'shader' <MAIN> => shader;
+'block' <MAIN> => block;
+'supports' <MAIN> => supports;
+'immediate_dword_count' <MAIN> => immediate_dword_count;
+'short2' <MAIN> => short2;
+'short4' <MAIN> => short4;
+'slope_z_bias' <MAIN> => slope_z_bias;
+'specular' <MAIN> => specular;
+'always_referenced' <MAIN> => always_referenced;
+'no_warnings' <MAIN> => no_warnings;
+'undefined_value' <MAIN> => undefined_value;
+'static' <MAIN> => static;
+'tc' <MAIN> => tc;
+'texture' <MAIN> => texture;
+'buffer' <MAIN> => buffer;
+'const_buffer' <MAIN> => const_buffer;
+'render_stage' <MAIN> => render_stage;
+'render_trans' <MAIN> => render_trans;
+'true' <MAIN> => _true;
+'ubyte4' <MAIN> => ubyte4;
+'vcol' <MAIN> => vcol;
+'z_bias' <MAIN> => z_bias;
+'z_write' <MAIN> => z_write;
+'z_test' <MAIN> => z_test;
+'z_func' <MAIN> => z_func;
+'two_sided' <MAIN> => two_sided;
+'real_two_sided' <MAIN> => real_two_sided;
+'interval' <MAIN> => interval;
+'macro' <MAIN> => macro;
+'define_macro_if_not_defined' <MAIN> => define_macro_if_not_defined;
+'endmacro' <MAIN> => endmacro;
+'NULL' <MAIN> => NULL;
+'local' <MAIN> => local;
+'global' <MAIN> => global;
+'const' <MAIN> => const;
+'register' <MAIN> => register;
+'signed_pack' <MAIN> => signed_pack;
+'unsigned_pack' <MAIN> => unsigned_pack;
+'mul_1k' <MAIN> => mul_1k;
+'mul_2k' <MAIN> => mul_2k;
+'mul_4k' <MAIN> => mul_4k;
+'mul_8k' <MAIN> => mul_8k;
+'mul_16k' <MAIN> => mul_16k;
+'mul_32767' <MAIN> => mul_32767;
+'bounding_pack' <MAIN> => bounding_pack;
+'no_ablend' <MAIN> => no_ablend;
+'no_dynstcode' <MAIN> => no_dynstcode;
+'assume' <MAIN> => assume;
+'maybe' <MAIN> => maybe;
+'error' <MAIN> => _error;
+'mesh' <MAIN> => mesh;
+
+'stencil' <MAIN> => stencil;
+'stencil_func' <MAIN> => stencil_func;
+'stencil_ref' <MAIN> => stencil_ref;
+'stencil_pass' <MAIN> => stencil_pass;
+'stencil_fail' <MAIN> => stencil_fail;
+'stencil_zfail' <MAIN> => stencil_zfail;
+
+'color_write' <MAIN> => color_write;
+
+'compile' <MAIN> => compile;
+'half2' <MAIN> => half2;
+'half4' <MAIN> => half4;
+'short2n' <MAIN> => short2n;
+'short4n' <MAIN> => short4n;
+'ushort2n' <MAIN> => ushort2n;
+'ushort4n' <MAIN> => ushort4n;
+'udec3' <MAIN> => udec3;
+'dec3n' <MAIN> => dec3n;
+'optional' <MAIN> => optional;
+
+keyword ->
+  'ambient' |
+  'blend_asrc' |
+  'blend_adst' |
+  'blend_src' |
+  'blend_dst' |
+  'channel' |
+  'int4' |
+  'float4x4' |
+  'color8' |
+  'cull_mode' |
+  'alpha_to_coverage' |
+  'view_instances' |
+  'diffuse' |
+  'dont_render' |
+  'dynamic' |
+  'else' |
+  'emissive' |
+  'extra' |
+  'false' |
+  'float' |
+  'float1' |
+  'float2' |
+  'float3' |
+  'float4' |
+  'vulkan' |
+  'metal' |
+  'metaliOS' |
+  'pc' |
+  'dx11' |
+  'dx12' |
+  'xbox' |
+  'scarlett' |
+  'ps4' |
+  'ps5' |
+  'fsh_4_0' |
+  'fsh_5_0' |
+  'bindless' |
+  'globtm' |
+  'projtm' |
+  'viewprojtm' |
+  'hardware' |
+  'if' |
+  'include' |
+  'include_optional' |
+  'int' |
+  'bool' |
+  'local_view_x' |
+  'local_view_y' |
+  'local_view_z' |
+  'local_view_pos' |
+  'world_local_x' |
+  'world_local_y' |
+  'world_local_z' |
+  'world_local_pos' |
+  'material' |
+  'none' |
+  'norm' |
+  'pos' |
+  'vertex' |
+  'pixel' |
+  'render_pass' |
+  'shader' |
+  'block' |
+  'supports' |
+  'assume' |
+  'maybe' |
+  'error' |
+  'mesh' |
+  'short2' |
+  'short4' |
+  'slope_z_bias' |
+  'specular' |
+  'always_referenced' |
+  'no_warnings' |
+  'undefined_value' |
+  'static' |
+  'tc' |
+  'texture' |
+  'buffer' |
+  'const_buffer' |
+  'render_stage' |
+  'render_trans' |
+  'true' |
+  'ubyte4' |
+  'vcol' |
+  'z_bias' |
+  'z_write' |
+  'z_test' |
+  'z_func' |
+  'two_sided' |
+  'real_two_sided' |
+  'interval' |
+  'immediate_dword_count' |
+  'define_macro_if_not_defined' |
+  'macro'|
+  'endmacro'|
+  'NULL' |
+  'local'|
+  'global'|
+  'const' |
+  'register' |
+  'bounding_pack' |
+  'signed_pack' |
+  'unsigned_pack' |
+  'mul_1k' |
+  'mul_2k' |
+  'mul_4k' |
+  'mul_8k' |
+  'mul_16k' |
+  'mul_32767' |
+  'no_ablend' |
+  'no_dynstcode'|
+  'stencil' |
+  'stencil_func' |
+  'stencil_ref' |
+  'stencil_pass' |
+  'stencil_fail' |
+  'stencil_zfail' |
+  'color_write' |
+  'compile' |
+  'half2' |
+  'half4' |
+  'short2n' |
+  'short4n' |
+  'ushort2n' |
+  'ushort4n' |
+  'udec3' |
+  'dec3n' |
+  'optional'
+;
+
+
+//Expression Lexemes
+
+'{'  <MAIN> ==> beg;
+'}'  <MAIN> ==> end;
+
+'('  <MAIN> ==> lpar;
+')'  <MAIN> ==> rpar;
+
+'['  <MAIN> ==> lbrk;
+']'  <MAIN> ==> rbrk;
+
+','  <MAIN> ==> comma;
+'.'  <MAIN> ==> dot;
+';'  <MAIN> ==> semi;
+':'  <MAIN> ==> colon;
+"="  <MAIN> ==> assign;
+
+"<"  <MAIN> ==> smaller;
+">"  <MAIN> ==> greater;
+"<=" <MAIN> ==> smallereq;
+">=" <MAIN> ==> greatereq;
+
+
+'==' <MAIN> ==> eq;
+"!=" | "<>" <MAIN> ==> noteq;
+
+'!'  <MAIN> ==> not;
+'&&' <MAIN> ==> and;
+'||' <MAIN> ==> or;
+
+'+'  <MAIN> ==> plus;
+'-'  <MAIN> ==> minus;
+'*'  <MAIN> ==> mul;
+'/'  <MAIN> ==> div;
+
+
+//----- Error handling ------------------------------------------------------
+
+incomplete-comment <MAIN> ==> { return make_error("incomplete comment"); };
+s-string new-line <MAIN> ==> { return make_error("incomplete string"); };
+error <MAIN> ==> { return make_error("illegal char"); };
+
+//----- My code fragments ---------------------------------------------------
+
+code_in_token_enum={
+};
+
+code_in_class            = {
+private:
+  bool were_errors;
+  int make_error(char *e);
+  int braceCount;
+
+public:
+  inline void __clear_lexeme()  {clear_lexeme();}
+  inline ParserInputStream* __input_stream()  {return input_stream;}
+
+  virtual void error(const char *msg=NULL) {};
+  virtual void warning(const char*) {};
+
+  virtual void register_symbol(int name_id, SymbolType type, BaseParNamespace::Terminal *symbol) = 0;
+  virtual eastl::string get_symbol_location(int name_id, SymbolType type) = 0;
+  virtual void begin_shader() = 0;
+  virtual void end_shader() = 0;
+
+  bool success() const { return !were_errors; }
+  void clear_eof() {eof_reached=false;}
+  ParserInputStream *get_input_stream() {return input_stream;}
+  virtual void set_input_stream(ParserInputStream *s) {
+    if(!s) return;
+    input_stream=s;
+    s->stream_set(*this);
+  }
+  char get_one_char(bool &eof);
+  bool is_eof();
+  int buffer_size() {return buffer.size();}
+  void clear_buffer() {buffer.clear();}
+
+  BaseParNamespace::Terminal *get_terminal();
+  ska::flat_hash_set<eastl::string> includes;
+};
+
+code_in_constructor      = {
+  were_errors=false;
+  braceCount = 0;
+  if(input_stream) input_stream->stream_set(*this);
+};
+
+code_in_cpp              = {
+#define SHTOK_TerminalError TerminalError
+#define SHTOK_TerminalEOF TerminalEOF
+
+#define copy(from,start_pos,end_pos,to) to.insert(to.end(),&from[start_pos],&from[end_pos])
+
+int ShaderLexParser::make_error(char *e) {
+  were_errors=true;
+  set_error(get_cur_file(),get_cur_line(),get_cur_column(),e);
+  return SHTOK_TerminalError;
+}
+
+char ShaderLexParser::get_one_char(bool &eof) {
+  if(buffer.size()>0) {
+    char c=buffer[0];
+    buffer.erase(buffer.begin(),buffer.begin()+1);
+    internal_position_counter(c);
+    return c;
+  }
+  if(eof_reached) {eof=true;return 0;}
+  char c=input_stream->get();
+  if(input_stream->eof()) {
+    eof_reached=true;
+    eof=true; return 0;
+  }
+  internal_position_counter(c);
+  return c;
+}
+
+bool ShaderLexParser::is_eof() {
+  if(buffer.size()>0) return false;
+  return eof_reached;
+}
+};
+
+code_in_h              = {
+#include "parser/base_lex.h"
+#include "parser/base_par.h"
+#include "parser/blexpars.h"
+#include <EASTL/string.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
+
+enum class SymbolType
+{
+  GLOBAL_VARIABLE,
+  STATIC_VARIABLE,
+  INTERVAL,
+  LOCAL_INTERVAL,
+  BOOL_VARIABLE,
+  MACRO,
+};
+};
+
+code_in_h_after_all={
+};

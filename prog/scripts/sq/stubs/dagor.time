@@ -1,0 +1,17 @@
+return {
+  function format_unixtime(a, b) { }
+  function unixtime_to_utc_timetbl(a) {
+    assert(["integer"].contains(type(a)), @() $"type of argument should be one of: 'integer'")
+  }
+  function utc_timetbl_to_unixtime(a) {
+    assert(["table"].contains(type(a)), @() $"type of argument should be one of: 'table'")
+  }
+  function local_timetbl_to_unixtime(a) {
+    assert(["table"].contains(type(a)), @() $"type of argument should be one of: 'table'")
+  }
+  function unixtime_to_local_timetbl(a) {
+    assert(["integer"].contains(type(a)), @() $"type of argument should be one of: 'integer'")
+  }
+  function get_time_msec() { }
+  function get_local_unixtime() { }
+}

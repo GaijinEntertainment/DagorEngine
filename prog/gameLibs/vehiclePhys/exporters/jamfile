@@ -1,0 +1,31 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/vehiclePhys/exporters ;
+DriverLinkage   = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = dll ;
+Target = gameLibs/vehiclePhys/exporters/vehicleExp.dll ;
+
+OutDir = $(Root)/tools/dagor3_cdk/bin/plugins/dabuild ;
+if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/dabuild ; }
+
+Sources = 
+  vehicleExp.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs = 
+  engine2/startup
+  engine2/math
+  #engine2/lib3d
+
+  tools/libTools/assetMgr
+;
+
+ImportProgLibs = tools/libTools/daKernel ;
+
+include $(Root)/prog/_jBuild/build.jam ;

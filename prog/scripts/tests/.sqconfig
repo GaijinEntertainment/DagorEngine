@@ -1,0 +1,7 @@
+;
+mount = %sqstd=../sq/std/
+base_path = ../sq/stubs/
+
+use_modules = yes ; enable to use "require()"
+sqstd_register_base_libs = yes
+sqrat_bind_dagor_math_module = yes

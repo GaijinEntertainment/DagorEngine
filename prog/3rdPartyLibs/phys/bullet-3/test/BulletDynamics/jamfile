@@ -1,0 +1,20 @@
+if $(OS) = NT { Platform ?= win64 ; }
+PlatformSpec_win64 ?= clang ;
+
+Root    ?= ../../../../../.. ;
+Location = prog/3rdPartyLibs/phys/bullet-3/test/BulletDynamics ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+ConsoleExe = yes ;
+TargetType = exe ;
+Target     = physBullet/$(Location:B) ;
+OutDir     = $(Root)/$(Location)/../_bin ;
+Config     = rel ;
+
+Sources =
+  test_btKinematicCharacterController.cpp
+;
+
+include $(Root)/prog/3rdPartyLibs/phys/bullet-3/test/common_options.jam ;
+include $(Root)/prog/_jBuild/build.jam ;

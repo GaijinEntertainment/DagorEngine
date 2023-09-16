@@ -1,0 +1,58 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/daKernel ;
+
+StrictCompile = yes ;
+DriverLinkage = dynamic ;
+ProjectAllowsOodle = yes ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType    = dll ;
+Target        = tools/libTools/daKernel ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(PlatformSpec) != clang && $(Platform) in win32 win64 { HideExports   = yes ; }
+
+
+Sources =
+  daKernel.cpp
+  namedPtr.cpp
+  gpFuncTable.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+;
+
+CPPopt = -D__B_MINICORE ;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/baseUtil
+  engine2/perfMon/daProfiler
+;
+
+if $(Platform) in win32 win64 {
+  UseProgLibs +=
+    engine2/osApiWrappers/messageBox
+  ;
+  AddLibs =
+    dbghelp.lib
+    user32.lib
+    #shell32.lib gdi32.lib comctl32.lib
+  ;
+}
+
+# separate fpic code from everything else
+if $(Platform) in linux64 {
+  UseProgLibs +=
+    engine2/osApiWrappers/messageBox/stub
+    engine2/workCycle/stub
+  ;
+  AddLibs = -ldl -lpthread -lrt --no-undefined ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

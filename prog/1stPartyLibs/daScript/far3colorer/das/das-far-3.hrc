@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<!DOCTYPE hrc PUBLIC "-//Cail Lomecb//DTD Colorer HRC take5//EN"
+  "http://colorer.sf.net/2003/hrc.dtd"[
+]>
+<hrc>
+   
+  <type name="das">
+    <annotation>
+      <documentation><![CDATA[
+        DAS syntax
+      ]]></documentation>
+      <contributors><![CDATA[
+		Boris Batkin
+      ]]></contributors>
+    </annotation>
+
+    <region name="String" parent="def:String"/>
+    <region name="Comment" parent="def:Comment"/>
+    <region name="CommentDoc" parent="def:CommentDoc"/>
+
+    <region name="Parameter" parent="def:Parameter"/>
+    <region name="Keyword" parent="def:Keyword"/>
+    <region name="Number" parent="def:Number"/>
+
+	<scheme name="dasString">
+	   <regexp match='/\{.*?\}/' region0="def:Insertion"/>
+	</scheme>
+
+	<scheme name="Strings">
+    	 <block start='/\"/' end='/\"/' scheme="dasString" region="def:String"/>
+	</scheme>
+
+    <scheme name="das">
+
+	   <regexp match="/^\[\w+\]/x" region0="def:DirectiveContent"/>
+
+	   <!-- Comments -->
+	   <block start="/\/\//" end="/$/" scheme="def:Comment" region="Comment"/>
+	   <block scheme="def:Comment" region="Comment">
+	      <start region0="def:PairStart"><![CDATA[/\/\*/]]></start>
+	      <end   region0="def:PairEnd"  ><![CDATA[/\*\//]]></end>
+	   </block>
+
+      <inherit scheme="def:Number"/>
+
+      <inherit scheme='Strings'/>
+
+      <inherit scheme="def:PairedBrackets">
+        <virtual scheme='def:PairedBrackets' subst-scheme='das'/>
+      </inherit>
+
+      <inherit scheme='Keywords'/>
+    
+    </scheme>
+    
+    <scheme name='Keywords'>
+      <keywords region="Keyword">
+        <word name="struct"/>
+        <word name="panic"/>
+        <word name="recover"/>
+        <word name="let"/>
+        <word name="def"/>
+        <word name="while"/>
+        <word name="if"/>
+        <word name="else"/>
+        <word name="for"/>
+        <word name="catch"/>
+        <word name="true"/>
+        <word name="false"/>
+        <word name="new"/>
+        <word name="typeinfo"/>
+        <word name="type"/>
+        <word name="in"/>
+        <word name="elif"/>
+        <word name="return"/>
+        <word name="null"/>
+        <word name="break"/>
+        <word name="tr"/>
+        <word name="options"/>
+        <word name="expect"/>
+        <word name="const"/>
+        <word name="require"/>
+        <word name="operator"/>
+        <word name="enum"/>
+        <word name="finally"/>
+        <word name="delete"/>
+        <word name="deref"/>
+        <word name="scope"/>
+        <word name="typedef"/>
+        <word name="with"/>
+        <word name="cast"/>
+        <word name="override"/>
+        <word name="upcast"/>
+        <word name="var"/>
+      </keywords>
+
+		<keywords region="Keyword">
+	      <word name="int"/>
+	      <word name="int2"/>
+	      <word name="int3"/>
+	      <word name="int4"/>
+	      <word name="uint"/>
+	      <word name="uint2"/>
+	      <word name="uint3"/>
+	      <word name="uint4"/>
+	      <word name="float"/>
+	      <word name="float2"/>
+	      <word name="float3"/>
+	      <word name="float4"/>
+	      <word name="int64"/>
+	      <word name="uint64"/>
+	      <word name="double"/>
+	      <word name="block"/>
+	      <word name="string"/>
+	      <word name="table"/>
+	      <word name="array"/>
+	      <word name="iterator"/>
+	      <word name="function"/>
+	      <word name="lambda"/>
+	   </keywords>
+
+	   <keywords region="def:Symbol">
+    	  <symb name=";"/><symb name="="/><symb name="+"/><symb name="-"/>
+	      <symb name="/"/><symb name="*"/><symb name="&amp;"/><symb name="|"/>
+	      <symb name="^"/><symb name="("/><symb name=")"/><symb name="["/>
+	      <symb name="]"/><symb name=","/><symb name="."/><symb name=":"/>
+	      <symb name="!"/><symb name="~"/><symb name="&lt;"/><symb name="&gt;"/>
+	      <symb name="%"/><symb name="?"/><symb name="#"/>
+	   </keywords>
+      
+    </scheme>
+
+  </type>
+</hrc>

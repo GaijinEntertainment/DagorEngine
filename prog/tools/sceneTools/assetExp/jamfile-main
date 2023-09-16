@@ -1,0 +1,70 @@
+Platform ?= win64 ;
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/assetExp ;
+DriverLinkage ?= dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+ConsoleExe    = yes ;
+
+TargetType  = exe ;
+Target      = tools/sceneTools/daBuild.exe ;
+
+OutDir = $(Root)/tools/dagor3_cdk/bin ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine2
+;
+
+Sources =
+  cmain.cpp
+  jobPool.cpp
+
+  loadPlugins.cpp
+  texExport.cpp
+  resExport.cpp
+  daBuild.cpp
+  assetExport.cpp
+;
+
+UseProgLibs = 
+  engine2/startup
+  engine2/math
+  engine2/gameRes
+  engine2/lib3d
+  engine2/drv/drv3d_null
+  engine2/perfMon/daProfilerStub
+
+  tools/libTools/assetMgr
+  tools/libTools/assetMgrHlp
+  tools/libTools/util
+  tools/libTools/dtx
+  3rdPartyLibs/hash
+;
+
+CPPopt = -D_TARGET_DABUILD_STATIC ;
+
+if $(DriverLinkage) = dynamic {
+  if $(Sanitize) = address { Exit ASAN requires DriverLinkage=static ; }
+  ImportProgLibs = tools/libTools/daKernel ;
+  CoExportProgDlls = $(ImportProgLibs) ;
+} else {
+  local memory_lib = memory ;
+  if $(PlatformSpec) = clang && $(Sanitize) = address { memory_lib = memory/rtlStdMemory ; }
+
+  UseProgLibs =
+    engine2/osApiWrappers
+    engine2/kernel
+    engine2/$(memory_lib)
+    engine2/ioSys
+    engine2/baseUtil
+    $(UseProgLibs)
+    tools/sceneTools/assetExp/exporters
+    tools/sceneTools/assetExp/refProviders
+  ;
+  ProjectAllowsOodle = yes ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

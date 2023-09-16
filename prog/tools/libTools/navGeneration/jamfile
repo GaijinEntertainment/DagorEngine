@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/navGeneration ;
+
+TargetType  = lib ;
+Target      = tools/libTools/navGeneration.lib ;
+
+Sources =
+  nav_generate.cpp
+  nav_file.cpp
+  nav_ext_rt.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine2/sharedInclude
+;
+
+CPPopt = ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,102 @@
+NVIDIA Texture Tools version 2.0.7
+ * Output correct exit codes. Fixes issue 92.
+ * Fix thread-safety errors. Fixes issue 90.
+ * Add SIMD power method. Fixes issue 94.
+ * Interact better with applications that already use CUDA.
+ * Faster CPU compression.
+
+NVIDIA Texture Tools version 2.0.6
+ * Fix dll version checking.
+ * Detect CUDA 2.1 and future CUDA versions correctly.
+ * Print CUDA detection message in nvcompress.
+ * Select the fastest CUDA device.
+ * Compile squish with -fPIC. Fixes issue 74.
+ * Fix warnings under gcc 4.3.2.
+ * Fix nvzoom option typo by Frank Richter. Fixes issue 81.
+ * Do not use CUDA to compress small mipmaps. Fixes issue 76.
+ * Compute mipmaps of semi-transparent images correctly.
+ * Shutdown CUDA properly. Fixes issue 83.
+ * Fix pixel format converions. Fixes issue 87.
+ * Update single color compression tables. Fixes issue 85.
+
+NVIDIA Texture Tools version 2.0.5
+ * Fix error in single color compressor. Fixes issue 66.
+ * Detect mismatch between CUDA runtime and driver, and disable CUDA in that case.
+ * Fix cmake files when compiling NVTT as a shared library.
+ * When linking nvtt dynamically on unix, link all libraries dynamically.
+ * Select fastest CUDA device.
+
+NVIDIA Texture Tools version 2.0.4
+ * Fix error in RGB format output; reported by jonsoh. See issue 49.
+ * Added support RGB format dithering by jonsoh. Fixes issue 50 and 51.
+ * Prevent infinite loop in indexMirror when width equal 1. Fixes issue 65.
+ * Implement general scale filter, including upsampling.
+
+NVIDIA Texture Tools version 2.0.3
+ * More accurate DXT3 compressor. Fixes issue 38.
+ * Remove legacy compressors. Fix issue 34.
+ * Check for single color in all compressors. Fixes issue 43.
+ * Fix error in fast downsample filter, reported by Noel Llopis.
+
+NVIDIA Texture Tools version 2.0.2
+ * Fix copy ctor error reported by Richard Sim.
+ * Fix indexMirror error reported by Chris Lambert.
+ * Fix vc8 post build command, reported by Richard Sim.
+ * Fix RGBA modes with less than 32 bpp by Viktor Linder.
+ * Fix alpha decompression by Amorilia. See issue 40.
+ * Avoid default-initialized constructors for POD types, reported by Jim Tilander.
+ * Add single color compresor for DXT1a.
+ * Set swizzle code to ATI2 files. See issue 41.
+
+NVIDIA Texture Tools version 2.0.1
+ * Fix memory leaks.
+ * Pre-allocate device memory for CUDA compressor.
+ * Add single color compressor. Thanks to Amir Ebrahimi.
+ * Better CUDA error checking.
+
+NVIDIA Texture Tools version 2.0.0
+ * Fixed PSNR formula in nvimgdiff.
+ * Added support for arbitrary RGB formats.
+ * Add support for DXT1a. Solves issue 1.
+ * Refactor and improve compression quality of fast compressors.
+ * Add cmake scripts to detect processor and chose compiler options.
+ * Fix normal map decompression.
+ * Evaluate angular deviation error for normal maps in nvimgdiff.
+ * Fix DXT1 compression with custom color metrics.
+ * Fix error in normal map generation from heightmap mipmaps.
+ * Fix errors in estimateSize.
+ * Fix errors when maxLevel is used.
+ * Enable the use of BC5 not just for normal maps.
+ * Add mirror wrapping mode, use by default.
+ * Implement polyphase filters. Solves issue 3.
+ * Add box and triangle filter sampling.
+ * Refactor nvtt public interface.
+ * Add resizing input options (setMaxExtents, setRoundMode). Solves issue 12.
+ * Plain C and C# wrappers. Solves issue 22.
+
+NVIDIA Texture Tools version 0.9.4
+ * Added support for input DDS files, including cube maps.
+ * Added support for input PSD files.
+ * Added nvdecompress tool.
+ * Added nvimgdiff tool.
+ * Added nvddsinfo tool.
+ * CUDA compressor 22% faster.
+ * DXT3 & DXT5 CUDA compressors.
+ * Faster DXT5n CPU compressor.
+ * Many bug fixes.
+
+NVIDIA Texture Tools version 0.9.3
+ * Fix non power of two textures.
+ * Fix estimateSize with rgb format.
+ * Fix error in cuda compressor block limit.
+
+NVIDIA Texture Tools version 0.9.2 
+ * Improved alpha compression.
+ * Improved fast DXT1 compression.
+ * Documentation and release notes.
+
+NVIDIA Texture Tools version 0.9.1 
+ * Bug fix release.
+
+NVIDIA Texture Tools version 0.9.0 
+ * Private beta prerelease.

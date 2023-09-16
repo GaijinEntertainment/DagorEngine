@@ -1,0 +1,28 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/quirrel_json ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/quirrel_json/quirrel_json.lib ;
+StrictCompile = yes ;
+
+Sources =
+ quirrel_json.cpp
+ rapidjson.cpp
+ jsoncpp.cpp
+ direct_json/parse_json_directly_to_quirrel.cpp
+ direct_json/convert_quirrel_val_to_json_string.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+;
+
+UseProgLibs =
+  1stPartyLibs/jsoncpp
+;
+
+UseQuirrel = sq3r ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,326 @@
+#Platform ?= xbox360 ;
+#Platform ?= ps3 ;
+#Platform ?= macosx ;
+
+UseD3DMultiList    = D3D_ALL ;
+
+Root    ?= ../../.. ;
+Location = samples/skiesSample/prog ;
+UseD3DMulti ?= yes ;
+
+if $(OS) = NT {
+  Platform ?= win64 ;
+  PlatformSpec ?= clang ;
+}
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = exe ;
+Target      = samples/skiesSample-$(Platform) ;
+
+#UseQuirrel = sq3r ;
+
+if $(Platform) && $(Platform) in ps4 ps5 xboxOne scarlett nswitch { # too slow for consoles
+  CheckedContainers ?= no ;
+} else {
+  CheckedContainers ?= yes ;
+}
+
+if $(UseWholeOpt) != yes {
+  UseLLDLink ?= yes ;
+}
+
+if $(Platform) in win32 win64 && $(Config) != rel && $(Sanitize) != address { UseMemoryDebugLevel = dbg ; }
+
+OutDir = $(Root)/$(Location)/../game ;
+
+AddIncludes =
+  $(Root)/prog/samples/commonFramework
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+#  perlinNoise.cpp
+  test_app.cpp
+  test_main.cpp
+;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/coreUtil
+  engine2/math
+  engine2/lib3d
+  engine2/image
+  engine2/shaders
+  engine2/workCycle
+  engine2/guiBase
+  engine2/scene
+
+  engine2/gameRes
+  engine2/perfMon
+
+  samples/commonFramework
+
+
+  gameLibs/webui
+  gameLibs/metaballsSystem
+  gameLibs/daSkies2
+  gameLibs/render
+  gameLibs/visualConsole
+  gameLibs/fftWater
+  gameLibs/heightmap
+  engine2/consoleProc
+  gameLibs/render/daBfg
+  gameLibs/folders
+;
+
+if $(Platform) in win32 win64 {
+  UseProgLibs +=
+    engine2/drv/hid_mouse
+    engine2/drv/hid_keyboard
+    engine2/drv/hid_nulldrv
+  ;
+  UseProgLibs += engine2/drv/drv3d_pc_multi ;
+  AddLibs +=
+    Ws2_32.lib ;
+
+} else if $(Platform) = macosx {
+  BundleName = SkiesSample ;
+  Sources += macosx_main.mm ;
+  UseProgLibs +=
+    engine2/drv/hid_mouse
+    engine2/drv/hid_keyboard
+    engine2/drv/hid_nulldrv
+  ;
+
+  include $(Root)/prog/samples/macOS-testApp-res/macOS-common.jam ;
+
+} else if $(Platform) = ps4 {
+  UseProgLibs +=
+    engine2/drv/hid_sony
+    engine2/drv/drv3d_ps4
+    engine2/drv/hid_nulldrv
+  ;
+  AddLibs =
+    -lScePerf_stub_weak
+  ;
+
+  BundleCopy =
+    @$(_DEVTOOL)/ps4.sdk.$(PS4SdkVer)/target/sce_module/libc.prx sce_module/libc.prx
+    @$(_DEVTOOL)/ps4.sdk.$(PS4SdkVer)/target/sce_module/libSceFios2.prx sce_module/libSceFios2.prx
+  ;
+
+} else if $(Platform) = ps5 {
+  Sources +=
+  ;
+
+  UseProgLibs +=
+    engine2/drv/hid_sony
+    engine2/drv/hid_nulldrv
+    engine2/drv/drv3d_ps5
+  ;
+
+  AddLibs =
+    -lSceShare_stub_weak
+  ;
+
+  BundleCopy =
+    @$(_DEVTOOL)/ps5.sdk.$(PS5SdkVer)/target/sce_module/libc.prx sce_module/libc.prx
+  ;
+} else if $(Platform) in xboxOne scarlett {
+  UseProgLibs += engine2/drv/drv3d_DX12 ;
+  UseProgLibs += engine2/drv/hid_gamepad_xinput engine2/drv/hid_keyboard engine2/drv/hid_nulldrv ;
+} else if $(Platform) in iOS tvOS {
+  Sources += ios_main.mm ;
+  UseProgLibs +=
+    engine2/drv/hid_$(Platform)
+    engine2/drv/hid_nulldrv
+    gameLibs/tvOS/appstorekit
+    gameLibs/tvOS/appstorekit/stub
+  ;
+
+  UseProgLibs += engine2/drv/drv3d_Metal ;
+
+  BundleName = SkiesSample ;
+  BundleTitle = Skies\ sample ;
+  include $(Root)/prog/samples/$(Platform)-testApp-res/$(Platform)-common.jam ;
+
+  local SrcDataDir = @$(Root)/samples/skiesSample/game ;
+  local FilesToCopy =
+    settings.blk
+    ui/cursor.blk
+    ui/fonts.blk
+    ui/all.dynFont.blk
+    ui/avanteNrBook_eu.ttf
+    ui/button00.tga
+    ui/button01.tga
+    ui/button02.tga
+    ui/checkbox00.tga
+    ui/checkbox01.tga
+    ui/checkbox02.tga
+    ui/checkbox04.tga
+    ui/checkbox06.tga
+    ui/cursor_normal.tga
+    ui/slider00.tga
+    ui/sliderBack.tga
+    heightmap.raw
+    scripts/cursors.nut
+    scripts/library.nut
+    scripts/script.nut
+    scripts/style.nut
+    scripts/components/accordion.nut
+    scripts/components/boolButton.nut
+    scripts/components/checkbox.nut
+    scripts/components/combobox.nut
+    scripts/components/label.nut
+    scripts/components/panel.nut
+    scripts/components/panel_if.nut
+    scripts/components/slider.nut
+  ;
+
+  BundleCopy += $(SrcDataDir)/compiledShaders/iOS/gameMTL.ps50.shdump.bin game/compiledShaders/gameMTL.ps50.shdump.bin ;
+
+  BundleCopy +=
+    $(SrcDataDir)/res.iOS/fx.dxp.bin
+      game/res/fx.dxp.bin
+    $(SrcDataDir)/res.iOS/resPacks.blk
+      game/res/respacks.blk
+    $(SrcDataDir)/res.iOS/tree.dxp.bin
+      game/res/tree.dxp.bin
+    $(SrcDataDir)/res.iOS/water.dxp.bin
+      game/res/water.dxp.bin
+    $(SrcDataDir)/res.iOS/tree.grp
+      game/res/tree.grp
+  ;
+  for f in $(FilesToCopy) { BundleCopy += $(SrcDataDir)/$(f) game/$(f) ; }
+
+} else if $(Platform) = android {
+  UseProgLibs +=
+    engine2/drv/drv3d_vulkan
+    engine2/drv/hid_android
+    engine2/drv/hid_nulldrv
+  ;
+
+  AndroidAppID = com.gaijinent.testApp.SkiesSample ;
+  AndroidIcon = ../Android-testApp-res/icon.png ;
+  AndroidAppIconName = Skies Sample ;
+  AndroidCopyToDevice = default ;
+
+} else if $(Platform) = nswitch {
+
+  NmetaHomeMenuImagePrefix ?= nintendosdk ;
+  NmetaVersion ?= 1.0.0 ;
+  BundleName = skiesSample ;
+  NmetaGameName = skiesSample ;
+
+  BundleInfoStr = $(Config) ;
+
+  nspdBinariesDir = $(Root)/samples/skiesSample/nsp-$(BundleName)-$(BundleInfoStr) ;
+  _NSPD_ROOT_DIR = $(nspdBinariesDir)/$(BundleName)-$(BundleInfoStr).nspd ;
+  _NSPD_CODE_DIR = $(_NSPD_ROOT_DIR)/program0.ncd/code ;
+
+  TemplateDescSrc = ../Nswitch-testApp-res/template.desc ;
+  TemplateSpecMeta = ../Nswitch-testApp-res/template.aarch64.lp64.nmeta ;
+
+  ApplicationDescSrc = ../Nswitch-testApp-res/application.desc ;
+  ApplicationSpecMeta = ../Nswitch-testApp-res/application.aarch64.lp64.nmeta ;
+
+  _NSP_APP_PATH = $(Root)/$(Location)/$(BundleName)-$(BundleInfoStr).nsp ;
+  _NSPD_BASENAME = $(nspdBinariesDir)/$(BundleName)-$(BundleInfoStr) ;
+
+  BundleSwitchMeta = switch.nmeta ;
+  local SrcDataDir = $(Root)/$(Location) ;
+  _NSPD_CONTENT_DIR = $(Root)/samples/skiesSample/nsp-$(BundleName)-$(BundleInfoStr)-data ;
+
+  BundleSwitchMeta = switch.nmeta ;
+  local SrcDataDir = $(OutDir) ;
+
+  local FilesToCopy =
+    settings.blk
+    ui/cursor.blk
+    ui/fonts.blk
+    ui/all.dynFont.blk
+    ui/avanteNrBook_eu.ttf
+    ui/button00.tga
+    ui/button01.tga
+    ui/button02.tga
+    ui/checkbox00.tga
+    ui/checkbox01.tga
+    ui/checkbox02.tga
+    ui/checkbox04.tga
+    ui/checkbox06.tga
+    ui/cursor_normal.tga
+    ui/slider00.tga
+    ui/sliderBack.tga
+    heightmap.raw
+    scripts/cursors.nut
+    scripts/library.nut
+    scripts/script.nut
+    scripts/style.nut
+    scripts/components/accordion.nut
+    scripts/components/boolButton.nut
+    scripts/components/checkbox.nut
+    scripts/components/combobox.nut
+    scripts/components/label.nut
+    scripts/components/panel.nut
+    scripts/components/panel_if.nut
+    scripts/components/slider.nut
+    compiledShaders/gameSpirV.ps40.shdump.bin
+    res/fx.dxp.bin
+    res/tree.dxp.bin
+    res/water.dxp.bin
+    res/tree.grp
+    res/grp_hdr.vromfs.bin
+  ;
+
+  for f in $(FilesToCopy) { BundleCopy += $(SrcDataDir)/$(f) $(f) ; }
+
+  AddIncludes +=
+    $(Root)/prog/3rdPartyLibs/math
+  ;
+
+  UseProgLibs +=
+    engine2/drv/drv3d_vulkan
+    engine2/drv/hid_nswitch
+    engine2/drv/hid_nulldrv
+    gameLibs/jsonUtils
+    gameLibs/nswitch
+    gameLibs/nswitch/assets
+    gameLibs/nswitch/account
+    gameLibs/nswitch/journalizedMount
+    gameLibs/nswitch/mounts
+    gameLibs/nswitch/tempdata
+    engine2/osApiWrappers/messageBox
+  ;
+
+  AddLibs +=
+    $(_OASIS_LIBS_DIR)/libnn_init_memory.a
+    $(_OASIS_LIBS_DIR)/libnn_gfx.a
+    $(_OASIS_LIBS_DIR)/libnn_mii_draw.a
+  ;
+} else {
+  Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+}
+
+Game ?= skiesSample ;
+
+if $(Platform) in xboxOne scarlett {
+  OutDir = $(OutDir)/../$(Platform).loose ;
+
+  XboxTitleName = SkiesSample ;
+  XboxTitlePublisher = "CN=Anton Yudintsev, OU=Gaijin Distribution Kft, O=Gaijin Entertainment Holdings, L=Budapest, S=Budapest, C=HU" ;
+  XboxTitleDisplayName = "SkiesSample" ;
+  XboxTitlePublisherDisplayName = "Gaijin Distribution Kft" ;
+  XboxTitleDesc = "Test bed for skies" ;
+}
+
+if $(Config) = rel {
+  ForceLogs = yes ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

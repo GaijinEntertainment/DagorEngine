@@ -1,0 +1,15 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/frustumCulling ;
+
+TargetType  = lib ;
+Target      = gameLibs/frustumCulling.lib ;
+
+Sources =
+  frustumPlanes.cpp
+;
+
+AddIncludes = 
+  $(Root)/prog/gameLibs/publicInclude 
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

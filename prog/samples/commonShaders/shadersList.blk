@@ -1,0 +1,9 @@
+  file:t = "postfx.sh"
+  file:t = "downsampleDepth.sh"
+  file:t = "ssao.sh"
+  file:t = "blend_cubes.sh"//for editor (and for future reflection)
+  file:t = "light_probe.sh"
+  file:t = "debugGbuffer.sh"
+  file:t = "showGbuffer.sh"
+  file:t = "gui_default.sh"//for editor (and for future in game console)
+  file:t = "envi_sphere.sh"

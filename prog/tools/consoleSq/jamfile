@@ -1,0 +1,90 @@
+ReproducibleExeBuild = yes ;
+Root ?= ../../.. ;
+Location = prog/tools/consoleSq ;
+ConsoleExe = yes ;
+
+ForceLogs ?= yes ;
+
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+# Config = dbg ;
+
+UseQuirrel = sq3r+ ;
+ProjectUseQuirrel = sq3r+ ;
+
+TargetType  = exe ;
+Target      = util/csq ;
+
+OutDir = $(Root)/tools/dagor3_cdk/util ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+if $(Platform) = linux64 { OutDir = $(OutDir)-$(Platform) ; }
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/jsoncpp/include
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+;
+
+AddLibs =
+;
+
+if $(Platform) in win32 win64 {
+  AddLibs += Shell32.lib ;
+}
+
+Sources =
+  consoleSq.cpp
+  fs_utils.cpp
+  con_main.cpp
+;
+
+WorkCyclePerfStub = yes ;
+
+UseProgLibs =
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/coreUtil
+  engine2/math
+  engine2/consoleProc
+  engine2/perfMon/daProfilerStub
+  engine2/workCycle/stub
+
+  3rdPartyLibs/eastl
+  3rdPartyLibs/libb64
+
+  gameLibs/quirrel/bindQuirrelEx
+  gameLibs/quirrel/sqext
+  gameLibs/quirrel/quirrel_json
+  gameLibs/quirrel/sqModules
+  gameLibs/quirrel/http
+  gameLibs/quirrel/frp
+  gameLibs/quirrel/sqJwt
+  gameLibs/quirrel/base64
+
+  gameLibs/asyncHTTPClient
+;
+
+if $(Platform) = linux64 { UseProgLibs += engine2/osApiWrappers/messageBox/stub ; }
+
+
+SourceStr =
+  print_sorted_root.nut
+;
+
+for s in $(SourceStr) { StringifySourceFile $(s) : $(s).inl : consoleSq.cpp ; }
+
+if [ GLOB $(Root)/prog/gameLibs/yup_parse : jamfile ] {
+  UseProgLibs += gameLibs/yup_parse gameLibs/quirrel/yupfile_parse ;
+  CPPopt += -DHAS_YUP_PARSE ;
+}
+if [ GLOB $(Root)/prog/gameLibs/charServerClient : jamfile ] {
+  UseProgLibs += gameLibs/charServerClient/sqBindings gameLibs/charServerClient/httpWrapperAsync ;
+  CPPopt += -DHAS_CHARSQ ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

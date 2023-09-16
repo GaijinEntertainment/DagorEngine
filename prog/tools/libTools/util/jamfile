@@ -1,0 +1,54 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/libTools/util ;
+
+TargetType  = lib ;
+Target      = tools/libTools/util.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  str_util.cpp
+  filePathName.cpp
+  hash.cpp
+  hashSaveCb.cpp
+  undosys.cpp
+  sHmathUtil.cpp
+  conProgressIndicator.cpp
+  fileUtils.cpp
+  conLogWriter.cpp
+  reportLogWriter.cpp
+  blockFileUtil.cpp
+  fileMask.cpp
+  dag_TabOps.cpp
+  tab_sort.cpp
+  colorUtil.cpp
+  meshUtil.cpp
+  binDumpUtil.cpp
+  prepareBillboardMesh.cpp
+  blkUtil.cpp
+  svgWrite.cpp
+  genericCache.cpp
+  twoStepRelPath.cpp
+  iesReader.cpp
+;
+
+if $(Platform) in win32 win64 {
+  Sources +=
+    dagUuid.cpp
+    str_util_shlwapi.cpp
+  ;
+}
+if $(PlatformSpec) = clang {
+  opt on regExp.cpp = -Wno-unused-value ;
+}
+
+UseProgLibs =
+  3rdPartyLibs/hash
+  3rdPartyLibs/regExp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

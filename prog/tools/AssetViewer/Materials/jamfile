@@ -1,0 +1,24 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/AssetViewer/Materials ;
+
+TargetType  = lib ;
+Target      = tools/AssetViewer/Materials.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  main.cpp
+  materials.cpp
+  mat_panel.cpp
+  mat_paramDesc.cpp
+  mat_shader.cpp
+  mat_param.cpp
+  mat_util.cpp
+  materialRec.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

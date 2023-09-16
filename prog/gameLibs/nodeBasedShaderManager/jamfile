@@ -1,0 +1,30 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/nodeBasedShaderManager ;
+
+TargetType  = lib ;
+Target      = gameLibs/nodeBasedShaderManager.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  nodeBasedShaderManager.cpp
+;
+
+if $(NodeBasedCompiler) = yes {
+  Target = $(Target:S=-comp-tool.lib) ;
+  CPPopt = -DIS_OFFLINE_SHADER_COMPILER=1 -DNBSM_COMPILE_ONLY ;
+  Sources += nodeBasedShaderManagerCompile.cpp ;
+} else if $(NodeBasedManagerSupportCompiliation) = yes {
+  Target = $(Target:S=-comp.lib) ;
+  Sources += nodeBasedShaderManagerCompile.cpp ;
+} else {
+  Target = $(Target:S=-nocomp.lib) ;
+  Sources += stub/nodeBasedShaderManagerCompileStub.cpp ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;
+

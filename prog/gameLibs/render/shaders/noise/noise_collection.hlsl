@@ -1,0 +1,22 @@
+#ifndef NOISE_COLLECTION
+#define NOISE_COLLECTION 1
+#include "noise/Cellular2D.hlsl"
+#include "noise/Cellular2D_Deriv.hlsl"
+#include "noise/Cellular3D.hlsl"
+#include "noise/Cellular3D_Deriv.hlsl"
+#include "noise/Perlin2D.hlsl"
+#include "noise/Perlin2D_Deriv.hlsl"
+#include "noise/Perlin3D.hlsl"
+#include "noise/Perlin3D_Deriv.hlsl"
+#include "noise/Perlin4D.hlsl"
+#include "noise/SimplexPerlin2D.hlsl"
+#include "noise/SimplexPerlin2D_Deriv.hlsl"
+#include "noise/SimplexPerlin3D.hlsl"
+#include "noise/SimplexPerlin3D_Deriv.hlsl"
+#include "noise/Value1D.hlsl"
+#include "noise/Value2D.hlsl"
+#include "noise/Value2D_Deriv.hlsl"
+#include "noise/Value3D.hlsl"
+#include "noise/Value3D_Deriv.hlsl"
+#include "noise/Value4D.hlsl"
+#endif

@@ -1,0 +1,101 @@
+
+buffer context_gpu_data;
+
+macro INIT_WORLD_LOCAL_BASE(code)
+(code) {
+  context_gpu_data@cbuf = context_gpu_data hlsl {
+    cbuffer context_gpu_data@cbuf
+    {
+      float4 proj_to_world_tm_0;
+      float4 proj_to_world_tm_1;
+      float4 proj_to_world_tm_2;
+      float4 proj_to_world_tm_3;
+
+      float4 proj_to_view_tm_0;
+      float4 proj_to_view_tm_1;
+      float4 proj_to_view_tm_2;
+      float4 proj_to_view_tm_3;
+    }
+  }
+}
+endmacro
+
+macro USE_WORLD_LOCAL_BASE(code)
+(code) { immediate_dword_count = 1; }
+hlsl(code) {
+  #define SETUP_RENDER_VARS(rigid_index)                                                                         \
+    uint offsetToChunk = OFFSET_TO_CHUNK(rigid_index);                                                           \
+    float4 globtm_0 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 0);                                       \
+    float4 globtm_1 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 1);                                       \
+    float4 globtm_2 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 2);                                       \
+    float4 globtm_3 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 3);                                       \
+    float4 prev_globtm_0 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 4);                                  \
+    float4 prev_globtm_1 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 5);                                  \
+    float4 prev_globtm_2 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 6);                                  \
+    float4 prev_globtm_3 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 7);                                  \
+    float2 opacity__offset = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 8).xy;                             \
+    float node_opacity = opacity__offset.x;                                                                      \
+    float4 node_tm_0, node_tm_1, node_tm_2;                                                                      \
+    if ( (get_immediate_dword_0() & 0xFF) > 9)                                                                   \
+    {                                                                                                            \
+      node_tm_0 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 9);                                           \
+      node_tm_1 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 10);                                          \
+      node_tm_2 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 11);                                          \
+    }                                                                                                            \
+    else                                                                                                         \
+    {                                                                                                            \
+      node_tm_0 = float4(1, 0, 0, 0);                                                                            \
+      node_tm_1 = float4(0, 1, 0, 0);                                                                            \
+      node_tm_2 = float4(0, 0, 1, 0);                                                                            \
+    }                                                                                                            \
+    uint instanceChunkOffset = uint(offsetToChunk + opacity__offset.y);                                          \
+    float3 unpack_pos_mul = loadBuffer(INSTANCE_DATA_BUFFER, instanceChunkOffset + 0).xyz;                       \
+    float4 pos_ofs__cnt = loadBuffer(INSTANCE_DATA_BUFFER, instanceChunkOffset + 1);                             \
+    float3 unpack_pos_ofs = pos_ofs__cnt.xyz;                                                                    \
+    float2 dynrend_params_offset_count = float2(instanceChunkOffset + 2.5, pos_ofs__cnt.w);
+
+  #define BONES_START 9
+
+  struct bone_t { float4 r0, r1, r2; };
+
+  float4 get_bone_row(int offset)
+  {
+    uint offsetToChunk = OFFSET_TO_CHUNK(0);
+    return loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + BONES_START + offset);
+  }
+
+  bone_t get_bone(int bone_index)
+  {
+    bone_t bone;
+    bone.r0 = get_bone_row(bone_index * 6 + 0);
+    bone.r1 = get_bone_row(bone_index * 6 + 1);
+    bone.r2 = get_bone_row(bone_index * 6 + 2);
+    return bone;
+  }
+
+  bone_t get_prev_bone(int bone_index)
+  {
+    bone_t bone;
+    bone.r0 = get_bone_row(bone_index * 6 + 3);
+    bone.r1 = get_bone_row(bone_index * 6 + 4);
+    bone.r2 = get_bone_row(bone_index * 6 + 5);
+    return bone;
+  }
+
+  #define GET_DYNREND_PARAM(param_no) ((int)param_no < (int)dynrend_params_offset_count.y ? \
+    loadBuffer(INSTANCE_DATA_BUFFER, dynrend_params_offset_count.x + param_no) : float4(0, 0, 0, 0))
+}
+endmacro
+
+macro INIT_WORLD_LOCAL_VS()
+  INIT_WORLD_LOCAL_BASE(vs)
+endmacro
+
+macro USE_WORLD_LOCAL_VS()
+  USE_WORLD_LOCAL_BASE(vs)
+endmacro
+
+macro WORLD_LOCAL_VS()
+  INIT_WORLD_LOCAL_VS()
+  USE_WORLD_LOCAL_VS()
+endmacro

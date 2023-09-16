@@ -1,0 +1,7 @@
+ERROR: expected hex digits after '0x'
+testData/diagnostics/unfinished_hex.nut:1:8
+
+println(0x)
+        ^-
+
+

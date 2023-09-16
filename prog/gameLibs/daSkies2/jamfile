@@ -1,0 +1,36 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/daSkies2 ;
+
+TargetType  = lib ;
+Target      = gameLibs/daSkies2.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+  $(Root)/$(Location)/shaders
+;
+
+Sources =
+  daStars.cpp 
+#  daSkiesTracer.cpp
+#  fastCloudsTracer.cpp
+  daScattering.cpp
+  daScatteringCPU.cpp
+  daSkies.cpp
+  daSkiesPanorama.cpp
+  panoramaCompressor.cpp
+#  cloudsLightingMy.cpp
+  daSkiesToBlk.cpp
+  daSkiesAstronomy.cpp
+  daSkiesExporterConsole.cpp
+  cloudsShaderVars.cpp
+;
+
+UseProgLibs +=
+  engine2/lib3d
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

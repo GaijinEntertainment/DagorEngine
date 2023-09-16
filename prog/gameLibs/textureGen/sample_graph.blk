@@ -1,0 +1,741 @@
+shaders
+{
+  vprog:t="""
+  struct VsOutput
+  {
+    float4 pos:SV_POSITION;
+    float3 tc:TEXCOORD0;
+  };
+  float scale: register(c0);
+  VsOutput main_vs(uint vertexId : SV_VertexID)
+  {
+    VsOutput output;
+    float2 inpos = float2((vertexId == 2) ? +3.0 : -1.0, (vertexId == 1) ? -3.0 : 1.0);
+
+    output.pos = float4(inpos,0,1);
+    output.tc.xy = inpos * float2(0.5, -0.5) + float2(0.50000, 0.50000);
+    output.tc.z = scale;
+
+    return output;
+  }
+"""
+  particles_vprog:t="""
+  struct VsOutput
+  {
+    float4 pos:SV_POSITION;
+    float3 tc:TEXCOORD0;
+  };
+  struct ParticleInstance
+  {
+    float2 pos;
+    float2 scale;
+    float angle, brightness;
+    float depth;
+  };
+  float scale: register(c0);
+  StructuredBuffer<ParticleInstance> instances : register(t0);
+  VsOutput main_vs(uint subvertexId : SV_VertexID, uint instance : SV_InstanceID)
+  {
+    VsOutput output;
+    float2 localPos = int2(subvertexId % 2, subvertexId > 1 && subvertexId < 5);
+    float2 rotSC;
+    sincos(instances[instance].angle, rotSC.x, rotSC.y);
+    float2 xPos = (localPos-float2(0.5,0.5))*instances[instance].scale;
+    float2 inpos = instances[instance].pos + 
+                   float2( rotSC.y * xPos.x + rotSC.x * xPos.y, -rotSC.x * xPos.x + rotSC.y * xPos.y);
+    //inpos = instances[instance].pos + xPos;
+    output.pos = float4(inpos*float2(2,-2) - float2(1,-1) ,0,1);
+    output.tc.xy = localPos;
+    output.tc.z = scale*instances[instance].brightness;
+    output.pos.z = instances[instance].depth;
+
+    return output;
+  }
+"""
+  premain:t="""
+  struct ParticleInstance
+  {
+    float2 pos;
+    float2 scale;
+    float angle, brightness;
+    float depth;
+  };
+  float3 getNormal(Texture2D tex, SamplerState smp, float2 tc, float cellSize) 
+  {
+    float w,h;
+    tex.GetDimensions(w,h);
+    float hu = tex.SampleLevel(smp, tc, 0, int2(-1,0)) - tex.SampleLevel(smp, tc, 0, int2(1,0));
+    float hv = tex.SampleLevel(smp, tc, 0, int2(0, 1)) - tex.SampleLevel(smp, tc, 0, int2(0,1));
+
+    return normalize(float3(hu*w, cellSize, hv*h));
+  }
+  float getCurvature(Texture2D tex, SamplerState smp, float2 tc, float curvScale) //curvScale = 1/gridCellSize
+  {
+    #define FC 4
+    #define FSZ (FC*2+1)
+    float curvWt[FSZ][FSZ];
+    float wtSum = 0, kSum = 0;
+    int fx, fy;
+
+    [unroll]
+    for ( fy=0; fy<FSZ; ++fy)
+    {
+      [unroll]
+      for (fx=0; fx<FSZ; ++fx)
+      {
+        if (fx==FC && fy==FC) continue;
+
+        int dx=fx-FC;
+        int dy=fy-FC;
+        float d=sqrt((float)(dx*dx+dy*dy));
+
+        float k=max(0, (FC+1-d)/(FC+1));
+
+        k=(3-2*k)*k*k;
+
+        curvWt[fy][fx]=k/d;
+        wtSum += curvWt[fy][fx];
+        kSum+=k;
+      }
+    }
+
+    curvWt[FC][FC]=-wtSum;
+
+    [unroll]
+    for (fy=0; fy<FSZ; ++fy)
+    {
+      [unroll]
+      for (fx=0; fx<FSZ; ++fx)
+        curvWt[fy][fx] /= kSum;
+    }
+
+    float curv=0;
+    [unroll]
+    for (fy=0; fy<FSZ; ++fy)
+    {
+      [unroll]
+      for (fx=0; fx<FSZ; ++fx)
+      {
+        curv += curvWt[fy][fx]*tex.SampleLevel(smp, tc, 0, int2(fx-FC,fy-FC));
+      }
+    }
+
+    float w,h;
+    tex.GetDimensions(w,h);
+    return curv*(w*curvScale);
+  }
+  uint2 scramble_TEA(uint2 v)
+  {
+    uint k[4] ={ 0xA341316Cu , 0xC8013EA4u , 0xAD90777Du , 0x7E95761Eu };
+
+    uint y = v[0];
+    uint z = v[1];
+    uint sum = 0;
+
+    #define TEA_ITERATIONS 4
+    [unroll]
+    for(uint i = 0; i < TEA_ITERATIONS; ++i)
+    {
+      sum += 0x9e3779b9;
+      y += (z << 4u) + k[0] ^ z + sum ^ (z >> 5u) + k[1];
+      z += (y << 4u) + k[2] ^ y + sum ^ (y >> 5u) + k[3];
+    }
+
+    return uint2(y, z);
+  }
+  uint reverse_bits16( uint bits )
+  {
+    bits = ( (bits & 0x33333333) << 2 ) | ( (bits & 0xcccccccc) >> 2 );
+    bits = ( (bits & 0x55555555) << 1 ) | ( (bits & 0xaaaaaaaa) >> 1 );
+    return bits;
+  }
+
+  float2 rand2(float2 co)
+  {
+    return frac(sin(co.xy*12.9898) * 43758.5453);
+  }
+  float rand(float co)
+  {
+    return frac(sin(co*12.9898) * 43758.5453);
+  }
+  uint rand_seed(float2 texcoord)
+  {
+    float2 seed = rand2(texcoord);
+    return uint(seed.x * 7829 + seed.y * 113);
+  }
+  uint rand_lcg(inout uint g_rng_state)
+  {
+    // LCG values from Numerical Recipes
+    g_rng_state = 1664525U * g_rng_state + 1013904223U;
+    return g_rng_state;
+  }
+
+  float rand_lcg_float(inout uint g_rng_state)
+  {
+    uint ret = rand_lcg(g_rng_state);
+    //return float(ret) * (1.0 / 4294967296.0);
+    return frac(float(ret) * (1.0 / 262144.0));
+  }
+
+  float noise_Value2D( float2 P )
+   {
+     //  https://github.com/BrianSharpe/Wombat/blob/master/Value2D.glsl
+
+     //	establish our grid cell and unit position
+     float2 Pi = floor(P);
+     float2 Pf = P - Pi;
+
+     //	calculate the hash.
+     float4 Pt = float4( Pi.xy, Pi.xy + 1.0 );
+     Pt = Pt - floor(Pt * ( 1.0 / 71.0 )) * 71.0;
+     Pt += float2( 26.0, 161.0 ).xyxy;
+     Pt *= Pt;
+     Pt = Pt.xzxz * Pt.yyww;
+     float4 hash = frac( Pt * ( 1.0 / 951.135664 ) );
+
+     //	blend the results and return
+     float2 blend = Pf * Pf * Pf * (Pf * (Pf * 6.0 - 15.0) + 10.0);
+     float4 blend2 = float4( blend, float2( 1.0 - blend ) );
+     return dot( hash, blend2.zxzx * blend2.wwyy );
+   }
+   
+  #ifndef MRTOutput_DEFINED
+    struct MRTOutput {float4 col0:SV_Target0;};
+  #endif
+  #ifdef ParticlesOutput_DEFINE
+    RWStructuredBuffer<ParticleInstance> instances : register( ParticlesOutput_DEFINE );
+    RWByteAddressBuffer instancesCounter : register( ParticlesOutputCounter_DEFINE );
+    void wrap_particle_x(ParticleInstance particle)
+    {
+      ParticleInstance particle2 = particle;
+      [branch]
+      if (particle.pos.x - particle.scale.x < 0 )
+      {
+        particle2.pos.x = particle.pos.x+1;
+        uint instIdx;
+        instancesCounter.InterlockedAdd(1 * 4, 1, instIdx);
+        instances[instIdx] = particle2;
+      }
+      [branch]
+      if (particle.pos.x + particle.scale.x > 1 )
+      {
+        particle2.pos.x = particle.pos.x-1;
+        uint instIdx;
+        instancesCounter.InterlockedAdd(1 * 4, 1, instIdx);
+        instances[instIdx] = particle2;
+      }
+    }
+    void wrap_particle_y(ParticleInstance particle)
+    {
+      ParticleInstance particle2 = particle;
+      [branch]
+      if (particle.pos.y - particle.scale.y < 0 )
+      {
+        particle2.pos.y = particle.pos.y+1;
+        uint instIdx;
+        instancesCounter.InterlockedAdd(1 * 4, 1, instIdx);
+        instances[instIdx] = particle2;
+        wrap_particle_x(particle2);
+      }
+      [branch]
+      if (particle.pos.y + particle.scale.y > 1 )
+      {
+        particle2.pos.y = particle.pos.y-1;
+        uint instIdx;
+        instancesCounter.InterlockedAdd(1 * 4, 1, instIdx);
+        instances[instIdx] = particle2;
+        wrap_particle_x(particle2);
+      }
+      wrap_particle_x(particle);
+    }
+    void wrap_particle(ParticleInstance particle)
+    {
+      #if WRAP
+      wrap_particle_y(particle);
+      #endif
+    }
+  #endif
+  struct VsOutput
+  {
+    float4 pos:SV_POSITION;
+    float3 tc:TEXCOORD0;
+  };
+  MRTOutput main_ps(VsOutput input, float4 pos:SV_Position) {
+  MRTOutput result;
+"""
+   postmain:t=";return result;}"
+
+
+
+  min_value_x8_step
+  {
+    inputs:i = 1
+
+    params
+    {
+      resultWidth:i = 1
+      resultHeight:i = 1
+    }
+    shaderPreMain:t="""
+      cbuffer global
+      {
+        int resultWidth;
+        int resultHeight;
+      };
+
+      Texture2D tex0:register(t0);
+      SamplerState sampler0:register(s0);
+    """
+
+    shaderCode:t="""
+      int w, h;
+      tex0.GetDimensions(w, h);
+      int startX = int(input.tc.x * resultWidth) * 8;
+      int startY = int(input.tc.y * resultHeight) * 8;
+
+      float4 res = tex0[int2(startX, startY)];
+
+      for (int x = startX; x < min(startX + 8, w); x++)
+        for (int y = startY; y < min(startY + 8, h); y++)
+          res = min(res, tex0[int2(x, y)]);
+
+      result.col0 = input.tc.z * res;
+    """
+  }
+
+  max_value_x8_step
+  {
+    inputs:i = 1
+
+    params
+    {
+      resultWidth:i = 1
+      resultHeight:i = 1
+    }
+    shaderPreMain:t="""
+      cbuffer global
+      {
+        int resultWidth;
+        int resultHeight;
+      };
+
+      Texture2D tex0:register(t0);
+      SamplerState sampler0:register(s0);
+    """
+
+    shaderCode:t="""
+      int w, h;
+      tex0.GetDimensions(w, h);
+      int startX = int(input.tc.x * resultWidth) * 8;
+      int startY = int(input.tc.y * resultHeight) * 8;
+
+      float4 res = tex0[int2(startX, startY)];
+
+      for (int x = startX; x < min(startX + 8, w); x++)
+        for (int y = startY; y < min(startY + 8, h); y++)
+          res = max(res, tex0[int2(x, y)]);
+
+      result.col0 = input.tc.z * res;
+    """
+  }
+
+  average_value_x8_step
+  {
+    inputs:i = 1
+
+    params
+    {
+      resultWidth:i = 1
+      resultHeight:i = 1
+    }
+    shaderPreMain:t="""
+      cbuffer global
+      {
+        int resultWidth;
+        int resultHeight;
+      };
+
+      Texture2D tex0:register(t0);
+      SamplerState sampler0:register(s0);
+    """
+
+    shaderCode:t="""
+      int w, h;
+      tex0.GetDimensions(w, h);
+      int startX = int(input.tc.x * resultWidth) * 8;
+      int startY = int(input.tc.y * resultHeight) * 8;
+
+      float4 res = float4(0, 0, 0, 0);
+
+      for (int x = startX; x < min(startX + 8, w); x++)
+        for (int y = startY; y < min(startY + 8, h); y++)
+          res += tex0[int2(x, y)];
+
+      int count = max((min(startX + 8, w) - startX) * (min(startY + 8, h) - startY), 1);
+
+      result.col0 = input.tc.z * res / float(count);
+    """
+  }
+
+
+  autolevels_final_shader
+  {
+    inputs:i = 3
+
+    shaderPreMain:t="""
+      Texture2D tex0:register(t0);
+      Texture2D tex1:register(t1);
+      Texture2D tex2:register(t2);
+      SamplerState sampler0:register(s0);
+      SamplerState sampler1:register(s1);
+      SamplerState sampler2:register(s2);
+    """
+
+    shaderCode:t="""
+      float4 minVal = tex1[int2(0, 0)];
+      float4 maxVal = tex2[int2(0, 0)];
+      result.col0 = saturate((linear_sample(tex0, input.tc, wrap_t0) - minVal) / (maxVal - minVal + 1e-6));
+    """
+  }
+
+
+
+  blur_hq_step
+  {
+    outputs:i = 1
+    inputs:i = 2
+    params
+    {
+       wrap:b = true
+       distance:r = 0.05
+       random_angle:r = 0.1
+       start_turn:r = 0.0
+       rays:i = 7
+       step:r = 0
+    }
+
+    shaderPreMain:t="""
+    cbuffer global
+    {
+      int wrap;
+      float distance;
+      float random_angle;
+      float start_turn;
+      int rays;
+      float step;
+    };
+    Texture2D tex0:register(t0);
+    Texture2D tex1:register(t1);
+    SamplerState sampler0:register(s0);
+    SamplerState sampler1:register(s1);
+    """
+
+   shaderCode:t="""
+     int2 dim;
+     tex0.GetDimensions(dim.x, dim.y);
+
+     int2 dimMask;
+     tex1.GetDimensions(dimMask.x, dimMask.y);
+
+     float2 halfPixel = 0.5 / dim;
+
+     float firstAngle = rand2d(input.tc + step + 3.5) * 2.0 * 3.141592;
+     float firstRadius = rand2d(input.tc + step + 5.5) * distance * random_angle * float(rays) / 6.0;
+     float2 firstTc = input.tc.xy + float2(sin(firstAngle), cos(firstAngle)) * firstRadius;
+     firstTc = wrap ? firstTc : clamp(firstTc, halfPixel, 1-halfPixel);
+
+     float4 accum = tex0.SampleLevel(sampler0, firstTc, 0);
+     float blurMask = dimMask.x > 1 ? tex1.SampleLevel(sampler1, input.tc, 0).x : 1.0;
+     float angle = (random_angle * (rand2d(input.tc + step + 1.7) - 0.5) + start_turn);
+     float angleStep = (2.0 * 3.141592) / float(rays);
+
+     for (int i = 0; i < rays; i++)
+     {
+       float2 offs = float2(sin(angle), cos(angle)) * distance * blurMask;
+       offs *= 1.0 + (rand2d(input.tc + step + float(i)) - 0.5) * random_angle;
+       float2 offsTc = offs + input.tc;
+       accum += tex0.SampleLevel(sampler0, wrap ? offsTc : clamp(offsTc, halfPixel, 1-halfPixel), 0);
+       angle += angleStep;
+     }
+
+     result.col0 = accum / float(rays + 1);
+   """
+  }
+
+
+
+   perlin
+   {
+     outputs:i=2
+     params
+     {
+       octaves:i=5
+       persistence:r=0.5
+       frequency:r=1
+       scale:r=1
+       ofs:p2=0,0
+     }
+     shaderPreMain:t="""
+       cbuffer global
+       {
+         int octaves;
+         float persistence;
+         float frequency;
+         float scale;
+         float2 ofs;
+       };
+      #define MRTOutput_DEFINED
+       struct MRTOutput {float4 col0:SV_Target0;float4 col1:SV_Target1;};
+ 
+     """
+     shaderCode:t="""
+     float2 pt = input.tc*frequency+ofs;
+     int totalOctaves = min(octaves, 16);
+     float ret = 0;
+     float cscale = 1, totalScale = 0;
+     [loop]
+     for (int i = 0; i < totalOctaves; ++i)
+     {
+       ret += (noise_Value2D(pt)*2-1)*cscale;
+       totalScale += cscale;
+       pt += pt;
+       cscale *= persistence;
+     }
+     result.col0 = input.tc.z*scale*(ret*0.5+0.5)/max(0.0001,totalScale);
+     result.col1 = input.tc.z*scale*ret/max(0.0001,totalScale);
+"""
+   }
+   particles
+   {
+     outputs:i=2
+     params
+     {
+       octaves:i=5
+       persistence:r=0.5
+       frequency:r=1
+       scale:r=1
+       threshold:r=0.75
+       size:r=0.01
+     }
+     shaderPreMain:t="""
+       cbuffer global
+       {
+         int octaves;
+         float persistence;
+         float frequency;
+         float scale;
+         float threshold;
+         float size;
+       };
+      #define ParticlesOutput_DEFINE u1
+      #define ParticlesOutputCounter_DEFINE u2
+      #define MRTOutput_DEFINED
+      struct MRTOutput {float probability:SV_Target0;};
+      #define WRAP 1
+
+     """
+     shaderCode:t="""
+     uint2 screenPos = (uint2)pos.xy;
+     uint2 screenRand = scramble_TEA(screenPos);
+     uint g_rng_state = screenRand.x^screenRand.y;
+     rand_lcg(g_rng_state);
+     float randProb = rand_lcg_float(g_rng_state);
+     float2 randPos2 = float2(rand_lcg_float(g_rng_state), rand_lcg_float(g_rng_state));
+     //float2 pt = (input.tc+(randPos2-0.5)/128)*frequency;
+     float2 pt = (input.tc)*frequency;
+     int totalOctaves = min(octaves, 16);
+     float ret = 0;
+     float cscale = 1, totalScale = 0;
+     [loop]
+     for (int i = 0; i < totalOctaves; ++i)
+     {
+       ret += (noise_Value2D(pt)*2-1)*cscale;
+       totalScale += cscale;
+       pt += pt;
+       cscale *= persistence;
+     }
+     ret/=max(0.0001,totalScale);
+     float probability = scale*(ret*0.5+0.5);
+     result.probability = probability;
+     
+     ParticleInstance particle;
+     particle.pos = input.tc + size*(randPos2-0.5)/sqrt(2);
+     particle.scale = size*(-0.5*ret + 0.5);
+     particle.angle = ret;
+     particle.brightness = 1;
+     particle.depth = frac(input.tc.x/4096.0 + input.tc.y);
+
+     [branch]
+     if (probability>threshold*randProb)
+     {
+       uint instIdx;
+       instancesCounter.InterlockedAdd(1 * 4, 1, instIdx);
+       instances[instIdx] = particle;
+       wrap_particle(particle);
+     }
+"""
+   }
+   add
+   {
+     inputs:i=2
+     shaderPreMain:t="""
+     Texture2D tex0:register(t0);
+     Texture2D tex1:register(t1);
+     SamplerState sampler0:register(s0);
+     SamplerState sampler1:register(s1);
+     """
+     shaderCode:t="result.col0 = input.tc.z*(tex0.SampleLevel(sampler0, input.tc, 0) + tex1.SampleLevel(sampler1, input.tc, 0));"
+   }
+   binary
+   {
+     params
+     {
+       shader_postcode:t = "result.col0 = input.tc.z*input0*input1;"
+     }
+     inputs:i=2
+     shaderPreMain:t="""
+     Texture2D tex0:register(t0);
+     Texture2D tex1:register(t1);
+     SamplerState sampler0:register(s0);
+     SamplerState sampler1:register(s1);
+     """
+     shaderCode:t="float4 input0 = tex0.SampleLevel(sampler0, input.tc, 0), input1 = tex1.SampleLevel(sampler1, input.tc, 0); "
+   }
+   unary
+   {
+     params
+     {
+       shader_postcode:t = "result.col0 = input.tc.z*input0;"
+     }
+     inputs:i=1
+     shaderPreMain:t="""
+     Texture2D tex0:register(t0);
+     SamplerState sampler0:register(s0);
+     """
+     shaderCode:t="float4 input0 = tex0.SampleLevel(sampler0, input.tc, 0);"
+   }
+}
+
+nodes
+{
+  Particles0
+  {
+    shader:t = particles
+    params {
+      frequency:r = 3
+      persistence:r= 0.725
+      octaves:i=7
+      size:r=0.0125
+      threshold:r=0.6
+      scale:r= 1
+    }
+    output:t="particles1_out"
+    particles1_out_fmt:t = "R16"
+    output:t="particles0_out"
+    particles0_out_fmt:t = "particles"
+    width:i=128
+  }
+  Perlin0
+  {
+    shader:t = perlin
+    params {
+      frequency:r = 0.5
+      scale:r= 1.0
+      ofs:p2=0.5,0.5
+    }
+    output:t="Perlin0_out0"
+    Perlin0_out0_fmt:t = "R32F"
+    scale:r=1
+    width:i=512
+  }
+  Perlin1
+  {
+    shader:t = perlin
+    particles:t=particles0_out
+    params {
+      frequency:r = 0.5
+      octaves:i=2
+      persistence:r= 0.5
+      scale:r= 0.5
+    }
+    blending:t = add //(mul,min, max, add - commutative. no, alpha - non commutative (we can use depth though to solve collision)
+    //depth:b=yes// (yes, no=default). needed only when non commutative blending, and only for particles input
+    //scale:r=1// scale before blending, default 1.
+    output:t=Perlin0_out0
+    //output:t=Perlin1_out1
+    //Perlin1_out0_fmt:t = "R16"
+    //Perlin1_out1_fmt:t = "R16F"
+    width:i=512
+  }
+  /*Add0
+  {
+    shader:t = add
+    input:t = Perlin0_out0
+    input:t = Perlin1_out0
+    output:t=perlin_add
+    perlin_add_fmt:t = "R32F"
+    width:i=512
+  }
+  Add1
+  {
+    shader:t = binary
+    params{
+      shader_postcode:t = "result.col0 = input0+input1"//ideally, only "+" should be written artists
+    }
+    input:t = "tex:heightmap"
+    input:t = perlin_add
+    output:t=addResult1
+    addResult1_fmt:t = "R32F"
+    width:i=1024
+  }*/
+  Bypass
+  {
+    shader:t = unary
+    input:t = Perlin0_out0//perlin_add//particles1_out
+    output:t=finalResult
+    finalResult_fmt:t = "R32F"
+    finalResult_final:b=yes
+    width:i=1024
+  }
+  /*Add2
+  {
+    shader:t = binary
+    params{
+      shader_postcode:t = "result.col0 = input0+input1"//ideally, only "+" should be written artists
+    }
+    input:t = "addResult1"
+    input:t = "Perlin1_out1"
+    output:t=finalResult
+    finalResult_fmt:t = "R32F"
+    finalResult_final:b=yes
+    width:i=1024
+  }*/
+  /*Curv
+  {
+    shader:t = unary
+    params{
+      //shader_postcode:t = "result.col0 = 0.5*input0"//ideally, only "+" should be written artists
+      shader_postcode:t = """
+      float curv = getCurvature(tex0, sampler0, input.tc, 1);
+      float3 normal = getNormal(tex0, sampler0, input.tc, 1);
+      result.col0 = normal.y>0.5 ? 0.5+0.5*curv : 0;
+      """//ideally, only "+" should be written artists
+      //shader_postcode:t = "result.col0 = getNormal(tex0, sampler0, input.tc, 1).y;"//ideally, only "+" should be written artists
+    }
+    input:t = "finalResult0"
+    output:t=finalResult
+    width:i=4096
+    finalResult_final:b=yes
+  }*/
+  /*Curv2
+  {
+    shader:t = binary
+    params{
+      shader_postcode:t = "result.col0 = getNormal(tex1, sampler1, input.tc, 1).y > 0.5 ? input0.x : 0;"//ideally, only "+" should be written artists
+    }
+    input:t = "finalResult1"
+    input:t = "finalResult0"
+    output:t=finalResult
+    final:b=yes
+  }*/
+}

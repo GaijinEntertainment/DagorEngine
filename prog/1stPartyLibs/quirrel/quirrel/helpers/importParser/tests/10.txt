@@ -1,0 +1,15 @@
+#strict-compile:yes
+
+// import b
+import math // as math2
+ import "dagor2.math" as m;
+from "generic/std.nut" import types.TMatrix as Matrix, /* types.unknown as known */
+  types.Point2 as point
+/* comment
+comment 
+// */
+from module2 import *
+
+
+local a = require("x.nut")
+return a.x

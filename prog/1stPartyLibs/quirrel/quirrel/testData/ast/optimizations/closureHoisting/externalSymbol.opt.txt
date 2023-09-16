@@ -1,0 +1,20 @@
+{
+  let $ch0 = FUNCTION (externalSymbol.nut:8)(this, g, h) {
+    println(g / h)
+  }
+  let $ch1 = FUNCTION (externalSymbol.nut:6)(this, e, f) {
+    println(e * f)
+    RETURN $ch0
+  }
+  let $ch2 = FUNCTION (externalSymbol.nut:4)(this, c, d) {
+    println(c - d)
+    RETURN $ch1
+  }
+  let $ch3 = FUNCTION (externalSymbol.nut:2)(this, a, b) {
+    println(a + b)
+    RETURN $ch2
+  }
+  let foo = FUNCTION foo(this, x, y) {
+    RETURN $ch3
+  }
+}

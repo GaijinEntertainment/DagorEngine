@@ -1,0 +1,28 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/dagUtils/texSeamsRemover ;
+DriverLinkage   = static ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = util/texSeamsRemover.exe ;
+OutDir      = $(Root)/tools/util ;
+
+AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+
+Sources =
+  texSeamsRemover.cpp
+;
+
+UseProgLibs = 
+  engine2/osApiWrappers
+  engine2/kernel
+  engine2/memory
+  engine2/ioSys
+  engine2/startup
+  engine2/baseUtil
+  engine2/math
+  engine2/image
+  engine2/perfMon/daProfilerStub
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

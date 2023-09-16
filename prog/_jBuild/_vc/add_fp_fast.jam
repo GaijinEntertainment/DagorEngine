@@ -1,0 +1,1 @@
+AddMissingDefaultOpts _CPP_OPT : $(VCMathOption) : -fp:fast -fp:strict -fp:precise ;

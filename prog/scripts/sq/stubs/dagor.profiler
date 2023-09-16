@@ -1,0 +1,9 @@
+local function noop(...) {}
+
+return {
+  start = noop
+  stop = noop
+  reset_values = noop
+  dump = noop
+  get_total_time = noop
+}

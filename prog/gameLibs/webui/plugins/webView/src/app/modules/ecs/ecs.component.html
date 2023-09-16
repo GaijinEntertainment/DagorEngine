@@ -1,0 +1,1087 @@
+<ng-template #ecsAttribute ngbModalContainer let-c="close" let-d="dismiss">
+  <div class="modal-header">
+    <h4 class="modal-title">{{currentAttr.name}}</h4>
+    <button type="button" class="close" aria-label="Close" (click)="d('Cross click')"><span aria-hidden="true">&times;</span></button>
+  </div>
+  <div class="modal-body" style="height: 600px;">
+    <span *ngIf="currentAttr.type === 'E3DCOLOR'"
+      autofocus
+      class="form-control form-control-sm"
+      style="height: 0px;padding: 0px;border: none;"
+      [(colorPicker)]="currentAttr._color"
+      [style.background]="rgbaText"
+      [cpDialogDisplay]="'inline'"
+      [cpToggle]="true"
+      [cpAlphaChannel]="'always'"
+      [cpOutputFormat]="'hex'"
+      [cpOKButton]="false"
+      [cpCancelButton]="false"
+      [cpOKButtonClass]="'btn btn-sm btn-outline-primary'"
+      [cpCancelButtonClass]="'btn btn-sm btn-outline-danger'"
+      [style.background]="getAttrValue(currentAttr)"
+      (colorPickerChange)="updateValue($event, row, $event.value, currentAttr)"></span>
+    <json-editor #editor [style.display]="getDisplayForEditor()" [options]="editorOptions" [data]="currentAttr.value"></json-editor>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-primary" (click)="saveObject(currentRow, currentAttr, editor); c('Close click');">Save</button>
+    <button type="button" class="btn btn-secondary" (click)="c('Close click')">Close</button>
+  </div>
+</ng-template>
+
+<ng-template #ecsDynamicQuery ngbModalContainer let-c="close" let-d="dismiss">
+  <div class="modal-header">
+    <h4 class="modal-title">Dynamic Query</h4>
+    <button type="button" class="close" aria-label="Close" (click)="d('Cross click')"><span aria-hidden="true">&times;</span></button>
+  </div>
+  <div class="modal-body">
+    <input #filter type="text" class="form-control form-control-sm mb-2" placeholder="Filter..." [(value)]="dynamicQueryFilter"/>
+    <json-editor #editor [style.display]="getDisplayForEditor()" [options]="editorOptions" [data]="dynamicQuery"></json-editor>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-primary" (click)="saveDynamicQuery(editor, filter); c('Close click');">Save</button>
+    <button type="button" class="btn btn-secondary" (click)="c('Close click')">Close</button>
+  </div>
+</ng-template>
+
+<ng-template #ecsInfoPopup ngbModalContainer let-c="close" let-d="dismiss">
+  <div class="modal-header">
+    <h4 class="modal-title">{{currentContext.$implicit.name}}</h4>
+    <button type="button" class="close" aria-label="Close" (click)="d('Cross click')"><span aria-hidden="true">&times;</span></button>
+  </div>
+  <div class="modal-body" style="overflow-y: auto;">
+    <ng-container *ngTemplateOutlet="currentTemplate; context: currentContext"></ng-container>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="c('Close click')">Close</button>
+  </div>
+</ng-template>
+
+<ng-template #eventsRow let-row>
+  <div style="padding-left:35px;padding-right:35px;padding-top:20px;">
+    <div class="d-flex flex-row">
+      <div>
+        <strong class="d-block">Systems</strong>
+        <table class="table table-sm table-bordered table-hover">
+          <thead>
+            <th>Name</th>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of row._systems">
+              <td>{{s.name}}<span class="ecs-info"> {{s.tags}}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #systemsRow let-row>
+  <div style="padding-left:35px;padding-right:35px;padding-top:20px;">
+    <div class="d-flex flex-row">
+      <div>
+        <strong class="d-block">Components</strong>
+        <table class="table table-sm table-bordered table-hover">
+          <thead>
+            <th>Name</th>
+            <th>Type</th>
+          </thead>
+          <tbody>
+            <tr *ngIf="row.componentsRW.length > 0">
+              <td colspan="2"><strong>Read-Write</strong></td>
+            </tr>
+            <tr *ngFor="let c of row.componentsRW">
+              <td>{{c.name}}<span *ngIf="c.optional" class="ecs-info"> optional</span></td>
+              <td>{{c.type}}</td>
+            </tr>
+            <tr *ngIf="row.componentsRO.length > 0">
+              <td colspan="2"><strong>Read-Only</strong></td>
+            </tr>
+            <tr *ngFor="let c of row.componentsRO">
+              <td>{{c.name}}<span *ngIf="c.optional" class="ecs-info"> optional</span></td>
+              <td>{{c.type}}</td>
+            </tr>
+            <tr *ngIf="row.componentsRQ.length > 0">
+              <td colspan="2"><strong>Required</strong></td>
+            </tr>
+            <tr *ngFor="let c of row.componentsRQ">
+              <td>{{c.name}}<span *ngIf="c.optional" class="ecs-info"> optional</span></td>
+              <td>{{c.type}}</td>
+            </tr>
+            <tr *ngIf="row.componentsNO.length > 0">
+              <td colspan="2"><strong>Required Not</strong></td>
+            </tr>
+            <tr *ngFor="let c of row.componentsNO">
+              <td>{{c.name}}<span *ngIf="c.optional" class="ecs-info"> optional</span></td>
+              <td>{{c.type}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ml-3">
+        <strong class="d-block">Templates</strong>
+        <table class="table table-sm table-bordered table-hover">
+          <thead>
+            <th>Name</th>
+            <th>Count</th>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of row._templateNames">
+              <td>{{t}}</td>
+              <td>{{row._templates[t]}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ml-3">
+        <strong class="d-block">Events</strong>
+        <table class="table table-sm table-bordered table-hover">
+          <thead>
+            <th>Name</th>
+          </thead>
+          <tbody>
+            <tr *ngFor="let e of row.events">
+              <td>{{e}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #queriesRow let-row>
+  <div style="padding-left:35px;padding-right:35px;padding-top:20px;">
+    <div class="d-flex flex-row">
+      <div>
+        <strong class="d-block">Components</strong>
+        <table class="table table-sm table-bordered table-hover">
+          <thead>
+            <th>Name</th>
+            <th>Type</th>
+          </thead>
+          <tbody>
+            <tr *ngIf="row.componentsRW.length > 0">
+              <td colspan="2"><strong>Read-Write</strong></td>
+            </tr>
+            <tr *ngFor="let c of row.componentsRW">
+              <td>{{c.name}}<span *ngIf="c.optional" class="ecs-info"> optional</span></td>
+              <td>{{c.type}}</td>
+            </tr>
+            <tr *ngIf="row.componentsRO.length > 0">
+              <td colspan="2"><strong>Read-Only</strong></td>
+            </tr>
+            <tr *ngFor="let c of row.componentsRO">
+              <td>{{c.name}}<span *ngIf="c.optional" class="ecs-info"> optional</span></td>
+              <td>{{c.type}}</td>
+            </tr>
+            <tr *ngIf="row.componentsRQ.length > 0">
+              <td colspan="2"><strong>Required</strong></td>
+            </tr>
+            <tr *ngFor="let c of row.componentsRQ">
+              <td>{{c.name}}<span *ngIf="c.optional" class="ecs-info"> optional</span></td>
+              <td>{{c.type}}</td>
+            </tr>
+            <tr *ngIf="row.componentsNO.length > 0">
+              <td colspan="2"><strong>Required Not</strong></td>
+            </tr>
+            <tr *ngFor="let c of row.componentsNO">
+              <td>{{c.name}}<span *ngIf="c.optional" class="ecs-info"> optional</span></td>
+              <td>{{c.type}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ml-3">
+        <strong class="d-block">Templates</strong>
+        <table class="table table-sm table-bordered table-hover">
+          <thead>
+            <th>Name</th>
+            <th>Count</th>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of row._templateNames">
+              <td>{{t}}</td>
+              <td>{{row._templates[t]}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ngb-tabset>
+  <ngb-tab title="Entities">
+    <ng-template ngbTabContent>
+      <div class="contrainer-fluid mt-2">
+        <div class="row">
+          <div class="col-sm-1">
+            <button type="button" class="btn btn-sm btn-outline-primary align-middle" (click)="fetchEnities();">Fetch Enities</button>
+          </div>
+          <div class="col-sm-3">
+            <input type="text" class="form-control form-control-sm" placeholder="Type to filter by template..." (keyup)="updateFilter($event)" [value]="ecsService.filterEntities"/>
+          </div>
+          <div class="col-sm-3">
+            <input type="text" class="form-control form-control-sm" placeholder="Type to filter by eid..." (keyup)="updateFilterByEid($event)" [value]="ecsService.filterEntitiesByEid"/>
+          </div>
+        </div>
+      </div>
+
+      <ngx-datatable #ecsTable
+        class="bootstrap"
+        [rows]="entities"
+        [loadingIndicator]="false"
+        [columnMode]="'force'"
+        [headerHeight]="50"
+        [footerHeight]="50"
+        [rowHeight]="getRowHeight"
+        [scrollbarV]="true"
+        [reorderable]="false">
+
+        <ngx-datatable-row-detail #ecsDetailRow [rowHeight]="getRowDetailHeight" (toggle)="onDetailToggle($event)">
+          <ng-template let-row="row" ngx-datatable-row-detail-template>
+            <div style="padding-left:35px;padding-right:35px;" class="d-flex flex-row">
+              <div>
+                <strong class="d-block">Components ({{row.components.length}})</strong>
+                <table class="table table-sm table-bordered table-hover">
+                  <thead>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Value</th>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let attr of row.components">
+                      <td>{{attr.name}}
+                        <span *ngIf="attr.isTracked" class="ecs-info"> tracked</span>
+                        <span *ngIf="attr.isReplicated" class="ecs-info"> replicated</span>
+                        <span *ngIf="attr.isDontReplicate" class="ecs-info"> do not replicate</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary btn-in-components-row" (click)="ecsService.fetchEntityAttributes(row.eid);"><i class="fa fa-refresh" aria-hidden="true"></i></button>
+                      </td>
+                      <ng-container *ngIf="shouldOpenEditor(attr)">
+                        <td>{{attr.type}}</td>
+                        <td class="clickable" (click)="openAttr(row, attr, ecsAttribute)">[Click to see value]</td>
+                      </ng-container>
+                      <ng-container *ngIf="!shouldOpenEditor(attr)">
+                        <td>{{attr.type}}</td>
+                        <td>
+                          <div class="contrainer-fluid" *ngIf="attr._edit">
+                            <div class="row">
+                              <div [class.col-sm-9]="attr.type !== 'E3DCOLOR'" [class.col-sm-3]="attr.type === 'E3DCOLOR'">
+                                <ng-container [ngSwitch]="attr.type">
+                                  <input *ngSwitchCase="'E3DCOLOR'" autofocus class="form-control form-control-sm" [(colorPicker)]="attr._color" [style.background]="rgbaText" [cpAlphaChannel]="'always'" [cpOutputFormat]="'hex'" [cpOKButton]="true" [cpOKButtonClass]="'btn btn-sm btn-outline-primary'" [cpCancelButton]="true" [cpCancelButtonClass]="'btn btn-sm btn-outline-danger'" [style.background]="getAttrValue(attr)" (colorPickerChange)="updateValue($event, row, $event.value, attr)"/>
+                                  <div *ngSwitchCase="'bool'" class="contrainer-fluid">
+                                    <div class="row ml-0">
+                                      <div class="col-sm-1">
+                                        <input autofocus class="form-control form-control-sm form-check-input" [(checked)]="attr.value" type="checkbox" (change)="updateValue($event, row, $event.target.checked, attr)"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'float'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.r" (keyup)="updateValue($event, row, $event.target.value, attr, 'r')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'ecs::EntityId'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.eid" (keyup)="updateValue($event, row, $event.target.value, attr, 'eid')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'int'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.i" (keyup)="updateValue($event, row, $event.target.value, attr, 'i')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'Point2'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.x" (keyup)="updateValue($event, row, $event.target.value, attr, 'x')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.y" (keyup)="updateValue($event, row, $event.target.value, attr, 'y')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'Point3'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.x" (keyup)="updateValue($event, row, $event.target.value, attr, 'x')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.y" (keyup)="updateValue($event, row, $event.target.value, attr, 'y')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.z" (keyup)="updateValue($event, row, $event.target.value, attr, 'z')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'Point4'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.x" (keyup)="updateValue($event, row, $event.target.value, attr, 'x')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.y" (keyup)="updateValue($event, row, $event.target.value, attr, 'y')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.z" (keyup)="updateValue($event, row, $event.target.value, attr, 'z')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.w" (keyup)="updateValue($event, row, $event.target.value, attr, 'w')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <input *ngSwitchDefault autofocus class="form-control form-control-sm" [value]="attr.value" (change)="updateValue($event, row, $event.target.value, attr)"/>
+                                </ng-container>
+                              </div>
+                              <div class="col-sm-3">
+                                <button type="button" class="btn btn-sm btn-outline-primary" (click)="saveEdit(row, attr)">Save</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" (click)="cancelEdit(attr)">Cancel</button>
+                              </div>
+                            </div>
+                          </div>
+                          <span *ngIf="!attr._edit" (click)="startEdit(attr)" class="clickable">
+                            <ng-container [ngSwitch]="attr.type">
+                              <ng-container *ngSwitchCase="'E3DCOLOR'"><span style="border: 1px solid black;" [style.color]="getAttrValue(attr)" [style.background-color]="getAttrValue(attr)">{{getAttrValue(attr)}}</span></ng-container>
+                              <ng-container *ngSwitchDefault>{{formatValue(attr.value)}}</ng-container>
+                            </ng-container>
+                          </span>
+                        </td>
+                      </ng-container>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="ml-3">
+                <strong class="d-block">Systems ({{row._systemsFn().length}})</strong>
+                <div *ngFor="let s of row._systemsFn()" class="clickable" (click)="clickSystem(s)">
+                  {{s.name}}
+                </div>
+                <strong class="d-block">Queries ({{row._queriesFn().length}})</strong>
+                <div *ngFor="let s of row._queriesFn()" class="clickable" (click)="clickQuery(s)">
+                  {{s.name}}
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </ngx-datatable-row-detail>
+
+        <ngx-datatable-column [width]="50" [resizeable]="false" [sortable]="false" [draggable]="false" [canAutoResize]="false">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-cell-template>
+            <a href="javascript:void(0)" title="Expand/Collapse Row" (click)="toggleExpandRow(row, expanded)">
+              <i class="fa" [class.fa-chevron-right]="!expanded" [class.fa-chevron-down]="expanded" aria-hidden="true"></i>
+            </a>
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="eid" prop="eid">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span (click)="sort()" class="clickable">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="template" prop="template">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span (click)="sort()" class="clickable">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Systems count" prop="_systemsFn().length">
+          <ng-template let-column="column" ngx-datatable-header-template>
+            <span>{{column.name}}</span>
+          </ng-template>
+          <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+            <strong>Systems: </strong>{{row._systemsFn().length}}
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Queries count" prop="_queriesFn().length">
+          <ng-template let-column="column" ngx-datatable-header-template>
+            <span>{{column.name}}</span>
+          </ng-template>
+          <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+            <strong>Queries: </strong>{{row._queriesFn().length}}
+          </ng-template>
+        </ngx-datatable-column>
+      </ngx-datatable>
+    </ng-template>
+  </ngb-tab>
+  <ngb-tab title="Components">
+    <ng-template ngbTabContent>
+      <div class="contrainer-fluid mt-2">
+        <div class="row">
+          <div class="col-sm-3">
+            <input type="text" class="form-control form-control-sm" placeholder="Type to filter..." (keyup)="updateFilterComponents($event)" [value]="ecsService.filterComponents"/>
+          </div>
+        </div>
+      </div>
+
+      <ngx-datatable #ecsComponentsTable
+        class="bootstrap"
+        [rows]="components"
+        [loadingIndicator]="false"
+        [columnMode]="'force'"
+        [headerHeight]="50"
+        [footerHeight]="50"
+        [rowHeight]="50"
+        [scrollbarV]="true"
+        [reorderable]="false">
+
+        <ngx-datatable-row-detail
+          #ecsDetailRow
+          [rowHeight]="getRowDetailHeightComponent"
+          (toggle)="onDetailToggle($event)">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-row-detail-template>
+            <div style="padding-left:35px;padding-right:35px;padding-top:20px;">
+              <div class="d-flex flex-row">
+                <div>
+                  <strong class="d-block">Templates</strong>
+                  <table class="table table-sm table-bordered table-hover">
+                    <thead>
+                      <th>In Template</th>
+                      <th>From Template</th>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let t of row._templatesFn()">
+                        <td>{{templates[t.templateId].name}}</td>
+                        <td>{{templates[t.sourceTemplateId].name}}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="ml-3">
+                  <strong class="d-block">Systems</strong>
+                  <table class="table table-sm table-bordered table-hover">
+                    <thead>
+                      <th>Name</th>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let s of row._systems">
+                        <td>{{s.system.name}}<span class="ecs-info"> {{s.mode}}</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="ml-3">
+                  <strong class="d-block">Queries</strong>
+                  <table class="table table-sm table-bordered table-hover">
+                    <thead>
+                      <th>Name</th>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let q of row._queries">
+                        <td>{{q.query.name}}<span class="ecs-info"> {{q.mode}}</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </ngx-datatable-row-detail>
+
+        <ngx-datatable-column [width]="50" [resizeable]="false" [sortable]="false" [draggable]="false" [canAutoResize]="false">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-cell-template>
+            <a href="javascript:void(0)" title="Expand/Collapse Row" (click)="toggleExpandRowComponent(row)">
+              <i class="fa" [class.fa-chevron-right]="!expanded" [class.fa-chevron-down]="expanded" aria-hidden="true"></i>
+            </a>
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="name" prop="name">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="type" prop="type">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="size" prop="size">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Systems count" prop="_systems.length">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Queries count" prop="_queries.length">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+      </ngx-datatable>
+
+    </ng-template>
+  </ngb-tab>
+  <ngb-tab title="Systems">
+    <ng-template ngbTabContent>
+      <div class="contrainer-fluid mt-2">
+        <div class="row">
+          <div class="col-sm-3">
+            <input type="text" class="form-control form-control-sm" placeholder="Type to filter..." (keyup)="updateFilterSystems($event)" [value]="ecsService.filterSystems"/>
+          </div>
+        </div>
+      </div>
+
+      <ngx-datatable #ecsSystemsTable
+        class="bootstrap"
+        [rows]="systems"
+        [loadingIndicator]="false"
+        [columnMode]="'force'"
+        [headerHeight]="50"
+        [footerHeight]="50"
+        [rowHeight]="50"
+        [scrollbarV]="true"
+        [reorderable]="false">
+
+        <ngx-datatable-row-detail
+          #ecsDetailRow
+          [rowHeight]="getRowDetailHeightSystem"
+          (toggle)="onDetailToggle($event)">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-row-detail-template>
+            <ng-container *ngTemplateOutlet="systemsRow; context:{ $implicit: row }"></ng-container>
+          </ng-template>
+        </ngx-datatable-row-detail>
+
+        <ngx-datatable-column [width]="50" [resizeable]="false" [sortable]="false" [draggable]="false" [canAutoResize]="false">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-cell-template>
+            <a href="javascript:void(0)" title="Expand/Collapse Row" (click)="toggleExpandRowSystem(row)">
+              <i class="fa" [class.fa-chevron-right]="!expanded" [class.fa-chevron-down]="expanded" aria-hidden="true"></i>
+            </a>
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="name" prop="name">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+            {{value}}
+            <span class="ecs-info"> {{row.tags}}</span>
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Entities count" prop="entitiesCount">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Events count" prop="events.length">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Components count">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+            <strong>RW:</strong> {{row.componentsRW.length}}
+            <strong>RO:</strong> {{row.componentsRO.length}}
+            <strong>RQ:</strong> {{row.componentsRQ.length}}
+            <strong>NO:</strong> {{row.componentsNO.length}}
+          </ng-template>
+        </ngx-datatable-column>
+
+      </ngx-datatable>
+
+    </ng-template>
+  </ngb-tab>
+  <ngb-tab title="Queries">
+    <ng-template ngbTabContent>
+      <div class="contrainer-fluid mt-2">
+        <div class="row">
+          <div class="col-sm-3">
+            <input type="text" class="form-control form-control-sm" placeholder="Type to filter..." (keyup)="updateFilterQueries($event)" [value]="ecsService.filterQueries"/>
+          </div>
+        </div>
+      </div>
+
+      <ngx-datatable #ecsQueriesTable
+        class="bootstrap"
+        [rows]="queries"
+        [loadingIndicator]="false"
+        [columnMode]="'force'"
+        [headerHeight]="50"
+        [footerHeight]="50"
+        [rowHeight]="50"
+        [scrollbarV]="true"
+        [reorderable]="false">
+
+        <ngx-datatable-row-detail
+          #ecsDetailRow
+          [rowHeight]="getRowDetailHeightQuery"
+          (toggle)="onDetailToggle($event)">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-row-detail-template>
+            <ng-container *ngTemplateOutlet="queriesRow; context:{ $implicit: row }"></ng-container>
+          </ng-template>
+        </ngx-datatable-row-detail>
+
+        <ngx-datatable-column [width]="50" [resizeable]="false" [sortable]="false" [draggable]="false" [canAutoResize]="false">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-cell-template>
+            <a href="javascript:void(0)" title="Expand/Collapse Row" (click)="toggleExpandRowQuery(row)">
+              <i class="fa" [class.fa-chevron-right]="!expanded" [class.fa-chevron-down]="expanded" aria-hidden="true"></i>
+            </a>
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="name" prop="name">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Entities Count" prop="entitiesCount">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Components Count">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+            <strong>RW:</strong> {{row.componentsRW.length}}
+            <strong>RO:</strong> {{row.componentsRO.length}}
+            <strong>RQ:</strong> {{row.componentsRQ.length}}
+            <strong>NO:</strong> {{row.componentsNO.length}}
+          </ng-template>
+        </ngx-datatable-column>
+
+      </ngx-datatable>
+
+    </ng-template>
+  </ngb-tab>
+  <ngb-tab title="Events">
+    <ng-template ngbTabContent>
+      <div class="contrainer-fluid mt-2">
+        <div class="row">
+          <div class="col-sm-3">
+            <input type="text" class="form-control form-control-sm" placeholder="Type to filter..." (keyup)="updateFilterEvents($event)" [value]="ecsService.filterEvents"/>
+          </div>
+        </div>
+      </div>
+
+      <ngx-datatable #ecsEventsTable
+        class="bootstrap"
+        [rows]="events"
+        [loadingIndicator]="false"
+        [columnMode]="'force'"
+        [headerHeight]="50"
+        [footerHeight]="50"
+        [rowHeight]="50"
+        [scrollbarV]="true"
+        [reorderable]="false">
+
+        <ngx-datatable-row-detail
+          #ecsDetailRow
+          [rowHeight]="getRowDetailHeightEvent"
+          (toggle)="onDetailToggle($event)">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-row-detail-template>
+            <ng-container *ngTemplateOutlet="eventsRow; context:{ $implicit: row }"></ng-container>
+          </ng-template>
+        </ngx-datatable-row-detail>
+
+        <ngx-datatable-column [width]="50" [resizeable]="false" [sortable]="false" [draggable]="false" [canAutoResize]="false">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-cell-template>
+            <a href="javascript:void(0)" title="Expand/Collapse Row" (click)="toggleExpandRowEvent(row)">
+              <i class="fa" [class.fa-chevron-right]="!expanded" [class.fa-chevron-down]="expanded" aria-hidden="true"></i>
+            </a>
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="name" prop="name">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+            {{value}}
+            <span *ngIf="row.isUnicast" class="ecs-info"> unicast</span>
+            <span *ngIf="row.isBroadcast" class="ecs-info"> broadcast</span>
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="size" prop="size">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Systems count" prop="_systems.length">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+      </ngx-datatable>
+
+    </ng-template>
+  </ngb-tab>
+  <ngb-tab title="Templates">
+    <ng-template ngbTabContent>
+      <div class="contrainer-fluid mt-2">
+        <div class="row">
+          <div class="col-sm-3">
+            <input type="text" class="form-control form-control-sm" placeholder="Type to filter..." (keyup)="updateFilterTemplates($event)" [value]="ecsService.filterTemplates"/>
+          </div>
+        </div>
+      </div>
+
+      <ngx-datatable #ecsTemplatesTable
+        class="bootstrap"
+        [rows]="templates"
+        [loadingIndicator]="false"
+        [columnMode]="'force'"
+        [headerHeight]="50"
+        [footerHeight]="50"
+        [rowHeight]="50"
+        [scrollbarV]="true"
+        [reorderable]="false">
+
+        <ngx-datatable-row-detail
+          #ecsDetailRow
+          [rowHeight]="getRowDetailHeightTemplate"
+          (toggle)="onDetailToggle($event)">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-row-detail-template>
+            <div style="padding-left:35px;padding-right:35px;">
+              <div class="d-flex flex-row">
+                <div>
+                  <strong class="d-block">Components</strong>
+                  <table class="table table-sm table-bordered table-hover">
+                    <thead>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Value</th>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colspan="3"><strong>{{row.name}}</strong></td>
+                      </tr>
+                      <tr *ngFor="let attr of row.components">
+                        <td>{{attr.name}}<span *ngIf="attr.isTracked" class="ecs-info"> tracked</span><span *ngIf="attr.isReplicated" class="ecs-info"> replicated</span></td>
+                        <td>{{attr.type}}</td>
+                        <ng-container *ngIf="shouldOpenEditor(attr); else elseBlock;">
+                          <td (click)="openAttr(row, attr, ecsAttribute)" class="clickable">[Click to see value]</td>
+                        </ng-container>
+                        <ng-template #elseBlock>
+                          <td>
+                            <ng-container [ngSwitch]="attr.type">
+                              <ng-container *ngSwitchCase="'E3DCOLOR'">
+                                <span style="border: 1px solid black;" [style.color]="getAttrValue(attr)" [style.background-color]="getAttrValue(attr)">{{getAttrValue(attr)}}</span>
+                                {{formatValue(attr.value)}}
+                              </ng-container>
+                              <ng-container *ngSwitchDefault>{{formatValue(attr.value)}}</ng-container>
+                            </ng-container>
+                          </td>
+                        </ng-template>
+                      </tr>
+
+                      <ng-template #recursiveRow let-parents>
+                        <ng-container *ngFor="let parent of parents">
+                          <tr>
+                            <td colspan="2"><strong>{{parent.name}}</strong></td>
+                          </tr>
+                          <tr *ngFor="let parentAttr of parent._template.components">
+                            <td>{{parentAttr.name}}<span *ngIf="parentAttr.isTracked" class="ecs-info"> tracked</span><span *ngIf="parentAttr.isReplicated" class="ecs-info"> replicated</span></td>
+                            <td>{{parentAttr.type}}</td>
+                            <ng-container *ngIf="shouldOpenEditor(parentAttr); else elseBlock;">
+                              <td (click)="openAttr(row, parentAttr, ecsAttribute)" class="clickable">[Click to see value]</td>
+                            </ng-container>
+                            <ng-template #elseBlock>
+                              <td>
+                                <ng-container [ngSwitch]="parentAttr.type">
+                                  <ng-container *ngSwitchCase="'E3DCOLOR'">
+                                    <span style="border: 1px solid black;" [style.color]="getAttrValue(parentAttr)" [style.background-color]="getAttrValue(parentAttr)">{{getAttrValue(parentAttr)}}</span>
+                                    {{formatValue(parentAttr.value)}}
+                                  </ng-container>
+                                  <ng-container *ngSwitchDefault>{{formatValue(parentAttr.value)}}</ng-container>
+                                </ng-container>
+                              </td>
+                            </ng-template>
+                          </tr>
+                          <ng-container *ngTemplateOutlet="recursiveRow; context:{ $implicit: parent._template.parents }"></ng-container>
+                        </ng-container>
+                      </ng-template>
+                      <ng-container *ngTemplateOutlet="recursiveRow; context:{ $implicit: row.parents }"></ng-container>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="ml-3">
+                  <strong class="d-block">Systems ({{row._systems.length}})</strong>
+                  <div *ngFor="let s of row._systems" class="clickable" (click)="clickSystem(s)">
+                    {{s.name}}
+                  </div>
+                  <strong class="d-block">Queries ({{row._queries.length}})</strong>
+                  <div *ngFor="let s of row._queries" class="clickable" (click)="clickQuery(s)">
+                    {{s.name}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </ngx-datatable-row-detail>
+
+        <ngx-datatable-column [width]="50" [resizeable]="false" [sortable]="false" [draggable]="false" [canAutoResize]="false">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-cell-template>
+            <a href="javascript:void(0)" title="Expand/Collapse Row" (click)="toggleExpandRowTemplate(row)">
+              <i class="fa" [class.fa-chevron-right]="!expanded" [class.fa-chevron-down]="expanded" aria-hidden="true"></i>
+            </a>
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="name" prop="name">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Components count" prop="_componentsCount">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+            <strong>Components: </strong>{{row._componentsCount}}
+            <strong>Tracked: </strong>{{row._trackedCount}}
+            <strong>Replicated: </strong>{{row._replicatedCount}}
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Systems count" prop="_systems.length">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+            <strong>Systems: </strong>{{row._systems.length}}
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="Queries count" prop="_queries.length">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span class="clickable" (click)="sort()">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-row="row" let-value="value" ngx-datatable-cell-template>
+            <strong>Queries: </strong>{{row._queries.length}}
+          </ng-template>
+        </ngx-datatable-column>
+
+      </ngx-datatable>
+
+    </ng-template>
+  </ngb-tab>
+  <ngb-tab title="Dynamic Query">
+    <ng-template ngbTabContent>
+      <div class="contrainer-fluid mt-2">
+        <div class="row">
+          <div class="col-sm-3">
+            <button type="button" class="btn btn-sm btn-outline-primary align-middle" (click)="performDynamicQuery()">Perform Query</button>
+            <button type="button" class="btn btn-sm btn-outline-primary align-middle" (click)="open(ecsDynamicQuery)">Edit Query</button>
+          </div>
+        </div>
+      </div>
+
+      <ngx-datatable #ecsDynamicQueryTable
+        class="bootstrap"
+        [rows]="dynamicQueryEntities"
+        [loadingIndicator]="false"
+        [columnMode]="'force'"
+        [headerHeight]="50"
+        [footerHeight]="50"
+        [rowHeight]="getRowHeight"
+        [scrollbarV]="true"
+        [reorderable]="false">
+
+        <ngx-datatable-row-detail #ecsDetailRow [rowHeight]="getRowDetailHeight" (toggle)="onDetailToggle($event)">
+          <ng-template let-row="row" ngx-datatable-row-detail-template>
+            <div style="padding-left:35px;padding-right:35px;" class="d-flex flex-row">
+              <div>
+                <strong class="d-block">Components ({{row.components.length}})</strong>
+                <table class="table table-sm table-bordered table-hover">
+                  <thead>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Value</th>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let attr of row.components"
+                      [class.clickable]="shouldOpenEditor(attr)"
+                      (click)="openAttr(row, attr, ecsAttribute)">
+                      <td>{{attr.name}}
+                        <span *ngIf="attr.isTracked" class="ecs-info"> tracked</span>
+                        <span *ngIf="attr.isReplicated" class="ecs-info"> replicated</span>
+                        <span *ngIf="attr.isDontReplicate" class="ecs-info"> do not replicate</span>
+                      </td>
+                      <ng-container *ngIf="shouldOpenEditor(attr)">
+                        <td>{{attr.type}}</td>
+                        <td>[Click to see value]</td>
+                      </ng-container>
+                      <ng-container *ngIf="!shouldOpenEditor(attr)">
+                        <td>{{attr.type}}</td>
+                        <td>
+                          <div class="contrainer-fluid" *ngIf="attr._edit">
+                            <div class="row">
+                              <div [class.col-sm-9]="attr.type !== 'E3DCOLOR'" [class.col-sm-3]="attr.type === 'E3DCOLOR'">
+                                <ng-container [ngSwitch]="attr.type">
+                                  <input *ngSwitchCase="'E3DCOLOR'" autofocus class="form-control form-control-sm" [(colorPicker)]="attr._color" [style.background]="rgbaText" [cpAlphaChannel]="'always'" [cpOutputFormat]="'hex'" [cpOKButton]="true" [cpOKButtonClass]="'btn btn-sm btn-outline-primary'" [cpCancelButton]="true" [cpCancelButtonClass]="'btn btn-sm btn-outline-danger'" [style.background]="getAttrValue(attr)" (colorPickerChange)="updateValue($event, row, $event.value, attr)"/>
+                                  <div *ngSwitchCase="'bool'" class="contrainer-fluid">
+                                    <div class="row ml-0">
+                                      <div class="col-sm-1">
+                                        <input autofocus class="form-control form-control-sm form-check-input" [(checked)]="attr.value" type="checkbox" (change)="updateValue($event, row, $event.target.checked, attr)"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'float'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.r" (keyup)="updateValue($event, row, $event.target.value, attr, 'r')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'ecs::EntityId'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.eid" (keyup)="updateValue($event, row, $event.target.value, attr, 'eid')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'int'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.i" (keyup)="updateValue($event, row, $event.target.value, attr, 'i')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'Point2'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.x" (keyup)="updateValue($event, row, $event.target.value, attr, 'x')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.y" (keyup)="updateValue($event, row, $event.target.value, attr, 'y')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'Point3'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.x" (keyup)="updateValue($event, row, $event.target.value, attr, 'x')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.y" (keyup)="updateValue($event, row, $event.target.value, attr, 'y')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.z" (keyup)="updateValue($event, row, $event.target.value, attr, 'z')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div *ngSwitchCase="'Point4'" class="contrainer-fluid">
+                                    <div class="row m-0">
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.x" (keyup)="updateValue($event, row, $event.target.value, attr, 'x')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.y" (keyup)="updateValue($event, row, $event.target.value, attr, 'y')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.z" (keyup)="updateValue($event, row, $event.target.value, attr, 'z')"/>
+                                      </div>
+                                      <div class="col-sm-2 p-0">
+                                        <input autofocus class="form-control form-control-sm" [(value)]="attr.value.w" (keyup)="updateValue($event, row, $event.target.value, attr, 'w')"/>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <input *ngSwitchDefault autofocus class="form-control form-control-sm" [value]="attr.value" (change)="updateValue($event, row, $event.target.value, attr)"/>
+                                </ng-container>
+                              </div>
+                              <div class="col-sm-3">
+                                <button type="button" class="btn btn-sm btn-outline-primary" (click)="saveEdit(row, attr)">Save</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" (click)="cancelEdit(attr)">Cancel</button>
+                              </div>
+                            </div>
+                          </div>
+                          <span *ngIf="!attr._edit" (click)="startEdit(attr)" class="clickable">
+                            <ng-container [ngSwitch]="attr.type">
+                              <ng-container *ngSwitchCase="'E3DCOLOR'"><span style="border: 1px solid black;" [style.color]="getAttrValue(attr)" [style.background-color]="getAttrValue(attr)">{{getAttrValue(attr)}}</span></ng-container>
+                              <ng-container *ngSwitchDefault>{{formatValue(attr.value)}}</ng-container>
+                            </ng-container>
+                          </span>
+                        </td>
+                      </ng-container>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </ng-template>
+        </ngx-datatable-row-detail>
+
+        <ngx-datatable-column [width]="50" [resizeable]="false" [sortable]="false" [draggable]="false" [canAutoResize]="false">
+          <ng-template let-row="row" let-expanded="expanded" ngx-datatable-cell-template>
+            <a href="javascript:void(0)" title="Expand/Collapse Row" (click)="toggleExpandRowDynamicQuery(row, expanded)">
+              <i class="fa" [class.fa-chevron-right]="!expanded" [class.fa-chevron-down]="expanded" aria-hidden="true"></i>
+            </a>
+          </ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="eid" prop="eid">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span (click)="sort()" class="clickable">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column name="template" prop="template">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span (click)="sort()" class="clickable">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+
+        <ngx-datatable-column *ngFor="let c of dynamicQueryColumns;" name="{{c}}" prop="_{{c}}">
+          <ng-template let-column="column" let-sort="sortFn" ngx-datatable-header-template>
+            <span (click)="sort()" class="clickable">{{column.name}}</span>
+          </ng-template>
+          <ng-template let-value="value" ngx-datatable-cell-template>{{value}}</ng-template>
+        </ngx-datatable-column>
+      </ngx-datatable>
+
+    </ng-template>
+  </ngb-tab>
+</ngb-tabset>

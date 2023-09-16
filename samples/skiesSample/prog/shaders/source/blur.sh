@@ -1,0 +1,42 @@
+include "viewVecVS.sh"
+include "shader_global.sh"
+
+texture blur_source;
+float4 blur_source_size;
+
+macro TEST_BLUR(stage)
+  (stage) {
+    blur_source@smp2d = blur_source;
+    blur_source_size@f4 = blur_source_size;
+  }
+
+  hlsl(stage) {
+    float4 get_blurred(float2 uv)
+    {
+      float4 acc = 0;
+      UNROLL for (int y = -1; y <= 1; y++)
+        UNROLL for (int x = -1; x <= 1; x++)
+          acc += tex2Dlod(blur_source, float4(uv + float2(x, y) * blur_source_size.zw, 0, 0));
+      acc /= 9;
+      return acc;
+    }
+  }
+endmacro
+
+shader blur_tex
+{
+  cull_mode  = none;
+  z_test = false;
+  z_write = false;
+
+  POSTFX_VS_TEXCOORD(1, uv)
+  TEST_BLUR(ps)
+
+  hlsl(ps) {
+    float4 test_blur_ps(VsOutput i) : SV_Target
+    {
+      return get_blurred(i.uv);
+    }
+  }
+  compile("target_ps", "test_blur_ps");
+}

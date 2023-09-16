@@ -1,0 +1,24 @@
+include "hardware_defines.sh"
+include "skies_rainmap.sh"
+include "writeToTex.sh"
+
+int trace_rays_count;
+
+shader query_rainmap_cs
+{
+  GET_SKIES_RAINMAP(cs)
+  ENABLE_ASSERT(cs)
+  (cs) { trace_rays_count@f1 = (trace_rays_count); }
+  hlsl(cs) {
+    float4 rays[32]:register(c8);
+    RWStructuredBuffer<float> output : register(u0);
+    [numthreads(32, 1, 1)]
+    void cs_main(uint dtid : SV_DispatchThreadID) {
+      if (dtid >= uint(trace_rays_count))
+        return;
+      float4 queryAt = rays[dtid];
+      structuredBufferAt(output, dtid) = getRainmapAt(queryAt.y*0.001, queryAt.xyz);
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}

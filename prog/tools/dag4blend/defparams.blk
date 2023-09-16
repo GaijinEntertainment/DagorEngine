@@ -1,0 +1,234 @@
+Render{
+  parameter{
+    type:t="bool"
+    renderable:b=yes
+    caption:t="Renderable"
+    max_command:t="renderable"
+  }
+
+  parameter{ 
+    type:t="bool"
+    cast_shadows:b=yes
+    caption:t="Cast shadows"
+    max_command:t="cast_shadows"
+  }
+  parameter{
+    type:t="combo"
+    normals:t="disable"
+    caption:t="Normals:"
+    item:t="world"
+    item:t="local"
+    item:t="spherical"
+    item:t="disable"
+  }
+
+  parameter{
+    type:t="p3"
+    dir:p3=0, 0, 0 
+    caption:t="Direction:"
+  }
+/*
+  parameter{
+    type:t="int"
+    unwrapScheme:i=0
+    caption:t="use graphite"
+    prop_name:t="useGraphite"
+  }
+*/
+/*
+  parameter{
+    type:t="real"
+    visibility_range:r=100
+    caption:t="Visibility range:"
+    cfg_group:t="vis"
+    cfg_name:t="range"
+    prop_name:t="visibilityRange"
+  }
+
+  parameter{
+    type:t="bool"
+    automatic_visrange:b=yes
+    caption:t="Automatic visibility range"
+  }
+*/
+}
+
+/*
+Light{
+  parameter{
+    type:t="combo"
+    lighting:t="default"
+    caption:t="Light:"
+    item:t="default"
+    item:t="none"
+    item:t="ltm"
+    item:t="vltm"
+  }
+
+  parameter{
+    type:t="real"
+    lt_mul:r=1
+    caption:t="Lightmap multiplier:"
+  }
+
+  parameter{
+    type:t="real"
+    vlt_mul:r=1
+    caption:t="Vltmap multiplier:"
+  }
+
+  parameter{
+    type:t="combo"
+    vss_use:t="force def"
+    caption:t="Vss use:"
+    cfg_group:t="light"
+    item:t="force def"
+    item:t="use as is"
+  }
+*/
+//}
+
+Interactive{
+  parameter{
+    type:t = "bool"
+    collidable:b=no
+    caption:t="Collidable"
+//    max_command:t="receive_shadows"
+    cfg_group:t = "interactive"
+  }
+
+  parameter{
+    type:t="combo"
+    collision:t="box"
+    caption:t="Collision:"
+    item:t="sphere"
+    item:t="mesh"
+    item:t="capsule"
+    item:t="box"
+    item:t="convex"
+  }
+  parameter{
+    type:t = "string"
+    phmat:t = ""
+    caption:t = "Phys material"
+    cfg_group:t = "phmat"
+  }
+  parameter{
+    type:t="combo"
+    massType:t="none"
+    caption:t="MassType:"
+    item:t="none"
+    item:t="sphere"
+    item:t="mesh"
+    item:t="capsule"
+    item:t="box"
+  }
+  parameter{
+    type:t="bool"
+    preferMass:b=yes
+    caption:t="Prefer mass over density"
+  }
+  parameter{
+    type:t="real"
+    mass:r=-1
+    caption:t="Mass:"
+  }
+  parameter{
+    type:t="real"
+    density:r=-1
+    caption:t="Density:"
+  }
+  parameter{
+    type:t = "bool"
+    animated_node:b=no 
+    caption:t="Animated node"
+//    cfg_group:t = "link"
+//    cfg_name:t = "link"
+  } 
+/*  parameter{
+    type:t = "string"
+    phmat_force:t = ""
+    caption:t = "Phys material force"
+    cfg_group:t = "phmat"
+  }
+*/
+}
+
+General{
+  /*parameter{
+    type:t ="string"
+    top_lod:t = "" 
+    caption:t = "Top lod name:"
+    cfg_group:t = "general"
+    cfg_name:t="top_lod"
+  }
+
+  parameter{
+    type:t = "real"
+    lod_range:r = 0
+    caption:t = "Lod range:"
+    cfg_group:t = "general"
+    cfg_name:t="lod_range"
+  }
+
+  parameter{
+    type:t = "bool"
+    not_mix_lods:b = no
+    caption:t ="Do not mix lods"
+  }
+
+  parameter{
+    type:t = "bool"
+    billboard:b = no
+    caption:t ="Billboard"
+    cfg_group:t = "general"
+  }
+  */
+
+  parameter{
+    type:t = "bool"
+    occluder:b = no
+    caption:t ="Occluder"
+    cfg_group:t = "general"
+  }
+
+}
+
+
+Apex{
+
+  parameter{
+    type:t="bool"
+    apex_destructible:b=no
+    caption:t="Apex destructible"
+    cfg_group:t="apex" 
+  }
+
+  parameter{
+    type:t="real"
+    apex_density:r=20000
+    caption:t="Apex density:"
+    cfg_group:t="apex" 
+  }
+
+  parameter{
+    type:t="int"
+    apex_num_chunks:i=30
+    caption:t="Num chunks:"
+    cfg_group:t="apex" 
+  }
+
+  parameter{
+    type:t = "string"
+    apex_interior_material:t = "broken_walls"
+    caption:t = "Interior material"
+    cfg_group:t="apex" 
+  }
+
+  parameter{
+    type:t="bool"
+    apex_gradually_destructible:b=no
+    caption:t="Destroy gradually"
+    cfg_group:t="apex" 
+  }
+}

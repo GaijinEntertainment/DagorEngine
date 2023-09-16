@@ -1,0 +1,43 @@
+﻿<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">
+  <Rule Name="ConfigurationGeneral" DisplayName="General" Order="1" PageTemplate="generic">
+    <Rule.Categories>
+      <Category Name="General" DisplayName="General"/>
+    </Rule.Categories>
+    <Rule.DataSource>
+      <DataSource Persistence="ProjectFile" Label="Configuration"/>
+    </Rule.DataSource>
+    <StringProperty Name="TargetName" DisplayName="Target Name" Description="Specifies a file name that this project will generate." ReadOnly="true" F1Keyword="VC.Project.VCConfiguration.TargetName" Default="$(ProjectName)">
+      <StringProperty.DataSource>
+        <DataSource Persistence="ProjectFile"/>
+      </StringProperty.DataSource>
+    </StringProperty>
+
+    <StringProperty Name="PlatformToolset" Visible="False"/>
+  </Rule>
+
+  <Rule Name="DebuggerGeneralProperties" DisplayName="Debugger General Properties" Order="3">
+    <Rule.DataSource>
+      <DataSource Persistence="UserFile"/>
+    </Rule.DataSource>
+    <StringProperty Name="SymbolsPath" DisplayName="Symbol Search Path" Description="The search path used by the debugger to locate symbols."/>
+    <StringProperty Name="DebuggerFlavor" Visible="false" Description="The debug rule selected as the active debugger."/>
+  </Rule>
+
+  <Rule Name="WindowsLocalDebugger" DisplayName="Local Windows Debugger" PageTemplate="debugger">
+    <Rule.DataSource>
+      <DataSource Persistence="UserFile"/>
+    </Rule.DataSource>
+    <StringProperty Name="LocalDebuggerCommand" DisplayName="Command" Description="The debug command to execute." F1Keyword="VC.Project.IVCLocalDebugPageObject.Command" ReadOnly="true"/>
+    <EnumProperty Name="GameType" DisplayName="Game" Description="Selected game (SkyQuake or daNetGames)">
+      <EnumValue Name="SkyQuake" DisplayName="SkyQuake" />
+      <EnumValue Name="daNetGames" DisplayName="daNetGames" />
+    </EnumProperty>
+    <StringProperty Name="LocalDebuggerWorkingDirectory" DisplayName="Working Directory" Description="The application's working directory. By default, the directory containing the project file." Subtype="folder" F1Keyword="VC.Project.IVCLocalDebugPageObject.WorkingDirectory" ReadOnly="true" Visible="false"/>
+    <StringProperty Name="LocalDebuggerCommandArguments" DisplayName="Command Arguments" Description="The command line arguments to pass to the application." F1Keyword="VC.Project.IVCLocalDebugPageObject.CommandArguments" ReadOnly="false" Visible="true">
+      <Argument Property="LocalDebuggerCommand"/>
+    </StringProperty>
+    <BoolProperty Name="LocalDebuggerAttach" DisplayName="Attach" Description="Specifies whether the debugger should attempt to attach to an existing process when debugging starts." F1Keyword="VC.Project.IVCLocalDebugPageObject.Attach"/>
+    <StringListProperty Name="LocalDebuggerEnvironment" DisplayName="Environment" Description="Specifies the environment for the debugee, or variables to merge with existing environment." Separator="&#xA;" F1Keyword="VC.Project.IVCLocalDebugPageObject.Environment"/>
+    <BoolProperty Name="LocalDebuggerMergeEnvironment" DisplayName="Merge Environment" Description="Merge specified environment variables with existing environment." F1Keyword="VC.Project.IVCLocalDebugPageObject.EnvironmentMerge"/>
+  </Rule>
+</ProjectSchemaDefinitions>

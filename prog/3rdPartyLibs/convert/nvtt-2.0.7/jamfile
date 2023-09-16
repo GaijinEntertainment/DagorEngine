@@ -1,0 +1,67 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/convert/nvtt-2.0.7 ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/convert/nvtt-2.0.7.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/convert/nvtt-2.0.7
+  $(Root)/prog/3rdPartyLibs/image/jpeg-6b
+;
+
+
+Sources =
+  nvcore/debug.cpp
+  nvcore/library.cpp
+  nvcore/strLib.cpp
+  nvcore/textReader.cpp
+  nvcore/textWriter.cpp
+
+  nvimage/blockDXT.cpp
+  nvimage/colorBlock.cpp
+  nvimage/directDrawSurface.cpp
+  nvimage/filter.cpp
+  nvimage/floatImage.cpp
+  nvimage/image.cpp
+  nvimage/imageIO.cpp
+  nvimage/normalMap.cpp
+  nvimage/quantize.cpp
+
+  nvmath/plane.cpp
+
+  nvtt/compressDXT.cpp
+  nvtt/compressionOptions.cpp
+  nvtt/compressor.cpp
+  nvtt/compressRGB.cpp
+  nvtt/inputOptions.cpp
+  nvtt/nvtt.cpp
+  nvtt/nvtt_wrapper.cpp
+  nvtt/optimalCompressDXT.cpp
+  nvtt/outputOptions.cpp
+  nvtt/quickCompressDXT.cpp
+
+  nvtt/cuda/cudaCompressDXT.cpp
+  nvtt/cuda/cudaUtils.cpp
+
+  nvtt/squish/clusterfit.cpp
+  nvtt/squish/colourblock.cpp
+  nvtt/squish/colourfit.cpp
+  nvtt/squish/colourset.cpp
+  nvtt/squish/fastclusterfit.cpp
+  nvtt/squish/maths.cpp
+  nvtt/squish/weightedclusterfit.cpp
+  nvtt/squish/singlecolourfit.cpp
+  nvtt/squish/squish.cpp
+  nvtt/squish/alpha.cpp
+  nvtt/squish/rangefit.cpp
+;
+
+CPPopt =
+  -DNVTT_EXPORTS -D__SSE2__ -D__SSE__ -D__MMX__
+;
+if $(Platform) in win32 win64 { CPPopt += -DWIN32 -D_WINDOWS -D_USRDLL ; }
+
+include $(Root)/prog/_jBuild/build.jam ;
