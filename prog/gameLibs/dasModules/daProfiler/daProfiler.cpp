@@ -21,7 +21,7 @@ struct DaProfilerSimNodeDebugInstrumentFunction : SimNodeDebug_InstrumentFunctio
   DaProfilerSimNodeDebugInstrumentFunction(const das::LineInfo &at, das::SimFunction *simF, int64_t mnh, SimNode *se, uint64_t ud) :
     SimNodeDebug_InstrumentFunction(at, simF, mnh, se, ud)
   {}
-  virtual vec4f DAS_EVAL_ABI eval(das::Context &context) override
+  DAS_EVAL_ABI virtual vec4f eval(das::Context &context) override
   {
     vec4f res;
     DAS_PROFILE_NODE

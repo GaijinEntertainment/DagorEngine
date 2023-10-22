@@ -15,7 +15,7 @@ namespace
 class NewCompositeNamePickerDialog : public CDialogWindow
 {
 public:
-  NewCompositeNamePickerDialog(void *phandle, unsigned w, unsigned h) : CDialogWindow(phandle, w, h, "Create composit")
+  NewCompositeNamePickerDialog(void *phandle, hdpi::Px w, hdpi::Px h) : CDialogWindow(phandle, w, h, "Create composit")
   {
     mPropertiesPanel->createEditBox(NAME_CONTROL_ID, "Name");
     mPropertiesPanel->createStatic(ERROR_LINE1_CONTROL_ID, "");
@@ -90,7 +90,8 @@ private:
 
 String CompositeAssetCreator::pickName()
 {
-  eastl::unique_ptr<NewCompositeNamePickerDialog> dialog = eastl::make_unique<NewCompositeNamePickerDialog>(nullptr, 400, 180);
+  eastl::unique_ptr<NewCompositeNamePickerDialog> dialog =
+    eastl::make_unique<NewCompositeNamePickerDialog>(nullptr, hdpi::_pxScaled(400), hdpi::_pxScaled(180));
   if (dialog->showDialog() != DIALOG_ID_OK)
     return String();
 

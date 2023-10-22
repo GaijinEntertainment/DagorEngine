@@ -588,11 +588,19 @@ namespace das {
                 program->error("can't ascend type which is too big", "", "",
                     expr->at, CompilationError::invalid_new_type);
             }
+            if ( !expr->subexpr->type->getSizeOf64() ) {
+                program->error("can't ascend (to heap) type of size 0",  "", "",
+                    expr->at, CompilationError::invalid_new_type);
+            }
         }
         virtual void preVisit ( ExprNew * expr ) override {
             Visitor::preVisit(expr);
             if ( expr->typeexpr->getSizeOf64()>0x7fffffff ) {
                 program->error("can't new to a type that is too big", "", "",
+                    expr->at, CompilationError::invalid_new_type);
+            }
+            if ( !expr->typeexpr->getSizeOf64() ) {
+                program->error("can't new (to heap) type of size 0",  "", "",
                     expr->at, CompilationError::invalid_new_type);
             }
         }
@@ -759,6 +767,7 @@ namespace das {
     // logging
         "log",                          Type::tBool,
         "log_optimization_passes",      Type::tBool,
+        "log_optimization",             Type::tBool,
         "log_stack",                    Type::tBool,
         "log_init",                     Type::tBool,
         "log_symbol_use",               Type::tBool,

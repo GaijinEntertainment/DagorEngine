@@ -70,7 +70,7 @@ struct FormatterCtx
     spaceCounter: int    // space characters before current token
     srcLine: int         // current line in source
     curColumn: int       // current column in source
-    curLineIndex: int    // index of the begining of new line in data[]
+    curLineIndex: int    // index of the beginning of new line in data[]
     debugMode: bool = false
     indenting: int = 0   // convert tab to N spaces
     insideOptions: bool = false

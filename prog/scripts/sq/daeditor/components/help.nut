@@ -44,7 +44,7 @@ F1 - Help
 "
 
 
-let help = @(showHelp) function help(){
+let help = @(showHelp) function(){
   let btnClose = {
     hplace = ALIGN_RIGHT
     size = SIZE_TO_CONTENT

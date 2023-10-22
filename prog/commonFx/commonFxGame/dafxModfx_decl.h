@@ -1228,6 +1228,27 @@ public:
   }
 };
 
+class FxRenderVolfogInjection
+{
+public:
+  bool enabled;
+  real weight_rgb;
+  real weight_alpha;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION(ptr, len, 1);
+
+    enabled = readType<int>(ptr, len);
+    weight_rgb = readType<real>(ptr, len);
+    weight_alpha = readType<real>(ptr, len);
+  }
+};
+
 class FxRenderShader
 {
 public:

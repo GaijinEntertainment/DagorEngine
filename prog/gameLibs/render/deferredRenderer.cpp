@@ -12,6 +12,7 @@
 #include <render/debugGbuffer.h>
 #include <render/deferredRenderer.h>
 #include <render/resolve_gbuffer_compute_inc.hlsli>
+#include <render/viewVecs.h>
 
 CONSOLE_BOOL_VAL("render", debug_tiled_resolve, false);
 CONSOLE_BOOL_VAL("render", disable_resolve_classification, false);
@@ -54,17 +55,14 @@ ShadingResolver::ShadingResolver(const char *resolve_pshader_name, const char *r
 
 ShadingResolver::~ShadingResolver() = default;
 
-void set_viewvecs_to_shader();
-void set_inv_globtm_to_shader(bool optional);
-
-void ShadingResolver::resolve(BaseTexture *resolveTarget, BaseTexture *depth_bounds_tex, ClearTarget clear_target,
-  const TMatrix4 &gbufferTm, const RectInt *resolve_area)
+void ShadingResolver::resolve(BaseTexture *resolveTarget, const TMatrix &view_tm, const TMatrix4 &proj_tm,
+  BaseTexture *depth_bounds_tex, ClearTarget clear_target, const TMatrix4 &gbufferTm, const RectInt *resolve_area)
 {
   if (!resolveShading && !resolveShadingCS)
     return;
 
-  set_inv_globtm_to_shader(true);
-  set_viewvecs_to_shader();
+  set_inv_globtm_to_shader(view_tm, proj_tm, true);
+  set_viewvecs_to_shader(view_tm, proj_tm);
   ShaderGlobal::set_float4x4(gbuffertmVarId, gbufferTm);
 
   // Save current state
@@ -162,7 +160,7 @@ void ShadingResolver::resolve(BaseTexture *resolveTarget, BaseTexture *depth_bou
     SCOPE_RENDER_TARGET;
     d3d::set_render_target(resolveTarget, 0);
     if (depth_bounds_tex)
-      d3d::set_depth(depth_bounds_tex, true);
+      d3d::set_depth(depth_bounds_tex, DepthAccess::SampledRO);
     if (resolve_area)
     {
       d3d::setview(resolve_area->left, resolve_area->top, resolve_area->right - resolve_area->left,
@@ -268,11 +266,11 @@ void DeferredRenderTarget::resourceBarrier(ResourceBarrier barrier)
     d3d::resource_barrier({ds, barrier, 0, 0});
 }
 
-void DeferredRenderTarget::resolve(BaseTexture *resolveTarget, BaseTexture *depth_bounds_tex,
-  ShadingResolver::ClearTarget clear_target, const TMatrix4 &gbufferTm, const RectInt *resolve_area)
+void DeferredRenderTarget::resolve(BaseTexture *resolveTarget, const TMatrix &view_tm, const TMatrix4 &proj_tm,
+  BaseTexture *depth_bounds_tex, ShadingResolver::ClearTarget clear_target, const TMatrix4 &gbufferTm, const RectInt *resolve_area)
 {
   renderTargets.setVar();
-  shadingResolver.resolve(resolveTarget, depth_bounds_tex, clear_target, gbufferTm, resolve_area);
+  shadingResolver.resolve(resolveTarget, view_tm, proj_tm, depth_bounds_tex, clear_target, gbufferTm, resolve_area);
 }
 
 void DeferredRenderTarget::debugRender(int mode)

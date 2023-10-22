@@ -3,20 +3,20 @@ let {editorIsActive, editorFreeCam, entitiesListUpdateTrigger, showTemplateSelec
      handleEntityCreated, handleEntityRemoved, handleEntityMoved,
      de4editMode, de4workMode} = require("state.nut")
 
-let daEditor4 = require("daEditor4")
+let daEditor = require("daEditorEmbedded")
 let entity_editor = require("entity_editor")
 
 let eventbus = require("eventbus")
 
-let {DE4_MODE_POINT_ACTION, isFreeCamMode=null} = daEditor4
+let {DE4_MODE_POINT_ACTION, isFreeCamMode=null} = daEditor
 let {DE4_MODE_CREATE_ENTITY, get_point_action_op} = entity_editor
 
 
-eventbus.subscribe("daEditor4.onDe4SetWorkMode", function onDe4SetWorkMode(mode) {
+eventbus.subscribe("daEditorEmbedded.onDeSetWorkMode", function onDeSetWorkMode(mode) {
   de4workMode(mode)
 })
 
-eventbus.subscribe("daEditor4.onDe4SetEditMode", function onDe4SetEditMode(mode) {
+eventbus.subscribe("daEditorEmbedded.onDeSetEditMode", function onDeSetEditMode(mode) {
   de4editMode(mode)
   showTemplateSelect(mode == DE4_MODE_CREATE_ENTITY)
 

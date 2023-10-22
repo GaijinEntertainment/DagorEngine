@@ -110,27 +110,33 @@ struct MetricFormat
 // Common functions
 // Simple syntax when send once metric tag, using dag::ConstSpan(&tag, 1) inside
 void profile(const char *metric, float time_ms, const MetricTag &tag = {nullptr, nullptr});
-void gauge(const char *metric, float value, const MetricTag &tag = {nullptr, nullptr});
-void gauge_inc(const char *metric, float value, const MetricTag &tag = {nullptr, nullptr});
-void gauge_dec(const char *metric, float value, const MetricTag &tag = {nullptr, nullptr});
+void profile(const char *metric, long time_ms, const MetricTag &tag = {nullptr, nullptr});
+void gauge(const char *metric, long value, const MetricTag &tag = {nullptr, nullptr});
+void gauge_inc(const char *metric, long value, const MetricTag &tag = {nullptr, nullptr});
+void gauge_dec(const char *metric, long value, const MetricTag &tag = {nullptr, nullptr});
 void counter(const char *metric, long value = 1, const MetricTag &tag = {nullptr, nullptr});
 void histogram(const char *metric, float value, const MetricTag &tag = {nullptr, nullptr});
+void histogram(const char *metric, long value, const MetricTag &tag = {nullptr, nullptr});
 
 void profile(const char *metric, float value, std::initializer_list<MetricTag> tags);
-void gauge(const char *metric, float value, std::initializer_list<MetricTag> tags);
-void gauge_inc(const char *metric, float value, std::initializer_list<MetricTag> tags);
-void gauge_dec(const char *metric, float value, std::initializer_list<MetricTag> tags);
+void profile(const char *metric, long value, std::initializer_list<MetricTag> tags);
+void gauge(const char *metric, long value, std::initializer_list<MetricTag> tags);
+void gauge_inc(const char *metric, long value, std::initializer_list<MetricTag> tags);
+void gauge_dec(const char *metric, long value, std::initializer_list<MetricTag> tags);
 void counter(const char *metric, long value, std::initializer_list<MetricTag> tags);
 void histogram(const char *metric, float value, std::initializer_list<MetricTag> tags);
+void histogram(const char *metric, long value, std::initializer_list<MetricTag> tags);
 
 // Functions with support metrics array
 using MetricTags = dag::ConstSpan<MetricTag>;
 void profile(const char *metric, float time_ms, const MetricTags &tags);
-void gauge(const char *metric, float value, const MetricTags &tags);
-void gauge_inc(const char *metric, float value, const MetricTags &tags);
-void gauge_dec(const char *metric, float value, const MetricTags &tags);
+void profile(const char *metric, long time_ms, const MetricTags &tags);
+void gauge(const char *metric, long value, const MetricTags &tags);
+void gauge_inc(const char *metric, long value, const MetricTags &tags);
+void gauge_dec(const char *metric, long value, const MetricTags &tags);
 void counter(const char *metric, long value, const MetricTags &tags);
 void histogram(const char *metric, float value, const MetricTags &tags);
+void histogram(const char *metric, long value, const MetricTags &tags);
 
 void report(void (*action)(const char *, long, const MetricTag &), long value, const char *fmt, ...);
 

@@ -7,7 +7,7 @@
 class CSeparator : public PropertyControlBase
 {
 public:
-  CSeparator(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w);
+  CSeparator(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
     bool new_line = true);
@@ -15,7 +15,7 @@ public:
   unsigned getTypeMaskForSet() const { return 0; }
   unsigned getTypeMaskForGet() const { return 0; }
 
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
   void moveTo(int x, int y);
 
 private:

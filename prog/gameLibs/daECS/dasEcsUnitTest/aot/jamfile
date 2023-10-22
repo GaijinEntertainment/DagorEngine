@@ -25,19 +25,19 @@ Sources =
 
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/perfMon
-  engine2/math
-  engine2/gameRes
-  engine2/memory/rtlStdMemory
-  engine2/consoleProc
-  engine2/drv/drv3d_null
-#  engine2/memory/rtlOverride
-  engine2/baseUtil
-#  engine2/ioSys
-  engine2/startup
-  engine2/workCycle
+  engine/osApiWrappers
+  engine/kernel
+  engine/perfMon
+  engine/math
+  engine/gameRes
+  engine/memory/rtlStdMemory
+  engine/consoleProc
+  engine/drv/drv3d_null
+#  engine/memory/rtlOverride
+  engine/baseUtil
+#  engine/ioSys
+  engine/startup
+  engine/workCycle
   3rdPartyLibs/eastl
   1stPartyLibs/daScript
   1stPartyLibs/daScriptModules/rapidjson
@@ -64,7 +64,7 @@ if $(Platform) in win32 win64 && $(PlatformSpec) != clang  {
 AddIncludes =
   $(Root)/prog/gameLibs/daECS/dasEcsUnitTest
   $(Root)/prog/3rdPartyLibs/rapidjson/include
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/1stPartyLibs/daScript/include
 ;

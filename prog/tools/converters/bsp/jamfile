@@ -20,21 +20,21 @@ AddIncludes     =
   $(Root)/prog/tools/converters/
   $(Root)/prog/tools/converters/bsp
   $(Root)/prog/tools/converters/bsp/tier1
-  #$(Root)/prog/engine2/sharedInclude
+  #$(Root)/prog/engine/sharedInclude
 ;
 
 
 UseProgLibs =
   tools/libTools/dagFileRW
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/math
-  engine2/image
-  engine2/perfMon/daProfilerStub
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/image
+  engine/perfMon/daProfilerStub
 ;
 
 

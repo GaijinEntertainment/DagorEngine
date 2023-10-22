@@ -7,11 +7,11 @@
 #include <math/dag_TMatrix.h>
 
 
-namespace rendinstgen
+namespace rendinst::gen
 {
 static __forceinline void _rnd_ivec2_mbit(int &seed, int &x, int &y)
 {
-  static constexpr int MASK = rendinstgenland::DensMapLeaf::SZ - 1;
+  static constexpr int MASK = rendinst::gen::land::DensMapLeaf::SZ - 1;
   unsigned int a = (unsigned)seed * 0x41C64E6D + 0x3039, b;
   b = (unsigned)a * 0x41C64E6D + 0x3039;
   x = signed(a >> 16) & MASK;
@@ -88,12 +88,12 @@ __forceinline real getRandom(int &s, const Point2 &r) { return r.x + r.y * _srnd
   }                                                                                                              \
   if (entIdx < 0)                                                                                                \
     ret_word;                                                                                                    \
-  rendinstgen::SingleEntityPool &pool = pools[entIdx];                                                           \
+  rendinst::gen::SingleEntityPool &pool = pools[entIdx];                                                         \
   int paletteId = 0;                                                                                             \
   if (pool.tryAdd(pos.x, pos.z))                                                                                 \
   {                                                                                                              \
     Point3 norm(0, 1, 0);                                                                                        \
-    custom_get_height(pos, sgeg.obj[objId].orientType == sgeg.obj[objId].ORIENT_WORLD ? NULL : &norm);           \
+    custom_get_height(pos, sgeg.obj[objId].orientType == sgeg.obj[objId].ORIENT_WORLD ? nullptr : &norm);        \
     MpPlacementRec mppRec;                                                                                       \
     bool is_multi_place = sgeg.obj[objId].mpRec.mpOrientType != MpPlacementRec::MP_ORIENT_NONE;                  \
     if (is_multi_place)                                                                                          \
@@ -158,35 +158,25 @@ __forceinline real getRandom(int &s, const Point2 &r) { return r.x + r.y * _srnd
 
 namespace internal
 {
-static constexpr int CSZ = rendinstgenland::DensMapLeaf::SZ;
+static constexpr int CSZ = rendinst::gen::land::DensMapLeaf::SZ;
 
-static dag::Span<rendinstgen::SingleEntityPool> pools;
+static dag::Span<rendinst::gen::SingleEntityPool> pools;
 static BBox2 rect;
 static const void *pMask;
 static float world2sampler, world0_x, world0_y, entity_ofs_x, entity_ofs_z;
 static int subtype, skip_test_rect;
 static float init_y0;
 int16_t *ent_remap;
-
-#if (defined(_MSC_VER) || defined(__clang__)) && !_TARGET_C3
-#pragma float_control(precise, on, push)
-#elif defined(__GNUC__) && defined(__x86_64__)
-__attribute__ ((target ("no-recip")))
-#endif
-inline float rcp_precise(float f) { return 1.f / f; }
-#if (defined(_MSC_VER) || defined(__clang__)) && !_TARGET_C3
-#pragma float_control(pop)
-#endif
 } // namespace internal
 
 template <class BitMask>
 struct GenObjCB
 {
-  const rendinstgenland::SingleGenEntityGroup &sgeg;
+  const rendinst::gen::land::SingleGenEntityGroup &sgeg;
   float density, gstepx, gstepy, x0, y0;
   int layerIdx;
 
-  GenObjCB(const rendinstgenland::SingleGenEntityGroup &g, int layer_idx) : sgeg(g), x0(0.f), y0(0.f), layerIdx(layer_idx)
+  GenObjCB(const rendinst::gen::land::SingleGenEntityGroup &g, int layer_idx) : sgeg(g), x0(0.f), y0(0.f), layerIdx(layer_idx)
   {
     density = sgeg.density * sgeg.densMapCellSz.x * sgeg.densMapCellSz.y * 0.01f;
     gstepx = sgeg.densMapCellSz.x;
@@ -199,7 +189,7 @@ struct GenObjCB
     return CSZ * CSZ * density >= 1.f / 8192.f;
   }
 
-  void onNonEmptyL1Block(const rendinstgenland::DensMapLeaf *l, int u0, int v0) const
+  void onNonEmptyL1Block(const rendinst::gen::land::DensMapLeaf *l, int u0, int v0) const
   {
     using namespace internal;
 
@@ -329,9 +319,9 @@ private:
 };
 
 template <class BitMask>
-inline void generatePlantedEntitiesInMaskedRect(const rendinstgenland::PlantedEntities &planted, int layerIdx,
-  dag::Span<rendinstgen::SingleEntityPool> pools, const BitMask &mask, float world2sampler, float world0_x, float world0_y, float box,
-  float entity_ofs_x, float entity_ofs_z, float init_y0, int16_t *ent_remap, float dens_map_pivot_x, float dens_map_pivot_z)
+inline void generatePlantedEntitiesInMaskedRect(const rendinst::gen::land::PlantedEntities &planted, int layerIdx,
+  dag::Span<rendinst::gen::SingleEntityPool> pools, const BitMask &mask, float world2sampler, float world0_x, float world0_y,
+  float box, float entity_ofs_x, float entity_ofs_z, float init_y0, int16_t *ent_remap, float dens_map_pivot_x, float dens_map_pivot_z)
 {
   Point3 pos;
   TMatrix tm;
@@ -351,7 +341,7 @@ inline void generatePlantedEntitiesInMaskedRect(const rendinstgenland::PlantedEn
 
   for (int i = 0; i < planted.data.size(); i++)
   {
-    const rendinstgenland::SingleGenEntityGroup &sgeg = planted.data[i];
+    const rendinst::gen::land::SingleGenEntityGroup &sgeg = planted.data[i];
     if (sgeg.density <= 0)
       continue;
 
@@ -418,8 +408,8 @@ inline void generatePlantedEntitiesInMaskedRect(const rendinstgenland::PlantedEn
 
     real dx = sgeg.densMapSize.x;
     real dy = sgeg.densMapSize.y;
-    real gstepxRcp = internal::rcp_precise(cb.gstepx);
-    real gstepyRcp = internal::rcp_precise(cb.gstepy);
+    real gstepxRcp = 1.f / cb.gstepx;
+    real gstepyRcp = 1.f / cb.gstepy;
     float densMapOfsX = sgeg.densMapOfs.x + dens_map_pivot_x - entity_ofs_x;
     float densMapOfsZ = sgeg.densMapOfs.y + dens_map_pivot_z - entity_ofs_z;
     real tx0 = floorf((internal::rect[0].x - (entity_ofs_x + densMapOfsX)) / dx) * dx + densMapOfsX;
@@ -453,4 +443,4 @@ inline void generatePlantedEntitiesInMaskedRect(const rendinstgenland::PlantedEn
   }
 }
 #undef ADD_ENTITY_BYMASK
-} // namespace rendinstgen
+} // namespace rendinst::gen

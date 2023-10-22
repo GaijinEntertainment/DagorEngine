@@ -8,8 +8,7 @@
 #include "../windowControls/w_simple_controls.h"
 
 
-ListDialog::ListDialog(void *handle, const char *caption, const Tab<String> &vals, int width, int height) :
-
+ListDialog::ListDialog(void *handle, const char *caption, const Tab<String> &vals, hdpi::Px width, hdpi::Px height) :
   CDialogWindow(handle, width, height, caption, true)
 {
   PropertyContainerControlBase *_pp = getPanel();
@@ -83,8 +82,7 @@ enum
 };
 
 
-MultiListDialog::MultiListDialog(const char *caption, int width, int height, const Tab<String> &vals, Tab<String> &sels) :
-
+MultiListDialog::MultiListDialog(const char *caption, hdpi::Px width, hdpi::Px height, const Tab<String> &vals, Tab<String> &sels) :
   CDialogWindow(p2util::get_main_parent_handle(), width, height, caption),
 
   mSels(&sels),
@@ -93,7 +91,7 @@ MultiListDialog::MultiListDialog(const char *caption, int width, int height, con
   PropertyContainerControlBase *_panel = getPanel();
   G_ASSERT(_panel && "MultiListDialog: No panel found!");
 
-  _panel->createMultiSelectList(ID_LIST, vals, height - 125);
+  _panel->createMultiSelectList(ID_LIST, vals, height - _pxScaled(125));
 
   _panel->createButton(ID_SELECT_ALL, "All", true, true);
   _panel->createButton(ID_SELECT_NONE, "None", true, false);

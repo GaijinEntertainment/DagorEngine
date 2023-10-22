@@ -82,7 +82,7 @@ intptr_t MainWindow::winProc(void *h_wnd, unsigned msg, TSgWParam w_param, TSgLP
       if ((intptr_t)w_param == SIZE_MINIMIZED)
         break;
 
-      mLeftTop = IPoint2(0, MAIN_CLIENT_AREA_OFFSET);
+      mLeftTop = IPoint2(0, _pxS(MAIN_CLIENT_AREA_OFFSET));
       mRightBottom = IPoint2(LOWORD(l_param), HIWORD(l_param));
 
       if (((intptr_t)w_param == SIZE_MAXIMIZED) || (((intptr_t)w_param == SIZE_RESTORED) && (mWasMaximized)))
@@ -99,11 +99,11 @@ intptr_t MainWindow::winProc(void *h_wnd, unsigned msg, TSgWParam w_param, TSgLP
       CascadeWindow *root = mOwner->getRoot();
       if (root)
       {
-        int minW, minH;
+        hdpi::Px minW, minH;
         root->getMinSize(minW, minH);
         WindowSizeLock lock = root->getSizeLock();
 
-        RECT rect = {0, 0, minW, minH};
+        RECT rect = {0, 0, _px(minW), _px(minH)};
         AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, true);
 
         MINMAXINFO *pInfo = (MINMAXINFO *)l_param;

@@ -92,10 +92,6 @@ DagorCurView &EcRender::curView() const { return ::grs_cur_view; }
 
 
 //==================================================================================================
-DagorCurFog &EcRender::curFog() const { return ::grs_cur_fog; }
-
-
-//==================================================================================================
 void EcRender::startLinesRender(bool test_z, bool write_z, bool z_func_less) const
 {
   ::begin_draw_cached_debug_lines(test_z, write_z, z_func_less);

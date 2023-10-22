@@ -310,7 +310,7 @@ void DaSkies::clearUncompressedPanoramaTex()
   cloudsPanoramaTex[0].close();
 }
 
-void DaSkies::renderPanorama(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm)
+void DaSkies::renderPanorama(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp)
 {
   if (!cloudsPanoramaTex[0] && !compressedCloudsPanoramaTex)
     return;
@@ -325,8 +325,7 @@ void DaSkies::renderPanorama(const Point3 &origin, const TMatrix &view_tm, const
   else
     cloudsPanoramaTex[0]->getinfo(tinfo);
   bool useBiQ = true;
-  Driver3dPerspective persp;
-  if (d3d::getpersp(persp))
+  if (d3d::validatepersp(persp))
   {
     int w, h;
     d3d::get_target_size(w, h);

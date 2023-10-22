@@ -110,6 +110,7 @@ public:
             _size = newsize;
         }
     }
+    void clear() { resize(0); }
     void shrinktofit() { if(_size > 4) { _realloc(_size); } }
     T& top() const { return _vals[_size - 1]; }
     inline SQUnsignedInteger size() const { return _size; }
@@ -128,9 +129,9 @@ public:
     {
         resize(_size + 1);
         for(SQUnsignedInteger i = _size - 1; i > idx; i--) {
-            _vals[i] = _vals[i - 1];
+            _vals[i] = _vals[i - 1]; // -V1002
         }
-        _vals[idx] = val;
+        _vals[idx] = val; // -V1002
     }
     void remove(SQUnsignedInteger idx)
     {

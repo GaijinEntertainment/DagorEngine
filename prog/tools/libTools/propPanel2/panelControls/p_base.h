@@ -7,8 +7,8 @@
 class BasicPropertyControl : public PropertyControlBase
 {
 public:
-  BasicPropertyControl(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x, int y, unsigned w,
-    unsigned h);
+  BasicPropertyControl(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x, int y, hdpi::Px w,
+    hdpi::Px h);
   virtual ~BasicPropertyControl();
   void setTooltip(const char text[]);
 

@@ -7,9 +7,9 @@
 
 #include <daScript/daScript.h>
 #include <dasModules/dasModulesCommon.h>
-#include <daEditor4/editorCommon/entityEditor.h>
-#include <daEditor4/editorCommon/entityObj.h>
-#include <daEditor4/editorCommon/inGameEditor.h>
+#include <daEditorE/editorCommon/entityEditor.h>
+#include <daEditorE/editorCommon/entityObj.h>
+#include <daEditorE/editorCommon/inGameEditor.h>
 #include <dasModules/aotEcs.h>
 #include <dasModules/dasDataBlock.h>
 

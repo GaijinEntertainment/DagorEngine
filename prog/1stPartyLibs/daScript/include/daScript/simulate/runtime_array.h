@@ -37,7 +37,7 @@ namespace das
             V_ARG(offset);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             TT * pR = (TT *) compute(context);
             return cast<TT>::from(*pR);
@@ -82,7 +82,7 @@ namespace das
         SimNode_GoodArrayIterator ( const LineInfo & at, SimNode * s, uint32_t st )
             : SimNode(at), source(s), stride(st) { }
         virtual SimNode * visit ( SimVisitor & vis ) override;
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override;
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
         SimNode *   source;
         uint32_t    stride;
     };
@@ -102,7 +102,7 @@ namespace das
         SimNode_FixedArrayIterator ( const LineInfo & at, SimNode * s, uint32_t sz, uint32_t st )
             : SimNode(at), source(s), size(sz), stride(st) { }
         virtual SimNode * visit ( SimVisitor & vis ) override;
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override;
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
         SimNode *   source;
         uint32_t    size;
         uint32_t    stride;
@@ -112,7 +112,7 @@ namespace das
         SimNode_DeleteArray ( const LineInfo & a, SimNode * s, uint32_t t, uint32_t st )
             : SimNode_Delete(a,s,t), stride(st) {}
         virtual SimNode * visit ( SimVisitor & vis ) override;
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override;
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
         uint32_t stride;
     };
 
@@ -126,7 +126,7 @@ namespace das
         virtual SimNode * visit ( SimVisitor & vis ) override {
             return visitFor(vis, totalCount, "ForGoodArray");
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             Array * __restrict pha[totalCount];
             char * __restrict ph[totalCount];
@@ -173,7 +173,7 @@ namespace das
             V_FINAL();
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             evalFinal(context);
             return v_zero();
@@ -186,7 +186,7 @@ namespace das
         virtual SimNode * visit ( SimVisitor & vis ) override {
             return visitFor(vis, 1, "ForGoodArray");
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             Array * __restrict pha;
             char * __restrict ph;
@@ -222,7 +222,7 @@ namespace das
         virtual SimNode * visit ( SimVisitor & vis ) override {
             return visitFor(vis, totalCount, "ForGoodArray1");
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             Array * __restrict pha[totalCount];
             char * __restrict ph[totalCount];
@@ -265,7 +265,7 @@ namespace das
             V_FINAL();
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             evalFinal(context);
             return v_zero();
@@ -278,7 +278,7 @@ namespace das
         virtual SimNode * visit ( SimVisitor & vis ) override {
             return visitFor(vis, 1, "ForGoodArray1");
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             Array * __restrict pha;
             char * __restrict ph;
@@ -313,7 +313,7 @@ namespace das
     template <int totalCount>
     struct SimNodeDebug_ForGoodArray : public SimNode_ForGoodArray<totalCount> {
         SimNodeDebug_ForGoodArray ( const LineInfo & at ) : SimNode_ForGoodArray<totalCount>(at) {}
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             Array * __restrict pha[totalCount];
             char * __restrict ph[totalCount];
@@ -360,7 +360,7 @@ namespace das
     template <>
     struct SimNodeDebug_ForGoodArray<1> : public SimNode_ForGoodArray<1> {
         SimNodeDebug_ForGoodArray ( const LineInfo & at ) : SimNode_ForGoodArray<1>(at) {}
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             Array * __restrict pha;
             char * __restrict ph;
@@ -394,7 +394,7 @@ namespace das
     template <int totalCount>
     struct SimNodeDebug_ForGoodArray1 : public SimNode_ForGoodArray1<totalCount> {
         SimNodeDebug_ForGoodArray1 ( const LineInfo & at ) : SimNode_ForGoodArray1<totalCount>(at) {}
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             Array * __restrict pha[totalCount];
             char * __restrict ph[totalCount];
@@ -437,7 +437,7 @@ namespace das
     template <>
     struct SimNodeDebug_ForGoodArray1<1> : public SimNode_ForGoodArray1<1> {
         SimNodeDebug_ForGoodArray1 ( const LineInfo & at ) : SimNode_ForGoodArray1<1>(at) {}
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             Array * __restrict pha;
             char * __restrict ph;
@@ -477,7 +477,7 @@ namespace das
         virtual SimNode * visit ( SimVisitor & vis ) override {
             return visitFor(vis, totalCount, "ForFixedArray");
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             char * __restrict ph[totalCount];
             for ( int t=0; t!=totalCount; ++t ) {
@@ -516,7 +516,7 @@ namespace das
             V_FINAL();
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             evalFinal(context);
             return v_zero();
@@ -529,7 +529,7 @@ namespace das
         virtual SimNode * visit ( SimVisitor & vis ) override {
             return visitFor(vis, 1, "ForFixedArray");
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             char * __restrict ph = cast<char *>::to(sources[0]->eval(context));
             char ** __restrict pi = (char **)(context.stack.sp() + stackTop[0]);
@@ -559,7 +559,7 @@ namespace das
         virtual SimNode * visit ( SimVisitor & vis ) override {
             return visitFor(vis, totalCount, "ForFixedArray1");
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             char * __restrict ph[totalCount];
             for ( int t=0; t!=totalCount; ++t ) {
@@ -594,7 +594,7 @@ namespace das
             V_FINAL();
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             evalFinal(context);
             return v_zero();
@@ -607,7 +607,7 @@ namespace das
         virtual SimNode * visit ( SimVisitor & vis ) override {
             return visitFor(vis, 1, "ForFixedArray1");
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             char * __restrict ph = cast<char *>::to(sources[0]->eval(context));
             char ** __restrict pi = (char **)(context.stack.sp() + stackTop[0]);
@@ -636,7 +636,7 @@ namespace das
     template <int totalCount>
     struct SimNodeDebug_ForFixedArray : SimNode_ForFixedArray<totalCount> {
         SimNodeDebug_ForFixedArray ( const LineInfo & at ) : SimNode_ForFixedArray<totalCount>(at) {}
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             char * __restrict ph[totalCount];
             for ( int t=0; t!=totalCount; ++t ) {
@@ -675,7 +675,7 @@ namespace das
     template <>
     struct SimNodeDebug_ForFixedArray<1> : SimNode_ForFixedArray<1> {
         SimNodeDebug_ForFixedArray ( const LineInfo & at ) : SimNode_ForFixedArray<1>(at) {}
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             char * __restrict ph = cast<char *>::to(sources[0]->eval(context));
             char ** __restrict pi = (char **)(context.stack.sp() + stackTop[0]);
@@ -703,7 +703,7 @@ namespace das
     template <int totalCount>
     struct SimNodeDebug_ForFixedArray1 : SimNode_ForFixedArray1<totalCount> {
         SimNodeDebug_ForFixedArray1 ( const LineInfo & at ) : SimNode_ForFixedArray1<totalCount>(at) {}
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             char * __restrict ph[totalCount];
             for ( int t=0; t!=totalCount; ++t ) {
@@ -738,7 +738,7 @@ namespace das
     template <>
     struct SimNodeDebug_ForFixedArray1<1> : SimNode_ForFixedArray1<1> {
         SimNodeDebug_ForFixedArray1 ( const LineInfo & at ) : SimNode_ForFixedArray1<1>(at) {}
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             char * __restrict ph = cast<char *>::to(sources[0]->eval(context));
             char ** __restrict pi = (char **)(context.stack.sp() + stackTop[0]);

@@ -1,11 +1,11 @@
 
 #include "HLSL2MetalCommon.h"
+#include "../debugSpitfile.h"
 
 #include <ioSys/dag_zlibIo.h>
 #include <ioSys/dag_memIo.h>
 
-int g_index = 0;
-const char *debug_output_dir = nullptr;
+#include <inttypes.h>
 
 SemanticValue semanticTable[] = {{"POSITION", 0, VSDR_POS}, {"POSITION", 1, VSDR_POS2}, {"NORMAL", 0, VSDR_NORM},
   {"NORMAL", 1, VSDR_NORM2}, {"COLOR", 0, VSDR_DIFF}, {"COLOR", 1, VSDR_SPEC}, {"TEXCOORD", 0, VSDR_TEXC0},
@@ -76,24 +76,6 @@ void save2Lib(std::string &shader)
   }
 }
 
-void spitfile(const char *entry, const char *name, int index, const void *ptr, size_t len)
-{
-  if (!debug_output_dir)
-  {
-    return;
-  }
-
-  char str[128];
-  sprintf(str, "%s/shad%i_%s_%s.txt", debug_output_dir, index, entry, name);
-
-  FILE *f = fopen(str, "wb");
-  if (f)
-  {
-    fwrite(ptr, len, 1, f);
-    fclose(f);
-  }
-}
-
 MetalImageType translateImageType(const spirv_cross::SPIRType::ImageType &imgType)
 {
   switch (imgType.dim)
@@ -120,12 +102,13 @@ MetalImageType translateImageType(const spirv_cross::SPIRType::ImageType &imgTyp
   }
 }
 
-String prependMetaDataAndReplaceFuncs(std::string_view source, const char *shader_name, const char *entry, int index)
+String prependMetaDataAndReplaceFuncs(std::string_view source, const char *shader_name, const char *entry,
+  uint64_t shader_variant_hash)
 {
   String sourceWithData = String(512, "// %s - %s\n", entry, shader_name);
   if (debug_output_dir)
   {
-    sourceWithData += String(-1, "// index - %i\n\n\n", index);
+    sourceWithData += String(-1, "// hash - " PRIx64 "\n\n\n", shader_variant_hash);
   }
 
   sourceWithData.append(source.data(), source.size());

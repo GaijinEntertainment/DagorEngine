@@ -74,7 +74,7 @@
 #include <memoryProfiler/dag_memoryStat.h>
 
 #define INSIDE_ENGINE 0
-#include "../../engine2/memory/memoryTracker.h"
+#include "../../engine/memory/memoryTracker.h"
 
 
 #define MAX_BLOCKS_IN_LIST 1000

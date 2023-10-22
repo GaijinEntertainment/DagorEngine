@@ -925,7 +925,7 @@ static void loadPhysTestScene(const char *filename)
     physResource = PhysicsResource::loadResource(crd, 0);
   }
 
-  physSystem = new PhysSystemInstance(physResource, physWorld, nullptr);
+  physSystem = new PhysSystemInstance(physResource, physWorld, &TMatrix::IDENT, nullptr);
 
 #if ALLOW_DYNMODEL_RENDER
   const RoNameMapEx &nameMap = lods->getNames().node;

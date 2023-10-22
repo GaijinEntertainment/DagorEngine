@@ -1,3 +1,4 @@
+#include <pathFinder/pathFinder.h>
 #include <pathFinder/customNav.h>
 #include <detourNavMesh.h>
 #include <debug/dag_debug3d.h>
@@ -6,11 +7,10 @@
 
 namespace pathfinder
 {
-extern dtNavMesh *navMesh;
 
 void CustomNav::drawDebug() const
 {
-  if (!navMesh)
+  if (!getNavMeshPtr())
     return;
   for (const auto &it : areas)
   {

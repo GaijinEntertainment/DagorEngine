@@ -21,9 +21,13 @@
 #include <util/dag_strUtil.h>
 #include <util/dag_delayedAction.h>
 #include <libTools/shaderResBuilder/processMat.h>
-#include "../../../engine2/shaders/scriptSMat.h"
+#include "../../../engine/shaders/scriptSMat.h"
 #include "../av_appwnd.h"
 #include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtra.h>
+#include <rendInst/rendInstExtraRender.h>
+
+using hdpi::_pxScaled;
 
 namespace gamereshooks
 {
@@ -552,6 +556,9 @@ void EntityMaterialEditor::updateAssetShaderMaterial(int lod, int mat_id)
   bool realTwoSided = matProps.vars[MAT_VAR_REAL_TWO_SIDED].usedInMaterial && matProps.vars[MAT_VAR_REAL_TWO_SIDED].value.i;
   curMatShader->set_flags(realTwoSided ? SHFLG_REAL2SIDED : 0, SHFLG_REAL2SIDED);
 
+  const bool twoSided = matProps.vars[MAT_VAR_TWOSIDED].usedInMaterial && matProps.vars[MAT_VAR_TWOSIDED].value.i;
+  curMatShader->set_flags(twoSided ? SHFLG_2SIDED : 0, SHFLG_2SIDED);
+
   int alphaTexSlotId = get_slot_with_alpha_tex(curMatShader->native().props.textureId);
   unsigned usedTexMask = get_shclass_used_tex_mask(curMatShader->native().props.sclass);
   for (int texSlot = 0; texSlot < matProps.textures.size(); ++texSlot)
@@ -582,7 +589,7 @@ void EntityMaterialEditor::updateAssetShaderMaterial(int lod, int mat_id)
     int resIdx = rendinst::addRIGenExtraResIdx(assetName.c_str(), -1, -1, rendinst::AddRIFlag::UseShadow);
     RenderableInstanceLodsResource *res = rendinst::getRIGenExtraRes(resIdx);
     res->updateShaderElems();
-    rendinst::reinitOnShadersReload();
+    rendinst::render::reinitOnShadersReload();
   }
 }
 
@@ -594,7 +601,7 @@ void EntityMaterialEditor::performAddOrRemoveScriptVars(int lod, int mat_id, boo
     if (var.usedInMaterial != is_to_add)
       availableVars.push_back(String(var.name.c_str()));
   Tab<String> selectedVars;
-  MultiListDialog selectVars("List of parameters", 300, 400, availableVars, selectedVars);
+  MultiListDialog selectVars("List of parameters", _pxScaled(300), _pxScaled(400), availableVars, selectedVars);
   if (selectVars.showDialog() == DIALOG_ID_OK)
   {
     for (auto &selVarName : selectedVars)
@@ -634,7 +641,7 @@ const char *EntityMaterialEditor::performShaderClassSelection(int lod, int mat_i
   EntityLodMatData &lodMatData = matDataPerLod[lod];
   EntityMatProperties &matProperties = lodMatData.matProperties[mat_id];
 
-  ListDialog selectShClass(0, "Select shader", availableShClasses, 300, 600);
+  ListDialog selectShClass(0, "Select shader", availableShClasses, _pxScaled(300), _pxScaled(600));
   int curSelectId = find_value_idx(availableShClasses, String(matProperties.shClassName.c_str()));
   selectShClass.setSelectedIndex(curSelectId);
   if (selectShClass.showDialog() == DIALOG_ID_OK)
@@ -735,7 +742,19 @@ void EntityMaterialEditor::pasteMatProperties(int lod, int mat_id)
   }
 
   applyToCommonVars(matProperties.vars, propertiesCopyBuffer.vars, [](auto &var, const auto &copied_var) {
-    if (copied_var.usedInMaterial)
+    if (strcmp(copied_var.name, "twosided") == 0)
+    {
+      // Copy twosided regardless of used or not, because it is special.
+      // Twosided is not a real script value, so after saving a twosided = false value usedInMaterial will be false too.
+      // How twosided is interpreted when copied to its real place, the material flag:
+      // usedInMaterial: false, value: false -> false
+      // usedInMaterial: false, value: true  -> false
+      // usedInMaterial: true,  value: false -> false
+      // usedInMaterial: true,  value: true  -> true
+      var.value = copied_var.value;
+      var.usedInMaterial = copied_var.usedInMaterial;
+    }
+    else if (copied_var.usedInMaterial)
     {
       var.value = copied_var.value;
       var.usedInMaterial = true;
@@ -798,9 +817,31 @@ dag::Vector<int> EntityMaterialEditor::EntityLodMatData::getChangedMatIds() cons
 bool EntityMaterialEditor::EntityLodMatData::isMatChanged(int mat_id) const
 {
   const EntityMatProperties &props = matProperties[mat_id];
-  return fileRes->getCurProxyMatName(props.dagMatId) != fileRes->getOrigProxyMatName(props.dagMatId) ||
-         props.shClassName != fileRes->getShaderClass(props.dagMatId) || props.vars != fileRes->getVars(props.dagMatId) ||
-         props.textures != fileRes->getTextureNames(props.dagMatId);
+  if (fileRes->getCurProxyMatName(props.dagMatId) != fileRes->getOrigProxyMatName(props.dagMatId) ||
+      props.shClassName != fileRes->getShaderClass(props.dagMatId) || props.textures != fileRes->getTextureNames(props.dagMatId))
+    return true;
+
+  dag::Vector<MatVarDesc> fileResVars = fileRes->getVars(props.dagMatId);
+  if (props.vars.size() != fileResVars.size())
+    return true;
+
+  for (int varId = 0; varId < props.vars.size(); ++varId)
+  {
+    // Twosided needs special handling, see the comment in EntityMaterialEditor::pasteMatProperties.
+    if (varId == MAT_VAR_TWOSIDED)
+    {
+      const bool propVarTwoSided = props.vars[varId].usedInMaterial && props.vars[varId].value.i != 0;
+      const bool fileResVarTwoSided = fileResVars[varId].usedInMaterial && fileResVars[varId].value.i != 0;
+      if (propVarTwoSided != fileResVarTwoSided)
+        return true;
+      continue;
+    }
+
+    if (!(props.vars[varId] == fileResVars[varId]))
+      return true;
+  }
+
+  return false;
 }
 
 void EntityMaterialEditor::EntityLodMatData::save(const dag::Vector<int> &mats_to_save_ids)
@@ -956,6 +997,7 @@ void EntityMaterialEditor::onClick(int pcb_id, PropertyContainerControlBase *pan
       case LPID_ADD_SCRIPT_VARIABLES_BUTTON:
       case LPID_REMOVE_SCRIPT_VARIABLES_BUTTON:
         performAddOrRemoveScriptVars(lod, matId, matLocalPropId == LPID_ADD_SCRIPT_VARIABLES_BUTTON);
+        updateAssetShaderMaterial(lod, matId);
         refillMatPropPanel(lod, matId, *panel);
         break;
       case LPID_SAVE_PARAMS_BUTTON:
@@ -1038,7 +1080,7 @@ void EntityMaterialEditor::transferChangesToLods(int lod, int mat_id, PropertyCo
     }
   }
   Tab<String> sels;
-  MultiListDialog dlg("List of lods", 300, 400, vals, sels);
+  MultiListDialog dlg("List of lods", _pxScaled(300), _pxScaled(400), vals, sels);
   Tab<int> selIndices;
   dlg.setSelectionTab(&selIndices);
   if (dlg.showDialog() != DIALOG_ID_OK)
@@ -1105,10 +1147,6 @@ void EntityMaterialEditor::modifyAllAffectedLoadedAssets(const char *proxy_mat_N
 
   for (DagorAsset *asset : assetsToReload)
   {
-    // The edited asset is handled by AssetViewerApp::reloadAsset.
-    if (asset->getName() == assetName)
-      continue;
-
     // Those assets that are in the same directory where the proxy material is, are
     // handled by DagorAssetMgr::trackChangesContinuous in assetMgrTrackChanges.cpp.
     if (asset->getFolderIndex() == proxyMatAsset->getFolderIndex())
@@ -1117,6 +1155,9 @@ void EntityMaterialEditor::modifyAllAffectedLoadedAssets(const char *proxy_mat_N
     if (!isAssetDependsOnProxyMat(assetMgr, *asset, proxyMatAssetFileName))
       continue;
 
-    notify_asset_changed(asset);
+    // Using delayed callback here because if the asset is the current asset then
+    // reloading it would destroy the notifier control's instance, and cause a crash
+    // in WindowBaseHandler::controlProc.
+    add_delayed_callback((delayed_callback)&notify_asset_changed, asset);
   }
 }

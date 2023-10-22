@@ -124,6 +124,8 @@ public:
   void setAOFalloffStop(float ao_falloff_stop);
   void setDDSXMaxTexturesNum(int ddsx_max_textures_num);
 
+  void setSimilarityThreshold(float similarity_threshold);
+
   void computeDDSxPackSizes(dag::ConstSpan<DagorAsset *> assets);
 
 
@@ -185,7 +187,8 @@ private:
   ImpostorTextureData prepareRt(IPoint2 extent, String asset_name, int mips) noexcept;
   static IPoint2 get_extent(const ImpostorTextureManager::GenerationData &gen_data);
   static IPoint2 get_rt_extent(const ImpostorTextureManager::GenerationData &gen_data);
-  bool saveImage(const char *filename, Texture *tex, int mip_offset, int num_channels);
+  SaveResult saveImage(const char *filename, Texture *tex, int mip_offset, int num_channels, float &similarity, float threshold);
+  float compareImages(TexImage32 *img1, TexImage32 *img2, int num_channels);
 
   bool displayExportedImages = false;
   // TODO set default quality options after one of the games is configured properly
@@ -203,6 +206,13 @@ private:
   IPoint3 mipOffsets_hq_mq_lq = IPoint3(0, 1, 2);
   IPoint3 mobileMipOffsets_hq_mq_lq = IPoint3(0, 1, 2);
   float aoBrightness = 0.7, aoFalloffStart = 0.25, aoFalloffStop = 1.0;
+
+  // Similarity metric is PSNR, measured in dB.
+  // Min value is 0.0, theoretical max is inf, but usually less 100.0.
+  // Greater values mean more similar images.
+  // 30.0 is a good default threshold value for 8-bit textures.
+  float similarityThreshold = 30.0f;
+
   static constexpr int SLICE_SIZE = 1024;
   String getAssetFolder(const DagorAsset *asset) const;
   void generateFolderBlk(const char *folder, const char *dxp_prefix, const ImpostorOptions &options);

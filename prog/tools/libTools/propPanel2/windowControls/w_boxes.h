@@ -37,6 +37,9 @@ public:
   int getSelectedText(char *buffer, int buflen) const;
   void setSelectedIndex(int index);
   void setStrings(const Tab<String> &vals);
+  void renameSelected(const char *name);
+  int addString(const char *value);
+  void removeString(int idx);
 
   virtual intptr_t onControlCommand(unsigned notify_code, unsigned elem_id);
   virtual intptr_t onLButtonDClick(long x, long y);

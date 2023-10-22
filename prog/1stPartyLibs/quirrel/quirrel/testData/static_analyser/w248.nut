@@ -9,3 +9,5 @@ if (b) {
 }
 
 return a()
+
+//-file:undefined-global

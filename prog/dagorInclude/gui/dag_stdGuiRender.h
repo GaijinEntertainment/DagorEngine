@@ -996,11 +996,6 @@ BBox2 get_str_bbox_u(const wchar_t *str, int len = -1, const StdGuiFontContext &
 BBox2 get_str_bbox_u_ex(const wchar_t *str, int len, const StdGuiFontContext &fctx, float max_w, bool left_align, int &out_start_idx,
   int &out_count, const wchar_t *break_sym = NULL, float ellipsis_resv_w = 0);
 
-//! get string visible bounding box (UTF-8)
-BBox2 get_str_visible_bbox(const char *str, int len = -1, const StdGuiFontContext &fctx = get_stdgui_context()->curRenderFont);
-//! get string visible bounding box (Unicode16)
-BBox2 get_str_visible_bbox_u(const wchar_t *str, int len = -1, const StdGuiFontContext &fctx = get_stdgui_context()->curRenderFont);
-
 Point2 get_font_cell_size(const StdGuiFontContext &fctx = get_stdgui_context()->curRenderFont);
 int get_font_caps_ht(const StdGuiFontContext &fctx = get_stdgui_context()->curRenderFont);
 real get_font_line_spacing(const StdGuiFontContext &fctx = get_stdgui_context()->curRenderFont);
@@ -1040,6 +1035,11 @@ void update_internals_per_act();
 // ************************************************************************
 void acquire();
 void release();
+struct ScopedAcquire
+{
+  ScopedAcquire() { acquire(); }
+  ~ScopedAcquire() { release(); }
+};
 
 // init dynamic VB & IB for lockless rendering of GUI quads;
 // quad_num is estimated maximum number of quads rendered per frame
@@ -1090,6 +1090,8 @@ inline void set_ablend(bool on) { set_alpha_blend(on ? PREMULTIPLIED : NO_BLEND)
 void set_textures(const TEXTUREID tex_id, const TEXTUREID tex_id2);
 inline void set_texture(const TEXTUREID tex_id) { set_textures(tex_id, BAD_TEXTUREID); }
 void set_mask_texture(TEXTUREID tex_id, const Point3 &transform0, const Point3 &transform1);
+
+inline void start_font_str(float s) { get_stdgui_context()->start_font_str(s); }
 
 // ************************************************************************
 // * viewports

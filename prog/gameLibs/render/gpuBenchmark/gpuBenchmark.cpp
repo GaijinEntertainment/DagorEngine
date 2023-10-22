@@ -177,7 +177,7 @@ void GpuBenchmark::render(Texture *target_tex, Texture *depth_tex)
 
   d3d::set_render_target(target_tex, 0);
   if (depth_tex)
-    d3d::set_depth(depth_tex, false);
+    d3d::set_depth(depth_tex, DepthAccess::RW);
   else
     d3d::set_backbuf_depth();
   d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER, E3DCOLOR(159, 159, 255, 255), 0.0f, 0);

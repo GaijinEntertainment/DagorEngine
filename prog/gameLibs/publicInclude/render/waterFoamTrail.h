@@ -58,7 +58,7 @@ void emit_point_ex(int em, const Point2 &pt, const Point2 &dir, const Point2 &le
 void finalize_trail(int em);
 
 void before_render(float dt, const Point3 &origin, const Frustum &frustum);
-void render();
+bool render();
 
 const Settings &get_settings();
 } // namespace water_trail

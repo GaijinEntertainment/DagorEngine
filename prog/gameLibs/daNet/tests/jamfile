@@ -5,7 +5,7 @@ TargetType      = exe ;
 Target          = danet-tests ;
 AddIncludes     =
   $(Root)/prog/3rdPartyLibs/unittest-cpp
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 OutDir          = $(Root)/$(Location) ;
@@ -18,13 +18,13 @@ Sources =
 ;
 
 UseProgLibs +=
-  engine2/memory
-  engine2/kernel
-  engine2/osApiWrappers
-  engine2/baseUtil
-  engine2/ioSys
-  engine2/math
-  engine2/perfMon/daProfilerStub
+  engine/memory
+  engine/kernel
+  engine/osApiWrappers
+  engine/baseUtil
+  engine/ioSys
+  engine/math
+  engine/perfMon/daProfilerStub
 
   3rdPartyLibs/eastl
   3rdPartyLibs/unittest-cpp

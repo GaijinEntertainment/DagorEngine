@@ -13,7 +13,7 @@ AddIncludes =
 ;
 
 UseProgLibs =
-  engine2/imgui/stub
+  engine/imgui/stub
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

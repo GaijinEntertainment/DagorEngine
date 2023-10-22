@@ -11,7 +11,7 @@
 WTrackGradientButton::WTrackGradientButton(WindowControlEventHandler *event_handler, WindowBase *parent, int x, int y, E3DCOLOR color,
   bool moveable, WGradient *owner, float _value) :
   WindowControlBase(event_handler, parent, "BUTTON", 0, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | BS_NOTIFY, "",
-    x - TRACK_GRADIENT_BUTTON_WIDTH / 2, y, TRACK_GRADIENT_BUTTON_WIDTH, TRACK_GRADIENT_BUTTON_HEIGHT),
+    x - _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2, y, _pxS(TRACK_GRADIENT_BUTTON_WIDTH), _pxS(TRACK_GRADIENT_BUTTON_HEIGHT)),
   mTooltip(event_handler, this),
   value(0)
 {
@@ -76,19 +76,19 @@ intptr_t WTrackGradientButton::onDrag(int new_x, int new_y)
     return 0;
   }
 
-  int new_pos = new_x + mX - TRACK_GRADIENT_BUTTON_WIDTH / 2;
+  int new_pos = new_x + mX - _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2;
 
   int leftLimit, rightLimit;
   mOwner->getLimits(this, leftLimit, rightLimit);
 
-  if (new_pos < leftLimit + TRACK_GRADIENT_BUTTON_WIDTH)
-    new_pos = leftLimit + TRACK_GRADIENT_BUTTON_WIDTH;
-  if (new_pos > rightLimit - TRACK_GRADIENT_BUTTON_WIDTH)
-    new_pos = rightLimit - TRACK_GRADIENT_BUTTON_WIDTH;
+  if (new_pos < leftLimit + _pxS(TRACK_GRADIENT_BUTTON_WIDTH))
+    new_pos = leftLimit + _pxS(TRACK_GRADIENT_BUTTON_WIDTH);
+  if (new_pos > rightLimit - _pxS(TRACK_GRADIENT_BUTTON_WIDTH))
+    new_pos = rightLimit - _pxS(TRACK_GRADIENT_BUTTON_WIDTH);
 
   if (canMove)
   {
-    new_x = new_pos - mX + TRACK_GRADIENT_BUTTON_WIDTH / 2;
+    new_x = new_pos - mX + _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2;
 
     float valueNew = (float)(new_x + mX - mOwner->getX()) / (float)(mOwner->getWidth());
     valueNew = (valueNew > 1.0f) ? 1.0f : (valueNew < 0.0f) ? 0.0f : valueNew;
@@ -192,7 +192,7 @@ void WTrackGradientButton::updateTooltipText()
 WGradient::WGradient(WindowControlEventHandler *event_handler, WindowBase *parent, int x, int y, int w) :
 
   WindowControlBase(event_handler, parent, "BUTTON", 0, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | BS_NOTIFY, "", x,
-    y + TRACK_GRADIENT_BUTTON_HEIGHT, w, GRADIENT_HEIGHT),
+    y + _pxS(TRACK_GRADIENT_BUTTON_HEIGHT), w, _pxS(GRADIENT_HEIGHT)),
   mKeys(midmem),
   mCycled(false),
   mMinPtCount(2),
@@ -245,7 +245,7 @@ intptr_t WGradient::onControlDrawItem(void *info)
     step[2] = (float)(endColor.b - startColor.b) / w;
 
     int n = 0;
-    while (curRect.left < (mKeys[i + 1]->getPos() - TRACK_GRADIENT_BUTTON_WIDTH / 2 - 2))
+    while (curRect.left < (mKeys[i + 1]->getPos() - _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2 - 2))
     {
       int r = startColor.r + step[0] * n;
       int g = startColor.g + step[1] * n;
@@ -341,15 +341,15 @@ void WGradient::addKey(float position, E3DCOLOR *color)
 
   int x = position * mWidth;
 
-  int posTest = x + mX - TRACK_GRADIENT_BUTTON_WIDTH / 2;
+  int posTest = x + mX - _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2;
   for (int i = 0; i < mKeys.size(); i++)
   {
-    if (abs(posTest - mKeys[i]->getPos()) < TRACK_GRADIENT_BUTTON_WIDTH)
+    if (abs(posTest - mKeys[i]->getPos()) < _pxS(TRACK_GRADIENT_BUTTON_WIDTH))
       return;
   }
 
   WTrackGradientButton *key =
-    new WTrackGradientButton(mEventHandler, mParent, mX + x, mY - TRACK_GRADIENT_BUTTON_HEIGHT, curColor, true, this, position);
+    new WTrackGradientButton(mEventHandler, mParent, mX + x, mY - _pxS(TRACK_GRADIENT_BUTTON_HEIGHT), curColor, true, this, position);
 
   for (int i = 0; i < (int)mKeys.size() - 1; i++)
   {
@@ -404,9 +404,9 @@ void WGradient::moveWindow(int x, int y)
 {
   for (int i = 0; i < mKeys.size(); i++)
   {
-    mKeys[i]->moveWindow(x + mKeys[i]->getValue() * mWidth - TRACK_GRADIENT_BUTTON_WIDTH / 2, y);
+    mKeys[i]->moveWindow(x + mKeys[i]->getValue() * mWidth - _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2, y);
   }
-  WindowControlBase::moveWindow(x, y + TRACK_GRADIENT_BUTTON_HEIGHT);
+  WindowControlBase::moveWindow(x, y + _pxS(TRACK_GRADIENT_BUTTON_HEIGHT));
   refresh(true);
 }
 
@@ -454,10 +454,10 @@ void WGradient::setValue(PGradient source)
   clear_and_shrink(mKeys);
 
   WTrackGradientButton *left =
-    new WTrackGradientButton(mEventHandler, mParent, mX, mY - TRACK_GRADIENT_BUTTON_HEIGHT, value[0].color, false, this, 0);
+    new WTrackGradientButton(mEventHandler, mParent, mX, mY - _pxS(TRACK_GRADIENT_BUTTON_HEIGHT), value[0].color, false, this, 0);
 
-  WTrackGradientButton *right = new WTrackGradientButton(mEventHandler, mParent, mX + mWidth - 1, mY - TRACK_GRADIENT_BUTTON_HEIGHT,
-    (mCycled) ? value[0].color : value.back().color, false, this, 1);
+  WTrackGradientButton *right = new WTrackGradientButton(mEventHandler, mParent, mX + mWidth - 1,
+    mY - _pxS(TRACK_GRADIENT_BUTTON_HEIGHT), (mCycled) ? value[0].color : value.back().color, false, this, 1);
 
   mKeys.push_back(left);
   mKeys.push_back(right);
@@ -523,11 +523,11 @@ void WGradient::reset()
     delete mKeys[i];
   clear_and_shrink(mKeys);
 
-  WTrackGradientButton *left =
-    new WTrackGradientButton(mEventHandler, mParent, mX, mY - TRACK_GRADIENT_BUTTON_HEIGHT, E3DCOLOR(255, 255, 255), false, this, 0);
+  WTrackGradientButton *left = new WTrackGradientButton(mEventHandler, mParent, mX, mY - _pxS(TRACK_GRADIENT_BUTTON_HEIGHT),
+    E3DCOLOR(255, 255, 255), false, this, 0);
 
-  WTrackGradientButton *right = new WTrackGradientButton(mEventHandler, mParent, mX + mWidth - 1, mY - TRACK_GRADIENT_BUTTON_HEIGHT,
-    E3DCOLOR(0, 0, 0), false, this, 1);
+  WTrackGradientButton *right = new WTrackGradientButton(mEventHandler, mParent, mX + mWidth - 1,
+    mY - _pxS(TRACK_GRADIENT_BUTTON_HEIGHT), E3DCOLOR(0, 0, 0), false, this, 1);
 
   mKeys.push_back(left);
   mKeys.push_back(right);

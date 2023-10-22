@@ -3,14 +3,14 @@
 #include "p_spin_edit_float.h"
 #include "../c_constants.h"
 
-CSpinEditFloat::CSpinEditFloat(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
-  const char caption[], int prec) :
+CSpinEditFloat::CSpinEditFloat(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y,
+  hdpi::Px w, const char caption[], int prec) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT),
-  mCaption(this, parent->getWindow(), x, y, w - DEFAULT_CONTROL_WIDTH - UP_DOWN_BUTTON_WIDTH - DEFAULT_CONTROLS_INTERVAL,
-    DEFAULT_CONTROL_HEIGHT),
-  mEditor(this, parent->getWindow(), x + mCaption.getWidth() + DEFAULT_CONTROLS_INTERVAL, y,
-    DEFAULT_CONTROL_WIDTH + UP_DOWN_BUTTON_WIDTH, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec)
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT)),
+  mCaption(this, parent->getWindow(), x, y,
+    _px(w) - _pxS(DEFAULT_CONTROL_WIDTH) - _pxS(UP_DOWN_BUTTON_WIDTH) - _pxS(DEFAULT_CONTROLS_INTERVAL), _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mEditor(this, parent->getWindow(), x + mCaption.getWidth() + _pxS(DEFAULT_CONTROLS_INTERVAL), y,
+    _pxS(DEFAULT_CONTROL_WIDTH) + _pxS(UP_DOWN_BUTTON_WIDTH), _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec)
 {
   mCaption.setTextValue(caption);
   mEditor.setValue(0);
@@ -50,7 +50,7 @@ void CSpinEditFloat::moveTo(int x, int y)
   PropertyControlBase::moveTo(x, y);
 
   mCaption.moveWindow(x, y);
-  mEditor.moveWindow(x + mCaption.getWidth() + DEFAULT_CONTROLS_INTERVAL, y);
+  mEditor.moveWindow(x + mCaption.getWidth() + _pxS(DEFAULT_CONTROLS_INTERVAL), y);
 }
 
 
@@ -61,15 +61,15 @@ void CSpinEditFloat::setEnabled(bool enabled)
 }
 
 
-void CSpinEditFloat::setWidth(unsigned w)
+void CSpinEditFloat::setWidth(hdpi::Px w)
 {
-  int minw = DEFAULT_CONTROL_WIDTH + DEFAULT_CONTROLS_INTERVAL + UP_DOWN_BUTTON_WIDTH;
-  w = (w < minw) ? minw : w;
+  int minw = _pxS(DEFAULT_CONTROL_WIDTH) + _pxS(DEFAULT_CONTROLS_INTERVAL) + _pxS(UP_DOWN_BUTTON_WIDTH);
+  w = (_px(w) < minw) ? _pxActual(minw) : w;
 
   PropertyControlBase::setWidth(w);
 
-  mCaption.resizeWindow(w - minw, mCaption.getHeight());
-  mEditor.resizeWindow(DEFAULT_CONTROL_WIDTH + UP_DOWN_BUTTON_WIDTH, mEditor.getHeight());
+  mCaption.resizeWindow(_px(w) - minw, mCaption.getHeight());
+  mEditor.resizeWindow(_pxS(DEFAULT_CONTROL_WIDTH) + _pxS(UP_DOWN_BUTTON_WIDTH), mEditor.getHeight());
 
   this->moveTo(this->getX(), this->getY());
 }

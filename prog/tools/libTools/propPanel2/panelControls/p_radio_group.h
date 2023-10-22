@@ -7,7 +7,7 @@
 class CRadioGroup : public PropertyContainerVert
 {
 public:
-  CRadioGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
+  CRadioGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h,
     const char caption[]);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
@@ -32,7 +32,7 @@ public:
   virtual WindowBase *getWindow();
 
   virtual void setEnabled(bool enabled);
-  virtual void setWidth(unsigned w);
+  virtual void setWidth(hdpi::Px w);
   virtual void reset();
   virtual void clear();
 

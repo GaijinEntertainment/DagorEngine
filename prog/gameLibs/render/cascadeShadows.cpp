@@ -372,7 +372,7 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(csm_render_cascades_cb_t ren
     }
   }
 
-  d3d::set_depth(shadowCascades.getTex2D(), false);
+  d3d::set_depth(shadowCascades.getTex2D(), DepthAccess::RW);
 
   if (!clearPerView)
   {
@@ -927,6 +927,8 @@ void CascadeShadowsPrivate::setFadeOutToShaders(float max_dist)
 {
   G_ASSERT(settings.shadowFadeOut > 0.f);
 
+  // x,y - fade for csm
+  // z,w - fade for next shadow layer (clipmap shadows for example)
   ShaderGlobal::set_color4(csmShadowFadeOutVarId, -1.f / settings.shadowFadeOut, max_dist / settings.shadowFadeOut,
     -1.f / settings.shadowFadeOut, max(max_dist - settings.shadowFadeOut * 1.5f, 0.0f) / settings.shadowFadeOut);
 }

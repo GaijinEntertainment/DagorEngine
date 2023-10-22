@@ -22,9 +22,9 @@ Sources =
 ;
 
 UseProgLibs +=
-  engine2/osApiWrappers
-  engine2/ioSys
-  engine2/baseUtil
+  engine/osApiWrappers
+  engine/ioSys
+  engine/baseUtil
   tools/libTools/util
   3rdPartyLibs/hash/BLAKE3
 ;

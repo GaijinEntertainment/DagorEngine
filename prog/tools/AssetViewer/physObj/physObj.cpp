@@ -27,6 +27,8 @@
 
 #include <winGuiWrapper/wgw_input.h>
 
+using hdpi::_pxActual;
+using hdpi::_pxScaled;
 
 static const int MAX_PHYSOBJ_BODY = 50;
 static const int MAX_PHYSOBJ_MAT = 50;
@@ -515,27 +517,36 @@ public:
   }
 
 
+  void drawText(hdpi::Px x, hdpi::Px y, const char *text, int min_w_pix, E3DCOLOR tc = COLOR_BLACK, E3DCOLOR bc = COLOR_WHITE)
+  {
+    using hdpi::_px;
+    using hdpi::_pxS;
+
+    StdGuiRender::set_color(bc);
+    BBox2 box = StdGuiRender::get_str_bbox(text, strlen(text));
+    StdGuiRender::render_box(_px(x) + box[0].x - _pxS(2), _px(y) + box[0].y - _pxS(2), //
+      _px(x) + _pxS(2) + max<int>(box[1].x, min_w_pix), _px(y) + box[1].y + _pxS(4));
+
+    StdGuiRender::set_color(tc);
+    StdGuiRender::draw_strf_to(_px(x), _px(y), text);
+  }
   void drawSimulationInfo(IGenViewportWnd *wnd)
   {
+    using hdpi::_pxS;
+
     int x, y;
     wnd->getViewportSize(x, y);
 
     StdGuiRender::set_font(0);
     StdGuiRender::set_color(COLOR_WHITE);
 
-    const Point2 size = StdGuiRender::get_str_bbox("peak max XXXXX us").size();
-    const Point2 offset(2, size.y - 4);
-    const int yoffset = 27;
-
-    for (int i = 1; i <= 5; i++)
-      StdGuiRender::render_box(x - size.x, yoffset * i - 2, x, yoffset * i + size.y);
-
-    StdGuiRender::set_color(COLOR_BLACK);
-    StdGuiRender::draw_strf_to(x - size.x + offset.x, yoffset * 1 + offset.y, "mean %d us/act", simulationStat.meanCur);
-    StdGuiRender::draw_strf_to(x - size.x + offset.x, yoffset * 2 + offset.y, "active: %.1f s", simulationStat.simDuration);
-    StdGuiRender::draw_strf_to(x - size.x + offset.x, yoffset * 3 + offset.y, "peak max %d us", simulationStat.peakMax);
-    StdGuiRender::draw_strf_to(x - size.x + offset.x, yoffset * 4 + offset.y, "mean max %d us", simulationStat.meanMax);
-    StdGuiRender::draw_strf_to(x - size.x + offset.x, yoffset * 5 + offset.y, "mean min %d us", simulationStat.meanMin);
+    static const int text_max_w = StdGuiRender::get_str_bbox("peak max XXXXX us").size().x;
+    hdpi::Px left = _pxActual(x - text_max_w), top = _pxScaled(45), ystep = _pxScaled(25);
+    drawText(left, top + ystep * 0, String(0, "mean %d us/act", simulationStat.meanCur), text_max_w);
+    drawText(left, top + ystep * 1, String(0, "active: %.1f s", simulationStat.simDuration), text_max_w);
+    drawText(left, top + ystep * 2, String(0, "peak max %d us", simulationStat.peakMax), text_max_w);
+    drawText(left, top + ystep * 3, String(0, "mean max %d us", simulationStat.meanMax), text_max_w);
+    drawText(left, top + ystep * 4, String(0, "mean min %d us", simulationStat.meanMin), text_max_w);
   }
 
   virtual void handleViewportPaint(IGenViewportWnd *wnd)
@@ -662,6 +673,7 @@ protected:
 #include <vehiclePhys/physCar.h>
 #include "carDriver.h"
 #undef USE_BULLET_PHYSICS
+using hdpi::_pxS;
 
 class VehicleViewPlugin : public PhysObjViewPlugin
 {
@@ -949,11 +961,7 @@ public:
       wnd->getViewportSize(x, y);
 
       StdGuiRender::set_font(0);
-
-      StdGuiRender::set_color(COLOR_BLUE);
-      StdGuiRender::render_box(x - 160, y - 20, x, y);
-      StdGuiRender::set_color(COLOR_WHITE);
-      StdGuiRender::draw_strf_to(x - 155, y - 5, "Driven: WASD");
+      drawText(_pxActual(x) - _pxScaled(140), _pxActual(y) - _pxScaled(7), "Driven: WASD", _pxS(140), COLOR_WHITE, COLOR_BLUE);
     }
   }
 

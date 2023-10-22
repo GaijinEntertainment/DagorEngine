@@ -18,6 +18,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_files.h>
+#include <daScript/daScript.h>
 #include <daScript/simulate/bin_serializer.h>
 #include <daECS/core/coreEvents.h>
 #include <daScript/misc/smart_ptr.h>
@@ -44,9 +45,15 @@ extern void reset_es_order();
 
 namespace bind_dascript
 {
-thread_local das_context_log_cb global_context_log_cb;
+das_context_log_cb global_context_log_cb;
 
 extern ecs::event_flags_t get_dasevent_cast_flags(ecs::event_type_t type);
+extern bool enableSerialization;
+extern bool serializationReading;
+extern bool suppressSerialization;
+extern das::AstSerializer initSerializer;
+extern das::AstSerializer initDeserializer;
+
 struct LoadedScript;
 
 static das::daScriptEnvironment *mainThreadBound = nullptr;
@@ -108,19 +115,23 @@ void set_always_use_main_thread_env(bool value) { alwaysUseMainThreadEnv = value
 
 struct RAIIDasEnvBound
 {
+  das::daScriptEnvironment *savedBound = nullptr;
   RAIIDasEnvBound()
   {
     if (alwaysUseMainThreadEnv)
     {
       G_ASSERT(mainThreadBound);
       if (!is_main_thread())
+      {
+        savedBound = das::daScriptEnvironment::bound; // Preserve old value for nested ESes
         das::daScriptEnvironment::bound = mainThreadBound;
+      }
     }
   };
   ~RAIIDasEnvBound()
   {
     if (alwaysUseMainThreadEnv && !is_main_thread())
-      das::daScriptEnvironment::bound = nullptr;
+      das::daScriptEnvironment::bound = savedBound;
   };
 };
 
@@ -1767,8 +1778,42 @@ struct DascriptLoadJob final : public DaThread
 
 static bool fill_stack_while_compile_das() { return !(bool)::dgs_get_argv("das-no-stack-fill", DAGOR_DBGLEVEL > 0 ? "y" : nullptr); }
 
+static bool load_scripts_from_serialized_data()
+{
+  bool ok = true;
+  uint64_t size = 0;
+  initDeserializer << size;
+  for (size_t i = 0; i < size; i++)
+  {
+    das::string name;
+    initDeserializer << name;
+    auto file_access = das::make_smart<DagFileAccess>(scripts.getFileAccess(), globally_hot_reload);
+    ok = scripts.loadScript(name, file_access, globally_aot_mode, ResolveECS::NO, LogAotErrors::YES) && ok;
+  }
+  // clean up module memory
+  for (auto &[name, script] : scripts.scripts)
+  {
+    if (!script.program->options.getBoolOption("rtti", false) && !das::is_in_aot())
+      script.program.reset();
+    script.moduleGroup->reset();
+  }
+  enableSerialization = false;
+  loadingQueue.clear(); // clear the queue
+#if DAGOR_DBGLEVEL > 0
+  loadingQueueHash.clear();
+#endif
+  return ok;
+}
+
 static bool stop_das_loading_queue(TInitDas init)
 {
+  globally_loading_in_queue = false;
+
+  if (enableSerialization && serializationReading)
+    return load_scripts_from_serialized_data();
+  else if (enableSerialization && !serializationReading)
+    suppressSerialization = true; // do not write the data in serveral threads, it's written after compiling everything in execute()
+
   bool ok = true;
   das::vector<eastl::string> queue;
   loadingQueue.swap(queue);
@@ -1797,6 +1842,40 @@ static bool stop_das_loading_queue(TInitDas init)
   for (int i = 1, n = jobs.size(); i < n; ++i)
     jobs[i].terminate(/*wait*/ true);
 
+  if (enableSerialization && !serializationReading)
+  {
+    uint64_t filesCount = 0;
+    for (auto &fname : queue)
+    {
+      if (scripts.scripts[fname].program)
+      {
+        filesCount += 1;
+      }
+    }
+    initSerializer << filesCount;
+    for (auto &fname : queue)
+    {
+      auto &script = scripts.scripts[fname];
+      if (script.program)
+      {
+        initSerializer << fname;
+        debug("das: ser: Serializing file %s", fname);
+        script.program->serialize(initSerializer);
+      }
+    }
+  }
+
+  // clean up module memory
+  for (auto &[fname, script] : scripts.scripts)
+  {
+    if (script.program)
+    {
+      if (!script.program->options.getBoolOption("rtti", false) && !das::is_in_aot())
+        script.program.reset();
+      script.moduleGroup->reset();
+    }
+  }
+
   {
     RAIIDasTempEnv env;
     for (int i = 1; i < jobs.size(); ++i)
@@ -1822,9 +1901,6 @@ static bool stop_das_loading_queue(TInitDas init)
 
 bool internal_load_entry_script(const char *fname, TInitDas init)
 {
-  if (globally_load_threads_num <= 1)
-    return internal_load_das_script(fname, ResolveECS::NO);
-
   G_ASSERT(!globally_loading_in_queue && loadingQueue.empty());
   globally_loading_in_queue = true;
   const bool res = scripts.loadScript(fname, das::make_smart<DagFileAccess>(scripts.getFileAccess(), globally_hot_reload),
@@ -1861,6 +1937,7 @@ bool load_entry_script(const char *entry_point_name, TInitDas init, LoadEntryScr
   }
   scripts.done();
   scripts.cleanupMemoryUsage();
+  initDeserializer.moduleLibrary = nullptr; // Memory has already been reset
   scripts.statistics.loadTimeMs = profile_time_usec(startTime) / 1000;
   scripts.statistics.memoryUsage = int64_t(dagor_memory_stat::get_memory_allocated(true) - memUsed) + ctx.additionalMemoryUsage;
   dump_statistics();

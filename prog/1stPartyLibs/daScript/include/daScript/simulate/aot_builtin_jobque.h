@@ -60,6 +60,7 @@ namespace das {
         Channel( Context * ctx, int count) : owner(ctx) { mRemaining = count; }
         virtual ~Channel();
         void push ( void * data, TypeInfo * ti, Context * context );
+        void pushBatch ( void ** data, int count, TypeInfo * ti, Context * context );
         void pop ( const TBlock<void,void *> & blk, Context * context, LineInfoArg * at );
         bool isEmpty() const;
         int total() const;
@@ -128,6 +129,7 @@ namespace das {
     void notifyJob ( JobStatus * status, Context * context, LineInfoArg * at );
     void notifyAndReleaseJob ( JobStatus * & status, Context * context, LineInfoArg * at );
     vec4f channelPush ( Context & context, SimNode_CallBase * call, vec4f * args );
+    vec4f channelPushBatch ( Context & context, SimNode_CallBase * call, vec4f * args );
     void channelPop ( Channel * ch, const TBlock<void,void*> & blk, Context * context, LineInfoArg * at );
     int jobAppend ( JobStatus * ch, int size, Context * context, LineInfoArg * at );
     void withChannel ( const TBlock<void,Channel *> & blk, Context * context, LineInfoArg * lineinfo );

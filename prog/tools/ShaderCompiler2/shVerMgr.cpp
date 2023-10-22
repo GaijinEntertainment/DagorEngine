@@ -3,30 +3,20 @@
 #include "shLog.h"
 #include "shHardwareOpt.h"
 
-static int forceFSH = FSH_AS_HARDWARE;
+static d3d::shadermodel::Version forceFSH = d3d::smAny;
 static bool forceFSHisInited = false;
 
 // return maximum permitted FSH version
-int getMaxFSHVersion() { return forceFSH; }
-void limitMaxFSHVersion(int f) { forceFSH = f; }
+d3d::shadermodel::Version getMaxFSHVersion() { return forceFSH; }
+void limitMaxFSHVersion(d3d::shadermodel::Version f) { forceFSH = f; }
 
-ShHardwareOptions ShHardwareOptions::Defaults(FSHVER_R300);
+ShHardwareOptions ShHardwareOptions::Defaults(4.0_sm);
 
 void ShHardwareOptions::appendOpts(String &fname) const
 {
-  const char *ver = NULL;
-  switch (fshVersion)
-  {
-    case FSHVER_30: ver = "ps30"; break;
-    case FSHVER_40: ver = "ps40"; break;
-    case FSHVER_41: ver = "ps41"; break;
-    case FSHVER_50: ver = "ps50"; break;
-    case FSHVER_60: ver = "ps60"; break;
-    case FSHVER_66: ver = "ps66"; break;
-  }
-  G_ASSERT(ver);
-
-  fname.aprintf(8, ".%s", ver);
+  auto str = d3d::as_ps_string(fshVersion);
+  G_ASSERT(str[0] != '\0');
+  fname.aprintf(8, ".%s", str);
 }
 
 

@@ -1,4 +1,4 @@
-from "frp" import *
+from "%sqstd/frp.nut" import *
 from "daRg" import *
 
 let {tostring_r} = require("%sqstd/string.nut")

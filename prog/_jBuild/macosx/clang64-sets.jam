@@ -1,4 +1,4 @@
-#  Setup for gcc4 compiler for MACOSX (to be included from jBuild.jam)
+#  Setup for clang compiler for MACOSX (to be included from jBuild.jam)
 
 _OBJ_SUFFIX  = .o ;
 
@@ -13,6 +13,7 @@ local _DEF_COM_CMDLINE =
   -Wno-nonportable-include-path -Wno-null-dereference
   -Wno-undefined-var-template -Wno-constant-conversion
   -Wno-inconsistent-missing-override
+  -Wno-deprecated-builtins -Wno-unused-command-line-argument
   -ffunction-sections -fdata-sections
   -ffast-math -ffinite-math-only -fno-reciprocal-math
   "\"-D__forceinline=inline __attribute__((always_inline))\"" -D__cdecl= -D__stdcall= -D__fastcall

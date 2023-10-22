@@ -127,7 +127,7 @@ void bind_statsd(SqModules *module_mgr)
         Sqrat::Var<const char *> stat(vm, 2);
         Sqrat::Var<int> value(vm, 3);
         Sqrat::Var<statsd::MetricTags> sqtags(vm, 4);
-        statsd::profile(stat.value, value.value, sqtags.value);
+        statsd::profile(stat.value, (long)value.value, sqtags.value);
         return 1;
       },
       -3, ".sit")
@@ -143,7 +143,7 @@ void bind_statsd(SqModules *module_mgr)
         Sqrat::Var<const char *> stat(vm, 2);
         Sqrat::Var<int> value(vm, 3);
         Sqrat::Var<statsd::MetricTags> sqtags(vm, 4);
-        statsd::histogram(stat.value, value.value, sqtags.value);
+        statsd::histogram(stat.value, (long)value.value, sqtags.value);
         return 1;
       },
       -3, ".sit");

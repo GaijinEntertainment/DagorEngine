@@ -179,9 +179,6 @@ Point3 GridObject::snapToScale(const Point3 &p) const
 }
 
 
-const int GRID_EDIT_DIALOG_WIDTH = 300;
-const int GRID_EDIT_DIALOG_HEIGHT = 300;
-
 enum
 {
   ID_SHOW_VIEWPORT_CHECKBOX = 500,
@@ -198,7 +195,7 @@ enum
 
 
 GridEditDialog::GridEditDialog(void *phandle, GridObject &grid, const char *caption, int view_port_index) :
-  CDialogWindow(phandle, GRID_EDIT_DIALOG_WIDTH, GRID_EDIT_DIALOG_HEIGHT, caption), mGrid(grid), index(view_port_index)
+  CDialogWindow(phandle, hdpi::_pxScaled(300), hdpi::_pxScaled(300), caption), mGrid(grid), index(view_port_index)
 {
   G_ASSERT(&mGrid);
   fillPanel();

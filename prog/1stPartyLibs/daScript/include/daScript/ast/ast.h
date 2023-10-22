@@ -8,6 +8,7 @@
 #include "daScript/misc/rangetype.h"
 #include "daScript/simulate/data_walker.h"
 #include "daScript/simulate/debug_info.h"
+#include "daScript/ast/ast_serialize_macro.h"
 #include "daScript/ast/compilation_errors.h"
 #include "daScript/ast/ast_typedecl.h"
 #include "daScript/simulate/aot_library.h"
@@ -22,6 +23,8 @@
 
 namespace das
 {
+    struct AstSerializer;
+
     class Function;
     typedef smart_ptr<Function> FunctionPtr;
 
@@ -63,6 +66,13 @@ namespace das
 
     struct AnnotationArgumentList;
     struct AnnotationDeclaration;
+    typedef smart_ptr<AnnotationDeclaration> AnnotationDeclarationPtr;
+
+    enum class LogicAnnotationOp { And, Or, Xor, Not };
+    AnnotationPtr newLogicAnnotation ( LogicAnnotationOp op );
+    AnnotationPtr newLogicAnnotation ( LogicAnnotationOp op,
+        const AnnotationDeclarationPtr & arg0, const AnnotationDeclarationPtr & arg1 );
+
 
     //      [annotation (value,value,...,value)]
     //  or  [annotation (key=value,key,value,...,key=value)]
@@ -94,6 +104,7 @@ namespace das
             : type(Type::tFloat), name(n), fValue(f), at(loc) {}
         AnnotationArgument ( const string & n, AnnotationArgumentList * al, const LineInfo & loc = LineInfo() )
             : type(Type::none), name(n), aList(al), at(loc) {}
+        void serialize ( AstSerializer & ser );
     };
 
     typedef vector<AnnotationArgument> AnnotationArguments;
@@ -102,6 +113,7 @@ namespace das
         const AnnotationArgument * find ( const string & name, Type type ) const;
         bool getBoolOption(const string & name, bool def = false) const;
         int32_t getIntOption(const string & name, int32_t def = false) const;
+        void serialize ( AstSerializer & ser );
     };
 
     struct Annotation : BasicAnnotation {
@@ -117,6 +129,7 @@ namespace das
         string describe() const { return name; }
         string getMangledName() const;
         virtual void log ( TextWriter & ss, const AnnotationDeclaration & decl ) const;
+        virtual void serialize( AstSerializer & ) { }
         Module *    module = nullptr;
     };
 
@@ -131,8 +144,8 @@ namespace das
             uint32_t            flags;
         };
         string getMangledName() const;
+        void serialize( AstSerializer & ser );
     };
-    typedef smart_ptr<AnnotationDeclaration> AnnotationDeclarationPtr;
 
     typedef vector<AnnotationDeclarationPtr> AnnotationList;
 
@@ -145,6 +158,7 @@ namespace das
             string          cppName;
             LineInfo        at;
             ExpressionPtr   value;
+            void serialize ( AstSerializer & ser );
         };
     public:
         Enumeration() = default;
@@ -162,6 +176,7 @@ namespace das
         TypeDeclPtr makeBaseType() const;
         Type getEnumType() const;
         TypeDeclPtr makeEnumType() const;
+        void serialize ( AstSerializer & ser );
     public:
         string              name;
         string              cppName;
@@ -215,6 +230,7 @@ namespace das
                     }
                 }
             }
+            void serialize ( AstSerializer & ser );
         };
     public:
         Structure() {}
@@ -249,6 +265,7 @@ namespace das
         string describe() const { return name; }
         string getMangledName() const;
         bool hasAnyInitializers() const;
+        void serialize( AstSerializer & ser );
     public:
         string                          name;
         vector<FieldDeclaration>        fields;
@@ -272,6 +289,8 @@ namespace das
                 bool    skipLockCheck : 1;
                 bool    circular : 1;
                 bool    generator : 1;
+                bool    hasStaticMembers : 1;
+                bool    hasStaticFunctions : 1;
             };
             uint32_t    flags = 0;
         };
@@ -289,6 +308,7 @@ namespace das
         uint64_t getMangledNameHash() const;
         bool isAccessUnused() const;
         bool isCtorInitialized() const;
+        void serialize ( AstSerializer & ser );
         string          name;
         string          aka;        // name alias
         TypeDeclPtr     type;
@@ -321,6 +341,7 @@ namespace das
                 bool    no_capture : 1;
                 bool    early_out : 1;              // this variable is potentially uninitialized in the finally section
                 bool    used_in_finally : 1;        // this variable is used in the finally section
+                bool    static_class_member : 1;    // this is a static class member
             };
             uint32_t flags = 0;
         };
@@ -494,6 +515,8 @@ namespace das
         virtual void walk ( DataWalker &, void * ) { }
         // familiar patterns
         virtual bool isYetAnotherVectorTemplate() const { return false; }   // has [], there is length(x), data is linear in memory
+        // factory
+        virtual void * factory () const { return nullptr; }
     };
 
     struct StructureAnnotation : Annotation {
@@ -608,6 +631,7 @@ namespace das
         virtual Expression * tail() { return this; }
         virtual bool swap_tail ( Expression *, Expression * ) { return false; }
         virtual uint32_t getEvalFlags() const { return 0; }
+        virtual void serialize ( AstSerializer & ser );
         LineInfo    at;
         TypeDeclPtr type;
         const char * __rtti = nullptr;
@@ -667,6 +691,7 @@ namespace das
         virtual bool rtti_isConstant() const override { return true; }
         template <typename QQ> QQ & cvalue() { return *((QQ *)&value); }
         template <typename QQ> const QQ & cvalue() const { return *((const QQ *)&value); }
+        virtual void serialize ( AstSerializer & ser ) override;
         Type    baseType = Type::none;
         vec4f   value = v_zero();
       };
@@ -723,6 +748,7 @@ namespace das
         Function *  func = nullptr;
         InferHistory() = default;
         InferHistory(const LineInfo & a, const FunctionPtr & p) : at(a), func(p.get()) {}
+        void serialize ( AstSerializer & ser );
     };
     class Function : public ptr_ref_count {
     public:
@@ -765,6 +791,7 @@ namespace das
         }
         FunctionPtr addToModule ( Module & mod, SideEffects seFlags );
         FunctionPtr getOrigin() const;
+        void serialize ( AstSerializer & ser );
     public:
         AnnotationList      annotations;
         string              name;
@@ -786,6 +813,7 @@ namespace das
             Variable *  var = nullptr;
             Function *  func = nullptr;
             bool        viaPointer = false;
+            void serialize ( AstSerializer & ser );
         };
         vector<AliasInfo>  resultAliasesGlobals;
     // end of what we use for alias checking
@@ -848,10 +876,11 @@ namespace das
                 bool    propertyFunction : 1;
                 bool    pinvoke : 1;
                 bool    jitOnly : 1;
+                bool    isStaticClassMethod : 1;
             };
             uint32_t moreFlags = 0;
-
         };
+
         union {
             struct {
                 bool unsafeFunction : 1;
@@ -1005,10 +1034,12 @@ namespace das
         TypeDeclPtr findAlias ( const string & name ) const;
         VariablePtr findVariable ( const string & name ) const;
         FunctionPtr findFunction ( const string & mangledName ) const;
+        FunctionPtr findGeneric ( const string & mangledName ) const;
         FunctionPtr findUniqueFunction ( const string & name ) const;
         StructurePtr findStructure ( const string & name ) const;
         AnnotationPtr findAnnotation ( const string & name ) const;
         EnumerationPtr findEnum ( const string & name ) const;
+        ReaderMacroPtr findReaderMacro ( const string & name ) const;
         TypeInfoMacroPtr findTypeInfoMacro ( const string & name ) const;
         ExprCallFactory * findCall ( const string & name ) const;
         bool isVisibleDirectly ( Module * objModule ) const;
@@ -1029,6 +1060,7 @@ namespace das
         void verifyBuiltinNames(uint32_t flags);
         void addDependency ( Module * mod, bool pub );
         void addBuiltinDependency ( ModuleLibrary & lib, Module * mod, bool pub = false );
+        void serialize( AstSerializer & ser );
     public:
         template <typename RecAnn>
         void initRecAnnotation ( const smart_ptr<RecAnn> & rec, ModuleLibrary & lib ) {
@@ -1090,6 +1122,7 @@ namespace das
                 bool    isModule : 1;
                 bool    isSolidContext : 1;
                 bool    doNotAllowUnsafe : 1;
+                bool    wasParsedNameless : 1;
             };
             uint32_t        moduleFlags = 0;
         };
@@ -1157,6 +1190,7 @@ namespace das
         TypeDeclPtr makeHandleType ( const string & name ) const;
         TypeDeclPtr makeEnumType ( const string & name ) const;
         Module* front() const { return modules.front(); }
+        vector<Module *> & getModules() { return modules; }
         Module* getThisModule() const { return thisModule; }
         void reset();
     protected:
@@ -1255,7 +1289,7 @@ namespace das
         EnumInfo * makeEnumDebugInfo ( const Enumeration & en );
         FuncInfo * makeInvokeableTypeDebugInfo ( const TypeDeclPtr & blk, const LineInfo & at );
         void appendLocalVariables ( FuncInfo * info, const ExpressionPtr & body );
-         void appendGlobalVariables ( FuncInfo * info, const FunctionPtr & body );
+        void appendGlobalVariables ( FuncInfo * info, const FunctionPtr & body );
         void logMemInfo ( TextWriter & tw );
     public:
         shared_ptr<DebugInfoAllocator>  debugInfo;
@@ -1270,6 +1304,7 @@ namespace das
 
     struct CodeOfPolicies {
         bool        aot = false;                        // enable AOT
+        bool        standalone_context = false;         // generate standalone context class in aot mode
         bool        aot_module = false;                 // this is how AOT tool knows module is module, and not an entry point
         bool        completion = false;                 // this code is being compiled for 'completion' mode
         bool        export_all = false;                 // when user compiles, export all (public?) functions
@@ -1313,6 +1348,8 @@ namespace das
         bool no_optimizations = false;                  // disable optimizations, regardless of settings
         bool fail_on_no_aot = true;                     // AOT link failure is error
         bool fail_on_lack_of_aot_export = false;        // remove_unused_symbols = false is missing in the module, which is passed to AOT
+        bool log_compile_time = false;                  // if true, then compile time will be printed at the end of the compilation
+        bool log_total_compile_time = false;            // if true, then detailed compile time will be printed at the end of the compilation
     // debugger
         //  when enabled
         //      1. disables [fastcall]
@@ -1403,7 +1440,7 @@ namespace das
         void allocateStack(TextWriter & logs);
         void deriveAliases(TextWriter & logs);
         bool simulate ( Context & context, TextWriter & logs, StackAllocator * sharedStack = nullptr );
-        uint64_t getInitSemanticHashWithDep( uint64_t initHash ) const;
+        uint64_t getInitSemanticHashWithDep( uint64_t initHash );
         void error ( const string & str, const string & extra, const string & fixme, const LineInfo & at, CompilationError cerr = CompilationError::unspecified );
         bool failed() const { return failToCompile || macroException; }
         static ExpressionPtr makeConst ( const LineInfo & at, const TypeDeclPtr & type, vec4f value );
@@ -1417,7 +1454,9 @@ namespace das
         void visit(Visitor & vis, bool visitGenerics = false);
         void setPrintFlags();
         void aotCpp ( Context & context, TextWriter & logs );
-        void registerAotCpp ( TextWriter & logs, Context & context, bool headers = true );
+        void writeStandaloneContext ( TextWriter & logs );
+        void writeStandaloneContextMethods ( TextWriter & logs );
+        void registerAotCpp ( TextWriter & logs, Context & context, bool headers = true, bool allModules = false );
         void validateAotCpp ( TextWriter & logs, Context & context );
         void buildMNLookup ( Context & context, const vector<FunctionPtr> & lookupFunctions, TextWriter & logs );
         void buildGMNLookup ( Context & context, TextWriter & logs );
@@ -1427,6 +1466,7 @@ namespace das
         bool getProfiler() const;
         void makeMacroModule( TextWriter & logs );
         vector<ReaderMacroPtr> getReaderMacro ( const string & markup ) const;
+        void serialize ( AstSerializer & ser );
     protected:
         // this is no longer the way to link AOT
         //  set CodeOfPolicies::aot instead
@@ -1461,6 +1501,7 @@ namespace das
         uint32_t                    globalStringHeapSize = 0;
         bool                        folding = false;
         bool                        reportingInferErrors = false;
+        uint64_t                    initSemanticHashWithDep = 0;
         union {
             struct {
                 bool    failToCompile : 1;
@@ -1487,6 +1528,7 @@ namespace das
 
     // access function from class adapter
     int adapt_field_offset ( const char * fName, const StructInfo * info );
+    int adapt_field_offset_ex ( const char * fName, const StructInfo * info, uint32_t & i );
     char * adapt_field ( const char * fName, char * pClass, const StructInfo * info );
     Func adapt ( const char * funcName, char * pClass, const StructInfo * info );
 
@@ -1547,6 +1589,7 @@ namespace das
         int             das_def_tab_size = 4;
         bool            g_resolve_annotations = true;
         TextWriter *    g_compilerLog = nullptr;
+        int64_t         macroTimeTicks = 0;
         DebugAgentInstance g_threadLocalDebugAgent;
         static DAS_THREAD_LOCAL daScriptEnvironment * bound;
         static DAS_THREAD_LOCAL daScriptEnvironment * owned;

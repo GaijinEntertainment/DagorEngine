@@ -40,6 +40,13 @@ extern "C" int64_t get_time_nsec ( int64_t reft ) {
     return  int64_t((t0-reft)*1000000000LL/freq.QuadPart);
 }
 
+extern "C" int64_t ref_time_delta_to_usec(int64_t ref)
+{
+    LARGE_INTEGER freq;
+    QueryPerformanceCounter(&freq);
+    return ref * 1000000LL/freq.QuadPart;
+}
+
 #elif __linux__ || defined(_EMSCRIPTEN_VER)
 
 #include <time.h>
@@ -64,6 +71,8 @@ extern "C" int64_t get_time_nsec ( int64_t reft ) {
     return  ref_time_ticks() - reft;
 }
 
+extern "C" int64_t ref_time_delta_to_usec(int64_t ref) { return ref / (NSEC_IN_SEC/1000000LL); }
+
 
 #else // osx
 
@@ -80,5 +89,7 @@ extern "C" int get_time_usec ( int64_t reft ) {
 extern "C" int64_t get_time_nsec ( int64_t reft ) {
     return clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW) - reft;
 }
+
+extern "C" int64_t ref_time_delta_to_usec(int64_t ref) { return ref / 1000LL; }
 
 #endif

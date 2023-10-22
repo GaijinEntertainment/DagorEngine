@@ -780,8 +780,8 @@ def generate_module_opcodes_writer(language):
 
 def generate_module_writer(language, cfg, module_sections_json):
   result = '// auto generated, do not modify!\n'
-  result += '#include <spirv/module_builder.h>\n'
   result += '#include "{}"\n'.format(cfg.get('module-node-file-name'))
+  result += '#include <spirv/module_builder.h>\n'
   result += 'using namespace spirv;\n'
 
   sectionRoot = compile_module_sections(module_sections_json)

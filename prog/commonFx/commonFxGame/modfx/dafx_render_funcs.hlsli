@@ -12,7 +12,8 @@ float dafx_sample_depth(uint2 tci, GlobalData_cref gdata)
 #ifdef DAFX_DEPTH_FOR_COLLISION
   uint2 limit = uint2(gdata.depth_size_for_collision.xy);
 #else
-  uint2 limit = uint2(gdata.depth_size.xy);
+  tci += gdata.depth_tci_offset.xy;
+  uint2 limit = uint2(gdata.depth_size.xy) + gdata.depth_tci_offset.xy;
 #endif
   return texelFetch(DAFX_DEPTH_TEX, min(tci, limit - uint2(1, 1)), 0).r; // tc _must_ be clamped, otherwise it causes huge spike on NV 10XX series
 }

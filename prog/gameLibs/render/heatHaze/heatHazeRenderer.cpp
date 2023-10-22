@@ -116,7 +116,7 @@ void HeatHazeRenderer::renderHazeParticles(Texture *haze_depth, Texture *haze_of
 
   TextureInfo hazeOffsetInfo;
   haze_offset->getinfo(hazeOffsetInfo);
-  d3d::set_render_target({haze_depth, 0, 0}, false, {{haze_offset, 0, 0}});
+  d3d::set_render_target({haze_depth, 0, 0}, DepthAccess::RW, {{haze_offset, 0, 0}});
 
   ShaderGlobal::set_color4(inv_distortion_resolutionVarId, 1.0f / hazeOffsetInfo.w, 1.0f / hazeOffsetInfo.h);
   ShaderGlobal::set_int(rendering_distortion_colorVarId, 0);
@@ -146,7 +146,7 @@ void HeatHazeRenderer::renderColorHaze(Texture *haze_color, RenderHazeParticlesC
 {
   SCOPE_RENDER_TARGET;
 
-  d3d::set_render_target({nullptr, 0, 0}, false, {{haze_color, 0, 0}});
+  d3d::set_render_target({nullptr, 0, 0}, DepthAccess::RW, {{haze_color, 0, 0}});
 
   ShaderGlobal::set_int(rendering_distortion_colorVarId, 1);
 
@@ -203,7 +203,7 @@ void HeatHazeRenderer::applyHaze(double total_time, Texture *back_buffer, const 
     back_buffer->texfilter(TEXFILTER_POINT);
     ShaderGlobal::set_texture(source_texVarId, back_buffer_id);
     ShaderGlobal::set_color4(haze_source_tex_uv_transformVarId, uvt);
-    d3d::set_depth(nullptr, false);
+    d3d::set_depth(nullptr, DepthAccess::RW);
 
     ShaderGlobal::set_color4(haze_paramsVarId, 0.5f / back_buffer_resolution.x, 0.5f / back_buffer_resolution.y, hazeLuminanceScale.x,
       hazeLuminanceScale.y);
@@ -212,7 +212,7 @@ void HeatHazeRenderer::applyHaze(double total_time, Texture *back_buffer, const 
 
     back_buffer->texfilter(TEXFILTER_DEFAULT);
     d3d::set_render_target(back_buffer, 0);
-    d3d::set_depth(NULL, false);
+    d3d::set_depth(NULL, DepthAccess::RW);
     if (back_buffer_area)
     {
       auto ba = back_buffer_area;
@@ -275,7 +275,7 @@ void HeatHazeRenderer::clearTargets(Texture *haze_color, Texture *haze_offset, T
   }
 
   d3d::set_render_target(haze_offset, 0);
-  d3d::set_depth(haze_depth, false);
+  d3d::set_depth(haze_depth, DepthAccess::RW);
   d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER, E3DCOLOR_MAKE(0x00, 0x00, 0x00, 0x00), 0.f, 0);
   d3d::resource_barrier({haze_offset, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   d3d::resource_barrier({haze_depth, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});

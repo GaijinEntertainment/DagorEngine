@@ -1,7 +1,7 @@
 #pragma once
 
 #include <EASTL/span.h>
-#include <EASTL/string.h>
+#include <EASTL/fixed_string.h>
 #include <EASTL/variant.h>
 #include <EASTL/optional.h>
 
@@ -11,7 +11,6 @@
 #include <3d/dag_drv3d.h>
 #include <3d/dag_resPtr.h>
 #include <shaders/dag_shaderCommon.h>
-#include <memory/allocator.h>
 
 #include <render/daBfg/externalResources.h>
 #include <render/daBfg/multiplexing.h>
@@ -23,7 +22,7 @@
 #include <render/daBfg/detail/projectors.h>
 
 #include <id/idIndexedMapping.h>
-#include <api/autoResolution.h>
+#include <api/autoResolutionData.h>
 
 #include <resourceUsage.h>
 #include <bindingType.h>
@@ -36,12 +35,6 @@
 
 namespace dabfg
 {
-
-// String with a custom allocator to improve allocation performance.
-// Should only be used for strings that are not persistent between compilations.
-// Also the total size of all strings stored in one compilation
-// must be smaller than the preallocated DEFAULT_ALLOCATOR_SIZE.
-using PerCompString = eastl::basic_string<char, PerCompilationAllocator>;
 
 namespace intermediate
 {
@@ -73,9 +66,6 @@ struct Request
 
 struct Node
 {
-  // For debug purposes only
-  PerCompString name;
-
   // TODO: this approach won't work with subpasses
   priority_t priority;
 
@@ -118,9 +108,6 @@ struct ScheduledResource
 
 struct Resource
 {
-  // For debug purposes only
-  PerCompString name;
-
   eastl::variant<ScheduledResource, ExternalResource> resource;
 
   // Renaming a resource changes its' ResNameId, but still leaves it
@@ -229,12 +216,18 @@ struct RequiredNodeState
 
 class Mapping;
 
+using DebugNodeName = eastl::fixed_string<char, 64>;
+// Resource names are longer due to renaming chains
+using DebugResourceName = eastl::fixed_string<char, 128>;
+
 struct Graph
 {
   IdIndexedMapping<ResourceIndex, Resource> resources;
   IdIndexedMapping<NodeIndex, Node> nodes;
-  // DoD suggests this should not be inside Node
+  // DoD suggests these should not be inside Node/Resource
   IdIndexedMapping<NodeIndex, RequiredNodeState> nodeStates;
+  IdIndexedMapping<NodeIndex, DebugNodeName> nodeNames;
+  IdIndexedMapping<ResourceIndex, DebugResourceName> resourceNames;
 
   // Choses a subgraph by selecting some nodes and specifying their order
   // Argument must map "old -> new" index and not contain any gaps

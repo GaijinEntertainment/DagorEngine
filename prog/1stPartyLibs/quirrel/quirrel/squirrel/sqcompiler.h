@@ -4,15 +4,21 @@
 
 struct SQVM;
 class OutputStream;
+class Arena;
+
 namespace SQCompilation
 {
-  class RootBlock;
-  class Node;
-}
 
-using SqAstNode = SQCompilation::Node;
+class RootBlock;
 
-class Arena;
+class Comments;
+
+struct SqASTData {
+  Arena *astArena;
+  RootBlock *root;
+  const SQChar *sourceName;
+  class Comments *comments;
+};
 
 #define TK_IDENTIFIER   258
 #define TK_STRING_LITERAL   259
@@ -114,6 +120,7 @@ enum SQExpressionContext
   SQE_LOOP_CONDITION,
   SQE_FUNCTION_ARG,
   SQE_RVALUE,
+  SQE_ARRAY_ELEM,
 };
 
 
@@ -162,12 +169,15 @@ enum SQExpressionContext
 
 
 typedef void(*CompilerErrorFunc)(void *ud, const SQChar *s);
-bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo, bool use_ast);
+bool Compile(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo);
+
 bool CompileWithAst(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo);
-bool CompileOnePass(SQVM *vm, const char *sourceText, size_t sourceTextSize, const HSQOBJECT *bindings, const SQChar *sourcename, SQObjectPtr &out, bool raiseerror, bool lineinfo);
-SQCompilation::RootBlock *ParseToAST(Arena *astArena, SQVM *vm, const char *sourceText, size_t sourceTextSize, const SQChar *sourcename, bool raiseerror);
+
+SqASTData *ParseToAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, const SQChar *sourcename, bool preserveComments, bool raiseerror);
 bool ParseAndSaveBinaryAST(SQVM *vm, const char *sourceText, size_t sourceTextSize, const SQChar *sourcename, OutputStream *ostream, bool raiseerror);
-bool TranslateASTToBytecode(SQVM *vm, SqAstNode *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const char *sourceText, size_t sourceTextSize, SQObjectPtr &out, bool raiseerror, bool lineinfo);
+bool TranslateASTToBytecode(SQVM *vm, SqASTData *astData, const HSQOBJECT *bindings, const char *sourceText, size_t sourceTextSize, SQObjectPtr &out, bool raiseerror, bool lineinfo);
 bool TranslateBinaryASTToBytecode(SQVM *vm, const uint8_t *buffer, size_t size, const HSQOBJECT *bindings, SQObjectPtr &out, bool raiseerror, bool lineinfo);
-void AnalyseCode(SQVM *vm, SqAstNode *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const char *sourceText, size_t sourceTextSize);
+void AnalyseCode(SQVM *vm, SqASTData *astData, const HSQOBJECT *bindings, const char *sourceText, size_t sourceTextSize);
+
+}; // SQCompilation
 #endif //_SQCOMPILER_H_

@@ -10,13 +10,13 @@
 #include <gui/dag_stdGuiRenderEx.h>
 #include <winGuiWrapper/wgw_input.h>
 
+using hdpi::_pxS;
 
-#define AXIS_LEN_PIX      100
+#define AXIS_LEN_PIX      _pxS(100)
 #define ELLIPSE_SEG_COUNT 30
 #define ELLIPSE_STEP      (TWOPI / ELLIPSE_SEG_COUNT)
-#define GISMO_PIXEL_WIDTH 4
-#define GISMO_BOX_WIDTH   4
-#define MAX_MOVE_LEN      10
+#define GISMO_PIXEL_WIDTH _pxS(4)
+#define GISMO_BOX_WIDTH   _pxS(4)
 #define FILL_MASK         0xAAAAAAAA
 #define GIZMO_METER       0.01
 #define MAX_TRACE_DIST    1000.0
@@ -346,7 +346,7 @@ void GizmoEventFilter::startGizmo(IGenViewportWnd *wnd, int x, int y)
     Point2 pos, dx, dy;
     int delta = GISMO_PIXEL_WIDTH;
     int count = 0;
-    float dist2, min_dist2 = GISMO_PIXEL_WIDTH * GISMO_PIXEL_WIDTH * 32;
+    float dist2, min_dist2 = float(GISMO_PIXEL_WIDTH * GISMO_PIXEL_WIDTH * 32);
 
 
     startPos2d[vp_i] -= vp[vp_i].center;
@@ -380,7 +380,7 @@ void GizmoEventFilter::startGizmo(IGenViewportWnd *wnd, int x, int y)
       {
         delta += GISMO_PIXEL_WIDTH;
         count = 0;
-        if (min_dist2 >= (GISMO_PIXEL_WIDTH * GISMO_PIXEL_WIDTH * 16) || delta >= GISMO_PIXEL_WIDTH * 4)
+        if (min_dist2 >= float(GISMO_PIXEL_WIDTH * GISMO_PIXEL_WIDTH * 16) || delta >= GISMO_PIXEL_WIDTH * 4)
         {
           pos = Point2(x, y) - vp[vp_i].center;
           startRotAngle = 0;
@@ -821,8 +821,8 @@ void GizmoEventFilter::drawGizmoArrow(const Point2 &from, const Point2 &delta, E
   norm.y = -norm.y;
 
   tri[0] = from + delta;
-  tri[1] = from + delta * 0.8 + norm * 3;
-  tri[2] = from + delta * 0.8 - norm * 3;
+  tri[1] = from + delta * 0.8 + norm * _pxS(3);
+  tri[2] = from + delta * 0.8 - norm * _pxS(3);
 
   drawGizmoLine(from, delta * 0.9, offset);
 
@@ -839,10 +839,10 @@ void GizmoEventFilter::drawGizmoArrowScale(const Point2 &from, const Point2 &del
   ::swap(norm.x, norm.y);
   norm.y = -norm.y;
 
-  tri[0] = from + delta - norm * 3;
-  tri[1] = from + delta + norm * 3;
-  tri[2] = from + delta * 0.9 + norm * 3;
-  tri[3] = from + delta * 0.9 - norm * 3;
+  tri[0] = from + delta - norm * _pxS(3);
+  tri[1] = from + delta + norm * _pxS(3);
+  tri[2] = from + delta * 0.9 + norm * _pxS(3);
+  tri[3] = from + delta * 0.9 - norm * _pxS(3);
 
   drawGizmoLine(from, delta * 0.95, offset);
 
@@ -1133,7 +1133,7 @@ void GizmoEventFilter::drawRotateGizmo(IGenViewportWnd *w, int vp_i, int sel)
     StdGuiRender::set_color(COLOR_YELLOW);
 
     StdGuiRender::end_raw_layer();
-    StdGuiRender::draw_strf_to(vp[vp_i].center.x - 80, vp[vp_i].center.y - AXIS_LEN_PIX - 40, "[%.2f, %.2f, %.2f]",
+    StdGuiRender::draw_strf_to(vp[vp_i].center.x - _pxS(80), vp[vp_i].center.y - AXIS_LEN_PIX - _pxS(40), "[%.2f, %.2f, %.2f]",
       RadToDeg(movedDelta.x), RadToDeg(movedDelta.y), RadToDeg(movedDelta.z));
     StdGuiRender::set_texture(BAD_TEXTUREID);
     StdGuiRender::start_raw_layer();

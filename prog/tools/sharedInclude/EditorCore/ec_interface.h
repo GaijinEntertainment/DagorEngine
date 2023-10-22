@@ -8,6 +8,7 @@
 
 #include <EditorCore/ec_decl.h>
 #include <sepGui/wndCommon.h>
+#include <libTools/util/hdpiUtil.h>
 
 // forward declarations for external classes
 struct EcRect;
@@ -568,11 +569,11 @@ public:
   virtual PropertyContainerControlBase *getCustomPanel(int id) const = 0;
 
   /// Create new toolbar
-  virtual void *addToolbar(int height) = 0;
+  virtual void *addToolbar(hdpi::Px height) = 0;
   virtual CToolWindow *createToolbar(ControlEventHandler *eh, void *hwnd) = 0;
 
   /// Create new property panel
-  virtual void addPropPanel(int type, int width) = 0;
+  virtual void addPropPanel(int type, hdpi::Px width) = 0;
   virtual void removePropPanel(void *hwnd) = 0;
   virtual void managePropPanels() = 0;
   virtual void skipManagePropPanels(bool skip) = 0;
@@ -582,7 +583,7 @@ public:
   virtual void deleteCustomPanel(PropertyContainerControlBase *panel) = 0;
 
   /// Create dialog with property panel
-  virtual CDialogWindow *createDialog(int w, int h, const char *caption) = 0;
+  virtual CDialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *caption) = 0;
   /// Delete dialog
   virtual void deleteDialog(CDialogWindow *dlg) = 0;
   //@}

@@ -139,7 +139,7 @@ void NodesProcessing::saveExportedCollisionNodes()
 void NodesProcessing::fillCollisionInfoPanel()
 {
   auto *group = panel->createGroup(PID_COLLISION_INFO_GROUP, "Collision nodes");
-  auto *tree = group->createTree(PID_COLLISION_NODES_TREE, "Collision nodes", 300);
+  auto *tree = group->createTree(PID_COLLISION_NODES_TREE, "Collision nodes", hdpi::_pxScaled(300));
 
   selectionNodesProcessing.fillInfoTree(tree);
 
@@ -166,7 +166,7 @@ void NodesProcessing::fillEditNodeInfoPanel()
   fill_node_type_names(typeNames);
 
   PropertyContainerControlBase *group = panel->createGroup(PID_EDIT_COLLISION_NODE_GROUP, "Create new node");
-  group->createMultiSelectList(PID_SELECTABLE_NODES_LIST, nodes, 300);
+  group->createMultiSelectList(PID_SELECTABLE_NODES_LIST, nodes, hdpi::_pxScaled(300));
   group->createEditBox(PID_NEW_NODE_NAME, "New node name");
   group->createCheckBox(PID_REPLACE_NODE, "Replace selected nodes", true);
   group->createCheckBox(PID_PHYS_COLLIDABLE_FLAG, "Phys Collidable", true);

@@ -5,3 +5,6 @@ let function fn() { //-declared-never-used
   local c = { f = 3 }
   return c?.f
 }
+
+
+//-file:expr-cannot-be-null

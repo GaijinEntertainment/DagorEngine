@@ -5,6 +5,9 @@
 //
 #pragma once
 
+#include "dag_drv3dDriverCode.h"
+#include "dag_drv3dShaderModelVersion.h"
+
 // declare specific types
 typedef int VPROG;
 static constexpr int BAD_VPROG = -1;
@@ -59,50 +62,6 @@ enum
   MAXSAMPLERS_VS = 4,
   MAX_SLI_AFRS = 4
 };
-
-//--- Fragment shader ---------
-enum
-{
-  DDFSH_1_1 = 0x00000001,
-  DDFSH_1_3 = 0x00000002,
-  DDFSH_1_4 = 0x00000004,
-  DDFSH_2_0 = 0x00000008,
-  DDFSH_2_A = 0x00000010,
-  DDFSH_2_B = 0x00000020,
-  DDFSH_3_0 = 0x00000040,
-  DDFSH_4_0 = 0x00000080,
-  DDFSH_4_1 = 0x00000100,
-  DDFSH_5_0 = 0x00000200,
-  DDFSH_6_0 = 0x00000400,
-  DDFSH_6_6 = 0x00000800,
-};
-
-enum
-{
-  FSHVER_FFP,
-  FSHVER_NV20,
-  FSHVER_NV25,
-  FSHVER_R200,
-  FSHVER_R300,
-  FSHVER_20B,
-  FSHVER_20A,
-  FSHVER_30,
-  FSHVER_40,
-  FSHVER_41,
-  FSHVER_50,
-  FSHVER_60,
-  FSHVER_66,
-};
-
-// Compute shader
-enum
-{
-  DDCSH_4_0 = 0x00000001,
-  DDCSH_5_0 = 0x00000002,
-  DDCSH_6_0 = 0x00000004,
-  DDCSH_6_6 = 0x00000008,
-};
-
 
 // vertex stream declarations
 #define VSDOP_MASK   (7 << 29)
@@ -197,8 +156,8 @@ enum
 
   // Buffer flag sets.
   // Const buffers
-  // Such buffers could be updated from time to time and its content will be automatically restored on device reset.
-  SBCF_CB_PERSISTENT = SBCF_BIND_CONSTANT | SBCF_DYNAMIC,
+  // Such buffers could be updated from time to time.
+  SBCF_CB_PERSISTENT = SBCF_BIND_CONSTANT | SBCF_DYNAMIC | SBCF_MAYBELOST,
   // Such buffers must be updated every frame. Because of that we don't care about its content on device reset.
   SBCF_CB_ONE_FRAME = SBCF_BIND_CONSTANT | SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_FRAMEMEM,
 
@@ -1766,6 +1725,15 @@ struct DeviceDriverIssuesBase
    * - \runtimeissue{DeviceDriverIssuesAndroid, \android}
    */
   bool hasMultisampledAndBlendingHang : 1;
+  /**
+   * Some device drivers may not render some long shaders after switching from the application and back.
+   * \note
+   * Known for certain device driver combinations.
+   * \note
+   * - \constissue{DeviceDriverIssuesNoIssues::hasBrokenShadersAfterAppSwitch}
+   * - \runtimeissue{DeviceDriverIssuesAndroid, \android}
+   */
+  bool hasBrokenShadersAfterAppSwitch : 1;
 };
 
 /**
@@ -1835,6 +1803,11 @@ struct DeviceDriverIssuesNoIssues : DeviceDriverIssuesBase
    * \baseissue{DeviceDriverIssuesBase::hasMultisampledAndBlendingHang}
    **/
   static constexpr bool hasMultisampledAndBlendingHang = false;
+  /**
+   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \baseissue{DeviceDriverIssuesBase::hasBrokenShadersAfterAppSwitch}
+   **/
+  static constexpr bool hasBrokenShadersAfterAppSwitch = false;
 };
 
 #if _TARGET_XBOXONE
@@ -1863,9 +1836,34 @@ using DeviceDriverIssues = DeviceDriverIssuesNoIssues;
 using DeviceDriverIssues = DeviceDriverIssuesNoIssues;
 #endif
 
+#if _TARGET_XBOXONE
+using DeviceDriverShaderModelVersion = decltype(d3d::sm60);
+#elif _TARGET_SCARLETT
+using DeviceDriverShaderModelVersion = decltype(d3d::sm66);
+#elif _TARGET_C1
+
+#elif _TARGET_C2
+
+#elif _TARGET_IOS
+using DeviceDriverShaderModelVersion = decltype(d3d::sm50);
+#elif _TARGET_TVOS
+using DeviceDriverShaderModelVersion = decltype(d3d::sm50);
+#elif _TARGET_C3
+
+#elif _TARGET_ANDROID
+using DeviceDriverShaderModelVersion = d3d::shadermodel::Version;
+#elif _TARGET_PC_MACOSX
+using DeviceDriverShaderModelVersion = d3d::shadermodel::Version;
+#elif _TARGET_PC_LINUX
+using DeviceDriverShaderModelVersion = d3d::shadermodel::Version;
+#elif _TARGET_PC_WIN
+using DeviceDriverShaderModelVersion = d3d::shadermodel::Version;
+#else
+using DeviceDriverShaderModelVersion = d3d::shadermodel::Version;
+#endif
 
 //--- 3d Driver description -------
-struct Driver3dDesc
+struct Driver3dDesc // -V730
 {
   int zcmpfunc, acmpfunc;
   int sblend, dblend;
@@ -1882,13 +1880,10 @@ struct Driver3dDesc
   int maxstreams;
   int maxstreamstr;
   int maxvpconsts;
-  unsigned vprogver;
   int maxprims, maxvertind;
   /// pixel-size UV offsets that align texture pixels to frame buffer pixels;
   /// usually .5 for DX, and 0 for OGL
   float upixofs, vpixofs;
-  int fshver; ///< fragment shader version flags
-  int cshver; // compute shader version
   /// Maximum number of simultaneous render targets, will be at least 1.
   int maxSimRT;
   bool is20ArbitrarySwizzleAvailable;
@@ -1910,8 +1905,8 @@ struct Driver3dDesc
   unsigned variableRateTextureTileSizeY;
   DeviceDriverCapabilities caps;
   DeviceDriverIssues issues;
+  DeviceDriverShaderModelVersion shaderModel;
 };
-
 
 //--- include defines specific to target 3d -------
 #include <3d/dag_3dConst_base.h>

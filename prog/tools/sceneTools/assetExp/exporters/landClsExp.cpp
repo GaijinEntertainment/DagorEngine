@@ -18,6 +18,7 @@
 static const char *TYPE = "land";
 static IBitMaskImageMgr *bmSrv = NULL;
 static bool preferZstdPacking = false;
+static bool report_broken_landclass_tex_refs = false;
 
 static TwoStepRelPath sdkRoot;
 
@@ -165,6 +166,37 @@ public:
     cwr.endBlock();
 
     return true;
+  }
+
+  static void processDetailsDataBlock(const DataBlock &blk, Tab<IDagorAssetRefProvider::Ref> &refs, DagorAssetMgr &amgr,
+    const char *a_name)
+  {
+    const int detailTypeNameCount = 3;
+    static const char *detailTypeNames[detailTypeNameCount] = {"albedo", "normal", "reflectance"};
+
+    const int blockCount = blk.blockCount();
+    for (int blockIndex = 0; blockIndex < blockCount; ++blockIndex)
+    {
+      const DataBlock &subBlock = *blk.getBlock(blockIndex);
+      for (int detailTypeIndex = 0; detailTypeIndex < detailTypeNameCount; ++detailTypeIndex)
+      {
+        const int paramIndex = subBlock.findParam(detailTypeNames[detailTypeIndex]);
+        if (paramIndex >= 0 && subBlock.getParamType(paramIndex) == DataBlock::TYPE_STRING)
+        {
+          const char *textureName = subBlock.getStr(paramIndex);
+          if (textureName && *textureName)
+          {
+            const int refCount = refs.size();
+            add_asset_ref(refs, amgr, textureName, false, false, -1, true);
+            if (refs.size() != refCount && refs.back().getBrokenRef() && !report_broken_landclass_tex_refs)
+            {
+              refs.pop_back();
+              logwarn("Asset '%s' has broken reference: '%s'", a_name, textureName);
+            }
+          }
+        }
+      }
+    }
   }
 
   static dag::ConstSpan<IDagorAssetRefProvider::Ref> processAssetBlk(DataBlock &blk, DagorAssetMgr &amgr, bool cleanup,
@@ -315,6 +347,14 @@ public:
           }
         }
 
+        const int subSubBlockCount = blk.getBlock(i)->blockCount();
+        for (int subSubBlockIndex = 0; subSubBlockIndex < subSubBlockCount; ++subSubBlockIndex)
+        {
+          const DataBlock &subSubBlock = *blk.getBlock(i)->getBlock(subSubBlockIndex);
+          if (strcmp(subSubBlock.getBlockName(), "details") == 0)
+            processDetailsDataBlock(subSubBlock, other_refs, amgr, a_name);
+        }
+
         // leave data in BLK as is
       }
       else if (cleanup)
@@ -424,6 +464,9 @@ public:
       preferZstdPacking = true;
       debug("landExp prefers ZSTD");
     }
+
+    report_broken_landclass_tex_refs = appblk.getBlockByNameEx("assets")->getBool("report_broken_landclass_tex_refs", false);
+
     return bmSrv != NULL;
   }
   virtual void __stdcall destroy() { delete this; }

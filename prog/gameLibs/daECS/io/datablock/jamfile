@@ -7,7 +7,7 @@ StrictCompile = yes ;
 
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
 ;
 
 Sources =
@@ -16,6 +16,6 @@ Sources =
 
 UseProgLibs += gameLibs/daECS/utility ;
 
-if $(DriverLinkage) != dynamic { UseProgLibs += engine2/ioSys ; } # for datablock
+if $(DriverLinkage) != dynamic { UseProgLibs += engine/ioSys ; } # for datablock
 
 include $(Root)/prog/_jBuild/build.jam ;

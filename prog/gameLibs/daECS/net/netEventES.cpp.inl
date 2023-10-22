@@ -121,14 +121,14 @@ void shutdown()
   rx_msg_index.clear();
 }
 
-bool try_receive(const net::IMessage &msg, ecs::EntityId toeid)
+bool try_receive(const net::IMessage &msg, ecs::EntityManager &mgr, ecs::EntityId toeid)
 {
   const MessageClass &msgClass = msg.getMsgClass();
   if (!rx_msg_bitmap.test(msgClass.classId, false))
     return false;
   const EventRegRecord *err = rx_msg_index[msgClass.classId];
   G_FAST_ASSERT(err);
-  err->msg2evt((err->er == net::Er::Broadcast) ? ecs::INVALID_ENTITY_ID : toeid, msg);
+  err->msg2evt(mgr, (err->er == net::Er::Broadcast) ? ecs::INVALID_ENTITY_ID : toeid, msg);
   return true;
 }
 

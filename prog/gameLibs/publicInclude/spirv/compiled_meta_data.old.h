@@ -51,7 +51,7 @@ struct SpirVHeader
 };
 
 // sole purpose of this is to trigger the static asserts here, this header is used
-// in tools and engine2/drv
+// in tools and engine/drv
 inline void do_trigger_static_assert_if_not_matching()
 {
   G_STATIC_ASSERT(FRAGMENT_SHADER_TEXTURE_UNITS <= sizeof(TextureUnitBits_t) * 8);

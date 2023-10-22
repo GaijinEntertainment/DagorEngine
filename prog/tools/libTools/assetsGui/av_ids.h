@@ -16,6 +16,11 @@ enum
   AddToFavoritesMenuItem,
   RemoveFromFavoritesMenuItem,
   GoToAssetInSelectorMenuItem,
+  CopyMenuItem,
+  CopyAssetFilePathMenuItem,
+  CopyAssetFolderPathMenuItem,
+  CopyAssetNameMenuItem,
+  RevealInExplorerMenuItem,
 };
 
 }

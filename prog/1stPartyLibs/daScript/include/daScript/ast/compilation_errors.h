@@ -51,6 +51,8 @@ namespace das
     ,   invalid_capture                         =   30124       //  capture section in non-lambda, capture on non-variable, unused catpure, etc
     ,   invalid_private                         =   30125       //  struct member private, etc
     ,   invalid_aka                             =   30126       //  aka with global let, typedecl, etc
+    ,   invalid_assume                          =   30127       //  assume with name collision
+    ,   invalid_static                          =   30128       //  struct member static, override static, sealed static, things like that
 
     ,   function_already_declared               =   30201       //  func x .... func x
     ,   argument_already_declared               =   30202       //  func(...,a,...,a,....)

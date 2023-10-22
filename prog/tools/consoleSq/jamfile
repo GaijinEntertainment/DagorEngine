@@ -3,7 +3,7 @@ Root ?= ../../.. ;
 Location = prog/tools/consoleSq ;
 ConsoleExe = yes ;
 
-ForceLogs ?= yes ;
+if $(Config) = rel { ForceLogs ?= yes ; } else { ForceLogs = ; }
 
 StrictCompile = yes ;
 include $(Root)/prog/_jBuild/defaults.jam ;
@@ -42,17 +42,17 @@ Sources =
 WorkCyclePerfStub = yes ;
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/coreUtil
-  engine2/math
-  engine2/consoleProc
-  engine2/perfMon/daProfilerStub
-  engine2/workCycle/stub
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/coreUtil
+  engine/math
+  engine/consoleProc
+  engine/perfMon/daProfilerStub
+  engine/workCycle/stub
 
   3rdPartyLibs/eastl
   3rdPartyLibs/libb64
@@ -69,7 +69,7 @@ UseProgLibs =
   gameLibs/asyncHTTPClient
 ;
 
-if $(Platform) = linux64 { UseProgLibs += engine2/osApiWrappers/messageBox/stub ; }
+if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 
 SourceStr =

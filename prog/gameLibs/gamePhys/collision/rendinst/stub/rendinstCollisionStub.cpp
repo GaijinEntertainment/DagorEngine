@@ -24,12 +24,11 @@ float WrapperRendinstContactResultCB::addSingleResult(contact_data_t &, obj_user
 
 void WrapperRendinstContactResultCB::applyRiGenDamage() const {}
 
-CollisionObject WrapperRendInstCollisionImplCB::processCollisionInstance(const rendinst::RendInstCollisionCB::CollisionInfo &,
-  CollisionObject &, TMatrix &)
+CollisionObject WrapperRendInstCollisionImplCB::processCollisionInstance(const rendinst::CollisionInfo &, CollisionObject &, TMatrix &)
 {
   return CollisionObject();
 }
 
-void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::RendInstCollisionCB::CollisionInfo &) {}
+void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::CollisionInfo &) {}
 
-void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::RendInstCollisionCB::CollisionInfo &) {}
+void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo &) {}

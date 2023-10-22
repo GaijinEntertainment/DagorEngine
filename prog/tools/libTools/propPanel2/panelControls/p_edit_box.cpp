@@ -3,17 +3,17 @@
 #include "p_edit_box.h"
 #include "../c_constants.h"
 
-CEditBox::CEditBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CEditBox::CEditBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[], bool multiline) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT * 2),
-  mCaption(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT),
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT) * 2),
+  mCaption(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT)),
   mEdit(NULL),
   manualChange(false)
 {
   mCaption.setTextValue(caption);
   hasCaption = strlen(caption) > 0;
-  mEdit = new WEdit(this, parent->getWindow(), x, y + DEFAULT_CONTROL_HEIGHT, w, DEFAULT_CONTROL_HEIGHT, multiline);
+  mEdit = new WEdit(this, parent->getWindow(), x, y + _pxS(DEFAULT_CONTROL_HEIGHT), _px(w), _pxS(DEFAULT_CONTROL_HEIGHT), multiline);
 
   if (!hasCaption)
   {
@@ -48,37 +48,37 @@ void CEditBox::reset()
 }
 
 
-void CEditBox::setWidth(unsigned w)
+void CEditBox::setWidth(hdpi::Px w)
 {
-  int minw = DEFAULT_CONTROL_WIDTH;
-  w = (w < minw) ? minw : w;
+  int minw = _pxS(DEFAULT_CONTROL_WIDTH);
+  w = (_px(w) < minw) ? _pxActual(minw) : w;
 
   PropertyControlBase::setWidth(w);
 
-  mCaption.resizeWindow(w, mCaption.getHeight());
-  mEdit->resizeWindow(w, mEdit->getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
+  mEdit->resizeWindow(_px(w), mEdit->getHeight());
 
   this->moveTo(this->getX(), this->getY());
 }
 
 
-void CEditBox::setHeight(unsigned h)
+void CEditBox::setHeight(hdpi::Px h)
 {
   PropertyControlBase::setHeight(h);
-  if (h > DEFAULT_CONTROL_HEIGHT * 2)
+  if (_px(h) > _pxS(DEFAULT_CONTROL_HEIGHT) * 2)
   {
-    int w = mEdit->getWidth();
+    hdpi::Px w = _pxActual(mEdit->getWidth());
     int x = mEdit->getX();
     int y = mEdit->getY();
     char buf[512];
     getTextValue(buf, 512);
 
     del_it(mEdit);
-    mEdit = new WEdit(this, mParent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT, true);
+    mEdit = new WEdit(this, mParent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT), true);
     setTextValue(buf);
   }
 
-  mEdit->resizeWindow(mEdit->getWidth(), h - mCaption.getHeight());
+  mEdit->resizeWindow(mEdit->getWidth(), _px(h) - mCaption.getHeight());
 }
 
 

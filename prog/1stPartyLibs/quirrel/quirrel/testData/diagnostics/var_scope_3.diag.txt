@@ -1,5 +1,5 @@
 ERROR: Unknown variable [x]
-testData/diagnostics/var_scope_3.nut:7:6
+testData/diagnostics/var_scope_3.nut:6:6
 
 print(x)
       ^

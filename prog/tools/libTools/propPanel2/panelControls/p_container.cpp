@@ -4,10 +4,10 @@
 #include "../c_constants.h"
 
 
-CContainer::CContainer(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
-  int interval) :
+CContainer::CContainer(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+  hdpi::Px h, hdpi::Px interval) :
 
-  PropertyContainerVert(id, event_handler, parent, x, y, w, h), mRect(this, parent->getWindow(), x, y, w, h), mWResize(false)
+  PropertyContainerVert(id, event_handler, parent, x, y, w, h), mRect(this, parent->getWindow(), x, y, _px(w), _px(h)), mWResize(false)
 {
   __super::setVerticalInterval(interval);
 }
@@ -59,10 +59,10 @@ void CContainer::resizeControl(unsigned w, unsigned h)
 }
 
 
-void CContainer::setWidth(unsigned w)
+void CContainer::setWidth(hdpi::Px w)
 {
   mWResize = true;
-  this->resizeControl(w, this->getNextControlY());
+  this->resizeControl(_px(w), this->getNextControlY());
 
   PropertyContainerVert::setWidth(w);
   mWResize = false;

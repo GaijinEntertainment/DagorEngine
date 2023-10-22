@@ -381,6 +381,20 @@ enum class ResourceActivationAction : unsigned
   DISCARD_AS_RTV_DSV,
 };
 
+enum class DepthAccess
+{
+  /// For regular depth attachement.
+  RW,
+
+  /**
+   * For read-only depth attachement which can also be sampled as a texture in the same shader.
+   * IF YOU DON'T NEED TO SAMPLE THE DEPTH, USE z_write=false WITH DepthAccess::RW INSTEAD.
+   * Using this state will cause HiZ decompression on some hardware and
+   * split of renderpass with flush of tile data into memory in a TBR.
+   */
+  SampledRO
+};
+
 union ResourceClearValue
 {
   struct
@@ -821,6 +835,8 @@ inline void validate_sbuffer_flags(unsigned flags, const char *name)
 {
   if (!((flags & SBCF_BIND_CONSTANT) != 0 || !(flags & SBCF_DYNAMIC) || (flags & SBCF_MAYBELOST) != 0))
     logerr("Buffer \"%s\" was created with SBCF_DYNAMIC flag SBCF_MAYBELOST flag is missed!", name);
+  if (!(flags & (SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_MAYBELOST)))
+    logerr("Buffer \"%s\" was created without SBCF_MAYBELOST flag. It is currently allowed only for vertex and index buffers.", name);
 }
 
 static constexpr int RENDER_TO_WHOLE_ARRAY = 1023;
@@ -851,9 +867,9 @@ bool fill_interface_table(D3dInterfaceTable &d3dit);
 const char *get_driver_name();
 
 /// returns driver code
-unsigned get_driver_code();
+DriverCode get_driver_code();
 /// returns true when d3d-stub driver is used
-static inline bool is_stub_driver() { return get_driver_code() == _MAKE4C('STUB'); }
+static inline bool is_stub_driver() { return get_driver_code().is(d3d::stub); }
 
 /// returns device driver version (pointer to static string)
 const char *get_device_driver_version();
@@ -1181,8 +1197,8 @@ bool set_rwbuffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer);
 bool set_render_target();
 
 /// set depth texture target. NULL means NO depth. use set_backbuf_depth for backbuf render target
-bool set_depth(BaseTexture *tex, bool readonly);
-bool set_depth(BaseTexture *tex, int layer, bool readonly);
+bool set_depth(BaseTexture *tex, DepthAccess access);
+bool set_depth(BaseTexture *tex, int layer, DepthAccess access);
 
 /// set back buffer depth target.
 bool set_backbuf_depth();
@@ -1196,7 +1212,7 @@ bool set_render_target(int rt_index, BaseTexture *, int level);
 
 inline bool set_render_target(BaseTexture *t, int level) { return set_render_target() && set_render_target(0, t, level); }
 inline bool set_render_target(BaseTexture *t, int fc, int level) { return set_render_target() && set_render_target(0, t, fc, level); }
-inline void set_render_target(RenderTarget depth, bool ro, dag::ConstSpan<RenderTarget> colors)
+inline void set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)
 {
   for (int i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
   {
@@ -1205,11 +1221,11 @@ inline void set_render_target(RenderTarget depth, bool ro, dag::ConstSpan<Render
     else
       set_render_target(i, nullptr, 0);
   }
-  set_depth(depth.tex, ro);
+  set_depth(depth.tex, depth_access);
 }
-inline void set_render_target(RenderTarget depth, bool ro, const std::initializer_list<RenderTarget> colors)
+inline void set_render_target(RenderTarget depth, DepthAccess depth_access, const std::initializer_list<RenderTarget> colors)
 {
-  set_render_target(depth, ro, dag::ConstSpan<RenderTarget>(colors.begin(), colors.end() - colors.begin()));
+  set_render_target(depth, depth_access, dag::ConstSpan<RenderTarget>(colors.begin(), colors.end() - colors.begin()));
 }
 
 void get_render_target(Driver3dRenderTarget &out_rt);

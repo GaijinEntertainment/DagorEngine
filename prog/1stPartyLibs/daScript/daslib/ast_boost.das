@@ -314,19 +314,19 @@ class SetupAnyAnnotation : AstStructureAnnotation
         emplace(blk.list,cll)
         return true
 
-class SetupFunctionAnnotatoin : SetupAnyAnnotation
+class SetupFunctionAnnotation : SetupAnyAnnotation
     override annotation_function_call : string = "add_new_function_annotation"
 
-class SetupBlockAnnotatoin : SetupAnyAnnotation
+class SetupBlockAnnotation : SetupAnyAnnotation
     override annotation_function_call : string = "add_new_block_annotation"
 
-class SetupStructureAnnotatoin : SetupAnyAnnotation
+class SetupStructureAnnotation : SetupAnyAnnotation
     override annotation_function_call : string = "add_new_structure_annotation"
 
 class SetupEnumerationAnnotation : SetupAnyAnnotation
     override annotation_function_call : string = "add_new_enumeration_annotation"
 
-class SetupContractAnnotatoin : SetupAnyAnnotation
+class SetupContractAnnotation : SetupAnyAnnotation
     override annotation_function_call : string = "add_new_contract_annotation"
 
 class SetupReaderMacro : SetupAnyAnnotation
@@ -766,11 +766,11 @@ def private setup
     if is_compiling_macros_in_module("ast_boost")
         add_new_function_annotation("macro", new MacroMacro())
         add_new_function_annotation("tag_function",new TagFunctionAnnotation())
-        add_new_structure_annotation("function_macro",new SetupFunctionAnnotatoin())
-        add_new_structure_annotation("block_macro",new SetupBlockAnnotatoin())
-        add_new_structure_annotation("structure_macro",new SetupStructureAnnotatoin())
+        add_new_structure_annotation("function_macro",new SetupFunctionAnnotation())
+        add_new_structure_annotation("block_macro",new SetupBlockAnnotation())
+        add_new_structure_annotation("structure_macro",new SetupStructureAnnotation())
         add_new_structure_annotation("enumeration_macro",new SetupEnumerationAnnotation())
-        add_new_structure_annotation("contract",new SetupContractAnnotatoin())
+        add_new_structure_annotation("contract",new SetupContractAnnotation())
         add_new_structure_annotation("reader_macro",new SetupReaderMacro())
         add_new_structure_annotation("comment_reader",new SetupCommentReader())
         add_new_structure_annotation("call_macro",new SetupCallMacro())

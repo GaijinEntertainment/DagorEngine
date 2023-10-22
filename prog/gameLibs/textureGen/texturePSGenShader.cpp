@@ -278,7 +278,12 @@ public:
     }
 
     shaders::RenderState state;
-    state.ablend = 0;
+    state.independentBlendEnabled = 0;
+    for (auto &blendParam : state.blendParams)
+    {
+      blendParam.ablend = 0;
+      blendParam.sepablend = 0;
+    }
     state.ztest = 0;
     state.zwrite = 0;
     state.cull = CULL_NONE;
@@ -583,7 +588,7 @@ public:
     if (depth || !textureSet)
     {
       create_biggest_depth(w, h);
-      d3d::set_depth(biggest_depth.getTex2D(), false);
+      d3d::set_depth(biggest_depth.getTex2D(), DepthAccess::RW);
     }
 
     d3d::setview(0, 0, w, h, 0, 1);
@@ -684,7 +689,7 @@ bool init_pixel_shader_texgen()
 {
   prune_cache();
   del_d3dres(textureParamsCB);
-  textureParamsCB = d3d_buffers::create_persistent_cb(16, "textureParamsCB");
+  textureParamsCB = d3d::buffers::create_persistent_cb(16, "textureParamsCB");
 
   del_d3dres(particlesInstancesIndirect);
   particlesInstancesIndirect = d3d::create_sbuffer(4, 4, SBCF_UA_INDIRECT, 0, "particlesInstancesIndirect");

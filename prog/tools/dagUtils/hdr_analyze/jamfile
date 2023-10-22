@@ -15,17 +15,17 @@ Sources =
   analyze.cpp
 ;
 
-UseProgLibs = 
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/math
-  engine2/lib3d
-  engine2/perfMon/daProfilerStub
-  engine2/drv/drv3d_null
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/lib3d
+  engine/perfMon/daProfilerStub
+  engine/drv/drv3d_null
   tools/libTools/dagFileRW
 ;
 

@@ -41,9 +41,9 @@ private:
 class CDialogWindow : public ControlEventHandler
 {
 public:
-  CDialogWindow(void *phandle, unsigned w, unsigned h, const char caption[], bool hide_panel = false);
+  CDialogWindow(void *phandle, hdpi::Px w, hdpi::Px h, const char caption[], bool hide_panel = false);
 
-  CDialogWindow(void *phandle, int x, int y, unsigned w, unsigned h, const char caption[], bool hide_panel = false);
+  CDialogWindow(void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, const char caption[], bool hide_panel = false);
 
   virtual ~CDialogWindow();
 
@@ -58,7 +58,7 @@ public:
   virtual bool isDeleting() { return mDeleting; } // for correct destruction
 
   virtual void moveWindow(int x, int y);
-  virtual void resizeWindow(unsigned w, unsigned h, bool internal = false);
+  virtual void resizeWindow(hdpi::Px w, hdpi::Px h, bool internal = false);
   virtual void center();
   virtual void autoSize();
 

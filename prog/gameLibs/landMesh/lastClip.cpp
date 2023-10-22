@@ -22,7 +22,7 @@
 #include <math/dag_adjpow2.h>
 #include <render/bcCompressor.h>
 
-void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texel, LandMeshData &data)
+void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texel, const Point3 &view_pos, LandMeshData &data)
 {
   shaders::overrides::set(data.flipCullStateId);
 
@@ -50,7 +50,7 @@ void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texe
   renderer.setRenderInBBox(land_box_part);
   // if (::app->renderer->isCompatibilityMode())
   //   renderer.setRenderClipmapWithPosition(true);//since we don't render with depth anyway
-  renderer.render(provider, renderer.RENDER_CLIPMAP);
+  renderer.render(provider, renderer.RENDER_CLIPMAP, view_pos);
   // if (::app->renderer->isCompatibilityMode())
   //   renderer.setRenderClipmapWithPosition(false);
   renderer.setRenderInBBox(BBox3());
@@ -67,8 +67,8 @@ void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texe
   shaders::overrides::reset();
 }
 
-void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_texel, LandMeshData &data, Point2 &tor_offsets,
-  ToroidalHelper &tor_helper)
+void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_texel, const Point3 &view_pos, LandMeshData &data,
+  Point2 &tor_offsets, ToroidalHelper &tor_helper)
 {
   shaders::overrides::set(data.flipCullStateId);
 
@@ -120,7 +120,7 @@ void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_
     ShaderGlobal::setBlock(data.global_frame_id, ShaderGlobal::LAYER_FRAME);
 
     renderer.setRenderInBBox(box3);
-    renderer.render(provider, renderer.RENDER_CLIPMAP);
+    renderer.render(provider, renderer.RENDER_CLIPMAP, view_pos);
 
     renderer.setRenderInBBox(BBox3());
 
@@ -141,7 +141,7 @@ void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_
   tor_offsets /= (float)tor_helper.texSize;
 }
 
-static void fixedClipPartialRenderCb(int lineNo, int linesCount, int picHeight, void *userData)
+static void fixedClipPartialRenderCb(int lineNo, int linesCount, int picHeight, void *userData, const Point3 &view_pos)
 {
   d3d::clearview(CLEAR_TARGET, 0x00000000, 1.0f, 0);
   LandMeshData &data = *(LandMeshData *)userData;
@@ -158,7 +158,7 @@ static void fixedClipPartialRenderCb(int lineNo, int linesCount, int picHeight, 
     Point3(landBox[1].x, landBox[1].y, lerp(landBox[0].z, landBox[1].z, (lineNo + linesCount) / float(picHeight))));
   Point2 halfTexel(HALF_TEXEL_OFSF / picHeight, HALF_TEXEL_OFSF / linesCount);
 
-  render_last_clip_in_box(landBoxPart, halfTexel, data);
+  render_last_clip_in_box(landBoxPart, halfTexel, view_pos, data);
 }
 
 #define SAVE_RT 0
@@ -205,7 +205,7 @@ void render_and_compress(const T &render_func, UniqueTexHolder &last_clip, const
   temp.close();
 }
 
-void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool update_game_screen)
+void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool update_game_screen, const Point3 &view_pos)
 {
   last_clip.close();
   if (!data.lmeshMgr || !data.lmeshRenderer)
@@ -257,11 +257,8 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool upd
   int render_normalmapVarId = get_shader_variable_id("render_with_normalmap", true);
   ShaderGlobal::set_int(render_normalmapVarId, 0); //==
   // render
-  TMatrix4 ovtm, oproj;
-  d3d::gettm(TM_VIEW, &ovtm);
-  d3d::gettm(TM_PROJ, &oproj);
-  Driver3dPerspective p;
-  bool perspvalid = d3d::getpersp(p);
+  ViewProjMatrixContainer viewProj;
+  d3d_get_view_proj(viewProj);
   // int64_t reft = ref_time_ticks();
   bool gamma_mips = true;
 #if _TARGET_C1 | _TARGET_C2
@@ -279,7 +276,7 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool upd
       {
         d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, NULL, NULL, NULL);
         d3d::setview(0, y, data.texture_size - 1, partHeight, 0, 1);
-        fixedClipPartialRenderCb(y, partHeight, data.texture_size, (void *)&data);
+        fixedClipPartialRenderCb(y, partHeight, data.texture_size, (void *)&data, view_pos);
       }
     }
     d3d::resource_barrier({tex.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -289,7 +286,7 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool upd
   {
     case LastClipComp::DXT:
       PartialDxtRender(last_clip.getTex2D(), NULL, partHeight, data.texture_size, data.texture_size, numMips,
-        (flags & TEXFMT_MASK) == TEXFMT_DXT5, false, &fixedClipPartialRenderCb, &data, gamma_mips, update_game_screen);
+        (flags & TEXFMT_MASK) == TEXFMT_DXT5, false, &fixedClipPartialRenderCb, &data, view_pos, gamma_mips, update_game_screen);
       break;
     case LastClipComp::ETC2: render_and_compress(plain_render, last_clip, data, numMips); break;
     default:
@@ -300,10 +297,7 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool upd
 
   // debug("total last clip time = %dus",get_time_usec(reft));
   d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
-  d3d::settm(TM_VIEW, &ovtm);
-  d3d::settm(TM_PROJ, &oproj);
-  if (perspvalid)
-    d3d::setpersp(p);
+  d3d_set_view_proj(viewProj);
   if (::grs_draw_wire)
     d3d::setwire(1);
   d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);

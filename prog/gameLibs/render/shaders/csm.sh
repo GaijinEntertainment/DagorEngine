@@ -22,7 +22,7 @@ int assume_downsampled_shadows;
 interval assume_downsampled_shadows: off<1, on;
 
 int num_of_cascades = 4;
-interval num_of_cascades:two<3, three<4, four;
+interval num_of_cascades:one<2, two<3, three<4, four;
 
 texture downsampled_shadows;
 macro INIT_ESM_SHADOW(stage)
@@ -225,9 +225,13 @@ macro USE_CSM_SHADOW(code, num_cascades, for_compatibility)
 endmacro
 
 macro USE_CSM_SHADOW_DEF_NUM()
-  if (num_of_cascades == two)
+  if (num_of_cascades == one)
   {
-    USE_CSM_SHADOW(ps, 2, dummy)
+    USE_CSM_SHADOW(ps, 1, dummy)
+  }
+  else if (num_of_cascades == three)
+  {
+    USE_CSM_SHADOW(ps, 3, dummy)
   }
   else if (num_of_cascades == three)
   {

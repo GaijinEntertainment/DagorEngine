@@ -2,7 +2,7 @@
 #include <3d/dag_lockTexture.h>
 #include <EditorCore/ec_interface.h>
 #include <image/dag_texPixel.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtraRender.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_shaderBlock.h>
 #include <render/dynModelRenderer.h>
@@ -92,7 +92,7 @@ void PixelPerfectEntitySelector::getHitsAt(IGenViewportWnd &wnd, int pickX, int 
   const TMatrix4 projMatrix = makeProjectionMatrixForViewRegion(viewportWidth, viewportHeight, fov, zNear, zFar, pickX, pickY, 1, 1);
 
   d3d::set_render_target(nullptr, 0); // We only use the depth buffer.
-  d3d::set_depth(depthRt.getTex2D(), false);
+  d3d::set_depth(depthRt.getTex2D(), DepthAccess::RW);
   d3d::setview(0, 0, 1, 1, prevViewMinZ, prevViewMaxZ);
   d3d::settm(TM_PROJ, &projMatrix);
 
@@ -119,12 +119,12 @@ void PixelPerfectEntitySelector::getHitsAt(IGenViewportWnd &wnd, int pickX, int 
       uint32_t zeroLodOffset = 0;
       SCENE_LAYER_GUARD(rendinst_scene_block_id);
 
-      rendinst::ensureElemsRebuiltRIGenExtra(/*gpu_instancing = */ false);
+      rendinst::render::ensureElemsRebuiltRIGenExtra(/*gpu_instancing = */ false);
 
-      rendinst::renderRIGenExtraFromBuffer(rendinstMatrixBuffer.get(), dag::ConstSpan<IPoint2>(&offsAndCnt, 1),
+      rendinst::render::renderRIGenExtraFromBuffer(rendinstMatrixBuffer.get(), dag::ConstSpan<IPoint2>(&offsAndCnt, 1),
         dag::ConstSpan<uint16_t>(&riIdx, 1), dag::ConstSpan<uint32_t>(&zeroLodOffset, 1), rendinst::RenderPass::Depth,
         rendinst::OptimizeDepthPass::Yes, rendinst::OptimizeDepthPrepass::No, rendinst::IgnoreOptimizationLimits::No,
-        rendinst::LAYER_OPAQUE);
+        rendinst::LayerFlag::Opaque);
     }
     else
     {

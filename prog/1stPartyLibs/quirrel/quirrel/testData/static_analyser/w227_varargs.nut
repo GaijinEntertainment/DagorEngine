@@ -1,7 +1,7 @@
 
 
-function foo(_a, ...) {
-    return function (_b, ...) { return _a + _b; }
+function foo(a, ...) {
+    return function (b, ...) { return a + b; }
 }
 
 

@@ -1,5 +1,6 @@
 #include <3d/dag_drv3d.h>
 #include <3d/dag_drv3dCmd.h>
+#include <3d/dag_lockSbuffer.h>
 #include <perfMon/dag_statDrv.h>
 #include <FFT_CPU_Simulation.h>
 #include <shaders/dag_shaders.h>
@@ -36,21 +37,13 @@ void CSGPUData::Cascade::close()
 #endif
 };
 
-void CSGPUData::CascadeData::close()
-{
-  del_d3dres(omega);
-  del_d3dres(h0);
-  del_d3dres(ht);
-  del_d3dres(dt);
-}
-
 void CSGPUData::close()
 {
   del_it(update_h0);
   del_it(fftH);
   del_it(fftV);
   dispArray.close();
-  del_d3dres(gauss);
+  gauss.close();
   for (int i = 0; i < cascades.size(); ++i)
   {
     cascades[i].close();
@@ -65,7 +58,7 @@ bool CSGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
 
   {
     auto driverDesc = d3d::get_driver_desc();
-    if (!(driverDesc.cshver & DDCSH_5_0))
+    if (driverDesc.shaderModel < 5.0_sm)
       return false;
   }
 
@@ -102,8 +95,7 @@ bool CSGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   }
 
   const int gauss_size = N0 * N0;
-  gauss = d3d::create_sbuffer(sizeof(float2), gauss_size, SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0,
-    "fft_gauss"); //
+  gauss = dag::buffers::create_persistent_sr_structured(sizeof(float2), gauss_size, "fft_gauss");
   if (!gauss)
   {
     debug("fftwater: can't create gauss buffer");
@@ -123,11 +115,10 @@ bool CSGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
     int data_count;
     CascadeData &cdata = getData(i, cascades.size(), data_count);
 
-    cdata.h0 = d3d_buffers::create_ua_sr_structured(sizeof(h0_type), data_count * h0_size, "fft_h0");
-    cdata.ht = d3d_buffers::create_ua_sr_structured(sizeof(ht_type), data_count * htdt_size, "fft_ht");
-    cdata.dt = d3d_buffers::create_ua_sr_structured(sizeof(dt_type), data_count * htdt_size, "fft_dt");
-    cdata.omega = d3d::create_sbuffer(sizeof(float), data_count * omega_size, SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0,
-      "fft_omega"); //
+    cdata.h0 = dag::buffers::create_ua_sr_structured(sizeof(h0_type), data_count * h0_size, "fft_h0");
+    cdata.ht = dag::buffers::create_ua_sr_structured(sizeof(ht_type), data_count * htdt_size, "fft_ht");
+    cdata.dt = dag::buffers::create_ua_sr_structured(sizeof(dt_type), data_count * htdt_size, "fft_dt");
+    cdata.omega = dag::buffers::create_persistent_sr_structured(sizeof(float), data_count * omega_size, "fft_omega");
     if (!cdata.h0 || !cdata.ht || !cdata.dt || !cdata.omega)
     {
       debug("fftwater: can't create sbuffers");
@@ -274,13 +265,11 @@ bool CSGPUData::driverReset(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCa
 
   // copy actually used gauss window around center of max resolution buffer
   // note that we need to generate full resolution to maintain pseudo-randomness
-  cpu_types::float2 *gaussDest;
-  if (gauss->lock(0, 0, (void **)&gaussDest, VBLOCK_WRITEONLY))
+  if (auto gaussData = lock_sbuffer<cpu_types::float2>(gauss.getBuf(), 0, m_resolution * m_resolution, VBLOCK_WRITEONLY))
   {
     const cpu_types::float2 *gauss_src = in_gauss + (gauss_resolution - m_resolution) / 2 * (1 + gauss_stride);
     for (int i = 0; i < m_resolution; ++i)
-      memcpy(gaussDest + i * m_resolution, gauss_src + i * gauss_stride, m_resolution * sizeof(cpu_types::float2));
-    gauss->unlock();
+      gaussData.updateDataRange(i * m_resolution, gauss_src + i * gauss_stride, m_resolution);
   }
   else
   {
@@ -325,7 +314,7 @@ void CSGPUData::updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCasca
   for (int i = 0; i < numCascades; ++i)
     initConstantBuffer(*(ConstantBuffer *)constantBuffer[i], fft[i].getParams(), i);
 
-  d3d::set_buffer(STAGE_CS, 0, gauss);
+  d3d::set_buffer(STAGE_CS, 0, gauss.getBuf());
 
   d3d::insert_wait_on_fence(updateH0Fence, GpuPipeline::ASYNC_COMPUTE);
 
@@ -333,7 +322,7 @@ void CSGPUData::updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCasca
   {
     int groupsZ;
     CascadeData &cdata = getData(i, numCascades, groupsZ);
-    d3d::set_rwbuffer(STAGE_CS, 0, cdata.h0);
+    d3d::set_rwbuffer(STAGE_CS, 0, cdata.h0.getBuf());
     setConstantBuffer(i, groupsZ);
     const int N = 1 << fft[i].getParams().fft_resolution_bits;
     update_h0->dispatch(1, N, groupsZ, GpuPipeline::ASYNC_COMPUTE);
@@ -363,11 +352,11 @@ void CSGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
   {
     int groupsZ;
     CascadeData &cdata = getData(i, numCascades, groupsZ);
-    d3d::resource_barrier({cdata.h0, RB_RO_SRV | RB_STAGE_COMPUTE});
-    d3d::set_buffer(STAGE_CS, 0, cdata.h0);
-    d3d::set_buffer(STAGE_CS, 1, cdata.omega);
-    d3d::set_rwbuffer(STAGE_CS, 0, cdata.ht);
-    d3d::set_rwbuffer(STAGE_CS, 1, cdata.dt);
+    d3d::resource_barrier({cdata.h0.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+    d3d::set_buffer(STAGE_CS, 0, cdata.h0.getBuf());
+    d3d::set_buffer(STAGE_CS, 1, cdata.omega.getBuf());
+    d3d::set_rwbuffer(STAGE_CS, 0, cdata.ht.getBuf());
+    d3d::set_rwbuffer(STAGE_CS, 1, cdata.dt.getBuf());
     setConstantBuffer(i, groupsZ);
     const int N = 1 << fft[i].getParams().fft_resolution_bits;
     fftH->dispatch(1, N / 2 + 1, groupsZ, GpuPipeline::ASYNC_COMPUTE);
@@ -379,10 +368,10 @@ void CSGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
   {
     int groupsZ;
     CascadeData &cdata = getData(i, numCascades, groupsZ);
-    d3d::resource_barrier({cdata.ht, RB_RO_SRV | RB_STAGE_COMPUTE});
-    d3d::resource_barrier({cdata.dt, RB_RO_SRV | RB_STAGE_COMPUTE});
-    d3d::set_buffer(STAGE_CS, 0, cdata.ht);
-    d3d::set_buffer(STAGE_CS, 1, cdata.dt);
+    d3d::resource_barrier({cdata.ht.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+    d3d::resource_barrier({cdata.dt.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+    d3d::set_buffer(STAGE_CS, 0, cdata.ht.getBuf());
+    d3d::set_buffer(STAGE_CS, 1, cdata.dt.getBuf());
     setConstantBuffer(i, groupsZ);
     const int N = 1 << fft[i].getParams().fft_resolution_bits;
     fftV->dispatch(1, N, groupsZ, GpuPipeline::ASYNC_COMPUTE);

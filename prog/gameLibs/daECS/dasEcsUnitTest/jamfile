@@ -24,7 +24,7 @@ StrictCompile = yes ;
 
 AddIncludes =
   $(Root)/prog/gameLibs/daECS/dasEcsUnitTest
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/1stPartyLibs/daScript/include
 ;
@@ -77,19 +77,19 @@ if $(NeedDasAotCompile) = yes {
 UseMemoryDebugLevel ?= off ;
 Sanitize ?= disabled ;
 
-if $(Sanitize) != disabled { UseProgLibs += engine2/memory/rtlStdMemory ; } else { UseProgLibs += engine2/memory ; }
+if $(Sanitize) != disabled { UseProgLibs += engine/memory/rtlStdMemory ; } else { UseProgLibs += engine/memory ; }
 
 if $(Sanitize) = disabled && $(Config) != rel { UseMemoryDebugLevel = dbg ; }
 
 UseProgLibs +=
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/perfMon
-  engine2/math
-  engine2/baseUtil
-  engine2/ioSys
-  engine2/startup
-  engine2/workCycle
+  engine/osApiWrappers
+  engine/kernel
+  engine/perfMon
+  engine/math
+  engine/baseUtil
+  engine/ioSys
+  engine/startup
+  engine/workCycle
   gameLibs/daECS/core
   gameLibs/daECS/io/datablock
   gameLibs/daECS/utility

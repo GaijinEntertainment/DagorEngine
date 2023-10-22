@@ -11,17 +11,16 @@
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <direct.h>
 
-#define DIALOG_WIDTH  500
-#define DIALOG_HEIGHT 160
-
-#define WORKSPACE_DIALOG_WIDTH  400
-#define WORKSPACE_DIALOG_HEIGHT 245
-
+using hdpi::_pxScaled;
 
 //==================================================================================================
 EditorStartDialog::EditorStartDialog(void *phandle, const char *caption, EditorWorkspace &worksp, const char *wsp_blk,
   const char *select_wsp) :
-  CDialogWindow(phandle, DIALOG_WIDTH, DIALOG_HEIGHT, caption), wsp(worksp), blkName(wsp_blk), wspInited(false), startWsp(select_wsp)
+  CDialogWindow(phandle, _pxScaled(500), _pxScaled(160), caption),
+  wsp(worksp),
+  blkName(wsp_blk),
+  wspInited(false),
+  startWsp(select_wsp)
 {
   ::dd_mkpath(wsp_blk);
   PropertyContainerControlBase *_panel = getPanel();
@@ -226,9 +225,6 @@ bool EditorStartDialog::onOk()
 }
 
 
-int EditorStartDialog::getWspDialogHeight() { return WORKSPACE_DIALOG_HEIGHT; }
-
-
 //==================================================================================================
 
 // Workspace dialog
@@ -237,10 +233,7 @@ int EditorStartDialog::getWspDialogHeight() { return WORKSPACE_DIALOG_HEIGHT; }
 
 WorkspaceDialog::WorkspaceDialog(void *phandle, EditorStartDialog *esd, const char *caption, EditorWorkspace &wsp, bool is_editing) :
 
-  CDialogWindow(phandle, WORKSPACE_DIALOG_WIDTH, (is_editing) ? WORKSPACE_DIALOG_HEIGHT - 35 : WORKSPACE_DIALOG_HEIGHT, caption),
-  mEditing(is_editing),
-  mWsp(wsp),
-  mEsd(esd)
+  CDialogWindow(phandle, _pxScaled(400), _pxScaled(245 - (is_editing ? 35 : 0)), caption), mEditing(is_editing), mWsp(wsp), mEsd(esd)
 {
   PropertyContainerControlBase *_panel = getPanel();
   G_ASSERT(_panel && "No panel in EditorStartDialog");

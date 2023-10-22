@@ -283,8 +283,6 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   G_ASSERT(h0Mat);
   h0Element = h0Mat->make_elem();
   int num_quads = (numCascades + 1) / 2;
-  ht0Vbuf = d3d::create_vb(sizeof(Ht0Vertex) * 4 * num_quads, SBCF_DYNAMIC, "ht0Vbuf");
-  d3d_err(ht0Vbuf);
   ht0Ibuf = d3d::create_ib(sizeof(uint16_t) * 6 * num_quads, 0);
   d3d_err(ht0Ibuf);
   uint16_t *indices;
@@ -346,6 +344,9 @@ void GPGPUData::updateHt0WindowsVB(const NVWaveWorks_FFT_CPU_Simulation *fft, in
 
   int num_quads = (numCascades + 1) / 2;
   Ht0Vertex *vertices;
+  del_d3dres(ht0Vbuf);
+  ht0Vbuf = d3d::create_vb(sizeof(Ht0Vertex) * 4 * num_quads, 0, "ht0Vbuf");
+  d3d_err(ht0Vbuf);
   G_ASSERT(ht0Vbuf);
   d3d_err(ht0Vbuf->lock(0, 0, (void **)&vertices, VBLOCK_WRITEONLY));
   const int N = 1 << fft[0].getParams().fft_resolution_bits;

@@ -49,8 +49,10 @@ typedef const struct bsph3f& bsph3f_cref;
 #endif
 
 #ifndef VECTORCALL
-  //__vectorcall is faster on msvc, even on x64 target
-  #if (defined(_MSC_VER) || defined(__clang__)) && __SSE__
+  #if _TARGET_PC_MACOSX && __SSE__
+    #define VECTORCALL [[clang::vectorcall]]
+  #elif (defined(_MSC_VER) || defined(__clang__)) && __SSE__
+      //__vectorcall is faster on msvc, even on x64 target
     #define VECTORCALL __vectorcall
   #else
     #define VECTORCALL
@@ -130,8 +132,8 @@ struct mat44f
 {
   vec4f col0, col1, col2, col3;
 
-  VECMATH_FINLINE void VECTORCALL set33(mat33f_cref m) { col0 = m.col0; col1 = m.col1; col2 = m.col2; }
-  VECMATH_FINLINE void VECTORCALL set33(mat33f_cref m, vec4f c3)
+  VECTORCALL VECMATH_FINLINE void set33(mat33f_cref m) { col0 = m.col0; col1 = m.col1; col2 = m.col2; }
+  VECTORCALL VECMATH_FINLINE void set33(mat33f_cref m, vec4f c3)
     { col0 = m.col0; col1 = m.col1; col2 = m.col2; col3 = c3; }
 };
 

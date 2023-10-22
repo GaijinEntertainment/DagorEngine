@@ -46,6 +46,7 @@ public:
   bool riDataBlock(DagorAsset *asset, DataBlock &blk) const;
   void gatherSourceFiles(DagorAsset *asset, eastl::set<String, ImpostorBaker::StrLess> &files) const;
   bool generateQualitySummary(const char *filename) const noexcept;
+  bool logSkippedAssets() const;
   bool dumpChangedFiles(const char *filename) const;
 
 private:

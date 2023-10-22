@@ -13,9 +13,7 @@ static const uint32_t EMISSION_COLOR_REPLACE_ENC = (1 << EMISSION_COLOR_HUE_BITS
 
 EmissionColorMaps::EmissionColorMaps()
 {
-
-  decodeMap = dag::create_sbuffer(sizeof(Point4), EMISSION_COLOR_MAP_POINTS, SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0,
-    "emission_decode_color_map");
+  decodeMap = dag::buffers::create_persistent_sr_structured(sizeof(Point4), EMISSION_COLOR_MAP_POINTS, "emission_decode_color_map");
   decodeMap.setVar();
   upload();
 }

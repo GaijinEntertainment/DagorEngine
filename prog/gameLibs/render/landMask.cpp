@@ -109,7 +109,7 @@ LandMask::LandMask(const DataBlock &level_blk, int tex_align, bool needGrass) :
   d3d::get_render_target(prevRt);
 
   d3d::set_render_target(nullptr, 0);
-  d3d_err(d3d::set_depth(landHeightTex.getTex2D(), false));
+  d3d_err(d3d::set_depth(landHeightTex.getTex2D(), DepthAccess::RW));
   d3d::clearview(CLEAR_ZBUFFER, 0, 1.f, 0);
   d3d::resource_barrier({landHeightTex.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
@@ -195,7 +195,7 @@ void LandMask::renderRegion(const Point3 &center_pos, const ToroidalQuadRegion &
   {
     // height only
     shaders::overrides::set(flipCullDepthOnlyOverride);
-    d3d::set_render_target({landHeightTex.getTex2D(), 0}, false, {{NULL, 0}});
+    d3d::set_render_target({landHeightTex.getTex2D(), 0}, DepthAccess::RW, {{NULL, 0}});
     d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
     d3d::clearview(CLEAR_ZBUFFER, 0x00000000, 0.f, 0);
 
@@ -207,7 +207,7 @@ void LandMask::renderRegion(const Point3 &center_pos, const ToroidalQuadRegion &
   if (landColorTex.getTex2D())
   {
     // Render color, mask
-    d3d::set_render_target({NULL, 0}, false, {{landColorTex.getTex2D(), 0}, {grassTypeTex.getTex2D(), 0}});
+    d3d::set_render_target({NULL, 0}, DepthAccess::RW, {{landColorTex.getTex2D(), 0}, {grassTypeTex.getTex2D(), 0}});
     d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
     d3d::clearview(CLEAR_TARGET, 0, 0.f, 0);
     shaders::overrides::set(landColorOverride);

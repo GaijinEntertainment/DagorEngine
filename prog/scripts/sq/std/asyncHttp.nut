@@ -1,7 +1,7 @@
 from "functools.nut" import *
 
 let {Task} = require("monads.nut")
-let http = require("dagor.http")
+let { httpRequest, HTTP_FAILED, HTTP_ABORTED, HTTP_SUCCESS } = require("dagor.http")
 //local dlog = require("log.nut")().dlog
 /*
   todo:
@@ -9,13 +9,13 @@ let http = require("dagor.http")
 */
 
 let statusText = {
-  [http.HTTP_SUCCESS] = "SUCCESS",
-  [http.HTTP_FAILED] = "FAILED",
-  [http.HTTP_ABORTED] = "ABORTED",
+  [HTTP_SUCCESS] = "SUCCESS",
+  [HTTP_FAILED] = "FAILED",
+  [HTTP_ABORTED] = "ABORTED",
 }
 
 let function httpGet(url, callback){
-  http.request({
+  httpRequest({
     url
     method = "GET"
     callback
@@ -24,7 +24,7 @@ let function httpGet(url, callback){
 let function TaskHttpGet(url) {
   return Task(function(rejectFn, resolveFn) {
     println($"http 'get' requested for '{url}'")
-    http.request({
+    httpRequest({
       url
       method = "GET"
       callback = tryCatch(
@@ -32,7 +32,7 @@ let function TaskHttpGet(url) {
           let status = response.status
           let sttxt = statusText?[status]
           println($"http status for '{url}' = {sttxt}")
-          if (status != http.HTTP_SUCCESS) {
+          if (status != HTTP_SUCCESS) {
             throw($"http error status = {sttxt}")
           }
           resolveFn(response.body)
@@ -71,7 +71,7 @@ let function TaskHttpMultiGet(urls, rejectOne=@(x) x, resolveOne=@(x) x) {
       let id = i
       let url = u
       println($"http requested get for '{url}'")
-      http.request({
+      httpRequest({
         url
         method = "GET"
         callback = tryCatch(
@@ -79,7 +79,7 @@ let function TaskHttpMultiGet(urls, rejectOne=@(x) x, resolveOne=@(x) x) {
             let status = response.status
             let sttxt = statusText?[status]
             println($"http status for '{url}' = {sttxt}")
-            if (status != http.HTTP_SUCCESS) {
+            if (status != HTTP_SUCCESS) {
               throw($"http error status = {sttxt}")
             }
             res[id] = resolveOne(response.body)

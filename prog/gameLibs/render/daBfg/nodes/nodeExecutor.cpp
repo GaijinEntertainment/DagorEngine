@@ -18,18 +18,19 @@ namespace dabfg
 
 template <class F, class G, class H>
 void populate_resource_provider(ResourceProvider &provider, // passed by ref to avoid reallocs
-  const InternalRegistry &registry, NodeNameId nodeId, const F &textureProvider, const G &bufferProvider, const H &blobProvider)
+  const InternalRegistry &registry, const NameResolver &resolver, NodeNameId nodeId, const F &textureProvider, const G &bufferProvider,
+  const H &blobProvider)
 {
   provider.providedResources.reserve(registry.nodes[nodeId].resourceRequests.size());
   provider.providedHistoryResources.reserve(registry.nodes[nodeId].historyResourceReadRequests.size());
 
-  auto processRes = [&](ResNameId baseResNameId, bool history, bool optional) {
-    ResNameId resId = resolve_res_id(registry, baseResNameId);
-    auto setRes = [resId, baseResNameId, history, &provider](auto resource) {
+  auto processRes = [&](ResNameId unresolvedResNameId, bool history, bool optional) {
+    auto setRes = [unresolvedResNameId, history, &provider](auto resource) {
       auto &storage = history ? provider.providedHistoryResources : provider.providedResources;
-      storage[resId] = resource;
-      storage[baseResNameId] = resource;
+      storage[unresolvedResNameId] = resource;
     };
+
+    ResNameId resId = resolver.resolve(unresolvedResNameId);
 
     if (!registry.resources.isMapped(resId))
     {
@@ -41,7 +42,6 @@ void populate_resource_provider(ResourceProvider &provider, // passed by ref to 
 
     switch (registry.resources[resId].type)
     {
-      // TODO: resource pools' ::ResourceType should be renamed
       case ResourceType::Texture: setRes(textureProvider(history, resId)); break;
 
       case ResourceType::Buffer: setRes(bufferProvider(history, resId)); break;
@@ -72,7 +72,7 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
       const multiplexing::Index multiIdx = multiplexing_index_from_ir(irNode.multiplexingIndex, multiplexing_extents);
       gatherExternalResources(userNodeNameId, irNode.multiplexingIndex, multiIdx, graph.resources);
       populate_resource_provider(
-        currentlyProvidedResources, registry, userNodeNameId,
+        currentlyProvidedResources, registry, nameResolver, userNodeNameId,
         [this, prev_frame, curr_frame, multiIndex = irNode.multiplexingIndex](bool history, ResNameId res_id) -> ManagedTexView {
           return getManagedTexView(res_id, history ? prev_frame : curr_frame, multiIndex);
         },
@@ -89,7 +89,7 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
       if (const auto &node = registry.nodes[userNodeNameId]; node.enabled && node.sideEffect != SideEffects::None)
       {
         {
-          TIME_D3D_PROFILE_NAME(FramegraphNode, registry.knownNodeNames.getNameCstr(userNodeNameId));
+          TIME_D3D_PROFILE_NAME(FramegraphNode, registry.knownNames.getName(userNodeNameId));
 
           if (auto &exec = registry.nodes[userNodeNameId].execute)
             exec(multiIdx);
@@ -109,7 +109,7 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
   }
   processEvents(events.back());
   applyState(state_deltas.back(), curr_frame, prev_frame);
-  validation_of_external_resources_duplication(graph.resources);
+  validation_of_external_resources_duplication(graph.resources, graph.resourceNames);
 }
 
 void NodeExecutor::gatherExternalResources(NodeNameId nameId, intermediate::MultiplexingIndex ir_multi_idx,
@@ -117,18 +117,18 @@ void NodeExecutor::gatherExternalResources(NodeNameId nameId, intermediate::Mult
 {
   for (const auto &[resNameIdUnresolved, request] : registry.nodes[nameId].resourceRequests)
   {
-    const ResNameId resNameId = resolve_res_id(registry, resNameIdUnresolved);
+    const ResNameId resNameId = nameResolver.resolve(resNameIdUnresolved);
     const auto &resData = registry.resources.get(resNameId);
     if (auto provider = eastl::get_if<ExternalResourceProvider>(&resData.creationInfo))
     {
       intermediate::ResourceIndex resIdx = mapping.mapRes(resNameId, ir_multi_idx);
       const ExternalResource res = (*provider)(multi_idx);
       if (auto *tex = eastl::get_if<ManagedTexView>(&res))
-        G_ASSERTF(*tex, "External texture %s wasn't provided by node %s", registry.knownResourceNames.getName(resNameId),
-          registry.knownNodeNames.getName(nameId));
+        G_ASSERTF(*tex, "External texture %s wasn't provided by node %s", registry.knownNames.getName(resNameId),
+          registry.knownNames.getName(nameId));
       else if (auto *buf = eastl::get_if<ManagedBufView>(&res))
-        G_ASSERTF(*buf, "External buffer %s wasn't provided by node %s", registry.knownResourceNames.getName(resNameId),
-          registry.knownNodeNames.getName(nameId));
+        G_ASSERTF(*buf, "External buffer %s wasn't provided by node %s", registry.knownNames.getName(resNameId),
+          registry.knownNames.getName(nameId));
 
       resources[resIdx].resource = res;
     }
@@ -140,7 +140,7 @@ void NodeExecutor::processEvents(ResourceScheduler::NodeEventsRef events) const
   // NOTE: split barriers are not properly implemented on vulkan
   // and lead to RP breaks without giving any benefit
   const auto ignoreBarrier = [drvCode = d3d::get_driver_code()](int rb) {
-    return drvCode == _MAKE4C('VULK') && (rb & RB_FLAG_SPLIT_BARRIER_BEGIN) != 0;
+    return drvCode.is(d3d::vulkan) && (rb & RB_FLAG_SPLIT_BARRIER_BEGIN) != 0;
   };
 
   for (const auto &evt : events)
@@ -276,13 +276,14 @@ void NodeExecutor::applyState(const NodeStateDelta &state, int frame, int prev_f
       else
         depthTarget = {nullptr, 0, 0};
 
-      d3d::set_render_target(depthTarget, pass->depthReadOnly, dag::ConstSpan<RenderTarget>(colorTargets.data(), colorTargets.size()));
+      d3d::set_render_target(depthTarget, pass->depthReadOnly ? DepthAccess::SampledRO : DepthAccess::RW,
+        dag::ConstSpan<RenderTarget>(colorTargets.data(), colorTargets.size()));
     }
     else
     {
       // NOTE: this will become end_render_pass once we move to native RPs,
       // which is very different from a pass with no attachments!
-      d3d::set_render_target({nullptr, 0, 0}, false, {});
+      d3d::set_render_target({nullptr, 0, 0}, DepthAccess::RW, {});
     }
   }
 

@@ -707,7 +707,7 @@ void buildJumpLink(const rcHeightfield *m_solid, const rcCompactHeightfield *m_c
 } // namespace recastbuild
 
 
-static Point3 cast_endpoint_to_edge(const Point3 &p, const Tab<recastbuild::Edge> edges)
+static Point3 cast_endpoint_to_edge(const Point3 &p, const Tab<recastbuild::Edge> &edges)
 {
   if (edges.empty())
     return p;
@@ -716,14 +716,11 @@ static Point3 cast_endpoint_to_edge(const Point3 &p, const Tab<recastbuild::Edge
   for (const recastbuild::Edge &e : edges)
   {
     Point3 candidate = closest_pt_on_seg(p, e.sp, e.sq, t);
-    if (t > .0 && t < 1.0)
+    auto dst = (p - candidate).lengthSq();
+    if (dst < bestDstSq)
     {
-      auto dst = (p - candidate).lengthSq();
-      if (dst < bestDstSq)
-      {
-        bestDstSq = dst;
-        res = candidate;
-      }
+      bestDstSq = dst;
+      res = candidate;
     }
   }
   res.y += 0.1f;
@@ -787,6 +784,18 @@ void recastbuild::cross_obstacles_with_jumplinks(recastnavmesh::OffMeshConnectio
       else // Should be impossible
         logerr("Obstacle center is in tile, but none of the jumplink points are");
     }
+  }
+}
+
+
+void recastbuild::add_custom_jumplinks(recastnavmesh::OffMeshConnectionsStorage &out_conn_storage, const Tab<Edge> &edges,
+  const Tab<CustomJumpLink> &custom_jump_links)
+{
+  for (auto [jumpLinkStart, jumpLinkEnd] : custom_jump_links)
+  {
+    jumpLinkStart.y = cast_endpoint_to_edge(jumpLinkStart, edges).y;
+    jumpLinkEnd.y = cast_endpoint_to_edge(jumpLinkEnd, edges).y;
+    recastbuild::add_off_mesh_connection(out_conn_storage, &jumpLinkStart.x, &jumpLinkEnd.x, 0.5f, 1);
   }
 }
 

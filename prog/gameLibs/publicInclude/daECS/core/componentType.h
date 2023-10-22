@@ -311,7 +311,7 @@ public:
   virtual void move(void * /*to*/, void * /*from*/) const {} // move constructor. This is called only for NON_TRIVIAL_MOVE. Currently
                                                              // we don't support non memcpy moveable types
 
-  virtual void clear() {} // this is called on each g_entity_mgr->clear(), after all components were removed. That is used for
+  virtual void clear() {} // this is called on each EntityManager::clear(), after all components were removed. That is used for
                           // unrecommended and rare case when type manager has state
   virtual ~ComponentTypeManager() {}
 };

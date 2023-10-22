@@ -21,7 +21,7 @@ class framemem_allocator;
 namespace dabfg
 {
 
-using DynamicResolutions = IdIndexedMapping<AutoResTypeNameId, IPoint2, framemem_allocator>;
+using DynamicResolutions = IdIndexedMapping<AutoResTypeNameId, eastl::optional<IPoint2>, framemem_allocator>;
 
 class ResourceScheduler
 {
@@ -189,7 +189,7 @@ protected:
 
   // Required for answering external get resource and set resolution requests
   IntermediateResources cachedIntermediateResources;
-
+  IdIndexedMapping<intermediate::ResourceIndex, intermediate::DebugResourceName> cachedIntermediateResourceNames;
 
   // Fake heap group used for CPU resources
   inline static ResourceHeapGroup *const CPU_HEAP_GROUP = reinterpret_cast<ResourceHeapGroup *>(~uintptr_t{0});

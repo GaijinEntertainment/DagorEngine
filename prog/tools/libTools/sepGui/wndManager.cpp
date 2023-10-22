@@ -196,12 +196,12 @@ VirtualWindow *WinManager::addSplitter(CascadeWindow *splitted_wnd, IPoint2 mous
     if (original_to_left)
     {
       align = WA_RIGHT;
-      size = p2.x - mouse_pos.x - SPLITTER_SPACE - SPLITTER_THICKNESS;
+      size = p2.x - mouse_pos.x - _pxS(SPLITTER_SPACE) - _pxS(SPLITTER_THICKNESS);
     }
     else
     {
       align = WA_LEFT;
-      size = mouse_pos.x - p1.x - SPLITTER_SPACE;
+      size = mouse_pos.x - p1.x - _pxS(SPLITTER_SPACE);
     }
   }
   else
@@ -209,12 +209,12 @@ VirtualWindow *WinManager::addSplitter(CascadeWindow *splitted_wnd, IPoint2 mous
     if (original_to_left)
     {
       align = WA_BOTTOM;
-      size = p2.y - mouse_pos.y - SPLITTER_SPACE - SPLITTER_THICKNESS;
+      size = p2.y - mouse_pos.y - _pxS(SPLITTER_SPACE) - _pxS(SPLITTER_THICKNESS);
     }
     else
     {
       align = WA_TOP;
-      size = mouse_pos.y - p1.y - SPLITTER_SPACE;
+      size = mouse_pos.y - p1.y - _pxS(SPLITTER_SPACE);
     }
   }
 
@@ -223,7 +223,7 @@ VirtualWindow *WinManager::addSplitter(CascadeWindow *splitted_wnd, IPoint2 mous
 
   if (newClient)
   {
-    newClient->setMinSize(WINDOW_MIN_SIZE_W, WINDOW_MIN_SIZE_H);
+    newClient->setMinSize(_pxScaled(WINDOW_MIN_SIZE_W), _pxScaled(WINDOW_MIN_SIZE_H));
 
     if (ClientWindow *client = splitted_wnd->getClientWindow())
       newClient->setType(client->getType());
@@ -252,7 +252,7 @@ SplitterWindow *WinManager::createSplitterWindow(VirtualWindow *parent, int x, i
   SplitterWindow *sw = NULL;
   LPCSTR className = NULL;
 
-  if (w == SPLITTER_THICKNESS)
+  if (w == _pxS(SPLITTER_THICKNESS))
   {
     sw = new SplitterWindow(parent, this, true, x, y, w, h);
     className = WNDCLASS_VSPLITTER;
@@ -315,7 +315,7 @@ dag::ConstSpan<MovableWindow *> WinManager::getMovableWindows() const { return m
 
 
 //=============================================================================
-void WinManager::loadLayout(const char *filename) { mLayoutSaver.loadLayout(filename); }
+bool WinManager::loadLayout(const char *filename) { return mLayoutSaver.loadLayout(filename); }
 
 
 //=============================================================================
@@ -323,7 +323,7 @@ void WinManager::saveLayout(const char *filename) { mLayoutSaver.saveLayout(file
 
 
 //=============================================================================
-void WinManager::loadLayoutFromDataBlock(const DataBlock &data_block) { mLayoutSaver.loadLayoutFromDataBlock(data_block); }
+bool WinManager::loadLayoutFromDataBlock(const DataBlock &data_block) { return mLayoutSaver.loadLayoutFromDataBlock(data_block); }
 
 
 //=============================================================================
@@ -381,11 +381,11 @@ void WinManager::onMainWindowCreated()
   GetWindowInfo((HWND)mMainWindow.getHandle(), &minInfo);
 
   int clientW = minInfo.rcClient.right - minInfo.rcClient.left;
-  int clientH = minInfo.rcClient.bottom - minInfo.rcClient.top - MAIN_CLIENT_AREA_OFFSET;
+  int clientH = minInfo.rcClient.bottom - minInfo.rcClient.top - _pxS(MAIN_CLIENT_AREA_OFFSET);
 
-  ClientWindow *rootWindow = createClientWindow(NULL, 0, MAIN_CLIENT_AREA_OFFSET, clientW, clientH);
+  ClientWindow *rootWindow = createClientWindow(NULL, 0, _pxS(MAIN_CLIENT_AREA_OFFSET), clientW, clientH);
 
-  rootWindow->setMinSize(WINDOW_MIN_SIZE_W, WINDOW_MIN_SIZE_H);
+  rootWindow->setMinSize(_pxScaled(WINDOW_MIN_SIZE_W), _pxScaled(WINDOW_MIN_SIZE_H));
 
   mRootWindow = rootWindow;
 

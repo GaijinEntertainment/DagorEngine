@@ -1,4 +1,4 @@
-#  Setup for gcc4 compiler for tvOS (to be included from jBuild.jam)
+#  Setup for clang compiler for tvOS (to be included from jBuild.jam)
 
 _OBJ_SUFFIX  = .o ;
 

@@ -27,8 +27,9 @@ public:
   TEXTUREID getSSAOTexId() override;
 
 private:
-  void render(BaseTexture *depth_tex_to_use, const ManagedTex *ssaoTex, const ManagedTex *prevSsaoTex, const ManagedTex *tmpTex,
-    const DPoint3 *, SubFrameSample sub_sample = SubFrameSample::Single) override;
+  void render(const TMatrix &, const TMatrix4 &, BaseTexture *depth_tex_to_use, const ManagedTex *ssaoTex,
+    const ManagedTex *prevSsaoTex, const ManagedTex *tmpTex, const DPoint3 *,
+    SubFrameSample sub_sample = SubFrameSample::Single) override;
 
   void setFrameNo();
   void renderSSAO(BaseTexture *depth_tex_to_use);

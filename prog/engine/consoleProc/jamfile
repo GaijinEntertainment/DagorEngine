@@ -1,0 +1,26 @@
+Root    ?= ../../.. ;
+Location = prog/engine/consoleProc ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = engine/consoleProc.lib ;
+
+UseProgLibs =
+  3rdPartyLibs/imgui
+;
+
+Sources =
+  conBaseProc.cpp
+  conClassBase.cpp
+  consoleProcessor.cpp
+  consoleVisualDrv.cpp
+  consoleState.cpp
+  consoleInit.cpp
+  consoleVars.cpp
+  defAppConsole.cpp
+  profilerConsole.cpp
+;
+
+CPPopt = -D__B_CORE ;
+
+include $(Root)/prog/_jBuild/build.jam ;

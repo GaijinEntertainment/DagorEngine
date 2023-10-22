@@ -1,0 +1,28 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/lib3d/moc_avx ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine/lib3d/moc_avx.lib ;
+
+
+Sources =
+  MaskedOcclusionCulling_avx.cpp
+;
+
+CPPopt = -D__B_CORE ;
+
+if $(Platform) in win64 linux64
+{
+  CPPopt += -mavx2 -mfma ;
+}
+
+if $(ForceLinkDebugLines) = yes && $(Config) in rel irel {
+  CPPopt += -DFORCE_LINK_DEBUG_LINES ;
+  Target = $(Target:S=~dbgln.lib) ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;
+

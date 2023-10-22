@@ -48,7 +48,7 @@ struct Culling
 };
 
 bool init_culling(Context &ctx);
-void reset_culling(Context &ctx);
+void reset_culling(Context &ctx, bool clear_cpu);
 void prepare_cpu_culling(Context &ctx, bool exec_clear);
 bool prepare_gpu_culling(Context &ctx, bool exec_clear);
 void issue_culling_feedback(Context &ctx);

@@ -15,17 +15,6 @@ static void init_vars()
 #undef VAR
 }
 
-// TODO Remove this, gettm is deprecated
-void set_reprojection(DPoint3 &prevWorldPos, TMatrix4 &prevGlobTm, Point4 &prevViewVecLT, Point4 &prevViewVecRT, Point4 &prevViewVecLB,
-  Point4 &prevViewVecRB, const DPoint3 *world_pos)
-{
-  TMatrix viewTm;
-  TMatrix4 projTm;
-  d3d::gettm(TM_VIEW, viewTm);
-  d3d::gettm(TM_PROJ, &projTm);
-  set_reprojection(viewTm, projTm, prevWorldPos, prevGlobTm, prevViewVecLT, prevViewVecRT, prevViewVecLB, prevViewVecRB, world_pos);
-}
-
 void set_reprojection(const TMatrix &viewTm, const TMatrix4 &projTm, DPoint3 &prevWorldPos, TMatrix4 &prevGlobTm,
   Point4 &prevViewVecLT, Point4 &prevViewVecRT, Point4 &prevViewVecLB, Point4 &prevViewVecRB, const DPoint3 *world_pos)
 {

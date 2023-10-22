@@ -1,0 +1,59 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/perfMon/daProfiler ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine/daProfiler.lib ;
+
+AddIncludes =
+  $(Root)/prog/engine/perfMon/daProfiler
+;
+
+UseProgLibs = ;
+
+if $(Platform) = android {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/libunwind/include ;
+  UseProgLibs += 3rdPartyLibs/libunwind ;
+}
+
+Sources =
+  daProfiler.cpp
+  daProfilerPlugins.cpp
+  daProfilePageAllocator.cpp
+  daProfilerOOL.cpp
+  daProfilerThreads.cpp
+  daProfilerVSDump.cpp
+  daProfilerMessageServer.cpp
+  daProfilerDefaultMessages.cpp
+  daProfilerDumpServer.cpp
+  daProfilerDescriptions.cpp
+  daProfilerDataDescriptions.cpp
+  daProfilerSampling.cpp
+  daProfilerDumpHier.cpp
+  daProfilerSaveDump.cpp
+  daProfilerPrepareDump.cpp
+  daProfilerPlatform.cpp
+  daProfilerPlatformGPU.cpp
+  daProfilerFileDump.cpp
+  daProfilerNetServer.cpp
+  daProfilerUserSettings.cpp
+  daProfilerUserSettingsDump.cpp
+  daProfilerSymbolsCache.cpp
+;
+
+if $(Platform) in win32 win64 scarlett xboxOne {
+  Sources +=  stackUnwinder/unwindStackWin.cpp ;
+} else if $(Platform) in android {
+  Sources +=  stackUnwinder/unwindStackAndroid.cpp ;
+} else if $(Platform) in macosx iOS tvOS {
+  Sources +=  stackUnwinder/unwindStackMac.cpp ;
+} else
+{
+  Sources +=  stackUnwinder/unwindStackDagor.cpp ;
+}
+
+CPPopt = -D__B_MINICORE ;
+
+include $(Root)/prog/_jBuild/build.jam ;

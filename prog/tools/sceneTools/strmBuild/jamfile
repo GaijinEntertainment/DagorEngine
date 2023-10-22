@@ -12,19 +12,19 @@ Sources =
   strmBuild.cpp
 ;
 
-UseProgLibs = 
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/math
-  engine2/baseUtil
-  engine2/ioSys
-  engine2/startup
-  engine2/lib3d
-  engine2/shaders
-  engine2/drv/drv3d_stub
-  engine2/scene
-  engine2/perfMon
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/math
+  engine/baseUtil
+  engine/ioSys
+  engine/startup
+  engine/lib3d
+  engine/shaders
+  engine/drv/drv3d_stub
+  engine/scene
+  engine/perfMon
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

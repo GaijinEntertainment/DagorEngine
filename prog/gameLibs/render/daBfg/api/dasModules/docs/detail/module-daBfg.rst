@@ -33,7 +33,7 @@ Example:
   require daBfg
 
   def register_debug_visualization_node(var handle : NodeHandle& |#)
-    handle <- registerNode(debug_visualization_node_name) <| @(var registry : Registry)
+    handle <- root() |> registerNode(debug_visualization_node_name) <| @(var registry : Registry)
       if is_forward_rendering()
         registry |> requestRenderPass |> color([[auto[] "target_after_under_water_fog"]]) |> depthRo("depth_for_transparent_effects")
       else
@@ -54,7 +54,7 @@ Example:
 
   [bfg_ecs_node(name="node_name", entity="entity_name", handle="node_handle")]
   def register_node(var handle : NodeHandle& |#)
-    handle <- registerNode("node_name") <| @(var registry : Registry)
+    handle <- root() |> registerNode("node_name") <| @(var registry : Registry)
       ...
       return <- @ <|
         ...

@@ -161,8 +161,9 @@ static inline bool check_routing(const IMessage &msg, const CNetwork &cnet, ecs:
 
 void CNetwork::ObjMsg::apply(const net::Object &robj, net::Connection &from, CNetwork &cnet, const danet::BitStream &data) const
 {
+  ecs::EntityManager &mgr = *g_entity_mgr;
   ecs::EntityId toEid = robj.getEid();
-  G_ASSERT(!g_entity_mgr->isLoadingEntity(toEid));
+  G_ASSERT(!mgr.isLoadingEntity(toEid));
   alignas(16) char tmpBuf[256];
   void *dataPtr = tmpBuf;
   if (EASTL_UNLIKELY(msgCls->memSize > sizeof(tmpBuf)))
@@ -175,22 +176,22 @@ void CNetwork::ObjMsg::apply(const net::Object &robj, net::Connection &from, CNe
       if (msgCls->flags & MF_TIMED)
         static_cast<IMessageTimed *>(msg.get())->rcvTime = rcvTime;
       msg->connection = &from;
-      if (net::event::try_receive(*msg, toEid))
+      if (net::event::try_receive(*msg, mgr, toEid))
         ;
       else
       {
         // Send event immediately because we need this message to be processed before futher state syncs messages
-        g_entity_mgr->sendEventImmediate(toEid, ecs::EventNetMessage(eastl::move(msg)));
+        mgr.sendEventImmediate(toEid, ecs::EventNetMessage(eastl::move(msg)));
       }
     }
     else
       logerr("network message #%d/%s/%x to %d<%s> from conn #%d is failed to unpack", msgCls->classId, msgCls->debugClassName,
-        msgCls->classHash, (ecs::entity_id_t)toEid, g_entity_mgr->getEntityTemplateName(toEid), (int)from.getId());
+        msgCls->classHash, (ecs::entity_id_t)toEid, mgr.getEntityTemplateName(toEid), (int)from.getId());
   }
   else
     logwarn("network message #%d/%s/%x to %d<%s> from conn #%d is dropped due to failed routing (%d) check", msgCls->classId,
-      msgCls->debugClassName, msgCls->classHash, (ecs::entity_id_t)toEid, g_entity_mgr->getEntityTemplateName(toEid),
-      (int)from.getId(), msgCls->routing);
+      msgCls->debugClassName, msgCls->classHash, (ecs::entity_id_t)toEid, mgr.getEntityTemplateName(toEid), (int)from.getId(),
+      msgCls->routing);
   if (dataPtr != tmpBuf)
     framemem_ptr()->free(dataPtr);
 }

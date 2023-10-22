@@ -23,7 +23,7 @@ Sources = bits.c
   texture.c
 ;
 
-if $(PlatformSpec) in gcc4 clang {
+if $(PlatformSpec) in gcc clang {
   Copt += -Wno-unused-parameter ;
 }
 

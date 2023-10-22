@@ -1073,6 +1073,10 @@ bool RenderableInstanceLodsResSrc::addLod(const char *filename, real range, Lods
     return false;
   }
 
+  override_materials(matList, material_overrides, nullptr);
+
+  bool hasAO = has_ao(*sc.root, this);
+
   if (add_mat_script)
   {
     for (auto &mat : matList)
@@ -1083,9 +1087,6 @@ bool RenderableInstanceLodsResSrc::addLod(const char *filename, real range, Lods
     }
   }
 
-  override_materials(matList, material_overrides, nullptr);
-
-  bool hasAO = has_ao(*sc.root, this);
   BuildableStaticSceneRayTracer *rayTracer = NULL;
   sc.root->calc_wtm();
   if (log)
@@ -1320,11 +1321,15 @@ bool RenderableInstanceLodsResSrc::build(const DataBlock &blk)
     }
   }
 
-  if (hasImpostor && blk.getNameId("transition_lod") != -1)
+  if (hasImpostor)
   {
     const DataBlock *block = blk.getBlockByName("transition_lod");
-    int transitionRangeNameId = block->getNameId("transition_range");
-    float transitionRange = block->getRealByNameId(transitionRangeNameId, 6.0f);
+    float transitionRange = 6.0f;
+    if (block)
+    {
+      int transitionRangeNameId = block->getNameId("transition_range");
+      transitionRange = block->getRealByNameId(transitionRangeNameId, transitionRange);
+    }
 
     String addMatScript;
 

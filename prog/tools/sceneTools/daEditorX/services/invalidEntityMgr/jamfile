@@ -1,0 +1,18 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/services/invalidEntityMgr ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/services/invalidEntityMgr.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+
+Sources =
+  invalidEntMgrService.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

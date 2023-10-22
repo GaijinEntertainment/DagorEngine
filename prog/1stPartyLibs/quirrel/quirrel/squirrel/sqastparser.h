@@ -69,6 +69,8 @@ class SQParser
     SQInteger column() const { return _lex._tokencolumn; }
     SQInteger width() const { return _lex._currentcolumn - _lex._tokencolumn; }
 
+    void checkSuspicciousUnaryOp(SQInteger prevTok, SQInteger tok, unsigned prevFlags);
+    void checkSuspicciousBraket();
 public:
     SQCompilationContext &_ctx;
 
@@ -76,10 +78,12 @@ public:
 
     uint32_t _depth;
 
-    SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const SQChar* sourcename, Arena *astArena, SQCompilationContext &ctx);
+    SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const SQChar* sourcename, Arena *astArena, SQCompilationContext &ctx, Comments *comments);
 
     bool ProcessPosDirective();
     void Lex();
+
+    void checkBraceIdentationStyle();
 
     void Consume(SQInteger tok) {
         assert(tok == _token);
@@ -122,7 +126,7 @@ public:
     Decl *parseLocalFunctionDeclStmt(bool assignable);
     Decl *parseLocalClassDeclStmt(bool assignable);
 
-    Statement* IfBlock();
+    Statement* IfLikeBlock(bool &wrapped);
     IfStatement* parseIfStatement();
     WhileStatement* parseWhileStatement();
     DoWhileStatement* parseDoWhileStatement();

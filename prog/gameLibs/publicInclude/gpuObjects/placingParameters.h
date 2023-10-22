@@ -6,6 +6,9 @@
 #pragma once
 
 #include <ecs/core/entityManager.h>
+#include <math/dag_color.h>
+#include <util/dag_string.h>
+
 
 namespace gpu_objects
 {

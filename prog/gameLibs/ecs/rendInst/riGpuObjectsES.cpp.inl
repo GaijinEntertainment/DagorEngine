@@ -1,5 +1,5 @@
 #include <rendInst/rendInstGen.h>
-#include <rendInst/rendInstGenGpuObjects.h>
+#include <rendInst/gpuObjects.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/core/entityManager.h>
 #include <ecs/core/utility/ecsRecreate.h>
@@ -11,11 +11,9 @@
 #include <nodeBasedShaderManager/nodeBasedShaderManager.h>
 #include <ecs/rendInst/riExtra.h>
 
-static AllowGpuRiCb allow_gpu_ri = nullptr;
-namespace rendinst
-{
-void set_allow_gpu_ri_cb(AllowGpuRiCb cb) { allow_gpu_ri = cb; }
-} // namespace rendinst
+static rendinst::gpuobjects::AllowGpuRiCb allow_gpu_ri = nullptr;
+
+void rendinst::gpuobjects::set_allow_gpu_ri_cb(rendinst::gpuobjects::AllowGpuRiCb cb) { allow_gpu_ri = cb; }
 
 template <typename T>
 static void perform_multiple_objects(T &&lambda, const ecs::Array &multiple_objects, gpu_objects::PlacingParameters &params)
@@ -133,12 +131,12 @@ static __forceinline void ri_gpu_object_create_es_event_handler(const ecs::Event
       ri_gpu_object__enable_displacement, ri_gpu_object__render_into_shadows, ri_gpu_object__coast_range, ri_gpu_object__face_coast);
 
   if (ri_gpu_object__multiple_objects.empty())
-    rendinst::add_gpu_object(String(ri_gpu_object__name.c_str()), ri_gpu_object__grid_tiling, ri_gpu_object__grid_size,
+    rendinst::gpuobjects::add(String(ri_gpu_object__name.c_str()), ri_gpu_object__grid_tiling, ri_gpu_object__grid_size,
       ri_gpu_object__cell_size, parameters);
   else
     perform_multiple_objects(
       [&](const String &name, const gpu_objects::PlacingParameters &parameters) {
-        rendinst::add_gpu_object(name, ri_gpu_object__grid_tiling, ri_gpu_object__grid_size, ri_gpu_object__cell_size, parameters);
+        rendinst::gpuobjects::add(name, ri_gpu_object__grid_tiling, ri_gpu_object__grid_size, ri_gpu_object__cell_size, parameters);
       },
       ri_gpu_object__multiple_objects, parameters);
 }
@@ -166,11 +164,11 @@ static __forceinline void ri_gpu_object_update_params_es_event_handler(const ecs
       ri_gpu_object__enable_displacement, ri_gpu_object__render_into_shadows, ri_gpu_object__coast_range, ri_gpu_object__face_coast);
 
   if (ri_gpu_object__multiple_objects.empty())
-    rendinst::change_gpu_object_parameters(String(ri_gpu_object__name.c_str()), parameters);
+    rendinst::gpuobjects::change_parameters(String(ri_gpu_object__name.c_str()), parameters);
   else
     perform_multiple_objects(
       [](const String &name, const gpu_objects::PlacingParameters &parameters) {
-        rendinst::change_gpu_object_parameters(String(name.c_str()), parameters);
+        rendinst::gpuobjects::change_parameters(String(name.c_str()), parameters);
       },
       ri_gpu_object__multiple_objects, parameters);
 }
@@ -183,14 +181,14 @@ static __forceinline void ri_gpu_object_track_es_event_handler(const ecs::Event 
   const ecs::Array &ri_gpu_object__multiple_objects)
 {
   if (ri_gpu_object__multiple_objects.empty())
-    rendinst::change_gpu_object_grid(String(ri_gpu_object__name.c_str()), ri_gpu_object__grid_tiling, ri_gpu_object__grid_size,
+    rendinst::gpuobjects::change_grid(String(ri_gpu_object__name.c_str()), ri_gpu_object__grid_tiling, ri_gpu_object__grid_size,
       ri_gpu_object__cell_size);
   else
   {
     gpu_objects::PlacingParameters parameters;
     perform_multiple_objects(
       [&](const String &name, const gpu_objects::PlacingParameters &) {
-        rendinst::change_gpu_object_grid(name, ri_gpu_object__grid_tiling, ri_gpu_object__grid_size, ri_gpu_object__cell_size);
+        rendinst::gpuobjects::change_grid(name, ri_gpu_object__grid_tiling, ri_gpu_object__grid_size, ri_gpu_object__cell_size);
       },
       ri_gpu_object__multiple_objects, parameters);
   }

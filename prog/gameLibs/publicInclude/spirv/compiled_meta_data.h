@@ -9,9 +9,6 @@
 #include <generic/dag_tab.h>
 #include <hash/sha1.h>
 #include <vulkan/vulkan.h>
-#if _TARGET_PC_MACOSX
-#include "../../spirv/module_nodes.h"
-#endif
 
 // contains the layout of compiled shaders as spir-v
 namespace spirv
@@ -395,7 +392,7 @@ inline const ChunkHeader *find_chunk(const Tab<ChunkHeader> &chunks, ChunkType t
 }
 
 // sole purpose of this is to trigger the static asserts here, this header is used
-// in tools and engine2/drv
+// in tools and engine/drv
 inline void do_trigger_static_assert_if_not_matching()
 {
   // if one of those goes off, then the limit in question hit a hard hardware limit

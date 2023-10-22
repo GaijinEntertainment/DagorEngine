@@ -53,7 +53,7 @@ enum class AddressMode : uint32_t
   Mirror     = TEXADDR_MIRROR,
   Clamp      = TEXADDR_CLAMP,
   Border     = TEXADDR_BORDER,
-  MorrorOnce = TEXADDR_MIRRORONCE,
+  MirrorOnce = TEXADDR_MIRRORONCE,
 };
 // clang-format on
 

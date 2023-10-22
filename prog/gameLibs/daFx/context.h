@@ -123,10 +123,7 @@ struct Context
   int renderCallsVarId = -1;
   int computeDispatchVarId = -1;
   int updateGpuCullingVarId = -1;
-  int screenPosToTcVarId = -1;
   bool supportsNoOverwrite = true;
-
-  IPoint2 renderingResolution = IPoint2(0, 0);
 
   FrameBoundaryBufferManager frameBoundaryBufferManager;
 
@@ -141,14 +138,14 @@ struct Context
 };
 
 extern GenerationReferencedData<ContextId, Context, uint8_t, 0> g_ctx_list;
-#define GET_CTX()                      \
-  Context *ctxp = g_ctx_list.get(cid); \
-  G_ASSERT(ctxp);                      \
-  if (!ctxp)                           \
-    return;                            \
+#define GET_CTX()                                                  \
+  Context *ctxp = g_ctx_list.get(cid);                             \
+  G_ASSERTF(ctxp, "dafx: GET_CTX failed, rid: %d", (uint32_t)cid); \
+  if (!ctxp)                                                       \
+    return;                                                        \
   Context &ctx = *ctxp;
-#define GET_CTX_RET(v)                 \
-  Context *ctxp = g_ctx_list.get(cid); \
-  G_ASSERT_RETURN(ctxp, v);            \
+#define GET_CTX_RET(v)                                                           \
+  Context *ctxp = g_ctx_list.get(cid);                                           \
+  G_ASSERTF_RETURN(ctxp, v, "dafx: GET_CTX_RET failed, rid: %d", (uint32_t)cid); \
   Context &ctx = *ctxp;
 } // namespace dafx

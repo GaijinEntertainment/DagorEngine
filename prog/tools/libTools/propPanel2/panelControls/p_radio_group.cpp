@@ -4,11 +4,11 @@
 #include "p_radio_button.h"
 #include "../c_constants.h"
 
-CRadioGroup::CRadioGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
-  const char caption[]) :
+CRadioGroup::CRadioGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+  hdpi::Px h, const char caption[]) :
 
   PropertyContainerVert(id, event_handler, parent, x, y, w, h),
-  mRect(this, parent->getWindow(), x, y, w, h),
+  mRect(this, parent->getWindow(), x, y, _px(w), _px(h)),
   mWResize(false),
   mSelectedIndex(RADIO_SELECT_NONE)
 {
@@ -129,10 +129,10 @@ void CRadioGroup::resizeControl(unsigned w, unsigned h)
 }
 
 
-void CRadioGroup::setWidth(unsigned w)
+void CRadioGroup::setWidth(hdpi::Px w)
 {
   mWResize = true;
-  this->resizeControl(w, this->getNextControlY());
+  this->resizeControl(_px(w), this->getNextControlY());
 
   PropertyContainerVert::setWidth(w);
   mWResize = false;
@@ -153,7 +153,7 @@ int CRadioGroup::getVerticalInterval(int line_number, bool new_line)
     return def_val;
 
   if (line_number == -1)
-    def_val += DEFAULT_CONTROL_HEIGHT;
+    def_val += _pxS(DEFAULT_CONTROL_HEIGHT);
   else if (new_line)
     def_val -= DEFAULT_CONTROLS_INTERVAL;
 

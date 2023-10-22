@@ -6,7 +6,7 @@ Target      = gameLibs/daECS/net/replay.lib ;
 StrictCompile = yes ;
 
 AddIncludes =
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/3rdPartyLibs/rapidjson/include
 ;
@@ -17,7 +17,7 @@ Sources =
 ;
 
 UseProgLibs +=
-  engine2/ioSys
+  engine/ioSys
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

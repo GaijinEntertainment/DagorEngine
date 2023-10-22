@@ -183,7 +183,7 @@ public:
 
   virtual bool haveActiveCursorOnPanels() const = 0;
   virtual eastl::optional<float> isAnyPanelPointedAtWithHand(int hand) const = 0;
-
+  virtual bool isAnyPanelTouchedWithHand(int /*hand*/) const { return false; }
   typedef bool (*vr_surface_intersect)(const Point3 &pos, const Point3 &dir, Point2 &point_in_gui, Point3 &hit_pos);
   using EntityTransformResolver = TMatrix (*)(uint32_t, const char *);
   struct VrSceneData

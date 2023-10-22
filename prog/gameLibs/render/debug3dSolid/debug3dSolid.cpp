@@ -1,4 +1,5 @@
 #include <3d/dag_drv3d.h>
+#include <3d/dag_drv3dReset.h>
 #include <render/primitiveObjects.h>
 #include <math/dag_bounds3.h>
 #include <math/dag_color.h>
@@ -35,6 +36,7 @@ static dynrender::RElem capsuleCylElem;
 static ShaderMaterial *debugCollisionMatShaded = NULL;
 static dynrender::RElem debugCollisionElemShaded;
 SharedTexHolder debugTex;
+static shaders::OverrideStateId flip_face_ovid;
 
 void close_debug_solid()
 {
@@ -61,6 +63,7 @@ void close_debug_solid()
   }
   debugCollisionElemShaded.shElem = nullptr;
   debugTex.close();
+  shaders::overrides::destroy(flip_face_ovid);
 }
 
 static bool init()
@@ -81,6 +84,13 @@ static bool init()
   }
 
   debugCollisionElem.shElem = debugCollisionMat->make_elem();
+
+  if (!flip_face_ovid)
+  {
+    shaders::OverrideState state;
+    state.set(shaders::OverrideState::FLIP_CULL);
+    flip_face_ovid = shaders::overrides::create(state);
+  }
   return true;
 }
 
@@ -117,6 +127,12 @@ static bool init_shaded()
   ShaderGlobal::set_int(debug_triplanar_tex_sizeVarID, texSize);
   ShaderGlobal::set_color4(debug_ri_wire_colorVarID, wireColor);
 
+  if (!flip_face_ovid)
+  {
+    shaders::OverrideState state;
+    state.set(shaders::OverrideState::FLIP_CULL);
+    flip_face_ovid = shaders::overrides::create(state);
+  }
   return true;
 }
 
@@ -141,8 +157,8 @@ static void create_shape_relem(dynrender::RElem &relem, SHAPE_TYPE shape)
   uint32_t ibSize = faceCount * sizeof(uint16_t) * 3;
 
   // Create the mesh
-  Vbuffer *vb = d3d::create_vb(vbSize, 0, "solid_sphere");
-  Ibuffer *ib = d3d::create_ib(ibSize, 0);
+  Vbuffer *vb = d3d::create_vb(vbSize, SBCF_MAYBELOST, "solid_sphere");
+  Ibuffer *ib = d3d::create_ib(ibSize, SBCF_MAYBELOST, "solid_sphere_ib");
 
   uint8_t *vertices = NULL;
   uint8_t *indices = NULL;
@@ -247,15 +263,19 @@ void draw_debug_solid_capsule(const Capsule &capsule, const TMatrix &instance_tm
 }
 
 void draw_debug_solid_mesh(const uint16_t *indices, int faces_count, const float *xyz_pos, int vertex_size, int vertices_count,
-  const TMatrix &tm, const Color4 &color, bool shaded)
+  const TMatrix &tm, const Color4 &color, bool shaded, DrawSolidMeshCull cull)
 {
   if (!(shaded ? init_shaded() : init()))
     return;
+  if (cull == DrawSolidMeshCull::FLIP)
+    shaders::overrides::set(flip_face_ovid);
   (shaded ? debugCollisionElemShaded : debugCollisionElem).shElem->setStates(0, true);
   set_world(tm);
   d3d::set_vs_const1(COLOR_REG, color.r, color.g, color.b, color.a);
   d3d::drawind_up(PRIM_TRILIST, 0, vertices_count, faces_count, (uint16_t *)indices, (void *)xyz_pos, vertex_size);
   ShaderElement::invalidate_cached_state_block();
+  if (cull == DrawSolidMeshCull::FLIP)
+    shaders::overrides::reset();
 }
 
 void draw_debug_solid_cube(const BBox3 &cube, const TMatrix &instance_tm, const Color4 &color, bool shaded)
@@ -308,3 +328,7 @@ void draw_debug_solid_cone(const Point3 pos, Point3 norm, float radius, float he
 
   draw_debug_solid_mesh(indices.data(), indexCount / 3, &vertices[0].x, sizeof(Point3), vertexCount, TMatrix::IDENT, color);
 }
+
+static void debug_solid_after_reset_device(bool) { close_debug_solid(); }
+
+REGISTER_D3D_AFTER_RESET_FUNC(debug_solid_after_reset_device);

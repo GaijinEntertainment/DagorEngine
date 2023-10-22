@@ -4,12 +4,10 @@ include "viewVecVS.sh"
 //include "dacloud_mask.sh"
 include "tonemapHelpers/use_full_tonemap_lut_inc.sh"
 
-texture frame_tex;
 texture blur_src_tex;
 
-float4 blur_src_tex_size;
-float4 blur_pixel_offset;
-float4 bloom_upsample_params;
+float bloom_threshold;
+float bloom_radius;
 
 macro POSTFX()
   cull_mode=none;
@@ -39,35 +37,35 @@ macro POSTFX()
   compile("target_vs", "postfx_vs");
 endmacro
 
-int should_write_log_lum = 1;
-interval should_write_log_lum:off<1, on;
+texture luma_tex;
 
 shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
 {
   POSTFX()
-  if (shader == frame_bloom_downsample)
+  if (shader == bloom_downsample_hq)
   {
-    (ps) { _tex0@smp2d = frame_tex; }
-  } else
-  {
-    if (shader == bloom_downsample_hq)
+    (ps) {
+      Exposure@buf = Exposure hlsl {
+        StructuredBuffer<float> Exposure@buf;
+      };
+      bloom_threshold@f1 = bloom_threshold;
+    }
+    // do we use this on ios?
+    bool should_write_log_lum = !hardware.metaliOS && luma_tex != NULL;
+    if (should_write_log_lum)
     {
       (ps) {
-        Exposure@buf = Exposure hlsl {
-          StructuredBuffer<float> Exposure@buf;
-        };
-      }
-      // do we use this on ios?
-      if (should_write_log_lum == on && !hardware.metaliOS)
-      {
-        hlsl(ps) {
-          #define WRITE_LOG_LUM 1
+        lumaResult@uav = luma_tex hlsl {
+          RWTexture2D<half> lumaResult@uav;
         }
       }
     }
-    (ps) { _tex0@smp2d = blur_src_tex; }
   }
-  (ps) { TexSize@f3 = blur_src_tex_size; }
+  (ps) {
+    _tex0@smp2d = blur_src_tex;
+    TexSize@f2 = (1.0 / get_dimensions(blur_src_tex, 0).xy, 0, 0);
+  }
+
 
   hlsl(ps) {
     float3 Box4(float3 p0, float3 p1, float3 p2, float3 p3)
@@ -79,9 +77,6 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
     {
       half3 bloomColor: SV_Target0;
     };
-    #if WRITE_LOG_LUM
-      RWTexture2D<half> lumaResult : register( u7 );
-    #endif
 
     MRT_OUTPUT main(VsOutput IN HW_USE_SCREEN_POS)
     {
@@ -95,15 +90,15 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
         #define THRESHOLD(a)
       ##elif shader == bloom_downsample_hq
         const bool bKillFireflies = true;
-        float ScaledThreshold = TexSize.z * Exposure[1];   // BloomThreshold / Exposure
-        #if WRITE_LOG_LUM
+        float ScaledThreshold = bloom_threshold * Exposure[1];   // BloomThreshold / Exposure
+        ##if should_write_log_lum
           half luma = 0;
           //float farCorner = 0.25/4/4, farSide = 0.5/4/4, corner = 1.25/4/4, center = 2/4;
           //#define THRESHOLD(a) tex=pow2_vec3(tex*0.4);
           #define THRESHOLD(a) {tex2 = tex; tex = max(0, tex - ScaledThreshold);}
-        #else
+        ##else
           #define THRESHOLD(a) {tex2 = tex; tex = max(0, tex - ScaledThreshold);}
-        #endif
+        ##endif
       ##else
         const bool bKillFireflies = false;
         #define THRESHOLD(a)
@@ -137,9 +132,9 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
       addBlock(blockTL);addBlock(blockBL);
       
       tex = tex2D(_tex0, tc.xy + float2( 0,  0) * TexSize.xy).rgb;
-      #if WRITE_LOG_LUM
+      ##if shader == bloom_downsample_hq && should_write_log_lum
         luma += GetLuminance(tex);
-      #endif
+      ##endif
       THRESHOLD(center);
 
       if (bKillFireflies) tex /= 1 + GetLuminance(tex);
@@ -196,7 +191,7 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
         blockCC /= (1 - GetLuminance(blockCC));
       ret.bloomColor = blockCC;
       ##endif
-      #if WRITE_LOG_LUM
+      ##if shader == bloom_downsample_hq && should_write_log_lum
 
         const float MinLog = Exposure[4];
         const float RcpLogRange = Exposure[7];
@@ -211,7 +206,7 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
         if ((DTid.x&3) == 1 && (DTid.y&3) == 1)//only write 1/4 of resolution in pixels
           lumaResult[DTid>>2] = histPos;
         //ret.bloomColor = 0;
-      #endif
+      ##endif
       return ret;
     }
   }
@@ -224,9 +219,10 @@ shader bloom_upsample
   POSTFX()
   blend_src = bf; blend_dst = ibf;
 
+  local float4 blur_src_tex_size = get_dimensions(blur_src_tex, 0) * 2;
   (ps) {
     _tex0@smp2d = blur_src_tex;
-    params@f4 = bloom_upsample_params;
+    params@f4 = (bloom_radius / blur_src_tex_size.x, bloom_radius / blur_src_tex_size.y, 1.0 / blur_src_tex_size.x, 1.0 / blur_src_tex_size.y);
   }
   hlsl(ps) {
 
@@ -254,7 +250,7 @@ shader bloom_upsample
   compile("target_ps", "main");
 }
 
-shader bloom_blur_2, bloom_blur_3, bloom_blur_4
+shader bloom_horizontal_blur_4, bloom_vertical_blur_4
 {
   supports none;
   supports global_frame;
@@ -267,7 +263,7 @@ shader bloom_blur_2, bloom_blur_3, bloom_blur_4
 
   (ps) {
     src_tex@smp2d = blur_src_tex;
-    pixel_offset@f2 = blur_pixel_offset;
+    pixel_size@f2 = (1.0 / get_dimensions(blur_src_tex, 0).xy, 0, 0);
   }
   hlsl(ps) {
     #define out_type float3
@@ -276,19 +272,9 @@ shader bloom_blur_2, bloom_blur_3, bloom_blur_4
     {
         out_type colOut = 0;
 
-        ##if shader == bloom_blur_2
-          #define stepCount 2
-          float gWeights[stepCount]={0.450429,0.0495707};
-          float gOffsets[stepCount]={0.53608,2.06049};
-        ##elif shader == bloom_blur_3
-          #define stepCount 3
-          float gWeights[stepCount]={0.329654,0.157414,0.0129324};
-          float gOffsets[stepCount]={0.622052,2.274,4.14755};
-        ##elif shader == bloom_blur_4
-          #define stepCount 4
-          float gWeights[stepCount]={0.24956,0.192472,0.0515112,0.00645659};
-          float gOffsets[stepCount]={0.644353,2.37891,4.2912,6.21672};
-        ##endif
+        #define stepCount 4
+        float gWeights[stepCount]={0.24956,0.192472,0.0515112,0.00645659};
+        float gOffsets[stepCount]={0.644353,2.37891,4.2912,6.21672};
 
         UNROLL
         for( int i = 0; i < stepCount; i++ )
@@ -304,6 +290,11 @@ shader bloom_blur_2, bloom_blur_3, bloom_blur_4
     half3 main(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float4 pos = GET_SCREEN_POS(IN.pos);
+      ##if shader == bloom_horizontal_blur_4
+      float2 pixel_offset = float2(pixel_size.x, 0);
+      ##else
+      float2 pixel_offset = float2(0, pixel_size.y);
+      ##endif
       return GaussianBlur(IN.tc.xy, pixel_offset);
     }
   }

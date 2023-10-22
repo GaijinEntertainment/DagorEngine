@@ -9,7 +9,7 @@
 #include <math/dag_Point3.h>
 
 
-namespace rendinstgenrender
+namespace rendinst::render
 {
 
 // RiShaderConstBuffers can only be used while "render instancing" is on.
@@ -67,4 +67,4 @@ struct RiShaderConstBuffers
   static void setInstancePositions(const float *data, int vec4_count);
 };
 
-} // namespace rendinstgenrender
+} // namespace rendinst::render

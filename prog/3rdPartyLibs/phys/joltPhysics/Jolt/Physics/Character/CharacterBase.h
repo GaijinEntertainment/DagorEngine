@@ -80,6 +80,9 @@ public:
 		InAir,							///< Character is in the air and is not touching anything.
 	};
 
+	/// Debug function to convert enum values to string
+	static const char *					sToString(EGroundState inState);
+
 	///@name Properties of the ground this character is standing on
 
 	/// Current ground state
@@ -96,7 +99,7 @@ public:
 
 	/// Velocity in world space of ground
 	Vec3								GetGroundVelocity() const								{ return mGroundVelocity; }
-	
+
 	/// Material that the character is standing on
 	const PhysicsMaterial *				GetGroundMaterial() const								{ return mGroundMaterial; }
 

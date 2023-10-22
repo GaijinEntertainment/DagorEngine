@@ -1,0 +1,8 @@
+ERROR: end of statement expected (; or lf)
+testData/diagnostics/clone_op_forbiden.nut.txt:10:16
+
+let ct1 = t.clone()
+let ct0 = clone t
+                ^
+
+

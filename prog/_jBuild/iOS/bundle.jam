@@ -251,6 +251,15 @@ rule ProcessBundleLang
   }
 }
 
+rule CopyFrameworkResBundle
+{
+  for t in $(1) {
+    local src = $(t).bundle ;
+    local dst = $(OutDir)/$(t:D=).bunlde ;
+    CopyDepsRecursively $(OutDir)/$(Target) : $(src) $(dst) : ;
+  }
+}
+
 rule CopySignatures
 {
 # do nothing

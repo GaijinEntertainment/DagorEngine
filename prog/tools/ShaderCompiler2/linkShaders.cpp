@@ -833,17 +833,25 @@ int add_render_state(const ShaderSemCode::Pass &state)
   }
   if (!state.force_noablend)
   {
-    rs.ablendSrc = state.blend_src;
-    rs.ablendDst = state.blend_dst;
-    rs.sepablendSrc = state.blend_asrc;
-    rs.sepablendDst = state.blend_adst;
-    rs.ablend = state.blend_src >= 0 && state.blend_dst >= 0 ? 1 : 0;
-    rs.sepablend = state.blend_asrc >= 0 && state.blend_adst >= 0 ? 1 : 0;
+    rs.independentBlendEnabled = state.independent_blending;
+    for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
+    {
+      rs.blendParams[i].ablendFactors.src = state.blend_src[i];
+      rs.blendParams[i].ablendFactors.dst = state.blend_dst[i];
+      rs.blendParams[i].sepablendFactors.src = state.blend_asrc[i];
+      rs.blendParams[i].sepablendFactors.dst = state.blend_adst[i];
+      rs.blendParams[i].ablend = state.blend_src[i] >= 0 && state.blend_dst[i] >= 0 ? 1 : 0;
+      rs.blendParams[i].sepablend = state.blend_asrc[i] >= 0 && state.blend_adst[i] >= 0 ? 1 : 0;
+    }
   }
   else
   {
-    rs.ablend = 0;
-    rs.sepablend = 0;
+    rs.independentBlendEnabled = 0;
+    for (auto &blendParam : rs.blendParams)
+    {
+      blendParam.ablend = 0;
+      blendParam.sepablend = 0;
+    }
   }
   rs.cull = state.cull_mode;
   rs.alphaToCoverage = state.alpha_to_coverage;
@@ -1142,7 +1150,7 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
     shaders.shaders_vpr.push_back(eastl::move(code));
   }
 
-  bindump::MemoryWriter mem_writer;
+  bindump::VectorWriter mem_writer;
   bindump::streamWrite(shaders, mem_writer);
 
   if (mem_writer.mData.size() > (1 << 30))
@@ -1158,7 +1166,8 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
   }
   else
   {
-    compressed.compressed_shaders = eastl::move(mem_writer.mData);
+    compressed.compressed_shaders.resize(mem_writer.mData.size());
+    eastl::copy(mem_writer.mData.begin(), mem_writer.mData.end(), compressed.compressed_shaders.begin());
     compressed.decompressed_size = 0;
   }
 

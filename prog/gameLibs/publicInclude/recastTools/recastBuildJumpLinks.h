@@ -41,10 +41,19 @@ struct JumpLinkObstacle
   float yAngle;
 };
 
+
+struct CustomJumpLink
+{
+  Point3 from;
+  Point3 to;
+};
+
 void build_jumplinks_connstorage(recastnavmesh::OffMeshConnectionsStorage &out_conn_storage, const Tab<Edge> &edges,
   const JumpLinksParams &jlkParams, const rcCompactHeightfield *chf, const rcHeightfield *solid);
 void cross_obstacles_with_jumplinks(recastnavmesh::OffMeshConnectionsStorage &out_conn_storage, const Tab<Edge> &edges,
   const BBox3 &box, const JumpLinksParams &jlkParams, const Tab<JumpLinkObstacle> &obstacles);
+void add_custom_jumplinks(recastnavmesh::OffMeshConnectionsStorage &out_conn_storage, const Tab<Edge> &edges,
+  const Tab<CustomJumpLink> &custom_jump_links);
 void disable_jumplinks_around_obstacle(recastnavmesh::OffMeshConnectionsStorage &out_conn_storage,
   const Tab<JumpLinkObstacle> &obstacles);
 } // namespace recastbuild

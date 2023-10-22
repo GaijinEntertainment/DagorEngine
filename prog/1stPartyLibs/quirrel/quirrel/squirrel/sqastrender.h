@@ -392,8 +392,13 @@ public:
         _out->writeString("CLASS ");
         if (cls->classKey()) cls->classKey()->visit(this);
         if (cls->classBase()) {
-            _out->writeString(" EXTENDS ");
+            _out->writeString("EXTENDS ");
+            bool addParens = cls->classBase()->op() == TO_DECL_EXPR;
+            if (addParens)
+              _out->writeChar('(');
             cls->classBase()->visit(this);
+            if (addParens)
+              _out->writeChar(')');
             _out->writeChar(' ');
         }
         visitTableDecl(cls);

@@ -11,7 +11,8 @@ extern ConVarT<bool, false> debug_graph_generation;
 namespace dabfg
 {
 struct InternalRegistry;
-}
+class NameResolver;
+} // namespace dabfg
 
 namespace dabfg
 {
@@ -19,6 +20,7 @@ class NodeTracker;
 
 void update_graph_visualization(const NodeTracker *, eastl::span<const NodeNameId> node_execution_order);
 void invalidate_graph_visualization();
+void reset_texture_visualization();
 
 void update_resource_visualization(const InternalRegistry &registry, eastl::span<const NodeNameId> node_execution_order);
 void debug_rec_resource_placement(ResNameId id, int frame, int heap, int offset, int size);
@@ -28,6 +30,7 @@ void validation_restart();
 void validation_set_current_node(const InternalRegistry &registry, NodeNameId node);
 void validation_add_resource(const D3dResource *res);
 void validation_of_external_resources_duplication(
-  const IdIndexedMapping<intermediate::ResourceIndex, intermediate::Resource> &resources);
+  const IdIndexedMapping<intermediate::ResourceIndex, intermediate::Resource> &resources,
+  const IdIndexedMapping<intermediate::ResourceIndex, intermediate::DebugResourceName> &resourceNames);
 void validate_global_state(const InternalRegistry &registry, NodeNameId node);
 } // namespace dabfg

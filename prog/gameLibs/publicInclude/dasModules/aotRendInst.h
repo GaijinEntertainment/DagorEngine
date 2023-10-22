@@ -11,7 +11,12 @@
 #include <ecs/rendInst/riExtra.h>
 #include <ecs/scripts/dasEcsEntity.h>
 #include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstAccess.h>
+#include <rendInst/rendInstExtra.h>
+#include <rendInst/rendInstExtraAccess.h>
+#include <rendInst/rendInstCollision.h>
 #include <rendInst/debugCollisionVisualization.h>
+#include <rendInst/gpuObjects.h>
 #include <gamePhys/phys/rendinstDestr.h>
 #include <math/dag_TMatrix.h>
 #include <dasModules/aotDagorMath.h>
@@ -22,7 +27,7 @@ DAS_BIND_ENUM_CAST(rendinst::DrawCollisionsFlag)
 
 MAKE_TYPE_FACTORY(RiExtraComponent, RiExtraComponent);
 MAKE_TYPE_FACTORY(RendInstDesc, rendinst::RendInstDesc);
-MAKE_TYPE_FACTORY(CollisionInfo, rendinst::RendInstCollisionCB::CollisionInfo);
+MAKE_TYPE_FACTORY(CollisionInfo, rendinst::CollisionInfo);
 
 namespace bind_dascript
 {
@@ -143,7 +148,7 @@ inline void doRendinstDamage(const BSphere3 &sphere, uint32_t frame_no, float at
     rendinst::DestrOptionFlag::AddDestroyedRi);
 }
 
-inline void getRiGenDestrInfo(const rendinst::RendInstDesc &desc, rendinst::RendInstCollisionCB::CollisionInfo &res)
+inline void getRiGenDestrInfo(const rendinst::RendInstDesc &desc, rendinst::CollisionInfo &res)
 {
   res = rendinst::getRiGenDestrInfo(desc);
 }
@@ -192,8 +197,8 @@ inline void rendinst_foreachRIGenInBox(const BBox3 &box, bool test_riextra_col,
     at);
 }
 
-inline void rendinst_foreachTreeInBox(const bbox3f &bbox,
-  const das::TBlock<void, const rendinst::RendInstCollisionCB::CollisionInfo> &block, das::Context *context, das::LineInfoArg *at)
+inline void rendinst_foreachTreeInBox(const bbox3f &bbox, const das::TBlock<void, const rendinst::CollisionInfo> &block,
+  das::Context *context, das::LineInfoArg *at)
 {
   Point3_vec4 bmin;
   Point3_vec4 bmax;
@@ -214,11 +219,11 @@ inline void rendinst_foreachTreeInBox(const bbox3f &bbox,
         das::Context *context = nullptr;
         das::SimNode *code = nullptr;
 
-        virtual void addCollisionCheck(const rendinst::RendInstCollisionCB::CollisionInfo & /*coll_info*/) {}
+        virtual void addCollisionCheck(const rendinst::CollisionInfo & /*coll_info*/) {}
 
-        virtual void addTreeCheck(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info)
+        virtual void addTreeCheck(const rendinst::CollisionInfo &coll_info)
         {
-          args[0] = das::cast<const rendinst::RendInstCollisionCB::CollisionInfo &>::from(coll_info);
+          args[0] = das::cast<const rendinst::CollisionInfo &>::from(coll_info);
           code->eval(*context);
         }
       } cb;

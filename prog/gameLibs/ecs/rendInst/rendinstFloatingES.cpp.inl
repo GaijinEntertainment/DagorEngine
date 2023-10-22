@@ -14,8 +14,9 @@
 #include <util/dag_delayedAction.h>
 #include <debug/dag_debug3d.h>
 #include <3d/dag_render.h>
-#include <rendInst/rendInstGen.h>
-#include <rendInst/rendInstGenGpuObjects.h>
+#include <rendInst/rendInstExtra.h>
+#include <rendInst/rendInstExtraAccess.h>
+#include <rendInst/gpuObjects.h>
 #include <math/dag_noise.h>
 #include <landMesh/lmeshManager.h>
 

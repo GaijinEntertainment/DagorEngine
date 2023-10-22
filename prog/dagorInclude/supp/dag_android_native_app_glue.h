@@ -14,17 +14,29 @@
 #endif
 
 #include <android_native_app_glue.h>
+#include <EASTL/array.h>
 
 namespace android
 {
+using OnInputCallback = void (*)(const AInputEvent *);
+
+constexpr int MAX_INPUT_CALLBACK_NUM = 1;
+extern OnInputCallback input_callbacks[MAX_INPUT_CALLBACK_NUM];
+
+struct JoystickEvent
+{
+  int deviceId;
+  eastl::array<float, 48> axisValues;
+};
+
 jobject get_activity_class(void *activity);
 JavaVM *get_java_vm(void *activity);
 
 void activity_finish(void *activity);
 void activity_setWindowFlags(void *activity, uint32_t values, uint32_t mask);
 
-void init_input_handler(struct android_app *app);
-void process_system_messages(struct android_app *app);
+bool add_input_callback(OnInputCallback callback);
+bool del_input_callback(OnInputCallback callback);
 
 const char *app_command_to_string(int32_t cmd);
 

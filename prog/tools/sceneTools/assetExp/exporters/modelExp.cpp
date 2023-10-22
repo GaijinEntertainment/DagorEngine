@@ -81,17 +81,17 @@ void load_shaders_for_target(unsigned tc)
       fn = shaderBinFnameAlt[i].fn;
       break;
     }
-  int ver = 0;
+  d3d::shadermodel::Version ver = d3d::smAny;
   if (strstr(fn, ".ps66.shdump"))
-    ver = FSHVER_66;
+    ver = 6.6_sm;
   else if (strstr(fn, ".ps60.shdump"))
-    ver = FSHVER_60;
+    ver = 6.0_sm;
   else if (strstr(fn, ".ps50.shdump"))
-    ver = FSHVER_50;
+    ver = 5.0_sm;
   else if (strstr(fn, ".ps40.shdump"))
-    ver = FSHVER_40;
+    ver = 4.0_sm;
   else if (strstr(fn, ".ps30.shdump"))
-    ver = FSHVER_30;
+    ver = 3.0_sm;
   if (::load_shaders_bindump(String(0, "%.*s", strlen(fn) - suffix_len, fn), ver, true))
     debug("loaded dabuild-specific shader dump (%c%c%c%c): %s", _DUMP4C(tc), fn);
   else

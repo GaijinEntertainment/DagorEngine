@@ -8,7 +8,7 @@ class CGroupBase : public PropertyContainerVert
 {
 public:
   CGroupBase(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, WindowControlBase *wc_rect, int id, int x,
-    int y, int w, int h, const char caption[]);
+    int y, hdpi::Px w, hdpi::Px h, const char caption[]);
   ~CGroupBase();
 
   unsigned getTypeMaskForSet() const { return CONTROL_CAPTION; }
@@ -16,7 +16,7 @@ public:
 
   void setCaptionValue(const char value[]);
   void setEnabled(bool enabled);
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
   void moveTo(int x, int y);
 
   virtual WindowBase *getWindow();
@@ -35,7 +35,7 @@ private:
 class CGroupBox : public CGroupBase
 {
 public:
-  CGroupBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
+  CGroupBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h,
     const char caption[]);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],

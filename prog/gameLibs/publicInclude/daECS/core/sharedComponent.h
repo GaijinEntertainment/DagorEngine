@@ -25,7 +25,7 @@
 //  ECS_DECLARE_SHARED_TYPE(ecs::Object);
 //  ECS_REGISTER_SHARED_TYPE(ecs::Object, nullptr);
 //  then in ES you can use const ecs::SharedComponent<ecs::Object> & or
-//  g_entity_mgr->get<ecs::SharedComponent<ecs::Object>>
+//  EntityManager::get<ecs::SharedComponent<ecs::Object>>
 //  this component is shared between all data of one template, and can be used as replacement to Props
 //  as soon as we will support it in IO.
 //  usage ECS_SHARED(ecs::Object) props (will be visible as const ecs::Object& props)

@@ -10,7 +10,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 AddIncludes =
   $(Root)/prog/1stPartyLibs/quirrel/sqrat/include
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 

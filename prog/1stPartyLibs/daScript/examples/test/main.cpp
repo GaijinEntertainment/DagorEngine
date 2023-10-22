@@ -1,4 +1,5 @@
 #include "daScript/daScript.h"
+#include "daScript/ast/ast_serializer.h"
 #include "daScript/simulate/fs_file_info.h"
 #include "daScript/misc/performance_time.h"
 #include "daScript/misc/fpe.h"
@@ -22,7 +23,50 @@ bool g_failOnSmartPtrLeaks = true;
 
 TextPrinter tout;
 
-bool compilation_fail_test ( const string & fn, bool ) {
+template <typename F>
+bool with_program_serialized ( F callback, ProgramPtr program ) {
+// serialize
+    AstSerializer ser;
+    program->serialize(ser);
+    program.reset();
+// deserialize
+    AstSerializer deser ( ForReading{}, move(ser.buffer) );
+    auto new_program = make_smart<Program>();
+    new_program->serialize(deser);
+    program = new_program;
+// run it
+    return callback(program);
+}
+
+StandaloneContextNode * StandaloneContextNode::head = nullptr;
+
+bool run_all_standalone_context_tests () {
+    vector<Context *> contexts;
+    while ( auto h = StandaloneContextNode::head ) {
+        StandaloneContextNode::head = h->tail;
+        contexts.push_back(h->regFn());
+    }
+    bool res = true;
+    for ( auto context : contexts ) {
+        auto fn_tests = context->findFunctions("test");
+        DAS_ASSERTF(!fn_tests.empty(), "expected to see test inside a testing context");
+        for ( auto fn_test: fn_tests ) {
+            bool result = cast<bool>::to(context->eval(fn_test, nullptr));
+            if ( auto ex = context->getException() ) {
+                tout << "exception: " << ex << "\n";
+                res = false;
+            }
+            if ( !result ) {
+                tout << "failed\n";
+                res = false;
+            }
+        }
+
+    }
+    return res;
+}
+
+bool compilation_fail_test ( const string & fn, bool, bool ) {
     uint64_t timeStamp = ref_time_ticks();
     tout << fn << " ";
     auto fAccess = make_smart<FsFileAccess>();
@@ -83,7 +127,7 @@ bool compilation_fail_test ( const string & fn, bool ) {
     }
 }
 
-bool unit_test ( const string & fn, bool useAot ) {
+bool unit_test ( const string & fn, bool useAot, bool useSer ) {
     uint64_t timeStamp = ref_time_ticks();
     tout << fn << " ";
     auto fAccess = make_smart<FsFileAccess>();
@@ -102,36 +146,43 @@ bool unit_test ( const string & fn, bool useAot ) {
             }
             return false;
         } else {
-            if (program->unsafe) tout << "[unsafe] ";
-            Context ctx(program->getContextStackSize());
-            if ( !program->simulate(ctx, tout) ) {
-                tout << "failed to simulate\n";
-                for ( auto & err : program->errors ) {
-                    tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr );
-                }
-                return false;
-            }
-            if ( auto fnTest = ctx.findFunction("test") ) {
-                if ( !verifyCall<bool>(fnTest->debugInfo, dummyLibGroup) ) {
-                    tout << "function 'test', call arguments do not match\n";
+            auto F = [ &dummyLibGroup, timeStamp, useAot ] ( ProgramPtr program ) {
+                if (program->unsafe) tout << "[unsafe] ";
+                Context ctx(program->getContextStackSize());
+                if ( !program->simulate(ctx, tout) ) {
+                    tout << "failed to simulate\n";
+                    for ( auto & err : program->errors ) {
+                        tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr );
+                    }
                     return false;
                 }
-                ctx.restart();
-                bool result = cast<bool>::to(ctx.eval(fnTest, nullptr));
-                if ( auto ex = ctx.getException() ) {
-                    tout << "exception: " << ex << "\n";
+                if ( auto fnTest = ctx.findFunction("test") ) {
+                    if ( !verifyCall<bool>(fnTest->debugInfo, dummyLibGroup) ) {
+                        tout << "function 'test', call arguments do not match\n";
+                        return false;
+                    }
+                    ctx.restart();
+                    bool result = cast<bool>::to(ctx.eval(fnTest, nullptr));
+                    if ( auto ex = ctx.getException() ) {
+                        tout << "exception: " << ex << "\n";
+                        return false;
+                    }
+                    if ( !result ) {
+                        tout << "failed\n";
+                        return false;
+                    }
+                    int usec = get_time_usec(timeStamp);
+                    tout << (useAot ? "ok AOT " : "ok ") << ((usec/1000)/1000.0) << "\n";
+                    return true;
+                } else {
+                    tout << "function 'test' not found\n";
                     return false;
                 }
-                if ( !result ) {
-                    tout << "failed\n";
-                    return false;
-                }
-                int usec = get_time_usec(timeStamp);
-                tout << (useAot ? "ok AOT " : "ok ") << ((usec/1000)/1000.0) << "\n";
-                return true;
+            };
+            if ( useSer ) {
+                return with_program_serialized(F, program);
             } else {
-                tout << "function 'test' not found\n";
-                return false;
+                return F(program);
             }
         }
     } else {
@@ -139,7 +190,7 @@ bool unit_test ( const string & fn, bool useAot ) {
     }
 }
 
-bool exception_test ( const string & fn, bool useAot ) {
+bool exception_test ( const string & fn, bool useAot, bool ) {
     tout << fn << " ";
     auto fAccess = make_smart<FsFileAccess>();
     ModuleGroup dummyLibGroup;
@@ -218,7 +269,7 @@ bool performance_test ( const string & fn, bool useAot ) {
 }
 
 
-bool run_tests( const string & path, bool (*test_fn)(const string &, bool useAot), bool useAot ) {
+bool run_tests( const string & path, bool (*test_fn)(const string &, bool useAot, bool useSer), bool useAot, bool useSer = false ) {
 #ifdef _MSC_VER
     bool ok = true;
     _finddata_t c_file;
@@ -228,7 +279,7 @@ bool run_tests( const string & path, bool (*test_fn)(const string &, bool useAot
         do {
             const char * atDas = strstr(c_file.name,".das");
             if ( atDas && strcmp(atDas,".das")==0 && c_file.name[0]!='_' ) {
-                ok = test_fn(path + "/" + c_file.name, useAot) && ok;
+                ok = test_fn(path + "/" + c_file.name, useAot, useSer) && ok;
                 if ( g_collectSharedModules ) Module::CollectSharedModules();
             }
         } while (_findnext(hFile, &c_file) == 0);
@@ -243,7 +294,7 @@ bool run_tests( const string & path, bool (*test_fn)(const string &, bool useAot
         while ((ent = readdir (dir)) != NULL) {
             const char * atDas = strstr(ent->d_name,".das");
             if ( atDas && strcmp(atDas,".das")==0 && ent->d_name[0]!='_' ) {
-                ok = test_fn(path + "/" + ent->d_name, useAot) && ok;
+                ok = test_fn(path + "/" + ent->d_name, useAot, useSer) && ok;
             }
         }
         closedir (dir);
@@ -252,15 +303,15 @@ bool run_tests( const string & path, bool (*test_fn)(const string &, bool useAot
 #endif
 }
 
-bool run_unit_tests( const string & path, bool check_aot = false ) {
+bool run_unit_tests( const string & path, bool check_aot = false, bool useSer = false ) {
     if ( check_aot ) {
-        return run_tests(path, unit_test, false) && run_tests(path, unit_test, true);
+        return run_tests(path, unit_test, false, useSer ) && run_tests(path, unit_test, true, useSer);
     } else {
-        return run_tests(path, unit_test, false);
+        return run_tests(path, unit_test, false, useSer);
     }
 }
 
-bool isolated_unit_test ( const string & fn, bool useAot ) {
+bool isolated_unit_test ( const string & fn, bool useAot, bool useSer ) {
     // register modules
     g_collectSharedModules = false;
     NEED_MODULE(Module_BuiltIn);
@@ -277,7 +328,7 @@ bool isolated_unit_test ( const string & fn, bool useAot ) {
     NEED_MODULE(Module_FIO);
     NEED_MODULE(Module_DASBIND);
     Module::Initialize();
-    bool result = unit_test(fn,useAot);
+    bool result = unit_test(fn,useAot, useSer);
     // shutdown
     Module::Shutdown();
 #if DAS_SMART_PTR_TRACKER
@@ -292,24 +343,24 @@ bool isolated_unit_test ( const string & fn, bool useAot ) {
     return result;
 }
 
-bool run_isolated_unit_tests( const string & path, bool check_aot = false ) {
+bool run_isolated_unit_tests( const string & path, bool check_aot = false, bool use_ser = false ) {
     if ( check_aot ) {
-        return run_tests(path, isolated_unit_test, false) && run_tests(path, unit_test, true);
+        return run_tests(path, isolated_unit_test, false, use_ser) && run_tests(path, unit_test, true, use_ser);
     } else {
-        return run_tests(path, isolated_unit_test, false);
+        return run_tests(path, isolated_unit_test, false, use_ser);
     }
 }
 
 bool run_compilation_fail_tests( const string & path ) {
-    return run_tests(path, compilation_fail_test, false);
+    return run_tests(path, compilation_fail_test, false, false);
 }
 
 bool run_exception_tests( const string & path ) {
-    return run_tests(path, exception_test, false) && run_tests(path, exception_test, true);
+    return run_tests(path, exception_test, false, false) && run_tests(path, exception_test, true, false);
 }
 
 
-bool run_module_test ( const string & path, const string & main, bool usePak ) {
+bool run_module_test ( const string & path, const string & main, bool usePak, bool useSer ) {
     tout << "testing MODULE at " << path << " ";
     auto fAccess = usePak ?
             make_smart<FsFileAccess>( path + "/project.das_project", make_smart<FsFileAccess>()) :
@@ -323,34 +374,41 @@ bool run_module_test ( const string & path, const string & main, bool usePak ) {
             }
             return false;
         } else {
-            Context ctx(program->getContextStackSize());
-            if ( !program->simulate(ctx, tout) ) {
-                tout << "failed to simulate\n";
-                for ( auto & err : program->errors ) {
-                    tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr );
-                }
-                return false;
-            }
-            if ( auto fnTest = ctx.findFunction("test") ) {
-                if ( !verifyCall<bool>(fnTest->debugInfo, dummyLibGroup) ) {
-                    tout << "function 'test', call arguments do not match\n";
+            auto F = [&dummyLibGroup] ( ProgramPtr program ) {
+                Context ctx(program->getContextStackSize());
+                if ( !program->simulate(ctx, tout) ) {
+                    tout << "failed to simulate\n";
+                    for ( auto & err : program->errors ) {
+                        tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr );
+                    }
                     return false;
                 }
-                ctx.restart();
-                bool result = cast<bool>::to(ctx.eval(fnTest, nullptr));
-                if ( auto ex = ctx.getException() ) {
-                    tout << "exception: " << ex << "\n";
+                if ( auto fnTest = ctx.findFunction("test") ) {
+                    if ( !verifyCall<bool>(fnTest->debugInfo, dummyLibGroup) ) {
+                        tout << "function 'test', call arguments do not match\n";
+                        return false;
+                    }
+                    ctx.restart();
+                    bool result = cast<bool>::to(ctx.eval(fnTest, nullptr));
+                    if ( auto ex = ctx.getException() ) {
+                        tout << "exception: " << ex << "\n";
+                        return false;
+                    }
+                    if ( !result ) {
+                        tout << "failed\n";
+                        return false;
+                    }
+                    tout << "ok\n";
+                    return true;
+                } else {
+                    tout << "function 'test' not found\n";
                     return false;
                 }
-                if ( !result ) {
-                    tout << "failed\n";
-                    return false;
-                }
-                tout << "ok\n";
-                return true;
+            };
+            if ( useSer ) {
+                return with_program_serialized(F, program);
             } else {
-                tout << "function 'test' not found\n";
-                return false;
+                return F(program);
             }
         }
     } else {
@@ -480,15 +538,15 @@ int main( int argc, char * argv[] ) {
     uint64_t timeStamp = ref_time_ticks();
     bool ok = true;
     ok = run_compilation_fail_tests(getDasRoot() + "/examples/test/compilation_fail_tests") && ok;
-    ok = run_unit_tests(getDasRoot() +  "/examples/test/unit_tests", true) && ok;
-    ok = run_unit_tests(getDasRoot() +  "/examples/test/optimizations") && ok;
+    ok = run_unit_tests(getDasRoot() +  "/examples/test/unit_tests",    true,  false) && ok;
+    ok = run_unit_tests(getDasRoot() +  "/examples/test/optimizations", false, false) && ok;
     ok = run_exception_tests(getDasRoot() +  "/examples/test/runtime_errors") && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main.das", true) && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main_inc.das", true)  && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main_default.das", false) && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module/alias", "main.das", true) && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module/cdp", "main.das", true) && ok;
-    ok = run_module_test(getDasRoot() +  "/examples/test/module/unsafe", "main.das", true) && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main.das",        true, false) && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main_inc.das",    true, false)  && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module", "main_default.das", false, false) && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module/alias",  "main.das", true, false) && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module/cdp",    "main.das", true, false) && ok;
+    ok = run_module_test(getDasRoot() +  "/examples/test/module/unsafe", "main.das", true, false) && ok;
     int usec = get_time_usec(timeStamp);
     tout << "TESTS " << (ok ? "PASSED " : "FAILED!!! ") << ((usec/1000)/1000.0) << "\n";
     // shutdown

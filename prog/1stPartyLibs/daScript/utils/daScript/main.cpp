@@ -49,7 +49,7 @@ bool compile ( const string & fn, const string & cppFn, bool dryRun ) {
             }
             return false;
         } else {
-            smart_ptr<Context> pctx ( get_context(program->getContextStackSize()) );
+            shared_ptr<Context> pctx ( get_context(program->getContextStackSize()) );
             if ( !program->simulate(*pctx, tout) ) {
                 tout << "failed to simulate\n";
                 for ( auto & err : program->errors ) {
@@ -85,11 +85,11 @@ bool compile ( const string & fn, const string & cppFn, bool dryRun ) {
                 }
                 return true;
             },"*");
-            if (dryRun) {
+            if ( dryRun ) {
                 tout << "dry run success, no changes will be written\n";
                 return true;
             }
-            if (noAotOption) {
+            if ( noAotOption ) {
                 TextWriter noTw;
                 if (!noAotModule)
                   noTw << "// AOT disabled due to options no_aot=true. There are no modules which require no_aot\n\n";
@@ -140,6 +140,7 @@ bool compile ( const string & fn, const string & cppFn, bool dryRun ) {
                 tw << "#endif\n";
                 tw << "\n";
                 tw << "namespace das {\n";
+
                 tw << "namespace " << program->thisNamespace << " {\n"; // anonymous
                 daScriptEnvironment::bound->g_Program = program;    // setting it for the AOT macros
                 program->aotCpp(*pctx, tw);
@@ -156,7 +157,7 @@ bool compile ( const string & fn, const string & cppFn, bool dryRun ) {
                     program->validateAotCpp(tw,*pctx);
                     tw << "\n";
                 }
-                // footter
+                // footer
                 tw << "}\n";
                 tw << "}\n";
                 tw << "#if defined(_MSC_VER)\n";
@@ -177,6 +178,34 @@ bool compile ( const string & fn, const string & cppFn, bool dryRun ) {
     }
 }
 
+namespace das {
+    extern void runStandaloneVisitor ( ProgramPtr prog, string cppOutputDir, string standaloneContextName );
+}
+
+bool compileStandalone ( const string & fn, const string & cppFn, bool dryRun, char * standaloneContextName ) {
+    auto access = get_file_access((char*)(projectFile.empty() ? nullptr : projectFile.c_str()));
+    ModuleGroup dummyGroup;
+    CodeOfPolicies policies;
+    policies.aot = false;
+    policies.aot_module = true;
+    policies.fail_on_lack_of_aot_export = true;
+    if ( auto program = compileDaScript(fn,access,tout,dummyGroup,policies) ) {
+        if ( program->failed() ) {
+            tout << "failed to compile\n";
+            for ( auto & err : program->errors ) {
+                tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+            }
+            return false;
+        } else {
+            runStandaloneVisitor(program, cppFn, standaloneContextName);
+            return true;
+        }
+    } else {
+        tout << "failed to compile\n";
+        return false;
+    }
+}
+
 int das_aot_main ( int argc, char * argv[] ) {
     setCommandLineArguments(argc, argv);
     #ifdef _MSC_VER
@@ -184,11 +213,13 @@ int das_aot_main ( int argc, char * argv[] ) {
     _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
     #endif
     if ( argc<=3 ) {
-        tout << "daScript -aot <in_script.das> <out_script.das.cpp> [-q] [-j] [-dry-run]\n";
+        tout << "daScript -aot <in_script.das> <out_script.das.cpp> [-standalone-context <ctx_name>] [-q] [-j] [-dry-run]\n";
         return -1;
     }
     bool dryRun = false;
     bool scriptArgs = false;
+    bool standaloneContext = false;
+    char * standaloneContextName = nullptr;
     if ( argc>3  ) {
         for (int ai = 4; ai != argc; ++ai) {
             if ( strcmp(argv[ai],"-q")==0 ) {
@@ -197,6 +228,10 @@ int das_aot_main ( int argc, char * argv[] ) {
                 paranoid_validation = true;
             } else if ( strcmp(argv[ai],"-dry-run")==0 ) {
                 dryRun = true;
+            } else if ( strcmp(argv[ai],"-standalone-context")==0 ) {
+                standaloneContextName = argv[ai + 1];
+                standaloneContext = true;
+                ai += 1;
             } else if ( strcmp(argv[ai],"-project")==0 ) {
                 if ( ai+1 > argc ) {
                     tout << "das-project requires argument";
@@ -263,7 +298,12 @@ int das_aot_main ( int argc, char * argv[] ) {
     #include "modules/external_need.inc"
     Module::Initialize();
     daScriptEnvironment::bound->g_isInAot = true;
-    bool compiled = compile(argv[2], argv[3], dryRun);
+    bool compiled = false;
+    if ( standaloneContext ) {
+        compiled = compileStandalone(argv[2], argv[3], dryRun, standaloneContextName);
+    } else {
+        compiled = compile(argv[2], argv[3], dryRun);
+    }
     Module::Shutdown();
     return compiled ? 0 : -1;
 }
@@ -299,7 +339,7 @@ bool compile_and_run ( const string & fn, const string & mainFnName, bool output
         } else {
             if ( outputProgramCode )
                 tout << *program << "\n";
-            smart_ptr<Context> pctx ( get_context(program->getContextStackSize()) );
+            shared_ptr<Context> pctx ( get_context(program->getContextStackSize()) );
             if ( !program->simulate(*pctx, tout) ) {
                 tout << "failed to simulate\n";
                 for ( auto & err : program->errors ) {
@@ -363,7 +403,7 @@ void print_help() {
         << "daScript -aot <in_script.das> <out_script.das.cpp> {-q} {-p}\n"
         << "    -project <path.das_project> path to project file\n"
         << "    -p          paranoid validation of CPP AOT\n"
-        << "    -q          supress all output\n"
+        << "    -q          suppress all output\n"
         << "    -dry-run    no changes will be written\n"
         << "    -dasroot    set path to dascript root folder (with daslib)\n"
     ;

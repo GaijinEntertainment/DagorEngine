@@ -7,8 +7,8 @@
 class CContainer : public PropertyContainerVert
 {
 public:
-  CContainer(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
-    int interval);
+  CContainer(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h,
+    hdpi::Px interval);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
     bool new_line = true);
@@ -21,7 +21,7 @@ public:
   virtual WindowBase *getWindow();
 
   virtual void setEnabled(bool enabled);
-  virtual void setWidth(unsigned w);
+  virtual void setWidth(hdpi::Px w);
 
   virtual void onChildResize(int id);
 

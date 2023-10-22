@@ -29,6 +29,7 @@
   VAR(water_flowmap_foam)          \
   VAR(water_flowmap_foam_tiling)   \
   VAR(water_flowmap_depth)         \
+  VAR(water_flowmap_slope)         \
   VAR(world_to_depth_ao)           \
   VAR(depth_ao_texture_size)
 
@@ -68,6 +69,7 @@ void build_flowmap(FFTWater *handle, FlowmapParams &flowmap_params, int flowmap_
 
     init_shader_vars();
     set_flowmap_params(flowmap_params);
+    set_flowmap_foam_params(flowmap_params);
 
     texA.close();
     texB.close();
@@ -166,13 +168,14 @@ void set_flowmap_params(FlowmapParams &flowmap_params)
   if (flowmap_params.frame == 0)
     return;
 
+  Point4 flowmapStrength = flowmap_params.flowmapStrength;
+  if (!flowmap_params.usingFoamFx)
+    flowmapStrength.w = 0;
+
   ShaderGlobal::set_real(water_wind_strengthVarId, flowmap_params.windStrength);
   ShaderGlobal::set_real(water_flowmap_fadingVarId, flowmap_params.flowmapFading);
-  ShaderGlobal::set_color4(water_flowmap_strengthVarId, flowmap_params.flowmapStrength);
+  ShaderGlobal::set_color4(water_flowmap_strengthVarId, flowmapStrength);
   ShaderGlobal::set_color4(water_flowmap_strength_addVarId, flowmap_params.flowmapStrengthAdd);
-  ShaderGlobal::set_color4(water_flowmap_foamVarId, flowmap_params.flowmapFoam);
-  ShaderGlobal::set_real(water_flowmap_foam_tilingVarId, flowmap_params.flowmapFoamTiling);
-  ShaderGlobal::set_color4(water_flowmap_depthVarId, flowmap_params.flowmapDepth);
 
   SharedTexHolder &tex = flowmap_params.tex;
   String &texName = flowmap_params.texName;
@@ -187,15 +190,30 @@ void set_flowmap_params(FlowmapParams &flowmap_params)
   }
 }
 
+void set_flowmap_foam_params(FlowmapParams &flowmap_params)
+{
+  if (flowmap_params.frame == 0)
+    return;
+
+  ShaderGlobal::set_color4(water_flowmap_foamVarId, flowmap_params.flowmapFoam);
+  ShaderGlobal::set_real(water_flowmap_foam_tilingVarId, flowmap_params.flowmapFoamTiling);
+  ShaderGlobal::set_color4(water_flowmap_depthVarId, flowmap_params.flowmapDepth);
+  ShaderGlobal::set_real(water_flowmap_slopeVarId, flowmap_params.flowmapSlope);
+}
+
 void close_flowmap(FlowmapParams &flowmap_params)
 {
-  clear_and_shrink(flowmap_params.texName);
   flowmap_params.tex.close();
   flowmap_params.texA.close();
   flowmap_params.texB.close();
   flowmap_params.frame = 0;
   flowmap_params.winds.clear();
   flowmap_params.windsBuf.close();
+}
+
+bool is_flowmap_active(const FlowmapParams &flowmap_params)
+{
+  return flowmap_params.tex || flowmap_params.texA || flowmap_params.texB;
 }
 
 } // namespace fft_water

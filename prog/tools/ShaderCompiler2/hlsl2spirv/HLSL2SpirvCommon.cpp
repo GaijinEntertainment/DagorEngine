@@ -1,4 +1,5 @@
 #include "HLSL2SpirVCommon.h"
+#include "pragmaScanner.h"
 #include <regExp/regExp.h>
 #include <EASTL/unique_ptr.h>
 
@@ -109,4 +110,33 @@ bool fix_vertex_id_for_DXC(std::string &src, CompileResult &output)
   }
 
   return true;
+}
+
+eastl::vector<eastl::string_view> scanDisabledSpirvOptimizations(const char *source)
+{
+  eastl::vector<eastl::string_view> result;
+
+  PragmaScanner scanner{source};
+  while (auto pragma = scanner())
+  {
+    using namespace std::string_view_literals;
+    auto from = pragma.tokens();
+
+    if (*from == "spir-v"sv)
+    {
+      ++from;
+      if (*from == "optimizer"sv)
+      {
+        ++from;
+        if (*from == "disable"sv)
+        {
+          ++from;
+          std::string_view optPassName = *from;
+          if (!optPassName.empty())
+            result.emplace_back(eastl::string_view(optPassName.data(), optPassName.size()));
+        }
+      }
+    }
+  }
+  return result;
 }

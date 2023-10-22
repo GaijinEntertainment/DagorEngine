@@ -5,3 +5,5 @@ let function foo(y){ //-declared-never-used
     z--
     ::x == y
   }
+
+//-file:undefined-global

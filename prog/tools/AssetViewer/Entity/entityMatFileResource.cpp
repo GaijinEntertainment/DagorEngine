@@ -14,6 +14,11 @@ dag::Vector<MatVarDesc> extract_used_available_vars(const dag::Vector<MatVarDesc
     const MatVarDesc &var = vars[varId];
     if (!var.usedInMaterial)
       continue;
+
+    // Do not include twosided among the final script vars. Its value belongs to the material flag.
+    if (varId == MAT_VAR_TWOSIDED)
+      continue;
+
     if (varId < MAT_SPECIAL_VAR_COUNT)
       result.push_back(var);
     else if (eastl::find_if(shClassVarList.begin(), shClassVarList.end(),
@@ -34,7 +39,16 @@ SimpleString MatFileResourceDagMat::getShaderClass() const
 
 dag::Vector<MatVarDesc> MatFileResourceDagMat::getVars() const
 {
-  return make_mat_vars_from_script(dagData.matlist[dagMatId].script, getShaderClass());
+  dag::Vector<MatVarDesc> vars = make_mat_vars_from_script(dagData.matlist[dagMatId].script, getShaderClass());
+
+  if ((dagData.matlist[dagMatId].mater.flags & DAG_MF_2SIDED) != 0)
+  {
+    MatVarDesc &var = vars[MAT_VAR_TWOSIDED];
+    var.usedInMaterial = true;
+    var.value.i = 1;
+  }
+
+  return vars;
 }
 
 eastl::array<SimpleString, MAXMATTEXNUM> MatFileResourceDagMat::getTextureNames() const
@@ -84,6 +98,11 @@ void MatFileResourceDagMat::setDataAndSave(const EntityMatProperties *mat_proper
   }
 
   remove_unused_textures(dagData);
+
+  if (mat_properties->vars[MAT_VAR_TWOSIDED].usedInMaterial && mat_properties->vars[MAT_VAR_TWOSIDED].value.i != 0)
+    dagData.matlist[dagMatId].mater.flags |= DAG_MF_2SIDED;
+  else
+    dagData.matlist[dagMatId].mater.flags &= ~DAG_MF_2SIDED;
 }
 
 MatFileResourceProxyMat::MatFileResourceProxyMat(DagorAsset *proxymat_asset, DataBlock &sh_remap_blk) :
@@ -98,7 +117,16 @@ SimpleString MatFileResourceProxyMat::getShaderClass() const
 
 dag::Vector<MatVarDesc> MatFileResourceProxyMat::getVars() const
 {
-  return make_mat_vars_from_script(make_mat_script_from_props(proxyMatBlk), getShaderClass());
+  dag::Vector<MatVarDesc> vars = make_mat_vars_from_script(make_mat_script_from_props(proxyMatBlk), getShaderClass());
+
+  if (proxyMatBlk.getBool("twosided", false))
+  {
+    MatVarDesc &var = vars[MAT_VAR_TWOSIDED];
+    var.usedInMaterial = true;
+    var.value.i = 1;
+  }
+
+  return vars;
 }
 
 eastl::array<SimpleString, MAXMATTEXNUM> MatFileResourceProxyMat::getTextureNames() const
@@ -119,6 +147,19 @@ void MatFileResourceProxyMat::setDataAndSave(const EntityMatProperties *mat_prop
 {
   replace_mat_shclass_in_props_blk(proxyMatBlk, mat_properties->shClassName);
   replace_mat_vars_in_props_blk(proxyMatBlk, extract_used_available_vars(mat_properties->vars, getShaderClass()));
+
+  const MatVarDesc &var = mat_properties->vars[MAT_VAR_TWOSIDED];
+  const bool propVarTwoSided = var.usedInMaterial && var.value.i != 0;
+  const int paramIndex = proxyMatBlk.findParam("twosided");
+  if (paramIndex >= 0) // Overwrite if it is already set and they differ.
+  {
+    if (proxyMatBlk.getParamType(paramIndex) != DataBlock::TYPE_BOOL || proxyMatBlk.getBool(paramIndex) != propVarTwoSided)
+      proxyMatBlk.setBool("twosided", propVarTwoSided);
+  }
+  else if (propVarTwoSided) // Set if it is not the default value.
+  {
+    proxyMatBlk.setBool("twosided", propVarTwoSided);
+  }
 
   eastl::array<SimpleString, MAXMATTEXNUM> filteredTextures;
   unsigned usedTexMask = get_shclass_used_tex_mask(getShaderClass());

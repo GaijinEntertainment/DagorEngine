@@ -1,0 +1,8 @@
+WARNING: w255 (duplicate-function) Duplicate function body. Consider functions 'onTimer2' and 'onTimer'.
+testData/static_analyser/w255_2.nut:31:21
+
+    function onTimer(obj, dt, dt) {
+                     ^
+      local curOffs = obj.cur_slide_offs.tofloat()
+
+

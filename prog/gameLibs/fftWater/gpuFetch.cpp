@@ -21,7 +21,7 @@ void global_init_queries()
 {
   check_water_posVarId = get_shader_variable_id("check_water_pos", true);
   check_water_screenVarId = get_shader_variable_id("check_water_screen", true);
-  queryPostFx.init("is_underwater", 0, false);
+  queryPostFx.init("is_underwater");
 }
 
 class GpuOnePointQuery
@@ -108,7 +108,7 @@ public:
     destroy();
     maxNumber = clamp(maxNumber, (int)0, (int)4096);
     gpuTexture = d3d::create_tex(NULL, maxNumber, 1, TEXCF_RTARGET | TEXCF_LINEAR_LAYOUT | TEXFMT_R32F, 1, "water_fetch_gpu");
-    vb = d3d::create_vb(maxNumber * sizeof(float) * 4, SBCF_DYNAMIC, "histogram");
+    vb = d3d::create_vb(maxNumber * sizeof(float) * 4, SBCF_DYNAMIC | SBCF_MAYBELOST, "histogram");
     event = d3d::create_event_query();
     clear_and_resize(results, maxNumber);
     for (int i = 0; i < maxNumber; ++i)

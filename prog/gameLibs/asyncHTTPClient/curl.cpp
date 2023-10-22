@@ -708,12 +708,37 @@ static void collect_aborted_requests_nolock(eastl::list<RequestStatePtr> &finish
   }
 }
 
+static void poll_on_idle_cycle(void *) { httprequests::poll(); }
+
+struct CurlPollThread final : public DaThread
+{
+  int64_t thread_id = 0;
+
+  CurlPollThread() : DaThread("CurlPollThread") {}
+
+  void execute() override
+  {
+    thread_id = get_current_thread_id();
+    while (!terminating)
+    {
+      httprequests::poll();
+      sleep_msec(10);
+    }
+  }
+};
+
+static eastl::unique_ptr<CurlPollThread> g_poll_thread;
+
+
 void poll()
 {
 #if _TARGET_XBOX
   if (!xbox::has_network_access())
     return;
 #endif
+
+  if (g_poll_thread && g_poll_thread->thread_id != get_current_thread_id())
+    return;
 
   TIME_PROFILE(http_requests_poll);
 
@@ -737,23 +762,6 @@ void poll()
     request->sendResult();
 }
 
-static void poll_on_idle_cycle(void *) { httprequests::poll(); }
-
-struct CurlPollThread final : public DaThread
-{
-  CurlPollThread() : DaThread("CurlPollThread") {}
-
-  void execute() override
-  {
-    while (!terminating)
-    {
-      httprequests::poll();
-      sleep_msec(10);
-    }
-  }
-};
-
-static eastl::unique_ptr<CurlPollThread> g_poll_thread;
 
 void init_async(InitAsyncParams const &params)
 {

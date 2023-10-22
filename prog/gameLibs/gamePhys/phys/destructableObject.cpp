@@ -23,11 +23,14 @@ using namespace gamephys;
 namespace destructables
 {
 static int default_fgroup = dacoll::EPL_DEFAULT;
+static constexpr int default_fmask = dacoll::EPL_ALL;
 } // namespace destructables
 
 DestructableObject::DestructableObject(DynamicPhysObjectData *po_data, float scale_dt, const TMatrix &tm, PhysWorld *phys_world,
   int res_idx, uint32_t hash_val, const DataBlock *blk) :
-  scaleDt(scale_dt), physWorld(phys_world), physObj(DynamicPhysObject::create(po_data, phys_world, &tm)), resIdx(res_idx)
+  scaleDt(scale_dt),
+  physObj(DynamicPhysObject::create(po_data, phys_world, tm, destructables::default_fgroup, destructables::default_fmask)),
+  resIdx(res_idx)
 {
   mat44f tm44;
   v_mat44_make_from_43cu_unsafe(tm44, tm.array);
@@ -45,7 +48,6 @@ DestructableObject::DestructableObject(DynamicPhysObjectData *po_data, float sca
     timeToKinematic = blk->getReal("timeToKinematic", timeToKinematic);
   }
   clear_and_resize(ttlBodies, physObj->getPhysSys()->getBodyCount());
-  physObj->getPhysSys()->setGroupAndLayerMask(destructables::default_fgroup, dacoll::EPL_ALL);
   for (int i = 0; i < ttlBodies.size(); ++i)
     ttlBodies[i] = defaultTimeToLive;
   rendData.reset(destructables::init_rend_data(physObj.get()));
@@ -76,22 +78,22 @@ struct gamephys::DestructableObjectAddImpulse final : public AfterPhysUpdateActi
     dobj(dobj_), gen(dobj_.gen), pos(p), impulse(i), speedLimit(sl)
   {}
 
-  void doAction(bool) override
+  void doAction(PhysWorld &pw, bool) override
   {
     if (gen == dobj.gen) // Wasn't destroyed?
-      dobj.doAddImpulse(pos, impulse, speedLimit);
+      dobj.doAddImpulse(pw, pos, impulse, speedLimit);
   }
 };
 
-void DestructableObject::addImpulse(const Point3 &pos, const Point3 &impulse, float speedLimit)
+void DestructableObject::addImpulse(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speedLimit)
 {
-  exec_or_add_after_phys_action<DestructableObjectAddImpulse>(*physWorld, *this, pos, impulse, speedLimit);
+  exec_or_add_after_phys_action<DestructableObjectAddImpulse>(pw, *this, pos, impulse, speedLimit);
 }
 
-void DestructableObject::doAddImpulse(const Point3 &pos, const Point3 &impulse, float speedLimit)
+void DestructableObject::doAddImpulse(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speedLimit)
 {
   float impulseLen = length(impulse);
-  for (int i = 0; i < physObj->getPhysSys()->getBodyCount(); ++i)
+  for (int i = 0, n = physObj->getPhysSys()->getBodyCount(); i < n; ++i)
   {
     PhysBody *body = physObj->getPhysSys()->getBody(i);
     float mass = body->getMass();
@@ -105,7 +107,7 @@ void DestructableObject::doAddImpulse(const Point3 &pos, const Point3 &impulse, 
   }
   if (impulseLen < 1e-5f)
     return;
-  PhysRayCast rayCast(pos - normalize(impulse), normalize(impulse), 10.f, physWorld);
+  PhysRayCast rayCast(pos - normalize(impulse), normalize(impulse), 10.f, &pw);
   rayCast.setFilterMask(destructables::default_fgroup);
   rayCast.forceUpdate();
   if (!rayCast.hasContact())
@@ -181,7 +183,7 @@ bool DestructableObject::update(float dt, bool force_update_ttl)
       {
         PhysBody *body = physObj->getPhysSys()->getBody(i);
         if (body->getInteractionLayer() && body->isInWorld())
-          body->setGroupAndLayerMask(destructables::default_fgroup, dacoll::EPL_ALL ^ dacoll::EPL_KINEMATIC);
+          body->setGroupAndLayerMask(destructables::default_fgroup, destructables::default_fmask ^ dacoll::EPL_KINEMATIC);
       }
     }
   }

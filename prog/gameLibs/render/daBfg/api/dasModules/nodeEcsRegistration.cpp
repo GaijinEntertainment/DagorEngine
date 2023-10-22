@@ -74,10 +74,11 @@ void NodeEcsRegistrationAnnotation::complete(das::Context *context, const das::F
 
   G_ASSERT(arguments.contains(funcPtr->name));
   auto &args = arguments[funcPtr->name];
-  const auto nodeId = tracker.registry.knownNodeNames.getNameId(args.nodeName);
+  const auto nodeId =
+    tracker.registry.knownNames.getNameId<dabfg::NodeNameId>(tracker.registry.knownNames.root(), args.nodeName.c_str());
   if (nodeId != dabfg::NodeNameId::Invalid && tracker.registry.nodes.get(nodeId).declare)
   {
-    auto invokeFun = [this, context, &funcPtr, args]() {
+    auto invokeFun = [context, &funcPtr, args]() {
       auto func = context->findFunction(funcPtr->name.c_str());
       dabfg::NodeHandle handle{};
       das::das_invoke_function<void>::invoke<dabfg::NodeHandle &>(context, nullptr, func, handle);

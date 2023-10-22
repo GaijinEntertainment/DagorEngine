@@ -28,6 +28,7 @@
 #include <humanInput/dag_hiKeybIds.h>
 #include <humanInput/dag_hiPointing.h>
 #include "de3_freeCam.h"
+#include "de3_visibility_finder.h"
 #include <gui/dag_stdGuiRender.h>
 #include <debug/dag_debug3d.h>
 #include <perfMon/dag_perfMonStat.h>
@@ -81,7 +82,7 @@
 #include <render/debugTexOverlay.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <render/toroidalStaticShadows.h>
-#include <daEditor4/daEditor4.h>
+#include <daEditorE/daEditorE.h>
 #include "entEdit.h"
 #include <render/debugGbuffer.h>
 
@@ -225,8 +226,8 @@ public:
     shadedTarget = dag::create_tex(NULL, cube_size, cube_size, TEXFMT_A16B16G16R16F | TEXCF_RTARGET, 1, "dynamic_cube_tex_target");
     copy.init("copy_tex");
     // return;
-    target =
-      eastl::make_unique<DeferredRenderTarget>("deferred_simple", "cube", cube_size, cube_size, DeferredRT::StereoMode::MonoOrMultipass, 0, gbuf_rt, gbuf_fmts, TEXFMT_DEPTH24);
+    target = eastl::make_unique<DeferredRenderTarget>("deferred_simple", "cube", cube_size, cube_size,
+      DeferredRT::StereoMode::MonoOrMultipass, 0, gbuf_rt, gbuf_fmts, TEXFMT_DEPTH24);
   }
   void update(const ManagedTex *cubeTarget, IRenderDynamicCubeFace2 &cb, const Point3 &pos)
   {
@@ -240,17 +241,19 @@ public:
     for (int i = 0; i < 6; ++i)
     {
       target->setRt();
-      d3d::setpersp(Driver3dPerspective(1, 1, zn, zf, 0, 0));
+      TMatrix4 projTm;
+      d3d::setpersp(Driver3dPerspective(1, 1, zn, zf, 0, 0), &projTm);
       TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, i);
       cameraMatrix.setcol(3, pos);
-      d3d::settm(TM_VIEW, orthonormalized_inverse(cameraMatrix));
+      TMatrix viewTm = orthonormalized_inverse(cameraMatrix);
+      d3d::settm(TM_VIEW, viewTm);
 
       d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
 
       cb.renderLightProbeOpaque();
-      target->resolve(shadedTarget.getTex2D());
+      target->resolve(shadedTarget.getTex2D(), viewTm, projTm);
       d3d::set_render_target(shadedTarget.getTex2D(), 0); // because of cube depth
-      d3d::set_depth(target->getDepth(), true);
+      d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
 
       // d3d::clearview(CLEAR_ZBUFFER|CLEAR_STENCIL, 0, 0, 0);
       cb.renderLightProbeEnvi();
@@ -485,7 +488,7 @@ public:
         STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_PS, 7, VALUE, 0, 0), ssgi.getSceneVoxels().getVolTex());
         renderVoxelsMediaGeom(box, voxel_size, SCENE_MODE_VOXELIZE);
       });
-    visibility_finder->update();
+    update_visibility_finder();
   }
   void updateSSGISceneVoxels() { ssgi.markVoxelsFromRT(); }
   void updateSSGI(const TMatrix &view_tm, const TMatrix4 &proj_tm)
@@ -620,7 +623,7 @@ public:
     d3d::set_render_target();
     // set Matrix
     d3d_err(d3d::set_render_target(0, (Texture *)NULL, 0));
-    d3d::set_depth(heightmap.getTex2D(), false);
+    d3d::set_depth(heightmap.getTex2D(), DepthAccess::RW);
     heightmap->texfilter(TEXFILTER_POINT);
     heightmap.setVar();
 
@@ -673,8 +676,8 @@ public:
     int w, h;
     d3d::get_target_size(w, h);
     postfx.init("postfx");
-    target =
-      eastl::make_unique<DeferredRenderTarget>("deferred_shadow_to_buffer", "main", w, h, DeferredRT::StereoMode::MonoOrMultipass, 0, gbuf_rt, gbuf_fmts, TEXFMT_DEPTH32);
+    target = eastl::make_unique<DeferredRenderTarget>("deferred_shadow_to_buffer", "main", w, h,
+      DeferredRT::StereoMode::MonoOrMultipass, 0, gbuf_rt, gbuf_fmts, TEXFMT_DEPTH32);
     heightmap = dag::create_tex(NULL, 512, 512, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, "scene_voxels_2d_heightmap");
 
     combined_shadows = dag::create_tex(NULL, w, h, TEXFMT_L8 | TEXCF_RTARGET, 1, "combined_shadows");
@@ -1016,7 +1019,7 @@ public:
     }
 
     d3d::set_render_target(frame.getTex2D(), 0);
-    d3d::set_depth(target->getDepth(), false);
+    d3d::set_depth(target->getDepth(), DepthAccess::RW);
     renderTrans();
 
 
@@ -1131,7 +1134,7 @@ public:
 
     curCamera->setView();
 
-    visibility_finder->update();
+    update_visibility_finder();
     float windDirX = cosf(DegToRad(render_panel.windDir)), windDirZ = sinf(DegToRad(render_panel.windDir));
     float dt = gametime_elapsed_sec;
     float windX = render_panel.cloudsSpeed * windDirX * dt, windZ = render_panel.cloudsSpeed * windDirZ * dt;
@@ -1249,7 +1252,7 @@ public:
     d3d::get_render_target(prevRT);
     d3d_err(d3d::set_render_target());
     d3d_err(d3d::set_render_target(0, nullptr, 0));
-    d3d::set_depth(target->getDepth(), false);
+    d3d::set_depth(target->getDepth(), DepthAccess::RW);
     renderTrees();
     renderLevel();
     d3d::set_render_target(prevRT);
@@ -1290,8 +1293,10 @@ public:
     itm = orthonormalized_inverse(view);
     TMatrix4 projTm;
     d3d::gettm(TM_PROJ, &projTm);
+    Driver3dPerspective persp;
+    d3d::getpersp(persp);
     daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 2, UniqueTex{}, UniqueTex{},
-      BAD_TEXTUREID, cube_pov_data, view, projTm);
+      BAD_TEXTUREID, cube_pov_data, view, projTm, persp);
   }
 
   eastl::unique_ptr<ToroidalStaticShadows> staticShadows;
@@ -1385,7 +1390,7 @@ public:
       if (gi_panel.per_pixel_trace)
       {
         d3d::set_render_target(cambient[0].getTex2D(), 0);
-        d3d::set_depth(target->getDepth(), true);
+        d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
         {
           TIME_D3D_PROFILE(frame_ambient);
           ambientRenderer.render();
@@ -1406,7 +1411,7 @@ public:
 
         cAmbientFrame = 1 - cAmbientFrame;
         d3d::set_render_target(ambient[cAmbientFrame].getTex2D(), 0);
-        d3d::set_depth(target->getDepth(), true);
+        d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
         ShaderGlobal::set_texture(get_shader_variable_id("prev_ambient"), ambient[1 - cAmbientFrame]);
         cambient[0]->texfilter(TEXFILTER_POINT);
         {
@@ -1420,7 +1425,7 @@ public:
       {
         cAmbientFrame = 0;
         d3d::set_render_target(ambient[0].getTex2D(), 0);
-        d3d::set_depth(target->getDepth(), true);
+        d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
         ambient[0].setVar();
         ambientRenderer.render();
       }
@@ -1430,7 +1435,7 @@ public:
       cAmbientFrame = 0;
       d3d::set_render_target(ambient[0].getTex2D(), 0);
       ambient[0].setVar();
-      d3d::set_depth(target->getDepth(), true);
+      d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
       ambientRenderer.render();
     }
   }
@@ -1454,16 +1459,16 @@ public:
     // d3d::clearview(CLEAR_TARGET, 0xFF108080, 0, 0);
     // d3d::set_render_target();
     TMatrix itm;
+    TMatrix view;
+    d3d::gettm(TM_VIEW, view);
+    TMatrix4 projTm;
+    d3d::gettm(TM_PROJ, &projTm);
     curCamera->getInvViewMatrix(itm);
     {
       TIME_D3D_PROFILE(changeData)
       daSkies.changeSkiesData(render_panel.sky_quality, render_panel.direct_quality, !render_panel.infinite_skies, target->getWidth(),
         target->getHeight(), main_pov_data);
 
-      TMatrix view;
-      d3d::gettm(TM_VIEW, view);
-      TMatrix4 projTm;
-      d3d::gettm(TM_PROJ, &projTm);
       daSkies.useFog(itm.getcol(3), main_pov_data, view, projTm);
     }
 
@@ -1471,8 +1476,8 @@ public:
 
     target->setRt();
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0x00FFFFFF, 0, 0); //
-    set_inv_globtm_to_shader(false);
-    set_viewvecs_to_shader();
+    set_inv_globtm_to_shader(view, projTm, false);
+    set_viewvecs_to_shader(view, projTm);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     {
       TIME_D3D_PROFILE(scene)
@@ -1487,7 +1492,7 @@ public:
     downsampleDepth(ssao || ssr || gtao);
 
     if (ssr)
-      ssr->render();
+      ssr->render(view, projTm);
     if (!gi_panel.ssr)
     {
       ShaderGlobal::set_texture(get_shader_variable_id("ssr_target"), BAD_TEXTUREID);
@@ -1495,12 +1500,12 @@ public:
     if (gi_panel.ssao && ssao)
     {
       farDownsampledDepth[1 - currentDownsampledDepth]->texfilter(TEXFILTER_SMOOTH);
-      ssao->render(farDownsampledDepth[currentDownsampledDepth]);
+      ssao->render(view, projTm, farDownsampledDepth[currentDownsampledDepth]);
       farDownsampledDepth[1 - currentDownsampledDepth]->texfilter(TEXFILTER_POINT);
     }
 
     if (gi_panel.gtao && gtao)
-      gtao->render();
+      gtao->render(view, projTm);
 
     if (!gi_panel.ssao && !gi_panel.gtao)
       ShaderGlobal::set_texture(get_shader_variable_id("ssao_tex"), BAD_TEXTUREID);
@@ -1521,15 +1526,15 @@ public:
         }
 
         TIME_D3D_PROFILE(shading)
-        target->resolve(frame.getTex2D());
+        target->resolve(frame.getTex2D(), view, projTm);
         d3d::set_render_target(frame.getTex2D(), 0);
       }
     }
     ShaderGlobal::set_int(get_shader_variable_id("deferred_lighting_mode"), RESULT);
 
-    d3d::set_depth(target->getDepth(), true);
+    d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
     renderEnvi();
-    d3d::set_depth(target->getDepth(), false);
+    d3d::set_depth(target->getDepth(), DepthAccess::RW);
     d3d::stretch_rect(frame.getTex2D(), prevFrame.getTex2D());
 
     if (::grs_draw_wire)
@@ -1922,9 +1927,11 @@ protected:
     d3d::gettm(TM_VIEW, view);
     TMatrix4 projTm;
     d3d::gettm(TM_PROJ, &projTm);
+    Driver3dPerspective persp;
+    d3d::getpersp(persp);
     daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 3,
       farDownsampledDepth[currentDownsampledDepth], farDownsampledDepth[1 - currentDownsampledDepth], target->getDepthId(),
-      main_pov_data, view, projTm);
+      main_pov_data, view, projTm, persp);
     farDownsampledDepth[1 - currentDownsampledDepth].getTex2D()->texaddr(TEXADDR_BORDER);
   }
   struct FilePanel
@@ -2174,7 +2181,7 @@ static void toggle_or_set_bool_arg(bool &b, int argn, int argc, const char *argv
   else
     b = !b;
 
-  console::print(b ? "on": "off");
+  console::print(b ? "on" : "off");
 }
 
 

@@ -9,7 +9,7 @@
 #include <debug/dag_debug3d.h>
 #include <math/dag_rayIntersectBox.h>
 #include <math/dag_TMatrix.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtra.h>
 #include <winGuiWrapper/wgw_input.h>
 
 IObjEntity *CompositeEditorViewport::getHitSubEntity(IGenViewportWnd *wnd, int x, int y, IObjEntity &entity)

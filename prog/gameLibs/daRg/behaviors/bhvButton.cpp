@@ -46,6 +46,14 @@ static float double_click_range(GuiScene *scene)
   return 20.0f * min(screenSize.x, screenSize.y) / 1080;
 }
 
+static float double_touch_range(GuiScene *scene)
+{
+  // TODO: this should be changed to use Centimeters -> Pixels convertion
+  // using DPI to calculate range independent from device physical size
+  IPoint2 screenSize = scene->getDeviceScreenSize();
+  return 100.0f * min(screenSize.x, screenSize.y) / 1080;
+}
+
 struct BhvButtonData
 {
   InputDevice pressedByDevice = DEVID_NONE;
@@ -100,7 +108,7 @@ struct BhvButtonData
     wasClicked = true;
   }
 
-  bool isDoubleClick(int cur_time, const Point2 &pos, int pos_thresh)
+  bool isDoubleClick(int cur_time, const Point2 &pos, float pos_thresh)
   {
     if (wasClicked && (cur_time - lastClickTime <= double_click_interval_ms))
     {
@@ -220,7 +228,8 @@ int BhvButton::pointerEvent(ElementTree *etree, Element *elem, InputDevice devic
         if (extendedBbox & pointer_pos)
         {
           int curTime = ::get_time_msec();
-          bool isDouble = btnData->isDoubleClick(curTime, pointer_pos, double_click_range(etree->guiScene));
+          float dblClickRange = (DEVID_TOUCH == device) ? double_touch_range(etree->guiScene) : double_click_range(etree->guiScene);
+          bool isDouble = btnData->isDoubleClick(curTime, pointer_pos, dblClickRange);
           call_click_handler(etree->guiScene, elem, device, isDouble, button_id, pointer_pos.x, pointer_pos.y);
           btnData->saveClick(curTime, pointer_pos);
 

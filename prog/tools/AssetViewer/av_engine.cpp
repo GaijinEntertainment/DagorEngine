@@ -288,7 +288,7 @@ PropPanel2 *AssetViewerApp::getCustomPanel(int id) const
 
 
 //==================================================================================================
-void *AssetViewerApp::addToolbar(int height)
+void *AssetViewerApp::addToolbar(hdpi::Px height)
 {
   void *toolbar = mManager->splitNeighbourWindow(hwndToolbar, 0, height, WA_TOP);
   if (!toolbar)
@@ -299,7 +299,7 @@ void *AssetViewerApp::addToolbar(int height)
 
 
 //==================================================================================================
-void AssetViewerApp::addPropPanel(int type, int width)
+void AssetViewerApp::addPropPanel(int type, hdpi::Px width)
 {
   void *propbar = mManager->splitNeighbourWindow(hwndPPanel, 0, width, WA_RIGHT);
   if (!propbar)

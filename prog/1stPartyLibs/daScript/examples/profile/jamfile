@@ -17,15 +17,15 @@ Sources =
 ;
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory/rtlStdMemory
-#  engine2/memory/rtlOverride
-  engine2/baseUtil
-#  engine2/ioSys
-  engine2/startup
-  engine2/math
-  engine2/perfMon/daProfilerStub
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory/rtlStdMemory
+#  engine/memory/rtlOverride
+  engine/baseUtil
+#  engine/ioSys
+  engine/startup
+  engine/math
+  engine/perfMon/daProfilerStub
 
   3rdPartyLibs/eastl
   1stPartyLibs/daScript

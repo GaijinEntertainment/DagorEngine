@@ -9,7 +9,7 @@ UseQuirrel = sq3r ;
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/gameLibs/publicInclude/quirrel
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/1stPartyLibs/daScript/include
 ;
 

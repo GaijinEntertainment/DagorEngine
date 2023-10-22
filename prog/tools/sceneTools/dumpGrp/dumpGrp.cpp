@@ -496,7 +496,7 @@ static void extract_grp_contents(gamerespackbin::GrpData &grp, BinDumpReader &cr
 
     switch (grp.resTable[i].classId)
     {
-      case 0x03FB59C4u: // rendinstgenland::HUID_LandClass:
+      case 0x03FB59C4u: // rendinst::gen::land::HUID_LandClass:
       {
         String prefix(0, "%s/%s.%08X.land", out_dir, res_name, grp.resTable[i].classId);
         crd.seekto(ofs);

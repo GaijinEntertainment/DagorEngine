@@ -1,5 +1,5 @@
-#include <../engine2/shaders/shadersBinaryDataVars.cpp>
-#include <../engine2/shaders/shadersBinaryDataLoad.cpp>
-#include <../engine2/shaders/shadersBinaryDataDbg.cpp>
-#include <../engine2/shaders/shaders_globdata.cpp>
-#include <../engine2/shaders/shUtils.cpp>
+#include <../engine/shaders/shadersBinaryDataVars.cpp>
+#include <../engine/shaders/shadersBinaryDataLoad.cpp>
+#include <../engine/shaders/shadersBinaryDataDbg.cpp>
+#include <../engine/shaders/shaders_globdata.cpp>
+#include <../engine/shaders/shUtils.cpp>

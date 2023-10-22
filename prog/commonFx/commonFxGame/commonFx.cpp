@@ -6,12 +6,8 @@ int softness_distance_var_id = -1;
 
 void register_all_common_fx_factories()
 {
-  register_anim_planes_fx_factory();
   register_compound_ps_fx_factory();
-  register_trail_flow_fx_factory();
-  register_emitterflow_ps_fx_factory();
   register_flow_ps_2_fx_factory();
-  register_anim_planes_fx_2_factory();
   register_light_fx_factory();
 
   register_dafx_sparks_factory();

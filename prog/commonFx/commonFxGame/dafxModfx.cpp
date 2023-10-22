@@ -66,6 +66,12 @@ struct DafxModFx : BaseParticleEffect
 
   void loadParamsData(const char *ptr, int len, BaseParamScriptLoadCB *load_cb) override
   {
+    if (!g_dafx_ctx)
+    {
+      logwarn("fx: modfx: failed to load params data, context was not initialized");
+      return;
+    }
+
     pdesc.reset(new dafx::SystemDesc());
     sinfo = dafx_ex::SystemInfo();
     gameResId = load_cb->getSelfGameResId();

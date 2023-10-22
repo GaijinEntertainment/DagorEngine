@@ -5,7 +5,7 @@
 //
 #pragma once
 
-#include <rendInst/rendInstExHandle.h>
+#include <rendInst/riexHandle.h>
 
 namespace rendinst
 {
@@ -51,4 +51,7 @@ struct RendInstDesc
 
   riex_handle_t getRiExtraHandle() const;
 };
+
+bool isRiGenDescValid(const RendInstDesc &desc);
+float getTtl(const RendInstDesc &desc);
 } // namespace rendinst

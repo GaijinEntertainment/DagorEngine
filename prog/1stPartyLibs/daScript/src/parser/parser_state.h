@@ -16,7 +16,7 @@ namespace das {
         int das_arrow_depth = 0;
         bool das_need_oxford_comma = true;
         bool das_force_oxford_comma = false;
-        bool das_supress_errors = false;
+        bool das_suppress_errors = false;
         bool das_in_normal = false;
         bool das_has_type_declarations = false;
         vector<int> das_line_no;

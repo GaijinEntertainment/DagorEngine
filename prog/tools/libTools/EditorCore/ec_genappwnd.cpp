@@ -43,6 +43,7 @@
 #include <windows.h>
 #undef ERROR
 
+extern void update_visibility_finder();
 
 #define MIN_CUBE_2_POWER 5
 #define MAX_CUBE_2_POWER 11
@@ -69,13 +70,15 @@ enum
   SCR_TYPE_QUALITY_JPEG_40,
 };
 
+using hdpi::_pxScaled;
 
 class OrthogonalScreenshotDlg : public CDialogWindow
 {
 public:
   OrthogonalScreenshotDlg(const char caption[], GenericEditorAppWindow::OrtMultiScrData &scr_data,
     GenericEditorAppWindow::OrtScrCells &scr_cells, int max_rt_size, bool map2d_avail = false) :
-    CDialogWindow(IEditorCoreEngine::get()->getWndManager()->getMainWindow(), DIALOG_WIDTH, DIALOG_HEIGHT, caption),
+    CDialogWindow(IEditorCoreEngine::get()->getWndManager()->getMainWindow(), _pxScaled(DIALOG_WIDTH), _pxScaled(DIALOG_HEIGHT),
+      caption),
 
     mScrData(&scr_data),
     mScrCells(&scr_cells),
@@ -160,7 +163,7 @@ public:
   {
     if (multiScreenShot && !panel.getById(MULTI_GRP_ID))
     {
-      resizeWindow(DIALOG_WIDTH, DIALOG_FULL_HEIGHT);
+      resizeWindow(_pxScaled(DIALOG_WIDTH), _pxScaled(DIALOG_FULL_HEIGHT));
       panel.removeById(MULTI_TILE_SIZE_ID);
       PropPanel2 *grp = panel.createGroupBox(MULTI_GRP_ID, "Map2D screenshot params:");
 
@@ -191,7 +194,7 @@ public:
           break;
         }
       panel.createCombo(MULTI_TILE_SIZE_ID, "Resolution:", resLines, sel);
-      resizeWindow(DIALOG_WIDTH, DIALOG_HEIGHT);
+      resizeWindow(_pxScaled(DIALOG_WIDTH), _pxScaled(DIALOG_HEIGHT));
     }
   }
 
@@ -888,7 +891,7 @@ bool GenericEditorAppWindow::canClose() { return (canCloseScene("Exit")); }
 class GenericEditorAppWindow::FovDlg : public CDialogWindow
 {
 public:
-  FovDlg(void *phandle, const char *caption, float curFov) : CDialogWindow(phandle, WINDOW_WIDTH, WINDOW_HEIGHT, caption)
+  FovDlg(void *phandle, const char *caption, float curFov) : CDialogWindow(phandle, _pxScaled(200), _pxScaled(100), caption)
   {
     PropertyContainerControlBase *_panel = getPanel();
     G_ASSERT(_panel && "No panel in GenericEditorAppWindow::FovDlg");
@@ -908,8 +911,6 @@ public:
 private:
   enum
   {
-    WINDOW_WIDTH = 200,
-    WINDOW_HEIGHT = 100,
     ID_FOV_EDIT,
   };
 };
@@ -966,7 +967,7 @@ void GenericEditorAppWindow::setScreenshotOptions()
     };
 
 
-    ScreenshotOptionsClient() : CDialogWindow(0, 305, 370, "Screenshot settings") {}
+    ScreenshotOptionsClient() : CDialogWindow(0, _pxScaled(305), _pxScaled(370), "Screenshot settings") {}
 
     void fill()
     {
@@ -1188,8 +1189,7 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
 
     screenshotRender();
 
-    if (visibility_finder)
-      ::visibility_finder->update();
+    update_visibility_finder();
     ::ec_cached_viewports->endRender();
   }
 
@@ -1602,7 +1602,7 @@ void GenericEditorAppWindow::renderOrtogonalCells()
 
 int GenericEditorAppWindow::getMaxRTSize()
 {
-  if (d3d::get_driver_code() == _MAKE4C('DX11'))
+  if (d3d::get_driver_code().is(d3d::dx11))
     return 8192;
 
   int max_ts = 0;

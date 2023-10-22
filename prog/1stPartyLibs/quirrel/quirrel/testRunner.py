@@ -11,6 +11,7 @@ import argparse
 import subprocess
 from subprocess import Popen, PIPE
 import platform
+import argparse
 
 CRED = '\33[31m'
 CGREEN = '\33[32m'
@@ -81,6 +82,10 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
     global verbose
     global have_errors
     testFilePath = computePath(dirname, name + '.nut')
+
+    if (not path.exists(testFilePath)):
+        testFilePath = computePath(dirname, name + '.nut.txt')
+
     expectedResultFilePath = computePath(dirname, name + suffix)
     outputDir = computePath(workingDir, dirname)
 
@@ -92,21 +97,21 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
     if path.exists(actualResultFilePath):
         os.remove(actualResultFilePath)
 
-    compialtionCommand = [compiler, "-ast", "-optCH"]
-    compialtionCommand += extraargs
-
-    if verbose:
-        xprint(compialtionCommand)
+    compilationCommand = [compiler, "-optCH"]
+    compilationCommand += extraargs
 
     if stdoutFile:
         outredirect = open(actualResultFilePath, 'w+')
     else:
         outredirect = subprocess.PIPE
-        compialtionCommand += [actualResultFilePath]
+        compilationCommand += [actualResultFilePath]
 
-    compialtionCommand += [testFilePath]
+    compilationCommand += [testFilePath]
 
-    proc = Popen(compialtionCommand, stdout=outredirect, stderr=subprocess.PIPE)
+    if verbose:
+        xprint(compilationCommand)
+
+    proc = Popen(compilationCommand, stdout=outredirect, stderr=subprocess.PIPE)
 
     outs = None
     errs = None
@@ -115,7 +120,7 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
     except subprocess.TimeoutExpired:
         proc.kill()
         outs, errs = proc.communicate()
-        xprint("\nTIMEOUT: sq freezed on test: {0}\n".format(testFilePath), CBOLD + CRED)
+        xprint("\nTIMEOUT: sq froze on test: {0}\n".format(testFilePath), CBOLD + CRED)
         numOfFailedTests = numOfFailedTests + 1
         return
 
@@ -166,10 +171,10 @@ def runTestForData(filePath, compiler, workingDir, testMode):
     basename = os.path.basename(filePath)
     dirname = os.path.dirname(filePath)
     index_of_dot = basename.index('.')
-    suffix = Path(basename).suffix
-    # print(f"dirname: {dirname}, baseName: {basename}, suffix: {suffix}")
     name = basename[:index_of_dot]
-    if suffix == ".nut":
+    suffix = basename[index_of_dot:]
+    # print(f"dirname: {dirname}, baseName: {basename}, name: {name}, suffix: {suffix}")
+    if suffix == ".nut" or suffix == ".nut.txt":
         if testMode == 'ast':
             runASTTest(compiler, workingDir, dirname, name)
         elif testMode == 'diag':
@@ -205,34 +210,22 @@ def checkCompiler(compiler):
 def main():
     global numOfFailedTests
     global verbose, ciRun
-    arguments = len(sys.argv) - 1
-    position = 1
-    compiler = ''
-    workingDir = ''
+    default_sq = computePath('build', 'bin', 'Debug', 'sq.exe' if platform.system() == 'Windows' else 'sq')
 
-    while (arguments >= position):
-        arg = sys.argv[position]
-        if arg == '-sq':
-            compiler = sys.argv[position + 1]
-            position = position + 1
-        elif arg == '-workDir':
-            workingDir = sys.argv[position + 1]
-            position = position + 1
-        elif arg == '-v':
-            verbose = True
-        elif arg == '-ci':
-            ciRun = True
-        else:
-            xprint(f"Unknown option \'${arg}\' at position {position:>6}")
-        position = position + 1
+    parser = argparse.ArgumentParser(description='quirrel test runner')
+    parser.add_argument('-sq', '--squirrel', action="store", type=str, default = default_sq, help = "Path to Quirrel compiler")
+    parser.add_argument('-wd', '--working-dir', action="store", type=str, default = tempfile.TemporaryDirectory().name, help = "Directory to store tests data like ast dumps, diganotics dumps and so on")
+    parser.add_argument('-v', '--verbose', default = False, action="store_true", help = "Extra output like CLI commands")
+    parser.add_argument('-ci', '--continious-integration', default = False, action="store_true", help = "Signals that script is being run under CI")
 
-    if compiler == '':
-        compiler = computePath('build', 'bin', 'Debug', 'sq.exe' if platform.system() == 'Windows' else 'sq')
+    args = parser.parse_args()
+
+    compiler = args.squirrel
+    workingDir = args.working_dir
+    verbose = args.verbose
+    ciRun = args.continious_integration
 
     checkCompiler(compiler)
-
-    if workingDir == '':
-        workingDir = tempfile.TemporaryDirectory().name
 
     walkDirectory(Path(computePath('testData', 'exec')), 0, lambda a: runTestForData(a, compiler, workingDir, 'exec'))
     walkDirectory(Path(computePath('testData', 'diagnostics')), 0, lambda a: runTestForData(a, compiler, workingDir, 'diag'))

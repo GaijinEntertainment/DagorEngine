@@ -68,7 +68,7 @@ def inOutQuart(p : float)
     return 8.f * p * p * p * p
   else
     let f = (p - 1.f)
-  return -8.f * f * f * f * f + 1.f
+    return -8.f * f * f * f * f + 1.f
 
 
 
@@ -95,7 +95,7 @@ def inOutQuintic(p : float)
     return 16.f * p * p * p * p * p
   else
     let f = ((2.f * p) - 2.f)
-  return 0.5f * f * f * f * f * f + 1.f
+    return 0.5f * f * f * f * f * f + 1.f
   //return (6.f * p * p - 15.f * p + 10) * p * p * p //originally in gameMath/easing
 
 
@@ -276,14 +276,14 @@ def outStep(p : float)
 
 [generic]
 def blinkSin(p : float)
-  let val = (p < 0.1) ? 10.0 * p : 1.0 - (p - 0.1) / 0.9
+  var val = (p < 0.1) ? 10.0 * p : 1.0 - (p - 0.1) / 0.9
   if (p < 0.5)
     val *= 0.75 + 0.25 * sin((p * 80.0 - 0.5) * PI)
   return val
 
 [generic]
 def blinkCos(p : float)
-  let val = (p < 0.1) ? 10.0 * p : 1.0 - (p - 0.1) / 0.9
+  var val = (p < 0.1) ? 10.0 * p : 1.0 - (p - 0.1) / 0.9
   if (p < 0.5)
     val *= 0.75 + 0.25 * cos((p * 40.0 - 0.5) * PI)
   return val

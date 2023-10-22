@@ -5,7 +5,7 @@
 //
 #pragma once
 
-#include <3d/dag_sbufferIDHolder.h>
+#include <3d/dag_resPtr.h>
 #include <3d/dag_textureIDHolder.h>
 #include <EASTL/unique_ptr.h>
 #include <math/integer/dag_IPoint2.h>
@@ -15,8 +15,8 @@
 class TiledLights
 {
   ResizableTextureIDHolder tilesRT;
-  SbufferIDHolderWithVar lightsListBuf;
-  SbufferIDHolderWithVar zbinningLUT;
+  UniqueBufHolder lightsListBuf;
+  UniqueBufHolder zbinningLUT;
   float maxLightsDist = 500;
   Tab<uint32_t> zBinningData;
   Tab<uint16_t> zBinBegins, zBinEnds;

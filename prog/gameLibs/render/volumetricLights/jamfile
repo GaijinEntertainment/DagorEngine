@@ -5,7 +5,7 @@ TargetType  = lib ;
 Target      = gameLibs/render/volumetricLights.lib ;
 
 AddIncludes =
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 

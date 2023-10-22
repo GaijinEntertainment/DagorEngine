@@ -27,6 +27,18 @@ macro INIT_BLURRED_DEPTH_ABOVE(code)
   INIT_DEPTH_ABOVE(code, blurred_depth)
 endmacro
 
+macro INIT_DEPTH_ABOVE_WITHOUT_SAMPLER(code, tex_name, tex_samplerstate, samplerstate)
+  (code) { tex_name@tex = tex_name hlsl { Texture2D tex_name@tex; } }
+  hlsl(code) {
+    #define tex_samplerstate samplerstate
+  }
+  INIT_BLURRED_DEPTH_ABOVE_CONSTS(code)
+endmacro
+
+macro INIT_BLURRED_DEPTH_ABOVE_WITHOUT_SAMPLER(code, samplerstate)
+  INIT_DEPTH_ABOVE_WITHOUT_SAMPLER(code, blurred_depth, blurred_depth_samplerstate, samplerstate)
+endmacro
+
 macro USE_DEPTH_ABOVE_TC(code)
   hlsl(code){
 

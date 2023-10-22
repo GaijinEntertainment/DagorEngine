@@ -3,6 +3,7 @@
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sqrat.h>
 #include <quirrel/sqModules/sqModules.h>
+#include "hypenation.h"
 
 
 static const char *script_get_loc_text(const char *id) { return get_localized_text(id); }
@@ -205,6 +206,23 @@ static SQInteger init_localization(HSQUIRRELVM vm)
 }
 
 
+static SQInteger process_chinese_string_with_tab(HSQUIRRELVM vm)
+{
+  const char *str;
+  sq_getstring(vm, 2, &str);
+  SimpleString ret = process_chinese_string(str);
+  sq_pushstring(vm, ret, strlen(ret));
+  return 1;
+}
+static SQInteger process_japanese_string_with_tab(HSQUIRRELVM vm)
+{
+  const char *str;
+  sq_getstring(vm, 2, &str);
+  SimpleString ret = process_japanese_string(str);
+  sq_pushstring(vm, ret, strlen(ret));
+  return 1;
+}
+
 namespace bindquirrel
 {
 
@@ -216,6 +234,8 @@ void register_dagor_localization_module(SqModules *module_mgr)
   exports.SquirrelFunc("loc", &localize, -2, ".s|o")
     .Func("getLocText", script_get_loc_text)
     .Func("getLocTextForLang", get_localized_text_for_lang)
+    .SquirrelFunc("processHypenationsCN", process_chinese_string_with_tab, 2, ".s")
+    .SquirrelFunc("processHypenationsJP", process_japanese_string_with_tab, 2, ".s")
     .SquirrelFunc("getLocTextEx", script_get_loc_text_ex_<false>, -2, ".s")
     .SquirrelFunc("getLocTextExCI", script_get_loc_text_ex_<true>, -2, ".s")
     .SquirrelFunc("doesLocTextExist", script_does_localized_text_exist, 2, ".s")

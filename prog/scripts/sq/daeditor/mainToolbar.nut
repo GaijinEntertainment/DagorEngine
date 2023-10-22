@@ -9,10 +9,10 @@ let combobox = require("%daeditor/components/combobox.nut")
 let cursors =  require("components/cursors.nut")
 let {showLogsWindow, hasNewLogerr} = require("%daeditor/state/logsWindow.nut")
 
-let daEditor4 = require("daEditor4")
+let daEditor = require("daEditorEmbedded")
 let {DE4_MODE_CREATE_ENTITY, get_instance} = require("entity_editor")
 let {DE4_MODE_MOVE, DE4_MODE_ROTATE, DE4_MODE_SCALE, DE4_MODE_MOVE_SURF, DE4_MODE_SELECT,
-     DE4_MODE_POINT_ACTION, getEditMode, setEditMode} = daEditor4
+     DE4_MODE_POINT_ACTION, getEditMode, setEditMode} = daEditor
 
 let function toolbarButton(image, action, tooltip_text, checked=null, styles = {}) {
   let function onHover(on) {
@@ -41,7 +41,7 @@ let function modeButton(image, mode, tooltip_text, next_mode=null, next_action=n
       showEntitySelect.update(false)
       if (next_mode && mode==getEditMode())
         mode = next_mode
-      daEditor4.setEditMode(mode)
+      daEditor.setEditMode(mode)
       if (next_action)
         next_action()
     }
@@ -72,7 +72,7 @@ let function mainToolbar() {
     local mode = DE4_MODE_CREATE_ENTITY
     if (DE4_MODE_CREATE_ENTITY==getEditMode())
       mode = DE4_MODE_SELECT
-    daEditor4.setEditMode(mode)
+    daEditor.setEditMode(mode)
   }
   let togglePropPanel = function() {
     propPanelClosed(propPanelVisible.value && !showHelp.value)
@@ -138,7 +138,7 @@ let function mainToolbar() {
       ["L.Ctrl !L.Alt T", toggleTime],
       ["L.Ctrl !L.Alt S", { action = save, ignoreConsumerCallback = true }], // ignoreConsumerCallback so that freecamera moevement with s works
       ["L.Ctrl !L.Alt L", toggleLogsWindows],
-      ["Esc", @() daEditor4.setEditMode(DE4_MODE_SELECT)]
+      ["Esc", @() daEditor.setEditMode(DE4_MODE_SELECT)]
     ]
   }
 }

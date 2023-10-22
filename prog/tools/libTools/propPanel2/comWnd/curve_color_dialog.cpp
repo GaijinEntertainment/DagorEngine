@@ -18,8 +18,6 @@ enum
   ID_SHOW_BAR_CHART,
   ID_SHOW_BASE_LINE,
 
-  NAME_DIALOG_WIDTH = 300,
-  NAME_DIALOG_HEIGHT = 130,
   ID_PRESET_NAME = 200,
 };
 
@@ -33,7 +31,7 @@ bool CurveColorDialog::showBaseLine = true;
 
 
 CurveColorDialog::CurveColorDialog(void *phandle, const char caption[]) :
-  CDialogWindow(phandle, 310, 560, caption, false), colorCurve(NULL), presets(midmem)
+  CDialogWindow(phandle, _pxScaled(310), _pxScaled(560), caption, false), colorCurve(NULL), presets(midmem)
 {
   updatePresets();
   fillPanel(getPanel());
@@ -107,7 +105,7 @@ void CurveColorDialog::onClick(int pcb_id, PropPanel2 *panel)
         ColorCorrectionInfo cc_info;
         getCorrectionInfo(cc_info);
 
-        CDialogWindow dialog(mpHandle, NAME_DIALOG_WIDTH, NAME_DIALOG_HEIGHT, "Preset name");
+        CDialogWindow dialog(mpHandle, _pxScaled(300), _pxScaled(130), "Preset name");
         PropPanel2 *d_panel = dialog.getPanel();
         String new_name("new_preset");
         d_panel->createEditBox(ID_PRESET_NAME, "Enter new preset name", new_name.str());
@@ -168,10 +166,10 @@ void CurveColorDialog::fillPanel(PropPanel2 *panel)
   lines.push_back() = "Blue";
   panel->createCombo(ID_COLOR_MODE, "Channel:", lines, 0);
 
-  PropertyContainerControlBase *container = panel->createContainer(ID_CURVE_CONTAINER, true, 135);
+  PropertyContainerControlBase *container = panel->createContainer(ID_CURVE_CONTAINER, true, _pxScaled(135));
   container->createStatic(ID_INDENT, "");
   del_it(colorCurve);
-  colorCurve = new WColorCurveControl(container, container->getWindow(), 10, 10, 270, 270);
+  colorCurve = new WColorCurveControl(container, container->getWindow(), 10, 10, _pxS(270), _pxS(270));
 
   panel->createCheckBox(ID_SHOW_BAR_CHART, "Show bar chart", showChartBars);
   colorCurve->setChartBarsVisible(showChartBars);

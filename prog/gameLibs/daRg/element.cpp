@@ -612,14 +612,14 @@ void Element::readWatches(const Sqrat::Table &desc_tbl, const Sqrat::Table &scri
     out.reserve(len);
     for (SQInteger i = 0; i < len; ++i)
     {
-      BaseObservable *obs = try_cast_instance<BaseObservable>(arr.RawGetSlot(i), arr, i, "Reading 'watch' field");
+      BaseObservable *obs = try_cast_instance<BaseObservable>(arr.RawGetSlot(i), arr, i, "Reading 'watch' array");
       if (obs)
         out.push_back(obs);
     }
   }
   else
   {
-    BaseObservable *obs = try_cast_instance<BaseObservable>(script_watches, desc_tbl, csk->watch, "Reading 'watch' array");
+    BaseObservable *obs = try_cast_instance<BaseObservable>(script_watches, desc_tbl, csk->watch, "Reading 'watch' field");
     if (obs)
       out.push_back(obs);
   }
@@ -1457,7 +1457,7 @@ void Element::alignChildren(int axis)
       if (align == ALIGN_LEFT_OR_TOP)
         commonOffs = ::max(firstLayoutChild->layout.margin.lt()[axis], layout.padding.lt()[axis]);
       else if (align == ALIGN_CENTER)
-        commonOffs = (screenCoord.size[axis] - joinedChildrenSize) / 2;
+        commonOffs = (screenCoord.size[axis] - joinedChildrenSize) / 2 + (layout.padding.lt()[axis] - layout.padding.rb()[axis]) / 2;
       else if (align == ALIGN_RIGHT_OR_BOTTOM)
         commonOffs =
           screenCoord.size[axis] - joinedChildrenSize - ::max(lastLayoutChild->layout.margin.rb()[axis], layout.padding.rb()[axis]);

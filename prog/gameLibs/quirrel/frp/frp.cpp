@@ -976,7 +976,7 @@ bool ScriptValueObservable::mutateCurValue(HSQUIRRELVM vm, SQInteger closure_pos
   SqStackChecker stackCheck(vm);
 
   sq_push(vm, closure_pos);
-  sq_pushroottable(vm); // 'this' for call
+  sq_pushnull(vm); // 'this' for call
   Sqrat::Object mutableVal = value;
   if (graph->forceImmutable)
     mutableVal.UnfreezeSelf();
@@ -1071,6 +1071,41 @@ SQInteger ScriptValueObservable::mutate(HSQUIRRELVM vm)
       return SQ_ERROR;
   }
   return 0;
+}
+
+
+SQInteger ScriptValueObservable::modify(HSQUIRRELVM vm)
+{
+  if (!Sqrat::check_signature<ScriptValueObservable *>(vm))
+    return SQ_ERROR;
+
+  Sqrat::Var<ScriptValueObservable *> varSelf(vm, 1);
+  ScriptValueObservable *self = varSelf.value;
+  if (self->graph->vm != vm)
+    return sq_throwerror(vm, "Invalid VM");
+
+  if (!self->checkMutationAllowed(vm))
+    return SQ_ERROR; // error was thrown from checkMutationAllowed
+
+  const SQInteger closurePos = 2;
+
+  SQInteger nParams = 0, nFreeVars = 0;
+  G_VERIFY(SQ_SUCCEEDED(sq_getclosureinfo(vm, 2, &nParams, &nFreeVars)));
+  if (nParams != 2)
+    return sqstd_throwerrorf(vm, "Callback must be a function with 1 argument (previous value), but arguments count is %d", nParams);
+
+  SQInteger prevTop = sq_gettop(vm);
+
+  sq_pushnull(vm); // 'this' for call
+  sq_pushobject(vm, self->value);
+  SQRESULT result = sq_call(vm, 2, true, true);
+  if (SQ_FAILED(result))
+    return sq_throwerror(vm, "Callback failure");
+
+  G_UNUSED(prevTop);
+  G_ASSERT(sq_gettop(vm) == prevTop + 1); // result of callback added on top of the stack
+
+  return update(vm, closurePos + 1);
 }
 
 
@@ -1672,22 +1707,27 @@ void bind_frp_classes(SqModules *module_mgr)
   Sqrat::DerivedClass<ScriptValueObservable, BaseObservable> scriptValueObservable(vm, "ScriptValueObservable");
   scriptValueObservable.SquirrelCtor(ScriptValueObservable::script_ctor, -1)
     .Prop("value", &ScriptValueObservable::getValue)
+    .Func("get", &ScriptValueObservable::getValue)
     .Prop("timeChangeReq", &ScriptValueObservable::getTimeChangeReq)
     .Prop("timeChanged", &ScriptValueObservable::getTimeChanged)
     .SquirrelFunc("trigger", &ScriptValueObservable::sqTrigger, 1, "x")
     .Func("trace", &ScriptValueObservable::trace)
     .Func("whiteListMutatorClosure", &ScriptValueObservable::whiteListMutatorClosure)
     .SquirrelFunc("update", &ScriptValueObservable::updateViaMethod, 2, "x")
+    .SquirrelFunc("set", &ScriptValueObservable::updateViaMethod, 2, "x")
+    .SquirrelFunc("modify", &ScriptValueObservable::modify, 2, "xc")
     .SquirrelFunc("_call", &ScriptValueObservable::updateViaCallMm, 3, "x")
     .SquirrelFunc("mutate", &ScriptValueObservable::mutate, 2, "xc")
     .SquirrelFunc("_newslot", &ScriptValueObservable::_newslot, 3, "x")
     .SquirrelFunc("_delslot", &ScriptValueObservable::_delslot, 2, "x");
+
   ///@class frp/Computed
   ///@extends Watched
   Sqrat::DerivedClass<ComputedValue, ScriptValueObservable> sqComputedValue(vm, "ComputedValue");
   sqComputedValue.SquirrelCtor(ComputedValue::script_ctor, -2)
     .SquirrelFunc("update", forbid_computed_modify, 0)
     .SquirrelFunc("mutate", forbid_computed_modify, 0)
+    .SquirrelFunc("modify", forbid_computed_modify, 0)
     .SquirrelFunc("_call", forbid_computed_modify, 0)
     .SquirrelFunc("_newslot", forbid_computed_modify, 0)
     .SquirrelFunc("_delslot", forbid_computed_modify, 0)
@@ -1710,7 +1750,7 @@ void bind_frp_classes(SqModules *module_mgr)
     sq_pushuserpointer(vm, computed_initial_update);
     G_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
 
-    ///@value FRP_INITIAL
+    ///@const FRP_DONT_CHECK_NESTED
     sq_pushstring(vm, "FRP_DONT_CHECK_NESTED", -1);
     sq_pushuserpointer(vm, dont_check_nested);
     G_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));

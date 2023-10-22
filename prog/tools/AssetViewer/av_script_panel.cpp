@@ -198,7 +198,7 @@ const char *AVScriptPanelEditor::selectAsset(const char *old_choise, dag::ConstS
 const char *AVScriptPanelEditor::selectGroupName(const char *old_choise)
 {
   static String result;
-  CDialogWindow *dialog = new CDialogWindow(NULL, 250, 130, "Select group name");
+  CDialogWindow *dialog = new CDialogWindow(NULL, hdpi::_pxScaled(250), hdpi::_pxScaled(130), "Select group name");
   dialog->getPanel()->createEditBox(0, "Name", old_choise);
 
   if (dialog->showDialog() == DIALOG_ID_OK)

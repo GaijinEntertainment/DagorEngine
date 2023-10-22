@@ -20,12 +20,12 @@ class PropertyContainerControlBase : public PropertyControlBase
 {
 public:
   PropertyContainerControlBase(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x, int y,
-    unsigned w, unsigned h);
+    hdpi::Px w, hdpi::Px h);
   virtual ~PropertyContainerControlBase();
 
   // Creates
 
-  virtual PropertyContainerControlBase *createContainer(int id, bool new_line = true, int interval = -1);
+  virtual PropertyContainerControlBase *createContainer(int id, bool new_line = true, hdpi::Px interval = hdpi::Px::ZERO);
   virtual PropertyContainerControlBase *createExtensible(int id, bool new_line = true);
   virtual PropertyContainerControlBase *createExtGroup(int id, const char caption[]);
   virtual PropertyContainerControlBase *createGroup(int id, const char caption[]);
@@ -35,11 +35,11 @@ public:
   virtual PropertyContainerControlBase *createTabPanel(int id, const char caption[]);
   virtual PropertyContainerControlBase *createTabPage(int id, const char caption[]);
   virtual PropertyContainerControlBase *createToolbarPanel(int id, const char caption[], bool new_line = true);
-  virtual PropertyContainerControlBase *createTree(int id, const char caption[], int height, bool new_line = true);
+  virtual PropertyContainerControlBase *createTree(int id, const char caption[], hdpi::Px height, bool new_line = true);
 
   virtual void createStatic(int id, const char caption[], bool new_line = true);
   virtual void createEditBox(int id, const char caption[], const char text[] = "", bool enabled = true, bool new_line = true,
-    bool multiline = false, int multi_line_height = 40);
+    bool multiline = false, hdpi::Px multi_line_height = hdpi::_pxScaled(40));
   virtual void createFileEditBox(int id, const char caption[], const char file[] = "", bool enabled = true, bool new_line = true);
   virtual void createFileButton(int id, const char caption[], const char file[] = "", bool enabled = true, bool new_line = true);
   virtual void createTargetButton(int id, const char caption[], const char text[] = "", bool enabled = true, bool new_line = true);
@@ -64,7 +64,7 @@ public:
   virtual void createList(int id, const char caption[], const Tab<String> &vals, int index, bool enabled = true, bool new_line = true);
   virtual void createList(int id, const char caption[], const Tab<String> &vals, const char *selection, bool enabled = true,
     bool new_line = true);
-  virtual void createMultiSelectList(int id, const Tab<String> &vals, int height, bool enabled = true, bool new_line = true);
+  virtual void createMultiSelectList(int id, const Tab<String> &vals, hdpi::Px height, bool enabled = true, bool new_line = true);
   virtual void createRadio(int id, const char caption[], bool enabled = true, bool new_line = true);
   virtual void createColorBox(int id, const char caption[], E3DCOLOR value = E3DCOLOR(0, 0, 0, 255), bool enabled = true,
     bool new_line = true);
@@ -80,11 +80,14 @@ public:
     bool new_line = true);
   virtual void createGradientBox(int id, const char caption[], bool enabled = true, bool new_line = true);
   virtual void createTextGradient(int id, const char caption[], bool enabled = true, bool new_line = true);
-  virtual void createGradientPlot(int id, const char caption[], int height = 0, bool enabled = true, bool new_line = true);
-  virtual void createCurveEdit(int id, const char caption[], int height = 0, bool enabled = true, bool new_line = true);
-  virtual void createTwoColorIndicator(int id, const char caption[], int height = 0, bool enabled = true, bool new_line = true);
+  virtual void createGradientPlot(int id, const char caption[], hdpi::Px height = hdpi::Px::ZERO, bool enabled = true,
+    bool new_line = true);
+  virtual void createCurveEdit(int id, const char caption[], hdpi::Px height = hdpi::Px::ZERO, bool enabled = true,
+    bool new_line = true);
+  virtual void createTwoColorIndicator(int id, const char caption[], hdpi::Px height = hdpi::Px::ZERO, bool enabled = true,
+    bool new_line = true);
   virtual void createPaletteCell(int id, const char caption[], bool enabled = true, bool new_line = true);
-  virtual PropertyControlBase *createPlaceholder(int id, int height, bool new_line = true);
+  virtual PropertyControlBase *createPlaceholder(int id, hdpi::Px height, bool new_line = true);
   virtual TLeafHandle createTreeLeaf(TLeafHandle parent, const char caption[], const char image[]);
 
   virtual void createIndirect(DataBlock &dataBlock, ISetControlParams &controlParams);
@@ -94,7 +97,7 @@ public:
   // Sets
   virtual void setEnabledById(int id, bool enabled);
   virtual void resetById(int id);
-  virtual void setWidthById(int id, unsigned w);
+  virtual void setWidthById(int id, hdpi::Px w);
   virtual void setFocusById(int id);
 
   virtual void setUserData(int id, const void *value);
@@ -121,6 +124,10 @@ public:
   virtual void setSelection(int id, const Tab<int> &sels); // for multiselect list
   virtual void setCaption(int id, const char value[]);
   virtual void setButtonPictures(int id, const char *fname = NULL);
+
+  // change strings in list
+  virtual int addString(int id, const char *value);
+  virtual void removeString(int id, int idx);
 
   // Gets
   virtual void *getUserData(int id) const;
@@ -149,8 +156,8 @@ public:
   virtual void clear();
   virtual unsigned getChildCount();
 
-  virtual unsigned getClientWidth();
-  virtual unsigned getClientHeight();
+  virtual hdpi::Px getClientWidth();
+  virtual hdpi::Px getClientHeight();
 
   virtual WindowBase *getWindow(); // for CPanelWindow it returns static with controls, for operating window use handles below
   virtual void *getWindowHandle();

@@ -9,34 +9,18 @@ class DataAccumulator
 {
 public:
   template <typename T>
-  void appendValue(const T &data_to_copy)
+  DataAccumulator &append(const T &data_to_copy)
   {
-    appendData((void *)(&data_to_copy), sizeof(T));
+    return appendData((void *)(&data_to_copy), sizeof(T));
   }
 
-  template <typename T>
-  void appendContainer(const T &container)
+  DataAccumulator &appendData(const void *data_to_copy, uint32_t data_size)
   {
-    appendData((void *)(container.data()), data_size(container));
-  }
-
-  void appendStr(const char *str)
-  {
-    strcpy((char *)ptr, str);
-    ptr += strlen(str);
-  }
-
-  void appendStr(const char *str, size_t str_size)
-  {
-    strcpy((char *)ptr, str);
-    ptr += str_size;
-  }
-
-  void appendData(void *data_to_copy, uint32_t data_size)
-  {
+    G_ASSERT(size() + data_size <= MaxSize);
     memcpy(ptr, data_to_copy, data_size);
     ptr += data_size;
-    G_ASSERT(size() < MaxSize);
+
+    return *this;
   }
 
   std::ptrdiff_t size() const { return ptr - header.data(); }

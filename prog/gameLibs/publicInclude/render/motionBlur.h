@@ -40,7 +40,7 @@ public:
   static bool isSupported();
 
   void accumulateDepthVersion(ManagedTexView source_color_tex, ManagedTexView blur_depth_tex, DepthType depth_type,
-    TMatrix4 currentGlobTm, TMatrix4 prevGlobTm, ManagedTexView accumulationTex);
+    TMatrix4 currentGlobTm, TMatrix4 prevGlobTm, const TMatrix &view_tm, const TMatrix4 &proj_tm, ManagedTexView accumulationTex);
   void accumulateMotionVectorVersion(ManagedTexView source_color_tex, ManagedTexView motion_vector_tex,
     ManagedTexView accumulationTex);
   void combine(ManagedTexView target_tex, ManagedTexView accumulationTex);

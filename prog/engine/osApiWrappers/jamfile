@@ -1,0 +1,224 @@
+Root    ?= ../../.. ;
+Location = prog/engine/osApiWrappers ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine/osApiWrappers.lib ;
+
+Sources =
+  critsec.cpp
+  timedCritsec.cpp
+  limBufWriter.cpp
+  dbgStrFmt.cpp
+  symHlp.cpp
+  basePath.cpp
+  basePathMgr.cpp
+  namedMounts.cpp
+  syncFileIo.cpp
+  localCmp.cpp
+  simplifyFname.cpp
+  directoryService.cpp
+  getRealFname.cpp
+  wndProcComponent.cpp
+  miscApi.cpp
+  winProgGlobals.cpp
+  winSetThreadName.cpp
+  ip2str.cpp
+  vromfs.cpp
+  unicode.cpp
+  cpuJobs.cpp
+  threads.cpp
+  fileIoErr.cpp
+  events.cpp
+  spinlock.cpp
+  rwlock.cpp
+  globalMutex.cpp
+  sharedMem.cpp
+  mmap.cpp
+  virtualMem.cpp
+  dynLib.cpp
+  sockets.cpp
+  wildcards.cpp
+  findFilePosix.cpp
+  shellExecute.cpp
+  singleProcessChecker.cpp
+  directoryWatch.cpp
+  cpuFeatures.cpp
+;
+
+CPPopt = -D__B_MINICORE ;
+
+if $(Platform) in win32 win64 {
+  Sources +=
+    dbgStr.cpp
+    findFile.cpp
+    winSetTitle.cpp
+    stackHlpFill.cpp
+    stackHlpGet.cpp
+    winClipboard.cpp
+    winHwExceptUtils.cpp
+    winXStateFeatures.cpp
+    asyncRead.cpp
+  ;
+
+  UseProgLibs =
+    engine/osApiWrappers/messageBox
+  ;
+
+  AddLibs +=
+    Shell32.lib
+    Version.lib ;
+
+} else if $(Platform) in xboxOne scarlett {
+  Sources +=
+    stackHlpFill.cpp
+    stackHlpGet.cpp
+    dbgStr.cpp
+    findFile.cpp
+    winClipboard.cpp
+    winHwExceptUtils.cpp
+    asyncRead.cpp
+    xbox/app.cpp
+    xbox/plm.cpp
+    xbox/window.cpp
+    xbox/queues.cpp
+    xbox/storage.cpp
+    xbox/gameinput.cpp
+    xbox/handlesDebug.cpp
+    xbox/wer.cpp
+  ;
+  UseProgLibs =
+    engine/osApiWrappers/messageBox
+  ;
+  if $(Config) != rel {
+    CPPopt += -DXBOX_GDK_CALLSTACKS=1 -DSymGetLineFromAddr=SymGetLineFromAddr64 ;
+  }
+} else if $(Platform) in ps4 ps5 {
+  Sources +=
+    dbgStr.cpp
+    winClipboard.cpp
+    convertUTF.cpp
+    sony/stackHlpFill.cpp
+    sony/stackHlpGet.cpp
+    sony/findFile.cpp
+    sony/user.cpp
+    sony/dialogs/errorDialog.cpp
+    sony/dialogs/systemMessageDialog.cpp
+    sony/dialogs/messageBoxDialog.cpp
+    sony/asyncRead.cpp
+  ;
+
+  if $(Platform) = ps4 {
+    Sources +=
+      sony/fios2AsyncRead.cpp
+    ;
+  }
+
+  if $(Platform) = ps5 {
+    Sources +=
+      sony/aioAsyncRead.cpp
+    ;
+  }
+
+  AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ;
+  UseProgLibs =
+    3rdPartyLibs/posix
+    engine/osApiWrappers/messageBox
+  ;
+} else if $(Platform) in macosx iOS tvOS {
+  if $(Platform) in iOS {
+    Sources +=
+      ios/iOS_shell.mm
+    ;
+    UseProgLibs =
+      engine/osApiWrappers/messageBox
+    ;
+  }
+  else if $(Platform) in macosx {
+    Sources +=
+      macosx/mac_shell.mm
+    ;
+    UseProgLibs =
+      engine/osApiWrappers/messageBox
+    ;
+  } else if $(Platform) in tvOS {
+    Sources +=
+      ios/iOS_shell.mm
+      tvos/tvOS_storage.mm
+      tvos/tvOS_appstore.mm
+      tvos/tvOS_callbacks.mm
+      tvos/tvOS_logimpl.mm
+      tvos/eventviewcontroller.mm
+      tvos/gamecenterview.mm
+      tvos/inetview.mm
+      tvos/matchcontroller.mm
+      tvos/storekitview.mm
+    ;
+    UseProgLibs =
+      engine/osApiWrappers/messageBox/stub
+    ;
+  }
+  Sources +=
+    stackHlpFill.cpp
+    stackHlpGet.cpp
+    macosx/macDbgStr.mm
+    macosx/macAsyncRead.cpp
+    macosx/macSetTitle.mm
+    macosx/macClipboard.mm
+    convertUTF.cpp
+  ;
+  CPPopt += -Wno-error ;
+} else if $(Platform) in nswitch {
+  Sources +=
+    convertUTF.cpp
+    winClipboard.cpp
+    posix/posixThreadAsyncRead.cpp
+    findFilePosix.cpp
+    dbgStr.cpp
+    stackHlpFill.cpp
+    stackHlpGet.cpp
+  ;
+  UseProgLibs += 3rdPartyLibs/posix ;
+} else if $(Platform) in linux64 android {
+  Sources +=
+    dbgStr.cpp
+    stackHlpFill.cpp
+    stackHlpGet.cpp
+    linux/linuxClipboard.cpp
+    linux/linuxSetTitle.cpp
+    convertUTF.cpp
+  ;
+
+  if $(Platform) = android {
+    Sources +=
+      posix/posixThreadAsyncRead.cpp
+    ;
+    if $(UseAndroidNativeMessageBox) = yes {
+      UseProgLibs += engine/osApiWrappers/messageBox ;
+    } else {
+      UseProgLibs += engine/osApiWrappers/messageBox/stub ;
+    }
+
+    AddIncludes += $(Root)/prog/3rdPartyLibs/libunwind/include ;
+    UseProgLibs += 3rdPartyLibs/libunwind ;
+  }
+
+  if $(Platform) in linux64 {
+    Sources +=
+      posix/posixAIOAsyncRead.cpp
+    ;
+    if $(LinuxUseX11) = yes {
+      CPPopt += -DUSE_X11 ;
+      Target = $(Target:S=~x11.lib) ;
+      AddLibs += -lX11 ;
+    }
+  }
+}
+
+AddIncludes +=
+  $(Root)/prog/engine/sharedInclude
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

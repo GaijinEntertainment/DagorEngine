@@ -7,6 +7,7 @@
 #include <api/internalRegistry.h>
 #include <resourceScheduling/resourceScheduler.h>
 #include <nodes/nodeStateDeltas.h>
+#include <nameResolver.h>
 
 
 namespace dabfg
@@ -16,8 +17,8 @@ class NodeExecutor
 {
 public:
   NodeExecutor(ResourceScheduler &rs, intermediate::Graph &g, const intermediate::Mapping &m, InternalRegistry &reg,
-    ResourceProvider &rp) :
-    resourceScheduler{rs}, graph{g}, mapping{m}, registry{reg}, currentlyProvidedResources{rp}
+    const NameResolver &res, ResourceProvider &rp) :
+    resourceScheduler{rs}, graph{g}, mapping{m}, registry{reg}, nameResolver{res}, currentlyProvidedResources{rp}
   {}
 
   void execute(int prev_frame, int curr_frame, multiplexing::Extents multiplexing_extents,
@@ -53,6 +54,7 @@ private:
   const intermediate::Mapping &mapping;
 
   InternalRegistry &registry;
+  const NameResolver &nameResolver;
   ResourceProvider &currentlyProvidedResources;
 };
 

@@ -34,8 +34,7 @@ def queryTwo(dt:float=0.5f)
 def queryThree()
     var count = 0
     try
-        testProfile::queryEs() <| $ [es] (var pos:float3& const)
-            let position = pos
+        testProfile::queryEs() <| $ [es] (var pos aka position:float3& const)
             testProfile::queryEs() <| $ [es] (var pos:float3& const)
                 if position==pos
                     count ++

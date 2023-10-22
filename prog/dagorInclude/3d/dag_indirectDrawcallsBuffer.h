@@ -24,13 +24,9 @@ class IndirectDrawcallsBuffer
   uint32_t allocatedDrawcallsInBuffer = 0;
   eastl::string bufferName;
 
-  static bool usesPackedDrawCallID() { return d3d::get_driver_code() == _MAKE4C('DX12'); }
+  static bool usesPackedDrawCallID() { return d3d::get_driver_code().is(d3d::dx12); }
 
-  static bool packDrawCallIdAsOffset()
-  {
-    return d3d::get_driver_code() == _MAKE4C('PS4') || d3d::get_driver_code() == _MAKE4C('PS5') ||
-           d3d::get_driver_code() == _MAKE4C('VULK');
-  }
+  static bool packDrawCallIdAsOffset() { return d3d::get_driver_code().is(d3d::ps4 || d3d::ps5 || d3d::vulkan); }
 
   static uint32_t dwordsCountPerDrawcall()
   {

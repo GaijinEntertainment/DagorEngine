@@ -49,26 +49,54 @@ struct DtFreer
   void operator()(void *ptr) { dtFree(ptr); }
 };
 
+static NavParams navMeshNavParams[NMS_COUNT];
+static String navMeshKinds[NMS_COUNT];
+
+static NavParams &get_nav_params(int nav_mesh_idx)
+{
+  G_ASSERT((unsigned int)(nav_mesh_idx) < NMS_COUNT);
+  return navMeshNavParams[nav_mesh_idx];
+}
+const char *get_nav_mesh_kind(int nav_mesh_idx)
+{
+  G_ASSERT((unsigned int)(nav_mesh_idx) < NMS_COUNT);
+  return navMeshKinds[nav_mesh_idx].c_str();
+}
+
 static const int max_path_size = 256;
-static float max_path_weight = FLT_MAX; // no limit
-static float jump_down_threshold = 0.4f;
-static float jump_down_weight = 20.0f;
-static float jump_weight = 40.0f;
 static const float INVALID_PATH_DISTANCE = -1.0f;
 
-static dtTileCacheAlloc tcAllocator;
-static TileCacheCompressor tcComp;
-static TileCacheMeshProcess tcMeshProc;
-dtNavMesh *navMesh = NULL;
-dtNavMeshQuery *navQuery = NULL;
+struct NavMeshData
+{
 #if _TARGET_C1 | _TARGET_C2
 
 #else
-eastl::unique_ptr<uint8_t, DtFreer> navData;
+  using NavDataPtr = eastl::unique_ptr<uint8_t, DtFreer>;
 #endif
-Tab<Point3> pathForDebug;
-Tab<BBox3> navDebugBoxes;
 
+  dtTileCacheAlloc tcAllocator;
+  TileCacheCompressor tcComp;
+  TileCacheMeshProcess tcMeshProc;
+  dtNavMesh *navMesh = nullptr;
+  dtNavMeshQuery *navQuery = nullptr;
+  NavDataPtr navData;
+};
+
+static NavMeshData navMeshData[NMS_COUNT];
+static dtNavMesh *&navMesh = navMeshData[NM_MAIN].navMesh;
+static dtNavMeshQuery *&navQuery = navMeshData[NM_MAIN].navQuery;
+
+static Tab<Point3> pathForDebug;
+static Tab<BBox3> navDebugBoxes;
+static int lastNavMeshDebugIdx = NM_MAIN;
+
+static NavMeshData &get_nav_mesh_data(int nav_mesh_idx)
+{
+  G_ASSERT((unsigned int)(nav_mesh_idx) < NMS_COUNT);
+  return navMeshData[nav_mesh_idx];
+}
+
+dtNavMesh *get_nav_mesh_ptr(int nav_mesh_idx) { return get_nav_mesh_data(nav_mesh_idx).navMesh; }
 dtNavMesh *getNavMeshPtr() { return navMesh; }
 
 static void *dt_alloc(size_t size, dtAllocHint hint)
@@ -84,9 +112,14 @@ static struct DtSetDagorMem
 class NavQueryFilter : public dtQueryFilter
 {
 public:
-  explicit NavQueryFilter(const CustomNav *custom_nav, float max_jump_up_height = FLT_MAX, bool for_optimize = false,
-    const ska::flat_hash_map<dtPolyRef, float> &cost_addition = {}) :
-    customNav(custom_nav), maxJumpUpHeight(max_jump_up_height), forOptimize(for_optimize), costAddition(cost_addition)
+  explicit NavQueryFilter(const dtNavMesh *nav_mesh, const NavParams &nav_params, const CustomNav *custom_nav,
+    float max_jump_up_height = FLT_MAX, bool for_optimize = false, const ska::flat_hash_map<dtPolyRef, float> &cost_addition = {}) :
+    customNav(custom_nav),
+    navMesh(nav_mesh),
+    navParams(nav_params),
+    maxJumpUpHeight(max_jump_up_height),
+    forOptimize(for_optimize),
+    costAddition(cost_addition)
   {
     // We can't just cut out obstacles from navmesh, we must use separate areaId
     // with very high area cost. The reason is that obstacle may be dynamically created / moved / removed
@@ -96,6 +129,11 @@ public:
     // is making obstacle area walkable, but with extremely high cost.
     setAreaCost(POLYAREA_OBSTACLE, 10000.f);
   }
+
+  explicit NavQueryFilter(const CustomNav *custom_nav, float max_jump_up_height = FLT_MAX, bool for_optimize = false,
+    const ska::flat_hash_map<dtPolyRef, float> &cost_addition = {}) :
+    NavQueryFilter(get_nav_mesh_ptr(NM_MAIN), get_nav_params(NM_MAIN), custom_nav, max_jump_up_height, for_optimize, cost_addition)
+  {}
 
   template <typename AreaCosts>
   void setAreasCost(const AreaCosts &areaCost)
@@ -114,6 +152,8 @@ public:
     float len = 0;
     if (areaId == POLYAREA_JUMP)
     {
+      if (!navParams.enable_jumps)
+        return 1e6f;
       // This is a jumplink, we don't want to use original edge length, since
       // it doesn't reflect true distance in this case, we want to use jump link's
       // length (and points) instead (projected onto XZ plane).
@@ -126,12 +166,12 @@ public:
         tmpVerts[1].y = minY;
         // Check if original edge goes way down, if so, this is a "jump down"
         // link, i.e. a cheaper one.
-        bool isJumpDown = pa[1] - pb[1] > jump_down_threshold;
+        bool isJumpDown = pa[1] - pb[1] > navParams.jump_down_threshold;
         bool canJumpUp = pb[1] - pa[1] < maxJumpUpHeight;
         pa = &tmpVerts[0].x;
         pb = &tmpVerts[1].x;
         len = dtVdist(pa, pb);
-        weight = isJumpDown ? jump_down_weight : canJumpUp ? jump_weight : 10000.f * safeinv(len);
+        weight = isJumpDown ? navParams.jump_down_weight : canJumpUp ? navParams.jump_weight : 10000.f * safeinv(len);
       }
       else
         logerr_ctx("getCost for poly at (%f, %f, %f) - bad jump link", pa[0], pa[1], pa[2]);
@@ -173,6 +213,8 @@ public:
 
 private:
   const CustomNav *customNav;
+  const dtNavMesh *navMesh;
+  const NavParams &navParams;
   float maxJumpUpHeight;
   bool forOptimize;
   ska::flat_hash_map<dtPolyRef, float> costAddition;
@@ -181,7 +223,8 @@ private:
 class CheckPathFilter : public dtQueryFilter
 {
 public:
-  explicit CheckPathFilter(float max_jump_up_height = FLT_MAX) : maxJumpUpHeight(max_jump_up_height)
+  explicit CheckPathFilter(const NavParams &nav_params, float max_jump_up_height = FLT_MAX) :
+    navParams(nav_params), maxJumpUpHeight(max_jump_up_height)
   {
     setAreaCost(POLYAREA_GROUND, 1.f);
     setAreaCost(POLYAREA_OBSTACLE, 1.f);
@@ -196,6 +239,8 @@ public:
     float weight = getAreaCost(areaId);
     if (areaId == POLYAREA_JUMP)
     {
+      if (!navParams.enable_jumps)
+        return 1e6f;
       if (curPoly->vertCount == 2)
       {
         // Check if original edge goes way down, if so, this is a "jump down"
@@ -210,24 +255,33 @@ public:
   }
 
 private:
+  const NavParams &navParams;
   float maxJumpUpHeight;
 };
 
-void clear(bool clearNavData)
+void clear_nav_mesh(int nav_mesh_idx, bool clear_nav_data)
 {
-  tcMeshProc.setNavMesh(nullptr);
-  tcMeshProc.setNavMeshQuery(nullptr);
-  tcMeshProc.setTileCache(nullptr);
-  tcMeshProc.setLadders(nullptr);
-  if (navMesh)
-    dtFreeNavMesh(navMesh);
-  navMesh = NULL;
-  tilecache_cleanup();
-  if (clearNavData)
-    navData.reset();
-  if (navQuery)
-    dtFreeNavMeshQuery(navQuery);
-  navQuery = NULL;
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  nmData.tcMeshProc.setNavMesh(nullptr);
+  nmData.tcMeshProc.setNavMeshQuery(nullptr);
+  nmData.tcMeshProc.setTileCache(nullptr);
+  nmData.tcMeshProc.setLadders(nullptr);
+  if (nmData.navMesh)
+    dtFreeNavMesh(nmData.navMesh);
+  nmData.navMesh = NULL;
+  if (clear_nav_data)
+    nmData.navData.reset();
+  if (nmData.navQuery)
+    dtFreeNavMeshQuery(nmData.navQuery);
+  nmData.navQuery = NULL;
+  if (nav_mesh_idx == NM_MAIN)
+    tilecache_cleanup();
+}
+
+void clear(bool clear_nav_data)
+{
+  for (int i = 0; i < NMS_COUNT; ++i)
+    clear_nav_mesh(i, clear_nav_data);
   clear_and_shrink(pathForDebug);
   clear_and_shrink(navDebugBoxes);
 }
@@ -334,7 +388,8 @@ static bool loadNavMeshChunked(IGenLoad &crd, NavMeshType type, tile_check_cb_t 
   return true;
 }
 
-static void loadNavMeshBucketFormat(IGenLoad &crd, NavMeshType type, tile_check_cb_t tile_check_cb, Tab<uint8_t> &out_buff)
+static void loadNavMeshBucketFormat(TileCacheCompressor &tc_comp, IGenLoad &crd, NavMeshType type, tile_check_cb_t tile_check_cb,
+  Tab<uint8_t> &out_buff)
 {
   G_ASSERT(type == NMT_TILECACHED);
   G_UNUSED(type);
@@ -389,7 +444,7 @@ static void loadNavMeshBucketFormat(IGenLoad &crd, NavMeshType type, tile_check_
   Tab<char> dictBuff(dictSize);
   crd.read(dictBuff.data(), dictBuff.size());
 
-  tcComp.reset(true, dictBuff);
+  tc_comp.reset(true, dictBuff);
 
   int numBuckets = crd.readInt();
   const int64_t refTime = ref_time_ticks();
@@ -499,14 +554,19 @@ static void loadNavMeshBucketFormat(IGenLoad &crd, NavMeshType type, tile_check_
   G_ASSERT(reqCap == out_buff.size());
 }
 
-void initWeights(const DataBlock *navQueryFilterWeightsBlk)
+void initWeights(const DataBlock *navQueryFilterWeightsBlk) { init_weights_ex(NM_MAIN, navQueryFilterWeightsBlk); }
+
+void init_weights_ex(int nav_mesh_idx, const DataBlock *navQueryFilterWeightsBlk)
 {
+  NavParams &navParams = get_nav_params(nav_mesh_idx);
+  navParams.enable_jumps = (get_nav_mesh_kind(nav_mesh_idx)[0] == '\0');
   if (navQueryFilterWeightsBlk)
   {
-    max_path_weight = navQueryFilterWeightsBlk->getReal("maxPathWeight", FLT_MAX);
-    jump_weight = navQueryFilterWeightsBlk->getReal("jumpWeight", 40.f);
-    jump_down_weight = navQueryFilterWeightsBlk->getReal("jumpDownWeight", 20.f);
-    jump_down_threshold = navQueryFilterWeightsBlk->getReal("jumpDownThreshold", 0.4f);
+    navParams.enable_jumps = navQueryFilterWeightsBlk->getBool("enableJumps", navParams.enable_jumps);
+    navParams.max_path_weight = navQueryFilterWeightsBlk->getReal("maxPathWeight", FLT_MAX);
+    navParams.jump_weight = navQueryFilterWeightsBlk->getReal("jumpWeight", 40.f);
+    navParams.jump_down_weight = navQueryFilterWeightsBlk->getReal("jumpDownWeight", 20.f);
+    navParams.jump_down_threshold = navQueryFilterWeightsBlk->getReal("jumpDownThreshold", 0.4f);
   }
 }
 
@@ -522,10 +582,13 @@ struct PlacementFreer
   }
 };
 
-void tilecache_start_ladders(const scene::TiledScene *ladders) { tcMeshProc.setLadders(ladders); }
+void tilecache_start_ladders(const scene::TiledScene *ladders) { get_nav_mesh_data(NM_MAIN).tcMeshProc.setLadders(ladders); }
 
-static bool load_nav_mesh_orig(unsigned char *curPtr, int patchedTilesSize, const char *patchNavMeshFileName, int extra_tiles)
+static bool load_nav_mesh_orig(int nav_mesh_idx, unsigned char *curPtr, int patchedTilesSize, const char *patchNavMeshFileName,
+  int extra_tiles)
 {
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  const bool tileCacheNeeded = nav_mesh_idx == NM_MAIN;
 #define INIT_BY_PTR(typ, name) \
   typ *name = (typ *)curPtr;   \
   curPtr += sizeof(typ);
@@ -535,26 +598,30 @@ static bool load_nav_mesh_orig(unsigned char *curPtr, int patchedTilesSize, cons
   INIT_BY_PTR(int, numTCTiles);
   INIT_BY_PTR(int, numObsResNameHashes);
   nmParams->maxTiles += extra_tiles;
-  if (dtStatusFailed(navMesh->init(nmParams, false)))
+  if (dtStatusFailed(nmData.navMesh->init(nmParams, false)))
   {
     logerr_ctx("Could not init tiled Detour navmesh");
     return false;
   }
-  dtTileCache *tc = dtAllocTileCache();
-  if (!tc)
+  dtTileCache *tc = nullptr;
+  if (tileCacheNeeded)
   {
-    logerr_ctx("dtAllocTileCache fails");
-    return false;
-  }
-  tcMeshProc.setNavMesh(navMesh);
-  tcMeshProc.setNavMeshQuery(nullptr);
-  tcMeshProc.setTileCache(tc);
-  tcParams->maxTiles += extra_tiles;
-  if (dtStatusFailed(tc->init(tcParams, &tcAllocator, &tcComp, &tcMeshProc)))
-  {
-    logerr_ctx("Could not init tiled Detour tile cache");
-    dtFreeTileCache(tc);
-    return false;
+    tc = dtAllocTileCache();
+    if (!tc)
+    {
+      logerr_ctx("dtAllocTileCache fails");
+      return false;
+    }
+    nmData.tcMeshProc.setNavMesh(nmData.navMesh);
+    nmData.tcMeshProc.setNavMeshQuery(nullptr);
+    nmData.tcMeshProc.setTileCache(tc);
+    tcParams->maxTiles += extra_tiles;
+    if (dtStatusFailed(tc->init(tcParams, &nmData.tcAllocator, &nmData.tcComp, &nmData.tcMeshProc)))
+    {
+      logerr_ctx("Could not init tiled Detour tile cache");
+      dtFreeTileCache(tc);
+      return false;
+    }
   }
   for (int i = 0; i < *numTiles; ++i)
   {
@@ -562,73 +629,77 @@ static bool load_nav_mesh_orig(unsigned char *curPtr, int patchedTilesSize, cons
     INIT_BY_PTR(int, tileDataSize);
     if (!*tileRef || !*tileDataSize)
       break;
-    if (dtStatusFailed(navMesh->addTile(curPtr, *tileDataSize, 0, *tileRef, nullptr)))
+    if (dtStatusFailed(nmData.navMesh->addTile(curPtr, *tileDataSize, 0, *tileRef, nullptr)))
     {
       logerr_ctx("navMesh->addTile fails");
-      dtFreeTileCache(tc);
-      return false;
-    }
-    curPtr += *tileDataSize;
-  }
-  for (int i = 0; i < *numTCTiles; ++i)
-  {
-    INIT_BY_PTR(int, tileDataSize);
-    if (!*tileDataSize)
-      break;
-    dtCompressedTileRef res = 0;
-    if (dtStatusFailed(tc->addTile(curPtr, *tileDataSize, 0, &res)))
-    {
-      logerr_ctx("tc->addTile fails");
-      dtFreeTileCache(tc);
       return false;
     }
     curPtr += *tileDataSize;
   }
   ska::flat_hash_set<uint32_t> obstacleResNameHashes;
-  for (int i = 0; i < *numObsResNameHashes; ++i)
+  if (tileCacheNeeded && tc)
   {
-    INIT_BY_PTR(uint32_t, hash);
-    if (!*hash)
-      break;
-    obstacleResNameHashes.insert(*hash);
-  }
+    for (int i = 0; i < *numTCTiles; ++i)
+    {
+      INIT_BY_PTR(int, tileDataSize);
+      if (!*tileDataSize)
+        break;
+      dtCompressedTileRef res = 0;
+      if (dtStatusFailed(tc->addTile(curPtr, *tileDataSize, 0, &res)))
+      {
+        logerr_ctx("tc->addTile fails");
+        dtFreeTileCache(tc);
+        return false;
+      }
+      curPtr += *tileDataSize;
+    }
+    for (int i = 0; i < *numObsResNameHashes; ++i)
+    {
+      INIT_BY_PTR(uint32_t, hash);
+      if (!*hash)
+        break;
+      obstacleResNameHashes.insert(*hash);
+    }
 #undef INIT_BY_PTR
+  }
   if (patchedTilesSize > 0)
   {
-    navMesh->reconstructFreeList();
+    nmData.navMesh->reconstructFreeList();
     patchedNavMesh_loadFromFile(patchNavMeshFileName, tc, curPtr, obstacleResNameHashes);
   }
-  navMesh->reconstructFreeList();
+  nmData.navMesh->reconstructFreeList();
   tilecache_init(tc, obstacleResNameHashes);
 
   return true;
 }
 
-static bool init_nav_query()
+static bool init_nav_query(int nav_mesh_idx)
 {
-  navQuery = dtAllocNavMeshQuery();
-  if (!navQuery)
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  nmData.navQuery = dtAllocNavMeshQuery();
+  if (!nmData.navQuery)
   {
     logerr_ctx("Could not create NavMeshQuery");
     return false;
   }
 
-  if (dtStatusFailed(navQuery->init(navMesh, 4096)))
+  if (dtStatusFailed(nmData.navQuery->init(nmData.navMesh, 4096)))
   {
     logerr_ctx("Could not init Detour navmesh query");
     return false;
   }
 
-  tcMeshProc.setNavMeshQuery(navQuery);
+  nmData.tcMeshProc.setNavMeshQuery(nmData.navQuery);
   return true;
 }
 
-bool create_nav_mesh()
+static bool create_nav_mesh(int nav_mesh_idx)
 {
-  tcComp.reset(false);
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  nmData.tcComp.reset(false);
 
-  navMesh = dtAllocNavMesh();
-  if (!navMesh)
+  nmData.navMesh = dtAllocNavMesh();
+  if (!nmData.navMesh)
   {
     logerr_ctx("Could not create Detour navmesh");
     return false;
@@ -639,15 +710,15 @@ bool create_nav_mesh()
 
 bool reload_nav_mesh(int extra_tiles)
 {
-  clear(false);
+  clear_nav_mesh(NM_MAIN, false);
 
-  if (!create_nav_mesh())
+  if (!create_nav_mesh(NM_MAIN))
     return false;
 
-  if (!load_nav_mesh_orig(navData.get(), 0, "", extra_tiles))
+  if (!load_nav_mesh_orig(NM_MAIN, get_nav_mesh_data(NM_MAIN).navData.get(), 0, "", extra_tiles))
     return false;
 
-  if (!init_nav_query())
+  if (!init_nav_query(NM_MAIN))
     return false;
 
   tilecache_restart();
@@ -657,9 +728,18 @@ bool reload_nav_mesh(int extra_tiles)
 
 bool loadNavMesh(IGenLoad &_crd, NavMeshType type, tile_check_cb_t tile_check_cb, const char *patchNavMeshFileName)
 {
-  clear();
+  return load_nav_mesh_ex(NM_MAIN, get_nav_mesh_kind(NM_MAIN), _crd, type, tile_check_cb, patchNavMeshFileName);
+}
 
-  if (!create_nav_mesh())
+bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMeshType type, tile_check_cb_t tile_check_cb,
+  const char *patchNavMeshFileName)
+{
+  navMeshKinds[nav_mesh_idx] = String(kind);
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+
+  clear_nav_mesh(nav_mesh_idx);
+
+  if (!create_nav_mesh(nav_mesh_idx))
     return false;
 
   unsigned navDataSize = _crd.readInt();
@@ -676,7 +756,7 @@ bool loadNavMesh(IGenLoad &_crd, NavMeshType type, tile_check_cb_t tile_check_cb
   {
     // TODO: Bucket format for tile cached navmesh should be the only one,
     // remove loadNavMeshChunked later.
-    loadNavMeshBucketFormat(_crd, type, tile_check_cb, chunkedReadBuff);
+    loadNavMeshBucketFormat(nmData.tcComp, _crd, type, tile_check_cb, chunkedReadBuff);
     navDataSize = chunkedReadBuff.size();
   }
   else
@@ -737,8 +817,8 @@ bool loadNavMesh(IGenLoad &_crd, NavMeshType type, tile_check_cb_t tile_check_cb
     }
 #endif
 
-    if (dtStatusFailed(navMesh->init(navDataLocal.get(), navDataSize, 0))) // we can remove DT_TILE_FREE_DATA, because we keep
-                                                                           // reference to navData
+    if (dtStatusFailed(nmData.navMesh->init(navDataLocal.get(), navDataSize, 0))) // we can remove DT_TILE_FREE_DATA,
+                                                                                  // because we keep reference to navData
     {
       logerr_ctx("Could not init Detour navmesh");
       return false;
@@ -752,7 +832,7 @@ bool loadNavMesh(IGenLoad &_crd, NavMeshType type, tile_check_cb_t tile_check_cb
   curPtr += sizeof(typ);
     INIT_BY_PTR(dtNavMeshParams, params);
     INIT_BY_PTR(int, numTiles);
-    if (dtStatusFailed(navMesh->init(params, false)))
+    if (dtStatusFailed(nmData.navMesh->init(params, false)))
     {
       logerr_ctx("Could not init tiled Detour navmesh");
       return false;
@@ -779,7 +859,7 @@ bool loadNavMesh(IGenLoad &_crd, NavMeshType type, tile_check_cb_t tile_check_cb
       if (!tile_check_cb || tile_check_cb(BBox3(Point3(header->bmin[0], header->bmin[1], header->bmin[2]),
                               Point3(header->bmax[0], header->bmax[1], header->bmax[2]))))
       {
-        if (dtStatusFailed(navMesh->addTile(curPtr, *tileDataSize, 0, *tileRef, nullptr)))
+        if (dtStatusFailed(nmData.navMesh->addTile(curPtr, *tileDataSize, 0, *tileRef, nullptr)))
         {
           logerr_ctx("navMesh->addTile fails");
           return false;
@@ -787,19 +867,19 @@ bool loadNavMesh(IGenLoad &_crd, NavMeshType type, tile_check_cb_t tile_check_cb
       }
       curPtr += *tileDataSize;
     }
-    navMesh->reconstructFreeList();
+    nmData.navMesh->reconstructFreeList();
 #undef INIT_BY_PTR
   }
   else
   {
     G_ASSERT(type == NMT_TILECACHED);
     unsigned char *curPtr = navDataLocal.get();
-    load_nav_mesh_orig(curPtr, patchedTilesSize, patchNavMeshFileName, patchedExtraTiles);
+    load_nav_mesh_orig(nav_mesh_idx, curPtr, patchedTilesSize, patchNavMeshFileName, patchedExtraTiles);
   }
 
-  init_nav_query();
+  init_nav_query(nav_mesh_idx);
 
-  navData = eastl::move(navDataLocal);
+  nmData.navData = eastl::move(navDataLocal);
 
   return true;
 }
@@ -918,18 +998,19 @@ static int fixupShortcuts(dtPolyRef *path, int npath, dtNavMeshQuery *nav_query)
   return npath;
 }
 
-bool get_offmesh_connection_end_points(dtPolyRef poly, const float *next_pos, Point3 &start, Point3 &end);
+bool get_offmesh_connection_end_points(int nav_mesh_idx, dtPolyRef poly, const float *next_pos, Point3 &start, Point3 &end);
 
-static bool getSteerTarget(dtNavMeshQuery *nav_query, const float *startPos, const float *endPos, const float minTargetDist,
+static bool getSteerTarget(int nav_mesh_idx, const float *startPos, const float *endPos, const float minTargetDist,
   const dtPolyRef *path, const int pathSize, float *steerPos, unsigned char &steerPosFlag, dtPolyRef &steerPosRef)
 {
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
   // Find steer target.
   static const int MAX_STEER_POINTS = 3;
   float steerPath[MAX_STEER_POINTS * 3];
   unsigned char steerPathFlags[MAX_STEER_POINTS];
   dtPolyRef steerPathPolys[MAX_STEER_POINTS];
   int nsteerPath = 0;
-  if (dtStatusFailed(nav_query->findStraightPath(startPos, endPos, path, pathSize, steerPath, steerPathFlags, steerPathPolys,
+  if (dtStatusFailed(nmData.navQuery->findStraightPath(startPos, endPos, path, pathSize, steerPath, steerPathFlags, steerPathPolys,
         &nsteerPath, MAX_STEER_POINTS)))
     return false;
 
@@ -942,11 +1023,11 @@ static bool getSteerTarget(dtNavMeshQuery *nav_query, const float *startPos, con
       break;
     uint16_t polyFlags = 0;
     // cut-off almost passed offmesh connections
-    if (ns + 1 < nsteerPath && dtStatusSucceed(navMesh->getPolyFlags(steerPathPolys[ns], &polyFlags)) &&
+    if (ns + 1 < nsteerPath && dtStatusSucceed(nmData.navMesh->getPolyFlags(steerPathPolys[ns], &polyFlags)) &&
         (polyFlags & (POLYFLAG_JUMP | POLYFLAG_LADDER)))
     {
       Point3 start, end;
-      if (get_offmesh_connection_end_points(steerPathPolys[ns], &steerPath[(ns + 1) * 3], start, end) &&
+      if (get_offmesh_connection_end_points(nav_mesh_idx, steerPathPolys[ns], &steerPath[(ns + 1) * 3], start, end) &&
           dtVdistSqr(startPos, &end.x) > dtSqr(0.01f))
       {
         steerPathFlags[ns] = steerPathFlags[ns] | DT_STRAIGHTPATH_OFFMESH_CONNECTION;
@@ -967,16 +1048,19 @@ static bool getSteerTarget(dtNavMeshQuery *nav_query, const float *startPos, con
   return true;
 }
 
+bool is_loaded_ex(int nav_mesh_idx) { return get_nav_mesh_data(nav_mesh_idx).navQuery != NULL; }
+
 bool isLoaded() { return navQuery != NULL; }
 
-inline bool find_polyref(const Point3 &pos, float horz_dist, int incl_flags, int excl_flags, dtPolyRef &res,
-  const CustomNav *custom_nav)
+inline bool find_polyref(int nav_mesh_idx, const Point3 &pos, float horz_dist, int incl_flags, int excl_flags, dtPolyRef &res,
+  const CustomNav *custom_nav, float max_vert_dist = FLT_MAX)
 {
-  const Point3 extents(horz_dist, FLT_MAX, horz_dist);
+  const Point3 extents(horz_dist, max_vert_dist, horz_dist);
   NavQueryFilter filter(custom_nav);
   filter.setIncludeFlags(incl_flags);
   filter.setExcludeFlags(excl_flags);
-  return dtStatusSucceed(navQuery->findNearestPoly(&pos.x, &extents.x, &filter, &res, nullptr));
+  return dtStatusSucceed(get_nav_mesh_data(nav_mesh_idx).navQuery->findNearestPoly(&pos.x, &extents.x, &filter, &res, nullptr)) &&
+         res != 0;
 }
 
 inline bool find_end_poly(FindRequest &req, const CustomNav *custom_nav)
@@ -985,11 +1069,11 @@ inline bool find_end_poly(FindRequest &req, const CustomNav *custom_nav)
   filter.setIncludeFlags(req.includeFlags);
   filter.setExcludeFlags(req.excludeFlags);
   filter.setAreasCost(req.areasCost);
-  return dtStatusSucceed(navQuery->findNearestPoly(&req.end.x, &req.extents.x, &filter, &req.endPoly, nullptr));
+  return dtStatusSucceed(navQuery->findNearestPoly(&req.end.x, &req.extents.x, &filter, &req.endPoly, nullptr)) && req.endPoly != 0;
 }
 
-inline FindPathResult find_poly_path(dtNavMeshQuery *nav_query, FindRequest &req, dtPolyRef *polys, const dtQueryFilter &filter,
-  int max_path)
+inline FindPathResult find_poly_path(dtNavMeshQuery *nav_query, FindRequest &req, const NavParams &nav_params, dtPolyRef *polys,
+  const dtQueryFilter &filter, int max_path)
 {
   if (!nav_query->isValidPolyRef(req.startPoly, &filter) &&
       dtStatusFailed(nav_query->findNearestPoly(&req.start.x, &req.extents.x, &filter, &req.startPoly, nullptr)))
@@ -999,7 +1083,7 @@ inline FindPathResult find_poly_path(dtNavMeshQuery *nav_query, FindRequest &req
     return FPR_FAILED;
 
   dtStatus status = nav_query->findPath(req.startPoly, req.endPoly, &req.start.x, &req.end.x, &filter, polys, &req.numPolys, max_path,
-    max_path_weight);
+    nav_params.max_path_weight);
   if (!dtStatusSucceed(status))
     return FPR_FAILED;
   return dtStatusDetail(status, DT_PARTIAL_RESULT) ? FPR_PARTIAL : FPR_FULL;
@@ -1015,8 +1099,8 @@ static Point3 get_poly_center(const dtMeshTile *tile, const dtPoly *poly);
 // req_first.end ougth to be equal req_second.start
 // resulting path is stored in polys_first
 inline FindPathResult smooth_concatenate_paths(dtNavMeshQuery *nav_query, FindRequest &req_first, FindRequest req_second,
-  dtPolyRef *polys_first, const dtPolyRef *polys_second, int offset_first, int offset_second, const dtQueryFilter &filter,
-  int max_path)
+  const NavParams &nav_params, dtPolyRef *polys_first, const dtPolyRef *polys_second, int offset_first, int offset_second,
+  const dtQueryFilter &filter, int max_path)
 {
   if (offset_first >= req_first.numPolys || offset_second >= req_second.numPolys)
     return FPR_FAILED;
@@ -1028,15 +1112,15 @@ inline FindPathResult smooth_concatenate_paths(dtNavMeshQuery *nav_query, FindRe
 
     const dtMeshTile *tile = nullptr;
     const dtPoly *poly = nullptr;
-    if (dtStatusFailed(navMesh->getTileAndPolyByRef(auxReq.startPoly, &tile, &poly)))
+    if (dtStatusFailed(nav_query->getAttachedNavMesh()->getTileAndPolyByRef(auxReq.startPoly, &tile, &poly)))
       return FPR_PARTIAL;
     auxReq.start = get_poly_center(tile, poly);
-    if (dtStatusFailed(navMesh->getTileAndPolyByRef(auxReq.endPoly, &tile, &poly)))
+    if (dtStatusFailed(nav_query->getAttachedNavMesh()->getTileAndPolyByRef(auxReq.endPoly, &tile, &poly)))
       return FPR_PARTIAL;
     auxReq.end = get_poly_center(tile, poly);
 
     dtStatus status = nav_query->findPath(auxReq.startPoly, auxReq.endPoly, &auxReq.start.x, &auxReq.end.x, &filter,
-      polys_first + numPolysTmp, &auxReq.numPolys, max_path - numPolysTmp, max_path_weight);
+      polys_first + numPolysTmp, &auxReq.numPolys, max_path - numPolysTmp, nav_params.max_path_weight);
     // return polys_first
     if (dtStatusFailed(status))
       return FPR_PARTIAL;
@@ -1061,8 +1145,8 @@ inline FindPathResult smooth_concatenate_paths(dtNavMeshQuery *nav_query, FindRe
   return FPR_FULL;
 }
 
-inline FindPathResult find_poly_path_curved(dtNavMeshQuery *nav_query, FindRequest &req, dtPolyRef *polys, dtPolyRef *auxPolys,
-  const dtQueryFilter &filter, int max_path, float max_deflection_angle)
+inline FindPathResult find_poly_path_curved(dtNavMeshQuery *nav_query, FindRequest &req, const NavParams &nav_params, dtPolyRef *polys,
+  dtPolyRef *auxPolys, const dtQueryFilter &filter, int max_path, float max_deflection_angle)
 {
   const Point3 pos = req.start;
   const Point3 wishPos = req.end;
@@ -1105,7 +1189,7 @@ inline FindPathResult find_poly_path_curved(dtNavMeshQuery *nav_query, FindReque
     dtStatusFailed(nav_query->findNearestPoly(&initialSegment.end.x, &req.extents.x, &filter, &initialSegment.endPoly, nullptr)))
     return FPR_FAILED;
   dtStatus status = nav_query->findPath(initialSegment.startPoly, initialSegment.endPoly, &initialSegment.start.x,
-    &initialSegment.end.x, &filter, polys, &initialSegment.numPolys, max_path, max_path_weight);
+    &initialSegment.end.x, &filter, polys, &initialSegment.numPolys, max_path, nav_params.max_path_weight);
   if (dtStatusFailed(status))
     return FPR_FAILED;
   req.numPolys = initialSegment.numPolys;
@@ -1120,13 +1204,13 @@ inline FindPathResult find_poly_path_curved(dtNavMeshQuery *nav_query, FindReque
   int offset_start = initialSegment.numPolys / 2;
   dtStatus statusNext =
     nav_query->findPath(movementSegment.startPoly, movementSegment.endPoly, &movementSegment.start.x, &movementSegment.end.x, &filter,
-      auxPolys, &movementSegment.numPolys, max_path - (initialSegment.numPolys - offset_start), max_path_weight);
+      auxPolys, &movementSegment.numPolys, max_path - (initialSegment.numPolys - offset_start), nav_params.max_path_weight);
   if (dtStatusFailed(statusNext))
     return FPR_PARTIAL;
 
   int offset_end = movementSegment.numPolys / 8;
-  status =
-    smooth_concatenate_paths(nav_query, initialSegment, movementSegment, polys, auxPolys, offset_start, offset_end, filter, max_path);
+  status = smooth_concatenate_paths(nav_query, initialSegment, movementSegment, nav_params, polys, auxPolys, offset_start, offset_end,
+    filter, max_path);
   req.numPolys = initialSegment.numPolys;
 
   if (dtStatusFailed(status) || dtStatusDetail(status, DT_PARTIAL_RESULT) || dtStatusDetail(statusNext, DT_PARTIAL_RESULT))
@@ -1139,14 +1223,14 @@ inline FindPathResult find_poly_path_curved(dtNavMeshQuery *nav_query, FindReque
 
   offset_start = offset_end;
   statusNext = nav_query->findPath(finalSegment.startPoly, finalSegment.endPoly, &finalSegment.start.x, &finalSegment.end.x, &filter,
-    auxPolys, &finalSegment.numPolys, max_path - (initialSegment.numPolys - offset_start), max_path_weight);
+    auxPolys, &finalSegment.numPolys, max_path - (initialSegment.numPolys - offset_start), nav_params.max_path_weight);
   if (dtStatusFailed(statusNext))
     return FPR_PARTIAL;
 
   offset_end = finalSegment.numPolys / 2;
   movementSegment.numPolys = initialSegment.numPolys;
-  status =
-    smooth_concatenate_paths(nav_query, movementSegment, finalSegment, polys, auxPolys, offset_start, offset_end, filter, max_path);
+  status = smooth_concatenate_paths(nav_query, movementSegment, finalSegment, nav_params, polys, auxPolys, offset_start, offset_end,
+    filter, max_path);
   req.numPolys = movementSegment.numPolys;
   if (dtStatusFailed(status) || dtStatusDetail(status, DT_PARTIAL_RESULT) || dtStatusDetail(statusNext, DT_PARTIAL_RESULT))
     return FPR_PARTIAL;
@@ -1154,21 +1238,24 @@ inline FindPathResult find_poly_path_curved(dtNavMeshQuery *nav_query, FindReque
   return FPR_FULL;
 }
 
-FindPathResult findPath(Tab<Point3> &path, FindRequest &req, float step_size, float slop, const CustomNav *custom_nav)
+FindPathResult find_path_ex(int nav_mesh_idx, Tab<Point3> &path, FindRequest &req, float step_size, float slop,
+  const CustomNav *custom_nav)
 {
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  const NavParams &navParams = get_nav_params(nav_mesh_idx);
   FindPathResult res = FPR_FAILED;
   clear_and_shrink(path);
-  if (navQuery)
+  if (nmData.navQuery)
   {
     dtPolyRef polys[max_path_size];
-    NavQueryFilter filter(custom_nav, req.maxJumpUpHeight);
+    NavQueryFilter filter(nmData.navMesh, navParams, custom_nav, req.maxJumpUpHeight);
     filter.setIncludeFlags(req.includeFlags);
     filter.setExcludeFlags(req.excludeFlags);
     filter.setAreasCost(req.areasCost);
-    res = find_poly_path(navQuery, req, polys, filter, max_path_size);
+    res = find_poly_path(nmData.navQuery, req, navParams, polys, filter, max_path_size);
     if (res > FPR_FAILED)
     {
-      NavQueryFilter filter(custom_nav);
+      NavQueryFilter filter(nmData.navMesh, navParams, custom_nav);
       filter.setIncludeFlags(POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
       filter.setExcludeFlags(0);
       filter.setAreasCost(req.areasCost);
@@ -1178,8 +1265,8 @@ FindPathResult findPath(Tab<Point3> &path, FindRequest &req, float step_size, fl
       int npolys = req.numPolys;
 
       float iterPos[3], targetPos[3];
-      navQuery->closestPointOnPoly(req.startPoly, &req.start.x, iterPos, nullptr);
-      navQuery->closestPointOnPoly(polys_c[npolys - 1], &req.end.x, targetPos, nullptr);
+      nmData.navQuery->closestPointOnPoly(req.startPoly, &req.start.x, iterPos, nullptr);
+      nmData.navQuery->closestPointOnPoly(polys_c[npolys - 1], &req.end.x, targetPos, nullptr);
 
       static const int MAX_SMOOTH = 2048;
       static float smoothPath[MAX_SMOOTH * 3];
@@ -1197,7 +1284,7 @@ FindPathResult findPath(Tab<Point3> &path, FindRequest &req, float step_size, fl
         unsigned char steerPosFlag;
         dtPolyRef steerPosRef;
 
-        if (!getSteerTarget(navQuery, iterPos, targetPos, slop, polys_c, npolys, steerPos, steerPosFlag, steerPosRef))
+        if (!getSteerTarget(nav_mesh_idx, iterPos, targetPos, slop, polys_c, npolys, steerPos, steerPosFlag, steerPosRef))
           break;
 
         bool endOfPath = (steerPosFlag & DT_STRAIGHTPATH_END) ? true : false;
@@ -1219,14 +1306,14 @@ FindPathResult findPath(Tab<Point3> &path, FindRequest &req, float step_size, fl
         float result[3];
         dtPolyRef visited[16];
         int nvisited = 0;
-        navQuery->moveAlongSurface(polys_c[0], iterPos, moveTgt, &filter, result, visited, &nvisited, 16);
+        nmData.navQuery->moveAlongSurface(polys_c[0], iterPos, moveTgt, &filter, result, visited, &nvisited, 16);
 
         if (nvisited > 0)
           npolys = fixupCorridor(polys_c, npolys, max_path_size, visited, nvisited);
-        npolys = fixupShortcuts(polys_c, npolys, navQuery);
+        npolys = fixupShortcuts(polys_c, npolys, nmData.navQuery);
 
         float h = result[1];
-        navQuery->getPolyHeight(polys_c[0], result, &h);
+        nmData.navQuery->getPolyHeight(polys_c[0], result, &h);
         result[1] = h;
         dtVcopy(iterPos, result);
 
@@ -1258,7 +1345,7 @@ FindPathResult findPath(Tab<Point3> &path, FindRequest &req, float step_size, fl
           npolys -= npos;
 
           // Handle the connection.
-          dtStatus status = navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos, endPos);
+          dtStatus status = nmData.navMesh->getOffMeshConnectionPolyEndPoints(prevRef, polyRef, startPos, endPos);
           if (dtStatusSucceed(status))
           {
             dtVcopy(&smoothPath[nsmoothPath * 3], startPos);
@@ -1272,7 +1359,7 @@ FindPathResult findPath(Tab<Point3> &path, FindRequest &req, float step_size, fl
             // Move position at the other side of the off-mesh link.
             dtVcopy(iterPos, endPos);
             float eh = iterPos[1];
-            navQuery->getPolyHeight(polys[0], iterPos, &eh);
+            nmData.navQuery->getPolyHeight(polys[0], iterPos, &eh);
             iterPos[1] = eh;
           }
         }
@@ -1292,6 +1379,28 @@ FindPathResult findPath(Tab<Point3> &path, FindRequest &req, float step_size, fl
     }
   }
   return path.size() > 0 ? res : FPR_FAILED;
+}
+
+FindPathResult find_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, float dist_to_path,
+  float step_size, float slop, const CustomNav *custom_nav)
+{
+  const Point3 extents(dist_to_path, FLT_MAX, dist_to_path);
+  FindRequest req = {
+    start_pos, end_pos, POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER, 0, extents, FLT_MAX, 0, dtPolyRef(), dtPolyRef()};
+  return find_path_ex(nav_mesh_idx, path, req, step_size, slop, custom_nav);
+}
+
+FindPathResult find_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, const Point3 &extents,
+  float step_size, float slop, const CustomNav *custom_nav)
+{
+  FindRequest req = {
+    start_pos, end_pos, POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER, 0, extents, FLT_MAX, 0, dtPolyRef(), dtPolyRef()};
+  return find_path_ex(nav_mesh_idx, path, req, step_size, slop, custom_nav);
+}
+
+FindPathResult findPath(Tab<Point3> &path, FindRequest &req, float step_size, float slop, const CustomNav *custom_nav)
+{
+  return find_path_ex(NM_MAIN, path, req, step_size, slop, custom_nav);
 }
 
 FindPathResult findPath(const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, float dist_to_path, float step_size,
@@ -1347,25 +1456,40 @@ static Point3 get_poly_center(const dtMeshTile *tile, const dtPoly *poly)
   return midVert * safeinv((float)poly->vertCount);
 }
 
+bool check_path_ex(int nav_mesh_idx, FindRequest &req, float horz_threshold, float max_vert_dist)
+{
+  return check_path(get_nav_mesh_data(nav_mesh_idx).navQuery, req, get_nav_params(nav_mesh_idx), horz_threshold, max_vert_dist,
+    nullptr);
+}
+
+bool check_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, float horz_threshold,
+  float max_vert_dist, const CustomNav *custom_nav, int flags)
+{
+  FindRequest req = {start_pos, end_pos, flags, 0, extents, FLT_MAX, 0, dtPolyRef(), dtPolyRef()};
+  return check_path(get_nav_mesh_data(nav_mesh_idx).navQuery, req, get_nav_params(nav_mesh_idx), horz_threshold, max_vert_dist,
+    custom_nav);
+}
+
 bool check_path(FindRequest &req, float horz_threshold, float max_vert_dist)
 {
-  return check_path(navQuery, req, horz_threshold, max_vert_dist, nullptr);
+  return check_path(navQuery, req, get_nav_params(NM_MAIN), horz_threshold, max_vert_dist, nullptr);
 }
 
 bool check_path(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, float horz_threshold, float max_vert_dist,
   const CustomNav *custom_nav, int flags)
 {
   FindRequest req = {start_pos, end_pos, flags, 0, extents, FLT_MAX, 0, dtPolyRef(), dtPolyRef()};
-  return check_path(navQuery, req, horz_threshold, max_vert_dist, custom_nav);
+  return check_path(navQuery, req, get_nav_params(NM_MAIN), horz_threshold, max_vert_dist, custom_nav);
 }
 
 inline bool check_path_thresholds(dtNavMeshQuery *nav_query, const Point3 &start_pos, const Point3 &end_pos, Point3 extents,
-  float horz_threshold, float max_vert_dist, dtPolyRef polys[max_path_size], int num_polys, const CustomNav *custom_nav)
+  const NavParams &nav_params, float horz_threshold, float max_vert_dist, dtPolyRef polys[max_path_size], int num_polys,
+  const CustomNav *custom_nav)
 {
   Point3 targetPos;
   nav_query->closestPointOnPoly(polys[num_polys - 1], &end_pos.x, &targetPos.x, nullptr);
   Point3 finalPos;
-  traceray_navmesh(nav_query, targetPos, end_pos, extents, finalPos, custom_nav);
+  traceray_navmesh(nav_query, targetPos, end_pos, extents, nav_params, finalPos, custom_nav);
   const float horzDistSq = lengthSq(Point2::xz(finalPos - end_pos));
   const float vertDist = fabsf(finalPos.y - end_pos.y);
   bool horzViolatesThreshold = horz_threshold > 0.f && horzDistSq > sqr(horz_threshold);
@@ -1373,57 +1497,59 @@ inline bool check_path_thresholds(dtNavMeshQuery *nav_query, const Point3 &start
   return !horzTooFar && vertDist < max_vert_dist;
 }
 
-bool check_path(dtNavMeshQuery *nav_query, FindRequest &req, float horz_threshold, float max_vert_dist, const CustomNav *custom_nav)
+bool check_path(dtNavMeshQuery *nav_query, FindRequest &req, const NavParams &nav_params, float horz_threshold, float max_vert_dist,
+  const CustomNav *custom_nav)
 {
   if (nav_query)
   {
     dtPolyRef polys[max_path_size];
     // trace from last poly to end_pos
-    CheckPathFilter filter(req.maxJumpUpHeight);
+    CheckPathFilter filter(nav_params, req.maxJumpUpHeight);
     filter.setIncludeFlags(req.includeFlags);
     filter.setExcludeFlags(req.excludeFlags);
-    if (find_poly_path(nav_query, req, polys, filter, max_path_size) > FPR_FAILED)
+    if (find_poly_path(nav_query, req, nav_params, polys, filter, max_path_size) > FPR_FAILED)
     {
-      bool thresholdsValid = check_path_thresholds(nav_query, req.start, req.end, req.extents, horz_threshold, max_vert_dist, polys,
-        req.numPolys, custom_nav);
+      bool thresholdsValid = check_path_thresholds(nav_query, req.start, req.end, req.extents, nav_params, horz_threshold,
+        max_vert_dist, polys, req.numPolys, custom_nav);
       return thresholdsValid;
     }
   }
   return false;
 }
 
-bool check_path(dtNavMeshQuery *nav_query, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, float horz_threshold,
-  float max_vert_dist, const CustomNav *custom_nav, int flags)
+bool check_path(dtNavMeshQuery *nav_query, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
+  const NavParams &nav_params, float horz_threshold, float max_vert_dist, const CustomNav *custom_nav, int flags)
 {
   FindRequest req = {start_pos, end_pos, flags, 0, extents, FLT_MAX, 0, dtPolyRef(), dtPolyRef()};
-  return check_path(nav_query, req, horz_threshold, max_vert_dist, custom_nav);
+  return check_path(nav_query, req, nav_params, horz_threshold, max_vert_dist, custom_nav);
 }
 
 float calc_approx_path_length(FindRequest &req, float horz_threshold, float max_vert_dist)
 {
-  return calc_approx_path_length(navQuery, req, horz_threshold, max_vert_dist);
+  return calc_approx_path_length(navQuery, req, get_nav_params(NM_MAIN), horz_threshold, max_vert_dist);
 }
 
 float calc_approx_path_length(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, float horz_threshold,
   float max_vert_dist, int flags)
 {
   FindRequest req = {start_pos, end_pos, flags, 0, extents, FLT_MAX, 0, dtPolyRef(), dtPolyRef()};
-  return calc_approx_path_length(navQuery, req, horz_threshold, max_vert_dist);
+  return calc_approx_path_length(navQuery, req, get_nav_params(NM_MAIN), horz_threshold, max_vert_dist);
 }
 
-float calc_approx_path_length(dtNavMeshQuery *nav_query, FindRequest &req, float horz_threshold, float max_vert_dist)
+float calc_approx_path_length(dtNavMeshQuery *nav_query, FindRequest &req, const NavParams &nav_params, float horz_threshold,
+  float max_vert_dist)
 {
   if (nav_query)
   {
     dtPolyRef polys[max_path_size];
     // trace from last poly to end_pos
-    CheckPathFilter filter(req.maxJumpUpHeight);
+    CheckPathFilter filter(nav_params, req.maxJumpUpHeight);
     filter.setIncludeFlags(req.includeFlags);
     filter.setExcludeFlags(req.excludeFlags);
-    if (find_poly_path(nav_query, req, polys, filter, max_path_size) > FPR_FAILED)
+    if (find_poly_path(nav_query, req, nav_params, polys, filter, max_path_size) > FPR_FAILED)
     {
-      bool thresholdsValid =
-        check_path_thresholds(nav_query, req.start, req.end, req.extents, horz_threshold, max_vert_dist, polys, req.numPolys, nullptr);
+      bool thresholdsValid = check_path_thresholds(nav_query, req.start, req.end, req.extents, nav_params, horz_threshold,
+        max_vert_dist, polys, req.numPolys, nullptr);
 
       if (!thresholdsValid)
         return INVALID_PATH_DISTANCE;
@@ -1435,7 +1561,7 @@ float calc_approx_path_length(dtNavMeshQuery *nav_query, FindRequest &req, float
 
       for (int i = 0; i < req.numPolys; ++i)
       {
-        if (dtStatusFailed(navMesh->getTileAndPolyByRef(polys[i], &tile, &poly)))
+        if (dtStatusFailed(nav_query->getAttachedNavMesh()->getTileAndPolyByRef(polys[i], &tile, &poly)))
           return INVALID_PATH_DISTANCE;
 
         Point3 polyCenter = get_poly_center(tile, poly);
@@ -1568,7 +1694,7 @@ bool find_random_point_around_circle(const Point3 &pos, float radius, Point3 &re
   if (!navQuery)
     return false;
   dtPolyRef startRef;
-  if (!find_polyref(pos, 0.1f, POLYFLAGS_WALK, 0, startRef, custom_nav))
+  if (!find_polyref(NM_MAIN, pos, 0.1f, POLYFLAGS_WALK, 0, startRef, custom_nav))
     return false;
   NavQueryFilter filter(custom_nav);
   filter.setIncludeFlags(POLYFLAGS_WALK);
@@ -1582,7 +1708,7 @@ bool find_random_points_around_circle(const Point3 &pos, float radius, int num_p
   if (!navQuery)
     return false;
   dtPolyRef startRef;
-  if (!find_polyref(pos, 0.1f, POLYFLAGS_WALK, 0, startRef, nullptr))
+  if (!find_polyref(NM_MAIN, pos, 0.1f, POLYFLAGS_WALK, 0, startRef, nullptr))
     return false;
   NavQueryFilter filter(nullptr);
   filter.setIncludeFlags(POLYFLAGS_WALK);
@@ -1606,7 +1732,7 @@ bool find_random_point_inside_circle(const Point3 &start_pos, float radius, floa
     logerr("find_random_point_inside_circle is optimized for a search radius lower than 100(m). Current radius is %d(m)", radius);
 #endif
   dtPolyRef startRef;
-  if (!find_polyref(start_pos, 0.1f, POLYFLAGS_WALK, 0, startRef, nullptr))
+  if (!find_polyref(NM_MAIN, start_pos, 0.1f, POLYFLAGS_WALK, 0, startRef, nullptr))
     return false;
   Tab<Point3> points(framemem_ptr());
   constexpr int numPoints = 16;
@@ -1660,7 +1786,8 @@ bool is_on_same_polygon(const Point3 &p1, const Point3 &p2, const CustomNav *cus
   if (!navQuery)
     return false;
   dtPolyRef r1 = 0, r2 = 0;
-  if (!find_polyref(p1, 0.1f, POLYFLAGS_WALK, 0, r1, custom_nav) || !find_polyref(p2, 0.1f, POLYFLAGS_WALK, 0, r2, custom_nav))
+  if (!find_polyref(NM_MAIN, p1, 0.1f, POLYFLAGS_WALK, 0, r1, custom_nav) ||
+      !find_polyref(NM_MAIN, p2, 0.1f, POLYFLAGS_WALK, 0, r2, custom_nav))
     return false;
   return r1 == r2;
 }
@@ -1668,11 +1795,11 @@ bool is_on_same_polygon(const Point3 &p1, const Point3 &p2, const CustomNav *cus
 bool traceray_navmesh(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, Point3 &out_pos,
   const CustomNav *custom_nav)
 {
-  return traceray_navmesh(navQuery, start_pos, end_pos, extents, out_pos, custom_nav);
+  return traceray_navmesh(navQuery, start_pos, end_pos, extents, get_nav_params(NM_MAIN), out_pos, custom_nav);
 }
 
 bool traceray_navmesh(dtNavMeshQuery *nav_query, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
-  Point3 &out_pos, const CustomNav *custom_nav)
+  const NavParams &nav_params, Point3 &out_pos, const CustomNav *custom_nav)
 {
   out_pos = start_pos;
   if (!nav_query)
@@ -1680,7 +1807,7 @@ bool traceray_navmesh(dtNavMeshQuery *nav_query, const Point3 &start_pos, const 
     out_pos = end_pos;
     return true;
   }
-  NavQueryFilter filter(custom_nav);
+  NavQueryFilter filter(nav_query->getAttachedNavMesh(), nav_params, custom_nav);
   filter.setIncludeFlags(POLYFLAGS_WALK);
   filter.setExcludeFlags(0);
   dtPolyRef startPoly;
@@ -1710,9 +1837,15 @@ static inline E3DCOLOR rnd_color(int &seed)
   return E3DCOLOR(rgbValue | forceBits);
 }
 
-void renderDebug(const Frustum *p_frustum)
+void renderDebugReset();
+
+void renderDebug(const Frustum *p_frustum, int nav_mesh_idx)
 {
   static eastl::vector_map<int, E3DCOLOR> areaToColor;
+
+  if (nav_mesh_idx != lastNavMeshDebugIdx)
+    renderDebugReset();
+  lastNavMeshDebugIdx = nav_mesh_idx;
 
   bool calculateBoxes = p_frustum && navDebugBoxes.capacity() == 0;
 
@@ -1720,15 +1853,17 @@ void renderDebug(const Frustum *p_frustum)
   for (int i = 0; i < (int)pathForDebug.size() - 1; ++i)
     draw_cached_debug_line(pathForDebug[i] + offset, pathForDebug[i + 1] + offset, E3DCOLOR(0, 255, 0, 255));
 
-  if (navMesh)
+  dtNavMesh *drawnNavMesh = get_nav_mesh_ptr(nav_mesh_idx);
+
+  if (drawnNavMesh)
   {
-    int maxTiles = navMesh->getMaxTiles();
+    int maxTiles = drawnNavMesh->getMaxTiles();
     if (calculateBoxes)
       navDebugBoxes.assign(maxTiles, BBox3());
 
     for (int i = 0; i < maxTiles; ++i)
     {
-      const dtMeshTile *tile = ((const dtNavMesh *)navMesh)->getTile(i);
+      const dtMeshTile *tile = ((const dtNavMesh *)drawnNavMesh)->getTile(i);
       if (!tile->header)
         continue;
       if (calculateBoxes)
@@ -1817,7 +1952,7 @@ void renderDebug(const Frustum *p_frustum)
             continue;
           const dtPoly *neiPoly = NULL;
           const dtMeshTile *neiTile = NULL;
-          navMesh->getTileAndPolyByRefUnsafe(neiRef, &neiTile, &neiPoly);
+          drawnNavMesh->getTileAndPolyByRefUnsafe(neiRef, &neiTile, &neiPoly);
           if (!neiPoly || !neiTile)
             continue;
           draw_cached_debug_line(midVert, get_poly_center(neiTile, neiPoly), E3DCOLOR_MAKE(255, 255, 0, 255));
@@ -1825,7 +1960,9 @@ void renderDebug(const Frustum *p_frustum)
       }
     }
   }
-  tilecache_render_debug(p_frustum);
+
+  if (nav_mesh_idx == NM_MAIN)
+    tilecache_render_debug(p_frustum);
 }
 
 void setPathForDebug(dag::ConstSpan<Point3> path) { pathForDebug = path; }
@@ -1834,11 +1971,12 @@ void renderDebugReset() { clear_and_shrink(navDebugBoxes); }
 
 void init_path_corridor(dtPathCorridor &corridor) { corridor.init(max_path_size); }
 
-inline NavQueryFilter init_request_filter(const CorridorInput &inp, const CustomNav *custom_nav, FindRequest &req)
+inline NavQueryFilter init_request_filter(int nav_mesh_idx, const CorridorInput &inp, const CustomNav *custom_nav, FindRequest &req)
 {
   req = {inp.start, inp.target, inp.includeFlags, inp.excludeFlags, inp.extents, inp.maxJumpUpHeight, 0, inp.startPoly, inp.targetPoly,
     inp.areasCost};
-  NavQueryFilter filter(custom_nav, req.maxJumpUpHeight, false, inp.costAddition);
+  NavQueryFilter filter(get_nav_mesh_ptr(nav_mesh_idx), get_nav_params(nav_mesh_idx), custom_nav, req.maxJumpUpHeight, false,
+    inp.costAddition);
   filter.setIncludeFlags(req.includeFlags);
   filter.setExcludeFlags(req.excludeFlags);
   filter.setAreasCost(req.areasCost);
@@ -1846,6 +1984,10 @@ inline NavQueryFilter init_request_filter(const CorridorInput &inp, const Custom
   return filter;
 }
 
+inline NavQueryFilter init_request_filter(const CorridorInput &inp, const CustomNav *custom_nav, FindRequest &req)
+{
+  return init_request_filter(NM_MAIN, inp, custom_nav, req);
+}
 
 FindPathResult set_path_corridor(dtPathCorridor &corridor, const CorridorInput &inp, const CustomNav *custom_nav)
 {
@@ -1855,7 +1997,7 @@ FindPathResult set_path_corridor(dtPathCorridor &corridor, const CorridorInput &
   FindRequest req;
   NavQueryFilter filter = init_request_filter(inp, custom_nav, req);
   FindPathResult fpr;
-  fpr = find_poly_path(navQuery, req, polys, filter, max_path_size);
+  fpr = find_poly_path(navQuery, req, get_nav_params(NM_MAIN), polys, filter, max_path_size);
 
   if (fpr > FPR_FAILED)
   {
@@ -1874,6 +2016,7 @@ FindPathResult set_curved_path_corridor(dtPathCorridor &corridor, const Corridor
   FindRequest req;
   NavQueryFilter filter = init_request_filter(inp, custom_nav, req);
   FindPathResult fpr;
+  const NavParams &navParams = get_nav_params(NM_MAIN);
   if (lengthSq(req.end - req.start) > min_curved_pathlen_sq_threshold)
   {
     dtPolyRef auxPolys[max_path_size];
@@ -1881,13 +2024,13 @@ FindPathResult set_curved_path_corridor(dtPathCorridor &corridor, const Corridor
     // try tryFindPathNum times (with different random angle and offset) to find full curve before giving up...
     for (size_t i = 0; i < tryFindPathNum; ++i)
     {
-      fpr = find_poly_path_curved(navQuery, req, polys, auxPolys, filter, max_path_size, max_deflection_angle);
+      fpr = find_poly_path_curved(navQuery, req, navParams, polys, auxPolys, filter, max_path_size, max_deflection_angle);
       if (fpr == FPR_FULL)
         break;
     }
   }
   else
-    fpr = find_poly_path(navQuery, req, polys, filter, max_path_size);
+    fpr = find_poly_path(navQuery, req, navParams, polys, filter, max_path_size);
 
   if (fpr > FPR_FAILED)
   {
@@ -1897,9 +2040,10 @@ FindPathResult set_curved_path_corridor(dtPathCorridor &corridor, const Corridor
   return fpr;
 }
 
-bool get_offmesh_connection_end_points(dtPolyRef poly, const float *next_pos, Point3 &start, Point3 &end)
+bool get_offmesh_connection_end_points(int nav_mesh_idx, dtPolyRef poly, const float *next_pos, Point3 &start, Point3 &end)
 {
-  const dtOffMeshConnection *connection = navMesh->getOffMeshConnectionByRef(poly);
+  NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  const dtOffMeshConnection *connection = nmData.navMesh->getOffMeshConnectionByRef(poly);
   if (!connection)
     return false;
   const float aDistSq = dtVdistSqr(next_pos, &connection->pos[0]);
@@ -1942,7 +2086,7 @@ int find_corridor_corners(dtPathCorridor &corridor, float *corner_verts, unsigne
         (polyFlags & (POLYFLAG_JUMP | POLYFLAG_LADDER)))
     {
       Point3 start, end;
-      if (get_offmesh_connection_end_points(corner_polys[0], &corner_verts[3], start, end) &&
+      if (get_offmesh_connection_end_points(NM_MAIN, corner_polys[0], &corner_verts[3], start, end) &&
           dtVdistSqr(corridor.getPos(), &end.x) > dtSqr(MIN_TARGET_DIST))
       {
         corner_flags[0] = corner_flags[0] | DT_STRAIGHTPATH_OFFMESH_CONNECTION;
@@ -2033,7 +2177,7 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
     if (dtStatusFailed(navQuery->closestPointOnPoly(endRef, &pos.x, &closestNextPos.x, &overNextPos)))
       return 0;
     Point3 start, end;
-    if (!get_offmesh_connection_end_points(connRef, &closestNextPos.x, start, end))
+    if (!get_offmesh_connection_end_points(NM_MAIN, connRef, &closestNextPos.x, start, end))
       return 0;
     const float minDist = 0.5f;
     const float offDist = 0.1f;
@@ -2068,7 +2212,7 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
     if (dtStatusFailed(navQuery->closestPointOnPoly(endRef, &pos.x, &closestNextPos.x, &overNextPos)))
       return 0;
     Point3 start, end;
-    if (!get_offmesh_connection_end_points(connRef, &closestNextPos.x, start, end))
+    if (!get_offmesh_connection_end_points(NM_MAIN, connRef, &closestNextPos.x, start, end))
       return 0;
 
     if (over_link != OVER_JUMP_LINK)
@@ -2083,8 +2227,8 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
     bool standaloneJumpLink = true;
     if (dtStatusSucceed(navMesh->getPolyFlags(endRef, &polyFlags)) && (polyFlags & POLYFLAG_JUMP))
     {
-      corridor.moveOverOffmeshConnection(connRef, refs, &start.x, &end.x, navQuery); // first moveOver is not in loop, cause idx may be
-                                                                                     // greater than zero
+      // first moveOver is not in loop, cause idx may be greater than zero
+      corridor.moveOverOffmeshConnection(connRef, refs, &start.x, &end.x, navQuery);
       standaloneJumpLink = false;
     }
     int pathCount = corridor.getPathCount();
@@ -2109,7 +2253,7 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
 
     if (dtStatusFailed(navQuery->closestPointOnPoly(endRef, &pos.x, &closestNextPos.x, &overNextPos)))
       return 0;
-    if (!get_offmesh_connection_end_points(connRef, &closestNextPos.x, start, end))
+    if (!get_offmesh_connection_end_points(NM_MAIN, connRef, &closestNextPos.x, start, end))
       return 0;
     static const float MIN_TARGET_DIST_SQ = 0.01f;
     if (lengthSq(end - pos) < MIN_TARGET_DIST_SQ)
@@ -2310,14 +2454,20 @@ bool get_triangle_from_poly(const dtPolyRef result_ref, const dtMeshTile &tile, 
 }
 
 bool get_triangle_by_pos(const Point3 &pos, NavMeshTriangle &result, float horz_dist, int incl_flags, int excl_flags,
-  const CustomNav *custom_nav)
+  const CustomNav *custom_nav, float max_vert_dist)
+{
+  return get_triangle_by_pos_ex(NM_MAIN, pos, result, horz_dist, incl_flags, excl_flags, custom_nav, max_vert_dist);
+}
+
+bool get_triangle_by_pos_ex(int nav_mesh_idx, const Point3 &pos, NavMeshTriangle &result, float horz_dist, int incl_flags,
+  int excl_flags, const CustomNav *custom_nav, float max_vert_dist)
 {
   dtPolyRef resultRef;
-  if (find_polyref(pos, horz_dist, incl_flags, excl_flags, resultRef, custom_nav))
+  if (find_polyref(nav_mesh_idx, pos, horz_dist, incl_flags, excl_flags, resultRef, custom_nav, max_vert_dist))
   {
     const dtMeshTile *bestTile = nullptr;
     const dtPoly *bestPoly = nullptr;
-    navMesh->getTileAndPolyByRefUnsafe(resultRef, &bestTile, &bestPoly);
+    get_nav_mesh_ptr(nav_mesh_idx)->getTileAndPolyByRefUnsafe(resultRef, &bestTile, &bestPoly);
     return get_triangle_from_poly(resultRef, *bestTile, *bestPoly, pos, true, result);
   }
   return false;

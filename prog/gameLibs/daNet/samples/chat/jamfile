@@ -6,7 +6,7 @@ Target = chat ;
 OutDir = $(Root)/$(Location) ;
 
 AddIncludes =
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 
@@ -15,12 +15,12 @@ Sources =
 ;
 
 UseProgLibs =
-  engine2/memory
-  engine2/kernel
-  engine2/osApiWrappers
-  engine2/baseUtil
-  engine2/ioSys
-  engine2/perfMon/daProfilerStub
+  engine/memory
+  engine/kernel
+  engine/osApiWrappers
+  engine/baseUtil
+  engine/ioSys
+  engine/perfMon/daProfilerStub
 
   gameLibs/daNet
 ;

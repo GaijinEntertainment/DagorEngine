@@ -4,7 +4,7 @@
 
 CToolButton::CToolButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id) :
 
-  PropertyControlBase(id, event_handler, parent, 0, 0, 0, 0), mTParent(static_cast<CToolbar *>(parent))
+  PropertyControlBase(id, event_handler, parent, 0, 0, hdpi::Px::ZERO, hdpi::Px::ZERO), mTParent(static_cast<CToolbar *>(parent))
 {
   mEventHandler = NULL;
 }

@@ -12,7 +12,7 @@ Sources =
 ;
 
 AddIncludes +=
-  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine/sharedInclude
   $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
 ;
 

@@ -3,9 +3,9 @@
 #include "p_indent.h"
 #include "../c_constants.h"
 
-CIndent::CIndent(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w) :
+CIndent::CIndent(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w) :
 
-  PropertyControlBase(id, event_handler, parent, x, y, w, 0)
+  PropertyControlBase(id, event_handler, parent, x, y, w, hdpi::Px::ZERO)
 {}
 
 

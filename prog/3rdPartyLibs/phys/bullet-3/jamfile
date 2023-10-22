@@ -53,7 +53,7 @@ if $(Platform) in win32 win64 { CPPopt += -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECUR
 if $(Platform) in win64 xboxOne scarlett { CPPopt += /wd4267 ; }
 if $(Platform) in xboxOne scarlett { CPPopt += -DSetThreadIdealProcessor(X,Y)= ; }
 
-if $(PlatformSpec) in gcc4 clang { CPPopt += -Wno-unused-parameter -Wno-uninitialized -Wno-macro-redefined ; }
+if $(PlatformSpec) in gcc clang { CPPopt += -Wno-unused-parameter -Wno-uninitialized -Wno-macro-redefined ; }
 if $(Platform) = linux64 || $(PlatformSpec) = clang {
   if $(Platform) in win32 win64 xboxOne scarlett {
     CPPopt += -fp:fast /clang:-fno-unsafe-math-optimizations ;

@@ -28,18 +28,24 @@ public:
 									MeshShapeSettings() = default;
 
 	/// Create a mesh shape.
-									MeshShapeSettings(const TriangleList &inTriangles, const PhysicsMaterialList &inMaterials = PhysicsMaterialList());
-									MeshShapeSettings(const VertexList &inVertices, const IndexedTriangleList &inTriangles, const PhysicsMaterialList &inMaterials = PhysicsMaterialList());
+									MeshShapeSettings(const TriangleList &inTriangles, PhysicsMaterialList inMaterials = PhysicsMaterialList());
+									MeshShapeSettings(VertexList inVertices, IndexedTriangleList inTriangles, PhysicsMaterialList inMaterials = PhysicsMaterialList());
 
-	/// Sanitize the mesh data. Remove duplicate and degenerate triangles.
+	/// Sanitize the mesh data. Remove duplicate and degenerate triangles. This is called automatically when constructing the MeshShapeSettings with a list of (indexed-) triangles.
 	void							Sanitize();
 
 	// See: ShapeSettings
 	virtual ShapeResult				Create() const override;
 
-	/// Mesh data.
-	VertexList						mTriangleVertices;											///< Vertices belonging to mIndexedTriangles
-	IndexedTriangleList				mIndexedTriangles;											///< Original list of indexed triangles
+	/// Vertices belonging to mIndexedTriangles
+	VertexList						mTriangleVertices;
+
+	/// Original list of indexed triangles (triangles will be reordered internally in the mesh shape).
+	/// Triangles must be provided in counter clockwise order.
+	/// For simulation, the triangles are considered to be single sided.
+	/// For ray casts you can choose to make triangles double sided by setting RayCastSettings::mBackFaceMode to EBackFaceMode::CollideWithBackFaces.
+	/// For collide shape tests you can use CollideShapeSettings::mBackFaceMode and for shape casts you can use ShapeCastSettings::mBackFaceModeTriangles.
+	IndexedTriangleList				mIndexedTriangles;
 
 	/// Materials assigned to the triangles. Each triangle specifies which material it uses through its mMaterialIndex
 	PhysicsMaterialList				mMaterials;
@@ -47,6 +53,11 @@ public:
 	/// Maximum number of triangles in each leaf of the axis aligned box tree. This is a balance between memory and performance. Can be in the range [1, MeshShape::MaxTrianglesPerLeaf].
 	/// Sensible values are between 4 (for better performance) and 8 (for less memory usage).
 	uint							mMaxTrianglesPerLeaf = 8;
+
+	/// Cosine of the threshold angle (if the angle between the two triangles is bigger than this, the edge is active, note that a concave edge is always inactive).
+	/// Setting this value too small can cause ghost collisions with edges, setting it too big can cause depenetration artifacts (objects not depenetrating quickly).
+	/// Valid ranges are between cos(0 degrees) and cos(90 degrees). The default value is cos(5 degrees).
+	float							mActiveEdgeCosThresholdAngle = 0.996195f;					// cos(5 degrees)
 };
 
 /// A mesh shape, consisting of triangles. Mesh shapes are mostly used for static geometry.
@@ -75,7 +86,7 @@ public:
 
 	// See Shape::GetMassProperties
 	virtual MassProperties			GetMassProperties() const override;
-	
+
 	// See Shape::GetMaterial
 	virtual const PhysicsMaterial *	GetMaterial(const SubShapeID &inSubShapeID) const override;
 
@@ -102,9 +113,12 @@ public:
 	virtual void					CastRay(const RayCast &inRay, const RayCastSettings &inRayCastSettings, const SubShapeIDCreator &inSubShapeIDCreator, CastRayCollector &ioCollector, const ShapeFilter &inShapeFilter = { }) const override;
 
 	/// See: Shape::CollidePoint
-	/// Note that for CollidePoint to work for a mesh shape, the mesh needs to be closed (a manifold) or multiple non-intersecting manifolds. Triangles may be facing the interior of the manifold. 
+	/// Note that for CollidePoint to work for a mesh shape, the mesh needs to be closed (a manifold) or multiple non-intersecting manifolds. Triangles may be facing the interior of the manifold.
 	/// Insideness is tested by counting the amount of triangles encountered when casting an infinite ray from inPoint. If the number of hits is odd we're inside, if it's even we're outside.
 	virtual void					CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSubShapeIDCreator, CollidePointCollector &ioCollector, const ShapeFilter &inShapeFilter = { }) const override;
+
+	// See: Shape::ColideSoftBodyVertices
+	virtual void					CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const override;
 
 	// See Shape::GetTrianglesStart
 	virtual void					GetTrianglesStart(GetTrianglesContext &ioContext, const AABox &inBox, Vec3Arg inPositionCOM, QuatArg inRotation, Vec3Arg inScale) const override;
@@ -143,10 +157,10 @@ private:
 	struct							MSGetTrianglesContext;										///< Context class for GetTrianglesStart/Next
 
 	static constexpr int			NumTriangleBits = 3;										///< How many bits to reserve to encode the triangle index
-	static constexpr int			MaxTrianglesPerLeaf = 1 << NumTriangleBits;					///< Number of triangles that are stored max per leaf aabb node 
+	static constexpr int			MaxTrianglesPerLeaf = 1 << NumTriangleBits;					///< Number of triangles that are stored max per leaf aabb node
 
 	/// Find and flag active edges
-	static void						sFindActiveEdges(const VertexList &inVertices, IndexedTriangleList &ioIndices);
+	static void						sFindActiveEdges(const MeshShapeSettings &inSettings, IndexedTriangleList &ioIndices);
 
 	/// Visit the entire tree using a visitor pattern
 	template <class Visitor>

@@ -55,6 +55,7 @@
 
 #define PhysSystemInstance BulletPhysSystemInstance
 
+class btRigidBody;
 
 #elif defined(USE_JOLT_PHYSICS)
 
@@ -141,15 +142,19 @@ typedef void (*PhysBodyPreSolveCallback)(PhysBody *body, void *other, const Poin
 // action with execution delayed to end of update (after PhysWorld::startSim() finishes)
 struct AfterPhysUpdateAction
 {
+#if USE_BULLET_PHYSICS
+  btRigidBody *body;
+  AfterPhysUpdateAction(btRigidBody *rb = nullptr) : body(rb) {}
+#endif
   virtual ~AfterPhysUpdateAction() {}
-  virtual void doAction(bool immediate) = 0;
+  virtual void doAction(PhysWorld &phys_world, bool immediate) = 0;
 };
 
 template <typename T, typename P, class... Args>
 inline void exec_or_add_after_phys_action(P &physWorld, Args &&...args)
 {
   if (DAGOR_LIKELY(physWorld.canExecActionNow()))
-    T(static_cast<Args &&>(args)...).doAction(/*immediate*/ true);
+    T(static_cast<Args &&>(args)...).doAction(physWorld, /*immediate*/ true);
   else // sim in progress -> add DA
     physWorld.addAfterPhysAction(new T(static_cast<Args &&>(args)...));
 }

@@ -155,8 +155,8 @@ void ClipmapDecals::initDecalTypes(const DataBlock &blk)
     {
       String bufName;
       bufName.printf(0, "decal_displacement_mask_type%d", decalTypeId);
-      decalType.displacementMaskBuf = dag::create_sbuffer(4, decalsCount * sizeof(DisplacementMask) / 4,
-        SBCF_DYNAMIC | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES | SBCF_MAYBELOST, 0, bufName.c_str());
+      decalType.displacementMaskBuf =
+        dag::buffers::create_persistent_sr_byte_address(decalsCount * sizeof(DisplacementMask), bufName.c_str());
       decalType.displacementMasks.resize(decalsCount);
       decalType.displacementMaskSizes.resize(decalsCount);
     }
@@ -195,8 +195,8 @@ int ClipmapDecals::createDecalType(TEXTUREID d_tex_id, TEXTUREID n_tex_id, TEXTU
   String bufferName;
   bufferName.printf(0, "decal_data_vs_type%d", newDecalType);
 
-  decalType.decalDataVS = dag::create_sbuffer(sizeof(Point4), decals_count * sizeof(InstData) / sizeof(Point4),
-    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_ZEROMEM, TEXFMT_A32B32G32R32F, bufferName);
+  decalType.decalDataVS = dag::buffers::create_persistent_sr_tbuf(decals_count * sizeof(InstData) / sizeof(Point4),
+    TEXFMT_A32B32G32R32F, bufferName, dag::buffers::Init::Zero);
 
   decalType.dtex = d_tex_id;
   decalType.ntex = n_tex_id;
@@ -484,7 +484,7 @@ void ClipmapDecals::updateBuffers(int type_no)
   if (useDisplacementMask)
   {
     type.displacementMaskBuf.getBuf()->updateData(0, sizeof(type.displacementMasks[0]) * type.activeCount,
-      type.displacementMasks.data(), VBLOCK_DISCARD);
+      type.displacementMasks.data(), VBLOCK_WRITEONLY);
   }
 
   type.needUpdate = false;

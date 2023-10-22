@@ -76,8 +76,13 @@ static bool parseInclude(ShaderLexParser *_this, bool optional = false)
   {
     if (!optional)
     {
-      ((ParserFileInput *)_this->__input_stream())
-        ->parser->set_error(String(0, "can't open file %.*s (or %s)", inc_fn_len, inc_fn, inc_fpath));
+      ParserFileInput *pfi = (ParserFileInput *)_this->__input_stream();
+      String include_file_stack(0, "can't open file %.*s (or %s)\n", inc_fn_len, inc_fn, inc_fpath);
+      for (auto it = pfi->incstk.rbegin(); it != pfi->incstk.rend(); ++it)
+      {
+        include_file_stack.aprintf(0, "included from '%s'\n", pfi->get_filename(it->file));
+      }
+      pfi->parser->set_error(include_file_stack);
       sh_debug(SHLOG_FATAL, "can't include shader script '%s'", inc_fpath.str());
       return false;
     }
@@ -385,7 +390,7 @@ const char *MyShaderLexParser::get_filename(int f) { return input_stream->get_fi
 
 namespace ShaderParser
 {
-ShHardwareOptions currentShaderOptions(-1);
+ShHardwareOptions currentShaderOptions(d3d::smAny);
 }
 
 static ParserFileInput *current_inp = NULL;
@@ -425,6 +430,8 @@ void parse_shader_script(const char *fn, const ShHardwareOptions &opt, Tab<Simpl
     sh_debug(SHLOG_INFO, "parsing shader script %s", fn);
     MyShaderSyntaxParser syn(lex);
     NonterminalS *s = syn.parse();
+    if (!s)
+      sh_debug(SHLOG_ERROR, "Unexpected EOF at '%s'", fn);
     sh_debug(SHLOG_INFO, "parsed shader script %s", fn);
     sh_dump_warn_info();
     sh_process_errors();

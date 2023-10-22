@@ -4,7 +4,11 @@
 
 #include <generic/dag_tab.h>
 #include <propPanel2/c_common.h>
+#include <libTools/util/hdpiUtil.h>
 
+using hdpi::_pxActual;
+using hdpi::_pxS;
+using hdpi::_pxScaled;
 
 const char PROPERTY_WINDOW_CLASS_NAME[] = "PropertyWindowClass";
 const char CONTAINER_WINDOW_CLASS_NAME[] = "ContainerWindowClass";

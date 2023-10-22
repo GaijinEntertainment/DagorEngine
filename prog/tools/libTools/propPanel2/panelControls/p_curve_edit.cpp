@@ -5,12 +5,12 @@
 #include <ioSys/dag_dataBlock.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
-CCurveEdit::CCurveEdit(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
-  const char caption[]) :
+CCurveEdit::CCurveEdit(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+  hdpi::Px h, const char caption[]) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, h + DEFAULT_CONTROL_HEIGHT + 2),
-  mCurve(this, parent->getWindow(), x, y + DEFAULT_CONTROL_HEIGHT + 2, w, h),
-  mCaption(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT)
+  BasicPropertyControl(id, event_handler, parent, x, y, w, h + _pxScaled(DEFAULT_CONTROL_HEIGHT) + _pxScaled(2)),
+  mCurve(this, parent->getWindow(), x, y + _pxS(DEFAULT_CONTROL_HEIGHT) + _pxS(2), _px(w), _px(h)),
+  mCaption(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT))
 {
   mCaption.setTextValue(caption);
   setIntValue(CURVE_CMR_APP);
@@ -21,7 +21,7 @@ CCurveEdit::CCurveEdit(ControlEventHandler *event_handler, PropertyContainerCont
 PropertyContainerControlBase *CCurveEdit::createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
   bool new_line)
 {
-  parent->createCurveEdit(id, caption, 0, true, new_line);
+  parent->createCurveEdit(id, caption, hdpi::Px::ZERO, true, new_line);
   return NULL;
 }
 
@@ -90,19 +90,19 @@ bool CCurveEdit::getCurveCubicCoefsValue(Tab<Point2> &xy_4c_per_seg) const
 void CCurveEdit::setControlPointsValue(Tab<Point2> &points) { mCurve.setValue(points); }
 
 
-void CCurveEdit::setWidth(unsigned w)
+void CCurveEdit::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
 
-  mCaption.resizeWindow(w, mCaption.getHeight());
-  mCurve.resizeWindow(w, mCurve.getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
+  mCurve.resizeWindow(_px(w), mCurve.getHeight());
 }
 
 
-void CCurveEdit::setHeight(unsigned h)
+void CCurveEdit::setHeight(hdpi::Px h)
 {
   PropertyControlBase::setHeight(h);
-  mCurve.resizeWindow(mCurve.getWidth(), h - mCaption.getHeight());
+  mCurve.resizeWindow(mCurve.getWidth(), _px(h) - mCaption.getHeight());
 }
 
 
@@ -118,7 +118,7 @@ void CCurveEdit::moveTo(int x, int y)
   PropertyControlBase::moveTo(x, y);
 
   mCaption.moveWindow(x, y);
-  mCurve.moveWindow(x, y + DEFAULT_CONTROL_HEIGHT + 2);
+  mCurve.moveWindow(x, y + _pxS(DEFAULT_CONTROL_HEIGHT) + _pxS(2));
 }
 
 

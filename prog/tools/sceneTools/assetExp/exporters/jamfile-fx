@@ -17,13 +17,13 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude/squirrel
 ;
 
-UseProgLibs = 
-  engine2/startup
-  engine2/math
+UseProgLibs =
+  engine/startup
+  engine/math
 
-  engine2/lib3d
-  engine2/drv/drv3d_null
-  engine2/consoleProc
+  engine/lib3d
+  engine/drv/drv3d_null
+  engine/consoleProc
 
   tools/libTools/assetMgr
   tools/libTools/dagFileRW

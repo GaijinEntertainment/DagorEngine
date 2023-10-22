@@ -25,10 +25,10 @@ if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
-  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/gameLibs/publicInclude/squirrel
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine/sharedInclude
   $(Root)/prog/tools/sceneTools/impostorBaker
   $(Root)/prog/gameLibs/rendInst
 ;
@@ -60,30 +60,30 @@ Sources =
 ;
 
 UseProgLibs =
-  engine2/startup
-  engine2/math
-  engine2/coreUtil
-  engine2/workCycle
-  engine2/lib3d
-  engine2/shaders
-  engine2/scene
-  engine2/image
-  engine2/guiBase
+  engine/startup
+  engine/math
+  engine/coreUtil
+  engine/workCycle
+  engine/lib3d
+  engine/shaders
+  engine/scene
+  engine/image
+  engine/guiBase
 
-  engine2/drv/hid_mouse
-  engine2/drv/hid_keyboard
-  engine2/drv/drv3d_pc_multi
+  engine/drv/hid_mouse
+  engine/drv/hid_keyboard
+  engine/drv/drv3d_pc_multi
 
-  engine2/gameRes
-  engine2/libFx
-  engine2/sceneRay
-  engine2/perfMon
-  engine2/consoleProc
-  engine2/imgui
+  engine/gameRes
+  engine/libFx
+  engine/sceneRay
+  engine/perfMon
+  engine/consoleProc
+  engine/imgui
 
-  engine2/anim
-  engine2/animChar
-  engine2/phys/fastPhys
+  engine/anim
+  engine/animChar
+  engine/phys/fastPhys
 
   tools/libTools/assetMgr
   tools/libTools/assetMgrHlp
@@ -106,34 +106,34 @@ UseProgLibs =
   tools/libTools/scriptPanelWrapper
   tools/libTools/math
 
-  tools/sceneTools/daEditor3/services/dynRenderSrv
-  tools/sceneTools/daEditor3/services/wind
-  tools/sceneTools/daEditor3/services/riMgr
-  tools/sceneTools/daEditor3/services/prefabMgr
-  tools/sceneTools/daEditor3/services/fxMgr
-  tools/sceneTools/daEditor3/services/efxMgr
-  tools/sceneTools/daEditor3/services/physobjMgr
-  tools/sceneTools/daEditor3/services/gameobjMgr
-  tools/sceneTools/daEditor3/services/compositMgr
-  tools/sceneTools/daEditor3/services/invalidEntityMgr
-  tools/sceneTools/daEditor3/services/bitMaskMgr
-  tools/sceneTools/daEditor3/services/dynModelMgr
-  tools/sceneTools/daEditor3/services/animCharMgr
-  tools/sceneTools/daEditor3/services/assetSrv
-  tools/sceneTools/daEditor3/services/dxpFactory
-  tools/sceneTools/daEditor3/services/lightSrv
-  tools/sceneTools/daEditor3/services/dynModelMgr
-  tools/sceneTools/daEditor3/services/physobjMgr
-  tools/sceneTools/daEditor3/services/skiesSrv
-  tools/sceneTools/daEditor3/services/colorRangeSrv
-  tools/sceneTools/daEditor3/services/csgEntMgr
-  tools/sceneTools/daEditor3/services/cableSrv
-  tools/sceneTools/daEditor3/services/splineGenSrv
-  tools/sceneTools/daEditor3/services/ecsMgr
-  tools/sceneTools/daEditor3/services/webui
-  tools/sceneTools/daEditor3/services/ecsInput
-  tools/sceneTools/daEditor3/services/imguiMgr
-  tools/sceneTools/daEditor3/services/dasMgr
+  tools/sceneTools/daEditorX/services/dynRenderSrv
+  tools/sceneTools/daEditorX/services/wind
+  tools/sceneTools/daEditorX/services/riMgr
+  tools/sceneTools/daEditorX/services/prefabMgr
+  tools/sceneTools/daEditorX/services/fxMgr
+  tools/sceneTools/daEditorX/services/efxMgr
+  tools/sceneTools/daEditorX/services/physobjMgr
+  tools/sceneTools/daEditorX/services/gameobjMgr
+  tools/sceneTools/daEditorX/services/compositMgr
+  tools/sceneTools/daEditorX/services/invalidEntityMgr
+  tools/sceneTools/daEditorX/services/bitMaskMgr
+  tools/sceneTools/daEditorX/services/dynModelMgr
+  tools/sceneTools/daEditorX/services/animCharMgr
+  tools/sceneTools/daEditorX/services/assetSrv
+  tools/sceneTools/daEditorX/services/dxpFactory
+  tools/sceneTools/daEditorX/services/lightSrv
+  tools/sceneTools/daEditorX/services/dynModelMgr
+  tools/sceneTools/daEditorX/services/physobjMgr
+  tools/sceneTools/daEditorX/services/skiesSrv
+  tools/sceneTools/daEditorX/services/colorRangeSrv
+  tools/sceneTools/daEditorX/services/csgEntMgr
+  tools/sceneTools/daEditorX/services/cableSrv
+  tools/sceneTools/daEditorX/services/splineGenSrv
+  tools/sceneTools/daEditorX/services/ecsMgr
+  tools/sceneTools/daEditorX/services/webui
+  tools/sceneTools/daEditorX/services/ecsInput
+  tools/sceneTools/daEditorX/services/imguiMgr
+  tools/sceneTools/daEditorX/services/dasMgr
 
   tools/sceneTools/impostorBaker/impostorUtil
 
@@ -141,9 +141,9 @@ UseProgLibs =
   tools/libTools/sepGui
   tools/libTools/dagFileRW
 
-  engine2/phys/physCommon
-  engine2/phys/physBullet
-  engine2/phys/physJolt
+  engine/phys/physCommon
+  engine/phys/physBullet
+  engine/phys/physJolt
   gameLibs/vehiclePhys/vehiclePhys-BULLET
   gameLibs/render
   gameLibs/rendInst/riFx/stub

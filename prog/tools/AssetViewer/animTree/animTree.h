@@ -10,6 +10,21 @@
 
 class ILodController;
 class IObjEntity;
+enum CtrlType;
+
+struct AnimCtrlData
+{
+  TLeafHandle handle;
+  CtrlType type;
+  dag::Vector<int> childs;
+};
+
+struct AnimParamData
+{
+  int pid;
+  DataBlock::ParamType type;
+  String name;
+};
 
 struct AnimNodeData
 {
@@ -69,12 +84,14 @@ protected:
   dag::Vector<AnimNodeData> animNodes;
   float animProgress;
 
+  dag::Vector<AnimParamData> ctrlParams;
   dag::Vector<String> fieldNames;
   float animTime;
   int firstKey;
   int lastKey;
 
   TLeafHandle enumsRootLeaf = nullptr;
+  dag::Vector<AnimCtrlData> controllersData;
 
   TLeafHandle getEnumsRootLeaf(PropertyContainerControlBase *tree);
   bool isEnumOrEnumItem(TLeafHandle leaf, PropertyContainerControlBase *tree);
@@ -82,10 +99,24 @@ protected:
   void fillEnumTree(const DataBlock *settings, PropertyContainerControlBase *panel);
   void fillAnimBlendSettings(PropertyContainerControlBase *tree, PropertyContainerControlBase *group);
   void fillAnimBlendFields(PropertyContainerControlBase *panel, const DataBlock *node, int &field_idx);
+  void fillCtrlsSettings(PropertyContainerControlBase *panel);
+  void fillCtrlsParamsSettings(PropertyContainerControlBase *panel, const DataBlock *settings, int field_idx);
+  void fillCtrlsBlocksSettings(PropertyContainerControlBase *panel, const DataBlock *settings);
+  void fillParamSwitchBlockSettings(PropertyContainerControlBase *panel, const DataBlock *settings);
+  void fillParamSwitchEnumGen(PropertyContainerControlBase *panel, const DataBlock *nodes);
+  void setSelectedParamSwitchSettings(PropertyContainerControlBase *panel);
+  void changeParamSwitchType(PropertyContainerControlBase *panel);
+  void addNodeParamSwitchList(PropertyContainerControlBase *panel);
+  void removeNodeParamSwitchList(PropertyContainerControlBase *panel);
+  void saveControllerSettings(PropertyContainerControlBase *panel);
+  void saveControllerParamsSettings(PropertyContainerControlBase *panel, DataBlock *settings);
+  void saveControllerBlocksSettings(PropertyContainerControlBase *panel, DataBlock *settings);
+  void saveParamSwitchBlockSettings(PropertyContainerControlBase *panel, DataBlock *settings);
   void selectDynModel();
   void resetDynModel();
   void reloadDynModel();
   void loadA2dResource(PropertyContainerControlBase *panel);
   void animate(int key);
   int getPidByName(const char *name);
+  DataBlock *findBnlProps(const char *name);
 };

@@ -2,7 +2,7 @@
 #include "p_base.h"
 
 BasicPropertyControl::BasicPropertyControl(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x,
-  int y, unsigned w, unsigned h) :
+  int y, hdpi::Px w, hdpi::Px h) :
   PropertyControlBase(id, event_handler, parent, x, y, w, h)
 {}
 

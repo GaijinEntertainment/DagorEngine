@@ -98,17 +98,16 @@ void GIWalls::updatePos(const Point3 &pos_)
     bufferCount = max((int)256, max((int)activeList.size(), (int)bufferCount * 2));
 
     currentWallsSB.close();
-    currentWallsSB = UniqueBufHolder(dag::create_sbuffer(sizeof(Wall), bufferCount,
-                                       SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "currentWallsList"),
-      "wallsList");
+    currentWallsSB =
+      UniqueBufHolder(dag::buffers::create_persistent_sr_structured(sizeof(Wall), bufferCount, "currentWallsList"), "wallsList");
     currentWallsSB.setVar();
   }
   if (planeCount < planeList.size())
   {
-    planeCount = min<int>(4096, max<int>(256, max<int>(planeList.size(), planeCount * 2)));
+    planeCount = d3d::get_driver_code()
+                   .map(d3d::metal, 4096)
+                   .map(d3d::any, min<int>(4096, max<int>(256, max<int>(planeList.size(), planeCount * 2))));
     G_ASSERT(planeList.size() < 4096);
-    if (d3d::get_driver_code() == _MAKE4C('MTL'))
-      planeCount = 4096;
 
     currentWallsConvexCB.close();
     currentWallsConvexCB = UniqueBufHolder(dag::buffers::create_persistent_cb(planeCount, "currentWallsListVB"), "PlanesCbuffer");
@@ -316,8 +315,8 @@ void GIWalls::init(eastl::unique_ptr<class scene::TiledScene> &&s)
       currentWallsGridSB.setVar();
     }
     if (!frameWallsCB)
-      frameWallsCB.reset(d3d_buffers::create_persistent_cb(max_visible_nodes * 6, "currentWallsListVB")); // fixme: auto
-                                                                                                          // resize
+      frameWallsCB.reset(d3d::buffers::create_persistent_cb(max_visible_nodes * 6, "currentWallsListVB")); // fixme: auto
+                                                                                                           // resize
 
     // fill_walls_grid.reset(new_compute_shader("fill_walls_grid_cs"));
     fill_walls_grid_range.reset(new_compute_shader("fill_walls_grid_range_cs"));

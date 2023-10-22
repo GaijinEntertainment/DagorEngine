@@ -7,6 +7,7 @@
 #include <Jolt/RegisterTypes.h>
 #include <Jolt/Core/Factory.h>
 #include <Jolt/Core/RTTI.h>
+#include <Jolt/Core/TickCounter.h>
 #include <Jolt/Physics/Collision/CollisionDispatch.h>
 #include <Jolt/Physics/Collision/Shape/TriangleShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
@@ -23,6 +24,7 @@
 #include <Jolt/Physics/Collision/Shape/MutableCompoundShape.h>
 #include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>
 #include <Jolt/Physics/Collision/PhysicsMaterialSimple.h>
+#include <Jolt/Physics/SoftBody/SoftBodyShape.h>
 
 JPH_DECLARE_RTTI_WITH_NAMESPACE_FOR_FACTORY(JPH_EXPORT, JPH, Skeleton)
 JPH_DECLARE_RTTI_WITH_NAMESPACE_FOR_FACTORY(JPH_EXPORT, JPH, SkeletalAnimation)
@@ -63,13 +65,20 @@ JPH_DECLARE_RTTI_WITH_NAMESPACE_FOR_FACTORY(JPH_EXPORT, JPH, PhysicsScene)
 JPH_DECLARE_RTTI_WITH_NAMESPACE_FOR_FACTORY(JPH_EXPORT, JPH, PhysicsMaterial)
 JPH_DECLARE_RTTI_WITH_NAMESPACE_FOR_FACTORY(JPH_EXPORT, JPH, GroupFilter)
 JPH_DECLARE_RTTI_WITH_NAMESPACE_FOR_FACTORY(JPH_EXPORT, JPH, GroupFilterTable)
+JPH_DECLARE_RTTI_WITH_NAMESPACE_FOR_FACTORY(JPH_EXPORT, JPH, BodyCreationSettings)
+JPH_DECLARE_RTTI_WITH_NAMESPACE_FOR_FACTORY(JPH_EXPORT, JPH, SoftBodyCreationSettings)
 
 JPH_NAMESPACE_BEGIN
+
+bool VerifyJoltVersionIDInternal(uint64 inVersionID)
+{
+	return inVersionID == JPH_VERSION_ID;
+}
 
 void RegisterTypesInternal(uint64 inVersionID)
 {
 	// Version check
-	if (inVersionID != JPH_VERSION_ID)
+	if (!VerifyJoltVersionIDInternal(inVersionID))
 	{
 		JPH_ASSERT(false, "Version mismatch, make sure you compile the client code with the same Jolt version and compiler definitions!");
 		JPH_CRASH;
@@ -102,6 +111,7 @@ void RegisterTypesInternal(uint64 inVersionID)
 	MeshShape::sRegister();
 	ConvexHullShape::sRegister();
 	HeightFieldShape::sRegister();
+	SoftBodyShape::sRegister();
 
 	// Register these last because their collision functions are simple so we want to execute them first (register them in reverse order of collision complexity)
 	RotatedTranslatedShape::sRegister();
@@ -149,7 +159,9 @@ void RegisterTypesInternal(uint64 inVersionID)
 		JPH_RTTI(PhysicsMaterial),
 		JPH_RTTI(PhysicsMaterialSimple),
 		JPH_RTTI(GroupFilter),
-		JPH_RTTI(GroupFilterTable)
+		JPH_RTTI(GroupFilterTable),
+		JPH_RTTI(BodyCreationSettings),
+		JPH_RTTI(SoftBodyCreationSettings)
 	};
 
 	// Register them all

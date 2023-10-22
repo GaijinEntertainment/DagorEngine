@@ -13,6 +13,7 @@
 #include <generic/dag_tab.h>
 #include <math/dag_math3d.h>
 #include <util/dag_string.h>
+#include <libTools/util/hdpiUtil.h>
 
 
 class PropertyContainerControlBase;
@@ -22,8 +23,8 @@ class DataBlock;
 class PropertyControlBase : public WindowControlEventHandler
 {
 public:
-  PropertyControlBase(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x, int y, unsigned w,
-    unsigned h);
+  PropertyControlBase(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x, int y, hdpi::Px w,
+    hdpi::Px h);
   virtual ~PropertyControlBase();
 
   // Sets
@@ -60,6 +61,9 @@ public:
   virtual void setCaptionValue(const char value[]) { G_UNUSED(value); };
   virtual void setButtonPictureValues(const char *fname = NULL) { G_UNUSED(fname); };
 
+  virtual int addStringValue(const char *value);
+  virtual void removeStringValue(int idx) { G_UNUSED(idx); }
+
   // Gets
   virtual void *getUserDataValue() const;
   virtual int getTextValue(char *buffer, int buflen) const;
@@ -89,9 +93,9 @@ public:
   virtual int getY() const { return mY; }
   virtual int getID() const { return mId; }
 
-  virtual void setWidth(unsigned w) { mW = w; }
-  virtual void setHeight(unsigned h) { mH = h; }
-  virtual void resize(unsigned w, unsigned h)
+  virtual void setWidth(hdpi::Px w) { mW = _px(w); }
+  virtual void setHeight(hdpi::Px h) { mH = _px(h); }
+  virtual void resize(hdpi::Px w, hdpi::Px h)
   {
     setWidth(w);
     setHeight(h);

@@ -25,6 +25,8 @@ class Endpoint : public ipc::Channel::MessageHandler,
     void run();
     void stop();
 
+    const CefRefPtr<CefDictionaryValue>& getExtraInfo() const { return extraInfo; }
+
   public:
     void onInitialized();
     void onShutdown();

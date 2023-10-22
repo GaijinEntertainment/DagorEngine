@@ -210,6 +210,24 @@ public:
     das::addExtern<DAS_BIND_FUN(pathfinder::mark_polygons_upper)>(*this, lib, "mark_polygons_upper", das::SideEffects::modifyExternal,
       "pathfinder::mark_polygons_upper");
 
+    das::addExtern<DAS_BIND_FUN(pathfinder::is_loaded_ex)>(*this, lib, "pathfinder_is_loaded_ex", das::SideEffects::accessExternal,
+      "::pathfinder::is_loaded_ex");
+
+    das::addExtern<DAS_BIND_FUN(find_path_ex)>(*this, lib, "find_path_ex", das::SideEffects::modifyArgumentAndAccessExternal,
+      "bind_dascript::find_path_ex");
+
+    das::addExtern<DAS_BIND_FUN(find_path_ex_req)>(*this, lib, "find_path_ex", das::SideEffects::modifyArgumentAndAccessExternal,
+      "bind_dascript::find_path_ex");
+
+    das::addExtern<DAS_BIND_FUN(check_path_ex_req)>(*this, lib, "check_path_ex", das::SideEffects::modifyArgumentAndAccessExternal,
+      "bind_dascript::check_path_ex_req");
+
+    das::addExtern<bool (*)(int, const Point3 &, const Point3 &, const Point3 &, float, float, const pathfinder::CustomNav *, int),
+      &pathfinder::check_path_ex>(*this, lib, "check_path_ex", das::SideEffects::accessExternal, "::pathfinder::check_path_ex");
+
+    das::addExtern<DAS_BIND_FUN(pathfinder::get_triangle_by_pos_ex)>(*this, lib, "get_triangle_by_pos_ex",
+      das::SideEffects::modifyArgumentAndAccessExternal, "pathfinder::get_triangle_by_pos_ex");
+
     das::addExtern<DAS_BIND_FUN(pathfinder::rebuildNavMesh_init)>(*this, lib, "rebuildNavMesh_init", das::SideEffects::modifyExternal,
       "pathfinder::rebuildNavMesh_init");
 

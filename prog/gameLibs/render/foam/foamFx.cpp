@@ -62,13 +62,17 @@ static const char *debugTextures2[] = {
   VAR(texsz)                    \
   VAR(foam_tile_uv_scale)       \
   VAR(foam_distortion_scale)    \
+  VAR(foam_normal_scale)        \
   VAR(foam_pattern_gamma)       \
   VAR(foam_mask_gamma)          \
-  VAR(foam_overfoam_threshold)  \
-  VAR(foam_underfoam_threshold) \
   VAR(foam_gradient_gamma)      \
-  VAR(foam_final_weights)       \
-  VAR(foam_normal_scale)
+  VAR(foam_underfoam_threshold) \
+  VAR(foam_overfoam_threshold)  \
+  VAR(foam_underfoam_weight)    \
+  VAR(foam_overfoam_weight)     \
+  VAR(foam_underfoam_color)     \
+  VAR(foam_overfoam_color)      \
+  VAR(foam_reflectivity)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -110,13 +114,17 @@ void FoamFx::setParams(const FoamFxParams &params)
 {
   ShaderGlobal::set_real(foam_tile_uv_scaleVarId, params.scale.x);
   ShaderGlobal::set_real(foam_distortion_scaleVarId, params.scale.y);
+  ShaderGlobal::set_real(foam_normal_scaleVarId, params.scale.z);
   ShaderGlobal::set_real(foam_pattern_gammaVarId, params.gamma.x);
   ShaderGlobal::set_real(foam_mask_gammaVarId, params.gamma.y);
-  ShaderGlobal::set_real(foam_overfoam_thresholdVarId, params.threshold.x);
-  ShaderGlobal::set_real(foam_underfoam_thresholdVarId, params.threshold.y);
   ShaderGlobal::set_real(foam_gradient_gammaVarId, params.gamma.z);
-  ShaderGlobal::set_color4(foam_final_weightsVarId, params.weight);
-  ShaderGlobal::set_real(foam_normal_scaleVarId, params.scale.z);
+  ShaderGlobal::set_real(foam_underfoam_thresholdVarId, params.threshold.x);
+  ShaderGlobal::set_real(foam_overfoam_thresholdVarId, params.threshold.y);
+  ShaderGlobal::set_real(foam_underfoam_weightVarId, params.weight.x);
+  ShaderGlobal::set_real(foam_overfoam_weightVarId, params.weight.y);
+  ShaderGlobal::set_color4(foam_underfoam_colorVarId, params.underfoamColor, 1.0f);
+  ShaderGlobal::set_color4(foam_overfoam_colorVarId, params.overfoamColor, 1.0f);
+  ShaderGlobal::set_real(foam_reflectivityVarId, params.reflectivity);
 
   foamGeneratorTileTex.close();
   foamGeneratorTileTex = SharedTexHolder(dag::get_tex_gameres(params.tileTex), "foam_generator_tile");
@@ -189,7 +197,7 @@ void FoamFx::renderFoam()
 void FoamFx::beginMaskRender()
 {
   d3d::set_render_target(maskTarget.getBaseTex(), 0);
-  d3d::set_depth(maskDepth.getBaseTex(), false);
+  d3d::set_depth(maskDepth.getBaseTex(), DepthAccess::RW);
   d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER, 0, 0, 0);
   shaders::overrides::set(zFuncLeqStateId);
 }

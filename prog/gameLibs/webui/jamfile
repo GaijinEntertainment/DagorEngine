@@ -11,7 +11,7 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude/quirrel
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/dagorInclude
-  $(Root)/prog/engine2/sharedInclude # kind of hack for access to shaders implementation
+  $(Root)/prog/engine/sharedInclude # kind of hack for access to shaders implementation
 ;
 
 Sources =

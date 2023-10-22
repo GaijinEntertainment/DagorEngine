@@ -5,7 +5,7 @@
 //
 #pragma once
 
-#include <rendInst/rendInstExHandle.h>
+#include <rendInst/riexHandle.h>
 
 class AcesEffect;
 class DataBlock;

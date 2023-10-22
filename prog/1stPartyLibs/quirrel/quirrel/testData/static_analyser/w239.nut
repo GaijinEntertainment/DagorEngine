@@ -9,3 +9,5 @@ let function isLoggedIn() { //-declared-never-used
 
   return true;
 }
+
+//-file:undefined-global

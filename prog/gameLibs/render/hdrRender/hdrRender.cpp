@@ -37,7 +37,7 @@ eastl::unique_ptr<PostFxRenderer> encode_hdr_renderer;
 
 bool hdrrender::is_hdr_enabled() { return !!d3d::driver_command(DRV3D_COMMAND_IS_HDR_ENABLED, NULL, NULL, NULL); }
 
-static bool int10_hdr_buffer() { return d3d::driver_command(DRV3D_COMMAND_INT10_HDR_BUFFER, NULL, NULL, NULL); }
+bool hdrrender::int10_hdr_buffer() { return d3d::driver_command(DRV3D_COMMAND_INT10_HDR_BUFFER, NULL, NULL, NULL); }
 
 bool hdrrender::is_hdr_available() { return d3d::driver_command(DRV3D_COMMAND_IS_HDR_AVAILABLE, NULL, NULL, NULL); }
 

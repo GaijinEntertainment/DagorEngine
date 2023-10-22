@@ -31,16 +31,16 @@ Sources(tools/sceneTools/blkDiff) = blkInhDiffMaker.cpp blkInheritanceDiff.cpp ;
 Sources(tools/sceneTools/utf8ranges) = utf8ranges.cpp ;
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/math
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
   tools/libTools/util
 ;
-if $(Platform) = linux64 { UseProgLibs += engine2/osApiWrappers/messageBox/stub ; }
+if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 if $(UseSystemOpenSSL) != yes {
   AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;

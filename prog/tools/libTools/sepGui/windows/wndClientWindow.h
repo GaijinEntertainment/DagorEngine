@@ -25,7 +25,7 @@ public:
   virtual void getPos(IPoint2 &left_top, IPoint2 &right_bottom) const;
   virtual void resize(const IPoint2 &left_top, const IPoint2 &right_bottom);
 
-  virtual bool getMinSize(int &min_w, int &min_h);
+  virtual bool getMinSize(hdpi::Px &min_w, hdpi::Px &min_h) const;
   virtual WindowSizeLock getSizeLock() const;
 
   virtual intptr_t winProc(void *h_wnd, unsigned msg, TSgWParam w_param, TSgLParam l_param);
@@ -34,7 +34,7 @@ public:
   virtual VirtualWindow *getVirtualWindow() const;
   virtual ClientWindow *getClientWindow() const;
 
-  void setMinSize(unsigned min_w, unsigned min_h);
+  void setMinSize(hdpi::Px min_w, hdpi::Px min_h);
   void setMenuArea(IPoint2 pos, IPoint2 size);
 
   void setType(int type);
@@ -73,8 +73,8 @@ private:
 
   Menu *mPopupMenuActions, *mPopupMenuUser;
 
-  unsigned mMinWidth;
-  unsigned mMinHeight;
+  hdpi::Px mMinWidth;
+  hdpi::Px mMinHeight;
 
   LayoutWindowHeader *mPHeader;
   ClientWindowArea *mPClientArea;

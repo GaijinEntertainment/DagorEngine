@@ -6,7 +6,7 @@ let txt = require("%daeditor/components/text.nut").dtext
 let entity_editor = require("entity_editor")
 
 
-let function reduceExtends(arr) {
+let function modifyReduceExtends(arr) {
   let cnt = arr.len()
   if (cnt < 2)
     return
@@ -41,7 +41,7 @@ let function getTemplateExtendsReduced(templ, path) {
       path.append(parent.getName())
       result.extend(getTemplateExtendsReduced(parent, path))
       path.pop()
-      reduceExtends(result)
+      modifyReduceExtends(result)
     }
   }
   else {
@@ -309,7 +309,7 @@ let mkTemplateInfoTag = @(text, fillColor = Color(100,100,200), size = SIZE_TO_C
   }
 }
 
-let function sliceLongText(inText, rowLen, cb) {
+let function requestSliceLongText(inText, rowLen, cb) {
   if (inText.len() <= rowLen) {
     cb(true, inText)
     return
@@ -367,7 +367,7 @@ let function mkTemplateTooltip(templName) {
         descTexts.append(txt("", skipStyle))
       }
       gotDescs = true;
-      sliceLongText(desc.text, 77, function(first, text) {
+      requestSliceLongText(desc.text, 77, function(first, text) {
         descNames.append(txt(first ? $" {desc.name}   " : "", infoStyle))
         descTexts.append(txt(text, infoStyle))
       })
@@ -379,7 +379,7 @@ let function mkTemplateTooltip(templName) {
       wasComps = true
       let hasNoMetaValue = templInfo.valued?[desc.name] ?? false
       if (!hasNoMetaValue) {
-        sliceLongText(desc.text, 90, function(first, text) {
+        requestSliceLongText(desc.text, 90, function(first, text) {
           descNames.append(txt(first ? $"  {desc.name}   " : "", paramNameStyle))
           descTexts.append(txt(text, paramInfoStyle))
         })

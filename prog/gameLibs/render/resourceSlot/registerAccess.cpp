@@ -22,6 +22,7 @@ resource_slot::NodeHandleWithSlotsAccess resource_slot::detail::register_access(
         if constexpr (eastl::is_same_v<ValueT, Create>)
         {
           node.action_list.push_back(CreateDecl{storage.slotMap.id(decl.slotName), storage.resourceMap.id(decl.resourceName)});
+          node.createsSlot = true;
         }
         else if constexpr (eastl::is_same_v<ValueT, Update>)
         {

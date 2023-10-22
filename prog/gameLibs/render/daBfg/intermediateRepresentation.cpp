@@ -23,57 +23,70 @@ void Graph::choseSubgraph(eastl::span<const NodeIndex> old_to_new_index_mapping)
 
   FRAMEMEM_VALIDATE;
 
-  dag::Vector<Node, framemem_allocator> newNodes;
-  newNodes.resize(nodes.size());
-
-  dag::Vector<RequiredNodeState, framemem_allocator> newNodeStates;
-  newNodeStates.resize(nodeStates.size());
-
-  size_t chosen = 0;
-  for (auto [i, oldNode] : nodes.enumerate())
+  size_t newNodeCount = 0;
+  for (auto [i, _] : nodes.enumerate())
     if (old_to_new_index_mapping[i] != NODE_NOT_MAPPED)
-    {
-      auto &node = (newNodes[old_to_new_index_mapping[i]] = eastl::move(oldNode));
+      ++newNodeCount;
 
-      auto oldPreds = eastl::move(node.predecessors);
-      node.predecessors.clear();
-      for (auto &pred : oldPreds)
-        if (old_to_new_index_mapping[pred] != NODE_NOT_MAPPED)
-          node.predecessors.insert(old_to_new_index_mapping[pred]);
+  // Sanity check: new indexing should not have gaps
+  for (auto [i, _] : nodes.enumerate())
+    if (old_to_new_index_mapping[i] != NODE_NOT_MAPPED)
+      G_ASSERT(old_to_new_index_mapping[i] < newNodeCount);
 
-      newNodeStates[old_to_new_index_mapping[i]] = nodeStates[i];
 
-      ++chosen;
-    }
-  newNodes.resize(chosen);
-  nodes.resize(chosen);
-  eastl::move(newNodes.begin(), newNodes.end(), nodes.begin());
-  newNodeStates.resize(chosen);
-  nodeStates.resize(chosen);
-  eastl::move(newNodeStates.begin(), newNodeStates.end(), nodeStates.begin());
+  const auto choseSoa = [](auto &old_data, size_t new_count, const auto &mapping, const auto unmappedSentinel) {
+    using Mapping = std::decay_t<decltype(old_data)>;
+    IdIndexedMapping<typename Mapping::index_type, typename Mapping::value_type, framemem_allocator> newData;
+    newData.resize(new_count);
+    for (auto [i, data] : old_data.enumerate())
+      if (mapping[i] != unmappedSentinel)
+        newData[mapping[i]] = eastl::move(data);
 
+    old_data.resize(new_count);
+    eastl::move(newData.begin(), newData.end(), old_data.begin());
+  };
+
+  choseSoa(nodes, newNodeCount, old_to_new_index_mapping, NODE_NOT_MAPPED);
+  choseSoa(nodeStates, newNodeCount, old_to_new_index_mapping, NODE_NOT_MAPPED);
+  choseSoa(nodeNames, newNodeCount, old_to_new_index_mapping, NODE_NOT_MAPPED);
+
+  // We need to fixup all node -> node references
+  for (auto [i, node] : nodes.enumerate())
+  {
+    auto oldPreds = eastl::move(node.predecessors);
+    node.predecessors.clear();
+    for (const auto pred : oldPreds)
+      if (old_to_new_index_mapping[pred] != NODE_NOT_MAPPED)
+        node.predecessors.insert(old_to_new_index_mapping[pred]);
+  }
 
   dag::Vector<ResourceIndex, framemem_allocator> resourceMapping(resources.size(), RESOURCE_NOT_MAPPED);
-  dag::Vector<Resource, framemem_allocator> newResources;
-  newResources.reserve(resources.size());
-  for (auto &node : nodes)
-    for (auto &req : node.resourceRequests)
-    {
-      if (resourceMapping[req.resource] == RESOURCE_NOT_MAPPED)
+
+  {
+    dag::Vector<Resource, framemem_allocator> newResources;
+    newResources.reserve(resources.size());
+    for (auto &node : nodes)
+      for (auto &req : node.resourceRequests)
       {
-        resourceMapping[req.resource] = static_cast<ResourceIndex>(newResources.size());
-        newResources.emplace_back(eastl::move(resources[req.resource]));
+        if (resourceMapping[req.resource] == RESOURCE_NOT_MAPPED)
+        {
+          resourceMapping[req.resource] = static_cast<ResourceIndex>(newResources.size());
+          newResources.emplace_back(eastl::move(resources[req.resource]));
+        }
+        req.resource = resourceMapping[req.resource];
       }
-      req.resource = resourceMapping[req.resource];
-    }
-  resources.resize(newResources.size());
-  eastl::move(newResources.begin(), newResources.end(), resources.begin());
+    resources.resize(newResources.size());
+    eastl::move(newResources.begin(), newResources.end(), resources.begin());
+  }
+
+  choseSoa(resourceNames, resources.size(), resourceMapping, RESOURCE_NOT_MAPPED);
 
   const auto updateResourceIndex = [&resourceMapping](ResourceIndex &index) {
     G_ASSERT(resourceMapping[index] != RESOURCE_NOT_MAPPED);
     index = resourceMapping[index];
   };
 
+  // We also need to fix up node -> resource references
   for (auto &state : nodeStates)
   {
     if (state.vrs)
@@ -155,12 +168,18 @@ Mapping Graph::calculateMapping()
 void Graph::validate() const
 {
 #if DAGOR_DBGLEVEL > 0
-  G_ASSERTF_RETURN(nodes.size() == nodeStates.size(), , "Inconsistent IR: node count %d and node state count %d should be equal!",
-    nodes.size(), nodeStates.size());
+  G_ASSERTF_RETURN(nodes.size() == nodeStates.size(), , //
+    "Inconsistent IR: node count %d and node state count %d should be equal!", nodes.size(), nodeStates.size());
+  G_ASSERTF_RETURN(nodeNames.empty() || nodes.size() == nodeNames.size(), , //
+    "Inconsistent IR: node count %d and node name count %d should be equal if names are present at all!", nodes.size(),
+    nodeNames.size());
+  G_ASSERTF_RETURN(resourceNames.empty() || resources.size() == resourceNames.size(), , //
+    "Inconsistent IR: resource count %d and resource name count %d should be equal if names are present at all!", resources.size(),
+    resourceNames.size());
 
   for (auto &node : nodes)
   {
-    for (auto &pred : node.predecessors)
+    for (const auto pred : node.predecessors)
       G_ASSERTF(pred < nodes.size(), "Inconsistent IR: missing node with index %d", pred);
     for (auto &req : node.resourceRequests)
       G_ASSERTF(req.resource < resources.size(), "Inconsistent IR: missing resource with index %d", req.resource);
@@ -175,8 +194,8 @@ void Graph::validate() const
       for (const auto &req : nodes[nodeIdx].resourceRequests)
         if (req.resource == res_idx)
           found = true;
-      G_ASSERTF(found, "Inconsistent IR: resource %s used in node %s state, but was not requested by it!", resources[res_idx].name,
-        nodes[nodeIdx].name);
+      G_ASSERTF(found, "Inconsistent IR: resource %s used in node %s state, but was not requested by it!", resourceNames[res_idx],
+        nodeNames[nodeIdx]);
     };
 
     if (state.vrs.has_value())

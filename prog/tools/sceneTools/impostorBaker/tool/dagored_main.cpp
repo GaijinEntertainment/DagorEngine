@@ -48,7 +48,7 @@ static void flush_files()
   fflush(stderr);
 }
 
-namespace rendinstgen
+namespace rendinst::gen
 {
 float custom_max_trace_distance = 0;
 bool custom_trace_ray(const Point3 &, const Point3 &, real &, Point3 *) { return false; }
@@ -60,7 +60,7 @@ void custom_get_land_min_max(BBox2, float &out_min, float &out_max)
   out_min = 0;
   out_max = 8192;
 }
-} // namespace rendinstgen
+} // namespace rendinst::gen
 
 void DagorWinMainInit(int, bool)
 {

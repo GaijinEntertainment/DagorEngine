@@ -815,7 +815,7 @@ void ResourceScheduler::restoreResourceApiNames() const
         auto &strRef = names[pResource];
         if (strRef.size != 0)
           strRef.size += separatorStrSize;
-        strRef.size += cachedIntermediateResources[resIdx].name.length() + frameStrSize;
+        strRef.size += cachedIntermediateResourceNames[resIdx].length() + frameStrSize;
       }
     }
 
@@ -834,7 +834,7 @@ void ResourceScheduler::restoreResourceApiNames() const
         auto &name = names[pResource];
         if (!name.str.empty())
           name.str += separatorStr;
-        name.str += cachedIntermediateResources[resIdx].name.c_str();
+        name.str += cachedIntermediateResourceNames[resIdx].c_str();
         name.str += frameStr[frame];
       }
     }
@@ -939,6 +939,7 @@ ResourceScheduler::SchedulingResult ResourceScheduler::scheduleResources(int pre
   const auto cachedResIdxRemapping = remapResources(graph.resources);
 
   cachedIntermediateResources = graph.resources;
+  cachedIntermediateResourceNames = graph.resourceNames;
 
   const auto resourceProperties = gatherResourceProperties(graph);
 

@@ -4,6 +4,7 @@ WinSdkVer  = win.sdk.100 ;
 ProjectAllowsOodle = yes ;
 
 Platform ?= win64 ;
+if $(Platform) = win64 { PlatformSpec_win64 ?= clang ; CPPStd = 20 ; }
 
 Root    ?= ../../../.. ;
 Location = prog/tools/ShaderCompiler2/nodeBased ;
@@ -29,6 +30,7 @@ Sources =
   dx12.cpp
   metal.cpp
   winmain_con.cpp
+  debugSpitfile.cpp
 ;
 
 AddIncludes =
@@ -37,18 +39,18 @@ AddIncludes =
   $(Root)/prog/tools/ShaderCompiler2/hlsl2metal
   $(Root)/prog/tools/ShaderCompiler2/hlsl11transcode
   $(Root)/prog/tools/ShaderCompiler2/dx12
-  $(Root)/prog/engine2/drv/drv3d_pc_multi # for d3d::compile_compute_shader_hlsl()
+  $(Root)/prog/engine/drv/drv3d_pc_multi # for d3d::compile_compute_shader_hlsl()
 ;
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/math
-  engine2/perfMon/daProfilerStub
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/perfMon/daProfilerStub
   gameLibs/nodeBasedShaderManager
   gameLibs/webui/plugins/shaderEditors
 
@@ -60,6 +62,7 @@ UseProgLibs =
 UseMemoryDebugLevel = off ;
 
 CPPopt = -DBINDUMP_TARGET_BE=0 -DIS_OFFLINE_SHADER_COMPILER=1 ;
+if $(Platform) in win32 win64 { VCMathOption = -fp:precise ; }
 
 if [ GLOB $(Root)/prog/tools/ShaderCompiler2/ps4transcode :  jamfile ] {
   Sources +=

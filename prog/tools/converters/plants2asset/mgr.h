@@ -1,6 +1,5 @@
 /*
- * DaEditor3
- * Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
+ * DaEditorX
  * Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
  */
 

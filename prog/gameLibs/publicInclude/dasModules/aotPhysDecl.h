@@ -10,7 +10,7 @@
 #include <ecs/phys/ragdoll.h>
 #include <ecs/phys/physBody.h>
 
-#include <phys/dag_physDecl.h>
+#include <phys/dag_physics.h>
 
 MAKE_TYPE_FACTORY(PhysRagdoll, PhysRagdoll);
 MAKE_TYPE_FACTORY(PhysSystemInstance, PhysSystemInstance);

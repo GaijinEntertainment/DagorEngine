@@ -15,6 +15,7 @@
 #include <Jolt/Core/NonCopyable.h>
 #include <Jolt/Core/UnorderedMap.h>
 #include <Jolt/Core/UnorderedSet.h>
+#include <Jolt/Core/StreamUtils.h>
 #include <Jolt/ObjectStream/SerializableObject.h>
 
 JPH_NAMESPACE_BEGIN
@@ -32,6 +33,7 @@ class SubShapeID;
 class PhysicsMaterial;
 class TransformedShape;
 class Plane;
+class SoftBodyVertex;
 class Shape;
 class StreamOut;
 class StreamIn;
@@ -58,7 +60,8 @@ enum class EShapeType : uint8
 	Decorated,						///< Used by DecoratedShape
 	Mesh,							///< Used by MeshShape
 	HeightField,					///< Used by HeightFieldShape
-	
+	SoftBody,						///< Used by SoftBodyShape
+
 	// User defined shapes
 	User1,
 	User2,
@@ -77,11 +80,11 @@ enum class EShapeSubType : uint8
 	TaperedCapsule,
 	Cylinder,
 	ConvexHull,
-	
+
 	// Compound shapes
 	StaticCompound,
 	MutableCompound,
-	
+
 	// Decorated shapes
 	RotatedTranslated,
 	Scaled,
@@ -90,7 +93,8 @@ enum class EShapeSubType : uint8
 	// Other shapes
 	Mesh,
 	HeightField,
-	
+	SoftBody,
+
 	// User defined shapes
 	User1,
 	User2,
@@ -113,16 +117,16 @@ enum class EShapeSubType : uint8
 };
 
 // Sets of shape sub types
-static constexpr EShapeSubType sAllSubShapeTypes[] = { EShapeSubType::Sphere, EShapeSubType::Box, EShapeSubType::Triangle, EShapeSubType::Capsule, EShapeSubType::TaperedCapsule, EShapeSubType::Cylinder, EShapeSubType::ConvexHull, EShapeSubType::StaticCompound, EShapeSubType::MutableCompound, EShapeSubType::RotatedTranslated, EShapeSubType::Scaled, EShapeSubType::OffsetCenterOfMass, EShapeSubType::Mesh, EShapeSubType::HeightField, EShapeSubType::User1, EShapeSubType::User2, EShapeSubType::User3, EShapeSubType::User4, EShapeSubType::User5, EShapeSubType::User6, EShapeSubType::User7, EShapeSubType::User8, EShapeSubType::UserConvex1, EShapeSubType::UserConvex2, EShapeSubType::UserConvex3, EShapeSubType::UserConvex4, EShapeSubType::UserConvex5, EShapeSubType::UserConvex6, EShapeSubType::UserConvex7, EShapeSubType::UserConvex8 };
+static constexpr EShapeSubType sAllSubShapeTypes[] = { EShapeSubType::Sphere, EShapeSubType::Box, EShapeSubType::Triangle, EShapeSubType::Capsule, EShapeSubType::TaperedCapsule, EShapeSubType::Cylinder, EShapeSubType::ConvexHull, EShapeSubType::StaticCompound, EShapeSubType::MutableCompound, EShapeSubType::RotatedTranslated, EShapeSubType::Scaled, EShapeSubType::OffsetCenterOfMass, EShapeSubType::Mesh, EShapeSubType::HeightField, EShapeSubType::SoftBody, EShapeSubType::User1, EShapeSubType::User2, EShapeSubType::User3, EShapeSubType::User4, EShapeSubType::User5, EShapeSubType::User6, EShapeSubType::User7, EShapeSubType::User8, EShapeSubType::UserConvex1, EShapeSubType::UserConvex2, EShapeSubType::UserConvex3, EShapeSubType::UserConvex4, EShapeSubType::UserConvex5, EShapeSubType::UserConvex6, EShapeSubType::UserConvex7, EShapeSubType::UserConvex8 };
 static constexpr EShapeSubType sConvexSubShapeTypes[] = { EShapeSubType::Sphere, EShapeSubType::Box, EShapeSubType::Triangle, EShapeSubType::Capsule, EShapeSubType::TaperedCapsule, EShapeSubType::Cylinder, EShapeSubType::ConvexHull, EShapeSubType::UserConvex1, EShapeSubType::UserConvex2, EShapeSubType::UserConvex3, EShapeSubType::UserConvex4, EShapeSubType::UserConvex5, EShapeSubType::UserConvex6, EShapeSubType::UserConvex7, EShapeSubType::UserConvex8 };
 static constexpr EShapeSubType sCompoundSubShapeTypes[] = { EShapeSubType::StaticCompound, EShapeSubType::MutableCompound };
 static constexpr EShapeSubType sDecoratorSubShapeTypes[] = { EShapeSubType::RotatedTranslated, EShapeSubType::Scaled, EShapeSubType::OffsetCenterOfMass };
 
 /// How many shape types we support
-static constexpr uint NumSubShapeTypes = (uint)size(sAllSubShapeTypes);
+static constexpr uint NumSubShapeTypes = uint(size(sAllSubShapeTypes));
 
 /// Names of sub shape types
-static constexpr const char *sSubShapeTypeNames[] = { "Sphere", "Box", "Triangle", "Capsule", "TaperedCapsule", "Cylinder", "ConvexHull", "StaticCompound", "MutableCompound", "RotatedTranslated", "Scaled", "OffsetCenterOfMass", "Mesh", "HeightField", "User1", "User2", "User3", "User4", "User5", "User6", "User7", "User8", "UserConvex1", "UserConvex2", "UserConvex3", "UserConvex4", "UserConvex5", "UserConvex6", "UserConvex7", "UserConvex8" };
+static constexpr const char *sSubShapeTypeNames[] = { "Sphere", "Box", "Triangle", "Capsule", "TaperedCapsule", "Cylinder", "ConvexHull", "StaticCompound", "MutableCompound", "RotatedTranslated", "Scaled", "OffsetCenterOfMass", "Mesh", "HeightField", "SoftBody", "User1", "User2", "User3", "User4", "User5", "User6", "User7", "User8", "UserConvex1", "UserConvex2", "UserConvex3", "UserConvex4", "UserConvex5", "UserConvex6", "UserConvex7", "UserConvex8" };
 static_assert(size(sSubShapeTypeNames) == NumSubShapeTypes);
 
 /// Class that can construct shapes and that is serializable using the ObjectStream system.
@@ -138,7 +142,7 @@ public:
 
 	using ShapeResult = Result<Ref<Shape>>;
 
-	/// Create a shape according to the settings specified by this object. 
+	/// Create a shape according to the settings specified by this object.
 	virtual ShapeResult				Create() const = 0;
 
 	/// User data (to be used freely by the application)
@@ -159,7 +163,7 @@ public:
 	Color							mColor = Color::sBlack;
 
 	/// Get an entry in the registry for a particular sub type
-	static inline ShapeFunctions &	sGet(EShapeSubType inSubType)										{ return sRegistry[(int)inSubType]; }
+	static inline ShapeFunctions &	sGet(EShapeSubType inSubType)										{ return sRegistry[int(inSubType)]; }
 
 private:
 	static ShapeFunctions 			sRegistry[NumSubShapeTypes];
@@ -217,7 +221,7 @@ public:
 		return bounds;
 	}
 
-	/// Returns the radius of the biggest sphere that fits entirely in the shape. In case this shape consists of multiple sub shapes, it returns the smallest sphere of the parts. 
+	/// Returns the radius of the biggest sphere that fits entirely in the shape. In case this shape consists of multiple sub shapes, it returns the smallest sphere of the parts.
 	/// This can be used as a measure of how far the shape can be moved without risking going through geometry.
 	virtual float					GetInnerRadius() const = 0;
 
@@ -235,7 +239,7 @@ public:
 	using SupportingFace = StaticArray<Vec3, 32>;
 
 	/// Get the vertices of the face that faces inDirection the most (includes any convex radius). Note that this function can only return faces of
-	/// convex shapes or triangles, which is why a sub shape ID to get to that leaf must be provided. 
+	/// convex shapes or triangles, which is why a sub shape ID to get to that leaf must be provided.
 	/// @param inSubShapeID Sub shape ID of target shape
 	/// @param inDirection Direction that the face should be facing (in local space to this shape)
 	/// @param inCenterOfMassTransform Transform to transform outVertices with
@@ -270,7 +274,7 @@ public:
 		, RVec3Arg inBaseOffset
 #endif
 		) const = 0;
-	
+
 #ifdef JPH_DEBUG_RENDERER
 	/// Draw the shape at a particular location with a particular color (debugging purposes)
 	virtual void					Draw(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inUseMaterialColors, bool inDrawWireframe) const = 0;
@@ -292,18 +296,28 @@ public:
 	/// If you want the surface normal of the hit use GetSurfaceNormal(collected sub shape ID, inRay.GetPointOnRay(collected faction)).
 	virtual void					CastRay(const RayCast &inRay, const RayCastSettings &inRayCastSettings, const SubShapeIDCreator &inSubShapeIDCreator, CastRayCollector &ioCollector, const ShapeFilter &inShapeFilter = { }) const = 0;
 
-	/// Check if inPoint is inside this shape. For this tests all shapes are treated as if they were solid. 
+	/// Check if inPoint is inside this shape. For this tests all shapes are treated as if they were solid.
 	/// Note that inPoint should be relative to the center of mass of this shape (i.e. subtract Shape::GetCenterOfMass() from inPoint if you want to test against the shape in the space it was created).
 	/// For a mesh shape, this test will only provide sensible information if the mesh is a closed manifold.
 	/// For each shape that collides, ioCollector will receive a hit.
 	virtual void					CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSubShapeIDCreator, CollidePointCollector &ioCollector, const ShapeFilter &inShapeFilter = { }) const = 0;
+
+	/// Collides all vertices of a soft body with this shape and updates SoftBodyVertex::mCollisionPlane, SoftBodyVertex::mCollidingShapeIndex and SoftBodyVertex::mLargestPenetration if a collision with more penetration was found.
+	/// @param inCenterOfMassTransform Center of mass transform for this shape relative to the vertices.
+	/// @param inScale The scale to use for this shape
+	/// @param ioVertices The vertices of the soft body
+	/// @param inNumVertices The number of vertices in ioVertices
+	/// @param inDeltaTime Delta time of this time step (can be used to extrapolate the position using the velocity of the particle)
+	/// @param inDisplacementDueToGravity Displacement due to gravity during this time step
+	/// @param inCollidingShapeIndex Value to store in SoftBodyVertex::mCollidingShapeIndex when a collision was found
+	virtual void					CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const = 0;
 
 	/// Collect the leaf transformed shapes of all leaf shapes of this shape.
 	/// inBox is the world space axis aligned box which leaf shapes should collide with.
 	/// inPositionCOM/inRotation/inScale describes the transform of this shape.
 	/// inSubShapeIDCeator represents the current sub shape ID of this shape.
 	virtual void					CollectTransformedShapes(const AABox &inBox, Vec3Arg inPositionCOM, QuatArg inRotation, Vec3Arg inScale, const SubShapeIDCreator &inSubShapeIDCreator, TransformedShapeCollector &ioCollector, const ShapeFilter &inShapeFilter) const;
-	   
+
 	/// Transforms this shape and all of its children with inTransform, resulting shape(s) are passed to ioCollector.
 	/// Note that not all shapes support all transforms (especially true for scaling), the resulting shape will try to match the transform as accurately as possible.
 	/// @param inCenterOfMassTransform The transform (rotation, translation, scale) that the center of mass of the shape should get
@@ -320,7 +334,7 @@ public:
 	/// This is the minimum amount of triangles that should be requested through GetTrianglesNext.
 	static constexpr int			cGetTrianglesMinTrianglesRequested = 32;
 
-	/// To start iterating over triangles, call this function first. 
+	/// To start iterating over triangles, call this function first.
 	/// ioContext is a temporary buffer and should remain untouched until the last call to GetTrianglesNext.
 	/// inBox is the world space bounding in which you want to get the triangles.
 	/// inPositionCOM/inRotation/inScale describes the transform of this shape.
@@ -335,8 +349,8 @@ public:
 	/// Note that the function may return triangles outside of the requested box, only coarse culling is performed on the returned triangles.
 	virtual int						GetTrianglesNext(GetTrianglesContext &ioContext, int inMaxTrianglesRequested, Float3 *outTriangleVertices, const PhysicsMaterial **outMaterials = nullptr) const = 0;
 
-	///@name Binary serialization of the shape. Note that this saves the 'cooked' shape in a format which will not be backwards compatible for newer library versions. 
-	/// In this case you need to recreate the shape from the ShapeSettings object and save it again. The user is expected to call SaveBinaryState followed by SaveMaterialState and SaveSubShapeState. 
+	///@name Binary serialization of the shape. Note that this saves the 'cooked' shape in a format which will not be backwards compatible for newer library versions.
+	/// In this case you need to recreate the shape from the ShapeSettings object and save it again. The user is expected to call SaveBinaryState followed by SaveMaterialState and SaveSubShapeState.
 	/// The stream should be stored as is and the material and shape list should be saved using the applications own serialization system (e.g. by assigning an ID to each pointer).
 	/// When restoring data, call sRestoreFromBinararyState to get the shape and then call RestoreMaterialState and RestoreSubShapeState to restore the pointers to the external objects.
 	///@{
@@ -359,10 +373,10 @@ public:
 	/// Restore the shape references after calling sRestoreFromBinaryState. Note that the exact same shapes need to be provided in the same order as returned by SaveSubShapeState.
 	virtual void					RestoreSubShapeState([[maybe_unused]] const ShapeRefC *inSubShapes, uint inNumShapes) { JPH_ASSERT(inNumShapes == 0); }
 
-	using ShapeToIDMap = UnorderedMap<const Shape *, uint32>;
-	using MaterialToIDMap = UnorderedMap<const PhysicsMaterial *, uint32>;
-	using IDToShapeMap = Array<Ref<Shape>>;
-	using IDToMaterialMap = Array<Ref<PhysicsMaterial>>;
+	using ShapeToIDMap = StreamUtils::ObjectToIDMap<Shape>;
+	using IDToShapeMap = StreamUtils::IDToObjectMap<Shape>;
+	using MaterialToIDMap = StreamUtils::ObjectToIDMap<PhysicsMaterial>;
+	using IDToMaterialMap = StreamUtils::IDToObjectMap<PhysicsMaterial>;
 
 	/// Save this shape, all its children and its materials. Pass in an empty map in ioShapeMap / ioMaterialMap or reuse the same map while saving multiple shapes to the same stream in order to avoid writing duplicates.
 	void							SaveWithChildren(StreamOut &inStream, ShapeToIDMap &ioShapeMap, MaterialToIDMap &ioMaterialMap) const;
@@ -405,6 +419,12 @@ public:
 protected:
 	/// This function should not be called directly, it is used by sRestoreFromBinaryState.
 	virtual void					RestoreBinaryState(StreamIn &inStream);
+
+	/// A fallback version of CollidePoint that uses a ray cast and counts the number of hits to determine if the point is inside the shape. Odd number of hits means inside, even number of hits means outside.
+	static void						sCollidePointUsingRayCast(const Shape &inShape, Vec3Arg inPoint, const SubShapeIDCreator &inSubShapeIDCreator, CollidePointCollector &ioCollector, const ShapeFilter &inShapeFilter);
+
+	/// A fallback version of CollideSoftBodyVertices that uses a raycast to collide the vertices with the shape.
+	static void						sCollideSoftBodyVerticesUsingRayCast(const Shape &inShape, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex);
 
 private:
 	uint64							mUserData = 0;

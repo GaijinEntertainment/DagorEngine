@@ -1,4 +1,4 @@
 CPPopt += -DUSE_JOLT_PHYSICS ;
 AddIncludes += $(Root)/prog/3rdPartyLibs/phys/joltPhysics ;
-UseProgLibs += engine2/phys/physJolt ;
+UseProgLibs += engine/phys/physJolt ;
 include $(Root)/prog/3rdPartyLibs/phys/joltPhysics/setup.jam ;

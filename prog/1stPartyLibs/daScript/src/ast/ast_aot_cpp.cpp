@@ -8,6 +8,8 @@
 #include "daScript/misc/enums.h"
 #include "daScript/simulate/hash.h"
 
+das::Context * get_context ( int stackSize = 0 );
+
 namespace das {
 
     Enum<Type> g_cppCTypeTable = {
@@ -102,6 +104,17 @@ namespace das {
         } else {
             return pm->name;
         }
+    }
+
+    string aotFunctionName ( string str ) {
+        string result;
+        for (char c : str) {
+            if (c == '`')
+                result += "__";
+            else
+                result += c;
+        }
+        return result;
     }
 
     string das_to_cppString ( Type t ) {
@@ -629,9 +642,9 @@ namespace das {
                     auto tname = (char *)(intptr_t(info->annotation_or_name) ^ 1);  // already comes from string allocator
                     ss << ", DAS_MAKE_ANNOTATION(\"" << tname << "\")";
                 }  else {
-                    // we add ~ at the begining of the name for padding
+                    // we add ~ at the beginning of the name for padding
                     // if name is allocated by the compiler, it does not guarantee that it is aligned
-                    // we check if there is a ~ at the begining of the name, and if it is - we skip it
+                    // we check if there is a ~ at the beginning of the name, and if it is - we skip it
                     // that way we can accept both aligned and unaligned names
                     ss << ", DAS_MAKE_ANNOTATION(\"~" << info->annotation_or_name->module->name << "::" << info->annotation_or_name->name << "\")";
                 }
@@ -692,6 +705,18 @@ namespace das {
         } else {
             ss << describeCppType(vtype,substituteRef,CpptSkipRef::no,CpptSkipConst::yes);
         }
+    }
+
+    vector<Function *> collectUsedFunctions ( vector<Module *> & modules, int totalFunctions ) {
+        vector<Function *> fnn; fnn.reserve(totalFunctions);
+        for (auto & pm : modules) {
+            pm->functions.foreach([&](auto pfun){
+                if (pfun->index < 0 || !pfun->used)
+                    return;
+                fnn.push_back(pfun.get());
+            });
+        }
+        return fnn;
     }
 
     string aotSuffixNameEx ( const string & funcName, const char * suffix ) {
@@ -1050,7 +1075,7 @@ namespace das {
             return Visitor::visit(that);
         }
     // program body
-        virtual void preVisitProgramBody ( Program * prog, Module * ) override {
+        virtual void preVisitProgramBody ( Program * prog, Module * that ) override {
             // functions
             ss << "\n";
             prog->thisModule->functions.foreach([&](auto fn){
@@ -1074,19 +1099,6 @@ namespace das {
             }
         }
         virtual void visitGlobalLetBody ( Program * prog ) override {
-            program->thisModule->functions.foreach([&](auto fn){
-                if ( fn->init ) {
-                    ss << string(tab,'\t');
-                    if ( fn->noAot ) {
-                        auto mangledName = fn->getMangledName();
-                        uint64_t hash = fn->getMangledNameHash();
-                        ss << "das_invoke_function<void>::invoke(__context__,nullptr,Func(__context__->fnByMangledName(/*"
-                            << mangledName << "*/ " << hash << "u)));\n";
-                    } else {
-                        ss << aotFuncName(fn.get()) << "(__context__);\n";
-                    }
-                }
-            });
             tab --;
             ss << "}\n";
             Visitor::visitGlobalLetBody(prog);
@@ -3385,21 +3397,49 @@ namespace das {
         return hash;
     }
 
-    void Program::registerAotCpp ( TextWriter & logs, Context & context, bool headers ) {
-        vector<Function *> fnn; fnn.reserve(totalFunctions);
-        for (auto & pm : library.modules) {
-            pm->functions.foreach([&](auto pfun){
-                if (pfun->index < 0 || !pfun->used)
-                    return;
-                fnn.push_back(pfun.get());
-            });
+    void Program::writeStandaloneContextMethods ( TextWriter & logs ) {
+        vector<Function *> fnn = collectUsedFunctions(library.modules, totalFunctions);
+        BlockVariableCollector collector;
+
+        for ( auto fn : fnn ) {
+            if ( !fn->exports ) continue;
+            if ( fn->module != thisModule.get() ) continue;
+            logs << "    auto " << aotFunctionName(fn->getOrigin() ? fn->getOrigin()->name : fn->name) << " ( ";
+        // describe arguments
+            for ( auto & var : fn->arguments ) {
+                if (isLocalVec(var->type)) {
+                    describeLocalCppType(logs, var->type);
+                } else {
+                    logs << describeCppType(var->type);
+                }
+                logs << " ";
+                if ( var->type->isRefType() ) {
+                    logs << "& ";
+                }
+                logs << collector.getVarName(var);
+                bool last = &var == &fn->arguments.back();
+                if ( ! last ) logs << ", ";
+            }
+            logs << " ) -> ";
+            describeLocalCppType(logs,fn->result,CpptSubstitureRef::no);
+            logs << " {\n";
+            logs << "        return " << aotFuncName(fn) << "(this";
+            for ( auto & var : fn->arguments ) {
+                logs << ", " << collector.getVarName(var);
+            }
+            logs << "); \n";
+            logs << "    }\n\n";
         }
+    }
+
+    void Program::registerAotCpp ( TextWriter & logs, Context & context, bool headers, bool allModules ) {
+        vector<Function *> fnn = collectUsedFunctions(library.modules, totalFunctions);
         if ( headers ) {
             logs << "\nvoid registerAot ( AotLibrary & aotLib )\n{\n";
         }
         bool funInit = false;
         for ( int i=0, is=context.totalFunctions; i!=is; ++i ) {
-            if ( fnn[i]->module != thisModule.get() )
+            if ( !allModules && fnn[i]->module != thisModule.get() )
                 continue;
             if ( fnn[i]->init ) {
                 funInit = true;
@@ -3421,14 +3461,465 @@ namespace das {
             uint64_t semH = context.getInitSemanticHash();
             semH = getInitSemanticHashWithDep(semH);
             logs << "\t// [[ init script ]]\n";
-            logs << "\taotLib[0x" << HEX << semH << DEC << "] = [&](Context & ctx){\n\t\treturn ";
-            logs << "ctx.code->makeNode<SimNode_Aot";
-            logs << "<void (*)(Context *, bool),";
-            logs << "&__init_script>>();\n\t};\n";
+            logs << "\taotLib[0x" << HEX << semH << DEC << "] = [&](Context & ctx){\n";
+            logs << "\t\tctx.aotInitScript = ctx.code->makeNode<SimNode_Aot<void (*)(Context *, bool),&__init_script>>();\n";
+            logs << "\t\treturn ctx.aotInitScript;\n";
+            logs << "\t};\n";
         }
         if ( headers ) {
             logs << "}\n";
         }
+    }
+
+    void Program::writeStandaloneContext ( TextWriter & logs ) {
+
+        logs << "\n\n";
+        logs << "class StandaloneContext : public Context {\n";
+        logs << "public: \n";
+        writeStandaloneContextMethods(logs);
+        logs << "    StandaloneContext() {\n";
+
+        auto disableInit = options.getBoolOption("no_init", policies.no_init);
+        logs << "    auto & context = *this;\n";
+        logs << "    context.breakOnException |= " << policies.debugger << " /*policies.debugger*/;\n";
+        logs << "    context.persistent = " << options.getBoolOption("persistent_heap", policies.persistent_heap) << " /*options.getBoolOption(\"persistent_heap\", policies.persistent_heap)*/;\n";
+        logs << "    if ( context.persistent ) {\n";
+        logs << "        context.heap = make_smart<PersistentHeapAllocator>();\n";
+        logs << "        context.stringHeap = make_smart<PersistentStringAllocator>();\n";
+        logs << "    } else {\n";
+        logs << "        context.heap = make_smart<LinearHeapAllocator>();\n";
+        logs << "        context.stringHeap = make_smart<LinearStringAllocator>();\n";
+        logs << "    }\n";
+        logs << "    context.heap->setInitialSize ( " << options.getIntOption("heap_size_hint", policies.heap_size_hint) << " /*options.getIntOption(\"heap_size_hint\", policies.heap_size_hint)*/);\n";
+        logs << "    context.stringHeap->setInitialSize ( " << options.getIntOption("string_heap_size_hint", policies.string_heap_size_hint) << " /*options.getIntOption(\"string_heap_size_hint\", policies.string_heap_size_hint)*/);\n";
+        logs << "    context.constStringHeap = make_shared<ConstStringAllocator>();\n";
+        logs << "    if ( " << globalStringHeapSize << " /*globalStringHeapSize*/) {\n";
+        logs << "        context.constStringHeap->setInitialSize(" << globalStringHeapSize << "/*globalStringHeapSize*/);\n";
+        logs << "    }\n";
+
+        // logs << "DebugInfoHelper helper(context.debugInfo);\n";
+        // logs << "helper.rtti = " << options.getBoolOption("rtti",policies.rtti) << ";\n";
+        // logs << "context.thisHelper = &helper;\n";
+        logs << "    context.globalVariables = (GlobalVariable *) context.code->allocate( " << totalVariables << "/*totalVariables*/*sizeof(GlobalVariable) );\n";
+        logs << "    context.globalsSize = 0;\n";
+        logs << "    context.sharedSize = 0;\n";
+
+        if ( totalVariables ) {
+            for (auto & pm : library.modules ) {
+                pm->globals.foreach([&](auto pvar){
+                    if (!pvar->used)
+                        return;
+                    if ( pvar->index<0 ) {
+                        error("Internal compiler errors. Simulating variable which is not used" + pvar->name,
+                            "", "", LineInfo());
+                        return;
+                    }
+                    logs << "     // totalVariables  "  << "\n";
+                    logs << "    {\n";
+                    logs << "        auto & gvar = context.globalVariables[" << pvar->index << "/*pvar->index*/];\n";
+                    logs << "        gvar.name = context.code->allocateName(\"" << pvar->name << "\"/*pvar->name*/);\n";
+                    logs << "        gvar.size = " << pvar->type->getSizeOf() << "/*pvar->type->getSizeOf()*/;\n";
+                    // logs << "        gvar.debugInfo = helper.makeVariableDebugInfo(*pvar);\n";
+                    logs << "        gvar.flags = 0;\n";
+                    logs << "        if ( " << pvar->global_shared << " /*pvar->global_shared*/) {\n";
+                    logs << "            gvar.offset = context.sharedSize;\n";
+                    logs << "            gvar.shared = true;\n";
+                    logs << "            context.sharedSize = (context.sharedSize + gvar.size + 0xf) & ~0xf;\n";
+                    logs << "        } else {\n";
+                    logs << "            gvar.offset = context.globalsSize;\n";
+                    logs << "            context.globalsSize = (context.globalsSize + gvar.size + 0xf) & ~0xf;\n";
+                    logs << "        }\n";
+                    logs << "        gvar.mangledNameHash = 0x" << HEX << pvar->getMangledNameHash() << DEC  << "/*pvar->getMangledNameHash()*/;\n";
+                    logs << "        gvar.init = nullptr;\n";
+                    logs << "    }\n";
+                });
+            }
+        }
+        logs << "    context.globals = (char *) das_aligned_alloc16(context.globalsSize);\n";
+        logs << "    context.shared = (char *) das_aligned_alloc16(context.sharedSize);\n";
+        logs << "    context.sharedOwner = true;\n";
+        logs << "    context.totalVariables = " << totalVariables << "/*totalVariables*/;\n";
+        logs << "    context.functions = (SimFunction *) context.code->allocate( " << totalFunctions << "/*totalFunctions*/*sizeof(SimFunction) );\n";
+        logs << "    context.totalFunctions = " << totalFunctions << "/*totalFunctions*/;\n";
+        logs << "    auto debuggerOrGC = "  << getDebugger()                      << "/*getDebugger()*/ || "
+                                            << options.getBoolOption("gc", false) << "/*options.getBoolOption(\"gc\", false)*/;\n";
+        vector<FunctionPtr> lookupFunctionTable;
+        logs << "    bool anyPInvoke = false;\n";
+        if ( totalFunctions ) {
+            for (auto & pm : library.modules) {
+                pm->functions.foreach([&](auto pfun){
+                    if (pfun->index < 0 || !pfun->used)
+                        return;
+                    if ( (pfun->init || pfun->shutdown) && disableInit ) {
+                        error("[init] is disabled in the options or CodeOfPolicies",
+                            "internal compiler error. [init] function made it all the way to simulate somehow", "",
+                                pfun->at, CompilationError::no_init);
+                    }
+                    logs << "     // totalFunctions  "  << "\n";
+                    logs << "    {\n";
+                    logs << "        string mangledName = \"" << pfun->getMangledName() << "\"/*pfun->getMangledName()*/;\n";
+                    logs << "        auto MNH = hash_blockz64((uint8_t *)mangledName.c_str());\n";
+                    logs << "        auto & gfun = context.functions[" << pfun->index << "/*pfun->index*/];\n";
+                    logs << "        gfun.name = context.code->allocateName(\"" << pfun->name << "\"/*pfun->name*/);\n";
+                    logs << "        gfun.mangledName = context.code->allocateName(mangledName);\n";
+                    logs << "        gfun.stackSize = " << pfun->totalStackSize << "/*pfun->totalStackSize*/;\n";
+                    logs << "        gfun.mangledNameHash = MNH;\n";
+                    logs << "        gfun.aotFunction = nullptr;\n";
+                    logs << "        gfun.flags = 0;\n";
+                    logs << "        gfun.fastcall = " << pfun->fastCall << "/*pfun->fastCall*/;\n";
+                    logs << "        gfun.unsafe = " << pfun->unsafeOperation << "/*pfun->unsafeOperation*/;\n";
+                    logs << "        if ( " << (pfun->result->isRefType() && !pfun->result->ref)
+                                        << "/*(pfun->result->isRefType() && !pfun->result->ref)*/ ) {\n";
+                    logs << "            gfun.cmres = true;\n";
+                    logs << "        }\n";
+                    logs << "        if ( " << (pfun->module->builtIn && !pfun->module->promoted)
+                                        << "/*(pfun->module->builtIn && !pfun->module->promoted)*/ ) {\n";
+                    logs << "            gfun.builtin = true;\n";
+                    logs << "        }\n";
+
+                    logs << "        if ( " << pfun->pinvoke << "/*pfun->pinvoke*/ ) {\n";
+                    logs << "            anyPInvoke = true;\n";
+                    logs << "            gfun.pinvoke = true;\n";
+                    logs << "        }\n";
+                    logs << "    }\n";
+                    lookupFunctionTable.push_back(pfun);
+                });
+            }
+        }
+
+        logs << "    if ( anyPInvoke || " << (policies.threadlock_context || policies.debugger)
+                                        << "/*(policies.threadlock_context || policies.debugger)*/ ) {\n";
+        logs << "        context.contextMutex = new recursive_mutex;\n";
+        logs << "    }\n";
+
+        logs << "    context.tabMnLookup = make_shared<das_hash_map<uint64_t,SimFunction *>>();\n";
+        logs << "    context.tabMnLookup->clear();\n";
+
+        for ( const auto & fn : lookupFunctionTable ) {
+            auto mnh = fn->getMangledNameHash();
+
+            logs << "    // " << fn->getMangledName() << "\n";
+            logs << "    (*context.tabMnLookup)["<< mnh <<"/*mnh*/] = context.functions + " << fn->index << "/*fn->index*/;\n";
+        }
+
+        logs << "    context.tabGMnLookup = make_shared<das_hash_map<uint64_t,uint32_t>>();\n";
+        logs << "    context.tabGMnLookup->clear();\n";
+        logs << "    for ( int i=0, is=context.totalVariables; i!=is; ++i ) {\n";
+        logs << "        auto mnh = context.globalVariables[i].mangledNameHash;\n";
+        logs << "        (*context.tabGMnLookup)[mnh] = context.globalVariables[i].offset;\n";
+        logs << "    }\n";
+
+        logs << "    for ( int i=0, is=context.totalVariables; i!=is; ++i ) {\n";
+        logs << "        auto & gvar = context.globalVariables[i];\n";
+        logs << "        uint32_t voffset = context.globalOffsetByMangledName(gvar.mangledNameHash);\n";
+        logs << "    }\n";
+
+        logs << "    context.tabAdLookup = make_shared<das_hash_map<uint64_t,uint64_t>>();\n";
+        for (auto & pm : library.modules ) {
+            for(auto s2d : pm->annotationData ) {
+                logs << "    (*context.tabAdLookup)["<< s2d.first <<"] = "<< s2d.second <<";\n";
+            }
+        }
+
+        vector<pair<string, uint64_t>> fnn; fnn.reserve(totalFunctions);
+        for (auto & pm : library.modules) {
+            pm->functions.foreach([&](auto pfun){
+                if (pfun->index < 0 || !pfun->used)
+                    return;
+                fnn.emplace_back(pfun->name, getFunctionAotHash(pfun.get()));
+            });
+        }
+
+        logs << "    auto & aotLib = getGlobalAotLibrary();\n";
+        logs << "    SimFunction * fn = nullptr;\n";
+
+        for ( int fni=0, fnis=totalFunctions; fni!=fnis; ++fni ) {
+            const auto & [name, aotHash] = fnn[fni];
+            logs << " // fnis = " << fni << "\n";
+            logs << "    fn = &context.functions[" << fni << "/*fni*/];\n";
+            logs << "    {\n";
+            logs << "        // " << name << "\n";
+            logs << "        uint64_t semHash = 0x" << HEX << aotHash << DEC << "/*fnn[fni]*/;\n";
+            logs << "        auto it = aotLib.find(semHash);\n";
+            logs << "        if ( it != aotLib.end() ) {\n";
+            logs << "            fn->code = (it->second)(context);\n";
+            logs << "            fn->aot = true;\n";
+            logs << "            auto fcb = (SimNode_CallBase *) fn->code;\n";
+            logs << "            fn->aotFunction = fcb->aotFunction;\n";
+            logs << "        }\n";
+            logs << "    }\n";
+        }
+    // aot init
+        if ( initSemanticHashWithDep ) {
+            logs << "    {\n";
+            logs << "        uint64_t semHash = 0x" << HEX << initSemanticHashWithDep << DEC <<"/*initSemanticHashWithDep*/;\n";
+            logs << "        auto it = aotLib.find(semHash);\n";
+            logs << "        if ( it != aotLib.end() ) {\n";
+            logs << "            (it->second)(context);\n";
+            logs << "        }\n";
+            logs << "    }\n";
+        }
+
+        logs << "    context.runInitScript();\n";
+
+        logs << "    }\n";
+        logs << "};\n";
+
+        logs << "#ifdef STANDALONE_CONTEXT_TESTS\n";
+        logs << "static Context * registerStandaloneTest ( ) {\n";
+        logs << "    auto ctx = new StandaloneContext();\n";
+        logs << "    return ctx;\n";
+        logs << "}\n";
+        logs << "StandaloneContextNode node(registerStandaloneTest);\n";
+        logs << "#endif\n";
+
+    }
+
+    class StandaloneContextGen : public CppAot {
+    public:
+      StandaloneContextGen(ProgramPtr prog, BlockVariableCollector &coll,
+                           string cppOutD, string standaloneContextName)
+          : CppAot(prog, coll), contextNameSuffix(standaloneContextName) {
+            cppOutputDir = cppOutD;
+      }
+    private:
+        void writeAotHeaderIncludes () {
+            ss << "#include \"daScript/misc/platform.h\"\n\n";
+
+            ss << "#include \"daScript/simulate/simulate.h\"\n";
+            ss << "#include \"daScript/simulate/aot.h\"\n";
+            ss << "#include \"daScript/simulate/aot_library.h\"\n";
+            ss << "\n";
+        }
+
+        void writeAotHeader () {
+            ss << "\n";
+            ss << "#if defined(_MSC_VER)\n";
+            ss << "#pragma warning(push)\n";
+            ss << "#pragma warning(disable:4100)   // unreferenced formal parameter\n";
+            ss << "#pragma warning(disable:4189)   // local variable is initialized but not referenced\n";
+            ss << "#pragma warning(disable:4244)   // conversion from 'int32_t' to 'float', possible loss of data\n";
+            ss << "#pragma warning(disable:4114)   // same qualifier more than once\n";
+            ss << "#pragma warning(disable:4623)   // default constructor was implicitly defined as deleted\n";
+            ss << "#pragma warning(disable:4946)   // reinterpret_cast used besseen related classes\n";
+            ss << "#pragma warning(disable:4269)   // 'const' automatic data initialized with compiler generated default constructor produces unreliable results\n";
+            ss << "#pragma warning(disable:4555)   // result of expression not used\n";
+            ss << "#endif\n";
+            ss << "#if defined(__GNUC__) && !defined(__clang__)\n";
+            ss << "#pragma GCC diagnostic push\n";
+            ss << "#pragma GCC diagnostic ignored \"-Wunused-parameter\"\n";
+            ss << "#pragma GCC diagnostic ignored \"-Wunused-variable\"\n";
+            ss << "#pragma GCC diagnostic ignored \"-Wunused-function\"\n";
+            ss << "#pragma GCC diagnostic ignored \"-Wwrite-strings\"\n";
+            ss << "#pragma GCC diagnostic ignored \"-Wreturn-local-addr\"\n";
+            ss << "#pragma GCC diagnostic ignored \"-Wignored-qualifiers\"\n";
+            ss << "#pragma GCC diagnostic ignored \"-Wsign-compare\"\n";
+            ss << "#pragma GCC diagnostic ignored \"-Wsubobject-linkage\"\n";
+            ss << "#endif\n";
+            ss << "#if defined(__clang__)\n";
+            ss << "#pragma clang diagnostic push\n";
+            ss << "#pragma clang diagnostic ignored \"-Wunused-parameter\"\n";
+            ss << "#pragma clang diagnostic ignored \"-Wwritable-strings\"\n";
+            ss << "#pragma clang diagnostic ignored \"-Wunused-variable\"\n";
+            ss << "#if defined(__APPLE__)\n";
+            ss << "#pragma clang diagnostic ignored \"-Wunused-but-set-variable\"\n";
+            ss << "#endif\n";
+            ss << "#pragma clang diagnostic ignored \"-Wunsequenced\"\n";
+            ss << "#pragma clang diagnostic ignored \"-Wunused-function\"\n";
+            ss << "#endif\n";
+            ss << "\n";
+        }
+
+        void writeAotFooter () {
+            ss << "#if defined(_MSC_VER)\n";
+            ss << "#pragma warning(pop)\n";
+            ss << "#endif\n";
+            ss << "#if defined(__GNUC__) && !defined(__clang__)\n";
+            ss << "#pragma GCC diagnostic pop\n";
+            ss << "#endif\n";
+            ss << "#if defined(__clang__)\n";
+            ss << "#pragma clang diagnostic pop\n";
+            ss << "#endif\n";
+        }
+
+        void writeRegistration ( Context & context ) {
+            ss << "namespace "      << program->thisNamespace << " {\n";
+            ss << "\nstatic void registerAotFunctions ( AotLibrary & aotLib ) {\n";
+            program->registerAotCpp(ss, context, false, true);
+            ss << "\tresolveTypeInfoAnnotations();\n";
+            ss << "};\n";
+            ss << "\n";
+            ss << "AotListBase impl(registerAotFunctions);\n";
+            ss << "} // namespace " << program->thisNamespace << "\n";
+
+            ss << "namespace "      << contextNameSuffix << " {\n";
+            program->writeStandaloneContext(ss);
+            ss << "} // namespace " << contextNameSuffix << "\n";
+        }
+
+        void writeRequiredModulesFor ( Module * mod ) {
+            // lets comment on required modules
+            for ( auto [req, pub] : mod->requireModule ) {
+                if ( req->name=="" ) {
+                    // nothing, its main program module. i.e ::
+                } else {
+                    if ( req->name=="$" ) {
+                        ss << " // require builtin\n";
+                    } else {
+                        ss << " // require " << req->name << "\n";
+                    }
+                    if ( req->aotRequire(ss)==ModuleAotType::no_aot ) {
+                        ss << "  // no_aot ignored in standalone context\n";
+                    }
+                }
+            }
+        }
+
+        void setAotHashes ( Context & context ) {
+            // compute semantic hash for each used function
+            int fni = 0;
+            for ( auto & pm : program->library.getModules() ) {
+                pm->functions.foreach([&](auto pfun){
+                    if (pfun->index < 0 || !pfun->used)
+                        return;
+                    SimFunction * fn = context.getFunction(fni);
+                    pfun->hash = getFunctionHash(pfun.get(), fn->code, &context);
+                    fni++;
+                });
+            }
+            // compute AOT hash for each used function
+            // its the same as semantic hash, only takes dependencies into account
+            for (auto & pm : program->library.getModules() ) {
+                pm->functions.foreach([&](auto pfun){
+                    if (pfun->index < 0 || !pfun->used)
+                        return;
+                    pfun->aotHash = getFunctionAotHash(pfun.get());
+                    fni++;
+                });
+            }
+        }
+
+        bool saveToFile ( const string & fname, const string & str ) {
+            FILE * f = fopen (fname.c_str(), "w");
+            if ( !f ) return false;
+            size_t bytes_written = fwrite(str.c_str(), str.length(), 1, f);
+            fclose(f);
+            return bytes_written == str.length();
+        }
+    public:
+        virtual void visitGlobalLetBody ( Program * prog ) override {
+            vector<Variable*> globals;
+            prog->library.foreach([&]( Module * pm ) {
+                pm->globals.foreach([&]( VariablePtr pvar ){
+                    if ( pvar->index < 0 || !pvar->used ) return;
+                    if ( pvar->module == prog->thisModule.get() ) return;
+                    globals.push_back(pvar.get());
+                });
+                return true;
+            }, "*");
+
+            for ( auto var : globals ) {
+                preVisitGlobalLet(var);
+                if ( var->init ) {
+                    preVisitGlobalLetInit(var, var->init.get());
+                    var->init = var->init->visit(*this);
+                    var->init = visitGlobalLetInit(var, var->init.get());
+                }
+                auto varn = visitGlobalLet(var);
+            }
+            tab --;
+            ss << "}\n";
+            Visitor::visitGlobalLetBody(prog);
+        }
+        virtual void preVisitProgramBody ( Program * prog, Module * that ) override {
+            // functions
+            ss << "\n";
+            // print forward declarations
+            vector<Function *> fnn; fnn.reserve(prog->totalFunctions);
+            prog->library.foreach([&](Module * pm) {
+                pm->functions.foreach([&](auto pfun) {
+                    if ( pfun->index < 0 || !pfun->used ) return true;
+                    if ( pfun->builtIn || pfun->noAot) return true;
+                    auto needInline = that == pm;
+                    ss << describeCppFunc(pfun.get(), &collector, true, needInline) << ";\n";
+                    return true;
+                });
+                return true;
+            }, "*");
+            ss << "\n";
+        }
+        bool run() {
+            shared_ptr<Context> pctx ( get_context(program->getContextStackSize()) );
+            if ( !program->simulate(*pctx, tw) ) {
+                tw << "failed to simulate\n";
+                for ( auto & err : program->errors ) {
+                    tw << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+                }
+                return false;
+            }
+            Context & context = *pctx;
+            // header
+
+            daScriptEnvironment::bound->g_Program = program;    // setting it for the AOT macros
+
+
+            // mark prologue
+            PrologueMarker pmarker;
+            program->visit(pmarker);
+
+            setAotHashes(context);
+
+            // now, for that AOT
+            program->setPrintFlags();
+            program->visit(collector);
+
+
+            program->library.foreach([&] (Module * mod) {
+                // if ( mod->isProperBuiltin() ) return true;
+                moduleNamespace = mod->promoted ? "" : mod->name;
+
+                ss << "// Module " << mod->name << "\n";
+
+                writeAotHeaderIncludes();
+                writeRequiredModulesFor(mod);
+                writeAotHeader();
+
+                ss << "namespace das {\n";
+                program->visitModule(*this, mod);
+                if ( mod->name.empty() ) writeRegistration(context);
+                ss << "} // namespace das\n";
+
+                writeAotFooter();
+
+                nameToOutput[mod->name] = ss.str();
+                ss = std::move(TextWriter{}); // clear the stream
+                return true;
+            }, "*");
+
+            // get the name of the current file from program?
+
+            for ( auto & [nm, out] : nameToOutput ) {
+                if ( nm.empty() ) nm = contextNameSuffix;
+                const auto outputFile = cppOutputDir + '/' + nm + ".das.cpp";
+                saveToFile(outputFile, out);
+            }
+
+            daScriptEnvironment::bound->g_Program.reset();
+
+            return true;
+        }
+    private:
+        TextWriter                  tw;
+        das_map<string, string>     nameToOutput;
+        string                      cppOutputDir;
+        string                      moduleNamespace;
+        const string                contextNameSuffix;
+    };
+
+    void runStandaloneVisitor ( ProgramPtr prog, string cppOutputDir, string standaloneContextName ) {
+        BlockVariableCollector coll;
+        StandaloneContextGen gen(prog, coll, cppOutputDir, standaloneContextName);
+        gen.run();
     }
 
     void Program::aotCpp ( Context & context, TextWriter & logs ) {

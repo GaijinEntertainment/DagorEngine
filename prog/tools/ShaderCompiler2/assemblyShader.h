@@ -120,6 +120,8 @@ public:
   void eval_assume_stat(assume_stat &s) override {}
   void eval_command(shader_directive &s);
   void eval_supports(supports_stat &);
+  void eval_blend_value(const Terminal &blend_func_tok, const SHTOK_intnum *const index,
+    ShaderSemCode::Pass::BlendFactors &blend_factors);
 
   inline int eval_if(bool_expr &e);
   void eval_else(bool_expr &) {}

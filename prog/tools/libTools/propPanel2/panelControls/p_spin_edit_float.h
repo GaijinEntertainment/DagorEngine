@@ -7,7 +7,7 @@
 class CSpinEditFloat : public BasicPropertyControl
 {
 public:
-  CSpinEditFloat(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+  CSpinEditFloat(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
     const char caption[], int prec = 3);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
@@ -28,7 +28,7 @@ public:
   void reset();
 
   void setEnabled(bool enabled);
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
   void moveTo(int x, int y);
 
 private:

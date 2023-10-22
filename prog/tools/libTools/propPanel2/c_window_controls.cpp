@@ -41,7 +41,11 @@ intptr_t WindowControlBase::onDropFiles(const dag::Vector<String> &files) { retu
 // ------------------- Routines ---------------------------
 
 
-void *load_bmp_picture(const char *lpwszFileName) { return LoadImage(0, lpwszFileName, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE); }
+void *load_bmp_picture(const char *lpwszFileName, unsigned final_w, unsigned final_h)
+{
+  return LoadImage(0, lpwszFileName, IMAGE_BITMAP, final_w, final_h, LR_LOADFROMFILE);
+}
+void *clone_bmp_picture(void *image) { return (HBITMAP)CopyImage((HBITMAP)image, IMAGE_BITMAP, 0, 0, LR_COPYRETURNORG); }
 
 unsigned get_alpha_color(void *hbitmap)
 {

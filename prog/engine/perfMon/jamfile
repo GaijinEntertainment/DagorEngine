@@ -1,0 +1,56 @@
+Root    ?= ../../.. ;
+Location = prog/engine/perfMon ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine/perfMon.lib ;
+
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine/perfMon
+;
+
+Sources =
+  profilerModes.cpp
+  profilerSettings.cpp
+  gpuProfiler.cpp
+  visClipMesh.cpp
+  stat3d.cpp
+  tdrProfile.cpp
+  statStd.cpp
+  perfMonStat.cpp
+  sleepPrecise.cpp
+  memoryReport.cpp
+  memoryReportVramQuery.cpp
+  memoryReportLog.cpp
+;
+
+if $(Platform) in ps4 && $(Config) != rel {
+  AddLibs +=
+    -lScePerf_stub_weak
+    -lSceRazorCpu_stub_weak
+  ;
+}
+
+CPPopt = -D__B_CORE ;
+
+if $(Platform) = win64 {
+  CacheSim ?= no ;
+} else {
+  CacheSim = no ; # not supported
+}
+
+if $(CacheSim) = yes {
+  Target = $(Target:S=~cachesim.lib) ;
+  Sources += cachesim.cpp ;
+  UseProgLibs += 3rdPartyLibs/cachesim ;
+}
+else {
+  Sources += stub/cachesim.cpp ;
+}
+
+if $(DriverLinkage) != dynamic { UseProgLibs += engine/perfMon/daProfiler ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

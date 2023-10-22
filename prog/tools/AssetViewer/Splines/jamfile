@@ -5,7 +5,7 @@ TargetType  = lib ;
 Target      = tools/AssetViewer/Splines.lib ;
 
 AddIncludes =
-  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/tools/sharedInclude
 ;
 

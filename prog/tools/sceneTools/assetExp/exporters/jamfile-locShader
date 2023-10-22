@@ -18,8 +18,8 @@ AddIncludes =
 ;
 
 UseProgLibs =
-  engine2/startup
-  engine2/math
+  engine/startup
+  engine/math
 
   tools/libTools/assetMgr
 ;

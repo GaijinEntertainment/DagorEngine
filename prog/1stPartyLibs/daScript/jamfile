@@ -12,7 +12,7 @@ if $(Platform) = win32 && $(UseWholeOpt) = yes && ! $(PlatformSpec) in clang vc1
   Copt += /GL- ;
 }
 
-if $(PlatformSpec) in gcc4 {
+if $(PlatformSpec) in gcc {
   CPPopt += -Wno-stringop-overflow ;
 }
 

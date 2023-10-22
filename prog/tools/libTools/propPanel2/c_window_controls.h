@@ -11,7 +11,8 @@
 #include <debug/dag_debug.h>
 
 
-void *load_bmp_picture(const char *lpwszFileName);
+void *load_bmp_picture(const char *lpwszFileName, unsigned final_w, unsigned final_h);
+void *clone_bmp_picture(void *image);
 unsigned get_alpha_color(void *hbitmap);
 
 class WindowControlBase : public WindowBase

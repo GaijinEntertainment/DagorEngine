@@ -23,13 +23,19 @@ macro INIT_FLUID_WIND(stage)
   }
 endmacro
 
-macro INIT_AMBIENT_WIND(stage)
+macro INIT_AMBIENT_WIND_BASE(stage)
   (stage) {
-    ambient_wind_tex@smp2d = ambient_wind_tex;
     ambient_wind__speed__current_time__previous_time@f4 = ambient_wind__speed__current_time__previous_time;
     ambient_wind_noise__speed__scale__perpendicular__strength@f4 = ambient_wind_noise__speed__scale__perpendicular__strength;
     ambient_wind_grass_noise__speed__scale__perpendicular__strength@f4 = ambient_wind_grass_noise__speed__scale__perpendicular__strength;
     ambient_wind_map_scale__offset@f4 = ambient_wind_map_scale__offset;
+  }
+endmacro
+
+macro INIT_AMBIENT_WIND(stage)
+  INIT_AMBIENT_WIND_BASE(stage)
+  (stage) {
+    ambient_wind_tex@smp2d = ambient_wind_tex;
   }
 endmacro
 

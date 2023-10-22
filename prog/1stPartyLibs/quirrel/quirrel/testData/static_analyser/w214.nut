@@ -7,3 +7,5 @@ enum REPLAY {
 }
 
 ::x <- test ? REPLAY.SKIRMISH : REPLAY.SKIRMISH
+
+//-file:undefined-global

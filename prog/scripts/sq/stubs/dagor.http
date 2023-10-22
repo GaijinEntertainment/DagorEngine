@@ -7,9 +7,7 @@ let function request(a) {
 }
 
 return {
-  abort
   httpAbort = abort
-  request
   httpRequest = request
 
   HTTP_SUCCESS = 0

@@ -6,20 +6,17 @@
 #include "riRotationPalette.h"
 
 #include <util/dag_roHugeHierBitMap2d.h>
-#include <math/integer/dag_IBBox2.h>
 #include <math/random/dag_random.h>
-#include <math/dag_e3dColor.h>
 #include <math/dag_TMatrix.h>
 #include <vecmath/dag_vecMath.h>
 #include "multiPointData.h"
-#include <debug/dag_debug.h>
 #include <osApiWrappers/dag_spinlock.h>
 
-namespace rendinstgen
+namespace rendinst::gen
 {
 extern float custom_max_trace_distance;
-extern bool custom_trace_ray(const Point3 &src, const Point3 &dir, real &dist, Point3 *out_norm = NULL);
-extern bool custom_get_height(Point3 &pos, Point3 *out_norm = NULL);
+extern bool custom_trace_ray(const Point3 &src, const Point3 &dir, real &dist, Point3 *out_norm = nullptr);
+extern bool custom_get_height(Point3 &pos, Point3 *out_norm = nullptr);
 extern vec3f custom_update_pregen_pos_y(vec4f pos, int16_t *dest_packed_y, float csz_y, float oy);
 extern void custom_get_land_min_max(BBox2 bbox_xz, float &out_min, float &out_max);
 
@@ -372,7 +369,7 @@ struct WorldHugeBitmask
   float ox, oz, scale;
   int w, h; // in fact, just duplicates dimensions stored in bm
 
-  WorldHugeBitmask() : bm(NULL), ox(0), oz(0), scale(1), w(0), h(0) {}
+  WorldHugeBitmask() : bm(nullptr), ox(0), oz(0), scale(1), w(0), h(0) {}
   ~WorldHugeBitmask() { clear(); }
 
   void initExplicit(float min_x, float min_z, float s, HugeBitmask *_bm)
@@ -388,7 +385,7 @@ struct WorldHugeBitmask
 
   void clear()
   {
-    bm = NULL;
+    bm = nullptr;
     ox = oz = 0;
     scale = 1;
     w = h = 0;
@@ -582,7 +579,7 @@ static inline void place_on_ground(Point3 &p, float start_above = 0)
 {
   real dist = custom_max_trace_distance + start_above;
   p.y += start_above;
-  if (custom_trace_ray(p, Point3(0, -1, 0), dist, NULL))
+  if (custom_trace_ray(p, Point3(0, -1, 0), dist, nullptr))
     p.y -= dist;
   else
     p.y -= start_above;
@@ -715,4 +712,4 @@ static inline void rotate_multipoint(TMatrix &tm, MpPlacementRec &mppRec)
 
   tm = mpp_tm;
 }
-} // namespace rendinstgen
+} // namespace rendinst::gen

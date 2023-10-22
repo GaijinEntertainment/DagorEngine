@@ -51,13 +51,13 @@ static void draw_xor_lines(int x1, int y1, int x2, int y2, bool is_vertical, voi
 
   if (is_vertical)
   {
-    x1 += SPLITTER_THICKNESS + SPLITTER_SPACE * 2;
-    x2 += SPLITTER_THICKNESS + SPLITTER_SPACE * 2;
+    x1 += _pxS(SPLITTER_THICKNESS) + _pxS(SPLITTER_SPACE) * 2;
+    x2 += _pxS(SPLITTER_THICKNESS) + _pxS(SPLITTER_SPACE) * 2;
   }
   else
   {
-    y1 += SPLITTER_THICKNESS + SPLITTER_SPACE * 2;
-    y2 += SPLITTER_THICKNESS + SPLITTER_SPACE * 2;
+    y1 += _pxS(SPLITTER_THICKNESS) + _pxS(SPLITTER_SPACE) * 2;
+    y2 += _pxS(SPLITTER_THICKNESS) + _pxS(SPLITTER_SPACE) * 2;
   }
 
   MoveToEx((HDC)hdc, x1, y1, 0);
@@ -322,20 +322,20 @@ void SplitterWindow::drawMovingLine(IPoint2 mouse_pos)
 
   screen_to_client(mOwner->getMainWindow(), mouse_pos);
 
-  int minSize[2];
+  hdpi::Px minSize[2];
   bool leftRes = false, rightRes = false;
   int i = mIsVertical ? 0 : 1;
   int d = mouse_pos[i] - mMousePosOnClick[i];
 
   rightRes = mParent->getSecond()->getMinSize(minSize[0], minSize[1]); // only when dx > 0
   if (d > 0)
-    if (parentPos2[i] - mouse_pos[i] < minSize[i] + SPLITTER_THICKNESS + SPLITTER_SPACE * 2)
-      d = parentPos2[i] - minSize[i] - mMousePosOnClick[i] - SPLITTER_THICKNESS - SPLITTER_SPACE * 2;
+    if (parentPos2[i] - mouse_pos[i] < _px(minSize[i]) + _pxS(SPLITTER_THICKNESS) + _pxS(SPLITTER_SPACE) * 2)
+      d = parentPos2[i] - _px(minSize[i]) - mMousePosOnClick[i] - _pxS(SPLITTER_THICKNESS) - _pxS(SPLITTER_SPACE) * 2;
 
   leftRes = mParent->getFirst()->getMinSize(minSize[0], minSize[1]);
   if (d < 0)
-    if (mouse_pos[i] - parentPos1[i] < minSize[i])
-      d = parentPos1[i] + minSize[i] - mMousePosOnClick[i];
+    if (mouse_pos[i] - parentPos1[i] < _px(minSize[i]))
+      d = parentPos1[i] + _px(minSize[i]) - mMousePosOnClick[i];
 
   if (leftRes || rightRes)
     if (!canMoveSplitter())
@@ -379,7 +379,7 @@ void SplitterWindow::moveTo(IPoint2 mouse_pos)
   IPoint2 newPos1(thisPos1), newPos2(thisPos2);
 
   int i = mIsVertical ? 0 : 1;
-  int minLeft[2], minRight[2];
+  hdpi::Px minLeft[2], minRight[2];
   bool leftRes = leftWnd->getMinSize(minLeft[0], minLeft[1]);
   bool rightRes = rightWnd->getMinSize(minRight[0], minRight[1]);
 
@@ -393,8 +393,8 @@ void SplitterWindow::moveTo(IPoint2 mouse_pos)
   leftWnd->getPos(leftWindowPos1, leftWindowPos2);
   rightWnd->getPos(rightWindowPos1, rightWindowPos2);
 
-  minLeft[i] += 1;
-  minRight[i] += 1;
+  minLeft[i] += _pxActual(1);
+  minRight[i] += _pxActual(1);
 
   d = mouse_pos[i] - mMousePosOnClick[i];
   if (!d)
@@ -405,14 +405,14 @@ void SplitterWindow::moveTo(IPoint2 mouse_pos)
   newPos1[i] = thisPos1[i] + d;
   newPos2[i] = thisPos2[i] + d;
 
-  if (newPos1[i] < parentPos1[i] + minLeft[i])
+  if (newPos1[i] < parentPos1[i] + _px(minLeft[i]))
   {
-    newPos1[i] = parentPos1[i] + minLeft[i];
+    newPos1[i] = parentPos1[i] + _px(minLeft[i]);
     newPos2[i] = newPos1[i] + (thisPos2[i] - thisPos1[i]);
   }
-  else if (newPos2[i] > parentPos2[i] - minRight[i])
+  else if (newPos2[i] > parentPos2[i] - _px(minRight[i]))
   {
-    newPos2[i] = parentPos2[i] - minRight[i];
+    newPos2[i] = parentPos2[i] - _px(minRight[i]);
     newPos1[i] = newPos2[i] - (thisPos2[i] - thisPos1[i]);
   }
 
@@ -449,10 +449,10 @@ WindowSizeLock SplitterWindow::getSizeLock() const { return WSL_NONE; }
 
 
 //=============================================================================
-bool SplitterWindow::getMinSize(int &min_w, int &min_h)
+bool SplitterWindow::getMinSize(hdpi::Px &min_w, hdpi::Px &min_h) const
 {
-  min_w = SPLITTER_THICKNESS;
-  min_h = SPLITTER_THICKNESS;
+  min_w = _pxScaled(SPLITTER_THICKNESS);
+  min_h = _pxScaled(SPLITTER_THICKNESS);
 
   return false;
 }

@@ -11,7 +11,7 @@
 
 
 PropertyContainerVert::PropertyContainerVert(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x,
-  int y, unsigned w, unsigned h, HorzFlow horzFlow)
+  int y, hdpi::Px w, hdpi::Px h, HorzFlow horzFlow)
 
   :
   PropertyContainerControlBase(id, event_handler, parent, x, y, w, h),
@@ -22,7 +22,7 @@ PropertyContainerVert::PropertyContainerVert(int id, ControlEventHandler *event_
 {}
 
 
-void PropertyContainerVert::setWidth(unsigned w)
+void PropertyContainerVert::setWidth(hdpi::Px w)
 {
   // PropertyControlBase::setWidth(w);
 
@@ -36,7 +36,7 @@ void PropertyContainerVert::setWidth(unsigned w)
     int fi, li;
     unsigned all_width, cur_width, cur_x, cur_y;
 
-    cur_width = all_width = this->getClientWidth();
+    cur_width = all_width = _px(this->getClientWidth());
     cur_x = cur_y = 0;
     fi = li = 0;
 
@@ -49,7 +49,7 @@ void PropertyContainerVert::setWidth(unsigned w)
           ; // search on this line
 
         // width and pos calc
-        cur_width = (li - fi > 1) ? (all_width - DEFAULT_CONTROLS_INTERVAL * (li - fi - 1)) / (li - fi) : all_width;
+        cur_width = (li - fi > 1) ? (all_width - _pxS(DEFAULT_CONTROLS_INTERVAL) * (li - fi - 1)) / (li - fi) : all_width;
         cur_x = this->getNextControlX(true);
 
         if (horzFlow == HorzFlow::Enabled && fi > 0)
@@ -67,12 +67,13 @@ void PropertyContainerVert::setWidth(unsigned w)
       }
       else
       {
-        cur_x = DEFAULT_CONTROLS_INTERVAL + ((fi) ? this->mControlArray[fi - 1]->getX() + this->mControlArray[fi - 1]->getWidth() : 0);
+        cur_x =
+          _pxS(DEFAULT_CONTROLS_INTERVAL) + ((fi) ? this->mControlArray[fi - 1]->getX() + this->mControlArray[fi - 1]->getWidth() : 0);
         if (horzFlow == HorzFlow::Enabled)
           cur_y = mControlArray[fi - 1]->getY();
       }
 
-      mControlArray[fi]->setWidth(cur_width);
+      mControlArray[fi]->setWidth(_pxActual(cur_width));
       mControlArray[fi]->moveTo(cur_x, cur_y);
     }
   }
@@ -162,11 +163,12 @@ void PropertyContainerVert::addControl(PropertyControlBase *pcontrol, bool new_l
     for (fi = li - 1; ((fi >= 0) && (!mControlsNewLine[fi])); --fi)
       ;
 
-    unsigned nw = (this->getClientWidth() - DEFAULT_CONTROLS_INTERVAL * (li - fi)) / (li - fi + 1);
+    unsigned nw = (_px(this->getClientWidth()) - _pxS(DEFAULT_CONTROLS_INTERVAL) * (li - fi)) / (li - fi + 1);
     for (int i = fi; i < li + 1; ++i)
     {
-      mControlArray[i]->setWidth(nw);
-      mControlArray[i]->moveTo(DEFAULT_CONTROLS_INTERVAL + (DEFAULT_CONTROLS_INTERVAL + nw) * (i - fi), mControlArray[i]->getY());
+      mControlArray[i]->setWidth(_pxActual(nw));
+      mControlArray[i]->moveTo(_pxS(DEFAULT_CONTROLS_INTERVAL) + (_pxS(DEFAULT_CONTROLS_INTERVAL) + nw) * (i - fi),
+        mControlArray[i]->getY());
     }
   }
 
@@ -189,9 +191,9 @@ int PropertyContainerVert::getNextControlX(bool new_line)
   int c = mControlArray.size();
   if ((c) && (!new_line))
   {
-    return mControlArray[c - 1]->getX() + mControlArray[c - 1]->getWidth() + DEFAULT_CONTROLS_INTERVAL;
+    return mControlArray[c - 1]->getX() + mControlArray[c - 1]->getWidth() + _pxS(DEFAULT_CONTROLS_INTERVAL);
   }
-  return DEFAULT_CONTROLS_INTERVAL;
+  return _pxS(DEFAULT_CONTROLS_INTERVAL);
 }
 
 
@@ -263,16 +265,16 @@ void PropertyContainerVert::setNewLine()
 {
   if (horzFlow == HorzFlow::Disabled || mControlArray.empty())
     return;
-  unsigned int width = getClientWidth();
-  int startX = DEFAULT_CONTROLS_INTERVAL + mControlArray[0]->getX();
+  unsigned int width = _px(getClientWidth());
+  int startX = _pxS(DEFAULT_CONTROLS_INTERVAL) + mControlArray[0]->getX();
   for (int i = 1; i < mControlArray.size(); ++i)
   {
     int curX = startX + defaultControlWidth;
     mControlsNewLine[i] = int(width - curX) < defaultControlWidth;
     if (mControlsNewLine[i])
-      startX = DEFAULT_CONTROLS_INTERVAL;
+      startX = _pxS(DEFAULT_CONTROLS_INTERVAL);
     else
-      startX += DEFAULT_CONTROLS_INTERVAL + defaultControlWidth;
+      startX += _pxS(DEFAULT_CONTROLS_INTERVAL) + defaultControlWidth;
   }
 }
 
@@ -291,7 +293,7 @@ void PropertyContainerHorz::onChildResize(int id)
   {
     for (li = fi + 1; li < c; ++li)
     {
-      new_x = mControlArray[li - 1]->getX() + mControlArray[li - 1]->getWidth() + DEFAULT_CONTROLS_INTERVAL;
+      new_x = mControlArray[li - 1]->getX() + mControlArray[li - 1]->getWidth() + _pxS(DEFAULT_CONTROLS_INTERVAL);
 
       mControlArray[li]->moveTo(new_x, mControlArray[li]->getY());
     }
@@ -306,10 +308,10 @@ int PropertyContainerHorz::getNextControlX(bool new_line)
   int c = mControlArray.size();
   if (c)
   {
-    return mControlArray[c - 1]->getX() + mControlArray[c - 1]->getWidth() + DEFAULT_CONTROLS_INTERVAL;
+    return mControlArray[c - 1]->getX() + mControlArray[c - 1]->getWidth() + _pxS(DEFAULT_CONTROLS_INTERVAL);
   }
 
-  return DEFAULT_TOOLWINDOW_IDENT;
+  return _pxS(DEFAULT_TOOLWINDOW_IDENT);
 }
 
 
@@ -333,17 +335,17 @@ int PropertyContainerHorz::getNextControlY(bool new_line)
 }
 
 
-unsigned PropertyContainerHorz::getClientWidth()
+hdpi::Px PropertyContainerHorz::getClientWidth()
 {
   WindowBase *win = this->getWindow();
   if (win)
   {
-    int result = win->getWidth() - 2 * DEFAULT_TOOLWINDOW_IDENT;
-    return (result > 0) ? result : 0;
+    int result = win->getWidth() - 2 * _pxS(DEFAULT_TOOLWINDOW_IDENT);
+    return _pxActual((result > 0) ? result : 0);
   }
 
   debug("PropertyContainerHorz::getClientWidth(): getWindow() == NULL!");
-  return 0;
+  return hdpi::Px::ZERO;
 }
 
 
@@ -358,7 +360,7 @@ void PropertyContainerHorz::addControl(PropertyControlBase *pcontrol, bool new_l
   int c = mControlsNewLine.size();
   if (c > 0)
   {
-    mControlArray[c - 1]->setWidth(DEFAULT_TOOLBAR_CONTROL_WIDTH);
+    mControlArray[c - 1]->setWidth(_pxScaled(DEFAULT_TOOLBAR_CONTROL_WIDTH));
 
     // vertical auto-align
 

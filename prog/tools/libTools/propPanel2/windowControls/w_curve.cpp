@@ -35,8 +35,6 @@ enum
   CURVE_POINT_RAD = 3,
   CURVE_SCROLL_SPEED = 10,
 
-  DIALOG_W = 220,
-  DIALOG_H = 100,
   DIALOG_ID_X = 1000,
   DIALOG_ID_Y,
 };
@@ -502,7 +500,7 @@ intptr_t WCurveControl::onLButtonDClick(long x, long y)
 
     if (idx > -1) // edit dialog
     {
-      CDialogWindow setxy_dialog(getHandle(), DIALOG_W, DIALOG_H, "Select point coordinates");
+      CDialogWindow setxy_dialog(getHandle(), _pxScaled(220), _pxScaled(100), "Select point coordinates");
 
       PropertyContainerControlBase *panel = setxy_dialog.getPanel();
       G_ASSERT(panel && "WCurveControl::onLButtonDClick: panel = NULL");

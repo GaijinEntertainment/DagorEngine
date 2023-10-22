@@ -8,7 +8,7 @@
 class CButton : public BasicPropertyControl
 {
 public:
-  CButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, const char caption[]);
+  CButton(ControlEventHandler *event_h, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, const char caption[]);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
     bool new_line = true);
@@ -20,7 +20,7 @@ public:
   void setTextValue(const char value[]);
 
   void setEnabled(bool enabled);
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
   void setFocus();
   void moveTo(int x, int y);
 

@@ -19,7 +19,7 @@
     virtual bool evalBool ( das::Context & context ) override { \
         return compute(context);                                \
     }                                                           \
-    virtual vec4f DAS_EVAL_ABI eval ( das::Context & context ) override {    \
+    DAS_EVAL_ABI virtual vec4f eval ( das::Context & context ) override {    \
         return cast<bool>::from(compute(context));              \
     }
 

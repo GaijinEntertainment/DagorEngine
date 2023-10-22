@@ -46,7 +46,7 @@ public:
 	/// Create a height field shape of inSampleCount * inSampleCount vertices.
 	/// The height field is a surface defined by: inOffset + inScale * (x, inSamples[y * inSampleCount + x], y).
 	/// where x and y are integers in the range x and y e [0, inSampleCount - 1].
-	/// inSampleCount: inSampleCount / mBlockSize must be a power of 2 and minimally 2.
+	/// inSampleCount: inSampleCount / mBlockSize must be minimally 2 and a power of 2 is the most efficient in terms of performance and storage.
 	/// inSamples: inSampleCount^2 vertices.
 	/// inMaterialIndices: (inSampleCount - 1)^2 indices that index into inMaterialList.
 									HeightFieldShapeSettings(const float *inSamples, Vec3Arg inOffset, Vec3Arg inScale, uint32 inSampleCount, const uint8 *inMaterialIndices = nullptr, const PhysicsMaterialList &inMaterialList = PhysicsMaterialList());
@@ -71,7 +71,7 @@ public:
 	Vec3							mScale = Vec3::sReplicate(1.0f);
 	uint32							mSampleCount = 0;
 
-	/// The heightfield is divided in blocks of mBlockSize * mBlockSize * 2 triangles and the acceleration structure culls blocks only, 
+	/// The heightfield is divided in blocks of mBlockSize * mBlockSize * 2 triangles and the acceleration structure culls blocks only,
 	/// bigger block sizes reduce memory consumption but also reduce query performance. Sensible values are [2, 8], does not need to be
 	/// a power of 2. Note that at run-time we'll perform one more grid subdivision, so the effective block size is half of what is provided here.
 	uint32							mBlockSize = 2;
@@ -86,6 +86,11 @@ public:
 
 	/// The materials of square at (x, y) is: mMaterials[mMaterialIndices[x + y * (mSampleCount - 1)]]
 	PhysicsMaterialList				mMaterials;
+
+	/// Cosine of the threshold angle (if the angle between the two triangles is bigger than this, the edge is active, note that a concave edge is always inactive).
+	/// Setting this value too small can cause ghost collisions with edges, setting it too big can cause depenetration artifacts (objects not depenetrating quickly).
+	/// Valid ranges are between cos(0 degrees) and cos(90 degrees). The default value is cos(5 degrees).
+	float							mActiveEdgeCosThresholdAngle = 0.996195f;							// cos(5 degrees)
 };
 
 /// A height field shape. Cannot be used as a dynamic object.
@@ -112,7 +117,7 @@ public:
 
 	// See Shape::GetMassProperties
 	virtual MassProperties			GetMassProperties() const override;
-	
+
 	// See Shape::GetMaterial
 	virtual const PhysicsMaterial *	GetMaterial(const SubShapeID &inSubShapeID) const override;
 
@@ -139,6 +144,9 @@ public:
 
 	// See: Shape::CollidePoint
 	virtual void					CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSubShapeIDCreator, CollidePointCollector &ioCollector, const ShapeFilter &inShapeFilter = { }) const override;
+
+	// See: Shape::ColideSoftBodyVertices
+	virtual void					CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const override;
 
 	// See Shape::GetTrianglesStart
 	virtual void					GetTrianglesStart(GetTrianglesContext &ioContext, const AABox &inBox, Vec3Arg inPositionCOM, QuatArg inRotation, Vec3Arg inScale) const override;
@@ -180,7 +188,7 @@ protected:
 	// See: Shape::RestoreBinaryState
 	virtual void					RestoreBinaryState(StreamIn &inStream) override;
 
-private:	
+private:
 	class							DecodingContext;						///< Context class for walking through all nodes of a heightfield
 	struct							HSGetTrianglesContext;					///< Context class for GetTrianglesStart/Next
 
@@ -188,17 +196,17 @@ private:
 	void							CacheValues();
 
 	/// Calculate bit mask for all active edges in the heightfield
-	void							CalculateActiveEdges();
-	
+	void							CalculateActiveEdges(const HeightFieldShapeSettings &inSettings);
+
 	/// Store material indices in the least amount of bits per index possible
-	void							StoreMaterialIndices(const Array<uint8> &inMaterialIndices);
+	void							StoreMaterialIndices(const HeightFieldShapeSettings &inSettings);
 
 	/// Get the amount of horizontal/vertical blocks
 	inline uint						GetNumBlocks() const					{ return mSampleCount / mBlockSize; }
 
 	/// Get the maximum level (amount of grids) of the tree
-	static inline uint				sGetMaxLevel(uint inNumBlocks)			{ return CountTrailingZeros(inNumBlocks); }
-	
+	static inline uint				sGetMaxLevel(uint inNumBlocks)			{ return 32 - CountLeadingZeros(inNumBlocks - 1); }
+
 	/// Get the range block offset and stride for GetBlockOffsetAndScale
 	static inline void				sGetRangeBlockOffsetAndStride(uint inNumBlocks, uint inMaxLevel, uint &outRangeBlockOffset, uint &outRangeBlockStride);
 
@@ -210,7 +218,7 @@ private:
 
 	/// Faster version of GetPosition when block offset and scale are already known
 	inline Vec3						GetPosition(uint inX, uint inY, float inBlockOffset, float inBlockScale, bool &outNoCollision) const;
-		
+
 	/// Determine amount of bits needed to encode sub shape id
 	uint							GetSubShapeIDBits() const;
 
@@ -255,7 +263,7 @@ private:
 	uint16							mMaxSample = HeightFieldShapeConstants::cNoCollisionValue16;
 	Array<RangeBlock>				mRangeBlocks;						///< Hierarchical grid of range data describing the height variations within 1 block. The grid for level <level> starts at offset sGridOffsets[<level>]
 	Array<uint8>					mHeightSamples;						///< mBitsPerSample-bit height samples. Value [0, mMaxHeightValue] maps to highest detail grid in mRangeBlocks [mMin, mMax]. mNoCollisionValue is reserved to indicate no collision.
-	Array<uint8>					mActiveEdges;						///< (mSampleCount - 1)^2 * 3-bit active edge flags. 
+	Array<uint8>					mActiveEdges;						///< (mSampleCount - 1)^2 * 3-bit active edge flags.
 
 	/// Materials
 	PhysicsMaterialList				mMaterials;							///< The materials of square at (x, y) is: mMaterials[mMaterialIndices[x + y * (mSampleCount - 1)]]

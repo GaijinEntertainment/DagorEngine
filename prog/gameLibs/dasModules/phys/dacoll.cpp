@@ -110,8 +110,12 @@ public:
       "bind_dascript::dacoll_rayhit_normalized");
     das::addExtern<DAS_BIND_FUN(dacoll_rayhit_normalized_trace_handle)>(*this, lib, "rayhit_normalized",
       das::SideEffects::accessExternal, "bind_dascript::dacoll_rayhit_normalized_trace_handle");
+    das::addExtern<DAS_BIND_FUN(dacoll_traceray_normalized_frt)>(*this, lib, "traceray_normalized_frt",
+      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_traceray_normalized_frt");
     das::addExtern<DAS_BIND_FUN(dacoll_traceray_normalized_lmesh)>(*this, lib, "traceray_normalized_lmesh",
       das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_traceray_normalized_lmesh");
+    das::addExtern<DAS_BIND_FUN(dacoll_traceray_normalized_ri)>(*this, lib, "traceray_normalized_ri",
+      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_traceray_normalized_ri");
     das::addExtern<DAS_BIND_FUN(dacoll::rayhit_normalized_lmesh)>(*this, lib, "rayhit_normalized_lmesh",
       das::SideEffects::accessExternal, "dacoll::rayhit_normalized_lmesh");
 

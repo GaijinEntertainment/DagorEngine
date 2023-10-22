@@ -1,0 +1,65 @@
+//
+// Dagor Engine 6.5 - Game Libraries
+// Copyright (C) 2023  Gaijin Games KFT.  All rights reserved
+// (for conditions of use see prog/license.txt)
+//
+#pragma once
+
+#include <rendInst/riexHandle.h>
+#include <rendInst/layerFlags.h>
+#include <vecmath/dag_vecMathDecl.h>
+#include <math/dag_bounds3.h>
+
+
+// The functions in this file provide access to various properties of riExtra.
+// WARNING: Despite their names, the functions below only work for riExtra!!!
+
+class CollisionResource;
+
+namespace rendinst
+{
+
+float get_riextra_ttl(riex_handle_t);
+bool get_riextra_immortality(riex_handle_t);
+
+uint32_t get_riextra_instance_seed(riex_handle_t);
+void set_riextra_instance_seed(riex_handle_t, int32_t data);
+
+const mat43f &getRIGenExtra43(riex_handle_t id);
+void getRIGenExtra44(riex_handle_t id, mat44f &out_tm);
+
+void getRIExtraCollInfo(riex_handle_t id, CollisionResource **out_collision, BSphere3 *out_bsphere);
+const CollisionResource *getDestroyedRIExtraCollInfo(riex_handle_t handle);
+
+void setRIGenExtraImmortal(uint32_t pool, bool value);
+bool isRIGenExtraImmortal(uint32_t pool);
+bool isRIGenExtraWalls(uint32_t pool);
+float getRIGenExtraBsphRad(uint32_t pool);
+Point3 getRIGenExtraBsphPos(uint32_t pool);
+Point4 getRIGenExtraBSphereByTM(uint32_t pool, const TMatrix &tm);
+int getRIGenExtraParentForDestroyedRiIdx(uint32_t pool);
+bool isRIGenExtraDestroyedPhysResExist(uint32_t pool);
+int getRIGenExtraDestroyedRiIdx(uint32_t pool);
+vec4f getRIGenExtraBSphere(riex_handle_t id);
+// special values: 0 (default HP with regen), -1 (default HP no regen), -2 (invincible)
+void setRiGenExtraHp(riex_handle_t id, float hp);
+
+float getInitialHP(riex_handle_t id);
+float getHP(riex_handle_t id);
+bool isPaintFxOnHit(riex_handle_t id);
+bool isKillsNearEffects(riex_handle_t id);
+
+const char *getRIGenExtraName(uint32_t res_idx);
+int getRIGenExtraPreferrableLod(uint32_t res_idx, float squared_distance);
+bool isRIExtraGenPosInst(uint32_t res_idx);
+bool updateRiExtraReqLod(uint32_t res_idx, unsigned lod);
+
+bbox3f riex_get_lbb(int res_idx);
+float ries_get_bsph_rad(int res_idx);
+
+void setRiGenResMatId(uint32_t res_idx, int matId);
+void setRiGenResHp(uint32_t res_idx, float hp);
+void setRiGenResDestructionImpulse(uint32_t res_idx, float impulse);
+bool hasRiLayer(int res_idx, LayerFlag layer);
+
+} // namespace rendinst

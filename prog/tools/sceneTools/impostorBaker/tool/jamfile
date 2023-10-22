@@ -19,10 +19,10 @@ if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/gameLibs/rendInst
-  $(Root)/prog/engine2/sharedInclude
-  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/tools/sceneTools/daEditorX/include
 ;
 
 Sources =
@@ -32,22 +32,22 @@ Sources =
 ;
 
 UseProgLibs =
-  engine2/startup
-  engine2/coreUtil
-  engine2/math
-  engine2/lib3d
-  engine2/image
-  engine2/shaders
-  engine2/workCycle
+  engine/startup
+  engine/coreUtil
+  engine/math
+  engine/lib3d
+  engine/image
+  engine/shaders
+  engine/workCycle
 
-  engine2/drv/drv3d_pc_multi
+  engine/drv/drv3d_pc_multi
 
-  engine2/gameRes
-  engine2/scene
-  engine2/sceneRay
-  engine2/guiBase
-  engine2/animChar
-  engine2/phys/physCommon
+  engine/gameRes
+  engine/scene
+  engine/sceneRay
+  engine/guiBase
+  engine/animChar
+  engine/phys/physCommon
 
   commonFx/commonFxGame
 
@@ -66,7 +66,7 @@ UseProgLibs =
 
   tools/libTools/shaderResBuilder
   tools/sceneTools/impostorBaker/impostorUtil
-  tools/sceneTools/daEditor3/services/dxpFactory
+  tools/sceneTools/daEditorX/services/dxpFactory
 
   3rdPartyLibs/image/libpng-1.4.22
   3rdPartyLibs/image/psdRead

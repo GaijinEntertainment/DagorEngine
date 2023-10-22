@@ -322,7 +322,7 @@ bool GPUGrassBase::setQuality(GrassQuality quality)
 
 void GPUGrassBase::init(const DataBlock &grassSettings)
 {
-  if (!(d3d::get_driver_desc().fshver & DDFSH_5_0))
+  if (d3d::get_driver_desc().shaderModel < 5.0_sm)
     return;
 #define VAR(a)     a##VarId = get_shader_variable_id(#a);
 #define VAR_OPT(a) a##VarId = get_shader_variable_id(#a, true);
@@ -631,7 +631,7 @@ float GPUGrassBase::alignTo() const
 bool GPUGrassBase::isGrassLodsEnabled() const { return grassLod.get(); }
 
 void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, float min_ht_, float max_ht_,
-  const frustum_heights_cb_t &cb)
+  const frustum_heights_cb_t &cb, GrassPreRenderCallback pre_render_cb)
 {
   TIME_D3D_PROFILE(genGrass)
   const float nextLodDistMul = 2.5f;
@@ -726,6 +726,10 @@ void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, floa
   // ShaderGlobal::set_int(grass_instancingVarId, grassInstancing.get() ? 1 : 0);
   ShaderGlobal::set_int(grass_instancingVarId, 0);
 
+  // wait for deform hmap finish
+  if (pre_render_cb)
+    pre_render_cb();
+
   grassIsSorted = false;
   {
     TIME_D3D_PROFILE(generate)
@@ -810,11 +814,12 @@ void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, floa
   generated = true;
 }
 
-void GPUGrassBase::generate(const Point3 &pos, const Point3 &view_dir, const frustum_heights_cb_t &cb)
+void GPUGrassBase::generate(const Point3 &pos, const Point3 &view_dir, const frustum_heights_cb_t &cb,
+  GrassPreRenderCallback pre_render_cb)
 {
   if (!isInited())
     return;
-  generateGrass(Point2::xz(pos), view_dir, pos.y - 1000.f, pos.y + 1000.f, cb);
+  generateGrass(Point2::xz(pos), view_dir, pos.y - 1000.f, pos.y + 1000.f, cb, eastl::move(pre_render_cb));
 }
 
 void GPUGrassBase::render(RenderType rtype)
@@ -913,7 +918,7 @@ void GPUGrass::init(const DataBlock &grassSettings)
     typesTex->setAnisotropy(1);
     G_ASSERTF(masksTex, "grass_masks not loaded.");
   }
-  copy_grass_decals.init("copy_grass_decals", NULL, true);
+  copy_grass_decals.init("copy_grass_decals");
 
   maskResolution = grassSettings.getInt("grassMaskResolution", 512);
   maskTexHelper.texSize = maskResolution;
@@ -987,8 +992,7 @@ void MaskRenderCallback::renderQuad(const IPoint2 &lt, const IPoint2 &wd, const 
 
 void MaskRenderCallback::end() { d3d_set_view_proj(viewproj); }
 
-void GPUGrass::generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassRenderHelper &cb,
-  MaskRenderCallback::PreRenderCallback pre_render_cb)
+void GPUGrass::generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassRenderHelper &cb, GrassPreRenderCallback pre_render_cb)
 {
   if (!base.isInited())
     return;
@@ -1047,7 +1051,8 @@ void GPUGrass::generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassR
     colorTex.setVar();
     maskTex.setVar();
   }
-  base.generate(pos, view_dir, [&](const BBox2 &box, float &mn, float &mx) { return cb.getMinMaxHt(box, mn, mx); });
+  base.generate(
+    pos, view_dir, [&](const BBox2 &box, float &mn, float &mx) { return cb.getMinMaxHt(box, mn, mx); }, eastl::move(pre_render_cb));
 }
 
 void GPUGrass::render(RenderType rtype) { base.render((GPUGrassBase::RenderType)rtype); }

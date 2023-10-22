@@ -64,6 +64,8 @@ public:
   virtual bool onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mouse, IMenu &menu) { return true; };
   virtual bool onTvListContextMenu(TreeBaseWindow &tree, int index, IMenu &menu) override;
 
+  static void addCommonMenuItems(IMenu &menu);
+
 private:
   Tab<int> filter;
   Tab<int> curFilter;

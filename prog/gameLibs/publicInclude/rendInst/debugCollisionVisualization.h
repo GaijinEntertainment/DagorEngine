@@ -1,5 +1,6 @@
 #include <util/dag_bitFlagsMask.h>
 #include <math/dag_Point3.h>
+#include <vecmath/dag_vecMathDecl.h>
 
 
 namespace rendinst
@@ -26,7 +27,7 @@ BITMASK_DECLARE_FLAGS_OPERATORS(rendinst::DrawCollisionsFlag);
 inline constexpr float DEFAULT_MAX_COLLISION_DISTANCE_SQUARED = 10000000;
 inline constexpr float DEFAULT_MAX_LABEL_DIST_SQ = 20 * 20;
 
-void drawDebugCollisions(DrawCollisionsFlags flags, const Point3 &view_pos, bool reverse_depth,
+void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Point3 &view_pos, bool reverse_depth,
   float max_coll_dist_sq = DEFAULT_MAX_COLLISION_DISTANCE_SQUARED, float max_label_dist_sq = DEFAULT_MAX_LABEL_DIST_SQ);
 
 } // namespace rendinst

@@ -125,8 +125,8 @@ struct D3dInterfaceTable
   Sbuffer *(*create_ib)(int size_bytes, int flags, const char *stat_name);
   Sbuffer *(*create_sbuffer)(int struct_size, int elements, unsigned flags, unsigned texfmt, const char *);
 
-  bool (*set_depth_0)(BaseTexture *, bool);
-  bool (*set_depth_1)(BaseTexture *tex, int layer, bool);
+  bool (*set_depth_0)(BaseTexture *, DepthAccess);
+  bool (*set_depth_1)(BaseTexture *tex, int layer, DepthAccess);
   bool (*set_backbuf_depth)();
   bool (*set_render_target_0)();
   bool (*set_render_target_1)(int rt_index, BaseTexture *, int level);
@@ -355,8 +355,8 @@ struct D3dInterfaceTable
   bool set_render_target(int ri, BaseTexture *tex, int fc, int level) { return set_render_target_2(ri, tex, fc, level); }
   bool set_render_target(int rt_index, BaseTexture *tex, int level) { return set_render_target_1(rt_index, tex, level); }
   bool set_render_target(const Driver3dRenderTarget &rt) { return set_render_target_3(rt); }
-  inline bool set_depth(BaseTexture *tex, bool ro = false) { return set_depth_0(tex, ro); }
-  inline bool set_depth(BaseTexture *tex, int layer, bool ro = false) { return set_depth_1(tex, layer, ro); }
+  inline bool set_depth(BaseTexture *tex, DepthAccess access = DepthAccess::RW) { return set_depth_0(tex, access); }
+  inline bool set_depth(BaseTexture *tex, int layer, DepthAccess access = DepthAccess::RW) { return set_depth_1(tex, layer, access); }
 
   bool settm(int which, const Matrix44 *tm) { return settm_0(which, tm); }
   bool settm(int which, const TMatrix &tm) { return settm_1(which, tm); }
@@ -365,7 +365,7 @@ struct D3dInterfaceTable
   bool gettm(int which, TMatrix &out_tm) { return gettm_1(which, out_tm); }
   void gettm(int which, mat44f &out_tm) { gettm_2(which, out_tm); }
 
-  unsigned driverCode;
+  DriverCode driverCode;
   const char *driverName;
   const char *driverVer;
   const char *deviceName;

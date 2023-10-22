@@ -22,6 +22,6 @@ class UpscaleSamplingTex
 public:
   UpscaleSamplingTex(uint32_t w, uint32_t h);
 
-  void render();
+  void render(float goffset_x = 0, float goffset_y = 0);
   void onReset();
 };

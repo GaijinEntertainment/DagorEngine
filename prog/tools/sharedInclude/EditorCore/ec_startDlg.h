@@ -37,7 +37,6 @@ public:
 
   virtual void onCustomFillPanel(PropertyContainerControlBase &panel) {}
   virtual bool onCustomSettings(PropertyContainerControlBase &panel) { return true; }
-  virtual int getWspDialogHeight();
 
 protected:
   EditorWorkspace &wsp;

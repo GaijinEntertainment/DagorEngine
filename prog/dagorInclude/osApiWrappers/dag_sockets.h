@@ -49,7 +49,7 @@ static constexpr int OS_SOCKET_ERR_WOULDBLOCK = 11;
 
 struct os_socket_addr
 {
-  char opaque[16];
+  alignas(4) char opaque[16];
 };
 struct os_socket_addr_in6
 {

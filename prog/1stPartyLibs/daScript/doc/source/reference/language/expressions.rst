@@ -81,7 +81,7 @@ Operators
 
     expr1 \.\. expr2
 
-This is equivalent to `inverval(expr1,expr2)`. By default `interval(a,b:int)` is implemented as `range(a,b)`,
+This is equivalent to `interval(expr1,expr2)`. By default `interval(a,b:int)` is implemented as `range(a,b)`,
 and `interval(a,b:uint)` is implemented as `urange(a,b)`. Users can define their own interval functions or generics.
 
 ^^^^^^^^^^^^^

@@ -266,6 +266,8 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
       float rawDepth;
       half4 result = apply_clouds_ps_main(input, screenpos, rawDepth);
 
+      applySpecialVision(result);
+
       // fog is applied here, in clouds apply instead of sky rendering, as clouds are drawn later, but we don't want +1 pass for fog apply
       // we assume volfog is always in front of clouds (we already assume that for every surface in the depth buffer anyway)
       // otherwise we would apply fog multiple times in a certain range (from encode_depth.z)
@@ -276,8 +278,6 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
         apply_sky_custom_fog(result, input.tc.xy, jitteredVolfogTc);
         result.a = 1 - result.a;
       }
-
-      applySpecialVision(result);
       result.rgb = pack_hdr(result.rgb);
       return result;
     }

@@ -13,3 +13,7 @@ foo(x?.z[y])
 foo(x.y?[10].y?[y])
 foo(x.y.z.u[y])
 foo(x.y?.z.u[y])
+
+
+
+//-file:expr-cannot-be-null

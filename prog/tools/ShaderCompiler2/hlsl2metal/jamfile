@@ -24,7 +24,7 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/vulkan/spirv-tools/include
   $(Root)/prog/3rdPartyLibs/vulkan/smol-v/source
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/engine2/drv/drv3d_Metal
+  $(Root)/prog/engine/drv/drv3d_Metal
 ;
 
 UseProgLibs +=
@@ -37,14 +37,9 @@ UseProgLibs +=
   gameLibs/spirv
 ;
 
-CPPopt = -D_CROSS_TARGET_METAL=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT
+CPPopt = -D_CROSS_TARGET_METAL=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECATE -D_HAS_EXCEPTIONS=0 -D_SECURE_SCL=0 -DEXCLUDE_PSTDINT -DENABLE_HLSL=1
   # use only when it is really necessary and avoid committing it because it breaks dbg builds
   #-D_HAS_ITERATOR_DEBUGGING=1
 ;
-
-if $(Platform) in win32 win64
-{
-  GlobalCPPopt = /fp:precise ;
-}
 
 include $(Root)/prog/_jBuild/build.jam ;

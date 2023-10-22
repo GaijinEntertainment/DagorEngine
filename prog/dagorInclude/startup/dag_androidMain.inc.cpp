@@ -30,7 +30,11 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
 #include <osApiWrappers/dag_stackHlp.h>
+#include <statsd/statsd.h>
+#include <EASTL/bitset.h>
+#include <EASTL/fixed_vector.h>
 #include <atomic>
+#include <mutex>
 
 const size_t ANDROID_ROTATED_LOGS = 3;
 
@@ -77,7 +81,9 @@ int dagor_android_scr_yres = 0;
 void (*dagor_android_user_message_loop_handler)(struct android_app *app, int32_t cmd) = nullptr;
 SimpleString (*dagor_android_app_get_anr_execution_context)() = nullptr;
 
-bool dagor_android_fast_shutdown = false;
+void (*dagor_anr_handler)(int32_t cmd) = nullptr;
+
+bool dagor_fast_shutdown = false;
 
 namespace native_android
 {
@@ -137,8 +143,123 @@ static int get_pointer(void *event, int pidx)
   return x | (y << 16);
 }
 
-int32_t dagor_android_handle_motion_event(struct android_app *app, int event_source, void *event)
+
+struct MainWindowProcCall
 {
+  uint32_t message;
+  uintptr_t wParam;
+  uintptr_t lParam;
+};
+
+
+struct AndroidProcessResult
+{
+  // In order to avoid allocations but still be able to handle more
+  // use max touch points count.
+  static const int MAX_TOUCH_POINTS = 16;
+
+  eastl::fixed_vector<MainWindowProcCall, MAX_TOUCH_POINTS, true> wndCalls;
+  int status = 0;
+};
+
+
+static std::mutex g_android_commands_mutex;
+static std::condition_variable g_android_commands_condition;
+static int32_t g_android_pending_command = -1;
+
+// Normally we don't have so many input events.
+// It could only happen if case our DagorMainThread is very laggy
+// In case of big lags do not buffer more than 128 events
+
+static std::mutex g_android_input_mutex;
+static int g_android_next_input_call_id = 0;
+using InputCallsArray = eastl::array<MainWindowProcCall, 128>;
+static InputCallsArray g_android_input_calls;
+
+static std::mutex g_android_joystick_events_mutex;
+static eastl::bitset<128> g_android_joystick_events_free;
+static eastl::array<android::JoystickEvent, 128> g_android_joystick_events_storage;
+
+static int g_next_slow_send = 0;
+
+
+static android::JoystickEvent *allocate_android_joystick_event(void *event)
+{
+  int eventId = -1;
+  {
+    std::unique_lock<std::mutex> lock(g_android_joystick_events_mutex);
+    eventId = g_android_joystick_events_free.find_first();
+    if (eventId < g_android_joystick_events_free.size())
+      g_android_joystick_events_free.set(eventId, false);
+    else
+      return nullptr;
+  }
+
+  android::JoystickEvent *joystickEvent = &g_android_joystick_events_storage[eventId];
+
+  joystickEvent->deviceId = android::motion_event::get_device_id(event);
+  for (int i = 0, sz = joystickEvent->axisValues.size(); i < sz; ++i)
+    joystickEvent->axisValues[i] = android::motion_event::get_axis_value(event, i, 0);
+
+  return joystickEvent;
+}
+
+
+static void free_android_joystick_events(const InputCallsArray &input_calls, int input_calls_size)
+{
+  if (input_calls_size <= 0)
+    return;
+
+  std::unique_lock<std::mutex> lock(g_android_joystick_events_mutex);
+  for (int i = 0; i < input_calls_size; ++i)
+  {
+    const MainWindowProcCall &call = input_calls[i];
+    if (call.message == GPCM_JoystickMovement)
+    {
+      android::JoystickEvent *joystickEvent = (android::JoystickEvent *)call.wParam;
+      const int eventId = eastl::distance(g_android_joystick_events_storage.begin(), joystickEvent);
+      g_android_joystick_events_free.set(eventId, true);
+    }
+  }
+}
+
+
+static AndroidProcessResult process_android_key_event(struct android_app *app, void *event)
+{
+  AndroidProcessResult result;
+
+  int key = android::key_event::get_key_code(event);
+  int c = get_unicode_char(app, android::key_event::get_action(event) & AMOTION_EVENT_ACTION_MASK, key,
+    android::key_event::get_meta_state(event));
+  switch (android::key_event::get_action(event) & AMOTION_EVENT_ACTION_MASK)
+  {
+    case AKEY_EVENT_ACTION_DOWN:
+      if (!c && key == AKEYCODE_DEL)
+        c = 0x0008;
+      if (key == AKEYCODE_ENTER)
+        c = 0; // skip unicode 'Line Feed' character (we handle return ourselves)
+      if (key == AKEYCODE_VOLUME_DOWN || key == AKEYCODE_VOLUME_UP)
+        return result;
+
+      if (key)
+        result.wndCalls.push_back(MainWindowProcCall{GPCM_KeyPress, (uintptr_t)key, (uintptr_t)c});
+      else if (c)
+        result.wndCalls.push_back(MainWindowProcCall{GPCM_Char, (uintptr_t)c, 0});
+      break;
+    case AKEY_EVENT_ACTION_UP: result.wndCalls.push_back(MainWindowProcCall{GPCM_KeyRelease, (uintptr_t)key, 0}); break;
+  }
+
+  result.status = 1;
+
+  return result;
+}
+
+
+static AndroidProcessResult process_android_motion_event(struct android_app *app, int event_source, void *event)
+{
+  AndroidProcessResult result;
+  result.status = 1;
+
   static constexpr int AINPUT_SOURCE_JOYSTICK = 0x01000010;
 
   bool srcTouch = (event_source & AINPUT_SOURCE_TOUCHSCREEN) == AINPUT_SOURCE_TOUCHSCREEN;
@@ -151,61 +272,204 @@ int32_t dagor_android_handle_motion_event(struct android_app *app, int event_sou
     {
       case AMOTION_EVENT_ACTION_MOVE:
         for (int i = 0, ie = android::motion_event::get_pointer_count(event); i < ie; i++)
-          workcycle_internal::main_window_proc(app, GPCM_TouchMoved, get_pointer_id(event, i), get_pointer(event, i));
+          result.wndCalls.push_back(
+            MainWindowProcCall{GPCM_TouchMoved, (uintptr_t)get_pointer_id(event, i), (uintptr_t)get_pointer(event, i)});
         break;
       case AMOTION_EVENT_ACTION_DOWN:
       case AMOTION_EVENT_ACTION_POINTER_DOWN:
-        workcycle_internal::main_window_proc(app, GPCM_TouchBegan, get_pointer_id(event, pidx), get_pointer(event, pidx));
+        result.wndCalls.push_back(
+          MainWindowProcCall{GPCM_TouchBegan, (uintptr_t)get_pointer_id(event, pidx), (uintptr_t)get_pointer(event, pidx)});
         break;
       case AMOTION_EVENT_ACTION_UP:
       case AMOTION_EVENT_ACTION_POINTER_UP:
-        workcycle_internal::main_window_proc(app, GPCM_TouchEnded, get_pointer_id(event, pidx), get_pointer(event, pidx));
+        result.wndCalls.push_back(
+          MainWindowProcCall{GPCM_TouchEnded, (uintptr_t)get_pointer_id(event, pidx), (uintptr_t)get_pointer(event, pidx)});
         break;
       case AMOTION_EVENT_ACTION_CANCEL:
         for (int i = 0, ie = android::motion_event::get_pointer_count(event); i < ie; i++)
-          workcycle_internal::main_window_proc(app, GPCM_TouchEnded, get_pointer_id(event, i), get_pointer(event, i));
+          result.wndCalls.push_back(
+            MainWindowProcCall{GPCM_TouchEnded, (uintptr_t)get_pointer_id(event, i), (uintptr_t)get_pointer(event, i)});
         break;
     }
   }
   else if (event_source == AINPUT_SOURCE_JOYSTICK)
-    workcycle_internal::main_window_proc(app, GPCM_JoystickMovement, intptr_t(event), 0);
-  return 1;
+  {
+    if (android::JoystickEvent *joystickEvent = allocate_android_joystick_event(event))
+      result.wndCalls.push_back(MainWindowProcCall{GPCM_JoystickMovement, uintptr_t(joystickEvent), 0});
+  }
+
+  return result;
 }
 
-int32_t dagor_android_handle_key_event(struct android_app *app, void *event)
+namespace
 {
-  int key = android::key_event::get_key_code(event);
-  int c = get_unicode_char(app, android::key_event::get_action(event) & AMOTION_EVENT_ACTION_MASK, key,
-    android::key_event::get_meta_state(event));
-  switch (android::key_event::get_action(event) & AMOTION_EVENT_ACTION_MASK)
+
+struct DagorMainThread final : public DaThread
+{
+  DagorMainThread() : DaThread("DagorMainThread", 4 << 20) {}
+
+  void execute() override
   {
-    case AKEY_EVENT_ACTION_DOWN:
-      if (!c && key == AKEYCODE_DEL)
-        c = 0x0008;
-      if (key == AKEYCODE_ENTER)
-        c = 0; // skip unicode 'Line Feed' character (we handle return ourselves)
-      if (key == AKEYCODE_VOLUME_DOWN || key == AKEYCODE_VOLUME_UP)
-      {
-        return 0;
-      }
-      if (key)
-        workcycle_internal::main_window_proc(app, GPCM_KeyPress, key, c);
-      else if (c)
-        workcycle_internal::main_window_proc(app, GPCM_Char, c, 0);
-      break;
-    case AKEY_EVENT_ACTION_UP: workcycle_internal::main_window_proc(app, GPCM_KeyRelease, key, 0); break;
+    DagorHwException::setHandler("main");
+
+    default_crt_init_kernel_lib();
+
+    if (dagor_android_external_path)
+    {
+      char path[DAGOR_MAX_PATH];
+      strcpy(path, dagor_android_external_path);
+      strcat(path, "/");
+      dd_add_base_path(path);
+      debug("addpath: %s", path);
+    }
+
+    static DagorSettingsBlkHolder stgBlkHolder;
+    ::DagorWinMainInit(0, 0);
+
+    default_crt_init_core_lib();
+    while (!win32_get_main_wnd())
+    {
+      dagor_idle_cycle(false);
+      debug("waiting for window to be inited...");
+      sleep_msec(100);
+    }
+    ::DagorWinMain(0, 0);
   }
-  return 1;
+};
+
+} // namespace
+
+static DagorMainThread g_dagor_main_thread;
+
+
+static int push_android_input(const AndroidProcessResult &result)
+{
+  if (result.wndCalls.empty())
+    return result.status;
+
+  std::unique_lock<std::mutex> lock(g_android_input_mutex);
+  if (g_android_next_input_call_id + result.wndCalls.size() < g_android_input_calls.size())
+  {
+    eastl::copy(result.wndCalls.begin(), result.wndCalls.end(), g_android_input_calls.begin() + g_android_next_input_call_id);
+    g_android_next_input_call_id += result.wndCalls.size();
+  }
+  return result.status;
 }
+
+
+static void push_android_command_and_wait(int32_t cmd)
+{
+  const char *cmdName = android::app_command_to_string(cmd);
+
+  int waitTimeMs = get_time_msec();
+
+  {
+    std::unique_lock<std::mutex> lock(g_android_commands_mutex);
+    g_android_pending_command = cmd;
+  }
+
+  {
+    // After that time Android may generate ANR (Application Not Responsive)
+    static const std::chrono::seconds ANR_TIMEOUT_SEC = std::chrono::seconds(5);
+
+    std::unique_lock<std::mutex> lock(g_android_commands_mutex);
+    if (!g_android_commands_condition.wait_for(lock, ANR_TIMEOUT_SEC, [] { return g_android_pending_command < 0; }))
+    {
+      logerr("android: ANR: Handling of %s is taking more than %d sec. Context: %s", cmdName, ANR_TIMEOUT_SEC.count(),
+        dagor_android_app_get_anr_execution_context ? dagor_android_app_get_anr_execution_context() : "<unknown>");
+
+      if (dagor_anr_handler)
+        dagor_anr_handler(cmd);
+
+      g_android_commands_condition.wait(lock, [] { return g_android_pending_command < 0; });
+    }
+  }
+
+  const int curTime = get_time_msec();
+  waitTimeMs = curTime - waitTimeMs;
+
+  // We only interested in slow commands processing longer than 1 sec
+  if (waitTimeMs > 1000 && curTime >= g_next_slow_send)
+  {
+    g_next_slow_send = curTime + 1000;
+    statsd::profile("android.handle_os_command_ms", (long)waitTimeMs, {"command", cmdName});
+  }
+
+  debug("CMD: Done: %s (%d ms)", cmdName, waitTimeMs);
+}
+
+
+static void dagor_android_handle_cmd_thread(struct android_app *app, int32_t cmd)
+{
+  const char *cmdName = android::app_command_to_string(cmd);
+  debug("CMD: Received: %s", cmdName);
+
+  switch (cmd)
+  {
+    case APP_CMD_INIT_WINDOW:
+    case APP_CMD_WINDOW_RESIZED:
+    case APP_CMD_WINDOW_REDRAW_NEEDED:
+    case APP_CMD_CONTENT_RECT_CHANGED:
+    case APP_CMD_TERM_WINDOW:
+    case APP_CMD_GAINED_FOCUS:
+    case APP_CMD_LOST_FOCUS: push_android_command_and_wait(cmd); break;
+    default: debug("CMD: Ignored: %s", cmdName); break;
+  }
+}
+
+
+static int32_t dagor_android_handle_input_thread(struct android_app *app, AInputEvent *event)
+{
+  android_app *state = (android_app *)win32_get_instance();
+  if (!state)
+    return 0;
+
+  for (int i = 0; i < android::MAX_INPUT_CALLBACK_NUM; i++)
+    if (android::input_callbacks[i])
+      (*android::input_callbacks[i])(event);
+
+  int src = AInputEvent_getSource(event);
+
+  int ime_status = HumanInput::getScreenKeyboardStatus_android();
+  if (ime_status == 1)
+    return 0;
+  switch (AInputEvent_getType(event))
+  {
+    case AINPUT_EVENT_TYPE_MOTION: return ime_status == 2 ? 0 : push_android_input(process_android_motion_event(app, src, event));
+    case AINPUT_EVENT_TYPE_KEY: return push_android_input(process_android_key_event(app, event));
+  }
+  return 0;
+}
+
+
+// Fatal has happend. The game is going to exit anyway.
+// We can't process Android OS commands properly in that state.
+// For example, the render thread has caused a fatal and we've received APP_CMD_TERM_WINDOW
+// In that case the game can't process the command and might cause ANR.
+// We can't just ignore the commands - the render might work and crash
+// in case we ignore window related commands.
+// So, the only way - just exit on receving such commands.
+std::atomic<bool> dagor_android_in_fatal_state = false;
+
 
 static void dagor_android_handle_cmd(struct android_app *app, int32_t cmd)
 {
+  if (dagor_android_in_fatal_state)
+  {
+    switch (cmd)
+    {
+      case APP_CMD_INIT_WINDOW:
+      case APP_CMD_WINDOW_RESIZED:
+      case APP_CMD_TERM_WINDOW:
+      case APP_CMD_DESTROY:
+        debug("CMD: Commands can't be process during Fatal. Exit.");
+        quit_game(-1);
+        break;
+    };
+  }
+
   switch (cmd)
   {
-    case APP_CMD_SAVE_STATE:
-      // The system has asked us to save our current state.  Do so.
-      debug("CMD: save state");
-      break;
     case APP_CMD_INIT_WINDOW:
       // The window is being shown, get it ready.
       if (app->window != NULL)
@@ -239,118 +503,24 @@ static void dagor_android_handle_cmd(struct android_app *app, int32_t cmd)
       debug("CMD: lost focus");
       workcycle_internal::application_active = dgs_app_active = false;
       break;
+    case APP_CMD_DESTROY:
+      debug("CMD: destroy: %s", dagor_fast_shutdown ? "fast" : "normal");
+      if (!dagor_fast_shutdown && d3d::is_inited())
+      {
+        debug("d3d::release_driver");
+        d3d::release_driver();
+        debug("d3d::is_inited()=%d", d3d::is_inited());
+      }
+      win32_set_instance(NULL);
+      break;
   }
   if (dagor_android_user_message_loop_handler)
     dagor_android_user_message_loop_handler(app, cmd);
 }
 
 
-namespace
-{
-
-struct ANRWatcher
-{
-  int64_t lastPoll = 0;
-  const int64_t TRIGGER_THRESHOLD_US = 1000 * 1000; // 1s
-  // system will show ANR window when server trhreshold is reached, such errors must be fixed with high priority!
-  const int64_t SEVERE_TRIGGER_THRESHOLD_US = 5 * 1000 * 1000; // 5s
-
-  void check()
-  {
-    uint64_t now = ref_time_ticks();
-    uint64_t dlt = ref_time_delta_to_usec(now - lastPoll);
-
-    const int level = dlt > SEVERE_TRIGGER_THRESHOLD_US ? LOGLEVEL_ERR : LOGLEVEL_WARN;
-
-    if (dlt > TRIGGER_THRESHOLD_US && lastPoll)
-      logmessage(level, "android: %sANR: last system poll was %u ms ago. context: %s",
-        dlt > SEVERE_TRIGGER_THRESHOLD_US ? "severe " : "", dlt / 1000,
-        dagor_android_app_get_anr_execution_context ? dagor_android_app_get_anr_execution_context() : "<unknown>");
-    lastPoll = now;
-  }
-};
-
-struct ANRWatcherThread final : public DaThread
-{
-  std::atomic<int64_t> lastPoll = 0;
-  std::atomic<bool> shouldReport = true;
-  std::atomic<bool> shouldReportSevere = true;
-
-  const int64_t TRIGGER_THRESHOLD_US = 1000 * 1000; // 1s
-  // system will show ANR window when server trhreshold is reached, such errors must be fixed with high priority!
-  const int64_t SEVERE_TRIGGER_THRESHOLD_US = 5 * 1000 * 1000; // 5s
-
-  ANRWatcherThread() : DaThread("ANRWatcher") {}
-
-  void execute() override
-  {
-    while (!terminating)
-    {
-      check();
-      sleep_msec(100);
-    }
-  }
-
-  void check()
-  {
-    const int64_t lastPollValue = lastPoll.load(std::memory_order_acquire);
-
-    uint64_t now = ref_time_ticks();
-    uint64_t dlt = ref_time_delta_to_usec(now - lastPollValue);
-
-    const bool isSevere = dlt > SEVERE_TRIGGER_THRESHOLD_US;
-
-#if DAGOR_DBGLEVEL > 0
-    const int level = LOGLEVEL_ERR;
-#else
-    const int level = isSevere ? LOGLEVEL_ERR : LOGLEVEL_WARN;
-#endif
-
-    if (dlt > TRIGGER_THRESHOLD_US && lastPollValue)
-    {
-      if (!isSevere && !shouldReport.load(std::memory_order_acquire))
-        return;
-
-      if (isSevere && !shouldReportSevere.load(std::memory_order_acquire))
-        return;
-
-      if (isSevere)
-        shouldReportSevere.store(false, std::memory_order_release);
-      else
-        shouldReport.store(false, std::memory_order_release);
-
-      if (level == LOGLEVEL_ERR)
-        dump_thread_callstack(get_main_thread_id());
-
-      logmessage(level, "android: %sANR Thread: last system poll was %u ms ago. context: %s", isSevere ? "severe " : "", dlt / 1000,
-        dagor_android_app_get_anr_execution_context ? dagor_android_app_get_anr_execution_context() : "<unknown>");
-    }
-  }
-
-  void poll()
-  {
-    lastPoll.store(ref_time_ticks(), std::memory_order_release);
-    shouldReport.store(true, std::memory_order_release);
-    shouldReportSevere.store(true, std::memory_order_release);
-  }
-};
-
-eastl::unique_ptr<ANRWatcher> g_anr_watcher;
-eastl::unique_ptr<ANRWatcherThread> g_anr_watcher_thread;
-
-} // namespace
-
-
 static void android_exit_app(int code)
 {
-  if (g_anr_watcher_thread)
-  {
-    g_anr_watcher_thread->terminate(true /* wait */);
-    g_anr_watcher_thread.reset();
-  }
-
-  g_anr_watcher.reset();
-
   android_exit_app_ptr = NULL;
   android_app *state = (android_app *)win32_get_instance();
   debug("android_exit_app(%p) code = %i", state, code);
@@ -520,17 +690,47 @@ void read_argv_from_file(const char *file, int &argc, char **argv)
 }
 #endif
 
+
+static void android_looper_poll_all_blocking()
+{
+  android_app *app = (android_app *)win32_get_instance();
+  if (!app)
+    return;
+
+  struct android_poll_source *source;
+  int ident, events;
+  while ((ident = ALooper_pollAll(-1 /* wait until an event appears */, nullptr, &events, (void **)&source)) >= 0)
+  {
+    if (source != NULL)
+      source->process(source->app, source);
+
+    // Check if we are exiting.
+    if (app->destroyRequested != 0)
+    {
+      push_android_command_and_wait(APP_CMD_DESTROY);
+      android_native_app_destroy(app);
+      debug("--- application destroyed ---");
+      _exit(0);
+      return;
+    }
+  }
+}
+
+
 void android_main(struct android_app *state)
 {
   SimpleString libraryName = get_library_name(android::get_java_vm(state->activity), android::get_activity_class(state->activity));
   setup_debug_system((libraryName == "") ? "run" : libraryName, state->activity->externalDataPath, DAGOR_DBGLEVEL > 0,
     ANDROID_ROTATED_LOGS);
 
-  state->onAppCmd = dagor_android_handle_cmd;
+  g_android_joystick_events_free.set();
 
-  android::init_input_handler(state);
+  state->onAppCmd = dagor_android_handle_cmd_thread;
+  state->onInputEvent = dagor_android_handle_input_thread;
 
   apply_hinstance(state, NULL);
+
+  android_exit_app_ptr = &android_exit_app;
 
   measure_cpu_freq();
 
@@ -586,21 +786,8 @@ void android_main(struct android_app *state)
   debug("BUILD TIMESTAMP:   %s %s\n\n", dagor_exe_build_date, dagor_exe_build_time);
 #endif
 
-  DagorHwException::setHandler("main");
-
-  default_crt_init_kernel_lib();
-
-  if (dagor_android_external_path)
-  {
-    char path[DAGOR_MAX_PATH];
-    strcpy(path, dagor_android_external_path);
-    strcat(path, "/");
-    dd_add_base_path(path);
-    debug("addpath: %s", path);
-  }
-
-  android_exit_app_ptr = &android_exit_app;
   g_jvm = state->activity->vm;
+
 #define JNI_ASSERT(jni, cond) G_ASSERT((cond) && !jni->ExceptionCheck())
   JNIEnv *jni;
   state->activity->vm->AttachCurrentThread(&jni, NULL);
@@ -699,17 +886,13 @@ void android_main(struct android_app *state)
     dagor_android_scr_xdpi, dagor_android_scr_ydpi, dagor_android_scr_xres / dagor_android_scr_xdpi * 2.54,
     dagor_android_scr_yres / dagor_android_scr_ydpi * 2.54);
 
-  static DagorSettingsBlkHolder stgBlkHolder;
-  ::DagorWinMainInit(0, 0);
+  g_dagor_main_thread.start();
 
-  default_crt_init_core_lib();
-  while (!win32_get_main_wnd())
-  {
-    dagor_idle_cycle(false);
-    debug("waiting for window to be inited...");
-    sleep_msec(100);
-  }
-  ::DagorWinMain(0, 0);
+  while (g_dagor_main_thread.isThreadRunnning())
+    android_looper_poll_all_blocking();
+
+  if (g_dagor_main_thread.isThreadStarted())
+    g_dagor_main_thread.terminate(true);
 
 #if defined(DEBUG_ANDROID_CMDLINE_FILE)
   for (int i = 0; i < argc; i++)
@@ -719,68 +902,48 @@ void android_main(struct android_app *state)
   win32_set_instance(NULL);
 }
 
-enum class ANRWatcherMode
-{
-  MainThread,
-  SeparateThread,
-};
-
-void init_anr_watcher(ANRWatcherMode mode)
-{
-  if (g_anr_watcher_thread || g_anr_watcher)
-    return;
-
-  if (mode == ANRWatcherMode::SeparateThread)
-  {
-    debug("android: Use ANRWatcherThread");
-    g_anr_watcher_thread.reset(new ANRWatcherThread());
-    g_anr_watcher_thread->start();
-  }
-  else
-  {
-    debug("android: Use ANRWatcher");
-    g_anr_watcher.reset(new ANRWatcher());
-  }
-}
 
 void dagor_process_sys_messages(bool /*input_only*/)
 {
-  android_app *state = (android_app *)win32_get_instance();
-  if (!state)
+  android_app *app = (android_app *)win32_get_instance();
+  if (!app)
     return;
 
-  if (g_anr_watcher)
-    g_anr_watcher->check();
-  else if (g_anr_watcher_thread)
-    g_anr_watcher_thread->poll();
-
-  struct android_poll_source *source;
-  int ident, events;
-  while ((ident = ALooper_pollAll(0, nullptr, &events, (void **)&source)) >= 0)
   {
-    // Process this event.
-    if (source != NULL)
-      source->process(source->app, source);
-
-    // Check if we are exiting.
-    if (state->destroyRequested != 0)
+    std::unique_lock<std::mutex> lock(g_android_commands_mutex);
+    if (g_android_pending_command >= 0)
     {
-      debug("destroyRequested: %s", dagor_android_fast_shutdown ? "fast" : "normal");
-      if (!dagor_android_fast_shutdown && d3d::is_inited())
-      {
-        debug("d3d::release_driver");
-        d3d::release_driver();
-        debug("d3d::is_inited()=%d", d3d::is_inited());
-      }
-      win32_set_instance(NULL);
-      android_native_app_destroy(state);
-      debug("--- application destroyed ---");
-      _exit(0);
-      return;
+      dagor_android_handle_cmd(app, g_android_pending_command);
+      g_android_pending_command = -1;
+
+      lock.unlock();
+      g_android_commands_condition.notify_all();
     }
   }
 
-  android::process_system_messages(state);
+  int inputCallsSize = 0;
+  InputCallsArray inputCalls;
+
+  {
+    std::unique_lock<std::mutex> lock(g_android_input_mutex);
+    if (g_android_next_input_call_id > 0)
+    {
+      inputCallsSize = g_android_next_input_call_id;
+
+      auto from = g_android_input_calls.begin();
+      auto to = from + g_android_next_input_call_id;
+      eastl::copy(from, to, inputCalls.begin());
+      g_android_next_input_call_id = 0;
+    }
+  }
+
+  for (int i = 0; i < inputCallsSize; ++i)
+  {
+    const MainWindowProcCall &call = inputCalls[i];
+    workcycle_internal::main_window_proc(app, call.message, call.wParam, call.lParam);
+  }
+
+  free_android_joystick_events(inputCalls, inputCallsSize);
 }
 
 void dagor_idle_cycle(bool input_only)

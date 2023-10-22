@@ -8,7 +8,7 @@
 #include <EASTL/string.h>
 #include <cstdint>
 
-namespace rendinstgen
+namespace rendinst::gen
 {
 inline constexpr int CACHE_VERSION_BITS = 32;
 inline constexpr uint64_t CACHE_OFFSET_MASK = (1ull << CACHE_VERSION_BITS) - 1;
@@ -126,4 +126,4 @@ struct ScopedDisablePaletteRotation
 
 RotationPaletteManager *get_rotation_palette_manager();
 
-} // namespace rendinstgen
+} // namespace rendinst::gen

@@ -19,8 +19,7 @@ namespace dabfg
  */
 class NodeHandle
 {
-  template <class F>
-  friend NodeHandle register_node(const char *name, const char *source_location, F &&declaration_callback);
+  friend class NameSpace;
   friend NodeHandle register_external_node(NodeNameId name_id, uint32_t generation);
 
   NodeHandle(detail::NodeUid id) : uid{id} {}

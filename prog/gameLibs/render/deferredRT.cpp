@@ -39,7 +39,7 @@ void DeferredRT::setRt()
   for (int i = 0; i < numRt; ++i)
     d3d::set_render_target(i, mrts[i].getTex2D(), 0);
   if (depth.getTex2D())
-    d3d::set_depth(depth.getTex2D(), false);
+    d3d::set_depth(depth.getTex2D(), DepthAccess::RW);
 }
 
 void DeferredRT::setVar()

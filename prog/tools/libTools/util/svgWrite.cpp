@@ -36,6 +36,11 @@ void svg_draw_line(FILE *fp, const Point2 &v0, const Point2 &v1, const char *att
   if (fp)
     fprintf(fp, "<line x1=\"%.3f\" y1=\"%.3f\" x2=\"%.3f\" y2=\"%.3f\" %s />\n", v0.x, v0.y, v1.x, v1.y, attr ? attr : "");
 }
+void svg_draw_circle(FILE *fp, const Point2 &c, float rad)
+{
+  if (fp)
+    fprintf(fp, "<circle r=\"%.3f\" cx=\"%.3f\" cy=\"%.3f\" />\n", rad, c.x, c.y);
+}
 void svg_draw_number(FILE *fp, const Point2 &c, int num)
 {
   if (fp)

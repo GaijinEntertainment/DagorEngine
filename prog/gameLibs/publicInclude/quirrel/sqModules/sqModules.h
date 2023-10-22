@@ -159,7 +159,6 @@ public:
 
   struct
   {
-    bool useAST;
     bool raiseError;
     bool debugInfo;
     bool doStaticAnalysis;
@@ -167,7 +166,7 @@ public:
   } compilationOptions;
 
   void *up_data;
-  void (*onAST_cb)(HSQUIRRELVM, SqAstNode *, void *);
+  void (*onAST_cb)(HSQUIRRELVM, SQCompilation::SqASTData *, void *);
   void (*onBytecode_cb)(HSQUIRRELVM, HSQOBJECT, void *);
 
   // if this flag is false we won't try to open files from real file system if there are missing in vromfs.

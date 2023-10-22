@@ -20,15 +20,15 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/math/vhacd
 ;
 
-UseProgLibs = 
-  engine2/startup
-  engine2/math
-  engine2/lib3d
-  engine2/drv/drv3d_null
-  engine2/gameRes
-  engine2/sceneRay
-  engine2/scene
-  engine2/coreUtil
+UseProgLibs =
+  engine/startup
+  engine/math
+  engine/lib3d
+  engine/drv/drv3d_null
+  engine/gameRes
+  engine/sceneRay
+  engine/scene
+  engine/coreUtil
 
   tools/libTools/assetMgr
   tools/libTools/dagFileRW

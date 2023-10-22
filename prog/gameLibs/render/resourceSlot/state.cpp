@@ -10,6 +10,12 @@ resource_slot::State::State(unsigned storage_id, int node_id) : storageId(storag
   G_ASSERT(storage_id <= (1 << 4));
 }
 
+[[nodiscard]] static inline bool is_node_registered(resource_slot::detail::NodeId node_id, resource_slot::detail::NodeStatus status)
+{
+  return node_id != resource_slot::detail::NodeId::Invalid &&
+         (status == resource_slot::detail::NodeStatus::Valid || status == resource_slot::detail::NodeStatus::Pruned);
+}
+
 // Read current slots
 const char *resource_slot::State::resourceToReadFrom(const char *slot_name) const
 {
@@ -17,14 +23,21 @@ const char *resource_slot::State::resourceToReadFrom(const char *slot_name) cons
   G_ASSERTF_RETURN(nodeId >= 0 && nodeId < storage.nodeMap.nameCount(), nullptr, "Unexpected nodeId: %d", nodeId);
   detail::NodeId ownerNodeId = detail::NodeId{nodeId};
 
-  const detail::NodeDeclaration &node = storage.registeredNodes[ownerNodeId];
-  G_ASSERTF_RETURN(node.id != detail::NodeId::Invalid, nullptr, "Node \"%s\" has already unregistered",
+  detail::NodeDeclaration &node = storage.registeredNodes[ownerNodeId];
+  G_ASSERTF_RETURN(is_node_registered(node.id, node.status), nullptr, "Node \"%s\" has already unregistered",
     storage.nodeMap.name(ownerNodeId));
 
   detail::SlotId slotId = storage.slotMap.id(slot_name);
   const auto *slot = node.resourcesBeforeNode.find(slotId);
-  G_ASSERTF_RETURN(slot != node.resourcesBeforeNode.end(), nullptr, "Missed declaration of Read or Update slot \"%s\" in node \"%s\"",
-    slot_name, storage.nodeMap.name(ownerNodeId));
+
+  if (slot == node.resourcesBeforeNode.end())
+  {
+    logerr("Missed declaration of Read or Update slot \"%s\" in node \"%s\"; node will be pruned at next frame", slot_name,
+      storage.nodeMap.name(ownerNodeId));
+    node.status = detail::NodeStatus::Pruned;
+    storage.isNodeRegisterRequired = true;
+    return storage.resourceMap.name(storage.currentSlotsState[slotId]);
+  }
 
   return storage.resourceMap.name(slot->second);
 }
@@ -35,8 +48,8 @@ const char *resource_slot::State::resourceToCreateFor(const char *slot_name) con
   G_ASSERTF_RETURN(nodeId >= 0 && nodeId < storage.nodeMap.nameCount(), nullptr, "Unexpected nodeId: %d", nodeId);
   detail::NodeId ownerNodeId = detail::NodeId{nodeId};
 
-  const detail::NodeDeclaration &node = storage.registeredNodes[ownerNodeId];
-  G_ASSERTF_RETURN(node.id != detail::NodeId::Invalid, nullptr, "Node \"%s\" has already unregistered",
+  detail::NodeDeclaration &node = storage.registeredNodes[ownerNodeId];
+  G_ASSERTF_RETURN(is_node_registered(node.id, node.status), nullptr, "Node \"%s\" has already unregistered",
     storage.nodeMap.name(ownerNodeId));
 
   detail::SlotId slotId = storage.slotMap.id(slot_name);
@@ -62,8 +75,14 @@ const char *resource_slot::State::resourceToCreateFor(const char *slot_name) con
         declaration);
     });
 
-  G_ASSERTF_RETURN(declaration != node.action_list.end(), nullptr, "Missed declaration of Create or Update slot \"%s\" in node \"%s\"",
-    slot_name, storage.nodeMap.name(ownerNodeId));
+  if (declaration == node.action_list.end())
+  {
+    logerr("Missed declaration of Create or Update slot \"%s\" in node \"%s\"; node will be pruned at next frame", slot_name,
+      storage.nodeMap.name(ownerNodeId));
+    node.status = detail::NodeStatus::Pruned;
+    storage.isNodeRegisterRequired = true;
+    return nullptr;
+  }
 
   return resourceName;
 }

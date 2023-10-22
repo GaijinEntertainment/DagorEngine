@@ -5,6 +5,8 @@
 #include <shaders/dag_shaderVar.h>
 #include <3d/dag_drv3d.h>
 #include <shaders/dag_postFxRenderer.h>
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 
 #if DAGOR_DBGLEVEL > 0
 
@@ -28,6 +30,9 @@ bool inited = false;
 
 void VertexDensityOverlay::init()
 {
+  if (!::dgs_get_settings()->getBlockByNameEx("debug")->getBool("enableVertexDensityOverlay", false))
+    return;
+
   halfSzVarId = ::get_shader_variable_id("vertexDensityHalfSize", true);
   if (!halfSzVarId)
   {
@@ -42,13 +47,12 @@ void VertexDensityOverlay::init()
     return;
   }
 
-  overlayPfx.init("vertexDensityOverlay", nullptr, false);
-  if (!overlayPfx.getElem())
+  if (!shader_exists("vertexDensityOverlay"))
   {
-    overlayPfx.clear();
     debug("vertexDensityOverlay: off, no overlay shader");
     return;
   }
+  overlayPfx.init("vertexDensityOverlay");
 
   vertexDensityAcmRadiusVarId = ::get_shader_variable_id("vertexDensityAcmRadius", true);
   vertexDensityAcmWeightVarId = ::get_shader_variable_id("vertexDensityAcmWeight", true);

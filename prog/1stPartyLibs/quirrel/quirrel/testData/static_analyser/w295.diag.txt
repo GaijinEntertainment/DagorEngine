@@ -1,0 +1,21 @@
+
+AN ERROR HAS OCCURRED [the index 'h' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyser/w295.nut line [9]
+
+LOCALS
+[vargv] ARRAY=[]
+[this] TABLE={}
+WARNING: w307 (global-id-redef) Redefinition of existed global name 'g'.
+testData/static_analyser/w295.nut:5:0
+
+
+WARNING: w307 (global-id-redef) Redefinition of existed global name 'g'.
+testData/static_analyser/w295.nut:7:0
+
+
+WARNING: w295 (undefined-global) Undefined global identifier 'h'.
+testData/static_analyser/w295.nut:9:6
+
+

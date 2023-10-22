@@ -1,5 +1,5 @@
 from "daRg" import *
-from "frp" import *
+from "%sqstd/frp.nut" import *
 
 let defStyling = {
   Bar = function(has_scroll) {

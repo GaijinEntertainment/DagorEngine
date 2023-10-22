@@ -5,24 +5,61 @@
 //
 #pragma once
 
+#include <util/dag_bitFlagsMask.h>
+#include <debug/dag_assert.h>
+#include <math/dag_adjpow2.h>
+#include <EASTL/utility.h>
+
 
 namespace rendinst
 {
 
-enum LayerFlags : uint32_t
+// Only first 12 bits are used for flags, the next 4 bits are used for forced LOD
+enum class LayerFlag : uint16_t
 {
-  LAYER_OPAQUE = 0x1,
-  LAYER_TRANSPARENT = 0x2,
-  LAYER_DECALS = 0x4,
-  LAYER_DISTORTION = 0x8,
-  LAYER_FOR_GRASS = 0x10,
-  LAYER_RENDINST_CLIPMAP_BLEND = 0x20,
-  LAYER_RENDINST_HEIGHTMAP_PATCH = 0x80,
-  LAYER_NOT_EXTRA = 0x100,
-  LAYER_NO_SEPARATE_ALPHA = 0x200,
-  LAYER_FORCE_LOD_MASK = 0xF000,
-  LAYER_FORCE_LOD_SHIFT = 12,
-  LAYER_STAGES = LAYER_DECALS | LAYER_TRANSPARENT | LAYER_OPAQUE | LAYER_NOT_EXTRA,
+  Opaque = 0x001,
+  Transparent = 0x002,
+  Decals = 0x004,
+  Distortion = 0x008,
+  ForGrass = 0x010,
+  RendinstClipmapBlend = 0x020,
+  RendinstHeightmapPatch = 0x080,
+  NotExtra = 0x100,
+  NoSeparateAlpha = 0x200,
+  Stages = Decals | Transparent | Opaque | NotExtra,
+
+  ALL_FLAGS =
+    Opaque | Transparent | Decals | Distortion | ForGrass | RendinstClipmapBlend | RendinstHeightmapPatch | NotExtra | NoSeparateAlpha
+};
+using LayerFlags = BitFlagsMask<LayerFlag>;
+BITMASK_DECLARE_FLAGS_OPERATORS(LayerFlag)
+
+inline constexpr uint32_t get_layer_index(LayerFlag layer)
+{
+  // TODO: it would be nice to assert that only a single flag was passed,
+  // but we don't really have constexpr-compatible assertions yet.
+  return get_const_log2(eastl::to_underlying(layer));
+}
+
+namespace detail
+{
+constexpr size_t LAYER_FORCE_LOD_SHIFT = 12;
+}
+
+inline LayerFlags make_forced_lod_layer_flags(int lod)
+{
+  G_FAST_ASSERT(lod >= 0 && lod + 1 < (1 << 4));
+  return static_cast<LayerFlag>((lod + 1) << detail::LAYER_FORCE_LOD_SHIFT);
+}
+
+inline constexpr int get_forced_lod(LayerFlags flags) { return (flags.asInteger() >> detail::LAYER_FORCE_LOD_SHIFT) - 1; }
+
+} // namespace rendinst
+
+template <>
+struct BitFlagsTraits<rendinst::LayerFlag>
+{
+  static constexpr auto allFlags = rendinst::LayerFlag::ALL_FLAGS;
 };
 
-}
+constexpr BitFlagsMask<rendinst::LayerFlag> operator~(rendinst::LayerFlag bit) { return ~make_bitmask(bit); }

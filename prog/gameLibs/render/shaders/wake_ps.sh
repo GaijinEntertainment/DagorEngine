@@ -377,11 +377,6 @@ shader wfx_normals
   z_test = false;
   z_write = false;
 
-  blend_src = one;
-  blend_dst = one;
-  blend_asrc = one;
-  blend_adst = one;
-
   USE_AND_INIT_VIEW_VEC_PS()
 
   (ps) {
@@ -429,7 +424,7 @@ shader wfx_normals
           normal += (cross(vectors[i], vectors[(i + 1) % DIRECTIONS]));
 
       normal = normalize(normal);
-      return float4(normal.xz * 0.5, 0.0, 0.0);
+      return float4((normal.xz + 1.0) * 0.5, 0.0, 0.0);
     }
   }
 

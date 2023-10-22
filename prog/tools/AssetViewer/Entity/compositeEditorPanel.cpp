@@ -11,9 +11,12 @@
 #include <osApiWrappers/dag_clipboard.h>
 #include <propPanel2/comWnd/list_dialog.h>
 
+using hdpi::_pxActual;
+using hdpi::_pxScaled;
+
 CompositeEditorPanel::CompositeEditorPanel(ControlEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h,
   const char caption[]) :
-  CPanelWindow(event_handler, phandle, x, y, w, h, caption)
+  CPanelWindow(event_handler, phandle, x, y, _pxActual(w), _pxActual(h), caption)
 {
   supportedNodeParameters.addInt("place_type", ICompositObj::Props::PT_none);
   supportedNodeParameters.addPoint2("rot_x", Point2::ZERO);
@@ -300,7 +303,7 @@ CompositeEditorRefreshType CompositeEditorPanel::onAddNodeParametersClicked(Comp
       availableVars.push_back(String(supportedNodeParameters.getParamName(i)));
 
   Tab<String> selectedVars;
-  MultiListDialog selectVars("Parameters to add", 300, 400, availableVars, selectedVars);
+  MultiListDialog selectVars("Parameters to add", _pxScaled(300), _pxScaled(400), availableVars, selectedVars);
   if (selectVars.showDialog() != DIALOG_ID_OK || selectedVars.size() == 0)
     return CompositeEditorRefreshType::Nothing;
 
@@ -328,7 +331,7 @@ CompositeEditorRefreshType CompositeEditorPanel::onRemoveNodeParametersClicked(C
   }
 
   Tab<String> selectedVars;
-  MultiListDialog selectVars("Parameters to remove", 300, 400, availableVars, selectedVars);
+  MultiListDialog selectVars("Parameters to remove", _pxScaled(300), _pxScaled(400), availableVars, selectedVars);
   if (selectVars.showDialog() != DIALOG_ID_OK || selectedVars.size() == 0)
     return CompositeEditorRefreshType::Nothing;
 

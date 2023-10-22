@@ -435,7 +435,7 @@
     }
 #endif
 
-#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLSHAPE_DEPTH)
+#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLSHAPE_DEPTH) && !MODFX_SHADER_VOLFOG_INJECTION
     if ( parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] && !is_dead )
     {
       ModfxDepthMask pp = ModfxDepthMask_load( 0, parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] );
@@ -624,10 +624,13 @@
       float cross_k = abs( dot( normalize( cross( up_vec, right_vec ) ), view_dir_norm ) );
       cross_k = saturate( cross_k - pp.cross_fade_threshold ) * rcp( 1.f - pp.cross_fade_threshold );
       float a = 1.f - pow( abs( ( 1.f - cross_k ) * pp.cross_fade_mul ), pp.cross_fade_pow );
+
+  #if !MODFX_SHADER_VOLFOG_INJECTION
       rdata.color.w *= a;
 
       if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_PREMULT ) )
         rdata.color.rgb *= a;
+  #endif
     }
 #endif
 
@@ -860,7 +863,9 @@
 #if !MODFX_SHADER_ATEST && !defined(_HARDWARE_METAL)
   [earlydepthstencil]
 #endif
-#if MODFX_SHADER_FOM
+#if MODFX_SHADER_VOLFOG_INJECTION
+  void dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS)
+#elif MODFX_SHADER_FOM
   FOM_DATA dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS)
 #elif MODFX_WBOIT_ENABLED
   WBOIT_RET dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS) WBOIT_TAR
@@ -871,9 +876,10 @@
 #if MODFX_SHADER_VOLSHAPE_DEPTH
     return 0;
 #endif
-##if hardware.metal
+
+#if MODFX_USE_INVERTED_POS_W
     input.pos.w = rcp(input.pos.w);
-##endif
+#endif
 
     GlobalData gdata = global_data_load();
     DafxRenderData ren_info;
@@ -885,7 +891,7 @@
     uint decls = parent_data.decls;
     uint flags = parent_data.flags;
 
-#if COLOR_PS_FOG_MULT
+#if COLOR_PS_FOG_MULT && !MODFX_SHADER_VOLFOG_INJECTION
     input.color.rgb *= input.fog_mul;
     input.color.a *= dot(input.fog_mul, 1.0/3);
     input.emission.rgb *= input.fog_mul;
@@ -985,7 +991,9 @@
       if ( dot( input.delta, input.delta ) > 1.f )
       {
         discard;
-        #if MODFX_SHADER_FOM
+        #if MODFX_SHADER_VOLFOG_INJECTION
+          return;
+        #elif MODFX_SHADER_FOM
           return fx_fom_null();
         #elif MODFX_WBOIT_PASS_COMBINED
           WboitData wboit_res = (WboitData)0;
@@ -1006,13 +1014,19 @@
     float cur_depth = 0;
 
     float4 pixel_pos = GET_SCREEN_POS(input.pos);
-    float4 screen_tc = float4(get_screen_tc(pixel_pos.xy), pixel_pos.zw);
+    float4 viewport_tc = float4(get_viewport_tc(pixel_pos.xy), pixel_pos.zw);
+
+#if MODFX_SHADER_VOLFOG_INJECTION
+    float tcZ_sq = viewport_tc.w*view_inscatter_inv_range;
+    if (tcZ_sq > 1)
+      return;
+#endif
 
 #if MODFX_USE_DEPTH_MASK && !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT)
     if ( parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] )
     {
       ModfxDepthMask pp = ModfxDepthMask_load( 0, parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] );
-      depth_mask = dafx_get_soft_depth_mask(float4(screen_tc.xyz * screen_tc.w, screen_tc.w), pp.depth_softness_rcp, gdata);
+      depth_mask = dafx_get_soft_depth_mask(float4(viewport_tc.xyz * viewport_tc.w, viewport_tc.w), pp.depth_softness_rcp, gdata);
     }
 #endif
 
@@ -1106,16 +1120,32 @@
       lighting_part = c;
     }
 
+#if MODFX_SHADER_VOLFOG_INJECTION
+    float4 volfogInjection = float4(lighting_part, alpha);
+
+    if ( parent_data.mods_offsets[MODFX_RMOD_VOLFOG_INJECTION] )
+    {
+      ModfxDeclVolfogInjectionParams pp = ModfxDeclVolfogInjectionParams_load( 0, parent_data.mods_offsets[MODFX_RMOD_VOLFOG_INJECTION] );
+      volfogInjection.rgb *= pp.weight_rgb;
+      volfogInjection.a *= pp.weight_alpha;
+    }
+
+    uint3 volfogTargetId = clamp(uint3(float3(viewport_tc.xy, sqrt(tcZ_sq))*view_inscatter_volume_resolution.xyz + float3(0,0,0.5)), 0u, uint3(view_inscatter_volume_resolution.xyz - 1));
+
+    initial_media[volfogTargetId] = volfogInjection;
+    return;
+#endif
+
 #if MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT
     float thickness_mul = dafx_get_1f( 0, parent_data.mods_offsets[MODFX_RMOD_VOLSHAPE_PARAMS] );
     float radius_pow = dafx_get_1f( 0, parent_data.mods_offsets[MODFX_RMOD_VOLSHAPE_PARAMS] + 1u );
 
 #ifdef DAFX_DEPTH_TEX
-    float dst_depth = linearize_z(tex2Dlod(DAFX_DEPTH_TEX, float4(screen_tc.xy, 0, 0)).x, gdata.zn_zfar.zw);
+    float dst_depth = dafx_get_depth_base(float4(viewport_tc.xyz * viewport_tc.w, viewport_tc.w), gdata);
 #else
     float dst_depth = gdata.zn_zfar.y;
 #endif
-    float src_depth = linearize_z(screen_tc.z, gdata.zn_zfar.zw) - input.life_radius.z;
+    float src_depth = linearize_z(viewport_tc.z, gdata.zn_zfar.zw) - input.life_radius.z;
     float offset = saturate(1.f - dot(input.delta, input.delta)) * input.life_radius.y;
     float far_depth = min(src_depth + offset, dst_depth);
     float near_depth = max(min(src_depth - offset, dst_depth), gdata.zn_zfar.x);
@@ -1130,12 +1160,12 @@
 
 #if MODFX_SHADER_VOLSHAPE_WBOIT_APPLY
   #if MODFX_WBOIT_PASS_COMBINED
-    float4 wboit_accum = tex2D(wboit_color, screen_tc.xy);
+    float4 wboit_accum = tex2D(wboit_color, viewport_tc.xy);
     float wboit_r = wboit_accum.w;
-    wboit_accum.w = tex2D(wboit_alpha, screen_tc.xy).r;
+    wboit_accum.w = tex2D(wboit_alpha, viewport_tc.xy).r;
   #else
-    float4 wboit_accum = tex2D(wboit_color, screen_tc.xy);
-    float wboit_r = tex2D(wboit_alpha, screen_tc.xy).r;
+    float4 wboit_accum = tex2D(wboit_color, viewport_tc.xy);
+    float wboit_r = tex2D(wboit_alpha, viewport_tc.xy).r;
   #endif
 
     float3 col = wboit_accum.xyz / clamp(wboit_accum.w, 0.0000001f, 1000.f);
@@ -1247,7 +1277,7 @@
     float4 result = float4( emissive_part + lighting_part, alpha );
 
 #if MODFX_SHADER_DISTORTION
-    float depthScene = tex2Dlod(haze_scene_depth_tex, float4(screen_tc.xy,0, haze_scene_depth_tex_lod)).x;
+    float depthScene = tex2Dlod(haze_scene_depth_tex, float4(viewport_tc.xy,0, haze_scene_depth_tex_lod)).x;
     float depthHaze  = GET_SCREEN_POS(input.pos).z;
 
     BRANCH
@@ -1290,7 +1320,7 @@
   #if MODFX_USE_FOG_PS_APPLY
     half3 fog_mul = 1;
     get_volfog_with_precalculated_scattering_fast(
-      screen_tc.xy, screen_tc.xy, input.view_dir, input.scattering_color__view_dir_dist.a, screen_tc.w,
+      viewport_tc.xy, viewport_tc.xy, input.view_dir, input.scattering_color__view_dir_dist.a, viewport_tc.w,
       input.scattering_color__view_dir_dist.rgb, input.scattering_base,
       fog_mul, fog_add);
     #if DAFX_USE_UNDERWATER_FOG
@@ -1324,11 +1354,11 @@
 #elif MODFX_SHADER_FOM
 
     float fom_opacity = saturate(result.a) * 0.75; // can't be 1! otherwise log(0) disaster
-    float fom_distance = screen_tc.z * screen_tc.w;
+    float fom_distance = viewport_tc.z * viewport_tc.w;
 
     return fx_fom_calc( fom_distance, fom_opacity );
 
-#else
+#elif !MODFX_SHADER_VOLFOG_INJECTION
 
   #if MODFX_SHADER_THERMALS
     float3 thermal_normal = 1;

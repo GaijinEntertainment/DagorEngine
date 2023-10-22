@@ -14,20 +14,20 @@ Sources =
 ;
 
 AddIncludes =
-  $(Root)/prog/engine2/sharedInclude
-  $(Root)/prog/engine2
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine
   $(Root)/prog/tools/sharedInclude
 ;
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/math
-  engine2/perfMon/daProfilerStub
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/perfMon/daProfilerStub
   tools/libTools/util
 ;
 

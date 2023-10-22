@@ -17,7 +17,7 @@ Sources =
 ;
 
 UseProgLibs +=
-  engine2/lib3d
+  engine/lib3d
   gameLibs/render
 ;
 

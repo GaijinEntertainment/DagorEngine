@@ -9,7 +9,7 @@ namespace das {
     struct SimNode_CFuncCall : SimNode_ExtFuncCallBase {
         SimNode_CFuncCall ( const LineInfo & at, const char * fnName, das_interop_function * FN )
             : SimNode_ExtFuncCallBase(at,fnName) { fn = FN; }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             vec4f * args = (vec4f *)(alloca(nArguments * sizeof(vec4f)));
             evalArgs(context, args);

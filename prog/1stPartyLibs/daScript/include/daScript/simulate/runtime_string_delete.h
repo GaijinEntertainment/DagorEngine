@@ -17,7 +17,7 @@ namespace das
         SimNode_StringIterator ( const LineInfo & at, SimNode * s )
             : SimNode(at), source(s) { }
         virtual SimNode * visit ( SimVisitor & vis ) override;
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override;
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
         SimNode *   source;
     };
 }

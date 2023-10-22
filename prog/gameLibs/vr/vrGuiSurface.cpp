@@ -6,6 +6,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <shaders/dag_shaders.h>
 #include <3d/dag_drv3d.h>
+#include <3d/dag_drv3dReset.h>
 #include <3d/dag_materialData.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_globDef.h>
@@ -150,6 +151,56 @@ static const int VRGUI_GRID_SIZE = 32;
 
 static RenderParams render_params;
 
+static void fill_buffers()
+{
+  if (!render_params.vb)
+    return;
+
+  {
+    struct Vertex
+    {
+      Point3 pos;
+      Point2 texcoord;
+    };
+    G_ASSERT(sizeof(Vertex) == render_params.re.stride);
+    Vertex *vertices;
+    render_params.vb->lock(0, render_params.re.numVert * render_params.re.stride, (void **)&vertices, VBLOCK_WRITEONLY);
+
+    for (unsigned int gridY = 0; gridY <= VRGUI_GRID_SIZE; gridY++)
+      for (unsigned int gridX = 0; gridX <= VRGUI_GRID_SIZE; gridX++)
+      {
+        float tx0 = (float)gridX / VRGUI_GRID_SIZE;
+        float ty0 = (float)gridY / VRGUI_GRID_SIZE;
+        Point3 pos = map_to_surface(Point2(tx0, ty0));
+
+        *vertices = {pos, {tx0, 1.0f - ty0}};
+        vertices++;
+      }
+
+    render_params.vb->unlock();
+  }
+
+  {
+    unsigned short *indices;
+    render_params.ib->lock(0, render_params.re.numPrim * 3 * sizeof(short), &indices, VBLOCK_WRITEONLY);
+
+    for (unsigned int gridY = 0; gridY < VRGUI_GRID_SIZE; gridY++)
+      for (unsigned int gridX = 0; gridX < VRGUI_GRID_SIZE; gridX++)
+      {
+        indices[0] = gridX + gridY * (VRGUI_GRID_SIZE + 1);
+        indices[1] = gridX + gridY * (VRGUI_GRID_SIZE + 1) + 1;
+        indices[2] = gridX + (gridY + 1) * (VRGUI_GRID_SIZE + 1);
+        indices[3] = indices[2];
+        indices[4] = indices[1];
+        indices[5] = gridX + (gridY + 1) * (VRGUI_GRID_SIZE + 1) + 1;
+
+        indices += 6;
+      }
+
+    render_params.ib->unlock();
+  }
+}
+
 
 bool init_surface(int ui_width, int ui_height, SurfaceCurvature curvature)
 {
@@ -175,53 +226,12 @@ bool init_surface(int ui_width, int ui_height, SurfaceCurvature curvature)
   re.startIndex = 0;
   re.numPrim = VRGUI_GRID_SIZE * VRGUI_GRID_SIZE * 2;
 
-  render_params.vb = d3d::create_vb(re.numVert * re.stride, 0, "vrGuiVb");
+  render_params.vb = d3d::create_vb(re.numVert * re.stride, SBCF_MAYBELOST, "vrGuiVb");
   G_ASSERTF_RETURN(render_params.vb != nullptr, false, "[VRUI] failed to create vertex buffer");
-  {
-    struct Vertex
-    {
-      Point3 pos;
-      Point2 texcoord;
-    };
-    G_ASSERT(sizeof(Vertex) == re.stride);
-    Vertex *vertices;
-    render_params.vb->lock(0, re.numVert * re.stride, (void **)&vertices, VBLOCK_WRITEONLY);
 
-    for (unsigned int gridY = 0; gridY <= VRGUI_GRID_SIZE; gridY++)
-      for (unsigned int gridX = 0; gridX <= VRGUI_GRID_SIZE; gridX++)
-      {
-        float tx0 = (float)gridX / VRGUI_GRID_SIZE;
-        float ty0 = (float)gridY / VRGUI_GRID_SIZE;
-        Point3 pos = map_to_surface(Point2(tx0, ty0));
-
-        *vertices = {pos, {tx0, 1.0f - ty0}};
-        vertices++;
-      }
-
-    render_params.vb->unlock();
-  }
-
-  render_params.ib = d3d::create_ib(re.numPrim * 3 * sizeof(short), 0);
+  render_params.ib = d3d::create_ib(re.numPrim * 3 * sizeof(short), SBCF_MAYBELOST, "vrGuiIb");
   G_ASSERTF_RETURN(render_params.ib != nullptr, false, "[VRUI] failed to create index buffer");
-  {
-    unsigned short *indices;
-    render_params.ib->lock(0, re.numPrim * 3 * sizeof(short), &indices, VBLOCK_WRITEONLY);
-
-    for (unsigned int gridY = 0; gridY < VRGUI_GRID_SIZE; gridY++)
-      for (unsigned int gridX = 0; gridX < VRGUI_GRID_SIZE; gridX++)
-      {
-        indices[0] = gridX + gridY * (VRGUI_GRID_SIZE + 1);
-        indices[1] = gridX + gridY * (VRGUI_GRID_SIZE + 1) + 1;
-        indices[2] = gridX + (gridY + 1) * (VRGUI_GRID_SIZE + 1);
-        indices[3] = indices[2];
-        indices[4] = indices[1];
-        indices[5] = gridX + (gridY + 1) * (VRGUI_GRID_SIZE + 1) + 1;
-
-        indices += 6;
-      }
-
-    render_params.ib->unlock();
-  }
+  fill_buffers();
 
   return true;
 }
@@ -306,5 +316,9 @@ void get_ui_surface_params(int &ui_width, int &ui_height, SurfaceCurvature &type
   type = render_params.curvature;
 }
 
+
+static void vr_gui_after_reset_device(bool) { fill_buffers(); }
+
+REGISTER_D3D_AFTER_RESET_FUNC(vr_gui_after_reset_device);
 
 } // namespace vrgui

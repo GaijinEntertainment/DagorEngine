@@ -5,11 +5,11 @@
 #include "p_text_gradient.h"
 #include "../c_constants.h"
 
-CTextGradient::CTextGradient(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
-  const char caption[]) :
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT + TEXT_GRADIENT_HEIGHT),
-  mText(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT),
-  mGradient(this, parent->getWindow(), x, y + DEFAULT_CONTROL_HEIGHT, w)
+CTextGradient::CTextGradient(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y,
+  hdpi::Px w, const char caption[]) :
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT) + _pxScaled(TEXT_GRADIENT_HEIGHT)),
+  mText(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mGradient(this, parent->getWindow(), x, y + _pxS(DEFAULT_CONTROL_HEIGHT), _px(w))
 {
   mText.setTextValue(caption);
   initTooltip(&mGradient);
@@ -60,12 +60,12 @@ void CTextGradient::setFloatValue(float value) { mGradient.setCurValue(value); }
 void CTextGradient::setCaptionValue(const char value[]) { mText.setTextValue(value); }
 
 
-void CTextGradient::setWidth(unsigned w)
+void CTextGradient::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
 
-  mText.resizeWindow(w, mText.getHeight());
-  mGradient.resizeWindow(w, mGradient.getHeight());
+  mText.resizeWindow(_px(w), mText.getHeight());
+  mGradient.resizeWindow(_px(w), mGradient.getHeight());
 }
 
 void CTextGradient::reset()
@@ -79,7 +79,7 @@ void CTextGradient::moveTo(int x, int y)
   PropertyControlBase::moveTo(x, y);
 
   mText.moveWindow(x, y);
-  mGradient.moveWindow(x, y + DEFAULT_CONTROL_HEIGHT);
+  mGradient.moveWindow(x, y + _pxS(DEFAULT_CONTROL_HEIGHT));
 }
 
 void CTextGradient::onWcChange(WindowBase *source)

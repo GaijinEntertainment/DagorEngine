@@ -8,8 +8,8 @@
 class CPoint3 : public BasicPropertyControl
 {
 public:
-  CPoint3(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, const char caption[],
-    int prec);
+  CPoint3(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+    const char caption[], int prec);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
     bool new_line = true);
@@ -25,7 +25,7 @@ public:
   void reset();
 
   void setEnabled(bool enabled);
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
   void moveTo(int x, int y);
 
 protected:

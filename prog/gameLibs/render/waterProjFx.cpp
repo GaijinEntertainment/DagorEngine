@@ -3,6 +3,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_drv3dCmd.h>
+#include <3d/dag_textureIDHolder.h>
 
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4more.h>
@@ -14,56 +15,65 @@
 #include <shaders/dag_shaderBlock.h>
 #include <generic/dag_carray.h>
 
+#include <perfMon/dag_statDrv.h>
+
 #define MIN_WAVE_HEIGHT               3.0f
 #define CAMERA_PLANE_ELEVATION        3.0f
 #define CAMERA_PLANE_BOTTOM_MIN_ANGLE 0.999f
 
-
-WaterProjectedFx::WaterProjectedFx(int tex_width, int tex_height, bool temporal_repojection) :
-  temporalRepojection(temporal_repojection),
+WaterProjectedFx::WaterProjectedFx(int frame_width, int frame_height, dag::Span<TargetDesc> target_descs,
+  const char *taa_reprojection_blend_shader_name, bool own_textures) :
   newProjTM(TMatrix4::IDENT),
   newProjTMJittered(TMatrix4::IDENT),
   newViewTM(TMatrix::IDENT),
   newViewItm(TMatrix::IDENT),
   waterLevel(0),
   numIntersections(0),
-  savedCamPos(0, 0, 0)
+  savedCamPos(0, 0, 0),
+  prevGlobTm(TMatrix4::IDENT),
+  frameWidth(frame_width),
+  frameHeight(frame_height),
+  nTargets(target_descs.size()),
+  taaEnabled(taa_reprojection_blend_shader_name),
+  ownTextures(own_textures),
+  globalFrameId(ShaderGlobal::getBlockId("global_frame")),
+  targetsCleared(false)
 {
-  combinedWaterFoam.init("combined_water_proj_fx");
+  G_ASSERT_RETURN(nTargets <= MAX_TARGETS, );
 
-  // create screen size div N texture
-  unsigned texFlags = TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET;
+  if (taaEnabled)
+    taaRenderer.init(taa_reprojection_blend_shader_name);
 
-  // some Adreno drivers fail to properly load src color
-  // at blending while using indirect draw in some conditions
-  // when format is ARGB8U, use ARGB16F as workaround
-  if (d3d::get_driver_desc().issues.hasRenderPassClearDataRace)
-    texFlags |= TEXFMT_A16B16G16R16F;
-  else
-    texFlags |= TEXFMT_A8R8G8B8;
-
-  waterProjectionFxTexWidth = tex_width;
-  waterProjectionFxTexHeight = tex_height;
-
-  globalFrameId = ShaderGlobal::getBlockId("global_frame");
-
-  String texName(0, "projected_on_water_effects_tex");
-  waterProjectionFxTex = dag::create_tex(NULL, waterProjectionFxTexWidth, waterProjectionFxTexHeight, texFlags, 1, texName.str());
-  if (waterProjectionFxTex)
+  for (int i = 0; i < nTargets; ++i)
   {
-    waterProjectionFxTex->texfilter(TEXFILTER_SMOOTH);
-    waterProjectionFxTex->texaddr(TEXADDR_CLAMP);
-  }
-
-  prevGlobTm = TMatrix4::IDENT;
-
-  if (temporalRepojection)
-  {
-    rtTemp = RTargetPool::get(waterProjectionFxTexWidth, waterProjectionFxTexHeight, texFlags, 1);
+    targetClearColors[i] = target_descs[i].clearColor;
+    if (own_textures)
+    {
+      uint32_t texCreationFlags = getTargetAdditionalFlags() | (target_descs[i].texFmt & TEXFMT_MASK) | TEXCF_CLEAR_ON_CREATE;
+      internalTargets[i] = dag::create_tex(NULL, frameWidth, frameHeight, texCreationFlags, 1, target_descs[i].texName);
+      if (internalTargets[i])
+      {
+        internalTargets[i]->texfilter(TEXFILTER_SMOOTH);
+        internalTargets[i]->texaddr(TEXADDR_CLAMP);
+      }
+      if (taaEnabled)
+        taaRtTempPools[i] = RTargetPool::get(frameWidth, frameHeight, texCreationFlags, 1);
+    }
   }
 }
 
-void WaterProjectedFx::setTexture() { waterProjectionFxTex.setVar(); }
+uint32_t WaterProjectedFx::getTargetAdditionalFlags() const
+{
+  uint32_t texFlags = TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET;
+  return texFlags;
+}
+
+void WaterProjectedFx::setTextures()
+{
+  G_ASSERT(ownTextures);
+  for (int i = 0; i < nTargets; ++i)
+    internalTargets[i].setVar();
+}
 
 void WaterProjectedFx::setView() { setView(newViewTM, newProjTM, newViewItm); }
 
@@ -178,18 +188,21 @@ void WaterProjectedFx::prepare(const TMatrix &view_tm, const TMatrix4 &proj_tm, 
     TMatrix4 cropMatrix = matrix_perspective_crop(boxMin.x, boxMax.x, boxMin.y, boxMax.y, 0.0f, 1.0f);
     newProjTM = newProjTM * cropMatrix;
 
-    const float watJitterx = 0.2f / ((float)waterProjectionFxTexWidth);
-    const float watJittery = 0.2f / ((float)waterProjectionFxTexHeight);
+    if (taaEnabled)
+    {
+      const float watJitterx = 0.2f / ((float)frameWidth);
+      const float watJittery = 0.2f / ((float)frameHeight);
 
-    float xShift = (float)(frame_no % 2);
-    float yShift = (float)((frame_no % 4) / 2);
-    curJitter = Point2((-3.0f + 4.0f * xShift + 2.0f * yShift) * watJitterx, (-1.0f - 2.0f * xShift + 4.0f * yShift) * watJittery);
-    TMatrix4 jitterMatrix;
-    jitterMatrix.setcol(0, 1.f, 0.f, 0.f, 0.f);
-    jitterMatrix.setcol(1, 0.f, 1.f, 0.f, 0.f);
-    jitterMatrix.setcol(2, 0.f, 0.f, 1.f, 0.f);
-    jitterMatrix.setcol(3, curJitter.x, curJitter.y, 0.f, 1.f);
-    newProjTMJittered = newProjTM * jitterMatrix.transpose();
+      float xShift = (float)(frame_no % 2);
+      float yShift = (float)((frame_no % 4) / 2);
+      curJitter = Point2((-3.0f + 4.0f * xShift + 2.0f * yShift) * watJitterx, (-1.0f - 2.0f * xShift + 4.0f * yShift) * watJittery);
+      TMatrix4 jitterMatrix;
+      jitterMatrix.setcol(0, 1.f, 0.f, 0.f, 0.f);
+      jitterMatrix.setcol(1, 0.f, 1.f, 0.f, 0.f);
+      jitterMatrix.setcol(2, 0.f, 0.f, 1.f, 0.f);
+      jitterMatrix.setcol(3, curJitter.x, curJitter.y, 0.f, 1.f);
+      newProjTMJittered = newProjTM * jitterMatrix.transpose();
+    }
   }
 
   currentGlobTm = TMatrix4(newViewTM) * newProjTM;
@@ -197,103 +210,189 @@ void WaterProjectedFx::prepare(const TMatrix &view_tm, const TMatrix4 &proj_tm, 
   setWaterMatrix(currentGlobTm);
 }
 
-void WaterProjectedFx::clear()
+void WaterProjectedFx::clear(bool forceClear)
 {
+  G_ASSERT(ownTextures);
+  if (!forceClear && targetsCleared)
+    return;
+
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target(waterProjectionFxTex.getTex2D(), 0);
-  d3d::clearview(CLEAR_TARGET, 0xFF000000, 0.f, 0);
-  d3d::resource_barrier({waterProjectionFxTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  for (int i = 0; i < nTargets; ++i)
+  {
+    d3d::set_render_target(internalTargets[i].getTex2D(), 0);
+    d3d::clearview(CLEAR_TARGET, targetClearColors[i], 0.f, 0);
+    d3d::resource_barrier({internalTargets[i].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  }
+  targetsCleared = true;
 }
 
-void WaterProjectedFx::render(IWwaterProjFxRenderHelper *render_helper)
+bool WaterProjectedFx::render(IWwaterProjFxRenderHelper *render_helper)
 {
+  G_ASSERT(ownTextures);
   G_ASSERT(render_helper);
+
+  TextureIDPair internalTargetsTex[MAX_TARGETS];
+  for (int i = 0; i < nTargets; ++i)
+    internalTargetsTex[i] = {internalTargets[i].getTex2D(), internalTargets[i].getTexId()};
+
+  bool renderedAnything = false;
+  if (taaEnabled)
+  {
+    RTarget::Ptr rtTemp0[MAX_TARGETS];
+    TextureIDPair rtTemp0Tex[MAX_TARGETS];
+    RTarget::Ptr rtTemp1[MAX_TARGETS];
+    TextureIDPair rtTemp1Tex[MAX_TARGETS];
+
+    for (int i = 0; i < nTargets; ++i)
+    {
+      rtTemp0[i] = taaRtTempPools[i]->acquire();
+      rtTemp0[i]->getTex2D()->texfilter(TEXFILTER_SMOOTH);
+      rtTemp0[i]->getTex2D()->texaddr(TEXADDR_CLAMP);
+      rtTemp0Tex[i] = {rtTemp0[i]->getTex2D(), rtTemp0[i]->getTexId()};
+    }
+    for (int i = 0; i < nTargets; ++i)
+    {
+      rtTemp1[i] = taaRtTempPools[i]->acquire();
+      rtTemp1[i]->getTex2D()->texfilter(TEXFILTER_SMOOTH);
+      rtTemp1[i]->getTex2D()->texaddr(TEXADDR_CLAMP);
+      rtTemp1Tex[i] = {rtTemp1[i]->getTex2D(), rtTemp1[i]->getTexId()};
+    }
+
+    renderedAnything = render(render_helper, {internalTargetsTex, nTargets}, {rtTemp0Tex, nTargets}, {rtTemp1Tex, nTargets});
+  }
+  else
+  {
+    renderedAnything = render(render_helper, {internalTargetsTex, nTargets});
+  }
+
+  for (int i = 0; i < nTargets; ++i)
+    d3d::resource_barrier({internalTargets[i].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+
+  return renderedAnything;
+}
+
+bool WaterProjectedFx::render(IWwaterProjFxRenderHelper *render_helper, dag::Span<const TextureIDPair> targets,
+  dag::Span<const TextureIDPair> taaTemp0, dag::Span<const TextureIDPair> taaTemp1)
+{
+  G_ASSERT(render_helper && nTargets <= MAX_TARGETS);
+  G_ASSERT(targets.size() == nTargets && (taaTemp0.size() == nTargets && taaTemp1.size() == nTargets && taaEnabled ||
+                                           taaTemp0.empty() && taaTemp1.empty() && !taaEnabled));
 
   if (!isValidView())
   {
     setWaterMatrix(TMatrix4::IDENT);
-    return;
+    return false;
   }
 
-  RTarget::Ptr rtTemp0;
-  if (temporalRepojection)
-  {
-    rtTemp0 = rtTemp->acquire();
-    rtTemp0->getTex2D()->texfilter(TEXFILTER_SMOOTH);
-    rtTemp0->getTex2D()->texaddr(TEXADDR_CLAMP);
-  }
+  // We don't need TAA if there is nothing to antialiase.
+  // There will be a delay in one frame, but it's Ok, cause it's just one frame without AA.
+  bool taaEnabledForThisFrame = taaEnabled && !targetsCleared;
 
   SCOPE_VIEW_PROJ_MATRIX;
   DagorCurView savedView = ::grs_cur_view;
 
-  setView(newViewTM, newProjTMJittered, newViewItm);
+  setView(newViewTM, taaEnabledForThisFrame ? newProjTMJittered : newProjTM, newViewItm);
 
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target(temporalRepojection ? rtTemp0->getTex2D() : waterProjectionFxTex.getTex2D(), 0);
-  d3d::clearview(CLEAR_TARGET, 0xFF000000, 0.f, 0);
+  if (!targetsCleared)
+  {
+    TIME_D3D_PROFILE(clear);
+    // Since d3d::clearview() clears all targets with the same color,
+    // we have to clear each target separately.
+    for (int i = 0; i < nTargets; ++i)
+    {
+      d3d::set_render_target(taaEnabledForThisFrame ? taaTemp0[i].getTex2D() : targets[i].getTex2D(), 0);
+      d3d::clearview(CLEAR_TARGET, targetClearColors[i], 0.f, 0);
+    }
+  }
+  for (int i = 0; i < nTargets; ++i)
+    d3d::set_render_target(i, taaEnabledForThisFrame ? taaTemp0[i].getTex2D() : targets[i].getTex2D(), 0);
 
   static int renderWaterProjectibleDecalsVarId = get_shader_variable_id("render_water_projectible_decals", true);
   ShaderGlobal::set_int(renderWaterProjectibleDecalsVarId, 1);
 
-  render_helper->render_geometry();
-  if (!temporalRepojection)
-    render_helper->render_geometry_without_aa();
+  bool renderedAnything = false;
+  renderedAnything |= render_helper->render_geometry();
+  if (!taaEnabledForThisFrame)
+    renderedAnything |= render_helper->render_geometry_without_aa();
 
   ShaderGlobal::set_int(renderWaterProjectibleDecalsVarId, 0);
   ::grs_cur_view = savedView;
 
-  if (temporalRepojection)
+  if (taaEnabledForThisFrame)
   {
-    RTarget::Ptr rtTemp1 = rtTemp->acquire();
-    rtTemp1->getTex2D()->texfilter(TEXFILTER_SMOOTH);
-    rtTemp1->getTex2D()->texaddr(TEXADDR_CLAMP);
+    if (renderedAnything)
+    {
+      static const int prev_globtm0VarId = ::get_shader_variable_id("prev_globtm_0");
+      static const int prev_globtm1VarId = ::get_shader_variable_id("prev_globtm_1");
+      static const int prev_globtm2VarId = ::get_shader_variable_id("prev_globtm_2");
+      static const int prev_globtm3VarId = ::get_shader_variable_id("prev_globtm_3");
+      static const int world_view_posVarId = ::get_shader_variable_id("world_view_pos");
+      static const int cur_jitterVarId = ::get_shader_variable_id("cur_jitter");
 
-    static const int prev_globtm0VarId = ::get_shader_variable_id("prev_globtm_0");
-    static const int prev_globtm1VarId = ::get_shader_variable_id("prev_globtm_1");
-    static const int prev_globtm2VarId = ::get_shader_variable_id("prev_globtm_2");
-    static const int prev_globtm3VarId = ::get_shader_variable_id("prev_globtm_3");
-    static const int world_view_posVarId = ::get_shader_variable_id("world_view_pos");
-    static const int cur_jitterVarId = ::get_shader_variable_id("cur_jitter");
-    static const int wfx_prev_frame_texVarId = ::get_shader_variable_id("wfx_prev_frame_tex");
-    static const int wfx_frame_texVarId = ::get_shader_variable_id("wfx_frame_tex");
+      for (int i = 0; i < nTargets; ++i)
+        d3d::set_render_target(i, taaTemp1[i].getTex2D(), 0);
 
+      ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 
-    d3d::set_render_target(rtTemp1->getTex2D(), 0); // set render target
+      ShaderGlobal::set_color4(prev_globtm0VarId, Color4(prevGlobTm[0]));
+      ShaderGlobal::set_color4(prev_globtm1VarId, Color4(prevGlobTm[1]));
+      ShaderGlobal::set_color4(prev_globtm2VarId, Color4(prevGlobTm[2]));
+      ShaderGlobal::set_color4(prev_globtm3VarId, Color4(prevGlobTm[3]));
 
-    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+      prevGlobTm = TMatrix4(newViewTM) * newProjTM;
+      process_tm_for_drv_consts(prevGlobTm);
 
-    ShaderGlobal::set_texture(wfx_prev_frame_texVarId, waterProjectionFxTex.getTexId());
-    ShaderGlobal::set_texture(wfx_frame_texVarId, rtTemp0->getTexId());
+      set_viewvecs_to_shader(newViewTM, newProjTM);
+      Color4 prevWorldViewPos = ShaderGlobal::get_color4(world_view_posVarId);
+      ShaderGlobal::set_color4(world_view_posVarId, Color4::xyz1(newViewItm.getcol(3)));
+      ShaderGlobal::set_color4(cur_jitterVarId, curJitter.x, curJitter.y, 0, 0);
 
-    ShaderGlobal::set_color4(prev_globtm0VarId, Color4(prevGlobTm[0]));
-    ShaderGlobal::set_color4(prev_globtm1VarId, Color4(prevGlobTm[1]));
-    ShaderGlobal::set_color4(prev_globtm2VarId, Color4(prevGlobTm[2]));
-    ShaderGlobal::set_color4(prev_globtm3VarId, Color4(prevGlobTm[3]));
+      TEXTUREID prevFrameTargets[MAX_TARGETS];
+      TEXTUREID curFrameTargets[MAX_TARGETS];
+      for (int i = 0; i < nTargets; ++i)
+      {
+        prevFrameTargets[i] = targets[i].getId();
+        curFrameTargets[i] = taaTemp0[i].getId();
+      }
+      render_helper->prepare_taa_reprojection_blend(prevFrameTargets, curFrameTargets);
+      {
+        TIME_D3D_PROFILE(taa);
+        taaRenderer.render();
+      }
 
-    prevGlobTm = TMatrix4(newViewTM) * newProjTM;
-    process_tm_for_drv_consts(prevGlobTm);
+      {
+        TIME_D3D_PROFILE(copy_targets);
+        for (int i = 0; i < nTargets; ++i)
+          targets[i].getTex2D()->update(taaTemp1[i].getTex2D());
+      }
 
-    set_viewvecs_to_shader(newViewTM, newProjTM);
-    Color4 prevWorldViewPos = ShaderGlobal::get_color4(world_view_posVarId);
-    ShaderGlobal::set_color4(world_view_posVarId, Color4::xyz1(newViewItm.getcol(3)));
-    ShaderGlobal::set_color4(cur_jitterVarId, curJitter.x, curJitter.y, 0, 0);
-
-    combinedWaterFoam.render();
+      ShaderGlobal::set_color4(world_view_posVarId, prevWorldViewPos);
+    }
+    else if (!targetsCleared)
+    {
+      TIME_D3D_PROFILE(clear);
+      for (int i = 0; i < nTargets; ++i)
+      {
+        d3d::set_render_target(targets[i].getTex2D(), 0);
+        d3d::clearview(CLEAR_TARGET, targetClearColors[i], 0.f, 0);
+      }
+    }
 
     ShaderGlobal::setBlock(globalFrameId, ShaderGlobal::LAYER_FRAME);
 
-    waterProjectionFxTex.getTex2D()->update(rtTemp1->getTex2D());
+    for (int i = 0; i < nTargets; ++i)
+      d3d::set_render_target(i, targets[i].getTex2D(), 0);
 
-    d3d::set_render_target(waterProjectionFxTex.getTex2D(), 0);
-    render_helper->render_geometry_without_aa();
+    setView(newViewTM, newProjTM, newViewItm);
+    renderedAnything |= render_helper->render_geometry_without_aa();
 
-    ShaderGlobal::set_color4(world_view_posVarId, prevWorldViewPos);
     ShaderGlobal::setBlock(globalFrameId, ShaderGlobal::LAYER_FRAME);
   }
 
-  d3d::resource_barrier({waterProjectionFxTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  targetsCleared = !renderedAnything && ownTextures; // Preserve 'false' state if the textures aren't owned.
 
-  render_helper->finish_rendering();
+  return renderedAnything;
 }
 
 void WaterProjectedFx::setView(const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix &view_itm)

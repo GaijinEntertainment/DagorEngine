@@ -16,7 +16,7 @@ Sources =
 ;
 
 UseProgLibs +=
-  engine2/perfMon
+  engine/perfMon
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

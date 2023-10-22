@@ -96,7 +96,7 @@ void DragPlacesShower::ReDrawRootPlaces(bool show)
     return;
   }
 
-  int size = WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE_TO_ROOT; // to long constant name =)
+  int size = _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE_TO_ROOT); // to long constant name =)
 
   IPoint2 leftTop, rightBottom;
   mOwner->getRoot()->getPos(leftTop, rightBottom);
@@ -138,24 +138,24 @@ CascadeWindow *DragPlacesShower::getWindowAlign(const IPoint2 &mouse_pos, Window
   atPosWindow->getPos(leftTop, rightBottom);
   int w = rightBottom.x - leftTop.x;
   int h = rightBottom.y - leftTop.y;
-  if (w < WINDOW_MIN_SIZE_W * 2 || h < WINDOW_MIN_SIZE_H * 2) // window too small
+  if (w < _pxS(WINDOW_MIN_SIZE_W) * 2 || h < _pxS(WINDOW_MIN_SIZE_H) * 2) // window too small
     return NULL;
 
-  if (mousePos.x < leftTop.x + WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE &&           // left border
-        (mousePos.y < leftTop.y + WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE ||        // left-top corner
-          mousePos.y > rightBottom.y - WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE)     // left-bottom corner
-      || mousePos.x > rightBottom.x - WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE &&    // right border
-           (mousePos.y < leftTop.y + WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE ||     // right-top corner
-             mousePos.y > rightBottom.y - WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE)) // right-bottom corner
+  if (mousePos.x < leftTop.x + _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE) &&           // left border
+        (mousePos.y < leftTop.y + _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE) ||        // left-top corner
+          mousePos.y > rightBottom.y - _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE))     // left-bottom corner
+      || mousePos.x > rightBottom.x - _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE) &&    // right border
+           (mousePos.y < leftTop.y + _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE) ||     // right-top corner
+             mousePos.y > rightBottom.y - _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE))) // right-bottom corner
     return NULL;
 
-  if (mousePos.x < leftTop.x + WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE)
+  if (mousePos.x < leftTop.x + _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE))
     align = WA_LEFT;
-  else if (mousePos.x > rightBottom.x - WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE)
+  else if (mousePos.x > rightBottom.x - _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE))
     align = WA_RIGHT;
-  else if (mousePos.y < leftTop.y + WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE)
+  else if (mousePos.y < leftTop.y + _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE))
     align = WA_TOP;
-  else if (mousePos.y > rightBottom.y - WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE)
+  else if (mousePos.y > rightBottom.y - _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE))
     align = WA_BOTTOM;
   else
     return NULL;
@@ -190,18 +190,18 @@ void DragPlacesShower::drawAlignWindows(CascadeWindow *window, WindowAlign align
     int x, y, w1, h1;
     if (align == WA_LEFT || align == WA_RIGHT)
     {
-      w1 = WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE;
+      w1 = _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE);
       h1 = h;
       y = 0;
-      x = (align == WA_LEFT) ? 0 : w - WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE;
+      x = (align == WA_LEFT) ? 0 : w - _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE);
     }
 
     if (align == WA_TOP || align == WA_BOTTOM)
     {
       w1 = w;
-      h1 = WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE;
+      h1 = _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE);
       x = 0;
-      y = (align == WA_TOP) ? 0 : h - WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE;
+      y = (align == WA_TOP) ? 0 : h - _pxS(WINDOW_AREA_SIZE_TO_MAKE_UNMOVABLE);
     }
 
     // offset for current child window

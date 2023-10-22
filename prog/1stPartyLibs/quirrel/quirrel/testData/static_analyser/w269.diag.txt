@@ -1,0 +1,18 @@
+WARNING: w269 (mixed-separators) Mixed spaces and commas to separate elements of array.
+testData/static_analyser/w269.nut:4:6
+
+    20
+    30,
+      ^
+    40,
+
+
+WARNING: w269 (mixed-separators) Mixed spaces and commas to separate elements of array.
+testData/static_analyser/w269.nut:13:4
+
+    30
+    40
+    ^-
+    50
+
+

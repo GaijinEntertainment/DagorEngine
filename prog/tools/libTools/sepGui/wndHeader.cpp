@@ -13,6 +13,7 @@
 extern const char *WNDCLASS_HEADER_WINDOW;
 
 static HFONT header_font = 0;
+static HFONT caption_font = 0;
 
 
 LayoutWindowHeader::LayoutWindowHeader(ClientWindow *parent, WinManager *manager, bool is_top, int w, int h) :
@@ -20,22 +21,24 @@ LayoutWindowHeader::LayoutWindowHeader(ClientWindow *parent, WinManager *manager
   mParent(parent), mTopHeader(is_top), mManager(manager)
 {
   if (!::header_font)
-  {
-    ::header_font = CreateFont(-CLOSE_BUTTON_FONT_HEIGHT, 0, 0, 0, FW_NORMAL, false, false, false, DEFAULT_CHARSET, 0, 0,
+    ::header_font = CreateFont(-_pxS(CLOSE_BUTTON_FONT_HEIGHT), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0,
       CLEARTYPE_QUALITY, 0, "Webdings");
-  }
+  if (!::caption_font)
+    ::caption_font = CreateFont(-_pxS(CLOSE_BUTTON_FONT_HEIGHT), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0,
+      CLEARTYPE_QUALITY, 0, "Tahoma");
 
   mHWnd = CreateWindowEx(0, WNDCLASS_HEADER_WINDOW, parent->getCaption(), WS_CHILD | WS_VISIBLE, 0, 0, w, h, (HWND)getParentHandle(),
-    NULL, NULL, static_cast<BaseWindow *>(this));
+    nullptr, nullptr, static_cast<BaseWindow *>(this));
 
   // controls
 
   if (mTopHeader)
   {
-    int margin = (margin = (h - CLOSE_BUTTON_SIZE) / 2) ? margin : 0;
+    int margin = (h - _pxS(CLOSE_BUTTON_SIZE)) / 2;
 
-    mInternalHandles.mTopHeader.mCloseButtonHandle = CreateWindowEx(0, "Button", "r", WS_CHILD | WS_VISIBLE | BS_NOTIFY,
-      w - CLOSE_BUTTON_SIZE - margin, margin + 1, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, (HWND)mHWnd, NULL, NULL, NULL);
+    mInternalHandles.mTopHeader.mCloseButtonHandle =
+      CreateWindowEx(0, "Button", "r", WS_CHILD | WS_VISIBLE | BS_NOTIFY, w - _pxS(CLOSE_BUTTON_SIZE) - margin, margin + 1,
+        _pxS(CLOSE_BUTTON_SIZE), _pxS(CLOSE_BUTTON_SIZE), (HWND)mHWnd, nullptr, nullptr, nullptr);
 
     SendMessage((HWND)mInternalHandles.mTopHeader.mCloseButtonHandle, WM_SETFONT, (WPARAM)::header_font, MAKELPARAM(true, 0));
   }
@@ -44,10 +47,10 @@ LayoutWindowHeader::LayoutWindowHeader(ClientWindow *parent, WinManager *manager
     unsigned hw = w / 2 + 1;
 
     mInternalHandles.mLeftHeader.mVerticalLineHandle1 =
-      CreateWindowEx(0, "Static", "", WS_CHILD | WS_VISIBLE | WS_DLGFRAME, 0, 0, hw, h + 1, (HWND)mHWnd, NULL, NULL, NULL);
+      CreateWindowEx(0, "Static", "", WS_CHILD | WS_VISIBLE | WS_DLGFRAME, 0, 0, hw, h + 1, (HWND)mHWnd, nullptr, nullptr, nullptr);
 
-    mInternalHandles.mLeftHeader.mVerticalLineHandle2 =
-      CreateWindowEx(0, "Static", "", WS_CHILD | WS_VISIBLE | WS_DLGFRAME, hw - 1, 0, hw, h + 1, (HWND)mHWnd, NULL, NULL, NULL);
+    mInternalHandles.mLeftHeader.mVerticalLineHandle2 = CreateWindowEx(0, "Static", "", WS_CHILD | WS_VISIBLE | WS_DLGFRAME, hw - 1, 0,
+      hw, h + 1, (HWND)mHWnd, nullptr, nullptr, nullptr);
   }
 }
 
@@ -121,7 +124,9 @@ intptr_t LayoutWindowHeader::winProc(void *h_wnd, unsigned msg, TSgWParam w_para
         HDC dc = GetDC((HWND)h_wnd);
         SetBkMode(dc, TRANSPARENT);
         SetTextColor(dc, RGB(0xFF, 0xFF, 0xFF));
-        TextOut(dc, CLOSE_CAPTION_X, CLOSE_CAPTION_Y, getCaption(), i_strlen(getCaption()));
+        SelectObject(dc, caption_font);
+        TextOut(dc, _pxS(CLOSE_CAPTION_X), _pxS(CLOSE_CAPTION_Y), getCaption(), i_strlen(getCaption()));
+        ReleaseDC((HWND)h_wnd, dc);
 
         return result;
       }
@@ -161,8 +166,8 @@ void LayoutWindowHeader::onResize(int w, int h)
   if (mTopHeader)
   {
     HWND handle = (HWND)mInternalHandles.mTopHeader.mCloseButtonHandle;
-    int margin = (margin = (h - CLOSE_BUTTON_SIZE) / 2) ? margin : 0;
-    SetWindowPos(handle, 0, w - CLOSE_BUTTON_SIZE - margin, margin + 1, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    int margin = (h - _pxS(CLOSE_BUTTON_SIZE)) / 2;
+    SetWindowPos(handle, 0, w - _pxS(CLOSE_BUTTON_SIZE) - margin, margin + 1, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
   }
   else
   {

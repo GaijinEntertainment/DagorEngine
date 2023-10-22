@@ -52,9 +52,10 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sh
   excludeBounding[0].y = loadCb.readInt();
   excludeBounding[1].x = loadCb.readInt();
   excludeBounding[1].y = loadCb.readInt();
-  uint32_t chunkSz = (version == (int)HmapVersion::HMAP_CBLOCK_DELTAC_VER) ? loadCb.readInt() : 3;
+  uint32_t chunkSz = (version == (int)HmapVersion::HMAP_CBLOCK_DELTAC_VER) ? loadCb.readInt() : 0x403;
   uint8_t blockShift = chunkSz & 0xFF;
-  const size_t allocatedDataSize = CompressedHeightmap::calc_data_size_needed(hmapWidth.x, hmapWidth.y, blockShift);
+  uint8_t hrbSubSz = (chunkSz & 0xF00) ? (1 << ((chunkSz >> 8) & 0xF)) : 0;
+  const size_t allocatedDataSize = CompressedHeightmap::calc_data_size_needed(hmapWidth.x, hmapWidth.y, blockShift, hrbSubSz);
 
   GlobalSharedMemStorage *sm = sharedMem;
   bool own_data = false;
@@ -65,7 +66,7 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sh
     G_ASSERT(allocatedDataSize <= dump_sz);
     logmessage(_MAKE4C('SHMM'), "reusing HMAP dump from shared mem: : %p, %dK, '%s'", hmap_data, dump_sz >> 10,
       loadCb.getTargetName());
-    compressed = CompressedHeightmap::init((uint8_t *)hmap_data, allocatedDataSize, hmapWidth.x, hmapWidth.y, blockShift);
+    compressed = CompressedHeightmap::init((uint8_t *)hmap_data, allocatedDataSize, hmapWidth.x, hmapWidth.y, blockShift, hrbSubSz);
   }
   else
   {
@@ -101,15 +102,16 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sh
     {
       if (!skip_mips)
       {
-        compressed = CompressedHeightmap::init((uint8_t *)hmap_data, allocatedDataSize, hmapWidth.x, hmapWidth.y, blockShift);
-        CompressedHeightmap::loadData(compressed, loadCb, chunkSz & ~0xFFu);
+        compressed =
+          CompressedHeightmap::init((uint8_t *)hmap_data, allocatedDataSize, hmapWidth.x, hmapWidth.y, blockShift, hrbSubSz);
+        CompressedHeightmap::loadData(compressed, loadCb, chunkSz & ~0xFFFu);
       }
       else
       {
         Tab<uint8_t> height_data;
-        height_data.resize(CompressedHeightmap::calc_data_size_needed(orig_width, orig_height, blockShift));
-        compressed = CompressedHeightmap::init(height_data.data(), height_data.size(), orig_width, orig_height, blockShift);
-        CompressedHeightmap::loadData(compressed, loadCb, chunkSz & ~0xFFu);
+        height_data.resize(CompressedHeightmap::calc_data_size_needed(orig_width, orig_height, blockShift, hrbSubSz));
+        compressed = CompressedHeightmap::init(height_data.data(), height_data.size(), orig_width, orig_height, blockShift, hrbSubSz);
+        CompressedHeightmap::loadData(compressed, loadCb, chunkSz & ~0xFFFu);
         compressed = CompressedHeightmap::downsample((uint8_t *)hmap_data, allocatedDataSize, hmapWidth.x, hmapWidth.y, compressed);
       }
     }
@@ -164,7 +166,7 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sh
       }
 
       compressed = CompressedHeightmap::compress((uint8_t *)hmap_data, allocatedDataSize, //
-        heightmapData.data(), hmapWidth.x, hmapWidth.y, blockShift);
+        heightmapData.data(), hmapWidth.x, hmapWidth.y, blockShift, hrbSubSz);
       G_ASSERT(compressed);
 
 #if DAGOR_DBGLEVEL > 0
@@ -198,34 +200,12 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sh
   // worldBox[0] = Point3(worldPosOfs.x, hMin, worldPosOfs.y);
   // worldBox[1] = Point3(worldPosOfs.x+worldSize.x, hMin+hScale, worldPosOfs.y+worldSize.y);
   vecbox = v_ldu_bbox3(worldBox);
-  debug("heightmap of size %dx%d at %@, minH=%g(real=%g) maxH=%g(real=%g)  memSz=%dK (%s)  [fmt=%d:%dK skip=%d] decoded for %d ms",
+  unsigned grid_res = compressed.getBestHtRangeBlocksResolution(), grid_step = compressed.getW() / grid_res;
+  debug("heightmap of size %dx%d at %@, minH=%g(real=%g) maxH=%g(real=%g)  memSz=%dK (%s), hier-grid %dx%d,L%d (blocks of %dx%d)"
+        " [fmt=%d:%dK skip=%d] decoded for %d ms",
     hmapWidth.x, hmapWidth.y, worldPosOfs, hMin, worldBox[0].y, hMin + hScale, worldBox[1].y, compressed.dataSizeCurrent() >> 10,
-    hmap_data ? "owned" : "shared", version, chunkSz >> 10, skip_mips, t0_msec ? get_time_msec() - t0_msec : 0);
-
-  minMaxHtGridSize = 64;
-  if (hmapWidth.x < minMaxHtGridSize)
-    minMaxHtGridSize = 1;
-  if (minMaxHtGridSize < compressed.block_width)
-    minMaxHtGridSize = compressed.block_width;
-  // can be used by external functions + TODO can be used to optimize rayhit/traceray
-  maxHtGridWidth = IPoint2(hmapWidth.x / minMaxHtGridSize, hmapWidth.y / minMaxHtGridSize); // maxHtGridWidth >=
-                                                                                            // hmapWidthminMaxHtGridSize/
-  clear_and_resize(minHeightGrid, maxHtGridWidth.x * maxHtGridWidth.y);
-  clear_and_resize(maxHeightGrid, maxHtGridWidth.x * maxHtGridWidth.y);
-  for (int y = 0; y < maxHtGridWidth.y; ++y)
-    for (int x = 0; x < maxHtGridWidth.x; ++x)
-    {
-      uint16_t max_ht = minH16;
-      uint16_t min_ht = maxH16;
-      compressed.iterateBlocks((x * minMaxHtGridSize) >> compressed.block_width_shift,
-        (y * minMaxHtGridSize) >> compressed.block_width_shift, minMaxHtGridSize >> compressed.block_width_shift,
-        minMaxHtGridSize >> compressed.block_width_shift, [&](uint32_t bx, uint32_t by, uint16_t mn, uint16_t mx) {
-          min_ht = min(min_ht, mn);
-          max_ht = max(max_ht, mx);
-        });
-      minHeightGrid[y * maxHtGridWidth.x + x] = min_ht * hScaleRaw + hMin;
-      maxHeightGrid[y * maxHtGridWidth.x + x] = max_ht * hScaleRaw + hMin;
-    }
+    hmap_data ? "owned" : "shared", grid_res, grid_res, compressed.htRangeBlocksLevels, grid_step, grid_step, version, chunkSz >> 10,
+    skip_mips, t0_msec ? get_time_msec() - t0_msec : 0);
 
   invElemSize = v_splats(1.0f / hmapCellSize);
   v_worldOfsxzxz = v_make_vec4f(worldPosOfs.x, worldPosOfs.y, worldPosOfs.x, worldPosOfs.y);
@@ -248,8 +228,8 @@ bool HeightmapPhysHandler::checkOrAllocateOwnData()
   memcpy(hmap_data, compressed.fullData, allocatedDataSize);
   logmessage(_MAKE4C('SHMM'), "check and allocate new HMAP dump by copying: : %p, %dK %p", hmap_data, allocatedDataSize >> 10,
     compressed.fullData);
-  compressed =
-    CompressedHeightmap::init((uint8_t *)hmap_data, allocatedDataSize, hmapWidth.x, hmapWidth.y, compressed.block_width_shift);
+  compressed = CompressedHeightmap::init((uint8_t *)hmap_data, allocatedDataSize, hmapWidth.x, hmapWidth.y,
+    compressed.block_width_shift, compressed.htRangeBlocksLevels ? hmapWidth.x >> compressed.htRangeBlocksLevels : 0);
   return true;
 }
 

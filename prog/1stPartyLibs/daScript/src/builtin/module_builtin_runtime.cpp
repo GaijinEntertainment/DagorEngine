@@ -2,6 +2,7 @@
 
 #include "module_builtin.h"
 
+#include "daScript/ast/ast_serializer.h"
 #include "daScript/ast/ast_interop.h"
 #include "daScript/ast/ast_handle.h"
 #include "daScript/simulate/aot_builtin.h"
@@ -458,6 +459,7 @@ namespace das
     };
 
     struct LogicOpNotAnnotation : LogicOpAnnotation {
+        LogicOpNotAnnotation() : LogicOpAnnotation("!") { }
         LogicOpNotAnnotation(const AnnotationDeclarationPtr & decl) : LogicOpAnnotation("!"), subexpr(decl) { }
         virtual bool isCompatible ( const FunctionPtr & fun, const vector<TypeDeclPtr> & types, const AnnotationDeclaration &, string & errors  ) const override  {
             if ( !subexpr ) return false;
@@ -475,10 +477,14 @@ namespace das
             subexpr->annotation->log(ss, *subexpr);
             ss << ")";
         }
+        virtual void serialize ( AstSerializer & ser ) override {
+            ser << subexpr;
+        }
         AnnotationDeclarationPtr subexpr;
     };
 
     struct LogicOp2Annotation : LogicOpAnnotation {
+        LogicOp2Annotation ( const string & name ) : LogicOpAnnotation(name) { }
         LogicOp2Annotation ( const string & name, const AnnotationDeclarationPtr & arg0, const AnnotationDeclarationPtr & arg1 )
             : LogicOpAnnotation(name), left(arg0), right(arg1) { }
         virtual void appendToMangledName( const FunctionPtr & fun, const AnnotationDeclaration &, string & mangledName ) const override {
@@ -512,10 +518,14 @@ namespace das
             }
             ss << ")";
         }
+        virtual void serialize ( AstSerializer & ser ) override {
+            ser << left << right;
+        }
         AnnotationDeclarationPtr left, right;
     };
 
     struct LogicOpAndAnnotation : LogicOp2Annotation {
+        LogicOpAndAnnotation ( ) : LogicOp2Annotation("&&") { }
         LogicOpAndAnnotation ( const AnnotationDeclarationPtr & arg0, const AnnotationDeclarationPtr & arg1 )
             : LogicOp2Annotation("&&",arg0,arg1) { }
         virtual bool isCompatible ( const FunctionPtr & fun, const vector<TypeDeclPtr> & types, const AnnotationDeclaration &, string & errors  ) const override  {
@@ -526,6 +536,7 @@ namespace das
     };
 
     struct LogicOpOrAnnotation : LogicOp2Annotation {
+        LogicOpOrAnnotation ( ) : LogicOp2Annotation("||") { }
         LogicOpOrAnnotation ( const AnnotationDeclarationPtr & arg0, const AnnotationDeclarationPtr & arg1 )
             : LogicOp2Annotation("||",arg0,arg1) { }
         virtual bool isCompatible ( const FunctionPtr & fun, const vector<TypeDeclPtr> & types, const AnnotationDeclaration &, string & errors  ) const override  {
@@ -536,6 +547,7 @@ namespace das
     };
 
     struct LogicOpXOrAnnotation : LogicOp2Annotation {
+        LogicOpXOrAnnotation ( ) : LogicOp2Annotation("^^") { }
         LogicOpXOrAnnotation ( const AnnotationDeclarationPtr & arg0, const AnnotationDeclarationPtr & arg1 )
             : LogicOp2Annotation("^^",arg0,arg1) { }
         virtual bool isCompatible ( const FunctionPtr & fun, const vector<TypeDeclPtr> & types, const AnnotationDeclaration &, string & errors  ) const override {
@@ -551,6 +563,16 @@ namespace das
         case LogicAnnotationOp::And:    return make_smart<LogicOpAndAnnotation>(arg0,arg1);
         case LogicAnnotationOp::Or:     return make_smart<LogicOpOrAnnotation>(arg0,arg1);
         case LogicAnnotationOp::Xor:    return make_smart<LogicOpXOrAnnotation>(arg0,arg1);
+        }
+        return nullptr;
+    }
+
+    AnnotationPtr newLogicAnnotation ( LogicAnnotationOp op ) {
+        switch ( op ) {
+        case LogicAnnotationOp::Not:    return make_smart<LogicOpNotAnnotation>();
+        case LogicAnnotationOp::And:    return make_smart<LogicOpAndAnnotation>();
+        case LogicAnnotationOp::Or:     return make_smart<LogicOpOrAnnotation>();
+        case LogicAnnotationOp::Xor:    return make_smart<LogicOpXOrAnnotation>();
         }
         return nullptr;
     }
@@ -701,6 +723,10 @@ namespace das
     void string_heap_report ( Context * context, LineInfoArg * info ) {
         context->stringHeap->report();
         context->reportAnyHeap(info, true, false, false, false);
+    }
+
+    bool is_intern_strings ( Context * context ) {
+        return context->stringHeap->isIntern();
     }
 
     void heap_collect ( bool sheap, bool validate, Context * context, LineInfoArg * info ) {
@@ -1531,6 +1557,9 @@ namespace das
         addExtern<DAS_BIND_FUN(memory_report)>(*this, lib, "memory_report",
             SideEffects::modifyExternal, "memory_report")
                 ->args({"errorsOnly","context","lineinfo"});
+        addExtern<DAS_BIND_FUN(is_intern_strings)>(*this, lib, "is_intern_strings",
+            SideEffects::modifyExternal, "is_intern_strings")
+                ->arg("context");
         // binary serializer
         addInterop<_builtin_binary_load,void,vec4f,const Array &>(*this,lib,"_builtin_binary_load",
             SideEffects::modifyArgumentAndExternal, "_builtin_binary_load")

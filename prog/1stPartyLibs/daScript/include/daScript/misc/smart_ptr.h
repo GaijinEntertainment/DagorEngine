@@ -12,6 +12,8 @@ void os_debug_break();
 
 namespace das {
 
+    struct AstSerializer;
+
     template<typename T, typename TP>
     class smart_ptr;
 
@@ -410,6 +412,7 @@ namespace das {
             return ref_count!=0;
 #endif
         }
+        void serialize ( AstSerializer & ser );
     private:
 #if DAS_SMART_PTR_MAGIC
         unsigned int magic = 0x1ee7c0de;

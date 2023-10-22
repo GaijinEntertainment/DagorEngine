@@ -1,0 +1,13 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/drv/drv3d_use_d3di ;
+
+TargetType  = lib ;
+Target      = engine/drv/drv3d_use_d3di.lib ;
+
+Sources =
+  d3d_wrap.cpp
+;
+
+CPPopt = -D__B_DRVDX ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -2,7 +2,7 @@
 #include <math/dag_bounds2.h>
 #include "../collisionGlobals.h"
 
-namespace rendinstgen
+namespace rendinst::gen
 {
 float custom_max_trace_distance = 100;
 bool custom_trace_ray(const Point3 &src, const Point3 &dir, real &dist, Point3 *out_norm)
@@ -66,4 +66,4 @@ void custom_get_land_min_max(BBox2 bbox_xz, float &out_min, float &out_max)
     out_max += LAND_HEIGHT_DELTA;
   }
 }
-} // namespace rendinstgen
+} // namespace rendinst::gen

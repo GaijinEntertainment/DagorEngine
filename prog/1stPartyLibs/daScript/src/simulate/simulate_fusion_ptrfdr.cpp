@@ -129,7 +129,7 @@ namespace das {
 #undef IMPLEMENT_ANY_OP1_NODE
 #define IMPLEMENT_ANY_OP1_NODE(INLINE,OPNAME,TYPE,CTYPE,RCTYPE,COMPUTE) \
     struct SimNode_Op1##COMPUTE : SimNode_Op1PtrFdr { \
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override { \
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override { \
             DAS_PROFILE_NODE \
             auto prv = (char **) subexpr.compute##COMPUTE(context); \
             if ( !prv || !*prv ) context.throw_error_at(debugInfo,"dereferencing null pointer"); \
@@ -147,7 +147,7 @@ namespace das {
 #undef IMPLEMENT_ANY_OP1_NODE
 #define IMPLEMENT_ANY_OP1_NODE(INLINE,OPNAME,TYPE,CTYPE,RCTYPE,COMPUTE) \
     struct SimNode_Op1##COMPUTE : SimNode_Op1PtrFdr { \
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override { \
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override { \
             DAS_PROFILE_NODE \
             auto prv = (char **) subexpr.compute##COMPUTE(context); \
             return v_ldu((const float *) ((*prv)+offset)); \

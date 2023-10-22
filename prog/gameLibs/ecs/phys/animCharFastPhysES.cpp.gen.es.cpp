@@ -2,6 +2,37 @@
 ECS_DEF_PULL_VAR(animCharFastPhys);
 //built with ECS codegen version 1.0
 #include <daECS/core/internal/performQuery.h>
+static constexpr ecs::ComponentDesc debug_draw_fast_phys_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
+//start of 1 ro components at [1]
+  {ECS_HASH("animchar__res"), ecs::ComponentTypeInfo<ecs::string>()},
+//start of 1 rq components at [2]
+  {ECS_HASH("animchar_fast_phys"), ecs::ComponentTypeInfo<FastPhysTag>()}
+};
+static void debug_draw_fast_phys_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
+  do
+    debug_draw_fast_phys_es(*info.cast<UpdateStageInfoRenderDebug>()
+    , ECS_RW_COMP(debug_draw_fast_phys_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
+    , ECS_RO_COMP(debug_draw_fast_phys_es_comps, "animchar__res", ecs::string)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc debug_draw_fast_phys_es_es_desc
+(
+  "debug_draw_fast_phys_es",
+  "prog/gameLibs/ecs/phys/animCharFastPhysES.cpp.inl",
+  ecs::EntitySystemOps(debug_draw_fast_phys_es_all),
+  make_span(debug_draw_fast_phys_es_comps+0, 1)/*rw*/,
+  make_span(debug_draw_fast_phys_es_comps+1, 1)/*ro*/,
+  make_span(debug_draw_fast_phys_es_comps+2, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<>::build(),
+  (1<<UpdateStageInfoRenderDebug::STAGE)
+,"render",nullptr,"*");
 static constexpr ecs::ComponentDesc animchar_fast_phys_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]

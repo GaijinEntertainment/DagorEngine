@@ -7,3 +7,5 @@ local buildBtnParams = ::kwarg(function(icon=null, option=null, count_list=null,
 })
 
 return buildBtnParams
+
+//-file:undefined-global

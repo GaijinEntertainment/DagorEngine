@@ -1,0 +1,37 @@
+Root    ?= ../../.. ;
+Location = prog/engine/scene ;
+
+TargetType  = lib ;
+Target      = engine/scene.lib ;
+
+
+Sources =
+  scene.cpp
+  sceneIo.cpp
+  tiledScene.cpp
+  buildVisTree.cpp
+  loadLevel.cpp
+  physMat.cpp
+  frtdump.cpp
+  frtdumpMgr.cpp
+  renderSceneMgr.cpp
+  staticFxObjs.cpp
+  sh3LtGridManager.cpp
+  visibility.cpp
+  occlusionMap.cpp
+  #rendInstMgr.cpp
+  sh3LtMgr.cpp
+  objsToPlace.cpp
+  kdtree.cpp
+  occlusionIo.cpp
+;
+
+AddIncludes = $(Root)/prog/engine/sharedInclude ;
+
+UseProgLibs +=
+  3rdPartyLibs/eastl
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

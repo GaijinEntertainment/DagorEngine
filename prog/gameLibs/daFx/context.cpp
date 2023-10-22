@@ -31,7 +31,6 @@ ContextId create_context(const Config &cfg)
   ctx->renderCallsVarId = ::get_shader_variable_id("dafx_render_calls", true);
   ctx->computeDispatchVarId = ::get_shader_variable_id("dafx_dispatch_descs", true);
   ctx->updateGpuCullingVarId = ::get_shader_variable_id("dafx_update_gpu_culling", true);
-  ctx->screenPosToTcVarId = ::get_shader_variable_id("dafx_screen_pos_to_tc", true);
 
   v &= init_global_values(ctx->globalData);
   v &= init_buffer_pool(ctx->gpuBufferPool, cfg.data_buffer_size);
@@ -60,6 +59,25 @@ ContextId create_context(const Config &cfg)
   return cid;
 }
 
+void clear_internal_workers(Context &ctx, bool force)
+{
+  reset_culling(ctx, force);
+
+  for (int i = 0; i < Config::max_system_depth; ++i)
+  {
+    ctx.gpuEmissionWorkers[i].clear();
+    ctx.gpuSimulationWorkers[i].clear();
+  }
+  if (force)
+    ctx.allEmissionWorkers.clear();
+
+  ctx.allRenderWorkers.clear();
+  for (int i = 0, ie = ctx.cpuRenderWorkers.size(); i < ie; ++i)
+    ctx.cpuRenderWorkers[i].clear();
+
+  ctx.gpuTransferWorkers.clear();
+}
+
 void shrink_instances(ContextId cid, int keep_allocated_count)
 {
   GET_CTX();
@@ -72,7 +90,7 @@ void shrink_instances(ContextId cid, int keep_allocated_count)
     int *psid = ctx.instances.list.get(iid);
     G_ASSERT_CONTINUE(psid);
 
-    if (*psid == 0xffffffff || ctx.instances.groups.get<INST_PARENT_SID>(*psid) == *psid)
+    if (*psid == queue_instance_sid || *psid == dummy_instance_sid || ctx.instances.groups.get<INST_PARENT_SID>(*psid) == *psid)
       destroy_instance(cid, iid); // queue only root instances
   }
 
@@ -80,6 +98,12 @@ void shrink_instances(ContextId cid, int keep_allocated_count)
   populate_free_instances(ctx);
   G_ASSERT(ctx.instances.list.empty());
   G_ASSERT(ctx.instances.groups.size() == ctx.instances.freeIndicesAvailable.size());
+  G_ASSERT(ctx.cpuBufferPool.pages.empty());
+  G_ASSERT(ctx.gpuBufferPool.pages.empty());
+
+  // this is just in case something went wrong
+  ctx.cpuBufferPool.pages.clear();
+  ctx.gpuBufferPool.pages.clear();
 
   ctx.instances.groups.shrink_to_size(keep_allocated_count);
   ctx.instances.freeIndicesPending.clear();
@@ -87,7 +111,7 @@ void shrink_instances(ContextId cid, int keep_allocated_count)
   for (int i = 0, ic = ctx.instances.groups.size(); i < ic; ++i)
     ctx.instances.freeIndicesAvailable.push_back(i);
 
-  reset_culling(ctx);
+  clear_internal_workers(ctx, true);
 }
 
 void clear_instances(ContextId cid, int keep_allocated_count)
@@ -165,7 +189,6 @@ void after_reset_device(ContextId cid)
 
   debug("dafx: after_reset_device");
 
-  reset_culling(ctx);
   finish_async_update(ctx); // we need to finish emitters async job, before instance reset
   reset_instances_after_reset(ctx);
 
@@ -179,17 +202,7 @@ void after_reset_device(ContextId cid)
     ctx.renderBuffers[i].res.close();
   }
 
-  for (int i = 0; i < Config::max_system_depth; ++i)
-  {
-    ctx.gpuEmissionWorkers[i].clear();
-    ctx.gpuSimulationWorkers[i].clear();
-  }
-
-  ctx.allRenderWorkers.clear();
-  for (int i = 0, ie = ctx.cpuRenderWorkers.size(); i < ie; ++i)
-    ctx.cpuRenderWorkers[i].clear();
-
-  ctx.gpuTransferWorkers.clear();
+  clear_internal_workers(ctx, false);
 }
 
 void prepare_workers(Context &ctx, bool main_pass, int begin_sid, int end_sid, bool gpu_fetch)

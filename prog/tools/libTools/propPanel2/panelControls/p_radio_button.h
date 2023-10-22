@@ -8,7 +8,7 @@
 class CRadioButton : public BasicPropertyControl
 {
 public:
-  CRadioButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+  CRadioButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
     const char caption[], int index);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
@@ -23,7 +23,7 @@ public:
   void setCaptionValue(const char value[]);
 
   void setEnabled(bool enabled);
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
   void moveTo(int x, int y);
 
 protected:

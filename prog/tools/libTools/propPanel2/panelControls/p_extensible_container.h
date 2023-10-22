@@ -7,7 +7,7 @@
 class CExtensible : public PropertyContainerVert
 {
 public:
-  CExtensible(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h);
+  CExtensible(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
     bool new_line = true);
@@ -23,7 +23,7 @@ public:
   void moveTo(int x, int y);
   virtual WindowBase *getWindow();
   virtual void setEnabled(bool enabled);
-  virtual void setWidth(unsigned w);
+  virtual void setWidth(hdpi::Px w);
 
   virtual void onChildResize(int id);
   virtual bool isRealContainer() { return false; }
@@ -32,7 +32,7 @@ protected:
   void resizeControl(unsigned w, unsigned h);
   virtual void onControlAdd(PropertyControlBase *control);
   virtual int getNextControlX(bool new_line = true);
-  virtual unsigned getClientWidth();
+  virtual hdpi::Px getClientWidth();
 
   virtual void onWcClick(WindowBase *source);
 

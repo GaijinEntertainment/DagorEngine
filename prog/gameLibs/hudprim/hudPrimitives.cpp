@@ -871,7 +871,7 @@ void HudPrimitives::renderText(int x, int y, int font_no, E3DCOLOR color, const 
     buffer->isReady = StdGuiRender::draw_str_scaled_u_buf(buffer->qv, buffer->tex_qcnt, DSBFLAG_rel, 1.f, text_u, textLen);
   }
 
-  if (buffer->tex_qcnt.size() < 2)
+  if (!buffer->isReady || buffer->tex_qcnt.size() < 2)
     return;
 
   const GuiVertex *cur_qv = buffer->qv.data();
@@ -1018,10 +1018,13 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
     }
   }
 
-  guiContext->set_color(color);
-  guiContext->goto_xy(x - viewX, y - viewY);
-  guiContext->setRotViewTm(pivot.origin.x - viewX, pivot.origin.y - viewY, pivot.angleRadians, 0);
-  guiContext->render_str_buf(buffer->qv, buffer->tex_qcnt, DSBFLAG_rel | DSBFLAG_allQuads | DSBFLAG_curColor);
+  if (buffer->isReady)
+  {
+    guiContext->set_color(color);
+    guiContext->goto_xy(x - viewX, y - viewY);
+    guiContext->setRotViewTm(pivot.origin.x - viewX, pivot.origin.y - viewY, pivot.angleRadians, 0);
+    guiContext->render_str_buf(buffer->qv, buffer->tex_qcnt, DSBFLAG_rel | DSBFLAG_allQuads | DSBFLAG_curColor);
+  }
 
   guiContext->setBuffer(1);
   guiContext->reset_draw_str_texture();

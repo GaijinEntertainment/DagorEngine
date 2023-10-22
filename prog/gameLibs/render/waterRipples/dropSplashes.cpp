@@ -149,19 +149,23 @@ void DropSplashes::initSpriteShader()
   spriteMaterial = eastl::move(pair.second);
 }
 
+void DropSplashes::fillBuffers()
+{
+  splashVb->updateData(0, VERTICES_PER_SPLASH * sizeof(float) * 3, splash_vertices, 0);
+  splashIb->updateData(0, INDICES_PER_SPLASH * sizeof(uint16_t), splash_indices, 0);
+}
 
 DropSplashes::DropSplashes(const DataBlock &blk) : splashRendElem(nullptr), spriteRendElem(nullptr), currentTime(0), splashesCount(0)
 {
   initSplashShader();
   initSpriteShader();
 
-  splashVb = dag::create_vb(VERTICES_PER_SPLASH * sizeof(float) * 3, 0, "splashVb");
+  splashVb = dag::create_vb(VERTICES_PER_SPLASH * sizeof(float) * 3, SBCF_MAYBELOST, "splashVb");
   G_ASSERT(splashVb);
-  splashVb->updateData(0, VERTICES_PER_SPLASH * sizeof(float) * 3, splash_vertices, 0);
 
-  splashIb = dag::create_ib(INDICES_PER_SPLASH * sizeof(uint16_t), 0, "splashIb");
+  splashIb = dag::create_ib(INDICES_PER_SPLASH * sizeof(uint16_t), SBCF_MAYBELOST, "splashIb");
   G_ASSERT(splashIb);
-  splashIb->updateData(0, INDICES_PER_SPLASH * sizeof(uint16_t), splash_indices, 0);
+  fillBuffers();
 
   setSplashesCount(blk.getInt("splashesCount", 10000));
   setDistance(blk.getReal("distance", 50.f));
@@ -193,7 +197,7 @@ void DropSplashes::setDistance(const float dist)
   ShaderGlobal::set_real_fast(::get_shader_variable_id("splashes_distance"), distance);
 }
 
-void DropSplashes::update(const float dt)
+void DropSplashes::update(const float dt, const Point3 &view_pos)
 {
   static int hero_position_currentVarId = ::get_shader_variable_id("camera_position_current");
   static int hero_position_oldVarId = ::get_shader_variable_id("camera_position_old");
@@ -204,7 +208,7 @@ void DropSplashes::update(const float dt)
   {
     currentTime = currentTime - floor(currentTime / iterationTime) * iterationTime;
     ShaderGlobal::set_color4(hero_position_oldVarId, ShaderGlobal::get_color4_fast(hero_position_currentVarId));
-    ShaderGlobal::set_color4(hero_position_currentVarId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.z, 0, 0));
+    ShaderGlobal::set_color4(hero_position_currentVarId, Color4(view_pos.x, view_pos.z, 0, 0));
   }
   ShaderGlobal::set_real_fast(splash_current_timeVarId, currentTime);
 }

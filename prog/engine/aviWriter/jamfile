@@ -1,0 +1,16 @@
+Root    ?= ../../.. ;
+Location = prog/engine/aviWriter ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = engine/aviWriter.lib ;
+
+Sources =
+  aviWriter.cpp
+;
+
+AddIncludes = $(Root)/prog/engine/sharedInclude ;
+
+CPPopt = -D__B_CORE ;
+
+include $(Root)/prog/_jBuild/build.jam ;

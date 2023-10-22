@@ -140,4 +140,14 @@ ModfxDeclFrameInfo ModfxDeclFrameInfo_load( BufferData_cref buf, uint ofs )
 #endif
 }
 
+ModfxDeclVolfogInjectionParams ModfxDeclVolfogInjectionParams_load(BufferData_cref buf, uint ofs)
+{
+  ModfxDeclVolfogInjectionParams pp;
+
+  pp.weight_rgb = dafx_load_1f(buf, ofs);
+  pp.weight_alpha = dafx_load_1f(buf, ofs);
+
+  return pp;
+}
+
 #endif

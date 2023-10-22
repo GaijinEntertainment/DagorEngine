@@ -12,6 +12,7 @@
 #include <nodes/nodeTracker.h>
 #include <nodes/nodeExecutor.h>
 #include <intermediateRepresentation.h>
+#include <nameResolver.h>
 
 #include <compilationStage.h>
 
@@ -29,18 +30,9 @@ class Backend
   static InitOnDemand<Backend, false> instance;
 
   friend class NodeTracker;
-  friend StackRingMemAlloc<> &get_per_compilation_memalloc();
 
   CompilationStage currentStage = CompilationStage::UP_TO_DATE;
   multiplexing::Extents currentMultiplexingExtents;
-
-  void markStageDirty(CompilationStage stage)
-  {
-    if (stage < currentStage)
-      currentStage = stage;
-  }
-
-  StackRingMemAlloc<> perCompilationMemAlloc;
 
   // === Components of FG backend ===
 
@@ -52,10 +44,11 @@ class Backend
   // This registry represents the entire user-specified graph with
   // simple encapsulation-less data (at least in theory)
   InternalRegistry registry{currentlyProvidedResources};
+  NameResolver nameResolver{registry};
 
   // Legacy, to be removed
 
-  NodeTracker nodeTracker{registry};
+  NodeTracker nodeTracker{registry, nameResolver};
 
   NodeScheduler cullingScheduler{nodeTracker};
 
@@ -74,13 +67,12 @@ class Backend
 
   uint32_t frameIndex = 0;
 
-  dag::FixedVectorSet<ResNameId, 8> backbufSinkResources;
-
 private:
   Backend();
   ~Backend();
 
   void declareNodes();
+  void resolveNames();
   void gatherNodeData();
   void gatherGraphIR();
   void scheduleNodes();
@@ -88,6 +80,12 @@ private:
   void handleFirstFrameHistory();
 
 public:
+  void markStageDirty(CompilationStage stage)
+  {
+    if (stage < currentStage)
+      currentStage = stage;
+  }
+
   // NOTE: it's good to put this here as everything will be inlined,
   // while the address of the instance in static memory will be resolved
   // by the linker and we will have 0 indirections when accessing stuff
@@ -99,34 +97,10 @@ public:
 
   void updateExternalState(ExternalState state) { nodeExec->externalState = state; }
 
-  void updateExternallyConsumedResourceSet(eastl::span<const char *const> res_names)
-  {
-    backbufSinkResources.clear();
-    for (auto name : res_names)
-      backbufSinkResources.insert(registry.knownResourceNames.addNameId(name));
-    markStageDirty(CompilationStage::REQUIRES_IR_GENERATION);
-  }
-
-  void markResourceExternallyConsumed(const char *res_name)
-  {
-    backbufSinkResources.insert(registry.knownResourceNames.addNameId(res_name));
-  }
-
-  void unmarkResourceExternallyConsumed(const char *res_name)
-  {
-    backbufSinkResources.erase(registry.knownResourceNames.addNameId(res_name));
-  }
-
   void setMultiplexingExtents(multiplexing::Extents extents);
   void runNodes();
   void dumpGraph(const eastl::string &filename) const;
 
   void requestCompleteResourceRescheduling();
-
-  IPoint2 getResolution(const char *typeName) const;
-  void setResolution(const char *typeName, IPoint2 value);
-  void setDynamicResolution(const char *typeName, IPoint2 value);
-
-  void fillSlot(NamedSlot slot, const char *name);
 };
 } // namespace dabfg

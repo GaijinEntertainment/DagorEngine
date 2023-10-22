@@ -2,6 +2,7 @@
 
 #include "constants.h"
 #include <math/integer/dag_IPoint2.h>
+#include <libTools/util/hdpiUtil.h>
 
 
 class VirtualWindow;
@@ -39,7 +40,8 @@ public:
   virtual void getPos(IPoint2 &left_top, IPoint2 &right_bottom) const = 0;
   virtual void resize(const IPoint2 &left_top, const IPoint2 &right_bottom) = 0;
 
-  virtual bool getMinSize(int &min_w, int &min_h) = 0;
+  virtual bool getMinSize(hdpi::Px &min_w, hdpi::Px &min_h) const = 0;
+  inline bool getMinSizeIP2(IPoint2 &min_px) const;
   virtual WindowSizeLock getSizeLock() const = 0;
 
   virtual ClientWindow *getWindowOnPos(const IPoint2 &cur_point) = 0;
@@ -61,3 +63,11 @@ protected:
 
 void client_to_screen(void *hWnd, IPoint2 &pos);
 void screen_to_client(void *hWnd, IPoint2 &pos);
+inline bool CascadeWindow::getMinSizeIP2(IPoint2 &min_px) const
+{
+  hdpi::Px min_w, min_h;
+  bool res = getMinSize(min_w, min_h);
+  min_px.x = _px(min_w);
+  min_px.y = _px(min_h);
+  return res;
+}

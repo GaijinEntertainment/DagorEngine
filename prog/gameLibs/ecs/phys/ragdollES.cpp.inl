@@ -166,7 +166,11 @@ inline void ragdoll_alive_es_event_handler(const EventOnPhysImpulse &evt, Projec
   int collNodeId = evt.get<1>();
   const Point3 pos = evt.get<2>();
   const Point3 impulse = evt.get<3>();
-  save_projectile_impulse(curTime, projectile_impulse, collNodeId, pos, impulse, projectile_impulse__impulseSaveDeltaTime);
+  if (!check_nan(pos) && !check_nan(impulse) && lengthSq(impulse) < 1e10f)
+    save_projectile_impulse(curTime, projectile_impulse, collNodeId, pos, impulse, projectile_impulse__impulseSaveDeltaTime);
+  else
+    logerr("EventOnPhysImpulse with invalid data for alive body pos = %f %f %f impulse = %f %f %f ", pos.x, pos.y, pos.z, impulse.x,
+      impulse.y, impulse.z);
 }
 
 ECS_REQUIRE(eastl::false_type isAlive)
@@ -177,8 +181,14 @@ inline void ragdoll_dead_es_event_handler(const EventOnPhysImpulse &evt, ragdoll
   int collNodeId = evt.get<1>();
   const Point3 pos = evt.get<2>();
   const Point3 impulse = evt.get<3>();
-  if (!ragdoll.isCanApplyNodeImpulse())
-    save_projectile_impulse(curTime, projectile_impulse, collNodeId, pos, impulse, projectile_impulse__impulseSaveDeltaTime);
-  else if (projectile_impulse__cinematicArtistryMultDead != 0)
-    ragdoll.applyImpulse(collNodeId, pos, impulse * projectile_impulse__cinematicArtistryMultDead);
+  if (!check_nan(pos) && !check_nan(impulse) && lengthSq(impulse) < 1e10f)
+  {
+    if (!ragdoll.isCanApplyNodeImpulse())
+      save_projectile_impulse(curTime, projectile_impulse, collNodeId, pos, impulse, projectile_impulse__impulseSaveDeltaTime);
+    else if (projectile_impulse__cinematicArtistryMultDead != 0)
+      ragdoll.applyImpulse(collNodeId, pos, impulse * projectile_impulse__cinematicArtistryMultDead);
+  }
+  else
+    logerr("EventOnPhysImpulse with invalid data for dead body pos = %f %f %f impulse = %f %f %f ", pos.x, pos.y, pos.z, impulse.x,
+      impulse.y, impulse.z);
 }

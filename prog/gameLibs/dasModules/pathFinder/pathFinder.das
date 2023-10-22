@@ -46,3 +46,9 @@ def find_random_point_around_circle(pos : float3; radius : float; var res : floa
 def check_path(start_pos, end_pos, extents : float3; horz_threshold, max_vert_dist : float; custom_nav : CustomNav const? const = null) : bool
   return check_path(start_pos, end_pos, extents, horz_threshold, max_vert_dist, custom_nav,
                     int(PolyFlag POLYFLAG_GROUND) | int(PolyFlag POLYFLAG_JUMP) | int(PolyFlag POLYFLAG_LADDER) | int(PolyFlag POLYFLAG_OBSTACLE))
+
+
+[generic]
+def check_path_ex(nav_mesh_idx : int; start_pos, end_pos, extents : float3; horz_threshold, max_vert_dist : float; custom_nav : CustomNav const? const = null) : bool
+  return check_path_ex(nav_mesh_idx, start_pos, end_pos, extents, horz_threshold, max_vert_dist, custom_nav,
+                    int(PolyFlag POLYFLAG_GROUND) | int(PolyFlag POLYFLAG_JUMP) | int(PolyFlag POLYFLAG_LADDER) | int(PolyFlag POLYFLAG_OBSTACLE))

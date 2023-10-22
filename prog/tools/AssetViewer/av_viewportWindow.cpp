@@ -122,6 +122,8 @@ void AssetViewerViewportWindow::formatGeometryStat(String &statText, const char 
 
 void AssetViewerViewportWindow::paint(int w, int h)
 {
+  using hdpi::_pxScaled;
+
   __super::paint(w, h);
 
   if (!needShowAssetStats())
@@ -134,8 +136,8 @@ void AssetViewerViewportWindow::paint(int w, int h)
   if (assetStats.assetType == AssetStats::AssetType::None)
   {
     statText = "asset stats: -";
-    drawText(8, nextStat3dLineY, statText);
-    nextStat3dLineY += 20;
+    drawText(_pxScaled(8), nextStat3dLineY, statText);
+    nextStat3dLineY += _pxScaled(20);
   }
   else
   {
@@ -164,8 +166,8 @@ void AssetViewerViewportWindow::paint(int w, int h)
       else
         statText.printf(64, "%s: %d", asset_stat_names[i], getAssetStatByIndex(i));
 
-      drawText(8, nextStat3dLineY, statText);
-      nextStat3dLineY += 20;
+      drawText(_pxScaled(8), nextStat3dLineY, statText);
+      nextStat3dLineY += _pxScaled(20);
     }
   }
 

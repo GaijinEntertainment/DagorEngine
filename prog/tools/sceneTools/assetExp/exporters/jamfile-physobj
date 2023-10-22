@@ -13,12 +13,12 @@ Sources = phObjExp.cpp phSysObj.cpp ;
 
 AddIncludes = $(Root)/prog/tools/sharedInclude ;
 
-UseProgLibs = 
-  engine2/startup
-  engine2/math
+UseProgLibs =
+  engine/startup
+  engine/math
 
-  engine2/lib3d
-  engine2/drv/drv3d_null
+  engine/lib3d
+  engine/drv/drv3d_null
 
   tools/libTools/assetMgr
   tools/libTools/dagFileRW

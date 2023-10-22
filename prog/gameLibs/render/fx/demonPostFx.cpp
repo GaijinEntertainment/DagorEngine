@@ -169,7 +169,7 @@ void DemonPostFx::initAdaptation()
 
       Color4 col(1. / lowResSize.x, 1. / lowResSize.y, lowResSize.x, lowResSize.y);
       histogramCalcMat->set_color4_param(texSzVarId, col);
-      histogramAccum.init("accumHistogram", NULL, true);
+      histogramAccum.init("accumHistogram");
       col = Color4(1. / histogramColumns, 1. / INTERLACE_HEIGHT, histogramColumns, INTERLACE_HEIGHT);
       histogramAccum.getMat()->set_color4_param(texSzVarId, col);
       histogramAccum.getMat()->set_texture_param(texVarId, histogramInterlacedTexture.getTexId());
@@ -192,7 +192,7 @@ void DemonPostFx::initAdaptation()
   luminance.getMat()->set_texture_param(texVarId, prevFrameLowResTex.getTexId());
   if (use_queries)
   {
-    histogramQuery.init("calc_query", NULL, false);
+    histogramQuery.init("calc_query");
     if (histogramQuery.getMat())
     {
       histogramQuery.getMat()->set_color4_param(texSzVarId, quad_coefs);
@@ -340,7 +340,8 @@ void DemonPostFx::drawHistogram(unsigned *, int, const Point2 &, const Point2 &)
 
 void DemonPostFx::drawHistogram(Texture *, float, const Point2 &, const Point2 &) {}
 
-DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &hdr_blk, int target_w, int target_h, unsigned rtarget_flags) :
+DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &hdr_blk, int target_w, int target_h, unsigned rtarget_flags,
+  bool initPostfxGlow, bool initSunVolfog) :
   paramColorMatrix(1),
   preColorMatrix(1),
   postColorMatrix(1),
@@ -432,11 +433,6 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &hdr_blk, in
 
   if (!useSimpleMode)
   {
-    // low-res previous frame texture
-    prevFrameLowResTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, rtarget_flags | TEXCF_RTARGET, 1, "postfx_prevFrameLowRes");
-    d3d_err(prevFrameLowResTex.getTex2D());
-    prevFrameLowResTex->texaddr(TEXADDR_CLAMP);
-
     if (useCompute)
     {
       glowBlurXFxCS.reset(new_compute_shader("demon_postfx_blur_cs", true));
@@ -448,17 +444,20 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &hdr_blk, in
         useCompute = false;
     }
 
-    lowResLumTexA = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_lowresLumA");
-    d3d_err(lowResLumTexA.getTex2D());
-    lowResLumTexA->texaddr(TEXADDR_MIRROR);
+    if (initSunVolfog)
+    {
+      lowResLumTexA = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_lowresLumA");
+      d3d_err(lowResLumTexA.getTex2D());
+      lowResLumTexA->texaddr(TEXADDR_MIRROR);
 
-    lowResLumTexB = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_lowresLumB");
-    d3d_err(lowResLumTexB.getTex2D());
-    lowResLumTexB->texaddr(TEXADDR_MIRROR);
+      lowResLumTexB = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_lowresLumB");
+      d3d_err(lowResLumTexB.getTex2D());
+      lowResLumTexB->texaddr(TEXADDR_MIRROR);
 
-    histogramTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_histogram");
-    d3d_err(histogramTex.getTex2D());
-    histogramTex->texaddr(TEXADDR_CLAMP);
+      histogramTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_histogram");
+      d3d_err(histogramTex.getTex2D());
+      histogramTex->texaddr(TEXADDR_CLAMP);
+    }
 
     uiBlurTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_uiBlur");
     d3d_err(uiBlurTex.getTex2D());
@@ -466,13 +465,25 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &hdr_blk, in
 
     uint32_t usageFlag = useCompute ? TEXCF_UNORDERED : TEXCF_RTARGET;
 
-    tmpTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | usageFlag, 1, "postfx_tmp");
-    d3d_err(tmpTex.getTex2D());
-    tmpTex->texaddr(TEXADDR_CLAMP);
+    if (initPostfxGlow)
+    {
+      tmpTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | usageFlag, 1, "postfx_tmp");
+      d3d_err(tmpTex.getTex2D());
+      tmpTex->texaddr(TEXADDR_CLAMP);
 
-    glowTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, rtarget_flags | usageFlag, 1, "postfx_glow");
-    d3d_err(glowTex.getTex2D());
-    glowTex->texaddr(TEXADDR_CLAMP);
+      glowTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, rtarget_flags | usageFlag, 1, "postfx_glow");
+      d3d_err(glowTex.getTex2D());
+      glowTex->texaddr(TEXADDR_CLAMP);
+    }
+
+    if (initSunVolfog || initPostfxGlow || useAdaptation)
+    {
+      // low-res previous frame texture
+      prevFrameLowResTex =
+        dag::create_tex(NULL, lowResSize.x, lowResSize.y, rtarget_flags | TEXCF_RTARGET, 1, "postfx_prevFrameLowRes");
+      d3d_err(prevFrameLowResTex.getTex2D());
+      prevFrameLowResTex->texaddr(TEXADDR_CLAMP);
+    }
 
     if (useLutTexture)
     {
@@ -1367,11 +1378,11 @@ void DemonPostFx::startGetAdaptation()
   queryTail %= MAX_QUERY;
 }
 
-void DemonPostFx::prepareSkyMask()
+void DemonPostFx::prepareSkyMask(const TMatrix &view_tm)
 {
   if (useSimpleMode)
     return;
-  Point3 sunDir = ::grs_cur_view.tm % current.sunDir;
+  Point3 sunDir = view_tm % current.sunDir;
   float sunLightK = sunDir.z;
 
   real minCos = volfogMaxAngleCos;
@@ -1391,7 +1402,8 @@ void DemonPostFx::prepareSkyMask()
 
 // eye -1 for mono, 0,1 for stereo
 void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, Texture *output_tex, TEXTUREID output_id,
-  Texture *depth_tex, int eye, int target_layer, const Point4 &target_uv_transform, const RectInt *output_viewport)
+  const TMatrix &view_tm, const TMatrix4 &proj_tm, Texture *depth_tex, int eye, int target_layer, const Point4 &target_uv_transform,
+  const RectInt *output_viewport)
 {
   G_UNREFERENCED(output_id);
 #if DAGOR_DBGLEVEL == 0
@@ -1400,8 +1412,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
   if (::grs_draw_wire)
     d3d::setwire(0);
 
-  Driver3dRenderTarget rt;
-  d3d::get_render_target(rt);
+  SCOPE_RENDER_TARGET;
 
   TextureInfo info;
   target_tex->getinfo(info);
@@ -1416,8 +1427,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
   {
 #if __CHECK_ADAPTATION__ > 1
     d3d::set_render_target(target_tex, 0);
-    int w, h;
-    d3d::get_target_size(w, h);
+    int w = targtexW, h = targtexH;
     d3d::clearview(CLEAR_TARGET, 0, 1, 0);
 
     d3d::setview(0, h * 1 / 5, w, 1, 0, 1);
@@ -1444,7 +1454,8 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
       getAdaptation();
 
     d3d::resource_barrier({target_tex, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    downsample(prevFrameLowResTex.getTex2D(), target_id, targtexW, targtexH, target_uv_transform);
+    if (prevFrameLowResTex.getTex2D())
+      downsample(prevFrameLowResTex.getTex2D(), target_id, targtexW, targtexH, target_uv_transform);
 
     // read from already downsampled tex
     if (eye < 0)
@@ -1496,7 +1507,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
       else
         calcGlowGraphics();
     }
-    else
+    else if (glowTex.getTex2D())
     {
       TIME_D3D_PROFILE(clearGlow);
       if (useCompute)
@@ -1512,13 +1523,11 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
     }
 
     // radial blur (fake volumetric light from sun)
-    Point3 sunDir = ::grs_cur_view.tm % current.sunDir;
+    Point3 sunDir = view_tm % current.sunDir;
     real wk, hk;
 
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
-    wk = projTm(0, 0);
-    hk = projTm(1, 1);
+    wk = proj_tm(0, 0);
+    hk = proj_tm(1, 1);
 
     sunLightK = sunDir.z;
 
@@ -1534,7 +1543,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
     if (sunLightK >= minCos && volFogCallback && !(current.debugFlags & current.NO_VFOG) && volFogBrightness > 0.00001f)
     {
       if (!skyMaskPrepared)
-        prepareSkyMask();
+        prepareSkyMask(view_tm);
 
       sunLightK = (sunLightK - minCos) / (1 - minCos);
       sunLightK *= current.volfogMul;
@@ -1659,15 +1668,17 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
 
   if (!useSimpleMode)
   {
-    d3d::resource_barrier({glowTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    d3d::resource_barrier({lowResLumTexA.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    if (glowTex.getTex2D())
+      d3d::resource_barrier({glowTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    if (lowResLumTexA.getTex2D())
+      d3d::resource_barrier({lowResLumTexA.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 
   if (output_tex)
     d3d::set_render_target(output_tex, output_tex->restype() == RES3D_ARRTEX ? target_layer : 0, 0);
   else
     d3d::set_render_target();
-  d3d::set_depth(depth_tex, true);
+  d3d::set_depth(depth_tex, DepthAccess::SampledRO);
 
   if (output_viewport)
   {
@@ -1738,7 +1749,6 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
 #endif
   }
 
-  d3d::set_render_target(rt);
   if (::grs_draw_wire)
     d3d::setwire(::grs_draw_wire);
 

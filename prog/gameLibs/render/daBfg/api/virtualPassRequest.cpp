@@ -11,7 +11,7 @@ VirtualPassRequest::VirtualPassRequest(NodeNameId node, InternalRegistry *reg) :
   if (EASTL_UNLIKELY(registry->nodes[nodeId].renderingRequirements.has_value()))
     logerr("Encountered two renderpass requests within '%s' framegraph node!"
            " Ignoring one of them!",
-      registry->knownNodeNames.getName(nodeId));
+      registry->knownNames.getName(nodeId));
   registry->nodes[nodeId].renderingRequirements.emplace();
 }
 
@@ -29,7 +29,8 @@ detail::ResUid VirtualPassRequest::processAttachment(detail::VirtualAttachmentRe
   }
   else
   {
-    auto id = registry->knownResourceNames.addNameId(eastl::get<const char *>(attachment.image));
+    const auto nodeNsId = registry->knownNames.getParent(nodeId);
+    const auto id = registry->knownNames.addNameId<ResNameId>(nodeNsId, eastl::get<const char *>(attachment.image));
     if (accessOverride == Access::READ_ONLY)
       nodeData.readResources.insert(id);
     else
@@ -57,7 +58,7 @@ VirtualPassRequest VirtualPassRequest::color(std::initializer_list<ColorRwVirtua
   {
     logerr("Encountered duplicate color attachment calls on the same pass request"
            " in '%s' frame graph node! Ignoring one of them!",
-      registry->knownNodeNames.getName(nodeId));
+      registry->knownNames.getName(nodeId));
     colors.clear();
   }
   colors.reserve(attachments.size());
@@ -77,7 +78,7 @@ VirtualPassRequest VirtualPassRequest::depthRw(RwVirtualAttachmentRequest attach
   {
     logerr("Encountered duplicate depth attachment calls on the same pass request"
            " in '%s' frame graph node! Ignoring one of them!",
-      registry->knownNodeNames.getName(nodeId));
+      registry->knownNames.getName(nodeId));
   }
   auto [resId, hist] = processAttachment(attachment, Access::READ_WRITE);
   G_ASSERT(!hist); // Sanity check, should be impossible by construction
@@ -93,7 +94,7 @@ VirtualPassRequest VirtualPassRequest::depthRo(DepthRoVirtualAttachmentRequest a
   {
     logerr("Encountered duplicate depth attachment calls on the same pass request"
            " in '%s' frame graph node! Ignoring one of them!",
-      registry->knownNodeNames.getName(nodeId));
+      registry->knownNames.getName(nodeId));
   }
 
   auto [resId, hist] = processAttachment(attachment, Access::READ_ONLY);
@@ -116,7 +117,7 @@ VirtualPassRequest VirtualPassRequest::depthRoAndBindToShaderVars(DepthRoAndSvBi
   {
     logerr("Encountered duplicate depth attachment calls on the same pass request"
            " in '%s' frame graph node! Ignoring one of them!",
-      registry->knownNodeNames.getName(nodeId));
+      registry->knownNames.getName(nodeId));
   }
 
   auto [resId, hist] = processAttachment(attachment, Access::READ_ONLY);

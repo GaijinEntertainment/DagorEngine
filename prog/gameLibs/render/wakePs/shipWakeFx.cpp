@@ -768,17 +768,19 @@ void ShipWakeFx::render()
   }
 }
 
-void ShipWakeFx::renderFoam()
+bool ShipWakeFx::renderFoam()
 {
-  effectManager->render(ParticleSystem::RENDER_FOAM);
+  bool renderedAnything = false;
+  renderedAnything |= effectManager->render(ParticleSystem::RENDER_FOAM);
 
   if (water_foam_distorted_on.get())
   {
     if (psFoamDistorted)
       psFoamDistorted->setRenderType(ParticleSystem::RENDER_FOAM_DISTORTED);
 
-    effectManager->render(ParticleSystem::RENDER_FOAM_DISTORTED);
+    renderedAnything |= effectManager->render(ParticleSystem::RENDER_FOAM_DISTORTED);
   }
+  return renderedAnything;
 }
 
 void ShipWakeFx::renderFoamMask() { effectManager->render(ParticleSystem::RENDER_FOAM_MASK); }

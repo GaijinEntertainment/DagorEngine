@@ -607,7 +607,7 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
   return true;
 }
 
-namespace rendinstgen
+namespace rendinst::gen
 {
 float custom_max_trace_distance = 0;
 bool custom_trace_ray(const Point3 &src, const Point3 &dir, real &dist, Point3 *out_norm) { return false; }
@@ -619,7 +619,7 @@ void custom_get_land_min_max(BBox2, float &out_min, float &out_max)
   out_min = 0;
   out_max = 8192;
 }
-} // namespace rendinstgen
+} // namespace rendinst::gen
 
 // stub it
 #include <eventLog/eventLog.h>

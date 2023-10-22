@@ -13,11 +13,9 @@
 //==============================================================================
 // AssetBaseView
 //==============================================================================
-AssetBaseView::AssetBaseView(IAssetBaseViewClient *client, IMenuEventHandler *menu_event_handler, void *handle, int l, int t, int w,
-  int h) :
-
+AssetBaseView::AssetBaseView(IAssetBaseViewClient *client, IMenuEventHandler *menu_event_h, void *handle, int l, int t, int w, int h) :
   eh(client),
-  menuEventHandler(menu_event_handler),
+  menuEventHandler(menu_event_h),
   curMgr(NULL),
   curFilter(midmem),
   filter(midmem),
@@ -25,7 +23,7 @@ AssetBaseView::AssetBaseView(IAssetBaseViewClient *client, IMenuEventHandler *me
   canNotifySelChange(true),
   doShowEmptyGroups(true)
 {
-  mTreeList = new TreeListWindow(this, handle, l, t, w, h, "");
+  mTreeList = new TreeListWindow(this, handle, l, t, hdpi::_pxActual(w), hdpi::_pxActual(h), "");
 }
 
 
@@ -314,9 +312,21 @@ void AssetBaseView::setTreeNodesExpand(dag::ConstSpan<bool> exps)
 }
 
 
+void AssetBaseView::addCommonMenuItems(IMenu &menu)
+{
+  menu.addSeparator(ROOT_MENU_ITEM);
+  menu.addSubMenu(ROOT_MENU_ITEM, AssetsGuiIds::CopyMenuItem, "Copy");
+  menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFilePathMenuItem, "Asset file path to clipboard");
+  menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Asset folder path to clipboard");
+  menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetNameMenuItem, "Asset name to clipboard");
+  menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RevealInExplorerMenuItem, "Reveal in Explorer");
+}
+
+
 bool AssetBaseView::onTvListContextMenu(TreeBaseWindow &tree, int index, IMenu &menu)
 {
   menu.setEventHandler(menuEventHandler);
   menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::AddToFavoritesMenuItem, "Add to favorites");
+  addCommonMenuItems(menu);
   return true;
 }

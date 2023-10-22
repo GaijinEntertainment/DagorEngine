@@ -1,7 +1,7 @@
 let { get_time_msec } = require("dagor.time")
 let {memoize} = require("%sqstd/functools.nut")
 let {Point2} = require("dagor.math")
-let {Watched, Computed} = require("frp")
+let {Watched, Computed} = require("%sqstd/frp.nut")
 let { log } = require("%sqstd/log.nut")()
 
 const N = 5000

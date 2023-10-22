@@ -26,7 +26,7 @@ bool Client::OnBeforePopup(CefRefPtr<CefBrowser> browser,
                            CefWindowInfo& window_info,
                            CefRefPtr<CefClient>& /*client*/,
                            CefBrowserSettings& /*settings*/,
-                           CefRefPtr<CefDictionaryValue>& /* extra_info */,
+                           CefRefPtr<CefDictionaryValue>& extra_info,
                            bool* /*no_javascript_access*/)
 {
   this->endpoint->DBG("%s: disp %d, browser %d", __FUNCTION__, target_disposition, browser->GetIdentifier());
@@ -52,6 +52,7 @@ bool Client::OnBeforePopup(CefRefPtr<CefBrowser> browser,
       else
       {
         window_info.SetAsWindowless(this->windowHandle);
+        extra_info = endpoint->getExtraInfo().get();
         return false; // Allow CEF to handle this
       }
       break;

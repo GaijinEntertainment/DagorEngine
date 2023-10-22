@@ -1,4 +1,4 @@
-from "frp" import Watched, Computed
+from "%sqstd/frp.nut" import Watched, Computed, FRP_INITIAL, FRP_DONT_CHECK_NESTED, set_nested_observable_debug, make_all_observables_immutable
 
 let {tostring_r} = require("%sqstd/string.nut")
 let logLib = require("%sqstd/log.nut")
@@ -28,6 +28,13 @@ let logs = {
   logerr = log.logerr
   wlog = log.wlog
   wdlog = @(watched, prefix = null, transform=null) log.wlog(watched, prefix, transform, log.dlog) //disable: -dlog-warn
+
+  Watched
+  Computed
+  FRP_INITIAL
+  FRP_DONT_CHECK_NESTED
+  set_nested_observable_debug
+  make_all_observables_immutable
 }
 
-return require("daRg").__merge(require("frp"), require("darg_library.nut"), require("%sqstd/functools.nut"), logs)
+return require("daRg").__merge(require("darg_library.nut"), require("%sqstd/functools.nut"), logs)

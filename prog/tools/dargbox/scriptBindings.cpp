@@ -18,6 +18,7 @@
 
 #include "vr.h"
 #include "main.h"
+#include "screenshotMetaInfoLoader.h"
 #include "gamelib/sound.h"
 #include "gamelib/input.h"
 
@@ -70,6 +71,7 @@ void bind_dargbox_script_api(SqModules *module_mgr)
 
   Sqrat::Table sqDargbox(vm);
   sqDargbox.Func("reload_scripts", [](bool full_reinit) { delayed_reload_scripts(full_reinit); });
+  sqDargbox.Func("get_meta_info_from_screenshot", get_meta_info_from_screenshot);
   module_mgr->addNativeModule("dargbox", sqDargbox);
 
   Sqrat::Table sqVR(vm);

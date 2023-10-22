@@ -36,7 +36,7 @@ namespace d3d
 int driver_command(int, void *, void *, void *) { return 0; }
 void beginEvent(const char *) {}
 void endEvent() {}
-uint32_t get_driver_code() { return 0; }
+DriverCode get_driver_code() { return DriverCode::make(d3d::null); }
 void *get_device() { return 0; }
 } // namespace d3d
 

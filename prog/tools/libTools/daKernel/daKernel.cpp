@@ -64,8 +64,8 @@ int pull_dll_sum =
 #endif
   0;
 
-#include <../engine2/math/rndSeed.cpp>
-#include <../engine2/math/gaussTbl.cpp>
+#include <../engine/math/rndSeed.cpp>
+#include <../engine/math/gaussTbl.cpp>
 
 #include <math/dag_TMatrix.h>
 const TMatrix TMatrix::IDENT(1);

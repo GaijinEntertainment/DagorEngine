@@ -36,8 +36,6 @@ protected:
   {
     STR_HEIGHT = 23,
     STR_STEP = 25,
-    DLG_WIDTH = 300,
-    DLG_HEIGHT = 580,
     BORDER = 10,
     ST_OFFSET = 3,
     TEXADDR_AS_U = 5,

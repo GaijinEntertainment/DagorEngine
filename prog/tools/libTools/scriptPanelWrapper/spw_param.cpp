@@ -1896,7 +1896,7 @@ public:
     mMax(100),
     mPoint0(Point2(0, 0)),
     mPoint1(Point2(0, 0)),
-    mHeight(60)
+    mHeight(hdpi::_pxScaled(60))
   {
     mValue.push_back(Point2(0, 0));
     mValue.push_back(Point2(1, 1));
@@ -1934,7 +1934,7 @@ public:
   {
     if (param.Exists("height"))
     {
-      mHeight = param.GetInt("height");
+      mHeight = hdpi::_pxScaled(param.GetInt("height"));
       if (mPanel)
       {
         PropertyControlBase *ctrl = mPanel->getById(mPid);
@@ -2074,7 +2074,7 @@ private:
   Tab<Point2> mValue;
   int mMin, mMax;
   Point2 mPoint0, mPoint1;
-  int mHeight;
+  hdpi::Px mHeight;
 };
 
 

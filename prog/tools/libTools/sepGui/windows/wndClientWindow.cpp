@@ -40,14 +40,14 @@ ClientWindow::ClientWindow(VirtualWindow *parent, WinManager *owner, const char 
   mPHeader(NULL),
   mPClientArea(NULL),
   mHeaderPos(HEADER_NONE),
-  mMinWidth(WINDOW_TEMP_MIN_SIZE),
-  mMinHeight(WINDOW_TEMP_MIN_SIZE),
+  mMinWidth(_pxScaled(WINDOW_TEMP_MIN_SIZE)),
+  mMinHeight(_pxScaled(WINDOW_TEMP_MIN_SIZE)),
   mMovableWindow(NULL),
   mCaption(caption),
   mEmbeddedWindow(NULL)
 {
-  mMenuAreaPos = IPoint2(WINDOW_MENU_AREA_X, WINDOW_MENU_AREA_Y);
-  mMenuAreaSize = IPoint2(WINDOW_MENU_AREA_W, WINDOW_MENU_AREA_H);
+  mMenuAreaPos = IPoint2(_pxS(WINDOW_MENU_AREA_X), _pxS(WINDOW_MENU_AREA_Y));
+  mMenuAreaSize = IPoint2(_pxS(WINDOW_MENU_AREA_W), _pxS(WINDOW_MENU_AREA_H));
 }
 
 
@@ -165,7 +165,7 @@ WindowSizeLock ClientWindow::getSizeLock() const
 
 
 //=============================================================================
-bool ClientWindow::getMinSize(int &min_w, int &min_h)
+bool ClientWindow::getMinSize(hdpi::Px &min_w, hdpi::Px &min_h) const
 {
   min_w = mMinWidth;
   min_h = mMinHeight;
@@ -178,14 +178,14 @@ bool ClientWindow::getMinSize(int &min_w, int &min_h)
     if (mParent)
     {
       if (mParent->isVertical())
-        min_w = rightBottom.x - leftTop.x;
+        min_w = _pxActual(rightBottom.x - leftTop.x);
       else
-        min_h = rightBottom.y - leftTop.y;
+        min_h = _pxActual(rightBottom.y - leftTop.y);
     }
     else
     {
-      min_w = rightBottom.x - leftTop.x;
-      min_h = rightBottom.y - leftTop.y;
+      min_w = _pxActual(rightBottom.x - leftTop.x);
+      min_h = _pxActual(rightBottom.y - leftTop.y);
     }
     return true;
   }
@@ -194,7 +194,7 @@ bool ClientWindow::getMinSize(int &min_w, int &min_h)
 
 
 //=============================================================================
-void ClientWindow::setMinSize(unsigned min_w, unsigned min_h)
+void ClientWindow::setMinSize(hdpi::Px min_w, hdpi::Px min_h)
 {
   mMinWidth = min_w;
   mMinHeight = min_h;
@@ -218,11 +218,11 @@ bool ClientWindow::getFixed() const { return mIsFixed; }
 //=============================================================================
 int ClientWindow::calcMousePos(int left, int right, int min_old, int size_new, bool to_left, bool to_root)
 {
-  int offset = SPLITTER_THICKNESS + SPLITTER_SPACE * 2;
+  int offset = _pxS(SPLITTER_THICKNESS) + _pxS(SPLITTER_SPACE) * 2;
   if (right - left > min_old + offset + size_new)
   {
     if (to_left)
-      return left + size_new + SPLITTER_SPACE;
+      return left + size_new + _pxS(SPLITTER_SPACE);
     else
       return right - offset - size_new;
   }
@@ -230,9 +230,9 @@ int ClientWindow::calcMousePos(int left, int right, int min_old, int size_new, b
   {
     int half = left + (right - left) / 2;
     if (to_left)
-      return to_root ? left + WINDOW_MIN_SIZE_W + SPLITTER_SPACE : half;
+      return to_root ? left + _pxS(WINDOW_MIN_SIZE_W) + _pxS(SPLITTER_SPACE) : half;
     else
-      return to_root ? right - WINDOW_MIN_SIZE_W - offset : half;
+      return to_root ? right - _pxS(WINDOW_MIN_SIZE_W) - offset : half;
   }
 }
 
@@ -289,21 +289,21 @@ void ClientWindow::headerUpdate()
     case HEADER_NONE: break;
 
     case HEADER_TOP:
-      areaTop = TOP_HEADER_HEIGHT;
-      areaHeight -= TOP_HEADER_HEIGHT;
+      areaTop = _pxS(TOP_HEADER_HEIGHT);
+      areaHeight -= _pxS(TOP_HEADER_HEIGHT);
 
       G_ASSERT(mPHeader && "ClientWindow::headerUpdate(): header client window == NULL!");
 
-      mPHeader->resize(0, 0, width, TOP_HEADER_HEIGHT);
+      mPHeader->resize(0, 0, width, _pxS(TOP_HEADER_HEIGHT));
       break;
 
     case HEADER_LEFT:
-      areaLeft = LEFT_HEADER_WIDTH;
-      areaWidth -= LEFT_HEADER_WIDTH;
+      areaLeft = _pxS(LEFT_HEADER_WIDTH);
+      areaWidth -= _pxS(LEFT_HEADER_WIDTH);
 
       G_ASSERT(mPHeader && "ClientWindow::headerUpdate(): header client window == NULL!");
 
-      mPHeader->resize(0, 0, LEFT_HEADER_WIDTH, height);
+      mPHeader->resize(0, 0, _pxS(LEFT_HEADER_WIDTH), height);
       break;
   }
 

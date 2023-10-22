@@ -4,6 +4,7 @@ include "gbuffer.sh"
 texture downsampled_checkerboard_depth_tex;
 
 float4 upscale_target_size;
+int4 upscale_gbuffer_offset;
 
 macro UPSCALE_SAMPLING_CORE(code)
   ENABLE_ASSERT(code)
@@ -14,6 +15,7 @@ macro UPSCALE_SAMPLING_CORE(code)
 
   (code) {
     lowres_tex_size@f4 = lowres_tex_size;
+    upscale_gbuffer_offset@i2 = upscale_gbuffer_offset;
   }
 
   if (downsampled_checkerboard_depth_tex != NULL)
@@ -32,7 +34,7 @@ macro UPSCALE_SAMPLING_CORE(code)
       float2 screenpos_scaled = 0.5 * screenpos;
 
       const float BASE_THRESHOLD = 0.05;
-      float rawDepth = loadGbufferDepth(int2(screenpos));
+      float rawDepth = loadGbufferDepth(int2(screenpos) + upscale_gbuffer_offset);
       float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
 
       float4 halfResRawDepth = half_res_depth_tex.GatherRed(half_res_depth_tex_samplerstate, screenpos_scaled * lowres_tex_size.zw);

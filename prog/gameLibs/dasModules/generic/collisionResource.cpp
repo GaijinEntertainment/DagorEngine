@@ -1,5 +1,6 @@
 #include <dasModules/aotCollisionResource.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtra.h>
+
 
 DAS_BASE_BIND_ENUM_98(CollisionNode::BehaviorFlag, BehaviorFlag, TRACEABLE, PHYS_COLLIDABLE, SOLID, FLAG_ALLOW_HOLE,
   FLAG_DAMAGE_REQUIRED, FLAG_CUT_REQUIRED, FLAG_CHECK_SIDE, FLAG_ALLOW_BULLET_DECAL, FLAG_ALLOW_SPLASH_HOLE);

@@ -3038,12 +3038,17 @@ void GuiScene::reloadScript(const char *fn)
 
   frpGraph->generation++;
 
+  // Ensure that string is always valid in this scope.
+  // This may be too paranoid but in practice it happenned that the provided pointer to the string
+  // was invalidated during script execution (in game settings datablock reload).
+  String fnCopy(fn);
+
   Sqrat::Object rootDesc;
   String errMsg;
-  if (!moduleMgr->reloadModule(fn, true, SqModules::__main__, rootDesc, errMsg))
+  if (!moduleMgr->reloadModule(fnCopy.c_str(), true, SqModules::__main__, rootDesc, errMsg))
   {
     String msg;
-    msg.printf(256, "Failed to load script module %s: %s", fn, errMsg.c_str());
+    msg.printf(256, "Failed to load script module %s: %s", fnCopy.c_str(), errMsg.c_str());
     errorMessage(msg);
     // fatal(msg);
     rootDesc = Sqrat::Table(sqvm);
@@ -4126,18 +4131,26 @@ bool GuiScene::haveActiveCursorOnPanels() const
 }
 
 
-static constexpr float max_aim_distance = 8;
+static constexpr float max_aim_distance = 8.f;
+static constexpr float max_touch_distance = 0.02f;
+static constexpr float new_touch_threshold = 0.25f * max_touch_distance;
+
+
+static bool get_valid_uv_from_intersection_point(const TMatrix &panel_tm, const Point3 &panel_size, const Point3 &point,
+  Point2 &out_uv)
+{
+  Point3 dir = point - panel_tm.getcol(3);
+  Point2 pos{dir * normalize(panel_tm.getcol(0)), dir * normalize(panel_tm.getcol(1))};
+  out_uv.set((pos.x + 0.5f * panel_size.x) / panel_size.x, 1.f - (pos.y + 0.5f * panel_size.y) / panel_size.y);
+  return out_uv.x >= 0.f && out_uv.x < 1.f && out_uv.y >= 0.f && out_uv.y < 1.f;
+}
 
 
 static float cast_at_rectangle(const Panel &panel, Point2 &pointerUV, const TMatrix &aim)
 {
   const TMatrix &transform = panel.renderInfo.transform;
   Point3 planeP = transform.getcol(3);
-  Point3 planeX = transform.getcol(0);
-  Point3 planeY = transform.getcol(1);
   Point3 planeZ = transform.getcol(2);
-  planeX.normalize();
-  planeY.normalize();
   planeZ.normalize();
 
   Point3 aimSrc = aim.getcol(3);
@@ -4150,18 +4163,25 @@ static float cast_at_rectangle(const Panel &panel, Point2 &pointerUV, const TMat
   if (isect == aimSrc)
     return max_aim_distance + 1;
 
-  Point3 isectDir = isect - planeP;
-  float dx = isectDir * planeX;
-  float dy = isectDir * planeY;
+  bool isUvValid = get_valid_uv_from_intersection_point(transform, panel.spatialInfo.size, isect, pointerUV);
+  return isUvValid ? (isect - aim.getcol(3)).length() : (max_aim_distance + 1.f);
+}
 
-  Point3 size = panel.spatialInfo.size;
-  pointerUV.x = (dx + size.x / 2) / size.x;
-  pointerUV.y = 1.0f - (dy + size.y / 2) / size.y;
 
-  if (pointerUV.x < 0 || pointerUV.x >= 1 || pointerUV.y < 0 || pointerUV.y >= 1)
-    return max_aim_distance + 1;
+static float project_at_rectangle(const Panel &panel, const Point3 &point, float max_dist, Point2 &out_uv)
+{
+  const TMatrix &panelTm = panel.renderInfo.transform;
+  const Point3 panelOrigin = panelTm.getcol(3);
+  const Point3 panelNormal = normalize(panelTm.getcol(2));
+  Plane3 plane(panelNormal, panelOrigin);
 
-  return (isect - aim.getcol(3)).length();
+  Point3 projectedPoint = plane.project(point);
+  float dist = -plane.distance(point); // FIXME: plane.distance(point) gives negative value... Wrong normals?
+  if (dist > max_dist)
+    return max_aim_distance + 1.f;
+
+  bool isUvValid = get_valid_uv_from_intersection_point(panelTm, panel.spatialInfo.size, projectedPoint, out_uv);
+  return isUvValid ? dist : (max_aim_distance + 1.f);
 }
 
 
@@ -4173,6 +4193,14 @@ static float cast_at_hit_panel(const Panel &panel, Point2 &pointerUV, const TMat
 
     default: fatal("Implement casting for this type of geometry!"); return max_aim_distance + 1;
   }
+}
+
+
+static float project_at_hit_panel(const Panel &panel, const Point3 &point, float max_dist, Point2 &out_uv)
+{
+  G_ASSERTF_RETURN(panel.spatialInfo.geometry == PanelGeometry::Rectangle, max_touch_distance + 1.f,
+    "Touching non-rectangular panels is not implemented");
+  return project_at_rectangle(panel, point, max_dist, out_uv);
 }
 
 
@@ -4269,26 +4297,33 @@ void GuiScene::updateSpatialInteractionState(const VrSceneData &vr_scene)
     for (int hand : {0, 1})
     {
       Point2 uv{-1.f, -1.f};
+      float dist = max_aim_distance + 1.f;
       const PanelSpatialInfo &psi = panel->spatialInfo;
-      const TMatrix &origin = psi.canBeTouched ? vr_scene.indexFingertips[hand] : vr_scene.aims[hand];
-      bool panelAllowsThisHand = psi.canBePointedAt || (psi.anchor == PanelAnchor::LeftHand && hand != 0) ||
-                                 (psi.anchor == PanelAnchor::RightHand && hand != 1);
-      if (panelAllowsThisHand)
+      float threshold = psi.canBeTouched ? min(max_touch_distance + 1.f, minHitDistance[hand]) : minHitDistance[hand];
+      if (psi.canBeTouched)
       {
-        float dist = cast_at_hit_panel(*panel, uv, origin);
-        if (dist < minHitDistance[hand])
-        {
-          minHitDistance[hand] = dist;
-          closestHitPanelIdxs[hand] = i;
-          panelHitUvs[hand] = uv;
-        }
+        bool panelInOtherHand =
+          (psi.anchor == PanelAnchor::LeftHand && hand != 0) || (psi.anchor == PanelAnchor::RightHand && hand != 1);
+        if (panelInOtherHand)
+          dist = project_at_hit_panel(*panel, vr_scene.indexFingertips[hand].getcol(3), max_touch_distance, uv);
+      }
+      else if (psi.canBePointedAt)
+        dist = cast_at_hit_panel(*panel, uv, vr_scene.aims[hand]);
+
+      if (dist < threshold)
+      {
+        minHitDistance[hand] = dist;
+        closestHitPanelIdxs[hand] = i;
+        panelHitUvs[hand] = uv;
       }
     }
   }
 
   spatialInteractionState = {};
   for (int hand : {0, 1})
-    if (minHitDistance[hand] < max_aim_distance)
+  {
+    bool useTouchThresh = closestHitPanelIdxs[hand] >= 0 && panels[closestHitPanelIdxs[hand]].panel->spatialInfo.canBeTouched;
+    if (minHitDistance[hand] < (useTouchThresh ? max_touch_distance : max_aim_distance))
     {
       auto &sis = spatialInteractionState;
       sis.hitDistances[hand] = minHitDistance[hand];
@@ -4297,13 +4332,14 @@ void GuiScene::updateSpatialInteractionState(const VrSceneData &vr_scene)
         sis.hitPos[hand] = vrSurfaceHitUvs[hand];
       else if (sis.wasPanelHit(hand))
       {
-        int closestPanelIdx = spatialInteractionState.closestHitPanelIdxs[hand];
+        int closestPanelIdx = sis.closestHitPanelIdxs[hand];
         PanelData &pd = panels[closestPanelIdx];
         TextureInfo tinfo;
         pd.canvas->getTex()->getinfo(tinfo);
         sis.hitPos[hand].set(panelHitUvs[hand].x * tinfo.w, panelHitUvs[hand].y * tinfo.h);
       }
     }
+  }
 }
 
 
@@ -4322,7 +4358,7 @@ int GuiScene::onVrInputEvent(InputEvent event, int hand, int prev_result)
   if (event == INP_EV_PRESS)
     vrActiveHand = hand;
 
-  const auto &sis = spatialInteractionState;
+  auto &sis = spatialInteractionState;
   const Point2 &cursorLocation = sis.hitPos[hand];
 
   if (hand == vrActiveHand)
@@ -4341,9 +4377,7 @@ int GuiScene::onVrInputEvent(InputEvent event, int hand, int prev_result)
     if (vrPtr.activePanel)
     {
       Panel *panel = vrPtr.activePanel->panel.get();
-      const auto &activeTouches = panel->touchPointers.activePointers;
-      const auto touch = eastl::find_if(activeTouches.begin(), activeTouches.end(), [hand](const auto &v) { return v.id == hand; });
-      if (touch != activeTouches.end())
+      if (const auto touch = panel->touchPointers.get(hand))
         onPanelTouchEvent(panel, hand, INP_EV_RELEASE, touch->pos.x, touch->pos.y);
       vrPtr.activePanel->setCursorStatus(hand, false);
       int resFlags = vrPtr.activePanel->panel->etree.deactivateInput(DEVID_VR, hand);
@@ -4357,21 +4391,21 @@ int GuiScene::onVrInputEvent(InputEvent event, int hand, int prev_result)
 
   if (closestPanelData)
   {
-    const float touchThres = 0.01f;
     Panel *panel = closestPanelData->panel.get();
     G_ASSERT(panel);
     // The closest hit panel can only be touched or pointed at (see how hit detection is performed).
     if (panel->spatialInfo.canBeTouched)
-    {
-      bool hasActiveTouch = panel->touchPointers.contains(hand);
-      bool isBeingTouched = sis.hitDistances[hand].value_or(touchThres + 1.f) < touchThres;
-      bool hitInputHandler =
-        isBeingTouched && panel->inputStack.hitTest(cursorLocation, Behavior::F_HANDLE_TOUCH, Element::F_STOP_MOUSE);
-      bool newTouch = !hasActiveTouch && hitInputHandler;
-      bool oldTouch = hasActiveTouch && hitInputHandler;
-
-      event = newTouch ? INP_EV_PRESS : (oldTouch ? INP_EV_POINTER_MOVE : INP_EV_RELEASE);
-      result = onPanelTouchEvent(panel, hand, event, cursorLocation.x, cursorLocation.y);
+    { // If we get here, we have already detected a touch in this frame.
+      const auto existingTouch = panel->touchPointers.get(hand);
+      float curDist = sis.hitDistances[hand].value();
+      bool canRegisterTouch = existingTouch || (curDist > 0.f && curDist < new_touch_threshold); // Avoid double activation
+      bool touchNow = canRegisterTouch && panel->inputStack.hitTest(cursorLocation, Behavior::F_HANDLE_TOUCH, Element::F_STOP_MOUSE);
+      sis.isHandTouchingPanel[hand] = touchNow;
+      if (existingTouch && touchNow)
+        result = onPanelTouchEvent(panel, hand, INP_EV_POINTER_MOVE, cursorLocation.x, cursorLocation.y);
+      else if (touchNow)
+        result = onPanelTouchEvent(panel, hand, INP_EV_PRESS, cursorLocation.x, cursorLocation.y);
+      // else if (existingTouch) - Release is handled above, when we're no longer touching old activePanel, once.
     }
     else if (panel->inputStack.hitTest(cursorLocation, Behavior::F_HANDLE_MOUSE, Element::F_STOP_MOUSE))
       result = onPanelMouseEvent(panel, hand, event, DEVID_VR, 0, cursorLocation.x, cursorLocation.y, 0);
@@ -4481,7 +4515,8 @@ void GuiScene::bindScriptClasses()
     .Const("PANEL_RC_FACE_HEAD_LOCK_Y", int(PanelRotationConstraint::FaceHeadLockY))
     .Const("PANEL_RC_FACE_ENTITY", int(PanelRotationConstraint::FaceEntity))
     .Const("PANEL_RENDER_CAST_SHADOW", int(darg_panel_renderer::RenderFeatures::CastShadow))
-    .Const("PANEL_RENDER_OPAQUE", int(darg_panel_renderer::RenderFeatures::Opaque)); //-V1071
+    .Const("PANEL_RENDER_OPAQUE", int(darg_panel_renderer::RenderFeatures::Opaque))
+    .Const("PANEL_RENDER_ALWAYS_ON_TOP", int(darg_panel_renderer::RenderFeatures::AlwaysOnTop)); //-V1071
 
   Sqrat::Class<GuiScene, Sqrat::NoConstructor<GuiScene>> guiSceneClass(sqvm, "GuiScene");
   ///@class daRg/GuiScene

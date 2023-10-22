@@ -17,7 +17,7 @@
     <SourcesToCopy Include="$(SolutionDir)prog\dagorInclude\**\*" />
     <SourcesToCopy Include="$(SolutionDir)prog\daNetGame\**\*" />
     <SourcesToCopy Include="$(SolutionDir)prog\daNetGameLibs\**\*" />
-    <SourcesToCopy Include="$(SolutionDir)prog\engine2\**\*" />
+    <SourcesToCopy Include="$(SolutionDir)prog\engine\**\*" />
     <SourcesToCopy Include="$(SolutionDir)prog\gameLibs\**\*" />
     <SourcesToCopy Include="$(SolutionDir)prog\tools\sharedInclude\**\*" />
     <SourcesToCopy Include="$(SolutionDir)prog\tools\libTools\util\**\*" />

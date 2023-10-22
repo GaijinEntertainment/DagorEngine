@@ -39,6 +39,7 @@ namespace das {
         bool                    override = false;
         bool                    sealed = false;
         bool                    isPrivate = false;
+        bool                    isStatic = false;
         AnnotationArgumentList  *annotation = nullptr;
     };
 
@@ -65,7 +66,7 @@ namespace das {
     vector<VariableDeclaration*> * ast_structVarDefAbstract ( yyscan_t scanner, vector<VariableDeclaration*> * list,
         AnnotationList * annL, bool isPrivate, bool cnst, Function * func );
     vector<VariableDeclaration*> * ast_structVarDef ( yyscan_t scanner, vector<VariableDeclaration*> * list,
-        AnnotationList * annL, bool isPrivate, int ovr, bool cnst, Function * func, Expression * block,
+        AnnotationList * annL, bool isStatic, bool isPrivate, int ovr, bool cnst, Function * func, Expression * block,
             const LineInfo & fromBlock, const LineInfo & annLAt );
     Expression * ast_NameName ( yyscan_t scanner, string * ena, string * eni, const LineInfo & enaAt, const LineInfo & eniAt );
     Expression * ast_makeBlock ( yyscan_t scanner, int bal, AnnotationList * annL, vector<CaptureEntry> * clist,
@@ -83,7 +84,4 @@ namespace das {
     Expression * ast_makeGenerator ( yyscan_t scanner, TypeDecl * typeDecl, vector<CaptureEntry> * clist, Expression * subexpr, const LineInfo & locAt );
     ExprBlock * ast_wrapInBlock ( Expression * expr );
 
-    enum class LogicAnnotationOp { And, Or, Xor, Not };
-
-    AnnotationPtr newLogicAnnotation ( LogicAnnotationOp op, const AnnotationDeclarationPtr & arg0, const AnnotationDeclarationPtr & arg1 );
 }

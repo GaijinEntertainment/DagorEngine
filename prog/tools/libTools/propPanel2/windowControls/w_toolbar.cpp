@@ -34,7 +34,7 @@ WToolbar::WToolbar(WindowControlEventHandler *event_handler, WindowBase *parent,
 
   for (int i = 0; i < IMAGE_LIST_COUNT; ++i)
   {
-    mHImageList[i] = ImageList_Create(TOOLBAR_IMAGE_WH, TOOLBAR_IMAGE_WH, ILC_COLOR24 | ILC_MASK, 1, 10);
+    mHImageList[i] = ImageList_Create(_pxS(TOOLBAR_IMAGE_WH), _pxS(TOOLBAR_IMAGE_WH), ILC_COLOR24 | ILC_MASK, 1, 10);
   }
 
   // settins for toolbar
@@ -43,12 +43,13 @@ WToolbar::WToolbar(WindowControlEventHandler *event_handler, WindowBase *parent,
   SendMessage((HWND)mHandle, TB_SETHOTIMAGELIST, 0, (LPARAM)mHImageList[1]);
   SendMessage((HWND)mHandle, TB_SETDISABLEDIMAGELIST, 0, (LPARAM)mHImageList[2]);
 
-  long _sz = MAKELONG(TOOLBAR_IMAGE_WH, TOOLBAR_IMAGE_WH);
+  long _sz = MAKELONG(_pxScaled(TOOLBAR_IMAGE_WH), _pxScaled(TOOLBAR_IMAGE_WH));
   SendMessage((HWND)mHandle, TB_SETBITMAPSIZE, 0, _sz);
   SendMessage((HWND)mHandle, TB_SETBUTTONSIZE, 0, _sz);
   SendMessage((HWND)mHandle, TB_AUTOSIZE, 0, 0);
 
-  SendMessage((HWND)mHandle, TB_SETBUTTONWIDTH, 0, (LPARAM)MAKELONG(TOOLBAR_IMAGE_WH, DEFAULT_TOOLBAR_BUTTON_HEIGHT));
+  SendMessage((HWND)mHandle, TB_SETBUTTONWIDTH, 0,
+    (LPARAM)MAKELONG(_pxScaled(TOOLBAR_IMAGE_WH), _pxScaled(DEFAULT_TOOLBAR_BUTTON_HEIGHT)));
 
   ShowWindow((HWND)mHandle, 1);
 }
@@ -104,17 +105,22 @@ int WToolbar::prepareImages(int id, const char *fname)
 
   // images load
 
-  HBITMAP a_bitmap = (HBITMAP)load_bmp_picture(image_normal_fn);
-  HBITMAP p_bitmap = (p_bitmap = (HBITMAP)load_bmp_picture(image_hot_fn)) ? p_bitmap : (HBITMAP)load_bmp_picture(image_normal_fn);
-  HBITMAP i_bitmap = (i_bitmap = (HBITMAP)load_bmp_picture(image_dis_fn)) ? i_bitmap : (HBITMAP)load_bmp_picture(image_normal_fn);
+  unsigned bm_w = _pxS(TOOLBAR_IMAGE_WH), bm_h = _pxS(TOOLBAR_IMAGE_WH);
+  HBITMAP a_bitmap = (HBITMAP)load_bmp_picture(image_normal_fn, bm_w, bm_h);
+  HBITMAP p_bitmap = (HBITMAP)load_bmp_picture(image_hot_fn, bm_w, bm_h);
+  HBITMAP i_bitmap = (HBITMAP)load_bmp_picture(image_dis_fn, bm_w, bm_h);
+  if (!p_bitmap)
+    p_bitmap = (HBITMAP)clone_bmp_picture(a_bitmap);
+  if (!i_bitmap)
+    i_bitmap = (HBITMAP)clone_bmp_picture(a_bitmap);
 
   if (a_bitmap)
   {
     // alpha colors select
 
     COLORREF a_t_color = get_alpha_color(a_bitmap);
-    COLORREF p_t_color = (p_bitmap != a_bitmap) ? get_alpha_color(p_bitmap) : a_t_color;
-    COLORREF i_t_color = (i_bitmap != a_bitmap) ? get_alpha_color(i_bitmap) : a_t_color;
+    COLORREF p_t_color = get_alpha_color(p_bitmap);
+    COLORREF i_t_color = get_alpha_color(i_bitmap);
 
     _image_index = ImageList_AddMasked((HIMAGELIST)mHImageList[0], a_bitmap, a_t_color);
     ImageList_AddMasked((HIMAGELIST)mHImageList[1], p_bitmap, p_t_color);
@@ -122,12 +128,8 @@ int WToolbar::prepareImages(int id, const char *fname)
 
     // delete pictures
 
-    if (p_bitmap != a_bitmap)
-      DeleteObject(p_bitmap);
-
-    if (i_bitmap != a_bitmap)
-      DeleteObject(i_bitmap);
-
+    DeleteObject(p_bitmap);
+    DeleteObject(i_bitmap);
     DeleteObject(a_bitmap);
   }
   else

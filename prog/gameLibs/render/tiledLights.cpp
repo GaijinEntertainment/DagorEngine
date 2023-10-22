@@ -1,5 +1,4 @@
 #include <3d/dag_drv3d.h>
-#include <3d/dag_drv3d_buffers.h>
 #include <generic/dag_tab.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_vecMathCompatibility.h>
@@ -18,11 +17,7 @@ static bool hasConservativeRasterization = false;
 
 TiledLights::TiledLights(float max_lights_dist) : maxLightsDist(max_lights_dist), omniLightCount(0), spotLightCount(0)
 {
-  zbinningLUT.set(
-    d3d::create_sbuffer(sizeof(uint32_t), 2 * Z_BINS_COUNT,
-      SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_DYNAMIC | SBCF_MAYBELOST, 0, "z_binning_lookup"),
-    "z_binning_lookup");
-  zbinningLUT.setVar();
+  zbinningLUT = dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), 2 * Z_BINS_COUNT, "z_binning_lookup");
 
   setMaxLightsDist(maxLightsDist);
 
@@ -60,10 +55,8 @@ void TiledLights::setResolution(uint32_t width, uint32_t height)
   tilesRT.set(d3d::create_tex(nullptr, tilesGridSize.x, tilesGridSize.y, TEXFMT_L8 | TEXCF_RTARGET, 1, "tiled_lights_rt"),
     "tiled_lights_rt");
   lightsListBuf.close();
-  lightsListBuf.set(
-    d3d_buffers::create_ua_sr_structured(sizeof(uint32_t), tilesGridSize.x * tilesGridSize.y * DWORDS_PER_TILE, "lights_list"),
-    "lights_list");
-  lightsListBuf.setVar();
+  lightsListBuf =
+    dag::buffers::create_ua_sr_structured(sizeof(uint32_t), tilesGridSize.x * tilesGridSize.y * DWORDS_PER_TILE, "lights_list");
 }
 
 void TiledLights::changeResolution(uint32_t width, uint32_t height)

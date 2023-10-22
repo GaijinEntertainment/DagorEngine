@@ -58,8 +58,8 @@ SSAORenderer::SSAORenderer(int w, int h, int num_views, uint32_t flags, bool use
   }
   ssaoBlurTexelOffsetVarId = get_shader_variable_id("texelOffset");
 
-  aoRenderer.reset(create_postfx_renderer(ssao_sh_name, true));
-  ssaoBlurRenderer.reset(create_postfx_renderer(blur_sh_name, true));
+  aoRenderer.reset(create_postfx_renderer(ssao_sh_name));
+  ssaoBlurRenderer.reset(create_postfx_renderer(blur_sh_name));
 
   if ((flags & SSAO_IMMEDIATE) != 0)
   {
@@ -154,10 +154,10 @@ void SSAORenderer::renderSSAO(BaseTexture *depth_to_use, const ManagedTex &ssaoT
   aoRenderer->render();
 }
 
-void SSAORenderer::updateViewSpecific(const DPoint3 *world_pos)
+void SSAORenderer::updateViewSpecific(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 *world_pos)
 {
-  set_reprojection(viewSpecific->prevWorldPos, viewSpecific->prevGlobTm, viewSpecific->prevViewVecLT, viewSpecific->prevViewVecRT,
-    viewSpecific->prevViewVecLB, viewSpecific->prevViewVecRB, world_pos);
+  set_reprojection(view_tm, proj_tm, viewSpecific->prevWorldPos, viewSpecific->prevGlobTm, viewSpecific->prevViewVecLT,
+    viewSpecific->prevViewVecRT, viewSpecific->prevViewVecLB, viewSpecific->prevViewVecRB, world_pos);
 }
 
 void SSAORenderer::updateFrameNo()
@@ -192,8 +192,8 @@ void SSAORenderer::applyBlur(const ManagedTex &ssaoTex, const ManagedTex &tmpTex
   ssaoBlurRenderer->render();
 }
 
-void SSAORenderer::render(BaseTexture *depth_tex_to_use, const ManagedTex *ssao_tex, const ManagedTex *prev_ssao_tex,
-  const ManagedTex *tmp_tex, const DPoint3 *world_pos, SubFrameSample sub_sample)
+void SSAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_tex_to_use, const ManagedTex *ssao_tex,
+  const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex, const DPoint3 *world_pos, SubFrameSample sub_sample)
 {
   // SSAO Renderer can work in two modes - using it's own textures or external ones. Mode is set in constructor.
   G_ASSERT(useOwnTextures || (ssao_tex && prev_ssao_tex && tmp_tex));
@@ -203,7 +203,7 @@ void SSAORenderer::render(BaseTexture *depth_tex_to_use, const ManagedTex *ssao_
 
   G_ASSERT(depth_tex_to_use);
 
-  updateViewSpecific(world_pos);
+  updateViewSpecific(view_tm, proj_tm, world_pos);
   if (sub_sample == SubFrameSample::Single || sub_sample == SubFrameSample::First)
   {
     viewSpecific->currentSSAOid = 1 - viewSpecific->currentSSAOid; // 0 or 1

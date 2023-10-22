@@ -3,12 +3,12 @@
 #include "p_list_box.h"
 #include "../c_constants.h"
 
-CListBox::CListBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CListBox::CListBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[], const Tab<String> &vals, int index) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT + DEFAULT_LISTBOX_HEIGHT),
-  mCaption(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT),
-  mListBox(this, parent->getWindow(), x, y + mCaption.getHeight(), w, DEFAULT_LISTBOX_HEIGHT, vals, index)
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT) + _pxScaled(DEFAULT_LISTBOX_HEIGHT)),
+  mCaption(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mListBox(this, parent->getWindow(), x, y + mCaption.getHeight(), _px(w), _pxS(DEFAULT_LISTBOX_HEIGHT), vals, index)
 {
   mCaption.setTextValue(caption);
   initTooltip(&mListBox);
@@ -36,6 +36,15 @@ void CListBox::setStringsValue(const Tab<String> &vals) { mListBox.setStrings(va
 void CListBox::setCaptionValue(const char value[]) { mCaption.setTextValue(value); }
 
 
+void CListBox::setTextValue(const char value[]) { mListBox.renameSelected(value); }
+
+
+int CListBox::addStringValue(const char *value) { return mListBox.addString(value); }
+
+
+void CListBox::removeStringValue(int idx) { mListBox.removeString(idx); }
+
+
 void CListBox::setEnabled(bool enabled)
 {
   mCaption.setEnabled(enabled);
@@ -43,20 +52,20 @@ void CListBox::setEnabled(bool enabled)
 }
 
 
-void CListBox::setWidth(unsigned w)
+void CListBox::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
 
-  mCaption.resizeWindow(w, mCaption.getHeight());
-  mListBox.resizeWindow(w, mListBox.getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
+  mListBox.resizeWindow(_px(w), mListBox.getHeight());
 }
 
 
-void CListBox::setHeight(unsigned h)
+void CListBox::setHeight(hdpi::Px h)
 {
   PropertyControlBase::setHeight(h);
 
-  mListBox.resizeWindow(mListBox.getWidth(), h - mCaption.getHeight());
+  mListBox.resizeWindow(mListBox.getWidth(), _px(h) - mCaption.getHeight());
 }
 
 

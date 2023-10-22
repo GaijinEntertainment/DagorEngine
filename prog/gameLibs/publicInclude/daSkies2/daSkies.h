@@ -185,6 +185,9 @@ public:
 
   void setCloudsRendering(const CloudsRendering &v) { cloudsRendering = v; }
 
+  // temporary function for a workaround on A8 iPads (gpu hang)
+  void setNearCloudsRenderingEnabled(bool enabled);
+
   void setSkyParams(const SkyAtmosphereParams &p);
   void setStrataClouds(const StrataClouds &a);
   void setStrataCloudsTexture(const char *tex_name);
@@ -291,8 +294,8 @@ public:
 
     TEXTUREID targetDepth, // targetDepth
     SkiesData *data,       // if data is null than only sky will be rendered
-    const TMatrix &view_tm, const TMatrix4 &proj_tm, bool update_sky = true, bool fixed_offset = false,
-    float altitude_tolerance = SKY_PREPARE_THRESHOLD, AuroraBorealis *aurora = nullptr);
+    const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp, bool update_sky = true,
+    bool fixed_offset = false, float altitude_tolerance = SKY_PREPARE_THRESHOLD, AuroraBorealis *aurora = nullptr);
 
   // if update_sky = false sky won't be changed, so we can use it for main data for cube
   // if fixed_offset is true, cloud offset will be 0
@@ -321,8 +324,9 @@ public:
     const TMatrix &view_tm, const TMatrix4 &proj_tm, const Point4 &targetDepthTransform = Point4(1, 1, 0, 0));
 
   void renderSky(SkiesData *data, // should have prepared data
-    const TMatrix &view_tm, const TMatrix4 &proj_tm, bool render_prepared_lowres = true, AuroraBorealis *aurora = nullptr);
-  void renderStars(const Point3 &origin, float stars_intensity_mul);
+    const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp, bool render_prepared_lowres = true,
+    AuroraBorealis *aurora = nullptr);
+  void renderStars(const Driver3dPerspective &persp, const Point3 &origin, float stars_intensity_mul);
   float getCloudsStartAlt(); // effective, i.e. can change based on gpu readback
   float getCloudsTopAlt();   // effective, i.e. can change based on gpu readback
   float getCloudsStartAltSettings() const;
@@ -480,7 +484,7 @@ protected:
   void setCloudsVars();
 
   bool updatePanorama(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm);
-  void renderPanorama(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm);
+  void renderPanorama(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp);
   void downsamplePanoramaDepth();
   void createPanoramaDepthTex();
 

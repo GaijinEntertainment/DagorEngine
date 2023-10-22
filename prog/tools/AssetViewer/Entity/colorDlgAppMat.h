@@ -8,7 +8,7 @@
 class ColorDialogAppMat : public ColorDialog
 {
 public:
-  ColorDialogAppMat(void *phandle, const char caption[], E3DCOLOR color);
+  ColorDialogAppMat(void *phandle, const char caption[]);
   void onChange(int pcb_id, PropPanel2 *panel) override;
 
 private:
@@ -16,6 +16,4 @@ private:
   {
     ID_CHECKBOX_MODE = 200,
   };
-  bool applyMode;
-  int custom_color_paintVarId, use_custom_color_paintVarId;
 };

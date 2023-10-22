@@ -57,6 +57,8 @@
 #define MODULE_PARSE_STL eastl
 #include <helpers/importParser/importParser.h>
 #include <algorithm>
+#include <string>
+#include <set>
 
 #include "fs_utils.h"
 
@@ -491,12 +493,7 @@ static void check_syntax(SqModules *module_mgr, const char *filename)
   if (!remove_import_from_code(source.str(), filename))
     quit_game(1, false);
 
-  bool success = false;
-
-  if (module_manager->compilationOptions.useAST)
-    success = SQ_SUCCEEDED(sq_compilewithast(sqvm, source.c_str(), source.length(), filename, true, true, &hBindings));
-  else
-    success = SQ_SUCCEEDED(sq_compileonepass(sqvm, source.c_str(), source.length(), filename, true, true, &hBindings));
+  bool success = SQ_SUCCEEDED(sq_compilewithast(sqvm, source.c_str(), source.length(), filename, true, true, &hBindings));
 
   if (!success)
     quit_game(1, false);
@@ -823,7 +820,6 @@ static void dump_export_content()
   printf("### END EXPORT CONTENT\n\n");
 }
 
-
 static bool process_file(const char *filename, const char *code, const KeyValueFile &config_blk, int moduleIndex,
   String &out_module_name, bool &is_execute)
 {
@@ -840,33 +836,32 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 
   module_manager = new SqModules(sqvm, SqModulesConfigBits::PermissiveModuleNames); // allow stub native modules with script files
 
-  int argIdx = 1;
-  while (const char *optVal = ::dgs_get_argv("compiler", argIdx))
-  {
-    if (strcmp(optVal, "ast") == 0)
-    {
-      module_manager->compilationOptions.useAST = true;
-      module_manager->compilationOptions.doStaticAnalysis = do_static_analysis;
-    }
-    else if (strcmp(optVal, "noast") == 0)
-      module_manager->compilationOptions.useAST = false;
-    else
-      fprintf(stderr, "Unknown compiler option: '%s'\n", optVal);
-  }
-
   if (::dgs_get_argv("absolute-path"))
   {
     module_manager->compilationOptions.useAbsolutePath = true;
   }
 
-  if (do_static_analysis && !module_manager->compilationOptions.useAST)
+  if (do_static_analysis)
   {
-    do_static_analysis = false;
-    fprintf(stderr, "Static Analysis won't be performed, it requires AST compiler (--compiler:ast)");
+    sq_enablesyntaxwarnings();
+  }
+
+  int iterator = 0;
+  while (const char *diagNum = ::dgs_get_argv("W", iterator))
+  {
+    int id = atoi(diagNum);
+    sq_switchdiagnosticstate_i(id, false);
+  }
+
+  iterator = 0;
+  while (const char *diagName = ::dgs_get_argv("D", iterator))
+  {
+    sq_switchdiagnosticstate_t(diagName, false);
   }
 
   if (do_static_analysis)
   {
+    module_manager->compilationOptions.doStaticAnalysis = true;
     sq_resetanalyserconfig();
     sq_loadanalyserconfigblk(config_blk);
   }
@@ -1035,6 +1030,34 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     }
   }
 
+  if (do_static_analysis)
+  {
+    sq_checkglobalnames(sqvm);
+  }
+
+  if (const char *file_list_name = ::dgs_get_argv("visited-files-list"))
+  {
+    std::set<std::string> existed_files;
+    FILE *files_list_file = fopen(file_list_name, "wb");
+    if (files_list_file)
+    {
+      auto &visitedModules = module_manager->modules;
+
+      for (auto &m : visitedModules)
+      {
+        const char *resolved_fn = m.fn.c_str();
+
+        auto r = existed_files.emplace(resolved_fn);
+        if (r.second)
+        {
+          fprintf(files_list_file, "%s\n", resolved_fn);
+        }
+      }
+
+      fclose(files_list_file);
+    }
+  }
+
   int t1 = get_time_msec();
   if (csq_time)
     printf("Execution time: %d ms\n", t1 - t0);
@@ -1145,14 +1168,11 @@ void print_usage()
   printf("  --add-basepath - will add basepath (relative to current dir)\n");
   printf("  --syntax-check - don't execute, just check syntax\n");
   printf("  --final-message:<message> - print message at the end of execution without fatal errors\n");
-  printf("  --compiler:<option> - set compiler option\n");
-  printf("    Available options:\n");
-  printf("      ast - use AST compiler\n");
-  printf("      noast - use one-pass compiler\n");
   printf("  --static-analysis - perform static analysis of compiling .nut files (implies '--compiler:ast')\n");
   printf("  --inverse-warnings - flip warning diagnostic state (enbaled -> disabled and vice versa)\n");
   printf("  --warnings-list - print all warnings and exit");
   printf("  --absolute-path - use absolute path in diagnsotic render");
+  printf("  --visited-files-list:<file_name> - dump all visited scripts file names into specified file (appends if existed)");
   printf("  --W:<id> - disable diagnostic by numeric id");
   printf("  --D:<diagnostic_id> - disable diagnostic by text id");
   printf("  --sqversion - print version of quirrel\n");
@@ -1501,19 +1521,6 @@ int DagorWinMain(bool debugmode)
     }
     *eq = 0;
     dd_set_named_mount_path(s.str(), eq + 1);
-  }
-
-  iterator = 0;
-  while (const char *diagNum = ::dgs_get_argv("W", iterator))
-  {
-    int id = atoi(diagNum);
-    sq_switchdiagnosticstate_i(id, false);
-  }
-
-  iterator = 0;
-  while (const char *diagName = ::dgs_get_argv("D", iterator))
-  {
-    sq_switchdiagnosticstate_t(diagName, false);
   }
 
   if (::dgs_get_argv("show-basepathes") || ::dgs_get_argv("show-basepaths"))

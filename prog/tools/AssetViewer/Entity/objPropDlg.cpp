@@ -8,13 +8,14 @@ enum
   ID_PROPS,
 };
 
-ObjPropDialog::ObjPropDialog(const char *caption, int width, int height, const Tab<String> &nodes, const Tab<String> &scripts) :
+ObjPropDialog::ObjPropDialog(const char *caption, hdpi::Px width, hdpi::Px height, const Tab<String> &nodes,
+  const Tab<String> &scripts) :
   CDialogWindow(p2util::get_main_parent_handle(), width, height, caption), scripts(scripts)
 {
   PropertyContainerControlBase *panel = getPanel();
   G_ASSERTF(panel, "ObjPropDialog: No panel found!");
   panel->createMultiSelectList(ID_NODE_LIST, nodes, height / 3);
-  panel->createEditBox(ID_PROPS, "", "", true, true, true, height / 2 - 25);
+  panel->createEditBox(ID_PROPS, "", "", true, true, true, height / 2 - hdpi::_pxScaled(25));
   panel->setEventHandler(this);
 }
 

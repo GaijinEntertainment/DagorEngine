@@ -10,6 +10,9 @@
 
 #include <windows.h>
 
+using hdpi::_pxActual;
+using hdpi::_pxS;
+using hdpi::_pxScaled;
 
 enum
 {
@@ -169,13 +172,14 @@ class ColorNameDialog : public CDialogWindow
   };
 
 public:
-  ColorNameDialog(void *phandle, const char name[], E3DCOLOR color) : CDialogWindow(phandle, 300, 140, "Enter color name", false)
+  ColorNameDialog(void *phandle, const char name[], E3DCOLOR color) :
+    CDialogWindow(phandle, _pxScaled(300), _pxScaled(140), "Enter color name", false)
   {
     PropPanel2 *panel = CDialogWindow::getPanel();
 
     panel->createEditBox(DIALOG_EDIT_ID, "Color name", name);
 
-    panel->createTwoColorIndicator(DIALOG_COLOR_ID, "", 40, true, false);
+    panel->createTwoColorIndicator(DIALOG_COLOR_ID, "", _pxScaled(40), true, false);
     panel->setPoint3(DIALOG_COLOR_ID, Point3(color.r, color.g, color.b));
     panel->setColor(DIALOG_COLOR_ID, color);
 
@@ -184,15 +188,15 @@ public:
     PropertyControlBase *_cur_ctrl = panel->getById(DIALOG_EDIT_ID);
     if (_cur_ctrl)
     {
-      _cur_ctrl->resize(230, _cur_ctrl->getHeight());
+      _cur_ctrl->resize(_pxScaled(230), _pxActual(_cur_ctrl->getHeight()));
       _cur_ctrl->moveTo(_cur_ctrl->getX(), _cur_ctrl->getY());
     }
 
     _cur_ctrl = panel->getById(DIALOG_COLOR_ID);
     if (_cur_ctrl)
     {
-      _cur_ctrl->resize(40, 40);
-      _cur_ctrl->moveTo(245, _cur_ctrl->getY());
+      _cur_ctrl->resize(_pxScaled(40), _pxScaled(40));
+      _cur_ctrl->moveTo(_pxS(245), _cur_ctrl->getY());
     }
   }
 
@@ -212,7 +216,8 @@ public:
 CPPalette ColorDialog::palette;
 int ColorDialog::rb_sel = ID_RADIO_H;
 
-ColorDialog::ColorDialog(void *phandle, const char caption[], E3DCOLOR color) : CDialogWindow(phandle, 710, 370, caption, false)
+ColorDialog::ColorDialog(void *phandle, const char caption[], E3DCOLOR color) :
+  CDialogWindow(phandle, _pxScaled(710), _pxScaled(370), caption, false)
 {
   setColor(color);
   fillPanel(getPanel());
@@ -385,13 +390,13 @@ void ColorDialog::onClick(int pcb_id, PropPanel2 *panel)
 void ColorDialog::fillPanel(PropPanel2 *panel)
 {
   PropertyControlBase *_cur_ctrl = NULL;
-  PropPanel2 *buttons_block = panel->createContainer(ID_BUTTONS_BLOCK, true, 5);
-  PropPanel2 *gradient_block = panel->createContainer(ID_GRADIENT_BLOCK, false, 0);
+  PropPanel2 *buttons_block = panel->createContainer(ID_BUTTONS_BLOCK, true, _pxScaled(5));
+  PropPanel2 *gradient_block = panel->createContainer(ID_GRADIENT_BLOCK, false, _pxScaled(0));
 
   //----------------------
   // buttons block
 
-  buttons_block->setWidth(290);
+  buttons_block->setWidth(_pxScaled(290));
   gradient_block->moveTo(0, gradient_block->getY());
 
   buttons_block->createButton(ID_BUTTON_SET, "Add/change");
@@ -414,14 +419,14 @@ void ColorDialog::fillPanel(PropPanel2 *panel)
   //----------------------
   // gradient block
 
-  gradient_block->setWidth(400);
-  gradient_block->moveTo(300, gradient_block->getY());
+  gradient_block->setWidth(_pxScaled(400));
+  gradient_block->moveTo(_pxS(300), gradient_block->getY());
 
-  gradient_block->createGradientPlot(ID_MAIN_GRADIENT, "", 200);
+  gradient_block->createGradientPlot(ID_MAIN_GRADIENT, "", _pxScaled(200));
   panel->setInt(ID_MAIN_GRADIENT, GRADIENT_COLOR_MODE_H + GRADIENT_AXIS_MODE_XY);
   panel->setColor(ID_MAIN_GRADIENT, mColor);
 
-  gradient_block->createGradientPlot(ID_LINE_GRADIENT, "", 200 + 11, true, false);
+  gradient_block->createGradientPlot(ID_LINE_GRADIENT, "", _pxScaled(200 + 11), true, false);
   panel->setInt(ID_LINE_GRADIENT, GRADIENT_COLOR_MODE_H + GRADIENT_AXIS_MODE_Y);
   panel->setColor(ID_LINE_GRADIENT, mColor);
 
@@ -429,19 +434,19 @@ void ColorDialog::fillPanel(PropPanel2 *panel)
 
   // resize and move
 
-  panel->setWidthById(ID_MAIN_GRADIENT, 200);
-  panel->setWidthById(ID_LINE_GRADIENT, 30);
-  panel->setWidthById(ID_RADIO_GROUP, 145);
+  panel->setWidthById(ID_MAIN_GRADIENT, _pxScaled(200));
+  panel->setWidthById(ID_LINE_GRADIENT, _pxScaled(30));
+  panel->setWidthById(ID_RADIO_GROUP, _pxScaled(145));
 
   _cur_ctrl = panel->getById(ID_MAIN_GRADIENT);
   if (_cur_ctrl)
-    _cur_ctrl->moveTo(_cur_ctrl->getX(), _cur_ctrl->getY() + 5);
+    _cur_ctrl->moveTo(_cur_ctrl->getX(), _cur_ctrl->getY() + _pxS(5));
 
   _cur_ctrl = panel->getById(ID_LINE_GRADIENT);
   if (_cur_ctrl)
-    _cur_ctrl->moveTo(215, _cur_ctrl->getY());
+    _cur_ctrl->moveTo(_pxS(215), _cur_ctrl->getY());
 
-  _rg->moveTo(255, _rg->getY());
+  _rg->moveTo(_pxS(255), _rg->getY());
 
   // radio buttons
 
@@ -455,7 +460,7 @@ void ColorDialog::fillPanel(PropPanel2 *panel)
 
   _cur_ctrl = panel->getById(ID_VALUE_R);
   if (_cur_ctrl)
-    _cur_ctrl->moveTo(_cur_ctrl->getX() - 15, _cur_ctrl->getY());
+    _cur_ctrl->moveTo(_cur_ctrl->getX() - _pxS(15), _cur_ctrl->getY());
 
   _rg->createRadio(ID_RADIO_G, "G");
   _rg->createEditInt(ID_VALUE_G, "", mColor.g, true, false);
@@ -463,7 +468,7 @@ void ColorDialog::fillPanel(PropPanel2 *panel)
 
   _cur_ctrl = panel->getById(ID_VALUE_G);
   if (_cur_ctrl)
-    _cur_ctrl->moveTo(_cur_ctrl->getX() - 15, _cur_ctrl->getY());
+    _cur_ctrl->moveTo(_cur_ctrl->getX() - _pxS(15), _cur_ctrl->getY());
 
   _rg->createRadio(ID_RADIO_B, "B");
   _rg->createEditInt(ID_VALUE_B, "B", mColor.b, true, false);
@@ -471,13 +476,13 @@ void ColorDialog::fillPanel(PropPanel2 *panel)
 
   _cur_ctrl = panel->getById(ID_VALUE_B);
   if (_cur_ctrl)
-    _cur_ctrl->moveTo(_cur_ctrl->getX() - 15, _cur_ctrl->getY());
+    _cur_ctrl->moveTo(_cur_ctrl->getX() - _pxS(15), _cur_ctrl->getY());
 
   panel->setInt(ID_RADIO_GROUP, rb_sel);
 
   // current color block
 
-  gradient_block->createTwoColorIndicator(ID_COLOR, "", 35);
+  gradient_block->createTwoColorIndicator(ID_COLOR, "", _pxScaled(35));
   panel->setPoint3(ID_COLOR, Point3(mColor.r, mColor.g, mColor.b));
   panel->setColor(ID_COLOR, mColor);
 
@@ -488,15 +493,15 @@ void ColorDialog::fillPanel(PropPanel2 *panel)
   _cur_ctrl = panel->getById(ID_COLOR);
   if (_cur_ctrl)
   {
-    _cur_ctrl->resize(100, 20);
-    _cur_ctrl->moveTo(_cur_ctrl->getX(), _cur_ctrl->getY() + 5);
+    _cur_ctrl->resize(_pxScaled(100), _pxScaled(20));
+    _cur_ctrl->moveTo(_cur_ctrl->getX(), _cur_ctrl->getY() + _pxS(5));
   }
 
   _cur_ctrl = panel->getById(ID_VALUE_A);
   if (_cur_ctrl)
   {
-    _cur_ctrl->moveTo(115, _cur_ctrl->getY());
-    _cur_ctrl->resize(285, _cur_ctrl->getHeight());
+    _cur_ctrl->moveTo(_pxS(115), _cur_ctrl->getY());
+    _cur_ctrl->resize(_pxScaled(285), _pxActual(_cur_ctrl->getHeight()));
   }
 
   panel->createEditBox(ID_EDIT_INT, "", String(0, "%d, %d, %d, %d", mColor.r, mColor.g, mColor.b, mColor.a).c_str(), true, true);

@@ -111,11 +111,13 @@ static SQInteger keepref(HSQUIRRELVM vm)
 SqModules::SqModules(HSQUIRRELVM vm, SqModulesConfigBits cfg) :
   sqvm(vm), configBits(cfg), beforeImportModuleCb(nullptr), up_data(nullptr), onAST_cb(nullptr), onBytecode_cb(nullptr)
 {
-  compilationOptions.useAST = false;
   compilationOptions.raiseError = true;
   compilationOptions.debugInfo = true;
   compilationOptions.doStaticAnalysis = false;
   compilationOptions.useAbsolutePath = false;
+
+  sq_disablesyntaxwarnings();
+
   registerModulesModule();
 }
 
@@ -129,6 +131,31 @@ SqModules::~SqModules()
   prevModules.clear();
 }
 
+#ifdef _TARGET_PC
+#ifdef _WIN32
+#define MAX_PATH_LENGTH _MAX_PATH
+static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, size_t size)
+{
+  return _fullpath(buffer, resolved_fn, size);
+}
+#else // _WIN32
+#define MAX_PATH_LENGTH PATH_MAX
+static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, size_t size)
+{
+  (void)size;
+  return realpath(resolved_fn, buffer);
+}
+#endif // _WIN32
+#else  // _TARGET_PC
+#define MAX_PATH_LENGTH 1
+static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, size_t size)
+{
+  (void)resolved_fn;
+  (void)buffer;
+  (void)size;
+  return nullptr;
+}
+#endif // _TARGET_PC
 
 void SqModules::resolveFileName(const char *requested_fn, String &res)
 {
@@ -187,6 +214,16 @@ void SqModules::resolveFileName(const char *requested_fn, String &res)
           res = String(real_fn);
       }
   }
+
+  if (compilationOptions.useAbsolutePath)
+  {
+    char buffer[MAX_PATH_LENGTH] = {0};
+    const char *real_path = computeAbsolutePath(res.str(), buffer, sizeof buffer);
+    if (real_path)
+    {
+      res = String(real_path);
+    }
+  }
 }
 
 
@@ -242,53 +279,43 @@ bool SqModules::readFile(const String &resolved_fn, const char *requested_fn, Ta
   return true;
 }
 
-struct ArenaGuard
+struct ASTDataGuard
 {
-  Arena *arena;
+  SQCompilation::SqASTData *data;
   HSQUIRRELVM vm;
 
-  ArenaGuard(HSQUIRRELVM vm_, const char *n) : vm(vm_) { arena = sq_createarena(vm, n); }
+  ASTDataGuard(HSQUIRRELVM vm_, SQCompilation::SqASTData *astData) : vm(vm_), data(astData) {}
 
-  ~ArenaGuard() { sq_destroyarena(vm, arena); }
+  ~ASTDataGuard() { sq_releaseASTData(vm, data); }
 };
 
 bool SqModules::compileScriptImpl(const dag::ConstSpan<char> &buf, const char *resolved_fn, const HSQOBJECT *bindings)
 {
-  if (compilationOptions.useAST)
+  sq_oncompilefile(sqvm, resolved_fn);
+
+  auto *ast =
+    sq_parsetoast(sqvm, buf.data(), buf.size(), resolved_fn, compilationOptions.doStaticAnalysis, compilationOptions.raiseError);
+  if (!ast)
   {
-    ArenaGuard ag(sqvm, "AST");
-
-    sq_oncompilefile(sqvm, resolved_fn);
-
-    auto *ast = sq_parsetoast(sqvm, buf.data(), buf.size(), resolved_fn, compilationOptions.raiseError, ag.arena);
-    if (!ast)
-    {
-      return true;
-    }
-    else
-    {
-      if (onAST_cb)
-        onAST_cb(sqvm, ast, up_data);
-    }
-
-    if (SQ_FAILED(sq_translateasttobytecode(sqvm, ast, bindings, resolved_fn, &buf[0], buf.size(), compilationOptions.raiseError,
-          compilationOptions.debugInfo)))
-    {
-      return true;
-    }
-
-    if (compilationOptions.doStaticAnalysis)
-    {
-      sq_analyseast(sqvm, ast, bindings, resolved_fn, &buf[0], buf.size());
-    }
+    return true;
   }
   else
   {
-    if (SQ_FAILED(sq_compileonepass(sqvm, &buf[0], buf.size() - 1, resolved_fn, compilationOptions.raiseError,
-          compilationOptions.debugInfo, bindings)))
-    {
-      return true;
-    }
+    if (onAST_cb)
+      onAST_cb(sqvm, ast, up_data);
+  }
+
+  ASTDataGuard g(sqvm, ast);
+
+  if (SQ_FAILED(sq_translateasttobytecode(sqvm, ast, bindings, &buf[0], buf.size(), compilationOptions.raiseError,
+        compilationOptions.debugInfo)))
+  {
+    return true;
+  }
+
+  if (compilationOptions.doStaticAnalysis)
+  {
+    sq_analyseast(sqvm, ast, bindings, &buf[0], buf.size());
   }
 
   if (onBytecode_cb)
@@ -300,33 +327,6 @@ bool SqModules::compileScriptImpl(const dag::ConstSpan<char> &buf, const char *r
 
   return false;
 }
-
-
-#ifdef _TARGET_PC
-#ifdef _WIN32
-#define MAX_PATH_LENGTH _MAX_PATH
-static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, size_t size)
-{
-  return _fullpath(buffer, resolved_fn, size);
-}
-#else // _WIN32
-#define MAX_PATH_LENGTH PATH_MAX
-static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, size_t size)
-{
-  (void)size;
-  return realpath(resolved_fn, buffer);
-}
-#endif // _WIN32
-#else  // _TARGET_PC
-#define MAX_PATH_LENGTH 1
-static const char *computeAbsolutePath(const char *resolved_fn, char *buffer, size_t size)
-{
-  (void)resolved_fn;
-  (void)buffer;
-  (void)size;
-  return nullptr;
-}
-#endif // _TARGET_PC
 
 bool SqModules::compileScript(dag::ConstSpan<char> buf, const String &resolved_fn, const char *requested_fn, const HSQOBJECT *bindings,
   Sqrat::Object &script_closure, String &out_err_msg)
@@ -644,6 +644,10 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   if (!readOk)
     return !must_exist;
 
+  if (compilationOptions.doStaticAnalysis)
+  {
+    sq_checktrailingspaces(sqvm, resolvedFn, fileContents.data(), fileContents.size());
+  }
 
   string importErrMsg;
   ImportParser importParser(import_parser_error_cb, &importErrMsg);

@@ -10,6 +10,7 @@ namespace dabfg
 {
 
 /**
+ * \ingroup DabfgCore
  * \brief Describes various global state that can influence the
  * execution of the frame graph but is not managed by daBfg.
  */

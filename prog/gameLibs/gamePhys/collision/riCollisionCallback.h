@@ -9,7 +9,7 @@ struct RICollisionCB : public rendinst::RendInstCollisionCB
 
   RICollisionCB(T &in_callback) : callback(in_callback) {}
 
-  CollisionObject processCollisionInstance(const rendinst::RendInstCollisionCB::CollisionInfo &info)
+  CollisionObject processCollisionInstance(const rendinst::CollisionInfo &info)
   {
     dacoll::CollisionInstances *instance = dacoll::get_collision_instances_by_handle(info.handle);
     G_ASSERTF(instance, "Cannot find collision for ri at " FMT_P3, P3D(info.tm.getcol(3)));
@@ -22,7 +22,7 @@ struct RICollisionCB : public rendinst::RendInstCollisionCB
     return cobj;
   }
 
-  virtual void addCollisionCheck(const rendinst::RendInstCollisionCB::CollisionInfo &info)
+  virtual void addCollisionCheck(const rendinst::CollisionInfo &info)
   {
     if (!info.handle)
       return;
@@ -31,7 +31,7 @@ struct RICollisionCB : public rendinst::RendInstCollisionCB
     callback.onContact(riObj, info.desc);
   }
 
-  virtual void addTreeCheck(const rendinst::RendInstCollisionCB::CollisionInfo &info)
+  virtual void addTreeCheck(const rendinst::CollisionInfo &info)
   {
     if (!info.handle)
       return;

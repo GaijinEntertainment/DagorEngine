@@ -6,6 +6,7 @@
 #include <3d/dag_texMgr.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_drv3d_pc.h>
+#include <3d/dag_lockTexture.h>
 #include <gui/dag_stdGuiRenderEx.h>
 #include <de3_lightService.h>
 #include <de3_lightProps.h>
@@ -32,6 +33,8 @@
 #include <textureUtil/textureUtil.h>
 #include <render/wind/ambientWind.h>
 #include <assets/asset.h>
+
+using hdpi::_pxScaled;
 
 extern ISkiesService *av_skies_srv;
 extern SimpleString av_skies_preset, av_skies_env, av_skies_wtype;
@@ -70,8 +73,10 @@ static int textureStretch = 0;
 static BaseTexture *combinedPaintTex = NULL;
 static TEXTUREID combinedPaintTexId = BAD_TEXTUREID;
 
-static const int DIALOG_WIDTH = 540;
-static const int DIALOG_HEIGHT = 760;
+static bool useSinglePaintColor = false;
+static E3DCOLOR singlePaintColor = E3DCOLOR(0, 0, 0);
+static BaseTexture *singlePaintColorTex = nullptr;
+static TEXTUREID singlePaintColorTexId = BAD_TEXTUREID;
 
 static IWindService::PreviewSettings windPreview;
 
@@ -350,13 +355,83 @@ const char *getEnviTitleStr(AssetLightData *ald)
 
 void clear() { clearTex(); }
 
+void setUseSinglePaintColor(bool use) { useSinglePaintColor = use; }
+
+bool isUsingSinglePaintColor() { return useSinglePaintColor; }
+
+void setSinglePaintColor(E3DCOLOR color) { singlePaintColor = color; }
+
+E3DCOLOR getSinglePaintColor() { return singlePaintColor; }
+
+static void createSinglePaintColorTex()
+{
+  if (environment::singlePaintColorTex)
+    return;
+
+  if (!environment::combinedPaintTex)
+  {
+    logerr("combined_paint_tex texture is not set, \"Apply color to entity mode\" will not work!");
+    return;
+  }
+
+  TextureInfo texInfo;
+  environment::combinedPaintTex->getinfo(texInfo);
+
+  environment::singlePaintColorTex =
+    dag::create_tex(nullptr, texInfo.w, texInfo.h, TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD, 1, "single_paint_color_tex").release();
+
+  if (!environment::singlePaintColorTex)
+  {
+    logerr("Failed to create single_paint_color_tex texture, \"Apply color to entity mode\" will not work!");
+    return;
+  }
+
+  environment::singlePaintColorTex->texfilter(TEXFILTER_POINT);
+  environment::singlePaintColorTexId = register_managed_tex("single_paint_color_tex", environment::singlePaintColorTex);
+}
+
+static void fillTextureWithColor(BaseTexture &texture, uint32_t color)
+{
+  TextureInfo textureInfo;
+  texture.getinfo(textureInfo);
+
+  int stride = 0;
+  LockedTexture<uint8_t> lockedTexture = lock_texture<uint8_t>(&texture, stride, 0, TEXLOCK_WRITE);
+  if (!lockedTexture)
+    return;
+
+  uint8_t *lockedTextureData = lockedTexture.get();
+  for (int y = 0; y < textureInfo.h; ++y, lockedTextureData += stride)
+    for (int x = 0; x < textureInfo.w; ++x)
+      *reinterpret_cast<uint32_t *>(&lockedTextureData[x * 4]) = color;
+}
+
+void updatePaintColorTexture()
+{
+  static int paintDetailsVarId = get_shader_variable_id("paint_details_tex", true);
+
+  if (useSinglePaintColor)
+  {
+    createSinglePaintColorTex();
+    if (singlePaintColorTex)
+    {
+      fillTextureWithColor(*singlePaintColorTex, singlePaintColor);
+      ShaderGlobal::set_texture(paintDetailsVarId, singlePaintColorTexId);
+    }
+  }
+  else
+  {
+    ShaderGlobal::set_texture(paintDetailsVarId, combinedPaintTexId);
+  }
+}
+
 //---------------------------------------------------------------------------
 
 class EnvSetDlg : public CDialogWindow
 {
 public:
   EnvSetDlg(void *handle, SunLightProps *sun_props, AssetLightData *al_data) :
-    CDialogWindow(handle, DIALOG_WIDTH, DIALOG_HEIGHT - (supportRenderDebug ? 0 : 120), "Environment Settings"),
+    CDialogWindow(handle, _pxScaled(540), _pxScaled(760 - (supportRenderDebug ? 0 : 120)), "Environment Settings"),
     sunProps(sun_props),
     ald(al_data)
   {
@@ -570,9 +645,9 @@ public:
       _skies->createList(PID_WEATHER_ENV, "Environment types", env, av_skies_env);
       _skies->createList(PID_WEATHER_TYPE, "Weather types", wtype, av_skies_wtype);
 
-      _skies->getById(PID_WEATHER_PRESET)->setHeight(80);
-      _skies->getById(PID_WEATHER_ENV)->setHeight(80);
-      _skies->getById(PID_WEATHER_TYPE)->setHeight(80);
+      _skies->getById(PID_WEATHER_PRESET)->setHeight(_pxScaled(80));
+      _skies->getById(PID_WEATHER_ENV)->setHeight(_pxScaled(80));
+      _skies->getById(PID_WEATHER_TYPE)->setHeight(_pxScaled(80));
       _skies->setBoolValue(av_skies_grp_hidden);
       return true;
     }
@@ -1256,6 +1331,9 @@ void AssetLightData::setPaintDetailsTexture()
   release_managed_tex(globalPaintColorsTexId);
   release_managed_tex(localPaintColorsTexId);
   ShaderGlobal::set_texture(paintDetailsVarId, environment::combinedPaintTexId);
+
+  ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(environment::singlePaintColorTexId, environment::singlePaintColorTex);
+  environment::updatePaintColorTexture();
 }
 
 void AssetLightData::applyMicrodetailFromLevelBlk()

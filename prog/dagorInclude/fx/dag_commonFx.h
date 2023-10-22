@@ -6,22 +6,8 @@
 #pragma once
 
 void register_anim_planes_fx_factory();
-void register_blood_ps_fx_factory();
-void register_blood2_ps_fx_factory();
 void register_compound_ps_fx_factory();
-void register_flow_ps_fx_factory();
-void register_flare_fx_factory();
-void register_insects_ps_fx_factory();
-void register_leaves_ps_fx_factory();
-void register_lens_flare_fx_factory();
-void register_rain_ps_fx_factory();
-void register_trail_flow_fx_factory();
-void register_trail_fx_factory();
-void register_shells_ps_fx_factory();
-void register_emitterflow_ps_fx_factory();
 void register_flow_ps_2_fx_factory();
-void register_anim_planes_fx_2_factory();
-void register_lightning_fx_factory();
 void register_light_fx_factory();
 void register_dafx_factory();
 void register_dafx_sparks_factory();

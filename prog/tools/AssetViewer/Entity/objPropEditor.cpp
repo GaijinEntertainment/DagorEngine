@@ -65,7 +65,7 @@ void ObjectPropertyEditor::onClick()
   loadProps();
   Tab<String> nodes, props;
   getData(nodes, props);
-  ObjPropDialog dlg("Object properties", 300, 450, nodes, props);
+  ObjPropDialog dlg("Object properties", hdpi::_pxScaled(300), hdpi::_pxScaled(450), nodes, props);
   int dialogResult = DIALOG_ID_CANCEL;
   while (dialogResult == DIALOG_ID_CANCEL)
   {

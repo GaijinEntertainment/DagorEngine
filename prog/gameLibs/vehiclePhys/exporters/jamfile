@@ -18,10 +18,10 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
 ;
 
-UseProgLibs = 
-  engine2/startup
-  engine2/math
-  #engine2/lib3d
+UseProgLibs =
+  engine/startup
+  engine/math
+  #engine/lib3d
 
   tools/libTools/assetMgr
 ;

@@ -4,12 +4,12 @@
 #include "../c_constants.h"
 
 
-CTargetButton::CTargetButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
-  const char caption[]) :
+CTargetButton::CTargetButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y,
+  hdpi::Px w, const char caption[]) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT), // DEFAULT_BUTTON_HEIGHT
-  mCaption(this, parent->getWindow(), x, y, w / 2, DEFAULT_CONTROL_HEIGHT),
-  mTargetButton(this, parent->getWindow(), x + w / 2, y, w / 2, DEFAULT_CONTROL_HEIGHT),
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT)), // _pxScaled(DEFAULT_BUTTON_HEIGHT)
+  mCaption(this, parent->getWindow(), x, y, _px(w) / 2, _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mTargetButton(this, parent->getWindow(), x + _px(w) / 2, y, _px(w) / 2, _pxS(DEFAULT_CONTROL_HEIGHT)),
   mValue("")
 {
   mCaption.setTextValue(caption);
@@ -40,12 +40,12 @@ void CTargetButton::reset()
 }
 
 
-void CTargetButton::setWidth(unsigned w)
+void CTargetButton::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
 
-  mCaption.resizeWindow(w / 2, mCaption.getHeight());
-  mTargetButton.resizeWindow(w / 2, mTargetButton.getHeight());
+  mCaption.resizeWindow(_px(w) / 2, mCaption.getHeight());
+  mTargetButton.resizeWindow(_px(w) / 2, mTargetButton.getHeight());
 
   this->moveTo(this->getX(), this->getY());
 }

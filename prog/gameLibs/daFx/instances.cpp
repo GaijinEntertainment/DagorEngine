@@ -34,20 +34,26 @@ uint32_t compute_instantces_to_create(const SystemTemplate &sys)
   return instToCreate;
 }
 
-void reduce_dummy_buffer_size(const SystemTemplate &sys, GpuBuffer &group_gpu_buf, CpuBuffer &group_cpu_buf)
+inline bool check_quality(Context &ctx, const SystemTemplate &sys) { return (ctx.cfg.qualityMask & sys.qualityFlags) ? true : false; }
+
+void adjust_buffer_size_by_quality(Context &ctx, const SystemTemplate &sys, int &cpu_size, int &gpu_size, bool force_dummy)
 {
-  group_gpu_buf.size -= sys.localGpuDataSize;
-  group_cpu_buf.size -= sys.localCpuDataSize;
+  // we need to reduce total cpu/gpu buffer if some of sub-fx are removed by quality settings
+  force_dummy = force_dummy || !check_quality(ctx, sys);
+  if (force_dummy)
+  {
+    cpu_size -= sys.localCpuDataSize;
+    gpu_size -= sys.localGpuDataSize;
+  }
   for (const SystemTemplate &subSys : sys.subsystems)
-    reduce_dummy_buffer_size(subSys, group_gpu_buf, group_cpu_buf);
+    adjust_buffer_size_by_quality(ctx, subSys, cpu_size, gpu_size, force_dummy);
 };
 
 InstanceId create_subinstance(Context &ctx, InstanceId queued_iid, const SystemTemplate &sys, int parent_sid, GpuBuffer &group_gpu_buf,
   CpuBuffer &group_cpu_buf, int gpu_parent_offset, int cpu_parent_offset, float life_time)
 {
-  if (!(ctx.cfg.qualityMask & sys.qualityFlags))
+  if (!check_quality(ctx, sys) || (group_cpu_buf.size == 0 && group_gpu_buf.size == 0)) // subfx or whole chain is discarded by quality
   {
-    reduce_dummy_buffer_size(sys, group_gpu_buf, group_cpu_buf);
     if (queued_iid)
     {
       int *psid = ctx.instances.list.get(queued_iid);
@@ -365,9 +371,14 @@ void create_instances_from_queue(Context &ctx)
     GpuBuffer gpuBuf;
     CpuBuffer cpuBuf;
 
-    if (sys->totalGpuDataSize > 0)
+    int cpuDataSize = sys->totalCpuDataSize;
+    int gpuDataSize = sys->totalGpuDataSize;
+
+    adjust_buffer_size_by_quality(ctx, *sys, cpuDataSize, gpuDataSize, false);
+
+    if (gpuDataSize > 0)
     {
-      if (!create_gpu_buffer(ctx.gpuBufferPool, sys->totalGpuDataSize, gpuBuf))
+      if (!create_gpu_buffer(ctx.gpuBufferPool, gpuDataSize, gpuBuf))
       {
         logerr("dafx: sys: %s, can't create gpu buffer");
         ctx.instances.list.destroyReference(cq.iid);
@@ -375,9 +386,9 @@ void create_instances_from_queue(Context &ctx)
       }
     }
 
-    if (sys->totalCpuDataSize > 0)
+    if (cpuDataSize > 0)
     {
-      if (!create_cpu_buffer(ctx.cpuBufferPool, sys->totalCpuDataSize, cpuBuf))
+      if (!create_cpu_buffer(ctx.cpuBufferPool, cpuDataSize, cpuBuf))
       {
         logerr("dafx: sys: %s, can't create cpu buffer");
         ctx.instances.list.destroyReference(cq.iid);

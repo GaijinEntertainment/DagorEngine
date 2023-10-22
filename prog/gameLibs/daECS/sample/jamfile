@@ -23,7 +23,7 @@ Target      = daECS_benchmark ;
 StrictCompile = yes ;
 
 AddIncludes =
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 
@@ -33,14 +33,14 @@ Sources = $(AllSources:D=) ;
 if $(Platform) = win32 && $(Config) != rel { UseMemoryDebugLevel = dbg ; }
 
 UseProgLibs +=
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/perfMon
-  engine2/math
-  engine2/baseUtil
-  engine2/ioSys
-  engine2/startup
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/perfMon
+  engine/math
+  engine/baseUtil
+  engine/ioSys
+  engine/startup
   gameLibs/daECS/core
   gameLibs/daECS/io/datablock
 ;

@@ -5,6 +5,8 @@ int skies_use_2d_shadows;
 
 texture clouds_shadows_2d;
 
+float4 clouds_hole_pos;
+
 macro INIT_CLOUDS_SHADOW_BASE_COMMON(light_dir_x, light_dir_y, light_dir_z, code)
   (code) {
     world_pos_to_clouds_alt@f4 = (0.001/clouds_thickness2, -clouds_start_altitude2/clouds_thickness2,
@@ -15,8 +17,7 @@ macro INIT_CLOUDS_SHADOW_BASE_COMMON(light_dir_x, light_dir_y, light_dir_z, code
       0//1000*skies_planet_radius
       );
       //clouds_shadow_light_dir@f4 = (light_dir_x, light_dir_y, light_dir_z, 1000*1000*(clouds_start_altitude2 + skies_planet_radius)*(clouds_start_altitude2 + skies_planet_radius));
-
-    clouds_hole_pos@tex = clouds_hole_pos_tex hlsl {Texture2D<float4> clouds_hole_pos@tex;};
+      clouds_hole_pos_var@f4 = clouds_hole_pos;
   }
 endmacro
 
@@ -55,7 +56,7 @@ macro USE_CLOUDS_SHADOW_BASE_REF(code)
         #endif
         //that should be actually calculated with correct lighting attenuation and then blurred.
         //we can do that for 2d
-        return getCloudsShadows3d(float3(worldPos.xz*clouds_weather_inv_size__alt_scale.x + world_pos_to_clouds_alt.zw + clouds_hole_pos[uint2(0, 0)].zw, max(0, alt))).x;
+        return getCloudsShadows3d(float3(worldPos.xz*clouds_weather_inv_size__alt_scale.x + world_pos_to_clouds_alt.zw + clouds_hole_pos_var.zw, max(0, alt))).x;
       #endif
     }
     float clouds_shadow_from_extinction(float extinction)
@@ -102,7 +103,7 @@ macro USE_CLOUDS_SHADOW_BASE_2D(code)
         worldPos.xz = clouds_weather_inv_size__alt_scale.yz*alt + worldPos.xz;
         //that should be actually calculated with correct lighting attenuation and then blurred.
         //we can do that for 2d
-        float shadow = tex2Dlod(clouds_shadows_2d, float4(worldPos.xz*clouds_weather_inv_size__alt_scale.x + world_pos_to_clouds_alt.zw + clouds_hole_pos[uint2(0, 0)].zw, 0, 0)).x;
+        float shadow = tex2Dlod(clouds_shadows_2d, float4(worldPos.xz*clouds_weather_inv_size__alt_scale.x + world_pos_to_clouds_alt.zw + clouds_hole_pos_var.zw, 0, 0)).x;
         return lerp(shadow,1, max(alt,0));
       #endif
     }

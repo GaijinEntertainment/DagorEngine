@@ -6,18 +6,18 @@
 #include <osApiWrappers/dag_direct.h>
 #include <libTools/util/strUtil.h>
 
-CFileEditBox::CFileEditBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CFileEditBox::CFileEditBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[]) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT * 2),
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT) * 2),
 
-  mCaption(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT),
+  mCaption(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT)),
 
-  mEdit(this, parent->getWindow(), x, y + DEFAULT_CONTROL_HEIGHT, w - 2 * DEFAULT_CONTROL_HEIGHT - DEFAULT_CONTROLS_INTERVAL,
-    DEFAULT_CONTROL_HEIGHT),
+  mEdit(this, parent->getWindow(), x, y + _pxS(DEFAULT_CONTROL_HEIGHT),
+    _px(w) - 2 * _pxS(DEFAULT_CONTROL_HEIGHT) - _pxS(DEFAULT_CONTROLS_INTERVAL), _pxS(DEFAULT_CONTROL_HEIGHT)),
 
-  mButton(this, parent->getWindow(), x + mEdit.getWidth() + DEFAULT_CONTROLS_INTERVAL, y + DEFAULT_CONTROL_HEIGHT,
-    2 * DEFAULT_CONTROL_HEIGHT, DEFAULT_CONTROL_HEIGHT),
+  mButton(this, parent->getWindow(), x + mEdit.getWidth() + _pxS(DEFAULT_CONTROLS_INTERVAL), y + _pxS(DEFAULT_CONTROL_HEIGHT),
+    2 * _pxS(DEFAULT_CONTROL_HEIGHT), _pxS(DEFAULT_CONTROL_HEIGHT)),
 
   m_DialogMode(FS_DIALOG_OPEN_FILE),
   manualChange(false),
@@ -61,16 +61,16 @@ void CFileEditBox::reset()
 }
 
 
-void CFileEditBox::setWidth(unsigned w)
+void CFileEditBox::setWidth(hdpi::Px w)
 {
-  int minw = 2 * DEFAULT_CONTROL_HEIGHT + DEFAULT_CONTROLS_INTERVAL;
-  w = (w < minw) ? minw : w;
+  int minw = 2 * _pxS(DEFAULT_CONTROL_HEIGHT) + _pxS(DEFAULT_CONTROLS_INTERVAL);
+  w = (_px(w) < minw) ? _pxActual(minw) : w;
 
   PropertyControlBase::setWidth(w);
 
-  mCaption.resizeWindow(w, mCaption.getHeight());
-  mEdit.resizeWindow(w - 2 * DEFAULT_CONTROL_HEIGHT - DEFAULT_CONTROLS_INTERVAL, mEdit.getHeight());
-  mButton.resizeWindow(2 * DEFAULT_CONTROL_HEIGHT, mButton.getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
+  mEdit.resizeWindow(_px(w) - 2 * _pxS(DEFAULT_CONTROL_HEIGHT) - _pxS(DEFAULT_CONTROLS_INTERVAL), mEdit.getHeight());
+  mButton.resizeWindow(2 * _pxS(DEFAULT_CONTROL_HEIGHT), mButton.getHeight());
 
   this->moveTo(this->getX(), this->getY());
 }
@@ -127,7 +127,7 @@ void CFileEditBox::moveTo(int x, int y)
 
   mCaption.moveWindow(x, y);
   mEdit.moveWindow(x, (hasCaption) ? y + mCaption.getHeight() : y);
-  mButton.moveWindow(x + mEdit.getWidth() + DEFAULT_CONTROLS_INTERVAL, (hasCaption) ? y + mCaption.getHeight() : y);
+  mButton.moveWindow(x + mEdit.getWidth() + _pxS(DEFAULT_CONTROLS_INTERVAL), (hasCaption) ? y + mCaption.getHeight() : y);
 }
 
 

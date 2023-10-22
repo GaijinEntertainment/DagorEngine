@@ -6,6 +6,7 @@
 #include <shaders/dag_shaders.h>
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
+#include <workCycle/dag_workCyclePerf.h>
 
 #include <gui/dag_imgui.h>
 #include <imgui/implot.h>
@@ -62,6 +63,20 @@ void DynamicResolution::applySettings()
   }
   targetMsPerFrame = 1000.0 / targetFrameRate;
   resolutionScaleStep = settingsBlk.getReal("resolutionScaleStep", 0.05);
+  minResolutionScale = settingsBlk.getReal("minResolutionScale", 0.5);
+  maxThresholdToChange = settingsBlk.getReal("thresholdToDecreaseResolution", 0.95);
+  minThresholdToChange = settingsBlk.getReal("thresholdToIncreaseResolution", 0.85);
+  considerCPUbottleneck = settingsBlk.getBool("considerCPUbottleneck", false);
+  workcycleperf::cpu_only_cycle_record_enabled |= considerCPUbottleneck;
+}
+
+void DynamicResolution::trackCpuTime()
+{
+  if (!considerCPUbottleneck)
+    return;
+  float prevFrameTimeMs = 0.001 * workcycleperf::last_cpu_only_cycle_time_usec;
+  // CPU time is quite unstable, so add some smoothing
+  currentCpuMsPerFrame = lerp(currentCpuMsPerFrame, prevFrameTimeMs, 0.05);
 }
 
 void DynamicResolution::beginFrame()
@@ -69,14 +84,15 @@ void DynamicResolution::beginFrame()
   G_ASSERT_RETURN(gpuFrameState == GPU_FRAME_FINISHED, );
   gpuFrameState = GPU_FRAME_STARTED;
   uint32_t curIdx = frameIdx % timestamps.size();
-  if (frameIdx >= timestamps.size()) //-V1051
+  trackCpuTime();
+  if (frameIdx >= timestamps.size())
   {
     uint64_t beginTick = 0, endTick = 0;
     if (d3d::driver_command(D3V3D_COMMAND_TIMESTAMPGET, timestamps[curIdx].endQuery, &endTick, 0))
     {
       G_VERIFY(d3d::driver_command(D3V3D_COMMAND_TIMESTAMPGET, timestamps[curIdx].beginQuery, &beginTick, 0));
       float timeMs = double(endTick - beginTick) * gpuMsPerTick;
-      currentMsPerFrame = timeMs;
+      currentGpuMsPerFrame = timeMs;
       adjustResolution();
     }
     else
@@ -105,11 +121,26 @@ void DynamicResolution::endFrame()
 }
 
 
+void DynamicResolution::calculateAllowableTimeRange(float &lower_bound, float &upper_bound)
+{
+  upper_bound = targetMsPerFrame * maxThresholdToChange;
+  lower_bound = targetMsPerFrame * minThresholdToChange;
+  if (considerCPUbottleneck && currentCpuMsPerFrame > targetMsPerFrame)
+  {
+    float maxDeviation = (upper_bound - lower_bound) * 0.5;
+    float lerpK = min((currentCpuMsPerFrame - targetMsPerFrame) / targetMsPerFrame * 10.0f, 1.0f);
+    upper_bound = lerp(upper_bound, currentCpuMsPerFrame + maxDeviation, lerpK);
+    lower_bound = lerp(lower_bound, currentCpuMsPerFrame - maxDeviation, lerpK);
+  }
+}
+
 void DynamicResolution::adjustResolution()
 {
+  float lowerBound, upperBound;
+  calculateAllowableTimeRange(lowerBound, upperBound);
   if (autoAdjust)
   {
-    if (currentMsPerFrame > targetMsPerFrame * maxThresholdToChange)
+    if (currentGpuMsPerFrame > upperBound)
     {
       framesAboveThreshold++;
       if (framesAboveThreshold > timestamps.size())
@@ -121,7 +152,7 @@ void DynamicResolution::adjustResolution()
     else
       framesAboveThreshold = 0;
 
-    if (currentMsPerFrame < targetMsPerFrame * minThresholdToChange)
+    if (currentGpuMsPerFrame < lowerBound)
     {
       framesUnderThreshold++;
       if (framesUnderThreshold > timestamps.size())
@@ -170,10 +201,13 @@ struct ScrollingBuffer
 
 void DynamicResolution::debugImguiWindow()
 {
-  static ScrollingBuffer frameMsData;
+  static ScrollingBuffer gpuFrameTime;
+  static ScrollingBuffer cpuFrameTime;
   static float t = 0;
   t += ImGui::GetIO().DeltaTime;
-  frameMsData.AddPoint(t, currentMsPerFrame);
+  gpuFrameTime.AddPoint(t, currentGpuMsPerFrame);
+  if (considerCPUbottleneck)
+    cpuFrameTime.AddPoint(t, currentCpuMsPerFrame);
 
   ImGui::SliderFloat("Resolution Scale", &resolutionScale, 0.5, 1, "%.2f");
   ImGui::LabelText("Resolution", "%dx%d", currentResolutionWidth, currentResolutionHeight);
@@ -207,23 +241,27 @@ void DynamicResolution::debugImguiWindow()
     ImGui::SliderInt("FPS", &targetFrameRate, 15, 360);
   targetMsPerFrame = 1000.0 / targetFrameRate;
 
+  if (ImGui::Checkbox("consider CPU bottleneck", &considerCPUbottleneck) && considerCPUbottleneck)
+    workcycleperf::cpu_only_cycle_record_enabled = true;
+
   static float history = 10.0f;
   float thresholdsX[4], thresholdsY[4];
   thresholdsX[0] = t;
-  thresholdsY[0] = targetMsPerFrame * maxThresholdToChange;
-  thresholdsX[1] = t - history - 0.1;
-  thresholdsY[1] = targetMsPerFrame * maxThresholdToChange;
-  thresholdsX[2] = t - history - 0.1;
-  thresholdsY[2] = targetMsPerFrame * minThresholdToChange;
   thresholdsX[3] = t;
-  thresholdsY[3] = targetMsPerFrame * minThresholdToChange;
+  calculateAllowableTimeRange(thresholdsY[3], thresholdsY[0]);
+  thresholdsX[1] = t - history - 0.1;
+  thresholdsY[1] = thresholdsY[0];
+  thresholdsX[2] = t - history - 0.1;
+  thresholdsY[2] = thresholdsY[3];
   ImGui::SliderFloat("History", &history, 1, 30, "%.1f s");
   ImPlot::SetNextPlotLimitsX(t - history, t, ImGuiCond_Always);
-  float maxY = max(targetMsPerFrame * 1.33f, *eastl::max_element(frameMsData.yData.begin(), frameMsData.yData.end()));
+  float maxY = max(targetMsPerFrame * 1.33f, *eastl::max_element(gpuFrameTime.yData.begin(), gpuFrameTime.yData.end()));
   ImPlot::SetNextPlotLimitsY(0, maxY, ImGuiCond_Always);
-  if (ImPlot::BeginPlot("##GPU frame time", nullptr, "gpu time (ms)", ImVec2(0, 0), 0, ImPlotAxisFlags_NoTickLabels, 0))
+  if (ImPlot::BeginPlot("##GPU frame time", nullptr, "frame time (ms)", ImVec2(0, 0), 0, ImPlotAxisFlags_NoTickLabels, 0))
   {
-    ImPlot::PlotLine("current", &frameMsData.xData[0], &frameMsData.yData[0], frameMsData.xData.size(), frameMsData.offset);
+    if (considerCPUbottleneck)
+      ImPlot::PlotLine("CPU time", &cpuFrameTime.xData[0], &cpuFrameTime.yData[0], cpuFrameTime.xData.size(), cpuFrameTime.offset);
+    ImPlot::PlotLine("GPU time", &gpuFrameTime.xData[0], &gpuFrameTime.yData[0], gpuFrameTime.xData.size(), gpuFrameTime.offset);
     ImPlot::PlotLine("thresholds", thresholdsX, thresholdsY, 4);
     ImPlot::EndPlot();
   }

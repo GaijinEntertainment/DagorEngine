@@ -1,0 +1,83 @@
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyser/w262.nut:8:0
+
+    print(1)
+else    // EXPECTED 1
+^---
+  print(2)
+
+
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyser/w262.nut:13:4
+
+    print(3)
+    print(4) // EXPECTED 2
+    ^----
+
+
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyser/w262.nut:17:4
+
+    print(x)
+    print(y) // EXPECTED 3
+    ^----
+
+
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyser/w262.nut:25:4
+
+print(x)
+    print(y) // EXPECTED 4
+    ^----
+
+
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyser/w262.nut:29:4
+
+    print(x)
+    print(y) // EXPECTED 5
+    ^----
+
+
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyser/w262.nut:38:4
+
+    print(x)
+    print(y) // EXPECTED 6
+    ^----
+
+
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyser/w262.nut:24:0
+
+while (false)
+print(x)
+^-------
+    print(y) // EXPECTED 4
+
+
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyser/w262.nut:57:0
+
+if (x) // EXPECTED 7
+if (y)
+^--
+  print(1)
+
+
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyser/w262.nut:87:0
+
+while (x > 100)
+print(3) // EXPECTED 8
+^-------
+
+
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyser/w262.nut:91:0
+
+for (;false;)
+print(3) // EXPECTED 9
+^-------
+
+

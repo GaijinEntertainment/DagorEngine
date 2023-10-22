@@ -71,7 +71,6 @@ void PrintUsage()
         _SC("Available options are:\n")
         _SC("   -c               compiles the file to bytecode(default output 'out.cnut')\n")
         _SC("   -o               specifies output file for the -c option\n")
-        _SC("   -ast             use AST compiler\n")
         _SC("   -ast-dump [file] dump AST into console or file if specified\n")
         _SC("   -absolute-path   use absolute path when print diangostics\n")
         _SC("   -bytecode-dump [file] dump SQ bytecode into console or file if specified\n")
@@ -96,7 +95,7 @@ struct DumpOptions {
   const char *bytecodeDumpFileName;
 };
 
-static void dumpAst_callback(HSQUIRRELVM vm, SqAstNode *ast, void *opts)
+static void dumpAst_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *ast, void *opts)
 {
     if (opts == NULL)
       return;
@@ -205,18 +204,44 @@ bool search_sqconfig(const char * initial_file_name, char *buffer, size_t buffer
   return false;
 }
 
+bool checkOption(char *argv[], int argc, const char *option, const char *&optArg) {
+  optArg = nullptr;
+  for (int i = 1; i< argc; ++i) {
+    const char *arg = argv[i];
+
+    if (arg[0] == '-' && strcmp(arg + 1, option) == 0) {
+      if ((i + 1) < argc) {
+        const char *arg2 = argv[i + 1];
+        if (arg2[0] != '-') { // not next option
+          optArg = arg2;
+        }
+      }
+      return true;
+    }
+  }
+
+  return false;
+}
+
 #define _INTERACTIVE 0
 #define _DONE 2
 #define _ERROR 3
 //<<FIXME>> this func is a mess
 int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 {
+    assert(module_mgr != nullptr && "Module manager has to be existed");
     int i;
+    const char *optArg = nullptr;
     DumpOptions dumpOpt = { 0 };
     FILE *diagFile = nullptr;
     int compiles_only = 0;
-    bool static_analysis = false;
+    bool static_analysis = checkOption(argv, argc, "sa", optArg); // TODO: refact ugly loop below using this function
     bool flip_warnigns = false;
+
+    if (static_analysis) {
+      sq_enablesyntaxwarnings();
+    }
+
     char * output = NULL;
     *retval = 0;
     if(argc>1)
@@ -231,11 +256,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 switch(argv[arg][1])
                 {
                 case 'a':
-                    if (strcmp("-ast", argv[arg]) == 0) {
-                        module_mgr->compilationOptions.useAST = true;
-                        //sq_setcompilationoption(v, CompilationOptions::CO_USE_AST_COMPILER, true);
-                    }
-                    else if (strcmp("-ast-dump", argv[arg]) == 0)
+                    if (strcmp("-ast-dump", argv[arg]) == 0)
                     {
                         dumpOpt.astDump = true;
                         if (((arg + 1) < argc) && argv[arg + 1][0] != '-')
@@ -323,7 +344,8 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 case 'w':
                 case 'W':
                     if (isdigit(argv[arg][2])) {
-                      if (!sq_switchdiagnosticstate_i(atoi(&argv[arg][2]), false)) {
+                      int id = atoi(&argv[arg][2]);
+                      if (!sq_switchdiagnosticstate_i(id, false)) {
                         printf("Unknown warning ID %s\n", &argv[arg][2]);
                       }
                     }
@@ -401,16 +423,24 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             else {
                 Sqrat::Object exports;
                 std::string errMsg;
+                int retCode = _DONE;
                 if (!module_mgr->requireModule(filename, true, "__main__", exports, errMsg)) {
-                    fprintf(stderr, _SC("Error [%s]\n"), errMsg.c_str());
-                    return _ERROR;
+                    retCode = _ERROR;
                 }
 
-                if (sq_isinteger(exports.o)) {
+                if (retCode == _DONE && sq_isinteger(exports.o)) {
                     *retval = exports.o._unVal.nInteger;
                 }
 
-                return _DONE;
+                if (static_analysis) {
+                  sq_checkglobalnames(v);
+                }
+
+                if (retCode != _DONE) {
+                  fprintf(stderr, _SC("Error [%s]\n"), errMsg.c_str());
+                }
+
+                return retCode;
             }
 
             //if this point is reached an error occurred

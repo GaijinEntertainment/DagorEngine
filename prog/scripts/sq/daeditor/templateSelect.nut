@@ -12,8 +12,8 @@ let scrollbar = require("%daeditor/components/scrollbar.nut")
 let {mkTemplateTooltip} = require("components/templateHelp.nut")
 
 let entity_editor = require("entity_editor")
-let daEditor4 = require("daEditor4")
-let {DE4_MODE_SELECT} = daEditor4
+let daEditor = require("daEditorEmbedded")
+let {DE4_MODE_SELECT} = daEditor
 
 let selectedItem = Watched(null)
 let filterText = Watched("")
@@ -244,7 +244,7 @@ let function dialogRoot() {
   let function doClose() {
     showTemplateSelect(false)
     filterText("")
-    daEditor4.setEditMode(DE4_MODE_SELECT)
+    daEditor.setEditMode(DE4_MODE_SELECT)
   }
 
   let function doCancel() {

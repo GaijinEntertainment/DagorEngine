@@ -16,7 +16,9 @@
 #include <math/dag_bounds2.h>
 #include <vecmath/dag_vecMath.h>
 #include <rendInst/rendInstDesc.h>
+#include <rendInst/constants.h>
 #include <debug/dag_debug3d.h>
+#include <EASTL/sort.h>
 
 struct Trace
 {
@@ -75,14 +77,48 @@ struct TraceMeshFaces
     HeightmapCache() : width(-1), height(-1) {}
   } heightmap;
 
-  struct RendinstCache
+  class RendinstCache
   {
-    static constexpr size_t MAX_TM_RI = 128;
-    static constexpr size_t MAX_POS_RI = 16;
+  public:
+    static constexpr size_t MAX_ENTRIES = 128;
 
     mutable int version = -1;
-    StaticTab<rendinst::RendInstDesc, MAX_TM_RI> cachedRendinsts;
-    StaticTab<rendinst::RendInstDesc, MAX_POS_RI> cachedPosRendinsts;
+
+    template <typename callback_t>
+    __forceinline void foreachValid(rendinst::GatherRiTypeFlags ri_types, callback_t callback) const
+    {
+      for (const CacheEntry &entry : cachedData)
+      {
+        bool isRiExtra = (entry.type & rendinst::GatherRiTypeFlag::RiExtraOnly).asInteger() != 0;
+        if ((entry.type & ri_types) && rendinst::isRiGenDescValid(entry.desc))
+          callback(entry.desc, isRiExtra);
+      }
+    }
+    bool isFull() const { return cachedData.size() == cachedData.capacity(); }
+    int size() const { return cachedData.size(); }
+    void add(const rendinst::RendInstDesc &desc, bool is_pos)
+    {
+      rendinst::GatherRiTypeFlags type =
+        desc.isRiExtra() ? rendinst::GatherRiTypeFlag::RiExtraOnly
+                         : (is_pos ? rendinst::GatherRiTypeFlag::RiGenPosOnly : rendinst::GatherRiTypeFlag::RiGenTmOnly);
+      cachedData.emplace_back(CacheEntry{type, desc});
+    }
+    void clear() { cachedData.clear(); }
+    void sort()
+    {
+      auto cmp = [](const CacheEntry &lhs, const CacheEntry &rhs) {
+        return lhs.desc.getRiExtraHandle() < rhs.desc.getRiExtraHandle();
+      };
+      eastl::sort(cachedData.begin(), cachedData.end(), cmp);
+    }
+
+  private:
+    struct CacheEntry
+    {
+      rendinst::GatherRiTypeFlags type;
+      rendinst::RendInstDesc desc;
+    };
+    StaticTab<CacheEntry, MAX_ENTRIES> cachedData;
   } rendinstCache;
 
   struct MaterialMapCache

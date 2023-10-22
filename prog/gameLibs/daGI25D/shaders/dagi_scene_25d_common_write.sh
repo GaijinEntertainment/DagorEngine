@@ -1,7 +1,7 @@
 include "dagi_scene_voxels_common_25d.sh"
 include "dagi_quality.sh"
 float4 scene_25d_voxels_invalid_coord_box;
-int voxels_25d_no = 7;
+int voxels_25d_no = 6;
 
 macro SSGE_SCENE_25D_COMMON_INIT_WRITE_PS()
   (ps) {

@@ -182,8 +182,8 @@ void DaStars::generateStars()
   }
 }
 
-void DaStars::renderStars(float sun_brightness, float latitude, float longtitude, double julian_day, float initial_azimuth_angle,
-  float stars_intensity_mul)
+void DaStars::renderStars(const Driver3dPerspective &persp, float sun_brightness, float latitude, float longtitude, double julian_day,
+  float initial_azimuth_angle, float stars_intensity_mul)
 {
   if (!starsVb || sun_brightness > 1.0)
     return;
@@ -199,9 +199,8 @@ void DaStars::renderStars(float sun_brightness, float latitude, float longtitude
 
   float starIntensity = (1 - sun_brightness) * stars_intensity_mul;
   ShaderGlobal::set_real_fast(starIntensityGlobVarId, starIntensity);
-  Driver3dPerspective p(1.3f, 0, 0, 0);
-  d3d::getpersp(p);
-  ShaderGlobal::set_real(starsScaleVarId, 0.001f / p.wk);
+
+  ShaderGlobal::set_real(starsScaleVarId, 0.001f / (persp.wk > 0 ? persp.wk : 1.3f));
 
   d3d::setvsrc(0, starsVb.getBuf(), starsRendElem.stride);
   d3d::setind(starsIb.getBuf());

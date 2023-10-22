@@ -151,7 +151,7 @@ CPPopt =
 if $(Platform) = ps4 { CPPopt += -Ddup(X)=X -Dumask(X)=0 ; }
 if $(Platform) = ps5 { CPPopt += -Ddup(X)=X ; }
 
-if $(PlatformSpec) in gcc4 clang {
+if $(PlatformSpec) in gcc clang {
   CPPopt += -Wno-unused-parameter ;
 }
 

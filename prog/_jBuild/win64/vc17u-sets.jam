@@ -10,8 +10,8 @@ C_preopt_DirectXVer = jun2010 ;
 _WIN_SDK_TARGET_SUFFIX = x64 ;
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 
-if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update it from http://cvs.gaijin.lan/cgi-bin/viewcvs.cgi/devtools/.packages/vc2022_$(VCUpdateVer).zip ; }
-if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: \"$(_WIN_SDK)\" not found!  Please, update it from http://cvs.gaijin.lan/cgi-bin/viewcvs.cgi/devtools/.packages/$(WinSdkVer).zip ; }
+if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: \"$(_WIN_SDK)\" not found!  Please, update DEVTOOLS ; }
 if ! [ GLOB $(_DEVTOOL)/win.sdk.100/Include/10.0.19041.0 : * ] { exit FATAL\: \"$(_DEVTOOL)/win.sdk.100/Include/10.0.19041.0\" not found!  Please, update DEVTOOLS ; }
 
 if $(UseWholeOpt) = yes {

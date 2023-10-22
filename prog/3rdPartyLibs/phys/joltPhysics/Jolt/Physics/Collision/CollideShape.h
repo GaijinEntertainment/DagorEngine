@@ -24,15 +24,15 @@ public:
 								CollideShapeResult() = default;
 
 	/// Constructor
-								CollideShapeResult(Vec3Arg inContactPointOn1, Vec3Arg inContactPointOn2, Vec3Arg inPenetrationAxis, float inPenetrationDepth, const SubShapeID &inSubShapeID1, const SubShapeID &inSubShapeID2, const BodyID &inBodyID2) : 
-		mContactPointOn1(inContactPointOn1), 
-		mContactPointOn2(inContactPointOn2), 
-		mPenetrationAxis(inPenetrationAxis), 
-		mPenetrationDepth(inPenetrationDepth), 
-		mSubShapeID1(inSubShapeID1), 
-		mSubShapeID2(inSubShapeID2), 
-		mBodyID2(inBodyID2) 
-	{ 
+								CollideShapeResult(Vec3Arg inContactPointOn1, Vec3Arg inContactPointOn2, Vec3Arg inPenetrationAxis, float inPenetrationDepth, const SubShapeID &inSubShapeID1, const SubShapeID &inSubShapeID2, const BodyID &inBodyID2) :
+		mContactPointOn1(inContactPointOn1),
+		mContactPointOn2(inContactPointOn2),
+		mPenetrationAxis(inPenetrationAxis),
+		mPenetrationDepth(inPenetrationDepth),
+		mSubShapeID1(inSubShapeID1),
+		mSubShapeID2(inSubShapeID2),
+		mBodyID2(inBodyID2)
+	{
 	}
 
 	/// Function required by the CollisionCollector. A smaller fraction is considered to be a 'better hit'. We use -penetration depth to get the hit with the biggest penetration depth
@@ -95,7 +95,7 @@ class CollideShapeSettings : public CollideSettingsBase
 public:
 	JPH_OVERRIDE_NEW_DELETE
 
-	/// When > 0 contacts in the vicinity of the query shape can be found. All nearest contacts that are not further away than this distance will be found (uint: meter)
+	/// When > 0 contacts in the vicinity of the query shape can be found. All nearest contacts that are not further away than this distance will be found (unit: meter)
 	float						mMaxSeparationDistance		= 0.0f;
 
 	/// How backfacing triangles should be treated

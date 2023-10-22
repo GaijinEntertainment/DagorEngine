@@ -1,0 +1,36 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/StaticGeom ;
+DriverLinkage = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+UseWTL      = yes ;
+
+TargetType  = dll ;
+Target      = tools/sceneTools/daEditorX/staticGeom.dll ;
+OutDir      = $(Root)/tools/dagor3_cdk/bin/plugins/de3x ;
+if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/de3x ; }
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  plugin.cpp
+  main.cpp
+;
+
+
+UseProgLibs =
+  tools/sceneTools/daEditorX/de3dllCore
+  tools/libTools/winGuiWrapper
+;
+
+ImportProgLibs =
+  tools/libTools/daKernel
+;
+
+LINKopt = -def:$(Root)/prog/tools/sceneTools/daEditorX/de3dllCore/de3_plugin.def ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

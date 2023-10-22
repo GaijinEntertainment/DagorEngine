@@ -38,15 +38,12 @@ Sources =
   deferredRT.cpp
   psm.cpp
   rain.cpp
-  shaderVars.cpp
   waterObjects.cpp
   xcsm.cpp
   variance.cpp
-  fog.cpp
   iesTextureManager.cpp
   omniLightsManager.cpp
   spotLightsManager.cpp
-  rainSnowCone.cpp
   distortion.cpp
   antialiasing.cpp
   partialDxtRender.cpp
@@ -110,7 +107,7 @@ Sources =
 ;
 
 UseProgLibs +=
-  engine2/lib3d
+  engine/lib3d
   gameLibs/render/texcompressors
   gameLibs/render/primitiveObjects
   gameLibs/render/fx

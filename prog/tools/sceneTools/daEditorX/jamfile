@@ -1,0 +1,22 @@
+Platform ?= win64 ;
+
+Root    ?= ../../../.. ;
+Location = prog/tools/sceneTools/daEditorX ;
+DriverLinkage = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = util ;
+Target      = DaEditor3_all ;
+
+Dependencies =
+  $(Root)/$(Location)/StaticGeom/jamfile
+  $(Root)/$(Location)/IvyGen/jamfile
+  $(Root)/$(Location)/Occluders/jamfile
+  $(Root)/$(Location)/csg/jamfile
+;
+
+BuildJams =
+  $(Root)/$(Location)/jamfile-editor
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

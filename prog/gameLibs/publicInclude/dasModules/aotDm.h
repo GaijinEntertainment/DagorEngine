@@ -21,10 +21,12 @@
 #include <damageModel/propsRegistryUtils.h>
 #include <damageModel/collisionData.h>
 #include <damageModel/splashDamage.h>
+#include <damageModel/syntheticShatterDamage.h>
 #include <damageModel/criticalDamageTester.h>
 #include <ecs/game/dm/partId.h>
 #include <damageModel/damagePartUtils.h>
 
+typedef dag::Vector<dm::DamagePartProps> DamageModelDataPartProps;
 typedef dag::Vector<dm::DamagePart> DamageModelDataParts;
 
 using MetaPartPartIds = dag::VectorSet<dm::PartId>;
@@ -38,12 +40,15 @@ MAKE_TYPE_FACTORY(CollisionData, dm::CollisionData);
 MAKE_TYPE_FACTORY(DamageModelData, dm::DamageModelData);
 MAKE_TYPE_FACTORY(DamageModel, dm::DamageModel);
 MAKE_TYPE_FACTORY(HitData, dm::HitData);
-MAKE_TYPE_FACTORY(DamagePartProps, dm::DamagePartProps);
+MAKE_TYPE_FACTORY(DamagePartPropsCached, dm::DamagePartPropsCached);
 MAKE_TYPE_FACTORY(DamagePart, dm::DamagePart);
+MAKE_TYPE_FACTORY(DamagePartProps, dm::DamagePartProps);
+DAS_BIND_VECTOR(DamageModelDataPartProps, DamageModelDataPartProps, dm::DamagePartProps, "DamageModelDataPartProps");
 DAS_BIND_VECTOR(DamageModelDataParts, DamageModelDataParts, dm::DamagePart, "DamageModelDataParts");
 MAKE_TYPE_FACTORY(PartId, dm::PartId);
 DAS_BIND_VECTOR(PartIdList, dm::PartIdList, dm::PartId, "::dm::PartIdList");
 MAKE_TYPE_FACTORY(SplashParams, dm::splash::Params);
+MAKE_TYPE_FACTORY(SyntheticShattersParams, dm::synthetic_shatter::Params);
 MAKE_TYPE_FACTORY(DamageModelParams, dm::DamageModelParams);
 MAKE_TYPE_FACTORY(DamageEffectPreset, dm::effect::Preset);
 MAKE_TYPE_FACTORY(DmEffectPresetList, dm::effect::PresetList);
@@ -149,11 +154,25 @@ inline int get_collision_node_id(const dm::DamageModelData &dm_data, int part_id
   return get_collision_node_id(dm_data, dm::PartId(part_id, -1));
 }
 
-inline float get_max_hp(const dm::DamageModelData &dm_data, int part_id) { return get_part_max_hp(dm_data, dm::PartId(part_id, -1)); }
+inline float get_max_hp(const dm::DamageModelData &dm_data, int part_id)
+{
+  return get_part_hp_total(dm_data, dm::PartId(part_id, -1));
+}
+
+inline bool is_part_inner(const dm::DamageModelData &dm_data, int part_id)
+{
+  return get_part_props(dm_data, dm::PartId(part_id, -1)).testFlag(dm::DamagePartProps::Flag::INNER);
+}
 
 inline dm::splash::Params calc_splash_params(int damage_props_id, bool underwater)
 {
   return dm::splash::calc_params(damage_props_id, underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR);
+}
+
+inline dm::synthetic_shatter::Params calc_synthetic_shatter_params(int damage_props_id, float shell_mass, bool underwater)
+{
+  return dm::synthetic_shatter::calc_params(damage_props_id, shell_mass,
+    underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR);
 }
 
 inline const dm::effect::ActionCluster *get_damage_effect_action_cluster(const dm::effect::Preset &preset, bool on_kill,
@@ -164,6 +183,11 @@ inline const dm::effect::ActionCluster *get_damage_effect_action_cluster(const d
   context.damage = damage;
   context.damageTypeId = damage_type_id;
   return preset.getActionCluster(context);
+}
+
+inline float get_part_hp_prop_value(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
+{
+  return dm::get_part_props(dm_data, part_id).hp;
 }
 
 } // namespace bind_dascript

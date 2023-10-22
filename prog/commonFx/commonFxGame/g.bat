@@ -2,12 +2,8 @@ set CSQEXE=..\..\..\tools\dagor3_cdk\util\csq-dev.exe
 %CSQEXE% StdEmitter.gen.nut 
 %CSQEXE% StaticVisSphere.gen.nut
 %CSQEXE% StdFxShaderParams.gen.nut
-%CSQEXE% animPlanesFx.gen.nut 
 %CSQEXE% CompoundPs.gen.nut 
-%CSQEXE% TrailFlowFx.gen.nut
-%CSQEXE% EmitterFlowPs.gen.nut 
 %CSQEXE% FlowPs2.gen.nut 
-%CSQEXE% AnimPlanes2Fx.gen.nut
 %CSQEXE% lightFx.gen.nut
 %CSQEXE% dafxEmitter.gen.nut
 %CSQEXE% dafxSparks.gen.nut

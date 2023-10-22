@@ -10,6 +10,7 @@
 #include "exp_tools.h"
 #include <gameRes/dag_stdGameRes.h>
 #include <math/dag_boundingSphere.h>
+#include <math/dag_mesh.h>
 #include <osApiWrappers/dag_direct.h>
 #include <libTools/dagFileRW/dagFileNode.h>
 #include <gameRes/dag_collisionResource.h>
@@ -32,6 +33,14 @@
 BEGIN_DABUILD_PLUGIN_NAMESPACE(collision)
 
 static bool def_collidable = true;
+enum
+{
+  DEGENERATIVE_MESH_DO_ERROR = 0,
+  DEGENERATIVE_MESH_DO_PASS_THROUGH,
+  DEGENERATIVE_MESH_DO_REMOVE,
+};
+static int degenerative_mesh_strategy = DEGENERATIVE_MESH_DO_ERROR;
+static bool report_inverted_mesh_tm = false;
 
 template <typename StringType>
 static void remove_dm_suffix(const String &src, StringType &dst)
@@ -346,7 +355,7 @@ public:
   virtual unsigned __stdcall getGameResClassId() const { return 0xACE50000; }
   virtual unsigned __stdcall getGameResVersion() const
   {
-    static constexpr const int base_ver = 1;
+    static constexpr const int base_ver = 2;
     return base_ver * 12 + 5 + (def_collidable ? 1 : 0) + 2 * (!preferZstdPacking ? 0 : (allowOodlePacking ? 2 : 1 + 6)) +
            (writePrecookedFmt ? 6 : 0);
   }
@@ -904,9 +913,139 @@ public:
     CollisionResource coll;
     coll.loadLegacyRawFormat(mcrd, -1, resolve_phmat);
 
+    auto remove_degenerate_faces = [&](const char *label) {
+      unsigned degenerate_meshes_cnt = 0;
+      unsigned bad_tm_cnt = 0;
+      for (auto &n : coll.allNodesList)
+        if (n.type == COLLISION_NODE_TYPE_MESH)
+        {
+          MeshData m;
+          if (!*label && n.tm.det() > 0) // require left matrix in initial data
+          {
+            if (report_inverted_mesh_tm)
+              log.addMessage(log.ERROR, "%s: bad mesh node \"%s\" tm=%@", a.getName(), n.name, n.tm);
+            else
+              logwarn("%s: bad mesh node \"%s\" tm=%@", a.getName(), n.name, n.tm);
+            bad_tm_cnt++;
+          }
+          m.vert.resize(n.vertices.size());
+          for (unsigned i = 0; i < m.vert.size(); i++)
+            m.vert[i] = n.vertices[i];
+          m.face.resize(n.indices.size() / 3);
+          for (unsigned i = 0; i < m.face.size(); i++)
+            for (unsigned fi = 0; fi < 3; fi++)
+              m.face[i].v[fi] = n.indices[i * 3 + fi];
+
+          float weld_eps = a.props.getReal("meshVertWeldEps", 1e-3f) * safeinv(n.cachedMaxTmScale);
+          unsigned zeroarea_faces_cnt = 0;
+          m.kill_unused_verts(weld_eps * weld_eps);
+          m.kill_bad_faces();
+          if (n.cachedMaxTmScale <= 1.0f)
+            for (unsigned i = 0; i < m.face.size(); i++)
+              if (lengthSq((m.vert[m.face[i].v[1]] - m.vert[m.face[i].v[0]]) % (m.vert[m.face[i].v[2]] - m.vert[m.face[i].v[0]])) <
+                  1e-12f)
+              {
+                zeroarea_faces_cnt++;
+                logerr("%s: %sdegenerate tri %d,%d,%d: %@, %@, %@ (edge len: %g, %g, %g)", a.getName(), label, m.face[i].v[0],
+                  m.face[i].v[1], m.face[i].v[2], m.vert[m.face[i].v[0]], m.vert[m.face[i].v[1]], m.vert[m.face[i].v[2]],
+                  length(m.vert[m.face[i].v[0]] - m.vert[m.face[i].v[1]]), length(m.vert[m.face[i].v[1]] - m.vert[m.face[i].v[2]]),
+                  length(m.vert[m.face[i].v[2]] - m.vert[m.face[i].v[0]]));
+                m.removeFacesFast(i, 1);
+                i--;
+              }
+          if (m.face.size() * 3 != n.indices.size())
+            m.kill_unused_verts(-1);
+          if (m.vert.size() != n.vertices.size() || m.face.size() * 3 != n.indices.size())
+          {
+            if (m.vert.size() < 3 || m.face.size() < 1)
+            {
+              degenerate_meshes_cnt++;
+              if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_ERROR)
+                log.addMessage(log.ERROR, "%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@",
+                  a.getName(), label, n.name, n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(),
+                  n.cachedMaxTmScale, weld_eps, n.modelBBox);
+              else
+                logerr("%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@", a.getName(), label,
+                  n.name, n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), n.cachedMaxTmScale, weld_eps,
+                  n.modelBBox);
+              for (unsigned i = 0; i < n.vertices.size(); i++)
+                debug("  v[%3d]=%+g,%+g,%+g", i, n.vertices[i].x, n.vertices[i].y, n.vertices[i].z);
+              for (unsigned i = 0; i < n.indices.size(); i += 3)
+                debug("  f[%3d]=%u, %u, %u", i / 3, n.indices[i + 0], n.indices[i + 1], n.indices[i + 2]);
+              for (unsigned i = 0; i < m.vert.size(); i++)
+                debug("  mv[%d]=%+g,%+g,%+g", i, m.vert[i].x, m.vert[i].y, m.vert[i].z);
+              if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_REMOVE)
+              {
+                n.resetVertices();
+                n.resetIndices();
+              }
+              continue;
+            }
+
+            if (zeroarea_faces_cnt)
+              logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g (%d zero-area faces removed)",
+                a.getName(), label, n.name, n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), weld_eps,
+                zeroarea_faces_cnt);
+            else
+              logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g", a.getName(), label, n.name,
+                n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), weld_eps);
+
+            if (n.vertices.size() != m.vert.size())
+              n.resetVertices({memalloc_typed<Point3_vec4>(m.vert.size(), midmem), m.vert.size()});
+            for (unsigned i = 0; i < m.vert.size(); i++)
+              n.vertices[i] = m.vert[i], n.vertices[i].resv = 1.0f;
+            if (n.indices.size() != m.face.size() * 3)
+              n.resetIndices({memalloc_typed<uint16_t>(m.face.size() * 3, midmem), m.face.size() * 3});
+            for (unsigned i = 0; i < m.face.size(); i++)
+              for (unsigned fi = 0; fi < 3; fi++)
+                n.indices[i * 3 + fi] = m.face[i].v[fi];
+          }
+        }
+      if (degenerate_meshes_cnt)
+      {
+        if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_ERROR)
+          return false;
+        if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_REMOVE)
+        {
+          for (int ni = coll.allNodesList.size() - 1; ni >= 0; ni--)
+            if (coll.allNodesList[ni].type == COLLISION_NODE_TYPE_MESH && !coll.allNodesList[ni].vertices.size() &&
+                !coll.allNodesList[ni].indices.size())
+              erase_items(coll.allNodesList, ni, 1);
+          coll.rebuildNodesLL();
+          logwarn("%s: %sremoved %d nodes with degenerative meshes, %d nodes remain", //
+            a.getName(), label, degenerate_meshes_cnt, coll.allNodesList.size());
+        }
+        if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_PASS_THROUGH)
+          logwarn("%s: %spassing through %d nodes with degenerative meshes", a.getName(), label, degenerate_meshes_cnt);
+      }
+      if (bad_tm_cnt)
+      {
+        if (report_inverted_mesh_tm)
+        {
+          log.addMessage(log.ERROR, "%s: found %d mesh nodes with bad tm, src=%s", a.getName(), bad_tm_cnt, a.getTargetFilePath());
+          return false;
+        }
+        else
+          logwarn("%s: found %d mesh nodes with bad tm, src=%s", a.getName(), bad_tm_cnt, a.getTargetFilePath());
+      }
+      return true;
+    };
+
+    if (!remove_degenerate_faces(""))
+      return false;
+
     // optimize collision data and build FRT if requested
     if (collapse_and_optimize)
-      coll.collapseAndOptimize(a.props.getBool("buildFRT", true), /* fast= */ false);
+    {
+      coll.collapseAndOptimize(/* build_frt */ false, /* fast= */ false);
+      if (!remove_degenerate_faces("[post-collapse-pass] "))
+        return false;
+      if (bool build_frt = a.props.getBool("buildFRT", true))
+      {
+        coll.collisionFlags &= ~COLLISION_RES_FLAG_OPTIMIZED;
+        coll.collapseAndOptimize(build_frt, /* fast= */ false);
+      }
+    }
 
     // write back uncompressed data in modern format
     mcwr.reset(128 << 10);
@@ -957,7 +1096,7 @@ public:
 
     if (c.collisionFlags & COLLISION_RES_FLAG_HAS_TRACE_FRT)
       c.gridForTraceable.tracer->serialize(cwr.getRawWriter(), cwr.WRITE_BE, nullptr, false);
-    if ((c.collisionFlags & COLLISION_RES_FLAG_HAS_TRACE_FRT) && !(c.collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT))
+    if ((c.collisionFlags & COLLISION_RES_FLAG_HAS_COLL_FRT) && !(c.collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT))
       c.gridForCollidable.tracer->serialize(cwr.getRawWriter(), cwr.WRITE_BE, nullptr, false);
 
     cwr.writeInt32e(c.allNodesList.size());
@@ -1048,6 +1187,18 @@ public:
       debug("collision allows OODLE");
 
     writePrecookedFmt = collisionBlk->getBool("writePrecookedFmt", false);
+
+    const char *degen_strategy_str = collisionBlk->getStr("degenerativeMeshStrategy", "remove");
+    if (strcmp(degen_strategy_str, "remove") == 0)
+      degenerative_mesh_strategy = DEGENERATIVE_MESH_DO_REMOVE;
+    else if (strcmp(degen_strategy_str, "ignore") == 0)
+      degenerative_mesh_strategy = DEGENERATIVE_MESH_DO_PASS_THROUGH;
+    else if (strcmp(degen_strategy_str, "error") == 0)
+      degenerative_mesh_strategy = DEGENERATIVE_MESH_DO_ERROR;
+    else
+      logerr("bad assets{ build{ collision{ %s:t=%s, leaving degenerative_mesh_strategy=%d", "degenerativeMeshStrategy",
+        degen_strategy_str, degenerative_mesh_strategy);
+    report_inverted_mesh_tm = collisionBlk->getBool("errorOnInvertedMesh", false);
     return true;
   }
   virtual void __stdcall destroy() { delete this; }

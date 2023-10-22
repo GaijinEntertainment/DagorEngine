@@ -8,9 +8,17 @@
 
 namespace SQCompilation {
 
+
+enum DiagnosticSubsystem {
+  DSS_LEX,
+  DSS_SYNTAX,
+  DSS_SEMA
+};
+
 struct DiagnosticDescriptor {
   const char *format;
-  enum DiagnosticSeverity severity;
+  const enum DiagnosticSeverity severity;
+  const enum DiagnosticSubsystem subsystem;
   const int32_t id;
   const char *textId;
   bool disabled;
@@ -22,16 +30,17 @@ static const char *severityNames[] = {
 };
 
 static DiagnosticDescriptor diagnosticDescriptors[] = {
-#define DEF_DIAGNOSTIC(_, severity, ___, num_id, text_id, fmt) { _SC(fmt), DS_##severity, num_id, _SC(text_id), false }
+#define DEF_DIAGNOSTIC(_, severity, subsytem, num_id, text_id, fmt) { _SC(fmt), DS_##severity, DSS_##subsytem, num_id, _SC(text_id), false }
   DIAGNOSTICS
 #undef DEF_DIAGNOSTIC
 };
 
-SQCompilationContext::SQCompilationContext(SQVM *vm, Arena *arena, const SQChar *sn, const char *code, size_t csize, bool raiseError)
+SQCompilationContext::SQCompilationContext(SQVM *vm, Arena *arena, const SQChar *sn, const char *code, size_t csize, const Comments *comments, bool raiseError)
   : _vm(vm)
   , _arena(arena)
   , _sourceName(sn)
   , _linemap(_ss(vm)->_alloc_ctx)
+  , _comments(comments)
   , _code(code)
   , _codeSize(csize)
   , _raiseError(raiseError)
@@ -46,13 +55,31 @@ SQCompilationContext::~SQCompilationContext()
 {
 }
 
+Comments::~Comments() {
+  SQAllocContext ctx = _commentsList._alloc_ctx;
+
+  for (auto &lc : _commentsList) {
+    for (auto &c : lc) {
+      sq_vm_free(ctx, (void *)c.text, c.size + 1);
+    }
+  }
+}
+
+const Comments::LineCommentsList &Comments::lineComment(int line) const {
+  line -= 1;
+  assert(0 <= line && line < _commentsList.size());
+  return _commentsList[line];
+}
+
 std::vector<std::string> SQCompilationContext::function_forbidden;
+std::vector<std::string> SQCompilationContext::format_function_name;
 std::vector<std::string> SQCompilationContext::function_can_return_string;
 std::vector<std::string> SQCompilationContext::function_should_return_bool_prefix;
 std::vector<std::string> SQCompilationContext::function_should_return_something_prefix;
 std::vector<std::string> SQCompilationContext::function_result_must_be_utilized;
 std::vector<std::string> SQCompilationContext::function_can_return_null;
 std::vector<std::string> SQCompilationContext::function_calls_lambda_inplace;
+std::vector<std::string> SQCompilationContext::function_takes_boolean_lambda;
 std::vector<std::string> SQCompilationContext::function_forbidden_parent_dir;
 std::vector<std::string> SQCompilationContext::function_modifies_object;
 std::vector<std::string> SQCompilationContext::function_must_be_called_from_root;
@@ -64,6 +91,16 @@ void SQCompilationContext::resetConfig() {
 
   function_forbidden = {
 
+  };
+
+  format_function_name = {
+    "prn",
+    "print",
+    "form",
+    "fmt",
+    "log",
+    "dbg",
+    "assert",
   };
 
   function_can_return_string = {
@@ -93,7 +130,11 @@ void SQCompilationContext::resetConfig() {
     "was",
     "Was",
     "will",
-    "Will"
+    "Will",
+    "contains",
+    "match",
+    "startswith",
+    "endswith"
   };
 
   function_should_return_something_prefix = {
@@ -120,6 +161,12 @@ void SQCompilationContext::resetConfig() {
     "indexof",
     "findindex",
     "findvalue"
+  };
+
+  function_takes_boolean_lambda = {
+    "findvalue",
+    "findindex",
+    "filter"
   };
 
   function_calls_lambda_inplace = {
@@ -153,6 +200,7 @@ void SQCompilationContext::resetConfig() {
     "resize",
     "rawdelete",
     "rawset",
+    "remove"
   };
 
   function_must_be_called_from_root = {
@@ -333,36 +381,51 @@ bool SQCompilationContext::switchDiagnosticState(int32_t id, bool state) {
   return false;
 }
 
+void SQCompilationContext::switchSyntaxWarningsState(bool state) {
+  for (auto &diag : diagnosticDescriptors) {
+    if (diag.severity == DS_WARNING && (diag.subsystem == DSS_SYNTAX || diag.subsystem == DSS_LEX)) {
+      diag.disabled = !state;
+    }
+  }
+}
+
 bool SQCompilationContext::isDisabled(enum DiagnosticsId id, int line, int pos) {
   DiagnosticDescriptor &descriptor = diagnosticDescriptors[id];
   if (descriptor.severity >= DS_ERROR) return false;
 
   if (descriptor.disabled) return true;
 
-  const char *codeLine = findLine(line);
-
-  if (!codeLine)
+  if (!_comments)
     return false;
+
+  const Comments::LineCommentsList &lineCmts = _comments->lineComment(line);
 
   char suppressLineIntBuf[64] = { 0 };
   char suppressLineTextBuf[128] = { 0 };
   snprintf(suppressLineIntBuf, sizeof(suppressLineIntBuf), "-%c%d", severityPrefixes[descriptor.severity], descriptor.id);
-  int lt = snprintf(suppressLineTextBuf, sizeof(suppressLineTextBuf), "-%s", descriptor.textId);
+  snprintf(suppressLineTextBuf, sizeof(suppressLineTextBuf), "-%s", descriptor.textId);
 
-  const char *commentPart = strstr_nl(codeLine, "//");
+  for (auto &comment : lineCmts) {
+    if (strstr(comment.text, suppressLineIntBuf))
+      return true;
 
-  if (commentPart && (strstr_nl(commentPart, suppressLineIntBuf) || strstr_nl(commentPart, suppressLineTextBuf))) {
-    return true;
+    if (strstr(comment.text, suppressLineTextBuf))
+      return true;
   }
 
   char suppressFileIntBuf[64] = { 0 };
   char suppressFileTextBuf[128] = { 0 };
-  int fi = snprintf(suppressFileIntBuf, sizeof(suppressFileIntBuf), "//-file:%c%d", severityPrefixes[descriptor.severity], descriptor.id);
-  int ft = snprintf(suppressFileTextBuf, sizeof(suppressFileTextBuf), "//-file:%s", descriptor.textId);
+  int fi = snprintf(suppressFileIntBuf, sizeof(suppressFileIntBuf), "-file:%c%d", severityPrefixes[descriptor.severity], descriptor.id);
+  int ft = snprintf(suppressFileTextBuf, sizeof(suppressFileTextBuf), "-file:%s", descriptor.textId);
 
-  if (strstr(_code, suppressFileIntBuf) || strstr(_code, suppressFileTextBuf)) {
-    descriptor.disabled = true;
-    return true;
+  for (auto &lineComments : _comments->commentsList()) {
+    for (auto &comment : lineComments) {
+      if (strstr(comment.text, suppressFileIntBuf))
+        return true;
+
+      if (strstr(comment.text, suppressFileTextBuf))
+        return true;
+    }
   }
 
   return false;
@@ -395,17 +458,16 @@ static bool isBlankLine(const char *l) {
   return true;
 }
 
-void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t line, int32_t pos, int32_t width, va_list vargs) {
-  assert(diagId < DI_NUM_OF_DIAGNOSTICS);
+void SQCompilationContext::renderDiagnosticHeader(enum DiagnosticsId diag, std::string *msg, ...) {
+  va_list vargs;
+  va_start(vargs, msg);
+  vrenderDiagnosticHeader(diag, *msg, vargs);
+  va_end(vargs);
+}
 
-  if (isDisabled(diagId, line, pos)) {
-    return;
-  }
-
-  auto &desc = diagnosticDescriptors[diagId];
-  bool isError = desc.severity >= DS_ERROR;
+void SQCompilationContext::vrenderDiagnosticHeader(enum DiagnosticsId diag, std::string &message, va_list vargs) {
+  auto &desc = diagnosticDescriptors[diag];
   char tempBuffer[2048] = { 0 };
-  std::string message;
 
   int32_t i = snprintf(tempBuffer, sizeof tempBuffer, "%s: ", severityNames[desc.severity]);
 
@@ -419,6 +481,20 @@ void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t 
   int len = vsnprintf(tempBuffer, sizeof tempBuffer, desc.format, vargs);
 
   message.append(tempBuffer);
+}
+
+void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t line, int32_t pos, int32_t width, va_list vargs) {
+  assert(diagId < DI_NUM_OF_DIAGNOSTICS);
+
+  if (isDisabled(diagId, line, pos)) {
+    return;
+  }
+
+  auto &desc = diagnosticDescriptors[diagId];
+  bool isError = desc.severity >= DS_ERROR;
+  std::string message;
+
+  vrenderDiagnosticHeader(diagId, message, vargs);
 
   std::string extraInfo;
 
@@ -434,7 +510,7 @@ void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t 
     }
   }
 
-  if (!isBlankLine(l2)) {
+  if (l2 != nullptr) {
     extraInfo.push_back('\n');
     int32_t j = 0;
     while (l2[j] && l2[j] != '\n' && l2[j] != '\r') { //-V522

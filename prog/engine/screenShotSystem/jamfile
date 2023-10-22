@@ -1,0 +1,16 @@
+Root    ?= ../../.. ;
+Location = prog/engine/screenShotSystem ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = engine/screenShotSystem.lib ;
+
+Sources =
+  screenShotSystem.cpp
+;
+
+AddIncludes = $(Root)/prog/engine/sharedInclude ;
+
+CPPopt = -D__B_MINICORE ;
+
+include $(Root)/prog/_jBuild/build.jam ;

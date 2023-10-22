@@ -2,12 +2,12 @@
 
 #include "p_extensible_group.h"
 
-CExtGroup::CExtGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
-  const char caption[]) :
+CExtGroup::CExtGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+  hdpi::Px h, const char caption[]) :
 
   CGroup(event_handler, parent, id, x, y, w, h, caption),
-  mQuartButtons(this, &mMaxButton, mMaxButton.getWidth() - DEFAULT_CONTROL_HEIGHT - 1, 1, DEFAULT_CONTROL_HEIGHT,
-    DEFAULT_CONTROL_HEIGHT),
+  mQuartButtons(this, &mMaxButton, mMaxButton.getWidth() - _pxS(DEFAULT_CONTROL_HEIGHT) - 1, 1, _pxS(DEFAULT_CONTROL_HEIGHT),
+    _pxS(DEFAULT_CONTROL_HEIGHT)),
   mButtonStatus(EXT_BUTTON_NONE)
 {}
 
@@ -50,8 +50,8 @@ void CExtGroup::onWcRefresh(WindowBase *source)
 }
 
 
-void CExtGroup::setWidth(unsigned w)
+void CExtGroup::setWidth(hdpi::Px w)
 {
   CGroup::setWidth(w);
-  mQuartButtons.moveWindow(mMaxButton.getWidth() - DEFAULT_CONTROL_HEIGHT - 1, 1);
+  mQuartButtons.moveWindow(mMaxButton.getWidth() - _pxS(DEFAULT_CONTROL_HEIGHT) - 1, 1);
 }

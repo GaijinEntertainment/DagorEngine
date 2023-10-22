@@ -65,7 +65,6 @@ public:
       startAt(start_at), mint(dist), WooRay3d(start, dir, leafSize)
     {}
   };
-  mutable real lastU, lastV; // used(read) only in prog/tools/libTools/staticGeom/geomObjectTracer.cpp
   enum
   {
     CULL_CCW = 0x01,
@@ -140,7 +139,7 @@ public:
   //! Tests ray hit to closest object and returns parameters of hit (if happen)
   /// return -1 if not hit, face index otherwise
   int traceray(const Point3 &p, const Point3 &dir, real &t, int fromFace = -1) const;
-  int VECTORCALL traceray(vec3f p, vec3f dir, real &mint, int fromFace = -1) const;
+  VECTORCALL int traceray(vec3f p, vec3f dir, real &mint, int fromFace = -1) const;
 
   //! Gets height to closest object, but below point and returns parameters of hit (if happen)
   /// return -1 if there is no face below, face index otherwise
@@ -153,7 +152,7 @@ public:
   //! Tests ray hit to closest object and returns parameters of hit (if happen), for normalized Dir only
   /// return -1 if not hit, face index otherwise
   int tracerayNormalized(const Point3 &p, const Point3 &dir, real &t, int fromFace = -1) const;
-  int VECTORCALL tracerayNormalized(vec3f p, vec3f dir, real &mint, int fromFace = -1) const;
+  VECTORCALL int tracerayNormalized(vec3f p, vec3f dir, real &mint, int fromFace = -1) const;
 
   //! Tests ray hit to closest object and returns parameters of hit (if happen), for normalized Dir only
   /// return -1 if not hit, face index otherwise
@@ -164,8 +163,8 @@ public:
   __forceinline void setSkipFlagMask(unsigned flag) { skipFlags = flag << 24; }
 
   //! Tests ray hit to any object and returns parameters of hit (if happen)
-  int VECTORCALL rayhitNormalizedIdx(vec3f p, vec3f dir, real mint) const;
-  bool VECTORCALL rayhitNormalized(vec3f p, vec3f dir, real mint) const { return rayhitNormalizedIdx(p, dir, mint) >= 0; }
+  VECTORCALL int rayhitNormalizedIdx(vec3f p, vec3f dir, real mint) const;
+  VECTORCALL bool rayhitNormalized(vec3f p, vec3f dir, real mint) const { return rayhitNormalizedIdx(p, dir, mint) >= 0; }
   bool rayhitNormalized(const Point3 &p, const Point3 &d, real t) const { return rayhitNormalized(v_ldu(&p.x), v_ldu(&d.x), t); }
 
   //! Tests for capsule clipping by scene; returns depth of penetration and normal to corresponding face
@@ -197,30 +196,30 @@ public:
     Point3 bsc;
     real bsr2;
     PatchablePtr<Node> sub0;
+    PatchablePtr<Node> sub1;
+    Node()
+    {
+      sub0 = NULL;
+      sub1 = NULL;
+    }
 
-    Node() { sub0 = NULL; }
+    bool isLeaf() const { return sub0.get() < sub1.get(); }
+    bool isNode() const { return sub0.get() > sub1.get(); }
+    const Node *getLeft() const { return sub1.get(); }
+    const Node *getRight() const { return sub0.get(); }
+    Node *getLeft() { return sub1.get(); }
+    Node *getRight() { return sub0.get(); }
     void destroy();
-    void patch(void *base, void *dump_base);
-    void serialize(IGenSave &cb, const void *dump_base);
+    void serialize(IGenSave &cb, const void *dump_base) const;
   };
 
 protected:
-  struct BNode : Node
-  {
-    PatchablePtr<Node> sub1;
-    BNode() { sub1 = NULL; }
-    void patch(void *base, void *dump_base);
-    void serialize(IGenSave &cb, const void *dump_base);
-  };
   struct LNode : Node
   {
-    PatchablePtr<FaceIndex> faceIndexStart;
-    PatchablePtr<FaceIndex> faceIndexEnd; // after last, i.e. not inclusive
-
-    LNode() { faceIndexStart = NULL, faceIndexEnd = NULL; }
-    ~LNode() {}
-    void patch(void *base, void *dump_base);
-    void serialize(IGenSave &cb, const void *dump_base);
+    FaceIndex *getFaceIndexStart() { return (FaceIndex *)Node::sub0.get(); }
+    FaceIndex *getFaceIndexEnd() { return (FaceIndex *)Node::sub1.get(); }
+    const FaceIndex *getFaceIndexStart() const { return (const FaceIndex *)Node::sub0.get(); }
+    const FaceIndex *getFaceIndexEnd() const { return (const FaceIndex *)Node::sub1.get(); }
   };
   //! Tests for capsule clipping by scene; returns depth of penetration and normal to corresponding face
   bool clipCapsuleFace(FaceIndex findex, const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedir) const;
@@ -238,18 +237,19 @@ protected:
   DAGOR_NOINLINE int tracerayNodeVec(const vec3f &p, const vec3f &dir, float &t, const Node *node, int fromFace) const;
 
   template <bool noCull>
-  inline int VECTORCALL rayhitLNodeIdx(vec3f p, vec3f dir, float t, const LNode *node) const;
+  VECTORCALL inline int rayhitLNodeIdx(vec3f p, vec3f dir, float t, const LNode *node) const;
   template <bool noCull>
-  inline int VECTORCALL rayhitNodeIdx(vec3f p, vec3f dir, float t, const Node *node) const;
+  VECTORCALL inline int rayhitNodeIdx(vec3f p, vec3f dir, float t, const Node *node) const;
 
   inline int getHeightBelowLNode(const Point3 &p, real &ht, const LNode *node) const;
   inline int getHeightBelowNode(const Point3 &p, real &ht, const Node *node) const;
+  void rearrangeLegacyDump(char *data, uint32_t n);
 
   template <typename U>
-  static void VECTORCALL getFacesNode(vec3f bmin, vec3f bmax, Tab<int> &face, U &uniqueness, const Node *node,
+  VECTORCALL static void getFacesNode(vec3f bmin, vec3f bmax, Tab<int> &face, U &uniqueness, const Node *node,
     const StaticSceneRayTracerT *rt);
   template <typename U>
-  static __forceinline void VECTORCALL getFacesLNode(vec3f bmin, vec3f bmax, Tab<int> &face, U &uniqueness, const LNode *node,
+  VECTORCALL static __forceinline void getFacesLNode(vec3f bmin, vec3f bmax, Tab<int> &face, U &uniqueness, const LNode *node,
     const StaticSceneRayTracerT *rt);
 
   template <class CB = GetFacesContext>
@@ -270,23 +270,16 @@ protected:
     PatchablePtr<FaceIndex> faceIndicesPtr;
     PatchablePtr<RTHierGrid3<Leaf, 0>> grid;
     int vertsCount, facesCount, faceIndicesCount;
-    int reserved1, reserved2, reserved3;
+    int version, reserved2, reserved3;
 
-    Dump() : vertsCount(0), facesCount(0), faceIndicesCount(0), reserved1(0), reserved2(0), reserved3(0)
+    Dump() : vertsCount(0), facesCount(0), faceIndicesCount(0), version(0), reserved2(0), reserved3(0)
     {
       vertsPtr = NULL;
       facesPtr = NULL;
       faceIndicesPtr = NULL;
       grid = NULL;
     }
-    void patch()
-    {
-      vertsPtr.patch(this);
-      facesPtr.patch(this);
-      faceIndicesPtr.patch(this);
-      grid.patch(this);
-      grid->patch(grid, this);
-    }
+    void patch();
   } dump;
   bbox3f v_rtBBox;
   Tab<Point3_vec4> vertsVecLegacy;

@@ -18,7 +18,7 @@ if $(Platform) in linux64 macosx {
   ;
 }
 
-if $(PlatformSpec) in gcc4 clang {
+if $(PlatformSpec) in gcc clang {
   CPPopt += -Wno-unused-parameter ;
 }
 

@@ -1,0 +1,17 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/ssView ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/ssView.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  main_ssv.cpp
+  plugin_ssv.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

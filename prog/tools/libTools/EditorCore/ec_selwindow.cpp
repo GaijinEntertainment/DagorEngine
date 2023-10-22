@@ -11,6 +11,8 @@
 #include <sepGui/wndGlobal.h>
 #include <3d/dag_drv3d.h>
 
+using hdpi::_pxActual;
+using hdpi::_pxScaled;
 
 static int scr_width()
 {
@@ -18,10 +20,6 @@ static int scr_width()
   d3d::get_screen_size(w, h);
   return w;
 }
-
-#define DIALOG_WIDTH  max(scr_width() / 3, 600)
-#define DIALOG_HEIGHT 426
-
 
 // SelWindow buttons IDs
 enum
@@ -53,7 +51,7 @@ SelWindow::SelWindow(void *phandle, IObjectsList *obj, const char *obj_list_owne
   objects(obj),
   objListName(obj_list_owner_name),
   typeNames(tmpmem),
-  CDialogWindow(phandle, DIALOG_WIDTH, DIALOG_HEIGHT, "Select objects")
+  CDialogWindow(phandle, _pxActual(max(scr_width() / 3, hdpi::_pxS(600))), _pxScaled(426), "Select objects")
 {
   ctorInit();
 }
@@ -66,7 +64,7 @@ SelWindow::SelWindow(void *phandle, const EcRect &rect, IObjectsList *obj, const
   objects(obj),
   objListName(obj_list_owner_name),
   typeNames(tmpmem),
-  CDialogWindow(phandle, rect.r - rect.l, rect.b - rect.t, "Select objects")
+  CDialogWindow(phandle, _pxActual(rect.r - rect.l), _pxActual(rect.b - rect.t), "Select objects")
 {
   ctorInit();
 }
@@ -82,13 +80,6 @@ void SelWindow::ctorInit()
     if (crd->fileHandle)
       typesBlk->loadFromStream(*crd);
     delete crd;
-
-    // int xpos = typesBlk->getInt("xpos",(_ctl_VESA.getWidth() - DIALOG_WIDTH) / 2);
-    // int ypos = typesBlk->getInt("ypos",(_ctl_VESA.getHeight() - DIALOG_HEIGHT) / 2);
-    // int xsize = typesBlk->getInt("width",DIALOG_WIDTH);
-    // int ysize = typesBlk->getInt("height",DIALOG_HEIGHT);
-
-    // wMoveResize(xpos, ypos, xsize, ysize);
   }
 
   PropertyContainerControlBase *_panel = getPanel();
@@ -97,7 +88,7 @@ void SelWindow::ctorInit()
   Tab<String> vals(tmpmem);
 
   _panel->createEditBox(ID_NAME_MASK, "");
-  _panel->createMultiSelectList(ID_NAMES_LIST, vals, 230);
+  _panel->createMultiSelectList(ID_NAMES_LIST, vals, _pxScaled(230));
 
   _panel->createButton(ID_SELECT_ALL, "All", true, true);
   _panel->createButton(ID_SELECT_NONE, "None", true, false);

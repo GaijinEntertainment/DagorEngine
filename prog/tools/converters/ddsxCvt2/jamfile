@@ -26,8 +26,8 @@ Sources =
 ;
 
 UseProgLibs =
-  engine2/startup
-  engine2/math
+  engine/startup
+  engine/math
   tools/libTools/dtx
   tools/libTools/assetMgr
   tools/libTools/assetMgrHlp

@@ -6,16 +6,20 @@
 
 namespace SQCompilation {
 
-  class StaticAnalyser {
+class StaticAnalyser {
 
-    SQCompilationContext &_ctx;
+  SQCompilationContext &_ctx;
 
-  public:
+public:
 
-    StaticAnalyser(SQCompilationContext &ctx);
+  StaticAnalyser(SQCompilationContext &ctx);
 
-    void runAnalysis(RootBlock *r);
-  };
+  void runAnalysis(RootBlock *r, const HSQOBJECT *bindings);
+
+  static void reportGlobalNameDiagnostics(HSQUIRRELVM vm);
+
+  static void checkTrailingWhitespaces(HSQUIRRELVM vm, const SQChar *sn, const SQChar *code, size_t codeSize);
+};
 
 }
 

@@ -15,8 +15,8 @@ WTrackBar::WTrackBar(WindowControlEventHandler *event_handler, WindowBase *paren
   WindowControlBase(event_handler, parent, "BUTTON", 0, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, "", // | BS_FLAT
     x, y, w, h),
 
-  mLeader(event_handler, this, "STATIC", 0, WS_CHILD | WS_VISIBLE | SS_LEFT | SS_ETCHEDHORZ, "", 0, (h - TRACK_LEADER_HEIGHT) / 2, w,
-    TRACK_LEADER_HEIGHT),
+  mLeader(event_handler, this, "STATIC", 0, WS_CHILD | WS_VISIBLE | SS_LEFT | SS_ETCHEDHORZ, "", 0,
+    (h - _pxS(TRACK_LEADER_HEIGHT)) / 2, w, _pxS(TRACK_LEADER_HEIGHT)),
 
   mRunner(event_handler, this, "STATIC", 0, WS_CHILD | WS_VISIBLE | WS_DLGFRAME, "", 0, 0, h / 2, h),
 
@@ -126,8 +126,8 @@ void WTrackBar::setEnabled(bool enabled)
 
 void WTrackBar::resizeWindow(int w, int h)
 {
-  mLeader.resizeWindow(w, TRACK_LEADER_HEIGHT);
-  mLeader.moveWindow(0, (h - TRACK_LEADER_HEIGHT) / 2);
+  mLeader.resizeWindow(w, _pxS(TRACK_LEADER_HEIGHT));
+  mLeader.moveWindow(0, (h - _pxS(TRACK_LEADER_HEIGHT)) / 2);
 
   WindowBase::resizeWindow(w, h);
   this->setValue(this->getValue());

@@ -89,6 +89,7 @@ void get_mem_usage(FmodMemoryUsage &fmem);
 void block_programmer_sounds(bool do_mute);
 int get_programmer_sounds_generation();
 void increment_programmer_sounds_generation();
+void set_snd_suspend(bool suspend);
 
 struct CallbackType
 {

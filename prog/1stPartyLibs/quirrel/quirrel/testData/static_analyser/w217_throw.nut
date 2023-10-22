@@ -8,3 +8,5 @@ let function foo(x){ //-declared-never-used
     throw "err"
   }
 }
+
+//-file:undefined-global

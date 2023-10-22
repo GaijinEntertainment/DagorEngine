@@ -48,7 +48,7 @@ public:
 
 // Note: this class is not ABI combatible across Apex/non-Apex library build.
 // Don't use it unless you know what are you doing
-class CollisionInstances // To consider: rename this to RendinstCollisionInstances or RICollisionInstances
+class CollisionInstances
 {
 public:
   CollisionInstances(const CICollisionObject &obj) : originalObj(obj) {}
@@ -65,7 +65,7 @@ public:
   APEX_VIRTUAL void clearInstances();
   bool empty() const { return bulletInstances.empty(); }
 
-  CollisionObject getCollisionObject(const rendinst::RendInstDesc &desc, const Point3 &scale);
+  CollisionObject getCollisionObject(const rendinst::RendInstDesc &desc, TMatrix &tm, bool instant = false);
   void removeCollisionObject(const rendinst::RendInstDesc &desc);
   void enableDisableCollisionObject(const rendinst::RendInstDesc &desc, bool flag);
   bool isCollisionObjectEnabled(const rendinst::RendInstDesc &desc) const;
@@ -81,7 +81,7 @@ public:
   APEX_VIRTUAL bool update(float dt); // Return false if empty
 
 private:
-  const ScaledBulletInstance &getScaledInstance(const rendinst::RendInstDesc &desc, const Point3 &scale);
+  const ScaledBulletInstance &getScaledInstance(const rendinst::RendInstDesc &desc, const Point3 &scale, bool &out_created);
 
 protected:
   // We can probably get away with 16 bit indexes but there is no padding in this struct so there is no point

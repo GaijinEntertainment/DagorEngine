@@ -8,8 +8,8 @@
 class CStatic : public PropertyControlBase
 {
 public:
-  CStatic(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, const char caption[],
-    int h = DEFAULT_CONTROL_HEIGHT);
+  CStatic(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+    const char caption[], hdpi::Px h = _pxScaled(DEFAULT_CONTROL_HEIGHT));
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
     bool new_line = true);
@@ -24,7 +24,7 @@ public:
   void setBoolValue(bool value);
 
 
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
   void moveTo(int x, int y);
 
 private:

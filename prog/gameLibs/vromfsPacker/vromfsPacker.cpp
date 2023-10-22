@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stddef.h> // offsetof
 #include <supp/dag_zstdObfuscate.h>
-#if _TARGET_PC_LINUX | _TARGET_APPLE
+#if _TARGET_PC_LINUX | _TARGET_APPLE | _TARGET_ANDROID
 #include <unistd.h>
 #elif _TARGET_PC_WIN
 #include <direct.h>
@@ -53,7 +53,7 @@ namespace dblk
 void save_to_bbf3(const DataBlock &blk, IGenSave &cwr);
 }
 
-#define FS_OFFS offsetof(VirtualRomFsData, files)
+#define FS_OFFS int(offsetof(VirtualRomFsData, files))
 static const int C_SHA1_RECSZ = VirtualRomFsPack::BackedData::C_SHA1_RECSZ;
 static const int ZSTD_BLK_CLEVEL = 11;
 

@@ -5,6 +5,7 @@
 //
 #pragma once
 
+#include <3d/dag_drv3dConsts.h>
 #include <3d/dag_drvDecl.h>
 #include <EASTL/vector.h>
 
@@ -12,7 +13,7 @@ class DataBlock;
 
 struct GpuVideoSettings
 {
-  int drvCode = 0;
+  DriverCode drvCode;
   bool disableNvTweaks = false;
   bool disableAtiTweaks = false;
   bool ignoreOutdatedDriver = false;

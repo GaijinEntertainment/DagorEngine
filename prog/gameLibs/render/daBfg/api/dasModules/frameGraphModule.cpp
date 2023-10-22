@@ -9,6 +9,7 @@
 #include <api/dasModules/nodeEcsRegistration.h>
 #include <api/dasModules/bindingHelper.h>
 #include <render/daBfg/ecs/frameGraphNode.h>
+#include <backend.h>
 
 
 namespace bind_dascript
@@ -52,12 +53,22 @@ void setEcsNodeHandle(ecs::ComponentsInitializer &init, const char *name, dabfg:
   setInitChildComponent(init, name, eastl::move(handle));
 }
 
-void fillSlot(const char *slot, const char *res_name) { dabfg::fill_slot(dabfg::NamedSlot{slot}, res_name); }
-
-void registerNodeDeclaration(dabfg::NodeData &node_data, DasDeclarationCallBack declaration_callback, das::Context *context)
+void fillSlot(dabfg::NameSpaceNameId ns, const char *slot, dabfg::NameSpaceNameId res_ns, const char *res_name)
 {
-  node_data.declare = [context, declaration_callback](dabfg::NodeNameId nodeId, dabfg::InternalRegistry *r) {
-    DasRegistry registry{nodeId, r};
+  auto &registry = dabfg::NodeTracker::get().registry;
+  const dabfg::ResNameId slotNameId = registry.knownNames.addNameId<dabfg::ResNameId>(ns, slot);
+  const dabfg::ResNameId resNameId = registry.knownNames.addNameId<dabfg::ResNameId>(res_ns, res_name);
+  registry.resourceSlots.set(slotNameId, dabfg::SlotData{resNameId});
+
+  // TODO: it is a bit ugly that we need to call this here and in C++ API's fillSlot, maybe rework it somehow?
+  dabfg::Backend::get().markStageDirty(dabfg::CompilationStage::REQUIRES_NAME_RESOLUTION);
+}
+
+void registerNodeDeclaration(dabfg::NodeData &node_data, dabfg::NameSpaceNameId ns_id, DasDeclarationCallBack declaration_callback,
+  das::Context *context)
+{
+  node_data.declare = [context, declaration_callback, ns_id](dabfg::NodeNameId nodeId, dabfg::InternalRegistry *r) {
+    DasRegistry registry{ns_id, nodeId, r};
     const auto invokeDeclCb = [context, declaration_callback, &registry]() {
       return das::das_invoke_lambda<DasExecutionCallback>::invoke<DasRegistry &>(context, nullptr, declaration_callback, registry);
     };
@@ -96,9 +107,17 @@ struct InternalRegistryAnnotation final : das::ManagedStructureAnnotation<dabfg:
   {
     addField<DAS_BIND_MANAGED_FIELD(resources)>("resources");
     addField<DAS_BIND_MANAGED_FIELD(nodes)>("nodes");
-    addField<DAS_BIND_MANAGED_FIELD(knownNodeNames)>("knownNodeNames");
-    addField<DAS_BIND_MANAGED_FIELD(knownResourceNames)>("knownResourceNames");
-    addField<DAS_BIND_MANAGED_FIELD(knownAutoResolutionTypeNames)>("knownAutoResolutionTypeNames");
+    addField<DAS_BIND_MANAGED_FIELD(knownNames)>("knownNames");
+  }
+};
+
+struct DasNameSpaceRequestAnnotation final : das::ManagedStructureAnnotation<DasNameSpaceRequest>
+{
+  DasNameSpaceRequestAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("NameSpaceRequest", ml, "DasNameSpaceRequest")
+  {
+    addField<DAS_BIND_MANAGED_FIELD(nameSpaceId)>("nameSpaceId");
+    addField<DAS_BIND_MANAGED_FIELD(nodeId)>("nodeId");
+    addField<DAS_BIND_MANAGED_FIELD(registry)>("registry");
   }
 };
 
@@ -106,6 +125,7 @@ struct DasRegistryAnnotation final : das::ManagedStructureAnnotation<DasRegistry
 {
   DasRegistryAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("Registry", ml, "DasRegistry")
   {
+    addField<DAS_BIND_MANAGED_FIELD(nameSpaceId)>("nameSpaceId");
     addField<DAS_BIND_MANAGED_FIELD(nodeId)>("nodeId");
     addField<DAS_BIND_MANAGED_FIELD(registry)>("registry");
   }
@@ -133,7 +153,9 @@ DaBfgModule::DaBfgModule() : das::Module("daBfg")
   addAnnotation(das::make_smart<NodeEcsRegistrationAnnotation>());
   addAnnotation(das::make_smart<ResourceProviderAnnotation>(lib));
   addAnnotation(das::make_smart<InternalRegistryAnnotation>(lib));
+  addAnnotation(das::make_smart<DasNameSpaceRequestAnnotation>(lib));
   addAnnotation(das::make_smart<DasRegistryAnnotation>(lib));
+  das::setParents(lib.getThisModule(), "Registry", {"NameSpaceRequest"});
   addAnnotation(das::make_smart<NodeTrackerAnnotation>(lib));
   addAnnotation(das::make_smart<NodeHandleAnnotation>(lib));
 

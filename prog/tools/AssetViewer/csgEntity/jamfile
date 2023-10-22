@@ -5,7 +5,7 @@ TargetType  = lib ;
 Target      = tools/AssetViewer/csgEntity.lib ;
 
 AddIncludes =
-  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
 ;

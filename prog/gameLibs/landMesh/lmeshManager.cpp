@@ -188,7 +188,8 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
         }
       }
 
-      int floatsPerDetail = -1, detailsHeaderSize = land.lcDetails.size() * 16;
+      int lcDetailsArrayStart = land.lcDetails.size();
+      int floatsPerDetail = -1, detailsHeaderSize = lcDetailsArrayStart * 16;
       if (blk.getBlockByName("details") && blk.getBlockByName("details")->getBlockByName("scheme"))
       {
         const DataBlock &detailsBlk = *blk.getBlockByName("details");
@@ -307,13 +308,18 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
           // provide detail struct size via shader to avoid reading garbadge in shader!
           logerr("landclass: missing lmesh_hc_floats_per_detail, detail buffer can contain garbadge for shaders");
 
+        static constexpr int DETAIL_INFO_CNT_OFS = 15; // offset of details_cnt inside DetailInfo in ints
+        int lcDetailsWithoutHeaderCnt = ((int)land.lcDetails.size() - lcDetailsArrayStart) * 4 / cbElementSize;
+        // we store the cnt in an unused member of the first detail (so we don't need extra padding for the header this way)
+        reinterpret_cast<int *>(&land.lcDetails[0].x)[lcDetailsArrayStart * 4 + DETAIL_INFO_CNT_OFS] = lcDetailsWithoutHeaderCnt;
+
         const uint32_t maxDetailElements = (floatsPerDetail * 4 * maxDetailArraySize + detailsHeaderSize) / cbElementSize;
         uint32_t bufSize = max(maxDetailElements, land.lcDetails.size());
         // verify that cbuffer size in shader fully fits blk data
         if (bufSize > maxDetailElements)
           logerr("detail cbuffer in shader have %u elements max while asked for %u", maxDetailElements, bufSize);
 
-        land.detailsCB = d3d_buffers::create_persistent_cb(bufSize, "lcDetails");
+        land.detailsCB = d3d::buffers::create_persistent_cb(bufSize, "lcDetails");
         G_ASSERT_LOG(land.detailsCB, "Can't create constant buffer for landclass %s", name);
         if (land.detailsCB)
         {

@@ -78,32 +78,18 @@ void NodeBasedShaderManager::updateBlkDataResources(const DataBlock &shader_blk)
 #if !NBSM_COMPILE_ONLY
 static NodeBasedShaderManager::PLATFORM get_nbsm_platform()
 {
-#if _TARGET_C1
-
-#elif _TARGET_C2
-
-#elif _TARGET_XBOX
-#if _TARGET_XBOXONE
-  return NodeBasedShaderManager::PLATFORM::DX12_XBOX_ONE;
-#else
-  return NodeBasedShaderManager::PLATFORM::DX12_XBOX_SCARLETT;
-#endif
-#else
-  switch (d3d::get_driver_code())
-  {
-    case _MAKE4C('DX11'): return NodeBasedShaderManager::PLATFORM::DX11;
-    case _MAKE4C('VULK'):
-      if (d3d::get_driver_desc().caps.hasBindless)
-        return NodeBasedShaderManager::PLATFORM::VULKAN_BINDLESS;
-      else
-        return NodeBasedShaderManager::PLATFORM::VULKAN;
-      break; // for unicorns safety
-    case _MAKE4C('STUB'): return NodeBasedShaderManager::PLATFORM::VULKAN;
-    case _MAKE4C('DX12'): return NodeBasedShaderManager::PLATFORM::DX12;
-    case _MAKE4C('MTL'): return NodeBasedShaderManager::PLATFORM::MTL;
-    default: return NodeBasedShaderManager::PLATFORM::LOAD_COUNT;
-  }
-#endif
+  return d3d::get_driver_code()
+    .map(d3d::xboxOne, NodeBasedShaderManager::PLATFORM::DX12_XBOX_ONE)
+    .map(d3d::scarlett, NodeBasedShaderManager::PLATFORM::DX12_XBOX_SCARLETT)
+    .map(d3d::ps4, NodeBasedShaderManager::PLATFORM::PS4)
+    .map(d3d::ps5, NodeBasedShaderManager::PLATFORM::PS5)
+    .map(d3d::dx11, NodeBasedShaderManager::PLATFORM::DX11)
+    .map(d3d::dx12, NodeBasedShaderManager::PLATFORM::DX12)
+    .map(d3d::vulkan, d3d::get_driver_desc().caps.hasBindless ? NodeBasedShaderManager::PLATFORM::VULKAN_BINDLESS
+                                                              : NodeBasedShaderManager::PLATFORM::VULKAN)
+    .map(d3d::metal, NodeBasedShaderManager::PLATFORM::MTL)
+    .map(d3d::stub, NodeBasedShaderManager::PLATFORM::VULKAN)
+    .map(d3d::any, NodeBasedShaderManager::PLATFORM::LOAD_COUNT);
 }
 
 static eastl::string normalize_shader_res_name(const char *shader_name)

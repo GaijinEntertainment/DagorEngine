@@ -37,7 +37,6 @@ struct PendingAdd
 
 using ObstaclesToAddMap = ska::flat_hash_map<obstacle_handle_t, PendingAdd>;
 
-extern dtNavMesh *navMesh;
 dtTileCache *tileCache = nullptr;
 static tile_check_cb_t tileCacheCheckCb = nullptr;
 static eastl::string tileCacheObstacleSettingsPath;
@@ -122,7 +121,7 @@ static bool tilecache_step()
   // 'update' updates at most 1 tile, this is pretty fast, about 1-2ms with tileSize=64 and cellSize=0.125.
   bool upToDate = false;
   bool wasUpToDate = tileCache->isUpToDate();
-  tileCache->update(0.0f /* dt currently isn't used by the detour library */, navMesh, &upToDate);
+  tileCache->update(0.0f /* dt currently isn't used by the detour library */, getNavMeshPtr(), &upToDate);
   bool res = upToDate && obstaclesToAdd.empty() && obstaclesToRemove.empty();
   UpdateType upt;
   if (upToDate)
@@ -235,7 +234,7 @@ static obstacle_handle_t obstacle_add_impl(obstacle_handle_t handle, const Point
       obstaclesToAdd.insert(ObstaclesToAddMap::value_type(handle, {c, ext, angY}));
       break;
     }
-    pathfinder::tileCache->update(0.0f, pathfinder::navMesh, &upToDate);
+    pathfinder::tileCache->update(0.0f, getNavMeshPtr(), &upToDate);
   }
   return handle;
 }
@@ -263,7 +262,7 @@ static bool obstacle_remove_impl(const Obstacle &obstacle, bool sync)
       res = true;
       break;
     }
-    pathfinder::tileCache->update(0.0f, pathfinder::navMesh, &upToDate);
+    pathfinder::tileCache->update(0.0f, getNavMeshPtr(), &upToDate);
   }
   return res;
 }
@@ -432,7 +431,7 @@ static bool tilecache_console_handler(const char *argv[], int argc)
       while (!upToDate)
       {
         int64_t startTime = ref_time_ticks();
-        pathfinder::tileCache->update(0.0f, pathfinder::navMesh, &upToDate);
+        pathfinder::tileCache->update(0.0f, pathfinder::getNavMeshPtr(), &upToDate);
         int resTime = get_time_usec(startTime);
         float dt = resTime / 1000.0f;
         console::print_d("tileCache update in %.3f ms", dt);

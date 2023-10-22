@@ -1,0 +1,28 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/services/ecsMgr ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/services/ecsMgr.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/tools/sharedInclude
+;
+
+
+Sources =
+  ecsManager.cpp
+  ecsPull.cpp
+;
+
+UseProgLibs =
+  gameLibs/daECS/io/dataBlock
+  gameLibs/daECS/core
+  gameLibs/daECS/gameResStub
+  gameLibs/daECS/utility
+  gameLibs/ecs/render
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

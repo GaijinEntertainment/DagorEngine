@@ -9,18 +9,23 @@ enum SQOuterType {
     otOUTER = 1
 };
 
+#define BIT(n) (1U << (n))
+
 enum SQLangFeature {
     // parsing stage
-    LF_FORBID_ROOT_TABLE = 0x1,
+    LF_FORBID_ROOT_TABLE = BIT(0),
+    LF_FORBID_EXTENDS = BIT(1),
+    LF_FORBID_DELETE_OP = BIT(2),
+    LF_FORBID_CLONE_OP = BIT(3),
 
     // code generation stage
-    LF_TOOLS_COMPILE_CHECK = 0x10,
-    LF_DISABLE_OPTIMIZER = 0x20,
-    LF_FORBID_GLOBAL_CONST_REWRITE = 0x40,
+    LF_TOOLS_COMPILE_CHECK = BIT(4),
+    LF_DISABLE_OPTIMIZER = BIT(5),
+    LF_FORBID_GLOBAL_CONST_REWRITE = BIT(6),
 
     // runtime stage
-    LF_STRICT_BOOL = 0x80,
-    LF_NO_PLUS_CONCAT = 0x100,
+    LF_STRICT_BOOL = BIT(7),
+    LF_NO_PLUS_CONCAT = BIT(8),
 
     LF_STRICT = LF_STRICT_BOOL |
                 LF_NO_PLUS_CONCAT |

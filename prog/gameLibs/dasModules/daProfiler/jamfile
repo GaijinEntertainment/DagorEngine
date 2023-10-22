@@ -9,8 +9,8 @@ TargetType  = lib ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes =
-  $(Root)/prog/engine2/dagorInclude
-  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine/dagorInclude
+  $(Root)/prog/engine/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/1stPartyLibs/daScript/include
 ;
@@ -27,7 +27,7 @@ if $(Platform) in win32 win64 {
 
 UseProgLibs =
   1stPartyLibs/daScript
-  engine2/perfMon
+  engine/perfMon
   gameLibs/folders
 ;
 

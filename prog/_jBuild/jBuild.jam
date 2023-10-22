@@ -471,7 +471,7 @@ rule ProcessTargetVariables
     }
 
     if $(Platform) in win32 win64 && $(UseDirectX) = yes {
-      if ! [ GLOB $(_DXSDK_DIR).$(DirectXVer) : * ] { exit FATAL\: \"$(_DXSDK_DIR).$(DirectXVer)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\dacache\\devtools\\ ; }
+      if ! [ GLOB $(_DXSDK_DIR).$(DirectXVer) : * ] { exit FATAL\: \"$(_DXSDK_DIR).$(DirectXVer)\" not found!  Please, update DEVTOOLS ; }
     }
 
     ProcessCompileTarget ;
@@ -534,6 +534,11 @@ rule ProcessTargetVariables
       ProcessBundlePlist $(BundlePlist) : $(CopyTo) : $(AddBundlePlist) ;
       BundlePlist = ;
       AddBundlePlist = ;
+    }
+
+    if $(FrameworkResBundle) {
+      CopyFrameworkResBundle $(FrameworkResBundle) ;
+      FrameworkResBundle = ;
     }
 
     $(Target)__RC_OPT = $(RCopt) ;

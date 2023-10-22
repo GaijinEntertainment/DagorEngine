@@ -2,7 +2,9 @@
 #include <pathFinder/tileCacheUtil.h>
 #include <pathFinder/pathFinder.h>
 #include <rendInst/rendInstGen.h>
-#include <rendInst/rendinstHashMap.h>
+#include <rendInst/rendInstExtra.h>
+#include <rendInst/rendInstAccess.h>
+#include <rendInst/riexHashMap.h>
 #include <math/dag_math3d.h>
 #include <math/dag_mathAng.h>
 #include <ioSys/dag_dataBlock.h>

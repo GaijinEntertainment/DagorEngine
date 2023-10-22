@@ -6,8 +6,8 @@ Target      = gameLibs/devices.lib ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-AddIncludes = 
-  $(Root)/prog/engine2/dagorInclude
+AddIncludes =
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 
@@ -26,7 +26,7 @@ if $(Platform) in win32 win64 {
     stub/jetSeatStub.cpp
   ;
   AddLibs += -lSceFace_stub_weak ;
-  UseProgLibs += engine2/drv/camera_sony ;
+  UseProgLibs += engine/drv/camera_sony ;
 } else {
   Exit $(Platform) is not supported: use devices/stub library instead ;
 }

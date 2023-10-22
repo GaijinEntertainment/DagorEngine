@@ -12,6 +12,7 @@
 #include <3d/dag_eventQueryHolder.h>
 #include <util/dag_baseDef.h>
 #include <daECS/core/entityId.h>
+#include <shaders/dag_DynamicShaderHelper.h>
 #include "gpuObjects.h"
 
 class ComputeShaderElement;
@@ -67,7 +68,7 @@ private:
     bool operator<(const BufferRec &r) const { return offset < r.offset; }
   };
   using Visibility = eastl::vector_map<uint32_t, eastl::vector<BufferRec>>;
-  eastl::array<Visibility, gpu_objects::MAX_LODS> visibilityByLod, visibilityByLodDistanceEmitter;
+  eastl::array<Visibility, gpu_objects::MAX_LODS> visibilityByLod, visibilityByLodDecal;
 
   bool placeInBox(int count, int ri_idx, int buf_offset, const TMatrix &transform, const Point2 &scale_range,
     const Point4 &up_vector_threshold, const Point2 &distance_based_scale, float min_scale_radius, bool on_geometry,
@@ -113,7 +114,8 @@ public:
     const Point3 &gpu_object_placer__distance_to_scale_from, const Point3 &gpu_object_placer__distance_to_scale_to,
     float gpu_object_placer__distance_to_rotation_from, float gpu_object_placer__distance_to_rotation_to,
     const Point3 &gpu_object_placer__distance_to_scale_pow, float gpu_object_placer__distance_to_rotation_pow,
-    bool gpu_object_placer__use_distance_emitter);
+    bool gpu_object_placer__use_distance_emitter, bool gpu_object_placer__distance_affect_decals,
+    bool gpu_object_placer__distance_out_of_range);
 
   void drawDebugGeometry(const TMatrix &transform, float min_triangle_size, const Point4 &up_vector_threshold, float density);
 };

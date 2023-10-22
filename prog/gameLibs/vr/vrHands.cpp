@@ -177,7 +177,7 @@ void VrHands::beforeRender(const Point3 &cam_pos)
         }
 
         scene->setLod(0);
-        scene->beforeRender();
+        scene->beforeRender(cam_pos);
       }
     }
   }

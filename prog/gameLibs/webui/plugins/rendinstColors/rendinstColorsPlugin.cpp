@@ -45,7 +45,6 @@ void on_rendinst_colors(RequestInfo *params)
     s.reserve(20000);
     s.aprintf(0, "{\"array\":[");
 
-    Tab<rendinst::ColorInfo> infos;
     int i = 0;
     rendinst::get_ri_color_infos([&s, &i](E3DCOLOR colorFrom, E3DCOLOR colorTo, const char *name) {
       s.aprintf(1024, "%s{\"name\":\"%s\",\"colorFrom\":\"%02X%02X%02X%02X\",\"colorTo\":\"%02X%02X%02X%02X\"}\n", i > 0 ? "," : "",

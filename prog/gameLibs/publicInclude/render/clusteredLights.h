@@ -163,7 +163,7 @@ protected:
     {
       wasWritten = false;
       int targetSizeInElems = min(target_size_in_elems, max_size_in_elems);
-      if (d3d::get_driver_code() == _MAKE4C('MTL')) // this is because metal validator. buffer size should match shader code
+      if (d3d::get_driver_code().is(d3d::metal)) // this is because metal validator. buffer size should match shader code
         targetSizeInElems = max_size_in_elems;
       int targetSizeInConstants = targetSizeInElems * ELEM_SIZE + (store_elems_count ? 1 : 0);
       if (!targetSizeInConstants || size >= targetSizeInConstants)

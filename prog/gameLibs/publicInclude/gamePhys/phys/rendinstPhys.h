@@ -6,7 +6,7 @@
 #pragma once
 
 #include <math/dag_TMatrix.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstDebris.h>
 #include <gamePhys/phys/dynamicPhysModel.h>
 #include <gamePhys/phys/rendinstSound.h>
 #include <gamePhys/collision/collisionObject.h>

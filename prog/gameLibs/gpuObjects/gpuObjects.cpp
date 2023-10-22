@@ -13,6 +13,7 @@
 #include <daECS/core/componentTypes.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <3d/dag_lockSbuffer.h>
+#include <rendInst/rendInstExtra.h>
 
 #include <gpuObjects/gpuObjects.h>
 #include <gpuObjects/volumePlacer.h>
@@ -99,7 +100,7 @@ constexpr T pow2(const T &t)
 ObjectManager::ObjectManager(const char *name, uint32_t ri_pool_id, int cell_tile, int cells_size_count, float cell_size,
   float bounding_sphere_radius, dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters) :
   assetName(name),
-  riPoolOffset(ri_pool_id * rendinstgenrender::PER_DRAW_VECS_COUNT + 1),
+  riPoolOffset(ri_pool_id * rendinst::render::PER_DRAW_VECS_COUNT + 1),
   boundingSphereRadius(bounding_sphere_radius),
   parameters(parameters),
   cellTileOrig(-1)
@@ -121,13 +122,13 @@ ObjectManager::ObjectManager(const char *name, uint32_t ri_pool_id, int cell_til
 
 
   if (parameters.decal)
-    layer = rendinst::LAYER_DECALS;
+    layer = rendinst::LayerFlag::Decals;
   else if (parameters.transparent)
-    layer = rendinst::LAYER_TRANSPARENT;
+    layer = rendinst::LayerFlag::Transparent;
   else if (parameters.distorsion)
-    layer = rendinst::LAYER_DISTORTION;
+    layer = rendinst::LayerFlag::Distortion;
   else
-    layer = rendinst::LAYER_OPAQUE;
+    layer = rendinst::LayerFlag::Opaque;
 
   numLods = min<int>(dist_sq_lod.size(), MAX_LODS);
   memcpy(distSqLod.data(), dist_sq_lod.data(), numLods * sizeof(dist_sq_lod[0]));
@@ -973,7 +974,7 @@ void GpuObjects::invalidateBBox(const BBox2 &bbox)
     object.invalidateBBox(bbox);
 }
 
-Sbuffer *GpuObjects::getBuffer(int cascade, unsigned layer)
+Sbuffer *GpuObjects::getBuffer(int cascade, rendinst::LayerFlag layer)
 {
   G_ASSERT_RETURN(cascade >= 0 && cascade < cascades.size() && !cascades[cascade].isDeleted, nullptr);
   G_UNUSED(layer);

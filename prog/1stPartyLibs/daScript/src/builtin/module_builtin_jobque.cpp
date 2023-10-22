@@ -56,6 +56,15 @@ namespace das {
         mCond.notify_all();  // notify_one??
     }
 
+    void Channel::pushBatch ( void ** data, int count, TypeInfo * ti, Context * context ) {
+        lock_guard<mutex> guard(mCompleteMutex);
+        auto pushCtx = context!=owner ? context : nullptr;
+        for ( int i=0; i!=count; ++i ) {
+            pipe.emplace_back(data[i], ti, pushCtx);
+        }
+        mCond.notify_all();  // notify_one??
+    }
+
     void Channel::pop ( const TBlock<void,void *> & blk, Context * context, LineInfoArg * at ) {
         while ( true ) {
             unique_lock<mutex> uguard(mCompleteMutex);
@@ -147,6 +156,21 @@ namespace das {
         void * data = cast<void *>::to(args[1]);
         TypeInfo * ti = call->types[1];
         ch->push(data, ti, &context);
+        return v_zero();
+    }
+
+    vec4f channelPushBatch ( Context & context, SimNode_CallBase * call, vec4f * args ) {
+        auto ch = cast<Channel *>::to(args[0]);
+        if ( !ch ) context.throw_error_at(call->debugInfo, "channelPushBatch: channel is null");
+        TypeInfo * ti = call->types[1];
+        if (ti->type != Type::tArray){
+            context.throw_error_at(call->debugInfo, "channelPushBatch: type must be array");
+        }
+        if (!ti->firstType || ti->firstType->type != Type::tPointer){
+            context.throw_error_at(call->debugInfo, "channelPushBatch: array must be of pointer type");
+        }
+        Array * data = cast<Array *>::to(args[1]);
+        ch->pushBatch((void**)data->data, data->size, ti->firstType, &context);
         return v_zero();
     }
 
@@ -518,6 +542,9 @@ namespace das {
             // channel
             addInterop<channelPush,void,Channel *,vec4f>(*this, lib,  "_builtin_channel_push",
                 SideEffects::modifyArgumentAndExternal, "channelPush")
+                    ->args({"channel","data"});
+            addInterop<channelPushBatch,void,Channel *,vec4f>(*this, lib,  "_builtin_channel_push_batch",
+                SideEffects::modifyArgumentAndExternal, "channelPushBatch")
                     ->args({"channel","data"});
             addExtern<DAS_BIND_FUN(channelPop)>(*this, lib,  "_builtin_channel_pop",
                 SideEffects::modifyArgumentAndExternal, "channelPop")

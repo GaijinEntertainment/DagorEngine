@@ -2,10 +2,13 @@ options indenting = 2
 require daBfg
 
 
+
+struct NameSpace
+  nameSpaceId : NameSpaceNameId
+
 struct ResUid
   nameId : ResNameId
   history : bool
-
 
 struct VirtualResourceRequestBase
   registry : InternalRegistry?
@@ -32,10 +35,14 @@ struct StateRequest
   registry : InternalRegistry?
   nodeId : NodeNameId
 
+variant VrsRateTexture
+  some : VirtualResourceSemiRequest
+  none : void?
+
 struct VrsRequirements
   rateX : uint
   rateY : uint
-  rateTextureResName : string
+  rateTexture : VrsRateTexture
   vertexCombiner : VariableRateShadingCombiner
   pixelCombiner : VariableRateShadingCombiner
 
@@ -55,14 +62,15 @@ struct VirtualAttachmentRequest
   layer : uint
 
 
-struct AutoResolution
-  name : string
+struct AutoResolutionRequest
+  autoResTypeId : AutoResTypeNameId
   multiplier : float = 1.0f
+  registry : InternalRegistry?
 
 
 variant TextureResolution
   res : tuple<x : uint; y : uint>
-  autoRes : AutoResolution
+  autoRes : AutoResolutionRequest
 
 
 struct Texture2dCreateInfo
@@ -81,29 +89,41 @@ struct BufferCreateInfo
 struct NamedSlot
   name : string
 
+[generic]
+def root() : NameSpace
+  return [[NameSpace nameSpaceId = (getTracker() |> getRegistry()).knownNames |> root]]
 
 [generic]
-def registerNode(name : string; var declaration_callback : lambda<(var reg : Registry) : lambda<void>>) : NodeHandle
+def operator /(var self : NameSpace; child_name : string) : NameSpace
+  return [[NameSpace nameSpaceId = (getTracker() |> getRegistry()).knownNames |> addNameId`NameSpaceNameId(self.nameSpaceId, child_name)]]
+
+[generic]
+def fillSlot(var self : NameSpace; slot : NamedSlot; res_name_space : NameSpace; res_name : string)
+  fill_slot(self.nameSpaceId, slot.name, res_name_space.nameSpaceId, res_name)
+
+[generic]
+def registerNode(var self : NameSpace; name : string; var declaration_callback : lambda<(var reg : Registry) : lambda<void>>) : NodeHandle
   var registerNodeName = $ <| (var registry : InternalRegistry &)
-    let nodeId = registry.knownNodeNames |> addNameId(name)
-    var registerNodeId = $ <| (nodeId_ : NodeNameId; var node_data : NodeData &)
-      getTracker() |> unregisterNode(nodeId_, node_data.generation)
-      getTracker() |> registerNode(nodeId_)
-      node_data |> registerNodeDeclaration(declaration_callback)
-      return <- register_external_node(nodeId_, node_data.generation)
+    let nodeId = registry.knownNames |> addNameId`NodeNameId(self.nameSpaceId, name)
+    var registerNodeId = $ <| (var node_data : NodeData &)
+      getTracker() |> unregisterNode(nodeId, node_data.generation)
+      getTracker() |> registerNode(nodeId)
+      node_data |> registerNodeDeclaration(self.nameSpaceId, declaration_callback)
+      return <- register_external_node(nodeId, node_data.generation)
 
-    return <- invoke(registerNodeId, nodeId, registry.nodes |> get(nodeId))
+    return <- registerNodeId |> invoke(registry.nodes |> get(nodeId))
 
-  return <- invoke(registerNodeName, getTracker() |> getRegistry())
+  return <- registerNodeName |> invoke(getTracker() |> getRegistry())
 
 
 [generic]
 def orderMeBefore(var self : Registry; name : string) : Registry
-  let nameId = self.registry.knownNodeNames |> getNameId(name)
+  let nodeNsId = self.registry.knownNames |> getParent(self.nodeId)
+  let nameId = self.registry.knownNames |> getNameId`NodeNameId(nodeNsId, name)
   if nameId != NodeNameId Invalid
     self.registry.nodes[self.nodeId].followingNodeIds |> insert(nameId)
   else
-    let selfName = self.registry.knownNodeNames |> getName(self.nodeId)
+    let selfName = self.registry.knownNames |> getName(self.nodeId)
     error("Node {selfName} tries to order before not existing node {name}, skipping this order")
 
   return self
@@ -119,11 +139,12 @@ def orderMeBefore(var self : Registry; names : array<string>) : Registry
 
 [generic]
 def orderMeAfter(var self : Registry; name : string) : Registry
-  let nameId = self.registry.knownNodeNames |> getNameId(name)
+  let nodeNsId = self.registry.knownNames |> getParent(self.nodeId)
+  let nameId = self.registry.knownNames |> getNameId`NodeNameId(nodeNsId, name)
   if nameId != NodeNameId Invalid
     self.registry.nodes[self.nodeId].precedingNodeIds |> insert(nameId)
   else
-    let selfName = self.registry.knownNodeNames |> getName(self.nodeId)
+    let selfName = self.registry.knownNames |> getName(self.nodeId)
     error("Node {selfName} tries to order after not existing node {name}, skipping this order")
 
   return self
@@ -156,7 +177,8 @@ def executionHas(var self : Registry; side_effect : SideEffect) : Registry
 
 [generic]
 def create(var self : Registry; name : string; history : History) : VirtualResourceCreationSemiRequest
-  let nameId = self.registry.knownResourceNames |> addNameId(name)
+  let nodeNsId = self.registry.knownNames |> getParent(self.nodeId)
+  let nameId = self.registry.knownNames |> addNameId`ResNameId(nodeNsId, name)
   var setHistory = $ <| (var res : ResourceData &)
     res.history = history;
 
@@ -168,10 +190,23 @@ def create(var self : Registry; name : string; history : History) : VirtualResou
 
   return <- [[VirtualResourceCreationSemiRequest registry=self.registry, nodeId=self.nodeId, resUid=[[ResUid nameId=nameId, history=false]]]]
 
+[generic]
+def operator /(var self : NameSpaceRequest; child_name : string) : NameSpaceRequest
+  return [[NameSpaceRequest
+    nameSpaceId = self.registry.knownNames |> addNameId`NameSpaceNameId(self.nameSpaceId, child_name),
+    nodeId = self.nodeId,
+    registry = self.registry]]
 
 [generic]
-def read(var self : Registry; name : string) : VirtualResourceSemiRequest
-  let nameId = self.registry.knownResourceNames |> addNameId(name)
+def getResolution(var self : NameSpaceRequest; type_name : string; multiplier : float = 1.f) : AutoResolutionRequest
+  return [[AutoResolutionRequest
+    autoResTypeId=self.registry.knownNames |> getNameId`AutoResTypeNameId(self.nameSpaceId, type_name),
+    multiplier=multiplier,
+    registry=self.registry]]
+
+[generic]
+def read(var self : NameSpaceRequest; name : string) : VirtualResourceSemiRequest
+  let nameId = self.registry.knownNames |> addNameId`ResNameId(self.nameSpaceId, name)
   self.registry.nodes[self.nodeId].readResources |> insert(nameId)
   using() <| $(var req : ResourceRequest#)
     req.usage = [[ResourceUsage access=Access READ_ONLY]]
@@ -181,8 +216,8 @@ def read(var self : Registry; name : string) : VirtualResourceSemiRequest
 
 
 [generic]
-def read(var self : Registry; slot : NamedSlot) : VirtualResourceSemiRequest
-  let nameId = self.registry.knownResourceNames |> addNameId(slot.name)
+def read(var self : NameSpaceRequest; slot : NamedSlot) : VirtualResourceSemiRequest
+  let nameId = self.registry.knownNames |> addNameId`ResNameId(self.nameSpaceId, slot.name)
   self.registry.nodes[self.nodeId].readResources |> insert(nameId)
   using() <| $(var req : ResourceRequest#)
     req.slotRequest = true
@@ -193,8 +228,8 @@ def read(var self : Registry; slot : NamedSlot) : VirtualResourceSemiRequest
 
 
 [generic]
-def history(var self : Registry; var name : string) : VirtualResourceSemiRequest
-  let nameId = self.registry.knownResourceNames |> addNameId(name);
+def history(var self : NameSpaceRequest; var name : string) : VirtualResourceSemiRequest
+  let nameId = self.registry.knownNames |> addNameId`ResNameId(self.nameSpaceId, name)
   using() <| $(var req : ResourceRequest#)
     req.usage = [[ResourceUsage access=Access READ_ONLY]]
     self.registry.nodes[self.nodeId].historyResourceReadRequests[nameId] := req
@@ -203,8 +238,8 @@ def history(var self : Registry; var name : string) : VirtualResourceSemiRequest
 
 
 [generic]
-def modify(var self : Registry; name : string) : VirtualResourceSemiRequest
-  let nameId = self.registry.knownResourceNames |> addNameId(name)
+def modify(var self : NameSpaceRequest; name : string) : VirtualResourceSemiRequest
+  let nameId = self.registry.knownNames |> addNameId`ResNameId(self.nameSpaceId, name)
   self.registry.nodes[self.nodeId].modifiedResources |> insert(nameId)
   using() <| $(var req : ResourceRequest#)
     req.usage = [[ResourceUsage access=Access READ_WRITE]]
@@ -214,8 +249,8 @@ def modify(var self : Registry; name : string) : VirtualResourceSemiRequest
 
 
 [generic]
-def modify(var self : Registry; slot : NamedSlot) : VirtualResourceSemiRequest
-  let nameId = self.registry.knownResourceNames |> addNameId(slot.name)
+def modify(var self : NameSpaceRequest; slot : NamedSlot) : VirtualResourceSemiRequest
+  let nameId = self.registry.knownNames |> addNameId`ResNameId(self.nameSpaceId, slot.name)
   self.registry.nodes[self.nodeId].modifiedResources |> insert(nameId)
   using() <| $(var req : ResourceRequest#)
     req.slotRequest = true
@@ -226,9 +261,10 @@ def modify(var self : Registry; slot : NamedSlot) : VirtualResourceSemiRequest
 
 
 [generic]
-def rename(var self : Registry; from : string; to : string; history : History) : VirtualResourceSemiRequest
-  let fromResId = self.registry.knownResourceNames |> addNameId(from)
-  let toResId = self.registry.knownResourceNames |> addNameId(to)
+def rename(var self : NameSpaceRequest; from : string; to : string; history : History) : VirtualResourceSemiRequest
+  let fromResId = self.registry.knownNames |> addNameId`ResNameId(self.nameSpaceId, from)
+  let nodeNsId = self.registry.knownNames |> getParent(self.nodeId)
+  let toResId = self.registry.knownNames |> addNameId`ResNameId(nodeNsId, to)
 
   self.registry.nodes[self.nodeId].renamedResources[toResId] := fromResId
   using() <| $(var req : ResourceRequest#)
@@ -244,21 +280,22 @@ def rename(var self : Registry; from : string; to : string; history : History) :
 
 [generic]
 def texture(var self : VirtualResourceCreationSemiRequest; info : Texture2dCreateInfo) : VirtualTextureRequest
-  var setTexture = $ <| (var self_ : VirtualResourceCreationSemiRequest; info_ : Texture2dCreateInfo; var res : ResourceData &)
+  var setTexture = $ <| (var res : ResourceData &)
     using() <| $(var desc : TextureResourceDescription#)
-      desc.mipLevels = info_.mipLevels
-      desc.cFlags = info_.creationFlags
-      if info_.resolution is autoRes
-        res |> setTextureInfo(desc)
-        res |> setResolution([[AutoResolutionData id=self_.registry.knownAutoResolutionTypeNames |> getNameId(info_.resolution as autoRes.name), multiplier=info_.resolution as autoRes.multiplier]])
+      desc.mipLevels = info.mipLevels
+      desc.cFlags = info.creationFlags
+      if info.resolution is autoRes
+        res |> setResolution([[AutoResolutionData
+          id = info.resolution as autoRes.autoResTypeId,
+          multiplier = info.resolution as autoRes.multiplier]])
       else
-        desc.width = info_.resolution as res.x
-        desc.height = info_.resolution as res.y
-        res |> setTextureInfo(desc)
+        desc.width = info.resolution as res.x
+        desc.height = info.resolution as res.y
+      res |> setTextureInfo(desc)
 
     res.resType = ResourceType Texture
 
-  invoke(setTexture, self, info, self.registry.resources |> get(self.resUid.nameId))
+  setTexture |> invoke(self.registry.resources |> get(self.resUid.nameId))
   return <- [[VirtualTextureRequest registry=self.registry, nodeId=self.nodeId, resUid=self.resUid]]
 
 
@@ -322,7 +359,7 @@ def atStage(var self : auto(TT); stage : Stage) : TT
 def bindToShaderVar(var self : auto(TT); name : string = "") : TT
   var svName = name
   if (name == "")
-    svName = self.registry.knownResourceNames |> getName(self.resUid.nameId)
+    svName = self.registry.knownNames |> getShortName(self.resUid.nameId)
 
   let svId = get_shader_variable_id(svName)
   let setBinding = $ <| (var self_ : TT; sv_id : int; name_ : string; var bindings : BindingsMap &)
@@ -333,7 +370,7 @@ def bindToShaderVar(var self : auto(TT); name : string = "") : TT
         info.history = self_.resUid.history
         bindings[sv_id] := info
     else
-      let selfName = self_.registry.knownNodeNames |> getName(self_.nodeId)
+      let selfName = self_.registry.knownNames |> getName(self_.nodeId)
       error("Encountered duplicate shader var {name_} binding in {selfName} frame graph node! Ignoring one of the them!")
 
   invoke(setBinding, self, svId, name) <| self.registry.nodes[self.nodeId].bindings
@@ -364,7 +401,7 @@ def view(handle : VirtualBufferHandle) : ManagedBufView
 [generic]
 def requestState(var self : Registry) : StateRequest
   if self.registry.nodes[self.nodeId].stateRequirements is some
-    let selfName = self.registry.knownNodeNames |> getName(self.nodeId)
+    let selfName = self.registry.knownNames |> getName(self.nodeId)
     error("Global state requested twice on {selfName} frame graph node! Ignoring one of the requests!")
 
   self.registry.nodes[self.nodeId].stateRequirements |> emplace_some
@@ -375,7 +412,7 @@ def requestState(var self : Registry) : StateRequest
 [generic]
 def private setBlock(var self : StateRequest; name : string; layer : string; var value : int&) : StateRequest
   if value != -1
-    let selfName = self.registry.knownNodeNames |> getName(self.nodeId)
+    let selfName = self.registry.knownNames |> getName(self.nodeId)
     error("Block requested to be set to layer {layer} twice within {selfName} frame graph node! Ignoring one of the requests!")
 
   value = getBlockId(name)
@@ -410,7 +447,11 @@ def allowVrs(var self : StateRequest; vrs : VrsRequirements) : StateRequest
   assume maybeStateReqs = self.registry.nodes[self.nodeId].stateRequirements
   verify(maybeStateReqs is some)
 
-  let rateTexId = self.registry.knownResourceNames |> addNameId(vrs.rateTextureResName)
+  if vrs.rateTexture is none
+    // TODO: reset rate texture?
+    return self
+
+  let rateTexId = vrs.rateTexture.resUid.nameId
   self.registry.nodes[self.nodeId].readResources |> insert(nameId)
   using() <| $(var req : ResourceRequest#)
     req.usage = [[ResourceUsage access=Access READ_ONLY, usage=Usage VRS_RATE_TEXTURE, stage=ALL_GRAPHICS]]
@@ -459,7 +500,7 @@ def enableOverride(var self : StateRequest; das_override : OverrideRenderState)
 [generic]
 def requestRenderPass(var self : Registry) : VirtualPassRequest
   if self.registry.nodes[self.nodeId].renderingRequirements is some
-    let selfName = self.registry.knownNodeNames |> getName(self.nodeId)
+    let selfName = self.registry.knownNames |> getName(self.nodeId)
     error("Encountered two renderpass requests in {selfName} framegraph node! Ignoring one of the requests!")
 
   self.registry.nodes[self.nodeId].renderingRequirements |> emplace_some
@@ -473,7 +514,8 @@ def private processAttachment(var self : VirtualPassRequest; attachment : Virtua
   if attachment.resource is resUid
     uid = attachment.resource as resUid
   else
-    let resId = self.registry.knownResourceNames |> addNameId(attachment.resource as name)
+    let nodeNsId = self.registry.knownNames |> getParent(self.nodeId)
+    let resId = self.registry.knownNames |> addNameId`ResNameId(nodeNsId, attachment.resource as name)
     if (access_override == Access READ_ONLY)
       self.registry.nodes[self.nodeId].readResources |> insert(resId)
     else
@@ -509,7 +551,7 @@ def color(var self : VirtualPassRequest; attachments : array<VirtualAttachmentRe
 
   let setReqs = $ <| (var reqs : VirtualPassRequirements)
     if reqs.colorAttachments |> length != 0
-      let selfName = self.registry.knownNodeNames |> getName(self.nodeId)
+      let selfName = self.registry.knownNames |> getName(self.nodeId)
       error("Encountered duplicate color attachment calls on the same pass request in {selfName} frame graph node! Ignoring one of them!")
       reqs.colorAttachments |> clear()
 
@@ -534,7 +576,7 @@ def private depth(var self : VirtualPassRequest; attachment : VirtualAttachmentR
 
   let setReqs = $ <| (var reqs : VirtualPassRequirements)
     if reqs.depthAttachment.nameId != ResNameId Invalid
-      let selfName = self.registry.knownNodeNames |> getName(self.nodeId)
+      let selfName = self.registry.knownNames |> getName(self.nodeId)
       error("Encountered duplicate depth attachment calls on the same pass request in {selfName} frame graph node! Ignoring one of them!")
 
     let uid = self |> processAttachment(attachment, usage_access)
@@ -555,8 +597,3 @@ def depthRw(var self : VirtualPassRequest; attachment : auto) : VirtualPassReque
 [generic]
 def depthRo(var self : VirtualPassRequest; attachment : auto) : VirtualPassRequest
   return self |> depth(attachment, Access READ_ONLY, true);
-
-
-[generic]
-def fill_slot(slot : NamedSlot; name : string)
-  fill_slot(slot.name, name)

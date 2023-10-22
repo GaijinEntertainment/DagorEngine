@@ -2373,7 +2373,7 @@ var GE_defaultExternals =
     {type: "float4",  name:"skies_primary_sun_light_dir"},
     {type: "float4",  name:"clouds_origin_offset"},
     {type: "texture2D", name:"clouds_shadows_2d"},
-    {type: "texture2D_nosampler", name:"clouds_hole_pos_tex"},
+    {type: "float4",  name:"clouds_hole_pos"},
     {type: "float4",  name:"distant_fog_local_view_z"}
   ];
 

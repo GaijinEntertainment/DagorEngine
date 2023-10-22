@@ -12,6 +12,7 @@
 struct TexPixel32;
 class BaseTexture;
 typedef BaseTexture Texture;
+struct Driver3dPerspective;
 
 class ScreenShotSystem
 {
@@ -34,7 +35,7 @@ public:
   static bool makeTexScreenShot(ScreenShot &info, Texture *tex);
   static bool makeDepthTexScreenShot(ScreenShot &info, Texture *tex);
   static bool makeHugeScreenShot(float fov, float aspect, float znear, float zfar, int quadrants, ScreenShot &info);
-  static bool makeHugeScreenShot(int multiply, ScreenShot &info);
+  static bool makeHugeScreenShot(const Driver3dPerspective &persp, int multiply, ScreenShot &info);
   static bool saveScreenShot(ScreenShot &info);
   static bool saveScreenShotTo(ScreenShot &info, char *fileName);
   static bool saveScreenShotToClipboard(ScreenShot &info);

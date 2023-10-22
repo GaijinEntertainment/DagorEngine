@@ -10,7 +10,7 @@ def print_vec ( blah )
         print("{blah[i]}\n")
 
 [expect_any_vector(blah)]
-def print_vec_length ( blah : auto(DummyName) )     // note, dummy name here so that we can differenciate from another print_vec_length
+def print_vec_length ( blah : auto(DummyName) )     // note, dummy name here so that we can differentiate from another print_vec_length
     print("length(blah) is {length(blah)}\n")
 
 def print_vec_length ( blah )

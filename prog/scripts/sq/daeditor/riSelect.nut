@@ -895,7 +895,7 @@ let riTagTextCtor = @(v) $"{v.word} ({v.count})"
 let function mkTag(opt, i) {
   let tagWord = riTags?[riTagsOffset.value + i].word ?? "<invalid>"
   let isSelected = Computed(@() riSelectTag.value == tagWord)
-  let onClick = @() riTagApply?(tagWord)
+  let onClick = @() riTagApply(tagWord)
   return watchElemState(@(sf) {
     size = [flex(), SIZE_TO_CONTENT]
     padding = [hdpx(3), hdpx(10)]

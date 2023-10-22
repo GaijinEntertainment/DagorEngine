@@ -1,0 +1,31 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/daEditorE ;
+#StrictCompile = yes ;
+UseQuirrel = sq3r ;
+
+TargetType  = lib ;
+Target      = gameLibs/daEditorE.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  daEditorE.cpp
+  daEditorE_sq.cpp
+  de_object.cpp
+  de_objEditor.cpp
+  gizmofilter.cpp
+;
+
+UseProgLibs =
+  tools/libTools/util
+  gameLibs/quirrel/sqModules
+  gameLibs/quirrel/sqEventBus
+  gameLibs/quirrel/quirrel_json
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

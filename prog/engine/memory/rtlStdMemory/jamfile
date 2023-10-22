@@ -1,0 +1,8 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/memory ;
+TargetType  = lib ;
+Target      = engine/memory/rtlStdMemory.lib ;
+
+CPPopt = -D_STD_RTL_MEMORY=1 ;
+
+include $(Root)/$(Location)/jamfile-mem ;

@@ -7,7 +7,7 @@ StrictCompile = yes ;
 
 AddIncludes =
   $(Root)/prog/3rdPartyLibs/eastl/include
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 

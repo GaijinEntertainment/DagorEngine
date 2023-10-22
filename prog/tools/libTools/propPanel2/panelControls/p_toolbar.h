@@ -9,7 +9,7 @@
 class CToolbar : public PropertyContainerControlBase
 {
 public:
-  CToolbar(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, const char *caption);
+  CToolbar(ControlEventHandler *event_h, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, const char *caption);
 
   virtual ~CToolbar();
 
@@ -20,7 +20,7 @@ public:
   unsigned getTypeMaskForGet() const { return 0; }
 
   void setEnabled(bool enabled);
-  virtual void setWidth(unsigned w);
+  virtual void setWidth(hdpi::Px w);
   void moveTo(int x, int y);
 
   // Toolbar

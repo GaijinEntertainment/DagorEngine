@@ -1,5 +1,6 @@
 #include "asmShaderSpirV.h"
 #include "../fast_isalnum.h"
+#include "../debugSpitfile.h"
 #include "HLSL2SpirVCommon.h"
 #include "pragmaScanner.h"
 
@@ -226,9 +227,10 @@ CompilerMode detectMode(const char *source, CompilerMode mode)
 }
 
 CompileResult compileShaderSpirV(const char *source, const char *profile, const char *entry, bool need_disasm, bool skipValidation,
-  bool optimize, int max_constants_no, int bones_const_used, const char *shader_name, CompilerMode mode)
+  bool optimize, int max_constants_no, int bones_const_used, const char *shader_name, CompilerMode mode, uint64_t shader_variant_hash)
 {
   CompileResult result;
+
   if (enableBindless)
   {
     if (mode != CompilerMode::DXC)
@@ -425,6 +427,8 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
     if (!fix_vertex_id_for_DXC(codeCopy, result))
       return result;
 
+    eastl::vector<eastl::string_view> disabledSpirvOptims = scanDisabledSpirvOptimizations(source);
+
     string macros =
       "#define SHADER_COMPILER_DXC 1\n"
       "#define HW_VERTEX_ID uint vertexId: SV_VertexID;\n"
@@ -457,7 +461,7 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
 
     auto flags = enableBindless ? spirv::CompileFlags::ENABLE_BINDLESS_SUPPORT : spirv::CompileFlags::NONE;
 
-    auto finalSpirV = spirv::compileHLSL_DXC(sourceRange, entry, profile, flags);
+    auto finalSpirV = spirv::compileHLSL_DXC(sourceRange, entry, profile, flags, disabledSpirvOptims);
     spirv = eastl::move(finalSpirV.byteCode);
     header = finalSpirV.header;
 
@@ -562,6 +566,17 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
     {
       debug("Spir-V Disassemble log: %s", infoMessage.c_str());
     }
+  }
+
+  if (debug_output_dir)
+  {
+    spvtools::SpirvTools tools{SPV_ENV_VULKAN_1_0};
+
+    string spirvDisas;
+    tools.Disassemble(spirv, &spirvDisas, SPV_BINARY_TO_TEXT_OPTION_FRIENDLY_NAMES);
+
+    spitfile(shader_name, entry, (mode == CompilerMode::HLSLCC) ? "spirv_hlslcc" : "spirv_dxc", shader_variant_hash,
+      (void *)spirvDisas.data(), (int)data_size(spirvDisas));
   }
 
   header.maxConstantCount = max_constants_no;

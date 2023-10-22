@@ -1,0 +1,8 @@
+ERROR: expected 'IDENTIFIER'
+testData/diagnostics/clone_op_allowed.nut.txt:10:12
+
+let ct0 = clone t
+let ct1 = t.clone()
+            ^----
+
+

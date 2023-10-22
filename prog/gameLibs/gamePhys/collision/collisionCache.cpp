@@ -5,7 +5,7 @@
 #include <math/integer/dag_IPoint2.h>
 #include <gameMath/traceUtils.h>
 #include <perfMon/dag_statDrv.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstCollision.h>
 #include <landMesh/lmeshManager.h>
 #include <landMesh/landRayTracer.h>
 #include <heightmap/heightmapHandler.h>

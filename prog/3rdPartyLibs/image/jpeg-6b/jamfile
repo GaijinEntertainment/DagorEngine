@@ -63,7 +63,7 @@ if $(PlatformSpec) in clang clang64 {
   CPPopt += -Wno-shift-negative-value ;
 }
 
-if $(PlatformSpec) in gcc4 clang {
+if $(PlatformSpec) in gcc clang {
   CPPopt += -Wno-unused-parameter ;
 }
 

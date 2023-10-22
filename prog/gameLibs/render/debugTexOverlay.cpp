@@ -40,7 +40,7 @@ DebugTexOverlay::DebugTexOverlay(const Point2 &target_size) : renderer(new PostF
 
 void DebugTexOverlay::init()
 {
-  renderer->init("debug_tex_overlay", NULL, false);
+  renderer->init("debug_tex_overlay");
   shaders::OverrideState state;
   state.set(shaders::OverrideState::SCISSOR_ENABLED);
   scissor = shaders::overrides::create(state);

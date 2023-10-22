@@ -9,12 +9,20 @@
 #include <Jolt/Physics/Body/MotionQuality.h>
 #include <Jolt/Physics/Body/BodyAccess.h>
 #include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Body/BodyType.h>
 #include <Jolt/Physics/Body/MassProperties.h>
 #include <Jolt/Physics/DeterminismLog.h>
 
 JPH_NAMESPACE_BEGIN
 
 class StateRecorder;
+
+/// Enum that determines if an object can go to sleep
+enum class ECanSleep
+{
+	CannotSleep = 0,																		///< Object cannot go to sleep
+	CanSleep = 1,																			///< Object can go to sleep
+};
 
 /// The Body class only keeps track of state for static bodies, the MotionProperties class keeps the additional state needed for a moving Body. It has a 1-on-1 relationship with the body.
 class JPH_EXPORT MotionProperties
@@ -27,6 +35,9 @@ public:
 
 	/// Get the allowed degrees of freedom that this body has (this can be changed by calling SetMassProperties)
 	inline EAllowedDOFs		GetAllowedDOFs() const											{ return mAllowedDOFs; }
+
+	/// If this body can go to sleep.
+	inline bool				GetAllowSleeping() const										{ return mAllowSleeping; }
 
 	/// Get world space linear velocity of the center of mass
 	inline Vec3				GetLinearVelocity() const										{ JPH_ASSERT(BodyAccess::sCheckRights(BodyAccess::sVelocityAccess, BodyAccess::EAccess::Read)); return mLinearVelocity; }
@@ -55,7 +66,7 @@ public:
 	/// Maximum linear velocity that a body can achieve. Used to prevent the system from exploding.
 	inline float			GetMaxLinearVelocity() const									{ return mMaxLinearVelocity; }
 	inline void				SetMaxLinearVelocity(float inLinearVelocity)					{ JPH_ASSERT(inLinearVelocity >= 0.0f); mMaxLinearVelocity = inLinearVelocity; }
-	
+
 	/// Maximum angular velocity that a body can achieve. Used to prevent the system from exploding.
 	inline float			GetMaxAngularVelocity() const									{ return mMaxAngularVelocity; }
 	inline void				SetMaxAngularVelocity(float inAngularVelocity)					{ JPH_ASSERT(inAngularVelocity >= 0.0f); mMaxAngularVelocity = inAngularVelocity; }
@@ -166,11 +177,19 @@ public:
 	/// Reset spheres to center around inPoints with radius 0
 	inline void				ResetSleepTestSpheres(const RVec3 *inPoints);
 
+	/// Reset the sleep test timer without resetting the sleep test spheres
+	inline void				ResetSleepTestTimer()											{ mSleepTestTimer = 0.0f; }
+
+	/// Accumulate sleep time and return if a body can go to sleep
+	inline ECanSleep		AccumulateSleepTime(float inDeltaTime, float inTimeBeforeSleep);
+
 	/// Saving state for replay
 	void					SaveState(StateRecorder &inStream) const;
 
 	/// Restoring state for replay
 	void					RestoreState(StateRecorder &inStream);
+
+	static constexpr uint32	cInactiveIndex = uint32(-1);									///< Constant indicating that body is not active
 
 private:
 	friend class BodyManager;
@@ -193,13 +212,13 @@ private:
 	float					mMaxLinearVelocity;												///< Maximum linear velocity that this body can reach (m/s)
 	float					mMaxAngularVelocity;											///< Maximum angular velocity that this body can reach (rad/s)
 	float					mGravityFactor;													///< Factor to multiply gravity with
-	uint32					mIndexInActiveBodies;											///< If the body is active, this is the index in the active body list or cInactiveIndex if it is not active
-	uint32					mIslandIndex;													///< Index of the island that this body is part of, when the body has not yet been updated or is not active this is cInactiveIndex 
+	uint32					mIndexInActiveBodies = cInactiveIndex;							///< If the body is active, this is the index in the active body list or cInactiveIndex if it is not active (note that there are 2 lists, one for rigid and one for soft bodies)
+	uint32					mIslandIndex = cInactiveIndex;									///< Index of the island that this body is part of, when the body has not yet been updated or is not active this is cInactiveIndex
 
 	// 1 byte aligned
 	EMotionQuality			mMotionQuality;													///< Motion quality, or how well it detects collisions when it has a high velocity
 	bool					mAllowSleeping;													///< If this body can go to sleep
-	EAllowedDOFs			mAllowedDOFs;													///< Allowed degrees of freedom for this body
+	EAllowedDOFs			mAllowedDOFs = EAllowedDOFs::All;								///< Allowed degrees of freedom for this body
 
 	// 3rd cache line (least frequently used)
 	// 4 byte aligned (or 8 byte if running in double precision)
@@ -210,6 +229,7 @@ private:
 	float					mSleepTestTimer;												///< How long this body has been within the movement tolerance
 
 #ifdef JPH_ENABLE_ASSERTS
+	EBodyType				mCachedBodyType;												///< Copied from Body::mBodyType and cached for asserting purposes
 	EMotionType				mCachedMotionType;												///< Copied from Body::mMotionType and cached for asserting purposes
 #endif
 };

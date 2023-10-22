@@ -12,31 +12,59 @@
 #include <math/dag_TMatrix4.h>
 #include <generic/dag_carray.h>
 #include <shaders/dag_postFxRenderer.h>
+#include <util/dag_simpleString.h>
 
-class DataBlock;
+class TextureIDPair;
 
 struct IWwaterProjFxRenderHelper
 {
   virtual bool render_geometry() = 0;
-  virtual void render_geometry_without_aa() {}
-  virtual void finish_rendering() {}
+  virtual bool render_geometry_without_aa() { return false; }
+  virtual void prepare_taa_reprojection_blend(const TEXTUREID *prev_frame_targets, const TEXTUREID *cur_frame_targets)
+  {
+    G_UNUSED(prev_frame_targets);
+    G_UNUSED(cur_frame_targets);
+  };
 };
 
 
 class WaterProjectedFx
 {
 public:
-  WaterProjectedFx(int tex_width, int tex_height, bool temporal_repojection = true);
+  enum
+  {
+    MAX_TARGETS = 4
+  };
 
-  void setTexture();
+  struct TargetDesc
+  {
+    uint32_t texFmt;
+    SimpleString texName;
+    E3DCOLOR clearColor;
+  };
+
+  WaterProjectedFx(int frame_width, int frame_height, dag::Span<TargetDesc> target_descs,
+    const char *taa_reprojection_blend_shader_name, bool own_textures = true);
+
+  void setTextures();
   void setView();
   bool getView(TMatrix4 &view_tm, TMatrix4 &proj_tm, Point3 &camera_pos);
   bool isValidView() const;
 
   void prepare(const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, float water_level,
     float significant_wave_height, int frame_no);
-  void render(IWwaterProjFxRenderHelper *render_helper);
-  void clear();
+  bool render(IWwaterProjFxRenderHelper *render_helper);
+  bool render(IWwaterProjFxRenderHelper *render_helper, dag::Span<const TextureIDPair> targets,
+    dag::Span<const TextureIDPair> taaTemp0 = {}, dag::Span<const TextureIDPair> taaTemp1 = {});
+  void clear(bool forceClear = false);
+
+  // It's assumed that the targets won't be modified outside of this class if they're owned by this class.
+  Texture *getTarget(int target_id)
+  {
+    G_ASSERT(ownTextures && target_id < nTargets);
+    return internalTargets[target_id].getTex2D();
+  }
+  uint32_t getTargetAdditionalFlags() const;
 
 private:
   void setView(const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix &view_itm);
@@ -51,10 +79,17 @@ private:
 
   TMatrix4 prevGlobTm;
 
-  UniqueTexHolder waterProjectionFxTex;
-  RTargetPool::Ptr rtTemp;
-  PostFxRenderer combinedWaterFoam;
-  int waterProjectionFxTexWidth, waterProjectionFxTexHeight;
+  int frameWidth;
+  int frameHeight;
+  int nTargets;
+  UniqueTexHolder internalTargets[MAX_TARGETS];
+  E3DCOLOR targetClearColors[MAX_TARGETS];
+  const bool ownTextures;
+  bool targetsCleared;
+
+  bool taaEnabled;
+  RTargetPool::Ptr taaRtTempPools[MAX_TARGETS];
+  PostFxRenderer taaRenderer;
+
   int globalFrameId;
-  bool temporalRepojection;
 };

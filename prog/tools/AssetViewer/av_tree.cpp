@@ -15,6 +15,9 @@
 #include <winGuiWrapper/wgw_busy.h>
 #include <winGuiWrapper/wgw_input.h>
 
+using hdpi::_pxActual;
+using hdpi::_pxScaled;
+
 enum
 {
   EDIT_BOX_FILTER_ID = 1001,
@@ -52,7 +55,7 @@ static int folder_changed_imidx = -1;
 static Tab<int> asset_imidx(inimem);
 
 AvTree::AvTree(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h, const char caption[]) :
-  TreeViewWindow(event_handler, phandle, x, y, w, h, FS_HEIGHT, caption),
+  TreeViewWindow(event_handler, phandle, x, y, _pxActual(w), _pxActual(h), _pxScaled(FS_HEIGHT), caption),
   mImages(midmem),
   mFirstSel(NULL),
   mSelectedTypesID(midmem),
@@ -389,7 +392,7 @@ void AvTree::onClick(int pcb_id, PropertyContainerControlBase *panel)
     for (int i = 0; i < mSelectedTypesID.size(); ++i)
       selectTypes.push_back() = mDAMgr->getAssetTypeName(mSelectedTypesID[i]);
 
-    MultiListDialog assetTypesDialog("Asset types filter", 250, 450, allTypes, selectTypes);
+    MultiListDialog assetTypesDialog("Asset types filter", _pxScaled(250), _pxScaled(450), allTypes, selectTypes);
     if (assetTypesDialog.showDialog() == DIALOG_ID_OK)
     {
       Tab<int> newTypesID;

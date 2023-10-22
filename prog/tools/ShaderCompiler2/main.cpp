@@ -123,6 +123,9 @@ static WinCritSec *termCC = NULL;
 #ifdef _CROSS_TARGET_METAL
 bool use_ios_token = false;
 bool use_binary_msl = false;
+bool use_metal_glslang = false;
+#endif
+#if _CROSS_TARGET_METAL || _CROSS_TARGET_SPIRV
 extern const char *debug_output_dir;
 #endif
 
@@ -334,7 +337,9 @@ static void showUsage()
 #endif
 #ifdef _CROSS_TARGET_METAL
     "  -metalios       - build shaders for iOS device\n"
-    "  -metal-glslang  - build with GLSLang (instead of HLSLcc, which is default)\n"
+    "  -metal-use-glslang  - build with GLSLang (instead of DXC, which is default)\n"
+#endif
+#if _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL
     "  -debugdir DIR   - use DIR to store debuginfo for shader debugger\n"
 #endif
 
@@ -725,17 +730,7 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
   }
 
   // build binary dump
-  const char *verStr = NULL;
-  switch (opt.fshVersion)
-  {
-    case FSHVER_30: verStr = "ps30"; break;
-    case FSHVER_40: verStr = "ps40"; break;
-    case FSHVER_41: verStr = "ps41"; break;
-    case FSHVER_50: verStr = "ps50"; break;
-    case FSHVER_60: verStr = "ps60"; break;
-    case FSHVER_66: verStr = "ps66"; break;
-  }
-  G_ASSERT(verStr);
+  auto verStr = d3d::as_ps_string(opt.fshVersion);
 
   char bindump_fn[260];
 #if _CROSS_TARGET_SPIRV
@@ -1062,7 +1057,7 @@ int DagorWinMain(bool debugmode)
   // G_VERIFY(shaderopcode::formatUnittest());
 
   bool singleBuild = false;
-  ShHardwareOptions singleOptions(FSHVER_R300);
+  ShHardwareOptions singleOptions(4.0_sm);
 
   const char *filename = __argv[1];
 
@@ -1252,12 +1247,18 @@ int DagorWinMain(bool debugmode)
       cross_compiler = "metal-ios";
     }
     else if (dd_stricmp(s, "-metal-glslang") == 0)
-      ; // no-op
+      ;
+    else if (dd_stricmp(s, "-metal-use-glslang") == 0)
+    {
+      use_metal_glslang = true;
+    }
     else if (dd_stricmp(s, "-metal-binary") == 0)
     {
       use_binary_msl = true;
       cross_compiler = "metal-binary";
     }
+#endif
+#if _CROSS_TARGET_METAL || _CROSS_TARGET_SPIRV
     else if (dd_stricmp(s, "-debugdir") == 0)
     {
       i++;
@@ -1281,18 +1282,18 @@ int DagorWinMain(bool debugmode)
     else if (strnicmp(s, "-fsh:", 5) == 0)
     {
       if (strstr(s, ":3.0"))
-        singleOptions.fshVersion = FSHVER_30;
+        singleOptions.fshVersion = 3.0_sm;
 #if _CROSS_TARGET_DX11 || _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL | _CROSS_TARGET_EMPTY
       else if (strstr(s, ":4.0"))
-        singleOptions.fshVersion = FSHVER_40;
+        singleOptions.fshVersion = 4.0_sm;
       else if (strstr(s, ":4.1"))
-        singleOptions.fshVersion = FSHVER_41;
+        singleOptions.fshVersion = 4.1_sm;
       else if (strstr(s, ":5.0"))
-        singleOptions.fshVersion = FSHVER_50;
+        singleOptions.fshVersion = 5.0_sm;
       else if (strstr(s, ":6.0"))
-        singleOptions.fshVersion = FSHVER_60;
+        singleOptions.fshVersion = 6.0_sm;
       else if (strstr(s, ":6.6"))
-        singleOptions.fshVersion = FSHVER_66;
+        singleOptions.fshVersion = 6.6_sm;
 #endif
       else
       {
@@ -1617,32 +1618,32 @@ int DagorWinMain(bool debugmode)
         dictionary_size_in_kb = comp->getInt("dict_size_in_kb", dictionary_size_in_kb);
         sh_group_size_in_kb = comp->getInt("group_size_in_kb", sh_group_size_in_kb);
 
-        ShHardwareOptions opt(FSHVER_R300);
+        ShHardwareOptions opt(4.0_sm);
 
         const char *fsh = comp->getStr("fsh", NULL);
         if (fsh)
         {
           if (strstr(fsh, "3.0"))
-            opt.fshVersion = FSHVER_30;
+            opt.fshVersion = 3.0_sm;
 #if _CROSS_TARGET_DX11 || _CROSS_TARGET_C1 || _CROSS_TARGET_C2 || _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL || _CROSS_TARGET_EMPTY
           else if (strstr(fsh, "4.0"))
-            opt.fshVersion = FSHVER_40;
+            opt.fshVersion = 4.0_sm;
           else if (strstr(fsh, "4.1"))
-            opt.fshVersion = FSHVER_41;
+            opt.fshVersion = 4.1_sm;
           else if (strstr(fsh, "5.0"))
-            opt.fshVersion = FSHVER_50;
+            opt.fshVersion = 5.0_sm;
           else if (strstr(fsh, "6.0"))
-            opt.fshVersion = FSHVER_60;
+            opt.fshVersion = 6.0_sm;
           else if (strstr(fsh, "6.6"))
-            opt.fshVersion = FSHVER_66;
+            opt.fshVersion = 6.6_sm;
 #endif
 #if _CROSS_TARGET_SPIRV
           else if (strstr(fsh, "SpirV"))
-            opt.fshVersion = FSHVER_50;
+            opt.fshVersion = 5.0_sm;
 #endif
 #if _CROSS_TARGET_METAL
           else if (strstr(fsh, "Metal"))
-            opt.fshVersion = FSHVER_50;
+            opt.fshVersion = 5.0_sm;
 #endif
           else
           {

@@ -8,8 +8,8 @@
 class CMultiSelectListBox : public BasicPropertyControl
 {
 public:
-  CMultiSelectListBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
-    const Tab<String> &vals);
+  CMultiSelectListBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+    hdpi::Px h, const Tab<String> &vals);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
     bool new_line = true);
@@ -27,7 +27,7 @@ public:
   int getSelectionValue(Tab<int> &sels);
 
   void setEnabled(bool enabled);
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
   void moveTo(int x, int y);
 
 private:

@@ -13,6 +13,8 @@
 #include <math/dag_noise.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_tex3d.h>
+#include <3d/dag_drv3d.h>
+#include <3d/dag_render.h>
 #include "randvec.h"
 #include <gameRes/dag_gameResources.h>
 #include <util/dag_stdint.h>
@@ -539,12 +541,10 @@ public:
       total_ps++;
       total_parts += parts.size();
 
-      TMatrix vtm;
-      EffectsInterface::getViewToWorldTm(vtm);
-
+      TMatrix vtm = ::grs_cur_view.itm; // deprecated
       TMatrix4 globTm;
       if (par.sorted)
-        EffectsInterface::getGlobTm(globTm);
+        d3d::getglobtm(globTm); // deprecated
 
       if (softness_distance_var_id != -1)
         ShaderGlobal::set_real(softness_distance_var_id, par.softnessDistance);

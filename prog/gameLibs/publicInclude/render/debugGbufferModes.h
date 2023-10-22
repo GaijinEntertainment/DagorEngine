@@ -1,6 +1,6 @@
 MODE(diffuseColor, 1)
 MODE(specularColor, 2)
-MODE(normal, 3)
+MODE_HAS_VECTORS(normal, 3)
 MODE(smoothness, 4)
 MODE(baseColor, 5)
 MODE(metallness, 6)

@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_progGlobals.h>
 #include <ioSys/dag_dataBlock.h>
 
 
@@ -76,8 +77,8 @@ void LayoutSaver::fillLayout()
 
   int x = rootNode->mPosition.x;
   int y = rootNode->mPosition.y;
-  int w = rootNode->mPosition.z - rootNode->mPosition.x + MAIN_CLIENT_AREA_OFFSET;
-  int h = rootNode->mPosition.w - rootNode->mPosition.y + MAIN_CLIENT_AREA_OFFSET;
+  int w = rootNode->mPosition.z - rootNode->mPosition.x + _pxS(MAIN_CLIENT_AREA_OFFSET);
+  int h = rootNode->mPosition.w - rootNode->mPosition.y + _pxS(MAIN_CLIENT_AREA_OFFSET);
 
   RECT rect = {0, 0, w, h};
   AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, true);
@@ -98,10 +99,12 @@ void LayoutSaver::fillLayout()
 
 
 //=============================================================================
-void LayoutSaver::loadLayout(const char *filename)
+bool LayoutSaver::loadLayout(const char *filename)
 {
-  if (loadFromBlk(filename))
-    fillLayout();
+  if (!loadFromBlk(filename))
+    return false;
+  fillLayout();
+  return true;
 }
 
 
@@ -153,13 +156,13 @@ void LayoutSaver::addWindow(ClientWindow *window, NodeInfo *node)
 
   if (node->mIsVerticalSplitter)
   {
-    splitterPos.x += SPLITTER_SPACE;
-    splitterPos.y -= DISTANCE_TO_BORDER + SPLITTER_THICKNESS;
+    splitterPos.x += _pxS(SPLITTER_SPACE);
+    splitterPos.y -= _pxS(DISTANCE_TO_BORDER) + _pxS(SPLITTER_THICKNESS);
   }
   else
   {
-    splitterPos.x -= DISTANCE_TO_BORDER + SPLITTER_THICKNESS;
-    splitterPos.y += SPLITTER_SPACE;
+    splitterPos.x -= _pxS(DISTANCE_TO_BORDER) + _pxS(SPLITTER_THICKNESS);
+    splitterPos.y += _pxS(SPLITTER_SPACE);
   }
 
   client_to_screen(mOwner->getMainWindow(), splitterPos);
@@ -337,6 +340,7 @@ void LayoutSaver::saveToBlk(const char *filename)
   DataBlock saveDataBlock;
 
   saveToDataBlock(saveDataBlock);
+  saveDataBlock.setInt("dpi", win32_system_dpi);
 
   const char *blk_file = filename ? filename : DEFFAULT_LAYOUT_BLK_NAME;
   saveDataBlock.saveToTextFile(blk_file);
@@ -412,15 +416,19 @@ bool LayoutSaver::loadFromBlk(const char *filename)
   }
 
   DataBlock savedDataBlock(blk_file);
+  if (savedDataBlock.getInt("dpi", 0) != win32_system_dpi)
+    return false;
   emptyNodeInfoArrays();
 
   return loadFromDataBlock(savedDataBlock);
 }
 
 
-void LayoutSaver::loadLayoutFromDataBlock(const DataBlock &load_data_block)
+bool LayoutSaver::loadLayoutFromDataBlock(const DataBlock &load_data_block)
 {
   emptyNodeInfoArrays();
-  if (loadFromDataBlock(load_data_block))
-    fillLayout();
+  if (!loadFromDataBlock(load_data_block))
+    return false;
+  fillLayout();
+  return true;
 }

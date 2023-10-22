@@ -9,7 +9,7 @@ Target = gameLibs/breakpad/stub.lib ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes =
-  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 

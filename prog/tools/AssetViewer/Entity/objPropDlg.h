@@ -7,7 +7,7 @@
 class ObjPropDialog : public CDialogWindow
 {
 public:
-  ObjPropDialog(const char *caption, int width, int height, const Tab<String> &nodes, const Tab<String> &scripts);
+  ObjPropDialog(const char *caption, hdpi::Px width, hdpi::Px height, const Tab<String> &nodes, const Tab<String> &scripts);
 
   bool onOk() override;
 

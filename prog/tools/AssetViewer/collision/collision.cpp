@@ -461,7 +461,7 @@ static void draw_collision_mesh(const CollisionNode &node, const TMatrix &tm, co
   if (draw_solid)
   {
     draw_debug_solid_mesh(node.indices.data(), node.indices.size() / 3, &node.vertices.data()->x, elem_size(node.vertices),
-      node.vertices.size(), tm, color);
+      node.vertices.size(), tm, color, false, DrawSolidMeshCull::FLIP);
   }
 
   for (int j = 0; j < node.indices.size(); j += 3)

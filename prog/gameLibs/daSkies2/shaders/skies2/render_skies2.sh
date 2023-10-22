@@ -316,13 +316,12 @@ shader skies_render_screen
     skies_secondary_sun_light_dir@f3 = skies_secondary_sun_light_dir;
   }
   //*/
-
+  USE_SPECIAL_VISION()
   INIT_BRUNETON_FOG(ps)
   BASE_USE_BRUNETON_FOG(ps)
   TRACE_SKY(ps, skies_world_view_pos, skies_primary_sun_light_dir.x, skies_primary_sun_light_dir.z, skies_primary_sun_light_dir.y)//this is only for shadows on earth in WT
   RENDER_SKIES()
   SKY_HDR()
-  USE_SPECIAL_VISION()
   INIT_ZNZFAR_STAGE(ps)
   USE_CUSTOM_FOG_SKY(ps)
 
@@ -338,7 +337,8 @@ shader skies_render_screen
       Number mu = view_direction.z;
       Number atmosphereMu = mu;//fixme: we should compute it correctly!
       Length atmosphereR = r;//fixme: we should compute it correctly!
-      float3 radiance = skyInscatter.rgb;
+      float4 radiance = 0;
+      radiance.rgb = skyInscatter.rgb;
       float distToEarth;
       //float distToGround = distance_to_intersection;
       float3 ground = getLitGroundAndDist(data, r, viewVect, distToEarth);
@@ -355,16 +355,21 @@ shader skies_render_screen
            get_scattering_tc_fog(scattering_lut_tc, viewVect, distToEarth*1000, groundTransmittance, groundInscatter);
            if (skyLerp > 0)
             groundTransmittance = lerp(groundTransmittance, GetTransmittance(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture), atmosphereR, atmosphereMu, distToEarth, true), skyLerp);
-          radiance = lerp(groundInscatter.rgb, skyInscatter.rgb, skyLerp);
+          radiance.rgb = lerp(groundInscatter.rgb, skyInscatter.rgb, skyLerp);
         } else
         #endif
         {
           groundTransmittance = GetTransmittance(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture), atmosphereR, atmosphereMu, distToEarth, true);
         }
-        radiance += ground * groundTransmittance;
+        applySpecialVision(radiance);
+        radiance.rgb += ground * groundTransmittance;
+      }
+      else
+      {
+        applySpecialVision(radiance);
       }
       //return 1.0 - exp(-radiance*10);
-      return radiance;
+      return radiance.rgb;
     }
 
     float3 getSkyColor(PreparedGroundData data, Length r, float2 screenTC, float3 view)
@@ -451,7 +456,6 @@ shader skies_render_screen
       }
 
       float4 res4 = float4(res, 0);
-      applySpecialVision(res4);
       return half4(pack_hdr(res4.rgb).rgb, 0);
     }
   }
@@ -462,6 +466,7 @@ shader skyPanorama
 {
   cull_mode=none;
   z_write=false;
+  USE_SPECIAL_VISION()
   USE_POSTFX_VERTEX_POSITIONS()
   SKIES_RAINMAP(ps)
   TRACE_SKY(ps, prepare_origin, skies_primary_sun_light_dir.x, skies_primary_sun_light_dir.z, skies_primary_sun_light_dir.y)

@@ -19,7 +19,7 @@ hlsl {
 #define GPU_TARGET 1
 #define PI 3.14159265f
 #define PIh 3.14159265h
-##if (hardware.fsh_5_0 || hardware.ps4 || hardware.ps5) && !hardware.metaliOS
+##if (hardware.fsh_5_0 || hardware.ps4 || hardware.ps5)
   #define HAS_REVERSEBITS 1
 ##endif
 #define SEPARATE_SAMPLER_OBJECT 1

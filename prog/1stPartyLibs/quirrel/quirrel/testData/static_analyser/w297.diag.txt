@@ -1,0 +1,25 @@
+WARNING: w297 (call-from-root) Function 'keepref' must be called from the root scope.
+testData/static_analyser/w297.nut:9:4
+
+function _foo(p) {
+    keepref(p) // EXPECTED 1
+    ^---------
+}
+
+
+WARNING: w297 (call-from-root) Function 'keepref' must be called from the root scope.
+testData/static_analyser/w297.nut:13:14
+
+let _z = @(y) keepref(y) // EXPECTED 2
+              ^---------
+
+
+WARNING: w297 (call-from-root) Function 'keepref' must be called from the root scope.
+testData/static_analyser/w297.nut:17:8
+
+    constructor(t){
+        keepref(t) // EXPECTED 3
+        ^---------
+    }
+
+

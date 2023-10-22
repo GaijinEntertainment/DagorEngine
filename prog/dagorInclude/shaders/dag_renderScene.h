@@ -296,31 +296,7 @@ public:
   static void set_checked_frustum(bool on) { checked_frustum = on; }
   static void set_depth_pass(bool on) { rendering_depth_pass = on; }
 
-  void sort_objects();
-  // comparsion operator for sort
-  inline bool operator()(int o1, int o2) const
-  {
-    if (o1 == o2)
-      return false;
-    const RenderObject &obj1 = obj[o1];
-    const RenderObject &obj2 = obj[o2];
-    int trans1 = obj1.flags & RenderObject::ROF_HasTrans;
-    int trans2 = obj2.flags & RenderObject::ROF_HasTrans;
-    if (trans1 != trans2)
-      return trans1 < trans2;
-
-    if (trans1 && obj1.priority != obj2.priority)
-      return obj2.priority < obj1.priority;
-    // int trans1 = 0;
-    real d1 = (lastSortPoint - obj1.bsph.c).lengthSq();
-    real d2 = (lastSortPoint - obj2.bsph.c).lengthSq();
-    if (d1 < d2)
-      return trans1 ? false : true;
-    else
-      return trans1 ? true : false;
-  }
-
-
+  void sort_objects(const Point3 &view_point);
   static bool should_build_optscene_data; // =true by default
 
 
@@ -329,7 +305,6 @@ protected:
   static bool enable_prerender;
   static bool rendering_depth_pass;
 
-  Point3 lastSortPoint = Point3(0.f, 0.f, 0.f);
   SmallTab<int, MidmemAlloc> objIndices;
 
   Ptr<ShaderMatVdata> smvd;

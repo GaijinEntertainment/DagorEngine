@@ -73,7 +73,9 @@
 #include <float.h>
 #include <daScript/das_config.h>
 
-#if (defined(_MSC_VER) || defined(__clang__)) && __SSE__
+#if _TARGET_PC_MACOSX && __SSE__
+   #define DAS_EVAL_ABI [[clang::vectorcall]]
+#elif (defined(_MSC_VER) || defined(__clang__)) && __SSE__
     #define DAS_EVAL_ABI __vectorcall
 #else
     #define DAS_EVAL_ABI
@@ -88,12 +90,12 @@
 
 #if defined(__has_feature)
     #if __has_feature(address_sanitizer)
-        #define DAS_SUPRESS_UB  __attribute__((no_sanitize("undefined")))
+        #define DAS_SUPPRESS_UB  __attribute__((no_sanitize("undefined")))
     #endif
 #endif
 
-#ifndef DAS_SUPRESS_UB
-#define DAS_SUPRESS_UB
+#ifndef DAS_SUPPRESS_UB
+#define DAS_SUPPRESS_UB
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)

@@ -5,6 +5,7 @@
 #include "fastPhysEd.h"
 #include "fastPhysObject.h"
 #include <render/dynmodelRenderer.h>
+#include <3d/dag_render.h> // grs_cur_view
 
 
 //------------------------------------------------------------------
@@ -68,12 +69,12 @@ void FastPhysCharRoot::renderGeometry(int stage)
 
     case IRenderingService::STG_RENDER_DYNAMIC_OPAQUE:
       if (!dynrend::render_in_tools(character->getSceneInstance(), dynrend::RenderMode::Opaque))
-        character->render();
+        character->render(::grs_cur_view.pos);
       break;
 
     case IRenderingService::STG_RENDER_DYNAMIC_TRANS:
       if (!dynrend::render_in_tools(character->getSceneInstance(), dynrend::RenderMode::Translucent))
-        character->renderTrans();
+        character->renderTrans(::grs_cur_view.pos);
       break;
   }
 }
@@ -102,7 +103,7 @@ void FastPhysCharRoot::render()
 void FastPhysCharRoot::update(real dt)
 {
   if (character)
-    character->act(dt);
+    character->act(dt, ::grs_cur_view.pos);
 }
 
 

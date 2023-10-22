@@ -39,7 +39,7 @@ if $(Platform) in linux64 {
   CPPopt += -DHAVE_MACH_O_NLIST_H=1 ;
 }
 
-if $(PlatformSpec) in gcc4 clang {
+if $(PlatformSpec) in gcc clang {
   CPPopt += -Wno-unused-parameter ;
 }
 

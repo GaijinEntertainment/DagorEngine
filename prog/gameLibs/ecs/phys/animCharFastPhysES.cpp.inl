@@ -7,6 +7,10 @@
 #include <phys/dag_fastPhys.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <gamePhys/props/atmosphere.h>
+#include <ecs/render/updateStageRender.h>
+#include <debug/dag_debug3d.h>
+#include <util/dag_console.h>
+
 
 using namespace AnimV20;
 struct FastPhysTag
@@ -87,3 +91,42 @@ static void animchar_fast_phys_destroy_es_event_handler(const ecs::Event &, Anim
     delete fastPhys;
   }
 }
+
+ECS_NO_ORDER
+ECS_REQUIRE(FastPhysTag animchar_fast_phys)
+ECS_TAG(render)
+static void debug_draw_fast_phys_es(const UpdateStageInfoRenderDebug &, AnimcharBaseComponent &animchar, ecs::string animchar__res)
+{
+  FastPhysSystem *fastPhys = animchar.getFastPhysSystem();
+  if (!fastPhys)
+    return;
+  if (!FastPhys::checkDebugAnimChar(animchar__res))
+    return;
+
+  begin_draw_cached_debug_lines();
+
+  for (auto action : fastPhys->updateActions)
+    action->debugRender();
+
+  end_draw_cached_debug_lines();
+}
+
+static bool fastphys_console_handler(const char *argv[], int argc)
+{
+  if (argc < 1)
+    return false;
+  int found = 0;
+  CONSOLE_CHECK_NAME("fastphys", "debug", 1, 2)
+  {
+    if (argc > 1)
+    {
+      eastl::string resName(argv[1]);
+      FastPhys::toggleDebugAnimChar(resName);
+    }
+    else
+      FastPhys::resetDebugAnimChars();
+  }
+  return found;
+}
+
+REGISTER_CONSOLE_HANDLER(fastphys_console_handler);

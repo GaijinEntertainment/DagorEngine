@@ -20,7 +20,7 @@ public:
 
 
   virtual void setEnabled(bool enabled);
-  virtual void setWidth(unsigned w) {}
+  virtual void setWidth(hdpi::Px w) {}
   virtual void moveTo(int x, int y) {}
 
 private:

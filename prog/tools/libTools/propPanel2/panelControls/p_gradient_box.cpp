@@ -5,12 +5,13 @@
 #include "p_gradient_box.h"
 #include "../c_constants.h"
 
-CGradientBox::CGradientBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CGradientBox::CGradientBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[]) :
-  BasicPropertyControl(id, event_handler, parent, x, y, w, GRADIENT_HEIGHT + TRACK_GRADIENT_BUTTON_HEIGHT + DEFAULT_CONTROL_HEIGHT),
-  mGradient(this, parent->getWindow(), x + TRACK_GRADIENT_BUTTON_WIDTH / 2, y + DEFAULT_CONTROL_HEIGHT,
-    w - TRACK_GRADIENT_BUTTON_WIDTH),
-  mText(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT + TRACK_GRADIENT_BUTTON_HEIGHT)
+  BasicPropertyControl(id, event_handler, parent, x, y, w,
+    _pxScaled(GRADIENT_HEIGHT) + _pxScaled(TRACK_GRADIENT_BUTTON_HEIGHT) + _pxScaled(DEFAULT_CONTROL_HEIGHT)),
+  mGradient(this, parent->getWindow(), x + _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2, y + _pxS(DEFAULT_CONTROL_HEIGHT),
+    _px(w) - _pxS(TRACK_GRADIENT_BUTTON_WIDTH)),
+  mText(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT) + _pxS(TRACK_GRADIENT_BUTTON_HEIGHT))
 {
   mText.setTextValue(caption);
   initTooltip(&mGradient);
@@ -39,12 +40,12 @@ void CGradientBox::setIntValue(int value) { mGradient.setCycled(value & CONTROL_
 
 void CGradientBox::setFloatValue(float value) { mGradient.setCurValue(value); }
 
-void CGradientBox::setWidth(unsigned w)
+void CGradientBox::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
 
-  mGradient.resizeWindow(w - TRACK_GRADIENT_BUTTON_WIDTH, mGradient.getHeight());
-  mText.resizeWindow(w, mText.getHeight());
+  mGradient.resizeWindow(_px(w) - _pxS(TRACK_GRADIENT_BUTTON_WIDTH), mGradient.getHeight());
+  mText.resizeWindow(_px(w), mText.getHeight());
 }
 
 void CGradientBox::reset()
@@ -58,7 +59,7 @@ void CGradientBox::moveTo(int x, int y)
   PropertyControlBase::moveTo(x, y);
 
   mText.moveWindow(x, y);
-  mGradient.moveWindow(x + TRACK_GRADIENT_BUTTON_WIDTH / 2, y + DEFAULT_CONTROL_HEIGHT);
+  mGradient.moveWindow(x + _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2, y + _pxS(DEFAULT_CONTROL_HEIGHT));
 }
 
 void CGradientBox::onWcChange(WindowBase *source)

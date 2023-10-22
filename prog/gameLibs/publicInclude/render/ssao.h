@@ -36,13 +36,14 @@ public:
   void setCurrentView(int view) override;
 
 private:
-  void render(BaseTexture *ssaoDepthTexUse, const ManagedTex *ssaoTex, const ManagedTex *prevSsaoTex, const ManagedTex *tmpTex,
-    const DPoint3 *world_pos, SubFrameSample sub_sample = SubFrameSample::Single) override;
+  void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse, const ManagedTex *ssaoTex,
+    const ManagedTex *prevSsaoTex, const ManagedTex *tmpTex, const DPoint3 *world_pos,
+    SubFrameSample sub_sample = SubFrameSample::Single) override;
 
   void initRandomPattern();
   void renderRandomPattern();
 
-  void updateViewSpecific(const DPoint3 *world_pos);
+  void updateViewSpecific(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 *world_pos);
   void updateFrameNo();
   void renderSSAO(BaseTexture *depth_to_use, const ManagedTex &ssaoTex, const ManagedTex &prevSsaoTex);
   void applyBlur(const ManagedTex &ssaoTex, const ManagedTex &tmpTex);

@@ -7,11 +7,11 @@ struct ShHardwareOptions
   // default options. initialized with ShHardwareOptions() consturctor
   static ShHardwareOptions Defaults;
 
-  int fshVersion; // max supported fsh version (hardware.fsh_*_*)
+  d3d::shadermodel::Version fshVersion; // max supported fsh version (hardware.fsh_*_*)
   bool enableHalfProfile = true;
 
   // set options to their default values
-  inline ShHardwareOptions(int _fsh) : fshVersion(_fsh) {}
+  inline ShHardwareOptions(d3d::shadermodel::Version _fsh) : fshVersion(_fsh) {}
 
   //////// this functions implemented in Shaders.cpp
 
@@ -33,7 +33,7 @@ struct ShVariantName
 
   // init filename from source shader file name & options
   inline ShVariantName(const char *dest_base_filename, const ShHardwareOptions &_opt = ShHardwareOptions::Defaults) :
-    sourceFilesList(midmem), opt(FSHVER_R300)
+    sourceFilesList(midmem), opt(4.0_sm)
   {
     init(dest_base_filename, _opt);
   }

@@ -16,6 +16,9 @@ struct FoamFxParams
   Point3 gamma = Point3(2.2f, 2.2f, 2.2f);
   Point2 threshold = Point2(0.25f, 0.1f);
   Point2 weight = Point2(0.2f, 1.0f);
+  Point3 underfoamColor = Point3(1.0f, 1.0f, 1.0f);
+  Point3 overfoamColor = Point3(1.0f, 1.0f, 1.0f);
+  float reflectivity = 0.1f;
   String tileTex;
   String gradientTex;
 };

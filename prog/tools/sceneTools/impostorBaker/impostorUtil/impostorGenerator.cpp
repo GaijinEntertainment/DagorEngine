@@ -31,6 +31,10 @@
 
 #include <fstream>
 
+#define CSV_HEADER                                                                                                              \
+  "Asset;Type;Width;Height;Slice Width;Slice Height;Quality improvement;X scale; Min Y scale; Max Y scale; Albedo Similarity, " \
+  "Albedo Baked, Normal Similarity, Normal Baked, AO Similarity, AO Baked\n"
+
 volatile bool ImpostorGenerator::interrupted = false;
 
 static struct Context
@@ -147,6 +151,11 @@ ImpostorGenerator::ImpostorGenerator(const char *app_dir, DataBlock &app_blk, Da
     if (impostorBlock->paramExists("aoFalloffStop"))
     {
       impostorBaker.setAOFalloffStop(impostorBlock->getReal("aoFalloffStop"));
+      readParams++;
+    }
+    if (impostorBlock->paramExists("similarityThreshold"))
+    {
+      impostorBaker.setSimilarityThreshold(impostorBlock->getReal("similarityThreshold"));
       readParams++;
     }
     if (const DataBlock *textureQualityLevels = impostorBlock->getBlockByName("textureQualityLevels"))
@@ -441,7 +450,7 @@ bool ImpostorGenerator::generateQualitySummary(const char *filename) const noexc
   }
   if (treeStats.count > 0 || bushStats.count > 0)
     df_printf(csvFile, "\n");
-  df_printf(csvFile, "Asset;Type;Width;Height;Slice Width;Slice Height;Quality improvement;X scale; Min Y scale; Max Y scale\n");
+  df_printf(csvFile, CSV_HEADER);
   for (const TexturePackingProfilingInfo &quality : qualitySummary)
   {
     const char *typeStr = "Unknown";
@@ -449,11 +458,30 @@ bool ImpostorGenerator::generateQualitySummary(const char *filename) const noexc
       typeStr = "Tree";
     else if (quality.type == TexturePackingProfilingInfo::BUSH)
       typeStr = "Bush";
-    df_printf(csvFile, "%s;%s;%d;%d;%d;%d;%s%f%c;%f;%f;%f;\n", quality.assetName.c_str(), typeStr, quality.texWidth, quality.texHeight,
-      quality.sliceWidth, quality.sliceHeight, quality.qualityImprovement < 0 ? "" : "+", float(quality.qualityImprovement * 100.0),
-      '%', quality.sliceStretchX, quality.sliceStretchY_min, quality.sliceStretchY_max);
+    df_printf(csvFile, "%s;%s;%d;%d;%d;%d;%s%f%c;%f;%f;%f;%f;%d;%f;%d;%f;%d;\n", quality.assetName.c_str(), typeStr, quality.texWidth,
+      quality.texHeight, quality.sliceWidth, quality.sliceHeight, quality.qualityImprovement < 0 ? "" : "+",
+      float(quality.qualityImprovement * 100.0), '%', quality.sliceStretchX, quality.sliceStretchY_min, quality.sliceStretchY_max,
+      quality.albedoAlphaSimilarity, int(quality.albedoAlphaBaked), quality.normalTranslucencySimilarity,
+      int(quality.normalTranslucencyBaked), quality.aoSmoothnessSimilarity, int(quality.aoSmoothnessBaked));
   }
   df_close(csvFile);
+
+  int albedoSkippedCounter = 0;
+  int normalSkippedCounter = 0;
+  int aoSkippedCounter = 0;
+  for (const TexturePackingProfilingInfo &quality : qualitySummary)
+  {
+    if (quality.albedoAlphaBaked == SaveResult::SKIPPED)
+      albedoSkippedCounter++;
+    if (quality.normalTranslucencyBaked == SaveResult::SKIPPED)
+      normalSkippedCounter++;
+    if (quality.aoSmoothnessBaked == SaveResult::SKIPPED)
+      aoSkippedCounter++;
+  }
+  impostorBaker.conlog("Albedo skipped: %d/%d", albedoSkippedCounter, qualitySummary.size());
+  impostorBaker.conlog("Normal skipped: %d/%d", normalSkippedCounter, qualitySummary.size());
+  impostorBaker.conlog("AO skipped: %d/%d", aoSkippedCounter, qualitySummary.size());
+
   return true;
 }
 

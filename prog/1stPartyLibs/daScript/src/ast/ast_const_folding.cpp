@@ -809,17 +809,9 @@ namespace das {
 
     class RunFolding : public FoldingVisitor {
     public:
-        RunFolding( const ProgramPtr & prog ) : FoldingVisitor(prog) {
-            TextWriter dummy;
-            prog->folding = true;
-            prog->markFoldingSymbolUse();
-            DAS_ASSERTF ( !prog->failed(), "internal error while folding (remove unused)?" );
-            prog->allocateStack(dummy);
-            DAS_ASSERTF ( !prog->failed(), "internal error while folding (allocate stack)?" );
-            prog->simulate(ctx, dummy);
-            DAS_ASSERTF ( !prog->failed(), "internal error while folding (simulate)?" );
-            prog->folding = false;
-        }
+        bool simulated = false;
+        Program * runProgram = nullptr;
+        RunFolding( const ProgramPtr & prog ) : FoldingVisitor(prog), runProgram(prog.get()) {}
     protected:
         // ExprCall
         virtual ExpressionPtr visit ( ExprCall * expr ) override {
@@ -831,7 +823,23 @@ namespace das {
                     }
                 }
                 if ( allConst ) {
-                    DAS_ASSERT ( expr->func->index!=-1 );
+                    if ( !simulated ) {
+                        simulated = true;
+                        TextWriter dummy;
+                        runProgram->folding = true;
+                        runProgram->markFoldingSymbolUse();
+                        DAS_ASSERTF ( !runProgram->failed(), "internal error while folding (remove unused)?" );
+                        runProgram->allocateStack(dummy);
+                        DAS_ASSERTF ( !runProgram->failed(), "internal error while folding (allocate stack)?" );
+                        runProgram->simulate(ctx, dummy);
+                        DAS_ASSERTF ( !runProgram->failed(), "internal error while folding (simulate)?" );
+                        runProgram->folding = false;
+                    }
+                    if ( expr->func->index==-1 ) {
+                        runProgram->error("internal compilation error, folding symbol was not marked as used","","",
+                            expr->at, CompilationError::run_failed);
+                        return Visitor::visit(expr);
+                    }
                     return evalAndFold(expr);
                 }
             }

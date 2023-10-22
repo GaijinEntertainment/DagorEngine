@@ -28,8 +28,8 @@ bool fill_interface_table(D3dInterfaceTable &d3dit);
 void prepare_for_destroy();
 void window_destroyed(void *hwnd);
 
-unsigned get_driver_code();
-static inline bool is_stub_driver() { return d3di.driverCode == _MAKE4C('STUB'); }
+DriverCode get_driver_code();
+static inline bool is_stub_driver() { return d3di.driverCode.is(d3d::stub); }
 
 static inline const char *get_driver_name() { return d3di.driverName; }
 static inline const char *get_device_driver_version() { return d3di.driverVer; }
@@ -272,9 +272,14 @@ static inline bool set_cb0_data(unsigned stage, const float *data, unsigned num_
 }
 static inline void release_cb0_data(unsigned /*stage*/) {}
 
-static inline Sbuffer *create_vb(int sz, int f, const char *name = "") { return d3di.create_vb(sz, f, name); }
+static inline Sbuffer *create_vb(int sz, int f, const char *name = "")
+{
+  d3d::validate_sbuffer_flags(f | SBCF_BIND_VERTEX, name);
+  return d3di.create_vb(sz, f, name);
+}
 static inline Sbuffer *create_ib(int size_bytes, int flags, const char *stat_name = "ib")
 {
+  d3d::validate_sbuffer_flags(flags | SBCF_BIND_INDEX, stat_name);
   return d3di.create_ib(size_bytes, flags, stat_name);
 }
 
@@ -286,8 +291,8 @@ static inline Sbuffer *create_sbuffer(int struct_size, int elements, unsigned fl
 
 static inline bool set_render_target() { return d3di.set_render_target(); }
 
-static inline bool set_depth(BaseTexture *tex, bool ro) { return d3di.set_depth(tex, ro); }
-static inline bool set_depth(BaseTexture *tex, int layer, bool ro) { return d3di.set_depth(tex, layer, ro); }
+static inline bool set_depth(BaseTexture *tex, DepthAccess access) { return d3di.set_depth(tex, access); }
+static inline bool set_depth(BaseTexture *tex, int layer, DepthAccess access) { return d3di.set_depth(tex, layer, access); }
 
 static inline bool set_backbuf_depth() { return d3di.set_backbuf_depth(); }
 
@@ -311,7 +316,7 @@ static inline bool get_render_target_size(int &w, int &h, BaseTexture *rt_tex, i
 {
   return d3di.get_render_target_size(w, h, rt_tex, lev);
 }
-inline void set_render_target(RenderTarget depth, bool ro, dag::ConstSpan<RenderTarget> colors)
+inline void set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)
 {
   for (int i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
   {
@@ -320,11 +325,11 @@ inline void set_render_target(RenderTarget depth, bool ro, dag::ConstSpan<Render
     else
       set_render_target(i, nullptr, 0);
   }
-  set_depth(depth.tex, ro);
+  set_depth(depth.tex, depth_access);
 }
-inline void set_render_target(RenderTarget depth, bool ro, const std::initializer_list<RenderTarget> colors)
+inline void set_render_target(RenderTarget depth, DepthAccess depth_access, const std::initializer_list<RenderTarget> colors)
 {
-  set_render_target(depth, ro, dag::ConstSpan<RenderTarget>(colors.begin(), colors.end() - colors.begin()));
+  set_render_target(depth, depth_access, dag::ConstSpan<RenderTarget>(colors.begin(), colors.end() - colors.begin()));
 }
 
 static inline void set_variable_rate_shading(unsigned rate_x, unsigned rate_y,

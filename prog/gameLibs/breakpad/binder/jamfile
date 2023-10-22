@@ -14,7 +14,7 @@ if ! $(Platform) in win32 win64 linux64 macosx {
 
 AddIncludes =
   $(Root)/prog/3rdPartyLibs/breakpad
-  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 
@@ -22,8 +22,8 @@ UseProgLibs =
   1stPartyLibs/sysinfo
   3rdPartyLibs/breakpad
   3rdPartyLibs/eastl
-  engine2/osApiWrappers
-  engine2/startup
+  engine/osApiWrappers
+  engine/startup
   gameLibs/folders
 ;
 

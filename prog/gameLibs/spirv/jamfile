@@ -14,6 +14,7 @@ Sources +=
   module_builder.cpp
   atomic_counter_resolve_pass.cpp
   compile_header_pass.cpp
+  buffer_unique_pointer_pass.cpp
   dxc_bugfix_pass.cpp
   rename_entry_points_pass.cpp
   semantic_resolve_pass.cpp
@@ -62,7 +63,7 @@ if $(DontUseVulkanGlslang) = no {
 CPPopt = -D_CROSS_TARGET_SPIRV=1
 ;
 if $(Platform) = macosx {
-  CPPopt += -Wno-switch -Wno-ambiguous-reversed-operator
+  CPPopt += -Wno-switch -Wno-ambiguous-reversed-operator -Wno-deprecated-declarations
 ;
 }
 

@@ -29,6 +29,7 @@
 #include <EASTL/vector_set.h>
 #include <EASTL/vector_map.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/string.h>
 #include <workCycle/dag_workCycle.h>
 #include <landMesh/lmeshRenderer.h>
 #include <3d/dag_gpuConfig.h>
@@ -360,8 +361,9 @@ public:
   void setTargetSize(int w, int h) { targetSize = IPoint2(w, h); };
 
   void prepareRender(ClipmapRenderer &render, bool force_update = false, bool turn_off_decals_on_fallback = false);
-  void prepareFeedback(ClipmapRenderer &render, const Point3 &viewer_pos, const TMatrix4 &globtm, float height, float maxDist0 = 0.f,
-    float maxDist1 = 0.f, float approx_ht = 0.f, bool force_update = false, bool low_tpool_prio = true); // for software feeback only
+  void prepareFeedback(ClipmapRenderer &render, const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm,
+    float height, float maxDist0 = 0.f, float maxDist1 = 0.f, float approx_ht = 0.f, bool force_update = false,
+    bool low_tpool_prio = true); // for software feeback only
   void finalizeFeedback();
 
   void invalidatePointi(int tx, int ty, int lastMip = 0xFF); // not forces redraw!  (int tile coords)
@@ -378,8 +380,8 @@ public:
   void setSoftwareFeedbackMipTiles(int mip, int tiles_for_mip);
 
   void enableUAVOutput(bool enable); // default is enabled
-  void startUAVFeedback(int reg_no = 7);
-  void endUAVFeedback(int reg_no = 7);
+  void startUAVFeedback(int reg_no = 6);
+  void endUAVFeedback(int reg_no = 6);
   void copyUAVFeedback();
   const UniqueTexHolder &getCache(int at) { return cache[at]; }                   // for debug
   const UniqueTex &getIndirection() const { return currentContext->indirection; } // for debug
@@ -402,8 +404,8 @@ private:
   void dispatchTileFeedback(int captureTargetIdx);
 
   void copyAndAdvanceCaptureTarget(int captureTargetIdx);
-  void prepareSoftwareFeedback(int zoomPow2, const Point3 &viewer_pos, const TMatrix4 &globtm, float approx_height, float maxDist0,
-    float maxDist1, bool force_update);
+  void prepareSoftwareFeedback(int zoomPow2, const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm,
+    float approx_height, float maxDist0, float maxDist1, bool force_update);
   void prepareSoftwarePoi(const int vx, const int vy, const int mip, const int mipsize,
     carray<uint64_t, (TEX_MIPS * TILE_WIDTH * TILE_WIDTH + 63) / 64> &bitarrayUsed, const Point4 &uv2landscapetile,
     const vec4f *planes2d, int planes2dCnt);
@@ -606,10 +608,11 @@ void Clipmap::prepareRender(ClipmapRenderer &render, bool force_update, bool tur
 {
   clipmapImpl->prepareRender(render, force_update, turn_off_decals_on_fallback);
 }
-void Clipmap::prepareFeedback(ClipmapRenderer &render, const Point3 &viewer_pos, const TMatrix4 &globtm, float height, float maxDist0,
-  float maxDist1, float approx_ht, bool force_update, bool low_tpool_prio)
+void Clipmap::prepareFeedback(ClipmapRenderer &render, const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm,
+  float height, float maxDist0, float maxDist1, float approx_ht, bool force_update, bool low_tpool_prio)
 {
-  clipmapImpl->prepareFeedback(render, viewer_pos, globtm, height, maxDist0, maxDist1, approx_ht, force_update, low_tpool_prio);
+  clipmapImpl->prepareFeedback(render, viewer_pos, view_itm, globtm, height, maxDist0, maxDist1, approx_ht, force_update,
+    low_tpool_prio);
 }
 void Clipmap::finalizeFeedback() { clipmapImpl->finalizeFeedback(); }
 void Clipmap::invalidatePointi(int tx, int ty, int lastMip) { clipmapImpl->invalidatePointi(tx, ty, lastMip); }
@@ -1764,7 +1767,7 @@ void ClipmapImpl::setSoftwareFeedbackMipTiles(int mip, int tiles_for_mip)
   }
 }
 
-static bool checkUAVSupport() { return d3d::get_driver_desc().fshver & DDFSH_5_0; }
+static bool checkUAVSupport() { return d3d::get_driver_desc().shaderModel >= 5.0_sm; }
 
 bool ClipmapImpl::canUseUAVFeedback() const { return checkUAVSupport() && use_uav_feedback; }
 
@@ -1790,7 +1793,7 @@ void MipContext::initHWFeedback()
     d3d_err(captureTex[i].getTex2D());
 
     String tileInfoName(128, "clipmap_tile_info_buf%p_%d", this, i);
-    static constexpr uint32_t subElementCnt = sizeof(ClipmapImpl::PackedTile) / d3d_buffers::BYTE_ADDRESS_ELEMENT_SIZE;
+    static constexpr uint32_t subElementCnt = sizeof(ClipmapImpl::PackedTile) / d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE;
     G_STATIC_ASSERT(subElementCnt > 0);
     G_STATIC_ASSERT(sizeof(ClipmapImpl::PackedTile) % sizeof(uint32_t) == 0);
     captureTileInfoBuf[i] = dag::buffers::create_ua_byte_address_readback(
@@ -2991,13 +2994,19 @@ void ClipmapImpl::init(float texel_size, uint32_t feedback_type, int tex_mips, i
   pixelRatio = texel_size;
   feedbackType = feedback_type;
 
-  clearHistogramPs.init("clipmap_clear_histogram_ps", nullptr, false);
-  fillHistogramPs.init("clipmap_fill_histogram_ps", nullptr, false);
-  buildTileInfoPs.init("clipmap_build_tile_info_ps", nullptr, false);
+  if (shader_exists("clipmap_clear_histogram_ps"))
+  {
+    clearHistogramPs.init("clipmap_clear_histogram_ps");
+    fillHistogramPs.init("clipmap_fill_histogram_ps");
+    buildTileInfoPs.init("clipmap_build_tile_info_ps");
+  }
 
-  clearHistogramCs.reset(new_compute_shader("clipmap_clear_histogram_cs", true));
-  fillHistogramCs.reset(new_compute_shader("clipmap_fill_histogram_cs", true));
-  buildTileInfoCs.reset(new_compute_shader("clipmap_build_tile_info_cs", true));
+  if (shader_exists("clipmap_clear_histogram_cs"))
+  {
+    clearHistogramCs.reset(new_compute_shader("clipmap_clear_histogram_cs", true));
+    fillHistogramCs.reset(new_compute_shader("clipmap_fill_histogram_cs", true));
+    buildTileInfoCs.reset(new_compute_shader("clipmap_build_tile_info_cs", true));
+  }
 }
 
 void ClipmapImpl::invalidate(bool force_redraw)
@@ -3141,8 +3150,8 @@ void ClipmapImpl::prepareSoftwarePoi(const int vx, const int vy, const int mip, 
   }
 }
 
-void ClipmapImpl::prepareSoftwareFeedback(int nextZoom, const Point3 &center, const TMatrix4 &globtm, float approx_height_above_land,
-  float maxClipMoveDist0, float maxClipMoveDist1, bool force_update)
+void ClipmapImpl::prepareSoftwareFeedback(int nextZoom, const Point3 &center, const TMatrix &view_itm, const TMatrix4 &globtm,
+  float approx_height_above_land, float maxClipMoveDist0, float maxClipMoveDist1, bool force_update)
 {
   G_ASSERTF(MAX_RI_VTEX_CNT == 0, "software feedback is not supported with RI clipmap indirection"); // TODO: implement it
 
@@ -3240,7 +3249,7 @@ void ClipmapImpl::prepareSoftwareFeedback(int nextZoom, const Point3 &center, co
     // center is centered on most closest plane to viewer
 
     // lerp with center of frustum, based on direction of view, but only if whole plane is inside frustum
-    vec4f lerpParam = v_max(v_neg(v_splats(::grs_cur_view.itm.m[2][1])), v_zero());
+    vec4f lerpParam = v_max(v_neg(v_splats(view_itm.m[2][1])), v_zero());
     lookCenter = v_sel(lookCenter, center, invalidCenter);
     lookCenter = v_madd(v_sub(lookCenter, center), lerpParam, center);
     center = v_sel(lookCenter, center, invalidAny);
@@ -3326,8 +3335,9 @@ void ClipmapImpl::setDDScale()
   ShaderGlobal::set_color4(worldDDScaleVarId, Color4(ddw, ddh, sddh, sddh));
 }
 
-void ClipmapImpl::prepareFeedback(ClipmapRenderer &renderer, const Point3 &center, const TMatrix4 &globtm, float zoom_height,
-  float maxClipMoveDist0, float maxClipMoveDist1, float approx_height_above_land, bool force_update, bool low_tpool_prio)
+void ClipmapImpl::prepareFeedback(ClipmapRenderer &renderer, const Point3 &center, const TMatrix &view_itm, const TMatrix4 &globtm,
+  float zoom_height, float maxClipMoveDist0, float maxClipMoveDist1, float approx_height_above_land, bool force_update,
+  bool low_tpool_prio)
 {
   setDDScale();
 
@@ -3378,7 +3388,8 @@ void ClipmapImpl::prepareFeedback(ClipmapRenderer &renderer, const Point3 &cente
 
   if (feedbackType == SOFTWARE_FEEDBACK)
   {
-    prepareSoftwareFeedback(nextZoom, center, globtm, approx_height_above_land, maxClipMoveDist0, maxClipMoveDist1, force_update);
+    prepareSoftwareFeedback(nextZoom, center, view_itm, globtm, approx_height_above_land, maxClipMoveDist0, maxClipMoveDist1,
+      force_update);
     Point4 landscape2uv = getLandscape2uv(TERRAIN_RI_INDEX);
     ShaderGlobal::set_color4(feedback_landscape2uvVarId, Color4(&landscape2uv.x));
     return;
@@ -3509,7 +3520,7 @@ void ClipmapImpl::prepareFeedback(ClipmapRenderer &renderer, const Point3 &cente
       bool prevPerspValid = d3d::getpersp(p);
 
       d3d::set_render_target(currentContext->captureTex[captureTargetIdx].getTex2D(), 0);
-      d3d::set_depth(feedbackDepthTex.getTex2D(), false);
+      d3d::set_depth(feedbackDepthTex.getTex2D(), DepthAccess::RW);
       TMatrix4 scaledGlobTm = globtm * TMatrix4(feedback_view_scale, 0, 0, 0, 0, feedback_view_scale, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
       d3d::settm(TM_PROJ, &scaledGlobTm);
       d3d::settm(TM_VIEW, TMatrix::IDENT);
@@ -4044,7 +4055,7 @@ bool ClipmapImpl::is_uav_supported()
   return false;
 #endif
   const GpuUserConfig &gpuCfg = d3d_get_gpu_cfg();
-  if (!(d3d::get_driver_desc().fshver & DDFSH_5_0) || (gpuCfg.disableUav && !get_shader_variable_id("requires_uav", true)))
+  if (d3d::get_driver_desc().shaderModel < 5.0_sm || (gpuCfg.disableUav && !get_shader_variable_id("requires_uav", true)))
     return false;
 #if _TARGET_PC_MACOSX
   if (!(d3d::get_texformat_usage(TEXFMT_R8G8B8A8) & d3d::USAGE_PIXREADWRITE) && d3d::guess_gpu_vendor() == D3D_VENDOR_INTEL)

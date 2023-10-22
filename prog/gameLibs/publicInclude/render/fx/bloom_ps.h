@@ -12,16 +12,10 @@
 #include <generic/dag_carray.h>
 
 class ComputeShaderElement;
-struct BloomAdaptationParams
-{
-  bool isFixedExposure = false;
-  BaseTexture *lumaTex;
-  BloomAdaptationParams(bool is_fixed_exposure, BaseTexture *luma_tex) : lumaTex(luma_tex), isFixedExposure(is_fixed_exposure) {}
-};
 
 struct BloomSettings
 {
-  float threshold = 0.8f, upSample = 0.65f, radius = 2.f, mul = 0.8f;
+  float upSample = 0.65f, radius = 2.f, mul = 0.8f;
   bool highQuality = false;
 };
 
@@ -31,28 +25,31 @@ public:
   BloomPS() : width(0), height(0), mipsCount(0) {}
   ~BloomPS() { close(); }
   void close();
-  void getLumaResolution(int &w, int &h);
+  static void getLumaResolution(uint32_t postfx_width, uint32_t postfx_height, uint32_t &w, uint32_t &h)
+  {
+    w = postfx_width >> 4;
+    h = postfx_height >> 4;
+  }
   void init(int w, int h);
-  void downsample();
-  void perform(BloomAdaptationParams *adaptation_params, bool forceHq);
+  void perform(ManagedTexView downsampled_frame);
   const BloomSettings &getSettings() const { return settings; }
   void setSettings(const BloomSettings &settings_) { settings = settings_; }
-  TextureIDPair getDownsampledFrame() { return TextureIDPair(downsampledFrame.getTex2D(), downsampledFrame.getTexId()); }
   void setOn(bool on_) { on = on_; }
   bool isOn() const { return on; }
+  void setForceHighQuality(bool forceHq) { forceHighQuality = forceHq; }
 
 protected:
-  PostFxRenderer downsample_first, downsample_13, downsample_4, upSample, blur_4;
+  PostFxRenderer downsample_13, downsample_4, upSample, blur_4;
   enum
   {
     MAX_MIPS = 7,
     MAX_UI_MIP = 2
   };
-  UniqueTex downsampledFrame; // 1/2
-  UniqueTexHolder bloomMips;  // 1/4 and smaller mips
-  UniqueTex bloomLastMip;     // (1/4 or lower) and smaller mips
+  UniqueTexHolder bloomMips; // 1/4 and smaller mips
+  UniqueTex bloomLastMip;    // (1/4 or lower) and smaller mips
   int width = 0, height = 0, mipsCount = 0;
   int bloomLastMipStartMip = 100;
   BloomSettings settings;
   bool on = true;
+  bool forceHighQuality = false;
 };

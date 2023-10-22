@@ -34,7 +34,7 @@ void GeneralEditorData::addViewport(void *parent, IGenEventHandler *eh, IWndMana
 
   v->init(menu, eh);
 
-  int menu_w, menu_h;
+  hdpi::Px menu_w, menu_h;
   v->getMenuAreaSize(menu_w, menu_h);
   manager->setMenuArea(parent, menu_w, menu_h);
 

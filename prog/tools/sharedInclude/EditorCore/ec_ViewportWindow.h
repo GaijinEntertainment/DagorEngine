@@ -182,7 +182,7 @@ public:
   virtual void switchCamera(unsigned int from, unsigned int to);
 
   /// Get top-left menu area size
-  void getMenuAreaSize(int &w, int &h);
+  void getMenuAreaSize(hdpi::Px &w, hdpi::Px &h);
 
   //*******************************************************
   ///@name Viewport activity.
@@ -312,6 +312,9 @@ public:
   static unsigned restoreFlags;
   static Tab<ViewportParams> viewportsParams;
 
+  TMatrix getViewTm() const;
+  TMatrix4 getProjTm() const;
+
 protected:
   // IWndEmbeddedWindow
   virtual void onWmEmbeddedResize(int width, int height);
@@ -354,7 +357,7 @@ protected:
   RenderViewport *viewport;
   int vpId;
   SimpleString viewText;
-  int nextStat3dLineY;
+  hdpi::Px nextStat3dLineY;
   bool showStats;
   bool calcStat3d, opaqueStat3d;
   bool showCameraStats;
@@ -368,7 +371,7 @@ protected:
   int restoreCursorAtX;
   int restoreCursorAtY;
 
-  void drawText(int x, int y, const String &text);
+  void drawText(hdpi::Px x, hdpi::Px y, const String &text);
 
   void paintRect();
   void paintSelectionRect();

@@ -161,7 +161,7 @@ void update_resource_visualization(const InternalRegistry &registry, eastl::span
   node_names.clear();
   node_names.reserve(node_execution_order.size());
   for (auto nodeId : node_execution_order)
-    node_names.emplace_back(registry.knownNodeNames.getName(nodeId));
+    node_names.emplace_back(registry.knownNames.getName(nodeId));
 
   for (int nodeExecIdx = 0; nodeExecIdx < node_execution_order.size(); ++nodeExecIdx)
   {
@@ -211,7 +211,7 @@ void update_resource_visualization(const InternalRegistry &registry, eastl::span
   for (auto &lifetimes : per_resource_infos)
     for (auto &[id, lifetime] : lifetimes)
     {
-      lifetime.name = registry.knownResourceNames.getName(id);
+      lifetime.name = registry.knownNames.getName(id);
 
       // Non-allocated resources may have invalid lifetimes
       if (lifetime.heapIndex < 0)

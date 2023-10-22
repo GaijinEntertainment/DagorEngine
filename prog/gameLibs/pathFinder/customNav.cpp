@@ -1,3 +1,4 @@
+#include <pathFinder/pathFinder.h>
 #include <pathFinder/customNav.h>
 #include <math/dag_mathUtils.h>
 #include <util/dag_hash.h>
@@ -8,8 +9,6 @@
 
 namespace pathfinder
 {
-extern dtNavMesh *navMesh;
-
 static uint32_t lastAreaId = 0;
 
 // Variation of 'does_line_intersect_box' that is optimized to be as fast as possible with
@@ -104,6 +103,7 @@ void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1
 
 void CustomNav::areaUpdate(const Area &area, float posThreshold, float angCosThreshold)
 {
+  dtNavMesh *navMesh = getNavMeshPtr();
   if (!navMesh || (area.id == 0))
     return;
   auto it = areas.find(area.id);
@@ -153,6 +153,7 @@ void CustomNav::areaUpdate(const Area &area, float posThreshold, float angCosThr
 template <typename T>
 void CustomNav::walkAreaTiles(const Area &area, T cb)
 {
+  dtNavMesh *navMesh = getNavMeshPtr();
   if (!navMesh)
     return;
   BBox3 aabb = area.getAABB();
@@ -341,6 +342,7 @@ float CustomNav::getWeight(uint32_t tile_id, const Point3 &p1, const Point3 &p2,
 void CustomNav::getHashes(dag::ConstSpan<uint64_t> poly_refs, PolyHashes &hashes) const
 {
   hashes.clear();
+  dtNavMesh *navMesh = getNavMeshPtr();
   if (!navMesh)
     return;
   hashes.clear();
@@ -350,6 +352,7 @@ void CustomNav::getHashes(dag::ConstSpan<uint64_t> poly_refs, PolyHashes &hashes
 
 bool CustomNav::checkHashes(dag::ConstSpan<uint64_t> poly_refs, const PolyHashes &hashes) const
 {
+  dtNavMesh *navMesh = getNavMeshPtr();
   if (!navMesh)
     return true;
   for (uint64_t polyRef : poly_refs)
@@ -365,6 +368,8 @@ bool CustomNav::checkHashes(dag::ConstSpan<uint64_t> poly_refs, const PolyHashes
 
 uint32_t CustomNav::getHash(uint64_t poly_ref) const
 {
+  dtNavMesh *navMesh = getNavMeshPtr();
+
   uint32_t tileId = navMesh->decodePolyIdTile(poly_ref);
   auto it = tiles.find(tileId);
   if (it == tiles.end())

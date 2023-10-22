@@ -15,7 +15,7 @@
 bool texture_util::rotate_texture(TEXTUREID source_texture_id, BaseTexture *dest_texture, TextureRotation rotation)
 {
   PostFxRenderer postFxRenderer;
-  postFxRenderer.init("texture_util_rotate", nullptr, /*do_fatal*/ false);
+  postFxRenderer.init("texture_util_rotate");
   if (!postFxRenderer.getElem())
     return false;
 

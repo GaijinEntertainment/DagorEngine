@@ -48,7 +48,7 @@ class DepthAOAboveRenderer
       Vertex(const Point2 &p, const Point4 &tc) : pos(p), clampTc(tc) {}
     };
     BlurDepthRenderer();
-    ~BlurDepthRenderer(){};
+    ~BlurDepthRenderer();
     void render(BaseTexture *target, TEXTUREID depth_tid, ToroidalHelper &worldAODepthData, Tab<Vertex> &tris);
   };
 

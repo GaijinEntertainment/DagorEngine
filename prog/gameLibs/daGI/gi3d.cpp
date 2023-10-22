@@ -144,7 +144,7 @@ bool GI3D::setSubsampledTargetAndOverride(int w, int h)
   }
   if (gi_use_forced_sample_count.get()) // fixme: use different override, without forced sample count
     shaders::overrides::set(voxelizeOverride);
-  d3d::set_depth(nullptr, true);
+  d3d::set_depth(nullptr, DepthAccess::SampledRO);
   d3d::setview(0, 0, w, h, 0, 1);
   return true;
 }

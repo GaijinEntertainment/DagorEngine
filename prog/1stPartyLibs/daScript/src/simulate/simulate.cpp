@@ -1226,7 +1226,7 @@ namespace das
         };
         abiArg = args;
         abiCMRES = nullptr;
-        if ( false && aotInitScript ) {
+        if ( aotInitScript ) {
             aotInitScript->eval(*this);
         } else {
 #if DAS_ENABLE_STACK_WALK
@@ -1259,11 +1259,10 @@ namespace das
         }
         abiArg = nullptr;
         stack.pop(EP,SP);
-        if ( !aotInitScript ) {
-            for ( int j=0, js=totalInitFunctions; j!=js && !stopFlags; ++j ) {
-                auto & pf = initFunctions[j];
-                callOrFastcall(pf, nullptr, 0);
-            }
+        // run init functions
+        for ( int j=0, js=totalInitFunctions; j!=js && !stopFlags; ++j ) {
+            auto & pf = initFunctions[j];
+            callOrFastcall(pf, nullptr, 0);
         }
         // now, share the data
         if ( sharedOwner && shared ) {
@@ -1867,5 +1866,5 @@ namespace das
 
 //workaround compiler bug in MSVC 32 bit
 #if defined(_MSC_VER) && !defined(__clang__) && INTPTR_MAX == INT32_MAX
-vec4i VECTORCALL v_ldu_ptr(const void * a) {return v_seti_x((int32_t)a);}
+VECTORCALL vec4i v_ldu_ptr(const void * a) {return v_seti_x((int32_t)a);}
 #endif

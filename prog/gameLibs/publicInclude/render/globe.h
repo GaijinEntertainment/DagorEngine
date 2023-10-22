@@ -70,10 +70,12 @@ public:
 
   static Point3 geo_coord_to_cartesian(const Point2 &p);
 
-  void render(DaSkies &skies, RenderSun render_sun, RenderMoon render_moon, const TextureIDPair &low_res_tex = TextureIDPair());
+  void render(DaSkies &skies, RenderSun render_sun, RenderMoon render_moon, const Point3 &view_pos,
+    const TextureIDPair &low_res_tex = TextureIDPair());
 
 private:
-  void renderEnv(DaSkies &skies, RenderSun render_sun, RenderMoon render_moon);
+  void renderEnv(DaSkies &skies, RenderSun render_sun, RenderMoon render_moon, const Driver3dPerspective &persp,
+    const Point3 &view_pos);
 
   Parameters params;
   double starsJulianDay;

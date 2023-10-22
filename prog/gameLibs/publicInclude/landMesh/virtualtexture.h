@@ -151,8 +151,9 @@ public:
 
   void setTargetSize(int w, int h);
   void prepareRender(ClipmapRenderer &render, bool force_update = false, bool turn_off_decals_on_fallback = false);
-  void prepareFeedback(ClipmapRenderer &render, const Point3 &viewer_pos, const TMatrix4 &globtm, float height, float maxDist0 = 0.f,
-    float maxDist1 = 0.f, float approx_ht = 0.f, bool force_update = false, bool low_tpool_prio = true); // for software feeback only
+  void prepareFeedback(ClipmapRenderer &render, const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm,
+    float height, float maxDist0 = 0.f, float maxDist1 = 0.f, float approx_ht = 0.f, bool force_update = false,
+    bool low_tpool_prio = true); // for software feeback only
   void finalizeFeedback();
 
   void invalidatePointi(int tx, int ty, int lastMip = 0xFF); // not forces redraw!  (int tile coords)
@@ -170,8 +171,8 @@ public:
 
   void enableUAVOutput(bool enable);
 
-  void startUAVFeedback(int reg_no = 7);
-  void endUAVFeedback(int reg_no = 7);
+  void startUAVFeedback(int reg_no = 6);
+  void endUAVFeedback(int reg_no = 6);
   void copyUAVFeedback();
   const UniqueTexHolder &getCache(int at);
   const UniqueTex &getIndirection() const;

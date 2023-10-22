@@ -8,7 +8,7 @@
 class CSimpleColor : public BasicPropertyControl
 {
 public:
-  CSimpleColor(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+  CSimpleColor(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
     const char caption[]);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
@@ -24,7 +24,7 @@ public:
   void reset();
 
   void setEnabled(bool enabled);
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
   void moveTo(int x, int y);
 
 protected:

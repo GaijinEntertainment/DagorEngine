@@ -736,8 +736,8 @@ def generate_instruction_reader(language, instruction):
 
 def generate_module_reader(language, build_cfg):
   result = '// auto generated, do not modify!\n'
-  result += '#include <spirv/module_builder.h>\n'
   result += '#include "{}"\n'.format(build_cfg.get('module-decoder-file-name'))
+  result += '#include <spirv/module_builder.h>\n'
   result += '#include "{}"\n'.format(build_cfg.get('module-node-file-name'))
   result += 'using namespace spirv;\n'
 

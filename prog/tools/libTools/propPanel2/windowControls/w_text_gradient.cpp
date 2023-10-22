@@ -10,7 +10,7 @@
 WTextGradient::WTextGradient(WindowControlEventHandler *event_handler, WindowBase *parent, int x, int y, int w) :
 
   WindowControlBase(event_handler, parent, "BUTTON", 0, WS_CHILD | WS_VISIBLE | BS_OWNERDRAW | BS_NOTIFY, "", x, y, w,
-    TEXT_GRADIENT_HEIGHT),
+    _pxS(TEXT_GRADIENT_HEIGHT)),
   mKeys(midmem),
   mTooltip(event_handler, this),
   changeKeyIndex(-1),
@@ -118,15 +118,15 @@ intptr_t WTextGradient::onControlDrawItem(void *info)
   HPEN light_pen = CreatePen(PS_SOLID, 1, RGB(224, 224, 224));
   HPEN cur_pen = CreatePen(PS_DOT, 1, RGB(255, 255, 255));
   HPEN old_pen = (HPEN)SelectObject(draw->hDC, cur_pen);
-  int rx = TRACK_GRADIENT_BUTTON_WIDTH / 2;
-  int rw = mWidth - 1 - TRACK_GRADIENT_BUTTON_WIDTH;
+  int rx = _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2;
+  int rw = mWidth - 1 - _pxS(TRACK_GRADIENT_BUTTON_WIDTH);
 
   clearForDraw(draw->hDC);
   drawCurrent(draw->hDC, rx + 1, 0, rw);
   SelectObject(draw->hDC, light_pen);
-  drawRuller(draw->hDC, rx, TRACK_GRADIENT_BUTTON_HEIGHT * 1.5, rw);
+  drawRuller(draw->hDC, rx, _pxS(TRACK_GRADIENT_BUTTON_HEIGHT) * 1.5, rw);
   SelectObject(draw->hDC, dark_pen);
-  drawRuller(draw->hDC, rx + 1, TRACK_GRADIENT_BUTTON_HEIGHT * 1.5 + 1, rw);
+  drawRuller(draw->hDC, rx + 1, _pxS(TRACK_GRADIENT_BUTTON_HEIGHT) * 1.5 + 1, rw);
 
   SelectObject(draw->hDC, old_pen);
   DeleteObject(dark_pen);
@@ -160,7 +160,7 @@ void WTextGradient::drawCurrent(void *hdc, int x, int y, int w)
 
   int x_val = x + w * curValue;
   MoveToEx((HDC)hdc, x_val, y, NULL);
-  LineTo((HDC)hdc, x_val, TEXT_GRADIENT_HEIGHT);
+  LineTo((HDC)hdc, x_val, _pxS(TEXT_GRADIENT_HEIGHT));
 }
 
 void WTextGradient::drawRuller(void *hdc, int x, int y, int w)
@@ -209,19 +209,20 @@ void WTextGradient::drawKeys(void *hdc)
     int x_pos = xstart + mKeys[i].position * (xend - xstart);
     SelectObject((HDC)hdc, light_pen);
 
-    for (int j = 1; j < TRACK_GRADIENT_BUTTON_HEIGHT - 1; ++j)
+    for (int j = 1; j < _pxS(TRACK_GRADIENT_BUTTON_HEIGHT) - 1; ++j)
     {
-      int _x = TRACK_GRADIENT_BUTTON_WIDTH * 0.5 * (TRACK_GRADIENT_BUTTON_HEIGHT - j - 1) / (TRACK_GRADIENT_BUTTON_HEIGHT - 2);
+      int _x = _pxS(TRACK_GRADIENT_BUTTON_WIDTH) * 0.5 * (_pxS(TRACK_GRADIENT_BUTTON_HEIGHT) - j - 1) /
+               (_pxS(TRACK_GRADIENT_BUTTON_HEIGHT) - 2);
 
       MoveToEx((HDC)hdc, x_pos - _x, y_top + j, NULL);
       LineTo((HDC)hdc, x_pos + _x, y_top + j);
     }
 
     SelectObject((HDC)hdc, dark_pen);
-    MoveToEx((HDC)hdc, x_pos, y_top + TRACK_GRADIENT_BUTTON_HEIGHT, NULL);
-    LineTo((HDC)hdc, x_pos - TRACK_GRADIENT_BUTTON_WIDTH / 2, y_top);
-    LineTo((HDC)hdc, x_pos + TRACK_GRADIENT_BUTTON_WIDTH / 2, y_top);
-    LineTo((HDC)hdc, x_pos, y_top + TRACK_GRADIENT_BUTTON_HEIGHT);
+    MoveToEx((HDC)hdc, x_pos, y_top + _pxS(TRACK_GRADIENT_BUTTON_HEIGHT), NULL);
+    LineTo((HDC)hdc, x_pos - _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2, y_top);
+    LineTo((HDC)hdc, x_pos + _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2, y_top);
+    LineTo((HDC)hdc, x_pos, y_top + _pxS(TRACK_GRADIENT_BUTTON_HEIGHT));
   }
 
   SelectObject((HDC)hdc, old_pen);
@@ -230,13 +231,13 @@ void WTextGradient::drawKeys(void *hdc)
 }
 
 
-int WTextGradient::getStartXPos() { return TRACK_GRADIENT_BUTTON_WIDTH / 2 + 1; }
+int WTextGradient::getStartXPos() { return _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2 + 1; }
 
 
-int WTextGradient::getStartYPos() { return TRACK_GRADIENT_BUTTON_HEIGHT / 2 - 1; }
+int WTextGradient::getStartYPos() { return _pxS(TRACK_GRADIENT_BUTTON_HEIGHT) / 2 - 1; }
 
 
-int WTextGradient::getEndXPos() { return mWidth - TRACK_GRADIENT_BUTTON_WIDTH / 2 - 1; }
+int WTextGradient::getEndXPos() { return mWidth - _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2 - 1; }
 
 
 int WTextGradient::posToX(float _position) { return getStartXPos() + _position * (getEndXPos() - getStartXPos()); }
@@ -249,7 +250,7 @@ int WTextGradient::getKeyIndexByX(int _x)
   for (int i = 0; i < mKeys.size(); ++i)
   {
     int key_x = posToX(mKeys[i].position);
-    if (_x > key_x - TRACK_GRADIENT_BUTTON_WIDTH / 2 && _x < key_x + TRACK_GRADIENT_BUTTON_WIDTH / 2)
+    if (_x > key_x - _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2 && _x < key_x + _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2)
       return i;
   }
   return -1;
@@ -259,7 +260,7 @@ int WTextGradient::getKeyIndexByX(int _x)
 bool WTextGradient::showKeyDialog(SimpleString &_text, float _position)
 {
   bool result = false;
-  CDialogWindow *dialog = new CDialogWindow(NULL, 250, 150, "Key edit");
+  CDialogWindow *dialog = new CDialogWindow(NULL, _pxScaled(250), _pxScaled(150), "Key edit");
   dialog->getPanel()->createEditBox(1, "Text", _text.str());
   String sval(32, "Position: %.2f", _position);
   dialog->getPanel()->createStatic(2, sval.str());
@@ -366,9 +367,9 @@ intptr_t WTextGradient::onDrag(int x, int y)
   if (moveKeyIndex != -1 && abs(oldXPos - x) > 3)
   {
     isKeyMove = true;
-    int min_x = (moveKeyIndex == 0) ? getStartXPos() : posToX(mKeys[moveKeyIndex - 1].position) + TRACK_GRADIENT_BUTTON_WIDTH;
+    int min_x = (moveKeyIndex == 0) ? getStartXPos() : posToX(mKeys[moveKeyIndex - 1].position) + _pxS(TRACK_GRADIENT_BUTTON_WIDTH);
     int max_x =
-      (moveKeyIndex == mKeys.size() - 1) ? getEndXPos() : posToX(mKeys[moveKeyIndex + 1].position) - TRACK_GRADIENT_BUTTON_WIDTH;
+      (moveKeyIndex == mKeys.size() - 1) ? getEndXPos() : posToX(mKeys[moveKeyIndex + 1].position) - _pxS(TRACK_GRADIENT_BUTTON_WIDTH);
     int new_pos = x;
     new_pos = (new_pos < min_x) ? min_x : ((new_pos > max_x) ? max_x : new_pos);
     mKeys[moveKeyIndex].position = xToPos(new_pos);

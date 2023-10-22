@@ -20,7 +20,7 @@ Sources =
 ;
 
 UseProgLibs +=
-  engine2/lib3d
+  engine/lib3d
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

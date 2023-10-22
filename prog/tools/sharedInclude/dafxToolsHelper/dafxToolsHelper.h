@@ -131,8 +131,11 @@ inline void act_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cull, dafx::
 
       Point2 depthSize(ti.w, ti.h);
       Point2 depthSizeRcp(safeinv((float)ti.w), safeinv((float)ti.h));
+      IPoint2 offset(0, 0);
+
       dafx::set_global_value(dafx_ctx, "depth_size", &depthSize, 8);
       dafx::set_global_value(dafx_ctx, "depth_size_rcp", &depthSizeRcp, 8);
+      dafx::set_global_value(dafx_ctx, "depth_tci_offset", &offset, 8);
       release_managed_tex(downsampledDepthId);
     }
   }

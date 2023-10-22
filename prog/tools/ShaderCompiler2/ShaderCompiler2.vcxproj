@@ -104,7 +104,7 @@
   <Import Project="$(MSBuildToolsDir)common.targets" />
   <ItemGroup>
     <ConfigPerDirectory Include="nodeBased\">
-      <AdditionalIncludeDirectories>ShaderCompiler2\hlsl2spirv;ShaderCompiler2\ps4transcode;ShaderCompiler2\ps5transcode;ShaderCompiler2\hlsl11transcode;ShaderCompiler2\dx12;$(SolutionDir)prog\engine2\drv\drv3d_pc_multi</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>ShaderCompiler2\hlsl2spirv;ShaderCompiler2\ps4transcode;ShaderCompiler2\ps5transcode;ShaderCompiler2\hlsl11transcode;ShaderCompiler2\dx12;$(SolutionDir)prog\engine\drv\drv3d_pc_multi</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>IS_OFFLINE_SHADER_COMPILER=1</PreprocessorDefinitions>
     </ConfigPerDirectory>
   </ItemGroup>

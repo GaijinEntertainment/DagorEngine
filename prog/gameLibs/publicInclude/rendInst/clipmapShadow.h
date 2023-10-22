@@ -11,17 +11,16 @@ typedef BaseTexture Texture;
 class BBox2;
 
 #include <math/dag_Point2.h>
-#include <math/integer/dag_IPoint2.h>
-#include <3d/dag_texMgr.h>
-#include <3d/dag_drv3dConsts.h>
+#include <3d/dag_resPtr.h>
 #include <render/toroidalHelper.h>
 #include <render/toroidal_update.h>
+
 
 class ClipmapShadow
 {
 protected:
   int clipmapShadowSize;
-  TextureIDHolder clipmapShadowTex;
+  UniqueTex clipmapShadowTex;
 
   static constexpr int NUM_CLIPMAP_SHADOW_CASCADES = 2;
 

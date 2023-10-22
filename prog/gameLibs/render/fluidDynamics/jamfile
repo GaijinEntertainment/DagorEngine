@@ -1,0 +1,20 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/fluidDynamics ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/fluidDynamics.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/render
+  $(Root)/$(Location)
+;
+
+Sources =
+  solver.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

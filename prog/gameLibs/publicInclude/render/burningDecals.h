@@ -14,7 +14,7 @@
 #include <math/dag_Point4.h>
 #include <math/dag_Point2.h>
 #include <math/dag_bounds2.h>
-#include <3d/dag_sbufferIDHolder.h>
+#include <3d/dag_resPtr.h>
 #include <3d/dag_textureIDHolder.h>
 #include <3d/dag_resPtr.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
@@ -52,7 +52,7 @@ private:
   int clipmapDecalType = 0;
   int resolution = 1024;
   DynamicShaderHelper material;
-  SbufferIDHolder decalDataVS;
+  UniqueBufHolder decalDataVS;
 
   struct InstData
   {

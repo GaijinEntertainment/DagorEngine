@@ -6,7 +6,7 @@
 class CPlaceholder : public PropertyControlBase
 {
 public:
-  CPlaceholder(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h);
+  CPlaceholder(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h);
 
   virtual unsigned getTypeMaskForSet() const override { return 0; }
   virtual unsigned getTypeMaskForGet() const override { return 0; }

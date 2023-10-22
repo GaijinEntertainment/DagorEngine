@@ -2,8 +2,8 @@
 
 ext.signedRelease = project.findProperty("RELEASE_SIGN") ?: false
 ext.apkName = project.findProperty("APK_NAME") ?: null
-ext.minSdk = project.findProperty("MIN_SDK").toInteger() ?: 24
-ext.targetSdk = project.findProperty("TARGET_SDK").toInteger() ?: 26
+ext.minSdkV = project.findProperty("MIN_SDK").toInteger() ?: 24
+ext.targetSdkV = project.findProperty("TARGET_SDK").toInteger() ?: 26
 
 ext.versionCode = project.findProperty("VERSION_CODE") ?: 1
 ext.versionName = project.findProperty("VERSION_NAME") ?: "1.0"
@@ -15,22 +15,30 @@ if (hasProjectGradle == true)
   apply from: "${PROJECT_FILE}"
 }
 
-println "generating ${signedRelease ? "signed" : "unsigned"} apk(aab) (sdk ${ext.targetSdk}) ${signedRelease ? "(key: " + RELEASE_KEY_ALIAS + ")" : ""}"
+println "generating ${signedRelease ? "signed" : "unsigned"} apk(aab) (sdk ${ext.targetSdkV}) ${signedRelease ? "(key: " + RELEASE_KEY_ALIAS + ")" : ""}"
 
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
+        maven {
+          url "https://android-sdk.is.com/"
+        }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.4.3'
+        classpath 'com.android.tools.build:gradle:7.0.0'
+        classpath 'com.google.gms:google-services:4.3.13'
+        classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.1'
     }
 }
 
 allprojects {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
+        maven {
+          url "https://android-sdk.is.com/"
+        }
     }
 
     gradle.projectsEvaluated {
@@ -43,8 +51,8 @@ allprojects {
 apply plugin: 'com.android.application'
 
 android {
-  compileSdkVersion targetSdk
-  buildToolsVersion "29.0.2"
+  compileSdkVersion targetSdkV
+  buildToolsVersion "30.0.2"
 
   lintOptions {
     // suppres android:debuggable=true error in our maifest file
@@ -92,8 +100,8 @@ android {
   }
 
   defaultConfig {
-      minSdkVersion minSdk
-      targetSdkVersion targetSdk
+      minSdk minSdkV
+      targetSdk targetSdkV
       versionCode versionCode
       versionName versionName
       ndk {
@@ -148,11 +156,11 @@ android {
 }
 
 
-if (ext.targetSdk < 30)
+if (ext.targetSdkV < 30)
 {
   dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:support-v4:'+ targetSdk + '.0.0'
+    implementation 'com.android.support:support-v4:'+ ext.targetSdkV + '.0.0'
   }
 } else {
   dependencies {

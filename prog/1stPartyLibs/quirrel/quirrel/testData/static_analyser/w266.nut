@@ -4,3 +4,5 @@
   ::x++
 } while (::x)
 ::x--
+
+//-file:undefined-global

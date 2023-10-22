@@ -57,7 +57,7 @@ void close_screen_droplets_mgr() { screen_droplets_mgr.reset(); }
 ScreenDroplets::ScreenDroplets(int w, int h, uint32_t rtFmt)
 {
   resolution = IPoint2(w, h);
-  screenDropletsFx.init("screen_droplets", nullptr, false);
+  screenDropletsFx.init("screen_droplets");
 #define VAR(a) a##VarId = ::get_shader_variable_id(#a, true);
   SCREEN_DROPLETS_VARS
 #undef VAR
@@ -69,7 +69,7 @@ ScreenDroplets::ScreenDroplets(int w, int h, uint32_t rtFmt)
 
 ScreenDroplets::ScreenDroplets(int w, int h)
 {
-  screenDropletsFx.init("screen_droplets", nullptr, false);
+  screenDropletsFx.init("screen_droplets");
 #define VAR(a) a##VarId = ::get_shader_variable_id(#a, true);
   SCREEN_DROPLETS_VARS
 #undef VAR

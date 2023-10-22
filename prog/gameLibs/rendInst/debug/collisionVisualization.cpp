@@ -26,8 +26,8 @@ namespace rendinst
 static rendinst::DrawShadedCollisionsFlags globalShadedCollisionDrawFlags = {};
 
 
-static void draw_collision_info(const rendinst::RendInstCollisionCB::CollisionInfo &coll, const Point3 &view_pos, const Color4 &color,
-  bool draw_ri, bool draw_canopy, bool drawPhysOnly, bool drawTraceOnly, const float max_dist_sq = 10000000, bool shaded = false)
+static void draw_collision_info(const rendinst::CollisionInfo &coll, const Point3 &view_pos, const Color4 &color, bool draw_ri,
+  bool draw_canopy, bool drawPhysOnly, bool drawTraceOnly, const float max_dist_sq = 10000000, bool shaded = false)
 {
   if (lengthSq(coll.tm.getcol(3) - view_pos) > max_dist_sq)
     return;
@@ -58,19 +58,19 @@ static void draw_collision_info(const rendinst::RendInstCollisionCB::CollisionIn
         case COLLISION_NODE_TYPE_MESH:
         {
           CollisionNode *collNode = coll.collRes->getNode(i);
-          if (collNode != NULL && collNode->type == COLLISION_NODE_TYPE_MESH)
+          if (collNode != nullptr && collNode->type == COLLISION_NODE_TYPE_MESH)
           {
             if (!drawTraceOnly && meshNode.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
             {
               draw_debug_solid_mesh(collNode->indices.data(), collNode->indices.size() / 3, &collNode->vertices.data()->x,
                 elem_size(collNode->vertices), collNode->vertices.size(), coll.tm * meshNode.tm,
-                color * Color4(0.5f, 1.0f, 0.5f, 1.0f), shaded);
+                color * Color4(0.5f, 1.0f, 0.5f, 1.0f), shaded, DrawSolidMeshCull::FLIP);
             }
             if (!drawPhysOnly && meshNode.checkBehaviorFlags(CollisionNode::TRACEABLE))
             {
               draw_debug_solid_mesh(collNode->indices.data(), collNode->indices.size() / 3, &collNode->vertices.data()->x,
                 elem_size(collNode->vertices), collNode->vertices.size(), coll.tm * meshNode.tm,
-                color * Color4(1.0f, 0.5f, 0.5f, 1.0f), shaded);
+                color * Color4(1.0f, 0.5f, 0.5f, 1.0f), shaded, DrawSolidMeshCull::FLIP);
             }
           }
           break;
@@ -79,10 +79,11 @@ static void draw_collision_info(const rendinst::RendInstCollisionCB::CollisionIn
         case COLLISION_NODE_TYPE_CONVEX:
         {
           CollisionNode *collNode = coll.collRes->getNode(i);
-          if (collNode != NULL && collNode->type == COLLISION_NODE_TYPE_CONVEX)
+          if (collNode != nullptr && collNode->type == COLLISION_NODE_TYPE_CONVEX)
           {
             draw_debug_solid_mesh(collNode->indices.data(), collNode->indices.size() / 3, &collNode->vertices.data()->x,
-              elem_size(collNode->vertices), collNode->vertices.size(), coll.tm * meshNode.tm, color * convexColor, shaded);
+              elem_size(collNode->vertices), collNode->vertices.size(), coll.tm * meshNode.tm, color * convexColor, shaded,
+              DrawSolidMeshCull::FLIP);
           }
           break;
         }
@@ -110,14 +111,14 @@ static void draw_collision_info(const rendinst::RendInstCollisionCB::CollisionIn
         RendInstGenData::CellRtData &crt = *cell.rtData;
         float cellSz = rgl->grid2world * rgl->cellSz;
         vec3f v_cell_add = crt.cellOrigin;
-        vec3f v_cell_mul = v_mul(rendinstgen::VC_1div32767, v_make_vec4f(cellSz, crt.cellHeight, cellSz, 0));
+        vec3f v_cell_mul = v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(cellSz, crt.cellHeight, cellSz, 0));
         bool posInst = crt.rtData->riPosInst[coll.desc.pool] ? 1 : 0;
         bool palette_rotation = crt.rtData->riPaletteRotation[coll.desc.pool];
         unsigned int stride = RIGEN_STRIDE_B(posInst, rgl->perInstDataDwords);
 
         vec3f v_pos, v_scale;
         vec4i paletteId;
-        rendinstgen::unpack_tm_pos(v_pos, v_scale,
+        rendinst::gen::unpack_tm_pos(v_pos, v_scale,
           (int16_t *)(crt.sysMemData + crt.pools[coll.desc.pool].baseOfs + coll.desc.idx * stride), v_cell_add, v_cell_mul,
           palette_rotation, &paletteId);
 
@@ -125,9 +126,9 @@ static void draw_collision_info(const rendinst::RendInstCollisionCB::CollisionIn
         bbox3f treeBBox;
         if (palette_rotation)
         {
-          rendinstgen::RotationPaletteManager::Palette palette =
-            rendinstgen::get_rotation_palette_manager()->getPalette({coll.desc.layer, coll.desc.pool});
-          quat4f v_rot = rendinstgen::RotationPaletteManager::get_quat(palette, v_extract_xi(paletteId));
+          rendinst::gen::RotationPaletteManager::Palette palette =
+            rendinst::gen::get_rotation_palette_manager()->getPalette({coll.desc.layer, coll.desc.pool});
+          quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(paletteId));
           mat44f tm;
           v_mat44_compose(tm, v_pos, v_rot, v_scale);
 
@@ -171,7 +172,7 @@ static void draw_collision_info(const rendinst::RendInstCollisionCB::CollisionIn
   }
 }
 
-static void get_ri_collision(int layer, const Point3 &view_pos, Tab<rendinst::RendInstCollisionCB::CollisionInfo> &out_collisions,
+static void get_ri_collision(int layer, mat44f_cref globtm, const Point3 &view_pos, Tab<rendinst::CollisionInfo> &out_collisions,
   const float visibility_max_dist = 500.0f)
 {
   TIME_D3D_PROFILE(get_ri_collision);
@@ -183,8 +184,6 @@ static void get_ri_collision(int layer, const Point3 &view_pos, Tab<rendinst::Re
   if (!rgl)
     return;
 
-  mat44f globtm;
-  d3d::getglobtm(globtm);
   vec3f curViewPos = v_ldu(&view_pos.x);
 
   ScopedLockRead lock(rgl->rtData->riRwCs);
@@ -228,7 +227,7 @@ static void get_ri_collision(int layer, const Point3 &view_pos, Tab<rendinst::Re
         if (!v_is_visible_extent_fast(lbbc2, lbbe2, clipTm))
           continue;
 
-        rendinst::RendInstCollisionCB::CollisionInfo &info = out_collisions.emplace_back(riDesc);
+        rendinst::CollisionInfo &info = out_collisions.emplace_back(riDesc);
         info.handle = crt.rtData->riCollRes[riIdx].handle;
         info.collRes = crt.rtData->riCollRes[riIdx].collRes;
         v_stu_bbox3(info.localBBox, box);
@@ -240,16 +239,14 @@ static void get_ri_collision(int layer, const Point3 &view_pos, Tab<rendinst::Re
 
 float rendinst_debug_min_size = 0.0f;
 
-static void get_ri_extra_collision(Tab<rendinst::RendInstCollisionCB::CollisionInfo> &out_collisions,
+static void get_ri_extra_collision(Tab<CollisionInfo> &out_collisions, mat44f_cref globtm, const Point3 &view_pos,
   const float visibility_max_dist = 500.0f)
 {
   TIME_D3D_PROFILE(get_ri_extra_collision);
 
-  mat44f globtm;
-  d3d::getglobtm(globtm);
   Frustum frustum;
   frustum.construct(globtm);
-  Point3_vec4 vpos = grs_cur_view.pos;
+  Point3_vec4 vpos = view_pos;
   vec3f curViewPos = v_ldu(&vpos.x);
   shrink_frustum_zfar(frustum, curViewPos, v_splats(visibility_max_dist));
   vec3f vMinSize = v_splats(rendinst_debug_min_size);
@@ -257,7 +254,7 @@ static void get_ri_extra_collision(Tab<rendinst::RendInstCollisionCB::CollisionI
   for (int i = 0; i < rendinst::riExtra.size(); ++i)
   {
     rendinst::RiExtraPool &riPool = rendinst::riExtra[i];
-    if (riPool.collRes == NULL)
+    if (riPool.collRes == nullptr)
       continue;
 
     int pool_vis = frustum.testBox(riPool.fullWabb.bmin, riPool.fullWabb.bmax);
@@ -285,7 +282,7 @@ static void get_ri_extra_collision(Tab<rendinst::RendInstCollisionCB::CollisionI
       }
 
       rendinst::RendInstDesc riDesc(-1, j, i, 0, -1);
-      rendinst::RendInstCollisionCB::CollisionInfo info(riDesc);
+      rendinst::CollisionInfo info(riDesc);
       info.handle = riPool.collHandle;
       info.collRes = riPool.collRes;
       v_stu_bbox3(info.localBBox, riPool.lbb);
@@ -299,13 +296,13 @@ static void get_ri_extra_collision(Tab<rendinst::RendInstCollisionCB::CollisionI
   }
 }
 
-static void draw_collision_ui(const rendinst::RendInstCollisionCB::CollisionInfo &coll, const Point3 &view_pos,
+static void draw_collision_ui(const CollisionInfo &coll, mat44f_cref globtm, const Point3 &view_pos,
   const float ui_max_dist_sq = 20.0f * 20.0f)
 {
   if (lengthSq(coll.tm.getcol(3) - view_pos) > ui_max_dist_sq)
     return;
 
-  const char *riName = NULL;
+  const char *riName = nullptr;
   uint16_t idx = -1;
   if (coll.desc.isRiExtra())
   {
@@ -319,14 +316,13 @@ static void draw_collision_ui(const rendinst::RendInstCollisionCB::CollisionInfo
     idx = coll.desc.idx;
   }
 
-  if (riName == NULL)
+  if (riName == nullptr)
     return;
 
-  mat44f gtm;
-  d3d::getglobtm(gtm);
   mat44f locTm;
   v_mat44_make_from_43cu_unsafe(locTm, coll.tm.array);
-  v_mat44_mul43(gtm, gtm, locTm);
+  mat44f gtm;
+  v_mat44_mul43(gtm, globtm, locTm);
 
   Point3_vec4 bbMid = coll.localBBox.center();
   vec3f avg = v_ldu(&bbMid.x);
@@ -345,8 +341,8 @@ static void draw_collision_ui(const rendinst::RendInstCollisionCB::CollisionInfo
 static shaders::UniqueOverrideStateId debugOverride;
 static shaders::UniqueOverrideStateId debugWireOverride;
 
-void drawDebugCollisions(DrawCollisionsFlags flags, const Point3 &view_pos, bool reverse_depth, float max_coll_dist_sq,
-  float max_label_dist_sq)
+void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Point3 &view_pos, bool reverse_depth,
+  float max_coll_dist_sq, float max_label_dist_sq)
 {
   bool drawRendinstExtra = bool(flags & DrawCollisionsFlag::RendInstExtra);
   bool drawRendinst = bool(flags & DrawCollisionsFlag::RendInst);
@@ -367,15 +363,15 @@ void drawDebugCollisions(DrawCollisionsFlags flags, const Point3 &view_pos, bool
 
   static int lastCollisionCount = 0;
 
-  Tab<rendinst::RendInstCollisionCB::CollisionInfo> collisions(framemem_ptr());
+  Tab<rendinst::CollisionInfo> collisions(framemem_ptr());
   collisions.reserve(lastCollisionCount);
 
   if (drawRendinstExtra || drawRendinstCanopy || drawShaded)
-    get_ri_extra_collision(collisions);
+    get_ri_extra_collision(collisions, globtm, view_pos);
 
   if (drawRendinst || drawRendinstCanopy || drawShaded)
     FOR_EACH_RG_LAYER_DO (rgl)
-      get_ri_collision(_layer, view_pos, collisions);
+      get_ri_collision(_layer, globtm, view_pos, collisions);
 
   lastCollisionCount = collisions.size();
 
@@ -472,7 +468,7 @@ void drawDebugCollisions(DrawCollisionsFlags flags, const Point3 &view_pos, bool
 
       StdGuiRender::ScopeStarter strt;
       for (auto &coll : collisions)
-        draw_collision_ui(coll, view_pos, max_label_dist_sq);
+        draw_collision_ui(coll, globtm, view_pos, max_label_dist_sq);
     }
 
     ShaderGlobal::setBlock(lastBlockId, ShaderGlobal::LAYER_FRAME);
@@ -506,7 +502,7 @@ void drawDebugCollisions(DrawCollisionsFlags flags, const Point3 &view_pos, bool
 
     StdGuiRender::ScopeStarter strt;
     for (auto &coll : collisions)
-      draw_collision_ui(coll, view_pos, max_label_dist_sq);
+      draw_collision_ui(coll, globtm, view_pos, max_label_dist_sq);
   }
 
   ShaderGlobal::setBlock(lastBlockId, ShaderGlobal::LAYER_FRAME);

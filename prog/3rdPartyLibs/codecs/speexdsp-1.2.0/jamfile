@@ -59,7 +59,7 @@ Sources =
   libspeexdsp/smallft.c
 ;
 
-if $(PlatformSpec) in gcc4 clang {
+if $(PlatformSpec) in gcc clang {
   CPPopt += -Wno-unused-parameter ;
 }
 

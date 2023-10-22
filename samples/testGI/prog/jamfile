@@ -34,25 +34,25 @@ Sources =
 ;
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/coreUtil
-  engine2/math
-  engine2/lib3d
-  engine2/image
-  engine2/shaders
-  engine2/workCycle
-  engine2/guiBase
-  engine2/scene
-  engine2/sceneRay
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/coreUtil
+  engine/math
+  engine/lib3d
+  engine/image
+  engine/shaders
+  engine/workCycle
+  engine/guiBase
+  engine/scene
+  engine/sceneRay
 
-  engine2/gameRes
-  engine2/perfMon
-  engine2/streaming
+  engine/gameRes
+  engine/perfMon
+  engine/streaming
 
   samples/commonFramework
 
@@ -64,8 +64,8 @@ UseProgLibs =
   gameLibs/visualConsole
   gameLibs/fftWater
   gameLibs/heightmap
-  engine2/consoleProc
-  gameLibs/daEditor4
+  engine/consoleProc
+  gameLibs/daEditorE
   gameLibs/daGI
 ;
 
@@ -73,11 +73,11 @@ UseProgLibs =
 
 if $(Platform) in win32 win64 {
   UseProgLibs +=
-    engine2/drv/hid_mouse
-    engine2/drv/hid_keyboard
-    engine2/drv/hid_nulldrv
+    engine/drv/hid_mouse
+    engine/drv/hid_keyboard
+    engine/drv/hid_nulldrv
   ;
-  UseProgLibs += engine2/drv/drv3d_pc_multi ;
+  UseProgLibs += engine/drv/drv3d_pc_multi ;
   AddLibs +=
     Ws2_32.lib ;
 
@@ -85,30 +85,32 @@ if $(Platform) in win32 win64 {
   BundleName = testGI ;
   Sources += macosx_main.mm ;
   UseProgLibs +=
-    engine2/drv/hid_mouse
-    engine2/drv/hid_keyboard
-    engine2/drv/hid_nulldrv
+    engine/drv/hid_mouse
+    engine/drv/hid_keyboard
+    engine/drv/hid_nulldrv
   ;
 
   include $(Root)/prog/samples/macOS-testApp-res/macOS-common.jam ;
 
 } else if $(Platform) in ps4 ps5 {
   UseProgLibs +=
-    engine2/drv/hid_sony
-    engine2/drv/drv3d_ps4
+    engine/drv/hid_sony
+    engine/drv/drv3d_ps4
   ;
   AddLibs =
     -lScePerf_stub_weak
   ;
 } else if $(Platform) = android {
   UseProgLibs +=
-    engine2/drv/drv3d_vulkan
-    engine2/drv/hid_android
-    engine2/drv/hid_nulldrv
+    engine/drv/drv3d_vulkan
+    engine/drv/hid_android
+    engine/drv/hid_nulldrv
+    gameLibs/statsd
+    gameLibs/folders
   ;
 
   AndroidAppID = com.gaijinent.testApp.testGI ;
-  AndroidIcon = ../Android-testApp-res/icon.png ;
+  AndroidIcon = ../../../prog/samples/Android-testApp-res/icon.png ;
   AndroidAppIconName = Test Gl ;
   AndroidCopyToDevice = default ;
 

@@ -6,12 +6,12 @@
 #include <debug/dag_debug.h>
 
 
-CTree::CTree(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
+CTree::CTree(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h,
   const char caption[]) :
 
   PropertyContainerControlBase(id, event_handler, parent, x, y, w, h),
-  mCaption(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT),
-  mTree(this, parent->getWindow(), x, y + mCaption.getHeight(), w, h - mCaption.getHeight()),
+  mCaption(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mTree(this, parent->getWindow(), x, y + mCaption.getHeight(), _px(w), _px(h) - mCaption.getHeight()),
   manualChange(false)
 {
   hasCaption = strlen(caption) > 0;
@@ -19,7 +19,7 @@ CTree::CTree(ControlEventHandler *event_handler, PropertyContainerControlBase *p
   if (hasCaption)
   {
     mCaption.setTextValue(caption);
-    mH = DEFAULT_CONTROL_HEIGHT + mTree.getHeight();
+    mH = _pxS(DEFAULT_CONTROL_HEIGHT) + mTree.getHeight();
   }
   else
   {
@@ -45,7 +45,7 @@ CTree::~CTree()
 PropertyContainerControlBase *CTree::createDefault(int id, PropertyContainerControlBase *parent, const char caption[], bool new_line)
 {
   (void)new_line;
-  return parent->createTree(id, caption, DEFAULT_LISTBOX_HEIGHT);
+  return parent->createTree(id, caption, _pxScaled(DEFAULT_LISTBOX_HEIGHT));
 }
 
 
@@ -168,18 +168,18 @@ void CTree::setEnabled(bool enabled)
 }
 
 
-void CTree::setWidth(unsigned w)
+void CTree::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
-  mCaption.resizeWindow(w, mCaption.getHeight());
-  mTree.resizeWindow(w, mTree.getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
+  mTree.resizeWindow(_px(w), mTree.getHeight());
 }
 
 
-void CTree::setHeight(unsigned h)
+void CTree::setHeight(hdpi::Px h)
 {
   PropertyControlBase::setHeight(h);
-  mTree.resizeWindow(mTree.getWidth(), h - mCaption.getHeight());
+  mTree.resizeWindow(mTree.getWidth(), _px(h) - mCaption.getHeight());
 }
 
 

@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/drv/hid_keyboard ;
+
+TargetType  = lib ;
+Target      = engine/drv/hid_keyboard.lib ;
+
+Sources =
+  kbd_shifts.cpp
+  kbd_device_common.cpp
+
+  kbd_classdrv_win.cpp
+  kbd_device_win.cpp
+;
+
+if $(Platform) in linux64 {
+  AddLibs = -lX11 ;
+}
+
+AddIncludes = $(Root)/prog/engine/sharedInclude ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -5,8 +5,8 @@
 
 
 CMultiSelectListBox::CMultiSelectListBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x,
-  int y, int w, int h, const Tab<String> &vals) :
-  BasicPropertyControl(id, event_handler, parent, x, y, w, h), mListBox(this, parent->getWindow(), x, y, w, h, vals)
+  int y, hdpi::Px w, hdpi::Px h, const Tab<String> &vals) :
+  BasicPropertyControl(id, event_handler, parent, x, y, w, h), mListBox(this, parent->getWindow(), x, y, _px(w), _px(h), vals)
 {
   initTooltip(&mListBox);
 }
@@ -16,7 +16,7 @@ PropertyContainerControlBase *CMultiSelectListBox::createDefault(int id, Propert
   bool new_line)
 {
   Tab<String> vals(midmem);
-  parent->createMultiSelectList(id, vals, DEFAULT_LISTBOX_HEIGHT, true, true);
+  parent->createMultiSelectList(id, vals, _pxScaled(DEFAULT_LISTBOX_HEIGHT), true, true);
   return NULL;
 }
 
@@ -50,7 +50,7 @@ void CMultiSelectListBox::reset()
 void CMultiSelectListBox::setEnabled(bool enabled) { mListBox.setEnabled(enabled); }
 
 
-void CMultiSelectListBox::setWidth(unsigned w) { mListBox.resizeWindow(w, mListBox.getHeight()); }
+void CMultiSelectListBox::setWidth(hdpi::Px w) { mListBox.resizeWindow(_px(w), mListBox.getHeight()); }
 
 
 void CMultiSelectListBox::moveTo(int x, int y)

@@ -60,6 +60,7 @@ static int butterfly_texVarId = -1;
 // update h0
 static int gauss_texVarId = -1;
 static int wind_dir_xVarId = -1, wind_dir_yVarId = -1;
+static int wind_speedVarId = -1;
 
 static bool use_texture_array = true;
 
@@ -288,6 +289,7 @@ void WaterNVRender::setCascades(const NVWaveWorks_FFT_CPU_Simulation::Params &p)
 
   ShaderGlobal::set_real(wind_dir_xVarId, fft[0].getParams().wind_dir_x);
   ShaderGlobal::set_real(wind_dir_yVarId, fft[0].getParams().wind_dir_y);
+  ShaderGlobal::set_real(wind_speedVarId, fft[0].getParams().wind_speed);
 
   static int shoreDampVarId = get_shader_variable_id("shore_damp", true);
   ShaderGlobal::set_color4(shoreDampVarId,
@@ -477,6 +479,7 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
   waterRefractionTexVarId = get_shader_variable_id("water_refraction_tex", true);
   wind_dir_xVarId = get_shader_variable_id("wind_dir_x");
   wind_dir_yVarId = get_shader_variable_id("wind_dir_y");
+  wind_speedVarId = get_shader_variable_id("wind_speed");
 
   if (!initGPU())
   {
@@ -520,7 +523,7 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
       ShaderGlobal::set_texture(water_gradients_texVarId[i], gradient[i]);
 
   gradientRenderer.init("water_gradient");
-  normalsRenderer.init("water_normals", 0, false);
+  normalsRenderer.init("water_normals");
   if (renderQuality >= fft_water::RENDER_GOOD)
     initFoam();
   water_vs_cascadesVarId = get_shader_variable_id("water_vs_cascades", true);
@@ -915,6 +918,8 @@ void WaterNVRender::calculateGradients()
     if (hasFoam)
     {
       TIME_D3D_PROFILE(gradientFoamRenderer);
+      if (gradientArray)
+        d3d::resource_barrier({gradientArray.getArrayTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
       // First pass
       shaders::overrides::reset();
@@ -1160,7 +1165,6 @@ void WaterNVRender::setVertexSamplers(int water_vertex_samplers)
 WaterNVRender::SavedStates WaterNVRender::setStates(TEXTUREID distanceTex, int vs_samplers)
 {
   SavedStates states;
-  static bool wakeHtSupported = d3d::get_driver_code() == _MAKE4C('DX11') || d3d::get_driver_code() == _MAKE4C('PS4');
 
   TEXTUREID dispArrayId = BAD_TEXTUREID;
 
@@ -1170,7 +1174,7 @@ WaterNVRender::SavedStates WaterNVRender::setStates(TEXTUREID distanceTex, int v
     dispArrayId = gpGpu->dispArray.getTexId();
 
 
-  if (wakeHtSupported && dispArrayId != BAD_TEXTUREID && wakeHtTex != BAD_TEXTUREID)
+  if (d3d::get_driver_code().is(d3d::dx11 || d3d::ps4) && dispArrayId != BAD_TEXTUREID && wakeHtTex != BAD_TEXTUREID)
   {
     G_ASSERT(VariableMap::isGlobVariablePresent(wakeHtTexVarId));
     ShaderGlobal::set_texture(wakeHtTexVarId, wakeHtTex);
@@ -1211,7 +1215,7 @@ void WaterNVRender::prepareRefraction(Texture *scene_target_tex)
   ShaderGlobal::set_texture(waterRefractionTexVarId, refraction);
 }
 
-void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom_lod_quality, int survey_id,
+void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom_lod_quality, int survey_id, const Frustum &frustum,
   IWaterDecalsRenderHelper *decals_renderer, fft_water::RenderMode render_mode)
 {
   d3d::insert_wait_on_fence(async_compute_gradients_fence, GpuPipeline::GRAPHICS);
@@ -1308,12 +1312,6 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
       vs_samplers = 1;
   }
   Point2 centerOfHmap = Point2::xz(origin);
-  mat44f globtm;
-  d3d::getglobtm(globtm);
-  Frustum frustum(globtm);
-
-  extern void set_frustum_planes(const Frustum &frustum);
-  set_frustum_planes(frustum);
 
   if (renderQuad)
   {

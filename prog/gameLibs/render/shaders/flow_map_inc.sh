@@ -37,20 +37,16 @@ macro USE_WATER_FLOWMAP(code)
   hlsl(code) {
     void calcWaterFlowmapParams(float3 worldPos, float viewDist, out float3 worldPos_a, out float3 worldPos_b, out float viewDist_a, out float viewDist_b, out float crossFade)
     {
-      float2 windVec = water_level_max_wave_wind_dir.zw * cascadesTexelScale * current_time * water_wind_strength;
+      float2 windVec = wind_dir_speed.xy * cascadesTexelScale * current_time * (water_wind_strength + 0.5);
 
       float2 flowmapSample = float2(0, 0);
       float2 flowmapUVAdd = worldPos.xz * world_to_flowmap_add.xy + world_to_flowmap_add.zw;
       if ((flowmapUVAdd.x >= 0) && (flowmapUVAdd.y >= 0) && (flowmapUVAdd.x <= 1) && (flowmapUVAdd.y <= 1))
       {
-        float2 flowmapStrengthAdd = saturate(viewDist * water_flowmap_strength_add.x + water_flowmap_strength_add.y) * water_flowmap_strength_add.z;
+        float flowmapStrengthAdd = saturate(viewDist * water_flowmap_strength_add.x + water_flowmap_strength_add.y) * water_flowmap_strength_add.z;
         flowmapSample += tex2Dlod(water_flowmap_tex_add, float4(flowmapUVAdd, 0, 0)).xy * flowmapStrengthAdd;
       }
-
-      float2 flowmapVec = flowmapSample;
-      float flowmapLength = length(flowmapVec);
-      if (flowmapLength > 0.0001)
-        flowmapVec *= water_flowmap_strength.x * water_flowmap_fading / flowmapLength;
+      float2 flowmapVec = flowmapSample * water_flowmap_fading;
 
       float flowmapTime = current_time * inv_water_flowmap_fading;
       float2 flowmapVec_a = flowmapVec * frac(flowmapTime + 0.0) - windVec;

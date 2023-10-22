@@ -17,7 +17,9 @@ struct Storage
   ResSlotNameMap<ResourceId> resourceMap;
 
   AutoGrowVector<NodeId, NodeDeclaration, EXPECTED_MAX_NODE_COUNT> registeredNodes;
+  AutoGrowVector<SlotId, ResourceId, EXPECTED_MAX_SLOT_COUNT> currentSlotsState;
   bool isNodeRegisterRequired = false;
+  int validNodeCount;
 
   Storage() = default;
   ~Storage() = default;

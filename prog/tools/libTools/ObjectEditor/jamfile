@@ -16,7 +16,7 @@ Sources =
 ;
 
 
-if $(DriverLinkage) != dynamic { UseProgLibs = engine2/baseUtil ; } # for watchdog
+if $(DriverLinkage) != dynamic { UseProgLibs = engine/baseUtil ; } # for watchdog
 
 CPPopt = ;
 

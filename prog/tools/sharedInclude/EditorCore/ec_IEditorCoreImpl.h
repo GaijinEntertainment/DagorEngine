@@ -15,7 +15,6 @@ public:
 
   // driver objects
   virtual DagorCurView &curView() const;
-  virtual DagorCurFog &curFog() const;
 
   // wire render
   virtual void startLinesRender(bool test_z, bool write_z, bool z_func_less = false) const;

@@ -6,7 +6,7 @@ void resource_slot::detail::unregister_access(Storage &storage, NodeId node_id, 
   NodeDeclaration &node = storage.registeredNodes[node_id];
 
   // This node was updated, no needs to remove updated declaration
-  if (generation < node.generation || storage.registeredNodes[node_id].id == NodeId::Invalid)
+  if (generation < node.generation)
     return;
 
   unsigned nextGeneration = node.generation + 1;

@@ -37,6 +37,12 @@ void register_dagor_shell(SqModules *module_mgr)
   Sqrat::Table exports(vm);
   ///@module dagor.shell
   exports.SquirrelFunc("shell_execute", shell_execute, 2, ".t");
+  /**
+  @param params t : table to get result
+  @code params sq
+    {cmd:string, file:string, dir:string, params:string, force_sync:boolean}
+  file or dir should be set. params is optional
+  */
   module_mgr->addNativeModule("dagor.shell", exports);
 }
 

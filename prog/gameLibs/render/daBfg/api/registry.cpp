@@ -5,18 +5,17 @@
 namespace dabfg
 {
 
-Registry::Registry(NodeNameId node, InternalRegistry *reg) : nodeId{node}, registry{reg} {}
+Registry::Registry(NodeNameId node, InternalRegistry *reg) : NameSpaceRequest(reg->knownNames.getParent(node), node, reg) {}
 
 Registry Registry::orderMeBefore(const char *name)
 {
-  // This is not a typo. Preced means "I want to get run before this guy",
-  // which in turn means that this guy must follow us.
-  const auto nameId = registry->knownNodeNames.getNameId(name);
-  if (DAGOR_LIKELY(nameId != NodeNameId::Invalid))
-    registry->nodes[nodeId].followingNodeIds.insert(nameId);
+  const auto beforeId = registry->knownNames.addNameId<NodeNameId>(nameSpaceId, name);
+
+  if (DAGOR_LIKELY(beforeId != NodeNameId::Invalid))
+    registry->nodes[nodeId].followingNodeIds.insert(beforeId);
   else
-    logerr("FG: node %s tries to order it before not exist node %s, skipping this order.", registry->knownNodeNames.getName(nodeId),
-      name);
+    logerr("FG: node %s tries to order it before a non-existent node %s, skipping this ordering.",
+      registry->knownNames.getName(nodeId), name);
 
   return *this;
 }
@@ -30,12 +29,12 @@ Registry Registry::orderMeBefore(std::initializer_list<const char *> names)
 
 Registry Registry::orderMeAfter(const char *name)
 {
-  const auto nameId = registry->knownNodeNames.getNameId(name);
+  const auto afterId = registry->knownNames.addNameId<NodeNameId>(nameSpaceId, name);
 
-  if (DAGOR_LIKELY(nameId != NodeNameId::Invalid))
-    registry->nodes[nodeId].precedingNodeIds.insert(nameId);
+  if (DAGOR_LIKELY(afterId != NodeNameId::Invalid))
+    registry->nodes[nodeId].precedingNodeIds.insert(afterId);
   else
-    logerr("FG: node %s tries to order it after not exist node %s, skipping this order.", registry->knownNodeNames.getName(nodeId),
+    logerr("FG: node %s tries to order it after a non-existent node %s, skipping this ordering.", registry->knownNames.getName(nodeId),
       name);
 
   return *this;
@@ -70,11 +69,11 @@ StateRequest Registry::requestState() { return {registry, nodeId}; }
 
 VirtualPassRequest Registry::requestRenderPass() { return {nodeId, registry}; }
 
-// === Resource requesting ===
+NameSpaceRequest Registry::root() { return {registry->knownNames.root(), nodeId, registry}; }
 
 VirtualResourceCreationSemiRequest Registry::create(const char *name, History history)
 {
-  auto resId = registry->knownResourceNames.addNameId(name);
+  auto resId = registry->knownNames.addNameId<ResNameId>(nameSpaceId, name);
 
   auto &res = registry->resources.get(resId);
   res.history = history;
@@ -85,66 +84,9 @@ VirtualResourceCreationSemiRequest Registry::create(const char *name, History hi
   return {{resId, false}, nodeId, registry};
 }
 
-VirtualResourceSemiRequest<Registry::NewRoRequestPolicy> Registry::read(const char *name)
-{
-  auto resId = registry->knownResourceNames.addNameId(name);
-  registry->nodes[nodeId].readResources.insert(resId);
-  registry->nodes[nodeId].resourceRequests.emplace(resId, ResourceRequest{ResourceUsage{Access::READ_ONLY}});
-
-  return {{resId, false}, nodeId, registry};
-}
-
-VirtualResourceSemiRequest<Registry::NewRoRequestPolicy> Registry::read(NamedSlot slot_name)
-{
-  auto slotResId = registry->knownResourceNames.addNameId(slot_name.name);
-  registry->nodes[nodeId].readResources.insert(slotResId);
-  registry->nodes[nodeId].resourceRequests.emplace(slotResId, ResourceRequest{ResourceUsage{Access::READ_ONLY}, true});
-
-  return {{slotResId, false}, nodeId, registry};
-}
-
-VirtualResourceSemiRequest<Registry::NewHistRequestPolicy> Registry::historyFor(const char *name)
-{
-  auto resId = registry->knownResourceNames.addNameId(name);
-  registry->nodes[nodeId].historyResourceReadRequests.emplace(resId, ResourceRequest{ResourceUsage{Access::READ_ONLY}});
-  return {{resId, true}, nodeId, registry};
-}
-
-VirtualResourceSemiRequest<Registry::NewRwRequestPolicy> Registry::modify(const char *name)
-{
-  auto resId = registry->knownResourceNames.addNameId(name);
-  registry->nodes[nodeId].modifiedResources.insert(resId);
-  registry->nodes[nodeId].resourceRequests.emplace(resId, ResourceRequest{ResourceUsage{Access::READ_WRITE}});
-
-  return {{resId, false}, nodeId, registry};
-}
-
-VirtualResourceSemiRequest<Registry::NewRwRequestPolicy> Registry::modify(NamedSlot slot_name)
-{
-  auto slotResId = registry->knownResourceNames.addNameId(slot_name.name);
-  registry->nodes[nodeId].modifiedResources.insert(slotResId);
-  registry->nodes[nodeId].resourceRequests.emplace(slotResId, ResourceRequest{ResourceUsage{Access::READ_WRITE}, true});
-
-  return {{slotResId, false}, nodeId, registry};
-}
-
-VirtualResourceSemiRequest<Registry::NewRwRequestPolicy> Registry::rename(const char *from, const char *to, History history)
-{
-  const auto fromResId = registry->knownResourceNames.addNameId(from);
-  const auto toResId = registry->knownResourceNames.addNameId(to);
-
-  registry->nodes[nodeId].renamedResources.emplace(toResId, fromResId);
-  registry->nodes[nodeId].resourceRequests.emplace(fromResId, ResourceRequest{ResourceUsage{Access::READ_WRITE}});
-  registry->resources.get(toResId).history = history;
-
-  return {{fromResId, false}, nodeId, registry};
-}
-
-// === Resource creation ===
-
 detail::ResUid Registry::registerTexture2dImpl(const char *name, dabfg::ExternalResourceProvider &&p)
 {
-  auto resId = registry->knownResourceNames.addNameId(name);
+  const auto resId = registry->knownNames.addNameId<ResNameId>(nameSpaceId, name);
   auto &res = registry->resources.get(resId);
 
   res.creationInfo = eastl::move(p);

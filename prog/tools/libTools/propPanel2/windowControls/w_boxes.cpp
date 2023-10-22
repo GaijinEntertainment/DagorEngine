@@ -16,7 +16,7 @@ WComboBox::WComboBox(WindowControlEventHandler *event_handler, WindowBase *paren
 
   WindowControlBase(event_handler, parent, "COMBOBOX", 0,
     WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | CBS_AUTOHSCROLL | CBS_HASSTRINGS | WS_TABSTOP | WS_VSCROLL | (sorted ? CBS_SORT : 0),
-    "", x, y, w, h * COMBO_HEIGHT_MUL),
+    "", x, y, w, h * _pxS(COMBO_HEIGHT_MUL)),
 
   mSelectIndex(-1)
 {
@@ -159,6 +159,7 @@ WListBox::WListBox(WindowControlEventHandler *event_handler, WindowBase *parent,
   this->setFont(WindowBase::getSmallPrettyFont());
   this->setStrings(vals);
   this->setSelectedIndex(index);
+  this->resizeWindow(w, h);
 }
 
 
@@ -191,6 +192,39 @@ void WListBox::setStrings(const Tab<String> &vals)
   {
     SendMessage(chandle, LB_ADDSTRING, 0, (LPARAM)(LPCTSTR)vals[i].str());
   }
+}
+
+
+void WListBox::renameSelected(const char *name)
+{
+  if (mSelectIndex > -1)
+  {
+    HWND chandle = (HWND)this->getHandle();
+    SendMessage(chandle, LB_DELETESTRING, (WPARAM)mSelectIndex, 0);
+    SendMessage(chandle, LB_INSERTSTRING, (WPARAM)mSelectIndex, (LPARAM)(LPCTSTR)name);
+    SendMessage(chandle, LB_SETCURSEL, (WPARAM)mSelectIndex, 0);
+  }
+}
+
+
+int WListBox::addString(const char *value)
+{
+  HWND chandle = (HWND)this->getHandle();
+  int idx = SendMessage(chandle, LB_ADDSTRING, 0, (LPARAM)(LPCTSTR)value);
+  return idx;
+}
+
+
+void WListBox::removeString(int idx)
+{
+  HWND chandle = (HWND)this->getHandle();
+  int count = SendMessage(chandle, LB_DELETESTRING, (WPARAM)idx, 0);
+  if (count == 0)
+    mSelectIndex = -1;
+  else if (count == idx) // if we delete last item
+    --mSelectIndex;
+
+  SendMessage(chandle, LB_SETCURSEL, (WPARAM)mSelectIndex, 0);
 }
 
 

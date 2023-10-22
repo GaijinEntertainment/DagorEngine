@@ -15,683 +15,10 @@
 
 namespace das {
 
-#define FN_PREVISIT(WHAT)  fnPreVisit##WHAT
-#define FN_VISIT(WHAT)      fnVisit##WHAT
-
-#define IMPL_PREVISIT1(WHAT,WHATTYPE) \
-    if ( FN_PREVISIT(WHAT) ) { \
-        das_invoke_function<void>::invoke<void *,smart_ptr_raw<WHATTYPE>> \
-            (context,nullptr,FN_PREVISIT(WHAT),classPtr,expr); \
-    }
-
-#define IMPL_PREVISIT2(WHAT,WHATTYPE,ARG1T,ARG1) \
-    if ( FN_PREVISIT(WHAT) ) { \
-        das_invoke_function<void>::invoke<void *,smart_ptr_raw<WHATTYPE>,ARG1T> \
-            (context,nullptr,FN_PREVISIT(WHAT),classPtr,expr,ARG1); \
-    }
-
-#define IMPL_PREVISIT3(WHAT,WHATTYPE,ARG1T,ARG1,ARG2T,ARG2) \
-    if ( FN_PREVISIT(WHAT) ) { \
-        das_invoke_function<void>::invoke<void *,smart_ptr_raw<WHATTYPE>,ARG1T,ARG2T> \
-            (context,nullptr,FN_PREVISIT(WHAT),classPtr,expr,ARG1,ARG2); \
-    }
-
-#define IMPL_PREVISIT4(WHAT,WHATTYPE,ARG1T,ARG1,ARG2T,ARG2,ARG3T,ARG3) \
-    if ( FN_PREVISIT(WHAT) ) { \
-        das_invoke_function<void>::invoke<void *,smart_ptr_raw<WHATTYPE>,ARG1T,ARG2T,ARG3T> \
-            (context,nullptr,FN_PREVISIT(WHAT),classPtr,expr,ARG1,ARG2,ARG3); \
-    }
-
-#define IMPL_PREVISIT(WHAT) IMPL_PREVISIT1(WHAT,WHAT)
-
-#define IMPL_VISIT_VOID1(WHAT,WHATTYPE) \
-    if ( FN_VISIT(WHAT) ) { \
-        das_invoke_function<void>::invoke<void *,smart_ptr_raw<WHATTYPE>> \
-            (context,nullptr,FN_VISIT(WHAT),classPtr,expr); \
-    }
-
-#define IMPL_VISIT_VOID2(WHAT,WHATTYPE,ARG1T,ARG1) \
-    if ( FN_VISIT(WHAT) ) { \
-        das_invoke_function<void>::invoke<void *,smart_ptr_raw<WHATTYPE>,ARG1T> \
-            (context,nullptr,FN_VISIT(WHAT),classPtr,expr,ARG1); \
-    }
-
-#define IMPL_VISIT_VOID3(WHAT,WHATTYPE,ARG1T,ARG1,ARG2T,ARG2) \
-    if ( FN_VISIT(WHAT) ) { \
-        das_invoke_function<void>::invoke<void *,smart_ptr_raw<WHATTYPE>,ARG1T,ARG2T> \
-            (context,nullptr,FN_VISIT(WHAT),classPtr,expr,ARG1,ARG2); \
-    }
-
-#define IMPL_VISIT_VOID4(WHAT,WHATTYPE,ARG1T,ARG1,ARG2T,ARG2,ARG3T,ARG3) \
-    if ( FN_VISIT(WHAT) ) { \
-        das_invoke_function<void>::invoke<void *,smart_ptr_raw<WHATTYPE>,ARG1T,ARG2T,ARG3T> \
-            (context,nullptr,FN_VISIT(WHAT),classPtr,expr,ARG1,ARG2,ARG3); \
-    }
-
-#define IMPL_VISIT1(WHAT,WHATTYPE,RETTYPE,RETVALUE) \
-    if ( FN_VISIT(WHAT) ) { \
-        return das_invoke_function<smart_ptr_raw<RETTYPE>>::invoke<void *,smart_ptr_raw<WHATTYPE>> \
-            (context,nullptr,FN_VISIT(WHAT),classPtr,expr).marshal(RETVALUE); \
-    } else { \
-        return RETVALUE; \
-    }
-
-#define IMPL_VISIT2(WHAT,WHATTYPE,RETTYPE,RETVALUE,ARG1T,ARG1) \
-    if ( FN_VISIT(WHAT) ) { \
-        return das_invoke_function<smart_ptr_raw<RETTYPE>>::invoke<void *,smart_ptr_raw<WHATTYPE>,ARG1T> \
-            (context,nullptr,FN_VISIT(WHAT),classPtr,expr,ARG1).marshal(RETVALUE); \
-    } else { \
-        return RETVALUE; \
-    }
-
-#define IMPL_VISIT3(WHAT,WHATTYPE,RETTYPE,RETVALUE,ARG1T,ARG1,ARG2T,ARG2) \
-    if ( FN_VISIT(WHAT) ) { \
-        return das_invoke_function<smart_ptr_raw<RETTYPE>>::invoke<void *,smart_ptr_raw<WHATTYPE>,ARG1T,ARG2T> \
-            (context,nullptr,FN_VISIT(WHAT),classPtr,expr,ARG1,ARG2).marshal(RETVALUE); \
-    } else { \
-        return RETVALUE; \
-    }
-
-#define IMPL_VISIT4(WHAT,WHATTYPE,RETTYPE,RETVALUE,ARG1T,ARG1,ARG2T,ARG2,ARG3T,ARG3) \
-    if ( FN_VISIT(WHAT) ) { \
-        return das_invoke_function<smart_ptr_raw<RETTYPE>>::invoke<void *,smart_ptr_raw<WHATTYPE>,ARG1T,ARG2T,ARG3T> \
-            (context,nullptr,FN_VISIT(WHAT),classPtr,expr,ARG1,ARG2,ARG3).marshal(RETVALUE); \
-    } else { \
-        return RETVALUE; \
-    }
-
-
-#define IMPL_VISIT(WHAT) IMPL_VISIT1(WHAT,WHAT,WHAT,expr)
-
-#define IMPL_VISIT_VOID(WHAT) IMPL_VISIT_VOID1(WHAT,WHAT)
-
-#define IMPL_ADAPT(WHAT) \
-    FN_PREVISIT(WHAT) = adapt("preVisit" #WHAT,pClass,info); \
-    FN_VISIT(WHAT) = adapt("visit" #WHAT,pClass,info);
-
-#define IMPL_BIND_EXPR(WHAT) \
-    void VisitorAdapter::preVisit ( WHAT * expr ) \
-        { Visitor::preVisit(expr); IMPL_PREVISIT(WHAT); } \
-    ExpressionPtr VisitorAdapter::visit ( WHAT * expr ) \
-        { auto that = ([&]() -> ExpressionPtr {IMPL_VISIT(WHAT);})(); Visitor::visit(expr); return that; }
-
-    VisitorAdapter::VisitorAdapter ( char * pClass, const StructInfo * info, Context * ctx ) {
-        context = ctx;
-        classPtr = pClass;
-        // adapt
-        IMPL_ADAPT(Program);
-        FN_PREVISIT(ProgramBody) = adapt("preVisitProgramBody",pClass,info);
-        IMPL_ADAPT(Module);
-        IMPL_ADAPT(TypeDecl);
-        IMPL_ADAPT(Expression);
-        IMPL_ADAPT(Alias);
-        fnCanVisitEnumeration = adapt("canVisitEnumeration",pClass,info);
-        IMPL_ADAPT(Enumeration);
-        IMPL_ADAPT(EnumerationValue);
-        fnCanVisitStructure = adapt("canVisitStructure",pClass,info);
-        IMPL_ADAPT(Structure);
-        IMPL_ADAPT(StructureField);
-        fnCanVisitFunction = adapt("canVisitFunction",pClass,info);
-        fnCanVisitArgumentInit = adapt("canVisitFunctionArgumentInit",pClass,info);
-        IMPL_ADAPT(Function);
-        IMPL_ADAPT(FunctionArgument);
-        IMPL_ADAPT(FunctionArgumentInit);
-        IMPL_ADAPT(FunctionBody);
-        IMPL_ADAPT(ExprBlock);
-        IMPL_ADAPT(ExprBlockArgument);
-        IMPL_ADAPT(ExprBlockArgumentInit);
-        IMPL_ADAPT(ExprBlockExpression);
-        IMPL_ADAPT(ExprBlockFinal);
-        IMPL_ADAPT(ExprBlockFinalExpression);
-        IMPL_ADAPT(ExprLet);
-        IMPL_ADAPT(ExprLetVariable);
-        IMPL_ADAPT(ExprLetVariableInit);
-        fnCanVisitGlobalVariable = adapt("canVisitGlobalVariable",pClass,info);
-        IMPL_ADAPT(GlobalLet);
-        IMPL_ADAPT(GlobalLetVariable);
-        IMPL_ADAPT(GlobalLetVariableInit);
-        IMPL_ADAPT(ExprStringBuilder);
-        IMPL_ADAPT(ExprStringBuilderElement);
-        IMPL_ADAPT(ExprNew);
-        IMPL_ADAPT(ExprNewArgument);
-        IMPL_ADAPT(ExprNamedCall);
-        IMPL_ADAPT(ExprNamedCallArgument);
-        fnCanVisitCall = adapt("canVisitCall",pClass,info);
-        IMPL_ADAPT(ExprCall);
-        IMPL_ADAPT(ExprCallArgument);
-        IMPL_ADAPT(ExprLooksLikeCall);
-        IMPL_ADAPT(ExprLooksLikeCallArgument);
-        IMPL_ADAPT(ExprNullCoalescing);
-        FN_PREVISIT(ExprNullCoalescingDefault) = adapt("preVisitExprNullCoalescingDefault",pClass,info);
-        IMPL_ADAPT(ExprAt);
-        FN_PREVISIT(ExprAtIndex) = adapt("preVisitExprAtIndex",pClass,info);
-        IMPL_ADAPT(ExprSafeAt);
-        FN_PREVISIT(ExprSafeAtIndex) = adapt("preVisitExprSafeAtIndex",pClass,info);
-        IMPL_ADAPT(ExprIs);
-        FN_PREVISIT(ExprIsType) = adapt("preVisitExprIsType",pClass,info);
-        IMPL_ADAPT(ExprOp2);
-        FN_PREVISIT(ExprOp2Right) = adapt("preVisitExprOp2Right",pClass,info);
-        IMPL_ADAPT(ExprOp3);
-        FN_PREVISIT(ExprOp3Left) = adapt("preVisitExprOp3Left",pClass,info);
-        FN_PREVISIT(ExprOp3Right) = adapt("preVisitExprOp3Right",pClass,info);
-        IMPL_ADAPT(ExprCopy);
-        FN_PREVISIT(ExprCopyRight) = adapt("preVisitExprCopyRight",pClass,info);
-        IMPL_ADAPT(ExprMove);
-        FN_PREVISIT(ExprMoveRight) = adapt("preVisitExprMoveRight",pClass,info);
-        IMPL_ADAPT(ExprClone);
-        FN_PREVISIT(ExprCloneRight) = adapt("preVisitExprCloneRight",pClass,info);
-        fnCanVisitWithAliasSubexpression = adapt("canVisitWithAliasSubexpression",pClass,info);
-        IMPL_ADAPT(ExprAssume);
-        IMPL_ADAPT(ExprWith);
-        FN_PREVISIT(ExprWithBody) = adapt("preVisitExprWithBody",pClass,info);
-        IMPL_ADAPT(ExprWhile);
-        FN_PREVISIT(ExprWhileBody) = adapt("preVisitExprWhileBody",pClass,info);
-        IMPL_ADAPT(ExprTryCatch);
-        FN_PREVISIT(ExprTryCatchCatch) = adapt("preVisitExprTryCatchCatch",pClass,info);
-        IMPL_ADAPT(ExprIfThenElse);
-        FN_PREVISIT(ExprIfThenElseIfBlock) = adapt("preVisitExprIfThenElseIfBlock",pClass,info);
-        FN_PREVISIT(ExprIfThenElseElseBlock) = adapt("preVisitExprIfThenElseElseBlock",pClass,info);
-        IMPL_ADAPT(ExprFor);
-        IMPL_ADAPT(ExprForVariable);
-        IMPL_ADAPT(ExprForSource);
-        FN_PREVISIT(ExprForStack) = adapt("preVisitExprForStack",pClass,info);
-        FN_PREVISIT(ExprForBody) = adapt("preVisitExprForBody",pClass,info);
-        IMPL_ADAPT(ExprMakeVariant);
-        IMPL_ADAPT(ExprMakeVariantField);
-        fnCanVisitMakeStructBody = adapt("canVisitMakeStructBody",pClass,info);
-        fnCanVisitMakeStructBlock = adapt("canVisitMakeStructBlock",pClass,info);
-        IMPL_ADAPT(ExprMakeStruct);
-        IMPL_ADAPT(ExprMakeStructIndex);
-        IMPL_ADAPT(ExprMakeStructField);
-        IMPL_ADAPT(ExprMakeArray);
-        IMPL_ADAPT(ExprMakeArrayIndex);
-        IMPL_ADAPT(ExprMakeTuple);
-        IMPL_ADAPT(ExprMakeTupleIndex);
-        IMPL_ADAPT(ExprArrayComprehension);
-        FN_PREVISIT(ExprArrayComprehensionSubexpr) = adapt("preVisitExprArrayComprehensionSubexpr",pClass,info);
-        FN_PREVISIT(ExprArrayComprehensionWhere) = adapt("preVisitExprArrayComprehensionWhere",pClass,info);
-        IMPL_ADAPT(ExprTypeInfo);
-        IMPL_ADAPT(ExprLabel);
-        IMPL_ADAPT(ExprGoto);
-        IMPL_ADAPT(ExprRef2Value);
-        IMPL_ADAPT(ExprRef2Ptr);
-        IMPL_ADAPT(ExprPtr2Ref);
-        IMPL_ADAPT(ExprAddr);
-        IMPL_ADAPT(ExprAssert);
-        IMPL_ADAPT(ExprStaticAssert);
-        IMPL_ADAPT(ExprQuote);
-        IMPL_ADAPT(ExprDebug);
-        IMPL_ADAPT(ExprInvoke);
-        IMPL_ADAPT(ExprErase);
-        IMPL_ADAPT(ExprSetInsert);
-        IMPL_ADAPT(ExprFind);
-        IMPL_ADAPT(ExprKeyExists);
-        IMPL_ADAPT(ExprAscend);
-        IMPL_ADAPT(ExprCast);
-        IMPL_ADAPT(ExprDelete);
-        IMPL_ADAPT(ExprVar);
-        IMPL_ADAPT(ExprTag);
-        FN_PREVISIT(ExprTagValue) = adapt("preVisitExprTagValue",pClass,info);
-        IMPL_ADAPT(ExprSwizzle);
-        IMPL_ADAPT(ExprField);
-        IMPL_ADAPT(ExprSafeField);
-        IMPL_ADAPT(ExprIsVariant);
-        IMPL_ADAPT(ExprAsVariant);
-        IMPL_ADAPT(ExprSafeAsVariant);
-        IMPL_ADAPT(ExprOp1);
-        IMPL_ADAPT(ExprReturn);
-        IMPL_ADAPT(ExprYield);
-        IMPL_ADAPT(ExprBreak);
-        IMPL_ADAPT(ExprContinue);
-        IMPL_ADAPT(ExprConst);
-        IMPL_ADAPT(ExprFakeContext);
-        IMPL_ADAPT(ExprFakeLineInfo);
-        IMPL_ADAPT(ExprConstPtr);
-        IMPL_ADAPT(ExprConstEnumeration);
-        IMPL_ADAPT(ExprConstBitfield);
-        IMPL_ADAPT(ExprConstInt8);
-        IMPL_ADAPT(ExprConstInt16);
-        IMPL_ADAPT(ExprConstInt64);
-        IMPL_ADAPT(ExprConstInt);
-        IMPL_ADAPT(ExprConstInt2);
-        IMPL_ADAPT(ExprConstInt3);
-        IMPL_ADAPT(ExprConstInt4);
-        IMPL_ADAPT(ExprConstUInt8);
-        IMPL_ADAPT(ExprConstUInt16);
-        IMPL_ADAPT(ExprConstUInt64);
-        IMPL_ADAPT(ExprConstUInt);
-        IMPL_ADAPT(ExprConstUInt2);
-        IMPL_ADAPT(ExprConstUInt3);
-        IMPL_ADAPT(ExprConstUInt4);
-        IMPL_ADAPT(ExprConstRange);
-        IMPL_ADAPT(ExprConstURange);
-        IMPL_ADAPT(ExprConstRange64);
-        IMPL_ADAPT(ExprConstURange64);
-        IMPL_ADAPT(ExprConstBool);
-        IMPL_ADAPT(ExprConstFloat);
-        IMPL_ADAPT(ExprConstFloat2);
-        IMPL_ADAPT(ExprConstFloat3);
-        IMPL_ADAPT(ExprConstFloat4);
-        IMPL_ADAPT(ExprConstString);
-        IMPL_ADAPT(ExprConstDouble);
-        fnCanVisitMakeBlockBody = adapt("canVisitMakeBlockBody",pClass,info);
-        IMPL_ADAPT(ExprMakeBlock);
-        IMPL_ADAPT(ExprMakeGenerator);
-        IMPL_ADAPT(ExprMemZero);
-        IMPL_ADAPT(ExprReader);
-        IMPL_ADAPT(ExprUnsafe);
-        IMPL_ADAPT(ExprCallMacro);
-    }
-// whole program
-    void VisitorAdapter::preVisitProgram ( Program * expr )
-        { IMPL_PREVISIT(Program); }
-    void VisitorAdapter::visitProgram ( Program * expr )
-        { IMPL_VISIT_VOID(Program); }
-    void VisitorAdapter::preVisitProgramBody ( Program * expr, Module * mod )
-        { IMPL_PREVISIT2(ProgramBody,Program,Module *,mod); }
-// module
-    void VisitorAdapter::preVisitModule ( Module * expr )
-        { IMPL_PREVISIT(Module); }
-    void VisitorAdapter::visitModule ( Module * expr )
-        { IMPL_VISIT_VOID(Module); }
-// type
-    void VisitorAdapter::preVisit ( TypeDecl * expr )
-        { IMPL_PREVISIT(TypeDecl); }
-    TypeDeclPtr VisitorAdapter::visit ( TypeDecl * expr )
-        { IMPL_VISIT(TypeDecl); }
-// alias
-    void VisitorAdapter::preVisitAlias ( TypeDecl * expr, const string & name )
-        { IMPL_PREVISIT2(Alias,TypeDecl,const string &,name); }
-    TypeDeclPtr VisitorAdapter::visitAlias ( TypeDecl * expr, const string & name )
-        { IMPL_VISIT2(Alias,TypeDecl,TypeDecl,expr,const string &,name); }
-// enumeration
-    bool VisitorAdapter::canVisitEnumeration ( Enumeration * enu ) {
-        if ( fnCanVisitEnumeration ) {
-            return das_invoke_function<bool>::invoke<void *,Enumeration *>
-                (context,nullptr,fnCanVisitEnumeration,classPtr,enu);
-        } else {
-            return true;
-        }
-    }
-    void VisitorAdapter::preVisit ( Enumeration * expr )
-        { IMPL_PREVISIT(Enumeration); }
-    EnumerationPtr VisitorAdapter::visit ( Enumeration * expr )
-        { IMPL_VISIT(Enumeration); }
-    void VisitorAdapter::preVisitEnumerationValue ( Enumeration * expr, const string & name, Expression * value, bool last )
-        { IMPL_PREVISIT4(EnumerationValue,Enumeration,const string &,name,ExpressionPtr,value,bool,last); }
-    ExpressionPtr VisitorAdapter::visitEnumerationValue ( Enumeration * expr, const string & name, Expression * value, bool last )
-        { IMPL_VISIT4(EnumerationValue,Enumeration,Expression,value,const string &,name,ExpressionPtr,value,bool,last); }
-// structure
-    bool VisitorAdapter::canVisitStructure ( Structure * var ) {
-        if ( fnCanVisitStructure ) {
-            return das_invoke_function<bool>::invoke<void *,Structure *>
-                (context,nullptr,fnCanVisitStructure,classPtr,var);
-        } else {
-            return true;
-        }
-    }
-    void VisitorAdapter::preVisit ( Structure * expr )
-        { IMPL_PREVISIT(Structure); }
-    void VisitorAdapter::preVisitStructureField ( Structure * expr, Structure::FieldDeclaration & decl, bool last )
-        { IMPL_PREVISIT3(StructureField,Structure,Structure::FieldDeclaration &,decl,bool,last); }
-    void VisitorAdapter::visitStructureField ( Structure * expr, Structure::FieldDeclaration & decl, bool last )  {
-        if ( FN_VISIT(StructureField) ) {
-            das_invoke_function<void>::invoke<void *,StructurePtr,Structure::FieldDeclaration&,bool>
-                (context,nullptr,FN_VISIT(StructureField),classPtr,expr,decl,last);
-        }
-    }
-    StructurePtr VisitorAdapter::visit ( Structure * expr )
-        { IMPL_VISIT(Structure); }
-// function
-    bool VisitorAdapter::canVisitFunction ( Function * fun ) {
-        if ( fnCanVisitFunction ) {
-            return das_invoke_function<bool>::invoke<void *,Function *>
-                (context,nullptr,fnCanVisitFunction,classPtr,fun);
-        } else {
-            return true;
-        }
-    }
-    bool VisitorAdapter::canVisitArgumentInit ( Function * fun, const VariablePtr & var, Expression * init ) {
-        if ( fnCanVisitArgumentInit ) {
-            return das_invoke_function<bool>::invoke<void *,Function *,VariablePtr,ExpressionPtr>
-                (context,nullptr,fnCanVisitArgumentInit,classPtr,fun,var,init);
-        } else {
-            return true;
-        }
-    }
-    void VisitorAdapter::preVisit ( Function * expr )
-        { IMPL_PREVISIT(Function); }
-    FunctionPtr VisitorAdapter::visit ( Function * expr )
-        { IMPL_VISIT(Function); }
-    void VisitorAdapter::preVisitArgument ( Function * expr, const VariablePtr & var, bool lastArg )
-        { IMPL_PREVISIT3(FunctionArgument,Function,VariablePtr,var,bool,lastArg); }
-    VariablePtr VisitorAdapter::visitArgument ( Function * expr, const VariablePtr & var, bool lastArg )
-        { IMPL_VISIT3(FunctionArgument,Function,Variable,var,VariablePtr,var,bool,lastArg); }
-    void VisitorAdapter::preVisitArgumentInit ( Function * expr, const VariablePtr & var, Expression * init )
-        { IMPL_PREVISIT3(FunctionArgument,Function,VariablePtr,var,ExpressionPtr,init); }
-    ExpressionPtr VisitorAdapter::visitArgumentInit ( Function * expr, const VariablePtr & var, Expression * init )
-        { IMPL_VISIT3(FunctionArgumentInit,Function,Expression,init,VariablePtr,var,ExpressionPtr,init); }
-    void VisitorAdapter::preVisitFunctionBody ( Function * expr, Expression * that )
-        { IMPL_PREVISIT2(FunctionBody,Function,ExpressionPtr,that); }
-    ExpressionPtr VisitorAdapter::visitFunctionBody ( Function * expr, Expression * that )
-        { IMPL_VISIT2(FunctionBody,Function,Expression,that,ExpressionPtr,that); }
-// expression
-    void VisitorAdapter::preVisitExpression ( Expression * expr )
-        { IMPL_PREVISIT(Expression); }
-    ExpressionPtr VisitorAdapter::visitExpression ( Expression * expr )
-        { IMPL_VISIT(Expression); }
-// block
-    IMPL_BIND_EXPR(ExprBlock);
-    void VisitorAdapter::preVisitBlockArgument ( ExprBlock * expr, const VariablePtr & var, bool lastArg )
-        { IMPL_PREVISIT3(ExprBlockArgument,ExprBlock,VariablePtr,var,bool,lastArg); }
-    VariablePtr VisitorAdapter::visitBlockArgument ( ExprBlock * expr, const VariablePtr & var, bool lastArg )
-        { IMPL_VISIT3(ExprBlockArgument,ExprBlock,Variable,var,VariablePtr,var,bool,lastArg); }
-    void VisitorAdapter::preVisitBlockArgumentInit ( ExprBlock * expr, const VariablePtr & var, Expression * init )
-        { IMPL_PREVISIT3(ExprBlockArgumentInit,ExprBlock,VariablePtr,var,ExpressionPtr,init); }
-    ExpressionPtr VisitorAdapter::visitBlockArgumentInit ( ExprBlock * expr, const VariablePtr & var, Expression * init )
-        { IMPL_VISIT3(ExprBlockArgumentInit,ExprBlock,Expression,init,VariablePtr,var,ExpressionPtr,init); }
-    void VisitorAdapter::preVisitBlockExpression ( ExprBlock * expr, Expression * bexpr )
-        { IMPL_PREVISIT2(ExprBlockExpression,ExprBlock,ExpressionPtr,bexpr); }
-    ExpressionPtr VisitorAdapter::visitBlockExpression (  ExprBlock * expr, Expression * bexpr )
-        { IMPL_VISIT2(ExprBlockExpression,ExprBlock,Expression,bexpr,ExpressionPtr,bexpr); }
-    void VisitorAdapter::preVisitBlockFinal ( ExprBlock * expr )
-        { IMPL_PREVISIT1(ExprBlockFinal,ExprBlock); }
-    void VisitorAdapter::visitBlockFinal ( ExprBlock * expr )  {
-        if ( FN_VISIT(ExprBlockFinal) ) {
-            das_invoke_function<void>::invoke<void *,smart_ptr_raw<ExprBlock>>
-                (context,nullptr,FN_VISIT(ExprBlockFinal),classPtr,expr);
-        }
-    }
-    void VisitorAdapter::preVisitBlockFinalExpression ( ExprBlock * expr, Expression * bexpr )
-        { IMPL_PREVISIT2(ExprBlockFinalExpression,ExprBlock,ExpressionPtr,bexpr); }
-    ExpressionPtr VisitorAdapter::visitBlockFinalExpression (  ExprBlock * expr, Expression * bexpr )
-        { IMPL_VISIT2(ExprBlockFinalExpression,ExprBlock,Expression,bexpr,ExpressionPtr,bexpr); }
-// let
-    IMPL_BIND_EXPR(ExprLet);
-    void VisitorAdapter::preVisitLet ( ExprLet * expr, const VariablePtr & var, bool last )
-        { IMPL_PREVISIT3(ExprLetVariable,ExprLet,VariablePtr,var,bool,last); }
-    VariablePtr VisitorAdapter::visitLet ( ExprLet * expr, const VariablePtr & var, bool last )
-        { IMPL_VISIT3(ExprLetVariable,ExprLet,Variable,var,VariablePtr,var,bool,last); }
-    void VisitorAdapter::preVisitLetInit ( ExprLet * expr, const VariablePtr & var, Expression * init )
-        { IMPL_PREVISIT3(ExprLetVariableInit,ExprLet,VariablePtr,var,ExpressionPtr,init); }
-    ExpressionPtr VisitorAdapter::visitLetInit ( ExprLet * expr, const VariablePtr & var, Expression * init )
-        { IMPL_VISIT3(ExprLetVariableInit,ExprLet,Expression,init,VariablePtr,var,ExpressionPtr,init); }
-// global let
-    bool VisitorAdapter::canVisitGlobalVariable ( Variable * var ) {
-        if ( fnCanVisitGlobalVariable ) {
-            return das_invoke_function<bool>::invoke<void *,Variable *>
-                (context,nullptr,fnCanVisitGlobalVariable,classPtr,var);
-        } else {
-            return true;
-        }
-    }
-    void VisitorAdapter::preVisitGlobalLetBody ( Program * expr )
-        { IMPL_PREVISIT1(GlobalLet,Program); }
-    void VisitorAdapter::visitGlobalLetBody ( Program * expr )
-        { IMPL_VISIT_VOID1(GlobalLet,Program); }
-    void VisitorAdapter::preVisitGlobalLet ( const VariablePtr & expr )
-        { IMPL_PREVISIT1(GlobalLetVariable,Variable); }
-    VariablePtr VisitorAdapter::visitGlobalLet ( const VariablePtr & expr )
-        { IMPL_VISIT1(GlobalLetVariable,Variable,Variable,expr); }
-    void VisitorAdapter::preVisitGlobalLetInit ( const VariablePtr & expr, Expression * init )
-        { IMPL_PREVISIT2(GlobalLetVariableInit,Variable,ExpressionPtr,init); }
-    ExpressionPtr VisitorAdapter::visitGlobalLetInit ( const VariablePtr & expr, Expression * init )
-        { IMPL_VISIT2(GlobalLetVariableInit,Variable,Expression,init,ExpressionPtr,init); }
-// string builder
-    IMPL_BIND_EXPR(ExprStringBuilder);
-    void VisitorAdapter::preVisitStringBuilderElement ( ExprStringBuilder * expr, Expression * element, bool last )
-        { IMPL_PREVISIT3(ExprStringBuilderElement,ExprStringBuilder,ExpressionPtr,element,bool,last); }
-    ExpressionPtr VisitorAdapter::visitStringBuilderElement ( ExprStringBuilder * expr, Expression * element, bool last )
-        { IMPL_VISIT3(ExprStringBuilderElement,ExprStringBuilder,Expression,element,ExpressionPtr,element,bool,last); }
-// new
-    IMPL_BIND_EXPR(ExprNew);
-    void VisitorAdapter::preVisitNewArg ( ExprNew * expr, Expression * arg, bool last )
-        { IMPL_PREVISIT3(ExprNewArgument,ExprNew,ExpressionPtr,arg,bool,last); }
-    ExpressionPtr VisitorAdapter::visitNewArg ( ExprNew * expr, Expression * arg , bool last )
-        { IMPL_VISIT3(ExprNewArgument,ExprNew,Expression,arg,ExpressionPtr,arg,bool,last); }
-// named call
-    IMPL_BIND_EXPR(ExprNamedCall);
-    void VisitorAdapter::preVisitNamedCallArg ( ExprNamedCall * expr, MakeFieldDecl * arg, bool last )
-        { IMPL_PREVISIT3(ExprNamedCallArgument,ExprNamedCall,MakeFieldDeclPtr,arg,bool,last); }
-    MakeFieldDeclPtr VisitorAdapter::visitNamedCallArg ( ExprNamedCall * expr, MakeFieldDecl * arg , bool last )
-        { IMPL_VISIT3(ExprNamedCallArgument,ExprNamedCall,MakeFieldDecl,arg,MakeFieldDeclPtr,arg,bool,last); }
-// call
-    IMPL_BIND_EXPR(ExprCall);
-    bool VisitorAdapter::canVisitCall ( ExprCall * expr ) {
-        if ( fnCanVisitCall ) {
-            return das_invoke_function<bool>::invoke<void *,ExprCall *>
-                (context,nullptr,fnCanVisitCall,classPtr,expr);
-        } else {
-            return true;
-        }
-    }
-    void VisitorAdapter::preVisitCallArg ( ExprCall * expr, Expression * arg, bool last )
-        { IMPL_PREVISIT3(ExprCallArgument,ExprCall,ExpressionPtr,arg,bool,last); }
-    ExpressionPtr VisitorAdapter::visitCallArg ( ExprCall * expr, Expression * arg , bool last )
-        { IMPL_VISIT3(ExprCallArgument,ExprCall,Expression,arg,ExpressionPtr,arg,bool,last); }
-// looks like call
-    IMPL_BIND_EXPR(ExprLooksLikeCall);
-    void VisitorAdapter::preVisitLooksLikeCallArg ( ExprLooksLikeCall * expr, Expression * arg, bool last )
-        { IMPL_PREVISIT3(ExprLooksLikeCallArgument,ExprLooksLikeCall,ExpressionPtr,arg,bool,last); }
-    ExpressionPtr VisitorAdapter::visitLooksLikeCallArg ( ExprLooksLikeCall * expr, Expression * arg , bool last )
-        { IMPL_VISIT3(ExprLooksLikeCallArgument,ExprLooksLikeCall,Expression,arg,ExpressionPtr,arg,bool,last); }
-// null coaelescing
-    IMPL_BIND_EXPR(ExprNullCoalescing);
-    void VisitorAdapter::preVisitNullCoaelescingDefault ( ExprNullCoalescing * expr, Expression * defval )
-        { IMPL_PREVISIT2(ExprNullCoalescingDefault,ExprNullCoalescing,ExpressionPtr, defval); }
-// at
-    IMPL_BIND_EXPR(ExprAt);
-    void VisitorAdapter::preVisitAtIndex ( ExprAt * expr, Expression * index )
-        { IMPL_PREVISIT2(ExprAtIndex,ExprAt,ExpressionPtr,index); }
-// safe at
-    IMPL_BIND_EXPR(ExprSafeAt);
-    void VisitorAdapter::preVisitSafeAtIndex ( ExprSafeAt * expr, Expression * index )
-        { IMPL_PREVISIT2(ExprSafeAtIndex,ExprSafeAt,ExpressionPtr,index); }
-// is
-    IMPL_BIND_EXPR(ExprIs);
-    void VisitorAdapter::preVisitType ( ExprIs * expr, TypeDecl * typeDecl )
-        { IMPL_PREVISIT2(ExprIsType,ExprIs,TypeDeclPtr,typeDecl); }
-// op2
-    IMPL_BIND_EXPR(ExprOp2);
-    void VisitorAdapter::preVisitRight ( ExprOp2 * expr, Expression * right )
-        { IMPL_PREVISIT2(ExprOp2Right,ExprOp2,ExpressionPtr,right); }
-// op3
-    IMPL_BIND_EXPR(ExprOp3);
-    void VisitorAdapter::preVisitLeft  ( ExprOp3 * expr, Expression * left )
-        { IMPL_PREVISIT2(ExprOp3Left,ExprOp3,ExpressionPtr,left); }
-    void VisitorAdapter::preVisitRight ( ExprOp3 * expr, Expression * right )
-        { IMPL_PREVISIT2(ExprOp3Right,ExprOp3,ExpressionPtr,right); }
-// copy
-    IMPL_BIND_EXPR(ExprCopy);
-    void VisitorAdapter::preVisitRight ( ExprCopy * expr, Expression * right )
-        { IMPL_PREVISIT2(ExprCopyRight,ExprCopy,ExpressionPtr,right); }
-// move
-    IMPL_BIND_EXPR(ExprMove);
-    void VisitorAdapter::preVisitRight ( ExprMove * expr, Expression * right )
-        { IMPL_PREVISIT2(ExprMoveRight,ExprMove,ExpressionPtr,right); }
-// clone
-    IMPL_BIND_EXPR(ExprClone);
-    void VisitorAdapter::preVisitRight ( ExprClone * expr, Expression * right )
-        { IMPL_PREVISIT2(ExprCloneRight,ExprClone,ExpressionPtr,right); }
-// assume
-    IMPL_BIND_EXPR(ExprAssume);
-    bool VisitorAdapter::canVisitWithAliasSubexpression ( ExprAssume * expr) {
-        if ( fnCanVisitWithAliasSubexpression ) {
-            return das_invoke_function<bool>::invoke<void *,ExprAssume *>
-                (context,nullptr,fnCanVisitWithAliasSubexpression,classPtr,expr);
-        } else {
-            return Visitor::canVisitWithAliasSubexpression(expr);
-        }
-     }
-// with
-    IMPL_BIND_EXPR(ExprWith);
-    void VisitorAdapter::preVisitWithBody ( ExprWith * expr, Expression * body )
-        { IMPL_PREVISIT2(ExprWithBody,ExprWith,ExpressionPtr,body); }
-// while
-    IMPL_BIND_EXPR(ExprWhile);
-    void VisitorAdapter::preVisitWhileBody ( ExprWhile * expr, Expression * body )
-        { IMPL_PREVISIT2(ExprWhileBody,ExprWhile,ExpressionPtr,body); }
-// try-catch
-    IMPL_BIND_EXPR(ExprTryCatch);
-    void VisitorAdapter::preVisitCatch ( ExprTryCatch * expr, Expression * body )
-        { IMPL_PREVISIT2(ExprTryCatchCatch,ExprTryCatch,ExpressionPtr,body); }
-// if-then-else
-    IMPL_BIND_EXPR(ExprIfThenElse);
-    void VisitorAdapter::preVisitIfBlock ( ExprIfThenElse * expr, Expression * ifBlock )
-        { IMPL_PREVISIT2(ExprIfThenElseIfBlock,ExprIfThenElse,ExpressionPtr,ifBlock); }
-    void VisitorAdapter::preVisitElseBlock ( ExprIfThenElse * expr, Expression * elseBlock )
-        { IMPL_PREVISIT2(ExprIfThenElseElseBlock,ExprIfThenElse,ExpressionPtr,elseBlock); }
-// for
-    IMPL_BIND_EXPR(ExprFor);
-    void VisitorAdapter::preVisitFor ( ExprFor * expr, const VariablePtr & var, bool last )
-        { IMPL_PREVISIT3(ExprForVariable,ExprFor,VariablePtr,var,bool,last); }
-    VariablePtr VisitorAdapter::visitFor ( ExprFor * expr, const VariablePtr & var, bool last )
-        { IMPL_VISIT3(ExprForVariable,ExprFor,Variable,var,VariablePtr,var,bool,last); }
-    void VisitorAdapter::preVisitForStack ( ExprFor * expr )
-        { IMPL_PREVISIT1(ExprForStack,ExprFor); }
-    void VisitorAdapter::preVisitForBody ( ExprFor * expr, Expression * body )
-        { IMPL_PREVISIT2(ExprForBody,ExprFor,ExpressionPtr,body); }
-    void VisitorAdapter::preVisitForSource ( ExprFor * expr, Expression * source, bool last )
-        { IMPL_PREVISIT3(ExprForSource,ExprFor,ExpressionPtr,source,bool,last); }
-    ExpressionPtr VisitorAdapter::VisitorAdapter::visitForSource ( ExprFor * expr, Expression * source , bool last )
-        { IMPL_VISIT3(ExprForSource,ExprFor,Expression,source,ExpressionPtr,source,bool,last); }
-// make variant
-    IMPL_BIND_EXPR(ExprMakeVariant);
-    void VisitorAdapter::preVisitMakeVariantField ( ExprMakeVariant * expr, int index, MakeFieldDecl * decl, bool last )
-        { IMPL_PREVISIT4(ExprMakeVariantField,ExprMakeVariant,int,index,MakeFieldDeclPtr,decl,bool,last); }
-    MakeFieldDeclPtr VisitorAdapter::visitMakeVariantField(ExprMakeVariant * expr, int index, MakeFieldDecl * decl, bool last)
-        { IMPL_VISIT4(ExprMakeVariantField,ExprMakeVariant,MakeFieldDecl,decl,int,index,MakeFieldDeclPtr,decl,bool,last); }
-// make structure
-    bool VisitorAdapter::canVisitMakeStructureBlock ( ExprMakeStruct * expr, Expression * blk ) {
-        if ( fnCanVisitMakeStructBlock ) {
-            return das_invoke_function<bool>::invoke<void *,smart_ptr<ExprMakeStruct>,ExpressionPtr>
-                (context,nullptr,fnCanVisitMakeStructBlock,classPtr,expr,blk);
-        } else {
-            return true;
-        }
-    }
-    bool VisitorAdapter::canVisitMakeStructureBody ( ExprMakeStruct * expr ) {
-        if ( fnCanVisitMakeStructBody ) {
-            return das_invoke_function<bool>::invoke<void *,smart_ptr<ExprMakeStruct>>
-                (context,nullptr,fnCanVisitMakeStructBody,classPtr,expr);
-        } else {
-            return true;
-        }
-    }
-    IMPL_BIND_EXPR(ExprMakeStruct);
-    void VisitorAdapter::preVisitMakeStructureIndex ( ExprMakeStruct * expr, int index, bool last )
-        { IMPL_PREVISIT3(ExprMakeStructIndex,ExprMakeStruct,int,index,bool,last); }
-    void VisitorAdapter::visitMakeStructureIndex ( ExprMakeStruct * expr, int index, bool last )
-        { IMPL_VISIT_VOID3(ExprMakeStructIndex,ExprMakeStruct,int,index,bool,last); }
-    void VisitorAdapter::preVisitMakeStructureField ( ExprMakeStruct * expr, int index, MakeFieldDecl * decl, bool last )
-            { IMPL_PREVISIT4(ExprMakeStructField,ExprMakeStruct,int,index,MakeFieldDeclPtr,decl,bool,last); }
-    MakeFieldDeclPtr VisitorAdapter::visitMakeStructureField ( ExprMakeStruct * expr, int index, MakeFieldDecl * decl, bool last )
-        { IMPL_VISIT4(ExprMakeStructField,ExprMakeStruct,MakeFieldDecl,decl,int,index,MakeFieldDeclPtr,decl,bool,last); }
-// make array
-    IMPL_BIND_EXPR(ExprMakeArray);
-    void VisitorAdapter::preVisitMakeArrayIndex ( ExprMakeArray * expr, int index, Expression * init, bool last )
-        { IMPL_PREVISIT4(ExprMakeArrayIndex,ExprMakeArray,int,index,ExpressionPtr,init,bool,last); }
-    ExpressionPtr VisitorAdapter::visitMakeArrayIndex ( ExprMakeArray * expr, int index, Expression * init, bool last )
-        { IMPL_VISIT4(ExprMakeArrayIndex,ExprMakeArray,Expression,init,int,index,ExpressionPtr,init,bool,last); }
-// make tuple
-    IMPL_BIND_EXPR(ExprMakeTuple);
-    void VisitorAdapter::preVisitMakeTupleIndex ( ExprMakeTuple * expr, int index, Expression * init, bool last )
-        { IMPL_PREVISIT4(ExprMakeTupleIndex,ExprMakeTuple,int,index,ExpressionPtr,init,bool,last); }
-    ExpressionPtr VisitorAdapter::visitMakeTupleIndex ( ExprMakeTuple * expr, int index, Expression * init, bool last )
-        { IMPL_VISIT4(ExprMakeTupleIndex,ExprMakeTuple,Expression,init,int,index,ExpressionPtr,init,bool,last); }
-// array comprehension
-    IMPL_BIND_EXPR(ExprArrayComprehension);
-    void VisitorAdapter::preVisitArrayComprehensionSubexpr ( ExprArrayComprehension * expr, Expression * subexpr )
-        { IMPL_PREVISIT2(ExprArrayComprehensionSubexpr,ExprArrayComprehension,ExpressionPtr,subexpr); }
-    void VisitorAdapter::preVisitArrayComprehensionWhere ( ExprArrayComprehension * expr, Expression * where )
-        { IMPL_PREVISIT2(ExprArrayComprehensionWhere,ExprArrayComprehension,ExpressionPtr,where); }
-// type info
-    IMPL_BIND_EXPR(ExprTypeInfo);
-// all other expressions
-    IMPL_BIND_EXPR(ExprLabel);
-    IMPL_BIND_EXPR(ExprGoto);
-    IMPL_BIND_EXPR(ExprRef2Value);
-    IMPL_BIND_EXPR(ExprRef2Ptr);
-    IMPL_BIND_EXPR(ExprPtr2Ref);
-    IMPL_BIND_EXPR(ExprAddr);
-    IMPL_BIND_EXPR(ExprAssert);
-    IMPL_BIND_EXPR(ExprStaticAssert);
-    IMPL_BIND_EXPR(ExprQuote);
-    IMPL_BIND_EXPR(ExprDebug);
-    IMPL_BIND_EXPR(ExprInvoke);
-    IMPL_BIND_EXPR(ExprErase);
-    IMPL_BIND_EXPR(ExprSetInsert);
-    IMPL_BIND_EXPR(ExprFind);
-    IMPL_BIND_EXPR(ExprKeyExists);
-    IMPL_BIND_EXPR(ExprAscend);
-    IMPL_BIND_EXPR(ExprCast);
-    IMPL_BIND_EXPR(ExprDelete);
-    IMPL_BIND_EXPR(ExprVar);
-    IMPL_BIND_EXPR(ExprTag);
-    void VisitorAdapter::preVisitTagValue ( ExprTag * expr, Expression * value )
-        { IMPL_PREVISIT2(ExprTagValue,ExprTag,ExpressionPtr,value); }
-    IMPL_BIND_EXPR(ExprSwizzle);
-    IMPL_BIND_EXPR(ExprField);
-    IMPL_BIND_EXPR(ExprSafeField);
-    IMPL_BIND_EXPR(ExprIsVariant);
-    IMPL_BIND_EXPR(ExprAsVariant);
-    IMPL_BIND_EXPR(ExprSafeAsVariant);
-    IMPL_BIND_EXPR(ExprOp1);
-    IMPL_BIND_EXPR(ExprReturn);
-    IMPL_BIND_EXPR(ExprYield);
-    IMPL_BIND_EXPR(ExprBreak);
-    IMPL_BIND_EXPR(ExprContinue);
-    IMPL_BIND_EXPR(ExprConst);
-    IMPL_BIND_EXPR(ExprFakeContext);
-    IMPL_BIND_EXPR(ExprFakeLineInfo);
-    IMPL_BIND_EXPR(ExprConstPtr);
-    IMPL_BIND_EXPR(ExprConstEnumeration);
-    IMPL_BIND_EXPR(ExprConstBitfield);
-    IMPL_BIND_EXPR(ExprConstInt8);
-    IMPL_BIND_EXPR(ExprConstInt16);
-    IMPL_BIND_EXPR(ExprConstInt64);
-    IMPL_BIND_EXPR(ExprConstInt);
-    IMPL_BIND_EXPR(ExprConstInt2);
-    IMPL_BIND_EXPR(ExprConstInt3);
-    IMPL_BIND_EXPR(ExprConstInt4);
-    IMPL_BIND_EXPR(ExprConstUInt8);
-    IMPL_BIND_EXPR(ExprConstUInt16);
-    IMPL_BIND_EXPR(ExprConstUInt64);
-    IMPL_BIND_EXPR(ExprConstUInt);
-    IMPL_BIND_EXPR(ExprConstUInt2);
-    IMPL_BIND_EXPR(ExprConstUInt3);
-    IMPL_BIND_EXPR(ExprConstUInt4);
-    IMPL_BIND_EXPR(ExprConstRange);
-    IMPL_BIND_EXPR(ExprConstURange);
-    IMPL_BIND_EXPR(ExprConstRange64);
-    IMPL_BIND_EXPR(ExprConstURange64);
-    IMPL_BIND_EXPR(ExprConstBool);
-    IMPL_BIND_EXPR(ExprConstFloat);
-    IMPL_BIND_EXPR(ExprConstFloat2);
-    IMPL_BIND_EXPR(ExprConstFloat3);
-    IMPL_BIND_EXPR(ExprConstFloat4);
-    IMPL_BIND_EXPR(ExprConstString);
-    IMPL_BIND_EXPR(ExprConstDouble);
-// make block
-    bool VisitorAdapter::canVisitMakeBlockBody ( ExprMakeBlock * expr ) {
-        if ( fnCanVisitMakeBlockBody ) {
-            return das_invoke_function<bool>::invoke<void *,smart_ptr<ExprMakeBlock>>
-                (context,nullptr,fnCanVisitMakeBlockBody,classPtr,expr);
-        } else {
-            return true;
-        }
-    }
-    IMPL_BIND_EXPR(ExprMakeBlock);
-    IMPL_BIND_EXPR(ExprMakeGenerator);
-    IMPL_BIND_EXPR(ExprMemZero);
-    IMPL_BIND_EXPR(ExprReader);
-    IMPL_BIND_EXPR(ExprCallMacro);
-    IMPL_BIND_EXPR(ExprUnsafe);
-    IMPL_BIND_EXPR(ExprTypeDecl);
-
 #include "ast_gen.inc"
 
     void runMacroFunction ( Context * context, const string & message, const callable<void()> & subexpr ) {
+        auto timeM = ref_time_ticks();
         if ( !context->runWithCatch(subexpr) ) {
             DAS_ASSERTF(daScriptEnvironment::bound->g_Program, "calling macros while not compiling a program");
             daScriptEnvironment::bound->g_Program->error(
@@ -702,7 +29,1156 @@ namespace das {
             );
             daScriptEnvironment::bound->g_Program->macroException = true;
         }
+        daScriptEnvironment::bound->macroTimeTicks += ref_time_ticks() - timeM;
     }
+
+    template <typename TT, typename QQ>
+    smart_ptr_raw<TT> return_smart ( smart_ptr<TT> & ptr, const QQ * p ) {
+        if ( ptr.get() == p ) {
+            return ptr.orphan();
+        } else {
+            return ptr;
+        }
+    }
+
+    class VisitorAdapter : public Visitor, AstVisitor_Adapter {
+    public:
+        VisitorAdapter ( char * pClass, const StructInfo * info, Context * ctx )
+            : AstVisitor_Adapter(info), classPtr(pClass), context(ctx) {
+        };
+    public:
+        // what do we visit
+        virtual bool canVisitStructure ( Structure * st ) override {
+            if ( auto fnCanVisit = get_canVisitStructure(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitStructure", [&]() {
+                    result = invoke_canVisitStructure(context,fnCanVisit,classPtr,st);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        virtual bool canVisitGlobalVariable ( Variable * fun ) override {
+            if ( auto fnCanVisit = get_canVisitGlobalVariable(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitGlobalVariable", [&]() {
+                    result = invoke_canVisitGlobalVariable(context,fnCanVisit,classPtr,fun);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        virtual bool canVisitFunction ( Function * fun ) override {
+            if ( auto fnCanVisit = get_canVisitFunction(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitFunction", [&]() {
+                    result = invoke_canVisitFunction(context,fnCanVisit,classPtr,fun);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        virtual bool canVisitEnumeration ( Enumeration * en ) override {
+            if ( auto fnCanVisit = get_canVisitEnumeration(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitEnumeration", [&]() {
+                    result = invoke_canVisitEnumeration(context,fnCanVisit,classPtr,en);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        /*
+        // TODO: implement on daScript side
+        virtual bool canVisitStructureFieldInit ( Structure * var ) override {
+            if ( auto fnCanVisit = get_canVisitStructureFieldInit(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitStructureFieldInit", [&]() {
+                    result = invoke_canVisitStructureFieldInit(context,fnCanVisit,classPtr,var);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        */
+        /*
+        // TODO: implement
+        virtual bool canVisitIfSubexpr ( ExprIfThenElse * ) override {
+            if ( auto fnCanVisit = get_canVisitIfSubexpr(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitIfSubexpr", [&]() {
+                    result = invoke_canVisitIfSubexpr(context,fnCanVisit,classPtr);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        */
+        /* TODO: implement
+        virtual bool canVisitExpr ( ExprTypeInfo * expr, Expression * subexpr ) override {
+            if ( auto fnCanVisit = get_canVisitExpr(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitExpr", [&]() {
+                    result = invoke_canVisitExpr(context,fnCanVisit,classPtr,expr,subexpr);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        */
+        virtual bool canVisitMakeStructureBlock ( ExprMakeStruct * expr, Expression * blk ) override {
+            if ( auto fnCanVisit = get_canVisitMakeStructBlock(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitMakeStructureBlock", [&]() {
+                    result = invoke_canVisitMakeStructBlock(context,fnCanVisit,classPtr,expr,blk);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        virtual bool canVisitMakeStructureBody ( ExprMakeStruct * expr ) override {
+            if ( auto fnCanVisit = get_canVisitMakeStructBody(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitMakeStructureBody", [&]() {
+                    result = invoke_canVisitMakeStructBody(context,fnCanVisit,classPtr,expr);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        virtual bool canVisitArgumentInit ( Function * fun, const VariablePtr & var, Expression * init ) override {
+            if ( auto fnCanVisit = get_canVisitFunctionArgumentInit(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitArgumentInit", [&]() {
+                    result = invoke_canVisitFunctionArgumentInit(context,fnCanVisit,classPtr,fun,var,init);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        /*
+        TODO: implement
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override {
+            if ( auto fnCanVisit = get_canVisitQuoteSubexpression(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitQuoteSubexpression", [&]() {
+                    result = invoke_canVisitQuoteSubexpression(context,fnCanVisit,classPtr);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        */
+        virtual bool canVisitWithAliasSubexpression ( ExprAssume * expr ) override {
+            if ( auto fnCanVisit = get_canVisitWithAliasSubexpression(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitWithAliasSubexpression", [&]() {
+                    result = invoke_canVisitWithAliasSubexpression(context,fnCanVisit,classPtr,expr);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        virtual bool canVisitMakeBlockBody ( ExprMakeBlock * expr ) override {
+            if ( auto fnCanVisit = get_canVisitMakeBlockBody(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitMakeBlockBody", [&]() {
+                    result = invoke_canVisitMakeBlockBody(context,fnCanVisit,classPtr,expr);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        virtual bool canVisitCall ( ExprCall * expr ) override {
+            if ( auto fnCanVisit = get_canVisitCall(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "canVisitCall", [&]() {
+                    result = invoke_canVisitCall(context,fnCanVisit,classPtr,expr);
+                });
+                return result;
+            } else {
+                return true;
+            }
+        }
+        // WHOLE PROGRAM
+        virtual void preVisitProgram ( Program * prog ) override {
+            if ( auto fnPreVisit = get_preVisitProgram(classPtr) ) {
+                runMacroFunction(context, "preVisitProgram", [&]() {
+                    invoke_preVisitProgram(context,fnPreVisit,classPtr,prog);
+                });
+            }
+        }
+        virtual void visitProgram ( Program * prog ) override {
+            if ( auto fnVisit = get_visitProgram(classPtr) ) {
+                runMacroFunction(context, "visitProgram", [&]() {
+                    invoke_visitProgram(context,fnVisit,classPtr,prog);
+                });
+            }
+        }
+        // EACH MODULE
+        virtual void preVisitModule ( Module * mod ) override {
+            if ( auto fnPreVisit = get_preVisitModule(classPtr) ) {
+                runMacroFunction(context, "preVisitModule", [&]() {
+                    invoke_preVisitModule(context,fnPreVisit,classPtr,mod);
+                });
+            }
+        }
+        virtual void visitModule ( Module * mod ) override {
+            if ( auto fnVisit = get_visitModule(classPtr) ) {
+                runMacroFunction(context, "visitModule", [&]() {
+                    invoke_visitModule(context,fnVisit,classPtr,mod);
+                });
+            }
+        }
+        // TYPE
+        virtual void preVisit ( TypeDecl * td ) override {
+            if ( auto fnPreVisit = get_preVisitTypeDecl(classPtr) ) {
+                runMacroFunction(context, "preVisit", [&]() {
+                    invoke_preVisitTypeDecl(context,fnPreVisit,classPtr,td);
+                });
+            }
+        }
+        virtual TypeDeclPtr visit ( TypeDecl * td ) override {
+            if ( auto fnVisit = get_visitTypeDecl(classPtr) ) {
+                TypeDeclPtr result;
+                runMacroFunction(context, "visit", [&]() {
+                    result = invoke_visitTypeDecl(context,fnVisit,classPtr,td);
+                });
+                return return_smart(result,td);
+            } else {
+                return td;
+            }
+        }
+        // ALIAS
+        virtual void preVisitAlias ( TypeDecl * td, const string & name ) override {
+            if ( auto fnPreVisit = get_preVisitAlias(classPtr) ) {
+                runMacroFunction(context, "preVisitAlias", [&]() {
+                    invoke_preVisitAlias(context,fnPreVisit,classPtr,td,name);
+                });
+            }
+        }
+        virtual TypeDeclPtr visitAlias ( TypeDecl * td, const string & name ) override {
+            if ( auto fnVisit = get_visitAlias(classPtr) ) {
+                TypeDeclPtr result;
+                runMacroFunction(context, "visitAlias", [&]() {
+                    result = invoke_visitAlias(context,fnVisit,classPtr,td,name);
+                });
+                return return_smart(result,td);
+            } else {
+                return td;
+            }
+        }
+        // ENUMERATOIN
+        virtual void preVisit ( Enumeration * enu ) override {
+            if ( auto fnPreVisit = get_preVisitEnumeration(classPtr) ) {
+                runMacroFunction(context, "preVisit", [&]() {
+                    invoke_preVisitEnumeration(context,fnPreVisit,classPtr,enu);
+                });
+            }
+        }
+        virtual void preVisitEnumerationValue ( Enumeration * enu, const string & name, Expression * value, bool last ) override {
+            if ( auto fnPreVisit = get_preVisitEnumerationValue(classPtr) ) {
+                runMacroFunction(context, "preVisitEnumerationValue", [&]() {
+                    invoke_preVisitEnumerationValue(context,fnPreVisit,classPtr,enu,name,value,last);
+                });
+            }
+        }
+        virtual ExpressionPtr visitEnumerationValue ( Enumeration * enu, const string & name, Expression * value, bool last ) override {
+            if ( auto fnVisit = get_visitEnumerationValue(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitEnumerationValue", [&]() {
+                    result = invoke_visitEnumerationValue(context,fnVisit,classPtr,enu,name,value,last);
+                });
+                return return_smart(result,value);
+            } else {
+                return value;
+            }
+        }
+        virtual EnumerationPtr visit ( Enumeration * enu ) override {
+            if ( auto fnVisit = get_visitEnumeration(classPtr) ) {
+                EnumerationPtr result;
+                runMacroFunction(context, "visit", [&]() {
+                    result = invoke_visitEnumeration(context,fnVisit,classPtr,enu);
+                });
+                return return_smart(result,enu);
+            } else {
+                return enu;
+            }
+        }
+        // STRUCTURE
+        virtual void preVisit ( Structure * var ) override {
+            if ( auto fnPreVisit = get_preVisitStructure(classPtr) ) {
+                runMacroFunction(context, "preVisit", [&]() {
+                    invoke_preVisitStructure(context,fnPreVisit,classPtr,var);
+                });
+            }
+        }
+        virtual void preVisitStructureField ( Structure * var, Structure::FieldDeclaration & decl, bool last ) override {
+            if ( auto fnPreVisit = get_preVisitStructureField(classPtr) ) {
+                runMacroFunction(context, "preVisitStructureField", [&]() {
+                    invoke_preVisitStructureField(context,fnPreVisit,classPtr,var,decl,last);
+                });
+            }
+        }
+        virtual void visitStructureField ( Structure * var, Structure::FieldDeclaration & decl, bool last ) override {
+            if ( auto fnVisit = get_visitStructureField(classPtr) ) {
+                runMacroFunction(context, "visitStructureField", [&]() {
+                    invoke_visitStructureField(context,fnVisit,classPtr,var,decl,last);
+                });
+            }
+        }
+        virtual StructurePtr visit ( Structure * var ) override {
+            if ( auto fnVisit = get_visitStructure(classPtr) ) {
+                StructurePtr result;
+                runMacroFunction(context, "visit", [&]() {
+                    result = invoke_visitStructure(context,fnVisit,classPtr,var);
+                });
+                return return_smart(result,var);
+            } else {
+                return var;
+            }
+        }
+        // REAL THINGS (AFTER STRUCTS AND ENUMS)
+        virtual void preVisitProgramBody ( Program * prog, Module * mod ) override {
+            if ( auto fnPreVisit = get_preVisitProgramBody(classPtr) ) {
+                runMacroFunction(context, "preVisitProgramBody", [&]() {
+                    invoke_preVisitProgramBody(context,fnPreVisit,classPtr,prog,mod);
+                });
+            }
+        }
+        // FUNCTON
+        virtual void preVisit ( Function * that ) override {
+            if ( auto fnPreVisit = get_preVisitFunction(classPtr) ) {
+                runMacroFunction(context, "preVisit", [&]() {
+                    invoke_preVisitFunction(context,fnPreVisit,classPtr,that);
+                });
+            }
+        }
+        virtual FunctionPtr visit ( Function * that ) override {
+            if ( auto fnVisit = get_visitFunction(classPtr) ) {
+                FunctionPtr result;
+                runMacroFunction(context, "visit", [&]() {
+                    result = invoke_visitFunction(context,fnVisit,classPtr,that);
+                });
+                return return_smart(result,that);
+            } else {
+                return that;
+            }
+        }
+        virtual void preVisitArgument ( Function * fn, const VariablePtr & var, bool lastArg ) override {
+            if ( auto fnPreVisit = get_preVisitFunctionArgument(classPtr) ) {
+                runMacroFunction(context, "preVisitArgument", [&]() {
+                    invoke_preVisitFunctionArgument(context,fnPreVisit,classPtr,fn,var,lastArg);
+                });
+            }
+        }
+        virtual VariablePtr visitArgument ( Function * fn, const VariablePtr & that, bool lastArg ) override {
+            if ( auto fnVisit = get_visitFunctionArgument(classPtr) ) {
+                VariablePtr result;
+                runMacroFunction(context, "visitArgument", [&]() {
+                    result = invoke_visitFunctionArgument(context,fnVisit,classPtr,fn,that,lastArg);
+                });
+                return return_smart(result,that.get());
+            } else {
+                return that;
+            }
+        }
+        virtual void preVisitArgumentInit ( Function * fn, const VariablePtr & var, Expression * init ) override {
+            if ( auto fnPreVisit = get_preVisitFunctionArgumentInit(classPtr) ) {
+                runMacroFunction(context, "preVisitArgumentInit", [&]() {
+                    invoke_preVisitFunctionArgumentInit(context,fnPreVisit,classPtr,fn,var,init);
+                });
+            }
+        }
+        virtual ExpressionPtr visitArgumentInit ( Function * fn, const VariablePtr & var, Expression * that ) override {
+            if ( auto fnVisit = get_visitFunctionArgumentInit(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitArgumentInit", [&]() {
+                    result = invoke_visitFunctionArgumentInit(context,fnVisit,classPtr,fn,var,that);
+                });
+                return return_smart(result,that);
+            } else {
+                return that;
+            }
+        }
+        virtual void preVisitFunctionBody ( Function * fn, Expression * that ) override {
+            if ( auto fnPreVisit = get_preVisitFunctionBody(classPtr) ) {
+                runMacroFunction(context, "preVisitFunctionBody", [&]() {
+                    invoke_preVisitFunctionBody(context,fnPreVisit,classPtr,fn,that);
+                });
+            }
+        }
+        virtual ExpressionPtr visitFunctionBody ( Function * fn, Expression * that ) override {
+            if ( auto fnVisit = get_visitFunctionBody(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitFunctionBody", [&]() {
+                    result = invoke_visitFunctionBody(context,fnVisit,classPtr,fn,that);
+                });
+                return return_smart(result,that);
+            } else {
+                return that;
+            }
+        }
+        // ANY
+        virtual void preVisitExpression ( Expression * expr ) override {
+            if ( auto fnPreVisit = get_preVisitExpression(classPtr) ) {
+                runMacroFunction(context, "preVisitExpression", [&]() {
+                    invoke_preVisitExpression(context,fnPreVisit,classPtr,expr);
+                });
+            }
+        }
+        virtual ExpressionPtr visitExpression ( Expression * expr ) override {
+            if ( auto fnVisit = get_visitExpression(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitExpression", [&]() {
+                    result = invoke_visitExpression(context,fnVisit,classPtr,expr);
+                });
+                return return_smart(result,expr);
+            } else {
+                return expr;
+            }
+        }
+        // BLOCK
+        virtual void preVisitBlockArgument ( ExprBlock * block, const VariablePtr & var, bool lastArg ) override {
+            if ( auto fnPreVisit = get_preVisitExprBlockArgument(classPtr) ) {
+                runMacroFunction(context, "preVisitBlockArgument", [&]() {
+                    invoke_preVisitExprBlockArgument(context,fnPreVisit,classPtr,block,var,lastArg);
+                });
+            }
+        }
+        virtual VariablePtr visitBlockArgument ( ExprBlock * block, const VariablePtr & var, bool lastArg ) override {
+            if ( auto fnVisit = get_visitExprBlockArgument(classPtr) ) {
+                VariablePtr result;
+                runMacroFunction(context, "visitBlockArgument", [&]() {
+                    result = invoke_visitExprBlockArgument(context,fnVisit,classPtr,block,var,lastArg);
+                });
+                return return_smart(result,var.get());
+            } else {
+                return var;
+            }
+        }
+        virtual void preVisitBlockArgumentInit ( ExprBlock * block, const VariablePtr & var, Expression * init ) override {
+            if ( auto fnPreVisit = get_preVisitExprBlockArgumentInit(classPtr) ) {
+                runMacroFunction(context, "preVisitBlockArgumentInit", [&]() {
+                    invoke_preVisitExprBlockArgumentInit(context,fnPreVisit,classPtr,block,var,init);
+                });
+            }
+        }
+        virtual ExpressionPtr visitBlockArgumentInit ( ExprBlock * block, const VariablePtr & var, Expression * that ) override {
+            if ( auto fnVisit = get_visitExprBlockArgumentInit(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitBlockArgumentInit", [&]() {
+                    result = invoke_visitExprBlockArgumentInit(context,fnVisit,classPtr,block,var,that);
+                });
+                return return_smart(result,that);
+            } else {
+                return that;
+            }
+        }
+        virtual void preVisitBlockExpression ( ExprBlock * block, Expression * expr ) override {
+            if ( auto fnPreVisit = get_preVisitExprBlockExpression(classPtr) ) {
+                runMacroFunction(context, "preVisitBlockExpression", [&]() {
+                    invoke_preVisitExprBlockExpression(context,fnPreVisit,classPtr,block,expr);
+                });
+            }
+        }
+        virtual ExpressionPtr visitBlockExpression (  ExprBlock * block, Expression * expr ) override {
+            if ( auto fnVisit = get_visitExprBlockExpression(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitBlockExpression", [&]() {
+                    result = invoke_visitExprBlockExpression(context,fnVisit,classPtr,block,expr);
+                });
+                return return_smart(result,expr);
+            } else {
+                return expr;
+            }
+        }
+        virtual void preVisitBlockFinal ( ExprBlock * block ) override {
+            if ( auto fnPreVisit = get_preVisitExprBlockFinal(classPtr) ) {
+                runMacroFunction(context, "preVisitBlockFinal", [&]() {
+                    invoke_preVisitExprBlockFinal(context,fnPreVisit,classPtr,block);
+                });
+            }
+        }
+        virtual void visitBlockFinal ( ExprBlock * block ) override {
+            if ( auto fnVisit = get_visitExprBlockFinal(classPtr) ) {
+                runMacroFunction(context, "visitBlockFinal", [&]() {
+                    invoke_visitExprBlockFinal(context,fnVisit,classPtr,block);
+                });
+            }
+        }
+        virtual void preVisitBlockFinalExpression ( ExprBlock * block, Expression * expr ) override {
+            if ( auto fnPreVisit = get_preVisitExprBlockFinalExpression(classPtr) ) {
+                runMacroFunction(context, "preVisitBlockFinalExpression", [&]() {
+                    invoke_preVisitExprBlockFinalExpression(context,fnPreVisit,classPtr,block,expr);
+                });
+            }
+        }
+        virtual ExpressionPtr visitBlockFinalExpression (  ExprBlock * block, Expression * expr ) override {
+            if ( auto fnVisit = get_visitExprBlockFinalExpression(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitBlockFinalExpression", [&]() {
+                    result = invoke_visitExprBlockFinalExpression(context,fnVisit,classPtr,block,expr);
+                });
+                return return_smart(result,expr);
+            } else {
+                return expr;
+            }
+        }
+        // LET
+        virtual void preVisitLet ( ExprLet * let, const VariablePtr & var, bool last ) override {
+            if ( auto fnPreVisit = get_preVisitExprLetVariable(classPtr) ) {
+                runMacroFunction(context, "preVisitLet", [&]() {
+                    invoke_preVisitExprLetVariable(context,fnPreVisit,classPtr,let,var,last);
+                });
+            }
+        }
+        virtual VariablePtr visitLet ( ExprLet * let, const VariablePtr & var, bool last ) override {
+            if ( auto fnVisit = get_visitExprLetVariable(classPtr) ) {
+                VariablePtr result;
+                runMacroFunction(context, "visitLet", [&]() {
+                    result = invoke_visitExprLetVariable(context,fnVisit,classPtr,let,var,last);
+                });
+                return return_smart(result,var.get());
+            } else {
+                return var;
+            }
+        }
+        virtual void preVisitLetInit ( ExprLet * let, const VariablePtr & var, Expression * init ) override {
+            if ( auto fnPreVisit = get_preVisitExprLetVariableInit(classPtr) ) {
+                runMacroFunction(context, "preVisitLetInit", [&]() {
+                    invoke_preVisitExprLetVariableInit(context,fnPreVisit,classPtr,let,var,init);
+                });
+            }
+        }
+        virtual ExpressionPtr visitLetInit ( ExprLet * let, const VariablePtr & var, Expression * that ) override {
+            if ( auto fnVisit = get_visitExprLetVariableInit(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitLetInit", [&]() {
+                    result = invoke_visitExprLetVariableInit(context,fnVisit,classPtr,let,var,that);
+                });
+                return return_smart(result,that);
+            } else {
+                return that;
+            }
+        }
+        // GLOBAL LET
+        virtual void preVisitGlobalLetBody ( Program * prog ) override {
+            if ( auto fnPreVisit = get_preVisitGlobalLet(classPtr) ) {
+                runMacroFunction(context, "preVisitGlobalLetBody", [&]() {
+                    invoke_preVisitGlobalLet(context,fnPreVisit,classPtr,prog);
+                });
+            }
+        }
+        virtual void visitGlobalLetBody ( Program * prog ) override {
+            if ( auto fnVisit = get_visitGlobalLet(classPtr) ) {
+                runMacroFunction(context, "visitGlobalLetBody", [&]() {
+                    invoke_visitGlobalLet(context,fnVisit,classPtr,prog);
+                });
+            }
+        }
+        virtual void preVisitGlobalLet ( const VariablePtr & var ) override {
+            if ( auto fnPreVisit = get_preVisitGlobalLetVariable(classPtr) ) {
+                runMacroFunction(context, "preVisitGlobalLet", [&]() {
+                    invoke_preVisitGlobalLetVariable(context,fnPreVisit,classPtr,var,false); // TODO: remove 'last'
+                });
+            }
+        }
+        virtual VariablePtr visitGlobalLet ( const VariablePtr & var ) override {
+            if ( auto fnVisit = get_visitGlobalLetVariable(classPtr) ) {
+                VariablePtr result;
+                runMacroFunction(context, "visitGlobalLet", [&]() {
+                    result = invoke_visitGlobalLetVariable(context,fnVisit,classPtr,var,false); // TODO: remove 'last'
+                });
+                return return_smart(result,var.get());
+            } else {
+                return var;
+            }
+        }
+        virtual void preVisitGlobalLetInit ( const VariablePtr & var, Expression * that ) override {
+            if ( auto fnPreVisit = get_preVisitGlobalLetVariableInit(classPtr) ) {
+                runMacroFunction(context, "preVisitGlobalLetInit", [&]() {
+                    invoke_preVisitGlobalLetVariableInit(context,fnPreVisit,classPtr,var,that);
+                });
+            }
+        }
+        virtual ExpressionPtr visitGlobalLetInit ( const VariablePtr & var, Expression * that ) override {
+            if ( auto fnVisit = get_visitGlobalLetVariableInit(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitGlobalLetInit", [&]() {
+                    result = invoke_visitGlobalLetVariableInit(context,fnVisit,classPtr,var,that);
+                });
+                return return_smart(result,that);
+            } else {
+                return that;
+            }
+        }
+        // STRING BUILDER
+        virtual void preVisit ( ExprStringBuilder * expr ) override {
+            if ( auto fnPreVisit = get_preVisitExprStringBuilder(classPtr) ) {
+                runMacroFunction(context, "preVisit", [&]() {
+                    invoke_preVisitExprStringBuilder(context,fnPreVisit,classPtr,expr);
+                });
+            }
+        }
+        virtual void preVisitStringBuilderElement ( ExprStringBuilder * sb, Expression * expr, bool last ) override {
+            if ( auto fnPreVisit = get_preVisitExprStringBuilderElement(classPtr) ) {
+                runMacroFunction(context, "preVisitStringBuilderElement", [&]() {
+                    invoke_preVisitExprStringBuilderElement(context,fnPreVisit,classPtr,sb,expr,last);
+                });
+            }
+        }
+        virtual ExpressionPtr visitStringBuilderElement ( ExprStringBuilder * sb, Expression * expr, bool last ) override {
+            if ( auto fnVisit = get_visitExprStringBuilderElement(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitStringBuilderElement", [&]() {
+                    result = invoke_visitExprStringBuilderElement(context,fnVisit,classPtr,sb,expr,last);
+                });
+                return return_smart(result,expr);
+            } else {
+                return expr;
+            }
+        }
+        virtual ExpressionPtr visit ( ExprStringBuilder * expr ) override {
+            if ( auto fnVisit = get_visitExprStringBuilder(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visit", [&]() {
+                    result = invoke_visitExprStringBuilder(context,fnVisit,classPtr,expr);
+                });
+                return return_smart(result,expr);
+            } else {
+                return expr;
+            }
+        }
+        // NEW
+        virtual void preVisitNewArg ( ExprNew * call, Expression * arg, bool last ) override {
+            if ( auto fnPreVisit = get_preVisitExprNewArgument(classPtr) ) {
+                runMacroFunction(context, "preVisitNewArg", [&]() {
+                    invoke_preVisitExprNewArgument(context,fnPreVisit,classPtr,call,arg,last);
+                });
+            }
+        }
+        virtual ExpressionPtr visitNewArg ( ExprNew * call, Expression * arg , bool last ) override {
+            if ( auto fnVisit = get_visitExprNewArgument(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitNewArg", [&]() {
+                    result = invoke_visitExprNewArgument(context,fnVisit,classPtr,call,arg,last);
+                });
+                return return_smart(result,arg);
+            } else {
+                return arg;
+            }
+        }
+        // NAMED CALL
+        virtual void preVisitNamedCallArg ( ExprNamedCall * call, MakeFieldDecl * arg, bool last ) override {
+            if ( auto fnPreVisit = get_preVisitExprNamedCallArgument(classPtr) ) {
+                runMacroFunction(context, "preVisitNamedCallArg", [&]() {
+                    invoke_preVisitExprNamedCallArgument(context,fnPreVisit,classPtr,call,arg,last);
+                });
+            }
+        }
+        virtual MakeFieldDeclPtr visitNamedCallArg ( ExprNamedCall * call, MakeFieldDecl * arg , bool last ) override {
+            if ( auto fnVisit = get_visitExprNamedCallArgument(classPtr) ) {
+                MakeFieldDeclPtr result;
+                runMacroFunction(context, "visitNamedCallArg", [&]() {
+                    result = invoke_visitExprNamedCallArgument(context,fnVisit,classPtr,call,arg,last);
+                });
+                return return_smart(result,arg);
+            } else {
+                return arg;
+            }
+        }
+        // CALL
+        virtual void preVisitCallArg ( ExprCall * call, Expression * arg, bool last ) override {
+            if ( auto fnPreVisit = get_preVisitExprCallArgument(classPtr) ) {
+                runMacroFunction(context, "preVisitCallArg", [&]() {
+                    invoke_preVisitExprCallArgument(context,fnPreVisit,classPtr,call,arg,last);
+                });
+            }
+        }
+        virtual ExpressionPtr visitCallArg ( ExprCall * call, Expression * arg , bool last ) override {
+            if ( auto fnVisit = get_visitExprCallArgument(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitCallArg", [&]() {
+                    result = invoke_visitExprCallArgument(context,fnVisit,classPtr,call,arg,last);
+                });
+                return return_smart(result,arg);
+            } else {
+                return arg;
+            }
+        }
+        // CALL
+        virtual void preVisitLooksLikeCallArg ( ExprLooksLikeCall * call, Expression * arg, bool last ) override {
+            if ( auto fnPreVisit = get_preVisitExprLooksLikeCallArgument(classPtr) ) {
+                runMacroFunction(context, "preVisitLooksLikeCallArg", [&]() {
+                    invoke_preVisitExprLooksLikeCallArgument(context,fnPreVisit,classPtr,call,arg,last);
+                });
+            }
+        }
+        virtual ExpressionPtr visitLooksLikeCallArg ( ExprLooksLikeCall * call, Expression * arg , bool last ) override {
+            if ( auto fnVisit = get_visitExprLooksLikeCallArgument(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitLooksLikeCallArg", [&]() {
+                    result = invoke_visitExprLooksLikeCallArgument(context,fnVisit,classPtr,call,arg,last);
+                });
+                return return_smart(result,arg);
+            } else {
+                return arg;
+            }
+        }
+        // NULL COAELESCING
+        virtual void preVisitNullCoaelescingDefault ( ExprNullCoalescing * expr, Expression * def ) override {
+            if ( auto fnPreVisit = get_preVisitExprNullCoalescingDefault(classPtr) ) {
+                runMacroFunction(context, "preVisitNullCoaelescingDefault", [&]() {
+                    invoke_preVisitExprNullCoalescingDefault(context,fnPreVisit,classPtr,expr,def);
+                });
+            }
+        }
+        // TAG
+        virtual void preVisitTagValue ( ExprTag * expr, Expression * val ) override {
+            if ( auto fnPreVisit = get_preVisitExprTagValue(classPtr) ) {
+                runMacroFunction(context, "preVisitTagValue", [&]() {
+                    invoke_preVisitExprTagValue(context,fnPreVisit,classPtr,expr,val);
+                });
+            }
+        }
+        // AT
+        virtual void preVisitAtIndex ( ExprAt * expr, Expression * index ) override {
+            if ( auto fnPreVisit = get_preVisitExprAtIndex(classPtr) ) {
+                runMacroFunction(context, "preVisitAtIndex", [&]() {
+                    invoke_preVisitExprAtIndex(context,fnPreVisit,classPtr,expr,index);
+                });
+            }
+        }
+        // SAFE AT
+        virtual void preVisitSafeAtIndex ( ExprSafeAt * expr, Expression * index ) override {
+            if ( auto fnPreVisit = get_preVisitExprSafeAtIndex(classPtr) ) {
+                runMacroFunction(context, "preVisitSafeAtIndex", [&]() {
+                    invoke_preVisitExprSafeAtIndex(context,fnPreVisit,classPtr,expr,index);
+                });
+            }
+        }
+        // IS
+        virtual void preVisitType ( ExprIs * expr, TypeDecl * val ) override {
+            if ( auto fnPreVisit = get_preVisitExprIsType(classPtr) ) {
+                runMacroFunction(context, "preVisitType", [&]() {
+                    invoke_preVisitExprIsType(context,fnPreVisit,classPtr,expr,val);
+                });
+            }
+        }
+        // OP2
+        virtual void preVisitRight ( ExprOp2 * expr, Expression * right ) override {
+            if ( auto fnPreVisit = get_preVisitExprOp2Right(classPtr) ) {
+                runMacroFunction(context, "preVisitRight", [&]() {
+                    invoke_preVisitExprOp2Right(context,fnPreVisit,classPtr,expr,right);
+                });
+            }
+        }
+        // OP3
+        virtual void preVisitLeft  ( ExprOp3 * expr, Expression * left ) override {
+            if ( auto fnPreVisit = get_preVisitExprOp3Left(classPtr) ) {
+                runMacroFunction(context, "preVisitLeft", [&]() {
+                    invoke_preVisitExprOp3Left(context,fnPreVisit,classPtr,expr,left);
+                });
+            }
+        }
+        virtual void preVisitRight ( ExprOp3 * expr, Expression * right ) override {
+            if ( auto fnPreVisit = get_preVisitExprOp3Right(classPtr) ) {
+                runMacroFunction(context, "preVisitRight", [&]() {
+                    invoke_preVisitExprOp3Right(context,fnPreVisit,classPtr,expr,right);
+                });
+            }
+        }
+        // COPY
+        virtual void preVisitRight ( ExprCopy * expr, Expression * right ) override {
+            if ( auto fnPreVisit = get_preVisitExprCopyRight(classPtr) ) {
+                runMacroFunction(context, "preVisitRight", [&]() {
+                    invoke_preVisitExprCopyRight(context,fnPreVisit,classPtr,expr,right);
+                });
+            }
+        }
+        // MOVE
+        virtual void preVisitRight ( ExprMove * expr, Expression * right ) override {
+            if ( auto fnPreVisit = get_preVisitExprMoveRight(classPtr) ) {
+                runMacroFunction(context, "preVisitRight", [&]() {
+                    invoke_preVisitExprMoveRight(context,fnPreVisit,classPtr,expr,right);
+                });
+            }
+        }
+        // CLONE
+        virtual void preVisitRight ( ExprClone * expr, Expression * right ) override {
+            if ( auto fnPreVisit = get_preVisitExprCloneRight(classPtr) ) {
+                runMacroFunction(context, "preVisitRight", [&]() {
+                    invoke_preVisitExprCloneRight(context,fnPreVisit,classPtr,expr,right);
+                });
+            }
+        }
+        // WITH
+        virtual void preVisitWithBody ( ExprWith * expr, Expression * body ) override {
+            if ( auto fnPreVisit = get_preVisitExprWithBody(classPtr) ) {
+                runMacroFunction(context, "preVisitWithBody", [&]() {
+                    invoke_preVisitExprWithBody(context,fnPreVisit,classPtr,expr,body);
+                });
+            }
+        }
+        // WHILE
+        virtual void preVisitWhileBody ( ExprWhile * expr, Expression * right ) override {
+            if ( auto fnPreVisit = get_preVisitExprWhileBody(classPtr) ) {
+                runMacroFunction(context, "preVisitWhileBody", [&]() {
+                    invoke_preVisitExprWhileBody(context,fnPreVisit,classPtr,expr,right);
+                });
+            }
+        }
+        // TRY-CATCH
+        virtual void preVisitCatch ( ExprTryCatch * expr, Expression * that ) override {
+            if ( auto fnPreVisit = get_preVisitExprTryCatchCatch(classPtr) ) {
+                runMacroFunction(context, "preVisitCatch", [&]() {
+                    invoke_preVisitExprTryCatchCatch(context,fnPreVisit,classPtr,expr,that);
+                });
+            }
+        }
+        // IF-THEN-ELSE
+        virtual void preVisitIfBlock ( ExprIfThenElse * expr, Expression * that ) override {
+            if ( auto fnPreVisit = get_preVisitExprIfThenElseIfBlock(classPtr) ) {
+                runMacroFunction(context, "preVisitIfBlock", [&]() {
+                    invoke_preVisitExprIfThenElseIfBlock(context,fnPreVisit,classPtr,expr,that);
+                });
+            }
+        }
+        virtual void preVisitElseBlock ( ExprIfThenElse * expr, Expression * that ) override {
+            if ( auto fnPreVisit = get_preVisitExprIfThenElseElseBlock(classPtr) ) {
+                runMacroFunction(context, "preVisitElseBlock", [&]() {
+                    invoke_preVisitExprIfThenElseElseBlock(context,fnPreVisit,classPtr,expr,that);
+                });
+            }
+        }
+        // FOR
+        virtual void preVisitFor ( ExprFor * expr, const VariablePtr & var, bool last ) override {
+            if ( auto fnPreVisit = get_preVisitExprForVariable(classPtr) ) {
+                runMacroFunction(context, "preVisitFor", [&]() {
+                    invoke_preVisitExprForVariable(context,fnPreVisit,classPtr,expr,var,last);
+                });
+            }
+        }
+        virtual VariablePtr visitFor ( ExprFor * expr, const VariablePtr & var, bool last ) override {
+            if ( auto fnVisit = get_visitExprForVariable(classPtr) ) {
+                VariablePtr result;
+                runMacroFunction(context, "visitFor", [&]() {
+                    result = invoke_visitExprForVariable(context,fnVisit,classPtr,expr,var,last);
+                });
+                return return_smart(result,var.get());
+            } else {
+                return var;
+            }
+        }
+        virtual void preVisitForStack ( ExprFor * expr ) override {
+            if ( auto fnPreVisit = get_preVisitExprForStack(classPtr) ) {
+                runMacroFunction(context, "preVisitForStack", [&]() {
+                    invoke_preVisitExprForStack(context,fnPreVisit,classPtr,expr);
+                });
+            }
+        }
+        virtual void preVisitForBody ( ExprFor * expr, Expression * that ) override {
+            if ( auto fnPreVisit = get_preVisitExprForBody(classPtr) ) {
+                runMacroFunction(context, "preVisitForBody", [&]() {
+                    invoke_preVisitExprForBody(context,fnPreVisit,classPtr,expr); // TODO: pass that
+                });
+            }
+        }
+        virtual void preVisitForSource ( ExprFor * expr, Expression * that, bool last ) override {
+            if ( auto fnPreVisit = get_preVisitExprForSource(classPtr) ) {
+                runMacroFunction(context, "preVisitForSource", [&]() {
+                    invoke_preVisitExprForSource(context,fnPreVisit,classPtr,expr,that,last);
+                });
+            }
+        }
+        virtual ExpressionPtr visitForSource ( ExprFor * expr, Expression * that , bool last ) override {
+            if ( auto fnVisit = get_visitExprForSource(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitForSource", [&]() {
+                    result = invoke_visitExprForSource(context,fnVisit,classPtr,expr,that,last);
+                });
+                return return_smart(result,that);
+            } else {
+                return that;
+            }
+        }
+        // MAKE VARIANT
+        virtual void preVisitMakeVariantField ( ExprMakeVariant * expr, int index, MakeFieldDecl * decl, bool lastField ) override {
+            if ( auto fnPreVisit = get_preVisitExprMakeVariantField(classPtr) ) {
+                runMacroFunction(context, "preVisitMakeVariantField", [&]() {
+                    invoke_preVisitExprMakeVariantField(context,fnPreVisit,classPtr,expr,index,decl,lastField);
+                });
+            }
+        }
+        virtual MakeFieldDeclPtr visitMakeVariantField(ExprMakeVariant * expr, int index, MakeFieldDecl * decl, bool lastField) override {
+            if ( auto fnVisit = get_visitExprMakeVariantField(classPtr) ) {
+                MakeFieldDeclPtr result;
+                runMacroFunction(context, "visitMakeVariantField", [&]() {
+                    result = invoke_visitExprMakeVariantField(context,fnVisit,classPtr,expr,index,decl,lastField);
+                });
+                return return_smart(result,decl);
+            } else {
+                return decl;
+            }
+        }
+// MAKE STRUCTURE
+        virtual void preVisitMakeStructureIndex ( ExprMakeStruct * expr, int index, bool lastIndex ) override {
+            if ( auto fnPreVisit = get_preVisitExprMakeStructIndex(classPtr) ) {
+                runMacroFunction(context, "preVisitMakeStructureIndex", [&]() {
+                    invoke_preVisitExprMakeStructIndex(context,fnPreVisit,classPtr,expr,index,lastIndex);
+                });
+            }
+        }
+        virtual void visitMakeStructureIndex ( ExprMakeStruct * expr, int index, bool lastField ) override {
+            if ( auto fnVisit = get_visitExprMakeStructIndex(classPtr) ) {
+                runMacroFunction(context, "visitMakeStructureIndex", [&]() {
+                    invoke_visitExprMakeStructIndex(context,fnVisit,classPtr,expr,index,lastField);
+                });
+            }
+        }
+        virtual void preVisitMakeStructureField ( ExprMakeStruct * expr, int index, MakeFieldDecl * decl, bool lastField ) override {
+            if ( auto fnPreVisit = get_preVisitExprMakeStructField(classPtr) ) {
+                runMacroFunction(context, "preVisitMakeStructureField", [&]() {
+                    invoke_preVisitExprMakeStructField(context,fnPreVisit,classPtr,expr,index,decl,lastField);
+                });
+            }
+        }
+        virtual MakeFieldDeclPtr visitMakeStructureField ( ExprMakeStruct * expr, int index, MakeFieldDecl * decl, bool lastField ) override {
+            if ( auto fnVisit = get_visitExprMakeStructField(classPtr) ) {
+                MakeFieldDeclPtr result;
+                runMacroFunction(context, "visitMakeStructureField", [&]() {
+                    result = invoke_visitExprMakeStructField(context,fnVisit,classPtr,expr,index,decl,lastField);
+                });
+                return return_smart(result,decl);
+            } else {
+                return decl;
+            }
+        }
+        /*
+        TODO: implement
+        virtual void preVisitMakeStructureBlock ( ExprMakeStruct * expr, Expression * blk ) override {
+            if ( auto fnPreVisit = get_preVisitExprMakeStructBlock(classPtr) ) {
+                runMacroFunction(context, "preVisitMakeStructureBlock", [&]() {
+                    invoke_preVisitExprMakeStructBlock(context,fnPreVisit,classPtr,expr,blk);
+                });
+            }
+        }
+        */
+        /*
+        // TODO: implement
+        virtual ExpressionPtr visitMakeStructureBlock ( ExprMakeStruct * expr, Expression * blk ) override {
+            if ( auto fnVisit = get_visitExprMakeStructBlock(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitMakeStructureBlock", [&]() {
+                    result = invoke_visitExprMakeStructBlock(context,fnVisit,classPtr,expr,blk);
+                });
+                return return_smart(result,blk);
+            } else {
+                return blk;
+            }
+        }
+        */
+        // MAKE ARRAY
+        virtual void preVisitMakeArrayIndex ( ExprMakeArray * expr, int index, Expression * init, bool lastIndex ) override {
+            if ( auto fnPreVisit = get_preVisitExprMakeArrayIndex(classPtr) ) {
+                runMacroFunction(context, "preVisitMakeArrayIndex", [&]() {
+                    invoke_preVisitExprMakeArrayIndex(context,fnPreVisit,classPtr,expr,index,init,lastIndex);
+                });
+            }
+        }
+        virtual ExpressionPtr visitMakeArrayIndex ( ExprMakeArray * expr, int index, Expression * init, bool lastField ) override {
+            if ( auto fnVisit = get_visitExprMakeArrayIndex(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitMakeArrayIndex", [&]() {
+                    result = invoke_visitExprMakeArrayIndex(context,fnVisit,classPtr,expr,index,init,lastField);
+                });
+                return return_smart(result,init);
+            } else {
+                return init;
+            }
+        }
+        // MAKE TUPLE
+        virtual void preVisitMakeTupleIndex ( ExprMakeTuple * expr, int index, Expression * init, bool lastIndex ) override {
+            if ( auto fnPreVisit = get_preVisitExprMakeTupleIndex(classPtr) ) {
+                runMacroFunction(context, "preVisitMakeTupleIndex", [&]() {
+                    invoke_preVisitExprMakeTupleIndex(context,fnPreVisit,classPtr,expr,index,init,lastIndex);
+                });
+            }
+        }
+        virtual ExpressionPtr visitMakeTupleIndex ( ExprMakeTuple * expr, int index, Expression * init, bool lastField ) override {
+            if ( auto fnVisit = get_visitExprMakeTupleIndex(classPtr) ) {
+                ExpressionPtr result;
+                runMacroFunction(context, "visitMakeTupleIndex", [&]() {
+                    result = invoke_visitExprMakeTupleIndex(context,fnVisit,classPtr,expr,index,init,lastField);
+                });
+                return return_smart(result,init);
+            } else {
+                return init;
+            }
+        }
+        // ARRAY COMPREHENSION
+        virtual void preVisitArrayComprehensionSubexpr ( ExprArrayComprehension * expr, Expression * subexpr ) override {
+            if ( auto fnPreVisit = get_preVisitExprArrayComprehensionSubexpr(classPtr) ) {
+                runMacroFunction(context, "preVisitArrayComprehensionSubexpr", [&]() {
+                    invoke_preVisitExprArrayComprehensionSubexpr(context,fnPreVisit,classPtr,expr,subexpr);
+                });
+            }
+        }
+        virtual void preVisitArrayComprehensionWhere ( ExprArrayComprehension * expr, Expression * where ) override {
+            if ( auto fnPreVisit = get_preVisitExprArrayComprehensionWhere(classPtr) ) {
+                runMacroFunction(context, "preVisitArrayComprehensionWhere", [&]() {
+                    invoke_preVisitExprArrayComprehensionWhere(context,fnPreVisit,classPtr,expr,where);
+                });
+            }
+        }
+        // DELETE
+        /*
+        // TODO: implement
+        virtual void preVisitDeleteSizeExpression ( ExprDelete * expr, Expression * that ) override {
+            if ( auto fnPreVisit = get_preVisitExprDeleteSizeExpression(classPtr) ) {
+                runMacroFunction(context, "preVisitDeleteSizeExpression", [&]() {
+                    invoke_preVisitExprDeleteSizeExpression(context,fnPreVisit,classPtr,expr,that);
+                });
+            }
+        }
+        */
+
+#define VISIT_EXPR(ExprType) \
+       virtual void preVisit ( ExprType * that ) override { \
+            if ( auto fnPreVisit = get_preVisit##ExprType(classPtr) ) { \
+                runMacroFunction(context, "preVisit", [&]() { \
+                    invoke_preVisit##ExprType(context,fnPreVisit,classPtr,that); \
+                }); \
+            } \
+        } \
+        virtual ExpressionPtr visit ( ExprType * that ) override { \
+            if ( auto fnVisit = get_visit##ExprType(classPtr) ) { \
+                ExpressionPtr result; \
+                runMacroFunction(context, "visit", [&]() { \
+                    result = invoke_visit##ExprType(context,fnVisit,classPtr,that); \
+                }); \
+                return return_smart(result,that); \
+            } else { \
+                return that; \
+            } \
+        }
+        // all visitable expressions
+        VISIT_EXPR(ExprCallMacro)
+        VISIT_EXPR(ExprUnsafe)
+        VISIT_EXPR(ExprReader)
+        VISIT_EXPR(ExprLabel)
+        VISIT_EXPR(ExprGoto)
+        VISIT_EXPR(ExprRef2Value)
+        VISIT_EXPR(ExprRef2Ptr)
+        VISIT_EXPR(ExprPtr2Ref)
+        VISIT_EXPR(ExprAddr)
+        VISIT_EXPR(ExprNullCoalescing)
+        VISIT_EXPR(ExprAssert)
+        VISIT_EXPR(ExprStaticAssert)
+        VISIT_EXPR(ExprQuote)
+        VISIT_EXPR(ExprDebug)
+        VISIT_EXPR(ExprInvoke)
+        VISIT_EXPR(ExprErase)
+        VISIT_EXPR(ExprSetInsert)
+        VISIT_EXPR(ExprFind)
+        VISIT_EXPR(ExprKeyExists)
+        VISIT_EXPR(ExprAscend)
+        VISIT_EXPR(ExprCast)
+        VISIT_EXPR(ExprNew)
+        VISIT_EXPR(ExprDelete)
+        VISIT_EXPR(ExprAt)
+        VISIT_EXPR(ExprSafeAt)
+        VISIT_EXPR(ExprBlock)
+        VISIT_EXPR(ExprVar)
+        VISIT_EXPR(ExprSwizzle)
+        VISIT_EXPR(ExprField)
+        VISIT_EXPR(ExprSafeField)
+        VISIT_EXPR(ExprIsVariant)
+        VISIT_EXPR(ExprAsVariant)
+        VISIT_EXPR(ExprSafeAsVariant)
+        VISIT_EXPR(ExprOp1)
+        VISIT_EXPR(ExprOp2)
+        VISIT_EXPR(ExprOp3)
+        VISIT_EXPR(ExprCopy)
+        VISIT_EXPR(ExprMove)
+        VISIT_EXPR(ExprClone)
+        VISIT_EXPR(ExprTryCatch)
+        VISIT_EXPR(ExprReturn)
+        VISIT_EXPR(ExprYield)
+        VISIT_EXPR(ExprBreak)
+        VISIT_EXPR(ExprContinue)
+        VISIT_EXPR(ExprConst)
+        VISIT_EXPR(ExprFakeContext)
+        VISIT_EXPR(ExprFakeLineInfo)
+        VISIT_EXPR(ExprConstPtr)
+        VISIT_EXPR(ExprConstEnumeration)
+        VISIT_EXPR(ExprConstBitfield)
+        VISIT_EXPR(ExprConstInt8)
+        VISIT_EXPR(ExprConstInt16)
+        VISIT_EXPR(ExprConstInt64)
+        VISIT_EXPR(ExprConstInt)
+        VISIT_EXPR(ExprConstInt2)
+        VISIT_EXPR(ExprConstInt3)
+        VISIT_EXPR(ExprConstInt4)
+        VISIT_EXPR(ExprConstUInt8)
+        VISIT_EXPR(ExprConstUInt16)
+        VISIT_EXPR(ExprConstUInt64)
+        VISIT_EXPR(ExprConstUInt)
+        VISIT_EXPR(ExprConstUInt2)
+        VISIT_EXPR(ExprConstUInt3)
+        VISIT_EXPR(ExprConstUInt4)
+        VISIT_EXPR(ExprConstRange)
+        VISIT_EXPR(ExprConstURange)
+        VISIT_EXPR(ExprConstRange64)
+        VISIT_EXPR(ExprConstURange64)
+        VISIT_EXPR(ExprConstBool)
+        VISIT_EXPR(ExprConstFloat)
+        VISIT_EXPR(ExprConstFloat2)
+        VISIT_EXPR(ExprConstFloat3)
+        VISIT_EXPR(ExprConstFloat4)
+        VISIT_EXPR(ExprConstString)
+        VISIT_EXPR(ExprConstDouble)
+        VISIT_EXPR(ExprLet)
+        VISIT_EXPR(ExprFor)
+        VISIT_EXPR(ExprLooksLikeCall)
+        VISIT_EXPR(ExprMakeBlock)
+        VISIT_EXPR(ExprMakeGenerator)
+        VISIT_EXPR(ExprTypeInfo)
+        VISIT_EXPR(ExprIs)
+        VISIT_EXPR(ExprCall)
+        VISIT_EXPR(ExprNamedCall)
+        VISIT_EXPR(ExprIfThenElse)
+        VISIT_EXPR(ExprWith)
+        VISIT_EXPR(ExprAssume)
+        VISIT_EXPR(ExprWhile)
+        VISIT_EXPR(ExprMakeStruct)
+        VISIT_EXPR(ExprMakeVariant)
+        VISIT_EXPR(ExprMakeArray)
+        VISIT_EXPR(ExprMakeTuple)
+        VISIT_EXPR(ExprArrayComprehension)
+        VISIT_EXPR(ExprMemZero)
+        VISIT_EXPR(ExprTypeDecl)
+        VISIT_EXPR(ExprTag)
+#undef VISIT_EXPR
+
+    protected:
+        void *      classPtr;
+        Context *   context;
+    };
 
     struct AstVisitorAdapterAnnotation : ManagedStructureAnnotation<VisitorAdapter,false,true> {
         AstVisitorAdapterAnnotation(ModuleLibrary & ml)
@@ -1469,10 +1945,10 @@ namespace das {
             }
         }
         virtual bool canVisitArguments ( ExprCallMacro * expr, int index ) override {
-            if ( auto fnCanVisitArguments = get_canVisitArgument(classPtr) ) {
+            if ( auto fncanVisitArguments = get_canVisitArgument(classPtr) ) {
                 bool result = true;
                 runMacroFunction(context, "canVisitArguments", [&]() {
-                    result = invoke_canVisitArgument(context,fnCanVisitArguments,classPtr,expr,index);
+                    result = invoke_canVisitArgument(context,fncanVisitArguments,classPtr,expr,index);
                 });
                 return result;
             } else {

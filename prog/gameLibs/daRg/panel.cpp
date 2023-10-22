@@ -233,6 +233,9 @@ bool PanelData::isInThisPass(darg_panel_renderer::RenderPass render_pass) const
   {
     case darg_panel_renderer::RenderPass::Translucent: return (features & darg_panel_renderer::RenderFeatures::Opaque) == 0;
 
+    case darg_panel_renderer::RenderPass::TranslucentWithoutDepth:
+      return (features & darg_panel_renderer::RenderFeatures::AlwaysOnTop) != 0;
+
     case darg_panel_renderer::RenderPass::Shadow: return (features & darg_panel_renderer::RenderFeatures::CastShadow) != 0;
 
     case darg_panel_renderer::RenderPass::GBuffer: return (features & darg_panel_renderer::RenderFeatures::Opaque) != 0;

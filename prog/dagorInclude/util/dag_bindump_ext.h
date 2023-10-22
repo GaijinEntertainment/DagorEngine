@@ -11,6 +11,7 @@
 #include <generic/dag_span.h>
 #include <EASTL/string_view.h>
 #include <EASTL/string.h>
+#include <dag/dag_vector.h>
 
 namespace bindump
 {
@@ -29,9 +30,10 @@ struct SizeMetter : IWriter
   void write(uint64_t, const void *, uint64_t) override {}
 };
 
-struct MemoryWriter : IWriter
+template <typename Cont>
+struct MemoryWriterBase : IWriter
 {
-  eastl::vector<uint8_t> mData;
+  Cont mData;
 
   void begin() override { mData.clear(); }
   void end() override {}
@@ -48,6 +50,10 @@ struct MemoryWriter : IWriter
     eastl::copy(data_start, data_start + src_size, mData.begin() + offset);
   }
 };
+
+// TODO: Should be removed as soon as we switch to `dag::Vector` in all places where the `MemoryWriter` is used
+using MemoryWriter = MemoryWriterBase<eastl::vector<uint8_t>>;
+using VectorWriter = MemoryWriterBase<dag::Vector<uint8_t>>;
 
 class FileWriter : public IWriter
 {

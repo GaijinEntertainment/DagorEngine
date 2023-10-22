@@ -94,6 +94,8 @@ namespace das
     Module_BuiltIn::Module_BuiltIn() : Module("$") {
         DAS_PROFILE_SECTION("Module_Builtin");
         ModuleLibrary lib(this);
+        // max function arguments
+        addConstant<int>(*this, "DAS_MAX_FUNCTION_ARGUMENTS", DAS_MAX_FUNCTION_ARGUMENTS);
         // boolean
         addFunctionBasic<bool>(*this,lib);
         addFunctionBoolean<bool>(*this,lib);

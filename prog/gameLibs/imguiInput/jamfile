@@ -16,7 +16,7 @@ AddIncludes =
 UseProgLibs =
   3rdPartyLibs/eastl
   3rdPartyLibs/imgui
-  engine2/imgui
+  engine/imgui
   gameLibs/daInput
 ;
 

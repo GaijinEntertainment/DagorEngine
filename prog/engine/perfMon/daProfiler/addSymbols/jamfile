@@ -1,0 +1,35 @@
+APP             = addSymbols ;
+APP_FOLDER      = daProfiler/$(APP) ;
+Root           ?= ../../../../.. ;
+Location        = prog/engine/perfMon/$(APP_FOLDER) ;
+ConsoleExe      = yes ;
+
+Platform ?= win64 ;
+
+TargetType  = exe ;
+Target      = util/$(APP).exe ;
+OutDir      = $(Root)/tools/util ;
+
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+;
+
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/baseUtil
+  engine/ioSys
+  engine/perfMon/daProfilerStub
+  3rdPartyLibs/eastl
+;
+
+Sources =
+  resolve.cpp
+  ../daProfilerSaveDump.cpp
+  ../daProfilePageAllocator.cpp
+  ../daProfilerPlatform.cpp
+  ../daProfilerSymbolsCache.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

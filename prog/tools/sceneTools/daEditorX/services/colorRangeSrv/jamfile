@@ -1,0 +1,20 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/services/colorRangeSrv ;
+DriverLinkage ?= dynamic ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/services/colorRangeSrv.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/tools/sharedInclude
+;
+
+
+Sources =
+  colorRangeSrv.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

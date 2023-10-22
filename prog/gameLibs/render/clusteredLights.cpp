@@ -90,9 +90,8 @@ void ClusteredLights::initClustered(int initial_light_density)
   // TODO: maybe use texture with R8 format instead of custom byte packing
   int spotMaskSizeInBytes = (MAX_SPOT_LIGHTS + 3) / 4;
   int omniMaskSizeInBytes = (MAX_OMNI_LIGHTS + 3) / 4;
-  unsigned int maskFlags = SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED;
-  visibleSpotLightsMasksSB = dag::create_sbuffer(sizeof(uint), spotMaskSizeInBytes, maskFlags, 0, "spot_lights_flags");
-  visibleOmniLightsMasksSB = dag::create_sbuffer(sizeof(uint), omniMaskSizeInBytes, maskFlags, 0, "omni_lights_flags");
+  visibleSpotLightsMasksSB = dag::buffers::create_one_frame_sr_structured(sizeof(uint), spotMaskSizeInBytes, "spot_lights_flags");
+  visibleOmniLightsMasksSB = dag::buffers::create_one_frame_sr_structured(sizeof(uint), omniMaskSizeInBytes, "omni_lights_flags");
 }
 
 ClusteredLights::ClusteredLights() { mem_set_0(currentIndicesSize); }
@@ -632,10 +631,10 @@ void ClusteredLights::initConeSphere()
   static constexpr uint32_t SLICES = 5;
   calc_sphere_vertex_face_count(SLICES, SLICES, false, v_count, f_count);
   coneSphereVb.close();
-  coneSphereVb = dag::create_vb((v_count + 5) * sizeof(Point3), 0, "coneSphereVb");
+  coneSphereVb = dag::create_vb((v_count + 5) * sizeof(Point3), SBCF_MAYBELOST, "coneSphereVb");
   d3d_err((bool)coneSphereVb);
   coneSphereIb.close();
-  coneSphereIb = dag::create_ib((f_count + 6) * 6, 0, "coneSphereIb");
+  coneSphereIb = dag::create_ib((f_count + 6) * 6, SBCF_MAYBELOST, "coneSphereIb");
   d3d_err((bool)coneSphereIb);
 
   LockedBuffer<uint16_t> indicesLocked = lock_sbuffer<uint16_t>(coneSphereIb.getBuf(), 0, 0, VBLOCK_WRITEONLY);

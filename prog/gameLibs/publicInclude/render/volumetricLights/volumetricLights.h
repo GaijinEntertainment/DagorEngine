@@ -40,7 +40,7 @@ public:
   }
   void setRange(float range);
   void setCurrentView(int view);
-  bool perform(const TMatrix4 &view_tm, const TMatrix4_vec4 &glob_tm, const Point3 &camera_pos); // true if on
+  bool perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, const TMatrix4_vec4 &glob_tm, const Point3 &camera_pos); // true if on
   void performIntegration();
   void switchOff();
   void switchOn();
@@ -54,8 +54,6 @@ public:
   void enableOptionalShader(const String &shader_name, bool enable);
   const UniqueTexHolder &getInitialMedia() const { return initialMedia; }
   void onSettingsChange(bool has_hq_fog, bool has_distant_fog, bool has_volfog_shadow);
-
-  void onCompatibilityModeChange(bool use_compatiblity_mode); // TODO: use ECS to handle compatiblity preset change
 
   Frustum calcFrustum(const TMatrix4 &view_tm, const Driver3dPerspective &persp) const;
 
@@ -76,7 +74,7 @@ protected:
   float calcBlendedStartDepth(int blended_slice_cnt) const;
   bool canUseLinearAccumulation() const;
   bool canUsePixelShader() const;
-  bool isVolfogShadowEnabled() const;
+  bool canUseVolfogShadow() const;
 
   void performRaymarching(bool use_node_based_input, const TMatrix4 &view_tm, const Point3 &pos_diff);
 
@@ -145,7 +143,6 @@ protected:
 
   bool fogIsValid = false; // was ever performed
   bool isReady = false;
-  bool useCompatibilityMode = false;
   bool preferLinearAccumulation = false;
-  bool hq_volfog = false;
+  bool needsHqVolfog = false;
 };

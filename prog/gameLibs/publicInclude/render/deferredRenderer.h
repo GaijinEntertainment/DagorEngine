@@ -52,7 +52,7 @@ public:
 
   PostFxRenderer *getResolveShading() const { return resolveShading.get(); }
 
-  void resolve(BaseTexture *resolveTarget, BaseTexture *depth_bounds_tex = nullptr,
+  void resolve(BaseTexture *resolveTarget, const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_bounds_tex = nullptr,
     ShadingResolver::ClearTarget clear_target = ShadingResolver::ClearTarget::No, const TMatrix4 &gbufferTm = TMatrix4::IDENT,
     const RectInt *resolve_area = nullptr);
 
@@ -88,7 +88,7 @@ public:
 
   void resourceBarrier(ResourceBarrier barrier);
   void setRt() { renderTargets.setRt(); }
-  void resolve(BaseTexture *resolveTarget, BaseTexture *depth_bounds_tex = nullptr,
+  void resolve(BaseTexture *resolveTarget, const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_bounds_tex = nullptr,
     ShadingResolver::ClearTarget clear_target = ShadingResolver::ClearTarget::No, const TMatrix4 &gbufferTm = TMatrix4::IDENT,
     const RectInt *resolve_area = nullptr);
   void setVar() { renderTargets.setVar(); }

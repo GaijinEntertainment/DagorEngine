@@ -197,16 +197,16 @@ ManagedTexView PoolResourceScheduler::getTexture(int frame, intermediate::Resour
 
   ManagedTexView texView;
 
-#define USE(RES_TYPE)                                                       \
-  case RES_TYPE:                                                            \
-    texView = ResourceCollection<RES_TYPE>::current()[resIdxInCollection];  \
-    texView->setResName(cachedIntermediateResources[res_idx].name.c_str()); \
+#define USE(RES_TYPE)                                                      \
+  case RES_TYPE:                                                           \
+    texView = ResourceCollection<RES_TYPE>::current()[resIdxInCollection]; \
+    texView->setResName(cachedIntermediateResourceNames[res_idx].c_str()); \
     return texView;
 
   switch (resourceTypes[res_idx])
   {
     SUPPORTED_TEXTURE_RESTYPE_LIST
-    default: G_ASSERTF(false, "Resource %s is not a texture!", cachedIntermediateResources[res_idx].name); break;
+    default: G_ASSERTF(false, "Resource %s is not a texture!", cachedIntermediateResourceNames[res_idx]); break;
   }
 
 #undef USE
@@ -223,16 +223,16 @@ ManagedBufView PoolResourceScheduler::getBuffer(int frame, intermediate::Resourc
 
   ManagedBufView bufView;
 
-#define USE(RES_TYPE)                                                       \
-  case RES_TYPE:                                                            \
-    bufView = ResourceCollection<RES_TYPE>::current()[resIdxInCollection];  \
-    bufView->setResName(cachedIntermediateResources[res_idx].name.c_str()); \
+#define USE(RES_TYPE)                                                      \
+  case RES_TYPE:                                                           \
+    bufView = ResourceCollection<RES_TYPE>::current()[resIdxInCollection]; \
+    bufView->setResName(cachedIntermediateResourceNames[res_idx].c_str()); \
     return bufView;
 
   switch (resourceTypes[res_idx])
   {
     SUPPORTED_BUFFER_RESTYPE_LIST
-    default: G_ASSERTF(false, "Resource %s is not a buffer!", cachedIntermediateResources[res_idx].name); break;
+    default: G_ASSERTF(false, "Resource %s is not a buffer!", cachedIntermediateResourceNames[res_idx]); break;
   }
 
 #undef USE

@@ -12,7 +12,7 @@ static int lut_sizeVarId = -1, first_lut_rsliceVarId = -1, tonemap_sim_rtVarId =
 static bool check_compute_support()
 {
   auto &drvDesc = d3d::get_driver_desc();
-  return drvDesc.fshver & DDFSH_5_0 && !drvDesc.issues.hasComputeCanNotWrite3DTex;
+  return drvDesc.shaderModel >= 5.0_sm && !drvDesc.issues.hasComputeCanNotWrite3DTex;
 }
 
 static uint32_t get_color_format(GenericTonemapLUT::HDROutput hdr)
@@ -32,7 +32,8 @@ bool GenericTonemapLUT::init(const char *lut_name, const char *render_shader_nam
   uint32_t flag = get_color_format(hdr);
 
   if (ComputeShaderElement * computeShader;
-      check_compute_support() && (computeShader = new_compute_shader(compute_shader_name, true)) != nullptr)
+      check_compute_support() && (d3d::get_texformat_usage(flag, RES3D_VOLTEX) & d3d::USAGE_UNORDERED) == d3d::USAGE_UNORDERED &&
+      (computeShader = new_compute_shader(compute_shader_name, true)) != nullptr)
   {
     computeLUT.reset(computeShader);
     flag |= TEXCF_UNORDERED;

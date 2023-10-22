@@ -102,8 +102,7 @@ void Cables::setMaxCables(unsigned int max_cables)
 {
   maxCables = max_cables;
   changed = true;
-  cablesBuf = dag::create_sbuffer(sizeof(CableData), maxCables, SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE, 0,
-    "cables_buf");
+  cablesBuf = dag::buffers::create_persistent_sr_structured(sizeof(CableData), maxCables, "cables_buf");
 }
 
 int Cables::addCable(const Point3 &p1, const Point3 &p2, float rad, float sag)

@@ -85,5 +85,5 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 }
 
 #define __UNLIMITED_BASE_PATH 1
-#define DAGOR_NO_DPI_AWARE    1
+#define DAGOR_NO_DPI_AWARE    -1
 #include <startup/dag_winMain.inc.cpp>

@@ -3226,7 +3226,7 @@ static SQInteger modify_es_list(HSQUIRRELVM vm)
   if (!wasInInitPhase)
     start_es_loading();
 
-  sq_pushroottable(vm);
+  sq_pushnull(vm); // 'this' for call
   SQRESULT res = sq_call(vm, 1, SQFalse, SQTrue);
 
   if (!wasInInitPhase)

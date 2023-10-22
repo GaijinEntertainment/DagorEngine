@@ -8,12 +8,18 @@
 #if _TARGET_PC_WIN
 #include <windows.h>
 #include <malloc.h>
+#include <osApiWrappers/dag_progGlobals.h>
 #endif
 
 inline void win_set_process_dpi_aware()
 {
 #if _TARGET_PC_WIN
-#ifndef DAGOR_NO_DPI_AWARE
+#if !defined(DAGOR_NO_DPI_AWARE) || (DAGOR_NO_DPI_AWARE != 1)
+#if defined(DAGOR_NO_DPI_AWARE) && (DAGOR_NO_DPI_AWARE < 0)
+  for (unsigned i = 1; i < __argc; i++)
+    if (strcmp(__argv[i], "-noHDPI") == 0)
+      return;
+#endif
 
   if (HMODULE hm = LoadLibraryA("user32.dll"))
   {
@@ -24,15 +30,15 @@ inline void win_set_process_dpi_aware()
     DPI_AWARENESS_CONTEXT res = NULL; // override compatibility options of the parent process (far.exe for example),
     if (SetThreadDpiAwarenessContext) // while the SetThreadDpiAwarenessContext can.
       res = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
-    FreeLibrary(hm);
-    // fall through to set SetProcessDPIAware() for whole process
-  }
 
-  if (HMODULE hm = LoadLibraryA("User32.dll"))
-  {
     BOOL(WINAPI * SetProcessDPIAware)(void) = (BOOL(WINAPI *)(void))(void *)GetProcAddress(hm, "SetProcessDPIAware");
     if (SetProcessDPIAware)
       SetProcessDPIAware();
+
+    UINT(WINAPI * GetDpiForSystem)(void) = (UINT(WINAPI *)(void))(void *)GetProcAddress(hm, "GetDpiForSystem");
+    if (GetDpiForSystem)
+      win32_system_dpi = GetDpiForSystem();
+
     FreeLibrary(hm);
   }
 #endif // DAGOR_NO_DPI_AWARE

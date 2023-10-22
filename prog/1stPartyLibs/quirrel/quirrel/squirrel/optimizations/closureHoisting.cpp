@@ -16,6 +16,16 @@ ClosureHoistingOpt::ClosureHoistingOpt(SQSharedState *ss, Arena *astA)
 
 }
 
+template<typename N>
+static N *copyCoordinates(const Node *f, N *t) {
+  t->setLineStartPos(f->lineStart());
+  t->setColumnStartPos(f->columnStart());
+  t->setLineEndPos(f->lineEnd());
+  t->setColumnEndPos(f->columnEnd());
+
+  return t;
+}
+
 void ClosureHoistingOpt::ScopeComputeVisitor::visitFunctionDecl(FunctionDecl *f) {
 
   if (f->name()) {
@@ -228,14 +238,14 @@ const char *ClosureHoistingOpt::HoistingVisitor::generateName() {
 }
 
 VarDecl *ClosureHoistingOpt::HoistingVisitor::createStubVariable(FunctionDecl *f) {
-  DeclExpr *dexpr = new (astArena) DeclExpr(f);
+  DeclExpr *dexpr = copyCoordinates(f, new (astArena) DeclExpr(f));
   const char *name = generateName();
 
   relocMap[f] = name;
 
   relocSet.insert(dexpr);
 
-  return new (astArena) VarDecl(name, dexpr, false);
+  return copyCoordinates(f, new (astArena) VarDecl(name, dexpr, false));
 }
 
 ClosureHoistingOpt::HoistingVisitor::RelocateState *ClosureHoistingOpt::HoistingVisitor::findState(int depth) {
@@ -329,7 +339,7 @@ Node *ClosureHoistingOpt::RemapTransformer::transformDeclExpr(DeclExpr *e) {
       FunctionDecl *f = (FunctionDecl *)d;
       auto it = relocMap.find(f);
       if (it != relocMap.end()) {
-        return createId(it->second);
+        return copyCoordinates(e, createId(it->second));
       }
     }
   }
@@ -355,7 +365,7 @@ Node *ClosureHoistingOpt::RemapTransformer::transformId(Id *id) {
     FunctionDecl *f = (FunctionDecl *)d;
     auto it = relocMap.find(f);
     if (it != relocMap.end()) {
-      return createId(it->second);
+      return copyCoordinates(id, createId(it->second));
     }
   }
 

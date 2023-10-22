@@ -118,21 +118,21 @@ public:
     occ->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth, stereo_index);
   }
 
-  bool VECTORCALL isVisibleSphere(vec3f sph_center, vec4f radius, vec4f threshold = v_zero()) const
+  VECTORCALL bool isVisibleSphere(vec3f sph_center, vec4f radius, vec4f threshold = v_zero()) const
   {
     // todo: replace with correct sphere rect determination
     return isVisibleBox(v_sub(sph_center, radius), v_add(sph_center, radius), threshold);
   }
   // inline bool isVisibleExtent2Quad(vec3f center2, vec3f extent2, uint32_t mask) const{return false;}
   // inline bool isVisibleExtent2Box(vec3f center2, vec3f extent2, uint32_t mask) const{return false;}
-  bool VECTORCALL isVisibleBoxExtent2(vec3f center2, vec3f extent2, vec4f threshold = v_zero()) const
+  VECTORCALL bool isVisibleBoxExtent2(vec3f center2, vec3f extent2, vec4f threshold = v_zero()) const
   {
     center2 = v_mul(center2, V_C_HALF);
     extent2 = v_mul(extent2, V_C_HALF);
     return isVisibleBox(v_sub(center2, extent2), v_add(center2, extent2), threshold);
   }
 
-  bool VECTORCALL isVisibleBox(vec3f bmin, vec3f bmax, vec4f threshold = v_zero()) const
+  VECTORCALL bool isVisibleBox(vec3f bmin, vec3f bmax, vec4f threshold = v_zero()) const
   {
     int visibility = occ->testVisibility(bmin, bmax, threshold, curViewProj);
 #if CAN_DEBUG_OCCLUSION
@@ -140,7 +140,7 @@ public:
 #endif
     return visibility == occ->VISIBLE;
   }
-  bool VECTORCALL isVisibleBox(vec3f bmin, vec3f bmax, mat44f_cref worldViewProjTm, vec4f threshold = v_zero()) const
+  VECTORCALL bool isVisibleBox(vec3f bmin, vec3f bmax, mat44f_cref worldViewProjTm, vec4f threshold = v_zero()) const
   {
     int visibility = occ->testVisibility(bmin, bmax, threshold, worldViewProjTm);
 #if CAN_DEBUG_OCCLUSION
@@ -148,27 +148,27 @@ public:
 #endif
     return (visibility == occ->VISIBLE);
   }
-  bool VECTORCALL isVisibleBox(bbox3f_cref box, vec4f threshold = v_zero()) const
+  VECTORCALL bool isVisibleBox(bbox3f_cref box, vec4f threshold = v_zero()) const
   {
     return isVisibleBox(box.bmin, box.bmax, threshold);
   }
 
 
-  bool VECTORCALL isOccludedSphere(vec3f sph_center, vec4f radius) const
+  VECTORCALL bool isOccludedSphere(vec3f sph_center, vec4f radius) const
   {
     // todo: replace with correct sphere rect determination
     return isOccludedBox(v_sub(sph_center, radius), v_add(sph_center, radius));
   }
-  bool VECTORCALL isOccludedBoxExtent(vec3f center, vec3f extent) const
+  VECTORCALL bool isOccludedBoxExtent(vec3f center, vec3f extent) const
   {
     return isOccludedBox(v_sub(center, extent), v_add(center, extent));
   }
-  bool VECTORCALL isOccludedBoxExtent2(vec3f center2, vec3f extent2) const
+  VECTORCALL bool isOccludedBoxExtent2(vec3f center2, vec3f extent2) const
   {
     return isOccludedBoxExtent(v_mul(center2, V_C_HALF), v_mul(extent2, V_C_HALF));
   }
 
-  bool VECTORCALL isOccludedBox(vec3f bmin, vec3f bmax) const
+  VECTORCALL bool isOccludedBox(vec3f bmin, vec3f bmax) const
   {
     const int visibility = occ->testVisibility(bmin, bmax, v_zero(), curViewProj);
 #if CAN_DEBUG_OCCLUSION
@@ -201,7 +201,7 @@ public:
     return visibility == occ->CULL_OCCLUSION;
 #endif
   }
-  bool VECTORCALL isOccludedBox(vec3f bmin, vec3f bmax, mat44f_cref worldViewProjTm) const
+  VECTORCALL bool isOccludedBox(vec3f bmin, vec3f bmax, mat44f_cref worldViewProjTm) const
   {
     const int visibility = occ->testVisibility(bmin, bmax, v_zero(), worldViewProjTm);
 #if CAN_DEBUG_OCCLUSION
@@ -216,7 +216,7 @@ public:
     return visibility == occ->CULL_OCCLUSION;
 #endif
   }
-  bool VECTORCALL isOccludedBox(bbox3f_cref box) const { return isOccludedBox(box.bmin, box.bmax); }
+  VECTORCALL bool isOccludedBox(bbox3f_cref box) const { return isOccludedBox(box.bmin, box.bmax); }
 
   void startSWOcclusion(float zn)
   {

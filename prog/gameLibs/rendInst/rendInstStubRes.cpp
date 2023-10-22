@@ -1,12 +1,10 @@
 #include "riGen/riGenData.h"
 
 #include <gameRes/dag_gameResSystem.h>
-#include <gameRes/dag_stdGameResId.h>
 #include <3d/dag_materialData.h>
 #include <shaders/dag_rendInstRes.h>
 #include <image/dag_texPixel.h>
 #include <math/dag_mesh.h>
-#include <util/dag_oaHashNameMap.h>
 #include <generic/dag_tabWithLock.h>
 
 
@@ -90,7 +88,7 @@ class StubRiReleasingFactory : public GameResourceFactory
         addRef();
         rigid.mesh = m;
       }
-      ~StubLod() { rigid.mesh = NULL; }
+      ~StubLod() { rigid.mesh = nullptr; }
     };
     StubRendInst(InstShaderMeshResource *m)
     {
@@ -110,8 +108,8 @@ class StubRiReleasingFactory : public GameResourceFactory
 public:
   StubRiReleasingFactory()
   {
-    stubMesh = NULL;
-    stubTex = NULL;
+    stubMesh = nullptr;
+    stubTex = nullptr;
     stubTexId = BAD_TEXTUREID;
   }
   virtual ~StubRiReleasingFactory() {}
@@ -126,7 +124,7 @@ public:
     return find_value_idx(resList, (StubRendInst *)gr) >= 0;
   }
 
-  virtual GameResource *getGameResource(int) { return NULL; }
+  virtual GameResource *getGameResource(int) { return nullptr; }
   virtual bool addRefGameResource(GameResource *gr)
   {
     if (!stubMesh.get())
@@ -182,7 +180,7 @@ public:
       resList.clear();
       resList.shrink_to_fit();
       debug("rendInst: term stub mesh");
-      stubMesh = NULL;
+      stubMesh = nullptr;
       ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(stubTexId, stubTex);
       remove_factory(this);
     }
@@ -193,7 +191,7 @@ public:
   RenderableInstanceLodsResource *getStub()
   {
     if (!RendInstGenData::renderResRequired) // Note: This stub can't work without shaders
-      return NULL;
+      return nullptr;
     if (!stubMesh)
       init();
     TabWithLock<StubRendInst *>::AutoLock al(resList);

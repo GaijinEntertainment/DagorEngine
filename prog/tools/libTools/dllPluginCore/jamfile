@@ -13,8 +13,8 @@ Sources =
 ;
 
 UseProgLibs =
-  engine2/math
-  engine2/drv/drv3d_use_d3di
+  engine/math
+  engine/drv/drv3d_use_d3di
   tools/libTools/objectEditor
 ;
 

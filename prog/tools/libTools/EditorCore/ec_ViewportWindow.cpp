@@ -37,6 +37,8 @@
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
 
+using hdpi::_pxActual;
+using hdpi::_pxScaled;
 
 #ifndef WM_MOUSEWHEEL
 #define WM_MOUSEWHEEL 0x020A
@@ -62,10 +64,10 @@ enum
 
 static bool pointInMenuArea(ViewportWindow *vpw, int x, int y)
 {
-  int w, h;
+  hdpi::Px w, h;
   vpw->getMenuAreaSize(w, h);
 
-  return x >= 0 && y >= 0 && x < w && y <= h;
+  return x >= 0 && y >= 0 && x < hdpi::_px(w) && y <= hdpi::_px(h);
 }
 
 
@@ -82,9 +84,6 @@ public:
 private:
   enum
   {
-    WINDOW_WIDTH = 240,
-    WINDOW_HEIGHT = 135,
-
     Z_NEAR_ID,
     Z_FAR_ID,
   };
@@ -92,7 +91,7 @@ private:
 
 
 ViewportWindow::ViewportClippingDlg::ViewportClippingDlg(float z_near, float z_far) :
-  CDialogWindow(0, WINDOW_WIDTH, WINDOW_HEIGHT, "Viewport clipping")
+  CDialogWindow(0, _pxScaled(240), _pxScaled(135), "Viewport clipping")
 {
   PropertyContainerControlBase *_panel = getPanel();
   G_ASSERT(_panel && "No panel in ViewportWindow::ViewportClippingDlg");
@@ -159,7 +158,7 @@ ViewportWindow::ViewportWindow(TEcHandle parent, int left, int top, int w, int h
   orthogonalZoom = 1.f;
   currentProjection = CM_VIEW_PERSPECTIVE;
   viewText = "Perspective";
-  nextStat3dLineY = 0;
+  nextStat3dLineY = hdpi::Px::ZERO;
   memset(&rectSelect, 0, sizeof(rectSelect));
   updatePluginCamera = false;
   customCameras = NULL;
@@ -206,10 +205,10 @@ void ViewportWindow::init(IMenu *menu, IGenEventHandler *eh)
 void ViewportWindow::setEventHandler(IGenEventHandler *eh) { curEH = eh; }
 
 
-void ViewportWindow::getMenuAreaSize(int &w, int &h)
+void ViewportWindow::getMenuAreaSize(hdpi::Px &w, hdpi::Px &h)
 {
-  w = MENU_AREA_SIZE_W;
-  h = MENU_AREA_SIZE_H;
+  w = _pxScaled(MENU_AREA_SIZE_W);
+  h = _pxScaled(MENU_AREA_SIZE_H);
 }
 
 
@@ -1554,30 +1553,36 @@ void ViewportWindow::OnCameraChanged()
 }
 
 
-void ViewportWindow::drawText(int x, int y, const String &text)
+void ViewportWindow::drawText(hdpi::Px x, hdpi::Px y, const String &text)
 {
+  using hdpi::_px;
+  using hdpi::_pxS;
+
   if (opaqueStat3d)
   {
     StdGuiRender::set_color(COLOR_BLACK);
-    Point2 size = StdGuiRender::get_str_bbox(text.c_str(), text.size()).size();
-    StdGuiRender::render_box(x, y - size.y + 3, x + size.x, y + 3);
+    BBox2 box = StdGuiRender::get_str_bbox(text.c_str(), text.size());
+    StdGuiRender::render_box(_px(x) + box[0].x, _px(y) + box[0].y - _pxS(2), _px(x) + box[1].x, _px(y) + box[1].y + _pxS(4));
   }
   else
   {
     StdGuiRender::set_color(COLOR_BLACK);
-    StdGuiRender::draw_strf_to(x + 1, y, text.c_str());
-    StdGuiRender::draw_strf_to(x - 1, y, text.c_str());
-    StdGuiRender::draw_strf_to(x, y + 1, text.c_str());
-    StdGuiRender::draw_strf_to(x, y - 1, text.c_str());
+    StdGuiRender::draw_strf_to(_px(x) + 1, _px(y), text.c_str());
+    StdGuiRender::draw_strf_to(_px(x) - 1, _px(y), text.c_str());
+    StdGuiRender::draw_strf_to(_px(x), _px(y) + 1, text.c_str());
+    StdGuiRender::draw_strf_to(_px(x), _px(y) - 1, text.c_str());
   }
 
   StdGuiRender::set_color(COLOR_WHITE);
-  StdGuiRender::draw_strf_to(x, y, text.c_str());
+  StdGuiRender::draw_strf_to(_px(x), _px(y), text.c_str());
 }
 
 
 void ViewportWindow::paintRect()
 {
+  using hdpi::_px;
+  using hdpi::_pxS;
+
   EcRect r;
   getClientRect(r);
   if (isActive())
@@ -1586,21 +1591,23 @@ void ViewportWindow::paintRect()
     StdGuiRender::render_frame(r.l, r.t, r.r, r.b, 3);
   }
 
-  int rx, ry;
+  hdpi::Px rx, ry;
   getMenuAreaSize(rx, ry);
   StdGuiRender::set_color(isActive() ? COLOR_YELLOW : COLOR_BLACK);
-  StdGuiRender::render_box(0, 0, rx, ry);
+  StdGuiRender::render_box(0, 0, _px(rx), _px(ry));
 
   StdGuiRender::set_font(0);
   Point2 ts = StdGuiRender::get_str_bbox(viewText).size();
 
   StdGuiRender::set_color(isActive() ? COLOR_BLACK : COLOR_WHITE);
-  StdGuiRender::draw_strf_to(int((rx - ts.x) / 2.f), 17, viewText);
+  StdGuiRender::draw_strf_to(int((_px(rx) - ts.x) / 2.f), _pxS(17), viewText);
 }
 
 
 void ViewportWindow::paint(int w, int h)
 {
+  using hdpi::_px;
+
   StdGuiRender::reset_per_frame_dynamic_buffer_pos();
   StdGuiRender::start_render(w, h);
 
@@ -1665,7 +1672,7 @@ void ViewportWindow::paint(int w, int h)
     getCameraTransform(tm);
     getViewportSize(_w, _h);
 
-    Point2 cTextPos = Point2(5, _h - 15); // lower left corner
+    hdpi::Px cTextPosX = _pxScaled(5), cTextPosY = _pxActual(_h) - _pxScaled(15); // lower left corner
     const Point3 pos = tm.getcol(3);
 
     CCameraElem *cameraElem = nullptr;
@@ -1681,42 +1688,42 @@ void ViewportWindow::paint(int w, int h)
     {
       const float turboSpeed = cameraElem->getConfig()->moveStep * cameraElem->getConfig()->controlMultiplier;
       const String cameraTurboSpeed(32, "Camera turbo speed: %.2f", turboSpeed);
-      drawText(cTextPos.x, cTextPos.y, cameraTurboSpeed);
+      drawText(cTextPosX, cTextPosY, cameraTurboSpeed);
 
-      cTextPos.y -= 20;
+      cTextPosY -= _pxScaled(20);
     }
 
     if (showCameraSpeed && cameraElem)
     {
       const float speed = cameraElem->getConfig()->moveStep;
       const String cameraSpeed(32, "Camera speed: %.2f", speed);
-      drawText(cTextPos.x, cTextPos.y, cameraSpeed);
+      drawText(cTextPosX, cTextPosY, cameraSpeed);
 
-      cTextPos.y -= 20;
+      cTextPosY -= _pxScaled(20);
     }
 
     if (showCameraFov)
     {
       const float fov = getFov() * RAD_TO_DEG;
       const String cameraFov(32, "Camera FOV: %.1f", fov);
-      drawText(cTextPos.x, cTextPos.y, cameraFov);
+      drawText(cTextPosX, cTextPosY, cameraFov);
 
-      cTextPos.y -= 20;
+      cTextPosY -= _pxScaled(20);
     }
 
     if (showCameraDist)
     {
       const float distance = pos.length();
       const String cameraDistance(32, "Camera dist: %.2f", distance);
-      drawText(cTextPos.x, cTextPos.y, cameraDistance);
+      drawText(cTextPosX, cTextPosY, cameraDistance);
 
-      cTextPos.y -= 20;
+      cTextPosY -= _pxScaled(20);
     }
 
     if (showCameraPos)
     {
       const String cameraPos(32, "Camera pos: %.2f, %.2f, %.2f", pos.x, pos.y, pos.z);
-      drawText(cTextPos.x, cTextPos.y, cameraPos);
+      drawText(cTextPosX, cTextPosY, cameraPos);
     }
   }
 
@@ -2043,7 +2050,7 @@ void ViewportWindow::showStatSettingsDialog()
 {
   if (!statSettingsDialog)
   {
-    statSettingsDialog = new ViewportWindowStatSettingsDialog(*this, 300, 450);
+    statSettingsDialog = new ViewportWindowStatSettingsDialog(*this, _pxScaled(300), _pxScaled(450));
 
     PropertyContainerControlBase *tab_panel = statSettingsDialog->createTabPanel();
     G_ASSERT(tab_panel);
@@ -2094,6 +2101,9 @@ void ViewportWindow::handleStatSettingsDialogChange(int pcb_id)
     handleStat3dStatSettingsDialogChange(pcb_id);
 }
 
+TMatrix ViewportWindow::getViewTm() const { return viewport->getViewMatrix(); }
+
+TMatrix4 ViewportWindow::getProjTm() const { return viewport->getProjectionMatrix(); }
 
 void save_camera_objects(DataBlock &blk)
 {

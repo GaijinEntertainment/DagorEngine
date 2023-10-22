@@ -33,14 +33,14 @@ bool WinManager::calculateWinRects(CascadeWindow *where, float size_complex, Win
   int size = (int)size_complex;
   if (size_complex < 1.f)
   {
-    size = size_complex * ((p2[dir] - p1[dir]) - SPLITTER_SPACE * 2 - SPLITTER_THICKNESS);
+    size = size_complex * ((p2[dir] - p1[dir]) - _pxS(SPLITTER_SPACE) * 2 - _pxS(SPLITTER_THICKNESS));
   }
 
   // max size check
   IPoint2 minSize;
-  where->getMinSize(minSize.x, minSize.y);
+  where->getMinSizeIP2(minSize);
 
-  int maxSize = (p2[dir] - p1[dir]) - minSize[dir] - SPLITTER_SPACE * 2 - SPLITTER_THICKNESS;
+  int maxSize = (p2[dir] - p1[dir]) - minSize[dir] - _pxS(SPLITTER_SPACE) * 2 - _pxS(SPLITTER_THICKNESS);
 
   if (size > maxSize)
     size = maxSize;
@@ -55,16 +55,16 @@ bool WinManager::calculateWinRects(CascadeWindow *where, float size_complex, Win
     w1[1][dir] = p1[dir] + size;
     w1[1][1 - dir] = p2[1 - dir];
 
-    ws[0][dir] = w1[1][dir] + SPLITTER_SPACE;
+    ws[0][dir] = w1[1][dir] + _pxS(SPLITTER_SPACE);
     ws[0][1 - dir] = p1[1 - dir];
-    ws[1][dir] = ws[0][dir] + SPLITTER_THICKNESS;
+    ws[1][dir] = ws[0][dir] + _pxS(SPLITTER_THICKNESS);
     ws[1][1 - dir] = p2[1 - dir];
 
-    w2[0][dir] = ws[1][dir] + SPLITTER_SPACE;
+    w2[0][dir] = ws[1][dir] + _pxS(SPLITTER_SPACE);
     w2[0][1 - dir] = p1[1 - dir];
     w2[1] = p2;
 
-    ratio = float(w1[1][dir] - w1[0][dir]) / float(p2[dir] - p1[dir] - SPLITTER_SPACE * 2 - SPLITTER_THICKNESS);
+    ratio = float(w1[1][dir] - w1[0][dir]) / float(p2[dir] - p1[dir] - _pxS(SPLITTER_SPACE) * 2 - _pxS(SPLITTER_THICKNESS));
   }
   else
   {
@@ -72,16 +72,16 @@ bool WinManager::calculateWinRects(CascadeWindow *where, float size_complex, Win
     w1[0][1 - dir] = p1[1 - dir];
     w1[1] = p2;
 
-    ws[1][dir] = w1[0][dir] - SPLITTER_SPACE;
+    ws[1][dir] = w1[0][dir] - _pxS(SPLITTER_SPACE);
     ws[1][1 - dir] = p2[1 - dir];
-    ws[0][dir] = ws[1][dir] - SPLITTER_THICKNESS;
+    ws[0][dir] = ws[1][dir] - _pxS(SPLITTER_THICKNESS);
     ws[0][1 - dir] = p1[1 - dir];
 
     w2[0] = p1;
-    w2[1][dir] = ws[0][dir] - SPLITTER_SPACE;
+    w2[1][dir] = ws[0][dir] - _pxS(SPLITTER_SPACE);
     w2[1][1 - dir] = p2[1 - dir];
 
-    ratio = float(w2[1][dir] - w2[0][dir]) / float(p2[dir] - p1[dir] - SPLITTER_SPACE * 2 - SPLITTER_THICKNESS);
+    ratio = float(w2[1][dir] - w2[0][dir]) / float(p2[dir] - p1[dir] - _pxS(SPLITTER_SPACE) * 2 - _pxS(SPLITTER_THICKNESS));
   }
 
   return true;

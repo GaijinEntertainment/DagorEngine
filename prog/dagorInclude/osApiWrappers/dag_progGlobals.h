@@ -31,4 +31,7 @@ extern KRNLIMP void *win32_empty_mouse_cursor; // inited as =nullptr
 //! initializes once and returns win32_empty_mouse_cursor handle
 KRNLIMP void *win32_init_empty_mouse_cursor();
 
+//! value returned by GetDpiForSystem() or 96 if system is not DPI aware
+extern KRNLIMP int win32_system_dpi; // inited as =96
+
 #include <supp/dag_undef_COREIMP.h>

@@ -7,7 +7,7 @@
 
 #define IMPLEMENT_OP2_SET_NODE_ANY(INLINE,OPNAME,TYPE,CTYPE,COMPUTEL) \
     struct SimNode_##OPNAME##_##COMPUTEL##_Any : SimNode_Op2Fusion { \
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override { \
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override { \
             DAS_PROFILE_NODE \
             auto pl = FUSION_OP2_PTR(CTYPE,l.compute##COMPUTEL(context)); \
             auto rr = r.subexpr->eval##TYPE(context); \
@@ -18,7 +18,7 @@
 
 #define IMPLEMENT_OP2_SET_NODE(INLINE,OPNAME,TYPE,CTYPE,COMPUTEL,COMPUTER) \
     struct SimNode_##OPNAME##_##COMPUTEL##_##COMPUTER : SimNode_Op2Fusion { \
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override { \
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override { \
             DAS_PROFILE_NODE \
             auto pl = FUSION_OP2_PTR(CTYPE,l.compute##COMPUTEL(context)); \
             auto rr = FUSION_OP2_RVALUE_RIGHT(CTYPE,r.compute##COMPUTER(context)); \

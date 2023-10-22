@@ -1,4 +1,5 @@
 #include <max.h>
+#include <max.h>
 #include <plugapi.h>
 #include <ilayermanager.h>
 #include <ilayerproperties.h>
@@ -33,8 +34,11 @@
 #endif
 
 #include <string>
+#include <set>
 #include <Shobjidl.h>
 #include <Shlobj.h>
+#include <sstream>
+#include <fstream>
 
 std::string wideToStr(const TCHAR *sw);
 M_STD_STRING strToWide(const char *sz);
@@ -54,7 +58,6 @@ class ExportENCB;
 void export_physics(FILE *file, Interface *ip);
 
 void calc_momjs(Interface *ip);
-
 
 /*
 static void debug_tm(Matrix3 &tm) {
@@ -1180,6 +1183,7 @@ public:
   Tab<INode *> node;
   Tab<bool> nodeExp; // used in a2d export to denote nodes that should be exported; 'node' contains all nodes
   Tab<ExpMat> mat;
+  std::vector<std::set<Mtl *>> mtls;
   Tab<int> matIDtoMatIdx;
   Tab<TCHAR *> tex;
   Tab<TCHAR *> klabel;
@@ -1339,13 +1343,46 @@ public:
     return tex.Count() - 1;
   }
 
+  bool doesScriptMatch(const TCHAR *a, const TCHAR *b)
+  {
+    std::wstring propsa(a), propsb(b);
+    if (propsa.length() != propsb.length())
+      return false; // No need to check b entries against a
+    size_t pos = 0, prevPos = 0;
+    pos = propsa.find(_T("\r\n"), pos);
+    wchar_t prop[512];
+    while (pos != std::wstring::npos)
+    {
+      propsa.copy(prop, pos - prevPos, prevPos);
+      prop[pos - prevPos] = L'\0';
+      size_t posB = propsb.find(prop);
+      if (posB == std::wstring::npos)
+        return false;
+      if (pos < propsa.length() - 2)
+        pos += 2;
+      if (pos - prevPos == 0)
+        break;
+      prevPos = pos;
+      pos = propsa.find(_T("\r\n"), pos);
+    }
+    if (pos < propsa.length())
+    {
+      propsa.copy(prop, propsa.length() - pos, pos);
+      prop[propsa.length() - pos] = L'\0';
+      size_t posB = propsb.find(prop);
+      if (posB == std::wstring::npos)
+        return false;
+    }
+    return true;
+  }
+
   void add_mtl(INode *node, Mtl *mtl, int subm = 0, DWORD wirecolor = 0xFFFFFF)
   {
     if (!mtl)
     {
       int i;
       for (i = 0; i < mat.Count(); ++i)
-        if (mat[i].mtl == NULL && mat[i].wirecolor == wirecolor)
+        if ((mat[i].mtl == NULL || mtls[i].empty()) && mat[i].wirecolor == wirecolor)
           return;
       assert(mat.Count() != 0xFFFF);
       if (mat.Count() >= 0xFFFF)
@@ -1361,6 +1398,7 @@ public:
         e.m.texid[i] = DAGBADMATID;
       e.name = validateMatName(e.name);
       mat.Append(1, &e);
+      mtls.push_back(std::set<Mtl *>());
       return;
     }
     int num = mtl->NumSubMtls();
@@ -1376,9 +1414,6 @@ public:
         add_mtl(node, mtl->GetSubMtl(i), 1);
       return;
     }
-    for (int i = 0; i < mat.Count(); ++i)
-      if (mat[i].mtl == mtl)
-        return;
     Class_ID cid = mtl->ClassID();
     if (cid == Class_ID(DMTL_CLASS_ID, 0))
     {
@@ -1401,6 +1436,7 @@ public:
       e.m.emis = m->GetDiffuse(time) * si;
       e.m.power = powf(2.0f, m->GetShininess(time) * 10.0f) * 4.0f;
       e.name = _tcsdup(mtl->GetName());
+      e.wirecolor = 0;
       for (int i = 0; i < DAGTEXNUM; ++i)
         e.m.texid[i] = DAGBADMATID;
       Texmap *tex = m->GetSubTexmap(ID_DI);
@@ -1420,6 +1456,18 @@ public:
       e.script = _tcsdup(_T("lighting=vltmap"));
 
       e.name = validateMatName(e.name);
+
+      for (int i = 0; i < mat.Count(); ++i)
+      {
+        if (mat[i].mtl == mtl || (mat[i].m == e.m && (useMOpt() || !_tcscmp(mat[i].name, e.name)) &&
+                                   !_tcscmp(mat[i].classname, e.classname) && doesScriptMatch(mat[i].script, e.script)))
+        {
+          mtls[i].insert(mtl);
+          return;
+        }
+      }
+      mtls.push_back(std::set<Mtl *>());
+      mtls.back().insert(mtl);
       mat.Append(1, &e);
     }
     else if (cid == DagorMat_CID || cid == DagorMat2_CID)
@@ -1444,6 +1492,7 @@ public:
       e.script = _tcsdup(m->get_script());
       assert(e.script);
       e.name = _tcsdup(mtl->GetName());
+      e.wirecolor = 0;
 
       TCHAR filename[MAX_PATH];
       CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
@@ -1477,6 +1526,17 @@ public:
       mtl->ReleaseInterface(I_DAGORMAT, m);
 
       e.name = validateMatName(e.name);
+      for (int i = 0; i < mat.Count(); ++i)
+      {
+        if (mat[i].mtl == mtl || (mat[i].m == e.m && (useMOpt() || !_tcscmp(mat[i].name, e.name)) &&
+                                   !_tcscmp(mat[i].classname, e.classname) && doesScriptMatch(mat[i].script, e.script)))
+        {
+          mtls[i].insert(mtl);
+          return;
+        }
+      }
+      mtls.push_back(std::set<Mtl *>());
+      mtls.back().insert(mtl);
       mat.Append(1, &e);
     }
     else
@@ -1648,12 +1708,12 @@ public:
     if (!m)
     {
       for (int i = 0; i < mat.Count(); ++i)
-        if (mat[i].mtl == NULL && mat[i].wirecolor == wc)
+        if (mtls[i].empty() && mat[i].wirecolor == wc)
           return i;
       return -1;
     }
     for (int i = 0; i < mat.Count(); ++i)
-      if (mat[i].mtl == m)
+      if (mtls[i].find(m) != mtls[i].end())
         return i;
     return -1;
   }
@@ -1798,6 +1858,25 @@ bool wr_hlp( const void * p, int l, FILE * h )
       //      }
 
       std::string scr = wideToStr(s);
+      if (useMOpt())
+      {
+        for (int i = 0; i < mtls.size(); ++i)
+        {
+          size_t pos = scr.find("apex_interior_material:t=\"");
+          if (pos != std::string::npos)
+          {
+            for (std::set<Mtl *>::iterator mtlIt = mtls[i].begin(); mtlIt != mtls[i].end(); ++mtlIt)
+            {
+              std::string matName = wideToStr((*mtlIt)->GetName());
+              if (matName == wideToStr(mat[i].name))
+                continue;
+              size_t posVal = scr.find(matName.c_str(), pos, matName.length());
+              if (posVal != std::string::npos)
+                scr.replace(posVal, matName.length(), wideToStr(mat[i].name));
+            }
+          }
+        }
+      }
       bblk(DAG_NODE_SCRIPT);
       wr(scr.c_str(), scr.length());
       eblk;
@@ -1837,7 +1916,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
             {
               uniqueMatIdx.SetCount(uniqueMatIdx.Count() + 1);
               uniqueMatIdx[uniqueMatIdx.Count() - 1] = matIDtoMatIdx[id];
-              if (!mat[matIDtoMatIdx[id]].mtl)
+              if (mtls[matIDtoMatIdx[id]].empty())
                 unusedSlotIdx = matIDtoMatIdx[id];
               subMatIdLUT[j] = uniqueMatIdx.Count() - 1;
               wr(&matIDtoMatIdx[id], 2);

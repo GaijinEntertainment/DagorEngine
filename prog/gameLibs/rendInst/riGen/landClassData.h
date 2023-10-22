@@ -20,7 +20,7 @@ class RenderableInstanceLodsResource;
 class CollisionResource;
 
 
-namespace rendinstgenland
+namespace rendinst::gen::land
 {
 typedef RoHugeHierBitMap2d<4, 3> DensityMap;
 typedef DensityMap::L2Bmp::L1Bmp DensMapLeaf;
@@ -35,10 +35,10 @@ class AssetData;
 
 
 static constexpr unsigned HUID_LandClass = 0x03FB59C4u; // LandClass
-} // namespace rendinstgenland
+} // namespace rendinst::gen::land
 
 
-class rendinstgenland::AssetData
+class rendinst::gen::land::AssetData
 {
 public:
   TiledEntities *tiled;
@@ -86,7 +86,7 @@ protected:
 };
 
 
-class rendinstgenland::SingleEntityPlaces
+class rendinst::gen::land::SingleEntityPlaces
 {
 public:
   SingleEntityPlaces() : entityIdx(-1), tm(midmem) {}
@@ -112,14 +112,14 @@ public:
   bool posInst;
   bool paletteRotation;
 
-  rendinstgen::MpPlacementRec mpRec;
+  rendinst::gen::MpPlacementRec mpRec;
 };
 
 
-class rendinstgenland::SingleGenEntityGroup
+class rendinst::gen::land::SingleGenEntityGroup
 {
 public:
-  SingleGenEntityGroup() : obj(midmem), density(0), densityMap(NULL) {}
+  SingleGenEntityGroup() : obj(midmem), density(0), densityMap(nullptr) {}
 
 public:
   struct Obj
@@ -140,7 +140,7 @@ public:
     Point2 scale, yScale;
     Point2 yOffset;
 
-    rendinstgen::MpPlacementRec mpRec;
+    rendinst::gen::MpPlacementRec mpRec;
     bool posInst;
     bool paletteRotation;
   };
@@ -158,7 +158,7 @@ public:
 };
 
 
-class rendinstgenland::TiledEntities
+class rendinst::gen::land::TiledEntities
 {
 public:
   TiledEntities() : data(midmem) {}
@@ -171,7 +171,7 @@ public:
 };
 
 
-class rendinstgenland::PlantedEntities
+class rendinst::gen::land::PlantedEntities
 {
 public:
   PlantedEntities() : data(midmem), dmPool(midmem) {}

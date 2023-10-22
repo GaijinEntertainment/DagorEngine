@@ -252,11 +252,11 @@ macro GTAO_MAIN_CORE(code)
     SSAO_TYPE gtao_resolve(float2 screenpos, float2 texcoord, float3 viewVect)
     {
       SSAO_TYPE gtao_value;
-      ##if hardware.metal
+      #if _HARDWARE_METAL && !SHADER_COMPILER_DXC
         #define GTAO_VALUE_X gtao_value
-      ##else
+      #else
         #define GTAO_VALUE_X gtao_value.x
-      ##endif
+      #endif
       float rawDepth = tex2Dlod(half_res_depth_tex, float4(texcoord, 0, 0)).x;
       float depth1 = decode_depth(rawDepth, zn_zfar.zw);
       BRANCH
@@ -271,7 +271,7 @@ macro GTAO_MAIN_CORE(code)
       GTAO_VALUE_X = gtao(texcoord, wsNormal);
       GTAO_VALUE_X = getAdditionalAmbientOcclusion(float(GTAO_VALUE_X), pixelPos, wsNormal, texcoord);
 
-      #if SSAO_CONTACT_SHADOWS
+      ##if maybe(ssao_contact_shadows)
       {
         ##if gtao_tex_size == low
           #define shadow_steps 8
@@ -297,7 +297,7 @@ macro GTAO_MAIN_CORE(code)
         );
         gtao_value.CONTACT_SHADOWS_ATTR = getAdditionalShadow(gtao_value.CONTACT_SHADOWS_ATTR, cameraToPoint, wsNormal);
       }
-      #endif
+      ##endif
 
 
       #ifdef GBUFFER_HAS_HERO_COCKPIT_BIT
@@ -306,15 +306,15 @@ macro GTAO_MAIN_CORE(code)
         {
           float fade = saturate(dot(float4(pixelPos, 1), hero_cockpit_vec));
           GTAO_VALUE_X = lerp(GTAO_VALUE_X, 1.0f, fade);
-          #ifdef SSAO_CONTACT_SHADOWS
+          ##if maybe(ssao_contact_shadows)
             gtao_value.CONTACT_SHADOWS_ATTR = lerp(gtao_value.CONTACT_SHADOWS_ATTR, 1.0f, fade);
-          #endif
+          ##endif
         }
       #endif
 
-      #if SSAO_WSAO
+      ##if maybe(ssao_wsao)
         gtao_value.WSAO_ATTR = getWsao(cameraToPoint + world_view_pos, wsNormal);
-      #endif
+      ##endif
       return setSSAO(gtao_value);
     }
   }

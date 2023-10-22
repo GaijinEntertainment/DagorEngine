@@ -9,6 +9,8 @@
 #include <EASTL/variant.h>
 #include <3d/dag_drv3d_buffers.h>
 
+#include <render/daBfg/autoResolutionRequest.h>
+
 
 namespace dabfg
 {
@@ -27,22 +29,6 @@ struct NamedSlot
 };
 
 /**
- * \brief This structure is used for specifying a daBfg-managed
- * resolution to a 2D texture. The resulting resolution at runtime
- * will be the dynamic resolution scaled by the multiplier, but the
- * consumed memory will always be equal to the static resolution times
- * the multiplier.
- * See dabfg::set_resolution.
- */
-struct AutoResolution
-{
-  /// A string name for this resolution
-  const char *type = nullptr;
-  /// The multiplier for this particular resource
-  float multiplier = 1.f;
-};
-
-/**
  * \brief Special value for Texture2dCreateInfo::mipLevels. daBfg will
  * automatically generate all mip levels for such a texture.
  */
@@ -58,8 +44,8 @@ struct Texture2dCreateInfo
 {
   /// Use TEXCF_ prefixed flags
   uint32_t creationFlags = 0;
-  /// See \ref AutoResolution
-  eastl::variant<IPoint2, AutoResolution> resolution;
+  /// Resolution for this texture. May either be hard-coded or automatic, see \ref AutoResolutionRequest
+  eastl::variant<IPoint2, AutoResolutionRequest> resolution;
   /// Use 0 for automatic mip levels
   uint32_t mipLevels = 1;
 };

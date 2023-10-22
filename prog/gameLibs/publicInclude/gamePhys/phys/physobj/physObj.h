@@ -141,6 +141,7 @@ public:
   float soundShockImpulse = 0.f;
   float linearSlop = 0.01f;
   float energyConservation = 1.0f;
+  float ccdClipVelocityMult = 1.0f;
   float erp = 1.f;
   float baumgarteBias = 0.f;
   float warmstartingFactor = 0.f;
@@ -171,7 +172,7 @@ public:
   int physMatId = -1;
   Point3 centerOfMass = Point3(0.f, 0.f, 0.f);
 
-  Tab<CollisionObject> collision;
+  dag::RelocatableFixedVector<CollisionObject, 1> collision;
   Tab<BSphere3> ccdSpheres;
   Tab<CCDCheck> ccdLog;
   Tab<gamephys::CollisionContactData> contactsLog;

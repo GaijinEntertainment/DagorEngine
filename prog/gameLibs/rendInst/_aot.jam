@@ -1,0 +1,4 @@
+local R = prog/gameLibs/rendInst ;
+Sources +=
+  $(R)/aot/stub.cpp
+;

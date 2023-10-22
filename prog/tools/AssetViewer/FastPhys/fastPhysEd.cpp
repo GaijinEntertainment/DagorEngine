@@ -925,7 +925,7 @@ bool FastPhysEditor::showNodeList(Tab<int> &sels)
   for (dag::Index16 i(1), ie(nodeTree.nodeCount()); i < ie; ++i)
     _names.push_back() = nodeTree.getNodeName(i);
 
-  MultiListDialog dlg("Select points", 300, 400, _names, _sel_names);
+  MultiListDialog dlg("Select points", hdpi::_pxScaled(300), hdpi::_pxScaled(400), _names, _sel_names);
   dlg.setSelectionTab(&sels);
   dlg.showDialog();
 

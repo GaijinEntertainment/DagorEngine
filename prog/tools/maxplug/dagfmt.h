@@ -103,6 +103,7 @@ struct DagMater
 
   DagMater() { memset(this, 0, sizeof(*this)); }
 };
+static bool operator==(const DagMater &a, const DagMater &b) { return !memcmp(&a, &b, sizeof(DagMater)); }
 
 #define DAG_NF_RENDERABLE 1
 #define DAG_NF_CASTSHADOW 2

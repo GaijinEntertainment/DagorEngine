@@ -30,6 +30,7 @@ public:
   Point2 getDrySpeed() const { return wetnessParams.drySpeed; }
 
   bool isInSleep() const;
+  void afterReset() { fillVertexBuffer(getVbSize()); }
 
 protected:
   void init();
@@ -38,6 +39,7 @@ protected:
   void initHeroWaterFoam(const DataBlock *options_blk);
   void updateHeroWaterFoam(float dt, const TMatrix &hero_tm, bool is_ship);
   void fillVertexBuffer(uint32_t size);
+  uint32_t getVbSize() const { return 4 * 6 * heroWetnessVolumeSlices; }
 
   struct WetnessParams
   {

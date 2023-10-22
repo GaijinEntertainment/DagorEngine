@@ -18,10 +18,8 @@ int BcCompressor::etc2RGBAVarId = -1;
 bool BcCompressor::isAvailable(ECompressionType format)
 {
   // have problems with compression
-#if _TARGET_APPLE
-  if (d3d::get_driver_code() == _MAKE4C('VULK'))
+  if (d3d::get_driver_code().is(d3d::apple && d3d::vulkan))
     return false;
-#endif
 
   bool fmtAvailable = false;
 

@@ -82,14 +82,14 @@ void MotionBlur::onCameraLeap()
 }
 
 void MotionBlur::accumulateDepthVersion(ManagedTexView source_color_tex, ManagedTexView blur_depth_tex, DepthType depth_type,
-  TMatrix4 currentGlobTm, TMatrix4 prevGlobTm, ManagedTexView accumulationTex)
+  TMatrix4 currentGlobTm, TMatrix4 prevGlobTm, const TMatrix &view_tm, const TMatrix4 &proj_tm, ManagedTexView accumulationTex)
 {
   SCOPE_VIEW_PROJ_MATRIX;
   // Set globtm matrices.
   ShaderGlobal::set_float4x4(prev_globtmVarId, prevGlobTm.transpose());
 
   d3d::setglobtm(currentGlobTm);
-  set_viewvecs_to_shader();
+  set_viewvecs_to_shader(view_tm, proj_tm);
 
   ShaderGlobal::set_texture(blur_depth_texVarId, blur_depth_tex);
   ShaderGlobal::set_int(motion_blur_depth_typeVarId, static_cast<int>(depth_type));

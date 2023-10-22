@@ -31,7 +31,7 @@ public:
   bool isEnabled();
 
   // active state means that we are writing, processing frame now
-  void activate(float z_near, float z_far, Texture *render_target_tex, TEXTUREID render_target_tex_id);
+  void activate(float z_near, float z_far, Texture *render_target_tex, TEXTUREID render_target_tex_id, TMatrix view_itm);
   bool isActive();
 
   void beginFrameRender(int frame_id);
@@ -64,6 +64,7 @@ private:
   float zNear;
   float zFar;
   int cubeSize;
+  TMatrix curViewItm;
 
   Texture *renderTargetTex;
   TEXTUREID renderTargetTexId;

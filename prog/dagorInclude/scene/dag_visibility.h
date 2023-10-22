@@ -31,8 +31,6 @@ public:
   void set(vec4f viewpos, const Frustum &frustum_, float object_to_sceen_ratio, float near_ratio_offset,
     float visibility_range_multiplier, float hk, bool use_occlusion);
 
-  void update(); // legacy, sets from current d3d state
-
   // scalar implementation, to be obsoleted
   bool isScreenRatioVisible(const Point3 &sphc, float sph_radius_squared) const
   {

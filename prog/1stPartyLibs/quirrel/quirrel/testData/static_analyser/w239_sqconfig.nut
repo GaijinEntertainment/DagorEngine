@@ -6,3 +6,5 @@ let function returnBoolFunctionName() { //-declared-never-used
 
   return true;
 }
+
+//-file:undefined-global

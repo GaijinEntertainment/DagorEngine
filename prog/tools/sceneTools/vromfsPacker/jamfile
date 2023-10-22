@@ -26,11 +26,11 @@ Sources =
 
 UseProgLibs +=
   gameLibs/vromfsPacker
-  engine2/kernel
-  engine2/memory
-  engine2/perfMon/daProfilerStub
-  engine2/startup
-  engine2/math
+  engine/kernel
+  engine/memory
+  engine/perfMon/daProfilerStub
+  engine/startup
+  engine/math
 ;
 
 if $(Platform) in win32 win64 {
@@ -40,6 +40,6 @@ if $(Platform) in win32 win64 {
 } else if $(Platform) in macosx {
   GlobalCPPopt = -Wno-deprecated-declarations ;
 }
-if $(Platform) = linux64 { UseProgLibs += engine2/osApiWrappers/messageBox/stub ; }
+if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

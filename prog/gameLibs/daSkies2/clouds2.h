@@ -20,6 +20,7 @@
 #include <util/dag_convar.h> //remove me
 #include <workCycle/dag_workCycle.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <3d/dag_ringCPUTextureLock.h>
 
 #define CLOUDS_ESRAM_ONLY 0 // TEXCF_ESRAM_ONLY
 #ifndef USE_CONSOLE_BOOL_VAL
@@ -368,6 +369,9 @@ struct GenNoise
     return prefetch_and_check_managed_textures_loaded(dag::ConstSpan<TEXTUREID>(waitTextures, 2), true);
   }
 
+  // Returns true where noise loaded
+  bool isReady() const { return (state != EMPTY && state != LOADING); }
+
   /* Returns true if at least one of noise textures was updated */
   bool render()
   {
@@ -561,7 +565,7 @@ struct CloudsRendererData
     const bool changedCanBeInClouds = (can_be_in_clouds != bool(clouds_color_close)) || changedSize;
     if (!changedSize && !changedCanBeInClouds)
       return;
-    if (!(d3d::get_driver_desc().cshver & DDCSH_5_0))
+    if (d3d::get_driver_desc().shaderModel < 5.0_sm)
       useCompute = taaUseCompute = false;
     if (!w_)
     {
@@ -578,7 +582,7 @@ struct CloudsRendererData
     uint32_t fmt = TEXFMT_A16B16G16R16F;
     uint32_t rtflg = useCompute ? TEXCF_UNORDERED : TEXCF_RTARGET; //
     String tn;
-    if ((d3d::get_driver_desc().cshver & DDCSH_5_0) && !cloudsIndirectBuffer)
+    if (d3d::get_driver_desc().shaderModel >= 5.0_sm && d3d::get_driver_desc().caps.hasIndirectSupport && !cloudsIndirectBuffer)
     {
       tn.printf(64, "%s_clouds_indirect", pr);
       cloudsIndirectBuffer = dag::create_sbuffer(4, CLOUDS_APPLY_COUNT * 4, SBCF_UA_INDIRECT, 0, tn.c_str());
@@ -629,7 +633,7 @@ struct CloudsRendererData
 
     tn.printf(64, "%s_close_layer_is_outside", pr);
 
-    if ((d3d::get_driver_desc().cshver & DDCSH_5_0))
+    if (d3d::get_driver_desc().shaderModel >= 5.0_sm)
     {
       if (!clouds_close_layer_is_outside.getBuf())
         clouds_close_layer_is_outside =
@@ -715,7 +719,7 @@ struct CloudsRenderer
   void init()
   {
     clouds2_apply.init("clouds2_apply");
-    if (d3d::get_driver_desc().cshver & DDCSH_5_0)
+    if (d3d::get_driver_desc().shaderModel >= 5.0_sm)
     {
 #define INIT(a) a.reset(new_compute_shader(#a, false));
       INIT(clouds2_temporal_cs);
@@ -828,8 +832,8 @@ struct CloudsRenderer
       if (canBeInsideClouds)
       {
         TIME_D3D_PROFILE(clouds_close_layer_is_outside_calc);
-        mat44f globtm;
-        d3d::getglobtm(globtm);
+        TMatrix4 globtm;
+        d3d::calcglobtm(view_tm, proj_tm, globtm);
         extern void set_frustum_planes(const Frustum &frustum);
         set_frustum_planes(Frustum(globtm));
         clouds_close_layer_outside->dispatch(1, 1, 1);
@@ -1540,7 +1544,7 @@ struct CloudsField
   PostFxRenderer build_dacloud_volume_ps;
   void initCloudsVolumeRenderer()
   {
-    if (d3d::get_driver_desc().cshver & DDCSH_5_0)
+    if (d3d::get_driver_desc().shaderModel >= 5.0_sm)
       build_dacloud_volume_cs.reset(new_compute_shader("build_dacloud_volume_cs", false));
     else
       build_dacloud_volume_ps.init("build_dacloud_volume_ps");
@@ -1773,6 +1777,7 @@ struct Clouds2
     field.setParams(gameParams);
     field.invalidate();
     cloudShadows.invalidate(); // todo: instead force temporal recalc!
+    holeFound = false;
   }
 
   void setWeatherGen(const DaSkies::CloudsWeatherGen &weather_params)
@@ -1799,6 +1804,7 @@ struct Clouds2
 
     field.invalidate();
     cloudShadows.invalidate(); // todo: instead force temporal recalc!
+    holeFound = false;
     // light.invalidate();
   }
   void setCloudsForm(const DaSkies::CloudsForm &form_)
@@ -1822,6 +1828,8 @@ struct Clouds2
     // fixme: invalidate panorama, if we change everything besides erosion speed
   }
 
+  // temporary function for a workaround on A8 iPads (gpu hang)
+  void setRenderingEnabled(bool enabled) { renderingEnabled = enabled; }
 
   // causes clouds to change lighting
   // void setWindAltGradient(float x, float z) {cloudsLight.windGradientDir = Point2(x,z);}
@@ -1871,16 +1879,64 @@ struct Clouds2
   void renderClouds(CloudsRendererData &data, const TextureIDPair &depth, const TextureIDPair &prev_depth, const TMatrix &view_tm,
     const TMatrix4 &proj_tm)
   {
+    if (!renderingEnabled)
+    {
+      return;
+    }
     noises.setVars();
     clouds.render(data, depth, prev_depth, erosionWindChange, weatherParams.worldSize, view_tm, proj_tm);
   }
   void renderCloudsScreen(CloudsRendererData &data, const TextureIDPair &downsampledDepth, TEXTUREID targetDepth,
     const Point4 &targetDepthTransform, const TMatrix &view_tm, const TMatrix4 &proj_tm)
   {
+    if (!renderingEnabled)
+    {
+      return;
+    }
     clouds.renderFull(data, downsampledDepth, targetDepth, targetDepthTransform, view_tm, proj_tm);
   }
 
   bool isPrepareRequired() const { return noises.isPrepareRequired(); }
+
+  enum
+  {
+    HOLE_UPDATED = 0,
+    HOLE_PROCESSED = 1,
+    HOLE_CREATED = 2
+  };
+
+  void processHole()
+  {
+    if (needHoleCPUUpdate == HOLE_UPDATED)
+      return;
+
+    if (needHoleCPUUpdate == HOLE_CREATED)
+    {
+      int frame1;
+      Texture *currentTarget = ringTextures.getNewTarget(frame1);
+      if (currentTarget)
+      {
+        d3d::stretch_rect(holePosTex.getTex2D(), currentTarget, NULL, NULL);
+        ringTextures.startCPUCopy();
+        needHoleCPUUpdate = HOLE_PROCESSED;
+      }
+    }
+
+    if (needHoleCPUUpdate == HOLE_PROCESSED)
+    {
+      uint32_t frame2;
+      int stride;
+      uint8_t *data = ringTextures.lock(stride, frame2);
+      if (!data)
+        return;
+      Point4 destData;
+      memcpy(&destData, data, sizeof(Point4));
+
+      ringTextures.unlock();
+      ShaderGlobal::set_color4(clouds_hole_posVarId, destData.x, destData.y, destData.z, destData.w);
+      needHoleCPUUpdate = HOLE_UPDATED;
+    }
+  }
 
   CloudsChangeFlags prepareLighting(const Point3 &main_light_dir, const Point3 &second_light_dir)
   {
@@ -1895,14 +1951,28 @@ struct Clouds2
     changes |= uint32_t(cloudsForm.render());
     changes |= uint32_t(field.render());
 
-    changes |= uint32_t(cloudShadows.render(main_light_dir));
-    changes |= uint32_t(light.render(main_light_dir, second_light_dir)); // not afr ready
+    if (noises.isReady())
+    {
+      const uint32_t cloudsShadowsUpdateFlags = cloudShadows.render(main_light_dir);
+      changes |= uint32_t(cloudsShadowsUpdateFlags);
+      changes |= uint32_t(light.render(main_light_dir, second_light_dir)); // not afr ready
+
+      if (cloudsShadowsUpdateFlags == CLOUDS_INVALIDATED)
+        holeFound = false;
+    }
 
     changes |= validateHole(main_light_dir) ? uint32_t(CLOUDS_INVALIDATED) : uint32_t(0);
+
+    processHole();
+
     return CloudsChangeFlags(changes);
   }
   void renderCloudVolume(VolTexture *cloudVolume, float max_dist, const TMatrix &view_tm, const TMatrix4 &proj_tm)
   {
+    if (!renderingEnabled)
+    {
+      return;
+    }
     field.renderCloudVolume(cloudVolume, max_dist, view_tm, proj_tm);
   }
   void setUseShadows2D(bool on)
@@ -1939,6 +2009,9 @@ struct Clouds2
     }
 
     holePosTex = dag::create_tex(nullptr, 1, 1, posTexFlags | TEXCF_CLEAR_ON_CREATE, 1, "clouds_hole_pos_tex");
+    ringTextures.close();
+    ringTextures.init(1, 1, 1, "CPU_clouds_hole_tex",
+      TEXFMT_A32B32G32R32F | TEXCF_RTARGET | TEXCF_LINEAR_LAYOUT | TEXCF_CPU_CACHED_MEMORY);
 #if !_TARGET_PC_WIN && !_TARGET_XBOX
     d3d::GpuAutoLock gpuLock;
     if (VoltexRenderer::is_compute_supported())
@@ -1963,12 +2036,15 @@ struct Clouds2
   {
     if (holeFound)
       return false;
+
     holeFound = true;
     if (!findHole(main_light_dir))
     {
       Point2 hole(0, 0);
       setHole(hole);
     }
+    needHoleCPUUpdate = HOLE_CREATED;
+    ringTextures.reset();
     return true;
   }
 
@@ -2101,4 +2177,7 @@ protected:
   PostFxRenderer clouds_hole_ps;
   PostFxRenderer clouds_hole_pos_ps;
   shaders::UniqueOverrideStateId blendMaxState;
+  bool renderingEnabled = true;
+  RingCPUTextureLock ringTextures;
+  int needHoleCPUUpdate = HOLE_UPDATED;
 };

@@ -27,8 +27,8 @@ public:
   ~Grassify();
 
   void generate(const Point3 &pos, const TMatrix &view_itm, BaseTexture *grass_mask, IRandomGrassRenderHelper &grassRenderHelper,
-    MaskRenderCallback::PreRenderCallback pre_render_cb, const GPUGrassBase &gpuGrassBase);
-  void generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper, MaskRenderCallback::PreRenderCallback pre_render_cb);
+    GrassPreRenderCallback pre_render_cb, const GPUGrassBase &gpuGrassBase);
+  void generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper, GrassPreRenderCallback pre_render_cb);
 
 private:
   eastl::unique_ptr<GrassMaskSliceHelper> grassMaskHelper;

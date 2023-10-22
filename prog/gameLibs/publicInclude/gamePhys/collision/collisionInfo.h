@@ -7,6 +7,7 @@
 
 #include <math/dag_Point3.h>
 #include <generic/dag_carray.h>
+#include <EASTL/fixed_function.h>
 
 namespace PhysMat
 {
@@ -15,6 +16,7 @@ struct MaterialData;
 
 namespace gamephys
 {
+using ImpulseLogFunc = eastl::fixed_function<sizeof(void *) * 4, void(const char *name, float impulse, float damage, float hp)>;
 struct CollisionObjectInfo
 {
   float collisionHardness; // used for damage multiplier
@@ -24,7 +26,7 @@ struct CollisionObjectInfo
   virtual ~CollisionObjectInfo() {}
 
   virtual float onImpulse(float impulse, const Point3 & /*dir*/, const Point3 & /*pos*/, float /*point_vel*/,
-    int32_t /* user_data */ = -1)
+    int32_t /* user_data */ = -1, ImpulseLogFunc /*log_func*/ = nullptr)
   {
     return impulse;
   }

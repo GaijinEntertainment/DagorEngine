@@ -7,8 +7,8 @@ C_preopt_DirectXVer = jun2010 ;
 _WIN_SDK_TARGET_SUFFIX = x64 ;
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 
-if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\Y\\Soft\\forDevelopers\\devtools\\vc2008.7z ; }
-if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: \"$(_WIN_SDK)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\Y\\Soft\\forDevelopers\\devtools\\$(WinSdkVer).7z ; }
+if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: \"$(_WIN_SDK)\" not found!  Please, update DEVTOOLS ; }
 
 _LINK         = $(_VC_DIR)/bin/amd64/link.exe /machine:x64 ;
 _LIB          = $(_VC_DIR)/bin/amd64/lib.exe /machine:x64 ;

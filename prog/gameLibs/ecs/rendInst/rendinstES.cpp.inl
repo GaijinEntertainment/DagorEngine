@@ -1,6 +1,9 @@
 #include <ecs/rendInst/riExtra.h>
-#include <rendInst/rendinstHashMap.h>
+#include <rendInst/riexHashMap.h>
 #include <rendInst/moveRI.h>
+#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstAccess.h>
+#include <rendInst/rendInstExtraAccess.h>
 #include <ecs/core/attributeEx.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/baseIo.h>
@@ -20,12 +23,14 @@
 #include <vecmath/dag_vecMath.h>
 #include <gamePhys/collision/rendinstCollision.h>
 #include <gamePhys/phys/rendinstDestr.h>
+#include <gamePhys/collision/collisionLib.h>
 
 ECS_REGISTER_EVENT(EventRendinstsLoaded);
 ECS_REGISTER_EVENT(EventRendinstInitForLevel, rendinst::riex_handle_t /*riex_handle*/);
 ECS_REGISTER_EVENT(CmdDestroyRendinst);
 
-CONSOLE_BOOL_VAL("rendinst", debug_movement, false);
+static CONSOLE_BOOL_VAL("rendinst", debug_movement, false);
+static CONSOLE_BOOL_VAL("rigrid", debug_draw, false);
 static const bbox3f RENDINST_WORLD_BBOX = {v_make_vec4f(-1e4f, -1e4f, -1e4f, 0.f), v_make_vec4f(1e4f, 1e4f, 1e4f, 0.f)};
 
 struct RestorableId
@@ -469,4 +474,18 @@ bool replace_ri_extra_res(ecs::EntityId eid, const char *res_name, bool destroy,
   }
 
   return true;
+}
+
+ECS_NO_ORDER
+ECS_TAG(render, dev)
+ECS_REQUIRE(eastl::true_type camera__active)
+static void rigrid_debug_pos_es(const ecs::UpdateStageInfoRenderDebug &, const TMatrix &transform)
+{
+  if (!debug_draw.get())
+    return;
+
+  float t = 1000.f;
+  rendinst::RendInstDesc traceDesc;
+  dacoll::traceray_normalized(transform.getcol(3), transform.getcol(2), t, nullptr, nullptr, dacoll::ETF_DEFAULT, &traceDesc);
+  rendinst::rigrid_debug_pos(transform.getcol(3) + transform.getcol(2) * t, transform.getcol(3));
 }

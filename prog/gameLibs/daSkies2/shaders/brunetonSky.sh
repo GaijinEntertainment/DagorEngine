@@ -223,7 +223,8 @@ macro BASE_USE_BRUNETON_FOG(code)
     void fog_modify_thermal(inout half3 fog_mul, inout half3 fog_add)
     {
       fog_add *= half3(0.25h, 0.0h, 0.0h);
-      fog_mul = lerp(fog_mul, 1.0h, 0.5h);
+      // reduce fog influence on close distance a bit
+      fog_mul =  lerp(fog_mul, 0.5h + 0.5h*fog_mul, fog_mul.r);
     }
   }
 endmacro

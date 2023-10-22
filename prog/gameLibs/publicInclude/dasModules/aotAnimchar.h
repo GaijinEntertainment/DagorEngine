@@ -23,7 +23,7 @@
 #include <dasModules/dasManagedTab.h>
 #include <generic/dag_patchTab.h>
 
-#include <../engine2/anim/animFifo.h>
+#include <../engine/anim/animFifo.h>
 
 namespace das
 {

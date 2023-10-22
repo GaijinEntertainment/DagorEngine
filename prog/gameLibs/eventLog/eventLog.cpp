@@ -6,7 +6,6 @@
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_sockets.h>
-#include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_stackHlp.h>
 #include <generic/dag_initOnDemand.h>
 #include <debug/dag_logSys.h>
@@ -17,46 +16,6 @@
 
 #include "dataHelpers.h"
 #include "httpRequest.h"
-
-#if _TARGET_ANDROID | _TARGET_XBOX
-#include <EASTL/unique_ptr.h>
-#include <atomic>
-
-namespace
-{
-struct InitAddrThread final : public DaThread
-{
-  InitAddrThread(const SimpleString &_host, short _port) : DaThread("InitAddrThread"), host(_host), port(_port) {}
-
-  std::atomic<bool> done{false};
-
-  sockets::SocketAddr<OSAF_IPV4> ipv4Addr;
-
-  SimpleString host;
-  short port;
-
-  void execute() override
-  {
-    ipv4Addr.setHost(host);
-    ipv4Addr.setPort(port);
-    done = true;
-  }
-};
-} // namespace
-
-static eastl::unique_ptr<InitAddrThread> g_init_addr_thread;
-
-static sockets::SocketAddr<OSAF_IPV4> resovle_addr(const SimpleString &addr, int port)
-{
-  // During udp_addr.setHost getaddrinfo() is called.
-  // This call is blocking, so we need to do it in a separate thread
-  // to avoid ARNs in case it takes too long
-  g_init_addr_thread.reset(new InitAddrThread(addr, port));
-  g_init_addr_thread->start();
-  g_init_addr_thread->terminate(true /*wait*/, 500 /*timeout*/);
-  return g_init_addr_thread->done ? g_init_addr_thread->ipv4Addr : sockets::SocketAddr<OSAF_IPV4>{};
-}
-#endif
 
 #define LOGLEVEL_DEBUG _MAKE4C('EVLG')
 
@@ -187,20 +146,11 @@ bool init(EventLogInitParams const &init_params)
   RET_ON_SOCK_FAIL(udp_socket, "[network] Could not set UDP socket NONBLOCK");
 #undef RET_ON_SOCK_FAIL
 
-#if _TARGET_ANDROID | _TARGET_XBOX
-  // During  udp_addr.setHost getaddrinfo() is called.
-  // This call is blocking, so we need to do it in a separate thread
-  // to avoid ARNs in case it takes too long
-  udp_addr = resovle_addr(config->host, config->udpPort);
-  if (!udp_addr.isValid())
-    logwarn("[network] Could not init UDP socket addr within 1000 ms timeout '%s:%d", config->host, config->udpPort);
-#else
   udp_addr.setHost(config->host);
   udp_addr.setPort(config->udpPort);
 
   if (!udp_addr.isValid())
     return shutdownAndFailWithMsg("[network] Could not set UDP socket addr '%s:%d", config->host, config->udpPort);
-#endif
 
   // Now set default metadata
   defaults::meta["platform"] = get_platform_string_id();
@@ -230,10 +180,6 @@ void shutdown()
 {
   if (!is_enabled())
     return;
-
-#if _TARGET_ANDROID | _TARGET_XBOX
-  g_init_addr_thread.reset();
-#endif
 
   udp_socket.demandDestroy();
   del_it(config);
@@ -269,25 +215,6 @@ void send_udp(const char *type, const void *data, uint32_t size, Json::Value *me
 {
   if (!is_enabled())
     return;
-
-#if _TARGET_ANDROID | _TARGET_XBOX
-  if (g_init_addr_thread && !g_init_addr_thread->done)
-  {
-    debug("[network] UDP Address is not ready yet. Skip UDP send.");
-    return;
-  }
-
-  if (!udp_addr.isValid())
-  {
-    udp_addr = g_init_addr_thread->ipv4Addr;
-    if (!udp_addr.isValid())
-    {
-      logerr("[network] Could not set UDP socket addr '%s:%d", config->host, config->udpPort);
-      shutdown();
-      return;
-    }
-  }
-#endif
 
   Packet pkt(type, meta, data, size, defaults::meta);
   debug("[network] Event log send UDP packet %zu bytes to %s:%d", pkt.size(), config->host, config->udpPort);

@@ -1,0 +1,16 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/phys/physCommon ;
+
+TargetType  = lib ;
+Target      = engine/phys/physCommon.lib ;
+
+
+Sources =
+  physResource.cpp
+  physStat.cpp
+;
+
+
+CPPopt = -D__B_CORE ;
+
+include $(Root)/prog/_jBuild/build.jam ;

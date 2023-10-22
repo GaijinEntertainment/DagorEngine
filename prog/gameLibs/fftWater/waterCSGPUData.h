@@ -11,7 +11,6 @@ class NVWaveWorks_FFT_CPU_Simulation;
 class ComputeShaderElement;
 class BaseTexture;
 typedef BaseTexture Texture;
-class Sbuffer;
 #define ALL_CASCADES_ARE_SAME_SIZE 1
 
 class CSGPUData
@@ -27,13 +26,7 @@ public:
   void perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int num, double time);
 
   CSGPUData() :
-    update_h0(0),
-    fftH(0),
-    fftV(0),
-    gauss(0),
-    asyncComputeFence(BAD_GPUFENCEHANDLE),
-    updateH0Fence(BAD_GPUFENCEHANDLE),
-    h0UpdateRequired(false)
+    update_h0(0), fftH(0), fftV(0), asyncComputeFence(BAD_GPUFENCEHANDLE), updateH0Fence(BAD_GPUFENCEHANDLE), h0UpdateRequired(false)
   {}
 
   ~CSGPUData() { close(); }
@@ -44,10 +37,7 @@ private:
   static constexpr int MAX_NUM_CASCADES = 5;
   struct CascadeData
   {
-    Sbuffer *h0, *ht, *dt, *omega;
-    CascadeData() : h0(0), ht(0), dt(0), omega(0) {}
-    ~CascadeData() { close(); }
-    void close();
+    UniqueBuf h0, ht, dt, omega;
   };
 
   inline CascadeData &getData(int idx, int num_cascades, int &groups_z);
@@ -71,5 +61,5 @@ private:
   StaticTab<Cascade, MAX_NUM_CASCADES> cascades;
   bool h0UpdateRequired;
   ComputeShaderElement *update_h0, *fftH, *fftV;
-  Sbuffer *gauss;
+  UniqueBuf gauss;
 };

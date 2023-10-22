@@ -53,7 +53,7 @@ public:
   KRNLIMP int64_t getTargetDataSize() override { return file.size; }
 
   //! assigns async file handle to read data from
-  KRNLIMP void assignFile(void *handle, const char *tgt_name, int size, int min_chunk_size, int max_back_seek = 0);
+  KRNLIMP void assignFile(void *handle, unsigned base_ofs, int size, const char *tgt_name, int min_chunk_size, int max_back_seek = 0);
 
   //! assigns set of ranges from where data will be read; any read outside these areas results in lockup
   void setRangesOfInterest(dag::Span<Range> r) { ranges = r; }
@@ -64,6 +64,8 @@ public:
   //! wait for prebuffering done
   void waitForBuffersFull();
 
+  KRNLIMP static const char *resolve_real_name(const char *fname, unsigned &out_base_ofs, unsigned &out_size, bool &out_non_cached);
+
 protected:
   struct File
   {
@@ -71,6 +73,7 @@ protected:
     int size;
     void *handle;
     unsigned chunkSize;
+    unsigned baseOfs;
   } file;
 
   struct Buf

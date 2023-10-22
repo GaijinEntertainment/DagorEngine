@@ -25,7 +25,6 @@ KRNLIMP void debug_enable_timestamps(bool en_time, bool hhmmss_fmt = false, int 
 KRNLIMP void debug_setup_tags(const dag::ConstSpan<int> *allowed_tags, const dag::ConstSpan<int> *ignored_tags,
   const dag::ConstSpan<int> *promoted_tags);
 #if DAGOR_FORCE_LOGS
-KRNLIMP const unsigned char *get_default_log_crypt_key();
 KRNLIMP void crypt_debug_setup(const unsigned char *nkey, unsigned max_size = 0);
 KRNLIMP int get_nearest_crypted_len(int maxlen, int lev = LOGLEVEL_DEBUG);
 #endif

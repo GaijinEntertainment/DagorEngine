@@ -16,24 +16,24 @@ Sources =
 ;
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/math
-  engine2/lib3d
-  engine2/image
-  engine2/shaders
-  engine2/guiBase
-  engine2/workCycle
-  engine2/scene
-  engine2/sceneRay
-  engine2/coreUtil
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/lib3d
+  engine/image
+  engine/shaders
+  engine/guiBase
+  engine/workCycle
+  engine/scene
+  engine/sceneRay
+  engine/coreUtil
 
-  engine2/phys/physCommon
-  engine2/perfMon
+  engine/phys/physCommon
+  engine/perfMon
 
   gameLibs/heightmap
 
@@ -42,8 +42,8 @@ UseProgLibs =
 
 if $(Headless) = yes {
   UseProgLibs +=
-    engine2/drv/hid_nulldrv
-    engine2/drv/drv3d_stub
+    engine/drv/hid_nulldrv
+    engine/drv/drv3d_stub
   ;
 }
 
@@ -55,16 +55,16 @@ if $(Platform) in win32 win64 {
   ;
   if $(Headless) != yes {
     UseProgLibs +=
-      engine2/drv/hid_mouse
-      engine2/drv/hid_keyboard
-      engine2/drv/drv3d_DX11
+      engine/drv/hid_mouse
+      engine/drv/hid_keyboard
+      engine/drv/drv3d_DX11
     ;
   }
 } else if $(Platform) in linux64 {
   if $(Headless) != yes {
-    UseProgLibs += engine2/drv/drv3d_vulkan ;
+    UseProgLibs += engine/drv/drv3d_vulkan ;
   } else {
-    UseProgLibs += engine2/osApiWrappers/messageBox/stub engine2/workCycle/stub ;
+    UseProgLibs += engine/osApiWrappers/messageBox/stub engine/workCycle/stub ;
   }
 }
 

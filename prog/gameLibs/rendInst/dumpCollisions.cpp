@@ -1,18 +1,11 @@
-#include <rendInst/rendInstGen.h>
-#include "riGen/riGenData.h"
-#include "riGen/genObjUtil.h"
 #include "riGen/riGenExtra.h"
-#include "riGen/riUtil.h"
 
 #include <util/dag_console.h>
 #include <ioSys/dag_fileIo.h>
 #include <gameRes/dag_collisionResource.h>
-#include <gameRes/dag_gameResources.h>
-#include <math/dag_math3d.h>
-#include <math/dag_mathUtils.h>
-#include <math/dag_wooray2d.h>
-#include <math/dag_vecMathCompatibility.h>
 #include <render/primitiveObjects.h>
+#include <generic/dag_carray.h>
+
 
 namespace rendinst
 {

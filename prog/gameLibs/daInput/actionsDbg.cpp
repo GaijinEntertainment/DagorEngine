@@ -34,7 +34,7 @@ void dainput::dump_action_bindings()
   for (int i = 0; i < get_actions_count(); i++)
   {
     action_handle_t a = get_action_handle_by_ord(i);
-    debug("  %04X type=%4X  \"%s\"", a, get_action_type(a), get_action_name(a));
+    debug("  %04X (%d) type=%4X  \"%s\"", a, int(a), get_action_type(a), get_action_name(a));
     for (int k = 0; k < get_actions_binding_columns(); k++)
     {
       bindStr = "";

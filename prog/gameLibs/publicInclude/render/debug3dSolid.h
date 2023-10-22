@@ -13,8 +13,14 @@ struct Capsule;
 class BBox3;
 struct Color4;
 
+enum class DrawSolidMeshCull
+{
+  NORMAL = 0,
+  FLIP = 1,
+};
+
 void draw_debug_solid_mesh(const uint16_t *indices, int faceCount, const float *xyz_pos, int v_stride, int v_cnt, const TMatrix &tm,
-  const Color4 &color, bool shaded = false);
+  const Color4 &color, bool shaded = false, DrawSolidMeshCull cull = DrawSolidMeshCull::NORMAL);
 void draw_debug_solid_sphere(const Point3 &sphere_c, float sphere_rad, const TMatrix &tm, const Color4 &color, bool shaded = false);
 void draw_debug_solid_capsule(const Capsule &capsule, const TMatrix &tm, const Color4 &color, bool shaded = false);
 void draw_debug_solid_cube(const BBox3 &cube, const TMatrix &tm, const Color4 &color, bool shaded = false);

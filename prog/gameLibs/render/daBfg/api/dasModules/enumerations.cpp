@@ -3,6 +3,9 @@
 #define DAS_BIND_ENUM_BOTH(enum_name, das_enum_name, ...) \
   DAS_BASE_BIND_ENUM_BOTH(DAS_BIND_ENUM_QUALIFIED_HELPER, enum_name, das_enum_name, __VA_ARGS__)
 
+DAS_BIND_ENUM_BOTH(dabfg::NameSpaceNameId, NameSpaceNameId, //-V1008
+  Invalid);
+
 DAS_BIND_ENUM_BOTH(dabfg::NodeNameId, NodeNameId, //-V1008
   Invalid);
 
@@ -43,6 +46,7 @@ namespace bind_dascript
 
 void DaBfgModule::addEnumerations(das::ModuleLibrary &)
 {
+  addEnumeration(das::make_smart<EnumerationNameSpaceNameId>());
   addEnumeration(das::make_smart<EnumerationNodeNameId>());
   addEnumeration(das::make_smart<EnumerationResNameId>());
   addEnumeration(das::make_smart<EnumerationHistory>());

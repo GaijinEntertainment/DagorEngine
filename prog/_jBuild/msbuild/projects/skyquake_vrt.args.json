@@ -3,16 +3,34 @@
   "Id": "2825dbf0-b3ef-4f8c-b711-ce665007425a",
   "Items": [
     {
-      "Id": "493cb4ca-ef07-4204-be56-7cb4a62f7822",
-      "Command": "-config:game_start/missionFile:t=gameData/missions/planes/bfd/normandy/normandy_vr_bfd_norespawn.blk"
+      "Id": "543f5494-b8eb-4cd7-b69b-ca9c91a7a9ef",
+      "Command": "Map selection",
+      "ExclusiveMode": true,
+      "Items": [
+        {
+          "Id": "b43483d9-2356-4cc1-a125-3acb2798a316",
+          "Command": "benchmark_vr_normandy_realtime",
+          "ExclusiveMode": true,
+          "Items": [
+            {
+              "Id": "8c0b835d-ce7d-4510-9574-0c76d199ca51",
+              "Command": "-config:game_start/missionFile:t=gameData/missions/singlemissions/benchmark/benchmark_vr_normandy_realtime.blk -config:debug/disableMenu:b=yes"
+            }
+          ]
+        }
+      ]
     },
     {
       "Id": "76b12951-db60-48d6-be6e-21f40060325b",
       "Command": "Profiler",
       "Items": [
         {
-          "Id": "97a8655d-5f3f-4cc5-812c-12f0b8ea1f78",
+          "Id": "89123b65-af0c-40bd-a42f-f15285c6749b",
           "Command": "-config:debug/profiler:t=\"gpu\""
+        },
+        {
+          "Id": "406b24f5-8415-4ce6-b973-48c6b4f2cc0f",
+          "Command": "-config:debug/profiler:t=\"cpu\""
         }
       ]
     },
@@ -484,7 +502,7 @@
         },
         {
           "Id": "72e8a272-77b8-466a-b8af-c39fee270bde",
-          "Command": "-config:xr/useVrMultiview:b=yes"
+          "Command": "-config:xr/useVrMultiview:b=no"
         },
         {
           "Id": "f2b493f7-4443-42be-a834-d1e92b99881d",

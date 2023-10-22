@@ -56,7 +56,8 @@ public:
 
   void update(float timePassed);
 
-  void apply(Texture *source, TEXTUREID sourceId, Texture *target, TEXTUREID targtexId, bool force_disable_motion_blur = false);
+  void apply(Texture *source, TEXTUREID sourceId, Texture *target, TEXTUREID targtexId, const TMatrix &view_tm,
+    const TMatrix4 &proj_tm, bool force_disable_motion_blur = false);
 
   bool getUseAdaptation();
   void setUseAdaptation(bool use);

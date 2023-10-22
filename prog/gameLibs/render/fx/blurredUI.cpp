@@ -73,7 +73,7 @@ void BlurredUI::init(int width, int height, int mips, TextureIDPair interm)
   if (mips > 1)
     ensureIntermediate2(width / 16, height / 16, mips - 1);
   initial_downsample.init("ui_downsample_4x4");
-  initial_downsample_and_blend.init("ui_downsample_4x4_and_blend", NULL, false);
+  initial_downsample_and_blend.init("ui_downsample_4x4_and_blend");
   subsequent_downsample.init("ui_downsample_blur");
   blur.init("ui_additional_blur");
 };

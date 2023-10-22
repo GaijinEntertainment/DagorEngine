@@ -6,7 +6,10 @@
 #include <regExp/regExp.h>
 
 #include <osApiWrappers/dag_direct.h>
-#include <rendInst/rendinstHashMap.h>
+#include <rendInst/riexHashMap.h>
+#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtra.h>
+#include <rendInst/rendInstAccess.h>
 
 #include <pathFinder/tileCache.h>
 #include <pathFinder/tileCacheRI.h>
@@ -19,10 +22,10 @@
 #include <osApiWrappers/dag_files.h>
 #include <ioSys/dag_dataBlock.h>
 
+#include <util/dag_string.h>
 
 namespace pathfinder
 {
-extern dtNavMesh *navMesh;
 extern dtTileCache *tileCache;
 
 extern RiexHashMap<RiObstacle> riHandle2obstacle;
@@ -117,6 +120,19 @@ static class NavmeshLayers
           lambda((int)i);
   }
 
+  String makeFilePathForNavMeshKind(const char *base_file_path, const char *nav_mesh_kind)
+  {
+    String res(base_file_path);
+    if (!nav_mesh_kind || !*nav_mesh_kind)
+      return res;
+    const char *extentionPos = res.find('.', nullptr, /*forward*/ false);
+    if (!extentionPos)
+      return res;
+    String navMeshKindPostfix(100, "_%s", nav_mesh_kind);
+    res.insert(extentionPos - res.begin(), navMeshKindPostfix);
+    return res;
+  }
+
 public:
   Bitarray pools;
   ska::flat_hash_set<int> transparentPools;
@@ -126,15 +142,19 @@ public:
 
   NavmeshLayers() : isLoaded(false) {}
 
-  void load()
+  void load(const char *kind = nullptr)
   {
     if (isLoaded)
       return;
 
     const DataBlock *settingsBlk = ::dgs_get_settings();
-    const char *navmeshLayersBlkFn = settingsBlk->getStr("navmeshLayers", "config/navmesh_layers.blk");
-    const char *rendinstDmgBlkFn = settingsBlk->getStr("rendinstDmg", "config/rendinst_dmg.blk");
-    const char *navObstacleBlkFn = settingsBlk->getStr("navmeshObstacles", "config/navmesh_obstacles.blk");
+    String navmeshLayersBlkFn(settingsBlk->getStr("navmeshLayers", "config/navmesh_layers.blk"));
+    String rendinstDmgBlkFn(settingsBlk->getStr("rendinstDmg", "config/rendinst_dmg.blk"));
+    String navObstacleBlkFn(settingsBlk->getStr("navmeshObstacles", "config/navmesh_obstacles.blk"));
+
+    navmeshLayersBlkFn = makeFilePathForNavMeshKind(navmeshLayersBlkFn, kind);
+    rendinstDmgBlkFn = makeFilePathForNavMeshKind(rendinstDmgBlkFn, kind);
+    navObstacleBlkFn = makeFilePathForNavMeshKind(navObstacleBlkFn, kind);
 
     DataBlock navmblk;
     if (!dd_file_exists(navmeshLayersBlkFn))
@@ -279,7 +299,7 @@ struct RendinstVertexDataCbGame : public rendinst::RendinstVertexDataCbBase
   {}
   ~RendinstVertexDataCbGame() { clear_all_ptr_items(riCache); }
 
-  virtual void processCollision(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info) override
+  virtual void processCollision(const rendinst::CollisionInfo &coll_info) override
   {
     if (!coll_info.collRes)
       return;
@@ -606,11 +626,12 @@ void rebuildNavMesh_update_reloadNavMesh()
   const int maxTiles = 8;
   const int extraTiles = rebuildedTiles.size() * maxTiles;
   reload_nav_mesh(extraTiles);
-  navMesh->reconstructFreeList();
+  getNavMeshPtr()->reconstructFreeList();
 }
 
 void rebuildNavMesh_update_removeTiles()
 {
+  dtNavMesh *navMesh = getNavMeshPtr();
   navMesh->reconstructFreeList();
 
   for (auto it = rebuildedTiles.begin(); it != rebuildedTiles.end(); ++it)
@@ -627,8 +648,11 @@ void rebuildNavMesh_update_removeTiles()
       for (int i = 0; i < ntiles; ++i)
       {
         const dtCompressedTile *tile = tileCache->getTileByRef(tiles[i]);
+        if (!tile || !tile->header)
+          continue;
 
-        dtTileRef tileRef = navMesh->getTileRefAt(tile->header->tx, tile->header->ty, tile->header->tlayer);
+        const int tlayer = tile->header->tlayer;
+        dtTileRef tileRef = navMesh->getTileRefAt(tile->header->tx, tile->header->ty, tlayer);
 
         removedNavMeshTiles.push_back(navMesh->decodePolyIdTile(tileRef));
 
@@ -637,7 +661,7 @@ void rebuildNavMesh_update_removeTiles()
 
         if (!dtStatusSucceed(status1) || !dtStatusSucceed(status2))
         {
-          logerr("Rebuild NavMesh: failed to remove tile at (%d,%d) layer %d", tx, ty, tile->header->tlayer);
+          logerr("Rebuild NavMesh: failed to remove tile at (%d,%d) layer %d", tx, ty, tlayer);
         }
       }
     }
@@ -724,7 +748,7 @@ bool rebuildNavMesh_update_buildTiles(int n)
         }
 
         {
-          dtStatus status = navMesh->addTile(tile_data[i].navMeshData, tile_data[i].navMeshDataSz, DT_TILE_FREE_DATA, 0, &nav);
+          dtStatus status = getNavMeshPtr()->addTile(tile_data[i].navMeshData, tile_data[i].navMeshDataSz, DT_TILE_FREE_DATA, 0, &nav);
 
           if (dtStatusSucceed(status) && nav != 0)
             tilesToSave.push_back(nav);
@@ -787,6 +811,7 @@ int rebuildNavMesh_getTotalTiles()
 
 bool rebuildNavMesh_saveToFile(const char *file_name)
 {
+  dtNavMesh *navMesh = getNavMeshPtr();
   eastl::unique_ptr<void, decltype(&df_close)> h(df_open(file_name, DF_WRITE | DF_CREATE), &df_close);
 
   if (!h)
@@ -991,6 +1016,7 @@ uint32_t patchedNavMesh_getFileSizeAndNumTiles(const char *file_name, int &num_t
 bool patchedNavMesh_loadFromFile(const char *fileName, dtTileCache *tlCache, uint8_t *storageData,
   ska::flat_hash_set<uint32_t> &obstacles)
 {
+  dtNavMesh *navMesh = getNavMeshPtr();
   eastl::unique_ptr<void, decltype(&df_close)> h(df_open(fileName, DF_READ | DF_IGNORE_MISSING), &df_close);
 
   if (!h)
@@ -1081,6 +1107,7 @@ bool patchedNavMesh_loadFromFile(const char *fileName, dtTileCache *tlCache, uin
       // force remove tiles for all layers at (tx,ty)
       const int tx = header->tx;
       const int ty = header->ty;
+      if (tlCache)
       {
         const int maxTiles = 32;
         dtCompressedTileRef tiles[maxTiles];
@@ -1117,6 +1144,7 @@ bool patchedNavMesh_loadFromFile(const char *fileName, dtTileCache *tlCache, uin
       navData += dataSize;
       sizeLeft -= dataSize;
 
+      if (tlCache)
       {
         tlCache->addTile(data, dataSize, 0, 0);
       }

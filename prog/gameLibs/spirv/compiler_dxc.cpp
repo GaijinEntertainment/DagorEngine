@@ -1,5 +1,6 @@
 // clang-format off
 #pragma warning(disable : 4995)
+#include "module_nodes.h"
 #include <spirv/module_builder.h>
 
 #if _TARGET_PC_WIN
@@ -8,7 +9,9 @@
 #else
 #include <folders/folders.h>
 #endif
+#include <codecvt>
 #include <dxc/dxcapi.h>
+#include <locale>
 #include <spirv/compiler.h>
 #include <spirv-tools/libspirv.hpp>
 #include <string>
@@ -89,6 +92,88 @@ dag::ConstSpan<SemanticInfo> getOutputSematicTable(const char *profile)
   return make_span(shader_link_table);
 }
 
+std::wstring getSpirvOptimizationConfigString(const eastl::vector<eastl::string_view> &disabledOptims)
+{
+  std::wstring result = L"-Oconfig=";
+  if (disabledOptims.empty())
+  {
+    result += L"-O"; // optimize for performance
+  }
+  else if (eastl::find(disabledOptims.begin(), disabledOptims.end(), eastl::string_view("all")) != disabledOptims.end())
+  {
+    return L"-Od"; // disable all optimizations
+  }
+  else
+  {
+    eastl::vector<std::wstring> disabledOptimsWStr;
+    for (const eastl::string_view &name : disabledOptims)
+    {
+      using namespace std;
+      wstring nameWStr = wstring_convert<codecvt_utf8<wchar_t>>().from_bytes(name.data(), name.data() + name.size());
+      disabledOptimsWStr.emplace_back(nameWStr);
+    }
+
+    auto checkOptPass = [&disabledOptimsWStr](const wchar_t *passName) -> const wchar_t * {
+      for (const std::wstring &disabled : disabledOptimsWStr)
+      {
+        if (wcsstr(passName, disabled.c_str()) != nullptr)
+          return L"";
+      }
+      return passName;
+    };
+
+    // take 'optimization for performance' config as basis and skip disabled passes
+    // see https://github.com/KhronosGroup/SPIRV-Tools/blob/main/source/opt/optimizer.cpp#L169
+    // or https://github.com/docd27/rollup-plugin-glsl-optimize/blob/master/doc/spirv-opt.md
+    result += checkOptPass(L"--wrap-opkill,");
+    result += checkOptPass(L"--eliminate-dead-branches,");
+    result += checkOptPass(L"--merge-return,");
+    result += checkOptPass(L"--inline-entry-points-exhaustive,");
+    result += checkOptPass(L"--eliminate-dead-functions,");
+    result += checkOptPass(L"--eliminate-dead-code-aggressive,");
+    result += checkOptPass(L"--private-to-local,");
+    result += checkOptPass(L"--eliminate-local-single-block,");
+    result += checkOptPass(L"--eliminate-local-single-store,");
+    result += checkOptPass(L"--eliminate-dead-code-aggressive,");
+    result += checkOptPass(L"--scalar-replacement=100,");
+    result += checkOptPass(L"--convert-local-access-chains,");
+    result += checkOptPass(L"--eliminate-local-single-block,");
+    result += checkOptPass(L"--eliminate-local-single-store,");
+    result += checkOptPass(L"--eliminate-dead-code-aggressive,");
+    result += checkOptPass(L"--ssa-rewrite,");
+    result += checkOptPass(L"--eliminate-dead-code-aggressive,");
+    result += checkOptPass(L"--ccp,");
+    result += checkOptPass(L"--eliminate-dead-code-aggressive,");
+    result += checkOptPass(L"--loop-unroll,");
+    result += checkOptPass(L"--eliminate-dead-branches,");
+    result += checkOptPass(L"--redundancy-elimination,");
+    result += checkOptPass(L"--combine-access-chains,");
+    result += checkOptPass(L"--simplify-instructions,");
+    result += checkOptPass(L"--scalar-replacement=100,");
+    result += checkOptPass(L"--convert-local-access-chains,");
+    result += checkOptPass(L"--eliminate-local-single-block,");
+    result += checkOptPass(L"--eliminate-local-single-store,");
+    result += checkOptPass(L"--eliminate-dead-code-aggressive,");
+    result += checkOptPass(L"--ssa-rewrite,");
+    result += checkOptPass(L"--eliminate-dead-code-aggressive,");
+    result += checkOptPass(L"--vector-dce,");
+    result += checkOptPass(L"--eliminate-dead-inserts,");
+    result += checkOptPass(L"--eliminate-dead-branches,");
+    result += checkOptPass(L"--simplify-instructions,");
+    result += checkOptPass(L"--if-conversion,");
+    result += checkOptPass(L"--copy-propagate-arrays,");
+    result += checkOptPass(L"--reduce-load-size,");
+    result += checkOptPass(L"--eliminate-dead-code-aggressive,");
+    result += checkOptPass(L"--merge-blocks,");
+    result += checkOptPass(L"--redundancy-elimination,");
+    result += checkOptPass(L"--eliminate-dead-branches,");
+    result += checkOptPass(L"--merge-blocks,");
+    result += checkOptPass(L"--simplify-instructions");
+  }
+
+  return result;
+}
+
 class DXCErrorHandler final : public spirv::ErrorHandler
 {
 public:
@@ -150,7 +235,76 @@ public:
   }
 };
 
-CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const char *entry, const char *profile, CompileFlags flags)
+static bool is_uav_resource(NodePointer<NodeOpVariable> var)
+{
+  auto ptrType = as<NodeOpTypePointer>(var->resultType);
+
+  if (ptrType->storageClass == StorageClass::UniformConstant)
+  {
+    auto valueType = as<NodeTypedef>(ptrType->type);
+    // Handles Texture{Type}<T>, Buffer<T>, RWTexture{Type}<T> and RWBuffer<T>
+    if (is<NodeOpTypeSampledImage>(valueType) ||
+        (is<NodeOpTypeImage>(valueType) && as<NodeOpTypeImage>(valueType)->sampled.value != 2) ||
+        is<NodeOpTypeAccelerationStructureKHR>(valueType))
+      return false;
+    return true;
+  }
+  else if (ptrType->storageClass == StorageClass::Uniform)
+  {
+    if (get_buffer_kind(var) == BufferKind::Storage)
+      return true;
+  }
+  return false;
+}
+
+static ReflectionInfo::Type convertReflectionType(NodePointer<NodeOpVariable> var)
+{
+  auto ptrType = as<NodeOpTypePointer>(var->resultType);
+  if (ptrType->storageClass == StorageClass::Uniform) // const or struct
+    return get_buffer_kind(var) == BufferKind::Uniform ? ReflectionInfo::Type::ConstantBuffer : ReflectionInfo::Type::StructuredBuffer;
+
+  auto imageType = as<NodeOpTypeImage>(ptrType->type);
+  if (is<NodeOpTypeAccelerationStructureKHR>(imageType))
+    return ReflectionInfo::Type::TlasBuffer;
+  return imageType->dim == Dim::Buffer ? ReflectionInfo::Type::Buffer : ReflectionInfo::Type::Texture;
+}
+
+static ReflectionInfo convertVariableInfo(NodePointer<NodeOpVariable> var, bool sampler, bool overwrite_sets)
+{
+  ReflectionInfo ret = {};
+
+  PropertyName *name = find_property<PropertyName>(var);
+  PropertyBinding *binding = find_property<PropertyBinding>(var);
+  PropertyDescriptorSet *set = find_property<PropertyDescriptorSet>(var);
+  ret.name = name ? name->name : "";
+  ret.type = sampler ? ReflectionInfo::Type::Sampler : convertReflectionType(var);
+  ret.uav = is_uav_resource(var);
+
+  int type_set = int(ret.type) + (ret.uav ? 16 : 0);
+  ret.set = overwrite_sets ? type_set : (set ? set->descriptorSet.value : -1);
+  if (set)
+    set->descriptorSet.value = ret.set;
+
+  ret.binding = binding ? binding->bindingPoint.value % REGISTER_ENTRIES : -1;
+  if (binding && set)
+    binding->bindingPoint.value = ret.binding;
+  return ret;
+}
+
+static eastl::vector<ReflectionInfo> compileReflection(ModuleBuilder &builder, bool overwrite_sets)
+{
+  eastl::vector<ReflectionInfo> ret;
+  builder.enumerateAllGlobalVariables([&ret, overwrite_sets](auto var) //
+    {
+      auto ptrType = as<NodeOpTypePointer>(var->resultType);
+      if (ptrType->storageClass == StorageClass::UniformConstant || ptrType->storageClass == StorageClass::Uniform)
+        ret.push_back(convertVariableInfo(var, is<NodeOpTypeSampler>(ptrType->type), overwrite_sets));
+    });
+  return ret;
+}
+
+CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const char *entry, const char *profile, CompileFlags flags,
+  const eastl::vector<eastl::string_view> &disabledOptimizaions)
 {
   CompileToSpirVResult result = {};
   DXCErrorHandler errorHandler{result};
@@ -208,13 +362,14 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
   std::swprintf(spacingU, _MAX_ITOSTR_BASE10_COUNT, L"%d", REGISTER_ENTRIES * 3);
 #endif
 
+  std::wstring optConfig = getSpirvOptimizationConfigString(disabledOptimizaions);
+
   // can't use static const here, because compiler interface does not take const pointer to const
   // wchar pointer...
   eastl::vector<LPCWSTR> argBuf = //
     {L"-flegacy-macro-expansion", // currently not really needed though
       L"-fvk-use-dx-layout",      // needs either validation or extension to work
-      // L"-enable-16bit-types",      // Does not much right now
-      L"-spirv",
+      (flags & CompileFlags::ENABLE_HALFS) == CompileFlags::ENABLE_HALFS ? L"-enable-16bit-types" : L"", L"-spirv",
       // enable reflection for input laytout location remapping
       // depends on GOOGLE_* stuff, but ext specific opcodes should not end up in spirv dump
       // as this extensions are not supported by some devices causing pipeline compilation crash!
@@ -224,7 +379,7 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
       // NOTE: currently needed to avoid stomping on each others toes
       L"-fvk-s-shift", spacingS, L"0", L"-fvk-t-shift", spacingT, L"0", L"-fvk-u-shift", spacingU, L"0",
       // use slot 0 in a never used descriptor set 9 to ensure no collisions
-      L"-fvk-bind-globals", L"0", L"9",
+      L"-fvk-bind-globals", L"0", L"9", optConfig.c_str(),
       // L"-Vd"
       // force vulkan1.0 to avoid any problems with new spir-v on old devices
       L"-fspv-target-env=vulkan1.0", L"-fspv-extension=SPV_KHR_ray_tracing", L"-fspv-extension=SPV_KHR_ray_query"};
@@ -300,6 +455,8 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
           return result;
         }
 
+        make_buffer_pointer_type_unique_per_buffer(module);
+
         // default renames anything to main
         renameEntryPoints(module);
 
@@ -314,8 +471,6 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
           outLen = 0;
         }
 
-        resolveSemantics(module, inputSemantics.data(), inLen, outputSemantics.data(), outLen, errorHandler);
-
         // patch atomic counter handling
         auto atomicMapping = resolveAtomicBuffers(module, AtomicResolveMode::SeparateBuffer);
 
@@ -325,14 +480,23 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
         // Not needed for now
         // reIndex(module);
 
-        result.header = compileHeader(module, atomicMapping, flags, errorHandler);
         result.computeShaderInfo = resolveComputeShaderInfo(module);
+        if ((flags & CompileFlags::OUTPUT_REFLECTION) == CompileFlags::OUTPUT_REFLECTION)
+        {
+          result.header = {};
+          result.reflection =
+            compileReflection(module, (flags & CompileFlags::OVERWRITE_DESCRIPTOR_SETS) == CompileFlags::OVERWRITE_DESCRIPTOR_SETS);
+        }
+        else
+        {
+          resolveSemantics(module, inputSemantics.data(), inLen, outputSemantics.data(), outLen, errorHandler);
 
-        // All transform passes aim to remove the need for these, as features
-        // of this extensions only add meta data for the user but not the driver
-        cleanupReflectionLeftouts(module, errorHandler);
-        module.disableExtension(Extension::GOOGLE_hlsl_functionality1);
-        module.disableExtension(Extension::GOOGLE_user_type);
+          result.header = compileHeader(module, atomicMapping, flags, errorHandler);
+
+          cleanupReflectionLeftouts(module, errorHandler);
+          module.disableExtension(Extension::GOOGLE_hlsl_functionality1);
+          module.disableExtension(Extension::GOOGLE_user_type);
+        }
 
         // TODO: allow external control over this
         // TODO: fix writer to use this

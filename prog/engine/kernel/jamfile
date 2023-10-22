@@ -1,0 +1,125 @@
+Root    ?= ../../.. ;
+Location = prog/engine/kernel ;
+StrictCompile = yes ;
+
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine/kernel.lib ;
+
+Sources =
+  fatalerr.cpp
+  kernelGlobalSetting.cpp
+  globalVars/visibility_finder.cpp
+  globalVars/occlusion_map.cpp
+  globalVars/hdrMode.cpp
+  cdebug.c
+  debugDumpStack.cpp
+  logimpl.cpp
+  writeStream.cpp
+  cpuControl.cpp
+  perfTimer.cpp
+;
+
+if $(Platform) in win32 win64 {
+  Sources +=
+    cpuFreq.cpp
+    dagorHwExcept.cpp
+    debug.cpp
+  ;
+}
+
+if $(Platform) in xboxOne scarlett {
+  Sources +=
+    cpuFreq.cpp
+    dagorHwExcept.cpp
+  ;
+}
+
+if $(Platform) in ps4 ps5 {
+  Sources +=
+    sony/cpuFreq.cpp
+    sony/dagorHwExcept.cpp
+  ;
+}
+
+if $(Platform) = macosx {
+  Sources +=
+    debug.cpp
+    macosx/macCpuFreq.cpp
+    macosx/macGlobVars.cpp
+    dagorHwExcept.cpp
+  ;
+}
+
+if $(Platform) = iOS {
+  Sources +=
+    macosx/macCpuFreq.cpp
+    macosx/macGlobVars.cpp
+    dagorHwExcept.cpp
+  ;
+}
+
+if $(Platform) = tvOS {
+  Sources +=
+    macosx/macCpuFreq.cpp
+    dagorHwExcept.cpp
+  ;
+}
+
+if $(Platform) in linux64 {
+  Sources += debug.cpp ;
+}
+if $(Platform) in linux64 android {
+  Sources +=
+    linux/linuxCpuFreq.cpp
+    dagorHwExcept.cpp
+  ;
+}
+
+if $(Platform) in nswitch {
+  Sources +=
+    nswitch/nswitchCpuFreq.cpp
+    nswitch/oasisDagorHwExcept.cpp
+  ;
+}
+
+if $(Platform) in android {
+  Sources +=
+    and_native_app.c
+    and_debug.cpp
+    and_native_activity.cpp
+  ;
+}
+
+AddIncludes = $(Root)/prog/engine/sharedInclude ;
+
+CPPopt = -D__B_MINICORE -D__B_NO_MEM_BASE_INCLUDE=1 ;
+
+if $(Sanitize) != disabled && $(Platform) in linux64 macosx { # To consider: configure this bhv via jam opt
+  # Sanitizer writes to stderr and we'd like to get its output
+  # Note that this disables asynchronous log writes
+  CPPopt += -DDAGOR_CAPTURE_STDERR=1 ;
+}
+
+if $(Platform) in android {
+  if $(AndroidUseSignalHandler) = yes && $(AndroidUploadCrashlyticsSymbols) != yes {
+    CPPopt += -DANDROID_ENABLE_SIGNAL_LOG=1 ;
+    Target = $(Target:S=~and-sighandler.lib) ;
+  }
+  AddIncludes += $(_A_NDK_DIR)/sources/android/cpufeatures ;
+}
+
+if $(BreakpadEnabled) = yes {
+
+  CPPopt += -D__BREAKPAD_ENABLED ;
+
+  UseProgLibs = 3rdPartyLibs/breakpad ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/breakpad ;
+}
+
+if $(Config) = rel && $(ForceLogs) = yes { Sources += def_logCryptKey.cpp ; }
+
+
+include $(Root)/prog/_jBuild/build.jam ;

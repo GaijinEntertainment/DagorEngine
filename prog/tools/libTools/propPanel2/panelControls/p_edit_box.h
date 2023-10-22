@@ -8,8 +8,8 @@
 class CEditBox : public BasicPropertyControl
 {
 public:
-  CEditBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, const char caption[],
-    bool multiline);
+  CEditBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+    const char caption[], bool multiline);
   ~CEditBox();
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
@@ -26,8 +26,8 @@ public:
   void reset();
 
   void setEnabled(bool enabled);
-  void setWidth(unsigned w);
-  void setHeight(unsigned h); // make more than DEFAULT_CONTROL_HEIGHT * 2 for multiline
+  void setWidth(hdpi::Px w);
+  void setHeight(hdpi::Px h); // make more than _pxScaled(DEFAULT_CONTROL_HEIGHT) * 2 for multiline
   void setFocus();
   void moveTo(int x, int y);
 

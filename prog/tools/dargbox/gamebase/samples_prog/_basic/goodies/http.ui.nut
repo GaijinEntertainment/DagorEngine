@@ -1,13 +1,13 @@
 from "%darg/ui_imports.nut" import *
 from "iostream" import blob
 
-let http = require("dagor.http")
+let { httpRequest, HTTP_SUCCESS, HTTP_FAILED, HTTP_ABORTED } = require("dagor.http")
 let cursors = require("samples_prog/_cursors.nut")
 
 let statusText = {
-  [http.HTTP_SUCCESS] = "SUCCESS",
-  [http.HTTP_FAILED] = "FAILED",
-  [http.HTTP_ABORTED] = "ABORTED",
+  [HTTP_SUCCESS] = "SUCCESS",
+  [HTTP_FAILED] = "FAILED",
+  [HTTP_ABORTED] = "ABORTED",
 }
 
 
@@ -20,7 +20,7 @@ let function mkhttpButton(text, request){
     valign = ALIGN_CENTER
     halign = ALIGN_CENTER
     onClick = function() {
-      http.request(request)
+      httpRequest(request)
     }
     children = {
       rendObj = ROBJ_TEXT

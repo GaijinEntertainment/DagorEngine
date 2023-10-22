@@ -677,7 +677,9 @@ PictureList::~PictureList() { ImageList_Destroy((HIMAGELIST)mImageList); }
 
 int PictureList::addImage(const char *file_name)
 {
-  HBITMAP bitmap = (HBITMAP)load_bmp_picture(file_name);
+  int bm_w = 0, bm_h = 0;
+  ImageList_GetIconSize((HIMAGELIST)mImageList, &bm_w, &bm_h);
+  HBITMAP bitmap = (HBITMAP)load_bmp_picture(file_name, bm_w, bm_h);
   if (!bitmap)
   {
     debug("ERROR: cannot load bitmap \"%s\" ", file_name);

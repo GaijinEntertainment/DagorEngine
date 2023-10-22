@@ -10,24 +10,14 @@
 #include <gamePhys/collision/rendinstContactResultWrapper.h>
 
 
-// TODO: remove this _almost_ copy-paste of CollisionInstances::updateTm. We should have one way of dealing with
-// collision most times
-CollisionObject WrapperRendInstCollisionImplCB::processCollisionInstance(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info,
+CollisionObject WrapperRendInstCollisionImplCB::processCollisionInstance(const rendinst::CollisionInfo &coll_info,
   CollisionObject &alternative_obj, TMatrix &normalized_tm)
 {
   dacoll::CollisionInstances *instance = dacoll::get_collision_instances_by_handle(coll_info.handle);
-
-  Point3 localScaling = Point3(coll_info.tm.getcol(0).length(), coll_info.tm.getcol(1).length(), coll_info.tm.getcol(2).length());
-  CollisionObject cobj = instance ? instance->getCollisionObject(coll_info.desc, localScaling) : alternative_obj;
-
-  normalized_tm.setcol(0, coll_info.tm.getcol(0) * safeinv(localScaling.x));
-  normalized_tm.setcol(1, coll_info.tm.getcol(1) * safeinv(localScaling.y));
-  normalized_tm.setcol(2, coll_info.tm.getcol(2) * safeinv(localScaling.z));
-  cobj.body->setTm(normalized_tm);
-  return cobj;
+  return instance ? instance->getCollisionObject(coll_info.desc, normalized_tm) : alternative_obj;
 }
 
-void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info)
+void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::CollisionInfo &coll_info)
 {
   if (!coll_info.handle)
     return;
@@ -79,7 +69,7 @@ void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::RendInstC
   cobj.body->setUserData(prevUserPtr);
 }
 
-void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info)
+void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo &coll_info)
 {
   float ht = coll_info.localBBox[1].y;
   float rad = fabsf(coll_info.localBBox[0].x);

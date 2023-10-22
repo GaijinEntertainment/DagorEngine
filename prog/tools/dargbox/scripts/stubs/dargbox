@@ -1,0 +1,3 @@
+return {
+  get_meta_info_from_screenshot = @(_) null
+}

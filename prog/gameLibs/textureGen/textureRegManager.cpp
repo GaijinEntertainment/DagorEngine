@@ -669,7 +669,7 @@ int TextureRegManager::createParticlesBuffer(const char *name, int max_count, in
   Sbuffer *particles = 0;
   bool owned = false;
   String texName(128, "texgen_%s", name);
-  particles = d3d_buffers::create_ua_sr_structured(PARTICLE_SIZE, max_count, texName.str()); //
+  particles = d3d::buffers::create_ua_sr_structured(PARTICLE_SIZE, max_count, texName.str()); //
   owned = true;
   if (particles)
   {

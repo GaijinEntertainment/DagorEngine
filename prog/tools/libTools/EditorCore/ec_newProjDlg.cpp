@@ -5,9 +5,6 @@
 
 enum
 {
-  DIALOG_WIDTH = 460,
-  DIALOG_HEIGHT = 230,
-
   ID_NAME = 1,
   ID_LOCATION,
   ID_LABEL,
@@ -16,8 +13,7 @@ enum
 
 
 NewProjectDialog::NewProjectDialog(void *phandle, const char *caption, const char *name_label, const char *_note) :
-
-  CDialogWindow(phandle, DIALOG_WIDTH, DIALOG_HEIGHT, caption)
+  CDialogWindow(phandle, hdpi::_pxScaled(460), hdpi::_pxScaled(230), caption)
 {
   PropertyContainerControlBase *_panel = getPanel();
   G_ASSERT(_panel && "NewProjectDialog::NewProjectDialog: NO PANEL FOUND");

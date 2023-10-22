@@ -114,7 +114,7 @@ public:
   virtual void execute() = 0;
 
   KRNLIMP const void *getCurrentThreadIdPtr() const { return &id; }
-  KRNLIMP void setAffinity(unsigned int affinity);
+  KRNLIMP void setAffinity(unsigned int affinity); // TODO: make affinity ctor arg and remove this method
   KRNLIMP void setThreadIdealProcessor(int ideal_processor_no);
 
   KRNLIMP static void terminate_all(bool wait, int timeout_ms = 3000);
@@ -149,10 +149,13 @@ inline void execute_in_new_thread(F &&f, const char *thread_name = nullptr, int 
   class BgThread final : public DaThread
   {
   public:
-    BgThread(F &&f, const char *thread_name, int stk_sz, int prio) : DaThread(thread_name, stk_sz, prio), function(eastl::move(f)) {}
+    BgThread(F &&f, const char *thread_name, int stk_sz, int prio, unsigned aff) :
+      DaThread(thread_name, stk_sz, prio), function(eastl::move(f)), affinity(aff)
+    {}
 
     void execute() override
     {
+      this->setAffinity(affinity ? affinity : WORKER_THREADS_AFFINITY_MASK);
       auto is_terminating = [this]() -> bool { return this->terminating; };
       function(is_terminating);
       delete this; // DaThread's implementation allows instance deletion within it's method
@@ -160,10 +163,9 @@ inline void execute_in_new_thread(F &&f, const char *thread_name = nullptr, int 
 
   private:
     F function;
+    unsigned affinity;
   };
-  auto thr = new BgThread(eastl::move(f), thread_name, stk_sz, prio);
-  G_VERIFY(thr->start());
-  thr->setAffinity(affinity ? affinity : WORKER_THREADS_AFFINITY_MASK);
+  G_VERIFY((new BgThread(eastl::move(f), thread_name, stk_sz, prio, affinity))->start());
 }
 
 #include <supp/dag_undef_COREIMP.h>

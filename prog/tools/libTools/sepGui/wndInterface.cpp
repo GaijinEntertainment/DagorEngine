@@ -95,7 +95,7 @@ void *WinManager::getFirstWindow() const
 }
 
 
-void *WinManager::splitWindow(void *old_handle, void *new_handle, float new_window_size, WindowAlign new_window_align)
+void *WinManager::splitWindowF(void *old_handle, void *new_handle, float new_window_size, WindowAlign new_window_align)
 {
   CascadeWindow *where = (old_handle) ? this->findLayoutWindowByHandle(old_handle) : mRootWindow;
   if (!where)
@@ -110,7 +110,7 @@ void *WinManager::splitWindow(void *old_handle, void *new_handle, float new_wind
 }
 
 
-void *WinManager::splitNeighbourWindow(void *old_handle, void *new_handle, float new_window_size, WindowAlign new_window_align)
+void *WinManager::splitNeighbourWindowF(void *old_handle, void *new_handle, float new_window_size, WindowAlign new_window_align)
 {
   if (!old_handle)
     return 0;
@@ -132,7 +132,7 @@ void *WinManager::splitNeighbourWindow(void *old_handle, void *new_handle, float
 }
 
 
-bool WinManager::resizeWindow(void *handle, float new_window_size)
+bool WinManager::resizeWindowF(void *handle, float new_window_size)
 {
   ClientWindow *cw = findLayoutWindowByHandle(handle);
   if (!cw)
@@ -212,8 +212,8 @@ void WinManager::reset()
     HWND mwh = (HWND)getMainWindow();
     GetClientRect(mwh, &rct);
 
-    ClientWindow *newRoot = createClientWindow(NULL, 0, MAIN_CLIENT_AREA_OFFSET, rct.right - rct.left, rct.bottom - rct.top);
-    newRoot->setMinSize(WINDOW_MIN_SIZE_W, WINDOW_MIN_SIZE_H);
+    ClientWindow *newRoot = createClientWindow(NULL, 0, _pxS(MAIN_CLIENT_AREA_OFFSET), rct.right - rct.left, rct.bottom - rct.top);
+    newRoot->setMinSize(_pxScaled(WINDOW_MIN_SIZE_W), _pxScaled(WINDOW_MIN_SIZE_H));
 
     setRoot(newRoot);
   }
@@ -235,7 +235,7 @@ void WinManager::show(WindowSizeInit size)
 
       RECT rct;
       GetClientRect((HWND)getMainWindow(), &rct);
-      mRootWindow->resize(IPoint2(0, MAIN_CLIENT_AREA_OFFSET), IPoint2(rct.right - rct.left, rct.bottom - rct.top));
+      mRootWindow->resize(IPoint2(0, _pxS(MAIN_CLIENT_AREA_OFFSET)), IPoint2(rct.right - rct.left, rct.bottom - rct.top));
     }
     break;
   }
@@ -316,7 +316,7 @@ bool WinManager::getWindowPosSize(void *handle, int &x, int &y, unsigned &width,
   return false;
 }
 
-int WinManager::getSplitterControlSize() const { return SPLITTER_SPACE + SPLITTER_THICKNESS + SPLITTER_SPACE; }
+int WinManager::getSplitterControlSize() const { return _pxS(SPLITTER_SPACE) + _pxS(SPLITTER_THICKNESS) + _pxS(SPLITTER_SPACE); }
 
 void WinManager::setCaption(void *handle, const char *caption)
 {
@@ -326,9 +326,9 @@ void WinManager::setCaption(void *handle, const char *caption)
 }
 
 
-void WinManager::setMinSize(void *handle, int width, int height)
+void WinManager::setMinSize(void *handle, hdpi::Px width, hdpi::Px height)
 {
-  if (width < 0 || height < 0)
+  if (_px(width) < 0 || _px(height) < 0)
     return;
 
   ClientWindow *cw = findWindowByHandle(handle);
@@ -336,7 +336,7 @@ void WinManager::setMinSize(void *handle, int width, int height)
   {
     IPoint2 p1, p2;
     cw->getPos(p1, p2);
-    if (p2.x - p1.x < width || p2.y - p1.y < height)
+    if (p2.x - p1.x < _px(width) || p2.y - p1.y < _px(height))
       return;
 
     cw->setMinSize(width, height);
@@ -344,17 +344,14 @@ void WinManager::setMinSize(void *handle, int width, int height)
 }
 
 
-void WinManager::setMenuArea(void *handle, int width, int height)
+void WinManager::setMenuArea(void *handle, hdpi::Px width, hdpi::Px height)
 {
-  if (width < 0 || height < 0)
+  if (_px(width) < 0 || _px(height) < 0)
     return;
 
   ClientWindow *cw = findWindowByHandle(handle);
   if (cw)
-  {
-    IPoint2 pos(0, 0), size(width, height);
-    cw->setMenuArea(pos, size);
-  }
+    cw->setMenuArea(IPoint2(0, 0), IPoint2(_px(width), _px(height)));
 }
 
 

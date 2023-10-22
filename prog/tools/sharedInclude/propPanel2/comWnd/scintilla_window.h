@@ -7,6 +7,7 @@
 
 #include <sepGui/wndEmbeddedWindow.h>
 #include <winGuiWrapper/wgw_timer.h>
+#include <libTools/util/hdpiUtil.h>
 
 class DataBlock;
 class SimpleString;
@@ -21,7 +22,7 @@ public:
 class CScintillaWindow : public IWndEmbeddedWindow, public ITimerCallBack
 {
 public:
-  CScintillaWindow(ScintillaEH *event_handler, void *phandle, int x, int y, unsigned w, unsigned h, const char caption[]);
+  CScintillaWindow(ScintillaEH *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, const char caption[]);
   ~CScintillaWindow();
 
   void *getParentWindowHandle() { return mParentHandle; }

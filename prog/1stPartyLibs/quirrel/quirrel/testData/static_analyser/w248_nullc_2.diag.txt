@@ -1,0 +1,11 @@
+
+AN ERROR HAS OCCURRED [the index 'value' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyser/w248_nullc_2.nut line [5]
+
+LOCALS
+[i] 10
+[t] TABLE={}
+[vargv] ARRAY=[]
+[this] TABLE={}

@@ -13,7 +13,7 @@ namespace net
 {
 
 typedef net::IMessage *(*event2msg_t)(const ecs::Event &evt, IMemAlloc *alloc);
-typedef void (*msg2event_t)(ecs::EntityId eid, const net::IMessage &msg);
+typedef void (*msg2event_t)(ecs::EntityManager &mgr, ecs::EntityId eid, const net::IMessage &msg);
 
 enum class Er // abbreviation from "Event Routing"
 {
@@ -56,13 +56,13 @@ struct EventRegRecordT : public EventRegRecord
     G_ASSERT(event);
     return new (alloc) Msg(typename Evt::TupleType(*event));
   }
-  static void msg2event(ecs::EntityId eid, const net::IMessage &message)
+  static void msg2event(ecs::EntityManager &mgr, ecs::EntityId eid, const net::IMessage &message)
   {
     const Msg *msg = message.cast<Msg>();
     G_ASSERT(msg);
     Evt evt(typename Evt::TupleType(*static_cast<const typename Msg::Tuple *>(msg)));
     G_FAST_ASSERT(((EvtRt == net::Er::Unicast) && eid) || ((EvtRt != net::Er::Unicast) && !eid));
-    g_entity_mgr->dispatchEvent(eid, eastl::move(evt));
+    mgr.dispatchEvent(eid, eastl::move(evt));
   }
   EventRegRecordT(const MessageClass &mcls) : EventRegRecord(Evt::staticType(), mcls, EvtRt, event2msg, msg2event) {}
 };
@@ -72,7 +72,7 @@ namespace event
 void init_server();
 void init_client();
 void shutdown();
-bool try_receive(const net::IMessage &msg, ecs::EntityId toeid); // return false if message wasn't event one
+bool try_receive(const net::IMessage &msg, ecs::EntityManager &mgr, ecs::EntityId toeid); // return false if message wasn't event one
 IMessage *create_message_by_event(const ecs::Event &evt, net::Er er, IMemAlloc *alloc);
 }; // namespace event
 

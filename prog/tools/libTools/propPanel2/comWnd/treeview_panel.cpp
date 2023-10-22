@@ -14,12 +14,12 @@
 #include <windows.h>
 
 
-TreeBaseWindow::TreeBaseWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h,
+TreeBaseWindow::TreeBaseWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h,
   const char *caption, bool icons_show, bool state_icons_show) :
-  mTreeWnd(new WWindow(this, phandle, x, y, w, h, caption, true)),
-  mTree(new WTreeView(this, mTreeWnd, 0, 0, w, h)),
-  mPicList(new PictureList(16, 16)),
-  mStatePicList(state_icons_show ? new PictureList(16, 16) : nullptr),
+  mTreeWnd(new WWindow(this, phandle, x, y, _px(w), _px(h), caption, true)),
+  mTree(new WTreeView(this, mTreeWnd, 0, 0, _px(w), _px(h))),
+  mPicList(new PictureList(_pxS(16), _pxS(16))),
+  mStatePicList(state_icons_show ? new PictureList(_pxS(16), _pxS(16)) : nullptr),
   mEventHandler(event_handler)
 {
   mTree->setPictureList(icons_show ? mPicList : NULL);
@@ -217,12 +217,12 @@ void TreeBaseWindow::onWmEmbeddedResize(int width, int height)
 //=============================================================================
 
 
-TreeViewWindow::TreeViewWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h, unsigned ph,
+TreeViewWindow::TreeViewWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, hdpi::Px ph,
   const char *caption, bool icons_show) :
   TreeBaseWindow(event_handler, phandle, x, y, w, h, caption, icons_show),
-  mPanelFS(new CPanelWindow(this, getHandle(), x, h - ph, w, ph, caption))
+  mPanelFS(new CPanelWindow(this, getHandle(), x, _px(h - ph), w, ph, caption))
 {
-  resizeTree(0, 0, w, h - ph);
+  resizeTree(0, 0, _px(w), _px(h - ph));
 }
 
 
@@ -232,7 +232,7 @@ void TreeViewWindow::onWmEmbeddedResize(int width, int height)
   resizeTree(mTree->getX(), mTree->getY(), width, height - mPanelFS->getHeight());
 
   mPanelFS->moveTo(0, height - mPanelFS->getHeight());
-  mPanelFS->setWidth(width);
+  mPanelFS->setWidth(_pxActual(width));
 }
 
 
@@ -252,9 +252,9 @@ enum
 };
 
 
-TreeListWindow::TreeListWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h,
+TreeListWindow::TreeListWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h,
   const char *caption) :
-  TreeViewWindow(event_handler, phandle, x, y, w, h, PANEL_HEIGHT, caption, false),
+  TreeViewWindow(event_handler, phandle, x, y, w, h, _pxScaled(PANEL_HEIGHT), caption, false),
   mFilterAllStrings(midmem),
   mFilterSelectedStrings(midmem)
 {
@@ -263,8 +263,8 @@ TreeListWindow::TreeListWindow(ITreeViewEventHandler *event_handler, void *phand
 
   mList->setFont(WindowBase::getNormalFont());
 
-  mPanelWidth = w;
-  mPanelHeight = h;
+  mPanelWidth = _px(w);
+  mPanelHeight = _px(h);
   mNeedFilterButton = true;
 }
 
@@ -294,8 +294,8 @@ TreeListWindow::~TreeListWindow()
 
 void TreeListWindow::onWmEmbeddedResize(int width, int height)
 {
-  int panelHeight = mNeedFilterButton ? PANEL_HEIGHT : PANEL_HEIGHT_WITHOUT_BUTTON;
-  mPanelFS->setHeight(panelHeight);
+  int panelHeight = _pxS(mNeedFilterButton ? PANEL_HEIGHT : PANEL_HEIGHT_WITHOUT_BUTTON);
+  mPanelFS->setHeight(_pxActual(panelHeight));
 
   resizeBack(mTreeWnd->getX(), mTreeWnd->getY(), width, height);
   resizeTree(mTree->getX(), mTree->getY(), width, (height - panelHeight) / 2);
@@ -305,7 +305,7 @@ void TreeListWindow::onWmEmbeddedResize(int width, int height)
   mList->resizeWindow(width, (height - panelHeight) / 2);
 
   mPanelFS->moveTo(0, height - mPanelFS->getHeight());
-  mPanelFS->setWidth(width);
+  mPanelFS->setWidth(_pxActual(width));
 }
 
 
@@ -408,7 +408,7 @@ void TreeListWindow::onClick(int pid, PropertyContainerControlBase *panel)
 {
   if (pid == FILTER_PANEL_FILTER_TYPES)
   {
-    MultiListDialog selectAssets("Asset types filter:", 250, 450, mFilterAllStrings, mFilterSelectedStrings);
+    MultiListDialog selectAssets("Asset types filter:", _pxScaled(250), _pxScaled(450), mFilterAllStrings, mFilterSelectedStrings);
 
     if (selectAssets.showDialog() == DIALOG_ID_OK)
     {

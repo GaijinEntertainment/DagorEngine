@@ -15,6 +15,7 @@
 #include "arena.h"
 #include "sqast.h"
 #include "sqastrender.h"
+#include "static_analyser/analyser.h"
 
 SQUIRREL_API SQBool sq_tracevar(HSQUIRRELVM v, const HSQOBJECT *container, const HSQOBJECT * key, SQChar * buf, int buf_size)
 {
@@ -166,8 +167,7 @@ SQRESULT sq_compile(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar
 {
     SQObjectPtr o;
 #ifndef NO_COMPILER
-    bool useAst = _ss(v)->checkCompilationOption(CompilationOptions::CO_USE_AST_COMPILER);
-    if (Compile(v, s, size, bindings, sourcename, o, raiseerror ? true : false, _ss(v)->_debuginfo, useAst)) {
+    if (Compile(v, s, size, bindings, sourcename, o, raiseerror ? true : false, _ss(v)->_debuginfo)) {
         v->Push(SQClosure::Create(_ss(v), _funcproto(o)));
         return SQ_OK;
     }
@@ -1682,30 +1682,16 @@ SQRESULT sq_compilebuffer(HSQUIRRELVM v,const SQChar *s,SQInteger size,const SQC
 }
 
 SQRESULT sq_compilewithast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, SQBool debugInfo, const HSQOBJECT *bindings) {
-    Arena astArena(_ss(v)->_alloc_ctx, "AST Arena");
+    SQCompilation::SqASTData *astData = sq_parsetoast(v, s, size, sourcename, false, raiseerror);
 
-    SqAstNode *ast = sq_parsetoast(v, s, size, sourcename, raiseerror, &astArena);
-
-    if (!ast)
+    if (!astData)
         return SQ_ERROR;
 
-    return sq_translateasttobytecode(v, ast, bindings, sourcename, s, size, raiseerror, debugInfo);
-}
+    SQRESULT r = sq_translateasttobytecode(v, astData, bindings, s, size, raiseerror, debugInfo);
 
-SQRESULT sq_compileonepass(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, SQBool debugInfo, const HSQOBJECT *bindings)
-{
-    BufState buf;
-    buf.buf = s;
-    buf.size = size;
-    buf.ptr = 0;
+    sq_releaseASTData(v, astData);
 
-    SQObjectPtr o;
-    if (CompileOnePass(v, s, size, bindings, sourcename, o, raiseerror, debugInfo)) {
-        v->Push(SQClosure::Create(_ss(v), _funcproto(o)));
-        return SQ_OK;
-    }
-
-    return SQ_ERROR;
+    return r;
 }
 
 SQRESULT sq_translatebinaryasttobytecode(HSQUIRRELVM v, const uint8_t *buffer, size_t size, const HSQOBJECT *bindings, SQBool raiseerror) {
@@ -1717,25 +1703,25 @@ SQRESULT sq_translatebinaryasttobytecode(HSQUIRRELVM v, const uint8_t *buffer, s
     return SQ_ERROR;
 }
 
-SQRESULT sq_parsetobinaryast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, OutputStream *ostream, SQBool raiseerror) {
-    return ParseAndSaveBinaryAST(v, s, size, sourcename, ostream, raiseerror) ? SQ_OK : SQ_ERROR;
-}
-
 void sq_oncompilefile(HSQUIRRELVM v, const SQChar *sourcename)
 {
   if (v->_on_compile_file)
     v->_on_compile_file(v, sourcename);
 }
 
-SqAstNode *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, Arena *arena)
-{
-    return (Node *)ParseToAST(arena, v, s, size, sourcename, raiseerror);
+SQRESULT sq_parsetobinaryast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, OutputStream *ostream, SQBool raiseerror) {
+    return ParseAndSaveBinaryAST(v, s, size, sourcename, ostream, raiseerror) ? SQ_OK : SQ_ERROR;
 }
 
-void sq_dumpast(HSQUIRRELVM v, SqAstNode *ast, OutputStream *s)
+SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool preserveComments, SQBool raiseerror)
+{
+    return ParseToAST(v, s, size, sourcename, preserveComments, raiseerror);
+}
+
+void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, OutputStream *s)
 {
     RenderVisitor rv(s);
-    rv.render(ast);
+    rv.render(astData->root);
 }
 
 void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s)
@@ -1752,10 +1738,10 @@ void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s)
     }
 }
 
-SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SqAstNode *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const SQChar *s, SQInteger size, SQBool raiseerror, SQBool debugInfo)
+SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size, SQBool raiseerror, SQBool debugInfo)
 {
     SQObjectPtr o;
-    if (TranslateASTToBytecode(v, ast, bindings, sourcename, s, size, o, raiseerror, debugInfo))
+    if (TranslateASTToBytecode(v, astData, bindings, s, size, o, raiseerror, debugInfo))
     {
         v->Push(SQClosure::Create(_ss(v), _funcproto(o)));
         return SQ_OK;
@@ -1763,21 +1749,29 @@ SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SqAstNode *ast, const HSQOBJEC
     return SQ_ERROR;
 }
 
-void sq_analyseast(HSQUIRRELVM v, SqAstNode *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const SQChar *s, SQInteger size)
+void sq_analyseast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size)
 {
-    AnalyseCode(v, ast, bindings, sourcename, s, size);
+    AnalyseCode(v, astData, bindings, s, size);
 }
 
-Arena *sq_createarena(HSQUIRRELVM v, const SQChar *name)
+void sq_checktrailingspaces(HSQUIRRELVM v, const SQChar *sourceName, const SQChar *s, SQInteger size)
 {
-    void *ptr = sq_malloc(_ss(v)->_alloc_ctx, sizeof(Arena));
-    return new(ptr) Arena(_ss(v)->_alloc_ctx, name);
+    StaticAnalyser::checkTrailingWhitespaces(v, sourceName, s, size);
 }
 
-void sq_destroyarena(HSQUIRRELVM v, Arena *arena)
+void sq_releaseASTData(HSQUIRRELVM v, SQCompilation::SqASTData *astData)
 {
-    arena->~Arena();
-    sq_free(_ss(v)->_alloc_ctx, arena, sizeof(Arena));
+  Comments *comments = astData->comments;
+  if (comments)
+  {
+    comments->~Comments();
+    sq_vm_free(_ss(v)->_alloc_ctx, comments, sizeof(Comments));
+  }
+
+  Arena *arena = astData->astArena;
+  arena->~Arena();
+  sq_vm_free(_ss(v)->_alloc_ctx, arena, sizeof(Arena));
+  sq_vm_free(_ss(v)->_alloc_ctx, astData, sizeof(SQCompilation::SqASTData));
 }
 
 void sq_move(HSQUIRRELVM dest,HSQUIRRELVM src,SQInteger idx)
@@ -1885,4 +1879,16 @@ void sq_invertwarningsstate() {
 
 void sq_printwarningslist(FILE *ostream) {
   SQCompilationContext::printAllWarnings(ostream);
+}
+
+void sq_disablesyntaxwarnings() {
+  SQCompilationContext::switchSyntaxWarningsState(false);
+}
+
+void sq_enablesyntaxwarnings() {
+  SQCompilationContext::switchSyntaxWarningsState(true);
+}
+
+void sq_checkglobalnames(HSQUIRRELVM v) {
+  StaticAnalyser::reportGlobalNameDiagnostics(v);
 }

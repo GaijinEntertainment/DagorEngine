@@ -1,7 +1,8 @@
 #include <render/grassify.h>
 
 #include <EASTL/tuple.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstGenRender.h>
+#include <rendInst/visibility.h>
 #include <vecmath/dag_vecMath_common.h>
 #include <math/dag_bounds3.h>
 #include <math/dag_mathUtils.h>
@@ -35,7 +36,7 @@ struct GrassMaskSliceHelper
   GrassMaskSliceHelper(float texelSize, IPoint2 maskSize, const IPoint2 &offset, const Point2 &halfPixelOffset) :
     texelSize(texelSize), offset(offset), maskSize(maskSize), halfPixelOffset(halfPixelOffset)
   {
-    copy_grass_decals.init("copy_grass_decals", NULL, true);
+    copy_grass_decals.init("copy_grass_decals");
 
     shaders::OverrideState state;
     state.set(shaders::OverrideState::FLIP_CULL);
@@ -46,7 +47,7 @@ struct GrassMaskSliceHelper
       dag::create_tex(nullptr, maskSize.x, maskSize.y, TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET, 1, "grass_color_islands_tex");
   };
 
-  void renderMask(IRandomGrassRenderHelper &grassRenderHelper, MaskRenderCallback::PreRenderCallback pre_render_cb);
+  void renderMask(IRandomGrassRenderHelper &grassRenderHelper, GrassPreRenderCallback pre_render_cb);
 
   float texelSize;
   IPoint2 maskSize;
@@ -86,7 +87,7 @@ private:
   int rendinstGrassifySceneBlockId = ShaderGlobal::getBlockId("rendinst_grassify_scene");
 };
 
-void GrassMaskSliceHelper::renderMask(IRandomGrassRenderHelper &grassRenderHelper, MaskRenderCallback::PreRenderCallback pre_render_cb)
+void GrassMaskSliceHelper::renderMask(IRandomGrassRenderHelper &grassRenderHelper, GrassPreRenderCallback pre_render_cb)
 {
   TIME_D3D_PROFILE(grassify_mask)
 
@@ -159,8 +160,8 @@ void GrassGenerateHelper::generate(const Point3 &position, const IPoint2 &grassM
       );
       //  ShaderGlobal::set_color4(grass_grid_paramsVarId, alignedCenterPos.x, alignedCenterPos.y, currentGridSize, quadSize);
 
-      rendinst::renderRIGen(rendinst::RenderPass::Grassify, rendinstVisibility, orthonormalized_inverse(vtm), rendinst::LAYER_OPAQUE,
-        rendinst::OptimizeDepthPass::No, 3);
+      rendinst::render::renderRIGen(rendinst::RenderPass::Grassify, rendinstVisibility, orthonormalized_inverse(vtm),
+        rendinst::LayerFlag::Opaque, rendinst::OptimizeDepthPass::No, 3);
     };
 
     const float nextLodDistMul = 2.5f;
@@ -238,7 +239,7 @@ Grassify::Grassify(const DataBlock &, int grassMaskResolution, float grassDistan
 }
 
 void Grassify::generate(const Point3 &pos, const TMatrix &view_itm, Texture *grass_mask, IRandomGrassRenderHelper &grassRenderHelper,
-  MaskRenderCallback::PreRenderCallback pre_render_cb, const GPUGrassBase &gpuGrassBase)
+  GrassPreRenderCallback pre_render_cb, const GPUGrassBase &gpuGrassBase)
 {
   if (!grassMaskHelper)
     generateGrassMask(grassRenderHelper, eastl::move(pre_render_cb));
@@ -254,7 +255,7 @@ void Grassify::generate(const Point3 &pos, const TMatrix &view_itm, Texture *gra
     grassMaskHelper->texelSize, view_itm, gpuGrassBase);
 }
 
-void Grassify::generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper, MaskRenderCallback::PreRenderCallback pre_render_cb)
+void Grassify::generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper, GrassPreRenderCallback pre_render_cb)
 {
   Color4 rendinst_landscape_area_left_top_right_bottom = ShaderGlobal::get_color4(rendinst_landscape_area_left_top_right_bottomVarId);
 

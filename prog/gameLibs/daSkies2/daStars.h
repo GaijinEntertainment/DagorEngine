@@ -9,8 +9,8 @@ class DataBlock;
 class DaStars
 {
 public:
-  void renderStars(float sun_brightness, float latitude = 55, float longtitude = 37, double julian_day = 2457388.5,
-    float initial_azimuth_angle = 0.0f, float stars_intensity_mul = 1.0f); // 2016-01-01:00
+  void renderStars(const Driver3dPerspective &persp, float sun_brightness, float latitude = 55, float longtitude = 37,
+    double julian_day = 2457388.5, float initial_azimuth_angle = 0.0f, float stars_intensity_mul = 1.0f); // 2016-01-01:00
   void renderMoon(const Point3 &origin, const Point3 &moon_dir, float moonAge, float sun_brightness);
   void renderCelestialObject(TEXTUREID tid, const Point3 &dir, float phase, float intensity, float size);
   bool setMoonVars(const Point3 &origin, const Point3 &moonDir, float moonAge, float sun_brightness); // if true moon should be

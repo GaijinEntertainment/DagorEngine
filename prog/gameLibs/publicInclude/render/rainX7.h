@@ -15,14 +15,17 @@
 
 class RainX7
 {
+  void fillBuffers();
+
 public:
   RainX7(const DataBlock &blk);
   ~RainX7();
 
   void update(float dt, const Point3 &camera_speed);
-  void render(uint32_t view_id = 0);
+  void render(const Point3 &view_pos, const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix4 &globtm, uint32_t view_id = 0);
 
   void setOccluder(float x1, float z1, float x2, float z2, float y);
+  void afterReset() { fillBuffers(); }
 
   enum
   {
@@ -96,6 +99,6 @@ public:
   TMatrix4 currentGlobTm[MAX_VIEWS];
   TMatrix4 prevGlobTm[MAX_VIEWS];
 
-  void setConstants(uint32_t view_id);
-  void setPassConstants(unsigned int pass_no, float alpha);
+  void setConstants(uint32_t view_id, const Point3 &view_pos, const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix4 &globtm);
+  void setPassConstants(unsigned int pass_no, float alpha, const Point3 &view_pos, const TMatrix &view_tm);
 };

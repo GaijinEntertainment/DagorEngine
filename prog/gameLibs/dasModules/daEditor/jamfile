@@ -27,7 +27,7 @@ if $(Platform) in win32 win64 {
 
 UseProgLibs =
   1stPartyLibs/daScript
-  gameLibs/daEditor4
+  gameLibs/daEditorE
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -53,7 +53,7 @@
 #define _ATAN_EST_S3        0.28205206687035841409e2f
 
 // calculates 4 in ~2.14x speed of win libc implementation for 1, with same precision
-VECMATH_FINLINE void VECTORCALL v_sincos4(vec4f ang, vec4f& s, vec4f& c)
+VECTORCALL VECMATH_FINLINE void v_sincos4(vec4f ang, vec4f& s, vec4f& c)
 {
   vec4f xl, xl2, xl3;
   vec4i q;
@@ -97,7 +97,7 @@ VECMATH_FINLINE void VECTORCALL v_sincos4(vec4f ang, vec4f& s, vec4f& c)
 }
 
 // calculates 4 in 2x speed of win libc implementation for 1, with same precision
-VECMATH_FINLINE vec4f VECTORCALL v_sin(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_sin(vec4f ang)
 {
   vec4f s, c;
   v_sincos4(ang, s, c);
@@ -105,7 +105,7 @@ VECMATH_FINLINE vec4f VECTORCALL v_sin(vec4f ang)
 }
 
 // calculates 4 in 2x speed of win libc implementation for 1, with same precision
-VECMATH_FINLINE vec4f VECTORCALL v_cos(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_cos(vec4f ang)
 {
   vec4f s, c;
   v_sincos4(ang, s, c);
@@ -113,7 +113,7 @@ VECMATH_FINLINE vec4f VECTORCALL v_cos(vec4f ang)
 }
 
 // calculates 4 in ~1.13x speed of win libc implementation for 1, with same precision
-VECMATH_FINLINE vec4f VECTORCALL v_tan(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_tan(vec4f ang)
 {
   vec4f x = v_abs(ang);
   vec4f signBit = v_and(ang, V_CI_SIGN_MASK);
@@ -151,7 +151,7 @@ VECMATH_FINLINE vec4f VECTORCALL v_tan(vec4f ang)
 }
 
 // calculates 4 in ~1.84x speed of win libc implementation for 1, with same precision
-VECMATH_FINLINE vec4f VECTORCALL v_asin(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_asin(vec4f ang)
 {
   vec4f x = v_abs(ang);
   vec4f signBit = v_and(ang, V_CI_SIGN_MASK);
@@ -181,7 +181,7 @@ VECMATH_FINLINE vec4f VECTORCALL v_asin(vec4f ang)
 }
 
 // calculates 4 in ~1.08x speed of win libc implementation for 1, with same precision
-VECMATH_FINLINE vec4f VECTORCALL v_acos(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_acos(vec4f ang)
 {
   vec4f polyMask1 = v_cmp_ge(v_neg(V_C_HALF), ang);
   vec4f polyMask2 = v_cmp_ge(ang, V_C_HALF);
@@ -228,7 +228,7 @@ VECMATH_FINLINE vec4f VECTORCALL v_acos(vec4f ang)
 }
 
 // calculates 4 in ~1.72x speed of win libc implementation for 1, with same precision
-VECMATH_FINLINE vec4f VECTORCALL v_atan(vec4f x)
+VECTORCALL VECMATH_FINLINE vec4f v_atan(vec4f x)
 {
   vec4f signBit = v_and(x, V_CI_SIGN_MASK);
   x = v_abs(x);
@@ -258,7 +258,7 @@ VECMATH_FINLINE vec4f VECTORCALL v_atan(vec4f x)
 
 // approximate atan_est |error| is < 0.00045
 // calculates 4 in ~2.81x speed of win libc implementation for 1, with same precision
-VECMATH_INLINE vec4f VECTORCALL v_atan_est(vec4f x)  // any x
+VECTORCALL VECMATH_INLINE  vec4f v_atan_est(vec4f x)  // any x
 {
   vec4f xRcp = v_rcp_est(x);
 
@@ -285,7 +285,7 @@ VECMATH_INLINE vec4f VECTORCALL v_atan_est(vec4f x)  // any x
 }
 
 // calculates 4 in ~1.47x speed of win libc implementation for 1, with same precision
-VECMATH_FINLINE vec4f VECTORCALL v_atan2(vec4f y, vec4f x)
+VECTORCALL VECMATH_FINLINE vec4f v_atan2(vec4f y, vec4f x)
 {
   vec4f maskYgt0 = v_cmp_ge(y, v_zero());
   vec4f maskYlt0 = v_cmp_ge(v_zero(), y);
@@ -315,7 +315,7 @@ VECMATH_FINLINE vec4f VECTORCALL v_atan2(vec4f y, vec4f x)
 // (+0, +0), (+0, -0), (-0, +0), (-0, -0)
 // could be fixed to handle
 // calculates 4 in 2x speed of win libc implementation for 1, with same precision
-VECMATH_INLINE vec4f VECTORCALL v_atan2_est(vec4f y, vec4f x)
+VECTORCALL VECMATH_INLINE  vec4f v_atan2_est(vec4f y, vec4f x)
 {
   // compute the atan
   vec4f raw_atan = v_atan_est(v_div_est(y, x));
@@ -337,52 +337,52 @@ VECMATH_INLINE vec4f VECTORCALL v_atan2_est(vec4f y, vec4f x)
   return yzeroneg_fixed;
 }
 
-VECMATH_FINLINE void VECTORCALL v_sincos_x(vec4f ang, vec4f& s, vec4f& c)
+VECTORCALL VECMATH_FINLINE void v_sincos_x(vec4f ang, vec4f& s, vec4f& c)
 {
   v_sincos4(ang, s, c);
 }
 
-VECMATH_FINLINE vec4f VECTORCALL v_sin_x(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_sin_x(vec4f ang)
 {
   return v_sin(ang);
 }
 
-VECMATH_FINLINE vec4f VECTORCALL v_cos_x(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_cos_x(vec4f ang)
 {
   return v_cos(ang);
 }
 
-VECMATH_FINLINE vec4f VECTORCALL v_tan_x(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_tan_x(vec4f ang)
 {
   return v_tan(ang);
 }
 
-VECMATH_FINLINE vec4f VECTORCALL v_asin_x(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_asin_x(vec4f ang)
 {
   return v_asin(ang);
 }
 
-VECMATH_FINLINE vec4f VECTORCALL v_acos_x(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_acos_x(vec4f ang)
 {
   return v_acos(ang);
 }
 
-VECMATH_FINLINE vec4f VECTORCALL v_atan_x(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_atan_x(vec4f ang)
 {
   return v_atan(ang);
 }
 
-VECMATH_FINLINE vec4f VECTORCALL v_atan_est_x(vec4f ang)
+VECTORCALL VECMATH_FINLINE vec4f v_atan_est_x(vec4f ang)
 {
   return v_atan_est(ang);
 }
 
-VECMATH_FINLINE vec4f VECTORCALL v_atan2_x(vec4f y, vec4f x)
+VECTORCALL VECMATH_FINLINE vec4f v_atan2_x(vec4f y, vec4f x)
 {
   return v_atan2(y, x);
 }
 
-VECMATH_FINLINE vec4f VECTORCALL v_atan2_est_x(vec4f y, vec4f x)
+VECTORCALL VECMATH_FINLINE vec4f v_atan2_est_x(vec4f y, vec4f x)
 {
   return v_atan2_est(y, x);
 }

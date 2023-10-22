@@ -80,7 +80,7 @@ void DynamicLightProbe::init(unsigned int size, const char *name, unsigned fmt, 
       return;
   }
 
-  blendCubesRenderer = create_postfx_renderer("blend_light_probes", false);
+  blendCubesRenderer = create_postfx_renderer("blend_light_probes");
 
   if (blendCubesRenderer)
   {

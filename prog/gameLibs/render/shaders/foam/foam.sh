@@ -13,13 +13,16 @@ texture foam_final_tex;
 
 float foam_tile_uv_scale = 0.05;
 float foam_distortion_scale = 0.75;
+float foam_normal_scale = 0.1;
 float foam_pattern_gamma = 2.2;
 float foam_mask_gamma = 2.2;
-float foam_overfoam_threshold = 0.25;
-float foam_underfoam_threshold = 0.1;
 float foam_gradient_gamma = 2.2;
-float4 foam_final_weights = (0.2, 1.0, 0.0, 0.0);
-float foam_normal_scale = 0.1;
+float foam_underfoam_threshold = 0.1;
+float foam_overfoam_threshold = 0.25;
+float foam_underfoam_weight = 0.2;
+float foam_overfoam_weight = 1.0;
+float4 foam_underfoam_color = (1,1,1,1);
+float4 foam_overfoam_color = (1,1,1,1);
 
 int foam_prepare_debug_step = 4;
 interval foam_prepare_debug_step: prepare_step_pattern<1, prepare_step_masked_pattern<2, prepare_step_threshold<3, prepare_step_thresholded_pattern<4, all_prepare_steps;
@@ -162,7 +165,7 @@ shader foam_prepare
             float3 flowmapSample2 = tex2Dlod(water_flowmap_tex, float4(flowmapUV2, 0, 0)).xyz - flowmapBias;
             float flowmapFoam = abs(dot(float2(flowmapSample1.x, flowmapSample1.y), float2(flowmapSample2.y, -flowmapSample2.x)));
             flowmapFoam = saturate(pow(flowmapFoam, water_flowmap_strength.z) * water_flowmap_strength.y);
-            flowmapSample += flowmapSample1;
+            flowmapSample += flowmapSample1 * water_flowmap_strength.x;
             flowmapSample.z += flowmapFoam;
           }
         ##endif
@@ -175,9 +178,7 @@ shader foam_prepare
           }
         ##endif
         float2 flowmapVec = flowmapSample.xy - flowmapBias.xy;
-        float flowmapLength = length(flowmapVec);
-        if (flowmapLength > 0.0001)
-          flowmapVec *= water_flowmap_strength.x * water_flowmap_fading / flowmapLength;
+        flowmapVec *= water_flowmap_fading;
 
         float flowmapTime = current_time * inv_water_flowmap_fading;
         float2 flowmapVec_a = flowmapVec * frac(flowmapTime + 0.0) - windVec;
@@ -196,9 +197,10 @@ shader foam_prepare
         crossFade = smoothstep(0, 1, crossFade);
         half flowFoamTile = lerp(flowFoamTileA, flowFoamTileB, crossFade);
         float flowFoamStrength = min(pow(flowmapSample.z, water_flowmap_foam_power) * water_flowmap_foam_scale, 1 + water_flowmap_foam_threshold);
+        flowFoamStrength *= saturate(water_flowmap_strength.w);
 
         float pattern = flowFoamTile;
-        mask += flowFoamStrength * water_flowmap_strength.w;
+        mask += flowFoamStrength;
       ##endif
 
       ##if foam_prepare_debug_step == prepare_step_pattern
@@ -266,12 +268,17 @@ shader foam_combine
     foam_overfoam_tex@smp2d = foam_overfoam_tex;
     foam_underfoam_tex@smp2d = foam_underfoam_tex;
     foam_generator_gradient@smp2d = foam_generator_gradient;
-    foam_gradient_gamma@f1 = (foam_gradient_gamma);
-    foam_final_weights@f2 = (foam_final_weights);
+    foam_gamma_weight@f3 = (foam_gradient_gamma, foam_underfoam_weight, foam_overfoam_weight);
+    foam_underfoam_color@f3 = (foam_underfoam_color);
+    foam_overfoam_color@f3 = (foam_overfoam_color);
   }
 
   hlsl(ps)
   {
+    #define foam_gradient_gamma (foam_gamma_weight.x)
+    #define foam_underfoam_weight (foam_gamma_weight.y)
+    #define foam_overfoam_weight (foam_gamma_weight.z)
+
     float4 combine_ps(VsOutput input): SV_Target
     {
       float overfoam_gray = tex2D(foam_overfoam_tex, input.uv).r;
@@ -280,7 +287,13 @@ shader foam_combine
       float3 overfoam_color = pow(tex2D(foam_generator_gradient, float2(overfoam_gray, 0.0)).rgb, 1.0/foam_gradient_gamma);
       float3 underfoam_color = pow(tex2D(foam_generator_gradient, float2(underfoam_gray, 0.0)).rgb, 1.0/foam_gradient_gamma);
 
-      return float4(foam_final_weights.x*underfoam_color+foam_final_weights.y*overfoam_color, 1.0-overfoam_gray);
+      overfoam_color *= foam_overfoam_color;
+      underfoam_color *= foam_underfoam_color;
+
+      float3 final_color = foam_underfoam_weight*underfoam_color+foam_overfoam_weight*overfoam_color;
+      float final_alpha = foam_underfoam_weight*underfoam_gray+foam_overfoam_weight*overfoam_gray;
+
+      return float4(final_color, saturate(1.0-final_alpha));
     }
   }
 

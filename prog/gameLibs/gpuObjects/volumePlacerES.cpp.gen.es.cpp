@@ -78,10 +78,11 @@ static ecs::EntitySystemDesc gpu_object_distance_emitter_es_event_handler_es_des
 ,nullptr,"gpu_objects_distance_emitter__range,gpu_objects_distance_emitter__rotation_factor,gpu_objects_distance_emitter__scale_factor,transform");
 static constexpr ecs::ComponentDesc gpu_object_placer_changed_es_event_handler_comps[] =
 {
-//start of 10 rw components at [0]
+//start of 11 rw components at [0]
   {ECS_HASH("gpu_object_placer__ri_asset_idx"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__filled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__buffer_offset"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("gpu_object_placer__distance_emitter_decal_buffer_size"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__distance_emitter_buffer_size"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__buffer_size"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__on_rendinst_geometry_count"), ecs::ComponentTypeInfo<int>()},
@@ -89,10 +90,10 @@ static constexpr ecs::ComponentDesc gpu_object_placer_changed_es_event_handler_c
   {ECS_HASH("gpu_object_placer__object_up_vector_threshold"), ecs::ComponentTypeInfo<Point4>()},
   {ECS_HASH("gpu_object_placer__distance_emitter_eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("gpu_object_placer__distance_emitter_is_dirty"), ecs::ComponentTypeInfo<bool>()},
-//start of 2 ro components at [10]
+//start of 2 ro components at [11]
   {ECS_HASH("ri_gpu_object__name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 18 rq components at [12]
+//start of 20 rq components at [13]
   {ECS_HASH("gpu_object_placer__distance_based_scale"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("gpu_object_placer__object_scale_range"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("gpu_object_placer__distance_to_scale_from"), ecs::ComponentTypeInfo<Point3>()},
@@ -100,6 +101,8 @@ static constexpr ecs::ComponentDesc gpu_object_placer_changed_es_event_handler_c
   {ECS_HASH("gpu_object_placer__distance_to_scale_to"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("gpu_object_placer__decal"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("gpu_object_placer__distance_affect_decals"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("gpu_object_placer__distance_out_of_range"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__distorsion"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__opaque"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__place_on_geometry"), ecs::ComponentTypeInfo<bool>()},
@@ -120,6 +123,7 @@ static void gpu_object_placer_changed_es_event_handler_all_events(const ecs::Eve
     , ECS_RW_COMP(gpu_object_placer_changed_es_event_handler_comps, "gpu_object_placer__ri_asset_idx", int)
     , ECS_RW_COMP(gpu_object_placer_changed_es_event_handler_comps, "gpu_object_placer__filled", bool)
     , ECS_RW_COMP(gpu_object_placer_changed_es_event_handler_comps, "gpu_object_placer__buffer_offset", int)
+    , ECS_RW_COMP(gpu_object_placer_changed_es_event_handler_comps, "gpu_object_placer__distance_emitter_decal_buffer_size", int)
     , ECS_RW_COMP(gpu_object_placer_changed_es_event_handler_comps, "gpu_object_placer__distance_emitter_buffer_size", int)
     , ECS_RW_COMP(gpu_object_placer_changed_es_event_handler_comps, "gpu_object_placer__buffer_size", int)
     , ECS_RW_COMP(gpu_object_placer_changed_es_event_handler_comps, "gpu_object_placer__on_rendinst_geometry_count", int)
@@ -136,16 +140,16 @@ static ecs::EntitySystemDesc gpu_object_placer_changed_es_event_handler_es_desc
   "gpu_object_placer_changed_es",
   "prog/gameLibs/gpuObjects/volumePlacerES.cpp.inl",
   ecs::EntitySystemOps(nullptr, gpu_object_placer_changed_es_event_handler_all_events),
-  make_span(gpu_object_placer_changed_es_event_handler_comps+0, 10)/*rw*/,
-  make_span(gpu_object_placer_changed_es_event_handler_comps+10, 2)/*ro*/,
-  make_span(gpu_object_placer_changed_es_event_handler_comps+12, 18)/*rq*/,
+  make_span(gpu_object_placer_changed_es_event_handler_comps+0, 11)/*rw*/,
+  make_span(gpu_object_placer_changed_es_event_handler_comps+11, 2)/*ro*/,
+  make_span(gpu_object_placer_changed_es_event_handler_comps+13, 20)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<>::build(),
   0
-,"dev,render","gpu_object_placer__decal,gpu_object_placer__distance_based_scale,gpu_object_placer__distance_to_rotation_from,gpu_object_placer__distance_to_rotation_pow,gpu_object_placer__distance_to_rotation_to,gpu_object_placer__distance_to_scale_from,gpu_object_placer__distance_to_scale_pow,gpu_object_placer__distance_to_scale_to,gpu_object_placer__distorsion,gpu_object_placer__min_gathered_triangle_size,gpu_object_placer__min_scale_radius,gpu_object_placer__object_density,gpu_object_placer__object_max_count,gpu_object_placer__object_scale_range,gpu_object_placer__object_up_vector_threshold,gpu_object_placer__opaque,gpu_object_placer__place_on_geometry,gpu_object_placer__use_distance_emitter,ri_gpu_object__name,transform");
+,"dev,render","gpu_object_placer__decal,gpu_object_placer__distance_affect_decals,gpu_object_placer__distance_based_scale,gpu_object_placer__distance_out_of_range,gpu_object_placer__distance_to_rotation_from,gpu_object_placer__distance_to_rotation_pow,gpu_object_placer__distance_to_rotation_to,gpu_object_placer__distance_to_scale_from,gpu_object_placer__distance_to_scale_pow,gpu_object_placer__distance_to_scale_to,gpu_object_placer__distorsion,gpu_object_placer__min_gathered_triangle_size,gpu_object_placer__min_scale_radius,gpu_object_placer__object_density,gpu_object_placer__object_max_count,gpu_object_placer__object_scale_range,gpu_object_placer__object_up_vector_threshold,gpu_object_placer__opaque,gpu_object_placer__place_on_geometry,gpu_object_placer__use_distance_emitter,ri_gpu_object__name,transform");
 static constexpr ecs::ComponentDesc gpu_object_placer_create_es_event_handler_comps[] =
 {
-//start of 8 rw components at [0]
+//start of 9 rw components at [0]
   {ECS_HASH("gpu_object_placer__ri_asset_idx"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__filled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__buffer_size"), ecs::ComponentTypeInfo<int>()},
@@ -153,8 +157,9 @@ static constexpr ecs::ComponentDesc gpu_object_placer_create_es_event_handler_co
   {ECS_HASH("gpu_object_placer__on_terrain_geometry_count"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__buffer_offset"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__distance_emitter_buffer_size"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("gpu_object_placer__distance_emitter_decal_buffer_size"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__object_up_vector_threshold"), ecs::ComponentTypeInfo<Point4>()},
-//start of 5 ro components at [8]
+//start of 5 ro components at [9]
   {ECS_HASH("ri_gpu_object__name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("gpu_object_placer__opaque"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__decal"), ecs::ComponentTypeInfo<bool>()},
@@ -174,6 +179,7 @@ static void gpu_object_placer_create_es_event_handler_all_events(const ecs::Even
     , ECS_RW_COMP(gpu_object_placer_create_es_event_handler_comps, "gpu_object_placer__on_terrain_geometry_count", int)
     , ECS_RW_COMP(gpu_object_placer_create_es_event_handler_comps, "gpu_object_placer__buffer_offset", int)
     , ECS_RW_COMP(gpu_object_placer_create_es_event_handler_comps, "gpu_object_placer__distance_emitter_buffer_size", int)
+    , ECS_RW_COMP(gpu_object_placer_create_es_event_handler_comps, "gpu_object_placer__distance_emitter_decal_buffer_size", int)
     , ECS_RO_COMP(gpu_object_placer_create_es_event_handler_comps, "gpu_object_placer__opaque", bool)
     , ECS_RO_COMP(gpu_object_placer_create_es_event_handler_comps, "gpu_object_placer__decal", bool)
     , ECS_RO_COMP(gpu_object_placer_create_es_event_handler_comps, "gpu_object_placer__distorsion", bool)
@@ -187,8 +193,8 @@ static ecs::EntitySystemDesc gpu_object_placer_create_es_event_handler_es_desc
   "gpu_object_placer_create_es",
   "prog/gameLibs/gpuObjects/volumePlacerES.cpp.inl",
   ecs::EntitySystemOps(nullptr, gpu_object_placer_create_es_event_handler_all_events),
-  make_span(gpu_object_placer_create_es_event_handler_comps+0, 8)/*rw*/,
-  make_span(gpu_object_placer_create_es_event_handler_comps+8, 5)/*ro*/,
+  make_span(gpu_object_placer_create_es_event_handler_comps+0, 9)/*rw*/,
+  make_span(gpu_object_placer_create_es_event_handler_comps+9, 5)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated>::build(),
@@ -196,11 +202,12 @@ static ecs::EntitySystemDesc gpu_object_placer_create_es_event_handler_es_desc
 ,"render");
 static constexpr ecs::ComponentDesc gpu_object_placer_destroy_es_event_handler_comps[] =
 {
-//start of 4 ro components at [0]
+//start of 5 ro components at [0]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("gpu_object_placer__buffer_size"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__buffer_offset"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("gpu_object_placer__distance_emitter_buffer_size"), ecs::ComponentTypeInfo<int>()}
+  {ECS_HASH("gpu_object_placer__distance_emitter_buffer_size"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("gpu_object_placer__distance_emitter_decal_buffer_size"), ecs::ComponentTypeInfo<int>()}
 };
 static void gpu_object_placer_destroy_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -210,6 +217,7 @@ static void gpu_object_placer_destroy_es_event_handler_all_events(const ecs::Eve
     , ECS_RO_COMP(gpu_object_placer_destroy_es_event_handler_comps, "gpu_object_placer__buffer_size", int)
     , ECS_RO_COMP(gpu_object_placer_destroy_es_event_handler_comps, "gpu_object_placer__buffer_offset", int)
     , ECS_RO_COMP(gpu_object_placer_destroy_es_event_handler_comps, "gpu_object_placer__distance_emitter_buffer_size", int)
+    , ECS_RO_COMP(gpu_object_placer_destroy_es_event_handler_comps, "gpu_object_placer__distance_emitter_decal_buffer_size", int)
     );
   while (++comp != compE);
 }
@@ -219,7 +227,7 @@ static ecs::EntitySystemDesc gpu_object_placer_destroy_es_event_handler_es_desc
   "prog/gameLibs/gpuObjects/volumePlacerES.cpp.inl",
   ecs::EntitySystemOps(nullptr, gpu_object_placer_destroy_es_event_handler_all_events),
   empty_span(),
-  make_span(gpu_object_placer_destroy_es_event_handler_comps+0, 4)/*ro*/,
+  make_span(gpu_object_placer_destroy_es_event_handler_comps+0, 5)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityDestroyed,
@@ -228,16 +236,17 @@ static ecs::EntitySystemDesc gpu_object_placer_destroy_es_event_handler_es_desc
 ,"render");
 static constexpr ecs::ComponentDesc gpu_object_placer_fill_ecs_query_comps[] =
 {
-//start of 8 rw components at [0]
+//start of 9 rw components at [0]
   {ECS_HASH("gpu_object_placer__current_distance_squared"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("gpu_object_placer__filled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__buffer_offset"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("gpu_object_placer__distance_emitter_decal_buffer_size"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__distance_emitter_buffer_size"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__buffer_size"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__on_rendinst_geometry_count"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__on_terrain_geometry_count"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__distance_emitter_is_dirty"), ecs::ComponentTypeInfo<bool>()},
-//start of 20 ro components at [8]
+//start of 22 ro components at [9]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("gpu_object_placer__ri_asset_idx"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__visible_distance_squared"), ecs::ComponentTypeInfo<float>()},
@@ -257,16 +266,18 @@ static constexpr ecs::ComponentDesc gpu_object_placer_fill_ecs_query_comps[] =
   {ECS_HASH("gpu_object_placer__distance_to_scale_pow"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("gpu_object_placer__distance_to_rotation_pow"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("gpu_object_placer__use_distance_emitter"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("gpu_object_placer__distance_affect_decals"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("gpu_object_placer__distance_out_of_range"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 1 rq components at [28]
+//start of 1 rq components at [31]
   {ECS_HASH("box_zone"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc gpu_object_placer_fill_ecs_query_desc
 (
   "gpu_objects::gpu_object_placer_fill_ecs_query",
-  make_span(gpu_object_placer_fill_ecs_query_comps+0, 8)/*rw*/,
-  make_span(gpu_object_placer_fill_ecs_query_comps+8, 20)/*ro*/,
-  make_span(gpu_object_placer_fill_ecs_query_comps+28, 1)/*rq*/,
+  make_span(gpu_object_placer_fill_ecs_query_comps+0, 9)/*rw*/,
+  make_span(gpu_object_placer_fill_ecs_query_comps+9, 22)/*ro*/,
+  make_span(gpu_object_placer_fill_ecs_query_comps+31, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void gpu_objects::gpu_object_placer_fill_ecs_query(Callable function)
@@ -285,6 +296,7 @@ inline void gpu_objects::gpu_object_placer_fill_ecs_query(Callable function)
             , ECS_RW_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__current_distance_squared", float)
             , ECS_RW_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__filled", bool)
             , ECS_RW_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__buffer_offset", int)
+            , ECS_RW_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__distance_emitter_decal_buffer_size", int)
             , ECS_RW_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__distance_emitter_buffer_size", int)
             , ECS_RW_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__buffer_size", int)
             , ECS_RW_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__on_rendinst_geometry_count", int)
@@ -304,6 +316,8 @@ inline void gpu_objects::gpu_object_placer_fill_ecs_query(Callable function)
             , ECS_RO_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__distance_to_scale_pow", Point3)
             , ECS_RO_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__distance_to_rotation_pow", float)
             , ECS_RO_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__use_distance_emitter", bool)
+            , ECS_RO_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__distance_affect_decals", bool)
+            , ECS_RO_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__distance_out_of_range", bool)
             , ECS_RO_COMP(gpu_object_placer_fill_ecs_query_comps, "transform", TMatrix)
             );
 
@@ -315,15 +329,16 @@ static constexpr ecs::ComponentDesc gpu_object_placer_copy_on_expand_ecs_query_c
 {
 //start of 1 rw components at [0]
   {ECS_HASH("gpu_object_placer__buffer_offset"), ecs::ComponentTypeInfo<int>()},
-//start of 2 ro components at [1]
+//start of 3 ro components at [1]
   {ECS_HASH("gpu_object_placer__buffer_size"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("gpu_object_placer__distance_emitter_buffer_size"), ecs::ComponentTypeInfo<int>()}
+  {ECS_HASH("gpu_object_placer__distance_emitter_buffer_size"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("gpu_object_placer__distance_emitter_decal_buffer_size"), ecs::ComponentTypeInfo<int>()}
 };
 static ecs::CompileTimeQueryDesc gpu_object_placer_copy_on_expand_ecs_query_desc
 (
   "gpu_objects::gpu_object_placer_copy_on_expand_ecs_query",
   make_span(gpu_object_placer_copy_on_expand_ecs_query_comps+0, 1)/*rw*/,
-  make_span(gpu_object_placer_copy_on_expand_ecs_query_comps+1, 2)/*ro*/,
+  make_span(gpu_object_placer_copy_on_expand_ecs_query_comps+1, 3)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -338,6 +353,7 @@ inline void gpu_objects::gpu_object_placer_copy_on_expand_ecs_query(Callable fun
               ECS_RW_COMP(gpu_object_placer_copy_on_expand_ecs_query_comps, "gpu_object_placer__buffer_offset", int)
             , ECS_RO_COMP(gpu_object_placer_copy_on_expand_ecs_query_comps, "gpu_object_placer__buffer_size", int)
             , ECS_RO_COMP(gpu_object_placer_copy_on_expand_ecs_query_comps, "gpu_object_placer__distance_emitter_buffer_size", int)
+            , ECS_RO_COMP(gpu_object_placer_copy_on_expand_ecs_query_comps, "gpu_object_placer__distance_emitter_decal_buffer_size", int)
             );
 
         }while (++comp != compE);
@@ -346,12 +362,13 @@ inline void gpu_objects::gpu_object_placer_copy_on_expand_ecs_query(Callable fun
 }
 static constexpr ecs::ComponentDesc gpu_object_placer_visibility_ecs_query_comps[] =
 {
-//start of 12 ro components at [0]
+//start of 13 ro components at [0]
   {ECS_HASH("gpu_object_placer__ri_asset_idx"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__buffer_size"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__current_distance_squared"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("gpu_object_placer__buffer_offset"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__distance_emitter_buffer_size"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("gpu_object_placer__distance_emitter_decal_buffer_size"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__opaque"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__decal"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__distorsion"), ecs::ComponentTypeInfo<bool>()},
@@ -359,15 +376,15 @@ static constexpr ecs::ComponentDesc gpu_object_placer_visibility_ecs_query_comps
   {ECS_HASH("gpu_object_placer__distance_emitter_eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("gpu_object_placer__filled"), ecs::ComponentTypeInfo<bool>()},
-//start of 1 rq components at [12]
+//start of 1 rq components at [13]
   {ECS_HASH("box_zone"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc gpu_object_placer_visibility_ecs_query_desc
 (
   "gpu_objects::gpu_object_placer_visibility_ecs_query",
   empty_span(),
-  make_span(gpu_object_placer_visibility_ecs_query_comps+0, 12)/*ro*/,
-  make_span(gpu_object_placer_visibility_ecs_query_comps+12, 1)/*rq*/,
+  make_span(gpu_object_placer_visibility_ecs_query_comps+0, 13)/*ro*/,
+  make_span(gpu_object_placer_visibility_ecs_query_comps+13, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void gpu_objects::gpu_object_placer_visibility_ecs_query(Callable function)
@@ -385,6 +402,7 @@ inline void gpu_objects::gpu_object_placer_visibility_ecs_query(Callable functio
             , ECS_RO_COMP(gpu_object_placer_visibility_ecs_query_comps, "gpu_object_placer__current_distance_squared", float)
             , ECS_RO_COMP(gpu_object_placer_visibility_ecs_query_comps, "gpu_object_placer__buffer_offset", int)
             , ECS_RO_COMP(gpu_object_placer_visibility_ecs_query_comps, "gpu_object_placer__distance_emitter_buffer_size", int)
+            , ECS_RO_COMP(gpu_object_placer_visibility_ecs_query_comps, "gpu_object_placer__distance_emitter_decal_buffer_size", int)
             , ECS_RO_COMP(gpu_object_placer_visibility_ecs_query_comps, "gpu_object_placer__opaque", bool)
             , ECS_RO_COMP(gpu_object_placer_visibility_ecs_query_comps, "gpu_object_placer__decal", bool)
             , ECS_RO_COMP(gpu_object_placer_visibility_ecs_query_comps, "gpu_object_placer__distorsion", bool)
@@ -399,15 +417,16 @@ inline void gpu_objects::gpu_object_placer_visibility_ecs_query(Callable functio
 }
 static constexpr ecs::ComponentDesc gpu_object_placer_invalidate_ecs_query_comps[] =
 {
-//start of 3 rw components at [0]
+//start of 4 rw components at [0]
   {ECS_HASH("gpu_object_placer__filled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__buffer_offset"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("gpu_object_placer__distance_emitter_buffer_size"), ecs::ComponentTypeInfo<int>()}
+  {ECS_HASH("gpu_object_placer__distance_emitter_buffer_size"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("gpu_object_placer__distance_emitter_decal_buffer_size"), ecs::ComponentTypeInfo<int>()}
 };
 static ecs::CompileTimeQueryDesc gpu_object_placer_invalidate_ecs_query_desc
 (
   "gpu_objects::gpu_object_placer_invalidate_ecs_query",
-  make_span(gpu_object_placer_invalidate_ecs_query_comps+0, 3)/*rw*/,
+  make_span(gpu_object_placer_invalidate_ecs_query_comps+0, 4)/*rw*/,
   empty_span(),
   empty_span(),
   empty_span());
@@ -423,6 +442,7 @@ inline void gpu_objects::gpu_object_placer_invalidate_ecs_query(Callable functio
               ECS_RW_COMP(gpu_object_placer_invalidate_ecs_query_comps, "gpu_object_placer__filled", bool)
             , ECS_RW_COMP(gpu_object_placer_invalidate_ecs_query_comps, "gpu_object_placer__buffer_offset", int)
             , ECS_RW_COMP(gpu_object_placer_invalidate_ecs_query_comps, "gpu_object_placer__distance_emitter_buffer_size", int)
+            , ECS_RW_COMP(gpu_object_placer_invalidate_ecs_query_comps, "gpu_object_placer__distance_emitter_decal_buffer_size", int)
             );
 
         }while (++comp != compE);

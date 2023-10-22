@@ -164,6 +164,22 @@ def push ( channel:Channel?; data : auto? )
     //! pushes value to the channel (at the end)
     _builtin_channel_push(channel, data)
 
+def push_batch_clone ( channel:Channel?; data : array<auto(TT)> )
+    //! clones data and pushed values to the channel (at the end)
+    var heap_data : array<TT?>
+    for d in data
+        var tt = new TT
+        *tt := d
+        heap_data |> push(tt)
+    _builtin_channel_push(channel, heap_data)
+    heap_data |> resize(0)
+    unsafe
+        delete heap_data
+
+def push_batch ( channel:Channel?; data : array<auto?> )
+    //! pushes values to the channel (at the end)
+    _builtin_channel_push_batch(channel, data)
+
 def set ( box:LockBox?; data : auto(TT) )
     //! clones data and sets value to the lock box
     var heap_data = new TT

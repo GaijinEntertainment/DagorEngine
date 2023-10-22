@@ -1,0 +1,40 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/services/riMgr ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/services/riMgr.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/rendInst
+;
+
+
+Sources =
+  riMgrServiceAces.cpp
+;
+
+UseProgLibs =
+  gameLibs/rendInst
+  gameLibs/rendInst/riFx/stub
+;
+
+if [ GLOB $(Root)/prog/gameLibs/gamePhys : * ]
+{
+  UseProgLibs +=
+    gameLibs/gameMath
+    gameLibs/gamePhys/phys
+    gameLibs/gamePhys/props
+    gameLibs/gamePhys/collision/collision-common
+    gameLibs/gamePhys/collision/rendinst
+    gameLibs/gamePhys/phys/rendinstDestrRefl/stub
+    gameLibs/gamePhys/common
+    gameLibs/gamePhys/phys/destrRender
+  ;
+  CPPopt += -DHAS_GAME_PHYS ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

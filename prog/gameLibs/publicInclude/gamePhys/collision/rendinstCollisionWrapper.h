@@ -9,6 +9,7 @@
 #include <gamePhys/phys/treeDestr.h>
 #include <gamePhys/phys/rendinstDestr.h>
 #include <gamePhys/collision/rendinstCollisionUserInfo.h>
+#include <rendInst/rendInstAccess.h>
 
 struct WrapperRendinstContactResultCB;
 
@@ -29,11 +30,11 @@ struct WrapperRendInstCollisionImplCB : public rendinst::RendInstCollisionCB
     restoreImpulse(restore_imp)
   {}
 
-  virtual CollisionObject processCollisionInstance(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info,
-    CollisionObject &alternative_obj, TMatrix &normalized_tm);
+  virtual CollisionObject processCollisionInstance(const rendinst::CollisionInfo &coll_info, CollisionObject &alternative_obj,
+    TMatrix &normalized_tm);
 
-  virtual void addCollisionCheck(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info) override;
-  virtual void addTreeCheck(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info) override;
+  virtual void addCollisionCheck(const rendinst::CollisionInfo &coll_info) override;
+  virtual void addTreeCheck(const rendinst::CollisionInfo &coll_info) override;
 };
 
 template <typename ContactCallbackType>
@@ -46,8 +47,8 @@ struct WrapperRendInstCollisionCB : WrapperRendInstCollisionImplCB
     WrapperRendInstCollisionImplCB(obj, callback, provide_coll_info, at_time, restore_imp), contactCallback(callback)
   {}
 
-  CollisionObject processCollisionInstance(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info,
-    CollisionObject &alternative_obj, TMatrix &normalized_tm) final
+  CollisionObject processCollisionInstance(const rendinst::CollisionInfo &coll_info, CollisionObject &alternative_obj,
+    TMatrix &normalized_tm) final
   {
     CollisionObject obj = WrapperRendInstCollisionImplCB::processCollisionInstance(coll_info, alternative_obj, normalized_tm);
 

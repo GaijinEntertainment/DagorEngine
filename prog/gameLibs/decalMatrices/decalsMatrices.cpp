@@ -357,6 +357,7 @@ void DecalsMatrices::UniqueMap::resetItem(uint32_t id)
 
 void DecalsMatrices::UniqueMap::set(uint32_t matrix, uint32_t id)
 {
+  G_ASSERT(id < itemToMatrix.size());
   resetItem(id);
   itemToMatrix[id] = matrix;
   matrixToItems[matrix].push_back(id);

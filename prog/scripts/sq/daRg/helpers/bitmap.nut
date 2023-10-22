@@ -54,6 +54,21 @@ let function mkBitmapPicture(w, h, fillcb, prefix="") {
   return Picture($"{prefix}b64://{encodeBlob(b)}.tga?Ac")
 }
 
+let cache = {}
+local maxCachedSize = sw(15) * sh(15)
+//create picture cached by fillCb on call.
+let function mkBitmapPictureLazy(w, h, fillCb, prefix = "") {
+  if (w * h > maxCachedSize)
+    logerr($"Queued mkBitmapPictureLazy has size = {w}*{h} = {w*h} bigger than sw(15) * sh(15) = {maxCachedSize}")
+  return function() {
+    if (fillCb not in cache)
+      cache[fillCb] <- mkBitmapPicture(w, h, fillCb, prefix)
+    return cache[fillCb]
+  }
+}
+
 return {
   mkBitmapPicture
+  mkBitmapPictureLazy
+  function setMaxCachedSize(size) { maxCachedSize = size }
 }

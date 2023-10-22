@@ -465,9 +465,13 @@ void on_sqdebug_internal(int debugger_index, RequestInfo *params)
 
         stackCheck.check();
 
+        bool old = sq_checkcompilationoption(vm, CompilationOptions::CO_CLOSURE_HOISTING_OPT);
+        sq_setcompilationoption(vm, CompilationOptions::CO_CLOSURE_HOISTING_OPT, false);
+
         HSQOBJECT hBindings = bindings.GetObject();
         if (SQ_SUCCEEDED(sq_compilebuffer(vm, scriptSrc.c_str(), scriptSrc.length(), "interactive", true, &hBindings)))
         {
+          sq_setcompilationoption(vm, CompilationOptions::CO_CLOSURE_HOISTING_OPT, old);
           HSQOBJECT scriptClosure;
           sq_getstackobj(vm, -1, &scriptClosure);
           Sqrat::Function func(vm, *thisObj, scriptClosure);
@@ -479,6 +483,7 @@ void on_sqdebug_internal(int debugger_index, RequestInfo *params)
           }
           sq_pop(vm, 1); // script closure
         }
+        sq_setcompilationoption(vm, CompilationOptions::CO_CLOSURE_HOISTING_OPT, old);
 
         stackCheck.check();
 

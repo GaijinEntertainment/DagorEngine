@@ -9,8 +9,8 @@ Sources =
 ;
 
 AddIncludes =
-  $(Root)/prog/engine2/sharedInclude
-  $(Root)/prog/engine2
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -364,11 +364,7 @@ void bind_http_client(SqModules *module_mgr)
 {
   Sqrat::Table nsTbl(module_mgr->getVM());
   ///@module dagor.http
-  ///@skipline
-  nsTbl.SquirrelFunc("request", request, 2, ".t")
-    .SquirrelFunc("httpRequest", request, 2, ".t")
-    ///@skipline
-    .SquirrelFunc("abort", abort_request, 2, ".i")
+  nsTbl.SquirrelFunc("httpRequest", request, 2, ".t")
     .SquirrelFunc("httpAbort", abort_request, 2, ".i")
     ///@param request_id i
     .SetValue("HTTP_SUCCESS", (SQInteger)httprequests::RequestStatus::SUCCESS)

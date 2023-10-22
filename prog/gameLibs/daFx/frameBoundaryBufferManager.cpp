@@ -48,7 +48,7 @@ static WinCritSec g_frame_boundary_cs;
 static bool checkHWSupport()
 {
   // UAV, intrinsics etc.
-  return d3d::get_driver_desc().fshver & DDFSH_5_0;
+  return d3d::get_driver_desc().shaderModel >= 5.0_sm;
 }
 
 

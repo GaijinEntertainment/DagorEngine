@@ -14,7 +14,7 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
 ;
 
-UseProgLibs += engine2/imgui/util ;
+UseProgLibs += engine/imgui/util ;
 
 
 include $(Root)/prog/_jBuild/build.jam ;

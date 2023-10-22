@@ -78,6 +78,6 @@ void VoltexRenderer::render(const ManagedTex &voltex, int mip_level, IPoint3 sha
   }
 }
 
-bool VoltexRenderer::is_compute_supported() { return d3d::get_driver_desc().cshver & DDCSH_5_0; }
+bool VoltexRenderer::is_compute_supported() { return d3d::get_driver_desc().shaderModel >= 5.0_sm; }
 
 bool VoltexRenderer::isComputeLoaded() const { return bool(shaderCs); }

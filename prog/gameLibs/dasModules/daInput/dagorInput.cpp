@@ -163,6 +163,12 @@ public:
       das::SideEffects::modifyExternal, "dainput::set_analog_axis_action_state");
     das::addExtern<DAS_BIND_FUN(dainput::send_action_event)>(*this, lib, "send_action_event", das::SideEffects::modifyExternal,
       "dainput::send_action_event");
+    das::addExtern<DAS_BIND_FUN(dainput::dump_action_sets)>(*this, lib, "dump_action_sets", das::SideEffects::modifyExternal,
+      "dainput::dump_action_sets");
+    das::addExtern<DAS_BIND_FUN(dainput::dump_action_bindings)>(*this, lib, "dump_action_bindings", das::SideEffects::modifyExternal,
+      "dainput::dump_action_bindings");
+    das::addExtern<DAS_BIND_FUN(dainput::dump_action_sets_stack)>(*this, lib, "dump_action_sets_stack",
+      das::SideEffects::modifyExternal, "dainput::dump_action_sets_stack");
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::single_button_id_get_devId)>(*this, lib, "single_button_id_get_devId",
       das::SideEffects::none, "bind_dascript::single_button_id_get_devId");

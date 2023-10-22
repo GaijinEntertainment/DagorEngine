@@ -62,10 +62,9 @@ __forceinline TMatrix to_tmatrix(const btTransform &v)
 
 struct SetActivationStateAfterPhysUpdateAction final : AfterPhysUpdateAction
 {
-  btCollisionObject *collObj;
   int actState;
-  SetActivationStateAfterPhysUpdateAction(btCollisionObject *c, int as) : collObj(c), actState(as) {}
-  void doAction(bool) override { collObj->setActivationState(actState); }
+  SetActivationStateAfterPhysUpdateAction(btRigidBody *b, int as) : AfterPhysUpdateAction(b), actState(as) {}
+  void doAction(PhysWorld &, bool) override { body->setActivationState(actState); }
 };
 
 class IBulletPhysBodyCollisionCallback
@@ -328,7 +327,7 @@ public:
 #endif
 
   void startSim(real dt, bool wake_up_thread = true);
-  bool fetchSimRes(bool wait);
+  bool fetchSimRes(bool wait, PhysBody *destroying_body = nullptr);
   void clear();
 
   virtual void doJob();
@@ -342,7 +341,7 @@ public:
   void addAfterPhysAction(AfterPhysUpdateAction *action);
 
 public:
-  void updateAabb(btCollisionObject *obj);
+  void updateAabb(btRigidBody *obj);
 
   inline void simulate(real dt)
   {
@@ -399,7 +398,7 @@ public:
   PhysJoint *createSphericalJoint(PhysBody * /*body1*/, PhysBody * /*body2*/, const Point3 & /*pos*/, const Point3 & /*dir*/,
     const Point3 & /*axis*/, real /*min_ang*/, real /*max_ang*/, real /*min_rest*/, real /*max_rest*/, real /*sw_val*/,
     real /*sw_rest*/, real /*spring*/, real /*damp*/, real /*sw_spr*/, real /*sw_damp*/, real /*tw_spr*/, real /*tw_damp*/,
-    short /*proj_type*/, real /*proj_dist*/, short /*flags*/, real /*sleep_threshold*/)
+    short /*proj_type*/, real /*proj_dist*/, short /*flags*/, real /*sleep_threshold*/ = 8.f)
   {
     return NULL;
     /*

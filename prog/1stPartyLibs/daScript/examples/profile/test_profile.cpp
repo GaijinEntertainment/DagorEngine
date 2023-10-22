@@ -4,7 +4,6 @@
 
 #include "daScript/daScript.h"
 #include "daScript/ast/ast_policy_types.h"
-#include "daScript/simulate/debug_info.h"
 
 #if defined(_MSC_VER) && defined(__clang__)
 #include <stdexcept>
@@ -366,7 +365,7 @@ string aotEsRunBlockName ( EsAttributeTable * table, const vector<EsComponent> &
 
 void aotEsRunBlock ( TextWriter & ss, EsAttributeTable * table, const vector<EsComponent> & components ) {
     auto fnName = aotEsRunBlockName(table, components);
-    ss << "template<typename BT>\ninline uint32_t " << fnName << " ( uint64_t /*annotationData*/, const BT & block, Context * __context )\n{\n";
+    ss << "template<typename BT>\ninline uint32_t " << fnName << " ( uint64_t /*annotationData*/, const BT & block, Context * __context, LineInfoArg * __at )\n{\n";
     ss << "\tfor ( uint32_t i=0; i != g_total; ++i ) {\n";
     ss << "\t\tblock(";
     uint32_t nAttr = (uint32_t) table->attributes.size();
@@ -438,8 +437,8 @@ struct QueryEsFunctionAnnotation : FunctionAnnotation {
         return true;
     }
     virtual ExpressionPtr transformCall ( ExprCallFunc * call, string & err ) override {
-        if ( call->arguments.size()!=2 || !call->arguments[0]->rtti_isMakeBlock() ) {
-            err = "expecting make block, i.e <| $";
+        if ( call->arguments.size()<2 || !call->arguments[0]->rtti_isMakeBlock() ) {
+            err = "expecting make block, i.e <| $, got " + string(call->arguments[0]->__rtti) + " with " + to_string(call->arguments.size()) + " arguments";
             return nullptr;
         }
         auto mkb = static_pointer_cast<ExprMakeBlock>(call->arguments[0]);

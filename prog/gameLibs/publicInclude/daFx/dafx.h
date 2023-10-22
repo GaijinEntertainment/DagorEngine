@@ -272,7 +272,6 @@ void updateDafxFrameBounds(ContextId cid);
 void before_render(ContextId cid, uint32_t tags_mask = 0xFFFFFFFF);
 void before_render(ContextId cid, const eastl::vector<eastl::string> &tags_name);
 bool render(ContextId ctx_id, CullingId cull_id, const eastl::string &tag);
-void set_rendering_resolution(ContextId ctx_id, const IPoint2 &resolution);
 
 void flush_global_values(ContextId cid);
 

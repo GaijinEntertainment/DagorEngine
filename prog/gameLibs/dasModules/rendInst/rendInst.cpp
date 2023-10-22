@@ -29,14 +29,14 @@ struct RiExtraComponentAnnotation : das::ManagedStructureAnnotation<RiExtraCompo
   }
 };
 
-struct CollisionInfoAnnotation final : das::ManagedStructureAnnotation<rendinst::RendInstCollisionCB::CollisionInfo, false>
+struct CollisionInfoAnnotation final : das::ManagedStructureAnnotation<rendinst::CollisionInfo, false>
 {
   CollisionInfoAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("CollisionInfo", ml)
   {
-    cppName = " ::rendinst::RendInstCollisionCB::CollisionInfo";
+    cppName = " ::rendinst::CollisionInfo";
     addField<DAS_BIND_MANAGED_FIELD(handle)>("handle");
     addField<DAS_BIND_MANAGED_FIELD(collRes)>("collRes");
-    addField<DAS_BIND_MANAGED_FIELD(pool)>("pool");
+    addField<DAS_BIND_MANAGED_FIELD(riPoolRef)>("riPoolRef");
     addField<DAS_BIND_MANAGED_FIELD(tm)>("tm");
     addField<DAS_BIND_MANAGED_FIELD(localBBox)>("localBBox");
     addField<DAS_BIND_MANAGED_FIELD(isImmortal)>("isImmortal");
@@ -61,7 +61,10 @@ namespace bind_dascript
 
 void draw_debug_collisions(int flags, const Point3 &view_pos, bool reverse_depth, float max_coll_dist_sq, float max_label_dist_sq)
 {
-  rendinst::drawDebugCollisions(static_cast<rendinst::DrawCollisionsFlag>(flags), view_pos, reverse_depth, max_coll_dist_sq,
+  // TODO: move to das
+  mat44f globtm;
+  d3d::getglobtm(globtm);
+  rendinst::drawDebugCollisions(static_cast<rendinst::DrawCollisionsFlag>(flags), globtm, view_pos, reverse_depth, max_coll_dist_sq,
     max_label_dist_sq);
 }
 
@@ -77,7 +80,7 @@ public:
     addAnnotation(das::make_smart<RendInstDescAnnotation>(lib));
     addEnumeration(das::make_smart<EnumerationDrawCollisionsFlags>());
     addAnnotation(das::make_smart<CollisionInfoAnnotation>(lib));
-    das::addUsing<rendinst::RendInstCollisionCB::CollisionInfo>(*this, lib, " ::rendinst::RendInstCollisionCB::CollisionInfo");
+    das::addUsing<rendinst::CollisionInfo>(*this, lib, " ::rendinst::CollisionInfo");
 
     G_STATIC_ASSERT(sizeof(rendinst::riex_handle_t) == sizeof(uint64_t));
     auto pType = das::make_smart<das::TypeDecl>(das::Type::tUInt64);
@@ -220,6 +223,8 @@ public:
       "bind_dascript::get_ri_color_infos");
     das::addExtern<DAS_BIND_FUN(iterate_riextra_map)>(*this, lib, "iterate_riextra_map", das::SideEffects::accessExternal,
       "bind_dascript::iterate_riextra_map");
+    das::addExtern<DAS_BIND_FUN(rendinst::gpuobjects::erase_inside_sphere)>(*this, lib, "erase_gpu_objects",
+      das::SideEffects::modifyExternal, "rendinst::gpuobjects::erase_inside_sphere");
 
     das::addCtorAndUsing<rendinst::RendInstDesc>(*this, lib, "RendInstDesc", "::rendinst::RendInstDesc");
     das::addCtorAndUsing<rendinst::RendInstDesc, rendinst::riex_handle_t>(*this, lib, "RendInstDesc", "::rendinst::RendInstDesc");

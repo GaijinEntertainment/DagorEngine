@@ -65,7 +65,7 @@ public:
 	/// Construct element at the back of the array
 	template <class... A>
 	void				emplace_back(A &&... inElement)
-	{	
+	{
 		JPH_ASSERT(mSize < N);
 		::new (&mElements[mSize++]) T(std::forward<A>(inElement)...);
 	}
@@ -211,7 +211,7 @@ public:
 	{
 		size_type rhs_size = inRHS.size();
 
-		if ((void *)this != (void *)&inRHS)
+		if (static_cast<const void *>(this) != static_cast<const void *>(&inRHS))
 		{
 			clear();
 
@@ -232,7 +232,7 @@ public:
 		size_type rhs_size = inRHS.size();
 		JPH_ASSERT(rhs_size <= N);
 
-		if ((void *)this != (void *)&inRHS)
+		if (static_cast<const void *>(this) != static_cast<const void *>(&inRHS))
 		{
 			clear();
 
@@ -245,7 +245,7 @@ public:
 
 		return *this;
 	}
-	
+
 	/// Comparing arrays
 	bool				operator == (const StaticArray<T, N> &inRHS) const
 	{
@@ -266,7 +266,7 @@ public:
 				return true;
 		return false;
 	}
-	
+
 protected:
 	struct alignas(T) Storage
 	{

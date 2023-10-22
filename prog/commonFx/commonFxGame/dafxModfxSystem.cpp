@@ -64,6 +64,7 @@ enum
   RSHADER_BBOARD_RAIN = 4,
   RSHADER_BBOARD_RAIN_DISTORTION = 5,
   RSHADER_BBOARD_ABOVE_DEPTH_PLACEMENT = 6,
+  RSHADER_BBOARD_VOLFOG_INJECTION = 7,
 };
 
 enum
@@ -259,7 +260,7 @@ int push_prebake_grad(eastl::vector<unsigned char> &out, const GradientBoxSample
 bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *load_cb, dafx::ContextId ctx, dafx::SystemDesc &sdesc,
   dafx_ex::SystemInfo &sinfo, dafx_ex::EmitterDebug *&emitter_debug)
 {
-  CHECK_FX_VERSION(ptr, len, 11);
+  CHECK_FX_VERSION(ptr, len, 12);
 
   FxSpawn parSpawn;
   parSpawn.load(ptr, len, load_cb);
@@ -309,6 +310,9 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   FxRenderShader parRenderShader;
   parRenderShader.load(ptr, len, load_cb);
 
+  FxRenderVolfogInjection parVolfogInjection;
+  parVolfogInjection.load(ptr, len, load_cb);
+
   FxPartTrimming parPartTrimming;
   parPartTrimming.load(ptr, len, load_cb);
 
@@ -334,6 +338,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   GDATA(target_size_rcp);
   GDATA(depth_size);
   GDATA(depth_size_rcp);
+  GDATA(depth_tci_offset);
   GDATA(from_sun_direction);
   GDATA(sun_color);
   GDATA(sky_color);
@@ -491,6 +496,9 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_THERMAL],
       parRenderShader.shader == RSHADER_BBOARD_VOLSHAPE ? "dafx_modfx_volshape_thermal" : "dafx_modfx_bboard_thermals"});
   }
+
+  if (parVolfogInjection.enabled)
+    ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_VOLFOG_INJECTION], "dafx_modfx_bboard_volfog_injection"});
 
 #if DAGOR_DBGLEVEL > 0
   for (const auto &unsupportedShader : cfg.unsupportedShaders)
@@ -807,6 +815,17 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       renOffsets[MODFX_RMOD_THERMAL_EMISSION_FADE] = push_prebake_curve(renderData, parThermalEmission.over_part_life.curve);
       ENABLE_DECL(rdecl, MODFX_RDECL_LIFE_NORM);
     }
+  }
+
+  // volfog
+  if (parVolfogInjection.enabled)
+  {
+    ModfxDeclVolfogInjectionParams pp;
+
+    pp.weight_rgb = max(parVolfogInjection.weight_rgb, 0.0f);
+    pp.weight_alpha = max(parVolfogInjection.weight_alpha, 0.0f);
+    renOffsets[MODFX_RMOD_VOLFOG_INJECTION] = push_system_data(renderData, pp);
+    ENABLE_MOD(rmods, MODFX_RMOD_VOLFOG_INJECTION);
   }
 
   // rotation
@@ -1610,7 +1629,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ddesc.renderElemSize += MODFX_RDECL_RIGHT_VEC_SIZE;
 
   if (MODFX_RDECL_VELOCITY_LENGTH_ENABLED(rdecl))
-    ddesc.renderElemSize += MODFX_RDECL_VELOCITY_LENGTH;
+    ddesc.renderElemSize += MODFX_RDECL_VELOCITY_LENGTH_SIZE;
 
   if (MODFX_RDECL_FRAME_IDX_ENABLED(rdecl))
     ddesc.renderElemSize += MODFX_RDECL_FRAME_IDX_SIZE;

@@ -60,6 +60,9 @@ void Irradiance::init(bool scalar_ao, float xz_size, float y_size)
   volmap->texaddrw(TEXADDR_CLAMP);
   d3d::resource_barrier({volmap.getVolTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
+  // resetting gi_25d_volmap_tc, to not sample based on tc from previous scene
+  ShaderGlobal::set_color4(gi_25d_volmap_tcVarId, 0.0f, 0.0f, 0.0f, 1.0f);
+
   intersection = dag::buffers::create_ua_sr_byte_address(
     (GI_25D_RESOLUTION_X * GI_25D_RESOLUTION_Z * GI_25D_RESOLUTION_Y + 31) / 32 + // intersected
       GI_25D_RESOLUTION_X * GI_25D_RESOLUTION_Z                                   // floor

@@ -11,6 +11,10 @@ macro MODE(mode, num)
   mode < num,
 endmacro
 
+macro MODE_HAS_VECTORS(mode, num)
+  mode < num,
+endmacro
+
 macro LAST_MODE(mode)
   mode;
 endmacro
@@ -193,6 +197,7 @@ shader debug_final_gbuffer
       {
         int first_debug_mesh_mode =
         #define MODE(mode, num) 1 +
+        #define MODE_HAS_VECTORS(mode, num) 1 +
         #define LAST_MODE(mode) 0;
         #define DEBUG_MESH_MODE(mode) const int mode ## _mode = first_debug_mesh_mode++;
         #include <render/debugGbufferModes.h>
@@ -352,6 +357,87 @@ shader debug_fill_gbuffer
       #define TARGET SV_Target2
     ##endif
     half4 debug_ps():TARGET { return gbuffer_fix_color; }
+  }
+  compile("target_ps", "debug_ps");
+}
+
+float gbuffer_debug_vec_count = 1000.;
+float gbuffer_debug_vec_scale = 0.05;
+
+shader debug_final_gbuffer_vec
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  supports global_const_block;
+
+  INIT_ZNZFAR_STAGE(vs)
+  INIT_READ_DEPTH_GBUFFER_BASE(vs)
+  USE_READ_DEPTH_GBUFFER_BASE(vs)
+
+  INIT_READ_GBUFFER_BASE(vs)
+  USE_READ_GBUFFER_NORMAL_BASE(vs)
+  USE_EMISSION_DECODE_COLOR_MAP(vs)
+
+  USE_AND_INIT_VIEW_VEC_VS()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 color: TEXCOORD0;
+      float tc: TEXCOORD1;
+    };
+  }
+
+  (vs) {
+    screen_size@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+    screen_ration@f1 = (screen_pos_to_texcoord.y / screen_pos_to_texcoord.x, 1, 1, 1);
+    vec_count_scale@f2 = (gbuffer_debug_vec_count, gbuffer_debug_vec_scale, 1, 1);
+    globtm@f44 = globtm;
+    world_view_pos@f3 = world_view_pos;
+  }
+
+  hlsl(vs) {
+    VsOutput debug_vs(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
+    {
+      int vec_on_x_axis = sqrt(vec_count_scale.x * screen_ration);
+      float2 step = float2(1.f / vec_on_x_axis, screen_ration / vec_on_x_axis);
+      float2 tc = (float2(instanceId % vec_on_x_axis, instanceId / vec_on_x_axis) + float2(0.5, 0.5)) * step;
+
+      float3 normal; float smoothness;
+      readPackedGbufferNormalSmoothness(tc, normal, smoothness);
+
+      float depth = linearize_z(readGbufferDepth(tc), zn_zfar.zw);
+      float3 viewVec = lerp_view_vec(tc);
+
+      VsOutput output;
+      float3 worldPos = depth * viewVec + world_view_pos;
+      if (vertexId == 1)
+        worldPos += normal*vec_count_scale.y*depth;
+      output.pos = mulPointTm(worldPos, globtm);
+
+      float NoV = dot(normal, -normalize(viewVec));
+      output.color.rgb = NoV > 0 ? lerp(float3(1.0, 0.0, 0.0), float3(0.0, 0.0, 1.0), NoV) :
+          lerp(float3(1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0), -NoV);
+      output.color.a = 1;
+
+      output.tc = vertexId == 1 ? 0.f : 1.f;
+
+      return output;
+    }
+  }
+  compile("target_vs", "debug_vs");
+
+  hlsl(ps) {
+    float4 debug_ps(VsOutput input) : SV_Target
+    {
+      if (fmod(input.tc, 0.4) < 0.3)
+        return input.color;
+      else
+        return input.color.bgra;
+    }
   }
   compile("target_ps", "debug_ps");
 }

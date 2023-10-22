@@ -184,7 +184,7 @@ ClusterWindRenderer::ClusterWindRenderer(bool need_historical_buffer)
 {
   int bufferSize = (MAXIMUM_GRID_BOX_CASCADE + (MAX_BOX_PER_GRID * MAXIMUM_GRID_BOX_CASCADE) / 4 + MAX_CLUSTER);
 
-  cluster_buf.set(d3d_buffers::create_persistent_cb(bufferSize, "cluster_buf"), "cluster_buf");
+  cluster_buf.set(d3d::buffers::create_persistent_cb(bufferSize, "cluster_buf"), "cluster_buf");
 
   if (need_historical_buffer)
     cluster_buf_prev.set(d3d::create_sbuffer(sizeof(uint4), bufferSize, SBCF_BIND_CONSTANT | SBCF_MAYBELOST, 0, "cluster_buf_prev"),

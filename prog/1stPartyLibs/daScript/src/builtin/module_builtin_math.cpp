@@ -315,7 +315,7 @@ namespace das {
             V_CALL();
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             auto cmres = cmresEval->evalPtr(context);
             memset ( cmres, 0, sizeof(MatT) );
             return cast<void *>::from(cmres);
@@ -485,13 +485,13 @@ namespace das {
         return reinterpret_cast<float4x4&>(mat);;
     }
 
-    float4x4 float4x4_look_at(float4 eye, float4 at, float4 up) {
+    float4x4 float4x4_look_at(float3 eye, float3 at, float3 up) {
         mat44f mat;
         v_mat44_make_look_at(mat, eye, at, up);
         return reinterpret_cast<float4x4&>(mat);;
     }
 
-    float4x4 float4x4_compose(float4 pos, float4 rot, float4 scale) {
+    float4x4 float4x4_compose(float3 pos, float4 rot, float3 scale) {
         mat44f mat;
         v_mat44_compose(mat, pos, rot, scale);
         return reinterpret_cast<float4x4&>(mat);;

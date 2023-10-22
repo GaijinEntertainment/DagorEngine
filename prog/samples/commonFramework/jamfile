@@ -9,6 +9,7 @@ Target     = samples/commonFramework.lib ;
 Sources =
   de3_splash.cpp
   de3_worldRenderer.cpp
+  de3_visibility_finder.cpp
   de3_tpsCamera.cpp
   de3_camUtil.cpp
   de3_envi.cpp
@@ -40,7 +41,7 @@ if $(Platform) in xboxOne scarlett ps4 ps5 android {
 }
 
 UseProgLibs =
-  engine2/consoleProc
+  engine/consoleProc
   gameLibs/ecs/input
   gameLibs/frameTimeMetrics
 ;
@@ -54,6 +55,6 @@ if $(Config) != rel {
     gameLibs/imguiInput/stub
   ;
 }
-UseProgLibs += engine2/imgui/util ;
+UseProgLibs += engine/imgui/util ;
 
 include $(Root)/prog/_jBuild/build.jam ;

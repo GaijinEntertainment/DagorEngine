@@ -158,9 +158,6 @@ rule ProcessLinkTarget
     }
 
     local base_activity = android.app.NativeActivity ;
-    if $(UseAndroidGameActivity) = yes {
-      base_activity = com.google.androidgamesdk.GameActivity ;
-    }
 
     postlink +=
       call $(PYTHON_EXE) $(jbuild_dir)/update_java_native_activity.py $(stage_dir)/src $(base_activity) "
@@ -195,10 +192,7 @@ rule ProcessLinkTarget
     oculus_version ?= none ;
 
     if $(AndroidActivities) {
-      local android_theme = "@style/Theme.AppCompat.Light.NoActionBar" ;
-      if (UseAndroidGameActivity) = yes {
-        android_theme = "@style/Application.Fullscreen" ;
-      }
+      local android_theme = "@style/Application.Fullscreen" ;
 
       for act in $(AndroidActivities) {
         postlink +=

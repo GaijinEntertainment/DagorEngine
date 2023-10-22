@@ -174,6 +174,9 @@ DepthAOAboveRenderer::BlurDepthRenderer::BlurDepthRenderer()
   blurDepth->init("single_pass_blur11", channels, countof(channels), 0, false);
 }
 
+DepthAOAboveRenderer::BlurDepthRenderer::~BlurDepthRenderer() = default;
+
+
 void DepthAOAboveRenderer::BlurDepthRenderer::render(BaseTexture *target, TEXTUREID depth_tid, ToroidalHelper &worldAODepthData,
   Tab<Vertex> &tris)
 {
@@ -198,7 +201,7 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
 
   d3d::set_render_target();
   d3d::set_render_target(0, (Texture *)NULL, 0);
-  d3d::set_depth(depthTex, false);
+  d3d::set_depth(depthTex, DepthAccess::RW);
 
   for (int i = 0; i < regions.size(); ++i)
   {
@@ -231,7 +234,7 @@ void DepthAOAboveRenderer::copyDepthAboveRegions(dag::ConstSpan<RegionToRender> 
   d3d::set_render_target();
   d3d::set_render_target(0, (Texture *)NULL, 0);
   shaders::overrides::set(zFuncAlwaysStateId);
-  d3d::set_depth(worldAODepthWithTransparency.getTex2D(), false);
+  d3d::set_depth(worldAODepthWithTransparency.getTex2D(), DepthAccess::RW);
 
   for (auto region : regions)
   {

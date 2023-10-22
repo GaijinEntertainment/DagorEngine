@@ -126,11 +126,11 @@ void WWindow::onTabFocusChange()
 
   // vertical scroll
 
-  _dymax_correction = DEFAULT_CONTROLS_INTERVAL + (_rect.bottom - _rect.top);
+  _dymax_correction = _pxS(DEFAULT_CONTROLS_INTERVAL) + (_rect.bottom - _rect.top);
 
   if (_pos.y < 0)
   {
-    _dy = _pos.y - DEFAULT_CONTROLS_INTERVAL;
+    _dy = _pos.y - _pxS(DEFAULT_CONTROLS_INTERVAL);
   }
 
   if (_pos.y > mVPageSize - _dymax_correction)

@@ -22,7 +22,7 @@ void register_net_sqevent(SqModules *module_mgr);
 
 // Description:
 //   Send/broadcast SQEvent locally and from server to clients.
-//   No-op on client. Without network same as sendEvent/broadcastEvent of g_entity_mgr
+//   No-op on client. Without network same as sendEvent/broadcastEvent of EntityManager
 // Arguments:
 //   'to_eid' - which entity send event to (same as in EntityManager::sendEvent)
 //   'evt' - sq event to send

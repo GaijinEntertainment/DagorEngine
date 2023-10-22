@@ -11,8 +11,8 @@ C_preopt_DirectXVer = jun2010 ;
 _WIN_SDK_TARGET_SUFFIX = x64 ;
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 
-if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\dacache\\devtools\\vc2019.* ; }
-if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: \"$(_WIN_SDK)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\dacache\\devtools\\$(WinSdkVer) ; }
+if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: \"$(_WIN_SDK)\" not found!  Please, update DEVTOOLS ; }
 if ! [ GLOB $(_DEVTOOL)/win.sdk.100/Include/10.0.19041.0 : * ] { exit FATAL\: \"$(_DEVTOOL)/win.sdk.100/Include/10.0.19041.0\" not found!  Please, update DEVTOOLS ; }
 
 local _DEF_C_CMDLINE =
@@ -29,7 +29,7 @@ local _DEF_C_CMDLINE =
 
 if $(QtVer) {
   _QT_DIR = $(_DEVTOOL)/Qt-$(QtVer)-vc2008 ;
-  if ! [ GLOB $(_QT_DIR) : * ] { exit FATAL\: \"$(_QT_DIR)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\Y\\Soft\\forDevelopers\\devtools\\Qt-$(QtVer)-vc2008.7z ; }
+  if ! [ GLOB $(_QT_DIR) : * ] { exit FATAL\: \"$(_QT_DIR)\" not found!  Please, update DEVTOOLS ; }
 
   _DEF_C_CMDLINE +=
     -DQT_LARGEFILE_SUPPORT -DQT_THREAD_SUPPORT -DQT_GUI_LIB -DQT_CORE_LIB

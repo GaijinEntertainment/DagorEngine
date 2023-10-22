@@ -1,6 +1,6 @@
 #include <gamePhys/collision/collisionLib.h>
 #include <memory/dag_framemem.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstCollision.h>
 #include <landMesh/lmeshManager.h>
 #include <heightmap/heightmapHandler.h>
 #include <sceneRay/dag_sceneRay.h>
@@ -128,7 +128,8 @@ bool dacoll::rayhit_normalized_transparency(const Point3 &p, const Point3 &dir, 
 }
 
 bool dacoll::traceray_normalized_ri(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm,
-  rendinst::TraceFlags additional_trace_flags, rendinst::RendInstDesc *out_desc, int ray_mat_id, const TraceMeshFaces *handle)
+  rendinst::TraceFlags additional_trace_flags, rendinst::RendInstDesc *out_desc, int ray_mat_id, const TraceMeshFaces *handle,
+  rendinst::riex_handle_t skip_riex_handle)
 {
   Trace traceData(p, dir, t, nullptr);
   dag::Span<Trace> traceDataSlice(&traceData, 1);
@@ -144,7 +145,7 @@ bool dacoll::traceray_normalized_ri(const Point3 &p, const Point3 &dir, real &t,
     if (!res)
       handle = nullptr;
   }
-  bool res = rendinst::traceRayRIGenNormalized(traceDataSlice, traceFlags, ray_mat_id, out_desc, handle);
+  bool res = rendinst::traceRayRIGenNormalized(traceDataSlice, traceFlags, ray_mat_id, out_desc, handle, skip_riex_handle);
   if (res)
   {
     if (out_norm)
@@ -165,6 +166,7 @@ bool dacoll::traceray_normalized(const Point3 &p, const Point3 &dir, real &t, in
 bool dacoll::traceray_normalized_coll_type(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm, int flags,
   rendinst::RendInstDesc *out_desc, int *out_coll_type, int ray_mat_id, const TraceMeshFaces *handle)
 {
+  G_ASSERT(!check_nan(p) && !check_nan(dir) && !check_nan(t));
   bool res = false;
 #if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
   auto do_traceray = [&]() {
@@ -672,8 +674,8 @@ void dacoll::get_min_max_hmap_list_in_circle(const Point2 &center, float rad, Ta
   if (!hmap)
     return;
 
-  float minHt = hmap->getHeightMin();
-  float maxHt = hmap->getHeightMin() + hmap->getHeightScale();
+  float maxHt = hmap->getHeightMin();
+  float minHt = hmap->getHeightMin() + hmap->getHeightScale();
 
   int gridSize = hmap->getMinMaxHtGridSize();
   float cellSz = hmap->getHeightmapCellSize();

@@ -7,17 +7,15 @@
 
 namespace cef
 {
-
-class JavaScriptHandler : public CefV8Handler,
-                          public CefRenderProcessHandler
+struct WindowMethodSignature
 {
-  public: /** CefV8Handler interface **/
-    bool Execute(const CefString& name,
-                 CefRefPtr<CefV8Value> object,
-                 const CefV8ValueList& arguments,
-                 CefRefPtr<CefV8Value>& retval,
-                 CefString& exception) override;
+  CefString name;
+  int argc;
+};
 
+
+class JavaScriptHandler : public CefRenderProcessHandler
+{
   public: /** CefRenderProcessHandler interface **/
     void OnBrowserCreated(CefRefPtr<CefBrowser> browser,
                           CefRefPtr<CefDictionaryValue> extra_info) override;
@@ -27,16 +25,31 @@ class JavaScriptHandler : public CefV8Handler,
                           CefRefPtr<CefV8Context> context) override;
 
   private:
-    struct WindowMethodSignature
-    {
-      CefString name;
-      int argc;
-    };
-
     std::vector<WindowMethodSignature> methods;
-    CefRefPtr<CefBrowser> browser;
 
   IMPLEMENT_REFCOUNTING(JavaScriptHandler);
 }; // class JavaScriptHandler
+
+
+class JavaScriptCallback : public CefV8Handler
+{
+  public:
+    JavaScriptCallback(const CefRefPtr<CefBrowser>& b, const std::vector<WindowMethodSignature>& m):
+      browser(b), methods(m) {}
+
+  public: /** CefV8Handler interface **/
+    bool Execute(const CefString& name,
+                 CefRefPtr<CefV8Value> object,
+                 const CefV8ValueList& arguments,
+                 CefRefPtr<CefV8Value>& retval,
+                 CefString& exception) override;
+
+
+  private:
+    CefRefPtr<CefBrowser> browser;
+    const std::vector<WindowMethodSignature>& methods;
+
+  IMPLEMENT_REFCOUNTING(JavaScriptCallback);
+};
 
 } // namespace cef

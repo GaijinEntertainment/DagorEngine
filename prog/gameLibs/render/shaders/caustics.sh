@@ -19,8 +19,6 @@ endmacro
 
 macro USE_CAUSTICS_BASE(code)
 
-  supports global_const_block;
-
   if (use_extended_global_frame_block == no)
   {
     INIT_CAUSTICS_BASE_STCODE(code)
@@ -135,6 +133,7 @@ macro USE_CAUSTICS_BASE(code)
 endmacro
 
 macro USE_SSR_CAUSTICS(code)
+  supports global_const_block;
   USE_CAUSTICS_BASE(code)
 endmacro
 

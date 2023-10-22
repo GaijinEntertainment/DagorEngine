@@ -1076,10 +1076,11 @@ public:
     virtual void visitTerExpr(TerExpr *expr) { visitExpr(expr); }
     virtual void visitCallExpr(CallExpr *expr) { visitExpr(expr); }
     virtual void visitId(Id *id) { visitExpr(id); }
-    virtual void visitGetFieldExpr(GetFieldExpr *expr) { visitExpr(expr); }
-    virtual void visitSetFieldExpr(SetFieldExpr *expr) { visitExpr(expr); }
-    virtual void visitGetTableExpr(GetTableExpr *expr) { visitExpr(expr); }
-    virtual void visitSetTableExpr(SetTableExpr *expr) { visitExpr(expr); }
+    virtual void visitAccessExpr(AccessExpr *expr) { visitExpr(expr); }
+    virtual void visitGetFieldExpr(GetFieldExpr *expr) { visitAccessExpr(expr); }
+    virtual void visitSetFieldExpr(SetFieldExpr *expr) { visitAccessExpr(expr); }
+    virtual void visitGetTableExpr(GetTableExpr *expr) { visitAccessExpr(expr); }
+    virtual void visitSetTableExpr(SetTableExpr *expr) { visitAccessExpr(expr); }
     virtual void visitBaseExpr(BaseExpr *expr) { visitExpr(expr); }
     virtual void visitRootExpr(RootExpr *expr) { visitExpr(expr); }
     virtual void visitLiteralExpr(LiteralExpr *expr) { visitExpr(expr); }

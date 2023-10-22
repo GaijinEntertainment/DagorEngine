@@ -47,7 +47,7 @@ void ScreenSpaceReflections::getRealQualityAndFmt(uint32_t &fmt, SSRQuality &ssr
   if (!fmt)
     fmt = TEXCF_SRGBREAD | TEXCF_SRGBWRITE; // replace with 16bit float?
 
-  bool noHQCompute = d3d::get_driver_code() != _MAKE4C('DX12') && ssr_quality == SSRQuality::ComputeHQ;
+  bool noHQCompute = d3d::get_driver_code().is(!d3d::dx12) && ssr_quality == SSRQuality::ComputeHQ;
 #if _TARGET_XBOX
   noHQCompute = true;
 #endif
@@ -108,14 +108,14 @@ ScreenSpaceReflections::ScreenSpaceReflections(const int ssr_w, const int ssr_h,
     memset(&afr, 0, sizeof(afr));
     afr.prevGlobTm.identity();
   });
-  ssrMipChain.init("ssr_mipchain", NULL, true);
+  ssrMipChain.init("ssr_mipchain");
   randomizeOverNFrames = 8;
   if (quality == SSRQuality::High)
   {
-    ssrQuad.init("ssr_only", NULL, true);
-    ssrResolve.init("ssr_resolve", NULL, true);
-    ssrVTR.init("ssr_vtr", NULL, true);
-    ssrComposite.init("ssr_composite", NULL, true);
+    ssrQuad.init("ssr_only");
+    ssrResolve.init("ssr_resolve");
+    ssrVTR.init("ssr_vtr");
+    ssrComposite.init("ssr_composite");
 
     if (ownTextures)
       ssrVTRRT = RTargetPool::get(ssrW / 2, ssrH / 2, fmt, 1);
@@ -136,12 +136,12 @@ ScreenSpaceReflections::ScreenSpaceReflections(const int ssr_w, const int ssr_h,
   }
   else
   {
-    ssrQuad.init("ssr", NULL, true);
+    ssrQuad.init("ssr");
   }
 
   ssrCompute.reset(new_compute_shader("tile_ssr_compute"));
 
-  if (d3d::get_driver_code() == _MAKE4C('DX12') && quality == SSRQuality::ComputeHQ)
+  if (d3d::get_driver_code().is(d3d::dx12) && quality == SSRQuality::ComputeHQ)
   {
     ssrClassify.reset(new_compute_shader("ssr_classify"));
     ssrPrepareIndirectArgs.reset(new_compute_shader("ssr_prepare_indirect_args"));
@@ -217,7 +217,8 @@ void ScreenSpaceReflections::updatePrevTarget()
   ssrPrevTarget->getTex2D()->texaddr(TEXADDR_BORDER);
 }
 
-void ScreenSpaceReflections::render(const DPoint3 &world_pos, SubFrameSample sub_sample)
+void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos,
+  SubFrameSample sub_sample)
 {
   G_ASSERT(ownTextures);
 
@@ -244,14 +245,14 @@ void ScreenSpaceReflections::render(const DPoint3 &world_pos, SubFrameSample sub
 
   if (quality == SSRQuality::Low || quality == SSRQuality::Medium || quality == SSRQuality::Compute)
   {
-    render(world_pos, sub_sample, ssrTex, prevTex, targetTex, {}, afrs.current().frameNo);
+    render(view_tm, proj_tm, world_pos, sub_sample, ssrTex, prevTex, targetTex, {}, afrs.current().frameNo);
   }
   else if (quality == SSRQuality::High)
   {
     RTarget::Ptr rtVTR = ssrVTRRT->acquire();
     RTarget::Ptr rtTemp1 = rtTemp->acquire();
     eastl::array<ManagedTexView, 2> tmpTextures{*rtVTR, *rtTemp1};
-    render(world_pos, sub_sample, ssrTex, prevTex, targetTex, tmpTextures, afrs.current().frameNo);
+    render(view_tm, proj_tm, world_pos, sub_sample, ssrTex, prevTex, targetTex, tmpTextures, afrs.current().frameNo);
   }
   else if (quality == SSRQuality::ComputeHQ)
   {
@@ -259,12 +260,13 @@ void ScreenSpaceReflections::render(const DPoint3 &world_pos, SubFrameSample sub
     RTarget::Ptr rtTempPrefiltered = rtTemp->acquire();
     RTarget::Ptr tempRayLength = rtTempR16F->acquire();
     eastl::array<ManagedTexView, 3> tmpTextures{*rtTempReprojected, *rtTempPrefiltered, *tempRayLength};
-    render(world_pos, sub_sample, ssrTex, prevTex, targetTex, tmpTextures, afrs.current().frameNo);
+    render(view_tm, proj_tm, world_pos, sub_sample, ssrTex, prevTex, targetTex, tmpTextures, afrs.current().frameNo);
   }
 }
 
-void ScreenSpaceReflections::render(const DPoint3 &world_pos, SubFrameSample sub_sample, ManagedTexView ssr_tex,
-  ManagedTexView ssr_prev_tex, ManagedTexView target_tex, const dag::ConstSpan<ManagedTexView> &tmp_textures, int callId)
+void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos,
+  SubFrameSample sub_sample, ManagedTexView ssr_tex, ManagedTexView ssr_prev_tex, ManagedTexView target_tex,
+  const dag::ConstSpan<ManagedTexView> &tmp_textures, int callId)
 {
   G_ASSERT(ssr_tex && ssr_prev_tex && target_tex);
   TIME_D3D_PROFILE(ssr);
@@ -272,8 +274,8 @@ void ScreenSpaceReflections::render(const DPoint3 &world_pos, SubFrameSample sub
   SCOPE_RENDER_TARGET;
 
   Afr &afr = afrs.current();
-  set_reprojection(afr.prevWorldPos, afr.prevGlobTm, afr.prevViewVecLT, afr.prevViewVecRT, afr.prevViewVecLB, afr.prevViewVecRB,
-    &world_pos);
+  set_reprojection(view_tm, proj_tm, afr.prevWorldPos, afr.prevGlobTm, afr.prevViewVecLT, afr.prevViewVecRT, afr.prevViewVecLB,
+    afr.prevViewVecRB, &world_pos);
 
   ShaderGlobal::set_color4(ssr_target_sizeVarId, ssrW, ssrH, 1.0f / ssrW, 1.0f / ssrH);
   ShaderGlobal::set_color4(ssr_frameNoVarId, callId & ((1 << 23) - 1), (callId % randomizeOverNFrames) * 1551,

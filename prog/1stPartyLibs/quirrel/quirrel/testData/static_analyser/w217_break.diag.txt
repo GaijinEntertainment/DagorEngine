@@ -3,7 +3,7 @@ testData/static_analyser/w217_break.nut:7:4
 
     y--;
     break;
-    ^-----
+    ^----
     z--;
 
 

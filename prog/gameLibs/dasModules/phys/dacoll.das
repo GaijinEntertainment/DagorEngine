@@ -16,7 +16,7 @@ def sphere_cast(from, to : float3; rad : float; var out : ShapeQueryOutput; cast
 
 [generic]
 def add_dynamic_collision(props : DataBlock |#) : CollisionObject
-  return Dacoll::add_dynamic_collision(props, /*userPtr*/ null, /*is_player*/ false, /*add_to_world*/ true, DEFAULT_DYN_COLLISION_MASK)
+  return Dacoll::add_dynamic_collision(props, /*userPtr*/ null, /*is_player*/ false, /*add_to_world*/ true, DEFAULT_DYN_COLLISION_MASK, /*wtm*/ null)
 
 [generic]
 def test_collision_ri(collobj : CollisionObject; box : BBox3) : bool

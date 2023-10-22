@@ -43,6 +43,7 @@ namespace das {
             enableInferTimeFolding = prog->options.getBoolOption("infer_time_folding",true);
             disableAot = prog->options.getBoolOption("no_aot",false);
             multiContext = prog->options.getBoolOption("multiple_contexts", prog->policies.multiple_contexts);
+            standaloneContext = prog->options.getBoolOption("standalone_context", prog->policies.standalone_context);
             checkNoGlobalVariablesAtAll = prog->options.getBoolOption("no_global_variables_at_all", prog->policies.no_global_variables_at_all);
             strictSmartPointers = prog->options.getBoolOption("strict_smart_pointers", prog->policies.strict_smart_pointers);
             disableInit = prog->options.getBoolOption("no_init", prog->policies.no_init);
@@ -74,6 +75,7 @@ namespace das {
         bool                    enableInferTimeFolding = true;
         bool                    disableAot = false;
         bool                    multiContext = false;
+        bool                    standaloneContext = false;
         Expression *            lastEnuValue = nullptr;
         int32_t                 unsafeDepth = 0;
         bool                    checkNoGlobalVariablesAtAll = false;
@@ -1383,6 +1385,14 @@ namespace das {
                         if ( pSt->fieldLookup.find(fieldName) != pSt->fieldLookup.end() ) {
                             return eW;
                         }
+                        if ( pSt->hasStaticMembers ) {
+                            auto fname = pSt->name + "`" + fieldName;
+                            if ( auto pVar = pSt->module->findVariable(fname) ) {
+                                if ( pVar->static_class_member ) {
+                                    return eW;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1835,7 +1845,9 @@ namespace das {
             unsafeDepth = 0;
             func = f;
             func->hasReturn = false;
-            func->noAot |= disableAot;
+            if ( !standaloneContext ) {
+                func->noAot |= disableAot;
+            }
             if ( f->arguments.size() > DAS_MAX_FUNCTION_ARGUMENTS ) {
                 error("function has too many arguments, max allowed is DAS_MAX_FUNCTION_ARGUMENTS=" DAS_STR(DAS_MAX_FUNCTION_ARGUMENTS),  "", "",
                     f->at, CompilationError::too_many_arguments);
@@ -2171,6 +2183,7 @@ namespace das {
             if ( fns.size()==1 ) {
                 expr->func = fns.back();
                 expr->func->addr = true;
+                expr->func->fastCall = false;
                 expr->type = make_smart<TypeDecl>(Type::tFunction);
                 expr->type->firstType = make_smart<TypeDecl>(*expr->func->result);
                 expr->type->argTypes.reserve ( expr->func->arguments.size() );
@@ -2199,7 +2212,7 @@ namespace das {
         virtual ExpressionPtr visit ( ExprPtr2Ref * expr ) override {
             if ( !expr->subexpr->type ) return Visitor::visit(expr);
             // safe deref of non-pointer is it
-            if ( expr->alwaysSafe && !expr->subexpr->type->isPointer() ) {
+            if ( expr->alwaysSafe && !expr->subexpr->type->isPointer() && !(expr->subexpr->type->baseType==Type::autoinfer || expr->subexpr->type->baseType==Type::alias) ) {
                 reportAstChanged();
                 return expr->subexpr;
             }
@@ -2230,8 +2243,25 @@ namespace das {
             } else {
                 if ( !safeExpression(expr) ) {
                     if ( !expr->subexpr->type->temporary ) { // address of temp type is temp, but its safe
-                        error("address of reference requires unsafe",  "", "",
-                            expr->at, CompilationError::unsafe);
+                        bool isSelf = false;
+                        if ( func && func->isClassMethod ) {
+                            ExprVar * mbs = nullptr;
+                            if ( expr->subexpr->rtti_isVar() ) {
+                                mbs = static_cast<ExprVar *>(expr->subexpr.get());
+                            } else if ( expr->subexpr->rtti_isR2V() ) {
+                                auto r2v = static_cast<ExprRef2Value *>(expr->subexpr.get());
+                                if ( r2v->subexpr->rtti_isVar() ) {
+                                    mbs = static_cast<ExprVar *>(r2v->subexpr.get());
+                                }
+                            }
+                            if ( mbs && mbs->name=="self" && mbs->argument==true ) {
+                                isSelf = true;
+                            }
+                        }
+                        if ( !isSelf ) {
+                            error("address of reference requires unsafe",  "", "",
+                                expr->at, CompilationError::unsafe);
+                        }
                     }
                 }
                 expr->type = make_smart<TypeDecl>(Type::tPointer);
@@ -4707,6 +4737,15 @@ namespace das {
                     return Visitor::visit(expr);
                 } else if ( valT->firstType->isStructure() ) {
                     expr->field = valT->firstType->structType->findField(expr->name);
+                    if ( !expr->field && valT->firstType->structType->hasStaticMembers ) {
+                        auto fname = valT->firstType->structType->name + "`" + expr->name;
+                        if ( auto pVar = valT->firstType->structType->module->findVariable(fname) ) {
+                            if ( pVar->static_class_member ) {
+                                reportAstChanged();
+                                return make_smart<ExprVar>(expr->at, fname);
+                            }
+                        }
+                    }
                 } else if ( valT->firstType->isHandle() ) {
                     expr->annotation = valT->firstType->annotation;
                     expr->type = expr->annotation->makeFieldType(expr->name, valT->constant || valT->firstType->constant);
@@ -4763,6 +4802,15 @@ namespace das {
                     expr->type = expr->annotation->makeFieldType(expr->name, valT->constant);
                 } else if ( valT->isStructure() ) {
                     expr->field = valT->structType->findField(expr->name);
+                    if ( !expr->field && valT->structType->hasStaticMembers ) {
+                        auto fname = valT->structType->name + "`" + expr->name;
+                        if ( auto pVar = valT->structType->module->findVariable(fname) ) {
+                            if ( pVar->static_class_member ) {
+                                reportAstChanged();
+                                return make_smart<ExprVar>(expr->at, fname);
+                            }
+                        }
+                    }
                 } else if ( valT->isGoodTupleType() ) {
                     int index = valT->tupleFieldIndex(expr->name);
                     if ( index==-1 || index>=int(valT->argTypes.size()) ) {
@@ -4954,6 +5002,14 @@ namespace das {
             if ( auto eW = hasMatchingWith(expr->name) ) {
                 reportAstChanged();
                 return make_smart<ExprField>(expr->at, forceAt(eW->with->clone(),expr->at), expr->name);
+            }
+            // static class method accessing static variables
+            if ( func && func->isStaticClassMethod && func->classParent->hasStaticMembers ) {
+                auto staticVarName = func->classParent->name + "`" + expr->name;
+                if ( func->classParent->module->findVariable(staticVarName) ) {
+                    reportAstChanged();
+                    return make_smart<ExprVar>(expr->at, staticVarName);
+                }
             }
             // block arguments
             for ( auto it = blocks.rbegin(); it!=blocks.rend(); ++it ) {
@@ -5880,6 +5936,61 @@ namespace das {
     // ExprAssume
         virtual void preVisit ( ExprAssume * expr ) override {
             Visitor::preVisit(expr);
+            const auto & name = expr->alias;
+            // assume
+            for ( const auto & aa : assume ) {
+                if ( aa->alias==name ) {
+                    error("can't assume " + name + ", alias already taken by another assume expression at " + aa->at.describe(), "", "",
+                                  expr->at, CompilationError::invalid_assume);
+                    return;
+                }
+            }
+            // local variable
+            for ( const auto & lv : local ) {
+                if ( lv->name==name || lv->aka==name ) {
+                    error("can't assume " + name + ", alias already taken by local variable at " + lv->at.describe(), "", "",
+                                  expr->at, CompilationError::invalid_assume);
+                    return;
+                }
+            }
+            // with
+            if ( auto mW = hasMatchingWith(name) ) {
+                error("can't assume " + name + ", alias already taken by `with` at " + mW->at.describe(), "", "",
+                    expr->at, CompilationError::invalid_assume);
+                return;
+            }
+            // block arguments
+            for ( const auto & block : blocks ) {
+                for ( const auto & arg : block->arguments ) {
+                    if ( arg->name==name || arg->aka==name ) {
+                        error("can't assume " + name + ", alias already taken by block argument at " + arg->at.describe(), "", "",
+                                    expr->at, CompilationError::invalid_assume);
+                        return;
+                    }
+                }
+            }
+            // function argument
+            if ( func ) {
+                for ( auto & arg : func->arguments ) {
+                    if ( arg->name==name || arg->aka==name ) {
+                        error("can't assume " + name + ", alias already taken by block argument at " + arg->at.describe(), "", "",
+                                    expr->at, CompilationError::invalid_assume);
+                        return;
+                    }
+                }
+            }
+            // global
+            auto globals = findMatchingVar(name, false);
+            if ( globals.size() ) {
+                if ( globals.size()==1 ) {
+                    error("can't assume " + name + ", alias already taken by global variable at " + globals[0]->at.describe(), "", "",
+                                expr->at, CompilationError::invalid_assume);
+                } else {
+                    error("can't assume " + name + ", alias already taken by multiple global variables", "", "",
+                                expr->at, CompilationError::invalid_assume);
+                }
+                return;
+            }
             assume.push_back(expr);
         }
     // ExprWith
@@ -7530,7 +7641,12 @@ namespace das {
                 }
             }
             if ( expr->block ) {
-                DAS_ASSERT(expr->block->rtti_isMakeBlock());
+                if ( !expr->block->rtti_isMakeBlock() ) {
+                    string btype  = expr->block->type ? describeType(expr->block->type) : "unknown";
+                    error("can only pipe block into structure declaration. expecting <| $ ( var decl ), got " + btype,
+                        "", "", expr->block->at, CompilationError::invalid_block );
+                    return Visitor::visit(expr);
+                }
                 auto mkb = static_pointer_cast<ExprMakeBlock>(expr->block);
                 DAS_ASSERT(mkb->block->rtti_isBlock());
                 auto blk = static_pointer_cast<ExprBlock>(mkb->block);

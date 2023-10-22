@@ -48,7 +48,7 @@ public:
       _snprintf(buf, sizeof(buf), "%p_probe_specular", this);
     specularMips = get_log2w(specular_size);
     specularMips = min(specularMips, (num_probe_mipsVarId < 0) ? 7 : ShaderGlobal::get_int(num_probe_mipsVarId));
-    specular.init("specular_cube", NULL, false);
+    specular.init("specular_cube");
     if ((d3d::get_texformat_usage(texFmt) & (d3d::USAGE_RTARGET | d3d::USAGE_FILTER)) != (d3d::USAGE_RTARGET | d3d::USAGE_FILTER))
     {
       logwarn("light probe tex fmt can not filter, degrade to argb8_srgb !");

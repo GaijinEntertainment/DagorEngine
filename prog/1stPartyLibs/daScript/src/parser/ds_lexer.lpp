@@ -412,6 +412,7 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 }
 <normal>"unsafe"                                        yyextra->das_need_oxford_comma = false; return DAS_UNSAFE;
 <normal>"inscope"                                       return DAS_INSCOPE;
+<normal>"static"                                        return DAS_STATIC;
 <normal>"as"                                            return DAS_AS;
 <normal>"is"                                            return DAS_IS;
 <normal>"deref"                                         return DAS_DEREF;

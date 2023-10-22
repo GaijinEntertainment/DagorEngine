@@ -1,6 +1,7 @@
 #include <daRg/dag_panelRenderer.h>
 #include <daRg/dag_guiScene.h>
 #include <3d/dag_drv3d.h>
+#include <3d/dag_drv3dReset.h>
 #include <3d/dag_resPtr.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <shaders/dag_shaderBlock.h>
@@ -13,6 +14,7 @@
 #include "guiScene.h"
 #include "panelRenderer.h"
 #include <EASTL/vector_multimap.h>
+#include <EASTL/vector_map.h>
 
 namespace darg_panel_renderer
 {
@@ -20,6 +22,7 @@ namespace darg_panel_renderer
 enum ShaderTarget
 {
   FrameBuffer,
+  FrameBufferWithoutDepth,
   Depth,
   GBuffer,
 
@@ -31,6 +34,8 @@ static ShaderTarget to_shader_target(RenderPass render_pass)
   switch (render_pass)
   {
     case RenderPass::Translucent: return ShaderTarget::FrameBuffer;
+
+    case RenderPass::TranslucentWithoutDepth: return ShaderTarget::FrameBufferWithoutDepth;
 
     case RenderPass::Shadow: return ShaderTarget::Depth;
 
@@ -66,6 +71,8 @@ static UniqueBuf panel_vertex_buffers[1];
 static UniqueBuf panel_index_buffers[1];
 static int panel_triangle_counts[1] = {0};
 
+static eastl::vector_map<shaders::OverrideStateId, shaders::OverrideStateId> zOverrides;
+
 struct PanelVertex
 {
   Point3 position;
@@ -84,7 +91,7 @@ static const PanelVertex rectVertices[4] = {
 template <typename Func, typename T, size_t count>
 static bool buildBuffer(Func createFunc, UniqueBuf &buffer, const T (&data)[count], const char *name)
 {
-  buffer = createFunc(sizeof(data), SBCF_CPU_ACCESS_WRITE, name);
+  buffer = createFunc(sizeof(data), SBCF_CPU_ACCESS_WRITE | SBCF_MAYBELOST, name);
   G_ASSERT_RETURN(buffer.getBuf(), false);
   G_ASSERT_RETURN(buffer.getBuf()->updateData(0, sizeof(data), data, VBLOCK_WRITEONLY), false);
   return true;
@@ -99,6 +106,8 @@ static bool initialize_rendering_resources()
   {
     panel_shaders[ShaderTarget::FrameBuffer].init("darg_panel_frame_buffer", channels, countof(channels), "darg_panel_frame_buffer",
       true);
+    panel_shaders[ShaderTarget::FrameBufferWithoutDepth].init("darg_panel_frame_buffer_no_depth", channels, countof(channels),
+      "darg_panel_frame_buffer_no_depth", true);
     panel_shaders[ShaderTarget::Depth].init("darg_panel_depth", channels, countof(channels), "darg_panel_depth", true);
     panel_shaders[ShaderTarget::GBuffer].init("darg_panel_gbuffer", channels, countof(channels), "darg_panel_gbuffer", true);
 
@@ -315,6 +324,35 @@ void render_panels_in_world(const darg::IGuiScene &scene_, const Point3 &view_po
   int oldFrameBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 
+  // In case of shadow rendering, we take the override which is already set, and if
+  // there is one, we double the depth bias values. This is needed as the panels are
+  // thin, flat surfaces, usually close to the camera, and constantly in motion. As
+  // a result, they have banding all over them.
+  shaders::OverrideStateId oldOverride;
+  if (render_pass == RenderPass::Shadow)
+  {
+    oldOverride = shaders::overrides::get_current();
+    if (oldOverride)
+    {
+      shaders::OverrideStateId modifiedOverride;
+
+      auto iter = zOverrides.find(oldOverride);
+      if (iter == zOverrides.end())
+      {
+        shaders::OverrideState oldState = shaders::overrides::get(oldOverride);
+        oldState.zBias *= 2;
+        oldState.slopeZBias *= 2;
+        modifiedOverride = shaders::overrides::create(oldState);
+        zOverrides[oldOverride] = modifiedOverride;
+      }
+      else
+        modifiedOverride = iter->second;
+
+      shaders::overrides::reset();
+      shaders::overrides::set(modifiedOverride);
+    }
+  }
+
   for (auto iter = sortedPanels.rbegin(); iter != sortedPanels.rend(); ++iter)
   {
     TIME_D3D_PROFILE(render_one_panel);
@@ -371,6 +409,13 @@ void render_panels_in_world(const darg::IGuiScene &scene_, const Point3 &view_po
 
   d3d::settm(TM_VIEW, oldViewTm);
   d3d::settm(TM_WORLD, oldWorldTm);
+
+  if (render_pass == RenderPass::Shadow)
+  {
+    shaders::overrides::reset();
+    if (oldOverride)
+      shaders::overrides::set(oldOverride);
+  }
 }
 
 void clean_up()
@@ -383,9 +428,21 @@ void clean_up()
     buffer.close();
   for (auto &tc : panel_triangle_counts)
     tc = 0;
+  for (auto &iter : zOverrides)
+    shaders::overrides::destroy(iter.second);
+  zOverrides.clear();
 
   panel_vertex_declaration = BAD_VDECL;
   panel_vertex_stride = -1;
 }
+
+static void darg_panels_after_reset_device(bool)
+{
+  int geomIndex = int(darg::PanelGeometry::Rectangle);
+  panel_vertex_buffers[geomIndex].close();
+  panel_index_buffers[geomIndex].close();
+}
+
+REGISTER_D3D_AFTER_RESET_FUNC(darg_panels_after_reset_device);
 
 } // namespace darg_panel_renderer

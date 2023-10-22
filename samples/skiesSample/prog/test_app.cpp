@@ -57,6 +57,7 @@
 #include <visualConsole/dag_visualConsole.h>
 #include <generic/dag_carray.h>
 #include <render/lightCube.h>
+#include <render/viewVecs.h>
 
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <util/dag_delayedAction.h>
@@ -203,7 +204,7 @@ enum
   SHOW_GBUF_RAW_LAST
 };
 
-int show_gbuffer = SHOW_GBUF_RESULT;
+static int show_gbuffer = SHOW_GBUF_RESULT;
 CONSOLE_INT_VAL("skies", precompute_orders, 3, 1, 5);
 CONSOLE_BOOL_VAL("skies", always_precompute, false);
 CONSOLE_BOOL_VAL("render", ssao_blur, true);
@@ -261,19 +262,21 @@ public:
     for (int i = 0; i < 6; ++i)
     {
       target->setRt();
-      d3d::setpersp(Driver3dPerspective(1, 1, zn, zf, 0, 0));
+      TMatrix4 projTm;
+      d3d::setpersp(Driver3dPerspective(1, 1, zn, zf, 0, 0), &projTm);
       TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, i);
       cameraMatrix.setcol(3, pos);
-      d3d::settm(TM_VIEW, orthonormalized_inverse(cameraMatrix));
+      TMatrix viewTm = orthonormalized_inverse(cameraMatrix);
+      d3d::settm(TM_VIEW, viewTm);
 
       d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
 
       cb.renderLightProbeOpaque();
 
-      target->resolve(shadedTarget.getTex2D());
+      target->resolve(shadedTarget.getTex2D(), viewTm, projTm);
 
       d3d::set_render_target(shadedTarget.getTex2D(), 0); // because of cube depth
-      d3d::set_depth(target->getDepth(), true);
+      d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
 
       // d3d::clearview(CLEAR_ZBUFFER|CLEAR_STENCIL, 0, 0, 0);
       cb.renderLightProbeEnvi();
@@ -332,8 +335,8 @@ const char *REFL_TEX_NAME = "water_reflection_tex";
 const char *REFL_TMP_TEX_NAME = "water_reflection_tex_temp";
 
 
-dabfg::NodeHandle make_blur_meta_node(eastl::string node_name, eastl::string input_name, eastl::string output_name, uint32_t w,
-  uint32_t h)
+dabfg::NodeHandle make_blur_meta_node(eastl::string node_name, eastl::string input_name, eastl::string output_name, uint16_t w,
+  uint16_t h)
 {
   return dabfg::register_node(node_name.c_str(), DABFG_PP_NODE_SRC,
     [inputName = eastl::move(input_name), outputName = eastl::move(output_name), w, h](dabfg::Registry registry) {
@@ -350,9 +353,6 @@ dabfg::NodeHandle make_blur_meta_node(eastl::string node_name, eastl::string inp
       };
     });
 }
-
-void set_viewvecs_to_shader();
-void set_inv_globtm_to_shader(bool optional);
 
 class DemoGameScene : public DagorGameScene, public IRenderDynamicCubeFace2, public ICascadeShadowsClient
 {
@@ -860,11 +860,11 @@ public:
   {
     newFramegraphNodes.emplace_back(dabfg::register_node("fill_gbuffer", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
       auto depth = registry.createTexture2d(depth_tex_name, dabfg::History::No,
-        dabfg::Texture2dCreateInfo{TEXFMT_DEPTH32 | TEXCF_RTARGET, dabfg::AutoResolution{"main_view"}});
+        dabfg::Texture2dCreateInfo{TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution("main_view")});
 
       for (int i = 0; i < gbuf_rt; ++i)
         registry.createTexture2d(gbuf_tex_names[i], dabfg::History::No,
-          dabfg::Texture2dCreateInfo{gbuf_fmts[i] | TEXCF_RTARGET, dabfg::AutoResolution{"main_view"}});
+          dabfg::Texture2dCreateInfo{gbuf_fmts[i] | TEXCF_RTARGET, registry.getResolution("main_view")});
 
       registry.requestState().allowWireframe();
 
@@ -893,7 +893,7 @@ public:
 
       auto resolvedHandle = registry
                               .createTexture2d("resolved_frame", dabfg::History::No,
-                                dabfg::Texture2dCreateInfo{rtFmt | TEXCF_RTARGET, dabfg::AutoResolution{"main_view"}})
+                                dabfg::Texture2dCreateInfo{rtFmt | TEXCF_RTARGET, registry.getResolution("main_view")})
                               .atStage(dabfg::Stage::POST_RASTER)
                               .useAs(dabfg::Usage::COLOR_ATTACHMENT)
                               .handle();
@@ -907,13 +907,17 @@ public:
         ShaderGlobal::set_color4(screen_pos_to_texcoordVarId, 1.f / info.w, 1.f / info.h, HALF_TEXEL_OFSF / info.w,
           HALF_TEXEL_OFSF / info.h);
         ShaderGlobal::set_color4(screen_sizeVarId, info.w, info.h, 1.0 / info.w, 1.0 / info.h);
+        TMatrix viewTm;
+        TMatrix4 projTm;
+        d3d::gettm(TM_VIEW, viewTm);
+        d3d::gettm(TM_PROJ, &projTm);
 
-        set_inv_globtm_to_shader(true);
-        set_viewvecs_to_shader();
+        set_inv_globtm_to_shader(viewTm, projTm, true);
+        set_viewvecs_to_shader(viewTm, projTm);
 
         csm->setCascadesToShader();
 
-        resolveShading->resolve(resolvedHandle.get());
+        resolveShading->resolve(resolvedHandle.get(), viewTm, projTm);
       };
     }));
 
@@ -922,7 +926,7 @@ public:
       registry.orderMeAfter("CSM");
 
       auto fakeReq = registry.createTexture2d("fake_output", dabfg::History::No,
-        dabfg::Texture2dCreateInfo{TEXCF_RTARGET, dabfg::AutoResolution{"main_view"}});
+        dabfg::Texture2dCreateInfo{TEXCF_RTARGET, registry.getResolution("main_view")});
 
       registry.requestRenderPass().color({fakeReq});
 
@@ -1341,9 +1345,11 @@ public:
     d3d::gettm(TM_VIEW, view);
     TMatrix4 projTm;
     d3d::gettm(TM_PROJ, &projTm);
+    Driver3dPerspective persp;
+    d3d::getpersp(persp);
     itm = orthonormalized_inverse(view);
     daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 2, UniqueTex{}, UniqueTex{},
-      BAD_TEXTUREID, cube_pov_data, view, projTm);
+      BAD_TEXTUREID, cube_pov_data, view, projTm, persp);
   }
   static inline void calc_water_reflection_matrix(TMatrix &tm, TMatrix &itm, TMatrix &ivtm, Point3 &pos, float water_level)
   {
@@ -1375,13 +1381,13 @@ public:
     TMatrix4 proj;
     d3d::gettm(TM_PROJ, &proj);
 
-    reflectionGbuffer->resolve(resolveTarget);
+    reflectionGbuffer->resolve(resolveTarget, reflectedVTM, proj);
 
     d3d::set_render_target(resolveTarget, 0);
-    d3d::set_depth(reflectionGbuffer->getDepth(), true);
+    d3d::set_depth(reflectionGbuffer->getDepth(), DepthAccess::SampledRO);
 
     daSkies.renderEnvi(false, dpoint3(reflectionPos), dpoint3(reflectedIVTM.getcol(2)), 0, reflectionGbuffer->getDepthAll(),
-      UniqueTex{}, reflectionGbuffer->getDepthId(), refl_pov_data, reflectedVTM, proj);
+      UniqueTex{}, reflectionGbuffer->getDepthId(), refl_pov_data, reflectedVTM, proj, p);
 
     d3d::settm(TM_VIEW, vtm);
     G_VERIFY(d3d::setpersp(p));
@@ -1443,7 +1449,7 @@ public:
 
       auto downsampledNormalsHandle = registry
                                         .createTexture2d("downsampled_normals", dabfg::History::No,
-                                          dabfg::Texture2dCreateInfo{TEXCF_RTARGET, dabfg::AutoResolution{"main_view", 0.5}})
+                                          dabfg::Texture2dCreateInfo{TEXCF_RTARGET, registry.getResolution("main_view", 0.5)})
                                         .atStage(dabfg::Stage::POST_RASTER)
                                         .useAs(dabfg::Usage::COLOR_ATTACHMENT)
                                         .handle();
@@ -1462,7 +1468,7 @@ public:
       auto farDownsampledDepthHandle =
         registry
           .createTexture2d("far_downsampled_depth", dabfg::History::DiscardOnFirstFrame,
-            dabfg::Texture2dCreateInfo{rfmt | TEXCF_RTARGET, dabfg::AutoResolution{"main_view", 0.5}, numMips})
+            dabfg::Texture2dCreateInfo{rfmt | TEXCF_RTARGET, registry.getResolution("main_view", 0.5), numMips})
           .atStage(dabfg::Stage::POST_RASTER)
           .useAs(dabfg::Usage::COLOR_ATTACHMENT)
           .handle();
@@ -1498,7 +1504,11 @@ public:
         fddHandle.view()->texfilter(TEXFILTER_POINT);
         prevFddHandle.view()->texfilter(TEXFILTER_SMOOTH);
 
-        ssr->render();
+        TMatrix viewTm;
+        TMatrix4 projTm;
+        d3d::gettm(TM_VIEW, viewTm);
+        d3d::gettm(TM_PROJ, &projTm);
+        ssr->render(viewTm, projTm);
       };
     }));
 
@@ -1518,7 +1528,13 @@ public:
         prevFddHandle.view()->texfilter(TEXFILTER_SMOOTH);
 
         if (ssao)
-          ssao->render(farDownsampledDepth[currentDownsampledDepth]);
+        {
+          TMatrix viewTm;
+          TMatrix4 projTm;
+          d3d::gettm(TM_VIEW, viewTm);
+          d3d::gettm(TM_PROJ, &projTm);
+          ssao->render(viewTm, projTm, farDownsampledDepth[currentDownsampledDepth]);
+        }
       };
     }));
 
@@ -1562,11 +1578,13 @@ public:
           curCamera->getInvViewMatrix(itm);
           TMatrix viewTm;
           TMatrix4 projTm;
+          Driver3dPerspective persp;
           d3d::gettm(TM_VIEW, viewTm);
           d3d::gettm(TM_PROJ, &projTm);
+          d3d::getpersp(persp);
           depthHandle.view()->texfilter(TEXFILTER_POINT);
           daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 3, fddHandle.view(),
-            prevFddHandle.view(), depthHandle.d3dResId(), main_pov_data, viewTm, projTm, true, false, 20.0F, aurora.get());
+            prevFddHandle.view(), depthHandle.d3dResId(), main_pov_data, viewTm, projTm, persp, true, false, 20.0F, aurora.get());
           prevFddHandle.view()->texaddr(TEXADDR_BORDER);
         }
       };
@@ -1610,7 +1628,9 @@ public:
       ShaderGlobal::set_color4(::get_shader_variable_id("water_heightmap_min_max", true), 1.f / dimensions,
         -(water_panel.water_level - 0.5 * dimensions) / dimensions, dimensions, water_panel.water_level - 0.5 * dimensions);
 
-      fft_water::render(water, itm.getcol(3), BAD_TEXTUREID, fft_water::GEOM_NORMAL);
+      TMatrix4 globtm;
+      d3d::getglobtm(globtm);
+      fft_water::render(water, itm.getcol(3), BAD_TEXTUREID, globtm, fft_water::GEOM_NORMAL);
     }
   }
 
@@ -2205,14 +2225,16 @@ public:
     curCamera->getInvViewMatrix(itm);
     TMatrix viewTm;
     TMatrix4 projTm;
+    Driver3dPerspective persp;
     d3d::gettm(TM_VIEW, viewTm);
     d3d::gettm(TM_PROJ, &projTm);
+    d3d::getpersp(persp);
     depthTex->texfilter(TEXFILTER_POINT);
     farDownsampledDepth[currentDownsampledDepth]->texfilter(TEXFILTER_POINT);
     farDownsampledDepth[1 - currentDownsampledDepth]->texaddr(TEXADDR_CLAMP);
     daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 3,
       farDownsampledDepth[currentDownsampledDepth], farDownsampledDepth[1 - currentDownsampledDepth], depthTex->getTID(),
-      main_pov_data, viewTm, projTm, true, false, 20.0F, aurora.get());
+      main_pov_data, viewTm, projTm, persp, true, false, 20.0F, aurora.get());
     farDownsampledDepth[1 - currentDownsampledDepth]->texaddr(TEXADDR_BORDER);
   }
 
@@ -2398,8 +2420,8 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
       SLICES = 33
     };
     calc_sphere_vertex_face_count(SLICES, SLICES, false, v_count, f_count);
-    d3d_err(sphereVb = d3d::create_vb(v_count * sizeof(Point3), 0, "sphere"));
-    d3d_err(sphereIb = d3d::create_ib(f_count * 6, 0));
+    d3d_err(sphereVb = d3d::create_vb(v_count * sizeof(Point3), SBCF_MAYBELOST, "sphere"));
+    d3d_err(sphereIb = d3d::create_ib(f_count * 6, SBCF_MAYBELOST));
     uint16_t *indices;
     void *vertices;
     sphereIb->lock(0, 0, &indices, VBLOCK_WRITEONLY);

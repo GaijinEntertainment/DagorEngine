@@ -8,7 +8,7 @@ Target      = gameLibs/ecs/camera.lib ;
 StrictCompile = yes ;
 
 AddIncludes =
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 

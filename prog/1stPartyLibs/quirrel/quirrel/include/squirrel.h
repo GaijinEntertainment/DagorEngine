@@ -56,10 +56,8 @@ class KeyValueFile;
 
 namespace SQCompilation
 {
-  class Node;
+  struct SqASTData;
 }
-
-using SqAstNode = SQCompilation::Node;
 
 #include "sqconfig.h"
 #include <stdio.h>
@@ -210,7 +208,6 @@ typedef struct tagSQFunctionInfo {
 #define BIT(n) (1ULL << (n))
 
 enum CompilationOptions : SQUnsignedInteger {
-  CO_USE_AST_COMPILER = BIT(0),
   CO_CLOSURE_HOISTING_OPT = BIT(1)
 };
 
@@ -247,17 +244,17 @@ SQUIRREL_API SQRESULT sq_compilebuffer(HSQUIRRELVM v, const SQChar *s, SQInteger
 SQUIRREL_API SQRESULT sq_parsetobinaryast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, OutputStream *ostream, SQBool raiseerror);
 SQUIRREL_API SQRESULT sq_translatebinaryasttobytecode(HSQUIRRELVM v, const uint8_t *buffer, size_t size, const HSQOBJECT *bindings, SQBool raiseerror);
 
-SQUIRREL_API SqAstNode *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool raiseerror, Arena *arena);
-SQUIRREL_API SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SqAstNode *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const SQChar *s, SQInteger size, SQBool raiseerror, SQBool debugInfo);
-SQUIRREL_API void sq_analyseast(HSQUIRRELVM v, SqAstNode *ast, const HSQOBJECT *bindings, const SQChar *sourcename, const SQChar *s, SQInteger size);
+SQUIRREL_API SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool preserveComments, SQBool raiseerror);
+SQUIRREL_API SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size, SQBool raiseerror, SQBool debugInfo);
+SQUIRREL_API void sq_analyseast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size);
+SQUIRREL_API void sq_checktrailingspaces(HSQUIRRELVM v, const SQChar *sourceName, const SQChar *s, SQInteger size);
 
 SQUIRREL_API void sq_oncompilefile(HSQUIRRELVM v, const SQChar *sourcename);
 
-SQUIRREL_API void sq_dumpast(HSQUIRRELVM v, SqAstNode *ast, OutputStream *s);
+SQUIRREL_API void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, OutputStream *s);
 SQUIRREL_API void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s);
 
-SQUIRREL_API Arena *sq_createarena(HSQUIRRELVM v, const SQChar *name);
-SQUIRREL_API void sq_destroyarena(HSQUIRRELVM v, Arena *arena);
+SQUIRREL_API void sq_releaseASTData(HSQUIRRELVM v, SQCompilation::SqASTData *astData);
 
 SQUIRREL_API void sq_setcompilationoption(HSQUIRRELVM v, enum CompilationOptions co, bool value);
 SQUIRREL_API bool sq_checkcompilationoption(HSQUIRRELVM v, enum CompilationOptions co);
@@ -430,6 +427,10 @@ SQUIRREL_API bool sq_switchdiagnosticstate_t(const char *diagId, bool state);
 SQUIRREL_API bool sq_switchdiagnosticstate_i(int32_t id, bool state);
 SQUIRREL_API void sq_invertwarningsstate();
 SQUIRREL_API void sq_printwarningslist(FILE *ostream);
+SQUIRREL_API void sq_disablesyntaxwarnings();
+SQUIRREL_API void sq_enablesyntaxwarnings();
+SQUIRREL_API void sq_checkglobalnames(HSQUIRRELVM v);
+
 
 /*UTILITY MACRO*/
 #define sq_iscollectable(o) ((o)._type&SQOBJECT_COLLECTABLE)

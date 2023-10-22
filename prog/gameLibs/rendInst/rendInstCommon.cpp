@@ -1,15 +1,13 @@
 #include <rendInst/rendInstGen.h>
 #include "riGen/riGenData.h"
-#include "riGen/riGenRender.h"
+#include "render/genRender.h"
 
 #include <3d/dag_drv3d.h>
-#include <3d/dag_drv3dCmd.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <EASTL/fixed_vector.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
-#include <shaders/dag_shaderResUnitedData.h>
 
 
 namespace rendinst
@@ -26,15 +24,6 @@ bool rendinstClipmapShadows = true;
 bool rendinstGlobalShadows = false;
 bool rendinstSecondaryLayer = true;
 DataBlock ri_lod_ranges_ovr;
-
-void renderRendinstShadowsToTextures(const Point3 &sunDir0)
-{
-  if (rendinstClipmapShadows)
-    spin_wait([&] { return !renderRIGenClipmapShadowsToTextures(sunDir0, false) && !d3d::device_lost(NULL); });
-
-  if (rendinstGlobalShadows)
-    spin_wait([&] { return !renderRIGenGlobalShadowsToTextures(sunDir0) && !d3d::device_lost(NULL); });
-}
 
 void preloadTexturesToBuildRendinstShadows()
 {
@@ -69,7 +58,7 @@ static void onSettingsChanged(RendInstGenData *rgl, const Point3 &sun_dir_0)
   {
     if (!rgl->rtData->rtPoolData[poolNo])
       continue;
-    rendinstgenrender::RtPoolData &pool = *rgl->rtData->rtPoolData[poolNo];
+    rendinst::render::RtPoolData &pool = *rgl->rtData->rtPoolData[poolNo];
 
     if (pool.rendinstClipmapShadowTex)
       hasClipShadows = true;
@@ -85,11 +74,11 @@ static void onSettingsChanged(RendInstGenData *rgl, const Point3 &sun_dir_0)
   }
 
   if (rendinstClipmapShadows && !hasClipShadows)
-    renderRIGenClipmapShadowsToTextures(sun_dir_0, false); // The parameter cannot be changed by user so there is no need to update
-                                                           // SLI.
+    render::renderRIGenClipmapShadowsToTextures(sun_dir_0, false); // The parameter cannot be changed by user so there is no need to
+                                                                   // update SLI.
 
   if (rendinstGlobalShadows && !hasGlobalShadows)
-    renderRIGenGlobalShadowsToTextures(sun_dir_0);
+    render::renderRIGenGlobalShadowsToTextures(sun_dir_0);
 
   if (rendinstGlobalShadows != hasGlobalShadows)
     rebuildRgRenderMasks();
@@ -97,15 +86,15 @@ static void onSettingsChanged(RendInstGenData *rgl, const Point3 &sun_dir_0)
 
 void setRiExtraDistMul(float mul)
 {
-  rendinst::riExtraLodDistSqMul = 1.0f / ((rendinstgenrender::riExtraMulScale > 0.0f ? rendinstgenrender::globalDistMul : 1.f) * mul);
+  rendinst::riExtraLodDistSqMul = 1.0f / ((rendinst::render::riExtraMulScale > 0.0f ? rendinst::render::globalDistMul : 1.f) * mul);
   rendinst::riExtraCullDistSqMul =
-    1.0f / ((rendinstgenrender::riExtraMulScale > 0.0f ? rendinstgenrender::globalCullDistMul : 1.f) * mul);
+    1.0f / ((rendinst::render::riExtraMulScale > 0.0f ? rendinst::render::globalCullDistMul : 1.f) * mul);
 
   rendinst::riExtraLodDistSqMul *= rendinst::riExtraLodDistSqMul;
   rendinst::riExtraCullDistSqMul *= rendinst::riExtraCullDistSqMul;
 
-  rendinstgenrender::riExtraLodsShiftDistMul = rendinstgenrender::lodsShiftDistMul * rendinstgenrender::additionalRiExtraLodDistMul *
-                                               rendinst::riExtraLodDistSqMul / rendinst::riExtraCullDistSqMul;
+  rendinst::render::riExtraLodsShiftDistMul = rendinst::render::lodsShiftDistMul * rendinst::render::additionalRiExtraLodDistMul *
+                                              rendinst::riExtraLodDistSqMul / rendinst::riExtraCullDistSqMul;
 }
 
 void setDistMul(float distMul, float distOfs, bool force_impostors_and_mul, float impostors_far_dist_additional_mul) // 0.2353, 0.0824
@@ -115,22 +104,22 @@ void setDistMul(float distMul, float distOfs, bool force_impostors_and_mul, floa
 {
   unitDistMul = distMul;
   unitDistOfs = distOfs;
-  rendinstgenrender::globalDistMul = clamp(unitDistMul * rendinstgenrender::settingsDistMul + unitDistOfs,
+  rendinst::render::globalDistMul = clamp(unitDistMul * rendinst::render::settingsDistMul + unitDistOfs,
     MIN_EFFECTIVE_RENDINST_DIST_MUL, MAX_EFFECTIVE_RENDINST_DIST_MUL);
 
-  rendinstgenrender::globalCullDistMul =
-    clamp(unitDistMul * max(rendinstgenrender::settingsDistMul, rendinstgenrender::settingsMinCullDistMul) + unitDistOfs,
+  rendinst::render::globalCullDistMul =
+    clamp(unitDistMul * max(rendinst::render::settingsDistMul, rendinst::render::settingsMinCullDistMul) + unitDistOfs,
       MIN_EFFECTIVE_RENDINST_DIST_MUL, MAX_EFFECTIVE_RENDINST_DIST_MUL);
 
   FOR_EACH_RG_LAYER_DO (rgl)
     if (rgl->rtData)
-      rgl->rtData->setDistMul(clamp(rendinstgenrender::globalDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul),
-        clamp(rendinstgenrender::globalCullDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul), true, true,
+      rgl->rtData->setDistMul(clamp(rendinst::render::globalDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul),
+        clamp(rendinst::render::globalCullDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul), true, true,
         force_impostors_and_mul, impostors_far_dist_additional_mul);
 
   setRiExtraDistMul(1.f);
 
-  rendinstgenrender::forceImpostors = force_impostors_and_mul;
+  rendinst::render::forceImpostors = force_impostors_and_mul;
 }
 
 void updateSettingsDistMul()
@@ -140,36 +129,36 @@ void updateSettingsDistMul()
 
 void updateSettingsDistMul(float v)
 {
-  rendinstgenrender::settingsDistMul = clamp(v, MIN_SETTINGS_RENDINST_DIST_MUL, MAX_SETTINGS_RENDINST_DIST_MUL);
+  rendinst::render::settingsDistMul = clamp(v, MIN_SETTINGS_RENDINST_DIST_MUL, MAX_SETTINGS_RENDINST_DIST_MUL);
   setDistMul(unitDistMul, unitDistOfs);
 }
 
-void updateMinCullSettingsDistMul(float v) { rendinstgenrender::settingsMinCullDistMul = v; }
+void updateMinCullSettingsDistMul(float v) { rendinst::render::settingsMinCullDistMul = v; }
 
 void updateRIExtraMulScale()
 {
-  rendinstgenrender::riExtraMulScale = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("riExtraMulScale", 1.0f);
+  rendinst::render::riExtraMulScale = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("riExtraMulScale", 1.0f);
   setDistMul(unitDistMul, unitDistOfs);
 }
 
 static float defaultLodsShiftDistMul = 1.0;
 void setLodsShiftDistMult()
 {
-  rendinstgenrender::lodsShiftDistMul = defaultLodsShiftDistMul =
+  rendinst::render::lodsShiftDistMul = defaultLodsShiftDistMul =
     clamp(::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("lodsShiftDistMul", 1.f), 1.f, 1.3f);
 }
 
-void setLodsShiftDistMult(float mul) { rendinstgenrender::lodsShiftDistMul = mul; }
-void setAdditionalRiExtraLodDistMul(float mul) { rendinstgenrender::additionalRiExtraLodDistMul = mul; }
+void setLodsShiftDistMult(float mul) { rendinst::render::lodsShiftDistMul = mul; }
+void setAdditionalRiExtraLodDistMul(float mul) { rendinst::render::additionalRiExtraLodDistMul = mul; }
 
-void resetLodsShiftDistMult() { rendinstgenrender::lodsShiftDistMul = defaultLodsShiftDistMul; }
+void resetLodsShiftDistMult() { rendinst::render::lodsShiftDistMul = defaultLodsShiftDistMul; }
 
 void setZoomDistMul(float mul, bool scale_lod1, float impostors_far_dist_additional_mul)
 {
   FOR_EACH_RG_LAYER_DO (rgl)
     if (rgl->rtData)
-      rgl->rtData->setDistMul(clamp(rendinstgenrender::globalDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul) * mul,
-        clamp(rendinstgenrender::globalCullDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul) * mul, scale_lod1, false,
+      rgl->rtData->setDistMul(clamp(rendinst::render::globalDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul) * mul,
+        clamp(rendinst::render::globalCullDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul) * mul, scale_lod1, false,
         false, impostors_far_dist_additional_mul);
 
   setRiExtraDistMul(mul);
@@ -220,7 +209,7 @@ const DestroyedPoolData *DestroyedCellData::getPool(uint16_t pool_idx) const
   for (int i = 0; i < destroyedPoolInfo.size(); ++i)
     if (destroyedPoolInfo[i].poolIdx == pool_idx)
       return &destroyedPoolInfo[i];
-  return NULL;
+  return nullptr;
 }
 } // namespace rendinst
 

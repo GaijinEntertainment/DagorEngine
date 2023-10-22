@@ -589,102 +589,102 @@ static inline ResPtr<Sbuffer> create_sbuffer(int struct_size, int elements, unsi
 namespace buffers
 {
 
-using namespace d3d_buffers;
+using namespace d3d::buffers;
 
 // Such buffers could be updated from time to time and its content will be automatically restored on device reset.
 inline ResPtr<Sbuffer> create_persistent_cb(uint32_t registers_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_persistent_cb(registers_count, name));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_persistent_cb(registers_count, name));
 }
 // Such buffers must be updated every frame. Because of that we don't care about its content on device reset.
 inline ResPtr<Sbuffer> create_one_frame_cb(uint32_t registers_count, const char *name, Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_one_frame_cb(registers_count, name, buffer_init));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_one_frame_cb(registers_count, name, buffer_init));
 }
 
 // (RW)ByteAddressBuffer in shader.
 inline ResPtr<Sbuffer> create_ua_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_ua_sr_byte_address(size_in_dwords, name, buffer_init));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_sr_byte_address(size_in_dwords, name, buffer_init));
 }
 // (RW)StructuredBuffer in shader.
 inline ResPtr<Sbuffer> create_ua_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name,
   Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_ua_sr_structured(structure_size, elements_count, name, buffer_init));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_sr_structured(structure_size, elements_count, name, buffer_init));
 }
 
 // RWByteAddressBuffer in shader.
 inline ResPtr<Sbuffer> create_ua_byte_address(uint32_t size_in_dwords, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_ua_byte_address(size_in_dwords, name));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_byte_address(size_in_dwords, name));
 }
 // RWStructuredBuffer in shader.
 inline ResPtr<Sbuffer> create_ua_structured(uint32_t structure_size, uint32_t elements_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_ua_structured(structure_size, elements_count, name));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_structured(structure_size, elements_count, name));
 }
 
 // The same as create_ua_byte_address but its content can be read on CPU
 inline ResPtr<Sbuffer> create_ua_byte_address_readback(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_ua_byte_address_readback(size_in_dwords, name, buffer_init));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_byte_address_readback(size_in_dwords, name, buffer_init));
 }
 // The same as create_ua_structured but its content can be read on CPU
 inline ResPtr<Sbuffer> create_ua_structured_readback(uint32_t structure_size, uint32_t elements_count, const char *name,
   Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_ua_structured_readback(structure_size, elements_count, name, buffer_init));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_structured_readback(structure_size, elements_count, name, buffer_init));
 }
 
 // Indirect buffer filled on GPU
 inline ResPtr<Sbuffer> create_ua_indirect(Indirect indirect_type, uint32_t records_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_ua_indirect(indirect_type, records_count, name));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_ua_indirect(indirect_type, records_count, name));
 }
 // Indirect buffer filled on CPU
 inline ResPtr<Sbuffer> create_indirect(Indirect indirect_type, uint32_t records_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_indirect(indirect_type, records_count, name));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_indirect(indirect_type, records_count, name));
 }
 
 // A buffer for data transfer on GPU
 inline ResPtr<Sbuffer> create_staging(uint32_t size_in_bytes, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_staging(size_in_bytes, name));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_staging(size_in_bytes, name));
 }
 
 inline ResPtr<Sbuffer> create_persistent_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name,
-  Maybelost maybelost = Maybelost::Yes)
+  Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_persistent_sr_tbuf(elements_count, format, name, maybelost));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_persistent_sr_tbuf(elements_count, format, name, buffer_init));
 }
 
-inline ResPtr<Sbuffer> create_persistent_sr_byte_address(uint32_t size_in_dwords, const char *name,
-  Maybelost maybelost = Maybelost::Yes)
+inline ResPtr<Sbuffer> create_persistent_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_persistent_sr_byte_address(size_in_dwords, name, maybelost));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_persistent_sr_byte_address(size_in_dwords, name, buffer_init));
 }
 
 inline ResPtr<Sbuffer> create_persistent_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name,
-  Maybelost maybelost = Maybelost::Yes)
+  Init buffer_init = Init::No)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_persistent_sr_structured(structure_size, elements_count, name, maybelost));
+  return resptr_detail::ResPtrFactory(
+    d3d::buffers::create_persistent_sr_structured(structure_size, elements_count, name, buffer_init));
 }
 
 inline ResPtr<Sbuffer> create_one_frame_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_one_frame_sr_tbuf(elements_count, format, name));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_one_frame_sr_tbuf(elements_count, format, name));
 }
 
 inline ResPtr<Sbuffer> create_one_frame_sr_byte_address(uint32_t size_in_dwords, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_one_frame_sr_byte_address(size_in_dwords, name));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_one_frame_sr_byte_address(size_in_dwords, name));
 }
 
 inline ResPtr<Sbuffer> create_one_frame_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d_buffers::create_one_frame_sr_structured(structure_size, elements_count, name));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_one_frame_sr_structured(structure_size, elements_count, name));
 }
 
 } // namespace buffers

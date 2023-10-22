@@ -70,7 +70,7 @@ void draw_skeleton_tree(const GeomNodeTree &tree, real radius = 0.02f, E3DCOLOR 
 // draws filled triangle list
 void draw_cached_debug_trilist(const Point3 *p, int tn, E3DCOLOR c = E3DCOLOR_MAKE(255, 255, 64, 255));
 // draws filled hexagon
-void draw_cached_debug_hex(const Point3 &pos, real rad, E3DCOLOR c = E3DCOLOR_MAKE(255, 255, 64, 255));
+void draw_cached_debug_hex(const TMatrix &view_itm, const Point3 &pos, real rad, E3DCOLOR c = E3DCOLOR_MAKE(255, 255, 64, 255));
 // draws filled quad
 void draw_cached_debug_quad(const Point3 p[4], E3DCOLOR c = E3DCOLOR_MAKE(255, 255, 64, 255));
 void draw_cached_debug_solid_triangle(const Point3 p[3], E3DCOLOR c);
@@ -103,10 +103,10 @@ bool save_voltex_as_ddsx(VolTexture *tex, const char *filename, bool srgb = fals
     end_draw_cached_debug_lines_ex(); \
   else
 
-inline void draw_debug_hex(const Point3 &pos, real rad, E3DCOLOR c = E3DCOLOR_MAKE(255, 255, 64, 255))
+inline void draw_debug_hex(const TMatrix &view_itm, const Point3 &pos, real rad, E3DCOLOR c = E3DCOLOR_MAKE(255, 255, 64, 255))
 {
   D3D_PROLOGUE();
-  draw_cached_debug_hex(pos, rad, c);
+  draw_cached_debug_hex(view_itm, pos, rad, c);
   D3D_EPILOGUE();
 }
 
@@ -192,7 +192,7 @@ inline void draw_debug_capsule_w(const Point3 &w0, const Point3 &w1, float rad, 
 }
 
 #else
-inline void draw_debug_hex(const Point3 &, real, E3DCOLOR = E3DCOLOR_MAKE(255, 255, 64, 255)) {}
+inline void draw_debug_hex(const TMatrix &, const Point3 &, real, E3DCOLOR = E3DCOLOR_MAKE(255, 255, 64, 255)) {}
 inline void draw_debug_quad(const Point3[4], E3DCOLOR = E3DCOLOR_MAKE(255, 64, 255, 255)) {}
 inline void draw_debug_line(const Point3 *, int, E3DCOLOR = E3DCOLOR_MAKE(255, 32, 32, 255)) {}
 inline void draw_debug_line(const Point3 &, const Point3 &, E3DCOLOR = E3DCOLOR_MAKE(255, 32, 32, 255)) {}

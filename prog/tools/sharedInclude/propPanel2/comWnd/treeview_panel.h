@@ -77,7 +77,7 @@ struct TTreeNode
 class TreeBaseWindow : public WindowControlEventHandler, public IWndEmbeddedWindow
 {
 public:
-  TreeBaseWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h, const char *caption,
+  TreeBaseWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, const char *caption,
     bool icons_show, bool state_icons_show = false);
 
   virtual ~TreeBaseWindow();
@@ -154,7 +154,7 @@ protected:
 class TreeViewWindow : public TreeBaseWindow, public ControlEventHandler
 {
 public:
-  TreeViewWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h, unsigned ph,
+  TreeViewWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, hdpi::Px ph,
     const char *caption, bool icons_show = true);
 
 protected:
@@ -168,7 +168,7 @@ protected:
 class TreeListWindow : public TreeViewWindow
 {
 public:
-  TreeListWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h, const char *caption);
+  TreeListWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, const char *caption);
 
   ~TreeListWindow();
 

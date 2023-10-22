@@ -10,6 +10,7 @@
 
 
 using namespace ScriptHelpers;
+using hdpi::_pxActual;
 
 
 namespace ScriptHelpers
@@ -52,7 +53,7 @@ public:
 
     mPanel(NULL), shouldRebuild(false)
   {
-    mPanel = new CPanelWindow(this, phandle, x, y, w, h, "");
+    mPanel = new CPanelWindow(this, phandle, x, y, _pxActual(w), _pxActual(h), "");
   }
 
 
@@ -300,7 +301,7 @@ IWndEmbeddedWindow *ScriptHelpers::on_wm_create_window(void *handle, int type)
       unsigned w, h;
       wnd_manager->getWindowClientSize(handle, w, h);
       tree_callback = new ParamsTreeCB();
-      tree_list = new TreeBaseWindow(tree_callback, handle, 0, 0, w, h, "", false);
+      tree_list = new TreeBaseWindow(tree_callback, handle, 0, 0, _pxActual(w), _pxActual(h), "", false);
 
       return tree_list;
     }

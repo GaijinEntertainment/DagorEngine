@@ -97,7 +97,7 @@ void GrassTranslucency::init(int tex_size)
   recreateTex(grass_tex_size);
   grassAmount = GRASSY;
   last_grass_color_box.setempty();
-  decode_grass_mask.init("decode_grass_mask", NULL, true);
+  decode_grass_mask.init("decode_grass_mask");
   render_land_translucencyVarId = get_shader_variable_id("render_land_translucency", true);
   translucency_vignetteVarId = get_shader_variable_id("translucency_vignette", true);
   torHelper.curOrigin = IPoint2(-1000000, 100000);

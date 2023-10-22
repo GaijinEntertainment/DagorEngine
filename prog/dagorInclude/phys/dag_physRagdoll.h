@@ -7,7 +7,6 @@
 
 #include <phys/dag_physSysInst.h>
 #include <phys/dag_physDecl.h>
-#include <phys/dag_physics.h>
 #include <phys/dag_physUserData.h>
 #include <animChar/dag_animCharacter2.h>
 #include <generic/dag_smallTab.h>
@@ -66,6 +65,7 @@ protected:
   static void onPreSolve(PhysBody *body, void *other, const Point3 &pos, Point3 &norm, IPhysContactData *&contact_data);
   void initNodeHelpers(const GeomNodeTree &tree, dag::Span<TMatrix> last_node_tms = {});
   void setBodiesTm(const GeomNodeTree &tree, dag::Span<TMatrix> last_node_tms = {}, float dt = 0.f);
+  void applyOverriddenVelocities();
 
   struct NodeAlignCtrl
   {

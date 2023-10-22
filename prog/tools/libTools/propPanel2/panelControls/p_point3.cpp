@@ -3,22 +3,24 @@
 #include "p_point3.h"
 #include "../c_constants.h"
 
-CPoint3::CPoint3(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CPoint3::CPoint3(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[], int prec) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT * 2),
-  mCaption(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT),
-  mSpinWidth(w / 3),
-  mSpin1(this, parent->getWindow(), x, y + DEFAULT_CONTROL_HEIGHT, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
-  mSpin2(this, parent->getWindow(), x + mSpinWidth, y + DEFAULT_CONTROL_HEIGHT, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
-  mSpin3(this, parent->getWindow(), x + 2 * mSpinWidth, y + DEFAULT_CONTROL_HEIGHT, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec)
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT) * 2),
+  mCaption(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mSpinWidth(_px(w) / 3),
+  mSpin1(this, parent->getWindow(), x, y + _pxS(DEFAULT_CONTROL_HEIGHT), mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
+  mSpin2(this, parent->getWindow(), x + mSpinWidth, y + _pxS(DEFAULT_CONTROL_HEIGHT), mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0,
+    0, prec),
+  mSpin3(this, parent->getWindow(), x + 2 * mSpinWidth, y + _pxS(DEFAULT_CONTROL_HEIGHT), mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0,
+    0, 0, prec)
 {
   hasCaption = strlen(caption) > 0;
 
   if (hasCaption)
   {
     mCaption.setTextValue(caption);
-    mH = DEFAULT_CONTROL_HEIGHT + mSpin1.getHeight();
+    mH = _pxS(DEFAULT_CONTROL_HEIGHT) + mSpin1.getHeight();
   }
   else
   {
@@ -104,13 +106,13 @@ void CPoint3::setEnabled(bool enabled)
 }
 
 
-void CPoint3::setWidth(unsigned w)
+void CPoint3::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
 
-  mSpinWidth = w / 3;
+  mSpinWidth = _px(w) / 3;
 
-  mCaption.resizeWindow(w, mCaption.getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
   mSpin1.resizeWindow(mSpinWidth, mSpin1.getHeight());
   mSpin2.resizeWindow(mSpinWidth, mSpin2.getHeight());
   mSpin3.resizeWindow(mSpinWidth, mSpin3.getHeight());

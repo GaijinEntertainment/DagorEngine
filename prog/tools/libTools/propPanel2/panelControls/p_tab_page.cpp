@@ -3,10 +3,10 @@
 #include "p_tab_page.h"
 #include "p_tab_panel.h"
 
-CTabPage::CTabPage(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
-  const char caption[]) :
+CTabPage::CTabPage(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+  hdpi::Px h, const char caption[]) :
 
-  CGroupBase(event_handler, parent, new WContainer(this, parent->getWindow(), x, y, w, h), id, x, y, w, h, caption)
+  CGroupBase(event_handler, parent, new WContainer(this, parent->getWindow(), x, y, _px(w), _px(h)), id, x, y, w, h, caption)
 {}
 
 

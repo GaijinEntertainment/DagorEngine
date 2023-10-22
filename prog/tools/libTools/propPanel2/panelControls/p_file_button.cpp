@@ -4,18 +4,18 @@
 #include "../c_constants.h"
 #include <winGuiWrapper/wgw_dialogs.h>
 
-CFileButton::CFileButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CFileButton::CFileButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[]) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT + DEFAULT_BUTTON_HEIGHT),
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT) + _pxScaled(DEFAULT_BUTTON_HEIGHT)),
 
-  mCaption(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT),
+  mCaption(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT)),
 
-  mFileButton(this, parent->getWindow(), x, y + DEFAULT_CONTROL_HEIGHT, w - 2 * DEFAULT_CONTROL_HEIGHT - DEFAULT_CONTROLS_INTERVAL,
-    DEFAULT_BUTTON_HEIGHT),
+  mFileButton(this, parent->getWindow(), x, y + _pxS(DEFAULT_CONTROL_HEIGHT),
+    _px(w) - 2 * _pxS(DEFAULT_CONTROL_HEIGHT) - _pxS(DEFAULT_CONTROLS_INTERVAL), _pxS(DEFAULT_BUTTON_HEIGHT)),
 
-  mClearButton(this, parent->getWindow(), x + mFileButton.getWidth() + DEFAULT_CONTROLS_INTERVAL, y + DEFAULT_CONTROL_HEIGHT,
-    2 * DEFAULT_CONTROL_HEIGHT, DEFAULT_BUTTON_HEIGHT),
+  mClearButton(this, parent->getWindow(), x + mFileButton.getWidth() + _pxS(DEFAULT_CONTROLS_INTERVAL),
+    y + _pxS(DEFAULT_CONTROL_HEIGHT), 2 * _pxS(DEFAULT_CONTROL_HEIGHT), _pxS(DEFAULT_BUTTON_HEIGHT)),
 
   mValue("")
 {
@@ -50,16 +50,17 @@ void CFileButton::reset()
 }
 
 
-void CFileButton::setWidth(unsigned w)
+void CFileButton::setWidth(hdpi::Px w)
 {
-  int minw = 2 * DEFAULT_CONTROL_HEIGHT + DEFAULT_CONTROLS_INTERVAL;
-  w = (w < minw) ? minw : w;
+  int minw = 2 * _pxS(DEFAULT_CONTROL_HEIGHT) + _pxS(DEFAULT_CONTROLS_INTERVAL);
+  w = (_px(w) < minw) ? _pxActual(minw) : w;
 
   PropertyControlBase::setWidth(w);
 
-  mCaption.resizeWindow(w, mCaption.getHeight());
-  mFileButton.resizeWindow(w - 2 * DEFAULT_CONTROL_HEIGHT - DEFAULT_CONTROLS_INTERVAL, mFileButton.getHeight());
-  mClearButton.resizeWindow(2 * DEFAULT_CONTROL_HEIGHT, mClearButton.getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
+  mFileButton.resizeWindow(_px(w - _pxScaled(DEFAULT_CONTROL_HEIGHT) * 2 - _pxScaled(DEFAULT_CONTROLS_INTERVAL)),
+    mFileButton.getHeight());
+  mClearButton.resizeWindow(2 * _pxS(DEFAULT_CONTROL_HEIGHT), mClearButton.getHeight());
 
   this->moveTo(this->getX(), this->getY());
 }
@@ -110,8 +111,8 @@ void CFileButton::moveTo(int x, int y)
   PropertyControlBase::moveTo(x, y);
 
   mCaption.moveWindow(x, y);
-  mFileButton.moveWindow(x, y + DEFAULT_CONTROL_HEIGHT);
-  mClearButton.moveWindow(x + mFileButton.getWidth() + DEFAULT_CONTROLS_INTERVAL, y + DEFAULT_CONTROL_HEIGHT);
+  mFileButton.moveWindow(x, y + _pxS(DEFAULT_CONTROL_HEIGHT));
+  mClearButton.moveWindow(x + mFileButton.getWidth() + _pxS(DEFAULT_CONTROLS_INTERVAL), y + _pxS(DEFAULT_CONTROL_HEIGHT));
 }
 
 

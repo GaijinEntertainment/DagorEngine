@@ -143,6 +143,8 @@ static void run_uploader(const Context *ctx, const char *dump_path, const char *
       // We have totally crashed and can do nothing about it but try to notify user
       fprintf(stderr, "%s: Could not execute %s: (%d) %s", ctx->product.name.str(), ctx->configuration.senderCmd.c_str(), errno,
         strerror(errno));
+      // Kill the procces since it failed to exec uploader
+      _exit(1);
     }
   }
 }

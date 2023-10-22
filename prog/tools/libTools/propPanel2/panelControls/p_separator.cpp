@@ -3,10 +3,10 @@
 #include "p_separator.h"
 #include "../c_constants.h"
 
-CSeparator::CSeparator(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w) :
+CSeparator::CSeparator(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w) :
 
-  PropertyControlBase(id, event_handler, parent, x, y, w, DEFAULT_SEPARATOR_HEIGHT),
-  mSeparator(this, parent->getWindow(), x, y, w, DEFAULT_SEPARATOR_HEIGHT)
+  PropertyControlBase(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_SEPARATOR_HEIGHT)),
+  mSeparator(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_SEPARATOR_HEIGHT))
 {}
 
 
@@ -18,10 +18,10 @@ PropertyContainerControlBase *CSeparator::createDefault(int id, PropertyContaine
 }
 
 
-void CSeparator::setWidth(unsigned w)
+void CSeparator::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
-  mSeparator.resizeWindow(w, mSeparator.getHeight());
+  mSeparator.resizeWindow(_px(w), mSeparator.getHeight());
 }
 
 

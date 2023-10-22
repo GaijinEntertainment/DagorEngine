@@ -54,8 +54,12 @@ if $(Platform) in win32 win64 xboxOne scarlett {
   CPPopt += /wd4505 ; # warning C4505: 'FMOD_ErrorString': unreferenced local function has been removed
 }
 
+if $(Platform) in iOS {
+  Sources += soundSystem_ios.mm ;
+}
+
 UseProgLibs =
-  engine2/coreUtil
+  engine/coreUtil
   $(FmodUseProgLib)
 ;
 

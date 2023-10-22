@@ -250,8 +250,6 @@ static IPoint3 calc_froxel_resolution(const IPoint3 &orig_res, bool is_hq) { ret
 bool VolumeLight::hasDistantFog() const { return !!distantFogFrameReconstruct[0]; }
 bool VolumeLight::hasVolfogShadows() const { return !!volfogShadow[0]; }
 
-void VolumeLight::onCompatibilityModeChange(bool use_compatiblity_mode) { useCompatibilityMode = use_compatiblity_mode; }
-
 void VolumeLight::onSettingsChange(bool has_hq_fog, bool has_distant_fog, bool has_volfog_shadow)
 {
   if (nodeBasedFillMediaCs)
@@ -261,29 +259,29 @@ void VolumeLight::onSettingsChange(bool has_hq_fog, bool has_distant_fog, bool h
   if (nodeBasedFogShadowCs)
     nodeBasedFogShadowCs->reset();
 
+  has_volfog_shadow = has_volfog_shadow && canUseVolfogShadow();
+
   bool bInvalidate = false;
-  if (hq_volfog != has_hq_fog)
+  if (needsHqVolfog != has_hq_fog)
   {
-    hq_volfog = has_hq_fog;
-    froxelResolution = calc_froxel_resolution(froxelOrigResolution, hq_volfog);
+    needsHqVolfog = has_hq_fog;
+    froxelResolution = calc_froxel_resolution(froxelOrigResolution, needsHqVolfog);
     initFroxelFog();
     bInvalidate = true;
   }
 
   if (hasVolfogShadows() != has_volfog_shadow)
   {
-    if (!has_volfog_shadow)
-      resetVolfogShadow();
-    else
+    resetVolfogShadow();
+    if (has_volfog_shadow)
       initVolfogShadow();
     bInvalidate = true;
   }
 
   if (hasDistantFog() != has_distant_fog)
   {
-    if (!has_distant_fog)
-      resetDistantFog();
-    else
+    resetDistantFog();
+    if (has_distant_fog)
       initDistantFog();
     bInvalidate = true;
   }
@@ -466,9 +464,6 @@ void VolumeLight::initFroxelFog()
     volfogOcclusion[i].getTex2D()->texaddr(TEXADDR_CLAMP);
     d3d::resource_barrier({volfogOcclusion[i].getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
   }
-
-  if (isVolfogShadowEnabled())
-    initVolfogShadow();
 }
 
 void VolumeLight::initDistantFog()
@@ -557,7 +552,7 @@ void VolumeLight::setResolution(int resW, int resH, int resD, int screenW, int s
 
   froxelOrigResolution = IPoint3(resW, resH, resD);
 
-  IPoint3 targetFroxelResolution = calc_froxel_resolution(froxelOrigResolution, hq_volfog);
+  IPoint3 targetFroxelResolution = calc_froxel_resolution(froxelOrigResolution, needsHqVolfog);
 
   IPoint2 targetReconstructionFrameRes = IPoint2(screenW, screenH) / 2;
   bool reinitFroxelFog = targetFroxelResolution != froxelResolution;
@@ -604,7 +599,7 @@ void VolumeLight::invalidate()
   }
   for (int i = 0; i < volfogShadow.count; ++i)
   {
-    if (isVolfogShadowEnabled() && volfogShadow[i])
+    if (volfogShadow[i])
     {
       d3d::GpuAutoLock gpuLock;
       ShaderGlobal::set_color4(volfog_shadow_resVarId, VOLFOG_SHADOW_VOLTEX_RES, volfog_shadow_voxel_size);
@@ -683,9 +678,9 @@ float VolumeLight::calcBlendedStartDepth(int blended_slice_cnt) const
 
 bool VolumeLight::canUseLinearAccumulation() const { return froxel_fog_enable_linear_accumulation && preferLinearAccumulation; }
 bool VolumeLight::canUsePixelShader() const { return canUseLinearAccumulation() && froxel_fog_enable_pixel_shader; }
-bool VolumeLight::isVolfogShadowEnabled() const { return volfogShadowCs && clearVolfogShadowCs && !useCompatibilityMode; }
+bool VolumeLight::canUseVolfogShadow() const { return volfogShadowCs && clearVolfogShadowCs; }
 
-bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4_vec4 &glob_tm, const Point3 &camera_pos)
+bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, const TMatrix4_vec4 &glob_tm, const Point3 &camera_pos)
 {
   bool useNodeBasedInput = !volfog_disable_node_based_input && nodeBasedFillMediaCs && nodeBasedFillMediaCs->isValid();
 
@@ -710,7 +705,7 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4_vec4 &glob_tm,
 
   TIME_D3D_PROFILE(volume_light_perform);
 
-  set_viewvecs_to_shader();
+  set_viewvecs_to_shader(tmatrix(view_tm), proj_tm);
   ShaderGlobal::set_color4(prev_globtm_psf_0VarId, Color4(prevGlobTm.current()[0]));
   ShaderGlobal::set_color4(prev_globtm_psf_1VarId, Color4(prevGlobTm.current()[1]));
   ShaderGlobal::set_color4(prev_globtm_psf_2VarId, Color4(prevGlobTm.current()[2]));
@@ -784,7 +779,7 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4_vec4 &glob_tm,
   }
   d3d::resource_barrier({initialMedia.getVolTex(), flags, 0, 0});
 
-  if (hasVolfogShadows() && isVolfogShadowEnabled())
+  if (hasVolfogShadows())
   {
     TIME_D3D_PROFILE(volfog_shadow);
 

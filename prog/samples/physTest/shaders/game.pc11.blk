@@ -1,9 +1,9 @@
-outDumpName:t="../../../../../samples/physTest/game"
+outDumpName:t="../../../../samples/physTest/game"
 
 shader_root_dir:t="."
 
 incDir:t="."
-incDir:t="../../../../gameLibs/render/shaders"
+incDir:t="../../../gameLibs/render/shaders"
 source
 {
   file:t="gui.sh"

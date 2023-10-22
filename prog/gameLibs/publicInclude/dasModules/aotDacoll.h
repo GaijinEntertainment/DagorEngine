@@ -104,9 +104,26 @@ inline bool dacoll_rayhit_normalized_trace_handle(const Point3 &p, const Point3 
   return dacoll::rayhit_normalized(p, dir, t, flags, ray_mat_id, trace_handle);
 }
 
+inline bool dacoll_traceray_normalized_frt(const Point3 &p, const Point3 &dir, real &t, int &out_pmid, Point3 &out_norm)
+{
+  return dacoll::traceray_normalized_frt(p, dir, t, &out_pmid, &out_norm);
+}
+
 inline bool dacoll_traceray_normalized_lmesh(const Point3 &p, const Point3 &dir, real &t, int &out_pmid, Point3 &out_norm)
 {
   return dacoll::traceray_normalized_lmesh(p, dir, t, &out_pmid, &out_norm);
+}
+
+inline bool dacoll_traceray_normalized_ri(const Point3 &p, const Point3 &dir, real &t, int &out_pmid, Point3 &out_norm, int flags,
+  rendinst::RendInstDesc &out_desc, int ray_mat_id, rendinst::riex_handle_t skip_riex_handle)
+{
+  rendinst::TraceFlags additionalTraceFlags = {};
+  if ((flags & dacoll::ETF_RI_TREES) != 0)
+    additionalTraceFlags |= rendinst::TraceFlag::Trees;
+  if ((flags & dacoll::ETF_RI_PHYS) != 0)
+    additionalTraceFlags |= rendinst::TraceFlag::Phys;
+  return dacoll::traceray_normalized_ri(p, dir, t, &out_pmid, &out_norm, additionalTraceFlags, &out_desc, ray_mat_id, nullptr,
+    skip_riex_handle);
 }
 
 inline void dacoll_validate_trace_cache(const bbox3f &query_box, const das::float3 &expands, float physmap_expands,

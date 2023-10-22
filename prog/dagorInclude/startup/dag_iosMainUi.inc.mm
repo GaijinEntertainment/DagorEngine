@@ -54,10 +54,13 @@ void (*dagor_ios_active_status_handler)(bool isVisible) = nullptr;
 static apple_events_callback_with_dictionary g_onDidFinishLaunchingWithOptionsFunc = NULL;
 static apple_events_callback g_onApplicationDidBecomeActiveFunc = NULL;
 static apple_openurl_with_annotation_callback g_onOpenUrlAppWithAnnotationFunc = NULL;
+static apple_register_remote_token_callback g_onRegisterRemoteToken = NULL;
 
 static void (*on_editfield_finish_cb)(const char *str) = NULL;
 
 NSString *const kGCMMessageIDKey = @"gcm.message_id";
+
+bool dagor_fast_shutdown = false;
 
 namespace apple
 {
@@ -70,6 +73,8 @@ void setOnDidFinishLaunchingWithOptionsFunc(apple_events_callback_with_dictionar
 void setOnApplicationDidBecomeActiveFunc(apple_events_callback func) { g_onApplicationDidBecomeActiveFunc = func; }
 
 void setOnOpenUrlApplication(apple_openurl_with_annotation_callback func) { g_onOpenUrlAppWithAnnotationFunc = func; }
+
+void setOnRegisterRemoteToken(apple_register_remote_token_callback func) { g_onRegisterRemoteToken = func; }
 
 } // namespace apple
 
@@ -822,8 +827,10 @@ struct LogGuardtvOS
 };
 #endif
 
-extern "C" int main(int argc, char *argv[])
+static void dagor_ios_before_main_init(int argc, char *argv[])
 {
+  static DagorSettingsBlkHolder stgBlkHolder;
+
   measure_cpu_freq();
 #if !_TARGET_TVOS
 #if DAGOR_DBGLEVEL == 0
@@ -858,6 +865,197 @@ extern "C" int main(int argc, char *argv[])
   out_debug_str_fmt("app: <%s>", ios_global_log_fname);
 
   DagorHwException::setHandler("main");
+}
+
+static void dagor_ios_main_init_impl()
+{
+  default_crt_init_kernel_lib();
+
+  dagor_init_base_path();
+  dagor_change_root_directory(::dgs_get_argv("rootdir"));
+
+  ::DagorWinMainInit(0, 0);
+
+  default_crt_init_core_lib();
+}
+
+extern "C" int dagor_ios_main_init(int argc, char *argv[])
+{
+  debug_cp();
+  dagor_ios_before_main_init(argc, argv);
+  dagor_ios_main_init_impl();
+  return 0;
+}
+
+extern "C" void dagor_ios_delegate_init()
+{
+  id<CHHapticDeviceCapability> hapticCapability = [CHHapticEngine capabilitiesForHardware];
+  bool isHapticSupported = [hapticCapability supportsHaptics];
+  if (isHapticSupported)
+  {
+    NSError *error;
+    haptic::g_hapticEngine = [[CHHapticEngine alloc] initAndReturnError:&error];
+    [haptic::g_hapticEngine setResetHandler:^{
+      // Try Restarting
+      NSError *startupError;
+      [haptic::g_hapticEngine startAndReturnError:&startupError];
+    }];
+  }
+}
+
+extern "C" void dagor_ios_delegate_main(id delegate)
+{
+  debug_cp();
+  [delegate performSelector:@selector(createDisplayLink)];
+  int res = DagorWinMain(0, 0);
+  debug_cp();
+  quit_game(res);
+  debug_cp();
+}
+
+extern "C" void dagor_ios_delegate_createDisplayLink(id target, SEL selector)
+{
+#if _TARGET_IOS
+  g_displayLink = [CADisplayLink displayLinkWithTarget:target selector:selector];
+  g_displayLink.preferredFramesPerSecond = g_ios_fps_limit;
+  [g_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+#endif
+}
+
+extern "C" void dagor_ios_delegate_step(CADisplayLink*)
+{
+  if (g_frame_callback)
+  {
+    if (!g_ios_pause_rendering)
+      g_frame_callback();
+  }
+  else if (!g_ios_pause_rendering)
+    logerr("error! frame callback isn't set for iOS");
+}
+
+extern "C" void dagor_ios_delegate_applicationWillFinishLaunching(UIApplication*)
+{
+  debug_cp();
+}
+
+extern "C" void dagor_ios_delegate_applicationDidFinishLaunching(UIApplication*, id target, SEL selector)
+{
+  debug_cp();
+  flush_debug_file();
+  [NSTimer scheduledTimerWithTimeInterval:(0) target:target selector:selector userInfo:nil repeats:NO];
+}
+
+extern "C" void dagor_ios_delegate_applicationWillTerminate(UIApplication*)
+{
+  debug_cp();
+  debug("applicationWillTerminate, do _Exit(0)");
+  flush_debug_file();
+  _Exit(0);
+}
+
+extern "C" void dagor_ios_delegate_applicationWillResignActive(UIApplication*)
+{
+  debug_cp();
+  flush_debug_file();
+  workcycle_internal::main_window_proc(NULL, GPCM_Activate, GPCMP1_Inactivate, 0);
+
+  g_ios_was_paused_before_sleep = g_ios_pause_rendering;
+  g_ios_pause_rendering = true;
+
+  if (dagor_ios_active_status_handler)
+    dagor_ios_active_status_handler(g_ios_main_view_is_active && !g_ios_pause_rendering);
+}
+
+extern "C" void dagor_ios_delegate_applicationDidBecomeActive(UIApplication*)
+{
+  debug_cp();
+  workcycle_internal::main_window_proc(NULL, GPCM_Activate, GPCMP1_Activate, 0);
+  if (g_onApplicationDidBecomeActiveFunc)
+    g_onApplicationDidBecomeActiveFunc();
+
+  setUIInterfaceOrientationFromActiveWindow();
+
+  g_ios_pause_rendering = g_ios_was_paused_before_sleep;
+
+  if (dagor_ios_active_status_handler)
+    dagor_ios_active_status_handler(g_ios_main_view_is_active && !g_ios_pause_rendering);
+}
+
+extern "C" void dagor_ios_delegate_applicationDidReceiveMemoryWarning(UIApplication*)
+{
+  logwarn("running out of memory");
+}
+
+extern "C" BOOL dagor_ios_delegate_openURL(UIApplication *application, NSURL *url, NSString *sourceApplication, id annotation)
+{
+  if (g_onOpenUrlAppWithAnnotationFunc)
+    return g_onOpenUrlAppWithAnnotationFunc(application, url, sourceApplication, annotation);
+
+  return NO;
+}
+
+extern "C" void dagor_ios_delegate_didRegisterForRemoteNotificationsWithDeviceToken(UIApplication *application, NSData *deviceToken)
+{
+  debug_cp();
+#if DAGOR_DBGLEVEL > 0
+  // internal notification system register
+  const int token_len = [deviceToken length];
+  const unsigned char *token_bytes = (const unsigned char *)[deviceToken bytes];
+  char out_str_buf[100];
+  for (int i = 0; i < token_len; ++i)
+    snprintf(out_str_buf + i * 2, sizeof(out_str_buf) - i * 2, "%.2X", token_bytes[i]);
+
+  logwarn("PN: APNs device token retrieved: %s",out_str_buf);
+#endif
+  if (g_onRegisterRemoteToken)
+    g_onRegisterRemoteToken(application,deviceToken);
+  // TODO: With swizzling disabled you must set the APNs device token here.
+  // [FIRMessaging messaging].APNSToken = deviceToken;
+}
+
+extern "C" void dagor_ios_delegate_didFailToRegisterForRemoteNotificationsWithError(UIApplication *application, NSError *error)
+{
+  debug_cp();
+  logwarn([[NSString stringWithFormat:@"PN: Fail to register for remote notifications with error %@", error] UTF8String]);
+}
+
+using FetchCompletionHandler = void (^)(UIBackgroundFetchResult);
+extern "C" void dagor_ios_delegate_didReceiveRemoteNotification(UIApplication *application, NSDictionary *userInfo, FetchCompletionHandler completionHandler)
+{
+  // If you are receiving a notification message while your app is in the background,
+  // this callback will not be fired till the user taps on the notification launching the application.
+  // TODO: Handle data of notification
+
+  // With swizzling disabled you must let Messaging know about the message, for Analytics
+  // [[FIRMessaging messaging] appDidReceiveMessage:userInfo];
+#if DAGOR_DBGLEVEL > 0
+  // Print message ID.
+  if (userInfo[kGCMMessageIDKey])
+    logdbg([[NSString stringWithFormat:@"PN: Did receive notification Message ID: %@", userInfo[kGCMMessageIDKey]] UTF8String]);
+#endif
+
+  completionHandler(UIBackgroundFetchResultNewData);
+}
+
+extern "C" BOOL dagor_ios_delegate_didFinishLaunchingWithOptions(id delegate, UIApplication *application, NSDictionary *launchOptions)
+{
+  debug_cp();
+  [delegate performSelector:@selector(applicationDidFinishLaunching:) withObject: application];
+  if (g_onDidFinishLaunchingWithOptionsFunc)
+    g_onDidFinishLaunchingWithOptionsFunc(application, launchOptions);
+
+  return YES;
+}
+
+extern "C" void dagor_ios_delegate_dealloc()
+{
+  debug_cp();
+  flush_debug_file();
+}
+
+extern "C" int main(int argc, char *argv[])
+{
+  dagor_ios_before_main_init(argc, argv);
 
 #if _TARGET_TVOS
   LogGuardtvOS logguard;
@@ -865,15 +1063,7 @@ extern "C" int main(int argc, char *argv[])
 
   DAGOR_TRY
   {
-    default_crt_init_kernel_lib();
-
-    dagor_init_base_path();
-    dagor_change_root_directory(::dgs_get_argv("rootdir"));
-
-    static DagorSettingsBlkHolder stgBlkHolder;
-    ::DagorWinMainInit(0, 0);
-
-    default_crt_init_core_lib();
+    dagor_ios_main_init_impl();
 
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     UIApplicationMain(argc, argv, NULL, @"Dagor2_AppDelegate");
@@ -943,176 +1133,92 @@ intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
 - (id)init
 {
   self = [super init];
+
   debug_cp();
+
   isActive = FALSE;
   isBkgModeSupported = NO;
-  id<CHHapticDeviceCapability> hapticCapability = [CHHapticEngine capabilitiesForHardware];
-  bool isHapticSupported = [hapticCapability supportsHaptics];
-  if (isHapticSupported)
-  {
-    NSError *error;
-    haptic::g_hapticEngine = [[CHHapticEngine alloc] initAndReturnError:&error];
-    [haptic::g_hapticEngine setResetHandler:^{
-      // Try Restarting
-      NSError *startupError;
-      [haptic::g_hapticEngine startAndReturnError:&startupError];
-    }];
-  }
+
+  dagor_ios_delegate_init();
+
   return self;
 }
 
 - (void)main
 {
-  debug_cp();
-  [self createDisplayLink];
-  int res = DagorWinMain(0, 0);
-  debug_cp();
-  quit_game(res);
-  debug_cp();
+  dagor_ios_delegate_main(self);
 }
 
 - (void)createDisplayLink
 {
-#if _TARGET_IOS
-  g_displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(step:)];
-  g_displayLink.preferredFramesPerSecond = g_ios_fps_limit;
-  [g_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
-#endif
+  dagor_ios_delegate_createDisplayLink(self, @selector(step:));
 }
 
 - (void)step:(CADisplayLink *)sender
 {
-  if (g_frame_callback)
-  {
-    if (!g_ios_pause_rendering)
-      g_frame_callback();
-  }
-  else if (!g_ios_pause_rendering)
-    logerr("error! frame callback isn't set for iOS");
+  dagor_ios_delegate_step(sender);
 }
 
 - (void)applicationWillFinishLaunching:(UIApplication *)application
 {
-  debug_cp();
+  dagor_ios_delegate_applicationWillFinishLaunching(application);
 }
 
 - (void)applicationDidFinishLaunching:(UIApplication *)application
 {
-  debug_cp();
-  flush_debug_file();
-  [NSTimer scheduledTimerWithTimeInterval:(0) target:self selector:@selector(main) userInfo:nil repeats:NO];
+  dagor_ios_delegate_applicationDidFinishLaunching(application, self, @selector(main));
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application
 {
-  debug_cp();
-  debug("applicationWillTerminate, do _Exit(0)");
-  flush_debug_file();
-  _Exit(0);
+  dagor_ios_delegate_applicationWillTerminate(application);
 }
-
 
 - (void)applicationWillResignActive:(UIApplication *)application
 {
-  debug_cp();
-  flush_debug_file();
-  workcycle_internal::main_window_proc(NULL, GPCM_Activate, GPCMP1_Inactivate, 0);
-
-  g_ios_was_paused_before_sleep = g_ios_pause_rendering;
-  g_ios_pause_rendering = true;
-
-  if (dagor_ios_active_status_handler)
-    dagor_ios_active_status_handler(g_ios_main_view_is_active && !g_ios_pause_rendering);
-
+  dagor_ios_delegate_applicationWillResignActive(application);
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application
 {
-  debug_cp();
-  workcycle_internal::main_window_proc(NULL, GPCM_Activate, GPCMP1_Activate, 0);
-  if (g_onApplicationDidBecomeActiveFunc)
-    g_onApplicationDidBecomeActiveFunc();
-
-  setUIInterfaceOrientationFromActiveWindow();
-
-  g_ios_pause_rendering = g_ios_was_paused_before_sleep;
-
-  if (dagor_ios_active_status_handler)
-    dagor_ios_active_status_handler(g_ios_main_view_is_active && !g_ios_pause_rendering);
+  dagor_ios_delegate_applicationDidBecomeActive(application);
 }
 
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
 {
-  logwarn("running out of memory");
+  dagor_ios_delegate_applicationDidReceiveMemoryWarning(application);
 }
 
 - (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation
 {
-  if (g_onOpenUrlAppWithAnnotationFunc)
-    return g_onOpenUrlAppWithAnnotationFunc(application, url, sourceApplication, annotation);
-
-  return NO;
+  return dagor_ios_delegate_openURL(application, url, sourceApplication, annotation);
 }
-
-#ifdef SUPPORT_REMOTE_NOTIFICATIONS
 
 // Requires 'aps-environment' entitlement
 - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
 {
-  debug_cp();
-#if DAGOR_DBGLEVEL > 0
-  // internal notification system register
-  const int token_len = [deviceToken length];
-  const unsigned char *token_bytes = (const unsigned char *)[deviceToken bytes];
-  char out_str_buf[100];
-  for (int i = 0; i < token_len; ++i)
-    snprintf(out_str_buf + i * 2, sizeof(out_str_buf) - i * 2, "%.2X", token_bytes[i]);
-
-  logwarn("PN: APNs device token retrieved: %s",out_str_buf);
-#endif
-  // TODO: With swizzling disabled you must set the APNs device token here.
-  // [FIRMessaging messaging].APNSToken = deviceToken;
+  dagor_ios_delegate_didRegisterForRemoteNotificationsWithDeviceToken(application, deviceToken);
 }
 
 - (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error
 {
-  debug_cp();
-  logwarn([[NSString stringWithFormat:@"PN: Fail to register for remote notifications with error %@", error] UTF8String]);
+  dagor_ios_delegate_didFailToRegisterForRemoteNotificationsWithError(application, error);
 }
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo
-    fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
-  // If you are receiving a notification message while your app is in the background,
-  // this callback will not be fired till the user taps on the notification launching the application.
-  // TODO: Handle data of notification
-
-  // With swizzling disabled you must let Messaging know about the message, for Analytics
-  // [[FIRMessaging messaging] appDidReceiveMessage:userInfo];
-#if DAGOR_DBGLEVEL > 0
-  // Print message ID.
-  if (userInfo[kGCMMessageIDKey])
-    logdbg([[NSString stringWithFormat:@"PN: Did receive notification Message ID: %@", userInfo[kGCMMessageIDKey]] UTF8String]);
-#endif
-
-  completionHandler(UIBackgroundFetchResultNewData);
+    fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler
+{
+  dagor_ios_delegate_didReceiveRemoteNotification(application, userInfo, completionHandler);
 }
-
-#endif
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-  debug_cp();
-  [self applicationDidFinishLaunching:application];
-  if (g_onDidFinishLaunchingWithOptionsFunc)
-    g_onDidFinishLaunchingWithOptionsFunc(application, launchOptions);
-
-  return YES;
+  return dagor_ios_delegate_didFinishLaunchingWithOptions(self, application, launchOptions);
 }
 
 - (void)dealloc
 {
-  debug_cp();
-  flush_debug_file();
+  dagor_ios_delegate_dealloc();
   [super dealloc];
 }
 @end

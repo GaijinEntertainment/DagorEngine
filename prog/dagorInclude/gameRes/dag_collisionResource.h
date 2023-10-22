@@ -349,15 +349,15 @@ public:
     TraceCollisionResourceStats *out_stats = nullptr) const;
 
   // Don't use it! It's should not be external.
-  bool VECTORCALL traceRayMeshNodeLocal(const CollisionNode &node, vec4f v_local_from, vec4f v_local_dir, float &in_out_t,
+  VECTORCALL bool traceRayMeshNodeLocal(const CollisionNode &node, vec4f v_local_from, vec4f v_local_dir, float &in_out_t,
     vec4f *out_norm) const;
 
-  bool VECTORCALL rayHit(const mat44f &tm, vec3f v_from, vec3f v_dir, float t, int &out_mat_id) const;
+  VECTORCALL bool rayHit(const mat44f &tm, vec3f v_from, vec3f v_dir, float t, int &out_mat_id) const;
 
-  bool VECTORCALL rayHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
+  VECTORCALL bool rayHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
     float in_t, float bsphere_scale = 1.f, const CollisionNodeMask *collision_node_mask = nullptr, int *out_mat_id = nullptr) const;
 
-  bool VECTORCALL traceQuad(const CollisionNodeFilter &filter, vec3f a00, vec3f a01, vec3f a10, vec3f a11, Point3 &out_point,
+  VECTORCALL bool traceQuad(const CollisionNodeFilter &filter, vec3f a00, vec3f a01, vec3f a10, vec3f a11, Point3 &out_point,
     int &out_node_index) const;
 
   struct DebugDrawData
@@ -517,29 +517,29 @@ private:
     TraceCollisionResourceStats *out_stats) const;
 
   template <bool check_bounding>
-  DAGOR_NOINLINE static bool VECTORCALL traceRayMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
+  VECTORCALL DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm);
   template <bool check_bounding>
-  DAGOR_NOINLINE static bool VECTORCALL traceRayMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
+  VECTORCALL DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm);
-  DAGOR_NOINLINE bool VECTORCALL traceCapsuleMeshNodeLocalCullCCW(const CollisionNode &node, vec4f v_local_from, vec4f v_local_dir,
+  VECTORCALL DAGOR_NOINLINE bool traceCapsuleMeshNodeLocalCullCCW(const CollisionNode &node, vec4f v_local_from, vec4f v_local_dir,
     float &in_out_t, float &radius, vec4f &v_out_norm, vec4f &v_out_pos) const;
 
   template <bool check_bounding>
-  DAGOR_NOINLINE static bool VECTORCALL traceRayMeshNodeLocalAllHits(const CollisionNode &node, const vec4f &v_local_from,
+  VECTORCALL DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float in_t, bool calc_normal, bool no_cull, all_nodes_ret_t &ret_array);
   template <bool check_bounding>
-  DAGOR_NOINLINE static bool VECTORCALL traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode &node, const vec4f &v_local_from,
+  VECTORCALL DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float in_t, bool calc_normal, bool no_cull, all_nodes_ret_t &ret_array);
 
   template <bool check_bounding>
-  DAGOR_NOINLINE static bool VECTORCALL rayHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
+  VECTORCALL DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float in_t);
   template <bool check_bounding>
-  DAGOR_NOINLINE static bool VECTORCALL rayHitMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
+  VECTORCALL DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float in_t);
 
-  DAGOR_NOINLINE bool VECTORCALL capsuleHitMeshNodeLocalCullCCW(const CollisionNode &node, vec4f v_local_from, vec4f v_local_dir,
+  VECTORCALL DAGOR_NOINLINE bool capsuleHitMeshNodeLocalCullCCW(const CollisionNode &node, vec4f v_local_from, vec4f v_local_dir,
     float in_t, float radius) const;
 
   __forceinline mat44f getMeshNodeTmInline(const CollisionNode *node, mat44f_cref instance_tm, vec3f instance_woffset,

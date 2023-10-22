@@ -149,7 +149,7 @@ IWndEmbeddedWindow *FastPhysPlugin::onWmCreateWindow(void *handle, int type)
       unsigned w, h;
       manager.getWindowClientSize(handle, w, h);
       mActionTreeCB = new ActionsTreeCB(*this);
-      mActionTree = new TreeBaseWindow(mActionTreeCB, handle, 0, 0, w, h, "", false);
+      mActionTree = new TreeBaseWindow(mActionTreeCB, handle, 0, 0, hdpi::_pxActual(w), hdpi::_pxActual(h), "", false);
 
       return mActionTree;
     }

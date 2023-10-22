@@ -56,7 +56,10 @@ struct DafxSparks : BaseParticleEffect
     CHECK_FX_VERSION(ptr, len, 3);
 
     if (!g_dafx_ctx)
+    {
+      logwarn("fx: sparks: failed to load params data, context was not initialized");
       return;
+    }
 
     parentDesc = dafx::SystemDesc();
 
@@ -114,6 +117,7 @@ struct DafxSparks : BaseParticleEffect
     GDATA(depth_size_rcp);
     GDATA(depth_size_for_collision);
     GDATA(depth_size_rcp_for_collision);
+    GDATA(depth_tci_offset);
     GDATA(zn_zfar);
     GDATA(wind_dir);
     GDATA(wind_power);

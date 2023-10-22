@@ -8,7 +8,7 @@ assume vertex_density_allowed = no;
 
 interval debug_mode_enabled: no < 1, yes;
 assume debug_mode_enabled = no;
-bool DEBUG = debug_mode_enabled == yes;
+bool DEBUG = debug_mode_enabled == yes && hardware.fsh_5_0;
 
 macro DEFINE(val)
   bool val = true;

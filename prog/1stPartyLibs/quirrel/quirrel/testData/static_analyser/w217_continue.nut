@@ -8,3 +8,5 @@ let function foo(x) { //-declared-never-used
     x--;
   } while (x)
 }
+
+//-file:undefined-global

@@ -22,6 +22,7 @@
 #include <3d/dag_drv3d.h>
 #include <3d/dag_drv3dReset.h>
 #include <3d/dag_texPackMgr2.h>
+#include <gui/dag_stdGuiRender.h>
 // #include <util/dag_texMetaData.h>
 #include <util/dag_oaHashNameMap.h>
 #include <startup/dag_globalSettings.h>
@@ -645,6 +646,7 @@ static struct DagorEdReset3DCallback : public IDrv3DResetCB
 
     DAEDITOR3.conWarning("GPU driver restarted...");
     rebuild_shaders_stateblocks();
+    StdGuiRender::after_device_reset();
 
     if (IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>())
       drSrv->afterD3DReset(full_reset);

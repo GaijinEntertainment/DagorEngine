@@ -5,7 +5,8 @@
 #include <math/integer/dag_IPoint2.h>
 #include <math/dag_bounds2.h>
 #include <render/scopeRenderTarget.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstGenRender.h>
+#include <rendInst/visibility.h>
 
 #include <ioSys/dag_dataBlock.h>
 
@@ -64,7 +65,7 @@ void TreesAbove::renderInvalidBboxes(const TMatrix &view_itm, float minZ, float 
   SCOPE_VIEW_PROJ_MATRIX;
 
   d3d::set_render_target(trees2d.getTex2D(), 0);
-  d3d::set_depth(trees2dDepth.getTex2D(), 0, false); // to be removed
+  d3d::set_depth(trees2dDepth.getTex2D(), 0, DepthAccess::RW); // to be removed
 
   const float fullDistance = 2 * trees2dDist;
   const float texelSize = (fullDistance / trees2dHelper.texSize);
@@ -115,7 +116,7 @@ void TreesAbove::renderRegion(ToroidalQuadRegion &reg, float texelSize, float mi
   rendinst::prepareRIGenVisibility(Frustum(globtm), Point3::xVy(cBox.center(), minZ), rendinst_trees_visibility, false, NULL);
   uint32_t immediateConsts[] = {0u, 0u, ((uint32_t)float_to_half(-1.f) << 16) | (uint32_t)float_to_half(0.f)};
   d3d::set_immediate_const(STAGE_PS, immediateConsts, countof(immediateConsts));
-  rendinst::renderRIGen(rendinst::RenderPass::Normal, rendinst_trees_visibility, view_itm, rendinst::LAYER_NOT_EXTRA,
+  rendinst::render::renderRIGen(rendinst::RenderPass::Normal, rendinst_trees_visibility, view_itm, rendinst::LayerFlag::NotExtra,
     rendinst::OptimizeDepthPass::No);
   d3d::set_immediate_const(STAGE_PS, nullptr, 0);
 }
@@ -159,7 +160,7 @@ void TreesAbove::prepareTrees2d(const Point3 &origin, const TMatrix &view_itm, f
 
     alignedOrigin = point2(trees2dHelper.curOrigin) * texelSize;
     d3d::set_render_target(trees2d.getTex2D(), 0);
-    d3d::set_depth(trees2dDepth.getTex2D(), 0, false); // to be removed
+    d3d::set_depth(trees2dDepth.getTex2D(), 0, DepthAccess::RW); // to be removed
 
     for (auto &reg : tab)
       renderRegion(reg, texelSize, minZ, maxZ, view_itm);

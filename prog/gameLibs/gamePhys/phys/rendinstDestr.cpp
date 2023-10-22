@@ -1,9 +1,13 @@
 #include <gamePhys/phys/rendinstDestr.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtra.h>
+#include <rendInst/rendInstAccess.h>
+#include <rendInst/rendInstExtraAccess.h>
 #include <rendInst/rendInstGenDamageInfo.h>
+#include <rendInst/rendInstGenRender.h>
+#include <rendInst/rendInstFx.h>
+#include <rendInst/rendInstCollision.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/hash_set.h>
-#include <rendInst/rendInstFx.h>
 
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physics.h>
@@ -91,7 +95,7 @@ public:
 private:
   float ttl;
   float atTime;
-  rendinst::RendInstCollisionCB::CollisionInfo collInfo;
+  rendinst::CollisionInfo collInfo;
   bool confirmedDestruction;
   rendinst::riex_handle_t generatedHandle;
 #if ENABLE_APEX
@@ -100,8 +104,7 @@ private:
 
 public:
   RestorableRendinst(const rendinst::RendInstDesc &desc, const rendinst::RendInstBufferData &buffer, destructables::id_t destr_id,
-    float at_time, const rendinst::RendInstCollisionCB::CollisionInfo &coll_info, rendinst::riex_handle_t generated_handle,
-    int apex_destr_id) :
+    float at_time, const rendinst::CollisionInfo &coll_info, rendinst::riex_handle_t generated_handle, int apex_destr_id) :
     riDesc(desc),
     riBuffer(buffer),
     destrId(destr_id),
@@ -151,7 +154,7 @@ public:
 
   const rendinst::RendInstDesc &getRiDesc() const { return riDesc; }
   float getAtTime() const { return atTime; }
-  const rendinst::RendInstCollisionCB::CollisionInfo &getCollInfo() const { return collInfo; }
+  const rendinst::CollisionInfo &getCollInfo() const { return collInfo; }
 };
 static eastl::vector<RestorableRendinst> restorables;
 
@@ -279,11 +282,11 @@ void rendinstdestr::resetApexDestructedRIList()
 }
 
 
-using DestrNeighborsSet = eastl::vector_map<rendinst::riex_handle_t, rendinst::RendInstCollisionCB::CollisionInfo,
-  eastl::less<rendinst::riex_handle_t>, framemem_allocator>;
+using DestrNeighborsSet =
+  eastl::vector_map<rendinst::riex_handle_t, rendinst::CollisionInfo, eastl::less<rendinst::riex_handle_t>, framemem_allocator>;
 
 static void findRendinstNeighbors(rendinst::RendInstDesc desc, int destroy_neighbour_recursive_depth,
-  const rendinst::RendInstCollisionCB::CollisionInfo *coll_info, DestrNeighborsSet &ri_to_destroy)
+  const rendinst::CollisionInfo *coll_info, DestrNeighborsSet &ri_to_destroy)
 {
   if (destroy_neighbour_recursive_depth <= 0 || !coll_info || !coll_info->isParent || !phys_world || !rendinst::isRiGenDescValid(desc))
     return;
@@ -297,7 +300,7 @@ static void findRendinstNeighbors(rendinst::RendInstDesc desc, int destroy_neigh
     RiExtraCollisionCB(const rendinst::RendInstDesc &id, DestrNeighborsSet &dnd, int depth) :
       initiatorDesc(id), destrNeighborsData(dnd), destroyNeighbourDepth(depth)
     {}
-    virtual void addCollisionCheck(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info) override
+    virtual void addCollisionCheck(const rendinst::CollisionInfo &coll_info) override
     {
       rendinst::riex_handle_t riHandle = rendinst::make_handle(coll_info.desc.pool, coll_info.desc.idx);
       if (coll_info.desc != initiatorDesc && coll_info.isDestr && !coll_info.isImmortal && coll_info.destructibleByParent)
@@ -307,7 +310,7 @@ static void findRendinstNeighbors(rendinst::RendInstDesc desc, int destroy_neigh
           findRendinstNeighbors(coll_info.desc, destroyNeighbourDepth - 1, &coll_info, destrNeighborsData);
         }
     }
-    virtual void addTreeCheck(const rendinst::RendInstCollisionCB::CollisionInfo & /*coll_info*/) override {}
+    virtual void addTreeCheck(const rendinst::CollisionInfo & /*coll_info*/) override {}
   } rendinstCallback(desc, ri_to_destroy, destroy_neighbour_recursive_depth);
 
   auto localBBox = coll_info->localBBox;
@@ -316,7 +319,7 @@ static void findRendinstNeighbors(rendinst::RendInstDesc desc, int destroy_neigh
 }
 
 static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc desc, bool add_restorable, const Point3 &pos,
-  const Point3 &impulse, float at_time, const rendinst::RendInstCollisionCB::CollisionInfo *coll_info, bool create_destr,
+  const Point3 &impulse, float at_time, const rendinst::CollisionInfo *coll_info, bool create_destr,
   rendinst::ri_damage_effect_cb effect_cb, bool is_client, ApexDmgInfo *apex_dmg_info, rendinstdestr::on_destr_callback on_destr_cb,
   rendinst::DestrOptionFlags flags)
 {
@@ -424,7 +427,8 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
     if (destr) //-V1051
     {
       destr->ttl = desc.isRiExtra() ? rendinst::getTtl(desc) : 15.f;
-      destr->addImpulse(pos, impulse);
+      if (impulse != ZERO<Point3>())
+        destr->addImpulse(*phys_world, pos, impulse);
     }
   }
 
@@ -433,7 +437,7 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
     // At this point coll_info->desc might be invalid, since 'on_destr_cb' can
     // call 'reset' on it, but we need proper coll_info for restorable so that
     // vehicle collisions could be checked against it, so copy proper desc over.
-    rendinst::RendInstCollisionCB::CollisionInfo tmp = *coll_info;
+    rendinst::CollisionInfo tmp = *coll_info;
     tmp.desc = desc;
     restorables.emplace_back(offsetedDesc, riBuffer, destrId, at_time, tmp, generatedHandle, apex_destructible_id);
   }
@@ -497,7 +501,7 @@ bbox3f rendinstdestr::get_ri_phys_containing_bbox(const bbox3f &intersect_bbox, 
 }
 
 rendinst::RendInstDesc rendinstdestr::destroyRendinst(rendinst::RendInstDesc desc, bool add_restorable, const Point3 &pos,
-  const Point3 &impulse, float at_time, const rendinst::RendInstCollisionCB::CollisionInfo *coll_info, bool create_destr,
+  const Point3 &impulse, float at_time, const rendinst::CollisionInfo *coll_info, bool create_destr,
   rendinst::ri_damage_effect_cb effect_cb, bool is_client, ApexDmgInfo *apex_dmg_info, int destroy_neighbour_recursive_depth,
   float impulse_mult_for_child, on_destr_callback on_destr_cb, rendinst::DestrOptionFlags flags)
 {
@@ -779,254 +783,257 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
   }
 }
 
-static int sort_by_offset(const rendinst::DestroyedInstanceRange *left, const rendinst::DestroyedInstanceRange *right)
+static bool sort_by_offset(const rendinst::DestroyedInstanceRange &left, const rendinst::DestroyedInstanceRange &right)
 {
-  return left->startOffs - right->startOffs;
+  return left.startOffs < right.startOffs;
 }
 
 bool rendinstdestr::serialize_destr_data(danet::BitStream &bs)
 {
-  dag::Span<rendinst::DestroyedCellData> destrCellData = rendinst::getDestrCellData(0);
+  return rendinst::getDestrCellData(0 /*primary layer*/, [&](const Tab<rendinst::DestroyedCellData> &destrCellData) {
+    G_ASSERT(destrCellData.size() <= USHRT_MAX);
+    uint16_t cellCount = min<uint32_t>(destrCellData.size(), USHRT_MAX);
 
-  G_ASSERT(destrCellData.size() <= USHRT_MAX);
-  uint16_t cellCount = min<uint32_t>(destrCellData.size(), USHRT_MAX);
-
-  bs.WriteCompressed(cellCount);
-  for (int i = 0; i < cellCount; ++i)
-  {
-    rendinst::DestroyedCellData &cell = destrCellData[i];
-    G_ASSERT(cell.destroyedPoolInfo.size() <= USHRT_MAX);
-    uint16_t poolCount = min<uint32_t>(cell.destroyedPoolInfo.size(), USHRT_MAX);
-
-    bs.Write(int16_t(cell.cellId));
-    bs.WriteCompressed(poolCount);
-    uint8_t shift = cell.cellId < 0 ? 4 : 3;
-    for (int j = 0; j < poolCount; ++j)
+    bs.WriteCompressed(cellCount);
+    for (int i = 0; i < cellCount; ++i)
     {
-      rendinst::DestroyedPoolData &pool = cell.destroyedPoolInfo[j];
-      G_ASSERT(pool.destroyedInstances.size() <= USHRT_MAX);
-      sort(pool.destroyedInstances, &sort_by_offset);
-      uint16_t rangeCount = min<uint32_t>(pool.destroyedInstances.size(), USHRT_MAX);
+      const rendinst::DestroyedCellData &cell = destrCellData[i];
+      G_ASSERT(cell.destroyedPoolInfo.size() <= USHRT_MAX);
+      uint16_t poolCount = min<uint32_t>(cell.destroyedPoolInfo.size(), USHRT_MAX);
 
-      bs.WriteCompressed(uint16_t(pool.poolIdx));
-      bs.WriteCompressed(rangeCount);
-      uint32_t curRange = 0;
-      for (int k = 0; k < rangeCount; ++k)
+      bs.Write(int16_t(cell.cellId));
+      bs.WriteCompressed(poolCount);
+      uint8_t shift = cell.cellId < 0 ? 4 : 3;
+      for (int j = 0; j < poolCount; ++j)
       {
-        const rendinst::DestroyedInstanceRange &range = pool.destroyedInstances[k];
-        G_ASSERTF(!(range.startOffs % (1u << shift)) && !(range.endOffs % (1u << shift)),
-          "startOffs=0x%X endOffs=0x%X cellId=%d poolIdx=%d div=%d", range.startOffs, range.endOffs, cell.cellId, pool.poolIdx,
-          1u << shift);
-        uint32_t startOffsDiv = range.startOffs >> shift;
-        uint32_t endOffsDiv = range.endOffs >> shift;
-        G_ASSERT(startOffsDiv >= curRange);
-        bs.WriteCompressed(startOffsDiv - curRange);
-        bs.WriteCompressed(endOffsDiv - startOffsDiv);
-        curRange = endOffsDiv;
+        const rendinst::DestroyedPoolData &pool = cell.destroyedPoolInfo[j];
+        G_ASSERT(pool.destroyedInstances.size() <= USHRT_MAX);
+        G_ASSERT(eastl::is_sorted(pool.destroyedInstances.begin(), pool.destroyedInstances.end(), sort_by_offset));
+        G_UNUSED(&sort_by_offset);
+        uint16_t rangeCount = min<uint32_t>(pool.destroyedInstances.size(), USHRT_MAX);
+
+        bs.WriteCompressed(uint16_t(pool.poolIdx));
+        bs.WriteCompressed(rangeCount);
+        uint32_t curRange = 0;
+        for (int k = 0; k < rangeCount; ++k)
+        {
+          const rendinst::DestroyedInstanceRange &range = pool.destroyedInstances[k];
+          G_ASSERTF(!(range.startOffs % (1u << shift)) && !(range.endOffs % (1u << shift)),
+            "startOffs=0x%X endOffs=0x%X cellId=%d poolIdx=%d div=%d", range.startOffs, range.endOffs, cell.cellId, pool.poolIdx,
+            1u << shift);
+          uint32_t startOffsDiv = range.startOffs >> shift;
+          uint32_t endOffsDiv = range.endOffs >> shift;
+          G_ASSERT(startOffsDiv >= curRange);
+          bs.WriteCompressed(startOffsDiv - curRange);
+          bs.WriteCompressed(endOffsDiv - startOffsDiv);
+          curRange = endOffsDiv;
+        }
       }
     }
-  }
 
-  return cellCount > 0;
+    return cellCount > 0;
+  });
 }
 
 void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply_flags, int max_simultaneous_destrs)
 {
-  uint16_t cellCount = 0;
-  dag::ConstSpan<rendinst::DestroyedCellData> destrCellData = rendinst::getDestrCellData(0);
+  // Temporary structure to keep it
+  Tab<rendinst::DestroyedCellData> cellsNewDestrInfo(framemem_ptr());
+  int newDestrs = 0;
 
-  if (!apply_reflection)
-  {
-    cachedDestr = bs;
+  rendinst::getDestrCellData(0 /*primary layer*/, [&](const Tab<rendinst::DestroyedCellData> &destrCellData) {
+    uint16_t cellCount = 0;
+    if (!apply_reflection)
+    {
+      cachedDestr = bs;
+      bs.ReadCompressed(cellCount);
+      for (int i = 0; i < cellCount; ++i)
+      {
+        uint16_t poolCount = 0;
+
+        bs.IgnoreBytes(sizeof(int16_t));
+        bs.ReadCompressed(poolCount);
+        for (int j = 0; j < poolCount; ++j)
+        {
+          uint16_t rangeCount = 0;
+          uint16_t poolIdx = 0;
+
+          bs.ReadCompressed(poolIdx);
+          bs.ReadCompressed(rangeCount);
+
+          bs.IgnoreBytes(2 * sizeof(uint16_t) * rangeCount);
+        }
+      }
+      return true;
+    }
+
     bs.ReadCompressed(cellCount);
+    cellsNewDestrInfo.resize(cellCount);
+
     for (int i = 0; i < cellCount; ++i)
     {
+      int16_t cellId = 0;
       uint16_t poolCount = 0;
 
-      bs.IgnoreBytes(sizeof(int16_t));
+      bs.Read(cellId);
       bs.ReadCompressed(poolCount);
+
+      // Search for cell
+      const rendinst::DestroyedCellData *cell = NULL;
+      for (int si = 0; si < destrCellData.size(); ++si)
+      {
+        if (destrCellData[si].cellId != cellId)
+          continue;
+        // Found this cell in our local list
+        cell = &destrCellData[si];
+        break;
+      }
+      cellsNewDestrInfo[i].cellId = cellId;
+      dag::set_allocator(cellsNewDestrInfo[i].destroyedPoolInfo, framemem_ptr());
+      cellsNewDestrInfo[i].destroyedPoolInfo.resize(poolCount);
+      uint8_t shift = cellId < 0 ? 4 : 3;
       for (int j = 0; j < poolCount; ++j)
       {
-        uint16_t rangeCount = 0;
         uint16_t poolIdx = 0;
+        uint16_t rangeCount = 0;
 
         bs.ReadCompressed(poolIdx);
         bs.ReadCompressed(rangeCount);
 
-        bs.IgnoreBytes(2 * sizeof(uint16_t) * rangeCount);
-      }
-    }
-    return;
-  }
+        cellsNewDestrInfo[i].destroyedPoolInfo[j].poolIdx = poolIdx;
+        dag::set_allocator(cellsNewDestrInfo[i].destroyedPoolInfo[j].destroyedInstances, framemem_ptr());
 
-  bs.ReadCompressed(cellCount);
-
-  // Temporary structure to keep it
-  Tab<rendinst::DestroyedCellData> cellsNewDestrInfo(framemem_ptr());
-  cellsNewDestrInfo.resize(cellCount);
-  int newDestrs = 0;
-  for (int i = 0; i < cellCount; ++i)
-  {
-    int16_t cellId = 0;
-    uint16_t poolCount = 0;
-
-    bs.Read(cellId);
-    bs.ReadCompressed(poolCount);
-
-    // Search for cell
-    const rendinst::DestroyedCellData *cell = NULL;
-    for (int si = 0; si < destrCellData.size(); ++si)
-    {
-      if (destrCellData[si].cellId != cellId)
-        continue;
-      // Found this cell in our local list
-      cell = &destrCellData[si];
-      break;
-    }
-    cellsNewDestrInfo[i].cellId = cellId;
-    dag::set_allocator(cellsNewDestrInfo[i].destroyedPoolInfo, framemem_ptr());
-    cellsNewDestrInfo[i].destroyedPoolInfo.resize(poolCount);
-    uint8_t shift = cellId < 0 ? 4 : 3;
-    for (int j = 0; j < poolCount; ++j)
-    {
-      uint16_t poolIdx = 0;
-      uint16_t rangeCount = 0;
-
-      bs.ReadCompressed(poolIdx);
-      bs.ReadCompressed(rangeCount);
-
-      cellsNewDestrInfo[i].destroyedPoolInfo[j].poolIdx = poolIdx;
-      dag::set_allocator(cellsNewDestrInfo[i].destroyedPoolInfo[j].destroyedInstances, framemem_ptr());
-
-      const rendinst::DestroyedPoolData *pool = NULL;
-      if (cell)
-      {
-        // If we have this cell - search for pool in it
-        for (int sj = 0; sj < cell->destroyedPoolInfo.size(); ++sj)
+        const rendinst::DestroyedPoolData *pool = NULL;
+        if (cell)
         {
-          if (cell->destroyedPoolInfo[sj].poolIdx != poolIdx)
-            continue;
-          // Ok, pool found. Now we need to match ranges.
-          pool = &cell->destroyedPoolInfo[sj];
-          break;
-        }
-      }
-      int lastIdx = 0;
-      int stride = rendinst::getRIGenStride(0, cellId, poolIdx);
-      unsigned curRange = 0;
-      for (int k = 0; k < rangeCount; ++k)
-      {
-        unsigned start = 0;
-        unsigned end = 0;
-
-        bs.ReadCompressed(start);
-        bs.ReadCompressed(end);
-        start += curRange;
-        end += start;
-        curRange = end;
-
-        int startOffs = start << shift;
-        int endOffs = end << shift;
-
-        if (pool)
-        {
-          rendinst::DestroyedInstanceRange *addedRange = NULL;
-          bool finished = false;
-          for (; lastIdx < pool->destroyedInstances.size();)
+          // If we have this cell - search for pool in it
+          for (int sj = 0; sj < cell->destroyedPoolInfo.size(); ++sj)
           {
-            const rendinst::DestroyedInstanceRange &range = pool->destroyedInstances[lastIdx];
-            if (addedRange)
-            {
-              if (endOffs > range.endOffs)
-              {
-                // Finish prev one.
-                addedRange->endOffs = range.startOffs;
-                newDestrs += (addedRange->endOffs - addedRange->startOffs) / stride;
+            if (cell->destroyedPoolInfo[sj].poolIdx != poolIdx)
+              continue;
+            // Ok, pool found. Now we need to match ranges.
+            pool = &cell->destroyedPoolInfo[sj];
+            break;
+          }
+        }
+        int lastIdx = 0;
+        int stride = rendinst::getRIGenStride(0, cellId, poolIdx);
+        unsigned curRange = 0;
+        for (int k = 0; k < rangeCount; ++k)
+        {
+          unsigned start = 0;
+          unsigned end = 0;
 
-                // Start new one
-                addedRange = &cellsNewDestrInfo[i].destroyedPoolInfo[j].destroyedInstances.push_back();
-                addedRange->startOffs = range.endOffs;
-                addedRange->endOffs = endOffs;
-                newDestrs += (addedRange->endOffs - addedRange->startOffs) / stride;
-                lastIdx++; // continue to next one
-              }
-              else if (endOffs >= range.startOffs)
-              {
-                // Just finish prev one and break;
-                addedRange->endOffs = range.startOffs;
-                newDestrs += (addedRange->endOffs - addedRange->startOffs) / stride;
-                addedRange = NULL;
-                finished = true;
-                break;
-              }
-              else
-              {
-                // It's before start, so just finish it and break;
-                addedRange->endOffs = endOffs;
-                newDestrs += (addedRange->endOffs - addedRange->startOffs) / stride;
-                addedRange = NULL;
-                finished = true;
-                break;
-              }
-            }
-            else
+          bs.ReadCompressed(start);
+          bs.ReadCompressed(end);
+          start += curRange;
+          end += start;
+          curRange = end;
+
+          int startOffs = start << shift;
+          int endOffs = end << shift;
+
+          if (pool)
+          {
+            rendinst::DestroyedInstanceRange *addedRange = NULL;
+            bool finished = false;
+            for (; lastIdx < pool->destroyedInstances.size();)
             {
-              if (startOffs < range.endOffs && startOffs >= range.startOffs)
+              const rendinst::DestroyedInstanceRange &range = pool->destroyedInstances[lastIdx];
+              if (addedRange)
               {
-                // It's starts inside range, so we need to place start marker at end of this range.
                 if (endOffs > range.endOffs)
                 {
+                  // Finish prev one.
+                  addedRange->endOffs = range.startOffs;
+                  newDestrs += (addedRange->endOffs - addedRange->startOffs) / stride;
+
+                  // Start new one
                   addedRange = &cellsNewDestrInfo[i].destroyedPoolInfo[j].destroyedInstances.push_back();
                   addedRange->startOffs = range.endOffs;
                   addedRange->endOffs = endOffs;
                   newDestrs += (addedRange->endOffs - addedRange->startOffs) / stride;
-                  lastIdx++;
+                  lastIdx++; // continue to next one
+                }
+                else if (endOffs >= range.startOffs)
+                {
+                  // Just finish prev one and break;
+                  addedRange->endOffs = range.startOffs;
+                  newDestrs += (addedRange->endOffs - addedRange->startOffs) / stride;
+                  addedRange = NULL;
+                  finished = true;
+                  break;
                 }
                 else
                 {
+                  // It's before start, so just finish it and break;
+                  addedRange->endOffs = endOffs;
+                  newDestrs += (addedRange->endOffs - addedRange->startOffs) / stride;
+                  addedRange = NULL;
                   finished = true;
-                  break; // it's consumed by it
+                  break;
                 }
               }
-              else if (startOffs < range.startOffs)
-              {
-                // It starts before range (as it's sorted, so it should be good)
-                addedRange = &cellsNewDestrInfo[i].destroyedPoolInfo[j].destroyedInstances.push_back();
-                addedRange->startOffs = startOffs;
-                addedRange->endOffs = startOffs;
-                // Do not skip to next one, this one should be finished first.
-              }
               else
-                lastIdx++;
+              {
+                if (startOffs < range.endOffs && startOffs >= range.startOffs)
+                {
+                  // It's starts inside range, so we need to place start marker at end of this range.
+                  if (endOffs > range.endOffs)
+                  {
+                    addedRange = &cellsNewDestrInfo[i].destroyedPoolInfo[j].destroyedInstances.push_back();
+                    addedRange->startOffs = range.endOffs;
+                    addedRange->endOffs = endOffs;
+                    newDestrs += (addedRange->endOffs - addedRange->startOffs) / stride;
+                    lastIdx++;
+                  }
+                  else
+                  {
+                    finished = true;
+                    break; // it's consumed by it
+                  }
+                }
+                else if (startOffs < range.startOffs)
+                {
+                  // It starts before range (as it's sorted, so it should be good)
+                  addedRange = &cellsNewDestrInfo[i].destroyedPoolInfo[j].destroyedInstances.push_back();
+                  addedRange->startOffs = startOffs;
+                  addedRange->endOffs = startOffs;
+                  // Do not skip to next one, this one should be finished first.
+                }
+                else
+                  lastIdx++;
+              }
+            }
+            if (!finished && !addedRange)
+            {
+              rendinst::DestroyedInstanceRange &range = cellsNewDestrInfo[i].destroyedPoolInfo[j].destroyedInstances.push_back();
+              range.startOffs = startOffs;
+              range.endOffs = endOffs;
+              newDestrs += (endOffs - startOffs) / stride;
+            }
+            // Great that also means that there's point to search for restorables right here, to confirm it and delete it from tab
+            for (auto &restr : restorables)
+            {
+              const rendinst::RendInstDesc &desc = restr.getRiDesc();
+              if (desc.cellIdx != cellId || desc.pool != poolIdx || desc.offs < startOffs || desc.offs >= endOffs)
+                continue;
+              restr.confirmDestruction();
             }
           }
-          if (!finished && !addedRange)
+          else
           {
+            // if no pool found previously - just simply add everything.
             rendinst::DestroyedInstanceRange &range = cellsNewDestrInfo[i].destroyedPoolInfo[j].destroyedInstances.push_back();
             range.startOffs = startOffs;
             range.endOffs = endOffs;
             newDestrs += (endOffs - startOffs) / stride;
           }
-          // Great that also means that there's point to search for restorables right here, to confirm it and delete it from tab
-          for (auto &restr : restorables)
-          {
-            const rendinst::RendInstDesc &desc = restr.getRiDesc();
-            if (desc.cellIdx != cellId || desc.pool != poolIdx || desc.offs < startOffs || desc.offs >= endOffs)
-              continue;
-            restr.confirmDestruction();
-          }
-        }
-        else
-        {
-          // if no pool found previously - just simply add everything.
-          rendinst::DestroyedInstanceRange &range = cellsNewDestrInfo[i].destroyedPoolInfo[j].destroyedInstances.push_back();
-          range.startOffs = startOffs;
-          range.endOffs = endOffs;
-          newDestrs += (endOffs - startOffs) / stride;
         }
       }
     }
-  }
+    return true;
+  });
 
   newDestrs = ((apply_flags & INITIAL_REPLICATION) != 0) ? 0 : min(newDestrs, max_simultaneous_destrs);
 
@@ -1073,7 +1080,7 @@ void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
             //   if (riExtra[desc.pool].isDynamicRendinst || (uniqueData && uniqueData->cellId < 0))
             //     return NULL;
             if (ok)
-              rendinstdestr::destroyRendinst(desc, false, Point3(0.f, 0.f, 0.f), Point3(0.f, 0.f, 0.f), 0.f, NULL,
+              rendinstdestr::destroyRendinst(desc, false, ZERO<Point3>(), ZERO<Point3>(), 0.f, NULL,
                 (newDestrs-- > 0) && get_ri_damage_effect_cb() != nullptr, get_ri_damage_effect_cb(), get_destr_settings().isClient);
           }
           shouldUpdateVb = true;
@@ -1100,7 +1107,7 @@ void rendinstdestr::apply_damage_to_ri(const rendinst::RendInstDesc &desc, float
   const Point3 &impulse, float at_time, bool create_destr, rendinst::ri_damage_effect_cb effect_cb, bool is_client,
   float impulse_mult_for_child, bool *isDestroyed)
 {
-  rendinst::RendInstCollisionCB::CollisionInfo collInfo(desc);
+  rendinst::CollisionInfo collInfo(desc);
   collInfo = rendinst::getRiGenDestrInfo(desc);
   float hp = collInfo.hp > 0.f ? collInfo.hp : collInfo.destrImpulse * impulse_to_hp;
   if (desc.isRiExtra() && collInfo.hp > 0.f)
@@ -1130,7 +1137,7 @@ struct RiDmgCallback : public rendinst::RendInstCollisionCB
   bool createDestr;
   bool isClient;
   rendinst::ri_damage_effect_cb effectCb;
-  Tab<CollisionInfo> damageToProcess;
+  Tab<rendinst::CollisionInfo> damageToProcess;
 
   RiDmgCallback(const Point3 &position, float radius, const Point2 &dmg_near_far, float at_time, bool create_destr,
     rendinst::ri_damage_effect_cb effect_cb, bool is_client) :
@@ -1143,7 +1150,7 @@ struct RiDmgCallback : public rendinst::RendInstCollisionCB
     effectCb(effect_cb)
   {}
 
-  void processDamage(const CollisionInfo &coll_info)
+  void processDamage(const rendinst::CollisionInfo &coll_info)
   {
     if (!coll_info.isImmortal)
       damageToProcess.push_back(coll_info);
@@ -1152,11 +1159,11 @@ struct RiDmgCallback : public rendinst::RendInstCollisionCB
   void processAllDamage(rendinstdestr::on_riextra_destroyed_callback &&riex_destr_cb,
     rendinstdestr::riextra_should_damage &&riex_should_damage)
   {
-    for (const CollisionInfo &info : damageToProcess)
+    for (const rendinst::CollisionInfo &info : damageToProcess)
       processOneRendinst(info, eastl::move(riex_destr_cb), eastl::move(riex_should_damage));
   }
 
-  void processOneRendinst(const CollisionInfo &coll_info, const rendinstdestr::on_riextra_destroyed_callback &&riex_destr_cb,
+  void processOneRendinst(const rendinst::CollisionInfo &coll_info, const rendinstdestr::on_riextra_destroyed_callback &&riex_destr_cb,
     const rendinstdestr::riextra_should_damage &&riex_should_damage)
   {
     if (!coll_info.desc.isValid())
@@ -1199,7 +1206,7 @@ struct RiDmgCallback : public rendinst::RendInstCollisionCB
         rendinst::riex_handle_t id = rendinst::make_handle(desc.pool, desc.idx);
         riex_destr_cb(id);
 
-        for (CollisionInfo &info : damageToProcess)
+        for (rendinst::CollisionInfo &info : damageToProcess)
           if (rendinst::make_handle(info.desc.pool, info.desc.idx) == id)
             info.desc.reset();
       };
@@ -1212,8 +1219,8 @@ struct RiDmgCallback : public rendinst::RendInstCollisionCB
     }
   }
 
-  void addCollisionCheck(const CollisionInfo &coll_info) override { processDamage(coll_info); }
-  void addTreeCheck(const CollisionInfo &coll_info) override { processDamage(coll_info); }
+  void addCollisionCheck(const rendinst::CollisionInfo &coll_info) override { processDamage(coll_info); }
+  void addTreeCheck(const rendinst::CollisionInfo &coll_info) override { processDamage(coll_info); }
 };
 
 void rendinstdestr::damage_ri_in_sphere(const Point3 &pos, float rad, const Point2 &dmg_near_far, float at_time, bool create_destr,
@@ -1271,7 +1278,7 @@ CachedCollisionObjectInfo *rendinstdestr::get_or_add_cached_collision_object(con
 }
 
 CachedCollisionObjectInfo *rendinstdestr::get_or_add_cached_collision_object(const rendinst::RendInstDesc &ri_desc, float at_time,
-  const rendinst::RendInstCollisionCB::CollisionInfo &coll_info)
+  const rendinst::CollisionInfo &coll_info)
 {
   CachedCollisionObjectInfo *objInfo = rendinstdestr::get_cached_collision_object(ri_desc);
   if (!objInfo)
@@ -1363,14 +1370,14 @@ int rendinstdestr::test_dynobj_to_ri_phys_collision(const CollisionObject &coA, 
 }
 
 void rendinstdestr::create_tree_rend_inst_destr(const rendinst::RendInstDesc &desc, bool add_restorable, const Point3 &impulse,
-  bool create_phys, bool constrained_phys, float wanted_omega, float at_time,
-  const rendinst::RendInstCollisionCB::CollisionInfo *coll_info, bool create_destr)
+  bool create_phys, bool constrained_phys, float wanted_omega, float at_time, const rendinst::CollisionInfo *coll_info,
+  bool create_destr)
 {
   // Rendinst system can invalidate static shadows for very large cells in `rendinst::doRIGenExternalControl` and
   // `rendinstdestr::destroyRendinst`. But it is not needed if we have special callback with invalidation for only
   // instance bbox
   if (destrSettings.hasStaticShadowsInvalidationCallback)
-    rendinstgenrender::avoidStaticShadowRecalc = true;
+    rendinst::render::avoidStaticShadowRecalc = true;
 
   rendinst::DestroyedRi *ri = create_destr ? rendinst::doRIGenExternalControl(desc, !create_phys) : NULL;
   Point2 impulseDir = normalize(Point2::xz(impulse));
@@ -1382,7 +1389,7 @@ void rendinstdestr::create_tree_rend_inst_destr(const rendinst::RendInstDesc &de
       create_destr && ri_effect_cb, ri_effect_cb, rendinstdestr::get_destr_settings().isClient, nullptr, 1, 1.0f, nullptr, flags);
 
   if (destrSettings.hasStaticShadowsInvalidationCallback)
-    rendinstgenrender::avoidStaticShadowRecalc = false;
+    rendinst::render::avoidStaticShadowRecalc = false;
 
   if (!ri)
     return;
@@ -1574,7 +1581,7 @@ void rendinstdestr::create_tree_rend_inst_destr(const rendinst::RendInstDesc &de
 }
 
 void rendinstdestr::doRIExtraDamageInBox(const BBox3 &box, rendinst::ri_damage_effect_cb effect_cb, float at_time, bool is_client,
-  bool create_destr, const Point3 &view_pos, rendinst::calc_expl_damage_cb calc_expl_dmg_cb, const BSphere3 *check_sphere,
+  bool create_destr, const Point3 &view_pos, calc_expl_damage_cb calc_expl_dmg_cb, const BSphere3 *check_sphere,
   const TMatrix *check_itm, rendinst::DestrOptionFlags flags)
 {
   TIME_PROFILE(rendinstdestr__doRIExtraDamageInBox);
@@ -1599,14 +1606,14 @@ void rendinstdestr::doRIExtraDamageInBox(const BBox3 &box, rendinst::ri_damage_e
     rendinst::RendInstDesc riDesc(-1, rendinst::handle_to_ri_inst(ri_h[j]), rendinst::handle_to_ri_type(ri_h[j]), 0, 0);
     if (riDesc.pool >= 0 && rendinst::get_riextra_immortality(ri_h[j]) && !(flags & rendinst::DestrOptionFlag::ForceDestroy))
       continue;
-    rendinst::RendInstCollisionCB::CollisionInfo collInfo(riDesc);
+    rendinst::CollisionInfo collInfo(riDesc);
     collInfo = rendinst::getRiGenDestrInfo(riDesc);
 
     if (calc_expl_dmg_cb)
     {
       TIME_PROFILE(rendinstdestr__doRIExtraDamageInBox_calc_expl_dmg);
 
-      if (!collInfo.isDestr || collInfo.pool < 0 || collInfo.tm == TMatrix::ZERO)
+      if (!collInfo.isDestr || collInfo.riPoolRef < 0 || collInfo.tm == TMatrix::ZERO)
         continue;
 
       float distance = sqrt(point_to_box_distance_sq(inverse(collInfo.tm) * box.center(), collInfo.localBBox));
@@ -1632,8 +1639,8 @@ void rendinstdestr::doRIExtraDamageInBox(const BBox3 &box, rendinst::ri_damage_e
       local_create_destr = true;
     if (collInfo.isDestr)
       flags |= rendinst::DestrOptionFlag::ForceDestroy;
-    rendinstdestr::destroyRendinst(riDesc, true, box.center(), Point3(0.f, 0.f, 0.f), at_time, &collInfo, local_create_destr,
-      effect_cb, is_client, NULL, collInfo.destroyNeighbourDepth, 1.f, nullptr, flags);
+    rendinstdestr::destroyRendinst(riDesc, true, box.center(), ZERO<Point3>(), at_time, &collInfo, local_create_destr, effect_cb,
+      is_client, NULL, collInfo.destroyNeighbourDepth, 1.f, nullptr, flags);
   }
 }
 

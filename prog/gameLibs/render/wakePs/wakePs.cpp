@@ -396,10 +396,10 @@ void ParticleSystem::update(float dt)
   d3d::resource_barrier({indirectBuffer.get(), RB_RO_INDIRECT_BUFFER});
 }
 
-void ParticleSystem::render()
+bool ParticleSystem::render()
 {
   if (lastEmitterIndex == -1)
-    return;
+    return false;
 
   d3d::set_buffer(STAGE_VS, PARTICLE_RENDER_BUFFER_REGISTER, particleRenderBuffer.get());
   ShaderGlobal::set_texture(diffuseTexVarId, mainParams.diffuseTexId);
@@ -414,6 +414,8 @@ void ParticleSystem::render()
   d3d::draw_indexed_indirect(PRIM_TRILIST, indirectBuffer.get(), 0);
 
   d3d::set_buffer(STAGE_VS, PARTICLE_RENDER_BUFFER_REGISTER, NULL);
+
+  return true;
 }
 
 void ParticleSystem::emit(float dt)
@@ -637,19 +639,21 @@ void EffectManager::update(float dt)
   }
 }
 
-void EffectManager::render(ParticleSystem::RenderType render_type)
+bool EffectManager::render(ParticleSystem::RenderType render_type)
 {
   if (pSystems.empty())
-    return;
+    return false;
 
   d3d::setvsrc(0, 0, 0);
   d3d::setind(particleQuadIB.get());
 
+  bool renderedAnything = false;
   for (auto &pSystem : pSystems)
   {
     if (pSystem->getMainParams().renderType == render_type)
-      pSystem->render();
+      renderedAnything |= pSystem->render();
   }
+  return renderedAnything;
 }
 
 } // namespace wfx

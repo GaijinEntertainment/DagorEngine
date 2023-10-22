@@ -32,8 +32,8 @@ struct NestingChecker {
     }
 };
 
-SQParser::SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const SQChar* sourcename, Arena *astArena, SQCompilationContext &ctx)
-    : _lex(_ss(v), ctx, LM_AST)
+SQParser::SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const SQChar* sourcename, Arena *astArena, SQCompilationContext &ctx, Comments *comments)
+    : _lex(_ss(v), ctx, comments)
     , _ctx(ctx)
     , _astArena(astArena)
 {
@@ -79,40 +79,55 @@ bool SQParser::ProcessPosDirective()
     return true;
 }
 
+struct SQPragmaDescriptor {
+  const SQChar *id;
+  SQInteger setFlags, clearFlags;
+};
+
+static const SQPragmaDescriptor pragmaDescriptors[] = {
+  { "strict", LF_STRICT, 0 },
+  { "relaxed", 0, LF_STRICT },
+  { "strict-bool", LF_STRICT_BOOL, 0 },
+  { "relaxed-bool", 0, LF_STRICT_BOOL },
+  { "no-plus-concat", LF_NO_PLUS_CONCAT, 0 },
+  { "allow-plus-concat", 0, LF_NO_PLUS_CONCAT },
+  { "forbid-root-table", LF_FORBID_ROOT_TABLE, 0 },
+  { "allow-root-table", 0, LF_FORBID_ROOT_TABLE },
+  { "disable-optimizer", LF_DISABLE_OPTIMIZER, 0 },
+  { "enable-optimizer", 0, LF_DISABLE_OPTIMIZER },
+  { "forbid-extends-keyword", LF_FORBID_EXTENDS, 0 },
+  { "allow-extends-keyword", 0, LF_FORBID_EXTENDS },
+  { "forbid-delete-operator", LF_FORBID_DELETE_OP, 0 },
+  { "allow-delete-operator", 0, LF_FORBID_DELETE_OP },
+  { "forbid-clone-operator", LF_FORBID_CLONE_OP, 0 },
+  { "allow-clone-operator", 0, LF_FORBID_CLONE_OP }
+};
 
 Statement* SQParser::parseDirectiveStatement()
 {
     const SQChar *sval = _lex._svalue;
 
-    SQInteger setFlags = 0, clearFlags = 0;
     bool applyToDefault = false;
     if (strncmp(sval, _SC("default:"), 8) == 0) {
         applyToDefault = true;
         sval += 8;
     }
 
-    if (strcmp(sval, _SC("strict")) == 0)
-        setFlags = LF_STRICT;
-    else if (strcmp(sval, _SC("relaxed")) == 0)
-        clearFlags = LF_STRICT;
-    else if (strcmp(sval, _SC("strict-bool")) == 0)
-        setFlags = LF_STRICT_BOOL;
-    else if (strcmp(sval, _SC("relaxed-bool")) == 0)
-        clearFlags = LF_STRICT_BOOL;
-    else if (strcmp(sval, _SC("no-plus-concat")) == 0)
-        setFlags = LF_NO_PLUS_CONCAT;
-    else if (strcmp(sval, _SC("allow-plus-concat")) == 0)
-        clearFlags = LF_NO_PLUS_CONCAT;
-    else if (strcmp(sval, _SC("forbid-root-table")) == 0)
-        setFlags = LF_FORBID_ROOT_TABLE;
-    else if (strcmp(sval, _SC("allow-root-table")) == 0)
-        clearFlags = LF_FORBID_ROOT_TABLE;
-    else if (strcmp(sval, _SC("disable-optimizer")) == 0)
-        setFlags = LF_DISABLE_OPTIMIZER;
-    else if (strcmp(sval, _SC("enable-optimizer")) == 0)
-        clearFlags = LF_DISABLE_OPTIMIZER;
-    else
-        reportDiagnostic(DiagnosticsId::DI_UNSUPPORTED_DIRECTIVE, sval);
+    const SQPragmaDescriptor *pragmaDesc = nullptr;
+
+    for (const auto &desc : pragmaDescriptors) {
+      if (strcmp(sval, desc.id) == 0) {
+        pragmaDesc = &desc;
+        break;
+      }
+    }
+
+    if (pragmaDesc == nullptr) {
+      reportDiagnostic(DiagnosticsId::DI_UNSUPPORTED_DIRECTIVE, sval);
+      return nullptr;
+    }
+
+    SQInteger setFlags = pragmaDesc->setFlags, clearFlags = pragmaDesc->clearFlags;
 
     DirectiveStmt *d = newNode<DirectiveStmt>();
     d->setLineStartPos(_lex._tokenline);
@@ -132,6 +147,11 @@ Statement* SQParser::parseDirectiveStatement()
     return d;
 }
 
+void SQParser::checkBraceIdentationStyle()
+{
+  if (_token == _SC('{') && (_lex._prevflags & TF_PREP_EOL))
+    reportDiagnostic(DiagnosticsId::DI_EGYPT_BRACES);
+}
 
 void SQParser::Lex()
 {
@@ -147,13 +167,13 @@ void SQParser::Lex()
         } else
             break;
     }
+
+    if (_token == TK_CLONE && (_lang_features & LF_FORBID_CLONE_OP)) {
+      _token = TK_IDENTIFIER;
+      _lex.SetStringValue();
+    }
 }
 
-static const char *tok2Str(SQInteger tok) {
-    static char s[3];
-    snprintf(s, sizeof s, "%c", (SQChar)tok);
-    return s;
-}
 
 Expr* SQParser::Expect(SQInteger tok)
 {
@@ -162,8 +182,8 @@ Expr* SQParser::Expect(SQInteger tok)
             //do nothing
         }
         else {
-            const SQChar *etypename;
             if(tok > 255) {
+                const SQChar *etypename;
                 switch(tok)
                 {
                 case TK_IDENTIFIER:
@@ -183,7 +203,10 @@ Expr* SQParser::Expect(SQInteger tok)
                 }
                 reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, etypename);
             }
-            reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, tok2Str(tok));
+            else {
+                char s[2] = {(char)tok, 0};
+                reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, s);
+            }
         }
     }
     Expr *ret = NULL;
@@ -304,13 +327,13 @@ Statement* SQParser::parseStatement(bool closeframe)
         return result;
     }
     case TK_BREAK:
-        result = newNode<BreakStatement>(nullptr);
+        result = setCoordinates(newNode<BreakStatement>(nullptr), l, c);
         Lex();
-        break;
+        return result;
     case TK_CONTINUE:
-        result = newNode<ContinueStatement>(nullptr);
+        result = setCoordinates(newNode<ContinueStatement>(nullptr), l, c);
         Lex();
-        break;
+        return result;
     case TK_FUNCTION:
         result = parseLocalFunctionDeclStmt(false);
         break;
@@ -429,6 +452,9 @@ Expr* SQParser::Expression(SQExpressionContext expression_context)
                 case SQE_RVALUE:
                     reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "expression");
                     break;
+                case SQE_ARRAY_ELEM:
+                    reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "array element");
+                    break;
                 case SQE_REGULAR:
                     break;
                 }
@@ -463,11 +489,20 @@ Expr* SQParser::Expression(SQExpressionContext expression_context)
 
 template<typename T> Expr* SQParser::BIN_EXP(T f, enum TreeOp top, Expr *lhs)
 {
-    _expression_context = SQE_RVALUE;
+
+    SQInteger prevTok = _lex._prevtoken, tok = _token;
+    unsigned prevFlags = _lex._prevflags;
 
     Lex();
 
+    checkSuspicciousUnaryOp(prevTok, tok, prevFlags);
+
+    SQExpressionContext old = _expression_context;
+    _expression_context = SQE_RVALUE;
+
     Expr *rhs = (this->*f)();
+
+    _expression_context = old;
 
     return newNode<BinExpr>(top, lhs, rhs);
 }
@@ -622,6 +657,16 @@ Expr* SQParser::ShiftExp()
     }
 }
 
+void SQParser::checkSuspicciousUnaryOp(SQInteger pprevTok, SQInteger tok, unsigned pprevFlags) {
+  if (tok == _SC('+') || tok == _SC('-')) {
+    if (_expression_context == SQE_ARRAY_ELEM || _expression_context == SQE_FUNCTION_ARG) {
+      if ((pprevFlags & (TF_PREP_EOL | TF_PREP_SPACE)) && (pprevTok != _SC(',')) && ((_lex._prevflags & TF_PREP_SPACE) == 0)) {
+        reportDiagnostic(DiagnosticsId::DI_NOT_UNARY_OP, tok == _SC('+') ? "+" : "-");
+      }
+    }
+  }
+}
+
 Expr* SQParser::PlusExp()
 {
     NestingChecker nc(this);
@@ -651,6 +696,18 @@ Expr* SQParser::MultExp()
         default: return lhs;
         }
     }
+}
+
+void SQParser::checkSuspicciousBraket() {
+  assert(_token == _SC('(') || _token == _SC('['));
+  if (_expression_context == SQE_ARRAY_ELEM || _expression_context == SQE_FUNCTION_ARG) {
+    if (_lex._prevtoken != _SC(',')) {
+      if (_lex._prevflags & (TF_PREP_EOL | TF_PREP_SPACE)) {
+        char op[] = { (char)_token, '\0' };
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_BRAKET, op, _token == _SC('(') ? "function call" : "access to member");
+      }
+    }
+  }
 }
 
 Expr* SQParser::PrefixedExpr()
@@ -688,6 +745,9 @@ Expr* SQParser::PrefixedExpr()
             }
             if(_lex._prevtoken == _SC('\n'))
                 reportDiagnostic(DiagnosticsId::DI_BROKEN_SLOT_DECLARATION);
+            if (_token == _SC('['))
+              checkSuspicciousBraket();
+
             Lex();
             Expr *receiver = e;
             Expr *key = Expression(SQE_RVALUE);
@@ -707,10 +767,17 @@ Expr* SQParser::PrefixedExpr()
             return e;
         case _SC('('):
         case TK_NULLCALL: {
+            if (_lex._prevflags & TF_PREP_EOL && _token == _SC('(')) {
+                reportDiagnostic(DiagnosticsId::DI_PAREN_IS_FUNC_CALL);
+            }
             SQInteger nullcall = (_token==TK_NULLCALL || nextIsNullable);
             nextIsNullable = !!nullcall;
             SQInteger l = e->lineStart(), c = e->columnStart();
             CallExpr *call = newNode<CallExpr>(arena(), e, nullcall);
+
+            if (_token == _SC('('))
+              checkSuspicciousBraket();
+
             Lex();
             while (_token != _SC(')')) {
                 call->addArgument(Expression(SQE_FUNCTION_ARG));
@@ -843,7 +910,7 @@ Expr* SQParser::Factor(SQInteger &pos)
         r = setCoordinates(newNode<Id>(_SC("constructor")), l, c);
         Lex();
         break;
-    case TK_THIS: r = newNode<Id>(_SC("this")); Lex(); break;
+    case TK_THIS: r = setCoordinates(newNode<Id>(_SC("this")), l, c); Lex(); break;
     case TK_DOUBLE_COLON:  // "::"
         if (_lang_features & LF_FORBID_ROOT_TABLE)
             reportDiagnostic(DiagnosticsId::DI_ROOT_TABLE_FORBIDDEN);
@@ -869,10 +936,27 @@ Expr* SQParser::Factor(SQInteger &pos)
     case _SC('['): {
             Lex();
             ArrayExpr *arr = newNode<ArrayExpr>(arena());
+            bool commaSeparated = false;
+            bool spaceSeparated = false;
+            bool reported = false;
             while(_token != _SC(']')) {
-                Expr *v = Expression(SQE_RVALUE);
+                Expr *v = Expression(SQE_ARRAY_ELEM);
                 arr->addValue(v);
-                if(_token == _SC(',')) Lex();
+                if (_token == _SC(',')) {
+                    commaSeparated = true;
+                }
+                else if (_token != _SC(']')) {
+                    spaceSeparated = true;
+                }
+
+                if (commaSeparated && spaceSeparated && !reported) {
+                    reported = true; // do not spam in output, a single diag seems to be enough
+                    reportDiagnostic(DiagnosticsId::DI_MIXED_SEPARATORS, "elements of array");
+                }
+
+                if (_token == _SC(',')) {
+                    Lex();
+                }
             }
             setCoordinates(arr, l, c);
             Lex();
@@ -936,7 +1020,12 @@ Expr* SQParser::Factor(SQInteger &pos)
     case TK_PLUSPLUS :
         r = setCoordinates(PrefixIncDec(_token), l, c);
         break;
-    case TK_DELETE : r = DeleteExpr(); break;
+    case TK_DELETE :
+        if (_lang_features & LF_FORBID_DELETE_OP) {
+            reportDiagnostic(DiagnosticsId::DI_DELETE_OP_FORBIDDEN);
+        }
+        r = DeleteExpr();
+        break;
     case _SC('('):
         Lex();
         r = setCoordinates(newNode<UnExpr>(TO_PAREN, Expression(_expression_context)), l, c);
@@ -1102,7 +1191,7 @@ Decl* SQParser::parseLocalDeclStatement()
     do {
         SQInteger l = line();
         SQInteger c = column();
-        Id *varname = (Id *)Expect(TK_IDENTIFIER);
+        Id *varname = (Id *)setCoordinates(Expect(TK_IDENTIFIER), l, c);
         assert(varname);
         VarDecl *cur = NULL;
         if(_token == _SC('=')) {
@@ -1159,18 +1248,20 @@ Decl* SQParser::parseLocalDeclStatement()
     }
 }
 
-Statement* SQParser::IfBlock()
+Statement* SQParser::IfLikeBlock(bool &wrapped)
 {
     NestingChecker nc(this);
     Statement *stmt = NULL;
     SQInteger l = line(), c = column();
     if (_token == _SC('{'))
     {
+        wrapped = false;
         Lex();
         stmt = setCoordinates(parseStatements(), l, c);
         Expect(_SC('}'));
     }
     else {
+        wrapped = true;
         stmt = parseStatement();
         Block *block = newNode<Block>(arena());
         block->addStatement(stmt);
@@ -1188,17 +1279,43 @@ IfStatement* SQParser::parseIfStatement()
 
     SQInteger l = line(), c = column();
 
+    SQInteger prevTok = _lex._prevtoken;
+
     Consume(TK_IF);
 
     Expect(_SC('('));
     Expr *cond = Expression(SQE_IF);
     Expect(_SC(')'));
 
-    Statement *thenB = IfBlock();
+    checkBraceIdentationStyle();
+
+    bool wrapped = false;
+
+    Statement *thenB = IfLikeBlock(wrapped);
     Statement *elseB = NULL;
-    if(_token == TK_ELSE){
+    if (_token == TK_ELSE) {
+        SQInteger el = line(), ec = column(), ew = width();
+        SQInteger prevTok2 = _lex._prevtoken;
         Lex();
-        elseB = IfBlock();
+        if (_token != _SC('{') && prevTok != TK_ELSE && wrapped && l != el && c != ec) {
+          _ctx.reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT, el, ec, ew);
+        }
+        checkBraceIdentationStyle();
+        elseB = IfLikeBlock(wrapped);
+        if (!IsEndOfStatement()) {
+          reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "else");
+        }
+    }
+    else if (!IsEndOfStatement()) {
+      reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "then");
+    }
+
+
+    if (_token != SQUIRREL_EOB && _token != _SC('}') && _token != _SC(']') && _token != _SC(')') && _token != _SC(',')) {
+      SQInteger lastLine = elseB ? elseB->lineEnd() : thenB->lineEnd();
+      if (line() != lastLine && column() > c) {
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
+      }
     }
 
     return setCoordinates(newNode<IfStatement>(cond, thenB, elseB), l, c);
@@ -1216,7 +1333,19 @@ WhileStatement* SQParser::parseWhileStatement()
     Expr *cond = Expression(SQE_LOOP_CONDITION);
     Expect(_SC(')'));
 
-    Statement *body = parseStatement();
+    bool wrapped = false;
+    checkBraceIdentationStyle();
+    Statement *body = IfLikeBlock(wrapped);
+
+    if (!IsEndOfStatement()) {
+      reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "while loop body");
+    }
+
+    if (_token != SQUIRREL_EOB && _token != _SC('}')) {
+      if (line() != body->lineEnd() && column() > c) {
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
+      }
+    }
 
     return setCoordinates(newNode<WhileStatement>(cond, body), l, c);
 }
@@ -1229,7 +1358,9 @@ DoWhileStatement* SQParser::parseDoWhileStatement()
 
     Consume(TK_DO); // DO
 
-    Statement *body = parseStatement();
+    bool wrapped = false;
+    checkBraceIdentationStyle();
+    Statement *body = IfLikeBlock(wrapped);
 
     Expect(TK_WHILE);
 
@@ -1270,7 +1401,19 @@ ForStatement* SQParser::parseForStatement()
     }
     Expect(_SC(')'));
 
-    Statement *body = parseStatement();
+    bool wrapped = false;
+    checkBraceIdentationStyle();
+    Statement *body = IfLikeBlock(wrapped);
+
+    if (!IsEndOfStatement()) {
+      reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "for loop body");
+    }
+
+    if (_token != SQUIRREL_EOB && _token != _SC('}')) {
+      if (line() != body->lineEnd() && column() > c) {
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
+      }
+    }
 
     return setCoordinates(newNode<ForStatement>(init, cond, mod, body), l, c);
 }
@@ -1284,14 +1427,18 @@ ForeachStatement* SQParser::parseForEachStatement()
     Consume(TK_FOREACH);
 
     Expect(_SC('('));
-    Id *valname = (Id *)Expect(TK_IDENTIFIER);
+    SQInteger idL = line(), idC = column();
+
+    Id *valname = (Id *)setCoordinates(Expect(TK_IDENTIFIER), idL, idC);
     assert(valname);
 
     Id *idxname = NULL;
     if(_token == _SC(',')) {
         idxname = valname;
         Lex();
-        valname = (Id *)Expect(TK_IDENTIFIER);
+        idL = line();
+        idC = column();
+        valname = (Id *)setCoordinates(Expect(TK_IDENTIFIER), idL, idC);
         assert(valname);
 
         if (strcmp(idxname->id(), valname->id()) == 0) //-V522
@@ -1306,10 +1453,22 @@ ForeachStatement* SQParser::parseForEachStatement()
     Expr *contnr = Expression(SQE_RVALUE);
     Expect(_SC(')'));
 
-    Statement *body = parseStatement();
+    bool wrapped = false;
+    checkBraceIdentationStyle();
+    Statement *body = IfLikeBlock(wrapped);
 
-    VarDecl *idxDecl = idxname ? newNode<VarDecl>(idxname->id(), nullptr, false) : NULL;
-    VarDecl *valDecl = valname ? newNode<VarDecl>(valname->id(), nullptr, false) : NULL;
+    if (!IsEndOfStatement()) {
+      reportDiagnostic(DiagnosticsId::DI_STMT_SAME_LINE, "foreach loop body");
+    }
+
+    if (_token != SQUIRREL_EOB && _token != _SC('}')) {
+      if (line() != body->lineEnd() && column() > c) {
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
+      }
+    }
+
+    VarDecl *idxDecl = idxname ? copyCoordinates(idxname, newNode<VarDecl>(idxname->id(), nullptr, false)) : NULL;
+    VarDecl *valDecl = valname ? copyCoordinates(valname, newNode<VarDecl>(valname->id(), nullptr, false)) : NULL;
 
     return setCoordinates(newNode<ForeachStatement>(idxDecl, valDecl, contnr, body), l, c);
 }
@@ -1326,6 +1485,7 @@ SwitchStatement* SQParser::parseSwitchStatement()
     Expr *switchExpr = Expression(SQE_SWITCH);
     Expect(_SC(')'));
 
+    checkBraceIdentationStyle();
     Expect(_SC('{'));
 
     SwitchStatement *switchStmt = newNode<SwitchStatement>(arena(), switchExpr);
@@ -1336,6 +1496,7 @@ SwitchStatement* SQParser::parseSwitchStatement()
         Expr *cond = Expression(SQE_RVALUE);
         Expect(_SC(':'));
 
+        checkBraceIdentationStyle();
         Statement *caseBody = parseStatements();
         switchStmt->addCases(cond, caseBody);
     }
@@ -1344,6 +1505,7 @@ SwitchStatement* SQParser::parseSwitchStatement()
         Consume(TK_DEFAULT);
         Expect(_SC(':'));
 
+        checkBraceIdentationStyle();
         switchStmt->addDefault(parseStatements());
     }
 
@@ -1424,11 +1586,13 @@ EnumDecl* SQParser::parseEnumStatement(bool global)
 
     EnumDecl *decl = newNode<EnumDecl>(arena(), id->id(), global); //-V522
 
+    checkBraceIdentationStyle();
     Expect(_SC('{'));
 
     SQInteger nval = 0;
     while(_token != _SC('}')) {
-        Id *key = (Id *)Expect(TK_IDENTIFIER);
+        SQInteger cl = line(), cc = column();
+        Id *key = (Id *)setCoordinates(Expect(TK_IDENTIFIER), cl, cc);
         LiteralExpr *valExpr = NULL;
         if(_token == _SC('=')) {
             // TODO1: should it behave like C does?
@@ -1438,6 +1602,7 @@ EnumDecl* SQParser::parseEnumStatement(bool global)
         }
         else {
             valExpr = newNode<LiteralExpr>(nval++);
+            copyCoordinates(key, valExpr);
         }
 
         decl->addConst(key->id(), valExpr); //-V522
@@ -1460,6 +1625,7 @@ TryStatement* SQParser::parseTryCatchStatement()
 
     Consume(TK_TRY);
 
+    checkBraceIdentationStyle();
     Statement *t = parseStatement();
 
     Expect(TK_CATCH);
@@ -1468,6 +1634,7 @@ TryStatement* SQParser::parseTryCatchStatement()
     Id *exid = (Id *)Expect(TK_IDENTIFIER);
     Expect(_SC(')'));
 
+    checkBraceIdentationStyle();
     Statement *cth = parseStatement();
 
     return setCoordinates(newNode<TryStatement>(t, exid, cth), l, c);
@@ -1509,9 +1676,18 @@ ClassDecl* SQParser::ClassExp(Expr *key)
     SQInteger l = line(), c = column();
     Expr *baseExpr = NULL;
     if(_token == TK_EXTENDS) {
+        if (_lang_features & LF_FORBID_EXTENDS) {
+          reportDiagnostic(DiagnosticsId::DI_OLD_STYLE_EXTEND_FORBIDDEN);
+        }
         Lex();
         baseExpr = Expression(SQE_RVALUE);
     }
+    else if (_token == _SC('(')) {
+      Lex();
+      baseExpr = Expression(SQE_RVALUE);
+      Expect(_SC(')'));
+    }
+    checkBraceIdentationStyle();
     Expect(_SC('{'));
     ClassDecl *d = newNode<ClassDecl>(arena(), key, baseExpr);
     ParseTableOrClass(d, _SC(';'),_SC('}'));
@@ -1611,6 +1787,7 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
     else {
         if (_token != '{')
             reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "{");
+        checkBraceIdentationStyle();
         body = (Block *)parseStatement(false);
     }
     SQInteger line2 = _lex._prevtoken == _SC('\n') ? _lex._lasttokenline : _lex._currentline;

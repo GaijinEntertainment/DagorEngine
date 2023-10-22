@@ -141,7 +141,10 @@ else:
 
 # build list of single arg builtins, tolerant of Python version, that can be used as parse actions
 singleArgBuiltins = []
-import __builtin__
+if sys.version_info.major == 2:
+    import __builtin__
+else:
+    import builtins as __builtin__
 for fname in "sum len enumerate sorted reversed list tuple set any all".split():
     try:
         singleArgBuiltins.append(getattr(__builtin__,fname))
@@ -2535,7 +2538,7 @@ class MatchFirst(ParseExpression):
             try:
                 ret = e._parse( instring, loc, doActions )
                 return ret
-            except ParseException, err:
+            except ParseException as err:
                 if err.loc > maxExcLoc:
                     maxException = err
                     maxExcLoc = err.loc

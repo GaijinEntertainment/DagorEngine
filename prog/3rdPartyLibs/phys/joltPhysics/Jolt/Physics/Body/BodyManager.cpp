@@ -9,6 +9,9 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyLock.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
+#include <Jolt/Physics/SoftBody/SoftBodyMotionProperties.h>
+#include <Jolt/Physics/SoftBody/SoftBodyCreationSettings.h>
+#include <Jolt/Physics/SoftBody/SoftBodyShape.h>
 #include <Jolt/Physics/StateRecorder.h>
 #include <Jolt/Core/StringTools.h>
 #include <Jolt/Core/QuickSort.h>
@@ -50,7 +53,20 @@ class BodyWithMotionProperties : public Body
 public:
 	JPH_OVERRIDE_NEW_DELETE
 
-	MotionProperties		mMotionProperties;
+	MotionProperties			mMotionProperties;
+};
+
+// Helper class that combines a soft body its motion properties and shape
+class SoftBodyWithMotionPropertiesAndShape : public Body
+{
+public:
+								SoftBodyWithMotionPropertiesAndShape()
+	{
+		mShape.SetEmbedded();
+	}
+
+	SoftBodyMotionProperties	mMotionProperties;
+	SoftBodyShape				mShape;
 };
 
 inline void BodyManager::sDeleteBody(Body *inBody)
@@ -58,7 +74,13 @@ inline void BodyManager::sDeleteBody(Body *inBody)
 	if (inBody->mMotionProperties != nullptr)
 	{
 		JPH_IF_ENABLE_ASSERTS(inBody->mMotionProperties = nullptr;)
-		delete static_cast<BodyWithMotionProperties *>(inBody);
+		if (inBody->IsSoftBody())
+		{
+			inBody->mShape = nullptr; // Release the shape to avoid assertion on shape destruction because of embedded object with refcount > 0
+			delete static_cast<SoftBodyWithMotionPropertiesAndShape *>(inBody);
+		}
+		else
+			delete static_cast<BodyWithMotionProperties *>(inBody);
 	}
 	else
 		delete inBody;
@@ -73,7 +95,8 @@ BodyManager::~BodyManager()
 		if (sIsValidBodyPointer(b))
 			sDeleteBody(b);
 
-	delete [] mActiveBodies;
+	for (BodyID *active_bodies : mActiveBodies)
+		delete [] active_bodies;
 }
 
 void BodyManager::Init(uint inMaxBodies, uint inNumBodyMutexes, const BroadPhaseLayerInterface &inLayerInterface)
@@ -90,8 +113,11 @@ void BodyManager::Init(uint inMaxBodies, uint inNumBodyMutexes, const BroadPhase
 	mBodies.reserve(inMaxBodies);
 
 	// Allocate space for active bodies
-	JPH_ASSERT(mActiveBodies == nullptr);
-	mActiveBodies = new BodyID [inMaxBodies];
+	for (BodyID *&active_bodies : mActiveBodies)
+	{
+		JPH_ASSERT(active_bodies == nullptr);
+		active_bodies = new BodyID [inMaxBodies];
+	}
 
 	// Allocate space for sequence numbers
 	mBodySequenceNumbers.resize(inMaxBodies);
@@ -118,23 +144,32 @@ BodyManager::BodyStats BodyManager::GetBodyStats() const
 	for (const Body *body : mBodies)
 		if (sIsValidBodyPointer(body))
 		{
-			switch (body->GetMotionType())
+			if (body->IsSoftBody())
 			{
-			case EMotionType::Static:
-				stats.mNumBodiesStatic++;
-				break;
-
-			case EMotionType::Dynamic:
-				stats.mNumBodiesDynamic++;
+				stats.mNumSoftBodies++;
 				if (body->IsActive())
-					stats.mNumActiveBodiesDynamic++;
-				break;
+					stats.mNumActiveSoftBodies++;
+			}
+			else
+			{
+				switch (body->GetMotionType())
+				{
+				case EMotionType::Static:
+					stats.mNumBodiesStatic++;
+					break;
 
-			case EMotionType::Kinematic:
-				stats.mNumBodiesKinematic++;
-				if (body->IsActive())
-					stats.mNumActiveBodiesKinematic++;
-				break;
+				case EMotionType::Dynamic:
+					stats.mNumBodiesDynamic++;
+					if (body->IsActive())
+						stats.mNumActiveBodiesDynamic++;
+					break;
+
+				case EMotionType::Kinematic:
+					stats.mNumBodiesKinematic++;
+					if (body->IsActive())
+						stats.mNumActiveBodiesKinematic++;
+					break;
+				}
 			}
 		}
 
@@ -155,6 +190,7 @@ Body *BodyManager::AllocateBody(const BodyCreationSettings &inBodyCreationSettin
 	{
 	 	body = new Body;
 	}
+	body->mBodyType = EBodyType::RigidBody;
 	body->mShape = inBodyCreationSettings.GetShape();
 	body->mUserData = inBodyCreationSettings.mUserData;
 	body->SetFriction(inBodyCreationSettings.mFriction);
@@ -169,7 +205,7 @@ Body *BodyManager::AllocateBody(const BodyCreationSettings &inBodyCreationSettin
 	SetBodyObjectLayerInternal(*body, inBodyCreationSettings.mObjectLayer);
 	body->mObjectLayer = inBodyCreationSettings.mObjectLayer;
 	body->mCollisionGroup = inBodyCreationSettings.mCollisionGroup;
-	
+
 	if (inBodyCreationSettings.HasMassProperties())
 	{
 		MotionProperties *mp = body->mMotionProperties;
@@ -182,14 +218,50 @@ Body *BodyManager::AllocateBody(const BodyCreationSettings &inBodyCreationSettin
 		mp->SetGravityFactor(inBodyCreationSettings.mGravityFactor);
 		mp->mMotionQuality = inBodyCreationSettings.mMotionQuality;
 		mp->mAllowSleeping = inBodyCreationSettings.mAllowSleeping;
-		mp->mIndexInActiveBodies = Body::cInactiveIndex;
-		mp->mIslandIndex = Body::cInactiveIndex;
+		JPH_IF_ENABLE_ASSERTS(mp->mCachedBodyType = body->mBodyType;)
 		JPH_IF_ENABLE_ASSERTS(mp->mCachedMotionType = body->mMotionType;)
 		mp->SetMassProperties(inBodyCreationSettings.mAllowedDOFs, inBodyCreationSettings.GetMassProperties());
 	}
 
 	// Position body
 	body->SetPositionAndRotationInternal(inBodyCreationSettings.mPosition, inBodyCreationSettings.mRotation);
+
+	return body;
+}
+
+/// Create a soft body using creation settings. The returned body will not be part of the body manager yet.
+Body *BodyManager::AllocateSoftBody(const SoftBodyCreationSettings &inSoftBodyCreationSettings) const
+{
+	// Fill in basic properties
+	SoftBodyWithMotionPropertiesAndShape *bmp = new SoftBodyWithMotionPropertiesAndShape;
+	SoftBodyMotionProperties *mp = &bmp->mMotionProperties;
+	SoftBodyShape *shape = &bmp->mShape;
+	Body *body = bmp;
+	shape->mSoftBodyMotionProperties = mp;
+	body->mBodyType = EBodyType::SoftBody;
+	body->mMotionProperties = mp;
+	body->mShape = shape;
+	body->mUserData = inSoftBodyCreationSettings.mUserData;
+	body->SetFriction(inSoftBodyCreationSettings.mFriction);
+	body->SetRestitution(inSoftBodyCreationSettings.mRestitution);
+	body->mMotionType = EMotionType::Dynamic;
+	SetBodyObjectLayerInternal(*body, inSoftBodyCreationSettings.mObjectLayer);
+	body->mObjectLayer = inSoftBodyCreationSettings.mObjectLayer;
+	body->mCollisionGroup = inSoftBodyCreationSettings.mCollisionGroup;
+	mp->SetLinearDamping(inSoftBodyCreationSettings.mLinearDamping);
+	mp->SetAngularDamping(0);
+	mp->SetMaxLinearVelocity(inSoftBodyCreationSettings.mMaxLinearVelocity);
+	mp->SetMaxAngularVelocity(FLT_MAX);
+	mp->SetLinearVelocity(Vec3::sZero());
+	mp->SetAngularVelocity(Vec3::sZero());
+	mp->SetGravityFactor(inSoftBodyCreationSettings.mGravityFactor);
+	mp->mMotionQuality = EMotionQuality::Discrete;
+	mp->mAllowSleeping = inSoftBodyCreationSettings.mAllowSleeping;
+	JPH_IF_ENABLE_ASSERTS(mp->mCachedBodyType = body->mBodyType;)
+	JPH_IF_ENABLE_ASSERTS(mp->mCachedMotionType = body->mMotionType;)
+	mp->Initialize(inSoftBodyCreationSettings);
+
+	body->SetPositionAndRotationInternal(inSoftBodyCreationSettings.mPosition, inSoftBodyCreationSettings.mMakeRotationIdentity? Quat::sIdentity() : inSoftBodyCreationSettings.mRotation);
 
 	return body;
 }
@@ -326,7 +398,7 @@ Body *BodyManager::RemoveBodyInternal(const BodyID &inBodyID)
 	JPH_ASSERT(body->GetID() == inBodyID);
 	JPH_ASSERT(!body->IsActive());
 	JPH_ASSERT(!body->IsInBroadPhase());
-	
+
 	// Push the id onto the freelist
 	mBodies[idx] = (Body *)mBodyIDFreeListStart;
 	mBodyIDFreeListStart = (uintptr_t(idx) << cFreedBodyIndexShift) | cIsFreedBody;
@@ -409,6 +481,56 @@ void BodyManager::DestroyBodies(const BodyID *inBodyIDs, int inNumber)
 #endif // defined(_DEBUG) && _defined(JPH_ENABLE_ASSERTS)
 }
 
+void BodyManager::AddBodyToActiveBodies(Body &ioBody)
+{
+	// Select the correct array to use
+	int type = (int)ioBody.GetBodyType();
+	atomic<uint32> &num_active_bodies = mNumActiveBodies[type];
+	BodyID *active_bodies = mActiveBodies[type];
+
+	MotionProperties *mp = ioBody.mMotionProperties;
+	mp->mIndexInActiveBodies = num_active_bodies;
+	JPH_ASSERT(num_active_bodies < GetMaxBodies());
+	active_bodies[num_active_bodies] = ioBody.GetID();
+	num_active_bodies++; // Increment atomic after setting the body ID so that PhysicsSystem::JobFindCollisions (which doesn't lock the mActiveBodiesMutex) will only read valid IDs
+
+	// Count CCD bodies
+	if (mp->GetMotionQuality() == EMotionQuality::LinearCast)
+		mNumActiveCCDBodies++;
+}
+
+void BodyManager::RemoveBodyFromActiveBodies(Body &ioBody)
+{
+	// Select the correct array to use
+	int type = (int)ioBody.GetBodyType();
+	atomic<uint32> &num_active_bodies = mNumActiveBodies[type];
+	BodyID *active_bodies = mActiveBodies[type];
+
+	uint32 last_body_index = num_active_bodies - 1;
+	MotionProperties *mp = ioBody.mMotionProperties;
+	if (mp->mIndexInActiveBodies != last_body_index)
+	{
+		// This is not the last body, use the last body to fill the hole
+		BodyID last_body_id = active_bodies[last_body_index];
+		active_bodies[mp->mIndexInActiveBodies] = last_body_id;
+
+		// Update that body's index in the active list
+		Body &last_body = *mBodies[last_body_id.GetIndex()];
+		JPH_ASSERT(last_body.mMotionProperties->mIndexInActiveBodies == last_body_index);
+		last_body.mMotionProperties->mIndexInActiveBodies = mp->mIndexInActiveBodies;
+	}
+
+	// Mark this body as no longer active
+	mp->mIndexInActiveBodies = Body::cInactiveIndex;
+
+	// Remove unused element from active bodies list
+	--num_active_bodies;
+
+	// Count CCD bodies
+	if (mp->GetMotionQuality() == EMotionQuality::LinearCast)
+		mNumActiveCCDBodies--;
+}
+
 void BodyManager::ActivateBodies(const BodyID *inBodyIDs, int inNumber)
 {
 	// Don't take lock if no bodies are to be activated
@@ -416,7 +538,7 @@ void BodyManager::ActivateBodies(const BodyID *inBodyIDs, int inNumber)
 		return;
 
 	UniqueLock lock(mActiveBodiesMutex JPH_IF_ENABLE_ASSERTS(, this, EPhysicsLockTypes::ActiveBodiesList));
-	
+
 	JPH_ASSERT(!mActiveBodiesLocked || sOverrideAllowActivation);
 
 	for (const BodyID *b = inBodyIDs, *b_end = inBodyIDs + inNumber; b < b_end; b++)
@@ -431,15 +553,10 @@ void BodyManager::ActivateBodies(const BodyID *inBodyIDs, int inNumber)
 			if (!body.IsStatic()
 				&& body.mMotionProperties->mIndexInActiveBodies == Body::cInactiveIndex)
 			{
-				body.mMotionProperties->mIndexInActiveBodies = mNumActiveBodies;
+				// Reset sleeping
 				body.ResetSleepTestSpheres();
-				JPH_ASSERT(mNumActiveBodies < GetMaxBodies());
-				mActiveBodies[mNumActiveBodies] = body_id;
-				mNumActiveBodies++; // Increment atomic after setting the body ID so that PhysicsSystem::JobFindCollisions (which doesn't lock the mActiveBodiesMutex) will only read valid IDs
 
-				// Count CCD bodies
-				if (body.mMotionProperties->GetMotionQuality() == EMotionQuality::LinearCast)
-					mNumActiveCCDBodies++;
+				AddBodyToActiveBodies(body);
 
 				// Call activation listener
 				if (mActivationListener != nullptr)
@@ -470,33 +587,15 @@ void BodyManager::DeactivateBodies(const BodyID *inBodyIDs, int inNumber)
 			if (body.mMotionProperties != nullptr
 				&& body.mMotionProperties->mIndexInActiveBodies != Body::cInactiveIndex)
 			{
-				uint32 last_body_index = mNumActiveBodies - 1;
-				if (body.mMotionProperties->mIndexInActiveBodies != last_body_index)
-				{
-					// This is not the last body, use the last body to fill the hole
-					BodyID last_body_id = mActiveBodies[last_body_index];
-					mActiveBodies[body.mMotionProperties->mIndexInActiveBodies] = last_body_id;
-
-					// Update that body's index in the active list
-					Body &last_body = *mBodies[last_body_id.GetIndex()];
-					JPH_ASSERT(last_body.mMotionProperties->mIndexInActiveBodies == last_body_index);
-					last_body.mMotionProperties->mIndexInActiveBodies = body.mMotionProperties->mIndexInActiveBodies;
-				}
+				// Remove the body from the active bodies list
+				RemoveBodyFromActiveBodies(body);
 
 				// Mark this body as no longer active
-				body.mMotionProperties->mIndexInActiveBodies = Body::cInactiveIndex;
 				body.mMotionProperties->mIslandIndex = Body::cInactiveIndex;
 
 				// Reset velocity
 				body.mMotionProperties->mLinearVelocity = Vec3::sZero();
 				body.mMotionProperties->mAngularVelocity = Vec3::sZero();
-
-				// Remove unused element from active bodies list
-				--mNumActiveBodies;
-
-				// Count CCD bodies
-				if (body.mMotionProperties->GetMotionQuality() == EMotionQuality::LinearCast)
-					mNumActiveCCDBodies--;
 
 				// Call activation listener
 				if (mActivationListener != nullptr)
@@ -525,13 +624,14 @@ void BodyManager::SetMotionQuality(Body &ioBody, EMotionQuality inMotionQuality)
 	}
 }
 
-void BodyManager::GetActiveBodies(BodyIDVector &outBodyIDs) const
+void BodyManager::GetActiveBodies(EBodyType inType, BodyIDVector &outBodyIDs) const
 {
 	JPH_PROFILE_FUNCTION();
 
 	UniqueLock lock(mActiveBodiesMutex JPH_IF_ENABLE_ASSERTS(, this, EPhysicsLockTypes::ActiveBodiesList));
 
-	outBodyIDs.assign(mActiveBodies, mActiveBodies + mNumActiveBodies);
+	const BodyID *active_bodies = mActiveBodies[(int)inType];
+	outBodyIDs.assign(active_bodies, active_bodies + mNumActiveBodies[(int)inType]);
 }
 
 void BodyManager::GetBodyIDs(BodyIDVector &outBodies) const
@@ -553,11 +653,11 @@ void BodyManager::GetBodyIDs(BodyIDVector &outBodies) const
 	JPH_ASSERT(outBodies.size() == mNumBodies);
 }
 
-void BodyManager::SetBodyActivationListener(BodyActivationListener *inListener)	
-{ 
+void BodyManager::SetBodyActivationListener(BodyActivationListener *inListener)
+{
 	UniqueLock lock(mActiveBodiesMutex JPH_IF_ENABLE_ASSERTS(, this, EPhysicsLockTypes::ActiveBodiesList));
 
-	mActivationListener = inListener; 
+	mActivationListener = inListener;
 }
 
 BodyManager::MutexMask BodyManager::GetMutexMask(const BodyID *inBodies, int inNumber) const
@@ -622,91 +722,124 @@ void BodyManager::UnlockWrite(MutexMask inMutexMask) const
 			mBodyMutexes.GetMutexByIndex(index).unlock();
 }
 
-void BodyManager::LockAllBodies() const						
-{ 
+void BodyManager::LockAllBodies() const
+{
 	JPH_IF_ENABLE_ASSERTS(PhysicsLock::sCheckLock(this, EPhysicsLockTypes::PerBody));
-	mBodyMutexes.LockAll(); 
+	mBodyMutexes.LockAll();
 
 	PhysicsLock::sLock(mBodiesMutex JPH_IF_ENABLE_ASSERTS(, this, EPhysicsLockTypes::BodiesList));
 }
 
-void BodyManager::UnlockAllBodies() const						
-{ 
+void BodyManager::UnlockAllBodies() const
+{
 	PhysicsLock::sUnlock(mBodiesMutex JPH_IF_ENABLE_ASSERTS(, this, EPhysicsLockTypes::BodiesList));
 
 	JPH_IF_ENABLE_ASSERTS(PhysicsLock::sCheckUnlock(this, EPhysicsLockTypes::PerBody));
-	mBodyMutexes.UnlockAll(); 
+	mBodyMutexes.UnlockAll();
 }
 
-void BodyManager::SaveState(StateRecorder &inStream) const
+void BodyManager::SaveState(StateRecorder &inStream, const StateRecorderFilter *inFilter) const
 {
 	{
 		LockAllBodies();
 
-		// Count number of bodies
-		size_t num_bodies = 0;
+		// Determine which bodies to save
+		Array<const Body *> bodies;
+		bodies.reserve(mNumBodies);
 		for (const Body *b : mBodies)
-			if (sIsValidBodyPointer(b) && b->IsInBroadPhase())
-				++num_bodies;
-		inStream.Write(num_bodies);
-	
+			if (sIsValidBodyPointer(b) && b->IsInBroadPhase() && (inFilter == nullptr || inFilter->ShouldSaveBody(*b)))
+				bodies.push_back(b);
+
 		// Write state of bodies
-		for (const Body *b : mBodies)
-			if (sIsValidBodyPointer(b) && b->IsInBroadPhase())
-			{
-				inStream.Write(b->GetID());
-				b->SaveState(inStream);
-			}
+		uint32 num_bodies = (uint32)bodies.size();
+		inStream.Write(num_bodies);
+		for (const Body *b : bodies)
+		{
+			inStream.Write(b->GetID());
+			inStream.Write(b->IsActive());
+			b->SaveState(inStream);
+		}
 
 		UnlockAllBodies();
-	}
-
-	{
-		UniqueLock lock(mActiveBodiesMutex JPH_IF_ENABLE_ASSERTS(, this, EPhysicsLockTypes::ActiveBodiesList));
-
-		// Write active bodies, sort because activation can come from multiple threads, so order is not deterministic
-		inStream.Write(mNumActiveBodies);
-		BodyIDVector sorted_active_bodies(mActiveBodies, mActiveBodies + mNumActiveBodies);
-		QuickSort(sorted_active_bodies.begin(), sorted_active_bodies.end());
-		for (const BodyID &id : sorted_active_bodies)
-			inStream.Write(id);
-
-		inStream.Write(mNumActiveCCDBodies);
 	}
 }
 
 bool BodyManager::RestoreState(StateRecorder &inStream)
 {
+	BodyIDVector bodies_to_activate, bodies_to_deactivate;
+
 	{
 		LockAllBodies();
 
-		// Read state of bodies, note this reads it in a way to be consistent with validation
-		size_t old_num_bodies = 0;
-		for (const Body *b : mBodies)
-			if (sIsValidBodyPointer(b) && b->IsInBroadPhase())
-				++old_num_bodies;
-		size_t num_bodies = old_num_bodies; // Initialize to current value for validation
-		inStream.Read(num_bodies);
-		if (num_bodies != old_num_bodies)
+		if (inStream.IsValidating())
 		{
-			JPH_ASSERT(false, "Cannot handle adding/removing bodies");
-			UnlockAllBodies();
-			return false;
-		}
-
-		for (Body *b : mBodies)
-			if (sIsValidBodyPointer(b) && b->IsInBroadPhase())
+			// Read state of bodies, note this reads it in a way to be consistent with validation
+			uint32 old_num_bodies = 0;
+			for (const Body *b : mBodies)
+				if (sIsValidBodyPointer(b) && b->IsInBroadPhase())
+					++old_num_bodies;
+			uint32 num_bodies = old_num_bodies; // Initialize to current value for validation
+			inStream.Read(num_bodies);
+			if (num_bodies != old_num_bodies)
 			{
-				BodyID body_id = b->GetID(); // Initialize to current value for validation
-				inStream.Read(body_id);
-				if (body_id != b->GetID())
+				JPH_ASSERT(false, "Cannot handle adding/removing bodies");
+				UnlockAllBodies();
+				return false;
+			}
+
+			for (Body *b : mBodies)
+				if (sIsValidBodyPointer(b) && b->IsInBroadPhase())
 				{
-					JPH_ASSERT(false, "Cannot handle adding/removing bodies");
+					BodyID body_id = b->GetID(); // Initialize to current value for validation
+					inStream.Read(body_id);
+					if (body_id != b->GetID())
+					{
+						JPH_ASSERT(false, "Cannot handle adding/removing bodies");
+						UnlockAllBodies();
+						return false;
+					}
+					bool is_active = b->IsActive(); // Initialize to current value for validation
+					inStream.Read(is_active);
+					if (is_active != b->IsActive())
+					{
+						if (is_active)
+							bodies_to_activate.push_back(body_id);
+						else
+							bodies_to_deactivate.push_back(body_id);
+					}
+					b->RestoreState(inStream);
+				}
+		}
+		else
+		{
+			// Not validating, we can be a bit more loose, read number of bodies
+			uint32 num_bodies = 0;
+			inStream.Read(num_bodies);
+
+			// Iterate over the stored bodies and restore their state
+			for (uint32 idx = 0; idx < num_bodies; ++idx)
+			{
+				BodyID body_id;
+				inStream.Read(body_id);
+				Body *b = TryGetBody(body_id);
+				if (b == nullptr)
+				{
+					JPH_ASSERT(false, "Restoring state for non-existing body");
 					UnlockAllBodies();
 					return false;
 				}
+				bool is_active;
+				inStream.Read(is_active);
+				if (is_active != b->IsActive())
+				{
+					if (is_active)
+						bodies_to_activate.push_back(body_id);
+					else
+						bodies_to_deactivate.push_back(body_id);
+				}
 				b->RestoreState(inStream);
 			}
+		}
 
 		UnlockAllBodies();
 	}
@@ -714,24 +847,47 @@ bool BodyManager::RestoreState(StateRecorder &inStream)
 	{
 		UniqueLock lock(mActiveBodiesMutex JPH_IF_ENABLE_ASSERTS(, this, EPhysicsLockTypes::ActiveBodiesList));
 
-		// Mark current active bodies as deactivated
-		for (const BodyID *id = mActiveBodies, *id_end = mActiveBodies + mNumActiveBodies; id < id_end; ++id)
-			mBodies[id->GetIndex()]->mMotionProperties->mIndexInActiveBodies = Body::cInactiveIndex;
-
-		QuickSort(mActiveBodies, mActiveBodies + mNumActiveBodies); // Sort for validation
-
-		// Read active bodies
-		inStream.Read(mNumActiveBodies);
-		for (BodyID *id = mActiveBodies, *id_end = mActiveBodies + mNumActiveBodies; id < id_end; ++id)
+		for (BodyID body_id : bodies_to_activate)
 		{
-			inStream.Read(*id);
-			mBodies[id->GetIndex()]->mMotionProperties->mIndexInActiveBodies = uint32(id - mActiveBodies);
+			Body *body = TryGetBody(body_id);
+			AddBodyToActiveBodies(*body);
 		}
 
-		inStream.Read(mNumActiveCCDBodies);
+		for (BodyID body_id : bodies_to_deactivate)
+		{
+			Body *body = TryGetBody(body_id);
+			RemoveBodyFromActiveBodies(*body);
+		}
 	}
 
 	return true;
+}
+
+void BodyManager::SaveBodyState(const Body &inBody, StateRecorder &inStream) const
+{
+	inStream.Write(inBody.IsActive());
+
+	inBody.SaveState(inStream);
+}
+
+void BodyManager::RestoreBodyState(Body &ioBody, StateRecorder &inStream)
+{
+	bool is_active = ioBody.IsActive();
+	inStream.Read(is_active);
+
+	ioBody.RestoreState(inStream);
+
+	if (is_active != ioBody.IsActive())
+	{
+		UniqueLock lock(mActiveBodiesMutex JPH_IF_ENABLE_ASSERTS(, this, EPhysicsLockTypes::ActiveBodiesList));
+
+		JPH_ASSERT(!mActiveBodiesLocked || sOverrideAllowActivation);
+
+		if (is_active)
+			AddBodyToActiveBodies(ioBody);
+		else
+			RemoveBodyFromActiveBodies(ioBody);
+	}
 }
 
 #ifdef JPH_DEBUG_RENDERER
@@ -842,7 +998,7 @@ void BodyManager::Draw(const DrawSettings &inDrawSettings, const PhysicsSettings
 					color = Color::sBlack;
 					break;
 				}
-			
+
 			// Draw the results of GetSupportFunction
 			if (inDrawSettings.mDrawGetSupportFunction)
 				body->mShape->DrawGetSupportFunction(inRenderer, body->GetCenterOfMassTransform(), Vec3::sReplicate(1.0f), color, inDrawSettings.mDrawSupportDirection);
@@ -908,6 +1064,24 @@ void BodyManager::Draw(const DrawSettings &inDrawSettings, const PhysicsSettings
 				for (int i = 0; i < 3; ++i)
 					inRenderer->DrawWireSphere(JPH_IF_DOUBLE_PRECISION(body->mMotionProperties->GetSleepTestOffset() +) body->mMotionProperties->mSleepTestSpheres[i].GetCenter(), body->mMotionProperties->mSleepTestSpheres[i].GetRadius(), sleep_color);
 			}
+
+			if (body->IsSoftBody())
+			{
+				const SoftBodyMotionProperties *mp = static_cast<const SoftBodyMotionProperties *>(body->GetMotionProperties());
+				RMat44 com = body->GetCenterOfMassTransform();
+
+				if (inDrawSettings.mDrawSoftBodyVertices)
+					mp->DrawVertices(inRenderer, com);
+
+				if (inDrawSettings.mDrawSoftBodyEdgeConstraints)
+					mp->DrawEdgeConstraints(inRenderer, com);
+
+				if (inDrawSettings.mDrawSoftBodyVolumeConstraints)
+					mp->DrawVolumeConstraints(inRenderer, com);
+
+				if (inDrawSettings.mDrawSoftBodyPredictedBounds)
+					mp->DrawPredictedBounds(inRenderer, com);
+			}
 		}
 
 	UnlockAllBodies();
@@ -927,7 +1101,7 @@ void BodyManager::InvalidateContactCacheForBody(Body &ioBody)
 void BodyManager::ValidateContactCacheForAllBodies()
 {
 	lock_guard lock(mBodiesCacheInvalidMutex);
-	
+
 	for (const BodyID &b : mBodiesCacheInvalid)
 	{
 		// The body may have been removed between the call to InvalidateContactCacheForBody and this call, so check if it still exists
@@ -943,13 +1117,14 @@ void BodyManager::ValidateActiveBodyBounds()
 {
 	UniqueLock lock(mActiveBodiesMutex JPH_IF_ENABLE_ASSERTS(, this, EPhysicsLockTypes::ActiveBodiesList));
 
-	for (BodyID *id = mActiveBodies, *id_end = mActiveBodies + mNumActiveBodies; id < id_end; ++id)
-	{
-		const Body *body = mBodies[id->GetIndex()];
-		AABox cached = body->GetWorldSpaceBounds();
-		AABox calculated = body->GetShape()->GetWorldSpaceBounds(body->GetCenterOfMassTransform(), Vec3::sReplicate(1.0f));
-		JPH_ASSERT(cached == calculated);
-	}
+	for (uint type = 0; type < cBodyTypeCount; ++type)
+		for (BodyID *id = mActiveBodies[type], *id_end = mActiveBodies[type] + mNumActiveBodies[type]; id < id_end; ++id)
+		{
+			const Body *body = mBodies[id->GetIndex()];
+			AABox cached = body->GetWorldSpaceBounds();
+			AABox calculated = body->GetShape()->GetWorldSpaceBounds(body->GetCenterOfMassTransform(), Vec3::sReplicate(1.0f));
+			JPH_ASSERT(cached == calculated);
+		}
 }
 #endif // _DEBUG
 

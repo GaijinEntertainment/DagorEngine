@@ -9,7 +9,7 @@
 #include <api/dasModules/genericBindings/optional.h>
 #include <api/dasModules/genericBindings/fixedVectorSet.h>
 #include <api/dasModules/genericBindings/fixedVectorMap.h>
-#include <api/dasModules/genericBindings/idNameMap.h>
+#include <api/dasModules/genericBindings/idHierarchicalNameMap.h>
 #include <api/dasModules/genericBindings/idIndexedMapping.h>
 
 
@@ -18,11 +18,15 @@ namespace dabfg
 inline NodeHandle register_external_node(NodeNameId node_id, uint32_t generation) { return {{node_id, generation, true}}; }
 } // namespace dabfg
 
-struct DasRegistry
+struct DasNameSpaceRequest
 {
+  dabfg::NameSpaceNameId nameSpaceId;
   dabfg::NodeNameId nodeId;
   dabfg::InternalRegistry *registry;
 };
+
+struct DasRegistry : DasNameSpaceRequest
+{};
 
 #define DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(enum_name, das_enum_name) \
   DAS_BIND_ENUM_CAST(enum_name)                                       \
@@ -39,6 +43,7 @@ struct DasRegistry
   };                                                                  \
   }
 
+DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(dabfg::NameSpaceNameId, NameSpaceNameId);
 DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(dabfg::NodeNameId, NodeNameId);
 DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(dabfg::ResNameId, ResNameId);
 DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(dabfg::History, History);
@@ -65,6 +70,7 @@ MAKE_TYPE_FACTORY(ResourceRequest, dabfg::ResourceRequest)
 MAKE_TYPE_FACTORY(ResourceProvider, dabfg::ResourceProvider)
 MAKE_TYPE_FACTORY(NodeTracker, dabfg::NodeTracker)
 MAKE_TYPE_FACTORY(Registry, DasRegistry)
+MAKE_TYPE_FACTORY(NameSpaceRequest, DasNameSpaceRequest)
 MAKE_TYPE_FACTORY(TextureResourceDescription, TextureResourceDescription)
 MAKE_TYPE_FACTORY(VolTextureResourceDescription, VolTextureResourceDescription)
 MAKE_TYPE_FACTORY(ArrayTextureResourceDescription, ArrayTextureResourceDescription)
@@ -128,10 +134,11 @@ void setEcsNodeHandleHint(ecs::ComponentsInitializer &init, const char *name, ui
 void setEcsNodeHandle(ecs::ComponentsInitializer &init, const char *name, dabfg::NodeHandle &handle);
 void fastSetInitChildComp(ecs::ComponentsInitializer &init, const ecs::component_t name, const ecs::FastGetInfo &lt,
   const dabfg::NodeHandle &to, const char *nameStr);
-void fillSlot(const char *slot, const char *res_name);
+void fillSlot(dabfg::NameSpaceNameId ns, const char *slot, dabfg::NameSpaceNameId res_ns, const char *res_name);
 using DasExecutionCallback = das::TLambda<void>;
 using DasDeclarationCallBack = das::TLambda<DasExecutionCallback, DasRegistry>;
-void registerNodeDeclaration(dabfg::NodeData &node_data, DasDeclarationCallBack declaration_callback, das::Context *context);
+void registerNodeDeclaration(dabfg::NodeData &node_data, dabfg::NameSpaceNameId ns_id, DasDeclarationCallBack declaration_callback,
+  das::Context *context);
 void resetNode(dabfg::NodeHandle &handle);
 void setTextureInfo(dabfg::ResourceData &res, TextureResourceDescription &desc);
 void setResolution(dabfg::ResourceData &res, const dabfg::AutoResolutionData &data);

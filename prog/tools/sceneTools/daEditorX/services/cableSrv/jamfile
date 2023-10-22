@@ -1,0 +1,19 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/services/cableSrv ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/services/cableSrv.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+
+Sources =
+  cableSrv.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

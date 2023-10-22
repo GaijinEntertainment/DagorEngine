@@ -1,0 +1,12 @@
+Table t->a: original = 10, cloned op = 10, cloned method 10
+Table t->b: original = 20, cloned op = 20, cloned method 20
+Array[0]: original = a, cloned op = a, cloned method a
+Array[1]: original = b, cloned op = b, cloned method b
+Array[2]: original = c, cloned op = c, cloned method c
+String: orig 'test', cloned op 'test', cloned method 'test'
+Instance: orig 10, cloned op 10, cloned method 10
+Class: clone op -- OK, exception 'cloning a class'
+Class: clone method -- OK, exception 'cloning a class'
+Integer: orig 10, cloned op 10, cloned method 10
+Float: orig 5.5, cloned op 5.5, cloned method 5.5
+Closure: orig x = '42', cloned op x = '42', cloned method x = '42'

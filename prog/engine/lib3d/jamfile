@@ -1,0 +1,111 @@
+Root    ?= ../../.. ;
+Location = prog/engine/lib3d ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine/lib3d.lib ;
+
+
+Sources =
+  texMgr.cpp
+  bufMgr.cpp
+  texMgrData.cpp
+  texMgrCreat.cpp
+  texMgrMem.cpp
+  texMgrCon.cpp
+  tqlInit.cpp
+  loadDDSx/texLoad.cpp
+  loadDDSx/texResize.cpp
+  texMgrMt.cpp
+  texMgrFileFactory.cpp
+  texMgrSymFactory.cpp
+  texMgrStubFactory.cpp
+  textureFormat.cpp
+  regTexCreateRaw.cpp
+  drv3dReset.cpp
+  setGamma.cpp
+  debug3dBuffered.cpp
+  debug3dCached.cpp
+  debug3dStates.cpp
+  debug3dTex.cpp
+  texPackMgr2.cpp
+  createTex.cpp
+  assertTexSize.cpp
+  picMgr.cpp
+  splash.cpp
+  applyTmd.cpp
+  texIdHolder.cpp
+  bufIdHolder.cpp
+  resizableTex.cpp
+  ringCPUQueryLock.cpp
+  MaskedOcclusionCulling.cpp
+  occlusionSystem.cpp
+  quadIndexBuffer.cpp
+  serialIntBuffer.cpp
+  resourcePool.cpp
+  texStreamingContext.cpp
+;
+
+CPPopt = -D__B_CORE ;
+
+if $(Platform) in iOS android nswitch
+{
+  Sources += MaskedOcclusionCulling_neon.cpp ;
+}
+
+if $(Platform) in win32 win64 linux64 ps4 xboxOne
+{
+  Sources += MaskedOcclusionCulling_sse.cpp ;
+}
+
+if $(Platform) in macosx
+{
+  if $(MacOSXArch) != arm64 {
+    Sources += MaskedOcclusionCulling_sse.cpp ;
+  } else {
+    Sources += MaskedOcclusionCulling_neon.cpp ;
+  }
+}
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/3rdPartyLibs/binPack2D/include
+  $(Root)/prog/engine/drv/drv3d_commonCode
+;
+
+UseProgLibs =
+  3rdPartyLibs/eastl
+  3rdPartyLibs/detex
+;
+if $(Config) in dev dbg { UseProgLibs += engine/consoleProc ; }
+
+if $(Platform) in win64 linux64 && $(SSEVersion) != 2 && $(SSEVersion) != 3)
+{
+UseProgLibs +=
+  engine/lib3d/moc_avx
+;
+}
+
+if $(Platform) in scarlett ps5
+{
+UseProgLibs +=
+  engine/lib3d/moc_avx
+;
+}
+
+if $(ForceLinkDebugLines) = yes && $(Config) in rel irel {
+  CPPopt += -DFORCE_LINK_DEBUG_LINES ;
+  Target = $(Target:S=~dbgln.lib) ;
+}
+
+RequireDriverResetReport ?= no ;
+if $(RequireDriverResetReport) = yes {
+  CPPopt += -DREQUIRE_DRIVER_RESET_REPORT ;
+  Target = $(Target:S=~rr.lib) ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;
+

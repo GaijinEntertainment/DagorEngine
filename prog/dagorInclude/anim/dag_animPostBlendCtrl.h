@@ -702,12 +702,15 @@ class LegsIKCtrl : public AnimPostBlendCtrl
     Point2 footStepRange, footRotRange;
     float maxFootUp, maxDyRate, maxDaRate;
     SimpleString foot, knee, leg, footStep;
+    bool isRightLeg;
+    bool useAnimcharUpDir;
   };
 
   Tab<IKRec> rec;
   int varId;
-
-  bool alwaysSolve;
+  Point3 crawlKneeOffsetVec{Point3()};
+  float crawlFootOffset{0.f}, crawlFootAngle{0.f}, crawlMaxRay{0.f};
+  bool alwaysSolve{false}, isCrawl{false};
 
 public:
   LegsIKCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g), rec(midmem), varId(-1), alwaysSolve(false) {}

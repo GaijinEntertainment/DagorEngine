@@ -28,6 +28,7 @@
 class ComputeShaderElement;
 class Sbuffer;
 class IEditableVariablesNotifications;
+using GrassPreRenderCallback = dag::FixedMoveOnlyFunction<32, void() const>;
 
 struct IRandomGrassRenderHelper
 {
@@ -62,7 +63,7 @@ public:
   void applyAnisotropy();
   typedef eastl::function<bool(const BBox2 &, float &min_ht, float &max_ht)> frustum_heights_cb_t;
 
-  void generate(const Point3 &pos, const Point3 &view_dir, const frustum_heights_cb_t &cb);
+  void generate(const Point3 &pos, const Point3 &view_dir, const frustum_heights_cb_t &cb, GrassPreRenderCallback pre_render_cb);
   void bindGrassBuffers();
 
   enum RenderType
@@ -94,7 +95,8 @@ protected:
   void loadGrassTypes(const DataBlock &grassSettings, const eastl::hash_map<eastl::string, int> &grassTypesUsed);
   void updateGrassColors();
   void updateGrassTypes();
-  void generateGrass(const Point2 &next_pos, const Point3 &view_dir, float min_ht, float max_ht, const frustum_heights_cb_t &cb);
+  void generateGrass(const Point2 &next_pos, const Point3 &view_dir, float min_ht, float max_ht, const frustum_heights_cb_t &cb,
+    GrassPreRenderCallback pre_render_cb);
 
   eastl::unique_ptr<ComputeShaderElement> createIndirect;
   UniqueBuf grassInstancesIndirect;
@@ -170,17 +172,15 @@ protected:
 
 struct MaskRenderCallback
 {
-  using PreRenderCallback = dag::FixedMoveOnlyFunction<32, void() const>;
-
   ViewProjMatrixContainer viewproj;
-  PreRenderCallback preRenderCB;
+  GrassPreRenderCallback preRenderCB;
 
   float texelSize;
   IRandomGrassRenderHelper &cm;
   Texture *maskTex, *colorTex;
   PostFxRenderer *copy_grass_decals = 0;
   MaskRenderCallback(float texel, IRandomGrassRenderHelper &cb, Texture *m, Texture *c, PostFxRenderer *cgd,
-    PreRenderCallback pre_render_cb) :
+    GrassPreRenderCallback pre_render_cb) :
     texelSize(texel), cm(cb), maskTex(m), colorTex(c), copy_grass_decals(cgd), preRenderCB(eastl::move(pre_render_cb))
   {}
 
@@ -202,8 +202,7 @@ public:
   void setQuality(GrassQuality quality);
   void applyAnisotropy();
 
-  void generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassRenderHelper &cb,
-    MaskRenderCallback::PreRenderCallback pre_render_cb);
+  void generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassRenderHelper &cb, GrassPreRenderCallback pre_render_cb);
 
   enum RenderType
   {

@@ -9,7 +9,7 @@
 class CComboBox : public BasicPropertyControl
 {
 public:
-  CComboBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+  CComboBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
     const char caption[], const Tab<String> &vals, int index, bool sorted = false);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
@@ -31,7 +31,7 @@ public:
   void reset();
 
   void setEnabled(bool enabled);
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
   void moveTo(int x, int y);
 
 private:

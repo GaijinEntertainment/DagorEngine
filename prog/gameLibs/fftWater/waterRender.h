@@ -79,7 +79,7 @@ public:
 
   void prepareRefraction(Texture *scene_target_tex);
 
-  void render(const Point3 &origin, TEXTUREID distanceTex, int geom_lod_quality, int survey_id,
+  void render(const Point3 &origin, TEXTUREID distanceTex, int geom_lod_quality, int survey_id, const Frustum &frustum,
     IWaterDecalsRenderHelper *decals_renderer = NULL, fft_water::RenderMode render_mode = fft_water::RenderMode::WATER_SHADER);
 
   void performGPUFFT();

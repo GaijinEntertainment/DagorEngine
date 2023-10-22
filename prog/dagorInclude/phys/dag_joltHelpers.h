@@ -18,10 +18,14 @@ inline Point3 to_point3(const JPH::Vec3 &v)
 
 inline JPH::Quat to_jQuat(const TMatrix &tm)
 {
-  mat44f mat44;
-  v_mat44_make_from_43cu_unsafe(mat44, tm.array);
-  quat4f q = v_norm4(v_un_quat_from_mat4(mat44));
-  return JPH::Quat(q);
+  // Note: vector convention gives different results somehow. Figure it out?
+  /*
+  mat44f m;
+  v_mat44_make_from_43cu_unsafe(m, tm.array);
+  return JPH::Quat(v_norm4(v_un_quat_from_mat4(m)));
+  return JPH::Mat44(m.col0, m.col1, m.col2, V_C_UNIT_0001).GetQuaternion().Normalized(); */
+  Quat q = normalize(Quat(tm));
+  return JPH::Quat(q.x, q.y, q.z, q.w);
 }
 inline JPH::Mat44 to_jMat44(const mat44f &tm)
 {

@@ -1,5 +1,4 @@
-switch (1)
-{
+switch (1) {
   case 0:
     local x = 6;
     break;

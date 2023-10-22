@@ -676,15 +676,15 @@ void WGradientPlot::updateDrawParams()
   switch (mMode & AXIS_MASK)
   {
     case GRADIENT_AXIS_MODE_X:
-      x0 = 1.0 + TRACK_GRADIENT_BUTTON_WIDTH / 2;
-      y0 = 1.0 + TRACK_GRADIENT_BUTTON_HEIGHT;
+      x0 = 1.0 + _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2;
+      y0 = 1.0 + _pxS(TRACK_GRADIENT_BUTTON_HEIGHT);
       x1 = mWidth - x0 - 1.0;
       y1 = mHeight - 1.0;
       break;
 
     case GRADIENT_AXIS_MODE_Y:
-      x0 = 1.0 + TRACK_GRADIENT_BUTTON_HEIGHT;
-      y0 = 1.0 + TRACK_GRADIENT_BUTTON_WIDTH / 2;
+      x0 = 1.0 + _pxS(TRACK_GRADIENT_BUTTON_HEIGHT);
+      y0 = 1.0 + _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2;
       x1 = mWidth - 1.0;
       y1 = mHeight - y0 - 1.0;
       break;
@@ -945,8 +945,8 @@ void WGradientPlot::drawArrow(void *hdc, Point2 pos, bool rotate)
 
   Point2 cur_pos((rotate) ? x0 - 2 : pos.x + x0, (rotate) ? pos.x + y0 : y0 - 2);
 
-  int mx = TRACK_GRADIENT_BUTTON_WIDTH / 2;
-  int my = TRACK_GRADIENT_BUTTON_HEIGHT - 1;
+  int mx = _pxS(TRACK_GRADIENT_BUTTON_WIDTH) / 2;
+  int my = _pxS(TRACK_GRADIENT_BUTTON_HEIGHT) - 1;
 
   for (int i = 0; i < my; ++i)
   {

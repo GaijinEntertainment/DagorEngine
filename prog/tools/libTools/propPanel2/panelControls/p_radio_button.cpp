@@ -3,11 +3,11 @@
 #include "p_radio_button.h"
 #include "../c_constants.h"
 
-CRadioButton::CRadioButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CRadioButton::CRadioButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[], int index) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT),
-  mButton(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT, index)
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT)),
+  mButton(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT), index)
 {
   mButton.setTextValue(caption);
   initTooltip(&mButton);
@@ -44,10 +44,10 @@ void CRadioButton::onWcChange(WindowBase *source)
 void CRadioButton::setEnabled(bool enabled) { mButton.setEnabled(enabled); }
 
 
-void CRadioButton::setWidth(unsigned w)
+void CRadioButton::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
-  mButton.resizeWindow(w, mButton.getHeight());
+  mButton.resizeWindow(_px(w), mButton.getHeight());
 }
 
 

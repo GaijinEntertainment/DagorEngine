@@ -15,7 +15,10 @@ int modfx_wboit_pass = 2;
 interval modfx_wboit_pass : color < 1, alpha < 2, combined;
 
 int fx_apply_volfog_per_pixel = 0;
-interval fx_apply_volfog_per_pixel: no < 1, yes;
+interval fx_apply_volfog_per_pixel: no < 1, yes; // must be disabled explicitly for WT compat for lack of UAV
+
+int fx_has_volfog_injection = 0;
+interval fx_has_volfog_injection: no < 1, yes;
 
 int rendering_distortion_color = 0;
 interval rendering_distortion_color: no < 1, yes;
@@ -32,7 +35,7 @@ texture wboit_alpha;
 texture haze_scene_depth_tex;
 float haze_scene_depth_tex_lod;
 
-shader dafx_modfx_bboard_render, dafx_modfx_bboard_render_atest, dafx_modfx_bboard_distortion, dafx_modfx_bboard_thermals, dafx_modfx_ribbon_render, dafx_modfx_ribbon_render_side_only, dafx_modfx_bboard_render_fom, dafx_modfx_bboard_rain, dafx_modfx_bboard_rain_distortion, dafx_modfx_volshape_render, dafx_modfx_volshape_thermal, dafx_modfx_volshape_depth, dafx_modfx_volshape_wboit_render, dafx_modfx_bboard_above_depth_placement
+shader dafx_modfx_bboard_render, dafx_modfx_bboard_render_atest, dafx_modfx_bboard_distortion, dafx_modfx_bboard_thermals, dafx_modfx_ribbon_render, dafx_modfx_ribbon_render_side_only, dafx_modfx_bboard_render_fom, dafx_modfx_bboard_rain, dafx_modfx_bboard_rain_distortion, dafx_modfx_volshape_render, dafx_modfx_volshape_thermal, dafx_modfx_volshape_depth, dafx_modfx_volshape_wboit_render, dafx_modfx_bboard_above_depth_placement, dafx_modfx_bboard_volfog_injection
 {
   ENABLE_ASSERT(ps)
   if (fx_apply_volfog_per_pixel == yes && !(shader == dafx_modfx_bboard_distortion || shader == dafx_modfx_bboard_rain_distortion || shader == dafx_modfx_bboard_render_fom))
@@ -51,6 +54,9 @@ shader dafx_modfx_bboard_render, dafx_modfx_bboard_render_atest, dafx_modfx_bboa
 
   hlsl
   {
+    ##if hardware.metal
+      #define MODFX_USE_INVERTED_POS_W 1
+    ##endif
     #if !MOBILE_DEVICE
       #define MODFX_USE_LIGHTING 1
     #endif
@@ -273,6 +279,40 @@ shader dafx_modfx_bboard_render, dafx_modfx_bboard_render_atest, dafx_modfx_bboa
       #include "fx_thermals.hlsl"
     }
   }
+
+  else if ( shader == dafx_modfx_bboard_volfog_injection )
+  {
+    if (fx_has_volfog_injection == no)
+    {
+      dont_render;
+    }
+
+    z_test = false;
+    z_write = false;
+
+    (ps)
+    {
+      view_inscatter_volume_resolution@f3 = (volfog_froxel_volume_res.x, volfog_froxel_volume_res.y, volfog_froxel_volume_res.z, 0);
+      view_inscatter_inv_range@f1 = volfog_froxel_range_params.y;
+      initial_media@uav : register(initial_media_no) hlsl {
+        RWTexture3D<float4> initial_media@uav;
+      }
+    }
+
+    hlsl
+    {
+      #define MODFX_SHADER_VOLFOG_INJECTION 1
+
+      #undef HAS_STATIC_SHADOW
+      #undef MODFX_USE_SHADOW
+      #undef MODFX_USE_LIGHTING
+      #undef MODFX_USE_GI
+      #undef MODFX_USE_PACK_HDR
+      #undef MODFX_USE_FOG
+    }
+  }
+
+
   else if ( shader == dafx_modfx_bboard_render_fom )
   {
     z_write = false;
@@ -325,6 +365,14 @@ shader dafx_modfx_bboard_render, dafx_modfx_bboard_render_atest, dafx_modfx_bboa
   DAFXEX_USE_HDR()
   DAFXEX_USE_FOG()
 
+  hlsl(vs)
+  {
+    // There is some bug in old adreno drivers (up to 512.420 version): vkCreateGraphicsPipelines can return null-handle with VK_OK result code.
+    // Disabling that optimization helps to work around the problem. So, do it for now.
+    ##if hardware.vulkan
+      #pragma spir-v optimizer disable convert-local-access-chains
+    ##endif
+  }
 
   hlsl
   {

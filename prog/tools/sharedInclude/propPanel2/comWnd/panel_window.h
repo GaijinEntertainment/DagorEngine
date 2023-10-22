@@ -17,7 +17,7 @@ class PanelWindowContextMenuEventHandler;
 class CPanelWindow : public PropertyContainerVert, public IWndEmbeddedWindow
 {
 public:
-  CPanelWindow(ControlEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h, const char caption[]);
+  CPanelWindow(ControlEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, const char caption[]);
   ~CPanelWindow();
 
   virtual WindowBase *getWindow();
@@ -28,8 +28,8 @@ public:
 
   void setCaptionValue(const char value[]);
   virtual void clear() override;
-  virtual void setWidth(unsigned w);
-  virtual void setHeight(unsigned h);
+  virtual void setWidth(hdpi::Px w);
+  virtual void setHeight(hdpi::Px h);
   virtual void moveTo(int x, int y);
 
   virtual int getScrollPos();

@@ -8,6 +8,7 @@
 #include <generic/dag_fixedMoveOnlyFunction.h>
 #include <render/daBfg/registry.h>
 #include <render/daBfg/detail/nodeUid.h>
+#include <render/daBfg/detail/nameSpaceNameId.h>
 
 
 // Detail header for non-template implementations of
@@ -26,7 +27,7 @@ inline constexpr size_t MAX_CALLBACK_SIZE = 128;
 using ExecutionCallback = dag::FixedMoveOnlyFunction<MAX_CALLBACK_SIZE, void(multiplexing::Index)>;
 using DeclarationCallback =
   dag::FixedMoveOnlyFunction<MAX_CALLBACK_SIZE, ExecutionCallback(NodeNameId nodeId, InternalRegistry *registry) const>;
-NodeUid register_node(const char *name, const char *node_source, DeclarationCallback &&declaration_callback);
+NodeUid register_node(NameSpaceNameId nsId, const char *name, const char *node_source, DeclarationCallback &&declaration_callback);
 
 void unregister_node(NodeUid uid);
 

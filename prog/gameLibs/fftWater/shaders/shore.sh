@@ -15,6 +15,7 @@ float foam_time = 0;
 float max_wave_height = 1;
 float wind_dir_x = 0.6;
 float wind_dir_y = 0.8;
+float wind_speed = 1.0;
 
 float shore_wave_height_to_amplitude = 0.25;
 float shore_amplitude_to_length = 30;        // Physically correct is 14, was 25.
@@ -38,7 +39,8 @@ INIT_WATER_HEIGHTMAP(stage)
   ftime_cscale_hmap@f4 = (foam_time, 0, water_heightmap_min_max.z, water_heightmap_min_max.w);
   shore_distance_field_tex@smp2d = shore_distance_field_tex;
   world_to_heightmap@f4 = world_to_heightmap;
-  water_level_max_wave_wind_dir@f4 = (water_level, max_wave_height, wind_dir_x, wind_dir_y);
+  water_level_max_wave_height@f2 = (water_level, max_wave_height, 0, 0);
+  wind_dir_speed@f3 = (wind_dir_x, wind_dir_y, wind_speed, 0);
 
   shore_params@f4 = (shore_wave_height_to_amplitude, shore_amplitude_to_length, shore_parallelism_to_wind, shore_width_k);
   shore_waves_dist@f4 = (
@@ -242,7 +244,7 @@ void getShoreAttributes(float3 worldPos, out ShoreData shoreData)
   SAMPLE_SHORES(tc, sdf);
   if (tc.x < 0 || tc.y < 0 || tc.x >= 1 || tc.y >= 1)
     sdf = 0;
-  float waterHeight = water_level_max_wave_wind_dir.x;
+  float waterHeight = water_level_max_wave_height.x;
   get_water_height(worldPos.xz, waterHeight);
   float2 decode_hmap = float2(ftime_cscale_hmap.z, ftime_cscale_hmap.w - waterHeight);
   shoreData.landHeight = sdf.x * decode_hmap.x + decode_hmap.y;
@@ -262,7 +264,7 @@ void getShoreAttributes(float3 worldPos, out ShoreData shoreData)
     {
       float shoreWavesMultiplier, oceanWavesMultiplier;
       float breaker;
-      GetShoreSurfaceAttributes(water_level_max_wave_wind_dir.y, ftime_cscale_hmap.x, 2*(kSDFRadiusInPixels/kSDFTextureSize)*world_heightmap_size, decode_hmap, water_level_max_wave_wind_dir.zw,
+      GetShoreSurfaceAttributes(water_level_max_wave_height.y, ftime_cscale_hmap.x, 2*(kSDFRadiusInPixels/kSDFTextureSize)*world_heightmap_size, decode_hmap, wind_dir_speed.xy,
                               worldPos.xzy, shoreData.shoreWavesDisplacement, shoreData.gerstner_normal, breaker, shoreData.gerstnerFoamFactor,
                                     shoreWavesMultiplier, oceanWavesMultiplier, shoreData.riverMultiplier, sdf);
     }

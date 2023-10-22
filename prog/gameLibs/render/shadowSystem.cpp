@@ -433,7 +433,7 @@ void ShadowSystem::startRenderVolumes()
     }
   }
   d3d::set_render_target((Texture *)NULL, 0);
-  d3d::set_depth(dynamic_light_shadows.getTex2D(), false);
+  d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
 }
 
 void ShadowSystem::copyStaticToDynamic(const Volume &volume)
@@ -451,7 +451,7 @@ void ShadowSystem::copyAtlasRegion(int src_x, int src_y, int dst_x, int dst_y, i
   G_ASSERT_RETURN(w <= maxShadow && h <= maxShadow, );
   G_ASSERT_RETURN(copyDepth, );
   d3d::set_render_target((Texture *)NULL, 0);
-  d3d::set_depth(tempCopy.getTex2D(), false);
+  d3d::set_depth(tempCopy.getTex2D(), DepthAccess::RW);
   int v_from[4] = {src_x, src_y, 0, 0};
   d3d::set_ps_const(15, (float *)v_from, 1);
   if (w < maxShadow || h < maxShadow)
@@ -461,7 +461,7 @@ void ShadowSystem::copyAtlasRegion(int src_x, int src_y, int dst_x, int dst_y, i
   copyDepth->render();
 
   d3d::set_render_target((Texture *)NULL, 0);
-  d3d::set_depth(dynamic_light_shadows.getTex2D(), false);
+  d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
   d3d::setview(dst_x, dst_y, w, h, 0, 1);
   d3d::resource_barrier({tempCopy.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
   d3d::settex(15, tempCopy.getTex2D());
@@ -480,7 +480,7 @@ void ShadowSystem::endRenderVolumes()
 void ShadowSystem::startRenderTempShadow()
 {
   d3d::set_render_target((Texture *)NULL, 0);
-  d3d::set_depth(tempShadow.getTex2D(), false);
+  d3d::set_depth(tempShadow.getTex2D(), DepthAccess::RW);
   d3d::setview(0, 0, maxShadow, maxShadow, 0, 1);
   d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
 }
@@ -615,7 +615,7 @@ void ShadowSystem::startRenderVolumeView(uint32_t id, uint32_t view_id, mat44f &
   if (volume.isOctahedral())
   {
     d3d::set_render_target(nullptr, 0);
-    d3d::set_depth(octahedral_temp_shadow.getArrayTex(), view_id, false);
+    d3d::set_depth(octahedral_temp_shadow.getArrayTex(), view_id, DepthAccess::RW);
     IPoint2 extent = getOctahedralTempShadowExtent(volume);
     d3d::setview(0, 0, extent.x, extent.y, 0, 1);
     if (current_render_type == RENDER_STATIC || !(render_flags & RENDER_STATIC))
@@ -639,7 +639,7 @@ void ShadowSystem::packOctahedral(uint16_t id, bool dynamic_content)
   Volume &volume = volumes[id];
   if (!volume.isOctahedral())
     return;
-  d3d::set_depth(dynamic_light_shadows.getTex2D(), false);
+  d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
   d3d::resource_barrier({octahedral_temp_shadow.getArrayTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
   if (dynamic_content)

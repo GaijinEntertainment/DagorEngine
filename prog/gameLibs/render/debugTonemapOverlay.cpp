@@ -19,7 +19,7 @@ static int maxIntensityVarId = -1;
 
 DebugTonemapOverlay::DebugTonemapOverlay() : targetSize(1024, 768), tonemapColor(0.0f, 0.0f, 0.0f)
 {
-  renderer.init("debug_tonemap_overlay", NULL, false);
+  renderer.init("debug_tonemap_overlay");
   renderSizeVarId = get_shader_variable_id("tonemap_render_size", true);
   tonemapColorVarId = get_shader_variable_id("tonemap_debug_color", true);
   maxIntensityVarId = get_shader_variable_id("tonemap_max_intensity", true);

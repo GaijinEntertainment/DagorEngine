@@ -15,24 +15,14 @@ EditorGrass::EditorGrass(const DataBlock &level_grass_blk, const DataBlock &para
 
 EditorGrass::~EditorGrass() { del_it(landMask); }
 
-void EditorGrass::beforeRender(const Point3 &center_pos, IRandomGrassRenderHelper &render_helper, bool force_update,
-  Occlusion *occlusion)
+void EditorGrass::beforeRender(const Point3 &center_pos, IRandomGrassRenderHelper &render_helper, const Point3 &view_dir,
+  const TMatrix &view_tm, const TMatrix4 &proj_tm, const Frustum &frustum, bool force_update, Occlusion *occlusion)
 {
   landMask->setWorldSize(cellSize * GRID_SIZE, cellSize);
   landMask->beforeRender(center_pos, render_helper, force_update);
-  Point3 viewDir = ::grs_cur_view.itm.getcol(2);
 
-  TMatrix4 viewTm, projTm;
-  d3d::gettm(TM_PROJ, &projTm);
-  d3d::gettm(TM_VIEW, &viewTm);
-
-
-  TMatrix4 globtm;
-  d3d::getglobtm(globtm);
-  Frustum frustum;
-  frustum.construct(globtm);
   RandomGrass::beforeRender(center_pos, render_helper, *landMask, occlusion);
-  RandomGrass::generateGPUGrass(*landMask, frustum, viewDir, viewTm, projTm, center_pos);
+  RandomGrass::generateGPUGrass(*landMask, frustum, view_dir, view_tm, proj_tm, center_pos);
 }
 
 void EditorGrass::renderDepth() { RandomGrass::renderDepth(*landMask); }

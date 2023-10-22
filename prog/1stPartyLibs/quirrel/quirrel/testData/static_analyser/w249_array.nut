@@ -2,3 +2,5 @@
 
 local a = ::x?.b
 return a[6];
+
+//-file:undefined-global

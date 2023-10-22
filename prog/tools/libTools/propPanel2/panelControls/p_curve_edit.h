@@ -9,7 +9,7 @@
 class CCurveEdit : public BasicPropertyControl
 {
 public:
-  CCurveEdit(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
+  CCurveEdit(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h,
     const char caption[]);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
@@ -32,8 +32,8 @@ public:
   void setControlPointsValue(Tab<Point2> &points);
   bool getCurveCubicCoefsValue(Tab<Point2> &xy_4c_per_seg) const;
 
-  void setWidth(unsigned w);
-  void setHeight(unsigned h);
+  void setWidth(hdpi::Px w);
+  void setHeight(hdpi::Px h);
   void moveTo(int x, int y);
 
   long onWcClipboardCopy(WindowBase *source, DataBlock &blk);

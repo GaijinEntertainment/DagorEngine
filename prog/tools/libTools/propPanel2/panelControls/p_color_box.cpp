@@ -3,17 +3,21 @@
 #include "p_color_box.h"
 #include "../c_constants.h"
 
-CColorBox::CColorBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CColorBox::CColorBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[]) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT * 2),
-  mCaption(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT),
-  mSpinWidth((w - DEFAULT_CONTROL_HEIGHT) / 4),
-  mRSpin(this, parent->getWindow(), x, y + DEFAULT_CONTROL_HEIGHT, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 255, 1, 1),
-  mGSpin(this, parent->getWindow(), x + mSpinWidth, y + DEFAULT_CONTROL_HEIGHT, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 255, 1, 1),
-  mBSpin(this, parent->getWindow(), x + 2 * mSpinWidth, y + DEFAULT_CONTROL_HEIGHT, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 255, 1, 1),
-  mASpin(this, parent->getWindow(), x + 3 * mSpinWidth, y + DEFAULT_CONTROL_HEIGHT, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 255, 1, 1),
-  mButton(this, parent->getWindow(), x + 4 * mSpinWidth, y + DEFAULT_CONTROL_HEIGHT, DEFAULT_CONTROL_HEIGHT, DEFAULT_CONTROL_HEIGHT)
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT) * 2),
+  mCaption(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mSpinWidth((_px(w) - _pxS(DEFAULT_CONTROL_HEIGHT)) / 4),
+  mRSpin(this, parent->getWindow(), x, y + _pxS(DEFAULT_CONTROL_HEIGHT), mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 255, 1, 1),
+  mGSpin(this, parent->getWindow(), x + mSpinWidth, y + _pxS(DEFAULT_CONTROL_HEIGHT), mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 255,
+    1, 1),
+  mBSpin(this, parent->getWindow(), x + 2 * mSpinWidth, y + _pxS(DEFAULT_CONTROL_HEIGHT), mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0,
+    255, 1, 1),
+  mASpin(this, parent->getWindow(), x + 3 * mSpinWidth, y + _pxS(DEFAULT_CONTROL_HEIGHT), mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0,
+    255, 1, 1),
+  mButton(this, parent->getWindow(), x + 4 * mSpinWidth, y + _pxS(DEFAULT_CONTROL_HEIGHT), _pxS(DEFAULT_CONTROL_HEIGHT),
+    _pxS(DEFAULT_CONTROL_HEIGHT))
 {
   mCaption.setTextValue(caption);
   this->setColorValue(E3DCOLOR(0, 0, 0, 255));
@@ -113,11 +117,11 @@ void CColorBox::moveTo(int x, int y)
   PropertyControlBase::moveTo(x, y);
 
   mCaption.moveWindow(x, y);
-  mRSpin.moveWindow(x, y + DEFAULT_CONTROL_HEIGHT);
-  mGSpin.moveWindow(x + mSpinWidth, y + DEFAULT_CONTROL_HEIGHT);
-  mBSpin.moveWindow(x + 2 * mSpinWidth, y + DEFAULT_CONTROL_HEIGHT);
-  mASpin.moveWindow(x + 3 * mSpinWidth, y + DEFAULT_CONTROL_HEIGHT);
-  mButton.moveWindow(x + 4 * mSpinWidth, y + DEFAULT_CONTROL_HEIGHT);
+  mRSpin.moveWindow(x, y + _pxS(DEFAULT_CONTROL_HEIGHT));
+  mGSpin.moveWindow(x + mSpinWidth, y + _pxS(DEFAULT_CONTROL_HEIGHT));
+  mBSpin.moveWindow(x + 2 * mSpinWidth, y + _pxS(DEFAULT_CONTROL_HEIGHT));
+  mASpin.moveWindow(x + 3 * mSpinWidth, y + _pxS(DEFAULT_CONTROL_HEIGHT));
+  mButton.moveWindow(x + 4 * mSpinWidth, y + _pxS(DEFAULT_CONTROL_HEIGHT));
 }
 
 
@@ -132,16 +136,16 @@ void CColorBox::setEnabled(bool enabled)
 }
 
 
-void CColorBox::setWidth(unsigned w)
+void CColorBox::setWidth(hdpi::Px w)
 {
-  int minw = DEFAULT_CONTROL_HEIGHT;
-  w = (w < minw) ? minw : w;
+  int minw = _pxS(DEFAULT_CONTROL_HEIGHT);
+  w = (_px(w) < minw) ? _pxActual(minw) : w;
 
   PropertyControlBase::setWidth(w);
 
-  mSpinWidth = (w - DEFAULT_CONTROL_HEIGHT) / 4;
+  mSpinWidth = (_px(w) - _pxS(DEFAULT_CONTROL_HEIGHT)) / 4;
 
-  mCaption.resizeWindow(w, mCaption.getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
   mRSpin.resizeWindow(mSpinWidth, mRSpin.getHeight());
   mGSpin.resizeWindow(mSpinWidth, mRSpin.getHeight());
   mBSpin.resizeWindow(mSpinWidth, mRSpin.getHeight());

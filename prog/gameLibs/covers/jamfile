@@ -17,7 +17,7 @@ Sources =
 
 UseProgLibs +=
   3rdPartyLibs/Detour
-  engine2/scene
+  engine/scene
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

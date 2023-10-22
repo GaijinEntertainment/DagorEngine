@@ -7,12 +7,12 @@
 #include <math/dag_TMatrix.h>
 
 
-namespace rendinstgen
+namespace rendinst::gen
 {
 template <class BitMask>
-inline void generateTiledEntitiesInMaskedRect(const rendinstgenland::TiledEntities &lcd,
-  dag::Span<rendinstgen::SingleEntityPool> pools, const BitMask &mask, float world2sampler, float world0_x, float world0_y, float box,
-  float mask_ofs_x, float mask_ofs_z, int16_t *ent_remap, float entity_ofs_x, float entity_ofs_z)
+inline void generateTiledEntitiesInMaskedRect(const rendinst::gen::land::TiledEntities &lcd,
+  dag::Span<rendinst::gen::SingleEntityPool> pools, const BitMask &mask, float world2sampler, float world0_x, float world0_y,
+  float box, float mask_ofs_x, float mask_ofs_z, int16_t *ent_remap, float entity_ofs_x, float entity_ofs_z)
 {
 #define ADD_ENTITY_BYMASK                                                                    \
   pos.x += mx + entity_ofs_x;                                                                \
@@ -37,7 +37,7 @@ inline void generateTiledEntitiesInMaskedRect(const rendinstgenland::TiledEntiti
                                                                                              \
     if (orientType == sep.ORIENT_WORLD)                                                      \
     {                                                                                        \
-      custom_get_height(pos, NULL);                                                          \
+      custom_get_height(pos, nullptr);                                                       \
       if (is_multi_place)                                                                    \
       {                                                                                      \
         mppRec = sep.mpRec;                                                                  \
@@ -106,10 +106,10 @@ inline void generateTiledEntitiesInMaskedRect(const rendinstgenland::TiledEntiti
 
   for (int i = 0; i < lcd.data.size(); i++)
   {
-    const rendinstgenland::SingleEntityPlaces &sep = lcd.data[i];
+    const rendinst::gen::land::SingleEntityPlaces &sep = lcd.data[i];
     if (sep.entityIdx < 0)
       continue;
-    rendinstgen::SingleEntityPool &pool = pools[sep.entityIdx];
+    rendinst::gen::SingleEntityPool &pool = pools[sep.entityIdx];
     bool posInst = sep.posInst;
     bool paletteRotation = sep.paletteRotation;
     const Point2 &yOffset = sep.yOffset;
@@ -141,4 +141,4 @@ inline void generateTiledEntitiesInMaskedRect(const rendinstgenland::TiledEntiti
   }
 #undef ADD_ENTITY_BYMASK
 }
-} // namespace rendinstgen
+} // namespace rendinst::gen

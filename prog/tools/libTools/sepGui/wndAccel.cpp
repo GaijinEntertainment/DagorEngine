@@ -67,11 +67,11 @@ long WinAccel::procAccel(int code, TSgWParam w_param, TSgLParam l_param)
   bool _key_down = true;
   bool _empty_process = false;
 
-  switch (uintptr_t(l_param) & (0xC << 28))
+  switch (uintptr_t(l_param) >> 28)
   {
-    case 0xC << 28: _key_down = false; break;
+    case 0xC: _key_down = false; break;
 
-    case 0x4 << 28: _empty_process = true;
+    case 0x4: _empty_process = true;
     case 0: _key_down = true; break;
 
     default: return 0;

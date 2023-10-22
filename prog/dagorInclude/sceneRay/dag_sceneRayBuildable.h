@@ -72,7 +72,6 @@ public:
 protected:
   using typename StaticSceneRayTracerT<FI>::Leaf;
   using typename StaticSceneRayTracerT<FI>::LNode;
-  using typename StaticSceneRayTracerT<FI>::BNode;
   using typename StaticSceneRayTracerT<FI>::Dump;
   using StaticSceneRayTracerT<FI>::v_rtBBox;
 

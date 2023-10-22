@@ -5,7 +5,7 @@
 //
 #pragma once
 
-#include <rendInst/rendInstExHandle.h>
+#include <rendInst/riexHandle.h>
 #include <ioSys/dag_baseIo.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_staticTab.h>
@@ -31,6 +31,13 @@ class TiledScene;
 
 namespace pathfinder
 {
+enum NavMeshID
+{
+  NM_MAIN,
+  NM_EXT_1,
+  NMS_COUNT
+};
+
 class CustomNav;
 
 using tile_check_cb_t = eastl::fixed_function<2 * sizeof(void *), bool(const BBox3 &)>;
@@ -58,6 +65,15 @@ struct FindRequest
   dtPolyRef endPoly;
 
   dag::Vector<Point2> areasCost;
+};
+
+struct NavParams
+{
+  bool enable_jumps = false;
+  float max_path_weight = FLT_MAX; // no limit
+  float jump_down_threshold = 0.4f;
+  float jump_down_weight = 20.0f;
+  float jump_weight = 40.0f;
 };
 
 enum FindPathResult : unsigned
@@ -118,20 +134,21 @@ FindPathResult findPath(const Point3 &start_pos, const Point3 &end_pos, Tab<Poin
 bool check_path(FindRequest &req, float horz_threshold = -1.f, float max_vert_dist = 10.f);
 bool check_path(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, float horz_threshold = -1.f,
   float max_vert_dist = 10.f, const CustomNav *custom_nav = nullptr, int flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
-bool check_path(dtNavMeshQuery *nav_query, FindRequest &req, float horz_threshold = -1.f, float max_vert_dist = 10.f,
-  const CustomNav *custom_nav = nullptr);
+bool check_path(dtNavMeshQuery *nav_query, FindRequest &req, const NavParams &nav_params, float horz_threshold = -1.f,
+  float max_vert_dist = 10.f, const CustomNav *custom_nav = nullptr);
 bool check_path(dtNavMeshQuery *nav_query, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
-  float horz_threshold = -1.f, float max_vert_dist = 10.f, const CustomNav *custom_nav = nullptr,
+  const NavParams &nav_params, float horz_threshold = -1.f, float max_vert_dist = 10.f, const CustomNav *custom_nav = nullptr,
   int flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
 float calc_approx_path_length(FindRequest &req, float horz_threshold, float max_vert_dist);
 float calc_approx_path_length(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, float horz_threshold = -1.f,
   float max_vert_dist = 10.f, int flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
-float calc_approx_path_length(dtNavMeshQuery *nav_query, FindRequest &req, float horz_threshold, float max_vert_dist);
+float calc_approx_path_length(dtNavMeshQuery *nav_query, FindRequest &req, const NavParams &nav_params, float horz_threshold,
+  float max_vert_dist);
 
 bool traceray_navmesh(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, Point3 &out_pos,
   const CustomNav *custom_nav = nullptr);
 bool traceray_navmesh(dtNavMeshQuery *nav_query, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
-  Point3 &out_pos, const CustomNav *custom_nav = nullptr);
+  const NavParams &nav_params, Point3 &out_pos, const CustomNav *custom_nav = nullptr);
 bool project_to_nearest_navmesh_point_ref(Point3 &pos, const Point3 &extents, dtPolyRef &nearestPoly);
 bool project_to_nearest_navmesh_point(Point3 &pos, const Point3 &extents, const CustomNav *custom_nav = nullptr);
 bool project_to_nearest_navmesh_point(Point3 &pos, float horz_extents, const CustomNav *custom_nav = nullptr);
@@ -149,7 +166,7 @@ bool find_random_point_inside_circle(const Point3 &start_pos, float radius, floa
 
 bool is_on_same_polygon(const Point3 &p1, const Point3 &p2, const CustomNav *custom_nav = nullptr);
 
-void renderDebug(const Frustum *p_frustum = NULL);
+void renderDebug(const Frustum *p_frustum = NULL, int nav_mesh_idx = NM_MAIN);
 void setPathForDebug(dag::ConstSpan<Point3> path);
 // api for dtPathCorridor, so we'll not need to cast and search for navmesh in client code.
 struct CorridorInput
@@ -205,7 +222,7 @@ struct NavMeshTriangle
   dtPolyRef polyRef;
 };
 bool get_triangle_by_pos(const Point3 &pos, NavMeshTriangle &result, float horz_dist, int incl_flags, int excl_flags,
-  const CustomNav * = nullptr);
+  const CustomNav * = nullptr, float max_vert_dist = FLT_MAX);
 bool get_triangle_by_poly(const Point3 &pos, const dtPolyRef poly_id, NavMeshTriangle &result);
 bool get_triangle_by_poly(const dtPolyRef poly_id, NavMeshTriangle &result);
 bool find_nearest_triangle_by_pos(const Point3 &pos, const dtPolyRef poly_id, float dist_threshold, NavMeshTriangle &result);
@@ -213,6 +230,27 @@ int squash_jumplinks(const TMatrix &tm, const BBox3 &bbox);
 bool find_polys_in_circle(dag::Vector<dtPolyRef, framemem_allocator> &polys, const Point3 &pos, float radius,
   float height_half_offset);
 
+void clear_nav_mesh(int nav_mesh_idx, bool clear_nav_data = true);
+bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &crd, NavMeshType type = NMT_SIMPLE,
+  tile_check_cb_t tile_check_cb = nullptr, const char *patch_nav_mesh_file_name = nullptr);
+void init_weights_ex(int nav_mesh_idx, const DataBlock *navQueryFilterWeightsBlk);
+bool is_loaded_ex(int nav_mesh_idx);
+FindPathResult find_path_ex(int nav_mesh_idx, Tab<Point3> &path, FindRequest &req, float step_size, float slop,
+  const CustomNav *custom_nav);
+FindPathResult find_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, float dist_to_path,
+  float step_size, float slop, const CustomNav *custom_nav);
+FindPathResult find_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, Tab<Point3> &path, const Point3 &extents,
+  float step_size, float slop, const CustomNav *custom_nav);
+// Checks if path exists without optimizations.
+bool check_path_ex(int nav_mesh_idx, FindRequest &req, float horz_threshold = -1.f, float max_vert_dist = 10.f);
+bool check_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
+  float horz_threshold = -1.f, float max_vert_dist = 10.f, const CustomNav *custom_nav = nullptr,
+  int flags = POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
+bool get_triangle_by_pos_ex(int nav_mesh_idx, const Point3 &pos, NavMeshTriangle &result, float horz_dist, int incl_flags,
+  int excl_flags, const CustomNav * = nullptr, float max_vert_dist = FLT_MAX);
+
+const char *get_nav_mesh_kind(int nav_mesh_idx);
+dtNavMesh *get_nav_mesh_ptr(int nav_mesh_idx);
 dtNavMesh *getNavMeshPtr();
 
 void tilecache_restart();

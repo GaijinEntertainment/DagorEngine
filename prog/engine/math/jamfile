@@ -1,0 +1,67 @@
+Root    ?= ../../.. ;
+Location = prog/engine/math ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine/math.lib ;
+
+Sources =
+  convexHullComputer.cpp
+  half.cpp
+  calc_occluder.cpp
+  colorMatrix.cpp
+  boundingSphere.cpp
+  math3d.cpp
+  math2d.cpp
+  frustum.cpp
+  mathAng.cpp
+  perlin.cpp
+  ffd44.cpp
+  triangleTriangleIntersection.cpp
+  triangleBoxIntersection.cpp
+  sHmath.cpp
+  geomTree.cpp
+  mesh.cpp
+  mathUtils.cpp
+  kaiserSimd.cpp
+  imageFunctions.cpp
+  polyUtils.cpp
+  capsuleTriangle.cpp
+  wooray2d.cpp
+  wooray3d.cpp
+;
+
+UseProgLibs =
+  3rdPartyLibs/eastl
+;
+
+if $(Platform) in win32 win64 linux64 ps4 ps5 xboxOne scarlett || ( $(Platform) = macosx && $(MacOSXArch) = x86_64 ) {
+  Sources +=
+    dxtDecompressSimd.cpp
+  ;
+} else {
+  Sources +=
+    dxtDecompress.cpp
+  ;
+}
+
+
+if $(DriverLinkage) = static {
+  Sources +=
+    rndSeed.cpp
+    gaussTbl.cpp
+  ;
+}
+
+CPPopt = -D__B_CORE ;
+if $(DriverLinkage) = dynamic && $(Platform) in win32 win64 { CPPopt += -D_DEBUG_TAB_ ; }
+
+if $(DagorMath_MEASURE_PERF) {
+  local suf = ~pm$(DagorMath_MEASURE_PERF) ;  if $(DagorMath_MEASURE_PERF_FRAMES) { suf = $(suf)-$(DagorMath_MEASURE_PERF_FRAMES) ; }
+  Target = $(Target:S=)$(suf).lib ;
+  CPPopt += -DMEASURE_PERF=$(DagorMath_MEASURE_PERF) -DMEASURE_PERF_FRAMES=$(DagorMath_MEASURE_PERF_FRAMES) ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

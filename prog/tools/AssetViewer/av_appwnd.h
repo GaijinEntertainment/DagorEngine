@@ -96,15 +96,15 @@ public:
   // UI management
   virtual IWndManager *getWndManager() const;
   virtual PropPanel2 *getCustomPanel(int id) const;
-  virtual void *addToolbar(int height);
+  virtual void *addToolbar(hdpi::Px height);
   virtual CToolWindow *createToolbar(ControlEventHandler *eh, void *hwnd) { return NULL; }
-  virtual void addPropPanel(int type, int width);
+  virtual void addPropPanel(int type, hdpi::Px width);
   virtual void removePropPanel(void *hwnd);
   virtual void managePropPanels() {}
   virtual void skipManagePropPanels(bool skip) {}
   virtual CPanelWindow *createPropPanel(ControlEventHandler *eh, void *hwnd) { return NULL; }
   virtual void deleteCustomPanel(PropPanel2 *panel) {}
-  virtual CDialogWindow *createDialog(int w, int h, const char *caption) { return NULL; }
+  virtual CDialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *caption) { return NULL; }
   virtual void deleteDialog(CDialogWindow *dlg) {}
 
   // viewport methods
@@ -256,7 +256,7 @@ protected:
   // Menu
   int onMenuItemClick(unsigned id);
 
-  void makeDafaultLayout();
+  void makeDefaultLayout();
   void fillTree();
   void saveTreeState();
 

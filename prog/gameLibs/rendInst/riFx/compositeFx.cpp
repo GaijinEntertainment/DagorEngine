@@ -1,6 +1,6 @@
 #include <rendInst/rendInstFx.h>
 #include <rendInst/rendInstFxDetail.h>
-#include <rendInst/rendinstHashMap.h>
+#include <rendInst/riexHashMap.h>
 #include <generic/dag_tab.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_TMatrix.h>
@@ -110,7 +110,7 @@ int rifx::composite::loadCompositeEntityTemplate(const DataBlock *composite_fx_b
         const DataBlock *entBlk = fxNodeBlk->getBlock(eIdx);
         if (entBlk->getBlockNameId() == entIdx)
         {
-          const char *fxName = entBlk->getStr("name", NULL);
+          const char *fxName = entBlk->getStr("name", nullptr);
           int fxType = fxName ? rifx::composite::detail::getTypeByName(fxName) : -1;
 
           float weight = entBlk->getReal("weight", 1.f);

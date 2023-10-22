@@ -25,7 +25,7 @@ Sources =
 
 AddIncludes =
   $(Root)/prog/dagorInclude
-  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine/sharedInclude
   $(Root)/prog/tools/sharedInclude
 ;
 

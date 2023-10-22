@@ -1,7 +1,0 @@
-Root    ?= ../../.. ;
-Location = prog/engine2/memory ;
-
-TargetType  = lib ;
-Target      = engine2/memory.lib ;
-
-include $(Root)/$(Location)/jamfile-mem ;

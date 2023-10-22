@@ -1,6 +1,6 @@
 #pragma once
 
-#include <daEditor4/de4_objEditor.h>
+#include <daEditorE/de_objEditor.h>
 
 enum
 {

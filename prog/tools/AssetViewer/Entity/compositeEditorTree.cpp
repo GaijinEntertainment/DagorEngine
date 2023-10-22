@@ -5,7 +5,7 @@
 
 CompositeEditorTree::CompositeEditorTree(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h,
   const char caption[]) :
-  TreeBaseWindow(event_handler, phandle, x, y, w, h, caption, /*icons_show = */ true, /*state_icons_show = */ true)
+  TreeBaseWindow(event_handler, phandle, x, y, hdpi::_pxActual(w), hdpi::_pxActual(h), caption, true, true)
 {
   animCharImageIndex = addIconImage("asset_animchar");
   compositImageIndex = addIconImage("asset_composit");

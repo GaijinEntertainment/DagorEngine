@@ -25,7 +25,7 @@ local escapeConfig = null
  *                    with the glue string between each element.
  */
 // Reverse operation to split()
-local function implode(pieces = [], glue = "") {
+function implode(pieces = [], glue = "") {
   return glue.join(pieces, true)
 }
 
@@ -39,7 +39,7 @@ local function implode(pieces = [], glue = "") {
  * @return {string} - String containing all the array elements in the same order,
  *                    with the glue string between each element.
  */
-local function join(pieces, glue="") {
+function join(pieces, glue="") {
   return glue.join(pieces)
 }
 
@@ -52,7 +52,7 @@ local function join(pieces, glue="") {
  * @param {string} glue - glue string.
  * @return {string[]} - Array of sub-strings.
  */
-local function split(joined, glue, isIgnoreEmpty = false) {
+function split(joined, glue, isIgnoreEmpty = false) {
   return (!isIgnoreEmpty) ? joined.split(glue)
             : joined.split(glue).filter(@(v) v!="")
 }
@@ -134,7 +134,7 @@ else if (regexp != null) {
     })
 }
 
-local defTostringParams = {
+let defTostringParams = freeze({
   maxdeeplevel = 4
   compact=true
   tostringfunc= {
@@ -146,8 +146,9 @@ local defTostringParams = {
   newline="\n"
   splitlines = true
   showArrIdx=false
-}
-local function func2str(func, p={}){
+})
+
+function func2str(func, p={}){
   local compact = p?.compact ?? false
   local showsrc = p?.showsrc ?? false
   local showparams = p?.showparams ?? compact
@@ -198,10 +199,10 @@ local function func2str(func, p={}){
   return "".join(out)
 }
 
-local simple_types = ["string", "float", "bool", "integer","null"]
-local function_types = ["function", "generator", "thread"]
+let simple_types = ["string", "float", "bool", "integer","null"]
+let function_types = ["function", "generator", "thread"]
 
-local function tostring_any(input, tostringfunc=null, compact=true) {
+function tostring_any(input, tostringfunc=null, compact=true) {
   local typ = type(input)
   if (tostringfunc!=null) {
     if (type(tostringfunc) == "table")
@@ -245,8 +246,9 @@ let function tableLen(t){
   return FOO.len.call(t)
 }
 
-local table_types = ["table","class","instance"]
-local function tostring_r(inp, params=defTostringParams) {
+let table_types = ["table","class","instance"]
+
+function tostring_r(inp, params=defTostringParams) {
   local newline = params?.newline ?? defTostringParams.newline
   local maxdeeplevel = params?.maxdeeplevel ?? defTostringParams.maxdeeplevel
   local separator = params?.separator ?? defTostringParams.separator
@@ -277,7 +279,7 @@ local function tostring_r(inp, params=defTostringParams) {
       tostring = @(val) val.tostring()
     }
   ]
-  local function tostringLeaf(val) {
+  function tostringLeaf(val) {
     local typ =type(val)
     if (tostringfunc!=null) {
       if (type(tostringfunc) == "table")
@@ -292,7 +294,7 @@ local function tostring_r(inp, params=defTostringParams) {
     return [false, null]
   }
 
-  local function openSym(value) {
+  function openSym(value) {
     local typ = type(value)
     if (typ=="array")
       return "["
@@ -303,7 +305,7 @@ local function tostring_r(inp, params=defTostringParams) {
     else
       return "{"
   }
-  local function closeSym(value) {
+  function closeSym(value) {
     local typ = type(value)
     if (typ=="array")
       return "]"
@@ -384,7 +386,7 @@ local function tostring_r(inp, params=defTostringParams) {
  *                          end at the end'th character from the end of input string.
  * @return {string} - substring, or on error - part of substring or empty string.
  */
-local function slice(str, start = 0, end = null) {
+function slice(str, start = 0, end = null) {
   str = str ?? ""
   return str.slice(start, end ?? str.len())
 }
@@ -400,7 +402,7 @@ local function slice(str, start = 0, end = null) {
  *                             end at the end'th character from the end of input string.
  * @return {string} - substring, or on error - part of substring or empty string.
  */
-local function substring(str, start = 0, length = null) {
+function substring(str, start = 0, length = null) {
   local end = length
   if (length != null && length >= 0) {
     str = str ?? ""
@@ -420,7 +422,7 @@ local function substring(str, start = 0, length = null) {
  * @param {string}  value - Matching substring.
  * @return {boolean}
  */
-local function startsWith(str, value) {
+function startsWith(str, value) {
   str = str ?? ""
   value = value ?? ""
   return startswith(str, value)
@@ -433,7 +435,7 @@ local function startsWith(str, value) {
  * @param {string}  value - Matching substring.
  * @return {boolean}
  */
-local function endsWith(str, value) {
+function endsWith(str, value) {
   str = str ?? ""
   value = value ?? ""
   return endswith(str, value)
@@ -447,7 +449,7 @@ local function endsWith(str, value) {
  * @param {integer} [startIndex=0] - Search start index.
  * @return {integer} - index, or -1 if not found.
  */
-local function indexOf(str, value, startIndex = 0) {
+function indexOf(str, value, startIndex = 0) {
   str = str ?? ""
   value = value ?? ""
   local idx = str.indexof(value, startIndex)
@@ -462,7 +464,7 @@ local function indexOf(str, value, startIndex = 0) {
  * @param {integer} [startIndex=0] - Search start index.
  * @return {integer} - index, or -1 if not found.
  */
-local function lastIndexOf(str, value, startIndex = 0) {
+function lastIndexOf(str, value, startIndex = 0) {
   str = str ?? ""
   value = value ?? ""
   local idx = INVALID_INDEX
@@ -485,7 +487,7 @@ local function lastIndexOf(str, value, startIndex = 0) {
  * @param {integer}  [startIndex=0] - Search start index.
  * @return {integer} - index, or -1 if not found.
  */
-local function indexOfAny(str, anyOf, startIndex = 0) {
+function indexOfAny(str, anyOf, startIndex = 0) {
   str = str ?? ""
   anyOf = anyOf ?? [ "" ]
   local idx = INVALID_INDEX
@@ -505,7 +507,7 @@ local function indexOfAny(str, anyOf, startIndex = 0) {
  * @param {integer}  [startIndex=0] - Search start index.
  * @return {integer} - index, or -1 if not found.
  */
-local function lastIndexOfAny(str, anyOf, startIndex = 0) {
+function lastIndexOfAny(str, anyOf, startIndex = 0) {
   str = str ?? ""
   anyOf = anyOf ?? [ "" ]
   local idx = INVALID_INDEX
@@ -518,17 +520,17 @@ local function lastIndexOfAny(str, anyOf, startIndex = 0) {
 }
 
 //returns the number of entries of @substr in @str.
-local function countSubstrings(str, substr) {
+function countSubstrings(str, substr) {
   local res = -1
   local findex = -1
-  for(res; findex != null; res++) {
+  for(res; findex != 0; res++) {
     findex = str.indexof(substr, ++findex)
   }
   return res
 }
 
 //Next two methods change case to upper / lower for set up number of symbols
-local function toUpper(str, symbolsNum = 0) {
+function toUpper(str, symbolsNum = 0) {
   if (symbolsNum <= 0) {
     symbolsNum = str.len()
   }
@@ -538,7 +540,7 @@ local function toUpper(str, symbolsNum = 0) {
   return "".concat(slice(str, 0, symbolsNum).toupper(),slice(str, symbolsNum))
 }
 
-local function toLower(str, symbolsNum = 0) {
+function toLower(str, symbolsNum = 0) {
   if (symbolsNum <= 0) {
     symbolsNum = str.len()
   }
@@ -548,7 +550,7 @@ local function toLower(str, symbolsNum = 0) {
   return "".concat(slice(str, 0, symbolsNum).tolower(), slice(str, symbolsNum))
 }
 
-local function replace(str, from, to) {
+function replace(str, from, to) {
   return (str ?? "").replace(from, to)
 }
 
@@ -558,7 +560,7 @@ local function replace(str, from, to) {
  * @param {string} str - Input string.
  * @return {string} - String without whitespace chars.
  */
-local function trim(str) {
+function trim(str) {
   str = str ?? ""
   return trimRegExp ? trimRegExp.replace("", str) : str
 }
@@ -579,7 +581,7 @@ local function trim(str) {
 //presize 1e-10 -> 0.0000000001, 0.0000000012, 0.0000000123, 0.0000006548, 0.0000072356, 0.0000000120, 0.0000004300, 0.0001234567'
 */
 
-local function floatToStringRounded(value, presize) {
+function floatToStringRounded(value, presize) {
   if (presize >= 1) {
     local res = (value / presize + (value < 0 ? -0.5 : 0.5)).tointeger()
     return res == 0 ? "0" : "".join([res].extend(array(math.log10(presize).tointeger(), "0")))
@@ -587,7 +589,7 @@ local function floatToStringRounded(value, presize) {
   return format("%.{0}f".subst(-math.log10(presize).tointeger()), value)
 }
 
-local function isStringInteger(str) {
+function isStringInteger(str) {
   if (type(str) == "integer")
     return true
   if (type(str) != "string")
@@ -605,7 +607,7 @@ local function isStringInteger(str) {
   return true
 }
 
-local function isStringFloat(str, separator=".") {
+function isStringFloat(str, separator=".") {
   if (type(str) == "integer" || type(str) == "float")
     return true
   if (type(str) != "string")
@@ -649,7 +651,7 @@ local function isStringFloat(str, separator=".") {
   return true
 }
 
-local function toIntegerSafe(str, defValue = 0, needAssert = true) {
+function toIntegerSafe(str, defValue = 0, needAssert = true) {
   if (type(str) == "string")
     str = strip(str)
   if (isStringInteger(str))
@@ -706,7 +708,8 @@ let firstOctet = [
   { ofs = 0xF0, mask = 0x07 }
 ]
 let nextOctet = { ofs = 0x80, mask = 0x3F }
-let function utf8CharToInt(str) {
+
+function utf8CharToInt(str) {
   let list = []
   foreach (i in str)
     list.append(i)
@@ -727,7 +730,7 @@ let function utf8CharToInt(str) {
 }
 
 
-local function hexStringToInt(hexString) {
+function hexStringToInt(hexString) {
   // Does the string start with '0x'? If so, remove it
   if (hexString.len() >= 2 && hexString.slice(0, 2) == "0x")
     hexString = hexString.slice(2)
@@ -745,7 +748,7 @@ local function hexStringToInt(hexString) {
 }
 
 //Return defValue when incorrect prefix
-local function cutPrefix(id, prefix, defValue = null) {
+function cutPrefix(id, prefix, defValue = null) {
   if (!id)
     return defValue
 
@@ -755,7 +758,7 @@ local function cutPrefix(id, prefix, defValue = null) {
   return defValue
 }
 
-local function cutPostfix(id, postfix, defValue = null) {
+function cutPostfix(id, postfix, defValue = null) {
   if (!id)
     return defValue
 
@@ -766,7 +769,7 @@ local function cutPostfix(id, postfix, defValue = null) {
   return defValue
 }
 
-local function intToStrWithDelimiter(value, delimiter = " ", charsAmount = 3) {
+function intToStrWithDelimiter(value, delimiter = " ", charsAmount = 3) {
   local res = value.tointeger().tostring()
   local negativeSignCorrection = value < 0 ? 1 : 0
   local idx = res.len()
@@ -778,7 +781,7 @@ local function intToStrWithDelimiter(value, delimiter = " ", charsAmount = 3) {
 }
 
 
-local function stripTags(str) {
+function stripTags(str) {
   if (!str || !str.len())
     return ""
   if (stripTagsConfig == null)
@@ -788,7 +791,7 @@ local function stripTags(str) {
   return str
 }
 
-local function escape(str) {
+function escape(str) {
   if (type(str) != "string") {
     assert(false, @() $"wrong escape param type: {type(str)}")
     return ""
@@ -798,7 +801,7 @@ local function escape(str) {
   return str
 }
 
-local function pprint(...){
+function pprint(...){
   //most of this code should be part of tostring_r probably - at least part of braking long lines
   local function findlast(str, substr, startidx=0){
     local ret = null
@@ -845,7 +848,7 @@ local function pprint(...){
   }
 }
 
-local function validateEmail(no_dump_email) {
+function validateEmail(no_dump_email) {
   if (type(no_dump_email) != "string")
     return false
 
@@ -876,7 +879,7 @@ local function validateEmail(no_dump_email) {
   return true
 }
 
-local function clearBorderSymbols(value, symList = [" "]) {
+function clearBorderSymbols(value, symList = [" "]) {
   while(value != "" && symList.indexof(value.slice(0,1)) != null)
     value = value.slice(1)
   while(value!="" && symList.indexof(value.slice(-1)) != null)
@@ -884,11 +887,11 @@ local function clearBorderSymbols(value, symList = [" "]) {
   return value
 }
 
-local function clearBorderSymbolsMultiline(str) {
+function clearBorderSymbolsMultiline(str) {
   return clearBorderSymbols(str, [" ", 0x0A.tochar(), 0x0D.tochar()])
 }
 
-local function splitStringBySize(str, maxSize) {
+function splitStringBySize(str, maxSize) {
   if (maxSize <= 0) {
     assert(false, $"maxSize = {maxSize}")
     return [str]

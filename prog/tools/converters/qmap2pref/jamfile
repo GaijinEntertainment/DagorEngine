@@ -14,14 +14,14 @@ Sources =
   func.cpp
 ;
 
-UseProgLibs = 
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/baseUtil
-  engine2/ioSys
-  engine2/math
-  engine2/perfMon/daProfilerStub
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/baseUtil
+  engine/ioSys
+  engine/math
+  engine/perfMon/daProfilerStub
 
   tools/libTools/util
 ;

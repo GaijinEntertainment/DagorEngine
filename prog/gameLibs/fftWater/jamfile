@@ -32,7 +32,7 @@ AddLibs =
 UseProgLibs =
 #  3rdPartyLibs/waveWorks2
   gameLibs/heightmap
-  engine2/lib3d
+  engine/lib3d
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

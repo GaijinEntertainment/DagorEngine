@@ -3,16 +3,16 @@
 #include "p_simple_color.h"
 #include "../c_constants.h"
 
-CSimpleColor::CSimpleColor(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CSimpleColor::CSimpleColor(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[]) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT),
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT)),
 
-  mButtonWidth(DEFAULT_CONTROL_WIDTH + UP_DOWN_BUTTON_WIDTH),
+  mButtonWidth(_pxS(DEFAULT_CONTROL_WIDTH) + _pxS(UP_DOWN_BUTTON_WIDTH)),
 
-  mCaption(this, parent->getWindow(), x, y, w - mButtonWidth, DEFAULT_CONTROL_HEIGHT),
+  mCaption(this, parent->getWindow(), x, y, _px(w) - mButtonWidth, _pxS(DEFAULT_CONTROL_HEIGHT)),
 
-  mButton(this, parent->getWindow(), x + mCaption.getWidth(), y, mButtonWidth, DEFAULT_CONTROL_HEIGHT)
+  mButton(this, parent->getWindow(), x + mCaption.getWidth(), y, mButtonWidth, _pxS(DEFAULT_CONTROL_HEIGHT))
 {
   mCaption.setTextValue(caption);
   // mButton.setTextValue("...");
@@ -72,13 +72,13 @@ void CSimpleColor::setEnabled(bool enabled)
 }
 
 
-void CSimpleColor::setWidth(unsigned w)
+void CSimpleColor::setWidth(hdpi::Px w)
 {
   int minw = mButtonWidth;
-  w = (w < minw) ? minw : w;
+  w = (_px(w) < minw) ? _pxActual(minw) : w;
 
   PropertyControlBase::setWidth(w);
-  mCaption.resizeWindow(w - mButtonWidth, mCaption.getHeight());
+  mCaption.resizeWindow(_px(w) - mButtonWidth, mCaption.getHeight());
 
   this->moveTo(this->getX(), this->getY());
 }

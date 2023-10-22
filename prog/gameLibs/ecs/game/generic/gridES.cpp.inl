@@ -12,7 +12,7 @@
 #include <daECS/net/time.h>
 #include <EASTL/intrusive_list.h>
 #include <EASTL/map.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtra.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_bounds3.h>
 #include <math/dag_mathUtils.h>

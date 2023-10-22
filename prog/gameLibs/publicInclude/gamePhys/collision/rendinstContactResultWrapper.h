@@ -9,7 +9,6 @@
 #include <math/dag_Point3.h>
 #include <memory/dag_framemem.h>
 #include <phys/dag_physDecl.h>
-#include <phys/dag_physics.h>
 
 #include <gamePhys/collision/collisionObject.h>
 #include <gamePhys/collision/collisionLib.h>

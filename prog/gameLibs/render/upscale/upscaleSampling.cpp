@@ -51,7 +51,7 @@ void UpscaleSamplingTex::uploadWeights()
     VBLOCK_WRITEONLY | VBLOCK_DISCARD);
 }
 
-void UpscaleSamplingTex::render()
+void UpscaleSamplingTex::render(float goffset_x, float goffset_y)
 {
   TIME_D3D_PROFILE(upscale_sampling_tex);
 
@@ -60,6 +60,9 @@ void UpscaleSamplingTex::render()
   TextureInfo ti;
   if (upscaleTex)
     upscaleTex->getinfo(ti);
+
+  static int upscale_gbuffer_offsetVarId = ::get_shader_variable_id("upscale_gbuffer_offset", true);
+  ShaderGlobal::set_int4(upscale_gbuffer_offsetVarId, goffset_x, goffset_y, 0, 0);
 
   if (upscaleTex && !!(ti.cflg & TEXCF_UNORDERED))
   {

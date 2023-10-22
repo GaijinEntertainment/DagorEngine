@@ -84,12 +84,12 @@ shader fx_create_cmd_cs
     #include <tracerConsts.hlsli>
   }
   hlsl(cs) {
-    uint commandsCount: register(c0);
+    uint commandsCount: register(c10);
 ##if fx_create_cmd == fx_create_tracer
-    GPUFxTracerCreate commands[FX_TRACER_MAX_CREATE_COMMANDS]: register(c1);
+    GPUFxTracerCreate commands[FX_TRACER_MAX_CREATE_COMMANDS]: register(c11);
     RWStructuredBuffer<GPUFxTracer> dataBuffer: register(u0);
 ##else
-    GPUFxSegmentCreate commands[FX_TRACER_MAX_CREATE_COMMANDS]: register(c1);
+    GPUFxSegmentCreate commands[FX_TRACER_MAX_CREATE_COMMANDS]: register(c11);
     RWStructuredBuffer<GPUFxSegment> dataBuffer: register(u0);
 ##endif
     [numthreads(FX_TRACER_COMMAND_WARP_SIZE, 1, 1)]

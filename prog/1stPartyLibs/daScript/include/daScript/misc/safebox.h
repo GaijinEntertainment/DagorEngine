@@ -82,6 +82,16 @@ namespace das {
             tryResolve();
         }
         template <typename TT>
+        __forceinline void foreach_with_hash ( TT && closure ) {
+            auto saveLock = locked;
+            locked = true;
+            for ( auto & obj : objects ) {
+                closure(obj.second, obj.first);
+            }
+            locked = saveLock;
+            tryResolve();
+        }
+        template <typename TT>
         __forceinline void find_first ( TT && closure ) {
             auto saveLock = locked;
             locked = true;
@@ -157,6 +167,10 @@ namespace das {
             }
         }
         __forceinline const vector<ValueType> & each () const { return objectsInOrder; }
+        size_t unlocked_size () const {
+            DAS_VERIFYF(locked == false, "expected to see an unlocked box");
+            return objectsInOrder.size();
+        }
     protected:
         safebox_map<ValueType>           objects;
         vector<ValueType>                objectsInOrder;

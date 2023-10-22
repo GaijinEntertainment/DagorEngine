@@ -16,14 +16,19 @@
 #include <gpuObjects/placingParameters.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_eventQueryHolder.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/renderPass.h>
+#include <rendInst/layerFlags.h>
 #include <rendInst/riShaderConstBuffers.h>
 #include <math/integer/dag_IPoint3.h>
 #include <math/dag_hlsl_floatx.h>
+#include <math/dag_frustum.h>
+#include <generic/dag_carray.h>
+
 
 class ComputeShaderElement;
 class NodeBasedShader;
 class IPoint2;
+class Occlusion;
 
 namespace gpu_objects
 {
@@ -96,7 +101,7 @@ private:
   eastl::vector<Point4> bomb_holes;
 
 public:
-  unsigned layer = rendinst::LAYER_OPAQUE;
+  rendinst::LayerFlag layer = rendinst::LayerFlag::Opaque;
   ObjectManager(const char *name, uint32_t ri_pool_id, int cell_tile, int cells_size_count, float cell_size,
     float bounding_sphere_radius, dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters);
   ObjectManager(const ObjectManager &) = delete;
@@ -135,7 +140,7 @@ public:
 
   void validateDisplacedGPUObjs(float displacement_tex_range);
   void validateParams() const;
-  bool isRenderedIntoShadows() const { return parameters.renderIntoShadows && layer == rendinst::LAYER_OPAQUE; }
+  bool isRenderedIntoShadows() const { return parameters.renderIntoShadows && layer == rendinst::LayerFlag::Opaque; }
 
   void addBombHole(const Point3 &point, const float radius);
 };
@@ -199,16 +204,17 @@ public:
   void invalidateBBox(const BBox2 &bbox);
   int addCascade();
   void releaseCascade(int cascade);
-  int layerRIOnLayerGpuobjRemap(unsigned layer_ri) const
+  int layerRIOnLayerGpuobjRemap(rendinst::LayerFlag layer_ri) const
   {
     switch (layer_ri)
     {
-      case rendinst::LAYER_OPAQUE: return GPUOBJ_LAYER_OPAQUE;
-      case rendinst::LAYER_TRANSPARENT: return GPUOBJ_LAYER_TRANSPARENT;
-      case rendinst::LAYER_DECALS: return GPUOBJ_LAYER_DECAL;
-      case rendinst::LAYER_DISTORTION: return GPUOBJ_LAYER_DISTORSION;
+      case rendinst::LayerFlag::Opaque: return GPUOBJ_LAYER_OPAQUE;
+      case rendinst::LayerFlag::Transparent: return GPUOBJ_LAYER_TRANSPARENT;
+      case rendinst::LayerFlag::Decals: return GPUOBJ_LAYER_DECAL;
+      case rendinst::LayerFlag::Distortion: return GPUOBJ_LAYER_DISTORSION;
+      default: break;
     }
-    G_ASSERT_FAIL("GPU objects don't handle this rendinst layer: %d", layer_ri);
+    G_ASSERT_FAIL("GPU objects don't handle this rendinst layer: %d", eastl::to_underlying(layer_ri));
     return GPUOBJ_LAYER_OPAQUE;
   }
   void addObject(const char *name, const int id, int cell_tile, int grid_size, float cell_size, float bounding_sphere_radius,
@@ -250,22 +256,22 @@ public:
     const char *mission_name, const char *map_name, bool gpu_instancing = false);
   void validateDisplacedGPUObjs(float displacement_tex_range);
 
-  Sbuffer *getBuffer(int cascade, unsigned layer);
+  Sbuffer *getBuffer(int cascade, rendinst::LayerFlag layer);
   Sbuffer *getIndirectionBuffer(int cascade);
   Sbuffer *getOffsetsBuffer(int cascade);
   bool getGpuInstancing(int cascade);
 
-  dag::ConstSpan<IPoint2> getObjectsOffsetsAndCount(int cascade, unsigned layer) const
+  dag::ConstSpan<IPoint2> getObjectsOffsetsAndCount(int cascade, rendinst::LayerFlag layer) const
   {
     int layerIdx = layerRIOnLayerGpuobjRemap(layer);
     return cascades[cascade].layers[layerIdx].offsetsAndCounts;
   }
-  dag::ConstSpan<uint16_t> getObjectsIds(int cascade, unsigned layer) const
+  dag::ConstSpan<uint16_t> getObjectsIds(int cascade, rendinst::LayerFlag layer) const
   {
     int layerIdx = layerRIOnLayerGpuobjRemap(layer);
     return cascades[cascade].layers[layerIdx].objectIds;
   }
-  dag::ConstSpan<uint32_t> getObjectsLodOffsets(int cascade, unsigned layer) const
+  dag::ConstSpan<uint32_t> getObjectsLodOffsets(int cascade, rendinst::LayerFlag layer) const
   {
     int layerIdx = layerRIOnLayerGpuobjRemap(layer);
     return make_span_const(cascades[cascade].layers[layerIdx].objectLodOffsets, MAX_LODS);

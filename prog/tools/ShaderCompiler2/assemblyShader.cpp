@@ -31,7 +31,7 @@
 using namespace ShaderParser;
 
 // return maximum permitted FSH version
-extern int getMaxFSHVersion();
+extern d3d::shadermodel::Version getMaxFSHVersion();
 
 extern DebugLevel hlslDebugLevel;
 extern bool hlslDumpCodeAlways, hlslDumpCodeOnError;
@@ -65,6 +65,7 @@ extern dx12::dxil::Platform targetPlatform;
 
 #elif _CROSS_TARGET_METAL
 #include "hlsl2metal/asmShaderHLSL2Metal.h"
+#include "hlsl2metal/asmShaderHLSL2MetalGlslang.h"
 #elif _CROSS_TARGET_SPIRV
 #include "hlsl2spirv/asmShaderSpirV.h"
 #elif _CROSS_TARGET_DX12
@@ -77,6 +78,7 @@ extern dx12::dxil::Platform targetPlatform;
 #ifdef _CROSS_TARGET_METAL
 extern bool use_ios_token;
 extern bool use_binary_msl;
+extern bool use_metal_glslang;
 #endif
 
 struct CachedShader
@@ -663,6 +665,36 @@ int AssembleShaderEvalCB::get_bool_const(const Terminal &s)
   return -1;
 }
 
+void AssembleShaderEvalCB::eval_blend_value(const Terminal &blend_func_tok, const SHTOK_intnum *const index_tok,
+  ShaderSemCode::Pass::BlendFactors &blend_factors)
+{
+  auto blend_factor = get_blend_k(blend_func_tok);
+  if (index_tok)
+  {
+    // independent blending is not supported on all platforms yet
+    // exclude this error on platforms, where driver support introduced
+#if !(_CROSS_TARGET_DX12 || _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL)
+    error("independent blending is not supported on this platform", &blend_func_tok);
+#endif
+
+    auto index = semutils::int_number(index_tok->text);
+    if (index < 0 || index >= shaders::RenderState::NumIndependentBlendParameters)
+    {
+      error(String(128,
+              "blend factor index must be less than %d. Can be increased if needed. See: "
+              "shaders::RenderState::NumIndependentBlendParameters",
+              shaders::RenderState::NumIndependentBlendParameters),
+        &blend_func_tok);
+    }
+
+    blend_factors[index] = blend_factor;
+    curpass->independent_blending = true;
+  }
+  else
+  {
+    eastl::fill(blend_factors.begin(), blend_factors.end(), blend_factor);
+  }
+}
 
 void AssembleShaderEvalCB::eval_state(state_stat &s)
 {
@@ -674,9 +706,15 @@ void AssembleShaderEvalCB::eval_state(state_stat &s)
       error("expected value", s.var->var);
       return;
     }
-    if (s.index && s.var->var->num != SHADER_TOKENS::SHTOK_color_write)
+
+    bool supports_indexing =
+      (s.var->var->num == SHADER_TOKENS::SHTOK_blend_src) || (s.var->var->num == SHADER_TOKENS::SHTOK_blend_dst) ||
+      (s.var->var->num == SHADER_TOKENS::SHTOK_blend_asrc) || (s.var->var->num == SHADER_TOKENS::SHTOK_blend_adst) ||
+      (s.var->var->num == SHADER_TOKENS::SHTOK_color_write);
+
+    if (s.index && !supports_indexing)
     {
-      error(String(0, "%s[%d] is not allowed (index is supported only for color_write)", s.var->var->text,
+      error(String(0, "%s[%d] is not allowed (index is not supported for this attribute", s.var->var->text,
               semutils::int_number(s.index->text)),
         s.var->var);
       return;
@@ -685,11 +723,10 @@ void AssembleShaderEvalCB::eval_state(state_stat &s)
     unsigned color_write_mask = 0;
     switch (s.var->var->num)
     {
-
-      case SHADER_TOKENS::SHTOK_blend_src: curpass->blend_src = get_blend_k(*s.value->value); break;
-      case SHADER_TOKENS::SHTOK_blend_dst: curpass->blend_dst = get_blend_k(*s.value->value); break;
-      case SHADER_TOKENS::SHTOK_blend_asrc: curpass->blend_asrc = get_blend_k(*s.value->value); break;
-      case SHADER_TOKENS::SHTOK_blend_adst: curpass->blend_adst = get_blend_k(*s.value->value); break;
+      case SHADER_TOKENS::SHTOK_blend_src: eval_blend_value(*s.value->value, s.index, curpass->blend_src); break;
+      case SHADER_TOKENS::SHTOK_blend_dst: eval_blend_value(*s.value->value, s.index, curpass->blend_dst); break;
+      case SHADER_TOKENS::SHTOK_blend_asrc: eval_blend_value(*s.value->value, s.index, curpass->blend_asrc); break;
+      case SHADER_TOKENS::SHTOK_blend_adst: eval_blend_value(*s.value->value, s.index, curpass->blend_adst); break;
       case SHADER_TOKENS::SHTOK_alpha_to_coverage: curpass->alpha_to_coverage = get_bool_const(*s.value->value); break;
 
       // Zero based. 0 means one instance which is the usual non-instanced case.
@@ -1958,9 +1995,9 @@ bool AssembleShaderEvalCB::compareHWToken(int hw_token, const ShHardwareOptions 
   switch (hw_token)
   {
     // case SHADER_TOKENS::SHTOK_separate_ablend: return opt.sepABlend;
-    case SHADER_TOKENS::SHTOK_fsh_4_0: return (opt.fshVersion >= FSHVER_40);
-    case SHADER_TOKENS::SHTOK_fsh_4_1: return (opt.fshVersion >= FSHVER_41);
-    case SHADER_TOKENS::SHTOK_fsh_5_0: return (opt.fshVersion >= FSHVER_50);
+    case SHADER_TOKENS::SHTOK_fsh_4_0: return opt.fshVersion >= 4.0_sm;
+    case SHADER_TOKENS::SHTOK_fsh_4_1: return opt.fshVersion >= 4.1_sm;
+    case SHADER_TOKENS::SHTOK_fsh_5_0: return opt.fshVersion >= 5.0_sm;
 
     case SHADER_TOKENS::SHTOK_pc: // backward comp
 #if _CROSS_TARGET_DX11
@@ -2454,16 +2491,19 @@ void AssembleShaderEvalCB::end_pass(Terminal *terminal)
 
   ShaderSemCode::Pass &p = *curpass;
 
-  if (p.blend_src * p.blend_dst < 0)
+  for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
   {
-    error("no blend src/dst specified", terminal);
-  }
-
-  if (!p.force_noablend)
-  {
-    if (p.blend_asrc * p.blend_adst < 0)
+    if (p.blend_src[i] * p.blend_dst[i] < 0)
     {
-      error("no blend asrc/adst specified", terminal);
+      error(String(32, "no blend src/dst specified for attachement: %d", i), terminal);
+    }
+
+    if (!p.force_noablend)
+    {
+      if (p.blend_asrc[i] * p.blend_adst[i] < 0)
+      {
+        error(String(32, "no blend asrc/adst specified for attachement: %d", i), terminal);
+      }
     }
   }
 
@@ -2683,78 +2723,82 @@ void AssembleShaderEvalCB::eval_hlsl_compile(hlsl_compile_class &hlsl_compile)
 
   if (dd_stricmp(profile, "target_ps") == 0)
   {
-    switch (opt.fshVersion)
+    if (!opt
+           .fshVersion //
+           .map(6.6_sm, "ps_6_6")
+           .map(6.0_sm, "ps_6_0")
+           .map(5.0_sm, "ps_5_0")
+           .map(4.1_sm, "ps_4_1")
+           .map(4.0_sm, "ps_4_0")
+           .get([&profile](auto str) { profile = str; }))
     {
-      case FSHVER_30: profile = "ps_3_0"; break;
-      case FSHVER_40: profile = "ps_4_0"; break;
-      case FSHVER_41: profile = "ps_4_1"; break;
-      case FSHVER_50: profile = "ps_5_0"; break;
-      case FSHVER_60: profile = "ps_6_0"; break;
-      case FSHVER_66: profile = "ps_6_6"; break;
-
-      default: sh_debug(SHLOG_ERROR, "can't find out target for target_ps/%d", opt.fshVersion);
+      sh_debug(SHLOG_ERROR, "can't find out target for target_ps/%d", opt.fshVersion);
     }
   }
   else if (dd_stricmp(profile, "target_vs") == 0)
   {
-    switch (opt.fshVersion)
+    if (!opt
+           .fshVersion //
+           .map(6.6_sm, "vs_6_6")
+           .map(6.0_sm, "vs_6_0")
+           .map(5.0_sm, "vs_5_0")
+           .map(4.1_sm, "vs_4_1")
+           .map(4.0_sm, "vs_4_0")
+           .get([&profile](auto str) { profile = str; }))
     {
-      case FSHVER_30: profile = "vs_3_0"; break;
-      case FSHVER_40: profile = "vs_4_0"; break;
-      case FSHVER_41: profile = "vs_4_1"; break;
-      case FSHVER_50: profile = "vs_5_0"; break;
-      case FSHVER_60: profile = "vs_6_0"; break;
-      case FSHVER_66: profile = "vs_6_6"; break;
-
-      default: sh_debug(SHLOG_ERROR, "can't find out target for target_vs/%d", opt.fshVersion);
+      sh_debug(SHLOG_ERROR, "can't find out target for target_vs/%d", opt.fshVersion);
     }
   }
   else if (dd_stricmp(profile, "target_hs") == 0 || dd_stricmp(profile, "target_ds") == 0)
   {
-    switch (opt.fshVersion)
+    if (!opt
+           .fshVersion //
+           .map(6.6_sm, "%cs_6_6")
+           .map(6.0_sm, "%cs_6_0")
+           .map(5.0_sm, "%cs_5_0")
+           .get([&profile](auto fmt) { profile.printf(0, fmt, profile[7]); }))
     {
-      case FSHVER_50: profile.printf(0, "%cs_5_0", profile[7]); break;
-      case FSHVER_60: profile.printf(0, "%cs_6_0", profile[7]); break;
-      case FSHVER_66: profile.printf(0, "%cs_6_6", profile[7]); break;
-
-      default: sh_debug(SHLOG_ERROR, "can't find out target for %s/%d", profile, opt.fshVersion);
+      sh_debug(SHLOG_ERROR, "can't find out target for %s/%d", profile, opt.fshVersion);
     }
   }
   else if (dd_stricmp(profile, "target_gs") == 0)
   {
-    switch (opt.fshVersion)
+    if (!opt
+           .fshVersion //
+           .map(6.6_sm, "gs_6_6")
+           .map(6.0_sm, "gs_6_0")
+           .map(5.0_sm, "gs_5_0")
+           .map(4.1_sm, "gs_4_1")
+           .map(4.0_sm, "gs_4_0")
+           .get([&profile](auto str) { profile = str; }))
     {
-      case FSHVER_40: profile = "gs_4_0"; break;
-      case FSHVER_41: profile = "gs_4_1"; break;
-      case FSHVER_50: profile = "gs_5_0"; break;
-      case FSHVER_60: profile = "gs_6_0"; break;
-      case FSHVER_66: profile = "gs_6_6"; break;
-
-      default: sh_debug(SHLOG_ERROR, "can't find out target for %s/%d", profile, opt.fshVersion);
+      sh_debug(SHLOG_ERROR, "can't find out target for %s/%d", profile, opt.fshVersion);
     }
   }
   else if (dd_stricmp(profile, "target_cs") == 0)
   {
-    switch (opt.fshVersion)
+    if (!opt
+           .fshVersion //
+           .map(6.6_sm, "cs_6_6")
+           .map(6.0_sm, "cs_6_0")
+           .map(5.0_sm, "cs_5_0")
+           .get([&profile](auto str) { profile = str; }))
     {
-      case FSHVER_50: profile = "cs_5_0"; break;
-      case FSHVER_60: profile = "cs_6_0"; break;
-      case FSHVER_66: profile = "cs_6_6"; break;
-
-      default: sh_debug(SHLOG_ERROR, "can't find out target for target_cs/%d", opt.fshVersion);
+      sh_debug(SHLOG_ERROR, "can't find out target for target_cs/%d", opt.fshVersion);
     }
   }
   else if ((dd_stricmp(profile, "target_ms") == 0) || (dd_stricmp(profile, "target_as") == 0))
   {
-    switch (opt.fshVersion)
+    if (!opt
+           .fshVersion //
+           .map(6.6_sm, "%cs_6_6")
+           // Requires min profile of 6.5, as mesh shaders are a optional feature, they are available on all
+           // targets starting from 5.0.
+           .map(6.0_sm, "%cs_6_5")
+           .map(5.0_sm, "%cs_6_5")
+           .get([&profile](auto fmt) { profile.printf(0, fmt, profile[7]); }))
     {
-      // Requires min profile of 6.5, as mesh shaders are a optional feature, they are available on all
-      // targets starting from 5.0.
-      case FSHVER_50:
-      case FSHVER_60: profile.printf(0, "%cs_6_5", profile[7]); break;
-      case FSHVER_66: profile.printf(0, "%cs_6_6", profile[7]); break;
-
-      default: sh_debug(SHLOG_ERROR, "can't find out target for %s/%d", profile, opt.fshVersion);
+      sh_debug(SHLOG_ERROR, "can't find out target for %s/%d", profile, opt.fshVersion);
     }
   }
 
@@ -2847,7 +2891,7 @@ class CompileShaderJob : public cpujobs::IJob
 {
 public:
   CompileShaderJob(AssembleShaderEvalCB *ascb, AssembleShaderEvalCB::HlslCompile &hlsl,
-    dag::ConstSpan<CodeSourceBlocks::Unconditional *> code_blocks)
+    dag::ConstSpan<CodeSourceBlocks::Unconditional *> code_blocks, uint64_t variant_hash)
   {
     static const char *def_cg_args[] = {"--assembly", "--mcgb", "--fenable-bx2", "--nobcolor", "--fastmath", NULL};
 
@@ -2872,6 +2916,8 @@ public:
 
     if (hlslDumpCodeAlways)
       compileCtx = sh_get_compile_context();
+
+    shader_variant_hash = variant_hash;
   }
 
   virtual void doJob();
@@ -2898,6 +2944,8 @@ protected:
   const char *shaderName;
   SHTOK_string *hlsl_compile_token;
   ShaderLexParser *parser;
+
+  uint64_t shader_variant_hash;
 };
 
 static void apply_from_cache(char profile, int c1, int c2, int c3, ShaderSemCode::Pass &p)
@@ -2994,7 +3042,23 @@ void AssembleShaderEvalCB::hlsl_compile(AssembleShaderEvalCB::HlslCompile &hlsl)
   {
     mark_cached_shader_entry_as_pending(c1, c2, c3);
 
-    CompileShaderJob *job = new CompileShaderJob(this, hlsl, code_blocks);
+    auto hash_variant_src = [](const ShaderVariant::VariantSrc &src, uint64_t &result) {
+      const ShaderVariant::TypeTable &types = src.getTypes();
+      for (int i = 0; i < types.getCount(); i++)
+      {
+        String type_name = types.getTypeName(i);
+        eastl::string_view type_name_view(type_name.c_str(), type_name.size());
+        result = fnv1a_step<64>(static_cast<uint64_t>(eastl::hash<eastl::string_view>()(type_name_view)), result);
+        result = fnv1a_step<64>(static_cast<uint64_t>(src.getNormalizedValue(i)), result);
+      }
+    };
+
+    uint64_t shader_variant_hash = 0u;
+    hash_variant_src(variant.stat, shader_variant_hash);
+    if (variant.dyn)
+      hash_variant_src(*variant.dyn, shader_variant_hash);
+
+    CompileShaderJob *job = new CompileShaderJob(this, hlsl, code_blocks, shader_variant_hash);
     if (shc::compileJobsCount > 1)
     {
       static int cpu = grnd();
@@ -3177,14 +3241,21 @@ void CompileShaderJob::doJob()
 
 
 #elif _CROSS_TARGET_METAL
-  compile_result = compileShaderMetal(source, profile, entry, !hlslNoDisassembly, hlslSkipValidation,
-    hlslOptimizationLevel ? true : false, max_constants_no, bones_const_used, shaderName, use_ios_token, use_binary_msl);
+  if (use_metal_glslang)
+    compile_result =
+      compileShaderMetalGlslang(source, profile, entry, !hlslNoDisassembly, hlslSkipValidation, hlslOptimizationLevel ? true : false,
+        max_constants_no, bones_const_used, shaderName, use_ios_token, use_binary_msl, shader_variant_hash);
+  else
+    compile_result =
+      compileShaderMetal(source, profile, entry, !hlslNoDisassembly, hlslSkipValidation, hlslOptimizationLevel ? true : false,
+        max_constants_no, bones_const_used, shaderName, use_ios_token, use_binary_msl, shader_variant_hash);
 #elif _CROSS_TARGET_SPIRV
   compile_result = compileShaderSpirV(source, profile, entry, !hlslNoDisassembly, hlslSkipValidation,
     hlslOptimizationLevel ? true : false, max_constants_no, bones_const_used, shaderName,
     compilerDXC      ? CompilerMode::DXC
     : compilerHlslCc ? CompilerMode::HLSLCC
-                     : CompilerMode::DEFAULT);
+                     : CompilerMode::DEFAULT,
+    shader_variant_hash);
 #elif _CROSS_TARGET_EMPTY
   compile_result.bytecode.resize(sizeof(uint64_t));
 #elif _CROSS_TARGET_DX12

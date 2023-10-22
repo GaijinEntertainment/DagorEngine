@@ -80,7 +80,7 @@ void close()
 }
 void init(const char *ps_name, const char *wave_cs_name, const char *cs_name)
 {
-  downsampleDepth.init(ps_name, NULL, true);
+  downsampleDepth.init(ps_name);
   if (cs_name)
   {
     downsampleDepthCompute.reset(new_compute_shader(cs_name, true /* optional */));
@@ -227,7 +227,7 @@ void downsamplePS(const TextureIDPair &from_depth, int w, int h, const TextureID
     if (depthTex)
       shaders::overrides::set(zFuncAlwaysStateId);
 
-    d3d::set_render_target({depthTex ? depthTex : nullptr, 0}, false,
+    d3d::set_render_target({depthTex ? depthTex : nullptr, 0}, DepthAccess::RW,
       {{far_depth_mips && depthFormatTarget != FAR_DEPTH_FORMAT ? far_depth_mips[0].getTex2D() : nullptr, 0},
         {close_depth && depthFormatTarget != CLOSE_DEPTH_FORMAT ? close_depth->getTex2D() : nullptr, 0},
         {checkerboard_depth && depthFormatTarget != CHECKER_DEPTH_FORMAT ? checkerboard_depth->getTex2D() : nullptr, 0},
@@ -347,7 +347,7 @@ void downsamplePS(const TextureIDPair &from_depth, int w, int h, const TextureID
       }
       else
       {
-        d3d::set_render_target(farHasDepthFormat ? farDepthTarget : RenderTarget{}, false,
+        d3d::set_render_target(farHasDepthFormat ? farDepthTarget : RenderTarget{}, DepthAccess::RW,
           {!farHasDepthFormat ? farDepthTarget : RenderTarget{},
             {closeDepthEnabled ? close_depth->getTex2D() : nullptr, unsigned(i)}});
         d3d::clearview(CLEAR_DISCARD, 0, 0.f, 0);
@@ -466,7 +466,7 @@ void generate_depth_mips(const TextureIDPair *depth_mips, int depth_mip_count)
     ShaderGlobal::set_texture(downsample_depth_fromVarId, depth_mips[i - 1].getId());
     d3d::resource_barrier({depth_mips[i - 1].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, 0, 1});
     d3d::set_render_target(nullptr, 0);
-    d3d::set_depth(depth_mips[i].getTex2D(), false);
+    d3d::set_depth(depth_mips[i].getTex2D(), DepthAccess::RW);
     d3d::clearview(CLEAR_DISCARD_ZBUFFER, 0, 0.f, 0);
     downsampleDepth.render();
     depth_mips[i - 1].getTex2D()->texaddr(TEXADDR_BORDER);

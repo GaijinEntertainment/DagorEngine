@@ -7,8 +7,6 @@ namespace cef
 void JavaScriptHandler::OnBrowserCreated(CefRefPtr<CefBrowser> browser,
                                          CefRefPtr<CefDictionaryValue> extra_info)
 {
-  this->browser = browser;
-
   CefDictionaryValue::KeyList names;
   if (extra_info && extra_info->GetKeys(names))
     for (const auto & name : names)
@@ -16,21 +14,28 @@ void JavaScriptHandler::OnBrowserCreated(CefRefPtr<CefBrowser> browser,
 }
 
 
-void JavaScriptHandler::OnContextCreated(CefRefPtr<CefBrowser> /* browser */,
+void JavaScriptHandler::OnContextCreated(CefRefPtr<CefBrowser> browser,
                                          CefRefPtr<CefFrame> /* frame */,
                                          CefRefPtr<CefV8Context> context)
 {
   auto window = context->GetGlobal();
-  for (const auto& m : methods)
-    window->SetValue(m.name, CefV8Value::CreateFunction(m.name, this), V8_PROPERTY_ATTRIBUTE_NONE);
+
+  if (methods.size())
+  {
+    CefRefPtr<CefV8Handler> caller = new JavaScriptCallback(browser, this->methods);
+
+    for (const auto& m : methods)
+      window->SetValue(m.name, CefV8Value::CreateFunction(m.name, caller),
+        V8_PROPERTY_ATTRIBUTE_NONE);
+  }
 }
 
 
-bool JavaScriptHandler::Execute(const CefString& name,
-                                CefRefPtr<CefV8Value> /* object */,
-                                const CefV8ValueList& arguments,
-                                CefRefPtr<CefV8Value>& /* retval */,
-                                CefString& exception)
+bool JavaScriptCallback::Execute(const CefString& name,
+                                 CefRefPtr<CefV8Value> /* object */,
+                                 const CefV8ValueList& arguments,
+                                 CefRefPtr<CefV8Value>& /* retval */,
+                                 CefString& exception)
 {
   auto signature = std::find_if(this->methods.begin(), this->methods.end(),
                                 [&name](const auto& v) { return v.name == name; });

@@ -13,30 +13,46 @@ struct Graph
 
   void addEdge(NodeId from, NodeId to) { edges[from].push_back(to); }
 
-  [[nodiscard]] bool topologicalSort(NodeId node, NodeList &visit_list, NodeList &cycle)
+  enum class TopologicalSortResult
+  {
+    SUCCESS,
+    IN_CYCLE,
+    FOUND_CYCLE
+  };
+
+  template <typename NodeList>
+  [[nodiscard]] TopologicalSortResult topologicalSort(NodeId node, NodeList &visit_list, NodeList &cycle)
   {
     if (visited[node] == VisitedNode::FINISHED)
-      return false;
+      return TopologicalSortResult::SUCCESS;
 
     if (visited[node] == VisitedNode::IN_PROGRESS)
     {
       cycle.push_back(node);
-      return true;
+      visited[node] = VisitedNode::NOT_VISITED;
+      return TopologicalSortResult::IN_CYCLE;
     }
 
     visited[node] = VisitedNode::IN_PROGRESS;
     for (const auto &nextNode : edges[node])
     {
-      if (topologicalSort(nextNode, visit_list, cycle))
+      TopologicalSortResult recursiveRes = topologicalSort(nextNode, visit_list, cycle);
+      if (recursiveRes == TopologicalSortResult::SUCCESS)
+        continue;
+
+      if (recursiveRes == TopologicalSortResult::IN_CYCLE)
       {
         cycle.push_back(node);
-        return true;
+        visited[node] = VisitedNode::NOT_VISITED;
+        return node == cycle.front() ? TopologicalSortResult::FOUND_CYCLE : TopologicalSortResult::IN_CYCLE;
       }
+
+      return TopologicalSortResult::FOUND_CYCLE;
     }
 
     visited[node] = VisitedNode::FINISHED;
     visit_list.push_back(node);
-    return false;
+    return TopologicalSortResult::SUCCESS;
   }
 
 private:

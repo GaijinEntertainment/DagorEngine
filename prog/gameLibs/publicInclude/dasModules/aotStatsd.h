@@ -33,8 +33,8 @@ public:
   }
 };
 
-inline void statsd_profile_float(const char *metric, float time_ms, const char *tagKey, const char *tagValue)
+inline void statsd_profile_long(const char *metric, int time_ms, const char *tagKey, const char *tagValue)
 {
-  statsd::profile(metric ? metric : "", time_ms, {tagKey ? tagKey : "", tagValue ? tagValue : ""});
+  statsd::profile(metric ? metric : "", (long)time_ms, {tagKey ? tagKey : "", tagValue ? tagValue : ""});
 }
 } // namespace bind_dascript

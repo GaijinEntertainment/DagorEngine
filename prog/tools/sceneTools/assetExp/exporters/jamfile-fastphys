@@ -17,10 +17,10 @@ AddIncludes =
   $(Root)/prog/tools/sharedInclude
 ;
 
-UseProgLibs = 
-  engine2/startup
-  engine2/math
-  engine2/perfMon
+UseProgLibs =
+  engine/startup
+  engine/math
+  engine/perfMon
 
   tools/libTools/assetMgr
   tools/libTools/fastPhysData

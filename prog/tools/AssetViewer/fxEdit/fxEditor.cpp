@@ -60,6 +60,9 @@ extern dafx::CullingId g_dafx_cull;
 extern dafx::Stats g_dafx_stats;
 extern float g_dafx_dt_mul;
 
+using hdpi::_pxActual;
+using hdpi::_pxScaled;
+
 enum
 {
   CM_RELOAD_SCRIPT = CM_PLUGIN_BASE + 1,
@@ -242,9 +245,9 @@ public:
 
     hwndPanel = getAdditinalPropWindow();
     G_ASSERT(hwndPanel);
-    hwndTool = manager.splitWindow(hwndPanel, 0, TOOL_PANEL_HEIGHT, WA_TOP);
+    hwndTool = manager.splitWindow(hwndPanel, 0, _pxScaled(TOOL_PANEL_HEIGHT), WA_TOP);
     G_ASSERT(hwndTool);
-    hwndTree = manager.splitWindow(hwndPanel, 0, TREE_PANEL_HEIGHT, WA_TOP);
+    hwndTree = manager.splitWindow(hwndPanel, 0, _pxScaled(TREE_PANEL_HEIGHT), WA_TOP);
     G_ASSERT(hwndTree);
 
     manager.fixWindow(hwndTool, true);
@@ -316,7 +319,7 @@ public:
 
         unsigned w, h;
         manager.getWindowClientSize(handle, w, h);
-        CToolWindow *toolPanel = new CToolWindow(this, handle, 0, 0, w, h, "Effects Tools");
+        CToolWindow *toolPanel = new CToolWindow(this, handle, 0, 0, _pxActual(w), _pxActual(h), "Effects Tools");
 
         mToolPanel = toolPanel;
         fillToolBar(*mToolPanel->createToolbarPanel(21, ""));
@@ -470,15 +473,16 @@ public:
     String params(128, "param_ren: %d, param_sim: %d", fxStats[0], fxStats[1]);
     String data(128, "part_ren: %d, part_sim: %d", fxStats[2], fxStats[3]);
 
-    int y = 40;
-    int n = 20;
-    StdGuiRender::draw_strf_to(8, y + n * 0, insts);
-    StdGuiRender::draw_strf_to(8, y + n * 1, cpuSim);
-    StdGuiRender::draw_strf_to(8, y + n * 2, gpuSim);
-    StdGuiRender::draw_strf_to(8, y + n * 3, dips);
-    StdGuiRender::draw_strf_to(8, y + n * 4, tris);
-    StdGuiRender::draw_strf_to(8, y + n * 5, data);
-    StdGuiRender::draw_strf_to(8, y + n * 6, params);
+    int x = hdpi::_pxS(8);
+    int y = hdpi::_pxS(40);
+    int n = hdpi::_pxS(20);
+    StdGuiRender::draw_strf_to(x, y + n * 0, insts);
+    StdGuiRender::draw_strf_to(x, y + n * 1, cpuSim);
+    StdGuiRender::draw_strf_to(x, y + n * 2, gpuSim);
+    StdGuiRender::draw_strf_to(x, y + n * 3, dips);
+    StdGuiRender::draw_strf_to(x, y + n * 4, tris);
+    StdGuiRender::draw_strf_to(x, y + n * 5, data);
+    StdGuiRender::draw_strf_to(x, y + n * 6, params);
 
     StdGuiRender::flush_data();
     if (!started)
@@ -718,7 +722,7 @@ public:
         for (int i = 0; i < list.size(); ++i)
           strs.push_back() = list[i]->getClassName();
 
-        ListDialog dlg(0, "Select effect's class name", strs, 400, 300);
+        ListDialog dlg(0, "Select effect's class name", strs, _pxScaled(400), _pxScaled(300));
 
         if (dlg.showDialog() == DIALOG_ID_OK)
         {

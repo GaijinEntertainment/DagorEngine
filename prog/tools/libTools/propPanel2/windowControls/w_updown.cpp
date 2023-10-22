@@ -62,15 +62,15 @@ intptr_t WUpDown::onDrag(int new_x, int new_y)
 
     if (mouse_pos.y == GetSystemMetrics(SM_CYSCREEN) - 1)
     {
-      mouse_pos.y -= SCROLL_MOUSE_JUMP;
-      new_y -= SCROLL_MOUSE_JUMP;
+      mouse_pos.y -= _pxS(SCROLL_MOUSE_JUMP);
+      new_y -= _pxS(SCROLL_MOUSE_JUMP);
       changes = true;
     }
 
     if (mouse_pos.y == 0)
     {
-      mouse_pos.y += SCROLL_MOUSE_JUMP;
-      new_y += SCROLL_MOUSE_JUMP;
+      mouse_pos.y += _pxS(SCROLL_MOUSE_JUMP);
+      new_y += _pxS(SCROLL_MOUSE_JUMP);
       changes = true;
     }
 

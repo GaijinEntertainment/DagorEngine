@@ -36,7 +36,7 @@ static inline TexPtr create_tex_from_raw_hmap_file(const char *name, int &width)
 
   uint32_t texFMT = TEXFMT_L16;
   if ((d3d::get_texformat_usage(TEXFMT_L16) & d3d::USAGE_VERTEXTEXTURE))
-    texFMT = TEXFMT_L16;
+    texFMT = TEXFMT_L16; //-V1048
   else if ((d3d::get_texformat_usage(TEXFMT_R32F) & d3d::USAGE_VERTEXTEXTURE))
     texFMT = TEXFMT_R32F;
   else if ((d3d::get_texformat_usage(TEXFMT_R16F) & d3d::USAGE_VERTEXTEXTURE)) /*better fast, than accurate*/
@@ -81,7 +81,7 @@ static inline TexPtr create_tex_from_raw_hmap_file(const char *name, int &width)
         ((float *)data)[x] = hdata[x] / 65535.0;
     }
   }
-  else if (texFMT == TEXFMT_R16F)
+  else if (texFMT == TEXFMT_R16F) //-V547
   {
     for (int y = 0; y < width; ++y, data += stride)
     {

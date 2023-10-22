@@ -54,7 +54,7 @@ public:
   // the bigger mip number, the coarser check, which matters only on close distance.
   // if dip is cheap, use bigger (4..5), if it is very expensive - use lower (0..2)
   // 3 provides reasonable average quality
-  static __forceinline int VECTORCALL testVisibility(vec3f bmin, vec3f bmax, vec3f threshold, mat44f_cref clip,
+  VECTORCALL static __forceinline int testVisibility(vec3f bmin, vec3f bmax, vec3f threshold, mat44f_cref clip,
     int mip = DEFAULT_MAX_TEST_MIP)
   {
     return OcclusionTest<WIDTH, HEIGHT>::testVisibility(bmin, bmax, threshold, clip, mip);

@@ -17,8 +17,10 @@
 #include <Jolt/Physics/Collision/CollideConvexVsTriangles.h>
 #include <Jolt/Physics/Collision/CollideSphereVsTriangles.h>
 #include <Jolt/Physics/Collision/CollisionDispatch.h>
+#include <Jolt/Physics/SoftBody/SoftBodyVertex.h>
 #include <Jolt/Geometry/ConvexSupport.h>
 #include <Jolt/Geometry/RayTriangle.h>
+#include <Jolt/Geometry/ClosestPoint.h>
 #include <Jolt/ObjectStream/TypeDeclarations.h>
 #include <Jolt/Core/StreamIn.h>
 #include <Jolt/Core/StreamOut.h>
@@ -39,19 +41,19 @@ JPH_IMPLEMENT_SERIALIZABLE_VIRTUAL(TriangleShapeSettings)
 }
 
 ShapeSettings::ShapeResult TriangleShapeSettings::Create() const
-{ 
+{
 	if (mCachedResult.IsEmpty())
-		Ref<Shape> shape = new TriangleShape(*this, mCachedResult); 
+		Ref<Shape> shape = new TriangleShape(*this, mCachedResult);
 	return mCachedResult;
 }
 
 TriangleShape::TriangleShape(const TriangleShapeSettings &inSettings, ShapeResult &outResult) :
-	ConvexShape(EShapeSubType::Triangle, inSettings, outResult), 
-	mV1(inSettings.mV1), 
-	mV2(inSettings.mV2), 
-	mV3(inSettings.mV3), 
-	mConvexRadius(inSettings.mConvexRadius) 
-{ 
+	ConvexShape(EShapeSubType::Triangle, inSettings, outResult),
+	mV1(inSettings.mV1),
+	mV2(inSettings.mV2),
+	mV3(inSettings.mV3),
+	mConvexRadius(inSettings.mConvexRadius)
+{
 	if (inSettings.mConvexRadius < 0.0f)
 	{
 		outResult.SetError("Invalid convex radius");
@@ -61,15 +63,15 @@ TriangleShape::TriangleShape(const TriangleShapeSettings &inSettings, ShapeResul
 	outResult.Set(this);
 }
 
-AABox TriangleShape::GetLocalBounds() const 
-{ 
+AABox TriangleShape::GetLocalBounds() const
+{
 	AABox bounds(mV1, mV1);
 	bounds.Encapsulate(mV2);
 	bounds.Encapsulate(mV3);
 	bounds.ExpandBy(Vec3::sReplicate(mConvexRadius));
 	return bounds;
 }
-		
+
 AABox TriangleShape::GetWorldSpaceBounds(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale) const
 {
 	JPH_ASSERT(IsValidScale(inScale));
@@ -90,13 +92,13 @@ class TriangleShape::TriangleNoConvex final : public Support
 public:
 							TriangleNoConvex(Vec3Arg inV1, Vec3Arg inV2, Vec3Arg inV3) :
 		mTriangleSuport(inV1, inV2, inV3)
-	{ 
-		static_assert(sizeof(TriangleNoConvex) <= sizeof(SupportBuffer), "Buffer size too small"); 
+	{
+		static_assert(sizeof(TriangleNoConvex) <= sizeof(SupportBuffer), "Buffer size too small");
 		JPH_ASSERT(IsAligned(this, alignof(TriangleNoConvex)));
 	}
 
 	virtual Vec3			GetSupport(Vec3Arg inDirection) const override
-	{ 
+	{
 		return mTriangleSuport.GetSupport(inDirection);
 	}
 
@@ -115,13 +117,13 @@ public:
 							TriangleWithConvex(Vec3Arg inV1, Vec3Arg inV2, Vec3Arg inV3, float inConvexRadius) :
 		mConvexRadius(inConvexRadius),
 		mTriangleSuport(inV1, inV2, inV3)
-	{ 
-		static_assert(sizeof(TriangleWithConvex) <= sizeof(SupportBuffer), "Buffer size too small"); 
+	{
+		static_assert(sizeof(TriangleWithConvex) <= sizeof(SupportBuffer), "Buffer size too small");
 		JPH_ASSERT(IsAligned(this, alignof(TriangleWithConvex)));
 	}
 
 	virtual Vec3			GetSupport(Vec3Arg inDirection) const override
-	{ 
+	{
 		Vec3 support = mTriangleSuport.GetSupport(inDirection);
 		float len = inDirection.Length();
 		if (len > 0.0f)
@@ -184,12 +186,12 @@ MassProperties TriangleShape::GetMassProperties() const
 	return MassProperties();
 }
 
-Vec3 TriangleShape::GetSurfaceNormal(const SubShapeID &inSubShapeID, Vec3Arg inLocalSurfacePosition) const 
+Vec3 TriangleShape::GetSurfaceNormal(const SubShapeID &inSubShapeID, Vec3Arg inLocalSurfacePosition) const
 {
-	JPH_ASSERT(inSubShapeID.IsEmpty(), "Invalid subshape ID"); 
+	JPH_ASSERT(inSubShapeID.IsEmpty(), "Invalid subshape ID");
 
 	Vec3 cross = (mV2 - mV1).Cross(mV3 - mV1);
-	float len = cross.Length(); 
+	float len = cross.Length();
 	return len != 0.0f? cross / len : Vec3::sAxisY();
 }
 
@@ -255,6 +257,60 @@ void TriangleShape::CastRay(const RayCast &inRay, const RayCastSettings &inRayCa
 void TriangleShape::CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSubShapeIDCreator, CollidePointCollector &ioCollector, const ShapeFilter &inShapeFilter) const
 {
 	// Can't be inside a triangle
+}
+
+void TriangleShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const
+{
+	Vec3 v1 = inCenterOfMassTransform * (inScale * mV1);
+	Vec3 v2 = inCenterOfMassTransform * (inScale * mV2);
+	Vec3 v3 = inCenterOfMassTransform * (inScale * mV3);
+
+	if (ScaleHelpers::IsInsideOut(inScale))
+		swap(v1, v2);
+
+	Vec3 triangle_normal = (v2 - v1).Cross(v3 - v1).NormalizedOr(Vec3::sAxisY());
+
+	for (SoftBodyVertex *v = ioVertices, *sbv_end = ioVertices + inNumVertices; v < sbv_end; ++v)
+		if (v->mInvMass > 0.0f)
+		{
+			// Get the closest point from the vertex to the triangle
+			uint32 set;
+			Vec3 v1_minus_position = v1 - v->mPosition;
+			Vec3 closest_point = ClosestPoint::GetClosestPointOnTriangle(v1_minus_position, v2 - v->mPosition, v3 - v->mPosition, set);
+
+			if (set == 0b111)
+			{
+				// Closest is interior to the triangle, use plane as collision plane but don't allow more than 10cm penetration
+				// because otherwise a triangle half a level a way will have a huge penetration if it is back facing
+				float penetration = min(triangle_normal.Dot(v1_minus_position), 0.1f);
+				if (penetration > v->mLargestPenetration)
+				{
+					v->mLargestPenetration = penetration;
+
+					// Store collision
+					v->mCollisionPlane = Plane::sFromPointAndNormal(v1, triangle_normal);
+					v->mCollidingShapeIndex = inCollidingShapeIndex;
+				}
+			}
+			else if (closest_point.Dot(triangle_normal) < 0.0f) // Ignore back facing edges
+			{
+				// Closest point is on an edge or vertex, use closest point as collision plane
+				float closest_point_length = closest_point.Length();
+				float penetration = -closest_point_length;
+				if (penetration > v->mLargestPenetration)
+				{
+					v->mLargestPenetration = penetration;
+
+					// Calculate contact point and normal
+					Vec3 point = v->mPosition + closest_point;
+					Vec3 normal = -closest_point / closest_point_length;
+
+					// Store collision
+					v->mCollisionPlane = Plane::sFromPointAndNormal(point, normal);
+					v->mCollidingShapeIndex = inCollidingShapeIndex;
+				}
+			}
+		}
 }
 
 void TriangleShape::sCollideConvexVsTriangle(const Shape *inShape1, const Shape *inShape2, Vec3Arg inScale1, Vec3Arg inScale2, Mat44Arg inCenterOfMassTransform1, Mat44Arg inCenterOfMassTransform2, const SubShapeIDCreator &inSubShapeIDCreator1, const SubShapeIDCreator &inSubShapeIDCreator2, const CollideShapeSettings &inCollideShapeSettings, CollideShapeCollector &ioCollector, [[maybe_unused]] const ShapeFilter &inShapeFilter)

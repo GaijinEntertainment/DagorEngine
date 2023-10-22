@@ -233,7 +233,7 @@ if $(Platform) = macosx { Sources += src/base/ftmac.c ; }
 
 if $(Platform) = win64 && $(PlatformSpec) != clang { Copt += /wd4267 ; } # conversion from 'size_t' to 'int', possible loss of data
 
-if $(PlatformSpec) in gcc4 clang {
+if $(PlatformSpec) in gcc clang {
   CPPopt += -Wno-unused-parameter ;
 }
 

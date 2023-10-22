@@ -49,7 +49,7 @@
 GLOBAL_VARS_LIST
 #undef VAR
 
-static bool checkComputeUse() { return d3d::get_driver_desc().cshver & DDCSH_5_0; }
+static bool checkComputeUse() { return d3d::get_driver_desc().shaderModel >= 5.0_sm; }
 
 void DaScattering::close()
 {
@@ -281,12 +281,13 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
   }
   else
     belowHorizonPartTc = (muHoriz - muMin) / max(1e-6f, muMax - muMin);
-  const bool visiblePole = !(v_signmask(v_cmp_eqi(v_cmp_gt(v_cross3(v_ld(&viewVecLT.x), v_ld(&viewVecRT.x)), v_zero()),
-                               v_cmp_gt(v_cross3(v_ld(&viewVecLB.x), v_ld(&viewVecRB.x)), v_zero()))) &
-                             (1 << 1));
-  const float muHorizonThreshold = 0.3;
-  const bool horizonTooFar = muMin > muHoriz + muHorizonThreshold || muMax < muHoriz - muHorizonThreshold;
-  skies.skiesParams = Color4{muMin, muMed, muMax, muMax == muMin || visiblePole || horizonTooFar ? -1 : belowHorizonPartTc};
+
+  // there was also a pole check and a horizon (being too far from the view angle) check, but it seems they are not needed anymore
+  // these checks also changed parametrization to isEncodingInvalid==true, probably it has fixed some bugs/or increase quality
+  // but likely they are not effectively working anymore after new volumetric scattering is introduced
+  // isEncodingInvalid makes LUT to be very ineffective, causing significant jump of quality
+  const bool isEncodingInvalid = muMax == muMin;
+  skies.skiesParams = Color4{muMin, muMed, muMax, isEncodingInvalid ? -1 : belowHorizonPartTc};
   ShaderGlobal::set_color4(skies_min_max_horizon_muVarId, skies.skiesParams);
   ShaderGlobal::set_color4(prev_skies_min_max_horizon_muVarId, skies.prevSkiesParams);
   skies.prevSkiesParams = skies.skiesParams;

@@ -6,7 +6,7 @@ class ViewportWindow;
 class ViewportWindowStatSettingsDialog : public CDialogWindow
 {
 public:
-  ViewportWindowStatSettingsDialog(ViewportWindow &_viewport, unsigned width, unsigned height);
+  ViewportWindowStatSettingsDialog(ViewportWindow &_viewport, hdpi::Px width, hdpi::Px height);
 
   PropertyContainerControlBase *createTabPanel();
 

@@ -15,7 +15,7 @@
 //---------------------------------------
 
 
-CToolWindow::CToolWindow(ControlEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h,
+CToolWindow::CToolWindow(ControlEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h,
   const char caption[]) :
 
   PropertyContainerHorz(0, event_handler, NULL, x, y, w, h),
@@ -23,8 +23,8 @@ CToolWindow::CToolWindow(ControlEventHandler *event_handler, void *phandle, int 
   mPanelWindow(NULL),
   mPanel(NULL)
 {
-  mPanelWindow = new WWindow(this, phandle, x, y, w, h, caption);
-  mPanel = new WContainer(this, mPanelWindow, 0, 0, w, h);
+  mPanelWindow = new WWindow(this, phandle, x, y, _px(w), _px(h), caption);
+  mPanel = new WContainer(this, mPanelWindow, 0, 0, _px(w), _px(h));
 
   G_ASSERT(mPanelWindow && "CToolWindow::mPanelWindow = NULL");
   G_ASSERT(mPanel && "CToolWindow::mPanel = NULL");
@@ -78,7 +78,7 @@ void CToolWindow::onWcResize(WindowBase *source)
 
   if ((source == mPanelWindow) && ((oldmW != mW)))
   {
-    this->setWidth(mW);
+    this->setWidth(_pxActual(mW));
   }
 
   __super::onWcResize(source);
@@ -125,10 +125,10 @@ void CToolWindow::onChildResize(int id)
 void CToolWindow::resizeControl(unsigned w, unsigned h) { mPanel->resizeWindow(w, h); }
 
 
-void CToolWindow::setWidth(unsigned w) { mPanelWindow->resizeWindow(w, mPanelWindow->getHeight()); }
+void CToolWindow::setWidth(hdpi::Px w) { mPanelWindow->resizeWindow(_px(w), mPanelWindow->getHeight()); }
 
 
-void CToolWindow::setHeight(unsigned h) { mPanelWindow->resizeWindow(mPanelWindow->getWidth(), h); }
+void CToolWindow::setHeight(hdpi::Px h) { mPanelWindow->resizeWindow(mPanelWindow->getWidth(), _px(h)); }
 
 
 void CToolWindow::moveTo(int x, int y) { mPanelWindow->moveWindow(x, y); }
@@ -148,13 +148,13 @@ void CToolWindow::onControlAdd(PropertyControlBase *control)
 }
 
 
-void CToolWindow::onWmEmbeddedResize(int width, int height) { setWidth(width); }
+void CToolWindow::onWmEmbeddedResize(int width, int height) { setWidth(_pxActual(width)); }
 
 
 const int TOOLBAR_OVER_SIZE = 10;
 bool CToolWindow::onWmEmbeddedMakingMovable(int &width, int &height)
 {
-  int movWidth = mPanel->getWidth() + TOOLBAR_OVER_SIZE;
+  int movWidth = mPanel->getWidth() + hdpi::_pxS(TOOLBAR_OVER_SIZE);
 
   width = (movWidth < width) ? movWidth : width;
   height = mPanel->getHeight();

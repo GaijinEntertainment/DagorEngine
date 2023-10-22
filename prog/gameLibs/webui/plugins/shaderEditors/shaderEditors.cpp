@@ -308,7 +308,7 @@ void ShaderGraphRecompiler::recompile()
   shaderBlk.loadText(shaderBlkText.str(), shaderBlkText.length());
 
 #if _TARGET_PC_WIN
-  if (d3d::get_driver_code() == _MAKE4C('DX11'))
+  if (d3d::get_driver_code().is(d3d::dx11))
   {
     uint32_t variantCnt = get_shader_variant_count(shaderType);
     for (uint32_t variantId = 0; variantId < variantCnt; ++variantId)

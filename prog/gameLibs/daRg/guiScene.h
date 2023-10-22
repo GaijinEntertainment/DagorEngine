@@ -204,6 +204,7 @@ public:
 
   bool haveActiveCursorOnPanels() const override;
   eastl::optional<float> isAnyPanelPointedAtWithHand(int hand) const override { return spatialInteractionState.hitDistances[hand]; }
+  bool isAnyPanelTouchedWithHand(int hand) const override { return spatialInteractionState.isHandTouchingPanel[hand]; }
 
   void spawnDebugRenderBox(const BBox2 &box, E3DCOLOR fillColor, E3DCOLOR borederColor, float life_time);
 
@@ -390,6 +391,7 @@ private:
     eastl::optional<float> hitDistances[NUM_VR_POINTERS];
     int closestHitPanelIdxs[NUM_VR_POINTERS] = {-1, -1};
     Point2 hitPos[NUM_VR_POINTERS] = {{-1.f, -1.f}, {-1.f, -1.f}};
+    bool isHandTouchingPanel[NUM_VR_POINTERS] = {false, false};
 
     bool wasVrSurfaceHit(int hand) const { return hitDistances[hand].has_value() && closestHitPanelIdxs[hand] < 0; }
     bool wasPanelHit(int hand) const { return hitDistances[hand].has_value() && closestHitPanelIdxs[hand] >= 0; }

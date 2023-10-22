@@ -29,7 +29,8 @@ class VirtualResourceSemiRequest
 {
   using Base = detail::VirtualResourceRequestBase;
 
-  friend class Registry;
+  friend class StateRequest;
+  friend class NameSpaceRequest;
   VirtualResourceSemiRequest(detail::ResUid resId, NodeNameId node, InternalRegistry *reg) : Base{resId, node, reg} {}
 
 public:

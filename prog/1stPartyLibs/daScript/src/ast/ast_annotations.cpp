@@ -138,7 +138,7 @@ namespace das
             program->visit(vis,/*visitGenerics =*/true);
         }
 
-        virtual void preVisit ( TypeDecl * td ) {
+        virtual void preVisit ( TypeDecl * td ) override {
             if ( !td ) return;
             if ( td->baseType != option ) return;
 

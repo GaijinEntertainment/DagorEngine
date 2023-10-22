@@ -19,7 +19,7 @@
 #include "nameMap.h"
 
 extern void parse_shader_script(const char *fn, const ShHardwareOptions &opt, Tab<SimpleString> *out_filenames);
-extern void limitMaxFSHVersion(int f);
+extern void limitMaxFSHVersion(d3d::shadermodel::Version f);
 
 #ifdef PROFILE_OPCODE_USAGE
 int opcode_usage[2][256];

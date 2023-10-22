@@ -169,7 +169,7 @@ private:
   void reset();
 
   void update(float dt);
-  void render();
+  bool render();
   void emit(float dt);
 
   void addGPUEmiter(uint32_t id, const EmitterParams &params);
@@ -227,7 +227,7 @@ public:
   void reset();
 
   void update(float dt);
-  void render(ParticleSystem::RenderType render_type);
+  bool render(ParticleSystem::RenderType render_type);
 
 private:
   void initRes();

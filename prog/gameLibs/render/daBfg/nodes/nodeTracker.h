@@ -14,6 +14,7 @@
 #include <api/internalRegistry.h>
 #include <graphDumper.h>
 #include <intermediateRepresentation.h>
+#include <nameResolver.h>
 #include <id/idIndexedMapping.h>
 #include <id/idNameMap.h>
 #include <id/idIndexedFlags.h>
@@ -28,7 +29,7 @@ namespace dabfg
 class NodeTracker final : public IGraphDumper
 {
 public:
-  NodeTracker(InternalRegistry &reg);
+  NodeTracker(InternalRegistry &reg, const NameResolver &res) : registry{reg}, nameResolver{res} {}
 
   // For node use only
 public:
@@ -47,9 +48,7 @@ public:
   // stereo rendering, super/sub sampling, etc), groups nodes and
   // resources (due to subpasses and renaming modify), and culls out
   // unused or broken nodes/resources
-  intermediate::Graph emitIR(eastl::span<const ResNameId> sinkResources, multiplexing::Extents extents) const;
-
-  dag::Vector<NodeNameId> getLeafNodeIds() const;
+  intermediate::Graph emitIR(multiplexing::Extents extents) const;
 
   bool acquireNodesChanged() { return eastl::exchange(nodesChanged, false); }
 
@@ -71,6 +70,8 @@ public:
 private:
   friend struct StateFieldSetter;
   friend struct DebugVisualizer;
+
+  const NameResolver &nameResolver;
 
   dag::VectorSet<NodeNameId> deferredDeclarationQueue;
 
@@ -99,24 +100,23 @@ private:
     NodeNameId consumedBy = NodeNameId::Invalid;
   };
 
-  using SlotResources = dag::FixedVectorMap<ResNameId, dag::RelocatableFixedVector<ResNameId, 4>, 4>;
-
+  // Note that this mapping is built w.r.t. resolved resource name ids
   IdIndexedMapping<ResNameId, VirtualResourceLifetime> resourceLifetimes;
-  // Mapping node.resources -> slots to which those resources are assigned
-  IdIndexedMapping<NodeNameId, SlotResources> slotRequests;
+
   // First element in each modifying rename sequence
   IdIndexedMapping<ResNameId, ResNameId> renamingRepresentatives;
   // Mapping of resource -> what it gets renamed into
   IdIndexedMapping<ResNameId, ResNameId> renamingChains;
 
   void recalculateResourceLifetimes();
-  void recalculateSlotRequests();
   void validateLifetimes() const;
-  void validateSlotRequests() const;
   void resolveRenaming();
   void updateRenamedResourceProperties();
 
   void fixupFalseHistoryFlags(intermediate::Graph &graph) const;
+
+  bool validateResource(ResNameId resId) const;
+  bool validateNode(NodeNameId resId) const;
 
   struct ValidityInfo
   {

@@ -120,10 +120,13 @@ public:
     interactiveEnv = Sqrat::Table(module_mgr->getVM());
     module_mgr->bindRequireApi(interactiveEnv.GetObject());
     module_mgr->bindBaseLib(interactiveEnv.GetObject());
-
+    ///@module console
     Sqrat::Table exports(sqvm);
     exports.SquirrelFunc("register_command", sqRegisterCommand, -2, ".csss")
+      .SquirrelFunc("console_register_command", sqRegisterCommand, -2, ".csss")
       .SquirrelFunc("setObjPrintFunc", setObjPrintFunc, 2, ".c|o")
+      .SquirrelFunc("setConsoleObjPrintFunc", setObjPrintFunc, 2, ".c|o")
+      .Func("console_command", console::command)
       .Func("command", console::command);
 
     module_mgr->addNativeModule("console", exports);

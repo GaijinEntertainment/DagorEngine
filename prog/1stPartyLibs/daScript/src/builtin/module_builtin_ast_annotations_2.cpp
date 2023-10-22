@@ -268,5 +268,11 @@ namespace das {
         addExpressionAnnotation(make_smart<AstTypeInfoMacroAnnotation>(lib));
         addExpressionAnnotation(make_smart<AstExprTypeInfoAnnotation>(lib))->from("Expression");
         addExpressionAnnotation(make_smart<AstExprTypeDeclAnnotation>(lib))->from("Expression");
+
+        // make struct each
+        addExtern<DAS_BIND_FUN(das_vector_each<MakeStruct>),SimNode_ExtFuncCallAndCopyOrMove,explicitConstArgFn>(*this, lib, "each",
+            SideEffects::none, "das_vector_each")->generated = true;
+        addExtern<DAS_BIND_FUN(das_vector_each_const<MakeStruct>),SimNode_ExtFuncCallAndCopyOrMove,explicitConstArgFn>(*this, lib, "each",
+            SideEffects::none, "das_vector_each_const")->generated = true;
     }
 }

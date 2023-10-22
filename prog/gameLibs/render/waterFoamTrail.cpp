@@ -311,8 +311,9 @@ struct Renderer
 
     shElem = shMat->make_elem();
 
-    activeBuffer = d3d::create_vb(g_settings.activeVertexCount * sizeof(Vertex), SBCF_DYNAMIC, "water_foam_trail_a");
-    finalizedBuffer = d3d::create_vb(g_settings.finalizedVertexCount * sizeof(Vertex), SBCF_DYNAMIC, "water_foam_trail_f");
+    activeBuffer = d3d::create_vb(g_settings.activeVertexCount * sizeof(Vertex), SBCF_DYNAMIC | SBCF_MAYBELOST, "water_foam_trail_a");
+    finalizedBuffer =
+      d3d::create_vb(g_settings.finalizedVertexCount * sizeof(Vertex), SBCF_DYNAMIC | SBCF_MAYBELOST, "water_foam_trail_f");
 
     SharedTex maskTexRes = dag::get_tex_gameres(g_settings.texName);
     G_ASSERT(maskTexRes);
@@ -446,7 +447,7 @@ struct Renderer
     }
   }
 
-  void render()
+  bool render()
   {
     TIME_D3D_PROFILE(water_trail_render);
 
@@ -464,7 +465,7 @@ struct Renderer
     if (!needTrail)
     {
       ShaderGlobal::set_texture(texArrayVarId, BAD_TEXTUREID);
-      return;
+      return false;
     }
 
     SCOPE_RENDER_TARGET;
@@ -483,6 +484,8 @@ struct Renderer
     shaders::overrides::reset();
 
     ShaderGlobal::set_texture(texArrayVarId, texArrayId);
+
+    return true;
   }
 
   void renderTrail()
@@ -800,10 +803,11 @@ struct Context
     renderer->rebuildBuffer(true, activeSegmentsPool, frustum);
   }
 
-  void render()
+  bool render()
   {
     if (renderer)
-      renderer->render();
+      return renderer->render();
+    return false;
   }
 };
 
@@ -915,10 +919,11 @@ void before_render(float dt, const Point3 &origin, const Frustum &frustum)
     g_ctx->prepare(dt, origin, frustum);
 }
 
-void render()
+bool render()
 {
   if (g_ctx)
-    g_ctx->render();
+    return g_ctx->render();
+  return false;
 }
 
 const Settings &get_settings() { return g_settings; }

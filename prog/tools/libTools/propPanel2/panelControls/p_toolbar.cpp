@@ -7,12 +7,12 @@
 #include <debug/dag_debug.h>
 
 
-CToolbar::CToolbar(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CToolbar::CToolbar(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char *caption) :
-  PropertyContainerControlBase(id, event_handler, parent, x, y, w, DEFAULT_TOOLBAR_HEIGHT),
-  mContainer(this, parent->getWindow(), x, y, w, DEFAULT_TOOLBAR_HEIGHT),
-  mToolbar(this, &mContainer, 0, -2, //-2 для скрытия линии над тулбаром
-    w, DEFAULT_TOOLBAR_BUTTON_HEIGHT, caption)
+  PropertyContainerControlBase(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_TOOLBAR_HEIGHT)),
+  mContainer(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_TOOLBAR_HEIGHT)),
+  mToolbar(this, &mContainer, 0, -_pxS(2) /* -2 для скрытия линии над тулбаром */, _px(w), _pxS(DEFAULT_TOOLBAR_BUTTON_HEIGHT),
+    caption)
 {}
 
 
@@ -40,7 +40,7 @@ void CToolbar::onWcClick(WindowBase *source)
 void CToolbar::onWcResize(WindowBase *source)
 {
   if (source == &mToolbar)
-    this->setWidth(mToolbar.getWidth());
+    this->setWidth(_pxActual(mToolbar.getWidth()));
   else
   {
     if (this->mParent)
@@ -51,9 +51,9 @@ void CToolbar::onWcResize(WindowBase *source)
 }
 
 
-void CToolbar::setWidth(unsigned w)
+void CToolbar::setWidth(hdpi::Px w)
 {
-  mContainer.resizeWindow(w, this->getHeight());
+  mContainer.resizeWindow(_px(w), this->getHeight());
 
   PropertyControlBase::setWidth(w);
 }

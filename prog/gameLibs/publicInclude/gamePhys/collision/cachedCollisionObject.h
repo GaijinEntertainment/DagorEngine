@@ -24,7 +24,7 @@ struct CachedCollisionObjectInfo : public gamephys::CollisionObjectInfo
   virtual ~CachedCollisionObjectInfo() {}
 
   virtual float onImpulse(float /*impulse*/, const Point3 & /*dir*/, const Point3 & /*pos*/, float /*point_vel*/,
-    int32_t /* user_data */ = -1)
+    int32_t /* user_data */ = -1, gamephys::ImpulseLogFunc /*log_func*/ = nullptr)
   {
     timeToLive = 1.f;
     return 0.f;

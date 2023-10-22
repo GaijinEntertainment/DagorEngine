@@ -407,7 +407,7 @@
 
   void fx_ps(VsOutput input)
   {
-    float tcZ_sq = input.screenTexcoord.w*view_inscatter_volume_resolution.w;
+    float tcZ_sq = input.screenTexcoord.w*view_inscatter_inv_range;
     if (tcZ_sq > 1)
       return;
 

@@ -1523,7 +1523,7 @@ void ObjectEditor::fillToolBar(PropertyContainerControlBase *toolbar)
 void ObjectEditor::showPanel()
 {
   if (!objectPropBar)
-    EDITORCORE->addPropPanel(PROPBAR_EDITOR_WTYPE, PROPBAR_WIDTH);
+    EDITORCORE->addPropPanel(PROPBAR_EDITOR_WTYPE, hdpi::_pxScaled(PROPBAR_WIDTH));
   else
     EDITORCORE->removePropPanel(objectPropBar->getPanel()->getParentWindowHandle());
 }

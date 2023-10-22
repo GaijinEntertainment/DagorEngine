@@ -125,9 +125,6 @@ void setColorScale(real scale);
 
 void setD3dWtm(const TMatrix &tm);
 
-void getViewToWorldTm(TMatrix &tm);
-void getGlobTm(TMatrix4 &tm);
-
 int registerStdParticleCustomShader(const char *name, bool optional = false);
 void setStdParticleCustomShader(int id);
 

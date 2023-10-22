@@ -24,8 +24,8 @@ void VirtualResourceRequestBase::texture(const Texture2dCreateInfo &info)
   desc.mipLevels = info.mipLevels;
   res.type = ResourceType::Texture;
   res.creationInfo = ResourceDescription{desc};
-  if (auto r = eastl::get_if<AutoResolution>(&info.resolution); r && r->type)
-    res.resolution = AutoResolutionData{registry->knownAutoResolutionTypeNames.addNameId(r->type), r->multiplier};
+  if (auto r = eastl::get_if<AutoResolutionRequest>(&info.resolution); r)
+    res.resolution = AutoResolutionData{r->autoResTypeId, r->multiplier};
   else
     res.resolution = eastl::nullopt;
 }
@@ -63,7 +63,7 @@ static void bind_to_shader_var_impl(const char *shader_var_name, ResUid res_uid,
   const Binding &binding_info)
 {
   if (shader_var_name == nullptr)
-    shader_var_name = registry->knownResourceNames.getNameCstr(res_uid.resId);
+    shader_var_name = registry->knownNames.getShortName(res_uid.resId);
 
   // NOTE: The only point in using get_shader_variable_id is that it
   // logerrs if the variable was optional but not found. We cannot do
@@ -77,7 +77,7 @@ static void bind_to_shader_var_impl(const char *shader_var_name, ResUid res_uid,
   {
     logerr("Encountered duplicate shader var '%s' binding requests within"
            " '%s' frame graph node! Ignoring one of them!",
-      shader_var_name, registry->knownNodeNames.getName(node_id));
+      shader_var_name, registry->knownNames.getName(node_id));
     return;
   }
   bindings[svId] = binding_info;
@@ -90,7 +90,7 @@ static void bind_as_view_impl(NodeNameId node_id, InternalRegistry *registry, co
   {
     logerr("Encountered duplicate view matrix binding requests within"
            " '%s' frame graph node! Ignoring one of them!",
-      registry->knownNodeNames.getName(node_id));
+      registry->knownNames.getName(node_id));
     return;
   }
   bindings[FAKE_ID_FOR_VIEW_MATRIX_BINDINGS] = binding_info;
@@ -103,7 +103,7 @@ static void bind_as_proj_impl(NodeNameId node_id, InternalRegistry *registry, co
   {
     logerr("Encountered duplicate proj matrix binding requests within"
            " '%s' frame graph node! Ignoring one of them!",
-      registry->knownNodeNames.getName(node_id));
+      registry->knownNames.getName(node_id));
     return;
   }
   bindings[FAKE_ID_FOR_PROJ_MATRIX_BINDINGS] = binding_info;

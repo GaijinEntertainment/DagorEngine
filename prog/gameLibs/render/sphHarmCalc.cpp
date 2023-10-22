@@ -332,11 +332,11 @@ bool SphHarmCalc::processFaceDataGpu(Texture *texture, const int face, int width
   if (groupsToRun != previousRunSize)
   {
     harmonicsPreSum.reset();
-    harmonicsPreSum.reset(d3d_buffers::create_ua_sr_structured(sizeof(HarmCoefs), groupsToRun, "harmonicsValues"));
+    harmonicsPreSum.reset(d3d::buffers::create_ua_sr_structured(sizeof(HarmCoefs), groupsToRun, "harmonicsValues"));
     previousRunSize = groupsToRun;
 
     if (!harmonicsSum)
-      harmonicsSum.reset(d3d_buffers::create_ua_structured_readback(sizeof(HarmCoefs), 1, "harmonicsValues"));
+      harmonicsSum.reset(d3d::buffers::create_ua_structured_readback(sizeof(HarmCoefs), 1, "harmonicsValues"));
   }
   d3d::set_rwbuffer(STAGE_CS, 0, harmonicsPreSum.get());
 
@@ -505,16 +505,12 @@ void SphHarmCalc::reset()
   valid = true;
 
   auto driverDesc = d3d::get_driver_desc();
-  bool init_compute = (driverDesc.fshver & DDFSH_5_0) && !driverDesc.issues.hasComputeTimeLimited;
-#if _TARGET_IOS
-  init_compute = false; // compute version hangs mobile gpu
-#elif _TARGET_PC_MACOSX
-  if (d3d::get_driver_code() == _MAKE4C('VULK'))
-    init_compute = false; // Mac+Vulkan has problems with compute version
-  // on some intel drivers it fails to create pipeline state on mac
-  if (d3d_get_gpu_cfg().primaryVendor == D3D_VENDOR_INTEL)
-    init_compute = false;
-#endif
+  bool init_compute = d3d::get_driver_code()
+                        .map(d3d::iOS, false)                   // compute version hangs mobile gpu
+                        .map(d3d::macOSX && d3d::vulkan, false) // Mac+Vulkan has problems with compute version
+                        .map(d3d::macOSX, d3d_get_gpu_cfg().primaryVendor != D3D_VENDOR_INTEL) // on some intel drivers it fails to
+                                                                                               // create pipeline state on mac
+                        .map(d3d::any, driverDesc.shaderModel >= 5.0_sm && !driverDesc.issues.hasComputeTimeLimited);
 
   if (init_compute)
   {

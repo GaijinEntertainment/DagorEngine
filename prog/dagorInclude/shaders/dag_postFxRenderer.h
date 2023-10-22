@@ -24,7 +24,7 @@ public:
   explicit PostFxRenderer(const char *shader_name);
 
   void clear();
-  void init(const char *shader_name, const char *mat_script = NULL, bool do_fatal = true);
+  void init(const char *shader_name);
 
   // Use to set shader params.
   ShaderMaterial *getMat() { return shmat; }
@@ -42,10 +42,9 @@ protected:
 };
 
 
-inline PostFxRenderer *create_postfx_renderer(const char *shader_name, bool do_fatal)
+inline PostFxRenderer *create_postfx_renderer(const char *shader_name)
 {
-  PostFxRenderer *r = new PostFxRenderer();
-  r->init(shader_name, NULL, do_fatal);
+  PostFxRenderer *r = new PostFxRenderer(shader_name);
   if (!r->getMat())
     del_it(r);
   return r;

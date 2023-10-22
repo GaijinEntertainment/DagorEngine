@@ -288,7 +288,7 @@ public:
 
 public:
   void startSim(real dt, bool wake_up_thread = true);
-  bool fetchSimRes(bool wait);
+  bool fetchSimRes(bool wait, PhysBody * = nullptr);
 
   constexpr bool canExecActionNow() const { return true; }
   void addAfterPhysAction(AfterPhysUpdateAction *) {}
@@ -337,7 +337,7 @@ public:
   PhysJoint *createSphericalJoint(PhysBody * /*body1*/, PhysBody * /*body2*/, const Point3 & /*pos*/, const Point3 & /*dir*/,
     const Point3 & /*axis*/, real /*min_ang*/, real /*max_ang*/, real /*min_rest*/, real /*max_rest*/, real /*sw_val*/,
     real /*sw_rest*/, real /*spring*/, real /*damp*/, real /*sw_spr*/, real /*sw_damp*/, real /*tw_spr*/, real /*tw_damp*/,
-    short /*proj_type*/, real /*proj_dist*/, short /*flags*/, real /*sleep_threshold*/)
+    short /*proj_type*/, real /*proj_dist*/, short /*flags*/, real /*sleep_threshold*/ = 8.f)
   {
     return NULL;
   }
@@ -368,7 +368,8 @@ public:
 
   void updateContactReports();
 
-  void setNumSubSteps(int num_sub_steps) { numSubSteps = num_sub_steps; }
+  void setMaxSubSteps(int num_sub_steps) { maxSubSteps = num_sub_steps; }
+  void setFixedTimeStep(float fts) { fixedTimeStep = fts; }
 
   static JPH::PhysicsSystem *getScene() { return jolt_api::physicsSystem; }
 
@@ -474,7 +475,8 @@ public:
   }
 
 protected:
-  int numSubSteps = 1;
+  int maxSubSteps = 3;
+  float fixedTimeStep = 1.f / 60.f;
 
   // materials
   Tab<Material> materials;

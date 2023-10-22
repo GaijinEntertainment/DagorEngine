@@ -8,15 +8,15 @@ let function Color(r,g,b,a=255) {
 }
 
 let timeoutStub = function(timeout, func){
-  assert([type(0),type(0.0)].indexof(type(timeout))!=null, "timeout should number")
-  assert(type(func)==type(type), "function should be function")
+  assert([type(0),type(0.0)].indexof(type(timeout))!=null, "timeout should be number")
+  assert(type(func)==type(type), "timer should be function")
   func()
 }
 
 let setTimeout = dw?.setTimeout ?? timeoutStub
 let resetTimeout = dw?.resetTimeout ?? timeoutStub
 let setInterval = dw?.setInterval ?? timeoutStub
-let clearTimer = dw?.clearTimer ?? @(func) assert(type(func)==type(type), "function should be function")
+let clearTimer = dw?.clearTimer ?? @(func) assert(type(func)==type(type), "timer should be function")
 
 let Element = class {
   function getScreenPosX(){return 0;}

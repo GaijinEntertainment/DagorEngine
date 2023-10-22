@@ -67,8 +67,8 @@ namespace das
             failed = walker.locked;
         }
         if ( failed ) {
-            LineInfo atProblem = rtti_get_line_info(2,&context,(LineInfoArg *) &node->debugInfo);
-            context.throw_error_at(atProblem, "object contains locked elements and can't be resized");
+            LineInfo atProblem = rtti_get_line_info(1,&context,(LineInfoArg *) &node->debugInfo);
+            context.throw_error_at(&atProblem, "object <%s> contains locked elements and can't be resized", debug_type(typeInfo).c_str());
         }
         return v_zero();
     }

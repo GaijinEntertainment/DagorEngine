@@ -122,7 +122,7 @@ public:
     flags |= SBCF_MAYBELOST;
     Sbuffer *stagingBuf = 0;
     if (d3d::get_driver_desc().caps.hasNoOverwriteOnShaderResourceBuffers &&
-        !(d3d::get_driver_code() == _MAKE4C('DX11') && (flags & SBCF_MISC_DRAWINDIRECT)))
+        !(d3d::get_driver_code().is(d3d::dx11) && (flags & SBCF_MISC_DRAWINDIRECT)))
       flags |= SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE;
     else // not optimal, since we allocate in gpu memory too much. todo: optimize
     {

@@ -226,6 +226,9 @@ namespace das {
     }
 
     bool Structure::isCompatibleCast ( const Structure & castS ) const {
+        if (this == &castS) {
+            return true;
+        }
         if ( castS.fields.size() < fields.size() ) {
             return false;
         }
@@ -3042,27 +3045,29 @@ namespace das {
     }
 
     void Program::optimize(TextWriter & logs, ModuleGroup & libGroup) {
-        const bool log = options.getBoolOption("log_optimization_passes",false);
+        bool logOpt = options.getBoolOption("log_optimization",false);
+        bool logPass = options.getBoolOption("log_optimization_passes",false);
+        bool log = logOpt || logPass;
         bool any, last;
         if (log) {
             logs << *this << "\n";
         }
         do {
-            if ( log ) logs << "OPTIMIZE:\n" << *this;
+            if ( log ) logs << "OPTIMIZE:\n"; if ( logPass ) logs << *this;
             any = false;
             last = optimizationRefFolding();    if ( failed() ) break;  any |= last;
-            if ( log ) logs << "REF FOLDING: " << (last ? "optimized" : "nothing") << "\n" << *this;
+            if ( log ) logs << "REF FOLDING: " << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
             last = optimizationUnused(logs);    if ( failed() ) break;  any |= last;
-            if ( log ) logs << "REMOVE UNUSED:" << (last ? "optimized" : "nothing") << "\n" << *this;
+            if ( log ) logs << "REMOVE UNUSED:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
             last = optimizationConstFolding();  if ( failed() ) break;  any |= last;
-            if ( log ) logs << "CONST FOLDING:" << (last ? "optimized" : "nothing") << "\n" << *this;
+            if ( log ) logs << "CONST FOLDING:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
             last = optimizationCondFolding();  if ( failed() ) break;  any |= last;
-            if ( log ) logs << "COND FOLDING:" << (last ? "optimized" : "nothing") << "\n" << *this;
+            if ( log ) logs << "COND FOLDING:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
             last = optimizationBlockFolding();  if ( failed() ) break;  any |= last;
-            if ( log ) logs << "BLOCK FOLDING:" << (last ? "optimized" : "nothing") << "\n" << *this;
+            if ( log ) logs << "BLOCK FOLDING:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
             // this is here again for a reason
             last = optimizationUnused(logs);    if ( failed() ) break;  any |= last;
-            if ( log ) logs << "REMOVE UNUSED:" << (last ? "optimized" : "nothing") << "\n" << *this;
+            if ( log ) logs << "REMOVE UNUSED:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
             // now, user macros
             last = false;
             auto modMacro = [&](Module * mod) -> bool {    // we run all macros for each module
@@ -3083,7 +3088,7 @@ namespace das {
             libGroup.foreach(modMacro,"*");
             if ( failed() ) break;
             any |= last;
-            if ( log ) logs << "MACROS:" << (last ? "optimized" : "nothing") << "\n" << *this;
+            if ( log ) logs << "MACROS:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
         } while ( any );
     }
 }

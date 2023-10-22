@@ -34,11 +34,11 @@ Sources =
 ;
 
 UseProgLibs +=
-  engine2/memory
-  engine2/kernel
-  engine2/osApiWrappers
-  engine2/baseUtil
-  engine2/perfMon/daProfilerStub
+  engine/memory
+  engine/kernel
+  engine/osApiWrappers
+  engine/baseUtil
+  engine/perfMon/daProfilerStub
 
   3rdPartyLibs/eastl
   3rdPartyLibs/unittest-cpp

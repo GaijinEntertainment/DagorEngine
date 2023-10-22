@@ -112,16 +112,16 @@ template <class CB>
 inline bool StaticSceneRayTracerT<FI>::getVecFacesCachedNode(const StaticSceneRayTracerT<FI>::Node *node, CB &ctx)
 {
   G_STATIC_ASSERT(sizeof(StaticSceneRayTracerT<FI>::Node) ==
-                  sizeof(Point3) + sizeof(real) + sizeof(PatchablePtr<Node>) /* bsr2 should be after bsc */);
-  vec4f boundingSph = v_ldu(&node->bsc.x);
+                  sizeof(Point3) + sizeof(real) + 2 * sizeof(PatchablePtr<Node>) /* bsr2 should be after bsc */);
+  vec4f boundingSph = v_ld(&node->bsc.x);
   if (!v_bbox3_test_sph_intersect(ctx.get_wbox(), boundingSph, v_splat_w(boundingSph)))
     return true;
-  if (node->sub0)
+  if (node->isNode())
   {
     // branch node
-    if (!getVecFacesCachedNode(node->sub0, ctx))
+    if (!getVecFacesCachedNode(node->getLeft(), ctx))
       return false;
-    return getVecFacesCachedNode(((BNode *)node)->sub1, ctx);
+    return getVecFacesCachedNode(node->getRight(), ctx);
   }
   else
     return getVecFacesCachedLNode(*(const LNode *)node, ctx);
@@ -131,8 +131,8 @@ template <typename FI>
 template <class CB>
 inline bool StaticSceneRayTracerT<FI>::getVecFacesCachedLNode(const StaticSceneRayTracerT<FI>::LNode &node, CB &ctx)
 {
-  const FaceIndex *__restrict fIndices = node.faceIndexStart;
-  const FaceIndex *__restrict fIndicesEnd = node.faceIndexEnd;
+  const FaceIndex *__restrict fIndices = node.getFaceIndexStart();
+  const FaceIndex *__restrict fIndicesEnd = node.getFaceIndexEnd();
 
   for (; fIndices < fIndicesEnd; ++fIndices)
   {

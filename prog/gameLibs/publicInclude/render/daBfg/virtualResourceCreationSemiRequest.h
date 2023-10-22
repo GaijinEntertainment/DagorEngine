@@ -58,27 +58,27 @@ public:
   /**
    * \name Buffer methods
    * \details The buffer naming convention repeats the one in the d3d driver
-   * interface, see functions in namespace \inlinerst :cpp:type:`d3d_buffers` \endrst
+   * interface, see functions in namespace \inlinerst :cpp:type:`d3d::buffers` \endrst
    */
   ///@{
 
   VirtualResourceRequest<Sbuffer, RRP::None> bufferCb(uint32_t register_count) &&
   {
-    BufferCreateInfo ci{d3d_buffers::CBUFFER_REGISTER_SIZE, register_count, SBCF_CB_ONE_FRAME, 0};
+    BufferCreateInfo ci{d3d::buffers::CBUFFER_REGISTER_SIZE, register_count, SBCF_CB_ONE_FRAME, 0};
     Base::buffer(ci);
     return {resUid, nodeId, registry};
   }
 
   VirtualResourceRequest<Sbuffer, RRP::None> byteAddressBufferUaSr(uint32_t size_in_dwords) &&
   {
-    BufferCreateInfo ci{d3d_buffers::BYTE_ADDRESS_ELEMENT_SIZE, size_in_dwords, SBCF_UA_SR_BYTE_ADDRESS, 0};
+    BufferCreateInfo ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE, size_in_dwords, SBCF_UA_SR_BYTE_ADDRESS, 0};
     Base::buffer(ci);
     return {resUid, nodeId, registry};
   }
 
   VirtualResourceRequest<Sbuffer, RRP::None> byteAddressBufferUa(uint32_t size_in_dwords) &&
   {
-    BufferCreateInfo ci{d3d_buffers::BYTE_ADDRESS_ELEMENT_SIZE, size_in_dwords, SBCF_UA_BYTE_ADDRESS, 0};
+    BufferCreateInfo ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE, size_in_dwords, SBCF_UA_BYTE_ADDRESS, 0};
     Base::buffer(ci);
     return {resUid, nodeId, registry};
   }
@@ -99,16 +99,17 @@ public:
     return {resUid, nodeId, registry};
   }
 
-  VirtualResourceRequest<Sbuffer, RRP::None> indirectBufferUa(d3d_buffers::Indirect indirect_type, uint32_t call_count) &&
+  VirtualResourceRequest<Sbuffer, RRP::None> indirectBufferUa(d3d::buffers::Indirect indirect_type, uint32_t call_count) &&
   {
-    BufferCreateInfo ci{d3d_buffers::BYTE_ADDRESS_ELEMENT_SIZE, call_count * dword_count_per_call(indirect_type), SBCF_UA_INDIRECT, 0};
+    BufferCreateInfo ci{
+      d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE, call_count * dword_count_per_call(indirect_type), SBCF_UA_INDIRECT, 0};
     Base::buffer(ci);
     return {resUid, nodeId, registry};
   }
 
-  VirtualResourceRequest<Sbuffer, RRP::None> indirectBuffer(d3d_buffers::Indirect indirect_type, uint32_t call_count) &&
+  VirtualResourceRequest<Sbuffer, RRP::None> indirectBuffer(d3d::buffers::Indirect indirect_type, uint32_t call_count) &&
   {
-    BufferCreateInfo ci{d3d_buffers::BYTE_ADDRESS_ELEMENT_SIZE, call_count * dword_count_per_call(indirect_type), SBCF_INDIRECT, 0};
+    BufferCreateInfo ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE, call_count * dword_count_per_call(indirect_type), SBCF_INDIRECT, 0};
     Base::buffer(ci);
     return {resUid, nodeId, registry};
   }

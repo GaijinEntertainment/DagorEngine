@@ -1,0 +1,62 @@
+Root           ?= ../../../.. ;
+Location        = prog/3rdPartyLibs/ozz ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/ozz.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)/include
+  $(Root)/$(Location)/src
+;
+
+
+Sources =
+
+  src/base/memory/allocator.cc
+  src/base/platform.cc
+  src/base/log.cc
+  src/base/containers/string_archive.cc
+  src/base/io/archive.cc
+  src/base/io/stream.cc
+  src/base/maths/box.cc
+  src/base/maths/simd_math.cc
+  src/base/maths/math_archive.cc
+  src/base/maths/soa_math_archive.cc
+  src/base/maths/simd_math_archive.cc
+
+  src/options/options.cc
+
+  src/animation/offline/raw_animation.cc
+  src/animation/offline/raw_animation_archive.cc
+  src/animation/offline/raw_animation_utils.cc
+  src/animation/offline/animation_builder.cc
+  src/animation/offline/animation_optimizer.cc
+  src/animation/offline/additive_animation_builder.cc
+  src/animation/offline/raw_skeleton.cc
+  src/animation/offline/raw_skeleton_archive.cc
+  src/animation/offline/skeleton_builder.cc
+  src/animation/offline/raw_track.cc
+  src/animation/offline/track_builder.cc
+  src/animation/offline/track_optimizer.cc
+
+
+  src/animation/runtime/animation.cc
+  src/animation/runtime/animation_utils.cc
+  src/animation/runtime/blending_job.cc
+  src/animation/runtime/ik_aim_job.cc
+  src/animation/runtime/ik_two_bone_job.cc
+  src/animation/runtime/local_to_model_job.cc
+  src/animation/runtime/sampling_job.cc
+  src/animation/runtime/skeleton.cc
+  src/animation/runtime/skeleton_utils.cc
+  src/animation/runtime/track.cc
+  src/animation/runtime/track_sampling_job.cc
+  src/animation/runtime/track_triggering_job.cc
+
+  src/geometry/runtime/skinning_job.cc
+
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

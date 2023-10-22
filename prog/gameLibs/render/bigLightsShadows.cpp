@@ -116,7 +116,11 @@ void BigLightsShadows::render(const DPoint3 *world_pos, const Point4 *pos_rad, u
 
   ShaderGlobal::set_int(shadow_frameVarId, frame);
 
-  set_reprojection(prevWorldPos, prevGlobTm, prevViewVecLT, prevViewVecRT, prevViewVecLB, prevViewVecRB, world_pos);
+  TMatrix viewTm;
+  TMatrix4 projTm;
+  d3d::gettm(TM_VIEW, viewTm);
+  d3d::gettm(TM_PROJ, &projTm);
+  set_reprojection(viewTm, projTm, prevWorldPos, prevGlobTm, prevViewVecLT, prevViewVecRT, prevViewVecLB, prevViewVecRB, world_pos);
   if (cnt == 0)
   {
     d3d::set_render_target(targetTex[current].getTex2D(), 0);

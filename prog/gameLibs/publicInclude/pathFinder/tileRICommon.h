@@ -6,7 +6,7 @@
 #pragma once
 
 #include <EASTL/unique_ptr.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstCollision.h>
 #include <gameRes/dag_collisionResource.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <util/dag_bitArray.h>
@@ -31,7 +31,7 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
     Tab<vec4f> vertices; // with ident instance tm
     Tab<int> indices;
 
-    bool operator==(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info) const
+    bool operator==(const rendinst::CollisionInfo &coll_info) const
     {
       return coll_info.desc.isRiExtra() == desc.isRiExtra() && coll_info.desc.pool == desc.pool;
     }
@@ -47,13 +47,13 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
       indices.reserve(indices.size() + node->indices.size());
       for (int i = 0, size = node->indices.size() / 3; i < size; ++i)
       {
-        indices.push_back(idxBase + int(node->indices[i * 3 + 2]));
-        indices.push_back(idxBase + int(node->indices[i * 3 + 1]));
         indices.push_back(idxBase + int(node->indices[i * 3 + 0]));
+        indices.push_back(idxBase + int(node->indices[i * 3 + 1]));
+        indices.push_back(idxBase + int(node->indices[i * 3 + 2]));
       }
     }
 
-    void build(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info)
+    void build(const rendinst::CollisionInfo &coll_info)
     {
       if (!coll_info.collRes)
         return;
@@ -127,7 +127,7 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
   };
 
   Tab<RiData *> riCache;
-  Tab<rendinst::RendInstCollisionCB::CollisionInfo> collCache;
+  Tab<rendinst::CollisionInfo> collCache;
 
   RendinstVertexDataCbBase(Tab<Point3> &verts, Tab<int> &inds, Bitarray &pools, ska::flat_hash_map<int, uint32_t> &obstaclePools,
     ska::flat_hash_map<int, uint32_t> &materialPools, ska::flat_hash_map<int, float> &navMeshOffsetPools) :
@@ -140,7 +140,7 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
   {}
   ~RendinstVertexDataCbBase() { clear_all_ptr_items(riCache); }
 
-  void pushCollision(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info)
+  void pushCollision(const rendinst::CollisionInfo &coll_info)
   {
     if (!coll_info.collRes)
       return;
@@ -167,13 +167,13 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
 
   void procAllCollision()
   {
-    for (const rendinst::RendInstCollisionCB::CollisionInfo &coll : collCache)
+    for (const rendinst::CollisionInfo &coll : collCache)
       processCollision(coll);
   }
 
-  virtual void processCollision(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info) = 0;
+  virtual void processCollision(const rendinst::CollisionInfo &coll_info) = 0;
 
-  virtual void addCollisionCheck(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info) { pushCollision(coll_info); }
-  virtual void addTreeCheck(const rendinst::RendInstCollisionCB::CollisionInfo &coll_info) { pushCollision(coll_info); }
+  virtual void addCollisionCheck(const rendinst::CollisionInfo &coll_info) { pushCollision(coll_info); }
+  virtual void addTreeCheck(const rendinst::CollisionInfo &coll_info) { pushCollision(coll_info); }
 };
 } // namespace rendinst

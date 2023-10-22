@@ -26,7 +26,8 @@
 #include <perfMon/dag_statDrv.h>
 
 #include <de3_interface.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstGenRender.h>
+#include <rendInst/rendInstExtra.h>
 
 #include <EASTL/algorithm.h>
 #include <EASTL/sort.h>
@@ -245,7 +246,7 @@ static void perform_padding(const PostFxRenderer &padder, ImpostorBaker::Imposto
 {
   SCOPE_RENDER_TARGET;
   TIME_D3D_PROFILE(impostor_padding);
-  d3d::set_render_target({nullptr, 0}, true,
+  d3d::set_render_target({nullptr, 0}, DepthAccess::SampledRO,
     {{destination.albedo_alpha.getTex2D(), mip}, {destination.normal_translucency.getTex2D(), mip},
       {destination.ao_smoothness.getTex2D(), mip}});
   TextureInfo info;
@@ -337,7 +338,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
     for (int h = 0; h < gen_data.horizontalSamples; ++h, ++sliceId)
     {
       TIME_D3D_PROFILE(mask_impostor_slice);
-      d3d::set_buffer(STAGE_VS, rendinstgenrender::INSTANCING_TEXREG, objectsBuffer.getBuf());
+      d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, objectsBuffer.getBuf());
       get_impostor_texture_mgr()->setTreeCrownDataBuf(treeCrown.getBuf());
       if (gen_data.octahedralImpostor)
         get_impostor_texture_mgr()->generate_mask_octahedral(h, v, gen_data, res, maskRt.get(), impostorMask.getTex2D());
@@ -447,7 +448,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
       {
         TIME_D3D_PROFILE(render_slice);
         SCOPE_RENDER_TARGET;
-        d3d::set_buffer(STAGE_VS, rendinstgenrender::INSTANCING_TEXREG, objectsBuffer.getBuf());
+        d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, objectsBuffer.getBuf());
         get_impostor_texture_mgr()->setTreeCrownDataBuf(treeCrown.getBuf());
         get_impostor_texture_mgr()->start_rendering_slices(rt.get());
         d3d::setview(0, 0, get_rt_extent(gen_data).x, get_rt_extent(gen_data).y, 0, 1);
@@ -464,7 +465,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
       {
         TIME_D3D_PROFILE(pack_slice);
         SCOPE_RENDER_TARGET;
-        d3d::set_render_target({nullptr, 0}, true,
+        d3d::set_render_target({nullptr, 0}, DepthAccess::SampledRO,
           {{packedTextures.albedo_alpha.getTex2D(), 0}, {packedTextures.normal_translucency.getTex2D(), 0},
             {packedTextures.ao_smoothness.getTex2D(), 0}});
         d3d::setview(0, 0, gen_data.textureWidth, gen_data.textureHeight, 0, 1);
@@ -499,7 +500,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
   {
     SCOPE_RENDER_TARGET;
     TIME_D3D_PROFILE(postprocess_impostor);
-    d3d::set_render_target({nullptr, 0}, true,
+    d3d::set_render_target({nullptr, 0}, DepthAccess::SampledRO,
       {{prePaddingTextures.albedo_alpha.getTex2D(), 0}, {prePaddingTextures.normal_translucency.getTex2D(), 0},
         {prePaddingTextures.ao_smoothness.getTex2D(), 0}});
     d3d::setview(0, 0, gen_data.textureWidth, gen_data.textureHeight, 0, 1);
@@ -517,7 +518,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
     {
       SCOPE_RENDER_TARGET;
       TIME_D3D_PROFILE(generate_mips);
-      d3d::set_render_target({nullptr, 0}, true,
+      d3d::set_render_target({nullptr, 0}, DepthAccess::SampledRO,
         {{prePaddingTextures.albedo_alpha.getTex2D(), mip}, {prePaddingTextures.normal_translucency.getTex2D(), mip},
           {prePaddingTextures.ao_smoothness.getTex2D(), mip}});
       d3d::setview(0, 0, gen_data.textureWidth >> mip, gen_data.textureHeight >> mip, 0, 1);
@@ -634,7 +635,45 @@ AOData ImpostorBaker::generateAOData(RenderableInstanceLodsResource *res, const 
   return aoData;
 }
 
-bool ImpostorBaker::saveImage(const char *filename, Texture *tex, int mip_offset, int num_channels)
+float SE3(TexPixel32 rgba1, TexPixel32 rgba2)
+{
+  float dr = (rgba1.r - rgba2.r) / 255.0;
+  float dg = (rgba1.g - rgba2.g) / 255.0;
+  float db = (rgba1.b - rgba2.b) / 255.0;
+  return (dr * dr + dg * dg + db * db);
+}
+
+float SE4(TexPixel32 rgba1, TexPixel32 rgba2)
+{
+  float da = (rgba1.a - rgba2.a) / 255.0;
+  return (SE3(rgba1, rgba2) + da * da);
+}
+
+// TODO: use SSIM or LPIPS
+float PSNR(float mse, float maxVal) { return 10.f * log10(maxVal * maxVal / mse); }
+
+float ImpostorBaker::compareImages(TexImage32 *img1, TexImage32 *img2, int num_channels)
+{
+  G_ASSERT(img1->w == img2->w && img1->h == img2->h);
+  size_t xoffset = 0;
+  float se = 0;
+  for (size_t y = 0; y < img1->h; ++y)
+  {
+    for (size_t x = 0; x < img1->w; ++x)
+    {
+      const size_t idx = y * size_t(img1->w) + (x + xoffset);
+      auto c1 = img1->getPixels()[idx];
+      auto c2 = img2->getPixels()[idx];
+      se += (num_channels == 4) ? SE4(c1, c2) : SE3(c1, c2);
+    }
+  }
+  se = se / (float(img1->w) * float(img1->h) * num_channels);
+  float similarity = PSNR(se + 1e-8, 1.0);
+  return similarity;
+}
+
+SaveResult ImpostorBaker::saveImage(const char *filename, Texture *tex, int mip_offset, int num_channels, float &similarity,
+  float threshold)
 {
   modifiedFiles.insert(filename);
   int mips = tex->level_count();
@@ -684,19 +723,25 @@ bool ImpostorBaker::saveImage(const char *filename, Texture *tex, int mip_offset
         }
       }
       if (!tex->unlockimg())
-        return false;
+        return SaveResult::FAILED;
     }
     else
-      return false;
+      return SaveResult::FAILED;
     xoffset += mipW;
   }
+  eastl::unique_ptr<TexImage32> image_old;
+  if (dd_file_exists(filename))
+    image_old.reset(load_tiff32(filename, tmpmem, nullptr));
+  if (image_old.get() && (similarity = compareImages(image.get(), image_old.get(), numExportedChannels)) > threshold)
+    return SaveResult::SKIPPED;
+
   if (numExportedChannels == 4)
-    return save_tiff32(filename, image.get());
+    return save_tiff32(filename, image.get()) ? SaveResult::OK : SaveResult::FAILED;
   else if (numExportedChannels == 3)
-    return save_tiff24(filename, image.get());
+    return save_tiff24(filename, image.get()) ? SaveResult::OK : SaveResult::FAILED;
   else
     G_ASSERTF(false, "Can't save tiff with %d channels", numExportedChannels);
-  return false;
+  return SaveResult::FAILED;
 }
 
 ImpostorBaker::ImpostorTextureData ImpostorBaker::prepareRt(IPoint2 extent, String asset_name, int mips) noexcept
@@ -892,21 +937,35 @@ ImpostorBaker::ImpostorData ImpostorBaker::exportToFile(const ImpostorTextureMan
   ::dd_mkpath(outFolder.c_str());
 
   String name(0, "%s", asset->getName());
+  String filename;
 
   const IPoint2 extent = get_extent(gen_data);
 
+  float minPSNR = similarityThreshold;
   bool ret = true;
-  ret =
-    ret && saveImage((outFolder + name + "_" + ALBEDO_ALPHA_NAME + ".tiff").c_str(), impostor.textures.albedo_alpha.getTex2D(), 0, 4);
-  ret = ret && saveImage((outFolder + name + "_" + NORMAL_TRANSLUCENCY_NAME + ".tiff").c_str(),
-                 impostor.textures.normal_translucency.getTex2D(), normalMipOffset, 4);
-  ret = ret && saveImage((outFolder + name + "_" + AO_SMOOTHNESS_NAME + ".tiff").c_str(), impostor.textures.ao_smoothness.getTex2D(),
-                 aoSmoothnessMipOffset, 2);
-  ret = ret && generateAssetTexBlk(asset, gen_data, outFolder.c_str(), name.c_str());
-  if (ret)
-    return impostor;
-  else
+
+  filename = (name + "_" + ALBEDO_ALPHA_NAME + ".tiff").c_str();
+  impostor.quality.albedoAlphaBaked = saveImage((outFolder + filename).c_str(), impostor.textures.albedo_alpha.getTex2D(), 0, 4,
+    impostor.quality.albedoAlphaSimilarity, minPSNR);
+  if (impostor.quality.albedoAlphaBaked == SaveResult::FAILED)
     return {};
+
+  filename = (name + "_" + NORMAL_TRANSLUCENCY_NAME + ".tiff");
+  impostor.quality.normalTranslucencyBaked = saveImage((outFolder + filename).c_str(),
+    impostor.textures.normal_translucency.getTex2D(), normalMipOffset, 4, impostor.quality.normalTranslucencySimilarity, minPSNR);
+  if (impostor.quality.normalTranslucencyBaked == SaveResult::FAILED)
+    return {};
+
+  filename = (name + "_" + AO_SMOOTHNESS_NAME + ".tiff").c_str();
+  impostor.quality.aoSmoothnessBaked = saveImage((outFolder + filename).c_str(), impostor.textures.ao_smoothness.getTex2D(),
+    aoSmoothnessMipOffset, 2, impostor.quality.aoSmoothnessSimilarity, minPSNR);
+  if (impostor.quality.aoSmoothnessBaked == SaveResult::FAILED)
+    return {};
+
+  if (!generateAssetTexBlk(asset, gen_data, outFolder.c_str(), name.c_str()))
+    return {};
+
+  return impostor;
 }
 
 void ImpostorBaker::gatherExportedFiles(DagorAsset *asset, eastl::set<String, StrLess> &files) const
@@ -1179,3 +1238,5 @@ void ImpostorBaker::setAOFalloffStart(float ao_falloff_start) { aoFalloffStart =
 void ImpostorBaker::setAOFalloffStop(float ao_falloff_stop) { aoFalloffStop = ao_falloff_stop; }
 
 void ImpostorBaker::setDDSXMaxTexturesNum(int ddsx_max_textures_num) { ddsxMaxTexturesNum = ddsx_max_textures_num; }
+
+void ImpostorBaker::setSimilarityThreshold(float similarity_threshold) { similarityThreshold = similarity_threshold; }

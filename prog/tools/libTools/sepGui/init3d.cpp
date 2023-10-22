@@ -134,11 +134,6 @@ bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming)
   if (!d3d::init_video(win32_get_instance(), NULL, NULL, 0, handle, handle, 0, "", NULL))
     return false;
 
-  if (!(d3d::get_driver_desc().fshver & (DDFSH_3_0 | DDFSH_4_0 | DDFSH_5_0)))
-  {
-    debug("no pixel shader support");
-    return false;
-  }
   ShowWindow((HWND)handle, 0); // should not be needed unless d3d::init_video() forces WS_VISIBLE
 
   ::dagor_common_startup();

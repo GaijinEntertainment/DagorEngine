@@ -29,7 +29,7 @@ namespace das {
     // gives combined region for all subexpressions
     LineInfo encloseAt ( const ExpressionPtr & expr );
 
-    // replaces all occurences of block argument name
+    // replaces all occurrences of block argument name
     void renameBlockArgument ( ExprBlock * block, const string & name, const string & newName );
 
     /*

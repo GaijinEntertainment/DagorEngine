@@ -7,7 +7,6 @@ buffer dafx_global_data;
 buffer dafx_system_data;
 buffer dafx_render_calls;
 buffer dafx_dispatch_descs;
-float4 dafx_screen_pos_to_tc = (1, 1, 1, 1);
 
 buffer dafx_frame_boundary_buffer;
 int dafx_frame_boundary_buffer_enabled = 0; // checking 'buf != NULL' for buffers in stcode is not working currently
@@ -220,12 +219,12 @@ endmacro
 
 
 macro DAFX_SCREEN_POS_TO_TC()
-  (ps) { dafx_screen_pos_to_tc@f4 = dafx_screen_pos_to_tc; }
+  (ps) { screenpos_to_viewport_tc@f4 = (1. / get_viewport().zw, -(get_viewport().xy / get_viewport().zw)); }
   hlsl(ps)
   {
-    float2 get_screen_tc(float2 pixel_pos)
+    float2 get_viewport_tc(float2 pixel_pos)
     {
-      return dafx_screen_pos_to_tc.xy * pixel_pos + dafx_screen_pos_to_tc.zw;
+      return pixel_pos * screenpos_to_viewport_tc.xy + screenpos_to_viewport_tc.zw;
     }
   }
 endmacro

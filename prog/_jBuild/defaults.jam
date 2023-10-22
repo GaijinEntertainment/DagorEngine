@@ -22,7 +22,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   PlatformSpec_tvOS ?= clang ;
   PlatformSpec_nswitch ?= clang ;
   PlatformSpec_android ?= clang ;
-  PlatformSpec_linux64 ?= gcc4 ;
+  PlatformSpec_linux64 ?= gcc ;
   CLangVer ?= 15.0.7 ;
   DefaultCPPStd = 17 ;
   CPPStd ?= 17 ;
@@ -445,6 +445,7 @@ if ! $(__DEFAULTS_INCLUDED) {
       out = $(out)~vmp ;
     }
     if $(ForceLogs) = yes {
+      if $(Config) != rel { Exit why set ForceLogs=$(ForceLogs) for Config=$(Config) \!\= rel  ?? ; }
       if ! -DDAGOR_FORCE_LOGS=1 in $(GlobalCPPopt) { GlobalCPPopt += -DDAGOR_FORCE_LOGS=1 ; }
       out = $(out)~log ;
     }
@@ -501,10 +502,6 @@ if ! $(__DEFAULTS_INCLUDED) {
       out = $(out)~sslsys ;
     } else if $(OpenSSLVer) != $(DefOpenSSLVer) {
       out = $(out)~ssl$(OpenSSLVer) ;
-    }
-
-    if $(Platform) in android && $(UseAndroidGameActivity) = yes {
-      out = $(out)~gact ;
     }
 
     _Output   = $(_OutputRoot)/$(out) ;

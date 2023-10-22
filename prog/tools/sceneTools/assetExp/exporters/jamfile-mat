@@ -18,9 +18,9 @@ AddIncludes =
 ;
 
 UseProgLibs =
-  engine2/startup
-  engine2/math
-  engine2/lib3d
+  engine/startup
+  engine/math
+  engine/lib3d
 
   tools/libTools/assetMgr
   tools/libTools/dagFileRW

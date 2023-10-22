@@ -357,12 +357,12 @@ shader water_nv2/*, water3d_compatibility, water_3d_decal*/
       ##if shader == water_3d_decal
         float3 pos_world = get_water_3d_decal_pos(input.pos, input.uv0, pos_world_undisplaced, Output.localUV_fade);
         //project on water
-        pos_world.y += pos_above_water(float3(pos_world.x, water_level_max_wave_wind_dir.x, pos_world.z), nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23);
+        pos_world.y += pos_above_water(float3(pos_world.x, water_level_max_wave_height.x, pos_world.z), nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23);
       ##else
         DECODE_VERTEXID_POSXZ
         float distFade;
         bool useHeightmap;
-        float3 pos_world = float3(getWorldPosXZ(posXZ, distFade, useHeightmap USED_INSTANCE_ID), water_level_max_wave_wind_dir.x);
+        float3 pos_world = float3(getWorldPosXZ(posXZ, distFade, useHeightmap USED_INSTANCE_ID), water_level_max_wave_height.x);
         pos_world_undisplaced = pos_world;
         pos_world += (getWaterDisplacement(pos_world, length(pos_world - world_view_pos.xzy), nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45) + float3(0, 0, get_wake_height(pos_world.xzy))) * distFade;
       ##endif
@@ -421,7 +421,7 @@ shader water_nv2/*, water3d_compatibility, water_3d_decal*/
     hlsl(vs) {
       VS_OUTPUT water_nv_vs(VsInput input)
       {
-        float4 worldPos = float4(input.disp1_x.w, water_level_max_wave_wind_dir.x, input.disp2_z.w, 1);
+        float4 worldPos = float4(input.disp1_x.w, water_level_max_wave_height.x, input.disp2_z.w, 1);
         float3 pos_world_undisplaced = worldPos.xzy;
         float3 nvsf_displacement = lerp(input.disp1_x.xyz, input.disp2_z.xyz, compatibility_vertex_lerp);
         float  nvsf_distance = length(world_view_pos.xzy - pos_world_undisplaced);
@@ -731,7 +731,7 @@ shader water_nv2/*, water3d_compatibility, water_3d_decal*/
     vd.farDetailsWeight = 1 - saturate(vd.dist * details_weight.z + details_weight.w);
     vd.waterColorToEnvColorKoef = saturate(In.nvsf_eye_vec.w * 2.0 - 1.0); //*2.0 - 1 means: fading from zFar*0.5 to zFar
 #if has_perlin_noise
-    float2 wind_dir = water_level_max_wave_wind_dir.zw;
+    float2 wind_dir = wind_dir_speed.xy;
     vd.perlinWind = tex2D(perlin_noise, float2(0.00011*(vd.worldPos.x*wind_dir.x-vd.worldPos.z*wind_dir.y), 0.00041*(vd.worldPos.x*wind_dir.y+vd.worldPos.z*wind_dir.x))).ga;
     vd.perlinSurf = tex2D(perlin_noise, vd.worldPos.xz * lrefl_scatter_hdr_psize.w).ga;
 #endif

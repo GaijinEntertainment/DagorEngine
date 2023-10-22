@@ -56,7 +56,7 @@ typedef bool (*OnShowIME)(const DataBlock &init_params, OnFinishIME on_finish_cb
 //! returns true when showScreenKeyboard_IME() is supported by system
 bool isImeAvailable();
 //! shows IME (screen keyboard);
-//! init_params is open-spec data container (see engine2/workCycle/ps4/orbisIME.cpp for details)
+//! init_params is open-spec data container (see engine/workCycle/ps4/orbisIME.cpp for details)
 //! supplied callback is called when input is finished;
 //! return status: 1=OK, 0=cancelled, -1=aborted
 bool showScreenKeyboard_IME(const DataBlock &init_params, OnFinishIME on_finish_cb, void *userdata);

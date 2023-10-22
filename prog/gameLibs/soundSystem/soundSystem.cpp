@@ -26,6 +26,10 @@
 #include <math/random/dag_random.h>
 #include <atomic>
 
+#if _TARGET_IOS
+#include "soundSystem_ios.h"
+#endif
+
 #if FMOD_VERSION < 0x00020100 && _TARGET_XBOX
 #include <fmod_gamecore.h>
 #define XBOX_THREAD_AFFINITY FMOD_GAMECORE_THREADAFFINITY
@@ -522,6 +526,10 @@ void init(const DataBlock &blk)
 
   debug("[SNDSYS] Inited, FMOD version is %x.%02x.%02x, %s %uK, hch %d, sch %d", major_version(g_version), minor_version(g_version),
     dev_version(g_version), memoryInfo.c_str(), g_memory_block_size >> 10, g_max_channels, g_max_software_channels);
+
+#if _TARGET_IOS
+  registerIOSNotifications(&set_snd_suspend);
+#endif
 }
 
 void shutdown()
@@ -788,6 +796,12 @@ void set_output_device(int device_id)
   ScoopedJavaThreadAttacher scoopedJavaThreadAttacher;
   FMOD_RESULT result = g_low_level_system->setDriver(device_id);
   G_ASSERTF_RETURN(FMOD_OK == result, , "[SNDSYS] FMOD error: %s", FMOD_ErrorString(result));
+}
+
+void set_snd_suspend(bool suspend)
+{
+  SNDSYS_IF_NOT_INITED_RETURN;
+  suspend ? fmodapi::get_system()->mixerSuspend() : fmodapi::get_system()->mixerResume();
 }
 
 int get_last_records_list_changed_time() { return g_last_records_list_changed_time; }

@@ -31,7 +31,6 @@ public:
   void apply(TEXTUREID source_color_tex_id, TEXTUREID source_depth_tex_id,
     const Point4 &tc_scale_offset = Point4(1.0f, 1.0f, 0.0f, 0.0f));
 
-  void applyAdaptiveSharpen(TEXTUREID source_color_tex_id);
   void setType(FxaaType type);
   void setColorMul(const Color4 &color);
 
@@ -39,6 +38,5 @@ protected:
   int sourceColorTexVarId;
   int sourceDepthTexVarId;
   PostFxRenderer *antialiasingRenderer;
-  PostFxRenderer *adaptiveSharpenRenderer;
   int fxaaHighQuality;
 };

@@ -20,8 +20,8 @@ public:
       das::SideEffects::modifyExternal, "bind_dascript::get_statsd_counter<2>::statsd_counter");
     das::addExtern<DAS_BIND_FUN(bind_dascript::get_statsd_counter<3>::statsd_counter)>(*this, lib, "statsd_counter",
       das::SideEffects::modifyExternal, "bind_dascript::get_statsd_counter<3>::statsd_counter");
-    das::addExtern<DAS_BIND_FUN(bind_dascript::statsd_profile_float)>(*this, lib, "statsd_profile", das::SideEffects::modifyExternal,
-      "bind_dascript::statsd_profile_float");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::statsd_profile_long)>(*this, lib, "statsd_profile", das::SideEffects::modifyExternal,
+      "bind_dascript::statsd_profile_long");
 
     verifyAotReady();
   }

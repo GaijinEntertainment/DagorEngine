@@ -179,13 +179,13 @@ if $(Platform) in win32 win64 xboxOne scarlett {
     crypto/ec/$(ECSourcesInt128)
   ;
 
-  if $(PlatformSpec) in gcc4 {
+  if $(PlatformSpec) in gcc {
     # false positive from gcc13 "rsaz_exp_x2.c:496:16: error: iteration 19 invokes undefined behavior"
     Copt += -Wno-aggressive-loop-optimizations ;
   }
 }
 
-if $(PlatformSpec) = gcc4 {
+if $(PlatformSpec) = gcc {
   if $(Sanitize) = thread {
     Copt += -fno-sanitize=thread ;
   }

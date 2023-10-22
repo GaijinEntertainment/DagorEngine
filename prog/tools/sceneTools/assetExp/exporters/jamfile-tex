@@ -20,14 +20,14 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/convert/nvtt-2.0.7
   $(Root)/prog/3rdPartyLibs/convert/PVRTexLib
   $(Root)/prog/3rdPartyLibs/convert/ispctexturecompressor/include
-  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 
-UseProgLibs = 
-  engine2/startup
-  engine2/image
-  engine2/math
+UseProgLibs =
+  engine/startup
+  engine/image
+  engine/math
 
   tools/libTools/assetMgr
   tools/libTools/assetMgrHlp

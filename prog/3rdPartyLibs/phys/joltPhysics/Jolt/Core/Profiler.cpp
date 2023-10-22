@@ -41,6 +41,20 @@ Profiler *Profiler::sInstance = nullptr;
 
 bool ProfileMeasurement::sOutOfSamplesReported = false;
 
+void Profiler::UpdateReferenceTime()
+{
+	mReferenceTick = GetProcessorTickCount();
+	mReferenceTime = std::chrono::high_resolution_clock::now();
+}
+
+uint64 Profiler::GetProcessorTicksPerSecond() const
+{
+	uint64 ticks = GetProcessorTickCount();
+	std::chrono::high_resolution_clock::time_point time = std::chrono::high_resolution_clock::now();
+
+	return (ticks - mReferenceTick) * 1000000000ULL / std::chrono::duration_cast<std::chrono::nanoseconds>(time - mReferenceTime).count();
+}
+
 void Profiler::NextFrame()
 {
 	std::lock_guard lock(mLock);
@@ -53,6 +67,8 @@ void Profiler::NextFrame()
 
 	for (ProfileThread *t : mThreads)
 		t->mCurrentSample = 0;
+
+	UpdateReferenceTime();
 }
 
 void Profiler::Dump(const string_view &inTag)
@@ -61,20 +77,20 @@ void Profiler::Dump(const string_view &inTag)
 	mDumpTag = inTag;
 }
 
-void Profiler::AddThread(ProfileThread *inThread)										
-{ 
-	std::lock_guard lock(mLock); 
+void Profiler::AddThread(ProfileThread *inThread)
+{
+	std::lock_guard lock(mLock);
 
-	mThreads.push_back(inThread); 
+	mThreads.push_back(inThread);
 }
 
-void Profiler::RemoveThread(ProfileThread *inThread)									
-{ 
-	std::lock_guard lock(mLock); 
-	
-	Array<ProfileThread *>::iterator i = find(mThreads.begin(), mThreads.end(), inThread); 
-	JPH_ASSERT(i != mThreads.end()); 
-	mThreads.erase(i); 
+void Profiler::RemoveThread(ProfileThread *inThread)
+{
+	std::lock_guard lock(mLock);
+
+	Array<ProfileThread *>::iterator i = find(mThreads.begin(), mThreads.end(), inThread);
+	JPH_ASSERT(i != mThreads.end());
+	mThreads.erase(i);
 }
 
 void Profiler::sAggregate(int inDepth, uint32 inColor, ProfileSample *&ioSample, const ProfileSample *inEnd, Aggregators &ioAggregators, KeyToAggregator &ioKeyToAggregator)
@@ -141,7 +157,7 @@ void Profiler::DumpInternal()
 	Threads threads;
 	for (ProfileThread *t : mThreads)
 		threads.push_back({ t->mThreadName, t->mSamples, t->mSamples + t->mCurrentSample });
-	
+
 	// Shift all samples so that the first sample is at zero
 	uint64 min_cycle = 0xffffffffffffffffUL;
 	for (const ThreadSamples &t : threads)
@@ -197,7 +213,7 @@ void Profiler::DumpList(const char *inTag, const Aggregators &inAggregators)
 	// Open file
 	std::ofstream f;
 	f.open(StringFormat("profile_list_%s.html", inTag).c_str(), std::ofstream::out | std::ofstream::trunc);
-	if (!f.is_open()) 
+	if (!f.is_open())
 		return;
 
 	// Write header
@@ -235,11 +251,11 @@ void Profiler::DumpList(const char *inTag, const Aggregators &inAggregators)
 
 	// Get cycles per second
 	uint64 cycles_per_second = GetProcessorTicksPerSecond();
-	
+
 	// Sort the list
 	Aggregators aggregators = inAggregators;
 	QuickSort(aggregators.begin(), aggregators.end());
-	
+
 	// Write all aggregators
 	for (const Aggregator &item : aggregators)
 	{
@@ -248,14 +264,14 @@ void Profiler::DumpList(const char *inTag, const Aggregators &inAggregators)
 		char str[2048];
 		snprintf(str, sizeof(str), R"(<tr>
 	<td style="text-align: left;">%s</td>
-	<td>%.1f</td>						
-	<td>%.1f</td>						
+	<td>%.1f</td>
+	<td>%.1f</td>
 	<td>%u</td>
-	<td>%.2f</td>						
-	<td>%.2f</td>						
-	<td>%.2f</td>						
-	<td>%.2f</td>						
-</tr>)", 
+	<td>%.2f</td>
+	<td>%.2f</td>
+	<td>%.2f</td>
+	<td>%.2f</td>
+</tr>)",
 			sHTMLEncode(item.mName).c_str(),															// Description
 			100.0 * item.mTotalCyclesInCallWithChildren / total_time,									// Total time with children
 			100.0 * cycles_in_call_no_children / total_time,											// Total time no children
@@ -277,7 +293,7 @@ void Profiler::DumpChart(const char *inTag, const Threads &inThreads, const KeyT
 	// Open file
 	std::ofstream f;
 	f.open(StringFormat("profile_chart_%s.html", inTag).c_str(), std::ofstream::out | std::ofstream::trunc);
-	if (!f.is_open()) 
+	if (!f.is_open())
 		return;
 
 	// Write header

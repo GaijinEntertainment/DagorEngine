@@ -18,7 +18,7 @@ float4 world_to_flowmap_heightmap = (1/32,1/32,0.5,0.5);
 float4 water_flowmap_depth = float4(1, 0.1, 0.3, 1);
 int water_flowmap_num_winds = 0;
 buffer water_flowmap_winds;
-float flowmap_gradient_scale = 1.0;
+float water_flowmap_slope = 1.0;
 float flowmap_damping = 0.5;
 
 int flowmap_height = 0;
@@ -37,7 +37,7 @@ shader water_flowmap
 
   (ps) {
     flowmap_temp_tex@smp2d = flowmap_temp_tex;
-    wind_dir_dir_scale_gradient_scale@f4 = (wind_dir_x, wind_dir_y, dir_scale*flowmap_texture_size/flowmap_texture_size_meters, flowmap_gradient_scale);
+    wind_dir_dir_scale_water_flowmap_slope@f4 = (wind_dir_x, wind_dir_y, dir_scale*flowmap_texture_size/flowmap_texture_size_meters, water_flowmap_slope);
     height_texture_size@f4 = (1.0/height_texture_size, height_texture_size, 1./flowmap_texture_size, flowmap_texture_size);
     flowmap_heightmap_tex@smp2d = flowmap_heightmap_tex;
     flowmap_heightmap_min_max@f4 = flowmap_heightmap_min_max;
@@ -63,9 +63,9 @@ shader water_flowmap
   USE_WATER_HEIGHTMAP(ps)
 
   hlsl(ps) {
-    #define wind_dir (wind_dir_dir_scale_gradient_scale.xy)
-    #define dir_scale (wind_dir_dir_scale_gradient_scale.z)
-    #define gradient_scale (wind_dir_dir_scale_gradient_scale.w)
+    #define wind_dir (wind_dir_dir_scale_water_flowmap_slope.xy)
+    #define dir_scale (wind_dir_dir_scale_water_flowmap_slope.z)
+    #define water_flowmap_slope (wind_dir_dir_scale_water_flowmap_slope.w)
     #define waterLevel (waterLevel_radius_flowmap_damping.x)
     #define flowmap_damping (waterLevel_radius_flowmap_damping.w)
 
@@ -144,7 +144,8 @@ shader water_flowmap
         get_water_height(worldPos - float2(0, 1), waterNeighbours.z);
         get_water_height(worldPos + float2(0, 1), waterNeighbours.w);
         float2 waterGradient = float2(waterNeighbours.y - waterNeighbours.x, waterNeighbours.w - waterNeighbours.z);
-        f.xy += waterGradient * gradient_scale;
+        waterGradient = clamp(waterGradient, -1, 1);
+        f.xy += waterGradient * water_flowmap_slope;
       }
 
       float speedFoam = length(f.xy) * water_flowmap_depth.y;

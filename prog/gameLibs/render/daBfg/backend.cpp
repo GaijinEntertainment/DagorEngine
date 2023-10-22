@@ -45,19 +45,24 @@ Backend::Backend()
   else
     resourceScheduler.reset(new PoolResourceScheduler(nodeTracker));
 
-  nodeExec.emplace(*resourceScheduler, intermediateGraph, irMapping, registry, currentlyProvidedResources);
+  nodeExec.emplace(*resourceScheduler, intermediateGraph, irMapping, registry, nameResolver, currentlyProvidedResources);
 }
 
 Backend::~Backend()
 {
   // CPU resources must be cleaned up gracefully when shutting down
   resourceScheduler->shutdown(frameIndex % ResourceScheduler::SCHEDULE_FRAME_WINDOW);
+  reset_texture_visualization();
 }
-
-StackRingMemAlloc<> &get_per_compilation_memalloc() { return Backend::get().perCompilationMemAlloc; }
 
 NodeTracker &NodeTracker::get() { return Backend::get().nodeTracker; }
 
+void Backend::resolveNames()
+{
+  TIME_PROFILE(resolveNames);
+  nameResolver.update();
+  currentStage = CompilationStage::REQUIRES_NODE_DATA_GATHERING;
+}
 
 void Backend::gatherNodeData()
 {
@@ -70,13 +75,13 @@ void Backend::declareNodes()
 {
   TIME_PROFILE(declareNodes);
   nodeTracker.declareNodes();
-  currentStage = CompilationStage::REQUIRES_NODE_DATA_GATHERING;
+  currentStage = CompilationStage::REQUIRES_NAME_RESOLUTION;
 }
 
 void Backend::gatherGraphIR()
 {
   TIME_PROFILE(gatherGraphIR);
-  intermediateGraph = nodeTracker.emitIR({backbufSinkResources.begin(), backbufSinkResources.end()}, currentMultiplexingExtents);
+  intermediateGraph = nodeTracker.emitIR(currentMultiplexingExtents);
 
   currentStage = CompilationStage::REQUIRES_NODE_SCHEDULING;
 }
@@ -125,10 +130,12 @@ void Backend::scheduleResources()
     if (res.resourceType != ResourceType::Texture || !res.resolutionType.has_value())
       continue;
 
-    auto [id, mult] = *res.resolutionType;
+    const auto [unresolvedId, mult] = *res.resolutionType;
 
     // Impossible situation, sanity check
-    G_ASSERT_CONTINUE(id != AutoResTypeNameId::Invalid);
+    G_ASSERT_CONTINUE(unresolvedId != AutoResTypeNameId::Invalid);
+
+    const auto id = nameResolver.resolve(unresolvedId);
 
     auto &texDesc = eastl::get<ResourceDescription>(res.description).asTexRes;
     texDesc.width = static_cast<uint32_t>(registry.autoResTypes[id].staticResolution.x * mult);
@@ -300,6 +307,8 @@ void Backend::runNodes()
     {
       case CompilationStage::REQUIRES_NODES_DECLARATION: declareNodes(); [[fallthrough]];
 
+      case CompilationStage::REQUIRES_NAME_RESOLUTION: resolveNames(); [[fallthrough]];
+
       case CompilationStage::REQUIRES_NODE_DATA_GATHERING: gatherNodeData(); [[fallthrough]];
 
       case CompilationStage::REQUIRES_IR_GENERATION: gatherGraphIR(); [[fallthrough]];
@@ -332,56 +341,6 @@ void Backend::runNodes()
   const auto &frameEvents = allResourceEvents[currFrame];
 
   nodeExec->execute(prevFrame, currFrame, currentMultiplexingExtents, frameEvents, perNodeStateDeltas);
-}
-
-IPoint2 Backend::getResolution(const char *typeName) const
-{
-  const auto id = registry.knownAutoResolutionTypeNames.getNameId(typeName);
-  if (id == AutoResTypeNameId::Invalid || !registry.autoResTypes.isMapped(id))
-  {
-    logerr("Tried to get resolution for daBfg auto-res type %s that wasn't set yet!"
-           " Please call dabfg::set_resolution(\"%s\", ...)!",
-      typeName, typeName);
-    return {};
-  }
-  return registry.autoResTypes[id].dynamicResolution;
-}
-
-void Backend::setResolution(const char *typeName, IPoint2 value)
-{
-  const auto id = registry.knownAutoResolutionTypeNames.addNameId(typeName);
-  const AutoResType newResolution = AutoResType{value, value};
-  if (!registry.autoResTypes.isMapped(id) || registry.autoResTypes[id].staticResolution != newResolution.staticResolution ||
-      registry.autoResTypes[id].dynamicResolution != newResolution.dynamicResolution)
-  {
-    markStageDirty(CompilationStage::REQUIRES_RESOURCE_SCHEDULING);
-    registry.autoResTypes.set(id, newResolution);
-  }
-}
-
-void Backend::setDynamicResolution(const char *typeName, IPoint2 value)
-{
-  const auto id = registry.knownAutoResolutionTypeNames.getNameId(typeName);
-  if (id == AutoResTypeNameId::Invalid || !registry.autoResTypes.isMapped(id))
-  {
-    logerr("Tried to set dynamic resolution for daBfg auto-res type %s that wasn't set yet!"
-           " Please call dabfg::set_resolution(\"%s\", ...)!",
-      typeName, typeName);
-    return;
-  }
-  registry.autoResTypes[id].dynamicResolution = value;
-  // We can't immediately change resolution for all textures because history textures will lose
-  // their data. So update counter here and decrease it by one when change resolution only for
-  // current frame textures.
-  registry.autoResTypes[id].dynamicResolutionCountdown = ResourceScheduler::SCHEDULE_FRAME_WINDOW;
-}
-
-void Backend::fillSlot(NamedSlot slot, const char *res_name)
-{
-  const ResNameId slotNameId = registry.knownResourceNames.addNameId(slot.name);
-  const ResNameId resNameId = registry.knownResourceNames.addNameId(res_name);
-  registry.resourceSlots.set(slotNameId, SlotData{resNameId});
-  markStageDirty(CompilationStage::REQUIRES_NODE_DATA_GATHERING);
 }
 
 void Backend::requestCompleteResourceRescheduling()

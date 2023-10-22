@@ -18,7 +18,7 @@ output_format="""static const char {var_name}[] =
 
 def parseNameFile():
   if len(sys.argv) != 5:
-    print "Usage codegenXoredNames.py inputFile outputFile decodeConstName xorBit"
+    print("Usage codegenXoredNames.py inputFile outputFile decodeConstName xorBit")
   else:
     lines = open(sys.argv[1]).readlines()
     outputFile = open(sys.argv[2], "w")

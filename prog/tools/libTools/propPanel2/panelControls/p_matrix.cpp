@@ -3,32 +3,32 @@
 #include "p_matrix.h"
 #include "../c_constants.h"
 
-CMatrix::CMatrix(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CMatrix::CMatrix(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[], int prec) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT * 5),
-  mCaption(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT),
-  mSpinWidth(w / 3.5),
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT) * 5),
+  mCaption(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mSpinWidth(_px(w) / 3.5),
 
-  mText0(this, parent->getWindow(), x, y, mSpinWidth / 2, DEFAULT_CONTROL_HEIGHT),
-  mSpin00(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
-  mSpin01(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
-  mSpin02(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
+  mText0(this, parent->getWindow(), x, y, mSpinWidth / 2, _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mSpin00(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
+  mSpin01(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
+  mSpin02(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
 
-  mText1(this, parent->getWindow(), x, y, mSpinWidth / 2, DEFAULT_CONTROL_HEIGHT),
-  mSpin10(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
-  mSpin11(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
-  mSpin12(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
+  mText1(this, parent->getWindow(), x, y, mSpinWidth / 2, _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mSpin10(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
+  mSpin11(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
+  mSpin12(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
 
-  mText2(this, parent->getWindow(), x, y, mSpinWidth / 2, DEFAULT_CONTROL_HEIGHT),
-  mSpin20(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
-  mSpin21(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
-  mSpin22(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
+  mText2(this, parent->getWindow(), x, y, mSpinWidth / 2, _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mSpin20(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
+  mSpin21(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
+  mSpin22(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
 
-  mText3(this, parent->getWindow(), x, y, mSpinWidth / 2, DEFAULT_CONTROL_HEIGHT),
-  mSpin30(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
-  mSpin31(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec),
-  mSpin32(this, parent->getWindow(), x, y, mSpinWidth, DEFAULT_CONTROL_HEIGHT, 0, 0, 0, prec)
+  mText3(this, parent->getWindow(), x, y, mSpinWidth / 2, _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mSpin30(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
+  mSpin31(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec),
+  mSpin32(this, parent->getWindow(), x, y, mSpinWidth, _pxS(DEFAULT_CONTROL_HEIGHT), 0, 0, 0, prec)
 {
   mSpins[0][0] = &mSpin00;
   mSpins[0][1] = &mSpin01;
@@ -118,7 +118,7 @@ void CMatrix::moveTo(int x, int y)
   PropertyControlBase::moveTo(x, y);
 
   mCaption.moveWindow(x, y);
-  int _y = y + DEFAULT_CONTROL_HEIGHT;
+  int _y = y + _pxS(DEFAULT_CONTROL_HEIGHT);
   for (int i = 0; i < 4; ++i)
   {
     mTexts[i]->moveWindow(x, _y);
@@ -128,7 +128,7 @@ void CMatrix::moveTo(int x, int y)
       mSpins[i][j]->moveWindow(_x, _y);
       _x += mSpinWidth;
     }
-    _y += DEFAULT_CONTROL_HEIGHT;
+    _y += _pxS(DEFAULT_CONTROL_HEIGHT);
   }
 }
 
@@ -146,14 +146,14 @@ void CMatrix::setEnabled(bool enabled)
 }
 
 
-void CMatrix::setWidth(unsigned w)
+void CMatrix::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
 
-  mSpinWidth = w / 3.5;
+  mSpinWidth = _px(w) / 3.5;
   int ht = mSpin00.getHeight();
 
-  mCaption.resizeWindow(w, mCaption.getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
   for (int i = 0; i < 4; ++i)
   {
     mTexts[i]->resizeWindow(mSpinWidth / 2, ht);

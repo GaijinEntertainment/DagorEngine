@@ -43,8 +43,8 @@ MobileSSAORenderer::MobileSSAORenderer(int w, int h, int, uint32_t flags)
 
   ssaoBlurTexelOffsetVarId = get_shader_variable_id("texelOffset");
 
-  aoRenderer.reset(create_postfx_renderer(ssao_sh_name, true));
-  ssaoBlurRenderer.reset(create_postfx_renderer(blur_sh_name, true));
+  aoRenderer.reset(create_postfx_renderer(ssao_sh_name));
+  ssaoBlurRenderer.reset(create_postfx_renderer(blur_sh_name));
 
   setFactor();
 }
@@ -96,8 +96,8 @@ void MobileSSAORenderer::applyBlur()
   ssaoBlurRenderer->render();
 }
 
-void MobileSSAORenderer::render(BaseTexture *ssaoDepthTexUse, const ManagedTex *ssao_tex, const ManagedTex *prev_ssao_tex,
-  const ManagedTex *tmp_tex, const DPoint3 *, SubFrameSample)
+void MobileSSAORenderer::render(const TMatrix &, const TMatrix4 &, BaseTexture *ssaoDepthTexUse, const ManagedTex *ssao_tex,
+  const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex, const DPoint3 *, SubFrameSample)
 {
   TIME_D3D_PROFILE(SSAO_total)
   SCOPE_RENDER_TARGET;

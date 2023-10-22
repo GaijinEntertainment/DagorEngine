@@ -28,7 +28,7 @@ class NarrowPhaseStat
 {
 public:
 	/// Trace an individual stat in CSV form.
-	void					ReportStats(const char *inName, EShapeSubType inType1, EShapeSubType inType2) const;
+	void					ReportStats(const char *inName, EShapeSubType inType1, EShapeSubType inType2, uint64 inTicks100Pct) const;
 
 	/// Trace the collected broadphase stats in CSV form.
 	/// This report can be used to judge and tweak the efficiency of the broadphase.
@@ -47,7 +47,7 @@ public:
 class TrackNarrowPhaseStat
 {
 public:
-							TrackNarrowPhaseStat(NarrowPhaseStat &inStat) : 
+							TrackNarrowPhaseStat(NarrowPhaseStat &inStat) :
 		mStat(inStat),
 		mParent(sRoot),
 		mStart(GetProcessorTickCount())
@@ -84,7 +84,7 @@ public:
 class TrackNarrowPhaseCollector
 {
 public:
-							TrackNarrowPhaseCollector() : 
+							TrackNarrowPhaseCollector() :
 		mStart(GetProcessorTickCount())
 	{
 	}

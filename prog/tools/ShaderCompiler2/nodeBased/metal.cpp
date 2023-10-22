@@ -7,7 +7,7 @@ bool compile_compute_shader_metal(const char *hlsl_text, unsigned len, const cha
 {
   bool use_ios = false, use_binary = false;
   CompileResult result =
-    compileShaderMetal(hlsl_text, profile, entry, false, false, true, 4096, 0, "nodeBasedShader", use_ios, use_binary);
+    compileShaderMetal(hlsl_text, profile, entry, false, false, true, 4096, 0, "nodeBasedShader", use_ios, use_binary, 0);
   if (!result.errors.empty())
     out_err = result.errors.c_str();
   if (result.bytecode.empty())

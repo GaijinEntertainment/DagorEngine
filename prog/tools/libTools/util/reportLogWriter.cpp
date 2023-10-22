@@ -65,7 +65,7 @@ bool ReportLogWriter::showReport(const char *title, const char *error_msg, const
   else
     strs.push_back() = ok_msg;
 
-  ListDialog dlg(0, title, strs, 800, 600);
+  ListDialog dlg(0, title, strs, hdpi::_pxScaled(800), hdpi::_pxScaled(600));
 
   return dlg.showDialog() == DIALOG_ID_OK;
 }

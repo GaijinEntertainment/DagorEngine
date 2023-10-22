@@ -98,7 +98,13 @@ public:
         }
         virtual bool isValid() const { return true; }
       } hlp;
-      rndGrass->beforeRender(grs_cur_view.pos, hlp);
+      Point3 viewDir = ::grs_cur_view.itm.getcol(2);
+      TMatrix viewTm;
+      TMatrix4 projTm, globTm;
+      d3d::gettm(TM_VIEW, viewTm);
+      d3d::gettm(TM_PROJ, &projTm);
+      d3d::calcglobtm(viewTm, projTm, globTm);
+      rndGrass->beforeRender(grs_cur_view.pos, hlp, viewDir, viewTm, projTm, Frustum(globTm));
     }
     else if (stage == STG_RENDER_STATIC_OPAQUE)
     {

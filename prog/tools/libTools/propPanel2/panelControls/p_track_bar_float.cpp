@@ -3,15 +3,16 @@
 #include "p_track_bar_float.h"
 #include "../c_constants.h"
 
-CTrackBarFloat::CTrackBarFloat(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
-  const char caption[], float min, float max, float step, float power) :
+CTrackBarFloat::CTrackBarFloat(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y,
+  hdpi::Px w, const char caption[], float min, float max, float step, float power) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT * 2),
-  mCaption(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT),
-  mTrackBar(this, parent->getWindow(), x, y + DEFAULT_CONTROL_HEIGHT,
-    w - DEFAULT_CONTROL_WIDTH - UP_DOWN_BUTTON_WIDTH - DEFAULT_CONTROLS_INTERVAL, DEFAULT_CONTROL_HEIGHT, min, max, step, power),
-  mEditor(this, parent->getWindow(), x + mTrackBar.getWidth() + DEFAULT_CONTROLS_INTERVAL, y + DEFAULT_CONTROL_HEIGHT,
-    DEFAULT_CONTROL_WIDTH + UP_DOWN_BUTTON_WIDTH, DEFAULT_CONTROL_HEIGHT, min, max, step, 0)
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT) * 2),
+  mCaption(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mTrackBar(this, parent->getWindow(), x, y + _pxS(DEFAULT_CONTROL_HEIGHT),
+    _px(w) - _pxS(DEFAULT_CONTROL_WIDTH) - _pxS(UP_DOWN_BUTTON_WIDTH) - _pxS(DEFAULT_CONTROLS_INTERVAL), _pxS(DEFAULT_CONTROL_HEIGHT),
+    min, max, step, power),
+  mEditor(this, parent->getWindow(), x + mTrackBar.getWidth() + _pxS(DEFAULT_CONTROLS_INTERVAL), y + _pxS(DEFAULT_CONTROL_HEIGHT),
+    _pxS(DEFAULT_CONTROL_WIDTH) + _pxS(UP_DOWN_BUTTON_WIDTH), _pxS(DEFAULT_CONTROL_HEIGHT), min, max, step, 0)
 {
   hasCaption = strlen(caption) > 0;
   mCaption.setTextValue(caption);
@@ -47,16 +48,16 @@ void CTrackBarFloat::setEnabled(bool enabled)
 }
 
 
-void CTrackBarFloat::setWidth(unsigned w)
+void CTrackBarFloat::setWidth(hdpi::Px w)
 {
-  int minw = DEFAULT_CONTROL_WIDTH + DEFAULT_CONTROLS_INTERVAL + UP_DOWN_BUTTON_WIDTH;
-  w = (w < minw) ? minw : w;
+  int minw = _pxS(DEFAULT_CONTROL_WIDTH) + _pxS(DEFAULT_CONTROLS_INTERVAL) + _pxS(UP_DOWN_BUTTON_WIDTH);
+  w = (_px(w) < minw) ? _pxActual(minw) : w;
 
   PropertyControlBase::setWidth(w);
 
-  mCaption.resizeWindow(w, mCaption.getHeight());
-  mTrackBar.resizeWindow(w - minw, mTrackBar.getHeight());
-  mEditor.resizeWindow(DEFAULT_CONTROL_WIDTH + UP_DOWN_BUTTON_WIDTH, mEditor.getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
+  mTrackBar.resizeWindow(_px(w) - minw, mTrackBar.getHeight());
+  mEditor.resizeWindow(_pxS(DEFAULT_CONTROL_WIDTH) + _pxS(UP_DOWN_BUTTON_WIDTH), mEditor.getHeight());
 
   this->moveTo(this->getX(), this->getY());
 }
@@ -93,7 +94,7 @@ void CTrackBarFloat::moveTo(int x, int y)
 
   mCaption.moveWindow(x, y);
   mTrackBar.moveWindow(x, (hasCaption) ? y + mCaption.getHeight() : y);
-  mEditor.moveWindow(x + mTrackBar.getWidth() + DEFAULT_CONTROLS_INTERVAL, (hasCaption) ? y + mCaption.getHeight() : y);
+  mEditor.moveWindow(x + mTrackBar.getWidth() + _pxS(DEFAULT_CONTROLS_INTERVAL), (hasCaption) ? y + mCaption.getHeight() : y);
 }
 
 

@@ -1,0 +1,15 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/drv/hid_tvOS ;
+
+Platform ?= iOS ;
+
+TargetType  = lib ;
+Target      = engine/drv/hid_tvOS.lib ;
+
+Sources =
+  remote_control.mm
+  gamepad_ex.mm
+  tvos_joystick_class_driver.mm
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

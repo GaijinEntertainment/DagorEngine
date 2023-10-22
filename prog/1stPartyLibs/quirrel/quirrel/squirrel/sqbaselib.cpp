@@ -936,6 +936,18 @@ static SQInteger table_reduce(HSQUIRRELVM v)
 }
 
 
+static SQInteger obj_clone(HSQUIRRELVM vm) {
+    SQObjectPtr self = vm->PopGet();
+    SQObjectPtr target;
+
+    if (!vm->Clone(self, target)) {
+      return SQ_ERROR;
+    }
+
+    vm->Push(target);
+    return 1;
+}
+
 const SQRegFunction SQSharedState::_table_default_delegate_funcz[]={
     {_SC("len"),default_delegate_len,1, _SC("t")},
     {_SC("rawget"),container_rawget,2, _SC("t")},
@@ -957,6 +969,7 @@ const SQRegFunction SQSharedState::_table_default_delegate_funcz[]={
     {_SC("__update"),container_update, -2, _SC("t|yt|y|x") },
     {_SC("__merge"),container_merge, -2, _SC("t|yt|y|x") },
     {_SC("topairs"),table_to_pairs, 1, _SC("t") },
+    {_SC("clone"),obj_clone, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -1423,6 +1436,7 @@ const SQRegFunction SQSharedState::_array_default_delegate_funcz[]={
     {_SC("findvalue"),container_findvalue,-2, _SC("ac.")},
     {_SC("totable"),pairs_to_table,1, _SC("a") },
     {_SC("replace"),array_replace,2, _SC("aa")},
+    {_SC("clone"),obj_clone, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -1838,6 +1852,7 @@ const SQRegFunction SQSharedState::_string_default_delegate_funcz[]={
     {_SC("concat"),string_concat, -2, _SC("s")},
     {_SC("split"),string_split, -1, _SC("s s")},
     {_SC("weakref"),obj_delegate_weakref,1, NULL },
+    {_SC("clone"),obj_clone, 1, _SC(".") },
     _DECL_FUNC(strip,1,_SC("s")),
     _DECL_FUNC(lstrip,1,_SC("s")),
     _DECL_FUNC(rstrip,1,_SC("s")),
@@ -1857,6 +1872,7 @@ const SQRegFunction SQSharedState::_number_default_delegate_funcz[]={
     {_SC("tostring"),default_delegate_tostring,1, _SC(".")},
     {_SC("tochar"),number_delegate_tochar,1, _SC("n|b")},
     {_SC("weakref"),obj_delegate_weakref,1, NULL },
+    {_SC("clone"),obj_clone, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -1938,6 +1954,7 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         res->NewSlot(SQString::Create(_ss(v),_SC("native"),-1),false);
         res->NewSlot(SQString::Create(_ss(v),_SC("name"),-1),f->_name);
         res->NewSlot(SQString::Create(_ss(v),_SC("src"),-1),f->_sourcename);
+        res->NewSlot(SQString::Create(_ss(v),_SC("line"),-1),f->_lineinfos[0]._line);
         res->NewSlot(SQString::Create(_ss(v),_SC("parameters"),-1),params);
         res->NewSlot(SQString::Create(_ss(v),_SC("varargs"),-1),f->_varparams);
         res->NewSlot(SQString::Create(_ss(v),_SC("defparams"),-1),defparams);
@@ -2009,6 +2026,7 @@ const SQRegFunction SQSharedState::_closure_default_delegate_funcz[]={
     {_SC("bindenv"),closure_bindenv,2, _SC("c x|y|t")},
     {_SC("getfuncinfos"),closure_getfuncinfos,1, _SC("c")},
     {_SC("getfreevar"),closure_getfreevar,2, _SC("ci")},
+    {_SC("clone"),obj_clone, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2028,6 +2046,7 @@ const SQRegFunction SQSharedState::_generator_default_delegate_funcz[]={
     {_SC("getstatus"),generator_getstatus,1, _SC("g")},
     {_SC("weakref"),obj_delegate_weakref,1, NULL },
     {_SC("tostring"),default_delegate_tostring,1, _SC(".")},
+    {_SC("clone"),obj_clone, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2189,6 +2208,7 @@ const SQRegFunction SQSharedState::_thread_default_delegate_funcz[] = {
     {_SC("weakref"),obj_delegate_weakref,1, NULL },
     {_SC("getstackinfos"),thread_getstackinfos,2, _SC("vn")},
     {_SC("tostring"),default_delegate_tostring,1, _SC(".")},
+    {_SC("clone"),obj_clone, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2253,6 +2273,7 @@ const SQRegFunction SQSharedState::_class_default_delegate_funcz[] = {
     {_SC("__update"),container_update, -2, _SC("t|yt|y|x") },
     {_SC("__merge"),container_merge, -2, _SC("t|yt|y|x") },
     {_SC("getmetamethod"),get_class_metamethod, 2, _SC("ys")},
+    {_SC("clone"),obj_clone, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2273,6 +2294,7 @@ const SQRegFunction SQSharedState::_instance_default_delegate_funcz[] = {
     {_SC("tostring"),default_delegate_tostring,1, _SC(".")},
     {_SC("getfuncinfos"),delegable_getfuncinfos,1, _SC("x")},
     {_SC("getmetamethod"),get_class_metamethod, 2, _SC("xs")},
+    {_SC("clone"),obj_clone, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2287,10 +2309,12 @@ const SQRegFunction SQSharedState::_weakref_default_delegate_funcz[] = {
     {_SC("ref"),weakref_ref,1, _SC("r")},
     {_SC("weakref"),obj_delegate_weakref,1, NULL },
     {_SC("tostring"),default_delegate_tostring,1, _SC(".")},
+    {_SC("clone"),obj_clone, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
 const SQRegFunction SQSharedState::_userdata_default_delegate_funcz[] = {
     {_SC("getfuncinfos"),delegable_getfuncinfos,1, _SC("u")},
+    {_SC("clone"),obj_clone, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };

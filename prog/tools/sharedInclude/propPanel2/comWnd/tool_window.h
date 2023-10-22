@@ -15,7 +15,7 @@ class WContainer;
 class CToolWindow : public PropertyContainerHorz, public IWndEmbeddedWindow
 {
 public:
-  CToolWindow(ControlEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h, const char caption[]);
+  CToolWindow(ControlEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, const char caption[]);
   ~CToolWindow();
 
   virtual WindowBase *getWindow();
@@ -26,8 +26,8 @@ public:
   unsigned getTypeMaskForGet() const { return 0; };
 
   void setCaptionValue(const char value[]);
-  virtual void setWidth(unsigned w);
-  virtual void setHeight(unsigned h);
+  virtual void setWidth(hdpi::Px w);
+  virtual void setHeight(hdpi::Px h);
   virtual void moveTo(int x, int y);
 
   virtual void showPanel(bool visible);

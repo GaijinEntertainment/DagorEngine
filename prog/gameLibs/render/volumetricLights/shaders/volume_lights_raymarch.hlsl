@@ -89,7 +89,7 @@ float clouds_shadow(float3 worldPos, AccumulationConstParams cp)
   float alt = cp.world_pos_to_clouds_alt.x*worldPos.y + cp.world_pos_to_clouds_alt.y;
   worldPos.xz = cp.clouds_weather_inv_size__alt_scale.yz*alt + worldPos.xz;
   float shadow = tex2Dlod(clouds_shadows_2d,
-    float4(worldPos.xz*cp.clouds_weather_inv_size__alt_scale.x + cp.world_pos_to_clouds_alt.zw + clouds_hole_pos_tex[uint2(0, 0)].zw, 0, 0)).x;
+    float4(worldPos.xz*cp.clouds_weather_inv_size__alt_scale.x + cp.world_pos_to_clouds_alt.zw + clouds_hole_pos.zw, 0, 0)).x;
   return lerp(shadow,1, max(alt,0));
 }
 

@@ -93,7 +93,7 @@ void modfx_apply_sim(
 
   if ( sdeclVelocity )
   {
-    if ( MODFX_SDECL_COLLISION_TIME_ENABLED( parent_sdata.decls ) && (sdata.flags & MODFX_SIM_FLAGS_COLLIDED) )
+    if ( MODFX_SDECL_COLLISION_TIME_ENABLED( parent_sdata.decls ) && (sdata.flags & MODFX_SIM_FLAGS_COLLIDED) && parent_sdata.mods_offsets[MODFX_SMOD_COLLISION_DECAY])
     {
       ModfxDeclCollisionDecay decayParams = ModfxDeclCollisionDecay_load( buf, parent_sdata.mods_offsets[MODFX_SMOD_COLLISION_DECAY] );
 

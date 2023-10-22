@@ -151,7 +151,10 @@ struct DafxCompound : BaseParticleEffect
     CHECK_FX_VERSION(ptr, len, 3);
 
     if (!g_dafx_ctx)
+    {
+      logwarn("fx: compound: failed to load params data, context was not initialized");
       return;
+    }
 
     resLoaded = false;
     gameResId = load_cb->getSelfGameResId();

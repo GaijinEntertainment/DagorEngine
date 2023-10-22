@@ -93,15 +93,15 @@ auto NodeScheduler::schedule(const intermediate::Graph &graph) -> NodePermutatio
             const auto &stackRaw = stack.get_container();
             const auto it = eastl::find(stackRaw.begin(), stackRaw.end(), next);
 
-            PerCompString path;
+            eastl::string path;
             eastl::bitvector<framemem_allocator> visited{graph.nodes.size(), false};
             for (auto i = it; i != stackRaw.end(); ++i)
               if (colors[*i] == Color::GRAY && !visited.test(*i, false))
               {
                 visited.set(*i, true);
-                path += graph.nodes[*i].name + " -> ";
+                path += (graph.nodeNames[*i] + " -> ").c_str();
               }
-            path += graph.nodes[*it].name;
+            path += graph.nodeNames[*it].c_str();
             graphDumper.dumpRawUserGraph();
             logerr("Cyclic dependency detected in framegraph IR: %s", path);
             logerr("For resource dependency dump look at debug log!");

@@ -42,9 +42,6 @@ if $(Platform) in win32 win64 {
     str_util_shlwapi.cpp
   ;
 }
-if $(PlatformSpec) = clang {
-  opt on regExp.cpp = -Wno-unused-value ;
-}
 
 UseProgLibs =
   3rdPartyLibs/hash

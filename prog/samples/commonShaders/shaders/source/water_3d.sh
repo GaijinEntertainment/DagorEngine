@@ -248,7 +248,7 @@ shader water_nv2
         DECODE_VERTEXID_POSXZ
         float distFade;
         bool useHeightmap;
-        float4 worldPos = float4(float3(getWorldPosXZ(posXZ, distFade, useHeightmap USED_INSTANCE_ID), water_level_max_wave_wind_dir.x).xzy, 1.);
+        float4 worldPos = float4(float3(getWorldPosXZ(posXZ, distFade, useHeightmap USED_INSTANCE_ID), water_level_max_wave_height.x).xzy, 1.);
         float3 eyeVec = world_view_pos.xyz - worldPos.xyz;
         float  worldPosDistance = length(eyeVec);
         float3 pos_world_undisplaced = worldPos.xzy;
@@ -274,7 +274,7 @@ shader water_nv2
           if (sdf.w>0)
           {
             float3 normal; float breaker, foamTrail, riversMultiplier;
-            GetShoreSurfaceAttributes(water_level_max_wave_wind_dir.y, foam_time, 2*(kSDFRadiusInPixels/kSDFTextureSize)/world_to_heightmap.x, float2(water_heightmap_min_max.z, water_heightmap_min_max.w-water_level_max_wave_wind_dir.x), water_level_max_wave_wind_dir.zw,
+            GetShoreSurfaceAttributes(water_level_max_wave_height.y, foam_time, 2*(kSDFRadiusInPixels/kSDFTextureSize)/world_to_heightmap.x, float2(water_heightmap_min_max.z, water_heightmap_min_max.w-water_level_max_wave_height.x), wind_dir_speed.xy,
                                      worldPos.xzy, shoreWavesDisplacement, normal, breaker, foamTrail,
                                           shoreWavesMultiplier, oceanWavesMultiplier, riversMultiplier, sdf);
           } else
@@ -414,7 +414,7 @@ shader water_nv2
     {
       //return pack_hdr(length((sdf.yz*2.0-1.0)));
       float3 offset;
-      GetShoreSurfaceAttributes(water_level_max_wave_wind_dir.y, foam_time, 2*(kSDFRadiusInPixels/kSDFTextureSize)/world_to_heightmap.x, float2(water_heightmap_min_max.z, water_heightmap_min_max.w-water_level_max_wave_wind_dir.x), water_level_max_wave_wind_dir.zw,
+      GetShoreSurfaceAttributes(water_level_max_wave_height.y, foam_time, 2*(kSDFRadiusInPixels/kSDFTextureSize)/world_to_heightmap.x, float2(water_heightmap_min_max.z, water_heightmap_min_max.w-water_level_max_wave_height.x), wind_dir_speed.xy,
                                 In.pos_world_undisplaced, offset, gerstner_normal, gerstner_breaker, gerstnerFoamFactor, shoreWavesMultiplier, oceanWavesMultiplier, riverMultiplier, sdf);
     } else
     {
@@ -449,7 +449,7 @@ shader water_nv2
     ##if compatibility_mode == compatibility_mode_off
     #if INPLANE
     //hide repeat in plane starting from 2km alt
-    In.nvsf_tex_coord_cascade01.xy += saturate((world_view_pos.y-water_level_max_wave_wind_dir.x)*(1.0/3000)-2000./3000)*sin(In.pos_world_undisplaced.yx/521+0.5+float2(foam_time*0.01,0))*0.15;
+    In.nvsf_tex_coord_cascade01.xy += saturate((world_view_pos.y-water_level_max_wave_height.x)*(1.0/3000)-2000./3000)*sin(In.pos_world_undisplaced.yx/521+0.5+float2(foam_time*0.01,0))*0.15;
     #endif
     ##endif
     float4 nvsf_blendfactors0123, nvsf_blendfactors4567 = float4(0.0, 0.0, 0.0, 0.0);
@@ -572,7 +572,7 @@ shader water_nv2
     //objectReflection.a *= dot(reflectDir);
     float3 reflectWaterPlaneDirNormalized = reflect(-pointToEyeNormalized, float3(0,1,0));
     objectReflection.a *= saturate(dot(reflectDirNormalized, reflectWaterPlaneDirNormalized));
-    //float distToPlane = (world_view_pos.y-water_level_max_wave_wind_dir.x)*rcp(max(0.000001, pointToEyeNormalized.y));
+    //float distToPlane = (world_view_pos.y-water_level_max_wave_height.x)*rcp(max(0.000001, pointToEyeNormalized.y));
     //float distFactor = saturate(1-20*abs(abs(distToPlane*invDist)-1));
     //objectReflection.a *= distFactor;
     float invDistToZfar = 1-distToZfar;
@@ -647,7 +647,7 @@ shader water_nv2
 
     //float smoothness = 0.75*lerp(1, 0.5+0.5*underocean.a, farFactor);  // BY TIM //: to prevent dark "holes" in specular
     ##if compatibility_mode == compatibility_mode_off
-    float2 wind_dir = water_level_max_wave_wind_dir.zw;
+    float2 wind_dir = wind_dir_speed.xy;
     half smoothness_mul = tex2D(perlin_noise, float2(0.00011*(worldPos.x*wind_dir.x-worldPos.z*wind_dir.y), 0.00041*(worldPos.x*wind_dir.y+worldPos.z*wind_dir.x))).g;
     smoothness_mul = lerp(smoothness_mul, 0.5, distToZfar);
     ##else
@@ -728,7 +728,7 @@ shader water_nv2
 
     //scatterFactor *= 1-saturate(sdf.x*heightmap_min_max.z+heightmap_min_max.w-worldPos.y+2);
     ##if shader != water3d_compatibility
-    scatterFactor *= 1-saturate(land_height*water_heightmap_min_max.z+water_heightmap_min_max.w-water_level_max_wave_wind_dir.x);
+    scatterFactor *= 1-saturate(land_height*water_heightmap_min_max.z+water_heightmap_min_max.w-water_level_max_wave_height.x);
     ##endif
     ##else
     half scatterFactor = 0;

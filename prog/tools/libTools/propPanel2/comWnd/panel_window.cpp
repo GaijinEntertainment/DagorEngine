@@ -37,12 +37,12 @@ private:
   CPanelWindow *panelWindow;
 };
 
-CPanelWindow::CPanelWindow(ControlEventHandler *event_handler, void *phandle, int x, int y, unsigned w, unsigned h,
+CPanelWindow::CPanelWindow(ControlEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h,
   const char caption[]) :
   PropertyContainerVert(0, event_handler, NULL, x, y, w, h), contextMenuEventHandler(new PanelWindowContextMenuEventHandler(this))
 {
-  mPanelWindow = new WWindow(this, phandle, x, y, w, h, caption, true);
-  mPanel = new WContainer(this, mPanelWindow, 0, 0, w, h);
+  mPanelWindow = new WWindow(this, phandle, x, y, _px(w), _px(h), caption, true);
+  mPanel = new WContainer(this, mPanelWindow, 0, 0, _px(w), _px(h));
 
   if (phandle)
     mParentHandle = phandle;
@@ -122,7 +122,7 @@ void CPanelWindow::onWcResize(WindowBase *source)
 
   if ((source == mPanelWindow) && ((oldmW != mW)))
   {
-    this->setWidth(mW);
+    this->setWidth(_pxActual(mW));
   }
 
   __super::onWcResize(source);
@@ -200,7 +200,7 @@ void CPanelWindow::scrollCheck()
     if (!mPanelWindow->hasVScroll())
     {
       mPanelWindow->addVScroll();
-      this->setWidth(mW); // To resize controls after scrollbar show
+      this->setWidth(_pxActual(mW)); // To resize controls after scrollbar show
     }
 
     mPanelWindow->vScrollUpdate(this->getNextControlY(), ch);
@@ -237,16 +237,16 @@ void CPanelWindow::clear()
 }
 
 
-void CPanelWindow::setWidth(unsigned w)
+void CPanelWindow::setWidth(hdpi::Px w)
 {
-  mPanelWindow->resizeWindow(w, mPanelWindow->getHeight());
-  this->resizeControl(w, this->getNextControlY());
+  mPanelWindow->resizeWindow(_px(w), mPanelWindow->getHeight());
+  this->resizeControl(_px(w), this->getNextControlY());
 
   PropertyContainerVert::setWidth(w);
 }
 
 
-void CPanelWindow::setHeight(unsigned h) { mPanelWindow->resizeWindow(mPanelWindow->getWidth(), h); }
+void CPanelWindow::setHeight(hdpi::Px h) { mPanelWindow->resizeWindow(mPanelWindow->getWidth(), _px(h)); }
 
 
 void CPanelWindow::moveTo(int x, int y) { mPanelWindow->moveWindow(x, y); }
@@ -254,8 +254,8 @@ void CPanelWindow::moveTo(int x, int y) { mPanelWindow->moveWindow(x, y); }
 
 void CPanelWindow::onWmEmbeddedResize(int width, int height)
 {
-  setWidth(width);
-  setHeight(height);
+  setWidth(_pxActual(width));
+  setHeight(_pxActual(height));
 }
 
 void CPanelWindow::showPanel(bool visible) { (visible) ? mPanel->show() : mPanel->hide(); }

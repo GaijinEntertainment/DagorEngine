@@ -9,7 +9,7 @@ static int esm_ao_view_posVarId = -1;
 
 bool EsmAoManager::init(int resolution, float esm_exp)
 {
-  Sbuffer *buf = d3d_buffers::create_one_frame_cb(dag::buffers::cb_array_reg_count<EsmAoDecal>(MAX_ESM_AO_DECALS), "esm_ao_decals");
+  Sbuffer *buf = d3d::buffers::create_one_frame_cb(dag::buffers::cb_array_reg_count<EsmAoDecal>(MAX_ESM_AO_DECALS), "esm_ao_decals");
   if (!buf)
     return false;
 

@@ -29,7 +29,6 @@ float4 clouds2_dispatch_groups;
 
 texture clouds_color;
 texture clouds_depth;
-texture prev_downsampled_far_depth_tex;
 texture clouds_depth_gbuf;
 texture clouds_prev_depth_gbuf;
 texture clouds_prev_taa_weight;

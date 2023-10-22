@@ -103,6 +103,30 @@ inline bool project_to_nearest_navmesh_point_ref(das::float3 &pos, Point3 extent
 {
   return pathfinder::project_to_nearest_navmesh_point_ref(reinterpret_cast<Point3 &>(pos), extents, nearestPoly);
 }
+inline pathfinder::FindPathResult find_path_ex_req(int nav_mesh_idx, pathfinder::FindRequest &req, float step_size, float slop,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<Point3>>> &block, das::Context *context, das::LineInfoArg *at)
+{
+  Tab<Point3> path(framemem_ptr());
+  const pathfinder::FindPathResult res = pathfinder::find_path_ex(nav_mesh_idx, path, req, step_size, slop, nullptr);
+
+  find_path_common(path, block, context, at);
+  return res;
+}
+inline pathfinder::FindPathResult find_path_ex(int nav_mesh_idx, const Point3 &start_pos, const Point3 &end_pos, const Point3 extents,
+  float step_size, float slop, const pathfinder::CustomNav *custom_nav,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<Point3>>> &block, das::Context *context, das::LineInfoArg *at)
+{
+  Tab<Point3> path(framemem_ptr());
+  const pathfinder::FindPathResult res =
+    pathfinder::find_path_ex(nav_mesh_idx, start_pos, end_pos, path, extents, step_size, slop, custom_nav);
+
+  find_path_common(path, block, context, at);
+  return res;
+}
+inline bool check_path_ex_req(int nav_mesh_idx, pathfinder::FindRequest &req, float horz_threshold, float max_vert_dist)
+{
+  return pathfinder::check_path_ex(nav_mesh_idx, req, horz_threshold, max_vert_dist);
+}
 inline int tilecache_obstacle_add(const TMatrix &tm, const BBox3 &oobb) { return pathfinder::tilecache_obstacle_add(tm, oobb); }
 inline void tilecache_obstacle_move(int handle, const TMatrix &tm, const BBox3 &oobb)
 {

@@ -1,4 +1,4 @@
-let { Watched } = require("frp")
+let { Watched } = require("%sqstd/frp.nut")
 let { setTimeout, clearTimer } = require("dagor.workcycle")
 let { kwarg } = require("%sqstd/functools.nut")
 let { get_time_msec } = require("dagor.time")

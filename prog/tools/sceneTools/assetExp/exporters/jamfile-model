@@ -14,22 +14,22 @@ Sources = modelExp.cpp modelExpUtil.cpp exp_tools.cpp exp_skeleton_tools.cpp
 
 AddIncludes = $(Root)/prog/tools/sharedInclude ;
 
-UseProgLibs = 
-  engine2/startup
-  engine2/math
+UseProgLibs =
+  engine/startup
+  engine/math
 
-  engine2/lib3d
-  engine2/shaders
-  engine2/drv/drv3d_null
-  engine2/sceneRay
-  engine2/perfMon
+  engine/lib3d
+  engine/shaders
+  engine/drv/drv3d_null
+  engine/sceneRay
+  engine/perfMon
 
   tools/libTools/assetMgr
   tools/libTools/assetMgrHlp
   tools/libTools/shaderResBuilder
   tools/libTools/dagFileRW
   tools/libTools/util
-  engine2/image
+  engine/image
   tools/libTools/ambientOcclusion
 ;
 

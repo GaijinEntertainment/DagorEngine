@@ -3,7 +3,7 @@ testData/static_analyser/w217_complex.nut:26:12
 
             foo()
             break
-            ^
+            ^----
         }
 
 

@@ -1,0 +1,27 @@
+WARNING: w292 (modified-container) The container was modified within the loop.
+testData/static_analyser/w292.nut:13:4
+
+foreach (a in c) {
+    delete c.x          // EXPECTED 1
+    ^---------
+    c.rawdelete("y")    // EXPECTED 2
+
+
+WARNING: w292 (modified-container) The container was modified within the loop.
+testData/static_analyser/w292.nut:14:4
+
+    delete c.x          // EXPECTED 1
+    c.rawdelete("y")    // EXPECTED 2
+    ^---------------
+}
+
+
+WARNING: w292 (modified-container) The container was modified within the loop.
+testData/static_analyser/w292.nut:34:8
+
+    if (a < 0) {
+        c.clear()     // EXPECTED 3
+        ^--------
+    } else {
+
+

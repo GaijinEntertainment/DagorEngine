@@ -16,7 +16,7 @@ class WListBox;
 class ListDialog : public WindowControlEventHandler, public CDialogWindow
 {
 public:
-  ListDialog(void *handle, const char *caption, const Tab<String> &vals, int width, int height);
+  ListDialog(void *handle, const char *caption, const Tab<String> &vals, hdpi::Px width, hdpi::Px height);
   ~ListDialog();
 
   int getSelectedIndex() const;
@@ -36,7 +36,7 @@ private:
 class MultiListDialog : public CDialogWindow
 {
 public:
-  MultiListDialog(const char *caption, int width, int height, const Tab<String> &vals, Tab<String> &sels);
+  MultiListDialog(const char *caption, hdpi::Px width, hdpi::Px height, const Tab<String> &vals, Tab<String> &sels);
 
   virtual bool onOk();
 

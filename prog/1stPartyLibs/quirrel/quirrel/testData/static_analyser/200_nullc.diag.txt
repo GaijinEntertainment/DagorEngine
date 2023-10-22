@@ -5,7 +5,7 @@ let _x =  (((item?.isPrimaryBuy ?? false) > (res?.isPrimaryBuy ?? null) ? item :
                                             ^--------------------------
 
 
-WARNING: w305 (relative-bool-cmp) Relative comparison with boolean. It is potential runtime error
+WARNING: w305 (relative-bool-cmp) Relative comparison non-boolean with boolean. It is potential runtime error
 testData/static_analyser/200_nullc.nut:7:12
 
 let _x =  (((item?.isPrimaryBuy ?? false) > (res?.isPrimaryBuy ?? null) ? item : res))

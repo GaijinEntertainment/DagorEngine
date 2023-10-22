@@ -4,6 +4,8 @@ texture distant_fog_result_inscatter;
 int volfog_blended_slice_cnt = 4;
 float volfog_blended_slice_start_depth = 0.001;
 
+int initial_media_no = 7;
+
 float4 volfog_froxel_volume_res = (128,128,64,0);
 float4 inv_volfog_froxel_volume_res = (1/128.0,1/128.0,1/64.0,0);
 float4 volfog_froxel_range_params = (1,1,0,0); // (range, 1/range, froxel_fog_use, distant_fog_use)

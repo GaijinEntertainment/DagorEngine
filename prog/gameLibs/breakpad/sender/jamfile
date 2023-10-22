@@ -35,10 +35,10 @@ UseProgLibs =
   3rdPartyLibs/libcurl
   3rdPartyLibs/arc/libzip
   3rdPartyLibs/arc/zlib-$(UseZlibVer)
-  engine2/osApiWrappers
-  engine2/memory/rtlStdMemoryMin
-  engine2/perfMon/daProfilerStub
-  engine2/perfMon/perfTimerStub
+  engine/osApiWrappers
+  engine/memory/rtlStdMemoryMin
+  engine/perfMon/daProfilerStub
+  engine/perfMon/perfTimerStub
 ;
 
 Sources =

@@ -233,7 +233,7 @@ def isSqIntType(typ)
        || typ.baseType == Type tEnumeration || typ.baseType == Type tEnumeration8 || typ.baseType == Type tEnumeration16
        || typ.baseType == Type tVariant || typ.baseType == Type tBitfield)
 
-def get_sq_default_value(typ : smart_ptr<TypeDecl>)
+def get_sq_default_value(typ : smart_ptr<TypeDecl>; stub_name = "")
   if typ == null
     return "null"
 
@@ -249,7 +249,44 @@ def get_sq_default_value(typ : smart_ptr<TypeDecl>)
     if typ.annotation.cppName == " ::ecs::EntityId"
       return "INVALID_ENTITY_ID"
 
+  if typ.baseType == Type tStructure
+    if !empty(stub_name)
+      return stub_name
+
+    error("unsupported type {describe(typ)}, add stub_res_type to quirrel_bind annotation with result type, stub_res_type=\"\\\{\\\}\" or stub_res_type=\"[]\" for example")
+    panic("unsupported type")
+
+  if typ.baseType == Type tTable
+    return "\{\}"
+
+  if typ.baseType == Type tArray
+    return "[]"
+
   return "null"
+
+def get_sq_type(typ : smart_ptr<TypeDecl>)
+  if typ == null
+    return "null"
+
+  if typ.baseType == Type tBool
+    return "bool"
+  if typ.baseType == Type tFloat || typ.baseType == Type tDouble
+    return "float"
+  if typ.baseType == Type tString
+    return "string"
+  if isSqIntType(typ)
+    return "integer"
+  if typ.baseType == Type tHandle
+    if typ.annotation.cppName == " ::ecs::EntityId"
+      return "integer"
+
+  if typ.baseType == Type tTable
+    return "table"
+
+  if typ.baseType == Type tArray
+    return "array"
+
+  return "instance" // float3, ecs::Object, etc
 
 
 def get_func_stub(name : string; fn : smart_ptr<Function>)
@@ -264,12 +301,19 @@ def get_func_stub(name : string; fn : smart_ptr<Function>)
       continue
     optionalArgsNum += 1
 
+  var stubResType = ""
+  let quirrelBindAnn <- fn.annotations |> get_annotation("quirrel_bind")
+  if quirrelBindAnn != null
+    let stubResTypeArg = quirrelBindAnn.arguments |> find_arg("stub_res_type")
+    stubResType = stubResTypeArg ?as tString ?? ""
+
   return build_string <| $(str)
+    str |> write("function ")
     str |> write(name)
-    str |> write(" = @(")
+    str |> write("(")
 
     var first = true
-    for arg, idx in fn.arguments, iter_range(fn.arguments)
+    for arg, idx in fn.arguments, count()
       if (arg._type.baseType == Type tPointer && arg._type.firstType.baseType == Type tHandle
        && arg._type.firstType.annotation._module.name == "quirrel" && arg._type.firstType.annotation.name == "SQVM")
         continue
@@ -280,10 +324,31 @@ def get_func_stub(name : string; fn : smart_ptr<Function>)
       str |> write(arg.name)
       if idx >= n - optionalArgsNum
         str |> write(" = null")
-      str |> write(" /* ")
+    str |> write(")")
+    str |> write("\{")
+    for arg in fn.arguments
+      if (arg._type.baseType == Type tPointer && arg._type.firstType.baseType == Type tHandle
+       && arg._type.firstType.annotation._module.name == "quirrel" && arg._type.firstType.annotation.name == "SQVM")
+        continue
+      let sqType = get_sq_type(arg._type)
+      str |> write("\r\n    assert(type(")
+      str |> write(arg.name)
+      str |> write(") == \"")
+      str |> write(sqType)
+      str |> write("\", @() $\"argument '")
+      str |> write(arg.name)
+      str |> write("' type error, expected '")
+      str |> write(sqType)
+      str |> write("', got '\{type(")
+      str |> write(arg.name)
+      str |> write(")\}'\") // ")
       str |> write(describe(arg._type))
-      str |> write(" */")
-    str |> write(") \{\}")
+
+    str |> write("\r\n    return ")
+    str |> write(get_sq_default_value(fn.result, stubResType))
+    str |> write(" // ")
+    str |> write(describe(fn.result))
+    str |> write("\r\n  \}")
 
 
 def get_sq_stub(st : smart_ptr<Structure>; native_ctor : bool)
@@ -305,9 +370,59 @@ def get_sq_stub(st : smart_ptr<Structure>; native_ctor : bool)
       if native_ctor
         ctorFields += empty(ctorFields) ? "{field.name}" : ", {field.name}"
     if !native_ctor
-      str |> write(" constructor(fields = null) \{ validateCtor(this, fields) \}")
+      if fieldsNum == 0
+        str |> write(" constructor() \{\}")
+      else
+        str |> write(" constructor(fields = null) \{")
+        str |> write("\r\n    if (fields != null) \{")
+        str |> write("\r\n      assert(type(fields) == \"table\")")
+        str |> write("\r\n      foreach (name, val in fields) \{")
+        var first = true
+        skip = 3
+        for fld in st.fields
+          if --skip >= 0
+            continue
+          if first
+            first = false
+            str |> write("\r\n        if (name == \"")
+          else
+            str |> write("\r\n        else if (name == \"")
+          str |> write(fld.name)
+          str |> write("\") assert(type(val) == \"")
+          str |> write(get_sq_type(fld._type))
+          str |> write("\", @() $\"'")
+          str |> write(fld.name)
+          str |> write("' type error, expected '")
+          str |> write(get_sq_type(fld._type))
+          str |> write("', got '\{type(val)\}'\") // ")
+          str |> write(describe(fld._type))
+        str |> write("\r\n        else assert(false, @() $\"unknown field '\{name\}'\")")
+        str |> write("\r\n      \}")
+        str |> write("\r\n    \}")
+        str |> write("\r\n  \}")
     else
-      str |> write(" constructor({ctorFields}) \{\}")
+      if fieldsNum == 0
+        str |> write(" constructor({ctorFields}) \{\}")
+      else
+        str |> write(" constructor({ctorFields}) \{")
+        skip = 3
+        for field in st.fields
+          if --skip >= 0
+            continue
+          str |> write("\r\n    assert(type(")
+          str |> write(field.name)
+          str |> write(") == \"")
+          str |> write(get_sq_type(field._type))
+          str |> write("\", @() $\"field '")
+          str |> write(field.name)
+          str |> write("' type error, expected '")
+          str |> write(get_sq_type(field._type))
+          str |> write("', got '\{type(")
+          str |> write(field.name)
+          str |> write(")\}'\") // ")
+          str |> write(describe(field._type))
+
+        str |> write("\r\n  \}")
 
     str |> write(" \}")
 
@@ -497,18 +612,8 @@ def main()
 
       let daseventsCont = build_string() <| $(sqStabs)
         sqStabs |> write("// generated by dagor2/prog/scripts/genDasevents.das\r\n\r\n")
-        sqStabs |> write("//-file:unused-func-param\r\n")
-        sqStabs |> write("//-file:ident-hides-ident\r\n")
         sqStabs |> write("//-file:declared-never-used\r\n")
         sqStabs |> write("from \"ecs\" import INVALID_ENTITY_ID\r\n")
-        sqStabs |> write("let function validateCtor(event, fields) \{\r\n")
-        sqStabs |> write("  if (fields != null) \{\r\n")
-        sqStabs |> write("    assert(type(fields) == \"table\")\r\n")
-        sqStabs |> write("    foreach (name, _val in fields)\r\n")
-        sqStabs |> write("      assert(name in event)\r\n")
-        sqStabs |> write("  \}\r\n")
-        sqStabs |> write("  return null\r\n")
-        sqStabs |> write("\}\r\n\r\n")
         sqStabs |> write("return \{\r\n")
         var prevModule = ""
         for stub in sqStubsList
@@ -548,9 +653,8 @@ def main()
 
         let daseventsCont = build_string() <| $(dasbindStabs)
           dasbindStabs |> write("// generated by dagor2/prog/scripts/genDasevents.das\r\n\r\n")
-          dasbindStabs |> write("//-file:unused-func-param\r\n")
-          dasbindStabs |> write("//-file:ident-hides-ident\r\n")
           dasbindStabs |> write("//-file:declared-never-used\r\n")
+          dasbindStabs |> write("from \"ecs\" import INVALID_ENTITY_ID\r\n")
           dasbindStabs |> write("return \{\r\n")
           var prevModule = ""
           for stub in sqStubsList
@@ -588,8 +692,6 @@ def main()
 
       let dasenumsCont = build_string() <| $(sqStabs)
         sqStabs |> write("// generated by dagor2/prog/scripts/genDasevents.das\r\n")
-        sqStabs |> write("//-file:unused-func-param\r\n")
-        sqStabs |> write("//-file:ident-hides-ident\r\n")
         sqStabs |> write("//-file:declared-never-used\r\n")
         for stub in sqEnums
           sqStabs |> write("enum ")

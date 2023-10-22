@@ -201,6 +201,7 @@
 %token  DAS_SMART_PTR       "smart_ptr"
 %token  DAS_UNSAFE          "unsafe"
 %token  DAS_INSCOPE         "inscope"
+%token  DAS_STATIC          "static"
 
 /* basic types */
 %token  DAS_TBOOL           "bool"
@@ -385,6 +386,7 @@
 %type <b>               optional_public_or_private_structure
 %type <b>               optional_public_or_private_function
 %type <b>               optional_public_or_private_member_variable
+%type <b>               optional_static_member_variable
 %type <b>               optional_public_or_private_enum
 %type <b>               optional_in_scope
 
@@ -1633,7 +1635,7 @@ expr_field
         $$ = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@name), ExpressionPtr($subexpr), *$name, true);
         delete $name;
     }
-    |   expr[subexpr] '.'[loc] { yyextra->das_supress_errors=true; } error { yyextra->das_supress_errors=false; } {
+    |   expr[subexpr] '.'[loc] { yyextra->das_suppress_errors=true; } error { yyextra->das_suppress_errors=false; } {
         $$ = new ExprField(tokAt(scanner,@loc), tokAt(scanner,@loc), ExpressionPtr($subexpr), "");
         yyerrok;
     }
@@ -1845,12 +1847,18 @@ optional_public_or_private_member_variable
     |   DAS_PRIVATE     { $$ = true; }
     ;
 
+optional_static_member_variable
+    :                   { $$ = false; }
+    |   DAS_STATIC      { $$ = true; }
+    ;
+
 structure_variable_declaration
-    :   optional_field_annotation[alist] optional_override[ovr] optional_public_or_private_member_variable[isPrivate] variable_declaration[decl] {
+    :   optional_field_annotation[alist] optional_static_member_variable[sta] optional_override[ovr] optional_public_or_private_member_variable[isPrivate] variable_declaration[decl] {
         $decl->override = $ovr == OVERRIDE_OVERRIDE;
         $decl->sealed = $ovr == OVERRIDE_SEALED;
         $decl->annotation = $alist;
         $decl->isPrivate = $isPrivate;
+        $decl->isStatic = $sta;
         $$ = $decl;
     }
     ;
@@ -1892,7 +1900,7 @@ struct_variable_declaration_list
                 $$ = ast_structVarDefAbstract(scanner,$list,$annL,$isPrivate,$cnst, $func);
             }
     |   struct_variable_declaration_list[list] optional_annotation_list[annL]
-            DAS_DEF[from] optional_public_or_private_member_variable[isPrivate] optional_override[ovr] optional_constant[cnst] {
+            DAS_DEF[from] optional_public_or_private_member_variable[isPrivate] optional_static_member_variable[isStatic] optional_override[ovr] optional_constant[cnst] {
                 if ( !yyextra->g_CommentReaders.empty() ) {
                     auto tak = tokAt(scanner,@cnst);
                     for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeFunction(tak);
@@ -1902,7 +1910,7 @@ struct_variable_declaration_list
                     auto tak = tokAt(scanner,@block);
                     for ( auto & crd : yyextra->g_CommentReaders ) crd->afterFunction($func,tak);
                 }
-                $$ = ast_structVarDef(scanner,$list,$annL,$isPrivate,$ovr,$cnst,$func,$block,tokRangeAt(scanner,@from,@block),tokAt(scanner,@annL));
+                $$ = ast_structVarDef(scanner,$list,$annL,$isStatic,$isPrivate,$ovr,$cnst,$func,$block,tokRangeAt(scanner,@from,@block),tokAt(scanner,@annL));
             }
     |   struct_variable_declaration_list[list] '[' annotation_list[annL] ']' ';' {
         das_yyerror(scanner,"structure field or class method annotation expected to remain on the same line with the field or the class",
@@ -2950,7 +2958,7 @@ void das_yyfatalerror ( DAS_YYLTYPE * lloc, yyscan_t scanner, const string & err
 }
 
 void das_yyerror ( DAS_YYLTYPE * lloc, yyscan_t scanner, const string & error ) {
-    if ( !yyextra->das_supress_errors ) {
+    if ( !yyextra->das_suppress_errors ) {
         yyextra->g_Program->error(error,"","",LineInfo(yyextra->g_FileAccessStack.back(),
             lloc->first_column,lloc->first_line,lloc->last_column,lloc->last_line),
                 CompilationError::syntax_error);

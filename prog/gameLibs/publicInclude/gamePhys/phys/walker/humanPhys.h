@@ -360,6 +360,7 @@ struct ClimbQueryResults
   Point3 climbContactPos = Point3(0.f, 0.f, 0.f);
   Point3 climbOverheadPos = Point3(0.f, 0.f, 0.f);
   Point3 climbNorm = Point3(0.f, 1.f, 0.f);
+  Point3 climbDir = Point3(0.f, 1.f, 0.f);
 };
 
 class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, CommonPhysPartialState, false, false>
@@ -468,7 +469,7 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
   float climbBrakeHeight = 1.f;
   float climbTimeout = 2.f;
   float climbDistance = 1.f;
-  float climbOverDistance = 1.2f;
+  float climbOverDistance = 1.7f;
   float climbAngleCos = 0.f;
   float climbMinHorzSize = 0.65f;
   float climbOnMinVertSize = 1.1f;
@@ -480,9 +481,9 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
   float fastClimbingMult = 2.f;
 
   float climbOverMaxHeight = -1.f; // < 0 disabled
-  float climbOverForwardOffset = 0.4f;
+  float climbOverForwardOffset = 0.7f;
   float climbOverMinHeightBehindObstacle = 0.5f;
-  float climbOverStaticVelocity = 2.5f;
+  float climbOverStaticVelocity = 2.f;
 
   float maxWalkSpeedLimitChangeSpeed = 4.f;
   float maxWalkSpeedLimitRestoreSpeed = 4.f;
@@ -517,6 +518,8 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
 
   void additionalCollisionChecks(const CollisionObject &co, const TMatrix &tm, Tab<gamephys::CollisionContactData> &out_contacts);
 
+  bool get_normal_and_mat(const Point3 &curMaxPos, const Point3 &dir, float &t, int *matId, Point3 *outNorm, int flags,
+    rendinst::RendInstDesc *out_desc, int rayMatId, const TraceMeshFaces *mesh) const;
   void updateStandStateProgress(float dt);
   float updateSwimmingState();
 
@@ -685,6 +688,8 @@ public:
   void restoreStamina(float dt, float mult = 1.f);
 
   void tryClimbing(bool was_jumping, bool is_in_air, const Point3 &gun_node_proj, float at_time);
+  bool testClimbingIteration(int front_pos, int horz_pos, bool need_min_pos, bool only_one_climb_pos, bool is_in_air,
+    const Point3 &gun_node_proj, bool &have_min_pos, bool &have_max_pos, ClimbQueryResults &best_res, float &best_score);
   void finishClimbing(const TMatrix &tm, const Point3 &cur_coll_center, const Point3 &vert_dir);
   ClimbQueryResults climbQueryImpl(const TMatrix &tm, const Point3 &overhead_pos, const Point3 &cur_ccd_pos,
     const Point3 &climb_from_pos, const Point3 &vert_dir, bool check_norm, int ray_mat_id, TraceMeshFaces *handle) const;
@@ -696,7 +701,7 @@ public:
     bool check_max = true, bool is_in_air = false, bool on_ladder = false, TraceMeshFaces *handle = nullptr) const;
   void resetClimbing();
   void performClimb(const ClimbQueryResults &climb_res, float at_time);
-  bool canClimbOverObstacle();
+  bool canClimbOverObstacle(const ClimbQueryResults &climb_res);
 
   void drawDebug();
 

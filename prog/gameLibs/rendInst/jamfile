@@ -15,49 +15,65 @@ AddIncludes =
 ;
 
 Sources =
-  clipmapShadow.cpp
   dumpCollisions.cpp
+  rendInstAccess.cpp
+  rendInstExtraAccess.cpp
   rendInstCommon.cpp
   rendInstGen.cpp
   rendInstGenLand.cpp
-  rendInstGenRender.cpp
-  rendInstGenExtraRender.cpp
   rendInstGenCollision.cpp
   rendInstGenExtra.cpp
   rendInstGenExtraMaxHeight.cpp
   rendInstGenDebris.cpp
   rendInstGenGlobals.cpp
-  rendInstGenClipShadows.cpp
-  rendInstGenDepthShadows.cpp
   rendInstRotationPalette.cpp
   rendInstGenRtTools.cpp
   rendInstUtil.cpp
   rendInstStubRes.cpp
+  rendInstDesc.cpp
   riGrid.cpp
-  riShaderConstBuffers.cpp
-  riGen/extraRender/consoleHandler.cpp
+  riGridDebug.cpp
+
+  render/clipmapShadow.cpp
+  render/gpuObjects.cpp
+  render/genRender.cpp
+  render/impostor.cpp
+  render/extraRender.cpp
+  render/clipShadows.cpp
+  render/depthShadows.cpp
+  render/riShaderConstBuffers.cpp
+  render/extra/consoleHandler.cpp
+
+  visibility/genVisibility.cpp
+  visibility/extraVisibility.cpp
 
   debug/collisionVisualization.cpp
 ;
 
 if $(HaveRenderer) = yes {
   Sources += impostorTextureMgr.cpp ;
-  Sources += gpuObjs.cpp ;
 } else {
   Sources += stub/impostorTextureMgr.cpp ;
-  Sources += stub/gpuObjs.cpp ;
   Target = $(Target:S=~nrdr.lib) ;
 }
 
 CPPopt = -DUSE_GRID_FOR_RI=true ;
 
+if $(Platform) = linux64 || $(PlatformSpec) = clang {
+  if $(Platform) in win32 win64 xboxOne scarlett {
+    CPPopt += /clang:-fno-reciprocal-math ;
+  } else {
+    CPPopt += -fno-reciprocal-math ;
+  }
+}
+
 UseProgLibs =
   gameLibs/render/texcompressors
   gameLibs/render/primitiveObjects
   gameLibs/render/debug3dSolid
-  engine2/lib3d
-  engine2/libFx
-  engine2/consoleProc
+  engine/lib3d
+  engine/libFx
+  engine/consoleProc
   3rdPartyLibs/regExp
   gameLibs/gpuObjects
 ;

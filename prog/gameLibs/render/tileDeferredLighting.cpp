@@ -73,7 +73,7 @@ bool TileDeferredLighting::init(int w, int h)
   lightsIndicesArray.getArrayTex()->texaddr(TEXADDR_CLAMP);
   lightsIndicesArray.getArrayTex()->texfilter(TEXFILTER_POINT);
 
-  prepareLightCount.init("prepare_lights_count", NULL, true);
+  prepareLightCount.init("prepare_lights_count");
   initAllLights();
   mem_set_0(allLightsCount);
   currentAllLightsId = 0;

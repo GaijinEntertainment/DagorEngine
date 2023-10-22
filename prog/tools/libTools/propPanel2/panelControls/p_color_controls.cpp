@@ -6,9 +6,9 @@
 // -------------- CTwoColorIndicator -----------------
 
 CTwoColorIndicator::CTwoColorIndicator(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y,
-  int w, int h) :
-  BasicPropertyControl(id, event_handler, parent, x, y, w, h + DEFAULT_CONTROL_HEIGHT),
-  mTwoColorArea(this, parent->getWindow(), x, y, w, h)
+  hdpi::Px w, hdpi::Px h) :
+  BasicPropertyControl(id, event_handler, parent, x, y, w, h + _pxScaled(DEFAULT_CONTROL_HEIGHT)),
+  mTwoColorArea(this, parent->getWindow(), x, y, _px(w), _px(h))
 {
   initTooltip(&mTwoColorArea);
 }
@@ -16,7 +16,7 @@ CTwoColorIndicator::CTwoColorIndicator(ControlEventHandler *event_handler, Prope
 PropertyContainerControlBase *CTwoColorIndicator::createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
   bool new_line)
 {
-  parent->createTwoColorIndicator(id, caption, DEFAULT_CONTROL_HEIGHT, true, new_line);
+  parent->createTwoColorIndicator(id, caption, _pxScaled(DEFAULT_CONTROL_HEIGHT), true, new_line);
   return NULL;
 }
 
@@ -26,11 +26,11 @@ void CTwoColorIndicator::setColorValue(E3DCOLOR value) { mTwoColorArea.setColorV
 void CTwoColorIndicator::setPoint3Value(Point3 value) { mTwoColorArea.setColorFValue(value); }
 
 
-void CTwoColorIndicator::setWidth(unsigned w)
+void CTwoColorIndicator::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
 
-  mTwoColorArea.resizeWindow(w, mTwoColorArea.getHeight());
+  mTwoColorArea.resizeWindow(_px(w), mTwoColorArea.getHeight());
 }
 
 void CTwoColorIndicator::reset()
@@ -50,8 +50,8 @@ void CTwoColorIndicator::moveTo(int x, int y)
 // -------------- CPaletteCell -----------------
 
 CPaletteCell::CPaletteCell(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y) :
-  PropertyControlBase(id, event_handler, parent, x, y, DEFAULT_PALETTE_CELL_SIZE, DEFAULT_PALETTE_CELL_SIZE + 1),
-  mPaletteCell(this, parent->getWindow(), x, y, DEFAULT_PALETTE_CELL_SIZE, DEFAULT_PALETTE_CELL_SIZE)
+  PropertyControlBase(id, event_handler, parent, x, y, _pxScaled(DEFAULT_PALETTE_CELL_SIZE), _pxScaled(DEFAULT_PALETTE_CELL_SIZE + 1)),
+  mPaletteCell(this, parent->getWindow(), x, y, _pxS(DEFAULT_PALETTE_CELL_SIZE), _pxS(DEFAULT_PALETTE_CELL_SIZE))
 {
   reset();
 }
@@ -76,7 +76,7 @@ void CPaletteCell::setBoolValue(bool value)
   mPaletteCell.refresh(false);
 }
 
-void CPaletteCell::setWidth(unsigned w) { return; }
+void CPaletteCell::setWidth(hdpi::Px w) { return; }
 
 void CPaletteCell::reset()
 {

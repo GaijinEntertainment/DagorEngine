@@ -292,13 +292,13 @@ void ToroidalStaticShadows::clearTexture()
   {
     for (int i = 0; i < cascadesCount(); ++i)
     {
-      d3d::set_depth(staticShadowTex.getArrayTex(), i, false);
+      d3d::set_depth(staticShadowTex.getArrayTex(), i, DepthAccess::RW);
       d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, shadowClearValue, 0);
     }
   }
   else
   {
-    d3d::set_depth(staticShadowTex.getTex2D(), false);
+    d3d::set_depth(staticShadowTex.getTex2D(), DepthAccess::RW);
     d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, shadowClearValue, 0);
   }
   d3d::resource_barrier({staticShadowTex.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});

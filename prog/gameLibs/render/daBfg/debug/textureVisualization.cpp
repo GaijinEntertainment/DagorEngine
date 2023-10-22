@@ -43,7 +43,7 @@ static UniqueTex create_empty_debug_tex(int fmt, int w, int h) { return dag::cre
 
 static const char *get_selected_resource_name(dabfg::ResNameId nameId, const dabfg::InternalRegistry &registry)
 {
-  return nameId == dabfg::ResNameId::Invalid ? "None" : registry.knownResourceNames.getName(nameId).data();
+  return nameId == dabfg::ResNameId::Invalid ? "None" : registry.knownNames.getName(nameId);
 }
 
 static void display_fg_debug_tex()
@@ -100,7 +100,7 @@ void fg_texture_visualization_imgui_line(dabfg::ResNameId &selectedResId, const 
   {
     String selectedTextureNotification(0, "Selected texture: %s", get_selected_resource_name(selectedResId, registry));
     if (selectedResId != dabfg::ResNameId::Invalid)
-      selectedTextureNotification.aprintf(0, "; sampled after: %s", registry.knownNodeNames.getNameCstr(savedPrecedingNode));
+      selectedTextureNotification.aprintf(0, "; sampled after: %s", registry.knownNames.getName(savedPrecedingNode));
     ImGui::Text("%s", selectedTextureNotification.c_str());
   }
 
@@ -134,22 +134,46 @@ void fg_texture_visualization_imgui_line(dabfg::ResNameId &selectedResId, const 
   }
 }
 
+auto reconstruct_namespace_request(dabfg::Registry reg, const char *full_path)
+{
+  auto nameSpaceReq = reg.root();
+  G_ASSERT(full_path[0] == '/');
+  for (auto current = full_path + 1;;)
+  {
+    const auto next = strchr(current, '/');
+    if (next == nullptr)
+      break;
+
+    eastl::fixed_string<char, 256> folderName(current, next);
+    nameSpaceReq = nameSpaceReq / folderName.c_str();
+
+    current = next + 1;
+  }
+  return nameSpaceReq;
+}
+
 static dabfg::NodeHandle makeDebugTextureCopyNode(dabfg::NodeNameId precedingNode, dabfg::NodeNameId followingNode,
   dabfg::ResNameId selectedResId, UniqueTex &copiedTexture, dabfg::InternalRegistry &internalRegistry)
 {
   return dabfg::register_node("debug_texture_copy_node", DABFG_PP_NODE_SRC,
     [precedingNode, followingNode, selectedResId, &copiedTexture, &internalRegistry](dabfg::Registry registry) {
-      registry.orderMeAfter(internalRegistry.knownNodeNames.getNameCstr(precedingNode));
-      registry.orderMeBefore(internalRegistry.knownNodeNames.getNameCstr(followingNode));
-      auto selectedResourceName = get_selected_resource_name(selectedResId, internalRegistry);
+      const auto ourId =
+        internalRegistry.knownNames.getNameId<dabfg::NodeNameId>(internalRegistry.knownNames.root(), "debug_texture_copy_node");
+      internalRegistry.nodes[ourId].precedingNodeIds.insert(precedingNode);
+      internalRegistry.nodes[ourId].followingNodeIds.insert(followingNode);
+
+      const auto fullSelectedResName = internalRegistry.knownNames.getName(selectedResId);
+      const auto resNs = reconstruct_namespace_request(registry, fullSelectedResName);
+      const auto shortSelectedResName = internalRegistry.knownNames.getShortName(selectedResId);
+
       dabfg::VirtualResourceHandle<const BaseTexture, true, false> hndl =
-        registry.readTexture(selectedResourceName).atStage(dabfg::Stage::TRANSFER).useAs(dabfg::Usage::COPY).handle();
+        resNs.read(shortSelectedResName).texture().atStage(dabfg::Stage::TRANSFER).useAs(dabfg::Usage::COPY).handle();
 
       // Since we  want to read resources from anywhere within a framegraph, we need to clear readResources of this node
       // in order to prevent possible cycles.
-      internalRegistry.nodes[internalRegistry.knownNodeNames.getNameId("debug_texture_copy_node")].readResources.clear();
+      internalRegistry.nodes[ourId].readResources.clear();
 
-      return [hndl, selectedResourceName, &copiedTexture]() {
+      return [hndl, fullSelectedResName, &copiedTexture]() {
         if (hndl.get())
         {
           if (!copiedTexture)
@@ -162,7 +186,7 @@ static dabfg::NodeHandle makeDebugTextureCopyNode(dabfg::NodeNameId precedingNod
           d3d::stretch_rect(hndl.view().getTex2D(), copiedTexture.getTex2D());
         }
         else
-          logerr("<%s> texture handle returned NULL - no copy was created", selectedResourceName);
+          logerr("<%s> texture handle returned NULL - no copy was created", fullSelectedResName);
       };
     });
 }

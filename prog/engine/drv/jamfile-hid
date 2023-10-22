@@ -1,0 +1,13 @@
+Root    ?= ../../.. ;
+Location = prog/engine/drv ;
+TargetType  = util ;
+Target      = drvHid ;
+
+Dependencies =
+  $(Root)/prog/engine/drv/hid_dinput/jamfile
+  $(Root)/prog/engine/drv/hid_keyboard/jamfile
+  $(Root)/prog/engine/drv/hid_mouse/jamfile
+  $(Root)/prog/engine/drv/hid_joystick/jamfile
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

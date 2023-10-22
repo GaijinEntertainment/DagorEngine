@@ -2,7 +2,7 @@
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_cm.h>
 
-ViewportWindowStatSettingsDialog::ViewportWindowStatSettingsDialog(ViewportWindow &_viewport, unsigned width, unsigned height) :
+ViewportWindowStatSettingsDialog::ViewportWindowStatSettingsDialog(ViewportWindow &_viewport, hdpi::Px width, hdpi::Px height) :
   CDialogWindow(_viewport.getParentHandle(), width, height, "Viewport stat display settings"), viewport(_viewport)
 {}
 

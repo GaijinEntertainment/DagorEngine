@@ -26,21 +26,21 @@ AddIncludes =
 ;
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/baseUtil
-  engine2/startup
-  engine2/ioSys
-  engine2/math
-  engine2/perfMon/daProfilerStub
+  engine/osApiWrappers
+  engine/kernel
+  engine/baseUtil
+  engine/startup
+  engine/ioSys
+  engine/math
+  engine/perfMon/daProfilerStub
 
   1stPartyLibs/quirrel/quirrel
   1stPartyLibs/quirrel/quirrel/sqmodules
 ;
 CPPopt = -D__B_CORE ;
 
-UseProgLibs += engine2/memory ;
-if $(Platform) = linux64 { UseProgLibs += engine2/osApiWrappers/messageBox/stub ; }
+UseProgLibs += engine/memory ;
+if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 # warning 6269| Possibly incorrect order of operations: dereference ignored
 # warning 6202| Buffer overrun for 'msg.s', which is possibly stack allocated, in call to '_snprintf': length '258' exceeds buffer size '1'

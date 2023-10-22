@@ -159,15 +159,15 @@ public:
 #endif
 
   void renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData, const TMatrix *realView,
-    const TMatrix4 *realProj, const TMatrix4 *realGlobtm, bool check_matrices = true,
+    const TMatrix4 *realProj, const TMatrix4 *realGlobtm, const Point3 &view_pos, bool check_matrices = true,
     RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
-  void renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData,
+  void renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData, const Point3 &view_pos,
     RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
 
-  void render(LandMeshManager &provider, RenderType rtype, RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
+  void render(LandMeshManager &provider, RenderType rtype, const Point3 &view_pos, RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
 
-  void renderDecals(LandMeshManager &provider, RenderType rtype, const TMatrix4 &globtm, bool compatibility_mode);
-  void renderCulledDecals(LandMeshManager &provider, const LandMeshCullingData &culledData, bool compatibility_mode);
+  bool renderDecals(LandMeshManager &provider, RenderType rtype, const TMatrix4 &globtm, bool compatibility_mode);
+  bool renderCulledDecals(LandMeshManager &provider, const LandMeshCullingData &culledData, bool compatibility_mode);
 
   static int lod1_switch_radius;
   ///!sets inverse (1/distance) distance to next geom LOD
@@ -190,7 +190,7 @@ protected:
 
   void renderLandclasses(CellState &curState, bool useFilter = false, LandClassType lcFilter = LC_SIMPLE);
   struct MirroredCellState;
-  void renderCellDecals(LandMeshManager &provider, const MirroredCellState &mirroredCell);
+  bool renderCellDecals(LandMeshManager &provider, const MirroredCellState &mirroredCell);
   void renderCell(LandMeshManager &provider, int borderX, int borderY, RenderType rtype, RenderPurpose rpurpose,
     bool skip_combined_not_marked_as_big);
 

@@ -1,14 +1,11 @@
 #include <pixelPacking/yCoCgSpace.hlsl>
 #include <tex2d_bicubic.hlsl>
 #include <fp16_aware_lerp.hlsl>
+
 #define TAA_BETTER_MOTION_VECTOR 0//accurate motion vector. we don't need it, it seem
+
 #ifndef TAA_BILINEAR
 #define TAA_BILINEAR 1//if we fix discontinuities it should be 1. Otherwise it is also faster and blurrier (which is fine for clouds)
-#endif
-
-#if !TAA_BILINEAR && !SUPPORT_TEXTURE_GATHER
-  #undef TAA_BILINEAR
-  #define TAA_BILINEAR 1
 #endif
 
 #define TAA_LUMINANCE_MIN 0.05
@@ -68,6 +65,12 @@
   #undef TAA_BETTER_MOTION_VECTOR
   #define TAA_BETTER_MOTION_VECTOR 1
 #endif
+
+#if !TAA_BILINEAR && !SUPPORT_TEXTURE_GATHER
+  #undef TAA_BILINEAR
+  #define TAA_BILINEAR 1
+#endif
+
 
 color_type TAA_clip_history(color_type history, color_type current, color_type colorMin, color_type colorMax, float motionVectorPixelLength)
 {
@@ -412,6 +415,13 @@ void TAA(out float4 result_color, out float taaWeight,
          #endif
          )
 {
+  float2 depthScreenSize = screenSize;
+  float2 depthScreenSizeInv = screenSizeInverse;
+#if CLOUDS_FULLRES
+  depthScreenSize /= 2;
+  depthScreenSizeInv *= 2;
+#endif
+
   //
   // Gather the current frame neighborhood information.
   //
@@ -434,10 +444,10 @@ void TAA(out float4 result_color, out float taaWeight,
   // Reproject uv value to motion from previous frame.
   half motionVectorPixelLengthTolerance;
   #if TAA_BETTER_MOTION_VECTOR
-    float2 motionVector = TAAGetReprojectedMotionVector(reprojectionDepth, current.motionVectorUV, screenSize, motionVectorPixelLengthTolerance);//, reprojectionMatrix
+    float2 motionVector = TAAGetReprojectedMotionVector(reprojectionDepth, current.motionVectorUV, depthScreenSize, motionVectorPixelLengthTolerance);//, reprojectionMatrix
     float2 historyUV = (screenUV - current.motionVectorUV + motionVector);
   #else
-    float2 historyUV = TAAGetReprojectedMotionVector(reprojectionDepth, screenUV, screenSize, motionVectorPixelLengthTolerance);//, reprojectionMatrix
+    float2 historyUV = TAAGetReprojectedMotionVector(reprojectionDepth, screenUV, depthScreenSize, motionVectorPixelLengthTolerance);//, reprojectionMatrix
     float2 motionVector = historyUV-screenUV;
   #endif
   bool bOffscreen = historyUV.x >= 1.0 || historyUV.x <= TAA_RESTART_TEMPORAL_X || historyUV.y >= 1.0 || historyUV.y <= 0.0;
@@ -450,18 +460,18 @@ void TAA(out float4 result_color, out float taaWeight,
     float acceptanceThreshold = move_world_view_pos_tolerance + 0.02*linearDepth;
     float historyViewVecLenScale = length(getPrevViewVecOptimized(historyUV));
 
-    float2 histCrd = historyUV*screenSize - 0.5;//should be 0.5, but for some reason it is not
+    float2 histCrd = historyUV*depthScreenSize - 0.5;//should be 0.5, but for some reason it is not
     float2 histCrdFloored = floor(histCrd);
-    float2 histTCBilinear = histCrdFloored*screenSizeInverse + screenSizeInverse;
-    #if !TAA_BILINEAR && !CLOUDS_FULLRES
+    float2 histTCBilinear = histCrdFloored*depthScreenSizeInv + depthScreenSizeInv;
+    #if !TAA_BILINEAR
     {
       BicubicSharpenWeights weights;
-      compute_bicubic_sharpen_weights(historyUV, screenSize, screenSizeInverse, TAA_SHARPENING_FACTOR, weights);
-      float4 rawHistoryDepth4_1 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv0*screenSize - 0.5)*screenSizeInverse + screenSizeInverse);
-      float4 rawHistoryDepth4_2 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv1*screenSize - 0.5)*screenSizeInverse + screenSizeInverse);
-      float4 rawHistoryDepth4_3 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv2*screenSize - 0.5)*screenSizeInverse + screenSizeInverse);
-      float4 rawHistoryDepth4_4 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv3*screenSize - 0.5)*screenSizeInverse + screenSizeInverse);
-      float4 rawHistoryDepth4_5 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv4*screenSize - 0.5)*screenSizeInverse + screenSizeInverse);
+      compute_bicubic_sharpen_weights(historyUV, depthScreenSize, depthScreenSizeInv, TAA_SHARPENING_FACTOR, weights);
+      float4 rawHistoryDepth4_1 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv0*depthScreenSize - 0.5)*depthScreenSizeInv + depthScreenSizeInv);
+      float4 rawHistoryDepth4_2 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv1*depthScreenSize - 0.5)*depthScreenSizeInv + depthScreenSizeInv);
+      float4 rawHistoryDepth4_3 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv2*depthScreenSize - 0.5)*depthScreenSizeInv + depthScreenSizeInv);
+      float4 rawHistoryDepth4_4 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv3*depthScreenSize - 0.5)*depthScreenSizeInv + depthScreenSizeInv);
+      float4 rawHistoryDepth4_5 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv4*depthScreenSize - 0.5)*depthScreenSizeInv + depthScreenSizeInv);
       float4 rawHistoryDepthMin4 = min(min(min(rawHistoryDepth4_1, rawHistoryDepth4_2), min(rawHistoryDepth4_3, rawHistoryDepth4_4)), rawHistoryDepth4_5);
       float4 rawHistoryDepthMax4 = max(max(max(rawHistoryDepth4_1, rawHistoryDepth4_2), max(rawHistoryDepth4_3, rawHistoryDepth4_4)), rawHistoryDepth4_5);
       float  rawHistoryDepthMin = min(min(rawHistoryDepthMin4.x, rawHistoryDepthMin4.y), min(rawHistoryDepthMin4.z, rawHistoryDepthMin4.w));
@@ -524,7 +534,7 @@ void TAA(out float4 result_color, out float taaWeight,
           //select one best corner
           wght = minDiff == difference.x ? float2(0,0) : (minDiff == difference.y ? float2(1,0) : (minDiff == difference.z ? float2(0,1) : float2(1,1)));
         }
-        historyUV = (histCrdFloored + wght + 0.5)*screenSizeInverse;
+        historyUV = (histCrdFloored + wght + 0.5)*depthScreenSizeInv;
         motionVector = historyUV-screenUV;
         FLATTEN
         if (minDiff > acceptanceThreshold)
@@ -563,7 +573,7 @@ void TAA(out float4 result_color, out float taaWeight,
 
   // Motion vector changes.
   float newTaaEventFrame = 0;
-  const float blurredFrameNo = all(abs(screenUV*2-1) < 2*screenSizeInverse) ? 3./255 : 0./255;//blurred color isn't as bad, as completely new one. but blurring outside isngt
+  const float blurredFrameNo = all(abs(screenUV*2-1) < 2*depthScreenSizeInv) ? 3./255 : 0./255;//blurred color isn't as bad, as completely new one. but blurring outside isngt
   #if TAA_ALWAYS_BLUR
     current.color = current.colorBlurred;
     newTaaEventFrame = blurredFrameNo;
@@ -577,13 +587,13 @@ void TAA(out float4 result_color, out float taaWeight,
     #endif
     {
       float4 rawCurrentDepth4Min, rawCurrentDepth4Max, rawCurrentDepth4;
-      rawCurrentDepth4 = nativeDepthTex.GatherRed(nativeDepthTex_samplerstate, screenUV-0.5*screenSizeInverse);
+      rawCurrentDepth4 = nativeDepthTex.GatherRed(nativeDepthTex_samplerstate, screenUV-0.5*depthScreenSizeInv);
       rawCurrentDepth4Min = rawCurrentDepth4Max = rawCurrentDepth4;
-      rawCurrentDepth4 = nativeDepthTex.GatherRed(nativeDepthTex_samplerstate, screenUV+float2(0.5*screenSizeInverse.x, -0.5*screenSizeInverse.y));
+      rawCurrentDepth4 = nativeDepthTex.GatherRed(nativeDepthTex_samplerstate, screenUV+float2(0.5*depthScreenSizeInv.x, -0.5*depthScreenSizeInv.y));
       rawCurrentDepth4Min = min(rawCurrentDepth4, rawCurrentDepth4Min); rawCurrentDepth4Max = max(rawCurrentDepth4, rawCurrentDepth4Max);
-      rawCurrentDepth4 = nativeDepthTex.GatherRed(nativeDepthTex_samplerstate, screenUV+float2(-0.5*screenSizeInverse.x, 0.5*screenSizeInverse.y));
+      rawCurrentDepth4 = nativeDepthTex.GatherRed(nativeDepthTex_samplerstate, screenUV+float2(-0.5*depthScreenSizeInv.x, 0.5*depthScreenSizeInv.y));
       rawCurrentDepth4Min = min(rawCurrentDepth4, rawCurrentDepth4Min); rawCurrentDepth4Max = max(rawCurrentDepth4, rawCurrentDepth4Max);
-      rawCurrentDepth4 = nativeDepthTex.GatherRed(nativeDepthTex_samplerstate, screenUV+0.5*screenSizeInverse);
+      rawCurrentDepth4 = nativeDepthTex.GatherRed(nativeDepthTex_samplerstate, screenUV+0.5*depthScreenSizeInv);
       rawCurrentDepth4Min = min(rawCurrentDepth4, rawCurrentDepth4Min); rawCurrentDepth4Max = max(rawCurrentDepth4, rawCurrentDepth4Max);
 
       float closestZbufferDepthRaw = max(max(rawCurrentDepth4Max.x, rawCurrentDepth4Max.y), max(rawCurrentDepth4Max.z, rawCurrentDepth4Max.w));

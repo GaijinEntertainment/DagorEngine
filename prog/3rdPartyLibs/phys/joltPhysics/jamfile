@@ -1,5 +1,5 @@
 # https://github.com/jrouwe/JoltPhysics.git
-# rev c52a6cedf8e2034bbe9ff7c17cc19ca41c0420c8
+# rev c8829c4f68286faefa8b63200f0eae079ad8b1e2
 Root    ?= ../../../.. ;
 Location = prog/3rdPartyLibs/phys/joltPhysics ;
 if $(OS) = NT { Platform ?= win64 ; }
@@ -26,6 +26,7 @@ local _SrcDirs =
   Jolt/Physics/Collision/Shape
   Jolt/Physics/Constraints
   Jolt/Physics/Ragdoll
+  Jolt/Physics/SoftBody
   Jolt/Physics/Vehicle
   Jolt/Skeleton
   Jolt/TriangleGrouper
@@ -39,7 +40,15 @@ include $(Root)/$(Location)/setup.jam ;
 
 if $(Platform) in win32 win64 { CPPopt += -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_WARNINGS ; }
 if $(Config) in dev dbg { _SrcDirs += Jolt/Renderer ; }
-if $(Platform) in win32 && $(PlatformSpec) != clang { CPPopt += -fp:precise ; }
+
+if $(Platform) = linux64 || $(PlatformSpec) = clang {
+  if $(Platform) in win32 win64 xboxOne scarlett {
+    CPPopt += -fp:fast /clang:-fno-unsafe-math-optimizations ;
+  } else {
+    CPPopt += -ffast-math ;
+    if ! $(Platform) in iOS nswitch { CPPopt += -fno-unsafe-math-optimizations ; }
+  }
+} else if $(Platform) = win32 { CPPopt += -fp:precise ; }
 
 AutoscanBuildLists $(_SrcDirs) : *.cpp : Sources ;
 

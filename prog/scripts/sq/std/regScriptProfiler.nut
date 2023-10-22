@@ -1,22 +1,24 @@
-let dagor_sys = require("dagor.system")
+//-file:forbidden-function
+
+let {DBGLEVEL} = require("dagor.system")
 let { setInterval, clearTimer } = require("dagor.workcycle")
-let {Watched} = require("frp")
 let console = require("console")
 let log = require("log.nut")()
 let conprint = log.console_print
-
-let mkWatched = @(id, val) persist(id, @() Watched(val))
+let { get_time_msec } = require("dagor.time")
+let { hardPersistWatched } = require("globalState.nut")
 
 let function registerScriptProfiler(prefix) {
-  if (dagor_sys.DBGLEVEL > 0) {
+  if (DBGLEVEL > 0) {
     let profiler = require("dagor.profiler")
     let profiler_reset = profiler.reset_values
     let profiler_dump = profiler.dump
     let profiler_get_total_time = profiler.get_total_time
-    let isProfileOn = mkWatched("isProfileOn", false)
-    let isSpikesProfileOn = mkWatched("isSpikesProfileOn", false)
-    let spikesThresholdMs = mkWatched("spikesThresholdMs", 10)
+    let isProfileOn = hardPersistWatched($"{prefix}isProfileOn", false)
+    let isSpikesProfileOn = hardPersistWatched($"{prefix}isSpikesProfileOn", false)
+    let spikesThresholdMs = hardPersistWatched($"{prefix}spikesThresholdMs", 10)
 
+    local st = 0
     let function toggleProfiler(newVal = null, fileName = null) {
       local ret
       if (newVal == isProfileOn.value)
@@ -27,17 +29,21 @@ let function registerScriptProfiler(prefix) {
       else
         ret = "off"
       if (ret=="on"){
+        st = get_time_msec()
         conprint(ret)
         profiler.start()
         return ret
       }
-      if (ret=="off")
+      if (ret=="off") {
+        conprint($"time take: {get_time_msec() - st}ms")
+        st = 0
         if (fileName == null)
           profiler.stop()
         else {
           profiler.stop_and_save_to_file(fileName)
           ret = $"{ret} (saved to file {fileName})"
         }
+      }
       conprint(ret)
       return ret
     }

@@ -5,10 +5,11 @@
 //
 #pragma once
 
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtra.h>
 #include <ecs/rendInst/riExtra.h>
 #include <gamePhys/collision/rendinstCollision.h>
 #include <util/dag_delayedAction.h>
+
 
 inline bool move_ri_extra_tm_ex(rendinst::riex_handle_t handle, const TMatrix &transform, const Point3 &vel, const Point3 &omega,
   bool do_not_lock)

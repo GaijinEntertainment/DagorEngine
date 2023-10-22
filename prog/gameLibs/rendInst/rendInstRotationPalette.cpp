@@ -2,22 +2,17 @@
 #include "riGen/riRotationPalette.h"
 #include "riGen/landClassData.h"
 
-#include <3d/dag_drv3d_multi.h>
 #include <math/dag_mathBase.h>
 #include <gameRes/dag_stdGameResId.h>
 
-#include <EASTL/algorithm.h>
 
+uint32_t rendinst::gen::RotationPaletteManager::version = 0;
 
-using namespace rendinstgen;
-
-uint32_t RotationPaletteManager::version = 0;
-
-RotationPaletteManager::Palette::Palette(int cnt, int ofs, const PaletteEntry *rot, const Point3 &tilt) :
+rendinst::gen::RotationPaletteManager::Palette::Palette(int cnt, int ofs, const PaletteEntry *rot, const Point3 &tilt) :
   count(cnt), impostor_data_offset(ofs), rotations(rot), tiltLimit(tilt)
 {}
 
-RotationPaletteManager::PaletteEntry::PaletteEntry(int id, int max)
+rendinst::gen::RotationPaletteManager::PaletteEntry::PaletteEntry(int id, int max)
 {
   if (max > 0)
     rotationY = float(id) / (max)*2 * M_PI;
@@ -26,7 +21,7 @@ RotationPaletteManager::PaletteEntry::PaletteEntry(int id, int max)
   sincos(rotationY, sinY, cosY);
 }
 
-RotationPaletteManager::RotationPaletteManager() : impostorData(midmem), rotations(midmem)
+rendinst::gen::RotationPaletteManager::RotationPaletteManager() : impostorData(midmem), rotations(midmem)
 {
   // By default nothing is rendered using palettes
   // If one rendinst uses palettes, it will be turned on globally
@@ -36,7 +31,7 @@ RotationPaletteManager::RotationPaletteManager() : impostorData(midmem), rotatio
   clear();
 }
 
-void RotationPaletteManager::clear()
+void rendinst::gen::RotationPaletteManager::clear()
 {
   version++;
   impostorDataBuffer.close();
@@ -50,7 +45,7 @@ void RotationPaletteManager::clear()
   rotations[0] = {};
 }
 
-void RotationPaletteManager::createPalette(const RendintsInfo &ri_info)
+void rendinst::gen::RotationPaletteManager::createPalette(const RendintsInfo &ri_info)
 {
   version++;
   int layerId = ri_info.rtData->layerIdx;
@@ -58,13 +53,13 @@ void RotationPaletteManager::createPalette(const RendintsInfo &ri_info)
   for (uint32_t i = 0; i < ri_info.landClassCount; ++i)
   {
     const RendInstGenData::LandClassRec &landClass = ri_info.landClasses[i];
-    const rendinstgenland::AssetData &land = *landClass.asset;
+    const rendinst::gen::land::AssetData &land = *landClass.asset;
     if (!land.planted)
       continue;
     debug("[RI] Registering vegetation assets with rotation palette for landclass: <%s>", landClass.landClassName.get());
-    for (const rendinstgenland::SingleGenEntityGroup &group : land.planted->data)
+    for (const rendinst::gen::land::SingleGenEntityGroup &group : land.planted->data)
     {
-      for (const rendinstgenland::SingleGenEntityGroup::Obj &obj : group.obj)
+      for (const rendinst::gen::land::SingleGenEntityGroup::Obj &obj : group.obj)
       {
         if (obj.entityIdx == -1) // perfectly valid case for no-RI entities referenced by land class
           continue;
@@ -114,13 +109,13 @@ void RotationPaletteManager::createPalette(const RendintsInfo &ri_info)
   for (uint32_t i = 0; i < ri_info.landClassCount; ++i)
   {
     const RendInstGenData::LandClassRec &landClass = ri_info.landClasses[i];
-    const rendinstgenland::AssetData &land = *landClass.asset;
+    const rendinst::gen::land::AssetData &land = *landClass.asset;
     if (!land.planted)
       continue;
     debug("[RI] Registering vegetation assets without rotation palette for landclass: <%s>", landClass.landClassName.get());
-    for (const rendinstgenland::SingleGenEntityGroup &group : land.planted->data)
+    for (const rendinst::gen::land::SingleGenEntityGroup &group : land.planted->data)
     {
-      for (const rendinstgenland::SingleGenEntityGroup::Obj &obj : group.obj)
+      for (const rendinst::gen::land::SingleGenEntityGroup::Obj &obj : group.obj)
       {
         if (obj.entityIdx == -1) // perfectly valid case for no-RI entities referenced by land class
           continue;
@@ -139,7 +134,7 @@ void RotationPaletteManager::createPalette(const RendintsInfo &ri_info)
   recreateBuffer();
 }
 
-void RotationPaletteManager::recreateBuffer()
+void rendinst::gen::RotationPaletteManager::recreateBuffer()
 {
   if (RendInstGenData::renderResRequired)
   {
@@ -149,7 +144,7 @@ void RotationPaletteManager::recreateBuffer()
   }
 }
 
-void RotationPaletteManager::fillBuffer()
+void rendinst::gen::RotationPaletteManager::fillBuffer()
 {
   if (impostorDataBuffer.getBuf())
   {
@@ -158,12 +153,12 @@ void RotationPaletteManager::fillBuffer()
   }
 }
 
-bool RotationPaletteManager::hasPalette(const EntryId &id) const
+bool rendinst::gen::RotationPaletteManager::hasPalette(const EntryId &id) const
 {
   return entityIdToPaletteInfo.find(id) != entityIdToPaletteInfo.end();
 }
 
-RotationPaletteManager::Palette RotationPaletteManager::getPalette(const EntryId &id) const
+rendinst::gen::RotationPaletteManager::Palette rendinst::gen::RotationPaletteManager::getPalette(const EntryId &id) const
 {
   Palette ret;
   auto itr = entityIdToPaletteInfo.find(id);
@@ -187,7 +182,8 @@ RotationPaletteManager::Palette RotationPaletteManager::getPalette(const EntryId
   return ret;
 }
 
-uint32_t RotationPaletteManager::getImpostorDataBufferOffset(const EntryId &id, const char *name, RenderableInstanceLodsResource *res)
+uint32_t rendinst::gen::RotationPaletteManager::getImpostorDataBufferOffset(const EntryId &id, const char *name,
+  RenderableInstanceLodsResource *res)
 {
   auto itr = entityIdToPaletteInfo.find(id);
   if (itr == entityIdToPaletteInfo.end())
@@ -228,7 +224,7 @@ uint32_t RotationPaletteManager::getImpostorDataBufferOffset(const EntryId &id, 
   }
 }
 
-uint32_t RotationPaletteManager::getImpostorDataBufferOffset(const EntryId &id, uint64_t &cache)
+uint32_t rendinst::gen::RotationPaletteManager::getImpostorDataBufferOffset(const EntryId &id, uint64_t &cache)
 {
   if ((cache >> CACHE_VERSION_BITS) == version)
     return cache & CACHE_OFFSET_MASK;
@@ -244,7 +240,7 @@ uint32_t RotationPaletteManager::getImpostorDataBufferOffset(const EntryId &id, 
   return ret;
 }
 
-RotationPaletteManager::PaletteInfo &RotationPaletteManager::addPalette(const char *asset_name,
+rendinst::gen::RotationPaletteManager::PaletteInfo &rendinst::gen::RotationPaletteManager::addPalette(const char *asset_name,
   const RenderableInstanceLodsResource::ImpostorParams &impostors_params, const EntryId &id, uint32_t rotation_count)
 {
   PaletteInfo &info = entityIdToPaletteInfo[id];
@@ -318,7 +314,7 @@ static float angular_distance(float a, float b)
   return min(ret, static_cast<float>(2 * M_PI) - ret);
 }
 
-Point3 RotationPaletteManager::clamp_euler_angles(const Palette &palette, const Point3 rotation, int32_t *palette_index)
+Point3 rendinst::gen::RotationPaletteManager::clamp_euler_angles(const Palette &palette, const Point3 rotation, int32_t *palette_index)
 {
   if (palette.count > 0)
   {
@@ -345,7 +341,7 @@ Point3 RotationPaletteManager::clamp_euler_angles(const Palette &palette, const 
   }
 }
 
-TMatrix RotationPaletteManager::clamp_euler_angles(const Palette &palette, const TMatrix &tm, int32_t *palette_index)
+TMatrix rendinst::gen::RotationPaletteManager::clamp_euler_angles(const Palette &palette, const TMatrix &tm, int32_t *palette_index)
 {
   if (palette.count > 0)
   {
@@ -376,19 +372,19 @@ TMatrix RotationPaletteManager::clamp_euler_angles(const Palette &palette, const
   return ret;
 }
 
-quat4f RotationPaletteManager::get_quat(const Palette &palette, int32_t palette_index)
+quat4f rendinst::gen::RotationPaletteManager::get_quat(const Palette &palette, int32_t palette_index)
 {
   if (palette_index < 0 || palette_index >= palette.count)
     return V_C_UNIT_0001;
   return get_quat(palette.rotations[palette_index]);
 }
 
-quat4f RotationPaletteManager::get_quat(const PaletteEntry rotation)
+quat4f rendinst::gen::RotationPaletteManager::get_quat(const PaletteEntry rotation)
 {
   return v_quat_from_unit_vec_ang(V_C_UNIT_0100, v_splats(-rotation.rotationY));
 }
 
-TMatrix RotationPaletteManager::get_tm(const PaletteEntry &rotation)
+TMatrix rendinst::gen::RotationPaletteManager::get_tm(const PaletteEntry &rotation)
 {
   TMatrix tm;
   tm.identity();
@@ -398,7 +394,7 @@ TMatrix RotationPaletteManager::get_tm(const PaletteEntry &rotation)
   return tm;
 }
 
-TMatrix RotationPaletteManager::get_tm(const Palette &palette, int32_t palette_index)
+TMatrix rendinst::gen::RotationPaletteManager::get_tm(const Palette &palette, int32_t palette_index)
 {
   if (palette_index < 0 || palette_index >= palette.count)
   {
@@ -409,22 +405,22 @@ TMatrix RotationPaletteManager::get_tm(const Palette &palette, int32_t palette_i
   return get_tm(palette.rotations[palette_index]);
 }
 
-int ScopedDisablePaletteRotation::get_var_id()
+int rendinst::gen::ScopedDisablePaletteRotation::get_var_id()
 {
   static const int palette_rotation_modeVarId = ::get_shader_glob_var_id("palette_rotation_mode", true);
   return palette_rotation_modeVarId;
 }
 
-ScopedDisablePaletteRotation::ScopedDisablePaletteRotation()
+rendinst::gen::ScopedDisablePaletteRotation::ScopedDisablePaletteRotation()
 {
   G_ASSERT(RendInstGenData::renderResRequired);
   rotationMode = ShaderGlobal::get_int(get_var_id());
   ShaderGlobal::set_int(get_var_id(), 0);
 }
 
-ScopedDisablePaletteRotation::~ScopedDisablePaletteRotation() { ShaderGlobal::set_int(get_var_id(), rotationMode); }
+rendinst::gen::ScopedDisablePaletteRotation::~ScopedDisablePaletteRotation() { ShaderGlobal::set_int(get_var_id(), rotationMode); }
 
-namespace rendinstgen
+namespace rendinst::gen
 {
 
 void rotation_palette_after_reset(bool /*full_reset*/)
@@ -433,7 +429,7 @@ void rotation_palette_after_reset(bool /*full_reset*/)
     mgr->fillBuffer();
 }
 
-} // namespace rendinstgen
+} // namespace rendinst::gen
 
 #include <3d/dag_drv3dReset.h>
-REGISTER_D3D_AFTER_RESET_FUNC(rendinstgen::rotation_palette_after_reset);
+REGISTER_D3D_AFTER_RESET_FUNC(rendinst::gen::rotation_palette_after_reset);

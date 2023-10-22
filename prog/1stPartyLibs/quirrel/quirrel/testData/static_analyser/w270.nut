@@ -1,3 +1,3 @@
 //expect:w270
 
-::handlersManager[::PERSISTENT_DATA_PARAMS].extend([ "curControlsAllowMask", "isCurSceneBgBlurred" ])
+::handlersManager[::PERSISTENT_DATA_PARAMS].extend([ "curControlsAllowMask", "isCurSceneBgBlurred" ]) // -undefined-global

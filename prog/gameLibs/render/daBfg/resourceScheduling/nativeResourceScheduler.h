@@ -57,6 +57,7 @@ private:
   struct PlaceProperty
   {
     HeapIndex heapIndex;
+    uint32_t offset;
     ResourceKey key;
   };
   struct ResKeyHash
@@ -72,7 +73,7 @@ private:
   IdIndexedMapping<HeapIndex, ResourceHashMap> placedHeapResources;
 
   template <typename ResType, typename ResourceCreator>
-  void placeResource(int frame, intermediate::ResourceIndex res_idx, HeapIndex heap_idx, const ResourceKey &key,
+  void placeResource(int frame, intermediate::ResourceIndex res_idx, HeapIndex heap_idx, uint32_t offset, const ResourceKey &key,
     const ResourceCreator &resourceCreator);
 
   dag::Vector<PlaceProperty> placedProperties;

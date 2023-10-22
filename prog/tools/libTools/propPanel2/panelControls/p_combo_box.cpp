@@ -3,12 +3,12 @@
 #include "p_combo_box.h"
 #include "../c_constants.h"
 
-CComboBox::CComboBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CComboBox::CComboBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[], const Tab<String> &vals, int index, bool sorted) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT * 2),
-  mCaption(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT),
-  mComboBox(this, parent->getWindow(), x, y + mCaption.getHeight(), w, DEFAULT_CONTROL_HEIGHT, vals, index, sorted),
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT) * 2),
+  mCaption(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT)),
+  mComboBox(this, parent->getWindow(), x, y + mCaption.getHeight(), _px(w), _pxS(DEFAULT_CONTROL_HEIGHT), vals, index, sorted),
   mSorted(sorted)
 {
   hasCaption = strlen(caption) > 0;
@@ -16,7 +16,7 @@ CComboBox::CComboBox(ControlEventHandler *event_handler, PropertyContainerContro
   if (hasCaption)
   {
     mCaption.setTextValue(caption);
-    mH = DEFAULT_CONTROL_HEIGHT + mComboBox.getHeight();
+    mH = _pxS(DEFAULT_CONTROL_HEIGHT) + mComboBox.getHeight();
   }
   else
   {
@@ -68,12 +68,12 @@ void CComboBox::setEnabled(bool enabled)
 }
 
 
-void CComboBox::setWidth(unsigned w)
+void CComboBox::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
 
-  mCaption.resizeWindow(w, mCaption.getHeight());
-  mComboBox.resizeWindow(w, mComboBox.getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
+  mComboBox.resizeWindow(_px(w), mComboBox.getHeight());
 
   this->moveTo(this->getX(), this->getY());
 }

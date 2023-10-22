@@ -200,6 +200,9 @@ namespace das {
         virtual bool canSubstitute ( TypeAnnotation * ann ) const override {
             return canSubstituteExpr(this, ann);
         }
+        virtual void * factory () const override {
+            return new EXPR();
+        }
     };
 
     template <typename EXPR>

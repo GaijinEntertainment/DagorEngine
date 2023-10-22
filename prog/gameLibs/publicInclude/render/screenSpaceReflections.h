@@ -70,13 +70,15 @@ public:
     bool own_textures = true);
   ~ScreenSpaceReflections();
 
-  void render(const DPoint3 &world_pos, SubFrameSample sub_sample, ManagedTexView ssrTex, ManagedTexView ssrPrevTex,
-    ManagedTexView targetTex, const dag::ConstSpan<ManagedTexView> &tempTextures, int callId);
-  void render(const DPoint3 &world_pos, SubFrameSample sub_sample = SubFrameSample::Single);
-  void render()
+  void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos, SubFrameSample sub_sample,
+    ManagedTexView ssrTex, ManagedTexView ssrPrevTex, ManagedTexView targetTex, const dag::ConstSpan<ManagedTexView> &tempTextures,
+    int callId);
+  void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos,
+    SubFrameSample sub_sample = SubFrameSample::Single);
+  void render(const TMatrix &view_tm, const TMatrix4 &proj_tm)
   {
     DPoint3 worldPos(0, 0, 0);
-    render(worldPos, SubFrameSample::Single);
+    render(view_tm, proj_tm, worldPos, SubFrameSample::Single);
   }
   void setRandomizationFrames(int v) { randomizeOverNFrames = v; }
   void setCurrentView(int index);

@@ -32,13 +32,17 @@ struct CompressedHeightmap
     return (val1 > val2 ? val1 : val2);
   }
 
-  static size_t calc_data_size_needed(uint32_t w, uint32_t h, uint8_t &block_shift);
-  size_t dataSizeCurrent() const { return bh * bw * (sizeof(BlockInfo) + (1 << block_size_shift)); }
+  static size_t calc_data_size_needed(uint32_t w, uint32_t h, uint8_t &block_shift, uint32_t hrb_subsz);
+  size_t dataSizeCurrent() const
+  {
+    return ((bh * bw * (sizeof(BlockInfo) + (1 << block_size_shift)) + 0xF) & ~0xF) +
+           sHierGridOffsets[htRangeBlocksLevels] * sizeof(HeightRangeBlock);
+  }
 
   static CompressedHeightmap compress(uint8_t *dest, uint32_t dest_size, const uint16_t *data, uint32_t w, uint32_t h,
-    uint8_t block_shift);
+    uint8_t block_shift, uint32_t hrb_subsz);
 
-  static CompressedHeightmap init(uint8_t *data, uint32_t data_size, uint32_t w, uint32_t h, uint8_t block_shift);
+  static CompressedHeightmap init(uint8_t *data, uint32_t data_size, uint32_t w, uint32_t h, uint8_t block_shift, uint32_t hrb_subsz);
   static bool loadData(CompressedHeightmap &hmap, IGenLoad &crd, unsigned chunk_sz);
   static CompressedHeightmap downsample(uint8_t *data, uint32_t data_size, uint32_t w, uint32_t h, const CompressedHeightmap &orig);
 
@@ -61,13 +65,40 @@ struct CompressedHeightmap
       return uint32_t(hMn * 255 + (delta >> 1)) / delta;
     }
   };
+  /// A block of 2x2 ranges used to form a hierarchical grid, ordered left top, right top, left bottom, right bottom
+  struct alignas(16) HeightRangeBlock
+  {
+    uint16_t hMin[4], hMax[4];
+  };
+  static const unsigned sHierGridOffsets[15]; // grid offset for each level in flat layout
+
   operator bool() const { return fullData != nullptr; }
   uint8_t *fullData = nullptr;
   uint8_t *blockVariance = nullptr; // fullData + blocks*sizeof(BlockInfo);
   uint8_t block_width_shift = 0, block_width = 0, block_width_mask = 0, block_size_shift = 0;
   uint16_t bw = 0, bh = 0;
 
+  HeightRangeBlock *htRangeBlocks = nullptr; // align(16) (blockVariance + getW() * getH());
+  uint8_t htRangeBlocksLevels = 0, _resv1[3] = {0, 0, 0};
+#if _TARGET_64BIT
+  uint32_t _resv2 = 0;
+#endif
+
   void decompress(uint16_t *data, size_t data_size) const;
+  bool updateHierHeightRangeBlocksForPoint(unsigned x, unsigned y, uint16_t new_ht);
+  bool recomputeHierHeightRangeBlocksForRect(unsigned x, unsigned y, unsigned w, unsigned h);
+  void recomputeHierHeightRangeBlocks();
+
+  unsigned getW() const { return bw << block_width_shift; }
+  unsigned getH() const { return bh << block_width_shift; }
+
+  const HeightRangeBlock *getHtRangeBlocksLevData(unsigned lev) const
+  {
+    return lev < htRangeBlocksLevels ? htRangeBlocks + sHierGridOffsets[lev] : nullptr;
+  }
+  unsigned getHtRangeBlocksLevStride(unsigned lev) const { return lev < htRangeBlocksLevels ? 1 << lev : 0; }
+  unsigned getBestHtRangeBlocksResolution() const { return htRangeBlocksLevels ? 1 << htRangeBlocksLevels : 1; }
+
   const BlockInfo *blocksInfo() const { return (const BlockInfo *)fullData; }
   const BlockInfo &getBlockInfo(uint32_t b) const { return blocksInfo()[b]; }
   const uint8_t *getBlockVariance(uint32_t b) const { return blockVariance + (b << block_size_shift); }
@@ -93,8 +124,8 @@ struct CompressedHeightmap
     const uint32_t bi = by * bw + bx;
     const BlockInfo *__restrict bInfo = blocksInfo() + bi;
     uint32_t widthLeft = bw - bx_w;
-    for (int bj = by; bj < by_w; ++bj, bInfo += widthLeft)
-      for (int bi = bx; bi < bx_w; ++bi, ++bInfo)
+    for (int bj = by; bj < by + by_w; ++bj, bInfo += widthLeft)
+      for (int bi = bx; bi < bx + bx_w; ++bi, ++bInfo)
         cb(bi, bj, bInfo->getMin(), bInfo->getMax());
   }
 
@@ -160,5 +191,11 @@ struct CompressedHeightmap
           cb(xi, yi, decodePixelUnsafe(xi, yi));
       }
     }
+  }
+
+private:
+  HeightRangeBlock *getHtRangeBlocksLevData(unsigned lev)
+  {
+    return lev < htRangeBlocksLevels ? htRangeBlocks + sHierGridOffsets[lev] : nullptr;
   }
 };

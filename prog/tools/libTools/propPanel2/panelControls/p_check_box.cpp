@@ -3,11 +3,11 @@
 #include "p_check_box.h"
 #include "../c_constants.h"
 
-CCheckBox::CCheckBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CCheckBox::CCheckBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[]) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_CONTROL_HEIGHT),
-  mCheckBox(this, parent->getWindow(), x, y, w, DEFAULT_CONTROL_HEIGHT)
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_CONTROL_HEIGHT)),
+  mCheckBox(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_CONTROL_HEIGHT))
 {
   mCheckBox.setTextValue(caption);
   initTooltip(&mCheckBox);
@@ -41,10 +41,10 @@ bool CCheckBox::getBoolValue() const { return mCheckBox.checked(); }
 void CCheckBox::setEnabled(bool enabled) { mCheckBox.setEnabled(enabled); }
 
 
-void CCheckBox::setWidth(unsigned w)
+void CCheckBox::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
-  mCheckBox.resizeWindow(w, mCheckBox.getHeight());
+  mCheckBox.resizeWindow(_px(w), mCheckBox.getHeight());
 }
 
 

@@ -6,7 +6,7 @@
 class CExtGroup : public CGroup
 {
 public:
-  CExtGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
+  CExtGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h,
     const char caption[]);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
@@ -18,7 +18,7 @@ public:
   int getIntValue() const;
   void setIntValue(int value);
 
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
 
 protected:
   virtual void onWcClick(WindowBase *source);

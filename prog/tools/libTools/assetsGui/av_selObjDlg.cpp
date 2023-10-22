@@ -2,15 +2,24 @@
 #include <assetsGui/av_globalState.h>
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
+#include <libTools/util/strUtil.h>
+#include <osApiWrappers/dag_clipboard.h>
+#include <osApiWrappers/dag_shellExecute.h>
 #include <util/dag_globDef.h>
 #include <propPanel2/comWnd/panel_window.h>
 #include "av_ids.h"
 
+using hdpi::_pxActual;
+
+#if _TARGET_PC_WIN
+#include <osApiWrappers/dag_unicode.h>
+#include <Shlobj.h>
+#endif
 
 SelectAssetDlg::SelectAssetDlg(void *phandle, DagorAssetMgr *_mgr, const char *caption, const char *sel_btn_caption,
   const char *reset_btn_caption, dag::ConstSpan<int> filter, int x, int y, unsigned w, unsigned h) :
 
-  CDialogWindow(phandle, x, y, w, h, caption), mgr(_mgr), view(NULL)
+  CDialogWindow(phandle, x, y, _pxActual(w), _pxActual(h), caption), mgr(_mgr), view(NULL)
 {
   client = this;
 
@@ -29,7 +38,7 @@ SelectAssetDlg::SelectAssetDlg(void *phandle, DagorAssetMgr *_mgr, const char *c
 SelectAssetDlg::SelectAssetDlg(void *phandle, DagorAssetMgr *_mgr, IAssetBaseViewClient *cli, const char *caption,
   dag::ConstSpan<int> filter, int x, int y, unsigned w, unsigned h) :
 
-  CDialogWindow(phandle, x, y, w, h, caption), mgr(_mgr), view(NULL)
+  CDialogWindow(phandle, x, y, _pxActual(w), _pxActual(h), caption), mgr(_mgr), view(NULL)
 {
   client = cli ? cli : this;
 
@@ -47,26 +56,26 @@ void SelectAssetDlg::commonConstructor(dag::ConstSpan<int> filter)
   PropertyContainerControlBase *panel = getPanel();
   G_ASSERT(panel && "SelectAssetDlg::commonConstructor : No panel with controls");
 
-  const int verticalInterval = panel->getClientHeight(); // For an empty panel getClientHeight equals with getVerticalInterval.
+  const hdpi::Px verticalInterval = panel->getClientHeight(); // For an empty panel getClientHeight equals with getVerticalInterval.
   PropertyContainerControlBase *tabPanel = panel->createTabPanel(AssetsGuiIds::TabPanel, "");
   PropertyContainerControlBase *allTabPage = tabPanel->createTabPage(AssetsGuiIds::AllPage, "All");
 
-  const int tabPageHeight =
-    panel->getHeight() - panel->getClientHeight() - tabPanel->getClientHeight() - allTabPage->getClientHeight() - verticalInterval;
+  const hdpi::Px tabPageHeight = _pxActual(panel->getHeight()) - panel->getClientHeight() - tabPanel->getClientHeight() -
+                                 allTabPage->getClientHeight() - verticalInterval;
 
   PropertyControlBase *placeholder = allTabPage->createPlaceholder(AssetsGuiIds::AssetBaseViewPlaceholder, tabPageHeight);
   view = new AssetBaseView(client, this, allTabPage->getWindowHandle(), placeholder->getX(), placeholder->getY(),
-    placeholder->getWidth(), tabPageHeight);
+    placeholder->getWidth(), hdpi::_px(tabPageHeight));
 
   PropertyContainerControlBase *favoritesTabPage = tabPanel->createTabPage(AssetsGuiIds::FavoritesPage, "Favorites");
   placeholder = favoritesTabPage->createPlaceholder(AssetsGuiIds::FavoritesTreePlaceholder, tabPageHeight);
   favoritesTree = new TreeBaseWindow(this, favoritesTabPage->getWindowHandle(), placeholder->getX(), placeholder->getY(),
-    placeholder->getWidth(), tabPageHeight, "", /*icons_show = */ true);
+    _pxActual(placeholder->getWidth()), tabPageHeight, "", /*icons_show = */ true);
 
   PropertyContainerControlBase *recentlyUsedTabPage = tabPanel->createTabPage(AssetsGuiIds::RecentlyUsedPage, "Recently used");
   placeholder = recentlyUsedTabPage->createPlaceholder(AssetsGuiIds::RecentlyUsedTreePlaceholder, tabPageHeight);
   recentlyUsedTree = new TreeBaseWindow(this, recentlyUsedTabPage->getWindowHandle(), placeholder->getX(), placeholder->getY(),
-    placeholder->getWidth(), tabPageHeight, "", /*icons_show = */ true);
+    _pxActual(placeholder->getWidth()), tabPageHeight, "", /*icons_show = */ true);
 
   G_ASSERT(view);
 
@@ -107,7 +116,7 @@ bool SelectAssetDlg::changeFilters(DagorAssetMgr *_mgr, dag::ConstSpan<int> type
 }
 
 
-void SelectAssetDlg::resizeWindow(unsigned w, unsigned h, bool internal)
+void SelectAssetDlg::resizeWindow(hdpi::Px w, hdpi::Px h, bool internal)
 {
   __super::resizeWindow(w, h, false);
 
@@ -138,6 +147,26 @@ bool SelectAssetDlg::onOk()
 void SelectAssetDlg::onAvAssetDblClick(const char *obj_name) { click(DIALOG_ID_OK); }
 
 
+void SelectAssetDlg::revealInExplorer(const DagorAsset &asset)
+{
+#if _TARGET_PC_WIN
+  String fpath = asset.isVirtual() ? asset.getTargetFilePath() : asset.getSrcFilePath();
+  fpath.replaceAll("/", "\\");
+  Tab<wchar_t> stor;
+  LPITEMIDLIST fpath_id = nullptr;
+  if (SHParseDisplayName(convert_path_to_u16(stor, fpath), nullptr, &fpath_id, 0, nullptr) == S_OK)
+  {
+    SHOpenFolderAndSelectItems(fpath_id, 0, nullptr, 0);
+    CoTaskMemFree /*ILFree*/ (fpath_id);
+    return;
+  }
+#endif
+
+  String path(asset.getFolderPath());
+  os_shell_execute("open", path, nullptr, nullptr);
+}
+
+
 int SelectAssetDlg::onMenuItemClick(unsigned id)
 {
   if (id == AssetsGuiIds::AddToFavoritesMenuItem)
@@ -166,6 +195,50 @@ int SelectAssetDlg::onMenuItemClick(unsigned id)
       getPanel()->setInt(AssetsGuiIds::TabPanel, AssetsGuiIds::AllPage);
       selectObj(assetName);
     }
+  }
+  else if (id == AssetsGuiIds::CopyAssetFilePathMenuItem)
+  {
+    const String assetName(getSelObjName());
+    const DagorAsset *asset = assetName.empty() ? nullptr : mgr->findAsset(assetName);
+    if (asset)
+    {
+      String text(asset->isVirtual() ? asset->getTargetFilePath() : asset->getSrcFilePath());
+      clipboard::set_clipboard_ansi_text(make_ms_slashes(text));
+    }
+  }
+  else if (id == AssetsGuiIds::CopyAssetFolderPathMenuItem)
+  {
+    const String assetName(getSelObjName());
+    const DagorAsset *asset = assetName.empty() ? nullptr : mgr->findAsset(assetName);
+    if (asset)
+    {
+      String text(asset->getFolderPath());
+      clipboard::set_clipboard_ansi_text(make_ms_slashes(text));
+    }
+  }
+  else if (id == AssetsGuiIds::CopyAssetNameMenuItem)
+  {
+    const String assetName(getSelObjName());
+    const DagorAsset *asset = assetName.empty() ? nullptr : mgr->findAsset(assetName);
+    if (asset)
+      clipboard::set_clipboard_ansi_text(asset->getName());
+  }
+  else if (id == AssetsGuiIds::RevealInExplorerMenuItem)
+  {
+    const DagorAsset *asset = nullptr;
+    const String assetName(getSelObjName());
+    const char *type = strchr(assetName.c_str(), ':');
+    if (type)
+    {
+      const int assetType = mgr->getAssetTypeId(type + 1);
+      if (assetType >= 0)
+        asset = mgr->findAsset(String::mk_sub_str(assetName.c_str(), type), assetType);
+    }
+    else if (!assetName.empty())
+      asset = mgr->findAsset(assetName);
+
+    if (asset)
+      revealInExplorer(*asset);
   }
 
   return 0;
@@ -221,6 +294,7 @@ bool SelectAssetDlg::onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mou
   {
     menu.setEventHandler(this);
     menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::GoToAssetInSelectorMenuItem, "Go to asset");
+    AssetBaseView::addCommonMenuItems(menu);
     menu.addSeparator(ROOT_MENU_ITEM);
     menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RemoveFromFavoritesMenuItem, "Remove from favorites");
     return true;
@@ -230,6 +304,7 @@ bool SelectAssetDlg::onTvContextMenu(TreeBaseWindow &tree, TLeafHandle under_mou
     menu.setEventHandler(this);
     menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::AddToFavoritesMenuItem, "Add to favorites");
     menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::GoToAssetInSelectorMenuItem, "Go to asset");
+    AssetBaseView::addCommonMenuItems(menu);
     return true;
   }
 

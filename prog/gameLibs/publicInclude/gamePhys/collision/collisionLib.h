@@ -103,7 +103,7 @@ bool traceray_normalized_frt(const Point3 &p, const Point3 &dir, real &t, int *o
 bool traceray_normalized_lmesh(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm);
 bool traceray_normalized_ri(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm,
   rendinst::TraceFlags additional_trace_flags = {}, rendinst::RendInstDesc *out_desc = nullptr, int ray_mat_id = -1,
-  const TraceMeshFaces *handle = nullptr);
+  const TraceMeshFaces *handle = nullptr, rendinst::riex_handle_t skip_riex_handle = rendinst::RIEX_HANDLE_NULL);
 bool traceray_normalized_coll_type(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm,
   int flags = ETF_DEFAULT, rendinst::RendInstDesc *out_desc = nullptr, int *out_coll_type = nullptr, int ray_mat_id = -1,
   const TraceMeshFaces *handle = nullptr);
@@ -164,7 +164,7 @@ void set_enable_apex(bool flag);
 bool is_apex_enabled();
 
 CollisionObject create_coll_obj_from_shape(const PhysCollision &shape, void *userPtr, bool kinematic, bool add_to_world = true,
-  int group_filter = EPL_KINEMATIC, int mask = DEFAULT_DYN_COLLISION_MASK);
+  int group_filter = EPL_KINEMATIC, int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
 
 CollisionObject add_dynamic_cylinder_collision(const TMatrix &tm, float rad, float ht, void *user_ptr = nullptr,
   bool add_to_world = true);
@@ -173,7 +173,7 @@ CollisionObject add_dynamic_capsule_collision(const TMatrix &tm, float rad, floa
   bool add_to_world = true);
 CollisionObject add_dynamic_box_collision(const TMatrix &tm, const Point3 &width, void *user_ptr = nullptr, bool add_to_world = true);
 CollisionObject add_dynamic_collision(const DataBlock &props, void *userPtr = nullptr, bool is_player = false,
-  bool add_to_world = true, int mask = DEFAULT_DYN_COLLISION_MASK);
+  bool add_to_world = true, int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
 enum AddDynCOFromCollResFlags
 {
   ACO_NONE = 0,
@@ -186,12 +186,12 @@ enum AddDynCOFromCollResFlags
 };
 CollisionObject add_dynamic_collision_from_coll_resource(const DataBlock *props, const CollisionResource *coll_resource,
   void *user_ptr = nullptr, /*AddDynCOFromCollResFlags */ int flags = ACO_NONE, int phys_layer = EPL_KINEMATIC,
-  int mask = DEFAULT_DYN_COLLISION_MASK);
+  int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
 CollisionObject add_simple_dynamic_collision_from_coll_resource(const DataBlock &props, const CollisionResource *resource,
   GeomNodeTree *tree, float margin, float scale, Point3 &out_center, TMatrix &out_tm, TMatrix &out_tm_in_model);
 CollisionObject add_dynamic_collision_convex_from_coll_resource(dag::ConstSpan<const CollisionNode *> coll_nodes, const Point3 &offset,
   void *user_ptr, int node_type_flags, bool kinematic, bool add_to_world, int phys_layer = EPL_KINEMATIC,
-  int mask = DEFAULT_DYN_COLLISION_MASK);
+  int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr);
 
 struct PhysBodyProperties
 {

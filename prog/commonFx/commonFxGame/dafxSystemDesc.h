@@ -15,10 +15,11 @@ enum
   RTAG_VOL_WBOIT = 8,
   RTAG_FOM = 9,
   RTAG_UNDERWATER = 10,
+  RTAG_VOLFOG_INJECTION = 11,
 };
 
 static const char *renderTags[] = {"lowres", "highres", "distortion", "transmittance", "thermal", "water_proj", "vol_thickness",
-  "vol_depth", "vol_wboit", "fom", "underwater"};
+  "vol_depth", "vol_wboit", "fom", "underwater", "volfog_injection"};
 
 enum TransformType
 {

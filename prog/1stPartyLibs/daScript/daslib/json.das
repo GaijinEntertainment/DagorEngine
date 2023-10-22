@@ -380,7 +380,7 @@ def try_fixing_broken_json ( var bad:string )
 			var i = 0
 			let lstr = length(str)
 			while i < lstr
-				// write until begining of string or end
+				// write until beginning of string or end
 				while i < lstr && str[i]!='"'u8
                     if str[i]==','u8
                         var j = i + 1

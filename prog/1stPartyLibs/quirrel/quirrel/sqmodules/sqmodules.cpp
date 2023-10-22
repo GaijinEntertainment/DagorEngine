@@ -124,7 +124,6 @@ bool SqModules::checkCircularReferences(const char* resolved_fn, const char *)
   return true;
 }
 
-
 enum FileAccessError {
   FAE_OK,
   FAE_NOT_FOUND,
@@ -161,57 +160,47 @@ static enum FileAccessError readFileContent(const char *resolved_fn, std::vector
   return FAE_OK;
 }
 
-struct ArenaGuard
+struct ASTDataGuard
 {
-  Arena *arena;
+  SQCompilation::SqASTData *data;
   HSQUIRRELVM vm;
 
-  ArenaGuard(HSQUIRRELVM vm_, const char *n) : vm(vm_)
-  {
-    arena = sq_createarena(vm, n);
-  }
+  ASTDataGuard(HSQUIRRELVM vm_, SQCompilation::SqASTData *astData) : vm(vm_), data(astData) {}
 
-  ~ArenaGuard()
+  ~ASTDataGuard()
   {
-    sq_destroyarena(vm, arena);
+    sq_releaseASTData(vm, data);
   }
 };
 
 bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sourcename, const HSQOBJECT *bindings)
 {
-  if (compilationOptions.useAST)
+  if (compilationOptions.doStaticAnalysis)
   {
-    ArenaGuard ag(sqvm, "AST");
+    sq_checktrailingspaces(sqvm, sourcename, &buf[0], buf.size());
+  }
 
-    sq_oncompilefile(sqvm, sourcename);
-
-    auto *ast = sq_parsetoast(sqvm, &buf[0], buf.size() - 1, sourcename, compilationOptions.raiseError, ag.arena);
-    if (!ast)
-    {
-      return true;
-    }
-    else
-    {
-      if (onAST_cb)
-        onAST_cb(sqvm, ast, up_data);
-    }
-
-    if (SQ_FAILED(sq_translateasttobytecode(sqvm, ast, bindings, sourcename, &buf[0], buf.size(), compilationOptions.raiseError, compilationOptions.debugInfo)))
-    {
-      return true;
-    }
-
-    if (compilationOptions.doStaticAnalysis)
-    {
-      sq_analyseast(sqvm, ast, bindings, sourcename, &buf[0], buf.size());
-    }
+  auto *ast = sq_parsetoast(sqvm, &buf[0], buf.size() - 1, sourcename, compilationOptions.doStaticAnalysis, compilationOptions.raiseError);
+  if (!ast)
+  {
+    return true;
   }
   else
   {
-    if (SQ_FAILED(sq_compileonepass(sqvm, &buf[0], buf.size() - 1, sourcename, compilationOptions.raiseError, compilationOptions.debugInfo, bindings)))
-    {
-      return true;
-    }
+    if (onAST_cb)
+      onAST_cb(sqvm, ast, up_data);
+  }
+
+  ASTDataGuard g(sqvm, ast);
+
+  if (SQ_FAILED(sq_translateasttobytecode(sqvm, ast, bindings, &buf[0], buf.size(), compilationOptions.raiseError, compilationOptions.debugInfo)))
+  {
+    return true;
+  }
+
+  if (compilationOptions.doStaticAnalysis)
+  {
+    sq_analyseast(sqvm, ast, bindings, &buf[0], buf.size());
   }
 
   if (onBytecode_cb) {

@@ -14,7 +14,7 @@ struct GlobalData
   float2 target_size; float2 target_size_rcp;
   float2 depth_size; float2 depth_size_rcp;
   float2 normals_size; float2 normals_size_rcp;
-  float proj_wk; float proj_hk; uint un06;  uint un07;
+  float2 depth_tci_offset; float proj_wk; float proj_hk;
   float4 zn_zfar;
   float3 from_sun_direction; uint un08;
   float3 sun_color; uint un09;
@@ -57,8 +57,9 @@ struct GlobalData
     o.normals_size = asfloat( dafx_global_data[15].xy );
     o.normals_size_rcp = asfloat( dafx_global_data[15].zw );
 
-    o.proj_wk = asfloat( dafx_global_data[16].x );
-    o.proj_hk = asfloat( dafx_global_data[16].y );
+    o.depth_tci_offset = dafx_global_data[16].xy;
+    o.proj_wk = asfloat( dafx_global_data[16].z );
+    o.proj_hk = asfloat( dafx_global_data[16].w );
 
     o.zn_zfar = asfloat( dafx_global_data[17].xyzw );
 

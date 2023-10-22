@@ -82,14 +82,14 @@ WindowSizeLock VirtualWindow::getSizeLock() const
 
 
 //=============================================================================
-bool VirtualWindow::getMinSize(int &min_w, int &min_h)
+bool VirtualWindow::getMinSize(hdpi::Px &min_w, hdpi::Px &min_h) const
 {
   const int WINS_COUNT = 3;
   CascadeWindow *wins[WINS_COUNT] = {mLeftWnd, mSplitterWnd, mRightWnd};
 
-  min_w = 0;
-  min_h = 0;
-  int minW, minH;
+  min_w = hdpi::Px::ZERO;
+  min_h = hdpi::Px::ZERO;
+  hdpi::Px minW, minH;
   bool isVertical = mSplitterWnd->getIsVertical();
   for (int i = 0; i < WINS_COUNT; ++i)
   {
@@ -98,21 +98,21 @@ bool VirtualWindow::getMinSize(int &min_w, int &min_h)
     if (isVertical)
     {
       min_w += minW;
-      if (min_h < minH)
+      if (_px(min_h) < _px(minH))
         min_h = minH;
     }
     else
     {
       min_h += minH;
-      if (min_w < minW)
+      if (_px(min_w) < _px(minW))
         min_w = minW;
     }
   }
 
   if (isVertical)
-    min_w += 2;
+    min_w += _pxActual(2);
   else
-    min_h += 2;
+    min_h += _pxActual(2);
 
   return WSL_NONE | getSizeLock();
 }
@@ -129,39 +129,39 @@ void VirtualWindow::resize(const IPoint2 &left_top, const IPoint2 &right_bottom)
 
   bool vertical = mSplitterWnd->getIsVertical();
 
-  int spltrMinSz[2];
-  int leftMinSz[2];
-  int rightMinSz[2];
+  hdpi::Px spltrMinSz[2];
+  hdpi::Px leftMinSz[2];
+  hdpi::Px rightMinSz[2];
 
   mSplitterWnd->getMinSize(spltrMinSz[0], spltrMinSz[1]);
   bool leftRes = mLeftWnd->getMinSize(leftMinSz[0], leftMinSz[1]);
   bool rightRes = mRightWnd->getMinSize(rightMinSz[0], rightMinSz[1]);
 
-  int wOffset = SPLITTER_THICKNESS + SPLITTER_SPACE * 2;
+  int wOffset = _pxS(SPLITTER_THICKNESS) + _pxS(SPLITTER_SPACE) * 2;
   int size = (vertical ? w : h);
   int i = vertical ? 0 : 1;
 
-  int center = (size - wOffset) * mRatio + SPLITTER_SPACE;
+  int center = (size - wOffset) * mRatio + _pxS(SPLITTER_SPACE);
   if (leftRes)
   {
     if ((vertical && (WSL_WIDTH & mLeftWnd->getSizeLock())) || (!vertical && (WSL_HEIGHT & mLeftWnd->getSizeLock())))
     {
       mRatio = (float)leftMinSz[i] / (size - wOffset);
-      center = leftMinSz[i] + SPLITTER_SPACE;
+      center = _px(leftMinSz[i] + _pxScaled(SPLITTER_SPACE));
     }
   }
   if (rightRes)
   {
     if ((vertical && (WSL_WIDTH & mRightWnd->getSizeLock())) || (!vertical && (WSL_HEIGHT & mRightWnd->getSizeLock())))
     {
-      mRatio = (float)(size - wOffset - rightMinSz[i]) / (size - wOffset);
-      center = size - rightMinSz[i] + SPLITTER_THICKNESS + SPLITTER_SPACE;
+      mRatio = (float)(size - wOffset - _px(rightMinSz[i])) / (size - wOffset);
+      center = size - _px(rightMinSz[i] + _pxScaled(SPLITTER_THICKNESS) + _pxScaled(SPLITTER_SPACE));
     }
   }
 
-  int min = leftMinSz[i] + SPLITTER_SPACE;
+  int min = _px(leftMinSz[i] + _pxScaled(SPLITTER_SPACE));
   int max = vertical ? w : h;
-  max -= rightMinSz[i] + SPLITTER_SPACE + spltrMinSz[i];
+  max -= _px(rightMinSz[i] + _pxScaled(SPLITTER_SPACE) + spltrMinSz[i]);
 
   center = center < min ? min : center;
   center = center > max ? max : center;
@@ -170,20 +170,20 @@ void VirtualWindow::resize(const IPoint2 &left_top, const IPoint2 &right_bottom)
 
   if (vertical)
   {
-    splitterCuts[0].x = left_top.x + center - SPLITTER_SPACE;
-    splitterCuts[1].x = left_top.x + center + SPLITTER_THICKNESS + SPLITTER_SPACE;
+    splitterCuts[0].x = left_top.x + center - _pxS(SPLITTER_SPACE);
+    splitterCuts[1].x = left_top.x + center + _pxS(SPLITTER_THICKNESS) + _pxS(SPLITTER_SPACE);
   }
   else
   {
-    splitterCuts[0].y = left_top.y + center - SPLITTER_SPACE;
-    splitterCuts[1].y = left_top.y + center + SPLITTER_THICKNESS + SPLITTER_SPACE;
+    splitterCuts[0].y = left_top.y + center - _pxS(SPLITTER_SPACE);
+    splitterCuts[1].y = left_top.y + center + _pxS(SPLITTER_THICKNESS) + _pxS(SPLITTER_SPACE);
   }
 
   IPoint2 splitterPos1, splitterPos2;
-  splitterPos1.x = vertical ? splitterCuts[0].x + SPLITTER_SPACE : left_top.x;
-  splitterPos1.y = !vertical ? splitterCuts[0].y + SPLITTER_SPACE : left_top.y;
-  splitterPos2.x = vertical ? splitterCuts[1].x - SPLITTER_SPACE : right_bottom.x;
-  splitterPos2.y = !vertical ? splitterCuts[1].y - SPLITTER_SPACE : right_bottom.y;
+  splitterPos1.x = vertical ? splitterCuts[0].x + _pxS(SPLITTER_SPACE) : left_top.x;
+  splitterPos1.y = !vertical ? splitterCuts[0].y + _pxS(SPLITTER_SPACE) : left_top.y;
+  splitterPos2.x = vertical ? splitterCuts[1].x - _pxS(SPLITTER_SPACE) : right_bottom.x;
+  splitterPos2.y = !vertical ? splitterCuts[1].y - _pxS(SPLITTER_SPACE) : right_bottom.y;
 
   mLeftWnd->resize(left_top, splitterCuts[0]);
   mSplitterWnd->resize(splitterPos1, splitterPos2);

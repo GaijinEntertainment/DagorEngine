@@ -18,7 +18,7 @@ AddIncludes =
 ;
 
 UseProgLibs +=
-  engine2/heightMapLand
+  engine/heightMapLand
   gameLibs/frustumCulling
 ;
 

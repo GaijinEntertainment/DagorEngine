@@ -6,40 +6,6 @@
 
 typedef unsigned char LexChar;
 
-struct SQLexerMacroState
-{
-    bool insideStringInterpolation;
-    SQLEXREADFUNC prevReadF;
-    SQUserPointer prevUserPointer;
-    LexChar prevCurrdata;
-    sqvector<SQChar> macroStr;
-    sqvector<SQChar> macroParams;
-    int macroStrPos;
-
-    SQLexerMacroState(SQAllocContext ctx)
-        : macroStr(ctx), macroParams(ctx)
-    {
-        reset();
-    }
-
-    void reset()
-    {
-        insideStringInterpolation = false;
-        prevReadF = NULL;
-        prevUserPointer = NULL;
-        macroStrPos = 0;
-        prevCurrdata = 0;
-        macroStr.resize(0);
-        macroParams.resize(0);
-    }
-
-    static SQInteger macroReadF(SQUserPointer self)
-    {
-        SQLexerMacroState * s = (SQLexerMacroState *) self;
-        return s->macroStr[s->macroStrPos++];
-    }
-};
-
 using namespace SQCompilation;
 
 enum SQLexerState {
@@ -47,19 +13,21 @@ enum SQLexerState {
   LS_TEMPALTE
 };
 
-enum SQLexerMode {
-  LM_LEGACY,
-  LM_AST
+enum SQTokenFlags {
+  TF_PREP_EOL = 1 << 0,             // end of line after this token
+  TF_PREP_SPACE = 1 << 1,           // space after this token
 };
 
 struct SQLexer
 {
-    SQLexer(SQSharedState *ss, SQCompilationContext &ctx, enum SQLexerMode mode);
+    SQLexer(SQSharedState *ss, SQCompilationContext &ctx, Comments *comments);
     ~SQLexer();
     void Init(SQSharedState *ss, const char *code, size_t codeSize);
     SQInteger Lex();
     const SQChar *Tok2Str(SQInteger tok);
+    void SetStringValue();
 private:
+    void nextLine();
     SQInteger LexSingleToken();
     SQInteger GetIDType(const SQChar *s,SQInteger len);
     SQInteger ReadString(SQInteger ndelim,bool verbatim, bool advance = true);
@@ -69,20 +37,21 @@ private:
     SQInteger ReadID();
     SQInteger ReadDirective();
     void Next();
-    void AppendPosDirective(sqvector<SQChar> & vec);
-    bool ProcessReaderMacro();
-    void ExitReaderMacro();
-    static SQInteger readf(void *);
     SQInteger AddUTF8(SQUnsignedInteger ch);
     SQInteger ProcessStringHexEscape(SQChar *dest, SQInteger maxdigits);
+    Comments::LineCommentsList &CurLineComments() { assert(_comments);  return _comments->commentsList().back(); }
+
+    void AddComment(enum CommentKind kind, SQInteger line, SQInteger start, SQInteger end);
+
     SQInteger _curtoken;
     SQTable *_keywords;
     SQBool _reached_eof;
-    SQLexerMacroState macroState;
     SQCompilationContext &_ctx;
     const char *_sourceText;
     size_t _sourceTextSize;
     size_t _sourceTextPtr;
+    Comments *_comments;
+    sqvector<SQChar> _currentComment;
 public:
     SQInteger _prevtoken;
     SQInteger _currentline;
@@ -92,13 +61,12 @@ public:
     SQInteger _tokencolumn;
     SQInteger _tokenline;
     SQInteger _expectedToken;
+    unsigned _prevflags;
+    unsigned _flags;
     enum SQLexerState _state;
-    enum SQLexerMode _mode;
     const SQChar *_svalue;
     SQInteger _nvalue;
     SQFloat _fvalue;
-    SQLEXREADFUNC _readf;
-    SQUserPointer _up;
     LexChar _currdata;
     SQSharedState *_sharedstate;
     sqvector<SQChar> _longstr;

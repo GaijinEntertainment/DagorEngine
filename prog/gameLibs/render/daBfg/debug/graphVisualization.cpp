@@ -73,6 +73,10 @@ struct EdgeData
 
 static dag::Vector<dag::Vector<EdgeData>> labeled_graph;
 static dag::Vector<NodeNameId> nodeIds;
+static dag::Vector<ResNameId> resIds;
+static dag::Vector<eastl::string_view> nodeNames;
+static dag::Vector<eastl::string_view> resNames;
+
 // Used for imgui visualization
 static dag::Vector<dag::Vector<uint32_t>> node_table;
 // We need fake nodes and fake edges when visualizing with imgui,
@@ -86,8 +90,6 @@ struct VisualizedEdge
   NodeIdx destination;
 };
 static dag::Vector<dag::Vector<eastl::pair<uint32_t, VisualizedEdge>>> visualized_adjacency_list;
-static dag::Vector<eastl::string_view> nodeNames;
-static dag::Vector<eastl::string_view> resourceNames;
 
 bool visualization_data_generated() { return visualized_adjacency_list.size() >= nodeIds.size(); }
 
@@ -111,7 +113,7 @@ static struct DebugVisualizer
 
   void generateDependencyEdges(eastl::span<const NodeNameId> node_execution_order)
   {
-    resourceNames.clear();
+    resIds.clear();
     labeled_graph.clear();
     labeled_graph.resize(nodeIds.size());
     if (!nodeTracker)
@@ -124,10 +126,12 @@ static struct DebugVisualizer
     for (auto [nodeId, nodeData] : nodeTracker->registry.nodes.enumerate())
     {
       for (const NodeNameId prevId : nodeData.precedingNodeIds)
-        add_debug_edge(executionTimeForNode[prevId], executionTimeForNode[nodeId], EdgeType::EXPLICIT_PREVIOUS, ResNameId::Invalid);
+        if (executionTimeForNode.isMapped(prevId))
+          add_debug_edge(executionTimeForNode[prevId], executionTimeForNode[nodeId], EdgeType::EXPLICIT_PREVIOUS, ResNameId::Invalid);
 
       for (const NodeNameId nextId : nodeData.followingNodeIds)
-        add_debug_edge(executionTimeForNode[nodeId], executionTimeForNode[nextId], EdgeType::EXPLICIT_FOLLOW, ResNameId::Invalid);
+        if (executionTimeForNode.isMapped(nextId))
+          add_debug_edge(executionTimeForNode[nodeId], executionTimeForNode[nextId], EdgeType::EXPLICIT_FOLLOW, ResNameId::Invalid);
     }
 
     for (auto [resId, lifetime] : nodeTracker->resourceLifetimes.enumerate())
@@ -166,21 +170,28 @@ static struct DebugVisualizer
         add_debug_edge(executionTimeForNode[finalModifier], executionTimeForNode[reader], EdgeType::IMPLICIT_RES_DEP, resId);
 
       if (!modifiers.empty() || lifetime.consumedBy != NodeNameId::Invalid || !lifetime.readers.empty())
-        resourceNames.push_back(getResourceName(resId));
+        resIds.push_back(resId);
     }
-    stlsort::sort(resourceNames.begin(), resourceNames.end());
+    stlsort::sort(resIds.begin(), resIds.end(),
+      [&names = nodeTracker->registry.knownNames](ResNameId fst, ResNameId snd) { return names.getName(fst) < names.getName(snd); });
+    nodeNames = gatherNames<NodeNameId>(nodeIds);
+    resNames = gatherNames<ResNameId>(resIds);
   }
 
-  eastl::string_view getResourceName(ResNameId res_id) { return nodeTracker->registry.knownResourceNames.getName(res_id); }
-
-  void getAllNodeNames()
+  template <class EnumType>
+  eastl::string_view getName(EnumType res_id)
   {
-    nodeNames.clear();
-    if (!nodeTracker)
-      return;
-    nodeNames.reserve(nodeIds.size());
-    for (auto nodeId : nodeIds)
-      nodeNames.emplace_back(nodeTracker->registry.knownNodeNames.getName(nodeId));
+    return nodeTracker->registry.knownNames.getName(res_id);
+  }
+
+  template <class EnumType>
+  dag::Vector<eastl::string_view> gatherNames(eastl::span<const EnumType> ids)
+  {
+    dag::Vector<eastl::string_view> names;
+    names.reserve(ids.size());
+    for (auto id : ids)
+      names.push_back(getName(id));
+    return names;
   }
 } visualizer;
 
@@ -249,7 +260,8 @@ void update_graph_visualization(const NodeTracker *node_tracker, eastl::span<con
   {
     dag::Vector<NodeNameId> new_node_execution_order;
     new_node_execution_order.assign(node_execution_order.begin(), node_execution_order.end());
-    NodeNameId debugNodeNameId = node_tracker->registry.knownNodeNames.getNameId("debug_texture_copy_node");
+    NodeNameId debugNodeNameId =
+      node_tracker->registry.knownNames.getNameId<NodeNameId>(node_tracker->registry.knownNames.root(), "debug_texture_copy_node");
     erase_item_by_value(new_node_execution_order, debugNodeNameId);
     visualizer.collectValidNodes(new_node_execution_order);
     visualizer.generateDependencyEdges(new_node_execution_order);
@@ -259,7 +271,6 @@ void update_graph_visualization(const NodeTracker *node_tracker, eastl::span<con
     visualizer.collectValidNodes(node_execution_order);
     visualizer.generateDependencyEdges(node_execution_order);
   }
-  visualizer.getAllNodeNames();
   generate_planarized_layout();
 }
 
@@ -268,6 +279,8 @@ void invalidate_graph_visualization()
   update_graph_visualization(nullptr, {});
   copiedTexture.close();
 }
+
+void reset_texture_visualization() { debugTextureCopyNode = {}; }
 
 void Backend::dumpGraph(const eastl::string &filename) const
 {
@@ -284,7 +297,7 @@ void Backend::dumpGraph(const eastl::string &filename) const
 
   for (size_t i = 0; i < labeled_graph.size(); ++i)
   {
-    String nodeDecl(0, "  %s [label=\"%s\"]\n", nodeLabels[i], registry.knownNodeNames.getNameCstr(nodeIds[i]));
+    String nodeDecl(0, "  %s [label=\"%s\"]\n", nodeLabels[i], registry.knownNames.getName(nodeIds[i]));
     cb.write(nodeDecl.str(), nodeDecl.size() - 1);
   }
 
@@ -394,15 +407,13 @@ static void visualize_framegraph_dependencies()
 
   ImGui::SameLine();
   static int focusedResourceNo = -1;
-  if (ImGuiDagor::ComboWithFilter("FG Managed Resource Search", dabfg::resourceNames, focusedResourceNo, resourceSearchInput, false,
-        true, "Search for resource..."))
+  if (ImGuiDagor::ComboWithFilter("FG Managed Resource Search", dabfg::resNames, focusedResourceNo, resourceSearchInput, false, true,
+        "Search for resource..."))
   {
     focusedResourceChanged = true;
     nodeSearchInput.clear();
     focusedNodeId = -1;
-    focusedResId = focusedResourceNo > -1
-                     ? dabfg::visualizer.nodeTracker->registry.knownResourceNames.getNameId(dabfg::resourceNames[focusedResourceNo])
-                     : dabfg::ResNameId::Invalid;
+    focusedResId = focusedResourceNo > -1 ? dabfg::resIds[focusedResourceNo] : dabfg::ResNameId::Invalid;
   }
   searchBoxHovered = searchBoxHovered || ImGui::IsItemHovered();
 
@@ -469,7 +480,7 @@ static void visualize_framegraph_dependencies()
         ImGui::SetCursorScreenPos(nodeRectMin + ImVec2(NODE_WINDOW_PADDING, NODE_WINDOW_PADDING));
         ImGui::BeginGroup();
 
-        auto nodeName = registry.knownNodeNames.getNameCstr(dabfg::nodeIds[nodeId]);
+        auto nodeName = registry.knownNames.getName(dabfg::nodeIds[nodeId]);
         auto &nodeData = registry.nodes[dabfg::nodeIds[nodeId]];
 
         ImGui::TextUnformatted(nodeName);
@@ -590,7 +601,7 @@ static void visualize_framegraph_dependencies()
 
           if (!selectedEdge)
             for (auto resId : edge.resIds)
-              tooltipMessage.aprintf(0, "%s\n", dabfg::visualizer.getResourceName(resId));
+              tooltipMessage.aprintf(0, "%s\n", dabfg::visualizer.getName(resId));
         }
       }
     }
@@ -609,7 +620,7 @@ static void visualize_framegraph_dependencies()
     for (size_t i = 0; i < selectedEdge->resIds.size(); ++i)
     {
       auto tmpResId = selectedEdge->resIds[i];
-      auto label = dabfg::visualizer.getResourceName(tmpResId).data();
+      auto label = dabfg::visualizer.getName(tmpResId).data();
       if (ImGui::Selectable(label))
       {
         selectedResId = tmpResId;

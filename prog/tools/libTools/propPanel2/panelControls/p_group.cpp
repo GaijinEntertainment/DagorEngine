@@ -5,16 +5,16 @@
 
 #include <ioSys/dag_dataBlock.h>
 
-CGroup::CGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
+CGroup::CGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h,
   const char caption[], HorzFlow horzFlow) :
 
   PropertyContainerVert(id, event_handler, parent, x, y, w, h, horzFlow),
-  mRect(this, parent->getWindow(), x, y, w, h),
-  mMaxButton(this, parent->getWindow(), x + GROUP_MINIMIZE_BUTTON_X, y + GROUP_MINIMIZE_BUTTON_Y, w - 2 * GROUP_MINIMIZE_BUTTON_X,
-    GROUP_MINIMIZE_BUTTON_SIZE)
+  mRect(this, parent->getWindow(), x, y, _px(w), _px(h)),
+  mMaxButton(this, parent->getWindow(), x + _pxS(GROUP_MINIMIZE_BUTTON_X), y + _pxS(GROUP_MINIMIZE_BUTTON_Y),
+    _px(w) - 2 * _pxS(GROUP_MINIMIZE_BUTTON_X), _pxS(GROUP_MINIMIZE_BUTTON_SIZE))
 {
   mMinimized = false;
-  mMaximizedSize = h;
+  mMaximizedSize = _px(h);
   mMaxButton.setTextValue(caption);
 }
 
@@ -50,7 +50,7 @@ void CGroup::setBoolValue(bool value) { value ? minimize() : restore(); }
 
 void CGroup::minimize()
 {
-  mH = DEFAULT_GROUP_HEIGHT;
+  mH = _pxS(DEFAULT_GROUP_HEIGHT);
   mRect.resizeWindow(mW, mH);
   mMinimized = true;
   mMaxButton.setOpened(!mMinimized);
@@ -100,7 +100,7 @@ void CGroup::moveTo(int x, int y)
   PropertyControlBase::moveTo(x, y);
 
   mRect.moveWindow(x, y);
-  mMaxButton.moveWindow(x + GROUP_MINIMIZE_BUTTON_X, y + GROUP_MINIMIZE_BUTTON_Y);
+  mMaxButton.moveWindow(x + _pxS(GROUP_MINIMIZE_BUTTON_X), y + _pxS(GROUP_MINIMIZE_BUTTON_Y));
 
   mRect.hide();
   mRect.show();
@@ -121,15 +121,15 @@ void CGroup::resizeControl(unsigned w, unsigned h)
 }
 
 
-void CGroup::setWidth(unsigned w)
+void CGroup::setWidth(hdpi::Px w)
 {
   unsigned int oldH = mH;
   unsigned int newH = this->getNextControlY();
   PropPanel2 *pc = getParent();
   if (horzFlow == HorzFlow::Enabled && pc && oldH != newH)
     pc->enableResizeCallback();
-  this->resizeControl(w, newH);
-  mMaxButton.resizeWindow(w - 2 * GROUP_MINIMIZE_BUTTON_X, GROUP_MINIMIZE_BUTTON_SIZE);
+  this->resizeControl(_px(w), newH);
+  mMaxButton.resizeWindow(_px(w) - 2 * _pxS(GROUP_MINIMIZE_BUTTON_X), _pxS(GROUP_MINIMIZE_BUTTON_SIZE));
 
   PropertyContainerVert::setWidth(w);
   if (horzFlow == HorzFlow::Enabled && pc && oldH != newH)
@@ -141,7 +141,7 @@ int CGroup::getNextControlY(bool new_line)
 {
   if (!(this->getChildCount()))
   {
-    return PropertyContainerVert::getNextControlY(new_line) + DEFAULT_GROUP_FIRST_LINE;
+    return PropertyContainerVert::getNextControlY(new_line) + _pxS(DEFAULT_GROUP_FIRST_LINE);
   }
   else
   {

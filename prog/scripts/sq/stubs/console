@@ -1,6 +1,10 @@
 return {
   command = @(_cmd) false
+  console_command = @(_cmd) false
   register_command = @(func, name="", desc="", argsDesc="")
     assert(type(func) == "function" && type(name)=="string" && type(desc)=="string" && type(argsDesc)=="string")
+  console_register_command = @(func, name="", desc="", argsDesc="")
+    assert(type(func) == "function" && type(name)=="string" && type(desc)=="string" && type(argsDesc)=="string")
+  setConsoleObjPrintFunc = @(_func) null
   setObjPrintFunc = @(_func) null
 }

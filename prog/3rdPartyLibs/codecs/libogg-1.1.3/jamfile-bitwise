@@ -16,7 +16,7 @@ AddIncludes =
 Sources =
   src/bitwise.c
 ;
-UseProgLibs = engine2/memory/rtlStdMemoryMin ;
+UseProgLibs = engine/memory/rtlStdMemoryMin ;
 
 Copt = -D_V_SELFTEST ;
 

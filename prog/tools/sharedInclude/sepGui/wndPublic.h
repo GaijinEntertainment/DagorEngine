@@ -7,6 +7,7 @@
 
 #include <sepGui/wndCommon.h>
 #include <sepGui/wndMenuInterface.h>
+#include <libTools/util/hdpiUtil.h>
 
 class IWndManager;
 class IWndEmbeddedWindow;
@@ -39,10 +40,10 @@ public:
   virtual int run(int width, int height, const char *caption, const char *icon = "", WindowSizeInit size = WSI_NORMAL) = 0;
   virtual void close() = 0;
 
-  virtual void loadLayout(const char *filename = NULL) = 0;
+  virtual bool loadLayout(const char *filename = NULL) = 0;
   virtual void saveLayout(const char *filename = NULL) = 0;
 
-  virtual void loadLayoutFromDataBlock(const DataBlock &data_block) = 0;
+  virtual bool loadLayoutFromDataBlock(const DataBlock &data_block) = 0;
   virtual void saveLayoutToDataBlock(DataBlock &data_block) = 0;
 
   virtual void setMainWindowCaption(const char *caption) = 0;
@@ -59,12 +60,14 @@ public:
   virtual void *getMainWindow() const = 0;
   virtual void *getFirstWindow() const = 0;
 
-  virtual void *splitWindow(void *old_handle, void *new_handle, float new_window_size = 0.5,
-    WindowAlign new_window_align = WA_RIGHT) = 0;
-  virtual void *splitNeighbourWindow(void *old_handle, void *new_handle, float new_window_size = 0.5,
-    WindowAlign new_window_align = WA_RIGHT) = 0;
+  inline void *splitWindow(void *old_handle, void *new_handle, hdpi::Px new_wsize, WindowAlign new_walign = WA_RIGHT);
+  virtual void *splitWindowF(void *old_handle, void *new_handle, float new_wsize = 0.5, WindowAlign new_walign = WA_RIGHT) = 0;
+  inline void *splitNeighbourWindow(void *old_handle, void *new_handle, hdpi::Px new_wsize, WindowAlign new_walign = WA_RIGHT);
+  virtual void *splitNeighbourWindowF(void *old_handle, void *new_handle, float new_wsize = 0.5,
+    WindowAlign new_walign = WA_RIGHT) = 0;
 
-  virtual bool resizeWindow(void *handle, float new_window_size) = 0;
+  inline bool resizeWindow(void *handle, hdpi::Px new_wsize);
+  virtual bool resizeWindowF(void *handle, float new_wsize) = 0;
   virtual bool fixWindow(void *handle, bool fix = true) = 0;
   virtual bool removeWindow(void *handle) = 0;
 
@@ -80,8 +83,8 @@ public:
   virtual void setHeader(void *handle, HeaderPos header_pos) = 0;
   virtual void setCaption(void *handle, const char *caption) = 0;
 
-  virtual void setMinSize(void *handle, int width, int height) = 0;
-  virtual void setMenuArea(void *handle, int width, int height) = 0;
+  virtual void setMinSize(void *handle, hdpi::Px width, hdpi::Px height) = 0;
+  virtual void setMenuArea(void *handle, hdpi::Px width, hdpi::Px height) = 0;
 
   // menu
   virtual IMenu *getMainMenu() = 0;
@@ -97,3 +100,19 @@ public:
   virtual void addAcceleratorUp(unsigned cmd_id, unsigned v_key, bool ctrl = false, bool alt = false, bool shift = false) = 0;
   virtual void clearAccelerators() = 0;
 };
+
+inline void *IWndManager::splitWindow(void *old_handle, void *new_handle, hdpi::Px new_wsize, WindowAlign new_walign)
+{
+  int sz = _px(new_wsize);
+  return splitWindowF(old_handle, new_handle, sz > 2 ? sz : 2, new_walign);
+}
+inline void *IWndManager::splitNeighbourWindow(void *old_handle, void *new_handle, hdpi::Px new_wsize, WindowAlign new_walign)
+{
+  int sz = _px(new_wsize);
+  return splitNeighbourWindowF(old_handle, new_handle, sz > 2 ? sz : 2, new_walign);
+}
+inline bool IWndManager::resizeWindow(void *handle, hdpi::Px new_wsize)
+{
+  int sz = _px(new_wsize);
+  return resizeWindowF(handle, sz > 2 ? sz : 2);
+}

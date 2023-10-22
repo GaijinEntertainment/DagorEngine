@@ -25,6 +25,14 @@ shader depth_hierarchy
     }
   }
 
+  if (hardware.xbox)
+  {
+    hlsl {
+      // Xbox produces buggy results with wave-based quad reduction
+      #define DISABLE_WAVE_INTRINSICS 1
+    }
+  }
+
   USE_PS5_WAVE32_MODE()
 
   (cs) {
@@ -59,17 +67,31 @@ shader depth_hierarchy
       return REDUCE_OP(REDUCE_OP(v0, v1), REDUCE_OP(v2, v3));
     }
 
+#if DISABLE_WAVE_INTRINSICS
+    groupshared float g_groupshared_depth_tmp[16][16];
+#endif
+
     void WriteDstDepth(uint index, uint2 icoord, float v)
     {
       g_downsampled_depth_buffer[index][icoord] = v;
     }
-    float ReduceQuad(float v)
+    float ReduceQuad(float v, uint2 xy)
     {
+#if DISABLE_WAVE_INTRINSICS
+      g_groupshared_depth_tmp[xy.x][xy.y] = v;
+      GroupMemoryBarrierWithGroupSync();
+      uint2 xy0 = xy & (~0x1);
+      float v0 = g_groupshared_depth_tmp[xy0.x | 0][xy0.y | 0];
+      float v1 = g_groupshared_depth_tmp[xy0.x | 1][xy0.y | 0];
+      float v2 = g_groupshared_depth_tmp[xy0.x | 0][xy0.y | 1];
+      float v3 = g_groupshared_depth_tmp[xy0.x | 1][xy0.y | 1];
+#else
       uint quad = WaveGetLaneIndex() & (~0x3); // zero out the last two bits
       float v0 = v;
       float v1 = WaveReadLaneAt(v, quad | 1); // value from horizontal neighbour
       float v2 = WaveReadLaneAt(v, quad | 2); // value from vertical neighbour
       float v3 = WaveReadLaneAt(v, quad | 3); // value from diagonal neighbour
+#endif
       return REDUCE_OP(REDUCE_OP(v0, v1), REDUCE_OP(v2, v3));
     }
     groupshared float g_groupshared_depth[16][16];
@@ -89,11 +111,12 @@ shader depth_hierarchy
 
     void DownsampleNext4Levels(int base_level, int GI, uint2 work_group_id, uint x, uint y)
     {
+      uint2 xy = uint2(x,y);
       BRANCH
       if (mips_and_group_count.x <= base_level)
         return;
       // Init mip level 2 or 8
-      float v = ReduceQuad(g_groupshared_depth[x][y]);
+      float v = ReduceQuad(g_groupshared_depth[x][y], xy);
       // quad index 0 stores result
       if ((GI % 4) == 0)
       {
@@ -108,7 +131,7 @@ shader depth_hierarchy
       // Init mip level 3 or 9
       if (GI < 64)
       {
-          float v = ReduceQuad(g_groupshared_depth[x * 2 + y % 2][y * 2]);
+          float v = ReduceQuad(g_groupshared_depth[x * 2 + y % 2][y * 2], xy);
           // quad index 0 stores result
           if ((GI % 4) == 0)
           {
@@ -124,7 +147,7 @@ shader depth_hierarchy
       // Init mip level 4 or 10
       if (GI < 16)
       {
-          float v = ReduceQuad(g_groupshared_depth[x * 4 + y][y * 4]);
+          float v = ReduceQuad(g_groupshared_depth[x * 4 + y][y * 4], xy);
           // quad index 0 stores result
           if ((GI % 4) == 0)
           {
@@ -140,7 +163,7 @@ shader depth_hierarchy
       // Init mip level 5 or 11
       if (GI < 4)
       {
-        float v = ReduceQuad(g_groupshared_depth[GI][0]);
+        float v = ReduceQuad(g_groupshared_depth[GI][0], xy);
         // quad index 0 stores result
         if ((GI % 4) == 0)
         {
@@ -195,10 +218,11 @@ shader depth_hierarchy
         if (mips_and_group_count.x <= 1)
           return;
 
-        v[0] = ReduceQuad(v[0]);
-        v[1] = ReduceQuad(v[1]);
-        v[2] = ReduceQuad(v[2]);
-        v[3] = ReduceQuad(v[3]);
+        uint2 xy = uint2(x,y);
+        v[0] = ReduceQuad(v[0], xy);
+        v[1] = ReduceQuad(v[1], xy);
+        v[2] = ReduceQuad(v[2], xy);
+        v[3] = ReduceQuad(v[3], xy);
 
         if ((GI % 4) == 0)
         {

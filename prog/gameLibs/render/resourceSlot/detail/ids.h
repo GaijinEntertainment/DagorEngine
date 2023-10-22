@@ -10,8 +10,6 @@ enum class NodeId : int
   Invalid = -1
 };
 
-typedef dag::Vector<NodeId> NodeList;
-
 enum class SlotId : int
 {
   Invalid = -1

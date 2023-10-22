@@ -48,6 +48,15 @@ bool TouchPointers::contains(int id) const
 }
 
 
+eastl::optional<TouchPointers::PointerInfo> TouchPointers::get(int id) const
+{
+  const auto found = eastl::find_if(activePointers.begin(), activePointers.end(), [id](const PointerInfo &pi) { return pi.id == id; });
+  if (found != activePointers.end())
+    return *found;
+  return {};
+}
+
+
 void TouchPointers::reset() { activePointers.clear(); }
 
 } // namespace darg

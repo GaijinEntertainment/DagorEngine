@@ -19,8 +19,8 @@ Sources =
 ;
 
 UseProgLibs +=
-  engine2/phys/phys$(PhysName)
-  engine2/sceneRay
+  engine/phys/phys$(PhysName)
+  engine/sceneRay
   gameLibs/rendInst
   gameLibs/physMap
   gameLibs/fftWater

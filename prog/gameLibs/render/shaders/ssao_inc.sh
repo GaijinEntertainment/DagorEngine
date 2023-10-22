@@ -4,6 +4,10 @@ hlsl {
   #define SSAO_TYPE half3
 }
 
+int use_ssao_reprojection = 0;
+interval use_ssao_reprojection : off<1, on;
+float4x4 ssao_gbuf_prev_globtm;
+
 texture ssao_tex;
 float4 lowres_rt_params = (1280, 720, 0, 0);
 
@@ -29,6 +33,11 @@ endmacro
 // Minimum is primarily used in WTM
 macro INIT_MINIMUM_SSAO_TEX(stage)
   (stage) { ssao_tex@tex = ssao_tex hlsl { Texture2D<float> ssao_tex@tex; } }
+  if (use_ssao_reprojection == on) {
+    (stage) {
+      ssao_gbuf_prev_globtm@f44 = ssao_gbuf_prev_globtm;
+    }
+  }
 endmacro
 
 macro INIT_SSAO_SMP(stage)

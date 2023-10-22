@@ -6,8 +6,8 @@ _VC_DIR      = $(_DEVTOOL)/vc2012 ;
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 C_preopt_DirectXVer = jun2010 ;
 
-if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\Y\\Soft\\forDevelopers\\devtools\\vc2012.7z ; }
-if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: \"$(_WIN_SDK)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\Y\\Soft\\forDevelopers\\devtools\\$(WinSdkVer).7z ; }
+if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: \"$(_WIN_SDK)\" not found!  Please, update DEVTOOLS ; }
 
 _LINK         = $(_VC_DIR)/bin/link.exe /machine:x86 ;
 _LIB          = $(_VC_DIR)/bin/lib.exe /machine:x86 ;

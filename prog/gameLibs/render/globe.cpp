@@ -114,12 +114,13 @@ GlobeRenderer::Parameters::Parameters(const DataBlock &blk)
   cloudsTexName = blk.getStr("cloudsTex", "globe_clouds_ocean_8k");
 }
 
-void GlobeRenderer::renderEnv(DaSkies &skies, RenderSun render_sun, RenderMoon render_moon)
+void GlobeRenderer::renderEnv(DaSkies &skies, RenderSun render_sun, RenderMoon render_moon, const Driver3dPerspective &persp,
+  const Point3 &view_pos)
 {
   static int skySpaceModeVarId = ::get_shader_glob_var_id("sky_space_mode", true);
   ShaderGlobal::set_int(skySpaceModeVarId, 1);
 
-  skies.renderStars(grs_cur_view.pos + params.posOffset, params.starsIntensity);
+  skies.renderStars(persp, view_pos + params.posOffset, params.starsIntensity);
 
   if (render_sun == RenderSun::Yes)
     skies.renderCelestialObject(skies.getSunDir(), -1, params.sunIntensity, params.sunSize);
@@ -129,7 +130,8 @@ void GlobeRenderer::renderEnv(DaSkies &skies, RenderSun render_sun, RenderMoon r
   ShaderGlobal::set_int(skySpaceModeVarId, 0);
 }
 
-void GlobeRenderer::render(DaSkies &skies, RenderSun render_sun, RenderMoon render_moon, const TextureIDPair &low_res_tex)
+void GlobeRenderer::render(DaSkies &skies, RenderSun render_sun, RenderMoon render_moon, const Point3 &view_pos,
+  const TextureIDPair &low_res_tex)
 {
   TIME_D3D_PROFILE(applyGlobeSkies);
 
@@ -141,6 +143,9 @@ void GlobeRenderer::render(DaSkies &skies, RenderSun render_sun, RenderMoon rend
   static int globe_tsize_wk_hkVarId = ::get_shader_glob_var_id("globe_tsize_wk_hk");
   static int sourceTexVarId = ::get_shader_glob_var_id("source_tex");
 
+  Driver3dPerspective persp;
+  d3d::getpersp(persp);
+
   {
     SCOPE_RENDER_TARGET;
     if (low_res_tex.getTex())
@@ -149,8 +154,6 @@ void GlobeRenderer::render(DaSkies &skies, RenderSun render_sun, RenderMoon rend
       d3d::clearview(CLEAR_TARGET, 0, 1, 0);
     }
 
-    Driver3dPerspective persp;
-    d3d::getpersp(persp);
     int targetWidthForShader, targetHeightForShader;
     d3d::get_target_size(targetWidthForShader, targetHeightForShader);
 
@@ -182,7 +185,7 @@ void GlobeRenderer::render(DaSkies &skies, RenderSun render_sun, RenderMoon rend
     {
       lightDir = skies.getSunDir();
     }
-    Point3 lightPos = grs_cur_view.pos / radiusScale + params.posOffset;
+    Point3 lightPos = view_pos / radiusScale + params.posOffset;
     ShaderGlobal::set_color4(get_shader_variable_id("globe_skies_light_pos"), Color4::xyz1(lightPos));
     ShaderGlobal::set_color4(get_shader_variable_id("globe_skies_light_dir"), lightDir.x, lightDir.z, lightDir.y, 0);
     ShaderGlobal::set_color4(get_shader_variable_id("globe_skies_light_color"), color4(DaScattering::getBaseSunColor(), 1.0f));
@@ -190,7 +193,7 @@ void GlobeRenderer::render(DaSkies &skies, RenderSun render_sun, RenderMoon rend
     set_viewvecs_to_shader();
 
     if (!low_res_tex.getTex())
-      renderEnv(skies, render_sun, render_moon);
+      renderEnv(skies, render_sun, render_moon, persp, view_pos);
 
     int numTiles = floor(sqrtf(textureSlices.size()) + 0.5f);
     for (int sliceNo = 0; sliceNo < textureSlices.size(); ++sliceNo)
@@ -214,7 +217,7 @@ void GlobeRenderer::render(DaSkies &skies, RenderSun render_sun, RenderMoon rend
 
   if (low_res_tex.getTex())
   {
-    renderEnv(skies, render_sun, render_moon);
+    renderEnv(skies, render_sun, render_moon, persp, view_pos);
     ShaderGlobal::set_texture(sourceTexVarId, low_res_tex.getId());
     applyLowProg.render();
   }

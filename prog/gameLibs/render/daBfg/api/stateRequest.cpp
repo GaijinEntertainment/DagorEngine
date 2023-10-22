@@ -13,7 +13,7 @@ StateRequest::StateRequest(InternalRegistry *reg, NodeNameId nodeId) : id{nodeId
   {
     logerr("Global state requested twice on '%s' frame graph node!"
            " Ignoring one of the requests!",
-      registry->knownNodeNames.getName(nodeId));
+      registry->knownNames.getName(nodeId));
   }
   reqs.emplace();
 }
@@ -26,7 +26,7 @@ StateRequest StateRequest::setFrameBlock(const char *block) &&
   {
     logerr("Block requested to be set to layer 'FRAME' twice within"
            " '%s' frame graph node! Ignoring one of the requests!",
-      registry->knownNodeNames.getName(id));
+      registry->knownNames.getName(id));
   }
 
   return *this;
@@ -40,7 +40,7 @@ StateRequest StateRequest::setSceneBlock(const char *block) &&
   {
     logerr("Block requested to be set to layer 'SCENE' twice within"
            " '%s' frame graph node! Ignoring one of the requests!",
-      registry->knownNodeNames.getName(id));
+      registry->knownNames.getName(id));
   }
 
   return *this;
@@ -54,7 +54,7 @@ StateRequest StateRequest::setObjectBlock(const char *block) &&
   {
     logerr("Block requested to be set to layer 'OBJECT' twice within"
            " '%s' frame graph node! Ignoring one of the requests!",
-      registry->knownNodeNames.getName(id));
+      registry->knownNames.getName(id));
   }
 
   return *this;
@@ -68,13 +68,14 @@ StateRequest StateRequest::allowWireframe() &&
 
 StateRequest StateRequest::allowVrs(VrsRequirements vrs) &&
 {
-  if (vrs.rateTextureResName == nullptr)
+  if (!vrs.rateTexture.has_value())
+  {
+    registry->nodes[id].stateRequirements->vrsState.reset();
     return *this;
+  }
 
-  const auto rateTexId = registry->knownResourceNames.addNameId(vrs.rateTextureResName);
-  registry->nodes[id].readResources.insert(rateTexId);
-  registry->nodes[id].resourceRequests.emplace(rateTexId,
-    ResourceRequest{ResourceUsage{dabfg::Access::READ_ONLY, dabfg::Usage::VRS_RATE_TEXTURE, dabfg::Stage::ALL_GRAPHICS}});
+  const auto rateTexId = vrs.rateTexture->resUid.resId;
+  eastl::move(*vrs.rateTexture).texture().atStage(dabfg::Stage::ALL_GRAPHICS).useAs(dabfg::Usage::VRS_RATE_TEXTURE);
   registry->nodes[id].stateRequirements->vrsState =
     VrsStateRequirements{vrs.rateX, vrs.rateY, rateTexId, vrs.vertexCombiner, vrs.pixelCombiner};
   return *this;

@@ -24,7 +24,7 @@ if $(Platform) = linux64 && $(Sanitize) = thread {
   Copt += -Wno-tsan ;
 }
 
-if $(PlatformSpec) in gcc4 clang {
+if $(PlatformSpec) in gcc clang {
   Copt += -Wno-unused-parameter ;
 }
 

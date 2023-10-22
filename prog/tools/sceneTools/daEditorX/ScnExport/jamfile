@@ -1,0 +1,23 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/ScnExport ;
+
+UseWTL = yes ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/scnexport.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  ScnExportPlugin.cpp
+  main.cpp
+;
+UseProgLibs =
+  tools/libTools/csgFaceRemover
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

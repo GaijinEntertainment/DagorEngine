@@ -44,14 +44,15 @@ AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/1stPartyLibs/jsoncpp/include
   $(Root)/prog/gameLibs/daRg
-  $(Root)/prog/engine2/sharedInclude
-  $(Root)/prog/engine2/drv
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine/drv
 ;
 
 Sources =
   app.cpp
   main.cpp
   joystick.cpp
+  screenshotMetaInfoLoader.cpp
   scriptBindings.cpp
   initScript.cpp
   gamelib/input.cpp
@@ -68,23 +69,23 @@ if $(Platform) = macosx {
 }
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/coreUtil
-  engine2/math
-  engine2/lib3d
-  engine2/image
-  engine2/shaders
-  engine2/workCycle
-  
-  engine2/guiBase
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/coreUtil
+  engine/math
+  engine/lib3d
+  engine/image
+  engine/shaders
+  engine/workCycle
 
-  engine2/libFx
-  engine2/gameRes
+  engine/guiBase
+
+  engine/libFx
+  engine/gameRes
   commonFx/commonFxGame
 
   gameLibs/webui
@@ -101,8 +102,8 @@ UseProgLibs =
   gameLibs/quirrel/sqDebugger
   gameLibs/quirrel/nestdb
   gameLibs/quirrel/udp
-  engine2/perfMon
-  engine2/consoleProc
+  engine/perfMon
+  engine/consoleProc
   tools/libTools/util
 
   3rdPartyLibs/image/libpng-1.4.22
@@ -116,26 +117,26 @@ UseProgLibs =
 
 if $(Platform) in win32 win64 {
   UseProgLibs +=
-    engine2/drv/hid_mouse
-    engine2/drv/hid_keyboard
-    engine2/drv/hid_joystick
-    engine2/drv/hid_dinput
-    engine2/drv/hid_gamepad_xinput
+    engine/drv/hid_mouse
+    engine/drv/hid_keyboard
+    engine/drv/hid_joystick
+    engine/drv/hid_dinput
+    engine/drv/hid_gamepad_xinput
   ;
 }
 else if $(Platform) = linux64 {
   UseProgLibs +=
-    engine2/drv/hid_mouse
-    engine2/drv/hid_keyboard
-    engine2/drv/hid_joystick_linux
-    engine2/osApiWrappers/messageBox
+    engine/drv/hid_mouse
+    engine/drv/hid_keyboard
+    engine/drv/hid_joystick_linux
+    engine/osApiWrappers/messageBox
   ;
 }
 else if $(Platform) = android {
 
   ReproducibleExeBuild = no ;
-  UseProgLibs += engine2/drv/hid_android engine2/drv/hid_nullDrv ;
-  UseProgLibs += engine2/drv/drv3d_vulkan ;
+  UseProgLibs += engine/drv/hid_android engine/drv/hid_nullDrv ;
+  UseProgLibs += engine/drv/drv3d_vulkan ;
 
   #BundleCopy = bin/inp-and.vromfs.bin   assets/inp-and.vromfs.bin ;
   BundleCopy = ;
@@ -160,7 +161,7 @@ else if $(Platform) = android {
     platform/android.bundle/src/DagorCommonActivity.java      src/com/gaijinent/common/DagorCommonActivity.java
     platform/android.bundle/src/DagorBaseActivity.java      src/com/gaijinent/common/DagorBaseActivity.java
 
-    @$(Root)/prog/engine2/drv/hid_android/NvSoftInput.java     src/com/nvidia/Helpers/NvSoftInput.java
+    @$(Root)/prog/engine/drv/hid_android/NvSoftInput.java     src/com/nvidia/Helpers/NvSoftInput.java
   ;
 
   if $(Config) != rel {
@@ -190,8 +191,8 @@ else if $(Platform) = iOS {
   Sources +=
     platform/ios_main.mm
   ;
-  UseProgLibs += engine2/drv/hid_iOS engine2/drv/hid_nullDrv ;
-  UseProgLibs += engine2/drv/drv3d_Metal ;
+  UseProgLibs += engine/drv/hid_iOS engine/drv/hid_nullDrv ;
+  UseProgLibs += engine/drv/drv3d_Metal ;
 
   LINKopt += -framework AVFoundation ;
 
@@ -211,17 +212,17 @@ else if $(Platform) = macosx {
   ;
 
   UseProgLibs +=
-    engine2/imgui/stub  #<--- workaround against render -> dafx -> imgui dependency
-    engine2/drv/hid_mouse
-    engine2/drv/hid_keyboard
-    engine2/drv/hid_joystick_osx
-    engine2/drv/hid_nulldrv
-    engine2/osApiWrappers/messageBox
+    engine/imgui/stub  #<--- workaround against render -> dafx -> imgui dependency
+    engine/drv/hid_mouse
+    engine/drv/hid_keyboard
+    engine/drv/hid_joystick_osx
+    engine/drv/hid_nulldrv
+    engine/osApiWrappers/messageBox
   ;
   if $(UseStubDriver) = yes {
-    UseProgLibs += engine2/drv/drv3d_stub ;
+    UseProgLibs += engine/drv/drv3d_stub ;
   } else {
-    UseProgLibs += engine2/drv/drv3d_Metal ;
+    UseProgLibs += engine/drv/drv3d_Metal ;
   }
 
   GlobalCPPopt += -Wno-deprecated-declarations ;
@@ -267,15 +268,15 @@ else if $(Platform) = nswitch {
   ;
 
   UseProgLibs +=
-    engine2/drv/drv3d_vulkan
+    engine/drv/drv3d_vulkan
     3rdPartyLibs/posix
-    engine2/drv/hid_nswitch
-    engine2/drv/hid_nulldrv
+    engine/drv/hid_nswitch
+    engine/drv/hid_nulldrv
     gameLibs/nswitch
     gameLibs/nswitch/account
     gameLibs/nswitch/assets
     gameLibs/nswitch/savedata
-    engine2/osApiWrappers/messageBox
+    engine/osApiWrappers/messageBox
   ;
 
   AddLibs +=
@@ -291,7 +292,7 @@ else {
 
 if ! $(Platform) in android nswitch {
   if $(UseD3DMulti) = yes {
-    UseProgLibs += engine2/drv/drv3d_pc_multi ;
+    UseProgLibs += engine/drv/drv3d_pc_multi ;
   }
 }
 

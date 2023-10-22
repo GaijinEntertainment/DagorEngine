@@ -2,3 +2,5 @@
 
 if (!"weapModSlotName" in ::item)
   return null
+
+//-file:undefined-global

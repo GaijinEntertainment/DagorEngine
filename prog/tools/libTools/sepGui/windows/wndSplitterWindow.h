@@ -18,7 +18,7 @@ public:
   virtual void getPos(IPoint2 &left_top, IPoint2 &right_bottom) const;
   virtual void resize(const IPoint2 &left_top, const IPoint2 &right_bottom);
 
-  virtual bool getMinSize(int &min_w, int &min_h);
+  virtual bool getMinSize(hdpi::Px &min_w, hdpi::Px &min_h) const;
   virtual WindowSizeLock getSizeLock() const;
 
   virtual intptr_t winProc(void *h_wnd, unsigned msg, TSgWParam w_param, TSgLParam l_param);

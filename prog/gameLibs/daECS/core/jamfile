@@ -6,7 +6,7 @@ Target      = gameLibs/daECS/core.lib ;
 StrictCompile = yes ;
 
 AddIncludes =
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 
@@ -15,7 +15,7 @@ Sources = $(AllSources:D=) ;
 #Sources = entityManagerQuery.cpp  ;
 
 UseProgLibs +=
-  engine2/baseUtil
+  engine/baseUtil
   3rdPartyLibs/eastl
   3rdPartyLibs/regExp
 ;

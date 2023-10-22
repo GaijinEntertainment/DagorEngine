@@ -47,10 +47,10 @@ public:
   ~LayoutSaver();
 
   void saveLayout(const char *filename);
-  void loadLayout(const char *filename);
+  bool loadLayout(const char *filename);
 
   void saveLayoutToDataBlock(DataBlock &save_data_block);
-  void loadLayoutFromDataBlock(const DataBlock &load_data_block);
+  bool loadLayoutFromDataBlock(const DataBlock &load_data_block);
 
 private:
   void saveToDataBlock(DataBlock &data_block);

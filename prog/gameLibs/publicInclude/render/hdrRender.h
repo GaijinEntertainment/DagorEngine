@@ -19,6 +19,7 @@ void init(int width, int height, int fp_format = TEXFMT_R11G11B10F, bool uav_usa
 void init(int width, int height, bool linear_input, bool uav_usage = false);
 void shutdown();
 
+bool int10_hdr_buffer();
 bool is_hdr_enabled();
 bool is_hdr_available();
 bool is_active();

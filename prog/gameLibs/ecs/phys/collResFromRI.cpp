@@ -1,4 +1,4 @@
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtraAccess.h>
 #include <ecs/core/entityManager.h>
 #include <ecs/rendInst/riExtra.h>
 

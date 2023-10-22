@@ -54,8 +54,8 @@ Metaballs::Metaballs()
   initShader();
 
   const int MAX_VERTICES_COUNT = MAX_GRID_SIZE * MAX_GRID_SIZE * MAX_GRID_SIZE * 6 * 2;
-  vb.reset(d3d::create_vb(MAX_VERTICES_COUNT * sizeof(Point3), SBCF_DYNAMIC, "metaball"));
-  ib.reset(d3d::create_ib(MAX_VERTICES_COUNT, SBCF_DYNAMIC));
+  vb.reset(d3d::create_vb(MAX_VERTICES_COUNT * sizeof(Point3), SBCF_MAYBELOST | SBCF_DYNAMIC, "metaball"));
+  ib.reset(d3d::create_ib(MAX_VERTICES_COUNT, SBCF_MAYBELOST | SBCF_DYNAMIC));
   updateJobs.resize(2);
 
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);

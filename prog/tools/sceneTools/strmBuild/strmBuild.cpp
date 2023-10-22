@@ -65,13 +65,13 @@ int DagorWinMain(bool debugmode)
     printf("ERR: cannot load %s\n", strm_blk_fn);
     return 2;
   }
-  if (!::load_shaders_bindump(sh_file, FSHVER_30))
-    if (!::load_shaders_bindump(sh_file, FSHVER_20A))
-      if (!::load_shaders_bindump(sh_file, FSHVER_R300))
-      {
-        printf("ERR: cannot load shaders: %s\n", sh_file);
-        return 3;
-      }
+  // if (!::load_shaders_bindump(sh_file, FSHVER_30))
+  // if (!::load_shaders_bindump(sh_file, FSHVER_20A))
+  // if (!::load_shaders_bindump(sh_file, FSHVER_R300))
+  //{
+  //  printf("ERR: cannot load shaders: %s\n", sh_file);
+  //  return 3;
+  //}
   set_default_sym_texture_factory();
   // void* n = NULL;
   // d3d::init_video(NULL,NULL,NULL,0,n,NULL,NULL,NULL,NULL);

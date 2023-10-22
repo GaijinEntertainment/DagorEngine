@@ -19,5 +19,22 @@ namespace das {
 
     AotLibrary & getGlobalAotLibrary();
     void clearGlobalAotLibrary();
+
+    // Test standalone context
+
+    typedef Context * ( * RegisterTestCreator ) ();
+
+    struct StandaloneContextNode {
+        StandaloneContextNode( RegisterTestCreator prfn ) {
+            regFn = prfn;
+            tail = head;
+            head = this;
+        }
+
+        StandaloneContextNode * tail = nullptr;
+        static StandaloneContextNode * head;
+        RegisterTestCreator regFn;
+    };
+
 }
 

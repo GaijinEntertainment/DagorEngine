@@ -1,5 +1,6 @@
 #include <debug/dag_log.h>
 #include <ioSys/dag_dataBlock.h>
+#include <ioSys/dag_dataBlockUtils.h>
 #include <ioSys/dag_memIo.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_color.h>
@@ -471,6 +472,11 @@ static bool param_exists(const DataBlock *blk, const char *param) { return blk->
 
 static const DataBlock *get_block_by_name(const DataBlock *blk, const char *param) { return blk->getBlockByName(param); }
 
+static void set_param_from(DataBlock *dst, const char *dst_name, const DataBlock *src, int src_index)
+{
+  setParam(*dst, dst_name, *src, src_index);
+}
+
 static void set_params_from(DataBlock *blk, const DataBlock *other) { blk->setParamsFrom(other); }
 
 static void set_from(DataBlock *blk, const DataBlock *other) { blk->setFrom(other); }
@@ -681,6 +687,7 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .GlobalFunc("findParam", find_param)
     .GlobalFunc("paramExists", param_exists)
     .GlobalFunc("getBlockByName", get_block_by_name)
+    .GlobalFunc("setParamFrom", set_param_from)
     .GlobalFunc("setParamsFrom", set_params_from)
     .GlobalFunc("setFrom", set_from)
     .GlobalFunc("setInt", set_int)

@@ -8,11 +8,11 @@
 // ------------------- Group Box -----------------
 
 
-CGroupBox::CGroupBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
-  const char caption[])
+CGroupBox::CGroupBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+  hdpi::Px h, const char caption[])
 
   :
-  CGroupBase(event_handler, parent, new WGroup(this, parent->getWindow(), x, y, w, h), id, x, y, w, h, caption)
+  CGroupBase(event_handler, parent, new WGroup(this, parent->getWindow(), x, y, _px(w), _px(h)), id, x, y, w, h, caption)
 {}
 
 
@@ -27,7 +27,7 @@ PropertyContainerControlBase *CGroupBox::createDefault(int id, PropertyContainer
 
 
 CGroupBase::CGroupBase(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, WindowControlBase *wc_rect, int id,
-  int x, int y, int w, int h, const char caption[])
+  int x, int y, hdpi::Px w, hdpi::Px h, const char caption[])
 
   :
   PropertyContainerVert(id, event_handler, parent, x, y, w, h), mRect(wc_rect)
@@ -75,9 +75,9 @@ void CGroupBase::resizeControl(unsigned w, unsigned h)
 }
 
 
-void CGroupBase::setWidth(unsigned w)
+void CGroupBase::setWidth(hdpi::Px w)
 {
-  this->resizeControl(w, this->getNextControlY());
+  this->resizeControl(_px(w), this->getNextControlY());
 
   PropertyContainerVert::setWidth(w);
 }
@@ -87,7 +87,7 @@ int CGroupBase::getNextControlY(bool new_line)
 {
   if (!(this->getChildCount()))
   {
-    return PropertyContainerVert::getNextControlY(new_line) + DEFAULT_CONTROL_HEIGHT;
+    return PropertyContainerVert::getNextControlY(new_line) + _pxS(DEFAULT_CONTROL_HEIGHT);
   }
   else
   {

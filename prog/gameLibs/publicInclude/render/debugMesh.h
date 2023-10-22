@@ -13,12 +13,14 @@ enum class Type
 {
   NONE,
   FIRST_DEBUG_MESH_MODE =
-#define MODE(mode, num)       1 +
-#define LAST_MODE(mode)       0,
-#define DEBUG_MESH_MODE(mode) mode = (int)DebugGbufferMode::mode,
+#define MODE(mode, num)             1 +
+#define MODE_HAS_VECTORS(mode, num) 1 +
+#define LAST_MODE(mode)             0,
+#define DEBUG_MESH_MODE(mode)       mode = (int)DebugGbufferMode::mode,
 #include <render/debugGbufferModes.h>
 #undef DEBUG_MESH_MODE
 #undef LAST_MODE
+#undef MODE_HAS_VECTORS
 #undef MODE
     ANY
 };

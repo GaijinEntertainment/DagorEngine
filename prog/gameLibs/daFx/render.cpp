@@ -210,12 +210,6 @@ void before_render(ContextId cid, const eastl::vector<eastl::string> &tags_name)
   before_render(cid, tags_mask);
 }
 
-void set_rendering_resolution(ContextId cid, const IPoint2 &resolution)
-{
-  GET_CTX();
-  ctx.renderingResolution = resolution;
-}
-
 bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name)
 {
   TIME_D3D_PROFILE(dafx_render);
@@ -252,7 +246,6 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name)
     return false;
 
   G_ASSERT_RETURN(ctx.systemDataVarId >= 0, false);
-  G_ASSERT_RETURN(ctx.screenPosToTcVarId >= 0, false);
 
   InstanceGroups &stream = ctx.instances.groups;
   const uint32_t validationFlags = SYS_ENABLED | SYS_VALID | SYS_VISIBLE | SYS_RENDERABLE | SYS_RENDER_REQ;
@@ -428,15 +421,10 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name)
   curResList.fill(BAD_TEXTUREID);
 
   Driver3dRenderTarget defaultRt;
-  IPoint2 renderingResolution = ctx.renderingResolution;
-  if (renderingResolution.x <= 0 || renderingResolution.y <= 0)
+  if (ctx.customDepth)
   {
     d3d::get_render_target(defaultRt);
-    d3d::get_render_target_size(renderingResolution.x, renderingResolution.y, defaultRt.getColor(0).tex);
   }
-  ShaderGlobal::set_color4(ctx.screenPosToTcVarId,
-    Point4(1.f / renderingResolution.x, 1.f / renderingResolution.y, HALF_TEXEL_OFSF / renderingResolution.x,
-      HALF_TEXEL_OFSF / renderingResolution.y));
 
   bool customDepth = false;
   {
@@ -459,7 +447,7 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name)
       if (customDepth != nextCustomDepth)
       {
         if (nextCustomDepth)
-          d3d::set_depth(ctx.customDepth, false);
+          d3d::set_depth(ctx.customDepth, DepthAccess::RW);
         else
           d3d::set_render_target(defaultRt);
         customDepth = nextCustomDepth;
@@ -530,7 +518,7 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name)
   ShaderGlobal::set_buffer(ctx.systemDataVarId, BAD_D3DRESID);
   ShaderGlobal::set_buffer(ctx.renderCallsVarId, BAD_D3DRESID);
 
-  if (ctx.renderingResolution.x <= 0 || ctx.renderingResolution.y <= 0)
+  if (ctx.customDepth)
   {
     d3d::set_render_target(defaultRt);
   }

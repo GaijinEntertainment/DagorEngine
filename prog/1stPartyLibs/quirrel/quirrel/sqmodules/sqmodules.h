@@ -32,11 +32,11 @@ public:
   SqModules(HSQUIRRELVM vm)
     : sqvm(vm), onAST_cb(nullptr), onBytecode_cb(nullptr), up_data(nullptr)
   {
-    compilationOptions.useAST = false;
     compilationOptions.raiseError = true;
     compilationOptions.debugInfo = false;
     compilationOptions.doStaticAnalysis = false;
     compilationOptions.useAbsolutePath = false;
+    sq_disablesyntaxwarnings();
   }
 
   HSQUIRRELVM getVM() { return sqvm; }
@@ -95,7 +95,6 @@ public:
   static const char *__main__, *__fn__;
 
   struct {
-    bool useAST;
     bool raiseError;
     bool debugInfo;
     bool doStaticAnalysis;
@@ -103,7 +102,7 @@ public:
   } compilationOptions;
 
   void *up_data;
-  void(*onAST_cb)(HSQUIRRELVM, SqAstNode *, void *);
+  void(*onAST_cb)(HSQUIRRELVM, SQCompilation::SqASTData *, void *);
   void(*onBytecode_cb)(HSQUIRRELVM, HSQOBJECT, void *);
 
 private:

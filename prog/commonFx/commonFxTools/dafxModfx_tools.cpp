@@ -881,6 +881,19 @@ ScriptHelpers::TunedElement *FxRenderShaderAboveDepth::createTunedElement(const 
 }
 
 
+ScriptHelpers::TunedElement *FxRenderVolfogInjection::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(3);
+
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("weight_rgb", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("weight_alpha", 1));
+
+  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+}
+
+
 ScriptHelpers::TunedElement *FxRenderShader::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
@@ -1001,7 +1014,7 @@ public:
   virtual ScriptHelpers::TunedElement *createTunedElement()
   {
     Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-    elems.reserve(19);
+    elems.reserve(20);
 
     elems.push_back(FxSpawn::createTunedElement("FxSpawn_data"));
     elems.push_back(FxLife::createTunedElement("FxLife_data"));
@@ -1019,11 +1032,12 @@ public:
     elems.push_back(FxDepthMask::createTunedElement("FxDepthMask_data"));
     elems.push_back(FxRenderGroup::createTunedElement("FxRenderGroup_data"));
     elems.push_back(FxRenderShader::createTunedElement("FxRenderShader_data"));
+    elems.push_back(FxRenderVolfogInjection::createTunedElement("FxRenderVolfogInjection_data"));
     elems.push_back(FxPartTrimming::createTunedElement("FxPartTrimming_data"));
     elems.push_back(FxGlobalParams::createTunedElement("FxGlobalParams_data"));
     elems.push_back(FxQuality::createTunedElement("FxQuality_data"));
 
-    return ScriptHelpers::create_tuned_group("params", 11, elems);
+    return ScriptHelpers::create_tuned_group("params", 12, elems);
   }
 };
 

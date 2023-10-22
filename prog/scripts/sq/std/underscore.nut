@@ -201,7 +201,7 @@ print("\n")
 let function range(m, n=null, step=1) {
   let start = n==null ? 0 : m
   let end = n==null ? m : n
-  for (local i=start; (end>start) ? i<end : i>end; i+=step)
+  for (local i=start; (end>start) ? i<end : i>end; i+=step) // -potentially-nulled-ops
     yield i
 }
 

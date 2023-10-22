@@ -85,6 +85,9 @@
 #include <Shlobj.h>
 #endif
 
+using hdpi::_pxActual;
+using hdpi::_pxScaled;
+
 extern String fx_devres_base_path;
 
 static String assetFile;
@@ -387,9 +390,9 @@ void AssetViewerApp::init()
 void AssetViewerApp::createAssetsTree()
 {
   if (mToolPanel)
-    hwndTree = mManager->splitNeighbourWindow(mToolPanel->getParentWindowHandle(), 0, TREEVIEW_WIDTH, WA_LEFT);
+    hwndTree = mManager->splitNeighbourWindow(mToolPanel->getParentWindowHandle(), 0, _pxScaled(TREEVIEW_WIDTH), WA_LEFT);
   else
-    hwndTree = mManager->splitWindow(0, 0, TREEVIEW_WIDTH, WA_LEFT);
+    hwndTree = mManager->splitWindow(0, 0, _pxScaled(TREEVIEW_WIDTH), WA_LEFT);
 
   mManager->setWindowType(hwndTree, TREEVIEW_TYPE);
 }
@@ -397,13 +400,13 @@ void AssetViewerApp::createAssetsTree()
 
 void AssetViewerApp::createToolbar()
 {
-  hwndToolbar = mManager->splitWindow(0, 0, TOOLBAR_HEIGHT, WA_TOP);
+  hwndToolbar = mManager->splitWindow(0, 0, _pxScaled(TOOLBAR_HEIGHT), WA_TOP);
   mManager->fixWindow(hwndToolbar, true);
   mManager->setWindowType(hwndToolbar, TOOLBAR_TYPE);
 }
 
 
-void AssetViewerApp::makeDafaultLayout()
+void AssetViewerApp::makeDefaultLayout()
 {
   mManager->reset();
   // mManager->show(WSI_MAXIMIZED);
@@ -411,11 +414,11 @@ void AssetViewerApp::makeDafaultLayout()
   hwndViewPort = mManager->getFirstWindow();
   mManager->setWindowType(hwndViewPort, VIEWPORT_TYPE);
 
-  hwndTree = mManager->splitWindow(0, 0, TREEVIEW_WIDTH, WA_LEFT);
+  hwndTree = mManager->splitWindow(0, 0, _pxScaled(TREEVIEW_WIDTH), WA_LEFT);
   mManager->fixWindow(hwndTree, true);
   mManager->setWindowType(hwndTree, TREEVIEW_TYPE);
 
-  hwndPPanel = mManager->splitWindow(0, 0, PPANEL_WIDTH, WA_RIGHT);
+  hwndPPanel = mManager->splitWindow(0, 0, _pxScaled(PPANEL_WIDTH), WA_RIGHT);
   mManager->fixWindow(hwndPPanel, true);
   mManager->setWindowType(hwndPPanel, PPANEL_TYPE);
 
@@ -490,7 +493,7 @@ IWndEmbeddedWindow *AssetViewerApp::onWmCreateWindow(void *handle, int type)
       unsigned w, h;
       mManager->getWindowClientSize(handle, w, h);
 
-      mPropPanel = new CPanelWindow(this, handle, 0, 0, w, h, "Properties");
+      mPropPanel = new CPanelWindow(this, handle, 0, 0, _pxActual(w), _pxActual(h), "Properties");
       fillPropPanel();
 
       return mPropPanel;
@@ -510,7 +513,7 @@ IWndEmbeddedWindow *AssetViewerApp::onWmCreateWindow(void *handle, int type)
       unsigned w, h;
       mManager->getWindowClientSize(handle, w, h);
 
-      mToolPanel = new CToolWindow(this, handle, 0, 0, w, h, "Toolbar");
+      mToolPanel = new CToolWindow(this, handle, 0, 0, _pxActual(w), _pxActual(h), "Toolbar");
       fillToolBar();
 
       return mToolPanel;
@@ -528,7 +531,7 @@ IWndEmbeddedWindow *AssetViewerApp::onWmCreateWindow(void *handle, int type)
       unsigned w, h;
       mManager->getWindowClientSize(handle, w, h);
 
-      mPluginTool = new CToolWindow(this, handle, 0, 0, w, h, "Plugin Tools");
+      mPluginTool = new CToolWindow(this, handle, 0, 0, _pxActual(w), _pxActual(h), "Plugin Tools");
 
       return mPluginTool;
     }
@@ -699,12 +702,12 @@ void AssetViewerApp::showPropWindow(bool is_show)
   else
   {
     if (compositeEditor.compositeTreeView)
-      hwndPPanel =
-        mManager->splitNeighbourWindow(compositeEditor.compositeTreeView->getParentWindowHandle(), 0, PPANEL_WIDTH, WA_BOTTOM);
+      hwndPPanel = mManager->splitNeighbourWindow(compositeEditor.compositeTreeView->getParentWindowHandle(), 0,
+        _pxScaled(PPANEL_WIDTH), WA_BOTTOM);
     else
     {
       ViewportWindow *viewport = ged.getViewport(0);
-      hwndPPanel = mManager->splitWindow(viewport ? viewport->getParentHandle() : nullptr, 0, PPANEL_WIDTH, WA_RIGHT);
+      hwndPPanel = mManager->splitWindow(viewport ? viewport->getParentHandle() : nullptr, 0, _pxScaled(PPANEL_WIDTH), WA_RIGHT);
     }
 
     mManager->setWindowType(hwndPPanel, PPANEL_TYPE);
@@ -729,7 +732,7 @@ void AssetViewerApp::showAdditinalPropWindow(bool is_show)
   else
   {
     void *root = mTreeView ? mTreeView->getParentWindowHandle() : 0;
-    hwndPluginPanel = mManager->splitNeighbourWindow(root, 0, ADDITIONAL_PROP_WINDOW_WIDTH, WA_LEFT);
+    hwndPluginPanel = mManager->splitNeighbourWindow(root, 0, _pxScaled(ADDITIONAL_PROP_WINDOW_WIDTH), WA_LEFT);
     G_ASSERT(hwndPluginPanel);
   }
 }
@@ -755,11 +758,11 @@ void AssetViewerApp::showAdditinalToolWindow(bool is_show)
     {
       void *tool = mToolPanel->getParentWindowHandle();
       mManager->fixWindow(tool, false);
-      hwndPluginToolbar = mManager->splitWindow(tool, 0, mToolPanel->getWidth() - mToolPanel->getPanelWidth(), WA_RIGHT);
+      hwndPluginToolbar = mManager->splitWindow(tool, 0, _pxActual(mToolPanel->getWidth() - mToolPanel->getPanelWidth()), WA_RIGHT);
     }
     else
     {
-      hwndPluginToolbar = mManager->splitWindow(0, 0, TOOLBAR_HEIGHT, WA_TOP);
+      hwndPluginToolbar = mManager->splitWindow(0, 0, _pxScaled(TOOLBAR_HEIGHT), WA_TOP);
     }
     G_ASSERT(hwndPluginToolbar);
     mManager->setWindowType(hwndPluginToolbar, TOOLBAR_PLUGIN_TYPE);
@@ -803,11 +806,11 @@ void AssetViewerApp::showCompositeEditor(bool show)
       ViewportWindow *viewport = ged.getViewport(0);
       hwndToSplit = viewport ? viewport->getParentHandle() : nullptr;
       windowAlign = WA_RIGHT;
-      totalHeight = PPANEL_WIDTH;
+      totalHeight = hdpi::_pxS(PPANEL_WIDTH);
     }
 
-    void *hwndCompositeTree = mManager->splitWindow(hwndToSplit, 0, totalHeight, windowAlign);
-    void *hwndCompositePropPanel = mManager->splitWindow(hwndCompositeTree, 0, propPanelHeight, WA_BOTTOM);
+    void *hwndCompositeTree = mManager->splitWindowF(hwndToSplit, 0, totalHeight, windowAlign);
+    void *hwndCompositePropPanel = mManager->splitWindowF(hwndCompositeTree, 0, propPanelHeight, WA_BOTTOM);
     G_ASSERT(hwndCompositeTree);
     G_ASSERT(hwndCompositePropPanel);
     mManager->setWindowType(hwndCompositeTree, COMPOSITE_EDITOR_TREEVIEW_TYPE);
@@ -1009,6 +1012,8 @@ void AssetViewerApp::updateMenu(IMenu *menu)
 
 void AssetViewerApp::drawAssetInformation(IGenViewportWnd *wnd)
 {
+  using hdpi::_pxS;
+
   if (!curAsset /* || !getWorkspace()*/)
     return;
   if (curAssetPackName.empty())
@@ -1021,10 +1026,10 @@ void AssetViewerApp::drawAssetInformation(IGenViewportWnd *wnd)
   StdGuiRender::set_font(0);
   StdGuiRender::set_color(COLOR_BLACK);
 
-  const int textOffset = 10;
-  const Point2 size(StdGuiRender::get_str_bbox(curAssetPackName).size().x + textOffset * 2, 20);
-  const Point2 offset(0, 19);
-  const int pSize = 60;
+  const int textOffset = _pxS(10);
+  const Point2 size(StdGuiRender::get_str_bbox(curAssetPackName).size().x + textOffset * 2, _pxS(20));
+  const Point2 offset(0, _pxS(17));
+  const int pSize = _pxS(60);
 
   bool is_pc = curAsset->testUserFlags(ASSET_USER_FLG_UP_TO_DATE_PC);
   StdGuiRender::set_color(is_pc ? COLOR_LTGREEN : COLOR_LTRED);
@@ -1072,11 +1077,11 @@ void AssetViewerApp::drawAssetInformation(IGenViewportWnd *wnd)
   if (const char *str = environment::getEnviTitleStr(&assetLtData))
   {
     int tw = StdGuiRender::get_str_bbox(str).size().x;
-    r.l = 128 + 40;
+    r.l = _pxS(128) + _pxS(40);
     r.t = 0;
-    r.r = rc - size.x - offset.x - sz - 40;
+    r.r = rc - size.x - offset.x - sz - _pxS(40);
     r.b = r.t + offset.y + textOffset / 2;
-    int diff = r.r - r.l - 10 - tw;
+    int diff = r.r - r.l - _pxS(10) - tw;
     if (diff > 0)
       r.l += diff / 2, r.r -= diff / 2;
     StdGuiRender::set_color(COLOR_YELLOW);
@@ -1154,7 +1159,7 @@ bool AssetViewerApp::reloadAsset(const DagorAsset &asset, int asset_name_id, int
     }
   }
   else if (curAsset && asset_type != assetMgr.getTexAssetTypeId() &&
-           (check_asset_depends_on_asset(curAsset, &asset) || curPlugin()->reloadOnAssetChanged(&asset)))
+           (check_asset_depends_on_asset(curAsset, &asset) || (curPlugin() && curPlugin()->reloadOnAssetChanged(&asset))))
   {
     if (asset.getType() == DAEDITOR3.getAssetTypeId("rendInst"))
       if (IRendInstGenService *rigenSrv = EDITORCORE->queryEditorInterface<IRendInstGenService>())
@@ -1296,7 +1301,7 @@ Point3 AssetViewerApp::snapToScale(const Point3 &p) const { return grid.snapToSc
 
 void AssetViewerApp::getDocTitleText(String &text)
 {
-  unsigned drv = d3d::get_driver_code();
+  unsigned drv = d3d::get_driver_code().asFourCC();
   if (sceneFname[0])
     text.printf(300, "Asset viewer2  [%c%c%c%c]  - %s", _DUMP4C(drv), sceneFname);
   else
@@ -1515,10 +1520,17 @@ static void init3d(const DataBlock &appblk)
     dd_file_exists(String(0, "%s/%s.ps30.shdump.bin", appdir, appblk.getStr("page-shaders", appblk.getStr("shaders", NULL))));
 
   DataBlock fontsBlk;
-  fontsBlk.addBlock("fontbins")->addStr("name", String(260, "%s/../commonData/verdanab", sgg::get_exe_path_full()));
+  fontsBlk.addBlock("fontbins")->addStr("name", String(260, "%s/../commonData/default", sgg::get_exe_path_full()));
+  if (auto *b = fontsBlk.addBlock("dynamicGen"))
+  {
+    b->setInt("texCount", 2);
+    b->setInt("texSz", 256);
+    b->setStr("prefix", String(260, "%s/../commonData", sgg::get_exe_path_full()));
+  }
   StdGuiRender::init_dynamic_buffers(appblk.getInt("guiMaxQuad", 256 << 10), appblk.getInt("guiMaxVert", 64 << 10));
   StdGuiRender::init_fonts(fontsBlk);
   StdGuiRender::init_render();
+  StdGuiRender::set_def_font_ht(0, hdpi::_pxS(StdGuiRender::get_initial_font_ht(0)));
 
   if (appblk.getBool("useDynrend", false))
     dynrend::init();
@@ -1916,7 +1928,8 @@ bool AssetViewerApp::loadProject(const char *app_dir)
   autoSavedWindowLayoutFilePath = assetlocalprops::makePath("_av_window_layout.blk");
   if (dd_file_exists(autoSavedWindowLayoutFilePath.c_str()))
   {
-    mManager->loadLayout(autoSavedWindowLayoutFilePath.c_str());
+    if (!mManager->loadLayout(autoSavedWindowLayoutFilePath.c_str()))
+      makeDefaultLayout();
 
     if (!mTreeView)
       createAssetsTree();
@@ -1925,7 +1938,7 @@ bool AssetViewerApp::loadProject(const char *app_dir)
       createToolbar();
   }
   else
-    makeDafaultLayout();
+    makeDefaultLayout();
   ::dagor_idle_cycle();
   G_ASSERTF_RETURN(mTreeView, false, "Failed to create AssetViewer windows.\nTry removing .asset-local/_av_window_layout.blk");
 
@@ -2160,8 +2173,7 @@ bool AssetViewerApp::loadProject(const char *app_dir)
   if (assetMgr.getAssetTypeId("rendInst") >= 0 && assetMgr.getAssetTypeId("impostorData") >= 0)
     impostorApp = eastl::make_unique<ImpostorGenerator>(app_dir, appblk, &assetMgr, console, false, impostor_export_callback);
 
-  colorPaletteDlg = eastl::make_unique<ColorDialogAppMat>(p2util::get_main_parent_handle(), "Palette",
-    e3dcolor(ShaderGlobal::get_color4(::get_shader_variable_id("custom_color_paint", true))));
+  colorPaletteDlg = eastl::make_unique<ColorDialogAppMat>(p2util::get_main_parent_handle(), "Palette");
 
   wingw::set_busy(false);
   queryEditorInterface<IDynRenderService>()->enableRender(true);
@@ -2849,7 +2861,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
 
     case CM_LOAD_DEFAULT_LAYOUT:
     {
-      makeDafaultLayout();
+      makeDefaultLayout();
 
       ViewportWindow *curVp = ged.getViewport(0);
       if (curVp)
@@ -2915,7 +2927,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     case CM_WINDOW_VIEWPORT:
       if (!ged.getViewportCount())
       {
-        hwndViewPort = mManager->splitWindow(0, 0, PPANEL_WIDTH, WA_RIGHT);
+        hwndViewPort = mManager->splitWindow(0, 0, _pxScaled(PPANEL_WIDTH), WA_RIGHT);
         mManager->setWindowType(hwndViewPort, VIEWPORT_TYPE);
       }
       return 1;
@@ -2957,7 +2969,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
 
     case CM_OPTIONS_SET_ACT_RATE:
     {
-      CDialogWindow *dialog = new CDialogWindow(NULL, 250, 100, "Set work cycle act rate");
+      CDialogWindow *dialog = new CDialogWindow(NULL, _pxScaled(250), _pxScaled(100), "Set work cycle act rate");
       dialog->getPanel()->createEditInt(0, "Acts per second:", ::dagor_game_act_rate);
 
       if (dialog->showDialog() == DIALOG_ID_OK)
@@ -3587,25 +3599,6 @@ bool AssetViewerApp::runShadersReload(dag::ConstSpan<const char *> params)
 {
   G_ASSERT(d3d::is_inited());
   const Driver3dDesc &dsc = d3d::get_driver_desc();
-  struct Ver
-  {
-    int ver;
-    const char *suf;
-    int flg;
-  } ver[] = {
-    {FSHVER_66, "ps66", DDFSH_6_6},
-    {FSHVER_60, "ps60", DDFSH_6_0},
-    {FSHVER_50, "ps50", DDFSH_5_0},
-    {FSHVER_41, "ps41", DDFSH_4_1},
-    {FSHVER_40, "ps40", DDFSH_4_0},
-    {FSHVER_30, "ps30", DDFSH_3_0},
-    {FSHVER_20A, "ps2a", DDFSH_2_A},
-    {FSHVER_20B, "ps2b", DDFSH_2_B},
-    {FSHVER_R300, "ps20", DDFSH_2_0},
-    {FSHVER_R200, "ps14", DDFSH_1_4},
-    {FSHVER_NV25, "ps13", DDFSH_1_3},
-    {FSHVER_NV20, "ps11", DDFSH_1_1},
-  };
 
   DataBlock appblk(::get_app().getWorkspace().getAppPath());
   String sh_file;
@@ -3617,18 +3610,26 @@ bool AssetViewerApp::runShadersReload(dag::ConstSpan<const char *> params)
 
   const char *shname = params.size() > 0 ? params[0] : sh_file.c_str();
 
-  for (int i = 0; i < sizeof(ver) / sizeof(ver[0]); i++)
-    if ((dsc.fshver & ver[i].flg) && dd_file_exist(String(260, "%s.%s.shdump.bin", shname, ver[i].suf)))
+  String fileName;
+  for (auto version : d3d::smAll)
+  {
+    if (dsc.shaderModel < version)
+      continue;
+
+    fileName.printf(260, "%s.%s.shdump.bin", shname, version.psName);
+
+    if (!dd_file_exist(fileName))
+      continue;
+
+    if (load_shaders_bindump(shname, version))
     {
-      if (load_shaders_bindump(shname, ver[i].ver))
-      {
-        console->addMessage(ILogWriter::NOTE, "reloaded %s, ver=%s", shname, ver[i].suf);
-        return true;
-      }
-      console->addMessage(ILogWriter::FATAL, "failed to reload %s, ver=%d", shname, ver[i].ver);
-      return false;
+      console->addMessage(ILogWriter::NOTE, "reloaded %s, ver=%s", shname, version.psName);
+      return true;
     }
-  console->addMessage(ILogWriter::FATAL, "failed to reload %s, dsc.fshver=%08X", shname, dsc.fshver);
+    console->addMessage(ILogWriter::FATAL, "failed to reload %s, ver=%s", shname, version.psName);
+    return false;
+  }
+  console->addMessage(ILogWriter::FATAL, "failed to reload %s, dsc.shaderModel=%s", shname, d3d::as_string(dsc.shaderModel));
   return false;
 }
 

@@ -319,7 +319,7 @@ namespace das {
         Context         ctx;
         DebugInfoHelper helper;
     protected:
-        vec4f DAS_EVAL_ABI eval ( Expression * expr, bool & failed );
+        DAS_EVAL_ABI vec4f eval ( Expression * expr, bool & failed );
         ExpressionPtr evalAndFold ( Expression * expr );
         ExpressionPtr evalAndFoldString ( Expression * expr );
         ExpressionPtr evalAndFoldStringBuilder ( ExprStringBuilder * expr );

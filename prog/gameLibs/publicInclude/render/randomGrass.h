@@ -6,6 +6,7 @@
 #pragma once
 
 #include <3d/dag_texMgr.h>
+#include <3d/dag_resPtr.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_carray.h>
 #include <math/dag_Point3.h>
@@ -22,11 +23,9 @@
 #include <render/toroidalHelper.h>
 #include <render/toroidal_update.h>
 #include <shaders/dag_overrideStateId.h>
-#include <3d/dag_sbufferIDHolder.h>
 #include <math/dag_hlsl_floatx.h>
 #include "randomGrassParams.hlsli"
 #include <render/atlasTexManager.h>
-#include <3d/dag_sbufferIDHolder.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <EASTL/unique_ptr.h>
 
@@ -36,9 +35,6 @@
 #define INSTANCES_IN_SINGLE_VB 100
 
 
-class Sbuffer;
-typedef Sbuffer Ibuffer;
-typedef Sbuffer Vbuffer;
 class BaseTexture;
 typedef BaseTexture Texture;
 class DataBlock;
@@ -51,7 +47,6 @@ class BBox2;
 class Occlusion;
 class LandMask;
 class ComputeShaderElement;
-class Sbuffer;
 
 struct ColorRange
 {
@@ -87,38 +82,26 @@ struct GrassLayerInfo
 
 struct GrassLodCombined
 {
-  Vbuffer *lodVb;
-  Ibuffer *lodIb;
+  UniqueBuf lodVb;
+  UniqueBuf lodIb;
 
-  Sbuffer *grassInstancesIndirect; // draw count and startindex locations for indirect drawing
-  Sbuffer *grassInstances;         // instance data
+  UniqueBuf grassInstancesIndirect; // draw count and startindex locations for indirect drawing
+  UniqueBuf grassInstances;         // instance data
 
-  Sbuffer *grassGenerateIndirect; // count of tread groups for dispatch_indirect
-  Sbuffer *grassIndirectParams;   // dispatch params for indirect instance generation (xy size of thread group)
-  Sbuffer *grassDispatchCount;    // count of thread groups for each layer
-  Sbuffer *grassInstancesStride;  // offset for different layers in grassInstances buffer
-  Sbuffer *grassLayersData;       // layer params for culling and indirect generation
+  UniqueBuf grassGenerateIndirect; // count of tread groups for dispatch_indirect
+  UniqueBuf grassIndirectParams;   // dispatch params for indirect instance generation (xy size of thread group)
+  UniqueBuf grassDispatchCount;    // count of thread groups for each layer
+  UniqueBuf grassInstancesStride;  // offset for different layers in grassInstances buffer
+  UniqueBuf grassLayersData;       // layer params for culling and indirect generation
 
   int vdecl = 0;
   int instancesCount = 0; // Total instances on this lod
-
-  GrassLodCombined() :
-    lodVb(NULL),
-    lodIb(NULL),
-    grassInstancesIndirect(NULL),
-    grassInstances(NULL),
-    grassGenerateIndirect(NULL),
-    grassIndirectParams(NULL),
-    grassDispatchCount(NULL),
-    grassInstancesStride(NULL),
-    grassLayersData(NULL)
-  {}
 };
 
 struct GrassLod
 {
-  Vbuffer *cellVb;
-  Ibuffer *cellIb;
+  UniqueBuf cellVb;
+  UniqueBuf cellIb;
   ShaderMesh *mesh;
   int vdecl;
   int numv;
@@ -159,7 +142,7 @@ struct GrassLod
   TEXTUREID alphaTexId;
 
 
-  GrassLod() : mesh(NULL), cellVb(NULL), cellIb(NULL), gridOpaqueIndices(midmem), gridTranspIndices(midmem) {}
+  GrassLod() : mesh(NULL), gridOpaqueIndices(midmem), gridTranspIndices(midmem) {}
 };
 
 struct GrassLayer
@@ -236,7 +219,7 @@ protected:
   void setLodStates(const GrassLod &lod);
   void closeTextures();
 
-  SbufferIDHolder layerDataVS, layerDataPS;
+  UniqueBuf layerDataVS, layerDataPS;
 
   float grassRadiusMul;
   float grassDensityMul;

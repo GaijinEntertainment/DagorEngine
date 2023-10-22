@@ -353,7 +353,7 @@ void DaSkies::changeSkiesData(int sky_detail_level, int clouds_detail_level, boo
   {
     int skyW = (targetW >> data->skyDetailLevel), skyH = (targetH >> data->skyDetailLevel);
     String name(128, "%s_lowres_sky", data->base_name);
-    if (d3d::get_driver_code() == _MAKE4C('DX11'))
+    if (d3d::get_driver_code().is(d3d::dx11))
       d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, NULL, NULL, NULL);
     data->lowresSkies = dag::create_tex(NULL, skyW, skyH, TEXCF_RTARGET | noAlphaSkyHdrFmt, 1, name);
     if (data->lowresSkies)
@@ -454,6 +454,14 @@ void DaSkies::initCloudsRender(bool useHole)
 
   skiesApply.init("applySkies");
   strata.init("strata_clouds");
+}
+
+void DaSkies::setNearCloudsRenderingEnabled(bool enabled)
+{
+  if (clouds)
+  {
+    clouds->setRenderingEnabled(enabled);
+  }
 }
 
 void DaSkies::renderCloudVolume(VolTexture *cloudVolume, float max_dist, const TMatrix &view_tm, const TMatrix4 &proj_tm)
@@ -666,8 +674,8 @@ void DaSkies::prepareSkyAndClouds(bool infinite, const DPoint3 &origin, const DP
 //  so, we don't do that any more
 //  if ever needed to be restored, add && panoramaData == data to expression
 
-void DaSkies::renderSky(SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, bool render_prepared_lowres,
-  AuroraBorealis *aurora)
+void DaSkies::renderSky(SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp,
+  bool render_prepared_lowres, AuroraBorealis *aurora)
 {
   if (cpuOnly)
     return;
@@ -686,7 +694,7 @@ void DaSkies::renderSky(SkiesData *data, const TMatrix &view_tm, const TMatrix4 
   if (panoramaEnabled())
   {
     G_ASSERT(panoramaValid != PANORAMA_INVALID);
-    renderPanorama(origin, view_tm, proj_tm);
+    renderPanorama(origin, view_tm, proj_tm, persp);
   }
   else if (data->lowresSkies && render_prepared_lowres)
   {
@@ -714,7 +722,7 @@ void DaSkies::renderSky(SkiesData *data, const TMatrix &view_tm, const TMatrix4 
           skies.getCpuFogSingleInscatter(cameraPos, Point3(0, 1, 0), 100000, getPrimarySunDir(), STEP_CNT).b * primarySunColor.b;
       }
       if (minInscatter < 1.0f / STAR_RENDERING_INSCATTER_THRESHOLD_INV)
-        skyStars->renderStars(sunHighBrightness, starsLatitude, starsLongtitude, starsJulianDay, initialAzimuthAngle);
+        skyStars->renderStars(persp, sunHighBrightness, starsLatitude, starsLongtitude, starsJulianDay, initialAzimuthAngle);
     }
     if (data->renderSunMoon & 2)
       skyStars->renderMoon(origin, moonDir, moonAge, sunHighBrightness);
@@ -729,11 +737,11 @@ void DaSkies::renderSky(SkiesData *data, const TMatrix &view_tm, const TMatrix4 
     renderStrataClouds(origin, view_tm, proj_tm, false);
 }
 
-void DaSkies::renderStars(const Point3 &origin, float stars_intensity_mul)
+void DaSkies::renderStars(const Driver3dPerspective &persp, const Point3 &origin, float stars_intensity_mul)
 {
   G_UNREFERENCED(origin);
   if (skyStars)
-    skyStars->renderStars(0, starsLatitude, starsLongtitude, starsJulianDay, initialAzimuthAngle, stars_intensity_mul);
+    skyStars->renderStars(persp, 0, starsLatitude, starsLongtitude, starsJulianDay, initialAzimuthAngle, stars_intensity_mul);
 }
 
 void DaSkies::renderClouds(bool infinite, const ManagedTex &cloudsDepth, TEXTUREID targetDepth, SkiesData *data,
@@ -761,7 +769,8 @@ void DaSkies::renderClouds(bool infinite, const TextureIDPair &downsampledDepth,
 
 void DaSkies::renderEnvi(bool infinite, const DPoint3 &origin, const DPoint3 &dir, uint32_t render_sun_moon,
   const ManagedTex &cloudsDepth, const ManagedTex &prevCloudsDepth, TEXTUREID targetDepth, SkiesData *data, const TMatrix &view_tm,
-  const TMatrix4 &proj_tm, bool update_sky, bool fixed_offset, float altitude_tolerance, AuroraBorealis *aurora)
+  const TMatrix4 &proj_tm, const Driver3dPerspective &persp, bool update_sky, bool fixed_offset, float altitude_tolerance,
+  AuroraBorealis *aurora)
 {
   if (cpuOnly)
     return;
@@ -770,7 +779,7 @@ void DaSkies::renderEnvi(bool infinite, const DPoint3 &origin, const DPoint3 &di
   prepareSkyAndClouds(infinite, origin, dir, render_sun_moon, TextureIDPair(cloudsDepth.getTex2D(), cloudsDepth.getTexId()),
     TextureIDPair(prevCloudsDepth.getTex2D(), prevCloudsDepth.getTexId()), data, view_tm, proj_tm, update_sky, fixed_offset,
     altitude_tolerance, aurora);
-  renderSky(data, view_tm, proj_tm, true, aurora);
+  renderSky(data, view_tm, proj_tm, persp, true, aurora);
   renderClouds(infinite, TextureIDPair(cloudsDepth.getTex2D(), cloudsDepth.getTexId()), targetDepth, data, view_tm, proj_tm);
 }
 
@@ -895,7 +904,7 @@ void DaSkies::initCloudsTracer()
     return;
 
   traceRaysCountVarId = get_shader_variable_id("trace_rays_count");
-  if ((d3d::get_driver_desc().cshver & DDCSH_5_0) && !d3d::get_driver_desc().issues.hasComputeTimeLimited)
+  if (d3d::get_driver_desc().shaderModel >= 5.0_sm && !d3d::get_driver_desc().issues.hasComputeTimeLimited)
   {
     traceCloudsCs.reset(new_compute_shader("trace_clouds_cs", true));
     cloudsTraceResultRingBuffer.init(sizeof(uint32_t), numCloudsTracesPerFrame, 3, "clouds_trace_result", SBCF_UA_STRUCTURED_READBACK,
@@ -1055,7 +1064,7 @@ bool DaSkies::getCloudsTraceResult(int trace_id, float &out_t, float &out_transm
 
 void DaSkies::initRainQuery()
 {
-  if (rainQueryCs || !(d3d::get_driver_desc().cshver & DDCSH_5_0))
+  if (rainQueryCs || d3d::get_driver_desc().shaderModel < 5.0_sm)
     return;
 
   rainQueryCs.reset(new_compute_shader("query_rainmap_cs", true));

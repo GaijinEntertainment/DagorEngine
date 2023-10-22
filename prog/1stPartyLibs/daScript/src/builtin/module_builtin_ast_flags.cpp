@@ -170,7 +170,8 @@ namespace das {
         ft->alias = "StructureFlags";
         ft->argNames = { "isClass", "genCtor", "cppLayout", "cppLayoutNotPod",
             "generated", "persistent", "isLambda", "privateStructure",
-            "macroInterface", "_sealed", "skipLockCheck", "circular", "_generator" };
+            "macroInterface", "_sealed", "skipLockCheck", "circular",
+            "_generator", "hasStaticMembers", "hasStaticFunctions" };
         return ft;
     }
 
@@ -192,7 +193,7 @@ namespace das {
         ft->argNames = {
             "macroFunction", "needStringCast", "aotHashDeppendsOnArguments", "lateInit", "requestJit",
             "unsafeOutsideOfFor", "skipLockCheck", "safeImplicit", "deprecated", "aliasCMRES", "neverAliasCMRES",
-            "addressTaken", "propertyFunction", "pinvoke", "jitOnly"
+            "addressTaken", "propertyFunction", "pinvoke", "jitOnly", "isStaticClassMethod"
         };
         return ft;
     }
@@ -211,7 +212,8 @@ namespace das {
         ft->alias = "VariableFlags";
         ft->argNames = { "init_via_move", "init_via_clone", "used", "aliasCMRES",
             "marked_used", "global_shared", "do_not_delete", "generated", "capture_as_ref",
-            "can_shadow", "private_variable", "tag", "global", "inScope", "no_capture", "early_out", "used_in_finally" };
+            "can_shadow", "private_variable", "tag", "global", "inScope", "no_capture", "early_out",
+            "used_in_finally", "static_class_member" };
         return ft;
     }
 

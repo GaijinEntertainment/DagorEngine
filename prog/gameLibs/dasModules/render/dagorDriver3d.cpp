@@ -1,6 +1,9 @@
 #include <dasModules/aotDagorDriver3d.h>
 #include <dasModules/dagorTexture3d.h>
 
+DAS_BIND_ENUM_CAST(DepthAccess);
+DAS_BASE_BIND_ENUM(DepthAccess, DepthAccess, RW, SampledRO);
+
 void bind_driver_consts(das::Module &module);
 
 struct ShadersECSAnnotation : das::ManagedStructureAnnotation<ShadersECS, false>
@@ -63,6 +66,7 @@ public:
     addAnnotation(das::make_smart<ShadersECSAnnotation>(lib));
     addAnnotation(das::make_smart<PostFxRendererAnnotation>(lib));
     addAnnotation(das::make_smart<OverrideStateAnnotation>(lib));
+    addEnumeration(das::make_smart<EnumerationDepthAccess>());
 
     das::addUsing<shaders::OverrideState>(*this, lib, "shaders::OverrideState");
 
@@ -83,8 +87,8 @@ public:
 
     BIND_WRAP_FUNC(get_Driver3dPerspective, "get_Driver3dPerspective", modifyArgumentAndExternal);
 
-    BIND_FUNC_SIGNATURE(d3d::set_depth, "d3d_set_depth", modifyArgumentAndExternal, bool (*)(BaseTexture *, bool));
-    BIND_FUNC_SIGNATURE(d3d::set_depth, "d3d_set_depth", modifyArgumentAndExternal, bool (*)(BaseTexture *, int, bool));
+    BIND_FUNC_SIGNATURE(d3d::set_depth, "d3d_set_depth", modifyArgumentAndExternal, bool (*)(BaseTexture *, DepthAccess));
+    BIND_FUNC_SIGNATURE(d3d::set_depth, "d3d_set_depth", modifyArgumentAndExternal, bool (*)(BaseTexture *, int, DepthAccess));
     BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal, bool (*)());
     BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal, bool (*)(BaseTexture *, int));
     BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal, bool (*)(int, BaseTexture *, int));

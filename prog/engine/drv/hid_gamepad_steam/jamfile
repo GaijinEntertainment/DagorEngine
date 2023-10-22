@@ -1,0 +1,21 @@
+Platform ?= linux64 ;
+Root    ?= ../../../.. ;
+Location = prog/engine/drv/hid_gamepad_steam ;
+
+TargetType  = lib ;
+Target      = engine/drv/hid_gamepad_steam.lib ;
+
+Sources =
+  gamepad_classdrv.cpp
+  gamepad_device.cpp
+  gamepad_create.cpp
+;
+
+UseProgLibs = engine/baseUtil ; # for watchdog
+
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

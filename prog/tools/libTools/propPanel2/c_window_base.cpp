@@ -21,7 +21,7 @@
 
 enum
 {
-  FONT_HEIGHT = 14,
+  FONT_HT = 14,
 };
 
 static void *wnd_brush = CreateSolidBrush(USER_GUI_COLOR);
@@ -536,25 +536,25 @@ LRESULT CALLBACK WindowBaseHandler::windowProc(HWND hwnd, UINT message, WPARAM w
 
         if (mouse_pos.x == GetSystemMetrics(SM_CXSCREEN) - 1)
         {
-          mouse_pos.x -= SCROLL_MOUSE_JUMP;
+          mouse_pos.x -= _pxS(SCROLL_MOUSE_JUMP);
           changes = true;
         }
 
         if (mouse_pos.x == 0)
         {
-          mouse_pos.x += SCROLL_MOUSE_JUMP;
+          mouse_pos.x += _pxS(SCROLL_MOUSE_JUMP);
           changes = true;
         }
 
         if (mouse_pos.y == GetSystemMetrics(SM_CYSCREEN) - 1)
         {
-          mouse_pos.y -= SCROLL_MOUSE_JUMP;
+          mouse_pos.y -= _pxS(SCROLL_MOUSE_JUMP);
           changes = true;
         }
 
         if (mouse_pos.y == 0)
         {
-          mouse_pos.y += SCROLL_MOUSE_JUMP;
+          mouse_pos.y += _pxS(SCROLL_MOUSE_JUMP);
           changes = true;
         }
 
@@ -854,7 +854,7 @@ TFontHandle WindowBase::getNormalFont()
 {
   if (!mFNH)
   {
-    mFNH = (TFontHandle)CreateFont(-FONT_HEIGHT, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY, 0,
+    mFNH = (TFontHandle)CreateFont(-_pxS(FONT_HT), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY, 0,
       "Tahoma");
   }
 
@@ -865,7 +865,7 @@ TFontHandle WindowBase::getBoldFont()
 {
   if (!mFBH)
   {
-    mFBH = (TFontHandle)CreateFont(-FONT_HEIGHT, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY, 0,
+    mFBH = (TFontHandle)CreateFont(-_pxS(FONT_HT), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY, 0,
       "Tahoma");
   }
 
@@ -876,7 +876,7 @@ TFontHandle WindowBase::getSmallPrettyFont()
 {
   if (!mFSPH)
   {
-    mFSPH = (TFontHandle)CreateFont(-(FONT_HEIGHT - 3), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY,
+    mFSPH = (TFontHandle)CreateFont(-_pxS(FONT_HT - 3), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY,
       0, "Tahoma");
   }
 
@@ -887,7 +887,7 @@ TFontHandle WindowBase::getComboFont()
 {
   if (!mFCH)
   {
-    mFCH = (TFontHandle)CreateFont(-(FONT_HEIGHT - 2), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY,
+    mFCH = (TFontHandle)CreateFont(-_pxS(FONT_HT - 2), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY,
       0, "Tahoma");
   }
 
@@ -899,7 +899,7 @@ TFontHandle WindowBase::getSmallButtonFont()
 {
   if (!mFSBH)
   {
-    mFSBH = (TFontHandle)CreateFont(-(FONT_HEIGHT - 6), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY,
+    mFSBH = (TFontHandle)CreateFont(-_pxS(FONT_HT - 6), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY,
       0, "System");
   }
 
@@ -911,7 +911,7 @@ TFontHandle WindowBase::getSmallPlotFont()
 {
   if (!mFSPlH)
   {
-    mFSPlH = (TFontHandle)CreateFont((FONT_HEIGHT - 8), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY,
+    mFSPlH = (TFontHandle)CreateFont(-_pxS(FONT_HT - 8), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, 0, 0, PROOF_QUALITY,
       0, "Terminal");
   }
 

@@ -32,8 +32,8 @@ DynamicCube::DynamicCube(unsigned int num_mips, unsigned int size, float blur, u
   blendCubesStage(-1)
 {
 
-  blendCubesRenderer = create_postfx_renderer("blend_cubes", false);
-  blurCubesRenderer = create_postfx_renderer("blur_cubes", true);
+  blendCubesRenderer = create_postfx_renderer("blend_cubes");
+  blurCubesRenderer = create_postfx_renderer("blur_cubes");
   blendCubesParamsVarId = get_shader_variable_id("blend_cubes_params");
   if (!blurCubesRenderer && num_mips != 1)
   {

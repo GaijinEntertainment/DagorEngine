@@ -13,11 +13,11 @@ Sources = compositRefProv.cpp ;
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
-  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/tools/sceneTools/daEditorX/include
 ;
 
 UseProgLibs =
-  engine2/startup
+  engine/startup
 
   tools/libTools/assetMgr
   tools/libTools/util

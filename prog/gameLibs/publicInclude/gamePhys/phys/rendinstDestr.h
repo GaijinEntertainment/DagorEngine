@@ -6,7 +6,8 @@
 #pragma once
 
 #include <daNet/mpi.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstDebris.h>
+#include <rendInst/rendInstCollision.h>
 #include <gamePhys/phys/rendinstSound.h>
 #include <gamePhys/phys/destructableObject.h>
 #include <EASTL/functional.h>
@@ -31,8 +32,7 @@ enum RestorableRendinstState
 };
 
 typedef void (*create_tree_rend_inst_destr_cb)(const rendinst::RendInstDesc &desc, bool add_restorable, const Point3 &impulse,
-  bool create_phys, bool constrained_phys, float omega, float at_time, const rendinst::RendInstCollisionCB::CollisionInfo *coll_info,
-  bool create_destr);
+  bool create_phys, bool constrained_phys, float omega, float at_time, const rendinst::CollisionInfo *coll_info, bool create_destr);
 typedef void (*remove_tree_rendinst_destr_cb)(const rendinst::RendInstDesc &desc);
 typedef void (*remove_physx_collision_object_callback)(const rendinst::RendInstDesc &desc);
 typedef int (*create_apex_actors_callback)(const char *name, const TMatrix &normalized_tm, const Point3 &scale, const Point3 &pos,
@@ -85,9 +85,9 @@ void testObjToRestorablesIntersection(const BBox3 &obj_box, const TMatrix &obj_t
   float at_time);
 
 rendinst::RendInstDesc destroyRendinst(rendinst::RendInstDesc desc, bool add_restorable, const Point3 &pos, const Point3 &impulse,
-  float at_time, const rendinst::RendInstCollisionCB::CollisionInfo *coll_info, bool create_destr,
-  rendinst::ri_damage_effect_cb effect_cb = NULL, bool is_client = false, ApexDmgInfo *apex_dmg_info = NULL,
-  int destroy_neighbour_recursive_depth = 1, float impulse_mult_for_child = 1.f, on_destr_callback on_destr_cb = nullptr,
+  float at_time, const rendinst::CollisionInfo *coll_info, bool create_destr, rendinst::ri_damage_effect_cb effect_cb = NULL,
+  bool is_client = false, ApexDmgInfo *apex_dmg_info = NULL, int destroy_neighbour_recursive_depth = 1,
+  float impulse_mult_for_child = 1.f, on_destr_callback on_destr_cb = nullptr,
   rendinst::DestrOptionFlags flags = rendinst::DestrOptionFlag::AddDestroyedRi | rendinst::DestrOptionFlag::ForceDestroy);
 void destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transform, rendinst::ri_damage_effect_cb effect_cb);
 void update(float dt, const Frustum *frustum);
@@ -115,28 +115,28 @@ CachedCollisionObjectInfo *get_cached_collision_object(const rendinst::RendInstD
 void add_cached_collision_object(CachedCollisionObjectInfo *object);
 CachedCollisionObjectInfo *get_or_add_cached_collision_object(const rendinst::RendInstDesc &ri_desc, float at_time);
 CachedCollisionObjectInfo *get_or_add_cached_collision_object(const rendinst::RendInstDesc &ri_desc, float at_time,
-  const rendinst::RendInstCollisionCB::CollisionInfo &coll_info);
+  const rendinst::CollisionInfo &coll_info);
 
 int test_dynobj_to_ri_phys_collision(const CollisionObject &coA, const TMatrix &tmA, float max_rad);
 int test_dynobj_to_ri_phys_collision(const CollisionObject &coA, float max_rad);
 
 void remove_tree_rendinst_destr(const rendinst::RendInstDesc &desc);
 void create_tree_rend_inst_destr(const rendinst::RendInstDesc &desc, bool add_restorable, const Point3 &impulse, bool create_phys,
-  bool constrained_phys, float wanted_omega, float at_time, const rendinst::RendInstCollisionCB::CollisionInfo *coll_info,
-  bool create_destr);
+  bool constrained_phys, float wanted_omega, float at_time, const rendinst::CollisionInfo *coll_info, bool create_destr);
 
 void clear_phys_objs();
 
 bbox3f get_ri_phys_containing_bbox(const bbox3f &intersect_bbox, const Frustum &intersect_frustum, bool only_trees);
 void debug_draw_ri_phys();
 
+using calc_expl_damage_cb = eastl::fixed_function<3 * sizeof(void *), float(const rendinst::CollisionInfo &coll_info, float distance)>;
+
 void doRIExtraDamageInBox(const BBox3 &box, rendinst::ri_damage_effect_cb effect_cb, float at_time, bool is_client, bool create_destr,
-  const Point3 &view_pos, rendinst::calc_expl_damage_cb calc_expl_dmg_cb, const BSphere3 *check_sphere, const TMatrix *check_itm,
+  const Point3 &view_pos, calc_expl_damage_cb calc_expl_dmg_cb, const BSphere3 *check_sphere, const TMatrix *check_itm,
   rendinst::DestrOptionFlags flags);
 
 inline void doRendinstDamage(const BSphere3 &sphere, bool, uint32_t frameNo, rendinst::damage_effect_cb effect_cb, float at_time,
-  bool is_client, bool create_destr, const Point3 &view_pos, rendinst::calc_expl_damage_cb calc_expl_dmg_cb,
-  rendinst::DestrOptionFlags flags)
+  bool is_client, bool create_destr, const Point3 &view_pos, calc_expl_damage_cb calc_expl_dmg_cb, rendinst::DestrOptionFlags flags)
 {
   rendinst::doRIGenDamage(sphere, frameNo, effect_cb, {0.f, 0.f, 0.f}, create_destr);
   doRIExtraDamageInBox(BBox3(sphere), effect_cb, at_time, is_client, create_destr, view_pos, calc_expl_dmg_cb, &sphere, nullptr,
@@ -144,15 +144,14 @@ inline void doRendinstDamage(const BSphere3 &sphere, bool, uint32_t frameNo, ren
 }
 
 inline void doRendinstDamage(const BBox3 &box, bool, uint32_t frameNo, rendinst::damage_effect_cb effect_cb, float at_time,
-  bool is_client, bool create_destr, const Point3 &view_pos, rendinst::calc_expl_damage_cb calc_expl_dmg_cb,
-  rendinst::DestrOptionFlags flags)
+  bool is_client, bool create_destr, const Point3 &view_pos, calc_expl_damage_cb calc_expl_dmg_cb, rendinst::DestrOptionFlags flags)
 {
   rendinst::doRIGenDamage(box, frameNo, effect_cb, {0.f, 0.f, 0.f}, create_destr);
   doRIExtraDamageInBox(box, effect_cb, at_time, is_client, create_destr, view_pos, calc_expl_dmg_cb, nullptr, nullptr, flags);
 }
 
 inline void doRendinstDamage(const BBox3 &box, bool, uint32_t frameNo, rendinst::damage_effect_cb effect_cb, float at_time,
-  bool is_client, bool create_destr, const Point3 &view_pos, rendinst::calc_expl_damage_cb calc_expl_dmg_cb, const TMatrix &check_itm,
+  bool is_client, bool create_destr, const Point3 &view_pos, calc_expl_damage_cb calc_expl_dmg_cb, const TMatrix &check_itm,
   rendinst::DestrOptionFlags flags)
 {
   rendinst::doRIGenDamage(box, frameNo, effect_cb, check_itm, {0.f, 0.f, 0.f}, create_destr);

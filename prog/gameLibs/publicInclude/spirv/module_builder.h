@@ -704,6 +704,9 @@ struct EntryPointRename
 void renameEntryPoints(ModuleBuilder &builder, const EntryPointRename *list = nullptr, unsigned list_len = 0,
   const char *default_name = "main");
 
+// This pass duplicates buffer's pointer types. Old Adreno drivers do not work correctly if types are reused.
+void make_buffer_pointer_type_unique_per_buffer(ModuleBuilder &builder);
+
 // Pass that fixes currently blocking bugs of DXC
 // Currently this ensures that the implicitly create global const
 // buffer for register(c#) variables is assigned to b0. There

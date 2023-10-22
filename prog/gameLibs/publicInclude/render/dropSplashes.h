@@ -42,12 +42,13 @@ class DropSplashes
   void initSplashShader();
   void initSpriteShader();
   uint32_t getSpritesCount() const;
+  void fillBuffers();
 
 public:
   explicit DropSplashes(const DataBlock &blk);
   ~DropSplashes();
   void render();
-  void update(float dt);
+  void update(float dt, const Point3 &view_pos);
 
   void setSplashesCount(const uint32_t splashes_count) { splashesCount = splashes_count; }
   void setDistance(float dist);
@@ -66,4 +67,5 @@ public:
   float getPartOfSprites() const { return partOfSprites; }
   float getSpriteYPos() const;
   uint32_t getCount() const { return splashesCount; }
+  void afterReset() { fillBuffers(); }
 };

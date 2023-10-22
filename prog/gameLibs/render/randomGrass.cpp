@@ -32,6 +32,7 @@
 #include <math/dag_hlsl_floatx.h>
 #include <render/randomGrassInstance.hlsli>
 #include <render/vertexDataCompression.hlsli>
+#include <3d/dag_lockSbuffer.h>
 
 
 #define LMESH_DELTA      5.f
@@ -71,6 +72,7 @@ enum
   SHV_GRASS_TEX_ALPHA,
   SHV_GRASS_LAYERS_COUNT,
   SHV_GRASS_ALPHA_TO_COVERAGE,
+  SHV_WORLD_VIEW_POS,
   SHV_COUNT
 };
 
@@ -105,60 +107,6 @@ struct MeshVertex
   Point3 pos;
   Point3 norm;
   Point2 texcoord;
-};
-
-class GridIndicesSorter
-{
-public:
-  GridIndicesSorter(IPoint2 square_center, float cell_size) : centerPos(::grs_cur_view.pos.x, ::grs_cur_view.pos.z)
-  {
-    centerPos /= cell_size;
-    centerPos -= Point2(square_center.x, square_center.y);
-    centerPos += Point2(GRID_SIZE / 2, GRID_SIZE / 2);
-  }
-
-  bool operator()(const uint8_t &l, const uint8_t &r) const
-  {
-    Point2 lp = getCellPos(l);
-    Point2 rp = getCellPos(r);
-    const Point2 &c = centerPos;
-
-    return (c - lp).lengthSq() < (c - rp).lengthSq() ? true : false;
-  }
-
-private:
-  Point2 getCellPos(uint8_t c) const { return Point2((c >> 4) & 15, (c >> 0) & 15); }
-
-  Point2 centerPos;
-};
-
-
-class CellVbSorter
-{
-public:
-  CellVbSorter(float cell_size) :
-#if defined(_MSC_VER) && !defined(__clang__) && _MSC_VER <= 1900 // Note: apparently vc14 can't handle aligned args (C2719)
-    halfCellSize(cell_size * 0.5f)
-#else
-    vHalfCellSize(v_splats(cell_size * 0.5f))
-#endif
-  {}
-
-  bool operator()(const TMatrix &l, const TMatrix &r) const
-  {
-    vec4f lxz = v_and(v_sub(v_ldu(&l.getcol(3).x), getHalfCellSize()), v_cast_vec4f(V_CI_MASK1010));
-    vec4f rxz = v_and(v_sub(v_ldu(&r.getcol(3).x), getHalfCellSize()), v_cast_vec4f(V_CI_MASK1010));
-    return (bool)v_test_vec_x_lt(v_length3_sq_x(lxz), v_length3_sq_x(rxz));
-  }
-
-private:
-#if defined(_MSC_VER) && !defined(__clang__) && _MSC_VER <= 1900 // Note: apparently vc14 can't handle aligned args (C2719)
-  float halfCellSize;
-  vec4f getHalfCellSize() const { return v_splats(halfCellSize); }
-#else
-  vec4f vHalfCellSize;
-  vec4f getHalfCellSize() const { return vHalfCellSize; }
-#endif
 };
 
 bool is_box_inside_sphere(const BSphere3 &sphere, const BBox3 &bbox)
@@ -214,6 +162,7 @@ RandomGrass::RandomGrass(const DataBlock &level_grass_blk, const DataBlock &para
 
   shaderVars[SHV_GRASS_LAYERS_COUNT] = ::get_shader_variable_id("grass_layers_count", true);
   shaderVars[SHV_GRASS_ALPHA_TO_COVERAGE] = ::get_shader_variable_id("grass_alpha_to_coverage", true);
+  shaderVars[SHV_WORLD_VIEW_POS] = ::get_shader_variable_id("world_view_pos");
 
   shaderVars[SHV_CELL_TO_SQUARE_WORLD_REG] = ShaderGlobal::get_int_fast(get_shader_variable_id("cell_to_square_world_const_no"));
   shaderVars[SHV_GRASS_LAYER_IMMEDIATE_NO] = ShaderGlobal::get_int_fast(get_shader_variable_id("grass_layer_no_immediate_const_no"));
@@ -239,24 +188,7 @@ RandomGrass::RandomGrass(const DataBlock &level_grass_blk, const DataBlock &para
 }
 
 
-void RandomGrass::deleteBuffers()
-{
-  for (int i = 0; i < combinedLods.size(); i++)
-  {
-    del_d3dres(combinedLods[i].grassInstancesIndirect);
-    del_d3dres(combinedLods[i].grassInstances);
-
-    del_d3dres(combinedLods[i].grassGenerateIndirect);
-    del_d3dres(combinedLods[i].grassIndirectParams);
-    del_d3dres(combinedLods[i].grassDispatchCount);
-    del_d3dres(combinedLods[i].grassInstancesStride);
-    del_d3dres(combinedLods[i].grassLayersData);
-
-    del_d3dres(combinedLods[i].lodVb);
-    del_d3dres(combinedLods[i].lodIb);
-  }
-  clear_and_shrink(combinedLods);
-}
+void RandomGrass::deleteBuffers() { clear_and_shrink(combinedLods); }
 
 void RandomGrass::closeTextures()
 {
@@ -644,44 +576,45 @@ void RandomGrass::createCombinedBuffers()
         String bufferName;
         bufferName.printf(0, "grassInstancesIndirectLod%d", lodIdx);
 
-        combinedLods[lodIdx].grassInstancesIndirect = d3d::create_sbuffer(4, 5 * layers.size(), SBCF_UA_INDIRECT, 0, bufferName);
+        combinedLods[lodIdx].grassInstancesIndirect =
+          dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, layers.size(), bufferName);
       }
       {
         String bufferName;
         bufferName.printf(0, "grassGenerateIndirectLod%d", lodIdx);
 
-        combinedLods[lodIdx].grassGenerateIndirect = d3d::create_sbuffer(4, 3, SBCF_UA_INDIRECT, 0, bufferName);
+        combinedLods[lodIdx].grassGenerateIndirect = dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, 1, bufferName);
       }
       {
         String bufferName;
         bufferName.printf(0, "grassInstancesLod%d", lodIdx);
 
         combinedLods[lodIdx].grassInstances =
-          d3d_buffers::create_ua_sr_structured(sizeof(RandomGrassInstance), instancesCount, bufferName);
+          dag::buffers::create_ua_sr_structured(sizeof(RandomGrassInstance), instancesCount, bufferName);
       }
       {
         String bufferName;
         bufferName.printf(0, "grassDispatchCountLod%d", lodIdx);
 
-        combinedLods[lodIdx].grassDispatchCount = d3d_buffers::create_ua_sr_byte_address(maxLayerCount, bufferName);
+        combinedLods[lodIdx].grassDispatchCount = dag::buffers::create_ua_sr_byte_address(maxLayerCount, bufferName);
       }
       {
         String bufferName;
         bufferName.printf(0, "grassIndirectParams%d", lodIdx);
 
         combinedLods[lodIdx].grassIndirectParams =
-          d3d_buffers::create_ua_sr_structured(sizeof(RandomGrassIndirectParams), maxLayerCount, bufferName);
+          dag::buffers::create_ua_sr_structured(sizeof(RandomGrassIndirectParams), maxLayerCount, bufferName);
       }
       {
         String bufferName;
         bufferName.printf(0, "grassInstancesStrideLod%d", lodIdx);
-        combinedLods[lodIdx].grassInstancesStride = d3d_buffers::create_ua_sr_byte_address(maxLayerCount, bufferName);
+        combinedLods[lodIdx].grassInstancesStride = dag::buffers::create_ua_sr_byte_address(maxLayerCount, bufferName);
       }
       {
         String bufferName;
         bufferName.printf(0, "grassLayersDataLod%d", lodIdx);
-        combinedLods[lodIdx].grassLayersData = d3d::create_sbuffer(sizeof(float), 3 * maxLayerCount,
-          SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED, 0, bufferName);
+        combinedLods[lodIdx].grassLayersData =
+          dag::buffers::create_persistent_sr_structured(sizeof(float), 3 * maxLayerCount, bufferName);
 
         Tab<float> layerData;
         layerData.resize(maxLayerCount * 3);
@@ -779,10 +712,13 @@ void RandomGrass::resetLayersVB()
     if (vertexCount > 0)
     {
       GrassLodCombined &combinedLod = combinedLods.push_back();
-      combinedLod.lodIb = d3d::create_ib(indexCount * sizeof(uint16_t), SBCF_MAYBELOST);
-      d3d_err(combinedLod.lodIb);
-      combinedLod.lodVb = d3d::create_vb(vertexCount * sizeof(CellVertex), SBCF_MAYBELOST, "randomGrass::combinedLodVb");
-      d3d_err(combinedLod.lodVb);
+      String indexBufferName, vertexBufferName;
+      indexBufferName.printf(0, "randomGrass::combinedLodIb%d", lodIdx);
+      vertexBufferName.printf(0, "randomGrass::combinedLodVb%d", lodIdx);
+      combinedLod.lodIb = dag::create_ib(indexCount * sizeof(uint16_t), SBCF_MAYBELOST, indexBufferName);
+      d3d_err(combinedLod.lodIb.getBuf());
+      combinedLod.lodVb = dag::create_vb(vertexCount * sizeof(CellVertex), SBCF_MAYBELOST, vertexBufferName);
+      d3d_err(combinedLod.lodVb.getBuf());
 
       static CompiledShaderChannelId chan[] = {{SCTYPE_UINT1, SCUSAGE_POS, 0, 0}, {SCTYPE_UINT1, SCUSAGE_TC, 0, 0}};
       combinedLod.vdecl = dynrender::addShaderVdecl(chan, sizeof(chan) / sizeof(chan[0]));
@@ -832,19 +768,12 @@ void RandomGrass::resetLayersVB()
   if (maxLayerCount * maxLodCount <= 0)
     return;
 
-  layerDataVS.set(d3d::create_sbuffer(sizeof(GrassLayersVS), maxLayerCount * maxLodCount,
-                    SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE, 0, "grass_layers_vs"),
-    "grass_layers_vs");
+  layerDataVS = dag::buffers::create_persistent_sr_structured(sizeof(GrassLayersVS), maxLayerCount * maxLodCount, "grass_layers_vs");
+  layerDataPS = dag::buffers::create_persistent_sr_structured(sizeof(GrassLayersPS), maxLayerCount, "grass_layers_ps");
 
-  layerDataPS.set(d3d::create_sbuffer(sizeof(GrassLayersPS), maxLayerCount,
-                    SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE, 0, "grass_layers_ps"),
-    "grass_layers_ps");
-
+  if (auto layerData = lock_sbuffer<GrassLayersPS>(layerDataPS.getBuf(), 0, maxLayerCount, VBLOCK_WRITEONLY))
   {
-    Tab<GrassLayersPS> layerData;
-    layerData.resize(maxLayerCount);
-    mem_set_0(layerData);
-    for (unsigned int layerIdx = 0; layerIdx < layers.size(); ++layerIdx)
+    for (uint32_t layerIdx = 0; layerIdx < layers.size(); ++layerIdx)
     {
       layerData[layerIdx].rStart = to_float4(layers[layerIdx]->info.colors[CHANNEL_RED].start);
       layerData[layerIdx].rEnd = to_float4(layers[layerIdx]->info.colors[CHANNEL_RED].end);
@@ -853,21 +782,10 @@ void RandomGrass::resetLayersVB()
       layerData[layerIdx].bStart = to_float4(layers[layerIdx]->info.colors[CHANNEL_BLUE].start);
       layerData[layerIdx].bEnd = to_float4(layers[layerIdx]->info.colors[CHANNEL_BLUE].end);
     }
-
-    void *destData = 0;
-    bool ret = layerDataPS.getBuf()->lock(0, 0, &destData, VBLOCK_WRITEONLY);
-    d3d_err(ret);
-    if (ret && destData)
-    {
-      memcpy(destData, layerData.data(), sizeof(GrassLayersPS) * maxLayerCount);
-      layerDataPS.getBuf()->unlock();
-    }
   }
 
+  if (auto layerData = lock_sbuffer<GrassLayersVS>(layerDataVS.getBuf(), 0, maxLayerCount * maxLodCount, VBLOCK_WRITEONLY))
   {
-    Tab<GrassLayersVS> layerData;
-    layerData.resize(maxLayerCount * maxLodCount);
-    mem_set_0(layerData);
     for (unsigned int lodNo = 0; lodNo < maxLodCount; lodNo++)
     {
       for (unsigned int layerIdx = 0; layerIdx < layers.size(); ++layerIdx)
@@ -894,15 +812,6 @@ void RandomGrass::resetLayersVB()
         layerData[maxLayerCount * lodNo + layerIdx].grassScales =
           Point4(layer.info.minScale.x, layer.info.maxScale.x, layer.info.minScale.y, layer.info.maxScale.y);
       }
-    }
-
-    void *destData = 0;
-    bool ret = layerDataVS.getBuf()->lock(0, 0, &destData, VBLOCK_WRITEONLY);
-    d3d_err(ret);
-    if (ret && destData)
-    {
-      memcpy(destData, layerData.data(), sizeof(GrassLayersVS) * maxLodCount * maxLayerCount);
-      layerDataVS.getBuf()->unlock();
     }
   }
 }
@@ -1081,9 +990,11 @@ void RandomGrass::generateGPUGrass(const LandMask &land_mask, const Frustum &fru
   G_UNUSED(land_mask);
   TIME_D3D_PROFILE(RandomGrass_generateGPUinstances);
 
+  ShaderGlobal::set_color4(shaderVars[SHV_WORLD_VIEW_POS], view_pos);
+
   d3d::set_const_buffer(STAGE_CS, 1, 0);
+  d3d::set_rwbuffer(STAGE_CS, 5, 0);
   d3d::set_rwbuffer(STAGE_CS, 6, 0);
-  d3d::set_rwbuffer(STAGE_CS, 7, 0);
 
   set_frustum_planes(frustum);
 
@@ -1137,42 +1048,43 @@ void RandomGrass::generateGPUGrass(const LandMask &land_mask, const Frustum &fru
     Point4 lodLayerNo = Point4(0, lodIdx + 0.5, 0, 0);
     d3d::set_cs_const(47, &lodLayerNo.x, 1);
 
-    d3d::set_rwbuffer(STAGE_CS, 7, combinedLods[lodIdx].grassIndirectParams);
-    d3d::set_rwbuffer(STAGE_CS, 6, combinedLods[lodIdx].grassInstancesIndirect);
-    d3d::set_rwbuffer(STAGE_CS, 5, combinedLods[lodIdx].grassGenerateIndirect);
-    d3d::set_rwbuffer(STAGE_CS, 4, combinedLods[lodIdx].grassDispatchCount);
-    d3d::set_rwbuffer(STAGE_CS, 3, combinedLods[lodIdx].grassInstancesStride);
+    d3d::set_rwbuffer(STAGE_CS, 6, combinedLods[lodIdx].grassIndirectParams.getBuf());
+    d3d::set_rwbuffer(STAGE_CS, 5, combinedLods[lodIdx].grassInstancesIndirect.getBuf());
+    d3d::set_rwbuffer(STAGE_CS, 4, combinedLods[lodIdx].grassGenerateIndirect.getBuf());
+    d3d::set_rwbuffer(STAGE_CS, 3, combinedLods[lodIdx].grassDispatchCount.getBuf());
+    d3d::set_rwbuffer(STAGE_CS, 2, combinedLods[lodIdx].grassInstancesStride.getBuf());
 
-    d3d::set_buffer(STAGE_CS, 9, combinedLods[lodIdx].grassLayersData);
+    d3d::set_buffer(STAGE_CS, 9, combinedLods[lodIdx].grassLayersData.getBuf());
 
     randomGrassIndirect->dispatch(1, 1, 1); // clear and generate buffers
 
-    d3d::resource_barrier({combinedLods[lodIdx].grassIndirectParams, RB_RO_SRV | RB_STAGE_COMPUTE});
-    d3d::resource_barrier({combinedLods[lodIdx].grassInstancesIndirect, RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
-    d3d::resource_barrier({combinedLods[lodIdx].grassGenerateIndirect, RB_RO_INDIRECT_BUFFER});
-    d3d::resource_barrier({combinedLods[lodIdx].grassDispatchCount, RB_RO_SRV | RB_STAGE_COMPUTE});
-    d3d::resource_barrier({combinedLods[lodIdx].grassInstancesStride, RB_RO_SRV | RB_STAGE_COMPUTE});
+    d3d::resource_barrier({combinedLods[lodIdx].grassIndirectParams.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+    d3d::resource_barrier(
+      {combinedLods[lodIdx].grassInstancesIndirect.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+    d3d::resource_barrier({combinedLods[lodIdx].grassGenerateIndirect.getBuf(), RB_RO_INDIRECT_BUFFER});
+    d3d::resource_barrier({combinedLods[lodIdx].grassDispatchCount.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+    d3d::resource_barrier({combinedLods[lodIdx].grassInstancesStride.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
 
-    d3d::set_rwbuffer(STAGE_CS, 5, 0);
     d3d::set_rwbuffer(STAGE_CS, 4, 0);
     d3d::set_rwbuffer(STAGE_CS, 3, 0);
+    d3d::set_rwbuffer(STAGE_CS, 2, 0);
 
-    d3d::set_buffer(STAGE_CS, 9, combinedLods[lodIdx].grassDispatchCount);
-    d3d::set_buffer(STAGE_CS, 10, combinedLods[lodIdx].grassInstancesStride);
-    d3d::set_buffer(STAGE_CS, 11, combinedLods[lodIdx].grassIndirectParams);
+    d3d::set_buffer(STAGE_CS, 9, combinedLods[lodIdx].grassDispatchCount.getBuf());
+    d3d::set_buffer(STAGE_CS, 10, combinedLods[lodIdx].grassInstancesStride.getBuf());
+    d3d::set_buffer(STAGE_CS, 11, combinedLods[lodIdx].grassIndirectParams.getBuf());
 
-    d3d::set_rwbuffer(STAGE_CS, 7, combinedLods[lodIdx].grassInstances);
+    d3d::set_rwbuffer(STAGE_CS, 6, combinedLods[lodIdx].grassInstances.getBuf());
 
-    randomGrassGenerator->dispatch_indirect(combinedLods[lodIdx].grassGenerateIndirect, 0);
+    randomGrassGenerator->dispatch_indirect(combinedLods[lodIdx].grassGenerateIndirect.getBuf(), 0);
 
-    d3d::resource_barrier({combinedLods[lodIdx].grassInstancesIndirect, RB_RO_INDIRECT_BUFFER});
-    d3d::resource_barrier({combinedLods[lodIdx].grassInstancesStride, RB_RO_SRV | RB_STAGE_VERTEX});
-    d3d::resource_barrier({combinedLods[lodIdx].grassInstances, RB_RO_SRV | RB_STAGE_VERTEX});
+    d3d::resource_barrier({combinedLods[lodIdx].grassInstancesIndirect.getBuf(), RB_RO_INDIRECT_BUFFER});
+    d3d::resource_barrier({combinedLods[lodIdx].grassInstancesStride.getBuf(), RB_RO_SRV | RB_STAGE_VERTEX});
+    d3d::resource_barrier({combinedLods[lodIdx].grassInstances.getBuf(), RB_RO_SRV | RB_STAGE_VERTEX});
   }
 
   d3d::set_const_buffer(STAGE_CS, 1, 0);
+  d3d::set_rwbuffer(STAGE_CS, 5, 0);
   d3d::set_rwbuffer(STAGE_CS, 6, 0);
-  d3d::set_rwbuffer(STAGE_CS, 7, 0);
 
   grassBufferGenerated = true;
 }
@@ -1197,11 +1109,11 @@ void RandomGrass::draw(const LandMask &land_mask, bool opaque, int startLod, int
       if (combinedLods[lodIdx].instancesCount == 0 || !combinedLods[lodIdx].lodIb || !combinedLods[lodIdx].lodVb)
         continue;
 
-      d3d::setind(combinedLods[lodIdx].lodIb);
-      d3d::setvsrc_ex(0, combinedLods[lodIdx].lodVb, 0, sizeof(CellVertex));
+      d3d::setind(combinedLods[lodIdx].lodIb.getBuf());
+      d3d::setvsrc_ex(0, combinedLods[lodIdx].lodVb.getBuf(), 0, sizeof(CellVertex));
 
-      d3d::set_buffer(STAGE_VS, 8, combinedLods[lodIdx].grassInstances);
-      d3d::set_buffer(STAGE_VS, 7, combinedLods[lodIdx].grassInstancesStride);
+      d3d::set_buffer(STAGE_VS, 8, combinedLods[lodIdx].grassInstances.getBuf());
+      d3d::set_buffer(STAGE_VS, 7, combinedLods[lodIdx].grassInstancesStride.getBuf());
 
       if (!randomGrassShader.shader->setStates(0, true))
         continue;
@@ -1221,7 +1133,7 @@ void RandomGrass::draw(const LandMask &land_mask, bool opaque, int startLod, int
         d3d::set_tex(STAGE_PS, 8, layers[i]->lods[lodIdx].diffuseTex);
         d3d::set_tex(STAGE_PS, 9, layers[i]->lods[lodIdx].alphaTex);
 
-        d3d::draw_indexed_indirect(PRIM_TRILIST, combinedLods[lodIdx].grassInstancesIndirect, 20 * i);
+        d3d::draw_indexed_indirect(PRIM_TRILIST, combinedLods[lodIdx].grassInstancesIndirect.getBuf(), 20 * i);
 #if _TARGET_C1
 
 #endif

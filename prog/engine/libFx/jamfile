@@ -1,0 +1,18 @@
+Root    ?= ../../.. ;
+Location = prog/engine/libFx ;
+
+TargetType  = lib ;
+Target      = engine/libFx.lib ;
+
+AddIncludes = $(Root)/prog/engine/sharedInclude ;
+
+Sources =
+  effectsInterface.cpp
+  fxTex.cpp
+
+  leavesWind.cpp
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -22,6 +22,8 @@ __forceinline auto grid_find_in_box_by_pos_impl(const Holder &grid_holder, bbox3
 {
   struct ObjectsIterator
   {
+    __forceinline bool checkBoxBoundingInside(bbox3f bbox, bbox3f query_box) const { return v_bbox3_test_box_inside(query_box, bbox); }
+    __forceinline bool checkBoxBounding(bbox3f bbox, bbox3f query_box) const { return v_bbox3_test_box_intersect(bbox, query_box); }
     __forceinline bool checkObjectBounding(const Object &object, bbox3f query_bbox) const
     {
       return EASTL_UNLIKELY(v_bbox3_test_pt_inside(query_bbox, object.getWBSph()));
@@ -37,6 +39,8 @@ __forceinline auto grid_find_in_box_by_bounding_impl(const Holder &grid_holder, 
 {
   struct ObjectsIterator
   {
+    __forceinline bool checkBoxBoundingInside(bbox3f bbox, bbox3f query_box) const { return v_bbox3_test_box_inside(query_box, bbox); }
+    __forceinline bool checkBoxBounding(bbox3f bbox, bbox3f query_box) const { return v_bbox3_test_box_intersect(bbox, query_box); }
     __forceinline bool checkObjectBounding(const Object &object, bbox3f query_bbox) const
     {
       vec4f wbsph = object.getWBSph();
@@ -55,6 +59,14 @@ __forceinline auto grid_find_in_sphere_by_pos_impl(const Holder &grid_holder, co
 {
   struct ObjectsIterator
   {
+    __forceinline bool checkBoxBoundingInside(bbox3f bbox, bbox3f) const
+    {
+      return v_bsph_test_box_inside(sphPos, v_set_x(sphRadSq), bbox);
+    }
+    __forceinline bool checkBoxBounding(bbox3f bbox, bbox3f) const
+    {
+      return v_bbox3_test_sph_intersect(bbox, sphPos, v_set_x(sphRadSq));
+    }
     __forceinline bool checkObjectBounding(const Object &object, bbox3f) const
     {
       vec4f distSq = v_length3_sq_x(v_sub(object.getWBSph(), sphPos));
@@ -78,7 +90,14 @@ __forceinline auto grid_find_in_sphere_by_bounding_impl(const Holder &grid_holde
 {
   struct ObjectsIterator
   {
-    __forceinline bool isCapsule() const { return true; }
+    __forceinline bool checkBoxBoundingInside(bbox3f bbox, bbox3f) const
+    {
+      return v_bsph_test_box_inside(sphPos, v_set_x(sqr(sphRad)), bbox);
+    }
+    __forceinline bool checkBoxBounding(bbox3f bbox, bbox3f) const
+    {
+      return v_bbox3_test_sph_intersect(bbox, sphPos, v_set_x(sqr(sphRad)));
+    }
     __forceinline bool checkObjectBounding(const Object &object, bbox3f) const
     {
       vec4f wbsph = object.getWBSph();
@@ -106,6 +125,14 @@ __forceinline auto grid_find_in_capsule_by_pos_impl(const Holder &grid_holder, v
   struct ObjectsIterator
   {
     __forceinline bool isCapsule() const { return true; }
+    __forceinline bool checkBoxBounding(bbox3f bbox, bool is_safe, vec3f from, vec3f dir, vec4f len, vec4f radius) const
+    {
+      v_bbox3_extend(bbox, radius);
+      if (is_safe)
+        return v_test_ray_box_intersection_unsafe(from, dir, len, bbox);
+      else
+        return v_test_ray_box_intersection(from, dir, len, bbox);
+    }
     __forceinline bool checkObjectBounding(const Object &object, vec3f from, vec3f dir, vec4f len, vec4f radius) const
     {
       vec3f pa = v_sub(object.getWBSph(), from);
@@ -126,6 +153,15 @@ __forceinline auto grid_find_in_capsule_by_bounding_impl(const Holder &grid_hold
 {
   struct ObjectsIterator
   {
+    __forceinline bool isCapsule() const { return true; }
+    __forceinline bool checkBoxBounding(bbox3f bbox, bool is_safe, vec3f from, vec3f dir, vec4f len, vec4f radius) const
+    {
+      v_bbox3_extend(bbox, radius);
+      if (is_safe)
+        return v_test_ray_box_intersection_unsafe(from, dir, len, bbox);
+      else
+        return v_test_ray_box_intersection(from, dir, len, bbox);
+    }
     __forceinline bool checkObjectBounding(const Object &object, vec3f from, vec3f dir, vec4f len, vec4f radius) const
     {
       vec4f wbsph = object.getWBSph();
@@ -149,6 +185,11 @@ __forceinline auto grid_find_in_transformed_box_by_pos_impl(const Holder &grid_h
 {
   struct ObjectsIterator
   {
+    __forceinline bool checkBoxBoundingInside(bbox3f, bbox3f) const
+    {
+      return false; // disable that optimization
+    }
+    __forceinline bool checkBoxBounding(bbox3f bbox, bbox3f query_box) const { return v_bbox3_test_box_intersect(bbox, query_box); }
     __forceinline bool checkObjectBounding(const Object &object, bbox3f query_bbox) const
     {
       vec4f wbsph = object.getWBSph();
@@ -184,6 +225,11 @@ __forceinline auto grid_find_in_transformed_box_by_bounding_impl(const Holder &g
 {
   struct ObjectsIterator
   {
+    __forceinline bool checkBoxBoundingInside(bbox3f, bbox3f) const
+    {
+      return false; // disable that optimization
+    }
+    __forceinline bool checkBoxBounding(bbox3f bbox, bbox3f query_box) const { return v_bbox3_test_box_intersect(bbox, query_box); }
     __forceinline bool checkObjectBounding(const Object &object, bbox3f query_bbox) const
     {
       vec4f wbsph = object.getWBSph();
@@ -221,6 +267,13 @@ __forceinline auto grid_find_ray_intersections_impl(const Holder &grid_holder, v
   struct ObjectsIterator
   {
     __forceinline bool isCapsule() const { return false; }
+    __forceinline bool checkBoxBounding(bbox3f bbox, bool is_safe, vec3f from, vec3f dir, vec4f len, vec4f) const
+    {
+      if (is_safe)
+        return v_test_ray_box_intersection_unsafe(from, dir, len, bbox);
+      else
+        return v_test_ray_box_intersection(from, dir, len, bbox);
+    }
     __forceinline bool checkObjectBounding(const Object &object, vec3f from, vec3f dir, vec4f len, vec4f) const
     {
       vec4f wbsph = object.getWBSph();

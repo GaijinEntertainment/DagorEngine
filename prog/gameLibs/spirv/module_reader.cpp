@@ -1,7 +1,7 @@
 // auto generated, do not modify!
+#include "module_nodes.h"
 #include <spirv/module_builder.h>
 #include "module_decoder.h"
-#include "module_nodes.h"
 using namespace spirv;
 struct PorpertyCloneVisitor
 {

@@ -1,6 +1,6 @@
 return {
   initGraphicsAutodetect = @() null
-  isGpuBenchmarkRunning = @() null
+  isGpuBenchmarkRunning = @() false
   startGpuBenchmark = @() null
   closeGraphicsAutodetect = @() null
   getGpuBenchmarkDuration = @() null

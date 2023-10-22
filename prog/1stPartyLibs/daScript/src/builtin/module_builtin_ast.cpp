@@ -20,7 +20,17 @@ namespace das {
                 return info->fields[i]->offset;
             }
         }
-        DAS_VERIFYF(0,"mapping %s not found. not fully implemented dervied class %s", fName, info->name);
+        DAS_VERIFYF(0,"mapping %s not found. not fully implemented derived class %s", fName, info->name);
+        return 0;
+    }
+
+    int adapt_field_offset_ex ( const char * fName, const StructInfo * info, uint32_t & i ) {
+        for ( uint32_t is=info->count; i!=is; ++i ) {
+            if ( strcmp(info->fields[i]->name,fName)==0 ) {
+                return info->fields[i]->offset;
+            }
+        }
+        DAS_VERIFYF(0,"mapping %s not found. not fully implemented derived class %s", fName, info->name);
         return 0;
     }
 

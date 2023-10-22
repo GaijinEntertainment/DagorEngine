@@ -38,6 +38,7 @@ Sources =
   backend.cpp
   intermediateRepresentation.cpp
   multiplexingInternal.cpp
+  nameResolver.cpp
 
   api/detail/virtualResourceHandleBase.cpp
   api/detail/virtualResourceRequestBase.cpp
@@ -45,6 +46,9 @@ Sources =
   api/registry.cpp
   api/stateRequest.cpp
   api/virtualPassRequest.cpp
+  api/autoResolutionRequest.cpp
+  api/nameSpace.cpp
+  api/nameSpaceRequest.cpp
 ;
 
 if $(DABFG_ENABLE_DAS_INTEGRATION) = yes {
@@ -91,8 +95,8 @@ if $(Config) in dbg dev {
   UseProgLibs +=
     3rdPartyLibs/imgui
     3rdPartyLibs/imgui-node-editor
-    engine2/imgui
-    engine2/imgui/util
+    engine/imgui
+    engine/imgui/util
     gameLibs/graphLayouter
   ;
 } else {

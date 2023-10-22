@@ -1,7 +1,7 @@
 #include <3d/dag_drv3d.h>
 #include <perfMon/dag_statDrv.h>
 #include <gameRes/dag_collisionResource.h>
-#include <rendInst/rendInstExHandle.h>
+#include <rendInst/riexHandle.h>
 #include <render/lruCollision.h>
 #include <render/primitiveObjects.h>
 #include <math/dag_mathUtils.h>

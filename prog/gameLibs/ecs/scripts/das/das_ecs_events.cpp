@@ -669,7 +669,7 @@ struct EventRegistrator final : das::StructureAnnotation
 #undef DECL_LIST_TYPE
             }
           }
-          events_offsets.emplace(eventType, eastl::move(offsets));
+          events_offsets[eventType] = eastl::move(offsets);
         }
         g_entity_mgr->getEventsDbMutable().registerEvent(eventType, sz, evtFlags, eventName.c_str(),
           isRawPod ? nullptr : &EventRegistrator::destroy, isRawPod ? nullptr : &EventRegistrator::move_out);

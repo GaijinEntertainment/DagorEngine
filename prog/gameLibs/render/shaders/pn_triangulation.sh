@@ -51,6 +51,10 @@ hlsl {
     float u = uvw.x; \
     float v = uvw.y; \
     float w = uvw.z;
+
+  #ifndef GET_DRAW_CALL_ID_TRIANGULATION
+    #define GET_DRAW_CALL_ID_TRIANGULATION GET_DRAW_CALL_ID
+  #endif
 }
 endmacro
 
@@ -60,7 +64,7 @@ hlsl(hs) {
   HsPatchData HullShaderPatchConstant(OutputPatch<HsControlPoint, 3> controlPoints)
   {
     #if SET_UP_MULTIDRAW
-      DRAW_CALL_ID = GET_DRAW_CALL_ID;
+      DRAW_CALL_ID = GET_DRAW_CALL_ID_TRIANGULATION;
     #endif
     HsPatchData patch = (HsPatchData)0;
     //calculate Tessellation factors
@@ -84,7 +88,7 @@ hlsl(hs) {
   HsControlPoint pn_triangulation_hs(InputPatch<HsInput, 3> inputPatch, uint tid : SV_OutputControlPointID)
   {
     #if SET_UP_MULTIDRAW
-      DRAW_CALL_ID = GET_DRAW_CALL_ID;
+      DRAW_CALL_ID = GET_DRAW_CALL_ID_TRIANGULATION;
     #endif
     int next = (1U << tid) & 3; // (tid + 1) % 3
     float3 p1 = inputPatch[tid].pos.xyz;
@@ -120,7 +124,7 @@ hlsl(ds) {
   VsOutput pn_triangulation_ds(HsPatchData patchData, const OutputPatch<HsControlPoint, 3> input, float3 uvw : SV_DomainLocation)
   {
     #if SET_UP_MULTIDRAW
-      DRAW_CALL_ID = GET_DRAW_CALL_ID;
+      DRAW_CALL_ID = GET_DRAW_CALL_ID_TRIANGULATION;
     #endif
     VsOutput output;
     float u = uvw.x;

@@ -46,23 +46,23 @@ Sources =
 ;
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/coreUtil
-  engine2/math
-  engine2/lib3d
-  engine2/image
-  engine2/shaders
-  engine2/workCycle
-  engine2/guiBase
-  engine2/scene
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/coreUtil
+  engine/math
+  engine/lib3d
+  engine/image
+  engine/shaders
+  engine/workCycle
+  engine/guiBase
+  engine/scene
 
-  engine2/gameRes
-  engine2/perfMon
+  engine/gameRes
+  engine/perfMon
 
   samples/commonFramework
 
@@ -74,18 +74,18 @@ UseProgLibs =
   gameLibs/visualConsole
   gameLibs/fftWater
   gameLibs/heightmap
-  engine2/consoleProc
+  engine/consoleProc
   gameLibs/render/daBfg
   gameLibs/folders
 ;
 
 if $(Platform) in win32 win64 {
   UseProgLibs +=
-    engine2/drv/hid_mouse
-    engine2/drv/hid_keyboard
-    engine2/drv/hid_nulldrv
+    engine/drv/hid_mouse
+    engine/drv/hid_keyboard
+    engine/drv/hid_nulldrv
   ;
-  UseProgLibs += engine2/drv/drv3d_pc_multi ;
+  UseProgLibs += engine/drv/drv3d_pc_multi ;
   AddLibs +=
     Ws2_32.lib ;
 
@@ -93,18 +93,18 @@ if $(Platform) in win32 win64 {
   BundleName = SkiesSample ;
   Sources += macosx_main.mm ;
   UseProgLibs +=
-    engine2/drv/hid_mouse
-    engine2/drv/hid_keyboard
-    engine2/drv/hid_nulldrv
+    engine/drv/hid_mouse
+    engine/drv/hid_keyboard
+    engine/drv/hid_nulldrv
   ;
 
   include $(Root)/prog/samples/macOS-testApp-res/macOS-common.jam ;
 
 } else if $(Platform) = ps4 {
   UseProgLibs +=
-    engine2/drv/hid_sony
-    engine2/drv/drv3d_ps4
-    engine2/drv/hid_nulldrv
+    engine/drv/hid_sony
+    engine/drv/drv3d_ps4
+    engine/drv/hid_nulldrv
   ;
   AddLibs =
     -lScePerf_stub_weak
@@ -120,9 +120,9 @@ if $(Platform) in win32 win64 {
   ;
 
   UseProgLibs +=
-    engine2/drv/hid_sony
-    engine2/drv/hid_nulldrv
-    engine2/drv/drv3d_ps5
+    engine/drv/hid_sony
+    engine/drv/hid_nulldrv
+    engine/drv/drv3d_ps5
   ;
 
   AddLibs =
@@ -133,18 +133,18 @@ if $(Platform) in win32 win64 {
     @$(_DEVTOOL)/ps5.sdk.$(PS5SdkVer)/target/sce_module/libc.prx sce_module/libc.prx
   ;
 } else if $(Platform) in xboxOne scarlett {
-  UseProgLibs += engine2/drv/drv3d_DX12 ;
-  UseProgLibs += engine2/drv/hid_gamepad_xinput engine2/drv/hid_keyboard engine2/drv/hid_nulldrv ;
+  UseProgLibs += engine/drv/drv3d_DX12 ;
+  UseProgLibs += engine/drv/hid_gamepad_xinput engine/drv/hid_keyboard engine/drv/hid_nulldrv ;
 } else if $(Platform) in iOS tvOS {
   Sources += ios_main.mm ;
   UseProgLibs +=
-    engine2/drv/hid_$(Platform)
-    engine2/drv/hid_nulldrv
+    engine/drv/hid_$(Platform)
+    engine/drv/hid_nulldrv
     gameLibs/tvOS/appstorekit
     gameLibs/tvOS/appstorekit/stub
   ;
 
-  UseProgLibs += engine2/drv/drv3d_Metal ;
+  UseProgLibs += engine/drv/drv3d_Metal ;
 
   BundleName = SkiesSample ;
   BundleTitle = Skies\ sample ;
@@ -201,13 +201,14 @@ if $(Platform) in win32 win64 {
 
 } else if $(Platform) = android {
   UseProgLibs +=
-    engine2/drv/drv3d_vulkan
-    engine2/drv/hid_android
-    engine2/drv/hid_nulldrv
+    engine/drv/drv3d_vulkan
+    engine/drv/hid_android
+    engine/drv/hid_nulldrv
+    gameLibs/statsd
   ;
 
   AndroidAppID = com.gaijinent.testApp.SkiesSample ;
-  AndroidIcon = ../Android-testApp-res/icon.png ;
+  AndroidIcon = ../../../prog/samples/Android-testApp-res/icon.png ;
   AndroidAppIconName = Skies Sample ;
   AndroidCopyToDevice = default ;
 
@@ -224,11 +225,11 @@ if $(Platform) in win32 win64 {
   _NSPD_ROOT_DIR = $(nspdBinariesDir)/$(BundleName)-$(BundleInfoStr).nspd ;
   _NSPD_CODE_DIR = $(_NSPD_ROOT_DIR)/program0.ncd/code ;
 
-  TemplateDescSrc = ../Nswitch-testApp-res/template.desc ;
-  TemplateSpecMeta = ../Nswitch-testApp-res/template.aarch64.lp64.nmeta ;
+  TemplateDescSrc = ../../../prog/samples/Nswitch-testApp-res/template.desc ;
+  TemplateSpecMeta = ../../../prog/samples/Nswitch-testApp-res/template.aarch64.lp64.nmeta ;
 
-  ApplicationDescSrc = ../Nswitch-testApp-res/application.desc ;
-  ApplicationSpecMeta = ../Nswitch-testApp-res/application.aarch64.lp64.nmeta ;
+  ApplicationDescSrc = ../../../prog/samples/Nswitch-testApp-res/application.desc ;
+  ApplicationSpecMeta = ../../../prog/samples/Nswitch-testApp-res/application.aarch64.lp64.nmeta ;
 
   _NSP_APP_PATH = $(Root)/$(Location)/$(BundleName)-$(BundleInfoStr).nsp ;
   _NSPD_BASENAME = $(nspdBinariesDir)/$(BundleName)-$(BundleInfoStr) ;
@@ -285,9 +286,9 @@ if $(Platform) in win32 win64 {
   ;
 
   UseProgLibs +=
-    engine2/drv/drv3d_vulkan
-    engine2/drv/hid_nswitch
-    engine2/drv/hid_nulldrv
+    engine/drv/drv3d_vulkan
+    engine/drv/hid_nswitch
+    engine/drv/hid_nulldrv
     gameLibs/jsonUtils
     gameLibs/nswitch
     gameLibs/nswitch/assets
@@ -295,7 +296,7 @@ if $(Platform) in win32 win64 {
     gameLibs/nswitch/journalizedMount
     gameLibs/nswitch/mounts
     gameLibs/nswitch/tempdata
-    engine2/osApiWrappers/messageBox
+    engine/osApiWrappers/messageBox
   ;
 
   AddLibs +=

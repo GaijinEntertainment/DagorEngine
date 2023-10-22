@@ -144,6 +144,7 @@ third-party component as follows:
   prog/3rdPartyLibs/mongoose/LICENSE
   prog/3rdPartyLibs/nanosvg/LICENSE.txt
   prog/3rdPartyLibs/openssl-3.x/LICENSE.txt
+  prog/3rdPartyLibs/ozz/LICENSE.md
   prog/3rdPartyLibs/pcre/LICENSE
   prog/3rdPartyLibs/phys/bullet-3/Extras/ConvexDecomposition/LICENSE.txt
   prog/3rdPartyLibs/phys/bullet-3/Extras/InverseDynamics/LICENSE.txt

@@ -1,0 +1,24 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/services/hmapSrv ;
+DriverLinkage ?= dynamic ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/services/hmapSrv.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/tools/sharedInclude
+;
+
+
+Sources =
+  hmapSrv.cpp
+;
+
+UseProgLibs =
+  tools/libTools/meshOptimize
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -17,14 +17,6 @@ Antialiasing::Antialiasing()
   antialiasingRenderer = new PostFxRenderer;
   antialiasingRenderer->init("antialiasing");
 
-  adaptiveSharpenRenderer = new PostFxRenderer;
-  adaptiveSharpenRenderer->init("adaptive_sharpen", NULL, false);
-  if (!adaptiveSharpenRenderer->getMat())
-  {
-    debug("no adaptive_sharpen material");
-    del_it(adaptiveSharpenRenderer);
-  }
-
   const DataBlock *antialiasingBlk = ::dgs_get_game_params()->getBlockByNameEx("antialiasing");
   resolution_params_id = ::get_shader_glob_var_id("resolution", true);
   int aa_varid = ::get_shader_glob_var_id("fxaa_params", true);
@@ -38,11 +30,7 @@ Antialiasing::Antialiasing()
 }
 
 
-Antialiasing::~Antialiasing()
-{
-  del_it(antialiasingRenderer);
-  del_it(adaptiveSharpenRenderer);
-}
+Antialiasing::~Antialiasing() { del_it(antialiasingRenderer); }
 
 
 void Antialiasing::apply(TEXTUREID source_color_tex_id, TEXTUREID source_depth_tex_id, const Point4 &tc_scale_offset)
@@ -75,31 +63,6 @@ void Antialiasing::apply(TEXTUREID source_color_tex_id, TEXTUREID source_depth_t
 
   if (sourceColorTexVarId >= 0)
     ShaderGlobal::set_texture_fast(sourceColorTexVarId, BAD_TEXTUREID);
-}
-
-
-void Antialiasing::applyAdaptiveSharpen(TEXTUREID source_color_tex_id)
-{
-  if (!adaptiveSharpenRenderer)
-  {
-    apply(source_color_tex_id, BAD_TEXTUREID);
-    return;
-  }
-  if (resolution_params_id >= 0)
-  {
-    int w, h;
-    if (d3d::get_target_size(w, h))
-    {
-      ShaderGlobal::set_color4_fast(resolution_params_id, w, h, 1.f / w, 1.f / h);
-    }
-  }
-
-
-  ShaderGlobal::set_texture(sourceColorTexVarId, source_color_tex_id);
-
-  adaptiveSharpenRenderer->render();
-
-  ShaderGlobal::set_texture(sourceColorTexVarId, BAD_TEXTUREID);
 }
 
 

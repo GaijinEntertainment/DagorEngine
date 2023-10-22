@@ -1,5 +1,5 @@
-#include <spirv/module_builder.h>
 #include "module_nodes.h"
+#include <spirv/module_builder.h>
 #include <spirv/compiler.h>
 
 #include <EASTL/sort.h>

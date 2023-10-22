@@ -40,16 +40,12 @@ struct SemanticValue
   int vsdr;
 };
 
-extern const char *debug_output_dir;
-extern int g_index;
-
 SemanticValue &getSemanticValue(int index);
 int getSemanticValueCount();
 
 void save2Lib(std::string &shader);
 
-void spitfile(const char *entry, const char *name, int index, const void *ptr, size_t len);
-
-String prependMetaDataAndReplaceFuncs(std::string_view source, const char *shader_name, const char *entry, int index);
+String prependMetaDataAndReplaceFuncs(std::string_view source, const char *shader_name, const char *entry,
+  uint64_t shader_variant_hash);
 
 void compressData(CompileResult &compile_result, const DataAccumulator &header, const std::string_view metal_src_code);

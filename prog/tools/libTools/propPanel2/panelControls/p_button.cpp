@@ -3,11 +3,11 @@
 #include "p_button.h"
 #include "../c_constants.h"
 
-CButton::CButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
+CButton::CButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
   const char caption[]) :
 
-  BasicPropertyControl(id, event_handler, parent, x, y, w, DEFAULT_BUTTON_HEIGHT),
-  mButton(this, parent->getWindow(), x, y, w, DEFAULT_BUTTON_HEIGHT)
+  BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_BUTTON_HEIGHT)),
+  mButton(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_BUTTON_HEIGHT))
 {
   mButton.setTextValue(caption);
   initTooltip(&mButton);
@@ -30,10 +30,10 @@ void CButton::setTextValue(const char value[]) { setCaptionValue(value); }
 void CButton::setEnabled(bool enabled) { mButton.setEnabled(enabled); }
 
 
-void CButton::setWidth(unsigned w)
+void CButton::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
-  mButton.resizeWindow(w, mButton.getHeight());
+  mButton.resizeWindow(_px(w), mButton.getHeight());
 }
 
 void CButton::setFocus() { mButton.setFocus(); }

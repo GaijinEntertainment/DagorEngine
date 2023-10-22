@@ -16,6 +16,7 @@
 #include <util/dag_roNameMap.h>
 #include <startup/dag_globalSettings.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/optional.h>
 #include <shaders/dag_bindposeBufferManager.h>
 
 
@@ -107,6 +108,7 @@ public:
   dag::ConstSpan<PatchablePtr<ShaderSkinnedMeshResource>> getSkinMeshes() const { return skins; }
   dag::ConstSpan<PatchablePtr<ShaderSkinnedMeshResource>> getSkins() const { return skins; }
   dag::ConstSpan<int> getSkinNodes() const { return skinNodes; }
+  Tab<int> getNodesWithMaterials(dag::ConstSpan<const char *> material_names) const;
   int getSkinsCount() const { return skins.size(); }
 
   struct RigidObject;
@@ -437,19 +439,7 @@ public:
 
   ~DynamicRenderableSceneInstance();
 
-  void activateInstance(bool a = true)
-  {
-    if (a && !instanceActive)
-    {
-      instanceActive = 1;
-      lods->addInstanceRef();
-    }
-    else if (!a && instanceActive)
-    {
-      instanceActive = 0;
-      lods->delInstanceRef();
-    }
-  }
+  void activateInstance(bool a = true);
   inline void deactivateInstance() { activateInstance(false); }
 
   DynamicRenderableSceneResource *getCurSceneResource() { return sceneResource; }
@@ -596,7 +586,7 @@ public:
   inline bool validateLod(uint32_t lod) const;
 
   // Switches LODs
-  void beforeRender();
+  void beforeRender(const Point3 &view_pos);
 
   void render(real opacity = 1.f);
   void renderTrans(real opacity = 1.f);
@@ -647,6 +637,8 @@ public:
   __forceinline const bool *hidden_ptr() const { return (const bool *)(allNodesData.get() + count * HIDDEN); }
 
   void clipNodes(const Frustum &frustum, dag::Vector<int, framemem_allocator> &node_list);
+
+  eastl::optional<Tab<int>> getNodesWithMaterials(dag::ConstSpan<const char *> material_names) const;
 
 protected:
   Ptr<DynamicRenderableSceneResource> sceneResource;

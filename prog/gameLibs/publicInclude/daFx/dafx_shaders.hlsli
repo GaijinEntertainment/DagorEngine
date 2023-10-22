@@ -47,7 +47,7 @@ void update_culling_data( uint cull_id, BBox bbox )
   line1.z = max( line1.z, i1.z );
 #else
 
-  #if _HARDWARE_VULKAN && SHADER_COMPILER_DXC
+  #if (_HARDWARE_VULKAN || _HARDWARE_METAL) && SHADER_COMPILER_DXC
     //DXC can't write to component of buffer when reflected to Spir-V
     #define CULLING_COMPONENT
   #else
@@ -131,7 +131,7 @@ void update_culling_data( uint cull_id, float4_cref v )
   #if DAFX_EMISSION_SHADER_ENABLED || DAFX_SIMULATION_SHADER_ENABLED
 
   // workaround metal optimizer bug. it treats ++ as signed int addition and fails to fold
-  #if _HARDWARE_METAL
+  #if _HARDWARE_METAL && !SHADER_COMPILER_DXC
   void dafx_fill_data_head( int ofs, out DataHead head )
   #else
   void dafx_fill_data_head( uint ofs, out DataHead head )

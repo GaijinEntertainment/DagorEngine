@@ -2,7 +2,7 @@
 #include <de3_interface.h>
 #include <EditorCore/ec_interface.h>
 #include <render/dynModelRenderer.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtraRender.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_shaderBlock.h>
 
@@ -15,7 +15,7 @@ const E3DCOLOR OutlineRenderer::outline_color = E3DCOLOR(255, 255, 0);
 void OutlineRenderer::init()
 {
   const char *shaderName = "simple_outline_final_render";
-  finalRender.init(shaderName, nullptr, /*doFatal=*/false);
+  finalRender.init(shaderName);
   if (!finalRender.getMat())
     DAEDITOR3.conError("Shader \"%s\" cannot be found. Outline rendering won't work!", shaderName);
 
@@ -78,12 +78,12 @@ void OutlineRenderer::render(IGenViewportWnd &wnd, dag::ConstSpan<RenderElement>
 
       SCENE_LAYER_GUARD(rendinst_scene_block_id);
 
-      rendinst::ensureElemsRebuiltRIGenExtra(/*gpu_instancing = */ false);
+      rendinst::render::ensureElemsRebuiltRIGenExtra(/*gpu_instancing = */ false);
 
-      rendinst::renderRIGenExtraFromBuffer(rendinstMatrixBuffer.get(), dag::ConstSpan<IPoint2>(&offsAndCnt, 1),
+      rendinst::render::renderRIGenExtraFromBuffer(rendinstMatrixBuffer.get(), dag::ConstSpan<IPoint2>(&offsAndCnt, 1),
         dag::ConstSpan<uint16_t>(&riIdx, 1), dag::ConstSpan<uint32_t>(&zeroLodOffset, 1), rendinst::RenderPass::Normal,
         rendinst::OptimizeDepthPass::Yes, rendinst::OptimizeDepthPrepass::No, rendinst::IgnoreOptimizationLimits::No,
-        rendinst::LAYER_OPAQUE);
+        rendinst::LayerFlag::Opaque);
     }
     else
     {

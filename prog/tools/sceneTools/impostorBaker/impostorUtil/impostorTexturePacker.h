@@ -10,6 +10,13 @@
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix.h>
 
+enum class SaveResult
+{
+  OK = 0,
+  FAILED,
+  SKIPPED
+};
+
 struct SliceSeparator
 {
   // connects the top and bottom edges of the textures using these offsets
@@ -48,6 +55,15 @@ struct TexturePackingProfilingInfo
   double sliceStretchX = 1;
   double sliceStretchY_min = 1;
   double sliceStretchY_max = 1;
+
+  float albedoAlphaSimilarity = 0;
+  float normalTranslucencySimilarity = 0;
+  float aoSmoothnessSimilarity = 0;
+
+  SaveResult albedoAlphaBaked = SaveResult::FAILED;
+  SaveResult normalTranslucencyBaked = SaveResult::FAILED;
+  SaveResult aoSmoothnessBaked = SaveResult::FAILED;
+
   // bushes and trees have different shapes => separate statistics is useful
   enum Type
   {

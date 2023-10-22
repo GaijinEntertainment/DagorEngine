@@ -1,0 +1,37 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+ConsoleExe = yes ;
+PlatformSpec_win64 = clang ;
+if $(Config) = rel { ForceLogs = yes ; }
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/engine/tests/framememSynthetic ;
+
+TargetType  = exe ;
+OutDir      = $(Root)/$(Location)/bin/$(Platform) ;
+Target      = testFramememSynthetic ;
+
+UseProgLibs =
+  engine/memory
+  engine/kernel
+  engine/osApiWrappers
+  engine/startup
+  engine/baseUtil
+  engine/ioSys
+  engine/math
+
+  engine/perfMon/daProfilerStub
+  engine/perfMon/perfTimerStub
+;
+
+AddIncludes =
+  $(Root)/$(Location)/..
+  $(Root)/prog/dagorInclude
+;
+
+Sources =
+  main.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

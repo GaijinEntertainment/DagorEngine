@@ -7,6 +7,14 @@ testData/static_analyser/w266.nut:5:2
 ::x--
 
 
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyser/w266.nut:6:0
+
+} while (::x)
+::x--
+^
+
+
 
 AN ERROR HAS OCCURRED [the index 'x' does not exist]
 

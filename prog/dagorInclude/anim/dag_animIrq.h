@@ -13,6 +13,7 @@ enum GenericIrqType
   // and are not transmitted to statesDirector by IAnimCharacter2
 
   GIRQT_TraceFootStepDown = 0x0FFF00,
+  GIRQT_TraceFootStepDir = 0x0FFF01,
 
   GIRQT_FIRST_SERVICE_IRQ = 0x100000,
   GIRQT_EndOfSingleAnim = GIRQT_FIRST_SERVICE_IRQ,

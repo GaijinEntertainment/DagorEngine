@@ -35,8 +35,9 @@ public:
   void setCurrentView(int viewIndex);
 
 private:
-  void render(BaseTexture *ssaoDepthTexUse, const ManagedTex *ssaoTex, const ManagedTex *prevSsaoTex, const ManagedTex *tmpTex,
-    const DPoint3 *world_pos, SubFrameSample sub_sample = SubFrameSample::Single) override;
+  void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse, const ManagedTex *ssaoTex,
+    const ManagedTex *prevSsaoTex, const ManagedTex *tmpTex, const DPoint3 *world_pos,
+    SubFrameSample sub_sample = SubFrameSample::Single) override;
 
   void updateCurFrameIdxs();
   void renderGTAO(const ManagedTex &rawTex);

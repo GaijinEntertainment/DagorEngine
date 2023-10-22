@@ -164,7 +164,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   const char *def_sh_bindump_prefix = "compiledShaders/game";
 #if _TARGET_XBOX
   def_sh_bindump_prefix = ::dgs_get_settings()->getStr("shaders",
-    d3d::get_driver_code() != _MAKE4C('DX12') ? "compiledShaders/gameXboxOne" : "compiledShaders/game"); // better load it from data
+    d3d::get_driver_code().map(!d3d::dx12, "compiledShaders/gameXboxOne")(d3d::any, "compiledShaders/game")); // better load it from
+                                                                                                              // data
 #endif
   const char *sh_bindump_prefix = ::dgs_get_settings()->getStr("shaders", def_sh_bindump_prefix);
   ::startup_shaders(sh_bindump_prefix);

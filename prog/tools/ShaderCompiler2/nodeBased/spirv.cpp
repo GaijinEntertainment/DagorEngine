@@ -9,7 +9,7 @@ bool compile_compute_shader_spirv(const char *hlsl_text, unsigned len, const cha
 {
   enableBindless = false;
   CompileResult result =
-    compileShaderSpirV(hlsl_text, profile, entry, false, false, true, 4096, 0, "nodeBasedShader", CompilerMode::DEFAULT);
+    compileShaderSpirV(hlsl_text, profile, entry, false, false, true, 4096, 0, "nodeBasedShader", CompilerMode::DEFAULT, 0);
   if (result.bytecode.empty())
     return false;
 
@@ -25,7 +25,7 @@ bool compile_compute_shader_spirv_bindless(const char *hlsl_text, unsigned len, 
 {
   enableBindless = true;
   CompileResult result =
-    compileShaderSpirV(hlsl_text, profile, entry, false, false, true, 4096, 0, "nodeBasedShader", CompilerMode::DEFAULT);
+    compileShaderSpirV(hlsl_text, profile, entry, false, false, true, 4096, 0, "nodeBasedShader", CompilerMode::DEFAULT, 0);
   if (result.bytecode.empty())
     return false;
 

@@ -184,10 +184,10 @@ let recreateEntityWithTemplates = kwarg(function(eid=ecs.INVALID_ENTITY_ID, remo
         }
         else {
           let templ = templName != null ? ecs.g_entity_mgr.getTemplateDB().getTemplateByName(templName) : null
-          if (templ == null && (templComps?.len() ?? 0 )==0)
+          if (templ == null || (templComps?.len() ?? 0 )==0)
             continue
-          foreach(compName in templComps) {
-            if (!templ.hasComponent(compName)) {
+          foreach (compName in templComps) {
+            if (!templ?.hasComponent(compName)) {
               logerr($"template '{templName}' has no '{compName}'!")
               break
             }

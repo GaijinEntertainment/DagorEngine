@@ -32,9 +32,6 @@ enum
   PID_SHADERS,
   PID_CONFIG,
   PID_PHYS_ATTACK,
-
-  APP_DIALOG_WIDTH = 300,
-  APP_DIALOG_HEIGHT = 460,
 };
 
 
@@ -111,8 +108,7 @@ static bool copyFile(const char *dest_folder, const char *file)
 //==================================================================================================
 
 ApplicationCreator::ApplicationCreator(void *phandle, EditorWorkspace &w) :
-
-  CDialogWindow(phandle, APP_DIALOG_WIDTH, APP_DIALOG_HEIGHT, "Create application"), wsp(w)
+  CDialogWindow(phandle, hdpi::_pxScaled(300), hdpi::_pxScaled(460), "Create application"), wsp(w)
 {
   PropertyContainerControlBase *_panel = getPanel();
   G_ASSERT(_panel && "No panel in ApplicationCreator");

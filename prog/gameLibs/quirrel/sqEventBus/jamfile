@@ -8,7 +8,7 @@ Target      = gameLibs/quirrel/sqEventBus.lib ;
 
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine/sharedInclude
   $(Root)/prog/1stPartyLibs/jsoncpp/include
 ;
 

@@ -164,7 +164,7 @@ macro USE_PIVOT_PAINTER()
       return v + q.w * t + cross(q.xyz, t);
     }
 
-    void applyWindAnimationOffset(float3 oldPos, inout float3 inOutNormal, HierarchyData input, float time,
+    void applyWindAnimationOffset(float3 oldPos, inout float3 inOutNormal, HierarchyData input, float time, float weight,
                                   out float3 currNewPos, out float3 prevNewPos)
     {
       float currParentAngleAnimation = 0.0, prevParentAngleAnimation = 0.0;
@@ -184,7 +184,7 @@ macro USE_PIVOT_PAINTER()
 
         float3 branchTipPos = branchPivotPos + branchDir*branchExtent;
         { // evaluate current wind animation
-          float3 windDirectionScale = 0.25 * sampleWindCurrentTime(branchTipPos, getWindSpeedMult(idx), 0);
+          float3 windDirectionScale = weight * sampleWindCurrentTime(branchTipPos, getWindSpeedMult(idx), 0);
           float windSpeed = length(windDirectionScale);
 
           float rotationAngleAnimation = 0;
@@ -213,7 +213,7 @@ macro USE_PIVOT_PAINTER()
           currParentAngleAnimation += rotationAngleAnimation;
         }
         { // evaluate previous wind animation
-          float3 windDirectionScale = 0.25 * sampleWindPreviousTime(branchTipPos, getWindSpeedMult(idx), 0);
+          float3 windDirectionScale = weight * sampleWindPreviousTime(branchTipPos, getWindSpeedMult(idx), 0);
           float windSpeed = length(windDirectionScale);
 
           float rotationAngleAnimation = 0;

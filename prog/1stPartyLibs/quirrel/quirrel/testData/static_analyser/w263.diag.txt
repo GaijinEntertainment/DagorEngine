@@ -1,0 +1,105 @@
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:2:0
+
+for (local i = 0; i < 5; i++) // EXPECTED
+{
+^
+  ::print(i)
+
+
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:7:0
+
+function _foo(_p) // EXPECTED
+{
+^
+
+
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:21:0
+
+class _B // EXPECTED
+{
+^
+
+
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:30:0
+
+enum _E2    // EXPECTED
+{
+^
+
+
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:41:0
+
+try // EXPECTED
+{
+^
+    print(8)
+
+
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:44:0
+
+} catch (_e) // EXPECTED
+{
+^
+    print(9)
+
+
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:57:0
+
+if (!t) // EXPECTED
+{
+^
+    print(12)
+
+
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:60:0
+
+} else  // EXPECTED
+{
+^
+    print(13)
+
+
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:69:0
+
+while (t)   // EXPECTED
+{
+^
+    print(15)
+
+
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:78:0
+
+do  // EXPECTED
+{
+^
+    print(17)
+
+
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:89:4
+
+    default:    // EXPECTED
+    {
+    ^
+        break;
+
+
+WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+testData/static_analyser/w263.nut:95:0
+
+switch (t)  // EXPECTED
+{
+^
+    case 2:
+
+

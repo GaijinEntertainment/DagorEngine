@@ -9,10 +9,10 @@ require daslib/regex_boost
 def main
   let dasRoot = get_das_root()
   let dagorRoot = "{dasRoot}/../../.."
-  let docsRoot = "{dagorRoot}/prog/engine2/_docs/render/docs/source/index/daBFG"
+  let docsRoot = "{dagorRoot}/prog/engine/_docs/render/docs/source/index/daBFG"
   var mod = get_module("daBfg")
   var groups <- [{DocGroup
-    group_by_regex("Top level functions", mod, %regex~(registerNode|get_shader_variable_id|fill_slot|resetNode|fill_slot)$%%);
+    group_by_regex("Top level functions", mod, %regex~(root|registerNode|get_shader_variable_id|fillSlot|resetNode)$%%);
     group_by_regex("Registry manipulation", mod, %regex~(requestRenderPass|orderMeBefore|orderMeAfter|setPriority|multiplex|executionHas|create|read|history|modify|rename|requestState)$%%);
     group_by_regex("Request manipulation", mod, %regex~(depthRo|depthRw|color|texture|buffer|blob|useAs|atStage|bindToShaderVar|handle|view|setFrameBlock|setSceneBlock|setObjectBlock|allowWireFrame|allowVrs|enableOverride)$%%);
     hide_group(group_by_regex("Resource data manipulation", mod, %regex~(setDescription|setResolution|setTextureInfo)$%%));

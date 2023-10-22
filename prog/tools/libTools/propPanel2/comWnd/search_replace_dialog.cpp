@@ -19,16 +19,9 @@ enum
 };
 
 
-enum
-{
-  DIALOG_WIDTH = 400,
-  DIALOG_HEIGHT = 300,
-};
-
-
 SearchReplaceDialog::SearchReplaceDialog(void *handle, int &flags, SimpleString &search_text, SimpleString &replace_text,
   bool is_search_dialog) :
-  CDialogWindow(handle, DIALOG_WIDTH, DIALOG_HEIGHT, is_search_dialog ? "Search" : "Replace"),
+  CDialogWindow(handle, hdpi::_pxScaled(400), hdpi::_pxScaled(300), is_search_dialog ? "Search" : "Replace"),
   sFlags(flags),
   isSearchDialog(is_search_dialog),
   searchText(search_text),

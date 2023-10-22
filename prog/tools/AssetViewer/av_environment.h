@@ -75,4 +75,10 @@ void renderEnviEntity(AssetLightData &ald);
 void clear();
 
 const char *getEnviTitleStr(AssetLightData *ald);
+
+void setUseSinglePaintColor(bool use);
+bool isUsingSinglePaintColor();
+void setSinglePaintColor(E3DCOLOR color);
+E3DCOLOR getSinglePaintColor();
+void updatePaintColorTexture();
 }; // namespace environment

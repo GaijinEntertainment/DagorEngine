@@ -36,11 +36,9 @@ void Video360::init(int cube_size)
   savedCameraTm.identity();
 
   // shaders
-  copyTargetRenderer = eastl::make_unique<PostFxRenderer>();
-  copyTargetRenderer->init("copy_texture", nullptr, false);
+  copyTargetRenderer = eastl::make_unique<PostFxRenderer>("copy_texture");
 
-  cubemapToSphericalProjectionRenderer = eastl::make_unique<PostFxRenderer>();
-  cubemapToSphericalProjectionRenderer->init("cubemap_to_spherical_projection", nullptr, false);
+  cubemapToSphericalProjectionRenderer = eastl::make_unique<PostFxRenderer>("cubemap_to_spherical_projection");
 
   // create cubemat to capture frame
   if (copyTargetRenderer->getElem() && cubemapToSphericalProjectionRenderer->getElem())
@@ -62,10 +60,11 @@ void Video360::enable(bool enable_video360)
 
 bool Video360::isEnabled() { return enabled; }
 
-void Video360::activate(float z_near, float z_far, Texture *render_target_tex, TEXTUREID render_target_tex_id)
+void Video360::activate(float z_near, float z_far, Texture *render_target_tex, TEXTUREID render_target_tex_id, TMatrix view_itm)
 {
   captureFrame = true;
 
+  curViewItm = view_itm;
   zNear = z_near;
   zFar = z_far;
 
@@ -74,11 +73,11 @@ void Video360::activate(float z_near, float z_far, Texture *render_target_tex, T
 
   // align camera position to be horizontal, and rotate with -90, so the
   // forward direction appears on the middle of the panoramic shot
-  Point3 forward = ::grs_cur_view.itm.getcol(2);
+  Point3 forward = view_itm.getcol(2);
   forward.y = 0;
   forward.normalize();
   savedCameraTm.makeTM(Point3(0, 1, 0), atan2f(forward.x, forward.z) + DegToRad(-90));
-  savedCameraTm.setcol(3, ::grs_cur_view.itm.getcol(3));
+  savedCameraTm.setcol(3, view_itm.getcol(3));
 }
 
 bool Video360::isActive() { return enabled && captureFrame; }
@@ -140,8 +139,8 @@ bool Video360::getCamera(DagorCurView &cur_view, Driver3dPerspective &persp)
   cameraMatrix = savedCameraTm * cameraMatrix;
 
   cur_view.itm = cameraMatrix;
-  cur_view.tm = orthonormalized_inverse(::grs_cur_view.itm);
-  cur_view.pos = grs_cur_view.itm.getcol(3);
+  cur_view.tm = orthonormalized_inverse(curViewItm);
+  cur_view.pos = curViewItm.getcol(3);
 
   persp.wk = 1.f;
   persp.hk = 1.f;

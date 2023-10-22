@@ -1,14 +1,15 @@
 #include "de3_worldrenderer.h"
+#include "de3_visibility_finder.h"
 #include "de3_ICamera.h"
 #include <3d/dag_drv3d.h>
 #include <gui/dag_stdGuiRender.h>
 #include <render/fx/dag_postfx.h>
 #include <render/fx/dag_demonPostFx.h>
 #include <fx/dag_hdrRender.h>
-#include <render/shaderBlockIds.h>
 #include <scene/dag_visibility.h>
 #include <shaders/dag_renderScene.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderBlock.h>
 #include <workCycle/dag_gameScene.h>
 #include <workCycle/dag_gameSettings.h>
 #include <startup/dag_globalSettings.h>
@@ -35,6 +36,7 @@ enum
 bool WorldRenderer::renderWater = false, WorldRenderer::renderShadow = false, WorldRenderer::renderShadowVsm = false,
      WorldRenderer::renderEnvironmentFirst = true, WorldRenderer::enviReqSceneBlk = false;
 int WorldRenderer::shadowQuality = 3;
+static int globalFrameBlockId = -1;
 
 struct VolFogCallback : public DemonPostFxCallback
 {
@@ -55,6 +57,7 @@ WorldRenderer::WorldRenderer(WorldRenderer::IWorld *render_world, const DataBloc
 
   renderWorld = render_world;
   allowDynamicRender = useDynamicRender = false;
+  globalFrameBlockId = ShaderGlobal::getBlockId("global_frame", ShaderGlobal::LAYER_FRAME);
   envSetts.init();
   shaders::OverrideState state;
   state.set(shaders::OverrideState::Z_WRITE_DISABLE);
@@ -100,7 +103,9 @@ void WorldRenderer::render(DagorGameScene &)
 
   if (::hdr_render_mode != HDR_MODE_NONE)
   {
-    postFx->apply(sceneRt, sceneRtId, postfxRt, postfxRtId);
+    TMatrix4 projTm;
+    d3d::gettm(TM_PROJ, &projTm);
+    postFx->apply(sceneRt, sceneRtId, postfxRt, postfxRtId, ::grs_cur_view.tm, projTm);
     d3d::set_render_target(postfxRt, 0);
     d3d::set_backbuf_depth();
     d3d_err(d3d::stretch_rect(postfxRt, rt.getColor(0).tex, NULL, NULL));
@@ -121,11 +126,7 @@ void WorldRenderer::restartPostfx(DataBlock *postfxBlkTemp)
     postFx->restart(postfxBlkTemp, NULL, NULL);
 }
 
-static void set_visibility_range(float visRangeScale)
-{
-  if (visibility_finder)
-    visibility_finder->update();
-}
+static void set_visibility_range(float) { update_visibility_finder(); }
 
 void WorldRenderer::prepareWaterReflection() {}
 
@@ -135,37 +136,23 @@ void WorldRenderer::beforeRender()
   envSetts.applyOnRender(true);
   renderWorld->beforeRender();
 
-  if (visibility_finder)
-    visibility_finder->update();
+  update_visibility_finder();
 
-  if (shaderblocks::frameBlkId != -1)
-    ShaderGlobal::setBlock(shaderblocks::frameBlkId, ShaderGlobal::LAYER_FRAME);
+  if (globalFrameBlockId != -1)
+    ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
   if (renderWater)
     prepareWaterReflection();
 }
 
 void WorldRenderer::classicRender()
 {
-  if (renderEnvironmentFirst)
-  {
-    ShaderGlobal::setBlock(shaderblocks::frameBlkId, ShaderGlobal::LAYER_FRAME);
-    renderGeomEnvi();
-    ShaderGlobal::setBlock(shaderblocks::deferredSceneBlkId, ShaderGlobal::LAYER_SCENE);
-    renderGeomOpaque();
-  }
-  else
-  {
-    ShaderGlobal::setBlock(shaderblocks::frameBlkId, ShaderGlobal::LAYER_FRAME);
-    ShaderGlobal::setBlock(shaderblocks::deferredSceneBlkId, ShaderGlobal::LAYER_SCENE);
-    renderGeomOpaque();
-    ShaderGlobal::setBlock(shaderblocks::frameBlkId, ShaderGlobal::LAYER_FRAME);
-    renderGeomEnvi();
-  }
+  ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
+  renderGeomEnvi();
+  renderGeomOpaque();
 }
 void WorldRenderer::classicRenderTrans()
 {
-  ShaderGlobal::setBlock(shaderblocks::frameBlkId, ShaderGlobal::LAYER_FRAME);
-  ShaderGlobal::setBlock(shaderblocks::forwardSceneBlkId, ShaderGlobal::LAYER_SCENE);
+  ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
   renderWorld->renderGeomTrans();
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 }
@@ -177,9 +164,6 @@ void WorldRenderer::renderGeomOpaque()
 }
 void WorldRenderer::renderGeomEnvi()
 {
-  if (enviReqSceneBlk)
-    ShaderGlobal::setBlock(shaderblocks::deferredSceneBlkId, ShaderGlobal::LAYER_SCENE);
-
   int l, t, w, h;
   float minZ, maxZ;
   d3d::getview(l, t, w, h, minZ, maxZ);
@@ -189,8 +173,6 @@ void WorldRenderer::renderGeomEnvi()
   renderWorld->renderGeomEnvi();
 
   d3d::setview(l, t, w, h, minZ, maxZ);
-  if (enviReqSceneBlk)
-    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
 
   shaders::overrides::reset();
 }

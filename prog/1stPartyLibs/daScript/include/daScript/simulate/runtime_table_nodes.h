@@ -105,7 +105,7 @@ namespace das
         virtual SimNode * visit ( SimVisitor & vis ) override {
             return visitTable(vis,"TableSetInsert");
         }
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
             Table * tab = (Table *) tabExpr->evalPtr(context);
             if ( tab->isLocked() ) context.throw_error_at(debugInfo, "can't insert to a locked table");
@@ -183,7 +183,7 @@ namespace das
         SimNode_DeleteTable ( const LineInfo & a, SimNode * s, uint32_t t, uint32_t va )
             : SimNode_Delete(a,s,t), vts_add_kts(va) {}
         virtual SimNode * visit ( SimVisitor & vis ) override;
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override;
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
         uint32_t vts_add_kts;
     };
 }

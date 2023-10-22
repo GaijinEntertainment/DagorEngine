@@ -37,7 +37,7 @@ endmacro
 define_macro_if_not_defined INIT_HDR(code)
 endmacro
 
-shader darg_panel_frame_buffer, darg_panel_gbuffer, darg_panel_depth
+shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbuffer, darg_panel_depth
 {
   GLOBAL_FRAME_CONTENT()
 
@@ -46,6 +46,11 @@ shader darg_panel_frame_buffer, darg_panel_gbuffer, darg_panel_depth
   channel float3 pos = pos;
   channel float3 norm = norm;
   channel float2 tc[0] = tc[0];
+
+  if (shader == darg_panel_frame_buffer_no_depth)
+  {
+    z_test = false;
+  }
 
   (vs) {
     globtm@f44 = globtm;
@@ -142,7 +147,7 @@ shader darg_panel_frame_buffer, darg_panel_gbuffer, darg_panel_depth
     }
   }
 
-  if (shader == darg_panel_frame_buffer)
+  if (shader == darg_panel_frame_buffer || shader == darg_panel_frame_buffer_no_depth)
   {
     blend_src = sa;
     blend_dst = isa;

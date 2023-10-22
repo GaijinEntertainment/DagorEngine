@@ -2,10 +2,10 @@
 
 #include "p_static.h"
 
-CStatic::CStatic(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w,
-  const char caption[], int h) :
+CStatic::CStatic(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+  const char caption[], hdpi::Px h) :
 
-  PropertyControlBase(id, event_handler, parent, x, y, w, h), mCaption(this, parent->getWindow(), x, y, w, h)
+  PropertyControlBase(id, event_handler, parent, x, y, w, h), mCaption(this, parent->getWindow(), x, y, _px(w), _px(h))
 {
   mCaption.setTextValue(caption);
 }
@@ -30,10 +30,10 @@ void CStatic::setTextValue(const char value[]) { mCaption.setTextValue(value); }
 int CStatic::getTextValue(char *buffer, int buflen) const { return mCaption.getTextValue(buffer, buflen); }
 
 
-void CStatic::setWidth(unsigned w)
+void CStatic::setWidth(hdpi::Px w)
 {
   PropertyControlBase::setWidth(w);
-  mCaption.resizeWindow(w, mCaption.getHeight());
+  mCaption.resizeWindow(_px(w), mCaption.getHeight());
 }
 
 

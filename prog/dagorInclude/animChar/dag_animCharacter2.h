@@ -381,8 +381,8 @@ public:
     float inv_wk_sq, Occlusion *occl, const Point3 &cameraPos);
   Point3 getNodePosForBone(uint32_t bone_id) const;
 
-  void render(real tr = 1.f);
-  void renderTrans(real tr = 1.f);
+  void render(const Point3 &view_pos, real tr = 1.f);
+  void renderTrans(const Point3 &view_pos, real tr = 1.f);
 
   void setRenderDistances(real anim_dist, real rend_dist)
   {
@@ -409,9 +409,9 @@ public:
   bool load(const AnimCharCreationProps &props, int modelId, const GeomNodeTree &tree, const AnimcharFinalMat44 &finalWtm);
   void cloneTo(AnimcharRendComponent *as, bool create_inst, const GeomNodeTree &tree) const;
 
-  bool shouldBeAnimatedLegacy(mat44f &root_wtm) const
+  bool shouldBeAnimatedLegacy(mat44f &root_wtm, const Point3 &view_pos) const
   {
-    const real dist2 = getSqDistanceToViewerLegacy(root_wtm);
+    const real dist2 = getSqDistanceToViewerLegacy(root_wtm, view_pos);
     if (dist2 < 0)
       return false;
     return dist2 * AnimcharRendComponent::invWkSq < noAnimDist2;
@@ -443,7 +443,7 @@ protected:
 
 protected:
   void prepareForRender(const AnimcharFinalMat44 &finalWtm, bbox3f_cref bbox);
-  real getSqDistanceToViewerLegacy(const mat44f &root_wtm) const;
+  real getSqDistanceToViewerLegacy(const mat44f &root_wtm, const Point3 &view_pos) const;
 
   void createInstance(const GeomNodeTree &tree);
   void loadData(const AnimCharCreationProps &props, DynamicRenderableSceneLodsResource *model, const GeomNodeTree &tree);
@@ -502,10 +502,10 @@ public:
   void invalidateAnim() { base.invalidateAnim(); }
 
   void reset() { base.reset(); }
-  void act(real dt, bool force_anim = false)
+  void act(real dt, const Point3 &view_pos, bool force_anim = false)
   {
     base.setTm(finalWtm.nwtm[0]);
-    base.act(dt, force_anim || rend.shouldBeAnimatedLegacy(finalWtm.nwtm[0]));
+    base.act(dt, force_anim || rend.shouldBeAnimatedLegacy(finalWtm.nwtm[0], view_pos));
     copyNodes();
   }
   void doRecalcAnimAndWtm()
@@ -596,15 +596,15 @@ public:
   {
     return (rend.beforeRender(finalWtm, rendBsph, rendBbox, f, inv_wk_sq, occl, cam_pos) & rend.VISFLG_MAIN) != 0;
   }
-  void render(real tr = 1)
+  void render(const Point3 &view_pos, real tr = 1)
   {
     if (AnimcharRendComponent::check_visibility_legacy(rend.getVisBits(), rendBbox))
-      rend.render(tr);
+      rend.render(view_pos, tr);
   }
-  void renderTrans(real tr = 1)
+  void renderTrans(const Point3 &view_pos, real tr = 1)
   {
     if (AnimcharRendComponent::check_visibility_legacy(rend.getVisBits(), rendBbox))
-      rend.renderTrans(tr);
+      rend.renderTrans(view_pos, tr);
   }
 
   DynamicRenderableSceneInstance *getSceneInstance() { return rend.getSceneInstance(); }
@@ -617,7 +617,7 @@ public:
 
   BSphere3 getBoundingSphere() { return BSphere3(getCenterPos(), v_extract_w(rendBsph)); }
   bool isVisibleInMainCamera() const { return rend.isVisibleInMainCamera(); }
-  void renderForShadow() { rend.render(); }
+  void renderForShadow(const Point3 &view_pos) { rend.render(view_pos); }
 
   vec4f copyNodes() { return base.copyNodesTo(finalWtm); }
   const bbox3f &get_bbox() const { return rendBbox; }
@@ -643,6 +643,7 @@ int getSlotId(const char *slot_name);
 int addSlotId(const char *slot_name);
 
 extern bool (*trace_static_ray_down)(const Point3_vec4 &from, float max_t, float &out_t, intptr_t ctx);
+extern bool (*trace_static_ray_dir)(const Point3_vec4 &from, Point3_vec4 dir, float max_t, float &out_t, intptr_t ctx);
 
 // registers factory for loading statesGraph from compiled-in source code
 void registerGraphCppFactory();

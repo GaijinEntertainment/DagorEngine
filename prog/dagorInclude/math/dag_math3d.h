@@ -98,7 +98,7 @@ bool test_segment_cylinder_intersection(const Point3 &p0, const Point3 &p1, cons
   float cylinder_radius);
 
 // note: can return true when point is on short vertical distance from triangle plane
-inline bool VECTORCALL is_point_in_triangle(vec3f p, vec3f t1, vec3f t2, vec3f t3)
+VECTORCALL inline bool is_point_in_triangle(vec3f p, vec3f t1, vec3f t2, vec3f t3)
 {
   vec3f a = v_sub(t1, p);
   vec3f b = v_sub(t2, p);

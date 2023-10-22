@@ -3,6 +3,7 @@
 #include "rayCar.h"
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameResId.h>
+#include <3d/dag_render.h> // grs_cur_view
 
 #ifndef NO_3D_GFX
 #include <vehiclePhys/tireTracks.h>
@@ -297,7 +298,7 @@ private:
       for (int i = 0; i < nodeMap.size(); i++)
         model->setNodeWtm(nodeMap[i].id, nodeTree->getNodeWtmRel(nodeMap[i].nodeIdx));
     }
-    model->beforeRender();
+    model->beforeRender(::grs_cur_view.pos);
     lastLodNo = model->getCurrentLodNo();
 
     for (int i = 0; i < wheels.size(); i++)
@@ -305,7 +306,7 @@ private:
       if (!wheels[i].rendObj)
         continue;
       setWheelRenderTm(i, vtm);
-      wheels[i].rendObj->beforeRender();
+      wheels[i].rendObj->beforeRender(::grs_cur_view.pos);
     }
   }
 
@@ -329,7 +330,7 @@ private:
     else
     {
       body->updateModelTms();
-      body->getModel()->beforeRender();
+      body->getModel()->beforeRender(::grs_cur_view.pos);
     }
 
     lastLodNo = body->getModel()->getCurrentLodNo();
@@ -346,7 +347,7 @@ private:
       if (!wheels[i].rendObj)
         continue;
       setWheelRenderTm(i, visualTm);
-      wheels[i].rendObj->beforeRender();
+      wheels[i].rendObj->beforeRender(::grs_cur_view.pos);
     }
   }
   float getVisibilityRange() const
@@ -373,7 +374,7 @@ private:
     else if (carPhysMode != CPM_GHOST)
     {
       body->updateModelTms();
-      body->getModel()->beforeRender();
+      body->getModel()->beforeRender(::grs_cur_view.pos);
     }
     else
       beforeRenderGhost(virtualCarTm);

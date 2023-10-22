@@ -29,10 +29,10 @@ CPPopt =
 ;
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/baseUtil
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/baseUtil
   3rdPartyLibs/convert/nvtt-2.0.7
   3rdPartyLibs/image/jpeg-6b
   3rdPartyLibs/eastl

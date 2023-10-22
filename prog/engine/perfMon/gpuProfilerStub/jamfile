@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/perfMon/gpuProfilerStub ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine/gpuProfilerStub.lib ;
+
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine/perfMon
+  $(Root)/prog/engine/perfMon/daProfiler
+;
+
+Sources =
+  gpuProfilerStub.cpp
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

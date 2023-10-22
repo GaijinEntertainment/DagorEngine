@@ -7,7 +7,7 @@
 class CIndent : public PropertyControlBase
 {
 public:
-  CIndent(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w);
+  CIndent(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
     bool new_line = true);

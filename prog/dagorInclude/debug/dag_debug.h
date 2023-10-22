@@ -21,16 +21,16 @@ KRNLIMP void debug_dump_stack(const char *text, int skip_frames);
 
 #else // C++ interface start
 
-#define debug      logdbg      //< outputs formatted string and adds \n
-#define debug_     logdbg_     //< outputs only formatted string (no \n added)
-#define debug_ctx  logdbg_ctx  //< outputs formatted string with prefix 'FILE,#line: ' and adds \n
-#define debug_ctx_ logdbg_ctx_ //< outputs formatted string with prefix 'FILE,#line: ' (no \n added)
+#define debug(...)      logdbg(__VA_ARGS__)      //< outputs formatted string and adds \n
+#define debug_(...)     logdbg_(__VA_ARGS__)     //< outputs only formatted string (no \n added)
+#define debug_ctx(...)  logdbg_ctx(__VA_ARGS__)  //< outputs formatted string with prefix 'FILE,#line: ' and adds \n
+#define debug_ctx_(...) logdbg_ctx_(__VA_ARGS__) //< outputs formatted string with prefix 'FILE,#line: ' (no \n added)
 
-#define mt_debug      debug
-#define mt_debug_     debug_
-#define mt_debug_ctx  debug_ctx
-#define mt_debug_ctx_ debug_ctx_
-#define mt_debug_cp   debug_cp
+#define mt_debug(...)      debug(__VA_ARGS__)
+#define mt_debug_(...)     debug_(__VA_ARGS__)
+#define mt_debug_ctx(...)  debug_ctx(__VA_ARGS__)
+#define mt_debug_ctx_(...) debug_ctx_(__VA_ARGS__)
+#define mt_debug_cp(...)   debug_cp(__VA_ARGS__)
 
 #if DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
 

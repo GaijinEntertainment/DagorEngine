@@ -283,7 +283,7 @@ int DagorWinMain(bool debugmode)
 {
   signal(SIGINT, ctrl_break_handler);
 
-  printf("Plants Grid to daEditor3 TIFF mask converter\n"
+  printf("Plants Grid to daEditorX TIFF mask converter\n"
          "Copyright (C) Gaijin Games KFT, 2023\n\n");
 
   if (__argc < 3)

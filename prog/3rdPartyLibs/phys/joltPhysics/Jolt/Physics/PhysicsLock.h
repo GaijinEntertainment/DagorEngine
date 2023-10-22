@@ -37,16 +37,16 @@ public:
 	static inline void			sCheckLock(PhysicsLockContext inContext, EPhysicsLockTypes inType)
 	{
 		uint32 &mutexes = sGetLockedMutexes(inContext);
-		JPH_ASSERT((uint32)inType > mutexes, "A lock of same or higher priority was already taken, this can create a deadlock!");
-		mutexes = mutexes | (uint32)inType;
+		JPH_ASSERT(uint32(inType) > mutexes, "A lock of same or higher priority was already taken, this can create a deadlock!");
+		mutexes = mutexes | uint32(inType);
 	}
 
 	/// Call after releasing the lock
 	static inline void			sCheckUnlock(PhysicsLockContext inContext, EPhysicsLockTypes inType)
 	{
 		uint32 &mutexes = sGetLockedMutexes(inContext);
-		JPH_ASSERT((mutexes & (uint32)inType) != 0, "Mutex was not locked!");
-		mutexes = mutexes & ~(uint32)inType;
+		JPH_ASSERT((mutexes & uint32(inType)) != 0, "Mutex was not locked!");
+		mutexes = mutexes & ~uint32(inType);
 	}
 #endif // !JPH_ENABLE_ASSERTS
 
@@ -124,7 +124,7 @@ public:
 	{
 		PhysicsLock::sLock(mLock JPH_IF_ENABLE_ASSERTS(, mContext, mType));
 	}
-								
+
 								~UniqueLock()
 	{
 		PhysicsLock::sUnlock(mLock JPH_IF_ENABLE_ASSERTS(, mContext, mType));
@@ -152,7 +152,7 @@ public:
 	{
 		PhysicsLock::sLockShared(mLock JPH_IF_ENABLE_ASSERTS(, mContext, mType));
 	}
-								
+
 								~SharedLock()
 	{
 		PhysicsLock::sUnlockShared(mLock JPH_IF_ENABLE_ASSERTS(, mContext, mType));

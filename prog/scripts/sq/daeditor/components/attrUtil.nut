@@ -70,7 +70,7 @@ let function convertTextToValForDagorClass(name, fields){
   if (fields.len()!=classFields?.len?())
     return null
   let res = dagorMath[name]()
-  classFields.each(@(key, idx) res[key] = fields[idx])
+  classFields?.each(@(key, idx) res[key] = fields[idx])
   return res
 }
 

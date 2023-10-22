@@ -108,7 +108,6 @@ int4 channel_swizzle_indices = (1, 0, 0, 0);
 
 int AccumulatedInscatter_view_result_no = 7;
 int volfog_occlusion_no = 7;
-int initial_media_no = 7;
 
 int AccumulatedInscatter_no = 4;
 int initial_phase_no = 5;

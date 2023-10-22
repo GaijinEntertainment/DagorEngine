@@ -85,7 +85,7 @@ private:
 
 //---------------------------------------------------------
 
-CDialogWindow::CDialogWindow(void *phandle, unsigned w, unsigned h, const char caption[], bool hide_panel) :
+CDialogWindow::CDialogWindow(void *phandle, hdpi::Px w, hdpi::Px h, const char caption[], bool hide_panel) :
 
   mButtonsEventHandler(this),
   mDialogWindow(NULL),
@@ -102,14 +102,14 @@ CDialogWindow::CDialogWindow(void *phandle, unsigned w, unsigned h, const char c
   // creation
 
   mWindowHandler = new DialogWindowEventHandler(mButtonsEventHandler);
-  mDialogWindow = new WWindow(mWindowHandler, 0, (GetSystemMetrics(SM_CXSCREEN) - w) / 2, (GetSystemMetrics(SM_CYSCREEN) - h) / 2, w,
-    h, caption, true);
+  mDialogWindow = new WWindow(mWindowHandler, 0, (GetSystemMetrics(SM_CXSCREEN) - _px(w)) / 2,
+    (GetSystemMetrics(SM_CYSCREEN) - _px(h)) / 2, _px(w), _px(h), caption, true);
 
-  create(w, h, hide_panel);
+  create(_px(w), _px(h), hide_panel);
 }
 
 
-CDialogWindow::CDialogWindow(void *phandle, int x, int y, unsigned w, unsigned h, const char caption[], bool hide_panel) :
+CDialogWindow::CDialogWindow(void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, const char caption[], bool hide_panel) :
 
   mButtonsEventHandler(this),
   mDialogWindow(NULL),
@@ -126,9 +126,9 @@ CDialogWindow::CDialogWindow(void *phandle, int x, int y, unsigned w, unsigned h
   // creation
 
   mWindowHandler = new DialogWindowEventHandler(mButtonsEventHandler);
-  mDialogWindow = new WWindow(mWindowHandler, 0, x, y, w, h, caption, true);
+  mDialogWindow = new WWindow(mWindowHandler, 0, x, y, _px(w), _px(h), caption, true);
 
-  create(w, h, hide_panel);
+  create(_px(w), _px(h), hide_panel);
 }
 
 
@@ -151,13 +151,13 @@ void CDialogWindow::create(unsigned w, unsigned h, bool hide_panel)
   if (!mpHandle)
     mpHandle = GetForegroundWindow();
 
-  mPropertiesPanel = new CPanelWindow(this, mDialogWindow->getHandle(), 0, 0, 0, 0, "");
+  mPropertiesPanel = new CPanelWindow(this, mDialogWindow->getHandle(), 0, 0, hdpi::Px::ZERO, hdpi::Px::ZERO, "");
 
   if (hide_panel)
     ShowWindow((HWND)mPropertiesPanel->getWindowHandle(), FALSE);
   // mPropertiesPanel->showPanel(!hide_panel);
 
-  mButtonsPanel = new CPanelWindow(&mButtonsEventHandler, mDialogWindow->getHandle(), 0, 0, 0, 0, "");
+  mButtonsPanel = new CPanelWindow(&mButtonsEventHandler, mDialogWindow->getHandle(), 0, 0, hdpi::Px::ZERO, hdpi::Px::ZERO, "");
 
   // styles
 
@@ -170,7 +170,7 @@ void CDialogWindow::create(unsigned w, unsigned h, bool hide_panel)
 
   // sizing and move
 
-  resizeWindow(w, h, true);
+  resizeWindow(_pxActual(w), _pxActual(h), true);
 
   // controls
 
@@ -188,27 +188,27 @@ void CDialogWindow::showButtonPanel(bool show)
 {
   mButtonsPanel->showPanel(show);
   mButtonsVisible = show;
-  CDialogWindow::resizeWindow(mDialogWindow->getWidth(), mDialogWindow->getHeight(), true);
+  CDialogWindow::resizeWindow(_pxActual(mDialogWindow->getWidth()), _pxActual(mDialogWindow->getHeight()), true);
 }
 
 
 void CDialogWindow::moveWindow(int x, int y) { mDialogWindow->moveWindow(x, y); }
 
 
-void CDialogWindow::resizeWindow(unsigned w, unsigned h, bool internal)
+void CDialogWindow::resizeWindow(hdpi::Px w, hdpi::Px h, bool internal)
 {
   if (!internal)
-    mDialogWindow->resizeWindow(w, h);
+    mDialogWindow->resizeWindow(_px(w), _px(h));
 
   int cw, ch;
   mDialogWindow->getClientSize(cw, ch);
 
-  mPropertiesPanel->setWidth(cw);
-  mPropertiesPanel->setHeight((mButtonsVisible) ? ch - DIALOG_BUTTONS_PANEL_HEIGHT : ch);
+  mPropertiesPanel->setWidth(_pxActual(cw));
+  mPropertiesPanel->setHeight(_pxActual((mButtonsVisible) ? ch - _pxS(DIALOG_BUTTONS_PANEL_HEIGHT) : ch));
 
-  mButtonsPanel->moveTo((cw - DIALOG_BUTTONS_PANEL_WIDTH) / 2, (mButtonsVisible) ? ch - DIALOG_BUTTONS_PANEL_HEIGHT : ch);
-  mButtonsPanel->setWidth(DIALOG_BUTTONS_PANEL_WIDTH);
-  mButtonsPanel->setHeight(DIALOG_BUTTONS_PANEL_HEIGHT);
+  mButtonsPanel->moveTo((cw - _pxS(DIALOG_BUTTONS_PANEL_WIDTH)) / 2, (mButtonsVisible) ? ch - _pxS(DIALOG_BUTTONS_PANEL_HEIGHT) : ch);
+  mButtonsPanel->setWidth(_pxScaled(DIALOG_BUTTONS_PANEL_WIDTH));
+  mButtonsPanel->setHeight(_pxScaled(DIALOG_BUTTONS_PANEL_HEIGHT));
 }
 
 
@@ -226,14 +226,14 @@ void CDialogWindow::autoSize()
   if (!mPropertiesPanel)
     return;
 
-  const int MAX_HT = GetSystemMetrics(SM_CYSCREEN) - 120;
+  const int MAX_HT = GetSystemMetrics(SM_CYSCREEN) - _pxS(120);
 
-  int delta = mPropertiesPanel->getClientHeight() - mPropertiesPanel->getHeight();
+  int delta = _px(mPropertiesPanel->getClientHeight()) - mPropertiesPanel->getHeight();
   if (delta != 0)
   {
     int new_ht = mDialogWindow->getHeight() + delta;
     new_ht = (new_ht > MAX_HT) ? MAX_HT : new_ht;
-    resizeWindow(mDialogWindow->getWidth(), new_ht);
+    resizeWindow(_pxActual(mDialogWindow->getWidth()), _pxActual(new_ht));
   }
   center();
 }
@@ -248,9 +248,9 @@ void CDialogWindow::buttonsToWidth()
   int cw, ch;
   mDialogWindow->getClientSize(cw, ch);
 
-  mButtonsPanel->moveTo(0, ch - DIALOG_BUTTONS_PANEL_HEIGHT);
-  mButtonsPanel->setWidth(cw);
-  mButtonsPanel->setHeight(DIALOG_BUTTONS_PANEL_HEIGHT);
+  mButtonsPanel->moveTo(0, ch - _pxS(DIALOG_BUTTONS_PANEL_HEIGHT));
+  mButtonsPanel->setWidth(_pxActual(cw));
+  mButtonsPanel->setHeight(_pxScaled(DIALOG_BUTTONS_PANEL_HEIGHT));
 }
 
 

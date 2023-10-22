@@ -34,6 +34,8 @@ namespace das {
 
     typedef das_hash_map<string,pair<TypeDeclPtr,bool>> TypeAliasMap;
 
+    struct AstSerializer;
+
     struct TypeDecl : ptr_ref_count {
         enum {
             dimAuto = -1,
@@ -208,6 +210,7 @@ namespace das {
         string findBitfieldName ( uint32_t value ) const;
         void collectAliasing ( TypeAliasMap & aliases, das_set<Structure *> & dep, bool viaPointer ) const;
         void collectContainerAliasing ( TypeAliasMap & aliases, das_set<Structure *> & dep, bool viaPointer ) const;
+        void serialize ( AstSerializer & ser );
     public:
         Type                    baseType = Type::tVoid;
         Structure *             structType = nullptr;
@@ -613,7 +616,7 @@ namespace das {
             tt->ref = false;
         } else if (!tt->isRef()) {
             // note:
-            //  C ++ does not differenciate between void foo ( Foo ); and void foo ( const Foo );
+            //  C++ does not differentiate between void foo ( Foo ); and void foo ( const Foo );
             //  DAS differenciates for pointers
             tt->constant = true;
         }

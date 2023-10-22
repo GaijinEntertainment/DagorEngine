@@ -277,6 +277,7 @@ namespace das {
 
     extern "C" int64_t ref_time_ticks ();
     extern "C" int get_time_usec (int64_t reft);
+    extern "C" int64_t ref_time_delta_to_usec (int64_t reft);
 
     static DAS_THREAD_LOCAL int64_t totParse = 0;
     static DAS_THREAD_LOCAL int64_t totInfer = 0;
@@ -422,7 +423,7 @@ namespace das {
             }
             daScriptEnvironment::bound->g_Program.reset();
             if ( policies.macro_context_collect ) libGroup.collectMacroContexts();
-            if ( program->options.getBoolOption("log_compile_time",false) ) {
+            if ( program->options.getBoolOption("log_compile_time",policies.log_compile_time) ) {
                 auto dt = get_time_usec(time0) / 1000000.;
                 logs << "compiler took " << dt << ", " << fileName << "\n";
             }
@@ -472,6 +473,7 @@ namespace das {
         totInfer = 0;
         totOpt = 0;
         totM = 0;
+        daScriptEnvironment::bound->macroTimeTicks = 0;
         vector<ModuleInfo> req;
         vector<string> missing, circular, notAllowed;
         das_set<string> dependencies;
@@ -504,6 +506,7 @@ namespace das {
                     }
                     if ( program->thisModule->name.empty() ) {
                         program->thisModule->name = mod.moduleName;
+                        program->thisModule->wasParsedNameless = true;
                     }
                     if ( program->promoteToBuiltin ) {
                         bool regFromShar = false;
@@ -586,14 +589,15 @@ namespace das {
                 auto hf = hash_blockz64((uint8_t *)fileName.c_str());
                 res->thisNamespace = "_anon_" + to_string(hf);
             }
-            if ( res->options.getBoolOption("log_total_compile_time",false) ) {
+            if ( res->options.getBoolOption("log_total_compile_time",policies.log_total_compile_time) ) {
                 auto totT = get_time_usec(time0);
-                logs << "compiler took " << (totT  / 1000000.) << "\n"
+                logs << "compiler took " << (totT  / 1000000.) << ", " << fileName << "\n"
                      << "\trequire  " << (preqT    / 1000000.) << "\n"
                      << "\tparse    " << (totParse / 1000000.) << "\n"
                      << "\tinfer    " << (totInfer / 1000000.) << "\n"
                      << "\toptimize " << (totOpt   / 1000000.) << "\n"
-                     << "\tmacro    " << (totM     / 1000000.) << "\n"
+                     << "\tmacro    " << (ref_time_delta_to_usec(daScriptEnvironment::bound->macroTimeTicks)  / 1000000.) << "\n"
+                     << "\tmacro mods " << (totM     / 1000000.) << "\n"
                 ;
             }
             return res;

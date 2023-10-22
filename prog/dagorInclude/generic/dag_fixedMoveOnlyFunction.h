@@ -49,7 +49,7 @@ struct FixedMoveOnlyFunctionBase
   }
 
   // Note that we intentionally leave fields uninitialized.
-  FixedMoveOnlyFunctionBase() = default; //-V730
+  FixedMoveOnlyFunctionBase() : call{nullptr} {}; //-V730
 
   template <typename F>
   FixedMoveOnlyFunctionBase(F &&func_object) : call{nullptr}
@@ -113,7 +113,7 @@ struct FixedMoveOnlyFunctionBase
   explicit operator bool() const { return call != nullptr; }
 
   // call should be hot
-  CallSignature *call{nullptr};
+  CallSignature *call;
   ManagerSignature *relocate;
   // On win32, we still want this to be aligned to 16 bytes
   alignas(align) char storage[size];

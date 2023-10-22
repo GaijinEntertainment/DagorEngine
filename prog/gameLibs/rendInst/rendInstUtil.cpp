@@ -1,13 +1,12 @@
 #include "riGen/riUtil.h"
 #include "riGen/genObjUtil.h"
+#include "riGen/riGenData.h"
 
 #include <util/dag_convar.h>
 #include <debug/dag_debug3d.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <math/dag_mathUtils.h>
 
-
-using namespace rendinst;
 
 #if DAGOR_DBGLEVEL > 0
 CONSOLE_BOOL_VAL("ri_world", draw_world_updates, false);
@@ -89,15 +88,26 @@ int16_t *riutil::get_data_by_desc(const rendinst::RendInstDesc &desc, RendInstGe
 {
   G_ASSERT(!desc.isRiExtra());
   if (!get_cell_by_desc(desc, cell))
-    return NULL;
+    return nullptr;
 
   RendInstGenData::CellRtData &crt = *cell->rtData;
   const RendInstGenData::CellRtData::SubCellSlice &scs = crt.getCellSlice(desc.pool, desc.idx);
   if (!scs.sz || int(desc.offs) < 0 ||
       (int16_t *)(crt.sysMemData + scs.ofs + desc.offs) >= (int16_t *)(crt.sysMemData + scs.ofs + scs.sz))
-    return NULL;
+    return nullptr;
 
   return (int16_t *)(crt.sysMemData + scs.ofs + desc.offs);
+}
+
+bool riutil::is_rendinst_data_destroyed(const rendinst::RendInstDesc &desc)
+{
+  RendInstGenData::Cell *cell = nullptr;
+  int16_t *data = riutil::get_data_by_desc(desc, cell);
+  if (!data)
+    return true;
+  RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
+  return rgl->rtData->riPosInst[desc.pool] ? rendinst::is_pos_rendinst_data_destroyed(data)
+                                           : rendinst::is_tm_rendinst_data_destroyed(data);
 }
 
 bool riutil::get_rendinst_matrix(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen, const int16_t *data,
@@ -113,35 +123,35 @@ bool riutil::get_rendinst_matrix(const rendinst::RendInstDesc &desc, RendInstGen
   float subcellSz = ri_gen->grid2world * ri_gen->cellSz / SUBCELL_DIV;
   vec3f v_cell_add = crt.cellOrigin;
   vec3f v_cell_mul =
-    v_mul(rendinstgen::VC_1div32767, v_make_vec4f(subcellSz * SUBCELL_DIV, crt.cellHeight, subcellSz * SUBCELL_DIV, 0));
+    v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(subcellSz * SUBCELL_DIV, crt.cellHeight, subcellSz * SUBCELL_DIV, 0));
   bool palette_rotation = ri_gen->rtData->riPaletteRotation[desc.pool];
   if (ri_gen->rtData->riPosInst[desc.pool])
   {
-    if (is_pos_rendinst_data_destroyed(data))
+    if (rendinst::is_pos_rendinst_data_destroyed(data))
       return false;
 
     if (palette_rotation)
     {
       vec4f v_pos, v_scale;
       vec4i v_palette_id;
-      rendinstgen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add, v_cell_mul, palette_rotation, &v_palette_id);
+      rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add, v_cell_mul, palette_rotation, &v_palette_id);
 
-      rendinstgen::RotationPaletteManager::Palette palette =
-        rendinstgen::get_rotation_palette_manager()->getPalette({crt.rtData->layerIdx, desc.pool});
-      quat4f v_rot = rendinstgen::RotationPaletteManager::get_quat(palette, v_extract_xi(v_palette_id));
+      rendinst::gen::RotationPaletteManager::Palette palette =
+        rendinst::gen::get_rotation_palette_manager()->getPalette({crt.rtData->layerIdx, desc.pool});
+      quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(v_palette_id));
 
       v_mat44_compose(out_tm, v_pos, v_rot, v_scale);
     }
     else
     {
-      rendinstgen::unpack_tm_pos(out_tm, data, v_cell_add, v_cell_mul, palette_rotation);
+      rendinst::gen::unpack_tm_pos(out_tm, data, v_cell_add, v_cell_mul, palette_rotation);
     }
   }
   else
   {
-    if (is_tm_rendinst_data_destroyed(data))
+    if (rendinst::is_tm_rendinst_data_destroyed(data))
       return false;
-    rendinstgen::unpack_tm_full(out_tm, data, v_cell_add, v_cell_mul);
+    rendinst::gen::unpack_tm_full(out_tm, data, v_cell_add, v_cell_mul);
   }
   return true;
 }
@@ -171,7 +181,7 @@ int16_t *riutil::get_data_by_desc_no_subcell(const rendinst::RendInstDesc &desc,
 {
   G_ASSERT(!desc.isRiExtra());
   if (!riutil::get_cell_by_desc(desc, cell))
-    return NULL;
+    return nullptr;
 
   RendInstGenData::CellRtData &crt = *cell->rtData;
   const RendInstGenData::CellRtData::SubCellSlice &firstScs = crt.getCellSlice(desc.pool, 0);
@@ -179,7 +189,7 @@ int16_t *riutil::get_data_by_desc_no_subcell(const rendinst::RendInstDesc &desc,
     crt.getCellSlice(desc.pool, RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV - 1);
   if (int(desc.offs) < 0 ||
       (int16_t *)(crt.sysMemData + firstScs.ofs + desc.offs) >= (int16_t *)(crt.sysMemData + lastScs.ofs + lastScs.sz))
-    return NULL;
+    return nullptr;
 
   return (int16_t *)(crt.sysMemData + firstScs.ofs + desc.offs);
 }
@@ -187,7 +197,7 @@ int16_t *riutil::get_data_by_desc_no_subcell(const rendinst::RendInstDesc &desc,
 int riutil::get_data_offs_from_start(const rendinst::RendInstDesc &desc)
 {
   G_ASSERT(!desc.isRiExtra());
-  RendInstGenData::Cell *cell = NULL;
+  RendInstGenData::Cell *cell = nullptr;
   if (!riutil::get_cell_by_desc(desc, cell))
     return -1;
 
@@ -203,7 +213,7 @@ bool riutil::extract_buffer_data(const rendinst::RendInstDesc &desc, RendInstGen
   G_ASSERT(!desc.isRiExtra());
   if (ri_gen->rtData->riPosInst[desc.pool])
   {
-    if (is_pos_rendinst_data_destroyed(data))
+    if (rendinst::is_pos_rendinst_data_destroyed(data))
       return false;
 
     for (int i = 0; i < 12; ++i)
@@ -216,7 +226,7 @@ bool riutil::extract_buffer_data(const rendinst::RendInstDesc &desc, RendInstGen
   }
   else
   {
-    if (is_tm_rendinst_data_destroyed(data))
+    if (rendinst::is_tm_rendinst_data_destroyed(data))
       return false;
 
     for (int i = 0; i < 12; ++i)
@@ -231,15 +241,15 @@ void riutil::remove_rendinst(const rendinst::RendInstDesc &desc, RendInstGenData
     return; //== what should it DO?
   if (ri_gen->rtData->riPosInst[desc.pool])
   {
-    if (is_pos_rendinst_data_destroyed(data))
+    if (rendinst::is_pos_rendinst_data_destroyed(data))
       return;
-    destroy_pos_rendinst_data(data);
+    rendinst::destroy_pos_rendinst_data(data);
   }
   else
   {
-    if (is_tm_rendinst_data_destroyed(data))
+    if (rendinst::is_tm_rendinst_data_destroyed(data))
       return;
-    destroy_tm_rendinst_data(data);
+    rendinst::destroy_tm_rendinst_data(data);
   }
   world_version_inc(crt_bbox);
 }

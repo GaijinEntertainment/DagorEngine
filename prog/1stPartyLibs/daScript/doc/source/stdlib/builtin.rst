@@ -3910,6 +3910,14 @@ Memset
 Uncategorized
 +++++++++++++
 
+.. _function-_at__builtin__c__c_is_intern_strings_C_c:
+
+.. das:function:: is_intern_strings()
+
+is_intern_strings returns bool
+
+|function-builtin-is_intern_strings|
+
 .. _function-_at__builtin__c__c_build_hash_CI0_ls_H_ls__builtin__c__c_HashBuilder_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
 
 .. das:function:: build_hash(block: block<(var arg0:HashBuilder):void> const implicit)

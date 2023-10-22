@@ -29,6 +29,6 @@ struct TriangleFace
 
 bool clipCapsuleTriangle(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const TriangleFace &f);
 bool test_capsule_triangle_intersection(const Capsule &c, const TriangleFace &f, float &t, Point3 &isect_pos);
-bool VECTORCALL test_capsule_triangle_intersection(vec3f from, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float radius, float &t,
+VECTORCALL bool test_capsule_triangle_intersection(vec3f from, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float radius, float &t,
   vec3f &out_norm, vec3f &out_pos, bool no_cull);
-bool VECTORCALL test_capsule_triangle_hit(vec3f from, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float radius, float t, bool no_cull);
+VECTORCALL bool test_capsule_triangle_hit(vec3f from, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float radius, float t, bool no_cull);

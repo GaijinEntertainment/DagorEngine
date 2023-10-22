@@ -97,7 +97,7 @@ __forceinline SimNode * safeArg1 ( SimNode * node, int index ) {
             context.abiArg = aa; \
             return res; \
         } \
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override { \
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override { \
             return compute(context); \
         } \
         DAS_EVAL_NODE \
@@ -119,7 +119,7 @@ __forceinline SimNode * safeArg1 ( SimNode * node, int index ) {
             argValues[0] = v_ldu((const float *)subexpr.compute##COMPUTE(context)); \
             return context.call(fnPtr, argValues, &debugInfo); \
         } \
-        virtual vec4f DAS_EVAL_ABI eval ( Context & context ) override { \
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override { \
             return compute(context); \
         } \
         DAS_EVAL_NODE \

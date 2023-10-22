@@ -353,7 +353,7 @@ class IdFile:
     return val
 
   def genFile(self, filename):
-    records = sorted(self.messages.items(), lambda (k1, v1), (k2, v2): cmp(v1, v2))
+    records = sorted(self.messages.items(), key=lambda item: item[1])
     open(filename, "w").write('\n'.join(['%s = %s' % (r[0], r[1]) for r in records]))
 
 class MpiFile:
@@ -482,8 +482,8 @@ class MpiFile:
 
 def parseFile():
   if len(sys.argv) != 4:
-    print "Wrong number of arguments presented."
-    print "Usage: codegenMpi.py inputFile outputFile idFile"
+    print("Wrong number of arguments presented.")
+    print("Usage: codegenMpi.py inputFile outputFile idFile")
   else:
     mpiFile = MpiFile(sys.argv[1], sys.argv[2], sys.argv[3])
     mpiFile.generateFile()

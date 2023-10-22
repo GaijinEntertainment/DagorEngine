@@ -5,6 +5,9 @@
 #include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/collision/rendinstCollision.h>
 #include <phys/dag_physics.h>
+#include <rendInst/rendInstCollision.h>
+#include <rendInst/rendInstAccess.h>
+
 
 namespace dacoll
 {
@@ -37,8 +40,7 @@ void ScaledBulletInstance::updateUserDataPtr()
 static CollisionObject create_bullet_scaled_copy(const CollisionObject &obj, const Point3 &scale, CollisionObjectUserData *user_ptr)
 {
   PhysCollision *newShape = obj.body->getCollisionScaledCopy(scale);
-  CollisionObject co = create_coll_obj_from_shape(*newShape, user_ptr, /*kinematic*/ false, add_instances_to_world, EPL_STATIC,
-    EPL_ALL & ~(EPL_KINEMATIC | EPL_STATIC));
+  CollisionObject co = create_coll_obj_from_shape(*newShape, user_ptr, /*kinematic*/ false, /*add_to_world*/ false);
   PhysCollision::clearAllocatedData(*newShape);
   delete newShape;
   return co;
@@ -50,7 +52,8 @@ void set_ttl_for_collision_instances(float value) { default_time_to_live = value
 
 extern void push_non_empty_ri_instance_list(CollisionInstances &ci);
 
-const ScaledBulletInstance &CollisionInstances::getScaledInstance(const rendinst::RendInstDesc &desc, const Point3 &scale)
+const ScaledBulletInstance &CollisionInstances::getScaledInstance(const rendinst::RendInstDesc &desc, const Point3 &scale,
+  bool &out_created)
 {
   float timeOfDeath = get_ri_instances_time() + default_time_to_live;
   for (auto &si : bulletInstances)
@@ -59,6 +62,7 @@ const ScaledBulletInstance &CollisionInstances::getScaledInstance(const rendinst
       continue;
 
     si.timeOfDeath = timeOfDeath;
+    out_created = false;
     return si;
   }
   //
@@ -75,12 +79,8 @@ const ScaledBulletInstance &CollisionInstances::getScaledInstance(const rendinst
     push_non_empty_ri_instance_list(*this);
 #endif
 
+  out_created = true;
   return ret;
-}
-
-CollisionObject CollisionInstances::getCollisionObject(const rendinst::RendInstDesc &desc, const Point3 &scale)
-{
-  return getScaledInstance(desc, scale).obj;
 }
 
 extern void remove_empty_ri_instance_list(CollisionInstances &ci);
@@ -149,10 +149,36 @@ void CollisionInstances::clear()
 
 void CollisionInstances::clearInstances() { bulletInstances.clear(); }
 
+// TODO: remove this _almost_ copy-paste of CollisionInstances::updateTm. We should have one way of dealing with
+// collision most times
+CollisionObject CollisionInstances::getCollisionObject(const rendinst::RendInstDesc &desc, TMatrix &tm, bool instant)
+{
+  bool created = false;
+  Point3 localScaling = Point3(tm.getcol(0).length(), tm.getcol(1).length(), tm.getcol(2).length());
+  CollisionObject cobj = getScaledInstance(desc, localScaling, created).obj;
+
+  for (int i = 0; i < 3; ++i)
+    tm.setcol(i, tm.getcol(i) * safeinv(localScaling[i]));
+  if (!instant)
+    cobj.body->setTm(tm);
+  else
+    cobj.body->setTmInstant(tm);
+
+  if (created)
+  {
+    cobj.body->setGroupAndLayerMask(EPL_STATIC, EPL_ALL & ~(EPL_KINEMATIC | EPL_STATIC));
+    if (add_instances_to_world)
+      get_phys_world()->addBody(cobj.body, /*kinematic*/ false); // After initial tm setup
+  }
+
+  return cobj;
+}
+
 CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc, const TMatrix &tm)
 {
+  bool created = false;
   Point3 localScaling = Point3(tm.getcol(0).length(), tm.getcol(1).length(), tm.getcol(2).length());
-  const ScaledBulletInstance &scaledInstance = getScaledInstance(desc, localScaling);
+  const ScaledBulletInstance &scaledInstance = getScaledInstance(desc, localScaling, created);
   CollisionObject cobj = scaledInstance.obj;
 
   TMatrix normTm = tm;
@@ -160,13 +186,19 @@ CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc,
     normTm.setcol(i, tm.getcol(i) * safeinv(localScaling[i]));
 
   get_phys_world()->fetchSimRes(true);
-  // update tms
 
-  // update scale
   if (localScaling != scaledInstance.scale)
     cobj.body->patchCollisionScaledCopy(localScaling, originalObj.body);
 
   cobj.body->setTm(normTm);
+
+  if (created)
+  {
+    cobj.body->setGroupAndLayerMask(EPL_STATIC, EPL_ALL & ~(EPL_KINEMATIC | EPL_STATIC));
+    if (add_instances_to_world)
+      get_phys_world()->addBody(cobj.body, /*kinematic*/ false); // After initial tm setup
+  }
+
   return cobj;
 }
 

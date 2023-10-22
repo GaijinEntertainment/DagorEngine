@@ -137,7 +137,7 @@ void register_class()
 }
 
 
-CScintillaWindow::CScintillaWindow(ScintillaEH *event_handler, void *phandle, int x, int y, unsigned w, unsigned h,
+CScintillaWindow::CScintillaWindow(ScintillaEH *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h,
   const char caption[]) :
   hwndScintilla(NULL),
   hwndScParent(NULL),

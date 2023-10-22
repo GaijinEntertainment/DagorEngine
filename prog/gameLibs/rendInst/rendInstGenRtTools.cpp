@@ -1,13 +1,11 @@
 #include <rendInst/rendInstGenRtTools.h>
+#include <rendInst/rendInstGenRender.h>
 #include "riGen/riGenData.h"
-#include "riGen/riGenRender.h"
 #include "riGen/genObjUtil.h"
 #include "riGen/landClassData.h"
-#include "riGen/genObjUtil.h"
 #include "riGen/riUtil.h"
 #include "riGen/riRotationPalette.h"
 
-#include <shaders/dag_shaderResUnitedData.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_drv3dCmd.h>
 #include <3d/dag_texPackMgr2.h>
@@ -23,9 +21,9 @@ static bool rigenNeedSyncPrepare = true, pendingReinit = false;
 static int ri_inited_pregen_cnt[16] = {0};
 static struct RiGenLastSetSweepMask
 {
-  rendinstgen::EditableHugeBitmask *bm;
+  rendinst::gen::EditableHugeBitmask *bm;
   float ox, oz, scale;
-} lastSweep = {NULL, 0, 0, 1};
+} lastSweep = {nullptr, 0, 0, 1};
 static Point3 curSunDir(0, -1, 0);
 static bool globalShadowsNeeded = false;
 
@@ -39,21 +37,14 @@ static void updateGlobalShadows()
   if (!is_managed_textures_streaming_load_on_demand())
     ddsx::tex_pack2_perform_delayed_data_loading();
 
-  mat44f oproj, ovtm;
-  Driver3dPerspective p;
+  d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, nullptr, nullptr, nullptr);
 
-  d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
-  d3d::gettm(TM_PROJ, oproj);
-  d3d::gettm(TM_VIEW, ovtm);
-  bool prevPerspValid = d3d::getpersp(p);
+  {
+    SCOPE_VIEW_PROJ_MATRIX;
+    rendinst::render::renderRIGenGlobalShadowsToTextures(curSunDir);
+  }
 
-  rendinst::renderRIGenGlobalShadowsToTextures(curSunDir);
-
-  d3d::settm(TM_PROJ, oproj);
-  d3d::settm(TM_VIEW, ovtm);
-  if (prevPerspValid)
-    d3d::setpersp(p);
-  d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
+  d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, nullptr, nullptr, nullptr);
 }
 
 static bool check_ht_tight_enough(RendInstGenData *rgl, int idx, RendInstGenData::CellRtData *crt)
@@ -74,7 +65,6 @@ static bool check_ht_tight_enough(RendInstGenData *rgl, int idx, RendInstGenData
       }
   if (fabs(rgl->cells[idx].htMin - miny) > 0 || fabs(rgl->cells[idx].htDelta - hdelta) > 0)
   {
-    // debug("detailed HMAP minimax, rounded: %.4f - %.4f", miny, miny+hdelta);
     rgl->cells[idx].htMin = as_point4(&crt->cellOrigin).y = miny;
     rgl->cells[idx].htDelta = crt->cellHeight = hdelta;
     return false;
@@ -105,10 +95,10 @@ static RendInstGenData::CellRtData *get_cell_rt_at(int layer_idx, float x, float
 {
   RendInstGenData *rgl = rendinst::rgLayer[layer_idx];
   if (!rgl)
-    return NULL;
+    return nullptr;
   int idx = get_cell_idx_at(layer_idx, x, z);
   if (idx < 0)
-    return NULL;
+    return nullptr;
   return rgl->cells[idx].rtData;
 }
 
@@ -122,7 +112,8 @@ static void rendinst_alloc_coll_props(int layer_idx)
 }
 
 static RendInstGenData *alloc_rigen_data(float ofs_x, float ofs_z, float grid2world, int cell_sz, int cell_num_x, int cell_num_z,
-  dag::ConstSpan<rendinstgenland::AssetData *> land_cls, int layer_idx, int per_inst_data_dwords, float dens_map_px, float dens_map_pz)
+  dag::ConstSpan<rendinst::gen::land::AssetData *> land_cls, int layer_idx, int per_inst_data_dwords, float dens_map_px,
+  float dens_map_pz)
 {
   size_t ofs0 = sizeof(RendInstGenData);
   size_t ofs1 = ofs0 + sizeof(RendInstGenData::Cell) * cell_num_x * cell_num_z;
@@ -241,7 +232,7 @@ void rendinst::update_rt_pregen_ri(int pregen_id, RenderableInstanceLodsResource
 }
 
 bool rendinst::create_rt_rigen_data(float ofs_x, float ofs_z, float grid2world, int cell_sz, int cell_num_x, int cell_num_z,
-  int per_inst_data_dwords, dag::ConstSpan<rendinstgenland::AssetData *> land_cls, float dens_map_px, float dens_map_pz)
+  int per_inst_data_dwords, dag::ConstSpan<rendinst::gen::land::AssetData *> land_cls, float dens_map_px, float dens_map_pz)
 {
   FOR_EACH_RG_LAYER_DO (rgl)
     return false;
@@ -275,9 +266,6 @@ bool rendinst::create_rt_rigen_data(float ofs_x, float ofs_z, float grid2world, 
     rendinst::rgLayer[layer] = alloc_rigen_data(ofs_x, ofs_z, grid2world, l_cell_sz, l_cell_num_x, l_cell_num_z, land_cls, layer,
       per_inst_data_dwords, dens_map_px, dens_map_pz);
   }
-  // FOR_EACH_SECONDARY_RG_LAYER_DO(rgl)
-  //   if (!rgl->landCls.size())
-  //     del_it(rendinst::rgLayers[_layer]);
 
   rendinst::rebuildRgRenderMasks();
   debug("rgRenderMaskO=0x%04X rgRenderMaskDS=0x%04X rgRenderMaskCMS=0x%04X", rgRenderMaskO, rgRenderMaskDS, rgRenderMaskCMS);
@@ -305,9 +293,9 @@ void rendinst::release_rt_rigen_data()
     pregenEntCopy[_layer] = rgl->pregenEnt;
     rgl->pregenEnt.init(rgl->pregenEnt.data(), ri_inited_pregen_cnt[_layer]);
     for (int i = 0; i < rgl->pregenEnt.size(); i++)
-      rgl->pregenEnt[i].riRes = NULL;
+      rgl->pregenEnt[i].riRes = nullptr;
     for (int i = 0; i < rgl->landCls.size(); i++)
-      rgl->landCls[i].asset = NULL;
+      rgl->landCls[i].asset = nullptr;
   }
 
   rendinst::clearRIGen();
@@ -317,7 +305,7 @@ void rendinst::release_rt_rigen_data()
     rgl->pregenEnt.init(rgl->pregenEnt.data(), pregenEntCopy[_layer].size());
     mem_copy_from(rgl->pregenEnt, pregenEntCopy[_layer].data());
   }
-  RendInstGenData::riGenValidateGeneratedCell = NULL;
+  RendInstGenData::riGenValidateGeneratedCell = nullptr;
 }
 
 int rendinst::get_rigen_data_layers() { return rendinst::rgLayer.size(); }
@@ -327,20 +315,20 @@ int rendinst::get_rigen_layers_cell_div(int layer_idx)
   return (layer_idx >= 0 && layer_idx < rendinst::rgAttr.size()) ? rendinst::rgAttr[layer_idx].cellSizeDivisor : 1;
 }
 
-EditableHugeBitMap2d *rendinst::get_rigen_bit_mask(rendinstgenland::AssetData *land_cls)
+EditableHugeBitMap2d *rendinst::get_rigen_bit_mask(rendinst::gen::land::AssetData *land_cls)
 {
   FOR_EACH_RG_LAYER_DO (rgl)
     for (int i = 0; i < rgl->landCls.size(); i++)
       if (rgl->landCls[i].asset == land_cls)
         return static_cast<EditableHugeBitMap2d *>(rgl->landCls[i].mask);
-  return NULL;
+  return nullptr;
 }
 
 void rendinst::discard_rigen_rect(int gx0, int gz0, int gx1, int gz1)
 {
   if (!rendinst::rgLayer.size() || !rendinst::rgLayer[0])
     return;
-  // debug("discard_rigen_rect (%d,%d)-(%d,%d)", gx0, gz0, gx1, gz1);
+
   IBBox2 r_discard(IPoint2(gx0, gz0), IPoint2(gx1, gz1));
   ScopedLockAllRgLayersForWrite lock;
 
@@ -355,7 +343,6 @@ void rendinst::discard_rigen_rect(int gx0, int gz0, int gx1, int gz1)
         IBBox2 r_cell(IPoint2(cx * cell_sz, cz * cell_sz), IPoint2(cx * cell_sz + cell_sz, cz * cell_sz + cell_sz));
         if (r_discard & r_cell)
         {
-          // debug("discard %d,%d", cx, cz);
           rgl->rtData->loaded.delInt(i);
           del_it(rgl->cells[i].rtData);
           rigenNeedSyncPrepare = true;
@@ -367,7 +354,6 @@ void rendinst::discard_rigen_all()
 {
   if (!rendinst::rgLayer.size() || !rendinst::rgLayer[0])
     return;
-  // debug("discard_rigen_all");
   rendinst::regenerateRIGen();
 
   rigenNeedSyncPrepare = true;
@@ -380,16 +366,15 @@ void rendinst::discard_rigen_all()
 
 void rendinst::set_rigen_sweep_mask(rendinst::EditableHugeBitmask *bm, float ox, float oz, float scale)
 {
-  // debug("set_rigen_sweep_mask %p %.3f %.3f %.3f", &bm, ox, oz, scale);
-  rendinstgen::destrExcl.ox = ox;
-  rendinstgen::destrExcl.oz = oz;
-  rendinstgen::destrExcl.scale = scale;
-  rendinstgen::destrExcl.constBm = true;
-  G_STATIC_ASSERT(sizeof(*bm) == sizeof(rendinstgen::destrExcl.bm));
+  rendinst::gen::destrExcl.ox = ox;
+  rendinst::gen::destrExcl.oz = oz;
+  rendinst::gen::destrExcl.scale = scale;
+  rendinst::gen::destrExcl.constBm = true;
+  G_STATIC_ASSERT(sizeof(*bm) == sizeof(rendinst::gen::destrExcl.bm));
   if (bm)
-    memcpy(&rendinstgen::destrExcl.bm, bm, sizeof(*bm));
+    memcpy(&rendinst::gen::destrExcl.bm, bm, sizeof(*bm));
   else
-    memset(&rendinstgen::destrExcl.bm, 0, sizeof(rendinstgen::destrExcl.bm));
+    memset(&rendinst::gen::destrExcl.bm, 0, sizeof(rendinst::gen::destrExcl.bm));
 
   lastSweep.bm = bm;
   lastSweep.ox = ox;
@@ -398,7 +383,7 @@ void rendinst::set_rigen_sweep_mask(rendinst::EditableHugeBitmask *bm, float ox,
 }
 void rendinst::enable_rigen_mask_generated(bool en) { RendInstGenData::maskGeneratedEnabled = en; }
 
-void rendinst::prepare_rt_rigen_data_render(const Point3 &pos, const TMatrix &view_itm)
+void rendinst::prepare_rt_rigen_data_render(const Point3 &pos, const TMatrix &view_itm, const mat44f &proj_tm)
 {
   if (pendingReinit)
   {
@@ -444,7 +429,7 @@ void rendinst::prepare_rt_rigen_data_render(const Point3 &pos, const TMatrix &vi
     sunDir = Point3(dir.r, dir.g, dir.b);
     dist = 1000;
   }
-  rendinst::updateRIGenImpostors(dist, sunDir, view_itm);
+  rendinst::updateRIGenImpostors(dist, sunDir, view_itm, proj_tm);
   if (rigenNeedSyncPrepare)
   {
     int64_t reft = ref_time_ticks();
@@ -531,15 +516,14 @@ void rendinst::calculate_box_extension_for_objects_in_grid(bbox3f &out_bbox)
       calc_box_extension_for_objects_in_grid(rgl, out_bbox);
 }
 
-static rendinst::rigen_gather_pos_t riGenGatherPosCB = NULL;
-static rendinst::rigen_gather_tm_t riGenGatherTmCB = NULL;
+static rendinst::rigen_gather_pos_t riGenGatherPosCB = nullptr;
+static rendinst::rigen_gather_tm_t riGenGatherTmCB = nullptr;
 static rendinst::rigen_calculate_mapping_t riGenCalculateIndicesCB = nullptr;
 
 static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, int per_inst_data_dwords, float ox, float oy, float oz,
   float cell_xz_sz, float cell_y_sz)
 {
   static constexpr int SUBCELL_DIV = RendInstGenData::SUBCELL_DIV;
-  // debug("%d: crt=%p p=%.3f,%.3f sz=%.3f", layer_idx, &crt, ox, oz, cell_xz_sz);
 
   RendInstGenData *rgl = rendinst::rgLayer[layer_idx];
   Tab<Point4> poolP4(tmpmem);
@@ -613,7 +597,7 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
 
   bool need_one_more_pass = false;
   // per_inst_data_dwords is manually added
-  rendinstgen::InstancePackData packData{ox, oy, oz, cell_xz_sz, cell_y_sz, 0};
+  rendinst::gen::InstancePackData packData{ox, oy, oz, cell_xz_sz, cell_y_sz, 0};
   for (int s = 0; s < SUBCELL_DIV * SUBCELL_DIV; s++)
   {
     crt.pregenAdd->scCntIdx[s] = crt.pregenAdd->cntStor.size();
@@ -636,27 +620,27 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
             int32_t palette_id = -1;
             const TMatrix &tm = poolTM[idx[k]];
             const Point4 posScale = Point4::xyzV(tm.getcol(3), tm.getcol(1).length());
-            rendinstgen::RotationPaletteManager::Palette palette =
-              rendinstgen::get_rotation_palette_manager()->getPalette({layer_idx, j});
+            rendinst::gen::RotationPaletteManager::Palette palette =
+              rendinst::gen::get_rotation_palette_manager()->getPalette({layer_idx, j});
             G_ASSERT(palette.count > 0);
-            rendinstgen::RotationPaletteManager::clamp_euler_angles(palette, tm, &palette_id);
+            rendinst::gen::RotationPaletteManager::clamp_euler_angles(palette, tm, &palette_id);
             G_ASSERTF(palette_id >= 0, "Inconsistent palette rotation for pregen ri #%d, <%s>", j, rgl->pregenEnt[j].riName.get());
-            size_t size = rendinstgen::pack_entity_pos_inst_16(packData, Point3::xyz(posScale), posScale.w, palette_id, nullptr);
+            size_t size = rendinst::gen::pack_entity_pos_inst_16(packData, Point3::xyz(posScale), posScale.w, palette_id, nullptr);
             G_ASSERT(size == 4 * sizeof(int16_t));
             float y = posScale.y, q_y = (y - oy) / cell_y_sz;
             if (q_y < -32000.0 / 32767.0 || q_y > 1)
             {
-              inplace_min(as_point3(&rendinstgen::SingleEntityPool::bbox.bmin).y, y);
-              inplace_max(as_point3(&rendinstgen::SingleEntityPool::bbox.bmax).y, y);
+              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_max(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmax).y, y);
               if (y > -11e3 && y < 10e3)
                 need_one_more_pass = true;
               else
                 continue;
             }
             else if (y < oy)
-              inplace_min(as_point3(&rendinstgen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
             int id = append_items(crt.pregenAdd->dataStor, size / sizeof(int16_t));
-            rendinstgen::pack_entity_pos_inst_16(packData, Point3::xyz(posScale), posScale.w, palette_id,
+            rendinst::gen::pack_entity_pos_inst_16(packData, Point3::xyz(posScale), posScale.w, palette_id,
               &crt.pregenAdd->dataStor[id]);
             if (per_inst_data_dwords)
               append_items(crt.pregenAdd->dataStor, per_inst_data_dwords * 2, (int16_t *)&poolPerInstDataTM[idx[k]]);
@@ -667,23 +651,22 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
           for (int k = 0; k < cnt.riCount; k++)
           {
             Point4 &p = poolP4[idx[k]];
-            size_t size = rendinstgen::pack_entity_pos_inst_16(packData, Point3(p.x, p.y, p.z), p.w, -1, nullptr);
+            size_t size = rendinst::gen::pack_entity_pos_inst_16(packData, Point3(p.x, p.y, p.z), p.w, -1, nullptr);
             G_ASSERT(size == 4 * sizeof(int16_t));
             float y = p.y, q_y = (y - oy) / cell_y_sz;
             if (q_y < -32000.0 / 32767.0 || q_y > 1)
             {
-              inplace_min(as_point3(&rendinstgen::SingleEntityPool::bbox.bmin).y, y);
-              inplace_max(as_point3(&rendinstgen::SingleEntityPool::bbox.bmax).y, y);
+              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_max(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmax).y, y);
               if (y > -11e3 && y < 10e3)
                 need_one_more_pass = true;
               else
                 continue;
-              // data[1] = 0;
             }
             else if (y < oy)
-              inplace_min(as_point3(&rendinstgen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
             int id = append_items(crt.pregenAdd->dataStor, size / sizeof(int16_t));
-            rendinstgen::pack_entity_pos_inst_16(packData, Point3(p.x, p.y, p.z), p.w, -1, &crt.pregenAdd->dataStor[id]);
+            rendinst::gen::pack_entity_pos_inst_16(packData, Point3(p.x, p.y, p.z), p.w, -1, &crt.pregenAdd->dataStor[id]);
             if (per_inst_data_dwords)
               append_items(crt.pregenAdd->dataStor, per_inst_data_dwords * 2, (int16_t *)&poolPerInstDataP4[idx[k]]);
           }
@@ -693,24 +676,23 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
           for (int k = 0; k < cnt.riCount; k++)
           {
             TMatrix &tm = poolTM[idx[k]];
-            size_t size = rendinstgen::pack_entity_tm_16(packData, tm, nullptr);
+            size_t size = rendinst::gen::pack_entity_tm_16(packData, tm, nullptr);
             G_ASSERT(size == 12 * sizeof(int16_t));
             float y = tm.m[3][1], q_y = (y - oy) / cell_y_sz;
             if (q_y < -32000.0 / 32767.0 || q_y > 1)
             {
-              inplace_min(as_point3(&rendinstgen::SingleEntityPool::bbox.bmin).y, y);
-              inplace_max(as_point3(&rendinstgen::SingleEntityPool::bbox.bmax).y, y);
+              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_max(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmax).y, y);
               if (y > -11e3 && y < 10e3)
                 need_one_more_pass = true;
               else
                 continue;
-              // data[7] = 0; // pos.y component
             }
             else if (y < oy)
-              inplace_min(as_point3(&rendinstgen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
 
             int id = append_items(crt.pregenAdd->dataStor, size / sizeof(int16_t));
-            rendinstgen::pack_entity_tm_16(packData, tm, &crt.pregenAdd->dataStor[id]);
+            rendinst::gen::pack_entity_tm_16(packData, tm, &crt.pregenAdd->dataStor[id]);
             if (per_inst_data_dwords)
               append_items(crt.pregenAdd->dataStor, per_inst_data_dwords * 2, (int16_t *)&poolPerInstDataTM[idx[k]]);
           }
@@ -720,25 +702,24 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
           for (int k = 0; k < cnt.riCount; k++)
           {
             TMatrix &tm = poolTM[idx[k]];
-            size_t size = rendinstgen::pack_entity_tm_32(packData, tm, nullptr);
+            size_t size = rendinst::gen::pack_entity_tm_32(packData, tm, nullptr);
             G_ASSERT(size == 12 * sizeof(int32_t));
             G_UNUSED(size);
             float y = tm.m[3][1], q_y = (y - oy) / cell_y_sz;
             if (q_y < -32000.0 / 32767.0 || q_y > 1)
             {
-              inplace_min(as_point3(&rendinstgen::SingleEntityPool::bbox.bmin).y, y);
-              inplace_max(as_point3(&rendinstgen::SingleEntityPool::bbox.bmax).y, y);
+              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_max(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmax).y, y);
               if (y > -11e3 && y < 10e3)
                 need_one_more_pass = true;
               else
                 continue;
-              // data[7] = 0; // pos.y component
             }
             else if (y < oy)
-              inplace_min(as_point3(&rendinstgen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
 
             int id = append_items(crt.pregenAdd->dataStor, 24);
-            rendinstgen::pack_entity_tm_32(packData, tm, &crt.pregenAdd->dataStor[id]);
+            rendinst::gen::pack_entity_tm_32(packData, tm, &crt.pregenAdd->dataStor[id]);
             if (per_inst_data_dwords)
               append_items(crt.pregenAdd->dataStor, per_inst_data_dwords * 2, (int16_t *)&poolPerInstDataTM[idx[k]]);
           }
@@ -760,7 +741,7 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
 void rendinst::set_rt_pregen_gather_cb(rigen_gather_pos_t cb_pos, rigen_gather_tm_t cb_tm, rigen_calculate_mapping_t cb_ind,
   rigen_prepare_pools_t cb_prep)
 {
-  RendInstGenData::riGenPrepareAddPregenCB = (cb_pos || cb_tm) ? prepare_add_pregen : NULL;
+  RendInstGenData::riGenPrepareAddPregenCB = (cb_pos || cb_tm) ? prepare_add_pregen : nullptr;
   riGenGatherPosCB = cb_pos;
   riGenGatherTmCB = cb_tm;
   riGenCalculateIndicesCB = cb_ind;
@@ -835,7 +816,7 @@ void rendinst::set_sun_dir_for_global_shadows(const Point3 &sun_dir)
 void rendinst::set_global_shadows_needed(bool need)
 {
   if (!globalShadowsNeeded && need)
-    rendinst::renderRIGenGlobalShadowsToTextures(curSunDir);
+    rendinst::render::renderRIGenGlobalShadowsToTextures(curSunDir);
   globalShadowsNeeded = need;
 }
 
@@ -903,7 +884,7 @@ rendinst::GetRendInstMatrixByRiIdxResult rendinst::get_rendinst_matrix_by_ri_idx
 }
 
 // To emulate RendInstGenData::generateCell accurately we have to unpack Y and repack it.
-// The same happens to it in generateCell because of rendinstgen::custom_update_pregen_pos_y.
+// The same happens to it in generateCell because of rendinst::gen::custom_update_pregen_pos_y.
 static inline void requantizeY(int16_t &int16_y, float cell_add_y, float cell_mul_y)
 {
   const float floatY = ((int16_y / 32767.0f) * cell_mul_y) + cell_add_y;
@@ -931,11 +912,11 @@ rendinst::QuantizeRendInstMatrixResult rendinst::quantize_rendinst_matrix(int la
 
   const float cellSz = riGen->grid2world * riGen->cellSz;
   const vec3f v_cell_add = cellRt->cellOrigin;
-  const vec3f v_cell_mul = v_mul(rendinstgen::VC_1div32767, v_make_vec4f(cellSz, cellRt->cellHeight, cellSz, 0));
+  const vec3f v_cell_mul = v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(cellSz, cellRt->cellHeight, cellSz, 0));
   int16_t data[12];
   mat44f unpackedTm44;
 
-  rendinstgen::InstancePackData instancePackData;
+  rendinst::gen::InstancePackData instancePackData;
   instancePackData.ox = v_extract_x(cellRt->cellOrigin);
   instancePackData.oy = v_extract_y(cellRt->cellOrigin);
   instancePackData.oz = v_extract_z(cellRt->cellOrigin);
@@ -950,37 +931,37 @@ rendinst::QuantizeRendInstMatrixResult rendinst::quantize_rendinst_matrix(int la
 
     if (riGen->pregenEnt[ri_idx].paletteRotation)
     {
-      rendinstgen::RotationPaletteManager::Palette palette =
-        rendinstgen::get_rotation_palette_manager()->getPalette({layer_idx, ri_idx});
-      rendinstgen::RotationPaletteManager::clamp_euler_angles(palette, in_tm, &paletteId);
+      rendinst::gen::RotationPaletteManager::Palette palette =
+        rendinst::gen::get_rotation_palette_manager()->getPalette({layer_idx, ri_idx});
+      rendinst::gen::RotationPaletteManager::clamp_euler_angles(palette, in_tm, &paletteId);
 
-      rendinstgen::pack_entity_pos_inst_16(instancePackData, in_tm.getcol(3), scale, paletteId, data);
+      rendinst::gen::pack_entity_pos_inst_16(instancePackData, in_tm.getcol(3), scale, paletteId, data);
       requantizeY(data[1], instancePackData.oy, instancePackData.cell_y_sz);
 
       vec4f unpackedPos, unpackedScale;
       vec4i unpackedPaletteId;
-      rendinstgen::unpack_tm_pos(unpackedPos, unpackedScale, data, v_cell_add, v_cell_mul, true, &unpackedPaletteId);
+      rendinst::gen::unpack_tm_pos(unpackedPos, unpackedScale, data, v_cell_add, v_cell_mul, true, &unpackedPaletteId);
 
-      quat4f rotation = rendinstgen::RotationPaletteManager::get_quat(palette, v_extract_xi(unpackedPaletteId));
+      quat4f rotation = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(unpackedPaletteId));
       v_mat44_compose(unpackedTm44, unpackedPos, rotation, unpackedScale);
     }
     else
     {
-      rendinstgen::pack_entity_pos_inst_16(instancePackData, in_tm.getcol(3), scale, paletteId, data);
+      rendinst::gen::pack_entity_pos_inst_16(instancePackData, in_tm.getcol(3), scale, paletteId, data);
       requantizeY(data[1], instancePackData.oy, instancePackData.cell_y_sz);
-      rendinstgen::unpack_tm_pos(unpackedTm44, data, v_cell_add, v_cell_mul, false);
+      rendinst::gen::unpack_tm_pos(unpackedTm44, data, v_cell_add, v_cell_mul, false);
     }
   }
   else
   {
-    { // This is the inverse of rendinstgen::unpack_tm_full. rendinstgen::pack_entity_16 was not precise enough.
+    { // This is the inverse of rendinst::gen::unpack_tm_full. rendinst::gen::pack_entity_16 was not precise enough.
       mat44f tm44;
       v_mat44_make_from_43cu(tm44, in_tm.array);
 
       mat44f m;
-      m.col0 = v_div(tm44.col0, rendinstgen::VC_1div256);
-      m.col1 = v_div(tm44.col1, rendinstgen::VC_1div256);
-      m.col2 = v_div(tm44.col2, rendinstgen::VC_1div256);
+      m.col0 = v_div(tm44.col0, rendinst::gen::VC_1div256);
+      m.col1 = v_div(tm44.col1, rendinst::gen::VC_1div256);
+      m.col2 = v_div(tm44.col2, rendinst::gen::VC_1div256);
       m.col3 = v_div(v_sub(tm44.col3, v_cell_add), v_cell_mul);
 
       mat43f m43;
@@ -1006,7 +987,7 @@ rendinst::QuantizeRendInstMatrixResult rendinst::quantize_rendinst_matrix(int la
     }
 
     requantizeY(data[7], instancePackData.oy, instancePackData.cell_y_sz);
-    rendinstgen::unpack_tm_full(unpackedTm44, data, v_cell_add, v_cell_mul);
+    rendinst::gen::unpack_tm_full(unpackedTm44, data, v_cell_add, v_cell_mul);
   }
 
   v_mat_43cu_from_mat44(out_tm.array, unpackedTm44);

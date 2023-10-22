@@ -17,7 +17,7 @@
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <shaders/dag_shaderCommon.h>
 #include "shaderGraph/shaderGraph.h"
-#include "../../engine2/shaders/shadersBinaryData.h" // hack include to get direct access to shaders internal representation
+#include "../../engine/shaders/shadersBinaryData.h" // hack include to get direct access to shaders internal representation
 
 #include <Windows.h>
 

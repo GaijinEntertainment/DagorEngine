@@ -49,7 +49,7 @@
 // ----------------------------------------------------------------------------
 
 PropertyContainerControlBase::PropertyContainerControlBase(int id, ControlEventHandler *event_handler,
-  PropertyContainerControlBase *parent, int x, int y, unsigned w, unsigned h) :
+  PropertyContainerControlBase *parent, int x, int y, hdpi::Px w, hdpi::Px h) :
   PropertyControlBase(id, event_handler, parent, x, y, w, h), mControlArray(midmem), mControlsNewLine(midmem), mUpdate(false)
 {
   this->clear();
@@ -60,10 +60,11 @@ PropertyContainerControlBase::~PropertyContainerControlBase() { this->clear(); }
 //------------------------------ Creators -------------------------------------
 
 
-PropertyContainerControlBase *PropertyContainerControlBase::createContainer(int id, bool new_line, int interval)
+PropertyContainerControlBase *PropertyContainerControlBase::createContainer(int id, bool new_line, hdpi::Px interval)
 {
-  CContainer *newContainer = new CContainer(this->mEventHandler, this, id, this->getNextControlX(), this->getNextControlY(new_line),
-    this->getClientWidth(), DEFAULT_GROUP_HEIGHT, (interval < 0) ? DEFAULT_CONTROLS_INTERVAL : interval);
+  CContainer *newContainer =
+    new CContainer(this->mEventHandler, this, id, this->getNextControlX(), this->getNextControlY(new_line), this->getClientWidth(),
+      _pxScaled(DEFAULT_GROUP_HEIGHT), interval == hdpi::Px::ZERO ? _pxScaled(DEFAULT_CONTROLS_INTERVAL) : interval);
 
   this->addControl(newContainer, new_line);
   return newContainer;
@@ -73,7 +74,7 @@ PropertyContainerControlBase *PropertyContainerControlBase::createContainer(int 
 PropertyContainerControlBase *PropertyContainerControlBase::createExtensible(int id, bool new_line)
 {
   CExtensible *newExtensible = new CExtensible(this->mEventHandler, this, id, this->getNextControlX(), this->getNextControlY(new_line),
-    this->getClientWidth(), DEFAULT_CONTROL_HEIGHT);
+    this->getClientWidth(), _pxScaled(DEFAULT_CONTROL_HEIGHT));
 
   this->addControl(newExtensible, new_line);
   return newExtensible;
@@ -83,7 +84,7 @@ PropertyContainerControlBase *PropertyContainerControlBase::createExtensible(int
 PropertyContainerControlBase *PropertyContainerControlBase::createExtGroup(int id, const char text[])
 {
   CGroup *newExtGroup = new CExtGroup(this->mEventHandler, this, id, this->getNextControlX(), this->getNextControlY(),
-    this->getClientWidth(), DEFAULT_GROUP_HEIGHT, text);
+    this->getClientWidth(), _pxScaled(DEFAULT_GROUP_HEIGHT), text);
 
   this->addControl(newExtGroup);
   return newExtGroup;
@@ -93,7 +94,7 @@ PropertyContainerControlBase *PropertyContainerControlBase::createExtGroup(int i
 PropertyContainerControlBase *PropertyContainerControlBase::createGroup(int id, const char text[])
 {
   CGroup *newGroup = new CGroup(this->mEventHandler, this, id, this->getNextControlX(), this->getNextControlY(),
-    this->getClientWidth(), DEFAULT_GROUP_HEIGHT, text);
+    this->getClientWidth(), _pxScaled(DEFAULT_GROUP_HEIGHT), text);
 
   this->addControl(newGroup);
   return newGroup;
@@ -102,7 +103,7 @@ PropertyContainerControlBase *PropertyContainerControlBase::createGroup(int id, 
 PropertyContainerControlBase *PropertyContainerControlBase::createGroupHorzFlow(int id, const char caption[])
 {
   CGroup *newGroup = new CGroup(this->mEventHandler, this, id, this->getNextControlX(), this->getNextControlY(),
-    this->getClientWidth(), DEFAULT_GROUP_HEIGHT, caption, HorzFlow::Enabled);
+    this->getClientWidth(), _pxScaled(DEFAULT_GROUP_HEIGHT), caption, HorzFlow::Enabled);
 
   this->addControl(newGroup);
   return newGroup;
@@ -111,7 +112,7 @@ PropertyContainerControlBase *PropertyContainerControlBase::createGroupHorzFlow(
 PropertyContainerControlBase *PropertyContainerControlBase::createGroupBox(int id, const char text[])
 {
   CGroupBox *newGroupBox = new CGroupBox(this->mEventHandler, this, id, this->getNextControlX(), this->getNextControlY(),
-    this->getClientWidth(), DEFAULT_GROUP_HEIGHT, text);
+    this->getClientWidth(), _pxScaled(DEFAULT_GROUP_HEIGHT), text);
 
   this->addControl(newGroupBox);
   return newGroupBox;
@@ -121,7 +122,7 @@ PropertyContainerControlBase *PropertyContainerControlBase::createGroupBox(int i
 PropertyContainerControlBase *PropertyContainerControlBase::createRadioGroup(int id, const char caption[], bool new_line)
 {
   CRadioGroup *newRadioGroup = new CRadioGroup(this->mEventHandler, this, id, this->getNextControlX(), this->getNextControlY(new_line),
-    this->getClientWidth(), DEFAULT_GROUP_HEIGHT, caption);
+    this->getClientWidth(), _pxScaled(DEFAULT_GROUP_HEIGHT), caption);
 
   this->addControl(newRadioGroup, new_line);
   return newRadioGroup;
@@ -131,7 +132,7 @@ PropertyContainerControlBase *PropertyContainerControlBase::createRadioGroup(int
 PropertyContainerControlBase *PropertyContainerControlBase::createTabPanel(int id, const char caption[])
 {
   CTabPanel *newTabPanel = new CTabPanel(this->mEventHandler, this, id, this->getNextControlX(), this->getNextControlY(),
-    this->getClientWidth(), DEFAULT_TAB_HEIGHT, caption);
+    this->getClientWidth(), _pxScaled(DEFAULT_TAB_HEIGHT), caption);
 
   this->addControl(newTabPanel);
   return newTabPanel;
@@ -148,7 +149,7 @@ PropertyContainerControlBase *PropertyContainerControlBase::createToolbarPanel(i
 }
 
 
-PropertyContainerControlBase *PropertyContainerControlBase::createTree(int id, const char caption[], int height, bool new_line)
+PropertyContainerControlBase *PropertyContainerControlBase::createTree(int id, const char caption[], hdpi::Px height, bool new_line)
 {
   CTree *newTree = new CTree(this->mEventHandler, this, id, this->getNextControlX(new_line), this->getNextControlY(new_line),
     this->getClientWidth(), height, caption);
@@ -175,7 +176,7 @@ void PropertyContainerControlBase::createStatic(int id, const char caption[], bo
 
 
 void PropertyContainerControlBase::createEditBox(int id, const char caption[], const char text[], bool enabled, bool new_line,
-  bool multiline, int multi_line_height)
+  bool multiline, hdpi::Px multi_line_height)
 {
   CEditBox *newEditBox = new CEditBox(this->mEventHandler, this, id, this->getNextControlX(new_line), this->getNextControlY(new_line),
     this->getClientWidth(), caption, multiline);
@@ -390,7 +391,7 @@ void PropertyContainerControlBase::createList(int id, const char caption[], cons
 }
 
 
-void PropertyContainerControlBase::createMultiSelectList(int id, const Tab<String> &vals, int height, bool enabled, bool new_line)
+void PropertyContainerControlBase::createMultiSelectList(int id, const Tab<String> &vals, hdpi::Px height, bool enabled, bool new_line)
 {
   CMultiSelectListBox *newListBox = new CMultiSelectListBox(this->mEventHandler, this, id, this->getNextControlX(new_line),
     this->getNextControlY(new_line), this->getClientWidth(), height, vals);
@@ -507,10 +508,10 @@ void PropertyContainerControlBase::createTextGradient(int id, const char caption
 }
 
 
-void PropertyContainerControlBase::createGradientPlot(int id, const char caption[], int height, bool enabled, bool new_line)
+void PropertyContainerControlBase::createGradientPlot(int id, const char caption[], hdpi::Px height, bool enabled, bool new_line)
 {
   CGradientPlot *newGradientPlot = new CGradientPlot(this->mEventHandler, this, id, this->getNextControlX(new_line),
-    this->getNextControlY(new_line), this->getClientWidth(), height ? height : GRADIENT_HEIGHT, caption);
+    this->getNextControlY(new_line), this->getClientWidth(), height != hdpi::Px::ZERO ? height : _pxScaled(GRADIENT_HEIGHT), caption);
 
   newGradientPlot->setEnabled(enabled);
 
@@ -518,10 +519,11 @@ void PropertyContainerControlBase::createGradientPlot(int id, const char caption
 }
 
 
-void PropertyContainerControlBase::createCurveEdit(int id, const char caption[], int height, bool enabled, bool new_line)
+void PropertyContainerControlBase::createCurveEdit(int id, const char caption[], hdpi::Px height, bool enabled, bool new_line)
 {
-  CCurveEdit *newCurveEdit = new CCurveEdit(this->mEventHandler, this, id, this->getNextControlX(new_line),
-    this->getNextControlY(new_line), this->getClientWidth(), height ? height : DEFAULT_CURVE_HEIGHT, caption);
+  CCurveEdit *newCurveEdit =
+    new CCurveEdit(this->mEventHandler, this, id, this->getNextControlX(new_line), this->getNextControlY(new_line),
+      this->getClientWidth(), height != hdpi::Px::ZERO ? height : _pxScaled(DEFAULT_CURVE_HEIGHT), caption);
 
   newCurveEdit->setEnabled(enabled);
 
@@ -529,10 +531,10 @@ void PropertyContainerControlBase::createCurveEdit(int id, const char caption[],
 }
 
 
-void PropertyContainerControlBase::createTwoColorIndicator(int id, const char caption[], int height, bool enabled, bool new_line)
+void PropertyContainerControlBase::createTwoColorIndicator(int id, const char caption[], hdpi::Px height, bool enabled, bool new_line)
 {
   CTwoColorIndicator *newTwoColorIndicator = new CTwoColorIndicator(this->mEventHandler, this, id, this->getNextControlX(new_line),
-    this->getNextControlY(new_line), this->getClientWidth(), height ? height : DEFAULT_CONTROL_HEIGHT);
+    this->getNextControlY(new_line), this->getClientWidth(), height != hdpi::Px::ZERO ? height : _pxScaled(DEFAULT_CONTROL_HEIGHT));
 
   newTwoColorIndicator->setEnabled(enabled);
 
@@ -551,7 +553,7 @@ void PropertyContainerControlBase::createPaletteCell(int id, const char caption[
 }
 
 
-PropertyControlBase *PropertyContainerControlBase::createPlaceholder(int id, int height, bool new_line)
+PropertyControlBase *PropertyContainerControlBase::createPlaceholder(int id, hdpi::Px height, bool new_line)
 {
   CPlaceholder *newPlaceholder = new CPlaceholder(this->mEventHandler, this, id, this->getNextControlX(new_line),
     this->getNextControlY(new_line), this->getClientWidth(), height);
@@ -649,7 +651,7 @@ void PropertyContainerControlBase::resetById(int id)
 }
 
 
-void PropertyContainerControlBase::setWidthById(int id, unsigned w)
+void PropertyContainerControlBase::setWidthById(int id, hdpi::Px w)
 {
   PropertyControlBase *ptr = this->getById(id);
   if (ptr)
@@ -886,6 +888,22 @@ void PropertyContainerControlBase::setButtonPictures(int id, const char *fname)
   {
     ptr->setButtonPictureValues(fname);
   }
+}
+
+int PropertyContainerControlBase::addString(int id, const char *value)
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+    return ptr->addStringValue(value);
+
+  return 0;
+}
+
+void PropertyContainerControlBase::removeString(int id, int idx)
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+    ptr->removeStringValue(idx);
 }
 
 
@@ -1133,21 +1151,21 @@ PropertyControlBase *PropertyContainerControlBase::getByIndex(int index) const
 // ----------------------------------------------------------------------------
 
 
-unsigned PropertyContainerControlBase::getClientWidth()
+hdpi::Px PropertyContainerControlBase::getClientWidth()
 {
   WindowBase *win = this->getWindow();
   if (win)
   {
-    int result = win->getWidth() - 2 * DEFAULT_CONTROLS_INTERVAL;
-    return (result > 0) ? result : 0;
+    int result = win->getWidth() - 2 * _pxS(DEFAULT_CONTROLS_INTERVAL);
+    return _pxActual((result > 0) ? result : 0);
   }
 
   debug("PropertyContainerControlBase::getClientWidth(): getWindow() == NULL!");
-  return 0;
+  return hdpi::Px::ZERO;
 }
 
 
-unsigned PropertyContainerControlBase::getClientHeight() { return this->getNextControlY(); }
+hdpi::Px PropertyContainerControlBase::getClientHeight() { return _pxActual(this->getNextControlY()); }
 
 
 void PropertyContainerControlBase::clear()
@@ -1290,9 +1308,9 @@ void PropertyContainerControlBase::addControl(PropertyControlBase *pcontrol, boo
   this->onControlAdd(pcontrol);
 }
 
-int PropertyContainerControlBase::getNextControlX(bool new_line) { return DEFAULT_CONTROLS_INTERVAL; }
+int PropertyContainerControlBase::getNextControlX(bool new_line) { return _pxS(DEFAULT_CONTROLS_INTERVAL); }
 
-int PropertyContainerControlBase::getNextControlY(bool new_line) { return DEFAULT_CONTROLS_INTERVAL; }
+int PropertyContainerControlBase::getNextControlY(bool new_line) { return _pxS(DEFAULT_CONTROLS_INTERVAL); }
 
 // ----------------------------------------------------------------------------
 

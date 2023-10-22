@@ -10,6 +10,7 @@ float4 gpu_objects_scale_radius;
 float4 gpu_objects_up_vector;
 int gpu_objects_buffer_offset;
 int gpu_objects_distance_emitter_buffer_offset;
+int gpu_objects_distance_emitter_decal_buffer_offset;
 int gpu_objects_matrices_count;
 int gpu_objects_on_rendinst_geometry_matrices_count;
 int gpu_objects_on_terrain_geometry_matrices_count;
@@ -17,10 +18,18 @@ int gpu_objects_max_on_terrain_instance_count;
 float4 gpu_objects_bbox_y_min_max;
 float4 gpu_objects_distance_to_scale_from;
 float4 gpu_objects_distance_to_scale_to;
+float4 gpu_objects_distance_to_min_scale;
+float4 gpu_objects_distance_to_max_scale;
 float gpu_objects_distance_to_rotation_from;
 float gpu_objects_distance_to_rotation_to;
+float gpu_objects_distance_to_min_rotation;
+float gpu_objects_distance_to_max_rotation;
 float4 gpu_objects_distance_to_scale_pow;
 float gpu_objects_distance_to_rotation_pow;
+int gpu_objects_distance_out_of_range;
+
+int gpu_objects_distance_affect_decal = 0;
+interval gpu_objects_distance_affect_decal: no<1, yes;
 
 buffer gpu_objects_geometry_meshes;
 buffer gpu_objects_counter;
@@ -31,8 +40,6 @@ float4 gpu_objects_debug_color;
 float gpu_objects_min_gathered_triangle_size;
 
 float gpu_objects_distance_emitter__range;
-float gpu_objects_distance_emitter__scale_factor;
-float gpu_objects_distance_emitter__rotation_factor;
 float4 gpu_objects_distance_emitter__position;
 
 macro ADD_INSTANCE()
@@ -83,15 +90,6 @@ endmacro
 macro ON_TERRAIN_UTILITY()
 hlsl(cs)
 {
-  float2 get_random_values(const uint dtId, const float4x4 placer_tm)
-  {
-    uint textureSize = 128;
-    uint seed = dtId;
-    seed %= textureSize * textureSize;
-    float2 tc = float2(seed % textureSize, seed / textureSize) / float(textureSize) + frac(float2(placer_tm[3][0], placer_tm[3][2]));
-    return tex2Dlod(noise_128_tex_hash, float4(tc, 0.0, 0.0)).rg;
-  }
-
   float3 get_world_position(const float2 randValues, const float4x4 placer_tm)
   {
     float3 localPos = float3(randValues.x - 0.5f, 0.0f, randValues.y - 0.5f);
@@ -102,6 +100,29 @@ hlsl(cs)
 }
 endmacro
 
+macro RANDOM_UTILITY()
+(cs) {
+    noise_128_tex_hash@smp2d = noise_128_tex_hash;
+}
+
+hlsl(cs)
+{
+  float2 get_2d_random_from_placer(uint seed, const float4x4 placer_tm)
+  {
+    uint textureSize = 128;
+    seed %= textureSize * textureSize;
+    float2 tc = float2(seed % textureSize, seed / textureSize) / float(textureSize) + frac(float2(placer_tm[3][0], placer_tm[3][2]));
+    return tex2Dlod(noise_128_tex_hash, float4(tc, 0.0, 0.0)).rg;
+  }
+
+  float3 get_3d_random_from_placer(uint seed, const float4x4 placer_tm)
+  {
+    float2 randomxy = get_2d_random_from_placer(seed, placer_tm);
+    float randomz = frac(sin(dot(randomxy, float2(12.9898,78.233))) * 43758.5453);
+    return float3(randomxy, randomz);
+  }
+}
+endmacro
 
 // TODO: optimize the crap out of this!
 shader gpu_objects_update_matrices_cs
@@ -110,17 +131,21 @@ shader gpu_objects_update_matrices_cs
   {
     buf_offset@i1 = gpu_objects_buffer_offset;
     distance_emitter_buf_offset@i1 = gpu_objects_distance_emitter_buffer_offset;
+    distance_emitter_decal_buf_offset@i1 = gpu_objects_distance_emitter_decal_buffer_offset;
     count@i1 = gpu_objects_matrices_count;
     scale_from@f3 = gpu_objects_distance_to_scale_from;
     scale_to@f3 = gpu_objects_distance_to_scale_to;
+    min_scale@f3 = gpu_objects_distance_to_min_scale;
+    max_scale@f3 = gpu_objects_distance_to_max_scale;
     rotation_from@f1 = gpu_objects_distance_to_rotation_from;
     rotation_to@f1 = gpu_objects_distance_to_rotation_to;
+    min_rotation@f1 = gpu_objects_distance_to_min_rotation;
+    max_rotation@f1 = gpu_objects_distance_to_max_rotation;
     scale_pow@f3 = gpu_objects_distance_to_scale_pow;
     rotation_pow@f1 = gpu_objects_distance_to_rotation_pow;
     range@f1 = gpu_objects_distance_emitter__range;
-    scale_factor@f1 = gpu_objects_distance_emitter__scale_factor;
-    rotation_factor@f1 = gpu_objects_distance_emitter__rotation_factor;
     entity_position@f3 = gpu_objects_distance_emitter__position;
+    out_of_range@i1 = gpu_objects_distance_out_of_range;
   }
 
   hlsl(cs)
@@ -129,7 +154,7 @@ shader gpu_objects_update_matrices_cs
 
     RWStructuredBuffer<float4> gpuObjectsMatrices : register(u0);
 
-    float3 getOriginalPosition(const int index)
+    float3 getOriginalPosition(int index)
     {
       return float3(
         gpuObjectsMatrices[index + 0][3],
@@ -138,7 +163,7 @@ shader gpu_objects_update_matrices_cs
       );
     }
 
-    float getOriginalScale(const int index)
+    float getOriginalScale(int index)
     {
       float3 firstColumn = float3(
         gpuObjectsMatrices[index + 0][0],
@@ -148,7 +173,7 @@ shader gpu_objects_update_matrices_cs
       return length(firstColumn);
     }
 
-    float3x3 getOriginalOrientation(const int index, const float scale)
+    float3x3 getOriginalOrientation(int index, float scale)
     {
       float3x3 orientationAndScale = float3x3(
         gpuObjectsMatrices[index + 0].xyz,
@@ -158,7 +183,7 @@ shader gpu_objects_update_matrices_cs
       return orientationAndScale / scale;
     }
 
-    float3 getOriginalUpDirection(const int index, const float originalScale)
+    float3 getOriginalUpDirection(int index, float originalScale)
     {
       float3 upVector = float3(
         gpuObjectsMatrices[index + 0][1],
@@ -168,23 +193,28 @@ shader gpu_objects_update_matrices_cs
       return upVector / originalScale;
     }
 
-    float remap(const float value, const float fromMin, const float fromMax, const float toMin, const float toMax)
+    float remap(float value, float fromMin, float fromMax, float toMin, float toMax)
     {
       return toMin + (value - fromMin) * (toMax - toMin) / (fromMax - fromMin);
     }
 
-    float3x3 getScale(const float originalScale, const float distance)
+    float3x3 getScaleMatrix(float3 scale)
     {
-      float normalizedDistance = 1.0f - min(remap(distance, 0.0f, range, 0.0f, 1.0f), 1.0f);
-      float3 normalizedDistanceVector = float3(normalizedDistance, normalizedDistance, normalizedDistance);
-      float3 normalizedDistancePowVector = pow(normalizedDistanceVector, scale_pow);
-      float3 scaleMultiplier = clamp(lerp(scale_from, scale_to * scale_factor, normalizedDistancePowVector), scale_from, scale_to);
-      float3 scale = originalScale * scaleMultiplier;
       return float3x3(
         scale.x, 0.0f, 0.0f,
         0.0f, scale.y, 0.0f,
         0.0f, 0.0f, scale.z
       );
+    }
+
+    float3x3 getScale(float originalScale, float distance)
+    {
+      float normalizedDistance = 1.0f - min(remap(distance, 0.0f, range, 0.0f, 1.0f), 1.0f);
+      float3 normalizedDistanceVector = float3(normalizedDistance, normalizedDistance, normalizedDistance);
+      float3 normalizedDistancePowVector = pow(normalizedDistanceVector, scale_pow);
+      float3 scaleMultiplier = clamp(lerp(scale_from, scale_to, normalizedDistancePowVector), min_scale, max_scale);
+      float3 scale = originalScale * scaleMultiplier;
+      return getScaleMatrix(scale);
     }
 
     float3x3 getOrientation(float4 axisAngle)
@@ -211,19 +241,32 @@ shader gpu_objects_update_matrices_cs
       return result;
     }
 
-    float3x3 getOrientation(const int index, const float3 gpuObjectToEntity, const float gpuObjectToEntityDistance, const float originalScale)
+    float3x3 getOrientation(int index, float3 gpuObjectToEntity, float gpuObjectToEntityDistance, float originalScale, float3x3 originalOrientation)
     {
       float3 gpuObjectToEntityDirection = gpuObjectToEntity / gpuObjectToEntityDistance;
       float3 originalUpDirection = getOriginalUpDirection(index, originalScale);
       float normalizedDistance = 1.0f - min(remap(gpuObjectToEntityDistance, 0.0f, range, 0.0f, 1.0f), 1.0f);
       float normalizedDistancePow = pow(normalizedDistance, rotation_pow);
-      float rotationFromRadians = rotation_from * PI / 180.0f;
-      float rotationToRadians = rotation_to * PI / 180.0f;
-      float angle = clamp(lerp(rotationFromRadians * rotation_factor, rotationToRadians, normalizedDistancePow), rotationFromRadians, rotationToRadians);
+      float angle = clamp(lerp(rotation_from, rotation_to, normalizedDistancePow), min_rotation, max_rotation);
       float3 axis = normalize(cross(originalUpDirection, gpuObjectToEntityDirection));
       float4 axisAngle = float4(axis, angle);
-      float3x3 originalOrientation = getOriginalOrientation(index, originalScale);
       return mul(getOrientation(axisAngle), originalOrientation);
+    }
+
+    void setMatrixToOriginal(int originalIndex, int newIndex)
+    {
+      gpuObjectsMatrices[newIndex + 0] = gpuObjectsMatrices[originalIndex + 0];
+      gpuObjectsMatrices[newIndex + 1] = gpuObjectsMatrices[originalIndex + 1];
+      gpuObjectsMatrices[newIndex + 2] = gpuObjectsMatrices[originalIndex + 2];
+      gpuObjectsMatrices[newIndex + 3] = gpuObjectsMatrices[originalIndex + 3];
+    }
+
+    void setMatrix(int originalIndex, int newIndex, float3x3 rotationScale)
+    {
+      gpuObjectsMatrices[newIndex + 0] = float4(rotationScale[0], gpuObjectsMatrices[originalIndex + 0][3]);
+      gpuObjectsMatrices[newIndex + 1] = float4(rotationScale[1], gpuObjectsMatrices[originalIndex + 1][3]);
+      gpuObjectsMatrices[newIndex + 2] = float4(rotationScale[2], gpuObjectsMatrices[originalIndex + 2][3]);
+      gpuObjectsMatrices[newIndex + 3] = gpuObjectsMatrices[originalIndex + 3];
     }
 
     [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
@@ -233,6 +276,7 @@ shader gpu_objects_update_matrices_cs
         return;
       int originalIndex = (buf_offset + thread_id) * ROWS_IN_MATRIX;
       int index = (distance_emitter_buf_offset + thread_id) * ROWS_IN_MATRIX;
+      int decalIndex = (distance_emitter_decal_buf_offset + thread_id) * ROWS_IN_MATRIX;
       float3 originalPosition = getOriginalPosition(originalIndex);
       float3 gpuObjectToEntity = entity_position - originalPosition;
       float gpuObjectToEntityDistance = length(gpuObjectToEntity);
@@ -240,19 +284,33 @@ shader gpu_objects_update_matrices_cs
       {
         float originalScale = getOriginalScale(originalIndex);
         float3x3 scale = getScale(originalScale, gpuObjectToEntityDistance);
-        float3x3 orientation = getOrientation(originalIndex, gpuObjectToEntity, gpuObjectToEntityDistance, originalScale);
+        float3x3 originalOrientation = getOriginalOrientation(originalIndex, originalScale);
+        float3x3 orientation = getOrientation(originalIndex, gpuObjectToEntity, gpuObjectToEntityDistance, originalScale, originalOrientation);
         float3x3 result = mul(orientation, scale);
-        gpuObjectsMatrices[index + 0] = float4(result[0], originalPosition.x);
-        gpuObjectsMatrices[index + 1] = float4(result[1], originalPosition.y);
-        gpuObjectsMatrices[index + 2] = float4(result[2], originalPosition.z);
-        gpuObjectsMatrices[index + 3] = gpuObjectsMatrices[originalIndex + 3];
+        setMatrix(originalIndex, index, result);
+        ##if gpu_objects_distance_affect_decal == yes
+          setMatrix(originalIndex, decalIndex, mul(originalOrientation, scale));
+        ##else
+          setMatrixToOriginal(originalIndex, decalIndex);
+        ##endif
+      }
+      else if(out_of_range == 1)
+      {
+        float originalScale = getOriginalScale(originalIndex);
+        float3x3 scale = getScaleMatrix(originalScale * scale_from);
+        float3x3 originalOrientation = getOriginalOrientation(originalIndex, originalScale);
+        float3x3 result = mul(originalOrientation, scale);
+        setMatrix(originalIndex, index, result);
+        ##if gpu_objects_distance_affect_decal == yes
+          setMatrix(originalIndex, decalIndex, result);
+        ##else
+          setMatrixToOriginal(originalIndex, decalIndex);
+        ##endif
       }
       else
       {
-        gpuObjectsMatrices[index + 0] = gpuObjectsMatrices[originalIndex + 0];
-        gpuObjectsMatrices[index + 1] = gpuObjectsMatrices[originalIndex + 1];
-        gpuObjectsMatrices[index + 2] = gpuObjectsMatrices[originalIndex + 2];
-        gpuObjectsMatrices[index + 3] = gpuObjectsMatrices[originalIndex + 3];
+        setMatrixToOriginal(originalIndex, index);
+        setMatrixToOriginal(originalIndex, decalIndex);
       }
     }
   }
@@ -268,16 +326,11 @@ shader gpu_objects_box_placer_cs
     scale_range@f2 = (gpu_objects_scale_rotate.x, gpu_objects_scale_rotate.y, 0, 0);
     placer_tm@f44 = gpu_objects_placer_tm;
     up_vector@f3 = gpu_objects_up_vector;
-    noise_128_tex_hash@smp2d = noise_128_tex_hash;
   }
   ADD_INSTANCE()
+  RANDOM_UTILITY()
   hlsl(cs) {
     #include "gpuObjects/gpu_objects_const.hlsli"
-
-    float rand(float2 co)
-    {
-      return frac(sin(dot(co.xy, float2(12.9898,78.233))) * 43758.5453);
-    }
 
     [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
     void generate_matrices(uint thread_id : SV_DispatchThreadID)
@@ -286,12 +339,7 @@ shader gpu_objects_box_placer_cs
         return;
       int offset = (buf_offset + thread_id) * ROWS_IN_MATRIX;
 
-      uint seed = thread_id;
-      seed %= 128*128;
-      float2 tc = float2(seed % 128, seed / 128) / 128.0 + frac(float2(placer_tm[3][0], placer_tm[3][2]));
-      float3 randValues;
-      randValues.xy = tex2Dlod(noise_128_tex_hash, float4(tc, 0.0, 0.0)).rg;
-      randValues.z = rand(randValues.xy);
+      float3 randValues = get_3d_random_from_placer(thread_id, placer_tm);
 
       float3 localPos = randValues - 0.5;
       float3 worldPos = mul(float4(localPos, 1), placer_tm).xyz;
@@ -496,7 +544,6 @@ shader gpu_objects_compute_terrain_objects_count_cs
   (cs)
   {
     placer_tm@f44 = gpu_objects_placer_tm;
-    noise_128_tex_hash@smp2d = noise_128_tex_hash;
     max_instance_count@i1 = gpu_objects_max_on_terrain_instance_count;
     y_min_max@f2 = gpu_objects_bbox_y_min_max;
   }
@@ -506,6 +553,7 @@ shader gpu_objects_compute_terrain_objects_count_cs
   INIT_WORLD_HEIGHTMAP_BASE(cs)
   USE_HEIGHTMAP_COMMON_BASE(cs)
   ON_TERRAIN_UTILITY()
+  RANDOM_UTILITY()
   hlsl(cs)
   {
     #include "gpuObjects/gpu_objects_const.hlsli"
@@ -518,7 +566,7 @@ shader gpu_objects_compute_terrain_objects_count_cs
       if (dtId >= max_instance_count)
         return;
 
-      float2 randValues = get_random_values(dtId, placer_tm);
+      float2 randValues = get_2d_random_from_placer(dtId, placer_tm);
       float3 worldPos = get_world_position(randValues, placer_tm);
 
       // this gives an approximate number of objects need to be reserved
@@ -543,7 +591,6 @@ shader gpu_objects_on_terrain_geometry_placer_cs
     scale_range@f2 = (gpu_objects_scale_rotate.x, gpu_objects_scale_rotate.y, 0, 0);
     scale_radius@f3 = (gpu_objects_scale_radius.x, gpu_objects_scale_radius.y,
                        1.0 / gpu_objects_scale_radius.z, 0);
-    noise_128_tex_hash@smp2d = noise_128_tex_hash;
     y_min_max@f2 = gpu_objects_bbox_y_min_max;
     max_instance_count@i1 = gpu_objects_max_on_terrain_instance_count;
   }
@@ -554,6 +601,7 @@ shader gpu_objects_on_terrain_geometry_placer_cs
   INIT_WORLD_HEIGHTMAP_BASE(cs)
   USE_HEIGHTMAP_COMMON_BASE(cs)
   ON_TERRAIN_UTILITY()
+  RANDOM_UTILITY()
   hlsl(cs)
   {
     #include "gpuObjects/gpu_objects_const.hlsli"
@@ -563,11 +611,11 @@ shader gpu_objects_on_terrain_geometry_placer_cs
     [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
     void gather_matrices(uint dtId : SV_DispatchThreadID )
     {
-      if (dtId >= max_instance_count)
+      if (dtId >= uint(max_instance_count))
         return;
 
-      float2 randValues = get_random_values(dtId, placer_tm);
-      float3 worldPos = get_world_position(randValues, placer_tm);
+      float3 randValues = get_3d_random_from_placer(dtId, placer_tm);
+      float3 worldPos = get_world_position(randValues.xy, placer_tm);
 
       if (y_min_max[0] <= worldPos.y && y_min_max[1] >= worldPos.y)
       {
@@ -575,16 +623,19 @@ shader gpu_objects_on_terrain_geometry_placer_cs
         InterlockedAdd(counter[TERRAIN_INDEX], 1, on_terrain_index);
         // this guarantees we don't put more objects into the buffer than its reserved area
         // (but we can still fill less than that, so we need to clear the buffer first)
-        if (on_terrain_index >= count)
+        if (on_terrain_index >= uint(count))
           return;
 
-        float scale = lerp(scale_range.x, scale_range.y, randValues.x);
+        float scale = lerp(scale_range.x, scale_range.y, randValues.z);
         float distance = length(worldPos - placer_tm[3].xyz);
         scale *= lerp(scale_radius.x, scale_radius.y, saturate(distance * scale_radius.z));
 
         int offset = (int(gpu_objects_buffer_offset) + int(gpu_objects_on_rendinst_geometry_matrices_count) + int(dtId)) * ROWS_IN_MATRIX;
         float3 up = getWorldNormal(worldPos);
-        float3 rndVec = float3(randValues.x, 0.0f, randValues.y);
+        const float EPS = 0.00001;
+        uint seed = uint(dtId * (1.0f / (randValues.x + EPS)));
+        float3 rndVec = get_3d_random_from_placer(seed, placer_tm);
+        rndVec -= 0.5f;
         float3 right = normalize(rndVec - dot(rndVec, up) * up);
         float3 forward = cross(right, up);
         addInstance(worldPos, float3x3(right, up, forward), scale, offset);
@@ -632,7 +683,6 @@ shader gpu_objects_on_rendinst_geometry_placer_cs
     scale_range@f2 = (gpu_objects_scale_rotate.x, gpu_objects_scale_rotate.y, 0, 0);
     scale_radius@f3 = (gpu_objects_scale_radius.x, gpu_objects_scale_radius.y,
                        1.0 / gpu_objects_scale_radius.z, 0);
-    noise_128_tex_hash@smp2d = noise_128_tex_hash;
     up_vector@f3 = gpu_objects_up_vector;
     triangles@buf = gpu_objects_gathered_triangles hlsl {
       #include "gpuObjects/gpu_objects_const.hlsli"
@@ -642,12 +692,8 @@ shader gpu_objects_on_rendinst_geometry_placer_cs
   }
   ENABLE_ASSERT(cs)
   ADD_INSTANCE()
+  RANDOM_UTILITY()
   hlsl(cs) {
-    float rand(float2 co)
-    {
-      return frac(sin(dot(co.xy, float2(12.9898,78.233))) * 43758.5453);
-    }
-
     [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
     void gather_matrices(uint thread_id : SV_DispatchThreadID)
     {
@@ -655,12 +701,7 @@ shader gpu_objects_on_rendinst_geometry_placer_cs
         return;
       int offset = (buf_offset + thread_id) * ROWS_IN_MATRIX;
 
-      uint seed = thread_id + uint(frac(placer_tm[3][0]) * 128) + uint(frac(placer_tm[3][2]) * 128 * 128);
-      seed %= 128*128;
-      int2 tci = int2(seed % 128, seed / 128);
-      float3 randValues;
-      randValues.xy = texelFetch(noise_128_tex_hash, tci, 0).rg;
-      randValues.z = rand(randValues.xy);
+      float3 randValues = get_3d_random_from_placer(thread_id, placer_tm);
 
       uint num_faces = min((uint)max_triangles, loadBuffer(counter, TRIANGLES_COUNT * 4));
       float targetArea = structuredBufferAt(triangles, num_faces - 1).areaDoubled * randValues.z;
@@ -684,7 +725,8 @@ shader gpu_objects_on_rendinst_geometry_placer_cs
       float2 clippedRand = dot(randValues.xy, 1) > 1 ? 1 - randValues.xy : randValues.xy;
       float3 worldPos = (1 - dot(clippedRand, 1)) * v1 + clippedRand.x * v2 + clippedRand.y * v3;
       float3 normal = normalize(cross(v2 - v1, v3 - v1));
-      randValues.xy = texelFetch(noise_128_tex_hash, (tci + 64) % 128, 0).rg;
+      const float EPS = 0.00001;
+      randValues.xy =  get_2d_random_from_placer(thread_id * (1.0f / (randValues.x + EPS)), placer_tm);
       float scale = lerp(scale_range.x, scale_range.y, randValues.x);
       float distance = length(worldPos - placer_tm[3].xyz);
       scale *= lerp(scale_radius.x, scale_radius.y, saturate(distance * scale_radius.z));

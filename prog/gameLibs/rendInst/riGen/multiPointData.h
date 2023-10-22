@@ -7,7 +7,7 @@
 
 // multipoint placement
 
-namespace rendinstgen
+namespace rendinst::gen
 {
 struct MpPlacementRec
 {
@@ -73,4 +73,4 @@ static inline bool load_multipoint_data(MpPlacementRec &mpRec, const RoDataBlock
   mpRec.computePivotBc();
   return true;
 }
-} // namespace rendinstgen
+} // namespace rendinst::gen

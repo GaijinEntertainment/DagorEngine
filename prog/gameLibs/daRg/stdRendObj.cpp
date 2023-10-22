@@ -314,11 +314,14 @@ void RenderObjectText::renderCustom(StdGuiRender::GuiContext &ctx, const Element
   else // ALIGN_TOP
     startPosY += ascent + elem->layout.padding.top();
 
-  ctx.goto_xy(startPosX, startPosY);
-  ctx.start_font_str(SCALE);
-  ctx.render_str_buf(params->guiText.v, params->guiText.c,
-    StdGuiRender::DSBFLAG_rel | StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
-  if (!all_glyphs_ready)
+  if (all_glyphs_ready)
+  {
+    ctx.goto_xy(startPosX, startPosY);
+    ctx.start_font_str(SCALE);
+    ctx.render_str_buf(params->guiText.v, params->guiText.c,
+      StdGuiRender::DSBFLAG_rel | StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
+  }
+  else
     params->guiText.discard();
 
   ctx.reset_draw_str_attr();
@@ -1498,6 +1501,22 @@ void RenderObjectTextArea::renderCustom(StdGuiRender::GuiContext &ctx, const Ele
       }
     }
 
+    int numBlocksToRender = numBlocks;
+    if (shouldBreakWithEllipsis && !ellipsisOnSeparateLine)
+      numBlocksToRender = lastBlockIndexToRender + 1;
+    else if (shouldBreakWithEllipsis && ellipsisOnSeparateLine)
+      numBlocksToRender = 0;
+
+    bool hadAllSymbols = true;
+    for (int i = 0; i < numBlocksToRender && hadAllSymbols; ++i)
+    {
+      textlayout::TextBlock *block = line.blocks[i];
+      darg::GuiTextCache &guiText = block->guiText;
+      if (block->type == textlayout::TextBlock::TBT_SPACE)
+        continue;
+      hadAllSymbols = guiText.isReady();
+    }
+
     if (halign == ALIGN_RIGHT)
       xLineOffs += sc.size.x - lineWidth;
     else if (halign == ALIGN_CENTER)
@@ -1551,10 +1570,13 @@ void RenderObjectTextArea::renderCustom(StdGuiRender::GuiContext &ctx, const Ele
           ctx.draw_str_scaled_u_buf(guiText.v, guiText.c, StdGuiRender::DSBFLAG_rel, 1.0f, tmpU16.data(), tmpU16.size());
       }
 
-      ctx.goto_xy(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y);
-      ctx.start_font_str(1.0f);
-      ctx.render_str_buf(guiText.v, guiText.c,
-        StdGuiRender::DSBFLAG_rel | StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
+      if (all_glyphs_ready && hadAllSymbols)
+      {
+        ctx.goto_xy(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y);
+        ctx.start_font_str(1.0f);
+        ctx.render_str_buf(guiText.v, guiText.c,
+          StdGuiRender::DSBFLAG_rel | StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
+      }
       if (!all_glyphs_ready)
         guiText.discard();
 

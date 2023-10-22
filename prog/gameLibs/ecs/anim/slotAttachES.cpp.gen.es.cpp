@@ -105,9 +105,8 @@ static constexpr ecs::ComponentDesc attach_to_parent_on_create_es_event_handler_
 };
 static void attach_to_parent_on_create_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_FAST_ASSERT(evt.is<ecs::EventEntityCreated>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    attach_to_parent_on_create_es_event_handler(static_cast<const ecs::EventEntityCreated&>(evt)
+    attach_to_parent_on_create_es_event_handler(evt
         , ECS_RO_COMP(attach_to_parent_on_create_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(attach_to_parent_on_create_es_event_handler_comps, "slot_attach__attachedTo", ecs::EntityId)
     , ECS_RO_COMP(attach_to_parent_on_create_es_event_handler_comps, "slot_attach__inAttachedList", ecs::EntityId)
@@ -123,7 +122,8 @@ static ecs::EntitySystemDesc attach_to_parent_on_create_es_event_handler_es_desc
   make_span(attach_to_parent_on_create_es_event_handler_comps+0, 3)/*ro*/,
   empty_span(),
   empty_span(),
-  ecs::EventSetBuilder<ecs::EventEntityCreated>::build(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
   0
 );
 static constexpr ecs::ComponentDesc attach_on_parent_create_es_event_handler_comps[] =

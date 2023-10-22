@@ -42,7 +42,7 @@ bool interrupt_texq_loading();
 //! restores loading, should be called with the result of interrupt_texq_loading() in the first argument
 void restore_texq_loading(bool was_interrupted);
 
-struct DDSxDataPublicHdr // built on basis of ddsx::Header (engine2/sharedInclude/3d/ddsxTex.h)
+struct DDSxDataPublicHdr // built on basis of ddsx::Header (engine/sharedInclude/3d/ddsxTex.h)
 {
   unsigned d3dFormat;
   unsigned flags;

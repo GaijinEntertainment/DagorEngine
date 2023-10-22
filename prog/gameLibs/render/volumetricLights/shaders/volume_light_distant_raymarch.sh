@@ -13,10 +13,10 @@ include "volume_light_hardcoded_media.sh"
 
 
 
-texture clouds_hole_pos_tex;
 texture clouds_shadows_2d;
 float4 nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m;
 float4 clouds_origin_offset;
+float4 clouds_hole_pos;
 
 // statistical cloud shadows, without relying on preshader
 macro USE_FOG_SHADOWS(code)
@@ -25,7 +25,7 @@ macro USE_FOG_SHADOWS(code)
       nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m;
     skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
     clouds_origin_offset@f3 = clouds_origin_offset;
-    clouds_hole_pos_tex@tex2d = clouds_hole_pos_tex;
+    clouds_hole_pos@f4 = clouds_hole_pos;
     clouds_shadows_2d@smp2d = clouds_shadows_2d;
   }
   hlsl(code) {

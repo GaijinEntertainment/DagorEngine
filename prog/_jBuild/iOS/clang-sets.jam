@@ -1,4 +1,4 @@
-#  Setup for gcc4 compiler for iOS (to be included from jBuild.jam)
+#  Setup for clang compiler for iOS (to be included from jBuild.jam)
 
 _OBJ_SUFFIX  = .o ;
 
@@ -14,6 +14,7 @@ local _DEF_COM_CMDLINE =
   -Wno-unknown-warning-option -Wno-deprecated-register
   -Wno-deprecated-declarations -Wno-inconsistent-missing-override
   -Wno-null-dereference -Wno-constant-conversion -Wno-unused-value
+  -Wno-deprecated-builtins -Wno-unused-command-line-argument
   -ffunction-sections -fdata-sections
   -ffast-math -ffinite-math-only
   "\"-D__forceinline=inline __attribute__((always_inline))\"" -D__cdecl= -D__stdcall= -D__fastcall

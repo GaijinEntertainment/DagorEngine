@@ -1,0 +1,41 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/services/dasMgr ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/services/dasMgr.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+
+Sources =
+  dasManager.cpp
+;
+
+UseProgLibs =
+  1stPartyLibs/daScript
+  1stPartyLibs/daScript/modules/dasImgui
+  1stPartyLibs/daScript/modules/dasStdDlg
+  gameLibs/ecs/scripts/das
+  gameLibs/iso8601Time
+  gameLibs/dasModules/common
+  gameLibs/dasModules/generic
+  gameLibs/dasModules/ECSGlobalTags
+  gameLibs/dasModules/imgui
+  gameLibs/dasModules/daProfiler
+  tools/AssetViewer/dasModules
+;
+if [ GLOB $(Root)/prog/daNetGameLibs/motion_matching : * ] {
+  CPPopt += -DHAS_DANETGAME_LIBS_MM ;
+}
+if [ GLOB $(Root)/prog/gameLibs/ecs/phys : * ] {
+  UseProgLibs += gameLibs/dasModules/phys ;
+  CPPopt += -DHAS_PHYS ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -9,6 +9,7 @@ void init(int, int, bool, bool) {}
 
 void shutdown() {}
 
+bool int10_hdr_buffer() { return false; }
 bool is_hdr_enabled() { return false; }
 bool is_hdr_available() { return false; }
 bool is_active() { return false; }

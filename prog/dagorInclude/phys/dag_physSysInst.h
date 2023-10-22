@@ -9,14 +9,15 @@
 #include <generic/dag_tab.h>
 #include <phys/dag_physResource.h>
 #include <phys/dag_physDecl.h>
+#include <EASTL/unique_ptr.h>
 
 
 class PhysSystemInstance
 {
 public:
-  DAG_DECLARE_NEW(midmem)
-
-  PhysSystemInstance(PhysicsResource *resource, PhysWorld *world, void *userData, real sleep_threshold = 8.0);
+  // Note: if `tm` is null then bodies wont be added to phys world
+  PhysSystemInstance(PhysicsResource *resource, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup = 0,
+    uint16_t fmask = 0);
   PhysSystemInstance(const PhysSystemInstance &) = delete;
   ~PhysSystemInstance();
 
@@ -39,7 +40,7 @@ public:
   PhysicsResource *getPhysicsResource() const { return resource; }
 
   int getBodyCount() const { return bodies.size(); }
-  PhysBody *getBody(int index) const { return bodies[index].body; }
+  PhysBody *getBody(int index) const { return bodies[index].body.get(); }
 
 
   void setGroupAndLayerMask(unsigned group, unsigned mask);
@@ -60,15 +61,11 @@ protected:
 
   struct Body
   {
-    PhysBody *body;
+    eastl::unique_ptr<PhysBody> body;
     Tab<TmHelper> tmHelpers;
 
-
-    Body();
-    Body(const Body &) = delete;
-    ~Body();
-
-    void init(PhysicsResource::Body &res_body, PhysWorld *world, void *userData, bool has_joints);
+    Body(PhysicsResource::Body &res_body, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup, uint16_t fmask,
+      bool has_joints);
 
     void updateTms(PhysicsResource::Body &res_body, const TMatrix &scale_tm);
   };

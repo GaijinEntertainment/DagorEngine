@@ -7,11 +7,11 @@ AddIncludes =
 ;
 
 UseProgLibs =
-  engine2/memory/rtlStdMemory
-  engine2/kernel
-  engine2/osApiWrappers
-  engine2/baseUtil
-  engine2/perfMon/daProfilerStub
+  engine/memory/rtlStdMemory
+  engine/kernel
+  engine/osApiWrappers
+  engine/baseUtil
+  engine/perfMon/daProfilerStub
   3rdPartyLibs/eastl
   3rdPartyLibs/phys/bullet-3
   3rdPartyLibs/phys/bullet-3/test/gtest-1.7.0

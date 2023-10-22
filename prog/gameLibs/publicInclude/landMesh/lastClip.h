@@ -12,6 +12,7 @@
 class LandMeshManager;
 class LandMeshRenderer;
 class Point2;
+class Point3;
 class BBox3;
 struct ToroidalHelper;
 
@@ -42,7 +43,7 @@ struct LandMeshData
 
 void apply_last_clip_anisotropy(const UniqueTexHolder &last_clip);
 void preload_textures_for_last_clip();
-void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool update_game_screen);
-void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texel, LandMeshData &data);
-void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_texel, LandMeshData &data, Point2 &tor_offsets,
-  ToroidalHelper &tor_helper);
+void prepare_fixed_clip(UniqueTexHolder &last_clip, LandMeshData &data, bool update_game_screen, const Point3 &view_pos);
+void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texel, const Point3 &view_pos, LandMeshData &data);
+void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_texel, const Point3 &view_pos, LandMeshData &data,
+  Point2 &tor_offsets, ToroidalHelper &tor_helper);

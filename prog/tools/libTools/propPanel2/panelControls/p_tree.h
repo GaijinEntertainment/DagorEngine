@@ -8,7 +8,7 @@
 class CTree : public PropertyContainerControlBase
 {
 public:
-  CTree(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
+  CTree(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h,
     const char caption[]);
 
   ~CTree();
@@ -54,8 +54,8 @@ public:
   void setCaptionValue(const char value[]);
 
   void setEnabled(bool enabled);
-  void setWidth(unsigned w);
-  void setHeight(unsigned h);
+  void setWidth(hdpi::Px w);
+  void setHeight(hdpi::Px h);
   void moveTo(int x, int y);
 
   // virtual int saveState(DataBlock &datablk) { return 0; } TODO

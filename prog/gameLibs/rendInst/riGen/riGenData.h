@@ -1,7 +1,9 @@
 #pragma once
 
 #include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstDebris.h>
 #include <rendInst/rendInstGenDamageInfo.h>
+#include <rendInst/visibility.h>
 #include <rendInst/renderPass.h>
 
 #include <generic/dag_patchTab.h>
@@ -9,19 +11,17 @@
 #include <EASTL/bitvector.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_rwLock.h>
-#include <shaders/dag_DynamicShaderHelper.h>
+#include <shaders/dag_rendInstRes.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_roHugeHierBitMap2d.h>
 #include <util/dag_stdint.h>
 #include <util/dag_fastIntList.h>
 #include <util/dag_simpleString.h>
 #include <3d/dag_texIdSet.h>
-#include <3d/dag_drv3d.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_staticTab.h>
-#include <3d/dag_drv3dConsts.h>
 #include <EASTL/vector_set.h>
 #include <shaders/dag_linearSbufferAllocator.h>
 #include <memory/dag_linearHeapAllocator.h>
@@ -33,23 +33,19 @@ class IGenLoad;
 class Point4;
 class Point3;
 class RenderableInstanceLodsResource;
-class DynamicRenderableSceneLodsResource;
 class CollisionResource;
 class DynamicPhysObjectData;
 struct Frustum;
-struct CellRanges;
 struct RiGenVisibility;
 typedef void *file_ptr_t;
-namespace rendinstgenland
+namespace rendinst::gen::land
 {
 class AssetData;
 }
-namespace rendinstgenrender
+namespace rendinst::render
 {
 class RtPoolData;
 }
-class ShaderMesh;
-class RingDynamicVB;
 struct RenderStateContext;
 
 
@@ -125,7 +121,7 @@ struct RendInstGenData
     Tab<rendinst::DestroyedRi *> delayedRi;
 
     void clearDelayedRi() { clear_all_ptr_items(delayedRi); }
-    DebrisPool() : resIdx(-1), props(NULL) {}
+    DebrisPool() : resIdx(-1), props(nullptr) {}
   };
 
   struct DestrProps
@@ -202,7 +198,7 @@ struct RendInstGenData
     SmallTab<ElemMask, MidmemAlloc> riResElemMask; // bit-per-elem mask for rendinst::MAX_LOD_COUNT lod of each riRes
     SmallTab<bbox3f, MidmemAlloc> riResBb;
     SmallTab<bbox3f, MidmemAlloc> riCollResBb;
-    SmallTab<rendinstgenrender::RtPoolData *, MidmemAlloc> rtPoolData;
+    SmallTab<rendinst::render::RtPoolData *, MidmemAlloc> rtPoolData;
     Tab<RendinstProperties> riProperties;
     SmallTab<uint8_t, MidmemAlloc> riResHideMask;
     Tab<DebrisProps> riDebrisMap;
@@ -269,7 +265,7 @@ struct RendInstGenData
     bool renderRendinstClipmapShadowsToTextures(const Point3 &sunDir0, bool for_sli, bool force_update);
 
     void initImpostors();
-    void updateImpostors(float shadowDistance, const Point3 &sunDir0, const TMatrix &view_itm);
+    void updateImpostors(float shadowDistance, const Point3 &sunDir0, const TMatrix &view_itm, const mat44f &proj_tm);
     bool updateImpostorsPreshadow(int poolNo, const Point3 &sunDir0);
     bool updateImpostorsPreshadow(int poolNo, const Point3 &sunDir0, int paletteId, const UniqueTex &depth_atlas);
     void copyVisibileImpostorsData(const RiGenVisibility &visibility, bool clear_data);
@@ -366,7 +362,7 @@ struct RendInstGenData
     {
       clear();
       del_it(pregenAdd);
-      rtData = NULL;
+      rtData = nullptr;
     }
 
     int getCellIndex(int poolIdx, int subCellIdx) const { return poolIdx * (SUBCELL_DIV * SUBCELL_DIV) + subCellIdx; }
@@ -391,7 +387,7 @@ struct RendInstGenData
   struct LandClassRec
   {
     PatchablePtr<const char> landClassName;
-    PATCHABLE_DATA64(rendinstgenland::AssetData *, asset);
+    PATCHABLE_DATA64(rendinst::gen::land::AssetData *, asset);
     PATCHABLE_DATA64(HugeBitmask *, mask);
     PatchablePtr<int16_t> riResMap;
   };
@@ -467,26 +463,27 @@ public:
   void updateVb(RendInstGenData::CellRtData &crt, int idx);
   void onDeviceReset();
   template <bool use_external_filter = false>
-  bool prepareVisibility(const Frustum &frustum, const Point3 &vpos, RiGenVisibility &visibility, bool forShadow, uint32_t layer_flags,
-    Occlusion *use_occlusion, bool for_visual_collision = false, const rendinst::VisibilityExternalFilter &external_filter = {});
+  bool prepareVisibility(const Frustum &frustum, const Point3 &vpos, RiGenVisibility &visibility, bool forShadow,
+    rendinst::LayerFlags layer_flags, Occlusion *use_occlusion, bool for_visual_collision = false,
+    const rendinst::VisibilityExternalFilter &external_filter = {});
   void sortRIGenVisibility(RiGenVisibility &visibility, const Point3 &viewPos, const Point3 &viewDir, float vertivalFov,
     float horizontalFov, float value);
   void renderPreparedOpaque(rendinst::RenderPass renderPass, const RiGenVisibility &visibility, bool depth_optimized, int lodI,
     int realdLodI, bool &isStarted);
-  void renderByCells(rendinst::RenderPass renderPass, const uint32_t layer_flags, const RiGenVisibility &visibility,
+  void renderByCells(rendinst::RenderPass renderPass, const rendinst::LayerFlags layer_flags, const RiGenVisibility &visibility,
     bool optimization_depth_prepass, bool depth_optimized);
-  void renderPreparedOpaque(rendinst::RenderPass renderPass, uint32_t layerFlasg, const RiGenVisibility &visibility,
+  void renderPreparedOpaque(rendinst::RenderPass renderPass, rendinst::LayerFlags layer_flags, const RiGenVisibility &visibility,
     const TMatrix &view_itm, bool depth_optimized);
-  void renderOptimizationDepthPrepass(const RiGenVisibility &visibility);
+  void renderOptimizationDepthPrepass(const RiGenVisibility &visibility, const TMatrix &view_itm);
   void renderDebug();
   void renderPerInstance(rendinst::RenderPass renderPass, int lod, int realLodI, const RiGenVisibility &visibility);
   inline void renderInstances(int ri_idx, int realLodI, const vec4f *data, int count, RenderStateContext &context,
     const int max_instances, const int skip_atest_mask, const int last_stage);
   void renderCrossDissolve(rendinst::RenderPass renderPass, int ri_idx, int realLodI, const RiGenVisibility &visibility);
 
-  void render(rendinst::RenderPass renderPass, const RiGenVisibility &visibility, const TMatrix &view_itm, uint32_t layer_flags,
-    bool depth_optimized);
-  void render(uint32_t layer_flags);
+  void render(rendinst::RenderPass renderPass, const RiGenVisibility &visibility, const TMatrix &view_itm,
+    rendinst::LayerFlags layer_flags, bool depth_optimized);
+  void render(rendinst::LayerFlags layer_flags);
 
   void applyBurnDecal(const bbox3f &decal)
   {
@@ -510,7 +507,6 @@ public:
     float cell_xz_sz, float cell_y_sz);
   static CellRtData *(*riGenValidateGeneratedCell)(RendInstGenData *rgl, CellRtData *crt, int idx, int cx, int cz);
 
-  void renderRIGenToShadowDepth(const Point3 &vpos);
   void renderRendinstShadowsToClipmap(const BBox2 &region, int cascadeNo);
   bool notRenderedClipmapShadowsBBox(BBox2 &box, int cascadeNo);
   bool notRenderedStaticShadowsBBox(BBox3 &box);
@@ -542,7 +538,7 @@ extern unsigned rgRenderMaskO; //< bitmask (for indices of rgLayer) used for ren
 extern unsigned rgRenderMaskDS;
 extern unsigned rgRenderMaskCMS;
 
-inline RendInstGenData *getRgLayer(int l) { return (l >= 0 && l < rgLayer.size()) ? rgLayer[l] : NULL; }
+inline RendInstGenData *getRgLayer(int l) { return (l >= 0 && l < rgLayer.size()) ? rgLayer[l] : nullptr; }
 inline bool isRgLayerPrimary(int l) { return l >= 0 && l < rgPrimaryLayers; }
 
 struct ScopedLockAllRgLayersForWrite

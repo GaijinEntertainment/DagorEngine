@@ -296,8 +296,13 @@ namespace das {
         MarkSymbolUse vis(false);
         vis.tw = logs;
         visit(vis);
-        vis.markUsedFunctions(library, true, true, nullptr);
-        vis.markVarsUsed(library, true);
+
+        thisModule->functions.foreach([&](auto fn) {
+            vis.propagateFunctionUse(fn);
+        });
+        thisModule->globals.foreach([&](auto var) {
+            vis.propageteVarUse(var);
+        });
     }
 
     void Program::markSymbolUse(bool builtInSym, bool forceAll, bool initThis, Module * macroModule, TextWriter * logs) {

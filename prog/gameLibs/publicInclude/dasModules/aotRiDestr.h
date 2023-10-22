@@ -21,8 +21,8 @@ inline void destroyRendinstSimple(const rendinst::RendInstDesc &desc, rendinst::
 {
   out_desc = rendinstdestr::destroyRendinst(desc, // desc
     false,                                        // add restorable
-    Point3(0.f, 0.f, 0.f),                        // position
-    Point3(0.f, 0.f, 0.f),                        // impulse
+    ZERO<Point3>(),                               // position
+    ZERO<Point3>(),                               // impulse
     0.f,                                          // at time
     nullptr,                                      // collision info
     false,                                        // create destr

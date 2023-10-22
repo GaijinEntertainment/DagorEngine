@@ -19,22 +19,22 @@ Sources =
 ;
 
 UseProgLibs =
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/perfMon
-  engine2/memory/rtlStdMemory
-#  engine2/memory/rtlOverride
-  engine2/baseUtil
-#  engine2/ioSys
-  engine2/startup
-  engine2/math
+  engine/osApiWrappers
+  engine/kernel
+  engine/perfMon
+  engine/memory/rtlStdMemory
+#  engine/memory/rtlOverride
+  engine/baseUtil
+#  engine/ioSys
+  engine/startup
+  engine/math
 
   3rdPartyLibs/eastl
   1stPartyLibs/daScript
   gameLibs/daECS/core
   gameLibs/ecs/scripts/das
   gameLibs/dasModules/common
-  engine2/perfMon/daProfilerStub
+  engine/perfMon/daProfilerStub
 ;
 CPPopt = -D__B_CORE ;
 
@@ -47,7 +47,7 @@ if $(Platform) in win32 win64 && $(PlatformSpec) != clang  {
 }
 
 AddIncludes =
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/1stPartyLibs/daScript/include
 ;

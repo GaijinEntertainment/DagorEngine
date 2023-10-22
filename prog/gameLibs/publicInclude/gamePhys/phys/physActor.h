@@ -130,4 +130,6 @@ public:
   virtual dag::ConstSpan<NetWeapon *> getAllWeapons() const { return {}; }
   virtual dag::ConstSpan<NetWeaponControl *> getAllWeaponControls() const { return {}; }
   virtual void validateGunsLists(){};
+
+  virtual const char *getActorName() const { return nullptr; }
 };

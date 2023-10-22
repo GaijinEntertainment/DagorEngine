@@ -18,16 +18,16 @@ AddIncludes =
 ;
 
 UseProgLibs =
-  engine2/startup
+  engine/startup
 
   tools/libTools/assetMgr
   tools/libTools/util
 
-  engine2/startup
-  engine2/math
+  engine/startup
+  engine/math
 
-  engine2/lib3d
-  engine2/drv/drv3d_null
+  engine/lib3d
+  engine/drv/drv3d_null
 
   tools/libTools/assetMgrHlp
   tools/libTools/shaderResBuilder

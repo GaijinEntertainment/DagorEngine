@@ -64,8 +64,9 @@ static void attach_to_parent_es(const ecs::UpdateStageInfoAct &, ecs::EntityId e
   attach_to_parent_impl(eid, slot_attach__attachedTo, slot_attach__inAttachedList);
 }
 
-static void attach_to_parent_on_create_es_event_handler(const ecs::EventEntityCreated &, ecs::EntityId eid,
-  ecs::EntityId slot_attach__attachedTo, ecs::EntityId slot_attach__inAttachedList)
+ECS_ON_EVENT(on_appear)
+static void attach_to_parent_on_create_es_event_handler(const ecs::Event &, ecs::EntityId eid, ecs::EntityId slot_attach__attachedTo,
+  ecs::EntityId slot_attach__inAttachedList)
 {
   attach_to_parent_impl(eid, slot_attach__attachedTo, slot_attach__inAttachedList);
 }

@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/imgui/util ;
+
+TargetType  = lib ;
+Target      = engine/imgui/util.lib ;
+
+Sources =
+  imguiBlk.cpp
+  imguiMisc.cpp
+  imguiString.cpp
+  imguiComboWithFilter.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs =
+  3rdPartyLibs/imgui
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -11,7 +11,7 @@ Target      = gameLibs/quirrel/sqStatsd.lib ;
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/gameLibs/publicInclude/quirrel
-  $(Root)/prog/engine2/sharedInclude
+  $(Root)/prog/engine/sharedInclude
 ;
 
 Sources =

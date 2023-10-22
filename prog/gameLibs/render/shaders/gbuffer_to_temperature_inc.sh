@@ -8,7 +8,6 @@ macro USE_GBUF_TO_TEMPERATURE_BASE()
     #define THERMAL_SHADING_LANDSCAPE 1
     #define THERMAL_SHADING_FOLIAGE 2
     #define THERMAL_SHADING_SELFILLUM 3
-    #define THERMAL_SHADING_DYNAMIC 4
   }
 
   if (compatibility_mode == compatibility_mode_on)
@@ -48,13 +47,6 @@ macro USE_GBUF_TO_TEMPERATURE_BASE()
         gbufTemp += gbuffer_temperature_base.z*baseColorDot;
         gbufTemp += 0.5*gbuffer_temperature_add.x*gbuffer.linearRoughness;
         gbufTemp += 0.5*gbuffer_temperature_add.y*(half(1.0) - gbuffer.translucency);
-        gbufTemp *= shadow;
-      }
-      else if (material == THERMAL_SHADING_DYNAMIC)
-      {
-        gbufTemp += gbuffer_temperature_base.x*baseColorDot;
-        gbufTemp += 1.5*gbuffer_temperature_add.x*gbuffer.linearRoughness;
-        gbufTemp += gbuffer_temperature_add.w;
         gbufTemp *= shadow;
       }
       else // THERMAL_SHADING_SELFILLUM

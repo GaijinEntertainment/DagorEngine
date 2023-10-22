@@ -130,9 +130,7 @@ bool BiomeQueryCtx::init()
     return false;
   }
 
-  const uint32_t BIOME_GROUP_INDICES_BUFFER_FLAGS = SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES;
-  biomeGroupIndicesBuffer =
-    dag::create_sbuffer(sizeof(int), MAX_BIOMES, BIOME_GROUP_INDICES_BUFFER_FLAGS, 0, "biome_group_indices_buffer");
+  biomeGroupIndicesBuffer = dag::buffers::create_persistent_sr_structured(sizeof(int), MAX_BIOMES, "biome_group_indices_buffer");
   setBiomeGroupIndicesBufferData();
 
   return true;

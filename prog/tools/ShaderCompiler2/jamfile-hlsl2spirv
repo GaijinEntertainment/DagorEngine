@@ -29,8 +29,10 @@ CPPopt += -D_CROSS_TARGET_SPIRV=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECA
 ;
 
 if $(Platform) = macosx {
-  CPPopt += -Wno-switch
-;
+  CPPopt += -Wno-switch ;
+  if [ GLOB $(_DEVTOOL)/DXC-mac/lib : libdxcompiler.dylib ] {
+    CopyFileForced $(OutDir)/libdxcompiler.dylib : $(_DEVTOOL)/DXC-mac/lib/libdxcompiler.dylib ;
+  }
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

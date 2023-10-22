@@ -20,8 +20,7 @@ static void safeCopyToEnd(VectorTy &arr, int firstPos, int lastPos)
 
 GpuVisibilityTestManager::GpuVisibilityTestManager(shaders::OverrideState state)
 {
-  bboxesSBuf = dag::create_sbuffer(sizeof(vec4f), MAX_OBJECTS_PER_FRAME * 2,
-    SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MAYBELOST | SBCF_DYNAMIC, 0, "ri_bboxes_buf");
+  bboxesSBuf = dag::buffers::create_one_frame_sr_structured(sizeof(vec4f), MAX_OBJECTS_PER_FRAME * 2, "ri_bboxes_buf");
 
   // One bit (visible or not) per one instance.
   visResultRingBuffer.init(sizeof(uint32_t), MAX_OBJECTS_PER_FRAME / 32, 3, "bbox_vis_readback_buf", SBCF_UA_STRUCTURED_READBACK, 0,
@@ -132,9 +131,9 @@ void GpuVisibilityTestManager::doTests(BaseTexture *depth_tex)
       levels = arrayInfo.a;
     }
     if (levels == 0)
-      d3d::set_depth(depth_tex, true);
+      d3d::set_depth(depth_tex, DepthAccess::SampledRO);
     else
-      d3d::set_depth(depth_tex, 0, true);
+      d3d::set_depth(depth_tex, 0, DepthAccess::SampledRO);
     d3d::resource_barrier({depth_tex, RB_RO_CONSTANT_DEPTH_STENCIL_TARGET | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 0});
     uint32_t zeroes[4] = {0, 0, 0, 0};
     d3d::clear_rwbufi(resultBuffer, zeroes);
@@ -157,7 +156,7 @@ void GpuVisibilityTestManager::doTests(BaseTexture *depth_tex)
       {
         G_ASSERTF_CONTINUE(uint32_t(info.view.layer) < levels, "target texture has %d slices, and requested to test %d slice", levels,
           info.view.layer);
-        d3d::set_depth(depth_tex, currentLevel = min(info.view.layer, levels - 1), true);
+        d3d::set_depth(depth_tex, currentLevel = min(info.view.layer, levels - 1), DepthAccess::SampledRO);
       }
       d3d::setview(info.view.x, info.view.y, info.view.w, info.view.h, info.view.minz, info.view.maxz);
       d3d::setglobtm(info.view.globtm);

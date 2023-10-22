@@ -98,6 +98,11 @@ dag::Vector<MatVarDesc> get_shclass_vars_default(const char *shclass)
   vars[MAT_VAR_LIGHTING].value.i = LIGHTING_NONE;
   vars[MAT_VAR_LIGHTING].usedInMaterial = false;
 
+  vars[MAT_VAR_TWOSIDED].name = "twosided";
+  vars[MAT_VAR_TWOSIDED].type = MAT_VAR_TYPE_BOOL;
+  vars[MAT_VAR_TWOSIDED].value.i = 0;
+  vars[MAT_VAR_TWOSIDED].usedInMaterial = false;
+
   for (int varId = MAT_SPECIAL_VAR_COUNT; varId < vars.size(); ++varId)
   {
     int shVarId = varId - MAT_SPECIAL_VAR_COUNT;

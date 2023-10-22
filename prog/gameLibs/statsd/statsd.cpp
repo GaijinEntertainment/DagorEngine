@@ -9,50 +9,6 @@
 #include <memory/dag_framemem.h>
 #include <initializer_list>
 
-#if _TARGET_ANDROID | _TARGET_XBOX
-#include <osApiWrappers/dag_threads.h>
-#include <util/dag_simpleString.h>
-#include <EASTL/unique_ptr.h>
-#include <atomic>
-
-namespace
-{
-struct InitAddrThread final : public DaThread
-{
-  InitAddrThread(const SimpleString &_host, short _port) : DaThread("InitAddrThread"), host(_host), port(_port) {}
-
-  std::atomic<bool> done{false};
-
-  sockets::SocketAddr<OSAF_IPV4> ipv4Addr;
-
-  SimpleString host;
-  short port;
-
-  void execute() override
-  {
-    ipv4Addr.setHost(host);
-    ipv4Addr.setPort(port);
-    done = true;
-  }
-};
-} // namespace
-
-static eastl::unique_ptr<InitAddrThread> g_init_addr_thread;
-
-static sockets::SocketAddr<OSAF_IPV4> resovle_addr(const char *addr, int port)
-{
-  // During udp_addr.setHost getaddrinfo() is called.
-  // This call is blocking, so we need to do it in a separate thread
-  // to avoid ARNs in case it takes too long
-  g_init_addr_thread.reset(new InitAddrThread(SimpleString{addr}, port));
-  g_init_addr_thread->start();
-  g_init_addr_thread->terminate(true /*wait*/, 1000 /*timeout*/);
-  return g_init_addr_thread->done ? g_init_addr_thread->ipv4Addr : sockets::SocketAddr<OSAF_IPV4>{};
-}
-#else
-static sockets::SocketAddr<OSAF_IPV4> resovle_addr(const char *addr, int port) { return sockets::SocketAddr<OSAF_IPV4>(addr, port); }
-#endif
-
 namespace statsd
 {
 
@@ -204,7 +160,7 @@ bool connect(const char *addr, int port)
 
   debug("%s: statsd server: %s:%d", __FUNCTION__, addr, port);
 
-  sockets::SocketAddr<OSAF_IPV4> ipv4Addr{resovle_addr(addr, port)};
+  sockets::SocketAddr<OSAF_IPV4> ipv4Addr{addr, (uint16_t)port};
   if (!ipv4Addr.isValid())
   {
     logerr("%s: bad statsd address: %s:%d", __FUNCTION__, addr, port);
@@ -232,7 +188,7 @@ template <typename ValueType>
 constexpr const char *value_spec_string_new = ":%s%ld|%s";
 
 template <>
-constexpr const char *value_spec_string_new<float> = ":%s%g|%s";
+constexpr const char *value_spec_string_new<float> = ":%s%f|%s";
 
 template <typename ValueType>
 static void send_internal(const char *metric, dag::ConstSpan<MetricTag> tags, MetricType mtype, ValueType value)
@@ -397,7 +353,7 @@ static void statsd_send(const char *metric, const char *type, const char *val_pr
 }
 
 // Common functions
-void gauge(const char *metric, float value, const MetricTag &tag)
+void gauge(const char *metric, long value, const MetricTag &tag)
 {
   if (useNewMetricFormat)
     send_internal_args<GAUGE>(metric, value, tag);
@@ -405,7 +361,7 @@ void gauge(const char *metric, float value, const MetricTag &tag)
     statsd_send(metric, "g", "", value);
 }
 
-void gauge(const char *metric, float value, std::initializer_list<MetricTag> tags)
+void gauge(const char *metric, long value, std::initializer_list<MetricTag> tags)
 {
   if (useNewMetricFormat)
     send_internal_tags<GAUGE>(metric, value, tags);
@@ -413,7 +369,7 @@ void gauge(const char *metric, float value, std::initializer_list<MetricTag> tag
     statsd_send(metric, "g", "", value);
 }
 
-void gauge_inc(const char *metric, float value, const MetricTag &tag)
+void gauge_inc(const char *metric, long value, const MetricTag &tag)
 {
   if (useNewMetricFormat)
     send_internal_args<GAUGE_INC>(metric, value, tag);
@@ -421,7 +377,7 @@ void gauge_inc(const char *metric, float value, const MetricTag &tag)
     statsd_send(metric, "g", "+", value);
 }
 
-void gauge_inc(const char *metric, float value, std::initializer_list<MetricTag> tags)
+void gauge_inc(const char *metric, long value, std::initializer_list<MetricTag> tags)
 {
   if (useNewMetricFormat)
     send_internal_tags<GAUGE_INC>(metric, value, tags);
@@ -429,20 +385,20 @@ void gauge_inc(const char *metric, float value, std::initializer_list<MetricTag>
     statsd_send(metric, "g", "+", value);
 }
 
-void gauge_dec(const char *metric, float value, const MetricTag &tag)
+void gauge_dec(const char *metric, long value, const MetricTag &tag)
 {
   if (useNewMetricFormat)
     send_internal_args<GAUGE_DEC>(metric, value, tag);
   else
-    statsd_send(metric, "g", "-", fabs(value));
+    statsd_send(metric, "g", "-", abs(value));
 }
 
-void gauge_dec(const char *metric, float value, std::initializer_list<MetricTag> tags)
+void gauge_dec(const char *metric, long value, std::initializer_list<MetricTag> tags)
 {
   if (useNewMetricFormat)
     send_internal_tags<GAUGE_DEC>(metric, value, tags);
   else
-    statsd_send(metric, "g", "-", fabs(value));
+    statsd_send(metric, "g", "-", abs(value));
 }
 
 void counter(const char *metric, long value, const MetricTag &tag)
@@ -469,7 +425,23 @@ void profile(const char *metric, float time_ms, const MetricTag &tag)
     statsd_send(metric, "ms", "", time_ms);
 }
 
+void profile(const char *metric, long time_ms, const MetricTag &tag)
+{
+  if (useNewMetricFormat)
+    send_internal_args<PROFILE>(metric, time_ms, tag);
+  else
+    statsd_send(metric, "ms", "", time_ms);
+}
+
 void profile(const char *metric, float time_ms, std::initializer_list<MetricTag> tags)
+{
+  if (useNewMetricFormat)
+    send_internal_tags<PROFILE>(metric, time_ms, tags);
+  else
+    statsd_send(metric, "ms", "", time_ms);
+}
+
+void profile(const char *metric, long time_ms, std::initializer_list<MetricTag> tags)
 {
   if (useNewMetricFormat)
     send_internal_tags<PROFILE>(metric, time_ms, tags);
@@ -485,6 +457,14 @@ void histogram(const char *metric, float value, const MetricTag &tag)
     statsd_send(metric, "h", "", value);
 }
 
+void histogram(const char *metric, long value, const MetricTag &tag)
+{
+  if (useNewMetricFormat)
+    send_internal_args<HISTOGRAM>(metric, value, tag);
+  else
+    statsd_send(metric, "h", "", value);
+}
+
 void histogram(const char *metric, float value, std::initializer_list<MetricTag> tags)
 {
   if (useNewMetricFormat)
@@ -493,18 +473,30 @@ void histogram(const char *metric, float value, std::initializer_list<MetricTag>
     statsd_send(metric, "h", "", value);
 }
 
+void histogram(const char *metric, long value, std::initializer_list<MetricTag> tags)
+{
+  if (useNewMetricFormat)
+    send_internal_tags<HISTOGRAM>(metric, value, tags);
+  else
+    statsd_send(metric, "h", "", value);
+}
+
 // Tag arrays functions
-void gauge(const char *metric, float value, const MetricTags &tags) { send_internal(metric, tags, COUNTER, value); }
+void gauge(const char *metric, long value, const MetricTags &tags) { send_internal(metric, tags, COUNTER, value); }
 
-void gauge_inc(const char *metric, float value, const MetricTags &tags) { send_internal(metric, tags, GAUGE_INC, value); }
+void gauge_inc(const char *metric, long value, const MetricTags &tags) { send_internal(metric, tags, GAUGE_INC, value); }
 
-void gauge_dec(const char *metric, float value, const MetricTags &tags) { send_internal(metric, tags, GAUGE_DEC, value); }
+void gauge_dec(const char *metric, long value, const MetricTags &tags) { send_internal(metric, tags, GAUGE_DEC, value); }
 
 void counter(const char *metric, long value, const MetricTags &tags) { send_internal(metric, tags, COUNTER, value); }
 
 void profile(const char *metric, float time_ms, const MetricTags &tags) { send_internal(metric, tags, PROFILE, time_ms); }
 
+void profile(const char *metric, long time_ms, const MetricTags &tags) { send_internal(metric, tags, PROFILE, time_ms); }
+
 void histogram(const char *metric, float value, const MetricTags &tags) { send_internal(metric, tags, HISTOGRAM, value); }
+
+void histogram(const char *metric, long value, const MetricTags &tags) { send_internal(metric, tags, HISTOGRAM, value); }
 
 bool init(ILogger *logger_, const char **keys, const char *addr, int port, Env env, Circuit circuit, Application application,
   Platform platform, Project project, Host hostcl)
@@ -564,10 +556,6 @@ void report(void (*action)(const char *, long, const MetricTag &), long value, c
 
 void shutdown()
 {
-#if _TARGET_ANDROID | _TARGET_XBOX
-  g_init_addr_thread.reset();
-#endif
-
   stats_sock.close();
   prefix.clear();
   if (sockets_initialized)

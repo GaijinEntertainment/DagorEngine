@@ -10,6 +10,7 @@
 class String;
 
 struct E3DCOLOR;
+class Point3;
 
 namespace scene
 {
@@ -30,5 +31,5 @@ public:
   String processCommand(const char *argv[], int argc);
   float verifyRIDistance;
   bool needLogText;
-  void render(const RiGenVisibility *visibility);
+  void render(const RiGenVisibility *visibility, const Point3 &view_pos);
 };

@@ -5,7 +5,7 @@
 //
 #pragma once
 
-#include <rendInst/rendInstExHandle.h>
+#include <rendInst/riexHandle.h>
 #include <daECS/core/entityComponent.h>
 #include <daECS/core/entityId.h>
 #include <daECS/core/event.h>

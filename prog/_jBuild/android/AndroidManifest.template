@@ -24,6 +24,7 @@
       android:resizeableActivity="false"
       android:screenOrientation="{ARG_SCR_ORI}"
       android:stateNotNeeded="{ARG_STATE_NOT_NEED}"
+      android:exported="true"
       android:theme="@style/Theme.AppCompat.Light.NoActionBar">
       <meta-data android:name="android.app.lib_name" android:value="{ARG_LIB}" />
       <intent-filter>

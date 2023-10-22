@@ -160,6 +160,7 @@ namespace das {
         virtual FunctionPtr visit ( Function * that ) override {
             func->totalStackSize = das::max(func->totalStackSize, stackTop);
             // detecting fastcall
+            func->fastCall = false;
             if ( !program->getDebugger() && !program->getProfiler() ) {
                 if ( !func->exports && !func->addr && func->totalStackSize==sizeof(Prologue) && func->arguments.size()<=32 ) {
                     if (func->body->rtti_isBlock()) {

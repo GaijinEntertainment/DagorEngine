@@ -158,7 +158,8 @@ protected:
       cb.write(savesub, sizeof(savesub));
       cb.seektoend();
     }
-    void patch(int sz, void *base, void *dump_base)
+    template <class PatchLeaf>
+    void patch(int sz, void *base, void *dump_base, const PatchLeaf &patch_leaf)
     {
       sz >>= 1;
       for (int i = 0; i < 8; ++i)
@@ -167,13 +168,13 @@ protected:
       {
         for (int i = 0; i < 8; ++i)
           if (leaf_linear(i))
-            leaf_linear(i)->patch(base, dump_base);
+            patch_leaf(*leaf_linear(i), base, dump_base);
       }
       else
       {
         for (int i = 0; i < 8; ++i)
           if (sub_linear(i))
-            sub_linear(i)->patch(sz, base, dump_base);
+            sub_linear(i)->patch(sz, base, dump_base, patch_leaf);
       }
     }
     void enum_all_leaves(RTHierGrid3LeafCB<Leaf> &cb, int u, int v, int w, int sz)
@@ -288,12 +289,18 @@ public:
     for (unsigned i = 0; i < nodeCount(); ++i)
       node(i).serializeChildren(i * sizeof(TopNode) + sizeof(*this), topsz, cb, dump_base);
   }
-  void patch(void *base, void *dump_base)
+
+  struct PatchLeafMember
+  {
+    void operator()(Leaf &leaf, void *base, void *dump_base) const { leaf.patch(base, dump_base); }
+  };
+  template <class PatchLeaf = PatchLeafMember>
+  void patch(void *base, void *dump_base, const PatchLeaf &node_patcher = PatchLeaf())
   {
     G_ASSERTF((uintptr_t(this) % sizeof(void *)) == 0, "RTHierGrid3 bad alignment %p, level re-export required", this);
     nodes.patch(base);
     for (unsigned i = 0; i < nodeCount(); ++i)
-      node(i).patch(topsz, base, dump_base);
+      node(i).patch(topsz, base, dump_base, node_patcher);
   }
   RTHierGrid3(int cl)
   {

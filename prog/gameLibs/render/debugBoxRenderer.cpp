@@ -5,10 +5,8 @@
 #include <util/dag_string.h>
 #include <math/dag_mathUtils.h>
 #include <render/debugBoxRenderer.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtra.h>
 
-bool rendinst::gatherRIGenExtraBboxes(const RiGenVisibility *main_visibility, mat44f_cref volume_box,
-  eastl::function<void(mat44f_cref, const BBox3 &, const char *)>);
 
 DebugBoxRenderer::DebugBoxRenderer(eastl::vector<const char *> &&names, eastl::vector<const scene::TiledScene *> &&scenes,
   eastl::vector<E3DCOLOR> &&colors) :
@@ -61,14 +59,13 @@ void draw_transfromed_box(mat44f_cref m, const BBox3 &box, E3DCOLOR color)
   draw_cached_debug_box(box, color);
 }
 
-void DebugBoxRenderer::render(const RiGenVisibility *visibility)
+void DebugBoxRenderer::render(const RiGenVisibility *visibility, const Point3 &view_pos)
 {
   TIME_D3D_PROFILE(DebugBoxRenderer)
   BBox3 box(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5));
   mat44f globtm;
   d3d::getglobtm(globtm);
-  const Point3_vec4 viewPos = ::grs_cur_view.itm.getcol(3);
-  const vec4f vpos_distscale = v_make_vec4f(viewPos.x, viewPos.y, viewPos.z, scene::defaultDisappearSq / (80 * 80));
+  const vec4f vpos_distscale = v_make_vec4f(view_pos.x, view_pos.y, view_pos.z, scene::defaultDisappearSq / (80 * 80));
   begin_draw_cached_debug_lines(false, false);
   for (int i = 0; i < groupNames.size(); ++i)
   {
@@ -87,11 +84,10 @@ void DebugBoxRenderer::render(const RiGenVisibility *visibility)
     float squareDistanceMax = verifyRIDistance * verifyRIDistance;
     mat44f globtm;
     d3d::getglobtm(globtm);
-    Point3 viewPos = ::grs_cur_view.pos;
     constexpr int binCount = 10;
     eastl::vector<eastl::vector_map<eastl::string_view, int>> name_count_bins(binCount);
 
-    vec4f pos_distscale = v_make_vec4f(viewPos.x, viewPos.y, viewPos.z, 1.f);
+    vec4f pos_distscale = v_make_vec4f(view_pos.x, view_pos.y, view_pos.z, 1.f);
     for (int i : {0, 2}) // 0 indoor_walls, 2 - envi_probes in WorldRenderer::createDebugBoxRender
       groupScenes[i]->frustumCull<false, true, false>(globtm, pos_distscale, 0, 0, nullptr,
         [&](scene::node_index, mat44f_cref m, vec4f sqDist) {

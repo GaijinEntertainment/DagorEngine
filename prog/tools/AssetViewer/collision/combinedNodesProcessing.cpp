@@ -90,7 +90,7 @@ void CombinedNodesProcessing::renderCombinedNodes(bool is_faded, bool draw_solid
         if (draw_solid)
         {
           draw_debug_solid_mesh(node.indices.data(), node.indices.size() / 3, &node.vertices.data()->x, elem_size(node.vertices),
-            node.vertices.size(), TMatrix::IDENT, color);
+            node.vertices.size(), TMatrix::IDENT, color, false, DrawSolidMeshCull::FLIP);
         }
         for (int i = 0; i < node.indices.size(); i += 3)
         {

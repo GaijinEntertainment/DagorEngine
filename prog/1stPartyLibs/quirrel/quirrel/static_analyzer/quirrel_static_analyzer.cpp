@@ -2274,13 +2274,16 @@ public:
 
     if (node->nodeType == PNT_TERNARY_OP)
     {
-      NodeType type1 = node->children[1]->nodeType;
-      NodeType type2 = node->children[2]->nodeType;
+      Node * ifTrue = tryReplaceVar(node->children[1], false);
+      Node * ifFalse = tryReplaceVar(node->children[2], false);
+      NodeType type1 = ifTrue->nodeType;
+      NodeType type2 = ifFalse->nodeType;
       if ((node->children[1]->tok.type == TK_CLONE || type1 == PNT_ARRAY_CREATION || type1 == PNT_TABLE_CREATION) &&
           (node->children[2]->tok.type == TK_CLONE || type2 == PNT_ARRAY_CREATION || type2 == PNT_TABLE_CREATION))
         return false;
       else
-        return true;
+        return (ifTrue->nodeType != PNT_TERNARY_OP || isIndeterminated(ifTrue)) &&
+               (ifFalse->nodeType != PNT_TERNARY_OP || isIndeterminated(ifFalse));
     }
 
     if (node->nodeType == PNT_BINARY_OP && node->tok.type == TK_NULLCOALESCE)
@@ -3036,7 +3039,11 @@ public:
       Node * ifTrue = tryReplaceVar(node->children[1], false);
       Node * ifFalse = tryReplaceVar(node->children[2], false);
       if (isNodeEquals(ifTrue, ifFalse))
-        ctx.warning("operator-returns-same-val", node->tok);
+      {
+        bool ignore = ifTrue->nodeType == PNT_TABLE_CREATION || ifTrue->nodeType == PNT_ARRAY_CREATION || ifTrue->tok.type == TK_CLONE;
+        if (!ignore)
+          ctx.warning("operator-returns-same-val", node->tok);
+      }
     }
 
     if (node->nodeType == PNT_TERNARY_OP)

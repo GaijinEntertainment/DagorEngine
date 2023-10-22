@@ -6,6 +6,7 @@
 #pragma once
 
 #include <util/dag_bitFlagsMask.h>
+#include <util/dag_stdint.h>
 
 
 namespace rendinst
@@ -21,20 +22,15 @@ inline constexpr int RIEX_STAGE_COUNT = 4;
 
 enum class GatherRiTypeFlag : uint32_t
 {
-  RiGenOnly = 1 << 0,
-  RiExtraOnly = 1 << 1,
+  RiGenTmOnly = 1 << 0,
+  RiGenPosOnly = 1 << 1,
+  RiExtraOnly = 1 << 2,
+  RiGenOnly = RiGenTmOnly | RiGenPosOnly,
+  RiGenTmAndExtra = RiGenTmOnly | RiExtraOnly,
   RiGenAndExtra = RiGenOnly | RiExtraOnly
 };
 using GatherRiTypeFlags = BitFlagsMask<GatherRiTypeFlag>;
 BITMASK_DECLARE_FLAGS_OPERATORS(GatherRiTypeFlag);
-
-enum class RiExtraCullIntention
-{
-  MAIN,
-  DRAFT_DEPTH,
-  REFLECTIONS,
-  LANDMASK,
-};
 
 enum class CheckBoxRIResultFlag
 {
@@ -118,19 +114,10 @@ enum class AtestStage
 };
 // end of to consider
 
-enum class VisibilityRenderingFlag
-{
-  None = 0,
-  Static = 1 << 0,
-  Dynamic = 1 << 1,
-  All = Static | Dynamic,
-};
-using VisibilityRenderingFlags = BitFlagsMask<VisibilityRenderingFlag>;
-BITMASK_DECLARE_FLAGS_OPERATORS(VisibilityRenderingFlag);
-
-enum class VolumeSectionsMerge : uint8_t
+enum class SolidSectionsMerge : uint8_t
 {
   COLL_NODE, // merge only sections in one coll node
+  RI_MAT,    // merge sections in one ri with same material
   RENDINST,  // merge sections in one rendinst
   MATERIAL,  // merge sections with one material id
   ALL,       // merge all intersecting sections, material is acquired from starting section

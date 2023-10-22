@@ -89,7 +89,7 @@ if $(Platform) in win32 win64 xboxOne scarlett { Copt += /wd4554 ; }
 if $(Platform) in ps4 ps5 { Copt += -Wno-shift-op-parentheses ; }
 if $(PlatformSpec) in clang clang64 { Copt += -Wno-logical-op-parentheses -Wno-parentheses -Wno-tautological-compare ; }
 
-if $(PlatformSpec) in gcc4 clang {
+if $(PlatformSpec) in gcc clang {
   CPPopt += -Wno-unused-parameter ;
 }
 

@@ -19,13 +19,13 @@ class PropertyContainerVert : public PropertyContainerControlBase
   static const int PPANEL_WIDTH = 280;
 
 public:
-  PropertyContainerVert(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x, int y, unsigned w,
-    unsigned h, HorzFlow horzFlow = HorzFlow::Disabled);
+  PropertyContainerVert(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x, int y, hdpi::Px w,
+    hdpi::Px h, HorzFlow horzFlow = HorzFlow::Disabled);
 
   virtual void clear();
-  virtual void setWidth(unsigned w);
+  virtual void setWidth(hdpi::Px w);
   virtual void onChildResize(int id);
-  void setVerticalInterval(int value) { mVInterval = value; }
+  void setVerticalInterval(hdpi::Px value) { mVInterval = _px(value); }
 
   // fast fill for large pannels
   virtual void disableFillAutoResize();
@@ -56,11 +56,11 @@ protected:
 class PropertyContainerHorz : public PropertyContainerControlBase
 {
 public:
-  PropertyContainerHorz(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x, int y, unsigned w,
-    unsigned h) :
+  PropertyContainerHorz(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x, int y, hdpi::Px w,
+    hdpi::Px h) :
     PropertyContainerControlBase(id, event_handler, parent, x, y, w, h){};
 
-  virtual void setWidth(unsigned w){};
+  virtual void setWidth(hdpi::Px w){};
   virtual void onChildResize(int id);
 
 protected:
@@ -70,5 +70,5 @@ protected:
 
   virtual int getNextControlX(bool new_line = true);
   virtual int getNextControlY(bool new_line = true);
-  unsigned getClientWidth();
+  hdpi::Px getClientWidth();
 };

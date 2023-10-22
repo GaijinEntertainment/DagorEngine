@@ -11,7 +11,7 @@
 #include "sqlexer.h"
 
 #define CUR_CHAR (_currdata)
-#define RETURN_TOKEN(t) { _prevtoken = _curtoken; _curtoken = t; return t;}
+#define RETURN_TOKEN(t) { _prevtoken = _curtoken; _prevflags = _flags; _flags = 0; _curtoken = t; return t;}
 #define IS_EOB() (CUR_CHAR <= SQUIRREL_EOB)
 #define NEXT() {Next();_currentcolumn++;}
 #define INIT_TEMP_STRING() { _longstr.resize(0);}
@@ -21,13 +21,15 @@
 
 using namespace SQCompilation;
 
-SQLexer::SQLexer(SQSharedState *ss, SQCompilationContext &ctx, enum SQLexerMode mode)
+SQLexer::SQLexer(SQSharedState *ss, SQCompilationContext &ctx, Comments *comments)
     : _longstr(ss->_alloc_ctx)
-    , macroState(ss->_alloc_ctx)
     , _ctx(ctx)
     , _expectedToken(-1)
     , _state(LS_REGULAR)
-    , _mode(mode)
+    , _flags(0)
+    , _prevflags(0)
+    , _comments(comments)
+    , _currentComment(ss->_alloc_ctx)
 {
 }
 
@@ -35,6 +37,8 @@ SQLexer::~SQLexer()
 {
     _keywords->Release();
 }
+
+using CommentVec = sqvector<CommentData>;
 
 void SQLexer::Init(SQSharedState *ss, const char *sourceText, size_t sourceTextSize)
 {
@@ -82,41 +86,29 @@ void SQLexer::Init(SQSharedState *ss, const char *sourceText, size_t sourceTextS
     ADD_KEYWORD(let, TK_LET);
 
 
-    macroState.reset();
     _sourceText = sourceText;
     _sourceTextSize = sourceTextSize;
     _sourceTextPtr = 0;
-    _readf = &readf;
-    _up = this;
     _lasttokenline = _currentline = 1;
     _lasttokencolumn = _currentcolumn = 0;
     _prevtoken = -1;
     _tokencolumn = 0;
     _tokenline = 1;
     _reached_eof = SQFalse;
+    if (_comments)
+      _comments->pushNewLine();
     Next();
-}
-
-SQInteger SQLexer::readf(void *up) {
-  SQLexer *l = (SQLexer *)up;
-  if (l->_sourceTextPtr >= l->_sourceTextSize) {
-    return SQUIRREL_EOB;
-  }
-
-  return l->_sourceText[l->_sourceTextPtr++];
 }
 
 void SQLexer::Next()
 {
-    SQInteger t = _readf(_up);
-    if(t > SQ_MAX_CHAR)
-        _ctx.reportDiagnostic(DiagnosticsId::DI_INVALID_CHAR, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
-    if(t != 0) {
-        _currdata = (LexChar)t;
-        return;
-    }
-    _currdata = SQUIRREL_EOB;
-    _reached_eof = SQTrue;
+  if (_sourceTextPtr >= _sourceTextSize) {
+      _reached_eof = SQTrue;
+      _currdata = SQUIRREL_EOB;
+  }
+  else {
+      _currdata = _sourceText[_sourceTextPtr++];
+  }
 }
 
 const SQChar *SQLexer::Tok2Str(SQInteger tok)
@@ -131,223 +123,71 @@ const SQChar *SQLexer::Tok2Str(SQInteger tok)
     return NULL;
 }
 
+void SQLexer::SetStringValue() {
+  _svalue = &_longstr[0];
+}
+
+void SQLexer::AddComment(enum CommentKind kind, SQInteger line, SQInteger start, SQInteger end) {
+  if (!_comments)
+    return;
+  size_t size = _currentComment.size();
+  SQChar *data = (SQChar *)sq_vm_malloc(_sharedstate->_alloc_ctx, (size + 1) * sizeof(SQChar));
+  memcpy(data, &_currentComment[0], size);
+  data[size] = '\0';
+
+  CurLineComments().push_back({ kind, size, data, line, start, end });
+
+  _currentComment.clear();
+}
+
 void SQLexer::LexBlockComment()
 {
+    enum CommentKind k = CK_BLOCK;
+    SQInteger line = 1;
+    SQInteger start = _currentcolumn;
     bool done = false;
     while(!done) {
+        _currentComment.push_back(CUR_CHAR);
         switch(CUR_CHAR) {
             case _SC('*'): { NEXT(); if(CUR_CHAR == _SC('/')) { done = true; NEXT(); }}; continue;
-            case _SC('\n'): _currentline++; NEXT(); continue;
+            case _SC('\n'):
+              k = CK_ML_BLOCK;
+              AddComment(k, line, start, _currentcolumn);
+              ++line;
+              nextLine();
+              NEXT();
+              start = _currentcolumn;
+              continue;
             case SQUIRREL_EOB:
               _ctx.reportDiagnostic(DiagnosticsId::DI_TRAILING_BLOCK_COMMENT, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
               return;
             default: NEXT();
         }
     }
+
+    AddComment(k, k == CK_ML_BLOCK ? line : 0, start, _currentcolumn);
 }
+
 void SQLexer::LexLineComment()
 {
-    do { NEXT(); } while (CUR_CHAR != _SC('\n') && (!IS_EOB()));
-}
-
-
-static void append_string_to_vec(sqvector<SQChar> & vec, const SQChar * str)
-{
-    while (*str)
-    {
-        vec.push_back(*str);
-        str++;
-    }
-}
-
-
-void SQLexer::AppendPosDirective(sqvector<SQChar> & vec)
-{
-    append_string_to_vec(vec, _SC("#pos:"));
-    SQChar buf[16] = { 0 };
-    scsprintf(buf, sizeof(buf)/sizeof(buf[0]), _SC("%d"), int(_currentline));
-    append_string_to_vec(vec, buf);
-    vec.push_back(_SC(':'));
-    scsprintf(buf, sizeof(buf)/sizeof(buf[0]), _SC("%d"), int(_currentcolumn - 1));
-    append_string_to_vec(vec, buf);
-    vec.push_back(_SC(' '));
-}
-
-
-bool SQLexer::ProcessReaderMacro()
-{
-    if (macroState.prevReadF) {
-        _ctx.reportDiagnostic(DiagnosticsId::DI_MACRO_RECURSION, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
-        return false;
-    }
-
-    if (CUR_CHAR != _SC('"')) {
-        _ctx.reportDiagnostic(DiagnosticsId::DI_EXPECTED_LEX, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "string");
-        return false;
-    }
-
-    macroState.insideStringInterpolation = true;
-    SQChar prevChar = CUR_CHAR;
-
-    macroState.macroParams.resize(0);
-    macroState.macroStr.resize(0);
-    macroState.macroStr.push_back(_SC('"'));
-
-    int depth = 0;
-    int braceCount = 0;
-    int paramCount = 0;
-    bool insideStr1 = false;
-    bool insideStr2 = false;
-
-    while (CUR_CHAR != SQUIRREL_EOB)
-    {
-        if (CUR_CHAR == _SC('\\') && prevChar == _SC('\\'))
-          prevChar = 0;
-        else
-          prevChar = CUR_CHAR;
-
+    SQInteger start = _currentcolumn;
+    do {
         NEXT();
-
-        if (prevChar != _SC('\\'))
-        {
-            if (!insideStr1 && !insideStr2)
-            {
-                if (depth > 0 && (prevChar == _SC('/') && (CUR_CHAR == _SC('/') || CUR_CHAR == _SC('*')))) {
-                    _ctx.reportDiagnostic(DiagnosticsId::DI_COMMENT_IN_STRING_TEMPLATE, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
-                    return false;
-                }
-
-                if (CUR_CHAR == _SC('{'))
-                {
-                    if (!depth)
-                    {
-                        if (macroState.macroParams.size())
-                            macroState.macroParams.push_back(_SC(','));
-
-                        macroState.macroParams.push_back(_SC('('));
-                        AppendPosDirective(macroState.macroParams);
-                        depth++;
-                        continue;
-                    }
-                    depth++;
-                }
-                else if (CUR_CHAR == _SC('}'))
-                {
-                    depth--;
-
-                    if ((braceCount != 0 && depth == 0) || depth < 0) {
-                        _ctx.reportDiagnostic(DiagnosticsId::DI_BRACE_ORDER, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
-                        break;
-                    }
-
-                    if (!depth)  {
-                        macroState.macroParams.push_back(_SC(')'));
-                        macroState.macroStr.push_back('{');
-                        SQChar buf[16] = { 0 };
-                        scsprintf(buf, sizeof(buf)/sizeof(buf[0]), _SC("%d"), paramCount);
-                        append_string_to_vec(macroState.macroStr, buf);
-                        paramCount++;
-                    }
-                }
-
-                if (depth > 0) {
-                    if (CUR_CHAR == _SC('(') || CUR_CHAR == _SC('['))
-                        braceCount++;
-                    else if (CUR_CHAR == _SC(')') || CUR_CHAR == _SC(']'))
-                        braceCount--;
-                }
-            }
-
-            if (depth > 0)
-            {
-                if (CUR_CHAR == _SC('"') && !insideStr1)
-                    insideStr2 = !insideStr2;
-
-                if (CUR_CHAR == _SC('\'') && !insideStr2)
-                    insideStr1 = !insideStr1;
-            }
-
-        }
-        else //  prevChar == '\'
-        {
-            if (CUR_CHAR == _SC('{') || CUR_CHAR == _SC('}')) {
-                if (depth == 0)
-                    macroState.macroStr.pop_back();
-                else
-                    macroState.macroParams.pop_back();
-            }
-        }
-
-        if (depth == 0)
-            macroState.macroStr.push_back(CUR_CHAR);
-        else
-            macroState.macroParams.push_back(CUR_CHAR);
-
-        if (depth <= 0 && CUR_CHAR == _SC('"') && prevChar != _SC('\\') && !insideStr1 && !insideStr2)
-            break;
-    }
-
-    if (macroState.macroParams.size() != 0) {
-        append_string_to_vec(macroState.macroStr, _SC(".subst("));
-
-        for (SQUnsignedInteger i = 0; i < macroState.macroParams.size(); i++)
-            macroState.macroStr.push_back(macroState.macroParams[i]);
-
-        macroState.macroStr.push_back(_SC(')'));
-    }
-    else if (paramCount) {
-        _ctx.reportDiagnostic(DiagnosticsId::DI_NO_PARAMS_IN_STRING_TEMPLATE, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
-        return false;
-    }
-
-    AppendPosDirective(macroState.macroStr);
-    macroState.macroStr.push_back(0);
-
-    macroState.prevReadF = _readf;
-    macroState.prevUserPointer = _up;
-    macroState.prevCurrdata = _currdata;
-    macroState.macroStrPos = 0;
-    _up = (void *)&macroState;
-    _readf = SQLexerMacroState::macroReadF;
-    return true;
+        _currentComment.push_back(CUR_CHAR);
+    } while (CUR_CHAR != _SC('\n') && (!IS_EOB()));
+    AddComment(CK_LINE, 0, start, _currentcolumn);
 }
-
-
-void SQLexer::ExitReaderMacro()
-{
-    _readf = macroState.prevReadF;
-    _up = macroState.prevUserPointer;
-    _currdata = macroState.prevCurrdata;
-    macroState.prevUserPointer = nullptr;
-    macroState.prevReadF = nullptr;
-    macroState.insideStringInterpolation = false;
-}
-
 
 SQInteger SQLexer::Lex()
 {
-    SQInteger tk = LexSingleToken();
-
-    if (_mode == LM_LEGACY) {
-        if (tk == TK_READERMACRO) {
-            if (!ProcessReaderMacro())
-                return 0;
-
-            NEXT();
-            tk = LexSingleToken();
-        }
-
-
-        if (!tk && macroState.insideStringInterpolation) {
-            ExitReaderMacro();
-            NEXT();
-            tk = LexSingleToken();
-        }
-    }
-
-    return tk;
+    return LexSingleToken();
 }
 
+void SQLexer::nextLine() {
+  ++_currentline;
+  if (_comments)
+    _comments->pushNewLine();
+}
 
 SQInteger SQLexer::LexSingleToken()
 {
@@ -365,10 +205,11 @@ SQInteger SQLexer::LexSingleToken()
         _tokenline = _currentline;
         _tokencolumn = _currentcolumn;
         switch(CUR_CHAR){
-        case _SC('\t'): case _SC('\r'): case _SC(' '): NEXT(); continue;
+        case _SC('\t'): case _SC('\r'): case _SC(' '): _flags |= TF_PREP_SPACE; NEXT(); continue;
         case _SC('\n'):
-            _currentline++;
+            nextLine();
             _prevtoken=_curtoken;
+            _flags |= TF_PREP_EOL;
             _curtoken=_SC('\n');
             NEXT();
             _currentcolumn=0;
@@ -434,7 +275,7 @@ SQInteger SQLexer::LexSingleToken()
             }
         case _SC('$'): {
             NEXT();
-            RETURN_TOKEN(_mode == LM_AST ? '$' : TK_READERMACRO);
+            RETURN_TOKEN('$');
             }
         case _SC('@'): {
             SQInteger stype;
@@ -605,7 +446,7 @@ SQInteger SQLexer::ReadString(SQInteger ndelim,bool verbatim, bool advance)
                 if(!verbatim)
                     _ctx.reportDiagnostic(DiagnosticsId::DI_NEWLINE_IN_CONST, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
                 APPEND_CHAR(CUR_CHAR); NEXT();
-                _currentline++;
+                nextLine();
                 break;
             case _SC('\\'):
                 if(verbatim) {
@@ -694,7 +535,7 @@ loop_exit:
         _nvalue = _longstr[0];
         return TK_INTEGER;
     }
-    _svalue = &_longstr[0];
+    SetStringValue();
     return t;
 }
 
@@ -836,7 +677,7 @@ SQInteger SQLexer::ReadID()
     TERMINATE_BUFFER();
     res = GetIDType(&_longstr[0],_longstr.size() - 1);
     if(res == TK_IDENTIFIER || res == TK_CONSTRUCTOR) {
-        _svalue = &_longstr[0];
+        SetStringValue();
     }
     return res;
 }
@@ -851,6 +692,6 @@ SQInteger SQLexer::ReadDirective()
     TERMINATE_BUFFER();
     if (!_longstr[0])
         return -1;
-    _svalue = &_longstr[0];
+    SetStringValue();
     return TK_DIRECTIVE;
 }

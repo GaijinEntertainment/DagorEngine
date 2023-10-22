@@ -107,8 +107,7 @@ static __forceinline void phys_create_phys_world(DynamicPhysObjectData *base_obj
       tm.setcol(3, Point3(interval * ((i + 5) / 10) * (((i / 5) & 1) ? -1.f : +1.f), 0, interval * (i % 5)));
 
     DynamicPhysObject *po = new (midmem) DynamicPhysObject;
-    po->init(base_obj, pw);
-    po->resetTm(tm);
+    po->init(base_obj, pw, tm);
     simObj.push_back(po);
 
     mustDelSimObj = true;
@@ -207,7 +206,7 @@ static __forceinline void *phys_start_ragdoll(AnimV20::IAnimCharacter2 *animChar
   ragdoll->setContinuousCollisionMode(true);
 
   ragdoll->setStartAddLinVel(vel0);
-  animChar->act(0.f, true);
+  animChar->act(0.f, ::grs_cur_view.pos, true);
   ragdoll->startRagdoll();
   animChar->setPostController(ragdoll);
   physsimulator::simObjRes.push_back(ragdoll->getPhysRes());

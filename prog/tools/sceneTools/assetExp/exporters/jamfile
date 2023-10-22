@@ -49,24 +49,24 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/convert/nvtt-2.0.7
   $(Root)/prog/3rdPartyLibs/convert/PVRTexLib
   $(Root)/prog/3rdPartyLibs/convert/ispctexturecompressor/include
-  $(Root)/prog/engine2/sharedInclude
-  $(Root)/prog/tools/sceneTools/daEditor3/include
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/3rdPartyLibs/math/vhacd
 ;
 
 
 UseProgLibs =
-  engine2/lib3d
-  engine2/shaders
-  engine2/sceneRay
-  engine2/perfMon
-  engine2/image
+  engine/lib3d
+  engine/shaders
+  engine/sceneRay
+  engine/perfMon
+  engine/image
 
-  engine2/gameRes
-  engine2/sceneRay
-  engine2/scene
-  engine2/coreUtil
+  engine/gameRes
+  engine/sceneRay
+  engine/scene
+  engine/coreUtil
 
   tools/libTools/assetMgr
   tools/libTools/assetMgrHlp
@@ -78,7 +78,7 @@ UseProgLibs =
   tools/libTools/fastPhysData
   tools/libTools/math
   tools/libTools/collision
-  tools/sceneTools/daEditor3/services/bitMaskMgr
+  tools/sceneTools/daEditorX/services/bitMaskMgr
 
   tools/sceneTools/assetExp/exporters/scriptHelpersLt
   commonFx/commonFxTools

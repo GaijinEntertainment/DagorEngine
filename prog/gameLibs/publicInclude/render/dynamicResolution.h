@@ -30,6 +30,8 @@ public:
   void debugImguiWindow();
 
 private:
+  void trackCpuTime();
+  void calculateAllowableTimeRange(float &lower_bound, float &upper_bound);
   void adjustResolution();
 
   struct TimestampQueries
@@ -46,9 +48,12 @@ private:
   GpuFrameState gpuFrameState = GPU_FRAME_FINISHED;
 
   bool autoAdjust = true;
+  bool considerCPUbottleneck = false;
   float maxResolutionScale = 1.0;
   float minResolutionScale = 0.5;
   float resolutionScaleStep;
+
+  float currentCpuMsPerFrame = 0;
 
   double gpuMsPerTick;
 
@@ -56,7 +61,7 @@ private:
 
   int targetFrameRate;
   float targetMsPerFrame;
-  float currentMsPerFrame = 0;
+  float currentGpuMsPerFrame = 0;
   float maxThresholdToChange = 0.95;
   float minThresholdToChange = 0.85;
   int framesAboveThreshold = 0;

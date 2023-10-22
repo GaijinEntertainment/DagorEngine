@@ -1,0 +1,17 @@
+Platform ?= linux64 ;
+
+Root    ?= ../../../.. ;
+Location = prog/engine/drv/hid_joystick_linux ;
+
+TargetType  = lib ;
+Target      = engine/drv/hid_joystick_linux.lib ;
+
+Sources =
+  joy_composite.cpp
+  hid_udev.cpp
+  joy_create.cpp
+  joy_classdrv.cpp
+  joy_device.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

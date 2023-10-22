@@ -180,6 +180,7 @@ public:
   static SQInteger updateViaCallMm(HSQUIRRELVM vm);
   static SQInteger updateViaMethod(HSQUIRRELVM vm);
   static SQInteger mutate(HSQUIRRELVM vm);
+  static SQInteger modify(HSQUIRRELVM vm);
   bool mutateCurValue(HSQUIRRELVM vm, SQInteger closure_pos);
 
   static SQInteger _newslot(HSQUIRRELVM vm);

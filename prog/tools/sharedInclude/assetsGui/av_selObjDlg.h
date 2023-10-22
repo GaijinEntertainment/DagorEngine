@@ -38,7 +38,7 @@ public:
   bool changeFilters(DagorAssetMgr *_mgr, dag::ConstSpan<int> type_filter);
   void addAssetToRecentlyUsed(const char *asset_name);
 
-  virtual void resizeWindow(unsigned w, unsigned h, bool internal = false);
+  virtual void resizeWindow(hdpi::Px w, hdpi::Px h, bool internal = false);
 
   // IAssetBaseViewClient
 
@@ -68,6 +68,7 @@ private:
 
   static TLeafHandle getTreeItemByName(TreeBaseWindow &tree, const String &name);
   static void selectTreeItemByName(TreeBaseWindow &tree, const String &name);
+  static void revealInExplorer(const DagorAsset &asset);
 
   IAssetBaseViewClient *client;
   AssetBaseView *view;

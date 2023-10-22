@@ -67,14 +67,14 @@ if $(AndroidNdkVer) in r23b {
   _A_GCC_BIN = $(_A_NDK_DIR)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(_A_NDK_PREBUILT_SUFFIX)/arm-linux-androideabi/bin/ ;
 }
 
-if ! [ GLOB $(_A_NDK_DIR) : * ] { exit FATAL\: \"$(_A_NDK_DIR)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\ndasoft\\devtools\\ ; }
-if ! [ GLOB $(_A_ADK_DIR) : * ] { exit FATAL\: \"$(_A_ADK_DIR)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\ndasoft\\devtools\\ ; }
-if ! [ GLOB $(_A_JAVA_HOME) : * ] { exit FATAL\: \"$(_A_JAVA_HOME)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\ndasoft\\devtools\\ ; }
-if ! [ GLOB $(_A_ANT_HOME) : * ] { exit FATAL\: \"$(_A_ANT_HOME)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\ndasoft\\devtools\\ ; }
+if ! [ GLOB $(_A_NDK_DIR) : * ] { exit FATAL\: \"$(_A_NDK_DIR)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_A_ADK_DIR) : * ] { exit FATAL\: \"$(_A_ADK_DIR)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_A_JAVA_HOME) : * ] { exit FATAL\: \"$(_A_JAVA_HOME)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_A_ANT_HOME) : * ] { exit FATAL\: \"$(_A_ANT_HOME)\" not found!  Please, update DEVTOOLS ; }
 if ! [ GLOB $(_A_NDK_SYSROOT) : * ] { exit FATAL\: \"$(_A_NDK_SYSROOT)\" not found!  AndroidApiVer\=$(AndroidApiVer)  AndroidArch\=$(AndroidArch) ; }
-if ! [ GLOB $(_A_GRADLE_HOME) : * ] { exit FATAL\: \"$(_A_GRADLE_HOME)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\ndasoft\\devtools\\ ; }
-if ! [ GLOB $(_A_TC_ROOT) : * ] { exit FATAL\: \"$(_A_TC_ROOT)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\ndasoft\\devtools\\ ; }
-if ! [ GLOB $(_A_GCC_BIN) : * ] { exit FATAL\: \"$(_A_GCC_BIN)\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\ndasoft\\devtools\\ ; }
+if ! [ GLOB $(_A_GRADLE_HOME) : * ] { exit FATAL\: \"$(_A_GRADLE_HOME)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_A_TC_ROOT) : * ] { exit FATAL\: \"$(_A_TC_ROOT)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_A_GCC_BIN) : * ] { exit FATAL\: \"$(_A_GCC_BIN)\" not found!  Please, update DEVTOOLS ; }
 
 AndroidHasNeon = yes ;
 AndroidUploadCrashlyticsSymbols ?= no ;
@@ -193,18 +193,8 @@ _INCLUDE      =
   $(Root)/prog/3rdPartyLibs
   $(_A_NDK_DIR)/sources/android/support/include
   $(_A_TC_ROOT)/sysroot/usr/include/android
+  $(_A_NDK_DIR)/sources/android/native_app_glue
 ;
-
-if $(UseAndroidGameActivity) = yes {
-  _INCLUDE +=
-    $(_DEVTOOL)/agdk/include
-    $(_DEVTOOL)/agdk-game-activity/include
-    $(_DEVTOOL)/agdk-game-activity/include/game-activity/native_app_glue
-  ;
-}
-else {
-  _INCLUDE += $(_A_NDK_DIR)/sources/android/native_app_glue ;
-}
 
 # make compiler cmd-line ###
 _CPP_BASE_INCLUDES = "-iwithprefix "$(MasterPreInclude) "-I "$(MasterPreInclude) -isystem $(Root)/prog/dagorInclude "-I "$(Root)/prog/1stPartyLibs "-I "$(Root)/prog/3rdPartyLibs/eastl/include ;

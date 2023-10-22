@@ -125,8 +125,8 @@ declare_struct("FxPos", 6,
   { name="cylinder", type="FxInitPosCylinder" },
   { name="cone", type="FxInitPosCone" },
   { name="box", type="FxInitPosBox"},
-  { name="sphere_sector", type="FxInitPosSphereSector" }
-  { name="gpu_placement", type="FxInitGpuPlacement" }
+  { name="sphere_sector", type="FxInitPosSphereSector" },
+  { name="gpu_placement", type="FxInitGpuPlacement" },
 ]);
 
 // radius
@@ -424,7 +424,7 @@ declare_struct("FxRenderShape", 2,
   { name="camera_offset", type="real", defVal=0 },
   { name="type", type="list", list=["billboard", "ribbon"] },
   { name="billboard", type="FxRenderShapeBillboard" },
-  { name="ribbon", type="FxRenderShapeRibbon"}
+  { name="ribbon", type="FxRenderShapeRibbon"},
 ]);
 
 declare_struct("FxBlending", 1,
@@ -460,6 +460,13 @@ declare_struct("FxRenderShaderVolShape", 1,
 declare_struct("FxRenderShaderAboveDepth", 1,
 [
   { name="placement_threshold", type="real", defVal=-1 },
+]);
+
+declare_struct("FxRenderVolfogInjection", 1,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="weight_rgb", type="real", defVal=1 },
+  { name="weight_alpha", type="real", defVal=1 },
 ]);
 
 declare_struct("FxRenderShader", 8,
@@ -512,7 +519,7 @@ declare_struct("FxQuality", 1,
   { name="high_quality", type="bool", defVal=1 },
 ]);
 
-end_declare_params("dafx_modfx", 11,
+end_declare_params("dafx_modfx", 12,
 [
   {struct="FxSpawn"},
   {struct="FxLife"},
@@ -528,9 +535,10 @@ end_declare_params("dafx_modfx", 11,
   {struct="FxRenderShape"},
   {struct="FxBlending"},
   {struct="FxDepthMask"},
-  {struct="FxRenderGroup"}
-  {struct="FxRenderShader"}
-  {struct="FxPartTrimming"}
-  {struct="FxGlobalParams"}
-  {struct="FxQuality"}
+  {struct="FxRenderGroup"},
+  {struct="FxRenderShader"},
+  {struct="FxRenderVolfogInjection"},
+  {struct="FxPartTrimming"},
+  {struct="FxGlobalParams"},
+  {struct="FxQuality"},
 ]);

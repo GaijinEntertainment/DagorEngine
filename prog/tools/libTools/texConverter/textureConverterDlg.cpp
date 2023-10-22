@@ -104,7 +104,7 @@ enum
 //  DDS Converter Dialog
 //==============================================================================
 ConverterDlg::ConverterDlg() :
-  CDialogWindow(NULL, DLG_WIDTH, DLG_HEIGHT, "Texture Importer"),
+  CDialogWindow(NULL, hdpi::_pxScaled(300), hdpi::_pxScaled(580), "Texture Importer"),
   specificType((ddstexture::Converter::TextureType)-1),
   noChangeName(false)
 {

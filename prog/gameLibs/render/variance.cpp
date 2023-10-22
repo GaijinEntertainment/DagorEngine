@@ -1,6 +1,5 @@
 #include <render/renderType.h>
 #include <render/xcsm.h>
-#include <render/shaderVars.h>
 #include <render/variance.h>
 #include <3d/dag_drv3d.h>
 #include <util/dag_globDef.h>
@@ -79,6 +78,7 @@ void PseudoGaussBlur::render(TEXTUREID srcTexId, Texture *tempTex, TEXTUREID tem
     blurYFx.getMat()->set_texture_param(texVarId, tempTexId);
     blurYFx.render();
     tempTex->texaddr(TEXADDR_BORDER);
+    d3d::resource_barrier({targTex, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 }
 
@@ -333,7 +333,6 @@ void Variance::endShadowMap()
     update_state = UPDATE_BLUR_Y;
   else if (update_state & UPDATE_SCENE)
     update_state = UPDATE_BLUR_X;
-  ShaderGlobal::set_int_fast(shadervars::render_type_glob_varId, shadervars::RENDER_TYPE_COMBINED);
   ShaderGlobal::set_texture_fast(vsm_shadowmapVarId, targ_texId);
 }
 
@@ -482,7 +481,7 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
   if (vsmType == VSM_HW)
   {
     d3d_err(d3d::set_render_target(0, (Texture *)NULL, 0));
-    d3d_err(d3d::set_depth(dest_tex, false));
+    d3d_err(d3d::set_depth(dest_tex, DepthAccess::RW));
     shaders::overrides::set(depthOnlyOverride);
   }
   else
@@ -508,7 +507,6 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
 
   d3d::settm(TM_VIEW, ::grs_cur_view.tm);
   d3d::settm(TM_PROJ, &lightProj);
-  ShaderGlobal::set_int_fast(shadervars::render_type_glob_varId, shadervars::RENDER_TYPE_DEPTH_ZW);
   return true;
 }
 

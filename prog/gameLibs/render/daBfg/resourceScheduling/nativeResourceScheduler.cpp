@@ -61,7 +61,6 @@ NativeResourceScheduler::ResourceKey::ResourceKey(const ResourceDescription &des
     hashPack(hash, description.asTexRes.width, description.asTexRes.height);
     desc.asTexRes.width = description.asTexRes.width;
     desc.asTexRes.height = description.asTexRes.height;
-    desc = fix_tex_params(desc);
   }
 }
 
@@ -69,10 +68,8 @@ NativeResourceScheduler::ResourceKey::ResourceKey(const ResourceKey &key, const 
   hash(key.rawHash), rawHash(key.rawHash), desc(key.desc)
 {
   hashPack(hash, resolution.x, resolution.y);
-  desc.asTexRes.mipLevels = AUTO_MIP_COUNT;
   desc.asTexRes.width = resolution.x;
   desc.asTexRes.height = resolution.y;
-  desc = fix_tex_params(desc);
 }
 
 inline bool NativeResourceScheduler::ResourceKey::operator==(const ResourceKey &key) const { return hash == key.hash; }
@@ -89,7 +86,7 @@ ManagedResView<typename ResType::BaseType> NativeResourceScheduler::getResource(
   G_ASSERT_RETURN(it != placedResources.end(), {});
 
   ManagedResView<typename ResType::BaseType> resView = eastl::get<ResType>(it->second.resource);
-  resView->setResName(cachedIntermediateResources[res_id].name.c_str());
+  resView->setResName(cachedIntermediateResourceNames[res_id].c_str());
   return resView;
 }
 
@@ -195,25 +192,26 @@ ResourceScheduler::DestroyedHeapSet NativeResourceScheduler::allocateHeaps(const
 }
 
 template <typename ResType, typename ResourceCreator>
-void NativeResourceScheduler::placeResource(int frame, intermediate::ResourceIndex res_idx, HeapIndex heap_idx, const ResourceKey &key,
-  const ResourceCreator &resourceCreator)
+void NativeResourceScheduler::placeResource(int frame, intermediate::ResourceIndex res_idx, HeapIndex heap_idx, uint32_t offset,
+  const ResourceKey &key, const ResourceCreator &resourceCreator)
 {
   // Place resource only if heap does not contain resource
   // with same description, offset and allignment.
   auto &placedResources = placedHeapResources[heap_idx];
   if (placedResources.find(key) == placedResources.end())
   {
-    placedProperties.emplace_back(PlaceProperty{heap_idx, key});
+    placedProperties.emplace_back(PlaceProperty{heap_idx, offset, key});
     placedResources.emplace(key, ResourceEntry{placedProperties.size() - 1, resourceCreator()});
   }
   G_ASSERT(placedProperties.size() > placedResources[key].collectionIdx);
   resourceIndexInCollection[frame][res_idx] = placedResources[key].collectionIdx;
 }
 
-static PerCompString generate_name(uint32_t heap_idx, size_t hash_value)
+static auto generate_name(uint32_t heap_idx, size_t hash_value)
 {
-  const eastl::string HEX_DIGITS = "0123456789ABCDEF";
-  PerCompString result = "fg_resource_heap$$_hash$$$$$$$$";
+  constexpr const char *HEX_DIGITS = "0123456789ABCDEF";
+  // WARNING: sizes for the fixed string and the name template must match!
+  eastl::fixed_string<char, 32> result = "fg_resource_heap$$_hash$$$$$$$$";
   G_ASSERT(heap_idx <= 0xFF);
   result[16] = HEX_DIGITS[heap_idx & 0xf];
   result[17] = HEX_DIGITS[heap_idx >> 4];
@@ -229,20 +227,21 @@ void NativeResourceScheduler::placeResource(int frame, intermediate::ResourceInd
   const ResourceDescription &desc, uint32_t offset, const ResourceAllocationProperties &properties)
 {
   const auto key = ResourceKey(desc, properties, offset);
-  const PerCompString placedResName = generate_name(eastl::to_underlying(heap_idx), key.hash);
+  const auto placedResName = generate_name(eastl::to_underlying(heap_idx), key.hash);
   if (desc.resType == RES3D_SBUF)
   {
     auto createBuf = [this, &key, &heap_idx, &placedResName, &offset, &properties]() -> UniqueBuf {
       return UniqueBuf(dag::place_buffer_in_resource_heap(heaps[heap_idx], key.desc, offset, properties, placedResName.c_str()));
     };
-    placeResource<UniqueBuf>(frame, res_idx, heap_idx, key, createBuf);
+    placeResource<UniqueBuf>(frame, res_idx, heap_idx, offset, key, createBuf);
   }
   else
   {
     auto createTex = [this, &key, &heap_idx, &placedResName, &offset, &properties]() -> UniqueTex {
-      return UniqueTex(dag::place_texture_in_resource_heap(heaps[heap_idx], key.desc, offset, properties, placedResName.c_str()));
+      return UniqueTex(
+        dag::place_texture_in_resource_heap(heaps[heap_idx], fix_tex_params(key.desc), offset, properties, placedResName.c_str()));
     };
-    placeResource<UniqueTex>(frame, res_idx, heap_idx, key, createTex);
+    placeResource<UniqueTex>(frame, res_idx, heap_idx, offset, key, createTex);
   }
 }
 
@@ -265,19 +264,19 @@ NativeResourceScheduler::~NativeResourceScheduler()
 void NativeResourceScheduler::resizeTexture(intermediate::ResourceIndex res_idx, int frame, const Point2 &resolution)
 {
   const auto scheduledResIdx = resourceIndexInCollection[frame][res_idx];
-  const auto &resizableTex = getTexture(frame, res_idx);
   const auto &resProp = placedProperties[scheduledResIdx];
   const auto key = ResourceKey(resProp.key, resolution);
-  auto createTex = [&key, &resProp, &resizableTex, &resolution]() -> UniqueTex {
-    const PerCompString placedResName = generate_name(eastl::to_underlying(resProp.heapIndex), key.hash);
-    auto tex = dag::alias_tex(resizableTex.getTex2D(), nullptr, resolution.x, resolution.y, key.desc.asTexRes.cFlags,
-      key.desc.asTexRes.mipLevels, placedResName.c_str());
+  auto createTex = [this, &key, resProp]() -> UniqueTex {
+    const auto placedResName = generate_name(eastl::to_underlying(resProp.heapIndex), key.hash);
+    const auto desc = fix_tex_params(key.desc);
+    const auto allocInfo = getResourceAllocationProperties(desc);
+    auto tex = dag::place_texture_in_resource_heap(heaps[resProp.heapIndex], desc, resProp.offset, allocInfo, placedResName.c_str());
 
     G_ASSERT_RETURN(tex, {});
 
     return tex;
   };
-  placeResource<UniqueTex>(frame, res_idx, resProp.heapIndex, key, createTex);
+  placeResource<UniqueTex>(frame, res_idx, resProp.heapIndex, resProp.offset, key, createTex);
 }
 
 void NativeResourceScheduler::resizeAutoResTextures(int frame, const DynamicResolutions &resolutions)
@@ -297,7 +296,8 @@ void NativeResourceScheduler::resizeAutoResTextures(int frame, const DynamicReso
 
     const auto mult = schedRes.resolutionType->multiplier;
     const auto res = resolutions[schedRes.resolutionType->id];
-    resizeTexture(idx, frame, IPoint2{static_cast<int>(mult * res.x), static_cast<int>(mult * res.y)});
+    if (res)
+      resizeTexture(idx, frame, IPoint2{static_cast<int>(mult * res->x), static_cast<int>(mult * res->y)});
   }
 }
 

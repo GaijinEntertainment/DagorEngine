@@ -7,7 +7,7 @@ Target      = gameLibs/webvromfs.lib ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes =
-  $(Root)/prog/engine2/dagorInclude
+  $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
 ;
 

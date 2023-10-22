@@ -14,6 +14,27 @@
 
 namespace spirv
 {
+
+// reflection info for resource remapping, used for metal
+struct ReflectionInfo
+{
+  enum class Type
+  {
+    ConstantBuffer,
+    Buffer,
+    StructuredBuffer,
+    TlasBuffer,
+    Texture,
+    Sampler
+  };
+
+  eastl::string name;
+  Type type = Type::ConstantBuffer;
+  int binding = -1;
+  int set = -1;
+  bool uav = false;
+};
+
 struct CompileToSpirVResult
 {
   // hash and version is not set, only metadata
@@ -24,6 +45,8 @@ struct CompileToSpirVResult
   std::vector<unsigned int> byteCode;
   // contains info logs from compiler, linker and io remapper
   eastl::vector<eastl::string> infoLog;
+  // reflection info to remap resoure bindings
+  eastl::vector<ReflectionInfo> reflection;
 };
 enum class CompileFlags : uint32_t
 {
@@ -33,7 +56,13 @@ enum class CompileFlags : uint32_t
   // if set varyings are used as is and no location lookup is done
   // used for in place shaders for debug
   VARYING_PASS_THROUGH = 1 << 1,
-  ENABLE_BINDLESS_SUPPORT = 1 << 2
+  ENABLE_BINDLESS_SUPPORT = 1 << 2,
+  // outputs reflection info
+  OUTPUT_REFLECTION = 1 << 3,
+  // forces descriptor set indices based on resource type
+  OVERWRITE_DESCRIPTOR_SETS = 1 << 4,
+  // force relaxed precision be converted to float16
+  ENABLE_HALFS = 1 << 5
 };
 inline CompileFlags &operator|=(CompileFlags &self, CompileFlags o)
 {
@@ -64,5 +93,6 @@ inline CompileFlags operator&(CompileFlags l, CompileFlags r)
 }
 CompileToSpirVResult compileGLSL(dag::ConstSpan<const char *> sources, EShLanguage target, CompileFlags flags);
 CompileToSpirVResult compileHLSL(dag::ConstSpan<const char *> sources, const char *entry, EShLanguage target, CompileFlags flags);
-CompileToSpirVResult compileHLSL_DXC(dag::ConstSpan<char> source, const char *entry, const char *profile, CompileFlags flags);
+CompileToSpirVResult compileHLSL_DXC(dag::ConstSpan<char> source, const char *entry, const char *profile, CompileFlags flags,
+  const eastl::vector<eastl::string_view> &disabledSpirvOptims);
 } // namespace spirv

@@ -77,7 +77,7 @@ Copt =
   -DHAVE_CONFIG_H
 ;
 
-if $(PlatformSpec) in gcc4 clang {
+if $(PlatformSpec) in gcc clang {
   CPPopt += -Wno-unused-parameter ;
 }
 

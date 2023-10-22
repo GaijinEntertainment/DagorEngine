@@ -1,16 +1,14 @@
 #include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstGenRender.h>
 #include "riGen/landClassData.h"
 #include "riGen/riGenData.h"
 
 #include <gameRes/dag_collisionResource.h>
 #include <gameRes/dag_gameResSystem.h>
-#include <gameRes/dag_stdGameResId.h>
 #include <shaders/dag_rendInstRes.h>
 #include <generic/dag_initOnDemand.h>
-#include <generic/dag_hierGrid.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
-#include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <ioSys/dag_lzmaIo.h>
@@ -23,7 +21,7 @@
 
 static inline IGenLoad &ptr_to_ref(IGenLoad *crd) { return *crd; }
 
-bool rendinstgenrender::tmInstColored = false;
+bool rendinst::render::tmInstColored = false;
 
 class LandClassGameResFactory final : public GameResourceFactory
 {
@@ -31,7 +29,7 @@ public:
   struct ResData
   {
     int resId, refCount;
-    eastl::unique_ptr<rendinstgenland::AssetData> landData;
+    eastl::unique_ptr<rendinst::gen::land::AssetData> landData;
   };
 
   eastl::vector<ResData> resData;
@@ -50,14 +48,14 @@ public:
   int findGameRes(GameResource *res) const
   {
     for (int i = 0; i < resData.size(); ++i)
-      if (resData[i].landData.get() == (rendinstgenland::AssetData *)res)
+      if (resData[i].landData.get() == (rendinst::gen::land::AssetData *)res)
         return i;
 
     return -1;
   }
 
 
-  unsigned getResClassId() override { return rendinstgenland::HUID_LandClass; }
+  unsigned getResClassId() override { return rendinst::gen::land::HUID_LandClass; }
 
   const char *getResClassName() override { return "LandClass"; }
 
@@ -74,7 +72,7 @@ public:
     id = findRes(res_id);
 
     if (id < 0 || !interlocked_acquire_load(resData[id].landData->riResResolved))
-      return NULL;
+      return nullptr;
 
     resData[id].refCount++;
 
@@ -151,10 +149,10 @@ public:
 
     String name;
     get_game_resource_name(res_id, name);
-    auto landData = eastl::make_unique<rendinstgenland::AssetData>();
+    auto landData = eastl::make_unique<rendinst::gen::land::AssetData>();
     landData->loadingAssetFname = name;
     landData->load(cb);
-    landData->loadingAssetFname = NULL;
+    landData->loadingAssetFname = nullptr;
 
     WinAutoLock lock2(cs);
     resData.push_back(ResData{res_id, 0, eastl::move(landData)});
@@ -164,7 +162,7 @@ public:
   void createGameResource(int res_id, const int *ref_ids, int num_refs) override
   {
     WinCritSec &cs = get_gameres_main_cs();
-    rendinstgenland::AssetData *ld;
+    rendinst::gen::land::AssetData *ld;
     {
       WinAutoLock lock(cs);
       int id = findRes(res_id);
@@ -201,12 +199,12 @@ public:
       get_game_resource_name(ref_ids[i * 2], ri_name);
       ld->riRes[i] = (RenderableInstanceLodsResource *)::get_game_resource(ref_ids[i * 2]);
       ld->riResName[i] = str_dup(ri_name, strmem);
-      ld->riCollRes[i] = NULL;
+      ld->riCollRes[i] = nullptr;
       if (!ld->riRes[i])
       {
         String name;
         get_game_resource_name(res_id, name);
-        G_ASSERT_LOG(ld->riRes[i] != NULL, "LandClass resource %s failed to resolve ref[%d]=%d <%s>", name.str(), i, ref_ids[i * 2],
+        G_ASSERT_LOG(ld->riRes[i] != nullptr, "LandClass resource %s failed to resolve ref[%d]=%d <%s>", name.str(), i, ref_ids[i * 2],
           ri_name.str());
         ld->riRes[i] = rendinst::get_stub_res();
         continue;
@@ -241,13 +239,13 @@ public:
 static InitOnDemand<LandClassGameResFactory> land_gameres_factory;
 
 
-rendinstgenland::AssetData::AssetData() :
-  tiled(NULL), planted(NULL), riRes(midmem), riCollRes(midmem), riColPair(midmem), loadingAssetFname(NULL), riResResolved(0)
+rendinst::gen::land::AssetData::AssetData() :
+  tiled(nullptr), planted(nullptr), riRes(midmem), riCollRes(midmem), riColPair(midmem), loadingAssetFname(nullptr), riResResolved(0)
 {
   memset(hash, 0, sizeof(hash));
 }
 
-void rendinstgenland::AssetData::load(IGenLoad &_crd)
+void rendinst::gen::land::AssetData::load(IGenLoad &_crd)
 {
   clear();
 
@@ -273,14 +271,14 @@ void rendinstgenland::AssetData::load(IGenLoad &_crd)
 
   if (blk->getBlockByName("resources"))
   {
-    tiled = new (midmem) rendinstgenland::TiledEntities;
+    tiled = new (midmem) rendinst::gen::land::TiledEntities;
     if (!loadTiledEntities(*blk))
       logerr("failed to load tiled entities properly");
   }
 
   if (blk->getBlockByName("obj_plant_generate"))
   {
-    planted = new (midmem) rendinstgenland::PlantedEntities;
+    planted = new (midmem) rendinst::gen::land::PlantedEntities;
 
     OAHashNameMap<true> dm_nm;
     Tab<IPoint2> dm_sz(tmpmem);
@@ -320,7 +318,7 @@ void rendinstgenland::AssetData::load(IGenLoad &_crd)
 
   delete blk;
 }
-void rendinstgenland::AssetData::updatePosInst(dag::ConstSpan<bool> _riPosInst)
+void rendinst::gen::land::AssetData::updatePosInst(dag::ConstSpan<bool> _riPosInst)
 {
   riPosInst = _riPosInst;
   if (tiled)
@@ -333,10 +331,10 @@ void rendinstgenland::AssetData::updatePosInst(dag::ConstSpan<bool> _riPosInst)
         if (planted->data[i].obj[j].entityIdx >= 0)
           planted->data[i].obj[j].posInst = riPosInst[planted->data[i].obj[j].entityIdx];
   for (int i = 0; i < riPosInst.size(); i++)
-    if (!riPosInst[i] && !rendinstgenrender::tmInstColored)
+    if (!riPosInst[i] && !rendinst::render::tmInstColored)
       riColPair[i * 2 + 0] = riColPair[i * 2 + 1] = 0x80808080;
 }
-void rendinstgenland::AssetData::updatePaletteRotation(dag::ConstSpan<bool> _riPaletteRotation)
+void rendinst::gen::land::AssetData::updatePaletteRotation(dag::ConstSpan<bool> _riPaletteRotation)
 {
   riPaletteRotation = _riPaletteRotation;
   if (tiled)
@@ -350,7 +348,7 @@ void rendinstgenland::AssetData::updatePaletteRotation(dag::ConstSpan<bool> _riP
           planted->data[i].obj[j].paletteRotation = riPaletteRotation[planted->data[i].obj[j].entityIdx];
 }
 
-void rendinstgenland::AssetData::clear()
+void rendinst::gen::land::AssetData::clear()
 {
   del_it(tiled);
   del_it(planted);
@@ -365,7 +363,7 @@ void rendinstgenland::AssetData::clear()
   interlocked_release_store(riResResolved, 0);
 }
 
-void rendinstgenland::AssetData::updateRiColor(int entId, E3DCOLOR from, E3DCOLOR to)
+void rendinst::gen::land::AssetData::updateRiColor(int entId, E3DCOLOR from, E3DCOLOR to)
 {
   if (entId < 0)
     return;
@@ -379,7 +377,7 @@ void rendinstgenland::AssetData::updateRiColor(int entId, E3DCOLOR from, E3DCOLO
   }
 }
 
-bool rendinstgenland::AssetData::loadTiledEntities(const RoDataBlock &blk)
+bool rendinst::gen::land::AssetData::loadTiledEntities(const RoDataBlock &blk)
 {
   tiled->data.clear();
   BBox2 area;
@@ -404,12 +402,12 @@ bool rendinstgenland::AssetData::loadTiledEntities(const RoDataBlock &blk)
       continue;
 
     Point2 offset = dataBlk.getPoint2("offset", Point2(0, 0));
-    const char *orientTypeStr = dataBlk.getStr("orientation", NULL);
+    const char *orientTypeStr = dataBlk.getStr("orientation", nullptr);
     if (orientTypeStr)
       if (stricmp(orientTypeStr, "world") != 0 && stricmp(orientTypeStr, "normal") != 0)
       {
         logerr("undefined orientation=<%s> in asset: %s", orientTypeStr, loadingAssetFname);
-        orientTypeStr = NULL;
+        orientTypeStr = nullptr;
       }
 
     for (int i = 0; i < dataBlk.blockCount(); i++)
@@ -424,16 +422,16 @@ bool rendinstgenland::AssetData::loadTiledEntities(const RoDataBlock &blk)
 
       int asset_idx = objBlk.getInt("riResId", -1);
       const char *obj_orient = objBlk.getStr("orientation", orientTypeStr);
-      unsigned orientType = rendinstgenland::SingleEntityPlaces::ORIENT_WORLD;
+      unsigned orientType = rendinst::gen::land::SingleEntityPlaces::ORIENT_WORLD;
 
       if (!obj_orient || stricmp(obj_orient, "world") == 0)
-        orientType = rendinstgenland::SingleEntityPlaces::ORIENT_WORLD;
+        orientType = rendinst::gen::land::SingleEntityPlaces::ORIENT_WORLD;
       else if (stricmp(obj_orient, "world_xz") == 0)
-        orientType = rendinstgenland::SingleEntityPlaces::ORIENT_WORLD_XZ;
+        orientType = rendinst::gen::land::SingleEntityPlaces::ORIENT_WORLD_XZ;
       else if (stricmp(obj_orient, "normal") == 0)
-        orientType = rendinstgenland::SingleEntityPlaces::ORIENT_NORMAL;
+        orientType = rendinst::gen::land::SingleEntityPlaces::ORIENT_NORMAL;
       else if (stricmp(obj_orient, "normal_xz") == 0)
-        orientType = rendinstgenland::SingleEntityPlaces::ORIENT_NORMAL_XZ;
+        orientType = rendinst::gen::land::SingleEntityPlaces::ORIENT_NORMAL_XZ;
       else
         logerr("undefined orientation=<%s> in asset: %s", obj_orient, loadingAssetFname);
 
@@ -479,16 +477,16 @@ bool rendinstgenland::AssetData::loadTiledEntities(const RoDataBlock &blk)
       const RoDataBlock &b = *colBlk.getBlock(i);
       int objId = atoi(b.getBlockName());
       const char *obj_orient = b.getStr("orientation", orientTypeStr);
-      unsigned orientType = rendinstgenland::SingleEntityPlaces::ORIENT_WORLD;
+      unsigned orientType = rendinst::gen::land::SingleEntityPlaces::ORIENT_WORLD;
 
       if (!obj_orient || stricmp(obj_orient, "world") == 0)
-        orientType = rendinstgenland::SingleEntityPlaces::ORIENT_WORLD;
+        orientType = rendinst::gen::land::SingleEntityPlaces::ORIENT_WORLD;
       else if (stricmp(obj_orient, "world_xz") == 0)
-        orientType = rendinstgenland::SingleEntityPlaces::ORIENT_WORLD_XZ;
+        orientType = rendinst::gen::land::SingleEntityPlaces::ORIENT_WORLD_XZ;
       else if (stricmp(obj_orient, "normal") == 0)
-        orientType = rendinstgenland::SingleEntityPlaces::ORIENT_NORMAL;
+        orientType = rendinst::gen::land::SingleEntityPlaces::ORIENT_NORMAL;
       else if (stricmp(obj_orient, "normal_xz") == 0)
-        orientType = rendinstgenland::SingleEntityPlaces::ORIENT_NORMAL_XZ;
+        orientType = rendinst::gen::land::SingleEntityPlaces::ORIENT_NORMAL_XZ;
       else
         logerr("undefined orientation=<%s> in asset: %s", obj_orient, loadingAssetFname);
 
@@ -527,7 +525,7 @@ bool rendinstgenland::AssetData::loadTiledEntities(const RoDataBlock &blk)
   return true;
 }
 
-bool rendinstgenland::AssetData::loadPlantedEntities(const RoDataBlock &blk, const OAHashNameMap<true> &dmNames,
+bool rendinst::gen::land::AssetData::loadPlantedEntities(const RoDataBlock &blk, const OAHashNameMap<true> &dmNames,
   dag::ConstSpan<IPoint2> dmSz)
 {
   int genNid = blk.getNameId("obj_plant_generate");
@@ -541,7 +539,7 @@ bool rendinstgenland::AssetData::loadPlantedEntities(const RoDataBlock &blk, con
     if (dataBlk.getBlockNameId() != genNid)
       continue;
 
-    rendinstgenland::SingleGenEntityGroup &group = planted->data.push_back();
+    rendinst::gen::land::SingleGenEntityGroup &group = planted->data.push_back();
 
     group.density = dataBlk.getReal("density", 1);
     group.objOverlapRatio = dataBlk.getReal("intersection", 1);
@@ -551,7 +549,7 @@ bool rendinstgenland::AssetData::loadPlantedEntities(const RoDataBlock &blk, con
     group.aboveHt = dataBlk.getReal("placeAboveHt", 1.0);
     E3DCOLOR dc0 = dataBlk.getE3dcolor("colorFrom", 0x80808080U), dc1 = dataBlk.getE3dcolor("colorTo", 0x80808080U);
 
-    const char *densmap = dataBlk.getStr("densityMap", NULL);
+    const char *densmap = dataBlk.getStr("densityMap", nullptr);
     group.densMapCellSz = Point2(0, 0);
     group.densMapSize = dataBlk.getPoint2("mapSize", Point2(32, 32));
     group.densMapOfs = dataBlk.getPoint2("mapOfs", Point2(0, 0));
@@ -565,7 +563,7 @@ bool rendinstgenland::AssetData::loadPlantedEntities(const RoDataBlock &blk, con
         group.densMapCellSz.x = group.densMapSize.x / dmSz[dmid].x;
         group.densMapCellSz.y = group.densMapSize.y / dmSz[dmid].y;
 
-        static constexpr int CSZ = rendinstgenland::DensMapLeaf::SZ;
+        static constexpr int CSZ = rendinst::gen::land::DensMapLeaf::SZ;
         float density = group.density * group.densMapCellSz.x * group.densMapCellSz.y / 100.0 * CSZ * CSZ;
         if (group.density > 0 && density < 1.0 / 64.0 && group.densMapCellSz.x * group.densMapCellSz.y < 1)
         {
@@ -587,7 +585,7 @@ bool rendinstgenland::AssetData::loadPlantedEntities(const RoDataBlock &blk, con
 
       int asset_idx = objBlk.getInt("riResId", -1);
 
-      rendinstgenland::SingleGenEntityGroup::Obj &obj = group.obj.push_back();
+      rendinst::gen::land::SingleGenEntityGroup::Obj &obj = group.obj.push_back();
       obj.entityIdx = asset_idx;
       obj.posInst = false;
       obj.paletteRotation = false;
@@ -653,11 +651,11 @@ void rt_rigen_free_unused_land_classes()
 
 const DataBlock &rendinst::get_detail_data(void *land_cls_res)
 {
-  return reinterpret_cast<rendinstgenland::AssetData *>(land_cls_res)->detailData;
+  return reinterpret_cast<rendinst::gen::land::AssetData *>(land_cls_res)->detailData;
 }
 int rendinst::get_landclass_data_hash(void *land_cls_res, void *buf, int buf_sz)
 {
-  return reinterpret_cast<rendinstgenland::AssetData *>(land_cls_res)->getHash(buf, buf_sz);
+  return reinterpret_cast<rendinst::gen::land::AssetData *>(land_cls_res)->getHash(buf, buf_sz);
 }
 
-rendinstgenland::AssetData rendinstgenland::AssetData::emptyLandStub;
+rendinst::gen::land::AssetData rendinst::gen::land::AssetData::emptyLandStub;

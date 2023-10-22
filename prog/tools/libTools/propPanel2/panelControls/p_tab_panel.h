@@ -7,7 +7,7 @@
 class CTabPanel : public PropertyContainerControlBase
 {
 public:
-  CTabPanel(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
+  CTabPanel(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h,
     const char caption[]);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
@@ -22,7 +22,7 @@ public:
   virtual int getIntValue() const;
   virtual void setIntValue(int value);
 
-  virtual void setWidth(unsigned w);
+  virtual void setWidth(hdpi::Px w);
   virtual void moveTo(int x, int y);
   virtual void onChildResize(int id);
 

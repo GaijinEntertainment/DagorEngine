@@ -31,9 +31,9 @@ bool ShadowDepthScroller::translateDepth(Texture *tex, int layer, float scale, f
   {
     d3d_err(d3d::set_render_target(0, (Texture *)NULL, 0));
     if (layer >= 0)
-      d3d_err(d3d::set_depth(tex, layer, false));
+      d3d_err(d3d::set_depth(tex, layer, DepthAccess::RW));
     else
-      d3d_err(d3d::set_depth(tex, false));
+      d3d_err(d3d::set_depth(tex, DepthAccess::RW));
     d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 1.f, 0);
     return true;
   }
@@ -49,15 +49,15 @@ bool ShadowDepthScroller::translateDepth(Texture *tex, int layer, float scale, f
       const uint32_t addr = x | (y << 16);
       d3d::set_immediate_const(STAGE_PS, &addr, 1);
       d3d_err(d3d::set_render_target(tileTex.getTex2D(), 0, 0));
-      d3d::set_depth(NULL, false);
+      d3d::set_depth(NULL, DepthAccess::RW);
       d3d::set_tex(STAGE_PS, tile_change_depth_source_tex_const_no, tex, false);
       readDepthPS->render();
       d3d::resource_barrier({tileTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
       d3d_err(d3d::set_render_target(0, (Texture *)NULL, 0));
       if (layer >= 0)
-        d3d_err(d3d::set_depth(tex, layer, false));
+        d3d_err(d3d::set_depth(tex, layer, DepthAccess::RW));
       else
-        d3d_err(d3d::set_depth(tex, false));
+        d3d_err(d3d::set_depth(tex, DepthAccess::RW));
       d3d::set_tex(STAGE_PS, tile_change_depth_source_tex_const_no, tileTex.getTex2D(), false);
       d3d::setview(x, y, min<int>(tinfo.w - x, tileSizeW), min<int>(tinfo.h - y, tileSizeH), 0, 1);
       writeDepthPS->render();
@@ -87,10 +87,10 @@ void ShadowDepthScroller::init()
 #undef VAR
 
   readDepthPS = eastl::make_unique<PostFxRenderer>();
-  readDepthPS->init("tile_read_depth_ps", NULL, false);
+  readDepthPS->init("tile_read_depth_ps");
 
   writeDepthPS = eastl::make_unique<PostFxRenderer>();
-  writeDepthPS->init("tile_write_depth_ps", NULL, false);
+  writeDepthPS->init("tile_write_depth_ps");
 
   if (readDepthPS->getElem() == nullptr || writeDepthPS->getElem() == nullptr)
   {

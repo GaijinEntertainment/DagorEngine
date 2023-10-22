@@ -1,0 +1,53 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/drv/drv3d_DX11 ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine/drv/drv3d_DX11.lib ;
+
+Sources =
+  init.cpp
+  drvmain.cpp
+  states.cpp
+  rtarget.cpp
+  texture.cpp
+  shaders.cpp
+  buffers.cpp
+  genericBuffer.cpp
+  init_d3di.cpp
+  basetex.cpp
+  immediateConst.cpp
+  helpers.cpp
+;
+
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine/drv/drv3d_commonCode
+  $(Root)/prog/3rdPartyLibs/nvapi
+  $(Root)/prog/3rdPartyLibs/aftermath/2022.2.0.22145
+  $(Root)/prog/3rdPartyLibs/adl_sdk
+;
+
+AddLibs += Version.lib ;
+
+CPPopt = -D__B_DRVDX -DINSIDE_DRIVER -FId3d_config.h ;
+if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
+if [ GLOB $(Root)/prog/3rdPartyLibs/nvsdk_ngx : * ] { CPPopt += -DHAS_NVSDK_NGX ; }
+if [ GLOB $(Root)/prog/3rdPartyLibs/aftermath : * ] { CPPopt += -DHAS_GF_AFTERMATH ; }
+
+if $(DlssEnabled) = yes && $(Platform) = win64 {
+  Target = engine/drv/drv3d_DX11~dlss.lib ;
+  Sources += ngx_wrapper.cpp ;
+  CPPopt += -DNV_WINDOWS ;
+  CPPopt += -DNGX_ENABLE_DEPRECATED_GET_PARAMETERS ; # remove this line once GetParameters is removed from DLSS
+} else {
+  Sources += ngx_wrapper_stub.cpp ;
+}
+AddIncludes += $(Root)/prog/3rdPartyLibs/nvsdk_ngx/Include ;
+
+UseProgLibs = engine/drv/drv3d_commonCode ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -29,8 +29,8 @@ if $(Platform) in win32 win64 {
 UseProgLibs = 
   1stPartyLibs/daScript
   gameLibs/dasModules/common
-  engine2/shaders
-  engine2/lib3d
+  engine/shaders
+  engine/lib3d
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

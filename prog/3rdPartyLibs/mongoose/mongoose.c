@@ -1370,6 +1370,12 @@ int mg_start_thread(mg_thread_func_t func, void *param) {
   // TODO(lsm): figure out why mongoose dies on Linux if next line is enabled
   // (void) pthread_attr_setstacksize(&attr, sizeof(struct mg_connection) * 5);
 
+#if defined(_TARGET_C1)
+
+#elif defined(_TARGET_C2)
+
+#endif
+
   int r = pthread_create(&thread_id, &attr, func, param);
 
   (void) pthread_attr_destroy(&attr);
@@ -5263,6 +5269,7 @@ static void accept_new_connection(const struct socket *listener,
   int on = 1;
 
   if ((so.sock = accept(listener->sock, &so.rsa.sa, &len)) == INVALID_SOCKET) {
+    mg_sleep(1);
   } else if (!check_acl(ctx, ntohl(* (uint32_t *) &so.rsa.sin.sin_addr))) {
     sockaddr_to_string(src_addr, sizeof(src_addr), &so.rsa);
     cry(fc(ctx), "%s: %s is not allowed to connect", __func__, src_addr);

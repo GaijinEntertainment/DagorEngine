@@ -9,7 +9,8 @@
 #include <de3_rendInstGen.h>
 #include <de3_randomSeed.h>
 #include <de3_entityGatherTex.h>
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtra.h>
+#include <rendInst/rendInstExtraAccess.h>
 #include <anim/dag_animBlend.h>
 #include <anim/dag_animBlendCtrl.h>
 #include <anim/dag_animPostBlendCtrl.h>
@@ -2305,6 +2306,11 @@ static bool animchar_trace_static_ray_down(const Point3_vec4 &from, float max_t,
   out_t = from.y - plane_h;
   return true;
 }
+static bool animchar_trace_static_ray_dir(const Point3_vec4 &from, Point3_vec4 dir, float max_t, float &out_t, intptr_t ctx)
+{
+  // not implemented
+  return false;
+}
 
 void init_plugin_entities()
 {
@@ -2323,6 +2329,7 @@ void init_plugin_entities()
     rigenSrv->setReinitCallback(&reinit_cb_dummy, NULL);
   }
   AnimCharV20::trace_static_ray_down = animchar_trace_static_ray_down;
+  AnimCharV20::trace_static_ray_dir = animchar_trace_static_ray_dir;
 
   get_app().getCompositeEditor().setEntityViewPluginInterface(*plugin);
 }

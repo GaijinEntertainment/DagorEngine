@@ -1,30 +1,29 @@
-#include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtra.h>
+#include <rendInst/rendInstExtraAccess.h>
 #include "riGen/riGenData.h"
 #include "riGen/riGenExtra.h"
-#include "riGen/riGenRender.h"
 #include "riGen/riUtil.h"
-#include "riGen/riGenExtraRender.h"
 #include "riGen/riGenExtraMaxHeight.h"
 #include "riGen/riGrid.h"
+#include "riGen/riGridDebug.h"
+#include "render/extraRender.h"
+#include "render/gpuObjects.h"
+#include "visibility/genVisibility.h"
+#include "scopedRiExtraWriteTryLock.h"
 
-#include <generic/dag_sort.h>
+#include <ADT/linearGrid.h>
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <gameRes/dag_collisionResource.h>
-#include <shaders/dag_shaderResUnitedData.h>
 #include <3d/dag_ringDynBuf.h>
 #include <3d/dag_drv3dReset.h>
 #include <ioSys/dag_dataBlock.h>
-#include <math/dag_adjpow2.h>
 #include <startup/dag_globalSettings.h>
-#include <util/dag_convar.h>
+#include <util/dag_console.h>
 #include <util/dag_hash.h>
-#include <math/dag_vecMathCompatibility.h>
 #include <math/dag_mathUtils.h>
-#include <gpuObjects/gpuObjects.h>
-#include <perfMon/dag_perfTimer.h>
 
 
 #if DAGOR_DBGLEVEL > 0
@@ -33,49 +32,25 @@ static const int LOGMESSAGE_LEVEL = LOGLEVEL_ERR;
 static const int LOGMESSAGE_LEVEL = LOGLEVEL_WARN;
 #endif
 
-static const DataBlock *riConfig = NULL;
+static const DataBlock *riConfig = nullptr;
 rendinst::RiExtraPoolsVec rendinst::riExtra;
 uint32_t rendinst::RiExtraPoolsVec::size_interlocked() const { return interlocked_acquire_load(*(const volatile int *)&mCount); }
 uint32_t rendinst::RiExtraPoolsVec::interlocked_increment_size() { return interlocked_increment(*(volatile int *)&mCount); }
 static rendinst::HasRIClipmap hasRiClipmap = rendinst::HasRIClipmap::UNKNOWN;
 FastNameMap rendinst::riExtraMap;
 
-CallbackToken rendinst::meshRElemsUpdatedCbToken = {};
+void rendinst::iterateRIExtraMap(eastl::fixed_function<sizeof(void *) * 3, void(int, const char *)> cb)
+{
+  iterate_names(rendinst::riExtraMap, cb);
+}
 
 void (*rendinst::shadow_invalidate_cb)(const BBox3 &box) = nullptr;
 BBox3 (*rendinst::get_shadows_bbox_cb)() = nullptr;
 
 SmartReadWriteFifoLock rendinst::ccExtra;
-struct ScopedRIExtraWriteLock
-{
-  ScopedRIExtraWriteLock() { rendinst::ccExtra.lockWrite(); }
-  ~ScopedRIExtraWriteLock() { rendinst::ccExtra.unlockWrite(); }
-};
-struct ScopedRIExtraWriteTryLock
-{
-  ScopedRIExtraWriteTryLock(bool do_not_wait = false)
-  {
-    if (do_not_wait)
-      locked = rendinst::ccExtra.tryLockWrite();
-    else
-    {
-      rendinst::ccExtra.lockWrite();
-      locked = true;
-    }
-  }
-  ~ScopedRIExtraWriteTryLock()
-  {
-    if (isLocked())
-      rendinst::ccExtra.unlockWrite();
-  }
-  const bool isLocked() { return locked; }
-
-protected:
-  bool locked = false;
-};
 
 int rendinst::maxExtraRiCount = 0;
-int rendinst::maxRenderedRiEx[countof(rendinst::vbExtraCtx)];
+int rendinst::maxRenderedRiEx[countof(rendinst::render::vbExtraCtx)];
 int rendinst::perDrawInstanceDataBufferType = 0; // Shaders support only: 1 - Buffer, 2 - StructuredBuffer; otherwise support is either
                                                  // flexible or undefined
 int rendinst::instancePositionsBufferType = 0;
@@ -83,7 +58,6 @@ unsigned rendinst::RiExtraPool::defLodLimits = 0xF0F0F0F0;
 static const float riex_session_time_0 = 0;
 const float *rendinst::RiExtraPool::session_time = &riex_session_time_0;
 Tab<uint16_t> rendinst::riExPoolIdxPerStage[RIEX_STAGE_COUNT];
-float rendinst::half_minimal_grid_cell_size = 32.;
 static Tab<rendinst::invalidate_handle_cb> invalidate_handle_callbacks;
 static Tab<rendinst::ri_destruction_cb> riex_destruction_callbacks;
 
@@ -102,101 +76,31 @@ static void update_max_ri_extra_height(int value)
 
 static IPoint2 to_ipoint2(Point2 p) { return IPoint2(p.x, p.y); }
 
-static StaticTab<RiGrid, 8> riExtraGrid;
-static const float MAX_GRID_CELL_SIZE = 8192;
+static RiGrid riExtraGrid;
 
-static void repopulate_ri_extra_grid();
-
-static void init_ri_extra_grids(const DataBlock *level_blk)
+static void init_ri_extra_grid(const DataBlock *level_blk)
 {
-  bool use_locks = false;
-  if (const DataBlock *riExGrid = ::dgs_get_game_params()->getBlockByName("riExtraGrids"))
+  if (const DataBlock *riExGrid = ::dgs_get_game_params()->getBlockByName("riExtraGrid"))
   {
-    riExtraGrid.resize(riExGrid->getInt("gridCount", 0));
-    for (int i = 0; i < riExtraGrid.size(); i++)
-      riExtraGrid[i].init(riExGrid->getInt(String(0, "grid%dcell", i + 1), 32 << (i * 2)), use_locks);
+    riExtraGrid.setCellSizeWithoutObjectsReposition(riExGrid->getInt("cellSize", LINEAR_GRID_DEFAULT_CELL_SIZE));
+    riExtraGrid.configMaxMainExtension = riExGrid->getReal("maxMainExtension", riExtraGrid.configMaxMainExtension);
+    riExtraGrid.configHalfMaxMainExtension = riExtraGrid.configMaxMainExtension / 2.f;
+    riExtraGrid.configMaxSubExtension = riExGrid->getReal("maxSubExtension", riExtraGrid.configMaxSubExtension);
+    riExtraGrid.configMaxSubRadius = riExGrid->getReal("maxSubRadius", riExtraGrid.configMaxSubRadius);
+    riExtraGrid.configObjectsToCreateSubGrid = riExGrid->getInt("objectsToCreateSubGrid", riExtraGrid.configObjectsToCreateSubGrid);
+    riExtraGrid.configMaxLeafObjects = riExGrid->getInt("maxLeafObjects", riExtraGrid.configMaxLeafObjects);
+    riExtraGrid.configReserveObjectsOnGrow = riExGrid->getInt("reserveObjectsOnGrow", riExtraGrid.configReserveObjectsOnGrow);
   }
-  else
-  {
-    riExtraGrid.resize(3);
-    riExtraGrid[0].init(64, use_locks);
-    riExtraGrid[1].init(256, use_locks);
-    riExtraGrid[2].init(1024, use_locks);
-  }
-  debug("init_ri_extra_grids(%d)", riExtraGrid.size());
-  rendinst::half_minimal_grid_cell_size = riExtraGrid.size() ? 0.5f * riExtraGrid[0].getCellSize() : 32;
-  for (int i = 0; i < riExtraGrid.size(); i++)
-  {
-    rendinst::half_minimal_grid_cell_size = min(rendinst::half_minimal_grid_cell_size, 0.5f * riExtraGrid[i].getCellSize());
-    debug("  riGrid[%d] cell=%.0f %s", i, riExtraGrid[i].getCellSize(), riExtraGrid[i].hasLocks() ? "locks" : "");
-  }
-  repopulate_ri_extra_grid();
 
   rendinst::init_tiled_scenes(level_blk);
 }
 
 static void term_ri_extra_grids()
 {
-  // for (int i = 0; i < riExtraGrid.size(); i ++)
-  //{
-  //   debug("--- riExtra grid %d", i);
-  //   riExtraGrid[i].dumpGridState();
-  // }
   rendinst::term_tiled_scenes();
-  if (riExtraGrid.size())
-    debug("term_ri_extra_grids(%d)", riExtraGrid.size());
-  riExtraGrid.resize(0);
-  for (int i = 0; i < riExtraGrid.static_size; i++)
-  {
-    riExtraGrid.data()[i].term();
-  }
+  riExtraGrid.clear();
 }
-static float select_grid_cell_size(float rad_x2)
-{
-  if (rad_x2 < 32)
-    return 32;
-  G_ASSERTF(rad_x2 < MAX_GRID_CELL_SIZE, "rad_x2=%.0f", rad_x2);
-  if (rad_x2 > MAX_GRID_CELL_SIZE)
-    return MAX_GRID_CELL_SIZE;
-  return (float)get_bigger_pow2(int(floorf(rad_x2)));
-}
-static int select_grid_idx(float rad, bool can_add = true)
-{
-  G_ASSERTF(rad > 0, "rad=%.2f", rad);
-  float rad_x2 = floorf(rad * 2);
-  for (int i = 0; i < riExtraGrid.size(); i++)
-    if (rad_x2 <= riExtraGrid[i].getCellSize() || riExtraGrid[i].getCellSize() >= MAX_GRID_CELL_SIZE)
-      return i;
-  if (riExtraGrid.size() < riExtraGrid.static_size && can_add)
-  {
-    static WinCritSec cc("addGridLayer");
 
-    cc.lock();
-    // re-check after lock
-    for (int i = 0; i < riExtraGrid.size(); i++)
-      if (rad_x2 <= riExtraGrid[i].getCellSize() || riExtraGrid[i].getCellSize() >= MAX_GRID_CELL_SIZE)
-      {
-        cc.unlock();
-        return i;
-      }
-
-    bool use_locks = false;
-    int idx = riExtraGrid.size();
-    riExtraGrid.push_back().init(select_grid_cell_size(rad_x2), use_locks);
-    debug("added riGrid[%d] cell=%.0f %s (for rad=%.1f)", idx, riExtraGrid[idx].getCellSize(),
-      riExtraGrid[idx].hasLocks() ? "locks" : "", rad);
-    cc.unlock();
-    return idx;
-  }
-  logerr("%s for rad=%.1f, riExtraGrid.size()=%d", can_add ? "no more grids" : "can't add grid", rad, riExtraGrid.size());
-  return -1;
-}
-static inline int reselect_grid_idx(int grid_idx, float real_rad, bool can_add)
-{
-  if (grid_idx >= 0 && real_rad * 2 < riExtraGrid[grid_idx].getCellSize())
-    return grid_idx;
-  return select_grid_idx(real_rad, can_add);
-}
 static vec4f make_pos_and_rad(mat44f_cref tm, vec4f center_and_rad)
 {
   vec4f pos = v_mat44_mul_vec3p(tm, center_and_rad);
@@ -205,108 +109,23 @@ static vec4f make_pos_and_rad(mat44f_cref tm, vec4f center_and_rad)
   return v_perm_xyzd(pos, bb_ext);
 }
 
-static void repopulate_ri_extra_grid()
-{
-  using rendinst::riExtra;
-  using rendinst::RiExtraPool;
-
-  int repopulated_cnt = 0;
-  bbox3f accum_box;
-  v_bbox3_init_empty(accum_box);
-  for (int res_idx = 0; res_idx < riExtra.size(); res_idx++)
-  {
-    RiExtraPool &pool = riExtra[res_idx];
-    if (pool.gridIdx < 0)
-      continue;
-    for (int idx = 0; idx < pool.riXYZR.size(); idx++)
-    {
-      if (!pool.isValid(idx))
-        continue;
-      int grid_idx = reselect_grid_idx(pool.gridIdx, pool.getObjRad(idx), true);
-      if (grid_idx >= 0)
-      {
-        mat44f tm44;
-        v_mat43_transpose_to_mat44(tm44, pool.riTm[idx]);
-
-        bbox3f wabb;
-        v_bbox3_init(wabb, tm44, pool.collBb);
-
-        riExtraGrid[grid_idx].insert(rendinst::make_handle(res_idx, idx), *(Point3 *)&pool.riXYZR[idx], wabb);
-        repopulated_cnt++;
-        v_bbox3_add_box(accum_box, wabb);
-      }
-    }
-  }
-  if (repopulated_cnt > 0)
-  {
-    riutil::world_version_inc(accum_box);
-    logwarn("init_ri_extra_grids: re-populated %d instances", repopulated_cnt);
-  }
-}
-
-void rendinst::update_per_draw_gathered_data(uint32_t id)
-{
-  rendinstgenrender::RiShaderConstBuffers perDrawGatheredData;
-  perDrawGatheredData.setBBoxNoChange();
-  perDrawGatheredData.setOpacity(0, 1);
-  perDrawGatheredData.setRandomColors(rendinst::riExtra[id].poolColors);
-  perDrawGatheredData.setInstancing(0, 4, 0);
-  perDrawGatheredData.setBoundingSphere(0, 0, rendinst::riExtra[id].sphereRadius, rendinst::riExtra[id].sphereRadius,
-    rendinst::riExtra[id].sphCenterY);
-  vec4f bbox = v_sub(rendinst::riExtra[id].lbb.bmax, rendinst::riExtra[id].lbb.bmin);
-  Point4 bboxData;
-  v_stu(&bboxData, bbox);
-  perDrawGatheredData.setBoundingBox(bbox);
-  perDrawGatheredData.setRadiusFade(rendinst::riExtra[id].radiusFade, rendinst::riExtra[id].radiusFadeDrown);
-  float rendinstHeight = rendinst::riExtra[id].rendinstHeight == 0.0f ? bboxData.y : rendinst::riExtra[id].rendinstHeight;
-  bbox = v_add(rendinst::riExtra[id].lbb.bmax, rendinst::riExtra[id].lbb.bmin);
-  v_stu(&bboxData, bbox);
-  rendinstHeight = rendinst::riExtra[id].hasImpostor() ? rendinst::riExtra[id].sphereRadius : rendinstHeight;
-  perDrawGatheredData.setInteractionParams(rendinst::riExtra[id].hardness, rendinstHeight, bboxData.x * 0.5, bboxData.z * 0.5);
-  rendinst::perDrawData->updateData(id * sizeof(rendinstgenrender::RiShaderConstBuffers), sizeof(perDrawGatheredData),
-    &perDrawGatheredData, 0);
-}
-
-void rendinst::allocateRIGenExtra(VbExtraCtx &vbctx)
-{
-  ScopedRIExtraWriteLock wr;
-  if (!vbctx.vb)
-  {
-    vbctx.vb = new RingDynamicSB;
-    bool useStructuredBind;
-    if (instancePositionsBufferType == 1)
-    {
-      // The support for useStructuredBind depends on shader, and that in turn depends on the ability to coexist with exported RI
-      // positions format, which is half4.
-      useStructuredBind = false;
-      if (d3d::get_driver_desc().issues.hasSmallSampledBuffers)
-        maxExtraRiCount = min<int>(maxExtraRiCount, 65536 / RIEXTRA_VECS_COUNT); // The minimum guaranteed supported Buffer on Vulkan.
-    }
-    else if (instancePositionsBufferType == 2)
-      useStructuredBind = true;
-    else
-      useStructuredBind = d3d::get_driver_desc().issues.hasSmallSampledBuffers;
-
-    char vbName[] = "RIGz_extra0";
-    G_FAST_ASSERT(&vbctx - &vbExtraCtx[0] < countof(vbExtraCtx));
-    vbName[sizeof(vbName) - 2] += &vbctx - &vbExtraCtx[0]; // RIGz_extra0 -> RIGz_extra{0,1}
-    vbctx.vb->init(RIEXTRA_VECS_COUNT * maxExtraRiCount, sizeof(vec4f), sizeof(vec4f),
-      SBCF_BIND_SHADER_RES | (useStructuredBind ? SBCF_MISC_STRUCTURED : 0), useStructuredBind ? 0 : TEXFMT_A32B32G32R32F, vbName);
-    vbctx.gen++;
-  }
-}
-
 void rendinst::initRIGenExtra(bool need_render, const DataBlock *level_blk)
 {
-  init_ri_extra_grids(level_blk);
+  init_ri_extra_grid(level_blk);
   if (!need_render)
     return;
-  allocateRIGenExtra(vbExtraCtx[0]);
+  render::allocateRIGenExtra(rendinst::render::vbExtraCtx[0]);
+}
+
+void rendinst::optimizeRIGenExtra()
+{
+  ScopedLockWrite lock(ccExtra);
+  debug(riExtraGrid.isOptimized() ? "Re-optimizing RiGrid on update" : "Optimizing RiGrid");
+  riExtraGrid.optimizeCells();
 }
 
 namespace rendinst
 {
-static void termElems();
 static void update_ri_extra_game_resources(const char *ri_res_name, int id, RenderableInstanceLodsResource *riRes,
   const DataBlock &params_block);
 } // namespace rendinst
@@ -326,47 +145,46 @@ void rendinst::termRIGenExtra()
   clear_and_shrink(riExtra);
   riExtraMap.reset(true);
   hasRiClipmap = rendinst::HasRIClipmap::UNKNOWN;
-  termElems();
-  for (auto &ve : vbExtraCtx)
+  render::termElems();
+  for (auto &ve : rendinst::render::vbExtraCtx)
   {
     del_it(ve.vb);
     ve.gen = INVALID_VB_EXTRA_GEN + 1;
   }
-  if (gpu_objects_mgr)
-    gpu_objects_mgr->clearObjects();
+  rendinst::gpuobjects::clear_all();
 }
 
 void rendinst::RiExtraPool::setWasNotSavedToElems()
 {
   wasSavedToElems = 0;
-  interlocked_increment(rendinst::pendingRebuildCnt);
+  interlocked_increment(rendinst::render::pendingRebuildCnt);
 }
 
 rendinst::RiExtraPool::~RiExtraPool()
 {
   if (clonedFromIdx != -1) // does not own resources
   {
-    res = NULL;
-    collRes = NULL;
-    destroyedPhysRes = NULL;
+    res = nullptr;
+    collRes = nullptr;
+    destroyedPhysRes = nullptr;
     return;
   }
   if (res)
   {
     res->delRef();
-    res = NULL;
+    res = nullptr;
   }
   if (collRes)
   {
     if (unregCollCb)
       unregCollCb(collHandle);
     release_game_resource((GameResource *)collRes);
-    collRes = NULL;
+    collRes = nullptr;
   }
   if (destroyedPhysRes)
   {
     release_game_resource((GameResource *)destroyedPhysRes);
-    destroyedPhysRes = NULL;
+    destroyedPhysRes = nullptr;
   }
 }
 
@@ -410,7 +228,7 @@ bool rendinst::isRIGenExtraUsedInDestr(const char *nm)
 {
   if (!riConfig)
     return false;
-  return riConfig->getBlockByNameEx("riExtra")->getBlockByName(nm) != NULL;
+  return riConfig->getBlockByNameEx("riExtra")->getBlockByName(nm) != nullptr;
 }
 
 static inline float riResLodRange(RenderableInstanceLodsResource *riRes, int lod, const DataBlock *ri_ovr)
@@ -441,25 +259,25 @@ static const DataBlock &getRiParamsBlockByName(const char *ri_res_name)
   return *b;
 }
 
-static void push_res_idx_to_stage(uint32_t res_layers, int res_idx)
+static void push_res_idx_to_stage(rendinst::LayerFlags res_layers, int res_idx)
 {
-  ScopedRIExtraWriteLock wr;
-  if (res_layers & rendinst::LAYER_OPAQUE)
-    rendinst::riExPoolIdxPerStage[get_const_log2(rendinst::LAYER_OPAQUE)].push_back(res_idx);
-  if (res_layers & rendinst::LAYER_TRANSPARENT)
-    rendinst::riExPoolIdxPerStage[get_const_log2(rendinst::LAYER_TRANSPARENT)].push_back(res_idx);
-  if (res_layers & rendinst::LAYER_DECALS)
-    rendinst::riExPoolIdxPerStage[get_const_log2(rendinst::LAYER_DECALS)].push_back(res_idx);
-  if (res_layers & rendinst::LAYER_DISTORTION)
-    rendinst::riExPoolIdxPerStage[get_const_log2(rendinst::LAYER_DISTORTION)].push_back(res_idx);
+  rendinst::ScopedRIExtraWriteLock wr;
+  if (res_layers & rendinst::LayerFlag::Opaque)
+    rendinst::riExPoolIdxPerStage[get_layer_index(rendinst::LayerFlag::Opaque)].push_back(res_idx);
+  if (res_layers & rendinst::LayerFlag::Transparent)
+    rendinst::riExPoolIdxPerStage[get_layer_index(rendinst::LayerFlag::Transparent)].push_back(res_idx);
+  if (res_layers & rendinst::LayerFlag::Decals)
+    rendinst::riExPoolIdxPerStage[get_layer_index(rendinst::LayerFlag::Decals)].push_back(res_idx);
+  if (res_layers & rendinst::LayerFlag::Distortion)
+    rendinst::riExPoolIdxPerStage[get_layer_index(rendinst::LayerFlag::Distortion)].push_back(res_idx);
 }
 
-static void erase_res_idx_from_stage(uint32_t res_layers, int res_idx)
+static void erase_res_idx_from_stage(rendinst::LayerFlags res_layers, int res_idx)
 {
-  ScopedRIExtraWriteLock wr;
+  rendinst::ScopedRIExtraWriteLock wr;
   for (int i = 0; i < countof(rendinst::riExPoolIdxPerStage); i++)
   {
-    if (!(res_layers & (1 << i)))
+    if (!(res_layers & static_cast<rendinst::LayerFlag>(1 << i)))
       continue;
     uint16_t *it = eastl::find(rendinst::riExPoolIdxPerStage[i].begin(), rendinst::riExPoolIdxPerStage[i].end(), res_idx);
     G_ASSERT(it != rendinst::riExPoolIdxPerStage[i].end());
@@ -469,10 +287,10 @@ static void erase_res_idx_from_stage(uint32_t res_layers, int res_idx)
 
 static void init_relems_for_new_pool(int new_res_idx)
 {
-  rendinst::on_ri_mesh_relems_updated_pool(new_res_idx);
+  rendinst::render::on_ri_mesh_relems_updated_pool(new_res_idx);
 
   if (RendInstGenData::renderResRequired)
-    rendinst::update_per_draw_gathered_data(new_res_idx);
+    rendinst::render::update_per_draw_gathered_data(new_res_idx);
 }
 
 int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int ri_pool_ref_layer, AddRIFlags ri_flags)
@@ -522,7 +340,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
   if (!riRes)
     return -1;
 
-  if (!vbExtraCtx[0].vb && RendInstGenData::renderResRequired && maxExtraRiCount)
+  if (!rendinst::render::vbExtraCtx[0].vb && RendInstGenData::renderResRequired && maxExtraRiCount)
   {
     debug("initRIGenExtra: due to addRIGenExtraResIdx()");
     rendinst::initRIGenExtra();
@@ -570,7 +388,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
   riExtra[id].rendinstHeight = combinedRendinstHeight;
   riExtra[id].killsNearEffects = false;
 
-  if (const DataBlock *b = riConfig && !immortal ? riConfig->getBlockByNameEx("riExtra")->getBlockByName(ri_res_name) : NULL)
+  if (const DataBlock *b = riConfig && !immortal ? riConfig->getBlockByNameEx("riExtra")->getBlockByName(ri_res_name) : nullptr)
   {
     riExtra[id].initialHP = b->getReal("hp", 300);
     float regenTime = b->getReal("hpFullRegenTime", 180);
@@ -583,7 +401,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
     debug("riExtra hp=%.1f damageThres=%.3f regenRate=%.3f", riExtra[id].initialHP, riExtra[id].damageThreshold,
       riExtra[id].regenHpRate);
 #endif
-    const char *next_res = b->getStr("nextRes", NULL);
+    const char *next_res = b->getStr("nextRes", nullptr);
     if (next_res && *next_res)
     {
       // At first we should add a new instance to riExtra and only then
@@ -600,7 +418,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
     else if (next_res)
       logerr("empty nextRes for riExtra=%s", ri_res_name);
 
-    next_res = b->getStr("physRes", NULL);
+    next_res = b->getStr("physRes", nullptr);
     if (next_res && *next_res)
     {
       riExtra[id].destroyedPhysRes =
@@ -614,7 +432,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
   {
     // try to find older damage settings
     int nid = riConfig->getNameId("dmg");
-    const DataBlock *debrisBlk = NULL;
+    const DataBlock *debrisBlk = nullptr;
     for (int i = 0, ie = riConfig->blockCount(); i < ie; i++)
     {
       if (riConfig->getBlock(i)->getBlockNameId() == nid)
@@ -645,7 +463,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
         debrisBlk = riConfig->getBlockByName("default_building");
       if (debrisBlk)
       {
-        const char *debrisRes = debrisBlk->getStr("debris", NULL);
+        const char *debrisRes = debrisBlk->getStr("debris", nullptr);
         if (debrisRes && *debrisRes)
         {
           int destrIdx =
@@ -677,15 +495,15 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
 {
   G_ASSERT_RETURN(riRes, );
 
-  CollisionResource *collRes = NULL;
+  CollisionResource *collRes = nullptr;
   String coll_name(128, "%s" RI_COLLISION_RES_SUFFIX, ri_res_name);
   collRes = get_resource_type_id(coll_name) == CollisionGameResClassId
               ? (CollisionResource *)::get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(coll_name), CollisionGameResClassId)
-              : NULL;
+              : nullptr;
   if (collRes && collRes->getAllNodes().empty())
   {
     release_game_resource((GameResource *)collRes);
-    collRes = NULL;
+    collRes = nullptr;
   }
   if (collRes)
     collRes->collapseAndOptimize(USE_GRID_FOR_RI);
@@ -709,7 +527,6 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
   riExtra[id].lbb.bmin = v_and(v_ldu(&riRes->bbox[0].x), v_cast_vec4f(V_CI_MASK1110));
   riExtra[id].lbb.bmax = v_and(v_ldu(&riRes->bbox[1].x), v_cast_vec4f(V_CI_MASK1110));
   riExtra[id].collBb = collRes ? collRes->vFullBBox : riExtra[id].lbb;
-  riExtra[id].gridIdx = collRes ? select_grid_idx(riExtra[id].bsphRad()) : -1;
   if (
     is_ri_extra_for_inst_count_only(ri_res_name) || get_skip_nearest_lods(ri_res_name, riRes->hasImpostor(), riRes->lods.size()) == 0)
     riExtra[id].lodLimits = 0xF0F0F0F0;
@@ -757,28 +574,29 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
     static int ri_landclass_indexVarId = VariableMap::getVariableId("ri_landclass_index");
     bool isPoolRendinstLandclass = false;
 
-    uint32_t layers = 0;
+    LayerFlags layers = {};
     riExtra[id].hasColoredShaders = riExtra[id].isPosInst();
     riExtra[id].isRendinstClipmap = 0;
-    riExtra[id].isTessellated = 0;
     riExtra[id].isPaintFxOnHit = params_block.getBool("isPaintFxOnHit", true);
     for (unsigned int lodNo = 0; lodNo < lod_cnt; lodNo++)
     {
       ShaderMesh *m = riRes->lods[lodNo].scene->getMesh()->getMesh()->getMesh();
       uint32_t mask = 0;
       uint32_t cmask = 0;
+      uint32_t tessellationMask = 0;
       G_STATIC_ASSERT(sizeof(mask) == sizeof(riExtra[id].elemMask[0].atest));
+      G_STATIC_ASSERT(sizeof(tessellationMask) == sizeof(riExtra[id].elemMask[0].tessellation));
       G_STATIC_ASSERT(sizeof(riExtra[id].elemMask[0].atest) == sizeof(riExtra[id].elemMask[0].cullN));
       dag::Span<ShaderMesh::RElem> elems = m->getElems(m->STG_opaque, m->STG_decal);
       G_ASSERTF(elems.size() <= sizeof(mask) * 8, "elems.size()=%d mask=%d bits", elems.size(), sizeof(mask) * 8);
       if (m->getElems(m->STG_opaque, m->STG_imm_decal).size())
-        layers |= rendinst::LAYER_OPAQUE;
+        layers |= rendinst::LayerFlag::Opaque;
       if (m->getElems(m->STG_trans).size())
-        layers |= rendinst::LAYER_TRANSPARENT;
+        layers |= rendinst::LayerFlag::Transparent;
       if (m->getElems(m->STG_decal).size())
-        layers |= rendinst::LAYER_DECALS;
+        layers |= rendinst::LayerFlag::Decals;
       if (m->getElems(m->STG_distortion).size())
-        layers |= rendinst::LAYER_DISTORTION;
+        layers |= rendinst::LayerFlag::Distortion;
 
       for (unsigned int elemNo = 0; elemNo < elems.size(); elemNo++)
         if (elems[elemNo].vertexData)
@@ -796,11 +614,11 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
 
           if ((elems[elemNo].mat->get_flags() & SHFLG_2SIDED) && !(elems[elemNo].mat->get_flags() & SHFLG_REAL2SIDED))
             cmask |= 1 << elemNo;
-          riExtra[id].usingClipmap |= (strstr(className, "rendinst_layered_hmap_vertex_blend") != NULL);
-          riExtra[id].hasDynamicDisplacement |= strstr(className, "rendinst_flag_colored") != NULL ||
-                                                strstr(className, "rendinst_flag_layered") != NULL ||
-                                                strstr(className, "rendinst_anomaly") != NULL;
-          riExtra[id].patchesHeightmap |= strstr(className, "rendinst_heightmap_patch") != NULL;
+          riExtra[id].usingClipmap |= (strstr(className, "rendinst_layered_hmap_vertex_blend") != nullptr);
+          riExtra[id].hasDynamicDisplacement |= strstr(className, "rendinst_flag_colored") != nullptr ||
+                                                strstr(className, "rendinst_flag_layered") != nullptr ||
+                                                strstr(className, "rendinst_anomaly") != nullptr;
+          riExtra[id].patchesHeightmap |= strstr(className, "rendinst_heightmap_patch") != nullptr;
           int isColoredShader = 0;
           riExtra[id].hasColoredShaders |=
             elems[elemNo].mat->getIntVariable(is_colored_variable_id, isColoredShader) && isColoredShader;
@@ -817,8 +635,9 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
           isPoolRendinstLandclass |= elems[elemNo].mat->getIntVariable(ri_landclass_indexVarId, isElemRiLandclass);
 
           int isTessellated = 0;
-          riExtra[id].isTessellated |=
-            elems[elemNo].mat->getIntVariable(material_pn_triangulation_variable_id, isTessellated) && isTessellated;
+          if (elems[elemNo].mat->getIntVariable(material_pn_triangulation_variable_id, isTessellated) && isTessellated)
+            tessellationMask |= 1 << elemNo;
+
           int drawGrass = 0;
           riExtra[id].usedInLandmaskHeight |= elems[elemNo].mat->getIntVariable(draw_grass_variable_id, drawGrass) && drawGrass;
           if (riExtra[id].isRendinstClipmap)
@@ -835,6 +654,7 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
         }
       riExtra[id].elemMask[lodNo].atest = mask;
       riExtra[id].elemMask[lodNo].cullN = cmask;
+      riExtra[id].elemMask[lodNo].tessellation = tessellationMask;
     }
 
     riExtra[id].riLandclassCachedData.clear();
@@ -906,7 +726,6 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
     riExtra[id].collBb.bmin = v_sub(center, wd);
     riExtra[id].collBb.bmax = v_add(center, wd);
     riExtra[id].bsphXYZR = v_perm_xyzd(riExtra[id].bsphXYZR, v_add(riExtra[id].bsphXYZR, riExtra[id].bsphXYZR));
-    riExtra[id].gridIdx = collRes ? select_grid_idx(riExtra[id].bsphRad()) : -1;
   }
   if (!rendinst::riExtraBBoxScaleForPrepasses.empty())
   {
@@ -925,14 +744,14 @@ static void unload_ri_extra_game_resources(int res_idx)
   if (riExtraPool.res)
   {
     riExtraPool.res->delRef();
-    riExtraPool.res = NULL;
+    riExtraPool.res = nullptr;
   }
   if (riExtraPool.collRes)
   {
     if (unregCollCb)
       unregCollCb(riExtraPool.collHandle);
     release_game_resource((GameResource *)riExtraPool.collRes);
-    riExtraPool.collRes = NULL;
+    riExtraPool.collRes = nullptr;
   }
   erase_res_idx_from_stage(riExtraPool.layers, res_idx);
 }
@@ -1033,19 +852,19 @@ void rendinst::reloadRIExtraResources(const char *ri_res_name)
 RenderableInstanceLodsResource *rendinst::getRIGenExtraRes(int res_idx)
 {
   if (res_idx < 0 || res_idx >= riExtra.size())
-    return NULL;
+    return nullptr;
   return riExtra[res_idx].res;
 }
 CollisionResource *rendinst::getRIGenExtraCollRes(int res_idx)
 {
   if (res_idx < 0 || res_idx >= riExtra.size())
-    return NULL;
+    return nullptr;
   return riExtra[res_idx].collRes;
 }
 const bbox3f *rendinst::getRIGenExtraCollBb(int res_idx)
 {
   if (res_idx < 0 || res_idx >= riExtra.size())
-    return NULL;
+    return nullptr;
   return &riExtra[res_idx].collBb;
 }
 
@@ -1129,209 +948,8 @@ bbox3f rendinst::getRIGenExtraOverallInstancesWorldBbox(int res_idx)
   return result;
 }
 
-namespace rendinst
-{
-dag::Vector<RenderElem> allElems;
-dag::Vector<uint32_t> allElemsIndex;
-uint32_t oldPoolsCount = 0;
-int pendingRebuildCnt = 0;
-bool relemsForGpuObjectsHasRebuilded = true;
-static void termElems()
-{
-  allElems = {};
-  allElemsIndex = {};
-  oldPoolsCount = 0;
-  pendingRebuildCnt = 0;
-}
-} // namespace rendinst
-
-static void invalidate_riextra_shadows_by_grid(uint32_t poolI)
-{
-  BBox3 shadowsBbox = rendinst::get_shadows_bbox_cb();
-  if (shadowsBbox.isempty())
-    return;
-  Point2 gridOrigin = Point2(shadowsBbox.lim[0].x, shadowsBbox.lim[0].z);
-  Point2 gridSize = Point2(shadowsBbox.lim[1].x, shadowsBbox.lim[1].z) - gridOrigin;
-
-  // Below are empirical numbers: assume that static shadows are less than 4km long; 64 is taken from riExTiledScenes[0] cell size.
-  // Can be parametrized if needed.
-  constexpr int MAX_CELLS_PER_DIM = 64;
-  constexpr float MIN_CELL_SIZE = 64.0f;
-  constexpr int MAX_BOXES_FOR_INVALIDATION_SQRT = 10;
-  constexpr int MAX_BOXES_FOR_INVALIDATION = MAX_BOXES_FOR_INVALIDATION_SQRT * MAX_BOXES_FOR_INVALIDATION_SQRT;
-
-  IPoint2 gridCells = max(min(to_ipoint2(gridSize / MIN_CELL_SIZE), IPoint2(MAX_CELLS_PER_DIM, MAX_CELLS_PER_DIM)), IPoint2(1, 1));
-
-  dag::Vector<BBox3> invalidBoxes = rendinst::getRIGenExtraInstancesWorldBboxesByGrid(poolI, gridOrigin, gridSize, gridCells);
-
-  // shadowsInvalidateGatheredBBoxes has n^2 complexity, so fallback to less resolution if we gathered too many boxes.
-  if (invalidBoxes.size() > MAX_BOXES_FOR_INVALIDATION)
-  {
-    invalidBoxes = rendinst::getRIGenExtraInstancesWorldBboxesByGrid(poolI, gridOrigin, gridSize,
-      IPoint2(MAX_BOXES_FOR_INVALIDATION_SQRT, MAX_BOXES_FOR_INVALIDATION_SQRT));
-  }
-
-  for (const BBox3 &box : invalidBoxes)
-    rendinst::shadow_invalidate_cb(box);
-}
-
-void rendinst::on_ri_mesh_relems_updated_pool(uint32_t poolI)
-{
-  riExtra[poolI].setWasNotSavedToElems();
-
-  // static shadows are rendered with lod1
-  if (rendinst::shadow_invalidate_cb && riExtra[poolI].qlPrevBestLod > 1 && riExtra[poolI].res->getQlBestLod() <= 1)
-  {
-    if (rendinst::get_shadows_bbox_cb)
-    {
-      invalidate_riextra_shadows_by_grid(poolI);
-    }
-    else
-    {
-      BBox3 box;
-      v_stu_bbox3(box, rendinst::getRIGenExtraOverallInstancesWorldBbox(poolI));
-      if (!box.isempty())
-        rendinst::shadow_invalidate_cb(box);
-    }
-  }
-
-  riExtra[poolI].qlPrevBestLod = riExtra[poolI].res->getQlBestLod();
-}
-
-void rendinst::updateShaderElems(uint32_t poolI)
-{
-  auto &riPool = riExtra[poolI];
-  for (int l = 0; l < riPool.res->lods.size(); ++l)
-  {
-    RenderableInstanceResource *rendInstRes = riPool.res->lods[l].scene;
-    ShaderMesh *mesh = rendInstRes->getMesh()->getMesh()->getMesh();
-    mesh->updateShaderElems();
-  }
-}
-
-void rendinst::on_ri_mesh_relems_updated(const RenderableInstanceLodsResource *r)
-{
-  ScopedRIExtraReadLock wr;
-  for (int poolI = 0, poolE = riExtra.size_interlocked(); poolI < poolE; ++poolI) // fixme: linear search inside 2k array! use Hashmap
-    if (riExtra[poolI].res == r)
-    {
-      on_ri_mesh_relems_updated_pool(poolI);
-      // break; More than one pool can have the same res. This happens in case of clonned ri
-    }
-}
-
-void rendinst::rebuildAllElemsInternal()
-{
-  if (!RendInstGenData::renderResRequired)
-    return;
-
-  TIME_PROFILE(ri_rebuild_elems);
-
-  // int64_t reft = profile_ref_ticks();
-  static int drawOrderVarId = -2;
-  if (drawOrderVarId == -2)
-    drawOrderVarId = VariableMap::getVariableId("draw_order");
-
-  ScopedRIExtraWriteLock wr;
-  const int toRebuild = interlocked_acquire_load(pendingRebuildCnt);
-  int newPoolsCount = rendinst::riExtra.size_interlocked();
-
-  decltype(allElems) oldAllElems;
-  decltype(allElemsIndex) oldAllElemsIndex;
-  static constexpr int MAX_LODS = rendinst::RiExtraPool::MAX_LODS;
-  int allElemsCnt = newPoolsCount * MAX_LODS;
-  oldAllElems.reserve(toRebuild * MAX_LODS * 2 + allElems.size());
-  oldAllElemsIndex.resize(allElemsCnt * ShaderMesh::STG_COUNT + 1);
-
-  oldAllElems.swap(allElems);
-  oldAllElemsIndex.swap(allElemsIndex);
-
-  dag::Vector<uint16_t, framemem_allocator> toUpdate;
-  toUpdate.reserve(toRebuild);
-  for (int r = toRebuild, i = 0, e = newPoolsCount; r && i != e; ++i) // todo: probably we should use SOA of bools for wasSavedToElems.
-                                                                      // better locality.
-  {
-    if (!rendinst::riExtra[i].wasSavedToElems)
-    {
-      toUpdate.push_back(i);
-      riExtra[i].wasSavedToElems = 1;
-      --r;
-    }
-  }
-  int aei = 0;
-  for (int l = 0; l < MAX_LODS; l++)
-  {
-    auto copyPools = [&](int fromOld, int toOld) {
-      if (fromOld >= toOld)
-        return;
-      const uint32_t fromIn = (oldPoolsCount * l + fromOld) * ShaderMesh::STG_COUNT;
-      const uint32_t toIn = (oldPoolsCount * l + toOld) * ShaderMesh::STG_COUNT;
-      const int indicesOffset = allElems.size() - oldAllElemsIndex[fromIn];
-      allElems.insert(allElems.end(), oldAllElems.data() + oldAllElemsIndex[fromIn], oldAllElems.data() + oldAllElemsIndex[toIn]);
-      for (int i = fromIn; i < toIn; ++i, ++aei)
-        allElemsIndex[aei] = oldAllElemsIndex[i] + indicesOffset;
-    };
-    int firstToCopyPool = 0;
-    for (auto poolI : toUpdate)
-    {
-      auto &riPool = rendinst::riExtra[poolI];
-      copyPools(firstToCopyPool, poolI);
-      firstToCopyPool = poolI + 1;
-      if (l >= riPool.res->lods.size())
-      {
-        for (unsigned int stage = 0; stage < ShaderMesh::STG_COUNT; stage++, aei++)
-          allElemsIndex[aei] = allElems.size();
-      }
-      else
-      {
-        RenderableInstanceResource *rendInstRes = riPool.res->lods[l].scene;
-        ShaderMesh *mesh = rendInstRes->getMesh()->getMesh()->getMesh();
-
-        for (unsigned int stage = 0; stage < ShaderMesh::STG_COUNT; stage++, aei++)
-        {
-          allElemsIndex[aei] = allElems.size();
-          dag::Span<ShaderMesh::RElem> elems = mesh->getElems(stage);
-          for (unsigned int elemNo = 0, en = elems.size(); elemNo < en; elemNo++)
-          {
-            ShaderMesh::RElem &elem = elems[elemNo];
-            int drawOrder = 0;
-            elem.mat->getIntVariable(drawOrderVarId, drawOrder);
-            const int vbIdx = elem.vertexData->getVbIdx();
-            G_ASSERT(vbIdx <= eastl::numeric_limits<uint8_t>::max());
-            allElems.emplace_back(RenderElem{(ShaderElement *)elem.e, (short)elem.vertexData->getStride(), (uint8_t)vbIdx,
-              uint8_t(sign(drawOrder) + 1), elem.si, elem.numf, elem.baseVertex});
-          }
-        }
-      }
-    }
-    copyPools(toUpdate.back() + 1, oldPoolsCount);
-  }
-
-  G_ASSERTF(aei == allElemsIndex.size() - 1, "aei %d %d", aei, allElemsIndex.size());
-  allElemsIndex[aei] = allElems.size();
-  // debug("rendinst::rebuildAllElems: %d for %d usec", pendingRebuildCnt, profile_time_usec(reft));
-  G_VERIFY(interlocked_add(pendingRebuildCnt, -toRebuild) >= 0);
-  oldPoolsCount = newPoolsCount;
-
-  rendinst::relemsForGpuObjectsHasRebuilded = false;
-}
-
-void rendinst::reinitOnShadersReload()
-{
-  int riExtraCount = rendinst::riExtra.size();
-  if (!riExtraCount)
-    return;
-  for (int i = 0; i < riExtraCount; ++i)
-  {
-    updateShaderElems(i);
-    riExtra[i].wasSavedToElems = 0;
-  }
-  interlocked_release_store(pendingRebuildCnt, riExtraCount);
-  rebuildAllElemsInternal();
-}
-
 riex_handle_t rendinst::addRIGenExtra43(int res_idx, bool /*m*/, mat43f_cref tm, bool has_collision, int orig_cell, int orig_offset,
-  int add_data_dwords, const int32_t *add_data)
+  int add_data_dwords, const int32_t *add_data, bool on_loading)
 {
   if (res_idx < 0 || res_idx > riExtra.size())
     return RIEX_HANDLE_NULL;
@@ -1382,18 +1000,15 @@ riex_handle_t rendinst::addRIGenExtra43(int res_idx, bool /*m*/, mat43f_cref tm,
     v_bbox3_add_box(pool.fullWabb, wabb);
 
     pool.riXYZR[idx] = make_pos_and_rad(tm44, pool.bsphXYZR);
-    int grid_idx = -1;
-    if (has_collision && pool.gridIdx >= 0)
+    if (has_collision && pool.collRes)
     {
-      grid_idx = reselect_grid_idx(pool.gridIdx, pool.getObjRad(idx), true);
-      if (grid_idx >= 0)
-        riExtraGrid[grid_idx].insert(h, *(Point3 *)&pool.riXYZR[idx], wabb);
+      riExtraGrid.insert(h, pool.riXYZR[idx], wabb, on_loading);
       riutil::world_version_inc(wabb);
 
       update_max_ri_extra_height(static_cast<int>(v_extract_y(wabb.bmax) - v_extract_y(wabb.bmin)) + 1);
     }
-    if (grid_idx < 0)
-      pool.riXYZR[idx] = v_perm_xyzd(pool.riXYZR[idx], v_neg(pool.riXYZR[idx]));
+    else
+      pool.riXYZR[idx] = v_perm_xyzd(pool.riXYZR[idx], v_or(pool.riXYZR[idx], V_CI_SIGN_MASK));
 
     G_ASSERTF(!(pool.hideMask & 2) || (pool.hideMask & 1), "pool should be either invisible always, or in mode0 (planes) only");
     ni = (pool.tsIndex >= 0) ? alloc_instance_for_tiled_scene(pool, res_idx, idx, tm44, sphere) : scene::INVALID_NODE;
@@ -1407,201 +1022,13 @@ riex_handle_t rendinst::addRIGenExtra43(int res_idx, bool /*m*/, mat43f_cref tm,
   return h;
 }
 riex_handle_t rendinst::addRIGenExtra44(int res_idx, bool movable, mat44f_cref tm, bool has_collision, int orig_cell, int orig_offset,
-  int add_data_dwords, const int32_t *add_data)
+  int add_data_dwords, const int32_t *add_data, bool on_loading)
 {
   if (res_idx < 0 || res_idx > riExtra.size())
     return RIEX_HANDLE_NULL;
   mat43f m43;
   v_mat44_transpose_to_mat43(m43, tm);
-  return addRIGenExtra43(res_idx, movable, m43, has_collision, orig_cell, orig_offset, add_data_dwords, add_data);
-}
-
-const mat43f &rendinst::getRIGenExtra43(riex_handle_t id)
-{
-  uint32_t res_idx = handle_to_ri_type(id);
-  uint32_t idx = handle_to_ri_inst(id);
-  G_ASSERT(res_idx < riExtra.size());
-  RiExtraPool &pool = riExtra[res_idx];
-  if (idx >= pool.riTm.size())
-  {
-    logerr("%s idx out of range: idx=%d, count=%d (res_idx=%d)", __FUNCTION__, idx, pool.riTm.size(), res_idx);
-    static mat43f m43;
-    m43.row0 = m43.row1 = m43.row2 = v_zero();
-    return m43;
-  }
-  return pool.riTm[idx];
-}
-namespace rendinst
-{
-void getRIGenExtra44NoLock(riex_handle_t id, mat44f &out_tm) { v_mat43_transpose_to_mat44(out_tm, getRIGenExtra43(id)); }
-void getRIGenExtra44(riex_handle_t id, mat44f &out_tm)
-{
-  ScopedRIExtraReadLock rd;
-  getRIGenExtra44NoLock(id, out_tm);
-}
-} // namespace rendinst
-
-void rendinst::getRIExtraCollInfo(riex_handle_t id, CollisionResource **out_collision, BSphere3 *out_bsphere)
-{
-  uint32_t resIdx = handle_to_ri_type(id);
-  G_ASSERT(resIdx < riExtra.size());
-
-  if (out_collision)
-    *out_collision = riExtra[resIdx].collRes;
-
-  if (out_bsphere)
-  {
-    const RiExtraPool &pool = riExtra[resIdx];
-    *out_bsphere = BSphere3(pool.res->bsphCenter, pool.res->bsphRad);
-  }
-}
-
-const CollisionResource *rendinst::getDestroyedRIExtraCollInfo(riex_handle_t handle)
-{
-  const auto resIdx = handle_to_ri_type(handle);
-  G_ASSERT_RETURN(resIdx < riex_max_type(), nullptr);
-
-  if (riExtra[resIdx].destroyedRiIdx < 0)
-    return nullptr;
-
-  return riExtra[riExtra[resIdx].destroyedRiIdx].collRes;
-}
-
-
-float rendinst::getInitialHP(riex_handle_t id)
-{
-  uint32_t resIdx = handle_to_ri_type(id);
-  G_ASSERT(resIdx < riExtra.size());
-  return riExtra[resIdx].initialHP;
-}
-
-float rendinst::getHP(riex_handle_t id)
-{
-  uint32_t resIdx = handle_to_ri_type(id);
-  G_ASSERT(resIdx < riExtra.size());
-  return riExtra[resIdx].getHp(handle_to_ri_inst(id));
-}
-
-bool rendinst::isPaintFxOnHit(riex_handle_t id)
-{
-  uint32_t resIdx = handle_to_ri_type(id);
-  G_ASSERT(resIdx < riExtra.size());
-  return riExtra[resIdx].isPaintFxOnHit;
-}
-
-bool rendinst::isKillsNearEffects(riex_handle_t id)
-{
-  uint32_t resIdx = handle_to_ri_type(id);
-  G_ASSERT(resIdx < riExtra.size());
-  return riExtra[resIdx].killsNearEffects;
-}
-
-void rendinst::setRIGenExtraImmortal(uint32_t pool, bool value)
-{
-  if (pool >= riExtra.size())
-  {
-    logerr("failed to set 'immortal' property of invalid pool '%ull'", pool);
-    return;
-  }
-  riExtra[pool].immortal = value;
-}
-
-bool rendinst::isRIGenExtraImmortal(uint32_t pool)
-{
-  if (pool < riExtra.size())
-    return riExtra[pool].immortal;
-
-  logerr("failed to get 'immortal' property of invalid pool '%ull'", pool);
-  return true;
-}
-
-bool rendinst::isRIGenExtraWalls(uint32_t pool)
-{
-  if (pool < riExtra.size())
-    return riExtra[pool].isWalls;
-
-  logerr("failed to get 'isWalls' property of invalid pool '%ull'", pool);
-  return true;
-}
-
-float rendinst::getRIGenExtraBsphRad(uint32_t pool)
-{
-  if (pool < riExtra.size())
-    return abs(riExtra[pool].bsphRad()); // radius is negative sometimes
-
-  logerr("failed to get 'bsphRad' property of invalid pool '%ull'", pool);
-  return 0.0f;
-}
-
-Point3 rendinst::getRIGenExtraBsphPos(uint32_t pool)
-{
-  if (pool < riExtra.size())
-  {
-    vec4f xyzr = riExtra[pool].bsphXYZR;
-    return Point3(v_extract_x(xyzr), v_extract_y(xyzr), v_extract_z(xyzr));
-  }
-
-  logerr("failed to get 'bsphPos' property of invalid pool '%ull'", pool);
-  return Point3(0.0f, 0.0f, 0.0f);
-}
-
-Point4 rendinst::getRIGenExtraBSphereByTM(uint32_t pool, const TMatrix &tm)
-{
-  if (pool < riExtra.size())
-  {
-    const vec4f xyzr = riExtra[pool].bsphXYZR;
-    const float radius = abs(v_extract_w(xyzr)); // radius is negative sometimes
-    const Point3 center = Point3(v_extract_x(xyzr), v_extract_y(xyzr), v_extract_z(xyzr));
-    const float maxScale = max(tm.getcol(0).length(), max(tm.getcol(1).length(), tm.getcol(2).length()));
-    const Point3 pos = tm * center;
-    return Point4(pos.x, pos.y, pos.z, radius * maxScale);
-  }
-
-  logerr("failed to get 'bsphereByTM' of invalid pool '%ull'", pool);
-  return Point4(0.0f, 0.0f, 0.0f, 0.0f);
-}
-
-int rendinst::getRIGenExtraParentForDestroyedRiIdx(uint32_t pool)
-{
-  if (pool < riExtra.size())
-    return riExtra[pool].parentForDestroyedRiIdx;
-
-  logerr("failed to get 'parentForDestroyedRiIdx' property of invalid pool '%ull'", pool);
-  return -1;
-}
-
-bool rendinst::isRIGenExtraDestroyedPhysResExist(uint32_t pool)
-{
-  if (pool < riExtra.size())
-    return riExtra[pool].isDestroyedPhysResExist;
-
-  logerr("failed to get 'isDestroyedPhysResExist' property of invalid pool '%ull'", pool);
-  return false;
-}
-
-int rendinst::getRIGenExtraDestroyedRiIdx(uint32_t pool)
-{
-  if (pool < riExtra.size())
-    return riExtra[pool].destroyedRiIdx;
-
-  logerr("failed to get 'destroyedRiIdx' property of invalid pool '%ull'", pool);
-  return -1;
-}
-
-vec4f rendinst::getRIGenExtraBSphere(riex_handle_t id)
-{
-  uint32_t resIdx = handle_to_ri_type(id);
-  uint32_t instIdx = handle_to_ri_inst(id);
-  G_ASSERT(resIdx < riExtra.size() && instIdx < riExtra[resIdx].riXYZR.size());
-  return riExtra[resIdx].riXYZR[instIdx];
-}
-
-void rendinst::setRiGenExtraHp(riex_handle_t id, float hp)
-{
-  uint32_t resIdx = handle_to_ri_type(id);
-  uint32_t instIdx = handle_to_ri_inst(id);
-  G_ASSERT(resIdx < riExtra.size() && instIdx < riExtra[resIdx].riHP.size());
-  riExtra[resIdx].setHp(instIdx, hp);
+  return addRIGenExtra43(res_idx, movable, m43, has_collision, orig_cell, orig_offset, add_data_dwords, add_data, on_loading);
 }
 
 void rendinst::setCASRIGenExtraData(riex_render_info_t id, uint32_t start, const uint32_t *wasdata, const uint32_t *newdata,
@@ -1656,36 +1083,18 @@ bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bo
   bbox3f wabb1;
   v_bbox3_init(wabb1, tm44, pool.collBb);
   vec4f bsphere = make_pos_and_rad(tm44, pool.bsphXYZR);
-  if (moved && pool.gridIdx >= 0 && pool.isInGrid(idx))
+  if (moved && pool.collRes && pool.isInGrid(idx))
   {
     mat44f tm44_old;
     bbox3f wabb0;
 
     v_mat43_transpose_to_mat44(tm44_old, pool.riTm[idx]);
     v_bbox3_init(wabb0, tm44_old, pool.collBb);
-    Point3_vec4 p3_old;
-    v_st(&p3_old.x, pool.riXYZR[idx]);
+    vec4f oldWbsph = pool.riXYZR[idx];
 
-    int old_grid_idx = reselect_grid_idx(pool.gridIdx, pool.getObjRad(idx), false);
     pool.riXYZR[idx] = bsphere;
-    int new_grid_idx = reselect_grid_idx(pool.gridIdx, pool.getObjRad(idx), true);
-    if (old_grid_idx == new_grid_idx && new_grid_idx >= 0)
-    {
-      riExtraGrid[old_grid_idx].update(id, p3_old, *(Point3 *)&pool.riXYZR[idx], wabb0, wabb1);
-      update_max_ri_extra_height(static_cast<int>(v_extract_y(wabb1.bmax) - v_extract_y(wabb1.bmin)) + 1);
-    }
-    else
-    {
-      if (old_grid_idx >= 0)
-        riExtraGrid[old_grid_idx].remove(id, p3_old, wabb0);
-      if (new_grid_idx >= 0)
-      {
-        riExtraGrid[new_grid_idx].insert(id, *(Point3 *)&pool.riXYZR[idx], wabb1);
-        update_max_ri_extra_height(static_cast<int>(v_extract_y(wabb1.bmax) - v_extract_y(wabb1.bmin)) + 1);
-      }
-      else
-        pool.riXYZR[idx] = v_perm_xyzd(bsphere, v_neg(bsphere));
-    }
+    riExtraGrid.update(id, oldWbsph, pool.riXYZR[idx], wabb1);
+    update_max_ri_extra_height(static_cast<int>(v_extract_y(wabb1.bmax) - v_extract_y(wabb1.bmin)) + 1);
 
     v_bbox3_add_box(pool.fullWabb, wabb1);
     // this is hacky way to prevent constant invalidating of cache due to moving rendinsts.
@@ -1701,7 +1110,7 @@ bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bo
   }
   else
   {
-    pool.riXYZR[idx] = v_perm_xyzd(bsphere, v_neg(bsphere));
+    pool.riXYZR[idx] = v_perm_xyzd(bsphere, v_or(bsphere, V_CI_SIGN_MASK));
     v_bbox3_add_box(pool.fullWabb, wabb1);
   }
   pool.riTm[idx] = tm;
@@ -1738,19 +1147,15 @@ bool rendinst::delRIGenExtra(riex_handle_t id)
   if (idx < pool.tsNodeIdx.size() && pool.tsNodeIdx[idx] != scene::INVALID_NODE)
     rendinst::remove_instance_from_tiled_scene(pool.tsNodeIdx[idx]);
 
-  if (pool.gridIdx >= 0 && pool.isInGrid(idx))
+  if (pool.collRes && pool.isInGrid(idx))
   {
     mat44f tm44;
     bbox3f wabb;
     v_mat43_transpose_to_mat44(tm44, pool.riTm[idx]);
     v_bbox3_init(wabb, tm44, pool.collBb);
 
-    int grid_idx = reselect_grid_idx(pool.gridIdx, pool.getObjRad(idx), false);
-    if (grid_idx >= 0)
-    {
-      riExtraGrid[grid_idx].remove(id, *(Point3 *)&pool.riXYZR[idx], wabb);
-      pool.riXYZR[idx] = v_perm_xyzd(pool.riXYZR[idx], v_neg(pool.riXYZR[idx]));
-    }
+    riExtraGrid.erase(id, pool.riXYZR[idx]);
+    pool.riXYZR[idx] = v_perm_xyzd(pool.riXYZR[idx], v_or(pool.riXYZR[idx], V_CI_SIGN_MASK));
 
     riutil::world_version_inc(wabb);
   }
@@ -1829,20 +1234,14 @@ bool rendinst::removeRIGenExtraFromGrid(riex_handle_t id)
   uint32_t idx = handle_to_ri_inst(id);
   G_ASSERT_RETURN(res_idx < riExtra.size(), false);
   RiExtraPool &pool = riExtra[res_idx];
-  if (pool.isValid(idx) && pool.gridIdx >= 0 && pool.isInGrid(idx))
+  if (pool.isValid(idx) && pool.collRes && pool.isInGrid(idx))
   {
     mat44f tm44;
     bbox3f wabb;
     v_mat43_transpose_to_mat44(tm44, pool.riTm[idx]);
     v_bbox3_init(wabb, tm44, pool.collBb);
-
-    int grid_idx = reselect_grid_idx(pool.gridIdx, pool.getObjRad(idx), false);
-    if (grid_idx >= 0)
-    {
-      riExtraGrid[grid_idx].remove(id, *(Point3 *)&pool.riXYZR[idx], wabb);
-      pool.riXYZR[idx] = v_perm_xyzd(pool.riXYZR[idx], v_neg(pool.riXYZR[idx]));
-    }
-
+    riExtraGrid.erase(id, pool.riXYZR[idx]);
+    pool.riXYZR[idx] = v_perm_xyzd(pool.riXYZR[idx], v_or(pool.riXYZR[idx], V_CI_SIGN_MASK));
     riutil::world_version_inc(wabb);
     return true;
   }
@@ -1960,21 +1359,10 @@ void rendinst::gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const 
     rendinst::ccExtra.lockRead();
   {
     TIME_PROFILE_DEV(gather_riex_collidable_box);
-    for (int gi = riExtraGrid.size() - 1; gi >= 0; gi--)
-    {
-      if (!riExtraGrid[gi].hasObjects())
-        continue;
-
-      riExtraGrid[gi].iterateBox(v_ldu_bbox3(box), [&](const rendinst::riex_handle_t *h, int cnt) {
-        for (; cnt > 0; cnt--, h++)
-        {
-          vec4f bsph = rendinst::riExtra[rendinst::handle_to_ri_type(*h)].riXYZR[rendinst::handle_to_ri_inst(*h)];
-          if (v_bbox3_test_sph_intersect(v_ldu_bbox3(box), bsph, v_sqr_x(v_splat_w(bsph))))
-            out_handles.push_back(*h);
-        }
-        return false;
-      });
-    }
+    rigrid_find_in_box_by_bounding(riExtraGrid, v_ldu_bbox3(box), [&](RiGridObject object) {
+      out_handles.push_back(object.handle);
+      return false;
+    });
   }
   if (read_lock)
     rendinst::ccExtra.unlockRead();
@@ -1987,24 +1375,12 @@ void rendinst::gatherRIGenExtraCollidableMin(riex_collidable_t &out_handles, bbo
 {
   ScopedRIExtraReadLock rd;
   TIME_PROFILE_DEV(gather_riex_collidable_box_min);
-  for (int gi = riExtraGrid.size() - 1; gi >= 0; gi--)
-  {
-    if (!riExtraGrid[gi].hasObjects())
-      continue;
 
-    riExtraGrid[gi].iterateBox(box, [&](const rendinst::riex_handle_t *h, int cnt) {
-      for (; cnt > 0; cnt--, h++)
-      {
-        vec4f bsph = rendinst::riExtra[rendinst::handle_to_ri_type(*h)].riXYZR[rendinst::handle_to_ri_inst(*h)];
-        if (v_bbox3_test_sph_intersect(box, bsph, v_sqr_x(v_splat_w(bsph))))
-        {
-          if (v_extract_w(bsph) >= min_bsph_rad)
-            out_handles.push_back(*h);
-        }
-      }
-      return false;
-    });
-  }
+  rigrid_find_in_box_by_bounding(riExtraGrid, box, [&](RiGridObject object) {
+    if (v_extract_w(object.getWBSph()) >= min_bsph_rad)
+      out_handles.push_back(object.handle);
+    return false;
+  });
 }
 
 void rendinst::gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const Point3 &from, const Point3 &dir, float len,
@@ -2014,22 +1390,10 @@ void rendinst::gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const 
     rendinst::ccExtra.lockRead();
   {
     TIME_PROFILE_DEV(gather_riex_collidable_ray);
-    for (int gi = riExtraGrid.size() - 1; gi >= 0; gi--)
-    {
-      if (!riExtraGrid[gi].hasObjects())
-        continue;
-
-      riExtraGrid[gi].iterateRay(from, dir, len, [&](const rendinst::riex_handle_t *h, int cnt) {
-        for (; cnt > 0; cnt--, h++)
-        {
-          vec4f xyzr = rendinst::riExtra[rendinst::handle_to_ri_type(*h)].riXYZR[rendinst::handle_to_ri_inst(*h)];
-          vec4f r = v_splat_w(xyzr);
-          if (v_test_ray_sphere_intersection(v_ldu(&from.x), v_ldu(&dir.x), v_splats(len), xyzr, v_mul_x(r, r)))
-            out_handles.push_back(*h);
-        }
-        return false;
-      });
-    }
+    rigrid_find_ray_intersections(riExtraGrid, from, dir, len, [&](RiGridObject object) {
+      out_handles.push_back(object.handle);
+      return false;
+    });
   }
   if (read_lock)
     rendinst::ccExtra.unlockRead();
@@ -2044,16 +1408,16 @@ void rendinst::addRiExtraRefs(DataBlock *b, const DataBlock *riConf, const char 
   if (!riConf)
     return;
 
-  const char *next_res = riConf->getStr("nextRes", NULL);
+  const char *next_res = riConf->getStr("nextRes", nullptr);
   if (next_res && *next_res)
   {
     b->setStr("refRendInst", next_res);
     b->setStr("refColl", String(128, "%s" RI_COLLISION_RES_SUFFIX, next_res));
   }
-  next_res = riConf->getStr("physRes", NULL);
+  next_res = riConf->getStr("physRes", nullptr);
   if (next_res && *next_res)
     b->setStr("refPhysObj", next_res);
-  next_res = riConf->getStr("apexRes", NULL);
+  next_res = riConf->getStr("apexRes", nullptr);
   if (next_res && *next_res)
     b->setStr("refApex", next_res);
 }
@@ -2062,7 +1426,7 @@ void rendinst::prepareRiExtraRefs(const DataBlock &_riConf)
   const DataBlock &riConf = *_riConf.getBlockByNameEx("riExtra");
   for (int i = 0; i < riConf.blockCount(); i++)
     if (DataBlock *b = gameres_rendinst_desc.getBlockByName(riConf.getBlock(i)->getBlockName()))
-      addRiExtraRefs(b, riConf.getBlock(i), NULL);
+      addRiExtraRefs(b, riConf.getBlock(i), nullptr);
 }
 
 bool rayHitRiExtraInstance(vec4f from, vec4f dir, float len, rendinst::riex_handle_t handle, rendinst::RendInstDesc &ri_desc,
@@ -2106,39 +1470,13 @@ bool rendinst::rayHitRIGenExtraCollidable(const Point3 &from, const Point3 &dir,
   const MaterialRayStrat &strategy, float min_r)
 {
   ri_desc.reset();
-  vec4f p0 = v_ld(&from.x);
-  vec4f ndir = v_ld(&dir.x);
-  bbox3f box;
-
-  box.bmin = box.bmax = p0;
-  v_bbox3_add_pt(box, v_madd(ndir, v_splat_w(p0), p0));
-
   ScopedRIExtraReadLock rd;
-  for (int gi = riExtraGrid.size() - 1; gi >= 0; gi--)
-  {
-    if (!riExtraGrid[gi].hasObjects())
-      continue;
-
-    bool ret = riExtraGrid[gi].iterateBox(box, [&](const riex_handle_t *h, int cnt) {
-      for (; cnt > 0; cnt--, h++)
-      {
-        rendinst::RiExtraPool &riPool = riExtra[rendinst::handle_to_ri_type(*h)];
-        int inst = rendinst::handle_to_ri_inst(*h);
-        if (!riPool.isValid(inst) || riPool.getObjRad(inst) < min_r)
-          continue;
-        vec4f xyzr = riPool.riXYZR[inst];
-        vec4f r = v_splat_w(xyzr);
-        if (!v_test_ray_sphere_intersection(v_ldu(&from.x), v_ldu(&dir.x), v_splats(len), xyzr, v_mul_x(r, r)))
-          continue;
-        if (rayHitRiExtraInstance(v_ldu(&from.x), v_ldu(&dir.x), len, *h, ri_desc, strategy))
-          return true;
-      }
+  RiGridObject ret = rigrid_find_ray_intersections(riExtraGrid, from, dir, len, [&](RiGridObject object) {
+    if (v_extract_w(object.getWBSph()) < min_r)
       return false;
-    });
-    if (ret)
-      return true;
-  }
-  return false;
+    return rayHitRiExtraInstance(v_ldu(&from.x), v_ldu(&dir.x), len, object.handle, ri_desc, strategy);
+  });
+  return ret != RIEX_HANDLE_NULL;
 }
 
 void rendinst::reapplyLodRanges()
@@ -2330,20 +1668,6 @@ void rendinst::onRiExtraDestruction(riex_handle_t id, bool is_dynamic, int32_t u
     cb(id, is_dynamic, user_data);
 }
 
-bbox3f rendinst::riex_get_lbb(int res_idx)
-{
-  if (res_idx < 0 || res_idx >= riExtra.size())
-    return bbox3f();
-  return riExtra[res_idx].lbb;
-}
-
-float rendinst::ries_get_bsph_rad(int res_idx)
-{
-  if (res_idx >= riExtra.size())
-    return 0.f;
-  return riExtra[res_idx].sphereRadius;
-}
-
 dag::ConstSpan<mat43f> rendinst::riex_get_instance_matrices(int res_idx)
 {
   return res_idx < riExtra.size() ? make_span_const(riExtra[res_idx].riTm) : dag::ConstSpan<mat43f>();
@@ -2369,46 +1693,6 @@ const uint32_t *rendinst::get_user_data(rendinst::riex_handle_t handle)
   if (nodeIdx == scene::INVALID_NODE)
     return nullptr;
   return (uint32_t *)riExTiledScenes[pool.tsIndex].getUserData(nodeIdx);
-}
-
-uint32_t rendinst::get_riextra_instance_seed(rendinst::riex_handle_t handle)
-{
-  uint32_t instSeed = 0;
-  if (const uint32_t *userData = rendinst::get_user_data(handle))
-    instSeed = userData[0]; // correct while instSeed lying at the start of data
-  return instSeed;
-}
-
-float rendinst::get_riextra_ttl(rendinst::riex_handle_t handle) { return rendinst::riExtra[rendinst::handle_to_ri_type(handle)].ttl; }
-
-bool rendinst::get_riextra_immortality(rendinst::riex_handle_t handle)
-{
-  return rendinst::riExtra[rendinst::handle_to_ri_type(handle)].immortal;
-}
-
-void rendinst::set_riextra_instance_seed(rendinst::riex_handle_t handle, int32_t data)
-{
-  ScopedRIExtraWriteTryLock wr;
-  if (!wr.isLocked())
-    return;
-
-  uint32_t res_idx = handle_to_ri_type(handle);
-  uint32_t idx = handle_to_ri_inst(handle);
-  G_ASSERT_RETURN(res_idx < riExtra.size(), );
-  RiExtraPool &pool = riExtra[res_idx];
-  if (!pool.isValid(idx))
-  {
-    logmessage(LOGMESSAGE_LEVEL, "set_riextra_instance_seed idx out of range or dead: idx=%d, count=%d (res_idx=%d)", idx,
-      pool.riTm.size(), res_idx);
-    return;
-  }
-
-  scene::node_index nodeId = pool.tsNodeIdx[idx];
-
-  if (nodeId == scene::INVALID_NODE)
-    return;
-
-  rendinst::set_instance_user_data(nodeId, 1, &data);
 }
 
 void rendinst::hideRIGenExtraNotCollidable(const BBox3 &_box, bool hide_immortals)
@@ -2449,80 +1733,40 @@ rendinst::HasRIClipmap rendinst::hasRIClipmapPools()
   return hasRiClipmap;
 }
 
+bool rendinst::hasRIExtraOnLayers(const RiGenVisibility *visibility, LayerFlags layer_flags)
+{
+  if (!visibility->riex.riexInstCount)
+    return false;
+
+  for (int layer = 0; layer < RIEX_STAGE_COUNT; ++layer)
+  {
+    if (!(layer_flags & static_cast<LayerFlag>(1 << layer)))
+      continue;
+
+    if (riExPoolIdxPerStage[layer].size() > 0)
+      return true;
+  }
+
+  return false;
+}
+
 static void riPerDrawData_afterDeviceReset(bool /*full_reset*/)
 {
   if (!RendInstGenData::renderResRequired)
     return;
   for (uint32_t i = 0; i < rendinst::riExtra.size(); ++i)
-    rendinst::update_per_draw_gathered_data(i);
+    rendinst::render::update_per_draw_gathered_data(i);
 }
 
 REGISTER_D3D_AFTER_RESET_FUNC(riPerDrawData_afterDeviceReset);
 
-void rendinst::setRiGenResMatId(uint32_t res_idx, int matId)
+void rendinst::rigrid_debug_pos(const Point3 &pos, const Point3 &camera_pos) { rigrid_debug_pos(riExtraGrid, pos, camera_pos); }
+
+static bool rigrid_console_handler(const char *argv[], int argc)
 {
-  G_ASSERT_RETURN(res_idx < riExtra.size(), );
-  const rendinst::RiExtraPool &pool = rendinst::riExtra[res_idx];
-  if (RendInstGenData *rgl = (pool.riPoolRef >= 0) ? rendinst::getRgLayer(pool.riPoolRefLayer) : nullptr)
-  {
-    RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[pool.riPoolRef];
-    riProp.matId = matId;
-  }
+  int found = 0;
+  CONSOLE_CHECK_NAME("rigrid", "stats", 1, 1) { riExtraGrid.printStats(); }
+  return found;
 }
 
-void rendinst::setRiGenResHp(uint32_t res_idx, float hp)
-{
-  G_ASSERT_RETURN(res_idx < riExtra.size(), );
-  rendinst::riExtra[res_idx].initialHP = hp;
-}
-
-void rendinst::setRiGenResDestructionImpulse(uint32_t res_idx, float impulse)
-{
-  G_ASSERT_RETURN(res_idx < riExtra.size(), );
-  const rendinst::RiExtraPool &pool = rendinst::riExtra[res_idx];
-  if (RendInstGenData *rgl = (pool.riPoolRef >= 0) ? rendinst::getRgLayer(pool.riPoolRefLayer) : nullptr)
-  {
-    RendInstGenData::DestrProps &riDestr = rgl->rtData->riDestr[pool.riPoolRef];
-    riDestr.destructionImpulse = impulse;
-  }
-}
-
-bool rendinst::isRIExtraGenPosInst(uint32_t res_idx)
-{
-  G_ASSERT_RETURN(res_idx < riExtra.size(), false);
-  return rendinst::riExtra[res_idx].posInst;
-}
-
-bool rendinst::updateRiExtraReqLod(uint32_t res_idx, unsigned lod)
-{
-  G_ASSERT_RETURN(res_idx < riExtra.size(), false);
-  RenderableInstanceLodsResource *riRes = rendinst::riExtra[res_idx].res;
-  if (!riRes)
-    return false;
-
-  riRes->updateReqLod(lod);
-  return true;
-}
-
-rendinst::RendInstDesc rendinst::get_restorable_desc(const RendInstDesc &ri_desc)
-{
-  const auto &rd = rendinst::riExtra[ri_desc.pool].riUniqueData[ri_desc.idx];
-
-  if (rd.cellId < 0)
-    return {};
-
-  RendInstDesc result = ri_desc;
-  result.cellIdx = -(rd.cellId + 1);
-  result.offs = rd.offset;
-  return result;
-}
-
-int rendinst::find_restorable_data_index(const RendInstDesc &desc)
-{
-  const auto &ud = riExtra[desc.pool].riUniqueData;
-  for (int r = 0; r < ud.size(); ++r)
-    if (ud[r].cellId == -(desc.cellIdx + 1) && ud[r].offset == desc.offs)
-      return r;
-
-  return -1;
-}
+REGISTER_CONSOLE_HANDLER(rigrid_console_handler);

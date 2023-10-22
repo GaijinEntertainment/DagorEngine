@@ -381,6 +381,12 @@ struct ModfxDeclRibbonParams
   float2 head_fade_params;
 };
 
+struct ModfxDeclVolfogInjectionParams
+{
+  float weight_rgb;
+  float weight_alpha;
+};
+
 struct ModfxDeclVolShapeParams
 {
   float thickness;
@@ -478,8 +484,9 @@ struct ModfxDeclServiceTrail
 #define MODFX_RMOD_RIBBON_PARAMS 22
 #define MODFX_RMOD_VOLSHAPE_PARAMS 23
 #define MODFX_RMOD_ABOVE_DEPTH_PLACEMENT_THRESHOLD 24
+#define MODFX_RMOD_VOLFOG_INJECTION 25
 
-#define MODFX_RMOD_TOTAL_COUNT 25
+#define MODFX_RMOD_TOTAL_COUNT 26
 
 struct ModfxParentRenData
 {
@@ -532,6 +539,7 @@ void dafx_preload_parent_ren_data( BufferData_cref buf, uint parent_rofs, DAFX_O
   _LL( MODFX_RMOD_RIBBON_PARAMS );
   _LL( MODFX_RMOD_VOLSHAPE_PARAMS );
   _LL( MODFX_RMOD_ABOVE_DEPTH_PLACEMENT_THRESHOLD );
+  _LL( MODFX_RMOD_VOLFOG_INJECTION );
 }
 
 #define MODFX_SMOD_LIFE_RND 0

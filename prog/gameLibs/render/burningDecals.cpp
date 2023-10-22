@@ -77,27 +77,8 @@ void BurningDecals::createTexturesAndBuffers()
   }
   d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
 
-  String bufferName;
-  bufferName.printf(0, "burning_decal_data_vs");
-
-  decalDataVS.set(d3d::create_sbuffer(sizeof(Point4), decals_count * sizeof(InstData) / sizeof(Point4),
-                    SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE, TEXFMT_A32B32G32R32F, bufferName),
-    bufferName);
-
-  {
-    Tab<InstData> data;
-    data.resize(decals_count);
-    mem_set_0(data);
-
-    void *destData = 0;
-    bool ret = decalDataVS.getBuf()->lock(0, 0, &destData, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-    d3d_err(ret);
-    if (ret && destData)
-    {
-      memcpy(destData, data.data(), sizeof(InstData) * decals_count);
-      decalDataVS.getBuf()->unlock();
-    }
-  }
+  decalDataVS = dag::buffers::create_one_frame_sr_tbuf(decals_count * sizeof(InstData) / sizeof(Point4), TEXFMT_A32B32G32R32F,
+    "burning_decal_data_vs");
 }
 
 // release system
@@ -322,16 +303,13 @@ void BurningDecals::update(float dt)
 
   if (renderStaticCount > 0)
   {
-    void *destData = 0;
     // lock and rewrite all buffer contents
-    if (!decalDataVS.getBuf()->lock(0, 0, &destData, VBLOCK_WRITEONLY | VBLOCK_DISCARD))
+    if (
+      !decalDataVS.getBuf()->updateData(0, sizeof(InstData) * renderStaticCount, dataStatic.data(), VBLOCK_WRITEONLY | VBLOCK_DISCARD))
     {
       debug("%s can't lock buffer for decals", d3d::get_last_error());
       return;
     }
-
-    memcpy(destData, dataStatic.data(), sizeof(InstData) * renderStaticCount);
-    decalDataVS.getBuf()->unlock();
 
     SCOPE_RENDER_TARGET;
 
@@ -352,28 +330,25 @@ void BurningDecals::update(float dt)
 
   if (renderDynamicCount > 0)
   {
-    void *destData = 0;
-    // lock and rewrite all buffer contents
-    if (decalDataVS.getBuf()->lock(0, 0, &destData, VBLOCK_WRITEONLY | VBLOCK_DISCARD))
+    if (!decalDataVS.getBuf()->updateData(0, sizeof(InstData) * renderDynamicCount, dataDynamic.data(),
+          VBLOCK_WRITEONLY | VBLOCK_DISCARD))
     {
-      memcpy(destData, dataDynamic.data(), sizeof(InstData) * renderDynamicCount);
-      decalDataVS.getBuf()->unlock();
-
-      SCOPE_RENDER_TARGET;
-
-      d3d::set_render_target(burningMap.getTex2D(), 0);
-
-      d3d::set_buffer(STAGE_VS, 8, decalDataVS.getBuf());
-
-      if (material.shader->setStates(0, true))
-      {
-        d3d::drawind(PRIM_TRILIST, 0, renderDynamicCount * 2, 0);
-
-        burningMap.setVar();
-      }
-    }
-    else
       debug("%s can't lock buffer for decals", d3d::get_last_error());
+      return;
+    }
+
+    SCOPE_RENDER_TARGET;
+
+    d3d::set_render_target(burningMap.getTex2D(), 0);
+
+    d3d::set_buffer(STAGE_VS, 8, decalDataVS.getBuf());
+
+    if (material.shader->setStates(0, true))
+    {
+      d3d::drawind(PRIM_TRILIST, 0, renderDynamicCount * 2, 0);
+
+      burningMap.setVar();
+    }
   }
 
   d3d::resource_barrier({burningMap.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});

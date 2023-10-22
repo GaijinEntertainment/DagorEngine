@@ -16,8 +16,8 @@ if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
-  $(Root)/prog/engine2/sharedInclude
-  $(Root)/prog/engine2
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine
 ;
 
 Sources =
@@ -31,13 +31,13 @@ Sources =
   assetExport.cpp
 ;
 
-UseProgLibs = 
-  engine2/startup
-  engine2/math
-  engine2/gameRes
-  engine2/lib3d
-  engine2/drv/drv3d_null
-  engine2/perfMon/daProfilerStub
+UseProgLibs =
+  engine/startup
+  engine/math
+  engine/gameRes
+  engine/lib3d
+  engine/drv/drv3d_null
+  engine/perfMon/daProfilerStub
 
   tools/libTools/assetMgr
   tools/libTools/assetMgrHlp
@@ -58,11 +58,11 @@ if $(DriverLinkage) = dynamic {
   if $(PlatformSpec) = clang && $(Sanitize) = address { memory_lib = memory/rtlStdMemory ; }
 
   UseProgLibs =
-    engine2/osApiWrappers
-    engine2/kernel
-    engine2/$(memory_lib)
-    engine2/ioSys
-    engine2/baseUtil
+    engine/osApiWrappers
+    engine/kernel
+    engine/$(memory_lib)
+    engine/ioSys
+    engine/baseUtil
     $(UseProgLibs)
     tools/sceneTools/assetExp/exporters
     tools/sceneTools/assetExp/refProviders

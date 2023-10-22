@@ -17,6 +17,7 @@ void svg_begin_group(FILE *fp, const char *attr);
 void svg_end_group(FILE *fp);
 void svg_draw_face(FILE *fp, const Point2 &v0, const Point2 &v1, const Point2 &v2);
 void svg_draw_line(FILE *fp, const Point2 &v0, const Point2 &v1, const char *attr = NULL);
+void svg_draw_circle(FILE *fp, const Point2 &c, float rad = 1.0f);
 void svg_draw_number(FILE *fp, const Point2 &c, int num);
 
 void svg_start_poly(FILE *fp, const Point2 &v);

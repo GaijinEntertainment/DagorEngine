@@ -1,0 +1,21 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/services/dynModelMgr ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/services/dynModelMgr.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+
+Sources =
+  dynModelMgr.cpp
+;
+UseProgLibs =
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

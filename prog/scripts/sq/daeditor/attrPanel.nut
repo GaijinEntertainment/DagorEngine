@@ -828,7 +828,7 @@ let collapsibleButtonsStyleDark = {
   }
 }
 
-local function mkCollapsible(isConst, caption, childrenCtor=@() null, len=0, tags = null, eid=null, rawComponentName=null, path=null){
+let function mkCollapsible(isConst, caption, childrenCtor=@() null, len=0, tags = null, eid=null, rawComponentName=null, path=null){
   let empty = len==0
   tags = tags ?? []
   let isRoot = (path?.len()??0) < 1
@@ -842,7 +842,7 @@ local function mkCollapsible(isConst, caption, childrenCtor=@() null, len=0, tag
   let gap = hdpx(4)
   let isOdd = toggleBg()
   if (empty){
-    return {
+    return @() {
       size = [flex(), SIZE_TO_CONTENT]
       flow = FLOW_HORIZONTAL
       children = [

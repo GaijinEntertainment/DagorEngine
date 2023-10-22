@@ -30,7 +30,7 @@ ForEachMacros:
   - FOR_EACH_PRIMARY_RG_LAYER_DO
   - FOR_EACH_RG_LAYER_RENDER
   - ITERATE_OVER_SUBFX
-StatementMacros: ['DAG_DECLARE_NEW', 'decl_ptr', 'decl_dclass_hdr', 'decl_class_name', 'decl_issubof']
+StatementMacros: ['DAG_DECLARE_NEW', 'decl_ptr', 'decl_dclass_hdr', 'decl_class_name', 'decl_issubof', 'JPH_IMPLEMENT_SERIALIZABLE_VIRTUAL', 'JPH_ADD_ATTRIBUTE']
 IfMacros: ['IF_CONSTEXPR']
 IndentCaseLabels: true
 IndentWidth:     2

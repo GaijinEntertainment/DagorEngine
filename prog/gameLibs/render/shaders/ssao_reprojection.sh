@@ -57,12 +57,7 @@ if (downsampled_motion_vectors_tex != NULL)
   }
   INIT_MOTION_VEC_DECODE(stage)
   USE_MOTION_VEC_DECODE(stage)
-  if (prev_downsampled_motion_vectors_tex != NULL)
-  {
-    hlsl(stage) {
-      #define HAS_PREV_MOTION_VECTORS 1
-    }
-  }
+  bool has_prev_motion_vectors = prev_downsampled_motion_vectors_tex != NULL;
 } else if (motion_gbuf != NULL)
 {
   (stage) { motion_gbuf@smp2d = motion_gbuf; }
@@ -185,30 +180,30 @@ hlsl(stage) {
 
     SSAO_TYPE ssaoHistory = tex2Dlod(ssao_prev_tex, float4(historyUV, 0, 0)).SSAO_ATTRS;
 
-    #if SSAO_CONTACT_SHADOWS || !HAS_PREV_MOTION_VECTORS
+    ##if maybe(ssao_contact_shadows) || !maybe(has_prev_motion_vectors)
       float disocclusion = get_disocclusion(depth, historyUV);
-    #endif
+    ##endif
 
     // Reject history for disoccluded pixels, but only for contact shadows
     // - For AO, it produces more unwanted noise than useful anti-ghosting
     // - Contact shadows cause trailing shadow outlines without this
-    #if SSAO_CONTACT_SHADOWS
+    ##if maybe(ssao_contact_shadows)
       ssaoHistory.CONTACT_SHADOWS_ATTR = lerp(ssaoHistory.CONTACT_SHADOWS_ATTR, ssao.CONTACT_SHADOWS_ATTR, disocclusion);
-    #endif
+    ##endif
 
     // Neighborhood clamp
     {
-      #if HAS_PREV_MOTION_VECTORS
+      ##if maybe(has_prev_motion_vectors)
         // Velocity weighting if motion vectors history is available
         float2 currentVelocity = mv;
         float2 rawHistoryVelocity = tex2Dlod(prev_downsampled_motion_vectors_tex, float4(historyUV, 0, 0)).rg;
         float2 historyVelocity = decode_motion_vector(rawHistoryVelocity);
         float velocityWeight = get_velocity_weight(currentVelocity, historyVelocity);
         float neighborhoodBiasWeight = velocityWeight;
-      #else
+      ##else
         // Use disocclusion for neighborhood tightening if motion vectors history is not available
         float neighborhoodBiasWeight = disocclusion;
-      #endif
+      ##endif
       float neighborhoodBias = lerp(neighborhood_bias_wide, neighborhood_bias_tight, neighborhoodBiasWeight);
       min_ao -= neighborhoodBias;
       max_ao += neighborhoodBias;

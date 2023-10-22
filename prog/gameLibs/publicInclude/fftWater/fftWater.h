@@ -150,6 +150,8 @@ struct FlowmapParams
   Point4 flowmapFoam = Point4(5, 10, 0.5f, 0.1f);
   float flowmapFoamTiling = 1;
   Point4 flowmapDepth = Point4(1, 0.1f, 0.3f, 1);
+  float flowmapSlope = 1;
+  bool usingFoamFx = false;
 
   SharedTexHolder tex;
   UniqueTex texA, texB;
@@ -201,8 +203,8 @@ void delete_water(FFTWater *&);
 void simulate(FFTWater *handle, double time);
 void before_render(FFTWater *handle);
 void set_render_quad(FFTWater *handle, const BBox2 &quad);
-void render(FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, int geom_lod_quality = GEOM_NORMAL, int survey_id = -1,
-  IWaterDecalsRenderHelper *decals_renderer = NULL, RenderMode render_mode = WATER_SHADER);
+void render(FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, int geom_lod_quality = GEOM_NORMAL,
+  int survey_id = -1, IWaterDecalsRenderHelper *decals_renderer = NULL, RenderMode render_mode = WATER_SHADER);
 float getGridLod0AreaSize(FFTWater *handle);
 void setGridLod0AdditionalTesselation(FFTWater *handle, float additional_tesselation);
 void setAnisotropy(FFTWater *handle, int aniso, float mip_bias = 0.f);
@@ -241,7 +243,9 @@ void build_distance_field(UniqueTexHolder &, int texture_size, int heightmap_tex
 void build_flowmap(FFTWater *handle, FlowmapParams &flowmap_params, int flowmap_texture_size, int heightmap_texture_size,
   const Point3 &camera_pos, float range);
 void set_flowmap_params(FlowmapParams &flowmap_params);
+void set_flowmap_foam_params(FlowmapParams &flowmap_params);
 void close_flowmap(FlowmapParams &flowmap_params);
+bool is_flowmap_active(const FlowmapParams &flowmap_params);
 void deferred_wet_ground(FFTWater *handle, const Point3 &pos);
 void prepare_refraction(FFTWater *handle, Texture *scene_target_tex);
 void set_current_time(FFTWater *handle, double time); // remove me! should not be used!

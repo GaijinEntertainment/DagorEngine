@@ -3,10 +3,6 @@
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_mathBase.h>
 
-#define DIALOG_WIDTH  570
-#define DIALOG_HEIGHT 440
-
-
 void Inertia::load(const DataBlock &blk)
 {
   stop = blk.getReal("stop", 0.05);
@@ -289,7 +285,7 @@ void TPSCameraTab::onOk()
 CamerasConfigDlg::CamerasConfigDlg(void *phandle, CameraConfig *max_cc, CameraConfig *free_cc, CameraConfig *fps_cc,
   CameraConfig *tps_cc) :
 
-  CDialogWindow(phandle, DIALOG_WIDTH, DIALOG_HEIGHT, "Camera settings"),
+  CDialogWindow(phandle, hdpi::_pxScaled(570), hdpi::_pxScaled(440), "Camera settings"),
 
   mConfig(max_cc)
 {

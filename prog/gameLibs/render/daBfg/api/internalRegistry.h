@@ -6,9 +6,9 @@
 #include <render/daBfg/externalResources.h>
 
 #include <api/resourceProvider.h>
-#include <api/autoResolution.h>
+#include <api/autoResolutionData.h>
 #include <id/idIndexedMapping.h>
-#include <id/idNameMap.h>
+#include <id/idHierarchicalNameMap.h>
 #include <resourceUsage.h>
 #include <bindingType.h>
 
@@ -164,27 +164,15 @@ struct InternalRegistry
   IdIndexedMapping<AutoResTypeNameId, AutoResType> autoResTypes;
   IdIndexedMapping<ResNameId, eastl::optional<SlotData>> resourceSlots;
 
-  // Keeps track of all node names and their IDs ever known to FG.
-  // The name <-> id mapping is persistent.
-  IdNameMap<NodeNameId> knownNodeNames;
+  // Set of external resources that are considered to be sinks and are
+  // therefore never pruned.
+  dag::FixedVectorSet<ResNameId, 8> sinkExternalResources;
 
-  // Keeps track of all resource names and their IDs ever known to FG.
+  // Keeps track of all name space, node, resource and auto resolution
+  // type names and their IDs ever known to FG in a hierarchical manner.
   // The name <-> id mapping is persistent.
-  IdNameMap<ResNameId> knownResourceNames;
-
-  // Keeps track of all auto-res type names and their IDs ever known to FG.
-  // The name <-> id mapping is persistent.
-  IdNameMap<AutoResTypeNameId> knownAutoResolutionTypeNames;
+  IdHierarchicalNameMap<NameSpaceNameId, ResNameId, NodeNameId, AutoResTypeNameId> knownNames;
 };
-
-inline ResNameId resolve_res_id(const InternalRegistry &registry, ResNameId res_name_id)
-{
-  if (!registry.resourceSlots.isMapped(res_name_id))
-    return res_name_id;
-  if (const auto &slotData = registry.resourceSlots[res_name_id]; slotData.has_value())
-    return slotData->contents;
-  return res_name_id;
-}
 
 } // namespace dabfg
 

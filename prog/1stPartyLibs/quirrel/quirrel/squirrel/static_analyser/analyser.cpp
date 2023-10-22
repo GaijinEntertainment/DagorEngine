@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <vector>
 #include <algorithm>
+#include "../sqtable.h"
 
 namespace SQCompilation {
 
@@ -568,6 +569,935 @@ public:
   }
 };
 
+class NodeComplexityComputer : public Visitor {
+
+  int32_t complexity;
+  const int32_t limit;
+
+  NodeComplexityComputer(int32_t l) : limit(l), complexity(0) {}
+public:
+
+
+  void visitNode(Node *n) {
+    if (complexity > limit)
+      return;
+
+    Visitor::visitNode(n);
+  }
+
+  // Expressions
+
+  void visitId(Id *id) {
+    complexity += 1;
+  }
+
+  void visitLiteralExpr(LiteralExpr *l) {
+  }
+
+  void visitUnExpr(UnExpr *u) {
+    if (u->op() != TO_PAREN)
+      complexity += 1;
+    Visitor::visitUnExpr(u);
+  }
+
+  void visitBinExpr(BinExpr *b) {
+    complexity += 3;
+    Visitor::visitBinExpr(b);
+  }
+
+  void visitTerExpr(TerExpr *t) {
+    complexity += 2;
+    Visitor::visitTerExpr(t);
+  }
+
+  void visitGetFieldExpr(GetFieldExpr *f) {
+    complexity += 1;
+    Visitor::visitGetFieldExpr(f);
+  }
+
+  void visitGetTableExpr(GetTableExpr *t) {
+    complexity += 2;
+    Visitor::visitGetTableExpr(t);
+  }
+
+  void visitCallExpr(CallExpr *call) {
+    complexity += (call->arguments().size() - 1);
+    Visitor::visitCallExpr(call);
+  }
+
+  void visitIncExpr(IncExpr *inc) {
+    complexity += 1;
+    Visitor::visitIncExpr(inc);
+  }
+
+  void visitArrayExpr(ArrayExpr *arr) {
+    complexity += arr->initialziers().size();
+    Visitor::visitArrayExpr(arr);
+  }
+
+  void visitCommaExpr(CommaExpr *comma) {
+    complexity += comma->expressions().size();
+    Visitor::visitCommaExpr(comma);
+  }
+
+  // Statements
+
+  void visitBlock(Block *b) {
+    complexity += b->statements().size();
+    Visitor::visitBlock(b);
+  }
+
+  void visitIfStatement(IfStatement *ifstmt) {
+    complexity += 2;
+    if (ifstmt->elseBranch())
+      complexity += 1;
+
+    Visitor::visitIfStatement(ifstmt);
+  }
+
+  void visitSwitchStatement(SwitchStatement *swtch) {
+    complexity += 1; // switch expr
+    complexity += (swtch->cases().size() * 2); // 2 due to label + body;
+    if (swtch->defaultCase().stmt)
+      complexity += 1;
+
+    Visitor::visitSwitchStatement(swtch);
+  }
+
+  void visitTryStatement(TryStatement *trystmt) {
+    complexity += 3; // try + ex + catch
+    Visitor::visitTryStatement(trystmt);
+  }
+
+  void visitTerminateStatement(TerminateStatement *t) {
+    if (t->argument())
+      complexity += 1;
+
+    Visitor::visitTerminateStatement(t);
+  }
+
+  void visitLoopStatement(LoopStatement *l) {
+    complexity += 1;
+    Visitor::visitLoopStatement(l);
+  }
+
+  void visitWhileStatement(WhileStatement *w) {
+    complexity += 1;
+
+    Visitor::visitWhileStatement(w);
+  }
+
+  void visitDoWhileStatement(DoWhileStatement *dw) {
+    complexity += 1;
+
+    Visitor::visitDoWhileStatement(dw);
+  }
+
+  void visitForStatement(ForStatement *f) {
+    if (f->initializer())
+      complexity += 1;
+
+    if (f->condition())
+      complexity += 1;
+
+    if (f->modifier())
+      complexity += 1;
+
+    Visitor::visitForStatement(f);
+  }
+
+  void visitForeachStatement(ForeachStatement *fe) {
+    if (fe->idx())
+      complexity += 1;
+
+    if (fe->val())
+      complexity += 1;
+
+    complexity += 1;
+
+    Visitor::visitForeachStatement(fe);
+  }
+
+  // Declarations
+
+  void visitValueDecl(ValueDecl *v) {
+    complexity += 1;
+
+    if (v->expression())
+      complexity += 1;
+
+    Visitor::visitValueDecl(v);
+  }
+
+  void visitTableDecl(TableDecl *t) {
+    complexity += (t->members().size() * 2); // key + value
+
+    Visitor::visitTableDecl(t);
+  }
+
+  void visitClassDecl(ClassDecl *c) {
+    if (c->classBase())
+      complexity += 1;
+
+    if (c->classKey())
+      complexity += 1;
+
+    Visitor::visitClassDecl(c);
+  }
+
+  void visitFunctionDecl(FunctionDecl *f) {
+    complexity += f->parameters().size();
+
+    Visitor::visitFunctionDecl(f);
+  }
+
+  void visitEnumDecl(EnumDecl *e) {
+    complexity += 1; //name
+    complexity += (e->consts().size() * 2);
+    Visitor::visitEnumDecl(e);
+  }
+
+  void visitConstDecl(ConstDecl *c) {
+    complexity += 2;
+    Visitor::visitConstDecl(c);
+  }
+
+  void visitDeclGroup(DeclGroup *g) {
+    complexity += g->declarations().size();
+    Visitor::visitDeclGroup(g);
+  }
+
+  void visitDestructuringDecl(DestructuringDecl *dd) {
+    complexity += 1;
+
+    Visitor::visitDestructuringDecl(dd);
+  }
+
+  static int32_t compute(const Node *n, int32_t limit) {
+    NodeComplexityComputer c(limit);
+    const_cast<Node *>(n)->visit(&c);
+    return c.complexity;
+  }
+};
+
+class NodeDiffComputer {
+
+
+  const struct {
+    const int32_t OpDiffCost = 40;
+    const int32_t SizeDiffCost = 30;
+    const int32_t SizeDiffCoeff = 11;
+    const int32_t NullDiffCost = SizeDiffCost;
+    const int32_t IncFormDiffCost = 2;
+    const int32_t IncValDiffCost = 1;
+    const int32_t NameDiffCost = 1;
+    const int32_t LiteralDiffCost = 1;
+    const int32_t MutabilityDiffCost = 1;
+    const int32_t StaticMemberDiffCost = 2;
+    const int32_t NullabilityDiffCost = 3;
+  } DiffCosts;
+
+  const int32_t limit;
+
+  int32_t sizeDiff(const int32_t l, const int32_t r) const {
+    return DiffCosts.SizeDiffCost + std::abs(l - r) * DiffCosts.SizeDiffCoeff;
+  }
+
+  NodeDiffComputer(int32_t l) : limit(l) {}
+
+  int32_t average(int32_t total, int32_t size) const {
+    int32_t aver = size ? total / size : 0;
+
+    if (aver == 0)
+      aver = 1;
+
+    return aver;
+  }
+
+  int32_t diffBlock(const Block *lhs, const Block *rhs) {
+    const auto &l = lhs->statements();
+    const auto &r = rhs->statements();
+
+    if (l.size() != r.size())
+      return sizeDiff(l.size(), r.size());
+
+    int32_t total = 0;
+
+    for (int32_t i = 0; i < l.size(); ++i) {
+      int32_t tmp = diffNodes(l[i], r[i]);
+      if (tmp > limit)
+        return tmp;
+      total += tmp;
+    }
+
+    return total;
+  }
+
+  int32_t diffIf(const IfStatement *lhs, const IfStatement *rhs) {
+
+    int32_t condDiff = diffNodes(lhs->condition(), rhs->condition());
+
+    if (condDiff > limit)
+      return condDiff;
+
+    int32_t thenDiff = diffNodes(lhs->thenBranch(), rhs->thenBranch());
+
+    if (thenDiff > limit)
+      return thenDiff;
+
+    int32_t elseDiff = diffNodes(lhs->elseBranch(), rhs->elseBranch());
+
+    if (elseDiff > limit)
+      return elseDiff;
+
+    return condDiff + thenDiff + elseDiff;
+  }
+
+  int32_t diffWhile(const WhileStatement *lhs, const WhileStatement *rhs) {
+    int32_t condDiff = diffNodes(lhs->condition(), rhs->condition());
+
+    if (condDiff > limit)
+      return condDiff;
+
+    int32_t bodyDiff = diffNodes(lhs->body(), rhs->body());
+
+    if (bodyDiff > limit)
+      return bodyDiff;
+
+    return condDiff + bodyDiff;
+  }
+
+  int32_t diffDoWhile(const DoWhileStatement *lhs, const DoWhileStatement *rhs) {
+    int32_t bodyDiff = diffNodes(lhs->body(), rhs->body());
+
+    if (bodyDiff > limit)
+      return bodyDiff;
+
+    int32_t condDiff = diffNodes(lhs->condition(), rhs->condition());
+
+    if (condDiff > limit)
+      return condDiff;
+
+    return bodyDiff + condDiff;
+  }
+
+  int32_t diffFor(const ForStatement *lhs, const ForStatement *rhs) {
+    int32_t initDiff = diffNodes(lhs->initializer(), rhs->initializer());
+
+    if (initDiff > limit)
+      return initDiff;
+
+    int32_t condDiff = diffNodes(lhs->condition(), rhs->condition());
+
+    if (condDiff > limit)
+      return condDiff;
+
+    int32_t modDiff = diffNodes(lhs->modifier(), rhs->modifier());
+
+    if (modDiff > limit)
+      return modDiff;
+
+    int32_t bodyDiff = diffNodes(lhs->body(), rhs->body());
+
+    if (bodyDiff > limit)
+      return bodyDiff;
+
+    return initDiff + condDiff + modDiff + bodyDiff;
+  }
+
+  int32_t diffForeach(const ForeachStatement *lhs, const ForeachStatement *rhs) {
+    int32_t idxDiff = diffNodes(lhs->idx(), rhs->idx());
+
+    if (idxDiff > limit)
+      return idxDiff;
+
+    int32_t valDiff = diffNodes(lhs->val(), rhs->val());
+
+    if (valDiff > limit)
+      return valDiff;
+
+    int32_t contDiff = diffNodes(lhs->container(), rhs->container());
+
+    if (contDiff > limit)
+      return contDiff;
+
+    int32_t bodyDiff = diffNodes(lhs->body(), rhs->body());
+
+    if (bodyDiff > limit)
+      return bodyDiff;
+
+    return idxDiff + valDiff + contDiff + bodyDiff;
+  }
+
+  int32_t diffSwitch(const SwitchStatement *lhs, const SwitchStatement *rhs) {
+    int32_t exprDiff = diffNodes(lhs->expression(), rhs->expression());
+
+    if (exprDiff > limit)
+      return exprDiff;
+
+    const auto &casesLeft = lhs->cases();
+    const auto &casesRight = rhs->cases();
+
+    if (casesLeft.size() != casesRight.size())
+      return sizeDiff(casesLeft.size(), casesRight.size());
+
+    bool leftHasDefault = lhs->defaultCase().stmt != nullptr;
+    bool rightHasDefault = rhs->defaultCase().stmt != nullptr;
+
+    if (leftHasDefault != rightHasDefault) // shortcut
+      return DiffCosts.NullDiffCost;
+
+    int32_t casesDiff = 0;
+
+    for (int32_t i = 0; i < int32_t(casesLeft.size()); ++i) {
+      const auto &l = casesLeft[i];
+      const auto &r = casesRight[i];
+
+      int32_t valDiff = diffNodes(l.val, r.val);
+
+      if (valDiff > limit)
+        return valDiff;
+
+      int32_t bodyDiff = diffNodes(l.stmt, r.stmt);
+
+      if (bodyDiff > limit)
+        return bodyDiff;
+
+      casesDiff += (valDiff + bodyDiff);
+    }
+
+    int32_t defaultDiff = diffNodes(lhs->defaultCase().stmt, rhs->defaultCase().stmt);
+    if (defaultDiff > limit)
+      return defaultDiff;
+
+    return casesDiff + defaultDiff + exprDiff;
+  }
+
+  int32_t diffTerminator(const TerminateStatement *lhs, const TerminateStatement *rhs) {
+    assert(lhs->op() == rhs->op());
+
+    return diffNodes(lhs->argument(), rhs->argument());
+  }
+
+  int32_t diffTry(const TryStatement *lhs, const TryStatement *rhs) {
+    int32_t tryDiff = diffNodes(lhs->tryStatement(), rhs->tryStatement());
+
+    if (tryDiff > limit)
+      return tryDiff;
+
+    int32_t exIdDiff = diffNodes(lhs->exceptionId(), rhs->exceptionId());
+    int32_t catchDiff = diffNodes(lhs->catchStatement(), rhs->catchStatement());
+
+    if (catchDiff > limit)
+      return catchDiff;
+
+    return tryDiff + exIdDiff + catchDiff;
+  }
+
+  int32_t diffExprStmt(const ExprStatement *lhs, const ExprStatement *rhs) {
+    return diffNodes(lhs->expression(), rhs->expression());
+  }
+
+  int32_t diffId(const Id *lhs, const Id *rhs) {
+    return strcmp(lhs->id(), rhs->id()) != 0 ? DiffCosts.NameDiffCost : 0;
+  }
+
+  int32_t diffComma(const CommaExpr *lhs, const CommaExpr *rhs) {
+    const auto &leftExpressions = lhs->expressions();
+    const auto &rightExpression = rhs->expressions();
+
+    if (leftExpressions.size() != rightExpression.size())
+      return sizeDiff(leftExpressions.size(), rightExpression.size());
+
+    int32_t result = 0;
+
+    for (int32_t i = 0; i < leftExpressions.size(); ++i) {
+      const Expr *l = leftExpressions[i];
+      const Expr *r = rightExpression[i];
+
+      int32_t tmp = diffNodes(l, r);
+
+      if (tmp > limit)
+        return tmp;
+
+      result += tmp;
+    }
+
+    return result;
+  }
+
+  int32_t diffBinary(const BinExpr *lhs, const BinExpr *rhs) {
+    assert(lhs->op() == rhs->op());
+
+    int32_t diffLeft = diffNodes(lhs->lhs(), rhs->lhs());
+
+    if (diffLeft > limit)
+      return diffLeft;
+
+    int32_t diffRight = diffNodes(lhs->rhs(), rhs->rhs());
+
+    if (diffRight > limit)
+      return diffRight;
+
+    return diffLeft + diffRight;
+  }
+
+  int32_t diffUnary(const UnExpr *lhs, const UnExpr *rhs) {
+    assert(lhs->op() == rhs->op());
+
+    return diffNodes(lhs->argument(), rhs->argument());
+  }
+
+  int32_t diffLiterals(const LiteralExpr *lhs, const LiteralExpr *rhs) {
+    if (lhs->kind() != rhs->kind())
+      return DiffCosts.LiteralDiffCost;
+
+    switch (lhs->kind()) {
+    case LK_NULL: return 0;
+    case LK_BOOL: return lhs->b() != rhs->b() ? DiffCosts.LiteralDiffCost : 0;
+    case LK_INT: return lhs->i() != rhs->i() ? DiffCosts.LiteralDiffCost : 0;
+    case LK_FLOAT: return lhs->f() != rhs->f() ? DiffCosts.LiteralDiffCost : 0;
+    case LK_STRING: return strcmp(lhs->s(), rhs->s()) != 0 ? DiffCosts.LiteralDiffCost : 0;
+    default: assert(0); return -1000;
+    }
+  }
+
+  int32_t diffIncExpr(const IncExpr *lhs, const IncExpr *rhs) {
+    int32_t result = 0;
+    if (lhs->form() != rhs->form())
+      result += DiffCosts.IncFormDiffCost;
+
+    if (lhs->diff() != rhs->diff())
+      result += DiffCosts.IncValDiffCost;
+
+    int32_t argDiff = diffNodes(lhs->argument(), rhs->argument());
+
+    if (argDiff > limit)
+      return argDiff;
+
+    return result + argDiff;
+  }
+
+  int32_t diffDeclExpr(const DeclExpr *lhs, const DeclExpr *rhs) {
+    return diffNodes(lhs->declaration(), rhs->declaration());
+  }
+
+  int32_t diffArrayExpr(const ArrayExpr *lhs, const ArrayExpr *rhs) {
+    const auto &leftInits = lhs->initialziers();
+    const auto &rightInits = rhs->initialziers();
+
+    if (leftInits.size() != rightInits.size())
+      return sizeDiff(leftInits.size(), rightInits.size());
+
+    int32_t result = 0;
+
+    for (int32_t i = 0; i < leftInits.size(); ++i) {
+      const Expr *l = leftInits[i];
+      const Expr *r = rightInits[i];
+
+      int32_t tmp = diffNodes(l, r);
+
+      if (tmp > limit)
+        return tmp;
+
+      result += tmp;
+    }
+
+    return result;
+  }
+
+  int32_t diffGetField(const GetFieldExpr *lhs, const GetFieldExpr *rhs) {
+    int32_t receiverDiff = diffNodes(lhs->receiver(), rhs->receiver());
+
+    if (receiverDiff > limit)
+      return receiverDiff;
+
+    if (strcmp(lhs->fieldName(), rhs->fieldName()) != 0)
+      receiverDiff += DiffCosts.NameDiffCost;
+
+    if (lhs->isNullable() != rhs->isNullable())
+      receiverDiff += DiffCosts.NullabilityDiffCost;
+
+    return receiverDiff;
+  }
+
+  int32_t diffGetTable(const GetTableExpr *lhs, const GetTableExpr *rhs) {
+    int32_t receiverDiff = diffNodes(lhs->receiver(), rhs->receiver());
+
+    if (receiverDiff > limit)
+      return receiverDiff;
+
+    int32_t keyDiff = diffNodes(lhs->key(), rhs->key());
+
+    if (keyDiff > limit)
+      return keyDiff;
+
+    if (lhs->isNullable() != rhs->isNullable())
+      receiverDiff += DiffCosts.NullabilityDiffCost;
+
+    return receiverDiff + keyDiff;
+  }
+
+  int32_t diffCallExpr(const CallExpr *lhs, const CallExpr *rhs) {
+    auto &leftArgs = lhs->arguments();
+    auto &rightArgs = rhs->arguments();
+
+    if (leftArgs.size() != rightArgs.size())
+      return sizeDiff(leftArgs.size(), rightArgs.size());
+
+    int32_t calleeDiff = diffNodes(lhs->callee(), rhs->callee());
+
+    if (calleeDiff > limit)
+      return calleeDiff;
+
+    int32_t argsDiff = 0;
+
+    for (int32_t i = 0; i < leftArgs.size(); ++i) {
+      const Expr *l = leftArgs[i];
+      const Expr *r = rightArgs[i];
+
+      int32_t tmp = diffNodes(l, r);
+
+      if (tmp > limit)
+        return tmp;
+
+      argsDiff += tmp;
+    }
+
+    if (lhs->isNullable() != rhs->isNullable())
+      calleeDiff += DiffCosts.NullabilityDiffCost;
+
+    return argsDiff + calleeDiff;
+  }
+
+  int32_t diffTernary(const TerExpr *lhs, const TerExpr *rhs) {
+    int32_t condDiff = diffNodes(lhs->a(), rhs->a());
+
+    if (condDiff > limit)
+      return condDiff;
+
+    int32_t tDiff = diffNodes(lhs->b(), rhs->b());
+
+    if (tDiff > limit)
+      return tDiff;
+
+    int32_t eDiff = diffNodes(lhs->c(), rhs->c());
+
+    if (eDiff > limit)
+      return eDiff;
+
+    return condDiff + tDiff + eDiff;
+  }
+
+  int32_t diffValueDecl(const ValueDecl *lhs, const ValueDecl *rhs) {
+    int32_t result = strcmp(lhs->name(), rhs->name()) != 0 ? DiffCosts.NameDiffCost : 0;
+
+    result += diffNodes(lhs->expression(), rhs->expression());
+
+    return result;
+  }
+
+  int32_t diffConst(const ConstDecl *lhs, const ConstDecl *rhs) {
+    int32_t nameDiff = strcmp(lhs->name(), rhs->name()) != 0 ? DiffCosts.NameDiffCost : 0;
+    int32_t valueDiff = diffLiterals(lhs->value(), rhs->value());
+
+    return nameDiff + valueDiff;
+  }
+
+  int32_t diffVarDecl(const VarDecl *lhs, const VarDecl *rhs) {
+    int32_t diffV = diffValueDecl(lhs, rhs);
+
+    if (lhs->isAssignable() != rhs->isAssignable())
+      diffV += DiffCosts.MutabilityDiffCost;
+
+    return diffV;
+  }
+
+  int32_t diffDeclGroup(const DeclGroup *lhs, const DeclGroup *rhs) {
+    const auto &leftGroup = lhs->declarations();
+    const auto &rightGroup = rhs->declarations();
+
+    if (leftGroup.size() != rightGroup.size())
+      return sizeDiff(leftGroup.size(), rightGroup.size());
+
+    int32_t result = 0;
+
+    for (int32_t i = 0; i < leftGroup.size(); ++i) {
+      const VarDecl *l = leftGroup[i];
+      const VarDecl *r = rightGroup[i];
+
+      int32_t tmp = diffVarDecl(l, r);
+
+      if (tmp > limit)
+        return tmp;
+
+      result += tmp;
+    }
+
+    return result;
+  }
+
+  int32_t diffDestructDecl(const DestructuringDecl *lhs, const DestructuringDecl *rhs) {
+    int32_t valueDiff = diffNodes(lhs->initiExpression(), rhs->initiExpression());
+
+    if (valueDiff > limit)
+      return valueDiff;
+
+    int32_t groupDiff = diffDeclGroup(lhs, rhs);
+
+    if (groupDiff > limit)
+      return groupDiff;
+
+    return valueDiff + groupDiff;
+  }
+
+  const SQChar *realFunctionName(const FunctionDecl *f) const {
+    const SQChar *name = f->name();
+    assert(name);
+
+    if (name[0] == '(') // anonymous
+      return "";
+
+    return name;
+  }
+
+  int32_t diffFunction(const FunctionDecl *lhs, const FunctionDecl *rhs) {
+    int32_t nameDiff = strcmp(realFunctionName(lhs), realFunctionName(rhs)) != 0 ? DiffCosts.NameDiffCost : 0;
+
+    const auto &leftParams = lhs->parameters();
+    const auto &rightParams = rhs->parameters();
+
+    if (leftParams.size() != rightParams.size())
+      return sizeDiff(leftParams.size(), rightParams.size());
+
+    int32_t paramDiff = 0;
+
+    for (int32_t i = 0; i < leftParams.size(); ++i) {
+      const ParamDecl *l = leftParams[i];
+      const ParamDecl *r = rightParams[i];
+
+      int32_t tmp = diffValueDecl(l, r);
+
+      if (tmp > limit)
+        return tmp;
+
+      paramDiff += tmp;
+    }
+
+    int32_t bodyDiff = diffNodes(lhs->body(), rhs->body());
+
+    if (bodyDiff > limit)
+      return bodyDiff;
+
+    return nameDiff + paramDiff + bodyDiff;
+  }
+
+  int32_t diffTable(const TableDecl *lhs, const TableDecl *rhs) {
+    const auto &leftMembers = lhs->members();
+    const auto &rightMembers = rhs->members();
+
+    if (leftMembers.size() != rightMembers.size())
+      return sizeDiff(leftMembers.size(), rightMembers.size());
+
+    int32_t tableDiff = 0;
+
+    for (int32_t i = 0; i < leftMembers.size(); ++i) {
+      const auto &l = leftMembers[i];
+      const auto &r = rightMembers[i];
+
+      int32_t keyDiff = diffNodes(l.key, r.key);
+
+      if (keyDiff > limit)
+        return keyDiff;
+
+      int32_t valueDiff = diffNodes(l.value, r.value);
+
+      if (valueDiff > limit)
+        return valueDiff;
+
+      tableDiff += (keyDiff + valueDiff);
+
+      if (l.isStatic() != r.isStatic())
+        tableDiff += DiffCosts.StaticMemberDiffCost;
+    }
+
+    return tableDiff;
+  }
+
+  int32_t diffClass(const ClassDecl *lhs, const ClassDecl *rhs) {
+    int32_t keyDiff = diffNodes(lhs->classKey(), rhs->classKey());
+
+    if (keyDiff > limit)
+      return keyDiff;
+
+    int32_t baseDiff = diffNodes(lhs->classBase(), rhs->classBase());
+
+    if (baseDiff > limit)
+      return baseDiff;
+
+    int32_t bodyDiff = diffTable(lhs, rhs);
+
+    if (bodyDiff > limit)
+      return bodyDiff;
+
+    return keyDiff + baseDiff + bodyDiff;
+  }
+
+  int32_t diffEnumDecl(const EnumDecl *lhs, const EnumDecl *rhs) {
+    int32_t nameDiff = strcmp(lhs->name(), rhs->name()) != 0 ? DiffCosts.NameDiffCost : 0;
+
+    const auto &leftValues = lhs->consts();
+    const auto &rightValues = rhs->consts();
+
+    if (leftValues.size() != rightValues.size())
+      return sizeDiff(leftValues.size(), rightValues.size());
+
+    int32_t valueDiff = 0;
+
+    for (int32_t i = 0; i < leftValues.size(); ++i) {
+      const auto &l = leftValues[i];
+      const auto &r = rightValues[i];
+
+      int32_t cNameDiff = strcmp(l.id, r.id) != 0 ? DiffCosts.NameDiffCost : 0;
+      int32_t cValueDiff = diffLiterals(l.val, r.val);
+
+      valueDiff += (cNameDiff + cValueDiff);
+    }
+
+    return nameDiff + valueDiff;
+  }
+
+  int32_t diffNodes(const Node *lhs, const Node *rhs) {
+    if (lhs == rhs)
+      return 0;
+
+    if (!lhs || !rhs) {
+      return DiffCosts.NullDiffCost;
+    }
+
+    if (lhs->op() != rhs->op()) {
+      return DiffCosts.OpDiffCost;
+    }
+
+    switch (lhs->op())
+    {
+    case TO_BLOCK:      return diffBlock((const Block *)lhs, (const Block *)rhs);
+    case TO_IF:         return diffIf((const IfStatement *)lhs, (const IfStatement *)rhs);
+    case TO_WHILE:      return diffWhile((const WhileStatement *)lhs, (const WhileStatement *)rhs);
+    case TO_DOWHILE:    return diffDoWhile((const DoWhileStatement *)lhs, (const DoWhileStatement *)rhs);
+    case TO_FOR:        return diffFor((const ForStatement *)lhs, (const ForStatement *)rhs);
+    case TO_FOREACH:    return diffForeach((const ForeachStatement *)lhs, (const ForeachStatement *)rhs);
+    case TO_SWITCH:     return diffSwitch((const SwitchStatement *)lhs, (const SwitchStatement *)rhs);
+    case TO_RETURN:
+    case TO_YIELD:
+    case TO_THROW:
+      return diffTerminator((const TerminateStatement *)lhs, (const TerminateStatement *)rhs);
+    case TO_TRY:
+      return diffTry((const TryStatement *)lhs, (const TryStatement *)rhs);
+    case TO_BREAK:
+    case TO_CONTINUE:
+    case TO_EMPTY:
+    case TO_BASE:
+    case TO_ROOT:
+      return 0;
+    case TO_EXPR_STMT:
+      return diffExprStmt((const ExprStatement *)lhs, (const ExprStatement *)rhs);
+
+      //case TO_STATEMENT_MARK:
+    case TO_ID:         return diffId((const Id *)lhs, (const Id *)rhs);
+    case TO_COMMA:      return diffComma((const CommaExpr *)lhs, (const CommaExpr *)rhs);
+    case TO_NULLC:
+    case TO_ASSIGN:
+    case TO_OROR:
+    case TO_ANDAND:
+    case TO_OR:
+    case TO_XOR:
+    case TO_AND:
+    case TO_NE:
+    case TO_EQ:
+    case TO_3CMP:
+    case TO_GE:
+    case TO_GT:
+    case TO_LE:
+    case TO_LT:
+    case TO_IN:
+    case TO_INSTANCEOF:
+    case TO_USHR:
+    case TO_SHR:
+    case TO_SHL:
+    case TO_MUL:
+    case TO_DIV:
+    case TO_MOD:
+    case TO_ADD:
+    case TO_SUB:
+    case TO_NEWSLOT:
+    case TO_INEXPR_ASSIGN:
+    case TO_PLUSEQ:
+    case TO_MINUSEQ:
+    case TO_MULEQ:
+    case TO_DIVEQ:
+    case TO_MODEQ:
+      return diffBinary((const BinExpr *)lhs, (const BinExpr *)rhs);
+    case TO_NOT:
+    case TO_BNOT:
+    case TO_NEG:
+    case TO_TYPEOF:
+    case TO_RESUME:
+    case TO_CLONE:
+    case TO_PAREN:
+    case TO_DELETE:
+      return diffUnary((const UnExpr *)lhs, (const UnExpr *)rhs);
+    case TO_LITERAL:
+      return diffLiterals((const LiteralExpr *)lhs, (const LiteralExpr *)rhs);
+    case TO_INC:
+      return diffIncExpr((const IncExpr *)lhs, (const IncExpr *)rhs);
+    case TO_DECL_EXPR:
+      return diffDeclExpr((const DeclExpr *)lhs, (const DeclExpr *)rhs);
+    case TO_ARRAYEXPR:
+      return diffArrayExpr((const ArrayExpr *)lhs, (const ArrayExpr *)rhs);
+    case TO_GETFIELD:
+      return diffGetField((const GetFieldExpr *)lhs, (const GetFieldExpr *)rhs);
+    case TO_GETTABLE:
+      return diffGetTable((const GetTableExpr *)lhs, (const GetTableExpr *)rhs);
+    case TO_CALL:
+      return diffCallExpr((const CallExpr *)lhs, (const CallExpr *)rhs);
+    case TO_TERNARY:
+      return diffTernary((const TerExpr *)lhs, (const TerExpr *)rhs);
+      //case TO_EXPR_MARK:
+    case TO_VAR:
+      return diffVarDecl((const VarDecl *)lhs, (const VarDecl *)rhs);
+    case TO_PARAM:
+      return diffValueDecl((const ValueDecl *)lhs, (const ValueDecl *)rhs);
+    case TO_CONST:
+      return diffConst((const ConstDecl *)lhs, (const ConstDecl *)rhs);
+    case TO_DECL_GROUP:
+      return diffDeclGroup((const DeclGroup *)lhs, (const DeclGroup *)rhs);
+    case TO_DESTRUCT:
+      return diffDestructDecl((const DestructuringDecl *)lhs, (const DestructuringDecl *)rhs);
+    case TO_FUNCTION:
+    case TO_CONSTRUCTOR:
+      return diffFunction((const FunctionDecl *)lhs, (const FunctionDecl *)rhs);
+    case TO_CLASS:
+      return diffClass((const ClassDecl *)lhs, (const ClassDecl *)rhs);
+    case TO_ENUM:
+      return diffEnumDecl((const EnumDecl *)lhs, (const EnumDecl *)rhs);
+    case TO_TABLE:
+      return diffTable((const TableDecl *)lhs, (const TableDecl *)rhs);
+    case TO_SETFIELD:
+    case TO_SETTABLE:
+    default:
+      assert(0);
+      return -1;
+    }
+  }
+
+public:
+  static int32_t compute(const Node *lhs, const Node *rhs, int32_t limit) {
+    NodeDiffComputer c(limit);
+    return c.diffNodes(lhs, rhs);
+  }
+};
+
 enum ReturnTypeBits
 {
   RT_NOTHING = 1 << 0,
@@ -584,11 +1514,18 @@ enum ReturnTypeBits
   RT_CLASS = 1 << 11,
 };
 
+class CheckerVisitor;
+
 class FunctionReturnTypeEvaluator {
 
   void checkLiteral(const LiteralExpr *l);
   void checkDeclaration(const DeclExpr *de);
   void checkAddExpr(const BinExpr *expr);
+  void checkExpr(const Expr *expr);
+  void checkCall(const CallExpr *expr);
+  void checkId(const Id *id);
+  void checkGetField(const GetFieldExpr *gf);
+  void checkCompoundBin(const BinExpr *expr);
 
   bool checkNode(const Statement *node);
 
@@ -610,7 +1547,13 @@ class FunctionReturnTypeEvaluator {
     return stmt;
   }
 
+  CheckerVisitor *checker;
+
+  bool checkString(const Expr *e);
+
 public:
+
+  FunctionReturnTypeEvaluator(CheckerVisitor *c) : checker(c), flags(0U) {}
 
   unsigned flags;
 
@@ -651,6 +1594,95 @@ void FunctionReturnTypeEvaluator::checkLiteral(const LiteralExpr *lit) {
   }
 }
 
+void FunctionReturnTypeEvaluator::checkExpr(const Expr *expr) {
+
+  switch (expr->op())
+  {
+  case TO_LITERAL:
+    checkLiteral(static_cast<const LiteralExpr *>(expr));
+    break;
+  case TO_OROR:
+  case TO_ANDAND:
+  case TO_NULLC:
+    checkCompoundBin(static_cast<const BinExpr *>(expr));
+    break;
+  case TO_NE:
+  case TO_EQ:
+  case TO_GE:
+  case TO_GT:
+  case TO_LE:
+  case TO_LT:
+  case TO_INSTANCEOF:
+  case TO_IN:
+  case TO_NOT:
+    flags |= RT_BOOL;
+    break;
+  case TO_ADD:
+    checkAddExpr(static_cast<const BinExpr *>(expr));
+    break;
+  case TO_MOD: {
+    const BinExpr *b = static_cast<const BinExpr *>(expr);
+    if (checkString(b->rhs())) { // this special pattern 'o % "something"'
+      flags |= RT_UNRECOGNIZED;
+      break;
+    }
+  } // -V796
+  case TO_SUB:
+  case TO_MUL:
+  case TO_DIV:
+  case TO_NEG:
+  case TO_BNOT:
+  case TO_3CMP:
+  case TO_AND:
+  case TO_OR:
+  case TO_XOR:
+  case TO_SHL:
+  case TO_SHR:
+  case TO_USHR:
+  case TO_INC:
+    flags |= RT_NUMBER;
+    break;
+  case TO_CALL:
+    checkCall(expr->asCallExpr());
+    break;
+  case TO_DECL_EXPR:
+    checkDeclaration(static_cast<const DeclExpr *>(expr));
+    break;
+  case TO_ARRAYEXPR:
+    flags |= RT_ARRAY;
+    break;
+  case TO_PAREN:
+    checkExpr(static_cast<const UnExpr *>(expr)->argument());
+    break;
+  case TO_TERNARY: {
+      const TerExpr *ter = static_cast<const TerExpr *>(expr);
+      checkExpr(ter->b());
+      checkExpr(ter->c());
+      break;
+  }
+  case TO_ID:
+      checkId(expr->asId());
+      break;
+  case TO_GETFIELD:
+      checkGetField(expr->asGetField());
+      // Fall Through
+  case TO_GETTABLE:
+      if (expr->asAccessExpr()->isNullable())
+        flags |= RT_NULL;
+      break;
+  case TO_ASSIGN:
+  case TO_INEXPR_ASSIGN:
+      flags |= RT_NOTHING;
+      break;
+  default:
+    if (checkString(expr))
+      flags |= RT_STRING;
+    else
+      flags |= RT_UNRECOGNIZED;
+    break;
+  }
+}
+
 void FunctionReturnTypeEvaluator::checkAddExpr(const BinExpr *expr) {
   assert(expr->op() == TO_ADD);
 
@@ -658,34 +1690,27 @@ void FunctionReturnTypeEvaluator::checkAddExpr(const BinExpr *expr) {
 
   flags = 0;
 
-  const Expr *lhs = deparen(expr->lhs());
-  const Expr *rhs = deparen(expr->rhs());
+  checkExpr(expr->lhs());
 
-  if (lhs->op() == TO_ADD) { // -V522
-    checkAddExpr(lhs->asBinExpr());
-  }
+  volatile unsigned lhsFlags = flags; // No idea WTF but in VC++ in dev build this code works incorrect
+  flags = 0;
 
-  if (rhs->op() == TO_ADD) { // -V522
-    checkAddExpr(rhs->asBinExpr());
-  }
+  checkExpr(expr->rhs());
+  unsigned rhsFlags = flags;
 
-  if (lhs->op() == TO_LITERAL) { // -V522
-    checkLiteral(lhs->asLiteral());
-  }
+  flags = saved;
 
-  if (rhs->op() == TO_LITERAL) { // -V522
-    checkLiteral(rhs->asLiteral());
-  }
-
-  if (flags & RT_STRING) {
+  if ((lhsFlags & RT_STRING) || (rhsFlags & RT_STRING)) {
     // concat with string is casted to string
     flags &= ~(RT_NUMBER | RT_BOOL | RT_NULL);
+    flags |= RT_STRING;
   }
-  else {
+  else if ((lhsFlags | rhsFlags) & RT_NUMBER) {
     flags |= RT_NUMBER;
   }
-
-  flags |= saved;
+  else {
+    flags |= (lhsFlags | rhsFlags);
+  }
 }
 
 void FunctionReturnTypeEvaluator::checkDeclaration(const DeclExpr *de) {
@@ -703,63 +1728,14 @@ void FunctionReturnTypeEvaluator::checkDeclaration(const DeclExpr *de) {
 
 bool FunctionReturnTypeEvaluator::checkReturn(const ReturnStatement *ret) {
 
-  const Expr *arg = deparen(ret->argument());
+  const Expr *arg = ret->argument();
 
   if (arg == nullptr) {
     flags |= RT_NOTHING;
     return true;
   }
 
-  switch (arg->op())
-  {
-  case TO_LITERAL:
-    checkLiteral(static_cast<const LiteralExpr *>(arg));
-    break;
-  case TO_OROR:
-  case TO_ANDAND:
-  case TO_NE:
-  case TO_EQ:
-  case TO_GE:
-  case TO_GT:
-  case TO_LE:
-  case TO_LT:
-  case TO_INSTANCEOF:
-  case TO_IN:
-  case TO_NOT:
-    flags |= RT_BOOL;
-    break;
-  case TO_ADD:
-    checkAddExpr(arg->asBinExpr());
-    break;
-  case TO_SUB:
-  case TO_MUL:
-  case TO_DIV:
-  case TO_MOD:
-  case TO_NEG:
-  case TO_BNOT:
-  case TO_3CMP:
-  case TO_AND:
-  case TO_OR:
-  case TO_XOR:
-  case TO_SHL:
-  case TO_SHR:
-  case TO_USHR:
-  case TO_INC:
-    flags |= RT_NUMBER;
-    break;
-  case TO_CALL:
-    flags |= RT_FUNCTION_CALL;
-    break;
-  case TO_DECL_EXPR:
-    checkDeclaration(static_cast<const DeclExpr *>(arg));
-    break;
-  case TO_ARRAYEXPR:
-    flags |= RT_ARRAY;
-    break;
-  default:
-    flags |= RT_UNRECOGNIZED;
-    break;
-  }
+  checkExpr(arg);
 
   return true;
 }
@@ -771,10 +1747,13 @@ bool FunctionReturnTypeEvaluator::checkThrow(const ThrowStatement *thrw) {
 
 bool FunctionReturnTypeEvaluator::checkIf(const IfStatement *ifStmt) {
   bool retThen = checkNode(ifStmt->thenBranch());
+  unsigned thenFlags = flags;
+  flags = 0;
   bool retElse = false;
   if (ifStmt->elseBranch()) {
     retElse = checkNode(ifStmt->elseBranch());
   }
+  flags |= thenFlags;
 
   return retThen && retElse;
 }
@@ -1038,7 +2017,9 @@ public:
   }
 
   bool hasUnconditionalTerminator() const {
-    return (hasUnconditionalTerm && !hasCondContinue) || hasUnconditionalContinue;
+    if (hasCondContinue)
+      return false;
+    return hasUnconditionalTerm;
   }
 };
 
@@ -1109,8 +2090,16 @@ static bool isBlockTerminatorStatement(enum TreeOp op) {
   return op == TO_RETURN || op == TO_THROW || op == TO_BREAK || op == TO_CONTINUE;
 }
 
+static bool isBooleanBinaryResultOperator(enum TreeOp op) {
+  return op == TO_NE || op == TO_EQ || (TO_GE <= op && op <= TO_IN);
+}
+
+static bool isBooleanBinaryOrLogicalOpeartor(enum TreeOp op) {
+  return isBooleanBinaryResultOperator(op) || op == TO_OROR || op == TO_ANDAND;
+}
+
 static bool isBooleanResultOperator(enum TreeOp op) {
-  return op == TO_OROR || op == TO_ANDAND || op == TO_NE || op == TO_EQ || (TO_GE <= op && op <= TO_IN) || op == TO_NOT;
+  return isBooleanBinaryResultOperator(op) || op == TO_NOT;
 }
 
 static bool isArithOperator(enum TreeOp op) {
@@ -1158,15 +2147,16 @@ bool isHigherShiftPriority(enum TreeOp op) {
 }
 
 bool looksLikeBooleanExpr(const Expr *e) {
-  if (isBooleanResultOperator(e->op())) // -V522
+  enum TreeOp op = e->op(); // -V522
+  if (isBooleanResultOperator(op))
     return true;
 
-  if (e->op() == TO_LITERAL) { // -V522
+  if (op == TO_LITERAL) {
     return e->asLiteral()->kind() == LK_BOOL; // -V522
   }
 
-  if (e->op() == TO_NULLC) {
-    // check for `x?.y ?? false`
+  if (op == TO_NULLC || op == TO_ANDAND || op == TO_OROR) {
+    // check for `x?.y {??, ||, &&} false`
     return looksLikeBooleanExpr(e->asBinExpr()->rhs());
   }
 
@@ -1223,6 +2213,26 @@ static bool hasAnyPrefix(const SQChar *str, const std::vector<std::string> &pref
   return false;
 }
 
+static bool hasAnyEqual(const SQChar *str, const std::vector<std::string> &candidates) {
+  for (auto &candidate : candidates) {
+    if (strcmp(str, candidate.c_str()) == 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool hasAnySubstring(const SQChar *str, const std::vector<std::string> &candidates) {
+  for (auto &candidate : candidates) {
+    if (strstr(str, candidate.c_str())) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 static bool nameLooksLikeResultMustBeBoolean(const SQChar *funcName) {
   if (!funcName)
     return false;
@@ -1245,19 +2255,46 @@ static bool nameLooksLikeFunctionMustReturnResult(const SQChar *funcName) {
 }
 
 static bool nameLooksLikeResultMustBeUtilised(const SQChar *name) {
-  return hasAnyPrefix(name, SQCompilationContext::function_result_must_be_utilized);
+  return hasAnyEqual(name, SQCompilationContext::function_result_must_be_utilized);
 }
 
 static bool nameLooksLikeResultMustBeString(const SQChar *name) {
-  return hasAnyPrefix(name, SQCompilationContext::function_can_return_string);
+  return hasAnyEqual(name, SQCompilationContext::function_can_return_string);
 }
 
 static bool nameLooksLikeCallsLambdaInPlace(const SQChar *name) {
-  return hasAnyPrefix(name, SQCompilationContext::function_calls_lambda_inplace);
+  return hasAnyEqual(name, SQCompilationContext::function_calls_lambda_inplace);
 }
 
 static bool canFunctionReturnNull(const SQChar *n) {
-  return hasAnyPrefix(n, SQCompilationContext::function_can_return_null);
+  return hasAnyEqual(n, SQCompilationContext::function_can_return_null);
+}
+
+static bool isForbiddenFunctionName(const SQChar *n) {
+  return hasAnyEqual(n, SQCompilationContext::function_forbidden);
+}
+
+static bool nameLooksLikeMustBeCalledFromRoot(const SQChar *n) {
+  return hasAnyEqual(n, SQCompilationContext::function_must_be_called_from_root);
+}
+
+static bool nameLooksLikeForbiddenParentDir(const SQChar *n) {
+  return hasAnyEqual(n, SQCompilationContext::function_forbidden_parent_dir);
+}
+
+static bool nameLooksLikeFormatFunction(const SQChar *n) {
+  std::string transformed(n);
+  std::transform(transformed.begin(), transformed.end(), transformed.begin(), ::tolower);
+
+  return hasAnySubstring(transformed.c_str(), SQCompilationContext::format_function_name);
+}
+
+static bool nameLooksLikeModifiesObject(const SQChar *n) {
+  return hasAnyEqual(n, SQCompilationContext::function_modifies_object);
+}
+
+static bool nameLooksLikeFunctionTakeBooleanLambda(const SQChar *n) {
+  return hasAnyEqual(n, SQCompilationContext::function_takes_boolean_lambda);
 }
 
 static const SQChar rootName[] = "::";
@@ -1752,9 +2789,25 @@ struct BreakableScope {
 
 };
 
+struct IdLocation {
+  const char *filename;
+  int32_t line, column;
+  bool diagSilenced;
+};
+
+static std::unordered_set<std::string> knownBindings;
+static std::set<std::string> fileNames;
+static std::map<std::string, std::vector<IdLocation>> declaredGlobals;
+static std::map<std::string, std::vector<IdLocation>> usedGlobals;
+
 class CheckerVisitor : public Visitor {
   friend struct VarScope;
   friend struct BreakableScope;
+  friend class FunctionReturnTypeEvaluator;
+
+  const int32_t functionComplexityThreshold = 45; // get threshold complexity from command line args
+  const int32_t statementComplexityThreshold = 23;
+  const int32_t statementSimilarityThreshold = 33;
 
   SQCompilationContext &_ctx;
 
@@ -1771,6 +2824,10 @@ class CheckerVisitor : public Visitor {
   void checkForeachIteratorInClosure(const Id *id, const ValueRef *v);
   void checkIdUsed(const Id *id, const Node *p, ValueRef *v);
 
+  void reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc);
+  void reportModifyIfContainer(const Expr *e, const Expr *mod);
+  void checkForgotSubst(const LiteralExpr *l);
+  void checkContainerModification(const UnExpr *expr);
   void checkAndOrPriority(const BinExpr *expr);
   void checkBitwiseParenBool(const BinExpr *expr);
   void checkCoalescingPriority(const BinExpr *expr);
@@ -1792,15 +2849,33 @@ class CheckerVisitor : public Visitor {
   void checkBoolToStrangePosition(const BinExpr *expr);
   void checkNewSlotNameMatch(const BinExpr *expr);
   void checkPlusString(const BinExpr *expr);
+  void checkNewGlobalSlot(const BinExpr *);
+  void checkUselessNullC(const BinExpr *);
+  void checkCannotBeNull(const BinExpr *);
+  void checkCanBeSimplified(const BinExpr *expr);
+  void checkInExprAssignPriority(const BinExpr *expr);
+  void checkRangeCheck(const BinExpr *expr);
   void checkAlwaysTrueOrFalse(const TerExpr *expr);
   void checkTernaryPriority(const TerExpr *expr);
   void checkSameValues(const TerExpr *expr);
+  void checkCanBeSimplified(const TerExpr *expr);
   void checkExtendToAppend(const CallExpr *callExpr);
   void checkAlreadyRequired(const CallExpr *callExpr);
   void checkCallNullable(const CallExpr *callExpr);
+  void checkPersistCall(const CallExpr *callExpr);
+  void checkForbiddenCall(const CallExpr *callExpr);
+  void checkCallFromRoot(const CallExpr *callExpr);
+  void checkForbidenParentDir(const CallExpr *callExpr);
+  void checkFormatArguments(const CallExpr *callExpr);
   void checkArguments(const CallExpr *callExpr);
+  void checkContainerModification(const CallExpr *expr);
+  void checkUnwantedModification(const CallExpr *expr);
+  void checkCannotBeNull(const CallExpr *expr);
+  void checkBooleanLambda(const CallExpr *expr);
   void checkBoolIndex(const GetTableExpr *expr);
   void checkNullableIndex(const GetTableExpr *expr);
+  void checkGlobalAccess(const GetFieldExpr *expr);
+  void checkAccessFromStatic(const GetFieldExpr *expr);
 
   bool findIfWithTheSameCondition(const Expr * condition, const IfStatement * elseNode, const Expr *&duplicated) {
     if (_equalChecker.check(condition, elseNode->condition())) {
@@ -1823,6 +2898,7 @@ class CheckerVisitor : public Visitor {
   void checkDuplicateSwitchCases(SwitchStatement *swtch);
   void checkDuplicateIfBranches(IfStatement *ifStmt);
   void checkDuplicateIfConditions(IfStatement *ifStmt);
+  void checkSuspiciousFormating(const Statement *body, const Statement *stmt);
 
   bool onlyEmptyStatements(int32_t start, const ArenaVector<Statement *> &statements) {
     for (int32_t i = start; i < statements.size(); ++i) {
@@ -1855,12 +2931,15 @@ class CheckerVisitor : public Visitor {
   void checkForgottenDo(const Block *block);
   void checkUnreachableCode(const Block *block);
   void checkAssignedTwice(const Block *b);
+  void checkFunctionSimilarity(const Block *b);
+  void checkAssignExpressionSimilarity(const Block *b);
   void checkUnutilizedResult(const ExprStatement *b);
   void checkNullableContainer(const ForeachStatement *loop);
   void checkMissedBreak(const SwitchStatement *swtch);
 
   const SQChar *findSlotNameInStack(const Decl *);
   void checkFunctionReturns(FunctionDecl *func);
+  void checkFunctionSimilarity(const TableDecl *table);
 
   void checkAccessNullable(const DestructuringDecl *d);
   void checkAccessNullable(const AccessExpr *acc);
@@ -1902,6 +2981,7 @@ class CheckerVisitor : public Visitor {
   std::unordered_map<const FunctionDecl *, FunctionInfo *> functionInfoMap;
 
   std::unordered_set<const SQChar *, StringHasher, StringEqualer> requiredModules;
+  std::unordered_set<const SQChar *, StringHasher, StringEqualer> persistedKeys;
 
   Arena *arena;
 
@@ -1948,10 +3028,15 @@ class CheckerVisitor : public Visitor {
   bool detectNullCPattern(enum TreeOp op, const Expr *expr, const Expr *&checkee);
 
   void checkAssertCall(const CallExpr *call);
+  const SQChar *extractFunctionName(const CallExpr *call);
 
   LiteralExpr trueValue, falseValue, nullValue;
 
   bool effectsOnly;
+
+  void putIntoGlobalNamesMap(std::map<std::string, std::vector<IdLocation>> &map, enum DiagnosticsId diag, const SQChar *name, const Node *d);
+  void reportGlobalDeclaration(const SQChar *name, const Node *d);
+  void reportGlobalUsage(const SQChar *name, const Node *d);
 
 public:
 
@@ -1970,8 +3055,9 @@ public:
 
   void visitNode(Node *n);
 
-
+  void visitLiteralExpr(LiteralExpr *l);
   void visitId(Id *id);
+  void visitUnExpr(UnExpr *expr);
   void visitBinExpr(BinExpr *expr);
   void visitTerExpr(TerExpr *expr);
   void visitIncExpr(IncExpr *expr);
@@ -2018,20 +3104,134 @@ void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
     if (strcmp(n, thisName) == 0) // skip 'this'
       continue;
 
-    if (n[0] == '_')
-      continue;
 
     SymbolInfo *info = v->info;
 
     if (info->kind == SK_ENUM_CONST)
       continue;
 
-    if (!info->used) {
+    if (!info->used && n[0] != '_') {
       checker->report(info->extractPointedNode(), DiagnosticsId::DI_DECLARED_NEVER_USED, info->contextName(), n);
       // TODO: add hint for param/exception name about silencing it with '_' prefix
     }
+    else if (info->used && n[0] == '_') {
+      if (info->kind == SK_PARAM || info->kind == SK_FOREACH)
+        checker->report(info->extractPointedNode(), DiagnosticsId::DI_INVALID_UNDERSCORE, info->contextName(), n);
+    }
   }
 }
+
+void FunctionReturnTypeEvaluator::checkCompoundBin(const BinExpr *expr) {
+  enum TreeOp op = expr->op();
+
+  assert(op == TO_ANDAND || op == TO_OROR || op == TO_NULLC);
+
+  unsigned old = flags;
+  flags = 0;
+
+  checkExpr(expr->lhs());
+
+  unsigned lhsFlags = flags;
+  flags = 0;
+
+  checkExpr(expr->rhs());
+
+  unsigned rhsFlags = flags;
+  flags = old;
+
+  lhsFlags &= ~RT_UNRECOGNIZED;
+  rhsFlags &= ~RT_UNRECOGNIZED;
+
+  bool hasFuncCall = (lhsFlags | rhsFlags) & RT_FUNCTION_CALL;
+
+  lhsFlags &= ~RT_FUNCTION_CALL;
+  rhsFlags &= ~RT_FUNCTION_CALL;
+
+  if (op != TO_NULLC && (((lhsFlags & RT_BOOL) && (rhsFlags & RT_NUMBER)) || ((rhsFlags & RT_BOOL) && (lhsFlags & RT_NUMBER))))
+    flags |= RT_BOOL;
+  else if (rhsFlags & RT_NULL)
+    flags |= RT_NULL;
+  else if ((lhsFlags | rhsFlags) & RT_STRING)
+    flags |= RT_STRING;
+  else
+    flags |= rhsFlags;
+
+  if (hasFuncCall)
+    flags |= RT_FUNCTION_CALL;
+}
+
+void FunctionReturnTypeEvaluator::checkId(const Id *id) {
+  if (nameLooksLikeResultMustBeBoolean(id->id()))
+    flags |= RT_BOOL;
+  else
+    flags |= RT_UNRECOGNIZED;
+}
+
+void FunctionReturnTypeEvaluator::checkGetField(const GetFieldExpr *gf) {
+  if (nameLooksLikeResultMustBeBoolean(gf->fieldName()))
+    flags |= RT_BOOL;
+  else
+    flags |= RT_UNRECOGNIZED;
+}
+
+void FunctionReturnTypeEvaluator::checkCall(const CallExpr *call) {
+  if (checkString(call)) {
+    flags |= RT_STRING;
+  }
+
+  const SQChar *fn = checker->extractFunctionName(call);
+
+  if (nameLooksLikeResultMustBeBoolean(fn)) {
+    flags |= RT_BOOL;
+  }
+
+  if (call->isNullable())
+    flags |= RT_NULL;
+
+  flags |= RT_FUNCTION_CALL;
+}
+
+void CheckerVisitor::putIntoGlobalNamesMap(std::map<std::string, std::vector<IdLocation>> &map, enum DiagnosticsId diag, const SQChar *name, const Node *d) {
+
+  std::string sourcenameCache(_ctx.sourceName());
+
+  auto fnIt = fileNames.find(sourcenameCache);
+  IdLocation loc;
+
+  if (fnIt == fileNames.end()) {
+    auto it2 = fileNames.insert(sourcenameCache);
+    loc.filename = it2.first->c_str();
+  }
+  else {
+    loc.filename = fnIt->c_str();
+  }
+
+  loc.line = d->lineStart();
+  loc.column = d->columnStart();
+  loc.diagSilenced = _ctx.isDisabled(diag, loc.line, loc.column);
+
+  std::string key(name);
+
+  auto it = map.find(key);
+
+  if (it != map.end()) {
+    it->second.push_back(loc);
+  }
+  else {
+    auto it2 = map.insert({ key, std::vector<IdLocation>() });
+    it2.first->second.push_back(loc);
+  }
+}
+
+void CheckerVisitor::reportGlobalDeclaration(const SQChar *name, const Node *d) {
+  putIntoGlobalNamesMap(declaredGlobals, DiagnosticsId::DI_GLOBAL_NAME_REDEF, name, d);
+}
+
+void CheckerVisitor::reportGlobalUsage(const SQChar *name, const Node *d) {
+  putIntoGlobalNamesMap(usedGlobals, DiagnosticsId::DI_UNDEFINED_GLOBAL, name, d);
+}
+
+bool FunctionReturnTypeEvaluator::checkString(const Expr *e) { return checker->couldBeString(e); }
 
 BreakableScope::BreakableScope(CheckerVisitor *v, const SwitchStatement *swtch) : visitor(v), kind(BSK_SWITCH), loopScope(nullptr), exitScope(nullptr), parent(v->breakScope) {
   node.swtch = swtch;
@@ -2214,6 +3414,217 @@ void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
   }
 }
 
+void CheckerVisitor::checkAccessFromStatic(const GetFieldExpr *acc) {
+  if (effectsOnly)
+    return;
+
+  const Expr *r = acc->receiver();
+
+  if (r->op() != TO_ID || strcmp(r->asId()->id(), thisName) != 0)
+    return;
+
+  const TableMember *m = nullptr;
+  const ClassDecl *klass = nullptr;
+
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst == SST_TABLE_MEMBER) {
+      m = it->member;
+      ++it;
+
+      if (it != nodeStack.rend() && it->sst == SST_NODE && it->n->op() == TO_CLASS) {
+        klass = static_cast<const ClassDecl *>(it->n);
+      }
+
+      break;
+    }
+  }
+
+  if (!m || !m->isStatic() || !klass)
+    return;
+
+  const auto &members = klass->members();
+  const SQChar *memberName = acc->fieldName();
+
+  for (const auto &m : members) {
+    if (m.key->op() == TO_LITERAL && m.key->asLiteral()->kind() == LK_STRING) {
+      const SQChar *klassMemberName = m.key->asLiteral()->s();
+      if (strcmp(memberName, klassMemberName) == 0) {
+        if (!m.isStatic())
+          report(acc, DiagnosticsId::DI_USED_FROM_STATIC, memberName, "static member");
+        return;
+      }
+    }
+  }
+
+  report(acc, DiagnosticsId::DI_USED_FROM_STATIC, memberName, "static member");
+}
+
+static bool cannotBeNull(const Expr *e) {
+  switch (e->op())
+  {
+  case TO_INC:
+  case TO_NEG: case TO_NOT: case TO_BNOT:
+  case TO_3CMP:
+  case TO_XOR: case TO_OR: case TO_AND:
+  case TO_EQ: case TO_NE: case TO_LE: case TO_LT: case TO_GE: case TO_GT:
+  case TO_IN: case TO_INSTANCEOF:
+  case TO_USHR: case TO_SHL: case TO_SHR:
+  case TO_ADD: case TO_SUB:  case TO_MUL: case TO_DIV: /*case TO_MOD:*/
+  case TO_TYPEOF: case TO_RESUME:
+  case TO_BASE: case TO_ROOT:
+  case TO_ARRAYEXPR: case TO_DECL_EXPR:
+    return true;
+  case TO_LITERAL:
+    return e->asLiteral()->kind() != LK_NULL;
+  default:
+    return false;
+  }
+}
+
+void CheckerVisitor::reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc) {
+  assert(n);
+
+  if (checkee->op() == TO_NULLC) {
+    checkee = maybeEval(static_cast<const BinExpr *>(checkee)->rhs());
+  }
+
+  if (checkee->op() == TO_TERNARY) {
+    const TerExpr *ter = static_cast<const TerExpr *>(checkee);
+    const Expr *ifTrue = maybeEval(ter->b());
+    const Expr *ifFalse = maybeEval(ter->c());
+
+    if (cannotBeNull(ifTrue) && cannotBeNull(ifFalse)) {
+      report(n, DiagnosticsId::DI_EXPR_NOT_NULL, loc);
+    }
+    return;
+  }
+
+  if (cannotBeNull(checkee))
+    report(n, DiagnosticsId::DI_EXPR_NOT_NULL, loc);
+}
+
+void CheckerVisitor::reportModifyIfContainer(const Expr *e, const Expr *mod) {
+  bool found = false;
+  const ForeachStatement *f = nullptr;
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst != SST_NODE)
+      continue;
+
+    const Node *n = it->n;
+    if (n->op() == TO_FOREACH) {
+      f = static_cast<const ForeachStatement *>(n);
+
+      if (_equalChecker.check(f->container(), e)) {
+        found = true;
+        break;
+      }
+    }
+  }
+
+  if (!found)
+    return;
+
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst != SST_NODE)
+      continue;
+
+    if (it->n == f)
+      break;
+
+    const Node *n = it->n;
+
+    if (n->op() == TO_BLOCK) {
+      const auto &stmts = static_cast<const Block *>(n)->statements();
+      assert(stmts.size() > 0);
+      const Statement *stmt = stmts.back();
+      if (stmt->op() == TO_RETURN || stmt->op() == TO_THROW || stmt->op() == TO_BREAK)
+        return;
+    }
+  }
+
+  report(mod, DiagnosticsId::DI_MODIFIED_CONTAINER);
+}
+
+static bool stringLooksLikePattern(const SQChar *s) {
+
+  const SQChar *bracePtr = strchr(s, '{');
+  if (bracePtr && (isalpha(bracePtr[1]) || bracePtr[1] == '_'))
+  {
+    bool isBlk = (strstr(s, ":i=") || strstr(s, ":r=") || strstr(s, ":t=") || strstr(s, ":p2=") || strstr(s, ":p3=") || strstr(s, ":tm="));
+    return !isBlk && bracePtr[1] && strchr(bracePtr + 2, '}');
+  }
+
+  return false;
+}
+
+void CheckerVisitor::checkForgotSubst(const LiteralExpr *l) {
+  if (effectsOnly)
+    return;
+
+  if (l->kind() != LK_STRING)
+    return;
+
+  const CallExpr *candidate = nullptr;
+
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst != SST_NODE)
+      continue;
+
+    const Node *n = it->n;
+
+    if (n->op() == TO_CALL) {
+      candidate = static_cast<const CallExpr *>(n);
+      break;
+    }
+  }
+
+  const SQChar *s = l->s();
+  if (!stringLooksLikePattern(s)) {
+    return;
+  }
+
+  bool ok = false;
+
+  if (candidate) {
+    const Expr *callee = deparen(candidate->callee());
+    const auto &arguments = candidate->arguments();
+    if (callee->op() == TO_GETFIELD) { // -V522
+      const GetFieldExpr *f = callee->asGetField();
+      const SQChar *funcName = f->fieldName();
+      if (deparen(f->receiver()) == l) {
+        ok = strcmp(funcName, "subst") == 0;
+      } else if (strcmp(funcName, "split") == 0) {
+        ok = arguments.size() >= 1 && deparen(arguments[0]) == l;;
+      }
+    }
+    else if (callee->op() == TO_ID) { // -V522
+      if (strcmp("loc", callee->asId()->id()) == 0) {
+        ok = arguments.size() >= 2 && deparen(arguments[1]) == l;
+      }
+    }
+  }
+
+  if (!ok)
+    report(l, DiagnosticsId::DI_FORGOT_SUBST);
+}
+
+void CheckerVisitor::checkContainerModification(const UnExpr *u) {
+  if (effectsOnly)
+    return;
+
+  if (u->op() != TO_DELETE)
+    return;
+
+  const Expr *arg = u->argument();
+
+  if (!arg->isAccessExpr())
+    return;
+
+  const Expr *receiver = arg->asAccessExpr()->receiver();
+
+  reportModifyIfContainer(receiver, u);
+}
+
 void CheckerVisitor::checkAndOrPriority(const BinExpr *expr) {
 
   if (effectsOnly)
@@ -2366,6 +3777,37 @@ void CheckerVisitor::checkSameValues(const TerExpr *expr) {
   }
 }
 
+void CheckerVisitor::checkCanBeSimplified(const TerExpr *expr) {
+  if (effectsOnly)
+    return;
+
+  const Expr *cond = expr->a();
+  const Expr *checkee = nullptr;
+
+
+  if (cond->op() == TO_NE) {
+    const BinExpr *b = static_cast<const BinExpr *>(cond);
+
+    if (b->lhs()->op() == TO_LITERAL && b->lhs()->asLiteral()->kind() == LK_NULL)
+      checkee = b->rhs();
+    else if (b->rhs()->op() == TO_LITERAL && b->rhs()->asLiteral()->kind() == LK_NULL)
+      checkee = b->lhs();
+  }
+
+  if (!checkee)
+    return;
+
+  if (expr->c()->op() != TO_LITERAL || expr->c()->asLiteral()->kind() != LK_NULL)
+    return;
+
+  checkee = maybeEval(checkee);
+  const Expr *t = maybeEval(expr->b());
+
+  if (_equalChecker.check(checkee, t)) {
+    report(expr, DiagnosticsId::DI_CAN_BE_SIMPLIFIED);
+  }
+}
+
 void CheckerVisitor::checkAlwaysTrueOrFalse(const BinExpr *bin) {
 
   if (effectsOnly)
@@ -2480,9 +3922,11 @@ void CheckerVisitor::checkPotentiallyNullableOperands(const BinExpr *bin) {
   if (effectsOnly)
     return;
 
-  bool isRelOp = isRelationOperator(bin->op());
-  bool isArithOp = isPureArithOperator(bin->op());
-  bool isAssign = bin->op() == TO_ASSIGN || bin->op() == TO_INEXPR_ASSIGN || bin->op() == TO_NEWSLOT;
+  enum TreeOp op = bin->op();
+
+  bool isRelOp = isBoolRelationOperator(op);
+  bool isArithOp = isPureArithOperator(op);
+  bool isAssign = op == TO_ASSIGN || op == TO_INEXPR_ASSIGN || op == TO_NEWSLOT;
 
   if (!isRelOp && !isArithOp && !isAssign)
     return;
@@ -2492,7 +3936,18 @@ void CheckerVisitor::checkPotentiallyNullableOperands(const BinExpr *bin) {
 
   const char *opType = isRelOp ? "Comparison operation" : "Arithmetic operation";
 
-  if (isPotentiallyNullable(lhs)) {
+
+  bool lhsNullable = isPotentiallyNullable(lhs);
+  bool rhsNullable = isPotentiallyNullable(rhs);
+
+  if (!lhsNullable && !rhsNullable)
+    return;
+
+  // string concat with nullable is OK
+  if (couldBeString(lhs) || couldBeString(rhs))
+    return;
+
+  if (lhsNullable) {
     if (isAssign) {
       if (lhs->op() != TO_ID) { // -V522
         report(bin->lhs(), DiagnosticsId::DI_NULLABLE_ASSIGNMENT);
@@ -2503,7 +3958,7 @@ void CheckerVisitor::checkPotentiallyNullableOperands(const BinExpr *bin) {
     }
   }
 
-  if (isPotentiallyNullable(rhs) && !isAssign) {
+  if (rhsNullable && !isAssign) {
     report(bin->rhs(), DiagnosticsId::DI_NULLABLE_OPERANDS, opType);
   }
 }
@@ -2541,9 +3996,18 @@ void CheckerVisitor::checkRelativeCompareWithBool(const BinExpr *expr) {
   const Expr *el = maybeEval(dl);
   const Expr *er = maybeEval(dr);
 
-  if (looksLikeBooleanExpr(l) || looksLikeBooleanExpr(r) ||
-    looksLikeBooleanExpr(dl) || looksLikeBooleanExpr(dr) || // -V522
-    looksLikeBooleanExpr(el) || looksLikeBooleanExpr(er)) { // -V522
+  bool l_b = looksLikeBooleanExpr(l);
+  bool dl_b = looksLikeBooleanExpr(dl);
+  bool el_b = looksLikeBooleanExpr(el);
+
+  bool r_b = looksLikeBooleanExpr(r);
+  bool dr_b = looksLikeBooleanExpr(dr);
+  bool er_b = looksLikeBooleanExpr(er);
+
+  bool left_cb = l_b || dl_b || el_b;
+  bool right_cb = r_b || dr_b || er_b;
+
+  if (left_cb != right_cb) { // -V522
     report(expr, DiagnosticsId::DI_RELATIVE_CMP_BOOL);
   }
 }
@@ -2878,6 +4342,203 @@ void CheckerVisitor::checkPlusString(const BinExpr *bin) {
   }
 }
 
+void CheckerVisitor::checkNewGlobalSlot(const BinExpr *bin) {
+
+  if (effectsOnly)
+    return;
+
+  if (bin->op() != TO_NEWSLOT)
+    return;
+
+  const Expr *lhs = bin->lhs();
+
+  if (lhs->op() != TO_GETFIELD)
+    return;
+
+  const GetFieldExpr *gf = lhs->asGetField();
+
+  if (gf->receiver()->op() != TO_ROOT)
+    return;
+
+  reportGlobalDeclaration(gf->fieldName(), bin);
+}
+
+void CheckerVisitor::checkUselessNullC(const BinExpr *bin) {
+  if (effectsOnly)
+    return;
+
+  if (bin->op() != TO_NULLC)
+    return;
+
+  const Expr *rhs = maybeEval(bin->rhs());
+
+  if (rhs->op() == TO_LITERAL && rhs->asLiteral()->kind() == LK_NULL)
+    report(bin, DiagnosticsId::DI_USELESS_NULLC);
+}
+
+void CheckerVisitor::checkCannotBeNull(const BinExpr *bin) {
+  if (effectsOnly)
+    return;
+
+  const char *loc = nullptr;
+  const Expr *reportee = nullptr;
+  const Expr *checkee = nullptr;
+  if (bin->op() == TO_NULLC) {
+    reportee = bin->lhs();
+    checkee = maybeEval(reportee);
+    loc = "null coalescing";
+  }
+  else if (bin->op() == TO_NE || bin->op() == TO_EQ) {
+    const Expr *le = maybeEval(bin->lhs());
+    const Expr *re = maybeEval(bin->rhs());
+
+    loc = "equal check";
+
+    if (le->op() == TO_LITERAL && le->asLiteral()->kind() == LK_NULL) {
+      checkee = re;
+      reportee = bin->rhs();
+    }
+    else if (re->op() == TO_LITERAL && re->asLiteral()->kind() == LK_NULL) {
+      checkee = le;
+      reportee = bin->lhs();
+    }
+  }
+
+  if (checkee)
+    reportIfCannotBeNull(checkee, reportee, loc);
+}
+
+void CheckerVisitor::checkCanBeSimplified(const BinExpr *bin) {
+  if (effectsOnly)
+    return;
+
+  if (bin->op() != TO_ANDAND && bin->op() != TO_OROR)
+    return;
+
+  const Expr *lhs = maybeEval(bin->lhs());
+  const Expr *rhs = maybeEval(bin->rhs());
+
+  if (isBoolRelationOperator(lhs->op()) && isBoolRelationOperator(rhs->op())) {
+    const BinExpr *binL = static_cast<const BinExpr *>(lhs);
+    const BinExpr *binR = static_cast<const BinExpr *>(rhs);
+
+    if (_equalChecker.check(binL->lhs(), binR->lhs())) {
+      int leftCmp = (binL->op() == TO_GE) || (binL->op() == TO_GT) ? 1 : -1;
+      int rightCmp = (binR->op() == TO_GE) || (binR->op() == TO_GT) ? 1 : -1;
+
+      if (leftCmp == rightCmp) {
+        const Expr *l = maybeEval(binL->rhs());
+        const Expr *r = maybeEval(binR->rhs());
+
+        bool lConst = l->op() == TO_LITERAL || isUpperCaseIdentifier(l);
+        bool rConst = r->op() == TO_LITERAL || isUpperCaseIdentifier(r);
+
+        if (lConst && rConst) {
+          report(bin, DiagnosticsId::DI_CAN_BE_SIMPLIFIED);
+        }
+      }
+    }
+  }
+}
+
+void CheckerVisitor::checkInExprAssignPriority(const BinExpr *expr) {
+  if (effectsOnly)
+    return;
+
+  if (expr->op() != TO_INEXPR_ASSIGN)
+    return;
+
+  if (isBooleanBinaryOrLogicalOpeartor(expr->rhs()->op())) {
+    report(expr, DiagnosticsId::DI_INEXPR_PRIORITY);
+  }
+}
+
+static bool looksLikeElementCount(const Expr *e) {
+  const SQChar *checkee = nullptr;
+
+  if (e->op() == TO_ID)
+    checkee = e->asId()->id();
+  else if (e->op() == TO_GETFIELD) {
+    checkee = e->asGetField()->fieldName();
+  }
+  else if (e->op() == TO_GETTABLE) {
+    return looksLikeElementCount(deparen(e->asGetTable()->key()));
+  }
+  else if (e->op() == TO_CALL) {
+    return looksLikeElementCount(deparen(e->asCallExpr()->callee()));
+  }
+
+  if (!checkee)
+    return false;
+
+  static const char * markers[] = { "len", "Len", "length", "Length", "count", "Count", "cnt", "Cnt", "size", "Size", "Num", "Number" };
+
+  for (const char *m : markers) {
+    const char *p = strstr(checkee, m);
+    if (!p)
+      continue;
+
+    if (p == checkee || p[-1] == '_' || (islower(p[-1]) && isupper(p[0]))) {
+      char next = p[strlen(m)];
+      if (!next || next == '_' || isupper(next))
+        return true;
+    }
+  }
+
+  return false;
+}
+
+void CheckerVisitor::checkRangeCheck(const BinExpr *expr) {
+  if (effectsOnly)
+    return;
+
+  if (expr->op() != TO_OROR && expr->op() != TO_ANDAND)
+    return;
+
+  const Expr *lhs = maybeEval(expr->lhs());
+  const Expr *rhs = maybeEval(expr->rhs());
+
+  if (isRelationOperator(lhs->op()) && isRelationOperator(rhs->op())) {
+    const Expr *cmpZero = nullptr, *cmpCount = nullptr;
+    int cmpDir = 1;
+
+    const BinExpr *l = static_cast<const BinExpr *>(lhs);
+    const BinExpr *r = static_cast<const BinExpr *>(rhs);
+
+    if (_equalChecker.check(l->lhs(), r->lhs())) {
+      cmpZero = l->rhs();
+      cmpCount = r->rhs();
+    }
+    else if (_equalChecker.check(l->rhs(), r->lhs())) {
+      cmpDir = -1;
+      cmpZero = l->lhs();
+      cmpCount = r->rhs();
+    }
+    else if (_equalChecker.check(l->lhs(), r->rhs())) {
+      cmpZero = l->rhs();
+      cmpCount = r->lhs();
+    }
+
+    if (!cmpZero)
+      return;
+
+    assert(cmpCount);
+
+    if (cmpZero->op() != TO_LITERAL || cmpZero->asLiteral()->kind() != LK_INT || cmpZero->asLiteral()->i() != 0)
+      return;
+
+    if (looksLikeElementCount(maybeEval(cmpCount))) {
+      int leftCmp = (l->op() == TO_GE) || (l->op() == TO_GT) ? 1 : -1;
+      int rightCmp = (r->op() == TO_GE) || (r->op() == TO_GT) ? 1 : -1;
+      bool leftEq = (l->op() == TO_GE) || (l->op() == TO_LE);
+      bool rightEq = (r->op() == TO_GE) || (r->op() == TO_LE);
+
+      if (leftCmp * cmpDir != rightCmp && leftEq == rightEq)
+        report(expr, DiagnosticsId::DI_RANGE_CHECK);
+    }
+  }
+}
+
 void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
   if (effectsOnly)
     return;
@@ -2944,6 +4605,170 @@ void CheckerVisitor::checkCallNullable(const CallExpr *call) {
 
   if (!call->isNullable() && isPotentiallyNullable(c)) {
     report(c, DiagnosticsId::DI_ACCESS_POT_NULLABLE, c->op() == TO_ID ? c->asId()->id() : "expression", "function");
+  }
+}
+
+void CheckerVisitor::checkPersistCall(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const SQChar *calleeName = extractFunctionName(call);
+
+  if (!calleeName)
+    return;
+
+  const auto &arguments = call->arguments();
+  const Expr *keyExpr = nullptr;
+
+  if (strcmp("persist", calleeName) == 0) {
+    if (arguments.size() < 2)
+      return;
+    keyExpr = arguments[0];
+  }
+  else if (strcmp("mkWatched", calleeName) == 0) {
+    if (arguments.size() < 2)
+      return;
+
+    const Expr *persistsFunc = maybeEval(arguments[0]);
+    if (persistsFunc->op() != TO_ID || strcmp("persist", persistsFunc->asId()->id()) != 0)
+      return;
+
+    keyExpr = arguments[1];
+  }
+
+  if (!keyExpr)
+    return;
+
+  const Expr *evalKeyExpr = maybeEval(keyExpr);
+
+  if (evalKeyExpr->op() != TO_LITERAL)
+    return;
+
+  const LiteralExpr *l = evalKeyExpr->asLiteral();
+
+  if (l->kind() != LK_STRING)
+    return;
+
+  const SQChar *key = l->s();
+
+  auto r = persistedKeys.emplace(key);
+
+  if (!r.second) {
+    report(keyExpr, DiagnosticsId::DI_DUPLICATE_PERSIST_ID, key);
+  }
+}
+
+void CheckerVisitor::checkForbiddenCall(const CallExpr *call) {
+
+  if (effectsOnly)
+    return;
+
+  const SQChar *fn = extractFunctionName(call);
+
+  if (!fn)
+    return;
+
+  if (isForbiddenFunctionName(fn)) {
+    report(call, DiagnosticsId::DI_FORBIDEN_FUNC, fn);
+  }
+}
+
+void CheckerVisitor::checkCallFromRoot(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const SQChar *fn = extractFunctionName(call);
+
+  if (!fn)
+    return;
+
+  if (!nameLooksLikeMustBeCalledFromRoot(fn)) {
+    return;
+  }
+
+  bool do_report = false;
+
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst == SST_TABLE_MEMBER)
+      continue;
+
+    enum TreeOp op = it->n->op();
+
+    if (op == TO_FUNCTION || op == TO_CLASS || op == TO_CONSTRUCTOR) {
+      do_report = true;
+      break;
+    }
+  }
+
+  if (do_report) {
+    report(call, DiagnosticsId::DI_CALL_FROM_ROOT, fn);
+  }
+}
+
+void CheckerVisitor::checkForbidenParentDir(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const SQChar *fn = extractFunctionName(call);
+
+  if (!fn)
+    return;
+
+  if (!nameLooksLikeForbiddenParentDir(fn)) {
+    return;
+  }
+
+  const auto &arguments = call->arguments();
+
+  if (arguments.size() < 1)
+    return;
+
+  const Expr *arg = maybeEval(arguments[0]);
+
+  if (arg->op() != TO_LITERAL || arg->asLiteral()->kind() != LK_STRING)
+    return;
+
+  const SQChar *path = arg->asLiteral()->s();
+
+  const char * p = strstr(path, "..");
+  if (p && (p[2] == '/' || p[2] == '\\')) {
+    report(call, DiagnosticsId::DI_FORBIDEN_PARENT_DIR);
+  }
+}
+
+void CheckerVisitor::checkFormatArguments(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const auto &arguments = call->arguments();
+
+  for (int32_t i = 0; i < arguments.size(); ++i) {
+    const Expr *arg = deparen(arguments[i]);
+    if (arg->op() == TO_LITERAL && arg->asLiteral()->kind() == LK_STRING) { // -V522
+      int32_t formatsCount = 0;
+      for (const SQChar *s = arg->asLiteral()->s(); *s; ++s) {
+        if (*s == '%') {
+          if (*(s + 1) == '%') {
+            s++;
+          }
+          else {
+            formatsCount++;
+          }
+        }
+      }
+
+      if (formatsCount && formatsCount != (arguments.size() - i - 1)) {
+        const SQChar *name = extractFunctionName(call);
+        if (!name)
+          return;
+
+        if (nameLooksLikeFormatFunction(name)) {
+          report(arguments[i], DiagnosticsId::DI_FORMAT_ARGUMENTS_COUNT);
+        }
+      }
+
+      return;
+    }
   }
 }
 
@@ -3041,6 +4866,123 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
   }
 }
 
+void CheckerVisitor::checkContainerModification(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const SQChar *name = extractFunctionName(call);
+
+  if (!name)
+    return;
+
+  if (!nameLooksLikeModifiesObject(name))
+    return;
+
+  const Expr *callee = call->callee();
+
+  if (!callee->isAccessExpr())
+    return;
+
+  reportModifyIfContainer(callee->asAccessExpr()->receiver(), call);
+}
+
+static bool isUnderemnitaed(const Expr *e) {
+  e = deparen(e);
+
+  if (e->op() == TO_NULLC) { // -V522
+    const Expr *rhs = static_cast<const BinExpr *>(e)->rhs(); // -V522
+    return rhs->op() == TO_ARRAYEXPR || rhs->op() == TO_DECL_EXPR;
+  }
+
+  if (e->op() == TO_TERNARY) {  // -V522
+    const TerExpr *ter = static_cast<const TerExpr *>(e);
+    const Expr *thenE = ter->b(); // -V522
+    const Expr *elseE = ter->c(); // -V522
+
+    return (thenE->op() == TO_ARRAYEXPR || thenE->op() == TO_DECL_EXPR) || (elseE->op() == TO_ARRAYEXPR || elseE->op() == TO_DECL_EXPR);
+  }
+
+  return false;
+}
+
+void CheckerVisitor::checkUnwantedModification(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const SQChar *name = extractFunctionName(call);
+
+  if (!name)
+    return;
+
+  if (!nameLooksLikeModifiesObject(name))
+    return;
+
+  const Expr *callee = call->callee();
+
+  if (!callee->isAccessExpr())
+    return;
+
+  if (nodeStack.back().sst == SST_NODE) {
+    const Node *p = nodeStack.back().n;
+    if (p->op() == TO_NEWSLOT)
+      return;
+  }
+
+  if (isUnderemnitaed(callee->asAccessExpr()->receiver()))
+    report(call, DiagnosticsId::DI_UNWANTED_MODIFICATION, name);
+}
+
+void CheckerVisitor::checkCannotBeNull(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  if (!call->isNullable())
+    return;
+
+  const Expr *callee = call->callee();
+
+  reportIfCannotBeNull(maybeEval(callee), callee, "call");
+}
+
+void CheckerVisitor::checkBooleanLambda(const CallExpr *call) {
+  if (effectsOnly)
+    return;
+
+  const SQChar *fn = extractFunctionName(call);
+
+  if (!fn)
+    return;
+
+  if (!nameLooksLikeFunctionTakeBooleanLambda(fn))
+    return;
+
+  if (call->arguments().size() < 1)
+    return;
+
+  const Expr *arg = deparen(call->arguments()[0]);
+
+  if (arg->op() != TO_DECL_EXPR) // -V522
+    return;
+
+  const Decl *decl = arg->asDeclExpr()->declaration();
+
+  if (decl->op() != TO_FUNCTION)
+    return;
+
+  const FunctionDecl *f = static_cast<const FunctionDecl *>(decl);
+
+  FunctionReturnTypeEvaluator rte(this);
+
+  bool r = false;
+  unsigned typesMask = rte.compute(f->body(), r);
+
+  typesMask &= ~(RT_UNRECOGNIZED | RT_FUNCTION_CALL | RT_BOOL | RT_NUMBER | RT_NULL);
+
+  if (typesMask != 0) {
+    report(arg, DiagnosticsId::DI_BOOL_LAMBDA_REQUIRED, fn);
+  }
+}
+
 void CheckerVisitor::checkAssertCall(const CallExpr *call) {
 
   // assert(x != null) or assert(x != null, "X should not be null")
@@ -3062,6 +5004,25 @@ void CheckerVisitor::checkAssertCall(const CallExpr *call) {
   const Expr *cond = call->arguments()[0];
 
   speculateIfConditionHeuristics(cond, currentScope, nullptr);
+}
+
+const SQChar *CheckerVisitor::extractFunctionName(const CallExpr *call) {
+  const Expr *c = maybeEval(call->callee());
+
+  const SQChar *calleeName = nullptr;
+  if (c->op() == TO_ID)
+    calleeName = c->asId()->id();
+  else if (c->op() == TO_DECL_EXPR) {
+    const Decl *decl = c->asDeclExpr()->declaration();
+    if (decl->op() != TO_FUNCTION)
+      return nullptr;
+
+    calleeName = static_cast<const FunctionDecl *>(decl)->name();
+  }
+  else if (c->op() == TO_GETFIELD)
+    calleeName = c->asGetField()->fieldName();
+
+  return calleeName;
 }
 
 BinExpr *CheckerVisitor::wrapConditionIntoNC(Expr *e) {
@@ -3103,6 +5064,10 @@ void CheckerVisitor::visitBinaryBranches(Expr *lhs, Expr *rhs, bool inv) {
   currentScope = trunkScope;
 }
 
+void CheckerVisitor::visitLiteralExpr(LiteralExpr *l) {
+  checkForgotSubst(l);
+}
+
 void CheckerVisitor::visitId(Id *id) {
   const StackSlot &ss = nodeStack.back();
   const Node *parentNode = nullptr;
@@ -3117,6 +5082,12 @@ void CheckerVisitor::visitId(Id *id) {
 
   checkForeachIteratorInClosure(id, v);
   checkIdUsed(id, parentNode, v);
+}
+
+void CheckerVisitor::visitUnExpr(UnExpr *expr) {
+  checkContainerModification(expr);
+
+  Visitor::visitUnExpr(expr);
 }
 
 void CheckerVisitor::visitBinExpr(BinExpr *expr) {
@@ -3141,6 +5112,12 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkBoolToStrangePosition(expr);
   checkNewSlotNameMatch(expr);
   checkPlusString(expr);
+  checkNewGlobalSlot(expr);
+  checkUselessNullC(expr);
+  checkCannotBeNull(expr);
+  checkCanBeSimplified(expr);
+  checkInExprAssignPriority(expr);
+  checkRangeCheck(expr);
 
   Expr *lhs = expr->lhs();
   Expr *rhs = expr->rhs();
@@ -3148,12 +5125,15 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   switch (expr->op())
   {
   case TO_NULLC:
-    lhs = wrapConditionIntoNC(lhs); // -V796
   case TO_OROR:
+    nodeStack.push_back({ SST_NODE, expr });
     visitBinaryBranches(lhs, rhs, true);
+    nodeStack.pop_back();
     break;
   case TO_ANDAND:
+    nodeStack.push_back({ SST_NODE, expr });
     visitBinaryBranches(lhs, rhs, false);
+    nodeStack.pop_back();
     break;
   case TO_PLUSEQ:
   case TO_MINUSEQ:
@@ -3163,8 +5143,10 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   case TO_NEWSLOT:
   case TO_ASSIGN:
   case TO_INEXPR_ASSIGN:
+    nodeStack.push_back({ SST_NODE, expr });
     expr->rhs()->visit(this);
     expr->lhs()->visit(this);
+    nodeStack.pop_back();
     break;
   default:
     Visitor::visitBinExpr(expr);
@@ -3178,6 +5160,7 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
   checkTernaryPriority(expr);
   checkSameValues(expr);
   checkAlwaysTrueOrFalse(expr);
+  checkCanBeSimplified(expr);
 
   nodeStack.push_back({ SST_NODE, expr });
 
@@ -3189,7 +5172,6 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
   VarScope *ifFalseScope = trunkScope->copy(arena);
 
   speculateIfConditionHeuristics(expr->a(), ifTrueScope, ifFalseScope);
-
 
   currentScope = ifTrueScope;
   expr->b()->visit(this);
@@ -3235,6 +5217,15 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkExtendToAppend(expr);
   checkAlreadyRequired(expr);
   checkCallNullable(expr);
+  checkPersistCall(expr);
+  checkForbiddenCall(expr);
+  checkCallFromRoot(expr);
+  checkForbidenParentDir(expr);
+  checkFormatArguments(expr);
+  checkContainerModification(expr);
+  checkUnwantedModification(expr);
+  checkCannotBeNull(expr);
+  checkBooleanLambda(expr);
 
   applyCallToScope(expr);
 
@@ -3269,9 +5260,39 @@ void CheckerVisitor::checkNullableIndex(const GetTableExpr *expr) {
   }
 }
 
+void CheckerVisitor::checkGlobalAccess(const GetFieldExpr *expr) {
+  if (expr->receiver()->op() != TO_ROOT)
+    return;
+
+  const BinExpr *newslot = nullptr;
+
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    if (it->sst != SST_NODE)
+      continue;
+
+    const Node *n = it->n;
+
+    if (n->op() != TO_NEWSLOT)
+      continue;
+
+    newslot = static_cast<const BinExpr *>(n);
+    break;
+  }
+
+  if (newslot) {
+    const Expr *lhs = deparen(newslot->lhs());
+    if (lhs == expr)
+      return;
+  }
+
+  reportGlobalUsage(expr->fieldName(), expr);
+}
+
 void CheckerVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
   checkAccessNullable(expr);
   checkEnumConstUsage(expr);
+  checkGlobalAccess(expr);
+  checkAccessFromStatic(expr);
 
   Visitor::visitGetFieldExpr(expr);
 }
@@ -3309,7 +5330,7 @@ void CheckerVisitor::checkMissedBreak(const SwitchStatement *swtch) {
 
   auto &cases = swtch->cases();
 
-  FunctionReturnTypeEvaluator rtEvaluator;
+  FunctionReturnTypeEvaluator rtEvaluator(this);
 
   const Statement *last = nullptr;
   for (auto &c : cases) {
@@ -3383,6 +5404,48 @@ void CheckerVisitor::checkDuplicateIfConditions(IfStatement *ifStmt) {
     if (findIfWithTheSameCondition(ifStmt->condition(), static_cast<const IfStatement *>(elseB), duplicated)) {
       // TODO: high-light both conditions, original and duplicated
       report(duplicated, DiagnosticsId::DI_DUPLICATE_IF_EXPR);
+    }
+  }
+}
+
+bool wrappedBody(const Statement *stmt) {
+  if (stmt->op() != TO_BLOCK)
+    return false;
+
+  const Block *b = stmt->asBlock();
+
+  if (b->statements().size() != 1)
+    return false;
+
+  const Statement *wp = b->statements().back();
+
+  return stmt->lineStart() == wp->lineStart()
+    && stmt->lineEnd() == wp->lineEnd()
+    && stmt->columnStart() == wp->columnStart()
+    && stmt->columnEnd() == wp->columnEnd();
+}
+
+void CheckerVisitor::checkSuspiciousFormating(const Statement *body, const Statement *stmt) {
+  if (wrappedBody(body)) {
+    if (stmt->lineStart() != body->lineStart() && stmt->columnStart() >= body->columnStart()) {
+
+      // check if it is not `else if (...) ... ` pattern
+      const IfStatement *elif = nullptr;
+      const size_t nssize = nodeStack.size();
+      if (nssize >= 2) {
+        for (int i = 1; i <= 2; ++i) {
+          auto &ss = nodeStack[nssize - i];
+          if (ss.sst == SST_NODE && ss.n->op() == TO_IF) {
+            elif = static_cast<const IfStatement *>(ss.n);
+            break;
+          }
+        }
+      }
+
+      if (elif)
+        return;
+
+      report(body, DiagnosticsId::DI_SUSPICIOUS_FMT);
     }
   }
 }
@@ -3547,6 +5610,111 @@ void CheckerVisitor::checkAssignedTwice(const Block *b) {
   }
 }
 
+static const FunctionDecl *extractFunction(const Node *n) {
+
+  if (!n)
+    return nullptr;
+
+  if (n->op() == TO_FUNCTION || n->op() == TO_CONSTRUCTOR)
+    return static_cast<const FunctionDecl *>(n);
+
+  if (n->op() == TO_VAR)
+    return extractFunction(n->asDeclaration()->asVarDecl()->initializer());
+
+  if (n->op() == TO_DECL_EXPR)
+    return extractFunction(n->asExpression()->asDeclExpr()->declaration());
+
+  return nullptr;
+}
+
+void CheckerVisitor::checkFunctionSimilarity(const Block *b) {
+  if (effectsOnly)
+    return;
+
+  const auto &statements = b->statements();
+
+  for (int32_t i = 0; i < int32_t(statements.size()); ++i) {
+    const FunctionDecl *f1 = extractFunction(statements[i]);
+
+    if (!f1)
+      continue;
+
+    int32_t f1Complexity = NodeComplexityComputer::compute(f1->body(), functionComplexityThreshold);
+
+    if (f1Complexity >= functionComplexityThreshold) {
+
+      for (int32_t j = i + 1; j < int32_t(statements.size()); ++j) {
+        const FunctionDecl *f2 = extractFunction(statements[j]);
+
+        if (!f2)
+          continue;
+
+        int32_t diff = NodeDiffComputer::compute(f1->body(), f2->body(), 4);
+        if (diff < 4) {
+          const SQChar *name1 = f1->name();
+          const SQChar *name2 = f2->name();
+
+          if (diff == 0)
+            report(f2, DiagnosticsId::DI_DUPLCIATE_FUNC, name1, name2);
+          else {
+            f1Complexity = NodeComplexityComputer::compute(f1->body(), functionComplexityThreshold * 3);
+            if (diff <= f1Complexity / functionComplexityThreshold)
+              report(f2, DiagnosticsId::DI_SIMILAR_FUNC, name1, name2);
+          }
+        }
+      }
+    }
+  }
+}
+
+static const Expr *extractAssignedExpression(const Node *n) {
+  if (n->op() == TO_ASSIGN || n->op() == TO_NEWSLOT || n->op() == TO_INEXPR_ASSIGN)
+    return static_cast<const BinExpr *>(n)->rhs();
+
+  if (n->op() == TO_VAR)
+    return static_cast<const VarDecl *>(n)->initializer();
+
+  return nullptr;
+}
+
+void CheckerVisitor::checkAssignExpressionSimilarity(const Block *b) {
+  if (effectsOnly)
+    return;
+
+  const auto &statements = b->statements();
+
+  for (int32_t i = 0; i < int32_t(statements.size()); ++i) {
+
+    const Expr *assigned1 = extractAssignedExpression(statements[i]);
+
+    if (!assigned1)
+      continue;
+
+    int32_t complexity = NodeComplexityComputer::compute(assigned1, statementComplexityThreshold);
+
+    if (complexity >= statementComplexityThreshold) {
+
+      for (int32_t j = i + 1; j < int32_t(statements.size()); ++j) {
+        const Expr *assigned2 = extractAssignedExpression(statements[j]);
+
+        if (!assigned2)
+          continue;
+
+        int32_t diff = NodeDiffComputer::compute(assigned1, assigned2, 3);
+        if (diff < 3) {
+          if (diff == 0)
+            report(assigned2, DiagnosticsId::DI_DUPLICATE_ASSIGN_EXPR);
+          else {
+            complexity = NodeComplexityComputer::compute(assigned1, statementSimilarityThreshold * 2);
+            if (diff <= complexity / statementSimilarityThreshold)
+              report(assigned2, DiagnosticsId::DI_SIMILAR_ASSIGN_EXPR);
+          }
+        }
+      }
+    }
+  }
+}
+
 bool CheckerVisitor::isCallResultShouldBeUtilized(const SQChar *name, const CallExpr *call) {
   if (!name)
     return false;
@@ -3676,6 +5844,8 @@ void CheckerVisitor::visitBlock(Block *b) {
   checkForgottenDo(b);
   checkUnreachableCode(b);
   checkAssignedTwice(b);
+  checkFunctionSimilarity(b);
+  checkAssignExpressionSimilarity(b);
 
   VarScope *thisScope = currentScope;
   VarScope blockScope(thisScope ? thisScope->owner : nullptr, thisScope);
@@ -3698,6 +5868,7 @@ void CheckerVisitor::visitBlock(Block *b) {
 void CheckerVisitor::visitForStatement(ForStatement *loop) {
   checkUnterminatedLoop(loop);
   checkVariableMismatchForLoop(loop);
+  checkSuspiciousFormating(loop->body(), loop);
 
   VarScope *trunkScope = currentScope;
 
@@ -3769,6 +5940,7 @@ void CheckerVisitor::checkNullableContainer(const ForeachStatement *loop) {
 void CheckerVisitor::visitForeachStatement(ForeachStatement *loop) {
   checkUnterminatedLoop(loop);
   checkNullableContainer(loop);
+  checkSuspiciousFormating(loop->body(), loop);
 
 
   VarScope *trunkScope = currentScope;
@@ -3840,6 +6012,7 @@ void CheckerVisitor::visitForeachStatement(ForeachStatement *loop) {
 void CheckerVisitor::visitWhileStatement(WhileStatement *loop) {
   checkUnterminatedLoop(loop);
   checkEmptyWhileBody(loop);
+  checkSuspiciousFormating(loop->body(), loop);
 
   loop->condition()->visit(this);
 
@@ -4012,10 +6185,10 @@ bool CheckerVisitor::detectNullCPattern(enum TreeOp op, const Expr *cond, const 
   // (o?.f ?? D) == V -- assume else-branch implies `o` non-null
   // (o?.f ?? D) > V -- then-b implies `o` non-null
   // (o?.f ?? D) < V -- then-b implies `o` non-null
-  // (o?.f ?? D) >= V -- nothing could be said
-  // (o?.f ?? D) <= V -- nothing
+  // (o?.f ?? D) >= V -- else-branch implies `o` non-null
+  // (o?.f ?? D) <= V -- else-branch implies `o` non-null
 
-  if (op != TO_LT && op != TO_GT && op != TO_EQ && op != TO_NE) {
+  if (op != TO_LT && op != TO_GT && op != TO_EQ && op != TO_NE && op != TO_LE && op != TO_GE) {
     return false;
   }
 
@@ -4093,7 +6266,12 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     // (o?.f ?? D) > V -- then-b implies `o` non-null
     // (o?.f ?? D) < V -- then-b implies `o` non-null
 
-    if (op == TO_EQ) {
+    if (op == TO_LE || op == TO_GE) {
+      if (elseScope) {
+        currentScope = elseScope;
+        setValueFlags(nullcCheckee, 0, RT_NULL);
+      }
+    } else if (op == TO_EQ) {
       if (elseScope) {
         currentScope = elseScope;
         setValueFlags(nullcCheckee, 0, RT_NULL);
@@ -4108,6 +6286,72 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     }
 
     currentScope = thisScope; // -V519
+    return;
+  }
+
+  if (op == TO_NULLC) {
+    // o?.f ?? false
+    // o?.f ?? true
+    const BinExpr *bin = cond->asBinExpr();
+    const Expr *lhs = deparen(bin->lhs());
+    const Expr *rhs = deparen(bin->rhs());
+
+    if (rhs->op() != TO_LITERAL) { // -V522
+      return;
+    }
+
+    const LiteralExpr *lit = rhs->asLiteral();
+    bool nullCond;
+    switch (lit->kind())
+    {
+    case LK_BOOL:
+      nullCond = rhs->asLiteral()->b();
+      break;
+    case LK_NULL:
+      nullCond = false;
+      break;
+    case LK_INT:
+      nullCond = lit->i() != 0;
+      break;
+    case LK_FLOAT:
+      nullCond = lit->f() != 0.0f;
+      break;
+    case LK_STRING:
+      nullCond = true;
+      break;
+    default:
+      assert(0 && "unknown literal kind");
+      break;
+    }
+
+    unsigned pf, nf;
+
+    if (nullCond) {
+      pf = RT_NULL;
+      nf = 0;
+    }
+    else {
+      pf = 0;
+      nf = RT_NULL;
+    }
+
+    const Expr *receiver = extractReceiver(lhs);
+
+    if (!receiver)
+      return;
+
+    if (thenScope && !nullCond) {
+      currentScope = thenScope;
+      setValueFlags(receiver, pf, nf);
+    }
+
+    if (elseScope && nullCond) {
+      currentScope = elseScope;
+      setValueFlags(receiver, nf, pf); // -V764
+    }
+
+    currentScope = thisScope; // -V519
+
     return;
   }
 
@@ -4132,7 +6376,12 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
   }
 
   if (op == TO_ID) {
-    if (thenScope && evalId < 0) {
+    int32_t evalIndex = -1;
+    const Expr *eval = maybeEval(cond, evalIndex);
+
+    bool notOverriden = evalId == -1 || evalIndex < evalId;
+
+    if (thenScope && notOverriden) {
       // set iff it was explicit check like `if (o) { .. }`
       // otherwise there could be complexities, see intersected_assignment.nut
       currentScope = thenScope;
@@ -4140,15 +6389,12 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
       currentScope = thisScope;
     }
 
-    if (elseScope && evalId < 0 && (flags & NULL_CHECK_F)) {
+    if (elseScope && notOverriden && (flags & NULL_CHECK_F)) {
       // set NULL iff it was explicit null check `if (o == null) { ... }` otherwise it could not be null, see w233_inc_in_for.nut
       currentScope = elseScope;
       setValueFlags(cond, RT_NULL, 0);
       currentScope = thisScope;
     }
-
-    int32_t evalIndex = -1;
-    const Expr *eval = maybeEval(cond, evalIndex);
 
     if (eval != cond) {
       // let cond = x != null
@@ -4195,10 +6441,22 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     const LiteralExpr *lit = lhs_lit ? lhs_lit : rhs_lit;
     const Expr *testee = lit == lhs ? rhs : lhs;
 
-    if (lit && lit->kind() == LK_NULL) { // -V522
+    if (!lit)
+      return;
+
+    if (lit->kind() == LK_NULL) {
       speculateIfConditionHeuristics(testee, elseScope, thenScope, visited, evalId, flags | NULL_CHECK_F, false);
       return;
     }
+
+    const Expr *receiver = extractReceiver(testee);
+
+    if (receiver && thenScope) {
+      currentScope = thenScope;
+      setValueFlags(receiver, 0, RT_NULL);
+      currentScope = thisScope;
+    }
+
   }
 
   if (isRelationOperator(op)) {
@@ -4348,6 +6606,7 @@ void CheckerVisitor::visitIfStatement(IfStatement *ifstmt) {
   checkDuplicateIfConditions(ifstmt);
   checkDuplicateIfBranches(ifstmt);
   checkAlwaysTrueOrFalse(ifstmt->condition());
+  checkSuspiciousFormating(ifstmt->thenBranch(), ifstmt);
 
   VarScope *trunkScope = currentScope;
   VarScope *thenScope = trunkScope->copy(arena);
@@ -4531,11 +6790,11 @@ void CheckerVisitor::checkFunctionReturns(FunctionDecl *func) {
   }
 
   bool dummy;
-  unsigned returnFlags = FunctionReturnTypeEvaluator().compute(func->body(), dummy);
+  unsigned returnFlags = FunctionReturnTypeEvaluator(this).compute(func->body(), dummy);
 
   bool reported = false;
 
-  if (returnFlags & ~(RT_BOOL | RT_UNRECOGNIZED | RT_FUNCTION_CALL)) {
+  if (returnFlags & ~(RT_BOOL | RT_UNRECOGNIZED | RT_FUNCTION_CALL | RT_NULL)) { // Null is castable to boolean
     if (nameLooksLikeResultMustBeBoolean(name)) {
       report(func, DiagnosticsId::DI_NAME_RET_BOOL, name);
       reported = true;
@@ -4566,6 +6825,46 @@ void CheckerVisitor::checkFunctionReturns(FunctionDecl *func) {
   if (!reported) {
     if (!!(returnFlags & RT_NOTHING) && nameLooksLikeFunctionMustReturnResult(name)) {
       report(func, DiagnosticsId::DI_NAME_EXPECTS_RETURN, name);
+    }
+  }
+}
+
+void CheckerVisitor::checkFunctionSimilarity(const TableDecl *table) {
+  if (effectsOnly)
+    return;
+
+  const auto &members = table->members();
+
+  for (int32_t i = 0; i < int32_t(members.size()); ++i) {
+    const auto &m1 = members[i];
+    const FunctionDecl *f1 = extractFunction(m1.value);
+
+    if (!f1)
+      continue;
+
+    int32_t complexity = NodeComplexityComputer::compute(f1->body(), functionComplexityThreshold);
+    if (complexity >= functionComplexityThreshold) {
+      for (int32_t j = i + 1; j < members.size(); ++j) {
+        const auto &m2 = members[j];
+        const FunctionDecl *f2 = extractFunction(m2.value);
+
+        if (!f2)
+          continue;
+
+        int32_t diff = NodeDiffComputer::compute(f1->body(), f2->body(), 4);
+        if (diff < 4) {
+          const SQChar *name1 = f1->name();
+          const SQChar *name2 = f2->name();
+
+          if (diff == 0)
+            report(f2, DiagnosticsId::DI_DUPLCIATE_FUNC, name1, name2);
+          else {
+            complexity = NodeComplexityComputer::compute(f1->body(), functionComplexityThreshold * 3);
+            if (diff <= complexity / functionComplexityThreshold)
+              report(f2, DiagnosticsId::DI_SIMILAR_FUNC, name1, name2);
+          }
+        }
+      }
     }
   }
 }
@@ -4630,6 +6929,8 @@ void CheckerVisitor::checkEnumConstUsage(const GetFieldExpr *acc) {
 }
 
 void CheckerVisitor::visitTableDecl(TableDecl *table) {
+  checkFunctionSimilarity(table);
+
   for (auto &member : table->members()) {
     StackSlot slot;
     slot.sst = SST_TABLE_MEMBER;
@@ -4963,6 +7264,11 @@ bool CheckerVisitor::isPotentiallyNullable(const Expr *e, std::unordered_set<con
     return isPotentiallyNullable(static_cast<const BinExpr *>(e)->rhs(), visited);
   }
 
+  if (e->op() == TO_TERNARY) {
+    const TerExpr *t = static_cast<const TerExpr *>(e);
+    return isPotentiallyNullable(t->b(), visited) || isPotentiallyNullable(t->c(), visited);
+  }
+
   v = findValueForExpr(e);
 
   if (v) {
@@ -4986,17 +7292,19 @@ bool CheckerVisitor::couldBeString(const Expr *e) {
   if (!e)
     return false;
 
-  if (e->op() == TO_LITERAL) {
+  e = deparen(e);
+
+  if (e->op() == TO_LITERAL) { // -V522
     return e->asLiteral()->kind() == LK_STRING;
   }
 
   if (e->op() == TO_NULLC) {
     const BinExpr *b = static_cast<const BinExpr *>(e);
-    if (b->rhs()->op() == TO_LITERAL && b->rhs()->asLiteral()->kind() == LK_STRING)
+    if (b->rhs()->op() == TO_LITERAL && b->rhs()->asLiteral()->kind() == LK_STRING) // -V522
       return couldBeString(b->lhs());
   }
 
-  if (e->op() == TO_CALL) {
+  if (e->op() == TO_CALL) { // -V522
     const SQChar *name = nullptr;
     const Expr *callee = static_cast<const CallExpr *>(e)->callee();
 
@@ -5009,6 +7317,17 @@ bool CheckerVisitor::couldBeString(const Expr *e) {
       return nameLooksLikeResultMustBeString(name) || strcmp(name, "loc") == 0;
     }
   }
+
+  if (e->op() == TO_ADD) { // -V522
+    // check for string concat
+    const BinExpr *b = e->asBinExpr();
+    return couldBeString(b->lhs()) || couldBeString(b->rhs());
+  }
+
+  const Expr *evaled = maybeEval(e);
+
+  if (evaled != e && evaled->op() == TO_LITERAL) // do not go too deep
+    return couldBeString(evaled);
 
   return false;
 }
@@ -5052,6 +7371,9 @@ const SQChar *CheckerVisitor::findFieldName(const Expr *e) {
 
   if (e->op() == TO_GETFIELD)
     return e->asGetField()->fieldName();
+
+  if (e->op() == TO_CALL)
+    return findFieldName(e->asCallExpr()->callee());
 
   const ValueRef *v = findValueForExpr(e);
 
@@ -5324,6 +7646,10 @@ void CheckerVisitor::visitVarDecl(VarDecl *decl) {
 
 void CheckerVisitor::visitConstDecl(ConstDecl *cnst) {
 
+  if (cnst->isGlobal()) {
+    reportGlobalDeclaration(cnst->name(), cnst);
+  }
+
   SymbolInfo *info = makeSymbolInfo(SK_CONST);
   ValueRef *v = makeValueRef(info);
   v->state = VRS_INITIALIZED;
@@ -5338,6 +7664,10 @@ void CheckerVisitor::visitConstDecl(ConstDecl *cnst) {
 }
 
 void CheckerVisitor::visitEnumDecl(EnumDecl *enm) {
+
+  if (enm->isGlobal()) {
+    reportGlobalDeclaration(enm->name(), enm);
+  }
 
   SymbolInfo *info = makeSymbolInfo(SK_ENUM);
   ValueRef *ev = makeValueRef(info);
@@ -5498,7 +7828,6 @@ const Node *NameShadowingChecker::extractPointedNode(const SymbolInfo *info) {
 
 void NameShadowingChecker::declareSymbol(const SQChar *name, SymbolInfo *info) {
   const SymbolInfo *existedInfo = scope->findSymbol(name);
-  bool addSymbol = true;
   if (existedInfo) {
     bool warn = name[0] != '_';
     if (strcmp(name, "this") == 0) {
@@ -5506,15 +7835,13 @@ void NameShadowingChecker::declareSymbol(const SQChar *name, SymbolInfo *info) {
     }
 
     if (existedInfo->ownerScope == info->ownerScope) { // something like `let foo = expr<function foo() { .. }>`
-      if ((existedInfo->kind == SK_BINDING || existedInfo->kind == SK_VAR) && info->kind == SK_FUNCTION) {
-        if (nodeStack.size() > 2) {
-          const Node *ln = nodeStack[nodeStack.size() - 1];
-          const Node *lln = nodeStack[nodeStack.size() - 2];
-          if (ln->op() == TO_DECL_EXPR && static_cast<const DeclExpr *>(ln)->declaration() == info->declaration.f) {
-            warn = false;
-            // if it `let foo = function foo() {}` or `let function foo() {}` or `function foo() {}`
-            addSymbol = existedInfo->declaration.v == lln;
-          }
+      if ((info->kind == SK_BINDING || info->kind == SK_VAR) && existedInfo->kind == SK_FUNCTION) {
+        const VarDecl *vardecl = info->declaration.v;
+        const FunctionDecl *funcdecl = existedInfo->declaration.f;
+        const Expr *varinit = vardecl->initializer();
+
+        if (varinit && varinit->op() == TO_DECL_EXPR && varinit->asDeclExpr()->declaration() == funcdecl) {
+          warn = false;
         }
       }
     }
@@ -5543,8 +7870,7 @@ void NameShadowingChecker::declareSymbol(const SQChar *name, SymbolInfo *info) {
     }
   }
 
-  if (addSymbol)
-    scope->symbols[name] = info;
+  scope->symbols[name] = info;
 }
 
 NameShadowingChecker::SymbolInfo *NameShadowingChecker::Scope::findSymbol(const SQChar *name) const {
@@ -5563,27 +7889,45 @@ void NameShadowingChecker::visitNode(Node *n) {
 }
 
 void NameShadowingChecker::declareVar(enum SymbolKind k, const VarDecl *var) {
+  const FunctionDecl *f = nullptr;
+  if (k == SK_BINDING) {
+    const Expr *init = var->initializer();
+    if (init && init->op() == TO_DECL_EXPR) {
+      const Decl *d = init->asDeclExpr()->declaration();
+      if (d->op() == TO_FUNCTION) {
+        k = SK_FUNCTION;
+        f = static_cast<const FunctionDecl *>(d);
+      }
+    }
+  }
+
+
   SymbolInfo *info = newSymbolInfo(k);
-  info->declaration.v = var;
+  if (f) {
+    info->declaration.f = f;
+  }
+  else {
+    info->declaration.v = var;
+  }
   info->ownerScope = scope;
   info->name = var->name();
   declareSymbol(var->name(), info);
 }
 
 void NameShadowingChecker::visitVarDecl(VarDecl *var) {
-  declareVar(var->isAssignable() ? SK_VAR : SK_BINDING, var);
-
   Visitor::visitVarDecl(var);
+
+  declareVar(var->isAssignable() ? SK_VAR : SK_BINDING, var);
 }
 
 void NameShadowingChecker::visitParamDecl(ParamDecl *p) {
+  Visitor::visitParamDecl(p);
+
   SymbolInfo *info = newSymbolInfo(SK_PARAM);
   info->declaration.p = p;
   info->ownerScope = scope;
   info->name = p->name();
   declareSymbol(p->name(), info);
-
-  Visitor::visitParamDecl(p);
 }
 
 void NameShadowingChecker::visitConstDecl(ConstDecl *c) {
@@ -5618,17 +7962,18 @@ void NameShadowingChecker::visitEnumDecl(EnumDecl *e) {
 void NameShadowingChecker::visitFunctionDecl(FunctionDecl *f) {
   Scope *p = scope;
 
+  Scope funcScope(this, f);
+
   bool tableScope = p->owner && (p->owner->op() == TO_CLASS || p->owner->op() == TO_TABLE);
 
   if (!tableScope) {
-    SymbolInfo *info = newSymbolInfo(SK_FUNCTION);
+    SymbolInfo * info = newSymbolInfo(SK_FUNCTION);
     info->declaration.f = f;
     info->ownerScope = p;
     info->name = f->name();
     declareSymbol(f->name(), info);
   }
 
-  Scope funcScope(this, f);
   Visitor::visitFunctionDecl(f);
 }
 
@@ -5712,8 +8057,109 @@ void NameShadowingChecker::visitForeachStatement(ForeachStatement *stmt) {
   nodeStack.pop_back();
 }
 
-void StaticAnalyser::runAnalysis(RootBlock *root)
+static bool checkInBindings(const SQChar *id) {
+
+  return knownBindings.find(id) != knownBindings.end();
+}
+
+void StaticAnalyser::reportGlobalNameDiagnostics(HSQUIRRELVM vm) {
+  auto errorFunc = _ss(vm)->_compilererrorhandler;
+
+  if (!errorFunc)
+    return;
+
+  // 1. Check multiple declarations
+
+  std::string message;
+
+  for (auto it = declaredGlobals.begin(); it != declaredGlobals.end(); ++it) {
+    const SQChar *name = it->first.c_str();
+    const auto &declarations = it->second;
+
+    if (declarations.size() == 1)
+      continue;
+
+    for (int32_t i = 0; i < declarations.size(); ++i) {
+      const IdLocation &loc = declarations[i];
+      if (loc.diagSilenced)
+        continue;
+
+      message.clear();
+      SQCompilationContext::renderDiagnosticHeader(DiagnosticsId::DI_GLOBAL_NAME_REDEF, &message, name);
+      errorFunc(vm, message.c_str(), loc.filename, loc.line, loc.column, "\n");
+    }
+  }
+
+  // 2. Check undefined usages
+
+  for (auto it = usedGlobals.begin(); it != usedGlobals.end(); ++it) {
+    const std::string &id = it->first;
+
+    if (checkInBindings(id.c_str()))
+      continue;
+
+    if (declaredGlobals.find(id) != declaredGlobals.end())
+      continue;
+
+    const auto &usages = it->second;
+
+    for (int32_t i = 0; i < usages.size(); ++i) {
+      const IdLocation &loc = usages[i];
+      if (loc.diagSilenced)
+        continue;
+
+      message.clear();
+      SQCompilationContext::renderDiagnosticHeader(DiagnosticsId::DI_UNDEFINED_GLOBAL, &message, id.c_str());
+      errorFunc(vm, message.c_str(), loc.filename, loc.line, loc.column, "\n");
+    }
+  }
+}
+
+static bool isSpaceOrTab(SQChar c) { return c == '\t' || c == ' '; }
+
+void StaticAnalyser::checkTrailingWhitespaces(HSQUIRRELVM vm, const SQChar *sourceName, const SQChar *code, size_t codeSize) {
+  Arena arena(_ss(vm)->_alloc_ctx, "tmp");
+  SQCompilationContext ctx(vm, &arena, sourceName, code, codeSize, nullptr, true);
+
+  int32_t line = 1;
+  int32_t column = 1;
+
+  for (int32_t idx = 0; idx < codeSize - 1; ++idx, ++column) {
+    if (isSpaceOrTab(code[idx])) {
+      int next = code[idx + 1];
+      if (!next || next == '\n' || next == '\r') {
+        ctx.reportDiagnostic(DiagnosticsId::DI_SPACE_AT_EOL, line, column - 1, 1);
+      }
+    }
+    else if (code[idx] == '\n') {
+      column = 0;
+      line++;
+    }
+  }
+}
+
+static void mergeKnownBindings(const HSQOBJECT *bindings) {
+  if (bindings && sq_istable(*bindings)) {
+    SQTable *table = _table(*bindings);
+
+    SQInteger idx = 0;
+    SQObjectPtr pos(idx), key, val;
+
+    while ((idx = table->Next(false, pos, key, val)) >= 0) {
+      if (sq_isstring(key)) {
+        SQInteger len = _string(key)->_len;
+        const SQChar *s = _string(key)->_val;
+        std::string name(s);
+        knownBindings.emplace(name);
+      }
+      pos._unVal.nInteger = idx;
+    }
+  }
+}
+
+void StaticAnalyser::runAnalysis(RootBlock *root, const HSQOBJECT *bindings)
 {
+  mergeKnownBindings(bindings);
   CheckerVisitor(_ctx).analyse(root);
   NameShadowingChecker(_ctx).analyse(root);
 }

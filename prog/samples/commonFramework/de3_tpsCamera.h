@@ -209,17 +209,18 @@ public:
   inline int getCamDiff() { return camDiff; }
 
 protected:
-  TMatrix itm, tm;
-  Point3 vel;
+  TMatrix itm = TMatrix::IDENT, tm = TMatrix::IDENT;
+  Point3 vel = Point3(0, 0, 0);
 
-  Point3 pos, targetPos, up, viewVector, origin, right;
-  real minDistance;
-  real distOverTarget;
-  float zNear, zFar;
-  bool locked, invert_dir;
+  Point3 pos = Point3(0, 0, 0), targetPos = Point3(0, 0, 0), up = Point3(0, 1, 0), viewVector = Point3(1, 0, 0),
+         origin = Point3(0, 0, 0), right = Point3(0, 0, 1);
+  real minDistance = 1.0f;
+  real distOverTarget = 0.0f;
+  float zNear = 0, zFar = 0;
+  bool locked = false, invert_dir = false;
   ITpsCameraTarget *target;
-  IRayTracer *tracer;
+  IRayTracer *tracer = nullptr;
 
-  int camDiff;
+  int camDiff = 0;
 };
 /** @} */

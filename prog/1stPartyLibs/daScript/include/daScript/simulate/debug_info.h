@@ -104,6 +104,7 @@ namespace das
         virtual ~FileInfo() { freeSourceData(); }
         void reserveProfileData();
         virtual void getSourceAndLength ( const char * & src, uint32_t & len ) { src=nullptr; len=0; }
+        virtual void serialize ( AstSerializer & ser );
         string                name;
         int32_t               tabSize = 4;
 #if DAS_ENABLE_PROFILER
@@ -115,11 +116,13 @@ namespace das
 
     class TextFileInfo : public FileInfo {
     public:
+        TextFileInfo ( ) = default;
         TextFileInfo ( const char * src, uint32_t len, bool own )
             : source(src), sourceLength(len), owner(own) {}
         virtual ~TextFileInfo() { if ( owner ) freeSourceData(); }
         virtual void freeSourceData() override;
         virtual void getSourceAndLength ( const char * & src, uint32_t & len ) override;
+        virtual void serialize ( AstSerializer & ser ) override;
     protected:
         const char *          source = nullptr;
         uint32_t              sourceLength = 0;
@@ -146,6 +149,7 @@ namespace das
         virtual bool isModuleAllowed ( const string &, const string & ) const { return true; };
         virtual bool canModuleBeUnsafe ( const string &, const string & ) const { return true; };
         virtual bool addFsRoot ( const string & , const string & ) { return false; }
+        virtual void serialize ( AstSerializer & ser );
     protected:
         virtual FileInfo * getNewFileInfo ( const string & ) { return nullptr; }
     protected:
@@ -167,6 +171,7 @@ namespace das
         virtual string getIncludeFileName ( const string & fileName, const string & incFileName ) const override;
         virtual bool isModuleAllowed ( const string &, const string & ) const override;
         virtual bool canModuleBeUnsafe ( const string &, const string & ) const override;
+        virtual void serialize ( AstSerializer & ser ) override;
     protected:
         Context *           context = nullptr;
         SimFunction *       modGet = nullptr;

@@ -74,6 +74,7 @@
   VAR(dispatch_size, false)                                                               \
   VAR(global_clouds_sigma, false)                                                         \
   VAR(nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m, true) \
+  VAR(clouds_hole_pos, false)                                                             \
   VAR(nbs_clouds_start_altitude2_meters, true)
 
 

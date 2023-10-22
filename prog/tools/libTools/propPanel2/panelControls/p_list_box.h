@@ -9,8 +9,8 @@
 class CListBox : public BasicPropertyControl
 {
 public:
-  CListBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, const char caption[],
-    const Tab<String> &vals, int index);
+  CListBox(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+    const char caption[], const Tab<String> &vals, int index);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
     bool new_line = true);
@@ -23,11 +23,14 @@ public:
   void setIntValue(int index);
   void setStringsValue(const Tab<String> &vals);
   void setCaptionValue(const char value[]);
+  void setTextValue(const char value[]) override;
+  int addStringValue(const char *value) override;
+  void removeStringValue(int idx) override;
   void reset();
 
   void setEnabled(bool enabled);
-  void setWidth(unsigned w);
-  void setHeight(unsigned h);
+  void setWidth(hdpi::Px w);
+  void setHeight(hdpi::Px h);
   void moveTo(int x, int y);
 
 private:

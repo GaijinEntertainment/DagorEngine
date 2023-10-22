@@ -251,7 +251,7 @@ enum class ContextLogLevel
 
 typedef void (*das_context_log_cb)(das::Context *, const das::LineInfo *at, ContextLogLevel level, const char *message);
 
-extern thread_local das_context_log_cb global_context_log_cb;
+extern das_context_log_cb global_context_log_cb;
 
 das::StackAllocator &get_shared_stack();
 

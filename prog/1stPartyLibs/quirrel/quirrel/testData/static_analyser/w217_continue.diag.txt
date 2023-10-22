@@ -3,7 +3,7 @@ testData/static_analyser/w217_continue.nut:7:4
 
       ::h(::a, x)
     continue;
-    ^--------
+    ^-------
     x--;
 
 

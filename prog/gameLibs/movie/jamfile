@@ -20,7 +20,7 @@ Sources =
 ;
 
 UseProgLibs =
-  engine2/videoPlayer
+  engine/videoPlayer
 
   3rdPartyLibs/codecs/libogg-1.1.3
   3rdPartyLibs/codecs/libtheora-1.0

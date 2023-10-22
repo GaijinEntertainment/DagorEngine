@@ -84,7 +84,7 @@ public:
   // return 0 if frustum culled
   // return 1 if visible
   // return 2 if occlusion culled
-  static __forceinline int VECTORCALL testVisibility(vec3f bmin, vec3f bmax, vec3f threshold, mat44f_cref clip, int max_test_mip)
+  VECTORCALL static __forceinline int testVisibility(vec3f bmin, vec3f bmax, vec3f threshold, mat44f_cref clip, int max_test_mip)
   {
     vec4f minmax_w, clipScreenBox;
     // return v_screen_size_b(bmin, bmax, threshold, clipScreenBox, minmax_w, clip);

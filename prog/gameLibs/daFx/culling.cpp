@@ -140,7 +140,7 @@ bool init_culling(Context &ctx)
   return true;
 }
 
-void reset_culling(Context &ctx)
+void reset_culling(Context &ctx, bool clear_cpu)
 {
   for (int i = 0; i < Config::max_culling_feedbacks; ++i)
   {
@@ -153,6 +153,9 @@ void reset_culling(Context &ctx)
     feedback.frameWorkers.clear();
   }
   ctx.culling.gpuWorkers.clear();
+
+  if (clear_cpu)
+    ctx.culling.cpuWorkers.clear();
 }
 
 void prepare_cpu_culling(Context &ctx, bool exec_clear)

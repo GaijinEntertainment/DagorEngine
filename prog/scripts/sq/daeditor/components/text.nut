@@ -1,4 +1,4 @@
-from "frp" import *
+from "%sqstd/frp.nut" import *
 from "daRg" import *
 
 let function dtext(val, params={}, addchildren = null) {

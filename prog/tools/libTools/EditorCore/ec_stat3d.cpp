@@ -164,7 +164,9 @@ void ec_stat3d_on_unit_end() { unit_stat = dynrend::get_statistics(); }
 
 void ViewportWindow::drawStat3d()
 {
-  nextStat3dLineY = 40;
+  using hdpi::_pxScaled;
+
+  nextStat3dLineY = _pxScaled(40);
 
   if (!needStat3d())
     return;
@@ -177,6 +179,7 @@ void ViewportWindow::drawStat3d()
   StdGuiRender::set_color(COLOR_WHITE);
 
   G_STATIC_ASSERT(stat_count == (DRAWSTAT_NUM + 3));
+  hdpi::Px lineX = _pxScaled(8);
   for (int i = -1; i < DRAWSTAT_NUM + 2; i++)
   {
     const int zeroBasedIndex = i + 1;
@@ -193,15 +196,15 @@ void ViewportWindow::drawStat3d()
                                         : (int)frame_stat.tri;
 
       String curStat(128, "%s: %d", name, val);
-      drawText(8, nextStat3dLineY, curStat);
+      drawText(lineX, nextStat3dLineY, curStat);
     }
     else
     {
       String curStat(128, "%s: %gms, with wait %gms ", name, cpu_render_time / 1000., total_cpu_render_time / 1000.);
-      drawText(8, nextStat3dLineY, curStat);
+      drawText(lineX, nextStat3dLineY, curStat);
     }
 
-    nextStat3dLineY += 20;
+    nextStat3dLineY += _pxScaled(20);
   }
 
   if (fps_stat_id != -1)
@@ -246,10 +249,10 @@ void ViewportWindow::drawStat3d()
       fps_avg > 0 ? (cpu_usage_avg / 100) * 1000 / fps_avg : 0.0);
     String memStat(256, "mem usage: %6dK", get_max_mem_used() >> 10);
 
-    drawText(8, nextStat3dLineY, fpsStat);
-    drawText(8, nextStat3dLineY + 20, cpuStat);
-    drawText(8, nextStat3dLineY + 40, memStat);
-    nextStat3dLineY += 60;
+    drawText(lineX, nextStat3dLineY, fpsStat);
+    drawText(lineX, nextStat3dLineY + _pxScaled(20), cpuStat);
+    drawText(lineX, nextStat3dLineY + _pxScaled(40), memStat);
+    nextStat3dLineY += _pxScaled(60);
   }
   StdGuiRender::flush_data();
   if (do_start)

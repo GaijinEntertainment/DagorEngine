@@ -10,6 +10,7 @@
 #include <gamePhys/collision/physLayers.h>
 #include <phys/dag_physics.h>
 #include <EASTL/type_traits.h>
+#include <rendInst/rendInstAccess.h>
 #include <gamePhys/collision/collisionCache.h>
 #include <gamePhys/collision/contactResultWrapper.h>
 #include <gamePhys/collision/cachedCollisionObject.h>
@@ -60,7 +61,7 @@ struct PairCollisionCB
 
 struct RIAddToWorldCB : public rendinst::RendInstCollisionCB
 {
-  void processCollisionInstance(const rendinst::RendInstCollisionCB::CollisionInfo &info) const
+  void processCollisionInstance(const rendinst::CollisionInfo &info) const
   {
     if (info.handle)
     {
@@ -71,9 +72,9 @@ struct RIAddToWorldCB : public rendinst::RendInstCollisionCB
     }
   }
 
-  virtual void addCollisionCheck(const rendinst::RendInstCollisionCB::CollisionInfo &info) { processCollisionInstance(info); }
+  virtual void addCollisionCheck(const rendinst::CollisionInfo &info) { processCollisionInstance(info); }
 
-  virtual void addTreeCheck(const rendinst::RendInstCollisionCB::CollisionInfo &info) { processCollisionInstance(info); }
+  virtual void addTreeCheck(const rendinst::CollisionInfo &info) { processCollisionInstance(info); }
 };
 
 
@@ -90,7 +91,8 @@ void update_ri_cache_in_volume_to_phys_world(const BBox3 &box)
   RIAddToWorldCB callback;
 
   BBox3 localBox(box.lim[0] - tm.getcol(3), box.lim[1] - tm.getcol(3));
-  rendinst::testObjToRIGenIntersection(localBox, tm, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra);
+  rendinst::testObjToRIGenIntersection(localBox, tm, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, nullptr /*cache*/,
+    PHYSMAT_INVALID, true /*unlock_in_cb*/);
 }
 
 bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys::CollisionContactData> &out_contacts,

@@ -8,6 +8,7 @@
 #include <util/dag_globDef.h>
 #include <generic/dag_tab.h>
 #include "const3d.h"
+#include <3d/dag_renderStates.h>
 
 #include <shaders/dag_shaderCommon.h>
 #include "shaderVariant.h"
@@ -123,7 +124,10 @@ public:
       }
     }
 
-    int blend_src, blend_dst, blend_asrc, blend_adst, cull_mode, alpha_to_coverage, view_instances, z_write, atest_val, fog_color;
+    using BlendFactors = eastl::array<int8_t, shaders::RenderState::NumIndependentBlendParameters>;
+    BlendFactors blend_src, blend_dst, blend_asrc, blend_adst;
+
+    int cull_mode, alpha_to_coverage, view_instances, z_write, atest_val, fog_color;
     int color_write, z_test, atest_func;
     int stencil, stencil_func, stencil_ref, stencil_pass, stencil_fail, stencil_zfail, stencil_mask;
     int z_func;
@@ -133,13 +137,10 @@ public:
     bool z_bias, slope_z_bias;
     float z_bias_val = 0, slope_z_bias_val = 0;
     bool force_noablend;
+    bool independent_blending;
     bool vs30, ps30;
 
     Pass() :
-      blend_src(-1),
-      blend_dst(-1),
-      blend_asrc(-1),
-      blend_adst(-1),
       vs30(false),
       ps30(false),
       cull_mode(-1),
@@ -163,8 +164,14 @@ public:
       stencil_mask(255),
       z_bias(false),
       slope_z_bias(false),
-      force_noablend(false)
-    {}
+      force_noablend(false),
+      independent_blending(false)
+    {
+      eastl::fill(blend_src.begin(), blend_src.end(), -1);
+      eastl::fill(blend_dst.begin(), blend_dst.end(), -1);
+      eastl::fill(blend_asrc.begin(), blend_asrc.end(), -1);
+      eastl::fill(blend_adst.begin(), blend_adst.end(), -1);
+    }
 
     void push_stcode(int a) { curStcode.push_back(a); }
     void push_stblkcode(int a) { curStblkcode.push_back(a); }

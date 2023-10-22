@@ -5,6 +5,8 @@
 //
 #pragma once
 
+class TMatrix4;
+
 namespace sndsys
 {
 void debug_trace_info(const char *format, ...);
@@ -12,7 +14,7 @@ void debug_trace_warn(const char *format, ...);
 void debug_trace_err(const char *format, ...);
 void debug_trace_log(const char *format, ...);
 
-void debug_draw();
+void debug_draw(const TMatrix4 &glob_tm);
 void set_enable_debug_draw(bool enable);
 bool get_enable_debug_draw();
 void set_draw_audibility(bool enable);

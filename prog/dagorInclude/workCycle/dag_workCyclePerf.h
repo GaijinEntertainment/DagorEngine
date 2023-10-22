@@ -37,6 +37,7 @@ inline void cpu_cp(const char *, int) {}
 
 extern bool cpu_only_cycle_record_enabled;
 extern int64_t ref_cpu_only_cycle_start;
+extern int last_cpu_only_cycle_time_usec;
 extern double summed_cpu_only_cycle_time;
 extern uint64_t num_cpu_only_cycle;
 
@@ -55,7 +56,8 @@ inline void mark_cpu_only_cycle_end()
 
   if (ref_cpu_only_cycle_start != 0)
   {
-    summed_cpu_only_cycle_time += get_time_usec(ref_cpu_only_cycle_start);
+    last_cpu_only_cycle_time_usec = get_time_usec(ref_cpu_only_cycle_start);
+    summed_cpu_only_cycle_time += last_cpu_only_cycle_time_usec;
     num_cpu_only_cycle++;
   }
 }

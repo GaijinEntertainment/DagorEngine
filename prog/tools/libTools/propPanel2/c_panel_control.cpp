@@ -6,13 +6,22 @@
 
 
 PropertyControlBase::PropertyControlBase(int id, ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int x,
-  int y, unsigned w, unsigned h) :
-  mId(id), mEventHandler(event_handler), mParent(parent), mX(x), mY(y), mW(w), mH(h), hasCaption(true), mEnabledChanges(false)
+  int y, hdpi::Px w, hdpi::Px h) :
+  mId(id),
+  mEventHandler(event_handler),
+  mParent(parent),
+  mX(x),
+  mY(y),
+  mW(_px(w)),
+  mH(_px(h)),
+  hasCaption(true),
+  mEnabledChanges(false)
 {}
 
 
 PropertyControlBase::~PropertyControlBase() { mEventHandler = NULL; }
 
+int PropertyControlBase::addStringValue(const char *value) { return 0; }
 
 void *PropertyControlBase::getUserDataValue() const { return NULL; }
 

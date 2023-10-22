@@ -60,8 +60,8 @@ namespace das {
         return true;
     }
 
-    void jit_exception ( const char * text, Context * context, LineInfoArg * at ) {
-        context->throw_error_at(at, "%s", text);
+    void jit_exception ( const char * text, Context * context ) {
+        context->throw_error(text);
     }
 
     void * das_get_jit_exception ( ) {

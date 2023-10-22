@@ -60,6 +60,7 @@ set(JOLT_PHYSICS_SRC_FILES
 	${JOLT_PHYSICS_ROOT}/Core/StaticArray.h
 	${JOLT_PHYSICS_ROOT}/Core/StreamIn.h
 	${JOLT_PHYSICS_ROOT}/Core/StreamOut.h
+	${JOLT_PHYSICS_ROOT}/Core/StreamUtils.h
 	${JOLT_PHYSICS_ROOT}/Core/StreamWrapper.h
 	${JOLT_PHYSICS_ROOT}/Core/StringTools.cpp
 	${JOLT_PHYSICS_ROOT}/Core/StringTools.h
@@ -179,6 +180,7 @@ set(JOLT_PHYSICS_SRC_FILES
 	${JOLT_PHYSICS_ROOT}/Physics/Body/BodyManager.cpp
 	${JOLT_PHYSICS_ROOT}/Physics/Body/BodyManager.h
 	${JOLT_PHYSICS_ROOT}/Physics/Body/BodyPair.h
+	${JOLT_PHYSICS_ROOT}/Physics/Body/BodyType.h
 	${JOLT_PHYSICS_ROOT}/Physics/Body/MassProperties.cpp
 	${JOLT_PHYSICS_ROOT}/Physics/Body/MassProperties.h
 	${JOLT_PHYSICS_ROOT}/Physics/Body/MotionProperties.cpp
@@ -363,6 +365,15 @@ set(JOLT_PHYSICS_SRC_FILES
 	${JOLT_PHYSICS_ROOT}/Physics/PhysicsUpdateContext.h
 	${JOLT_PHYSICS_ROOT}/Physics/Ragdoll/Ragdoll.cpp
 	${JOLT_PHYSICS_ROOT}/Physics/Ragdoll/Ragdoll.h
+	${JOLT_PHYSICS_ROOT}/Physics/SoftBody/SoftBodyCreationSettings.cpp
+	${JOLT_PHYSICS_ROOT}/Physics/SoftBody/SoftBodyCreationSettings.h
+	${JOLT_PHYSICS_ROOT}/Physics/SoftBody/SoftBodyMotionProperties.h
+	${JOLT_PHYSICS_ROOT}/Physics/SoftBody/SoftBodyMotionProperties.cpp
+	${JOLT_PHYSICS_ROOT}/Physics/SoftBody/SoftBodyShape.cpp
+	${JOLT_PHYSICS_ROOT}/Physics/SoftBody/SoftBodyShape.h
+	${JOLT_PHYSICS_ROOT}/Physics/SoftBody/SoftBodySharedSettings.cpp
+	${JOLT_PHYSICS_ROOT}/Physics/SoftBody/SoftBodySharedSettings.h
+	${JOLT_PHYSICS_ROOT}/Physics/SoftBody/SoftBodyVertex.h
 	${JOLT_PHYSICS_ROOT}/Physics/StateRecorder.h
 	${JOLT_PHYSICS_ROOT}/Physics/StateRecorderImpl.cpp
 	${JOLT_PHYSICS_ROOT}/Physics/StateRecorderImpl.h
@@ -493,6 +504,16 @@ if (OBJECT_LAYER_BITS)
 	target_compile_definitions(Jolt PUBLIC JPH_OBJECT_LAYER_BITS=${OBJECT_LAYER_BITS})
 endif()
 
+# Setting to periodically trace broadphase stats to help determine if the broadphase layer configuration is optimal
+if (TRACK_BROADPHASE_STATS)
+	target_compile_definitions(Jolt PUBLIC JPH_TRACK_BROADPHASE_STATS)
+endif()
+
+# Setting to periodically trace narrowphase stats to help determine which collision queries could be optimized
+if (TRACK_NARROWPHASE_STATS)
+	target_compile_definitions(Jolt PUBLIC JPH_TRACK_NARROWPHASE_STATS)
+endif()
+
 # Emit the instruction set definitions to ensure that child projects use the same settings even if they override the used instruction sets (a mismatch causes link errors)
 function(EMIT_X86_INSTRUCTION_SET_DEFINITIONS)
 	if (USE_AVX512)
@@ -503,7 +524,7 @@ function(EMIT_X86_INSTRUCTION_SET_DEFINITIONS)
 	endif()
 	if (USE_AVX)
 		target_compile_definitions(Jolt PUBLIC JPH_USE_AVX)
-	endif()	
+	endif()
 	if (USE_SSE4_1)
 		target_compile_definitions(Jolt PUBLIC JPH_USE_SSE4_1)
 	endif()

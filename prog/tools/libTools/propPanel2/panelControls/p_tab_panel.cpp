@@ -6,10 +6,10 @@
 
 #include <debug/dag_debug.h>
 
-CTabPanel::CTabPanel(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
-  const char caption[]) :
+CTabPanel::CTabPanel(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
+  hdpi::Px h, const char caption[]) :
 
-  PropertyContainerControlBase(id, event_handler, parent, x, y, w, h), mTab(this, parent->getWindow(), x, y, w, h)
+  PropertyContainerControlBase(id, event_handler, parent, x, y, w, h), mTab(this, parent->getWindow(), x, y, _px(w), _px(h))
 {}
 
 
@@ -26,10 +26,10 @@ PropertyContainerControlBase *CTabPanel::createDefault(int id, PropertyContainer
 
 PropertyContainerControlBase *CTabPanel::createTabPage(int id, const char caption[])
 {
-  unsigned width = mTab.getWidth() - 2 * DEFAULT_TAB_PAGE_OFFSET;
+  unsigned width = mTab.getWidth() - 2 * _pxS(DEFAULT_TAB_PAGE_OFFSET);
 
-  CTabPage *newTabPage =
-    new CTabPage(this->mEventHandler, this, id, DEFAULT_TAB_PAGE_OFFSET, DEFAULT_TAB_HEIGHT, width, DEFAULT_GROUP_HEIGHT, "");
+  CTabPage *newTabPage = new CTabPage(this->mEventHandler, this, id, _pxS(DEFAULT_TAB_PAGE_OFFSET), _pxS(DEFAULT_TAB_HEIGHT),
+    _pxActual(width), _pxScaled(DEFAULT_GROUP_HEIGHT), "");
 
   mControlsNewLine.push_back(false);
   mControlArray.push_back(newTabPage);
@@ -97,14 +97,14 @@ void CTabPanel::moveTo(int x, int y)
 }
 
 
-void CTabPanel::setWidth(unsigned w)
+void CTabPanel::setWidth(hdpi::Px w)
 {
   for (int i = 0; i < mControlArray.size(); ++i)
   {
-    mControlArray[i]->setWidth(w - DEFAULT_TAB_PAGE_OFFSET * 2);
+    mControlArray[i]->setWidth(w - _pxScaled(DEFAULT_TAB_PAGE_OFFSET) * 2);
   }
 
-  this->resizeControl(w, DEFAULT_TAB_HEIGHT);
+  this->resizeControl(_px(w), _pxS(DEFAULT_TAB_HEIGHT));
 
   PropertyContainerControlBase::setWidth(w);
 }
@@ -119,11 +119,11 @@ void CTabPanel::resizeControl(unsigned w, unsigned h)
     PropertyContainerControlBase *page = mControlArray[i]->getContainer();
     G_ASSERT(page && "TabPanel can contain only containers (TabPages)!");
 
-    unsigned cW = page->getWidth() + DEFAULT_TAB_PAGE_OFFSET * 2;
-    unsigned cH = DEFAULT_TAB_HEIGHT;
+    unsigned cW = page->getWidth() + _pxS(DEFAULT_TAB_PAGE_OFFSET) * 2;
+    unsigned cH = _pxS(DEFAULT_TAB_HEIGHT);
 
     if (page->getChildCount())
-      cH = page->getHeight() + DEFAULT_TAB_HEIGHT + DEFAULT_CONTROLS_INTERVAL;
+      cH = page->getHeight() + _pxS(DEFAULT_TAB_HEIGHT) + _pxS(DEFAULT_CONTROLS_INTERVAL);
 
     if (cW > maxW)
       maxW = cW;

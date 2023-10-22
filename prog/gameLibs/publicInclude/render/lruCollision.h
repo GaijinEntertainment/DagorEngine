@@ -13,7 +13,7 @@
 #include <generic/dag_carray.h>
 #include <memory/dag_framemem.h>
 #include <vecmath/dag_vecMathDecl.h>
-#include <rendInst/rendInstExHandle.h>
+#include <rendInst/riexHandle.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_serialIntBuffer.h>
 #include <shaders/dag_computeShaders.h>

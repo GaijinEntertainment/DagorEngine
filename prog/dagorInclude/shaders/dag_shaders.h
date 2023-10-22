@@ -165,19 +165,19 @@ ShaderMaterial *new_shader_material(const MaterialData &m, bool sec_dump_for_exp
 ShaderMaterial *new_shader_material_by_name_optional(const char *shader_name, const char *mat_script = NULL,
   bool sec_dump_for_exp = false);
 ShaderMaterial *new_shader_material_by_name(const char *shader_name, const char *mat_script = NULL, bool sec_dump_for_exp = false);
+bool shader_exists(const char *shader_name);
 
-static constexpr int FSH_AS_HARDWARE = 255;
-int getMaxFSHVersion();
+d3d::shadermodel::Version getMaxFSHVersion();
 
 // startups shaders (if shbindump_base!= NULL schedules shaders data loading)
-void startup_shaders(const char *shbindump_base, int max_fshver = FSH_AS_HARDWARE);
+void startup_shaders(const char *shbindump_base, d3d::shadermodel::Version shader_model_version = d3d::smAny);
 
 
 // direct load/unload shaders binary dump (called from shaders startup proc)
-bool load_shaders_bindump(const char *src_filename, int max_fshver, bool sec_dump_for_exp = false);
+bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Version shader_model_version, bool sec_dump_for_exp = false);
 void unload_shaders_bindump(bool sec_dump_for_exp = false);
 
-bool load_shaders_bindump_with_fence(const char *src_filename, int max_fshver);
+bool load_shaders_bindump_with_fence(const char *src_filename, d3d::shadermodel::Version shader_model_version);
 
 // all job mangers whose jobs are going to use shaders bindump should call this function
 void register_job_manager_requiring_shaders_bindump(int job_mgr_id);

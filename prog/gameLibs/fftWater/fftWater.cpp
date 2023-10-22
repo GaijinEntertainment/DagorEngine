@@ -769,8 +769,8 @@ void setGridLod0AdditionalTesselation(FFTWater *handle, float additional_tessela
     handle->getRender()->setGridLod0AdditionalTesselation(additional_tesselation);
 }
 
-void render(FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, int geom_lod_quality, int survey_id,
-  IWaterDecalsRenderHelper *decals_renderer, RenderMode render_mode)
+void render(FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, int geom_lod_quality,
+  int survey_id, IWaterDecalsRenderHelper *decals_renderer, RenderMode render_mode)
 {
   TIME_D3D_PROFILE(fft_water_render);
 
@@ -779,7 +779,7 @@ void render(FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, int 
 
   // render() call runs begin_survey, becouse we have a fence inside function, fence cannot be between
   // start survey and end survey. So here we should just call end_survey.
-  handle->getRender()->render(pos, distance_tex_id, geom_lod_quality, survey_id, decals_renderer, render_mode);
+  handle->getRender()->render(pos, distance_tex_id, geom_lod_quality, survey_id, frustum, decals_renderer, render_mode);
 
   d3d::end_survey(survey_id);
 }

@@ -232,7 +232,7 @@ static inline void get_event_name(const FMOD::Studio::EventInstance &event_insta
     text.append_sprintf(" vol=%.2f", volume);
 }
 
-static inline void draw_instances(int offset)
+static inline void draw_instances(int offset, const TMatrix4 &glob_tm)
 {
   offset += print(g_offset.x, offset, g_def_color, "[INSTANCES]");
 
@@ -282,7 +282,7 @@ static inline void draw_instances(int offset)
         if (FMOD_OK != instance->get3DAttributes(&attributes))
           continue;
         Point2 pointOnScreen = ZERO<Point2>();
-        if (cvt_debug_text_pos(sndsys::as_point3(attributes.position), pointOnScreen.x, pointOnScreen.y))
+        if (cvt_debug_text_pos(glob_tm, sndsys::as_point3(attributes.position), pointOnScreen.x, pointOnScreen.y))
         {
           int pos = pointOnScreen.x + 10000 * pointOnScreen.y;
           if (commonPos.find(pos) == commonPos.end())
@@ -437,16 +437,16 @@ static inline void print_messages()
   }
 }
 
-static inline void draw_streams()
+static inline void draw_streams(const TMatrix4 &glob_tm)
 {
-  streams::debug_enum([](const char *info, const Point3 &pos, bool is_3d) {
+  streams::debug_enum([&glob_tm](const char *info, const Point3 &pos, bool is_3d) {
     if (is_3d && lengthSq(pos) == 0.f && !g_have_3d_stream_in_zero)
     {
       g_have_3d_stream_in_zero = true;
       debug_trace_warn("3d stream \"%s\" is being played in (0,0,0)", info);
     }
     Point2 pointOnScreen = ZERO<Point2>();
-    if (cvt_debug_text_pos(pos, pointOnScreen.x, pointOnScreen.y))
+    if (cvt_debug_text_pos(glob_tm, pos, pointOnScreen.x, pointOnScreen.y))
       print_format(int(pointOnScreen.x), int(pointOnScreen.y + StdGuiRender::get_font_cell_size().y), 0xff00ffff, "%s", info);
   });
 }
@@ -469,7 +469,7 @@ static inline void draw_mem_stat(int &offset)
       fmem.currentalloced / 1024.f / 1024.f, fmem.maxalloced / 1024.f / 1024.f);
 }
 
-void debug_draw()
+void debug_draw(const TMatrix4 &glob_tm)
 {
   SNDSYS_IF_NOT_INITED_RETURN;
 
@@ -506,10 +506,10 @@ void debug_draw()
 
   offset += g_interligne;
 
-  draw_instances(offset);
+  draw_instances(offset, glob_tm);
   print_channels();
   print_messages();
-  draw_streams();
+  draw_streams(glob_tm);
 
   StdGuiRender::reset_draw_str_attr();
   StdGuiRender::flush_data();

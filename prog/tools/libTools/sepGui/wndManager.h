@@ -9,6 +9,11 @@
 #include <math/integer/dag_IPoint2.h>
 #include "wndAccel.h"
 
+using hdpi::_px;
+using hdpi::_pxActual;
+using hdpi::_pxS;
+using hdpi::_pxScaled;
+
 class CascadeWindow;
 class VirtualWindow;
 class SplitterWindow;
@@ -67,10 +72,10 @@ public:
   int run(int width, int height, const char *caption, const char *icon = "", WindowSizeInit size = WSI_NORMAL);
   void close();
 
-  virtual void loadLayout(const char *filename = NULL);
+  virtual bool loadLayout(const char *filename = NULL);
   virtual void saveLayout(const char *filename = NULL);
 
-  virtual void loadLayoutFromDataBlock(const DataBlock &data_block);
+  virtual bool loadLayoutFromDataBlock(const DataBlock &data_block);
   virtual void saveLayoutToDataBlock(DataBlock &data_block);
 
   virtual void setMainWindowCaption(const char *caption);
@@ -86,11 +91,10 @@ public:
   virtual void *getMainWindow() const;
   virtual void *getFirstWindow() const;
 
-  virtual void *splitWindow(void *old_handle, void *new_handle, float new_window_size = 0.5f, WindowAlign new_window_align = WA_RIGHT);
-  virtual void *splitNeighbourWindow(void *old_handle, void *new_handle, float new_window_size = 0.5,
-    WindowAlign new_window_align = WA_RIGHT);
+  virtual void *splitWindowF(void *old_handle, void *new_handle, float new_wsize = 0.5f, WindowAlign new_walign = WA_RIGHT);
+  virtual void *splitNeighbourWindowF(void *old_handle, void *new_handle, float new_wsize = 0.5, WindowAlign new_walign = WA_RIGHT);
 
-  virtual bool resizeWindow(void *handle, float new_window_size);
+  virtual bool resizeWindowF(void *handle, float new_wsize);
   virtual bool fixWindow(void *handle, bool fix = true);
   virtual bool removeWindow(void *handle);
 
@@ -106,8 +110,8 @@ public:
   virtual void setHeader(void *handle, HeaderPos header_pos);
   virtual void setCaption(void *handle, const char *caption);
 
-  virtual void setMinSize(void *handle, int width, int height);
-  virtual void setMenuArea(void *handle, int width, int height);
+  virtual void setMinSize(void *handle, hdpi::Px width, hdpi::Px height);
+  virtual void setMenuArea(void *handle, hdpi::Px width, hdpi::Px height);
 
   virtual IMenu *getMainMenu();
   virtual IMenu *getMenu(void *handle);

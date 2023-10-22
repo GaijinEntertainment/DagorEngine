@@ -25,7 +25,7 @@ public:
 
   virtual const char *__stdcall getAssetType() const { return TYPE; }
   virtual unsigned __stdcall getGameResClassId() const { return EffectGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const { return 103; }
+  virtual unsigned __stdcall getGameResVersion() const { return 104; }
 
   virtual void __stdcall onRegister() {}
   virtual void __stdcall onUnregister() {}

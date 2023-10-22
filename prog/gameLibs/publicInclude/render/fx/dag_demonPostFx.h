@@ -111,17 +111,18 @@ public:
   bool showAlpha;
 
 
-  DemonPostFx(const DataBlock &main_blk, const DataBlock &hdr_blk, int target_w, int target_h, unsigned rtarget_flags);
+  DemonPostFx(const DataBlock &main_blk, const DataBlock &hdr_blk, int target_w, int target_h, unsigned rtarget_flags,
+    bool initPostfxGlow = true, bool initSunVolfog = true);
   ~DemonPostFx();
 
   //! updates settings that don't require recreate, or return false to indicated need of recreate
   bool updateSettings(const DataBlock &main_blk, const DataBlock &hdr_blk);
 
-  void apply(bool vr_mode, Texture *input_tex, TEXTUREID input_id, Texture *output_tex, TEXTUREID output_id,
-    Texture *depth_tex = nullptr, int eye = -1, int target_layer = 0, const Point4 &target_uv_transform = Point4(1, 1, 0, 0),
-    const RectInt *output_viewport = nullptr);
+  void apply(bool vr_mode, Texture *input_tex, TEXTUREID input_id, Texture *output_tex, TEXTUREID output_id, const TMatrix &view_tm,
+    const TMatrix4 &proj_tm, Texture *depth_tex = nullptr, int eye = -1, int target_layer = 0,
+    const Point4 &target_uv_transform = Point4(1, 1, 0, 0), const RectInt *output_viewport = nullptr);
 
-  void prepareSkyMask(); // if we want, we can call it before apply
+  void prepareSkyMask(const TMatrix &view_tm); // if we want, we can call it before apply
 
   void getSettings(DemonPostFxSettings &set) const { set = current; }
 

@@ -1,6 +1,7 @@
 #include <api/internalRegistry.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaderBlock.h>
+#include <nameResolver.h>
 
 
 namespace dabfg
@@ -34,7 +35,7 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
     {
       const auto &provided = res.history ? registry.resourceProviderReference.providedHistoryResources
                                          : registry.resourceProviderReference.providedResources;
-      const auto it = provided.find(resolve_res_id(registry, res.resource));
+      const auto it = provided.find(res.resource);
 
       // If no resource was provided, this is an optional bind request
       // and we expect to see BAD_D3DRESID
@@ -76,7 +77,7 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
     }
 
     if (expectedId != observedId)
-      logerr(shaderVarValidationMessage, registry.knownNodeNames.getName(nodeId), VariableMap::getVariableName(shVar), resTypeStr,
+      logerr(shaderVarValidationMessage, registry.knownNames.getName(nodeId), VariableMap::getVariableName(shVar), resTypeStr,
         get_managed_res_name(expectedId), get_managed_res_name(observedId));
   }
 
@@ -85,7 +86,7 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
     {
       const char *nodeBlockName = ShaderGlobal::getBlockName(node_block);
       const char *globalBlockName = ShaderGlobal::getBlockName(global_block);
-      logerr(shaderBlockValidationMessage, registry.knownNodeNames.getName(nodeId), layer, nodeBlockName, globalBlockName);
+      logerr(shaderBlockValidationMessage, registry.knownNames.getName(nodeId), layer, nodeBlockName, globalBlockName);
     }
   };
 

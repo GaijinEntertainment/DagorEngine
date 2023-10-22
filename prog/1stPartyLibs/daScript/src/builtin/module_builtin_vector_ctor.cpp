@@ -28,7 +28,7 @@ namespace das
             V_SUB(arguments[0]);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             DAS_PROFILE_NODE
             vec4f argValue;
             evalArgs(context, &argValue);
@@ -46,7 +46,7 @@ namespace das
             V_SUB(arguments[1]);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             DAS_PROFILE_NODE
             vec4f argValues[2];
             evalArgs(context, argValues);
@@ -68,7 +68,7 @@ namespace das
             V_SUB(arguments[2]);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             DAS_PROFILE_NODE
             vec4f argValues[3];
             evalArgs(context, argValues);
@@ -93,7 +93,7 @@ namespace das
             V_SUB(arguments[3]);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             DAS_PROFILE_NODE
             vec4f argValues[4];
             evalArgs(context, argValues);
@@ -115,7 +115,7 @@ namespace das
             V_SUB(arguments[0]);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             DAS_PROFILE_NODE
             vec4f argValue;
             evalArgs(context, &argValue);
@@ -134,7 +134,7 @@ namespace das
             V_SUB(arguments[0]);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             DAS_PROFILE_NODE
             vec4f argValue;
             evalArgs(context, &argValue);
@@ -196,7 +196,7 @@ addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,
             V_SUB(arguments[0]);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             DAS_PROFILE_NODE
             vec4f i4 = arguments[0]->eval(context);
             return v_cvt_vec4f(v_cast_vec4i(i4));
@@ -211,7 +211,7 @@ addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,
             V_SUB(arguments[0]);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             DAS_PROFILE_NODE
             vec4f i4 = arguments[0]->eval(context);
             return v_cvtu_vec4f_ieee(v_cast_vec4i(i4));
@@ -226,7 +226,7 @@ addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,
             V_SUB(arguments[0]);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             DAS_PROFILE_NODE
             vec4f f4 = arguments[0]->eval(context);
             return v_cast_vec4f(v_cvt_vec4i(f4));
@@ -241,7 +241,7 @@ addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,
             V_SUB(arguments[0]);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             DAS_PROFILE_NODE
             vec4f f4 = arguments[0]->eval(context);
             return v_cast_vec4f(v_cvtu_vec4i_ieee(f4));
@@ -256,7 +256,7 @@ addFunction ( make_smart<BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,
             V_SUB(arguments[0]);
             V_END();
         }
-        virtual vec4f DAS_EVAL_ABI eval(Context & context) override {
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
             DAS_PROFILE_NODE
             return arguments[0]->eval(context);
         }

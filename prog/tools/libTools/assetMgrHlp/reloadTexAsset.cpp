@@ -13,7 +13,7 @@
 #include <osApiWrappers/dag_files.h>
 #include <util/dag_texMetaData.h>
 
-#include "../../../engine2/lib3d/texMgrData.h"
+#include "../../../engine/lib3d/texMgrData.h"
 using texmgr_internal::RMGR;
 
 

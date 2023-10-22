@@ -213,14 +213,6 @@ void PostFx::restart(const DataBlock *level_settings, const DataBlock *game_sett
 
   debug_ctx("HDR mode: %s, maxoverbr = %g", hdr_modes[::hdr_render_mode], ::hdr_max_overbright);
 
-  if (::hdr_render_mode == HDR_MODE_FAKE && (!(d3d::get_driver_desc().fshver & DDFSH_2_0) || getMaxFSHVersion() < FSHVER_R300))
-  {
-    debug_ctx("SM2.0 or separate alpha blending not supported - HDR disabled.");
-    ::hdr_render_mode = HDR_MODE_NONE;
-    ::hdr_max_overbright = 1;
-    ::hdr_max_bright_val = 1;
-  }
-
   ShaderGlobal::set_int(::get_shader_variable_id("hdr_mode", true), ::hdr_render_mode);
   ShaderGlobal::set_real(::get_shader_variable_id("hdr_overbright", true), ::hdr_max_overbright);
   ShaderGlobal::set_real(::get_shader_variable_id("max_hdr_overbright", true), ::hdr_max_overbright);
@@ -464,7 +456,8 @@ void PostFx::update(float timePassed)
 }
 
 
-void PostFx::apply(Texture *source, TEXTUREID sourceId, Texture *target, TEXTUREID targtexId, bool force_disable_motion_blur)
+void PostFx::apply(Texture *source, TEXTUREID sourceId, Texture *target, TEXTUREID targtexId, const TMatrix &view_tm,
+  const TMatrix4 &proj_tm, bool force_disable_motion_blur)
 {
   G_UNREFERENCED(force_disable_motion_blur);
   if (genPostFx)
@@ -491,10 +484,10 @@ void PostFx::apply(Texture *source, TEXTUREID sourceId, Texture *target, TEXTURE
   {
     createTempTex();
     d3d_err(d3d::stretch_rect(source, tempTex));
-    demonPostFx->apply(false, tempTex, tempTexId, target, targtexId);
+    demonPostFx->apply(false, tempTex, tempTexId, target, targtexId, view_tm, proj_tm);
   }
   else
-    demonPostFx->apply(false, source, sourceId, target, targtexId);
+    demonPostFx->apply(false, source, sourceId, target, targtexId, view_tm, proj_tm);
 }
 
 

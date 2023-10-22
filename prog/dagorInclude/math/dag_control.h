@@ -209,73 +209,48 @@ inline void simulate_ab_filter(K alpha, K betta, K dt, const T &in, T &in_out_va
 }
 
 template <typename T, typename K>
-inline T clamp_ab_filter_delta(const T &delta, K lim_min, K lim_max)
+inline bool check_ab_filter_limit(const T &val, K lim)
 {
-  return clamp(delta, lim_min, lim_max);
+  return rabs(val) < lim;
 }
 
-template <typename V, typename K>
-inline V clamp_ab_filter_delta_vec(const V &delta, K /*lim_min*/, K lim_max)
+template <typename T, typename K>
+inline float check_ab_filter_limit_vec(const T &val, K lim)
 {
-  const K deltaLenSq = delta.lengthSq();
-  const K limSq = sqr(lim_max);
-  if (deltaLenSq > limSq)
-    return delta * sqrtf(limSq / deltaLenSq);
-  else
-    return delta;
+  return val.lengthSq() < sqr(lim);
 }
 
 template <>
-inline Point2 clamp_ab_filter_delta<Point2, float>(const Point2 &delta, float lim_min, float lim_max)
+inline bool check_ab_filter_limit<Point3, float>(const Point3 &val, float lim)
 {
-  return clamp_ab_filter_delta_vec(delta, lim_min, lim_max);
+  return check_ab_filter_limit_vec(val, lim);
 }
 
-template <>
-inline Point3 clamp_ab_filter_delta<Point3, float>(const Point3 &delta, float lim_min, float lim_max)
+template <typename T, typename K>
+inline bool try_simulate_ab_filter(K alpha, K betta, K rate_lim, K accel_lim, K dt, const T &in, T &in_out_value, T &in_out_rate)
 {
-  return clamp_ab_filter_delta_vec(delta, lim_min, lim_max);
-}
+  const K diffRateMax = accel_lim * dt;
 
-template <typename T>
-inline float ab_filter_scalar(const T &in)
-{
-  return (float)in;
-}
+  const T pred = in_out_value + in_out_rate * dt;
+  const T diff = in - pred;
 
-template <typename T>
-inline float ab_filter_scalar_vec(const T &in)
-{
-  return in.length();
-}
+  const T delta = diff * alpha;
 
-template <>
-inline float ab_filter_scalar<Point2>(const Point2 &in)
-{
-  return ab_filter_scalar_vec(in);
-}
+  const K dtInv = safeinv(dt);
+  const T rateDelta = diff * dtInv * betta;
+  if (!check_ab_filter_limit(rateDelta, diffRateMax))
+    return false;
+  else if (!check_ab_filter_limit(in_out_rate + rateDelta, rate_lim))
+    return false;
 
-template <>
-inline float ab_filter_scalar<Point3>(const Point3 &in)
-{
-  return ab_filter_scalar_vec(in);
+  in_out_value = pred + delta;
+  in_out_rate += rateDelta;
+  return true;
 }
 
 template <typename T, typename K>
 inline void simulate_ab_filter(K alpha, K betta, K rate_lim, K accel_lim, K dt, const T &in, T &in_out_value, T &in_out_rate)
 {
-  const K diffRateMax = accel_lim * dt;
-
-  in_out_value += in_out_rate * dt;
-  const T diff = in - in_out_value;
-
-  T delta = diff * alpha;
-  const K accelDeltaMax = diffRateMax * dt * 0.5f;
-  delta = clamp_ab_filter_delta(delta, -accelDeltaMax, accelDeltaMax);
-  const float rateLen = ab_filter_scalar(in_out_rate);
-  delta = clamp_ab_filter_delta(delta, (-rate_lim - rateLen) * dt, (rate_lim - rateLen) * dt);
-  in_out_value += delta;
-
-  in_out_rate += clamp_ab_filter_delta(diff * safeinv(dt) * betta, -diffRateMax, diffRateMax);
-  in_out_rate = clamp_ab_filter_delta(in_out_rate, -rate_lim, rate_lim);
+  if (!try_simulate_ab_filter(alpha, betta, rate_lim, accel_lim, dt, in, in_out_value, in_out_rate))
+    in_out_value += in_out_rate * dt;
 }

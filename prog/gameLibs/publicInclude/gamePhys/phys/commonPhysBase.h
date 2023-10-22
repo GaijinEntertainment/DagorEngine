@@ -15,9 +15,14 @@
 #include <daNet/bitStream.h>
 #include <gamePhys/phys/physBase.h>
 #include <gamePhys/common/loc.h>
-#include <gamePhys/collision/collisionLib.h>
+#include <gamePhys/collision/collisionObject.h>
 #include <gamePhys/phys/utils.h>
 #include <gamePhys/phys/physActor.h>
+
+namespace dacoll
+{
+extern void set_obj_motion(CollisionObject obj, const TMatrix &tm, const Point3 &vel, const Point3 &omega);
+}
 
 class ExtrapolatedPhysState
 {

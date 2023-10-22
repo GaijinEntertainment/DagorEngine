@@ -5,7 +5,6 @@
 #include <math/dag_TMatrix4more.h>
 #include <math/dag_Point4.h>
 #include <3d/dag_drv3d.h>
-#include <render/shaderBlockIds.h>
 #include <math/random/dag_random.h>
 #include <debug/dag_debug.h>
 
@@ -113,20 +112,36 @@ RainX7::RainX7(const DataBlock &blk) :
 
   // VB and IB.
   rendElem.numVert = 4 * numParticles;
-  vb = d3d::create_vb(rendElem.numVert * rendElem.stride, 0);
+  vb = d3d::create_vb(rendElem.numVert * rendElem.stride, SBCF_MAYBELOST, "rainx7_vb");
   G_ASSERT(vb);
 
+  rendElem.numPrim = 2 * numParticles;
+  ib = d3d::create_ib(3 * rendElem.numPrim * sizeof(unsigned short int), SBCF_MAYBELOST, "rainx7_ib");
+
+  G_ASSERT(ib);
+
+  fillBuffers();
+
+  // Passes.
+
+  passes.resize(numPassesMax);
+  for (unsigned int passNo = 0; passNo < numPassesMax; passNo++)
+  {
+    passes[passNo].speedScale = 0.75f + 0.5f * gfrnd();
+    passes[passNo].offset = Point3(0.f, 0.f, 0.f);
+    passes[passNo].wind = Point3(0.f, 0.f, 0.f);
+    passes[passNo].random = Point3(particleBox * gfrnd(), particleBox * gfrnd(), particleBox * gfrnd());
+  }
+}
+
+void RainX7::fillBuffers()
+{
   struct Vertex
   {
     uint16_t pos_texcoord[4];
   } *vertices;
 
   vb->lock(0, rendElem.numVert * rendElem.stride, (void **)&vertices, VBLOCK_WRITEONLY);
-
-  rendElem.numPrim = 2 * numParticles;
-  ib = d3d::create_ib(3 * rendElem.numPrim * sizeof(unsigned short int), 0);
-
-  G_ASSERT(ib);
 
   unsigned short int *indices;
   ib->lock(0, rendElem.numPrim * 3 * sizeof(unsigned short int), &indices, VBLOCK_WRITEONLY);
@@ -164,18 +179,6 @@ RainX7::RainX7(const DataBlock &blk) :
 
   vb->unlock();
   ib->unlock();
-
-
-  // Passes.
-
-  passes.resize(numPassesMax);
-  for (unsigned int passNo = 0; passNo < numPassesMax; passNo++)
-  {
-    passes[passNo].speedScale = 0.75f + 0.5f * gfrnd();
-    passes[passNo].offset = Point3(0.f, 0.f, 0.f);
-    passes[passNo].wind = Point3(0.f, 0.f, 0.f);
-    passes[passNo].random = Point3(particleBox * gfrnd(), particleBox * gfrnd(), particleBox * gfrnd());
-  }
 }
 
 
@@ -258,7 +261,7 @@ void RainX7::update(float dt, const Point3 &camera_speed)
   }
 }
 
-void RainX7::render(uint32_t view_id)
+void RainX7::render(const Point3 &view_pos, const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix4 &globtm, uint32_t view_id)
 {
   if (numPassesToRender == 0)
     return;
@@ -266,7 +269,7 @@ void RainX7::render(uint32_t view_id)
   if (parAlpha < 0.001f)
     return;
 
-  setConstants(view_id);
+  setConstants(view_id, view_pos, view_tm, proj_tm, globtm);
 
   if (alphaFade <= 0.f)
     return;
@@ -280,19 +283,20 @@ void RainX7::render(uint32_t view_id)
   float alpha = parDensity;
   for (unsigned int passNo = 0; passNo < numPassesToRender; passNo++)
   {
-    setPassConstants(passNo, alpha);
+    setPassConstants(passNo, alpha, view_pos, view_tm);
 
     rendElem.shElem->render(0, rendElem.numVert, 0, rendElem.numPrim);
     alpha -= 1.f;
   }
 }
 
-void RainX7::setConstants(uint32_t view_id)
+void RainX7::setConstants(uint32_t view_id, const Point3 &view_pos, const TMatrix &view_tm, const TMatrix4 &proj_tm,
+  const TMatrix4 &globtm)
 {
   if (feq(timePassed, 0.f))
     return;
 
-  currentCameraPos[view_id] = ::grs_cur_view.pos;
+  currentCameraPos[view_id] = view_pos;
   Point3 cameraMovement = prevCameraPos[view_id] - currentCameraPos[view_id];
 
   // calculate a fade value based on the camera speed
@@ -312,7 +316,7 @@ void RainX7::setConstants(uint32_t view_id)
   {
     // set current and previous world view proj matrices
 
-    d3d::getglobtm(currentGlobTm[view_id]);
+    currentGlobTm[view_id] = globtm;
 
     TMatrix4 prevGtm = prevGlobTm[view_id];
     process_tm_for_drv_consts(prevGtm);
@@ -329,10 +333,8 @@ void RainX7::setConstants(uint32_t view_id)
     if (parSpeed > 0.f)
       lengthScale /= parSpeed;
 
-    TMatrix4 proj;
-    d3d::gettm(TM_PROJ, &proj);
-    const float normalAspectRatio = 16.0f / 9.0f;        // snowflake was made with 16:9 in mind
-    float verticalZoom = proj[1][1] / normalAspectRatio; // account for fov changes
+    const float normalAspectRatio = 16.0f / 9.0f;           // snowflake was made with 16:9 in mind
+    float verticalZoom = proj_tm[1][1] / normalAspectRatio; // account for fov changes
     float width = parWidth * verticalZoom;
 
     ShaderGlobal::set_color4(sizeScaleVarId, width, lengthScale, parSpeed > 0.f ? 1.f : 0.f,
@@ -340,8 +342,7 @@ void RainX7::setConstants(uint32_t view_id)
 
     // set a forward shift vector - this gets a greater portion of the box inside the view frustum
     float boxOffset = particleBox * 0.5f;
-    Color4 forward(::grs_cur_view.tm[0][2] * boxOffset, ::grs_cur_view.tm[1][2] * boxOffset, ::grs_cur_view.tm[2][2] * boxOffset,
-      ::grs_cur_view.tm[3][2]);
+    Color4 forward(view_tm[0][2] * boxOffset, view_tm[1][2] * boxOffset, view_tm[2][2] * boxOffset, view_tm[3][2]);
     ShaderGlobal::set_color4(forwardVarId, forward);
   }
 
@@ -349,16 +350,16 @@ void RainX7::setConstants(uint32_t view_id)
 }
 
 
-void RainX7::setPassConstants(unsigned int pass_no, float alpha)
+void RainX7::setPassConstants(unsigned int pass_no, float alpha, const Point3 &view_pos, const TMatrix &view_tm)
 {
   // set the position offset for this pass
 
   float boxOffset = particleBox * 0.5f;
-  Point3 forward(::grs_cur_view.tm[0][2] * boxOffset, ::grs_cur_view.tm[1][2] * boxOffset, ::grs_cur_view.tm[2][2] * boxOffset);
+  Point3 forward(view_tm[0][2] * boxOffset, view_tm[1][2] * boxOffset, view_tm[2][2] * boxOffset);
 
   // combine all offsets together
 
-  Point3 offset = grs_cur_view.pos + passes[pass_no].random + passes[pass_no].offset + forward;
+  Point3 offset = view_pos + passes[pass_no].random + passes[pass_no].offset + forward;
   Color4 posOffset(fmodf(offset.x, particleBox), fmodf(offset.y, particleBox), fmodf(offset.z, particleBox), 0.f);
 
   // set the velocity vector for this pass

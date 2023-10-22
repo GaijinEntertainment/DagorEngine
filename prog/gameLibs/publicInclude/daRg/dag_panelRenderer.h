@@ -19,6 +19,7 @@ namespace darg_panel_renderer
 enum class RenderPass : int
 {
   Translucent,
+  TranslucentWithoutDepth,
   Shadow,
   GBuffer,
 };
@@ -27,6 +28,7 @@ enum RenderFeatures
 {
   CastShadow = 1 << 0,
   Opaque = 1 << 1,
+  AlwaysOnTop = 1 << 2,
 };
 
 // TODO: move this into GuiScene

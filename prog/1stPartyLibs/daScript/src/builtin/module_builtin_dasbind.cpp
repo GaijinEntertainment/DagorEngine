@@ -165,7 +165,7 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             });
             V_END();
         }
-        vec4f DAS_EVAL_ABI eval ( Context & context ) override {
+        DAS_EVAL_ABI vec4f eval ( Context & context ) override {
             context.result = wrapper(fnptr, context.abiArg);
             return context.result;
         }
@@ -198,7 +198,7 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             });
             if ( !crash_and_burn.empty() ) context.throw_error_at(debugInfo, "%s",crash_and_burn.c_str());
         }
-        vec4f DAS_EVAL_ABI eval ( Context & context ) {
+        DAS_EVAL_ABI vec4f eval ( Context & context ) {
             if ( !fnptr ) bind(context);
             context.result = wrapper(fnptr, context.abiArg);
             return context.result;

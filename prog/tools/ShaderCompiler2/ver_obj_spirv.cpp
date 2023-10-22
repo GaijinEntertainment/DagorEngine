@@ -2,7 +2,7 @@
 
 #include "util/dag_baseDef.h"
 
-extern const int VER_OBJ_SPIRV_VAL = _MAKE4C('11.0');
+extern const int VER_OBJ_SPIRV_VAL = _MAKE4C('12.0');
 
 #if _CROSS_TARGET_SPIRV
 #include <spirv/compiled_meta_data.h>

@@ -3,7 +3,6 @@
 #include "riGen/riGenData.h"
 
 #include <osApiWrappers/dag_atomic.h>
-#include <rendInst/rendInstGen.h>
 
 
 namespace riutil
@@ -21,6 +20,7 @@ static inline bool world_version_check(int &version, const BBox3 &query_aabb)
 }
 
 int16_t *get_data_by_desc(const rendinst::RendInstDesc &desc, RendInstGenData::Cell *&cell);
+bool is_rendinst_data_destroyed(const rendinst::RendInstDesc &desc);
 bool get_rendinst_matrix(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen, const int16_t *data,
   const RendInstGenData::Cell *cell, mat44f &out_tm);
 bool get_cell_by_desc(const rendinst::RendInstDesc &desc, RendInstGenData::Cell *&cell);

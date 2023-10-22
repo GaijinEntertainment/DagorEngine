@@ -32,8 +32,8 @@ const int BPP = 4;
 
 // todo gamma mip
 void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth, int picHeight, int numMips, bool dxt5, bool dxt5n,
-  void (*renderFunc)(int lineNo, int linesCount, int totalLines, void *user_data), void *user_data, bool gamma_mips,
-  bool update_game_screen)
+  void (*renderFunc)(int lineNo, int linesCount, int totalLines, void *user_data, const Point3 &view_pos), void *user_data,
+  const Point3 &view_pos, bool gamma_mips, bool update_game_screen)
 {
   G_ASSERT(picHeight % linesPerPart == 0);
 
@@ -149,7 +149,7 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
       d3d::set_render_target(localRt1, 0);
       d3d::set_render_target(1, localRt1n, 0);
       d3d::set_render_target(2, localRt1ao, 0);
-      renderFunc(y, linesPerPart, picHeight, user_data);
+      renderFunc(y, linesPerPart, picHeight, user_data, view_pos);
 
       INTERNAL_END_RENDER;
     }
@@ -164,7 +164,7 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
       if (rtn)
         d3d::set_render_target(1, localRt2n, 0);
 
-      renderFunc(y + linesPerPart, linesPerPart, picHeight, user_data);
+      renderFunc(y + linesPerPart, linesPerPart, picHeight, user_data, view_pos);
 
       INTERNAL_END_RENDER;
     }
@@ -222,7 +222,7 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
       d3d::set_render_target(localRt1, 0);
       d3d::set_render_target(1, localRt1n, 0);
       d3d::set_render_target(2, localRt1ao, 0);
-      renderFunc(y, linesPerPart, picHeight, user_data);
+      renderFunc(y, linesPerPart, picHeight, user_data, view_pos);
 
       d3d::set_render_target(prevRt);
       d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);

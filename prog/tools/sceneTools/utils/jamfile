@@ -18,15 +18,15 @@ Sources(tools/sceneTools/ltout2img.exe)     = ltout2img.cpp ;
 Sources(tools/sceneTools/ltdir2img.exe)     = ltdir2img.cpp ;
 Sources(tools/sceneTools/detClientMask.exe) = detClientMask.cpp ;
 
-UseProgLibs = 
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/memory
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/math
-  engine2/image
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/image
   tools/libTools/util
   tools/libTools/dtx
 ;

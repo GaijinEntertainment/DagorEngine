@@ -1,0 +1,10 @@
+
+#allow-clone-operator
+
+let t = {
+    a = 10, b = 20
+}
+
+
+let ct0 = clone t
+let ct1 = t.clone()

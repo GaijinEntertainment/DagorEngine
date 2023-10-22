@@ -10,6 +10,8 @@
 #include <math/dag_TMatrix.h>
 #include <generic/dag_smallTab.h>
 #include <vecmath/dag_vecMath.h>
+#include <math/dag_vecMathCompatibility.h>
+#include <EASTL/string.h>
 
 
 namespace FastPhys
@@ -52,7 +54,18 @@ struct ClippedLine
   ClippedLine() {} //-V730
   ClippedLine(int i1, int i2, int n) : p1Index(i1), p2Index(i2), numSegs(n) {}
 };
+
+void toggleDebugAnimChar(eastl::string &str);
+bool checkDebugAnimChar(eastl::string &str);
+void resetDebugAnimChars();
+
 }; // namespace FastPhys
+
+namespace FastPhysRender
+{
+void draw_sphere(float radius, float angle, float axisLength, E3DCOLOR color, bool is_selected = false);
+void draw_cylinder(float radius, float angle, float axisLength, E3DCOLOR color, bool is_selected = false);
+} // namespace FastPhysRender
 
 
 class IGenLoad;
@@ -70,6 +83,7 @@ public:
   virtual void perform(FastPhysSystem &system) = 0;
 
   virtual void reset(FastPhysSystem &system) = 0;
+  virtual void debugRender(){};
 };
 
 

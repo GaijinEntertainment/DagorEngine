@@ -50,11 +50,12 @@
     "sass-loader": "6.0.7",
     "systemjs": "0.20.12",
     "typescript": "2.4",
-    "zone.js": "0.8.10"
+    "zone.js": "0.8.10",
+    "tree-kill": "1.2.2"
   },
   "devDependencies": {
     "@angular/cli": "1.7.3",
-    "@angular/compiler-cli": "1.7.3",
+    "@angular/compiler-cli": "5.2.9",
     "@types/core-js": "0.9.41",
     "@types/node": "7.0.16",
     "angular2-template-loader": "0.6.2",

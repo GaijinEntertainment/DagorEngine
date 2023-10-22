@@ -7,7 +7,7 @@
 
 #include <pathFinder/pathFinder.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
-#include <rendInst/rendInstExHandle.h>
+#include <rendInst/riexHandle.h>
 
 namespace pathfinder
 {

@@ -39,6 +39,7 @@ Sources =
   shsyn.cpp
   sh_stat.cpp
   shCompiler.cpp
+  debugSpitfile.cpp
 
   shCode.cpp
   globvar.cpp
@@ -71,27 +72,27 @@ for s in $(Sources) {
 
 AddIncludes     = $(Root)/prog/tools/ShaderCompiler2
                   $(Root)/prog/tools/sharedInclude
-                  $(Root)/prog/engine2/sharedInclude
+                  $(Root)/prog/engine/sharedInclude
 ;
 
 UseProgLibs =
   3rdPartyLibs/EASTL
-  engine2/osApiWrappers
-  engine2/kernel
-  engine2/ioSys
-  engine2/startup
-  engine2/baseUtil
-  engine2/math
-  engine2/perfMon/daProfilerStub
-  engine2/perfMon/perfTimerStub
-  engine2/startup
+  engine/osApiWrappers
+  engine/kernel
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/math
+  engine/perfMon/daProfilerStub
+  engine/perfMon/perfTimerStub
+  engine/startup
   3rdPartyLibs/hash/BLAKE3
   tools/libTools/util
 ;
 
-if $(Platform) != macosx && $(Sanitize) != address { UseProgLibs += engine2/memory/mimallocMem ; }
-else { UseProgLibs += engine2/memory ; }
-UseMemoryDebugLevel = off ; 
+if $(Platform) != macosx && $(Sanitize) != address { UseProgLibs += engine/memory/mimallocMem ; }
+else { UseProgLibs += engine/memory ; }
+UseMemoryDebugLevel = off ;
 
 HlslPredefines =
   predefines_dx11.hlsl
@@ -117,3 +118,18 @@ if $(GLOBAL_DependOnJam) {
   INCLUDES $(JAMFILESRC) : $(Root)/$(Location)/jamfile-common ;
 }
 
+actions together copy_file
+{
+  echo copying $(2:D=:G=) to $(1)
+  copyfile $(2) $(1)
+  if not exist $(1) set errorlevel=13
+}
+
+# otherwise no update on library version change
+rule CopyFileForced
+{
+  Depends $(1) : $(2) ;
+  copy_file $(1) : $(2) ;
+  Depends all : $(1) ;
+  ALWAYS $(2) ;
+}

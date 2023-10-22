@@ -54,9 +54,9 @@ GTAORenderer::GTAORenderer(int w, int h, int views, uint32_t flags, bool use_own
   afrs.forEach([](Afr &afr) { memset(&afr, 0, sizeof(afr)); });
   afrs.setCurrentView(0);
 
-  aoRenderer.reset(create_postfx_renderer(gtao_sh_name, true));
-  spatialFilterRenderer.reset(create_postfx_renderer(spatial_filter_sh_name, true));
-  temporalFilterRenderer.reset(create_postfx_renderer(temporal_filter_sh_name, true));
+  aoRenderer.reset(create_postfx_renderer(gtao_sh_name));
+  spatialFilterRenderer.reset(create_postfx_renderer(spatial_filter_sh_name));
+  temporalFilterRenderer.reset(create_postfx_renderer(temporal_filter_sh_name));
 }
 
 
@@ -161,8 +161,8 @@ void GTAORenderer::applyTemporalFilter(const ManagedTex &rawTex, const ManagedTe
   }
 }
 
-void GTAORenderer::render(BaseTexture *, const ManagedTex *ssao_tex, const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex,
-  const DPoint3 *world_pos, SubFrameSample sub_sample)
+void GTAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *, const ManagedTex *ssao_tex,
+  const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex, const DPoint3 *world_pos, SubFrameSample sub_sample)
 {
   // SSAO Renderer can work in two modes - using it's own textures or external ones. Mode is set in constructor.
   G_ASSERT(useOwnTextures || (ssao_tex && prev_ssao_tex && tmp_tex));
@@ -177,8 +177,8 @@ void GTAORenderer::render(BaseTexture *, const ManagedTex *ssao_tex, const Manag
   const ManagedTex &spatialTex = tmp_tex ? *tmp_tex : gtaoTex[spatialTargetIdx];
 
   Afr &afr = afrs.current();
-  set_reprojection(afr.prevWorldPos, afr.prevGlobTm, afr.prevViewVecLT, afr.prevViewVecRT, afr.prevViewVecLB, afr.prevViewVecRB,
-    world_pos);
+  set_reprojection(view_tm, proj_tm, afr.prevWorldPos, afr.prevGlobTm, afr.prevViewVecLT, afr.prevViewVecRT, afr.prevViewVecLB,
+    afr.prevViewVecRB, world_pos);
 
   ShaderGlobal::set_texture(gtao_texVarId, BAD_TEXTUREID);
   ShaderGlobal::set_texture(raw_gtao_texVarId, BAD_TEXTUREID);

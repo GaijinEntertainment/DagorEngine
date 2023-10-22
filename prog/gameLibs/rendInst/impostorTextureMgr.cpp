@@ -1,18 +1,13 @@
 #include <rendInst/impostorTextureMgr.h>
-#include "riGen/riGenData.h"
-#include "riGen/riGenExtra.h"
-#include "riGen/riGenRender.h"
+#include "render/genRender.h"
 #include "riGen/riRotationPalette.h"
 
 #include <3d/dag_drv3d.h>
 #include <3d/dag_drv3dCmd.h>
 #include <3d/dag_drv3dConsts.h>
-#include <3d/dag_drv3dReset.h>
 #include <3d/dag_drvDecl.h>
-#include <3d/dag_render.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_e3dColor.h>
-#include <math/dag_frustum.h>
 #include <math/dag_mathBase.h>
 #include <math/dag_mathUtils.h>
 #include <perfMon/dag_statDrv.h>
@@ -120,8 +115,11 @@ ImpostorTextureManager::ImpostorTextureManager()
   state.set(shaders::OverrideState::SCISSOR_ENABLED);
   impostorShaderState = shaders::overrides::create(state);
 
-  impostorMaskShader.init("impostor_mask_shader", nullptr, false);
-  impostorShadowShader.init("impostor_shadow_atlas", nullptr, false);
+  if (shader_exists("impostor_mask_shader"))
+    impostorMaskShader.init("impostor_mask_shader");
+
+  if (shader_exists("impostor_shadow_atlas"))
+    impostorShadowShader.init("impostor_shadow_atlas");
 
   if (prefer_bc_compression())
   {
@@ -308,7 +306,7 @@ void ImpostorTextureManager::render(const Point3 &point_to_eye, const TMatrix &v
   G_ASSERT(lod >= res->getQlBestLod());
   TIME_D3D_PROFILE(RenderImpostor);
 
-  rendinstgen::ScopedDisablePaletteRotation disableRotation;
+  rendinst::gen::ScopedDisablePaletteRotation disableRotation;
 
   TMatrix viewTm;
   TMatrix viewItm;
@@ -332,8 +330,10 @@ void ImpostorTextureManager::render(const Point3 &point_to_eye, const TMatrix &v
 
   if (abs(point_to_eye.y) < 0.1)
   {
+    TMatrix4 globTmUnaligned;
+    d3d::calcglobtm(viewTm, projTm, globTmUnaligned);
     mat44f globTm;
-    d3d::getglobtm(globTm);
+    memcpy(&globTm, &globTmUnaligned, sizeof(globTm));
     vec4f groundPoint = v_make_vec4f(0, 0, 0, 1);
     vec4f groundDir = v_make_vec4f(0, -1, 0, 0);
     vec4f groundPointInScreen = v_mat44_mul_vec4(globTm, groundPoint);
@@ -361,19 +361,21 @@ void ImpostorTextureManager::render(const Point3 &point_to_eye, const TMatrix &v
 
     static const E3DCOLOR defaultColors[] = {E3DCOLOR(127, 127, 127, 127), E3DCOLOR(127, 127, 127, 127)};
 
-    rendinstgenrender::RiShaderConstBuffers cb;
+    rendinst::render::RiShaderConstBuffers cb;
     cb.setOpacity(0, 1);
     cb.setBoundingSphere(0, 0, 1, 1, 0);
     cb.setRandomColors(defaultColors);
     cb.setInstancing(0, 3, 0);
     cb.flushPerDraw();
 
-    d3d::set_buffer(STAGE_PS, rendinstgenrender::TREECROWN_TEXREG, treeCrownDataBuf);
+    d3d::set_buffer(STAGE_PS, rendinst::render::TREECROWN_TEXREG, treeCrownDataBuf);
     ImpostorGenRenderWrapperControl rwc;
     res->lods[lod].scene->render(TMatrix(1), rwc);
     res->lods[lod].scene->renderTrans(TMatrix(1), rwc);
-    d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, NULL, NULL, NULL);
-    d3d::set_buffer(STAGE_PS, rendinstgenrender::TREECROWN_TEXREG, nullptr);
+#if !_TARGET_ANDROID
+    d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, nullptr, nullptr, nullptr);
+#endif
+    d3d::set_buffer(STAGE_PS, rendinst::render::TREECROWN_TEXREG, nullptr);
   }
 }
 
@@ -385,36 +387,37 @@ void ImpostorTextureManager::start_rendering_slices(DeferredRenderTarget *rt)
   G_ASSERT(VariableMap::isGlobVariablePresent(texture_sizeVarId));
   shaders::overrides::set(impostorShaderState);
   ShaderGlobal::set_int(rendinst_render_passVarId, eastl::to_underlying(rendinst::RenderPass::ImpostorColor));
-  ShaderGlobal::setBlock(rendinstgenrender::globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
+  ShaderGlobal::setBlock(rendinst::render::globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
 
   rt->setRt();
   d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL | CLEAR_TARGET, 0, 0, 0);
-  rendinstgenrender::setCoordType(rendinstgenrender::COORD_TYPE_TM);
-  rendinstgenrender::startRenderInstancing();
+  rendinst::render::setCoordType(rendinst::render::COORD_TYPE_TM);
+  rendinst::render::startRenderInstancing();
   d3d::set_immediate_const(STAGE_VS, ZERO_PTR<uint32_t>(), 1);
 }
 
 void ImpostorTextureManager::end_rendering_slices()
 {
-  rendinstgenrender::endRenderInstancing();
-  d3d::set_depth(nullptr, false);
+  rendinst::render::endRenderInstancing();
+  d3d::set_depth(nullptr, DepthAccess::RW);
   shaders::overrides::reset();
   d3d::setind(nullptr);
   d3d::setvdecl(BAD_VDECL);
   d3d::setvsrc(0, nullptr, 0);
   d3d::set_render_target(0, nullptr, 0);
-  d3d::set_depth(nullptr, true);
+  d3d::set_depth(nullptr, DepthAccess::SampledRO);
   ShaderElement::invalidate_cached_state_block();
 }
 
 void ImpostorTextureManager::generate_mask(const Point3 &point_to_eye, RenderableInstanceLodsResource *res, DeferredRenderTarget *rt,
   Texture *mask_tex)
 {
+  G_ASSERT(impostorMaskShader.getElem());
   SCOPE_RENDER_TARGET;
   start_rendering_slices(rt);
   TMatrix postView;
   postView.identity();
-  render(point_to_eye, postView, res, rendinstgenrender::rendinstSceneBlockId);
+  render(point_to_eye, postView, res, rendinst::render::rendinstSceneBlockId);
   end_rendering_slices();
   TextureInfo info;
   rt->getRt(0)->getinfo(info, 0);
@@ -423,7 +426,7 @@ void ImpostorTextureManager::generate_mask(const Point3 &point_to_eye, Renderabl
   G_ASSERT(info.w == info2.w && info.h == info2.h);
   ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
 
-  d3d::set_render_target({nullptr, 0}, true, {{mask_tex, 0}});
+  d3d::set_render_target({nullptr, 0}, DepthAccess::SampledRO, {{mask_tex, 0}});
   d3d::setview(0, 0, info.w, info.h, 0, 1);
   d3d::setscissor(0, 0, info.w, info.h);
   d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL | CLEAR_TARGET, 0, 0, 0);
@@ -432,9 +435,9 @@ void ImpostorTextureManager::generate_mask(const Point3 &point_to_eye, Renderabl
   Texture *const tex1 = rt->getRt(0);
   Texture *const tex2 = rt->getRt(1);
   Texture *const tex3 = rt->getRt(2);
-  STATE_GUARD_NULLPTR(d3d::set_tex(STAGE_PS, rendinstgenrender::dynamic_impostor_texture_const_no, VALUE), tex1);
-  STATE_GUARD_NULLPTR(d3d::set_tex(STAGE_PS, rendinstgenrender::dynamic_impostor_texture_const_no + 1, VALUE), tex2);
-  STATE_GUARD_NULLPTR(d3d::set_tex(STAGE_PS, rendinstgenrender::dynamic_impostor_texture_const_no + 2, VALUE), tex3);
+  STATE_GUARD_NULLPTR(d3d::set_tex(STAGE_PS, rendinst::render::dynamic_impostor_texture_const_no, VALUE), tex1);
+  STATE_GUARD_NULLPTR(d3d::set_tex(STAGE_PS, rendinst::render::dynamic_impostor_texture_const_no + 1, VALUE), tex2);
+  STATE_GUARD_NULLPTR(d3d::set_tex(STAGE_PS, rendinst::render::dynamic_impostor_texture_const_no + 2, VALUE), tex3);
   impostorMaskShader.render();
 }
 
@@ -479,12 +482,12 @@ UniqueTex ImpostorTextureManager::renderDepthAtlasForShadow(RenderableInstanceLo
   SCOPE_RENDER_TARGET;
   shaders::overrides::set(impostorShaderState);
   ShaderGlobal::set_int(rendinst_render_passVarId, eastl::to_underlying(rendinst::RenderPass::Depth));
-  ShaderGlobal::setBlock(rendinstgenrender::globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
+  ShaderGlobal::setBlock(rendinst::render::globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
 
   d3d::set_render_target(nullptr, 0);
-  d3d::set_depth(impostorDepthBuffer.getTex2D(), false);
+  d3d::set_depth(impostorDepthBuffer.getTex2D(), DepthAccess::RW);
   d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
-  rendinstgenrender::setCoordType(rendinstgenrender::COORD_TYPE_TM);
+  rendinst::render::setCoordType(rendinst::render::COORD_TYPE_TM);
 
   const auto &params = res->getImpostorParams();
   int sliceId = 0;
@@ -494,7 +497,7 @@ UniqueTex ImpostorTextureManager::renderDepthAtlasForShadow(RenderableInstanceLo
     {
       TMatrix viewToContent = tranform_point4_to_view_to_content_matrix(params.perSliceParams[sliceId].sliceTm);
 
-      get_impostor_texture_mgr()->render_slice_billboard(sliceId, viewToContent, res, rendinstgenrender::rendinstDepthSceneBlockId);
+      get_impostor_texture_mgr()->render_slice_billboard(sliceId, viewToContent, res, rendinst::render::rendinstDepthSceneBlockId);
     }
   }
 
@@ -515,9 +518,9 @@ bool ImpostorTextureManager::update_shadow(RenderableInstanceLodsResource *res, 
   SCOPE_RESET_SHADER_BLOCKS;
   bool ret = true;
   TIME_D3D_PROFILE(render_impostor_shadow_atlas);
-  const rendinstgen::RotationPaletteManager::Palette palette =
-    rendinstgen::get_rotation_palette_manager()->getPalette({layer_id, ri_id});
-  TMatrix paletteRotation = rendinstgen::get_rotation_palette_manager()->get_tm(palette, palette_id);
+  const rendinst::gen::RotationPaletteManager::Palette palette =
+    rendinst::gen::get_rotation_palette_manager()->getPalette({layer_id, ri_id});
+  TMatrix paletteRotation = rendinst::gen::get_rotation_palette_manager()->get_tm(palette, palette_id);
   TMatrix shadowMatrix;
   for (uint32_t i = 0; i < 4; ++i)
   {
@@ -546,6 +549,7 @@ bool ImpostorTextureManager::update_shadow(RenderableInstanceLodsResource *res, 
     targetSlice = 0;
   }
   {
+    G_ASSERT(impostorShadowShader.getElem());
     SCOPE_RENDER_TARGET;
     const auto &params = res->getImpostorParams();
     ShaderGlobal::set_texture(impostor_atlas_maskVarId, res->getImpostorTextures().albedo_alpha);

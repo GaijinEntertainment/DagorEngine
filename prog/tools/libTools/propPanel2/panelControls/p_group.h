@@ -7,7 +7,7 @@
 class CGroup : public PropertyContainerVert
 {
 public:
-  CGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, int w, int h,
+  CGroup(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h,
     const char caption[], HorzFlow horzFlow = HorzFlow::Disabled);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
@@ -28,7 +28,7 @@ public:
   void clear();
   void minimize();
   void restore();
-  void setWidth(unsigned w);
+  void setWidth(hdpi::Px w);
   void moveTo(int x, int y);
 
   virtual WindowBase *getWindow();

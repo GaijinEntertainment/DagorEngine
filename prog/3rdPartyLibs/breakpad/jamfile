@@ -11,8 +11,8 @@ Target = $(Target:S=~z$(UseZlibVer).lib) ;
 AddIncludes =
   $(Root)/prog/3rdPartyLibs/breakpad
   $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
-  $(Root)/prog/engine2/sharedInclude
-  $(Root)/prog/engine2/kernel
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine/kernel
 ;
 
 UseProgLibs = 3rdPartyLibs/arc/zlib-$(UseZlibVer) ;

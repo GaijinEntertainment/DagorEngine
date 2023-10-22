@@ -88,7 +88,7 @@ void validation_set_current_node(const InternalRegistry &registry, NodeNameId no
   if (nodeId == NodeNameId::Invalid)
     return;
 
-  current_node_name = registry.knownNodeNames.getName(nodeId);
+  current_node_name = registry.knownNames.getName(nodeId);
 
   current_node_resources.reserve(
     registry.resourceProviderReference.providedResources.size() + registry.resourceProviderReference.providedHistoryResources.size());
@@ -114,7 +114,8 @@ void validation_set_current_node(const InternalRegistry &registry, NodeNameId no
 void validation_add_resource(const D3dResource *res) { managed_resources.emplace(res); }
 
 void validation_of_external_resources_duplication(
-  const IdIndexedMapping<intermediate::ResourceIndex, intermediate::Resource> &resources)
+  const IdIndexedMapping<intermediate::ResourceIndex, intermediate::Resource> &resources,
+  const IdIndexedMapping<intermediate::ResourceIndex, intermediate::DebugResourceName> &resourceNames)
 {
   static ska::flat_hash_set<D3DRESID, ResKeyHash> alreadyLoggedResources;
 
@@ -144,7 +145,7 @@ void validation_of_external_resources_duplication(
         logwarn("The physical resource '%s' was registered as an external resource into frame graph"
                 " for two different intermediate resources: '%s' and '%s'. This is not allowed and"
                 " will lead to broken barriers and resource states!",
-          ::get_managed_res_name(resId), resources[resIdx].name, resources[it->second].name);
+          ::get_managed_res_name(resId), resourceNames[resIdx], resourceNames[it->second]);
   }
 }
 

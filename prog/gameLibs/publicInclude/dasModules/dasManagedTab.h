@@ -267,7 +267,7 @@ struct ManagedTabAnnotation : TypeAnnotation
       V_ARG_THIS(range);
       V_END();
     }
-    virtual vec4f DAS_EVAL_ABI eval(Context &context) override
+    DAS_EVAL_ABI virtual vec4f eval(Context &context) override
     {
       DAS_PROFILE_NODE
       OOT *pR = (OOT *)SimNodeAtTab::compute(context);

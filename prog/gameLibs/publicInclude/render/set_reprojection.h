@@ -36,8 +36,6 @@ class DPoint3;
 class Point4;
 class TMatrix4;
 class TMatrix;
-extern void set_reprojection(DPoint3 &prevWorldPos, TMatrix4 &prevGlobTm, Point4 &prevViewVecLT, Point4 &prevViewVecRT,
-  Point4 &prevViewVecLB, Point4 &prevViewVecRB, const DPoint3 *world_pos);
 extern void set_reprojection(const TMatrix &viewTm, const TMatrix4 &projTm, DPoint3 &prevWorldPos, TMatrix4 &prevGlobTm,
   Point4 &prevViewVecLT, Point4 &prevViewVecRT, Point4 &prevViewVecLB, Point4 &prevViewVecRB, const DPoint3 *world_pos);
 

@@ -286,6 +286,7 @@ public:
     if (ret == UpdateHtResult::UNCHANGED)
       ret = UpdateHtResult::SAMPLE_CHANGED;
     dest = encoded;
+    compressed.updateHierHeightRangeBlocksForPoint(cell.x, cell.y, ht);
     return ret;
   }
   uint16_t packHeightmapHeight(float height) const { return (height - hMin) / hScaleRaw; }
@@ -296,15 +297,22 @@ public:
   IPoint2 posToHmapXZ(const Point2 &pos) const { return IPoint2::xy((pos - worldPosOfs) / getHeightmapCellSize()); }
   // incremented when terrain changes
 
-  int getMinMaxHtGridSize() const { return minMaxHtGridSize; }
+  int getMinMaxHtGridSize() const { return compressed.getBestHtRangeBlocksResolution(); }
   bool getMinMaxHtInGrid(const IPoint2 &grid_cell, float &min_ht, float &max_ht) const
   {
-    if (grid_cell.x >= 0 && grid_cell.y >= 0 && grid_cell.x < maxHtGridWidth.x && grid_cell.y < maxHtGridWidth.y)
+    if (compressed.htRangeBlocksLevels)
     {
-      int cellIdx = grid_cell.y * maxHtGridWidth.x + grid_cell.x;
-      min_ht = min(min_ht, minHeightGrid[cellIdx]);
-      max_ht = max(max_ht, maxHeightGrid[cellIdx]);
-      return true;
+      unsigned grid_res = compressed.getBestHtRangeBlocksResolution();
+      if (unsigned(grid_cell.x) < grid_res && unsigned(grid_cell.y) < grid_res)
+      {
+        unsigned hrb_stride = grid_res / 2;
+        const auto &hrb =
+          compressed.getHtRangeBlocksLevData(compressed.htRangeBlocksLevels - 1)[(grid_cell.y / 2) * hrb_stride + (grid_cell.x / 2)];
+        unsigned idx = (grid_cell.y & 1) * 2 + (grid_cell.x & 1);
+        min_ht = min(min_ht, hrb.hMin[idx] * hScaleRaw + hMin);
+        max_ht = max(max_ht, hrb.hMax[idx] * hScaleRaw + hMin);
+        return true;
+      }
     }
     return false;
   }
@@ -314,11 +322,6 @@ public:
 protected:
   void updateBlockMinMax(uint32_t blockId, uint16_t ht, float updateBlockMinMax = 1.f);
   Point3 getClippedOrigin(const Point3 &origin_pos) const;
-  float maxHtCellSize;
-  int minMaxHtGridSize;
-  IPoint2 maxHtGridWidth; // maxHtGridWidth >= hmapWidth/minMaxHtGridSize
-  SmallTab<float, MidmemAlloc> minHeightGrid;
-  SmallTab<float, MidmemAlloc> maxHeightGrid;
   CompressedHeightmap compressed;
   void *hmap_data = nullptr;
 };

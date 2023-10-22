@@ -22,7 +22,7 @@
  * - \_staging -> staging buffer
  */
 
-namespace d3d_buffers
+namespace d3d::buffers
 {
 /**
  * \brief Enumeration for buffer initialization options. Not all buffer types currently support it.
@@ -42,22 +42,6 @@ enum class Indirect : uint32_t
   Dispatch,
   Draw,
   DrawIndexed,
-};
-
-
-/**
- * \brief The enum which indicates if the driver relies on buffer restoration on user side when device reset happen.
- *
- * For consoles, Metal and Vulkan this flag doesn't make any sense. Used only in DX11/DX12 drivers.
- * If the buffer has Maybelost::No flag, driver stores a copy of its content on CPU side (extra memory).
- * Of course, this flag doesn't make any sense for buffers filled by GPU.
- *
- * \todo Get rid of this flag and restore buffer content explicitly.
- */
-enum class Maybelost : uint32_t
-{
-  No,  ///< DirectX driver stores additional copy of the buffer on CPU side, to restore it after device reset event.
-  Yes, ///< User will restore driver content after device reset manually.
 };
 
 
@@ -314,14 +298,13 @@ inline Sbuffer *create_staging(uint32_t size_in_bytes, const char *name)
  * \param elements_count The number of elements in the buffer.
  * \param format The format of each element in the buffer. It must be a valid texture format. Not all texture formats are allowed.
  * \param name The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX.
- * \param maybelost Indicated buffer restoration policy on device reset.
+ * \param buffer_init The initialization option for the buffer.
  * \return A pointer to the created buffer.
  */
-inline Sbuffer *create_persistent_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name,
-  Maybelost maybelost = Maybelost::Yes)
+inline Sbuffer *create_persistent_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name, Init buffer_init = Init::No)
 {
   return d3d::create_sbuffer(get_tex_format_desc(format).bytesPerElement, elements_count,
-    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | (maybelost == Maybelost::Yes ? SBCF_MAYBELOST : 0), format, name);
+    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MAYBELOST | (buffer_init == Init::Zero ? SBCF_ZEROMEM : 0), format, name);
 }
 
 
@@ -333,13 +316,15 @@ inline Sbuffer *create_persistent_sr_tbuf(uint32_t elements_count, uint32_t form
  *
  * \param size_in_dwords The size of the buffer in dwords.
  * \param name The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX.
- * \param maybelost Indicated buffer restoration policy on device reset.
+ * \param buffer_init The initialization option for the buffer.
  * \return A pointer to the created buffer.
  */
-inline Sbuffer *create_persistent_sr_byte_address(uint32_t size_in_dwords, const char *name, Maybelost maybelost = Maybelost::Yes)
+inline Sbuffer *create_persistent_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
 {
   return d3d::create_sbuffer(BYTE_ADDRESS_ELEMENT_SIZE, size_in_dwords,
-    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_ALLOW_RAW | (maybelost == Maybelost::Yes ? SBCF_MAYBELOST : 0), 0, name);
+    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_ALLOW_RAW | SBCF_MAYBELOST |
+      (buffer_init == Init::Zero ? SBCF_ZEROMEM : 0),
+    0, name);
 }
 
 
@@ -354,14 +339,16 @@ inline Sbuffer *create_persistent_sr_byte_address(uint32_t size_in_dwords, const
  * \param structure_size The size of the structure of the buffer elements. Usually it is a sizeof(StructureType).
  * \param elements_count The number of elements in the buffer.
  * \param name The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX.
- * \param maybelost Indicated buffer restoration policy on device reset.
+ * \param buffer_init The initialization option for the buffer.
  * \return A pointer to the created buffer.
  */
 inline Sbuffer *create_persistent_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name,
-  Maybelost maybelost = Maybelost::Yes)
+  Init buffer_init = Init::No)
 {
   return d3d::create_sbuffer(structure_size, elements_count,
-    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED | (maybelost == Maybelost::Yes ? SBCF_MAYBELOST : 0), 0, name);
+    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED | SBCF_MAYBELOST |
+      (buffer_init == Init::Zero ? SBCF_ZEROMEM : 0),
+    0, name);
 }
 
 
@@ -425,4 +412,4 @@ inline Sbuffer *create_one_frame_sr_structured(uint32_t structure_size, uint32_t
     SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED | SBCF_DYNAMIC | SBCF_FRAMEMEM | SBCF_MAYBELOST, 0, name);
 }
 
-} // namespace d3d_buffers
+} // namespace d3d::buffers

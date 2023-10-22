@@ -12,9 +12,9 @@ __forceinline void * v_extract_ptr(vec4i a) {
 }
 
 #if defined(_MSC_VER) && !defined(__clang__) && INTPTR_MAX == INT32_MAX//MSVC generates flawed code, for example in _builtin_binary_save, so make it out of line
-extern vec4i VECTORCALL v_ldu_ptr(const void * a);
+extern VECTORCALL vec4i v_ldu_ptr(const void * a);
 #else
-__forceinline vec4i VECTORCALL v_ldu_ptr(const void * a) {
+VECTORCALL __forceinline vec4i v_ldu_ptr(const void * a) {
 #if INTPTR_MAX == INT32_MAX
     return v_seti_x((int32_t)a);
 #else
