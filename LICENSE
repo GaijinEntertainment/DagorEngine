@@ -151,6 +151,7 @@ third-party component as follows:
   prog/3rdPartyLibs/phys/bullet-3/LICENSE.txt
   prog/3rdPartyLibs/phys/bullet-3/test/gtest-1.7.0/LICENSE
   prog/3rdPartyLibs/phys/joltPhysics/LICENSE
+  prog/3rdPartyLibs/poisson-disk-generator/LICENSE
   prog/3rdPartyLibs/rapidjson/license.txt
   prog/3rdPartyLibs/reachability/LICENSE.txt
   prog/3rdPartyLibs/Recast/LICENSE
