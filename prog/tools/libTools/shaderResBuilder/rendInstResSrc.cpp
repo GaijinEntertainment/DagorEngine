@@ -1321,15 +1321,11 @@ bool RenderableInstanceLodsResSrc::build(const DataBlock &blk)
     }
   }
 
-  if (hasImpostor)
+  if (hasImpostor && blk.getNameId("transition_lod") != -1)
   {
     const DataBlock *block = blk.getBlockByName("transition_lod");
-    float transitionRange = 6.0f;
-    if (block)
-    {
-      int transitionRangeNameId = block->getNameId("transition_range");
-      transitionRange = block->getRealByNameId(transitionRangeNameId, transitionRange);
-    }
+    int transitionRangeNameId = block->getNameId("transition_range");
+    float transitionRange = block->getRealByNameId(transitionRangeNameId, 6.0f);
 
     String addMatScript;
 

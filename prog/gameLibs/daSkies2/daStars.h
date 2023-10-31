@@ -24,6 +24,7 @@ public:
   void close();
   DaStars() = default;
   ~DaStars();
+  void afterReset() { generateStars(); }
 
 protected:
   ShaderMaterial *moonMaterial = nullptr;

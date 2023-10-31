@@ -77,20 +77,6 @@ static SQInteger get_allowed_args_count(SQObject &closure, SQInteger num_support
     return -1;
 }
 
-
-#ifndef NO_GARBAGE_COLLECTOR
-static SQInteger base_collectgarbage(HSQUIRRELVM v)
-{
-    sq_pushinteger(v, sq_collectgarbage(v));
-    return 1;
-}
-static SQInteger base_resurrectunreachable(HSQUIRRELVM v)
-{
-    sq_resurrectunreachable(v);
-    return 1;
-}
-#endif
-
 static SQInteger base_getroottable(HSQUIRRELVM v)
 {
     v->Push(v->_roottable);
@@ -103,20 +89,7 @@ static SQInteger base_getconsttable(HSQUIRRELVM v)
     return 1;
 }
 
-
-static SQInteger base_seterrorhandler(HSQUIRRELVM v)
-{
-    sq_seterrorhandler(v);
-    return 0;
-}
-
-static SQInteger base_setdebughook(HSQUIRRELVM v)
-{
-    sq_setdebughook(v);
-    return 0;
-}
-
-static SQInteger __getcallstackinfos(HSQUIRRELVM v,SQInteger level)
+SQInteger __getcallstackinfos(HSQUIRRELVM v,SQInteger level)
 {
     SQStackInfos si;
     SQInteger seq = 0;
@@ -153,12 +126,6 @@ static SQInteger __getcallstackinfos(HSQUIRRELVM v,SQInteger level)
     }
 
     return 0;
-}
-static SQInteger base_getstackinfos(HSQUIRRELVM v)
-{
-    SQInteger level;
-    sq_getinteger(v, -1, &level);
-    return __getcallstackinfos(v,level);
 }
 
 static SQInteger base_assert(HSQUIRRELVM v)
@@ -315,66 +282,6 @@ static SQInteger base_callee(HSQUIRRELVM v)
     return sq_throwerror(v,_SC("no closure in the calls stack"));
 }
 
-
-template<SQInteger CmpRes>
-static SQInteger base_min_max(HSQUIRRELVM v)
-{
-    SQInteger nArgs = sq_gettop(v);
-    SQObject objRes = stack_get(v, 2);
-
-    for (SQInteger i = 3; i <= nArgs; ++i) {
-        SQObjectPtr &cur = stack_get(v, i);
-        if (!(sq_type(cur) & SQOBJECT_NUMERIC)) {
-            v->Raise_ParamTypeError(i, _RT_FLOAT|_RT_INTEGER, sq_type(cur));
-            return SQ_ERROR;
-        }
-
-        SQInteger cres = 0;
-        if (!v->ObjCmp(cur, objRes, cres))
-            return sq_throwerror(v, _SC("Internal error, comparison failed"));
-
-        if (cres == CmpRes)
-            objRes = cur;
-    }
-
-    v->Push(objRes);
-    return 1;
-}
-
-
-static SQInteger base_clamp(HSQUIRRELVM v)
-{
-    SQObject x = stack_get(v, 2), lo = stack_get(v, 3), hi = stack_get(v, 4);
-    SQInteger cres = 0;
-
-    const SQChar *cmpFailedErrText = _SC("Internal error, comparison failed");
-
-    if (!v->ObjCmp(lo, hi, cres))
-        return sq_throwerror(v, cmpFailedErrText);
-
-    if (cres > 0)
-        return sq_throwerror(v, _SC("Invalid clamp range: min>max"));
-
-    if (!v->ObjCmp(x, lo, cres))
-        return sq_throwerror(v, cmpFailedErrText);
-
-    if (cres < 0) {
-        v->Push(lo);
-        return 1;
-    }
-
-    if (!v->ObjCmp(x, hi, cres))
-        return sq_throwerror(v, cmpFailedErrText);
-
-    if (cres > 0) {
-        v->Push(hi);
-        return 1;
-    }
-
-    v->Push(x);
-    return 1;
-}
-
 static SQInteger base_freeze(HSQUIRRELVM v)
 {
     return SQ_SUCCEEDED(sq_freeze(v, 2)) ? 1 : SQ_ERROR;
@@ -386,30 +293,149 @@ static SQInteger base_getobjflags(HSQUIRRELVM v)
     return 1;
 }
 
-static SQInteger base_getbuildinfo(HSQUIRRELVM v)
+static SQInteger base_call_method_impl(HSQUIRRELVM v, bool safe)
 {
-    sq_newtable(v);
-    sq_pushstring(v,_SC("version"),-1);
-    sq_pushstring(v,SQUIRREL_VERSION,-1);
-    sq_newslot(v,-3, SQFalse);
-    sq_pushstring(v,_SC("charsize"),-1);
-    sq_pushinteger(v,sizeof(SQChar));
-    sq_newslot(v,-3, SQFalse);
-    sq_pushstring(v,_SC("intsize"),-1);
-    sq_pushinteger(v,sizeof(SQInteger));
-    sq_newslot(v,-3, SQFalse);
-    sq_pushstring(v,_SC("floatsize"),-1);
-    sq_pushinteger(v,sizeof(SQFloat));
-    sq_newslot(v,-3, SQFalse);
+    SQChar message[1024] = {0};
+    int32_t nArgs = sq_gettop(v);
+
+    if (nArgs < 3)
+    {
+        if (safe)
+        {
+            v->Pop(nArgs);
+            v->PushNull();
+            return 1;
+        }
+        snprintf(message, sizeof message, _SC("'__call_method(...)' recieves at least 2 arguments (%d), object to method on and method's name"), nArgs);
+        return sq_throwerror(v, message);
+    }
+
+    SQObject obj = stack_get(v, 2);
+    SQObject name = stack_get(v, 3);
+
+    if (!sq_isstring(name))
+    {
+        if (safe)
+        {
+            v->Pop(nArgs);
+            v->PushNull();
+            return 1;
+        }
+        snprintf(message, sizeof message, _SC("'__call_method(...)' expects 2nd argument to be string, actual '%s'"), IdType2Name(sq_type(name)));
+        return sq_throwerror(v, message);
+    }
+
+    SQObject delegates;
+    SQObjectType type = sq_type(obj);
+    switch (type)
+    {
+    case OT_INTEGER:
+    case OT_FLOAT:
+    case OT_BOOL:
+        delegates = _ss(v)->_number_default_delegate;
+        break;
+    case OT_STRING:
+        delegates = _ss(v)->_string_default_delegate;
+        break;
+    case OT_TABLE:
+        delegates = _ss(v)->_table_default_delegate;
+        break;
+    case OT_ARRAY:
+        delegates = _ss(v)->_array_default_delegate;
+        break;
+    case OT_USERDATA:
+        delegates = _ss(v)->_userdata_default_delegate;
+        break;
+    case OT_CLOSURE:
+    case OT_NATIVECLOSURE:
+        delegates = _ss(v)->_closure_default_delegate;
+        break;
+    case OT_GENERATOR:
+        delegates = _ss(v)->_generator_default_delegate;
+        break;
+    case OT_THREAD:
+        delegates = _ss(v)->_thread_default_delegate;
+        break;
+    case OT_CLASS:
+        delegates = _ss(v)->_class_default_delegate;
+        break;
+    case OT_INSTANCE:
+        delegates = _ss(v)->_instance_default_delegate;
+        break;
+    case OT_WEAKREF:
+        delegates = _ss(v)->_weakref_default_delegate;
+        break;
+    default:
+        if (safe)
+        {
+            v->Pop(nArgs);
+            v->PushNull();
+            return 1;
+        }
+        snprintf(message, sizeof message, _SC("unsupported object type '%s' as receiver in '__call_method(...)' function"), IdType2Name(type));
+        return sq_throwerror(v, message);
+    }
+
+    assert(sq_istable(delegates));
+
+    SQObjectPtr callee;
+    if (!_table(delegates)->Get(name, callee))
+    {
+        if (safe)
+        {
+            v->Pop(nArgs);
+            v->PushNull();
+            return 1;
+        }
+        else
+        {
+            snprintf(message, sizeof message, _SC("function '%s' not found in '%s' delegates"), _stringval(name), IdType2Name(type));
+            return sq_throwerror(v, message);
+        }
+    }
+
+    assert(sq_isnativeclosure(callee));
+
+    sqvector<SQObjectPtr> args(_ss(v)->_alloc_ctx);
+
+    args.reserve(nArgs - 2);
+    args.push_back(obj);
+
+    for (int32_t i = 4; i <= nArgs; ++i) // skip reciever + name
+    {
+        SQObject arg = stack_get(v, i);
+        args.push_back(arg);
+    }
+
+    for (int32_t i = 0; i < args.size(); ++i)
+    {
+        v->Push(args[i]);
+    }
+
+    bool s, t;
+    SQObjectPtr ret;
+    if (!v->CallNative(_nativeclosure(callee), nArgs - 2, v->_stackbase + nArgs, ret, -1, s, t))
+    {
+        return SQ_ERROR;
+    }
+
+    v->Pop(nArgs);
+    v->Push(ret);
     return 1;
 }
 
+static SQInteger base_call_method(HSQUIRRELVM v)
+{
+    return base_call_method_impl(v, false);
+}
+
+static SQInteger base_call_method_safe(HSQUIRRELVM v)
+{
+  return base_call_method_impl(v, true);
+}
 
 static const SQRegFunction base_funcs[]={
     //generic
-    {_SC("seterrorhandler"),base_seterrorhandler,2, NULL},
-    {_SC("setdebughook"),base_setdebughook,2, NULL},
-    {_SC("getstackinfos"),base_getstackinfos,2, _SC(".n")},
     {_SC("getroottable"),base_getroottable,1, NULL},
     {_SC("getconsttable"),base_getconsttable,1, NULL},
     {_SC("assert"),base_assert, -2, NULL},
@@ -423,16 +449,10 @@ static const SQRegFunction base_funcs[]={
     {_SC("array"),base_array,-2, _SC(".n")},
     {_SC("type"),base_type,2, NULL},
     {_SC("callee"),base_callee,0,NULL},
-#ifndef NO_GARBAGE_COLLECTOR
-    {_SC("collectgarbage"),base_collectgarbage,0, NULL},
-    {_SC("resurrectunreachable"),base_resurrectunreachable,0, NULL},
-#endif
-    {_SC("min"),base_min_max<-1>,-3,_SC(".nnnnnnnn")},
-    {_SC("max"),base_min_max<1>,-3,_SC(".nnnnnnnn")},
-    {_SC("clamp"),base_clamp,4,_SC(".nnn")},
     {_SC("freeze"),base_freeze,2,NULL},
     {_SC("getobjflags"), base_getobjflags,2,NULL},
-    {_SC("getbuildinfo"), base_getbuildinfo,1,NULL},
+    {_SC("call_type_method"),base_call_method,-1,NULL},
+    {_SC("call_type_method_safe"),base_call_method_safe,-1,NULL},
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -948,6 +968,15 @@ static SQInteger obj_clone(HSQUIRRELVM vm) {
     return 1;
 }
 
+static SQInteger obj_is_frozen(HSQUIRRELVM vm) {
+  SQObjectPtr self = vm->PopGet();
+  SQObjectPtr target;
+
+  sq_pushbool(vm, (self._flags & SQOBJ_FLAG_IMMUTABLE) != 0);
+
+  return 1;
+}
+
 const SQRegFunction SQSharedState::_table_default_delegate_funcz[]={
     {_SC("len"),default_delegate_len,1, _SC("t")},
     {_SC("rawget"),container_rawget,2, _SC("t")},
@@ -970,6 +999,7 @@ const SQRegFunction SQSharedState::_table_default_delegate_funcz[]={
     {_SC("__merge"),container_merge, -2, _SC("t|yt|y|x") },
     {_SC("topairs"),table_to_pairs, 1, _SC("t") },
     {_SC("clone"),obj_clone, 1, _SC(".") },
+    {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -1437,6 +1467,7 @@ const SQRegFunction SQSharedState::_array_default_delegate_funcz[]={
     {_SC("totable"),pairs_to_table,1, _SC("a") },
     {_SC("replace"),array_replace,2, _SC("aa")},
     {_SC("clone"),obj_clone, 1, _SC(".") },
+    {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2274,6 +2305,7 @@ const SQRegFunction SQSharedState::_class_default_delegate_funcz[] = {
     {_SC("__merge"),container_merge, -2, _SC("t|yt|y|x") },
     {_SC("getmetamethod"),get_class_metamethod, 2, _SC("ys")},
     {_SC("clone"),obj_clone, 1, _SC(".") },
+    {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2295,6 +2327,7 @@ const SQRegFunction SQSharedState::_instance_default_delegate_funcz[] = {
     {_SC("getfuncinfos"),delegable_getfuncinfos,1, _SC("x")},
     {_SC("getmetamethod"),get_class_metamethod, 2, _SC("xs")},
     {_SC("clone"),obj_clone, 1, _SC(".") },
+    {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2316,5 +2349,6 @@ const SQRegFunction SQSharedState::_weakref_default_delegate_funcz[] = {
 const SQRegFunction SQSharedState::_userdata_default_delegate_funcz[] = {
     {_SC("getfuncinfos"),delegable_getfuncinfos,1, _SC("u")},
     {_SC("clone"),obj_clone, 1, _SC(".") },
+    {_SC("is_frozen"),obj_is_frozen, 1, _SC(".") },
     {NULL,(SQFUNCTION)0,0,NULL}
 };

@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
+from "math" import min, sqrt, max
 let { mkBitmapPicture } = require("%darg/helpers/bitmap.nut")
-let { sqrt } = require("math")
 
 let mkWhite = @(part) part + (part << 8) + (part << 16) + (part << 24)
 let getDistance = @(x, y) sqrt(x*x + y*y)

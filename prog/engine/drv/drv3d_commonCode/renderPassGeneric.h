@@ -11,7 +11,6 @@ struct RenderPass
 #if DAGOR_DBGLEVEL > 0
   String dbgName;
 #endif
-
   eastl::vector<RenderPassBind> actions;
   eastl::vector<uint32_t> sequence;
   int32_t subpassCnt;
@@ -28,6 +27,7 @@ struct RenderPass
   const char *getDebugName();
   void addSubpassToList(const RenderPassDesc &rp_desc, int32_t subpass);
   void execute(uint32_t idx, ClearAccumulator &clear_acm);
+  void resolveMSAATargets();
 };
 
 RenderPass *create_render_pass(const RenderPassDesc &rp_desc);

@@ -1,5 +1,5 @@
 from "%darg/ui_imports.nut" import *
-
+from "math" import max
 /*
   KNOWN ISSUES:
     - vertical align not working for text area       valign = ALIGN_TOP | ALIGN_BOTTOM | ALIGN_CENTER

@@ -216,10 +216,10 @@ void imgui_update()
   d3d::get_screen_size(w, h);
   io.DisplaySize = ImVec2(w, h);
 
-  static int64_t reft = 0;
-  int usecs = get_time_usec(reft);
-  reft = ref_time_ticks();
-  io.DeltaTime = usecs * 1e-6f;
+  static int64_t reft = ref_time_ticks();
+  int64_t curt = ref_time_ticks();
+  io.DeltaTime = ref_time_delta_to_usec(curt - reft) * 1e-6f;
+  reft = curt;
 
   // work-around to handle issue when fullscreen game loses focus and throw endless assertion:
   // "(g.FrameCount == 0 || g.FrameCountEnded == g.FrameCount) && "Forgot to call Render() or EndFrame() at the end of the previous
@@ -376,9 +376,9 @@ void imgui_perform_registered()
     }
 
     // Window queue
-    if (ImGui::BeginMenu("Window"))
+    if (ImGuiFunctionQueue::windowHead != nullptr)
     {
-      if (ImGuiFunctionQueue::windowHead != nullptr)
+      if (ImGui::BeginMenu("Window"))
       {
         const char *currentGroup = ImGuiFunctionQueue::windowHead->group;
         bool currentGroupOpened = ImGui::BeginMenu(currentGroup);
@@ -402,9 +402,8 @@ void imgui_perform_registered()
         }
         if (currentGroupOpened)
           ImGui::EndMenu();
+        ImGui::EndMenu();
       }
-
-      ImGui::EndMenu();
     }
 
     ImGui::EndMainMenuBar();

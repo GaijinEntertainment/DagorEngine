@@ -873,6 +873,8 @@ void RenderObjectVectorCanvas::renderCustom(StdGuiRender::GuiContext &ctx, const
 
         case VECTOR_INVERSE_POLY: rctx.renderFillInversePoly(cmd); break;
 
+        case VECTOR_QUADS: rctx.renderQuads(cmd); break;
+
         case VECTOR_NOP: break;
 
         default: darg_assert_trace_var(String(0, "'VectorCanvas: invalid command in commands[%d]", idx), params->commands, idx);
@@ -1508,6 +1510,7 @@ void RenderObjectTextArea::renderCustom(StdGuiRender::GuiContext &ctx, const Ele
       numBlocksToRender = 0;
 
     bool hadAllSymbols = true;
+    bool nowHaveAllSymbols = true;
     for (int i = 0; i < numBlocksToRender && hadAllSymbols; ++i)
     {
       textlayout::TextBlock *block = line.blocks[i];
@@ -1522,13 +1525,14 @@ void RenderObjectTextArea::renderCustom(StdGuiRender::GuiContext &ctx, const Ele
     else if (halign == ALIGN_CENTER)
       xLineOffs += floorf((sc.size.x - lineWidth) * 0.5f);
 
-    for (int i = 0; i < numBlocks; ++i)
-    {
-      textlayout::TextBlock *block = line.blocks[i];
-      darg::GuiTextCache &guiText = block->guiText;
+    auto iterateBlocks = [&]() {
+      for (int i = 0; i < numBlocks; ++i)
+      {
+        textlayout::TextBlock *block = line.blocks[i];
+        darg::GuiTextCache &guiText = block->guiText;
 
-      float x = block->position.x + xLineOffs;
-      float y = block->position.y + fmtText->yOffset + line.baseLineY;
+        float x = block->position.x + xLineOffs;
+        float y = block->position.y + fmtText->yOffset + line.baseLineY;
 
 #if 0 // debug blocks
       int ascent = StdGuiRender::get_font_ascent(block->fontId, block->fontHt);
@@ -1536,52 +1540,60 @@ void RenderObjectTextArea::renderCustom(StdGuiRender::GuiContext &ctx, const Ele
         sc.screenPos.x - sc.scrollOffs.x + x + block->size.x, sc.screenPos.y - sc.scrollOffs.y + y - ascent + block->size.y, 1);
 #endif
 
-      if (block->type == textlayout::TextBlock::TBT_SPACE) // don't neeed to draw anything
-        continue;
+        if (block->type == textlayout::TextBlock::TBT_SPACE) // don't neeed to draw anything
+          continue;
 
-      if (block->useCustomColor)
-        ctx.set_color(color_apply_mods(block->customColor, render_state.opacity, params->brightness));
+        if (block->useCustomColor)
+          ctx.set_color(color_apply_mods(block->customColor, render_state.opacity, params->brightness));
 
-      if (block->fontId != lastFontId || block->fontHt != lastFontHt)
-      {
-        lastFontId = block->fontId;
-        lastFontHt = block->fontHt;
-        monoWidth = font_mono_width_from_sq(block->fontId, block->fontHt, objMonoWidth);
-      }
+        if (block->fontId != lastFontId || block->fontHt != lastFontHt)
+        {
+          lastFontId = block->fontId;
+          lastFontHt = block->fontHt;
+          monoWidth = font_mono_width_from_sq(block->fontId, block->fontHt, objMonoWidth);
+        }
 
-      ctx.set_font(block->fontId, spacing, monoWidth);
-      if (block->fontHt)
-        ctx.set_font_ht(block->fontHt);
+        ctx.set_font(block->fontId, spacing, monoWidth);
+        if (block->fontHt)
+          ctx.set_font_ht(block->fontHt);
 
-      ctx.goto_xy(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y);
-
-      if (shouldBreakWithEllipsis && (ellipsisOnSeparateLine || i > lastBlockIndexToRender))
-      {
-        ctx.draw_str_u(ellipsisUtf16, 1);
-        break;
-      }
-
-      bool all_glyphs_ready = true;
-      if (!guiText.isReady())
-      {
-        tmpU16.resize(block->text.length() + 1);
-        tmpU16.resize(utf8_to_wcs_ex(block->text, tmpU16.size() - 1, tmpU16.data(), tmpU16.size()));
-        all_glyphs_ready =
-          ctx.draw_str_scaled_u_buf(guiText.v, guiText.c, StdGuiRender::DSBFLAG_rel, 1.0f, tmpU16.data(), tmpU16.size());
-      }
-
-      if (all_glyphs_ready && hadAllSymbols)
-      {
         ctx.goto_xy(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y);
-        ctx.start_font_str(1.0f);
-        ctx.render_str_buf(guiText.v, guiText.c,
-          StdGuiRender::DSBFLAG_rel | StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
-      }
-      if (!all_glyphs_ready)
-        guiText.discard();
 
-      if (block->useCustomColor)
-        ctx.set_color(color);
+        if (shouldBreakWithEllipsis && (ellipsisOnSeparateLine || i > lastBlockIndexToRender))
+        {
+          ctx.draw_str_u(ellipsisUtf16, 1);
+          break;
+        }
+
+        bool all_glyphs_ready = true;
+        if (!guiText.isReady())
+        {
+          tmpU16.resize(block->text.length() + 1);
+          tmpU16.resize(utf8_to_wcs_ex(block->text, tmpU16.size() - 1, tmpU16.data(), tmpU16.size()));
+          all_glyphs_ready =
+            ctx.draw_str_scaled_u_buf(guiText.v, guiText.c, StdGuiRender::DSBFLAG_rel, 1.0f, tmpU16.data(), tmpU16.size());
+        }
+        nowHaveAllSymbols &= all_glyphs_ready;
+        if (all_glyphs_ready && hadAllSymbols)
+        {
+          ctx.goto_xy(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y);
+          ctx.start_font_str(1.0f);
+          ctx.render_str_buf(guiText.v, guiText.c,
+            StdGuiRender::DSBFLAG_rel | StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
+        }
+        if (!all_glyphs_ready)
+          guiText.discard();
+
+        if (block->useCustomColor)
+          ctx.set_color(color);
+      }
+    };
+
+    iterateBlocks();
+    if (!hadAllSymbols && nowHaveAllSymbols)
+    {
+      hadAllSymbols = true;
+      iterateBlocks();
     }
   }
 
@@ -1607,7 +1619,11 @@ public:
     const Sqrat::Table &scriptDesc = elem->props.scriptDesc;
     Sqrat::Object bWidthObj = scriptDesc.RawGetSlot(elem->csk->borderWidth);
     const char *errMsg = nullptr;
-    if (!script_parse_offsets(elem, bWidthObj, &borderWidth.x, &errMsg))
+    if (bWidthObj.IsNull())
+    {
+      borderWidth[0] = borderWidth[1] = borderWidth[2] = borderWidth[3] = 1;
+    }
+    else if (!script_parse_offsets(elem, bWidthObj, &borderWidth.x, &errMsg))
     {
       borderWidth[0] = borderWidth[1] = borderWidth[2] = borderWidth[3] = 1;
       darg_assert_trace_var(errMsg, scriptDesc, elem->csk->borderWidth);

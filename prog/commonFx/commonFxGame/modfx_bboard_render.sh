@@ -4,6 +4,7 @@ include "dafx_helpers.sh"
 include "fom_shadows.sh"
 include "clustered/lights_cb.sh"
 include "dynamic_lights_count.sh"
+include "flexible_scale_rasterization.sh"
 
 int modfx_debug_render = 0;
 interval modfx_debug_render : off < 1, on;
@@ -55,7 +56,9 @@ shader dafx_modfx_bboard_render, dafx_modfx_bboard_render_atest, dafx_modfx_bboa
   hlsl
   {
     ##if hardware.metal
-      #define MODFX_USE_INVERTED_POS_W 1
+      #if !SHADER_COMPILER_DXC
+        #define MODFX_USE_INVERTED_POS_W 1
+      #endif
     ##endif
     #if !MOBILE_DEVICE
       #define MODFX_USE_LIGHTING 1
@@ -364,6 +367,7 @@ shader dafx_modfx_bboard_render, dafx_modfx_bboard_render_atest, dafx_modfx_bboa
   DAFXEX_USE_DEPTH_MASK(ps)
   DAFXEX_USE_HDR()
   DAFXEX_USE_FOG()
+  USE_FSR(ps)
 
   hlsl(vs)
   {

@@ -49,6 +49,8 @@ enum
   VAR_OPT(grass_gen_lod_index)                              \
   VAR(grass_gen_order)                                      \
   VAR(grass_grid_params)                                    \
+  VAR(grass_draw_instances_buffer)                          \
+  VAR(grass_draw_instances_indirect_buffer)                 \
   VAR_OPT(grass_average_ht__ht_extent__avg_hor__hor_extent) \
   VAR_OPT(grass_instancing)
 
@@ -704,7 +706,6 @@ void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, floa
       }
       ShaderGlobal::set_color4(get_shader_variable_id("lod_grass_instances_start_at", true), startsAt[0], startsAt[1], startsAt[2],
         startsAt[3]);
-      ShaderGlobal::set_int(get_shader_variable_id("max_grass_instances", true), maxInstanceCount);
       if (indexBufferInited)
       {
         index_buffer::release_quads_32bit();
@@ -742,9 +743,9 @@ void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, floa
     ShaderGlobal::set_real(grass_inv_vis_distanceVarId, 1. / grassDistance);
     ShaderGlobal::set_color4(grass_gen_orderVarId, fabsf(view_XZ.x) > fabsf(view_XZ.y) ? 1 : 0, view_XZ.x < 0 ? 1 : 0,
       view_XZ.y < 0 ? 1 : 0, 0);
-    d3d::set_rwbuffer(STAGE_CS, 6, grassInstancesIndirect.getBuf());
+    ShaderGlobal::set_buffer(grass_draw_instances_indirect_bufferVarId, grassInstancesIndirect.getBufId());
+    ShaderGlobal::set_buffer(grass_draw_instances_bufferVarId, grassInstances.getBufId());
     createIndirect->dispatch(1, 1, 1); // clear
-    d3d::set_rwbuffer(STAGE_CS, 7, grassInstances.getBuf());
     d3d::resource_barrier({{grassInstancesIndirect.getBuf(), grassInstances.getBuf()},
       {RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE, RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE}});
 
@@ -805,8 +806,6 @@ void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, floa
         break;
     }
     d3d::set_const_buffer(STAGE_CS, 1, 0);
-    d3d::set_rwbuffer(STAGE_CS, 6, 0);
-    d3d::set_rwbuffer(STAGE_CS, 7, 0);
 
     d3d::resource_barrier({{grassInstancesIndirect.getBuf(), grassInstances.getBuf()},
       {(indirectSrv ? RB_RO_SRV | RB_STAGE_VERTEX | RB_RO_INDIRECT_BUFFER : RB_RO_INDIRECT_BUFFER), RB_RO_SRV | RB_STAGE_VERTEX}});
@@ -856,12 +855,6 @@ void GPUGrassBase::render(RenderType rtype)
   // d3d::draw(PRIM_TRILIST, 0, min(grassCount.get()>0 ? grassCount.get() : 10000000, grassInstancesCount)*2);
   if (rtype == GRASS_AFTER_PREPASS)
     shaders::overrides::reset();
-}
-
-void GPUGrassBase::bindGrassBuffers()
-{
-  d3d::set_rwbuffer(STAGE_PS, 6, grassInstancesIndirect.getBuf());
-  d3d::set_rwbuffer(STAGE_PS, 7, grassInstances.getBuf());
 }
 
 void GPUGrassBase::invalidate() { generated = false; }

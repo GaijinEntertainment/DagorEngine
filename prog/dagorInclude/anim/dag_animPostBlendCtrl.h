@@ -1119,7 +1119,7 @@ class AnimPostBlendCompoundRotateShift : public AnimPostBlendCtrl
 {
   struct LocalData
   {
-    dag::Index16 targetNode, alignAsNode;
+    dag::Index16 targetNode, alignAsNode, moveAlongNode;
   };
   struct VarId
   {
@@ -1130,7 +1130,7 @@ class AnimPostBlendCompoundRotateShift : public AnimPostBlendCtrl
     float yaw = 1, pitch = 1, lean = 1, ofsX = 1, ofsY = 1, ofsZ = 1;
   } scale;
   int localVarId = -1;
-  SimpleString targetNode, alignAsNode;
+  SimpleString targetNode, alignAsNode, moveAlongNode;
   mat33f tmRot[2];
 
 public:

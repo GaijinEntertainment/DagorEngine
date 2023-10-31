@@ -1,5 +1,6 @@
 set(SQSTDLIB_SRC sqstdaux.cpp
                  sqstdblob.cpp
+                 sqstddebug.cpp
                  sqstdio.cpp
                  sqstdmath.cpp
                  sqstdrex.cpp

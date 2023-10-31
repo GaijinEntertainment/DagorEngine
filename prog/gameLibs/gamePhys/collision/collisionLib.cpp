@@ -537,7 +537,7 @@ CollisionObject dacoll::add_dynamic_collision(const DataBlock &props, void *user
       G_ASSERTF(false, "unsupported coll shape %s", blk->getBlockName());
   }
 
-  G_ASSERT(shape && (shape != &compShape || compShape.getChildrenCount()));
+  G_ASSERT_RETURN(shape && (shape != &compShape || compShape.getChildrenCount()), {});
 
   CollisionObject co = create_coll_obj_from_shape(*shape, userPtr, /*kinematic*/ true, add_to_world, EPL_KINEMATIC, mask, wtm);
 #if ENABLE_APEX
@@ -796,8 +796,9 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
         G_ASSERTF_AND_DO(meshNode->indices.size() / 3 < 300 * 1024, break,
           "Too much triangles in mesh: %d verts and %d faces! 300k is too much already!", meshNode->vertices.size(),
           meshNode->indices.size() / 3);
-        shape.addChildCollision(
-          new PhysTriMeshCollision(meshNode->vertices, meshNode->indices, nullptr, false, false /*reverse normals*/), meshNode->tm);
+        auto trim = new PhysTriMeshCollision(meshNode->vertices, meshNode->indices, nullptr, false, false /*reverse normals*/);
+        trim->setDebugName(meshNode->name.c_str());
+        shape.addChildCollision(trim, meshNode->tm);
       }
       break;
 

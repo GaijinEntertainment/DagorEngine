@@ -29,6 +29,7 @@ struct RenderCanvasContext
   void renderFillPoly(const Sqrat::Array &cmd) const;
   void renderFillInversePoly(const Sqrat::Array &cmd) const;
   void renderLineDashed(const Sqrat::Array &cmd) const;
+  void renderQuads(const Sqrat::Array &cmd) const;
 
   void bind_delegate_to_handle(HSQUIRRELVM vm);
 

@@ -55,6 +55,8 @@ public:
 //************************************************************************
 
 static eastl::vector<ConsoleOutputCallback> console_listeners;
+static String cached_prefix;
+static console::CommandList cached_commands;
 
 void register_console_listener(const ConsoleOutputCallback &listener_func) { console_listeners.push_back(listener_func); }
 
@@ -222,6 +224,9 @@ bool command(const char *cmd)
   if (!res)
     console::warning("unknown command: '%s'", arg[0]);
 
+  cached_prefix.clear();
+  cached_commands.clear();
+
   memfree(s, tmpa);
   return res;
 }
@@ -280,10 +285,6 @@ bool process_file(const char *filename)
 
   return true;
 }
-
-
-static String cached_prefix;
-static console::CommandList cached_commands;
 
 
 // open console on screen

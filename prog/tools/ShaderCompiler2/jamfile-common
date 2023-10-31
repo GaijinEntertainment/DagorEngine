@@ -2,10 +2,12 @@ if $(OS) = MACOSX { Platform ?= macosx ; }
 else { Platform ?= win64 ; PlatformSpec_win64 ?= clang ; }
 if ! $(Location) { Exit Location must be defined before including jamfile-common ; }
 
+SkipLicenseBuild = no ;
 ReproducibleExeBuild = yes ;
 WinSdkVer  = win.sdk.100 ;
 CPPStd = 20 ;
 MimDebug ?= 0 ;
+CopyDxcLib ?= no ;
 
 Exceptions = yes ;
 
@@ -125,11 +127,15 @@ actions together copy_file
   if not exist $(1) set errorlevel=13
 }
 
-# otherwise no update on library version change
-rule CopyFileForced
-{
-  Depends $(1) : $(2) ;
-  copy_file $(1) : $(2) ;
-  Depends all : $(1) ;
-  ALWAYS $(2) ;
+include $(Root)/prog/gameLibs/spirv/jamfile-dxc-ver ;
+
+if $(CopyDxcLib) = yes {
+  if ! [ GLOB $(_DEVTOOL)/DXC-$(DXC_VERSION)/lib/$(Platform) : * ] { exit FATAL\: \"DXC-$(DXC_VERSION)/lib/$(Platform)\" not found! Please, update DEVTOOLS ; }
+  ExplicitLicenseUsed += $(_DEVTOOL)/DXC-$(DXC_VERSION) ;
+  local library = [ AutoCompleteTargetName dxcompiler : dll ] ;
+  local src = $(_DEVTOOL)/DXC-$(DXC_VERSION)/lib/$(Platform)/$(library) ;
+  local dst = $(OutDir)/$(library) ;
+  Depends $(dst) : $(src) ;
+  copy_file $(dst) : $(src) ;
+  Depends all : $(dst) ;
 }

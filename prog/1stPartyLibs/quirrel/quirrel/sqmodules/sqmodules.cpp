@@ -4,6 +4,7 @@
 #include <sqstdmath.h>
 #include <sqstdstring.h>
 #include <sqstdblob.h>
+#include <sqstddebug.h>
 #include <sqstdio.h>
 #include <sqstdsystem.h>
 #include <sqstddatetime.h>
@@ -566,6 +567,11 @@ void SqModules::registerSystemLib()
 void SqModules::registerDateTimeLib()
 {
   registerStdLibNativeModule("datetime", sqstd_register_datetimelib);
+}
+
+void SqModules::registerDebugLib()
+{
+  registerStdLibNativeModule("debug", sqstd_register_debuglib);
 }
 
 void SqModules::registerIoStreamLib()

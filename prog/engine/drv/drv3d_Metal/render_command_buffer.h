@@ -1181,7 +1181,7 @@ struct CommandBuffer
   template <typename T, typename... Params>
   __forceinline T *push(Params... params)
   {
-    if (is_main_thread() && g_ios_pause_rendering)
+    if (g_ios_pause_rendering && is_main_thread())
       return nullptr;
 #if CMD_USE_ATOMICS
     uint32_t current = __atomic_add_fetch(&offset, sizeof(T), __ATOMIC_SEQ_CST) - sizeof(T);

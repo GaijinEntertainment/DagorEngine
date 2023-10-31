@@ -59,6 +59,12 @@ inline void draw_floating_phys_ripples_ecs_query(Callable c);
 
 static float frac(float v) { return v - floorf(v); }
 
+// We probably have such function somewhere, but couldn't find.
+static float remap_range_clamp(float v, float from_min, float from_max, float to_min, float to_max)
+{
+  return saturate((v - from_min) / (from_max - from_min)) * (to_max - to_min) + to_min;
+}
+
 // Mass is distributed across volumes proportionally to their volumes.
 static Point3 calculate_center_of_gravity(BSphere3 *volumes, int count)
 {
@@ -599,7 +605,7 @@ static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info,
                               ? floatingRiGroup__interactionType
                               : rendinstfloating::NO_INTERACTION;
 
-      float mass = lerp(floatingRiGroup__riPhysFloatingModel.massMin, floatingRiGroup__riPhysFloatingModel.massMax, instNoise);
+      float mass = lerp(floatingRiGroup__riPhysFloatingModel.randMassMin, floatingRiGroup__riPhysFloatingModel.randMassMax, instNoise);
       float invMass = 1.0f / mass;
 
       update_floating_phys(localObjectAtTime, riFloatingPhys.curTick, interactionType, invMass, floatingRiGroup__elasticity,
@@ -706,23 +712,44 @@ static __forceinline void init_floating_rendinst_res_group_es_event_handler(cons
     box.lim[1].y = 1;
   }
   floatingRiGroup__riPhysFloatingModel.physBbox = box;
-  floatingRiGroup__riPhysFloatingModel.spheresRad = (box.lim[1].y - box.lim[0].y) * 0.5f;
 
   construct_floating_volumes_ecs_query([&](const ecs::Object &floatingRiSystem__volumePresets) {
     floatingRiGroup__riPhysFloatingModel.spheresCoords =
       extract_sphere_coords(floatingRiSystem__volumePresets, floatingRiGroup__volumesCount, floatingRiGroup__volumePresetName);
   });
+  const int nVolumes = floatingRiGroup__riPhysFloatingModel.spheresCoords.size();
+
+  constexpr float waterDensity = 1000.0f;
+  constexpr float initialDensityMin = 0.0f;
+  constexpr float initialDensityMax = waterDensity;
+
+  // For physics stability.
+  // And to be able to make object stand on water at 0 density and be just underwater on 1000 density
+  // (that's what artists actually want and they don't care about physical meanings).
+  constexpr float addRadius = 0.15f;
 
   constexpr float sphereVolumeCf = 4.0 / 3.0 * PI;
-  constexpr float densityClampMin = 1.0f;   // An object can't be weightless.
-  constexpr float densityClampMax = 999.0f; // With bigger values the volume will just drown.
 
-  float sphereVolume = sphereVolumeCf * pow(floatingRiGroup__riPhysFloatingModel.spheresRad, 3);
-  float totalVolume = sphereVolume * floatingRiGroup__riPhysFloatingModel.spheresCoords.size();
-  float densityMin = clamp(floatingRiGroup__density - floatingRiGroup__densityRandRange, densityClampMin, densityClampMax);
-  float densityMax = clamp(floatingRiGroup__density + floatingRiGroup__densityRandRange, densityClampMin, densityClampMax);
-  floatingRiGroup__riPhysFloatingModel.massMin = totalVolume * densityMin;
-  floatingRiGroup__riPhysFloatingModel.massMax = totalVolume * densityMax;
+  float rInit = (box.lim[1].y - box.lim[0].y) * 0.5f;
+  float rExt = rInit + addRadius;
+  float hMin = rExt - rInit;
+  float hMax = rExt + rInit;
+
+  float rExt3 = pow(rExt, 3);
+  // We have to recalculate acceptable density range to preserve object position on water.
+  float extendedDensityMin = waterDensity * hMin * hMin * (3.0f * rExt - hMin) / (4.0f * rExt3);
+  float extendedDensityMax = waterDensity * hMax * hMax * (3.0f * rExt - hMax) / (4.0f * rExt3);
+
+  float sphereVolume = sphereVolumeCf * rExt3;
+  float totalVolume = sphereVolume * nVolumes;
+  float randDensityMin = remap_range_clamp(floatingRiGroup__density - floatingRiGroup__densityRandRange, initialDensityMin,
+    initialDensityMax, extendedDensityMin, extendedDensityMax);
+  float randDensityMax = remap_range_clamp(floatingRiGroup__density + floatingRiGroup__densityRandRange, initialDensityMin,
+    initialDensityMax, extendedDensityMin, extendedDensityMax);
+
+  floatingRiGroup__riPhysFloatingModel.randMassMin = totalVolume * randDensityMin;
+  floatingRiGroup__riPhysFloatingModel.randMassMax = totalVolume * randDensityMax;
+  floatingRiGroup__riPhysFloatingModel.spheresRad = rExt;
 
   Point3 momentOfInertiaCoeff = Point3(1, 1, 1);
   if (floatingRiGroup__useBoxInertia)

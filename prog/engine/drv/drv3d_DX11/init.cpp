@@ -1245,6 +1245,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   g_device_desc.caps.hasOptimizedViewInstancing = false;
   g_device_desc.caps.hasAcceleratedViewInstancing = false;
   g_device_desc.caps.hasRenderPassDepthResolve = false;
+  g_device_desc.caps.hasShaderFloat16Support = false;
 
   if (init_ngx(get_log_directory()))
   {

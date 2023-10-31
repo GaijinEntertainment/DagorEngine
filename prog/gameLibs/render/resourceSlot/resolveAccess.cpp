@@ -288,93 +288,94 @@ static inline void fill_slots_state(resource_slot::detail::Storage &storage, Nod
   }
 }
 
-
-void resource_slot::resolve_access(unsigned storage_id)
+void resource_slot::resolve_access()
 {
   // TODO: move all dump to separate function and dump graph on error
 
-  detail::Storage &storage = detail::storage_list[storage_id];
-
-  if (register_nodes || register_nodes_every_frame)
+  for (auto &[ns, storage] : detail::storage_list)
   {
-    register_nodes.set(false);
-    storage.isNodeRegisterRequired = true;
-  }
 
-  if (!storage.isNodeRegisterRequired)
-    return;
-
-  TIME_PROFILE(resource_slot__perform_access);
-  storage.isNodeRegisterRequired = false;
-  storage.validNodeCount = 0;
-
-  // Reset nodes state
-  for (int i = 0; i < storage.registeredNodes.size(); ++i)
-  {
-    detail::NodeId nodeId = detail::NodeId{i};
-    detail::NodeDeclaration &node = storage.registeredNodes[nodeId];
-
-    if (node.status == detail::NodeStatus::Pruned)
-      detail::unregister_access(storage, nodeId, node.generation);
-
-    if (node.status == resource_slot::detail::NodeStatus::Empty)
-      continue;
-
-    G_ASSERTF_CONTINUE(node.id == nodeId, "Unexpected node.id=%d for node %s<%d>", int(node.id), storage.nodeMap.name(nodeId), i);
-
-    node.nodeHandle = dabfg::NodeHandle{};
-    node.status = resource_slot::detail::NodeStatus::Valid;
-    ++storage.validNodeCount;
-  }
-
-  // Make topological sort
-  {
-    FRAMEMEM_REGION;
-
-    typedef dag::RelocatableFixedVector<detail::SlotUsage, detail::EXPECTED_MAX_SLOT_USAGE, true, framemem_allocator> UsageList;
-    typedef detail::AutoGrowVector<detail::SlotId, UsageList, detail::EXPECTED_MAX_SLOT_COUNT, false, framemem_allocator> UsageMap;
-    UsageMap slotUsage{storage.slotMap.nameCount()};
-
-    if (debug_topological_order)
-      debug("resource_slot::resolve_access(): start graph generation");
-
-    add_all_nodes_to_usage_list(slotUsage, storage);
-    sort_usage_list(slotUsage);
-
-    typedef dag::RelocatableFixedVector<detail::NodeId, detail::EXPECTED_MAX_NODE_COUNT, true, framemem_allocator> NodeList;
-    NodeList topSortOrder;
-
-    int prevIterationValidNodeCount = storage.validNodeCount;
-    bool isFirstIteration = true;
-    while (true)
+    if (register_nodes || register_nodes_every_frame)
     {
-      G_ASSERT_RETURN(isFirstIteration || prevIterationValidNodeCount > storage.validNodeCount, );
-      isFirstIteration = false;
-      prevIterationValidNodeCount = storage.validNodeCount;
-
-      validate_usage_list<NodeList, UsageMap>(slotUsage, storage);
-
-      typedef detail::Graph<framemem_allocator> Dependencies;
-      Dependencies dependencies{storage.registeredNodes.size()};
-      build_edges_from_usage_list(dependencies, slotUsage, storage);
-
-      // Topological sort
-      if (!make_topological_sort<Dependencies, UsageMap, NodeList>(dependencies, slotUsage, storage, topSortOrder))
-        continue; // Some nodes were removed. Have to rebuild dependency graph
-
-      break;
+      register_nodes.set(false);
+      storage.isNodeRegisterRequired = true;
     }
 
-    fill_slots_state(storage, topSortOrder);
-  }
+    if (!storage.isNodeRegisterRequired)
+      return;
 
-  // Call declarations outside FRAMEMEM_REGION
-  for (resource_slot::detail::NodeDeclaration &node : storage.registeredNodes)
-  {
-    if (node.status != resource_slot::detail::NodeStatus::Valid)
-      continue;
+    TIME_PROFILE(resource_slot__perform_access);
+    storage.isNodeRegisterRequired = false;
+    storage.validNodeCount = 0;
 
-    node.nodeHandle = dabfg::NodeHandle{};
-    node.nodeHandle = node.declaration_callback(resource_slot::State{storage_id, static_cast<int>(node.id)});
+    // Reset nodes state
+    for (int i = 0; i < storage.registeredNodes.size(); ++i)
+    {
+      detail::NodeId nodeId = detail::NodeId{i};
+      detail::NodeDeclaration &node = storage.registeredNodes[nodeId];
+
+      if (node.status == detail::NodeStatus::Pruned)
+        detail::unregister_access(storage, nodeId, node.generation);
+
+      if (node.status == resource_slot::detail::NodeStatus::Empty)
+        continue;
+
+      G_ASSERTF_CONTINUE(node.id == nodeId, "Unexpected node.id=%d for node %s<%d>", int(node.id), storage.nodeMap.name(nodeId), i);
+
+      node.nodeHandle = dabfg::NodeHandle{};
+      node.status = resource_slot::detail::NodeStatus::Valid;
+      ++storage.validNodeCount;
+    }
+
+    // Make topological sort
+    {
+      FRAMEMEM_REGION;
+
+      typedef dag::RelocatableFixedVector<detail::SlotUsage, detail::EXPECTED_MAX_SLOT_USAGE, true, framemem_allocator> UsageList;
+      typedef detail::AutoGrowVector<detail::SlotId, UsageList, detail::EXPECTED_MAX_SLOT_COUNT, false, framemem_allocator> UsageMap;
+      UsageMap slotUsage{storage.slotMap.nameCount()};
+
+      if (debug_topological_order)
+        debug("resource_slot::resolve_access(): start graph generation");
+
+      add_all_nodes_to_usage_list(slotUsage, storage);
+      sort_usage_list(slotUsage);
+
+      typedef dag::RelocatableFixedVector<detail::NodeId, detail::EXPECTED_MAX_NODE_COUNT, true, framemem_allocator> NodeList;
+      NodeList topSortOrder;
+
+      int prevIterationValidNodeCount = storage.validNodeCount;
+      bool isFirstIteration = true;
+      while (true)
+      {
+        G_ASSERT_RETURN(isFirstIteration || prevIterationValidNodeCount > storage.validNodeCount, );
+        isFirstIteration = false;
+        prevIterationValidNodeCount = storage.validNodeCount;
+
+        validate_usage_list<NodeList, UsageMap>(slotUsage, storage);
+
+        typedef detail::Graph<framemem_allocator> Dependencies;
+        Dependencies dependencies{storage.registeredNodes.size()};
+        build_edges_from_usage_list(dependencies, slotUsage, storage);
+
+        // Topological sort
+        if (!make_topological_sort<Dependencies, UsageMap, NodeList>(dependencies, slotUsage, storage, topSortOrder))
+          continue; // Some nodes were removed. Have to rebuild dependency graph
+
+        break;
+      }
+
+      fill_slots_state(storage, topSortOrder);
+    }
+
+    // Call declarations outside FRAMEMEM_REGION
+    for (resource_slot::detail::NodeDeclaration &node : storage.registeredNodes)
+    {
+      if (node.status != resource_slot::detail::NodeStatus::Valid)
+        continue;
+
+      node.nodeHandle = dabfg::NodeHandle{};
+      node.nodeHandle = node.declaration_callback(resource_slot::State{ns, static_cast<int>(node.id)});
+    }
   }
 }

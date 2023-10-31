@@ -1747,6 +1747,13 @@ void RendInstGenData::renderByCells(rendinst::RenderPass render_pass, const rend
           int x = visibility.cellsLod[lodI][i].x;
           int z = visibility.cellsLod[lodI][i].z;
           int cellId = x + z * cellNumW;
+          if (cellId >= cells.size())
+          {
+            logerr("RiGenVisibility::cellsLod[%d][%d] contained an invalid cell (%d, %d) while rendering riGen!"
+                   " Cell dimensions were (%d, %d)",
+              lodI, i, x, z, cellNumW, cellNumH);
+            continue;
+          }
           RendInstGenData::Cell &cell = cells[cellId];
           RendInstGenData::CellRtData *crt_ptr = cell.isReady();
           if (!crt_ptr)

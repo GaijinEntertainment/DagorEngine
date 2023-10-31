@@ -1,0 +1,10 @@
+Version: 4.6.0
+seterrorhandler: function
+setdebughook: function
+getstackinfos: function
+error: function
+errorln: function
+collectgarbage: OK
+resurrectunreachable: OK
+getobjflags: function
+getbuildinfo: function

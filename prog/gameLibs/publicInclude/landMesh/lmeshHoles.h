@@ -9,7 +9,7 @@
  * Dagor Engine 4 - Game Libraries
  * Copyright (C) 2003-2023  Gaijin Entertainment.  All rights reserved
  *
- * (for conditions of distribution and use, see EULA in "prog/eula.txt")
+ * (for conditions of use see prog/license.txt)
  */
 
 #ifndef _DAGOR_GAMELIB_LANDMESH_LMESHHOLES_H_

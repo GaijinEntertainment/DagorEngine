@@ -303,7 +303,7 @@
     onclick="document.getElementById('elemFilterEdit').focus();"
     >
 
-    <input id="elemFilterEdit" value="value" style = "width:100%; box-sizing:border-box;"
+    <input id="elemFilterEdit" value="value" style = "width:100%; box-sizing:border-box;" autocomplete="off"
       onkeyup="globalOnFilterKeyPress(event)" onkeydown="globalOnFilterKeyDown(event)">
     <div id="elemFilterItems">Error</div>
   </div>
@@ -314,7 +314,7 @@
     >
 
     <div style="color:#aaa; margin: 0px 0px 5px 0px;">Open Graph:</div>
-    <input id="openGraphEdit" value="value" style = "width:100%; box-sizing:border-box;"
+    <input id="openGraphEdit" value="value" style = "width:100%; box-sizing:border-box;" autocomplete="off"
       onkeyup="globalOnOpenKeyPress(event)" onkeydown="globalOnOpenKeyDown(event)">
     <div id="openGraphItems">Error</div>
   </div>
@@ -329,7 +329,7 @@
   onkeydown="onBigTextAreaKeyDown(event)">
 </textarea>
 
-<input id="clipboardEditBox" value="" style="position:absolute; left:-100px; top:-100px; width:1px; height:1px; visibility:hidden;"/>
+<input id="clipboardEditBox" value="" style="position:absolute; left:-100px; top:-100px; width:1px; height:1px; visibility:hidden;" autocomplete="off" />
 
 <div id="splashScreenDiv" class="splashScreenClass" style="padding: 10px;">
 __SPLASH_SCREEN_TEXT__

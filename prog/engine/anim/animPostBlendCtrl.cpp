@@ -3187,6 +3187,7 @@ void AnimPostBlendCompoundRotateShift::init(IPureAnimStateHolder &st, const Geom
   LocalData &ldata = *(LocalData *)st.getInlinePtr(localVarId);
   ldata.targetNode = resolve_node_by_name(tree, targetNode);
   ldata.alignAsNode = resolve_node_by_name(tree, alignAsNode);
+  ldata.moveAlongNode = resolve_node_by_name(tree, moveAlongNode);
 }
 void AnimPostBlendCompoundRotateShift::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
@@ -3250,12 +3251,25 @@ void AnimPostBlendCompoundRotateShift::process(IPureAnimStateHolder &st, real wt
   v_mat33_mul(m, m2, tmRot[1]);
 
   vec3f pos = dn_wtm.col3;
+
+  if (ldata.moveAlongNode)
+  {
+    mat44f &moveAlong_wtm = tree.getNodeWtmRel(ldata.moveAlongNode);
+    tree.partialCalcWtm(ldata.alignAsNode);
+
+    m2.col0 = moveAlong_wtm.col0;
+    m2.col1 = moveAlong_wtm.col1;
+    m2.col2 = moveAlong_wtm.col2;
+  }
+
+  mat33f &moveAlong = ldata.moveAlongNode ? m2 : m;
+
   if (varId.ofsX >= 0)
-    pos = v_madd(m.col0, v_splats(scale.ofsX * st.getParam(varId.ofsX)), pos);
+    pos = v_madd(moveAlong.col0, v_splats(scale.ofsX * st.getParam(varId.ofsX)), pos);
   if (varId.ofsY >= 0)
-    pos = v_madd(m.col1, v_splats(scale.ofsY * st.getParam(varId.ofsY)), pos);
+    pos = v_madd(moveAlong.col1, v_splats(scale.ofsY * st.getParam(varId.ofsY)), pos);
   if (varId.ofsZ >= 0)
-    pos = v_madd(m.col2, v_splats(scale.ofsZ * st.getParam(varId.ofsZ)), pos);
+    pos = v_madd(moveAlong.col2, v_splats(scale.ofsZ * st.getParam(varId.ofsZ)), pos);
 
   dn_wtm.col0 = m.col0;
   dn_wtm.col1 = m.col1;
@@ -3278,6 +3292,7 @@ void AnimPostBlendCompoundRotateShift::createNode(AnimationGraph &graph, const D
 
   node->targetNode = blk.getStr("targetNode", NULL);
   node->alignAsNode = blk.getStr("alignAsNode", NULL);
+  node->moveAlongNode = blk.getStr("moveAlongNode", NULL);
 #define SETUP_PARAM(NM)                          \
   if (const char *pname = blk.getStr(#NM, NULL)) \
   node->varId.NM = graph.addParamId(pname, IPureAnimStateHolder::PT_ScalarParam), node->scale.NM = blk.getReal(#NM "_mul", 1.0f)

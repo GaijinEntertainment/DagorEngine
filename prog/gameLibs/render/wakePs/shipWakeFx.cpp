@@ -108,7 +108,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
   float boxLen = desc.box.width().length();
   float wrp = cvt(boxLen, 20.0f, 30.0f, 15.0f, 25.0f);
   wrp = cvt(boxLen, 55.0f, 85.0f, wrp, 40.0f);
-  wrp = cvt(boxLen, 130.0f, 180.0f, wrp, 60.0f);
+  wrp = cvt(boxLen, 130.0f, 180.0f, wrp, 60.0f) * desc.scale;
   ship.wrp = wrp;
   ship.scaleZ = min(0.75f + wrp * 0.01f, desc.box.width().y * 0.05f);
 
@@ -152,7 +152,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
     const float radius1 = wrp * 0.14f;
     const float emitPerMeter1 = 0.7f / radius1;
     const float posSpread1 = radius1 * 0.143f;
-    const float lifeTime1 = radius1 * 4.0f;
+    const float lifeTime1 = radius1 * 4.0f * desc.trailLifeScale;
 
     ParticleSystem::EmitterParams emitterParams;
     emitterParams.spawn.emitPerSecond = 0.0f;
@@ -210,7 +210,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
     const float radius1 = wrp * 0.06f;
     const float emitPerMeter1 = 0.75f / radius1;
     const float posSpread1 = radius1 * 0.167f;
-    const float lifeTime1 = radius1 * 1.0f;
+    const float lifeTime1 = radius1 * 1.0f * desc.trailLifeScale;
 
     ParticleSystem::EmitterParams emitterParams;
     emitterParams.spawn.emitPerSecond = 0.0f;
@@ -361,7 +361,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
     const float radiusSpread = radius * 0.25f;
     const float emitPerMeter = 0.8f / radius;
     const float posSpread = radius * 0.25f;
-    const float lifeTime = radius * 3.5f;
+    const float lifeTime = radius * 3.5f * desc.trailLifeScale;
 
     ParticleSystem::EmitterParams emitterParams;
     emitterParams.spawn.emitPerSecond = 0.0f;
@@ -516,6 +516,12 @@ bool ShipWakeFx::isShipRemoved(uint32_t index) const
   return ships[index].removed;
 }
 
+const ShipWakeFx::ShipDesc &ShipWakeFx::getDesc(uint32_t index) const
+{
+  VERIFY_SHIP_INDEX;
+  return ships[index].desc;
+}
+
 void ShipWakeFx::setShipState(uint32_t index, const ShipState &state)
 {
   const float WAKE_LATERAL = 0.45f;
@@ -625,17 +631,19 @@ void ShipWakeFx::setShipState(uint32_t index, const ShipState &state)
         psFoam->setEmitterAlpha(ship.s[sNo].foamBack, foamAlphaValue);
       }
 
-
-      emitterPose = psFoam->getEmitterPose(ship.s[sNo].foamTrailWave);
-      emitterPose.pos = shipPos + shipDir * (shipBack.x + WAKE_TRAIL_POS) + right[sNo] * (shipBack.y + FOAM_TRAIL_OFFSET);
-      emitterPose.rot = foamAngle[sNo];
-      psFoam->setEmitterPose(ship.s[sNo].foamTrailWave, emitterPose);
-      const Point2 foamVel = right[sNo] * fabsf(longVel) * FOAM_TRAIL_LATERIAL;
-      emitterVelocity = psFoam->getEmitterVelocity(ship.s[sNo].foamTrailWave);
-      emitterVelocity.dir = normalizeDef(foamVel, shipDir);
-      emitterVelocity.vel = foamVel.length();
-      psFoam->setEmitterVelocity(ship.s[sNo].foamTrailWave, emitterVelocity);
-      psFoam->setEmitterAlpha(ship.s[sNo].foamTrailWave, foamAlphaValue);
+      if (state.hasBack)
+      {
+        emitterPose = psFoam->getEmitterPose(ship.s[sNo].foamTrailWave);
+        emitterPose.pos = shipPos + shipDir * (shipBack.x + WAKE_TRAIL_POS) + right[sNo] * (shipBack.y + FOAM_TRAIL_OFFSET);
+        emitterPose.rot = foamAngle[sNo];
+        psFoam->setEmitterPose(ship.s[sNo].foamTrailWave, emitterPose);
+        const Point2 foamVel = right[sNo] * fabsf(longVel) * FOAM_TRAIL_LATERIAL;
+        emitterVelocity = psFoam->getEmitterVelocity(ship.s[sNo].foamTrailWave);
+        emitterVelocity.dir = normalizeDef(foamVel, shipDir);
+        emitterVelocity.vel = foamVel.length();
+        psFoam->setEmitterVelocity(ship.s[sNo].foamTrailWave, emitterVelocity);
+        psFoam->setEmitterAlpha(ship.s[sNo].foamTrailWave, foamAlphaValue);
+      }
     }
 
     if (!settings.reduceFoam && state.hasFront)
@@ -675,17 +683,21 @@ void ShipWakeFx::setShipState(uint32_t index, const ShipState &state)
     }
   }
 
+  const float speedScaleZ = saturate((longVel - WAKE_TRAIL_SCALEZ_MIN_VEL) / WAKE_TRAIL_SCALEZ_MIN_VEL);
   // psWakeTrail
+  if (state.hasBack)
   {
-    const float speedScaleZ = saturate((longVel - WAKE_TRAIL_SCALEZ_MIN_VEL) / WAKE_TRAIL_SCALEZ_MIN_VEL);
     ParticleSystem::Pose emitterPose = psWakeTrail->getEmitterPose(ship.wakeTrail);
     emitterPose.pos = shipPos + shipDir * (shipBack.x + WAKE_TRAIL_POS) + shipRight * shipBack.y;
     emitterPose.scale.z = ship.scaleZ * speedScaleZ;
     psWakeTrail->setEmitterPose(ship.wakeTrail, emitterPose);
-
+  }
+  // front of psWakeTrail
+  if (state.hasFront)
+  {
     for (int sNo = 0; sNo < 2; ++sNo)
     {
-      emitterPose = psWakeTrail->getEmitterPose(ship.s[sNo].wakeBack);
+      ParticleSystem::Pose emitterPose = psWakeTrail->getEmitterPose(ship.s[sNo].wakeBack);
       emitterPose.pos = shipPos + shipDir * (shipBack.x + WAKE_SEC_TRAIL_POS) + right[sNo] * (shipBack.y + WAKE_TRAIL_OFFSET);
       emitterPose.scale.z = ship.scaleZ * speedScaleZ;
       psWakeTrail->setEmitterPose(ship.s[sNo].wakeBack, emitterPose);
@@ -699,6 +711,7 @@ void ShipWakeFx::setShipState(uint32_t index, const ShipState &state)
   }
 
   // psFoamTrail
+  if (state.hasBack)
   {
     ParticleSystem::Pose emitterPose = psFoamTrail->getEmitterPose(ship.foamTrail);
     emitterPose.pos = shipPos + shipDir * (shipBack.x + WAKE_TRAIL_POS) + shipRight * shipBack.y;
@@ -707,7 +720,7 @@ void ShipWakeFx::setShipState(uint32_t index, const ShipState &state)
     psFoamTrail->setEmitterAlpha(ship.foamTrail, foamAlphaValue);
   }
 
-  if (psFoamDistorted)
+  if (psFoamDistorted && state.hasBack)
   {
     ParticleSystem::Pose emitterPose = psFoamDistorted->getEmitterPose(ship.foamDistorted);
     emitterPose.pos = shipPos + shipDir * (shipBack.x + WAKE_TRAIL_POS) + shipRight * shipBack.y;
@@ -716,7 +729,7 @@ void ShipWakeFx::setShipState(uint32_t index, const ShipState &state)
     psFoamDistorted->setEmitterAlpha(ship.foamDistorted, foamAlphaValue);
   }
 
-  if (psFoamMask)
+  if (psFoamMask && state.hasBack)
   {
     ParticleSystem::Pose emitterPose = psFoamMask->getEmitterPose(ship.foamMask);
     emitterPose.pos = shipPos + shipDir * (shipBack.x + WAKE_TRAIL_POS) + shipRight * shipBack.y;

@@ -66,17 +66,17 @@ let function slider(orient, var, options={}) {
     hotkeys = [
       ["Left | J:D.Left", sliderLeftLoc, function() {
         let delta = maxval > minval ? -pageScroll : pageScroll
-        onChange(clamp(scaling.to(var.value + delta, minval, maxval), 0, 1))
+        onChange(math.clamp(scaling.to(var.value + delta, minval, maxval), 0, 1))
       }],
       ["Right | J:D.Right", sliderRightLoc, function() {
         let delta = maxval > minval ? pageScroll : -pageScroll
-        onChange(clamp(scaling.to(var.value + delta, minval, maxval), 0, 1))
+        onChange(math.clamp(scaling.to(var.value + delta, minval, maxval), 0, 1))
       }],
     ]
   }
 
   return function() {
-    let factor = clamp(scaling.to(var.value, minval, maxval), 0, 1)
+    let factor = math.clamp(scaling.to(var.value, minval, maxval), 0, 1)
     return {
       size = flex()
       behavior = Behaviors.Slider

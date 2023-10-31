@@ -201,15 +201,15 @@ shader spot_lights_tiles, omni_lights_tiles
       depthTile = tileIdx * TILE_EDGE + TILE_EDGE - 1 < screen_size.xy ? depthTile : depthTile - 1;
       uint index = input.index;
       uint finalIdx = (tileIdx.x * tiledGridSize.y + (tileIdx.y)) * DWORDS_PER_TILE + (index / BITS_IN_UINT);
-      float closeDepth = linearize_z(texelFetch(close_depth_tex, depthTile, DIVIDE_RESOLUTION_BITS - 1).x, zn_zfar.zw);
-      float farDepth = linearize_z(texelFetch(downsampled_far_depth_tex, depthTile, DIVIDE_RESOLUTION_BITS - 1).x, zn_zfar.zw);
-      float3 viewVecTileLT = lerp_view_vec(screenpos.xy * screen_size.zw * TILE_EDGE);
-      float3 viewVecTileLB = lerp_view_vec((screenpos.xy + float2(0, 1)) * screen_size.zw * TILE_EDGE);
-      float3 viewVecTileRT = lerp_view_vec((screenpos.xy + float2(1, 0)) * screen_size.zw * TILE_EDGE);
-      float3 viewVecTileRB = lerp_view_vec((screenpos.xy + float2(1, 1)) * screen_size.zw * TILE_EDGE);
       #if DISABLE_RAY_LIGHT_INTERSECTION
         InterlockedOr(structuredBufferAt(perTileLights, finalIdx), 1u << (index % BITS_IN_UINT));
       #else
+        float closeDepth = linearize_z(texelFetch(close_depth_tex, depthTile, DIVIDE_RESOLUTION_BITS - 1).x, zn_zfar.zw);
+        float farDepth = linearize_z(texelFetch(downsampled_far_depth_tex, depthTile, DIVIDE_RESOLUTION_BITS - 1).x, zn_zfar.zw);
+        float3 viewVecTileLT = lerp_view_vec(screenpos.xy * screen_size.zw * TILE_EDGE);
+        float3 viewVecTileLB = lerp_view_vec((screenpos.xy + float2(0, 1)) * screen_size.zw * TILE_EDGE);
+        float3 viewVecTileRT = lerp_view_vec((screenpos.xy + float2(1, 0)) * screen_size.zw * TILE_EDGE);
+        float3 viewVecTileRB = lerp_view_vec((screenpos.xy + float2(1, 1)) * screen_size.zw * TILE_EDGE);
         if (
           check_ray_light_intersection(input, float2(closeDepth, farDepth), viewVecTileLT)
           || check_ray_light_intersection(input, float2(closeDepth, farDepth), viewVecTileLB)

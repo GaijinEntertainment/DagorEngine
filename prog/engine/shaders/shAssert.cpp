@@ -100,6 +100,7 @@ void readback()
           char *next_format = first_format;
           for (int id = 0; next_format; id++)
           {
+            G_ASSERT(id < 16);
             bool is_string = next_format[1] == 's';
             next_format = strchr(next_format + 1, '%');
             char symbol = next_format ? *next_format : 0;
@@ -108,6 +109,17 @@ void readback()
             if (is_string)
             {
               int string_id = (int)it->variables[id];
+              const bool oob = string_id >= 0 && get_dump_v2()->messagesByShclass[failed_shader_id].size() <= string_id;
+              if (oob)
+                for (uint32_t i = 0; i < get_dump_v2()->messagesByShclass[failed_shader_id].size(); ++i)
+                  debug("String %d: %s", i, get_dump_v2()->messagesByShclass[failed_shader_id][i].c_str());
+              G_ASSERTF(!oob,
+                "In correct string-id %d"
+                "(raw: %f, arg-idx: %d).\n String collection size: %d\n Current message: %s\n Current output: %s",
+                string_id, it->variables[id], id, get_dump_v2()->messagesByShclass[failed_shader_id].size(), message.c_str(),
+                output.c_str());
+              if (oob)
+                break;
               const char *str = string_id >= 0 ? get_dump_v2()->messagesByShclass[failed_shader_id][string_id].c_str() : "<null>";
               output.aprintf(0, message_str, str);
             }

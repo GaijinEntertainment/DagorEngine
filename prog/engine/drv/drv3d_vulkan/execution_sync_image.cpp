@@ -48,7 +48,10 @@ bool ExecutionSyncTracker::ImageOp::verifySelfConflict(const ImageOp &cmp) const
 
 bool ExecutionSyncTracker::ImageOp::conflicts(const ImageOp &cmp) const
 {
-  return area.intersects(cmp.area) && (laddr.conflicting(cmp.laddr) || layout != cmp.layout) && !completed && !cmp.completed;
+  return area.intersects(cmp.area) && (laddr.conflicting(cmp.laddr) || layout != cmp.layout) && !completed &&
+         !cmp.completed
+         // treat only "external" subpasses as conflicting, leave internal subpasses sync to subpass dependencies
+         && ((subpassIdx == ExecutionSyncTracker::SUBPASS_NON_NATIVE) || (cmp.subpassIdx == ExecutionSyncTracker::SUBPASS_NON_NATIVE));
 }
 
 void ExecutionSyncTracker::ImageOp::addToBarrierByTemplateSrc(PipelineBarrier &barrier)
@@ -65,14 +68,6 @@ void ExecutionSyncTracker::ImageOp::addToBarrierByTemplateSrc(PipelineBarrier &b
   barrier.modifyImageTemplateOldLayout(layout);
   barrier.modifyImageTemplate(area.mipIndex, area.mipRange, area.arrayIndex, area.arrayRange);
   barrier.addImageByTemplate({laddr.access, VK_ACCESS_NONE});
-}
-
-void ExecutionSyncTracker::ImageOp::onNativePassEnter(uint16_t pass_idx)
-{
-  // operation will be handled by render pass subpass deps
-  // so we should not treat it as pending operation right after sync/layout barrier is filled
-  if (nativePassIdx == pass_idx)
-    completed = true;
 }
 
 void ExecutionSyncTracker::ImageOp::addToBarrierByTemplateDst(PipelineBarrier &barrier, size_t gpu_work_id)
@@ -176,7 +171,7 @@ bool ExecutionSyncTracker::ImageOp::mergeCheck(ImageArea, ImageOpAdditionalParam
   // better to know this ahead of time and trigger assert
   if (extra.layout != layout)
     return false;
-  else if (extra.nativePassIdx != nativePassIdx)
+  else if (extra.subpassIdx != subpassIdx)
     return false;
 
   return true;

@@ -1,0 +1,11 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/math/DelaunayTriangulator ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/math/DelaunayTriangulator.lib ;
+
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+AutoscanBuildLists source : *.cpp : Sources ;
+
+include $(Root)/prog/_jBuild/build.jam ;

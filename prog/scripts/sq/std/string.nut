@@ -409,7 +409,7 @@ function substring(str, start = 0, length = null) {
     local total = str.len()
     if (start < 0)
       start += total
-    start = clamp(start, 0, total)
+    start = math.clamp(start, 0, total)
     end = start + length
   }
   return slice(str, start, end)
@@ -900,7 +900,7 @@ function splitStringBySize(str, maxSize) {
   local start = 0
   let l = str.len()
   while (start < l) {
-    let pieceSize = min(l - start, maxSize)
+    let pieceSize = math.min(l - start, maxSize)
     result.append(str.slice(start, start + pieceSize))
     start += pieceSize
   }

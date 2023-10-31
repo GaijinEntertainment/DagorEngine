@@ -227,18 +227,19 @@ eastl::pair<bool, intptr_t> default_wnd_proc(void *hwnd, unsigned message, uintp
 
     case WM_POWERBROADCAST:
     {
-      static intptr_t prevTmt = 0;
+      static int prevTmt = -1;
       if (wParam == PBT_APMSUSPEND)
       {
         dgs_last_suspend_at = timeGetTime();
         debug("Windows suspended @ %ums", dgs_last_suspend_at);
-        prevTmt = watchdog_set_option(WATCHDOG_OPTION_TRIG_THRESHOLD, 0);
+        prevTmt = (int)watchdog_set_option(WATCHDOG_OPTION_TRIG_THRESHOLD, WATCHDOG_DISABLE);
       }
       if (wParam == PBT_APMRESUMEAUTOMATIC) // The system always sends a PBT_APMRESUMEAUTOMATIC message whenever the system resumes.
       {
         dgs_last_resume_at = timeGetTime();
         debug("Windows resumed @ %ums", dgs_last_resume_at);
-        watchdog_set_option(WATCHDOG_OPTION_TRIG_THRESHOLD, prevTmt);
+        if (prevTmt >= 0) // If suspend code called
+          watchdog_set_option(WATCHDOG_OPTION_TRIG_THRESHOLD, prevTmt);
       }
       return {true, TRUE};
     }

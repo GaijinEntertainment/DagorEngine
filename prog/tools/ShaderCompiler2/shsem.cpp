@@ -702,7 +702,7 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
   {
     for (int i = 0; i < stVarCB.get_messages().nameCount(); i++)
     {
-      if (i < glob_string_table.nameCount())
+      if (stVarCB.is_filename_message(i))
         sclass->messages.emplace_back(stVarCB.get_messages().getName(i));
       else
         sclass->messages.emplace_back(eastl::string::CtorSprintf{}, "%s: %s", shname->text, stVarCB.get_messages().getName(i));

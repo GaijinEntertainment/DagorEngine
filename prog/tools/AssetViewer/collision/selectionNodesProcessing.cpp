@@ -647,7 +647,7 @@ static void update_hidden_nodes(const SelectedNodesSettings &settings, const dag
     {
       for (int i = 0; i < nodes.size(); ++i)
       {
-        if (refNode == nodes[i].name)
+        if (refNode == nodes[i].name.c_str())
         {
           hidden_nodes[i] = true;
           break;

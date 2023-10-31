@@ -29,7 +29,7 @@
 
 #include "drvCommonConsts.h"
 
-#include <comPtr/comPtr.h>
+#include <supp/dag_comPtr.h>
 
 #include "constants.h"
 
@@ -2960,3 +2960,243 @@ inline uint32_t spread_color_chanel_mask_to_render_target_color_channel_mask(uin
   const uint32_t a1 = a | (a >> 1) | (a >> 2) | (a >> 3);
   return r1 | g1 | b1 | a1;
 }
+
+// used for de and encoding into blk's
+#define DX12_D3D_CAP_SET                               \
+  DX12_D3D_CAP(hasAnisotropicFilter);                  \
+  DX12_D3D_CAP(hasDepthReadOnly);                      \
+  DX12_D3D_CAP(hasStructuredBuffers);                  \
+  DX12_D3D_CAP(hasNoOverwriteOnShaderResourceBuffers); \
+  DX12_D3D_CAP(hasForcedSamplerCount);                 \
+  DX12_D3D_CAP(hasVolMipMap);                          \
+  DX12_D3D_CAP(hasAsyncCompute);                       \
+  DX12_D3D_CAP(hasOcclusionQuery);                     \
+  DX12_D3D_CAP(hasConstBufferOffset);                  \
+  DX12_D3D_CAP(hasDepthBoundsTest);                    \
+  DX12_D3D_CAP(hasConditionalRender);                  \
+  DX12_D3D_CAP(hasResourceCopyConversion);             \
+  DX12_D3D_CAP(hasAsyncCopy);                          \
+  DX12_D3D_CAP(hasReadMultisampledDepth);              \
+  DX12_D3D_CAP(hasInstanceID);                         \
+  DX12_D3D_CAP(hasConservativeRassterization);         \
+  DX12_D3D_CAP(hasQuadTessellation);                   \
+  DX12_D3D_CAP(hasGather4);                            \
+  DX12_D3D_CAP(hasAlphaCoverage);                      \
+  DX12_D3D_CAP(hasWellSupportedIndirect);              \
+  DX12_D3D_CAP(hasRaytracing);                         \
+  DX12_D3D_CAP(hasRaytracingT11);                      \
+  DX12_D3D_CAP(hasBindless);                           \
+  DX12_D3D_CAP(hasNVApi);                              \
+  DX12_D3D_CAP(hasATIApi);                             \
+  DX12_D3D_CAP(hasVariableRateShading);                \
+  DX12_D3D_CAP(hasVariableRateShadingTexture);         \
+  DX12_D3D_CAP(hasVariableRateShadingShaderOutput);    \
+  DX12_D3D_CAP(hasVariableRateShadingCombiners);       \
+  DX12_D3D_CAP(hasVariableRateShadingBy4);             \
+  DX12_D3D_CAP(hasAliasedTextures);                    \
+  DX12_D3D_CAP(hasResourceHeaps);                      \
+  DX12_D3D_CAP(hasBufferOverlapCopy);                  \
+  DX12_D3D_CAP(hasBufferOverlapRegionsCopy);           \
+  DX12_D3D_CAP(hasUAVOnlyForcedSampleCount);           \
+  DX12_D3D_CAP(hasShader64BitIntegerResources);        \
+  DX12_D3D_CAP(hasNativeRenderPassSubPasses);          \
+  DX12_D3D_CAP(hasTiled2DResources);                   \
+  DX12_D3D_CAP(hasTiled3DResources);                   \
+  DX12_D3D_CAP(hasTiledSafeResourcesAccess);           \
+  DX12_D3D_CAP(hasTiledMemoryAliasing);                \
+  DX12_D3D_CAP(hasDLSS);                               \
+  DX12_D3D_CAP(hasXESS);                               \
+  DX12_D3D_CAP(hasDrawID);                             \
+  DX12_D3D_CAP(hasMeshShader);                         \
+  DX12_D3D_CAP(hasBasicViewInstancing);                \
+  DX12_D3D_CAP(hasOptimizedViewInstancing);            \
+  DX12_D3D_CAP(hasAcceleratedViewInstancing);          \
+  DX12_D3D_CAP(hasRenderPassDepthResolve);             \
+  DX12_D3D_CAP(hasStereoExpansion);                    \
+  DX12_D3D_CAP(hasTileBasedArchitecture);              \
+  DX12_D3D_CAP(hasLazyMemory);                         \
+  DX12_D3D_CAP(hasIndirectSupport);                    \
+  DX12_D3D_CAP(hasCompareSampler);
+
+template <typename T>
+class DynamicArray
+{
+  eastl::unique_ptr<T[]> ptr;
+  size_t count = 0;
+
+public:
+  DynamicArray() = default;
+  DynamicArray(const DynamicArray &) = delete;
+  DynamicArray(DynamicArray &&) = default;
+  DynamicArray(T *p, size_t sz) : ptr{p}, count{sz} {}
+  DynamicArray(eastl::unique_ptr<T[]> &&p, size_t sz) : ptr{eastl::forward<eastl::unique_ptr<T[]>>(p)}, count{sz} {}
+  explicit DynamicArray(size_t sz) : DynamicArray{eastl::make_unique<T[]>(sz), sz} {}
+  DynamicArray &operator=(const DynamicArray &) = delete;
+  DynamicArray &operator=(DynamicArray &&other)
+  {
+    eastl::swap(ptr, other.ptr);
+    eastl::swap(count, other.count);
+    return *this;
+  }
+
+  void adopt(T *new_ptr, size_t new_sz)
+  {
+    eastl::unique_ptr<T[]> newPtr{new_ptr};
+    eastl::swap(ptr, newPtr);
+    count = new_sz;
+  }
+
+  T *release()
+  {
+    count = 0;
+    return ptr.release();
+  }
+
+  bool resize(size_t new_size)
+  {
+    if (count == new_size)
+    {
+      return false;
+    }
+
+    if (0 == new_size)
+    {
+      ptr.reset();
+      count = 0;
+      return true;
+    }
+
+    auto newBlock = eastl::make_unique<T[]>(new_size);
+    if (!newBlock)
+    {
+      return false;
+    }
+
+    for (uint32_t i = 0; i < count; ++i)
+    {
+      newBlock[i] = eastl::move(ptr[i]);
+    }
+    eastl::swap(ptr, newBlock);
+    count = new_size;
+    return true;
+  }
+
+  T &operator[](size_t i) { return ptr[i]; }
+  const T &operator[](size_t i) const { return ptr[i]; }
+  size_t size() const { return count; }
+  bool empty() const { return !ptr || 0 == count; }
+  T *data() { return ptr.get(); }
+  const T *data() const { return ptr.get(); }
+  eastl::span<T> asSpan() { return {data(), size()}; }
+  eastl::span<const T> asSpan() const { return {data(), size()}; }
+  eastl::span<T> releaseAsSpan()
+  {
+    auto retValue = asSpan();
+    release();
+    return retValue;
+  }
+  static DynamicArray fromSpan(eastl::span<T> span) { return {span.data(), span.size()}; }
+  T *begin() { return ptr.get(); }
+  const T *begin() const { return ptr.get(); }
+  const T *cbegin() const { return begin(); }
+  T *end() { return begin() + size(); }
+  const T *end() const { return begin() + size(); }
+  const T *cend() const { return end(); }
+};
+
+template <typename T>
+class DerivedSpan
+{
+  using BytePointerType = typename eastl::conditional<eastl::is_const<T>::value, const uint8_t *, uint8_t *>::type;
+  BytePointerType uBase = nullptr;
+  size_t uSize = 0;
+  size_t uCount = 0;
+  BytePointerType atIndex(size_t i) const { return &uBase[i * uSize]; }
+
+public:
+  DerivedSpan() = default;
+  DerivedSpan(const DerivedSpan &) = default;
+  template <typename U>
+  DerivedSpan(U *u_base, size_t u_count) : uBase{reinterpret_cast<BytePointerType>(u_base)}, uSize{sizeof(U)}, uCount{u_count}
+  {
+    static_assert(eastl::is_base_of<T, U>::value, "U is invalid type");
+  }
+  template <typename U>
+  DerivedSpan(const eastl::vector<U> &u_base) : DerivedSpan{u_base.data(), u_base.size()}
+  {}
+  class Iterator
+  {
+    BytePointerType uBase = nullptr;
+    size_t uSize = 0;
+
+  public:
+    Iterator() = default;
+    Iterator(const Iterator &) = default;
+    Iterator(BytePointerType u_base, size_t u_size) : uBase{u_base}, uSize{u_size} {}
+
+    friend bool operator==(const Iterator &l, const Iterator &r) { return l.uBase == r.uBase; }
+    friend bool operator!=(const Iterator &l, const Iterator &r) { return !(l == r); }
+
+    Iterator &operator++()
+    {
+      uBase += uSize;
+      return *this;
+    }
+    Iterator operator++(int) const
+    {
+      auto other = *this;
+      ++other;
+      return other;
+    }
+
+    Iterator &operator--()
+    {
+      uBase -= uSize;
+      return *this;
+    }
+    Iterator operator--(int) const
+    {
+      auto other = *this;
+      --other;
+      return other;
+    }
+    T &operator*() const { return *reinterpret_cast<T *>(uBase); }
+  };
+
+  Iterator begin() const { return {uBase, uSize}; }
+  Iterator cbegin() const { return begin(); }
+  Iterator end() const { return {atIndex(uCount), uSize}; }
+  Iterator cend() const { return end(); }
+  size_t size() const { return uCount; }
+  T *data() const { return reinterpret_cast<T *>(uBase); }
+};
+
+struct DeviceCapsAndShaderModel
+{
+  // deliberately using base to allow to load all cap values
+  DeviceDriverCapabilitiesBase caps;
+  d3d::shadermodel::Version shaderModel;
+
+  bool isCompatibleTo(d3d::shadermodel::Version shader_model) const { return shader_model <= shaderModel; }
+  bool isCompatibleTo(const DeviceDriverCapabilities &other) const
+  {
+    // This is a very simple approach, when a feature of other is requested but not indicated by caps, we are not compatible.
+#define DX12_D3D_CAP(name)      \
+  if (other.name && !caps.name) \
+    return false;
+    DX12_D3D_CAP_SET
+#undef DX12_D3D_CAP
+    return true;
+  }
+  bool isCompatibleTo(const Driver3dDesc &desc) const { return isCompatibleTo(desc.shaderModel) && isCompatibleTo(desc.caps); }
+  static DeviceCapsAndShaderModel fromDriverDesc(const Driver3dDesc &desc)
+  {
+    DeviceCapsAndShaderModel result;
+    result.shaderModel = desc.shaderModel;
+    // need to do a copy this way to properly copy constants into variables.
+#define DX12_D3D_CAP(name) result.caps.name = desc.caps.name;
+    DX12_D3D_CAP_SET
+#undef DX12_D3D_CAP
+    return result;
+  }
+};

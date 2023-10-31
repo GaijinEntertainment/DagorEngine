@@ -1,0 +1,110 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/HeightmapLand ;
+DriverLinkage = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+UseQuirrel = sq3+ ;
+
+TargetType  = dll ;
+Target      = tools/sceneTools/daEditorX/heightmapLand.dll ;
+OutDir      = $(Root)/tools/dagor3_cdk/bin/plugins/de3x ;
+if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/de3x ; }
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/squirrel
+  $(Root)/prog/3rdPartyLibs/Recast/Include
+  $(Root)/prog/3rdPartyLibs/Detour/Include
+;
+
+Sources =
+  hmlExportHmap.cpp
+  hmlClipping.cpp
+  hmlExport.cpp
+  hmlObject.cpp
+  hmlLayers.cpp
+  hmlSplineObject.cpp
+  hmlSplinePoint.cpp
+  hmlGenColorMap.cpp
+  hmlImport.cpp
+  hmlEventHandler.cpp
+  hmlIGenEditorPlugin.cpp
+  hmlMain.cpp
+  hmlModifiers.cpp
+  hmlPanel.cpp
+  hmlPlugin.cpp
+  hmlExportSizeDlg.cpp
+  hmlEditorEH.cpp
+  hmlSplineTriangulation.cpp
+  hmlSplineModifier.cpp
+  hmlImportExport.cpp
+  hmlSplineMask.cpp
+  hmlLmeshHtConstrMask.cpp
+  hmlRivers.cpp
+  common.cpp
+  loftObject.cpp
+  hmlEntity.cpp
+  hmlLight.cpp
+  hmlHoleObject.cpp
+  hmlSnow.cpp
+  LandClassSlotsMgr.cpp
+  entityCopyDlg.cpp
+  materialMgr.cpp
+  buildRoad.cpp
+  roadsSnapshot.cpp
+  importLandMesh.cpp
+  waterSurfGen.cpp
+  hmlExportSplines.cpp
+  hmlSelTexDlg.cpp
+  gpuGrassPanel.cpp
+
+  Brushes/hmlBrush.cpp
+  Brushes/hmlHillBrush.cpp
+  Brushes/hmlSmoothBrush.cpp
+  Brushes/brushMask.cpp
+  Brushes/hmlAlignBrush.cpp
+  Brushes/hmlShadowsBrush.cpp
+  Brushes/hmlScriptBrush.cpp
+
+  objectParam.cpp
+  recastNavMesh.cpp
+;
+
+UseProgLibs =
+  tools/sceneTools/daEditorX/de3dllCore
+  tools/libTools/assetMgr
+  tools/libTools/delaunay
+  tools/libTools/winGuiWrapper
+  tools/libTools/staticGeom
+  tools/libTools/dagFileRW
+  gameLibs/landMesh
+  engine/SceneRay
+  engine/image
+  engine/perfMon/daProfilerStub
+
+  3rdPartyLibs/math/DelaunayTriangulator
+  3rdPartyLibs/math/clipper-4.x
+  3rdPartyLibs/math/misc
+  3rdPartyLibs/hash
+  3rdPartyLibs/image/tiff-4.4.0
+
+  3rdPartyLibs/Recast
+  3rdPartyLibs/Detour
+  gameLibs/pathFinder
+  gameLibs/pathFinder/tileCache/stub
+  gameLibs/pathFinder/customNav/stub
+  gameLibs/recastTools
+  gameLibs/covers
+;
+
+ImportProgLibs =
+  tools/libTools/daKernel
+;
+
+
+LINKopt = -def:$(Root)/prog/tools/sceneTools/daEditorX/de3dllCore/de3_plugin.def ;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

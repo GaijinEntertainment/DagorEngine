@@ -13,8 +13,10 @@ static thread_local char frn_tls[512];
 
 static inline const char *get_abs_vrom_name(const char *fname)
 {
-  return iterate_base_paths_fast_s(fname, frn_tls, sizeof(frn_tls), true, true,
-    [](const char *fn) { return vromfs_get_file_data_one(fn, nullptr).data() != nullptr; });
+  return iterate_base_paths_fast_s(fname, frn_tls, sizeof(frn_tls), true, true, [](const char *fn) {
+    VirtualRomFsData *out_vrom = nullptr;
+    return vromfs_get_file_data_one(fn, &out_vrom).data() != nullptr;
+  });
 }
 static inline const char *get_real_name(const char *fname, bool folder, bool allow_vrom = false)
 {

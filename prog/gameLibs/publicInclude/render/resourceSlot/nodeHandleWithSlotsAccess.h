@@ -1,5 +1,8 @@
 #pragma once
 
+#include <render/daBfg/nameSpace.h>
+
+
 namespace resource_slot
 {
 
@@ -40,15 +43,15 @@ struct NodeHandleWithSlotsAccess
    * INTERNAL use only
    * \private
    */
-  NodeHandleWithSlotsAccess(unsigned storage_id, int handle_id, unsigned generation_number);
+  NodeHandleWithSlotsAccess(dabfg::NameSpace ns, int handle_id, unsigned generation_number);
 
 private:
-  unsigned storageId : 4;
-  int id : 28;
+  dabfg::NameSpace nameSpace;
+  int id;
   unsigned generation : 31;
   unsigned valid : 1;
 };
 
-static_assert(sizeof(NodeHandleWithSlotsAccess) == sizeof(unsigned) * 2);
+static_assert(sizeof(NodeHandleWithSlotsAccess) == sizeof(unsigned) * 3);
 
 } // namespace resource_slot

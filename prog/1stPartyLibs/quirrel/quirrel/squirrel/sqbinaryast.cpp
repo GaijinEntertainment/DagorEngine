@@ -202,6 +202,7 @@ void SQASTWritingVisitor::visitGetFieldExpr(GetFieldExpr *gf) {
   writeNodeHeader(gf);
   gf->receiver()->visit(this);
   stream->writeInt8(gf->isNullable());
+  stream->writeInt8(gf->isBuiltInGet());
   writeString(gf->fieldName());
 }
 
@@ -988,9 +989,10 @@ GetFieldExpr *SQASTReader::readGetFieldExpr() {
   Expr *receiver = readExpression();
 
   bool nullable = (bool)stream->readInt8();
+  bool builtIn = (bool)stream->readInt8();
   const SQChar *s = readString();
 
-  return newNode<GetFieldExpr>(receiver, s, nullable);
+  return newNode<GetFieldExpr>(receiver, s, nullable, builtIn);
 }
 
 GetTableExpr *SQASTReader::readGetTableExpr() {

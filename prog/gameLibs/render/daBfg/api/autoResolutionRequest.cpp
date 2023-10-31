@@ -6,6 +6,6 @@
 namespace dabfg
 {
 
-IPoint2 AutoResolutionRequest::get() const { return registry->autoResTypes[autoResTypeId].dynamicResolution; }
+IPoint2 AutoResolutionRequest::get() const { return provider->resolutions[autoResTypeId]; }
 
 } // namespace dabfg

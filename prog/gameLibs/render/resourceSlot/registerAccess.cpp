@@ -3,10 +3,10 @@
 
 #include <detail/storage.h>
 
-resource_slot::NodeHandleWithSlotsAccess resource_slot::detail::register_access(const char *name, const char *source_location,
-  ActionList &&action_list, AccessCallback &&declaration_callback, unsigned storage_id)
+resource_slot::NodeHandleWithSlotsAccess resource_slot::detail::register_access(dabfg::NameSpace ns, const char *name,
+  const char *source_location, ActionList &&action_list, AccessCallback &&declaration_callback)
 {
-  Storage &storage = storage_list[storage_id];
+  Storage &storage = storage_list[ns];
   storage.isNodeRegisterRequired = true;
   NodeId nodeId = storage.nodeMap.id(name);
 
@@ -37,5 +37,5 @@ resource_slot::NodeHandleWithSlotsAccess resource_slot::detail::register_access(
       declaration);
   }
 
-  return NodeHandleWithSlotsAccess{storage_id, static_cast<int>(nodeId), generation};
+  return NodeHandleWithSlotsAccess{ns, static_cast<int>(nodeId), generation};
 }

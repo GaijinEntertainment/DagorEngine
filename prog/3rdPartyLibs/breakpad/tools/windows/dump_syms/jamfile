@@ -2,6 +2,7 @@ Root    ?= ../../../../../.. ;
 BreakpadRoot = prog/3rdPartyLibs/breakpad ;
 Location = $(BreakpadRoot)/tools/windows/dump_syms ;
 Platform = win32 ;
+PlatformSpec = vc16 ;
 
 FullOOPEnabled = yes ;
 
@@ -10,13 +11,13 @@ TargetType  = exe ;
 OutDir      = $(Root)/tools/util ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
+include $(Root)/prog/_jBuild/$(Platform)/$(PlatformSpec)-sets.jam ;
 
 Target      = 3rdPartyLibs/breakpad/tools/windows/dump_syms ;
 
 AddIncludes +=
   $(Root)/$(BreakpadRoot)
-  $(Root)/prog/3rdPartyLibs/wtl-8.1/include/vc8_atl
-  $(Root)/prog/3rdPartyLibs/wtl-8.1/include
+  $(_VC_DIR)/atlmfc/include
   $(Root)/prog/3rdPartyLibs/diasdk/include
 ;
 local CommonWinLibPath = 3rdPartyLibs/breakpad/common/windows ;
@@ -32,10 +33,10 @@ AddLibs =
   version.lib
   imagehlp.lib
   $(Root)/prog/3rdPartyLibs/diasdk/lib/diaguids.lib
-  $(Root)/prog/3rdPartyLibs/wtl-8.1/lib/vc8_atl/atls.lib
+  $(_VC_DIR)/atlmfc/lib/x86/atls.lib
 ;
 
-CPPopt += -DUNICODE -D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS ;
+CPPopt += -DUNICODE -D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS -D_ATL_ALLOW_CHAR_UNSIGNED ;
 LINKopt += -ignore:4254 ; # silence old ATL library merging
 
 GlobalCPPopt += -D__B_NO_MEM_BASE_INCLUDE ;

@@ -1,8 +1,6 @@
 Root    ?= ../../../../.. ;
 Location = prog/tools/sceneTools/daEditorX/ScnExport ;
 
-UseWTL = yes ;
-
 TargetType  = lib ;
 Target      = tools/sceneTools/daEditorX/scnexport.lib ;
 

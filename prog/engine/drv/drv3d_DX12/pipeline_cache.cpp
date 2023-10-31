@@ -50,7 +50,7 @@ enum CacheFileFlags
 };
 
 constexpr uint32_t CACHE_FILE_MAGIC = _MAKE4C('CX12');
-constexpr uint32_t CACHE_FILE_VERSION = 21;
+constexpr uint32_t CACHE_FILE_VERSION = 22;
 constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *));
 // Version history:
 // 1 - initial
@@ -76,6 +76,7 @@ constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *))
 // 20 - independent blending support
 // 21 - BasePipelineIdentifier only has hashes for vs and ps. Dropped hashes for gs, hs and ds as its no longer used.
 //      Also changes pipeline library names.
+// 22 - GraphicsPipeline::VariantCacheEntry changed
 } // namespace
 
 void PipelineCache::init(const SetupParameters &params)
@@ -127,6 +128,88 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
     graphicsSignatures.clear();
     graphicsMeshSignatures.clear();
   });
+
+  if ((hasChanged || params.alwaysGenerateBlks) && params.generateBlks)
+  {
+    DataBlock cacheOutBlock;
+    if (auto inputLayoutOutBlock = cacheOutBlock.addNewBlock("input_layouts"))
+    {
+      pipeline::DataBlockEncodeVisitor<pipeline::InputLayoutEncoder> visitor{*inputLayoutOutBlock};
+      for (auto &layout : inputLayouts)
+      {
+        visitor.encode(layout);
+      }
+    }
+
+    if (auto renderStateOutBlock = cacheOutBlock.addNewBlock("render_states"))
+    {
+      pipeline::DataBlockEncodeVisitor<pipeline::RenderStateEncoder> visitor{*renderStateOutBlock};
+      for (auto &state : staticRenderStates)
+      {
+        visitor.encode(state);
+      }
+    }
+
+    if (auto framebufferLayoutOutBlock = cacheOutBlock.addNewBlock("framebuffer_layouts"))
+    {
+      pipeline::DataBlockEncodeVisitor<pipeline::FramebufferLayoutEncoder> visitor{*framebufferLayoutOutBlock};
+      for (auto &layout : framebufferLayouts)
+      {
+        visitor.encode(layout);
+      }
+    }
+
+    if (auto graphicsPipelinesOutBlock = cacheOutBlock.addNewBlock("graphics_pipelines"))
+    {
+      pipeline::DataBlockEncodeVisitor<pipeline::GraphicsPipelineEncoder> visitor{*graphicsPipelinesOutBlock, nullptr, 0};
+      for (auto &pipeline : graphicsCache)
+      {
+        if (pipeline.variantCache.empty())
+        {
+          continue;
+        }
+        if (D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED == pipeline.variantCache.front().topology)
+        {
+          continue;
+        }
+        visitor.encode(pipeline.ident, pipeline.variantCache);
+      }
+    }
+
+    if (auto meshPipelinesOutBlock = cacheOutBlock.addNewBlock("mesh_pipelines"))
+    {
+      pipeline::DataBlockEncodeVisitor<pipeline::MeshPipelineEncoder> visitor{*meshPipelinesOutBlock, nullptr, 0};
+      for (auto &pipeline : graphicsCache)
+      {
+        if (pipeline.variantCache.empty())
+        {
+          continue;
+        }
+        if (D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED != pipeline.variantCache.front().topology)
+        {
+          continue;
+        }
+        visitor.encode(pipeline.ident, pipeline.variantCache);
+      }
+    }
+
+    if (auto computePipelinesOutBlock = cacheOutBlock.addNewBlock("compute_pipelines"))
+    {
+      pipeline::DataBlockEncodeVisitor<pipeline::ComputePipelineEncoder> visitor{*computePipelinesOutBlock, nullptr, 0};
+      for (auto &pipeline : computeBlobs)
+      {
+        visitor.encode(pipeline);
+      }
+    }
+
+    if (auto feeaturesOutBlock = cacheOutBlock.addNewBlock("features"))
+    {
+      pipeline::DataBlockEncodeVisitor<pipeline::DeviceCapsAndShaderModelEncoder> visitor{*feeaturesOutBlock};
+      visitor.encode(params.features);
+    }
+
+    cacheOutBlock.saveToTextFile("cache/dx12_cache.blk");
+  }
 
   if (!hasChanged)
     return;

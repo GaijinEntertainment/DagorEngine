@@ -1,6 +1,7 @@
 #include <render/wakePs.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_drv3dCmd.h>
+#include <3d/dag_quadIndexBuffer.h>
 #include <shaders/dag_computeShaders.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/random/dag_random.h>
@@ -533,10 +534,12 @@ EffectManager::EffectManager()
   fTimeVarId = ::get_shader_variable_id("wfx_ftime");
 
   initRes();
+  index_buffer::init_quads_16bit();
 }
 
 EffectManager::~EffectManager()
 {
+  index_buffer::release_quads_16bit();
   releaseRes();
   clearPSystems();
 }
@@ -550,24 +553,6 @@ void EffectManager::initRes()
 
   for (int renderType = 0; renderType < ParticleSystem::RENDER_TYPE_END; renderType++)
     renderShaders[renderType].init(SHADER_NAMES[renderType], NULL, 0, SHADER_NAMES[renderType]);
-
-  particleQuadIB = dag::create_ib(MAX_PARTICLES * INDICIES_PER_PARTICLE * sizeof(uint16_t), 0, "particleQuadIB");
-  G_ASSERT(particleQuadIB);
-
-  uint16_t *particleQuadIBData;
-  if (!particleQuadIB->lock(0, 0, &particleQuadIBData, VBLOCK_WRITEONLY) || !particleQuadIBData)
-    return;
-  for (uint32_t particleNo = 0; particleNo < MAX_PARTICLES; particleNo++)
-  {
-    particleQuadIBData[0] = particleNo * VERTICES_PER_PARTICLE + 0;
-    particleQuadIBData[1] = particleNo * VERTICES_PER_PARTICLE + 1;
-    particleQuadIBData[2] = particleNo * VERTICES_PER_PARTICLE + 2;
-    particleQuadIBData[3] = particleNo * VERTICES_PER_PARTICLE + 0;
-    particleQuadIBData[4] = particleNo * VERTICES_PER_PARTICLE + 2;
-    particleQuadIBData[5] = particleNo * VERTICES_PER_PARTICLE + 3;
-    particleQuadIBData += INDICIES_PER_PARTICLE;
-  }
-  particleQuadIB->unlock();
 
   randomBuffer = dag::create_tex(NULL, RANDOM_BUFFER_RESOLUTION_X, RANDOM_BUFFER_RESOLUTION_Y, TEXFMT_A8R8G8B8 | TEXCF_MAYBELOST, 1,
     "wfxRandomBuffer");
@@ -592,7 +577,6 @@ void EffectManager::releaseRes()
   for (int renderType = 0; renderType < ParticleSystem::RENDER_TYPE_END; renderType++)
     renderShaders[renderType].close();
 
-  particleQuadIB.close();
   randomBuffer.close();
 }
 
@@ -645,7 +629,7 @@ bool EffectManager::render(ParticleSystem::RenderType render_type)
     return false;
 
   d3d::setvsrc(0, 0, 0);
-  d3d::setind(particleQuadIB.get());
+  index_buffer::use_quads_16bit();
 
   bool renderedAnything = false;
   for (auto &pSystem : pSystems)

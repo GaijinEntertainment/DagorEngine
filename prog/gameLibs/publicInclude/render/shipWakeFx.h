@@ -37,6 +37,7 @@ public:
   void clearShips();
   int getShipsCount() const;
   bool isShipRemoved(uint32_t index) const;
+  const ShipDesc &getDesc(uint32_t index) const;
 
   void setShipState(uint32_t index, const ShipState &state);
   void resetShipSpawnCounters(uint32_t index, bool jump = false);
@@ -66,6 +67,8 @@ public:
   struct ShipDesc
   {
     BBox3 box;
+    float scale;
+    float trailLifeScale;
   };
 
   struct ShipState
@@ -76,6 +79,7 @@ public:
     float wakeHeadOffset = 0.f;
     float wakeHeadShift = 0.f;
     bool hasFront = true;
+    bool hasBack = true;
     eastl::optional<eastl::pair<float, float>> foamVelocityThresholds;
   };
 

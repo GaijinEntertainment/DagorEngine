@@ -252,3 +252,20 @@ public:
     high_quality = readType<int>(ptr, len);
   }
 };
+
+class DafxRenderGroup
+{
+public:
+  int type;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION(ptr, len, 1);
+
+    type = readType<int>(ptr, len);
+  }
+};

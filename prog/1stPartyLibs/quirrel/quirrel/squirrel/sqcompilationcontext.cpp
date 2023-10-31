@@ -486,69 +486,72 @@ void SQCompilationContext::vrenderDiagnosticHeader(enum DiagnosticsId diag, std:
 void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t line, int32_t pos, int32_t width, va_list vargs) {
   assert(diagId < DI_NUM_OF_DIAGNOSTICS);
 
-  if (isDisabled(diagId, line, pos)) {
-    return;
-  }
+  bool doJump = false;
 
-  auto &desc = diagnosticDescriptors[diagId];
-  bool isError = desc.severity >= DS_ERROR;
-  std::string message;
+  if (!isDisabled(diagId, line, pos)) {
 
-  vrenderDiagnosticHeader(diagId, message, vargs);
+    auto &desc = diagnosticDescriptors[diagId];
+    bool isError = desc.severity >= DS_ERROR;
+    std::string message;
 
-  std::string extraInfo;
+    vrenderDiagnosticHeader(diagId, message, vargs);
 
-  const char *l1 = findLine(line - 1);
-  const char *l2 = findLine(line);
-  const char *l3 = findLine(line + 1);
+    std::string extraInfo;
 
-  if (!isBlankLine(l1)) {
-    extraInfo.push_back('\n');
-    int32_t j = 0;
-    while (l1[j] && l1[j] != '\n' && l1[j] != '\r') { //-V522
-      extraInfo.push_back(l1[j++]); //-V595
-    }
-  }
+    const char *l1 = findLine(line - 1);
+    const char *l2 = findLine(line);
+    const char *l3 = findLine(line + 1);
 
-  if (l2 != nullptr) {
-    extraInfo.push_back('\n');
-    int32_t j = 0;
-    while (l2[j] && l2[j] != '\n' && l2[j] != '\r') { //-V522
-      extraInfo.push_back(l2[j++]); //-V595
+    if (!isBlankLine(l1)) {
+      extraInfo.push_back('\n');
+      int32_t j = 0;
+      while (l1[j] && l1[j] != '\n' && l1[j] != '\r') { //-V522
+        extraInfo.push_back(l1[j++]); //-V595
+      }
     }
 
-    extraInfo.push_back('\n');
-    j = 0;
+    if (l2 != nullptr) {
+      extraInfo.push_back('\n');
+      int32_t j = 0;
+      while (l2[j] && l2[j] != '\n' && l2[j] != '\r') { //-V522
+        extraInfo.push_back(l2[j++]); //-V595
+      }
 
-    drawUnderliner(pos, width, extraInfo);
-  }
+      extraInfo.push_back('\n');
+      j = 0;
 
-  if (!isBlankLine(l3)) {
-    extraInfo.push_back('\n');
-    int32_t j = 0;
-    while (l3[j] && l3[j] != '\n' && l3[j] != '\r') { //-V522
-      extraInfo.push_back(l3[j++]); //-V595
+      drawUnderliner(pos, width, extraInfo);
+    }
+
+    if (!isBlankLine(l3)) {
+      extraInfo.push_back('\n');
+      int32_t j = 0;
+      while (l3[j] && l3[j] != '\n' && l3[j] != '\r') { //-V522
+        extraInfo.push_back(l3[j++]); //-V595
+      }
+    }
+
+    const char *extra = nullptr;
+    if (l1 || l2 || l3) {
+      extraInfo.push_back('\n');
+      extraInfo.push_back('\n'); // separate with extra line
+      extra = extraInfo.c_str();
+    }
+
+    auto errorFunc = _ss(_vm)->_compilererrorhandler;
+
+    const char *msg = message.c_str();
+
+    if (_raiseError && errorFunc) {
+      errorFunc(_vm, msg, _sourceName, line, pos, extra);
+    }
+    if (isError) {
+      _vm->_lasterror = SQString::Create(_ss(_vm), msg, message.length());
+      doJump = true;
     }
   }
-
-  const char *extra = nullptr;
-  if (l1 || l2 || l3) {
-    extraInfo.push_back('\n');
-    extraInfo.push_back('\n'); // separate with extra line
-    extra = extraInfo.c_str();
-  }
-
-  auto errorFunc = _ss(_vm)->_compilererrorhandler;
-
-  const char *msg = message.c_str();
-
-  if (_raiseError && errorFunc) {
-    errorFunc(_vm, msg, _sourceName, line, pos, extra);
-  }
-  if (isError) {
-    _vm->_lasterror = SQString::Create(_ss(_vm), msg, message.length());
+  if (doJump)
     longjmp(_errorjmp, 1);
-  }
 }
 
 void SQCompilationContext::reportDiagnostic(enum DiagnosticsId diagId, int32_t line, int32_t pos, int32_t width, ...) {

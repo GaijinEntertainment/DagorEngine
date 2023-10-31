@@ -256,6 +256,14 @@ def erase(var Arr:array<auto(numT)>;at:int;count:int)
         _builtin_verify_locks(Arr)
     __builtin_array_erase_range(Arr,at,count,typeinfo(sizeof Arr[0]))
 
+def remove_value(var arr : array<auto(TT)>|#; key : TT) : bool
+    //! Removes the first occurrence of a specific object from the collection.
+    let idx = find_index(arr, key)
+    if idx != -1
+        arr |> erase(idx)
+        return true
+    return false
+
 [unused_argument(a)]
 def length(a:auto[]):int
     return typeinfo(dim a)

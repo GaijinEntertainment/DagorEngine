@@ -4,6 +4,8 @@
 #ifndef __GATHERVAR_H
 #define __GATHERVAR_H
 
+#include <EASTL/bitvector.h>
+
 #include "shsem.h"
 #include "shaderVariant.h"
 #include "shVarBool.h"
@@ -51,7 +53,8 @@ public:
   virtual void eval_static(static_var_decl &s);
   void eval_bool_decl(bool_decl &) override;
   void decl_bool_alias(const char *name, bool_expr &expr) override;
-  int add_message(const char *message) override;
+  int add_message(const char *message, bool file_name) override;
+  bool is_filename_message(int id) const { return !nonFilenameMessages.test(id, false); }
   const SCFastNameMap &get_messages() const { return messages; }
 
   void eval_channel_decl(channel_decl &s, int str_id = 0);
@@ -93,6 +96,7 @@ private:
   int dynCount;
   bool hasDynFlag;
   SCFastNameMap messages;
+  eastl::bitvector<> nonFilenameMessages;
 
   String hlslPs, hlslVs, hlslHs, hlslDs, hlslGs, hlslCs, hlslMs, hlslAs;
 

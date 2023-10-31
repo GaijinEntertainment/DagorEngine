@@ -93,10 +93,16 @@ declare_struct("DafxSparksQuality", 1,
   { name="high_quality", type="bool", defVal=1 },
 ]);
 
-end_declare_params("dafx_sparks", 3, [
+declare_struct("DafxRenderGroup", 1,
+[
+  { name="type", type="list", list=["highres", "lowres", "underwater"]},
+]);
+
+end_declare_params("dafx_sparks", 4, [
   {struct="DafxEmitterParams"},
   {struct="DafxSparksSimParams"},
   {struct="DafxSparksRenParams"},
   {struct="DafxSparksGlobalParams"},
-  {struct="DafxSparksQuality"}
+  {struct="DafxSparksQuality"},
+  {struct="DafxRenderGroup"}
 ]);

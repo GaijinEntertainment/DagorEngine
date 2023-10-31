@@ -1519,8 +1519,8 @@ public:
       {
         if (gi_panel.update_scene && gi_panel.gi_mode == SSGI)
         {
-          set_inv_globtm_to_shader(false);
-          set_viewvecs_to_shader();
+          set_inv_globtm_to_shader(view, projTm, false);
+          set_viewvecs_to_shader(view, projTm);
           target->setVar();
           updateSSGISceneVoxels();
         }

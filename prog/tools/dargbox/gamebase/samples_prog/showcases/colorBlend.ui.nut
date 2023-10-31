@@ -1,4 +1,6 @@
 from "%darg/ui_imports.nut" import *
+from "math" import clamp
+
 let { format } = require("string")
 
 let bgColor = Watched(null)

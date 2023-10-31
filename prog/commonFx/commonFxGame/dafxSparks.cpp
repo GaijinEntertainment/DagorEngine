@@ -30,6 +30,13 @@ enum
   HUID_ACES_IS_ACTIVE = 0xD6872FCEu
 }; //
 
+enum
+{
+  RGROUP_HIGHRES = 0,
+  RGROUP_LOWRES = 1,
+  RGROUP_UNDERWATER = 2,
+};
+
 static dafx::ContextId g_dafx_ctx;
 
 struct DafxSparks : BaseParticleEffect
@@ -53,7 +60,7 @@ struct DafxSparks : BaseParticleEffect
 
   void loadParamsData(const char *ptr, int len, BaseParamScriptLoadCB *load_cb) override
   {
-    CHECK_FX_VERSION(ptr, len, 3);
+    CHECK_FX_VERSION(ptr, len, 4);
 
     if (!g_dafx_ctx)
     {
@@ -71,12 +78,14 @@ struct DafxSparks : BaseParticleEffect
     DafxSparksRenParams renParams = {};
     DafxSparksGlobalParams parGlobals = {};
     DafxSparksQuality parQuality = {};
+    DafxRenderGroup parRenderGroup = {};
     if (len)
     {
       simParams.load(ptr, len, load_cb);
       renParams.load(ptr, len, load_cb);
       parGlobals.load(ptr, len, load_cb);
       parQuality.load(ptr, len, load_cb);
+      parRenderGroup.load(ptr, len, load_cb);
     }
 
     sinfo.maxInstances = parGlobals.max_instances;
@@ -124,7 +133,15 @@ struct DafxSparks : BaseParticleEffect
 
 #undef GDATA
 
-    desc.renderDescs.push_back({"highres", "sparks_ps"}); // sparks is always high res (and there is no forced low res)
+    int rtag = 0;
+    if (parRenderGroup.type == RGROUP_LOWRES)
+      rtag = dafx_ex::RTAG_LOWRES;
+    else if (parRenderGroup.type == RGROUP_HIGHRES)
+      rtag = dafx_ex::RTAG_HIGHRES;
+    else if (parRenderGroup.type == RGROUP_UNDERWATER)
+      rtag = dafx_ex::RTAG_UNDERWATER;
+
+    desc.renderDescs.push_back({dafx_ex::renderTags[rtag], "sparks_ps"});
     desc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_THERMAL], "sparks_thermal"});
 
     parentDesc.qualityFlags = fx_apply_quality_bits(parQuality, 0xffffffff);

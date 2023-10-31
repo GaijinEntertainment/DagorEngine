@@ -35,6 +35,7 @@
 #include <EASTL/hash_map.h>
 #include <landMesh/landClass.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
+#include <scene/dag_physMat.h>
 
 #define MIN_TILE_SIZE 0.5
 
@@ -166,6 +167,8 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
     land.bumpScales = Point4(blk.getReal("bumpScale", 1.0f), 0, 0, 0);
     land.compatibilityDiffuseScales = Point4(blk.getReal("compatibilityDiffuseScale", 1.0f), 0, 0, 0);
     land.waterDecalBumpScale = Point4(blk.getReal("waterDecalBumpScale", 1.0f), 0, 0, 0);
+    const char *defaultPhysmat = blk.getStr("physMat", NULL);
+    land.physmatIds = IPoint4(PhysMat::getMaterialId(defaultPhysmat), 0, 0, 0);
 
     if (blk.getStr("shader", 0))
     {
@@ -308,10 +311,19 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
           // provide detail struct size via shader to avoid reading garbadge in shader!
           logerr("landclass: missing lmesh_hc_floats_per_detail, detail buffer can contain garbadge for shaders");
 
-        static constexpr int DETAIL_INFO_CNT_OFS = 15; // offset of details_cnt inside DetailInfo in ints
-        int lcDetailsWithoutHeaderCnt = ((int)land.lcDetails.size() - lcDetailsArrayStart) * 4 / cbElementSize;
-        // we store the cnt in an unused member of the first detail (so we don't need extra padding for the header this way)
-        reinterpret_cast<int *>(&land.lcDetails[0].x)[lcDetailsArrayStart * 4 + DETAIL_INFO_CNT_OFS] = lcDetailsWithoutHeaderCnt;
+        int biome_lc_ofs_to_detail_info_cntVarId = ::get_shader_glob_var_id("biome_lc_ofs_to_detail_info_cnt", true);
+        if (VariableMap::isVariablePresent(biome_lc_ofs_to_detail_info_cntVarId))
+        {
+          int DETAIL_INFO_CNT_OFS = ShaderGlobal::get_int(biome_lc_ofs_to_detail_info_cntVarId); // offset of details_cnt inside
+                                                                                                 // DetailInfo in ints
+          int lcDetailsWithoutHeaderCnt = ((int)land.lcDetails.size() - lcDetailsArrayStart) * 4 / cbElementSize;
+          // we store the cnt in an unused member of the first detail (so we don't need extra padding for the header this way)
+          reinterpret_cast<int *>(&land.lcDetails[0].x)[lcDetailsArrayStart * 4 + DETAIL_INFO_CNT_OFS] = lcDetailsWithoutHeaderCnt;
+        }
+        else
+        {
+          logwarn("landclass: missing biome_lc_ofs_to_detail_info_cnt shadervar, can't validate biome count in index texture");
+        }
 
         const uint32_t maxDetailElements = (floatsPerDetail * 4 * maxDetailArraySize + detailsHeaderSize) / cbElementSize;
         uint32_t bufSize = max(maxDetailElements, land.lcDetails.size());
@@ -380,6 +392,11 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
       land.compatibilityDiffuseScales.y = blk.getReal("compatibilityDiffuseScaleGreen", 1.0f);
       land.compatibilityDiffuseScales.z = blk.getReal("compatibilityDiffuseScaleBlue", 1.0f);
       land.compatibilityDiffuseScales.w = blk.getReal("compatibilityDiffuseScaleBlack", 1.0f);
+
+      land.physmatIds.x = PhysMat::getMaterialId(blk.getStr("physMatRed", defaultPhysmat));
+      land.physmatIds.y = PhysMat::getMaterialId(blk.getStr("physMatGreen", defaultPhysmat));
+      land.physmatIds.z = PhysMat::getMaterialId(blk.getStr("physMatBlue", defaultPhysmat));
+      land.physmatIds.w = PhysMat::getMaterialId(blk.getStr("physMatBlack", defaultPhysmat));
 
       flowmapTiling = safediv(size.x, max(max(detailSizeRed, detailSizeGreen), max(detailSizeBlue, detailSizeBlack)));
 

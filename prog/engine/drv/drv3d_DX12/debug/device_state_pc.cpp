@@ -1,5 +1,6 @@
 #include "device.h"
 
+#if USE_PIX
 #if _TARGET_64BIT
 // PROFILE_BUILD will enable USE_PIX in pix3.h if architecture is supported
 #define PROFILE_BUILD
@@ -9,6 +10,7 @@
 #undef __d3d12_h__
 #else
 #include "WinPixEventRuntime/pix3.h"
+#endif
 #endif
 #endif
 

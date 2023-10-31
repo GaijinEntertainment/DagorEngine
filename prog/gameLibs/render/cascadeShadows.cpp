@@ -338,27 +338,12 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(csm_render_cascades_cb_t ren
 
   TIME_D3D_PROFILE(renderShadows);
 
-  Driver3dRenderTarget prevRt;
-  d3d::get_render_target(prevRt);
-
-  DagorCurView savedView = ::grs_cur_view;
-
-  Driver3dPerspective p;
-  bool op = d3d::getpersp(p);
-
+  SCOPE_RENDER_TARGET;
+  SCOPE_VIEW_PROJ_MATRIX;
 
   ShaderGlobal::set_texture(shadowCascades.getVarId(), BAD_TEXTUREID);
 
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-
-
-  TMatrix4 viewTm, projTm;
-  d3d::gettm(TM_PROJ, &projTm);
-  d3d::gettm(TM_VIEW, &viewTm);
-
-  d3d::settm(TM_VIEW, &TMatrix4::IDENT);
-  ::grs_cur_view.tm = TMatrix::IDENT;
-  ::grs_cur_view.itm = TMatrix::IDENT;
 
   d3d::set_render_target();
   d3d::set_render_target(nullptr, 0);
@@ -390,16 +375,6 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(csm_render_cascades_cb_t ren
 
   if (curStateId)
     shaders::overrides::set(curStateId);
-
-  // Restore.
-
-  d3d::set_render_target(prevRt);
-  ::grs_cur_view = savedView;
-  d3d::settm(TM_VIEW, &viewTm);
-  if (op)
-    d3d::setpersp(p);
-  else
-    d3d::settm(TM_PROJ, &projTm);
 
   d3d::resource_barrier({shadowCascades.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   shadowCascades.setVar();
@@ -615,12 +590,14 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
 
   vec3f frustumPoints[8];
   shadowSplits[numCascadesToRender - 1].frustum.generateAllPointFrustm(frustumPoints);
-  mat44f globtm;
-  d3d::getglobtm(globtm);
+  mat44f globtm44;
+  TMatrix4_vec4 globtm;
+  d3d::calcglobtm(view_matrix, proj_tm, globtm);
+  memcpy(&globtm44, globtm.m, sizeof(mat44f));
   vec4f farPt = v_zero();
   for (int i = 0; i < 8; ++i)
   {
-    vec4f point = v_mat44_mul_vec3p(globtm, frustumPoints[i]);
+    vec4f point = v_mat44_mul_vec3p(globtm44, frustumPoints[i]);
     farPt = v_sel(farPt, point, v_splat_w(v_cmp_gt(point, farPt)));
   }
   csmDistance = v_extract_w(farPt);
@@ -864,8 +841,8 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
 
   bbox3f frustumWorldBox;
   shadowFrustum.calcFrustumBBox(frustumWorldBox);
-  v_stu(&split.worldBox[0].x, v_add(frustumWorldBox.bmin, v_ldu(&::grs_cur_view.pos.x)));
-  v_stu_p3(&split.worldBox[1].x, v_add(frustumWorldBox.bmax, v_ldu(&::grs_cur_view.pos.x)));
+  v_stu(&split.worldBox[0].x, v_add(frustumWorldBox.bmin, v_ldu(&camera_pos.x)));
+  v_stu_p3(&split.worldBox[1].x, v_add(frustumWorldBox.bmax, v_ldu(&camera_pos.x)));
 }
 
 

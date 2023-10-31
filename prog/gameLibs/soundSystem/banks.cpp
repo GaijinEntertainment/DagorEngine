@@ -8,8 +8,6 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_critSec.h>
-#include <util/dag_string.h>
-#include <util/dag_lookup.h>
 #include <util/dag_localization.h>
 #include <memory/dag_framemem.h>
 #include <fmod_studio.hpp>
@@ -38,42 +36,48 @@ static WinCritSec g_banks_cs;
 static const size_t max_banks = 512;
 using Bitset = eastl::bitset<max_banks>;
 
-static bool enable_mod = false;
 static bool g_report_bank_loading_time = false;
 
 struct Bank
 {
   FMOD::Studio::Bank *fmodBank = nullptr;
-  eastl::string path;
-  uint32_t id = 0;
+  const eastl::string path;
+  const uint32_t id = 0;
 
-  bool isAsync = false;
-  bool isPreload = false;
-  bool isLoadToMemory = false;
-  bool isOptional = false;
+  const bool isAsync = false;
+  const bool isPreload = false;
+  const bool isLoadToMemory = false;
+  const bool isOptional = false;
+  const bool isMod = false;
 
   Bank() = delete;
-  Bank(const char *path_, uint32_t id_, bool is_async, bool is_preload, bool is_load_to_memory, bool is_optional) :
-    path(path_), id(id_), isAsync(is_async), isPreload(is_preload), isLoadToMemory(is_load_to_memory), isOptional(is_optional)
+  Bank(const char *path_, uint32_t id_, bool is_async, bool is_preload, bool is_load_to_memory, bool is_optional, bool is_mod) :
+    path(path_),
+    id(id_),
+    isAsync(is_async),
+    isPreload(is_preload),
+    isLoadToMemory(is_load_to_memory),
+    isOptional(is_optional),
+    isMod(is_mod)
   {}
 };
 
 struct Preset
 {
   Bitset banks;
-  eastl::string name;
-  str_hash_t hash = 0;
+  const eastl::string name;
+  const str_hash_t hash = {};
   bool isEnabled = false;
   bool isLoaded = false;
 
   Preset() = delete;
-  Preset(const char *name_) : name(name_) { hash = SND_HASH_SLOW(name_); }
+  Preset(const char *name_) : name(name_), hash(SND_HASH_SLOW(name_)) {}
 };
 
 struct Plugin
 {
   uint32_t handle = 0;
-  eastl::string path;
+  const eastl::string path;
 
   Plugin() = delete;
   Plugin(const char *path_) : path(path_) {}
@@ -90,47 +94,19 @@ static Bitset failed_banks;
 static eastl::fixed_string<char, 8> locale;
 static bool is_inited = false;
 
-static void def_err_cb(const char *sndsys_message, const char *fmod_error_message, const char *bank_path)
+static void def_err_cb(const char *sndsys_message, const char *fmod_error_message, const char *bank_path, bool is_mod)
 {
 #if DAGOR_DBGLEVEL == 0
-  if (!enable_mod)
+  if (!is_mod)
 #endif
+  {
     logerr("[SNDSYS] %s \"%s\" \"%s\"", sndsys_message, bank_path, fmod_error_message);
+  }
+  G_UNREFERENCED(is_mod);
 }
 
 static ErrorCallback err_cb = def_err_cb;
 static PresetLoadedCallback preset_loaded_cb = nullptr;
-
-template <class Func>
-static inline void parse(const char *name, Func func)
-{
-  FrameStr tag;
-  for (; name;)
-  {
-    const char *next = strchr(name, '_');
-    if (!next)
-      next = strchr(name, '.');
-    size_t len = next ? next - name : strlen(name);
-    tag.assign(name, len);
-    func(tag);
-    name = next && *next != '.' ? next + 1 : nullptr;
-  }
-}
-
-// cmn_loc_vo_-de.bank
-static inline bool is_skip_bank_by_locale(const char *str)
-{
-  FrameStr type;
-  bool have = false;
-  parse(str, [&have, &type](const FrameStr &tag_str) {
-    if (tag_str.size() >= 1 && tag_str[0] == '-')
-    {
-      type.assign(tag_str.begin() + 1, tag_str.end());
-      have = true;
-    }
-  });
-  return have && type != locale.c_str();
-}
 
 static inline bool is_async(uint32_t bank_id) { return all_banks[bank_id].isAsync; }
 static inline bool is_preload(uint32_t bank_id) { return all_banks[bank_id].isPreload; }
@@ -145,19 +121,6 @@ static inline void replace(FrameStr &path, const char *what, const char *with)
     path.replace(idx, strlen(what), with);
 }
 static inline void make_localized(FrameStr &str) { replace(str, "<loc>", locale.c_str()); }
-
-static inline void add_mod_path(FrameStr &str)
-{
-  eastl_size_t idx = str.find("<mod>");
-  if (idx != FrameStr::npos)
-  {
-    FrameStr backupStr = str;
-    str.replace(idx, strlen("<mod>"), "mod/");
-    const char *realPathMod = df_get_real_name(str.c_str());
-    if (!realPathMod)
-      str.replace(idx, strlen("mod/"), "");
-  }
-}
 
 static inline FMOD_RESULT load_bank_memory(const char *filename, FMOD_STUDIO_LOAD_BANK_FLAGS flags, FMOD::Studio::Bank **fmod_bank)
 {
@@ -201,9 +164,6 @@ static inline void load_bank(Bank &bank, const PathTags &path_tags)
   for (auto &tag : path_tags)
     replace(taggedPath, tag.first, tag.second);
 
-  if (enable_mod)
-    add_mod_path(taggedPath);
-
   const char *realPath = df_get_real_name(taggedPath.c_str());
   if (!realPath)
   {
@@ -213,7 +173,7 @@ static inline void load_bank(Bank &bank, const PathTags &path_tags)
       debug_trace_warn("Optional sound bank load was skipped because file \"%s\" is missing", taggedPath.c_str());
     }
     else
-      err_cb("bank could not be loaded because there is no such file", "", taggedPath.c_str());
+      err_cb("bank could not be loaded because there is no such file", "", taggedPath.c_str(), bank.isMod);
     return;
   }
 
@@ -226,7 +186,7 @@ static inline void load_bank(Bank &bank, const PathTags &path_tags)
   if (FMOD_OK != result)
   {
     failed_banks.set(bank.id);
-    err_cb("bank could not be loaded", FMOD_ErrorString(result), realPath);
+    err_cb("bank could not be loaded", FMOD_ErrorString(result), realPath, bank.isMod);
     if (bank.fmodBank)
     {
       SOUND_VERIFY(bank.fmodBank->unload());
@@ -264,20 +224,23 @@ static inline void unload_bank(Bank &bank, eastl::vector<FMOD::Studio::Bank *, f
   failed_banks.set(bank.id, false);
 }
 
-static inline void add_bank(const char *name, const char *path, bool is_async, bool is_preload, bool is_load_to_memory,
-  bool is_optional, Preset &preset)
+static inline void append_bank(const char *path, bool is_async, bool is_preload, bool is_load_to_memory, bool is_optional, bool is_mod,
+  Preset &preset)
 {
-  if (is_skip_bank_by_locale(name))
-    return;
   auto pred = [path](const Bank &bank) { return bank.path == path; };
   auto it = eastl::find_if(all_banks.begin(), all_banks.end(), pred);
   uint32_t bankId = 0;
   if (it != all_banks.end())
+  {
     bankId = it - all_banks.begin();
+    G_ASSERTF(it->isMod == is_mod && it->isOptional == is_optional && it->isOptional == is_optional && it->isAsync == is_async &&
+                it->isPreload == is_preload && it->isLoadToMemory == is_load_to_memory,
+      "Append new to existing bank parameters mismatch: there is already bank with same path but different options");
+  }
   else
   {
     bankId = all_banks.size();
-    all_banks.emplace_back(path, bankId, is_async, is_preload, is_load_to_memory, is_optional);
+    all_banks.emplace_back(path, bankId, is_async, is_preload, is_load_to_memory, is_optional, is_mod);
     G_ASSERT(all_banks.size() <= max_banks);
   }
   preset.banks.set(bankId);
@@ -405,7 +368,7 @@ void update()
         SOUND_VERIFY(bank.fmodBank->unload());
         bank.fmodBank = nullptr;
       }
-      err_cb("error loading bank", FMOD_ErrorString(result), bank.path.c_str());
+      err_cb("error loading bank", FMOD_ErrorString(result), bank.path.c_str(), bank.isMod);
       continue;
     }
 
@@ -419,7 +382,7 @@ void update()
       {
         const FMOD_RESULT result = bank.fmodBank->loadSampleData();
         if (result != FMOD_OK)
-          err_cb("error preload bank sample data", FMOD_ErrorString(result), bank.path.c_str());
+          err_cb("error preload bank sample data", FMOD_ErrorString(result), bank.path.c_str(), bank.isMod);
       }
       failed_banks.set(bank.id, false);
     }
@@ -428,7 +391,7 @@ void update()
       failed_banks.set(bank.id);
       SOUND_VERIFY(bank.fmodBank->unload());
       bank.fmodBank = nullptr;
-      err_cb("load bank failed", "", bank.path.c_str());
+      err_cb("load bank failed", "", bank.path.c_str(), bank.isMod);
     }
 
     pending_banks.set(bank.id, false);
@@ -457,6 +420,45 @@ static __forceinline Preset *find_preset(const char *name)
 
 static HashedKeySet<guid_hash_t> g_guid_prohibited;
 
+static void add_bank(const char *name, const DataBlock &blk, const char *banks_folder, const char *extension, bool enable_mod,
+  Preset &preset)
+{
+  const char *overridedPath = blk.getStr("path", nullptr);
+
+  bool isMod = false;
+
+  FrameStr path;
+
+  if (enable_mod)
+  {
+    if (overridedPath)
+      path.sprintf("%s/mod/%s%s", overridedPath, name, extension);
+    else if (banks_folder && *banks_folder)
+      path.sprintf("%s/mod/%s%s", banks_folder, name, extension);
+    else
+      path.sprintf("mod/%s%s", name, extension);
+
+    make_localized(path);
+
+    isMod = df_get_real_name(path.c_str()) != nullptr;
+  }
+
+  if (!isMod)
+  {
+    if (overridedPath)
+      path.sprintf("%s/%s%s", overridedPath, name, extension);
+    else if (banks_folder && *banks_folder)
+      path.sprintf("%s/%s%s", banks_folder, name, extension);
+    else
+      path.sprintf("%s%s", name, extension);
+
+    make_localized(path);
+  }
+
+  append_bank(path.c_str(), blk.getBool("async", false), blk.getBool("preload", false), blk.getBool("loadToMemory", false),
+    blk.getBool("optional", false), isMod, preset);
+};
+
 void init(const DataBlock &blk)
 {
   G_ASSERT_RETURN(sndsys::is_inited(), );
@@ -464,25 +466,18 @@ void init(const DataBlock &blk)
   G_ASSERT_RETURN(!is_inited, );
 
   const DataBlock &banksBlk = *blk.getBlockByNameEx("banks");
-  const DataBlock &groupsBlk = *banksBlk.getBlockByNameEx("groups");
+  const DataBlock &modBlk = *blk.getBlockByNameEx("mod");
 
   init_locale(blk, banksBlk);
   debug_trace_log("locale is \"%s\"", locale.c_str());
 
-  const char *folder = blk.getStr("banksFolder", "");
-  const char *extension = blk.getStr("banksExtension", ".bank");
+  const char *folder = banksBlk.getStr("folder", "sound");
+  const char *extension = banksBlk.getStr("extension", ".bank");
 
-  enable_mod = blk.getBool("enableMod", false);
+  const bool enableMod = blk.getBool("enableMod", false) && modBlk.getBool("allow", true);
+
   g_report_bank_loading_time = blk.getBool("reportBankLoadingTime", false);
 
-  if (enable_mod)
-  {
-    FrameStr modPath;
-    modPath.sprintf("%s/mod/*.bank", folder);
-    alefind_t fnd;
-    if (!dd_find_first(modPath.c_str(), DA_FILE, &fnd))
-      enable_mod = false;
-  }
   FrameStr name, path;
   const DataBlock *presetsBlk = banksBlk.getBlockByNameEx("presets");
   all_presets.reserve(presetsBlk->blockCount());
@@ -492,70 +487,16 @@ void init(const DataBlock &blk)
     all_presets.emplace_back(presetBlk->getBlockName());
     Preset &preset = all_presets.back();
 
-    auto addBank = [folder, extension, &preset](const char *name, const DataBlock &blk) {
-      FrameStr localizedName = name;
-      make_localized(localizedName);
-
-      FrameStr path;
-      const char *overridedPath = blk.getStr("path", nullptr);
-      if (folder && *folder)
-      {
-        if (enable_mod)
-          path.sprintf("%s/<mod>%s%s", folder, localizedName.c_str(), extension);
-        else
-        {
-          if (overridedPath)
-            path.sprintf("%s/%s%s", overridedPath, localizedName.c_str(), extension);
-          else
-            path.sprintf("%s/%s%s", folder, localizedName.c_str(), extension);
-        }
-      }
-      else
-      {
-        if (overridedPath)
-          path.sprintf("%s/%s%s", overridedPath, localizedName.c_str(), extension);
-        else
-          path.sprintf("%s%s", localizedName.c_str(), extension);
-      }
-      make_localized(path);
-
-      add_bank(localizedName.c_str(), path.c_str(), blk.getBool("async", false), blk.getBool("preload", false),
-        blk.getBool("loadToMemory", false), blk.getBool("optional", false), preset);
-    };
-
     for (int i = 0; i < presetBlk->blockCount(); ++i)
     {
       const DataBlock *bankBlk = presetBlk->getBlock(i);
-      addBank(bankBlk->getBlockName(), *bankBlk);
+      add_bank(bankBlk->getBlockName(), *bankBlk, folder, extension, enableMod, preset);
     }
 
     for (int i = 0; i < presetBlk->paramCount(); ++i)
     {
-      name = presetBlk->getStr(i);
-      make_localized(name);
-
-      if (strcmp(presetBlk->getParamName(i), "group") == 0)
-      {
-        if (const DataBlock *groupBlk = groupsBlk.getBlockByNameEx(name.c_str(), nullptr))
-        {
-          for (int j = 0; j < groupBlk->paramCount(); ++j)
-          {
-            G_ASSERT_CONTINUE(strcmp(groupBlk->getParamName(j), "bank") == 0);
-            addBank(groupBlk->getStr(j), DataBlock::emptyBlock);
-          }
-          for (int j = 0; j < groupBlk->blockCount(); ++j)
-          {
-            const DataBlock *bankBlk = groupBlk->getBlock(j);
-            addBank(bankBlk->getBlockName(), *bankBlk);
-          }
-        }
-        else
-        {
-          logerr("group \"%s\" of banks not found", name.c_str());
-        }
-      }
-      else if (strcmp(presetBlk->getParamName(i), "bank") == 0)
-        addBank(name.c_str(), DataBlock::emptyBlock);
+      if (strcmp(presetBlk->getParamName(i), "bank") == 0)
+        add_bank(presetBlk->getStr(i), DataBlock::emptyBlock, folder, extension, enableMod, preset);
       else
         G_ASSERTF(false, "Unexpected param name \"%s\"", presetBlk->getParamName(i));
     }

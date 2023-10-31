@@ -35,6 +35,7 @@ void bind_dargbox_script_api(SqModules *module_mgr)
   module_mgr->registerSystemLib();
   module_mgr->registerIoLib();
   module_mgr->registerDateTimeLib();
+  module_mgr->registerDebugLib();
 
   bindquirrel::register_dagor_localization_module(module_mgr);
   bindquirrel::register_dagor_shell(module_mgr);

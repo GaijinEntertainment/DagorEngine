@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "math" import min, max
 
 let utf8 = require("utf8")
 

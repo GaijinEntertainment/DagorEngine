@@ -312,7 +312,7 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
 #if _TARGET_PC_WIN
   const String libPath("dxcompiler.dll");
 #else
-  const String libPath = folders::get_exe_dir() + "libdxcompiler.dylib";
+  const String libPath = folders::get_exe_dir() + "dxcompiler.dylib";
 #endif
   eastl::unique_ptr<void, DagorDllCloser> library;
   library.reset(os_dll_load(libPath.c_str()));

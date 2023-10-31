@@ -272,7 +272,7 @@ else if $(Platform) = nswitch {
     3rdPartyLibs/posix
     engine/drv/hid_nswitch
     engine/drv/hid_nulldrv
-    gameLibs/nswitch
+    gameLibs/nswitch/kit
     gameLibs/nswitch/account
     gameLibs/nswitch/assets
     gameLibs/nswitch/savedata

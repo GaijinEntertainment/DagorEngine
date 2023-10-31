@@ -312,10 +312,13 @@ struct MeshStreamingStat
 };
 static MeshStreamingStat mss;
 } // namespace
+
 static void batch_reload_res(void *)
 {
-  int64_t reft = profile_ref_ticks();
   int rcnt = 0;
+#if DAGOR_DBGLEVEL > 0
+  int64_t reft = profile_ref_ticks();
+#endif
 
   {
     std::lock_guard<std::mutex> scopedLock(pendingReloadResListMutex);
@@ -326,6 +329,7 @@ static void batch_reload_res(void *)
     pendingReloadResList.clear();
   }
 
+#if DAGOR_DBGLEVEL > 0
   if (dagor_frame_no() > mss.end_frame_no + 16 || mss.end_frame_no > mss.start_frame_no + 600)
     mss.reset();
   mss.end_frame_no = dagor_frame_no();
@@ -333,6 +337,7 @@ static void batch_reload_res(void *)
   mss.brr_rcnt.add(rcnt);
   mss.pendint_cnt.add(dmUnitedVdata.getPendingReloadResCount());
   mss.failed_cnt.add(dmUnitedVdata.getFailedReloadResCount());
+#endif
 }
 static void on_higher_lod_required(DynamicRenderableSceneLodsResource *res, unsigned req_lod, unsigned /*cur_lod*/)
 {

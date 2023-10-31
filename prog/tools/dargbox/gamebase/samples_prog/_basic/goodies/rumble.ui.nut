@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "math" import clamp
 
 let cursors = require("samples_prog/_cursors.nut")
 

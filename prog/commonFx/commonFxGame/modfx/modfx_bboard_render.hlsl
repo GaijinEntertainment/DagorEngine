@@ -881,6 +881,10 @@
     input.pos.w = rcp(input.pos.w);
 #endif
 
+#if !MODFX_SHADER_RIBBON && defined(FSR_DISTORTION)
+    input.tc.xy = getTexcoord(GET_SCREEN_POS(input.pos).xy);
+#endif
+
     GlobalData gdata = global_data_load();
     DafxRenderData ren_info;
     dafx_get_render_info( 0, ren_info );
@@ -1265,7 +1269,10 @@
 
       float3 lighting = ndl * gdata.sun_color * shadow + nda * ambient + input.lighting.rgb;
 
-      lighting_part *= lighting;
+#if MODFX_WATER_PROJ_IGNORES_LIGHTING
+      if (!dafx_is_water_proj)
+#endif
+        lighting_part *= lighting;
 #endif
       lighting_part += specular * gdata.sun_color * alpha;
     }

@@ -305,8 +305,7 @@ void ExecutionSyncTracker::addBufferAccess(LogicAddress laddr, Buffer *buf, Buff
   bufOps.arr.push_back({laddr, buf, area, getCaller(), /*completed*/ false, /*dstConflict*/ false});
 }
 
-void ExecutionSyncTracker::addImageAccessFull(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area,
-  uint16_t native_pass_idx)
+void ExecutionSyncTracker::addImageAccess(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area)
 {
   // 3d image has no array range, but image view uses it to select the slices, so reset array range.
   if (VK_IMAGE_TYPE_3D == img->getType())
@@ -321,30 +320,15 @@ void ExecutionSyncTracker::addImageAccessFull(LogicAddress laddr, Image *img, Vk
     area.mipIndex, area.mipIndex + area.mipRange, area.arrayIndex, area.arrayIndex + area.arrayRange, img->layout.mipLevels,
     img->layout.data.size() / img->layout.mipLevels);
 
-  ImageOpAdditionalParams opAddParams{layout, native_pass_idx};
+  ImageOpAdditionalParams opAddParams{layout, currentRenderSubpass};
   if (filterAccessTracking(gpuWorkId, imgOps, img, laddr, area, opAddParams))
     return;
 
-  imgOps.arr.push_back({laddr, img, area, getCaller(), layout, native_pass_idx, /*completed*/ false, /*dstConflict*/ false,
+  imgOps.arr.push_back({laddr, img, area, getCaller(), layout, currentRenderSubpass, /*completed*/ false, /*dstConflict*/ false,
     /*changesLayout*/ false});
 }
 
-void ExecutionSyncTracker::addImageAccessAtNativePass(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area)
-{
-  addImageAccessFull(laddr, img, layout, area, nativePassIdx);
-}
-
-void ExecutionSyncTracker::addImageAccess(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area)
-{
-  addImageAccessFull(laddr, img, layout, area, 0);
-}
-
-void ExecutionSyncTracker::enterNativePass()
-{
-  for (size_t i = imgOps.lastIncompleted; i < imgOps.lastProcessed; ++i)
-    imgOps.arr[i].onNativePassEnter(nativePassIdx);
-  ++nativePassIdx;
-}
+void ExecutionSyncTracker::setCurrentRenderSubpass(uint8_t subpass) { currentRenderSubpass = subpass; }
 
 void ExecutionSyncTracker::ScratchData::clear()
 {
@@ -459,7 +443,9 @@ void ExecutionSyncTracker::completeAll(VulkanCommandBufferHandle cmd_buffer, con
 
   InternalPipelineBarrier barrier(dev, srcLA.stage, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
   barrier.addMemory({srcLA.access, VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT});
-  barrier.submit(cmd_buffer);
+  // can be empty due to native RP sync exclusion
+  if (srcLA.stage != VK_PIPELINE_STAGE_NONE)
+    barrier.submit(cmd_buffer);
 
   clearOps();
 }

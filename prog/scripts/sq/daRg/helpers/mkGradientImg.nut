@@ -3,6 +3,8 @@
 from "%darg/ui_imports.nut" import *
 from "base64" import encodeString
 
+let math = require("math")
+
 const BLEND_MODE_PREMULTIPLIED = "PREMULTIPLIED"
 const BLEND_MODE_NONPREMULTIPLIED = "NONPREMULTIPLIED"
 const BLEND_MODE_ADDITIVE = "ADDITIVE"
@@ -71,7 +73,7 @@ let function mkRadialGradSvgTxtImpl(points, width, height, cx=null, cy=null, r=n
     fx != null ? $"fx='{fx}'" : "",
     fy != null ? $"fy='{fy}'" : ""
   ])
-  r = r==null ? min(width, height) * 0.5 : r
+  r = r==null ? math.min(width, height) * 0.5 : r
   let center = " ".join([
     cx!=null ? $"cx='{cx}'" : "",
     cy!=null ? $"cy='{cy}'" : "",

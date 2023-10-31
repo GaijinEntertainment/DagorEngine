@@ -627,10 +627,10 @@ static void resolve_templates_imports(const char *path, const DataBlock &blk, Te
 static void load_templates_blk_file(const char *path, const DataBlock &blk, TemplateRefs &templates, TemplateRefs &overrides,
   service_datablock_cb &cb, TemplateDBInfo *info)
 {
-  const int parentNid = blk.getNameId("_extends"), trackedNid = blk.getNameId("_tracked"),
-            replicatedNid = blk.getNameId("_replicated"), hiddenNid = blk.getNameId("_hidden"),
-            overrideNid = blk.getNameId("_override"), skipInitialNid = blk.getNameId("_skipInitialReplication"),
-            singletonNid = blk.getNameId("_singleton"), replNid = blk.getNameId("_replicate"), trackNid = blk.getNameId("_track"),
+  const int parentNid = blk.getNameId("_use"), trackedNid = blk.getNameId("_tracked"), replicatedNid = blk.getNameId("_replicated"),
+            hiddenNid = blk.getNameId("_hidden"), overrideNid = blk.getNameId("_override"),
+            skipInitialNid = blk.getNameId("_skipInitialReplication"), singletonNid = blk.getNameId("_singleton"),
+            replNid = blk.getNameId("_replicate"), trackNid = blk.getNameId("_track"),
             ignoreNid = blk.getNameId("_ignoreInitialReplication"), hideNid = blk.getNameId("_hide"), infoNid = blk.getNameId("_info");
 
   // second pass, create templates

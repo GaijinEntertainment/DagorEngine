@@ -246,6 +246,34 @@ void RenderCanvasContext::renderRectangle(const Sqrat::Array &cmd) const
 }
 
 
+void RenderCanvasContext::renderQuads(const Sqrat::Array &cmd) const
+{
+  // VECTOR_QUADS, (x, y, color) * 4 times, ...
+  bool isValidParams = cmd.Length() > 1 && (cmd.Length() - 1) % 12 == 0;
+
+  if (!isValidParams)
+  {
+    darg_assert_trace_var("invalid number of parameters for VECTOR_QUADS", cmd, 0);
+    return;
+  }
+
+  Point2 p[4];
+  E3DCOLOR colors[4];
+
+  for (int i = 1; i < cmd.Length(); i += 12)
+  {
+    for (int k = 0, index = 0; k < 12; k += 3, index++) // 3 numbers per vertex - x, y, color
+    {
+      p[index] = offset + Point2(cmd[i + k].Cast<float>() * scale.x, cmd[i + k + 1].Cast<float>() * scale.y);
+      colors[index] = e3dcolor_mul(fillColor, script_decode_e3dcolor(cmd[i + k + 2].Cast<SQInteger>()));
+    }
+
+    ctx->render_quad_color(p[0], p[1], p[2], p[3], Point2(0, 0), Point2(0, 0), Point2(0, 0), Point2(0, 0), colors[0], colors[1],
+      colors[2], colors[3]);
+  }
+}
+
+
 static RenderCanvasContext *get_ctx(HSQUIRRELVM vm)
 {
   SQUserPointer ptr = nullptr;

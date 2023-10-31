@@ -40,6 +40,9 @@ float tracer_start_color_fade_time_inv = 4.0;
 int tracer_prim_type = 0;
 interval tracer_prim_type: tracer_prim_type_dir < 1, tracer_prim_type_caps;
 
+int tracer_commands_count_const_no = 10 always_referenced;
+int tracer_commands_array_const_no = 11 always_referenced;
+
 block(scene) tracer_frame
 {
   supports global_frame;
@@ -84,12 +87,12 @@ shader fx_create_cmd_cs
     #include <tracerConsts.hlsli>
   }
   hlsl(cs) {
-    uint commandsCount: register(c10);
+    uint commandsCount: register(c10); // Keep constant insync with tracer_commands_count_const_no
 ##if fx_create_cmd == fx_create_tracer
-    GPUFxTracerCreate commands[FX_TRACER_MAX_CREATE_COMMANDS]: register(c11);
+    GPUFxTracerCreate commands[FX_TRACER_MAX_CREATE_COMMANDS]: register(c11);  // Keep constant index sync with tracer_commands_array_const_no
     RWStructuredBuffer<GPUFxTracer> dataBuffer: register(u0);
 ##else
-    GPUFxSegmentCreate commands[FX_TRACER_MAX_CREATE_COMMANDS]: register(c11);
+    GPUFxSegmentCreate commands[FX_TRACER_MAX_CREATE_COMMANDS]: register(c11); // Keep constant index sync with tracer_commands_array_const_no
     RWStructuredBuffer<GPUFxSegment> dataBuffer: register(u0);
 ##endif
     [numthreads(FX_TRACER_COMMAND_WARP_SIZE, 1, 1)]

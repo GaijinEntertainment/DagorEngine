@@ -3,8 +3,6 @@ Location = prog/tools/sceneTools/daEditorX/csg ;
 DriverLinkage = dynamic ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
-UseWTL      = no ;
-
 TargetType  = dll ;
 Target      = tools/sceneTools/daEditorX/csg.dll ;
 OutDir      = $(Root)/tools/dagor3_cdk/bin/plugins/de3x ;

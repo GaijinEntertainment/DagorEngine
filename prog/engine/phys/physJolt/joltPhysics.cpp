@@ -277,16 +277,15 @@ public:
   void WaitForJobs(Barrier *inBarrier) override { static_cast<BarrierImpl *>(inBarrier)->activeWait(); }
 
 protected:
-  static bool submitJob(JobImpl *j)
+  static void submitJob(JobImpl *j)
   {
     if (interlocked_compare_exchange(j->istate, j->S_ADDING, j->S_INITIAL) != j->S_INITIAL)
-      return false;
+      return;
     j->AddRef();
     G_FAST_ASSERT(interlocked_acquire_load(j->done)); // Freshly allocated job should have `done` set
     uint32_t qPos;
     threadpool::add(j, j->tprio, qPos, threadpool::AddFlags::IgnoreNotDone);
     j->setState(j->S_SUBMITTED);
-    return true;
   }
   void QueueJob(Job *inJob) override { submitJob(static_cast<JobImpl *>(inJob)); }
   void QueueJobs(Job **inJobs, JPH::uint inNumJobs) override
@@ -302,8 +301,11 @@ protected:
   {
     auto jptr = static_cast<JobImpl *>(inJob);
     G_FAST_ASSERT(inJob->IsDone());
-    // Addition to barrier can be skipped if job was already done (IsDone()=true) at that moment.
-    threadpool::wait(jptr);
+
+    // Addition to barrier can be skipped if job was already done (IsDone()=true) at Jolt,
+    // but we still have to wait for it to be done in threadpool
+    threadpool::wait(jptr, 0, jptr->tprio);
+
     jptr->~JobImpl();
     OSSpinlockScopedLock lock(fbaJobsSL);
     fbaJobs.freeOneBlock(jptr);
@@ -835,8 +837,19 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
         for (auto s = (const unsigned *)meshColl->idata, se = s + meshColl->inum; s < se; s += 3, d++)
           d->mIdx[0] = s[0], d->mIdx[1] = s[rev_face ? 2 : 1], d->mIdx[2] = s[rev_face ? 1 : 2];
       }
-      shape.Sanitize();
-      return check_and_return_shape(shape.Create(), __LINE__);
+
+      auto res = shape.Create();
+      if (res.IsValid())
+        return res.Get();
+
+      // TODO: promote this to logerr when either all project resources are fixed or add per-project setting
+      logwarn("Failed to create non sanitized mesh shape <%s>: %s", meshColl->debugName, res.GetError().c_str());
+
+      decltype(shape) sanitizedShape;
+      sanitizedShape.mTriangleVertices = eastl::move(shape.mTriangleVertices);
+      sanitizedShape.mIndexedTriangles = eastl::move(shape.mIndexedTriangles);
+      sanitizedShape.Sanitize();
+      return check_and_return_shape(sanitizedShape.Create(), __LINE__);
     }
     break;
 

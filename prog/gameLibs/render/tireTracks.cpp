@@ -27,6 +27,8 @@
 #include <generic/dag_staticTab.h>
 #include <memory/dag_framemem.h>
 #include <osApiWrappers/dag_direct.h>
+#include <EASTL/deque.h>
+#include <vecmath/dag_vecMath.h>
 
 
 // TODO: boxes. fast and more correct (grid?) visibility for vtex. alttab.
@@ -46,6 +48,14 @@ static bool has_vertex_normal = false;
 
 static Tab<Point2> allVertices;
 static Tab<BBox3> updated_regions;
+struct TracksInvalidateCommand
+{
+  Point3 pos;
+  float radius_sq = 0;
+  int emitter_id = -1;
+  int track_id = -1;
+};
+static eastl::deque<TracksInvalidateCommand> invalidateRegionsQueue;
 
 static int default_texture_idx = 0;
 static int maxTrackVertices = 800;
@@ -233,6 +243,18 @@ public:
   }
 
   TireTrackVertexNorm *getLastSegment() { return &lastSegmentVertices[0]; }
+
+  template <class VType>
+  void invalidateVtxBuf(VType *vbufOrig, Point3 pos, float radius_sq)
+  {
+    TIME_D3D_PROFILE(tire_tracks_invalidate_region);
+    VType *vbuf = vbufOrig + vofs;
+    for (int i = 0; i < maxTrackVertices; i++)
+    {
+      if ((pos - vbuf[i].pos).lengthSq() <= radius_sq)
+        vbuf[i].tex.w = 0;
+    }
+  }
 
   template <class VType>
   void updateVtxBuf(VType *vbufOrig, int emitterIndex, int batchId)
@@ -890,6 +912,12 @@ static void beforeRenderProxy(float dt, const Point3 &orig);
 
 void beforeRender(float dt, const Point3 &origin)
 {
+  TracksInvalidateCommand inv;
+  if (invalidateRegionsQueue.size() > 0)
+  {
+    inv = invalidateRegionsQueue.front();
+    invalidateRegionsQueue.pop_front();
+  }
   TIME_D3D_PROFILE(tire_tracks_update);
   if (updated_emitters.size() > used_emitters.size())
     updated_emitters.clear(); // for safety
@@ -902,16 +930,27 @@ void beforeRender(float dt, const Point3 &origin)
     bool bUpdated = false;
     for (int j = 0; j < 2; ++j)
     {
+      bool invalidate_track = used_emitters[i] == inv.emitter_id && j == inv.track_id;
       TireTrack *track = emitters[used_emitters[i]].getTrack(j);
-      if (track->wasChanged())
+      if (track->wasChanged() || invalidate_track)
       {
         if (!vertices)
         {
           if (!vbuffer->lock(0, 0, (void **)&vertices, VBLOCK_NOOVERWRITE | VBLOCK_WRITEONLY | VBLOCK_NOSYSLOCK))
             return;
         }
-        track->updateVbuf(vertices, used_emitters[i]);
-        bUpdated = true;
+        if (track->wasChanged())
+        {
+          track->updateVbuf(vertices, used_emitters[i]);
+          bUpdated = true;
+        }
+        else // invalidate track
+        {
+          if (tire_tracks::has_vertex_normal)
+            track->invalidateVtxBuf((TireTrackVertexNorm *)vertices, inv.pos, inv.radius_sq);
+          else
+            track->invalidateVtxBuf((TireTrackVertexNoNorm *)vertices, inv.pos, inv.radius_sq);
+        }
       }
     }
     if (bUpdated)
@@ -919,6 +958,21 @@ void beforeRender(float dt, const Point3 &origin)
   }
   if (vertices)
     vbuffer->unlock();
+}
+
+void invalidate_region(const BBox3 &bbox)
+{
+  float radius = max(bbox.width().x, max(bbox.width().y, bbox.width().z)) / 2;
+  for (int i = 0; i < used_emitters.size(); i++)
+  {
+    for (int j = 0; j < 2; ++j)
+    {
+      TireTrack *track = emitters[used_emitters[i]].getTrack(j);
+      bbox3f track_bbox = track->getBbox();
+      if (v_bbox3_test_box_intersect(track_bbox, v_ldu_bbox3(bbox)))
+        invalidateRegionsQueue.push_back({bbox.center(), radius * radius, used_emitters[i], j});
+    }
+  }
 }
 
 // render tires

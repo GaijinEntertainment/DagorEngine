@@ -943,7 +943,7 @@ public:
           if (n.cachedMaxTmScale <= 1.0f)
             for (unsigned i = 0; i < m.face.size(); i++)
               if (lengthSq((m.vert[m.face[i].v[1]] - m.vert[m.face[i].v[0]]) % (m.vert[m.face[i].v[2]] - m.vert[m.face[i].v[0]])) <
-                  1e-12f)
+                  5e-12f)
               {
                 zeroarea_faces_cnt++;
                 logerr("%s: %sdegenerate tri %d,%d,%d: %@, %@, %@ (edge len: %g, %g, %g)", a.getName(), label, m.face[i].v[0],

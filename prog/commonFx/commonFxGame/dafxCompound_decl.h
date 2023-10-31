@@ -127,7 +127,7 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 8);
+    CHECK_FX_VERSION(ptr, len, 9);
 
     ref_slot = readType<int>(ptr, len);
     offset = readType<Point3>(ptr, len);

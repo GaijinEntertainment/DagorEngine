@@ -283,35 +283,13 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   G_ASSERT(h0Mat);
   h0Element = h0Mat->make_elem();
   int num_quads = (numCascades + 1) / 2;
-  ht0Ibuf = d3d::create_ib(sizeof(uint16_t) * 6 * num_quads, 0);
+  ht0Ibuf = d3d::create_ib(sizeof(uint16_t) * 6 * num_quads, SBCF_MAYBELOST, "ht0Ibuf");
   d3d_err(ht0Ibuf);
-  uint16_t *indices;
-  d3d_err(ht0Ibuf->lock(0, 0, &indices, VBLOCK_WRITEONLY));
-  for (int i = 0; i < num_quads; ++i, indices += 6)
-  {
-    int base = i * 4;
-    indices[0] = base;
-    indices[1] = base + 1;
-    indices[2] = base + 2;
-    indices[3] = base + 2;
-    indices[4] = base + 1;
-    indices[5] = base + 3;
-  }
-  ht0Ibuf->unlock();
 
   // create vbuffer for fft/butterflies
-  fftVbuf = d3d::create_vb(sizeof(Point3) * 3 * miNumButterflies, 0, "fftVbuf");
+  fftVbuf = d3d::create_vb(sizeof(Point3) * 3 * miNumButterflies, SBCF_MAYBELOST, "fftVbuf");
   d3d_err(fftVbuf);
-  Point3 *fftVertices;
-  d3d_err(fftVbuf->lock(0, 0, (void **)&fftVertices, VBLOCK_WRITEONLY));
-  for (int i = 0; i < miNumButterflies; ++i, fftVertices += 3)
-  {
-    float index = (i + 0.5f) / miNumButterflies;
-    fftVertices[0] = Point3(-1, +1, index);
-    fftVertices[1] = Point3(-1, -3, index);
-    fftVertices[2] = Point3(+3, +1, index);
-  }
-  fftVbuf->unlock();
+  buffersReady = false;
   fftVMat = new_shader_material_by_name("fftV");
   G_ASSERT(fftVMat);
   fftVElement = fftVMat->make_elem();
@@ -339,93 +317,136 @@ void GPGPUData::updateHt0WindowsVB(const NVWaveWorks_FFT_CPU_Simulation *fft, in
 {
   ShaderGlobal::set_real(small_waves_fractionVarId, fft[0].getParams().small_wave_fraction);
 
-  int gauss_resolution, gauss_stride;
-  get_global_gauss_data(gauss_resolution, gauss_stride);
-
   int num_quads = (numCascades + 1) / 2;
-  Ht0Vertex *vertices;
   del_d3dres(ht0Vbuf);
-  ht0Vbuf = d3d::create_vb(sizeof(Ht0Vertex) * 4 * num_quads, 0, "ht0Vbuf");
+  ht0Vbuf = d3d::create_vb(sizeof(Ht0Vertex) * 4 * num_quads, SBCF_MAYBELOST, "ht0Vbuf");
   d3d_err(ht0Vbuf);
   G_ASSERT(ht0Vbuf);
-  d3d_err(ht0Vbuf->lock(0, 0, (void **)&vertices, VBLOCK_WRITEONLY));
-  const int N = 1 << fft[0].getParams().fft_resolution_bits;
-  G_ASSERT(N <= gauss_resolution);
-  float gauss_corner0 = (gauss_resolution - N) * 0.5f / (gauss_resolution + 1.0f);
-  float halfTexelOffsetX = 0.5f;
-  float halfTexelOffsetY = 0.5f;
-  float gauss_corner1 = 1.0 - gauss_corner0;
-  gauss_corner0 += HALF_TEXEL_OFSF / (gauss_resolution + 1.0f);
-  gauss_corner1 += HALF_TEXEL_OFSF / (gauss_resolution + 1.0f);
-  float quad_width = 2.0f / num_quads;
-  for (int i = 0; i < num_quads; ++i, vertices += 4)
-  {
-    int c0 = i * 2;
-    int c1 = c0 + 1 < numCascades ? c0 + 1 : c0;
-    float fft_period0 = fft[c0].getParams().fft_period;
-    float fft_period1 = fft[c1].getParams().fft_period;
-
-    // kStep = 2PI/L; norm = kStep * sqrt(1/2)
-    float norm0 = 2 * PI * 0.7071068 / (fft_period0), norm1 = 2 * PI * 0.7071068 / (fft_period1);
-    vertices[0].pos = Point2(-1 + i * quad_width, +1);
-    vertices[1].pos = Point2(vertices[0].pos.x + quad_width, +1);
-    vertices[2].pos = Point2(vertices[0].pos.x, -1);
-    vertices[3].pos = Point2(vertices[0].pos.x + quad_width, -1);
-
-    vertices[0].tc = Point2(-N / 2 - halfTexelOffsetX + HALF_TEXEL_OFSF, -N / 2 - halfTexelOffsetY + HALF_TEXEL_OFSF);
-    vertices[1].tc = Point2(+N / 2 + halfTexelOffsetX + HALF_TEXEL_OFSF, -N / 2 - halfTexelOffsetY + HALF_TEXEL_OFSF);
-    vertices[2].tc = Point2(-N / 2 - halfTexelOffsetX + HALF_TEXEL_OFSF, +N / 2 + halfTexelOffsetY + HALF_TEXEL_OFSF);
-    vertices[3].tc = Point2(+N / 2 + halfTexelOffsetX + HALF_TEXEL_OFSF, +N / 2 + halfTexelOffsetY + HALF_TEXEL_OFSF);
-    for (int j = 0; j < 4; ++j)
-    {
-      vertices[j].fft_tc = Point4(vertices[j].tc.x * TWOPI / fft_period0, vertices[j].tc.y * TWOPI / fft_period0,
-        vertices[j].tc.x * TWOPI / fft_period1, vertices[j].tc.y * TWOPI / fft_period1);
-    }
-
-    vertices[0].gaussTc__norm = Point4(gauss_corner0, gauss_corner0, norm0, norm1);
-    vertices[1].gaussTc__norm = Point4(gauss_corner1, gauss_corner0, norm0, norm1);
-    vertices[2].gaussTc__norm = Point4(gauss_corner0, gauss_corner1, norm0, norm1);
-    vertices[3].gaussTc__norm = Point4(gauss_corner1, gauss_corner1, norm0, norm1);
-
-    Point2 window0 = Point2(fft[c0].getParams().window_in, fft[c0].getParams().window_out);
-    Point2 window1 = Point2(fft[c1].getParams().window_in, fft[c1].getParams().window_out);
-    Point4 windows(window0.x, window0.y, window1.x, window1.y);
-    vertices[0].windows = windows;
-    vertices[1].windows = windows;
-    vertices[2].windows = windows;
-    vertices[3].windows = windows;
-
-    Point4 windProp = Point4(fft[c0].getParams().wind_dependency, fft[c1].getParams().wind_dependency,
-      fft[c0].getParams().wind_alignment, fft[c1].getParams().wind_alignment);
-    vertices[0].windProp = windProp;
-    vertices[1].windProp = windProp;
-    vertices[2].windProp = windProp;
-    vertices[3].windProp = windProp;
-
-    Point2 ampSpeed0 = Point2(fft[c0].getParams().wave_amplitude, fft[c0].getParams().wind_speed);
-    Point2 ampSpeed1 = Point2(fft[c1].getParams().wave_amplitude, fft[c1].getParams().wind_speed);
-    // Use square of amplitude, because Phillips is an *energy* spectrum
-    ampSpeed0.x *= ampSpeed0.x;
-    ampSpeed1.x *= ampSpeed1.x;
-    // Encoded vector for passing into shaders
-    Point4 ampSpeed = Point4(ampSpeed0.x, ampSpeed0.y, ampSpeed1.x, ampSpeed1.y);
-
-    vertices[0].ampSpeed = ampSpeed;
-    vertices[1].ampSpeed = ampSpeed;
-    vertices[2].ampSpeed = ampSpeed;
-    vertices[3].ampSpeed = ampSpeed;
-  }
-  ht0Vbuf->unlock();
   h0GPUUpdateRequired = true;
   omegaGPUUpdateRequired = true;
+  buffersReady = false;
 }
 
-void GPGPUData::updateH0(int numCascades)
+void GPGPUData::fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
+{
+  if (buffersReady)
+    return;
+  int num_quads = (numCascades + 1) / 2;
+  const int N = 1 << fft[0].getParams().fft_resolution_bits;
+  if (ht0Vbuf)
+  {
+    int gauss_resolution, gauss_stride;
+    get_global_gauss_data(gauss_resolution, gauss_stride);
+    Ht0Vertex *vertices;
+    d3d_err(ht0Vbuf->lock(0, 0, (void **)&vertices, VBLOCK_WRITEONLY));
+    G_ASSERT(N <= gauss_resolution);
+    float gauss_corner0 = (gauss_resolution - N) * 0.5f / (gauss_resolution + 1.0f);
+    float halfTexelOffsetX = 0.5f;
+    float halfTexelOffsetY = 0.5f;
+    float gauss_corner1 = 1.0 - gauss_corner0;
+    gauss_corner0 += HALF_TEXEL_OFSF / (gauss_resolution + 1.0f);
+    gauss_corner1 += HALF_TEXEL_OFSF / (gauss_resolution + 1.0f);
+    float quad_width = 2.0f / num_quads;
+    for (int i = 0; i < num_quads; ++i, vertices += 4)
+    {
+      int c0 = i * 2;
+      int c1 = c0 + 1 < numCascades ? c0 + 1 : c0;
+      float fft_period0 = fft[c0].getParams().fft_period;
+      float fft_period1 = fft[c1].getParams().fft_period;
+
+      // kStep = 2PI/L; norm = kStep * sqrt(1/2)
+      float norm0 = 2 * PI * 0.7071068 / (fft_period0), norm1 = 2 * PI * 0.7071068 / (fft_period1);
+      vertices[0].pos = Point2(-1 + i * quad_width, +1);
+      vertices[1].pos = Point2(vertices[0].pos.x + quad_width, +1);
+      vertices[2].pos = Point2(vertices[0].pos.x, -1);
+      vertices[3].pos = Point2(vertices[0].pos.x + quad_width, -1);
+
+      vertices[0].tc = Point2(-N / 2 - halfTexelOffsetX + HALF_TEXEL_OFSF, -N / 2 - halfTexelOffsetY + HALF_TEXEL_OFSF);
+      vertices[1].tc = Point2(+N / 2 + halfTexelOffsetX + HALF_TEXEL_OFSF, -N / 2 - halfTexelOffsetY + HALF_TEXEL_OFSF);
+      vertices[2].tc = Point2(-N / 2 - halfTexelOffsetX + HALF_TEXEL_OFSF, +N / 2 + halfTexelOffsetY + HALF_TEXEL_OFSF);
+      vertices[3].tc = Point2(+N / 2 + halfTexelOffsetX + HALF_TEXEL_OFSF, +N / 2 + halfTexelOffsetY + HALF_TEXEL_OFSF);
+      for (int j = 0; j < 4; ++j)
+      {
+        vertices[j].fft_tc = Point4(vertices[j].tc.x * TWOPI / fft_period0, vertices[j].tc.y * TWOPI / fft_period0,
+          vertices[j].tc.x * TWOPI / fft_period1, vertices[j].tc.y * TWOPI / fft_period1);
+      }
+
+      vertices[0].gaussTc__norm = Point4(gauss_corner0, gauss_corner0, norm0, norm1);
+      vertices[1].gaussTc__norm = Point4(gauss_corner1, gauss_corner0, norm0, norm1);
+      vertices[2].gaussTc__norm = Point4(gauss_corner0, gauss_corner1, norm0, norm1);
+      vertices[3].gaussTc__norm = Point4(gauss_corner1, gauss_corner1, norm0, norm1);
+
+      Point2 window0 = Point2(fft[c0].getParams().window_in, fft[c0].getParams().window_out);
+      Point2 window1 = Point2(fft[c1].getParams().window_in, fft[c1].getParams().window_out);
+      Point4 windows(window0.x, window0.y, window1.x, window1.y);
+      vertices[0].windows = windows;
+      vertices[1].windows = windows;
+      vertices[2].windows = windows;
+      vertices[3].windows = windows;
+
+      Point4 windProp = Point4(fft[c0].getParams().wind_dependency, fft[c1].getParams().wind_dependency,
+        fft[c0].getParams().wind_alignment, fft[c1].getParams().wind_alignment);
+      vertices[0].windProp = windProp;
+      vertices[1].windProp = windProp;
+      vertices[2].windProp = windProp;
+      vertices[3].windProp = windProp;
+
+      Point2 ampSpeed0 = Point2(fft[c0].getParams().wave_amplitude, fft[c0].getParams().wind_speed);
+      Point2 ampSpeed1 = Point2(fft[c1].getParams().wave_amplitude, fft[c1].getParams().wind_speed);
+      // Use square of amplitude, because Phillips is an *energy* spectrum
+      ampSpeed0.x *= ampSpeed0.x;
+      ampSpeed1.x *= ampSpeed1.x;
+      // Encoded vector for passing into shaders
+      Point4 ampSpeed = Point4(ampSpeed0.x, ampSpeed0.y, ampSpeed1.x, ampSpeed1.y);
+
+      vertices[0].ampSpeed = ampSpeed;
+      vertices[1].ampSpeed = ampSpeed;
+      vertices[2].ampSpeed = ampSpeed;
+      vertices[3].ampSpeed = ampSpeed;
+    }
+    ht0Vbuf->unlock();
+  }
+
+  if (ht0Ibuf)
+  {
+    uint16_t *indices;
+    d3d_err(ht0Ibuf->lock(0, 0, &indices, VBLOCK_WRITEONLY));
+    for (int i = 0; i < num_quads; ++i, indices += 6)
+    {
+      int base = i * 4;
+      indices[0] = base;
+      indices[1] = base + 1;
+      indices[2] = base + 2;
+      indices[3] = base + 2;
+      indices[4] = base + 1;
+      indices[5] = base + 3;
+    }
+    ht0Ibuf->unlock();
+  }
+
+  const int miNumButterflies = get_log2w(N);
+  {
+    Point3 *fftVertices;
+    d3d_err(fftVbuf->lock(0, 0, (void **)&fftVertices, VBLOCK_WRITEONLY));
+    for (int i = 0; i < miNumButterflies; ++i, fftVertices += 3)
+    {
+      float index = (i + 0.5f) / miNumButterflies;
+      fftVertices[0] = Point3(-1, +1, index);
+      fftVertices[1] = Point3(-1, -3, index);
+      fftVertices[2] = Point3(+3, +1, index);
+    }
+    fftVbuf->unlock();
+  }
+  buffersReady = true;
+}
+
+void GPGPUData::updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
 {
   if (!h0GPUUpdateRequired)
     return;
   if (!h0Element)
     return;
+  fillBuffers(fft, numCascades);
   ShaderGlobal::set_texture(k_texVarId, BAD_TEXTUREID);
   ShaderGlobal::set_texture(gauss_texVarId, gauss);
   d3d::set_render_target(ht0.getTex2D(), 0);
@@ -509,7 +530,7 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
   fillOmega(fft, numCascades);
   Driver3dRenderTarget prevRt;
   d3d::get_render_target(prevRt);
-  updateH0(numCascades);
+  updateH0(fft, numCascades);
   d3d::set_render_target();
 
 #if _TARGET_TVOS

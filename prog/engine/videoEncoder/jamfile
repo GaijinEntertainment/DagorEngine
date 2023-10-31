@@ -27,7 +27,6 @@ if $(Platform) in win32 win64 {
   }
 
 AddIncludes +=
-  $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
 ;
 

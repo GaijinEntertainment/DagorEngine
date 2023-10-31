@@ -47,6 +47,60 @@ inline bool operator==(const FramebufferLayout &l, const FramebufferLayout &r)
 
 inline bool operator!=(const FramebufferLayout &l, const FramebufferLayout &r) { return !(l == r); }
 
+struct BasePipelineIdentifierHashSet
+{
+  char vsHash[1 + 2 * sizeof(dxil::HashValue)]{};
+  char psHash[1 + 2 * sizeof(dxil::HashValue)]{};
+};
+
+struct BasePipelineIdentifier
+{
+  dxil::HashValue vs;
+  dxil::HashValue ps;
+
+  operator BasePipelineIdentifierHashSet() const
+  {
+    BasePipelineIdentifierHashSet set;
+    vs.convertToString(set.vsHash, sizeof(set.vsHash));
+    ps.convertToString(set.psHash, sizeof(set.psHash));
+    return set;
+  }
+};
+
+inline bool operator==(const BasePipelineIdentifier &l, const BasePipelineIdentifier &r) { return l.vs == r.vs && l.ps == r.ps; }
+inline bool operator!=(const BasePipelineIdentifier &l, const BasePipelineIdentifier &r) { return !(l == r); }
+
+struct MeshPipelineVariantState
+{
+  uint32_t framebufferLayoutIndex;
+  uint32_t staticRenderStateIndex;
+  // using u32 for predictable size and the option to turn this into a flag field
+  uint32_t isWireFrame;
+};
+
+struct GraphicsPipelineVariantState : MeshPipelineVariantState
+{
+  D3D12_PRIMITIVE_TOPOLOGY_TYPE topology;
+  uint32_t inputLayoutIndex;
+};
+
+struct ComputePipelineIdentifierHashSet
+{
+  char hash[1 + 2 * sizeof(dxil::HashValue)]{};
+};
+
+struct ComputePipelineIdentifier
+{
+  dxil::HashValue hash;
+
+  operator ComputePipelineIdentifierHashSet() const
+  {
+    ComputePipelineIdentifierHashSet set;
+    hash.convertToString(set.hash, sizeof(set.hash));
+    return set;
+  }
+};
+
 struct RootSignatureStageLayout
 {
   uint8_t rootConstantsParamIndex = 0;
@@ -518,14 +572,7 @@ typedef TaggedHandle<ptrdiff_t, -1, GraphicsPipelineBaseCacheIdTag> GraphicsPipe
 class PipelineCache
 {
 public:
-  struct BasePipelineIdentifier
-  {
-    dxil::HashValue vs;
-    dxil::HashValue ps;
-
-    bool operator==(const BasePipelineIdentifier &o) const { return o.vs == vs && o.ps == ps; }
-    bool operator!=(const BasePipelineIdentifier &o) const { return !(*this == o); }
-  };
+  using BasePipelineIdentifier = ::drv3d_dx12::BasePipelineIdentifier;
 
   struct ShutdownParameters
   {
@@ -540,6 +587,9 @@ public:
 #else
     static constexpr bool rootSignaturesUsesCBVDescriptorRanges = false;
 #endif
+    bool generateBlks;
+    bool alwaysGenerateBlks;
+    DeviceCapsAndShaderModel features;
   };
 
   struct SetupParameters : ShutdownParameters
@@ -702,14 +752,8 @@ private:
   struct GraphicsPipeline
   {
     BasePipelineIdentifier ident;
-    struct VariantCacheEntry
+    struct VariantCacheEntry : GraphicsPipelineVariantState
     {
-      D3D12_PRIMITIVE_TOPOLOGY_TYPE topology;
-      uint32_t framebufferLayoutIndex;
-      uint32_t staticRenderStateIndex;
-      uint32_t inputLayoutIndex;
-      // using u32 for predictable size and the option to turn this into a flag field
-      uint32_t isWireFrame;
       eastl::vector<uint8_t> blob;
     };
     eastl::vector<VariantCacheEntry> variantCache;
@@ -777,9 +821,8 @@ private:
     }
   };
 
-  struct ComputeBlob
+  struct ComputeBlob : ComputePipelineIdentifier
   {
-    dxil::HashValue hash;
     eastl::vector<uint8_t> blob;
   };
 

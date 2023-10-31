@@ -1,5 +1,6 @@
 module easing shared
 require math
+require math.base
 
 [generic]
 def linear(p : float)

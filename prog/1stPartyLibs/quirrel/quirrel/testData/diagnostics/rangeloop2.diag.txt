@@ -1,0 +1,8 @@
+ERROR: too many expressions separated by comma in 'for (variable: [from,] to [, step])' - loop
+testData/diagnostics/rangeloop2.nut.txt:3:18
+
+for (i : a, b, s, g) {
+                  ^
+    println("ERROR loop 2")
+
+

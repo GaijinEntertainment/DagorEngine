@@ -19,6 +19,7 @@
 
 #include <ioSys/dag_memIo.h>
 #include <memory/dag_framemem.h>
+#include <EASTL/algorithm.h>
 
 
 bool get_settings_resolution(int &width, int &height, bool &is_retina, int def_width, int def_height, bool &out_is_auto)
@@ -32,9 +33,11 @@ bool get_settings_resolution(int &width, int &height, bool &is_retina, int def_w
   if (res_str && res_str[0] == 'x')
   {
     float scale = atof(res_str + 1);
-    int maxScaledWidth = blk_video.getInt("maxScaledWidth", -1);
-    if (maxScaledWidth > 0 && scale * def_width > maxScaledWidth)
-      scale = (float)maxScaledWidth / def_width;
+    const int maxDimension = blk_video.getInt("maxLowerDimension", -1);
+    const int smallerDimension = eastl::min(def_width, def_height);
+
+    if (maxDimension > 0 && smallerDimension > maxDimension)
+      scale = ((float)maxDimension * scale) / smallerDimension;
     width = (int)(scale * def_width);
     height = (int)(scale * def_height);
     width -= width % 16; // Grant a 4 pixel alignment for quarter-res targets.

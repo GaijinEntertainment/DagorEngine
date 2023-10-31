@@ -479,7 +479,6 @@ rule ProcessTargetVariables
     PreAddIncludes = ;
     AddIncludes = ;
     UseDirectX = ;
-    UseWTL = ;
 
     if $(TargetType) in exe dll {
       if $(IsProgArtifact) = yes && $(SignatureID) {
@@ -645,7 +644,6 @@ rule ClearTargetVariables
   PreAddIncludes = ;
   AddIncludes = ;
   UseDirectX = ;
-  UseWTL = ;
   UseQuirrel = ;
   AddLibs = ;
   Resources = ;
@@ -1422,15 +1420,6 @@ rule AddDirectXLibs
   }
 }
 
-rule AddWtlInclude
-{
-  if $(UseWTL) = yes { $(1) += -I$(Root)/prog/3rdPartyLibs/wtl-8.1/include/$(2)_atl -I$(Root)/prog/3rdPartyLibs/wtl-8.1/include ; }
-}
-rule AddWtlLibs
-{
-  if $(UseWTL) = yes { $(1) += -libpath:$(Root)/prog/3rdPartyLibs/wtl-8.1/lib/$(2)_atl $(3) ; }
-}
-
 rule AddForceFastcall
 {
 }
@@ -2167,6 +2156,11 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
 }
 if $(Platform) = android && clean-android-output in $(JAMTARGETS) { __targets = ; __targets_to_clean = ; }
 if $(Platform) = iOS && clean-ios-output in $(JAMTARGETS) { __targets = ; __targets_to_clean = ; }
+
+VC_SHOW_INCLUDES_FILTER_PREFIX = "Note: including file:[	 ]*" ; # matching regexp in en-US locale
+VC_START_SHOW_INCLUDES_FILTER = # force en-US locale
+  set VSLANG=1033 "
+  set_filter nul" /$(VC_SHOW_INCLUDES_FILTER_PREFIX)$(_DEVTOOL_RE)(.+)/ ; # filter out paths pointing to _DEVTOOL
 
 if $(GLOBAL_BuildDevtool)
 {

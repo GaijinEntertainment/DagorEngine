@@ -1443,6 +1443,9 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debu
     void addShaderGroup(uint32_t group, ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader);
     void removeShaderGroup(uint32_t group);
     void loadComputeShaderFromDump(ProgramID program);
+    void compilePipelineSet(DynamicArray<InputLayoutID> &&input_layouts, DynamicArray<StaticRenderStateID> &&static_render_states,
+      DynamicArray<FramebufferLayout> &&framebuffer_layouts, DynamicArray<GraphicsPipelinePreloadInfo> &&graphics_pipelines,
+      DynamicArray<MeshPipelinePreloadInfo> &&mesh_pipelines, DynamicArray<ComputePipelinePreloadInfo> &&compute_pipelines);
   };
 
 #if DAGOR_DBGLEVEL > 0
@@ -2008,6 +2011,10 @@ public:
   void addShaderGroup(uint32_t group, ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader);
   void removeShaderGroup(uint32_t group);
   void loadComputeShaderFromDump(ProgramID program);
+  void compilePipelineSet(const DataBlock *feature_sets, DynamicArray<InputLayoutID> &&input_layouts,
+    DynamicArray<StaticRenderStateID> &&static_render_states, const DataBlock *output_formats_set,
+    const DataBlock *graphics_pipeline_set, const DataBlock *mesh_pipeline_set, const DataBlock *compute_pipeline_set,
+    const char *default_format);
 };
 
 class ScopedCommitLock

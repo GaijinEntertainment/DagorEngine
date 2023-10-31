@@ -27,7 +27,7 @@
 #include <util/dag_watchdog.h>
 
 #include "driver.h"
-#include <comPtr/comPtr.h>
+#include <supp/dag_comPtr.h>
 #include <d3d9types.h>
 #if HAS_NVAPI && NVAPI_SLI_SYNC
 #include <nvapi.h>

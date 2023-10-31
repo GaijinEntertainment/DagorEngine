@@ -1,8 +1,6 @@
 Root    ?= ../../../../.. ;
 Location = prog/tools/sceneTools/daEditorX/Environment ;
 
-UseWTL = yes ;
-
 TargetType  = lib ;
 Target      = tools/sceneTools/daEditorX/environment.lib ;
 

@@ -15,7 +15,7 @@ let entity_editor = require_optional("entity_editor")
 let {propPanelVisible, selectedEntity, editorUnpause} = require("state.nut")
 let {registerPerCompPropEdit} = require("%daeditor/propPanelControls.nut")
 
-let {floor} = require("math")
+let math = require("math")
 let {startswith} = require("string")
 
 
@@ -97,7 +97,7 @@ let function riCalcNameInGroup(name, group) {
 let function riCalcNameInGroups(name) {
   local result = 0
   foreach (group in riGroupsData)
-    result = max(result, riCalcNameInGroup(name, group))
+    result = math.max(result, riCalcNameInGroup(name, group))
   return result
 }
 
@@ -566,7 +566,7 @@ let riFiltered = Computed(function() {
 
 let riPages = Computed(function() {
   let filtered = riFiltered.value
-  local pages = floor(filtered.len() / riPageCount)
+  local pages = math.floor(filtered.len() / riPageCount)
   if (filtered.len() > pages * riPageCount)
     ++pages
   if (pages < 1)
@@ -614,7 +614,7 @@ let function riGotoPageByValue(v) {
   let fcount = filtered.len()
   for (local i = 0; i < fcount; i++) {
     if (filtered[i] == v) {
-      local page = floor(i / riPageCount)
+      local page = math.floor(i / riPageCount)
       if (page < 0)
         page = 0
       if (page >= riPages.value)
@@ -792,7 +792,7 @@ let function riAddToGroup(name, group_idx) {
     group.list.append(name)
   group.count += 1
   let isFavorites = group.mode == GRPMODE_FAVORITES
-  riNamesGroups[name] <- max(isFavorites ? 1 : 2, riNamesGroups?[name] ?? 0)
+  riNamesGroups[name] <- math.max(isFavorites ? 1 : 2, riNamesGroups?[name] ?? 0)
   riRebuildGroupsList()
   if (groupSeen)
     riGroup(riGroupListName(group.name, group.count))

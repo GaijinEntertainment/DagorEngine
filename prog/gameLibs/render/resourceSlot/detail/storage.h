@@ -1,10 +1,13 @@
 #pragma once
 
 #include <render/resourceSlot/state.h>
+#include <render/daBfg/nameSpace.h>
 
 #include <detail/nodeDeclaration.h>
 #include <detail/resSlotNameMap.h>
 #include <detail/autoGrowVector.h>
+
+#include <ska_hash_map/flat_hash_map2.hpp>
 
 
 namespace resource_slot::detail
@@ -29,7 +32,7 @@ struct Storage
   Storage &operator=(const Storage &) = delete;
 };
 
-// NOTE: in the future, we could have several storages for several frame graphs
-extern dag::RelocatableFixedVector<Storage, EXPECTED_MAX_STORAGE_COUNT> storage_list;
+using StorageList = ska::flat_hash_map<dabfg::NameSpace, Storage>;
+extern StorageList storage_list;
 
 } // namespace resource_slot::detail

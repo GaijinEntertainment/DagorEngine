@@ -35,7 +35,7 @@ declare_struct("ModFxQuality", 1,
   { name="high_quality", type="bool", defVal=1 },
 ]);
 
-declare_struct("ModfxParams", 8,
+declare_struct("ModfxParams", 9,
 [
   { name="ref_slot", type="int", defVal=0 },
   { name="offset", type="Point3", defVal=Point3(0,0,0) },
@@ -60,7 +60,7 @@ declare_struct("ModfxParams", 8,
   { name="global_life_time_min", type="real", defVal=0 },
   { name="global_life_time_max", type="real", defVal=0 },
   { name="transform_type", type="list", list=["default", "world_space", "local_space"] },
-  { name="render_group", type="list", list=["default", "lowres", "highres"] },
+  { name="render_group", type="list", list=["default", "lowres", "highres", "distortion", "water_proj", "underwater"] },
 
   { name="quality", type="ModFxQuality" },
 ]);

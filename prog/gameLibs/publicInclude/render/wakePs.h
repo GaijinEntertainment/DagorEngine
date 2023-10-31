@@ -240,7 +240,6 @@ private:
   eastl::unique_ptr<ComputeShaderElement> clearShader;
   DynamicShaderHelper renderShaders[ParticleSystem::RENDER_TYPE_END];
 
-  BufPtr particleQuadIB;
   TexPtr randomBuffer;
 
   int fTimeVarId;

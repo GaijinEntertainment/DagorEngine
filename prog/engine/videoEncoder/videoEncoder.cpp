@@ -11,7 +11,7 @@
 #include <Codecapi.h>
 #include <combaseapi.h>
 #include <d3d11.h>
-#include <comPtr/comPtr.h>
+#include <supp/dag_comPtr.h>
 #include <mfidl.h>
 #include <mfobjects.h>
 #include <mftransform.h>

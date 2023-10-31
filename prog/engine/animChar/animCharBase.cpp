@@ -897,7 +897,7 @@ intptr_t AnimcharBaseComponent::irq(int type, intptr_t p1, intptr_t p2, intptr_t
     if (!AnimCharV20::trace_static_ray_dir)
       return GIRQR_NoResponse;
     Point3_vec4 &pt = *(Point3_vec4 *)(void *)p1;
-    Point3_vec4 dir = *(Point3_vec4 *)(void *)p2;
+    const Point3_vec4 &dir = *(Point3_vec4 *)(void *)p2;
     float *res = (float *)(void *)p3;
     float max_trace_dist = *res;
     if (AnimCharV20::trace_static_ray_dir(pt, dir, max_trace_dist, *res, ac->traceContext))

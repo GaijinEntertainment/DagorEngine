@@ -40,7 +40,6 @@ MAKE_TYPE_FACTORY(CollisionData, dm::CollisionData);
 MAKE_TYPE_FACTORY(DamageModelData, dm::DamageModelData);
 MAKE_TYPE_FACTORY(DamageModel, dm::DamageModel);
 MAKE_TYPE_FACTORY(HitData, dm::HitData);
-MAKE_TYPE_FACTORY(DamagePartPropsCached, dm::DamagePartPropsCached);
 MAKE_TYPE_FACTORY(DamagePart, dm::DamagePart);
 MAKE_TYPE_FACTORY(DamagePartProps, dm::DamagePartProps);
 DAS_BIND_VECTOR(DamageModelDataPartProps, DamageModelDataPartProps, dm::DamagePartProps, "DamageModelDataPartProps");
@@ -161,7 +160,8 @@ inline float get_max_hp(const dm::DamageModelData &dm_data, int part_id)
 
 inline bool is_part_inner(const dm::DamageModelData &dm_data, int part_id)
 {
-  return get_part_props(dm_data, dm::PartId(part_id, -1)).testFlag(dm::DamagePartProps::Flag::INNER);
+  const dm::DamagePartProps *props = get_part_props(dm_data, dm::PartId(part_id, -1));
+  return props && props->testFlag(dm::DamagePartProps::Flag::INNER);
 }
 
 inline dm::splash::Params calc_splash_params(int damage_props_id, bool underwater)
@@ -187,7 +187,8 @@ inline const dm::effect::ActionCluster *get_damage_effect_action_cluster(const d
 
 inline float get_part_hp_prop_value(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
 {
-  return dm::get_part_props(dm_data, part_id).hp;
+  const dm::DamagePartProps *props = dm::get_part_props(dm_data, part_id);
+  return props ? props->hp : 0.f;
 }
 
 } // namespace bind_dascript

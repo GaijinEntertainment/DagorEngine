@@ -136,7 +136,7 @@ function show_prompt(description, defaultText, callback)
   defaultText = ("" + defaultText).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&#34;");
 
   var html = '<div>&nbsp;' + description + '</div>';
-  html += '&nbsp;<input id="fullscreen_dialog_input" type="text" size="60" value="' + defaultText + '">&nbsp;';
+  html += '&nbsp;<input id="fullscreen_dialog_input" type="text" size="60" autocomplete="off" value="' + defaultText + '">&nbsp;';
 
   show_dialog(null, html, [
      ["OK", function() {

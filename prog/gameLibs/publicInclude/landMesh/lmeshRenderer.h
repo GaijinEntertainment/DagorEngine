@@ -231,6 +231,9 @@ protected:
   TEXTUREID vertTexId;
   TEXTUREID vertNmTexId;
   TEXTUREID vertDetTexId;
+
+  Sbuffer *physmatIdsBuf; // physmats for mega landclass
+
   struct MirroredCellState
   {
     Point4 posToWorldSet[2];

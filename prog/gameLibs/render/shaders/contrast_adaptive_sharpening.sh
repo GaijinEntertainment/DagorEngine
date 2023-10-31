@@ -16,17 +16,18 @@ macro USE_CONTRAST_ADAPTIVE_SHARPENING(code)
       return half4(color.rgb * rcp(max(1e-5, 1 - abs(color.r))), color.a);
     }
 
-    half4 tex2DCAS(Texture2D tex, int2 pixelCoord, float sharpening)
+    half4 tex2DCAS(Texture2D tex, SamplerState tex_samplerstate, float2 uv, float2 res, float2 invRes, float sharpening)
     {
-      half4 a = tonemap(PackToYCoCgAlpha(tex.Load(int3(pixelCoord + int2(-1, -1), 0))));
-      half4 b = tonemap(PackToYCoCgAlpha(tex.Load(int3(pixelCoord + int2(0, -1), 0))));
-      half4 c = tonemap(PackToYCoCgAlpha(tex.Load(int3(pixelCoord + int2(1, -1), 0))));
-      half4 d = tonemap(PackToYCoCgAlpha(tex.Load(int3(pixelCoord + int2(-1, 0), 0))));
-      half4 e = tonemap(PackToYCoCgAlpha(tex.Load(int3(pixelCoord, 0))));
-      half4 f = tonemap(PackToYCoCgAlpha(tex.Load(int3(pixelCoord + int2(1, 0), 0))));
-      half4 g = tonemap(PackToYCoCgAlpha(tex.Load(int3(pixelCoord + int2(-1, 1), 0))));
-      half4 h = tonemap(PackToYCoCgAlpha(tex.Load(int3(pixelCoord + int2(0, 1), 0))));
-      half4 i = tonemap(PackToYCoCgAlpha(tex.Load(int3(pixelCoord + int2(1, 1), 0))));
+      float2 pixelCoord = (floor(uv * res) + 0.5) * invRes;
+      half4 a = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(-1, -1) * invRes, 0, 0))));
+      half4 b = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(0, -1) * invRes, 0, 0))));
+      half4 c = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(1, -1) * invRes, 0, 0))));
+      half4 d = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(-1, 0) * invRes, 0, 0))));
+      half4 e = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord, 0, 0))));
+      half4 f = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(1, 0) * invRes, 0, 0))));
+      half4 g = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(-1, 1) * invRes, 0, 0))));
+      half4 h = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(0, 1) * invRes, 0, 0))));
+      half4 i = tonemap(PackToYCoCgAlpha(tex2Dlod(tex, float4(pixelCoord + int2(1, 1) * invRes, 0, 0))));
 
       // Soft min and max.
       //  a b c             b

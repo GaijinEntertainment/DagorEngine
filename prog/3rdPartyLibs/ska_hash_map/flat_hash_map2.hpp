@@ -1124,7 +1124,7 @@ public:
         typename Table::EntryPointer it = Table::entries + ptrdiff_t(index);
         for (int8_t distance = 0; it->distance_from_desired >= distance; ++distance, ++it)
         {
-            if (predicate(key, it->value.first))
+            if (predicate(it->value.first, key))
                 return { it };
         }
         return Table::end();
@@ -1217,7 +1217,7 @@ public:
         typename Table::EntryPointer it = Table::entries + ptrdiff_t(index);
         for (int8_t distance = 0; it->distance_from_desired >= distance; ++distance, ++it)
         {
-            if (predicate(key, it->value))
+            if (predicate(it->value, key))
                 return { it };
         }
         return Table::end();

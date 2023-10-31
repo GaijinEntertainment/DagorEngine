@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "math" import max
 
 let {tostring_r} = require("%sqstd/string.nut")
 let cursor = Cursor({ rendObj = ROBJ_IMAGE size = [32, 32] image = Picture("!ui/atlas#cursor.svg:{0}:{0}:K".subst(hdpx(32))) })

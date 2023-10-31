@@ -1840,7 +1840,8 @@ eastl::unique_ptr<BasePipeline> PipelineManager::createGraphics(ID3D12Device2 *d
     return nullptr;
   }
   return eastl::make_unique<BasePipeline>(device, *signature, cache, static_cast<backend::ShaderModuleManager &>(*this),
-    static_cast<backend::InputLayoutManager &>(*this), staticRenderStateTable, fbs, vertexShader, pixelShader, on_error, give_name);
+    static_cast<backend::InputLayoutManager &>(*this), static_cast<backend::StaticRenderStateManager &>(*this), fbs, vertexShader,
+    pixelShader, on_error, give_name);
 }
 
 void PipelineManager::unloadAll()

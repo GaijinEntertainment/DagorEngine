@@ -40,17 +40,6 @@ void set_inv_globtm_to_shader(const TMatrix4 &viewTm, const TMatrix4 &projTm, bo
   ShaderGlobal::set_float4x4(globtm_invVarId, globTmInv);
 }
 
-void set_inv_globtm_to_shader(bool optional)
-{
-  init_inv_globtm_vars(optional);
-  if (globtm_invVarId < 0)
-    return;
-  TMatrix4 viewTm, projTm;
-  d3d::gettm(TM_PROJ, &projTm);
-  d3d::gettm(TM_VIEW, &viewTm);
-  set_inv_globtm_to_shader(viewTm, projTm, optional);
-}
-
 void get_viewvecs(Point4 &viewVecLT, Point4 &viewVecRT, Point4 &viewVecLB, Point4 &viewVecRB, const TMatrix &viewTm,
   const TMatrix4 &projTm)
 {

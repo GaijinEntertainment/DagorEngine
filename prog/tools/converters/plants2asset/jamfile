@@ -14,8 +14,6 @@ AddIncludes     =
   $(Root)/prog/tools/sceneTools
 ;
 
-UseWTL          = yes ;
-
 Sources =
   gridCvt.cpp
   con_main.cpp

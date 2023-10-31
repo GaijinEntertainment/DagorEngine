@@ -3,7 +3,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_finally.h>
-#include <comPtr/comPtr.h>
+#include <supp/dag_comPtr.h>
 #include <dxgi.h>
 #include <eastl/deque.h>
 #include <util/dag_globDef.h>

@@ -4,8 +4,6 @@ Location = prog/tools/libTools/EditorCore ;
 TargetType  = lib ;
 Target      = tools/libTools/EditorCore.lib ;
 
-UseWTL      = yes ;
-
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/engine/sharedInclude

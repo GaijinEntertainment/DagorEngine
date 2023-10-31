@@ -163,10 +163,15 @@ public:
     static bool processPartials() { return false; }
   };
 
+  enum
+  {
+    SUBPASS_NON_NATIVE = 255
+  };
+
   struct ImageOpAdditionalParams
   {
     VkImageLayout layout;
-    uint16_t nativePassIdx;
+    uint8_t subpassIdx;
   };
 
   struct ImageOp
@@ -176,7 +181,7 @@ public:
     ImageArea area;
     OpCaller caller;
     VkImageLayout layout;
-    uint16_t nativePassIdx;
+    uint8_t subpassIdx;
     bool completed : 1;
     bool dstConflict : 1;
     bool changesLayout : 1;
@@ -190,7 +195,6 @@ public:
     void onConflictWithDst(ImageOp &dst, size_t gpu_work_id);
     static bool allowsConflictFromObject() { return true; }
     bool hasObjConflict();
-    void onNativePassEnter(uint16_t pass_idx);
     bool mergeCheck(ImageArea area, ImageOpAdditionalParams extra);
     bool isAreaPartiallyCoveredBy(const ImageOp &dst);
     static bool processPartials() { return true; }
@@ -325,8 +329,7 @@ public:
 
   void addBufferAccess(LogicAddress laddr, Buffer *buf, BufferArea area);
   void addImageAccess(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area);
-  void addImageAccessAtNativePass(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area);
-  void enterNativePass();
+  void setCurrentRenderSubpass(uint8_t subpass);
 
   void completeNeeded(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev);
   void completeAll(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev, size_t gpu_work_id);
@@ -334,12 +337,11 @@ public:
   bool allCompleted();
 
 private:
-  void addImageAccessFull(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area, uint16_t native_pass_idx);
   void clearOps();
   ScratchData scratch;
   ImageOpsArray imgOps;
   BufferOpsArray bufOps;
-  uint16_t nativePassIdx = 1;
+  uint8_t currentRenderSubpass = SUBPASS_NON_NATIVE;
   size_t gpuWorkId = 0;
 };
 

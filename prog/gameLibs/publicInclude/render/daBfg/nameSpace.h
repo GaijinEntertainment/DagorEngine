@@ -6,6 +6,7 @@
 #pragma once
 
 #include <EASTL/span.h>
+#include <EASTL/functional.h>
 
 #include <render/daBfg/detail/nameSpaceNameId.h>
 #include <render/daBfg/detail/bfg.h>
@@ -35,6 +36,7 @@ namespace dabfg
 class NameSpace
 {
   friend NameSpace root();
+  friend struct eastl::hash<NameSpace>;
 
   NameSpace();
   NameSpace(NameSpaceNameId nid);
@@ -163,6 +165,8 @@ public:
    */
   void unmarkResourceExternallyConsumed(const char *res_name);
 
+  friend bool operator==(const NameSpace &fst, const NameSpace &snd) { return fst.nameId == snd.nameId; }
+
 private:
   auto resolveName(const char *name) const;
 
@@ -170,3 +174,17 @@ private:
 };
 
 } // namespace dabfg
+
+namespace eastl
+{
+
+template <>
+struct hash<dabfg::NameSpace>
+{
+  size_t operator()(dabfg::NameSpace ns) const
+  {
+    return eastl::hash<eastl::underlying_type_t<dabfg::NameSpaceNameId>>{}(eastl::to_underlying(ns.nameId));
+  }
+};
+
+} // namespace eastl

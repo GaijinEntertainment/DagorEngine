@@ -788,6 +788,8 @@ void DaSkies::reset()
   invalidate();
   if (clouds)
     clouds->reset();
+  if (skyStars)
+    skyStars->afterReset();
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
   prepare(getSunDir(), false, 0.f);
 }

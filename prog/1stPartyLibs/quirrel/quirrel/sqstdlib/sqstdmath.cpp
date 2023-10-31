@@ -60,6 +60,81 @@ SINGLE_ARG_FUNC(ceil)
 SINGLE_ARG_FUNC(round)
 SINGLE_ARG_FUNC(exp)
 
+template<SQInteger CmpRes>
+static SQInteger math_min_max(HSQUIRRELVM v)
+{
+  SQInteger nArgs = sq_gettop(v);
+  SQObject objRes;
+  sq_getstackobj(v, 2, &objRes);
+
+  for (SQInteger i = 3; i <= nArgs; ++i) {
+    SQObject cur;
+    sq_getstackobj(v, i, &cur);
+    if (!(sq_type(cur) & SQOBJECT_NUMERIC)) {
+      sq_throwparamtypeerror(v, i, _RT_FLOAT | _RT_INTEGER, sq_type(cur));
+      return SQ_ERROR;
+    }
+
+    SQInteger cres = 0;
+    if (!sq_cmpraw(v, cur, objRes, cres))
+      return sq_throwerror(v, _SC("Internal error, comparison failed"));
+
+    if (cres == CmpRes)
+      objRes = cur;
+  }
+
+  sq_pushobject(v, objRes);
+  return 1;
+}
+
+static SQInteger math_min(HSQUIRRELVM v)
+{
+  return math_min_max<-1>(v);
+}
+
+static SQInteger math_max(HSQUIRRELVM v)
+{
+  return math_min_max<+1>(v);
+}
+
+static SQInteger math_clamp(HSQUIRRELVM v)
+{
+  SQObject x, lo, hi;
+  SQInteger cres = 0;
+
+  sq_getstackobj(v, 2, &x);
+  sq_getstackobj(v, 3, &lo);
+  sq_getstackobj(v, 4, &hi);
+
+  const SQChar *cmpFailedErrText = _SC("Internal error, comparison failed");
+
+  if (!sq_cmpraw(v, lo, hi, cres))
+    return sq_throwerror(v, cmpFailedErrText);
+
+  if (cres > 0)
+    return sq_throwerror(v, _SC("Invalid clamp range: min>max"));
+
+  if (!sq_cmpraw(v, x, lo, cres))
+    return sq_throwerror(v, cmpFailedErrText);
+
+  if (cres < 0) {
+    sq_pushobject(v, lo);
+    return 1;
+  }
+
+  if (!sq_cmpraw(v, x, hi, cres))
+    return sq_throwerror(v, cmpFailedErrText);
+
+  if (cres > 0) {
+    sq_pushobject(v, hi);
+    return 1;
+  }
+
+  sq_pushobject(v, x);
+  return 1;
+}
+
+
 #define _DECL_FUNC(name,nparams,tycheck) {_SC(#name),math_##name,nparams,tycheck}
 static const SQRegFunction mathlib_funcs[] = {
     _DECL_FUNC(sqrt,2,_SC(".n")),
@@ -81,6 +156,9 @@ static const SQRegFunction mathlib_funcs[] = {
     _DECL_FUNC(rand,1,NULL),
     _DECL_FUNC(fabs,2,_SC(".n")),
     _DECL_FUNC(abs,2,_SC(".n")),
+    _DECL_FUNC(min,-3,_SC(".nnnnnnnn")),
+    _DECL_FUNC(max,-3,_SC(".nnnnnnnn")),
+    _DECL_FUNC(clamp,4,_SC(".nnn")),
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 #undef _DECL_FUNC

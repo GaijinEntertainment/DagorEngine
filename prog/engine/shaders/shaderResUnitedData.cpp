@@ -776,7 +776,7 @@ inline void ShaderResUnitedVdata<RES>::initUpdateJob(UpdateModelCtx &ctx, RES *r
   ctx.res = r;
   ctx.res->setResLoadingFlag(true);
   ctx.reqLod = r->getQlReqLodEff();
-  pendingVdataReloadResCount++;
+  interlocked_increment(pendingVdataReloadResCount);
 }
 template <class RES>
 inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
@@ -1230,9 +1230,9 @@ void ShaderResUnitedVdata<RES>::stopPendingJobs()
       else
         break;
     cpujobs::reset_job_queue(reloadJobMgrId);
-    if (cpujobs::is_job_manager_busy(reloadJobMgrId) || pendingVdataReloadResCount)
+    if (cpujobs::is_job_manager_busy(reloadJobMgrId) || getPendingReloadResCount())
       logwarn("failed to finish pending jobs for %d msec, busy=%d pendReload=%d", get_time_msec() - t0,
-        cpujobs::is_job_manager_busy(reloadJobMgrId), pendingVdataReloadResCount);
+        cpujobs::is_job_manager_busy(reloadJobMgrId), getPendingReloadResCount());
   }
 }
 template <class RES>
@@ -1260,7 +1260,7 @@ template <class RES>
 void ShaderResUnitedVdata<RES>::clear()
 {
   stopPendingJobs();
-  G_ASSERTF(!pendingVdataReloadResCount, "pendingVdataReloadResCount=%d", pendingVdataReloadResCount);
+  G_ASSERTF(!getPendingReloadResCount(), "pendingVdataReloadResCount=%d", getPendingReloadResCount());
 
   std::lock_guard<std::mutex> scopedLock(appendMutex);
   if (buf.getIB())
@@ -1306,7 +1306,7 @@ void ShaderResUnitedVdata<RES>::buildStatusStr(String &out_str, bool full_res_li
   {
     updateLocalMaximum(false);
     out_str.aprintf(0, "\nmax buf used [%dM+%dM=%dM] pendingVdataReloadResCount=%d", maxIbTotalUsed >> 20, maxVbTotalUsed >> 20,
-      (maxIbTotalUsed + maxVbTotalUsed) >> 20, pendingVdataReloadResCount);
+      (maxIbTotalUsed + maxVbTotalUsed) >> 20, getPendingReloadResCount());
     if (vbSizeToFree > 0 || ibSizeToFree > 0)
       out_str.aprintf(0, "\nfailedVdataReloadResList=%d vbShortage=%dK ibShortage=%dK uselessDiscardAttempts=%d",
         failedVdataReloadResList.size(), vbSizeToFree >> 10, ibSizeToFree >> 10, uselessDiscardAttempts);

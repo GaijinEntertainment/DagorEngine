@@ -1,0 +1,12 @@
+rawget("b") = HAHA -- b, $rawget("b") = Foo Foo
+t?.$foo = null, t?.foo = null
+OK: '$bar' is not a built-in member of table and access raised exectpion: "the index 'bar' does not exist"
+Forbid implicit default delegates
+OK: 'rawget' is field in table
+OK: 'keys' is built-in method of table. Exception: "the index 'keys' does not exist"
+OK: 'rawget' is built-in method of table accessed via '$'
+OK: Safe access of built-in method 'keys' in both '$' and regular cases succeseded
+Allow implicit default delegates
+OK: 'rawget' is field in table
+OK: 'keys' is built-in method of table.
+OK: 'rawget' is built-in method of table accessed via '$'

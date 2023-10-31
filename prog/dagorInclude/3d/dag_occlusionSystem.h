@@ -8,6 +8,7 @@
 #include <vecmath/dag_vecMathDecl.h>
 #include <math/dag_occlusionTest.h>
 #include <3d/dag_stereoIndex.h>
+#include <3d/dag_textureIDHolder.h>
 
 class BaseTexture;
 typedef BaseTexture Texture;
@@ -46,7 +47,7 @@ public:
   virtual void buildMips() = 0;
   virtual void prepareDebug() = 0;
   virtual void prepareNextFrame(vec3f viewPos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float zn, float zf,
-    Texture *mipped_depth, Texture *depth = 0, StereoIndex stereo_index = StereoIndex::Mono) = 0;
+    TextureIDPair mipped_depth, Texture *depth = 0, StereoIndex stereo_index = StereoIndex::Mono) = 0;
   virtual void setReprojectionUseCameraTranslatedSpace(bool enabled) = 0;
   virtual bool getReprojectionUseCameraTranslatedSpace() const = 0;
 

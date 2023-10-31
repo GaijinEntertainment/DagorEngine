@@ -147,9 +147,13 @@ VromReadHandle vromfs_get_file_data_one(const char *fname, VirtualRomFsData **ou
 
   if (out_vrom)
     *out_vrom = NULL;
+
+  // We can't check vromfs[0] without locking
+  // During remove_vromfs() call we could write nullptr to vromfs[0] just before memmove() call.
+  // At this moment vromfs[0] is nullptr and any attempt to df_open() vrom files will be failed.
+  LockForRead lock(VromReadHandle::lock);
   if (vromfs[0])
   {
-    LockForRead lock(VromReadHandle::lock);
     char namebuf[DAGOR_MAX_PATH];
     resolve_named_mount_s(namebuf, sizeof(namebuf), fname);
     dd_simplify_fname_c(namebuf);

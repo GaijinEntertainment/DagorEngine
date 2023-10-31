@@ -222,15 +222,22 @@ static Module modules[] = {
   {"register_dagor_fs_vrom", "module dagor.fs.vrom: scan_vrom_folder",
     [] { bindquirrel::register_dagor_fs_vrom_module(module_manager); }},
   {"sqstd_register_io_lib", "see quirrel doc", [] { module_manager->registerIoLib(); }},
-  {"sqstd_register_base_libs", "math, string, iostream",
+  {"sqstd_register_base_libs", "math, string, iostream, debug",
     [] {
       module_manager->registerMathLib();
       module_manager->registerStringLib();
+      if (!module_manager->findNativeModule("debug"))
+        module_manager->registerDebugLib();
       if (!module_manager->findNativeModule("io"))
         module_manager->registerIoStreamLib();
     }},
   {"sqstd_register_system_lib", "system lib", [] { module_manager->registerSystemLib(); }},
   {"sqstd_register_datetime_lib", "datetime lib", [] { module_manager->registerDateTimeLib(); }},
+  {"sqstd_register_debug_lib", "debug lib",
+    [] {
+      if (!module_manager->findNativeModule("debug"))
+        module_manager->registerDebugLib();
+    }},
   {"sqrat_bind_dagor_logsys", "modules: dagor.debug, dagor.assertf, dagor.debug_dump_stack ...",
     [] { bindquirrel::sqrat_bind_dagor_logsys(module_manager, true); }},
   {"register_platform_module", "get_platform_string_id ...", [] { bindquirrel::register_platform_module(module_manager); }},
@@ -977,6 +984,11 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
             sq_error_handler(errMsg);
             printf("In script: %s\n\n", s);
             quit_game(1, false);
+          }
+
+          if (do_static_analysis)
+          {
+            sq_mergeglobalnames(&bindings.GetObject());
           }
 
           after_execute_module(module_manager->getVM(), exportName.c_str(), exportName.c_str());

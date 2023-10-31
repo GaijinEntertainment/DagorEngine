@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 from "%darg/helpers/bitmap.nut" import mkBitmapPicture
-from "math" import abs, fabs, sqrt
+from "math" import abs, fabs, sqrt, clamp, max
 
 import "samples_prog/_cursors.nut" as cursors
 

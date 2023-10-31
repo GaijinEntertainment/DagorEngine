@@ -1,5 +1,6 @@
 from "%darg/ui_imports.nut" import *
 from "%darg/laconic.nut" import *
+from "math" import max
 
 require("daRg").gui_scene.config.kbCursorControl = true
 let fa = require("samples_prog/_basic/goodies/fontawesome.map.nut")

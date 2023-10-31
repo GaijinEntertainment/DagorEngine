@@ -159,6 +159,29 @@ ScriptHelpers::TunedElement *DafxSparksQuality::createTunedElement(const char *n
 }
 
 
+ScriptHelpers::TunedElement *DafxRenderGroup::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(1);
+
+  {
+    Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
+    enumEntries.resize(3);
+
+    enumEntries[0].name = "highres";
+    enumEntries[0].value = 0;
+    enumEntries[1].name = "lowres";
+    enumEntries[1].value = 1;
+    enumEntries[2].name = "underwater";
+    enumEntries[2].value = 2;
+
+    elems.push_back(ScriptHelpers::create_tuned_enum_param("type", enumEntries));
+  }
+
+  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+}
+
+
 class DafxSparksEffectTools : public IEffectClassTools
 {
 public:
@@ -167,15 +190,16 @@ public:
   virtual ScriptHelpers::TunedElement *createTunedElement()
   {
     Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-    elems.reserve(5);
+    elems.reserve(6);
 
     elems.push_back(DafxEmitterParams::createTunedElement("DafxEmitterParams_data"));
     elems.push_back(DafxSparksSimParams::createTunedElement("DafxSparksSimParams_data"));
     elems.push_back(DafxSparksRenParams::createTunedElement("DafxSparksRenParams_data"));
     elems.push_back(DafxSparksGlobalParams::createTunedElement("DafxSparksGlobalParams_data"));
     elems.push_back(DafxSparksQuality::createTunedElement("DafxSparksQuality_data"));
+    elems.push_back(DafxRenderGroup::createTunedElement("DafxRenderGroup_data"));
 
-    return ScriptHelpers::create_tuned_group("params", 3, elems);
+    return ScriptHelpers::create_tuned_group("params", 4, elems);
   }
 };
 

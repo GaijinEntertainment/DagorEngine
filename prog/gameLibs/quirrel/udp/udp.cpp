@@ -39,6 +39,7 @@ using InputBuffer = eastl::fixed_ring_buffer<UDPPacket, INPUT_BUFFER_SIZE>;
 
 static WinCritSec input_buffer_mutex;
 static eastl::unique_ptr<InputBuffer> input_buffer;
+static UDPPacket current_packet;
 
 static eastl::unordered_map<eastl::string, SocketInfo> sockets;
 static volatile int sockets_num = 0;
@@ -75,24 +76,20 @@ public:
   {
     os_socket_addr from;
     int recvts = get_time_msec();
-    WinAutoLock lock(input_buffer_mutex);
-    while (!input_buffer->full())
+    while (true)
     {
-      UDPPacket &p = input_buffer->push_back();
+      UDPPacket &p = current_packet;
       p.recvTime = recvts;
       p.sinfo = sinfo;
       int fromLen = sizeof(os_socket_addr);
       p.data.resize(p.data.max_size());
       int nread = os_socket_recvfrom(sinfo->s, p.data.data(), p.data.max_size(), 0, &p.from, &fromLen);
       if (nread <= 0)
-      {
-        input_buffer->pop_back();
-        return;
-      }
-      else
-      {
-        p.data.resize(nread);
-      }
+        break;
+      p.data.resize(nread);
+      WinAutoLock lock(input_buffer_mutex);
+      if (!input_buffer->full())
+        input_buffer->push_back(p);
     }
   }
 

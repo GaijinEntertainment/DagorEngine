@@ -60,7 +60,7 @@ let function lerp(valueMin, valueMax, resMin, resMax, value) {
 */
 let lerpClamped = @(valueMin, valueMax, resMin, resMax, tvalue)
   lerp(valueMin, valueMax, resMin, resMax,
-    valueMax > valueMin ? clamp(tvalue, valueMin, valueMax) : clamp(tvalue, valueMax, valueMin))
+    valueMax > valueMin ? math.clamp(tvalue, valueMin, valueMax) : math.clamp(tvalue, valueMax, valueMin))
 
 
 let function interpolateArray(arr, value) {
@@ -98,7 +98,7 @@ local function color2uint(r,g=0,b=0,a=255){
     b = r?.b ?? b
     a = r?.a ?? a
   }
-  return clamp(r+g*256+b*65536+a*16777216, 0, 4294967295)
+  return math.clamp(r+g*256+b*65536+a*16777216, 0, 4294967295)
 }
 
 let romanNumeralLookup = [

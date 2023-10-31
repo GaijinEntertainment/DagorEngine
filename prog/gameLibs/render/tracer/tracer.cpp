@@ -349,7 +349,8 @@ void TracerManager::DrawBuffer::append(uint32_t id, dag::ConstSpan<uint8_t> elem
   }
 }
 
-void TracerManager::DrawBuffer::process(ComputeShaderElement *cs, int fx_create_cmd, int element_count)
+void TracerManager::DrawBuffer::process(ComputeShaderElement *cs, int commands_array_const_no, int commands_count_const_no,
+  int fx_create_cmd, int element_count)
 {
   if (!buf || cmds.empty())
     return;
@@ -367,19 +368,19 @@ void TracerManager::DrawBuffer::process(ComputeShaderElement *cs, int fx_create_
     int elemCount = cmds.size() / elemSize;
 
     const int commandSizeInConsts = (elemSize + 15) / 16;
-    const int reqSize = 1 + elemCount * commandSizeInConsts;
-    const int cbufferSize = d3d::set_cs_constbuffer_size(reqSize);
+    const int reqSize = commands_array_const_no + elemCount * commandSizeInConsts;
+    const int commandCbufferSize = d3d::set_cs_constbuffer_size(reqSize) - commands_array_const_no;
     uint32_t v[4] = {0};
 
     G_ASSERT(elemCount >= cmd);
 
-    for (int i = max(elemCount - cmd, 0); i < elemCount; i += (cbufferSize - 1) / commandSizeInConsts)
+    for (int i = max(elemCount - cmd, 0); i < elemCount; i += commandCbufferSize / commandSizeInConsts)
     {
-      int batch_size = min(elemCount - i, (int)(cbufferSize - 1) / commandSizeInConsts);
+      int batch_size = min(elemCount - i, commandCbufferSize / commandSizeInConsts);
       v[0] = batch_size;
-      d3d::set_cs_const(10, (float *)v, 1);
+      d3d::set_cs_const(commands_count_const_no, (float *)v, 1);
 
-      d3d::set_cs_const(11, (float *)&cmds[i * elemSize], batch_size * commandSizeInConsts);
+      d3d::set_cs_const(commands_array_const_no, (float *)&cmds[i * elemSize], batch_size * commandSizeInConsts);
       cs->dispatch((batch_size + FX_TRACER_COMMAND_WARP_SIZE - 1) / FX_TRACER_COMMAND_WARP_SIZE, 1, 1);
     }
 
@@ -512,6 +513,9 @@ TracerManager::TracerManager(const DataBlock *blk) :
 
   if (computeSupported)
     createCmdCs = new_compute_shader("fx_create_cmd_cs");
+
+  commandsCountConstNo = ShaderGlobal::get_int_fast(::get_shader_variable_id("tracer_commands_count_const_no"));
+  commandsArrayConstNo = ShaderGlobal::get_int_fast(::get_shader_variable_id("tracer_commands_array_const_no"));
 
   initHeads();
   initTrails();
@@ -1152,14 +1156,14 @@ void TracerManager::beforeRender(const Frustum *f)
   mFrustum = f;
 
 
-  tracerBuffer.process(createCmdCs, 0, maxTracerNo + 1);
-  segmentBuffer.process(createCmdCs, 1, (maxTracerNo + 1) * MAX_FX_SEGMENTS);
+  tracerBuffer.process(createCmdCs, commandsArrayConstNo, commandsCountConstNo, 0, maxTracerNo + 1);
+  segmentBuffer.process(createCmdCs, commandsArrayConstNo, commandsCountConstNo, 1, (maxTracerNo + 1) * MAX_FX_SEGMENTS);
 
   preparing = true;
   threadpool::add(this);
 }
 
-void TracerManager::renderTrans(bool heads, bool trails, float *hk, HeadPrimType head_prim_type)
+void TracerManager::renderTrans(bool heads, bool trails, const float *hk, HeadPrimType head_prim_type)
 {
   threadpool::wait(this);
   preparing = false;

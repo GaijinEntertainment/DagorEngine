@@ -204,7 +204,22 @@ struct InputLayout
   VertexAttributesDesc vertexAttributeSet;
   VertexStreamsDesc inputStreamSet;
 
-  void fromVdecl(const VSDTYPE *decl);
+  struct DecodeContext
+  {
+    uint32_t ofs = 0;
+    uint32_t streamIndex = 0;
+  };
+
+  void fromVdecl(const VSDTYPE *decl)
+  {
+    inputStreamSet = VertexStreamsDesc{};
+    vertexAttributeSet = VertexAttributesDesc{};
+    DecodeContext context{};
+
+    while (fromVdecl(context, *decl++))
+      ;
+  }
+  bool fromVdecl(DecodeContext &context, const VSDTYPE &decl);
 };
 
 inline bool operator==(const InputLayout::VertexAttributesDesc &l, const InputLayout::VertexAttributesDesc &r)
@@ -560,6 +575,8 @@ protected:
     pixelShaderComputeProgramIDMap.clear();
     graphicsProgramTemplates.clear();
     vertexShaderCount = 0;
+    pixelShaderCount = 0;
+    computeShaderCount = 0;
   }
 
   void setup(const ShaderProgramGroup *base, ScriptedShadersBinDumpOwner *d, ShaderID null_pixel_shader)
@@ -1092,7 +1109,20 @@ public:
   {
     groups[index - 1].setup(groups.data(), dump, null_pixel_shader);
   }
-  void dropGroup(uint32_t index) { groups[index - 1].clear(); }
+  void dropGroup(uint32_t index)
+  {
+    groups[index - 1].clear();
+    for (auto &inst : graphicsProgramInstances)
+    {
+      if (inst.internalProgram.getGroup() == index)
+      {
+        inst.deleteAllReferences();
+        removeInstanceFromHashmap(&inst - begin(graphicsProgramInstances));
+      }
+    }
+    // tidy up the hash map
+    removeAllDeads();
+  }
   dxil::ShaderStage shaderFromIndex(uint32_t group_index, uint32_t shader_index, ShaderCodeType type, void *ident)
   {
     return groups[group_index - 1].shaderFromIndex(groups.data(), shader_index, type, ident);
@@ -1278,6 +1308,7 @@ public:
 #endif
   void registerShaderBinDump(DeviceContext &ctx, ScriptedShadersBinDumpOwner *dump);
   void getBindumpShader(DeviceContext &ctx, uint32_t index, ShaderCodeType type, void *ident);
+  DynamicArray<InputLayoutID> loadInputLayoutFromBlk(DeviceContext &ctx, const DataBlock *blk, const char *default_format);
 };
 
 namespace backend
@@ -1350,6 +1381,34 @@ class ScriptedShadersBinDumpManager
   ScriptedShadersBinDumpState dumps[max_scripted_shaders_bin_groups]{};
 
 public:
+  template <typename T>
+  void enumerateShaderFromHash(const dxil::HashValue &hash, T reciever) const
+  {
+    for (uint32_t gi = 0; gi < array_size(dumps); ++gi)
+    {
+      auto &group = dumps[gi];
+      if (!group.owner)
+      {
+        continue;
+      }
+      auto v2 = group.owner->getDumpV2();
+      if (!v2)
+      {
+        continue;
+      }
+      for (uint32_t si = 0; si < v2->shaderHashes.size(); ++si)
+      {
+        if (hash != v2->shaderHashes[si])
+        {
+          continue;
+        }
+        if (!reciever(gi, si, v2->vprId.size()))
+        {
+          break;
+        }
+      }
+    }
+  }
   void setDumpOfGroup(uint32_t shaderGroup, ScriptedShadersBinDumpOwner *dump)
   {
     dumps[shaderGroup].owner = dump;
@@ -1673,6 +1732,62 @@ public:
     uint32_t compression_index);
   void setPixelShaderCompressionGroup(uint32_t group_index, uint32_t index, const dxil::HashValue &hash, uint32_t compression_group,
     uint32_t compression_index);
+  ShaderID findVertexShader(const dxil::HashValue &hash) const
+  {
+    for (uint32_t si = 0; si < shaderGroupZero.vertex.size(); ++si)
+    {
+      auto &vs = shaderGroupZero.vertex[si];
+      if (!vs)
+      {
+        continue;
+      }
+      if (vs->header.hash == hash)
+      {
+        return ShaderID::make(0, si);
+      }
+    }
+    for (uint32_t gi = 0; gi < array_size(shaderGroup); ++gi)
+    {
+      auto &group = shaderGroup[gi].vertex;
+      for (uint32_t si = 0; si < group.size(); ++si)
+      {
+        auto &vs = group[si];
+        if (vs->header.hash == hash)
+        {
+          return ShaderID::make(gi + 1, si);
+        }
+      }
+    }
+    return ShaderID::Null();
+  }
+  ShaderID findPixelShader(const dxil::HashValue &hash) const
+  {
+    for (uint32_t si = 0; si < shaderGroupZero.pixel.size(); ++si)
+    {
+      auto &ps = shaderGroupZero.pixel[si];
+      if (!ps)
+      {
+        continue;
+      }
+      if (ps->header.hash == hash)
+      {
+        return ShaderID::make(0, si);
+      }
+    }
+    for (uint32_t gi = 0; gi < array_size(shaderGroup); ++gi)
+    {
+      auto &group = shaderGroup[gi].pixel;
+      for (uint32_t si = 0; si < group.size(); ++si)
+      {
+        auto &ps = group[si];
+        if (ps->header.hash == hash)
+        {
+          return ShaderID::make(gi + 1, si);
+        }
+      }
+    }
+    return ShaderID::Null();
+  }
 };
-}; // namespace backend
+} // namespace backend
 } // namespace drv3d_dx12

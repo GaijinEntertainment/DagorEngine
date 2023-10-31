@@ -1,7 +1,7 @@
 // clang-format off
 #include <dxil/compiled_shader_header.h>
 #include <dxil/compiler.h>
-#include <comPtr/comPtr.h>
+#include <supp/dag_comPtr.h>
 
 #include <windows.h>
 #include <unknwn.h>

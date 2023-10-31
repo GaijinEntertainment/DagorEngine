@@ -92,7 +92,9 @@ public:
 
   // comparison operators
   bool operator==(const char *s) const { return strcmp(str(), s ? s : "") == 0; }
+  friend bool operator==(const char *a, const SimpleString &s) { return strcmp(a ? a : "", s.str()) == 0; }
   bool operator!=(const char *s) const { return strcmp(str(), s ? s : "") != 0; }
+  friend bool operator!=(const char *a, const SimpleString &s) { return strcmp(a ? a : "", s.str()) != 0; }
   bool operator>(const char *s) const { return strcmp(str(), s ? s : "") > 0; }
   bool operator<(const char *s) const { return strcmp(str(), s ? s : "") < 0; }
   bool operator>=(const char *s) const { return strcmp(str(), s ? s : "") >= 0; }

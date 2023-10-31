@@ -66,8 +66,6 @@ if ! $(__DEFAULTS_INCLUDED) {
   IncludeSystemDir ?= -I ;
   IncludeMSVCDir ?= -I ;
 
-  DefQtVer      = 4.7.3 ;
-
   Config        ?= dev ;
   CoreLinkage   ?= static ;
   DriverLinkage ?= static ;
@@ -121,7 +119,7 @@ if ! $(__DEFAULTS_INCLUDED) {
     OpenSSLVer = 1.1 ;
   }
 
-  if ! $(Platform) in win32 win64 { DisableUsingPCH ?= yes ; }
+  if ! $(Platform) in win32 win64 xboxOne scarlett { DisableUsingPCH ?= yes ; }
 
   if ( $(Platform) in macosx iOS tvOS ) && $(Config) = dbg {
     DisableFusion ?= yes ;
@@ -176,14 +174,6 @@ if ! $(__DEFAULTS_INCLUDED) {
 
   if $(Config) = dbg {
     FastLink ?= yes ; # this speed-up linking but pdb become dependand on obj output
-  }
-
-  if $(Platform) = win32 || $(Platform) = macosx {
-    if $(QtVer) = def { QtVer = $(DefQtVer) ; }
-    if $(QtVer) { QtVerStatic ?= no ; }
-  } else {
-    QtVer = ;
-    QtVerStatic = ;
   }
 
   switch $(Platform) {
@@ -419,8 +409,6 @@ if ! $(__DEFAULTS_INCLUDED) {
     if $(MSVectorcall) = yes && $(Platform) in win32 win64 xboxOne scarlett {
       out = $(out)~v ;
     }
-
-    if $(QtVer) { if $(QtVerStatic) = yes { out = $(out)~qt$(QtVer)s ; } else { out = $(out)~qt$(QtVer) ; } }
 
     if $(DriverLinkage) = dynamic {
       out = $(out)~krnlimp ;

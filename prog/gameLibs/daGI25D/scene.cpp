@@ -172,7 +172,8 @@ UpdateResult Scene::updateOrigin(const Point3 &baseOrigin, const voxelize_scene_
     sceneBox[0] = Point3::xVy(point2(stInvalid) * voxelSizeXZ, 0);
     sceneBox[1] = Point3::xVy(point2(stInvalid + res) * voxelSizeXZ, +voxelSizeY * VOXEL_25D_RESOLUTION_Y);
 
-    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_PS, 7, VALUE), sceneAlpha.getBuf());
+    const int voxels_25d_no = ShaderGlobal::get_int(get_shader_variable_id("voxels_25d_no"));
+    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_PS, voxels_25d_no, VALUE), sceneAlpha.getBuf());
     voxelize_cb(sceneBox, 0.5 * Point3(voxelSizeXZ, voxelSizeY, voxelSizeXZ)); // decrease voxel size twice, as we supersample alpha
                                                                                // twice
     d3d::resource_barrier({sceneAlpha.getBuf(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE});

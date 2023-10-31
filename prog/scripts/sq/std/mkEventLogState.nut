@@ -2,6 +2,7 @@ let { Watched } = require("%sqstd/frp.nut")
 let { setTimeout, clearTimer } = require("dagor.workcycle")
 let { kwarg } = require("%sqstd/functools.nut")
 let { get_time_msec } = require("dagor.time")
+let math = require("math")
 
 //when event have parameter ttl it will be automatically removed on time finish
 //isEventsEqual = @(event1, event2) bool - used only to remove events not only by uid.
@@ -41,7 +42,7 @@ let function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEven
       if (uid in timersCb)
         delete timersCb[uid]
     }
-    setTimeout(max(0.001 * (removeMsec - get_time_msec()), 0.01), timersCb[uid])
+    setTimeout(math.max(0.001 * (removeMsec - get_time_msec()), 0.01), timersCb[uid])
   }
   curEvents.value.each(startRemoveTimer)
 

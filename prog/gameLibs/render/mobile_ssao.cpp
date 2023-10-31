@@ -91,6 +91,7 @@ void MobileSSAORenderer::applyBlur()
   ssaoBlurRenderer->getMat()->set_color4_param(ssaoBlurTexelOffsetVarId, texelOffset);
 
   d3d::set_render_target(ssaoTex[blurId].getTex2D(), 0);
+  d3d::clearview(CLEAR_DISCARD, 0, 0, 0);
 
   ShaderGlobal::set_texture(ssao_texVarId, ssaoTex[renderId]);
   ssaoBlurRenderer->render();

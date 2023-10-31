@@ -25,7 +25,7 @@ shader depth_hierarchy
     }
   }
 
-  if (hardware.xbox)
+  if (hardware.xbox || hardware.ps4)
   {
     hlsl {
       // Xbox produces buggy results with wave-based quad reduction
@@ -37,13 +37,23 @@ shader depth_hierarchy
 
   (cs) {
     mips_and_group_count@i2 = (required_mip_count, work_group_count);
-    if (!hardware.ps5) {
-      g_global_counter@uav : register(g_global_counter_no) hlsl {
-        globallycoherent RWStructuredBuffer<uint> g_global_counter@uav;
-      }
-    } else {
+
+    // TODO: try RWByteAddressBuffer instead
+    if (hardware.ps5) {
       g_global_counter@uav : register(g_global_counter_no) hlsl {
         RW_RegularBuffer<uint, CacheFlags::kGL2Only> g_global_counter@uav; //atomic access, should be fine
+      }
+    }
+    else if (hardware.ps4)
+    {
+      g_global_counter@uav : register(g_global_counter_no) hlsl {
+        RW_RegularBuffer<uint> g_global_counter@uav;
+      }
+    }
+    else
+    {
+      g_global_counter@uav : register(g_global_counter_no) hlsl {
+        globallycoherent RWStructuredBuffer<uint> g_global_counter@uav;
       }
     }
   }

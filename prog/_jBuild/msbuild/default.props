@@ -58,7 +58,7 @@
     <GDKROOT>$(GDEVTOOL)\xbox.gdk.221000\221000\</GDKROOT>
     <PS4SdkVer>850</PS4SdkVer>
     <PS4SDKROOT>$(GDEVTOOL)\ps4.sdk.$(PS4SdkVer)</PS4SDKROOT>
-    <PS5SdkVer>500</PS5SdkVer>
+    <PS5SdkVer>700</PS5SdkVer>
     <PS5SDKROOT>$(GDEVTOOL)\ps5.sdk.$(PS5SdkVer)\</PS5SDKROOT>
     <NDKROOT>$(GDEVTOOL)\android-ndk-r23b\</NDKROOT>
     <BulletSdkVer>2.82</BulletSdkVer>

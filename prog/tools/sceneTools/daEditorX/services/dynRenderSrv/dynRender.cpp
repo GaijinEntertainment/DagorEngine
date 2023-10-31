@@ -296,7 +296,7 @@ public:
     shaders::RenderState rs;
     rs.cull = CULL_NONE;
     rs.colorWr = WRITEMASK_ALPHA;
-    rs.zFunc = CMPF_LESS;
+    rs.zFunc = CMPF_GREATEREQUAL;
     rs.zwrite = 0;
     depthMaskRenderStateId = shaders::render_states::create(rs);
     effects_depth_texVarId = ::get_shader_variable_id("effects_depth_tex", true);
@@ -698,6 +698,15 @@ public:
 
     Texture *finalRt = resolvePostProcessing(use_postfx);
 
+    if (rtype == RTYPE_DYNAMIC_DEFERRED && dbgShowType != -1)
+    {
+      if (::grs_draw_wire)
+        d3d::setwire(0);
+      d3d::set_render_target(finalRt, 0);
+      deferredTarget->debugRender(dbgShowType);
+      goto skip_non_geom_render;
+    }
+
     IEditorCoreEngine::get()->renderObjects();
     IEditorCoreEngine::get()->renderTransObjects();
     ec_camera_elem::freeCameraElem->render();
@@ -706,6 +715,7 @@ public:
     ec_camera_elem::tpsCameraElem->render();
     ec_camera_elem::carCameraElem->render();
 
+  skip_non_geom_render:
     RectInt r;
     r.left = viewportX;
     r.top = viewportY;
@@ -736,13 +746,13 @@ public:
       };
       static Vertex v[4];
       v[0].p.set(-1, -1, 0);
-      v[0].c = 0xFFFFFFFF;
+      v[0].c = 0x00FFFFFF;
       v[1].p.set(+1, -1, 0);
-      v[1].c = 0xFFFFFFFF;
+      v[1].c = 0x00FFFFFF;
       v[2].p.set(-1, +1, 0);
-      v[2].c = 0xFFFFFFFF;
+      v[2].c = 0x00FFFFFF;
       v[3].p.set(+1, +1, 0);
-      v[3].c = 0xFFFFFFFF;
+      v[3].c = 0x00FFFFFF;
       d3d::draw_up(PRIM_TRISTRIP, 2, v, sizeof(v[0]));
       d3d::set_program(BAD_PROGRAM);
       shaders::overrides::reset();

@@ -37,7 +37,6 @@
 #include <osApiWrappers/dag_unicode.h>
 #endif
 
-
 #if _TARGET_PC_WIN
 extern "C"
 {
@@ -385,7 +384,7 @@ struct ApiState
     shaderProgramDatabase.shutdown(ctx);
     ctx.finish();
 
-    device.shutdown();
+    device.shutdown(DeviceCapsAndShaderModel::fromDriverDesc(driverDesc));
 
     deviceName.clear();
 
@@ -1213,11 +1212,40 @@ static IPoint2 handleAutoResolution(const IPoint2 &target)
 }
 #endif
 
+namespace
+{
+int on_driver_command_compile_pipeline_set(void *par1)
+{
+  if (!par1)
+  {
+    return 1;
+  }
+  auto sets = static_cast<const CompilePipelineSet *>(par1);
+  const char *defaultFormat = sets->defaultFormat ? sets->defaultFormat : "dx12";
+  DynamicArray<InputLayoutID> inputLayouts;
+  if (sets->inputLayoutSet)
+  {
+    inputLayouts =
+      api_state.shaderProgramDatabase.loadInputLayoutFromBlk(api_state.device.getContext(), sets->inputLayoutSet, defaultFormat);
+  }
+  DynamicArray<StaticRenderStateID> renderStates;
+  if (sets->renderStateSet)
+  {
+    renderStates = api_state.device.getRenderStateSystem().loadStaticStatesFromBlk(api_state.device.getContext(), api_state.driverDesc,
+      sets->renderStateSet, defaultFormat);
+  }
+  api_state.device.getContext().compilePipelineSet(sets->featureSet, eastl::move(inputLayouts), eastl::move(renderStates),
+    sets->outputFormatSet, sets->graphicsPipelineSet, sets->meshPipelineSet, sets->computePipelineSet, defaultFormat);
+  return 1;
+}
+} // namespace
+
 int d3d::driver_command(int command, void *par1, void *par2, void *par3)
 {
   STORE_RETURN_ADDRESS();
   switch (command)
   {
+    case DRV3D_COMMAND_COMPILE_PIPELINE_SET: return on_driver_command_compile_pipeline_set(par1);
     case DRV3D_COMMAND_REMOVE_DEBUG_BREAK_STRING_SEARCH:
       api_state.device.getContext().removeDebugBreakString({static_cast<const char *>(par1)});
       return 1;

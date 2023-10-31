@@ -43,6 +43,7 @@ SQParser::SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const
     _expression_context = SQE_REGULAR;
     _lang_features = _ss(v)->defaultLangFeatures;
     _depth = 0;
+    _rangeIteratorId = 0;
     _token = 0;
 }
 
@@ -100,7 +101,9 @@ static const SQPragmaDescriptor pragmaDescriptors[] = {
   { "forbid-delete-operator", LF_FORBID_DELETE_OP, 0 },
   { "allow-delete-operator", 0, LF_FORBID_DELETE_OP },
   { "forbid-clone-operator", LF_FORBID_CLONE_OP, 0 },
-  { "allow-clone-operator", 0, LF_FORBID_CLONE_OP }
+  { "allow-clone-operator", 0, LF_FORBID_CLONE_OP },
+  { "forbid-implicit-default-delegates", LF_FORBID_IMPLICIT_DEF_DELEGATE, 0 },
+  { "allow-implicit-default-delegates", 0, LF_FORBID_IMPLICIT_DEF_DELEGATE }
 };
 
 Statement* SQParser::parseDirectiveStatement()
@@ -721,18 +724,23 @@ Expr* SQParser::PrefixedExpr()
         nc.inc();
         switch(_token) {
         case _SC('.'):
-        case TK_NULLGETSTR: {
-            if (_token == TK_NULLGETSTR || nextIsNullable)
+        case TK_NULLGETSTR:
+        case TK_BUILT_IN_GETSTR:
+        case TK_NULLABLE_BUILT_IN_GETSTR: {
+            if (_token == TK_NULLGETSTR || _token == TK_NULLABLE_BUILT_IN_GETSTR || nextIsNullable)
             {
                 nextIsNullable = true;
             }
+
+            bool isBuintInGet = _token == TK_BUILT_IN_GETSTR || _token == TK_NULLABLE_BUILT_IN_GETSTR;
+
             Lex();
 
             SQInteger l = _lex._currentline, c = _lex._currentcolumn;
             Expr *receiver = e;
             Id *id = (Id *)Expect(TK_IDENTIFIER);
             assert(id);
-            e = newNode<GetFieldExpr>(receiver, id->id(), nextIsNullable); //-V522
+            e = newNode<GetFieldExpr>(receiver, id->id(), nextIsNullable, isBuintInGet); //-V522
             e->setLineStartPos(receiver->lineStart()); e->setColumnStartPos(receiver->columnStart());
             e->setLineEndPos(l); e->setColumnEndPos(c);
             break;
@@ -864,7 +872,7 @@ Expr *SQParser::parseStringTemplate() {
       result = fmt;
     }
     else {
-      Expr *callee = setCoordinates(newNode<GetFieldExpr>(fmt, "subst", false), l, c);
+      Expr *callee = setCoordinates(newNode<GetFieldExpr>(fmt, "subst", false, /* force built-in member */ true), l, c);
       CallExpr *call = setCoordinates(newNode<CallExpr>(arena(), callee, false), l, c);
 
       for (Expr *arg : args)
@@ -894,7 +902,7 @@ Expr* SQParser::Factor(SQInteger &pos)
         r->setLineStartPos(l); r->setColumnStartPos(c);
         Lex();
         break;
-    case _SC('$'):
+    case TK_TEMPLATE_OP:
         r = parseStringTemplate();
         break;
     case TK_BASE:
@@ -1166,6 +1174,7 @@ Decl* SQParser::parseLocalDeclStatement()
     NestingChecker nc(this);
 
     assert(_token == TK_LET || _token == TK_LOCAL);
+    SQInteger gl = line(), gc = column();
     bool assignable = _token == TK_LOCAL;
     Lex();
 
@@ -1174,6 +1183,7 @@ Decl* SQParser::parseLocalDeclStatement()
     } else if (_token == TK_CLASS) {
         return parseLocalClassDeclStmt(assignable);
     }
+
 
     DeclGroup *decls = NULL;
     DestructuringDecl  *dd = NULL;
@@ -1197,6 +1207,12 @@ Decl* SQParser::parseLocalDeclStatement()
         if(_token == _SC('=')) {
             Lex();
             Expr *expr = Expression(SQE_REGULAR);
+            if (!assignable && expr->op() == TO_DECL_EXPR && expr->asDeclExpr()->declaration()->op() == TO_FUNCTION) {
+              FunctionDecl *f = static_cast<FunctionDecl *>(expr->asDeclExpr()->declaration());
+              if (!f->name() || f->name()[0] == _SC('(')) {
+                f->setName(varname->id());
+              }
+            }
             cur = newNode<VarDecl>(varname->id(), expr, assignable, destructurer != 0); //-V522
         }
         else {
@@ -1210,7 +1226,7 @@ Decl* SQParser::parseLocalDeclStatement()
         if (decls) {
             decls->addDeclaration(cur);
         } else if (decl) {
-            decls = newNode<DeclGroup>(arena());
+            decls = setCoordinates(newNode<DeclGroup>(arena()), gl, gc);
             decls->addDeclaration(static_cast<VarDecl *>(decl));
             decls->addDeclaration(cur);
             decl = decls;
@@ -1377,28 +1393,127 @@ ForStatement* SQParser::parseForStatement()
 
     SQInteger l = line(), c = column();
 
+    /* range-loop cases
+      1. for (count) == for (local $i = 0; $i < count; ++$i)
+      2. for (variable : count) == for (local variable = 0; variable < count; ++variable)
+      3. for (variable : from, to) == for (local variable = from; variable < to; ++variable)
+      4. for (variable : from, to, step) == for (local variable = from; variable < to; variable += step)
+      5. for (from, to) == for (local $i = from; $i < to; ++$i)
+      6. for (a, b, s, ...) -- syntax error
+      7. for (a, b, s, x; ...; ....) -- regular for-loop
+    */
+
     Consume(TK_FOR);
 
     Expect(_SC('('));
 
+    SQInteger l2 = line(), c2 = column();
+
     Node *init = NULL;
-    if (_token == TK_LOCAL)
-        init = parseLocalDeclStatement();
+    Expr *cond = nullptr, *mod = nullptr;
+    if (_token == TK_LOCAL) {
+      init = parseLocalDeclStatement();
+    }
     else if (_token != _SC(';')) {
-        init = parseCommaExpr(SQE_REGULAR);
+      init = parseCommaExpr(SQE_REGULAR);
     }
-    Expect(_SC(';'));
 
-    Expr *cond = NULL;
-    if(_token != _SC(';')) {
+    if (_token == _SC(';')) {
+      // Regular loop
+      Lex();
+      if (_token != _SC(';')) {
         cond = Expression(SQE_LOOP_CONDITION);
-    }
-    Expect(_SC(';'));
+      }
+      Expect(_SC(';'));
 
-    Expr *mod = NULL;
-    if(_token != _SC(')')) {
+      if (_token != _SC(')')) {
         mod = parseCommaExpr(SQE_REGULAR);
+      }
     }
+    else {
+      // Range loop
+      if (init == nullptr) {
+        reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_SYNTAX_RANGE_LOOP);
+      }
+
+      Expr *initValue = nullptr, *limit = nullptr, *step = nullptr;
+      Id *id = nullptr;
+
+      size_t commaSizeLimit = 3;
+      const char *loopForm = nullptr;
+
+      if (_token == _SC(':')) {
+        Lex();
+        if (init->op() != TO_ID) { // -V1004
+          _ctx.reportDiagnostic(DiagnosticsId::DI_ID_RANGE_LOOP, init->lineStart(), init->columnStart(), init->textWidth());
+        }
+        else {
+          id = init->asId();
+        }
+
+        loopForm = "for (variable: [from,] to [, step])";
+
+        init = parseCommaExpr(SQE_REGULAR);
+      }
+      else {
+        char buf[128] = { 0 };
+        snprintf(buf, sizeof buf, "$it%u", _rangeIteratorId++);
+        id = newId(buf);
+        id->setLineStartPos(l); id->setColumnStartPos(c);
+        id->setLineEndPos(l2); id->setColumnEndPos(c2);
+        commaSizeLimit = 2;
+        loopForm = "for ([from, ] to)";
+      }
+
+      if (init->op() == TO_COMMA) {
+        CommaExpr *cma = static_cast<CommaExpr *>(init);
+        auto &expressions = cma->expressions(); // -V522
+        size_t size = expressions.size();
+        if (size > commaSizeLimit) {
+          const Expr *e = expressions[commaSizeLimit];
+          _ctx.reportDiagnostic(DiagnosticsId::DI_COMMA_RANGE_LOOP, e->lineStart(), e->columnStart(), e->textWidth(), loopForm);
+        }
+
+        limit = expressions[0];
+        if (size > 1) {
+          initValue = limit;
+          limit = expressions[1];
+        }
+        if (size > 2) {
+          step = expressions[2];
+        }
+      }
+      else {
+        if (!init->isExpression()) { // -V1004
+          _ctx.reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, init->lineStart(), init->columnStart(), init->textWidth(), "expression");
+        }
+        limit = init->asExpression();
+      }
+
+      assert(limit != nullptr);
+
+      if (!initValue) {
+        initValue = newNode<LiteralExpr, SQInteger>(SQInteger(0));
+        initValue->setLineStartPos(l); initValue->setColumnStartPos(c);
+        initValue->setLineEndPos(l2); initValue->setColumnEndPos(c2);
+      }
+
+      init = newNode<VarDecl>(id->id(), initValue, true); // -V522
+      init->setLineStartPos(id->lineStart()); init->setColumnStartPos(id->columnStart());
+      init->setLineEndPos(initValue->lineStart()); init->setColumnEndPos(initValue->columnStart());
+
+      Id *checkId = copyCoordinates(id, newId(id->id()));
+      cond = copyCoordinates(limit, newNode<BinExpr>(TO_LT, checkId, limit));
+
+      Id *modId = copyCoordinates(id, newId(id->id()));
+      if (step) {
+        mod = copyCoordinates(step, newNode<BinExpr>(TO_PLUSEQ, modId, step));
+      }
+      else {
+        mod = copyCoordinates(id, newNode<IncExpr>(id, 1, IF_PREFIX));
+      }
+    }
+
     Expect(_SC(')'));
 
     bool wrapped = false;

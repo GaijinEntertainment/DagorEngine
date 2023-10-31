@@ -26,8 +26,9 @@ public:
   ~GPGPUData() { close(); }
 
 private:
-  void updateH0(int num);
+  void updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int num);
   bool fillOmega(const NVWaveWorks_FFT_CPU_Simulation *fft, int num);
+  void fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades);
 
   UniqueTex butterfly;
 
@@ -50,4 +51,5 @@ private:
   ShaderElement *fftHElement, *fftVElement;
   Vbuffer *fftVbuf;
   bool h0GPUUpdateRequired = true, omegaGPUUpdateRequired = true;
+  bool buffersReady = false;
 };

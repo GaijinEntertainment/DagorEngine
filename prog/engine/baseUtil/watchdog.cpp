@@ -37,8 +37,10 @@
 #define WATCHDOG_FREEZE_THRESHOLD         (7000)
 #define WATCHDOG_DUMP_CALLSTACK_THRESHOLD (WATCHDOG_FREEZE_THRESHOLD / 2)
 #endif
-#define WATCHDOG_SLEEP_TIME_MS (500)
-#define ACTIVE_SWAP_THRESHOLD  (1000)
+#define WATCHDOG_SLEEP_TIME_MS         (500)
+#define WATCHDOG_ACTIVE_SWAP_THRESHOLD (1000)
+// Assume that OS is resumed from sleep/hibernation if more then this time passed
+#define WATCHDOG_OS_RESUMED_THRESHOLD  (10 * 60 * 1000)
 
 static inline unsigned get_cur_time_ms()
 {
@@ -119,10 +121,11 @@ public:
         goto keep_sleeping;
 #endif
       unsigned curTime = get_cur_time_ms(), lastTime = lastUpdateTimeMs.load(std::memory_order_relaxed);
-      if (curTime < lastTime) // wrap-around?
+      unsigned e_time = curTime - lastTime;
+      if (curTime < lastTime || // timeGetTime wraps around happens each ~49.71 days since system start
+          e_time > WATCHDOG_OS_RESUMED_THRESHOLD)
         goto keep_sleeping;
 
-      int e_time = curTime - lastTime;
       bool freeze = e_time >= triggering_threshold_ms + (cfg.flags & WATCHDOG_SWAP_HANDICAP ? activeSwapHandicapMs : 0);
       if (e_time > interlocked_acquire_load(cfg.dump_threads_threshold_ms))
       {
@@ -163,7 +166,7 @@ public:
           lastPageFaultCount = memc.PageFaultCount;
           pageFaultCountResetAt = curTime;
         }
-        else if (memc.PageFaultCount - lastPageFaultCount > ACTIVE_SWAP_THRESHOLD * (curTime - pageFaultCountResetAt) / 1000)
+        else if (memc.PageFaultCount - lastPageFaultCount > WATCHDOG_ACTIVE_SWAP_THRESHOLD * (curTime - pageFaultCountResetAt) / 1000)
           activeSwapHandicapMs += cfg.dump_threads_threshold_ms * 2 / 3;
 #endif
       }

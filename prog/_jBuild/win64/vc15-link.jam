@@ -26,7 +26,6 @@ rule ProcessLinkTarget
     if $(Sanitize) != disabled { _LINK_OPT += /FUNCTIONPADMIN ; }
 
     AddDirectXLibs _LINK_OPT ;
-    AddWtlLibs _LINK_OPT : vc8 ;
 
     if $(ConsoleExe) = yes {
       _LINK_OPT += -subsystem:console,\"5.02\" ;
@@ -113,8 +112,6 @@ rule ProcessLinkTarget
   }
 
   local _ADD_LIBS = " " $(1) ;
-
-  if $(QtVer) { AddQtLinkOpt ; }
 
   if $(TargetType) = exe {
     _ADD_LIBS += $(_WIN_LIBS) ;

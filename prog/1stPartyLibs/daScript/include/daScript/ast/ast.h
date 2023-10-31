@@ -1343,7 +1343,8 @@ namespace das
         bool no_aliasing = false;                       // if true, aliasing will be reported as error, otherwise will turn off optimization
         bool strict_smart_pointers = false;             // collection of tests for smart pointers, like van inscope for any local, etc
         bool no_init = false;                           // if true, then no [init] is allowed in any shape or form
-        bool strict_unsafe_delete = false;               // if true, delete of type which contains 'unsafe' delete is unsafe // TODO: enable when need be
+        bool strict_unsafe_delete = false;              // if true, delete of type which contains 'unsafe' delete is unsafe // TODO: enable when need be
+        bool no_members_functions_in_struct = false;    // structures can't have member functions
     // environment
         bool no_optimizations = false;                  // disable optimizations, regardless of settings
         bool fail_on_no_aot = true;                     // AOT link failure is error
@@ -1433,7 +1434,7 @@ namespace das
         void markModuleSymbolUse(TextWriter * logs = nullptr);
         void markMacroSymbolUse(TextWriter * logs = nullptr);
         void markExecutableSymbolUse(TextWriter * logs = nullptr);
-        void markFoldingSymbolUse(TextWriter * logs = nullptr);
+        void markFoldingSymbolUse(const vector<Function *> & needRun, TextWriter * logs = nullptr);
         void removeUnusedSymbols();
         void clearSymbolUse();
         void dumpSymbolUse(TextWriter & logs);

@@ -28,6 +28,8 @@
 const unsigned int phys_collidable_color = 0xFF00FF00;
 const unsigned int traceable_color = 0xFFFF0000;
 
+static int debug_ri_face_orientationVarId = -1;
+
 struct CollisionNodesData
 {
   int nodeId;
@@ -77,6 +79,7 @@ CollisionPlugin::CollisionPlugin()
   showPhysCollidable = false;
   showTraceable = false;
   drawSolid = false;
+  showFaceOrientation = false;
   collisionRes = NULL;
   nodeTree = NULL;
   selectedNodeId = -1;
@@ -87,6 +90,12 @@ CollisionPlugin::CollisionPlugin()
   isSolidMatValid = debugCollisionMat != nullptr;
 
   initScriptPanelEditor("collision.scheme.nut", "collision by scheme");
+  debug_ri_face_orientationVarId = get_shader_variable_id("debug_ri_face_orientation", true);
+  if (VariableMap::isVariablePresent(debug_ri_face_orientationVarId) && !::dgs_get_game_params()->getStr("debugRiTexture", nullptr))
+  {
+    debug_ri_face_orientationVarId = -1;
+    logerr("debugRiTexture:t= not set in gameParams, \"Show face orientation\" is disabled");
+  }
 }
 
 void CollisionPlugin::onSaveLibrary() { nodesProcessing.saveCollisionNodes(); }
@@ -134,7 +143,7 @@ void CollisionPlugin::renderTransObjects()
   if (!collisionRes)
     return;
 
-  RenderCollisionResource(*collisionRes, nodeTree, showPhysCollidable, showTraceable, drawSolid, selectedNodeId,
+  RenderCollisionResource(*collisionRes, nodeTree, showPhysCollidable, showTraceable, drawSolid, showFaceOrientation, selectedNodeId,
     nodesProcessing.editMode, nodesProcessing.selectionNodesProcessing.hiddenNodes);
   nodesProcessing.renderNodes(selectedNodeId, drawSolid);
 
@@ -149,6 +158,11 @@ void CollisionPlugin::fillPropPanel(PropertyContainerControlBase &panel)
   panel.createCheckBox(PID_SHOW_PHYS_COLLIDABLE, "Show Phys Collidable (green)", showPhysCollidable);
   panel.createCheckBox(PID_SHOW_TRACEABLE, "Show Traceable (red)", showTraceable);
   panel.createCheckBox(PID_DRAW_SOLID, "Draw collision solid", drawSolid, isSolidMatValid);
+  if (VariableMap::isVariablePresent(debug_ri_face_orientationVarId))
+  {
+    panel.createCheckBox(PID_SHOW_FACE_ORIENTATION, "Show face orientation", showFaceOrientation, isSolidMatValid);
+    panel.setTooltipId(PID_SHOW_FACE_ORIENTATION, "The front side of triangles is filled by blue color, and back side is red.");
+  }
 
   nodesProcessing.setPropPanel(&panel);
   nodesProcessing.fillCollisionInfoPanel();
@@ -179,6 +193,11 @@ void CollisionPlugin::onClick(int pcb_id, PropertyContainerControlBase *panel)
       repaintView();
       break;
 
+    case PID_SHOW_FACE_ORIENTATION:
+      showFaceOrientation = panel->getBool(pcb_id);
+      repaintView();
+      break;
+
     case PID_PRINT_KDOP_LOG: printKdopLog(); break;
     case PID_NEXT_EDIT_NODE: selectedNodeId = -1; break;
   }
@@ -199,7 +218,7 @@ void CollisionPlugin::onChange(int pcb_id, PropertyContainerControlBase *panel)
       String sel_name = tree->getCaption(leaf);
       NodesProcessing::delete_flags_prefix(sel_name);
       for (const auto &n : collisionRes->getAllNodes())
-        if (sel_name == n.name)
+        if (sel_name == n.name.c_str())
         {
           selectedNodeId = &n - collisionRes->getAllNodes().data();
           break;
@@ -456,9 +475,19 @@ void ReleaseCollisionResource(CollisionResource **collision_res, GeomNodeTree **
   }
 }
 
-static void draw_collision_mesh(const CollisionNode &node, const TMatrix &tm, const E3DCOLOR &color, bool draw_solid)
+static void draw_collision_mesh(const CollisionNode &node, const TMatrix &tm, const E3DCOLOR &color, bool draw_solid,
+  bool show_face_orientation)
 {
-  if (draw_solid)
+  if (show_face_orientation)
+  {
+    ShaderGlobal::set_int(debug_ri_face_orientationVarId, 1);
+
+    draw_debug_solid_mesh(node.indices.data(), node.indices.size() / 3, &node.vertices.data()->x, elem_size(node.vertices),
+      node.vertices.size(), tm, E3DCOLOR(255, 255, 255), true, DrawSolidMeshCull::FLIP);
+
+    ShaderGlobal::set_int(debug_ri_face_orientationVarId, 0);
+  }
+  else if (draw_solid)
   {
     draw_debug_solid_mesh(node.indices.data(), node.indices.size() / 3, &node.vertices.data()->x, elem_size(node.vertices),
       node.vertices.size(), tm, color, false, DrawSolidMeshCull::FLIP);
@@ -477,8 +506,12 @@ static void draw_collision_mesh(const CollisionNode &node, const TMatrix &tm, co
 }
 
 void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, bool show_phys_collidable,
-  bool show_traceable, bool draw_solid, int selected_node_id, bool edit_mode, const dag::Vector<bool> &hidden_nodes)
+  bool show_traceable, bool draw_solid, bool show_face_orientation, int selected_node_id, bool edit_mode,
+  const dag::Vector<bool> &hidden_nodes)
 {
+  if (show_face_orientation)
+    d3d::set_backbuf_depth();
+
   begin_draw_cached_debug_lines();
 
   const auto allNodes = collision_res.getAllNodes();
@@ -547,7 +580,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
       E3DCOLOR color = customColor ? customColor.value() : E3DCOLOR(colors[i % (sizeof(colors) / sizeof(colors[0]))]);
       color.a = alpha;
 
-      draw_collision_mesh(node, nodeTm, color, draw_solid);
+      draw_collision_mesh(node, nodeTm, color, draw_solid, show_face_orientation);
     }
     else if (node.type == COLLISION_NODE_TYPE_CONVEX)
     {
@@ -592,7 +625,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
       }
       color.a = clamp(alpha, 0, haveInvalidVertices ? 40 : 128);
       if (draw_solid)
-        draw_collision_mesh(node, TMatrix::IDENT, color, draw_solid);
+        draw_collision_mesh(node, TMatrix::IDENT, color, draw_solid, show_face_orientation);
       else
         draw_cached_debug_trilist(vertList.data(), vertList.size() / 3, color);
     }

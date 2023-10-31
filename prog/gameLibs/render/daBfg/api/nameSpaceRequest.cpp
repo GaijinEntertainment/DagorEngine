@@ -14,7 +14,7 @@ NameSpaceRequest NameSpaceRequest::operator/(const char *child_name) const
 AutoResolutionRequest NameSpaceRequest::getResolution(const char *type_name, float multiplier) const
 {
   const auto autoResTypeId = registry->knownNames.addNameId<AutoResTypeNameId>(nameSpaceId, type_name);
-  return {autoResTypeId, multiplier, registry};
+  return {autoResTypeId, multiplier, &registry->resourceProviderReference};
 }
 
 // === Resource requesting ===

@@ -8,7 +8,7 @@
 namespace dabfg
 {
 
-struct InternalRegistry;
+struct ResourceProvider;
 namespace detail
 {
 struct VirtualResourceRequestBase;
@@ -31,7 +31,8 @@ class AutoResolutionRequest
   friend class NameSpaceRequest;
   friend struct detail::VirtualResourceRequestBase;
 
-  AutoResolutionRequest(AutoResTypeNameId id, float mult, InternalRegistry *r) : autoResTypeId{id}, multiplier{mult}, registry{r} {}
+  AutoResolutionRequest(AutoResTypeNameId id, float mult, const ResourceProvider *p) : autoResTypeId{id}, multiplier{mult}, provider{p}
+  {}
 
 public:
   /**
@@ -47,7 +48,7 @@ public:
 private:
   AutoResTypeNameId autoResTypeId;
   float multiplier = 1.f;
-  InternalRegistry *registry;
+  const ResourceProvider *provider;
 };
 
 } // namespace dabfg

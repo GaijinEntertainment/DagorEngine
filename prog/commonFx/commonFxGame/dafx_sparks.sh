@@ -48,8 +48,8 @@ shader sparks_ps, sparks_thermal
   INIT_SIMPLE_AMBIENT(vs)
   DAFXEX_USE_FOG()
 
-  blend_src = one; blend_dst = sa;
-  blend_asrc = zero; blend_adst = one;
+  blend_src = one; blend_dst = isa;
+  blend_asrc = zero; blend_adst = isa;
 
   z_write = false;
   z_test = true;
@@ -105,12 +105,11 @@ shader sparks_ps, sparks_thermal
       if (IS_ABLEND)
       {
         res.rgb *= input.lighting * res.a;
-        res.a = 1.0 - res.a;
       }
       else
       {
         res.rgb *= res.a;
-        res.a = 1;
+        res.a = 0;
       }
 ##endif
 ##if shader == sparks_thermal

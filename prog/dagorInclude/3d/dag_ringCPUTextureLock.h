@@ -13,7 +13,16 @@ typedef BaseTexture Texture;
 class RingCPUTextureLock : public RingCPUBufferLock
 {
 public:
-  Texture *getNewTarget(int &frame) { return (Texture *)RingCPUBufferLock::getNewTarget(frame); }
+  template <typename T>
+  Texture *getNewTarget(T &frame)
+  {
+    return (Texture *)RingCPUBufferLock::getNewTarget(frame);
+  }
+  template <typename T>
+  Texture *getNewTargetAndId(T &frame, D3DRESID &id)
+  {
+    return (Texture *)RingCPUBufferLock::getNewTargetAndId(frame, id);
+  }
   void init(uint32_t w, uint32_t h, int max_buffers_count, const char *name, uint32_t fmt)
   {
     RingCPUBufferLock::init(w, h, max_buffers_count, name, 0, fmt, true);

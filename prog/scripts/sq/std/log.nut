@@ -2,6 +2,7 @@
 
 let dagorDebug = require("dagor.debug")
 let string = require("string.nut")
+let math = require("math")
 let tostring_r = string.tostring_r
 let join = string.join //like join, but skip emptylines
 
@@ -16,7 +17,7 @@ let function Log(tostringfunc=null) {
       out = tostring_r(vargv[0],{splitlines=false, compact=true, maxdeeplevel=DEF_MAX_DEEPLEVEL, tostringfunc=tostringfunc})
     else
       out = join(vargv.map(@(val) tostring_r(val,{splitlines=false, compact=true, maxdeeplevel=DEF_MAX_DEEPLEVEL, tostringfunc=tostringfunc}))," ")
-    dagorDebug.screenlog(out.slice(0,min(out.len(),200)))
+    dagorDebug.screenlog(out.slice(0,math.min(out.len(),200)))
   }
 
   let function log(...) {
@@ -37,7 +38,7 @@ let function Log(tostringfunc=null) {
       vargv=vargv[0]
     let out = tostring_r(vargv,{tostringfunc=tostringfunc})
     let s = string.split_by_chars(out,"\n")
-    for (local i=0; i < min(80,s.len()); i++) {
+    for (local i=0; i < math.min(80,s.len()); i++) {
       dagorDebug.screenlog(s[i])
     }
   }

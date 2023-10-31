@@ -27,6 +27,7 @@ Sources =
   resource_memory_heap_heap_components.cpp
   resource_update_buffer.cpp
   resource_usage_debugger.cpp
+  pipeline/blk_cache.cpp
 ;
 
 CPPopt = -DINSIDE_DRIVER ;
@@ -67,12 +68,6 @@ if $(Platform) in win32 win64 xboxOne scarlett {
   CPPopt += -FId3d_config.h ;
 }
 
-if $(Platform) in win64 {
-  CPPopt += -DUSE_PIX=1 ;
-  AddLibs += $(Root)/prog/3rdPartyLibs/winpixeventruntime/bin/x64/WinPixEventRuntime.lib ;
-  AddLibs += delayimp.lib -delayload:WinPixEventRuntime.dll ;
-}
-
 if ( $(Platform) in win32 win64 xboxOne scarlett ) {
   CPPopt += -DUSE_RESOURCE_HEAPS=1 ;
 }
@@ -97,9 +92,15 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/3rdPartyLibs/d3dx12
   $(Root)/prog/3rdPartyLibs/aftermath/2022.2.0.22145/include
-  $(Root)/prog/3rdPartyLibs/winpixeventruntime/Include
   $(Root)/prog/3rdPartyLibs/imgui
 ;
+
+if $(Platform) in win64 && [ GLOB $(Root)/prog/3rdPartyLibs/winpixeventruntime : * ] {
+  CPPopt += -DUSE_PIX=1 ;
+  AddLibs += $(Root)/prog/3rdPartyLibs/winpixeventruntime/bin/x64/WinPixEventRuntime.lib ;
+  AddLibs += delayimp.lib -delayload:WinPixEventRuntime.dll ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/winpixeventruntime/Include ;
+}
 
 if $(DlssEnabled) = yes && $(Platform) = win64 {
   Target = $(Target:B) ~dlss ;

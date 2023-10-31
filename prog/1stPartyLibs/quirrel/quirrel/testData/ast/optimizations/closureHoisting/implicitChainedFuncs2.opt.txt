@@ -1,6 +1,6 @@
 {
   local z = 0
-  let $ch0 = FUNCTION (implicitChainedFuncs2.nut:5)(this) {
+  let $ch0 = FUNCTION fff(this) {
     RETURN z
   }
   let foo = FUNCTION foo(this, x, y) {

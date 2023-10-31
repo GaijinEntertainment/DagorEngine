@@ -12,6 +12,14 @@ RenderPass *activeRP = nullptr;
 RenderPassArea activeRenderArea;
 int32_t subpass = 0;
 eastl::vector<RenderPassTarget> targets;
+
+struct MSAAResolvePair
+{
+  int32_t src;
+  int32_t dst;
+};
+eastl::vector<MSAAResolvePair> msaaResolves;
+
 }; // namespace rp_impl
 
 void RenderPass::addSubpassToList(const RenderPassDesc &rp_desc, int32_t subpass)
@@ -32,6 +40,21 @@ const char *RenderPass::getDebugName()
 #else
   return "<unknown>";
 #endif
+}
+
+void RenderPass::resolveMSAATargets()
+{
+  if (!rp_impl::msaaResolves.size())
+    return;
+
+  for (rp_impl::MSAAResolvePair i : rp_impl::msaaResolves)
+  {
+    RenderPassTarget &srcTgt = rp_impl::targets[i.src];
+    RenderPassTarget &dstTgt = rp_impl::targets[i.dst];
+    // TODO: layer & mip is not handled!!!
+    dstTgt.resource.tex->update(srcTgt.resource.tex);
+  }
+  rp_impl::msaaResolves.clear();
 }
 
 void RenderPass::execute(uint32_t idx, ClearAccumulator &clear_acm)
@@ -64,7 +87,7 @@ void RenderPass::execute(uint32_t idx, ClearAccumulator &clear_acm)
       d3d::set_depth(target.resource.tex, target.resource.layer, DepthAccess::SampledRO);
     }
   }
-  else
+  else if (bind.action & RP_TA_SUBPASS_WRITE)
   {
     if (bind.slot != RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
       d3d::set_render_target(bind.slot, target.resource.tex, target.resource.layer, target.resource.mip_level);
@@ -104,6 +127,14 @@ void RenderPass::execute(uint32_t idx, ClearAccumulator &clear_acm)
         clear_acm.depthTarget = bind.target;
       }
     }
+  }
+  else if (bind.action & RP_TA_SUBPASS_RESOLVE)
+  {
+    for (RenderPassBind &i : actions)
+      if ((i.slot == bind.slot) && (i.subpass == bind.subpass))
+      {
+        rp_impl::msaaResolves.push_back({i.target, bind.target});
+      }
   }
 }
 
@@ -165,6 +196,8 @@ void render_pass_generic::next_subpass()
   // bind fully empty RT/DS set
   d3d::set_render_target();
   d3d::set_render_target(0, nullptr, 0);
+
+  rp_impl::activeRP->resolveMSAATargets();
 
   RenderPass::ClearAccumulator ca;
   for (int i = seq[rp_impl::subpass]; i < seq[rp_impl::subpass + 1]; ++i)

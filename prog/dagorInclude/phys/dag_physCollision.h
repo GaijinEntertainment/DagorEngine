@@ -184,6 +184,7 @@ public:
 class PhysTriMeshCollision : public PhysCollision
 {
   const void *vdata, *idata;
+  const char *debugName = nullptr;
   Point3 scale = Point3(1, 1, 1);
   unsigned vstride, vnum, istride, inum;
   bool vtypeShort, revNorm;
@@ -202,6 +203,7 @@ public:
     if (scl)
       scale = Point3(scl[0], scl[1], scl[2]);
   }
+  void setDebugName(const char *dbgn) { debugName = dbgn; }
   friend class PhysBody;
 };
 

@@ -5,7 +5,7 @@ bool add_verts_from_node(const dag::ConstSpan<CollisionNode> &nodes, const Strin
 {
   for (const auto &node : nodes)
   {
-    if (node_name == node.name)
+    if (node_name == node.name.c_str())
     {
       for (const auto &vertex : node.vertices)
       {
@@ -22,7 +22,7 @@ bool add_verts_and_indices_from_node(const dag::ConstSpan<CollisionNode> &nodes,
 {
   for (const auto &node : nodes)
   {
-    if (node_name == node.name)
+    if (node_name == node.name.c_str())
     {
       const auto vertsSize = verts.size();
       for (const auto &vertex : node.vertices)
@@ -44,7 +44,7 @@ bool add_verts_and_indices_from_node(const dag::ConstSpan<CollisionNode> &nodes,
 {
   for (const auto &node : nodes)
   {
-    if (node_name == node.name)
+    if (node_name == node.name.c_str())
     {
       const auto vertsSize = verts.size() / 3;
       for (const auto &vertex : node.vertices)

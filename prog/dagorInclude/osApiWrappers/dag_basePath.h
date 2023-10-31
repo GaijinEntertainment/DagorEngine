@@ -39,6 +39,11 @@ extern "C"
   //! returns path assigned for named mount (when mount exists) or nullptr (when mount_name not known)
   KRNLIMP const char *dd_get_named_mount_path(const char *mount_name, int mount_name_len = -1);
 
+  //! return first mount name without % associated with fpath otherwise nulls
+  //! this code return raw pointer in internal structure, that mean this code is not safty if you remove mount
+  //! if you want keep mount name for a long time, make a copy of returned string
+  KRNLIMP const char *dd_get_named_mount_by_path(const char *fpath);
+
   //! dumps list of named mounts (with assigned pathes) to output
   KRNLIMP void dd_dump_named_mounts();
 

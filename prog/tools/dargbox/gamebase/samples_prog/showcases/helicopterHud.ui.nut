@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "math" import clamp
 
 let math = require("math")
 

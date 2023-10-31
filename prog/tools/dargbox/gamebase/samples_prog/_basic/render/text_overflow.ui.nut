@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "math" import max
 
 /*
    Horizontal overflow handling modes:

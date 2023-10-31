@@ -21,8 +21,8 @@ namespace sndsys
 namespace banks
 {
 using PresetLoadedCallback = eastl::function<void(str_hash_t, bool)>;
-using ErrorCallback =
-  eastl::function<void(const char * /*sndsys_message*/, const char * /*fmod_error_message*/, const char * /*bank_path*/)>;
+using ErrorCallback = eastl::function<void(const char * /*sndsys_message*/, const char * /*fmod_error_message*/,
+  const char * /*bank_path*/, bool /*is_mod*/)>;
 using PathTags = dag::ConstSpan<eastl::pair<const char *, const char *>>;
 
 void init(const DataBlock &blk);

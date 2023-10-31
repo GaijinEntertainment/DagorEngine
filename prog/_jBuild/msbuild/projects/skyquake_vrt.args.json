@@ -505,6 +505,10 @@
           "Command": "-config:xr/useVrMultiview:b=no"
         },
         {
+          "Id": "a6bfe40b-083f-42f9-8775-51402c27a63e",
+          "Command": "-config:xr/useFsr:b=yes"
+        },
+        {
           "Id": "f2b493f7-4443-42be-a834-d1e92b99881d",
           "Command": "-config:xr/vrMultiviewStereoMode:t=horizontal"
         }

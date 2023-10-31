@@ -52,7 +52,7 @@ private:
   int clipmapDecalType = 0;
   int resolution = 1024;
   DynamicShaderHelper material;
-  UniqueBufHolder decalDataVS;
+  UniqueBuf decalDataVS;
 
   struct InstData
   {

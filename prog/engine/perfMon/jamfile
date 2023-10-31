@@ -27,13 +27,6 @@ Sources =
   memoryReportLog.cpp
 ;
 
-if $(Platform) in ps4 && $(Config) != rel {
-  AddLibs +=
-    -lScePerf_stub_weak
-    -lSceRazorCpu_stub_weak
-  ;
-}
-
 CPPopt = -D__B_CORE ;
 
 if $(Platform) = win64 {

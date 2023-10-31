@@ -78,9 +78,6 @@ public:
       if (fx)
         fx->setParam(HUID_RAYTRACER, fxRayTracer);
       ::release_game_resource(res);
-
-      if (dafx_enabled)
-        set_up_dafx_effect(g_dafx_ctx, fx, false);
     }
   }
 
@@ -104,11 +101,22 @@ public:
     if (!fx)
       return;
 
-    TMatrix ident = TMatrix::IDENT;
-    fx->setParam(HUID_EMITTER_TM, &ident);
-    fx->setParam(HUID_TM, &tm);
-    Point4 p4 = Point4::xyz0(tm.getcol(3));
-    fx->setParam(_MAKE4C('PFXP'), &p4);
+    if (setupDone)
+    {
+      TMatrix ident = TMatrix::IDENT;
+      fx->setParam(HUID_EMITTER_TM, &ident);
+      fx->setParam(HUID_TM, &tm);
+      Point4 p4 = Point4::xyz0(tm.getcol(3));
+      fx->setParam(_MAKE4C('PFXP'), &p4);
+    }
+    else
+    {
+      setupDone = true;
+
+      fx->setParam(HUID_RAYTRACER, fxRayTracer);
+      if (dafx_enabled)
+        set_up_dafx_effect(g_dafx_ctx, fx, false, true, &tm);
+    }
 
     /*== this code is designed for emitter-editing mode
     TMatrix fm, em;
@@ -152,14 +160,10 @@ public:
   {
     nameId = e.nameId;
     fx = e.fx ? (BaseEffectObject *)e.fx->clone() : NULL;
-    if (fx)
-    {
-      fx->setParam(HUID_RAYTRACER, fxRayTracer);
-      set_up_dafx_effect(g_dafx_ctx, fx, false);
-    }
   }
   void clear()
   {
+    setupDone = false;
     del_it(fx);
     del_it(userDataBlk);
   }
@@ -171,6 +175,7 @@ public:
     MAX_ENTITIES = 0x7FFFFFFF
   };
 
+  bool setupDone = false;
   unsigned idx;
   TMatrix tm;
   DataBlock *userDataBlk;

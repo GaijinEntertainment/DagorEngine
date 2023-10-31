@@ -7,6 +7,7 @@
 
 #include <vecmath/dag_vecMath.h>
 #include <3d/dag_occlusionSystem.h>
+#include <3d/dag_textureIDHolder.h>
 #include <generic/dag_span.h>
 
 #pragma warning(push)
@@ -113,7 +114,8 @@ public:
   }
 
   bool hasGPUFrame() const { return occ->hasGPUFrame(); }
-  void prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth = 0, StereoIndex stereo_index = StereoIndex::Mono)
+  void prepareNextFrame(float zn, float zf, TextureIDPair mipped_depth, Texture *depth = 0,
+    StereoIndex stereo_index = StereoIndex::Mono)
   {
     occ->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth, stereo_index);
   }

@@ -61,6 +61,11 @@ void populate_resource_provider(ResourceProvider &provider, // passed by ref to 
 void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents multiplexing_extents,
   const ResourceScheduler::FrameEventsRef &events, eastl::span<NodeStateDelta const> state_deltas)
 {
+  currentlyProvidedResources.resolutions.resize(registry.knownNames.nameCount<AutoResTypeNameId>());
+  for (auto [unresolvedId, resolution] : currentlyProvidedResources.resolutions.enumerate())
+    if (auto resolvedId = nameResolver.resolve(unresolvedId); resolvedId != AutoResTypeNameId::Invalid)
+      resolution = registry.autoResTypes[resolvedId].dynamicResolution;
+
   uint32_t userNodeIndex = 0;
   for (auto i : IdRange<intermediate::NodeIndex>(graph.nodes.size()))
   {

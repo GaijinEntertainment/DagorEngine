@@ -31,6 +31,13 @@ struct RenderPassDescription
   Tab<VkSubpassDependency> selfDeps;
   Tab<Tab<uint32_t>> inputAttachments;
   Tab<Tab<VkImageLayout>> attImageLayouts;
+  enum
+  {
+    EXTERNAL_OP_START = 0,
+    EXTERNAL_OP_END = 1,
+    EXTERNAL_OP_CNT = 2
+  };
+  Tab<SubpassDep::BarrierScope> attImageExtrenalOperations[EXTERNAL_OP_CNT];
   uint64_t hash;
 
   void fillAllocationDesc(AllocationDesc &alloc_desc) const;

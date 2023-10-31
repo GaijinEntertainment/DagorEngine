@@ -14,14 +14,18 @@ class D3dEventQuery;
 class RingCPUBufferLock
 {
 public:
-  D3dResource *getNewTarget(uint32_t &frame);
-  inline D3dResource *getNewTarget(int &frame)
+  D3dResource *getNewTargetAndId(uint32_t &frame, D3DRESID &id);
+  D3dResource *getNewTarget(uint32_t &frame)
   {
-    uint32_t f = (uint32_t)frame;
-    auto r = getNewTarget(f);
-    frame = (int)f;
-    return r;
+    D3DRESID id;
+    return getNewTargetAndId(frame, id);
   }
+  D3dResource *getNewTarget(int &frame)
+  {
+    D3DRESID id;
+    return getNewTargetAndId((uint32_t &)frame, id);
+  }
+  D3dResource *getNewTargetAndId(int &frame, D3DRESID &id) { return getNewTargetAndId((uint32_t &)frame, id); }
   void startCPUCopy();
   //  Texture *getCurrentTarget();
   RingCPUBufferLock() {}
@@ -48,6 +52,7 @@ protected:
   struct FencedGPUResource
   {
     D3dResource *gpu = 0;
+    D3DRESID id = BAD_D3DRESID;
     D3dEventQuery *event = 0;
   };
   StaticTab<FencedGPUResource, 6> buffers; //

@@ -24,6 +24,16 @@ enum
   HUID_ACES_IS_ACTIVE = 0xD6872FCEu
 };
 
+enum
+{
+  RGROUP_DEFAULT = 0,
+  RGROUP_LOWRES = 1,
+  RGROUP_HIGHRES = 2,
+  RGROUP_DISTORTION = 3,
+  RGROUP_WATER_PROJ = 4,
+  RGROUP_UNDERWATER = 5,
+};
+
 #define MODFX_RFLAG_USE_ETM_AS_WTM     0
 #define MODFX_RFLAG_OMNI_LIGHT_ENABLED 7
 
@@ -296,15 +306,28 @@ struct DafxCompound : BaseParticleEffect
         }
       }
 
-      if (par.render_group != 0)
+      if (par.render_group != RGROUP_DEFAULT)
       {
         for (auto &i : ddesc->renderDescs)
         {
-          if (strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_LOWRES]) == 0 ||
-              strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_HIGHRES]) == 0)
+          if (strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_LOWRES]) != 0 &&
+              strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_HIGHRES]) != 0 &&
+              // strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_DISTORTION]) != 0 &&
+              strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_WATER_PROJ]) != 0 &&
+              strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_UNDERWATER]) != 0)
+            continue;
+
+          int t = dafx_ex::RTAG_LOWRES;
+          switch (par.render_group)
           {
-            i.tag = dafx_ex::renderTags[par.render_group == 1 ? dafx_ex::RTAG_LOWRES : dafx_ex::RTAG_HIGHRES];
+            case RGROUP_LOWRES: t = dafx_ex::RTAG_LOWRES; break;
+            case RGROUP_HIGHRES: t = dafx_ex::RTAG_HIGHRES; break;
+            case RGROUP_DISTORTION: t = dafx_ex::RTAG_DISTORTION; break;
+            case RGROUP_WATER_PROJ: t = dafx_ex::RTAG_WATER_PROJ; break;
+            case RGROUP_UNDERWATER: t = dafx_ex::RTAG_UNDERWATER; break;
+            default: G_ASSERT(false);
           }
+          i.tag = dafx_ex::renderTags[t];
         }
       }
 

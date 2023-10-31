@@ -77,6 +77,7 @@ public:
     void reportDiagnostic(int32_t id, ...);
 
     uint32_t _depth;
+    uint32_t _rangeIteratorId;
 
     SQParser(SQVM *v, const char *sourceText, size_t sourceTextSize, const SQChar* sourcename, Arena *astArena, SQCompilationContext &ctx, Comments *comments);
 

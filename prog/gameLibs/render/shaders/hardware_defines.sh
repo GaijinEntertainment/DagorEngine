@@ -644,6 +644,7 @@ hlsl {
   static uint bounds_check_dim;
   static uint bounds_check_stride;
   static uint2 bounds_check_2dim;
+  static uint3 bounds_check_3dim;
 
   void checkTexture2DBounds(int2 tc, uint2 dim, int lod, int file, int ln, int name)
   {
@@ -685,6 +686,9 @@ hlsl {
     uint4 dim;                                        \
     a.GetDimensions(lod, dim.x, dim.y, dim.z, dim.w); \
     checkTexture3DBounds(tc, dim.xyz, lod, file, ln, name)
+  #define CHECK_TEXTURE3D_EXPR(a, tc)                          \
+    a.GetDimensions(bounds_check_3dim.x, bounds_check_3dim.y, bounds_check_3dim.z), \
+    checkTexture3DBounds(tc, bounds_check_3dim.xyz, 0, _FILE_, __LINE__, -1)
   #define CHECK_BUFFER(file, ln, name)                \
     uint dim;                                         \
     a.GetDimensions(dim);                             \
@@ -708,6 +712,7 @@ hlsl {
   #define CHECK_TEXTURE2D_EXPR(a, tc) 0
   #define CHECK_TEXTURE2DARRAY
   #define CHECK_TEXTURE3D
+  #define CHECK_TEXTURE3D_EXPR(a, tc) 0
   #define CHECK_BUFFER(file, ln, name)
   #define CHECK_BUFFER_EXPR(a, tc) 0
   #define CHECK_STRUCTURED_BUFFER(file, ln, name)
@@ -787,6 +792,7 @@ hlsl {
   #define structuredBufferAt(a, tc) a[uint((CHECK_STRUCTURED_BUFFER_EXPR(a, tc), tc))]
   #define bufferAt(a, tc) a[uint((CHECK_BUFFER_EXPR(a, tc), tc))]
   #define texture2DAt(a, tc) a[int2((CHECK_TEXTURE2D_EXPR(a, tc), tc))]
+  #define texture3DAt(a, tc) a[int3((CHECK_TEXTURE3D_EXPR(a, tc), tc))]
 #endif
 
 ##if (hardware.xbox && !hardware.dx12) || hardware.vulkan

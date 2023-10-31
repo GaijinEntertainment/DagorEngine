@@ -254,6 +254,8 @@ bool Swapchain::acquireSwapImage(FrameInfo &frame)
   if (checkVkSwapchainError(rc, "vkAcquireNextImageKHR"))
   {
     device.getQueue(DeviceQueueType::GRAPHICS).addSubmitSemaphore(syncSemaphore, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+    // we can't read from it later on, so set layout as underfined to ignore contents on later usage for faster transitioning
+    swapImages[colorTargetIndex]->layout.set(0, 0, VK_IMAGE_LAYOUT_UNDEFINED);
     return true;
   }
   else

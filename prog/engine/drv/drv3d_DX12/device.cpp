@@ -295,7 +295,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE Device::getNonRecentImageViews(Image *img, ImageView
   return img->getRecentView().handle;
 }
 
-Device::~Device() { shutdown(); }
+Device::~Device() { shutdown({}); }
 
 void Device::setupNullViews()
 {
@@ -486,7 +486,7 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
         { return SUCCEEDED(d3d_env.D3D12CreateDevice(this->adapter.Get(), feature_level, uuid, ptr)); }))
   {
     debug("DX12: Failed...");
-    shutdown();
+    shutdown({});
     return false;
   }
 
@@ -526,7 +526,7 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
 #if DAGOR_DBGLEVEL > 0
     debug("DX12: Debug build, allowing target without DXIL support");
 #else
-    shutdown();
+    shutdown({});
     return false;
 #endif
   }
@@ -535,7 +535,7 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
   if (!queues.init(device.get(), shouldNameObjects()))
   {
     debug("DX12: Failed...");
-    shutdown();
+    shutdown({});
     return false;
   }
 
@@ -544,7 +544,7 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
         eastl::move(swapchain_create_info)))
   {
     debug("DX12: Failed...");
-    shutdown();
+    shutdown({});
     return false;
   }
 
@@ -625,8 +625,6 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
 
   pipeMan.init(pipelineManagerSetup);
 
-  renderStateSystem.loadFromCache(pipelineCache, pipeMan);
-
 #if !FIXED_EXECUTION_MODE
   DeviceContext::ExecutionMode execMode = DeviceContext::ExecutionMode::IMMEDIATE;
   if (config.features.test(DeviceFeaturesConfig::USE_THREADED_COMMAND_EXECUTION))
@@ -656,7 +654,7 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
 
 bool Device::isInitialized() const { return nullptr != device.get(); }
 
-void Device::shutdown()
+void Device::shutdown(const DeviceCapsAndShaderModel &features)
 {
   if (!isInitialized())
     return;
@@ -692,8 +690,23 @@ void Device::shutdown()
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
   pipelineCacheSetup.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
 #endif
+  auto dxBlock = dgs_get_settings()->getBlockByNameEx("dx12");
+  pipelineCacheSetup.features = features;
+  // smNone is a indicator for default constructed, eg on error case
+  if (features.shaderModel != d3d::smNone)
+  {
+    pipelineCacheSetup.generateBlks = dxBlock->getBool("generateCacheBlks", false);
+    pipelineCacheSetup.alwaysGenerateBlks = dxBlock->getBool("alwaysGenerateCacheBlks", false);
+  }
+  else
+  {
+    pipelineCacheSetup.generateBlks = false;
+    pipelineCacheSetup.alwaysGenerateBlks = false;
+  }
 
   pipelineCache.shutdown(pipelineCacheSetup);
+#else
+  G_UNUSED(features);
 #endif
 
   resources.shutdown(getDXGIAdapter(), &bindlessManager);
@@ -749,6 +762,7 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   capabilities.caps.hasNativeRenderPassSubPasses = false;
   capabilities.caps.hasDrawID = true;
   capabilities.caps.hasRenderPassDepthResolve = false;
+  capabilities.caps.hasShaderFloat16Support = false;
 
 #if HAS_NVAPI
   // This is a bloody workaround for broken terrain tessellation.

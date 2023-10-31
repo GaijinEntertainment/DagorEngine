@@ -145,5 +145,6 @@ typedef sqvector<SQInstruction> SQInstructionVec;
 #define OP_GET_FLAG_ALLOW_DEF_DELEGATE  0x01
 #define OP_GET_FLAG_NO_ERROR            0x02
 #define OP_GET_FLAG_KEEP_VAL            0x04 //< only used with OP_GET_FLAG_NO_ERROR
+#define OP_GET_FLAG_BUILTIN_ONLY        0x08
 
 #endif // _SQOPCODES_H_

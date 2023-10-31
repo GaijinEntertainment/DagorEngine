@@ -4,8 +4,6 @@ Location = prog/tools/libTools/objectEditor ;
 TargetType  = lib ;
 Target      = tools/libTools/objectEditor.lib ;
 
-UseWTL      = yes ;
-
 AddIncludes     = $(Root)/prog/tools/sharedInclude ;
 
 

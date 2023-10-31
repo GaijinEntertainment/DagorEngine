@@ -12,7 +12,7 @@
 
 namespace drv3d_metal
 {
-  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.0');
+  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.1');
 
   std::thread g_saver;
   std::thread g_compiler;

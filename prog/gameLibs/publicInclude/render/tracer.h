@@ -105,7 +105,7 @@ public:
 
   void update(float dt);
   void beforeRender(const Frustum *frustum_);
-  void renderTrans(bool heads = true, bool trails = true, float *hk = NULL, HeadPrimType head_prim_type = HEAD_PRIM_DIR);
+  void renderTrans(bool heads = true, bool trails = true, const float *hk = NULL, HeadPrimType head_prim_type = HEAD_PRIM_DIR);
   void finishPreparingIfNecessary();
 
   Tracer *createTracer(const Point3 &start_pos, const Point3 &speed, int tracerType, int trailType, float caliber, bool force = false,
@@ -137,7 +137,8 @@ protected:
     int lock(uint32_t ofs_bytes, uint32_t size_bytes, void **p, int flags);
     void unlock();
     void append(uint32_t id, dag::ConstSpan<uint8_t> elem);
-    void process(ComputeShaderElement *cs, int fx_create_cmd, int element_count);
+    void process(ComputeShaderElement *cs, int commands_array_const_no, int commands_count_const_no, int fx_create_cmd,
+      int element_count);
 
     inline Sbuffer *getSbuffer() const { return buf.get(); }
     inline uint8_t *getData() { return data.data(); }
@@ -207,6 +208,9 @@ protected:
   DrawBuffer tailIndirect;
   eastl::unique_ptr<RingDynamicSB> tailIndirectRingBuffer;
   volatile int ringBufferPos = 0;
+
+  int commandsCountConstNo;
+  int commandsArrayConstNo;
 
   DrawBuffer tracerBuffer;
   DrawBuffer tracerDynamicBuffer;

@@ -1,3 +1,4 @@
+#include <3d/dag_resMgr.h>
 #include <3d/dag_ringCPUQueryLock.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_drv3dCmd.h>
@@ -8,7 +9,7 @@ void RingCPUBufferLock::close()
 {
   for (int i = 0; i < buffers.size(); ++i)
   {
-    del_d3dres(buffers[i].gpu);
+    release_managed_res_verified(buffers[i].id, buffers[i].gpu);
     buffers[i].gpu = 0;
     d3d::release_event_query(buffers[i].event);
     buffers[i].event = 0;
@@ -30,12 +31,13 @@ void RingCPUBufferLock::init(uint32_t element_size, uint32_t elements, int buffe
     else
       buffers[i].gpu = d3d::create_sbuffer(element_size, elements, flags, texfmt, name);
     buffers[i].event = d3d::create_event_query();
+    buffers[i].id = register_managed_res(cname, buffers[i].gpu);
   }
   resourceName = name;
   state = NORMAL;
 }
 
-D3dResource *RingCPUBufferLock::getNewTarget(uint32_t &frame)
+D3dResource *RingCPUBufferLock::getNewTargetAndId(uint32_t &frame, D3DRESID &id)
 {
   if (!buffers.size())
     return nullptr;
@@ -50,6 +52,7 @@ D3dResource *RingCPUBufferLock::getNewTarget(uint32_t &frame)
   state = NEWTARGET;
   frame = currentBufferIssued;
   currentBufferIssued++;
+  id = buffers[bufferIdx].id;
   return buffers[bufferIdx].gpu;
 }
 

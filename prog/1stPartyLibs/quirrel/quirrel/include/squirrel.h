@@ -275,6 +275,7 @@ SQUIRREL_API SQInteger sq_gettop(HSQUIRRELVM v);
 SQUIRREL_API void sq_settop(HSQUIRRELVM v,SQInteger newtop);
 SQUIRREL_API SQRESULT sq_reservestack(HSQUIRRELVM v,SQInteger nsize);
 SQUIRREL_API SQInteger sq_cmp(HSQUIRRELVM v);
+SQUIRREL_API bool sq_cmpraw(HSQUIRRELVM v, HSQOBJECT &lhs, HSQOBJECT &rhs, SQInteger &res);
 SQUIRREL_API void sq_move(HSQUIRRELVM dest,HSQUIRRELVM src,SQInteger idx);
 
 /*object creation handling*/
@@ -368,6 +369,7 @@ SQUIRREL_API SQRESULT sq_resume(HSQUIRRELVM v,SQBool retval,SQBool invoke_err_ha
 SQUIRREL_API const SQChar *sq_getlocal(HSQUIRRELVM v,SQUnsignedInteger level,SQUnsignedInteger idx);
 SQUIRREL_API SQRESULT sq_getcallee(HSQUIRRELVM v);
 SQUIRREL_API const SQChar *sq_getfreevariable(HSQUIRRELVM v,SQInteger idx,SQUnsignedInteger nval);
+SQUIRREL_API void sq_throwparamtypeerror(HSQUIRRELVM v, SQInteger nparam, SQInteger typemask, SQInteger type);
 SQUIRREL_API SQRESULT sq_throwerror(HSQUIRRELVM v,const SQChar *err);
 SQUIRREL_API SQRESULT sq_throwobject(HSQUIRRELVM v);
 SQUIRREL_API void sq_reseterror(HSQUIRRELVM v);
@@ -430,6 +432,7 @@ SQUIRREL_API void sq_printwarningslist(FILE *ostream);
 SQUIRREL_API void sq_disablesyntaxwarnings();
 SQUIRREL_API void sq_enablesyntaxwarnings();
 SQUIRREL_API void sq_checkglobalnames(HSQUIRRELVM v);
+SQUIRREL_API void sq_mergeglobalnames(const HSQOBJECT *bindings);
 
 
 /*UTILITY MACRO*/

@@ -34,7 +34,7 @@ void CombinedNodesProcessing::calcCombinedNode(const SelectedNodesSettings &sett
       {
         for (const auto &node : collisionNodes)
         {
-          if (refNode == node.name)
+          if (refNode == node.name.c_str())
           {
             if (node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CAPSULE ||
                 node.type == COLLISION_NODE_TYPE_CONVEX)
@@ -51,7 +51,7 @@ void CombinedNodesProcessing::calcCombinedNode(const SelectedNodesSettings &sett
       {
         for (const auto &node : collisionNodes)
         {
-          if (refNode == node.name)
+          if (refNode == node.name.c_str())
           {
             selectedNode.boundingSphere += node.tm * node.boundingSphere;
           }

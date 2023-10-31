@@ -6,7 +6,7 @@ FullOOPEnabled = no ;
 WError ?= no ; # treat all warnings as errors
 
 compileSources = yes ;
-copyLib = no ;
+CopyDxcLib = yes ;
 
 if $(OS) = NT {
   Target = tools/dsc2-metal.exe ;
@@ -17,14 +17,14 @@ else if $(OS) = MACOSX {
     compileSources = no ;
     baseJam = jamfile-hlsl2metal ;
     include $(Root)/$(Location)/jamfile-universal-bin ;
+    CopyDxcLib = no ;
   } else if $(UniversalBinaryPart) {
     Target = $(Target)-$(MacOSXArch) ;
-    if $(MacOSXArch) = arm64 {
-      copyLib = yes ; # copy only once per universal binary
+    if $(MacOSXArch) != arm64 {
+      CopyDxcLib = no ; # copy only once per universal binary
     }
   } else {
     Target = tools/$(Target) ;
-    copyLib = yes ;
   }
 }
 else {
@@ -88,10 +88,6 @@ else
   GlobalCPPopt = -Wno-deprecated-declarations -Wno-overriding-t-option -fno-fast-math ;
 }
 
-}
-
-if [ GLOB $(_DEVTOOL)/DXC-mac/lib : libdxcompiler.dylib ] && $(copyLib) = yes {
-  CopyFileForced $(OutDir)/libdxcompiler.dylib : $(_DEVTOOL)/DXC-mac/lib/libdxcompiler.dylib ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

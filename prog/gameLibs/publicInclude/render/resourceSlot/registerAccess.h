@@ -45,6 +45,7 @@ namespace resource_slot
  *   });
  * \endcode
  *
+ * \param ns name space where the slot, the node, and all of the resources will be looked up in
  * \param name node name
  * \param source_location SHOULD be DABFG_PP_NODE_SRC
  * \param action_list list of slots, that will be created, updated or read by the node
@@ -54,16 +55,22 @@ namespace resource_slot
  * \returns handle for access to storage
  */
 template <class F>
-[[nodiscard]] resource_slot::NodeHandleWithSlotsAccess register_access(const char *name, const char *source_location,
-  resource_slot::detail::ActionList &&action_list, F &&declaration_callback, unsigned storage_id = 0)
+[[nodiscard]] resource_slot::NodeHandleWithSlotsAccess register_access(dabfg::NameSpace ns, const char *name,
+  const char *source_location, resource_slot::detail::ActionList &&action_list, F &&declaration_callback)
 {
-  return resource_slot::detail::register_access(
-    name, source_location, eastl::move(action_list),
-    [declCb = eastl::forward<F>(declaration_callback), name, source_location](resource_slot::State s) mutable {
-      return dabfg::register_node(name, source_location,
+  return resource_slot::detail::register_access(ns, name, source_location, eastl::move(action_list),
+    [ns, declCb = eastl::forward<F>(declaration_callback), name, source_location](resource_slot::State s) mutable {
+      return ns.registerNode(name, source_location,
         [declCb2 = eastl::forward<F>(declCb), s](dabfg::Registry r) { return declCb2(eastl::move(s), r); });
-    },
-    storage_id);
+    });
+}
+
+template <class F>
+[[nodiscard]] resource_slot::NodeHandleWithSlotsAccess register_access(const char *name, const char *source_location,
+  resource_slot::detail::ActionList &&action_list, F &&declaration_callback)
+{
+  return resource_slot::register_access(dabfg::root(), name, source_location, eastl::move(action_list),
+    eastl::forward<F>(declaration_callback));
 }
 
 } // namespace resource_slot

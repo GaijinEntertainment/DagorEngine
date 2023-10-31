@@ -13,8 +13,8 @@ CALLSTACK
 *FUNCTION [__main__()] testData/static_analyser/w259.nut line [19]
 
 LOCALS
-[_M] CLOSURE=FN:(w259.nut:17)
-[_P] CLOSURE=FN:(w259.nut:16)
+[_M] CLOSURE=FN:_M
+[_P] CLOSURE=FN:_P
 [S] CLOSURE=FN:S
 [_ttp] NULL
 [$ch1] CLOSURE=FN:(w259.nut:12)

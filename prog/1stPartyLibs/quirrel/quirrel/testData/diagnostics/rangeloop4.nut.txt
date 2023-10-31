@@ -1,0 +1,5 @@
+let a = 1, b = 2, s = 3, g = 4
+
+for (a.b : a, b) {
+    println("ERROR loop 4")
+}

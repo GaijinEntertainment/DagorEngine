@@ -1,5 +1,6 @@
 from "%darg/ui_imports.nut" import *
 let cursors = require("cursors.nut")
+let math = require("math")
 
 let mkWindow = kwarg(function(id, content,
       onAttach=null, initialSize = [sw(40), sh(65)], minSize = [sw(14), sh(25)], maxSize = [sw(80), sh(90)],
@@ -15,10 +16,10 @@ let mkWindow = kwarg(function(id, content,
     let w = windowState.value
     let pos = clone w.pos
     let size = clone w.size
-    pos[0] = clamp(pos[0]+dx, -size[0]/2, (sw(100)-size[0]/2))
-    pos[1] = clamp(pos[1]+dy, 0, (sh(100)-size[1]/2))
-    size[0] = clamp(size[0]+dw, minSize[0], maxSize[0])
-    size[1] = clamp(size[1]+dh, minSize[1], maxSize[1])
+    pos[0] = math.clamp(pos[0]+dx, -size[0]/2, (sw(100)-size[0]/2))
+    pos[1] = math.clamp(pos[1]+dy, 0, (sh(100)-size[1]/2))
+    size[0] = math.clamp(size[0]+dw, minSize[0], maxSize[0])
+    size[1] = math.clamp(size[1]+dh, minSize[1], maxSize[1])
     w.pos = pos
     w.size = size
     return w

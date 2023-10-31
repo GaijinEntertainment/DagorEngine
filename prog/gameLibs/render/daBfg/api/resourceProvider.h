@@ -4,7 +4,9 @@
 #include <dag/dag_vectorMap.h>
 #include <3d/dag_resPtr.h>
 #include <render/daBfg/detail/resNameId.h>
+#include <render/daBfg/detail/autoResTypeNameId.h>
 #include <render/daBfg/detail/blob.h>
+#include <id/idIndexedMapping.h>
 
 
 namespace dabfg
@@ -16,6 +18,8 @@ struct ResourceProvider
 {
   dag::VectorMap<ResNameId, ProvidedResource> providedResources;
   dag::VectorMap<ResNameId, ProvidedResource> providedHistoryResources;
+
+  IdIndexedMapping<AutoResTypeNameId, IPoint2> resolutions;
 
   void clear()
   {

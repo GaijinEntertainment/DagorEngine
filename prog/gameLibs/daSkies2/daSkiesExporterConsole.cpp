@@ -78,7 +78,7 @@ static DataBlock convert_to_entity(const NamedDataBlock &weather_blk)
 {
   DataBlock weatherTemplate;
   DataBlock &entityBlk = *weatherTemplate.addBlock(weather_blk.name.c_str());
-  entityBlk.setStr("_extends", "skies_settings");
+  entityBlk.setStr("_use", "skies_settings");
 
   {
     const DataBlock &blk = *weather_blk.blk.getBlockByNameEx("clouds_rendering");

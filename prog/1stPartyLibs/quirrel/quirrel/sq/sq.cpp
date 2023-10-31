@@ -21,6 +21,7 @@
 #include <sqstdaux.h>
 #include <sqmodules.h>
 #include <sqastio.h>
+#include <sqstddebug.h>
 
 #include <startup/dag_globalSettings.h>
 
@@ -559,6 +560,7 @@ int DagorWinMain(bool /*debugmode*/)
     sqstd_register_datetimelib(v);
     sqstd_register_mathlib(v);
     sqstd_register_stringlib(v);
+    sqstd_register_debuglib(v);
 
     //aux library
     //sets error handlers
@@ -571,6 +573,7 @@ int DagorWinMain(bool /*debugmode*/)
     module_mgr->registerIoStreamLib();
     module_mgr->registerIoLib();
     module_mgr->registerDateTimeLib();
+    module_mgr->registerDebugLib();
 
     sqstd_register_command_line_args(v, ::dgs_argc, ::dgs_argv);
 

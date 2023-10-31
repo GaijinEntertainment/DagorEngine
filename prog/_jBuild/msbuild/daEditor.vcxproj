@@ -61,7 +61,7 @@
   </ItemDefinitionGroup>
 
   <ItemGroup>
-    <Bat Include="$(WorkingDir)_build_daEditor3.cmd" />
+    <Bat Include="$(WorkingDir)_build_daEditorX.cmd" />
 
     <PropertyPageSchema Include="UI\gaijin_items.xml" />
     <PropertyPageSchema Include="UI\tools_general.xml">

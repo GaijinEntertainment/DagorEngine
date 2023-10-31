@@ -37,8 +37,8 @@ struct PhysFloatingModel
 {
   int resIdx = -1;
   int processedRiTmCount = 0;
-  float massMin = 0.0f;
-  float massMax = 0.0f;
+  float randMassMin = 0.0f;
+  float randMassMax = 0.0f;
   float spheresRad = 0.0f;
   Point3 invMomentOfInertiaCoeff;
   BBox3 physBbox;

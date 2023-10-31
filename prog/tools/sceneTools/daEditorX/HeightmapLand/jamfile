@@ -1,0 +1,15 @@
+Platform ?= win64 ;
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/HeightmapLand ;
+DriverLinkage = dynamic ;
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = util ;
+Target      = Hmap_plugin_dll ;
+
+Dependencies =
+  $(Root)/$(Location)/jamfile-classic
+  $(Root)/$(Location)/jamfile-aces
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

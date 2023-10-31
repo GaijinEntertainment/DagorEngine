@@ -93,7 +93,7 @@ ScriptHelpers::TunedElement *ModfxParams::createTunedElement(const char *name)
   }
   {
     Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
-    enumEntries.resize(3);
+    enumEntries.resize(6);
 
     enumEntries[0].name = "default";
     enumEntries[0].value = 0;
@@ -101,12 +101,18 @@ ScriptHelpers::TunedElement *ModfxParams::createTunedElement(const char *name)
     enumEntries[1].value = 1;
     enumEntries[2].name = "highres";
     enumEntries[2].value = 2;
+    enumEntries[3].name = "distortion";
+    enumEntries[3].value = 3;
+    enumEntries[4].name = "water_proj";
+    enumEntries[4].value = 4;
+    enumEntries[5].name = "underwater";
+    enumEntries[5].value = 5;
 
     elems.push_back(ScriptHelpers::create_tuned_enum_param("render_group", enumEntries));
   }
   elems.push_back(ModFxQuality::createTunedElement("quality"));
 
-  return ScriptHelpers::create_tuned_struct(name, 8, elems);
+  return ScriptHelpers::create_tuned_struct(name, 9, elems);
 }
 
 

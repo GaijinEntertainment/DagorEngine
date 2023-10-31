@@ -418,6 +418,102 @@ void DeviceContext::loadComputeShaderFromDump(ProgramID program)
   immediateModeExecute();
 }
 
+void DeviceContext::compilePipelineSet(const DataBlock *feature_sets, DynamicArray<InputLayoutID> &&input_layouts,
+  DynamicArray<StaticRenderStateID> &&static_render_states, const DataBlock *output_formats_set,
+  const DataBlock *graphics_pipeline_set, const DataBlock *mesh_pipeline_set, const DataBlock *compute_pipeline_set,
+  const char *default_format)
+{
+  // resolve if any feature set is supported by this device
+  DynamicArray<bool> featureSetSupported;
+  if (feature_sets && feature_sets->blockCount() > 0)
+  {
+    auto blockCount = feature_sets->blockCount();
+    featureSetSupported.resize(blockCount);
+    pipeline::DataBlockDecodeEnumarator<pipeline::FeatureSupportResolver> resolver{*feature_sets, 0, d3d::get_driver_desc()};
+    for (; !resolver.completed(); resolver.next())
+    {
+      resolver.decode(featureSetSupported[resolver.index()]);
+    }
+  }
+
+  DynamicArray<FramebufferLayout> framebufferLayouts;
+  if (output_formats_set && output_formats_set->blockCount() > 0)
+  {
+    auto blockCount = output_formats_set->blockCount();
+    framebufferLayouts.resize(blockCount);
+    pipeline::DataBlockDecodeEnumarator<pipeline::FramebufferLayoutDecoder> decoder{*output_formats_set, 0, default_format};
+    for (; !decoder.completed(); decoder.next())
+    {
+      auto fi = decoder.index();
+      framebufferLayouts[fi] = {};
+      decoder.invoke([&framebufferLayouts, fi](auto &info) {
+        framebufferLayouts[fi] = info;
+        return true;
+      });
+    }
+  }
+
+  DynamicArray<GraphicsPipelinePreloadInfo> graphicsPiplines;
+  if (graphics_pipeline_set && graphics_pipeline_set->blockCount() > 0)
+  {
+    auto blockCount = graphics_pipeline_set->blockCount();
+    graphicsPiplines.resize(blockCount);
+    uint32_t decodedCount = 0;
+    pipeline::DataBlockDecodeEnumarator<pipeline::GraphicsPipelineDecoder> decoder{
+      *graphics_pipeline_set, 0, featureSetSupported.data(), featureSetSupported.size()};
+    for (; !decoder.completed(); decoder.next())
+    {
+      if (decoder.decode(graphicsPiplines[decodedCount].base, graphicsPiplines[decodedCount].variants))
+      {
+        ++decodedCount;
+      }
+    }
+    graphicsPiplines.resize(decodedCount);
+  }
+
+  DynamicArray<MeshPipelinePreloadInfo> meshPipelines;
+  if (mesh_pipeline_set && mesh_pipeline_set->blockCount() > 0)
+  {
+    auto blockCount = mesh_pipeline_set->blockCount();
+    meshPipelines.resize(blockCount);
+    uint32_t decodedCount = 0;
+    pipeline::DataBlockDecodeEnumarator<pipeline::MeshPipelineDecoder> decoder{
+      *mesh_pipeline_set, 0, featureSetSupported.data(), featureSetSupported.size()};
+    for (; !decoder.completed(); decoder.next())
+    {
+      if (decoder.decode(meshPipelines[decodedCount].base, meshPipelines[decodedCount].variants))
+      {
+        ++decodedCount;
+      }
+    }
+    meshPipelines.resize(decodedCount);
+  }
+
+  DynamicArray<ComputePipelinePreloadInfo> computePipelines;
+  if (compute_pipeline_set && compute_pipeline_set->blockCount() > 0)
+  {
+    auto blockCount = compute_pipeline_set->blockCount();
+    computePipelines.resize(blockCount);
+    uint32_t decodedCount = 0;
+    pipeline::DataBlockDecodeEnumarator<pipeline::ComputePipelineDecoder> decoder{
+      *compute_pipeline_set, 0, featureSetSupported.data(), featureSetSupported.size()};
+    for (; !decoder.completed(); decoder.next())
+    {
+      if (decoder.decode(computePipelines[decodedCount].base))
+      {
+        ++decodedCount;
+      }
+    }
+    meshPipelines.resize(decodedCount);
+  }
+
+  DX12_LOCK_FRONT();
+  commandStream.pushBack(make_command<CmdCompilePipelineSet>(input_layouts.releaseAsSpan(), static_render_states.releaseAsSpan(),
+    framebufferLayouts.releaseAsSpan(), graphicsPiplines.releaseAsSpan(), meshPipelines.releaseAsSpan(),
+    computePipelines.releaseAsSpan()));
+  immediateModeExecute();
+}
+
 void DeviceContext::resizeSwapchain(Extent2D size)
 {
   front.swapchain.prepareForShutdown(device);
@@ -6060,4 +6156,18 @@ void DeviceContext::ExecutionContext::loadComputeShaderFromDump(ProgramID progra
     get_recover_behvior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
       device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)),
     device.shouldNameObjects());
+}
+
+void DeviceContext::ExecutionContext::compilePipelineSet(DynamicArray<InputLayoutID> &&input_layouts,
+  DynamicArray<StaticRenderStateID> &&static_render_states, DynamicArray<FramebufferLayout> &&framebuffer_layouts,
+  DynamicArray<GraphicsPipelinePreloadInfo> &&graphics_pipelines, DynamicArray<MeshPipelinePreloadInfo> &&mesh_pipelines,
+  DynamicArray<ComputePipelinePreloadInfo> &&compute_pipelines)
+{
+  device.pipeMan.compilePipelineSet(device.getDevice(), device.pipelineCache, contextState.framebufferLayouts,
+    eastl::forward<DynamicArray<InputLayoutID>>(input_layouts),
+    eastl::forward<DynamicArray<StaticRenderStateID>>(static_render_states),
+    eastl::forward<DynamicArray<FramebufferLayout>>(framebuffer_layouts),
+    eastl::forward<DynamicArray<GraphicsPipelinePreloadInfo>>(graphics_pipelines),
+    eastl::forward<DynamicArray<MeshPipelinePreloadInfo>>(mesh_pipelines),
+    eastl::forward<DynamicArray<ComputePipelinePreloadInfo>>(compute_pipelines));
 }

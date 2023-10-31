@@ -480,7 +480,7 @@ namespace das {
 
     vector<VariableDeclaration*> * ast_structVarDefAbstract ( yyscan_t scanner, vector<VariableDeclaration*> * list,
         AnnotationList * annL, bool isPrivate, bool cnst, Function * func ) {
-        if ( !yyextra->g_thisStructure->isClass ) {
+        if ( yyextra->g_Program->policies.no_members_functions_in_struct && !yyextra->g_thisStructure->isClass ) {
             das_yyerror(scanner,"structure can't have a member function",
                 func->at, CompilationError::invalid_member_function);
         } else if ( func->isGeneric() ) {
@@ -538,7 +538,7 @@ namespace das {
         if ( !yyextra->g_thisStructure ) {
             das_yyerror(scanner,"internal error or invalid macro. member function is declared outside of a class",
                 func->at, CompilationError::invalid_member_function);
-        } else if ( !yyextra->g_thisStructure->isClass ) {
+        } else if ( yyextra->g_Program->policies.no_members_functions_in_struct && !yyextra->g_thisStructure->isClass ) {
             das_yyerror(scanner,"structure can't have a member function",
                 func->at, CompilationError::invalid_member_function);
         } else if ( func->isGeneric() ) {

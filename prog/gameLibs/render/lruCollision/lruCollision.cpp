@@ -484,9 +484,9 @@ void LRURendinstCollision::drawInstances(dag::ConstSpan<rendinst::riex_handle_t>
 {
   TIME_D3D_PROFILE(LRU_draw_instances);
   if (alpha)
-    d3d::set_rwtex(STAGE_PS, 6, alpha, 0, 0);
+    d3d::set_rwtex(STAGE_PS, 5, alpha, 0, 0);
   if (color)
-    d3d::set_rwtex(STAGE_PS, 7, color, 0, 0);
+    d3d::set_rwtex(STAGE_PS, 6, color, 0, 0);
 
   d3d::setind(ibAllocator.getHeap().getBuf());
   d3d::setvsrc_ex(0, vbAllocator.getHeap().getBuf(), 0, sizeof(CollisionVertex)); // we can set with different offset, but we rely on
@@ -505,9 +505,9 @@ void LRURendinstCollision::drawInstances(dag::ConstSpan<rendinst::riex_handle_t>
   d3d::setvsrc(0, 0, 0); // we can set with different offset, but we rely on same vertex size
   d3d::setvsrc(1, 0, 0); // we can set with different offset, but we rely on same vertex size
   if (color)
-    d3d::set_rwtex(STAGE_PS, 7, 0, 0, 0);
-  if (alpha)
     d3d::set_rwtex(STAGE_PS, 6, 0, 0, 0);
+  if (alpha)
+    d3d::set_rwtex(STAGE_PS, 5, 0, 0, 0);
 }
 
 void LRURendinstCollision::drawInstances(uint32_t start_instance, const uint32_t *types_counts, uint32_t batches, VolTexture *color,
@@ -609,9 +609,9 @@ void LRURendinstCollision::dispatchInstances(dag::ConstSpan<rendinst::riex_handl
   G_ASSERT(ibAllocator.getHeap().getBuf()->getFlags() & SBCF_BIND_SHADER_RES);
   TIME_D3D_PROFILE(LRU_dispatch_instances);
   if (alpha)
-    d3d::set_rwtex(STAGE_CS, 6, alpha, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 5, alpha, 0, 0);
   if (color)
-    d3d::set_rwtex(STAGE_CS, 7, color, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 6, color, 0, 0);
   cs.setStates();
   ShaderGlobal::set_buffer(gi_voxelization_vbufferVarId, vbAllocator.getHeap().getBufId());
   ShaderGlobal::set_buffer(gi_voxelization_ibufferVarId, ibAllocator.getHeap().getBufId());
@@ -619,9 +619,9 @@ void LRURendinstCollision::dispatchInstances(dag::ConstSpan<rendinst::riex_handl
     dispatchInstances(start_instance, types_counts, count, color, alpha, cs.getThreadGroupSizes()[0]);
   });
   if (color)
-    d3d::set_rwtex(STAGE_CS, 7, 0, 0, 0);
-  if (alpha)
     d3d::set_rwtex(STAGE_CS, 6, 0, 0, 0);
+  if (alpha)
+    d3d::set_rwtex(STAGE_CS, 5, 0, 0, 0);
 }
 
 void LRURendinstCollision::draw(dag::ConstSpan<rendinst::riex_handle_t> handles, VolTexture *color, VolTexture *alpha,

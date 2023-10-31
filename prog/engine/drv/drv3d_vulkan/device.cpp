@@ -932,6 +932,12 @@ void Device::fillMobileCaps(Driver3dDesc &caps)
   if (caps.issues.hasRenderPassClearDataRace)
     debug("vulkan: running on device-driver combo with clear-store race");
 
+  if (getPerDriverPropertyBlock("disableShaderFloat16")->getBool("affected", false))
+  {
+    caps.caps.hasShaderFloat16Support = false;
+    debug("vulkan: running on device-driver with bad shader float16 support, related features are OFF!");
+  }
+
   caps.caps.hasLazyMemory = physicalDeviceInfo.hasLazyMemory;
 }
 #endif
@@ -1038,6 +1044,8 @@ void Device::adjustCaps(Driver3dDesc &caps)
   // Explicitly disable pipeline raytracing until it's ready just like DX12 driver does
   caps.caps.hasRaytracing = false;
 #endif
+
+  caps.caps.hasShaderFloat16Support = physicalDeviceInfo.hasShaderFloat16;
 
 #if _TARGET_ANDROID
   fillMobileCaps(caps);

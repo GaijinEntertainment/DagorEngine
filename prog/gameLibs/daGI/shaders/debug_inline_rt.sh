@@ -65,4 +65,5 @@ shader debug_inline_rt_cs
     }
   }
   compile("cs_6_5", "main");
+  if (gi_quality != raytracing) {dont_render;}
 }

@@ -27,7 +27,6 @@ rule ProcessLinkTarget
     _LINK_OPT = -nologo $(FileAlignLinkOption):512 -base:$(BaseAddress) -incremental:no /LARGEADDRESSAWARE ;
 
     AddDirectXLibs _LINK_OPT ;
-    AddWtlLibs _LINK_OPT : vc8 ;
 
     if $(ConsoleExe) = yes {
       _LINK_OPT += -subsystem:console,\"5.01\" ;
@@ -107,8 +106,6 @@ rule ProcessLinkTarget
   }
 
   local _ADD_LIBS = " " $(1) ;
-
-  if $(QtVer) { AddQtLinkOpt ; }
 
   if $(TargetType) = exe {
     _ADD_LIBS += $(_WIN_LIBS) ;

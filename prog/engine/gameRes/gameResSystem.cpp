@@ -1553,7 +1553,7 @@ void set_gameres_scan_recorder(DataBlock *rootBlk, const char *grp_pref, const c
   gameresprivate::recListBlk = rootBlk;
 }
 
-void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp, bool allow_override)
+void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp, bool allow_override, bool scan_vromfs)
 {
   Tab<SimpleString> list;
   int grp_num = 0, dxp_num = 0;
@@ -1573,11 +1573,11 @@ void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp,
   gameresprivate::gameResPatchInProgress = allow_override;
 
   // scan gameres packs
-  find_files_in_folder(list, path, ".grp", false, true, scan_subdirs);
+  find_files_in_folder(list, path, ".grp", scan_vromfs, true, scan_subdirs);
   remove_duplicates(list);
   for (auto &_fn : list)
   {
-    SimpleString fn(df_get_real_name(_fn));
+    SimpleString fn(df_get_abs_fname(_fn));
     dd_simplify_fname_c(fn);
     if (!fn.empty())
       gameresprivate::scanGameResPack(fn), grp_num++;
@@ -1587,13 +1587,13 @@ void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp,
   if (scan_dxp)
   {
     list.clear();
-    find_files_in_folder(list, path, ".dxp.bin", false, true, scan_subdirs);
+    find_files_in_folder(list, path, ".dxp.bin", scan_vromfs, true, scan_subdirs);
     remove_duplicates(list);
     for (auto &_fn : list)
     {
       if (strstr(_fn, "-hq.dxp.bin")) // delay -hq to next pass
         continue;
-      SimpleString fn(df_get_real_name(_fn));
+      SimpleString fn(df_get_abs_fname(_fn));
       dd_simplify_fname_c(fn);
       if (!fn.empty())
         gameresprivate::scanDdsxTexPack(fn), dxp_num++;
@@ -1602,7 +1602,7 @@ void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp,
     for (auto &_fn : list) // process -hq in second pass
       if (!_fn.empty())
       {
-        SimpleString fn(df_get_real_name(_fn));
+        SimpleString fn(df_get_abs_fname(_fn));
         dd_simplify_fname_c(fn);
         if (!fn.empty())
           gameresprivate::scanDdsxTexPack(fn), dxp_num++;

@@ -49,12 +49,6 @@ if $(Platform) in ps4 ps5 {
   ;
 }
 
-if $(Platform) = ps5 {
-  AddLibs +=
-    -lSceShare_stub_weak
-  ;
-}
-
 if $(Platform) = macosx {
   Sources +=
     macosx/macIdleCycle.mm

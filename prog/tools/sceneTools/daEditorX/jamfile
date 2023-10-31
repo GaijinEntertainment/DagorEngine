@@ -9,6 +9,7 @@ TargetType  = util ;
 Target      = DaEditor3_all ;
 
 Dependencies =
+  $(Root)/$(Location)/HeightmapLand/jamfile
   $(Root)/$(Location)/StaticGeom/jamfile
   $(Root)/$(Location)/IvyGen/jamfile
   $(Root)/$(Location)/Occluders/jamfile

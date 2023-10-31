@@ -185,6 +185,15 @@ VULKAN_DECLARE_EXTENSION(ShaderFloatControlsKHR, KHR_SHADER_FLOAT_CONTROLS);
 
 #endif // VK_KHR_shader_float_controls
 
+#if VK_KHR_shader_float16_int8
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(ShaderFloat16Int8KHR);
+
+VULKAN_DECLARE_EXTENSION(ShaderFloat16Int8KHR, KHR_SHADER_FLOAT16_INT8);
+
+#endif // VK_KHR_shader_float16_int8
+
 #if VK_KHR_spirv_1_4 // required by VK_KHR_ray_query
 
 VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
@@ -645,6 +654,10 @@ typedef VulkanDeviceCore<SwapchainKHR
 #if VK_KHR_shader_float_controls
   ,
   ShaderFloatControlsKHR
+#endif
+#if VK_KHR_shader_float16_int8
+  ,
+  ShaderFloat16Int8KHR
 #endif
 #if VK_KHR_spirv_1_4
   ,

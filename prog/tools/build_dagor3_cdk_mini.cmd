@@ -89,22 +89,16 @@ rem GUI tools
 jam -s Root=../.. -f dargbox/jamfile
   if errorlevel 1 goto error
 
-rem 3ds Max plugins
+rem 3ds Max plugins, we don't care if these plugins fail to compile (this could happen due to missing SDK or compiler)
 jam -s Root=../.. -s Platform=win64 -s MaxVer=Max2024 -f maxplug/jamfile
-  if errorlevel 1 goto error
 jam -s Root=../.. -s Platform=win64 -s MaxVer=Max2024 -f maxplug/jamfile-imp
-  if errorlevel 1 goto error
 
-rem we don't care if these plugins failed to compile (this could happen due to missing SDK or compiler)
 jam -s Root=../.. -s Platform=win64 -s MaxVer=Max2023 -f maxplug/jamfile
-  if errorlevel 1 goto EOF
 jam -s Root=../.. -s Platform=win64 -s MaxVer=Max2023 -f maxplug/jamfile-imp
-  if errorlevel 1 goto EOF
 
 jam -s Root=../.. -s Platform=win64 -s MaxVer=Max2022 -f maxplug/jamfile
-  if errorlevel 1 goto EOF
 jam -s Root=../.. -s Platform=win64 -s MaxVer=Max2022 -f maxplug/jamfile-imp
-  if errorlevel 1 goto EOF
+if errorlevel 1 goto EOF
 
 goto EOF
 

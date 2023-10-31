@@ -78,7 +78,7 @@ static bool isMobileFormat(BcCompressor::ECompressionType type)
 
 BcCompressor::BcCompressor(ECompressionType compr_type, unsigned int buffer_mips, unsigned int buffer_width,
   unsigned int buffer_height, int htiles, const char *bc_shader) :
-  vb(NULL), bufferTex(NULL), bufferMips(0), bufferWidth(0), bufferHeight(0), compressionType(compr_type)
+  vb(NULL), bufferTex(NULL), bufferMips(0), bufferWidth(0), bufferHeight(0), compressionType(compr_type), vbFiller(verts)
 {
   G_ASSERT(compressionType < COMPRESSION_ERR);
   srcTexVarId = ::get_shader_variable_id(shader_var_src_tex, true);
@@ -127,6 +127,16 @@ BcCompressor::~BcCompressor()
   compressElem = NULL;
   compressMat = NULL;
   releaseBuffer();
+}
+
+void BcCompressor::VbFiller::reloadD3dRes(Sbuffer *sb)
+{
+  Vertex *p;
+  d3d_err(sb->lock(0, 0, (void **)&p, VBLOCK_WRITEONLY));
+  if (!p)
+    return;
+  memcpy(p, verts.data(), data_size(verts));
+  d3d_err(sb->unlock());
 }
 
 bool BcCompressor::resetBuffer(unsigned int mips, unsigned int width, unsigned int height, int htiles)
@@ -182,16 +192,12 @@ bool BcCompressor::resetBuffer(unsigned int mips, unsigned int width, unsigned i
   }
 
 #if !(_TARGET_C1 | _TARGET_C2)
-  vb = d3d::create_vb(data_size(verts), 0, "bcCompr");
+  vb = d3d::create_vb(data_size(verts), SBCF_MAYBELOST, "bcCompr");
   d3d_err(vb);
   if (!vb)
     return false;
-  Vertex *p;
-  d3d_err(vb->lock(0, 0, (void **)&p, VBLOCK_WRITEONLY));
-  if (!p)
-    return false;
-  memcpy(p, verts.data(), data_size(verts));
-  d3d_err(vb->unlock());
+  vbFiller.reloadD3dRes(vb);
+  vb->setReloadCallback(&vbFiller);
 #endif
   return true;
 }

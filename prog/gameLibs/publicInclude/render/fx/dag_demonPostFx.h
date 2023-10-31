@@ -306,6 +306,12 @@ protected:
   int currentHistogramTexture;
   int histogramLockCounter;
   UniqueBuf histogramVb;
+  struct HistBufferFiller : public Sbuffer::IReloadData
+  {
+    void reloadD3dRes(Sbuffer *buf);
+    void destroySelf() {}
+    IPoint2 vbSize;
+  } histBufferFiller;
   bool centerWeightedAdaptation;
   ShaderMaterial *histogramCalcMat;
   ShaderElement *histogramCalcElement;

@@ -32,5 +32,13 @@ UseProgLibs =
 
 CPPopt = -D__B_CORE -DUSE_JOLT_PHYSICS ;
 
+if $(Platform) = linux64 || $(PlatformSpec) = clang {
+  if $(Platform) in win32 win64 xboxOne scarlett {
+    CPPopt += -fp:fast /clang:-fno-unsafe-math-optimizations ;
+  } else {
+    CPPopt += -fno-unsafe-math-optimizations ;
+  }
+}
+
 include $(Root)/prog/3rdPartyLibs/phys/joltPhysics/setup.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

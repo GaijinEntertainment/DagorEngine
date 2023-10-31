@@ -64,7 +64,6 @@ public:
   typedef eastl::function<bool(const BBox2 &, float &min_ht, float &max_ht)> frustum_heights_cb_t;
 
   void generate(const Point3 &pos, const Point3 &view_dir, const frustum_heights_cb_t &cb, GrassPreRenderCallback pre_render_cb);
-  void bindGrassBuffers();
 
   enum RenderType
   {

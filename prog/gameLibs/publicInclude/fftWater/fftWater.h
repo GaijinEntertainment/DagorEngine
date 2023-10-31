@@ -246,6 +246,7 @@ void set_flowmap_params(FlowmapParams &flowmap_params);
 void set_flowmap_foam_params(FlowmapParams &flowmap_params);
 void close_flowmap(FlowmapParams &flowmap_params);
 bool is_flowmap_active(const FlowmapParams &flowmap_params);
+void flowmap_floodfill(int texSize, Texture *heightmapTex, Texture *floodfillTex, uint16_t heightmapLevel);
 void deferred_wet_ground(FFTWater *handle, const Point3 &pos);
 void prepare_refraction(FFTWater *handle, Texture *scene_target_tex);
 void set_current_time(FFTWater *handle, double time); // remove me! should not be used!

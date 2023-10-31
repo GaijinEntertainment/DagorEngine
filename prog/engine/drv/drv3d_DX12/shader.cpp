@@ -33,80 +33,85 @@ using namespace drv3d_dx12;
 #endif
 #undef g_main
 
-void InputLayout::fromVdecl(const VSDTYPE *decl)
+bool InputLayout::fromVdecl(DecodeContext &context, const VSDTYPE &decl)
 {
-  const VSDTYPE *__restrict vt = decl;
-  inputStreamSet = VertexStreamsDesc{};
-  vertexAttributeSet = VertexAttributesDesc{};
-  uint32_t ofs = 0;
-  uint32_t streamIndex = 0;
-
-  for (; *vt != VSD_END; ++vt)
+  if (VSD_END == decl)
   {
-    if ((*vt & VSDOP_MASK) == VSDOP_INPUT)
+    return false;
+  }
+
+  const auto op = decl & VSDOP_MASK;
+  if (op == VSDOP_INPUT)
+  {
+    if (decl & VSD_SKIPFLG)
     {
-      if (*vt & VSD_SKIPFLG)
-      {
-        ofs += GET_VSDSKIP(*vt) * 4;
-        continue;
-      }
-
-      uint32_t locationIndex = GET_VSDREG(*vt);
-      vertexAttributeSet.useLocation(locationIndex);
-      vertexAttributeSet.setLocationStreamSource(locationIndex, streamIndex);
-      vertexAttributeSet.setLocationStreamOffset(locationIndex, ofs);
-      vertexAttributeSet.setLocationFormatIndex(locationIndex, *vt & VSDT_MASK);
-
-      uint32_t sz = 0; // size of entry
-      //-V::1037
-      switch (*vt & VSDT_MASK)
-      {
-        case VSDT_FLOAT1: sz = 32; break;
-        case VSDT_FLOAT2: sz = 32 + 32; break;
-        case VSDT_FLOAT3: sz = 32 + 32 + 32; break;
-        case VSDT_FLOAT4: sz = 32 + 32 + 32 + 32; break;
-        case VSDT_INT1: sz = 32; break;
-        case VSDT_INT2: sz = 32 + 32; break;
-        case VSDT_INT3: sz = 32 + 32 + 32; break;
-        case VSDT_INT4: sz = 32 + 32 + 32 + 32; break;
-        case VSDT_UINT1: sz = 32; break;
-        case VSDT_UINT2: sz = 32 + 32; break;
-        case VSDT_UINT3: sz = 32 + 32 + 32; break;
-        case VSDT_UINT4: sz = 32 + 32 + 32 + 32; break;
-        case VSDT_HALF2: sz = 16 + 16; break;
-        case VSDT_SHORT2N: sz = 16 + 16; break;
-        case VSDT_SHORT2: sz = 16 + 16; break;
-        case VSDT_USHORT2N: sz = 16 + 16; break;
-
-        case VSDT_HALF4: sz = 16 + 16 + 16 + 16; break;
-        case VSDT_SHORT4N: sz = 16 + 16 + 16 + 16; break;
-        case VSDT_SHORT4: sz = 16 + 16 + 16 + 16; break;
-        case VSDT_USHORT4N: sz = 16 + 16 + 16 + 16; break;
-
-        case VSDT_UDEC3: sz = 10 + 10 + 10 + 2; break;
-        case VSDT_DEC3N: sz = 10 + 10 + 10 + 2; break;
-
-        case VSDT_E3DCOLOR: sz = 8 + 8 + 8 + 8; break;
-        case VSDT_UBYTE4: sz = 8 + 8 + 8 + 8; break;
-        default: G_ASSERTF(false, "invalid vertex declaration type"); break;
-      }
-      ofs += sz / 8;
+      context.ofs += GET_VSDSKIP(decl) * 4;
+      return true;
     }
-    else if ((*vt & VSDOP_MASK) == VSDOP_STREAM)
+
+    const auto data = decl & VSDT_MASK;
+
+    uint32_t locationIndex = GET_VSDREG(decl);
+    vertexAttributeSet.useLocation(locationIndex);
+    vertexAttributeSet.setLocationStreamSource(locationIndex, context.streamIndex);
+    vertexAttributeSet.setLocationStreamOffset(locationIndex, context.ofs);
+    vertexAttributeSet.setLocationFormatIndex(locationIndex, data);
+
+    uint32_t sz = 0; // size of entry
+    //-V::1037
+    switch (data)
     {
-      streamIndex = GET_VSDSTREAM(*vt);
-      ofs = 0;
-      inputStreamSet.useStream(streamIndex);
-      if (*vt & VSDS_PER_INSTANCE_DATA)
-        inputStreamSet.setStreamStepRate(streamIndex, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA);
-      else
-        inputStreamSet.setStreamStepRate(streamIndex, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA);
+      case VSDT_FLOAT1: sz = 32; break;
+      case VSDT_FLOAT2: sz = 32 + 32; break;
+      case VSDT_FLOAT3: sz = 32 + 32 + 32; break;
+      case VSDT_FLOAT4: sz = 32 + 32 + 32 + 32; break;
+      case VSDT_INT1: sz = 32; break;
+      case VSDT_INT2: sz = 32 + 32; break;
+      case VSDT_INT3: sz = 32 + 32 + 32; break;
+      case VSDT_INT4: sz = 32 + 32 + 32 + 32; break;
+      case VSDT_UINT1: sz = 32; break;
+      case VSDT_UINT2: sz = 32 + 32; break;
+      case VSDT_UINT3: sz = 32 + 32 + 32; break;
+      case VSDT_UINT4: sz = 32 + 32 + 32 + 32; break;
+      case VSDT_HALF2: sz = 16 + 16; break;
+      case VSDT_SHORT2N: sz = 16 + 16; break;
+      case VSDT_SHORT2: sz = 16 + 16; break;
+      case VSDT_USHORT2N: sz = 16 + 16; break;
+
+      case VSDT_HALF4: sz = 16 + 16 + 16 + 16; break;
+      case VSDT_SHORT4N: sz = 16 + 16 + 16 + 16; break;
+      case VSDT_SHORT4: sz = 16 + 16 + 16 + 16; break;
+      case VSDT_USHORT4N: sz = 16 + 16 + 16 + 16; break;
+
+      case VSDT_UDEC3: sz = 10 + 10 + 10 + 2; break;
+      case VSDT_DEC3N: sz = 10 + 10 + 10 + 2; break;
+
+      case VSDT_E3DCOLOR: sz = 8 + 8 + 8 + 8; break;
+      case VSDT_UBYTE4: sz = 8 + 8 + 8 + 8; break;
+      default: G_ASSERTF_RETURN(false, false, "invalid vertex declaration type 0x%08X", data); break;
+    }
+    context.ofs += sz / 8;
+  }
+  else if (op == VSDOP_STREAM)
+  {
+    context.streamIndex = GET_VSDSTREAM(decl);
+    context.ofs = 0;
+    inputStreamSet.useStream(context.streamIndex);
+    if (decl & VSDS_PER_INSTANCE_DATA)
+    {
+      inputStreamSet.setStreamStepRate(context.streamIndex, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA);
     }
     else
     {
-      G_ASSERTF(0, "Invalid vsd opcode 0x%08X", *vt);
+      inputStreamSet.setStreamStepRate(context.streamIndex, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA);
     }
   }
+  else
+  {
+    G_ASSERTF_RETURN(0, false, "Invalid vsd opcode 0x%08X", decl);
+  }
+
+  return true;
 }
 
 StageShaderModule drv3d_dx12::shader_layout_to_module(const bindump::Mapper<dxil::Shader> *layout)
@@ -840,6 +845,25 @@ void ShaderProgramDatabase::getBindumpShader(DeviceContext &ctx, uint32_t index,
   {
     ctx.loadComputeShaderFromDump(ProgramID::importValue(*static_cast<FSHADER *>(ident)));
   }
+}
+
+DynamicArray<InputLayoutID> ShaderProgramDatabase::loadInputLayoutFromBlk(DeviceContext &ctx, const DataBlock *blk,
+  const char *default_format)
+{
+  DynamicArray<InputLayoutID> result{blk->blockCount()};
+  pipeline::DataBlockDecodeEnumarator<pipeline::InputLayoutDecoder> decoder{*blk, 0, default_format};
+  for (; !decoder.completed(); decoder.next())
+  {
+    auto bi = decoder.index();
+    if (!decoder.invoke([bi, &result, this, &ctx](auto &layout) {
+          result[bi] = this->registerInputLayout(ctx, layout);
+          return true;
+        }))
+    {
+      result[bi] = InputLayoutID::Null();
+    }
+  }
+  return result;
 }
 
 void backend::ShaderModuleManager::addVertexShader(ShaderID id, VertexShaderModule *module)

@@ -46,6 +46,7 @@ Sources =
   sqstdlib/sqstdmath.cpp
   sqstdlib/sqstdstring.cpp
   sqstdlib/sqstdblob.cpp
+  sqstdlib/sqstddebug.cpp
   sqstdlib/sqstdio.cpp
   sqstdlib/sqstdstream.cpp
   sqstdlib/sqstdsystem.cpp

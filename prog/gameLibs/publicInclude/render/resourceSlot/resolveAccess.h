@@ -8,5 +8,5 @@ namespace resource_slot
  *
  * \param storage_id RESERVED for future use
  */
-void resolve_access(unsigned storage_id = 0);
+void resolve_access();
 } // namespace resource_slot

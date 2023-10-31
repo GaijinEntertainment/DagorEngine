@@ -1,0 +1,8 @@
+ERROR: expected 'expression'
+testData/diagnostics/rangeloop7.nut.txt:1:9
+
+for (10, local i = 0) {
+         ^----
+    println("ERROR loop 7")
+
+

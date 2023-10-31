@@ -25,26 +25,8 @@ local _DEF_C_CMDLINE =
   /DDELAYIMP_INSECURE_WRITABLE_HOOKS
 #  -D_STD_RTL_MEMORY=1
   /c /nologo /Zc:forScope /Zp8 /J
-  /Zc:inline /bigobj
+  /Zc:inline /bigobj /Zc:wchar_t
 ;
-
-if $(QtVer) {
-  _QT_DIR = $(_DEVTOOL)/Qt-$(QtVer)-vc2008 ;
-  if ! [ GLOB $(_QT_DIR) : * ] { exit FATAL\: \"$(_QT_DIR)\" not found!  Please, update DEVTOOLS ; }
-
-  _DEF_C_CMDLINE +=
-    -DQT_LARGEFILE_SUPPORT -DQT_THREAD_SUPPORT -DQT_GUI_LIB -DQT_CORE_LIB
-    -D_STD_RTL_MEMORY=1
-    /Zc:wchar_t-
-  ;
-  if $(QtVerStatic) = yes { _DEF_C_CMDLINE += -DQT_NODLL ; } else { _VC_CRT_TYPE = -MD ; }
-
-  _QT_MOC = $(_QT_DIR)/bin/moc.exe  ;
-  _QT_UIC = $(_QT_DIR)/bin/uic.exe ;
-  _QT_RCC = $(_QT_DIR)/bin/rcc.exe ;
-} else {
-  _DEF_C_CMDLINE += /Zc:wchar_t ;
-}
 
 if $(UseWholeOpt) = yes {
   UseLLDLink = no ;
@@ -77,14 +59,6 @@ _UCRT_INC       = $(_DEVTOOL)/win.sdk.100/Include/10.0.19041.0/ucrt ;
 _INCLUDE      = $(_WIN_SDK_INC) $(_VC_DIR)/include $(_UCRT_INC) ;
 _LIBPATH      = $(_UCRT_LIB) $(_WIN_SDK_LIB) $(_VC_DIR)/lib/amd64 $(_UM_LIB) ;
 
-_INCLUDE +=
-  $(_QT_DIR)/include/QtCore
-  $(_QT_DIR)/include/QtGui
-  $(_QT_DIR)/include/ActiveQt
-  $(_QT_DIR)/include
-  $(_QT_DIR)/mkspecs/win64-msvc2008
-;
-
 
 # make linker cmd-line ###
 for lib in $(_LIBPATH) {
@@ -103,5 +77,3 @@ for inc in $(_INCLUDE) {
 }
 
 _DEF_C_CMDLINE = ;
-
-if $(QtVer) { include $(Root)/prog/_jBuild/win64/qt-inc.jam ; }

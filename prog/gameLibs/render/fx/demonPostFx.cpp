@@ -234,25 +234,15 @@ void DemonPostFx::closeAdaptation()
   lowresBrightness1.close();
 }
 
-void DemonPostFx::initHistogramVb()
+struct HistogramVertex
 {
-  histogramVb.close();
-  IPoint2 vbSize = centerWeightedAdaptation ? IPoint2(CENTER_WEIGHTED_ADAPTATION_SIZE, 1) : lowResSize;
-  ShaderGlobal::set_real(adaptation_cw_samples_countVarId, CENTER_WEIGHTED_ADAPTATION_SIZE);
-  ShaderGlobal::set_int(adaptation_use_center_weightedVarId, centerWeightedAdaptation ? 1 : 0);
+  uint16_t x, y;
+};
 
-  struct HistogramVertex
-  {
-    uint16_t x, y;
-  };
-#if HIST_USE_INSTANCING
-  histogramVb = dag::create_vb(sizeof(HistogramVertex), 0, "histogramInst");
-#else
-  histogramVb = dag::create_vb(vbSize.x * vbSize.y * sizeof(HistogramVertex), 0, "histogram");
-#endif
-  d3d_err(histogramVb.getBuf());
+void DemonPostFx::HistBufferFiller::reloadD3dRes(Sbuffer *buf)
+{
   HistogramVertex *vert;
-  d3d_err(histogramVb->lock(0, 0, (void **)&vert, VBLOCK_WRITEONLY));
+  d3d_err(buf->lock(0, 0, (void **)&vert, VBLOCK_WRITEONLY));
 #if !HIST_USE_INSTANCING
   if (vert)
   {
@@ -261,7 +251,25 @@ void DemonPostFx::initHistogramVb()
         vert->x = x, vert->y = y;
   }
 #endif
-  histogramVb->unlock();
+  buf->unlock();
+}
+
+void DemonPostFx::initHistogramVb()
+{
+  histogramVb.close();
+  IPoint2 vbSize = centerWeightedAdaptation ? IPoint2(CENTER_WEIGHTED_ADAPTATION_SIZE, 1) : lowResSize;
+  ShaderGlobal::set_real(adaptation_cw_samples_countVarId, CENTER_WEIGHTED_ADAPTATION_SIZE);
+  ShaderGlobal::set_int(adaptation_use_center_weightedVarId, centerWeightedAdaptation ? 1 : 0);
+
+#if HIST_USE_INSTANCING
+  histogramVb = dag::create_vb(sizeof(HistogramVertex), SBCF_MAYBELOST, "histogramInst");
+#else
+  histogramVb = dag::create_vb(vbSize.x * vbSize.y * sizeof(HistogramVertex), SBCF_MAYBELOST, "histogram");
+#endif
+  d3d_err(histogramVb.getBuf());
+  histBufferFiller.vbSize = vbSize;
+  histBufferFiller.reloadD3dRes(histogramVb.getBuf());
+  histogramVb.getBuf()->setReloadCallback(&histBufferFiller);
 }
 
 float DemonPostFx::getCurrentAdaptationValueSlow() { return currentExposure.adaptationScale; }

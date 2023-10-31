@@ -4,6 +4,7 @@
 #include <debug/dag_debug3d.h>
 #include <perfMon/dag_statDrv.h>
 #include <3d/dag_textureIDHolder.h>
+#include <3d/dag_lockTexture.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_postFxRenderer.h>
@@ -214,6 +215,142 @@ void close_flowmap(FlowmapParams &flowmap_params)
 bool is_flowmap_active(const FlowmapParams &flowmap_params)
 {
   return flowmap_params.tex || flowmap_params.texA || flowmap_params.texB;
+}
+
+void flowmap_floodfill(int texSize, Texture *heightmapTex, Texture *floodfillTex, uint16_t heightmapLevel)
+{
+  TIME_D3D_PROFILE(flowmap_floodfill);
+
+  int heightmapStrideX = sizeof(uint16_t);
+  int heightmapStrideY = texSize * heightmapStrideX;
+  LockedTexture<uint8_t> heightmapLockedTex = lock_texture<uint8_t>(heightmapTex, heightmapStrideY, 0, TEXLOCK_READ);
+
+  int floodfillStrideX = sizeof(uint16_t);
+  int floodfillStrideY = texSize * floodfillStrideX;
+  LockedTexture<uint8_t> floodfillLockedTex = lock_texture<uint8_t>(floodfillTex, floodfillStrideY, 0, TEXLOCK_WRITE);
+
+  if (heightmapLockedTex && floodfillLockedTex)
+  {
+    uint8_t *heightmapData = heightmapLockedTex.get();
+    uint8_t *floodfillData = floodfillLockedTex.get();
+    memset(floodfillData, 0, texSize * floodfillStrideY);
+
+    int queueSize = (texSize + 1) * 2;
+    int queueBegin = 0;
+    int queueEnd = 0;
+    int *queue = new int[queueSize];
+
+    for (int y = 0; y < texSize; y++)
+    {
+      for (int x = 0; x < texSize; x++)
+      {
+        uint16_t *height = (uint16_t *)(heightmapData + x * heightmapStrideX + y * heightmapStrideY);
+        if (height[0] < heightmapLevel)
+        {
+          uint16_t *flood = (uint16_t *)(floodfillData + x * floodfillStrideX + y * floodfillStrideY);
+          if (flood[0] == 0)
+          {
+            queue[queueEnd++] = x;
+            queue[queueEnd++] = y;
+            if (queueEnd >= queueSize)
+              queueEnd = 0;
+
+            while (queueBegin != queueEnd)
+            {
+              int u = queue[queueBegin++];
+              int v = queue[queueBegin++];
+              if (queueBegin >= queueSize)
+                queueBegin = 0;
+
+              height = (uint16_t *)(heightmapData + u * heightmapStrideX + v * heightmapStrideY);
+              flood = (uint16_t *)(floodfillData + u * floodfillStrideX + v * floodfillStrideY);
+
+              int fx = 0;
+              int fy = 0;
+
+              if ((u - 1 >= 0) && (height[-1] < heightmapLevel))
+              {
+                if (flood[-1] == 0)
+                {
+                  flood[-1] = 1;
+                  queue[queueEnd++] = u - 1;
+                  queue[queueEnd++] = v;
+                  if (queueEnd >= queueSize)
+                    queueEnd = 0;
+                }
+                else if (flood[-1] > 1)
+                  fx++;
+              }
+              if ((u + 1 < texSize) && (height[1] < heightmapLevel))
+              {
+                if (flood[1] == 0)
+                {
+                  flood[1] = 1;
+                  queue[queueEnd++] = u + 1;
+                  queue[queueEnd++] = v;
+                  if (queueEnd >= queueSize)
+                    queueEnd = 0;
+                }
+                else if (flood[1] > 1)
+                  fx--;
+              }
+              if ((v - 1 >= 0) && (height[-texSize] < heightmapLevel))
+              {
+                if (flood[-texSize] == 0)
+                {
+                  flood[-texSize] = 1;
+                  queue[queueEnd++] = u;
+                  queue[queueEnd++] = v - 1;
+                  if (queueEnd >= queueSize)
+                    queueEnd = 0;
+                }
+                else if (flood[-texSize] > 1)
+                  fy++;
+              }
+              if ((v + 1 < texSize) && (height[texSize] < heightmapLevel))
+              {
+                if (flood[texSize] == 0)
+                {
+                  flood[texSize] = 1;
+                  queue[queueEnd++] = u;
+                  queue[queueEnd++] = v + 1;
+                  if (queueEnd >= queueSize)
+                    queueEnd = 0;
+                }
+                else if (flood[texSize] > 1)
+                  fy--;
+              }
+
+              flood[0] = uint16_t(((fy * 0x7f + 0x80) << 8) | (fx * 0x7f + 0x80));
+            }
+          }
+        }
+      }
+    }
+
+    delete[] queue;
+
+    for (int y = 0; y < texSize; y++)
+    {
+      for (int x = 0; x < texSize; x++)
+      {
+        uint16_t *flood = (uint16_t *)(floodfillData + x * floodfillStrideX + y * floodfillStrideY);
+        if (flood[0] <= 1)
+        {
+          if ((x - 1 >= 0) && (flood[-1] > 1))
+            flood[0] = flood[-1];
+          else if ((x + 1 < texSize) && (flood[1] > 1))
+            flood[0] = flood[1];
+          else if ((y - 1 >= 0) && (flood[-texSize] > 1))
+            flood[0] = flood[-texSize];
+          else if ((y + 1 < texSize) && (flood[texSize] > 1))
+            flood[0] = flood[texSize];
+          else
+            flood[0] = 0;
+        }
+      }
+    }
+  }
 }
 
 } // namespace fft_water

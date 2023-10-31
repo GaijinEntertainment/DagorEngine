@@ -22,8 +22,8 @@ if $(_WIN_SDK_TARGET_SUFFIX) {
 
 actions together quietly compile_pch_sync
 {
-  set_filter nul /Note\: including file\:[	 ]*$(_DEVTOOL_RE)(.+)/
-  set_filter $(1:S=.d) /Note\: including file\:[	 ]*(.+)/d1 $(1:G=:D=): $1
+  $(VC_START_SHOW_INCLUDES_FILTER)
+  set_filter $(1:S=.d) /$(VC_SHOW_INCLUDES_FILTER_PREFIX)(.+)/d1 $(1:G=:D=): $1
   del $(pch)
   call_filtered $(_CPP_COMPILER) $(pre_opt) $(_CPP_BASE_INCLUDES) $(cpp_opt) /Fp$(pch) -showIncludes #\(-Fo$(1) $(2:G=))\#
   if errorlevel 1 goto failed

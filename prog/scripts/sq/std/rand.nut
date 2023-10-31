@@ -3,6 +3,7 @@
 let random = require("dagor.random")
 let cdate = (require_optional("datetime")?.date ?? @(_date=null,_format=null) {sec=0, min=0, hour=0, day=0, month=0, year=0, wday=0, yday=0})()
 let _default_seed = random.get_rnd_seed() + cdate.sec + cdate.min*60 + cdate.yday*86400
+let math = require("math")
 
 local position = 0
 let function new_rnd_seed() {//setting new rnd
@@ -42,8 +43,8 @@ let class Rand{
 
   function rfloat(start=0.0, end=1.0){ // return float in range [start,end)
     this._count += 1
-    let start_ = min(end,start)
-    let end_ = max(end,start)
+    let start_ = math.min(end,start)
+    let end_ = math.max(end,start)
     let runit = (random.uint_noise1D(this._seed, this._count) & maxrndfloatmask) / maxrndfloat // [0,1]
     return runit * (end_-start_) + start_
   }
@@ -56,8 +57,8 @@ let class Rand{
       seed = params?.seed ?? new_rnd_seed()
       count = params?.count ?? count
     }
-    let start_ = min(end,start)
-    let end_ = max(end,start)
+    let start_ = math.min(end,start)
+    let end_ = math.max(end,start)
     let runit = (random.uint_noise1D(seed, count ?? seed) & maxrndfloatmask) / maxrndfloat // [0,1]
     return runit * (end_-start_) + start_
   }
@@ -70,7 +71,7 @@ let class Rand{
       seed = params?.seed ?? new_rnd_seed()
       count = params?.count ?? count
     }
-    return randint_uniform(min(end,start), max(end,start), @() random.uint_noise1D(seed, count ?? seed))
+    return randint_uniform(math.min(end,start), math.max(end,start), @() random.uint_noise1D(seed, count ?? seed))
   }
 
   function rint(start=0, end = null) { // return int in range [start, end], i.e. inclusive
@@ -80,7 +81,7 @@ let class Rand{
     else {
       end = end?.tointeger() ?? DEFAULT_MAX_INT_RAND
       start = start.tointeger()
-      return randint_uniform(min(end,start), max(end,start), @() random.uint_noise1D(this._seed, this._count))
+      return randint_uniform(math.min(end,start), math.max(end,start), @() random.uint_noise1D(this._seed, this._count))
     }
   }
 

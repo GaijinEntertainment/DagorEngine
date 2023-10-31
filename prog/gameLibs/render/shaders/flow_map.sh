@@ -9,6 +9,7 @@ float flowmap_texture_size_meters = 200;
 texture flowmap_heightmap_tex;
 int height_texture_size = 1024;
 float4 flowmap_heightmap_min_max = (0, 0, 0, 0);
+texture flowmap_floodfill_tex;
 float wind_dir_x = 0.6;
 float wind_dir_y = 0.8;
 float dir_scale = 0.01;
@@ -41,6 +42,7 @@ shader water_flowmap
     height_texture_size@f4 = (1.0/height_texture_size, height_texture_size, 1./flowmap_texture_size, flowmap_texture_size);
     flowmap_heightmap_tex@smp2d = flowmap_heightmap_tex;
     flowmap_heightmap_min_max@f4 = flowmap_heightmap_min_max;
+    flowmap_floodfill_tex@smp2d = flowmap_floodfill_tex;
     waterLevel_radius_flowmap_damping@f4 = (water_level, height_texture_size/flowmap_texture_size+2, height_texture_size/flowmap_texture_size, flowmap_damping);
     world_to_flowmap_prev@f4 = world_to_flowmap_prev;
     world_to_flowmap_heightmap@f4 = world_to_flowmap_heightmap;
@@ -136,6 +138,22 @@ shader water_flowmap
              depthNeighbours.w = h;
           float2 depthGradient = float2(depthNeighbours.y - depthNeighbours.x, depthNeighbours.w - depthNeighbours.z);
           f.xy += depthGradient * water_flowmap_depth.x * max(1 - waterDepth * water_flowmap_depth.z, 0);
+        ##endif
+
+        ##if flowmap_floodfill_tex != NULL
+          f.xy = (l.xy + r.xy + u.xy + d.xy) * 0.25;
+          float4 heightNeighbours = h;
+          heightNeighbours.x = tex2Dlod(flowmap_heightmap_tex, float4(htc.x - height_texture_size.x, htc.y, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
+          heightNeighbours.y = tex2Dlod(flowmap_heightmap_tex, float4(htc.x + height_texture_size.x, htc.y, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
+          heightNeighbours.z = tex2Dlod(flowmap_heightmap_tex, float4(htc.x, htc.y - height_texture_size.x, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
+          heightNeighbours.w = tex2Dlod(flowmap_heightmap_tex, float4(htc.x, htc.y + height_texture_size.x, 0, 0)).r * flowmap_heightmap_min_max.z + flowmap_heightmap_min_max.w;
+          if (any(heightNeighbours > waterHeight))
+          {
+            float2 heightGradient = float2(heightNeighbours.w - heightNeighbours.z, heightNeighbours.x - heightNeighbours.y);
+            float2 floodfillVec = tex2Dlod(flowmap_floodfill_tex, float4(htc,0,0)).rg * 2 - 1;
+            heightGradient *= heightGradient.x * floodfillVec.x + heightGradient.y * floodfillVec.y;
+            f.xy += heightGradient;
+          }
         ##endif
 
         float4 waterNeighbours = waterLevel;

@@ -430,6 +430,13 @@ public:
     bool ignore_optimization_instances_limits, IPoint2 ofsAndCnt, int lod, uint16_t pool_order, const TexStreamingContext &texCtx,
     float dist2, const ShaderElement *shader_override = nullptr, bool gpu_instancing = false)
   {
+    if (ri_idx >= rendinst::riExtra.size())
+    {
+      logerr("Attempted to add riex with pool index '%d' to RiExtraRendererT, total pool amount was '%d'.", ri_idx,
+        rendinst::riExtra.size());
+      return;
+    }
+
     if (should_hide_ri_extra_object_with_id(ri_idx))
       return;
 

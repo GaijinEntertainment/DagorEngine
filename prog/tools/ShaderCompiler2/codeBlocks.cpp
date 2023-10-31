@@ -355,7 +355,7 @@ bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, Shade
             erase_items(fn, i, 1);
         int pp_line = line_no;
         inc_lines(code_start, pp_start, pp_line);
-        if (!ppDoInclude(fn, incl_code, fileNames.getName(fname_id), pp_line))
+        if (!ppDoInclude(fn, incl_code, fileNames.getName(fname_id), pp_line, ctx))
         {
           sh_debug(SHLOG_ERROR, "failed to resolve include at %s,%d:\n    %.*s\n", fileNames.getName(fname_id), line_no,
             fn_e - fn_line, fn_line);
@@ -853,7 +853,7 @@ bool CodeSourceBlocks::ppDirective(char *s, int len, char *dtext, int fnameId, i
 
     String msg(0, "Assert failed in %s:%i\n\"%.*s\"%s%.*s\n", fileNames.getName(fnameId), line, end_expr - begin_expr, begin_expr,
       have_message ? "\n\n" : "", have_message ? end_quote - begin_quote - 1 : 0, begin_quote + 1);
-    int msg_id = ctx.evalCb.add_message(msg);
+    int msg_id = ctx.evalCb.add_message(msg, false);
     if (msg_id < 0)
       return true;
 
@@ -866,7 +866,7 @@ bool CodeSourceBlocks::ppDirective(char *s, int len, char *dtext, int fnameId, i
   }
   return false;
 }
-bool CodeSourceBlocks::ppDoInclude(const char *incl_fn, Tab<char> &out_text, const char *src_fn, int src_ln)
+bool CodeSourceBlocks::ppDoInclude(const char *incl_fn, Tab<char> &out_text, const char *src_fn, int src_ln, ParserContext &ctx)
 {
   char buf[DAGOR_MAX_PATH];
   String fn(0, "%s/%s", dd_get_fname_location(buf, src_fn), incl_fn);
@@ -887,7 +887,7 @@ bool CodeSourceBlocks::ppDoInclude(const char *incl_fn, Tab<char> &out_text, con
     "\n#undef _FILE_\n"
     "#define _FILE_ %d\n"
     "#line 1 \"%s\"\n",
-    glob_string_table.addNameId(incl_fn), incl_fn);
+    ctx.evalCb.add_message(incl_fn, true), incl_fn);
   append_items(out_text, s.size() - 1, s.data());
 
   Tab<char> fcont;
@@ -923,7 +923,7 @@ bool CodeSourceBlocks::ppDoInclude(const char *incl_fn, Tab<char> &out_text, con
     "\n#undef _FILE_\n"
     "#define _FILE_ %d\n"
     "#line %d \"%s\"\n",
-    glob_string_table.addNameId(src_fn), src_ln, src_fn);
+    ctx.evalCb.add_message(src_fn, true), src_ln, src_fn);
   append_items(out_text, s.size() - 1, s.data());
 
   G_ASSERT(is_main_thread());

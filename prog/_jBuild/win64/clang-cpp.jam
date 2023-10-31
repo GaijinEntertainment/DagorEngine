@@ -67,9 +67,6 @@ rule ProcessCompileTarget
 
   AddForceFastcall _CPP_OPT ;
   AddDirectXInclude pre_opt : post_opt ;
-  AddWtlInclude pre_opt : vc8 ;
-
-  if $(QtVer) { AddQtCompileOpt ; }
 
   include $(Root)/prog/_jBuild/_vc/add_fp_fast.jam ;
   $(Target)__CPP_OPT = -FImemory/dag_memBase.h $(post_opt) $(_CPP_OPT) -TP ;
@@ -121,8 +118,8 @@ rule CheckHeaders
 actions together quietly compile_cpp
 {
 #async
-  set_filter nul /Note\: including file\:[	 ]*$(_DEVTOOL_RE)(.+)/
-  set_filter $(1:S=.d) /Note\: including file\:[	 ]*(.+)/d1 $(1:G=:D=): $1
+  $(VC_START_SHOW_INCLUDES_FILTER)
+  set_filter $(1:S=.d) /$(VC_SHOW_INCLUDES_FILTER_PREFIX)(.+)/d1 $(1:G=:D=): $1
   echo $(2:G=:D=)
   call_filtered $(_CPP_COMPILER) $(pre_opt) $(_CPP_BASE_INCLUDES) $(cpp_opt) -showIncludes #\(-Fo$(1) $(2:G=))\#
   if errorlevel 1 goto failed
@@ -151,8 +148,8 @@ actions together quietly compile_prefast_cpp
 actions together quietly compile_c
 {
 #async
-  set_filter nul /Note\: including file\:[	 ]*$(_DEVTOOL_RE)(.+)/
-  set_filter $(1:S=.d) /Note\: including file\:[	 ]*(.+)/d1 $(1:G=:D=): $1
+  $(VC_START_SHOW_INCLUDES_FILTER)
+  set_filter $(1:S=.d) /$(VC_SHOW_INCLUDES_FILTER_PREFIX)(.+)/d1 $(1:G=:D=): $1
   echo $(2:G=:D=)
   call_filtered $(_C_COMPILER) $(pre_opt) $(_C_BASE_INCLUDES) $(c_opt) -showIncludes #\(-Fo$(1) $(2:G=))\#
   if errorlevel 1 goto failed

@@ -4,6 +4,7 @@ texture debug_triplanar_tex;
 int debug_triplanar_tex_size;
 int debug_ri_wireframe;
 int debug_ri_diff;
+int debug_ri_face_orientation;
 float4 debug_ri_wire_color;
 
 shader debug_ri_shaded
@@ -38,6 +39,7 @@ shader debug_ri_shaded
     from_sun_direction@f3 = from_sun_direction;
     wireframe@i1 = debug_ri_wireframe;
     diff@i1 = debug_ri_diff;
+    face_orientation@i1 = debug_ri_face_orientation;
     wire_color@f4 = debug_ri_wire_color;
     downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
     local_view_z@f3 = local_view_z;
@@ -49,7 +51,7 @@ shader debug_ri_shaded
       return tex2Dlod(downsampled_far_depth_tex, float4(tc, 0, 0)).x;
     }
 
-    half4 debug_shaded_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    half4 debug_shaded_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target
     {
       if (wireframe == 1)
         return wire_color;
@@ -90,6 +92,13 @@ shader debug_ri_shaded
       float ambientAmount = saturate(length(GetSkySHDiffuseSimple(normal)));
 
       float3 diffuse = max(0, dot(from_sun_direction, normal));
+
+      if (face_orientation == 1)
+      {
+        diffuse = float3(0, 0, 1);
+        SET_IF_IS_BACK_FACE(diffuse, float3(1, 0, 0));
+      }
+
       return float4((diffuse + 0.5 * ambientAmount) * triplanarColor, 1.0);
     }
   }

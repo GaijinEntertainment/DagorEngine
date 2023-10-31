@@ -25,8 +25,8 @@ private:
   const char *slotName;
   const char *resourceName;
 
-  friend NodeHandleWithSlotsAccess resource_slot::detail::register_access(const char *, const char *,
-    resource_slot::detail::ActionList &&, resource_slot::detail::AccessCallback &&, unsigned);
+  friend NodeHandleWithSlotsAccess resource_slot::detail::register_access(dabfg::NameSpace, const char *, const char *,
+    resource_slot::detail::ActionList &&, resource_slot::detail::AccessCallback &&);
 };
 
 /** Update request
@@ -54,8 +54,8 @@ private:
   const char *resourceName;
   int priority;
 
-  friend NodeHandleWithSlotsAccess resource_slot::detail::register_access(const char *, const char *,
-    resource_slot::detail::ActionList &&, resource_slot::detail::AccessCallback &&, unsigned);
+  friend NodeHandleWithSlotsAccess resource_slot::detail::register_access(dabfg::NameSpace, const char *, const char *,
+    resource_slot::detail::ActionList &&, resource_slot::detail::AccessCallback &&);
 };
 
 /** Read request
@@ -79,8 +79,8 @@ private:
   int priority;
   static constexpr int DEFAULT_READ_PRIORITY = INT_MAX;
 
-  friend NodeHandleWithSlotsAccess resource_slot::detail::register_access(const char *, const char *,
-    resource_slot::detail::ActionList &&, resource_slot::detail::AccessCallback &&, unsigned);
+  friend NodeHandleWithSlotsAccess resource_slot::detail::register_access(dabfg::NameSpace, const char *, const char *,
+    resource_slot::detail::ActionList &&, resource_slot::detail::AccessCallback &&);
 };
 
 } // namespace resource_slot

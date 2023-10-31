@@ -123,6 +123,7 @@ public:
         expr->receiver()->visit(this);
         if (expr->isNullable()) _out->writeInt8('?');
         _out->writeChar('.');
+        if (expr->isBuiltInGet()) _out->writeInt8('$');
         _out->writeString(expr->fieldName());
     }
     virtual void visitSetFieldExpr(SetFieldExpr *expr) {

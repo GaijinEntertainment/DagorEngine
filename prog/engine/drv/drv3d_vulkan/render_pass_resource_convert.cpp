@@ -145,8 +145,12 @@ void RenderPassResource::fillSubpassDeps(const RenderPassDesc &rp_desc, Tab<VkSu
         deps.push_back(selfDepVk);
       }
     }
-    fillVkDependencyFromDriver(bind, lastBindRef, dep, rp_desc, roDSinputAttachment);
-    deps.push_back(dep);
+    // handle external deps, externally
+    if ((dep.dstSubpass != VK_SUBPASS_EXTERNAL) && (dep.srcSubpass != VK_SUBPASS_EXTERNAL))
+    {
+      fillVkDependencyFromDriver(bind, lastBindRef, dep, rp_desc, roDSinputAttachment);
+      deps.push_back(dep);
+    }
   }
 
   // merge & compact
@@ -206,8 +210,11 @@ void RenderPassResource::addStoreDependencyFromOverallAttachmentUsage(SubpassDep
     if (rp_desc.binds[j].subpass == RenderPassExtraIndexes::RP_SUBPASS_EXTERNAL_END)
       continue;
 
+    // resolve happens at "color" stage as per spec
+    if (rp_desc.binds[j].action & RP_TA_SUBPASS_RESOLVE)
+      usedAsColor |= true;
     // detect DS by slot & color by any but subpass keep action
-    if (rp_desc.binds[j].slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
+    else if (rp_desc.binds[j].slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
       usedAsDS |= true;
     else if (!(rp_desc.binds[j].action & RP_TA_SUBPASS_KEEP))
       usedAsColor |= true;
@@ -233,7 +240,7 @@ void RenderPassResource::addStoreDependencyFromOverallAttachmentUsage(SubpassDep
 }
 
 void RenderPassResource::fillVkDependencyFromDriver(const RenderPassBind &next_bind, const RenderPassBind &prev_bind,
-  VkSubpassDependency &dst, const RenderPassDesc &rp_desc, bool ro_ds_input_attachment)
+  VkSubpassDependency &dst, const RenderPassDesc &, bool ro_ds_input_attachment)
 {
   // ignore dependencyBarrier info, because it is not precise enough for VK (no precise src info)
   // ro_ds_input_attachment - use input attachment read sync instead of shader read sync
@@ -242,46 +249,24 @@ void RenderPassResource::fillVkDependencyFromDriver(const RenderPassBind &next_b
   bool prevDS = prev_bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL;
   bool nextDS = next_bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL;
 
-  if (dst.srcSubpass == VK_SUBPASS_EXTERNAL)
+  if (prev_bind.action & RP_TA_SUBPASS_READ)
+    dep.addSrc((prevDS && !ro_ds_input_attachment) ? SubpassDep::depthShaderR() : SubpassDep::colorShaderR());
+  else if (prev_bind.action & RP_TA_SUBPASS_WRITE)
   {
-    // full sync from prev RWs, we don't want to conflict with pending external RW ops
-    dep.addSrc(nextDS ? SubpassDep::depthR() : SubpassDep::colorR());
-    dep.addSrc(nextDS ? SubpassDep::depthW() : SubpassDep::colorW());
-  }
-  else
-  {
-    if (prev_bind.action & RP_TA_SUBPASS_READ)
-      dep.addSrc((prevDS && !ro_ds_input_attachment) ? SubpassDep::depthShaderR() : SubpassDep::colorShaderR());
-    else if (prev_bind.action & RP_TA_SUBPASS_WRITE)
-    {
-      dep.addSrc(prevDS ? SubpassDep::depthW() : SubpassDep::colorW());
-      // due to OM/DS tests stages reads
-      dep.addSrc(prevDS ? SubpassDep::depthR() : SubpassDep::colorR());
-    }
+    dep.addSrc(prevDS ? SubpassDep::depthW() : SubpassDep::colorW());
+    // due to OM/DS tests stages reads
+    dep.addSrc(prevDS ? SubpassDep::depthR() : SubpassDep::colorR());
   }
 
-  if (dst.dstSubpass == VK_SUBPASS_EXTERNAL)
+  if (next_bind.action & RP_TA_SUBPASS_READ)
   {
-    // full sync to next RWs, we don't want to conflict with pending internal RW ops
-    dep.addDst(prevDS ? SubpassDep::depthShaderR() : SubpassDep::colorShaderR());
-    dep.addDst(prevDS ? SubpassDep::depthR() : SubpassDep::colorR());
-    dep.addDst(prevDS ? SubpassDep::depthW() : SubpassDep::colorW());
+    dep.addDst((nextDS && !ro_ds_input_attachment) ? SubpassDep::depthShaderR() : SubpassDep::colorShaderR());
   }
-  else
+  else if (next_bind.action & RP_TA_SUBPASS_WRITE)
   {
-    if (next_bind.action & RP_TA_SUBPASS_READ)
-    {
-      dep.addDst((nextDS && !ro_ds_input_attachment) ? SubpassDep::depthShaderR() : SubpassDep::colorShaderR());
-    }
-    else if (next_bind.action & RP_TA_SUBPASS_WRITE)
-    {
-      dep.addDst(nextDS ? SubpassDep::depthR() : SubpassDep::colorR());
-      dep.addDst(nextDS ? SubpassDep::depthW() : SubpassDep::colorW());
-    }
+    dep.addDst(nextDS ? SubpassDep::depthR() : SubpassDep::colorR());
+    dep.addDst(nextDS ? SubpassDep::depthW() : SubpassDep::colorW());
   }
-
-  if (dst.dstSubpass == VK_SUBPASS_EXTERNAL)
-    addStoreDependencyFromOverallAttachmentUsage(dep, rp_desc, next_bind.target);
 }
 
 uint32_t RenderPassResource::findSubpassCount(const RenderPassDesc &rp_desc)
@@ -747,6 +732,47 @@ void RenderPassResource::storeImageStates(const Tab<VkSubpassDescription> &subpa
       }
     }
     desc.attImageLayouts.push_back(imgStates);
+  }
+
+  clear_and_shrink(desc.attImageExtrenalOperations[RenderPassDescription::EXTERNAL_OP_START]);
+  clear_and_shrink(desc.attImageExtrenalOperations[RenderPassDescription::EXTERNAL_OP_END]);
+  for (uint32_t i = 0; i < desc.targetCount; ++i)
+  {
+    {
+      // external visible operation at pass end - find stage & access from overall usage
+      VkSubpassDependency vkDep;
+      SubpassDep dep(vkDep);
+      addStoreDependencyFromOverallAttachmentUsage(dep, rpDesc, i);
+      desc.attImageExtrenalOperations[RenderPassDescription::EXTERNAL_OP_END].push_back({vkDep.srcStageMask, vkDep.srcAccessMask});
+    }
+
+    {
+      // external visible operation at pass start - by default find stage & access from initial layout
+      //  but handle resolve differently due to them happening at color output-like stage & access regardless of depth/color targets
+      bool initialUsageIsResolve = false;
+      for (uint32_t j = 0; j < rpDesc.bindCount; ++j)
+      {
+        // filter ext dep subpass & other targets
+        if (rpDesc.binds[j].target != i)
+          continue;
+        if (rpDesc.binds[j].subpass == RenderPassExtraIndexes::RP_SUBPASS_EXTERNAL_END)
+          continue;
+
+        if (rpDesc.binds[j].action & RP_TA_LOAD_MASK)
+        {
+          initialUsageIsResolve = (rpDesc.binds[j].action & RP_TA_SUBPASS_RESOLVE) != 0;
+          break;
+        }
+      }
+
+      ExecutionSyncTracker::LogicAddress initialLaddr;
+      if (initialUsageIsResolve)
+        initialLaddr = ExecutionSyncTracker::LogicAddress::forAttachmentWithLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      else
+        initialLaddr = ExecutionSyncTracker::LogicAddress::forAttachmentWithLayout(desc.attImageLayouts[0][i]);
+
+      desc.attImageExtrenalOperations[RenderPassDescription::EXTERNAL_OP_START].push_back({initialLaddr.stage, initialLaddr.access});
+    }
   }
 }
 

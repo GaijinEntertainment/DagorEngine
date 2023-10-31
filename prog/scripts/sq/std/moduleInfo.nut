@@ -1,4 +1,5 @@
 let log = require("%sqstd/log.nut")().log
+let math = require("math")
 
 let typesByTypechecks ={
   [0x00000001] = "null",
@@ -90,7 +91,7 @@ let function mkFunStubStr(func, name=null, indent = 0, verbose=false, manualModI
     : paramscheck < -1
       ? ", ..."
       : "..."
-  local args = array(max(actParams, typecheck?.len() ?? 0)).map(@(_, i) argumentsNames[i])
+  local args = array(math.max(actParams, typecheck?.len() ?? 0)).map(@(_, i) argumentsNames[i])
   let defined_args = args.map(function(arg, i){
     let isOptional = paramscheck < 0 && i >= actParams && varargs != ""
     return isOptional

@@ -31,7 +31,7 @@ public:
 
   void setParams(const FoamFxParams &params);
 
-  void prepare();
+  void prepare(const TMatrix4 &view_tm, const TMatrix4 &proj_tm);
   void renderHeight();
   void renderFoam();
 

@@ -78,6 +78,11 @@ struct PhysicalDeviceSet
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT, nullptr};
 #endif
 
+#if VK_KHR_shader_float16_int8
+  VkPhysicalDeviceShaderFloat16Int8Features shaderFloat16Int8Features = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES, nullptr, false, false};
+#endif
+
   bool hasDevProps2 = false;
 
   bool hasConditionalRender = false;
@@ -92,6 +97,7 @@ struct PhysicalDeviceSet
   bool hasDepthStencilResolve = false;
   bool hasBindless = false;
   bool hasLazyMemory = false;
+  bool hasShaderFloat16 = false;
   uint32_t maxBindlessTextures = 0;
   uint32_t maxBindlessSamplers = 0;
 #if D3D_HAS_RAY_TRACING
@@ -272,6 +278,13 @@ struct PhysicalDeviceSet
       chain_structs(target, indexingFeatures);
     }
 #endif
+
+#if VK_KHR_shader_float16_int8
+    if (hasExtension<ShaderFloat16Int8KHR>())
+    {
+      chain_structs(target, shaderFloat16Int8Features);
+    }
+#endif
   }
 
   uint32_t getAvailableVideoMemoryKb() const { return deviceLocalHeapSizeKb; }
@@ -427,6 +440,14 @@ struct PhysicalDeviceSet
     {
       hasBindless = indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray;
       indexingFeatures.pNext = nullptr;
+    }
+#endif
+
+#if VK_KHR_shader_float16_int8
+    if (hasExtension<ShaderFloat16Int8KHR>())
+    {
+      hasShaderFloat16 = shaderFloat16Int8Features.shaderFloat16;
+      shaderFloat16Int8Features.pNext = nullptr;
     }
 #endif
   }
@@ -1300,6 +1321,9 @@ struct PhysicalDeviceSet
     debug("Driver version: %u.%u.%u.%u", driverVersionDecoded[0], driverVersionDecoded[1], driverVersionDecoded[2],
       driverVersionDecoded[3]);
     debug("hasLazyMemory: %s", hasLazyMemory ? "yes" : "no");
+#if VK_KHR_shader_float16_int8
+    debug("hasShaderFloat16: %s", hasShaderFloat16 ? "yes" : "no");
+#endif
   }
 
   inline void print() const

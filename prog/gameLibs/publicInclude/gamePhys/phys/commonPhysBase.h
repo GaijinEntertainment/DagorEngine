@@ -558,6 +558,10 @@ public:
     if (max_queue_size > 0 && unapprovedCT.size() > max_queue_size)
       safe_erase_items(unapprovedCT, 0, unapprovedCT.size() - 1);
 
+    // Ctrls from a far future are abnormal and may break the logic. Can happen briefly when we switch tickrate.
+    if (max_queue_size > 0 && state.producedAtTick > currentState.atTick + max_queue_size)
+      return true;
+
     // TODO: count lost controls for controlling player here.
     if (!unapprovedCT.empty())
     {

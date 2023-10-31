@@ -640,6 +640,12 @@ struct DeviceDriverCapabilitiesBase
    * \platformtable{hasCompareSampler,c,c,c,c,r,r,c,c,c,c,c}
    */
   bool hasCompareSampler : 1;
+  /**
+   * \capbrief supports 16-bit floating-point types in shaders for arithmetic operations.
+   * \someNYI
+   * \platformtable{"hasShaderFloat16Support",c,a,c,a,c,c,r,r,c,r,r}
+   */
+  bool hasShaderFloat16Support : 1;
   /* !!!!! TO ADD NEW VALUES, FOLOW THE STEPS DESCRIBED AT THE REMARK SECTION, KEEP THIS AT THE END OF THIS STRUCT !!!!! */
 };
 /**
@@ -756,6 +762,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasIndirectSupport = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasCompareSampler}
   static constexpr bool hasCompareSampler = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
+  static constexpr bool hasShaderFloat16Support = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for \scarlett
@@ -788,6 +796,8 @@ struct DeviceDriverCapabilitiesScarlett : DeviceDriverCapabilitiesXboxOne
   //! \warning Documentation is contradicting it self about proper support of indirect dispatch with pipelines that use amplification
   //! shaders.
   static constexpr bool hasMeshShader = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
+  static constexpr bool hasShaderFloat16Support = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -858,9 +868,6 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasVariableRateShadingBy4 = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasAliasedTextures}
   static constexpr bool hasAliasedTextures = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasResourceHeaps}
-  //! \NYI
-  static constexpr bool hasResourceHeaps = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBufferOverlapCopy}
   static constexpr bool hasBufferOverlapCopy = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy}
@@ -905,6 +912,8 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasIndirectSupport = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasCompareSampler}
   static constexpr bool hasCompareSampler = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
+  static constexpr bool hasShaderFloat16Support = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1027,6 +1036,8 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasTileBasedArchitecture = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasLazyMemory}
   static constexpr bool hasLazyMemory = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
+  static constexpr bool hasShaderFloat16Support = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1137,6 +1148,8 @@ struct DeviceDriverCapabilitiesTVOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasTileBasedArchitecture = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasLazyMemory}
   static constexpr bool hasLazyMemory = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
+  static constexpr bool hasShaderFloat16Support = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1454,6 +1467,9 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasIndirectSupport = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasCompareSampler}
   static constexpr bool hasCompareSampler = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
+  //! \NYI
+  static constexpr bool hasShaderFloat16Support = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for

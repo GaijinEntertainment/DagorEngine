@@ -98,4 +98,5 @@ shader octahedral_distances_cs
     }
   }
   compile("cs_6_5", "main_cs");
+  if (gi_quality != raytracing) {dont_render;}
 }

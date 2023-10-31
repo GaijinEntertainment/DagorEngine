@@ -48,6 +48,8 @@ struct LCTexturesLoaded
   Point4 randomFlowmapParams = {64.0, 0.0, 0.0, 0.0};
   Point4 flowmapMask = {1.0, 1.0, 1.0, 1.0};
   Point4 waterDecalBumpScale = {1.0, 0.0, 0.0, 0.0};
+  IPoint4 physmatIDs = {0, 0, 0, 0};
+
   mutable bool lastUsedGrassMask = false;
 };
 
@@ -111,6 +113,8 @@ static int lmesh_sampler__max_used_sampler = -1;
 
 static int lmesh_ps_const_land_detail_array_slices = -1;
 static int lmesh_sampler__land_detail_array1 = -1;
+
+static int lmesh_physmats__buffer_idx = -1;
 
 static int get_shader_int_constant(const char *name, int def)
 {
@@ -248,6 +252,7 @@ public:
   } mirrorState;
   int numDetailTextures;
   carray<uint8_t, LandMeshRenderer::DET_TEX_NUM> lcIds;
+
   Point4 posToWorld[2];
   Color4 detMapTc;
   Color4 invTexSizes[2];
@@ -265,28 +270,43 @@ public:
     ShaderGlobal::set_int_fast(num_detail_textures_gvid, numDetailTextures);
     // d3d::set_vs_const(lmesh_vs_const__mul_offset_base+8, (const float*)detMapTcSet, 1);
   }
-  inline void set(bool grass_mask, dag::ConstSpan<LCTexturesLoaded> lc, bool force_trivial, bool water_decals) const
+  inline void set(bool grass_mask, dag::ConstSpan<LCTexturesLoaded> lc, bool force_trivial, bool water_decals,
+    Sbuffer *physmatIdsBuf = NULL) const
   {
     if (!water_decals)
       setBase();
+    uint32_t physmats[4 * 7];
     // fixme: fill with nulls or leave samplers untouched?
     if ((force_trivial || trivial || grass_mask) && !water_decals)
     {
       for (int i = 0; i < numDetailTextures; ++i) // LandMeshRenderer::DET_TEX_NUM
+      {
         if (lcIds[i] < lc.size())
         {
           TEXTUREID tid = grass_mask ? lc[lcIds[i]].grassMask : lc[lcIds[i]].colorMap;
           mark_managed_tex_lfu(tid);
           d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_tex1 + i, D3dResManagerData::getBaseTex(tid));
           if (grass_mask)
+          {
+            physmats[i * 4 + 0] = lc[lcIds[i]].physmatIDs.x;
+            physmats[i * 4 + 1] = lc[lcIds[i]].physmatIDs.y;
+            physmats[i * 4 + 2] = lc[lcIds[i]].physmatIDs.z;
+            physmats[i * 4 + 3] = lc[lcIds[i]].physmatIDs.w;
             lc[lcIds[i]].lastUsedGrassMask = true;
+          }
         }
         else
           d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_tex1 + i, nullptr);
+      }
       d3d::set_vs_const(lmesh_vs_const__mul_offset_base, (float *)mul_offset[mirrorState.x][mirrorState.y], 8);
       // if (normalmap)
       if (!grass_mask && lmesh_ps_const__invtexturesizes >= 0)
         d3d::set_ps_const(lmesh_ps_const__invtexturesizes, (float *)&invTexSizes[0].r, 2);
+      if (grass_mask && lmesh_physmats__buffer_idx > 0 && physmatIdsBuf)
+      {
+        physmatIdsBuf->updateDataWithLock(0, 4 * 7 * 4, &physmats[0], VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+        d3d::set_buffer(STAGE_PS, lmesh_physmats__buffer_idx, physmatIdsBuf);
+      }
     }
   }
 
@@ -546,6 +566,12 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
   if (lmesh_ps_const_land_detail_array_slices < 0)
     lmesh_sampler__land_detail_array1 = -1;
 
+  GET_SHADER_CONSTANT(lmesh_physmats__buffer_idx);
+  if (lmesh_physmats__buffer_idx > 0)
+    physmatIdsBuf = d3d::buffers::create_one_frame_sr_structured(sizeof(uint32_t), DET_TEX_NUM * 4 * 4, "physmats_IDS");
+  else
+    physmatIdsBuf = NULL;
+
   G_ASSERT(lmesh_sampler__land_detail_map >= 0);
   G_ASSERT(lmesh_sampler__land_detail_tex1 >= 0);
 #undef GET_SHADER_CONSTANT
@@ -663,6 +689,7 @@ LandMeshRenderer::~LandMeshRenderer()
   if (useConditionalRendering)
     bboxShader.close();
   del_d3dres(one_quad);
+  del_d3dres(physmatIdsBuf);
   landclassShader.clear();
   shadersNames.erase(shadersNames.begin(), shadersNames.end());
 }
@@ -959,6 +986,8 @@ void LandMeshRenderer::prepareLandClasses(LandMeshManager &provider)
     landClassesLoaded[i].waterDecalBumpScale = landClasses[i].waterDecalBumpScale;
 
     landClassesLoaded[i].flowmapTex = query_tex_loading(landClasses[i].flowmapTex, true);
+
+    landClassesLoaded[i].physmatIDs = landClasses[i].physmatIds;
 
     for (int dtype = 0; dtype < landClasses[i].lcDetailTextures.size(); ++dtype)
     {
@@ -1767,7 +1796,8 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, int cellNo, int lod
   if (rtype <= MAX_RENDER_SPLATTING__)
   {
     mirroredCell.setDetMapTc();
-    curState.set(rtype == RENDER_GRASS_MASK, landClassesLoaded, shouldRenderTrivially, false);
+    curState.set(rtype == RENDER_GRASS_MASK, landClassesLoaded, shouldRenderTrivially, false,
+      rtype == RENDER_GRASS_MASK ? physmatIdsBuf : NULL);
   }
 
 

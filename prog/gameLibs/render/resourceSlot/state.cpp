@@ -2,12 +2,11 @@
 
 #include <detail/storage.h>
 
-resource_slot::State::State(unsigned storage_id, int node_id) : storageId(storage_id), nodeId(node_id)
+resource_slot::State::State(dabfg::NameSpace ns, int node_id) : nameSpace(ns), nodeId(node_id)
 {
   // Fits into storage bits
   G_ASSERT(node_id >= 0);
   G_ASSERT(node_id <= (1 << 26));
-  G_ASSERT(storage_id <= (1 << 4));
 }
 
 [[nodiscard]] static inline bool is_node_registered(resource_slot::detail::NodeId node_id, resource_slot::detail::NodeStatus status)
@@ -19,7 +18,7 @@ resource_slot::State::State(unsigned storage_id, int node_id) : storageId(storag
 // Read current slots
 const char *resource_slot::State::resourceToReadFrom(const char *slot_name) const
 {
-  detail::Storage &storage = detail::storage_list[storageId];
+  detail::Storage &storage = detail::storage_list[nameSpace];
   G_ASSERTF_RETURN(nodeId >= 0 && nodeId < storage.nodeMap.nameCount(), nullptr, "Unexpected nodeId: %d", nodeId);
   detail::NodeId ownerNodeId = detail::NodeId{nodeId};
 
@@ -44,7 +43,7 @@ const char *resource_slot::State::resourceToReadFrom(const char *slot_name) cons
 
 const char *resource_slot::State::resourceToCreateFor(const char *slot_name) const
 {
-  detail::Storage &storage = detail::storage_list[storageId];
+  detail::Storage &storage = detail::storage_list[nameSpace];
   G_ASSERTF_RETURN(nodeId >= 0 && nodeId < storage.nodeMap.nameCount(), nullptr, "Unexpected nodeId: %d", nodeId);
   detail::NodeId ownerNodeId = detail::NodeId{nodeId};
 

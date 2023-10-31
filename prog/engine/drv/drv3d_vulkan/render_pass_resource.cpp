@@ -127,20 +127,23 @@ void RenderPassResource::setFrameImageLayout(ExecutionContext &ctx, uint32_t att
 
   switch (sync_type)
   {
-    case ImageLayoutSync::END_EDGE:
-      ctx.back.syncTrack.addImageAccessAtNativePass(ExecutionSyncTracker::LogicAddress::forAttachmentWithLayout(new_layout), tgt.image,
-        new_layout, {tgt.mipLevel, 1, arrayBase, arrayRange});
-      for (int i = 0; i < arrayRange; ++i)
-        tgt.image->layout.set(tgt.mipLevel, arrayBase + i, new_layout);
-      break;
     case ImageLayoutSync::INNER:
       for (int i = 0; i < arrayRange; ++i)
         tgt.image->layout.set(tgt.mipLevel, arrayBase + i, new_layout);
       break;
+    case ImageLayoutSync::END_EDGE:
+      for (int i = 0; i < arrayRange; ++i)
+        tgt.image->layout.set(tgt.mipLevel, arrayBase + i, new_layout);
+      // fallthrough
     case ImageLayoutSync::START_EDGE:
-      ctx.back.syncTrack.addImageAccessAtNativePass(ExecutionSyncTracker::LogicAddress::forAttachmentWithLayout(new_layout), tgt.image,
-        new_layout, {tgt.mipLevel, 1, arrayBase, arrayRange});
+    {
+      uint32_t extOpIdx =
+        sync_type == ImageLayoutSync::END_EDGE ? RenderPassDescription::EXTERNAL_OP_END : RenderPassDescription::EXTERNAL_OP_START;
+      ctx.back.syncTrack.addImageAccess(
+        {desc.attImageExtrenalOperations[extOpIdx][att_index].stage, desc.attImageExtrenalOperations[extOpIdx][att_index].access},
+        tgt.image, new_layout, {tgt.mipLevel, 1, arrayBase, arrayRange});
       break;
+    }
     default: G_ASSERTF(0, "vulkan: RenderPassResource::setFrameImageLayout %p unknown sync type %u", this, sync_type); break;
   }
 }
@@ -197,6 +200,7 @@ void RenderPassResource::advanceSubpass(ExecutionContext &ctx)
   performSelfDepsForSubpass(activeSubpass, ctx.frameCore);
   ++activeSubpass;
   ctx.popEventRaw();
+  ctx.back.syncTrack.setCurrentRenderSubpass(activeSubpass);
 
   if (activeSubpass != desc.subpasses)
     updateImageStatesForCurrentSubpass(ctx);
@@ -211,9 +215,9 @@ void RenderPassResource::beginPass(ExecutionContext &ctx)
   if (ctx.isDebugEventsAllowed())
     ctx.pushEventRaw(String(64, "NRP: <%s>", getDebugName()), nativePassDebugMarkerColor);
 
+  ctx.back.syncTrack.setCurrentRenderSubpass(0);
   updateImageStatesForCurrentSubpass(ctx);
   ctx.back.syncTrack.completeNeeded(ctx.frameCore, ctx.vkDev);
-  ctx.back.syncTrack.enterNativePass();
 
   VkRenderPassBeginInfo rpbi = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, nullptr};
 
@@ -252,6 +256,7 @@ void RenderPassResource::endPass(ExecutionContext &ctx)
     "vulkan: there is %u subpasses in RP %p [ %p ] <%s>, but we ending it at activeSubpass %u", desc.subpasses, this, getBaseHandle(),
     getDebugName(), activeSubpass);
   ctx.vkDev.vkCmdEndRenderPass(ctx.frameCore);
+  ctx.back.syncTrack.setCurrentRenderSubpass(ExecutionSyncTracker::SUBPASS_NON_NATIVE);
 
   state = nullptr;
   bakedAttachments = nullptr;

@@ -140,11 +140,11 @@ void FoamFx::setParams(const FoamFxParams &params)
   debugTextures[FoamTexture::GRADIENT] = foamGeneratorGradientTex.getBaseTex();
 }
 
-void FoamFx::prepare()
+void FoamFx::prepare(const TMatrix4 &view_tm, const TMatrix4 &proj_tm)
 {
   TIME_D3D_PROFILE(FoamFx_Preapare);
 
-  set_inv_globtm_to_shader(false);
+  set_inv_globtm_to_shader(view_tm, proj_tm, false);
 
   ShaderGlobal::set_texture(foam_maskVarId, maskTarget);
   ShaderGlobal::set_texture(foam_mask_depthVarId, maskDepth);

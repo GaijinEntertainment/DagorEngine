@@ -413,9 +413,8 @@ namespace das {
     class ConstFolding : public FoldingVisitor {
     public:
         ConstFolding( const ProgramPtr & prog ) : FoldingVisitor(prog) {}
-        bool needRun() const { return runMe; }
-    protected:
-        bool runMe = false;
+    public:
+        vector<Function *> needRun;
     protected:
         // function which is fully a nop
         bool isNop ( const FunctionPtr & func ) {
@@ -706,7 +705,7 @@ namespace das {
                     if ( expr->func->builtIn ) {
                         return evalAndFold(expr);
                     } else {
-                        runMe = true;
+                        needRun.push_back(expr->func);
                     }
                 }
             }
@@ -809,9 +808,13 @@ namespace das {
 
     class RunFolding : public FoldingVisitor {
     public:
-        bool simulated = false;
+        RunFolding( const ProgramPtr & prog, const vector<Function *> & _needRun ) : FoldingVisitor(prog),
+            runProgram(prog.get()), needRun(_needRun) {
+        }
+    protected:
         Program * runProgram = nullptr;
-        RunFolding( const ProgramPtr & prog ) : FoldingVisitor(prog), runProgram(prog.get()) {}
+        const vector<Function *> & needRun;
+        bool anySimulated = false;
     protected:
         // ExprCall
         virtual ExpressionPtr visit ( ExprCall * expr ) override {
@@ -823,11 +826,11 @@ namespace das {
                     }
                 }
                 if ( allConst ) {
-                    if ( !simulated ) {
-                        simulated = true;
+                    if ( !anySimulated ) {          // the reason for lazy simulation is that function can be optimized out during the same pass as it was marked for folding
+                        anySimulated = true;
                         TextWriter dummy;
                         runProgram->folding = true;
-                        runProgram->markFoldingSymbolUse();
+                        runProgram->markFoldingSymbolUse(needRun);
                         DAS_ASSERTF ( !runProgram->failed(), "internal error while folding (remove unused)?" );
                         runProgram->allocateStack(dummy);
                         DAS_ASSERTF ( !runProgram->failed(), "internal error while folding (allocate stack)?" );
@@ -861,9 +864,9 @@ namespace das {
         ConstFolding cfe(this);
         visit(cfe);
         bool any = cfe.didAnything();
-        if ( cfe.needRun() ) {
+        if ( !cfe.needRun.empty() ) {
             if ( !options.getBoolOption("disable_run",false) ) {
-                RunFolding rfe(this);
+                RunFolding rfe(this,cfe.needRun);
                 visit(rfe);
                 any |= rfe.didAnything();
             }

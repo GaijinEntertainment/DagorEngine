@@ -272,8 +272,10 @@ public:
   /// comparison operators
   bool operator==(const char *a) const { return strcmp(str(), a) == 0; }
   bool operator==(const String &s) const { return strcmp(str(), s.str()) == 0; }
+  friend bool operator==(const char *a, const String &s) { return strcmp(a, s.str()) == 0; }
   bool operator!=(const char *a) const { return strcmp(str(), a) != 0; }
   bool operator!=(const String &s) const { return strcmp(str(), s.str()) != 0; }
+  friend bool operator!=(const char *a, const String &s) { return strcmp(a, s.str()) != 0; }
 
   KRNLIMP String &toUpper();
   KRNLIMP String &toLower();
@@ -336,9 +338,6 @@ public:
     return s;
   }
 };
-
-inline bool operator==(const char *a, const String &s) { return strcmp(a, s.str()) == 0; }
-inline bool operator!=(const char *a, const String &s) { return strcmp(a, s.str()) != 0; }
 
 inline String operator+(const char *p, const String &s)
 {

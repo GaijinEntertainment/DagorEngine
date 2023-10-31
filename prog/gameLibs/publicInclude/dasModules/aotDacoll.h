@@ -81,6 +81,11 @@ inline bool dacoll_tracedown_normalized_with_pmid(Point3 p, float &out_t, int &o
   return dacoll::tracedown_normalized(p, out_t, &out_pmid, nullptr, flags);
 }
 
+inline bool dacoll_tracedown_normalized_with_norm_and_pmid(Point3 p, float &out_t, int &out_pmid, Point3 &out_norm, int flags)
+{
+  return dacoll::tracedown_normalized(p, out_t, &out_pmid, &out_norm, flags);
+}
+
 inline bool dacoll_tracedown_normalized_trace_handle_with_pmid(Point3 p, float &out_t, int &out_pmid, int flags,
   const TraceMeshFaces *handle)
 {

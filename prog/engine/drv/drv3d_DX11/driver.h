@@ -37,7 +37,7 @@ struct RENDERDOC_API_1_5_0;
 #include <osApiWrappers/dag_rwLock.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <AmdDxExtDepthBoundsApi.h>
-#include <comPtr/comPtr.h>
+#include <supp/dag_comPtr.h>
 #include <3d/dag_drv3dReset.h>
 
 /*

@@ -60,11 +60,11 @@ else {
 if ! $(Platform) in xboxOne scarlett {
   AddIncludes +=
     $(Root)/prog/3rdPartyLibs/nvapi
-    $(Root)/prog/3rdPartyLibs/reflexStats
     $(Root)/prog/3rdPartyLibs/adl_sdk
     $(Root)/prog/3rdPartyLibs/ags_sdk/include
   ;
 }
+if [ GLOB $(Root)/prog/3rdPartyLibs/reflexStats : * ] { AddIncludes += $(Root)/prog/3rdPartyLibs/reflexStats ; }
 
 if $(Platform) in ps4 ps5 {
   Sources +=
@@ -102,7 +102,6 @@ if $(DlssEnabled) = yes && $(Platform) = win64 && -DHAS_NVSDK_NGX in $(CPPopt) {
 AddIncludes += $(Root)/prog/3rdPartyLibs/nvsdk_ngx/Include ;
 
 AddIncludes +=
-  $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
   $(Root)/prog/engine/drv/drv3d_commonCode/sony

@@ -61,6 +61,7 @@ public:
   void  registerIoStreamLib();
   void  registerIoLib();
   void  registerDateTimeLib();
+  void  registerDebugLib();
 
   Sqrat::Object *findNativeModule(const string &module_name);
 

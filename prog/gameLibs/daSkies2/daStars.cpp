@@ -75,10 +75,10 @@ void DaStars::init(const char *stars, const char *moon)
     starsRendElem.numVert = star_catalog::g_star_count * 4;
     starsRendElem.startIndex = 0;
     starsRendElem.numPrim = star_catalog::g_star_count * 2;
-    starsVb = dag::create_vb(starsRendElem.numVert * starsRendElem.stride, 0, "starsVb");
+    starsVb = dag::create_vb(starsRendElem.numVert * starsRendElem.stride, SBCF_MAYBELOST, "starsVb");
     G_ASSERT(starsVb);
 
-    starsIb = dag::create_ib(starsRendElem.numPrim * 3 * sizeof(uint16_t), 0,
+    starsIb = dag::create_ib(starsRendElem.numPrim * 3 * sizeof(uint16_t), SBCF_MAYBELOST,
       "starsIb"); // To be filled on scene change.
     G_ASSERT(starsIb);
 

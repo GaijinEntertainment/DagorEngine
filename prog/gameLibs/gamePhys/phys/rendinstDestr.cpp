@@ -790,9 +790,10 @@ static bool sort_by_offset(const rendinst::DestroyedInstanceRange &left, const r
 
 bool rendinstdestr::serialize_destr_data(danet::BitStream &bs)
 {
-  return rendinst::getDestrCellData(0 /*primary layer*/, [&](const Tab<rendinst::DestroyedCellData> &destrCellData) {
+  uint16_t cellCount = 0;
+  const bool written = rendinst::getDestrCellData(0 /*primary layer*/, [&](const Tab<rendinst::DestroyedCellData> &destrCellData) {
     G_ASSERT(destrCellData.size() <= USHRT_MAX);
-    uint16_t cellCount = min<uint32_t>(destrCellData.size(), USHRT_MAX);
+    cellCount = min<uint32_t>(destrCellData.size(), USHRT_MAX);
 
     bs.WriteCompressed(cellCount);
     for (int i = 0; i < cellCount; ++i)
@@ -831,8 +832,13 @@ bool rendinstdestr::serialize_destr_data(danet::BitStream &bs)
       }
     }
 
-    return cellCount > 0;
+    return true;
   });
+
+  // if nothing was written, just write 0 cell count
+  if (!written)
+    bs.WriteCompressed(cellCount);
+  return cellCount > 0;
 }
 
 void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply_flags, int max_simultaneous_destrs)
@@ -841,12 +847,14 @@ void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
   Tab<rendinst::DestroyedCellData> cellsNewDestrInfo(framemem_ptr());
   int newDestrs = 0;
 
+  // always read cell count
+  uint16_t cellCount = 0;
+  bs.ReadCompressed(cellCount);
+
   rendinst::getDestrCellData(0 /*primary layer*/, [&](const Tab<rendinst::DestroyedCellData> &destrCellData) {
-    uint16_t cellCount = 0;
     if (!apply_reflection)
     {
       cachedDestr = bs;
-      bs.ReadCompressed(cellCount);
       for (int i = 0; i < cellCount; ++i)
       {
         uint16_t poolCount = 0;
@@ -867,7 +875,6 @@ void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
       return true;
     }
 
-    bs.ReadCompressed(cellCount);
     cellsNewDestrInfo.resize(cellCount);
 
     for (int i = 0; i < cellCount; ++i)

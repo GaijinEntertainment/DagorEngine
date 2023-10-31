@@ -33,17 +33,25 @@ inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx
   }
 }
 
-inline void set_up_dafx_effect(dafx::ContextId dafx_ctx, BaseEffectObject *fx, bool force_recreate)
+inline void set_up_dafx_effect(dafx::ContextId dafx_ctx, BaseEffectObject *fx, bool force_recreate, bool enabled = true,
+  const TMatrix *tm = nullptr)
 {
   if (!fx || !dafx_ctx)
     return;
 
-  bool v = true;
   TMatrix ident = TMatrix::IDENT;
   dafx::flush_command_queue(dafx_ctx);
   fx->setParam(_MAKE4C('PFXR'), &force_recreate);
-  fx->setParam(_MAKE4C('PFXE'), &v);
+  fx->setParam(_MAKE4C('PFXE'), &enabled);
   fx->setParam(HUID_EMITTER_TM, &ident);
+
+  if (tm)
+  {
+    fx->setParam(HUID_TM, const_cast<TMatrix *>(tm));
+    Point4 p4 = Point4::xyz0(tm->getcol(3));
+    fx->setParam(_MAKE4C('PFXP'), &p4);
+  }
+
   dafx::flush_command_queue(dafx_ctx);
 }
 

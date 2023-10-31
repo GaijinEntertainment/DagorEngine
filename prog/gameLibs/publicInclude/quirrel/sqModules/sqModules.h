@@ -92,6 +92,7 @@ public:
   void registerIoStreamLib();
   void registerIoLib();
   void registerDateTimeLib();
+  void registerDebugLib();
 
   template <typename F>
   void forEachNativeModule(const F &cb); // 'cb' called as cb(const char *module_name, const Sqrat::Object &module)

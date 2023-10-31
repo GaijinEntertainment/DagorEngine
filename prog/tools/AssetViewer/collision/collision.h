@@ -65,6 +65,7 @@ protected:
   bool showTraceable;
   bool isSolidMatValid;
   bool drawSolid;
+  bool showFaceOrientation;
 
   void drawObjects(IGenViewportWnd *wnd);
   void printKdopLog();
@@ -75,5 +76,5 @@ protected:
 void InitCollisionResource(const DagorAsset &asset, CollisionResource **collision_res, GeomNodeTree **node_tree);
 void ReleaseCollisionResource(CollisionResource **collision_res, GeomNodeTree **node_tree);
 void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, bool show_phys_collidable = false,
-  bool show_traceable = false, bool draw_solid = false, int selected_node_id = -1, bool edit_mode = false,
-  const dag::Vector<bool> &hidden_nodes = {});
+  bool show_traceable = false, bool draw_solid = false, bool show_face_orientation = false, int selected_node_id = -1,
+  bool edit_mode = false, const dag::Vector<bool> &hidden_nodes = {});

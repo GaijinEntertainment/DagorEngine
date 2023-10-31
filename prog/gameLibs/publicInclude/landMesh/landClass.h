@@ -6,6 +6,7 @@
 #pragma once
 
 #include <3d/dag_texMgr.h>
+#include <math/integer/dag_IPoint4.h>
 
 class Sbuffer;
 
@@ -58,6 +59,9 @@ struct LandClassDetailTextures
   Point4 waterDecalBumpScale;
   // todo: we can just use dfferent Constant Buffers
   char shader_name[64] = {0};
+
+  IPoint4 physmatIds;
+
   enum
   {
     DETAIL_RED = 0,

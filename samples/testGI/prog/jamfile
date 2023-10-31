@@ -97,9 +97,6 @@ if $(Platform) in win32 win64 {
     engine/drv/hid_sony
     engine/drv/drv3d_ps4
   ;
-  AddLibs =
-    -lScePerf_stub_weak
-  ;
 } else if $(Platform) = android {
   UseProgLibs +=
     engine/drv/drv3d_vulkan

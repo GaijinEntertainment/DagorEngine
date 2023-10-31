@@ -2,6 +2,7 @@ from "%sqstd/frp.nut" import *
 from "daRg" import *
 
 let {tostring_r} = require("%sqstd/string.nut")
+let {min}  = require("math")
 
 /*
 //===== DARG specific methods=====

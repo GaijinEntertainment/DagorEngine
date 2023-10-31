@@ -11,7 +11,7 @@
 
 #include <ioSys/dag_zstdIo.h>
 
-#include <comPtr/comPtr.h>
+#include <supp/dag_comPtr.h>
 #include <D3Dcompiler.h>
 
 #include <EASTL/string.h>

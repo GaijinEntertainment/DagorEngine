@@ -39,13 +39,13 @@ struct State
   const char *resourceToCreateFor(const char *slot_name) const;
 
 private:
-  unsigned storageId : 4;
-  int nodeId : 28;
+  dabfg::NameSpace nameSpace;
+  int nodeId;
 
-  State(unsigned storage_id, int node_id);
-  friend void resource_slot::resolve_access(unsigned);
+  State(dabfg::NameSpace ns, int node_id);
+  friend void resource_slot::resolve_access();
 };
 
-static_assert(sizeof(State) == sizeof(int));
+static_assert(sizeof(State) == sizeof(int) * 2);
 
 } // namespace resource_slot

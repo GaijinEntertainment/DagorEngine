@@ -46,7 +46,7 @@ CALLSTACK
 *FUNCTION [__main__()] testData/static_analyser/w288_dp_va.nut line [11]
 
 LOCALS
-[hflow] CLOSURE=FN:(w288_dp_va.nut:9)
+[hflow] CLOSURE=FN:hflow
 [FlowH] 30
 [bar] CLOSURE=FN:bar
 [foo] CLOSURE=FN:foo

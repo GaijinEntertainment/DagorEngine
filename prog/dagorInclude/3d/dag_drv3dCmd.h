@@ -5,6 +5,8 @@
 //
 #pragma once
 
+class DataBlock;
+
 struct FrameEvents
 {
   virtual ~FrameEvents() = default;
@@ -367,6 +369,9 @@ enum
   // The PS5 swapchain needs to be recreated when switcing between VR and flatscreen.
   DRV3D_COMMAND_RESET_PS5_SWAPCHAIN_VR_MODE,
 
+  // Sets to the PS5 driver which eye is rendered in VR and get back the distortion resolve LUT's ID
+  DRV3D_COMMAND_SET_PS5_FSR_VIEW,
+
   // It tells Swappy on android, what is the target frame rate.
   // par1: int* frame rate
   DRV3D_COMMAND_SWAPPY_SET_TARGET_FRAME_RATE,
@@ -384,6 +389,9 @@ enum
   DRV3D_COMMAND_ADD_DEBUG_BREAK_STRING_SEARCH,
   // Removes a string previously added with DRV3D_COMMAND_ADD_DEBUG_BREAK_STRING_SEARCH
   DRV3D_COMMAND_REMOVE_DEBUG_BREAK_STRING_SEARCH,
+
+  // par1: CompilePipelineSet*
+  DRV3D_COMMAND_COMPILE_PIPELINE_SET,
 
   DRV3D_COMMAND_USER = 1000,
 };
@@ -409,6 +417,31 @@ struct Drv3dTimings
   long long presentDuration;
   long long backbufferAcquireDuration;
   long long frontendWaitForSwapchainDuration;
+};
+
+// All values are optional, but graphics and mesh pipelines can not be created without output and render state sets.
+struct CompilePipelineSet
+{
+  // When not specified, the driver assumes its driver specific format (if supported) and otherwise engine.
+  const char *defaultFormat;
+  // A block with a set of feature sets referenced by pipelines in the pipeline sets to indicate required features.
+  const DataBlock *featureSet;
+  // A block with a set of blocks describing input layouts.
+  const DataBlock *inputLayoutSet;
+  // A block with a set of blocks describing render states.
+  // The driver will ignore render states that are incompatible with the system.
+  const DataBlock *renderStateSet;
+  // A block with a set of blocks describing output format states.
+  // The driver will ignore output format states that are incompatible wit the system.
+  const DataBlock *outputFormatSet;
+  // A block with a set of blocks describing graphics pipelines.
+  // The driver will ignore pipelines using unsupported input layouts, render states or output formats.
+  const DataBlock *graphicsPipelineSet;
+  // A block with a set of blocks describing mesh pipelines.
+  // The driver will ignore pipelines using unsupported render states or output formats.
+  const DataBlock *meshPipelineSet;
+  // A block with a set of blocks describing compute pipelines.
+  const DataBlock *computePipelineSet;
 };
 
 enum ResourceBarrier : int;

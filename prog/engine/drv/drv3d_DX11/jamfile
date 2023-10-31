@@ -23,7 +23,6 @@ Sources =
 
 
 AddIncludes =
-  $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
   $(Root)/prog/3rdPartyLibs/nvapi

@@ -939,11 +939,15 @@ void CodegenVisitor::visitCallExpr(CallExpr *call) {
 
     Expr *callee = deparen(call->callee());
     bool isNullCall = call->isNullable();
+    bool isBuiltInCall = false;
+    if (callee->op() == TO_GETFIELD) {
+        isBuiltInCall = callee->asGetField()->isBuiltInGet();
+    }
 
     visitNoGet(callee);
 
     if (isObject(callee)) {
-        if (!isNullCall) {
+        if (!isNullCall && !isBuiltInCall && ((_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE) == 0)) {
             SQInteger key = _fs->PopTarget();  /* location of the key */
             SQInteger table = _fs->PopTarget();  /* location of the object */
             SQInteger closure = _fs->PushTarget(); /* location for the closure */
@@ -955,7 +959,16 @@ void CodegenVisitor::visitCallExpr(CallExpr *call) {
             SQInteger storedSelf = _fs->PushTarget();
             _fs->AddInstruction(_OP_MOVE, storedSelf, self);
             _fs->PopTarget();
-            Emit2ArgsOP(_OP_GET, OP_GET_FLAG_NO_ERROR | OP_GET_FLAG_ALLOW_DEF_DELEGATE);
+            SQInteger flags = 0;
+            if (isBuiltInCall) {
+                flags |= OP_GET_FLAG_BUILTIN_ONLY;
+            } else if ((_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE) == 0) {
+                flags |= OP_GET_FLAG_ALLOW_DEF_DELEGATE;
+            }
+            if (isNullCall)
+              flags |= OP_GET_FLAG_NO_ERROR;
+
+            Emit2ArgsOP(_OP_GET, flags);
             SQInteger ttarget = _fs->PushTarget();
             _fs->AddInstruction(_OP_MOVE, ttarget, storedSelf);
         }
@@ -1256,6 +1269,9 @@ bool CodegenVisitor::canBeLiteral(AccessExpr *expr) {
 
 bool CodegenVisitor::CanBeDefaultDelegate(const SQChar *key)
 {
+    if (_fs->lang_features & LF_FORBID_IMPLICIT_DEF_DELEGATE)
+      return false;
+
     // this can be optimized by keeping joined list/table of used keys
     SQTable *delegTbls[] = {
         _table(_fs->_sharedstate->_table_default_delegate),
@@ -1367,6 +1383,10 @@ void CodegenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
 
     if (defaultDelegate) {
         flags |= OP_GET_FLAG_ALLOW_DEF_DELEGATE;
+    }
+
+    if (expr->isBuiltInGet()) {
+        flags |= OP_GET_FLAG_BUILTIN_ONLY;
     }
 
     if (expr->receiver()->op() == TO_BASE) {

@@ -1,7 +1,7 @@
-ERROR: expected string
-testData/diagnostics/interp_str_not_string.nut:3:9
+ERROR: expected 'expression'
+testData/diagnostics/interp_str_not_string.nut:3:8
 
 println($'{{{{{{{{')
-         ^
+        ^
 
 

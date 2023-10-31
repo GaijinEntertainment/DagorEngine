@@ -941,6 +941,12 @@ SQInteger sq_cmp(HSQUIRRELVM v)
     return res;
 }
 
+bool sq_cmpraw(HSQUIRRELVM v, HSQOBJECT &lhs, HSQOBJECT &rhs, SQInteger &res)
+{
+  return v->ObjCmp(lhs, rhs, res);
+}
+
+
 SQRESULT sq_newslot(HSQUIRRELVM v, SQInteger idx, SQBool bstatic)
 {
     v->ValidateThreadAccess();
@@ -1244,6 +1250,11 @@ void sq_pushobject(HSQUIRRELVM v,HSQOBJECT obj)
 void sq_resetobject(HSQOBJECT *po)
 {
     po->_unVal.raw=0;po->_type=OT_NULL;po->_flags=0;
+}
+
+void sq_throwparamtypeerror(HSQUIRRELVM v, SQInteger nparam, SQInteger typemask, SQInteger type)
+{
+    v->Raise_ParamTypeError(nparam, typemask, type);
 }
 
 SQRESULT sq_throwerror(HSQUIRRELVM v,const SQChar *err)
@@ -1891,4 +1902,8 @@ void sq_enablesyntaxwarnings() {
 
 void sq_checkglobalnames(HSQUIRRELVM v) {
   StaticAnalyser::reportGlobalNameDiagnostics(v);
+}
+
+void sq_mergeglobalnames(const HSQOBJECT *bindings) {
+  StaticAnalyser::mergeKnownBindings(bindings);
 }

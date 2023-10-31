@@ -66,10 +66,13 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
     Point3_vec4 footNewPos(0.f, 0.f, 0.f);
     bool move_foot = false;
     const mat44f &animcharTm = tree.getRootWtmRel();
-    Point3_vec4 up = Point3_vec4(0, 1, 0);
+    vec4f vup = V_C_UNIT_0100;
+    bool up_is_world_up = true;
     if (rec[i].useAnimcharUpDir)
-      up = as_point3(&animcharTm.col1);
-    bool up_is_world_up = up.y > 0.999f;
+    {
+      vup = animcharTm.col1;
+      up_is_world_up = v_extract_y(vup) > 0.999f;
+    }
 
     if (isCrawl)
     {
@@ -116,28 +119,28 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
       float foot_len = as_point4(&rec[i].vFootFwd).w;
 
       float trace_h1 = 0, trace_h2 = 0;
-      float leg_height = as_point3(&leg_wtm.col3) * up;
-      float foot_height = as_point3(&foot_wtm.col3) * up;
-      if (leg_height > foot_height)
+      float leg_diff = v_extract_x(v_sub_x(v_dot3_x(leg_wtm.col3, vup), v_dot3_x(foot_wtm.col3, vup)));
+      if (leg_diff > 0.f)
       {
         float maxDist = rec[i].maxFootUp + 0.15;
-        float footUpOfs = min(rec[i].maxFootUp, (leg_height - foot_height - 0.15f) * 0.9f);
+        float footUpOfs = min(rec[i].maxFootUp, (leg_diff - 0.15f) * 0.9f);
+
+        Point3_vec4 dir;
+        v_st(&dir, v_neg(vup));
 
         Point3_vec4 pt;
-        Point3_vec4 dir = -up;
-        v_st(&pt, v_add(v_mat44_mul_vec3p(animcharTm, v_and(foot_p1, v_cast_vec4f(V_CI_MASK1010))), wofs));
-        pt += footUpOfs * up;
+        v_st(&pt,
+          v_madd(vup, v_splats(footUpOfs), v_add(v_mat44_mul_vec3p(animcharTm, v_and(foot_p1, v_cast_vec4f(V_CI_MASK1010))), wofs)));
         trace_h1 = maxDist;
         if (ctx.irq(up_is_world_up ? GIRQT_TraceFootStepDown : GIRQT_TraceFootStepDir, (intptr_t)(void *)&pt,
-              (intptr_t)(up_is_world_up ? (void *)&maxDist : (void *)&dir), (intptr_t)(void *)&trace_h1) == GIRQR_TraceOK)
+              (intptr_t)(up_is_world_up ? (void *)&trace_h1 : (void *)&dir), (intptr_t)(void *)&trace_h1) == GIRQR_TraceOK)
           trace_h1 -= footUpOfs;
 
-        v_st(&pt, v_add(v_mat44_mul_vec3p(animcharTm, v_and(foot_p2, v_cast_vec4f(V_CI_MASK1010))), wofs));
-        pt += footUpOfs * up;
-
+        v_st(&pt,
+          v_madd(vup, v_splats(footUpOfs), v_add(v_mat44_mul_vec3p(animcharTm, v_and(foot_p2, v_cast_vec4f(V_CI_MASK1010))), wofs)));
         trace_h2 = maxDist;
         if (ctx.irq(up_is_world_up ? GIRQT_TraceFootStepDown : GIRQT_TraceFootStepDir, (intptr_t)(void *)&pt,
-              (intptr_t)(up_is_world_up ? (void *)&maxDist : (void *)&dir), (intptr_t)(void *)&trace_h2) == GIRQR_TraceOK)
+              (intptr_t)(up_is_world_up ? (void *)&trace_h2 : (void *)&dir), (intptr_t)(void *)&trace_h2) == GIRQR_TraceOK)
           trace_h2 -= footUpOfs;
         else
           trace_h2 = trace_h1;
@@ -184,11 +187,7 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
       if (isCrawl)
         as_point3(&foot_wtm.col3) = footNewPos;
       else
-      {
-        if (move_foot)
-          foot_wtm.col3 = foot_p1;
-        as_point3(&foot_wtm.col3) += nodes[i].dy * up;
-      }
+        foot_wtm.col3 = v_perm_xyzd(v_madd(vup, v_splats(nodes[i].dy), move_foot ? foot_p1 : foot_wtm.col3), V_C_UNIT_0001);
       solve_2bones_ik(leg_wtm, knee_wtm, foot_wtm, foot_wtm, len0, len1, as_point3(&knee_wtm.col1));
       if (ctx.acScale)
       {

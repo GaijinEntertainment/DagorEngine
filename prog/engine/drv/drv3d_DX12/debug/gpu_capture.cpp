@@ -1,5 +1,6 @@
 #include "device.h"
 
+#if USE_PIX
 // PROFILE_BUILD will enable USE_PIX in pix3.h if architecture is supported
 #define PROFILE_BUILD
 #if !defined(__d3d12_h__)
@@ -9,6 +10,8 @@
 #else
 #include "WinPixEventRuntime/pix3.h"
 #endif
+#endif
+
 #include <RenderDoc/renderdoc_app.h>
 
 using namespace drv3d_dx12;
@@ -144,6 +147,7 @@ LibPointer debug::gpu_capture::PIX::try_connect_capture_interface()
   return {};
 }
 
+#if USE_PIX
 LibPointer debug::gpu_capture::PIX::try_load_capture_interface() { return {PIXLoadLatestWinPixGpuCapturerLibrary(), {}}; }
 
 void debug::gpu_capture::PIX::configure() { PIXSetHUDOptions(PIXHUDOptions::PIX_HUD_SHOW_ON_NO_WINDOWS); }
@@ -202,6 +206,17 @@ void debug::gpu_capture::PIX::marker(ID3D12GraphicsCommandList *cmd, eastl::span
     cmd->SetMarker(PIX_EVENT_ANSI_VERSION, text.data(), text.size());
   }
 }
+#else
+LibPointer debug::gpu_capture::PIX::try_load_capture_interface() { return {}; }
+void debug::gpu_capture::PIX::configure() {}
+void debug::gpu_capture::PIX::beginCapture() {}
+void debug::gpu_capture::PIX::endCapture() {}
+void debug::gpu_capture::PIX::onPresent() {}
+void debug::gpu_capture::PIX::captureFrames(const wchar_t *, int) {}
+void debug::gpu_capture::PIX::beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
+void debug::gpu_capture::PIX::endEvent(ID3D12GraphicsCommandList *) {}
+void debug::gpu_capture::PIX::marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
+#endif
 
 bool debug::gpu_capture::nvidia::NSight::try_connect_interface()
 {

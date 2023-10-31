@@ -35,7 +35,7 @@ public:
   void buildMips() override;
   void prepareDebug() override;
   void prepareNextFrame(vec3f viewPos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float zn, float zf,
-    Texture *mipped_depth, Texture *depth, StereoIndex stereo_index) override;
+    TextureIDPair mipped_depth, Texture *depth, StereoIndex stereo_index) override;
   void setReprojectionUseCameraTranslatedSpace(bool enabled) override;
   bool getReprojectionUseCameraTranslatedSpace() const override;
   void initSWRasterization() override;
@@ -91,6 +91,7 @@ protected:
   bool reprojectionUseCameraTranslatedSpace = false;
 
   Texture *currentTarget = nullptr;
+  TEXTUREID currentTargetId = BAD_TEXTUREID;
 };
 
 OcclusionSystem *OcclusionSystem::create() { return new OcclusionSystemImpl; }
@@ -307,11 +308,11 @@ void OcclusionSystemImpl::startRasterization(float zn)
 }
 
 void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float zn, float zf,
-  Texture *depth, Texture *base_depth, StereoIndex stereo_index)
+  TextureIDPair depth, Texture *base_depth, StereoIndex stereo_index)
 {
-  G_ASSERT_RETURN(depth, );
+  G_ASSERT_RETURN(depth.getTex2D(), );
   if (stereo_index != StereoIndex::Right)
-    currentTarget = ringTextures.getNewTarget(lastRenderedFrame);
+    currentTarget = ringTextures.getNewTargetAndId(lastRenderedFrame, currentTargetId);
   if (stereo_index != StereoIndex::Left)
     nextFramePrepared = !!currentTarget;
   if (!currentTarget)
@@ -324,16 +325,16 @@ void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat4
     if (base_depth)
       d3d::resource_barrier({base_depth, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     TextureInfo tinfo;
-    depth->getinfo(tinfo, 0);
+    depth.getTex2D()->getinfo(tinfo, 0);
 
     const int w = tinfo.w, h = tinfo.h;
 
     int lod = 0;
-    while (((w >> (lod + 1)) > width || (h >> (lod + 1)) > height) && lod < depth->level_count() - 1)
+    while (((w >> (lod + 1)) > width || (h >> (lod + 1)) > height) && lod < depth.getTex2D()->level_count() - 1)
       lod++;
 
-    depth->texfilter(TEXFILTER_POINT);
-    depth->texaddr(TEXADDR_CLAMP);
+    depth.getTex2D()->texfilter(TEXFILTER_POINT);
+    depth.getTex2D()->texaddr(TEXADDR_CLAMP);
 
     static int depthSourceSzVarId = get_shader_variable_id("depth_source_sz", true);
     static int depthTargetSzVarId = get_shader_variable_id("depth_target_sz", true);
@@ -355,7 +356,7 @@ void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat4
       base_depth->texfilter(TEXFILTER_POINT);
       base_depth->texaddr(TEXADDR_CLAMP);
       bool finalRendered = false;
-      for (int i = -1, e = depth->level_count(); i < e;) // current lod
+      for (int i = -1, e = depth.getTex2D()->level_count(); i < e;) // current lod
       {
         int srcSizeW = base_tinfo.w, srcSizeH = base_tinfo.h;
         if (i == -1)
@@ -366,9 +367,9 @@ void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat4
         {
           srcSizeW = tinfo.w >> i;
           srcSizeH = tinfo.h >> i;
-          depth->texmiplevel(i, i);
-          d3d::resource_barrier({depth, RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i), 1});
-          d3d::settex(source_tex_const_no, depth);
+          depth.getTex2D()->texmiplevel(i, i);
+          d3d::resource_barrier({depth.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i), 1});
+          d3d::settex(source_tex_const_no, depth.getTex2D());
         }
         int targetW = srcSizeW >> 1, targetH = srcSizeH >> 1;
         bool downsample4X = false;
@@ -392,7 +393,7 @@ void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat4
         {
           const int renderTargetLod = i + (downsample4X ? 2 : 1);
           G_ASSERT((tinfo.w >> renderTargetLod) == targetW && (tinfo.h >> renderTargetLod) == targetH);
-          d3d::set_render_target(depth, renderTargetLod);
+          d3d::set_render_target(depth.getTex2D(), renderTargetLod);
           i = renderTargetLod;
         }
 
@@ -413,13 +414,13 @@ void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat4
       ShaderGlobal::set_color4(depthTargetSzVarId, width, height, 0, 0);
       ShaderGlobal::set_int(downsampleTypeIdVarId, 0);
 
-      depth->texmiplevel(lod, lod);
-      d3d::settex(source_tex_const_no, depth);
+      depth.getTex2D()->texmiplevel(lod, lod);
+      d3d::settex(source_tex_const_no, depth.getTex2D());
       d3d::set_render_target(currentTarget, 0);
 
       downsample.render();
     }
-    depth->texmiplevel(-1, -1);
+    depth.getTex2D()->texmiplevel(-1, -1);
   }
   else
   {
@@ -433,26 +434,29 @@ void OcclusionSystemImpl::prepareNextFrame(vec3f viewPos, mat44f_cref view, mat4
 
     TIME_D3D_PROFILE(downsample_hzb);
     TextureInfo tinfo;
-    depth->getinfo(tinfo, 0);
+    depth.getTex2D()->getinfo(tinfo, 0);
 
     static int depthSourceSzVarId = get_shader_variable_id("depth_source_sz");
     static int depthTargetSzVarId = get_shader_variable_id("depth_target_sz");
+    static int depthSourceVarId = get_shader_variable_id("source_depth_hzb_vr");
+    static int depthTargetVarId = get_shader_variable_id("target_depth_hzb_vr");
     static int depthLodVarId = get_shader_variable_id("depth_lod");
 
     int widthLod = static_cast<int>(log2(float(tinfo.w) / width));
     int heightLod = static_cast<int>(log2(float(tinfo.h) / height));
-    int lod = eastl::min<int>({widthLod, heightLod, depth->level_count() - 1});
+    int lod = eastl::min<int>({widthLod, heightLod, depth.getTex2D()->level_count() - 1});
 
     {
       IPoint2 sourceSize(tinfo.w >> lod, tinfo.h >> lod);
       ShaderGlobal::set_color4(depthSourceSzVarId, sourceSize.x, sourceSize.y, 0, 0);
       ShaderGlobal::set_color4(depthTargetSzVarId, width, height, 0, 0);
+
       ShaderGlobal::set_int(depthLodVarId, lod);
 
-      d3d::set_tex(STAGE_CS, 1, depth, false);
-      d3d::set_rwtex(STAGE_CS, 0, currentTarget, 0, 0, true);
+      ShaderGlobal::set_texture(depthSourceVarId, depth.getId());
+      ShaderGlobal::set_texture(depthTargetVarId, currentTargetId);
 
-      downsample_vr->dispatch((sourceSize.x + 15) / 16, (sourceSize.y + 15) / 16, 1);
+      downsample_vr->dispatchThreads(sourceSize.x, sourceSize.y, 1);
     }
   }
 

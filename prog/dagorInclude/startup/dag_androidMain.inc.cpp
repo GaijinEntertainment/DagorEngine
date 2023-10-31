@@ -666,8 +666,7 @@ void read_argv_from_file(const char *file, int &argc, char **argv)
     cmdBuffer[lSize] = 0;
     if (df_read(cmdFile, cmdBuffer, lSize) == lSize)
     {
-      const char *delimeter = " ";
-      int i = 0;
+      const char *delimeter = " \n";
       char *token = strtok(cmdBuffer, delimeter);
       while ((argc < MAX_ARGS_COUNT) && (token != NULL))
       {

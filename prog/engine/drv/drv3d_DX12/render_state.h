@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ioSys/dag_dataBlock.h>
+
 #define MINIMUM_REPRESENTABLE_D32 3e-10
 #define MINIMUM_REPRESENTABLE_D24 33e-8
 #define MINIMUM_REPRESENTABLE_D16 2e-5
@@ -28,6 +30,11 @@ class PipelineManager;
 class RenderStateSystem
 {
 public:
+  struct DynamicState
+  {
+    uint32_t stencilRef : 8;
+    uint32_t enableScissor : 1;
+  };
   struct StaticStateBits
   {
     // first 32 bits
@@ -138,6 +145,7 @@ public:
              0 == memcmp(l.blendParams, r.blendParams, blendBytesToCompare) && l.depthBias == r.depthBias &&
              l.depthBiasSloped == r.depthBiasSloped;
     }
+    friend bool operator!=(const StaticState &l, const StaticState &r) { return !(l == r); }
     static StaticState fromRenderState(const shaders::RenderState &def)
     {
       StaticState result = {};
@@ -258,6 +266,15 @@ public:
 
       result.colorWriteMask = def.colorWr;
 
+      return result;
+    }
+
+    shaders::RenderState toRenderState(const DynamicState &dynamic_state) const
+    {
+      shaders::RenderState result;
+      // TODO
+      result.stencilRef = dynamic_state.stencilRef;
+      result.scissorEnabled = dynamic_state.enableScissor ? 1 : 0;
       return result;
     }
 
@@ -418,11 +435,6 @@ public:
       return mask;
     }
   };
-  struct DynamicState
-  {
-    uint32_t stencilRef : 8;
-    uint32_t enableScissor : 1;
-  };
 
   void reset()
   {
@@ -430,7 +442,6 @@ public:
     publicStateTable.clear();
     staticStateTable.clear();
   }
-  void loadFromCache(PipelineCache &cache, PipelineManager &pipe_man);
 
   struct PublicStateBasicInfo
   {
@@ -460,6 +471,22 @@ public:
     auto &e = publicStateTable[public_id];
     return e.second;
   }
+
+  static bool is_compatible(const Driver3dDesc &desc, const StaticState &state)
+  {
+    if (state.enableDepthBounds)
+    {
+      return desc.caps.hasDepthBoundsTest;
+    }
+    if (state.enableConservativeRaster)
+    {
+      return desc.caps.hasConservativeRassterization;
+    }
+    return true;
+  }
+
+  DynamicArray<StaticRenderStateID> loadStaticStatesFromBlk(DeviceContext &ctx, const Driver3dDesc &desc, const DataBlock *blk,
+    const char *default_format);
 
 private:
   // 'smart' compare of two RenderStates, it skips modes for functionality that is turned off
@@ -534,7 +561,11 @@ private:
 
     return result;
   }
-  StaticRenderStateID registerStaticState(DeviceContext &ctx, const shaders::RenderState &def);
+  StaticRenderStateID registerStaticState(DeviceContext &ctx, const StaticState &def);
+  StaticRenderStateID registerStaticState(DeviceContext &ctx, const shaders::RenderState &def)
+  {
+    return registerStaticState(ctx, StaticState::fromRenderState(def));
+  }
   OSSpinlock mutex;
   eastl::vector<StaticState> staticStateTable;
   eastl::vector<eastl::pair<shaders::RenderState, PublicStateInfo>> publicStateTable;

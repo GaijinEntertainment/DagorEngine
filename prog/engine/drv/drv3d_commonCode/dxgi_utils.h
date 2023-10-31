@@ -2,7 +2,7 @@
 
 #if _TARGET_PC_WIN
 
-#include <comPtr/comPtr.h>
+#include <supp/dag_comPtr.h>
 
 #include <EASTL/utility.h>
 #include <EASTL/optional.h>

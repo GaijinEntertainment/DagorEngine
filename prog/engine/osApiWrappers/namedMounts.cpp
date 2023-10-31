@@ -38,6 +38,17 @@ void dd_set_named_mount_path(const char *mount_name, const char *path_to)
   }
 }
 
+const char *dd_get_named_mount_by_path(const char *fpath)
+{
+  ScopedLockReadTemplate<OSReadWriteLock> lock(named_mounts_rwlock);
+  for (auto &it : named_mounts)
+  {
+    if (strncmp(fpath, it.second.c_str(), it.second.size()) == 0)
+      return it.first.c_str();
+  }
+  return nullptr;
+}
+
 const char *dd_get_named_mount_path(const char *mount_name, int mount_name_len)
 {
   ScopedLockReadTemplate<OSReadWriteLock> lock(named_mounts_rwlock);

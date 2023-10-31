@@ -154,7 +154,7 @@ public:
 
   void buildStatusStr(String &out_str, bool full_res_list, bool (*resolve_res_name)(String &nm, RES *r) = nullptr);
   void dumpMemBlocks(String *out_str_summary = nullptr);
-  int getPendingReloadResCount() const { return pendingVdataReloadResCount; }
+  int getPendingReloadResCount() const { return interlocked_acquire_load(pendingVdataReloadResCount); }
   int getFailedReloadResCount() const { return failedVdataReloadResList.size(); }
   void setHints(const DataBlock &hints_blk);
 
@@ -176,7 +176,7 @@ protected:
   volatile int vbSizeToFree = 0, ibSizeToFree = 0;
   int uselessDiscardAttempts = 0;
   Tab<RES *> failedVdataReloadResList;
-  int pendingVdataReloadResCount = 0;
+  volatile int pendingVdataReloadResCount = 0;
   unitedvdata::BufConfig hints;
   mutable std::mutex hintsMutex;
 
@@ -211,7 +211,7 @@ protected:
   inline void releaseUpdateJob(UpdateModelCtx &ctx);
   inline void ceaseUpdateJob(UpdateModelCtx &ctx)
   {
-    pendingVdataReloadResCount--;
+    interlocked_decrement(pendingVdataReloadResCount);
     ctx.res->setResLoadingFlag(false);
     ctx.res = nullptr;
   }

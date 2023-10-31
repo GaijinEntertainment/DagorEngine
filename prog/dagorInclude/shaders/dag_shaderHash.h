@@ -40,6 +40,13 @@ struct ShaderHashValue
     return value;
   }
 
+  static ShaderHashValue fromString(const char *str, int len = -1)
+  {
+    ShaderHashValue value;
+    str_hex_to_data_buf(value.value, sizeof(value.value), str, nullptr, len);
+    return value;
+  }
+
   void convertToString(char *buffer, size_t size) const
   {
     G_ASSERT(size > (sizeof(ShaderHashValue) * 2));

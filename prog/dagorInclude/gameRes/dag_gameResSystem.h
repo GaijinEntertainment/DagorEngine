@@ -120,7 +120,8 @@ void set_gameres_scan_recorder(DataBlock *rootBlk, const char *grp_pref, const c
 
 // Scan for game resource packs in specified location.
 // Path must end with slash.
-void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp = false, bool allow_override = false);
+void scan_for_game_resources(const char *path, bool scan_subdirs, bool scan_dxp = false, bool allow_override = false,
+  bool scan_vromfs = false);
 
 // Load pack list BLK from specified filename and load respacks according to list
 // when res_base_dir==NULL, base directory is extracted from pack_list_blk_fname path

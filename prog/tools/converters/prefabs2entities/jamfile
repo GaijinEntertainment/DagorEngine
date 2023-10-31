@@ -10,8 +10,6 @@ OutDir          = $(Root)/tools/util ;
 
 AddIncludes     = $(Root)/prog/tools/sharedInclude ;
 
-UseWTL          = yes ;
-
 Sources =
   blkCvt.cpp
   con_main.cpp

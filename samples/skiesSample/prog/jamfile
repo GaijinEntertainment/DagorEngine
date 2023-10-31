@@ -106,14 +106,8 @@ if $(Platform) in win32 win64 {
     engine/drv/drv3d_ps4
     engine/drv/hid_nulldrv
   ;
-  AddLibs =
-    -lScePerf_stub_weak
-  ;
 
-  BundleCopy =
-    @$(_DEVTOOL)/ps4.sdk.$(PS4SdkVer)/target/sce_module/libc.prx sce_module/libc.prx
-    @$(_DEVTOOL)/ps4.sdk.$(PS4SdkVer)/target/sce_module/libSceFios2.prx sce_module/libSceFios2.prx
-  ;
+  include $(Root)/prog/_jBuild/$(Platform)/bundle_prx.jam ;
 
 } else if $(Platform) = ps5 {
   Sources +=
@@ -125,13 +119,8 @@ if $(Platform) in win32 win64 {
     engine/drv/drv3d_ps5
   ;
 
-  AddLibs =
-    -lSceShare_stub_weak
-  ;
+  include $(Root)/prog/_jBuild/$(Platform)/bundle_prx.jam ;
 
-  BundleCopy =
-    @$(_DEVTOOL)/ps5.sdk.$(PS5SdkVer)/target/sce_module/libc.prx sce_module/libc.prx
-  ;
 } else if $(Platform) in xboxOne scarlett {
   UseProgLibs += engine/drv/drv3d_DX12 ;
   UseProgLibs += engine/drv/hid_gamepad_xinput engine/drv/hid_keyboard engine/drv/hid_nulldrv ;
@@ -290,7 +279,7 @@ if $(Platform) in win32 win64 {
     engine/drv/hid_nswitch
     engine/drv/hid_nulldrv
     gameLibs/jsonUtils
-    gameLibs/nswitch
+    gameLibs/nswitch/kit
     gameLibs/nswitch/assets
     gameLibs/nswitch/account
     gameLibs/nswitch/journalizedMount

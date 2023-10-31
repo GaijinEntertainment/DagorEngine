@@ -83,6 +83,13 @@ private:
   };
   SmallTab<Vertex, MidmemAlloc> verts;
   Vbuffer *vb;
+  struct VbFiller : public Sbuffer::IReloadData
+  {
+    void reloadD3dRes(Sbuffer *sb);
+    void destroySelf() {}
+    const SmallTab<Vertex, MidmemAlloc> &verts;
+    VbFiller(const SmallTab<Vertex, MidmemAlloc> &verts) : verts(verts) {}
+  } vbFiller;
   Ptr<ShaderElement> compressElem;
   Ptr<ComputeShaderElement> compressElemCompute;
   Ptr<ShaderMaterial> compressMat;

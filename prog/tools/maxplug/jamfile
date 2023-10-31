@@ -41,8 +41,6 @@ if $(Config) = rel {
   _GlobCopt_Optimize = /O1 /Os /Oi ;
 }
 
-if ! [ GLOB $(_DEVTOOL)/$(MaxVer).sdk : * ] { exit FATAL\: \"$(_DEVTOOL)/$(MaxVer).sdk\" not found!  Please, update it from \\\\FS.GAIJIN.LAN\\Y\\Soft\\forDevelopers\\devtools\\$(MaxVer).sdk.7z ; }
-
 if $(Platform) = win64 {
   switch $(MaxVer)
   {
@@ -79,6 +77,8 @@ if $(Platform) = win64 {
   OutDir     = $(Root)/tools/dagor3_cdk/plugin3dsMax/$(MaxVer) ;
   MaxLibDir = $(_DEVTOOL)/$(MaxVer).sdk/lib ;
 }
+
+if ! [ GLOB $(_DEVTOOL)/$(MaxVer).sdk : * ] { exit \"$(_DEVTOOL)/$(MaxVer).sdk\" not found! Install Max SDK and re-run make_devtools.py. $(OutDir)/$(Target:D=) is skipped now... ; }
 
 AddIncludes =
   $(_DEVTOOL)/$(MaxVer).sdk/include

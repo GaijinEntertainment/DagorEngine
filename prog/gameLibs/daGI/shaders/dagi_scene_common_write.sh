@@ -44,8 +44,8 @@ macro SSGE_WRITE_VOXEL_DATA(code, color_reg, alpha_reg)
   }
 endmacro
 
-int ssge_scene_common_color_reg_no = 7;
-int ssge_scene_common_alpha_reg_no = 6;
+int ssge_scene_common_color_reg_no = 6;
+int ssge_scene_common_alpha_reg_no = 5;
 
 macro SSGE_SCENE_COMMON_WRITE(code)
   USE_VOXELS(code)

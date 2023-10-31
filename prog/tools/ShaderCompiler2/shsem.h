@@ -74,7 +74,7 @@ public:
   virtual ShVarBool eval_bool_value(bool_value &) = 0;
   virtual int eval_interval_value(const char *ival_name) = 0;
   virtual void decl_bool_alias(const char *name, bool_expr &expr) {}
-  virtual int add_message(const char *message) { return 0; }
+  virtual int add_message(const char *message, bool file_name) { return 0; }
 };
 
 void eval_shader(shader_decl &sh, ShaderEvalCB &cb);

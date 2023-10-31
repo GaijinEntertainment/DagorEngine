@@ -98,6 +98,8 @@ public:
       das::SideEffects::modifyArgument, "bind_dascript::dacoll_tracedown_normalized_with_norm");
     das::addExtern<DAS_BIND_FUN(dacoll_tracedown_normalized_with_pmid)>(*this, lib, "tracedown_normalized",
       das::SideEffects::modifyArgument, "bind_dascript::dacoll_tracedown_normalized_with_pmid");
+    das::addExtern<DAS_BIND_FUN(dacoll_tracedown_normalized_with_norm_and_pmid)>(*this, lib, "tracedown_normalized",
+      das::SideEffects::modifyArgument, "bind_dascript::dacoll_tracedown_normalized_with_norm_and_pmid");
     das::addExtern<DAS_BIND_FUN(dacoll_tracedown_normalized_trace_handle_with_pmid)>(*this, lib, "tracedown_normalized",
       das::SideEffects::modifyArgument, "bind_dascript::dacoll_tracedown_normalized_trace_handle_with_pmid");
     das::addExtern<DAS_BIND_FUN(dacoll::traceht_water)>(*this, lib, "traceht_water", das::SideEffects::modifyArgument,

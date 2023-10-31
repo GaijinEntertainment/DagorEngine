@@ -20,7 +20,7 @@ struct equal_to_2 : public eastl::equal_to_2<T, U>
 template <>
 struct equal_to_2<const eastl::string_view, const char *> : eastl::binary_function<const eastl::string_view, const char *, bool>
 {
-  bool operator()(const char *a, const eastl::string_view &b) const { return strcmp(a, b.data()) == 0; }
+  bool operator()(const eastl::string_view &a, const char *b) const { return strcmp(a.data(), b) == 0; }
 };
 } // namespace detail
 

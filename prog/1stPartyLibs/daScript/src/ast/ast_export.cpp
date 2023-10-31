@@ -291,18 +291,14 @@ namespace das {
         vis.markVarsUsed(library, false);
     }
 
-    void Program::markFoldingSymbolUse(TextWriter * logs) {
+    void Program::markFoldingSymbolUse(const vector<Function *> & needRun, TextWriter * logs) {
         clearSymbolUse();
         MarkSymbolUse vis(false);
         vis.tw = logs;
         visit(vis);
-
-        thisModule->functions.foreach([&](auto fn) {
-            vis.propagateFunctionUse(fn);
-        });
-        thisModule->globals.foreach([&](auto var) {
-            vis.propageteVarUse(var);
-        });
+        for ( auto fun : needRun ) {
+            vis.propagateFunctionUse(fun);
+        }
     }
 
     void Program::markSymbolUse(bool builtInSym, bool forceAll, bool initThis, Module * macroModule, TextWriter * logs) {

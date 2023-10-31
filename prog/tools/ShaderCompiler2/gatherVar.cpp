@@ -116,12 +116,17 @@ void GatherVarShaderEvalCB::decl_bool_alias(const char *name, bool_expr &expr)
   BoolVar::add(shname_token->text, decl, parser, true);
 }
 
-int GatherVarShaderEvalCB::add_message(const char *message)
+int GatherVarShaderEvalCB::add_message(const char *message, bool file_name)
 {
   float value = 0.0f;
   if (shc::getAssumedValue(debug_mode_enabled_interval, shname_token->text, true, value))
     if (value > 0.0f)
-      return messages.addNameId(message);
+    {
+      int id = messages.addNameId(message);
+      if (!file_name)
+        nonFilenameMessages.set(id, true);
+      return id;
+    }
 
   return -1;
 }

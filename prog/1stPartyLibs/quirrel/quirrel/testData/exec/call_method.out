@@ -1,0 +1,19 @@
+t.rawget("xxx") --> overriden rawget(xxx)
+call_type_method(t, "rawget", "xxx") --> RealValue
+t.keys()
+0 --> 1
+1 --> 2
+2 --> 3
+call_type_method(t, keys)
+0 --> rawget
+1 --> xyz
+2 --> keys
+3 --> rawset
+4 --> xxx
+rawset(...) regular
+overriden rawset(xyz -> ABC)
+t.xyz --> Original
+rawset(...) call_type_method
+t.xyz --> Updated
+OK: invokation of 'dummy()' raised exception "function 'dummy' not found in 'table' delegates"
+OK: safe call succeseded

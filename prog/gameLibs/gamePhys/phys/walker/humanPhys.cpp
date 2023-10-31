@@ -2499,7 +2499,7 @@ void HumanPhys::updatePhys(float at_time, float dt, bool /*is_for_real*/)
         const float slidingFriction = min(1.f, frictionViscosityMult * currentState.frictionMult);
         const float externalDecceleration = max(0.f, frictionViscosityMult * currentState.frictionMult - 1.f);
 
-        const float stateAcceleration = accelerationByState[accState];
+        const float stateAcceleration = accelerationByState[accState] * currentState.accelerationMult;
         const float stateDecceleration = stateAcceleration * slidingFriction;
 
         for (int i = 0; i < accelSubframes; ++i)

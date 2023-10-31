@@ -182,8 +182,8 @@ rule CheckHeaders
 actions together quietly compile_cpp
 {
 #async
-  set_filter nul /Note\: including file\:[	 ]*$(_DEVTOOL_RE)(.+)/
-  set_filter $(1:S=.d) /Note\: including file\:[	 ]*(.+)/d1 $(1:G=:D=): $1
+  $(VC_START_SHOW_INCLUDES_FILTER)
+  set_filter $(1:S=.d) /$(VC_SHOW_INCLUDES_FILTER_PREFIX)(.+)/d1 $(1:G=:D=): $1
   call_filtered $(_CPP_COMPILER) $(pre_opt) $(_CPP_BASE_INCLUDES) $(cpp_opt) -showIncludes #\(-Fo$(1) $(2:G=))\#
   if errorlevel 1 goto failed
   if not exist $(1) goto failed
@@ -198,8 +198,8 @@ actions together quietly compile_cpp
 actions together quietly compile_c
 {
 #async
-  set_filter nul /Note\: including file\:[	 ]*$(_DEVTOOL_RE)(.+)/
-  set_filter $(1:S=.d) /Note\: including file\:[	 ]*(.+)/d1 $(1:G=:D=): $1
+  $(VC_START_SHOW_INCLUDES_FILTER)
+  set_filter $(1:S=.d) /$(VC_SHOW_INCLUDES_FILTER_PREFIX)(.+)/d1 $(1:G=:D=): $1
   call_filtered $(_CPP_COMPILER) $(pre_opt) $(_C_BASE_INCLUDES) $(c_opt) -showIncludes #\(-Fo$(1) $(2:G=))\#
   if errorlevel 1 goto failed
   if not exist $(1) goto failed

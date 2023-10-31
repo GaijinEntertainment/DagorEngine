@@ -1,5 +1,5 @@
 from "%darg/ui_imports.nut" import *
-
+from "math" import max
 /*
   KNOWN ISSUES:
     - ellipsis should be done by character by default (or may be even always)

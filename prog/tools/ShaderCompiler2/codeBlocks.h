@@ -111,6 +111,6 @@ protected:
   void ppSrcCode(char *s, int len, int fnameId, int line, ParserContext &ctx, char *st_comment, char *end_comment);
   bool ppCheckDirective(char *s, ParserContext &ctx);
   bool ppDirective(char *s, int len, char *dtext, int fnameId, int line, ParserContext &ctx);
-  bool ppDoInclude(const char *incl_fn, Tab<char> &out_text, const char *src_fn, int src_ln);
+  bool ppDoInclude(const char *incl_fn, Tab<char> &out_text, const char *src_fn, int src_ln, ParserContext &ctx);
 };
 DAG_DECLARE_RELOCATABLE(CodeSourceBlocks::Fragment);

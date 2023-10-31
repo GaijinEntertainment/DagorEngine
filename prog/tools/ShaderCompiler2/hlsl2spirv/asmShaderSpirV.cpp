@@ -15,7 +15,7 @@
 #include <debug/dag_debug.h>
 
 #include <spirv/compiler.h>
-#include <comPtr/comPtr.h>
+#include <supp/dag_comPtr.h>
 
 #if _TARGET_PC_WIN
 #include <D3Dcompiler.h>
@@ -439,27 +439,21 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
       macros += "#define BINDLESS_TEXTURE_SET_META_ID " + std::to_string(spirv::bindless::TEXTURE_DESCRIPTOR_SET_META_INDEX) + "\n";
       macros += "#define BINDLESS_SAMPLER_SET_META_ID " + std::to_string(spirv::bindless::SAMPLER_DESCRIPTOR_SET_META_INDEX) + "\n";
     }
-    if (is_half)
+    if (!is_half)
     {
-      macros += "#define half min16float\n"
-                "#define half1 min16float1\n"
-                "#define half2 min16float2\n"
-                "#define half3 min16float3\n"
-                "#define half4 min16float4\n";
-    }
-    else
-    {
+      // there is a bug(?) in DXC: it can't map half[] -> float[] correctly with disabled 16-bit types flag
       macros += "#define half float\n"
                 "#define half1 float1\n"
                 "#define half2 float2\n"
                 "#define half3 float3\n"
                 "#define half4 float4\n";
-    }
+    };
     codeCopy = macros + codeCopy;
 
     auto sourceRange = make_span(codeCopy.c_str(), codeCopy.size());
 
     auto flags = enableBindless ? spirv::CompileFlags::ENABLE_BINDLESS_SUPPORT : spirv::CompileFlags::NONE;
+    flags |= is_half ? spirv::CompileFlags::ENABLE_HALFS : spirv::CompileFlags::NONE;
 
     auto finalSpirV = spirv::compileHLSL_DXC(sourceRange, entry, profile, flags, disabledSpirvOptims);
     spirv = eastl::move(finalSpirV.byteCode);

@@ -225,26 +225,17 @@ namespace settings
 
     std_function =
     {
-      "seterrorhandler",
-      "setdebughook",
-      "getstackinfos",
       "getroottable",
       "getconsttable",
       "getclass",
       "assert",
       "print",
-      "error",
       "compilestring",
       "newthread",
       "suspend",
       "array",
       "type",
       "callee",
-      "collectgarbage",
-      "resurrectunreachable",
-      "min",
-      "max",
-      "clamp",
     };
 
     function_result_must_be_utilized =

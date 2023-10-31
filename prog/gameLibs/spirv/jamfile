@@ -31,12 +31,14 @@ AddIncludes +=
   $(Root)/prog/gameLibs/publicInclude
 ;
 
-if $(Platform) != macosx {
-  AddIncludes += $(_DEVTOOL)/DXC/include
+include $(Root)/$(Location)/jamfile-dxc-ver ;
+
+if ! [ GLOB $(_DEVTOOL)/DXC-$(DXC_VERSION)/include : * ] { exit FATAL\: \"DXC-$(DXC_VERSION)/include\" not found! Please, update DEVTOOLS ; }
+
+AddIncludes += $(_DEVTOOL)/DXC-$(DXC_VERSION)/include
 ;
-} else {
-  AddIncludes += $(_DEVTOOL)/DXC-mac/include
-;
+
+if $(Platform) = macosx {
   UseProgLibs += gameLibs/folders
 ;
 }

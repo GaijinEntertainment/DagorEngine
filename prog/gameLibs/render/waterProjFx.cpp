@@ -88,7 +88,7 @@ bool WaterProjectedFx::getView(TMatrix4 &view_tm, TMatrix4 &proj_tm, Point3 &cam
   return true;
 }
 
-bool WaterProjectedFx::isValidView() const { return numIntersections > 0 && savedCamPos.y > waterLevel; }
+bool WaterProjectedFx::isValidView() const { return numIntersections > 0; }
 
 void WaterProjectedFx::prepare(const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, float water_level,
   float significant_wave_height, int frame_no)
@@ -110,9 +110,9 @@ void WaterProjectedFx::prepare(const TMatrix &view_tm, const TMatrix4 &proj_tm, 
   Point4 bottomPlane;
   v_stu(&bottomPlane.x, Frustum(glob_tm).camPlanes[Frustum::BOTTOM]);
   float cosA = min(bottomPlane.y, CAMERA_PLANE_BOTTOM_MIN_ANGLE);
-  cameraPos += -normalize(Point3(cameraDir.x, 0.0f, cameraDir.z)) * max(waterHeightTop + CAMERA_PLANE_ELEVATION - cameraPos.y, 0.0f) *
-               safediv(cosA, safe_sqrt(1.0f - SQR(cosA)));
-  cameraPos.y = max(cameraPos.y, waterHeightTop + CAMERA_PLANE_ELEVATION);
+  cameraPos += -normalize(Point3(cameraDir.x, 0.0f, cameraDir.z)) *
+               max(waterHeightTop + CAMERA_PLANE_ELEVATION - abs(cameraPos.y), 0.0f) * safediv(cosA, safe_sqrt(1.0f - SQR(cosA)));
+  cameraPos.y = max(abs(cameraPos.y), waterHeightTop + CAMERA_PLANE_ELEVATION) * (cameraPos.y > 0 ? 1.0f : -1.0f);
   newViewItm.setcol(3, cameraPos);
 
   newViewTM = orthonormalized_inverse(newViewItm);

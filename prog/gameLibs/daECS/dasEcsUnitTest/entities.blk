@@ -27,7 +27,7 @@ ballistics {
   vel:p3= 1,0,1
 }
 ballistics2 {
-  _extends:t = ballistics
+  _use:t = ballistics
   no_int_value:i =101
 }
 
@@ -51,12 +51,12 @@ testReCreate1 {
 }
 
 testReCreate2 {
-  _extends:t=testReCreate1
+  _use:t=testReCreate1
   some_int_var2:i = 0
 }
 
 testReCreateMemLeak {
-  _extends:t=testReCreate2
+  _use:t=testReCreate2
   string_variable:t="11i2hoshisdhsidhksjdhksdjhkadhkjhdsikabhskdhakdh"
 }
 
@@ -71,7 +71,7 @@ testReCreateInit1
 
 testReCreateInit2
 {
-  _extends:t=testReCreateInit1
+  _use:t=testReCreateInit1
   some_int_var3:i = 0
 }
 
@@ -104,6 +104,6 @@ entityWith_tracked_int_var1 {
 }
 
 entityWith_tracked_int_var1_and_2 {
-  _extends:t = entityWith_tracked_int_var1
+  _use:t = entityWith_tracked_int_var1
   not_tracked_int_var2:i = 0
 }

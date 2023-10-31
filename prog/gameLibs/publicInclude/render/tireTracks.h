@@ -50,6 +50,9 @@ void delete_emitter(int id);
 // level specific params
 void set_current_params(const DataBlock *data);
 
+// removes tire tracks in given bounding box
+void invalidate_region(const BBox3 &bbox);
+
 // track updated regions holder
 void add_updated_region(const BBox3 &bbox);
 const Tab<BBox3> &get_updated_regions();

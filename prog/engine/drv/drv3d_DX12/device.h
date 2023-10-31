@@ -15,6 +15,7 @@
 #include "bindless.h"
 #include "device_context.h"
 #include "query_manager.h"
+#include "pipeline/blk_cache.h"
 
 #include <debug/dag_debug.h>
 #include <atomic>
@@ -562,7 +563,7 @@ public:
   bool init(SwapchainCreateInfo swapchain_create_info, const Config &cfg);
 #endif
   bool isInitialized() const;
-  void shutdown();
+  void shutdown(const DeviceCapsAndShaderModel &deatures);
   void adjustCaps(Driver3dDesc &);
 #if D3D_HAS_RAY_TRACING
   bool hasRaytraceSupport() const { return caps.test(Caps::RAY_TRACING); }
@@ -1497,30 +1498,35 @@ inline bool PipelineStageStateBase::URegister::is(D3D_SHADER_INPUT_TYPE type, D3
 #undef CHECK_BUFFER
 #undef CHECK_IMAGE_TYPE
 
-inline StaticRenderStateID RenderStateSystem::registerStaticState(DeviceContext &ctx, const shaders::RenderState &def)
+inline DynamicArray<StaticRenderStateID> RenderStateSystem::loadStaticStatesFromBlk(DeviceContext &ctx, const Driver3dDesc &desc,
+  const DataBlock *blk, const char *default_format)
 {
-  auto staticRenderState = StaticState::fromRenderState(def);
-  auto ref = eastl::find(begin(staticStateTable), end(staticStateTable), staticRenderState);
+  DynamicArray<StaticRenderStateID> renderStateIdTable{blk->blockCount()};
+  pipeline::DataBlockDecodeEnumarator<pipeline::RenderStateDecoder> decoder{*blk, 0, default_format};
+  for (; !decoder.completed(); decoder.next())
+  {
+    auto rsi = decoder.index();
+    renderStateIdTable[rsi] = StaticRenderStateID::Null();
+    decoder.invoke([rsi, this, &desc, &renderStateIdTable, &ctx](auto &state) {
+      if (this->is_compatible(desc, state))
+      {
+        renderStateIdTable[rsi] = this->registerStaticState(ctx, state);
+      }
+      return true;
+    });
+  }
+  return renderStateIdTable;
+}
+
+inline StaticRenderStateID RenderStateSystem::registerStaticState(DeviceContext &ctx, const StaticState &def)
+{
+  auto ref = eastl::find(begin(staticStateTable), end(staticStateTable), def);
   if (ref == end(staticStateTable))
   {
-    ref = staticStateTable.insert(end(staticStateTable), staticRenderState);
+    ref = staticStateTable.insert(end(staticStateTable), def);
     ctx.registerStaticRenderState(StaticRenderStateID{static_cast<int>(ref - begin(staticStateTable))}, *ref);
   }
   return StaticRenderStateID{static_cast<int>(ref - begin(staticStateTable))};
-}
-
-inline void RenderStateSystem::loadFromCache(PipelineCache &cache, PipelineManager &pipe_man)
-{
-  cache.enumerateStaticRenderStates([this, &pipe_man](auto &&state) //
-    {
-      auto ref = eastl::find(begin(staticStateTable), end(staticStateTable), state);
-      if (ref == end(staticStateTable))
-      {
-        ref = staticStateTable.insert(end(staticStateTable), state);
-        StaticRenderStateID ident{static_cast<int>(ref - begin(staticStateTable))};
-        pipe_man.registerStaticRenderState(ident, state);
-      }
-    });
 }
 
 inline BufferInterfaceConfigCommon::BufferType PlatformBufferInterfaceConfig::createBuffer(uint32_t size, uint32_t structure_size,

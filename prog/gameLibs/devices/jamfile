@@ -25,7 +25,6 @@ if $(Platform) in win32 win64 {
     ps4HeadTrack.cpp
     stub/jetSeatStub.cpp
   ;
-  AddLibs += -lSceFace_stub_weak ;
   UseProgLibs += engine/drv/camera_sony ;
 } else {
   Exit $(Platform) is not supported: use devices/stub library instead ;

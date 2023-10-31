@@ -278,6 +278,7 @@ const char *ShaderVariableInfo::getName() const
   return data;
 }
 
+extern bool dgs_all_shader_vars_optionals;
 void ShaderVariableInfo::resolve()
 {
   G_STATIC_ASSERT(sizeof(Color4) == 16);  // verifies header inline get
@@ -296,7 +297,7 @@ void ShaderVariableInfo::resolve()
   }
   if (var_id < 0)
     return;
-  if (!optional && !VariableMap::isVariablePresent(var_id))
+  if (!optional && !VariableMap::isVariablePresent(var_id) && !dgs_all_shader_vars_optionals)
     logerr("shader variable %s is mandatory (not optional), but is not present in shaders dump", getName());
   data = nullptr;
   iid = -1;

@@ -2285,14 +2285,14 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
             {
               // if recursionCount will become more than then blockCount, so we are in deadlock
               int recursionCount = 0;
-              String parentEnumBlockName(enumBlock->getStr("_extends", ""));
+              String parentEnumBlockName(enumBlock->getStr("_use", ""));
               while (!parentEnumBlockName.empty() && recursionCount < je)
               {
                 recursionCount++;
                 if (const DataBlock *parentBlock = init_st->getBlockByName(parentEnumBlockName.c_str()))
                 {
                   nm = parentBlock->getStr(name, "");
-                  parentEnumBlockName = nm.empty() ? parentBlock->getStr("_extends", "") : "";
+                  parentEnumBlockName = nm.empty() ? parentBlock->getStr("_use", "") : "";
                 }
                 else
                   parentEnumBlockName.clear(); // break cycle
@@ -2300,7 +2300,7 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
 
               if (recursionCount == je)
               {
-                ANIM_ERR("enum <%s> has cycle in _extends!", enum_nm);
+                ANIM_ERR("enum <%s> has cycle in _use!", enum_nm);
                 continue;
               }
 

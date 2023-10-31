@@ -2323,7 +2323,8 @@ enum SymbolKind {
   SK_ENUM,
   SK_ENUM_CONST,
   SK_PARAM,
-  SK_FOREACH
+  SK_FOREACH,
+  SK_EXTERNAL_BINDING
 };
 
 static const char *symbolContextName(enum SymbolKind k) {
@@ -2340,6 +2341,7 @@ static const char *symbolContextName(enum SymbolKind k) {
   case SK_ENUM_CONST: return "enum const";
   case SK_PARAM: return "parameter";
   case SK_FOREACH: return "foreach var";
+  case SK_EXTERNAL_BINDING: return "external binding";
   default: return "<unknown>";
   }
 }
@@ -7769,13 +7771,25 @@ class NameShadowingChecker : public Visitor {
     return new(mem) SymbolInfo(k);
   }
 
+  struct Scope rootScope;
+
   struct Scope *scope;
+
+  void loadBindings(const HSQOBJECT *bindings);
 
   void declareVar(enum SymbolKind k, const VarDecl *v);
   void declareSymbol(const SQChar *name, SymbolInfo *info);
 
+  Id rootPointerNode;
 public:
-  NameShadowingChecker(SQCompilationContext &ctx) : _ctx(ctx), scope(nullptr) {}
+  NameShadowingChecker(SQCompilationContext &ctx, const HSQOBJECT *bindings)
+    : _ctx(ctx)
+    , rootScope(this, nullptr)
+    , scope(&rootScope)
+    , rootPointerNode("<root>") {
+    rootScope.parent = nullptr;
+    loadBindings(bindings);
+  }
 
   void visitNode(Node *n);
 
@@ -7796,6 +7810,25 @@ public:
     root->visit(this);
   }
 };
+
+void NameShadowingChecker::loadBindings(const HSQOBJECT *bindings) {
+  if (bindings && sq_istable(*bindings)) {
+    SQTable *table = _table(*bindings);
+
+    SQInteger idx = 0;
+    SQObjectPtr pos(idx), key, val;
+
+    while ((idx = table->Next(false, pos, key, val)) >= 0) {
+      if (sq_isstring(key)) {
+        SQInteger len = _string(key)->_len;
+        const SQChar *s = _string(key)->_val;
+        SymbolInfo *info = newSymbolInfo(SK_EXTERNAL_BINDING);
+        declareSymbol(s, info);
+      }
+      pos._unVal.nInteger = idx;
+    }
+  }
+}
 
 const Node *NameShadowingChecker::extractPointedNode(const SymbolInfo *info) {
   switch (info->kind)
@@ -7820,6 +7853,8 @@ const Node *NameShadowingChecker::extractPointedNode(const SymbolInfo *info) {
     return info->declaration.ec->val;
   case SK_PARAM:
     return info->declaration.p;
+  case SK_EXTERNAL_BINDING:
+    return &rootPointerNode;
   default:
     assert(0);
     return nullptr;
@@ -8003,7 +8038,7 @@ void NameShadowingChecker::visitClassDecl(ClassDecl *k) {
 }
 
 void NameShadowingChecker::visitBlock(Block *block) {
-  Scope blockScope(this, scope ? scope->owner : nullptr);
+  Scope blockScope(this, scope->owner);
   Visitor::visitBlock(block);
 }
 
@@ -8138,7 +8173,7 @@ void StaticAnalyser::checkTrailingWhitespaces(HSQUIRRELVM vm, const SQChar *sour
   }
 }
 
-static void mergeKnownBindings(const HSQOBJECT *bindings) {
+void StaticAnalyser::mergeKnownBindings(const HSQOBJECT *bindings) {
   if (bindings && sq_istable(*bindings)) {
     SQTable *table = _table(*bindings);
 
@@ -8161,7 +8196,7 @@ void StaticAnalyser::runAnalysis(RootBlock *root, const HSQOBJECT *bindings)
 {
   mergeKnownBindings(bindings);
   CheckerVisitor(_ctx).analyse(root);
-  NameShadowingChecker(_ctx).analyse(root);
+  NameShadowingChecker(_ctx, bindings).analyse(root);
 }
 
 }
