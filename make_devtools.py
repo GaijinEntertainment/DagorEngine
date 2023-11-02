@@ -482,8 +482,11 @@ elif os.environ.get('GDEVTOOL', '') != nomalized_dest:
 
 if nomalized_dest not in os.environ.get('PATH', '').split(os.pathsep):
   if ask(f"'{nomalized_dest}' is not found in 'PATH' variable. Do you want to add it?"):
-    subprocess.run(["setx", "PATH", f"{nomalized_dest};{os.environ.get('PATH', '')}"], shell=True, text=True)
-    os.environ["PATH"] = os.environ.get('PATH', '') + ";" + nomalized_dest
+    print(f"adding {nomalized_dest} to 'PATH', it may take a while...")
+    add_path_command = (f'[System.Environment]::SetEnvironmentVariable("PATH", ' +
+                        f'"{nomalized_dest};" + [System.Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::User), ' +
+                        f'[System.EnvironmentVariableTarget]::User)')
+    subprocess.run(["powershell", "-Command", add_path_command], shell=True, text=True)
     env_updated = True
 
 try:
@@ -495,6 +498,6 @@ except FileNotFoundError:
     zip_file.extractall(dest_dir)
 
 if env_updated:
-  print("\nDone. Please restart your comandline environment to apply the environment variables.")
+  print("\nDone. Please restart your command-line environment to apply the environment variables.")
 else:
   print("\nDone.")
