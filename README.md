@@ -23,6 +23,12 @@ Run the `make_devtools.py` script. This script will download, install, and confi
 python3 make_devtools.py X:\develop\devtools
 ```
 
+If you are building Dagor Engine in Linux, most tools do not yet support Linux. At the moment, only the shader compiler is ported. Nevertheless, you can setup the development tools by running:
+
+```
+python3 make_devtools_linux.py
+```
+
 If the script is not run as an administrator, installers of certain programs may request permission for installation, which you should grant. If you plan to use plugins for 3ds Max, press 'Y' when the script asks if you want to install the 3ds Max SDK. The script will also ask to add the path X:\develop\devtools to the PATH environment variable and set the GDEVTOOL variable to point to this folder.
 
 After the script completes its work, the X:\develop\devtools folder will be configured with the following SDKs and tools:
