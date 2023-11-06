@@ -7,6 +7,32 @@ if [[ "${TRACE-0}" == "1" ]]; then
     set -o xtrace;
 fi
 
+function error() {
+    echo "" >&2
+    echo "ERROR: $1" >&2
+    echo ""
+
+    exit 1
+}
+
+## Get the destination directory for dev tools.
+# Check the number of arguments. Must only be one,
+# which is the dev tools directory.
+if [[ "$#" != "1" ]]; then
+    echo "" >&2
+    echo "Usage: ./make_devtools.sh DEVTOOLS_DEST_DIR" >&2
+    echo "example: ./make_devtools.sh /path/to/devtools" >&2
+    echo "" >&2
+
+    exit 1
+fi
+
+dest_dir=$(echo "$1" | sed 's:/*$::')
+
+if [[ "$dest_dir" = *" "* ]]; then
+    error "The destination directory contains spaces, which are not allowed in a file path."
+fi
+
 ## Install jam.
 echo "[-] Downloading jam..."
 echo "WARNING! At the moment, we may cause issues if you pre-installed jam."
