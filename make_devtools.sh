@@ -29,8 +29,12 @@ fi
 
 dest_dir=$(echo "$1" | sed 's:/*$::')
 
-if [[ "$dest_dir" = *" "* ]]; then
+if [[ $dest_dir = *" "* ]]; then
     error "The destination directory contains spaces, which are not allowed in a file path."
+fi
+
+if [[ $dest_dir = *[![:ascii:]]* ]]; then
+    error "The destination directory contains non-ASCII characters."
 fi
 
 ## Install jam.
