@@ -9,7 +9,7 @@ include $(Root)/$(Location)/jamfile-common ;
 
 if $(OS) = NT {
   Target = tools/dsc2-spirv.exe ;
-} else if $(OS) = MACOSX {
+} else if $(OS) = MACOSX || $(OS) = LINUX {
   Target = tools/dsc2-spirv ;
 } else {
   Exit OS=$(OS) is not supported! ;
