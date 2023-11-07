@@ -256,11 +256,20 @@ bool mergeToLastSyncOp(OpsArrayType &ops, Resource *obj, ExecutionSyncTracker::L
   if (lastSyncOp < ops.arr.size())
   {
     auto &lop = ops.arr[lastSyncOp];
-    if (lop.area.mergable(area) && !lop.laddr.mergeConflicting(laddr) && lop.mergeCheck(area, opt))
+    bool areaMergable = lop.area.mergable(area) && lop.mergeCheck(area, opt);
+    if (areaMergable)
     {
-      lop.area.merge(area);
-      lop.laddr.merge(laddr);
-      return true;
+      // primary check for conflicting logic address
+      bool laddrMergable = !lop.laddr.mergeConflicting(laddr);
+      // try again to see if we using same address but non intersecting yet connected(mergable) areas
+      if (!laddrMergable)
+        laddrMergable = !lop.area.intersects(area) && lop.laddr.equal(laddr);
+      if (laddrMergable)
+      {
+        lop.area.merge(area);
+        lop.laddr.merge(laddr);
+        return true;
+      }
     }
   }
   obj->setLastSyncOpIndex(ops.arr.size());

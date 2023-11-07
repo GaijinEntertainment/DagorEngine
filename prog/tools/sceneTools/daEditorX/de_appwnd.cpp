@@ -46,7 +46,7 @@
 #include <EditorCore/ec_status_bar.h>
 #include <EditorCore/ec_gridobject.h>
 #include <EditorCore/ec_ObjectEditor.h>
-#include <EditorCore/ec_IEditorCoreImpl.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_startup.h>
 
 #include <libTools/staticGeom/geomObject.h>
@@ -115,10 +115,9 @@ static bool blockCloseMessage = false;
 static bool (*prev_fatal_handler)(const char *msg, const char *call_stack, const char *file, int line) = NULL;
 
 // services implementations
-static EditorCoreImpl editorCoreImpl;
+static IEditorCore &editorCoreImpl = IEditorCore::make_instance();
 static DeDagorPhys deDagorPhysImpl;
 IEditorCoreEngine *IEditorCoreEngine::__global_instance = NULL;
-const char *EditorCoreImpl::getExePath() { return sgg::get_exe_path_full(); }
 
 
 // DLL plugin typedefs

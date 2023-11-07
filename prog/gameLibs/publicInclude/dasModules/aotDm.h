@@ -191,4 +191,6 @@ inline float get_part_hp_prop_value(const dm::DamageModelData &dm_data, const dm
   return props ? props->hp : 0.f;
 }
 
+inline const char *das_get_part_name(const dm::DamagePartProps &props) { return dm::get_part_name(props); }
+
 } // namespace bind_dascript

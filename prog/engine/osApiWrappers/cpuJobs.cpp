@@ -520,7 +520,7 @@ static void android_apply_thread_affinity(cpujobs::JobMgrCtx &ctx)
       CPU_SET(i, &cpuset);
 
   if (sched_setaffinity(gettid(), sizeof(cpuset), &cpuset) != 0)
-    logerr("job_mgr_thread failed to set affinity for %s mask: %08X online_cores: %d errno: %d", ctx.threadName, ctx.affinity,
+    debug("job_mgr_thread failed to set affinity for %s mask: %08X online_cores: %d errno: %d", ctx.threadName, ctx.affinity,
       online_cores, errno);
 }
 #else

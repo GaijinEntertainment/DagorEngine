@@ -22,11 +22,18 @@ static void *zstd_alloc(void *, size_t size)
 {
 #if _TARGET_STATIC_LIB
   using namespace dagor_phys_memory;
-  void *ptr = (size < PHYS_MEM_THRESHOLD_SIZE)
-                ? mem_ptr()->alloc(size + sizeof(size_t) * 2)
-                : alloc_phys_mem(size + sizeof(size_t) * 2, PM_ALIGN_PAGE, PM_PROT_CPU_ALL, /*cpu_cached*/ true);
-  *(size_t *)ptr = size;
-  return (size_t *)ptr + 2;
+  void *ptr = nullptr;
+  if (size >= PHYS_MEM_THRESHOLD_SIZE)
+    ptr = alloc_phys_mem(size + sizeof(size_t) * 2, PM_ALIGN_PAGE, PM_PROT_CPU_ALL, /*cpu_cached*/ true);
+  if (!ptr)
+    ptr = mem_ptr()->tryAlloc(size + sizeof(size_t) * 2);
+  if (ptr)
+  {
+    *(size_t *)ptr = size;
+    return (size_t *)ptr + 2;
+  }
+  else
+    return nullptr;
 #else
   return mem_ptr()->alloc(size);
 #endif

@@ -4,7 +4,7 @@
 //-file:ident-hides-ident
 
 ::ClassName <- class {
-    function onTimer2(obj, dt, dt2) {
+    function onTimer2(obj, dt) {
       local curOffs = obj.cur_slide_offs.tofloat()
 
   //    local pos = obj.getPos()
@@ -12,7 +12,7 @@
       local parentSize = obj.getParent().getSize()
       local speedCreditsScroll = (size[1] / parentSize[1] ) / ::timeToShowAll
 
-      if (::pos[1] + :: size[1] < 0) {
+      if (::pos[1] + ::size[1] < 0) {
         curOffs = -(0.9 * ::parentSize[1]).tointeger()
         if (obj?.inited == "yes") {
           ::on_credits_finish()
@@ -26,7 +26,7 @@
       obj.top = (-curOffs).tointeger().tostring()
     }
 
-    function onTimer(obj, dt, dt) {
+    function onTimer(obj, dt) {
       local curOffs = obj.cur_slide_offs.tofloat()
 
   //    local pos = obj.getPos()
@@ -34,7 +34,7 @@
       local parentSize = obj.getParent().getSize()
       local speedCreditsScroll = (size[1] / parentSize[1] ) / ::timeToShowAll
 
-      if (::pos[1] + :: size[1] < 0) {
+      if (::pos[1] + ::size[1] < 0) {
         curOffs = -(0.9 * ::parentSize[1]).tointeger()
         if (obj?.inited == "yes") {
           ::on_credits_finish()

@@ -273,6 +273,7 @@ static void showUsage()
     "  -purge_sha1_cache - delete sha1 cache (if no_sha1_cache is not enabled, it will be re-populated)\n"
     "  -commentPP - save PP as comments (for shader debugging)\n"
     "  -r - force rebuild all files (even if not modified)\n"
+    "  -relinkOnly - forbid compilation so build will fail if any OBJ is out-of-data\n"
     "  -bones_start N - starting register for bones. If -1 (default) allocates as other named consts\n"
     "  -maxVSF N - maximum allowed VSF register no. Default 4096\n"
     "  -maxPSF N - maximum allowed PSF register no. Default 4096\n"
@@ -308,6 +309,7 @@ static void showUsage()
     "  -supressLogs    - do not make fileLogs\n"
     "  -enablefp16     - enable using 16 bit types in shaders\n"
     "  -HLSL2021       - use the HLSL 2021 version of the language\n"
+    "  -addTextureType - save static texture types to shaderdump (need for texture type validation in daBuild)\n"
 #if _CROSS_TARGET_SPIRV
     "  -enableBindless:<on|off> - enables utilizing bindless features (default: "
 #if USE_BINDLESS_FOR_STATIC_TEX
@@ -375,6 +377,7 @@ bool hlslDumpCodeAlways = false, hlslDumpCodeOnError = false;
 bool hlsl2021 = false;
 bool enableFp16 = false;
 bool useCompression = true;
+bool addTextureType = false;
 #if USE_BINDLESS_FOR_STATIC_TEX
 bool enableBindless = true;
 #else
@@ -702,7 +705,12 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
     IGenSave *hasher = create_hash_computer_cb(HASH_SAVECB_SHA1);
     DataBlock blk(blk_file_name);
     blk.removeBlock("source");
+    blk.removeBlock("explicit_var_ref");
     blk.removeParam("outDumpName");
+    blk.removeParam("outMiniDumpName");
+    blk.removeParam("packBin");
+    if (addTextureType)
+      blk.addBool("addTextureType", true);
     blk.saveToTextStream(*hasher);
     get_computed_hash(hasher, blkHash.data(), blkHash.size());
     destory_hash_computer_cb(hasher);
@@ -727,6 +735,11 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
   {
     sh_debug(SHLOG_INFO, "'%s' changed. '%s' should be deleted to force rebuild", blk_file_name, (const char *)sv.intermediateDir);
     forceRebuild = true;
+  }
+  if (forceRebuild && shc::relinkOnly)
+  {
+    sh_debug(SHLOG_FATAL, "need to recompile %s but compilation is denied by -relinkOnly", compile_only_sh ? compile_only_sh : "");
+    return;
   }
 
   // build binary dump
@@ -1091,6 +1104,8 @@ int DagorWinMain(bool debugmode)
     }
     else if (strnicmp(s, "-j", 2) == 0)
       shc::compileJobsCount = atoi(s + 2);
+    else if (stricmp(s, "-relinkOnly") == 0)
+      shc::relinkOnly = true;
     else if (dd_stricmp(s, "-nosave") == 0)
       noSave = true;
     else if (dd_stricmp(s, "-debug") == 0)
@@ -1191,6 +1206,10 @@ int DagorWinMain(bool debugmode)
     else if (dd_stricmp(s, "-no_compression") == 0)
     {
       useCompression = false;
+    }
+    else if (dd_stricmp(s, "-addTextureType") == 0)
+    {
+      addTextureType = true;
     }
     else if (dd_stricmp(s, "-purge_sha1_cache") == 0)
     {

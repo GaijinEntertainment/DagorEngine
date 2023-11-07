@@ -28,6 +28,7 @@
   VAR(water_flowmap_strength)      \
   VAR(water_flowmap_strength_add)  \
   VAR(water_flowmap_foam)          \
+  VAR(water_flowmap_foam_color)    \
   VAR(water_flowmap_foam_tiling)   \
   VAR(water_flowmap_depth)         \
   VAR(water_flowmap_slope)         \
@@ -197,6 +198,7 @@ void set_flowmap_foam_params(FlowmapParams &flowmap_params)
     return;
 
   ShaderGlobal::set_color4(water_flowmap_foamVarId, flowmap_params.flowmapFoam);
+  ShaderGlobal::set_color4(water_flowmap_foam_colorVarId, flowmap_params.flowmapFoamColor);
   ShaderGlobal::set_real(water_flowmap_foam_tilingVarId, flowmap_params.flowmapFoamTiling);
   ShaderGlobal::set_color4(water_flowmap_depthVarId, flowmap_params.flowmapDepth);
   ShaderGlobal::set_real(water_flowmap_slopeVarId, flowmap_params.flowmapSlope);
@@ -336,18 +338,7 @@ void flowmap_floodfill(int texSize, Texture *heightmapTex, Texture *floodfillTex
       {
         uint16_t *flood = (uint16_t *)(floodfillData + x * floodfillStrideX + y * floodfillStrideY);
         if (flood[0] <= 1)
-        {
-          if ((x - 1 >= 0) && (flood[-1] > 1))
-            flood[0] = flood[-1];
-          else if ((x + 1 < texSize) && (flood[1] > 1))
-            flood[0] = flood[1];
-          else if ((y - 1 >= 0) && (flood[-texSize] > 1))
-            flood[0] = flood[-texSize];
-          else if ((y + 1 < texSize) && (flood[texSize] > 1))
-            flood[0] = flood[texSize];
-          else
-            flood[0] = 0;
-        }
+          flood[0] = 0x8080;
       }
     }
   }

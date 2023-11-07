@@ -356,7 +356,8 @@ void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Po
   bool drawShadedAlone = bool(globalShadedCollisionDrawFlags & DrawShadedCollisionsFlag::Alone);
   bool drawShadedWithVis = bool(globalShadedCollisionDrawFlags & DrawShadedCollisionsFlag::WithVis);
   bool drawShadedWireframe = bool(globalShadedCollisionDrawFlags & DrawShadedCollisionsFlag::Wireframe);
-  bool drawShaded = drawShadedAlone || drawShadedWithVis;
+  bool drawShadedFacingHighlight = bool(globalShadedCollisionDrawFlags & DrawShadedCollisionsFlag::FaceOrientation);
+  bool drawShaded = drawShadedAlone || drawShadedWithVis || drawShadedFacingHighlight;
 
   if (!drawAnyRendinst && !drawRendinstCanopy && !drawShaded)
     return;
@@ -445,6 +446,9 @@ void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Po
     else if (drawShadedWithVis)
       d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0x00000000, 0, 0);
 
+    static const int debug_ri_face_orientationVarId = get_shader_variable_id("debug_ri_face_orientation", false);
+    ShaderGlobal::set_int(debug_ri_face_orientationVarId, drawShadedFacingHighlight ? 1 : 0);
+
     static int wireframeVarId = get_shader_glob_var_id("debug_ri_wireframe", false);
     ShaderGlobal::set_int(wireframeVarId, 0);
     for (auto &coll : collisions)
@@ -471,6 +475,7 @@ void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Po
         draw_collision_ui(coll, globtm, view_pos, max_label_dist_sq);
     }
 
+    ShaderGlobal::set_int(debug_ri_face_orientationVarId, 0);
     ShaderGlobal::setBlock(lastBlockId, ShaderGlobal::LAYER_FRAME);
     return;
   }
@@ -563,6 +568,11 @@ static bool console_debug_shaded_collision_console_handler(const char *argv[], i
   CONSOLE_CHECK_NAME("shaded_collision", "wireframe", 1, 1)
   {
     rendinst::globalShadedCollisionDrawFlags ^= Flags::Wireframe;
+    return true;
+  }
+  CONSOLE_CHECK_NAME("shaded_collision", "face_orientation", 1, 1)
+  {
+    rendinst::globalShadedCollisionDrawFlags ^= Flags::FaceOrientation;
     return true;
   }
   return found;

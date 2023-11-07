@@ -3634,11 +3634,6 @@ bool AssetViewerApp::runShadersReload(dag::ConstSpan<const char *> params)
 }
 
 
-// required for ZLIB (that in turn is required by LIBPNG)
-extern "C" void *zcalloc(void *, unsigned items, unsigned size) { return memalloc_default(items * size); }
-
-extern "C" void zcfree(void *, void *ptr) { memfree_default(ptr); }
-
 const char *daeditor3_get_appblk_fname()
 {
   static String fn;

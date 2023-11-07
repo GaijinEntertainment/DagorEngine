@@ -16,7 +16,7 @@ namespace das {
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-#elif defined(__APPLE__)
+#elif defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #endif
@@ -130,7 +130,7 @@ namespace das {
 #pragma warning(pop)
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
-#elif defined(__APPLE__)
+#elif defined(__clang__)
 #pragma clang diagnostic pop
 #endif
 }

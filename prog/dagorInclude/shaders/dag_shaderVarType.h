@@ -19,3 +19,13 @@ enum ShaderVarType
   SHVT_INT4,
   SHVT_FLOAT4X4,
 };
+
+enum ShaderVarTextureType : int
+{
+  SHVT_TEX_UNKNOWN,
+  SHVT_TEX_2D,
+  SHVT_TEX_3D,
+  SHVT_TEX_CUBE,
+  SHVT_TEX_2D_ARRAY,
+  SHVT_TEX_CUBE_ARRAY,
+};

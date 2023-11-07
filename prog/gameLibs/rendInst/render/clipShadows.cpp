@@ -153,7 +153,7 @@ void allocate_clipmap_shadows()
       compr = new BcCompressor(BcCompressor::COMPRESSION_BC4, numMips, rendinstClipmapShadowTexSize, rendinstClipmapShadowTexSize, 1,
         "bc4_compressor");
 
-      if (compr->getCompressionType() == BcCompressor::COMPRESSION_ERR)
+      if (!compr->isValid())
         del_it(compr);
 #endif
     }

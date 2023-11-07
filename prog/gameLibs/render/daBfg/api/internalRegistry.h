@@ -9,12 +9,18 @@
 #include <api/autoResolutionData.h>
 #include <id/idIndexedMapping.h>
 #include <id/idHierarchicalNameMap.h>
-#include <resourceUsage.h>
 #include <bindingType.h>
 
 
 namespace dabfg
 {
+
+struct ResourceUsage
+{
+  Access access = Access::UNKNOWN;
+  Usage type = Usage::UNKNOWN;
+  Stage stage = Stage::UNKNOWN;
+};
 
 struct ResourceRequest
 {

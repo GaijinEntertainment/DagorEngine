@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __HAIKU__
+#define _GNU_SOURCE 1
+#endif
+
 #ifdef _MSC_VER
 #pragma warning(disable:4005)    // macro redifinition (in flex file)
 #pragma warning(disable:4146)    // unsigned unary minus
@@ -75,7 +79,7 @@
 
 #if _TARGET_PC_MACOSX && __SSE__
    #define DAS_EVAL_ABI [[clang::vectorcall]]
-#elif (defined(_MSC_VER) || defined(__clang__)) && __SSE__
+#elif (defined(_MSC_VER) || defined(__clang__)) && __SSE__ && !defined __HAIKU__
     #define DAS_EVAL_ABI __vectorcall
 #else
     #define DAS_EVAL_ABI
@@ -313,7 +317,7 @@ inline void das_aligned_free16(void *ptr) {
 }
 #if defined(__APPLE__)
 #include <malloc/malloc.h>
-#elif defined (__linux__) || defined (_EMSCRIPTEN_VER)
+#elif defined (__linux__) || defined (_EMSCRIPTEN_VER) || defined __HAIKU__
 #include <malloc.h>
 #endif
 inline size_t das_aligned_memsize(void * ptr){

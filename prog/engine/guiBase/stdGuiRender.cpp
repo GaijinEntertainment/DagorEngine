@@ -3665,6 +3665,12 @@ void GuiContext::draw_str_scaled(real scale, const char *str, int len)
   return draw_str_scaled_u(scale, tmpU16, len);
 }
 
+bool GuiContext::draw_str_scaled_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, float scale,
+  const char *str, int len)
+{
+  CVT_TO_UTF16_ON_STACK(tmpU16, str, len);
+  return draw_str_scaled_u_buf(out_qv, out_tex_qcnt, dsb_flags, scale, tmpU16);
+}
 bool GuiContext::draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, float scale,
   const wchar_t *str, int len)
 {
@@ -4315,8 +4321,7 @@ bool draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_
 bool draw_str_scaled_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, real scale,
   const char *str, int len)
 {
-  CVT_TO_UTF16_ON_STACK(tmpU16, str, len);
-  return stdgui_context.draw_str_scaled_u_buf(out_qv, out_tex_qcnt, dsb_flags, scale, tmpU16);
+  return stdgui_context.draw_str_scaled_buf(out_qv, out_tex_qcnt, dsb_flags, scale, str, len);
 }
 void render_str_buf(dag::ConstSpan<GuiVertex> qv, dag::ConstSpan<uint16_t> tex_qcnt, unsigned dsb_flags)
 {

@@ -603,6 +603,7 @@ namespace das
         vector<FileInfo *> getAllFiles() const;
 
         char * intern ( const char * str );
+        char * intern ( const char * str, uint32_t len );
 
         void bpcallback ( const LineInfo & at );
         void instrumentFunctionCallback ( SimFunction * sim, bool entering, uint64_t userData );

@@ -564,23 +564,11 @@ static bool abc_load_game_resource_pack(int res_id, dag::Span<GameResourceFactor
   String cachePath;
   int dataOffset = 0;
 
-  bool saveAllAssets = false;
+  // save caches for dynModel and rendInst so ShaderMatVdata could setup Sbuffer::IReloadData for case of driver reset
+  bool force_cache_store = (assetClassId == DynModelGameResClassId || assetClassId == RendInstGameResClassId);
 
-// case of usage dabuildCache in game
-#ifdef _TARGET_EXPORTERS_STATIC
-  if (assetClassId == DynModelGameResClassId || assetClassId == RendInstGameResClassId)
+  if (dabuild->getBuiltRes(*a, cwr, exp, assetlocalprops::makePath("cache"), cachePath, dataOffset, force_cache_store))
   {
-    saveAllAssets = true;
-  }
-#endif
-
-
-  if (dabuild->getBuiltRes(*a, cwr, exp, assetlocalprops::makePath("cache"), cachePath, dataOffset, saveAllAssets))
-  {
-#ifndef _TARGET_EXPORTERS_STATIC
-    cachePath.clear();
-    dataOffset = 0;
-#endif
     AssetCacheLoadCB crd(cwr.getRawWriter().getMem(), false, eastl::move(cachePath), dataOffset);
 
     fac->loadGameResourceData(res_id, crd);

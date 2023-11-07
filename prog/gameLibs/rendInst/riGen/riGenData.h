@@ -268,6 +268,7 @@ struct RendInstGenData
     void updateImpostors(float shadowDistance, const Point3 &sunDir0, const TMatrix &view_itm, const mat44f &proj_tm);
     bool updateImpostorsPreshadow(int poolNo, const Point3 &sunDir0);
     bool updateImpostorsPreshadow(int poolNo, const Point3 &sunDir0, int paletteId, const UniqueTex &depth_atlas);
+    void applyImpostorRange(int ri_idx, const DataBlock *ri_ovr, float cell_size);
     void copyVisibileImpostorsData(const RiGenVisibility &visibility, bool clear_data);
 
     void initDebris(const DataBlock &ri_blk, int (*get_fx_type_by_name)(const char *name));

@@ -671,46 +671,70 @@ struct RenderTarget
   uint32_t layer;
 };
 
+/** \defgroup RenderPassStructs
+ * @{
+ */
+
+/// \brief Description of render target bind inside render pass
+/// \details Fully defines operation that will happen with target at defined subpass slot
 struct RenderPassBind
 {
+  /// \brief Index of render target in render targets array that will be used for this bind
   int32_t target;
+  /// \brief Index of subpass where bind happens
   int32_t subpass;
+  /// \brief Index of slot where target will be used
   int32_t slot;
 
-  // defines load & store operations at subpass start/end
+  /// \brief defines what will happen with target used in binding
   RenderPassTargetAction action;
-  // precise barrier that is called between subpasses
+  /// \brief optional user barrier for generic(emulated) implementation
   ResourceBarrier dependencyBarrier;
 };
 
+/// \brief Early description of render target
+/// \details Gives necessary info at render pass creation so render pass is compatible with targets of same type later on
 struct RenderPassTargetDesc
 {
-  // use resource as template
+  /// \brief Resource from which information is extracted, can be nullptr
   BaseTexture *templateResource;
-  // or use raw information
+  /// \brief Raw texture create flags, used if template resource is not provided
   unsigned texcf;
+  /// \brief Must be set if template resource is empty and target will use aliased memory
   bool aliased;
 };
 
+/// \brief Description of target that is used inside render pass
 struct RenderPassTarget
 {
+  /// \brief Actual render target subresource reference
   RenderTarget resource;
+  /// \brief Clear value that is used on clear action
   ResourceClearValue clearValue;
 };
 
+/// \brief Render pass resource description, used to create RenderPass object
 struct RenderPassDesc
 {
+  /// \brief Name that is visible only in developer builds and inside graphics tools, if possible
   const char *debugName;
+  /// \brief Total amount of targets inside render pass
   uint32_t targetCount;
+  /// \brief Total amount of bindings for render pass
   uint32_t bindCount;
 
+  /// \brief Array of targetCount elements, supplying early description of render target
   const RenderPassTargetDesc *targetsDesc;
+  /// \brief Array of bindCount elements, describing all subpasses
   const RenderPassBind *binds;
 
-  //! texture binding offset for shader subpass reads used on APIs without native render passes
+  /// \brief Texture binding offset for shader subpass reads used on APIs without native render passes
+  /// \details Generic(emulated) implementation will use registers starting from this offset, to bind input attachments.
+  /// This must be properly handled inside shader code for generic implementation to work properly!
   uint32_t subpassBindingOffset;
 };
 
+/// \brief Area of render target where rendering will happen inside render pass
 struct RenderPassArea
 {
   uint32_t left;
@@ -720,6 +744,14 @@ struct RenderPassArea
   float minZ;
   float maxZ;
 };
+
+/**@}*/
+
+namespace d3d
+{
+//! opaque class that represents render pass
+struct RenderPass;
+} // namespace d3d
 
 // NOTE: even if numPackedMips is zero, numTilesNeededForPackedMips may be greater than zero, which is a special case,
 // and numTilesNeededForPackedMips tiles still need to be assigned at numUnpackedMips.
@@ -755,12 +787,6 @@ struct TileMapping
                          // - Use a span of TextureTilingInfo::numTilesNeededForPackedMips so the whole mip tail can be mapped at once.
                          // - From TileMapping::heapTileIndex the given number of tiles will be mapped to the packed mip tail.
 };
-
-//! opaque class that represents render pass
-namespace d3d
-{
-struct RenderPass;
-}
 
 enum class APISupport
 {
@@ -1531,16 +1557,52 @@ size_t get_update_buffer_slice_pitch(ResUpdateBuffer *rub);
 //! applies update to target d3dres and releases update buffer (clears pointer afterwards)
 bool update_texture_and_release_update_buffer(ResUpdateBuffer *&src_rub);
 
+/** \defgroup RenderPassD3D
+ * @{
+ */
+
+/// \brief Creates render pass object
+/// \details Render pass objects are intended to be created once (and ahead of time), used many times
+/// \note No external sync required
+/// \warning Do not run per frame/realtime!
+/// \warning Avoid using at time sensitive places!
+/// \param rp_desc Description of render pass to be created
+/// \result Pointer to opaque RenderPass object, may be nullptr if description is invalid
 RenderPass *create_render_pass(const RenderPassDesc &rp_desc);
-//! deletion of pass will fail if pass is in use
+/// \brief Deletes render pass object
+/// \note Sync with usage is required (must not delete object that is in use in current CPU frame)
+/// \warning All usage to object becomes invalid right after method call
+/// \param rp Object to be deleted
 void delete_render_pass(RenderPass *rp);
 
-//! viewport is reset to area after any commands of render pass begin/end/next
-//! avoid writes/reads outside area, it is UB in general
+/// \brief Begins render pass rendering
+/// \details After this command, viewport is reset to area supplied
+/// and subpass 0, described in render pass object, is started
+/// \note Must be external synced (GPU lock required)
+/// \warning When inside pass, all other GPU execution methods aside of Draw* are prohibited!
+/// \warning Avoid writes/reads outside area, it is UB in general
+/// \warning Will assert-fail if other render pass is already in process
+/// \param rp Render pass resource to begin with
+/// \param area Rendering area restriction
+/// \param targets Array of targets that will be used in rendering
 void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets);
+/// \brief Advances to next subpass
+/// \details Increases subpass number and executes necessary synchronization as well as binding,
+/// described for this subpass
+/// \details Viewport is reset to render area on every call
+/// \note Must be external synced (GPU lock required)
+/// \warning Will assert-fail if there is no subpass to advance to
+/// \warning Will assert-fail if called outside of render pass
 void next_subpass();
-//! after render pass ends, render targets are reset to backbuffer
+/// \brief Ends render pass
+/// \details Processes store&sync operations described in render pass
+/// \details After this call, any non Draw operations are allowed and render targets are reset to backbuffer
+/// \note Must be external synced (GPU lock required)
+/// \warning Will assert-fail if subpass is not final
+/// \warning Will assert-fail if called  outside of render pass
 void end_render_pass();
+
+/** @}*/
 
 #endif
 

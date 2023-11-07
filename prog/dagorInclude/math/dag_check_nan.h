@@ -35,8 +35,8 @@ __forceinline DAG_FINITE_MATH bool check_nan(double a)
 DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_nan(float a) { return __builtin_isnan(a); }
 DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_nan(double a) { return __builtin_isnan(a); }
 #endif
-DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_finite(float a) { return !__builtin_isinf(a); }
-DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_finite(double a) { return !__builtin_isinf(a); }
+DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_finite(float a) { return __builtin_isfinite(a); }
+DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_finite(double a) { return __builtin_isfinite(a); }
 #undef DAS_FINITE_MATH
 #if defined(__clang__) && !defined(__arm64__)
 #pragma float_control(pop)
@@ -44,8 +44,8 @@ DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_finite(double a) { return !__bu
 #else
 #include <float.h>
 // msvc just does not optimize fast math
-__forceinline bool check_finite(float a) { return !isinf(a); }
+__forceinline bool check_finite(float a) { return isfinite(a); }
 __forceinline bool check_nan(float a) { return isnan(a); }
-__forceinline bool check_finite(double a) { return !isinf(a); }
+__forceinline bool check_finite(double a) { return isfinite(a); }
 __forceinline bool check_nan(double a) { return isnan(a); }
 #endif

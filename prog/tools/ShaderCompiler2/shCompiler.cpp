@@ -34,7 +34,7 @@ static bool defTreatInvalidAsNull = false;
 static String updbPath;
 unsigned compileJobsCount = 0;
 unsigned compileJobsMgrBase = 0;
-unsigned openGLTarget = 0;
+bool relinkOnly = false;
 static SCFastNameMap explicitGlobVarRef;
 
 void startup()
@@ -149,6 +149,11 @@ void compileShader(const ShVariantName &variant_name, bool no_save, bool should_
     }
     else
     {
+      if (relinkOnly)
+      {
+        sh_debug(SHLOG_FATAL, "need to recompile %s but compilation is denied by -relinkOnly", sourceFileName.str());
+        return;
+      }
       sh_debug(SHLOG_NORMAL, "[INFO] compiling '%s'...", sourceFileName.str());
       fflush(stdout);
       Tab<SimpleString> dependenciesList(tmpmem_ptr());

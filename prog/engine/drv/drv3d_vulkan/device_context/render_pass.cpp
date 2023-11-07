@@ -18,47 +18,47 @@ void ExecutionContext::syncConstDepthReadWithInternalStore()
   barrier.submit(frameCore);
 }
 
-void ExecutionContext::ensureStateForColorAttachments(uint8_t usage_mask, const FramebufferInfo &fbi)
+void ExecutionContext::ensureStateForColorAttachments()
 {
+  uint8_t usageMask = getFramebufferState().renderPassClass.colorTargetMask;
   for (int i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
   {
-    if (!(usage_mask & (1 << i)))
+    if (!(usageMask & (1 << i)))
       continue;
-
-    const FramebufferInfo::AttachmentInfo &colorAtt = fbi.colorAttachments[i];
-    colorAtt.image->checkDead();
+    const RenderPassClass::FramebufferDescription::AttachmentInfo &colorAtt =
+      getFramebufferState().frameBufferInfo.colorAttachments[i];
+    G_ASSERTF(colorAtt.img, "vulkan: no color attachment specified for render pass class with used attachment %u", i);
+    colorAtt.img->checkDead();
 
     back.syncTrack.addImageAccess(
-      ExecutionSyncTracker::LogicAddress::forAttachmentWithLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL), colorAtt.image,
+      ExecutionSyncTracker::LogicAddress::forAttachmentWithLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL), colorAtt.img,
       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
       {colorAtt.view.getMipBase(), colorAtt.view.getMipCount(), colorAtt.view.getArrayBase(), colorAtt.view.getArrayCount()});
   }
 }
 
-void ExecutionContext::ensureStateForDepthAttachment(const RenderPassClass::Identifier &pass, const FramebufferInfo &fbi, bool ro)
+void ExecutionContext::ensureStateForDepthAttachment()
 {
-  G_ASSERTF(pass.depthState == fbi.depthStencilMask,
-    "Renderpass Identifier depthState and frontend framebuffer depthStencil mask must be the same here (%d vs %d)!", pass.depthState,
-    fbi.depthStencilMask);
-
-  if (pass.depthState != RenderPassClass::Identifier::NO_DEPTH)
+  FramebufferState &fbs = getFramebufferState();
+  bool ro = fbs.renderPassClass.hasRoDepth();
+  if (fbs.renderPassClass.hasDepth())
   {
-    fbi.depthStencilAttachment.image->checkDead();
+    RenderPassClass::FramebufferDescription::AttachmentInfo &dsai = fbs.frameBufferInfo.depthStencilAttachment;
+    G_ASSERTF(dsai.img, "vulkan: no depth attachment specified for render pass class with enabled depth");
+    dsai.img->checkDead();
 
-    G_ASSERTF(pass.colorSamples[0] == fbi.depthStencilAttachment.image->getSampleCount(),
-      "Renderpass attachments sample count doesn't match target image sample count  (%d vs %d)!", pass.colorSamples[0],
-      fbi.depthStencilAttachment.image->getSampleCount());
+    G_ASSERTF(fbs.renderPassClass.colorSamples[0] == dsai.img->getSampleCount(),
+      "Renderpass attachments sample count doesn't match target image sample count  (%d vs %d)!", fbs.renderPassClass.colorSamples[0],
+      dsai.img->getSampleCount());
+
+    ImageViewState ivs = dsai.view;
 
     VkImageLayout dsLayout = ro ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forAttachmentWithLayout(dsLayout),
-      fbi.depthStencilAttachment.image, dsLayout,
-      {fbi.depthStencilAttachment.view.getMipBase(), fbi.depthStencilAttachment.view.getMipCount(),
-        fbi.depthStencilAttachment.view.getArrayBase(), fbi.depthStencilAttachment.view.getArrayCount()});
+    back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forAttachmentWithLayout(dsLayout), dsai.img, dsLayout,
+      {ivs.getMipBase(), ivs.getMipCount(), ivs.getArrayBase(), ivs.getArrayCount()});
 
-    back.contextState.stageState[STAGE_PS].syncDepthROStateInT(fbi.depthStencilAttachment.image,
-      fbi.depthStencilAttachment.view.getMipBase(), fbi.depthStencilAttachment.view.getArrayBase(), ro);
-    back.contextState.stageState[STAGE_VS].syncDepthROStateInT(fbi.depthStencilAttachment.image,
-      fbi.depthStencilAttachment.view.getMipBase(), fbi.depthStencilAttachment.view.getArrayBase(), ro);
+    back.contextState.stageState[STAGE_PS].syncDepthROStateInT(dsai.img, ivs.getMipBase(), ivs.getArrayBase(), ro);
+    back.contextState.stageState[STAGE_VS].syncDepthROStateInT(dsai.img, ivs.getMipBase(), ivs.getArrayBase(), ro);
   }
   else
   {
@@ -67,30 +67,26 @@ void ExecutionContext::ensureStateForDepthAttachment(const RenderPassClass::Iden
   }
 }
 
-void ExecutionContext::beginPassInternal(RenderPassClass *pass_class, const FramebufferInfo &pass_images, VulkanFramebufferHandle fb,
-  VkRect2D area, uint32_t clear_mode)
+void ExecutionContext::beginPassInternal(RenderPassClass *pass_class, VulkanFramebufferHandle fb_handle, VkRect2D area)
 {
   // input verify
   G_ASSERT(area.offset.x >= 0);
   G_ASSERT(area.offset.y >= 0);
 
   // shortcuts
-  const RenderPassClass::Identifier &passIdent = pass_class->getIdentifier();
-  bool constDS = pass_images.hasConstDepthStencilAttachment();
   FramebufferState &fbs = getFramebufferState();
+  const RenderPassClass::Identifier &passIdent = fbs.renderPassClass;
 
   // prepare attachemnts states
   if (passIdent.colorTargetMask)
-    ensureStateForColorAttachments(passIdent.colorTargetMask, pass_images);
+    ensureStateForColorAttachments();
 
   StaticTab<VkClearValue, Driver3dRenderTarget::MAX_SIMRT + 1> clearValues;
-  if (clear_mode & ~CLEAR_DISCARD)
-  {
+  if (fbs.clearMode & ~CLEAR_DISCARD)
     clearValues = pass_class->constructClearValueSet(fbs.colorClearValue, fbs.depthStencilClearValue);
-  }
 
   // MSAA split check, on TBDR this results in garbadge on screen
-  if (!pass_class->verifyPass(clear_mode))
+  if (!pass_class->verifyPass(fbs.clearMode))
   {
     generateFaultReport();
     fatal("vulkan: MSAA pass was wrongly splitted around caller %s", getCurrentCmdCaller());
@@ -101,29 +97,26 @@ void ExecutionContext::beginPassInternal(RenderPassClass *pass_class, const Fram
   VkRenderPassAttachmentBeginInfoKHR rpabi = {VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR, nullptr};
   if (device.hasImagelessFramebuffer())
   {
-    auto attachments = passIdent.squash<VkImageView>(array_size(fbs.colorViews), fbs.colorViews, fbs.depthStencilView,
-      [](const VulkanImageViewHandle &attachment) { return attachment.value; });
+    auto attachments = passIdent.squash<VkImageView>(array_size(fbs.frameBufferInfo.colorAttachments),
+      fbs.frameBufferInfo.colorAttachments, fbs.frameBufferInfo.depthStencilAttachment,
+      [](const RenderPassClass::FramebufferDescription::AttachmentInfo &attachment) { return attachment.viewHandle.value; });
     rpabi.attachmentCount = attachments.size();
     rpabi.pAttachments = attachments.data();
 
     chain_structs(rpbi, rpabi);
   }
 #endif
-  rpbi.renderPass = pass_class->getPass(vkDev, clear_mode);
-  rpbi.framebuffer = fb;
+  rpbi.renderPass = pass_class->getPass(vkDev, fbs.clearMode);
+  rpbi.framebuffer = fb_handle;
   rpbi.renderArea = area;
   rpbi.clearValueCount = clearValues.size();
   rpbi.pClearValues = clearValues.data();
   VULKAN_LOG_CALL(vkDev.vkCmdBeginRenderPass(frameCore, &rpbi, VK_SUBPASS_CONTENTS_INLINE));
 
   // save resulting state
-
-  fbs.viewRect = area;
-  fbs.clearMode = clear_mode;
-  fbs.roDepth = constDS;
-
+  back.executionState.set<StateFieldGraphicsRenderPassArea, VkRect2D, BackGraphicsState>(area);
   back.executionState.set<StateFieldGraphicsRenderPassClass, RenderPassClass *, BackGraphicsState>(pass_class);
-  back.executionState.set<StateFieldGraphicsFramebuffer, VulkanFramebufferHandle, BackGraphicsState>(fb);
+  back.executionState.set<StateFieldGraphicsFramebuffer, VulkanFramebufferHandle, BackGraphicsState>(fb_handle);
   back.executionState.set<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>(InPassStateFieldType::NORMAL_PASS);
 
   invalidateActiveGraphicsPipeline();
@@ -141,7 +134,10 @@ void ExecutionContext::endPass(const char *why)
   {
     // when no-store exts are unavailable, we should sync const DS read with "fake" write
     // its happens between pass end and external dependency barrier
-    if (getFramebufferState().roDepth && !get_device().hasAttachmentNoStoreOp())
+    if (back.executionState.getRO<StateFieldGraphicsRenderPassClass, RenderPassClass, BackGraphicsState>()
+          .getIdentifier()
+          .hasRoDepth() &&
+        !get_device().hasAttachmentNoStoreOp())
       syncConstDepthReadWithInternalStore();
     VULKAN_LOG_CALL(vkDev.vkCmdEndRenderPass(frameCore));
     performSyncAtRenderPassEnd();

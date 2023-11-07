@@ -26,6 +26,12 @@ public:
       "bind_dascript::physvars_register_var");
     das::addExtern<DAS_BIND_FUN(physvars_register_pull_var)>(*this, lib, "registerPullVar", das::SideEffects::modifyArgument,
       "bind_dascript::physvars_register_pull_var");
+    das::addExtern<DAS_BIND_FUN(physvars_is_var_pullable)>(*this, lib, "isVarPullable", das::SideEffects::accessExternal,
+      "bind_dascript::physvars_is_var_pullable");
+    das::addExtern<DAS_BIND_FUN(physvars_get_vars_count)>(*this, lib, "getVarsCount", das::SideEffects::accessExternal,
+      "bind_dascript::physvars_get_vars_count");
+    das::addExtern<DAS_BIND_FUN(physvars_get_var_name)>(*this, lib, "getVarName", das::SideEffects::accessExternal,
+      "bind_dascript::physvars_get_var_name");
     verifyAotReady();
   }
   das::ModuleAotType aotRequire(das::TextWriter &tw) const override

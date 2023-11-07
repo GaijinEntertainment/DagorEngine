@@ -29,7 +29,7 @@ public:
 
   int getNumDispatches() const;
 
-  TEXTUREID getVelocityPressureTexId() const;
+  TEXTUREID getVelocityDensityTexId() const;
   float getSimulationTime() const;
 
 private:
@@ -38,8 +38,7 @@ private:
   eastl::unique_ptr<ComputeShaderElement> blurCs;
   PostFxRenderer showSolution;
 
-  eastl::array<UniqueTex, 2> velPressureTex;
-  eastl::array<UniqueTex, 2> densityTex;
+  eastl::array<UniqueTex, 2> velDensityTex;
 
   uint32_t textureWidth = 640;
   uint32_t textureHeight = 384;
@@ -49,8 +48,7 @@ private:
 
 struct Cascade
 {
-  eastl::array<UniqueTex, 2> velPressureTex;
-  eastl::array<UniqueTex, 2> densityTex;
+  eastl::array<UniqueTex, 2> velDensityTex;
   IPoint2 texSize;
   float spatialStep;
   float dtMultiplier;
@@ -60,13 +58,13 @@ class CascadeSolver
 {
 public:
   CascadeSolver(const char *solver_shader_name, uint32_t tex_width, uint32_t tex_height,
-    const eastl::array<uint32_t, 4> &num_dispatches_per_cascade = {5000, 2000, 1000, 200}, float spatial_step = 1.f);
+    const eastl::array<uint32_t, 4> &num_dispatches_per_cascade = {4700, 1600, 650, 150}, float spatial_step = 1.f);
 
   void fillInitialConditions(float standard_density, const Point2 &standard_velocity);
   void solveEquations(float dt, int num_dispatches);
   void showResult(PlotType plot_type);
 
-  TEXTUREID getVelocityPressureTexId() const;
+  TEXTUREID getVelocityDensityTexId() const;
   float getSimulationTime() const;
   int getNumDispatches() const;
 

@@ -341,6 +341,7 @@ public:
     if (!save_all_caches && get_time_usec(ref) < 5 * 1000)
     {
       cache_path.clear();
+      data_offset = 0;
       return true;
     }
 

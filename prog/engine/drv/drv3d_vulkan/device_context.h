@@ -202,8 +202,7 @@ public:
   typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::EXECUTION_PRIMARY> PrimaryPipelineBarrier;
   typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::EXECUTION_SECONDARY> SecondaryPipelineBarrier;
 
-  void beginPassInternal(RenderPassClass *pass_class, const FramebufferInfo &pass_images, VulkanFramebufferHandle fb, VkRect2D area,
-    uint32_t clear_mode);
+  void beginPassInternal(RenderPassClass *pass_class, VulkanFramebufferHandle fb_handle, VkRect2D area);
   void allocFrameCore();
   String getCurrentCmdCaller();
   void reportMissingPipelineComponent(const char *component);
@@ -219,6 +218,7 @@ private:
   void flushOrderedBufferUploads(VulkanCommandBufferHandle cmd);
   VulkanCommandBufferHandle flushBufferToHostFlushes(VulkanCommandBufferHandle cmd);
   void flushImageUploads();
+  void flushImageUploadsIter(uint32_t start, uint32_t end);
   void flushUnorderedImageColorClears();
   void flushUnorderedImageDepthStencilClears();
   void flushUnorderedImageCopies();
@@ -271,8 +271,6 @@ public:
   uint32_t beginVertexUserData(uint32_t stride);
   void endVertexUserData(uint32_t stride);
   void invalidateActiveGraphicsPipeline();
-  bool isPartOfFramebuffer(Image *image);
-  bool isPartOfFramebuffer(Image *image, ValueRange<uint8_t> mip_range, ValueRange<uint16_t> array_range);
   void startPreRotate(uint32_t binding_slot);
   void holdPreRotateStateForOneFrame();
   Image *getSwapchainColorImage();
@@ -344,8 +342,8 @@ public:
   void setGraphicsPipeline(ProgramID program);
   bool isInMultisampledFBPass();
   void syncConstDepthReadWithInternalStore();
-  void ensureStateForDepthAttachment(const RenderPassClass::Identifier &pass, const FramebufferInfo &fbi, bool ro);
-  void ensureStateForColorAttachments(uint8_t usage_mask, const FramebufferInfo &fbi);
+  void ensureStateForDepthAttachment();
+  void ensureStateForColorAttachments();
   void endPass(const char *why);
   void endNativePass();
   void beginNativePass();

@@ -42,7 +42,7 @@ void clear();
 
 void set_raytracer(IEffectRayTracer *);
 
-void render(int render_type);
+void render(int render_type, const TMatrix &view_itm);
 void update(real dt);
 
 void on_device_reset();

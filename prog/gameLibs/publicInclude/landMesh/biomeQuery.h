@@ -31,4 +31,6 @@ const char *get_biome_group_name(int biome_group_id);
 int get_num_biome_groups();
 int get_max_num_biome_groups();
 void set_details_cb(Sbuffer *buffer);
+void console_query_pos(const char *argv[], int argc);
+void console_query_camera_pos(const char *argv[], int argc, const TMatrix &view_itm);
 } // namespace biome_query

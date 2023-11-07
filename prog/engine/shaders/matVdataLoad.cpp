@@ -180,6 +180,10 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
     compr_type = 2; // lzma
     matVdataHdrSz &= ~0x40000000;
   }
+#if VDATA_RELOAD_SUPPORTED
+  if (!(flags & VDATA_SRC_ONLY) && (flags & VDATA_NO_IBVB) != VDATA_NO_IBVB && strcmp(crd.getTargetName(), "(mem)") != 0)
+    flags |= VDATA_D3D_RESET_READY;
+#endif
 
   matVdataSrcRef.fileOfs = crd.tell();
   matVdataSrcRef.dataSz = 0;
@@ -268,7 +272,7 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
   // read and create vb/ib
   Tab<uint8_t> tmp_decoder_stor;
   for (int i = 0; i < vdata.size(); i++)
-    vdata[i].create(name, hdr->vdata[i].vertNum, hdr->vdata[i].vertStride, hdr->vdata[i].packedIdxSize(), hdr->vdata[i].idxSize,
+    vdata[i].initGvd(name, hdr->vdata[i].vertNum, hdr->vdata[i].vertStride, hdr->vdata[i].packedIdxSize(), hdr->vdata[i].idxSize,
       flags | hdr->vdata[i].flags, zcrd, tmp_decoder_stor);
   if (vdataFullCount && (vdata.data() + 0)->getLodIndex() != 0)
     setLodsAreSplit();
@@ -288,7 +292,7 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
     memfree(hdr, tmpmem);
 
 #if VDATA_RELOAD_SUPPORTED
-  if (!(flags & VDATA_SRC_ONLY) && strcmp(crd.getTargetName(), "(mem)") != 0)
+  if ((flags & VDATA_D3D_RESET_READY) && (d3d::get_driver_code().is(d3d::dx11) || d3d::get_driver_code().is(d3d::dx12)))
   {
     static struct ShaderVdataReloadStub : public Sbuffer::IReloadData
     {
@@ -296,9 +300,12 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
       virtual void destroySelf() {}
     } stub;
     Sbuffer::IReloadData *rld = this;
+    unsigned used_d3d_buf_cnt = 0;
 
     for (int i = 0; i < vdata.size(); i++)
     {
+      if ((!vdata[i].testFlags(VDATA_NO_VB) && vdata[i].getVB()) || (!vdata[i].testFlags(VDATA_NO_IB) && vdata[i].getIB()))
+        used_d3d_buf_cnt++;
       if (!vdata[i].testFlags(VDATA_NO_VB) && vdata[i].getVB() && vdata[i].getVB()->setReloadCallback(rld))
         rld = &stub;
       if (!vdata[i].testFlags(VDATA_NO_IB) && vdata[i].getIB() && vdata[i].getIB()->setReloadCallback(rld))
@@ -306,6 +313,9 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
     }
     if (rld != this)
       matVdataSrcRef.fname = dagor_fname_map_add_fn(crd.getTargetName());
+    else if (used_d3d_buf_cnt)
+      logerr("failed to setReloadCallback() for %s:0x%x, contents (%d buffers) will be lost on d3d reset", //
+        crd.getTargetName(), matVdataSrcRef.fileOfs, used_d3d_buf_cnt);
   }
 #endif
 

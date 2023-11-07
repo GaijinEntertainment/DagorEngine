@@ -8,52 +8,6 @@
 namespace drv3d_vulkan
 {
 class Image;
-struct FramebufferInfo
-{
-  struct AttachmentInfo
-  {
-    Image *image = nullptr;
-    ImageViewState view = {};
-  };
-  AttachmentInfo colorAttachments[Driver3dRenderTarget::MAX_SIMRT] = {};
-  AttachmentInfo depthStencilAttachment = {};
-  uint8_t colorAttachmentMask = 0;
-  uint8_t depthStencilMask = 0;
-
-  void setColorAttachment(uint32_t index, Image *image, ImageViewState view)
-  {
-    auto &target = colorAttachments[index];
-    target.image = image;
-    target.view = view;
-    colorAttachmentMask |= 1u << index;
-  }
-  void clearColorAttachment(uint32_t index)
-  {
-    colorAttachments[index] = AttachmentInfo{};
-    colorAttachmentMask &= ~(1u << index);
-  }
-  void setDepthStencilAttachmentReadOnly(bool read_only)
-  {
-    // r/w -> 1
-    // ro -> 2
-    if (hasDepthStencilAttachment())
-      depthStencilMask = 1u + uint8_t(read_only);
-  }
-  void setDepthStencilAttachment(Image *image, ImageViewState view, bool read_only)
-  {
-    depthStencilAttachment.image = image;
-    depthStencilAttachment.view = view;
-    depthStencilMask = 1u + uint8_t(read_only);
-  }
-  void clearDepthStencilAttachment()
-  {
-    depthStencilAttachment = AttachmentInfo{};
-    depthStencilMask = 0;
-  }
-  bool hasConstDepthStencilAttachment() const { return 2 == depthStencilMask; }
-  bool hasDepthStencilAttachment() const { return 0 != depthStencilMask; }
-  VkExtent2D makeDrawArea(VkExtent2D def = {}) const;
-};
 
 class RenderPassClass
 {
@@ -90,6 +44,9 @@ public:
     uint8_t depthState;
 
     Identifier() { clear(); }
+
+    bool hasRoDepth() const { return depthState == RO_DEPTH; }
+    bool hasDepth() const { return depthState != NO_DEPTH; }
 
     void clear()
     {
@@ -163,21 +120,22 @@ public:
       END_BITFIELD_TYPE()
 
       ImageInfo imageInfo{};
-
-      // the usage of imageview and image flags are mutually exclusive
-      // image flags use in case of imageless framebuffers and the imageview otherwise
-      union
-      {
-        struct
-        {
-          VkImageUsageFlags usage;
-          VkImageCreateFlags flags;
-        };
-        VulkanImageViewHandle imageView{};
-      };
+      VkImageUsageFlags usage;
+      VkImageCreateFlags flags;
+      VulkanImageViewHandle viewHandle{};
+      ImageViewState view;
+      Image *img;
 
       AttachmentInfo();
-      AttachmentInfo(const Image *image, VulkanImageViewHandle view, ImageViewState ivs);
+      AttachmentInfo(Image *image, VulkanImageViewHandle view, ImageViewState ivs);
+
+      bool compatibleToImageless(const AttachmentInfo &cmp) const
+      {
+        return imageInfo == cmp.imageInfo && flags == cmp.flags && usage == cmp.usage;
+      }
+      bool compatibleTo(const AttachmentInfo &cmp) const { return viewHandle == cmp.viewHandle; }
+
+      bool empty() const { return img == nullptr; }
     };
 
     AttachmentInfo colorAttachments[Driver3dRenderTarget::MAX_SIMRT] = {};
@@ -193,12 +151,36 @@ public:
       extent.height = 0;
     }
 
+    void setColorAttachment(uint32_t index, Image *image, ImageViewState view);
+    void resetColorAttachment(uint32_t index);
+    void setDepthStencilAttachment(Image *image, ImageViewState view);
+    void resetDepthStencilAttachment();
+
+    VkExtent2D makeDrawArea(VkExtent2D def = {});
     bool contains(VulkanImageViewHandle view) const;
-    friend bool operator==(const FramebufferDescription &l, const FramebufferDescription &r)
+
+    bool compatibleTo(const FramebufferDescription &cmp) const
     {
-      return 0 == memcmp(&l, &r, sizeof(FramebufferDescription));
+      if (extent != cmp.extent)
+        return false;
+      for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+        if (!colorAttachments[i].compatibleTo(cmp.colorAttachments[i]))
+          return false;
+      if (!depthStencilAttachment.compatibleTo(cmp.depthStencilAttachment))
+        return false;
+      return true;
     }
-    friend bool operator!=(const FramebufferDescription &l, const FramebufferDescription &r) { return !(l == r); }
+    bool compatibleToImageless(const FramebufferDescription &cmp) const
+    {
+      if (extent != cmp.extent)
+        return false;
+      for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+        if (!colorAttachments[i].compatibleToImageless(cmp.colorAttachments[i]))
+          return false;
+      if (!depthStencilAttachment.compatibleToImageless(cmp.depthStencilAttachment))
+        return false;
+      return true;
+    }
   };
 
   const Identifier &getIdentifier() const { return identifier; }

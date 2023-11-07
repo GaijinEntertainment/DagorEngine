@@ -136,8 +136,6 @@ rule ProcessCompileTarget
   }
   _CPP_OPT = -I$(AddIncludes) $(_CONFIG_OPT) $(_SUPPRESS_OPT) $(CPPopt) $(GlobalCPPopt) ;
 
-  AddDirectXInclude pre_opt : post_opt ;
-
   $(Target)__CPP_OPT = $(post_opt) $(_CPP_OPT) -TP ;
   $(Target)__C_OPT   = $(post_opt) $(Copt) $(_CPP_OPT) ;
   $(Target)__ASM_OPT = -I$(AddIncludes) $(ASMopt) ;

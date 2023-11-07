@@ -671,6 +671,8 @@ void HudPrimitives::renderPoly(TEXTUREID texture_id, E3DCOLOR color, dag::ConstS
   vtx.resize(p.size());
 
   triangulate(p, ind);
+  if (ind.empty())
+    return;
   G_ASSERT((ind.size() % 3) == 0);
 
   PREPARE_FILL_PARAMS();

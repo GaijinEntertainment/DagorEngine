@@ -10,20 +10,21 @@ using namespace drv3d_vulkan;
 #define PASS_BUILD_INFO(...)
 #endif
 
-VkExtent2D FramebufferInfo::makeDrawArea(VkExtent2D def /*= {}*/) const
+VkExtent2D RenderPassClass::FramebufferDescription::makeDrawArea(VkExtent2D def /*= {}*/)
 {
   // if swapchain for 0 is used we need to check depth stencil use,
   // in some cases depth stencil was used with swapchain where it
   // was smaller than the swapchain images and crashes.
-  if ((colorAttachmentMask & 1) && (colorAttachments[0].image))
-    return colorAttachments[0].image->getMipExtents2D(colorAttachments[0].view.getMipBase());
-  else if (auto mask = colorAttachmentMask >> 1)
-    for (int i = 1; i < array_size(colorAttachments); ++i, mask >>= 1)
-      if (0 != (mask & 1))
-        return colorAttachments[i].image->getMipExtents2D(colorAttachments[i].view.getMipBase());
+  if (colorAttachments[0].img)
+    return colorAttachments[0].img->getMipExtents2D(colorAttachments[0].view.getMipBase());
 
-  if (depthStencilMask && depthStencilAttachment.image)
-    return depthStencilAttachment.image->getMipExtents2D(depthStencilAttachment.view.getMipBase());
+  for (int i = 1; i < array_size(colorAttachments); ++i)
+    if (colorAttachments[i].img)
+      return colorAttachments[i].img->getMipExtents2D(colorAttachments[i].view.getMipBase());
+
+  if (depthStencilAttachment.img)
+    return depthStencilAttachment.img->getMipExtents2D(depthStencilAttachment.view.getMipBase());
+
   return def;
 }
 
@@ -37,7 +38,10 @@ VulkanRenderPassHandle RenderPassClass::getPass(VulkanDevice &device, int clear_
 }
 VulkanFramebufferHandle RenderPassClass::getFrameBuffer(VulkanDevice &device, const FramebufferDescription &info)
 {
-  auto ref = eastl::find_if(begin(frameBuffers), end(frameBuffers), [&](const FrameBuffer &fb) { return fb.desc == info; });
+  bool imageless = get_device().hasImagelessFramebuffer();
+  auto ref = eastl::find_if(begin(frameBuffers), end(frameBuffers), [&info, &imageless](const FrameBuffer &fb) {
+    return imageless ? fb.desc.compatibleToImageless(info) : fb.desc.compatibleTo(info);
+  });
   if (ref != end(frameBuffers))
     return ref->frameBuffer;
 
@@ -375,7 +379,7 @@ VulkanFramebufferHandle RenderPassClass::compileFrameBuffer(VulkanDevice &device
       info.depthStencilAttachment, [&minLayers](const FramebufferDescription::AttachmentInfo &attachment) {
         PASS_BUILD_INFO("vulkan: new FB: attachment view %p", generalize(attachment.imageView));
         minLayers = min<uint32_t>(attachment.imageInfo.layers, minLayers);
-        return attachment.imageView;
+        return attachment.viewHandle;
       });
 
     fbci.attachmentCount = attachmentSet.size();
@@ -417,13 +421,17 @@ void RenderPassManager::unloadAll(VulkanDevice &device)
   passClasses.clear();
 }
 
-RenderPassClass::FramebufferDescription::AttachmentInfo::AttachmentInfo() : imageView{}, imageInfo{} {}
+RenderPassClass::FramebufferDescription::AttachmentInfo::AttachmentInfo() : viewHandle{}, imageInfo{}, img{nullptr}, usage(), flags()
+{}
 
-RenderPassClass::FramebufferDescription::AttachmentInfo::AttachmentInfo(const Image *image, VulkanImageViewHandle view,
+RenderPassClass::FramebufferDescription::AttachmentInfo::AttachmentInfo(Image *image, VulkanImageViewHandle view_handle,
   ImageViewState ivs) :
-  imageView{}, imageInfo{}
+  imageInfo{}, usage(), flags()
 {
+  img = image;
+  view = ivs;
   imageInfo.layers = ivs.isArray ? ivs.getArrayCount() : 1;
+  viewHandle = view_handle;
 
   if (get_device().hasImagelessFramebuffer())
   {
@@ -436,10 +444,6 @@ RenderPassClass::FramebufferDescription::AttachmentInfo::AttachmentInfo(const Im
     usage = image->getUsage();
     flags = image->getCreateFlags();
   }
-  else
-  {
-    imageView = view;
-  }
 }
 
 bool RenderPassClass::FramebufferDescription::contains(VulkanImageViewHandle view) const
@@ -449,6 +453,6 @@ bool RenderPassClass::FramebufferDescription::contains(VulkanImageViewHandle vie
   using namespace eastl;
   return (end(colorAttachments) !=
            find_if(begin(colorAttachments), end(colorAttachments),
-             [&view](const FramebufferDescription::AttachmentInfo &info) { return info.imageView == view; })) ||
-         (depthStencilAttachment.imageView == view);
+             [&view](const FramebufferDescription::AttachmentInfo &info) { return info.viewHandle == view; })) ||
+         (depthStencilAttachment.viewHandle == view);
 }

@@ -62,7 +62,10 @@ public:
   bool setQuality(GrassQuality quality);
   void applyAnisotropy();
   typedef eastl::function<bool(const BBox2 &, float &min_ht, float &max_ht)> frustum_heights_cb_t;
+  using RenderGrassLodCallback =
+    dag::FixedMoveOnlyFunction<64, void(const float currentGridSize, const float currentGrassDistance) const>;
 
+  void renderGrassLods(RenderGrassLodCallback renderGrassLod) const;
   void generate(const Point3 &pos, const Point3 &view_dir, const frustum_heights_cb_t &cb, GrassPreRenderCallback pre_render_cb);
 
   enum RenderType
@@ -78,14 +81,12 @@ public:
   void driverReset();
 
   float getGrassDistance() const { return grassDistance; }
-  float getGrassGridSize() const { return grassGridSize; }
   float getMaxGrassHeight() const { return maxGrassHeightSize; }
   float getMaxGrassHorSize() const { return maxGrassHorSize; }
   float getDistanceEffective() const;
   float getGridSizeEffective() const;
   float getDistanceWithBorder() const;
   float alignTo() const;
-  bool isGrassLodsEnabled() const;
   bool isInited() const { return bool(grassGenerator); }
 
   void invalidate();

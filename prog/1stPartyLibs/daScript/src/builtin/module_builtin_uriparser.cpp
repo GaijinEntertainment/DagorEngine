@@ -37,7 +37,7 @@ char * das::makeNewGuid( das::Context * context, LineInfoArg * at ) {
     return res;
 }
 
-#elif defined(__linux__) && defined(LINUX_UUID)
+#elif defined(__linux__) && defined(LINUX_UUID) || defined __HAIKU__
 
 #include <uuid/uuid.h>
 

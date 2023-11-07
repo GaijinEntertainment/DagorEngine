@@ -20,7 +20,7 @@ bool ShaderMesh::dbgRenderStarted = false;
  * class GlobalVertexData
  *
  *********************************/
-void GlobalVertexData::create(const char *name, unsigned vNum, unsigned vStride, unsigned idxPacked, unsigned idxSize, unsigned flags,
+void GlobalVertexData::initGvd(const char *name, unsigned vNum, unsigned vStride, unsigned idxPacked, unsigned idxSize, unsigned flags,
   IGenLoad *crd, Tab<uint8_t> &tmp_decoder_stor)
 {
   if (vNum > 65536 && !(flags & VDATA_I16))
@@ -43,9 +43,7 @@ void GlobalVertexData::create(const char *name, unsigned vNum, unsigned vStride,
   }
 
   // create vertex buffer
-  unsigned vbFlags = 0;
-  if (flags & VDATA_VB_SYSMEM)
-    vbFlags |= SBCF_SYSMEM;
+  unsigned vbFlags = (flags & VDATA_NO_VB) || !(flags & VDATA_D3D_RESET_READY) ? 0 : SBCF_MAYBELOST;
   if (flags & VDATA_BIND_SHADER_RES)
     vbFlags |= SBCF_BIND_SHADER_RES;
   if (flags & VDATA_NO_VB)
@@ -62,9 +60,7 @@ void GlobalVertexData::create(const char *name, unsigned vNum, unsigned vStride,
   // create index buffer
   if (idxSize)
   {
-    unsigned ibFlags = 0;
-    if (flags & VDATA_IB_SYSMEM)
-      ibFlags |= SBCF_SYSMEM;
+    unsigned ibFlags = (flags & VDATA_NO_IB) || !(flags & VDATA_D3D_RESET_READY) ? 0 : SBCF_MAYBELOST;
     if (flags & VDATA_I32)
       ibFlags |= SBCF_INDEX32;
     if (flags & VDATA_NO_IB)
@@ -84,24 +80,65 @@ void GlobalVertexData::create(const char *name, unsigned vNum, unsigned vStride,
   if (crd)
     unpackToBuffers(*crd, false, tmp_decoder_stor);
 }
-void GlobalVertexData::createMem(int vNum, int vStride, int idxSize, unsigned flags, const void *vb_data, const void *ib_data)
+void GlobalVertexData::initGvdMem(int vNum, int vStride, int idxSize, unsigned flags, const void *vb_data, const void *ib_data)
 {
   Tab<uint8_t> tmp_decoder_stor;
-  create("mem", vNum, vStride, 0, idxSize, flags, nullptr, tmp_decoder_stor);
+  bool need_set_rld = !(flags & VDATA_D3D_RESET_READY) && vNum && vb_data;
+  initGvd("mem", vNum, vStride, 0, idxSize, flags | (vb_data && ib_data ? VDATA_D3D_RESET_READY : 0), nullptr, tmp_decoder_stor);
 
-  if (vb_data)
+  if (vb_data && vb)
     d3d_err(vb->updateDataWithLock(0, getVbSize(), vb_data, VBLOCK_WRITEONLY)); // load vertex buffer data
 
   // create index buffer
   if (ib_data && getIbSize())
-    d3d_err(getIB()->updateDataWithLock(0, getIbSize(), ib_data, VBLOCK_WRITEONLY)); // load index buffer data
+    if (auto _ib = getIB())
+      d3d_err(_ib->updateDataWithLock(0, getIbSize(), ib_data, VBLOCK_WRITEONLY)); // load index buffer data
+
+  if (need_set_rld && vb && (d3d::get_driver_code().is(d3d::dx11) || d3d::get_driver_code().is(d3d::dx12)))
+  {
+#if _TARGET_PC_WIN
+    G_ASSERT(!(flags & VDATA_NO_IBVB));
+    G_ASSERT(vb_data || !getVbSize());
+    G_ASSERT(ib_data || !getIbSize());
+
+    struct VdataReloadFromMem : public Sbuffer::IReloadData
+    {
+      GlobalVertexData &gvd;
+      Tab<uint8_t> buf;
+      VdataReloadFromMem(GlobalVertexData &_gvd, const void *vb_data, const void *ib_data) : gvd(_gvd)
+      {
+        buf.resize(gvd.getVbSize() + gvd.getIbSize());
+        memcpy(buf.data(), vb_data, gvd.getVbSize());
+        if (ib_data)
+          memcpy(buf.data() + gvd.getVbSize(), ib_data, gvd.getIbSize());
+      }
+      void reloadD3dRes(Sbuffer *) override
+      {
+        if (gvd.vb)
+          d3d_err(gvd.vb->updateDataWithLock(0, gvd.getVbSize(), buf.data(), VBLOCK_WRITEONLY));
+        if (auto _ib = gvd.getIB())
+          d3d_err(_ib->updateDataWithLock(0, gvd.getIbSize(), buf.data() + gvd.getVbSize(), VBLOCK_WRITEONLY));
+      }
+      void destroySelf() override { delete this; }
+    };
+
+    auto rld = new VdataReloadFromMem(*this, vb_data, ib_data);
+    auto _ib = getIB();
+    Sbuffer *latest_buf = _ib ? _ib : vb;
+    if (!latest_buf->setReloadCallback(rld))
+    {
+      logerr("failed to install d3d buffer reload callback");
+      delete rld;
+    }
+#endif
+  }
 }
 
 void GlobalVertexData::unpackToBuffers(IGenLoad &zcrd, bool update_ib_vb_only, Tab<uint8_t> &tmp_decoder_stor)
 {
   if (!testFlags(VDATA_NO_VB))
   {
-    bool cached_dest_mem = testFlags(VDATA_NO_VB | VDATA_VB_SYSMEM);
+    bool cached_dest_mem = testFlags(VDATA_NO_VB);
 #if _TARGET_PC_WIN
     cached_dest_mem = true;
 #endif
@@ -132,7 +169,7 @@ void GlobalVertexData::unpackToBuffers(IGenLoad &zcrd, bool update_ib_vb_only, T
 
   if (!testFlags(VDATA_NO_VB))
   {
-    bool cached_dest_mem = testFlags(VDATA_NO_IB | VDATA_IB_SYSMEM);
+    bool cached_dest_mem = testFlags(VDATA_NO_IB);
 #if _TARGET_PC_WIN
     cached_dest_mem = true;
 #endif

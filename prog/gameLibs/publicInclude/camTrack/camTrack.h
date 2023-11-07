@@ -13,7 +13,7 @@ typedef void *handle_t;
 const handle_t INVALID_HANDLE = NULL;
 
 void record(const char *filename);
-void update_record(float abs_time);
+void update_record(float abs_time, const TMatrix &itm);
 void stop_record();
 
 handle_t load_track(const char *filename);

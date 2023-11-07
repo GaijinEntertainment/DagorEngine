@@ -15,6 +15,7 @@ AddIncludes =
 
 Sources =
   solver.cpp
+  voxelizeDepthAbove.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -22,7 +22,6 @@ public:
 
   void setShaderVars(const TMatrix &view_itm, real rocking_scale = 1, real rustling_scale = 1);
 
-  //::grs_cur_view.itm.getcol(0), ::grs_cur_view.itm.getcol(1), ::grs_cur_view.itm.getcol(2)
   static void setNoAnimShaderVars(const Point3 &colX, const Point3 &colY, const Point3 &colZ);
 
 

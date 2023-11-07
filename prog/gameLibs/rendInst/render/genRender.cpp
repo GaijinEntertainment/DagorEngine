@@ -696,17 +696,25 @@ void RendInstGenData::applyLodRanges()
       continue;
     const DataBlock *ri_ovr = rtData->riResName[i] ? rendinst::ri_lod_ranges_ovr.getBlockByName(rtData->riResName[i]) : nullptr;
 
+    if (!RendInstGenData::renderResRequired || !rtData->rtPoolData[i])
+      continue;
+    if (!rtData->riRes[i]->hasImpostor())
+    {
+      for (int lodI = 0; lodI < rtData->riResLodCount(i); lodI++)
+        rtData->rtPoolData[i]->lodRange[lodI] = rtData->riResLodRange(i, lodI, ri_ovr);
+    }
+    else
+    {
+      float subCellOfsSize = grid2world * cellSz *
+                             ((rendinst::render::per_instance_visibility_for_everyone ? 0.75f : 0.25f) *
+                               (rendinst::render::globalDistMul * 1.f / RendInstGenData::SUBCELL_DIV));
+      rtData->applyImpostorRange(i, ri_ovr, subCellOfsSize);
+    }
     int lastLodNo = rtData->riResLodCount(i) - 1;
-    float last_lod_range = min(rtData->riResLodRange(i, lastLodNo, ri_ovr), rtData->preloadDistance);
+    float last_lod_range = min(rtData->rtPoolData[i]->lodRange[lastLodNo], rtData->preloadDistance);
     maxDist = max(maxDist, last_lod_range);
     averageFarPlane += last_lod_range;
     averageFarPlaneCount++;
-
-    if (!RendInstGenData::renderResRequired || !rtData->rtPoolData[i])
-      continue;
-    for (int lodI = 0; lodI < rtData->riResLodCount(i); lodI++)
-      rtData->rtPoolData[i]->lodRange[lodI] = rtData->riResLodRange(i, lodI, ri_ovr);
-
     rtData->rtPoolData[i]->lodRange[lastLodNo] = last_lod_range;
     rtData->rtPoolData[i]->lodRange[0] = min(rtData->rtPoolData[i]->lodRange[0], rtData->rendinstMaxLod0Dist);
   }

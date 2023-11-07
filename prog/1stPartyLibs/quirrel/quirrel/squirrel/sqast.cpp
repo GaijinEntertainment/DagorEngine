@@ -104,7 +104,7 @@ void Node::visitChildren(Visitor *visitor) {
         static_cast<ConstDecl *>(this)->visitChildren(visitor); return;
     case TO_DECL_GROUP:
         static_cast<DeclGroup *>(this)->visitChildren(visitor); return;
-    case TO_DESTRUCT:
+    case TO_DESTRUCTURE:
         static_cast<DestructuringDecl *>(this)->visitChildren(visitor); return;
     case TO_FUNCTION:
         static_cast<FunctionDecl *>(this)->visitChildren(visitor); return;
@@ -216,7 +216,7 @@ void Node::transformChildren(Transformer *transformer) {
     static_cast<ConstDecl *>(this)->transformChildren(transformer); return;
   case TO_DECL_GROUP:
     static_cast<DeclGroup *>(this)->transformChildren(transformer); return;
-  case TO_DESTRUCT:
+  case TO_DESTRUCTURE:
     static_cast<DestructuringDecl *>(this)->transformChildren(transformer); return;
   case TO_FUNCTION:
     static_cast<FunctionDecl *>(this)->transformChildren(transformer); return;
@@ -327,12 +327,12 @@ void CallExpr::transformChildren(Transformer *transformer) {
 }
 
 void ArrayExpr::visitChildren(Visitor *visitor) {
-    for (auto init : initialziers())
+    for (auto init : initializers())
         init->visit(visitor);
 }
 
 void ArrayExpr::transformChildren(Transformer *transformer) {
-  for (auto &init : initialziers())
+  for (auto &init : initializers())
     init = init->transform(transformer)->asExpression();
 }
 

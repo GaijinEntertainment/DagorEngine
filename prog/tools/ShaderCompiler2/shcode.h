@@ -53,6 +53,7 @@ public:
   int varsize, regsize;
 
   SerializableTab<int> initcode;
+  SerializableTab<ShaderVarTextureType> staticTextureTypes;
 
   struct StVarMap
   {
@@ -133,7 +134,7 @@ public:
   {
   public:
     NameId<VarMapAdapter> nameId;
-    int type;
+    ShaderVarType type;
     StVarValue defval;
     Var() { memset(&defval, 0, sizeof(defval)); }
 

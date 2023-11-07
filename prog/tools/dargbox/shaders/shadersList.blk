@@ -1,5 +1,6 @@
   file:t = "./source/gui_default.sh"
   file:t = "./source/yuv.sh"
   file:t = "../../../gameLibs/vr/shaders/vrGuiSurface.sh"
+  file:t = "../../../gameLibs/vr/shaders/vrMirror.sh"
   file:t = "../../../gameLibs/daRg/shaders/dargPanelRendererShaders.sh"
   file:t = "../../../gameLibs/render/shaders/debug_tex_overlay.sh"

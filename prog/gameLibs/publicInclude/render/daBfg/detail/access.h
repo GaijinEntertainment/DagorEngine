@@ -11,7 +11,7 @@
 namespace dabfg
 {
 
-enum class Access : uint32_t
+enum class Access : uint8_t
 {
   UNKNOWN,
   READ_ONLY,

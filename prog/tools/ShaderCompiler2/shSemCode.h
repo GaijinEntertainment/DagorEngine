@@ -36,7 +36,9 @@ public:
   struct Var
   {
     int nameId;
-    int type;
+    ShaderVarType type;
+    int slot = -1;
+    ShaderVarTextureType texType = ShaderVarTextureType::SHVT_TEX_UNKNOWN;
     void *terminal;
     bool used, dynamic, noWarnings;
 

@@ -140,6 +140,9 @@ bool traceTransparencyRayRIGenNormalizedWithDist(const Point3 &pos, const Point3
 bool traceTransparencyRayRIGenNormalized(const Point3 &pos, const Point3 &dir, float mint, float transparency_threshold,
   PhysMat::MatID ray_mat = PHYSMAT_INVALID, rendinst::RendInstDesc *ri_desc = nullptr, int *out_mat_id = nullptr,
   float *out_transparency = nullptr, bool check_canopy = true);
+bool traceTransparencyRayRIGenNormalizedAllLayers(const Point3 &pos, const Point3 &dir, float mint, float transparency_threshold,
+  PhysMat::MatID ray_mat = PHYSMAT_INVALID, rendinst::RendInstDesc *ri_desc = nullptr, int *out_mat_id = nullptr,
+  float *out_transparency = nullptr, bool check_canopy = true, float min_height_second_layer = 1.f);
 
 inline bool traceRayRendInstsNormalized(dag::Span<Trace> traces, bool = false, bool trace_meshes = false,
   rendinst::RendInstDesc *ri_desc = nullptr, bool trace_trees = false, int ray_mat_id = -1, const TraceMeshFaces *ri_cache = nullptr)

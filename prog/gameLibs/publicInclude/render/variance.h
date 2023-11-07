@@ -69,7 +69,7 @@ protected:
   Texture *temp_wrtex, *targ_wrtex;
 
   Driver3dRenderTarget oldrt;
-  TMatrix4 lightViewTm, lightProj, shadowProjMatrix;
+  TMatrix4 lightProj, shadowProjMatrix;
   TMatrix4 svtm;
   Driver3dPerspective persp;
   bool perspOk;
@@ -86,7 +86,6 @@ protected:
   BBox3 updateBox;
   Point3 updateLightDir;
   float updateShadowDist;
-  DagorCurView updateView;
   bool isUpdateForced;
   shaders::UniqueOverrideStateId blendOverride, depthOnlyOverride;
 };

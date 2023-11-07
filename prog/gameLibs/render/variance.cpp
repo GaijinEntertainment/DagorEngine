@@ -301,7 +301,6 @@ void Variance::endShadowMap()
   d3d::set_render_target(oldrt);
   if (update_state & UPDATE_SCENE)
   {
-    ::grs_cur_view = savedView;
     d3d::settm(TM_VIEW, &svtm);
     if (perspOk)
       d3d::setpersp(persp);
@@ -362,7 +361,6 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
   updateBox = in_box;
   updateLightDir = in_light_dir;
   updateShadowDist = in_shadow_dist;
-  updateView = ::grs_cur_view;
 
   isUpdateForced = false;
 
@@ -411,24 +409,21 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
   oldBox = updateBox;
 
   perspOk = d3d::getpersp(persp);
-  savedView = ::grs_cur_view;
-  ::grs_cur_view = updateView;
 
+  TMatrix viewTm, viewItm;
   if (!updateBox.isempty())
   {
-    ::grs_cur_view.itm.setcol(3, Point3(0, 0, 0));
-    view_matrix_from_look(updateLightDir, ::grs_cur_view.itm);
-    ::grs_cur_view.tm = orthonormalized_inverse(::grs_cur_view.itm);
-    BBox3 spacebox = ::grs_cur_view.tm * updateBox;
+    viewItm.setcol(3, Point3(0, 0, 0));
+    view_matrix_from_look(updateLightDir, viewItm);
+    viewTm = orthonormalized_inverse(viewItm);
+    BBox3 spacebox = viewTm * updateBox;
     float dist = max(spacebox[1].z - spacebox[0].z + 1.0f, updateShadowDist);
-    ::grs_cur_view.tm.setcol(3, Point3(0, 0, -(spacebox[0].z - 1.0f - (dist - (spacebox[1].z - spacebox[0].z + 1.0f)))));
+    viewTm.setcol(3, Point3(0, 0, -(spacebox[0].z - 1.0f - (dist - (spacebox[1].z - spacebox[0].z + 1.0f)))));
 
-    ::grs_cur_view.itm = orthonormalized_inverse(::grs_cur_view.tm);
-
-    lightViewTm = TMatrix4(::grs_cur_view.tm);
+    viewItm = orthonormalized_inverse(viewTm);
 
     lightProj = ::matrix_ortho_off_center_lh(spacebox[0].x, spacebox[1].x, spacebox[0].y, spacebox[1].y, 1.0f, dist);
-    TMatrix4 lightViewProj = (TMatrix4(::grs_cur_view.tm) * lightProj);
+    TMatrix4 lightViewProj = (TMatrix4(viewTm) * lightProj);
     // FIGHT ALIASING
     {
       Point4 origin;
@@ -450,8 +445,7 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
 
       lightProj = lightProj * tRound;
     }
-    shadowProjMatrix =
-      (TMatrix4(::grs_cur_view.tm) * lightProj) * screen_to_tex_scale_tm_xy(HALF_TEXEL_OFSF / width, HALF_TEXEL_OFSF / height);
+    shadowProjMatrix = (TMatrix4(viewTm) * lightProj) * screen_to_tex_scale_tm_xy(HALF_TEXEL_OFSF / width, HALF_TEXEL_OFSF / height);
   }
   else
   {
@@ -462,14 +456,14 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
     split.isWarp = false;
     split.isAlign = true;
     xcsm.setSplit(0, split);
-    xcsm.prepare(persp.wk, persp.hk, persp.zn, updateShadowDist, ::grs_cur_view.tm, -updateLightDir, updateShadowDist);
+    xcsm.prepare(persp.wk, persp.hk, persp.zn, updateShadowDist, viewTm, -updateLightDir, updateShadowDist);
     lightProj = xcsm.getSplitProj(0);
     // shadowProjMatrix = lightProj * shadowScaleMatrix;
     shadowProjMatrix = xcsm.getSplitTexTM(0);
-    view_matrix_from_look(updateLightDir, ::grs_cur_view.itm);
-    ::grs_cur_view.tm = orthonormalized_inverse(::grs_cur_view.itm);
+    view_matrix_from_look(updateLightDir, viewItm);
+    viewTm = orthonormalized_inverse(viewItm);
 
-    lightProj = TMatrix4(::grs_cur_view.itm) * lightProj;
+    lightProj = TMatrix4(viewItm) * lightProj;
   }
   unsigned clearFlags = 0;
   if (vsmType == VSM_BLEND)
@@ -505,7 +499,7 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
   // Set new matrices.
   d3d::settm(TM_WORLD, &TMatrix4::IDENT);
 
-  d3d::settm(TM_VIEW, ::grs_cur_view.tm);
+  d3d::settm(TM_VIEW, viewTm);
   d3d::settm(TM_PROJ, &lightProj);
   return true;
 }

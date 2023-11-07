@@ -202,7 +202,7 @@ Register AssembleShaderEvalCB::add_reg(int type)
   return {};
 }
 
-int shtok_to_shvt(int shtok)
+ShaderVarType shtok_to_shvt(int shtok)
 {
   switch (shtok)
   {
@@ -218,7 +218,7 @@ int shtok_to_shvt(int shtok)
 
 void AssembleShaderEvalCB::eval_static(static_var_decl &s)
 {
-  int t = shtok_to_shvt(s.type->type->num);
+  ShaderVarType t = shtok_to_shvt(s.type->type->num);
 
   int varNameId = VarMap::addVarId(s.name->text);
 
@@ -398,6 +398,8 @@ void AssembleShaderEvalCB::eval_init_stat(SHTOK_ident *var, shader_init_value &v
       ind = 0;
     else
       G_ASSERT(0);
+
+    code.vars[vi].slot = ind;
 
     int e_texture_ident_id = IntervalValue::getIntervalNameId(var->text);
     int intervalIndex = variant.intervals.getIntervalIndex(e_texture_ident_id);
@@ -1203,6 +1205,18 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
         error(String(32, "@static texture %s can't be global", var->text), nameSpace);
       else if (code.vars[var_id].dynamic)
         error(String(32, "@static texture %s can't be dynamic", var->text), nameSpace);
+      if (!is_global && !code.vars[var_id].dynamic)
+      {
+        switch (type)
+        {
+          case VariableType::staticSampler: code.vars[var_id].texType = ShaderVarTextureType::SHVT_TEX_2D; break;
+          case VariableType::staticTex3D: code.vars[var_id].texType = ShaderVarTextureType::SHVT_TEX_3D; break;
+          case VariableType::staticCube: code.vars[var_id].texType = ShaderVarTextureType::SHVT_TEX_CUBE; break;
+          case VariableType::staticTexArray: code.vars[var_id].texType = ShaderVarTextureType::SHVT_TEX_2D_ARRAY; break;
+          case VariableType::staticCubeArray: code.vars[var_id].texType = ShaderVarTextureType::SHVT_TEX_CUBE_ARRAY; break;
+          default: break;
+        }
+      }
     }
 
     int shcod = -1;

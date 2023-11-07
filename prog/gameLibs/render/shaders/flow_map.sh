@@ -150,6 +150,7 @@ shader water_flowmap
           if (any(heightNeighbours > waterHeight))
           {
             float2 heightGradient = float2(heightNeighbours.w - heightNeighbours.z, heightNeighbours.x - heightNeighbours.y);
+            heightGradient = normalize(heightGradient);
             float2 floodfillVec = tex2Dlod(flowmap_floodfill_tex, float4(htc,0,0)).rg * 2 - 1;
             heightGradient *= heightGradient.x * floodfillVec.x + heightGradient.y * floodfillVec.y;
             f.xy += heightGradient;

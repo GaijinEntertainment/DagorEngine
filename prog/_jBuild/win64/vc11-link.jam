@@ -10,8 +10,6 @@ rule ProcessLinkTarget
   {
     _LINK_OPT = -nologo -filealign:512 -base:$(BaseAddress) -incremental:no ;
 
-    AddDirectXLibs _LINK_OPT ;
-
     if $(ConsoleExe) != yes {
       _LINK_OPT += -subsystem:windows ;
     }
@@ -63,7 +61,6 @@ rule ProcessLinkTarget
   else if $(TargetType) = dll
   {
     _LINK_OPT = -nologo -dll -subsystem:windows -base:$(BaseAddress) -incremental:no ;
-    AddDirectXLibs _LINK_OPT ;
     if $(Config) != dbg {
       _LINK_OPT += -opt:ref ;
     }

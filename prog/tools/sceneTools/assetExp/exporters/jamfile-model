@@ -12,7 +12,10 @@ if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/dabuild
 Sources = modelExp.cpp modelExpUtil.cpp exp_tools.cpp exp_skeleton_tools.cpp
   exp_rendInst.cpp exp_dynModel.cpp exp_skeleton.cpp exp_rndGrass.cpp ;
 
-AddIncludes = $(Root)/prog/tools/sharedInclude ;
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine/sharedInclude
+;
 
 UseProgLibs =
   engine/startup

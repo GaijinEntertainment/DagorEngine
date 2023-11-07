@@ -1,3 +1,4 @@
+#undef _WIN32_WINNT
 
 #include "dxgi_utils.h"
 

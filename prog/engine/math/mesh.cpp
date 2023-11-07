@@ -357,7 +357,7 @@ void MeshData::buildVertToFaceVertMap(F2V_Map &map, const Face *face, int numf, 
   map.index.clear();
   map.data.resize(data_sz);
   map.index.resize(vnum * 2);
-  memset(&map.index[0], 0, 4 * 2 * vnum);
+  mem_set_0(map.index);
 
   for (i = 0; i < numf; i++)
   {

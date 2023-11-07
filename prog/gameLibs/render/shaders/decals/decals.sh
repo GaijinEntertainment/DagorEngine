@@ -11,23 +11,30 @@ endmacro
 
 macro USE_PLANAR_DECALS(start_params_no)
   hlsl {
-    // minAng80 = 0.174 maxAng45 = 0.707 (influence - minAng80) / (maxAng45 - minAng80)
-    #define INFLUENCE_MUL 1.87617
-    #define INFLUENCE_ADD 0.32645
-
-    #define TYPE_SCALE_MUL 1024
-
     float GetInfluence(float influence)
     {
-      return saturate(influence * INFLUENCE_MUL + INFLUENCE_ADD);
+      float minAng80 = 0.174;
+      float maxAng45 = 0.707;
+      return saturate((influence - minAng80) / (maxAng45 - minAng80));
     }
 
     #define DECAL_GET_DYNREND_PARAM(param_no, dynrend_params_offset_count) ((int)param_no < (int)dynrend_params_offset_count.y ? \
         loadBuffer(per_chunk_render_data, dynrend_params_offset_count.x + param_no) : float4(0, 0, 0, 0))
 
+    void planar_decals_vs_common(
+          inout int4 dec_mul, inout float4 type_scale, float2 dynrend_params_offset_count)
+    {
+      float2 params = dynrend_params_offset_count;
+      float4 decal_encoded_widht__multiplier = DECAL_GET_DYNREND_PARAM(start_params_no, params);
+      dec_mul = (-2 * (frac(decal_encoded_widht__multiplier) >= 0.5) + 1);
+      dec_mul *= (frac(decal_encoded_widht__multiplier * 2) >= 0.5) + 1;
+      dec_mul *= frac(decal_encoded_widht__multiplier * 4) >= 0.5;
+      type_scale = decal_encoded_widht__multiplier / 1024;
+    }
+
     void planar_decals_vs(
         inout float4 decals_uv_depth_influence,
-        int decal_idx, float type_scale_inv, float3 model_pos,
+        int decal_idx, int dec_mul, float type_scale, float3 model_pos,
         float3 model_normal, float2 dynrend_params_offset_count)
     {
       float2 params = dynrend_params_offset_count;
@@ -38,13 +45,30 @@ macro USE_PLANAR_DECALS(start_params_no)
       int norm_idx = start_params_no + 1 + 16 + i * 2;
 
       float4 n0 = DECAL_GET_DYNREND_PARAM(norm_idx + 0, params);
+      float4 n1 = DECAL_GET_DYNREND_PARAM(norm_idx + 1, params);
       float influence0 = dot(model_normal, n0.xyz);
-
-      decals_uv_depth_influence.z = dot(modelPos4, n0) * type_scale_inv;
-      decals_uv_depth_influence.w = GetInfluence(influence0);
-      decals_uv_depth_influence.xy = float2(
-        dot(modelPos4, DECAL_GET_DYNREND_PARAM(line_idx + 0, params)),
-        dot(modelPos4, DECAL_GET_DYNREND_PARAM(line_idx + 1, params)));
+      float influence1 = dot(model_normal, n1.xyz);
+      FLATTEN
+      if (dec_mul < 0 && influence1 > influence0)
+      {
+        decals_uv_depth_influence.z = dot(modelPos4, n1) / type_scale;
+        decals_uv_depth_influence.w = GetInfluence(influence1);
+        decals_uv_depth_influence.xy = float2(
+          dot(modelPos4, DECAL_GET_DYNREND_PARAM(line_idx + 2, params)),
+          dot(modelPos4, DECAL_GET_DYNREND_PARAM(line_idx + 3, params)));
+        if (dec_mul < -1)
+        {
+          decals_uv_depth_influence.x = 1 - decals_uv_depth_influence.x;
+        }
+      }
+      else
+      {
+        decals_uv_depth_influence.z = dot(modelPos4, n0) / type_scale;
+        decals_uv_depth_influence.w = GetInfluence(influence0);
+        decals_uv_depth_influence.xy = float2(
+          dot(modelPos4, DECAL_GET_DYNREND_PARAM(line_idx + 0, params)),
+          dot(modelPos4, DECAL_GET_DYNREND_PARAM(line_idx + 1, params)));
+      }
     }
 
     void apply_planar_decals_vs(
@@ -56,11 +80,12 @@ macro USE_PLANAR_DECALS(start_params_no)
       float3 model_normal,
       float2 dynrend_params_offset_count)
     {
-      float4 decal_encoded_widht__multiplier = DECAL_GET_DYNREND_PARAM(start_params_no, dynrend_params_offset_count);
-      float4 typeScaleInv = TYPE_SCALE_MUL / decal_encoded_widht__multiplier;
+      int4 decMul = 0;
+      float4 typeScale = 0;
+      planar_decals_vs_common(decMul, typeScale, dynrend_params_offset_count);
 
       #define VS_CALC_DECAL(idx) \
-        planar_decals_vs(decals_uv_depth_influence_##idx, idx, typeScaleInv[idx], \
+        planar_decals_vs(decals_uv_depth_influence_##idx, idx, decMul[idx], typeScale[idx], \
         model_pos, model_normal, dynrend_params_offset_count);
 
       VS_CALC_DECAL(0);
@@ -78,43 +103,19 @@ macro USE_PLANAR_DECALS(start_params_no)
     #define DIFFUSE_MUL_RCP  (1.0f / (DIFFUSE_TO_DECAL * DIFFUSE_TO_DECAL + 1e-6))
 
     void process_decal_indexed(
-      int decalIndex, float4 decal_uv_depth_influence, half diffMul, float4 modelPos4, float3 model_normal, float2 params,
-      int dec_mul, float type_scale_inv, inout half4 decalEffect, inout half3 diffuseColor)
+      int decalIndex, float4 decal_uv_depth_influence, half diffMul, float2 params,
+      inout half4 decalEffect, inout half3 diffuseColor)
     {
       int i = decalIndex;
       int uv_idx = start_params_no + 1 + 16 + 8 + i;
-
-      float2 uv = decal_uv_depth_influence.xy;
-      float depth = decal_uv_depth_influence.z;
-      float influence = decal_uv_depth_influence.w;
-
-      // apply a mirrored decal in the pixel shader only to avoid interpolation artifacts
-      BRANCH
-      if (dec_mul < 0)
-      {
-        int line_idx = start_params_no + 1 + 4 * i;
-        int norm_idx = start_params_no + 1 + 16 + i * 2;
-        float4 n1 = DECAL_GET_DYNREND_PARAM(norm_idx + 1, params);
-        float influence1 = dot(model_normal, n1.xyz);
-        FLATTEN
-        if (influence1 > influence)
-        {
-          depth = dot(modelPos4, n1) * type_scale_inv;
-          influence = GetInfluence(influence1);
-          uv = float2(
-            dot(modelPos4, DECAL_GET_DYNREND_PARAM(line_idx + 2, params)),
-            dot(modelPos4, DECAL_GET_DYNREND_PARAM(line_idx + 3, params)));
-          if (dec_mul < -1)
-          {
-            uv.x = 1 - uv.x;
-          }
-        }
-      }
 
       float4 uvScaleOffset = GET_DYNREND_PARAM(uv_idx, params);
       float2 uvScale = uvScaleOffset.zw - uvScaleOffset.xy;
 
       #define CLAMP_BORDER_ATLAS(a, name, val) if (a.x <= 0.0f || a.x >= 1.0f || a.y <= 0.0f || a.y >= 1.0f) {name = val;}
+      float2 uv = decal_uv_depth_influence.xy;
+      float depth = decal_uv_depth_influence.z;
+      float influence = decal_uv_depth_influence.w;
       half4 decal = all((half2)uvScale) ? h4tex2D(atlas, uv * uvScale + uvScaleOffset.xy) : half4(0.h, 0.h, 0.h, 0.h);
       CLAMP_BORDER_ATLAS(uv, decal, half4(0.h, 0.h, 0.h, 0.h));
       #undef CLAMP_BORDER_ATLAS
@@ -124,25 +125,17 @@ macro USE_PLANAR_DECALS(start_params_no)
 
     half apply_planar_decals_ps(
       inout half3 diffuseColor,
-      float3 model_pos,
-      float3 model_normal,
       float4 decals_uv_depth_influence_0,
       float4 decals_uv_depth_influence_1,
       float4 decals_uv_depth_influence_2,
       float4 decals_uv_depth_influence_3,
       float2 dynrend_params_offset_count)
     {
-      float4 decal_encoded_widht__multiplier = DECAL_GET_DYNREND_PARAM(start_params_no, dynrend_params_offset_count);
-      int4 decMul = (-2 * (frac(decal_encoded_widht__multiplier) >= 0.5) + 1);
-      decMul *= (frac(decal_encoded_widht__multiplier * 2) >= 0.5) + 1;
-      decMul *= frac(decal_encoded_widht__multiplier * 4) >= 0.5;
-      float4 typeScaleInv = TYPE_SCALE_MUL / decal_encoded_widht__multiplier;
-
       half diffMul = saturate(luminance(diffuseColor.rgb) * (half)DIFFUSE_MUL_RCP);
       half4 decalEffect = 0.h;
 
       #define PROCESS_DECAL(idx) process_decal_indexed(\
-        idx, decals_uv_depth_influence_##idx, diffMul, float4(model_pos, 1), model_normal, dynrend_params_offset_count, decMul[idx], typeScaleInv[idx], decalEffect, diffuseColor)
+        idx, decals_uv_depth_influence_##idx, diffMul, dynrend_params_offset_count, decalEffect, diffuseColor)
 
       PROCESS_DECAL(0);
       PROCESS_DECAL(1);
@@ -161,7 +154,7 @@ macro USE_PLANAR_DECALS(start_params_no)
       apply_planar_decals_vs(decals_uv_depth_influence[0], decals_uv_depth_influence[1], decals_uv_depth_influence[2], decals_uv_depth_influence[3],
         model_pos, model_normal, dynrend_params_offset_count);
 
-      return apply_planar_decals_ps(diffuseColor, model_pos, model_normal, decals_uv_depth_influence[0], decals_uv_depth_influence[1], decals_uv_depth_influence[2],
+      return apply_planar_decals_ps(diffuseColor, decals_uv_depth_influence[0], decals_uv_depth_influence[1], decals_uv_depth_influence[2],
         decals_uv_depth_influence[3], dynrend_params_offset_count);
     }
   }

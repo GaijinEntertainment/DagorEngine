@@ -13,6 +13,7 @@ void BackGraphicsState::reset(ExecutionStateStorage &)
 {
   TrackedState::reset();
   pipelineState.reset();
+  framebufferState.reset();
 }
 
 } // namespace drv3d_vulkan

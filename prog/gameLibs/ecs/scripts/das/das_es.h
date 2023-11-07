@@ -141,7 +141,7 @@ struct ESModuleGroupData : das::ModuleGroupUserData
   eastl::vector<QueryData> unresolvedQueries;
   das::DebugInfoHelper *helper = nullptr;
   uint32_t hashedScriptName = 0;
-  uint32_t es_resolve_function_ptrs(EsContext *ctx, eastl::set<ecs::EntitySystemDesc *> &systems, const char *fname,
+  uint32_t es_resolve_function_ptrs(EsContext *ctx, dag::VectorSet<ecs::EntitySystemDesc *> &systems, const char *fname,
     uint64_t load_start_time, AotMode aot_mode, AotModeIsRequired aot_mode_is_required, DasEcsStatistics &stats);
 };
 

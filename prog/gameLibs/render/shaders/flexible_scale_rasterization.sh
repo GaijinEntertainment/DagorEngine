@@ -2,14 +2,15 @@
 int fsr_distortion = 0;
 interval fsr_distortion: no < 1, yes;
 
-int fsr_lut_id = 0;
+int fsr_resolve_lut_id = 0;
+int fsr_distortion_lut_id = 0;
 
 macro USE_FSR(code)
   if (hardware.ps5 && fsr_distortion == yes)
   {
     (code)
     {
-      fsr_lut_id@i1 = fsr_lut_id;
+      fsr_lut_id@i2 = (fsr_resolve_lut_id, fsr_distortion_lut_id);
       fsr_viewport@f4 = get_viewport();
     }
 
@@ -18,24 +19,44 @@ macro USE_FSR(code)
       RegularBuffer<sce::Gnm::Texture> static_textures : BINDLESS_TEX_REGISTER;
       RegularBuffer<sce::Gnm::Sampler> static_samplers : BINDLESS_SAMPLER_REGISTER;
 
-      uint2 fsrPos(uint2 pos, uint2 size)
+      float2 linearToDistortedTc(float2 tc)
       {
-        Texture1D<float> fsrLutH = static_textures[fsr_lut_id];
-        Texture1D<float> fsrLutV = static_textures[fsr_lut_id + 1];
+        Texture1D<float> fsrLutH = static_textures[fsr_lut_id.x];
+        Texture1D<float> fsrLutV = static_textures[fsr_lut_id.x + 1];
         SamplerState smp = static_samplers[0];
 
-        float2 tc = float2(pos) / float2(size);
-        return uint2(fsrLutH.Sample(smp, tc.x) * size.x, fsrLutV.Sample(smp, tc.y) * size.y);
+        return float2(fsrLutH.Sample(smp, tc.x), fsrLutV.Sample(smp, tc.y));
       }
 
-      float2 getTexcoord(float2 pos)
+      float2 distortedToLinearTc(float2 tc)
+      {
+        Texture1D<float> fsrLutH = static_textures[fsr_lut_id.y];
+        Texture1D<float> fsrLutV = static_textures[fsr_lut_id.y + 1];
+        SamplerState smp = static_samplers[0];
+
+        return float2(fsrLutH.Sample(smp, tc.x), fsrLutV.Sample(smp, tc.y));
+      }
+
+      uint2 linearToDistortedPos(uint2 pos, uint2 size)
+      {
+        float2 tc = float2(pos) / float2(size);
+        return uint2(linearToDistortedTc(tc) * size);
+      }
+
+      uint2 distortedToLinearPos(uint2 pos, uint2 size)
+      {
+        float2 tc = float2(pos) / float2(size);
+        return uint2(distortedToLinearTc(tc) * size);
+      }
+
+      float2 getLinearTc(float2 pos)
       {
         return (pos - fsr_viewport.xy) / fsr_viewport.zw;
       }
 
-      float2 getTexcoord(float2 pos, float2 texcoord)
+      float2 getLinearTc(float2 pos, float2 tc)
       {
-        return getTexcoord(pos);
+        return getLinearTc(pos);
       }
 
       #define FSR_DISTORTION 1
@@ -45,14 +66,29 @@ macro USE_FSR(code)
   {
     hlsl(code)
     {
-      uint2 fsrPos(uint2 pos, uint2 size)
+      uint2 linearToDistortedPos(uint2 pos, uint2 size)
       {
         return pos;
       }
 
-      float2 getTexcoord(float2 pos, float2 texcoord)
+      uint2 distortedToLinearPos(uint2 pos, uint2 size)
       {
-        return texcoord;
+        return pos;
+      }
+
+      float2 linearToDistortedTc(float2 tc)
+      {
+        return tc;
+      }
+
+      float2 distortedToLinearTc(float2 tc)
+      {
+        return tc;
+      }
+
+      float2 getLinearTc(float2 pos, float2 tc)
+      {
+        return tc;
       }
     }
   }

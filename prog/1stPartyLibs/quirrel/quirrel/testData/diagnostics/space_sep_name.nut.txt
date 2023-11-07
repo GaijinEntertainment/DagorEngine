@@ -1,0 +1,11 @@
+
+
+
+let a1 = [1, 2, 3]
+
+a1.append(6) // OK
+.extend(7)   // OK
+
+a1.
+append(8).  // NOT OK
+extend(6)   // NOT OK

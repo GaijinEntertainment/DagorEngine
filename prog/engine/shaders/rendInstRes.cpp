@@ -32,7 +32,9 @@ RenderableInstanceLodsResource::ImpostorTextures RenderableInstanceLodsResource:
   VAR(impostor_view_mode)           \
   VAR(impostor_albedo_alpha)        \
   VAR(impostor_normal_translucency) \
-  VAR(impostor_ao_smoothness)
+  VAR(impostor_ao_smoothness)       \
+  VAR(cross_dissolve_mul)           \
+  VAR(cross_dissolve_add)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_OPTIONAL_VARS_LIST
@@ -294,6 +296,15 @@ bool RenderableInstanceLodsResource::setImpostorVars(ShaderMaterial *mat, int bu
     G_ASSERT(impostorTextures.albedo_alpha != BAD_TEXTUREID && impostorTextures.normal_translucency != BAD_TEXTUREID &&
              impostorTextures.ao_smoothness != BAD_TEXTUREID);
 
+  return res;
+}
+
+bool RenderableInstanceLodsResource::setImpostorTransitionRange(ShaderMaterial *mat, float transition_lod_start,
+  float transition_range) const
+{
+  bool res = true;
+  res = mat->set_real_param(cross_dissolve_mulVarId, 1 / transition_range) && res;
+  res = mat->set_real_param(cross_dissolve_addVarId, -transition_lod_start / transition_range) && res;
   return res;
 }
 

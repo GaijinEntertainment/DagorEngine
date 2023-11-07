@@ -115,16 +115,6 @@ real *AnimCommonStateHolder::getParamScalarPtr(int id)
 }
 
 
-void AnimCommonStateHolder::setParam(int id, real value)
-{
-  G_ASSERT(id >= 0 && id < val.size());
-  G_ASSERT(paramTypes[id] == PT_ScalarParam || paramTypes[id] == PT_TimeParam);
-  if (val[id].scalar != value)
-    val[id].flags |= PF_Changed;
-  val[id].scalar = value;
-}
-
-
 int AnimCommonStateHolder::getTimeScaleParamId(int id) const
 {
   G_ASSERT(id >= 0 && id < val.size());

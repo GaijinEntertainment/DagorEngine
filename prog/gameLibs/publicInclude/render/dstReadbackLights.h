@@ -9,10 +9,10 @@
 #include <render/spotLightsManager.h>
 #include <EASTL/fixed_function.h>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/map.h>
 
 #include <shaders/dag_computeShaders.h>
 #include <3d/dag_ringCPUQueryLock.h>
+#include <dag/dag_vectorMap.h>
 
 class DistanceReadbackLights
 {
@@ -21,7 +21,7 @@ class DistanceReadbackLights
   eastl::unique_ptr<ComputeShaderElement> findMaxDepth2D;
   eastl::unique_ptr<Sbuffer, DestroyDeleter<Sbuffer>> maxValueBuffer;
   RingCPUBufferLock resultRingBuffer;
-  eastl::map<int, int> lightLogCount;
+  dag::VectorMap<int, int> lightLogCount;
 
   int lastNonOptId;
   bool processing;

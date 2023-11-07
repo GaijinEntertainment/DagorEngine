@@ -313,7 +313,7 @@ class NodeEqualChecker {
   }
 
   bool cmpArrayExpr(const ArrayExpr *l, const ArrayExpr *r) const {
-    return cmpNodeVector(l->initialziers(), r->initialziers());
+    return cmpNodeVector(l->initializers(), r->initializers());
   }
 
   bool cmpGetField(const GetFieldExpr *l, const GetFieldExpr *r) const {
@@ -362,7 +362,7 @@ class NodeEqualChecker {
   }
 
   bool cmpDestructDecl(const DestructuringDecl *l, const DestructuringDecl *r) const {
-    return l->type() == r->type() && check(l->initiExpression(), r->initiExpression());
+    return l->type() == r->type() && check(l->initExpression(), r->initExpression());
   }
 
   bool cmpFunction(const FunctionDecl *l, const FunctionDecl *r) const {
@@ -549,7 +549,7 @@ public:
       return cmpConst((const ConstDecl *)lhs, (const ConstDecl *)rhs);
     case TO_DECL_GROUP:
       return cmpDeclGroup((const DeclGroup *)lhs, (const DeclGroup *)rhs);
-    case TO_DESTRUCT:
+    case TO_DESTRUCTURE:
       return cmpDestructDecl((const DestructuringDecl *)lhs, (const DestructuringDecl *)rhs);
     case TO_FUNCTION:
     case TO_CONSTRUCTOR:
@@ -631,7 +631,7 @@ public:
   }
 
   void visitArrayExpr(ArrayExpr *arr) {
-    complexity += arr->initialziers().size();
+    complexity += arr->initializers().size();
     Visitor::visitArrayExpr(arr);
   }
 
@@ -1083,8 +1083,8 @@ class NodeDiffComputer {
   }
 
   int32_t diffArrayExpr(const ArrayExpr *lhs, const ArrayExpr *rhs) {
-    const auto &leftInits = lhs->initialziers();
-    const auto &rightInits = rhs->initialziers();
+    const auto &leftInits = lhs->initializers();
+    const auto &rightInits = rhs->initializers();
 
     if (leftInits.size() != rightInits.size())
       return sizeDiff(leftInits.size(), rightInits.size());
@@ -1238,7 +1238,7 @@ class NodeDiffComputer {
   }
 
   int32_t diffDestructDecl(const DestructuringDecl *lhs, const DestructuringDecl *rhs) {
-    int32_t valueDiff = diffNodes(lhs->initiExpression(), rhs->initiExpression());
+    int32_t valueDiff = diffNodes(lhs->initExpression(), rhs->initExpression());
 
     if (valueDiff > limit)
       return valueDiff;
@@ -1472,7 +1472,7 @@ class NodeDiffComputer {
       return diffConst((const ConstDecl *)lhs, (const ConstDecl *)rhs);
     case TO_DECL_GROUP:
       return diffDeclGroup((const DeclGroup *)lhs, (const DeclGroup *)rhs);
-    case TO_DESTRUCT:
+    case TO_DESTRUCTURE:
       return diffDestructDecl((const DestructuringDecl *)lhs, (const DestructuringDecl *)rhs);
     case TO_FUNCTION:
     case TO_CONSTRUCTOR:
@@ -2026,28 +2026,28 @@ public:
 
 class AssignSeqTerminatorFinder : public Visitor {
 
-  const Expr *assigne;
+  const Expr *assignee;
   bool foundUsage;
-  bool foundInteruptor;
+  bool foundInterruptor;
 
   NodeEqualChecker eqChecker;
 
 public:
-  AssignSeqTerminatorFinder(const Expr *asg) : assigne(asg), foundUsage(false), foundInteruptor(false), eqChecker() {}
+  AssignSeqTerminatorFinder(const Expr *asg) : assignee(asg), foundUsage(false), foundInterruptor(false), eqChecker() {}
 
   void visitNode(Node *n) {
-    if (!foundInteruptor && !foundUsage)
+    if (!foundInterruptor && !foundUsage)
       Visitor::visitNode(n);
   }
 
   void visitCallExpr(CallExpr *c) {
-    foundInteruptor = true; // consider call as potenrial usage
+    foundInterruptor = true; // consider call as potential usage
   }
 
   void visitExpr(Expr *e) {
     Visitor::visitExpr(e);
 
-    if (eqChecker.check(assigne, e))
+    if (eqChecker.check(assignee, e))
       foundUsage = true;
   }
 
@@ -2057,7 +2057,7 @@ public:
 
     tree->visit(this);
 
-    return foundUsage || foundInteruptor;
+    return foundUsage || foundInterruptor;
   }
 };
 
@@ -2373,7 +2373,7 @@ struct FunctionInfo {
   };
 
   const FunctionDecl *owner;
-  std::vector<Modifiable> modifible;
+  std::vector<Modifiable> modifiable;
   const FunctionDecl *declaration;
   std::vector<const SQChar *> parameters;
 
@@ -2383,7 +2383,7 @@ struct FunctionInfo {
 };
 
 void FunctionInfo::joinModifiable(const FunctionInfo *other) {
-  for (auto &m : other->modifible) {
+  for (auto &m : other->modifiable) {
     if (owner == m.owner)
       continue;
 
@@ -2392,12 +2392,12 @@ void FunctionInfo::joinModifiable(const FunctionInfo *other) {
 }
 
 void FunctionInfo::addModifiable(const SQChar *name, const FunctionDecl *o) {
-  for (auto &m : modifible) {
+  for (auto &m : modifiable) {
     if (m.owner == o && strcmp(name, m.name) == 0)
       return;
   }
 
-  modifible.push_back({ o, name });
+  modifiable.push_back({ o, name });
 }
 
 struct VarScope;
@@ -2867,7 +2867,7 @@ class CheckerVisitor : public Visitor {
   void checkPersistCall(const CallExpr *callExpr);
   void checkForbiddenCall(const CallExpr *callExpr);
   void checkCallFromRoot(const CallExpr *callExpr);
-  void checkForbidenParentDir(const CallExpr *callExpr);
+  void checkForbiddenParentDir(const CallExpr *callExpr);
   void checkFormatArguments(const CallExpr *callExpr);
   void checkArguments(const CallExpr *callExpr);
   void checkContainerModification(const CallExpr *expr);
@@ -2900,7 +2900,7 @@ class CheckerVisitor : public Visitor {
   void checkDuplicateSwitchCases(SwitchStatement *swtch);
   void checkDuplicateIfBranches(IfStatement *ifStmt);
   void checkDuplicateIfConditions(IfStatement *ifStmt);
-  void checkSuspiciousFormating(const Statement *body, const Statement *stmt);
+  void checkSuspiciousFormatting(const Statement *body, const Statement *stmt);
 
   bool onlyEmptyStatements(int32_t start, const ArenaVector<Statement *> &statements) {
     for (int32_t i = start; i < statements.size(); ++i) {
@@ -4671,7 +4671,7 @@ void CheckerVisitor::checkForbiddenCall(const CallExpr *call) {
     return;
 
   if (isForbiddenFunctionName(fn)) {
-    report(call, DiagnosticsId::DI_FORBIDEN_FUNC, fn);
+    report(call, DiagnosticsId::DI_FORBIDDEN_FUNC, fn);
   }
 }
 
@@ -4707,7 +4707,7 @@ void CheckerVisitor::checkCallFromRoot(const CallExpr *call) {
   }
 }
 
-void CheckerVisitor::checkForbidenParentDir(const CallExpr *call) {
+void CheckerVisitor::checkForbiddenParentDir(const CallExpr *call) {
   if (effectsOnly)
     return;
 
@@ -4734,7 +4734,7 @@ void CheckerVisitor::checkForbidenParentDir(const CallExpr *call) {
 
   const char * p = strstr(path, "..");
   if (p && (p[2] == '/' || p[2] == '\\')) {
-    report(call, DiagnosticsId::DI_FORBIDEN_PARENT_DIR);
+    report(call, DiagnosticsId::DI_FORBIDDEN_PARENT_DIR);
   }
 }
 
@@ -5222,7 +5222,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkPersistCall(expr);
   checkForbiddenCall(expr);
   checkCallFromRoot(expr);
-  checkForbidenParentDir(expr);
+  checkForbiddenParentDir(expr);
   checkFormatArguments(expr);
   checkContainerModification(expr);
   checkUnwantedModification(expr);
@@ -5427,7 +5427,7 @@ bool wrappedBody(const Statement *stmt) {
     && stmt->columnEnd() == wp->columnEnd();
 }
 
-void CheckerVisitor::checkSuspiciousFormating(const Statement *body, const Statement *stmt) {
+void CheckerVisitor::checkSuspiciousFormatting(const Statement *body, const Statement *stmt) {
   if (wrappedBody(body)) {
     if (stmt->lineStart() != body->lineStart() && stmt->columnStart() >= body->columnStart()) {
 
@@ -5657,7 +5657,7 @@ void CheckerVisitor::checkFunctionSimilarity(const Block *b) {
           const SQChar *name2 = f2->name();
 
           if (diff == 0)
-            report(f2, DiagnosticsId::DI_DUPLCIATE_FUNC, name1, name2);
+            report(f2, DiagnosticsId::DI_DUPLICATE_FUNC, name1, name2);
           else {
             f1Complexity = NodeComplexityComputer::compute(f1->body(), functionComplexityThreshold * 3);
             if (diff <= f1Complexity / functionComplexityThreshold)
@@ -5870,7 +5870,7 @@ void CheckerVisitor::visitBlock(Block *b) {
 void CheckerVisitor::visitForStatement(ForStatement *loop) {
   checkUnterminatedLoop(loop);
   checkVariableMismatchForLoop(loop);
-  checkSuspiciousFormating(loop->body(), loop);
+  checkSuspiciousFormatting(loop->body(), loop);
 
   VarScope *trunkScope = currentScope;
 
@@ -5942,7 +5942,7 @@ void CheckerVisitor::checkNullableContainer(const ForeachStatement *loop) {
 void CheckerVisitor::visitForeachStatement(ForeachStatement *loop) {
   checkUnterminatedLoop(loop);
   checkNullableContainer(loop);
-  checkSuspiciousFormating(loop->body(), loop);
+  checkSuspiciousFormatting(loop->body(), loop);
 
 
   VarScope *trunkScope = currentScope;
@@ -6014,7 +6014,7 @@ void CheckerVisitor::visitForeachStatement(ForeachStatement *loop) {
 void CheckerVisitor::visitWhileStatement(WhileStatement *loop) {
   checkUnterminatedLoop(loop);
   checkEmptyWhileBody(loop);
-  checkSuspiciousFormating(loop->body(), loop);
+  checkSuspiciousFormatting(loop->body(), loop);
 
   loop->condition()->visit(this);
 
@@ -6608,7 +6608,7 @@ void CheckerVisitor::visitIfStatement(IfStatement *ifstmt) {
   checkDuplicateIfConditions(ifstmt);
   checkDuplicateIfBranches(ifstmt);
   checkAlwaysTrueOrFalse(ifstmt->condition());
-  checkSuspiciousFormating(ifstmt->thenBranch(), ifstmt);
+  checkSuspiciousFormatting(ifstmt->thenBranch(), ifstmt);
 
   VarScope *trunkScope = currentScope;
   VarScope *thenScope = trunkScope->copy(arena);
@@ -6859,7 +6859,7 @@ void CheckerVisitor::checkFunctionSimilarity(const TableDecl *table) {
           const SQChar *name2 = f2->name();
 
           if (diff == 0)
-            report(f2, DiagnosticsId::DI_DUPLCIATE_FUNC, name1, name2);
+            report(f2, DiagnosticsId::DI_DUPLICATE_FUNC, name1, name2);
           else {
             complexity = NodeComplexityComputer::compute(f1->body(), functionComplexityThreshold * 3);
             if (diff <= complexity / functionComplexityThreshold)
@@ -6875,7 +6875,7 @@ void CheckerVisitor::checkAccessNullable(const DestructuringDecl *dd) {
   if (effectsOnly)
     return;
 
-  const Expr *i = dd->initiExpression();
+  const Expr *i = dd->initExpression();
   const Expr *initializer = i;
 
   if (isPotentiallyNullable(initializer)) {
@@ -7494,7 +7494,7 @@ void CheckerVisitor::applyKnownInvocationToScope(const ValueRef *value) {
     return;
   }
 
-  for (auto s : info->modifible) {
+  for (auto s : info->modifiable) {
     VarScope *scope = currentScope->findScope(s.owner);
     if (!scope)
       continue;

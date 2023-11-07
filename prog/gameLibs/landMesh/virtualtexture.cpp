@@ -385,7 +385,8 @@ public:
   void copyUAVFeedback();
   const UniqueTexHolder &getCache(int at) { return cache[at]; }                   // for debug
   const UniqueTex &getIndirection() const { return currentContext->indirection; } // for debug
-  void createCaches(const uint32_t *formats, uint32_t cnt, const uint32_t *buffer_formats, uint32_t buffer_cnt);
+  void createCaches(const uint32_t *formats, const uint32_t *uncompressed_formats, uint32_t cnt, const uint32_t *buffer_formats,
+    uint32_t buffer_cnt);
   void afterReset();
 
   static bool is_uav_supported();
@@ -635,9 +636,10 @@ void Clipmap::endUAVFeedback(int reg_no) { clipmapImpl->endUAVFeedback(reg_no); 
 void Clipmap::copyUAVFeedback() { clipmapImpl->copyUAVFeedback(); }
 const UniqueTexHolder &Clipmap::getCache(int at) { return clipmapImpl->getCache(at); }
 const UniqueTex &Clipmap::getIndirection() const { return clipmapImpl->getIndirection(); }
-void Clipmap::createCaches(const uint32_t *formats, uint32_t cnt, const uint32_t *buffer_formats, uint32_t buffer_cnt)
+void Clipmap::createCaches(const uint32_t *formats, const uint32_t *uncompressed_formats, uint32_t cnt, const uint32_t *buffer_formats,
+  uint32_t buffer_cnt)
 {
-  clipmapImpl->createCaches(formats, cnt, buffer_formats, buffer_cnt);
+  clipmapImpl->createCaches(formats, uncompressed_formats, cnt, buffer_formats, buffer_cnt);
 }
 void Clipmap::afterReset() { clipmapImpl->afterReset(); }
 
@@ -2846,7 +2848,7 @@ void ClipmapImpl::finalizeCompressionQueue()
 
   bool hasUncompressed = false;
   for (int ci = 0; ci < cacheCnt; ++ci)
-    if (compressor[ci] && compressor[ci]->getCompressionType() != BcCompressor::COMPRESSION_ERR)
+    if (compressor[ci] && compressor[ci]->isValid())
     {
       for (int mipNo = 0; mipNo < mipCnt; mipNo++)
         compressor[ci]->updateFromMip(bufferTex[ci].getTexId(), mipNo, mipNo, compressionQueue.size());
@@ -2857,7 +2859,7 @@ void ClipmapImpl::finalizeCompressionQueue()
   G_ASSERT(compressionQueue.size() <= COMPRESS_QUEUE_SIZE);
   // fixme: actually we need compressors for each format, not for each texture!
   for (int ci = 0; ci < cacheCnt; ++ci)
-    if (compressor[ci] && compressor[ci]->getCompressionType() != BcCompressor::COMPRESSION_ERR)
+    if (compressor[ci] && compressor[ci]->isValid())
     {
       for (int mipNo = 0; mipNo < mipCnt; mipNo++)
         for (int i = 0; i < compressionQueue.size(); ++i)
@@ -2886,7 +2888,7 @@ void ClipmapImpl::finalizeCompressionQueue()
     for (int mipNo = 0; mipNo < mipCnt; mipNo++)
     {
       for (int ci = 0; ci < cacheCnt; ++ci)
-        d3d::set_render_target(ci, compressor[ci] ? nullptr : cache[ci].getTex2D(), mipNo);
+        d3d::set_render_target(ci, (compressor[ci] && compressor[ci]->isValid()) ? nullptr : cache[ci].getTex2D(), mipNo);
       directUncompressElem->setStates(0, true);
       d3d::set_vs_const1(51, mipNo, 0, 0, 0);
       d3d::set_vs_const(52, &quads[0].x, quads.size());
@@ -3938,7 +3940,8 @@ bool ClipmapImpl::getMaximumBBox(BBox2 &ret) const
   return true;
 }
 
-void ClipmapImpl::createCaches(const uint32_t *formats, uint32_t cnt, const uint32_t *buffer_formats, uint32_t buffer_cnt)
+void ClipmapImpl::createCaches(const uint32_t *formats, const uint32_t *uncompressed_formats, uint32_t cnt,
+  const uint32_t *buffer_formats, uint32_t buffer_cnt)
 {
   cacheCnt = min(cnt, (uint32_t)cache.size());
   bufferCnt = min(buffer_cnt, (uint32_t)bufferTex.size());
@@ -4008,9 +4011,11 @@ void ClipmapImpl::createCaches(const uint32_t *formats, uint32_t cnt, const uint
     }
 
     String cacheTexName(30, "cache_tex%d%s", ci, postfix.str());
-    cache[ci] = dag::create_tex(nullptr, cacheDimX, cacheDimY,
-      formats[ci] | (compressor[ci] ? TEXCF_UPDATE_DESTINATION : TEXCF_RTARGET) | TEXCF_CLEAR_ON_CREATE, max(mipCnt, 1 + PS4_ANISO_WA),
-      cacheTexName);
+    cache[ci].close();
+    bool hasCompressor = compressor[ci] && compressor[ci]->isValid();
+    uint32_t texFormat =
+      (hasCompressor ? (formats[ci] | TEXCF_UPDATE_DESTINATION) : (uncompressed_formats[ci] | TEXCF_RTARGET)) | TEXCF_CLEAR_ON_CREATE;
+    cache[ci] = dag::create_tex(nullptr, cacheDimX, cacheDimY, texFormat, max(mipCnt, 1 + PS4_ANISO_WA), cacheTexName);
     d3d_err(cache[ci].getTex2D());
     cache[ci].getTex2D()->setAnisotropy(cacheAnisotropy);
     if (cacheAnisotropy != ::dgs_tex_anisotropy)

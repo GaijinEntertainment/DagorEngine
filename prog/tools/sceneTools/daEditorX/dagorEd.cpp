@@ -45,7 +45,6 @@
 #include <render/dynmodelRenderer.h>
 
 #include <scene/dag_visibility.h>
-#include <EditorCore/ec_IEditorCoreImpl.h>
 
 static struct DagorEdReset3DCallback : public IDrv3DResetCB
 {
@@ -345,8 +344,3 @@ void dagored_init_all_plugins(const DataBlock &app_blk)
   ::init_plugin_ssview();
   ::init_plugin_bin_scn_view();
 }
-
-// required for ZLIB (that in turn is required by LIBPNG)
-extern "C" void *zcalloc(void * /*opaque*/, unsigned items, unsigned size) { return memalloc_default(items * size); }
-
-extern "C" void zcfree(void * /*opaque*/, void *ptr) { memfree_default(ptr); }

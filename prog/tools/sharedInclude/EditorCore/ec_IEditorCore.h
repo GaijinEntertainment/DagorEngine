@@ -325,14 +325,6 @@ public:
   virtual bool set(shaders::OverrideStateId override_id) const = 0;
   virtual bool reset_override() const = 0;
 
-  // ShaderMesh
-  virtual ShaderMesh *createSimpleShaderMesh(Mesh &m, ShaderMaterial *mat, const char *info_str = NULL) = 0;
-
-  virtual void destroyShaderMesh(ShaderMesh *&sm) = 0;
-
-  // GlobalVertexData
-  virtual int globalVertexDataGetStride(const GlobalVertexData &data) const = 0;
-
   // Mesh
   virtual Mesh *newMesh(IMemAlloc *alloc = NULL) const = 0;
   virtual void deleteMesh(Mesh *&mesh) const = 0;
@@ -530,6 +522,8 @@ public:
   virtual IDagorTools *getTools() = 0;
   virtual IDagorScene *getScene() = 0;
   virtual const char *getExePath() = 0;
+
+  static IEditorCore &make_instance();
 };
 
 

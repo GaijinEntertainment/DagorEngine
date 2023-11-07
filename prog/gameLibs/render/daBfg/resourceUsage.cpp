@@ -112,7 +112,7 @@ static ResourceBarrier map_stage_flags_source(Stage stage) { return map_stage_fl
 static ResourceBarrier map_stage_flags_dest(Stage stage) { return map_stage_flags(USAGE_STAGE_TO_BARRIER_DEST_STAGE, stage); }
 
 
-ResourceBarrier barrier_for_transition(ResourceUsage usage_before, ResourceUsage usage_after)
+ResourceBarrier barrier_for_transition(intermediate::ResourceUsage usage_before, intermediate::ResourceUsage usage_after)
 {
   if (usage_before.type == Usage::SHADER_RESOURCE && usage_before.access == Access::READ_WRITE &&
       usage_after.type == Usage::SHADER_RESOURCE && usage_after.access == Access::READ_WRITE)
@@ -180,7 +180,8 @@ ResourceBarrier barrier_for_transition(ResourceUsage usage_before, ResourceUsage
   return RB_NONE;
 }
 
-eastl::optional<ResourceActivationAction> get_activation_from_usage(History history, ResourceUsage usage, ResourceType res_type)
+eastl::optional<ResourceActivationAction> get_activation_from_usage(History history, intermediate::ResourceUsage usage,
+  ResourceType res_type)
 {
   switch (history)
   {

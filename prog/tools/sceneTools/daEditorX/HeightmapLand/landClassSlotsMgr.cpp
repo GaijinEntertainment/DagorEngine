@@ -617,6 +617,9 @@ static void serialize_huge_bm(const objgenerator::HugeBitmask &bm, const char *f
 
 void LandClassSlotsManager::exportEntityGenDataToFile(MapStorage<uint32_t> &land_cls_map, unsigned target_code)
 {
+  if (!rigenSrv)
+    return;
+
   DataBlock appBlk(DAGORED2->getWorkspace().getAppPath());
   String base;
   DAGORED2->getProjectFolderPath(base);

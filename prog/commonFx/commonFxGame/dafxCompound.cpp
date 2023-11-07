@@ -313,7 +313,7 @@ struct DafxCompound : BaseParticleEffect
           if (strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_LOWRES]) != 0 &&
               strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_HIGHRES]) != 0 &&
               // strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_DISTORTION]) != 0 &&
-              strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_WATER_PROJ]) != 0 &&
+              // strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_WATER_PROJ]) != 0 &&
               strcmp(i.tag.c_str(), dafx_ex::renderTags[dafx_ex::RTAG_UNDERWATER]) != 0)
             continue;
 
@@ -775,7 +775,7 @@ struct DafxCompound : BaseParticleEffect
     }
   }
 
-  void render(unsigned) override {}
+  void render(unsigned, const TMatrix &) override {}
 
   void spawnParticles(BaseParticleFxEmitter *, real) override {}
 

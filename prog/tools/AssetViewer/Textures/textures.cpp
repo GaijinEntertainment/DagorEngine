@@ -58,11 +58,11 @@ TexturesPlugin::TexturesPlugin()
 
   shaders::OverrideState state;
   state.set(shaders::OverrideState::BLEND_SRC_DEST);
-  state.sblend = BLEND_SRCALPHA;
-  state.dblend = BLEND_INVSRCALPHA;
+  state.sblend = BLEND_ONE;
+  state.dblend = BLEND_ZERO;
   state.set(shaders::OverrideState::BLEND_SRC_DEST_A);
   state.sblenda = BLEND_ZERO;
-  state.dblenda = BLEND_INVSRCALPHA;
+  state.dblenda = BLEND_ZERO;
   state.set(shaders::OverrideState::Z_TEST_DISABLE);
   state.set(shaders::OverrideState::Z_WRITE_DISABLE);
   renderVolImageOverrideId = shaders::overrides::create(state);
@@ -379,17 +379,17 @@ void TexturesPlugin::renderObjects()
   else if (texture->restype() == RES3D_CUBETEX)
   {
     d3d::setview((vp_w - tex_w) / 2, (vp_h - tex_h) / 2, tex_w, tex_h, 0, 1);
-    shaders::overrides::set(renderVolImageOverrideId);
+    shaders::overrides::set_master_state(shaders::overrides::get(renderVolImageOverrideId));
     EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviCubeTexture(texture, cMul * powf(10, cScaleDb / 10), cAdd);
-    shaders::overrides::reset();
+    shaders::overrides::reset_master_state();
   }
   else if (texture->restype() == RES3D_VOLTEX)
   {
     d3d::setview((vp_w - tex_w) / 2, (vp_h - tex_h) / 2, tex_w, tex_h, 0, 1);
-    shaders::overrides::set(renderVolImageOverrideId);
+    shaders::overrides::set_master_state(shaders::overrides::get(renderVolImageOverrideId));
     EDITORCORE->queryEditorInterface<IDynRenderService>()->renderEnviVolTexture(texture, cMul * powf(10, cScaleDb / 10), cAdd,
       Color4(0.5, -0.5, 0.5, 0.5), tcZ);
-    shaders::overrides::reset();
+    shaders::overrides::reset_master_state();
   }
 
   ShaderElement::invalidate_cached_state_block();

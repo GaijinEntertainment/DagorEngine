@@ -95,6 +95,8 @@ using das_safe_set = std::set<K,C>;
     #define DAS_BIND_EXTERNAL 1
   #elif defined(__linux__)
     #define DAS_BIND_EXTERNAL 1
+  #elif defined __HAIKU__
+    #define DAS_BIND_EXTERNAL 1
   #else
     #define DAS_BIND_EXTERNAL 0
   #endif

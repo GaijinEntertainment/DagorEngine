@@ -6,7 +6,6 @@ _CLANG_DIR   = $(_DEVTOOL)/LLVM-$(CLangVer) ;
 _VC_DIR      = $(_DEVTOOL)/vc2019 ;
 if $(VCUpdateVer) { _VC_DIR = $(_VC_DIR)_$(VCUpdateVer) ; }
 _VC_CRT_TYPE = -MT ;
-C_preopt_DirectXVer = jun2010 ;
 _WIN_SDK_TARGET_SUFFIX = x64 ;
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 

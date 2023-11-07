@@ -14,6 +14,7 @@
 #include <debug/backendDebug.h>
 #include <nodes/nodeStateDeltas.h>
 #include <multiplexingInternal.h>
+#include <resourceUsage.h>
 
 #include <resourceScheduling/nativeResourceScheduler.h>
 #include <resourceScheduling/poolResourceScheduler.h>
@@ -105,9 +106,8 @@ void Backend::scheduleNodes()
     dag::Vector<NodeNameId, framemem_allocator> demultiplexedNodeExecutionOrder;
     demultiplexedNodeExecutionOrder.reserve(registry.nodes.size());
     for (const intermediate::Node &irNode : intermediateGraph.nodes)
-      for (auto nodeId : irNode.frontendNodes)
-        if (irNode.multiplexingIndex == 0)
-          demultiplexedNodeExecutionOrder.emplace_back(nodeId);
+      if (irNode.multiplexingIndex == 0)
+        demultiplexedNodeExecutionOrder.emplace_back(irNode.frontendNode);
 
     update_graph_visualization(&nodeTracker, demultiplexedNodeExecutionOrder);
   }
@@ -146,8 +146,7 @@ void Backend::scheduleResources()
   {
     dag::Vector<NodeNameId, framemem_allocator> frontendNodeExecutionOrder;
     for (const intermediate::Node &irNode : intermediateGraph.nodes)
-      for (auto nodeId : irNode.frontendNodes)
-        frontendNodeExecutionOrder.emplace_back(nodeId);
+      frontendNodeExecutionOrder.emplace_back(irNode.frontendNode);
 
     update_resource_visualization(registry, frontendNodeExecutionOrder);
   }

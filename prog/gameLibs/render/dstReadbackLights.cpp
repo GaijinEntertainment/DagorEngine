@@ -119,7 +119,8 @@ void DistanceReadbackLights::completeQuery()
     if (shouldBeOptimized)
     {
       const int maxLogs = 100;
-      int logCount = lightLogCount.find(lastNonOptId) == lightLogCount.end() ? 0 : lightLogCount[lastNonOptId];
+      auto it = lightLogCount.find(lastNonOptId);
+      int logCount = it != lightLogCount.end() ? it->second : 0;
       if (logCount < maxLogs)
       {
         lightLogCount[lastNonOptId] = ++logCount;

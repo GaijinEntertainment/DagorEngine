@@ -128,6 +128,8 @@ protected:
   int visRange;
 
   bool toolsInternal;
+  unsigned srcFileMeshMapOfs = 0;
+  const char *srcFileName = nullptr;
 
   void close();
   bool loadMeshData(IGenLoad &loadCb);
@@ -154,7 +156,7 @@ public:
     if (holesMgr)
       holesMgr->clearHoles();
   }
-  void afterDeviceReset();
+  void afterDeviceReset(LandMeshRenderer *lrend, bool full_reset);
   void setHmapLodDistance(int lodD);
   int getHmapLodDistance() const;
   bool loadHeightmapDump(IGenLoad &loadCb, bool load_render_data);

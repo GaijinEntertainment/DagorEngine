@@ -316,7 +316,7 @@ public:
       logwarn("http game server couldn't wait for lock, mem leak possible");
     else
       updateCritSection.unlock();
-    terminate(true, 1000);
+    this->terminate(true, 1000);
 #if !(_TARGET_PC_WIN | _TARGET_XBOX)
     os_socket_close(listenSocket);
 #endif

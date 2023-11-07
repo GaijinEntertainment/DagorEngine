@@ -1762,20 +1762,7 @@ protected:
   ApexDestrExp exp;
 };
 
-
-#if !_TARGET_STATIC_LIB
-// required for ZLIB (that in turn is required by LIBPNG)
-extern "C" void *zcalloc(void *opaque, unsigned items, unsigned size)
-{
-  G_UNUSED(opaque);
-  return memalloc_default(items * size);
-}
-extern "C" void zcfree(void *opaque, void *ptr)
-{
-  memfree_default(ptr);
-  G_UNUSED(opaque);
-}
-#endif
+String validate_texture_types(String tex_name, const char *class_name, int slot, DagorAssetMgr &mgr) { return {}; }
 
 DABUILD_PLUGIN_API IDaBuildPlugin *__stdcall get_dabuild_plugin() { return new (midmem) ApexDestrExporterPlugin; }
 END_DABUILD_PLUGIN_NAMESPACE(apex)

@@ -75,6 +75,7 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(SUSPICIOUS_SYNTAX_RANGE_LOOP, ERROR, SEMA, -1, "", "Very suspicious range-loop syntax construction"), \
   DEF_DIAGNOSTIC(ID_RANGE_LOOP, ERROR, SEMA, -1, "", "iterator name (identifier) is expected in 'for ([variable:] [from,] to[, step])', got 'expression'"), \
   DEF_DIAGNOSTIC(COMMA_RANGE_LOOP, ERROR, SEMA, -1, "", "too many expressions separated by comma in '%s' - loop"), \
+  DEF_DIAGNOSTIC(SPACE_SEP_FIELD_NAME, ERROR, SEMA, -1, "", "Separate access operator '%s' with it's following name is forbidden"), \
   DEF_DIAGNOSTIC(TOO_MANY_SYMBOLS, ERROR, SEMA, -1, "", "internal compiler error: too many %s"), \
   DEF_DIAGNOSTIC(PAREN_IS_FUNC_CALL, WARNING, SYNTAX, 190, "paren-is-function-call", "'(' on a new line parsed as function call."), \
   DEF_DIAGNOSTIC(STMT_SAME_LINE, WARNING, SYNTAX, 192, "statement-on-same-line", "Next statement on the same line after '%s' statement."), \
@@ -119,17 +120,17 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(ACCESS_POT_NULLABLE, WARNING, SEMA, 248, "access-potentially-nulled", "'%s' can be null, but is used as a %s without checking."), \
   DEF_DIAGNOSTIC(CMP_WITH_CONTAINER, WARNING, SEMA, 250, "cmp-with-container", "Comparison with a %s."), \
   DEF_DIAGNOSTIC(BOOL_PASSED_TO_STRANGE, WARNING, SEMA, 254, "bool-passed-to-strange", "Boolean passed to '%s' operator."), \
-  DEF_DIAGNOSTIC(DUPLCIATE_FUNC, WARNING, SEMA, 255, "duplicate-function", "Duplicate function body. Consider functions '%s' and '%s'."), \
+  DEF_DIAGNOSTIC(DUPLICATE_FUNC, WARNING, SEMA, 255, "duplicate-function", "Duplicate function body. Consider functions '%s' and '%s'."), \
   DEF_DIAGNOSTIC(KEY_NAME_MISMATCH, WARNING, SEMA, 256, "key-and-function-name", "Key and function name are not the same ('%s' and '%s')."), \
   DEF_DIAGNOSTIC(DUPLICATE_ASSIGN_EXPR, WARNING, SEMA, 257, "duplicate-assigned-expr", "Duplicate of the assigned expression."), \
   DEF_DIAGNOSTIC(SIMILAR_FUNC, WARNING, SEMA, 258, "similar-function", "Function bodies are very similar. Consider functions '%s' and '%s'."), \
   DEF_DIAGNOSTIC(SIMILAR_ASSIGN_EXPR, WARNING, SEMA, 259, "similar-assigned-expr", "Assigned expression is very similar to one of the previous ones."), \
   DEF_DIAGNOSTIC(NAME_EXPECTS_RETURN, WARNING, SEMA, 260, "named-like-must-return-result", "Function '%s' has name like it should return a value, but not all control paths returns a value."), \
   DEF_DIAGNOSTIC(SUSPICIOUS_FMT, WARNING, SYNTAX, 262, "suspicious-formatting", "Suspicious code formatting."), \
-  DEF_DIAGNOSTIC(EGYPT_BRACES, WARNING, SYNTAX, 263, "egyptian-braces", "Identation style: 'egyptian braces' required."), \
+  DEF_DIAGNOSTIC(EGYPT_BRACES, WARNING, SYNTAX, 263, "egyptian-braces", "Indentation style: 'egyptian braces' required."), \
   DEF_DIAGNOSTIC(PLUS_STRING, WARNING, SEMA, 264, "plus-string", "Usage of '+' for string concatenation."), \
   DEF_DIAGNOSTIC(FORGOTTEN_DO, WARNING, SEMA, 266, "forgotten-do", "'while' after the statement list (forgot 'do' ?)"), \
-  DEF_DIAGNOSTIC(SUSPICIOUS_BRAKET, WARNING, SYNTAX, 267, "suspicious-braket", "'%s' will be parsed as '%s' (forgot ',' ?)"), \
+  DEF_DIAGNOSTIC(SUSPICIOUS_BRACKET, WARNING, SYNTAX, 267, "suspicious-bracket", "'%s' will be parsed as '%s' (forgot ',' ?)"), \
   DEF_DIAGNOSTIC(MIXED_SEPARATORS, WARNING, SYNTAX, 269, "mixed-separators", "Mixed spaces and commas to separate %s."), \
   DEF_DIAGNOSTIC(EXTEND_TO_APPEND, HINT, SEMA, 270, "extent-to-append", "It is better to use 'append(A, B, ...)' instead of 'extend([A, B, ...])'."), \
   DEF_DIAGNOSTIC(FORGOT_SUBST, WARNING, SEMA, 271, "forgot-subst", "'{}' found inside string (forgot 'subst' or '$' ?)."), \
@@ -138,9 +139,9 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(ITER_IN_CLOSURE, WARNING, SEMA, 274, "iterator-in-lambda", "Iterator '%s' is trying to be captured in closure."), \
   DEF_DIAGNOSTIC(MISSED_BREAK, WARNING, SEMA, 275, "missed-break", "A 'break' statement is probably missing in a 'switch' statement."), \
   DEF_DIAGNOSTIC(SPACE_AT_EOL, WARNING, LEX, 277, "space-at-eol", "Whitespace at the end of line."), \
-  DEF_DIAGNOSTIC(FORBIDEN_FUNC, WARNING, SEMA, 278, "forbidden-function", "It is forbidden to call '%s' function."), \
+  DEF_DIAGNOSTIC(FORBIDDEN_FUNC, WARNING, SEMA, 278, "forbidden-function", "It is forbidden to call '%s' function."), \
   DEF_DIAGNOSTIC(MISMATCH_LOOP_VAR, WARNING, SEMA, 279, "mismatch-loop-variable", "The variable used in for-loop does not match the initialized one."), \
-  DEF_DIAGNOSTIC(FORBIDEN_PARENT_DIR, WARNING, SEMA, 280, "forbidden-parent-dir", "Access to the parent directory is forbidden in this function."), \
+  DEF_DIAGNOSTIC(FORBIDDEN_PARENT_DIR, WARNING, SEMA, 280, "forbidden-parent-dir", "Access to the parent directory is forbidden in this function."), \
   DEF_DIAGNOSTIC(UNWANTED_MODIFICATION, WARNING, SEMA, 281, "unwanted-modification", "Function '%s' modifies object. You probably didn't want to modify the object here."), \
   DEF_DIAGNOSTIC(INEXPR_PRIORITY, WARNING, SEMA, 282, "inexpr-assign-priority", "Operator ':=' has lower priority. Perhaps parentheses are missing?."), \
   DEF_DIAGNOSTIC(USELESS_NULLC, WARNING, SEMA, 283, "useless-null-coalescing", "The expression to the right of the '??""' is null."), \

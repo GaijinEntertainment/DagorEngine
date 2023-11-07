@@ -412,11 +412,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
     {
       lodDistancesSq[lodI + lodTranslation] =
         pool.hasImpostor() ? rtData->get_trees_range(pool.lodRange[lodI - 1]) : rtData->get_range(pool.lodRange[lodI - 1]);
-      const float added = lodI == lodCnt - 1 && hasImpostor // fixme: increase by radius of tree bounding sphere?
-                              && rendinst::render::use_tree_lod0_offset && !pool.hasTransitionLod()
-                            ? subCellOfsSize // only for impostor
-                            : 0;
-      lodDistancesSq_perInst[remap_per_instance_lod(lodI + lodTranslation)] = lodDistancesSq[lodI + lodTranslation] + added;
+      lodDistancesSq_perInst[remap_per_instance_lod(lodI + lodTranslation)] = lodDistancesSq[lodI + lodTranslation];
     }
     if (!hasImpostor)
     {

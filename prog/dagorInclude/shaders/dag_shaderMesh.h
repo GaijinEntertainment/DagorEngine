@@ -39,8 +39,7 @@ class ShaderMeshDataSaveCB;
 
 enum
 {
-  VDATA_VB_SYSMEM = 0x01,
-  VDATA_IB_SYSMEM = 0x02,
+  VDATA_D3D_RESET_READY = 0x01, // vdata can survive d3d reset using reload or reset callback, buffers use SBCF_MAYBELOST
   VDATA_NO_IB = 0x08,
   VDATA_NO_VB = 0x10,
   VDATA_NO_IBVB = 0x18,
@@ -119,10 +118,10 @@ public:
   unsigned getLodIndex() const { return (cflags & VDATA_LOD_MASK) >> __bsf(VDATA_LOD_MASK); }
 
   // explicit constructor
-  void create(const char *name, unsigned vNum, unsigned vStride, unsigned idxPacked, unsigned idxSize, unsigned flags, IGenLoad *crd,
+  void initGvd(const char *name, unsigned vNum, unsigned vStride, unsigned idxPacked, unsigned idxSize, unsigned flags, IGenLoad *crd,
     Tab<uint8_t> &tmp_decoder_stor);
 
-  void createMem(int vertNum, int vertStride, int idxSize, unsigned flags, const void *vb_data, const void *ib_data);
+  void initGvdMem(int vertNum, int vertStride, int idxSize, unsigned flags, const void *vb_data, const void *ib_data);
 
   // explicit destructor
   void free();

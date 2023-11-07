@@ -114,6 +114,3 @@ public:
       return 0;
   }
 };
-
-extern "C" void *zcalloc(void *opaque, unsigned items, unsigned size);
-extern "C" void zcfree(void *opaque, void *ptr);

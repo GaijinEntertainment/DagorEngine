@@ -26,8 +26,6 @@ rule ProcessLinkTarget
   {
     _LINK_OPT = -nologo $(FileAlignLinkOption):512 -base:$(BaseAddress) -incremental:no /LARGEADDRESSAWARE ;
 
-    AddDirectXLibs _LINK_OPT ;
-
     if $(ConsoleExe) = yes {
       _LINK_OPT += -subsystem:console,\"5.01\" ;
     } else {
@@ -90,7 +88,6 @@ rule ProcessLinkTarget
   else if $(TargetType) = dll
   {
     _LINK_OPT = -nologo -dll -subsystem:windows -base:$(BaseAddress) -incremental:no /LARGEADDRESSAWARE ;
-    AddDirectXLibs _LINK_OPT ;
     if $(Config) != dbg {
       _LINK_OPT += -opt:ref ;
     }

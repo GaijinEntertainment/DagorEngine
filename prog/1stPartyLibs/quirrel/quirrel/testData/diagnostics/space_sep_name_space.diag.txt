@@ -1,0 +1,7 @@
+ERROR: Separate access operator '?.$' with it's following name is forbidden
+testData/diagnostics/space_sep_name_space.nut.txt:8:10
+
+t1?.$     foo // NOT OK
+          ^--
+
+

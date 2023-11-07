@@ -58,12 +58,18 @@ void StateFieldFramebufferAttachment::applyTo(uint32_t index, FrontFramebufferSt
   {
     if (actualImage)
     {
-      fbs.bindDepthStencilTarget(actualImage, actualImage->getSampleCount(), actualView,
-        get_device().getImageView(actualImage, actualView), state.readOnlyDepth.data);
+      fbs.renderPassClass.depthState =
+        state.readOnlyDepth.data ? RenderPassClass::Identifier::RO_DEPTH : RenderPassClass::Identifier::RW_DEPTH;
+      fbs.renderPassClass.depthStencilFormat = actualView.getFormat();
+      fbs.renderPassClass.colorSamples[0] = actualImage->getSampleCount();
+      fbs.frameBufferInfo.depthStencilAttachment = RenderPassClass::FramebufferDescription::AttachmentInfo(actualImage,
+        get_device().getImageView(actualImage, actualView), actualView);
     }
     else
     {
-      fbs.clearDepthStencilTarget();
+      fbs.renderPassClass.depthState = RenderPassClass::Identifier::NO_DEPTH;
+      fbs.renderPassClass.depthStencilFormat = FormatStore(0);
+      fbs.frameBufferInfo.depthStencilAttachment = RenderPassClass::FramebufferDescription::AttachmentInfo();
     }
   }
   else
@@ -71,12 +77,17 @@ void StateFieldFramebufferAttachment::applyTo(uint32_t index, FrontFramebufferSt
     // color
     if (actualImage)
     {
-      fbs.bindColorTarget(index, actualImage, actualImage->getSampleCount(), actualView,
-        get_device().getImageView(actualImage, actualView));
+      fbs.renderPassClass.colorTargetMask |= 1 << index;
+      fbs.renderPassClass.colorFormats[index] = actualView.getFormat();
+      fbs.renderPassClass.colorSamples[index] = actualImage->getSampleCount();
+      fbs.frameBufferInfo.colorAttachments[index] = RenderPassClass::FramebufferDescription::AttachmentInfo(actualImage,
+        get_device().getImageView(actualImage, actualView), actualView);
     }
     else
     {
-      fbs.clearColorTarget(index);
+      fbs.renderPassClass.colorTargetMask &= ~(1 << index);
+      fbs.renderPassClass.colorFormats[index] = FormatStore(0);
+      fbs.frameBufferInfo.colorAttachments[index] = RenderPassClass::FramebufferDescription::AttachmentInfo();
     }
   }
 
@@ -100,7 +111,8 @@ template <>
 void StateFieldFramebufferReadOnlyDepth::applyTo(FrontFramebufferStateStorage &, ExecutionState &target) const
 {
   FramebufferState &fbs = target.get<BackGraphicsState, BackGraphicsState>().framebufferState;
-  fbs.setDepthStencilTargetReadOnly(data);
+  if (fbs.renderPassClass.depthState != RenderPassClass::Identifier::NO_DEPTH)
+    fbs.renderPassClass.depthState = data ? RenderPassClass::Identifier::RO_DEPTH : RenderPassClass::Identifier::RW_DEPTH;
   target.interruptRenderPass("depthRWChange");
 }
 

@@ -6,7 +6,6 @@ _VC_DIR      = $(_DEVTOOL)/vc2012 ;
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 _PREFAST_DIR = $(_DEVTOOL)/prefast ;
 _VC_CRT_TYPE = -MT ;
-C_preopt_DirectXVer = jun2010 ;
 
 if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update DEVTOOLS ; }
 if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: \"$(_WIN_SDK)\" not found!  Please, update DEVTOOLS ; }

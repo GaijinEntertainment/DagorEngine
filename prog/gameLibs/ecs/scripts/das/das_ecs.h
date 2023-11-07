@@ -4,6 +4,7 @@
 #include <daECS/core/entityId.h>
 #include <daECS/core/event.h>
 #include <daECS/core/entitySystem.h>
+#include <dag/dag_vectorSet.h>
 #include <ecs/scripts/dasEcsEntity.h>
 #include <dasModules/dasScriptsLoader.h>
 #include <util/dag_simpleString.h>
@@ -25,7 +26,7 @@ namespace bind_dascript
 struct LoadedScript final : public DasLoadedScript<EsContext>
 {
   using EsContextUniquePtr = das::shared_ptr<EsContext>;
-  eastl::set<ecs::EntitySystemDesc *> systems;
+  dag::VectorSet<ecs::EntitySystemDesc *> systems;
   eastl::vector<QueryData> queries;
 #if DAGOR_DBGLEVEL > 0
   SimpleString fn;

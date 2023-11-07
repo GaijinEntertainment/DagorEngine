@@ -129,9 +129,6 @@ rule ProcessCompileTarget
 
   _CPP_OPT = -I$(AddIncludes) $(_CONFIG_OPT) $(_SUPPRESS_OPT) $(CPPopt) $(GlobalCPPopt) ;
 
-  AddForceFastcall _CPP_OPT ;
-  AddDirectXInclude pre_opt : post_opt ;
-
   include $(Root)/prog/_jBuild/_vc/add_fp_fast.jam ;
   $(Target)__CPP_OPT = -FImemory/dag_memBase.h $(post_opt) $(_CPP_OPT) -TP ;
   $(Target)__C_OPT   = $(post_opt) $(Copt) $(_CPP_OPT) ;

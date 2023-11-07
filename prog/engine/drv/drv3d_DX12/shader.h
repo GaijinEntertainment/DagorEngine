@@ -4,6 +4,7 @@
 #include <EASTL/sort.h>
 #include <EASTL/variant.h>
 #include <EASTL/unordered_set.h>
+#include <EASTL/set.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_rwLock.h>
 #include <util/dag_hashedKeyMap.h>
@@ -476,7 +477,7 @@ struct GraphicsProgramInstance
   }
 };
 
-template <typename T>
+template <bool VisitOnce = false, typename T>
 void inspect_scripted_shader_bin_dump(ScriptedShadersBinDumpOwner *dump, T inspector)
 {
   auto v2 = dump->getDumpV2();
@@ -486,10 +487,21 @@ void inspect_scripted_shader_bin_dump(ScriptedShadersBinDumpOwner *dump, T inspe
   }
   inspector.vertexShaderCount(v2->vprId.size());
   inspector.pixelOrComputeShaderCount(v2->fshId.size());
+  eastl::conditional_t<VisitOnce, eastl::set<eastl::pair<uint16_t, uint16_t>>, int32_t> visited;
   for (auto &cls : v2->classes)
   {
     for (auto &prog : cls.shrefStorage)
     {
+      if constexpr (VisitOnce)
+      {
+        eastl::pair<uint16_t, uint16_t> prIds(prog.vprId, prog.fshId);
+        if (visited.count(prIds) != 0)
+        {
+          continue;
+        }
+        visited.insert(prIds);
+      }
+
       if (prog.vprId != 0xFFFF)
       {
         if (prog.fshId != 0xFFFF)

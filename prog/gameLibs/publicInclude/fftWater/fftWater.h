@@ -144,10 +144,12 @@ struct FlowmapParams
   String texName;
   Point4 texArea;
   float windStrength = 0.2f;
+  float flowmapRange = 100;
   float flowmapFading = 3;
   Point4 flowmapStrength = Point4(1, 5, 0.5f, 0);
   Point4 flowmapStrengthAdd = Point4(0.5f, 1, 1, 0.3f);
   Point4 flowmapFoam = Point4(5, 10, 0.5f, 0.1f);
+  Point3 flowmapFoamColor = Point3(1, 1, 1);
   float flowmapFoamTiling = 1;
   Point4 flowmapDepth = Point4(1, 0.1f, 0.3f, 1);
   float flowmapSlope = 1;

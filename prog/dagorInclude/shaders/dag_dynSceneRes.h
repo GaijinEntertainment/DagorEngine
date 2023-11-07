@@ -108,7 +108,7 @@ public:
   dag::ConstSpan<PatchablePtr<ShaderSkinnedMeshResource>> getSkinMeshes() const { return skins; }
   dag::ConstSpan<PatchablePtr<ShaderSkinnedMeshResource>> getSkins() const { return skins; }
   dag::ConstSpan<int> getSkinNodes() const { return skinNodes; }
-  Tab<int> getNodesWithMaterials(dag::ConstSpan<const char *> material_names) const;
+  dag::Vector<int> getNodesWithMaterials(dag::ConstSpan<const char *> material_names) const;
   int getSkinsCount() const { return skins.size(); }
 
   struct RigidObject;
@@ -638,7 +638,7 @@ public:
 
   void clipNodes(const Frustum &frustum, dag::Vector<int, framemem_allocator> &node_list);
 
-  eastl::optional<Tab<int>> getNodesWithMaterials(dag::ConstSpan<const char *> material_names) const;
+  eastl::optional<dag::Vector<int>> getNodesWithMaterials(dag::ConstSpan<const char *> material_names) const;
 
 protected:
   Ptr<DynamicRenderableSceneResource> sceneResource;

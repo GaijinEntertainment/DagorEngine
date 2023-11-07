@@ -54,6 +54,7 @@ VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsRenderPassScopeOpener, renderPa
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsRenderPassEarlyScopeOpener, renderPassEarlyOpener, BackGraphicsStateStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsQueryScopeOpener, queryOpener, BackGraphicsStateStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsQueryScopeCloser, graphicsQueryCloser, BackScopeStateStorage);
+VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsRenderPassArea, renderPassArea, BackGraphicsStateStorage);
 
 // front fields
 
@@ -326,14 +327,10 @@ void StateFieldGraphicsRenderPassScopeOpener::applyTo(BackGraphicsStateStorage &
     state.framebuffer.handle = VulkanNullHandle();
   }
 
-  VkExtent2D drawArea = fbState.frontendFrameBufferInfo.makeDrawArea(state.viewport.data.rect2D.extent);
-  fbState.frameBufferInfo.extent = drawArea;
-
+  fbState.frameBufferInfo.extent = fbState.frameBufferInfo.makeDrawArea(state.viewport.data.rect2D.extent);
   VulkanFramebufferHandle nextFramebuffer = nextRenderPassClass->getFrameBuffer(vkDev, fbState.frameBufferInfo);
 
-  target.beginPassInternal(nextRenderPassClass, fbState.frontendFrameBufferInfo, nextFramebuffer, state.viewport.data.rect2D,
-    fbState.clearMode);
-  fbState.clearMode = 0;
+  target.beginPassInternal(nextRenderPassClass, nextFramebuffer, state.viewport.data.rect2D);
 }
 
 template <>
@@ -843,7 +840,7 @@ void StateFieldGraphicsViewport::applyTo(FrontGraphicsStateStorage &state, Execu
   // need to check viewport for selected clear targets, as sometimes clear for depth
   // is requested with a bigger color target bound which provides a vp that would be
   // too large
-  VkExtent2D maxExt = rpRes ? rpRes->getMaxActiveAreaExtent() : fbs.frontendFrameBufferInfo.makeDrawArea(vp.rect2D.extent);
+  VkExtent2D maxExt = rpRes ? rpRes->getMaxActiveAreaExtent() : fbs.frameBufferInfo.makeDrawArea(vp.rect2D.extent);
   vp.rect2D.extent.width = min(vp.rect2D.extent.width, maxExt.width - vp.rect2D.offset.x);
   vp.rect2D.extent.height = min(vp.rect2D.extent.height, maxExt.height - vp.rect2D.offset.y);
 
@@ -860,7 +857,8 @@ void StateFieldGraphicsViewport::applyTo(FrontGraphicsStateStorage &state, Execu
 
   if (!rpRes)
   {
-    RegionDifference dif = classify_rect2d_diff(fbs.viewRect, vp.rect2D);
+    RegionDifference dif =
+      classify_rect2d_diff(target.getRO<StateFieldGraphicsRenderPassArea, VkRect2D, BackGraphicsState>(), vp.rect2D);
     if (dif == RegionDifference::SUPERSET)
       target.interruptRenderPass("ViewportExtend");
   }
@@ -1019,11 +1017,7 @@ void StateFieldGraphicsPrimitiveTopology::dumpLog(const BackGraphicsStateStorage
 void StateFieldGraphicsFlush::syncTLayoutsToRenderPass(BackGraphicsStateStorage &state, ExecutionContext &target) const
 {
   if (state.inPass.data == InPassStateFieldType::NONE && !state.nativeRenderPass.ptr)
-  {
-    FramebufferState &fbState = target.getFramebufferState();
-    target.ensureStateForDepthAttachment(fbState.renderPassClass, fbState.frontendFrameBufferInfo,
-      fbState.frontendFrameBufferInfo.hasConstDepthStencilAttachment());
-  }
+    target.ensureStateForDepthAttachment();
 }
 
 void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, ExecutionContext &target) const
@@ -1201,6 +1195,16 @@ void StateFieldGraphicsQueryScopeCloser::dumpLog(const BackScopeStateStorage &) 
     debug("graphics query closer: pending close on next apply");
   else
     debug("graphics query closer: no close pendin");
+}
+
+template <>
+void StateFieldGraphicsRenderPassArea::applyTo(BackGraphicsStateStorage &, ExecutionContext &) const
+{}
+
+template <>
+void StateFieldGraphicsRenderPassArea::dumpLog(const BackGraphicsStateStorage &) const
+{
+  debug("renderPassArea: ofs (%i, %i) ext (%u, %u)", data.offset.x, data.offset.y, data.extent.width, data.extent.height);
 }
 
 } // namespace drv3d_vulkan

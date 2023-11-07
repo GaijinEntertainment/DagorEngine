@@ -64,7 +64,7 @@ void LightProbeSpecularCubesContainer::init(const int cube_size, uint32_t textur
 
     compressor =
       eastl::make_unique<BcCompressor>(BcCompressor::COMPRESSION_BC6H, compressedMips, cubeSize, cubeSize, 1, "bc6h_compressor");
-    if (compressor->getCompressionType() == BcCompressor::COMPRESSION_ERR)
+    if (!compressor->isValid())
     {
       logwarn("Can't create a compressor for light probes specular");
       compressionAvailable = false;

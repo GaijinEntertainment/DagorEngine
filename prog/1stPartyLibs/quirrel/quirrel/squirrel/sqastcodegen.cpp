@@ -759,7 +759,7 @@ void CodegenVisitor::visitDestructuringDecl(DestructuringDecl *destruct) {
         _last_pop = -1;
     }
 
-    visitForceGet(destruct->initiExpression());
+    visitForceGet(destruct->initExpression());
 
     SQInteger src = _fs->TopTarget();
     SQInteger key_pos = _fs->PushTarget();
@@ -1026,7 +1026,7 @@ void CodegenVisitor::visitLiteralExpr(LiteralExpr *lit) {
 
 void CodegenVisitor::visitArrayExpr(ArrayExpr *expr) {
     maybeAddInExprLine(expr);
-    const auto inits = expr->initialziers();
+    const auto inits = expr->initializers();
 
     _fs->AddInstruction(_OP_NEWOBJ, _fs->PushTarget(), inits.size(), 0, NOT_ARRAY);
 
@@ -1600,7 +1600,7 @@ void CodegenVisitor::visitId(Id *id) {
 
     if ((pos = _fs->GetLocalVariable(idObj, assignable)) != -1) {
         _fs->PushTarget(pos);
-        id->setAssiagnable(assignable);
+        id->setAssignable(assignable);
     }
 
     else if ((pos = _fs->GetOuterVariable(idObj, assignable)) != -1) {
@@ -1609,7 +1609,7 @@ void CodegenVisitor::visitId(Id *id) {
             SQInteger stkPos = _fs->PushTarget();
             _fs->AddInstruction(_OP_GETOUTER, stkPos, pos);
         }
-        id->setAssiagnable(assignable);
+        id->setAssignable(assignable);
     }
 
     else if (IsConstant(idObj, constant)) {

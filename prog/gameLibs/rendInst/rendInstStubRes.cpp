@@ -10,6 +10,7 @@
 
 static void build_stub_ri_mesh(Mesh &m)
 {
+  return; // don't generate mesh since this stub is not ShaderResUnitedVdata-compatible and cannot be rendered
   m.vert.resize(8);
   m.vert[0].set(-0.1, 0, 0.1);
   m.vert[1].set(-0.5, 1, 0.5);
@@ -93,6 +94,7 @@ class StubRiReleasingFactory : public GameResourceFactory
     StubRendInst(InstShaderMeshResource *m)
     {
       packedFields = sizeof(*this) - dumpStartOfs(); // Set all other fields to zero.
+      extraFlags = 0;
       bbox[0].set(-0.5, 0, -0.5);
       bbox[1].set(0.5, 1, 0.5);
       bsphCenter.set(0, 0.5, 0);

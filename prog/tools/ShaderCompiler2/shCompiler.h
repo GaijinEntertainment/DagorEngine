@@ -70,7 +70,7 @@ const char *getSrcRootFolder();
 
 extern unsigned compileJobsCount;
 extern unsigned compileJobsMgrBase;
-extern unsigned openGLTarget;
+extern bool relinkOnly;
 } // namespace shc
 
 #endif //__SHCOMPILER_H

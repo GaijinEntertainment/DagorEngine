@@ -8,6 +8,7 @@
 #include <ADT/fastHashNameMap.h>
 #include <EASTL/bitvector.h>
 #include <generic/dag_smallTab.h>
+#include <math/dag_check_nan.h>
 
 class PhysVars
 {
@@ -37,3 +38,9 @@ public:
 inline float PhysVars::getVarUnsafe(int var_id) const { return vars[var_id]; }
 inline int PhysVars::getVarId(const char *name) const { return names.getNameId(name); }
 inline bool PhysVars::isVarPullable(int var_id) const { return varsPullable.test(var_id, false); }
+
+inline void PhysVars::setVar(int var_id, float val)
+{
+  G_ASSERTF_RETURN(var_id < vars.size() && check_finite(val), , "Invalid var_id %d/%d or val=%.9f", var_id, vars.size(), val);
+  vars[var_id] = val;
+}

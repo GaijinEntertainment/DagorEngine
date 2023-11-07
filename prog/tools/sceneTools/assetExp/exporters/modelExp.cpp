@@ -11,6 +11,7 @@
 #include <libTools/shaderResBuilder/rendInstResSrc.h>
 #include <libTools/shaderResBuilder/globalVertexDataConnector.h>
 #include <shaders/dag_shaders.h>
+#include <../shaders/shadersBinaryData.h>
 #include <startup/dag_startupTex.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_direct.h>
@@ -113,6 +114,51 @@ void load_shaders_for_target(unsigned tc)
     if (!ShaderMeshData::preferZstdPacking) //-V1051
       debug("ShaderMesh prefers ZLIB");
   }
+}
+
+String validate_texture_types(String tex_name, const char *class_name, int slot, DagorAssetMgr &mgr)
+{
+  load_shaders_for_target(_MAKE4C('PC'));
+
+  auto *sh_class = shBinDump(false).findShaderClass(class_name);
+
+  if (sh_class->staticTextureTypeBySlot.empty())
+    return {};
+
+  auto texture_type = sh_class->staticTextureTypeBySlot[slot];
+  bool is_valid_texture_type = true;
+
+  String tmp_stor;
+  tex_name.printf(64, "%s%s%s", texRefNamePrefix.str(), DagorAsset::fpath2asset(TextureMetaData::decodeFileName(tex_name, &tmp_stor)),
+    texRefNameSuffix.str());
+
+  DagorAsset *tex_a = mgr.findAsset(tex_name, mgr.getTexAssetTypeId());
+  if (!tex_a)
+    return {};
+
+  const char *tex_type_str = tex_a->props.getStr("texType", nullptr);
+  if (!tex_type_str || strcmp(tex_type_str, "tex2D") == 0)
+    is_valid_texture_type = texture_type == ShaderVarTextureType::SHVT_TEX_2D;
+  else if (strcmp(tex_type_str, "cube") == 0)
+    is_valid_texture_type = texture_type == ShaderVarTextureType::SHVT_TEX_CUBE;
+  else if (strcmp(tex_type_str, "tex3D") == 0)
+    is_valid_texture_type = texture_type == ShaderVarTextureType::SHVT_TEX_3D;
+
+  if (!is_valid_texture_type)
+  {
+    const char *tex_type_in_shader = "unknown";
+    switch (texture_type)
+    {
+      case SHVT_TEX_2D: tex_type_in_shader = "tex2D"; break;
+      case SHVT_TEX_3D: tex_type_in_shader = "tex3D"; break;
+      case SHVT_TEX_CUBE: tex_type_in_shader = "cube"; break;
+      case SHVT_TEX_2D_ARRAY: tex_type_in_shader = "tex2DArray"; break;
+      case SHVT_TEX_CUBE_ARRAY: tex_type_in_shader = "cubeArray"; break;
+    }
+    return String(0, "Static texture type '%s' does not match the type of declaration in the shader '%s': texture '%s'",
+      tex_type_str ? tex_type_str : "tex2D", tex_type_in_shader, tex_name);
+  }
+  return {};
 }
 
 class ModelExporterPlugin : public IDaBuildPlugin, public ITextureNameResolver

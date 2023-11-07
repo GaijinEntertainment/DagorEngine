@@ -115,7 +115,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
   // psWake
   {
     const float radius = wrp * 0.08f;
-    const float emitPerMeter = 1.2f / radius;
+    const float emitPerMeter = safediv(1.2f, radius);
     const float posSpread = radius * 0.125f;
     const float lifeTime = radius * 1.0f;
 
@@ -150,7 +150,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
   // psWakeTrail
   {
     const float radius1 = wrp * 0.14f;
-    const float emitPerMeter1 = 0.7f / radius1;
+    const float emitPerMeter1 = safediv(0.7f, radius1);
     const float posSpread1 = radius1 * 0.143f;
     const float lifeTime1 = radius1 * 4.0f * desc.trailLifeScale;
 
@@ -176,7 +176,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
     ship.wakeTrail = psWakeTrail->addEmitter(emitterParams);
 
     const float radius2 = wrp * 0.04f;
-    const float emitPerMeter2 = 0.4f / radius2;
+    const float emitPerMeter2 = safediv(0.4f, radius2);
     const float posSpread2 = radius2 * 0.25f;
     const float lifeTime2 = radius2 * 7.3f;
 
@@ -208,7 +208,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
   // psFoam
   {
     const float radius1 = wrp * 0.06f;
-    const float emitPerMeter1 = 0.75f / radius1;
+    const float emitPerMeter1 = safediv(0.75f, radius1);
     const float posSpread1 = radius1 * 0.167f;
     const float lifeTime1 = radius1 * 1.0f * desc.trailLifeScale;
 
@@ -238,7 +238,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
     emitterParams.pose.scale = Point3(-1.0f, 1.0f, 1.0f);
     ship.s[1].foamFront = psFoam->addEmitter(emitterParams);
 
-    const float emitPerMeter2 = 25.0f / wrp;
+    const float emitPerMeter2 = safediv(25.0f, wrp);
     const float lifeTime2 = wrp * 0.12f;
     const float lifeDelay2 = lifeTime1 * 0.25f;
 
@@ -254,7 +254,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
 
     const float radius3 = wrp * 0.14f;
     const float radiusSpread3 = radius3 * 0.143f;
-    const float emitPerMeter3 = 1.4f / radius3;
+    const float emitPerMeter3 = safediv(1.4f, radius3);
     const float posSpread3 = radius3 * 0.143f;
     const float lifeTime3 = radius3 * 2.0f;
 
@@ -289,7 +289,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
     // psFoamHead
     {
       const float radius = wrp * 0.06f;
-      const float emitPerMeter = 0.525f / radius;
+      const float emitPerMeter = safediv(0.525f, radius);
       const float posSpread = radius * 0.167f;
       const float lifeTime = radius * 1.0f;
 
@@ -323,7 +323,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
     // psFoamTurbo
     {
       const float radius = wrp * 0.07f;
-      const float emitPerMeter = 0.525f / radius;
+      const float emitPerMeter = safediv(0.525f, radius);
       const float posSpread = radius * 0.143f;
       const float lifeTime = radius * 0.857f;
 
@@ -359,7 +359,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
   {
     const float radius = wrp * 0.08f;
     const float radiusSpread = radius * 0.25f;
-    const float emitPerMeter = 0.8f / radius;
+    const float emitPerMeter = safediv(0.8f, radius);
     const float posSpread = radius * 0.25f;
     const float lifeTime = radius * 3.5f * desc.trailLifeScale;
 
@@ -389,7 +389,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
   {
     const float radius = wrp * 0.05f;
     const float radiusSpread = radius * 0.25f;
-    const float emitPerMeter = 1.5f / radius;
+    const float emitPerMeter = safediv(1.5f, radius);
     const float posSpread = radius * 0.25f;
     const float lifeTime = radius * 3.5f;
 
@@ -419,7 +419,7 @@ uint32_t ShipWakeFx::addShip(const ShipDesc &desc)
   {
     const float radius = wrp * 0.08f;
     const float radiusSpread = radius * 0.25f;
-    const float emitPerMeter = 1.5f / radius;
+    const float emitPerMeter = safediv(1.5f, radius);
     const float posSpread = radius * 0.25f;
     const float lifeTime = radius * 3.5f;
 

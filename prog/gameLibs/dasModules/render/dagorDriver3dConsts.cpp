@@ -75,7 +75,6 @@ void bind_driver_consts(das::Module &module)
   BIND_UINT_CONST(STAGE_VS)
 
   // bitfield BufferFlag
-  BIND_UINT_CONST(SBCF_SYSMEM)
   BIND_UINT_CONST(SBCF_DYNAMIC)
   BIND_UINT_CONST(SBCF_MAYBELOST)
   BIND_UINT_CONST(SBCF_ZEROMEM)

@@ -280,6 +280,7 @@ public:
   void clearLastSyncOp() { lastSyncOp = invalid_sync_op; }
   void setLastSyncOpIndex(size_t v) { lastSyncOp = v; }
   size_t getLastSyncOpIndex() { return lastSyncOp; }
+  bool hasLastSyncOpIndex() { return lastSyncOp != invalid_sync_op; }
 
   void requestRoSeal(size_t gpu_work_id)
   {

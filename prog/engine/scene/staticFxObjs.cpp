@@ -55,7 +55,7 @@ static __forceinline bool is_sphere_visible(BSphere3 &sp, const Frustum &frustum
   return true;
 }
 
-void StaticFxObjects::render(int render_type)
+void StaticFxObjects::render(int render_type, const TMatrix &view_itm)
 {
   if (render_type == FX_RENDER_BEFORE)
   {
@@ -68,7 +68,7 @@ void StaticFxObjects::render(int render_type)
       e.visible = e.bindumpRenderable && is_sphere_visible(e.sph, frustum);
 
       if (e.visible)
-        e.fx->render(FX_RENDER_BEFORE);
+        e.fx->render(FX_RENDER_BEFORE, view_itm);
     }
   }
   else
@@ -77,7 +77,7 @@ void StaticFxObjects::render(int render_type)
     {
       Effect &e = objects[i];
       if (e.visible)
-        e.fx->render(render_type);
+        e.fx->render(render_type, view_itm);
     }
   }
 }

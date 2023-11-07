@@ -59,58 +59,52 @@ void populate_resource_provider(ResourceProvider &provider, // passed by ref to 
 }
 
 void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents multiplexing_extents,
-  const ResourceScheduler::FrameEventsRef &events, eastl::span<NodeStateDelta const> state_deltas)
+  const ResourceScheduler::FrameEventsRef &events, const NodeStateDeltas &state_deltas)
 {
   currentlyProvidedResources.resolutions.resize(registry.knownNames.nameCount<AutoResTypeNameId>());
   for (auto [unresolvedId, resolution] : currentlyProvidedResources.resolutions.enumerate())
     if (auto resolvedId = nameResolver.resolve(unresolvedId); resolvedId != AutoResTypeNameId::Invalid)
       resolution = registry.autoResTypes[resolvedId].dynamicResolution;
 
-  uint32_t userNodeIndex = 0;
   for (auto i : IdRange<intermediate::NodeIndex>(graph.nodes.size()))
   {
     const intermediate::Node &irNode = graph.nodes[i];
     processEvents(events[i]);
 
-    for (auto userNodeNameId : irNode.frontendNodes)
+    const multiplexing::Index multiIdx = multiplexing_index_from_ir(irNode.multiplexingIndex, multiplexing_extents);
+    gatherExternalResources(irNode.frontendNode, irNode.multiplexingIndex, multiIdx, graph.resources);
+    populate_resource_provider(
+      currentlyProvidedResources, registry, nameResolver, irNode.frontendNode,
+      [this, prev_frame, curr_frame, multiIndex = irNode.multiplexingIndex](bool history, ResNameId res_id) -> ManagedTexView {
+        return getManagedTexView(res_id, history ? prev_frame : curr_frame, multiIndex);
+      },
+      [this, prev_frame, curr_frame, multiIndex = irNode.multiplexingIndex](bool history, ResNameId res_id) -> ManagedBufView {
+        return getManagedBufView(res_id, history ? prev_frame : curr_frame, multiIndex);
+      },
+      [this, prev_frame, curr_frame, multiIndex = irNode.multiplexingIndex](bool history, ResNameId res_id) -> BlobView {
+        return getBlobView(res_id, history ? prev_frame : curr_frame, multiIndex);
+      });
+
+
+    validation_set_current_node(registry, irNode.frontendNode);
+    applyState(state_deltas[i], curr_frame, prev_frame);
+    if (const auto &node = registry.nodes[irNode.frontendNode]; node.enabled && node.sideEffect != SideEffects::None)
     {
-      const multiplexing::Index multiIdx = multiplexing_index_from_ir(irNode.multiplexingIndex, multiplexing_extents);
-      gatherExternalResources(userNodeNameId, irNode.multiplexingIndex, multiIdx, graph.resources);
-      populate_resource_provider(
-        currentlyProvidedResources, registry, nameResolver, userNodeNameId,
-        [this, prev_frame, curr_frame, multiIndex = irNode.multiplexingIndex](bool history, ResNameId res_id) -> ManagedTexView {
-          return getManagedTexView(res_id, history ? prev_frame : curr_frame, multiIndex);
-        },
-        [this, prev_frame, curr_frame, multiIndex = irNode.multiplexingIndex](bool history, ResNameId res_id) -> ManagedBufView {
-          return getManagedBufView(res_id, history ? prev_frame : curr_frame, multiIndex);
-        },
-        [this, prev_frame, curr_frame, multiIndex = irNode.multiplexingIndex](bool history, ResNameId res_id) -> BlobView {
-          return getBlobView(res_id, history ? prev_frame : curr_frame, multiIndex);
-        });
-
-
-      validation_set_current_node(registry, userNodeNameId);
-      applyState(state_deltas[userNodeIndex], curr_frame, prev_frame);
-      if (const auto &node = registry.nodes[userNodeNameId]; node.enabled && node.sideEffect != SideEffects::None)
       {
-        {
-          TIME_D3D_PROFILE_NAME(FramegraphNode, registry.knownNames.getName(userNodeNameId));
+        TIME_D3D_PROFILE_NAME(FramegraphNode, registry.knownNames.getName(irNode.frontendNode));
 
-          if (auto &exec = registry.nodes[userNodeNameId].execute)
-            exec(multiIdx);
-          else
-            logerr("Somehow, a node with an empty execution callback was "
-                   "attempted to be executed. This is a bug in framegraph!");
-        }
-        validate_global_state(registry, userNodeNameId);
+        if (auto &exec = registry.nodes[irNode.frontendNode].execute)
+          exec(multiIdx);
+        else
+          logerr("Somehow, a node with an empty execution callback was "
+                 "attempted to be executed. This is a bug in framegraph!");
       }
-      validation_set_current_node(registry, NodeNameId::Invalid);
-
-      // Clean up resource references inside the provider, just in case
-      currentlyProvidedResources.clear();
-
-      ++userNodeIndex;
+      validate_global_state(registry, irNode.frontendNode);
     }
+    validation_set_current_node(registry, NodeNameId::Invalid);
+
+    // Clean up resource references inside the provider, just in case
+    currentlyProvidedResources.clear();
   }
   processEvents(events.back());
   applyState(state_deltas.back(), curr_frame, prev_frame);

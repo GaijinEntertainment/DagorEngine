@@ -1,0 +1,8 @@
+let t1 = {}
+
+
+t1              ?.foo // OK
+.bar    // OK
+
+
+t1?.$     foo // NOT OK

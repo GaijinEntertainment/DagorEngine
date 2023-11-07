@@ -289,6 +289,12 @@ void TracerManager::DrawBuffer::createGPU(int struct_size, int cmd_size, int ele
   structSize = struct_size;
   cmdSize = cmd_size;
   buf = dag::create_sbuffer(struct_size, elements, flags, texfmt, name);
+  if (cmd_size)
+  {
+    const int commandSizeInRegs = cmd_size / dag::buffers::CBUFFER_REGISTER_SIZE;
+    createCmdBuf = dag::buffers::create_one_frame_cb(commandSizeInRegs * FX_TRACER_MAX_CREATE_COMMANDS,
+      String(0, "tracer_create_commands_%s", name));
+  }
 }
 
 void TracerManager::DrawBuffer::createData(int struct_size, int elements)
@@ -349,8 +355,7 @@ void TracerManager::DrawBuffer::append(uint32_t id, dag::ConstSpan<uint8_t> elem
   }
 }
 
-void TracerManager::DrawBuffer::process(ComputeShaderElement *cs, int commands_array_const_no, int commands_count_const_no,
-  int fx_create_cmd, int element_count)
+void TracerManager::DrawBuffer::process(ComputeShaderElement *cs, int fx_create_cmd, int element_count)
 {
   if (!buf || cmds.empty())
     return;
@@ -362,33 +367,29 @@ void TracerManager::DrawBuffer::process(ComputeShaderElement *cs, int commands_a
     static int fxCreateCmdVarId = get_shader_variable_id("fx_create_cmd");
     ShaderGlobal::set_int(fxCreateCmdVarId, fx_create_cmd);
 
-    d3d::set_rwbuffer(STAGE_CS, 0, buf.get());
+    ShaderGlobal::set_buffer(get_shader_variable_id("tracer_data_buffer"), buf.getBufId());
     uint32_t elemSize = cmdSize;
     G_ASSERT((elemSize % 16) == 0);
     int elemCount = cmds.size() / elemSize;
 
-    const int commandSizeInConsts = (elemSize + 15) / 16;
-    const int reqSize = commands_array_const_no + elemCount * commandSizeInConsts;
-    const int commandCbufferSize = d3d::set_cs_constbuffer_size(reqSize) - commands_array_const_no;
-    uint32_t v[4] = {0};
-
     G_ASSERT(elemCount >= cmd);
 
-    for (int i = max(elemCount - cmd, 0); i < elemCount; i += commandCbufferSize / commandSizeInConsts)
+    for (int i = max(elemCount - cmd, 0); i < elemCount;)
     {
-      int batch_size = min(elemCount - i, commandCbufferSize / commandSizeInConsts);
-      v[0] = batch_size;
-      d3d::set_cs_const(commands_count_const_no, (float *)v, 1);
+      int batch_size = min(elemCount - i, FX_TRACER_MAX_CREATE_COMMANDS);
 
-      d3d::set_cs_const(commands_array_const_no, (float *)&cmds[i * elemSize], batch_size * commandSizeInConsts);
-      cs->dispatch((batch_size + FX_TRACER_COMMAND_WARP_SIZE - 1) / FX_TRACER_COMMAND_WARP_SIZE, 1, 1);
+      createCmdBuf->updateData(0, batch_size * cmdSize, &cmds[i * elemSize], VBLOCK_DISCARD);
+
+      ShaderGlobal::set_int(get_shader_variable_id("tracer_batch_size"), batch_size);
+      ShaderGlobal::set_buffer(get_shader_variable_id("tracer_create_commands"), createCmdBuf.getBufId());
+
+      cs->dispatchThreads(batch_size, 1, 1);
+
+      i += batch_size;
     }
 
     cmd = 0;
     erase_items(cmds, 0, elemSize * max(elemCount, 0));
-
-    d3d::set_cs_constbuffer_size(0);
-    d3d::set_rwbuffer(STAGE_CS, 0, 0);
   }
   else
   {
@@ -417,7 +418,9 @@ TracerManager::TracerManager(const DataBlock *blk) :
   preparing(false),
   curTime(0),
   tracerLimitExceedMsg(false),
-  eyeDistBlend(0, 0)
+  eyeDistBlend(0, 0),
+  viewPos(0, 0, 0),
+  viewItm(TMatrix::IDENT)
 {
   tracerBlockId = ShaderGlobal::getBlockId("tracer_frame");
 
@@ -513,9 +516,6 @@ TracerManager::TracerManager(const DataBlock *blk) :
 
   if (computeSupported)
     createCmdCs = new_compute_shader("fx_create_cmd_cs");
-
-  commandsCountConstNo = ShaderGlobal::get_int_fast(::get_shader_variable_id("tracer_commands_count_const_no"));
-  commandsArrayConstNo = ShaderGlobal::get_int_fast(::get_shader_variable_id("tracer_commands_array_const_no"));
 
   initHeads();
   initTrails();
@@ -639,8 +639,8 @@ void TracerManager::doJob()
         const TracerSegment &tracerSegment = tracer->segments[segmentNo];
         G_ASSERT(tracerSegment.partNum > 0);
 
-        float distance = point_to_segment_distance(::grs_cur_view.pos, tracerSegment.startPos, tracerSegment.endPos);
-        float dot = ::grs_cur_view.itm.getcol(2) * tracer->dir;
+        float distance = point_to_segment_distance(viewPos, tracerSegment.startPos, tracerSegment.endPos);
+        float dot = viewItm.getcol(2) * tracer->dir;
         float angle = safe_sqrt(1.f - dot * dot);
         angle = angle * 0.5f + 0.5f;
         float visibility = angle * max(0.0f, 1.f - distance / tailFartherLodDist);
@@ -1027,7 +1027,7 @@ void TracerManager::initHeads()
   tracerTypeBuffer.unlock();
 }
 
-void TracerManager::renderHeads()
+void TracerManager::renderHeads(const Point3 &view_pos, const TMatrix &view_itm)
 {
   headRendElem.shElem->setStates(0, true);
   if (headVb)
@@ -1062,9 +1062,9 @@ void TracerManager::renderHeads()
     if (tracerTypes[tracer->typeNo].color1.a <= 0.0f)
       continue;
 
-    Point3 distVec = tracer->pos - ::grs_cur_view.pos;
+    Point3 distVec = tracer->pos - view_pos;
     float eyeDist = distVec.length();
-    float viewDist = dot(distVec, ::grs_cur_view.itm.getcol(2));
+    float viewDist = dot(distVec, view_itm.getcol(2));
     float distAlpha = eyeDistBlend.x > 0 || eyeDistBlend.y > 0 ? cvt(eyeDist, eyeDistBlend.x, eyeDistBlend.y, 1.0f, 0.0f) : 1.0f;
     if (distAlpha <= 0.0f)
       continue;
@@ -1142,7 +1142,7 @@ void TracerManager::releaseRes()
   segmentBuffer.close();
 }
 
-void TracerManager::beforeRender(const Frustum *f)
+void TracerManager::beforeRender(const Frustum *f, const Point3 &view_pos, const TMatrix &view_itm)
 {
   finishPreparingIfNecessary();
 
@@ -1154,16 +1154,18 @@ void TracerManager::beforeRender(const Frustum *f)
 
   G_ASSERT(f);
   mFrustum = f;
+  viewPos = view_pos;
+  viewItm = view_itm;
 
-
-  tracerBuffer.process(createCmdCs, commandsArrayConstNo, commandsCountConstNo, 0, maxTracerNo + 1);
-  segmentBuffer.process(createCmdCs, commandsArrayConstNo, commandsCountConstNo, 1, (maxTracerNo + 1) * MAX_FX_SEGMENTS);
+  tracerBuffer.process(createCmdCs, 0, maxTracerNo + 1);
+  segmentBuffer.process(createCmdCs, 1, (maxTracerNo + 1) * MAX_FX_SEGMENTS);
 
   preparing = true;
   threadpool::add(this);
 }
 
-void TracerManager::renderTrans(bool heads, bool trails, const float *hk, HeadPrimType head_prim_type)
+void TracerManager::renderTrans(const Point3 &view_pos, const TMatrix &view_itm, bool heads, bool trails, const float *hk,
+  HeadPrimType head_prim_type)
 {
   threadpool::wait(this);
   preparing = false;
@@ -1195,7 +1197,7 @@ void TracerManager::renderTrans(bool heads, bool trails, const float *hk, HeadPr
     if (trails)
       renderTrails();
     if (heads)
-      renderHeads();
+      renderHeads(view_pos, view_itm);
   }
 
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);

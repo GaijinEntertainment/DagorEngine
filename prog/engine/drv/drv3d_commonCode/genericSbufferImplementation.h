@@ -578,7 +578,7 @@ public:
     if (T::IS_UMA)
     {
       // buffer that can be read should use memory with cache
-      if (cflags & (SBCF_CPU_ACCESS_READ | SBCF_USAGE_READ_BACK | SBCF_SYSMEM))
+      if (cflags & (SBCF_CPU_ACCESS_READ | SBCF_USAGE_READ_BACK))
         return T::SHARED_CACHED_MEMORY_CLASS;
     }
 

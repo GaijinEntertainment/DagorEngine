@@ -22,7 +22,7 @@ public:
   {}
 
   void execute(int prev_frame, int curr_frame, multiplexing::Extents multiplexing_extents,
-    const ResourceScheduler::FrameEventsRef &events, eastl::span<NodeStateDelta const> state_deltas);
+    const ResourceScheduler::FrameEventsRef &events, const NodeStateDeltas &state_deltas);
 
   ExternalState externalState;
 

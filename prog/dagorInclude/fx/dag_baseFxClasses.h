@@ -166,7 +166,7 @@ class BaseEffectObject : public BaseEffectInterface
 public:
   virtual void update(float dt) = 0;
 
-  virtual void render(unsigned render_type_id) = 0;
+  virtual void render(unsigned render_type_id, const TMatrix &view_itm) = 0;
   virtual bool getResult(unsigned /*render_type_id*/) { return true; }
 
   virtual void onDeviceReset() {}

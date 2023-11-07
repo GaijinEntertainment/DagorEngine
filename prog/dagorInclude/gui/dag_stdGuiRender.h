@@ -886,6 +886,8 @@ public:
   //! render scaled text to buffer (fill quad vertices and tex/quad count pairs); returns false if some glyphs to be yet rasterized
   bool draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, real scale,
     const wchar_t *str, int len = -1);
+  bool draw_str_scaled_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, real scale,
+    const char *str, int len = -1);
   //! render buffer (previously filled with draw_str_scaled_u_buf)
   void render_str_buf(dag::ConstSpan<GuiVertex> qv, dag::ConstSpan<uint16_t> tex_qcnt, unsigned dsb_flags);
 

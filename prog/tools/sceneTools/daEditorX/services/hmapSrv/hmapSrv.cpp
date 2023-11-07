@@ -1123,7 +1123,7 @@ public:
       bufFormats[i] = parse_tex_format(clipBlk->getStr(String(32, "buf_tex%d", i), "NONE"), TEXFMT_DEFAULT);
     for (int i = 0; i < cacheCnt; ++i)
       formats[i] = parse_tex_format(clipBlk->getStr(String(32, "cache_tex%d", i), "NONE"), TEXFMT_DEFAULT);
-    clipmap->createCaches(formats.data(), cacheCnt, bufFormats.data(), bufCnt);
+    clipmap->createCaches(formats.data(), formats.data(), cacheCnt, bufFormats.data(), bufCnt);
 
     lastClipTexSz = min(clipBlk->getInt("lastClipTexSz", 4096), lastClipTexSz);
     G_ASSERT(clipmap != NULL);

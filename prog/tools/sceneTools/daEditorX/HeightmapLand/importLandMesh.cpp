@@ -61,8 +61,7 @@ enum
   BOTTOM_COUNT
 };
 
-LandMeshMap::LandMeshMap() :
-  size(0, 0), origin(0, 0), cellSize(0), land_rmesh(midmem), editorLandTracer(NULL), materials(midmem), textures(tmpmem)
+LandMeshMap::LandMeshMap() : size(0, 0), origin(0, 0), cellSize(0), editorLandTracer(NULL), materials(midmem), textures(tmpmem)
 {
   gameLandTracer = NULL;
   landMatSG = new StaticGeometryMaterial;
@@ -150,12 +149,6 @@ void LandMeshMap::clear(bool clear_tracer)
 {
   dagGeom->deleteStaticGeometryNode(collisionNode);
 
-  for (int i = 0; i < land_rmesh.size(); ++i)
-    if (land_rmesh[i])
-      dagGeom->destroyShaderMesh(land_rmesh[i]);
-
-  clear_and_shrink(land_rmesh);
-
   for (int i = 0; i < cells.size(); ++i)
   {
     if (cells[i].land_mesh)
@@ -184,44 +177,6 @@ void LandMeshMap::clear(bool clear_tracer)
   size = IPoint2(0, 0);
 }
 
-
-ShaderMesh *LandMeshMap::getLandShaderMesh(int x, int y, bool do_create, bool offseted)
-{
-  if (!offseted)
-  {
-    x -= origin.x;
-    y -= origin.y;
-  }
-
-  if (x < 0 || y < 0 || x >= size.x || y >= size.y)
-    return NULL;
-
-  ShaderMesh *&m = land_rmesh[y * size.x + x];
-
-  if (do_create && !m)
-  {
-    Mesh *gm = cells[y * size.x + x].land_mesh;
-    if (gm->vert.size() > 65535 && gm->face.size() * 3 > 65535)
-    {
-      DAEDITOR3.conError("too big mesh (%d vert, %d faces), cannot make land shadermesh", gm->vert.size(), gm->face.size());
-      return NULL;
-    }
-    if (!landMat)
-    {
-      MaterialData mat;
-      mat.className = "land_mesh";
-      landMat = dagGeom->newShaderMaterial(mat);
-      if (!landMat)
-      {
-        DAEDITOR3.conError("can't create shader material <%s>", mat.className.str());
-        return NULL;
-      }
-    }
-
-    m = dagGeom->createSimpleShaderMesh(*gm, landMat);
-  }
-  return m;
-}
 
 BBox3 LandMeshMap::getBBox(int x, int y, float *sphere_radius)
 {

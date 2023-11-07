@@ -10,7 +10,7 @@ int shglobvars::dynamic_pos_unpack_reg = 253;
 
 void shglobvars::init_varids_loaded()
 {
-  globalTransRGvId = ShaderGlobal::get_glob_var_id(get_shader_variable_id("global_transp_r"));
+  globalTransRGvId = ShaderGlobal::get_glob_var_id(get_shader_variable_id("global_transp_r", true));
   ShaderGlobal::set_real_fast(globalTransRGvId, 1.0f);
   worldViewPosGvId = ShaderGlobal::get_glob_var_id(get_shader_variable_id("world_view_pos"));
   localWorldXGvId = ShaderGlobal::get_glob_var_id(get_shader_variable_id("local_world_x", true));

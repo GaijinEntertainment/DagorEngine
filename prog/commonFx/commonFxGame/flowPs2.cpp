@@ -532,7 +532,7 @@ public:
   }
 
 
-  virtual void render(unsigned rtype)
+  virtual void render(unsigned rtype, const TMatrix &view_itm)
   {
     if ((rtype == FX_RENDER_TRANS && !par.distortion && par.shader != FX_STD_GBUFFERATEST) ||
         (rtype == FX_RENDER_DISTORTION && par.distortion && par.shader != FX_STD_GBUFFERATEST) ||
@@ -541,7 +541,7 @@ public:
       total_ps++;
       total_parts += parts.size();
 
-      TMatrix vtm = ::grs_cur_view.itm; // deprecated
+      TMatrix vtm = view_itm;
       TMatrix4 globTm;
       if (par.sorted)
         d3d::getglobtm(globTm); // deprecated

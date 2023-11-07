@@ -50,9 +50,6 @@ public:
     clear_and_resize(cells, size.x * size.y);
     mem_set_0(cells);
 
-    land_rmesh.resize(size.x * size.y);
-    mem_set_0(land_rmesh);
-
     cellSize = cell_size;
   }
 
@@ -97,9 +94,6 @@ public:
 
   IPoint2 getOrigin() const { return origin; }
 
-  ShaderMesh *getLandShaderMesh(int x, int y, bool do_create, bool offseted);
-  ShaderMesh *getCombinedShaderMesh(int x, int y, bool do_create, bool offseted) { return NULL; }
-  ShaderMesh *getDecalShaderMesh(int x, int y, bool do_create, bool offseted) { return NULL; }
   BBox3 getBBox(int x, int y, float *sphere_radius = NULL);
 
   dag::Span<landmesh::Cell> getCells() { return make_span(cells); }
@@ -149,7 +143,4 @@ protected:
   Ptr<StaticGeometryMaterial> landBottomDeepMatSG;
   Ptr<StaticGeometryMaterial> landBottomBorderMatSG;
   StaticGeometryNode *collisionNode;
-
-  Ptr<ShaderMaterial> landMat;
-  Tab<ShaderMesh *> land_rmesh;
 };

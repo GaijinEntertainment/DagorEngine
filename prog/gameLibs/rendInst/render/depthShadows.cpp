@@ -120,7 +120,7 @@ int RendInstGenData::RtData::renderRendinstGlobalShadowsToTextures(const Point3 
           compr = new BcCompressor(BcCompressor::COMPRESSION_BC4, 1, rendinstGlobalShadowTexSize, rendinstGlobalShadowTexSize, 1,
             "bc4_compressor");
 
-          if (compr->getCompressionType() == BcCompressor::COMPRESSION_ERR)
+          if (!compr->isValid())
             del_it(compr);
         }
 

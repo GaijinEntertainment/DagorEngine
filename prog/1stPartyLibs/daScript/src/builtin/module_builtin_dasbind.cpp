@@ -62,7 +62,7 @@ namespace das {
         return nullptr;
     }
 #endif
-#elif defined(__linux__)
+#elif defined(__linux__) || defined __HAIKU__
     void * openGlGetFunctionAddress ( const char * name ) {
         auto libName = "libGL.so";
         void * libhandle = nullptr;

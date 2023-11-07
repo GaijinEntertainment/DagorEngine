@@ -173,12 +173,12 @@ public:
     mainBindump = NULL;
   }
 
-  void waitForLoadingDone()
+  void waitForLoadingDone(const Point3 &view_pos)
   {
     if (!ssm)
       return;
     while (ssm->isLoading())
-      act(::grs_cur_view.itm.getcol(3));
+      act(view_pos);
   }
 
   // access to protected members

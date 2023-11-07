@@ -839,11 +839,10 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
       }
 
       auto res = shape.Create();
-      if (res.IsValid())
+      if (DAGOR_LIKELY(res.IsValid()))
         return res.Get();
 
-      // TODO: promote this to logerr when either all project resources are fixed or add per-project setting
-      logwarn("Failed to create non sanitized mesh shape <%s>: %s", meshColl->debugName, res.GetError().c_str());
+      logerr("Failed to create non sanitized mesh shape <%s>: %s", meshColl->debugName, res.GetError().c_str());
 
       decltype(shape) sanitizedShape;
       sanitizedShape.mTriangleVertices = eastl::move(shape.mTriangleVertices);

@@ -179,9 +179,9 @@ public:
 
     virtual void visitArrayExpr(ArrayExpr *expr) {
         _out->writeChar('[');
-        for (SQUnsignedInteger i = 0; i < expr->initialziers().size(); ++i) {
+        for (SQUnsignedInteger i = 0; i < expr->initializers().size(); ++i) {
             if (i) _out->writeString(", ");
-            expr->initialziers()[i]->visit(this);
+            expr->initializers()[i]->visit(this);
         }
         _out->writeChar(']');
     }
@@ -465,7 +465,7 @@ public:
             destruct->declarations()[i]->visit(this);
         }
         _out->writeString(" } = ");
-        destruct->initiExpression()->visit(this);
+        destruct->initExpression()->visit(this);
     }
 };
 

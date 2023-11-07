@@ -238,11 +238,11 @@ void initImpostorsGlobals()
   if (BcCompressor::isAvailable(BcCompressor::COMPRESSION_BC3))
   {
     rendinst::render::bcCompressors[0] = new BcCompressor(get_compressor(0), 0, 0, 0, 1, get_compressor_shader(0));
-    compressionAvailable = rendinst::render::bcCompressors[0]->getCompressionType() != BcCompressor::COMPRESSION_ERR;
+    compressionAvailable = rendinst::render::bcCompressors[0]->isValid();
     for (int i = 1; i < rendinst::render::impostor_tex_count && compressionAvailable; ++i)
     {
       rendinst::render::bcCompressors[i] = new BcCompressor(get_compressor(i), 0, 0, 0, 1, get_compressor_shader(i));
-      if (rendinst::render::bcCompressors[i]->getCompressionType() == BcCompressor::COMPRESSION_ERR)
+      if (!rendinst::render::bcCompressors[i]->isValid())
       {
         compressionAvailable = false;
         break;
@@ -679,6 +679,44 @@ bool RendInstGenData::RtData::updateImpostorsPreshadow(int poolNo, const Point3 
     if (!updateImpostorsPreshadow(poolNo, sunDir0, i, depthAtlas))
       return false;
   return true;
+}
+
+void RendInstGenData::RtData::applyImpostorRange(int ri_idx, const DataBlock *ri_ovr, float cell_size)
+{
+  G_ASSERT(riRes[ri_idx]->hasImpostor());
+  auto &ranges = rtPoolData[ri_idx]->lodRange;
+  const bool hasTransitionLod = rtPoolData[ri_idx]->hasTransitionLod();
+  const int impostorLodNum = riResLodCount(ri_idx) - 1;
+  const int transitionLodNum = impostorLodNum - 1;
+  const int lastMeshLodNum = hasTransitionLod ? transitionLodNum - 1 : transitionLodNum;
+  auto defaultTransitionLodRange = riResLodRange(ri_idx, transitionLodNum, nullptr);
+  const float transitionRange = hasTransitionLod ? defaultTransitionLodRange - riResLodRange(ri_idx, lastMeshLodNum, nullptr) : 0.f;
+  G_ASSERT(lastMeshLodNum >= 0);
+  for (int lodI = 0; lodI < riResLodCount(ri_idx); lodI++)
+    ranges[lodI] = riResLodRange(ri_idx, lodI, ri_ovr);
+  if (rendinst::render::use_tree_lod0_offset)
+  {
+    ranges[lastMeshLodNum] += cell_size;
+    if (hasTransitionLod)
+    {
+      ranges[transitionLodNum] += cell_size;
+      defaultTransitionLodRange += cell_size;
+    }
+  }
+  if (hasTransitionLod)
+  {
+    G_ASSERT(transitionRange > 0);
+    // Override setting does not know about transition lod,
+    // so need to apply it to impostor lod instead.
+    if (defaultTransitionLodRange != ranges[transitionLodNum])
+      ranges[impostorLodNum] = ranges[transitionLodNum];
+    Tab<ShaderMaterial *> mats;
+    riRes[ri_idx]->lods[transitionLodNum].scene->gatherUsedMat(mats);
+    for (auto mat : mats)
+      riRes[ri_idx]->setImpostorTransitionRange(mat, ranges[lastMeshLodNum], transitionRange);
+
+    ranges[transitionLodNum] = ranges[lastMeshLodNum] + transitionRange;
+  }
 }
 
 static void impostorMipSRVBarrier(rendinst::render::RtPoolData &pool, int mip)

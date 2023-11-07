@@ -1983,7 +1983,7 @@ inline bool set_required_res_list_restriction(GetListElement list, int count, Re
   {
     const char *name = list(i);
     int res_id = resNameMap.getNameId(name);
-    if (res_id < 0 && gamereshooks::resolve_res_handle)
+    if (gamereshooks::resolve_res_handle)
       gamereshooks::resolve_res_handle(GAMERES_HANDLE_FROM_STRING(name), 0xFFFFFFFFu, res_id);
     if (res_id < 0)
     {

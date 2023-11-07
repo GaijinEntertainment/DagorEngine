@@ -666,10 +666,10 @@ void GpuObjects::setGpuInstancingRelemParams(int cascade_no)
       RenderableInstanceLodsResource *res = rendinst::getRIGenExtraRes(objectIds[objIdx]);
 
       bool lodExist = lod < res->lods.size();
-      if (lodExist)
+      dag::ConstSpan<ShaderMesh::RElem> elems =
+        lodExist ? res->lods[lod].scene->getMesh()->getMesh()->getMesh()->getAllElems() : dag::ConstSpan<ShaderMesh::RElem>{};
+      if (elems.size())
       {
-        const ShaderMesh *m = res->lods[lod].scene->getMesh()->getMesh()->getMesh();
-        dag::ConstSpan<ShaderMesh::RElem> elems = m->getAllElems();
         const ShaderMesh::RElem &elem = elems[0];
         // index_count_per_instance, start_index_location, base vertex, object offset
         gpuObjectData[GPUOBJDATA_SIZE * (objIdx * MAX_LODS + lod) + 0] = Point4(elem.numf * 3, elem.si, elem.baseVertex, objOffset);

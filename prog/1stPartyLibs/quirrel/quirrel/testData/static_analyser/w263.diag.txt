@@ -1,4 +1,4 @@
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:2:0
 
 for (local i = 0; i < 5; i++) // EXPECTED
@@ -7,7 +7,7 @@ for (local i = 0; i < 5; i++) // EXPECTED
   ::print(i)
 
 
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:7:0
 
 function _foo(_p) // EXPECTED
@@ -15,7 +15,7 @@ function _foo(_p) // EXPECTED
 ^
 
 
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:21:0
 
 class _B // EXPECTED
@@ -23,7 +23,7 @@ class _B // EXPECTED
 ^
 
 
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:30:0
 
 enum _E2    // EXPECTED
@@ -31,7 +31,7 @@ enum _E2    // EXPECTED
 ^
 
 
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:41:0
 
 try // EXPECTED
@@ -40,7 +40,7 @@ try // EXPECTED
     print(8)
 
 
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:44:0
 
 } catch (_e) // EXPECTED
@@ -49,7 +49,7 @@ testData/static_analyser/w263.nut:44:0
     print(9)
 
 
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:57:0
 
 if (!t) // EXPECTED
@@ -58,7 +58,7 @@ if (!t) // EXPECTED
     print(12)
 
 
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:60:0
 
 } else  // EXPECTED
@@ -67,7 +67,7 @@ testData/static_analyser/w263.nut:60:0
     print(13)
 
 
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:69:0
 
 while (t)   // EXPECTED
@@ -76,7 +76,7 @@ while (t)   // EXPECTED
     print(15)
 
 
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:78:0
 
 do  // EXPECTED
@@ -85,7 +85,7 @@ do  // EXPECTED
     print(17)
 
 
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:89:4
 
     default:    // EXPECTED
@@ -94,7 +94,7 @@ testData/static_analyser/w263.nut:89:4
         break;
 
 
-WARNING: w263 (egyptian-braces) Identation style: 'egyptian braces' required.
+WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.
 testData/static_analyser/w263.nut:95:0
 
 switch (t)  // EXPECTED

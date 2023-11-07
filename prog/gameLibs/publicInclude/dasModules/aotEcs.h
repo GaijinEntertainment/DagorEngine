@@ -549,6 +549,7 @@ inline bool hasHint(ecs::EntityId eid, const char *key, uint32_t key_hash)
   return g_entity_mgr->has(eid, ecs::HashedConstString({key, key_hash}));
 }
 inline bool has(ecs::EntityId eid, const char *s) { return hasHint(eid, s, ECS_HASH_SLOW(s ? s : "").hash); }
+inline ecs::template_t getEntityTemplateId(ecs::EntityId id) { return g_entity_mgr->getEntityTemplateId(id); }
 inline const char *getEntityTemplateName(ecs::EntityId id) { return g_entity_mgr->getEntityTemplateName(id); }
 inline const char *getEntityFutureTemplateName(ecs::EntityId id) { return g_entity_mgr->getEntityFutureTemplateName(id); }
 

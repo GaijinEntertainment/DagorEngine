@@ -435,7 +435,7 @@ struct DafxSparks : BaseParticleEffect
 
   void update(float) override {}
 
-  void render(unsigned) override {}
+  void render(unsigned, const TMatrix &) override {}
 
   void spawnParticles(BaseParticleFxEmitter *, real) override {}
 };

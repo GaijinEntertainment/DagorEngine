@@ -114,6 +114,7 @@ public:
 
   bool checkVerLabel() { return verLabel == VER_LABEL; }
 
+  void resetOptSceneAndStates();
   void prepare(LandMeshManager &provider, const Point3 &view_pos, float hmap_camera_height);
   // void set_land_classes(dag::ConstSpan<SimpleString> land_classes);
 

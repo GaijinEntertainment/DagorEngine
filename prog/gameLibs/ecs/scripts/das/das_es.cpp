@@ -711,7 +711,7 @@ inline bool entity_system_is_das(ecs::EntitySystemDesc *desc)
 }
 static void das_es_desc_deleter(ecs::EntitySystemDesc *desc);
 
-uint32_t ESModuleGroupData::es_resolve_function_ptrs(EsContext *ctx, eastl::set<ecs::EntitySystemDesc *> &systems, const char *fn,
+uint32_t ESModuleGroupData::es_resolve_function_ptrs(EsContext *ctx, dag::VectorSet<ecs::EntitySystemDesc *> &systems, const char *fn,
   uint64_t load_start_time, AotMode aot_mode, AotModeIsRequired aot_mode_is_required, DasEcsStatistics &stats)
 {
   uint32_t cnt = 0;
@@ -1232,9 +1232,9 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
 
 void LoadedScript::unload()
 {
-  if (systems.size())
+  if (!systems.empty())
   {
-    eastl::set<ecs::EntitySystemDesc *> systemsCopy = eastl::move(systems);
+    auto systemsCopy = eastl::move(systems);
     for (auto system : systemsCopy)
     {
       remove_system_from_list(system);
@@ -1924,6 +1924,7 @@ bool enqueue_das_script(const char *fname)
 bool load_entry_script(const char *entry_point_name, TInitDas init, LoadEntryScriptCtx ctx)
 {
   const uint64_t startTime = profile_ref_ticks();
+  scripts.statistics = {}; // reset das load stats from previous load
   const size_t memUsed = dagor_memory_stat::get_memory_allocated(true);
   bool res = false;
   if (globally_load_threads_num > 1)

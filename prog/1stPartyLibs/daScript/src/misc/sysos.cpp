@@ -399,6 +399,43 @@
             return "";
         }
     }
+#elif defined __HAIKU__
+    #include <unistd.h>
+    #include <dlfcn.h>
+    #include <image.h>
+    namespace das {
+		static char executablePath[MAXPATHLEN];
+		extern "C" void
+		initialize_before(image_id ourImage)
+		{
+			image_info ii;
+			get_image_info(ourImage, &ii);
+			snprintf(executablePath, sizeof(executablePath), "%s", ii.name);
+		}
+        void hwSetBreakpointHandler ( void (*) ( int, void * ) ) { }
+        int hwBreakpointSet ( void *, int, int ) {
+            return -1;
+        }
+        bool hwBreakpointClear ( int ) {
+            return false;
+        }
+        size_t getExecutablePathName(char* pathName, size_t pathNameCapacity) {
+            return snprintf(pathName, pathNameCapacity, "%s", executablePath);
+        }
+        void * loadDynamicLibrary ( const char * lib ) {
+            return dlopen(lib,RTLD_LAZY);
+        }
+        void * getFunctionAddress ( void * lib, const char * name ) {
+            return lib ? dlsym(lib, name) : nullptr;
+        }
+        void * getLibraryHandle ( const char * lib ) {
+            return dlopen(lib,RTLD_LAZY);
+        }
+        string normalizeFileName ( const char * fileName ) {
+            // TODO: implement
+            return "";
+        }
+    }
 #else
     namespace das {
         void hwSetBreakpointHandler ( void (*) ( int, void * ) ) { }

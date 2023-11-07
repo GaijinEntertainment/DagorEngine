@@ -12,17 +12,9 @@
 
 static int globalFrameBlockId = -1;
 
-enum
-{
-  MAX_LOD_NO = 2,
-  GRASS_LOD_COUNT = MAX_LOD_NO + 1
-};
-
 #define GLOBAL_VARS_LIST                             \
-  VAR(grass_gen_lod)                                 \
   VAR(world_to_grass_slice)                          \
   VAR(rendinst_landscape_area_left_top_right_bottom) \
-  VAR_OPT(grass_gen_lod_index)                       \
   VAR_OPT(grass_average_ht__ht_extent__avg_hor__hor_extent)
 
 #define VAR_OPT(a) static int a##VarId = -1;
@@ -164,57 +156,11 @@ void GrassGenerateHelper::generate(const Point3 &position, const IPoint2 &grassM
         rendinst::LayerFlag::Opaque, rendinst::OptimizeDepthPass::No, 3);
     };
 
-    const float nextLodDistMul = 2.5f;
-    const float nextLodGridMul = 2.f;
-    const float lod0DistancePart = 0.2;
-    // for first lod we want to hide lods as much as possible. for next lods use 25%
-    const float lod1StartPart = 0.5, lodNStartPart = 0.75;
-    // 5 percent before previous lod start disappear, this one should fully appear
-    const float lod1FullPart = 0.7, lodNFullPart = 0.8;
-
-    const bool isGrassLodsEnabled = gpuGrassBase.isGrassLodsEnabled();
-    const float grassDistance = gpuGrassBase.getGrassDistance();
-    const float grassGridSizeMultiplied = gpuGrassBase.getGridSizeEffective();
-    const float grassDistanceMultiplied = gpuGrassBase.getDistanceEffective();
-
     ShaderGlobal::set_color4(world_to_grass_sliceVarId, 1.0f / grassMaskDistance.x, 1.0f / grassMaskDistance.y,
       (-grassMaskOffset.x - halfPixelOffset.x) / grassMaskDistance.x, (-grassMaskOffset.y - halfPixelOffset.y) / grassMaskDistance.y);
 
-    float currentGridSize = grassGridSizeMultiplied;
-    float prevLodDistancePart = lod0DistancePart;
-    float currentGrassDistance = grassDistanceMultiplied * prevLodDistancePart;
-    // a*d0 + b = 1 //disappear
-    // a*d1 + b = 0 //full appear
-    // a = 1/(d0-d1);
-    // b = -d1/(d0-d1)
-    auto calcLinearLod = [](float full_disappear_dist, float full_appear_dist) // mul, add
-    { return Point2(1.f / (full_disappear_dist - full_appear_dist), -full_appear_dist / (full_disappear_dist - full_appear_dist)); };
-
-    const float lod0StartDisappearing = 0.75; // 25% for disappearing
-    const Point2 disappearTo = calcLinearLod(1.0f, lod0StartDisappearing);
-    ShaderGlobal::set_color4(grass_gen_lodVarId, 0, 0, disappearTo.x / currentGrassDistance, disappearTo.y);
-    ShaderGlobal::set_real(grass_gen_lod_indexVarId, 0);
-    renderGrassLod(currentGridSize, currentGrassDistance);
-
     // todo: generate lods in one pass
-    for (int lod = 1, lodCount = isGrassLodsEnabled ? MAX_LOD_NO : 1; lod <= lodCount; ++lod)
-    {
-      // change for new lod
-      const float lodStartDistancePart = currentGrassDistance * (lod == 1 ? lod1StartPart : lodNStartPart);
-      const float lodFullDistancePart = currentGrassDistance * (lod == 1 ? lod1FullPart : lodNFullPart);
-      currentGridSize *= nextLodGridMul;
-      prevLodDistancePart = min(1.f, prevLodDistancePart * nextLodDistMul);
-      currentGrassDistance = lod == lodCount ? grassDistance : grassDistance * prevLodDistancePart; //?
-
-      const Point2 appearFrom = calcLinearLod(lodStartDistancePart, lodFullDistancePart);
-      // 10 percent for disappearing if there is other lod
-      const Point2 disappearTo = calcLinearLod(currentGrassDistance, currentGrassDistance * ((lod == lodCount) ? 0.75 : 0.9));
-      ShaderGlobal::set_color4(grass_gen_lodVarId, appearFrom.x, appearFrom.y, disappearTo.x, disappearTo.y);
-      ShaderGlobal::set_real(grass_gen_lod_indexVarId, lod);
-      renderGrassLod(currentGridSize, currentGrassDistance);
-      if (currentGrassDistance == grassDistance)
-        break;
-    }
+    gpuGrassBase.renderGrassLods(renderGrassLod);
 
     ShaderElement::invalidate_cached_state_block();
   }

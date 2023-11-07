@@ -4045,7 +4045,6 @@ bool validate_resource_description(const BufferResourceDescription &desc, const 
 {
   bool hadError = validate_resource_description(static_cast<const BasicResourceDescription &>(desc), what);
 
-  G_ASSERT_DO_AND_LOG(0 == (SBCF_SYSMEM & desc.cFlags), hadError = true, "DX12: cFlags of %s had incompatible SBCF_SYSMEM flag", what);
   G_ASSERT_DO_AND_LOG(0 == (SBCF_DYNAMIC & desc.cFlags), hadError = true, "DX12: cFlags of %s had incompatible SBCF_DYNAMIC flag",
     what);
   G_ASSERT_DO_AND_LOG(0 == (SBCF_FRAMEMEM & desc.cFlags), hadError = true, "DX12: cFlags of %s had incompatible SBCF_FRAMEMEM flag",

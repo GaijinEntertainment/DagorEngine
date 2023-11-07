@@ -60,6 +60,7 @@ public:
   void releaseBuffer(); // destroy buffer texture
 
   ECompressionType getCompressionType() const;
+  bool isValid() const;
 
   static bool isAvailable(ECompressionType format);
 

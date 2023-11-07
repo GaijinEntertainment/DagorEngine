@@ -7,7 +7,6 @@ _CLANG_DIR   = $(_DEVTOOL)/LLVM-$(CLangVer) ;
 if ! [ GLOB $(_CLANG_DIR) : * ] { exit FATAL\: \"$(_CLANG_DIR)\" not found! ; }
 if $(VCUpdateVer) { _VC_DIR = $(_VC_DIR)_$(VCUpdateVer) ; }
 _VC_CRT_TYPE = -MT ;
-C_preopt_DirectXVer = jun2010 ;
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 
 if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update DEVTOOLS ; }

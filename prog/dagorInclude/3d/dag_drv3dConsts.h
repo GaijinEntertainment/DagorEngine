@@ -111,7 +111,6 @@ enum
 
 enum
 {
-  SBCF_SYSMEM = 0x0002,    // Create buffer in system memory
   SBCF_DYNAMIC = 0x0004,   // Create dynamic buffer
   SBCF_MAYBELOST = 0x0008, // Buffer contents may be safely lost
   SBCF_ZEROMEM = 0x0010,   // Make sure driver has cleared the buffer (PS4, PS5)
@@ -2090,42 +2089,55 @@ constexpr inline ResourceBarrier operator^(ResourceBarrier l, ResourceBarrier r)
   return static_cast<ResourceBarrier>(static_cast<unsigned>(l) ^ static_cast<unsigned>(r));
 }
 
+/** \defgroup RenderPassConsts
+ * @{
+ */
+
+/// \brief Bitfield of actions that happen with target at given slot and subpass
 enum RenderPassTargetAction : int
 {
-  //! only barrier action will be performed
+  /// \brief No action with target will happen
+  /// \details Only \b dependencyBarrier of binding will be executed for this target
+  /// \warning Content of target becomes invalid if no action is supplied overall
   RP_TA_NONE = 0,
 
-  //! load action is performend once for each target is being accessed
-
-  // read contents from memory
+  /// \brief Loads contents of target from memory to framebuffer
+  /// \note Avoid load operations on TBDR hardware
   RP_TA_LOAD_READ = 1u << 0,
-  // use clear value instead of contents
+  /// \brief Loads clear value to framebuffer instead of doing any memory operation
   RP_TA_LOAD_CLEAR = 1u << 1,
-  // do not care about load operation, use UB default (aka discard)
+  /// \brief Don't care about loading contents of target (aka discard)
+  /// \warning Initial content of frame buffer is underfined, make sure to handle this
   RP_TA_LOAD_NO_CARE = 1u << 2,
-  // any load mask
+  /// \brief Bitmask of any load operation
+  /// \note  load action is performed for each target when
+  /// its being accessed for the first time in render pass
   RP_TA_LOAD_MASK = RP_TA_LOAD_NO_CARE | RP_TA_LOAD_CLEAR | RP_TA_LOAD_READ,
 
-  //! subpass action is performed on targets inside subpasses
-
-  // read contents in shader
+  /// \brief Target contents will be readed by subpass
+  /// \note This corresponds to SubpassInput with SubpassLoad inside shader
+  /// \warning Generic implementation uses T register with \b subpassBindingOffset instead of SubpassInput,
+  /// this must be handled properly in shader code
   RP_TA_SUBPASS_READ = 1u << 3,
-  // resolve color/depth writes to target from MSAA target in same slot
+  /// \brief Target will be used as MSAA resolve destination of MSAA target bound in same slot
+  /// \note MSAA Depth resolve is optional feature if non generic implementation is used
+  /// \warning Must supply MSAA target in same slot in another binding
+  /// otherwise creation on render pass will fail
   RP_TA_SUBPASS_RESOLVE = 1u << 4,
-  // write contents in shader
+  /// \brief Target contents will be written by subpass
   RP_TA_SUBPASS_WRITE = 1u << 5,
-  // keep attachment contents if it was not used in subpass (otherwise UB)
+  /// \brief Target contents will be keeped intact if it was not used in subpass (otherwise UB)
   RP_TA_SUBPASS_KEEP = 1u << 6,
 
-  //! store action is performed once for each target on whole pass completion
-
-  // write contents to memory
+  /// \brief Contents of framebuffer will be written to target memory
   RP_TA_STORE_WRITE = 1u << 7,
-  // do not write contents to memory (keep target intact)
+  /// \brief Contents of framebuffer will not be stored
   RP_TA_STORE_NONE = 1u << 8,
-  // don't care about result, target memory will be left in UB state
+  /// \brief Don't care about target memory contents
+  /// \warning Target memory contents will be left in UB state
   RP_TA_STORE_NO_CARE = 1u << 9,
-  // any store mask
+  /// \brief Bitmask of any load operation
+  /// \note  store action is performed once for each target on whole pass completion
   RP_TA_STORE_MASK = RP_TA_STORE_NO_CARE | RP_TA_STORE_NONE | RP_TA_STORE_WRITE
 };
 
@@ -2134,13 +2146,16 @@ constexpr inline RenderPassTargetAction operator|(RenderPassTargetAction l, Rend
   return static_cast<RenderPassTargetAction>(static_cast<unsigned>(l) | static_cast<unsigned>(r));
 }
 
-// extra indexes that encode special cases of render pass description
+/// \brief extra indexes that encode special cases of render pass description
 enum RenderPassExtraIndexes : int
 {
   RP_INDEX_NORMAL = 0,
-  // external end subpass are used for precise barriers
-  // between followup external workload
+  /// \brief Pseudo subpass index, that happens at end of render pass
+  /// \details Used to provide store actions as well as \b dependencyBarriers for generic implementation
   RP_SUBPASS_EXTERNAL_END = -1,
-  // using this slot will bind target as depth/stencil
+  /// \brief Slot for depth/stencil
+  /// \details Using this slot will bind target as depth/stencil
   RP_SLOT_DEPTH_STENCIL = -1
 };
+
+/** @}*/

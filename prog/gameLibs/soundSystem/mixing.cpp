@@ -22,7 +22,8 @@ static FMOD::Studio::VCA *get_vca(const char *vca_name)
   FMOD::Studio::VCA *vca = nullptr;
   FMOD_RESULT result = get_studio_system()->getVCA(path.c_str(), &vca);
 
-  G_ASSERTF_RETURN(FMOD_OK == result, nullptr, "Get VCA \"%s\" failed, fmod result is \"%s\"", path.c_str(), FMOD_ErrorString(result));
+  if (FMOD_OK != result)
+    logerr("Get VCA \"%s\" failed, fmod result is \"%s\"", path.c_str(), FMOD_ErrorString(result));
 
   return vca;
 }

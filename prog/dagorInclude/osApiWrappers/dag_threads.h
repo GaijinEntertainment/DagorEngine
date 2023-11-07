@@ -31,6 +31,11 @@
 
 
 
+#elif _TARGET_ANDROID
+#define MAIN_THREAD_AFFINITY         (1 << (cpujobs::get_core_count() - 1)) // Fast cores have higher numbers.
+// Reserve two cores for main and Vulkan worker.
+#define WORKER_THREADS_AFFINITY_MASK (cpujobs::get_core_count() >= 4 ? (1 << (cpujobs::get_core_count() - 2)) - 1 : ~0u)
+#define NUM_WORKERS_DEFAULT          (max(1, cpujobs::get_core_count() - 2))
 #else
 #define MAIN_THREAD_AFFINITY \
   (cpujobs::get_core_count() >= 3 ? 0x4 : 0x1) // Core2 - Not the Core0, favorite core of different tools,

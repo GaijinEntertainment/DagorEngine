@@ -220,7 +220,7 @@ BINDUMP_BEGIN_LAYOUT(ShaderClass)
 
   // storages
   VecHolder<detail::ShRef> shrefStorage;
-  VecHolder<int> __unused1;
+  VecHolder<ShaderVarTextureType> staticTextureTypeBySlot;
   VecHolder<detail::IntPair> __unused2;
   VecHolder<ShaderChannelId> chanStorage;
   VecHolder<int> icStorage;

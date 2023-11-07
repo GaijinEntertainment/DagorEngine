@@ -85,7 +85,13 @@ void MatFileResourceDagMat::setDataAndSave(const EntityMatProperties *mat_proper
 
     String texFilePath;
     if (DagorAsset *texAsset = DAEDITOR3.getAssetByName(mat_properties->textures[texSlot]))
-      texFilePath = texAsset->getTargetFilePath();
+    {
+      // Assets under #gameRes/... (in a CDK build) do not have source file names.
+      if (texAsset->getSrcFileName())
+        texFilePath = texAsset->getTargetFilePath();
+      else
+        texFilePath.printf(64, "%s*", texAsset->getName());
+    }
 
     int dagTexId = find_value_idx(dagData.texlist, texFilePath);
     if (dagTexId < 0 && !texFilePath.empty())

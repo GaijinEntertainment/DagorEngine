@@ -11,8 +11,9 @@ enum class DrawShadedCollisionsFlag : uint32_t
   Alone = 1 << 0,
   WithVis = 1 << 1,
   Wireframe = 1 << 2,
+  FaceOrientation = 1 << 3,
 
-  ALL_FLAGS = Alone | WithVis | Wireframe
+  ALL_FLAGS = Alone | WithVis | Wireframe | FaceOrientation
 };
 using DrawShadedCollisionsFlags = BitFlagsMask<DrawShadedCollisionsFlag>;
 BITMASK_DECLARE_FLAGS_OPERATORS(DrawShadedCollisionsFlag);

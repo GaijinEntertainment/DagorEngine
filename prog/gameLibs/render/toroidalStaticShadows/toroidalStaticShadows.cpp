@@ -158,6 +158,8 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadows::updateO
 
 int ToroidalStaticShadows::getRegionToRenderCount(int cascade) const { return cascades[cascade].getRegionToRenderCount(); }
 
+void ToroidalStaticShadows::clearRegionToRender(int cascade) { cascades[cascade].clearRegionToRender(); }
+
 TMatrix4 ToroidalStaticShadows::getRegionToRenderCullTm(int cascade, int region) const
 {
   return cascades[cascade].getRegionToRenderCullTm(region);

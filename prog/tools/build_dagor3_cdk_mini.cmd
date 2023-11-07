@@ -1,6 +1,8 @@
 @echo off
 
 rem DaEditorX
+jam -s Root=../.. -s Platform=win64 -f sceneTools/daEditorX/jamfile-editor
+  if errorlevel 1 goto error
 jam -s Root=../.. -s Platform=win64 -f sceneTools/daEditorX/jamfile
   if errorlevel 1 goto error
 

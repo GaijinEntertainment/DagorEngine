@@ -10,6 +10,7 @@
 #include <util/dag_index16.h>
 #include <generic/dag_smallTab.h>
 #include <generic/dag_tab.h>
+#include <math/dag_check_nan.h>
 
 class IGenSave;
 class IGenLoad;
@@ -151,5 +152,14 @@ private:
 
   friend class AnimationGraph;
 };
+
+inline void AnimCommonStateHolder::setParam(int id, float value)
+{
+  G_ASSERTF(id < val.size() && check_finite(value), "%d/%d %g", id, val.size(), value);
+  G_ASSERT(paramTypes[id] == PT_ScalarParam || paramTypes[id] == PT_TimeParam);
+  if (val[id].scalar != value)
+    val[id].flags |= PF_Changed;
+  val[id].scalar = value;
+}
 
 } // end of namespace AnimV20

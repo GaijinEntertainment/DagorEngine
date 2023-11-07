@@ -59,6 +59,7 @@ struct BackGraphicsStateStorage
   StateFieldGraphicsRenderPassEarlyScopeOpener renderPassEarlyOpener;
   StateFieldRenderPassResource nativeRenderPass;
   StateFieldGraphicsQueryScopeOpener queryOpener;
+  StateFieldGraphicsRenderPassArea renderPassArea;
 
   BackDynamicGraphicsState dynamic;
 
@@ -84,7 +85,8 @@ class BackGraphicsState
   : public TrackedState<BackGraphicsStateStorage, StateFieldGraphicsRenderPassEarlyScopeOpener, StateFieldRenderPassResource,
       StateFieldGraphicsInPass, StateFieldGraphicsViewport, StateFieldGraphicsPipelineLayout, StateFieldGraphicsBasePipeline,
       StateFieldGraphicsFlush, StateFieldGraphicsQueryScopeOpener, StateFieldGraphicsRenderPassScopeOpener,
-      StateFieldGraphicsFramebuffer, StateFieldGraphicsRenderPassClass, StateFieldGraphicsConditionalRenderingScopeOpener,
+      StateFieldGraphicsFramebuffer, StateFieldGraphicsRenderPassArea, StateFieldGraphicsRenderPassClass,
+      StateFieldGraphicsConditionalRenderingScopeOpener,
 
       StateFieldGraphicsPrimitiveTopology, StateFieldGraphicsDynamicRenderStateIndex, BackDynamicGraphicsState,
       StateFieldGraphicsPipeline, StateFieldGraphicsDepthBounds, StateFieldGraphicsBlendConstantFactor, StateFieldGraphicsIndexBuffer,

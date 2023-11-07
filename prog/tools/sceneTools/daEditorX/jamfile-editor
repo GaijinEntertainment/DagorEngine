@@ -90,8 +90,7 @@ UseProgLibs =
   tools/libTools/renderUtil
   tools/libTools/shaderResBuilder
   tools/libTools/EditorCore
-  tools/libTools/IEditorCoreBase
-  tools/libTools/IEditorCore
+  tools/libTools/EditorCore/IEditorCore
   tools/libTools/ObjCreator3D
 
   engine/phys/physCommon

@@ -17,7 +17,7 @@ namespace dabfg
  * Part of the information required for daBfg to place barriers.
  * Note that this is a flags enum, so you can combine multiple stages.
  */
-enum class Stage : uint32_t
+enum class Stage : uint8_t
 {
   /**
    * For legacy code only. Will suppress a barrier before this usage

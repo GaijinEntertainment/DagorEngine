@@ -607,4 +607,10 @@ struct StateFieldGraphicsQueryScopeCloser : TrackedStateFieldBase<true, false>
   void dumpLog(Storage &data) const;
 };
 
+struct StateFieldGraphicsRenderPassArea : TrackedStateFieldBase<true, false>, TrackedStateFieldGenericPOD<VkRect2D>
+{
+  const VkRect2D &getValueRO() const { return data; };
+  VULKAN_TRACKED_STATE_FIELD_CB_DEFENITIONS();
+};
+
 } // namespace drv3d_vulkan

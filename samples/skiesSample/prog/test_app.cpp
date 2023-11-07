@@ -1183,7 +1183,7 @@ public:
     ShaderGlobal::set_color4(globtm_psf_3VarId,Color4(globtmTr[3]));*/
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
-    heightmapOrigin = itm.getcol(3);
+    curCameraPos = itm.getcol(3);
     DA_PROFILE_TAG_LINE(camera_pos, 0xFF00FF, "%g %g %g", P3D(itm.getcol(3)));
 
     if (test)
@@ -1256,14 +1256,14 @@ public:
   }
   HeightmapRenderer meshRenderer;
   UniqueTexHolder heightmap;
-  float heightmapCellSize, heightmapScale, heightmapMin;
-  Point3 heightmapOrigin;
+  Point3 curCameraPos = ZERO<Point3>();
+  float heightmapCellSize = 1.f, heightmapScale = 1.f, heightmapMin = 0.f, hmapMaxHt = 1.f;
 
   void drawHeightmap()
   {
     if (!land_panel.enabled)
       return;
-    heightmapScale = land_panel.heightScale;
+    heightmapScale = land_panel.heightScale / hmapMaxHt;
     heightmapCellSize = land_panel.cellSize;
     heightmapMin = land_panel.heightMin * land_panel.heightScale;
     if (!heightmap)
@@ -1284,18 +1284,19 @@ public:
     ShaderGlobal::set_color4(heightmap_scaleVarId, heightmapScale, heightmapMin, 0, 0);
     static int tex_hmap_inv_sizesVarId = get_shader_variable_id("tex_hmap_inv_sizes");
     Color4 inv_width = ShaderGlobal::get_color4_fast(tex_hmap_inv_sizesVarId);
-    ShaderGlobal::set_color4(world_to_hmap_lowVarId, inv_width.r / (heightmapCellSize), -inv_width.g / (heightmapCellSize), 0.5, 0.5);
+    Point2 origin(land_panel.hmapCenterOfsX + 0.5f, land_panel.hmapCenterOfsZ + 0.5f);
+    Point2 invWorldSize = Point2(inv_width.r / heightmapCellSize, inv_width.g / heightmapCellSize);
+    ShaderGlobal::set_color4(world_to_hmap_lowVarId, Color4(invWorldSize.x, invWorldSize.y, origin.x, origin.y));
 
     LodGrid lodGrid;
     lodGrid.init(lodCount - lod, lodRad, 0, lastLodRad);
     LodGridCullData defaultCullData;
     float scaledCell = heightmapCellSize * (1 << min(11, lod));
     float minHt = heightmapMin;
-    float maxHt = heightmapMin + heightmapScale;
-    Point2 origin(floorf(heightmapOrigin.x + 0.5f), floorf(heightmapOrigin.z + 0.5f));
+    float maxHt = heightmapMin + hmapMaxHt * heightmapScale;
     float lod0Size = 0;
-    cull_lod_grid(lodGrid, lodGrid.lodsCount, origin.x, origin.y, scaledCell, scaledCell, -1, -1, minHt, maxHt, &frustum, NULL,
-      defaultCullData, NULL, lod0Size, meshRenderer.getDim(), true);
+    cull_lod_grid(lodGrid, lodGrid.lodsCount, floorf(curCameraPos.x + 0.5f), floorf(curCameraPos.z + 0.5f), scaledCell, scaledCell, -1,
+      -1, minHt, maxHt, &frustum, NULL, defaultCullData, NULL, lod0Size, meshRenderer.getDim(), true);
     if (!defaultCullData.getCount())
       return;
     heightmap.setVar();
@@ -2010,7 +2011,9 @@ protected:
 
       DECLARE_BOOL_CHECKBOX(land_panel, enabled, true),
       DECLARE_FLOAT_SLIDER(land_panel, heightScale, 1, 10000.0, 2500.0, 1),
-      DECLARE_FLOAT_SLIDER(land_panel, heightMin, -1.0, 1.0, -0.5, 0.1),
+      DECLARE_FLOAT_SLIDER(land_panel, heightMin, -1.0, 1.0, -0.5, 0.01),
+      DECLARE_FLOAT_SLIDER(land_panel, hmapCenterOfsX, -0.5f, 0.5f, 0, 0.01),
+      DECLARE_FLOAT_SLIDER(land_panel, hmapCenterOfsZ, -0.5f, 0.5f, 0, 0.01),
       DECLARE_FLOAT_SLIDER(land_panel, cellSize, 1, 250, 25, 0.5),
       DECLARE_BOOL_CHECKBOX(land_panel, trees, true),
       DECLARE_BOOL_CHECKBOX(land_panel, spheres, true),
@@ -2286,6 +2289,7 @@ public:
   {
     bool enabled, trees, spheres, plane;
     float heightScale, heightMin, cellSize;
+    float hmapCenterOfsX = 0, hmapCenterOfsZ = 0;
     LandPanel() : enabled(true), trees(true), spheres(true), plane(true), heightScale(2500.0), heightMin(-0.5), cellSize(25) {}
   } land_panel;
 
@@ -2452,11 +2456,30 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
     struct LoadJob : cpujobs::IJob
     {
       const char *name;
-      DemoGameScene *scene;
-      LoadJob(DemoGameScene *_scene, const char *_name) : scene(_scene), name(_name) {}
+      DemoGameScene &s;
+      LoadJob(DemoGameScene &_scene, const char *_name) : s(_scene), name(_name) {}
       virtual void doJob()
       {
-        TexPtr tex = strcmp(dd_get_fname_ext(name), ".mtw") == 0 ? create_tex_from_mtw(name) : create_tex_from_raw_hmap_file(name);
+        float cell_sz = 1.0f, scale = 100.0f, h0 = 0.0f;
+        TexPtr tex = strcmp(dd_get_fname_ext(name), ".mtw") == 0 ? create_tex_from_mtw(name, &cell_sz, &s.hmapMaxHt, &scale, &h0)
+                                                                 : create_tex_from_raw_hmap_file(name);
+        Color4 invSz = ShaderGlobal::get_color4_fast(get_shader_variable_id("tex_hmap_inv_sizes"));
+        int tex_w = safeinv(invSz.r), tex_h = safeinv(invSz.g);
+
+        s.land_panel.cellSize = s.heightmapCellSize = dgs_get_settings()->getReal("heightmapCell", cell_sz);
+        s.land_panel.heightScale = s.heightmapScale = dgs_get_settings()->getReal("heightmapScale", scale) * s.hmapMaxHt;
+        Point3 hmapSz(tex_w * s.heightmapCellSize, s.heightmapScale, tex_w * s.heightmapCellSize);
+        Point3 hmapOfs = dgs_get_settings()->getPoint3("hmapCenterRelOfs",
+          div(dgs_get_settings()->getPoint3("hmapCenterOfs", ZERO<Point3>()), hmapSz));
+
+        s.heightmapMin = dgs_get_settings()->getReal("heightmapMin", h0) + hmapOfs.y * hmapSz.y;
+        s.land_panel.heightMin = s.heightmapMin / s.land_panel.heightScale;
+        hmapOfs.y = s.land_panel.heightMin;
+
+        s.land_panel.hmapCenterOfsX = hmapOfs.x;
+        s.land_panel.hmapCenterOfsZ = hmapOfs.z;
+        debug("HMAP loaded %s: %.0fx%.0f size(m)=%@ cell=%gm hScale=%g hOfs=%gm hDelta=%gm hmapRelOfs=%@", name, tex_w, tex_h, hmapSz,
+          s.heightmapCellSize, s.heightmapScale, s.heightmapMin, s.heightmapScale, hmapOfs);
 
         struct InitHeightmap : public DelayedAction
         {
@@ -2469,20 +2492,16 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
             cpujobs::release_done_jobs();
           }
         };
-        add_delayed_action(new InitHeightmap(scene->heightmap, eastl::move(tex)));
+        add_delayed_action(new InitHeightmap(s.heightmap, eastl::move(tex)));
       };
       virtual void releaseJob() { delete this; }
     };
     heightmap.close();
-    land_panel.cellSize = heightmapCellSize = dgs_get_settings()->getReal("heightmapCell", 1.0f);
-    land_panel.heightScale = heightmapScale = dgs_get_settings()->getReal("heightmapScale", 100.0f);
-    heightmapMin = dgs_get_settings()->getReal("heightmapMin", 0);
-    land_panel.heightMin = heightmapMin / land_panel.heightScale;
     water_panel.water_level = dgs_get_settings()->getReal("heightmapWaterLevel", water_panel.water_level);
 
     const DataBlock *hmapTex = dgs_get_settings()->getBlockByNameEx("heightmapTex");
     if (name)
-      cpujobs::add_job(1, new LoadJob(this, name));
+      cpujobs::add_job(1, new LoadJob(*this, name));
   }
 
   void scheduleDynModelLoad(DynamicRenderableSceneInstance **dm, const char *name, const char *skel_name, const Point3 &pos)

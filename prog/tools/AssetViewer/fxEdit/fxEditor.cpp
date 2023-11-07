@@ -44,6 +44,7 @@
 #include <gui/dag_stdGuiRenderEx.h>
 
 #include <dafxToolsHelper/dafxToolsHelper.h>
+#include <3d/dag_render.h> // grs_cur_view
 
 #include "../av_cm.h"
 #include "fxSaveLoad.h"
@@ -556,14 +557,14 @@ public:
 
     switch (stage)
     {
-      case STG_BEFORE_RENDER: effect->render(FX_RENDER_BEFORE); break;
+      case STG_BEFORE_RENDER: effect->render(FX_RENDER_BEFORE, ::grs_cur_view.itm); break;
 
-      case STG_RENDER_DYNAMIC_OPAQUE: effect->render(FX_RENDER_SOLID); break;
+      case STG_RENDER_DYNAMIC_OPAQUE: effect->render(FX_RENDER_SOLID, ::grs_cur_view.itm); break;
 
-      case STG_RENDER_FX: effect->render(FX_RENDER_TRANS); break;
+      case STG_RENDER_FX: effect->render(FX_RENDER_TRANS, ::grs_cur_view.itm); break;
 
       case STG_RENDER_FX_DISTORTION:
-        effect->render(FX_RENDER_DISTORTION);
+        effect->render(FX_RENDER_DISTORTION, ::grs_cur_view.itm);
         dafx::render(g_dafx_ctx, g_dafx_cull, "distortion");
         break;
     }

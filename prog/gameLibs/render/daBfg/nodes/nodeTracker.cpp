@@ -537,7 +537,7 @@ void NodeTracker::setIrGraphDebugNames(intermediate::Graph &graph) const
   constexpr size_t MULTI_INDEX_STRING_APPROX_SIZE = 10;
 
   auto genMultiplexingRow = [](uint32_t idx) {
-    const eastl::string HEX_DIGITS = "0123456789ABCDEF";
+    static constexpr const char *HEX_DIGITS = "0123456789ABCDEF";
     eastl::fixed_string<char, 16> result = " {0x$$$$} ";
     for (uint32_t i = 7; i >= 4; --i)
     {
@@ -550,28 +550,10 @@ void NodeTracker::setIrGraphDebugNames(intermediate::Graph &graph) const
   graph.nodeNames.resize(graph.nodes.size());
   for (auto [nodeIdx, irNode] : graph.nodes.enumerate())
   {
+    const auto &frontendName = registry.knownNames.getName(irNode.frontendNode);
     auto &debugName = graph.nodeNames[nodeIdx];
-    {
-      size_t size = 2 + MULTI_INDEX_STRING_APPROX_SIZE;
-      for (auto userNodeId : irNode.frontendNodes)
-      {
-        const eastl::string_view name = registry.knownNames.getName(userNodeId);
-        size += name.size() + 2;
-      }
-      debugName.reserve(size);
-    }
-
-    if (irNode.frontendNodes.size() > 1)
-      debugName += '[';
-    for (auto userNodeId : irNode.frontendNodes)
-    {
-      debugName += registry.knownNames.getName(userNodeId);
-      debugName += ", ";
-    }
-    debugName.resize(debugName.size() - 2);
-    if (irNode.frontendNodes.size() > 1)
-      debugName += ']';
-
+    debugName.reserve(strlen(frontendName) + MULTI_INDEX_STRING_APPROX_SIZE);
+    debugName += frontendName;
     debugName += genMultiplexingRow(irNode.multiplexingIndex).c_str();
   }
 
@@ -831,7 +813,7 @@ eastl::pair<intermediate::Graph, intermediate::Mapping> NodeTracker::createDiscr
 
         auto [idx, irNode] = graph.nodes.appendNew();
         mapping.mapNode(nodeId, irMultiplexingIndex) = idx;
-        irNode.frontendNodes.emplace_back(nodeId);
+        irNode.frontendNode = nodeId;
         irNode.priority = nodeData.priority;
         irNode.multiplexingIndex = irMultiplexingIndex;
 
@@ -872,7 +854,7 @@ eastl::pair<intermediate::Graph, intermediate::Mapping> NodeTracker::createDiscr
 
             auto &irRequest = irNode.resourceRequests.emplace_back();
             irRequest.resource = resIndex;
-            irRequest.usage = req.usage;
+            irRequest.usage = intermediate::ResourceUsage{req.usage.access, req.usage.type, req.usage.stage};
             irRequest.fromLastFrame = history;
           }
           else
@@ -881,7 +863,7 @@ eastl::pair<intermediate::Graph, intermediate::Mapping> NodeTracker::createDiscr
             // Otherwise this node must have been marked as broken and removed.
             G_ASSERT(irRequest.usage.access == req.usage.access && irRequest.usage.type == irRequest.usage.type);
 
-            irRequest.usage.stage |= req.usage.stage;
+            irRequest.usage.stage = irRequest.usage.stage | req.usage.stage;
           }
 
           if (history && registry.resources[resId].history == History::No)
@@ -1156,17 +1138,16 @@ IdIndexedMapping<intermediate::NodeIndex, intermediate::NodeIndex, framemem_allo
 
       // Iterate all history resource requests of this node and
       // add nodes responsible for their production to the wave.
-      for (auto userNodeId : currentNode.frontendNodes)
-        for (const auto &[resId, req] : registry.nodes[userNodeId].historyResourceReadRequests)
-          if (validity.resourceValid[resId])
-          {
-            auto &lifetime = resourceLifetimes[resId];
+      for (const auto &[resId, req] : registry.nodes[currentNode.frontendNode].historyResourceReadRequests)
+        if (validity.resourceValid[resId])
+        {
+          auto &lifetime = resourceLifetimes[resId];
 
-            for (auto modifierId : lifetime.modificationChain)
-              addToNextWave(mapping.mapNode(modifierId, currentNode.multiplexingIndex));
+          for (auto modifierId : lifetime.modificationChain)
+            addToNextWave(mapping.mapNode(modifierId, currentNode.multiplexingIndex));
 
-            addToNextWave(mapping.mapNode(lifetime.introducedBy, currentNode.multiplexingIndex));
-          }
+          addToNextWave(mapping.mapNode(lifetime.introducedBy, currentNode.multiplexingIndex));
+        }
     }
 
     wave = eastl::move(nextWave);
@@ -1177,8 +1158,8 @@ IdIndexedMapping<intermediate::NodeIndex, intermediate::NodeIndex, framemem_allo
     if (v == NOT_VISITED)
     {
       anyNodePruned = true;
-      for (auto nodeNameId : graph.nodes[nodeId].frontendNodes)
-        logerr("FG: Node '%s' is pruned. See below for full user graph dump.", registry.knownNames.getName(nodeNameId));
+      logerr("FG: Node '%s' is pruned. See below for full user graph dump.",
+        registry.knownNames.getName(graph.nodes[nodeId].frontendNode));
     }
 
   if (anyNodePruned)

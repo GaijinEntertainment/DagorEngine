@@ -1043,7 +1043,7 @@ void GeomObject::recompileNode(int idx)
   memfree(o->vdata.data(), midmem);
   o->vdata.set((GlobalVertexData *)memalloc(sizeof(GlobalVertexData) * vdata.size(), midmem), vdata.size());
   for (int i = 0; i < vdata.size(); ++i)
-    o->vdata[i].createMem(vdata[i]->numv, vdata[i]->stride,
+    o->vdata[i].initGvdMem(vdata[i]->numv, vdata[i]->stride,
       vdata[i]->numv <= 65536 ? data_size(vdata[i]->iData) : data_size(vdata[i]->iData32), 0, vdata[i]->vData.data(),
       vdata[i]->numv <= 65536 ? (void *)vdata[i]->iData.data() : (void *)vdata[i]->iData32.data());
 

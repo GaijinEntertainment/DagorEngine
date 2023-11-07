@@ -3721,9 +3721,7 @@ namespace das {
             ss << "#pragma clang diagnostic ignored \"-Wunused-parameter\"\n";
             ss << "#pragma clang diagnostic ignored \"-Wwritable-strings\"\n";
             ss << "#pragma clang diagnostic ignored \"-Wunused-variable\"\n";
-            ss << "#if defined(__APPLE__)\n";
             ss << "#pragma clang diagnostic ignored \"-Wunused-but-set-variable\"\n";
-            ss << "#endif\n";
             ss << "#pragma clang diagnostic ignored \"-Wunsequenced\"\n";
             ss << "#pragma clang diagnostic ignored \"-Wunused-function\"\n";
             ss << "#endif\n";

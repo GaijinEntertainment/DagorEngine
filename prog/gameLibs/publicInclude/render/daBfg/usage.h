@@ -15,7 +15,7 @@ namespace dabfg
  * \brief Describes the way a node uses a resource.
  * Part of the information required for daBfg to place barriers.
  */
-enum class Usage : uint32_t
+enum class Usage : uint8_t
 {
   /**
    * For legacy code only, will suppress a barrier before this usage

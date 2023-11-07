@@ -24,10 +24,4 @@ float PhysVars::getVar(int var_id) const
   return vars[var_id];
 }
 
-void PhysVars::setVar(int var_id, float val)
-{
-  G_ASSERTF_RETURN(var_id >= 0 && var_id < vars.size(), , "Invalid var_id %d (%d total)", var_id, (int)vars.size());
-  vars[var_id] = val;
-}
-
 void PhysVars::setupVar(const char *name, float val) { setVar(registerVar(name, val), val); }

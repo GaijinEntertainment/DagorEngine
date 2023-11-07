@@ -93,6 +93,83 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
   validateBlock(nodeData.shaderBlockLayers.frameLayer, ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME), "frame");
   validateBlock(nodeData.shaderBlockLayers.sceneLayer, ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE), "scene");
   validateBlock(nodeData.shaderBlockLayers.objectLayer, ShaderGlobal::getBlock(ShaderGlobal::LAYER_OBJECT), "object");
+
+  if (nodeData.renderingRequirements.has_value())
+  {
+    const auto &expectedRts = *nodeData.renderingRequirements;
+
+    Driver3dRenderTarget observedRts;
+    d3d::get_render_target(observedRts);
+
+    const auto validateRt = [&registry, nodeId](const VirtualSubresourceRef &expected, const Driver3dRenderTarget::RTState &observed,
+                              const char *slot_name) {
+      const auto &provided = registry.resourceProviderReference.providedResources;
+      const auto it = provided.find(expected.nameId);
+
+      BaseTexture *expectedTex = nullptr;
+      if (it != provided.end())
+        if (auto view = eastl::get_if<ManagedTexView>(&it->second))
+          expectedTex = view->getTex2D();
+
+      const auto expectedName = expectedTex ? expectedTex->getTexName() : "NULL";
+      const auto observedName = observed.tex ? observed.tex->getTexName() : "NULL";
+
+      if (expectedTex != observed.tex)
+      {
+        logerr("Frame graph node %s expected the render target in slot %s to be bound to %s, "
+               "but it was spuriously changed to %s while executing the node! Please remove the spurious "
+               "set, or reset it back to the expected value at the end of the function execution!",
+          registry.knownNames.getName(nodeId), slot_name, expectedName, observedName);
+        return;
+      }
+
+      if (expected.layer != observed.layer)
+      {
+        logerr("Frame graph node %s expected the render target in slot %s to be bound to the %d layer of texture %s, "
+               "but it was spuriously changed to the %d layer while executing the node! Please remove the spurious "
+               "set, or reset it back to the expected value at the end of the function execution!",
+          registry.knownNames.getName(nodeId), slot_name, expected.layer, expectedName, observed.layer);
+        return;
+      }
+
+      if (expected.mipLevel != observed.level)
+      {
+        logerr("Frame graph node %s expected the render target in slot %s to be bound to the %d mip level of texture %s, "
+               "but it was spuriously changed to the %d mip level while executing the node! Please remove the spurious "
+               "set, or reset it back to the expected value at the end of the function execution!",
+          registry.knownNames.getName(nodeId), slot_name, expected.mipLevel, expectedName, observed.level);
+        return;
+      }
+    };
+
+    static constexpr const char *SLOT_NAMES[] = {
+      "color 0", "color 1", "color 2", "color 3", "color 4", "color 5", "color 6", "color 7"};
+    static_assert(countof(SLOT_NAMES) == Driver3dRenderTarget::MAX_SIMRT);
+    for (uint32_t rtIdx = 0; rtIdx < Driver3dRenderTarget::MAX_SIMRT; ++rtIdx)
+    {
+      // We must validate that nothing was set into RT slots that were not requested
+      VirtualSubresourceRef expectedRt = rtIdx < expectedRts.colorAttachments.size() ? expectedRts.colorAttachments[rtIdx]
+                                                                                     : VirtualSubresourceRef{ResNameId::Invalid, 0, 0};
+      Driver3dRenderTarget::RTState observedRt{};
+      if (observedRts.isColorUsed(rtIdx))
+        observedRt = observedRts.getColor(rtIdx);
+      validateRt(expectedRt, observedRt, SLOT_NAMES[rtIdx]);
+    }
+
+    {
+      Driver3dRenderTarget::RTState observedDepth{};
+      if (observedRts.isDepthUsed())
+        observedDepth = observedRts.getDepth();
+      validateRt(expectedRts.depthAttachment, observedDepth, "depth");
+    }
+
+    if (expectedRts.depthAttachment.nameId != ResNameId::Invalid && expectedRts.depthReadOnly != observedRts.isDepthReadOnly())
+    {
+      logerr("Frame graph node %s expected to have a %s depth, but it was spuriously changed "
+             "to be the opposite. Please, remove the spurious depth target change from the node!",
+        registry.knownNames.getName(nodeId), expectedRts.depthReadOnly ? "read-only" : "read-write");
+    }
+  }
 }
 
 } // namespace dabfg

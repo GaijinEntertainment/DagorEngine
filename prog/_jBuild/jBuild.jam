@@ -470,15 +470,10 @@ rule ProcessTargetVariables
       }
     }
 
-    if $(Platform) in win32 win64 && $(UseDirectX) = yes {
-      if ! [ GLOB $(_DXSDK_DIR).$(DirectXVer) : * ] { exit FATAL\: \"$(_DXSDK_DIR).$(DirectXVer)\" not found!  Please, update DEVTOOLS ; }
-    }
-
     ProcessCompileTarget ;
 
     PreAddIncludes = ;
     AddIncludes = ;
-    UseDirectX = ;
 
     if $(TargetType) in exe dll {
       if $(IsProgArtifact) = yes && $(SignatureID) {
@@ -643,7 +638,6 @@ rule ClearTargetVariables
   MultiTarget = ;
   PreAddIncludes = ;
   AddIncludes = ;
-  UseDirectX = ;
   UseQuirrel = ;
   AddLibs = ;
   Resources = ;
@@ -1393,35 +1387,6 @@ rule LinkDllSetMapExpLib
 
     if $(Config) != rel { $(t)__PDB ?= $(OutDir)/$(t:B).pdb ; }
   }
-}
-
-# adds include switch to parameter
-#   params: ( post_opt : pre_opt )
-rule AddDirectXInclude
-{
-  if $(UseDirectX) = yes {
-    if $(DirectXVer) in $(C_preopt_DirectXVer) {
-      $(1) += $(IncludeMSVCDir)$(_DXSDK_DIR).$(DirectXVer)/include ;
-    } else {
-      $(2) += $(IncludeMSVCDir)$(_DXSDK_DIR).$(DirectXVer)/include ;
-    }
-  }
-}
-
-# adds libpath switch to parameter
-#   params: ( cmd_line )
-rule AddDirectXLibs
-{
-  if $(UseDirectX) = yes && $(WinSdkVer) != win.sdk.81 {
-    switch $(Platform) {
-      case win32 : $(1) += -libpath:$(_DXSDK_DIR).$(DirectXVer)/lib/x86 ;
-      case win64 : $(1) += -libpath:$(_DXSDK_DIR).$(DirectXVer)/lib/x64 ;
-    }
-  }
-}
-
-rule AddForceFastcall
-{
 }
 
 rule AddMissingDefaultOpts

@@ -184,6 +184,12 @@ hlsl {
   }
   ##if hardware.dx11 || hardware.dx12 || hardware.metal
     #define PRECISE precise
+  ##elif hardware.vulkan
+    #if SHADER_COMPILER_DXC
+      #define PRECISE precise
+    #else
+      #define PRECISE
+    #endif
   ##else
     #define PRECISE
   ##endif

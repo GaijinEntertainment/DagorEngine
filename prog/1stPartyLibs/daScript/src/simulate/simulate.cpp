@@ -1195,9 +1195,14 @@ namespace das
         });
     }
 
-    char * Context::intern(const char * str) {
+    char * Context::intern( const char * str ) {
         if ( !str ) return nullptr;
         uint32_t len = uint32_t(strlen(str));
+        return intern(str, len);
+    }
+
+    char * Context::intern ( const char * str, uint32_t len ) {
+        if ( !str || !len ) return nullptr;
         char * ist = constStringHeap->intern(str,len);
         if ( !ist ) ist = stringHeap->intern(str,len);
         return ist ? ist : stringHeap->allocateString(str,len);

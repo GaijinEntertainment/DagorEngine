@@ -94,7 +94,6 @@ if ! $(__DEFAULTS_INCLUDED) {
   AndroidApiMinVer ?= 28 ;
   NSwitchSdkVer ?= 1624 ;
   WinSdkVer     ?= win.sdk.100 ;
-  DirectXVer    ?= jun2010 ;
   UseD3DMulti   ?= no ;
   MSVectorcall  ?= no ;
   DefBulletSdkVer  ?= 3 ;
@@ -176,12 +175,6 @@ if ! $(__DEFAULTS_INCLUDED) {
     FastLink ?= yes ; # this speed-up linking but pdb become dependand on obj output
   }
 
-  switch $(Platform) {
-    case win32 :   PhysXSdk ?= 2.8.4 ;
-    case win64 :   PhysXSdk ?= 2.8.4 ;
-    case * :       PhysXSdk ?= none ;
-  }
-
   if $(OS) = MACOSX {
     if ! $(_DEVTOOL) && [ GLOB /devtools : * ] { _DEVTOOL = /devtools ; }
     _DEVTOOL ?= /var/devtools ;
@@ -234,9 +227,6 @@ if ! $(__DEFAULTS_INCLUDED) {
   _DEVTOOL_RE ?= $(_DEVTOOL) ;
   _DEVTOOL = $(_devtool_s) ;
   if $(GDEVTOOL) { GDEVTOOL = $(_devtool_s) ; }
-
-  PhysXSdkPath = $(_DEVTOOL)/PhysX.SDK.$(PhysXSdk) ;
-  _DXSDK_DIR   = $(_DEVTOOL)/dx9.sdk ;
 
   if $(FmodStudio) = src {
     local fmod_root = $(Root)/prog/3rdPartyLibs/fmodStudio ;

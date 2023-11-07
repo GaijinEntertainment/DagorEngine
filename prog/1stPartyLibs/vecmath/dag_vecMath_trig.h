@@ -300,7 +300,7 @@ VECTORCALL VECMATH_FINLINE vec4f v_atan2(vec4f y, vec4f x)
   tmp2 = v_and(maskYlt0, V_C_PI);
   vec4f offs = v_sub(tmp1, tmp2);
 
-  vec4f maskXeq0 = v_cmp_eq(x, v_zero());
+  vec4f maskXeq0 = v_cmp_gt(v_cast_vec4f(v_splatsi(/* FLT_MIN */ 0x00800000)), v_abs(x));
   vec4f atan = v_atan(v_div(y, x));
 
   atan = v_add(atan, offs);

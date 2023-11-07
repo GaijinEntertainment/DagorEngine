@@ -11,7 +11,7 @@ source
   file:t = "testMat.sh"
   file:t = "testTree.sh"
   file:t = "testMatAO.sh"
-  file:t = "./source/heightmap.sh"
+  //file:t = "./source/heightmap.sh"
   //file:t = "./source/layered.sh"
   file:t = "./source/sponza.sh"
 }

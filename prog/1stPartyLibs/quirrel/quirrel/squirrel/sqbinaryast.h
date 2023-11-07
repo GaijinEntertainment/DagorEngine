@@ -83,7 +83,7 @@ class SQASTReader {
   WhileStatement *readWhileStatement();
   DoWhileStatement *readDoWhileStatement();
   ForStatement *readForStatement();
-  ForeachStatement *readForeachStamenent();
+  ForeachStatement *readForeachStatement();
   SwitchStatement *readSwitchStatement();
 
   ReturnStatement *readReturnStatement();
@@ -130,7 +130,7 @@ class SQASTReader {
   FunctionDecl *readFunctionDecl(bool);
 
   DeclGroup *readDeclGroup();
-  DestructuringDecl *readDestructuringnDecl();
+  DestructuringDecl *readDestructuringDecl();
 
   TableDecl *readTableDecl();
 

@@ -164,6 +164,7 @@ protected:
   } renderData{};
 
   int getRegionToRenderCount() const;
+  void clearRegionToRender();
   TMatrix4 getRegionToRenderCullTm(int region) const;
 
   bool copyTransitionAfterRender = false;
@@ -195,6 +196,7 @@ public:
   ToroidalStaticShadowCascade::BeforeRenderReturned updateOrigin(const Point3 &origin, float move_texels_threshold_part,
     float move_z_threshold, bool uniform_update, float max_update_texels_part, bool update_only_last_cascade = false);
   int getRegionToRenderCount(int cascade) const;
+  void clearRegionToRender(int cascade); // not should be called under normal circumstances
   TMatrix4 getRegionToRenderCullTm(int cascade, int region) const;
   void render(IStaticShadowsCB &cb);
 

@@ -1,5 +1,6 @@
 shader_root_dir:t="."
 outDumpName:t="../../tools/common/compiledShaders/tools"
+packBin:b=yes
 
 include common_inc_dirs.blk
 source

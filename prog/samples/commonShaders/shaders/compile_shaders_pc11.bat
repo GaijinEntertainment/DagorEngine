@@ -3,6 +3,4 @@
 rem copy ..\..\..\..\samples\sampleShaders\game\compiledShaders\game.ps40.shdump.bin ..\..\..\..\samples\planeSample\game\compiledShaders\game.ps40.shdump.bin 
 copy ..\..\..\..\samples\sampleShaders\game\compiledShaders\game.ps40.shdump.bin ..\..\..\..\samples\humanSample\game\compiledShaders\game.ps40.shdump.bin 
 rem copy ..\..\..\..\samples\sampleShaders\game\compiledShaders\game.ps40.shdump.bin ..\..\..\..\samples\shipSample\game\compiledShaders\game.ps40.shdump.bin 
-rem ..\..\..\..\tools\dagor3_cdk\util64\dsc2-hlsl11-dev.exe shaders_tools_exp.blk -q -shaderOn -o  ..\..\..\..\_output\testPBR\shaders~tools~exp %1 %2
 @echo off
-

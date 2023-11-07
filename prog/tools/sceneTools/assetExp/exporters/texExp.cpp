@@ -3552,20 +3552,6 @@ protected:
   TexRefs ref;
 };
 
-#if !_TARGET_STATIC_LIB
-// required for ZLIB (that in turn is required by LIBPNG)
-extern "C" void *zcalloc(void *opaque, unsigned items, unsigned size)
-{
-  G_UNUSED(opaque);
-  return memalloc_default(items * size);
-}
-extern "C" void zcfree(void *opaque, void *ptr)
-{
-  memfree_default(ptr);
-  G_UNUSED(opaque);
-}
-#endif
-
 DABUILD_PLUGIN_API IDaBuildPlugin *__stdcall get_dabuild_plugin() { return new (midmem) TexExporterPlugin; }
 DABUILD_PLUGIN_API void __stdcall dabuild_plugin_install_dds_helper(
   int(__stdcall *hlp)(IGenSave &, DagorAsset &, unsigned, const char *, ILogWriter *))

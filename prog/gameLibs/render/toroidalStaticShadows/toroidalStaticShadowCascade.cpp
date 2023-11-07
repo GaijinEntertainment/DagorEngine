@@ -785,6 +785,8 @@ void ToroidalStaticShadowCascade::renderRegions(dag::ConstSpan<ToroidalQuadRegio
 
 int ToroidalStaticShadowCascade::getRegionToRenderCount() const { return renderData.regionsToRender.size(); }
 
+void ToroidalStaticShadowCascade::clearRegionToRender() { renderData.regionsToRender.clear(); }
+
 TMatrix4 ToroidalStaticShadowCascade::getRegionToRenderCullTm(int region) const
 {
   return renderData.regionsToRender[region].cullViewProj;

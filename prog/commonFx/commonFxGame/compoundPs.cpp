@@ -344,7 +344,7 @@ public:
   }
 
 
-  virtual void render(unsigned rtype)
+  virtual void render(unsigned rtype, const TMatrix &view_itm)
   {
     for (int i = 0; i < NUM_FX; ++i)
     {
@@ -352,7 +352,7 @@ public:
       {
         float fxDelay = getFxDelay(i);
         if (time >= fxDelay)
-          subFx[i]->render(rtype);
+          subFx[i]->render(rtype, view_itm);
       }
     }
   }

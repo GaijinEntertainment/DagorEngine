@@ -1464,6 +1464,14 @@ public:
         return;
       }
 
+      auto preloadedPipelineIt = eastl::find_if(target->preloadedGraphicsPipelines.begin(), target->preloadedGraphicsPipelines.end(),
+        [vsID, psID](const auto &pp) { return (pp.vsID == vsID) && (pp.psID == psID); });
+
+      if (preloadedPipelineIt != target->preloadedGraphicsPipelines.end())
+      {
+        return;
+      }
+
       auto pipeline = target->createGraphics(device, *pipelineCache, *frameBufferLayoutManager, target->getVertexShader(vsID),
         target->getPixelShader(psID), RecoverablePipelineCompileBehavior::REPORT_ERROR, true);
 
@@ -1535,7 +1543,7 @@ public:
     inspector.pipelineCache = pipelineCache;
     inspector.frameBufferLayoutManager = fbs;
     setDumpOfGroup(group, dump);
-    inspect_scripted_shader_bin_dump(dump, inspector);
+    inspect_scripted_shader_bin_dump<true>(dump, inspector);
   }
   template <typename ProgramRecorder, typename GraphicsProgramRecorder>
   void removeShaderGroup(uint32_t group, ProgramRecorder &&prog, GraphicsProgramRecorder &&g_prog)
@@ -1566,6 +1574,8 @@ public:
       logwarn("Graphics pipelines are preloaded, but never used");
     }
     preloadedGraphicsPipelines.clear();
+    computeProgramIndexToDumpShaderIndex[group].clear();
+    pixelShaderComputeProgramIDMap[group].clear();
   }
   void loadComputeShaderFromDump(ID3D12Device2 *device, PipelineCache &cache, ProgramID program,
     RecoverablePipelineCompileBehavior on_error, bool give_name)

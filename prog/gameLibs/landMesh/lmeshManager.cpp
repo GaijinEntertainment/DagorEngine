@@ -36,6 +36,7 @@
 #include <landMesh/landClass.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <scene/dag_physMat.h>
+#include <util/fnameMap.h>
 
 #define MIN_TILE_SIZE 0.5
 
@@ -907,7 +908,7 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
     lmeshVData.resize(totalLmeshVert[lod] * destStride);
     lmeshIData.resize(totalLmeshIndices[lod]);
 
-    unsigned flags = 0;
+    unsigned flags = VDATA_D3D_RESET_READY;
     int lodMask = lod <= maxLodUsed ? (VDATA_LOD0 << lod) : VDATA_COMBINED;
     for (int indicesOfs = 0, i = 0; i < vdataCount; ++i)
     {
@@ -979,7 +980,7 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
       }
     G_ASSERT((flags & (VDATA_I32 | VDATA_I16)) != (VDATA_I32 | VDATA_I16));
 
-    lmeshVertexData[lod].createMem(totalLmeshVert[lod], destStride, lmeshIData.size(), flags, lmeshVData.data(), lmeshIData.data());
+    lmeshVertexData[lod].initGvdMem(totalLmeshVert[lod], destStride, lmeshIData.size(), flags, lmeshVData.data(), lmeshIData.data());
   }
   debug("re-encoded VB in %dus", get_time_usec(reft));
 
@@ -1002,7 +1003,7 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
     {
       G_ASSERT(i > firstLmeshVdata + maxLodUsed || i < firstLmeshVdata);
       G_ASSERT(i != firstCombinedVdata);
-      vdata[i].createMem(*vbData, smvd->getGlobVData(i)->getStride(), *ibData, 0, vbData + 1, ibData + 1);
+      vdata[i].initGvdMem(*vbData, smvd->getGlobVData(i)->getStride(), *ibData, VDATA_D3D_RESET_READY, vbData + 1, ibData + 1);
     }
   }
   for (int i = 0; i < vdata.size(); ++i)
@@ -1115,8 +1116,29 @@ void LandClassDetailTextures::resetGrassMask(const DataBlock &grassBlk, const ch
   ::acquire_managed_tex(grassMaskTexId);
 }
 
-void LandMeshManager::afterDeviceReset()
+void LandMeshManager::afterDeviceReset(LandMeshRenderer *lrend, bool full_reset)
 {
+  if (full_reset)
+  {
+    int t0 = get_time_msec();
+
+    // reload mesh data
+    FullFileLoadCB crd(srcFileName);
+    crd.seekto(srcFileMeshMapOfs);
+
+    if (lrend)
+      lrend->resetOptSceneAndStates();
+    clear_and_shrink(cells);
+    lmeshVdata = nullptr;
+    combinedVdata = nullptr;
+    smvd = nullptr;
+
+    fatal_context_push("landMesh::mesh");
+    loadMeshData(crd);
+    fatal_context_pop();
+    debug("reloaded land mesh data for %d msec (from %s:0x%x)", get_time_msec() - t0, srcFileName, srcFileMeshMapOfs);
+  }
+
   for (auto &land : landClasses)
   {
     if (land.detailsCB)
@@ -1305,6 +1327,8 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
       fatal_context_push("landMesh::mesh");
       G_ASSERT(loadCb.tell() == meshMapOfs);
       // loadCb.seekto(meshMapOfs);
+      srcFileMeshMapOfs = meshMapOfs;
+      srcFileName = dagor_fname_map_add_fn(loadCb.getTargetName());
       loadMeshData(loadCb);
       fatal_context_pop();
       fatal_context_push("landMesh::detail");

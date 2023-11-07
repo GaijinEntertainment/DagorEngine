@@ -248,6 +248,11 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
         zcrd->read(n.indices.data(), data_size(n.indices));
       }
     }
+    if (n.type == COLLISION_NODE_TYPE_CAPSULE)
+    {
+      n.capsule.set(n.modelBBox);
+      n.capsule.transform(n.tm);
+    }
 
     n.nodeIndex = &n - allNodesList.data();
   }

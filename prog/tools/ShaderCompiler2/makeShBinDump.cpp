@@ -721,6 +721,8 @@ struct ShaderCodes
           scr.suppBlockUid[tmpPassesRemap[k]] = addSuppBlkCodes(scode.passes[k]->suppBlk);
     }
 
+    staticTextureTypesByCode.emplace_back(scode.staticTextureTypes);
+
     codes.push_back(scr);
     return codes.size() - 1;
   }
@@ -786,6 +788,7 @@ struct ShaderCodes
   SharedStorage<ShaderChannelId> chanStorage;
   SharedStorage<int> icStorage;
   SharedStorage<uint32_t> svStorage;
+  Tab<Tab<ShaderVarTextureType>> staticTextureTypesByCode;
 
   static Tab<shader_layout::Pass<>> tmpPasses;
 };
@@ -1433,6 +1436,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   }
 
   // write shader classes
+  extern bool addTextureType;
   SharedStorage<int> shInitCodeStorage;
   shaders_dump.classes.resize(dumpClasses.size());
   shaders_dump.messagesByShclass.resize(dumpClasses.size());
@@ -1451,6 +1455,9 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     out_c.code = make_span(code.codes);
     out_c.name = shaders_dump.shaderNameMap[out_c.nameId].getElementAddress(0);
     out_c.name.setCount(shaders_dump.shaderNameMap[out_c.nameId].size());
+
+    if (addTextureType && !code.staticTextureTypesByCode.empty())
+      out_c.staticTextureTypeBySlot = code.staticTextureTypesByCode.front();
 
     shInitCodeStorage.getRef(out_c.initCode, shClass[i]->shInitCode.data(), shClass[i]->shInitCode.size(), 8);
 

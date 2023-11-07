@@ -27,19 +27,15 @@ bool ExecutionSyncTracker::LogicAddress::conflicting(const LogicAddress &cmp) co
 
 bool ExecutionSyncTracker::LogicAddress::mergeConflicting(const LogicAddress &cmp) const
 {
-  // merge is ok if
-  //  -both is write
+  // merge is ok at logic address if
   //  -both is read
   //  -both is RW at same stage & access
   bool bothWrite = isWrite() && cmp.isWrite();
   bool bothRead = isRead() && cmp.isRead();
   bool bothRW = bothRead && bothWrite;
   bool anyWrite = isWrite() || cmp.isWrite();
-  bool anyRead = isRead() || cmp.isRead();
   if (bothRW)
     return cmp.stage != stage || cmp.access != access;
-  else if (bothWrite && !anyRead)
-    return false;
   else if (bothRead && !anyWrite)
     return false;
   else
@@ -129,6 +125,12 @@ ExecutionSyncTracker::LogicAddress ExecutionSyncTracker::LogicAddress::forImageO
   return {stageForResourceAtExecStage[stage], accessForImageAtRegisterType[reg_type]};
 }
 
+ExecutionSyncTracker::LogicAddress ExecutionSyncTracker::LogicAddress::forImageBindlessRead()
+{
+  return {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+    VK_ACCESS_SHADER_READ_BIT};
+}
+
 static VkAccessFlags accessForAccelerationStructureAtRegisterType[RegisterType::COUNT] = {
   VK_ACCESS_SHADER_READ_BIT, // T
   VK_PIPELINE_STAGE_NONE,    // U
@@ -141,4 +143,17 @@ ExecutionSyncTracker::LogicAddress ExecutionSyncTracker::LogicAddress::forAccele
   G_ASSERTF(stage < ShaderStage::STAGE_MAX_EXT, "vulkan: no info on as ladr for stage %s(%u)", formatShaderStage(stage), stage);
   G_ASSERTF(reg_type < RegisterType::COUNT, "vulkan: unknown register type %u", reg_type);
   return {stageForResourceAtExecStage[stage], accessForAccelerationStructureAtRegisterType[reg_type]};
+}
+
+ExecutionSyncTracker::LogicAddress ExecutionSyncTracker::LogicAddress::forBLASIndirectReads()
+{
+  return
+  {
+    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+#if D3D_HAS_RAY_TRACING
+    | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR
+#endif
+      ,
+      VK_ACCESS_SHADER_READ_BIT
+  };
 }

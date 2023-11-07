@@ -187,6 +187,9 @@ struct TrackedStateFieldGenericPtr
 
   void set(PtrType *value) { ptr = value; }
   bool diff(PtrType *value) const { return ptr != value; }
+
+  PtrType *&getValue() { return &ptr; }
+  const PtrType &getValueRO() const { return *ptr; }
 };
 
 template <typename PodType>

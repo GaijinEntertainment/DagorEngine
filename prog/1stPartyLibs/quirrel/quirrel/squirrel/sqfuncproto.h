@@ -9,7 +9,7 @@ enum SQOuterType {
     otOUTER = 1
 };
 
-#define BIT(n) (1U << (n))
+#define BIT(n) (1ULL << (n))
 
 enum SQLangFeature {
     // parsing stage

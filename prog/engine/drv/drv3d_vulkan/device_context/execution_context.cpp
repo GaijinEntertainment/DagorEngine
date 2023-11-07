@@ -39,18 +39,22 @@ void ExecutionContext::allocFrameCore()
 
 void ExecutionContext::flushUnorderedImageColorClears()
 {
+  TIME_PROFILE(vulkan_flush_unordered_rt_clears);
   for (const CmdClearColorTexture &t : data.unorderedImageColorClears)
     clearColorImage(t.image, t.area, t.value);
 }
 
 void ExecutionContext::flushUnorderedImageDepthStencilClears()
 {
+  TIME_PROFILE(vulkan_flush_unordered_ds_clears);
   for (const CmdClearDepthStencilTexture &t : data.unorderedImageDepthStencilClears)
     clearDepthStencilImage(t.image, t.area, t.value);
 }
 
 void ExecutionContext::flushUnorderedImageCopies()
 {
+  TIME_PROFILE(vulkan_flush_unordered_image_copies);
+
   for (CmdCopyImage &i : data.unorderedImageCopies)
     copyImage(i.src, i.dst, i.srcMip, i.dstMip, i.mipCount, i.regionCount, i.regionIndex);
 }
@@ -59,6 +63,7 @@ void ExecutionContext::prepareFrameCore()
 {
   G_ASSERTF(is_null(frameCore), "vulkan: execution context already prepared for command execution");
   allocFrameCore();
+  TIME_PROFILE(vulkan_pre_frame_core);
   // for optional preFrame
   back.contextState.cmdListsToSubmit.push_back(VulkanCommandBufferHandle{});
   back.contextState.bindlessManagerBackend.advance();
@@ -76,6 +81,8 @@ void ExecutionContext::processFillEmptySubresources()
 {
   if (data.imagesToFillEmptySubresources.empty())
     return;
+
+  TIME_PROFILE(vulkan_fill_empty_images);
 
   Buffer *zeroBuf = nullptr;
   Tab<VkBufferImageCopy> copies;
@@ -221,11 +228,23 @@ VulkanCommandBufferHandle ExecutionContext::flushBufferDownloads(VulkanCommandBu
   return cmd_b;
 }
 
+void ExecutionContext::flushImageUploadsIter(uint32_t start, uint32_t end)
+{
+  back.syncTrack.completeNeeded(frameCore, vkDev);
+  for (uint32_t i = start; i < end; ++i)
+  {
+    ImageCopyInfo &upload = data.imageUploads[i];
+    VULKAN_LOG_CALL(vkDev.vkCmdCopyBufferToImage(frameCore, upload.buffer->getHandle(), upload.image->getHandle(),
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, upload.copyCount, data.imageUploadCopies.data() + upload.copyIndex));
+  }
+}
+
 void ExecutionContext::flushImageUploads()
 {
   if (data.imageUploads.empty())
     return;
 
+  TIME_PROFILE(vulkan_flush_image_uploads);
   // access tracking
   for (auto &&upload : data.imageUploads)
   {
@@ -238,27 +257,43 @@ void ExecutionContext::flushImageUploads()
       uint32_t sz =
         upload.image->getFormat().calculateImageSize(iter->imageExtent.width, iter->imageExtent.height, iter->imageExtent.depth, 1) *
         iter->imageSubresource.layerCount;
-      back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, upload.image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        {iter->imageSubresource.mipLevel, 1, iter->imageSubresource.baseArrayLayer, iter->imageSubresource.layerCount});
       back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, upload.buffer,
         {iter->bufferOffset, sz});
     }
+  }
 
-    back.syncTrack.completeNeeded(frameCore, vkDev);
-    VULKAN_LOG_CALL(vkDev.vkCmdCopyBufferToImage(frameCore, upload.buffer->getHandle(), upload.image->getHandle(),
-      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, upload.copyCount, data.imageUploadCopies.data() + upload.copyIndex));
+  back.syncTrack.completeNeeded(frameCore, vkDev);
 
+  uint32_t mergedRangeStart = 0;
+  for (uint32_t i = 0; i < data.imageUploads.size(); ++i)
+  {
+    ImageCopyInfo &upload = data.imageUploads[i];
+
+    if (upload.image->hasLastSyncOpIndex())
+    {
+      flushImageUploadsIter(mergedRangeStart, i);
+      mergedRangeStart = i;
+    }
+
+    for (auto iter = begin(data.imageUploadCopies) + upload.copyIndex,
+              ed = begin(data.imageUploadCopies) + upload.copyIndex + upload.copyCount;
+         iter != ed; ++iter)
+    {
+      back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, upload.image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        {iter->imageSubresource.mipLevel, 1, iter->imageSubresource.baseArrayLayer, iter->imageSubresource.layerCount});
+    }
+  }
+  flushImageUploadsIter(mergedRangeStart, data.imageUploads.size());
+
+  bool anyBindless = false;
+  for (auto &&upload : data.imageUploads)
+  {
     if (!upload.image->isGPUWritable() && (upload.image->getUsage() & VK_IMAGE_USAGE_SAMPLED_BIT))
     {
       upload.image->layout.roSealTargetLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       upload.image->requestRoSeal(data.id);
     }
-  }
-
-  bool anyBindless = false;
-  for (auto &&upload : data.imageUploads)
-  {
     // we can't know is it readed or not, so assume readed
     if (upload.image->isUsedInBindless())
     {
@@ -274,6 +309,8 @@ void ExecutionContext::flushOrderedBufferUploads(VulkanCommandBufferHandle cmd_b
 {
   if (data.orderedBufferUploads.empty())
     return;
+
+  TIME_PROFILE(vulkan_flush_ordered_buffer_uploads);
 
   for (auto &&upload : data.orderedBufferUploads)
   {
@@ -301,6 +338,8 @@ void ExecutionContext::flushBufferUploads(VulkanCommandBufferHandle cmd_b)
 {
   if (data.bufferUploads.empty())
     return;
+
+  TIME_PROFILE(vulkan_flush_buffer_uploads);
 
   if (device.getFeatures().test(DeviceFeaturesConfig::OPTIMIZE_BUFFER_UPLOADS))
     BufferCopyInfo::optimizeBufferCopies(data.bufferUploads, data.bufferUploadCopies);
@@ -794,10 +833,7 @@ void ExecutionContext::buildAccelerationStructure(VkAccelerationStructureTypeKHR
     // set seal for safety here, to not conflict with followup writes without reads
 
     dst->requestRoSeal(data.id);
-    ExecutionSyncTracker::LogicAddress readLAddr;
-    readLAddr.merge(ExecutionSyncTracker::LogicAddress::forAccelerationStructureOnExecStage(STAGE_CS, RegisterType::T));
-    readLAddr.merge(ExecutionSyncTracker::LogicAddress::forAccelerationStructureOnExecStage(STAGE_RAYTRACE, RegisterType::T));
-    back.syncTrack.addAccelerationStructureAccess(readLAddr, dst);
+    back.syncTrack.addAccelerationStructureAccess(ExecutionSyncTracker::LogicAddress::forBLASIndirectReads(), dst);
   }
 }
 
@@ -1106,6 +1142,8 @@ void ExecutionContext::clearView(int what)
   back.executionState.set<StateFieldGraphicsFlush, uint32_t, BackGraphicsState>(0);
   applyStateChanges();
   invalidateActiveGraphicsPipeline();
+
+  getFramebufferState().clearMode = 0;
 }
 
 void ExecutionContext::clearColorImage(Image *image, const VkImageSubresourceRange &area, const VkClearColorValue &value)
@@ -1539,14 +1577,10 @@ void ExecutionContext::trackIndirectArgAccesses(BufferRef buffer, uint32_t offse
 
 void ExecutionContext::trackBindlessRead(Image *img)
 {
-  ExecutionSyncTracker::LogicAddress combinedStageAccess{};
-  combinedStageAccess.merge(ExecutionSyncTracker::LogicAddress::forImageOnExecStage(STAGE_VS, RegisterType::T));
-  combinedStageAccess.merge(ExecutionSyncTracker::LogicAddress::forImageOnExecStage(STAGE_PS, RegisterType::T));
-  combinedStageAccess.merge(ExecutionSyncTracker::LogicAddress::forImageOnExecStage(STAGE_CS, RegisterType::T));
-
   VkImageLayout srvLayout = img->getUsage() & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
                               ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
                               : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-  back.syncTrack.addImageAccess(combinedStageAccess, img, srvLayout, {0, img->getMipLevels(), 0, img->getArrayLayers()});
+  back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forImageBindlessRead(), img, srvLayout,
+    {0, img->getMipLevels(), 0, img->getArrayLayers()});
 }

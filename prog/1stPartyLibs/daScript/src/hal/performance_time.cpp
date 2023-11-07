@@ -47,7 +47,7 @@ extern "C" int64_t ref_time_delta_to_usec(int64_t ref)
     return ref * 1000000LL/freq.QuadPart;
 }
 
-#elif __linux__ || defined(_EMSCRIPTEN_VER)
+#elif __linux__ || defined(_EMSCRIPTEN_VER) || defined __HAIKU__
 
 #include <time.h>
 

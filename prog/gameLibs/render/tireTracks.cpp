@@ -962,7 +962,8 @@ void beforeRender(float dt, const Point3 &origin)
 
 void invalidate_region(const BBox3 &bbox)
 {
-  float radius = max(bbox.width().x, max(bbox.width().y, bbox.width().z)) / 2;
+  // increase a radius a bit to make sure track marks are removed from region entirely
+  float radius = max(bbox.width().x, max(bbox.width().y, bbox.width().z)) / 2 + 0.5;
   for (int i = 0; i < used_emitters.size(); i++)
   {
     for (int j = 0; j < 2; ++j)

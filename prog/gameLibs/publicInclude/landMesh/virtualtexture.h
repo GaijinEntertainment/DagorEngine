@@ -176,7 +176,8 @@ public:
   void copyUAVFeedback();
   const UniqueTexHolder &getCache(int at);
   const UniqueTex &getIndirection() const;
-  void createCaches(const uint32_t *formats, uint32_t cnt, const uint32_t *buffer_formats, uint32_t buffer_cnt);
+  void createCaches(const uint32_t *formats, const uint32_t *uncompressed_formats, uint32_t cnt, const uint32_t *buffer_formats,
+    uint32_t buffer_cnt);
   void afterReset();
 
   static bool is_uav_supported();

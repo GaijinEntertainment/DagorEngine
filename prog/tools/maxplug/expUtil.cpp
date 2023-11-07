@@ -1892,49 +1892,40 @@ bool wr_hlp( const void * p, int l, FILE * h )
       if (num)
       {
         bblk(DAG_NODE_MATER);
-        if (useMOpt())
+        Tab<int> uniqueMatIdx;
+        subMatIdLUT.SetCount(num);
+        for (int j = 0; j < subMatIdLUT.Count(); ++j)
+          subMatIdLUT[j] = -1;
+        for (int j = 0; j < num; ++j)
         {
-          Tab<int> uniqueMatIdx;
-          subMatIdLUT.SetCount(num);
-          for (int j = 0; j < subMatIdLUT.Count(); ++j)
-            subMatIdLUT[j] = -1;
-          for (int j = 0; j < num; ++j)
-          {
-            int id = getmatid(mtl->GetSubMtl(j));
-            if (matIDtoMatIdx[id] < 0)
-              continue;
+          int id = getmatid(mtl->GetSubMtl(j));
+          if (matIDtoMatIdx[id] < 0)
+            continue;
 
-            bool found = false;
-            for (unsigned short x = 0; x < uniqueMatIdx.Count(); ++x)
-              if (uniqueMatIdx[x] == matIDtoMatIdx[id])
-              {
-                found = true;
-                subMatIdLUT[j] = x;
-                break;
-              }
-            if (!found)
+          bool found = false;
+          for (unsigned short x = 0; x < uniqueMatIdx.Count(); ++x)
+            if (uniqueMatIdx[x] == matIDtoMatIdx[id])
             {
-              uniqueMatIdx.SetCount(uniqueMatIdx.Count() + 1);
-              uniqueMatIdx[uniqueMatIdx.Count() - 1] = matIDtoMatIdx[id];
-              if (mtls[matIDtoMatIdx[id]].empty())
-                unusedSlotIdx = matIDtoMatIdx[id];
-              subMatIdLUT[j] = uniqueMatIdx.Count() - 1;
-              wr(&matIDtoMatIdx[id], 2);
+              found = true;
+              subMatIdLUT[j] = x;
+              break;
             }
+          if (!found)
+          {
+            uniqueMatIdx.SetCount(uniqueMatIdx.Count() + 1);
+            uniqueMatIdx[uniqueMatIdx.Count() - 1] = matIDtoMatIdx[id];
+            if (mtls[matIDtoMatIdx[id]].empty())
+              unusedSlotIdx = matIDtoMatIdx[id];
+            subMatIdLUT[j] = uniqueMatIdx.Count() - 1;
+            wr(&matIDtoMatIdx[id], 2);
           }
         }
-        else
-          for (int j = 0; j < num; ++j)
-          {
-            int id = getmatid(mtl->GetSubMtl(j));
-            wr(&id, 2);
-          }
         eblk;
       }
       else
       {
         num = getmatid(mtl, n->GetWireColor());
-        if (num >= 0 && useMOpt())
+        if (num >= 0)
           num = matIDtoMatIdx[num];
         if (num >= 0)
         {
@@ -2317,7 +2308,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
               f.v[v2] = m.faces[i].v[2];
               f.smgr = m.faces[i].smGroup;
               MtlID mid = m.faces[i].getMatID();
-              if (useMOpt() && n->GetMtl())
+              if (n->GetMtl())
               {
                 Mtl *mtl = n->GetMtl();
                 int num = mtl->NumSubMtls();
@@ -2436,7 +2427,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
               f.v[v2] = (unsigned short)m.faces[i].v[2];
               f.smgr = m.faces[i].smGroup;
               MtlID mid = m.faces[i].getMatID();
-              if (useMOpt() && n->GetMtl())
+              if (n->GetMtl())
               {
                 Mtl *mtl = n->GetMtl();
                 int num = mtl->NumSubMtls();
@@ -3090,7 +3081,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
     int i;
     for (i = 0; i < mat.Count(); ++i)
     {
-      if (useMOpt() && matIDtoMatIdx[i] < 0)
+      if (matIDtoMatIdx[i] < 0)
         continue;
       bblk(DAG_MATER);
       if (mat[i].name)

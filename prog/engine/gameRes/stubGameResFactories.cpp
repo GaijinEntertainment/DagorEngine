@@ -251,7 +251,7 @@ struct stubgameres::Effect : public DObject
 
     virtual void update(float) {}
     virtual void drawEmitter(const Point3 &) {}
-    virtual void render(unsigned) {}
+    virtual void render(unsigned, const TMatrix &) {}
   } fx;
 
   GameResource *gameRes() { return (GameResource *)&fx; }

@@ -40,7 +40,7 @@ void PanoramaCompressor::initCompression()
   auto bcType = get_texture_compression_type(compressFmt);
   bool isMobile = bcType == BcCompressor::ECompressionType::COMPRESSION_ETC2_RGBA;
   cloudsPanoramaCompressor = eastl::make_unique<BcCompressor>(bcType, 1, panoramaWidth, strideHeight, 1, isMobile ? etc2_sh : dxt5_sh);
-  G_ASSERT(cloudsPanoramaCompressor->getCompressionType() != BcCompressor::ECompressionType::COMPRESSION_ERR);
+  G_ASSERT(cloudsPanoramaCompressor->isValid());
 }
 
 void PanoramaCompressor::updateCompressedTexture(Texture *dstTex, float rgbmScale)

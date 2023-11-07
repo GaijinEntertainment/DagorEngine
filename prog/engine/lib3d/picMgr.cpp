@@ -27,6 +27,7 @@
 #include <util/dag_delayedAction.h>
 #include <math/dag_adjpow2.h>
 #include <stdio.h>
+#include <startup/dag_globalSettings.h>
 
 // #define PICMGR_DEBUG debug  // trace picture manager execution
 #ifndef PICMGR_DEBUG
@@ -1603,7 +1604,10 @@ bool PictureManager::TexRec::initAtlas()
     ad->atlas.copy_left_top_margin_cb = copy_left_top_margin_cb;
     ad->atlas.copy_left_top_margin_cb_arg = ad;
 #if DAGOR_DBGLEVEL > 0
-    ad->atlas.clear_discarded_cb = clear_discarded_cb;
+    const DataBlock *settings = dgs_get_settings();
+    if (
+      settings && settings->getBlockByNameEx("debug")->getBool("clearDiscardedImagesInAtlas", !d3d::get_driver_code().is(d3d::vulkan)))
+      ad->atlas.clear_discarded_cb = clear_discarded_cb;
 #endif
     return true;
   }

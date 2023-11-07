@@ -14,6 +14,7 @@ inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx
 
   dafx::Config cfg;
   cfg.use_async_thread = false;
+  cfg.qualityMask = 1 << 2; // high quality
 
   dafx_ctx = dafx::create_context(cfg);
   if (dafx_ctx)

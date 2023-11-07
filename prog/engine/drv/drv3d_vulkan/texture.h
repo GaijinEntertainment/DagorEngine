@@ -217,8 +217,6 @@ struct BaseTex final : public BaseTexture
 
   SmallTab<uint8_t, MidmemAlloc> texCopy; //< ddsx::Header + ddsx data; sysCopyQualityId stored in hdr.hqPartLevel
 
-  BaseTexture::IReloadData *rld;
-
   struct ImageMem
   {
     void *ptr = nullptr;
@@ -299,7 +297,6 @@ struct BaseTex final : public BaseTexture
     samplerState.setFilter(VK_FILTER_LINEAR);
 
     preallocBeforeLoad = false;
-    rld = nullptr;
 
     if (RES3D_CUBETEX == resType)
     {
@@ -315,7 +312,6 @@ struct BaseTex final : public BaseTexture
     Device &device = get_device();
     if (waitEvent.isPending())
       device.getContext().wait();
-    setRld(nullptr);
   }
 
   /// ->>
@@ -463,11 +459,7 @@ struct BaseTex final : public BaseTexture
 
   int generateMips() override;
 
-  bool setReloadCallback(IReloadData *_rld) override
-  {
-    setRld(_rld);
-    return true;
-  }
+  bool setReloadCallback(IReloadData *) override { return false; }
 
   void releaseTex();
   void swapInnerTex(D3DTextures &new_tex);
@@ -484,13 +476,6 @@ struct BaseTex final : public BaseTexture
   void destroy() override;
 
   /// <<-
-
-  void setRld(BaseTexture::IReloadData *_rld)
-  {
-    if (rld && rld != _rld)
-      rld->destroySelf();
-    rld = _rld;
-  }
 
   void release() { releaseTex(); }
   bool recreate();

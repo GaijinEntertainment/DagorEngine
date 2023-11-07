@@ -56,74 +56,19 @@ inline RegionDifference classify_viewport_diff(const ViewportState &from, const 
 }
 struct FramebufferState
 {
-  FramebufferInfo frontendFrameBufferInfo = {};
   RenderPassClass::Identifier renderPassClass = {};
   RenderPassClass::FramebufferDescription frameBufferInfo = {};
-  VkRect2D viewRect = {};
   VkClearColorValue colorClearValue[Driver3dRenderTarget::MAX_SIMRT] = {};
   VkClearDepthStencilValue depthStencilClearValue = {};
-  VulkanImageViewHandle colorViews[Driver3dRenderTarget::MAX_SIMRT] = {};
-  VulkanImageViewHandle depthStencilView = {};
   uint32_t clearMode = 0;
-  bool roDepth = false;
 
-  void clear()
+  void reset()
   {
-    frontendFrameBufferInfo = FramebufferInfo{};
     renderPassClass.clear();
     frameBufferInfo.clear();
-    memset(&viewRect, 0, sizeof(viewRect));
     memset(&colorClearValue, 0, sizeof(colorClearValue));
     memset(&depthStencilClearValue, 0, sizeof(depthStencilClearValue));
-  }
-
-  void bindColorTarget(uint32_t index, Image *image, VkSampleCountFlagBits samples, ImageViewState ivs, VulkanImageViewHandle view)
-  {
-    frontendFrameBufferInfo.setColorAttachment(index, image, ivs);
-    renderPassClass.colorTargetMask |= 1 << index;
-    renderPassClass.colorFormats[index] = ivs.getFormat();
-    renderPassClass.colorSamples[index] = samples;
-    frameBufferInfo.colorAttachments[index] = RenderPassClass::FramebufferDescription::AttachmentInfo(image, view, ivs);
-    colorViews[index] = view;
-  }
-
-  void clearColorTarget(uint32_t index)
-  {
-    frontendFrameBufferInfo.clearColorAttachment(index);
-    renderPassClass.colorTargetMask &= ~(1 << index);
-    renderPassClass.colorFormats[index] = FormatStore(0);
-    frameBufferInfo.colorAttachments[index] = RenderPassClass::FramebufferDescription::AttachmentInfo();
-    colorViews[index] = VulkanNullHandle();
-  }
-
-  void setDepthStencilTargetReadOnly(bool read_only)
-  {
-    frontendFrameBufferInfo.setDepthStencilAttachmentReadOnly(read_only);
-
-    if (renderPassClass.depthState != RenderPassClass::Identifier::NO_DEPTH)
-    {
-      renderPassClass.depthState = read_only ? RenderPassClass::Identifier::RO_DEPTH : RenderPassClass::Identifier::RW_DEPTH;
-    }
-  }
-
-  void bindDepthStencilTarget(Image *image, VkSampleCountFlagBits samples, ImageViewState ivs, VulkanImageViewHandle view,
-    bool read_only)
-  {
-    frontendFrameBufferInfo.setDepthStencilAttachment(image, ivs, read_only);
-    renderPassClass.depthState = read_only ? RenderPassClass::Identifier::RO_DEPTH : RenderPassClass::Identifier::RW_DEPTH;
-    renderPassClass.depthStencilFormat = ivs.getFormat();
-    renderPassClass.colorSamples[0] = samples;
-    frameBufferInfo.depthStencilAttachment = RenderPassClass::FramebufferDescription::AttachmentInfo(image, view, ivs);
-    depthStencilView = view;
-  }
-
-  void clearDepthStencilTarget()
-  {
-    frontendFrameBufferInfo.clearDepthStencilAttachment();
-    renderPassClass.depthState = RenderPassClass::Identifier::NO_DEPTH;
-    renderPassClass.depthStencilFormat = FormatStore(0);
-    frameBufferInfo.depthStencilAttachment = RenderPassClass::FramebufferDescription::AttachmentInfo();
-    depthStencilView = VulkanNullHandle();
+    clearMode = 0;
   }
 };
 

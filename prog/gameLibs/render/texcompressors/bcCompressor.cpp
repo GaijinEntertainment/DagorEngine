@@ -80,7 +80,7 @@ BcCompressor::BcCompressor(ECompressionType compr_type, unsigned int buffer_mips
   unsigned int buffer_height, int htiles, const char *bc_shader) :
   vb(NULL), bufferTex(NULL), bufferMips(0), bufferWidth(0), bufferHeight(0), compressionType(compr_type), vbFiller(verts)
 {
-  G_ASSERT(compressionType < COMPRESSION_ERR);
+  G_ASSERT(isValid());
   srcTexVarId = ::get_shader_variable_id(shader_var_src_tex, true);
   srcMipVarId = ::get_shader_variable_id(shader_var_src_mip, true);
   dstMipVarId = ::get_shader_variable_id(shader_var_dst_mip, true);
@@ -141,7 +141,7 @@ void BcCompressor::VbFiller::reloadD3dRes(Sbuffer *sb)
 
 bool BcCompressor::resetBuffer(unsigned int mips, unsigned int width, unsigned int height, int htiles)
 {
-  G_ASSERT(compressionType < COMPRESSION_ERR);
+  G_ASSERT(isValid());
 
   if (width == bufferWidth && height == bufferHeight)
     return true;
@@ -221,7 +221,7 @@ void BcCompressor::updateFromMip(TEXTUREID src_id, int src_mip, int dst_mip, int
 
 void BcCompressor::updateFromFaceMip(TEXTUREID src_id, int src_face, int src_mip, int dst_mip, int tiles)
 {
-  G_ASSERT(compressionType < COMPRESSION_ERR);
+  G_ASSERT(isValid());
   G_ASSERT(src_id != BAD_TEXTUREID);
   G_ASSERT(dst_mip >= src_mip);
   // render to buffer
@@ -294,7 +294,7 @@ void BcCompressor::copyTo(Texture *dest_tex, int dest_x, int dest_y, int src_x, 
 void BcCompressor::copyToMip(Texture *dest_tex, int dest_mip, int dest_x, int dest_y, int src_mip, int src_x, int src_y, int width,
   int height)
 {
-  G_ASSERT(compressionType < COMPRESSION_ERR);
+  G_ASSERT(isValid());
   G_ASSERT(dest_tex && compressionType == get_texture_compression_type(dest_tex));
   // copy to target
   width = width < 0 ? (bufferWidth >> src_mip) : width;
@@ -308,3 +308,5 @@ BcCompressor::ECompressionType BcCompressor::getCompressionType() const
 {
   return compressMat.get() || compressElemCompute.get() ? compressionType : COMPRESSION_ERR;
 }
+
+bool BcCompressor::isValid() const { return compressionType != COMPRESSION_ERR; }

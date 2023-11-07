@@ -1,11 +1,8 @@
 
 include "shader_global.sh"
 
-texture velocity_pressure_tex;
-texture density_tex;
-
-texture next_velocity_pressure_tex;
-texture next_density_tex;
+texture velocity_density_tex;
+texture next_velocity_density_tex;
 
 texture solid_boundaries_tex;
 
@@ -16,18 +13,46 @@ float simulation_dx = 1;
 float standard_density = 1.225;
 float4 standard_velocity = float4(10, 10, 0, 0);
 
-texture initial_density_tex;
-texture initial_velocity_pressure_tex;
+texture initial_velocity_density_tex;
 
 int4 tex_size;
 
 hlsl {
-  float calc_P(float4 rho)
+  float calc_P(float rho)
   {
     const float M = 0.0289644f; // molar mass of air
     const float R = 8.314462618f; // universal gas constant
     const float T = 300.0f; // temperature in Kelvin
-    return dot(rho, float4(1, 1, 1, 1)) * R * T / M;
+    return rho * R * T / M;
+  }
+
+  #define x_ofs uint2(1, 0)
+  #define y_ofs uint2(0, 1)
+
+  struct ValueCross
+  {
+    float left;
+    float right;
+    float top;
+    float bottom;
+  };
+
+  struct ValueCross4
+  {
+    float4 left;
+    float4 right;
+    float4 top;
+    float4 bottom;
+  };
+
+  // Central difference derivative approximations
+  inline float dval_dx(ValueCross val, float h)
+  {
+    return (val.right - val.left) / (2 * h);
+  }
+  inline float dval_dy(ValueCross val, float h)
+  {
+    return (val.bottom - val.top) / (2 * h);
   }
 }
 
@@ -36,11 +61,8 @@ shader fill_initial_conditions
   ENABLE_ASSERT(cs)
 
   (cs) {
-    velocityPressure@uav = velocity_pressure_tex hlsl {
-      RWTexture2D<float4> velocityPressure@uav;
-    };
-    density@uav = density_tex hlsl {
-      RWTexture2D<float4> density@uav;
+    velocity_density@uav = velocity_density_tex hlsl {
+      RWTexture2D<float4> velocity_density@uav;
     };
 
     standard_density@f1 = (standard_density, 0, 0, 0);
@@ -59,8 +81,7 @@ shader fill_initial_conditions
 
       uint2 coord = uint2(tid.x, tid.y);
 
-      density[coord] = float4(standard_density, 0, 0, 0);
-      velocityPressure[coord] = float4(standard_velocity, calc_P(float4(standard_density, 0, 0, 0)), 0);
+      velocity_density[coord] = float4(standard_velocity, 0, standard_density);
     }
   }
 
@@ -72,15 +93,11 @@ shader fill_initial_conditions_from_tex
   ENABLE_ASSERT(cs)
 
   (cs) {
-    velocityPressure@uav = velocity_pressure_tex hlsl {
-      RWTexture2D<float4> velocityPressure@uav;
-    };
-    density@uav = density_tex hlsl {
-      RWTexture2D<float4> density@uav;
+    velocity_density@uav = velocity_density_tex hlsl {
+      RWTexture2D<float4> velocity_density@uav;
     };
 
-    initial_density@smp2d = initial_density_tex;
-    initial_velocity_pressure@smp2d = initial_velocity_pressure_tex;
+    initial_velocity_density@smp2d = initial_velocity_density_tex;
 
     texSize@i2 = (tex_size.x, tex_size.y, 0, 0);
   }
@@ -95,8 +112,7 @@ shader fill_initial_conditions_from_tex
 
       uint2 coord = uint2(tid.x, tid.y);
 
-      density[coord] = tex2Dlod(initial_density, float4(float2(coord) / float2(size), 0, 0));
-      velocityPressure[coord] = tex2Dlod(initial_velocity_pressure, float4(float2(coord) / float2(size), 0, 0));
+      velocity_density[coord] = tex2Dlod(initial_velocity_density, float4(float2(coord) / float2(size), 0, 0));
     }
   }
 
@@ -113,137 +129,19 @@ shader euler_simulation_cs
     simulation_time@f1 = (simulation_time, 0, 0, 0);
     dt@f1 = (simulation_dt, 0, 0, 0);
     h@f1 = (simulation_dx, 0, 0, 0);
-    velocityPressure@smp2d = velocity_pressure_tex;
-    density@smp2d = density_tex;
 
     standard_density@f1 = (standard_density, 0, 0, 0);
     standard_velocity@f2 = (standard_velocity.x, standard_velocity.y, 0, 0);
 
-    nextVelocityPressure@uav = next_velocity_pressure_tex hlsl {
-      RWTexture2D<float4> nextVelocityPressure@uav;
-    };
-    nextDensity@uav = next_density_tex hlsl {
-      RWTexture2D<float4> nextDensity@uav;
+    velocity_density@smp2d = velocity_density_tex;
+    next_velocity_density@uav = next_velocity_density_tex hlsl {
+      RWTexture2D<float4> next_velocity_density@uav;
     };
 
     solidBoundaries@smp2d = solid_boundaries_tex;
   }
 
   hlsl(cs) {
-    #define x_ofs int2(1, 0)
-    #define y_ofs uint2(0, 1)
-
-    // Central difference derivative approximations
-    inline float dvx_dx(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + x_ofs, 0).x -
-              texelFetch(velocityPressure, coord - x_ofs, 0).x) / (2 * h);
-    }
-    inline float dvy_dx(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + x_ofs, 0).y -
-              texelFetch(velocityPressure, coord - x_ofs, 0).y) / (2 * h);
-    }
-    inline float dvx_dy(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + y_ofs, 0).x -
-              texelFetch(velocityPressure, coord - y_ofs, 0).x) / (2 * h);
-    }
-    inline float dvy_dy(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + y_ofs, 0).y -
-              texelFetch(velocityPressure, coord - y_ofs, 0).y) / (2 * h);
-    }
-    inline float dP_dx(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + x_ofs, 0).z -
-              texelFetch(velocityPressure, coord - x_ofs, 0).z) / (2 * h);
-    }
-    inline float dP_dy(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + y_ofs, 0).z -
-              texelFetch(velocityPressure, coord - y_ofs, 0).z) / (2 * h);
-    }
-    inline float4 drho_dx(int2 coord)
-    {
-      return (texelFetch(density, coord + x_ofs, 0).xyzw -
-              texelFetch(density, coord - x_ofs, 0).xyzw) / (2 * h);
-    }
-    inline float4 drho_dy(int2 coord)
-    {
-      return (texelFetch(density, coord + y_ofs, 0).xyzw -
-              texelFetch(density, coord - y_ofs, 0).xyzw) / (2 * h);
-    }
-
-    // Set the desired conditions on the grid edges
-    void applyFarFieldConditions(uint2 coord, inout float4 nextRho, inout float4 nextVelPressure)
-    {
-      // Inflow
-      if (coord.x == 0)
-      {
-        nextRho = float4(standard_density, 0, 0, 0);
-        nextVelPressure = float4(standard_velocity, calc_P(nextRho), 0);
-      }
-      if (coord.y == 0)
-      {
-        nextRho = float4(standard_density, 0, 0, 0);
-        nextVelPressure = float4(standard_velocity, calc_P(nextRho), 0);
-      }
-
-      // Outflow
-      if (coord.x == tex_size.x - 1)
-      {
-        nextRho = float4(standard_density, 0, 0, 0);
-        nextVelPressure = float4(standard_velocity, calc_P(nextRho), 0);
-      }
-      if (coord.y == tex_size.y - 1)
-      {
-        nextRho = float4(standard_density, 0, 0, 0);
-        nextVelPressure = float4(standard_velocity, calc_P(nextRho), 0);
-      }
-
-      // Based on https://web.stanford.edu/group/frg/course_work/AA214/CA-AA214-Ch8.pdf
-      // Inflow
-      // if (coord.x == 0)
-      // {
-      //   nextRho = float4(standard_density, 0, 0, 0);
-      //   nextVelPressure.xy = standard_velocity;
-      // }
-      // if (coord.y == 0)
-      // {
-      //   nextRho = float4(standard_density, 0, 0, 0);
-      //   nextVelPressure.xy = standard_velocity;
-      // }
-
-      // // Outflow
-      // if (coord.x == tex_size.x - 1)
-      // {
-      //   nextVelPressure.z = calc_P(float4(standard_density, 0, 0, 0));
-      // }
-      // if (coord.y == tex_size.y - 1)
-      // {
-      //   nextVelPressure.z = calc_P(float4(standard_density, 0, 0, 0));
-      // }
-    }
-
-    void applyCircleFriction(uint2 coord, float2 v, float2 center, float radius, inout float2 f)
-    {
-      float2 diff = coord.xy - center;
-      float dist = length(diff);
-      if (dist < radius)
-      {
-        f += -v * 1000.0;
-      }
-    }
-
-    void applyWallFriction(uint2 coord, float2 v, float2 tl, float2 br, inout float2 f)
-    {
-      if (coord.x > tl.x && coord.x < br.x && coord.y > tl.y && coord.y < br.y)
-      {
-        f += -v * 10000.0;
-      }
-    }
-
     float2 frictionForce(uint2 coord, float2 v)
     {
       float boundaryData = tex2Dlod(solidBoundaries, float4(float2(coord) / float2(tex_size), 0, 0)).w;
@@ -251,48 +149,68 @@ shader euler_simulation_cs
       if (boundaryData > 0)
         return -v * 10000.0;
 
-
       return 0;
-      // float2 ret = 0;
-      // applyCircleFriction(coord, v, float2(100, 200), 40, ret);
-      // applyCircleFriction(coord, v, float2(400, 200), 20, ret);
-      // applyCircleFriction(coord, v, float2(450, 270), 10, ret);
-      // applyCircleFriction(coord, v, float2(400, 330), 10, ret);
-      // applyWallFriction(coord, v, float2(200, 100), float2(210, 300), ret);
-      // applyWallFriction(coord, v, float2(400, 50), float2(500, 60), ret);
-      // applyWallFriction(coord, v, float2(400, 100), float2(500, 150), ret);
-
-      // return ret;
     }
 
     void solver(uint2 coord, float t)
     {
-      float4 nextVelPressure = 0;
-      float4 nextRho = 0;
+      float4 nextVelDensity = 0;
 
-      float4 rho = texelFetch(density, coord, 0).xyzw;
-      float combinedRho = dot(rho, float4(1, 1, 1, 1));
+      float4 velDensity = texelFetch(velocity_density, coord, 0);
+      float rho = velDensity.w;
+      float v_x = velDensity.x;
+      float v_y = velDensity.y;
 
-      float v_x = texelFetch(velocityPressure, coord, 0).x;
-      float v_y = texelFetch(velocityPressure, coord, 0).y;
-      float dvx_dx_dvy_dy = (dvx_dx(coord) + dvy_dy(coord));
+      ValueCross4 velDensityCross =
+      {
+        texelFetch(velocity_density, coord - x_ofs, 0),
+        texelFetch(velocity_density, coord + x_ofs, 0),
+        texelFetch(velocity_density, coord - y_ofs, 0),
+        texelFetch(velocity_density, coord + y_ofs, 0)
+      };
+
+      // Boundary conditions are set through derivatives
+      ValueCross rhoCross =
+      {
+        coord.x != 0 ? velDensityCross.left.w : standard_density,
+        coord.x != tex_size.x - 1 ? velDensityCross.right.w : standard_density,
+        coord.y != 0 ? velDensityCross.top.w : standard_density,
+        coord.y != tex_size.y - 1 ? velDensityCross.bottom.w : standard_density
+      };
+      ValueCross v_xCross =
+      {
+        coord.x != 0 ? velDensityCross.left.x : standard_velocity.x,
+        coord.x != tex_size.x - 1 ? velDensityCross.right.x : standard_velocity.x,
+        coord.y != 0 ? velDensityCross.top.x : standard_velocity.x,
+        coord.y != tex_size.y - 1 ? velDensityCross.bottom.x : standard_velocity.x
+      };
+      ValueCross v_yCross =
+      {
+        coord.x != 0 ? velDensityCross.left.y : standard_velocity.y,
+        coord.x != tex_size.x - 1 ? velDensityCross.right.y : standard_velocity.y,
+        coord.y != 0 ? velDensityCross.top.y : standard_velocity.y,
+        coord.y != tex_size.y - 1 ? velDensityCross.bottom.y : standard_velocity.y
+      };
+      ValueCross PCross =
+      {
+        calc_P(rhoCross.left),
+        calc_P(rhoCross.right),
+        calc_P(rhoCross.top),
+        calc_P(rhoCross.bottom)
+      };
+
+      float dvx_dx_dvy_dy = (dval_dx(v_xCross, h) + dval_dy(v_yCross, h));
 
       // calculate rho
-      nextRho = rho + dt * (float4(0, 0, 0, 0) - rho * dvx_dx_dvy_dy - v_x * drho_dx(coord) - v_y * drho_dy(coord));
-      nextRho = float4(max(nextRho.x, 0), max(nextRho.y, 0), max(nextRho.z, 0), max(nextRho.w, 0));
+      nextVelDensity.w = rho + dt * (0 - rho * dvx_dx_dvy_dy - v_x * dval_dx(rhoCross, h) - v_y * dval_dy(rhoCross, h));
+      nextVelDensity.w = max(0, nextVelDensity.w);
 
       // calculate v
       float2 force = frictionForce(coord, float2(v_x, v_y));
-      nextVelPressure.x = v_x + dt * ((force.x - dP_dx(coord)) / (combinedRho + 0.0001) - v_x * dvx_dx(coord) - v_y * dvx_dy(coord));
-      nextVelPressure.y = v_y + dt * ((force.y - dP_dy(coord)) / (combinedRho + 0.0001) - v_x * dvy_dx(coord) - v_y * dvy_dy(coord));
+      nextVelDensity.x = v_x + dt * ((force.x - dval_dx(PCross, h)) / (rho + 0.0001) - v_x * dval_dx(v_xCross, h) - v_y * dval_dy(v_xCross, h));
+      nextVelDensity.y = v_y + dt * ((force.y - dval_dy(PCross, h)) / (rho + 0.0001) - v_x * dval_dx(v_yCross, h) - v_y * dval_dy(v_yCross, h));
 
-      // calculate p
-      nextVelPressure.z = calc_P(nextRho);
-
-      applyFarFieldConditions(coord, nextRho, nextVelPressure);
-
-      nextDensity[coord] = nextRho;
-      nextVelocityPressure[coord] = nextVelPressure;
+      next_velocity_density[coord] = nextVelDensity;
     }
 
     [numthreads(8, 8, 1)]
@@ -323,17 +241,13 @@ shader euler_simulation_explicit_implicit_cs
     simulation_time@f1 = (simulation_time, 0, 0, 0);
     dt@f1 = (simulation_dt, 0, 0, 0);
     h@f1 = (simulation_dx, 0, 0, 0);
-    velocityPressure@smp2d = velocity_pressure_tex;
-    density@smp2d = density_tex;
 
     standard_density@f1 = (standard_density, 0, 0, 0);
     standard_velocity@f2 = (standard_velocity.x, standard_velocity.y, 0, 0);
 
-    nextVelocityPressure@uav = next_velocity_pressure_tex hlsl {
-      RWTexture2D<float4> nextVelocityPressure@uav;
-    };
-    nextDensity@uav = next_density_tex hlsl {
-      RWTexture2D<float4> nextDensity@uav;
+    velocity_density@smp2d = velocity_density_tex;
+    next_velocity_density@uav = next_velocity_density_tex hlsl {
+      RWTexture2D<float4> next_velocity_density@uav;
     };
 
     solidBoundaries@smp2d = solid_boundaries_tex;
@@ -341,90 +255,12 @@ shader euler_simulation_explicit_implicit_cs
 
   hlsl(cs) {
 
-    #define x_ofs int2(1, 0)
-    #define y_ofs uint2(0, 1)
-
     //#define ROW_SIZE 512
     #define ROW_SIZE 64
 
     groupshared float equation[ROW_SIZE];
     groupshared float rightPart[3][ROW_SIZE];
     groupshared float solution[3][ROW_SIZE];
-
-    // Central difference derivative approximations
-    inline float dvx_dx(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + x_ofs, 0).x -
-              texelFetch(velocityPressure, coord - x_ofs, 0).x) / (2 * h);
-    }
-    inline float dvy_dx(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + x_ofs, 0).y -
-              texelFetch(velocityPressure, coord - x_ofs, 0).y) / (2 * h);
-    }
-    inline float dvx_dy(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + y_ofs, 0).x -
-              texelFetch(velocityPressure, coord - y_ofs, 0).x) / (2 * h);
-    }
-    inline float dvy_dy(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + y_ofs, 0).y -
-              texelFetch(velocityPressure, coord - y_ofs, 0).y) / (2 * h);
-    }
-    inline float dP_dx(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + x_ofs, 0).z -
-              texelFetch(velocityPressure, coord - x_ofs, 0).z) / (2 * h);
-    }
-    inline float dP_dy(int2 coord)
-    {
-      return (texelFetch(velocityPressure, coord + y_ofs, 0).z -
-              texelFetch(velocityPressure, coord - y_ofs, 0).z) / (2 * h);
-    }
-    inline float4 drho_dx(int2 coord)
-    {
-      return (texelFetch(density, coord + x_ofs, 0).xyzw -
-              texelFetch(density, coord - x_ofs, 0).xyzw) / (2 * h);
-    }
-    inline float4 drho_dy(int2 coord)
-    {
-      return (texelFetch(density, coord + y_ofs, 0).xyzw -
-              texelFetch(density, coord - y_ofs, 0).xyzw) / (2 * h);
-    }
-
-    // Set the desired conditions on the grid edges
-    void applyFarFieldConditions(uint2 coord, inout float4 nextRho, inout float4 nextVelPressure)
-    {
-      float2 velocity;
-      velocity.x = cos(simulation_time*4)*15;
-      velocity.y = sin(simulation_time*4)*15;
-
-      velocity = standard_velocity;
-      // Inflow
-      if (coord.x == 0)
-      {
-        nextRho = float4(standard_density, 0, 0, 0);
-        nextVelPressure = float4(velocity, calc_P(nextRho), 0);
-      }
-      if (coord.y == 0)
-      {
-        nextRho = float4(standard_density, 0, 0, 0);
-        nextVelPressure = float4(velocity, calc_P(nextRho), 0);
-      }
-
-      // Outflow
-      if (coord.x == tex_size.x - 1)
-      {
-        nextRho = float4(standard_density, 0, 0, 0);
-        nextVelPressure = float4(velocity, calc_P(nextRho), 0);
-      }
-      if (coord.y == tex_size.y - 1)
-      {
-        nextRho = float4(standard_density, 0, 0, 0);
-        nextVelPressure = float4(velocity, calc_P(nextRho), 0);
-      }
-    }
 
     float2 frictionForce(uint2 coord, float2 v)
     {
@@ -438,15 +274,52 @@ shader euler_simulation_explicit_implicit_cs
 
     void solver(uint2 coord, float t)
     {
-      float4 nextVelPressure = 0;
-      float4 nextRho = 0;
+      float4 nextVelDensity = 0;
 
-      float4 rho = texelFetch(density, coord, 0).xyzw;
-      float combinedRho = dot(rho, float4(1, 1, 1, 1));
+      float4 velDensity = texelFetch(velocity_density, coord, 0);
+      float rho = velDensity.w;
+      float v_x = velDensity.x;
+      float v_y = velDensity.y;
 
-      float v_x = texelFetch(velocityPressure, coord, 0).x;
-      float v_y = texelFetch(velocityPressure, coord, 0).y;
-      float dvx_dx_dvy_dy = (dvx_dx(coord) + dvy_dy(coord));
+      ValueCross4 velDensityCross =
+      {
+        texelFetch(velocity_density, coord - x_ofs, 0),
+        texelFetch(velocity_density, coord + x_ofs, 0),
+        texelFetch(velocity_density, coord - y_ofs, 0),
+        texelFetch(velocity_density, coord + y_ofs, 0)
+      };
+
+      // Boundary conditions are set through derivatives
+      ValueCross rhoCross =
+      {
+        coord.x != 0 ? velDensityCross.left.w : standard_density,
+        coord.x != tex_size.x - 1 ? velDensityCross.right.w : standard_density,
+        coord.y != 0 ? velDensityCross.top.w : standard_density,
+        coord.y != tex_size.y - 1 ? velDensityCross.bottom.w : standard_density
+      };
+      ValueCross v_xCross =
+      {
+        coord.x != 0 ? velDensityCross.left.x : standard_velocity.x,
+        coord.x != tex_size.x - 1 ? velDensityCross.right.x : standard_velocity.x,
+        coord.y != 0 ? velDensityCross.top.x : standard_velocity.x,
+        coord.y != tex_size.y - 1 ? velDensityCross.bottom.x : standard_velocity.x
+      };
+      ValueCross v_yCross =
+      {
+        coord.x != 0 ? velDensityCross.left.y : standard_velocity.y,
+        coord.x != tex_size.x - 1 ? velDensityCross.right.y : standard_velocity.y,
+        coord.y != 0 ? velDensityCross.top.y : standard_velocity.y,
+        coord.y != tex_size.y - 1 ? velDensityCross.bottom.y : standard_velocity.y
+      };
+      ValueCross PCross =
+      {
+        calc_P(rhoCross.left),
+        calc_P(rhoCross.right),
+        calc_P(rhoCross.top),
+        calc_P(rhoCross.bottom)
+      };
+
+      float dvx_dx_dvy_dy = (dval_dx(v_xCross, h) + dval_dy(v_yCross, h));
 
       float2 force = frictionForce(coord, float2(v_x, v_y));
 
@@ -461,20 +334,20 @@ shader euler_simulation_explicit_implicit_cs
 
       ##if euler_implicit_mode == hor // impliicit fox x derivative
         // v
-        rightPart[0][threadCoord] = v_x / dt - v_y * dvx_dx(coord) + (force.x - dP_dx(coord)) / (combinedRho + 0.0001) - derivWeights.y * v_x * dvx_dx(coord);
-        rightPart[1][threadCoord] = v_y / dt - v_y * dvy_dx(coord) + (force.y - dP_dy(coord)) / (combinedRho + 0.0001) - derivWeights.y * v_x * dvy_dx(coord);
+        rightPart[0][threadCoord] = v_x / dt - v_y * dval_dx(v_xCross, h) + (force.x - dval_dx(PCross, h)) / (rho + 0.0001) - derivWeights.y * v_x * dval_dx(v_xCross, h);
+        rightPart[1][threadCoord] = v_y / dt - v_y * dval_dx(v_yCross, h) + (force.y - dval_dy(PCross, h)) / (rho + 0.0001) - derivWeights.y * v_x * dval_dx(v_yCross, h);
         // rho
-        rightPart[2][threadCoord] = rho.x * (1.0f / dt - dvx_dx_dvy_dy) - v_y * drho_dy(coord).x - derivWeights.y * v_x * drho_dx(coord).x;
+        rightPart[2][threadCoord] = rho * (1.0f / dt - dvx_dx_dvy_dy) - v_y * dval_dy(rhoCross, h) - derivWeights.y * v_x * dval_dx(rhoCross, h);
 
         // equation params (we need only one value of 3 per matrix row)
         // and for all v_x, v_y and rho equation is the same!
         equation[threadCoord] = - derivWeights.x * v_x / h;
       ##else                          // impliicit fox y derivavtive
         // v
-        rightPart[0][threadCoord] = v_x / dt - v_x * dvx_dx(coord) + (force.x - dP_dx(coord)) / (combinedRho + 0.0001) - derivWeights.y * v_y * dvx_dx(coord);
-        rightPart[1][threadCoord] = v_y / dt - v_x * dvy_dx(coord) + (force.y - dP_dy(coord)) / (combinedRho + 0.0001) - derivWeights.y * v_y * dvy_dx(coord);
+        rightPart[0][threadCoord] = v_x / dt - v_x * dval_dx(v_xCross, h) + (force.x - dval_dx(PCross, h)) / (rho + 0.0001) - derivWeights.y * v_y * dval_dx(v_xCross, h);
+        rightPart[1][threadCoord] = v_y / dt - v_x * dval_dx(v_yCross, h) + (force.y - dval_dy(PCross, h)) / (rho + 0.0001) - derivWeights.y * v_y * dval_dx(v_yCross, h);
         // rho
-        rightPart[2][threadCoord] = rho.x * (1.0f / dt - dvx_dx_dvy_dy) - v_x * drho_dx(coord).x - derivWeights.y * v_y * drho_dy(coord).x;
+        rightPart[2][threadCoord] = rho * (1.0f / dt - dvx_dx_dvy_dy) - v_x * dval_dx(rhoCross, h) - derivWeights.y * v_y * dval_dy(rhoCross, h);
 
         // equation params (we need only one value of 3 per matrix row)
         // and for all v_x, v_y and rho equation is the same!
@@ -512,25 +385,18 @@ shader euler_simulation_explicit_implicit_cs
         solution[threadCoord][j] = beta[j];
 
         // back sweep
-        for (int i = ROW_SIZE - 2; i >= 0; i--)
+        for (int k = ROW_SIZE - 2; k >= 0; k--)
         {
-          solution[threadCoord][i] = alpha[i] * solution[threadCoord][i+1] + beta[i];
+          solution[threadCoord][k] = alpha[k] * solution[threadCoord][k+1] + beta[k];
         }
       }
       GroupMemoryBarrierWithGroupSync();
 
-      nextVelPressure.x = solution[0][threadCoord];
-      nextVelPressure.y = solution[1][threadCoord];
-      nextRho = 0;
-      nextRho.x = solution[2][threadCoord];
+      nextVelDensity.x = solution[0][threadCoord];
+      nextVelDensity.y = solution[1][threadCoord];
+      nextVelDensity.w = solution[2][threadCoord];
 
-      // calculate p
-      nextVelPressure.z = calc_P(nextRho);
-
-      applyFarFieldConditions(coord, nextRho, nextVelPressure);
-
-      nextDensity[coord] = nextRho;
-      nextVelocityPressure[coord] = nextVelPressure;
+      next_velocity_density[coord] = nextVelDensity;
     }
 
   ##if euler_implicit_mode == hor
@@ -560,50 +426,42 @@ shader blur_result_cs
     tex_size@i2 = (tex_size.x, tex_size.y, 0, 0);
     simulation_time@f1 = (simulation_time, 0, 0, 0)
     blurWeights@f2 = (euler_centralBlurWeight, 1.0/(euler_centralBlurWeight + 4.0), 0, 0);
-    velocityPressure@smp2d = velocity_pressure_tex;
-    density@smp2d = density_tex;
+    velocity_density@smp2d = velocity_density_tex;
+    next_velocity_density@uav = next_velocity_density_tex hlsl {
+      RWTexture2D<float4> next_velocity_density@uav;
+    };
 
-    nextVelocityPressure@uav = next_velocity_pressure_tex hlsl {
-      RWTexture2D<float4> nextVelocityPressure@uav;
-    };
-    nextDensity@uav = next_density_tex hlsl {
-      RWTexture2D<float4> nextDensity@uav;
-    };
+    standard_density@f1 = (standard_density, 0, 0, 0);
+    standard_velocity@f2 = (standard_velocity.x, standard_velocity.y, 0, 0);
   }
 
   hlsl(cs) {
-    #define x_ofs int2(1, 0)
-    #define y_ofs uint2(0, 1)
-
     void blurer(int2 coord, float t)
     {
-      float4 blurredVelPressure = 0;
+      float4 blurredVelDensity = 0;
 
-      float v_x = blurWeights.y*(blurWeights.x*texelFetch(velocityPressure, coord, 0).x + texelFetch(velocityPressure, coord + x_ofs, 0).x +
-                                                                                        + texelFetch(velocityPressure, coord - x_ofs, 0).x +
-                                                                                        + texelFetch(velocityPressure, coord + y_ofs, 0).x +
-                                                                                        + texelFetch(velocityPressure, coord - y_ofs, 0).x);
-      float v_y = blurWeights.y*(blurWeights.x*texelFetch(velocityPressure, coord, 0).y + texelFetch(velocityPressure, coord + x_ofs, 0).y +
-                                                                                        + texelFetch(velocityPressure, coord - x_ofs, 0).y +
-                                                                                        + texelFetch(velocityPressure, coord + y_ofs, 0).y +
-                                                                                        + texelFetch(velocityPressure, coord - y_ofs, 0).y);
+      float4 velDensityCenter = texelFetch(velocity_density, coord, 0);
+      float4 velDensityLeft = coord.x != 0 ? texelFetch(velocity_density, coord - x_ofs, 0) : float4(standard_velocity, 0, standard_density);
+      float4 velDensityRight = coord.x != tex_size.x - 1 ? texelFetch(velocity_density, coord + x_ofs, 0) : float4(standard_velocity, 0, standard_density);
+      float4 velDensityTop = coord.y != 0 ? texelFetch(velocity_density, coord - y_ofs, 0) : float4(standard_velocity, 0, standard_density);
+      float4 velDensityBottom = coord.y != tex_size.y - 1 ? texelFetch(velocity_density, coord + y_ofs, 0) : float4(standard_velocity, 0, standard_density);
 
-      float  P  = blurWeights.y*(blurWeights.x*texelFetch(velocityPressure, coord, 0).z + texelFetch(velocityPressure, coord + x_ofs, 0).z +
-                                                                                        + texelFetch(velocityPressure, coord - x_ofs, 0).z +
-                                                                                        + texelFetch(velocityPressure, coord + y_ofs, 0).z +
-                                                                                        + texelFetch(velocityPressure, coord - y_ofs, 0).z);
+      float v_x = blurWeights.y*(blurWeights.x*velDensityCenter.x + velDensityRight.x +
+                                                                  + velDensityLeft.x +
+                                                                  + velDensityBottom.x +
+                                                                  + velDensityTop.x);
+      float v_y = blurWeights.y*(blurWeights.x*velDensityCenter.y + velDensityRight.y +
+                                                                  + velDensityLeft.y +
+                                                                  + velDensityBottom.y +
+                                                                  + velDensityTop.y);
 
-      blurredVelPressure = float4(v_x, v_y, P, texelFetch(velocityPressure, coord, 0).w);
+      float blurredDensity = 0.001f*(996*velDensityCenter.w + velDensityRight.w +
+                                                            + velDensityLeft.w +
+                                                            + velDensityBottom.w +
+                                                            + velDensityTop.w);
+      blurredVelDensity = float4(v_x, v_y, 0, blurredDensity);
 
-      nextVelocityPressure[coord] = blurredVelPressure;
-
-
-      float4 blurredDensity = 0.001f*(996*texelFetch(density, coord, 0).xyzw + texelFetch(density, coord + x_ofs, 0).xyzw +
-                                                            + texelFetch(density, coord - x_ofs, 0).xyzw +
-                                                              + texelFetch(density, coord + y_ofs, 0).xyzw +
-                                                            + texelFetch(density, coord - y_ofs, 0).xyzw);
-
-      nextDensity[coord] = blurredDensity;
+      next_velocity_density[coord] = blurredVelDensity;
     }
 
     [numthreads(8, 8, 1)]

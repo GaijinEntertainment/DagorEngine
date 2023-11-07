@@ -316,7 +316,7 @@ void DaThread::applyThreadAffinity(unsigned int affinity)
     if (affinity & (1 << i))
       CPU_SET(i, &cpuset);
   if (sched_setaffinity(tid, sizeof(cpuset), &cpuset))
-    logerr("DaThread failed to set affinity 0x%04x for %s errno: %d", affinity, name, errno);
+    debug("DaThread failed to set affinity 0x%04x for %s errno: %d", affinity, name, errno);
 #else
   // Not implemented.
   G_UNREFERENCED(affinity);

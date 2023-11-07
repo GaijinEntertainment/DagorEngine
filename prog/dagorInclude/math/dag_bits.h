@@ -135,8 +135,6 @@ inline int __bit_scan_reverse(unsigned long &index, unsigned int val) { return _
 #define HAS_BIT_SCAN_FORWARD 0
 #endif
 
-//-V::779
-
 inline unsigned __ctz_unsafe(unsigned long long value)
 {
 #if defined(__clang__) || defined(__GNUC__)

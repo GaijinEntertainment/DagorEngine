@@ -127,6 +127,7 @@ ECS::ECS() : das::Module("ecs")
   // ecs::EntityId>  >("!=",     lib, "NotEqu") );
   das::addFunctionBasic<ecs::EntityId>(*this, lib);
   das::addConstant<uint32_t>(*this, "INVALID_ENTITY_ID_VAL", ecs::ECS_INVALID_ENTITY_ID_VAL);
+  das::addConstant<ecs::template_t>(*this, "INVALID_TEMPLATE_INDEX", ecs::INVALID_TEMPLATE_INDEX);
   addFunction(das::make_smart<das::BuiltInFn<das::Sim_BoolNot<ecs::EntityId>, bool, ecs::EntityId>>("!", lib, "BoolNot"));
   G_STATIC_ASSERT((eastl::is_same<das::string, ecs::string>::value));
   das::addExtern<DAS_BIND_FUN(castEid)>(*this, lib, "uint", das::SideEffects::none, "bind_dascript::castEid");
@@ -159,6 +160,7 @@ ECS::ECS() : das::Module("ecs")
   ADD_EXTERN(destroyEntity, das::SideEffects::modifyExternal);
   ADD_EXTERN(doesEntityExist, das::SideEffects::accessExternal);
   ADD_EXTERN(isLoadingEntity, das::SideEffects::accessExternal);
+  ADD_EXTERN(getEntityTemplateId, das::SideEffects::accessExternal);
   ADD_EXTERN(getEntityTemplateName, das::SideEffects::accessExternal);
   ADD_EXTERN(getEntityFutureTemplateName, das::SideEffects::accessExternal);
 

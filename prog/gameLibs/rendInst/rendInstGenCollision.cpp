@@ -346,6 +346,7 @@ struct RayTransparencyStrat
   float accumulatedTransparency = 0.0f;
   const float transparencyThreshold;
   const bool checkCanopy;
+  float secondLayerMinCapsuleHeightSq = FLT_MAX;
 
   RayTransparencyStrat(float transparency_threshold, bool check_canopy, PhysMat::MatID ray_mat) :
     rayMatId(ray_mat), checkCanopy(check_canopy), transparencyThreshold(transparency_threshold)
@@ -374,6 +375,10 @@ struct RayTransparencyStrat
       bool traceToCollRes =
         coll_res->boxNodesHead || coll_res->meshNodesHead || (coll_res->capsuleNodesHead && coll_res->capsuleNodesHead->nextNode);
       bool haveCollision = !traceToCollRes;
+      if (!traceToCollRes && layer_idx >= rendinst::rgPrimaryLayers)
+        haveCollision =
+          coll_res->capsuleNodesHead &&
+          secondLayerMinCapsuleHeightSq < (coll_res->capsuleNodesHead->capsule.a - coll_res->capsuleNodesHead->capsule.b).lengthSq();
       if (traceToCollRes)
       {
         int outMatId;
@@ -442,6 +447,7 @@ struct RayTransparencyStrat
         ri_desc->idx = idx;
         ri_desc->pool = pool;
         ri_desc->offs = offs;
+        ri_desc->layer = layer_idx;
       }
       if (out_mat_id == PHYSMAT_INVALID || out_mat_id == PHYSMAT_DEFAULT)
       {
@@ -948,6 +954,26 @@ bool traceTransparencyRayRIGenNormalized(const Point3 &pos, const Point3 &dir, f
     out_transparency, check_canopy);
 }
 
+bool traceTransparencyRayRIGenNormalizedAllLayers(const Point3 &pos, const Point3 &dir, float mint, float transparency_threshold,
+  PhysMat::MatID ray_mat, rendinst::RendInstDesc *ri_desc, int *out_mat_id, float *out_transparency, bool check_canopy,
+  float min_height_second_layer)
+{
+  RayTransparencyStrat rayTranspStrategy(transparency_threshold, check_canopy, ray_mat);
+  rayTranspStrategy.secondLayerMinCapsuleHeightSq = sqr(min_height_second_layer);
+  Trace traceData(pos, dir, mint, nullptr);
+
+  bbox3f rayBox;
+  init_raybox_from_trace(rayBox, traceData);
+  bool haveCollision = false;
+  FOR_EACH_RG_LAYER_DO (rgl)
+    rayTraverseRendinst(rayBox, dag::Span<Trace>(&traceData, 1), false, _layer, ri_desc, rayTranspStrategy, haveCollision);
+  if (haveCollision && out_mat_id)
+    *out_mat_id = traceData.outMatId;
+  if (out_transparency)
+    *out_transparency = rayTranspStrategy.accumulatedTransparency;
+  return haveCollision;
+}
+
 void initTraceTransparencyParameters(float tree_trunk_opacity, float tree_canopy_opacity)
 {
   treeTrunkOpacity = tree_trunk_opacity;
@@ -1408,6 +1434,23 @@ void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, co
     return;
   const int intersectionCount = int(intersected.size());
 
+  if (intersectionCount > 1024 || intersectionCount < 0)
+  {
+    eastl::string dbgNames;
+    dbgNames.reserve(300);
+    for (const auto &data : intersected)
+    {
+      dbgNames += " ";
+      dbgNames += getRIGenResName(data.riDesc);
+      if (dbgNames.length() > 200)
+        break;
+    }
+    logerr("computeRiIntersectedSolids has received too big intersection list, this is probably a bug, it will not be processed "
+           "printing first rendinsts: %s",
+      dbgNames.c_str());
+    return;
+  }
+
   union LocalIntersectionId
   {
     struct
@@ -1424,10 +1467,10 @@ void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, co
     bool matches(LocalIntersectionId rhs) const { return collNodeId == rhs.collNodeId && matId == rhs.matId && riId == rhs.riId; }
   };
 
-  eastl::fixed_vector<LocalIntersectionId, 64u, true, framemem_allocator> intersectionData;
-  LocalIntersectionIdRemap<int, uint8_t, 16> localCollNodeRemap;
-  LocalIntersectionIdRemap<int, uint8_t, 8> localMatIdRemap;
-  LocalIntersectionIdRemap<RendInstDesc, uint8_t, 4> localRiRemap;
+  eastl::fixed_vector<LocalIntersectionId, 128u, true, framemem_allocator> intersectionData;
+  LocalIntersectionIdRemap<unsigned, uint8_t, 16> localCollNodeRemap;
+  LocalIntersectionIdRemap<int, uint8_t, 16> localMatIdRemap;
+  LocalIntersectionIdRemap<RendInstDesc, uint8_t, 16> localRiRemap;
 
   // [0, size) - coll node index and flags
   // [size, size * 2) - out intersection index
@@ -1457,7 +1500,7 @@ void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, co
     if (intersectionData[i].direction)
     {
       int entries = 1;
-      for (int j = i + 1; j < int(intersected.size()); j++)
+      for (int j = i + 1; j < intersectionCount; j++)
       {
         if (intersectionData[j].removed)
           continue;

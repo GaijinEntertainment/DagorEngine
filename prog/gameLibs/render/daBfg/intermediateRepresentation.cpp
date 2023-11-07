@@ -121,8 +121,7 @@ Mapping Graph::calculateMapping()
   for (const auto &node : nodes)
   {
     multiIdxExtents.update(node.multiplexingIndex);
-    for (auto nodeNameId : node.frontendNodes)
-      nodeNameIdExtents.update(nodeNameId);
+    nodeNameIdExtents.update(node.frontendNode);
   }
 
   IdExtentsFinder<ResNameId> resNameIdExtents;
@@ -140,8 +139,7 @@ Mapping Graph::calculateMapping()
       result.mapRes(resNameId, res.multiplexingIndex) = i;
 
   for (auto [i, node] : nodes.enumerate())
-    for (auto nodeNameId : node.frontendNodes)
-      result.mapNode(nodeNameId, node.multiplexingIndex) = i;
+    result.mapNode(node.frontendNode, node.multiplexingIndex) = i;
 
   // NOTE: This is a bit fragile. The frontend multiplexing code has to
   // guarantee that in case of undermultiplexed nodes/resources each

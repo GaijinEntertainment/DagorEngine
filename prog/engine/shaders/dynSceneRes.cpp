@@ -529,9 +529,9 @@ bool DynamicRenderableSceneResource::hasRigidMesh(int node_id)
   return ro && ro->mesh;
 }
 
-Tab<int> DynamicRenderableSceneResource::getNodesWithMaterials(dag::ConstSpan<const char *> material_names) const
+dag::Vector<int> DynamicRenderableSceneResource::getNodesWithMaterials(dag::ConstSpan<const char *> material_names) const
 {
-  Tab<int> nodes;
+  dag::Vector<int> nodes;
 
   auto checkRigid = [&](const RigidObject &ro) {
     for (auto &elem : ro.mesh->getMesh()->getAllElems())
@@ -1401,7 +1401,8 @@ void DynamicRenderableSceneInstance::clipNodes(const Frustum &frustum, dag::Vect
   }
 }
 
-eastl::optional<Tab<int>> DynamicRenderableSceneInstance::getNodesWithMaterials(dag::ConstSpan<const char *> material_names) const
+eastl::optional<dag::Vector<int>> DynamicRenderableSceneInstance::getNodesWithMaterials(
+  dag::ConstSpan<const char *> material_names) const
 {
   if (!sceneResource)
     return eastl::nullopt;

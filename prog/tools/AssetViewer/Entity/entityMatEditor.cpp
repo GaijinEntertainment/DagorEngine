@@ -21,6 +21,7 @@
 #include <util/dag_strUtil.h>
 #include <util/dag_delayedAction.h>
 #include <libTools/shaderResBuilder/processMat.h>
+#include "../../../engine/shaders/scriptSElem.h"
 #include "../../../engine/shaders/scriptSMat.h"
 #include "../av_appwnd.h"
 #include <rendInst/rendInstGen.h>
@@ -561,6 +562,7 @@ void EntityMaterialEditor::updateAssetShaderMaterial(int lod, int mat_id)
 
   int alphaTexSlotId = get_slot_with_alpha_tex(curMatShader->native().props.textureId);
   unsigned usedTexMask = get_shclass_used_tex_mask(curMatShader->native().props.sclass);
+  bool textureChanged = false;
   for (int texSlot = 0; texSlot < matProps.textures.size(); ++texSlot)
   {
     if (alphaTexSlotId == texSlot || !(usedTexMask & (1 << texSlot)))
@@ -582,6 +584,19 @@ void EntityMaterialEditor::updateAssetShaderMaterial(int lod, int mat_id)
         setMatTexture(lod, mat_id, alphaTexSlotId, alphaTexName.c_str());
       }
     }
+
+    textureChanged |= changed;
+  }
+
+  if (textureChanged)
+  {
+    for (ShaderMaterial *material : newMat)
+      if (ShaderElement *shaderElement = material->native().getElem())
+        shaderElement->acquireTexRefs();
+
+    for (ShaderMaterial *material : oldMat)
+      if (ShaderElement *shaderElement = material->native().getElem())
+        shaderElement->releaseTexRefs();
   }
 
   if (entity->getAssetTypeId() == DAEDITOR3.getAssetTypeId("rendInst"))

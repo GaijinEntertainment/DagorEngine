@@ -27,6 +27,7 @@ Sources =
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/gameLibs/gamePhys/collision
+  $(Root)/prog/engine/sharedInclude
 ;
 
 UseProgLibs =

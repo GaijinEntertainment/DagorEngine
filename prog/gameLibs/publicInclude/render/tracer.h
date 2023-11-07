@@ -104,8 +104,9 @@ public:
   ~TracerManager();
 
   void update(float dt);
-  void beforeRender(const Frustum *frustum_);
-  void renderTrans(bool heads = true, bool trails = true, const float *hk = NULL, HeadPrimType head_prim_type = HEAD_PRIM_DIR);
+  void beforeRender(const Frustum *frustum_, const Point3 &view_pos, const TMatrix &view_itm);
+  void renderTrans(const Point3 &view_pos, const TMatrix &view_itm, bool heads = true, bool trails = true, const float *hk = NULL,
+    HeadPrimType head_prim_type = HEAD_PRIM_DIR);
   void finishPreparingIfNecessary();
 
   Tracer *createTracer(const Point3 &start_pos, const Point3 &speed, int tracerType, int trailType, float caliber, bool force = false,
@@ -137,17 +138,17 @@ protected:
     int lock(uint32_t ofs_bytes, uint32_t size_bytes, void **p, int flags);
     void unlock();
     void append(uint32_t id, dag::ConstSpan<uint8_t> elem);
-    void process(ComputeShaderElement *cs, int commands_array_const_no, int commands_count_const_no, int fx_create_cmd,
-      int element_count);
+    void process(ComputeShaderElement *cs, int fx_create_cmd, int element_count);
 
-    inline Sbuffer *getSbuffer() const { return buf.get(); }
+    inline Sbuffer *getSbuffer() const { return buf.getBuf(); }
     inline uint8_t *getData() { return data.data(); }
     inline const uint8_t *getData() const { return data.data(); }
 
   private:
     int structSize;
     int cmdSize;
-    BufPtr buf;
+    UniqueBuf buf;
+    UniqueBuf createCmdBuf;
     Tab<uint8_t> data;
     Tab<uint8_t> cmds;
     int cmd;
@@ -165,7 +166,7 @@ protected:
   void initTrails();
   void renderTrails();
   void initHeads();
-  void renderHeads();
+  void renderHeads(const Point3 &view_pos, const TMatrix &view_itm);
   void releaseRes();
 
   uint32_t numTracers, numVisibleTracers, maxTracerNo;
@@ -174,6 +175,8 @@ protected:
   carray<uint32_t, ((MAX_FX_TRACERS + 31) >> 5)> trCulledOrNotInitialized;
   const Frustum *mFrustum;
 
+  Point3 viewPos;
+  TMatrix viewItm;
   ShaderMaterial *headMat;
   dynrender::RElem headRendElem;
   BufPtr headVb;
@@ -208,9 +211,6 @@ protected:
   DrawBuffer tailIndirect;
   eastl::unique_ptr<RingDynamicSB> tailIndirectRingBuffer;
   volatile int ringBufferPos = 0;
-
-  int commandsCountConstNo;
-  int commandsArrayConstNo;
 
   DrawBuffer tracerBuffer;
   DrawBuffer tracerDynamicBuffer;

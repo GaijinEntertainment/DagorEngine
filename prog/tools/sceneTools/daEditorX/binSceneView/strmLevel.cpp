@@ -349,7 +349,7 @@ void AcesScene::loadLevel(const char *bindump)
     bufFormats[i] = parse_tex_format(clipmapBlk.getStr(String(32, "buf_tex%d", i), "NONE"), TEXFMT_DEFAULT);
   for (int i = 0; i < cacheCnt; ++i)
     formats[i] = parse_tex_format(clipmapBlk.getStr(String(32, "cache_tex%d", i), "NONE"), TEXFMT_DEFAULT);
-  clipmap->createCaches(formats.data(), cacheCnt, bufFormats.data(), bufCnt);
+  clipmap->createCaches(formats.data(), formats.data(), cacheCnt, bufFormats.data(), bufCnt);
 
   if (useToroidalHeightmap)
   {

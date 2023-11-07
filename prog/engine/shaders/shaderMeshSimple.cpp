@@ -414,13 +414,18 @@ ShaderMesh *ShaderMesh::createSimple(Mesh &m, ShaderMaterial *mat, const char * 
   ShaderMesh *sm = new (mem, _NEW_INPLACE) ShaderMesh;
   sm->_resv = 0;
 
+  if (m.getFace().empty())
+  {
+    sm->elems.init(nullptr, 0);
+    memset(sm->stageEndElemIdx, 0, sizeof(sm->stageEndElemIdx));
+    return sm;
+  }
   sm->elems.init(sm + 1, 1);
   memset(sm->stageEndElemIdx, 0, sizeof(sm->stageEndElemIdx));
   for (int i = 0, stg = (flags & SC_STAGE_IDX_MASK); i < SC_STAGE_IDX_MASK + 1; i++)
     sm->stageEndElemIdx[i] = (i < stg) ? 0 : 1;
 
   RElem *re = sm->elems.data();
-  ;
   memset(re, 0, sizeof(*re));
 
   re->mat = mat;
@@ -440,7 +445,7 @@ ShaderMesh *ShaderMesh::createSimple(Mesh &m, ShaderMaterial *mat, const char * 
   re->baseVertex = 0;
   re->numv = addVertices(m, 0, m.getFace().size(), f2vmap, vb.data(), ib.data(), ccb.chan.data(), ccb.chan.size());
 
-  re->vertexData->createMem(re->numv, stride, data_size(ib), 0, vb.data(), ib.data());
+  re->vertexData->initGvdMem(re->numv, stride, data_size(ib), 0, vb.data(), ib.data());
 
   return sm;
 }

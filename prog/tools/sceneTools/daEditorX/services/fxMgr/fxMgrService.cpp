@@ -261,13 +261,13 @@ public:
       case STG_BEFORE_RENDER:
         for (int i = 0; i < ent.size(); i++)
           if (ent[i] && ent[i]->fx && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
-            ent[i]->fx->render(FX_RENDER_BEFORE);
+            ent[i]->fx->render(FX_RENDER_BEFORE, ::grs_cur_view.itm);
         break;
 
       case STG_RENDER_DYNAMIC_OPAQUE:
         for (int i = 0; i < ent.size(); i++)
           if (ent[i] && ent[i]->fx && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
-            ent[i]->fx->render(FX_RENDER_SOLID);
+            ent[i]->fx->render(FX_RENDER_SOLID, ::grs_cur_view.itm);
         break;
 
       case STG_RENDER_FX:
@@ -280,7 +280,7 @@ public:
 
         for (int i = 0; i < ent.size(); i++)
           if (ent[i] && ent[i]->fx && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
-            ent[i]->fx->render(FX_RENDER_TRANS);
+            ent[i]->fx->render(FX_RENDER_TRANS, ::grs_cur_view.itm);
 
         if (dafx_enabled)
           calc_dafx_stats(g_dafx_ctx, g_dafx_stats);
@@ -293,7 +293,7 @@ public:
 
         for (int i = 0; i < ent.size(); i++)
           if (ent[i] && ent[i]->fx && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
-            ent[i]->fx->render(FX_RENDER_DISTORTION);
+            ent[i]->fx->render(FX_RENDER_DISTORTION, ::grs_cur_view.itm);
 
         if (dafx_enabled)
           calc_dafx_stats(g_dafx_ctx, g_dafx_stats);

@@ -59,7 +59,7 @@ class Backend
 
   intermediate::Graph intermediateGraph;
   intermediate::Mapping irMapping;
-  dag::Vector<NodeStateDelta> perNodeStateDeltas;
+  NodeStateDeltas perNodeStateDeltas;
   ResourceScheduler::EventsCollectionRef allResourceEvents;
 
   // Deferred init

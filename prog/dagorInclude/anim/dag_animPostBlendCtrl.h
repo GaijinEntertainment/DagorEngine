@@ -702,7 +702,6 @@ class LegsIKCtrl : public AnimPostBlendCtrl
     Point2 footStepRange, footRotRange;
     float maxFootUp, maxDyRate, maxDaRate;
     SimpleString foot, knee, leg, footStep;
-    bool isRightLeg;
     bool useAnimcharUpDir;
   };
 

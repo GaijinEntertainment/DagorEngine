@@ -43,7 +43,10 @@ static bool find_valid_ref(dag::ConstSpan<IDagorAssetRefProvider::Ref> r, DagorA
   return false;
 }
 
-static bool get_dag_tex_and_proxymat_list(const char *dag_fn, Tab<String> &list, Tab<String> &proxy_mat_list, IProcessMaterialData *pm)
+String validate_texture_types(String tex_name, const char *class_name, int slot, DagorAssetMgr &mgr);
+
+static bool get_dag_tex_and_proxymat_list(const char *dag_fn, Tab<String> &list, Tab<String> &proxy_mat_list, IProcessMaterialData *pm,
+  DagorAssetMgr &mgr)
 {
   if (!pm)
     return ::get_dag_textures(dag_fn, list);
@@ -91,7 +94,14 @@ static bool get_dag_tex_and_proxymat_list(const char *dag_fn, Tab<String> &list,
       return false;
     for (int j = 0; j < MAXMATTEXNUM; j++)
       if (gm.mats[i]->mtex[j] != BAD_TEXTUREID)
-        list.push_back() = get_managed_texture_name(gm.mats[i]->mtex[j]);
+      {
+        String tex_name(get_managed_texture_name(gm.mats[i]->mtex[j]));
+        list.push_back() = tex_name;
+
+        String validate_result = validate_texture_types(tex_name, gm.mats[i]->className, j, mgr);
+        if (!validate_result.empty())
+          list.back() = validate_result;
+      }
   }
   return true;
 }
@@ -107,10 +117,24 @@ void add_dag_texture_and_proxymat_refs(const char *dag_fn, Tab<IDagorAssetRefPro
 
   list.clear();
   proxyMatList.clear();
-  if (get_dag_tex_and_proxymat_list(dag_fn, list, proxyMatList, pm))
+  if (get_dag_tex_and_proxymat_list(dag_fn, list, proxyMatList, pm, mgr))
   {
     for (int i = 0; i < list.size(); i++)
     {
+      if (strstr(list[i], "does not match"))
+      {
+        s += ":tex";
+        post_error(pipe, "%s: %s", dag_fn, list[i].str());
+        if (!find_broken_ref(tmpRefs, s))
+        {
+          IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
+          r.flags = 0;
+          r.setBrokenRef(s);
+          if (s.empty())
+            r.flags |= IDagorAssetRefProvider::RFLG_OPTIONAL;
+        }
+        continue;
+      }
       s.printf(64, "%s%s%s", texRefNamePrefix.str(), DagorAsset::fpath2asset(TextureMetaData::decodeFileName(list[i], &tmp_stor)),
         texRefNameSuffix.str());
       DagorAsset *tex_a = mgr.findAsset(s, mgr.getTexAssetTypeId());

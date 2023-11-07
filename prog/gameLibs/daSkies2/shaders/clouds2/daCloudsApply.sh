@@ -6,6 +6,7 @@ include "skies_special_vision.sh"
 include "distanceToClouds2.sh"
 include "vr_reprojection.sh"
 include "use_custom_fog_sky.sh"
+include "flexible_scale_rasterization.sh"
 
 float min_ground_offset;
 texture clouds_color;
@@ -103,6 +104,8 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
   INIT_ZNZFAR()
   DISTANCE_TO_CLOUDS2(ps)
   CLOSE_LAYER_EARLY_EXIT(ps)
+  USE_FSR(ps)
+
   if (is_gather4_supported == supported || shader != clouds2_apply)
   {
     hlsl {
@@ -195,15 +198,17 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
     half4 apply_clouds_ps_main(VsOutput input, float4 screenpos, out float raw_depth)
     {
       float2 depth_texcoord = input.tc;
-      raw_depth = tex2Dlod(fullres_depth_gbuf, float4(input.tc.xy * fullres_depth_gbuf_transform.xy + fullres_depth_gbuf_transform.zw,0,0)).x;
-
+      #ifdef FSR_DISTORTION
+        raw_depth = texelFetchOffset(fullres_depth_gbuf, screenpos.xy, 0, 0).x;
+      #else
+        raw_depth = tex2Dlod(fullres_depth_gbuf, float4(input.tc.xy * fullres_depth_gbuf_transform.xy + fullres_depth_gbuf_transform.zw,0,0)).x;
+      #endif
 
       // On DX10 we cannot use depth as a target and as a shader resouce at the same time. Do the depth test in the shader
     ##if !hardware.fsh_5_0
       if (screenpos.z < raw_depth)
         return 0.0f;
     ##endif
-
 
       float2 texcoord = input.tc;
 ##if use_bounding_vr_reprojection == on

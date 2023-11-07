@@ -53,38 +53,6 @@ void ExecutionContext::invalidateActiveGraphicsPipeline()
   back.executionState.set<StateFieldGraphicsPipeline, StateFieldGraphicsPipeline::Invalidate, BackGraphicsState>(1);
 }
 
-bool ExecutionContext::isPartOfFramebuffer(Image *image)
-{
-  if (getFramebufferState().frontendFrameBufferInfo.depthStencilAttachment.image == image)
-    return true;
-  for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
-    if (getFramebufferState().frontendFrameBufferInfo.colorAttachments[i].image == image)
-      return true;
-  return false;
-}
-
-bool ExecutionContext::isPartOfFramebuffer(Image *image, ValueRange<uint8_t> mip_range, ValueRange<uint16_t> array_range)
-{
-  if (getFramebufferState().frontendFrameBufferInfo.depthStencilAttachment.image == image)
-  {
-    auto mipIndex = getFramebufferState().frontendFrameBufferInfo.depthStencilAttachment.view.getMipBase();
-    auto arrayIndex = getFramebufferState().frontendFrameBufferInfo.depthStencilAttachment.view.getArrayBase();
-    if (mip_range.isInside(mipIndex) && array_range.isInside(arrayIndex))
-      return true;
-  }
-  for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
-  {
-    if (getFramebufferState().frontendFrameBufferInfo.colorAttachments[i].image == image)
-    {
-      auto mipIndex = getFramebufferState().frontendFrameBufferInfo.colorAttachments[i].view.getMipBase();
-      auto arrayIndex = getFramebufferState().frontendFrameBufferInfo.colorAttachments[i].view.getArrayBase();
-      if (mip_range.isInside(mipIndex) && array_range.isInside(arrayIndex))
-        return true;
-    }
-  }
-  return false;
-}
-
 Image *ExecutionContext::getSwapchainColorImage() { return swapchain.getColorImage(); }
 
 void ExecutionContext::holdPreRotateStateForOneFrame() { swapchain.holdPreRotatedStateForOneFrame(); }

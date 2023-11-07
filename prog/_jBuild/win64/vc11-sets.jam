@@ -5,7 +5,6 @@ _OBJ_SUFFIX  = .obj ;
 _VC_DIR      = $(_DEVTOOL)/vc2012 ;
 _PREFAST_DIR = $(_DEVTOOL)/prefast ;
 _VC_CRT_TYPE = -MT ;
-C_preopt_DirectXVer = jun2010 ;
 _WIN_SDK_TARGET_SUFFIX = x64 ;
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 

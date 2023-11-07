@@ -124,7 +124,7 @@ ImpostorTextureManager::ImpostorTextureManager()
   if (prefer_bc_compression())
   {
     shadowAtlasCompressor = eastl::make_unique<BcCompressor>(BcCompressor::COMPRESSION_BC4, 0, 0, 0, 1, "bc4_compressor");
-    if (shadowAtlasCompressor->getCompressionType() == BcCompressor::COMPRESSION_ERR)
+    if (!shadowAtlasCompressor->isValid())
       shadowAtlasCompressor.reset();
   }
 }

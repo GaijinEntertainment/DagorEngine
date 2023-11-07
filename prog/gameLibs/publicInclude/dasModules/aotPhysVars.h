@@ -36,4 +36,11 @@ inline int physvars_register_pull_var(PhysVars &phys_vars, const char *name, flo
 {
   return phys_vars.registerPullVar(name, val);
 }
+
+inline bool physvars_is_var_pullable(const PhysVars &phys_vars, const int var_id) { return phys_vars.isVarPullable(var_id); }
+
+inline int physvars_get_vars_count(const PhysVars &phys_vars) { return phys_vars.getVarsCount(); }
+
+inline const char *physvars_get_var_name(const PhysVars &phys_vars, const int var_id) { return phys_vars.getVarName(var_id); }
+
 }; // namespace bind_dascript

@@ -6,7 +6,6 @@
 #include "math/dag_mathUtils.h"
 #include "math/dag_hlsl_floatx.h"
 #include "math/integer/dag_IPoint4.h"
-#include "3d/dag_render.h" // only for console utils
 #include "3d/dag_drv3d.h"
 #include "3d/dag_drv3dCmd.h"
 #include "3d/dag_drv3dReset.h"
@@ -454,44 +453,42 @@ static void biome_query_after_device_reset(bool)
     biome_query_ctx->afterDeviceReset();
 }
 
-static bool biome_query_console_handler(const char *argv[], int argc)
+#if DAGOR_DBGLEVEL > 0
+void biome_query::console_query_pos(const char *argv[], int argc)
 {
   BIOME_QUERY_BLOCK;
   if (!biome_query_ctx)
-    return false;
+    return;
 
-  int found = 0;
-  CONSOLE_CHECK_NAME("biome_query", "queryPos", 1, 5)
+  if (argc < 4)
+    console::print("Usage: biome_query.queryPos x y z [radius=1]");
+  else
   {
-    if (argc < 4)
-      console::print("Usage: biome_query.queryPos x y z [radius=1]");
-    else
-    {
-      Point3 pos(atof(argv[1]), atof(argv[2]), atof(argv[3]));
-      float rad = argc >= 5 ? atof(argv[4]) : 1.f;
-      int id = biome_query::query(pos, rad);
-#if DAGOR_DBGLEVEL > 0
-      console_query_id = id;
-      console_query_elapsed_frames = 0;
-#endif
-      console::print_d("Query added: id: %d, pos: (%.3f, %.3f, %.3f), rad: %.3f", id, pos.x, pos.y, pos.z, rad);
-    }
-  }
-  CONSOLE_CHECK_NAME("biome_query", "queryCameraPos", 1, 2)
-  {
-    TMatrix itm = ::grs_cur_view.itm;
-    Point3 pos = itm.getcol(3);
-    float rad = argc >= 2 ? atof(argv[1]) : 1.f;
+    Point3 pos(atof(argv[1]), atof(argv[2]), atof(argv[3]));
+    float rad = argc >= 5 ? atof(argv[4]) : 1.f;
     int id = biome_query::query(pos, rad);
-#if DAGOR_DBGLEVEL > 0
     console_query_id = id;
     console_query_elapsed_frames = 0;
-#endif
     console::print_d("Query added: id: %d, pos: (%.3f, %.3f, %.3f), rad: %.3f", id, pos.x, pos.y, pos.z, rad);
   }
-  return found;
 }
 
-REGISTER_CONSOLE_HANDLER(biome_query_console_handler);
+void biome_query::console_query_camera_pos(const char *argv[], int argc, const TMatrix &view_itm)
+{
+  if (!biome_query_ctx)
+    return;
+
+  Point3 pos = view_itm.getcol(3);
+  float rad = argc >= 2 ? atof(argv[1]) : 1.f;
+  int id = biome_query::query(pos, rad);
+  console_query_id = id;
+  console_query_elapsed_frames = 0;
+  console::print_d("Query added: id: %d, pos: (%.3f, %.3f, %.3f), rad: %.3f", id, pos.x, pos.y, pos.z, rad);
+}
+#else
+void biome_query::console_query_pos(const char *[], int) {}
+void biome_query::console_query_camera_pos(const char *[], int, const TMatrix &) {}
+#endif
+
 REGISTER_D3D_BEFORE_RESET_FUNC(biome_query_before_device_reset);
 REGISTER_D3D_AFTER_RESET_FUNC(biome_query_after_device_reset);

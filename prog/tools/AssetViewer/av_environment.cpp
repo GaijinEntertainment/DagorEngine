@@ -260,8 +260,7 @@ void renderEnvironment(bool ortho)
   state.set(shaders::OverrideState::BLEND_SRC_DEST_A);
   state.sblenda = BLEND_ZERO;
   state.dblenda = BLEND_ZERO;
-  shaders::OverrideStateId geomEnviId = shaders::overrides::create(state);
-  shaders::overrides::set(geomEnviId);
+  shaders::overrides::set_master_state(state);
   d3d::setwire(false);
 
   if (texture->restype() == RES3D_TEX || texture->restype() == RES3D_VOLTEX)
@@ -309,8 +308,7 @@ void renderEnvironment(bool ortho)
       Color4(1, 1, 1, 1) * safeinv(ShaderGlobal::get_real_fast(hdr_overbrightGVarId)), Color4(0, 0, 0, 1));
   }
 
-  shaders::overrides::reset();
-  shaders::overrides::destroy(geomEnviId);
+  shaders::overrides::reset_master_state();
   d3d::setwire(::grs_draw_wire);
   ShaderElement::invalidate_cached_state_block();
 }

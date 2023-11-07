@@ -298,7 +298,7 @@ AnalyzerMessage analyzer_messages[] =
   },
   {
     263, "egyptian-braces",
-    "Identation style: 'egyptian braces' required."
+    "Indentation style: 'egyptian braces' required."
   },
   {
     264, "plus-string",

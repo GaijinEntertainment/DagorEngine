@@ -158,25 +158,25 @@ NodeStateDelta getStateDelta(const intermediate::RequiredNodeState &first, const
   return result;
 }
 
-dag::Vector<NodeStateDelta> calculate_per_node_state_deltas(const intermediate::Graph &graph)
+NodeStateDeltas calculate_per_node_state_deltas(const intermediate::Graph &graph)
 {
-  dag::Vector<NodeStateDelta> result;
+  NodeStateDeltas result;
   result.reserve(graph.nodeStates.size() + 1);
 
   if (graph.nodeStates.empty())
   {
-    result.emplace_back();
+    result.appendNew();
     return result;
   }
 
-  result.emplace_back(getStateDelta({}, graph.nodeStates.front()));
+  result.appendNew(getStateDelta({}, graph.nodeStates.front()));
   for (uint32_t i = 1; i < graph.nodeStates.size(); ++i)
   {
     const auto &prevState = graph.nodeStates[static_cast<intermediate::NodeIndex>(i - 1)];
     const auto &currState = graph.nodeStates[static_cast<intermediate::NodeIndex>(i)];
-    result.emplace_back(getStateDelta(prevState, currState));
+    result.appendNew(getStateDelta(prevState, currState));
   }
-  result.emplace_back(getStateDelta(graph.nodeStates.back(), {}));
+  result.appendNew(getStateDelta(graph.nodeStates.back(), {}));
 
   return result;
 }

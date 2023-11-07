@@ -29,45 +29,52 @@ bool hasResourceConflictWithFramebuffer(Image *img, ImageViewState view, ShaderS
 
   ContextBackend &back = get_device().getContext().getBackend();
   FramebufferState &fbs = back.executionState.get<BackGraphicsState, BackGraphicsState>().framebufferState;
-  FramebufferInfo &fbi = fbs.frontendFrameBufferInfo;
+  RenderPassClass::FramebufferDescription &fbi = fbs.frameBufferInfo;
 
-  uint32_t i;
-  uint32_t bit;
-  for (i = 0, bit = 1; i < Driver3dRenderTarget::MAX_SIMRT; ++i, bit = bit << 1)
+  if (img->getUsage() & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
   {
-    if (!(bit & fbi.colorAttachmentMask))
-      continue;
+    uint32_t i;
+    uint32_t bit;
+    for (i = 0, bit = 1; i < Driver3dRenderTarget::MAX_SIMRT; ++i, bit = bit << 1)
+    {
+      if (!(fbs.renderPassClass.colorTargetMask & bit))
+        continue;
 
-    if (!fbi.colorAttachments[i].image)
-      continue;
+      G_ASSERTF(!fbi.colorAttachments[i].empty(), "vulkan: empty attachment %u while it used by render pass class", i);
+      if (fbi.colorAttachments[i].img != img)
+        continue;
 
-    if (fbi.colorAttachments[i].image != img)
-      continue;
+      const ImageViewState &rtView = fbi.colorAttachments[i].view;
 
-    const ImageViewState &rtView = fbi.colorAttachments[i].view;
+      const ValueRange<uint32_t> rtMipRange(rtView.getMipBase(), rtView.getMipBase() + rtView.getMipCount());
+      const ValueRange<uint32_t> rtArrayRange(rtView.getArrayBase(), rtView.getArrayBase() + rtView.getMipCount());
 
-    const ValueRange<uint32_t> rtMipRange(rtView.getMipBase(), rtView.getMipBase() + rtView.getMipCount());
-    const ValueRange<uint32_t> rtArrayRange(rtView.getArrayBase(), rtView.getArrayBase() + rtView.getMipCount());
+      const ValueRange<uint32_t> mipRange(view.getMipBase(), view.getMipBase() + view.getMipCount());
+      const ValueRange<uint32_t> arrayRange(view.getArrayBase(), view.getArrayBase() + view.getMipCount());
 
-    const ValueRange<uint32_t> mipRange(view.getMipBase(), view.getMipBase() + view.getMipCount());
-    const ValueRange<uint32_t> arrayRange(view.getArrayBase(), view.getArrayBase() + view.getMipCount());
-
-    if (mipRange.overlaps(rtMipRange) && arrayRange.overlaps(rtArrayRange))
-      return true;
+      if (mipRange.overlaps(rtMipRange) && arrayRange.overlaps(rtArrayRange))
+        return true;
+    }
   }
 
-  if (fbi.hasDepthStencilAttachment() && !fbi.hasConstDepthStencilAttachment())
+  if (img->getUsage() & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
   {
-    if (fbi.depthStencilAttachment.image != img)
-      return false;
+    if (fbs.renderPassClass.hasDepth() && !fbs.renderPassClass.hasRoDepth())
+    {
+      G_ASSERTF(!fbi.depthStencilAttachment.empty(), "vulkan: empty depth attachment while it used by render pass class");
+      if (fbi.depthStencilAttachment.img != img)
+        return false;
 
-    const ValueRange<uint32_t> mipRange(view.getMipBase(), view.getMipBase() + view.getMipCount());
-    const ValueRange<uint32_t> arrayRange(view.getArrayBase(), view.getArrayBase() + view.getMipCount());
+      const ImageViewState &dsView = fbi.depthStencilAttachment.view;
 
-    auto mipIndex = fbi.depthStencilAttachment.view.getMipBase();
-    auto arrayIndex = fbi.depthStencilAttachment.view.getArrayBase();
-    if (mipRange.isInside(mipIndex) && arrayRange.isInside(arrayIndex))
-      return true;
+      const ValueRange<uint32_t> mipRange(view.getMipBase(), view.getMipBase() + view.getMipCount());
+      const ValueRange<uint32_t> arrayRange(view.getArrayBase(), view.getArrayBase() + view.getMipCount());
+
+      auto mipIndex = dsView.getMipBase();
+      auto arrayIndex = dsView.getArrayBase();
+      if (mipRange.isInside(mipIndex) && arrayRange.isInside(arrayIndex))
+        return true;
+    }
   }
 
   return false;
@@ -90,18 +97,19 @@ bool isConstDepthStencilTarget(Image *img, ImageViewState view)
 
   ContextBackend &back = get_device().getContext().getBackend();
   FramebufferState &fbs = back.executionState.get<BackGraphicsState, BackGraphicsState>().framebufferState;
-  FramebufferInfo &fbi = fbs.frontendFrameBufferInfo;
 
-  if (fbi.hasDepthStencilAttachment() && fbi.hasConstDepthStencilAttachment())
+  if (fbs.renderPassClass.hasRoDepth())
   {
-    if (fbi.depthStencilAttachment.image != img)
+    const RenderPassClass::FramebufferDescription::AttachmentInfo &dsai = fbs.frameBufferInfo.depthStencilAttachment;
+    G_ASSERTF(!dsai.empty(), "vulkan: empty depth attachment while it used by render pass class");
+    if (dsai.img != img)
       return false;
 
     const ValueRange<uint32_t> mipRange(view.getMipBase(), view.getMipBase() + view.getMipCount());
     const ValueRange<uint32_t> arrayRange(view.getArrayBase(), view.getArrayBase() + view.getMipCount());
 
-    auto mipIndex = fbi.depthStencilAttachment.view.getMipBase();
-    auto arrayIndex = fbi.depthStencilAttachment.view.getArrayBase();
+    auto mipIndex = dsai.view.getMipBase();
+    auto arrayIndex = dsai.view.getArrayBase();
     if (mipRange.isInside(mipIndex) && arrayRange.isInside(arrayIndex))
       return true;
   }

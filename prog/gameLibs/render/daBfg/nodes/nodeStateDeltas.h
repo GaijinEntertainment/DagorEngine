@@ -34,6 +34,8 @@ struct NodeStateDelta
   ShaderBlockLayersInfoDelta shaderBlockLayers;
 };
 
-dag::Vector<NodeStateDelta> calculate_per_node_state_deltas(const intermediate::Graph &graph);
+using NodeStateDeltas = IdIndexedMapping<intermediate::NodeIndex, NodeStateDelta>;
+
+NodeStateDeltas calculate_per_node_state_deltas(const intermediate::Graph &graph);
 
 } // namespace dabfg

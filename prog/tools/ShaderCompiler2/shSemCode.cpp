@@ -61,9 +61,9 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
   // compute var offsets
   Tab<int> cvar(tmpmem);
   cvar.resize(vars.size());
-  int ofs = 0, i;
+  int ofs = 0;
 
-  for (i = 0; i < vars.size(); ++i)
+  for (int i = 0; i < vars.size(); ++i)
   {
     int sz;
     switch (vars[i].type)
@@ -77,6 +77,12 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
     }
     cvar[i] = ofs;
     ofs += sz;
+    if (vars[i].slot >= 0)
+    {
+      if (vars[i].slot >= code->staticTextureTypes.size())
+        code->staticTextureTypes.resize(vars[i].slot + 1);
+      code->staticTextureTypes[vars[i].slot] = vars[i].texType;
+    }
   }
 
   code->varsize = ofs;
@@ -84,7 +90,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
 
   // convert init code
   code->initcode = initcode;
-  for (i = 0; i < code->initcode.size(); i += 2)
+  for (int i = 0; i < code->initcode.size(); i += 2)
   {
     int vi = code->initcode[i];
     code->initcode[i] = cvar[vi];
@@ -92,7 +98,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
 
   // convert stvarmap
   code->stvarmap.resize(stvarmap.size());
-  for (i = 0; i < code->stvarmap.size(); ++i)
+  for (int i = 0; i < code->stvarmap.size(); ++i)
   {
     code->stvarmap[i].v = cvar[stvarmap[i].v];
     code->stvarmap[i].sv = stvarmap[i].sv;
@@ -102,7 +108,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
   tabutils::safeResize(code->passes, passes.size());
   Tab<ShaderCode::Pass> all_passid(tmpmem);
 
-  for (i = 0; i < passes.size(); i++)
+  for (int i = 0; i < passes.size(); i++)
   {
     PassTab *otherPasses = passes[i];
     if (otherPasses)
@@ -141,7 +147,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
   code->allPasses = all_passid;
   clear_and_shrink(all_passid);
 
-  for (i = 0; i < code->passes.size(); i++)
+  for (int i = 0; i < code->passes.size(); i++)
     if (code->passes[i])
       code->passes[i]->toPtr(make_span(code->allPasses));
 

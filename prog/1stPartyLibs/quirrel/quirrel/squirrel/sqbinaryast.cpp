@@ -232,7 +232,7 @@ void SQASTWritingVisitor::visitDeclExpr(DeclExpr *expr) {
 
 void SQASTWritingVisitor::visitArrayExpr(ArrayExpr *expr) {
   writeNodeHeader(expr);
-  writeExprVector(expr->initialziers());
+  writeExprVector(expr->initializers());
 }
 
 void SQASTWritingVisitor::visitLiteralExpr(LiteralExpr *lit) {
@@ -320,7 +320,7 @@ void SQASTWritingVisitor::visitDeclGroup(DeclGroup *group) {
 void SQASTWritingVisitor::visitDestructuringDecl(DestructuringDecl *destruct) {
   visitDeclGroup(destruct);
   stream->writeInt8(destruct->type());
-  destruct->initiExpression()->visit(this);
+  destruct->initExpression()->visit(this);
 }
 
 void SQASTWritingVisitor::visitValueDecl(ValueDecl *value) {
@@ -780,7 +780,7 @@ ForStatement *SQASTReader::readForStatement() {
   return newNode<ForStatement>(init, condition, modifier, body);
 }
 
-ForeachStatement *SQASTReader::readForeachStamenent() {
+ForeachStatement *SQASTReader::readForeachStatement() {
   Decl *idx = readNullableDeclaration();
   if (idx && idx->op() != TO_VAR) {
     error("At foreach 'idx' position should be Var node");
@@ -959,7 +959,7 @@ ArrayExpr *SQASTReader::readArrayExpr() {
 
   ArrayExpr *e = newNode<ArrayExpr>(astArena);
 
-  e->initialziers().resize(size);
+  e->initializers().resize(size);
 
   for (size_t i = 0; i < size; ++i) {
     e->addValue(readExpression());
@@ -1099,7 +1099,7 @@ DeclGroup *SQASTReader::readDeclGroup() {
   return g;
 }
 
-DestructuringDecl *SQASTReader::readDestructuringnDecl() {
+DestructuringDecl *SQASTReader::readDestructuringDecl() {
   DestructuringDecl *g = newNode<DestructuringDecl>(astArena, DT_TABLE);
 
   readDeclGroupBody(g);
@@ -1170,7 +1170,7 @@ Node *SQASTReader::readNode(enum TreeOp op) {
   case TO_WHILE: return readWhileStatement();
   case TO_DOWHILE: return readDoWhileStatement();
   case TO_FOR: return readForStatement();
-  case TO_FOREACH: return readForeachStamenent();
+  case TO_FOREACH: return readForeachStatement();
   case TO_SWITCH: return readSwitchStatement();
   case TO_RETURN: return readReturnStatement();
   case TO_YIELD: return readYieldStatement();
@@ -1239,7 +1239,7 @@ Node *SQASTReader::readNode(enum TreeOp op) {
   case TO_PARAM: return readValueDecl(false);
   case TO_CONST: return readConstDecl();
   case TO_DECL_GROUP: return readDeclGroup();
-  case TO_DESTRUCT: return readDestructuringnDecl();
+  case TO_DESTRUCTURE: return readDestructuringDecl();
   case TO_FUNCTION: return readFunctionDecl(false);
   case TO_CONSTRUCTOR: return readFunctionDecl(true);
   case TO_CLASS: return readClassDecl();

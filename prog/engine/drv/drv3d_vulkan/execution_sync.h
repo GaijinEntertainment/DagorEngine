@@ -39,11 +39,14 @@ public:
       stage |= v.stage;
       access |= v.access;
     }
+    bool equal(const LogicAddress &v) { return stage == v.stage && access == v.access; }
 
     static LogicAddress forBufferOnExecStage(ShaderStage stage, RegisterType reg_type);
     static LogicAddress forAttachmentWithLayout(VkImageLayout layout);
     static LogicAddress forImageOnExecStage(ShaderStage stage, RegisterType reg_type);
+    static LogicAddress forImageBindlessRead();
     static LogicAddress forAccelerationStructureOnExecStage(ShaderStage stage, RegisterType reg_type);
+    static LogicAddress forBLASIndirectReads();
     static void setAttachmentNoStoreSupport(bool supported);
   };
 

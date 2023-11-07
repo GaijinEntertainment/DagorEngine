@@ -793,6 +793,9 @@
       #if DAFX_USE_UNDERWATER_FOG
         modify_underwater_fog(view_dir_dist, fog_mul, fog_add);
       #endif
+      #if DAFX_USE_UNDERWATER_DEPTH_LIGHTING_MOD
+        modify_underwater_lighting(gdata.water_level, rdata.pos.y, vs_out.color.rgb);
+      #endif
       #if MODFX_SHADER_THERMALS
         fog_modify_thermal(fog_mul, fog_add);
       #endif
@@ -879,10 +882,6 @@
 
 #if MODFX_USE_INVERTED_POS_W
     input.pos.w = rcp(input.pos.w);
-#endif
-
-#if !MODFX_SHADER_RIBBON && defined(FSR_DISTORTION)
-    input.tc.xy = getTexcoord(GET_SCREEN_POS(input.pos).xy);
 #endif
 
     GlobalData gdata = global_data_load();
@@ -1134,9 +1133,13 @@
       volfogInjection.a *= pp.weight_alpha;
     }
 
-    uint3 volfogTargetId = clamp(uint3(float3(viewport_tc.xy, sqrt(tcZ_sq))*view_inscatter_volume_resolution.xyz + float3(0,0,0.5)), 0u, uint3(view_inscatter_volume_resolution.xyz - 1));
-
-    initial_media[volfogTargetId] = volfogInjection;
+    float3 posF = float3(viewport_tc.xy, sqrt(tcZ_sq))*view_inscatter_volume_resolution.xyz;
+    posF.z += 0.5;
+    float zPart = frac(posF.z);
+    uint3 volfogTargetId0 = clamp(uint3(posF), 0u, uint3(view_inscatter_volume_resolution.xyz - 1));
+    uint3 volfogTargetId1 = clamp(uint3(posF + float3(0,0,1)), 0u, uint3(view_inscatter_volume_resolution.xyz - 1));
+    initial_media[volfogTargetId0] = (1-zPart)*volfogInjection;
+    initial_media[volfogTargetId1] = zPart * volfogInjection;
     return;
 #endif
 

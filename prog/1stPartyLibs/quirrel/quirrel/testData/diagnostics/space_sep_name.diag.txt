@@ -1,0 +1,9 @@
+ERROR: Separate access operator '.' with it's following name is forbidden
+testData/diagnostics/space_sep_name.nut.txt:10:0
+
+a1.
+append(8).  // NOT OK
+^-----
+extend(6)   // NOT OK
+
+

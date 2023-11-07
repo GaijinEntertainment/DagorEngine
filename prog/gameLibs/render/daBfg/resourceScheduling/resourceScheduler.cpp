@@ -8,6 +8,7 @@
 #include <util/dag_convar.h>
 #include <dag/dag_vectorSet.h>
 
+#include <resourceUsage.h>
 #include <backend.h>
 #include <id/idRange.h>
 
@@ -409,7 +410,7 @@ ResourceScheduler::EventsCollectionRef ResourceScheduler::scheduleEvents(const i
 
   struct ResourceUsageOccurrence
   {
-    ResourceUsage usage;
+    intermediate::ResourceUsage usage;
     uint32_t frame;
     uint32_t nodeIndex;
   };
@@ -441,7 +442,7 @@ ResourceScheduler::EventsCollectionRef ResourceScheduler::scheduleEvents(const i
 
   const auto processResourceInput = [&perFrameResourceUsageTimelines](int res_owner_frame, int event_frame,
                                       intermediate::NodeIndex node_idx, intermediate::ResourceIndex res_idx,
-                                      const ResourceUsage &usage) {
+                                      intermediate::ResourceUsage usage) {
     perFrameResourceUsageTimelines[res_owner_frame][res_idx].push_back(
       ResourceUsageOccurrence{usage, static_cast<uint32_t>(event_frame), node_idx});
   };

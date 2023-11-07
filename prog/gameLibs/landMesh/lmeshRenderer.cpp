@@ -568,7 +568,7 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
 
   GET_SHADER_CONSTANT(lmesh_physmats__buffer_idx);
   if (lmesh_physmats__buffer_idx > 0)
-    physmatIdsBuf = d3d::buffers::create_one_frame_sr_structured(sizeof(uint32_t), DET_TEX_NUM * 4 * 4, "physmats_IDS");
+    physmatIdsBuf = d3d::buffers::create_one_frame_sr_byte_address(DET_TEX_NUM * 4 * 4, "physmats_IDS");
   else
     physmatIdsBuf = NULL;
 
@@ -1932,6 +1932,16 @@ static bool matrices_are_equal(const TMatrix4 &l, const TMatrix4 &r)
 static bool after_lost_device = false;
 void LandMeshRenderer::afterLostDevice() { after_lost_device = true; }
 #endif
+void LandMeshRenderer::resetOptSceneAndStates()
+{
+  if (optScn)
+    delete[] optScn;
+  optScn = nullptr;
+  if (cellStates)
+    delete[] cellStates;
+  cellStates = NULL;
+}
+
 enum
 {
   LAST_MIRROR = 8,

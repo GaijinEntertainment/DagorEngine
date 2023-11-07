@@ -115,7 +115,7 @@ void camtrack::record(const char *filename)
 
 inline float fov_to_deg(float fov) { return RAD_TO_DEG * 2.f * atan(1.f / fov); }
 
-void camtrack::update_record(float abs_time)
+void camtrack::update_record(float abs_time, const TMatrix &itm)
 {
   if (!write_stream)
     return;
@@ -126,7 +126,7 @@ void camtrack::update_record(float abs_time)
   d3d::getpersp(persp);
   CamRecord rec;
   rec.time = abs_time;
-  rec.itm = ::grs_cur_view.itm;
+  rec.itm = itm;
   rec.fov = fov_to_deg(persp.wk);
   write_stream->write(&rec, sizeof(CamRecord));
 }

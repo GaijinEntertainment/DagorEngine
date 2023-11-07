@@ -1093,7 +1093,7 @@ struct Parser
     }
   }
 
-  void checkBraceIdentationStyle()
+  void checkBraceIndentationStyle()
   {
     if (pos > 0 && forwardToken(0) == TK_LBRACE && tokens[pos - 1].nextEol())
       ctx.warning("egyptian-braces", tokens[pos]);
@@ -1277,7 +1277,7 @@ struct Parser
       }
       else
       {
-        checkBraceIdentationStyle();
+        checkBraceIndentationStyle();
         expect(TK_LBRACE);
         functionBody = parseStatementList(*tok, 1, false, false);
         expect(TK_RBRACE);
@@ -1315,7 +1315,7 @@ struct Parser
     if (accept(TK_EXTENDS))
       extends = parseTernaryOp();
 
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
     expect(TK_LBRACE);
 
     while (!ctx.isError)
@@ -1399,7 +1399,7 @@ struct Parser
     expect(TK_IDENTIFIER);
     enumName = createIdentifierNode(*tok);
 
-    checkBraceIdentationStyle();
+    checkBraceIndentationStyle();
     expect(TK_LBRACE);
 
     while (!ctx.isError)
@@ -1527,14 +1527,14 @@ struct Parser
     else if (accept(TK_TRY))
     {
       Token * tk = tok;
-      checkBraceIdentationStyle();
+      checkBraceIndentationStyle();
       Node * tryBody = parseStatement(false);
       expect(TK_CATCH);
       expect(TK_LPAREN);
       expect(TK_IDENTIFIER);
       Node * id = createIdentifierNode(*tok);
       expect(TK_RPAREN);
-      checkBraceIdentationStyle();
+      checkBraceIndentationStyle();
       Node * catchBody = parseStatement(true);
       res = createTryCatchNode(*tok, tryBody, id, catchBody);
     }
@@ -1554,7 +1554,7 @@ struct Parser
       Node * expression = parseInexprLocal();
       expressionContext.pop_back();
       expect(TK_RPAREN);
-      checkBraceIdentationStyle();
+      checkBraceIndentationStyle();
       Node * ifTrue = parseStatement(true);
       if (forwardToken(0) != TK_ELSE && !isEndOfStatement())
         ctx.warning("statement-on-same-line", *tok, "then");
@@ -1571,7 +1571,7 @@ struct Parser
             std::to_string(tk->line).c_str(), std::to_string(tok->line).c_str());
         }
 
-        checkBraceIdentationStyle();
+        checkBraceIndentationStyle();
         ifFalse = parseStatement(true);
       }
 
@@ -1600,7 +1600,7 @@ struct Parser
       Node * expression = parseInexprLocal();
       expressionContext.pop_back();
       expect(TK_RPAREN);
-      checkBraceIdentationStyle();
+      checkBraceIndentationStyle();
       Node * loopBody = parseStatement(true);
 
       if (loopBody && loopBody->nodeType != PNT_STATEMENT_LIST && !isEndOfStatement())
@@ -1621,7 +1621,7 @@ struct Parser
     else if (accept(TK_DO))
     {
       Token * tk = tok;
-      checkBraceIdentationStyle();
+      checkBraceIndentationStyle();
       Node * loopBody = parseStatement(false);
       expect(TK_WHILE);
       expect(TK_LPAREN);
@@ -1661,7 +1661,7 @@ struct Parser
         expect(TK_RPAREN);
       }
 
-      checkBraceIdentationStyle();
+      checkBraceIndentationStyle();
       Node * loopBody = parseStatement(true);
 
       if (loopBody && loopBody->nodeType != PNT_STATEMENT_LIST && !isEndOfStatement())
@@ -1700,7 +1700,7 @@ struct Parser
         expect(TK_RPAREN);
       }
 
-      checkBraceIdentationStyle();
+      checkBraceIndentationStyle();
       Node * loopBody = parseStatement(true);
 
       if (loopBody && loopBody->nodeType != PNT_STATEMENT_LIST && !isEndOfStatement())
@@ -1736,7 +1736,7 @@ struct Parser
       expect(TK_LPAREN);
       Node * expression = parseTernaryOp();
       expect(TK_RPAREN);
-      checkBraceIdentationStyle();
+      checkBraceIndentationStyle();
       expect(TK_LBRACE);
 
       bool defaultPresent = false;
@@ -1768,7 +1768,7 @@ struct Parser
           expect(TK_COLON);
         }
 
-        checkBraceIdentationStyle();
+        checkBraceIndentationStyle();
         Node * caseBody = parseStatementList(*tok, 1, true, false);
         caseTestsTokens.push_back(caseTok);
         caseTests.push_back(test);

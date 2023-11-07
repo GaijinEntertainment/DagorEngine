@@ -132,9 +132,7 @@ bool compile ( const string & fn, const string & cppFn, bool dryRun ) {
                 tw << "#pragma clang diagnostic ignored \"-Wunused-parameter\"\n";
                 tw << "#pragma clang diagnostic ignored \"-Wwritable-strings\"\n";
                 tw << "#pragma clang diagnostic ignored \"-Wunused-variable\"\n";
-                tw << "#if defined(__APPLE__)\n";
                 tw << "#pragma clang diagnostic ignored \"-Wunused-but-set-variable\"\n";
-                tw << "#endif\n";
                 tw << "#pragma clang diagnostic ignored \"-Wunsequenced\"\n";
                 tw << "#pragma clang diagnostic ignored \"-Wunused-function\"\n";
                 tw << "#endif\n";

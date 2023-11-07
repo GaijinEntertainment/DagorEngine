@@ -91,7 +91,7 @@ public:
 
   const Color4 &getResultLight() const { return output; }
 
-  virtual void render(unsigned /*rtype*/) {}
+  virtual void render(unsigned /*rtype*/, const TMatrix &) {}
 
   virtual void setTm(const TMatrix *tm) { position = tm->getcol(3); }
 

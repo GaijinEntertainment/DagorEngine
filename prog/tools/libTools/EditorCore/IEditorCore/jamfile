@@ -1,0 +1,17 @@
+Root    ?= ../../../../.. ;
+Location = prog/tools/libTools/EditorCore/IEditorCore ;
+
+TargetType  = lib ;
+Target      = tools/libTools/EditorCore/IEditorCore.lib ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  makeInstance.cpp
+  implementIEditorCoreBase.cpp
+  implementIEditorCoreExt.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

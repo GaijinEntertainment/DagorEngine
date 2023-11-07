@@ -43,7 +43,7 @@ static inline TexPtr create_tex_from_raw_hmap_file(const char *name, int &width)
     texFMT = TEXFMT_R16F;
   else
     logerr("no suitable vertex texture found");
-  int level_count = get_log2i(width);
+  int level_count = 1; // get_log2i(width);
 
   TexPtr tex = dag::create_tex(nullptr, width, width, texFMT, level_count, "heightmap");
   if (!tex)
@@ -179,8 +179,8 @@ static inline TexPtr create_tex_from_mtw(const char *name, float *out_cell_sz = 
   DEBUG_DUMP_VAR(hdr.maxHt);
   DEBUG_DUMP_VAR(hdr.missingCode);
 
-  int tex_w = hdr.blkW * hdr.elemPerBlockW;
-  int tex_h = hdr.blkH * hdr.elemPerBlockH;
+  int tex_w = get_bigger_pow2(hdr.blkW * hdr.elemPerBlockW);
+  int tex_h = get_bigger_pow2(hdr.blkH * hdr.elemPerBlockH);
   ShaderGlobal::set_color4(get_shader_variable_id("tex_hmap_inv_sizes"), 1.0 / tex_w, 1.0 / tex_h, 0, 0);
 
   uint32_t texFMT = 0;
@@ -191,7 +191,7 @@ static inline TexPtr create_tex_from_mtw(const char *name, float *out_cell_sz = 
     logerr("no suitable vertex texture found");
     return {};
   }
-  int level_count = get_log2i(tex_w);
+  int level_count = 1; // get_log2i(tex_w);
 
   TexPtr tex = dag::create_tex(NULL, tex_w, tex_h, texFMT, level_count, "heightmap");
   if (!tex)
@@ -206,6 +206,9 @@ static inline TexPtr create_tex_from_mtw(const char *name, float *out_cell_sz = 
   }
 
   Tab<char> buf;
+  for (float *data_p = (float *)data, *data_e = data_p + (stride / sizeof(*data_p)) * tex_h; data_p < data_e; data_p++)
+    *data_p = -1024.0f;
+  int dest_x0 = (tex_w - (hdr.blkW * hdr.elemPerBlockW)) / 2, dest_y0 = (tex_h - (hdr.blkH * hdr.elemPerBlockH)) / 2;
   for (int b = 0; b < hdr.blkW * hdr.blkH; b++)
   {
     crd.seekto(hdr.blkDescOfs + b * 8);
@@ -214,17 +217,10 @@ static inline TexPtr create_tex_from_mtw(const char *name, float *out_cell_sz = 
     crd.seekto(ofs);
     buf.resize(len);
     crd.readTabData(buf);
-    int dest_x = blk_x * hdr.elemPerBlockW, dest_y = blk_y * hdr.elemPerBlockH,
+    int dest_x = blk_x * hdr.elemPerBlockW + dest_x0, dest_y = blk_y * hdr.elemPerBlockH + dest_y0,
         dest_w = (blk_x == hdr.blkW - 1) ? hdr.lastColElemW : hdr.elemPerBlockW,
         dest_h = (blk_y == hdr.blkH - 1) ? hdr.lastRowElemH : hdr.elemPerBlockH;
     // debug("block %d:%d ofs=0x%X len=%d -> %d,%d  %dx%d", blk_x, blk_y, ofs, len, dest_x, dest_y, dest_w, dest_h);
-    if (blk_x == hdr.blkW - 1 || blk_y == hdr.blkH - 1)
-    {
-      float *dest = (float *)(data + stride * dest_y + dest_x * 4);
-      for (int y = 0; y < hdr.lastRowElemH; y++, dest += stride / sizeof(*dest))
-        for (int x = 0; x < hdr.lastColElemW; x++)
-          dest[x] = -1024.0f;
-    }
     if (hdr.bitsPerElem == 64)
     {
       double *ht = (double *)buf.data();

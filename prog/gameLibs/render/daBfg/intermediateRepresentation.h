@@ -15,16 +15,19 @@
 #include <render/daBfg/externalResources.h>
 #include <render/daBfg/multiplexing.h>
 #include <render/daBfg/priority.h>
+#include <render/daBfg/usage.h>
+#include <render/daBfg/stage.h>
+#include <render/daBfg/history.h>
 
 #include <render/daBfg/detail/nodeNameId.h>
 #include <render/daBfg/detail/resNameId.h>
 #include <render/daBfg/detail/blob.h>
 #include <render/daBfg/detail/projectors.h>
+#include <render/daBfg/detail/access.h>
 
 #include <id/idIndexedMapping.h>
 #include <api/autoResolutionData.h>
 
-#include <resourceUsage.h>
 #include <bindingType.h>
 
 
@@ -56,6 +59,14 @@ enum MultiplexingIndex : uint32_t
 {
 };
 
+struct ResourceUsage
+{
+  Access access : 2;
+  Usage type : 6;
+  Stage stage : 6;
+};
+static_assert(sizeof(ResourceUsage) == 2);
+
 struct Request
 {
   ResourceIndex resource;
@@ -75,10 +86,7 @@ struct Node
   // Nodes that have to be executed before this one
   dag::FixedVectorSet<NodeIndex, 16> predecessors;
 
-  // A single IR node might consist of several frontend nodes, e.g. whenever
-  // vulkan subpasses are used. The execution order should be as specified
-  // in this array.
-  dag::RelocatableFixedVector<NodeNameId, 16> frontendNodes;
+  NodeNameId frontendNode;
 
   // Multiplexing iteration this node will be executed on
   MultiplexingIndex multiplexingIndex;

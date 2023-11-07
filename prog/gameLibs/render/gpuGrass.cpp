@@ -630,19 +630,70 @@ float GPUGrassBase::alignTo() const
   const float grassGridSizeMultiplied = getGridSizeEffective();
   return grassLod.get() ? grassGridSizeMultiplied * 4.0f : grassGridSizeMultiplied * 2.0f;
 }
-bool GPUGrassBase::isGrassLodsEnabled() const { return grassLod.get(); }
+
+namespace
+{
+static constexpr float nextLodDistMul = 2.5f;
+static constexpr float nextLodGridMul = 2.f;
+static constexpr float lod0DistancePart = 0.2;
+// for first lod we want to hide lods as much as possible. for next lods use 25%
+static constexpr float lod1StartPart = 0.5, lodNStartPart = 0.75;
+// 5 percent before previous lod start disappear, this one should fully appear
+static constexpr float lod1FullPart = 0.7, lodNFullPart = 0.8;
+} // namespace
+
+void GPUGrassBase::renderGrassLods(RenderGrassLodCallback renderGrassLod) const
+{
+  const float grassGridSizeMultiplied = getGridSizeEffective();
+  const float grassDistanceMultiplied = getDistanceEffective();
+
+  float currentGridSize = grassGridSizeMultiplied;
+  float prevLodDistancePart = lod0DistancePart;
+  float currentGrassDistance = grassDistanceMultiplied * prevLodDistancePart;
+  // a*d0 + b = 1 //disappear
+  // a*d1 + b = 0 //full appear
+  // a = 1/(d0-d1);
+  // b = -d1/(d0-d1)
+  auto calcLinearLod = [](float full_disappear_dist, float full_appear_dist) // mul, add
+  { return Point2(1.f / (full_disappear_dist - full_appear_dist), -full_appear_dist / (full_disappear_dist - full_appear_dist)); };
+
+  const float lod0StartDisappearing = 0.75; // 25% for disappearing
+  const Point2 disappearTo = calcLinearLod(1.0f, lod0StartDisappearing);
+  ShaderGlobal::set_color4(grass_gen_lodVarId, 0, 0, disappearTo.x / currentGrassDistance, disappearTo.y);
+  ShaderGlobal::set_real(grass_gen_lod_indexVarId, 0);
+  renderGrassLod(currentGridSize, currentGrassDistance);
+
+  // todo: generation can be even faster, if we rely on 2d frustum to cull definetly not visible groups.
+  // todo: generation can be even faster, if we rely on 3d frustum to cull not visible groups, using dispatch indirect (storing
+  // groups).
+  for (int lod = 1, lodCount = grassLod.get() ? MAX_LOD_NO : 1; lod <= lodCount; ++lod)
+  {
+    // change for new lod
+    const float lodStartDistancePart = currentGrassDistance * (lod == 1 ? lod1StartPart : lodNStartPart);
+    const float lodFullDistancePart = currentGrassDistance * (lod == 1 ? lod1FullPart : lodNFullPart);
+    currentGridSize *= nextLodGridMul;
+    prevLodDistancePart = min(1.f, prevLodDistancePart * nextLodDistMul);
+    currentGrassDistance = lod == lodCount ? grassDistance : grassDistance * prevLodDistancePart; //?
+    // ShaderGlobal::set_color4(grass_gen_lodVarId,
+    //   10*lodEquationA/currentGrassDistance, 10*lodEquationB - 9.4, 4./currentGrassDistance, -3);
+
+    const Point2 appearFrom = calcLinearLod(lodStartDistancePart, lodFullDistancePart);
+    // 10 percent for disappearing if there is other lod
+    const Point2 disappearTo = calcLinearLod(currentGrassDistance, currentGrassDistance * ((lod == lodCount) ? 0.75 : 0.9));
+    ShaderGlobal::set_color4(grass_gen_lodVarId, appearFrom.x, appearFrom.y, disappearTo.x, disappearTo.y);
+    ShaderGlobal::set_real(grass_gen_lod_indexVarId, lod);
+    d3d::resource_barrier({{grassInstancesIndirect.getBuf(), grassInstances.getBuf()}, {RB_NONE, RB_NONE}});
+    renderGrassLod(currentGridSize, currentGrassDistance);
+    if (currentGrassDistance == grassDistance)
+      break;
+  }
+}
 
 void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, float min_ht_, float max_ht_,
   const frustum_heights_cb_t &cb, GrassPreRenderCallback pre_render_cb)
 {
   TIME_D3D_PROFILE(genGrass)
-  const float nextLodDistMul = 2.5f;
-  const float nextLodGridMul = 2.f;
-  const float lod0DistancePart = 0.2;
-  // for first lod we want to hide lods as much as possible. for next lods use 25%
-  const float lod1StartPart = 0.5, lodNStartPart = 0.75;
-  // 5 percent before previous lod start disappear, this one should fully appear
-  const float lod1FullPart = 0.7, lodNFullPart = 0.8;
+
   const float grassGridSizeMultiplied = getGridSizeEffective();
   const float grassDistanceMultiplied = getDistanceEffective();
   const float alignSize = alignTo(); // align to cs grid size
@@ -765,46 +816,8 @@ void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, floa
       grassGenerator->dispatch((2 * quadSize + GRASS_WARP_SIZE_X - 1) / GRASS_WARP_SIZE_X,
         (2 * quadSize + GRASS_WARP_SIZE_Y - 1) / GRASS_WARP_SIZE_Y, 1);
     };
-    float currentGridSize = grassGridSizeMultiplied;
-    float prevLodDistancePart = lod0DistancePart;
-    float currentGrassDistance = grassDistanceMultiplied * prevLodDistancePart;
-    // a*d0 + b = 1 //disappear
-    // a*d1 + b = 0 //full appear
-    // a = 1/(d0-d1);
-    // b = -d1/(d0-d1)
-    auto calcLinearLod = [](float full_disappear_dist, float full_appear_dist) // mul, add
-    { return Point2(1.f / (full_disappear_dist - full_appear_dist), -full_appear_dist / (full_disappear_dist - full_appear_dist)); };
 
-    const float lod0StartDisappearing = 0.75; // 25% for disappearing
-    const Point2 disappearTo = calcLinearLod(1.0f, lod0StartDisappearing);
-    ShaderGlobal::set_color4(grass_gen_lodVarId, 0, 0, disappearTo.x / currentGrassDistance, disappearTo.y);
-    ShaderGlobal::set_real(grass_gen_lod_indexVarId, 0);
-    renderGrassLod(currentGridSize, currentGrassDistance);
-
-    // todo: generation can be even faster, if we rely on 2d frustum to cull definetly not visible groups.
-    // todo: generation can be even faster, if we rely on 3d frustum to cull not visible groups, using dispatch indirect (storing
-    // groups).
-    for (int lod = 1, lodCount = grassLod.get() ? MAX_LOD_NO : 1; lod <= lodCount; ++lod)
-    {
-      // change for new lod
-      const float lodStartDistancePart = currentGrassDistance * (lod == 1 ? lod1StartPart : lodNStartPart);
-      const float lodFullDistancePart = currentGrassDistance * (lod == 1 ? lod1FullPart : lodNFullPart);
-      currentGridSize *= nextLodGridMul;
-      prevLodDistancePart = min(1.f, prevLodDistancePart * nextLodDistMul);
-      currentGrassDistance = lod == lodCount ? grassDistance : grassDistance * prevLodDistancePart; //?
-      // ShaderGlobal::set_color4(grass_gen_lodVarId,
-      //   10*lodEquationA/currentGrassDistance, 10*lodEquationB - 9.4, 4./currentGrassDistance, -3);
-
-      const Point2 appearFrom = calcLinearLod(lodStartDistancePart, lodFullDistancePart);
-      // 10 percent for disappearing if there is other lod
-      const Point2 disappearTo = calcLinearLod(currentGrassDistance, currentGrassDistance * ((lod == lodCount) ? 0.75 : 0.9));
-      ShaderGlobal::set_color4(grass_gen_lodVarId, appearFrom.x, appearFrom.y, disappearTo.x, disappearTo.y);
-      ShaderGlobal::set_real(grass_gen_lod_indexVarId, lod);
-      d3d::resource_barrier({{grassInstancesIndirect.getBuf(), grassInstances.getBuf()}, {RB_NONE, RB_NONE}});
-      renderGrassLod(currentGridSize, currentGrassDistance);
-      if (currentGrassDistance == grassDistance)
-        break;
-    }
+    renderGrassLods(renderGrassLod);
     d3d::set_const_buffer(STAGE_CS, 1, 0);
 
     d3d::resource_barrier({{grassInstancesIndirect.getBuf(), grassInstances.getBuf()},

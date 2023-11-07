@@ -254,7 +254,8 @@ void clear()
 
 void removeDestructableById(id_t id)
 {
-  if (id != INVALID_ID && destructablesListAllocator.isValidPtr(id))
+  if (id != INVALID_ID && eastl::find(destructablesList.begin(), destructablesList.end(), id,
+                            [](auto &rec, id_t id) { return rec.get() == id; }) != destructablesList.end())
     static_cast<DestructableObject *>(id)->markForDelete();
 }
 

@@ -3,6 +3,7 @@ include "cloud_mask.sh"
 include "gui_aces_helpers.sh"
 include "gbuffer.sh"
 include "gui_aces_common.sh"
+include "flexible_scale_rasterization.sh"
 
 float4 gui_to_scene_point_to_eye = (0, 0, 0, 0);
 
@@ -38,6 +39,10 @@ shader gui_aces
   DECL_POSTFX_TC_VS_DEP()
   USE_ATEST_1()
   USE_GUI_ACES_HELPERS()
+
+  INIT_LOAD_DEPTH_GBUFFER()
+  USE_LOAD_DEPTH_GBUFFER()
+  USE_FSR(ps)
 
   channel float4 pos = pos;
 
@@ -107,8 +112,12 @@ shader gui_aces
           #define OGL_SET_SCREEN_POSITION(OUT, OUTpos) OUT.screenPosition = OUTpos.xyw;
         }
         hlsl(ps) {
-          #define OGL_DEPTH_TEST(VSOUT) {float2 ftc=(VSOUT.screenPosition.xy * rcp(VSOUT.screenPosition.z))*RT_SCALE_HALF+HALF_PLUS_HALF_PIXEL_OFS;\
-          clip(linearize_z(readGbufferDepth(ftc), zn_zfar.zw)-gui_cockpit_depth);}
+          #ifdef FSR_DISTORTION
+            #define OGL_DEPTH_TEST(VSOUT) {clip(linearize_z(loadGbufferDepth(GET_SCREEN_POS(VSOUT.pos).xy), zn_zfar.zw)-gui_cockpit_depth);}
+          #else
+            #define OGL_DEPTH_TEST(VSOUT) {float2 ftc=(VSOUT.screenPosition.xy * rcp(VSOUT.screenPosition.z))*RT_SCALE_HALF+HALF_PLUS_HALF_PIXEL_OFS;\
+            clip(linearize_z(readGbufferDepth(ftc), zn_zfar.zw)-gui_cockpit_depth);}
+          #endif
         }
       } else
       {
@@ -117,8 +126,12 @@ shader gui_aces
           #define OGL_SET_SCREEN_POSITION(OUT, OUTpos) OUT.screenPosition = OUTpos.xyw;
         }
         hlsl(ps) {
-          #define OGL_DEPTH_TEST(VSOUT) {float2 ftc=(VSOUT.screenPosition.xy *rcp(VSOUT.screenPosition.z))*RT_SCALE_HALF+HALF_PLUS_HALF_PIXEL_OFS;\
-          clip(linearize_z(readGbufferDepth(ftc), zn_zfar.zw)-VSOUT.screenPosition.z);}
+          #ifdef FSR_DISTORTION
+            #define OGL_DEPTH_TEST(VSOUT) {clip(linearize_z(loadGbufferDepth(GET_SCREEN_POS(VSOUT.pos).xy), zn_zfar.zw)-VSOUT.screenPosition.z);}
+          #else
+            #define OGL_DEPTH_TEST(VSOUT) {float2 ftc=(VSOUT.screenPosition.xy *rcp(VSOUT.screenPosition.z))*RT_SCALE_HALF+HALF_PLUS_HALF_PIXEL_OFS;\
+            clip(linearize_z(readGbufferDepth(ftc), zn_zfar.zw)-VSOUT.screenPosition.z);}
+          #endif
         }
       }
     } else

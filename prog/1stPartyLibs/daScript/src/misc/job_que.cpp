@@ -324,7 +324,7 @@ namespace das {
     }
 }
 
-#elif defined(__linux__)
+#elif defined(__linux__) || defined __HAIKU__
 
 #include <pthread.h>
 

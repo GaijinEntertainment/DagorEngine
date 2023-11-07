@@ -36,6 +36,7 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_BITMAP_H
 
 static int quotaPerFrameUsecOverride = 100000;
 
@@ -162,6 +163,18 @@ public:
     if (FT_Load_Glyph(face, index, ftFlags | FT_LOAD_RENDER) != 0)
       return NULL;
 
+    if (face->glyph->bitmap.pixel_mode != FT_PIXEL_MODE_GRAY) // convert to 8-bit (if not already)
+    {
+      FT_Bitmap bm8;
+      FT_Bitmap_Init(&bm8);
+      FT_Bitmap_Convert(ft_lib, &face->glyph->bitmap, &bm8, 1);
+      if (face->glyph->bitmap.pixel_mode == FT_PIXEL_MODE_MONO)
+        for (uint8_t *p = bm8.buffer, *pe = p + bm8.rows * bm8.width; p < pe; p++)
+          if (*p)
+            *p = 0xFF;
+      FT_Bitmap_Done(ft_lib, &face->glyph->bitmap);
+      face->glyph->bitmap = bm8;
+    }
     return face->glyph;
   }
 

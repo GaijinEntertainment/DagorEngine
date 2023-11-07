@@ -265,17 +265,5 @@ int zlib_compress_data(IGenSave &dest, int compression_level, IGenLoad &src, int
 
 float ZlibSaveCB::getCompressionRatio() { return zlibWriter->getCompressionRatio(); }
 
-extern "C" void *zcalloc(void *opaque, unsigned items, unsigned size)
-{
-  (void)(opaque);
-  return memalloc_default(items * size);
-}
-
-extern "C" void zcfree(void *opaque, void *ptr)
-{
-  memfree_default(ptr);
-  (void)(opaque);
-}
-
 #define EXPORT_PULL dll_pull_iosys_zlibIo
 #include <supp/exportPull.h>

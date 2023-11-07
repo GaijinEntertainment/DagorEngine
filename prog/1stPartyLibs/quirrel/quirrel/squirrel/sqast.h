@@ -85,7 +85,7 @@
     DEF_TREE_OP(PARAM), \
     DEF_TREE_OP(CONST), \
     DEF_TREE_OP(DECL_GROUP), \
-    DEF_TREE_OP(DESTRUCT), \
+    DEF_TREE_OP(DESTRUCTURE), \
     DEF_TREE_OP(FUNCTION), \
     DEF_TREE_OP(CONSTRUCTOR), \
     DEF_TREE_OP(CLASS), \
@@ -221,7 +221,7 @@ public:
     bool isLocal() const { return _outpos == ID_LOCAL; }
 
     SQInteger outerPos() const { return _outpos; }
-    void setAssiagnable(bool v) { _assignable = v; }
+    void setAssignable(bool v) { _assignable = v; }
     bool isAssignable() const { return _assignable; }
     bool isBinding() const { return (isOuter() || isLocal()) && !isAssignable(); }
 
@@ -510,8 +510,8 @@ public:
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
-    const ArenaVector<Expr *> &initialziers() const { return _inits; }
-    ArenaVector<Expr *> &initialziers() { return _inits; }
+    const ArenaVector<Expr *> &initializers() const { return _inits; }
+    ArenaVector<Expr *> &initializers() { return _inits; }
 
 private:
     ArenaVector<Expr *> _inits;
@@ -805,7 +805,7 @@ enum DestructuringType {
 
 class DestructuringDecl : public DeclGroup {
 public:
-    DestructuringDecl(Arena *arena, enum DestructuringType dt) : DeclGroup(arena, TO_DESTRUCT), _dt_type(dt), _expr(NULL) {}
+    DestructuringDecl(Arena *arena, enum DestructuringType dt) : DeclGroup(arena, TO_DESTRUCTURE), _dt_type(dt), _expr(NULL) {}
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
@@ -815,7 +815,7 @@ public:
       setLineEndPos(expr->lineEnd());
       setColumnEndPos(expr->columnEnd());
     }
-    Expr *initiExpression() const { return _expr; }
+    Expr *initExpression() const { return _expr; }
 
     void setType(enum DestructuringType t) { _dt_type = t; }
     enum DestructuringType type() const { return _dt_type; }
@@ -1195,7 +1195,7 @@ public:
   virtual Node *transformConstDecl(ConstDecl *cnst) { return transformDecl(cnst); }
   virtual Node *transformEnumDecl(EnumDecl *enm) { return transformDecl(enm); }
   virtual Node *transformDeclGroup(DeclGroup *grp) { return transformDecl(grp); }
-  virtual Node *transformDesctructingDecl(DestructuringDecl  *destruct) { return transformDecl(destruct); }
+  virtual Node *transformDestructuringDecl(DestructuringDecl  *destruct) { return transformDecl(destruct); }
 };
 
 template<typename V>
@@ -1294,7 +1294,7 @@ void Node::visit(V *visitor) {
         visitor->visitConstDecl(static_cast<ConstDecl *>(this)); return;
     case TO_DECL_GROUP:
         visitor->visitDeclGroup(static_cast<DeclGroup *>(this)); return;
-    case TO_DESTRUCT:
+    case TO_DESTRUCTURE:
         visitor->visitDestructuringDecl(static_cast<DestructuringDecl  *>(this)); return;
     case TO_FUNCTION:
         visitor->visitFunctionDecl(static_cast<FunctionDecl *>(this)); return;
@@ -1409,8 +1409,8 @@ Node *Node::transform(T *transformer) {
     return transformer->transformConstDecl(static_cast<ConstDecl *>(this));
   case TO_DECL_GROUP:
     return transformer->transformDeclGroup(static_cast<DeclGroup *>(this));
-  case TO_DESTRUCT:
-    return transformer->transformDesctructingDecl(static_cast<DestructuringDecl  *>(this));
+  case TO_DESTRUCTURE:
+    return transformer->transformDestructuringDecl(static_cast<DestructuringDecl  *>(this));
   case TO_FUNCTION:
     return transformer->transformFunctionDecl(static_cast<FunctionDecl *>(this));
   case TO_CONSTRUCTOR:

@@ -89,7 +89,6 @@ private:
 public:
   INLINE Half() : c(0) {}
   INLINE Half(float ax) { set(ax); }
-  INLINE Half(const Half &a) : c(a.c) {}
 
   INLINE float get() const { return half_to_float(c); }
   INLINE void set(float v) { c = float_to_half(v); }
@@ -107,7 +106,6 @@ struct Half2
     set(0, ax);
     set(1, ay);
   }
-  INLINE Half2(const Half2 &a) : x(a.x), y(a.y) {}
   INLINE Half2(const Point2 &a) : Half2(a.x, a.y) {}
 
   INLINE float get(int i) const { return (&x)[i].get(); }
@@ -128,7 +126,6 @@ struct Half3
     set(1, ay);
     set(2, az);
   }
-  INLINE Half3(const Half3 &a) : x(a.x), y(a.y), z(a.z) {}
   INLINE Half3(const Point3 &a) : Half3(a.x, a.y, a.z) {}
 
   INLINE float get(int i) const { return (&x)[i].get(); }
@@ -150,7 +147,6 @@ struct Half4
     set(2, az);
     set(3, aw);
   }
-  INLINE Half4(const Half4 &a) : x(a.x), y(a.y), z(a.z), w(a.w) {}
   INLINE Half4(const Point4 &a) : Half4(a.x, a.y, a.z, a.w) {}
 
   INLINE float get(int i) const { return (&x)[i].get(); }

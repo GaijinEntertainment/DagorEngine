@@ -1828,8 +1828,8 @@ public:
     begin_draw_cached_debug_lines();
     const E3DCOLOR color(0, 255, 0);
     for (int i = 0, ie = ent.size(); i < ie; i++)
-      if (ent[i] && (ent[i]->getSubtype() != IObjEntity::ST_NOT_COLLIDABLE) ||
-          ((ent[i]->getFlags() & ent[i]->FLG_CLIP_GAME) == ent[i]->FLG_CLIP_GAME))
+      if (ent[i] && ((ent[i]->getSubtype() != IObjEntity::ST_NOT_COLLIDABLE) ||
+                      ((ent[i]->getFlags() & ent[i]->FLG_CLIP_GAME) == ent[i]->FLG_CLIP_GAME)))
         collisionpreview::drawCollisionPreview(ent[i]->collision, TMatrix::IDENT, color);
     end_draw_cached_debug_lines();
   }
