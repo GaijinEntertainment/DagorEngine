@@ -9,7 +9,9 @@ fi
 
 # Bash cannot really return values. This variable is used as a
 # workaround for Bash's limitations. In the long term, we should
-# make `make_devtools.py` cross-platform.
+# make `make_devtools.py` cross-platform. Note that we're just
+# separating the scripts for now to ease in the porting efforts
+# to Linux.
 ask_return_value=0
 
 function ask() {
