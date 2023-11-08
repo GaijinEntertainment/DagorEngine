@@ -1,4 +1,5 @@
 if $(OS) = MACOSX { Platform ?= macosx ; }
+else if $(OS) = LINUX { Platform ?= linux64 ; }
 else { Platform ?= win64 ; PlatformSpec_win64 ?= clang ; }
 if ! $(Location) { Exit Location must be defined before including jamfile-common ; }
 

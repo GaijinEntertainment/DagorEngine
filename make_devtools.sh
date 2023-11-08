@@ -7,6 +7,30 @@ if [[ "${TRACE-0}" == "1" ]]; then
     set -o xtrace;
 fi
 
+# Bash cannot really return values. This variable is used as a
+# workaround for Bash's limitations. In the long term, we should
+# make `make_devtools.py` cross-platform.
+ask_return_value=0
+
+function ask() {
+    local question=$1
+
+    for (( ; ; ))
+    do
+        echo ""
+        read -p "$question [Y/n]: " answer
+        answer="${answer,,}"
+
+        if [[ $answer == "y" ]] || [[ $answer == "yes" ]] || [[ $answer == "" ]]; then
+            ask_return_value=1
+            return
+        elif [[ $answer == "n" ]] || [[ $answer == "no" ]]; then
+            ask_return_value=0
+            return
+        fi
+    done
+}
+
 function error() {
     echo "" >&2
     echo "ERROR: $1" >&2
@@ -111,8 +135,12 @@ if [[ $dest_dir != "/"* ]]; then
     error "The destination directory must be an absolute path."
 fi
 
+mkdir -p dest_dir
+
 packages_dir="$dest_dir/.packages"
 mkdir -p "$packages_dir"
+
+normalized_dest_dir="$(realpath $dest_dir)"
 
 ## Setup jam.
 echo "[=] Setting up jam..."
@@ -160,4 +188,55 @@ prebuilt packages for Linux for v$DXC_VERSION..."
     extract_dxc_assets $dxc_dest_folder $dxc_sources_dir
 
     echo "- Finished downloading and setting up DirectX Shader Compiler $DXC_VERSION (July 2022)."
+fi
+
+
+## Setup GDEVTOOL environment variable.
+# Setting the environment variable is dependent on the shell being used.
+if [[ $SHELL == "/usr/bin/bash" ]]; then
+    env_file="$HOME/.bash_profile"
+elif [[ $SHELL == "/usr/bin/zsh" ]]; then
+    env_file="$HOME/.zshenv"
+else
+    error "Script does not support $SHELL yet."
+fi
+
+is_env_updated=0
+if [[ -z "${GDEVTOOL:-}" ]]; then
+    ask "Environment variable 'GDEVTOOL' not found. Do you want to set it?"
+    if [[ $ask_return_value == "1" ]]; then
+        echo -n "- Setting 'GDEVTOOL'... "
+        echo "export GDEVTOOL=$normalized_dest_dir" >> $env_file
+        echo "✅"
+
+        is_env_updated=1
+    fi
+elif [[ $GDEVTOOL != $normalized_dest_dir ]]; then
+    ask "Environment variable 'GDEVTOOL' points to another directory. Do you want to update it?"
+    if [[ $ask_return_value == "1" ]]; then
+        echo -n "- Updating 'GDEVTOOL' to $normalized_dest_dir... "
+        echo "export GDEVTOOL=\"$normalized_dest_dir\"" >> $env_file
+        echo "✅"
+
+        is_env_updated=1
+    fi
+fi
+
+if [[ ":$PATH:" != *":$normalized_dest_dir:"* ]]; then
+    ask "'$normalized_dest_dir' is not found in 'PATH' variable. Do you want to add it?"
+    if [[ $ask_return_value == "1" ]]; then
+        echo -n "- Adding $normalized_dest_dir to PATH... "
+        echo "export PATH=\"$PATH:$normalized_dest_dir\"" >> $env_file
+        echo "✅"
+
+        is_env_updated=1
+    fi
+fi
+
+if [[ $is_env_updated == "1" ]]; then
+    echo ""
+    echo "Done. Please restart your command-line environment to apply the environment variables."
+else
+    echo ""
+    echo "Done."
 fi
