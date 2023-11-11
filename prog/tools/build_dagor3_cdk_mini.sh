@@ -14,7 +14,9 @@ echo "[NOT PORTED] Build daImpostorBaker..."
 echo "[NOT PORTED] Build DDsx plugins..."
 
 echo "[WIP] Build shader compilers..."
-jam -s Root=../.. -f ShaderCompiler2/jamfile-hlsl2spirv
+jam -s Root=../.. -f ../3rdPartyLibs/legacy_parser/dolphin/jamfile
+jam -s Root=../.. -f ../3rdPartyLibs/legacy_parser/whale/jamfile
+#jam -s Root=../.. -f ShaderCompiler2/jamfile-hlsl2spirv
 
 echo "[NOT PORTED] Build utils..."
 echo "[NOT PORTED] Build GUI tools..."

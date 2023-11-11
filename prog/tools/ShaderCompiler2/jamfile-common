@@ -21,6 +21,7 @@ TargetType  = exe ;
 OutDir      = $(Root)/tools/dagor3_cdk/util ;
 if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
 if $(Platform) = macosx { OutDir = $(OutDir)-macosx ; }
+if $(Platform) = linux64 { OutDir = $(OutDir)-linux ; }
 
 Sources =
   shaderVariantSrc.cpp
@@ -79,7 +80,7 @@ AddIncludes     = $(Root)/prog/tools/ShaderCompiler2
 ;
 
 UseProgLibs =
-  3rdPartyLibs/EASTL
+  3rdPartyLibs/eastl
   engine/osApiWrappers
   engine/kernel
   engine/ioSys

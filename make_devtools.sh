@@ -192,6 +192,7 @@ prebuilt packages for Linux for v$DXC_VERSION..."
     echo "- Finished downloading and setting up DirectX Shader Compiler $DXC_VERSION (July 2022)."
 fi
 
+## TODO: TEMPORARILY CREATE FMOD stubs.
 
 ## Setup GDEVTOOL environment variable.
 # Setting the environment variable is dependent on the shell being used.
