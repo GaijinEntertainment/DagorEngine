@@ -53,7 +53,7 @@ static bool is_hlsl_debug() { return hlslDebugLevel != DebugLevel::NONE; }
 extern dx12::dxil::Platform targetPlatform;
 #endif
 
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
 #include <windows.h>
 #else
 #include <unistd.h>

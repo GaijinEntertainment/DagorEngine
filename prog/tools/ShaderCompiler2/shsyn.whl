@@ -218,7 +218,7 @@ code_in_h_after_all            = {
 
 code_in_cpp            = {
   #include "shsem.h"
-  #include "ShLog.h"
+  #include "shLog.h"
   using namespace ShaderParser;
   #pragma optimize("", off)
   #pragma optimize("ityb2", on)

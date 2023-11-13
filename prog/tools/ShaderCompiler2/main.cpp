@@ -31,13 +31,17 @@
 #include "DebugLevel.h"
 #include <libTools/util/atomicPrintf.h>
 
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
 #include <windows.h>
 #else
 
 #include <unistd.h>
 #include <spawn.h>
+
+#if _TARGET_PC_MACOSX
 #include <AvailabilityMacros.h>
+#endif
+
 extern int __argc;
 extern char **__argv;
 char **environ;
@@ -93,7 +97,7 @@ void SleepEx(uint32_t ms, bool) { usleep(ms * 1000); }
 #include <d3dcompiler.h>
 #else
 #define OUTPUT_DIR "_output/"
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
 #include <d3dcompiler.h>
 #endif
 #endif
@@ -145,7 +149,7 @@ static void terminateChildProcesses()
     {
       if (ret_code != STILL_ACTIVE)
       {
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
         CloseHandle(childCompilatioProcessInfo[j].hThread);
         CloseHandle(childCompilatioProcessInfo[j].hProcess);
 #endif
@@ -154,7 +158,7 @@ static void terminateChildProcesses()
       if (ret_code == 0)
         childCompilatioTargetObj[j] = NULL;
     }
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
     if (childCompilatioProcessInfo[j].dwProcessId)
       GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, childCompilatioProcessInfo[j].dwProcessId);
 #else

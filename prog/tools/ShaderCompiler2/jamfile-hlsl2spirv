@@ -30,7 +30,7 @@ CPPopt += -D_CROSS_TARGET_SPIRV=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECA
   #-D_HAS_ITERATOR_DEBUGGING=1
 ;
 
-if $(Platform) = macosx {
+if $(Platform) in macosx linux64 {
   CPPopt += -Wno-switch ;
 }
 

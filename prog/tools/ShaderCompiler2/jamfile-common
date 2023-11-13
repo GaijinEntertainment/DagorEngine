@@ -116,6 +116,12 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 
 if $(PlatformSpec) in clang clang64 {
   CPPopt += -Wno-comment -Wno-int-to-pointer-cast -Wno-writable-strings ;
+} else if $(PlatformSpec) = gcc {
+  CPPopt += -Wno-comment -Wno-int-to-pointer-cast -Wno-write-strings -fms-extensions ;
+}
+
+if $(PlatformSpec) in gcc {
+  CPPopt += -fpermissive ;
 }
 
 if $(GLOBAL_DependOnJam) {

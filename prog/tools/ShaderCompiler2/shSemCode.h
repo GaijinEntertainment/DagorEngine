@@ -16,7 +16,7 @@
 #include "shLocVar.h"
 #include "shaderVariantSrc.h"
 #include "shaderTab.h"
-#include "VarMap.h"
+#include "varMap.h"
 #include <memory/dag_regionMemAlloc.h>
 #include <EASTL/optional.h>
 

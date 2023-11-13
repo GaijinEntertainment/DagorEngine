@@ -29,7 +29,7 @@ local _DEF_COM_CMDLINE =
 if $(DriverLinkage) = static { _DEF_COM_CMDLINE += -D_TARGET_STATIC_LIB=1 ; }
 
 local _DEF_C_CMDLINE = -std=c99 ;
-local _DEF_CPP_CMDLINE = -std=c++$(CPPStd) -fconserve-space -Wno-invalid-offsetof ;
+local _DEF_CPP_CMDLINE = -std=gnu++$(CPPStd) -fconserve-space -Wno-invalid-offsetof ;
 
 _LINK         = g++ -pipe -m64 -isysroot /usr/include ;
 _LINK_DLL     = g++ -pipe -m64 -isysroot /usr/include -shared ;
