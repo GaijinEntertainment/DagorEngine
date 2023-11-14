@@ -5,7 +5,7 @@ from ..face             import FaceExp
 from ..node             import NodeExp
 
 from ..helpers.popup    import show_popup
-from ..helpers.texts    import get_text
+from ..helpers.texts    import log
 
 class DagChunk:
     def __init__(self):
@@ -57,7 +57,6 @@ class DagReader:
         return struct.unpack(self.bo + "H", bytes)[0]
 
     def readStr(self, length):
-        log=get_text('log')
         res = self.file.read(length)
         if len(res) < length:
             self.eof = True
@@ -66,9 +65,8 @@ class DagReader:
             return bytes.decode(res, 'ascii')
         except UnicodeDecodeError:
             result = bytes.decode(res, 'Windows-1251')
-            msg=f"ERROR! String \n{result}\ncontains Cyrillic characters please avoid using it"
-            print(msg)
-            log.write(f"{msg}\n")
+            msg=f"String \n{result}\ncontains Cyrillic characters please avoid using it"
+            log(f"{msg}\n",type = 'ERROR', show = True)
             return result
 
     def readDAGString(self):

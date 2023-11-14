@@ -13,7 +13,7 @@ def dagormat_reset(mat):
     for par in params:
         del DM.optional[par]
 #main
-    DM.real_two_sided=False
+    DM.sides='0'
     DM.shader_class='rendinst_simple'
 
 def dagormat_from_text(mat,text):
@@ -23,7 +23,9 @@ def dagormat_from_text(mat,text):
         line=line.body
         line=line.replace('"','')
         line=line.replace(' ','')
-        if line.startswith('tex16support:b='):
+        if line == "twosided:b=yes":
+            DM.sides = '1'
+        elif line.startswith('tex16support:b='):
             pass
         elif line.startswith('power:r='):
             pass
@@ -57,7 +59,10 @@ def dagormat_from_text(mat,text):
             DM.power=float(line[8:])
         elif line.startswith('script:t='):
             opt=line[9:].split('=')
-            DM.optional[opt[0]]=fix_type(opt[1])
+            if opt[0]=="real_two_sided":
+                DM.sides = '2' if opt[1] == 'yes' else '0'
+            else:
+                DM.optional[opt[0]]=fix_type(opt[1])
         elif line.startswith('tex'):
             tex=line.split(':t=')
             DM.textures[tex[0]]=tex[1]
@@ -66,6 +71,11 @@ def dagormat_to_text(mat,text):
     DM=mat.dagormat
     text.clear()
     text.write('  class:t="'+DM.shader_class+'"')
+    text.write('\n  twosided:b=')
+    if DM.sides == '1':
+        text.write('yes\n')
+    else:
+        text.write('no\n')
     text.write('\n  tex16support:b=yes')
     text.write('\n  power:r=32')
     text.write('\n  amb:ip3=')
@@ -84,6 +94,8 @@ def dagormat_to_text(mat,text):
     text.write(str(int(DM.emissive[0]*255))+',')
     text.write(str(int(DM.emissive[1]*255))+',')
     text.write(str(int(DM.emissive[2]*255)))
+    if DM.sides == '2':
+        text.write('\n  script:t="real_two_sided=yes"\n')
     for param in list(DM.optional.keys()):
         text.write('\n  script:t="'+param+'=')
         try:

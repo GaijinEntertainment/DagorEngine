@@ -18,15 +18,16 @@ from ..mesh                         import MeshExp
 from ..helpers.popup                import show_popup
 from ..helpers.basename             import basename
 from ..helpers.multiline            import _label_multiline
-from ..helpers.texts                import get_text
+from ..helpers.texts                import log
 from ..tools.tools_panel            import apply_modifiers, fix_mat_slots, optimize_mat_slots, preserve_sharp
+from ..tools.tools_functions        import *
 
 from ..smooth_groups.smooth_groups  import int_to_uint,precalc_sg
 
-from time import time#Dbg-time
-
 
 SUPPORTED_TYPES = ('MESH', 'CURVE')  # ,'CURVE','EMPTY','TEXT','CAMERA','LAMP')
+
+#CLASSES
 
 class DAG_PT_export(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'
@@ -44,7 +45,8 @@ class DAG_PT_export(bpy.types.Panel):
     def draw(self, context):
         l = self.layout
         l.use_property_decorate = False  # No animation.
-        S=bpy.context.scene
+        S = context.scene
+        P = bpy.data.scenes[0].dag4blend.exporter
         sfile = context.space_data
         operator = sfile.active_operator
         hint='Wait... What mode we in?'
@@ -56,24 +58,24 @@ class DAG_PT_export(bpy.types.Panel):
         elif operator.limits=='Sel.Separated':
             hint = 'Export all visible objects of supported types as separate .dag, named as objects itself. User defined name will be ignored.'
         elif operator.limits=='Col.Separated':
-            if S.dag_col==None:
+            if P.collection==None:
                 if S.collection.children.__len__()==0:
                     hint = "No sub-collections in Scene Collection. Scene Collection.dag can't be exported"
                 else:
                     hint = 'Export each collection without sub-collections in scene as separate .dags, named as collections itself. User defined name will be ignored.'
-            elif S.dag_col.children.__len__()>0:
-                hint = f'Export each sub-collection of {S.dag_col.name} without children as separate .dags, named as collections itself. User defined name will be ignored.'
+            elif P.collection.children.__len__()>0:
+                hint = f'Export each sub-collection of {P.collection.name} without children as separate .dags, named as collections itself. User defined name will be ignored.'
             else:
-                hint = f'Export {S.dag_col.name}.dag. User defined name will be ignored.'
-            l.prop(S,"dag_col")
-            l.prop(S,"dag_orphans")
+                hint = f'Export {P.collection.name}.dag. User defined name will be ignored.'
+            l.prop(P,"collection")
+            l.prop(P,"orphans")
         elif operator.limits=='Col.Joined':
-            if S.dag_col==None:
+            if P.collection==None:
                 if S.collection.children.__len__()==0:
                     hint = "Select collection for export. Scene Collection.dag can't be exported"
                 else:
                     hint = f'Export {S.collection.name}.dag (including objects of sub-collections). User defined name will be ignored.'
-            l.prop(S,"dag_col")
+            l.prop(P,"collection")
         info=l.box()
         _label_multiline(context=context, text=hint, parent=info)
 
@@ -171,8 +173,8 @@ class DagExporter(Operator, ExportHelper):
         for uv in mesh.uv:
             if len(uv) > maxUVCount:
                 maxUVCount = len(uv)
-        if mesh.vertex_colors and len(mesh.vertex_colors) > maxUVCount:
-            maxUVCount = len(mesh.vertex_colors)
+        if mesh.color_attributes and len(mesh.color_attributes) > maxUVCount:
+            maxUVCount = len(mesh.color_attributes)
         if len(mesh.vertices) >= 0x10000 or len(mesh.faces) >= 0x10000 or maxUVCount >= 0x10000:
             bigMeshChunkPos = self.writer.beginChunk(DAG_OBJ_BIGMESH)
             self.writer.writeDWord(len(mesh.vertices))
@@ -184,16 +186,16 @@ class DagExporter(Operator, ExportHelper):
                 self.writer.writeBigFace(face.f, face.smgr, face.mat)
 
             count = len(mesh.uv)
-            if mesh.vertex_colors:
+            if mesh.color_attributes:
                 self.writer.writeByte(count + 1)
-                self.writer.writeDWord(len(mesh.vertex_colors))
+                self.writer.writeDWord(len(mesh.color_attributes))
                 self.writer.writeByte(3)
                 self.writer.writeByte(0)
-                for c in mesh.vertex_colors:
+                for c in mesh.color_attributes:
                     self.writer.writeFloat(c[0])
                     self.writer.writeFloat(c[1])
                     self.writer.writeFloat(c[2])
-                for cp in mesh.vertex_colors_poly:
+                for cp in mesh.color_attributes_poly:
                     self.writer.writeDWord(cp)
             else:
                 self.writer.writeByte(count)
@@ -222,16 +224,16 @@ class DagExporter(Operator, ExportHelper):
                 self.writer.writeFace(face.f, face.smgr, face.mat)
 
             count = len(mesh.uv)
-            if mesh.vertex_colors:
+            if mesh.color_attributes:
                 self.writer.writeByte(count + 1)
-                self.writer.writeUShort(len(mesh.vertex_colors))
+                self.writer.writeUShort(len(mesh.color_attributes))
                 self.writer.writeByte(3)
                 self.writer.writeByte(0)
-                for c in mesh.vertex_colors:
+                for c in mesh.color_attributes:
                     self.writer.writeFloat(c[0])
                     self.writer.writeFloat(c[1])
                     self.writer.writeFloat(c[2])
-                for cp in mesh.vertex_colors_poly:
+                for cp in mesh.color_attributes_poly:
                     self.writer.writeUShort(cp)
             else:
                 self.writer.writeByte(count)
@@ -339,30 +341,35 @@ class DagExporter(Operator, ExportHelper):
         exp_obj=obj.copy()
         exp_obj.data=obj.data.copy()
         exp_obj['og_name']=obj.name
+        me = exp_obj.data
+    #optional edits
         if self.modifiers:
             apply_modifiers(exp_obj)
-
-        #necessary no matter what
-        preserve_sharp(exp_obj)
-        fix_mat_slots(exp_obj)
-        if exp_obj.data.polygon_layers_int.get('SG') is None:
-            precalc_sg(exp_obj.data)
-
         if self.mopt:
             optimize_mat_slots(exp_obj)
-    #triangulated version for temp edges
-        tri_obj=exp_obj.copy()
-        tri_obj.data=exp_obj.data.copy()
-        mod = tri_obj.modifiers.new('dag_tri','TRIANGULATE')
-        ctx = bpy.context.copy()
-        ctx['object']=tri_obj
-        mod.ngon_method='BEAUTY'
-        mod.quad_method='BEAUTY'
-        mod.keep_custom_normals=tri_obj.data.has_custom_normals
-        bpy.ops.object.modifier_apply(ctx, modifier=mod.name)
-
+    #mesh checks
+        if not is_mesh_smooth(me):
+            log(f'Node "{exp_obj["og_name"]}": flat shaded faces, exported without smooth group\n', type = 'WARNING')
+        if is_mesh_empty(me):
+            log(f'Node "{exp_obj["og_name"]}": no faces\n', type = 'WARNING')
+    #fixing should be optional but now it's hardcoded
+        msg = mesh_verify_fix_degenerates(me)
+        if msg is not None:
+            log(f'Object "{exp_obj["og_name"]}": {msg}\n', type = 'ERROR')
+        msg = mesh_verify_fix_loose(me)
+        if msg is not None:
+            log(f'Object "{exp_obj["og_name"]}": {msg}\n', type = 'ERROR')
+    #necessary no matter what
+        preserve_sharp(exp_obj)
+        fix_mat_slots(exp_obj)
+        reorder_uv_layers(me)
+        if exp_obj.data.attributes.get('SG') is None:
+            precalc_sg(exp_obj.data)
+    #collecting from pre-triangulated mesh to make it reversable on import
         edge_keys = self.getEdgeKeys(exp_obj, scene)
-        me = tri_obj.data
+    #dag contains only triangles
+        triangulate(me)
+
         node.objProps = self.gatherObjPropScript(exp_obj, node)
         node.materials_indices = [-1 for p in range(len(exp_obj.material_slots))]
         for i, slot in enumerate(exp_obj.material_slots):
@@ -388,7 +395,7 @@ class DagExporter(Operator, ExportHelper):
             meshExp.normals.append(-v.normal)
 
         smooth_groups=[]
-        for sg in me.polygon_layers_int['SG'].data:
+        for sg in me.attributes['SG'].data:
             smooth_groups.append(int_to_uint(sg.value))
 
         for tri in me.polygons:
@@ -428,10 +435,12 @@ class DagExporter(Operator, ExportHelper):
         meshExp.uv = [dict() for p in range(len(me.uv_layers))]
         meshExp.uv_poly = [list() for p in range(len(me.uv_layers))]
         n = 0
+        if me.uv_layers.__len__()==0:
+            msg = 'Node "'+exp_obj['og_name'] + '" has no UVs\n'
+            log(msg)
         for layer in me.uv_layers:
             if len(layer.data) == 0:
-                print("Error: No UV map available")
-                break
+                break#empty layer?
 
             for tri in me.polygons:
                 meshExp.uv_poly[n].append(meshExp.addUV(layer.data[tri.loop_indices[0]].uv, n))
@@ -439,24 +448,24 @@ class DagExporter(Operator, ExportHelper):
                 meshExp.uv_poly[n].append(meshExp.addUV(layer.data[tri.loop_indices[1]].uv, n))
             n += 1
 #Vertex Colors
-        if me.vertex_colors.__len__()>0:
-            vertex_colors = me.vertex_colors[0]
+        if me.color_attributes.__len__()>0:
+            color_attributes = me.color_attributes[0]
             for tri in me.polygons:
-                d = vertex_colors.data[tri.loop_indices[0]]
+                d = color_attributes.data[tri.loop_indices[0]]
                 if d is not None:
-                    meshExp.vertex_colors_poly.append(meshExp.addVertexColor(d.color))
+                    meshExp.color_attributes_poly.append(meshExp.addVertexColor(d.color))
                 else:
-                    meshExp.vertex_colors_poly.append(meshExp.addVertexColor([1.0, 1.0, 1.0]))
-                d = vertex_colors.data[tri.loop_indices[2]]
+                    meshExp.color_attributes_poly.append(meshExp.addVertexColor([1.0, 1.0, 1.0]))
+                d = color_attributes.data[tri.loop_indices[2]]
                 if d is not None:
-                    meshExp.vertex_colors_poly.append(meshExp.addVertexColor(d.color))
+                    meshExp.color_attributes_poly.append(meshExp.addVertexColor(d.color))
                 else:
-                    meshExp.vertex_colors_poly.append(meshExp.addVertexColor([1.0, 1.0, 1.0]))
-                d = vertex_colors.data[tri.loop_indices[1]]
+                    meshExp.color_attributes_poly.append(meshExp.addVertexColor([1.0, 1.0, 1.0]))
+                d = color_attributes.data[tri.loop_indices[1]]
                 if d is not None:
-                    meshExp.vertex_colors_poly.append(meshExp.addVertexColor(d.color))
+                    meshExp.color_attributes_poly.append(meshExp.addVertexColor(d.color))
                 else:
-                    meshExp.vertex_colors_poly.append(meshExp.addVertexColor([1.0, 1.0, 1.0]))
+                    meshExp.color_attributes_poly.append(meshExp.addVertexColor([1.0, 1.0, 1.0]))
         node.mesh = meshExp
 
     def generateMatScript(self, mat):
@@ -482,7 +491,6 @@ class DagExporter(Operator, ExportHelper):
 
     def saveMesh(self, node):
         # serialize
-        log = get_text('log')
         nodeChunkPos = self.writer.beginChunk(DAG_NODE)
         nodeDataChunkPos = self.writer.beginChunk(DAG_NODE_DATA)
         node.objFlg |= DAG_NF_RCVSHADOW
@@ -490,21 +498,23 @@ class DagExporter(Operator, ExportHelper):
         if node.name.startswith('occluder_box'):
             self.writer.writeStr('occluder_box')
         #removing indecies and types of converted cmp nodes
-        elif bpy.context.scene.dag_cleanup_names:
+        elif bpy.data.scenes[0].dag4blend.exporter.cleanup_names:
             name = node.name
             #-index
             if name[-4]=='.' and name[-3:].isnumeric():
                 name = name[:-4]
+            if name[-6:-2]=='.lod' and name[-2:].isnumeric():
+                name = name[:-6]
             #-type
             if name.find(':')>-1:
                 name = name[:name.find(':')]
             err = self.writer.writeStr(name)
             if err is not None:
-                log.write(err)
+                log(f'{err}\n', type = 'ERROR', show = True)
         else:
             err = self.writer.writeStr(node.name)
             if err is not None:
-                log.write(err)
+                log(f'{err}\n', type = 'ERROR', show = True)
         self.writer.endChunk(nodeDataChunkPos)
 
         if len(node.objProps):
@@ -567,7 +577,6 @@ class DagExporter(Operator, ExportHelper):
         self.writer.endChunk(nodeChunkPos)
 
     def saveTextures(self):
-        log=get_text('log')
         texChunkPos = self.writer.beginChunk(DAG_TEXTURES)
         print(list(self.materials))
         for m in self.materials:
@@ -580,7 +589,13 @@ class DagExporter(Operator, ExportHelper):
                         self.textures.append(texture_path)
         self.writer.writeUShort(len(self.textures))
         for tex in self.textures:
-            self.writer.writeDAGString(tex)
+            if tex.startswith('//'):
+                abs_tex = bpy.path.abspath(tex)
+                if abs_tex[1]!=':':#still doesn't start with drive letter
+                    abs_tex = bpy.path.basename(tex)
+                self.writer.writeDAGString(abs_tex)
+            else:
+                self.writer.writeDAGString(tex)
         self.writer.endChunk(texChunkPos)
 
     def saveMaterials(self):
@@ -644,6 +659,10 @@ class DagExporter(Operator, ExportHelper):
                 node.tm = o.matrix_world.copy()
             else:
                 node.tm = o.matrix_local.copy()
+            ok_matrix = is_matrix_ok(o.matrix_local)
+            if ok_matrix is not True:
+                msg = f"node {o.name} has incorrect matrix: {ok_matrix}\n"
+                log(msg, type = 'ERROR')
 
             if parent.parent_id == -1:
                 tmp_r = node.tm[1].copy()
@@ -664,7 +683,6 @@ class DagExporter(Operator, ExportHelper):
         return 0
 
     def export_dag(self,whole_list,filepath):
-        log=get_text('log')
         existing_objects = list(ob  for ob  in bpy.data.objects)
         existing_mats    = list(mat for mat in bpy.data.materials)
         filename         = basename(filepath)
@@ -673,12 +691,12 @@ class DagExporter(Operator, ExportHelper):
             os.makedirs(filepath_temp)
         filepath_temp+=os.sep+filename
         filepath = bpy.path.ensure_ext(filepath, self.filename_ext)
-        log.write(f'EXPORTING {filepath}\n')
+        log(f'EXPORTING {filepath}\n')
         objs=list(ob for ob in whole_list if ob.parent is None or ob.parent not in whole_list)
         if objs.__len__()==0:
-            err_msg='No objects to export in '+os.path.basename(filepath)
-            show_popup(message=err_msg,icon='ERROR',title='Error!')
-            log.write(f'{err_msg}\n')
+            err='No objects to export in '+os.path.basename(filepath)
+            show_popup(message=err,icon='ERROR',title='Error!')
+            log(f'{err}\n', type = 'ERROR', show = True)
             return{'CANCELLED'}
         S = bpy.context.scene
         print("Blender Version {}.{}.{}".format(bpy.app.version[0], bpy.app.version[1], bpy.app.version[2]))
@@ -690,8 +708,7 @@ class DagExporter(Operator, ExportHelper):
         dagChunkPos = self.writer.beginChunk(DAG_ID)
 
         if self.enumerate(whole_list,objs, node, S) == -1:
-            print("Failed to enumerate objects")
-            log.write("ERROR! Failed to enumerate objects\n")
+            log("Failed to enumerate objects\n", type = 'ERROR', show = True)
             self.writer.close()
             return {'CANCELLED'}
 
@@ -716,17 +733,16 @@ class DagExporter(Operator, ExportHelper):
                     occluders+=1
                 bpy.data.meshes.remove(obj.data)
         if occluders>2:# one copy for export preparation, one for triangulation data
-            log.write(f'WARNING! {filename}: {occluders/2} occluders in one dag\n')
+            log(f'{filename}: {occluders/2} occluders in one dag\n', type = 'WARNING', show = True)
         for mat in bpy.data.materials:
             if mat not in existing_mats:
                 bpy.data.materials.remove(mat)
         print(filename+' exported')
         self.materials = {}#we don't need this for next dag.
         self.textures = []
-        log.write(f'{filename}: FINISHED\n\n')
+        log(f'{filename}: export FINISHED\n')
 
     def export_collection(self,col,dirpath):
-        log=get_text('log')
         #object outside of collections without subcollections
         orphans=self.orphans
         if col.children.__len__()>0:
@@ -756,10 +772,10 @@ class DagExporter(Operator, ExportHelper):
             self.export_dag(whole_list,filepath)
 
     def execute(self, context):
-        start = time()
         mode = self.limits
         filepath = self.filepath
         dirpath=os.path.dirname(filepath)
+        P = bpy.data.scenes[0].dag4blend.exporter
         try:
             bpy.ops.object.mode_set(mode='OBJECT')
         except Exception:
@@ -777,7 +793,7 @@ class DagExporter(Operator, ExportHelper):
                     filepath=os.path.join(dirpath,obj.name)
                     self.export_dag([obj],filepath)
         elif mode=='Col.Separated':
-            dag_col=context.scene.dag_col
+            dag_col=P.collection
             if dag_col==None:
                 if context.scene.collection.children.__len__()==0:
                     show_popup(message="No sub-collections found. 'Scene Collection.dag' not exported")
@@ -787,7 +803,7 @@ class DagExporter(Operator, ExportHelper):
             else:
                 self.export_collection(dag_col,dirpath)
         elif mode =='Col.Joined':
-            dag_col=context.scene.dag_col
+            dag_col=P.collection
             filepath=os.path.join(self.filepath,dag_col.name)
             if dag_col==None:
                 show_popup(message="Doesn't work for Scenre Collection",icon='ERROR')
@@ -798,8 +814,6 @@ class DagExporter(Operator, ExportHelper):
                     if obj.type in SUPPORTED_TYPES and obj not in whole_list:
                         whole_list.append(obj)
             self.export_dag(whole_list,filepath)
-        time_spent=round(time() - start,5)
-        show_popup(message=f'Export finished in {time_spent} sec')
         return {'FINISHED'}
 
 def menu_func_import(self, context):

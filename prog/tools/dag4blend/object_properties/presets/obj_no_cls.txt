@@ -1,2 +1,0 @@
-renderable:b=yes
-collidable:b=no

@@ -1,0 +1,6 @@
+renderable:b=no
+collidable:b=yes
+collision:t=mesh
+phmat:t=concrete
+isPhysCollidable:b=no
+isTraceable:b=yes

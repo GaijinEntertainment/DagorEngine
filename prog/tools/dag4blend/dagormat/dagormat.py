@@ -3,7 +3,7 @@ from bpy.props import StringProperty, FloatProperty, FloatVectorProperty, BoolPr
 from bpy.types import Operator, PropertyGroup, Panel
 
 from .build_node_tree       import buildMaterial
-from ..helpers.texts        import get_text_clear, get_text
+from ..helpers.texts        import *
 from ..helpers.basename     import basename
 from .rw_dagormat_text      import dagormat_from_text, dagormat_to_text
 from ..helpers.props        import fix_type
@@ -33,11 +33,6 @@ def get_missing_tex(mats):
                     if not os.path.exists(bpy.data.images[basename(T[tex])].filepath):
                         if basename(T[tex]) not in missing_tex:
                             missing_tex.append(basename(T[tex]))
-        for tex in T.keys():
-            if T[tex]!='':
-                if basename(tex) not in missing_tex:
-                    if not os.path.exists(bpy.data.images[basename(T[tex])].filepath):
-                        missing_tex.append(basename(T[tex]))
     return missing_tex
 
 def find_textures(mats):
@@ -347,6 +342,7 @@ class DAGOR_OT_dagormat_to_text(Operator):
             return{'CANCELLED'}
         text = get_text_clear('dagormat_temp')
         dagormat_to_text(mat,text)
+        show_text(text)#only if it wasn't opened
         show_popup(message='Check "dagormat_temp" in text editor',title='Done',icon='INFO')
         return{'FINISHED'}
 

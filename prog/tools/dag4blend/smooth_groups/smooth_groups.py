@@ -1,8 +1,11 @@
 import bpy
 import bmesh
-from math             import pi
-from bpy.app.handlers import persistent
-from bpy.props        import IntProperty
+from math               import pi
+from bpy.app.handlers   import persistent
+from bpy.types          import Operator
+from bpy.props          import IntProperty
+
+from ..helpers.basename import basename
 
 
 #constants
@@ -22,7 +25,7 @@ def int_to_uint(int):
 
 dic={}
 # update method
-def updage_sg(self, context):
+def update_sg(self, context):
     eo = context.edit_object
     bm = dic.setdefault(eo.name, bmesh.from_edit_mesh(eo.data))
     face = bm.faces.active
@@ -103,7 +106,7 @@ def edit_object_change_handler(self,context):
     return None
 
 #operators
-class SmoothGroupInit(bpy.types.Operator):
+class DAGOR_OT_SmoothGroupInit(bpy.types.Operator):
     bl_label = 'Init SmoothGroup'
     bl_idname = 'dt.init_smooth_group'
     bl_description = 'Initialize smoothing groups'
@@ -116,7 +119,7 @@ class SmoothGroupInit(bpy.types.Operator):
             bpy.ops.object.editmode_toggle()
         return {'FINISHED'}
 
-class SmoothGroupsRemove(bpy.types.Operator):
+class DAGOR_OT_SmoothGroupsRemove(bpy.types.Operator):
     bl_label = 'Remove SmoothGroups'
     bl_idname = 'dt.remove_smooth_groups'
     bl_description = 'Remove SG data'
@@ -132,7 +135,7 @@ class SmoothGroupsRemove(bpy.types.Operator):
             bpy.ops.object.editmode_toggle()
         return {'FINISHED'}
 
-class SmoothGroupToSharpEdges(bpy.types.Operator):
+class DAGOR_OT_SmoothGroupToSharpEdges(bpy.types.Operator):
     bl_label = 'SmoothGroups to sharp edges'
     bl_idname = 'dt.preview_sg'
     bl_description = 'Preview smoothing groups as sharp edges'
@@ -142,7 +145,7 @@ class SmoothGroupToSharpEdges(bpy.types.Operator):
             sg_to_sharp_edges(context.edit_object.data)
         return {'FINISHED'}
 
-class SmoothGroupSet(bpy.types.Operator):
+class DAGOR_OT_SmoothGroupSet(bpy.types.Operator):
     bl_label = 'Set SmoothGroup'
     bl_idname = 'dt.set_smooth_group'
     bl_description = 'Set smoothing group'
@@ -154,6 +157,8 @@ class SmoothGroupSet(bpy.types.Operator):
         pressed=self.pressed
         if i<0:
             return{'CANCELLED'}
+        addon_name = basename(__package__)
+        pref=context.preferences.addons[addon_name].preferences
         obj=context.edit_object
         bm = dic.setdefault(obj.name, bmesh.from_edit_mesh(obj.data))
         SG = bm.faces.layers.int.get("SG")
@@ -165,6 +170,29 @@ class SmoothGroupSet(bpy.types.Operator):
         else:
             for face in sel:
                 face[SG]=uint_to_int(face[SG]|active_bit)
+        if pref.sg_live_refresh:
+            bpy.ops.dt.preview_sg()
+        return {'FINISHED'}
+
+class DAGOR_OT_SmoothGroupSelect(Operator):
+    bl_label = 'Select SmoothGroup'
+    bl_idname = 'dt.select_smooth_group'
+    bl_description = 'Select by smoothing group'
+    bl_options = {'UNDO'}
+    index:   bpy.props.IntProperty(default=-1)
+    def execute(self,context):
+        i=self.index
+        if i<0:
+            return{'CANCELLED'}
+        active_bit=2**i
+        obj=context.edit_object
+        mesh = bmesh.from_edit_mesh(obj.data)
+        bm = dic.setdefault(obj.name, mesh)
+        SG = bm.faces.layers.int.get("SG")
+        for face in bm.faces:
+            if face[SG]&active_bit!=0:
+                face.select = True
+        bmesh.update_edit_mesh(obj.data)
         return {'FINISHED'}
 
 class DAGOR_PT_SmoothGroupPanel(bpy.types.Panel):
@@ -179,6 +207,8 @@ class DAGOR_PT_SmoothGroupPanel(bpy.types.Panel):
         return context.mode == "EDIT_MESH"
 
     def draw(self, context):
+        addon_name = basename(__package__)
+        pref=context.preferences.addons[addon_name].preferences
         obj = context.object
         mesh = obj.data
         bm = dic.setdefault(obj.name, bmesh.from_edit_mesh(mesh))
@@ -201,8 +231,6 @@ class DAGOR_PT_SmoothGroupPanel(bpy.types.Panel):
         ops.operator('dt.init_smooth_group',text='Recalculate')
         ops.operator('dt.remove_smooth_groups',text='Remove', icon = 'TRASH')
         l.operator('dt.preview_sg',text='Convert to sharp edges')
-        SG=l.box()
-        i=0
         #buttons state cheaper calc
         if sel.__len__()>0:
             all_pressed=uint_to_int(SG_MAX_UINT)
@@ -217,27 +245,52 @@ class DAGOR_PT_SmoothGroupPanel(bpy.types.Panel):
             all_pressed=0
             all_w_text=SG_MAX_UINT
         #buttons state end
-        for line in range(8):
-            row=SG.row()
-            for column in range (4):
-                pressed=all_pressed&2**i!=0
-                w_text=all_w_text&2**i!=0
-                i+=1
-                btn=row.operator('dt.set_smooth_group',text=str(i) if w_text else '',depress=pressed)
-                btn.index=i-1
-                btn.pressed=all_pressed
+        SG_set=l.box()
+        header = SG_set.row()
+        header.prop(pref, 'sg_set_maximized', text = "Set SG",
+            icon = 'DOWNARROW_HLT'if pref.sg_set_maximized else 'RIGHTARROW_THIN',
+            emboss=False, expand=True)
+        if pref.sg_set_maximized:
+            SG_set.prop(pref, 'sg_live_refresh', text = "Live Update", toggle = True)
+            text=0
+            row = SG_set.row(align = True)
+            columns = [row.column(align = True) for i in range(4)]
+            for line in range(8):
+                for column in range(4):
+                    pressed=all_pressed&2**text!=0
+                    w_text=all_w_text&2**text!=0
+                    btn=columns[column].operator('dt.set_smooth_group',text=f'{text+1}' if w_text else '',depress=pressed)
+                    btn.index=text
+                    text+=1
+                    btn.pressed=all_pressed
+        SG_select = l.box()
+        header = SG_select.row()
+        header.prop(pref, 'sg_select_maximized', text = "Select by SG",
+            icon = 'DOWNARROW_HLT'if pref.sg_select_maximized else 'RIGHTARROW_THIN',
+            emboss=False, expand=True)
+        if pref.sg_select_maximized:
+            text = 0
+            row = SG_select.row(align = True)
+            columns = [row.column(align = True) for i in range(4)]
+            for line in range(8):
+                for column in range(4):
+                    btn=columns[column].operator('dt.select_smooth_group',text=f'{text+1}')
+                    btn.index=text
+                    text+=1
+        return
 
-classes = [SmoothGroupSet,
-            SmoothGroupInit,
-            SmoothGroupsRemove,
-            SmoothGroupToSharpEdges,
+classes = [DAGOR_OT_SmoothGroupSet,
+            DAGOR_OT_SmoothGroupInit,
+            DAGOR_OT_SmoothGroupsRemove,
+            DAGOR_OT_SmoothGroupToSharpEdges,
+            DAGOR_OT_SmoothGroupSelect,
             DAGOR_PT_SmoothGroupPanel,
             ]
 
 def register():
     for cl in classes:
         bpy.utils.register_class(cl)
-    bpy.types.WindowManager.layer_int_value = IntProperty(name="DEBUG", update=updage_sg)
+    bpy.types.WindowManager.layer_int_value = IntProperty(name="DEBUG", update=update_sg)
     bpy.app.handlers.depsgraph_update_post.append(edit_object_change_handler)
 
 def unregister():

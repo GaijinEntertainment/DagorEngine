@@ -5,6 +5,7 @@ from bpy.types      import PropertyGroup, Operator, Panel
 from bpy.utils      import register_class, unregister_class, user_resource
 
 from ..helpers.basename     import basename
+from ..helpers.texts        import log
 
 
 tex_set = ['tex_d','tex_d_alpha', 'normal', 'tex_met_gloss', 'tex_n','tex_n_alpha', 'tex_mask']
@@ -21,6 +22,8 @@ def popup(msg):
 def get_supported_materials():
     mats = []
     for m in bpy.data.materials:
+        if m.node_tree is None:
+            continue
         sh = m.node_tree.nodes.get('Shader')
         if sh is None:
             continue
@@ -33,6 +36,15 @@ def get_supported_materials():
                 mats.remove(m)
                 break
     return mats
+
+#returns objects, contained in collection and all sub-collections
+def col_objects_recursive(col):
+    objects = list(col.objects)
+    for subcol in col.children:
+        objects+=col_objects_recursive(subcol)
+    #same object can be linked to multiple collections, we need them once
+    objects = set(objects)
+    return objects
 
 #returns list of materials from set of mesh objects
 def get_materials(objects):
@@ -48,19 +60,20 @@ def get_materials(objects):
 
 #makes sure that baking is possible
 def bake_validate():
-    props = bpy.context.scene.dag_bake
-    lp_col = props.col_to_bake
-    hp_col = props.col_to_bake_from
+    P = bpy.data.scenes[0].dag4blend.baker
+    lp_col = P.lp_collection
+    hp_col = P.hp_collection
     supported_materials = get_supported_materials()
 #lp_collection
-    if props.col_to_bake is None:
+    if P.col_to_bake is None:
         return 'No lowpoly collection selected'
-    objs_to_bake = [o for o in lp_col.objects if o.type == 'MESH']
+    lp_col_objects = col_objects_recursive(lp_col)
+    objs_to_bake = [o for o in lp_col_objects if o.type == 'MESH']
     if objs_to_bake.__len__()==0:
-        return f'No mesh objects in "{props.col_to_bake.name}"'
+        return f'No mesh objects in "{lp_col.name}"'
     lp_mats = get_materials(objs_to_bake)
     if lp_mats is None:
-        return f'No material on some mesh in "{props.col_to_bake.name}"'
+        return f'No material on some mesh in "{lp_col.name}"'
     for obj in objs_to_bake:
         if obj.data.uv_layers.get('Bake') is None:
             return f'"{obj.name}": no"Bake" uv layer'
@@ -68,20 +81,21 @@ def bake_validate():
         init_mats(lp_mats)
     except:
         return f'Something went wrong on materials initialization'
-    if props.self:
+    if P.self_bake:
         for mat in lp_mats:
             if mat not in supported_materials:
                 return f'"{mat.name}" can not be baked'
         return
 #hp_collection. Make sence only for hp to lp mode
-    if props.col_to_bake_from is None:
+    if P.hp_collection is None:
         return 'No highpoly collection selected'
-    objs_to_bake_from = [o for o in hp_col.objects if o.type == 'MESH']
+    hp_col_objects = col_objects_recursive(hp_col)
+    objs_to_bake_from = [o for o in hp_col_objects if o.type == 'MESH']
     if objs_to_bake_from.__len__()==0:
-        return f'No mesh objects in "{props.col_to_bake.name}"'
+        return f'No mesh objects in "{hp_col.name}"'
     hp_mats = get_materials(objs_to_bake_from)
     if hp_mats is None:
-        return f'No material on some mesh in "{props.col_to_bake_from.name}"'
+        return f'No material on some mesh in "{hp_col.name}"'
     for mat in hp_mats:
             if mat not in supported_materials:
                 return f'"{mat.name}" can not be baked'
@@ -91,19 +105,19 @@ def bake_validate():
 def init_mats(mats):
     images = bpy.data.images
 #necessary stuff for tetures
-    props = bpy.context.scene.dag_bake
-    lp_col = props.col_to_bake
+    P = bpy.data.scenes[0].dag4blend.baker
+    lp_col = P.lp_collection
     mat_name = lp_col.name.split('.')[0]#incase it has.lod0N or something lihe that in name
-    dirpath = props.path
-    h = int(props.y)
-    w = int(props.x)
+    dirpath = P.dirpath
+    h = int(P.y)
+    w = int(P.x)
 #images
     for t in tex_set:
         img_name = f'{mat_name}_{t}'
         img = images.get(img_name)
         if img is None:
             img = images.new(name = img_name, height = h, width = w)
-        if props.get(t) is not None and props[t]:#initialized and should be rebaked
+        if P.get(t) is not None and P[t]:#initialized and should be rebaked
             img.source = 'GENERATED'
             img.generated_color = (0,0,0,1)
             img.filepath = join(dirpath,img_name+'.tif')
@@ -142,13 +156,14 @@ def init_mats(mats):
 #baking
 def bake_tex(tex):
     S = bpy.context.scene
-    lp_col = S.dag_bake.col_to_bake
+    P = bpy.data.scenes[0].dag4blend.baker
+    lp_col = P.lp_collection
     tex_type = f'_{tex}'
     bpy.ops.object.select_all(action='DESELECT')
-    for obj in lp_col.objects:
+    for obj in col_objects_recursive(lp_col):
         bpy.context.view_layer.objects.active = obj
         obj.select_set(True)
-    mats = get_materials(lp_col.objects)
+    mats = get_materials(col_objects_recursive(lp_col))
     for mat in mats:
         nodes = mat.node_tree.nodes
         nodes.active = nodes[tex]
@@ -175,17 +190,18 @@ def bake_tex(tex):
 #baking from hp
 def bake_tex_from(tex):
     S = bpy.context.scene
-    lp_col = S.dag_bake.col_to_bake
-    hp_col = S.dag_bake.col_to_bake_from
+    P = bpy.data.scenes[0].dag4blend.baker
+    lp_col = P.lp_collection
+    hp_col = P.hp_collection
     tex_type = f'_{tex}'
-    for obj in lp_col.objects:
+    for obj in col_objects_recursive(lp_col):
         bpy.ops.object.select_all(action='DESELECT')
         bpy.context.view_layer.objects.active = obj
         obj.select_set(True)
         S.render.bake.cage_object = None#we don't need a cage from previous mesh
         for prop in obj.dagorprops.keys():
-            if prop.startswith('bake:'):
-                hp = hp_col.objects.get(obj.dagorprops[prop])
+            if prop.startswith('hp:'):
+                hp = col_objects_recursive(hp_col).get(obj.dagorprops[prop])
                 if hp is not None:
                     hp.select_set(True)
                 else:
@@ -197,13 +213,13 @@ def bake_tex_from(tex):
                 else:
                     return f'Cage "{obj.dagorprops[prop]}" is not found"'
         if bpy.context.selected_objects.__len__() == 1:#no defined sources in porps
-            for obj in hp_col.objects:
+            for obj in col_objects_recursive(hp_col):
                 obj.select_set(True)
-        mats = get_materials(lp_col.objects)
+        mats = get_materials(col_objects_recursive(lp_col))
         for mat in mats:
             nodes = mat.node_tree.nodes
             nodes.active = nodes[tex]
-        src_mats = get_materials(hp_col.objects)
+        src_mats = get_materials(col_objects_recursive(hp_col))
 
         #setting up renderer
         S.render.engine = 'CYCLES'
@@ -231,14 +247,6 @@ def bake_tex_from(tex):
             nodes = mat.node_tree.nodes
             mat.node_tree.links.new(nodes['Shader'].outputs['shader'], nodes['Material Output'].inputs['Surface'])
     return
-
-def get_resolutions(self, context):
-    start = 128
-    items = []
-    for i in range(6):
-        step = str(start*pow(2,i))
-        items.append((step,step,step))
-    return items
 
 def cleanup_meshes(objects):
     bpy.ops.object.select_all(action='DESELECT')
@@ -277,51 +285,25 @@ def get_preview_node_group():
 
 #CLASSES
 
-#settings and UI config
-class dag_baker_props(PropertyGroup):
-#img realted
-    x:      EnumProperty(items = get_resolutions)
-    y:      EnumProperty(items = get_resolutions)
-
-    path:   StringProperty(subtype='DIR_PATH', default = 'C:\\tmp\\')
-#mode related
-    self:               BoolProperty(default = False)
-    col_to_bake:        PointerProperty(type = bpy.types.Collection)
-    col_to_bake_from:   PointerProperty(type = bpy.types.Collection)
-#list of textures
-    tex_d:          BoolProperty(default = False, description = 'diffuse')
-    tex_d_alpha:    BoolProperty(default = False, description = 'heightmap, should be stored in alpha of tex_d')
-    tex_n:          BoolProperty(default = False, description = 'RG - normal map, B-metallic')
-    tex_n_alpha:    BoolProperty(default = False, description = 'glossiness, should be stored in alpha of tex_n')
-    normal:         BoolProperty(default = False, description = 'simple normal map, baked from "highpoly" object(s) G is pre-inverted')
-    tex_met_gloss:      BoolProperty(default = False, description = 'R - metallic, G - glossiness')
-    tex_mask:       BoolProperty(default = False, description = 'mask to generate padding in Substance Designer')
-#ui stuff
-    settings_unfold:BoolProperty(default = True)
-    tex_unfold:     BoolProperty(default = True)
-
 class DAGOR_OT_CleanupMeshes(Operator):
     bl_idname = "dt.prebake_cleanup_meshes"
     bl_label = "Cleanup"
     bl_description = "Removes geometry with unsupported shaders (mostly decals)"
     def execute(self,context):
-        log = bpy.data.texts.get('log')
-        if log is None:
-            log = bpy.data.texts.new('log')
         if context.mode!='OBJECT':
             popup('go to object mode first!')
             return{'CANCELLED'}
-        S = context.scene
-        if S.dag_bake.self:
-            col = S.dag_bake.col_to_bake
+        P = bpy.data.scenes[0].dag4blend.baker
+        if P.self_bake:
+            col = P.lp_collection
         else:
-            col = S.dag_bake.col_to_bake_from
+            col = P.hp_collection
         if col is None:
             msg = 'No collection selected!'
-            log.write(f'ERROR!: {msg}\n')
+            log(msg, type = 'ERROR')
             popup(msg)
             return{'CANCELLED'}
-        cleanup_meshes(col.objects)
+        cleanup_meshes(col_objects_recursive(col))
         return {'FINISHED'}
 
 class DAGOR_OT_PreviewBake(Operator):
@@ -329,14 +311,11 @@ class DAGOR_OT_PreviewBake(Operator):
     bl_label = "Preview bake"
     bl_description = "Shows baked textures on new object'"
     def execute(self,context):
-        log = bpy.data.texts.get('log')
-        if log is None:
-            log = bpy.data.texts.new('log')
-        S = context.scene
-        col = S.dag_bake.col_to_bake
+        P = bpy.data.scenes[0].dag4blend.baker
+        col = P.lp_collection
         if col is None:
             msg = 'No collection selected!'
-            log.write(f'ERROR!: {msg}\n')
+            log(msg, type = 'ERROR')
             popup(msg)
             return{'CANCELLED'}
         prev_col = bpy.data.collections.get(f'{col.name}_baked')
@@ -351,7 +330,7 @@ class DAGOR_OT_PreviewBake(Operator):
                 bpy.data.objects.remove(obj)
             for mesh in meshes:
                 bpy.data.meshes.remove(mesh)
-        for obj in col.objects:
+        for obj in col_objects_recursive(col):
             new = obj.copy()
             new.data = obj.data.copy()
             for l in new.data.uv_layers.keys():
@@ -372,7 +351,7 @@ class DAGOR_OT_PreviewBake(Operator):
         bpy.ops.dt.dagormats_update(mats = f'{name}_simple')
         nodes = mat.node_tree.nodes
         links = mat.node_tree.links
-        if S.dag_bake.self:
+        if P.self_bake:
             links.new(nodes['tex1'].outputs[0],nodes['Shader'].inputs['tex2'])
             links.new(nodes['tex2'].outputs[0],nodes['Shader'].inputs['tex2_alpha'])
         else:
@@ -397,26 +376,21 @@ class DAGOR_OT_RunBake(Operator):
     bl_label = "Run bake"
     bl_description = "Bakes dag shaders to 'rendinst_simple'"
     def execute(self,context):
-        props = context.scene.dag_bake
-        log = bpy.data.texts.get('log')
-        if log is None:
-            log = bpy.data.texts.new('log')
+        P = bpy.data.scenes[0].dag4blend.baker
         msg = bake_validate()
         if msg is not None:
-            popup(msg)
-            log.write(f'ERROR: {msg}\n')
+            og(str = msg, type = "ERROR")
             return{'CANCELLED'}
-        if props.self:
+        if P.self_bake:
             for tex in tex_self:
-                if props.get(tex) is not None and props[tex]:
+                if P.get(tex) is not None and P[tex]:
                     bake_tex(tex)
         else:
             for tex in tex_from:
-                if props.get(tex) is not None and props[tex]:
+                if P.get(tex) is not None and P[tex]:
                     bake_tex_from(tex)
         msg = 'Baking comlpete!'
-        popup(msg)
-        log.write(f'{msg}\n')
+        log(msg, show = True)
         return {'FINISHED'}
 
 class DAGOR_PT_Baker(Panel):
@@ -432,59 +406,59 @@ class DAGOR_PT_Baker(Panel):
         return pref.use_tex_baker
     def draw(self, context):
         S = context.scene
-        props = context.scene.dag_bake
+        P = bpy.data.scenes[0].dag4blend.baker
         l = self.layout
 
         main = l.box()
         name = main.row()
-        name.prop(props,'settings_unfold', text = '', icon = 'DOWNARROW_HLT' if props.settings_unfold else 'RIGHTARROW', emboss = False)
+        name.prop(P,'settings_maximized', text = '', icon = 'DOWNARROW_HLT' if P.settings_maximized else 'RIGHTARROW', emboss = False)
         name.label(text = "Settings")
         name.label(text = "", icon = 'SETTINGS')
-        if props.settings_unfold:
+        if P.settings_maximized:
             main.prop(S.cycles, 'device')
             main.prop(S.cycles, 'samples')
             main.label(text = 'Resolution:')
             res = main.row()
-            res.prop(props,'x',text = '')
+            res.prop(P,'x',text = '')
             res.label(text = '', icon = 'LAYER_ACTIVE')
-            res.prop(props,'y',text = '')
+            res.prop(P,'y',text = '')
             main.label (text = 'Mode:')
             mod_a = main.row()
-            mod_a.prop(props,'self',text = '', icon = 'CHECKBOX_HLT' if props.self else 'CHECKBOX_DEHLT', emboss = False)
+            mod_a.prop(P,'self_bake',text = '', icon = 'CHECKBOX_HLT' if P.self_bake else 'CHECKBOX_DEHLT', emboss = False)
             mod_a.label(text = 'Mesh(es) to itself')
             mod_b = main.row()
-            mod_b.prop(props,'self',text = '', icon = 'CHECKBOX_DEHLT' if props.self else 'CHECKBOX_HLT', emboss = False)
+            mod_b.prop(P,'self_bake',text = '', icon = 'CHECKBOX_DEHLT' if P.self_bake else 'CHECKBOX_HLT', emboss = False)
             mod_b.label(text = 'From other mesh(es)')
-            main.prop(props,'col_to_bake', text = 'Asset' if props.self else 'Lowpoly')
-            if not props.self:
-                main.prop(props,'col_to_bake_from', text = 'Asset' if props.self else 'Highpoly')
+            main.prop(P,'lp_collection', text = 'Asset' if P.self_bake else 'Lowpoly')
+            if not P.self_bake:
+                main.prop(P,'hp_collection', text = 'Asset' if P.self_bake else 'Highpoly')
+                S = bpy.context.scene
                 main.prop(S.render.bake,'use_cage', text = 'Cage mode')
                 main.prop(S.render.bake,'cage_extrusion')
                 main.prop(S.render.bake, 'max_ray_distance')
-            main.prop(props, 'path', text = 'Save to')
+            main.prop(P, 'dirpath', text = 'Save to')
 
         tex = l.box()
         name = tex.row()
-        name.prop(props, 'tex_unfold', text = '', icon = 'DOWNARROW_HLT' if props.tex_unfold else 'RIGHTARROW', emboss = False)
+        name.prop(P, 'tex_maximized', text = '', icon = 'DOWNARROW_HLT' if P.tex_maximized else 'RIGHTARROW', emboss = False)
         name.label(text = 'Textures to bake')
         name.label(text = '', icon = 'TEXTURE')
-        if props.tex_unfold:
-            tex.prop(props,'tex_d', toggle = True)
-            tex.prop(props,'tex_d_alpha', toggle = True)
-            if props.self:
-                tex.prop(props,'tex_n', toggle = True)
-                tex.prop(props,'tex_n_alpha', toggle = True)
+        if P.tex_maximized:
+            tex.prop(P,'tex_d', toggle = True)
+            tex.prop(P,'tex_d_alpha', toggle = True)
+            if P.self_bake:
+                tex.prop(P,'tex_n', toggle = True)
+                tex.prop(P,'tex_n_alpha', toggle = True)
             else:
-                tex.prop(props,'normal', toggle = True)
-                tex.prop(props,'tex_met_gloss', toggle = True)
-            tex.prop(props,'tex_mask', toggle = True)
+                tex.prop(P,'normal', toggle = True)
+                tex.prop(P,'tex_met_gloss', toggle = True)
+            tex.prop(P,'tex_mask', toggle = True)
 
         l.operator('dt.prebake_cleanup_meshes', text = 'Cleanup geometry')
         l.operator('dt.run_bake', text = 'BAKE')
         l.operator('dt.preview_bake', text = 'Preview baked')
         return
 classes = [
-            dag_baker_props,
             DAGOR_OT_CleanupMeshes,
             DAGOR_OT_RunBake,
             DAGOR_PT_Baker,
@@ -494,12 +468,9 @@ classes = [
 def register():
     for cl in classes:
         register_class(cl)
-    S = bpy.types.Scene
-    S.dag_bake = PointerProperty (type = dag_baker_props)
     return
 
 def unregister():
-    del bpy.types.Scene.dag_bake
     for cl in classes:
         unregister_class(cl)
     return

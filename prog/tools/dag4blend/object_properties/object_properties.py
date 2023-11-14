@@ -1,11 +1,12 @@
 import bpy, os
-from   bpy.props            import StringProperty, PointerProperty
+from   bpy.props            import StringProperty, PointerProperty, FloatProperty
 from   bpy.utils            import register_class, unregister_class, user_resource
 from   bpy.types            import Operator, Panel, PropertyGroup
-from ..helpers.texts        import get_text_clear, get_text
+from ..helpers.texts        import *
 from ..helpers.popup        import show_popup
 from ..helpers.basename     import basename
 from ..helpers.props        import fix_type
+
 #functions
 def clear_props(obj):
     props=[]
@@ -88,7 +89,8 @@ class DAGOR_OT_props_to_text(Operator):
             show_popup(message='No active object',title='Error',icon='ERROR')
             return {'CANCELLED'}
         props_to_text(obj)
-        show_popup(message='Check [props_temp] in text editor',title='Done',icon='INFO')
+        show_text(get_text('props_temp'))
+        show_popup(message='Check "props_temp" in text editor',title='Done',icon='INFO')
         return {'FINISHED'}
 
 
@@ -228,6 +230,7 @@ class DAGOR_OT_transfer_props(Operator):
         show_popup(message='Finished',icon='INFO')
         return {'FINISHED'}
 
+#Empty PropertyGroup to store optional props in
 class dagorprops(PropertyGroup):
     pass
 
@@ -252,10 +255,10 @@ class DAGOR_PT_Properties(Panel):
         DP = bpy.context.active_object.dagorprops
         props=l.box()
         header=props.row()
-        header.prop(pref, 'props_unfold',icon = 'DOWNARROW_HLT'if pref.props_unfold else 'RIGHTARROW_THIN',
+        header.prop(pref, 'props_maximized',icon = 'DOWNARROW_HLT'if pref.props_maximized else 'RIGHTARROW_THIN',
             emboss=False,text='Properties')
         header.label(text='',icon='THREE_DOTS')
-        if pref.props_unfold:
+        if pref.props_maximized:
             add = props.box()
             add.operator('dt.add_prop',text='',icon='ADD')
             new_p = add.row()
@@ -282,10 +285,10 @@ class DAGOR_PT_Properties(Panel):
                 rem.operator('dt.remove_prop',text='',icon='TRASH').prop=key
         presets = l.box()
         header=presets.row()
-        header.prop(pref, 'props_preset_unfold',icon = 'DOWNARROW_HLT'if pref.props_preset_unfold else 'RIGHTARROW_THIN',
+        header.prop(pref, 'props_preset_maximized',icon = 'DOWNARROW_HLT'if pref.props_preset_maximized else 'RIGHTARROW_THIN',
             emboss=False,text='Presets')
         header.label(text='',icon='THREE_DOTS')
-        if pref.props_preset_unfold:
+        if pref.props_preset_maximized:
             presets.operator('dt.save_op_preset',text = "Save preset as:")
             presets.prop(pref, 'prop_preset_name', text = '')
             presets.operator('dt.apply_op_preset', text = 'Apply preset:')
@@ -299,34 +302,36 @@ class DAGOR_PT_Properties(Panel):
 
         tools = l.box()
         header = tools.row()
-        header.prop(pref, 'props_tools_unfold',icon = 'DOWNARROW_HLT'if pref.props_tools_unfold else 'RIGHTARROW_THIN',
+        header.prop(pref, 'props_tools_maximized',icon = 'DOWNARROW_HLT'if pref.props_tools_maximized else 'RIGHTARROW_THIN',
             emboss=False,text='Tools')
         header.label(text='',icon='TOOL_SETTINGS')
-        if pref.props_tools_unfold:
+        if pref.props_tools_maximized:
             row = tools.row()
             row.operator('dt.props_to_text', text='Open as text')
             row.operator('dt.text_to_props', text='Apply from text')
             tools.operator('dt.properties_transfer', text = 'Transfer Attr')
 
 classes=[dagorprops,
-          DAGOR_OT_text_to_props,
-          DAGOR_OT_props_to_text,
-          DAGOR_OT_transfer_props,
-          DAGOR_OT_apply_op_preset,
-          DAGOR_OT_save_op_preset,
-          DAGOR_OT_remove_op_preset,
-          DAGOR_OT_add_prop,
-          DAGOR_OT_remove_prop,
-          DAGOR_invert_dagbool,
-          DAGOR_PT_Properties,
-          ]
+        DAGOR_OT_text_to_props,
+        DAGOR_OT_props_to_text,
+        DAGOR_OT_transfer_props,
+        DAGOR_OT_apply_op_preset,
+        DAGOR_OT_save_op_preset,
+        DAGOR_OT_remove_op_preset,
+        DAGOR_OT_add_prop,
+        DAGOR_OT_remove_prop,
+        DAGOR_invert_dagbool,
+        DAGOR_PT_Properties,
+        ]
 
 def register():
     for cl in classes:
         register_class(cl)
     bpy.types.Object.dagorprops=PointerProperty(type=dagorprops)
+    bpy.types.Object.dag_sets=PointerProperty(type=dagorprops)
 
 def unregister():
     for cl in classes:
         unregister_class(cl)
     del bpy.types.Object.dagorprops
+    del bpy.types.Object.dag_sets

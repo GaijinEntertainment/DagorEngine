@@ -9,3 +9,12 @@ dynamic_simple_uv:rendinst_simple_uv
 
 dynamic_layered:rendinst_layered
 dynamic_layered_uv:rendinst_layered_uv
+
+rendinst_mask_layered:rendinst_layered
+
+rendinst_deferred_normal_decal:rendinst_blend_normal_decal
+
+dynamic_mask_layered:rendinst_layered
+dynamic_mask_layered_uv:rendinst_mask_layered_uv
+
+dynamic_simple_painted:rendinst_simple_painted

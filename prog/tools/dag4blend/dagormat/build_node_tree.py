@@ -1,9 +1,10 @@
-#import configparser
 import os
 import bpy
 from   bpy.utils        import user_resource
 from ..helpers.texts    import get_text
 from ..helpers.basename import basename
+from ..settings         import upd_project
+
 
 def check_remap(name):
     addon_name = basename(__package__)
@@ -79,7 +80,6 @@ def get_node_group(group_name):
     return node_group
 
 def buildMaterial(mat):
-    log=get_text('log')
     mat.use_nodes = True
 
     props       = mat.dagormat.optional
@@ -88,7 +88,6 @@ def buildMaterial(mat):
     links       = mat.node_tree.links
     shader_class= mat.dagormat.shader_class
     if shader_class == '':
-        #log.write(f'WARNING!: material "{mat.name}" have no shader_class selected!\n')#Kinda annoing, turned off
         return
 
     nodes.clear()
@@ -116,6 +115,7 @@ def buildMaterial(mat):
             links.new(ctrl_node.outputs[out],uvs.inputs[out])
 
 #TEXTURES
+    active_found = False
     for tex in textures.keys():
         if textures[tex]!='':
             i = 10 if tex.endswith('10') else int(tex[-1])
@@ -130,6 +130,13 @@ def buildMaterial(mat):
         links.new(uvs.outputs[f'tex{i}'],img.inputs["Vector"])
         links.new(img.outputs['Color'],shader_node.inputs[f"tex{i}"])
         links.new(img.outputs['Alpha'],shader_node.inputs[f"tex{i}_alpha"])
+
+        #active node will be used in UV editor by default
+        #otherwise non-square palette will tak it's place, distorting uv preview
+        if not active_found:
+            nodes.active = img
+            active_found = True
+
 #PROPERTIES
     for prop in props.keys():
         try:
@@ -185,4 +192,6 @@ def buildMaterial(mat):
 #DESELECT
     for node in nodes:
         node.select = False
+#REFRESHING PALETTES
+    upd_project(None, bpy.context)#making sure that palette and project are correct
     return

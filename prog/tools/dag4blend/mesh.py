@@ -4,8 +4,8 @@ class MeshExp:
         self.faces = list()
         self.uv = list()
         self.uv_poly = list()
-        self.vertex_colors = dict()
-        self.vertex_colors_poly = list()
+        self.color_attributes = dict()
+        self.color_attributes_poly = list()
         self.normals = list()
 
         self.normals_ver = dict()
@@ -30,7 +30,7 @@ class MeshExp:
         return len(self.uv[i]) - 1
 
     def addVertexColor(self, color):
-        if color in self.vertex_colors:
-            return self.vertex_colors.get(color)
-        self.vertex_colors[color] = len(self.vertex_colors)
-        return len(self.vertex_colors) - 1
+        if color in self.color_attributes:
+            return self.color_attributes.get(color)
+        self.color_attributes[color] = len(self.color_attributes)
+        return len(self.color_attributes) - 1

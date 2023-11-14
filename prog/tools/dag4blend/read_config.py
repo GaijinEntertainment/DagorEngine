@@ -4,7 +4,7 @@ import bpy
 from shutil import copyfile
 
 #modifying of original file to make it readable by python configparser
-#TODO: make custom parser, that allows to use original file and separate parameters by cooment-based groups
+#TODO: make custom parser instead of fixing unreadable comments in copy
 def cfg_upd():
     blend_cfg=os.path.join(os.path.dirname(__file__), 'fixed_dagorShaders.cfg')
     max_cfg=os.path.join(os.path.dirname(__file__), 'dagorShaders.cfg')

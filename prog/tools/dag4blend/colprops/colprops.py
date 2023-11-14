@@ -1,5 +1,6 @@
 import bpy
 from bpy.types          import Operator, Panel
+from bpy.utils          import register_class, unregister_class
 from bpy.props          import IntProperty, StringProperty
 from ..helpers.basename import basename
 from ..helpers.popup    import show_popup
@@ -80,6 +81,8 @@ class DT_OT_SetColType(Operator):
             col["type"] = 'dynmodel'
         elif type == 4:
             col["type"] = 'composit'
+        elif type == 5:
+            col["type"] = 'gameobj'
         return {'FINISHED'}
 
 #PANELS
@@ -100,10 +103,10 @@ class DAGOR_PT_CollectionProperties(Panel):
         if col is not None:
             colprops = l.box()
             header = colprops.row()
-            header.prop(pref, 'colprops_unfold',icon = 'DOWNARROW_HLT'if pref.colprops_unfold else 'RIGHTARROW_THIN',
+            header.prop(pref, 'colprops_maximized',icon = 'DOWNARROW_HLT'if pref.colprops_maximized else 'RIGHTARROW_THIN',
                 emboss=False,text='Active Collection',expand=True)
             header.label(text='', icon='OUTLINER_COLLECTION')
-            if pref.colprops_unfold:
+            if pref.colprops_maximized:
                 props = col.keys()
                 renamed = "name" in props
                 override = colprops.row()
@@ -112,17 +115,18 @@ class DAGOR_PT_CollectionProperties(Panel):
                 if renamed:
                     colprops.prop(col,'["name"]',text = '')
                 else:
-                    namebox = colprops.box()
-                    namebox.label(text = col.name)
+                    namebox = colprops.row()
+                    namebox.enabled = False
+                    namebox.prop(col, "name", text = "")
 
             cols = [col for col in bpy.data.collections if "name" in col.keys()]
             if cols.__len__()>0:
                 all_col = l.box()
                 header = all_col.row()
-                header.prop(pref, 'colprops_all_unfold',icon = 'DOWNARROW_HLT'if pref.colprops_all_unfold else 'RIGHTARROW_THIN',
+                header.prop(pref, 'colprops_all_maximized',icon = 'DOWNARROW_HLT'if pref.colprops_all_maximized else 'RIGHTARROW_THIN',
                     emboss=False,text='Overridden:',expand=True)
                 header.label(text='', icon='OUTLINER_COLLECTION')
-                if pref.colprops_all_unfold:
+                if pref.colprops_all_maximized:
                     cols = list(col for col in bpy.data.collections if 'name' in col.keys() and col.children.__len__()==0)
                     for col in cols:
                         box = all_col.box()
@@ -130,14 +134,13 @@ class DAGOR_PT_CollectionProperties(Panel):
                         row.operator('dt.set_col_name',text='',icon='REMOVE').col = col.name
                         row.label(text=f'{col.name}')
                         box.prop(col, '["name"]',text='')
-            #if pref.guess_dag_type or pref.use_cmp_editor:
-            if False:#temporary disabled, not fully implemented yet
+            if pref.guess_dag_type or pref.use_cmp_editor:
                 typebox = l.box()
                 boxname = typebox.row()
-                boxname.prop(pref, 'type_unfold', text = "", icon = 'DOWNARROW_HLT'if pref.type_unfold else 'RIGHTARROW_THIN',
+                boxname.prop(pref, 'type_maximized', text = "", icon = 'DOWNARROW_HLT'if pref.type_maximized else 'RIGHTARROW_THIN',
                 emboss=False,expand=True)
-                boxname.label(text = 'Type:' if pref.type_unfold else "Type")
-                if not pref.type_unfold:
+                boxname.label(text = 'Type:' if pref.type_maximized else "Type")
+                if not pref.type_maximized:
                     return
                 if not "type" in col.keys():
                     current_type = "undefined"
@@ -163,15 +166,23 @@ class DAGOR_PT_CollectionProperties(Panel):
                 composit = typebox.row()
                 composit.operator('dt.set_col_type', text = "", emboss = False, icon = 'RADIOBUT_ON' if current_type == "composit" else 'RADIOBUT_OFF').type = 4
                 composit.label(text = "Composit")
+
+                gameobj = typebox.row()
+                gameobj.operator('dt.set_col_type', text = "", emboss = False, icon = 'RADIOBUT_ON' if current_type == "gameobj" else 'RADIOBUT_OFF').type = 5
+                gameobj.label(text = "Gameobj")
         return
 
-def register():
-    bpy.utils.register_class(DT_OT_SetColName)
-    bpy.utils.register_class(DT_OT_SetColType)
-    bpy.utils.register_class(DAGOR_PT_CollectionProperties)
+classes =  [DT_OT_SetColName,
+            DT_OT_SetColType,
+            DAGOR_PT_CollectionProperties
+            ]
 
+def register():
+    for cl in classes:
+        register_class(cl)
+    return
 
 def unregister():
-    bpy.utils.unregister_class(DAGOR_PT_CollectionProperties)
-    bpy.utils.unregister_class(DT_OT_SetColName)
-    bpy.utils.unregister_class(DT_OT_SetColType)
+    for cl in classes[::-1]:
+        unregister_class(cl)
+    return

@@ -5,8 +5,12 @@ import glob
 from math                           import pi
 from mathutils                      import Vector
 from bpy.types                      import Operator
+from bpy.props                      import BoolProperty, StringProperty
+from bpy.utils                      import register_class, unregister_class
 from bpy_extras.io_utils            import ImportHelper
 from .                              import reader
+from ..                             import datablock
+from ..pyparsing                    import ParseException
 from ..constants                    import *
 from ..dagMath                      import mul
 from ..node                         import NodeExp
@@ -18,15 +22,10 @@ from ..dagormat.build_node_tree     import buildMaterial
 from ..dagormat.compare_dagormats   import compare_dagormats
 from ..object_properties            import object_properties
 from ..helpers.props                import fix_type
-from ..helpers.texts                import get_text
+from ..helpers.texts                import log
 from ..helpers.basename             import basename
 from ..smooth_groups.smooth_groups  import uint_to_int,int_to_uint,sg_to_sharp_edges
 from ..tools.tools_panel            import fix_mat_slots, optimize_mat_slots
-
-import sys
-sys.path.append('../../')
-from pythonCommon                   import datablock
-from pythonCommon.pyparsing         import ParseException
 
 FACENO = 0
 INDEX = 1
@@ -36,53 +35,87 @@ BEENTHERE = 2
 #FUNCTIONS
 
 #returns possible asset type based on name
-def dag_type(name):
+def guess_dag_type(name):
     pref = bpy.context.preferences.addons[basename(__package__)].preferences
-    if not pref.guess_dag_type:
-        return None
     if name.endswith('_destr.lod00'):
         return 'dynmodel'
     if name[:-2].endswith('.lod'):
         return 'rendinst'
     return 'prefab'
 
+def get_col_parent(col):
+    collections = bpy.data.collections
+    scenes = bpy.data.scenes
+    parent = None
+
+    name = col.name
+    if 'type' in col.keys():
+        type = col['type']
+    else:
+        type = None
+
+    if name[-6:-2] == '.lod':
+        parent = collections.get(name[:-2]+'s')
+    if parent is not None:
+        return parent
+    parent = collections.get(name[:-6])
+    if parent is not None:
+        if 'type' in parent.keys() and parent['type'] == type:
+            return parent
+        elif 'type' not in parent.keys():
+            parent.name = name[:-2]+'s'
+            parent['type'] = type
+            return parent
+    if name[-6:-2] == '.lod':
+        parent = bpy.data.collections.new(name[:-2]+'s')
+        parent['type'] = type
+        scenes['GEOMETRY'].collection.children.link(parent)
+    else:
+        parent = scenes['GEOMETRY'].collection
+    return parent
+
 #returns collection to store imported asset
-def get_dag_col(name,refresh_existing):
-    type = dag_type(name)
-    colls = bpy.data.collections
-    if refresh_existing:
-        for col in colls:
-    #collection defined by custom parameter
-            if "name" in col.keys():
-                if os.path.basename(col["name"]) == name:
-                    return col
-    #col.name can't be longer than 63 symbols
-            elif (name.__len__()<=63 and col.name == name) or col.name == name[:63]:
-                if "type" in col.keys():
-                    if col["type"] == type:
-                        return col
-                    elif type == None and col["type"] in ["dynmodel","rendinst","prefab"]:
-                        return col
-                else:
-                    return col
-    #if collection wasn't found, we should create new one:
-    col = bpy.data.collections.new(name="")
-    col.name = name
-    if name.__len__()>63:#one or more sybols lost, orig name should be preserved
-        col["name"] = name
-    col["type"] = type
-    #collection should be linked to scene
-    if type == "prefab":
-        col_parent = colls.get(f'{name}_ALL')
+def get_dag_col(name,replace_existing):
+    collections = bpy.data.collections
+    type = guess_dag_type(name)
+    col = None
+#looking for existing one
+    col = collections.get(name)
+#checking overriden name/path
+    if col is None:
+        for c in collections:
+            keys = c.keys()
+            if 'name' in keys:
+                name_parts = c['name']
+                name_parts = name_parts.replace('\\','//')
+                name_parts = name_parts.split('//')
+                if name_parts[-1] in [name, f'{name}.dag']:
+                    if 'type' in keys and c['type'] == type:
+                        col = c
+                        break
+                    elif 'type' not in keys:
+                        c["type"] = type
+                        col = c
+                        break
+
+    if not col is None and not replace_existing:
+        if col.children.__len__()>0 or col.objects.__len__()>0:
+            col = None
+
+    if col is None:
+        col = collections.new(name = name)
+        parent = get_col_parent(col)
+        parent.children.link(col)
+        if name.__len__()>63:
+            col['name'] = name
+        col["type"] = type
     else:
-        col_parent = colls.get(f'{os.path.splitext(name)[0]}')
-        if col_parent == col:
-            col_parent = None
-    if col_parent is None:
-        bpy.context.scene.collection.children.link(col)
-    else:
-        col_parent.children.link(col)
+        objects = col.objects
+        for o in objects:
+            col.objects.unlink(o)
     return col
+
+neighbors = {}
 
 #searches for triangles of same polygons
 def buildNeighbors(faces):
@@ -92,6 +125,24 @@ def buildNeighbors(faces):
         neighbors[tuple(f.f[0:2])] = [i, 0, 0]
         neighbors[tuple(f.f[1:3])] = [i, 1, 0]
         neighbors[tuple([f.f[2], f.f[0]])] = [i, 2, 0]
+    return
+
+#replace apex_interior prop by new name of renamed material
+def correct_apex_mats(old_name,mat):
+    new_name = mat.name
+    for obj in bpy.data.objects:
+        if obj.type not in ['MESH','CURVE']:
+            continue
+        if obj.data.materials.get(mat.name) is None:
+            continue
+        apex_mat = obj.dagorprops.get("apex_interior_material:t")
+        if apex_mat is None:
+            continue
+        if apex_mat == old_name:
+            apex_mat = new_name
+            msg = f'Object "{obj.name}": updated "apex_interior_material:t" property to match new material name\n'
+            log(msg)
+    return
 
 #CLASSES
 class Curve:
@@ -100,7 +151,6 @@ class Curve:
     handle_left = []
     handle_right = []
 
-neighbors = {}
 
 class DagImporter(Operator, ImportHelper):
     bl_idname = "import_scene.dag"
@@ -108,37 +158,57 @@ class DagImporter(Operator, ImportHelper):
     bl_options = {'PRESET','REGISTER', 'UNDO'}
 
     filename_ext = ".dag"
-    filter_glob: bpy.props.StringProperty(default="*.dag", options={'HIDDEN'})
 
-    import_mopt: bpy.props.BoolProperty(
-            name="Optimize material slots",
-            description="Remove unused materials",
-            default=True)
+    filter_glob: StringProperty(default="*.dag", options={'HIDDEN'})
 
-    import_lods: bpy.props.BoolProperty(
+#extra dags to import
+    with_lods: BoolProperty(
             name="Import LODs",
             description="Import all LODs",
             default=False)
 
-    import_dps: bpy.props.BoolProperty(
+    with_dps: BoolProperty(
         name="Import dps",
         description="Import all dps",
         default=False)
 
-    import_dmgs: bpy.props.BoolProperty(
+    with_dmgs: BoolProperty(
         name="Import dmgs",
         description="Import all dmgs",
         default=False)
 
-    import_refresh: bpy.props.BoolProperty(
+#Optimozation
+    mopt: BoolProperty(
+        name="Optimize material slots",
+        description="Remove unused materials",
+        default=True)
+
+    fix_mat_ids: BoolProperty(
+        name = "Fix material indices",
+        description = "update each material index, if it's higher than amount of material_slots",
+        default = True)
+
+    remove_degenerates: BoolProperty(
+        name = "Remove degenerates",
+        description = "Remove triangles with area = 0",
+        default = True)
+
+    remove_loose: BoolProperty(
+        name = "Remove loose geometry",
+        description = "Remove vertices, that not connected to any face",
+        default = True)
+
+#Other
+    replace_existing: BoolProperty(
         name = 'Replace existing',
         description = 'Replace already existing in blend instead of duplicating',
         default = False)
 
-    import_preserve_path: bpy.props.BoolProperty(
+    preserve_path: BoolProperty(
         name = 'Preserve path',
         description = 'Override export path for imported files',
         default = False)
+
 
     rootNode = None
     reader = reader.DagReader()
@@ -170,9 +240,9 @@ class DagImporter(Operator, ImportHelper):
                 if res:
                     f.neighbors[0] = res
                     faces[f.neighbors[0][FACENO]].neighbors[f.neighbors[0][INDEX]] = [i, 0, 0]
+        return
 
     def buildPoly(self, faceIndex, faces, idx, res, indices, faceDict, vertices):
-        log=get_text('log')
         f = faces[faceIndex]
         for i in [idx, (idx + 1) % 3, (idx + 2) % 3]:
             if f.neighbors[i][BEENTHERE] > 0:
@@ -189,9 +259,9 @@ class DagImporter(Operator, ImportHelper):
             else:
                 faces[f.neighbors[i][FACENO]].neighbors[f.neighbors[i][INDEX]][BEENTHERE] = 1
                 self.buildPoly(f.neighbors[i][FACENO], faces, f.neighbors[i][INDEX], res, indices, faceDict, vertices)
+        return
 
     def buildExtraPoly(self, faceIndex, faces, idx):
-        log=get_text('log')
         f = faces[faceIndex]
         for i in [idx, (idx + 1) % 3, (idx + 2) % 3]:
             if f.neighbors[i][BEENTHERE] == 2:
@@ -201,7 +271,6 @@ class DagImporter(Operator, ImportHelper):
 
 
     def buildMesh(self, node, tm, parent):
-        log=get_text('log')
         if node.mesh is None:
             return
         loops_vert_idx = list()
@@ -264,23 +333,24 @@ class DagImporter(Operator, ImportHelper):
                 me.uv_layers.new(do_init=False)
                 me.uv_layers[len(me.uv_layers) - 1].data.foreach_set("uv", tuple(uvMap))
 
-        if len(node.mesh.vertex_colors):
+        if len(node.mesh.color_attributes):
             poly = []
             for index in indices:
-                poly.append(node.mesh.vertex_colors_poly[index])
-            vcol_lay = me.vertex_colors.new()
+                poly.append(node.mesh.color_attributes_poly[index])
+            vcol_lay = me.color_attributes.new(name = "",domain = "CORNER", type = "FLOAT_COLOR")
+            
             col = []
             for index in poly:
-                col.extend(node.mesh.vertex_colors[index])
+                col.extend(node.mesh.color_attributes[index])
                 col.append(1.0)
             vcol_lay.data.foreach_set("color", tuple(col))
 
         me.validate()
         me.update()
 
-        me.polygon_layers_int.new(name='SG')
+        me.attributes.new("SG", 'INT', 'FACE')
         i=0
-        for sg in me.polygon_layers_int['SG'].data:
+        for sg in me.attributes['SG'].data:
             sg.value=uint_to_int(SG[i])
             i+=1
         sg_to_sharp_edges(me)
@@ -295,10 +365,10 @@ class DagImporter(Operator, ImportHelper):
             try:
                 me.normals_split_custom_set(loops_nor)
             except RuntimeError as err:
-                print(f"{err=}")
-                log.write(f"{err=}\n")
+                msg =f"{err=}\n"
+                log(msg, type = 'ERROR', show = True)
         else:
-            me.calc_normals()
+            me.calc_normals_split()
         me.use_auto_smooth = True
         me.auto_smooth_angle = pi
         o = bpy.data.objects.new(name=node.name, object_data=me)
@@ -309,44 +379,51 @@ class DagImporter(Operator, ImportHelper):
 
         self.buildObjProperties(o, node.objProps)
         if o.dagorprops.get('broken_properties') is not None:
-            log.write(f'WARNING! {o.name}: incorrect object properties\n')
+            msg =f'{o.name} has incorrect object properties\n'
+            log(msg,type = 'WARNING', show = True)
         tm.transpose()
 
-        #> fixing apex if material was renamed on import
+#> fixing apex if material was renamed on import
         apex_mat=o.dagorprops.get('apex_interior_material:t')
         if apex_mat is not None and o.data.materials.get(apex_mat) is None:
             for m in self.materials:
                 found=False
                 if m.name==apex_mat:
                     found=True
-                    log.write(f'{o.name}: apex_interior_material was renamed. ')
-                    log.write(f'"{apex_mat}" merged with "{m.mat.name}"\n')
+                    msg = f'{o.name}: apex_interior_material was renamed. '
+                    msg+= f'"{apex_mat}" merged with "{m.mat.name}"\n'
+                    log(msg)
                     o.dagorprops['apex_interior_material:t']=m.mat.name
                     break
                 elif m.shader==apex_mat+':proxymat':
                     o.dagorprops['apex_interior_material:t']=m.mat.name
-                    log.write(f'{o.name}: apex_interior_material was renamed. ')
-                    log.write(f'"{apex_mat}" renamed into "{m.mat.name}" to match proxymat.blk name\n')
+                    msg = f'{o.name}: apex_interior_material was renamed. '
+                    msg+= f'"{apex_mat}" renamed into "{m.mat.name}" to match proxymat.blk name\n'
+                    log(msg)
                     found=True
                     break
             if not found:
-                log.write(f'WARNING! {o.name} materials does not contain "apex_interior_material:t"="{apex_mat}"\n')
-        #fixin mat_ids:
+                msg = f'{o.name} materials does not contain "apex_interior_material:t"="{apex_mat}"\n'
+                log(msg, type = 'WARNING')
+#fixing mat_ids:
         was_broken=fix_mat_slots(o)
         if was_broken:
-            log.write(f'WARNING! {o.name} had incorrect material indices, fixed\n')
-        if self.import_mopt:
+            msg = f'{o.name} had incorrect material indices, fixed\n'
+            log(msg,type = 'WARNING')
+        if self.mopt:
             before=o.material_slots.__len__()
             optimize_mat_slots(o)
             diff = before - o.material_slots.__len__()
             if diff>0:
-                log.write(f'{o.name}: removed {diff} unnecessary material slot(s)\n')
-        #<
+                msg =f'{o.name}: removed {diff} unnecessary material slot(s)\n'
+                log(msg)
         for node in node.children:
             tm2 = mul(node.tm, tm)
             tm2.transpose()
             self.buildMesh(node, tm2, o)
             self.buildCurves(node, tm2, o)
+            self.buildEmpty(node, tm2, o)
+        return
 
     def buildObjProperties(self, o, objProps):
         blk = datablock.DataBlock()
@@ -369,14 +446,33 @@ class DagImporter(Operator, ImportHelper):
                     dagorprops[prop[0]]=fix_type(prop[1])
         if broken.__len__()>0:
             dagorprops['broken_properties']=broken
+        return
+
+    def DM_set_params(_self, script):
+        params = []
+        type_value = script.split('\n')
+        for el in type_value:
+            if el == '':
+                continue
+            pair = el.split('=')
+            params.append([pair[0],fix_type(pair[1])])
+        return params
 
     def buildMaterials(self):
         for m in self.materials:
+            og_mat = bpy.data.materials.get(m.name)
+            if og_mat is not None:
+                og_name = og_mat.name
             m.mat = bpy.data.materials.new(name=m.name)
 #proxymat
             if m.shader.endswith(':proxymat'):
-                m.mat.name=m.shader.replace(':proxymat','')
-                m.mat.dagormat.is_proxy=True
+                proxy_name = m.shader.replace(':proxymat','')
+                og_mat = bpy.data.materials.get(proxy_name)
+                if og_mat is not None:
+                    og_name = og_mat.name
+                m.mat.name = proxy_name
+                m.mat.name = proxy_name #making sure there's no ".NNN" postfix added
+                m.mat.dagormat.is_proxy = True
 #both
             m.mat.dagormat.ambient   = m.ambient
             m.mat.dagormat.diffuse   = m.diffuse
@@ -398,25 +494,26 @@ class DagImporter(Operator, ImportHelper):
                 try:
                     m.script = m.script.replace("(", "")
                     m.script = m.script.replace(")", "")
+                    m.script = m.script.replace("\r", "")
                     blk.parseString(m.script)
-                    for param in blk.getParams():
+                    params = self.DM_set_params(m.script)
+                    for param in params:
                         if param[0] == "real_two_sided":
-                            if param[2]=='yes' or param[2]==1:
+                            if param[1]=='yes' or param[1]==1:
                                 m.mat.dagormat.sides = '2'
                             continue
                         else:
-                            m.mat.dagormat.optional[param[0]] = param[2]
                             try:
-                                if param[0] in ['atest',
-                                                'micro_detail_layer',
-                                                'painting_line',
-                                                'use_painting',
-                                                'palette_index']:
-                                    m.mat.dagormat.optional[param[0]] = int(param[2])
+                                m.mat.dagormat.optional[param[0]] = param[1]
                             except:
-                                pass
+                                msg = f'\nsomething wrong happened on reading "{m.mat.name}" parameters!\n'
+                                log(msg,type = 'ERROR')
                 except ParseException as err:
                     print(f"{err=}: " + m.script)
+#fixing apex
+            if og_mat is not None:
+                correct_apex_mats(og_name,og_mat)
+#merging_mats
             for mat in bpy.data.materials:
                 is_unic=True
                 if mat!=m.mat:
@@ -430,6 +527,7 @@ class DagImporter(Operator, ImportHelper):
                         break
             if is_unic:
                 buildMaterial(m.mat)
+        return
 
     def buildCurves(self, node, tm, parent):
         if node.curves is None:
@@ -460,15 +558,24 @@ class DagImporter(Operator, ImportHelper):
             tm2.transpose()
             self.buildMesh(node, tm2, o)
             self.buildCurves(node, tm2, o)
+            self.buildEmpty(node, tm2, o)
+        return
 
-    def loadBones(self):
-        log=get_text('log')
-        count = self.reader.readDWord()
-        while count:
-            count-=1
-            temp_tm = self.reader.readMatrix4x3()
-            tm= temp_tm.transpose()
-            log.write(f'{tm}\n\n')
+    def buildEmpty(self,node,tm,parent):
+        if not (node.curves is None and node.mesh is None):
+            return
+        o = bpy.data.objects.new(node.name, None)
+        self.collection.objects.link(o)
+        if parent is not None:
+            o.parent = parent
+        o.matrix_world = tm
+        tm.transpose()
+        for node in node.children:
+            tm2 = mul(node.tm, tm)
+            tm2.transpose()
+            self.buildMesh(node, tm2, o)
+            self.buildCurves(node, tm2, o)
+            self.buildEmpty(node, tm2, o)
         return
 
     def loadSplines(self, curves):
@@ -488,9 +595,9 @@ class DagImporter(Operator, ImportHelper):
                 curve.handle_right.append(self.reader.readVertex())
                 pointCount -= 1
             count -= 1
+        return
 
     def loadMesh(self, mesh):
-        log=get_text('log')
         count = self.reader.readUShort()
         while count:
             mesh.vertices.append(self.reader.readVertex())
@@ -511,22 +618,22 @@ class DagImporter(Operator, ImportHelper):
             ch = chid - 1
             if ch == -1:
                 count = tn
-                mesh.vertex_colors = list()
+                mesh.color_attributes = list()
                 while count:
                     if co == 1:
-                        mesh.vertex_colors.append([self.reader.readFloat(), 0, 0])
+                        mesh.color_attributes.append([self.reader.readFloat(), 0, 0])
                     elif co == 2:
-                        mesh.vertex_colors.append([self.reader.readFloat(), self.reader.readFloat(), 0])
+                        mesh.color_attributes.append([self.reader.readFloat(), self.reader.readFloat(), 0])
                     else:
-                        mesh.vertex_colors.append(self.reader.readVector())
+                        mesh.color_attributes.append(self.reader.readVector())
                     count -= 1
                 count = faceNumber
                 while count:
-                    mesh.vertex_colors_poly.append(self.reader.readUShort())
+                    mesh.color_attributes_poly.append(self.reader.readUShort())
                     poly1 = self.reader.readUShort()
                     poly2 = self.reader.readUShort()
-                    mesh.vertex_colors_poly.append(poly2)
-                    mesh.vertex_colors_poly.append(poly1)
+                    mesh.color_attributes_poly.append(poly2)
+                    mesh.color_attributes_poly.append(poly1)
                     count -= 1
             elif ch >= 0 and ch < NUMMESHTCH:
                 count = tn
@@ -555,6 +662,7 @@ class DagImporter(Operator, ImportHelper):
                 self.reader.endChunk(co * 4 * tn)
                 self.reader.endChunk(faceNumber * 2 * 3)
             chn -= 1
+        return
 
     def loadBigMesh(self, mesh):
         count = self.reader.readDWord()
@@ -577,22 +685,22 @@ class DagImporter(Operator, ImportHelper):
             ch = chid - 1
             if ch == -1:
                 count = tn
-                mesh.vertex_colors = list()
+                mesh.color_attributes = list()
                 while count:
                     if co == 1:
-                        mesh.vertex_colors.append([self.reader.readFloat(), 0, 0])
+                        mesh.color_attributes.append([self.reader.readFloat(), 0, 0])
                     elif co == 2:
-                        mesh.vertex_colors.append([self.reader.readFloat(), self.reader.readFloat(), 0])
+                        mesh.color_attributes.append([self.reader.readFloat(), self.reader.readFloat(), 0])
                     else:
-                        mesh.vertex_colors.append(self.reader.readVector())
+                        mesh.color_attributes.append(self.reader.readVector())
                     count -= 1
                 count = faceNumber
                 while count:
-                    mesh.vertex_colors_poly.append(self.reader.readDWord())
+                    mesh.color_attributes_poly.append(self.reader.readDWord())
                     poly1 = self.reader.readDWord()
                     poly2 = self.reader.readDWord()
-                    mesh.vertex_colors_poly.append(poly2)
-                    mesh.vertex_colors_poly.append(poly1)
+                    mesh.color_attributes_poly.append(poly2)
+                    mesh.color_attributes_poly.append(poly1)
                     count -= 1
             elif ch >= 0 and ch < NUMMESHTCH:
                 count = tn
@@ -624,9 +732,9 @@ class DagImporter(Operator, ImportHelper):
                 self.reader.endChunk(co * 4 * tn)
                 self.reader.endChunk(faceNumber * 4 * 3)
             chn -= 1
+        return
 
     def loadObj(self, node, size):
-        log=get_text('log')
         endpos = self.reader.file.tell() + size
         while self.reader.file.tell() < endpos:
             chunk = self.reader.beginChunk()
@@ -636,12 +744,6 @@ class DagImporter(Operator, ImportHelper):
             elif chunk.id == DAG_OBJ_BIGMESH:
                 mesh = node.mesh = MeshExp()
                 self.loadBigMesh(mesh)
-            #elif chunk.id == DAG_OBJ_BONES:
-                #self.loadBones()
-                #pass
-                #id = self.reader.readUShort()
-                #bone_tm=self.reader.readMatrix4x3()
-                #log.write(f'bone_{id}={bone_tm}\n')
             elif chunk.id == DAG_OBJ_SPLINES:
                 node.curves = []
                 self.loadSplines(node.curves)
@@ -668,9 +770,9 @@ class DagImporter(Operator, ImportHelper):
                     mesh.normals_faces.append(indices[1])
             else:
                 self.reader.endChunk(chunk.size)
+        return
 
     def importNodes(self, size):
-        log=get_text('log')
         tm=objProps=None
         subMat=[]
         node = None
@@ -767,6 +869,7 @@ class DagImporter(Operator, ImportHelper):
         mat.shader = self.reader.readDAGString()
         mat.script = self.reader.readStr(size - (self.reader.file.tell() - pos))
         self.materials.append(mat)
+        return
 
     def load(self, filepath):
         print("\nReading DAG file:\n{}".format(filepath))
@@ -802,8 +905,8 @@ class DagImporter(Operator, ImportHelper):
         self.buildMaterials()
 #searching for existing collection
         col_name = os.path.basename(filepath).replace('.dag','')
-        self.collection = get_dag_col(col_name,self.import_refresh)
-        if self.import_preserve_path:
+        self.collection = get_dag_col(col_name,self.replace_existing)
+        if self.preserve_path:
             self.collection["name"] = filepath.replace('.dag','')
 
         for node in self.rootNode.children:
@@ -813,13 +916,15 @@ class DagImporter(Operator, ImportHelper):
             node.tm[2] = tmp_r.copy()
             self.buildMesh(node, node.tm, None)
             self.buildCurves(node, node.tm, None)
+            self.buildEmpty(node, node.tm, None)
+        return
 
     def loadVariations(self, filepath):
         res = re.findall("_dmg", filepath)
-        dmgs = ("", "_dmg") if self.import_dmgs else (res[0] if len(res) else "",)
+        dmgs = ("", "_dmg") if self.with_dmgs else (res[0] if len(res) else "",)
         for dmg in dmgs:
             filepath2 = os.path.basename(filepath)
-            if self.import_lods is False and self.import_dps is False:
+            if self.with_lods is False and self.with_dps is False:
                 if re.search("[.]lod[0-9][0-9]", filepath2) is not None:
                     filepath2 = re.sub("_dmg[.]lod", ".lod", filepath2)
                     filepath2 = re.sub("[.]lod", dmg + ".lod", filepath2)
@@ -833,7 +938,7 @@ class DagImporter(Operator, ImportHelper):
             filepath2 = filepath2.replace(".dag", "")
             lod = ""
             dp = ""
-            if self.import_lods:
+            if self.with_lods:
                 lod = ".lod??"
             else:
                 res = re.findall("[.]lod[0-9][0-9]", filepath2)
@@ -841,7 +946,7 @@ class DagImporter(Operator, ImportHelper):
             filepath2 = re.sub("_dmg[.]lod[0-9][0-9]", "", filepath2)
             filepath2 = re.sub("[.]lod[0-9][0-9]", "", filepath2)
 
-            if self.import_dps:
+            if self.with_dps:
                 dp = "_dp_??"
             else:
                 res = re.findall("_dp_[0-9][0-9]", filepath2)
@@ -850,39 +955,46 @@ class DagImporter(Operator, ImportHelper):
             filepath2 = re.sub("_dp_[0-9][0-9]_dmg", "", filepath2)
             filepath2 = re.sub("_dp_[0-9][0-9]", "", filepath2)
 
-            if self.import_lods or lod != "":
+            if self.with_lods or lod != "":
                 for path in glob.glob(os.path.join(os.path.dirname(filepath), filepath2) + dmg + lod + ".dag"):
                     self.load(path)
-            if self.import_dps or dp != "":
+            if self.with_dps or dp != "":
                 for path in glob.glob(os.path.join(os.path.dirname(filepath), filepath2) + dp + dmg + lod + ".dag"):
                     self.load(path)
+        return
 
     def execute(self, context):
-        log=get_text('log')
-        try:
-            bpy.ops.object.mode_set(mode='OBJECT')
-        except Exception:
-            pass
-
+        if bpy.context.mode != 'OBJECT':
+            try:
+                bpy.ops.object.mode_set(mode='OBJECT')
+            except Exception:
+                pass
+        bpy.ops.dt.init_blend()
         filepath = '{:s}'.format(self.filepath)
-        log.write(f'IMPORTING {filepath}\n')
-        if self.import_dmgs is False and self.import_dps is False and self.import_lods is False:
+        msg = f'IMPORTING {filepath}\n'
+        log(msg)#isn't necessary in the info panel
+        if self.with_dmgs is False and self.with_dps is False and self.with_lods is False:
             self.load(filepath)
         else:
             self.loadVariations(filepath)
-        log.write('FINISHED\n\n')
+        msg = f'Import of {filepath} is FINISHED\n'
+        log(msg, show = True)
+        context.window.scene = bpy.data.scenes['GEOMETRY']
         return {'FINISHED'}
 
 
 def menu_func_import(self, context):
     self.layout.operator(DagImporter.bl_idname, text='Dagor Engine (.dag)')
+    return
 
 
 def register():
-    bpy.utils.register_class(DagImporter)
+    register_class(DagImporter)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+    return
 
 
 def unregister():
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
-    bpy.utils.unregister_class(DagImporter)
+    unregister_class(DagImporter)
+    return

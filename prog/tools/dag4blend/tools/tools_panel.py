@@ -6,79 +6,14 @@ from   time                         import time
 from ..dagormat.build_node_tree     import buildMaterial
 from ..dagormat.compare_dagormats   import compare_dagormats
 
-from ..helpers.texts                import get_text
+from  .tools_functions              import *
+from ..helpers.texts                import log
 from ..helpers.basename             import basename
 from ..helpers.popup                import show_popup
 
 #FUNCTIONS#################################################################
 
-#returns geometry nodegroup that turns collection into single mesh
-def get_converter_ng():
-    ng = bpy.data.node_groups.get('GN_col_to_mesh')
-    if ng is not None:
-        return ng
-    ng = bpy.data.node_groups.new('GN_col_to_mesh','GeometryNodeTree')
-    inp = ng.nodes.new(type="NodeGroupInput")
-    inp.location = (-480,0)
-    inp.outputs[0].type = 'COLLECTION'
-
-    out = ng.nodes.new(type="NodeGroupOutput")
-
-    col = ng.nodes.new(type="GeometryNodeCollectionInfo")
-    col.location = (-320,0)
-
-    realize = ng.nodes.new(type="GeometryNodeRealizeInstances")
-    realize.location = (-160,0)
-
-    ng.links.new(inp.outputs[0],col.inputs[0])
-    ng.links.new(col.outputs[0],realize.inputs[0])
-    ng.links.new(realize.outputs[0],out.inputs[0])
-    return ng
-
-#turns collection instance into mesh
-def node_to_geo(node):
-    #preparation
-    mesh = bpy.data.meshes.new('')
-    geo_node = bpy.data.objects.new('name',mesh)
-    matr = node.matrix_local
-    col = bpy.context.collection
-    col.objects.link(geo_node)
-    geo_node.matrix_local = matr
-    geo_node.parent = node.parent
-    name = node.name
-    #convertion
-    geo_node.name = name
-    mod = geo_node.modifiers.new('','NODES')
-    bpy.data.node_groups.remove(mod.node_group)
-    converter_group = get_converter_ng()
-    mod.node_group = converter_group
-    mod['Input_0'] = node.instance_collection
-    #cleanup
-    ctx = bpy.context.copy()
-    ctx['object'] = geo_node
-    bpy.ops.object.modifier_apply(ctx, modifier=mod.name)
-    bpy.data.objects.remove(node)
-    #uv_fix
-    attrs = sorted(geo_node.data.attributes.keys())
-    for attr in attrs:
-        if attr.startswith('UVMap'):
-            geo_node.data.attributes.active = geo_node.data.attributes[attr]
-            bpy.ops.geometry.attribute_convert(ctx,mode='UV_MAP')
-    #shading
-    geo_node.data.use_auto_smooth = True
-    geo_node.data.auto_smooth_angle = 2*math.pi
-    return
-
-#returns gi_black material if exists or creates new
-def get_gi_black():
-    for mat in bpy.data.materials:
-        if mat.dagormat.shader_class == 'gi_black':
-            return mat
-    mat = bpy.data.materials.new('gi_black')
-    mat.dagormat.shader_class = 'gi_black'
-    return mat
-
-def remove_smooth_groups(objects):
+def mesh_remove_smooth_groups(objects):
     for obj in objects:
         if obj.type == 'MESH':
             mesh = obj.data
@@ -173,15 +108,16 @@ def pack_orphans(col):
 def apply_modifiers(obj):
     ctx=bpy.context.copy()
     ctx['object'] = obj
+    was_linked = False
+    if bpy.context.scene.collection.objects.get(obj.name) is None:
+        bpy.context.scene.collection.objects.link(obj)
+        was_linked = True
     for mod in obj.modifiers:
         if mod.show_viewport:
             bpy.ops.object.modifier_apply(ctx, modifier=mod.name)
     obj.modifiers.clear()
-    attrs = sorted(obj.data.attributes.keys())
-    for attr in attrs:
-        if attr.startswith('UVMap'):
-            obj.data.attributes.active = obj.data.attributes[attr]
-            bpy.ops.geometry.attribute_convert(ctx,mode='UV_MAP')
+    if was_linked:
+        bpy.context.scene.collection.objects.unlink(obj)
 
 def get_autonamed():
     mat=bpy.data.materials.get('autoNamedMat_0')
@@ -230,7 +166,6 @@ def merge_mat_duplicates(obj):
     return
 
 def fix_mat_slots(obj):
-    log=get_text('log')
     was_broken=False
     mesh=obj.data
     mat_slots=obj.material_slots
@@ -239,7 +174,7 @@ def fix_mat_slots(obj):
         name = obj.name
         if 'og_name' in obj.keys():
             name = obj['og_name']#for exported duplicates, that have additional indicies
-        log.write(f"WARNING! {name} doesn't have material! Temporary autoNamedMat_0 applied\n")
+        log(f'object "{name}" does not have material! Temporary autoNamedMat_0 applied\n', type = 'WARNING', show = True)
         mesh.materials.append(get_autonamed())
     else:
         for slot in mat_slots:
@@ -255,7 +190,6 @@ def fix_mat_slots(obj):
     return was_broken
 
 def optimize_mat_slots(obj):
-    log=get_text('log')
     proxymat=None
     proxy = obj.dagorprops.get('apex_interior_material:t')
     if proxy is not None:
@@ -305,22 +239,27 @@ def optimize_mat_slots(obj):
     return
 
 def preserve_sharp(obj):
-    log=get_text('log')
     bm=bmesh.new()
     bm.from_mesh(obj.data)
     bm.edges.ensure_lookup_table()
     smooth_angle = obj.data.auto_smooth_angle
+    name = obj.name
+    if 'og_name' in obj.keys():
+        name = obj['og_name']
     for e in bm.edges:
         if e.is_boundary:
             e.smooth=False
         elif e.link_faces.__len__()>2:
-            log.write(f'WARNING!{obj.name}: incorrect geometry, edge {e.index} used more than in two faces!\n')
+            log(f'Object "{name}" has incorrect geometry, edge {e.index} used in more than two faces!\n', type ='WARNING')
             e.smooth=False
+        elif e.link_faces.__len__()==0:
+            log(f'Object "{name}" has incorrect geometry, edge {e.index} is not used in any faces!\n', type = 'WARNING')
         elif e.smooth:
             e.smooth = e.calc_face_angle()<smooth_angle
     bm.to_mesh(obj.data)
     del bm
     obj.data.auto_smooth_angle=math.radians(180)
+    return
 
 def clear_dagorprops(obj):
     DP = obj.dagorprops
@@ -372,29 +311,7 @@ class DAGOR_OT_ClearSG(Operator):
     bl_options      = {'UNDO'}
     def execute(self, context):
         objects = context.view_layer.objects.selected
-        remove_smooth_groups(objects)
-        return {'FINISHED'}
-
-class DAGOR_OT_Materialize(Operator):
-    bl_idname       = 'dt.materialize_nodes'
-    bl_label        = 'Materialize nodes'
-    bl_description  = "Turn selected collection instances into real geometry"
-    bl_options      = {'UNDO'}
-
-    def execute(self,context):
-        if context.mode != 'OBJECT':
-            show_popup('Works only in OBJECT mode!')
-            return {'CANCELLED'}
-
-        sel=[obj for obj in context.selected_objects if obj.type=='EMPTY'
-                 and obj.instance_collection is not None]
-
-        if sel.__len__()==0:
-            show_popup('No collection instances selected!')
-            return {'CANCELLED'}
-
-        for obj in sel:
-            node_to_geo(obj)
+        mesh_remove_smooth_groups(objects)
         return {'FINISHED'}
 
 class DAGOR_OT_mopt(Operator):
@@ -427,7 +344,6 @@ class DAGOR_OT_SaveTextures(Operator):
 
     def execute(self,context):
         start = time()
-        log=get_text('log')
         sel=[o for o in context.selected_objects if o.type=="MESH"]
         if sel.__len__()==0:
             show_popup(
@@ -438,9 +354,9 @@ class DAGOR_OT_SaveTextures(Operator):
         path=os.path.join(context.scene.dag_export_path,'textures\\')
         if not os.path.exists(path):
             os.mkdir(path)
-            log.write(f'INFO: directory \n{path}\ncreated\n')
+            log(f'directory \n{path}\ncreated\n')
         tex_count=save_textures(sel,path)
-        log.write(f'INFO: saved {tex_count} texture(s)\n')
+        log('saved {tex_count} texture(s)\n')
         show_popup(f'finished in {round(time()-start,4)} sec')
         return{'FINISHED'}
 
@@ -592,7 +508,6 @@ class DAGOR_PT_Tools(Panel):
             meshbox.operator('dt.apply_modifiers',icon='MODIFIER_ON')
             meshbox.operator('dt.clear_normals',icon='NORMALS_VERTEX_FACE')
             meshbox.operator('dt.clear_smooth_groups',icon='NORMALS_FACE')
-            meshbox.operator('dt.materialize_nodes', icon='MESH_MONKEY')
 
         scenebox=layout.box()
         header=scenebox.row()
@@ -631,7 +546,6 @@ classes = [
            DAGOR_OT_ApplyMods,
            DAGOR_OT_GroupCollections,
            DAGOR_OT_PackOrphans,
-           DAGOR_OT_Materialize,
            DAGOR_PT_Tools
            ]
 

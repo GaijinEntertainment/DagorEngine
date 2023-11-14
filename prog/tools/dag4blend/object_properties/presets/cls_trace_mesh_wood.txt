@@ -1,6 +1,0 @@
-renderable:b=no
-collidable:b=yes
-phmat:t=wood
-isPhysCollidable:b=yes
-isTraceable:b=no
-collision:t=mesh
