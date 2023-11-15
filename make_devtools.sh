@@ -64,12 +64,12 @@ function obtain_dxc_sources() {
 
     cd $packages_dir
 
-    git clone "https://github.com/microsoft/DirectXShaderCompiler.git"
+    git clone "https://github.com/microsoft/DirectXShaderCompiler.git" > /dev/null
     cd "DirectXShaderCompiler"
 
-    git checkout "v$dxc_version"
-    git submodule init
-    git submodule update
+    git checkout "v$dxc_version" > /dev/null
+    git submodule init > /dev/null
+    git submodule update > /dev/null
 
     cd ../.. # Go back to previous working directory.
 
