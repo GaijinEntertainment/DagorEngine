@@ -18,6 +18,7 @@ enum ShaderVarType
   SHVT_BUFFER,
   SHVT_INT4,
   SHVT_FLOAT4X4,
+  SHVT_SAMPLER,
 };
 
 enum ShaderVarTextureType : int

@@ -252,13 +252,16 @@ hlsl(vs) {
   #define CLIPPLANE(v)               
 ##endif
 
-##if hardware.vulkan || hardware.metal
+##if hardware.vulkan
   //vulkan compiler uses internal definitions for HW_VERTEX_ID, based on internal compiler used
   #if SHADER_COMPILER_DXC
     #define USE_VERTEX_ID_WITHOUT_BASE_OFFSET(input_struct) input_struct.vertexId -= input_struct.baseVertexId;
   #else
     #define USE_VERTEX_ID_WITHOUT_BASE_OFFSET(input_struct)
   #endif
+##elif hardware.metal
+  // we cannot use BASE_VERTEX on some Apple devies (old A8 iPads)
+  #define USE_VERTEX_ID_WITHOUT_BASE_OFFSET(input_struct)
 ##else
   #define HW_VERTEX_ID uint vertexId: SV_VertexID;
   #define HW_BASE_VERTEX_ID error! not supported on this compiler/API
@@ -407,6 +410,13 @@ hlsl(ps) {
     float4 tex2DBindless(TextureSampler a, float2 uv)
     {
         Texture2D tex = a.tex;
+        SamplerState smp = a.smp;
+        return tex.Sample(smp, uv);
+    }
+
+    float4 tex2DBindless(TextureArraySampler a, float3 uv)
+    {
+        Texture2DArray tex = a.tex;
         SamplerState smp = a.smp;
         return tex.Sample(smp, uv);
     }
@@ -823,7 +833,7 @@ hlsl {
 ##else
   #if HALF_PRECISION
     return min(val, 65504.h); // clamp to half max
-  #elif SHADER_COMPILER_HLSL2021
+  #elif __HLSL_VERSION >= 2021
     return select(isfinite(dot(val, val)).xxx, val, half3(0, 0, 0));
   #else
     return isfinite(dot(val, val)).xxx ? val : half3(0, 0, 0);

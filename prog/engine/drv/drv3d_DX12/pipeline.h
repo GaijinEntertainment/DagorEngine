@@ -1,8 +1,24 @@
 #pragma once
 
 #include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/string.h>
 #include <perfMon/dag_autoFuncProf.h>
 #include <perfMon/dag_statDrv.h>
+#include <supp/dag_comPtr.h>
+#include <dxil/compiled_shader_header.h>
+
+#include "d3d12_error_handling.h"
+#include "d3d12_debug_names.h"
+#include "host_device_shared_memory_region.h"
+#include "shader_program_id.h"
+#include "pipeline_cache.h"
+#include "d3d12_utils.h"
+#include "render_state.h"
+#include "descriptor_heap.h"
+#include "image_view_state.h"
+#include "tagged_handles.h"
+
 
 #if !_TARGET_XBOXONE
 using CD3DX12_PIPELINE_STATE_STREAM_AS =
@@ -16,7 +32,8 @@ namespace drv3d_dx12
 namespace backend
 {
 class BindlessSetManager;
-}
+class ShaderModuleManager;
+} // namespace backend
 // Wraps the global id of a buffer object, this makes it easier to access
 // the index and the buffer property bits its carrying.
 class BufferGlobalId
@@ -73,11 +90,11 @@ public:
 struct BufferState
 {
   ID3D12Resource *buffer = nullptr;
-  uint32_t size = 0;
+  uint64_t size = 0;
   uint32_t discardCount = 0;
   uint32_t currentDiscardIndex = 0;
   uint32_t fistDiscardFrame = 0;
-  uint32_t offset = 0;
+  uint64_t offset = 0;
   BufferGlobalId resourceId;
   eastl::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE[]> srvs;
   eastl::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE[]> uavs;
@@ -93,11 +110,11 @@ struct BufferState
     uint8_t *cpuPointer;
   };
 #endif
-  uint32_t totalSize() const { return discardCount * size; }
+  uint64_t totalSize() const { return discardCount * size; }
 
-  ValueRange<uint32_t> usageRange() const { return make_value_range<uint32_t>(offset, totalSize()); }
+  ValueRange<uint64_t> usageRange() const { return make_value_range<uint64_t>(offset, totalSize()); }
 
-  uint32_t currentOffset() const { return offset + currentDiscardIndex * size; }
+  uint64_t currentOffset() const { return offset + currentDiscardIndex * size; }
 
   D3D12_GPU_VIRTUAL_ADDRESS currentGPUPointer() const { return gpuPointer + currentDiscardIndex * size; }
 
@@ -140,9 +157,9 @@ struct BufferState
 struct BufferReference
 {
   ID3D12Resource *buffer = nullptr;
-  uint32_t offset = 0; // only use this in conjunction with the buffer object, all pointers are
+  uint64_t offset = 0; // only use this in conjunction with the buffer object, all pointers are
                        // already adjusted!
-  uint32_t size = 0;
+  uint64_t size = 0;
   BufferGlobalId resourceId;
   D3D12_CPU_DESCRIPTOR_HANDLE srv = {0};
   D3D12_CPU_DESCRIPTOR_HANDLE uav = {0};
@@ -218,21 +235,21 @@ struct BufferResourceReference
 
 struct BufferResourceReferenceAndOffset : BufferResourceReference
 {
-  uint32_t offset = 0;
+  uint64_t offset = 0;
 
   BufferResourceReferenceAndOffset() = default;
   BufferResourceReferenceAndOffset(const BufferReference &ref) : BufferResourceReference{ref}, offset{ref.offset} {}
   BufferResourceReferenceAndOffset(const BufferState &buf) : BufferResourceReference{buf}, offset{BufferReference{buf}.offset} {}
-  BufferResourceReferenceAndOffset(const BufferReference &ref, uint32_t ofs) : BufferResourceReference{ref}, offset{ref.offset + ofs}
+  BufferResourceReferenceAndOffset(const BufferReference &ref, uint64_t ofs) : BufferResourceReference{ref}, offset{ref.offset + ofs}
   {}
-  BufferResourceReferenceAndOffset(const BufferState &buf, uint32_t ofs) :
+  BufferResourceReferenceAndOffset(const BufferState &buf, uint64_t ofs) :
     BufferResourceReference{buf}, offset{BufferReference{buf}.offset + ofs}
   {}
   BufferResourceReferenceAndOffset(const HostDeviceSharedMemoryRegion &buf) :
-    BufferResourceReference{buf}, offset{uint32_t(buf.range.front())}
+    BufferResourceReference{buf}, offset{uint64_t(buf.range.front())}
   {}
-  BufferResourceReferenceAndOffset(const HostDeviceSharedMemoryRegion &buf, uint32_t ofs) :
-    BufferResourceReference{buf}, offset{uint32_t(buf.range.front() + ofs)}
+  BufferResourceReferenceAndOffset(const HostDeviceSharedMemoryRegion &buf, uint64_t ofs) :
+    BufferResourceReference{buf}, offset{uint64_t(buf.range.front() + ofs)}
   {}
 
   bool operator==(const BufferResourceReferenceAndOffset &other) const
@@ -245,30 +262,30 @@ struct BufferResourceReferenceAndOffset : BufferResourceReference
 
 struct BufferResourceReferenceAndRange : BufferResourceReferenceAndOffset
 {
-  uint32_t size = 0;
+  uint64_t size = 0;
 
   BufferResourceReferenceAndRange() = default;
   BufferResourceReferenceAndRange(const BufferReference &ref) : BufferResourceReferenceAndOffset{ref}, size{ref.size} {}
   BufferResourceReferenceAndRange(const BufferState &buf) : BufferResourceReferenceAndOffset{buf}, size{buf.size} {}
-  BufferResourceReferenceAndRange(const BufferReference &ref, uint32_t offset) :
+  BufferResourceReferenceAndRange(const BufferReference &ref, uint64_t offset) :
     BufferResourceReferenceAndOffset(ref, offset), size{ref.size - offset}
   {}
-  BufferResourceReferenceAndRange(const BufferState &buf, uint32_t offset) :
+  BufferResourceReferenceAndRange(const BufferState &buf, uint64_t offset) :
     BufferResourceReferenceAndOffset{buf, offset}, size{buf.size - offset}
   {}
-  BufferResourceReferenceAndRange(const BufferReference &ref, uint32_t offset, uint32_t sz) :
+  BufferResourceReferenceAndRange(const BufferReference &ref, uint64_t offset, uint64_t sz) :
     BufferResourceReferenceAndOffset{ref, offset}, size{sz}
   {}
-  BufferResourceReferenceAndRange(const BufferState &buf, uint32_t offset, uint32_t sz) :
+  BufferResourceReferenceAndRange(const BufferState &buf, uint64_t offset, uint64_t sz) :
     BufferResourceReferenceAndOffset{buf, offset}, size{sz}
   {}
   BufferResourceReferenceAndRange(const HostDeviceSharedMemoryRegion &buf) :
-    BufferResourceReferenceAndOffset{buf}, size{uint32_t(buf.range.size())}
+    BufferResourceReferenceAndOffset{buf}, size{buf.range.size()}
   {}
-  BufferResourceReferenceAndRange(const HostDeviceSharedMemoryRegion &buf, uint32_t ofs) :
-    BufferResourceReferenceAndOffset{buf, ofs}, size{uint32_t(buf.range.size() - ofs)}
+  BufferResourceReferenceAndRange(const HostDeviceSharedMemoryRegion &buf, uint64_t ofs) :
+    BufferResourceReferenceAndOffset{buf, ofs}, size{buf.range.size() - ofs}
   {}
-  BufferResourceReferenceAndRange(const HostDeviceSharedMemoryRegion &buf, uint32_t ofs, uint32_t sz) :
+  BufferResourceReferenceAndRange(const HostDeviceSharedMemoryRegion &buf, uint64_t ofs, uint64_t sz) :
     BufferResourceReferenceAndOffset{buf, ofs}, size{sz}
   {}
 
@@ -288,15 +305,15 @@ struct BufferResourceReferenceAndAddress : BufferResourceReference
   BufferResourceReferenceAndAddress(const BufferReference &ref) : BufferResourceReference{ref}, gpuPointer{ref.gpuPointer} {}
   BufferResourceReferenceAndAddress(const BufferState &buf) : BufferResourceReference{buf}, gpuPointer{BufferReference{buf}.gpuPointer}
   {}
-  BufferResourceReferenceAndAddress(const BufferReference &ref, uint32_t offset) :
+  BufferResourceReferenceAndAddress(const BufferReference &ref, uint64_t offset) :
     BufferResourceReference{ref}, gpuPointer{ref.gpuPointer + offset}
   {}
-  BufferResourceReferenceAndAddress(const BufferState &buf, uint32_t offset) :
+  BufferResourceReferenceAndAddress(const BufferState &buf, uint64_t offset) :
     BufferResourceReference{buf}, gpuPointer{BufferReference{buf}.gpuPointer + offset}
   {}
   BufferResourceReferenceAndAddress(const HostDeviceSharedMemoryRegion &buf) : BufferResourceReference{buf}, gpuPointer{buf.gpuPointer}
   {}
-  BufferResourceReferenceAndAddress(const HostDeviceSharedMemoryRegion &buf, uint32_t offset) :
+  BufferResourceReferenceAndAddress(const HostDeviceSharedMemoryRegion &buf, uint64_t offset) :
     BufferResourceReference{buf}, gpuPointer{buf.gpuPointer + offset}
   {}
 
@@ -315,31 +332,31 @@ struct BufferResourceReferenceAndAddress : BufferResourceReference
 
 struct BufferResourceReferenceAndAddressRange : BufferResourceReferenceAndAddress
 {
-  uint32_t size = 0;
+  uint64_t size = 0;
 
   BufferResourceReferenceAndAddressRange() = default;
   BufferResourceReferenceAndAddressRange(const BufferReference &ref) : BufferResourceReferenceAndAddress{ref}, size{ref.size} {}
   BufferResourceReferenceAndAddressRange(const BufferState &buf) : BufferResourceReferenceAndAddress{buf}, size{buf.size} {}
-  BufferResourceReferenceAndAddressRange(const BufferReference &ref, uint32_t offset) :
+  BufferResourceReferenceAndAddressRange(const BufferReference &ref, uint64_t offset) :
     BufferResourceReferenceAndAddress(ref, offset), size{ref.size - offset}
   {}
-  BufferResourceReferenceAndAddressRange(const BufferState &buf, uint32_t offset) :
+  BufferResourceReferenceAndAddressRange(const BufferState &buf, uint64_t offset) :
     BufferResourceReferenceAndAddress{buf, offset}, size{buf.size - offset}
   {}
-  BufferResourceReferenceAndAddressRange(const BufferReference &ref, uint32_t offset, uint32_t sz) :
-    BufferResourceReferenceAndAddress{ref, offset}, size{sz ? sz : uint32_t(ref.size - offset)}
+  BufferResourceReferenceAndAddressRange(const BufferReference &ref, uint64_t offset, uint64_t sz) :
+    BufferResourceReferenceAndAddress{ref, offset}, size{sz ? sz : uint64_t(ref.size - offset)}
   {}
-  BufferResourceReferenceAndAddressRange(const BufferState &buf, uint32_t offset, uint32_t sz) :
-    BufferResourceReferenceAndAddress{buf, offset}, size{sz ? sz : uint32_t(buf.size - offset)}
+  BufferResourceReferenceAndAddressRange(const BufferState &buf, uint64_t offset, uint64_t sz) :
+    BufferResourceReferenceAndAddress{buf, offset}, size{sz ? sz : uint64_t(buf.size - offset)}
   {}
   BufferResourceReferenceAndAddressRange(const HostDeviceSharedMemoryRegion &buf) :
-    BufferResourceReferenceAndAddress{buf}, size{uint32_t(buf.range.size())}
+    BufferResourceReferenceAndAddress{buf}, size{uint64_t(buf.range.size())}
   {}
-  BufferResourceReferenceAndAddressRange(const HostDeviceSharedMemoryRegion &buf, uint32_t offset) :
-    BufferResourceReferenceAndAddress{buf, offset}, size{uint32_t(buf.range.size() - offset)}
+  BufferResourceReferenceAndAddressRange(const HostDeviceSharedMemoryRegion &buf, uint64_t offset) :
+    BufferResourceReferenceAndAddress{buf, offset}, size{uint64_t(buf.range.size() - offset)}
   {}
-  BufferResourceReferenceAndAddressRange(const HostDeviceSharedMemoryRegion &buf, uint32_t offset, uint32_t sz) :
-    BufferResourceReferenceAndAddress{buf, offset}, size{sz ? sz : uint32_t(buf.range.size() - offset)}
+  BufferResourceReferenceAndAddressRange(const HostDeviceSharedMemoryRegion &buf, uint64_t offset, uint64_t sz) :
+    BufferResourceReferenceAndAddress{buf, offset}, size{sz ? sz : uint64_t(buf.range.size() - offset)}
   {}
 
   bool operator==(const BufferResourceReferenceAndAddressRange &other) const
@@ -699,6 +716,11 @@ public:
     bool is_wire_frame, const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout,
     RecoverablePipelineCompileBehavior on_error, bool give_name);
 
+  void errorPrintBlkString(const BasePipeline &base, const InputLayout &input_layout, bool is_wire_frame,
+    const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top);
+  void errorPrintMeshBlkString(const BasePipeline &base, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
+    const FramebufferLayout &fb_layout);
+
   bool isReady() const { return nullptr != pipeline.Get(); }
 
   ID3D12PipelineState *get() const { return pipeline.Get(); }
@@ -1044,6 +1066,14 @@ public:
       variant.swapStaticRenderStateID(a, b);
     }
   }
+
+  BasePipelineIdentifier getIdentifier() const
+  {
+    BasePipelineIdentifier ident;
+    ident.vs = vsModule.header.hash;
+    ident.ps = psModule.header.hash;
+    return ident;
+  }
 };
 
 class ComputePipeline
@@ -1092,9 +1122,11 @@ class ComputePipeline
     // pipeline yet.
     if (from_cache_only && !cacheTarget.CachedBlobSizeInBytes)
     {
+#if DX12_REPORT_PIPELINE_CREATE_TIMING
       // turns off reporting of the profile, we don't want to know how long it took to _not_
       // load a pipeline
       funcProfiler.fmt = nullptr;
+#endif
       return true;
     }
 #else
@@ -1120,9 +1152,11 @@ class ComputePipeline
         // with cache only, we stop here
         if (from_cache_only)
         {
+#if DX12_REPORT_PIPELINE_CREATE_TIMING
           // turns off reporting of the profile, we don't want to know how long it took to _not_
           // load a pipeline
           funcProfiler.fmt = nullptr;
+#endif
           return true;
         }
 
@@ -1304,7 +1338,7 @@ public:
   ComputePipeline *getCompute(ProgramID program);
   BasePipeline *getGraphics(GraphicsProgramID program);
   void addCompute(ID3D12Device2 *device, PipelineCache &cache, ProgramID id, ComputeShaderModule shader,
-    RecoverablePipelineCompileBehavior on_error, bool give_name);
+    RecoverablePipelineCompileBehavior on_error, bool give_name, CSPreloaded preloaded);
 
   void addGraphics(ID3D12Device2 *device, PipelineCache &cache, FramebufferLayoutManager &fbs, GraphicsProgramID program, ShaderID vs,
     ShaderID ps, RecoverablePipelineCompileBehavior on_error, bool give_name);
@@ -1578,7 +1612,7 @@ public:
     pixelShaderComputeProgramIDMap[group].clear();
   }
   void loadComputeShaderFromDump(ID3D12Device2 *device, PipelineCache &cache, ProgramID program,
-    RecoverablePipelineCompileBehavior on_error, bool give_name)
+    RecoverablePipelineCompileBehavior on_error, bool give_name, CSPreloaded preloaded)
   {
     auto shaderCompressionIndex = computeProgramIndexToDumpShaderIndex[program.getGroup()][program.getIndex()];
     auto byteCode =
@@ -1596,7 +1630,7 @@ public:
       }
     }
 
-    addCompute(device, cache, program, eastl::move(basicModule), on_error, give_name);
+    addCompute(device, cache, program, eastl::move(basicModule), on_error, give_name, preloaded);
   }
 
   BasePipeline *findLoadedPipeline(const backend::VertexShaderModuleRefStore &vs, const backend::PixelShaderModuleRefStore &ps)
@@ -1627,7 +1661,7 @@ public:
       debug("DX12: precomiling graphics pipeline...");
 
       char hashString[1 + 2 * sizeof(dxil::HashValue)];
-      pipeline.base.vs.convertToString(hashString, array_size(hashString));
+      pipeline.base.vs.convertToString(hashString, countof(hashString));
       debug("DX12: Looking for VS %s...", hashString);
       auto vsID = findVertexShader(pipeline.base.vs);
       if (ShaderID::Null() == vsID)
@@ -1635,7 +1669,7 @@ public:
         debug("DX12: ...shader not found");
         continue;
       }
-      pipeline.base.ps.convertToString(hashString, array_size(hashString));
+      pipeline.base.ps.convertToString(hashString, countof(hashString));
       debug("DX12: Looking for PS %s...", hashString);
       auto psID = findPixelShader(pipeline.base.ps);
       if (ShaderID::Null() == psID)
@@ -1716,7 +1750,7 @@ public:
       debug("DX12: precomiling mesh pipeline...");
 
       char hashString[1 + 2 * sizeof(dxil::HashValue)];
-      pipeline.base.vs.convertToString(hashString, array_size(hashString));
+      pipeline.base.vs.convertToString(hashString, countof(hashString));
       debug("DX12: Looking for VS %s...", hashString);
       auto vsID = findVertexShader(pipeline.base.vs);
       if (ShaderID::Null() == vsID)
@@ -1724,7 +1758,7 @@ public:
         debug("DX12: ...shader not found");
         continue;
       }
-      pipeline.base.ps.convertToString(hashString, array_size(hashString));
+      pipeline.base.ps.convertToString(hashString, countof(hashString));
       debug("DX12: Looking for PS %s...", hashString);
       auto psID = findPixelShader(pipeline.base.ps);
       if (ShaderID::Null() == psID)
@@ -1801,7 +1835,7 @@ public:
     {
       debug("DX12: precomiling compute pipeline...");
       char hashString[1 + 2 * sizeof(dxil::HashValue)];
-      pipeline.base.hash.convertToString(hashString, array_size(hashString));
+      pipeline.base.hash.convertToString(hashString, countof(hashString));
       debug("DX12: Looking for CS %s...", hashString);
       bool found = false;
       enumerateShaderFromHash(pipeline.base.hash, [device, &pipeline_cache, &found, this](auto gi, auto si, auto vs_count) {
@@ -1833,7 +1867,9 @@ public:
           return false;
         }
         debug("DX12: ...loading...");
-        loadComputeShaderFromDump(device, pipeline_cache, progId, RecoverablePipelineCompileBehavior::REPORT_ERROR, true);
+        // CSPreloaded::No as we doing the preload right now
+        loadComputeShaderFromDump(device, pipeline_cache, progId, RecoverablePipelineCompileBehavior::REPORT_ERROR, true,
+          CSPreloaded::No);
         found = true;
         return false;
       });
@@ -1857,7 +1893,10 @@ public:
       graphics_pipelines);
     compileMeshPipelineSet(device, pipeline_cache, fbs, static_render_states, framebuffer_layouts, mesh_pipelines);
     compileComputePipelineSet(device, pipeline_cache, compute_pipelines);
+    validateInGameSpikes = dgs_get_settings()->getBlockByNameEx("dx12")->getBool("validateInGameSpikes", false);
   }
+  bool validateInGameSpikes = false;
+  bool needToUpdateCache = false;
 };
 
 

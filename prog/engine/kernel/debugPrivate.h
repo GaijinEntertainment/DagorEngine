@@ -6,6 +6,8 @@
 #include <debug/dag_logSys.h>
 #include "writeStream.h"
 
+#define FORCE_THREAD_IDS _TARGET_XBOX || _TARGET_C1 || _TARGET_C2
+
 namespace debug_internal
 {
 extern bool flush_debug;
@@ -18,7 +20,7 @@ extern debug_log_callback_t log_callback;
 
 struct Context
 {
-#if DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0
+#if DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0 || FORCE_THREAD_IDS
   int threadId;
   const char *threadName;
 #endif

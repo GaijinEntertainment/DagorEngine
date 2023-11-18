@@ -1308,6 +1308,7 @@ namespace das
         bool        aot_module = false;                 // this is how AOT tool knows module is module, and not an entry point
         bool        completion = false;                 // this code is being compiled for 'completion' mode
         bool        export_all = false;                 // when user compiles, export all (public?) functions
+        bool        serialize_main_module = true;       // if false, then we recompile main module each time
     // error reporting
         int32_t     always_report_candidates_threshold = 6; // always report candidates if there are less than this number
     // memory
@@ -1540,6 +1541,8 @@ namespace das
     // this one collectes dependencies and compiles with modules
     ProgramPtr compileDaScript ( const string & fileName, const FileAccessPtr & access,
         TextWriter & logs, ModuleGroup & libGroup, CodeOfPolicies policies = CodeOfPolicies() );
+    ProgramPtr compileDaScriptSerialize ( const string & fileName, const FileAccessPtr & access,
+        TextWriter & logs, ModuleGroup & libGroup, CodeOfPolicies policies = CodeOfPolicies() );
 
     // collect script prerequisits
     bool getPrerequisits ( const string & fileName,
@@ -1591,6 +1594,8 @@ namespace das
         bool            g_resolve_annotations = true;
         TextWriter *    g_compilerLog = nullptr;
         int64_t         macroTimeTicks = 0;
+        AstSerializer * serializer_read = nullptr;
+        AstSerializer * serializer_write = nullptr;
         DebugAgentInstance g_threadLocalDebugAgent;
         static DAS_THREAD_LOCAL daScriptEnvironment * bound;
         static DAS_THREAD_LOCAL daScriptEnvironment * owned;

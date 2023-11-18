@@ -17,6 +17,12 @@ class RenderObjectSolid : public RenderObject
     const RenderState &render_state);
 };
 
+class RenderObjectDebug : public RenderObject
+{
+  virtual void renderCustom(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *,
+    const RenderState &render_state);
+};
+
 struct GuiTextCache
 {
   SmallTab<GuiVertex> v;

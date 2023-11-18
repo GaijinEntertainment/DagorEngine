@@ -40,6 +40,7 @@ struct D3dInterfaceTable
 
   unsigned (*get_texformat_usage)(int cflg, int restype);
   bool (*check_texformat)(int cflg);
+  int (*get_max_sample_count)(int cflg);
   bool (*issame_texformat)(int cflg1, int cflg2);
   bool (*check_cubetexformat)(int cflg);
   bool (*issame_cubetexformat)(int cflg1, int cflg2);
@@ -77,7 +78,7 @@ struct D3dInterfaceTable
   PROGRAM (*create_program_0)(VPROG, FSHADER, VDECL, unsigned *, unsigned);
   PROGRAM (*create_program_1)(const uint32_t *, const uint32_t *, VDECL, unsigned *, unsigned);
 
-  PROGRAM (*create_program_cs)(const uint32_t *cs_native);
+  PROGRAM (*create_program_cs)(const uint32_t *cs_native, CSPreloaded preloaded);
 
   bool (*set_program)(PROGRAM);
   void (*delete_program)(PROGRAM);

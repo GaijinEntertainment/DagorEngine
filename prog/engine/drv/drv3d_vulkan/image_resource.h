@@ -87,6 +87,7 @@ struct ImageLayoutInfo
 
   void init(uint32_t mips, uint32_t layers, VkImageLayout initial)
   {
+    roSealTargetLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     mipLevels = mips;
     data.resize(mips * layers);
     for (auto &&s : data)
@@ -214,6 +215,8 @@ public:
     return getUsage() &
            (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
   }
+
+  bool isSampledSRV() { return !isGPUWritable() && (getUsage() & VK_IMAGE_USAGE_SAMPLED_BIT); }
 
   void addBindlessSlot(uint32_t slot) { bindlessSlots.push_back(slot); }
 

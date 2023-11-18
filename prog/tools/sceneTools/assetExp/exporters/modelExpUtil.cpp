@@ -43,10 +43,8 @@ static bool find_valid_ref(dag::ConstSpan<IDagorAssetRefProvider::Ref> r, DagorA
   return false;
 }
 
-String validate_texture_types(String tex_name, const char *class_name, int slot, DagorAssetMgr &mgr);
-
 static bool get_dag_tex_and_proxymat_list(const char *dag_fn, Tab<String> &list, Tab<String> &proxy_mat_list, IProcessMaterialData *pm,
-  DagorAssetMgr &mgr)
+  DagorAsset &a)
 {
   if (!pm)
     return ::get_dag_textures(dag_fn, list);
@@ -98,14 +96,14 @@ static bool get_dag_tex_and_proxymat_list(const char *dag_fn, Tab<String> &list,
         String tex_name(get_managed_texture_name(gm.mats[i]->mtex[j]));
         list.push_back() = tex_name;
 
-        String validate_result = validate_texture_types(tex_name, gm.mats[i]->className, j, mgr);
+        String validate_result = validate_texture_types(tex_name, gm.mats[i]->className, j, a);
         if (!validate_result.empty())
           list.back() = validate_result;
       }
   }
   return true;
 }
-void add_dag_texture_and_proxymat_refs(const char *dag_fn, Tab<IDagorAssetRefProvider::Ref> &tmpRefs, DagorAssetMgr &mgr,
+void add_dag_texture_and_proxymat_refs(const char *dag_fn, Tab<IDagorAssetRefProvider::Ref> &tmpRefs, DagorAsset &a,
   IProcessMaterialData *pm)
 {
   if (shadermeshbuilder_strip_d3dres)
@@ -113,18 +111,23 @@ void add_dag_texture_and_proxymat_refs(const char *dag_fn, Tab<IDagorAssetRefPro
   static Tab<String> list(tmpmem);
   static Tab<String> proxyMatList(tmpmem);
   static String s, tmp_stor;
+  DagorAssetMgr &mgr = a.getMgr();
   IDagorAssetMsgPipe &pipe = mgr.getMsgPipe();
 
   list.clear();
   proxyMatList.clear();
-  if (get_dag_tex_and_proxymat_list(dag_fn, list, proxyMatList, pm, mgr))
+  if (get_dag_tex_and_proxymat_list(dag_fn, list, proxyMatList, pm, a))
   {
     for (int i = 0; i < list.size(); i++)
     {
       if (strstr(list[i], "does not match"))
       {
+        if (const char *p = strstr(list[i], ": texture "))
+          s = p + 10;
+        else
+          s = "?";
         s += ":tex";
-        post_error(pipe, "%s: %s", dag_fn, list[i].str());
+        post_error(pipe, "%s: %s (%s)", a.getNameTypified(), list[i], dag_fn);
         if (!find_broken_ref(tmpRefs, s))
         {
           IDagorAssetRefProvider::Ref &r = tmpRefs.push_back();
@@ -143,7 +146,7 @@ void add_dag_texture_and_proxymat_refs(const char *dag_fn, Tab<IDagorAssetRefPro
         if (*s.str())
         {
           s += ":tex";
-          post_error(pipe, "%s: broken tex reference %s", dag_fn, list[i].str());
+          post_error(pipe, "%s: broken tex reference %s (%s)", a.getNameTypified(), list[i], dag_fn);
         }
         if (!find_broken_ref(tmpRefs, s))
         {
@@ -171,7 +174,7 @@ void add_dag_texture_and_proxymat_refs(const char *dag_fn, Tab<IDagorAssetRefPro
       if (!proxyMatAsset)
       {
         s += ":proxymat";
-        post_error(pipe, "%s: broken proxymat reference %s", dag_fn, proxyMatName.str());
+        post_error(pipe, "%s: broken proxymat reference %s (%s)", a.getNameTypified(), proxyMatName, dag_fn);
 
         if (!find_broken_ref(tmpRefs, s))
         {

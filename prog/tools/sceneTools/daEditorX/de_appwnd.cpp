@@ -142,6 +142,7 @@ extern void *get_generic_water_proj_fx_service();
 extern void *get_generic_cable_service();
 extern void *get_generic_spline_gen_service();
 extern void *get_generic_wind_service();
+extern void *get_pixel_perfect_selection_service();
 extern FastNameMap cmdline_include_dll_re, cmdline_exclude_dll_re;
 
 IDagorEd2Engine *IDagorEd2Engine::__dagored_global_instance = NULL;
@@ -1679,6 +1680,9 @@ void *DagorEdAppWindow::queryEditorInterfacePtr(unsigned huid)
 
   if (huid == HUID_IWindService)
     return get_generic_wind_service();
+
+  if (huid == HUID_IPixelPerfectSelectionService)
+    return get_pixel_perfect_selection_service();
 
   return NULL;
 }

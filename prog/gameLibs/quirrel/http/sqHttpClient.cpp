@@ -82,6 +82,7 @@ static SQRESULT is_url_allowed(HSQUIRRELVM vm, const char *url)
 @param respEventId s : (optional) : event id to send into eventbus
 @param timeout_ms i : (optional), DEF_REQUEST_TIMEOUT_MS by default (10 seconds)
 @param waitable b : (optional, false by default) : if true then this request will be waited for on app shutdown
+@param needResponseHeaders (optional, true by default) - specify false if you not need http response headers (optimization)
 
 @return i : request id
 
@@ -121,7 +122,7 @@ static SQInteger request(HSQUIRRELVM vm)
   Sqrat::Object methodObj = params.RawGetSlot("method");
   const char *method = sq_objtostring(&methodObj.GetObject());
   if (!method || strcmp(method, "POST") == 0)
-    reqParams.reqType = HTTPReq::POST;
+    reqParams.reqType = HTTPReq::POST; //-V1048
   else if (strcmp(method, "GET") == 0)
     reqParams.reqType = HTTPReq::GET;
   else if (strcmp(method, "HEAD") == 0)
@@ -138,6 +139,10 @@ static SQInteger request(HSQUIRRELVM vm)
     reqParams.reqTimeoutMs = eastl::clamp((int)sq_objtointeger(&timeout.GetObject()), 0, MAX_REQUEST_TIMEOUT_MS);
   else
     reqParams.reqTimeoutMs = DEF_REQUEST_TIMEOUT_MS;
+
+  reqParams.needResponseHeaders = true; //-V1048 To consider: flip this default to false
+  if (Sqrat::Object needResponseHeaders = params.RawGetSlot("needResponseHeaders"); !needResponseHeaders.IsNull())
+    reqParams.needResponseHeaders = needResponseHeaders.Cast<bool>();
 
   Sqrat::Object dataObj = params.RawGetSlot("data");
   Sqrat::Object jsonObj = params.RawGetSlot("json");
@@ -291,7 +296,7 @@ static SQInteger request(HSQUIRRELVM vm)
   req->context = params.GetSlot("context");
 
   reqParams.callback =
-    make_http_callback([req](RequestStatus status, int http_code, dag::ConstSpan<char> response, StringMap const &headers) {
+    make_http_callback([req](RequestStatus status, int http_code, dag::ConstSpan<char> response, StringMap const &resp_headers) {
       bool haveCb = !req->callback.IsNull();
       if (haveCb || !req->respEventId.empty())
       {
@@ -303,14 +308,14 @@ static SQInteger request(HSQUIRRELVM vm)
           resp.SetValue("http_code", (SQInteger)http_code);
           resp.SetValue("context", req->context);
 
-          if (!headers.empty())
+          if (!resp_headers.empty())
           {
-            Sqrat::Table sqHeaders(vm);
-            for (auto kv : headers)
-              sqHeaders.SetValue(kv.first.data(), kv.second.data());
-            resp.SetValue("headers", sqHeaders);
+            Sqrat::Table sqRespHeaders(vm);
+            for (auto &kv : resp_headers)
+              sqRespHeaders.SetValue(kv.first.data(), kv.second.data());
+            resp.SetValue("headers", sqRespHeaders); // TODO: rename to `resp_headers`
           }
-          if (response.size() > 0)
+          if (!response.empty())
           {
             SQUserPointer ptr = sqstd_createblob(vm, response.size());
             G_ASSERT(ptr); // can happen if blob library was not registered

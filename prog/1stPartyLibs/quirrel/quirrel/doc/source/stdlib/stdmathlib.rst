@@ -87,6 +87,18 @@ Global Symbols
 
     returns the tangent of `x`
 
+.. sq:function:: min(x, y, [z], [w], ...)
+
+    returns minimal value of all arguments
+
+.. sq:function:: max(x, y, [z], [w], ...)
+
+    returns maximal value of all arguments
+
+.. sq:function:: clamp(x, min_val, max_val)
+
+    returns value limited by provided min-max range
+
 .. sq:data:: RAND_MAX
 
     the maximum value that can be returned by the `rand()` function

@@ -6,7 +6,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <fmod_errors.h>
 
-#define SNDSYS_MAIN_THREAD G_ASSERT(is_main_thread())
+#define SNDSYS_IS_MAIN_THREAD G_ASSERT(is_main_thread())
 
 #define SNDSYS_IF_NOT_INITED_RETURN_(RET) \
   if (!::sndsys::is_inited())             \

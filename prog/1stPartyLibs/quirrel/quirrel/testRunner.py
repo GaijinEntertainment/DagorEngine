@@ -151,7 +151,7 @@ def runDiagTest(compiler, workingDir, dirname, name):
     runTestGeneric(compiler, workingDir, dirname, name, "Diagnostics", '.diag.txt', ["-diag-file"], False)
 
 def runSATest(compiler, workingDir, dirname, name):
-    runTestGeneric(compiler, workingDir, dirname, name, "Static Analyser", '.diag.txt', ["-sa", "-diag-file"], False)
+    runTestGeneric(compiler, workingDir, dirname, name, "Static Analyzer", '.diag.txt', ["-sa", "-diag-file"], False)
 
 def runExecuteTest(compiler, workingDir, dirname, name):
     runTestGeneric(compiler, workingDir, dirname, name, "Exec", '.out', [], True)
@@ -230,7 +230,7 @@ def main():
     walkDirectory(Path(computePath('testData', 'exec')), 0, lambda a: runTestForData(a, compiler, workingDir, 'exec'))
     walkDirectory(Path(computePath('testData', 'diagnostics')), 0, lambda a: runTestForData(a, compiler, workingDir, 'diag'))
     walkDirectory(Path(computePath('testData', 'ast')), 0, lambda a: runTestForData(a, compiler, workingDir, 'ast'))
-    walkDirectory(Path(computePath('testData', 'static_analyser')), 0, lambda a: runTestForData(a, compiler, workingDir, 'sa'))
+    walkDirectory(Path(computePath('testData', 'static_analyzer')), 0, lambda a: runTestForData(a, compiler, workingDir, 'sa'))
 
     if numOfFailedTests:
         xprint(f"Failed tests: {numOfFailedTests}", CBOLD + CRED)

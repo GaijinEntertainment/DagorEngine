@@ -262,9 +262,9 @@ void DemonPostFx::initHistogramVb()
   ShaderGlobal::set_int(adaptation_use_center_weightedVarId, centerWeightedAdaptation ? 1 : 0);
 
 #if HIST_USE_INSTANCING
-  histogramVb = dag::create_vb(sizeof(HistogramVertex), SBCF_MAYBELOST, "histogramInst");
+  histogramVb = dag::create_vb(sizeof(HistogramVertex), 0, "histogramInst");
 #else
-  histogramVb = dag::create_vb(vbSize.x * vbSize.y * sizeof(HistogramVertex), SBCF_MAYBELOST, "histogram");
+  histogramVb = dag::create_vb(vbSize.x * vbSize.y * sizeof(HistogramVertex), 0, "histogram");
 #endif
   d3d_err(histogramVb.getBuf());
   histBufferFiller.vbSize = vbSize;

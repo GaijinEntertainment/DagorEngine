@@ -2,6 +2,7 @@
 #include <memory/dag_mem.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/setProgGlobals.h>
+#include <osApiWrappers/dag_threads.h>
 #include <startup/dag_globalSettings.h>
 #include <perfMon/dag_perfTimer.h>
 #include <math/random/dag_random.h>
@@ -25,6 +26,7 @@ void default_crt_init_kernel_lib()
 #if !_TARGET_XBOX
   init_main_thread_id();
 #endif
+  DaThread::setCurrentThreadName("Main Thread");
 }
 
 void default_crt_init_core_lib()

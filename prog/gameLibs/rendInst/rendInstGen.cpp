@@ -1733,6 +1733,11 @@ void rendinst::initRIGen(bool need_render, int cell_pool_sz, float poi_radius, r
 
   rendinst::maxExtraRiCount = ::dgs_get_game_params()->getInt("rendinstExtraMaxCnt", 4000);
   RendInstGenData::renderResRequired = need_render;
+  if (need_render && !ShaderGlobal::get_int_by_name("per_instance_data_no", rendinst::render::instancingTexRegNo))
+  {
+    rendinst::render::instancingTexRegNo = 14;
+    logerr("\"per_instance_data_no\" shader var not exist, using 14 as fallback");
+  }
 
   externalJobId = job_manager_id;
   if (externalJobId < 0)
@@ -2167,7 +2172,11 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
         debug("generateCell in %dms @(%d, %d)", get_time_msec() - startTime, cx, cz);
 
       if (last)
+      {
         rendinst::optimizeRIGenExtra();
+        if (rendinst::do_delayed_ri_extra_destruction)
+          delayed_call([&] { rendinst::do_delayed_ri_extra_destruction(); });
+      }
     }
     virtual unsigned getJobTag() { return tag; };
     virtual void releaseJob() { delete this; }
@@ -2488,6 +2497,7 @@ void rendinst::prepareRIGen(bool init_sec_ri_extra_here, const DataBlock *level_
   rendinst::setImpostorsDistAddMul(impostorsDistAddMul);
   rendinst::setImpostorsFarDistAddMul(impostorsFarDistAddMul);
   rendinst::clear_rendinst_gen_ptr = &clearRIGen;
+
   if (maxExtraRiCount && riExtraSubstNames.nameCount())
   {
     debug("initRIGenExtra: due to maxExtraRiCount=%d riExtraSubstNames.nameCount()=%d", maxExtraRiCount,

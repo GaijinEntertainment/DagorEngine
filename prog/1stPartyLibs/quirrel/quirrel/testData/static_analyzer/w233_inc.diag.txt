@@ -1,0 +1,15 @@
+
+AN ERROR HAS OCCURRED [the index '0' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w233_inc.nut line [17]
+
+LOCALS
+[ismasked] CLOSURE=FN:ismasked
+[qrframe] TABLE={}
+[width] 100
+[r3x] 0
+[x] 0
+[y] 0
+[vargv] ARRAY=[]
+[this] TABLE={}

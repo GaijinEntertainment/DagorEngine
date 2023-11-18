@@ -15,8 +15,18 @@ ECS_TAG(render)
 static __forceinline void particle_phys_es_event_handler(const ecs::EventEntityCreated &, const ecs::string &particle_phys__blk,
   const AnimV20::AnimcharBaseComponent &animchar, daphys::ParticlePhysSystem &particle_phys)
 {
-  const DataBlock blk(particle_phys__blk.c_str(), framemem_ptr());
-  particle_phys.loadFromBlk(&blk, animchar.getOriginalNodeTree());
+  char blkName[DAGOR_MAX_PATH];
+  strncpy(blkName, particle_phys__blk.c_str(), sizeof(blkName) - 1);
+  blkName[sizeof(blkName) - 1] = '\0';
+  char *pColon = strchr(blkName, ':');
+  const char *blockName = NULL;
+  if (pColon)
+  {
+    *pColon = '\0'; // cut block name off
+    blockName = pColon + 1;
+  }
+  const DataBlock blk(blkName, framemem_ptr());
+  particle_phys.loadFromBlk(blockName ? blk.getBlockByName(blockName) : &blk, animchar.getOriginalNodeTree());
 }
 
 ECS_NO_ORDER

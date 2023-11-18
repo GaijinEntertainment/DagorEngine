@@ -197,7 +197,9 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
 
     half4 apply_clouds_ps_main(VsOutput input, float4 screenpos, out float raw_depth)
     {
-      float2 depth_texcoord = input.tc;
+      float2 linearTc = getLinearTc(screenpos.xy, input.tc);
+      float2 depth_texcoord = linearTc;
+
       #ifdef FSR_DISTORTION
         raw_depth = texelFetchOffset(fullres_depth_gbuf, screenpos.xy, 0, 0).x;
       #else
@@ -205,16 +207,17 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
       #endif
 
       // On DX10 we cannot use depth as a target and as a shader resouce at the same time. Do the depth test in the shader
-    ##if !hardware.fsh_5_0
-      if (screenpos.z < raw_depth)
-        return 0.0f;
-    ##endif
+      ##if !hardware.fsh_5_0
+        if (screenpos.z < raw_depth)
+          return 0.0f;
+      ##endif
 
       float2 texcoord = input.tc;
-##if use_bounding_vr_reprojection == on
-      texcoord = vr_bounding_view_reproject_tc(texcoord,0);
-      depth_texcoord = texcoord;
-##endif
+      ##if use_bounding_vr_reprojection == on
+        texcoord = vr_bounding_view_reproject_tc(texcoord,0);
+        depth_texcoord = texcoord;
+      ##endif
+
       #if SIMPLE_APPLY
         half4 distPlane = 0;
         if (HAS_EMPTY_TILES==0 || !tile_is_empty(uint2(texcoord.xy*clouds2_far_res)))
@@ -230,15 +233,17 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
         //todo: check tile and exit immediately if close_layer_should_early_exit(), otherwise just apply close layer.
 
         float3 view = normalize(input.viewVect);
+
         #ifndef CHECK_DIST_TO_CLOUDS
-        #define CHECK_DIST_TO_CLOUDS 0
+          #define CHECK_DIST_TO_CLOUDS 0
         #endif
+
         #if CHECK_DIST_TO_CLOUDS
-        //can happen only when we are above/below clouds layer
-        // tht is so rare, that doesn't make sense to optimize
-        float distToClouds = 0;
-        float dist1; distance_to_clouds(-view, distToClouds, dist1);
-        distToClouds *= 1000;
+          //can happen only when we are above/below clouds layer
+          // tht is so rare, that doesn't make sense to optimize
+          float distToClouds = 0;
+          float dist1; distance_to_clouds(-view, distToClouds, dist1);
+          distToClouds *= 1000;
         #endif
 
         float linearDepth = linearize_z(raw_depth, zn_zfar.zw);
@@ -257,9 +262,8 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
         } else
         #endif
         {
-          float3 viewVec = getViewVecOptimized(input.tc);
           if (linearDist > closeSequenceEndDist && (HAS_EMPTY_TILES==0 || !tile_is_empty(uint2(texcoord.xy*clouds2_far_res))))
-            distPlane = bilateral_get(viewVec, texcoord, depth_texcoord, linearDepth, raw_depth);
+            distPlane = bilateral_get(input.viewVect, texcoord, depth_texcoord, linearDepth, raw_depth);
         }
         return half4(TAA_BRIGHTNESS_SCALE*(distPlane.rgb*(1-closePlane.a) + closePlane.rgb), 1-(1-closePlane.a)*(1-distPlane.a));
       #endif

@@ -41,7 +41,6 @@
 #include <render/debugTexOverlay.h>
 #include <util/dag_convar.h>
 #include <render/primitiveObjects.h>
-#include <render/dynamicCube.h>
 #include <render/sphHarmCalc.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <render/cascadeShadows.h>
@@ -997,6 +996,8 @@ public:
 
         if (render_panel.findHole)
           daSkies.resetCloudsHole(itm.getcol(3));
+
+        daSkies.setUseCloudsHole(render_panel.useCloudsHole);
 
         StdGuiRender::goto_xy(400, base_line + font_ht * 1);
         Color3 mieC = daSkies.getMieColor(itm.getcol(3), daSkies.getSunDir(), 100000);
@@ -2126,6 +2127,7 @@ protected:
       DECLARE_FLOAT_SLIDER(render_panel, windDir, 0, 359, 0, 1),
       DECLARE_BOOL_BUTTON(render_panel, compareCpuSunSky, false),
       DECLARE_BOOL_CHECKBOX(render_panel, findHole, false),
+      DECLARE_BOOL_CHECKBOX(render_panel, useCloudsHole, true),
 
       DECLARE_INT_SLIDER(render_quality_panel, sky_res_divisor, 0, 3, 1),
       DECLARE_INT_SLIDER(render_quality_panel, clouds_res_divisor, 0, 3, 1),
@@ -2392,6 +2394,7 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
     bool infinite_skies, panorama_blending, shadows_2d = false;
     bool compareCpuSunSky;
     bool findHole = false;
+    bool useCloudsHole = true;
     bool enable_god_rays_from_land = false;
     int panoramaResolution;
     float panoramaTemporalSpeed;
@@ -2424,8 +2427,8 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
       SLICES = 33
     };
     calc_sphere_vertex_face_count(SLICES, SLICES, false, v_count, f_count);
-    d3d_err(sphereVb = d3d::create_vb(v_count * sizeof(Point3), SBCF_MAYBELOST, "sphere"));
-    d3d_err(sphereIb = d3d::create_ib(f_count * 6, SBCF_MAYBELOST));
+    d3d_err(sphereVb = d3d::create_vb(v_count * sizeof(Point3), 0, "sphere"));
+    d3d_err(sphereIb = d3d::create_ib(f_count * 6, 0));
     uint16_t *indices;
     void *vertices;
     sphereIb->lock(0, 0, &indices, VBLOCK_WRITEONLY);

@@ -1,0 +1,9 @@
+WARNING: w211 (duplicate-case) Duplicate case value.
+testData/static_analyzer/w211.nut:12:7
+
+  case MODE.MODE_2: ::print("2"); break;
+  case MODE.MODE_1: ::print("3"); break;
+       ^----------
+  default:
+
+

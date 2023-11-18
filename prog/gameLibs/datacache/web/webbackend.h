@@ -21,7 +21,7 @@ struct IndexDownloadRequest;
 
 typedef eastl::vector<eastl::pair<eastl::string, float>> WeightedUrlsType;
 
-class WebBackend : public Backend
+class WebBackend final : public Backend
 {
 public:
   WebBackend();
@@ -32,7 +32,7 @@ public:
   struct UserCb
   {
     completion_cb_t cb;
-    header_cb_t header_cb;
+    resp_headers_cb_t resp_headers_cb;
     void *arg;
   };
 
@@ -45,25 +45,25 @@ public:
   };
 
   Entry *getEntryNoIndex(const char *key, const char *url, ErrorCode *error, UserCb const &user_cb);
-  virtual Entry *get(const char *key, ErrorCode *error, completion_cb_t cb, void *cb_arg);
-  virtual Entry *getWithHeaders(const char *key, ErrorCode *error, completion_cb_t cb = NULL, header_cb_t headers_cb = NULL,
-    void *cb_arg = NULL);
-  virtual Entry *set(const char *key, int64_t modTime);
-  virtual bool del(const char *key);
-  virtual void delAll();
-  virtual int getEntriesCount();
-  virtual Entry *nextEntry(void **iter);
-  virtual void endEnumeration(void **iter);
-  virtual void control(int opc, void *p0, void *p1);
-  virtual void poll();
+  Entry *get(const char *key, ErrorCode *error, completion_cb_t cb, void *cb_arg) override;
+  Entry *getWithRespHeaders(const char *key, ErrorCode *error, completion_cb_t cb = NULL, resp_headers_cb_t resp_headers_cb = NULL,
+    void *cb_arg = NULL) override;
+  Entry *set(const char *key, int64_t modTime) override;
+  bool del(const char *key) override;
+  void delAll() override;
+  int getEntriesCount() override;
+  Entry *nextEntry(void **iter) override;
+  void endEnumeration(void **iter) override;
+  void control(int opc, void *p0, void *p1) override;
+  void poll() override;
 
   void onHttpReqComplete(DownloadRequest *req, const char *url, int error, IGenLoad *stream, int64_t last_modified, intptr_t req_id);
   streamio::ProcessResult onHttpData(DownloadRequest *req, dag::ConstSpan<char> data, intptr_t req_id);
-  void onHttpHeader(streamio::StringMap const &headers, DownloadRequest *req);
+  void onHttpRespHeaders(streamio::StringMap const &resp_headers, DownloadRequest *req);
 
   static void onHttpReqCompleteCb(const char *, int error, IGenLoad *stream, void *arg, int64_t last_modified, intptr_t req_id);
   static streamio::ProcessResult onHttpDataCb(dag::ConstSpan<char> data, void *arg, intptr_t req_id);
-  static void onHttpHeaderCb(streamio::StringMap const &headers, void *arg);
+  static void onHttpRespHeadersCb(streamio::StringMap const &headers, void *arg);
 
   enum RequestType
   {
@@ -76,7 +76,7 @@ public:
     bool do_sync = false);
   IndexDownloadRequest *downloadIndex(const char *key = "", UserCb const &user_cb = UserCb{});
 
-  virtual void abortActiveRequests();
+  void abortActiveRequests() override;
 
   const char *getUrl(const char *url, char *buf, int buf_size);
   void collectGarbage();

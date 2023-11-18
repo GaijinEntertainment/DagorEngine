@@ -469,7 +469,6 @@ DXGI_FORMAT dxgi_format_from_flags(uint32_t cflg)
     case TEXFMT_DEPTH16: return DXGI_FORMAT_D16_UNORM;
     case TEXFMT_DEPTH32_S8: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
     case TEXFMT_DEPTH32: return DXGI_FORMAT_D32_FLOAT;
-    case TEXFMT_MSAA_MAX_SAMPLES: return max_samples_format.format;
   }
 
   G_ASSERTF(0, "unknown texfmt %08x", cflg & TEXFMT_MASK);
@@ -877,14 +876,6 @@ static void fixup_tex_params(int w, int h, int32_t &flg, int &levels)
         flg |= TEXCF_SRGBREAD; // only supports srgbwrite from srgb surfaces!
     }
   }
-  /*
-    if (adjust_tex2d_size(w, h))
-      logerr("texture size changed, as it was bigger, than maximum tex size");
-    if (((flg & (TEXCF_ZBUF | TEXCF_RTARGET)) == (TEXCF_ZBUF | TEXCF_RTARGET)) &&
-        !is_depth_format(d3d_format))
-      if (align_tex_zbuf_size(w, h, flg & TEXCF_MULTISAMPLED))
-        logerr("render target size changed, due to requirement of zbuf");
-  */
 
   if (rt && (flg & TEXFMT_MASK) == TEXFMT_R5G6B5)
     flg = (flg & ~TEXFMT_MASK) | TEXFMT_A8R8G8B8;
@@ -920,36 +911,12 @@ void set_tex_params(BaseTex *tex, int w, int h, int d, uint32_t flg, int levels,
   tex->setTexName(stat_name);
 }
 
-static bool fix_format_msaa(uint32_t &flg, DXGI_SAMPLE_DESC &sampleDesc)
-{
-  if ((flg & TEXFMT_MASK) == TEXFMT_MSAA_MAX_SAMPLES)
-  {
-    if (max_samples_format.samples <= 1)
-      return false;
-    flg |= (TEXCF_MULTISAMPLED | TEXCF_MSAATARGET | TEXCF_RTARGET);
-    sampleDesc.Quality = 0;
-    sampleDesc.Count = max_samples_format.samples;
-  }
-  else if (flg & (TEXCF_MULTISAMPLED | TEXCF_MSAATARGET))
-  {
-    sampleDesc.Quality = 0;
-    sampleDesc.Count = max_aa_samples ? max_aa_samples : 1;
-    if (max_aa_samples < 1) // no multisampling
-      flg &= ~(TEXCF_MULTISAMPLED | TEXCF_MSAATARGET);
-  }
-  else
-  {
-    sampleDesc.Quality = 0;
-    sampleDesc.Count = 1;
-  }
-  return true;
-}
 bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint32_t levels, bool cube,
   D3D11_SUBRESOURCE_DATA *initial_data, int array_size = 1, bool tmp_tex = false)
 {
   uint32_t &flg = bt_in->cflg;
-  G_ASSERT(!((flg & TEXCF_MULTISAMPLED) && initial_data != NULL));
-  G_ASSERT(!((flg & TEXCF_MULTISAMPLED) && (flg & TEXCF_CLEAR_ON_CREATE)));
+  G_ASSERT(!((flg & TEXCF_SAMPLECOUNT_MASK) && initial_data != NULL));
+  G_ASSERT(!((flg & TEXCF_SAMPLECOUNT_MASK) && (flg & TEXCF_CLEAR_ON_CREATE)));
   G_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & (TEXCF_DYNAMIC | TEXCF_RTARGET))));
 
   D3D11_TEXTURE2D_DESC desc = {0};
@@ -959,8 +926,8 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
   tex.realMipLevels = levels;
   desc.ArraySize = (cube ? 6 : 1) * array_size;
   desc.Format = dxgi_format_for_create(dxgi_format_from_flags(flg));
-  if (!fix_format_msaa(flg, desc.SampleDesc))
-    return false;
+  desc.SampleDesc.Quality = 0;
+  desc.SampleDesc.Count = get_sample_count(flg);
   G_ASSERT(desc.Format != DXGI_FORMAT_UNKNOWN);
 
   D3D11_USAGE usage = D3D11_USAGE_DEFAULT; // GPU R/W
@@ -980,7 +947,7 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
   // The depth texture is intended to be multisampled only as a pair to a multisampled color texture.
   // There is no need to sample from depth in that case. DX10.0 HW does not support it anyway.
   desc.BindFlags =
-    (isDepth && (flg & TEXCF_MULTISAMPLED) && !g_device_desc.caps.hasReadMultisampledDepth) ? 0 : D3D11_BIND_SHADER_RESOURCE;
+    (isDepth && (flg & TEXCF_SAMPLECOUNT_MASK) && !g_device_desc.caps.hasReadMultisampledDepth) ? 0 : D3D11_BIND_SHADER_RESOURCE;
   desc.BindFlags |= (isRT ? (isDepth ? D3D11_BIND_DEPTH_STENCIL : D3D11_BIND_RENDER_TARGET) : 0);
   desc.BindFlags |= (flg & TEXCF_UNORDERED) ? D3D11_BIND_UNORDERED_ACCESS : 0;
 
@@ -1011,37 +978,11 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
 
   if (!tmp_tex)
     TEXQL_PRE_CLEAN(bt_in->ressize());
-  if (flg & TEXCF_MULTISAMPLED)
+  if ((flg & TEXCF_SAMPLECOUNT_MASK))
   {
     uint32_t numQualities;
-
-    {
-      HRESULT hr = dx_device->CheckMultisampleQualityLevels(desc.Format, desc.SampleDesc.Count, &numQualities);
-      if (SUCCEEDED(hr) && numQualities > 0)
-      {
-        if (!isDepth && !(flg & TEXCF_MSAATARGET))
-        {
-          HRESULT hr = dx_device->CreateTexture2D(&desc, NULL, &tex.resolvedTex);
-          if (!device_should_reset(hr, "CreateTexture2D MSAA"))
-          {
-            DXFATAL(hr, "CreateTexture2D(resolvedTex)");
-          }
-        }
-
-        // 0 and numQualities - 1 and D3D11_STANDARD_MULTISAMPLE_PATTERN give the same result on ATI.
-        // 0 and D3D11_STANDARD_MULTISAMPLE_PATTERN give the same result on NV.
-        // D3D11_STANDARD_MULTISAMPLE_PATTERN is not supported on GF200.
-        // desc.SampleDesc.Quality = 0;
-      }
-      else
-      {
-        // Multisampling of this particular format is not supported. Pair with non-multisampled depth.
-        debug("<%s>texture format do not support multisampling", bt_in->getResName());
-        flg &= ~(TEXCF_MULTISAMPLED | TEXCF_MSAATARGET);
-        desc.SampleDesc.Quality = 0;
-        desc.SampleDesc.Count = 1;
-      }
-    }
+    if (FAILED(dx_device->CheckMultisampleQualityLevels(desc.Format, desc.SampleDesc.Count, &numQualities)) || numQualities == 0)
+      return false;
   }
 
   {
@@ -1118,7 +1059,7 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
 bool create_tex3d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint32_t d, uint32_t flg, uint32_t levels,
   D3D11_SUBRESOURCE_DATA *initial_data)
 {
-  G_ASSERT((flg & TEXCF_MULTISAMPLED) == 0);
+  G_ASSERT((flg & TEXCF_SAMPLECOUNT_MASK) == 0);
   G_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & TEXCF_DYNAMIC)));
 
   D3D11_TEXTURE3D_DESC desc = {0};
@@ -1434,6 +1375,19 @@ static bool check_texformat(int cflg, int resType)
 
 bool d3d::check_texformat(int cflg) { return check_texformat(cflg, RES3D_TEX); }
 
+int d3d::get_max_sample_count(int cflg)
+{
+  DXGI_FORMAT dxgiFormat = dxgi_format_from_flags(cflg);
+  for (int samples = get_sample_count(TEXCF_SAMPLECOUNT_MAX); samples; samples >>= 1)
+  {
+    uint32_t numQualityLevels = 0;
+    if (SUCCEEDED(dx_device->CheckMultisampleQualityLevels(dxgiFormat, samples, &numQualityLevels)) && numQualityLevels > 0)
+      return samples;
+  }
+
+  return 1;
+}
+
 bool d3d::issame_texformat(int f1, int f2) { return dxgi_format_from_flags(f1) == dxgi_format_from_flags(f2); }
 
 bool d3d::check_cubetexformat(int f) { return check_texformat(f, RES3D_CUBETEX); }
@@ -1477,14 +1431,12 @@ Texture *drv3d_dx11::create_backbuffer_tex(int id, IDXGI_SWAP_CHAIN *swap_chain)
   ID3D11Texture2D *texRes;
   DXFATAL(swap_chain->GetBuffer(id, __uuidof(ID3D11Texture2D), (void **)&texRes), "SCC");
 
-  uint32_t msaaFlags = (disable_backbuffer_aa || max_aa_samples <= 1) ? 0 : TEXCF_MULTISAMPLED | TEXCF_MSAATARGET;
-  return create_d3d_tex(texRes, "backbuffer", TEXFMT_DEFAULT | TEXCF_RTARGET | msaaFlags);
+  return create_d3d_tex(texRes, "backbuffer", TEXFMT_DEFAULT | TEXCF_RTARGET);
 }
 
 Texture *drv3d_dx11::create_backbuffer_depth_tex(uint32_t w, uint32_t h)
 {
-  uint32_t msaaFlags = (disable_backbuffer_aa || max_aa_samples <= 1) ? 0 : TEXCF_MULTISAMPLED | TEXCF_MSAATARGET;
-  BaseTex *tex = BaseTex::create_tex(TEXFMT_DEPTH24 | TEXCF_RTARGET | msaaFlags, RES3D_TEX);
+  BaseTex *tex = BaseTex::create_tex(TEXFMT_DEPTH24 | TEXCF_RTARGET, RES3D_TEX);
 
   D3D11_TEXTURE2D_DESC desc;
   ZeroMemory(&desc, sizeof(desc));
@@ -1496,7 +1448,7 @@ Texture *drv3d_dx11::create_backbuffer_depth_tex(uint32_t w, uint32_t h)
   desc.Format = is_backbuffer_samplable_depth ? dxgi_format_for_create(DXGI_FORMAT_D24_UNORM_S8_UINT)
                                               : DXGI_FORMAT_D24_UNORM_S8_UINT; // DXGI_FORMAT_D32_FLOAT;// d32_float is enough for
                                                                                // everything, but no stencil
-  desc.SampleDesc.Count = disable_backbuffer_aa ? 1 : max_aa_samples;
+  desc.SampleDesc.Count = 1;
   desc.SampleDesc.Quality = 0;
   desc.Usage = D3D11_USAGE_DEFAULT;
   desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;

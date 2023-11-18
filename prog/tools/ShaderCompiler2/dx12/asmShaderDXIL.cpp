@@ -1002,14 +1002,8 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
     size_t textLength = source.size();
 #endif
 
-    D3D_SHADER_MACRO preprocess[4] = {{"SHADER_COMPILER_DXC", "1"}, {}, {}};
-    int nextSlot = 1;
-    if (hlsl2021)
-    {
-      preprocess[nextSlot].Name = "SHADER_COMPILER_HLSL2021";
-      preprocess[nextSlot].Definition = "1";
-      nextSlot++;
-    }
+    D3D_SHADER_MACRO preprocess[4] = {{"SHADER_COMPILER_DXC", "1"}, {"__HLSL_VERSION", hlsl2021 ? "2021" : "2018"}, {}};
+    int nextSlot = 2;
     if (enableFp16)
     {
       preprocess[nextSlot].Name = "SHADER_COMPILER_FP16_ENABLED";

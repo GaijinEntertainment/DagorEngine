@@ -445,3 +445,68 @@ macro USE_BC5_COMPRESSION(code)
   }
 endmacro // USE_BC5_COMPRESSION
 
+
+macro COMMON_BC_SHADER(rg_channels, srgb)
+  supports none;
+  supports global_frame;
+
+  hlsl
+  {
+    #define BC_COMPRESSION_USE_MIPS
+  }
+
+  (vs) { src_dst_mip__src_face@f3 = (src_mip, dst_mip, src_face, 0); }
+
+  if (src_face != src_single_face)
+  {
+    (ps) { src_tex@smpCube = src_tex; }
+    hlsl {
+      #define BC_COMPRESSION_FOR_CUBE 1
+    }
+  }
+  else
+  {
+    (ps) { src_tex@smp2d = src_tex; }
+  }
+
+  INIT_BC_COMPRESSION()
+
+
+  if (rg_channels)
+  {
+    PS4_DEF_TARGET_FMT_32_GR()
+  }
+  else
+  {
+    PS4_DEF_TARGET_FMT_32_ABGR()
+  }
+
+  hlsl(ps)
+  {
+##if srgb
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+##endif
+
+    uint4 bc_compressor_ps( VsOutput input ) : SV_Target
+    {
+      half4 texels[16];
+      half4 min_color, max_color;
+
+#ifdef BC_COMPRESSION_FOR_CUBE
+      get_texels( input.tex, texels, input.src_mip, input.src_face );
+#else
+      get_texels( input.tex, texels, input.src_mip );
+#endif
+
+##if srgb
+      for ( int i = 0; i < 16; ++i )
+        texels[i].rgb = accurateLinearToSRGB( texels[i].rgb );
+##endif
+
+      return compress( texels, min_color, max_color );
+    }
+  }
+
+  compile( "target_vs", "bc_compressor_vs" );
+  compile( "target_ps", "bc_compressor_ps" );
+endmacro

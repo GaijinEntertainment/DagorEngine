@@ -1,0 +1,16 @@
+WARNING: w247 (func-can-return-null) Function 'indexof' can return null, but its result is used here.
+testData/static_analyzer/w247.nut:3:7
+
+return ::a.b.c.indexof("x") + 6;
+       ^-------------------
+
+
+
+AN ERROR HAS OCCURRED [the index 'a' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w247.nut line [3]
+
+LOCALS
+[vargv] ARRAY=[]
+[this] TABLE={}

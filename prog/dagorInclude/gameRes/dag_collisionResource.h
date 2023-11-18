@@ -308,7 +308,7 @@ public:
     Point3 *out_normal, int &out_mat_id, const CollisionNodeFilter &filter, int ray_mat_id = -1,
     uint8_t behavior_filter = CollisionNode::TRACEABLE) const;
 
-  bool traceRay(const mat44f &tm, const Point3 &from, const Point3 &dir, float &in_out_t, Point3 *normal, int &out_mat_id,
+  bool traceRay(const mat44f &tm, const Point3 &from, const Point3 &dir, float &in_out_t, Point3 *out_normal, int &out_mat_id,
     int ray_mat_id = -1, uint8_t behavior_filter = CollisionNode::TRACEABLE) const;
 
   bool traceRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir, float in_t,
@@ -352,7 +352,7 @@ public:
   VECTORCALL bool traceRayMeshNodeLocal(const CollisionNode &node, vec4f v_local_from, vec4f v_local_dir, float &in_out_t,
     vec4f *out_norm) const;
 
-  VECTORCALL bool rayHit(const mat44f &tm, vec3f v_from, vec3f v_dir, float t, int &out_mat_id) const;
+  VECTORCALL bool rayHit(const mat44f &tm, const Point3 &from, const Point3 &dir, float in_t, int ray_mat_id, int &out_mat_id) const;
 
   VECTORCALL bool rayHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
     float in_t, float bsphere_scale = 1.f, const CollisionNodeMask *collision_node_mask = nullptr, int *out_mat_id = nullptr) const;

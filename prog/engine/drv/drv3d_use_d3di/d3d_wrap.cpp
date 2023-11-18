@@ -26,6 +26,7 @@ bool should_use_compute_for_image_processing(std::initializer_list<unsigned> for
 }
 
 bool check_texformat(int cflg) { return d3di.check_texformat(cflg); }
+int d3d::get_max_sample_count(int cflg) { return d3di.get_max_sample_count(cflg); }
 unsigned get_texformat_usage(int cflg, int restype) { return d3di.get_texformat_usage(cflg, restype); }
 bool issame_texformat(int cflg1, int cflg2) { return d3di.issame_texformat(cflg1, cflg2); }
 bool check_cubetexformat(int cflg) { return d3di.check_cubetexformat(cflg); }
@@ -112,7 +113,7 @@ PROGRAM create_program(const uint32_t *vpr_native, const uint32_t *fsh_native, V
   return d3di.create_program_1(vpr_native, fsh_native, vdecl, strides, streams);
 }
 
-PROGRAM create_program_cs(const uint32_t *cs_native) { return d3di.create_program_cs(cs_native); }
+PROGRAM create_program_cs(const uint32_t *cs_native, CSPreloaded preloaded) { return d3di.create_program_cs(cs_native, preloaded); }
 
 bool set_program(PROGRAM p) { return d3di.set_program(p); }
 void delete_program(PROGRAM p) { return d3di.delete_program(p); }

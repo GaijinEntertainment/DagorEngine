@@ -396,6 +396,14 @@ DX12_BEGIN_CONTEXT_COMMAND(CopyImage)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(ResolveMultiSampleImage)
+  DX12_CONTEXT_COMMAND_PARAM(Image *, src)
+  DX12_CONTEXT_COMMAND_PARAM(Image *, dst)
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.resolveMultiSampleImage(src, dst);
+#endif
+DX12_END_CONTEXT_COMMAND
+
 DX12_BEGIN_CONTEXT_COMMAND(EndCPUTextureAccess)
   DX12_CONTEXT_COMMAND_PARAM(Image *, texture)
 
@@ -719,9 +727,10 @@ DX12_END_CONTEXT_COMMAND
 DX12_BEGIN_CONTEXT_COMMAND(AddComputeProgram)
   DX12_CONTEXT_COMMAND_PARAM(ProgramID, id)
   DX12_CONTEXT_COMMAND_PARAM(ComputeShaderModule *, csm)
+  DX12_CONTEXT_COMMAND_PARAM(CSPreloaded, preloaded)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.addComputePipeline(id, csm);
+  ctx.addComputePipeline(id, csm, preloaded);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -1271,9 +1280,9 @@ DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(TwoPhaseCopyBuffer)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, source)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, destinationOffset)
+  DX12_CONTEXT_COMMAND_PARAM(uint64_t, destinationOffset)
   DX12_CONTEXT_COMMAND_PARAM(ScratchBuffer, scratchMemory)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, size)
+  DX12_CONTEXT_COMMAND_PARAM(uint64_t, size)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.twoPhaseCopyBuffer(source, destinationOffset, scratchMemory, size);

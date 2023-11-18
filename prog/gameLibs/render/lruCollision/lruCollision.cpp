@@ -43,15 +43,15 @@ uint32_t LRURendinstCollision::getMaxBatchSize() const { return MAX_VOXELIZATION
 static constexpr uint32_t compute_vb_flags = (can_voxelize_in_compute ? SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW : 0);
 
 LRURendinstCollision::LRURendinstCollision() :
-  vbAllocator(SbufferHeapManager("vb_collision_", 4, compute_vb_flags | SBCF_MAYBELOST | SBCF_BIND_VERTEX)),
-  ibAllocator(SbufferHeapManager("ib_collision_", 4, compute_vb_flags | SBCF_MAYBELOST | SBCF_BIND_INDEX))
+  vbAllocator(SbufferHeapManager("vb_collision_", 4, compute_vb_flags | SBCF_BIND_VERTEX)),
+  ibAllocator(SbufferHeapManager("ib_collision_", 4, compute_vb_flags | SBCF_BIND_INDEX))
 {
   create_cubic_indices(make_span((uint8_t *)boxIndices.data(), COLLISION_BOX_INDICES_NUM * sizeof(uint16_t)), 1, false);
 
   supportNoOverwrite = d3d::get_driver_desc().caps.hasNoOverwriteOnShaderResourceBuffers;
   instanceTms = dag::create_sbuffer(sizeof(Point4), getMaxBatchSize() * 3,
-    (supportNoOverwrite ? (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE) : 0) | SBCF_MAYBELOST | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED,
-    0, "collision_voxelization_tm");
+    (supportNoOverwrite ? (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE) : 0) | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0,
+    "collision_voxelization_tm");
   // if we don't support nooverwrite do not use SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE
   voxelizeCollisionMat.reset(new_shader_material_by_name_optional("voxelize_collision"));
   if (voxelizeCollisionMat)

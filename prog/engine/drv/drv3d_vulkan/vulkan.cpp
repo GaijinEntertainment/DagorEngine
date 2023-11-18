@@ -41,6 +41,7 @@
 #include <EASTL/sort.h>
 
 #include "../drv3d_commonCode/gpuConfig.h"
+#include "../drv3d_commonCode/validate_sbuf_flags.h"
 
 #include "driver.h"
 #include "vulkan_loader.h"
@@ -1480,7 +1481,23 @@ bool d3d::check_texformat(int cflg)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
   return api_state.device.checkFormatSupport(fmt.asVkFormat(), VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
-    usage_flags_from_cfg(cflg, fmt), 0, (cflg & TEXCF_MULTISAMPLED) ? api_state.device.calcMSAAQuality() : VK_SAMPLE_COUNT_1_BIT);
+    usage_flags_from_cfg(cflg, fmt), 0, VkSampleCountFlagBits(get_sample_count(cflg)));
+}
+
+int d3d::get_max_sample_count(int cflg)
+{
+  auto fmt = FormatStore::fromCreateFlags(cflg);
+  if (auto sampleFlags = api_state.device.getFormatSamples(fmt.asVkFormat(), VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+        usage_flags_from_cfg(cflg, fmt)))
+  {
+    for (int samples = get_sample_count(TEXCF_SAMPLECOUNT_MAX); samples; samples >>= 1)
+    {
+      if (sampleFlags & samples)
+        return samples;
+    }
+  }
+
+  return 1;
 }
 
 bool d3d::issame_texformat(int cflg1, int cflg2)
@@ -1494,8 +1511,7 @@ bool d3d::check_cubetexformat(int cflg)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
   return api_state.device.checkFormatSupport(fmt.asVkFormat(), VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
-    usage_flags_from_cfg(cflg, fmt), VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
-    (cflg & TEXCF_MULTISAMPLED) ? api_state.device.calcMSAAQuality() : VK_SAMPLE_COUNT_1_BIT);
+    usage_flags_from_cfg(cflg, fmt), VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, VkSampleCountFlagBits(get_sample_count(cflg)));
 }
 
 bool d3d::issame_cubetexformat(int cflg1, int cflg2) { return issame_texformat(cflg1, cflg2); }
@@ -1517,7 +1533,7 @@ bool d3d::check_voltexformat(int cflg)
     cflg &= ~TEXCF_RTARGET;
   }
   return api_state.device.checkFormatSupport(fmt.asVkFormat(), VK_IMAGE_TYPE_3D, VK_IMAGE_TILING_OPTIMAL,
-    usage_flags_from_cfg(cflg, fmt), flags, (cflg & TEXCF_MULTISAMPLED) ? api_state.device.calcMSAAQuality() : VK_SAMPLE_COUNT_1_BIT);
+    usage_flags_from_cfg(cflg, fmt), flags, VkSampleCountFlagBits(get_sample_count(cflg)));
 }
 
 bool d3d::issame_voltexformat(int cflg1, int cflg2) { return issame_texformat(cflg1, cflg2); }
@@ -1755,7 +1771,7 @@ PROGRAM d3d::create_program(const uint32_t *vs, const uint32_t *ps, VDECL vdecl,
   return create_program(vprog, fshad, vdecl, strides, streams);
 }
 
-PROGRAM d3d::create_program_cs(const uint32_t *cs_native)
+PROGRAM d3d::create_program_cs(const uint32_t *cs_native, CSPreloaded)
 {
   Tab<spirv::ChunkHeader> chunks;
   Tab<uint8_t> chunkData;
@@ -2460,18 +2476,21 @@ void d3d::get_video_modes_list(Tab<String> &list) { clear_and_shrink(list); }
 
 Vbuffer *d3d::create_vb(int size, int flg, const char *name)
 {
+  validate_sbuffer_flags(flg, name);
   OSSpinlockScopedLock lock{api_state.bufferPoolGuard};
   return api_state.bufferPool.allocate(1, size, flg | SBCF_BIND_VERTEX | SBCF_BIND_SHADER_RES, FormatStore(), name);
 }
 
 Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name)
 {
+  validate_sbuffer_flags(flg, stat_name);
   OSSpinlockScopedLock lock{api_state.bufferPoolGuard};
   return api_state.bufferPool.allocate(1, size, flg | SBCF_BIND_INDEX | SBCF_BIND_SHADER_RES, FormatStore(), stat_name);
 }
 
 Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char *name)
 {
+  validate_sbuffer_flags(flags, name);
   OSSpinlockScopedLock lock{api_state.bufferPoolGuard};
   return api_state.bufferPool.allocate(struct_size, elements, flags, FormatStore::fromCreateFlags(format), name);
 }

@@ -75,7 +75,7 @@ void modfx_load_ren_data(BufferData_cref buf, uint ofs, uint decls, DAFX_OREF(Mo
     o.radius = dafx_load_1f(buf, ofs);
 
   if (MODFX_RDECL_COLOR_ENABLED(decls))
-    o.color = unpack_uint_to_n4f(dafx_load_1ui(buf, ofs));
+    o.color = pow2(unpack_uint_to_n4f(dafx_load_1ui(buf, ofs))); // gamma correction applied
 
   if (MODFX_RDECL_ANGLE_ENABLED(decls))
     o.angle = dafx_load_1f(buf, ofs);
@@ -129,7 +129,7 @@ void modfx_save_ren_data(BufferData_ref buf, uint ofs, uint decls, uint sflags, 
     dafx_store_1f(v.radius, buf, ofs);
 
   if (MODFX_RDECL_COLOR_ENABLED(decls))
-    dafx_store_1ui(pack_n4f_to_uint(saturate(v.color)), buf, ofs);
+    dafx_store_1ui(pack_n4f_to_uint(sqrt(saturate(v.color))), buf, ofs); // gamma correction applied
 
   if (MODFX_RDECL_ANGLE_ENABLED(decls))
     dafx_store_1f(v.angle, buf, ofs);

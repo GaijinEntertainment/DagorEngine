@@ -3,7 +3,7 @@
 
 #define TAA_IN_HDR_SPACE 0
 #define TAA_BRIGHTNESS_SCALE 1.
-#define TAA_CLOUDS_FRAMES 8
+#define TAA_CLOUDS_FRAMES 16
 
 float simple_luma_tonemap(float luma, float exposure) { return rcp(luma * exposure + 1.0); }
 float simple_luma_tonemap_inv(float luma, float exposure) { return rcp(max(1.0 - luma * exposure, 0.001)); }

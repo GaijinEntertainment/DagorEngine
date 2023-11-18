@@ -2,6 +2,13 @@
 
 #include <3d/dag_drv3d.h>
 #include <EASTL/bitset.h>
+#include <math/dag_adjpow2.h>
+#include <perfMon/dag_graphStat.h>
+
+#include "texture.h"
+#include "shader.h"
+#include "resource_manager/raytrace_acceleration_structure.h"
+
 
 namespace drv3d_dx12
 {
@@ -644,9 +651,9 @@ struct FrontendState
 
   void setStageBRegisterBuffer(uint32_t stage, uint32_t index, Sbuffer *buffer, uint32_t offset, uint32_t size)
   {
-    G_ASSERT(stage < array_size(stageResources));
+    G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < array_size(target.bRegisterBuffers));
+    G_ASSERT(index < countof(target.bRegisterBuffers));
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     target.markDirtyB(index,
       target.bRegisterBuffers[index] != buffer || target.bRegisterOffsets[index] != offset || target.bRegisterSizes[index] != size);
@@ -657,9 +664,9 @@ struct FrontendState
 
   void setStageTRegisterBuffer(uint32_t stage, uint32_t index, Sbuffer *buffer)
   {
-    G_ASSERT(stage < array_size(stageResources));
+    G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < array_size(target.tRegisterBuffers));
+    G_ASSERT(index < countof(target.tRegisterBuffers));
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     if (target.tRegisterTextures[index])
     {
@@ -675,9 +682,9 @@ struct FrontendState
 
   void setStageURegisterBuffer(uint32_t stage, uint32_t index, Sbuffer *buffer)
   {
-    G_ASSERT(stage < array_size(stageResources));
+    G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < array_size(target.uRegisterBuffers));
+    G_ASSERT(index < countof(target.uRegisterBuffers));
     GenericBufferInterface *prevBuf = nullptr;
     {
       OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
@@ -704,9 +711,9 @@ struct FrontendState
 
   void setStageSRVTexture(uint32_t stage, uint32_t index, BaseTex *texture)
   {
-    G_ASSERT(stage < array_size(stageResources));
+    G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < array_size(target.tRegisterTextures));
+    G_ASSERT(index < countof(target.tRegisterTextures));
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     if (texture)
     {
@@ -733,9 +740,9 @@ struct FrontendState
 
   void setStageSampler(uint32_t stage, uint32_t index, d3d::SamplerHandle handle)
   {
-    G_ASSERT(stage < array_size(stageResources));
+    G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < array_size(target.sRegisterSamplers));
+    G_ASSERT(index < countof(target.sRegisterSamplers));
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     target.markDirtyS(index, target.sRegisterSamplers[index] != handle);
     target.sRegisterSamplers[index] = handle;
@@ -743,9 +750,9 @@ struct FrontendState
 
   void setStageUAVTexture(uint32_t stage, uint32_t index, BaseTex *texture, ImageViewState view)
   {
-    G_ASSERT(stage < array_size(stageResources));
+    G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < array_size(target.uRegisterTextures));
+    G_ASSERT(index < countof(target.uRegisterTextures));
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     if (texture)
     {
@@ -904,7 +911,7 @@ struct FrontendState
   uint32_t setComputeConstRegisterCount(uint32_t cnt)
   {
     if (cnt)
-      cnt = clamp<uint32_t>(nextPowerOfTwo(cnt), MIN_COMPUTE_CONST_REGISTERS, MAX_COMPUTE_CONST_REGISTERS);
+      cnt = clamp<uint32_t>(get_bigger_pow2(cnt), MIN_COMPUTE_CONST_REGISTERS, MAX_COMPUTE_CONST_REGISTERS);
     else
       cnt = MIN_COMPUTE_CONST_REGISTERS; // TODO update things to allow 0 (eg shader can tell how many it needs)
     markDirty(DirtyState::COMPUTE_CONST_REGISTERS, registerSpaceSizes[STAGE_CS] < cnt);
@@ -914,7 +921,7 @@ struct FrontendState
   uint32_t setVertexConstRegisterCount(uint32_t cnt)
   {
     if (cnt)
-      cnt = clamp<uint32_t>(nextPowerOfTwo(cnt), VERTEX_SHADER_MIN_REGISTERS, VERTEX_SHADER_MAX_REGISTERS);
+      cnt = clamp<uint32_t>(get_bigger_pow2(cnt), VERTEX_SHADER_MIN_REGISTERS, VERTEX_SHADER_MAX_REGISTERS);
     else
       cnt = VERTEX_SHADER_MIN_REGISTERS; // TODO update things to allow 0 (eg shader can tell how many it needs)
     markDirty(DirtyState::VERTEX_CONST_REGISTERS, registerSpaceSizes[STAGE_VS] < cnt);
@@ -1310,9 +1317,9 @@ struct FrontendState
 
   void setStageTRegisterRaytraceAccelerationStructure(uint32_t stage, uint32_t index, RaytraceAccelerationStructure *as)
   {
-    G_ASSERT(stage < array_size(stageResources));
+    G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
-    G_ASSERT(index < array_size(target.tRegisterRaytraceAccelerataionStructures));
+    G_ASSERT(index < countof(target.tRegisterRaytraceAccelerataionStructures));
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     if (target.tRegisterTextures[index])
     {

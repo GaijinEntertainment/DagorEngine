@@ -201,7 +201,7 @@ bool SqModules::compileScriptImpl(const std::vector<char> &buf, const char *sour
 
   if (compilationOptions.doStaticAnalysis)
   {
-    sq_analyseast(sqvm, ast, bindings, &buf[0], buf.size());
+    sq_analyzeast(sqvm, ast, bindings, &buf[0], buf.size());
   }
 
   if (onBytecode_cb) {

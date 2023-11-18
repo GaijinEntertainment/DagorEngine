@@ -45,9 +45,9 @@
 
 #endif
 
-#define CHECK_RELOCATABLE() // static_assert(dag::is_type_relocatable<T>::value, "currently non-relocatable types are not working");
+#define CHECK_RELOCATABLE() static_assert(dag::is_type_relocatable<T>::value, "currently non-relocatable types are not working");
 #define CHECK_RELOCATABLE_OR_INPLACE() \
-  // static_assert(!canOverflow || dag::is_type_relocatable<T>::value, "currently non-relocatable types are not working");
+  static_assert(!canOverflow || dag::is_type_relocatable<T>::value, "currently non-relocatable types are not working");
 
 
 #ifndef IF_CONSTEXPR
@@ -83,6 +83,10 @@ class alignas(max_alignof<T, void *>()) RelocatableFixedData // base class, allo
 public:
   typedef Allocator allocator_type;
   typedef T value_type;
+  typedef T *pointer;
+  typedef const T *const_pointer;
+  typedef T &reference;
+  typedef const T &const_reference;
   typedef value_type *iterator;
   typedef const value_type *const_iterator;
   typedef eastl::reverse_iterator<iterator> reverse_iterator;
@@ -164,6 +168,9 @@ protected:
   size_type heapCapacity() const { return heap.capacity; }
   static size_type inplaceCapacity() { return (size_type)inplace_count; }
 
+  const allocator_type &get_allocator() const { return mAllocatorAndCount; }
+  allocator_type &get_allocator() { return mAllocatorAndCount; }
+
   value_type *inplaceData() { return (value_type *)inplaceStor.data; }
   const value_type *inplaceData() const { return (const value_type *)inplaceStor.data; }
 
@@ -174,13 +181,13 @@ protected:
 
   void doInsertAt(size_t at, size_t add_cnt, value_type *dst, const value_type *src)
   {
-    memmove(dst + at + add_cnt, src + at, sizeof(value_type) * (size() - at));
+    memmove((void *)&dst[at + add_cnt], (const void *)&src[at], sizeof(value_type) * (size() - at));
   }
 
   DAGOR_NOINLINE
   value_type *insertAt(size_t at, size_t add_cnt, value_type *dst, const value_type *src)
   {
-    memmove(dst, src, sizeof(value_type) * at);
+    memmove((void *)dst, (const void *)src, sizeof(value_type) * at);
     doInsertAt(at, add_cnt, dst, src);
     return dst;
   }
@@ -219,6 +226,10 @@ public:
   // so we re-define them here. Note that `using typename base_type::...;`
   // does not work on MSVC due to a compiler bug.
   typedef typename base_type::value_type value_type;
+  typedef typename base_type::pointer pointer;
+  typedef typename base_type::const_pointer const_pointer;
+  typedef typename base_type::reference reference;
+  typedef typename base_type::const_reference const_reference;
   typedef typename base_type::iterator iterator;
   typedef typename base_type::const_iterator const_iterator;
   typedef typename base_type::reverse_iterator reverse_iterator;
@@ -237,6 +248,7 @@ public:
   using base_type::empty;
   using base_type::end;
   using base_type::front;
+  using base_type::get_allocator;
   using base_type::size;
   using base_type::static_size;
 

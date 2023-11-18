@@ -380,52 +380,102 @@ bool drv3d_dx12::pipeline::FramebufferLayoutDeEncoder::encode(DataBlock &blk, co
   return true;
 }
 
-bool drv3d_dx12::pipeline::DeviceCapsAndShaderModelDeEncoder::decode(const DataBlock &blk, DeviceCapsAndShaderModel &target) const
+bool drv3d_dx12::pipeline::DeviceCapsAndShaderModelDeEncoder::decode(const DataBlock &blk, EncodingMode mode,
+  DeviceCapsAndShaderModel &target) const
 {
   target.shaderModel.major = blk.getInt("shaderModelMajor", target.shaderModel.major);
   target.shaderModel.major = blk.getInt("shaderModelMinor", target.shaderModel.minor);
+
 #define DX12_D3D_CAP(name) target.caps.name = blk.getBool(#name, target.caps.name);
-  DX12_D3D_CAP_SET
+  if (EncodingMode::full == mode)
+  {
+    DX12_D3D_CAP_SET
+  }
+  else if (EncodingMode::pipelines == mode)
+  {
+    DX12_D3D_CAP_SET_RELEVANT_FOR_PIPELINES
+  }
 #undef DX12_D3D_CAP
   return true;
 }
 
-bool drv3d_dx12::pipeline::DeviceCapsAndShaderModelDeEncoder::encode(DataBlock &blk, const DeviceCapsAndShaderModel &source) const
+bool drv3d_dx12::pipeline::DeviceCapsAndShaderModelDeEncoder::encode(DataBlock &blk, EncodingMode mode,
+  const DeviceCapsAndShaderModel &source) const
 {
   blk.setInt("shaderModelMajor", source.shaderModel.major);
   blk.setInt("shaderModelMinor", source.shaderModel.minor);
 #define DX12_D3D_CAP(name) blk.setBool(#name, source.caps.name);
-  DX12_D3D_CAP_SET
+  if (EncodingMode::full == mode)
+  {
+    DX12_D3D_CAP_SET
+  }
+  else if (EncodingMode::pipelines == mode)
+  {
+    DX12_D3D_CAP_SET_RELEVANT_FOR_PIPELINES
+  }
 #undef DX12_D3D_CAP
   return true;
 }
 
-bool drv3d_dx12::pipeline::FeatureSupportResolver::decode(const DataBlock &blk, bool &target) const
+bool drv3d_dx12::pipeline::FeatureSupportResolver::decode(const DataBlock &blk, CompatibilityMode mode, bool &target) const
 {
   DeviceCapsAndShaderModel compare{};
-  if (!this->DeviceCapsAndShaderModelDeEncoder::decode(blk, compare))
+  if (!this->DeviceCapsAndShaderModelDeEncoder::decode(blk, mode, compare))
   {
     return false;
   }
-  target = compare.isCompatibleTo(features);
+  if (CompatibilityMode::full == mode)
+  {
+    target = compare.isCompatibleTo(features);
+  }
+  else if (CompatibilityMode::pipelines == mode)
+  {
+    target = compare.isPipelineCompatibleTo(features);
+  }
+  else
+  {
+    target = false;
+  }
   return true;
+}
+
+bool drv3d_dx12::pipeline::FeatureSetChecker::checkFeatureSets(const DataBlock &blk) const
+{
+  if (!featureSet)
+  {
+    return true;
+  }
+
+  auto fiNameId = blk.getNameId("featureSet");
+  if (-1 == fiNameId)
+  {
+    return true;
+  }
+  int lastParamIndex = blk.findParam(fiNameId);
+  if (-1 == lastParamIndex)
+  {
+    return true;
+  }
+
+  do
+  {
+    auto fi = blk.getInt(lastParamIndex);
+    if ((fi < featureSetCount) && featureSet[fi])
+    {
+      return true;
+    }
+    lastParamIndex = blk.findParam(fiNameId, lastParamIndex);
+  } while (-1 != lastParamIndex);
+  return false;
 }
 
 bool drv3d_dx12::pipeline::GraphicsPipelineVariantDeEncoder::decode(const DataBlock &blk, GraphicsPipelineVariantState &target) const
 {
-  if (blk.paramExists("featureSet") && featureSet)
+  if (!checkFeatureSets(blk))
   {
-    auto fi = blk.getInt("featureSet", 0);
-    // when index is out of range, we assume unsupported
-    if (fi > featureSetCount)
-    {
-      return false;
-    }
-    if (!featureSet[fi])
-    {
-      return false;
-    }
+    return false;
   }
+
   if (!blk.paramExists("renderState") || !blk.paramExists("outputFormat") || !blk.paramExists("inputLayout") ||
       !blk.paramExists("primitiveTopology"))
   {
@@ -451,19 +501,11 @@ bool drv3d_dx12::pipeline::GraphicsPipelineVariantDeEncoder::encode(DataBlock &b
 
 bool drv3d_dx12::pipeline::MeshPipelineVariantDeEncoder::decode(const DataBlock &blk, MeshPipelineVariantState &target) const
 {
-  if (blk.paramExists("featureSet") && featureSet)
+  if (!checkFeatureSets(blk))
   {
-    auto fi = blk.getInt("featureSet", 0);
-    // when index is out of range, we assume unsupported
-    if (fi > featureSetCount)
-    {
-      return false;
-    }
-    if (!featureSet[fi])
-    {
-      return false;
-    }
+    return false;
   }
+
   if (!blk.paramExists("renderState") || !blk.paramExists("outputFormat"))
   {
     return false;
@@ -484,19 +526,11 @@ bool drv3d_dx12::pipeline::MeshPipelineVariantDeEncoder::encode(DataBlock &blk, 
 
 bool drv3d_dx12::pipeline::ComputePipelineDeEncoder::decode(const DataBlock &blk, ComputePipelineIdentifier &target) const
 {
-  if (blk.paramExists("featureSet") && featureSet)
+  if (!checkFeatureSets(blk))
   {
-    auto fi = blk.getInt("featureSet", 0);
-    // when index is out of range, we assume unsupported
-    if (fi > featureSetCount)
-    {
-      return false;
-    }
-    if (!featureSet[fi])
-    {
-      return false;
-    }
+    return false;
   }
+
   auto hash = blk.getStr("hash", nullptr);
   if (!hash)
   {

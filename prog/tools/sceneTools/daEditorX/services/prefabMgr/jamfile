@@ -8,6 +8,7 @@ Target      = tools/sceneTools/daEditorX/services/prefabMgr.lib ;
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/gameLibs/publicInclude
 ;
 
 

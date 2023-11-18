@@ -100,7 +100,8 @@ void SplashScreen::kill()
     ::DeleteObject(bitmap);
     bitmap = NULL;
   }
-  ::dgs_pre_shutdown_handler = NULL;
+  if (::dgs_pre_shutdown_handler == &SplashScreen::kill)
+    ::dgs_pre_shutdown_handler = nullptr;
 }
 
 

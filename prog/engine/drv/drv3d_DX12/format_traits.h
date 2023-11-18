@@ -1,5 +1,10 @@
 #pragma once
 
+#include <3d/dag_drv3dConsts.h>
+
+#include "driver.h"
+
+
 enum class FormatClass
 {
   UNKNOWN,

@@ -360,8 +360,6 @@ void GPUGrassBase::init(const DataBlock &grassSettings)
   grassColorsVSCB =
     dag::buffers::create_persistent_cb(dag::buffers::cb_array_reg_count<GrassColorVS>(GRASS_MAX_TYPES), "grass_colors_buf");
 
-  // without SBCF_MAYBELOST buffers not recreated correctly
-  // grassInstancesCountConst.reset(d3d::create_sbuffer(16, 1, SBCF_MAYBELOST|SBCF_BIND_CONSTANT, 0, "grassInstancesCount"));//
   indirectSrv = get_shader_variable_id("grass_instances_indirect", true) >= 0;
   grassInstancesIndirect = dag::create_sbuffer(4, 5 + ((GRASS_LOD_COUNT + 3) & ~3),
     (indirectSrv ? SBCF_BIND_SHADER_RES : 0) | SBCF_UA_INDIRECT, 0, "grass_instances_indirect");

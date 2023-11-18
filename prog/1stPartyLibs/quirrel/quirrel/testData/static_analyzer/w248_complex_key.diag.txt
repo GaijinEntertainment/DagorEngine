@@ -1,0 +1,28 @@
+WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
+testData/static_analyzer/w248_complex_key.nut:14:4
+
+qux(a.z, h.z)
+    ^
+
+
+WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
+testData/static_analyzer/w248_complex_key.nut:14:9
+
+qux(a.z, h.z)
+         ^
+
+
+
+AN ERROR HAS OCCURRED [the index 'z' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w248_complex_key.nut line [14]
+
+LOCALS
+[h] NULL
+[a] NULL
+[qux] CLOSURE=FN:qux
+[bar] CLOSURE=FN:bar
+[foo] CLOSURE=FN:foo
+[vargv] ARRAY=[]
+[this] TABLE={}

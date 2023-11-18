@@ -120,10 +120,12 @@ intptr_t WEdit::onDrawEdit(void *hdc)
 
 // -------------- Button --------------
 
-WButton::WButton(WindowControlEventHandler *event_handler, WindowBase *parent, int x, int y, int w, int h, bool show_sel) :
+WButton::WButton(WindowControlEventHandler *event_handler, WindowBase *parent, int x, int y, int w, int h, bool show_sel,
+  bool text_align_left) :
 
   WindowControlBase(event_handler, parent, "BUTTON", 0,
-    WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER | WS_TABSTOP | (show_sel ? 0 : BS_NOTIFY), "", x, y, w, h)
+    WS_CHILD | WS_VISIBLE | BS_VCENTER | WS_TABSTOP | (show_sel ? 0 : BS_NOTIFY) | (text_align_left ? BS_LEFT : BS_CENTER), "", x, y,
+    w, h)
 {}
 
 intptr_t WButton::onControlCommand(unsigned notify_code, unsigned elem_id)

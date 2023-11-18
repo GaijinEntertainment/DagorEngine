@@ -7,9 +7,9 @@ build:
 
 python:
   install:
-    - requirements: prog/engine2/_docs/render/requirements.txt
+    - requirements: prog/engine/_docs/render/requirements.txt
 
 sphinx:
-  configuration: prog/engine2/_docs/render/docs/conf.py
+  configuration: prog/engine/_docs/render/docs/conf.py
 
 formats: all

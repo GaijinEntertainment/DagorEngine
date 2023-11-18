@@ -794,7 +794,7 @@ void init(const char *blk_file, bool has_normalmap, bool has_vertex_norm, bool i
   // create shader buffer
   tire_tracks::has_vertex_normal = has_vertex_norm;
   int vsize = has_vertex_norm ? sizeof(TireTrackVertexNorm) : sizeof(TireTrackVertexNoNorm);
-  vbuffer = d3d::create_vb(vertexCount * vsize, SBCF_DYNAMIC | SBCF_MAYBELOST, "tires");
+  vbuffer = d3d::create_vb(vertexCount * vsize, SBCF_DYNAMIC, "tires");
 
   // create material & shader
   Ptr<MaterialData> matNull = new MaterialData;

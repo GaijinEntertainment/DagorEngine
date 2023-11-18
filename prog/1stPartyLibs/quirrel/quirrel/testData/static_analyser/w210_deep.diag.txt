@@ -1,7 +1,0 @@
-WARNING: w210 (potentially-nulled-index) Potentially nullable expression used as array index.
-testData/static_analyser/w210_deep.nut:6:9
-
-::f <- x[index]
-         ^----
-
-

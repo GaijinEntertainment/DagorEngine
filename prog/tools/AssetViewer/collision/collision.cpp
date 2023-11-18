@@ -143,6 +143,13 @@ void CollisionPlugin::renderTransObjects()
   if (!collisionRes)
     return;
 
+  if (showFaceOrientation)
+  {
+    updateFaceOrientationRenderDepthFromCurRT();
+    d3d::set_depth(faceOrientationRenderDepth.getTex2D(), DepthAccess::RW);
+    d3d::clearview(CLEAR_ZBUFFER, 0, 0, 0);
+  }
+
   RenderCollisionResource(*collisionRes, nodeTree, showPhysCollidable, showTraceable, drawSolid, showFaceOrientation, selectedNodeId,
     nodesProcessing.editMode, nodesProcessing.selectionNodesProcessing.hiddenNodes);
   nodesProcessing.renderNodes(selectedNodeId, drawSolid);
@@ -410,6 +417,24 @@ void CollisionPlugin::fillAssetStats()
     AssetStatsFiller::fillAssetCollisionStats(stats, *collisionRes);
 }
 
+void CollisionPlugin::updateFaceOrientationRenderDepthFromCurRT()
+{
+  int targetW, targetH;
+  d3d::get_target_size(targetW, targetH);
+
+  if (faceOrientationRenderDepth)
+  {
+    TextureInfo depthInfo;
+    faceOrientationRenderDepth.getTex2D()->getinfo(depthInfo);
+    if (depthInfo.w == targetW && depthInfo.h == targetH)
+      return;
+  }
+
+  faceOrientationRenderDepth.close();
+  faceOrientationRenderDepth =
+    dag::create_tex(nullptr, targetW, targetH, TEXCF_RTARGET | TEXFMT_DEPTH32, 1, "face_orient_render_depth");
+}
+
 static void reset_nodes_tm(CollisionResource *collision_res, GeomNodeTree *node_tree)
 {
   if (node_tree)
@@ -509,9 +534,6 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
   bool show_traceable, bool draw_solid, bool show_face_orientation, int selected_node_id, bool edit_mode,
   const dag::Vector<bool> &hidden_nodes)
 {
-  if (show_face_orientation)
-    d3d::set_backbuf_depth();
-
   begin_draw_cached_debug_lines();
 
   const auto allNodes = collision_res.getAllNodes();

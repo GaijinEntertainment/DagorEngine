@@ -95,10 +95,6 @@ namespace platform
 using namespace desktop;
 } // namespace platform
 
-// total combination of b, t and u register entries
-// If more are needed, just bump it until you have enough or you hit a hardware limit
-const uint32_t REGISTER_ENTRIES = 36;
-
 // do not set above 32! this directly maps to header.*RegisterUseMask 32bit field!
 //  limit for b register entries, this is for the renderer to store the bindings
 const uint32_t B_REGISTER_INDEX_MAX = 8;
@@ -106,6 +102,9 @@ const uint32_t B_REGISTER_INDEX_MAX = 8;
 const uint32_t T_REGISTER_INDEX_MAX = 32;
 // limit for u register entries, this is for the renderer to store the bindings
 const uint32_t U_REGISTER_INDEX_MAX = 13;
+
+// total combination of b, t and u register entries
+const uint32_t REGISTER_ENTRIES = B_REGISTER_INDEX_MAX + T_REGISTER_INDEX_MAX + U_REGISTER_INDEX_MAX;
 
 const uint32_t WORK_GROUP_SIZE_X_CONSTANT_ID = 1;
 const uint32_t WORK_GROUP_SIZE_Y_CONSTANT_ID = 2;

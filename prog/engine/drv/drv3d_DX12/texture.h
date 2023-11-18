@@ -1,7 +1,18 @@
 #pragma once
 
+#include <EASTL/bitset.h>
 #include <3d/tql.h>
+#include <3d/dag_drv3d.h>
 #include <generic/dag_smallTab.h>
+#include <dxil/compiled_shader_header.h>
+
+#include "device_memory_class.h"
+#include "host_device_shared_memory_region.h"
+#include "format_store.h"
+#include "extents.h"
+#include "image_view_state.h"
+#include "sampler_state.h"
+
 
 namespace ddsx
 {
@@ -40,8 +51,8 @@ void dirty_srv_and_sampler_no_lock(BaseTex *texture, uint32_t stage, eastl::bits
 void dirty_uav_no_lock(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_U_REGISTERS> slots);
 void dirty_rendertarget_no_lock(BaseTex *texture, eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> slots);
 
-static constexpr uint32_t MAX_MIPMAPS = 16;
-static constexpr uint32_t TEXTURE_TILE_SIZE = 64 * 1024;
+inline constexpr uint32_t MAX_MIPMAPS = 16;
+inline constexpr uint32_t TEXTURE_TILE_SIZE = 64 * 1024;
 
 struct BaseTex final : public BaseTexture
 {
@@ -61,136 +72,22 @@ struct BaseTex final : public BaseTexture
   bool allowSrgbRead() const { return (cflg & TEXCF_SRGBREAD) != 0; }
   bool isRenderTarget() const { return 0 != (cflg & TEXCF_RTARGET); }
   bool isUAV() const { return 0 != (cflg & TEXCF_UNORDERED); }
+  bool isMultisampled() const { return 0 != (cflg & TEXCF_SAMPLECOUNT_MASK); }
 
   virtual void setResApiName(const char *name) const override;
 
+  void resolve(Image *dst);
+
   FormatStore getFormat() const;
   Image *getDeviceImage() const { return tex.image; }
-  __forceinline ImageViewState getViewInfoUAV(MipMapIndex mip, ArrayLayerIndex layer, bool as_uint) const
-  {
-    ImageViewState result;
-    if (resType == RES3D_TEX)
-    {
-      result.isCubemap = 0;
-      result.isArray = 0;
-      result.setSingleArrayRange(ArrayLayerIndex::make(0));
-      G_ASSERTF(layer.index() == 0, "UAV view for layer/face %u requested, but texture was 2d and has no layers/faces", layer);
-    }
-    else if (resType == RES3D_CUBETEX)
-    {
-      result.isCubemap = 1;
-      result.isArray = 0;
-      result.setArrayRange(getArrayCount().front(layer));
-      G_ASSERTF(layer < getArrayCount(),
-        "UAV view for layer/face %u requested, but texture was cubemap and has only 6 "
-        "faces",
-        layer);
-    }
-    else if (resType == RES3D_ARRTEX)
-    {
-      result.isArray = 1;
-      result.isCubemap = isArrayCube();
-      result.setArrayRange(getArrayCount().front(layer));
-      G_ASSERTF(layer < getArrayCount(), "UAV view for layer/face %u requested, but texture has only %u layers", layer,
-        getArrayCount());
-    }
-    else if (resType == RES3D_VOLTEX)
-    {
-      result.isArray = 0;
-      result.isCubemap = 0;
-      result.setDepthLayerRange(0, max<uint16_t>(1, depth >> mip.index()));
-      G_ASSERTF(layer.index() == 0, "UAV view for layer/face %u requested, but texture was 3d and has no layers/faces", layer);
-    }
-    if (as_uint)
-    {
-      G_ASSERT(getFormat().getBytesPerPixelBlock() == 4 ||
-               (getFormat().getBytesPerPixelBlock() == 8 && d3d::get_driver_desc().caps.hasShader64BitIntegerResources));
-      if (getFormat().getBytesPerPixelBlock() == 4)
-        result.setFormat(FormatStore::fromCreateFlags(TEXFMT_R32UI));
-      else if (getFormat().getBytesPerPixelBlock() == 8)
-        result.setFormat(FormatStore::fromCreateFlags(TEXFMT_R32G32UI));
-    }
-    else
-    {
-      result.setFormat(getFormat().getLinearVariant());
-    }
-    result.setSingleMipMapRange(mip);
-    result.setUAV();
-    return result;
-  }
-  __forceinline ImageViewState getViewInfoRenderTarget(MipMapIndex mip, ArrayLayerIndex layer, bool as_const) const
-  {
-    FormatStore format = allowSrgbWrite() ? getFormat() : getFormat().getLinearVariant();
-    ImageViewState result;
-    result.isArray = resType == RES3D_ARRTEX;
-    result.isCubemap = resType == RES3D_CUBETEX;
-    result.setFormat(format);
-    result.setSingleMipMapRange(mip);
-
-    if (layer.index() < d3d::RENDER_TO_WHOLE_ARRAY)
-    {
-      result.setSingleArrayRange(layer);
-    }
-    else
-    {
-      if (RES3D_VOLTEX == resType)
-      {
-        result.setDepthLayerRange(0, max<uint16_t>(1, depth >> mip.index()));
-      }
-      else
-      {
-        result.setArrayRange(getArrayCount());
-      }
-    }
-
-    if (format.isColor())
-    {
-      result.setRTV();
-    }
-    else
-    {
-      result.setDSV(as_const);
-    }
-
-    return result;
-  }
-  __forceinline ImageViewState getViewInfo() const
-  {
-    ImageViewState result;
-    result.setFormat(allowSrgbRead() ? getFormat() : getFormat().getLinearVariant());
-    result.isArray = resType == RES3D_ARRTEX ? 1 : 0;
-    result.isCubemap = resType == RES3D_CUBETEX ? 1 : (resType == RES3D_ARRTEX ? int(isArrayCube()) : 0);
-    int32_t baseMip = clamp<int32_t>(maxMipLevel, 0, max(0, (int32_t)tex.realMipLevels - 1));
-    int32_t mipCount = (minMipLevel - maxMipLevel) + 1;
-    if (mipCount <= 0 || baseMip + mipCount > tex.realMipLevels)
-    {
-      mipCount = tex.realMipLevels - baseMip;
-    }
-    if (isStub())
-    {
-      baseMip = 0;
-      mipCount = 1;
-    }
-    result.setMipBase(MipMapIndex::make(baseMip));
-    result.setMipCount(max(mipCount, 1));
-    result.setArrayRange(getArrayCount());
-    result.setSRV();
-    result.sampleStencil = sampleStencil();
-    return result;
-  }
+  ImageViewState getViewInfoUAV(MipMapIndex mip, ArrayLayerIndex layer, bool as_uint) const;
+  ImageViewState getViewInfoRenderTarget(MipMapIndex mip, ArrayLayerIndex layer, bool as_const) const;
+  ImageViewState getViewInfo() const;
 
   void updateDeviceSampler();
   D3D12_CPU_DESCRIPTOR_HANDLE getDeviceSampler();
 
-  Extent3D getMipmapExtent(uint32_t level) const
-  {
-    Extent3D result;
-    result.width = max(width >> level, 1);
-    result.height = max(height >> level, 1);
-    result.depth = resType == RES3D_VOLTEX ? max(depth >> level, 1) : 1;
-    return result;
-  }
-
+  Extent3D getMipmapExtent(uint32_t level) const;
   uint32_t getMemorySize() const { return tex.memSize; }
 
   struct ReloadDataHandler
@@ -225,111 +122,19 @@ struct BaseTex final : public BaseTexture
   eastl::bitset<dxil::MAX_U_REGISTERS> uavBindingStages[STAGE_MAX_EXT];
   eastl::bitset<active_binding_state_count> stateBitSet;
 
-  void notifySamplerChange()
-  {
-    for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
-    {
-      if (srvBindingStages[s].any())
-      {
-        dirty_sampler(this, s, srvBindingStages[s]);
-      }
-    }
-  }
-
-  void notifySRViewChange()
-  {
-    for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
-    {
-      if (srvBindingStages[s].any())
-      {
-        dirty_srv(this, s, srvBindingStages[s]);
-      }
-    }
-  }
-
-  void notifyTextureReplaceFinish()
-  {
-    // if we are ending up here, we are still holding the lock of the state tracker
-    // to avoid a deadlock by reentering we have to do the dirtying without a lock
-    for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
-    {
-      if (srvBindingStages[s].any())
-      {
-        dirty_srv_and_sampler_no_lock(this, s, srvBindingStages[s]);
-      }
-    }
-  }
-
-  void dirtyBoundSRVsNoLock()
-  {
-    for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
-    {
-      if (srvBindingStages[s].any())
-      {
-        dirty_srv_no_lock(this, s, srvBindingStages[s]);
-      }
-    }
-  }
-
-  void dirtyBoundUAVsNoLock()
-  {
-    for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
-    {
-      if (uavBindingStages[s].any())
-      {
-        dirty_uav_no_lock(this, s, uavBindingStages[s]);
-      }
-    }
-  }
-
+  void notifySamplerChange();
+  void notifySRViewChange();
+  void notifyTextureReplaceFinish();
+  void dirtyBoundSRVsNoLock();
+  void dirtyBoundUAVsNoLock();
   void dirtyBoundRTVsNoLock() { dirty_rendertarget_no_lock(this, getRTVBinding()); }
-
-  void setUAVBinding(uint32_t stage, uint32_t index, bool s)
-  {
-    uavBindingStages[stage].set(index, s);
-    stateBitSet.set(acitve_binding_used_offset);
-    if (s)
-    {
-      stateBitSet.reset(active_binding_was_copied_to_stage_offset);
-    }
-  }
-
-  void setSRVBinding(uint32_t stage, uint32_t index, bool s)
-  {
-    srvBindingStages[stage].set(index, s);
-    stateBitSet.set(acitve_binding_used_offset);
-  }
-
-  void setRTVBinding(uint32_t index, bool s)
-  {
-    G_ASSERT(index < Driver3dRenderTarget::MAX_SIMRT);
-    stateBitSet.set(active_binding_rtv_offset + index, s);
-    stateBitSet.set(acitve_binding_used_offset);
-    if (s)
-    {
-      stateBitSet.reset(active_binding_was_copied_to_stage_offset);
-      stateBitSet.set(active_binding_dirty_rt);
-    }
-  }
-
-  void setDSVBinding(bool s)
-  {
-    stateBitSet.set(active_binding_dsv_offset, s);
-    stateBitSet.set(acitve_binding_used_offset);
-    if (s)
-    {
-      stateBitSet.reset(active_binding_was_copied_to_stage_offset);
-      stateBitSet.set(active_binding_dirty_rt);
-    }
-  }
+  void setUAVBinding(uint32_t stage, uint32_t index, bool s);
+  void setSRVBinding(uint32_t stage, uint32_t index, bool s);
+  void setRTVBinding(uint32_t index, bool s);
+  void setDSVBinding(bool s);
   eastl::bitset<dxil::MAX_U_REGISTERS> getUAVBinding(uint32_t stage) const { return uavBindingStages[stage]; }
   eastl::bitset<dxil::MAX_T_REGISTERS> getSRVBinding(uint32_t stage) const { return srvBindingStages[stage]; }
-  eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> getRTVBinding() const
-  {
-    eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> ret;
-    ret.from_uint64((stateBitSet >> active_binding_rtv_offset).to_uint64());
-    return ret;
-  }
+  eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> getRTVBinding() const;
   bool getDSVBinding() const { return stateBitSet.test(active_binding_dsv_offset); }
   bool wasUsed() const { return stateBitSet.test(acitve_binding_used_offset); }
   void setWasUsed() { stateBitSet.set(acitve_binding_used_offset); }
@@ -337,27 +142,15 @@ struct BaseTex final : public BaseTexture
   void setDelayedCreate(bool s) { stateBitSet.set(active_binding_delayed_create_offset, s); }
   bool preallocBeforeLoad() const { return stateBitSet.test(active_binding_prealloc_before_load_offset); }
   void setPreallocBeforeLoad(bool s) { stateBitSet.set(active_binding_prealloc_before_load_offset, s); }
-
   bool sampleStencil() const { return stateBitSet.test(active_binding_sample_stencil); }
-
   void setSampleStencil(bool s) { stateBitSet.set(active_binding_sample_stencil, s); }
-
   bool isArrayCube() const { return stateBitSet.test(active_binding_is_array_cube_offset); }
-
   void setIsArrayCube(bool s) { stateBitSet.set(active_binding_is_array_cube_offset, s); }
-
   bool wasCopiedToStage() const { return stateBitSet.test(active_binding_was_copied_to_stage_offset); }
   void setWasCopiedToStage(bool s) { stateBitSet.set(active_binding_was_copied_to_stage_offset, s); }
-
   bool dirtyRt() const { return stateBitSet.test(active_binding_dirty_rt); }
   void setDirtyRty(bool s) { stateBitSet.set(active_binding_dirty_rt, s); }
-
-  void setUsedWithBindless()
-  {
-    stateBitSet.set(active_binding_bindless_used_offset);
-    stateBitSet.set(acitve_binding_used_offset);
-  }
-
+  void setUsedWithBindless();
   bool wasUsedWithBindless() const { return stateBitSet.test(active_binding_bindless_used_offset); }
 
   uint16_t width = 0;
@@ -384,18 +177,7 @@ struct BaseTex final : public BaseTexture
 
   void setParams(int w, int h, int d, int levels, const char *stat_name);
 
-  ArrayLayerCount getArrayCount() const
-  {
-    if (resType == RES3D_CUBETEX)
-    {
-      return ArrayLayerCount::make(6);
-    }
-    else if (resType == RES3D_ARRTEX)
-    {
-      return ArrayLayerCount::make((isArrayCube() ? 6 : 1) * depth);
-    }
-    return ArrayLayerCount::make(1);
-  }
+  ArrayLayerCount getArrayCount() const;
 
   uint32_t getDepthSlices() const
   {
@@ -404,153 +186,31 @@ struct BaseTex final : public BaseTexture
     return 1;
   }
 
-  BaseTex(int res_type, uint32_t cflg_) :
-    resType(res_type), cflg(cflg_), minMipLevel(20), maxMipLevel(0), lockFlags(0), depth(1), width(0), height(0)
-  {
-    samplerState.setBias(default_lodbias);
-    samplerState.setAniso(default_aniso);
-    samplerState.setW(D3D12_TEXTURE_ADDRESS_MODE_WRAP);
-    samplerState.setV(D3D12_TEXTURE_ADDRESS_MODE_WRAP);
-    samplerState.setU(D3D12_TEXTURE_ADDRESS_MODE_WRAP);
-    samplerState.setMip(D3D12_FILTER_TYPE_LINEAR);
-    samplerState.setFilter(D3D12_FILTER_TYPE_LINEAR);
-
-    if (RES3D_CUBETEX == resType)
-    {
-      samplerState.setV(D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
-      samplerState.setU(D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
-    }
-  }
-
+  BaseTex(int res_type, uint32_t cflg_);
   ~BaseTex() override;
 
   /// ->>
   void setReadStencil(bool on) override { setSampleStencil(on && getFormat().isStencil()); }
   int restype() const override { return resType; }
   int ressize() const override;
-
-  int getinfo(TextureInfo &ti, int level = 0) const override
-  {
-    level = clamp<int>(level, 0, mipLevels - 1);
-
-    ti.w = max<uint32_t>(1u, width >> level);
-    ti.h = max<uint32_t>(1u, height >> level);
-    switch (resType)
-    {
-      case RES3D_CUBETEX:
-        ti.d = 1;
-        ti.a = 6;
-        break;
-      case RES3D_CUBEARRTEX:
-      case RES3D_ARRTEX:
-        ti.d = 1;
-        ti.a = getArrayCount().count();
-        break;
-      case RES3D_VOLTEX:
-        ti.d = max<uint32_t>(1u, getDepthSlices() >> level);
-        ti.a = 1;
-        break;
-      default:
-        ti.d = 1;
-        ti.a = 1;
-        break;
-    }
-
-    ti.mipLevels = mipLevels;
-    ti.resType = resType;
-    ti.cflg = cflg;
-    return 1;
-  }
-
+  int getinfo(TextureInfo &ti, int level = 0) const override;
   bool addDirtyRect(const RectInt &) override { return true; }
-
   int level_count() const override { return mipLevels; }
 
-  int texaddr(int a) override
-  {
-    samplerState.setW(translate_texture_address_mode_to_dx12(a));
-    samplerState.setV(translate_texture_address_mode_to_dx12(a));
-    samplerState.setU(translate_texture_address_mode_to_dx12(a));
-    notifySamplerChange();
-    return 1;
-  }
-
-  int texaddru(int a) override
-  {
-    samplerState.setU(translate_texture_address_mode_to_dx12(a));
-    notifySamplerChange();
-    return 1;
-  }
-
-  int texaddrv(int a) override
-  {
-    samplerState.setV(translate_texture_address_mode_to_dx12(a));
-    notifySamplerChange();
-    return 1;
-  }
-
-  int texaddrw(int a) override
-  {
-    if (RES3D_VOLTEX == resType)
-    {
-      samplerState.setW(translate_texture_address_mode_to_dx12(a));
-      notifySamplerChange();
-      return 1;
-    }
-    return 0;
-  }
-
-  int texbordercolor(E3DCOLOR c) override
-  {
-    samplerState.setBorder(c);
-    notifySamplerChange();
-    return 1;
-  }
-
-  int texfilter(int m) override
-  {
-    samplerState.isCompare = m == TEXFILTER_COMPARE;
-    samplerState.setFilter(translate_filter_type_to_dx12(m));
-    notifySamplerChange();
-    return 1;
-  }
-
-  int texmipmap(int m) override
-  {
-    samplerState.setMip(translate_mip_filter_type_to_dx12(m));
-    notifySamplerChange();
-    return 1;
-  }
-
-  int texlod(float mipmaplod) override
-  {
-    samplerState.setBias(mipmaplod);
-    notifySamplerChange();
-    return 1;
-  }
-
-  int texmiplevel(int minlevel, int maxlevel) override
-  {
-    maxMipLevel = (minlevel >= 0) ? minlevel : 0;
-    minMipLevel = (maxlevel >= 0) ? maxlevel : (mipLevels - 1);
-    notifySRViewChange();
-    return 1;
-  }
-
-  int setAnisotropy(int level) override
-  {
-    samplerState.setAniso(clamp<int>(level, 1, 16));
-    notifySamplerChange();
-    return 1;
-  }
+  int texaddr(int a) override;
+  int texaddru(int a) override;
+  int texaddrv(int a) override;
+  int texaddrw(int a) override;
+  int texbordercolor(E3DCOLOR c) override;
+  int texfilter(int m) override;
+  int texmipmap(int m) override;
+  int texlod(float mipmaplod) override;
+  int texmiplevel(int minlevel, int maxlevel) override;
+  int setAnisotropy(int level) override;
 
   int generateMips() override;
 
-  bool setReloadCallback(IReloadData *_rld) override
-  {
-    setRld(_rld);
-    return true;
-  }
+  bool setReloadCallback(IReloadData *_rld) override;
 
   void resetTex();
   void releaseTex();
@@ -581,14 +241,8 @@ struct BaseTex final : public BaseTexture
   }
 
   bool allocateTex() override;
-  void discardTex() override
-  {
-    if (stubTexIdx >= 0)
-    {
-      releaseTex();
-      recreate();
-    }
-  }
+  void discardTex() override;
+
   bool isTexResEqual(BaseTexture *bt) const { return bt && ((BaseTex *)bt)->tex.image == tex.image; }
   bool isCubeArray() const { return isArrayCube(); }
 
@@ -602,7 +256,7 @@ struct BaseTex final : public BaseTexture
   static DeviceMemoryClass get_memory_class(uint32_t cflags);
 };
 
-static inline BaseTex *getbasetex(/*const*/ BaseTexture *t) { return t ? (BaseTex *)t : nullptr; }
+static inline BaseTex *getbasetex(BaseTexture *t) { return t ? (BaseTex *)t : nullptr; }
 
 static inline const BaseTex *getbasetex(const BaseTexture *t) { return t ? (const BaseTex *)t : nullptr; }
 

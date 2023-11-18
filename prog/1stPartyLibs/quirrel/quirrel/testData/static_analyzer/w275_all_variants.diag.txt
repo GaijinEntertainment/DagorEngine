@@ -1,0 +1,18 @@
+WARNING: w275 (missed-break) A 'break' statement is probably missing in a 'switch' statement.
+testData/static_analyzer/w275_all_variants.nut:9:8
+
+    case 1:
+        foo();   // OK
+        ^----
+    case 2: {
+
+
+WARNING: w275 (missed-break) A 'break' statement is probably missing in a 'switch' statement.
+testData/static_analyzer/w275_all_variants.nut:20:8
+
+    case 3:
+        foo()    // OK
+        ^----
+    default:
+
+

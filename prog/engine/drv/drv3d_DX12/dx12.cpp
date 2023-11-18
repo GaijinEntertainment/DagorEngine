@@ -3,6 +3,7 @@
 #include "../drv3d_commonCode/stereoHelper.h"
 #include "../drv3d_commonCode/dxgi_utils.h"
 #include "../drv3d_commonCode/gpuConfig.h"
+#include "../drv3d_commonCode/validate_sbuf_flags.h"
 
 #include <../hid_mouse/api_wrappers.h>
 
@@ -36,6 +37,8 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_unicode.h>
 #endif
+
+#include "driver_mutex.h"
 
 #if _TARGET_PC_WIN
 extern "C"
@@ -1238,6 +1241,19 @@ int on_driver_command_compile_pipeline_set(void *par1)
     sets->outputFormatSet, sets->graphicsPipelineSet, sets->meshPipelineSet, sets->computePipelineSet, defaultFormat);
   return 1;
 }
+
+int on_get_buffer_gpu_address(void *buffer, void *address)
+{
+  if (!buffer || !address)
+  {
+    return 0;
+  }
+
+  auto bufferRef = get_any_buffer_ref(static_cast<GenericBufferInterface *>(buffer));
+  *static_cast<uint64_t *>(address) = bufferRef.gpuPointer;
+
+  return 1;
+}
 } // namespace
 
 int d3d::driver_command(int command, void *par1, void *par2, void *par3)
@@ -1245,6 +1261,7 @@ int d3d::driver_command(int command, void *par1, void *par2, void *par3)
   STORE_RETURN_ADDRESS();
   switch (command)
   {
+    case DRV3D_COMMAND_GET_BUFFER_GPU_ADDRESS: return on_get_buffer_gpu_address(par1, par2);
     case DRV3D_COMMAND_COMPILE_PIPELINE_SET: return on_driver_command_compile_pipeline_set(par1);
     case DRV3D_COMMAND_REMOVE_DEBUG_BREAK_STRING_SEARCH:
       api_state.device.getContext().removeDebugBreakString({static_cast<const char *>(par1)});
@@ -1979,8 +1996,15 @@ bool check_format_features(int cflg, D3D12_FEATURE_DATA_FORMAT_SUPPORT support, 
   if (fmt.isDepth() && (0 == (mask & D3D12_FORMAT_SUPPORT1_DEPTH_STENCIL)))
     return false;
 
-  // no msaa right now
-  if (cflg & (TEXCF_MULTISAMPLED | TEXCF_MSAATARGET))
+  bool isMultisampled = ((cflg & TEXCF_SAMPLECOUNT_MASK) != 0);
+
+  if (isMultisampled && (0 == (mask & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RENDERTARGET)))
+    return false;
+
+  if (isMultisampled && (0 == (mask & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RESOLVE)))
+    return false;
+
+  if (isMultisampled && (0 == (mask & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_LOAD)))
     return false;
 
   if ((cflg & TEXCF_TILED_RESOURCE) != 0 && (support.Support2 & D3D12_FORMAT_SUPPORT2_TILED) == 0)
@@ -1992,8 +2016,20 @@ bool check_format_features(int cflg, D3D12_FEATURE_DATA_FORMAT_SUPPORT support, 
 bool d3d::check_texformat(int cflg)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
+  if (!api_state.device.isSamplesCountSupported(fmt.asDxGiFormat(), get_sample_count(cflg)))
+    return false;
   auto features = api_state.device.getFormatFeatures(fmt);
   return check_format_features(cflg, features, fmt, RES3D_TEX);
+}
+
+int d3d::get_max_sample_count(int cflg)
+{
+  auto dxgiFormat = FormatStore::fromCreateFlags(cflg).asDxGiFormat();
+  for (int32_t numSamples = get_sample_count(TEXCF_SAMPLECOUNT_MAX); numSamples > 1; numSamples /= 2)
+    if (api_state.device.isSamplesCountSupported(dxgiFormat, numSamples))
+      return numSamples;
+
+  return 1;
 }
 
 bool d3d::issame_texformat(int cflg1, int cflg2)
@@ -2189,10 +2225,10 @@ PROGRAM d3d::create_program(const uint32_t *vs, const uint32_t *ps, VDECL vdecl,
   return create_program(vprog, fshad, vdecl, strides, streams);
 }
 
-PROGRAM d3d::create_program_cs(const uint32_t *cs_native)
+PROGRAM d3d::create_program_cs(const uint32_t *cs_native, CSPreloaded preloaded)
 {
   STORE_RETURN_ADDRESS();
-  return api_state.shaderProgramDatabase.newComputeProgram(api_state.device.getContext(), cs_native).exportValue();
+  return api_state.shaderProgramDatabase.newComputeProgram(api_state.device.getContext(), cs_native, preloaded).exportValue();
 }
 
 bool d3d::set_program(PROGRAM prog_id)
@@ -2429,7 +2465,7 @@ bool d3d::set_render_target()
   CHECK_MAIN_THREAD();
   ScopedCommitLock ctxLock{api_state.device.getContext()};
   api_state.state.resetColorTargetsToBackBuffer();
-  api_state.state.resetDepthStencilToBackBuffer(api_state.device.getContext());
+  api_state.state.removeDepthStencilTarget(api_state.device.getContext());
   api_state.state.setUpdateViewportFromRenderTarget();
   return true;
 }
@@ -3258,16 +3294,19 @@ void d3d::get_video_modes_list(Tab<String> &list) { api_state.device.enumerateDi
 
 Vbuffer *d3d::create_vb(int size, int flg, const char *name)
 {
+  validate_sbuffer_flags(flg | SBCF_BIND_VERTEX, name);
   return api_state.device.newBufferObject(0, size, flg | SBCF_BIND_VERTEX, 0, name);
 }
 
 Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name)
 {
+  validate_sbuffer_flags(flg | SBCF_BIND_INDEX, stat_name);
   return api_state.device.newBufferObject(0, size, flg | SBCF_BIND_INDEX, 0, stat_name);
 }
 
 Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char *name)
 {
+  validate_sbuffer_flags(flags, name);
   return api_state.device.newBufferObject(struct_size, elements, flags, format, name);
 }
 

@@ -27,10 +27,9 @@ struct CapsulesAOHolder
       return;
     max_ao_units_count = clamp(max_ao_units_count, uint32_t(1), uint32_t(MAX_AO_UNITS));
     capsuled_units_indirection = dag::create_sbuffer(sizeof(uint), UNITS_AO_GRID_SIZE * UNITS_AO_GRID_SIZE,
-      SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0,
-      "capsuled_units_indirection");
+      SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "capsuled_units_indirection");
     capsuled_units_ao = dag::create_sbuffer(sizeof(CapsuledAOUnit), maxAOUnitsCount = max_ao_units_count,
-      SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "capsuled_units_ao");
+      SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "capsuled_units_ao");
   }
 
   ~CapsulesAOHolder()

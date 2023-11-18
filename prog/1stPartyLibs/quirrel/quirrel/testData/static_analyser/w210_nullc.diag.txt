@@ -1,8 +1,0 @@
-WARNING: w228 (declared-never-used) let 'requestCratesContent' was declared but never used.
-testData/static_analyser/w210_nullc.nut:6:0
-
-let function requestCratesContent(armyId, crates) {
-^
-    if ((armyId ?? "") == "")
-
-

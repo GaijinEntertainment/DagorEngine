@@ -17,6 +17,7 @@ Quirrel documentation
    modules/bindings.rst
    repl/index.rst
    rfcs/STATUS.md
+   rfcs/README.md
 
 Indices and tables
 ==================

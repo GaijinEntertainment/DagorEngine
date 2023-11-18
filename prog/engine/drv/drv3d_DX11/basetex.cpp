@@ -143,7 +143,7 @@ static bool createResView(TextureView &tv, BaseTex *tex, uint32_t face, uint32_t
   else
     desc.Format = dxgi_format_for_res(tex->format, tex->cflg);
 
-  if ((tex->cflg & TEXCF_MULTISAMPLED) == 0 || tex->tex.resolvedTex)
+  if ((tex->cflg & TEXCF_SAMPLECOUNT_MASK) == 0 || tex->tex.resolvedTex)
   {
     if (type == RES3D_TEX)
     {
@@ -295,7 +295,7 @@ static bool createTexView(TextureView &tv, BaseTex *tex, uint32_t face, uint32_t
       desc.Format = (cflg & TEXCF_SRGBWRITE) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
     }
 
-    if ((cflg & TEXCF_MULTISAMPLED) == 0)
+    if ((cflg & TEXCF_SAMPLECOUNT_MASK) == 0)
     {
       if (type == RES3D_TEX)
       {
@@ -400,7 +400,7 @@ static bool createTexView(TextureView &tv, BaseTex *tex, uint32_t face, uint32_t
     else
     {
       G_ASSERT(face == 0 && mip_level == 0 && mip_count == 1);
-      if ((tex->cflg & TEXCF_MULTISAMPLED) == 0)
+      if ((tex->cflg & TEXCF_SAMPLECOUNT_MASK) == 0)
       {
         desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
         desc.Texture2D.MipSlice = 0;
@@ -466,7 +466,7 @@ void BaseTex::release() { releaseTex(false); }
 
 void BaseTex::resolve(ID3D11Resource *dst, DXGI_FORMAT dst_format)
 {
-  G_ASSERT(cflg & (TEXCF_MSAATARGET | TEXCF_MULTISAMPLED));
+  G_ASSERT(cflg & (TEXCF_SAMPLECOUNT_MASK));
 
   switch (dst_format)
   {
@@ -520,7 +520,7 @@ int BaseTex::update(BaseTexture *base_src)
       return 0;
 
     // arr rect
-    if (src->cflg & (TEXCF_MSAATARGET | TEXCF_MULTISAMPLED))
+    if (src->cflg & TEXCF_SAMPLECOUNT_MASK)
       src->resolve(tex.texRes, format);
     else
     {
@@ -584,7 +584,9 @@ int BaseTex::updateSubRegionImpl(BaseTexture *base_src, int src_subres_idx, int 
         and pDstResource parameters, should have identical sample count values.
       */
 
-      auto isDepthOrMS = [](const TextureInfo &info) { return is_depth_format_flg(info.cflg) || !!(info.cflg & TEXCF_MULTISAMPLED); };
+      auto isDepthOrMS = [](const TextureInfo &info) {
+        return is_depth_format_flg(info.cflg) || !!(info.cflg & TEXCF_SAMPLECOUNT_MASK);
+      };
 
       TextureInfo srcInfo, dstInfo;
       base_src->getinfo(srcInfo, src_subres_idx);

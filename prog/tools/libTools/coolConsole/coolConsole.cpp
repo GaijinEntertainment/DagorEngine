@@ -190,12 +190,14 @@ CoolConsole::CoolConsole(const char *capt, HWND parent_wnd) :
   registerCommand("help", this);
   registerCommand("list", this);
   registerCommand("clear", this);
+  console::set_visual_driver_raw(this);
 }
 
 
 //==============================================================================
 CoolConsole::~CoolConsole()
 {
+  console::set_visual_driver_raw(nullptr);
   --conCount;
 
   destroyConsole();
@@ -522,7 +524,29 @@ void CoolConsole::addMessageFmt(MessageType type, const char *fmt, const DagorSa
   if (isProgress())
     ::UpdateWindow(logWnd);
 }
+void CoolConsole::puts(const char *str, console::LineType type)
+{
+  if (limitOutputLinesLeft == 0)
+    return;
 
+  unsigned color = 0;
+  switch (type)
+  {
+    case console::CONSOLE_INFO: color = REMARK_COLOR; break;
+    case console::CONSOLE_WARNING: color = WARNING_COLOR; break;
+    case console::CONSOLE_ERROR: color = ERROR_COLOR; break;
+  }
+
+  unsigned logEnd = ::GetWindowTextLength(logWnd);
+  if (logEnd)
+  {
+    addTextToLog("\n", color, &logEnd);
+    ++logEnd;
+  }
+  addTextToLog(str, color, &logEnd);
+  if (--limitOutputLinesLeft == 0)
+    addTextToLog("\n... too many lines, output omitted (see debug for full log)...\n", WARNING_COLOR);
+}
 
 //==============================================================================
 bool CoolConsole::initConsole()
@@ -811,10 +835,21 @@ bool CoolConsole::runCommand(const char *cmd)
   IConsoleCmd *handler = NULL;
   commands.get(String(cmdName), handler);
 
+  limitOutputLinesLeft = 1024;
   if (handler && handler->onConsoleCommand(cmdName, params))
+  {
+    limitOutputLinesLeft = -1;
     return true;
-  if (!console::command(command.c_str()))
-    addTextToLog(String(32, "\nUnknown command \"%s\" \"%s\"", cmdName, command.c_str()), ERROR_COLOR, &logEnd);
+  }
+  for (auto &p : params)
+    command.aprintf(0, " %s", p);
+  if (console::command(command.c_str()))
+  {
+    limitOutputLinesLeft = -1;
+    return true;
+  }
+  addTextToLog(String(32, "\nUnknown command \"%s\"", command.c_str()), ERROR_COLOR, &logEnd);
+  limitOutputLinesLeft = -1;
   return false;
 }
 

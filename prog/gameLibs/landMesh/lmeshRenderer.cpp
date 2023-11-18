@@ -144,7 +144,7 @@ static void init_one_quad()
 {
   del_d3dres(one_quad);
 
-  one_quad = d3d::create_vb(4 * 4 * 2, SBCF_MAYBELOST, "lm-1quad");
+  one_quad = d3d::create_vb(4 * 4 * 2, 0, "lm-1quad");
   d3d_err(one_quad);
   short *vert;
   d3d_err(one_quad->lock(0, 0, (void **)&vert, VBLOCK_WRITEONLY));

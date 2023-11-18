@@ -14,7 +14,7 @@
 #include "render_work.h"
 #include "temp_buffers.h"
 #include "frame_info.h"
-#include "timeline.h"
+#include "timelines.h"
 #include "image_resource.h"
 #include <osApiWrappers/dag_threads.h>
 #include "execution_state.h"
@@ -23,6 +23,7 @@
 #include "util/fault_report.h"
 #include "bindless.h"
 #include "execution_sync.h"
+#include "pipeline/compiler.h"
 
 namespace drv3d_vulkan
 {
@@ -146,8 +147,7 @@ struct ContextBackend
   };
   eastl::vector<DiscardNotify> delayedDiscards;
 
-  unsigned pipelineCompilationTime = 0;
-  unsigned pipelineCompilationTimeBudget = unsigned(-1);
+  PipelineCompiler pipelineCompiler;
 
   int64_t gpuWaitDuration = 0;
   int64_t acquireBackBufferDuration = 0;
@@ -157,7 +157,7 @@ struct ContextBackend
   int64_t lastMemoryStatTime = 0;
   int64_t memoryStatisticsPeriod = 0;
 
-  ContextBackend(TimelineManager &tl_man) : contextState(tl_man)
+  ContextBackend(TimelineManager &tl_man) : contextState(tl_man), pipelineCompiler(tl_man)
   {
     executionState.reset();
     pipelineState.reset();

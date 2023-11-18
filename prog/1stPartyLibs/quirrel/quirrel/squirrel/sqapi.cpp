@@ -15,7 +15,7 @@
 #include "arena.h"
 #include "sqast.h"
 #include "sqastrender.h"
-#include "static_analyser/analyser.h"
+#include "static_analyzer/analyzer.h"
 
 SQUIRREL_API SQBool sq_tracevar(HSQUIRRELVM v, const HSQOBJECT *container, const HSQOBJECT * key, SQChar * buf, int buf_size)
 {
@@ -1760,14 +1760,14 @@ SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astD
     return SQ_ERROR;
 }
 
-void sq_analyseast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size)
+void sq_analyzeast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size)
 {
-    AnalyseCode(v, astData, bindings, s, size);
+    AnalyzeCode(v, astData, bindings, s, size);
 }
 
 void sq_checktrailingspaces(HSQUIRRELVM v, const SQChar *sourceName, const SQChar *s, SQInteger size)
 {
-    StaticAnalyser::checkTrailingWhitespaces(v, sourceName, s, size);
+    StaticAnalyzer::checkTrailingWhitespaces(v, sourceName, s, size);
 }
 
 void sq_releaseASTData(HSQUIRRELVM v, SQCompilation::SqASTData *astData)
@@ -1864,15 +1864,15 @@ SQRESULT sq_limitthreadaccess(HSQUIRRELVM vm, int64_t tid)
     return SQ_OK;
 }
 
-void sq_resetanalyserconfig() {
+void sq_resetanalyzerconfig() {
   SQCompilationContext::resetConfig();
 }
 
-bool sq_loadanalyserconfig(const char *configFileName) {
+bool sq_loadanalyzerconfig(const char *configFileName) {
   return SQCompilationContext::loadConfigFile(configFileName);
 }
 
-bool sq_loadanalyserconfigblk(const KeyValueFile &config) {
+bool sq_loadanalyzerconfigblk(const KeyValueFile &config) {
   return SQCompilationContext::loadConfigFile(config);
 }
 
@@ -1901,9 +1901,9 @@ void sq_enablesyntaxwarnings() {
 }
 
 void sq_checkglobalnames(HSQUIRRELVM v) {
-  StaticAnalyser::reportGlobalNameDiagnostics(v);
+  StaticAnalyzer::reportGlobalNameDiagnostics(v);
 }
 
 void sq_mergeglobalnames(const HSQOBJECT *bindings) {
-  StaticAnalyser::mergeKnownBindings(bindings);
+  StaticAnalyzer::mergeKnownBindings(bindings);
 }

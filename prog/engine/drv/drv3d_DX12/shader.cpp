@@ -497,7 +497,7 @@ void ShaderProgramDatabase::initNullPixelShader(DeviceContext &ctx)
 {
   dxil::ShaderHeader nullHeader = {};
   nullHeader.shaderType = static_cast<uint16_t>(dxil::ShaderStage::PIXEL);
-  auto nullShader = make_span(null_pixel_shader, array_size(null_pixel_shader));
+  auto nullShader = make_span(null_pixel_shader, countof(null_pixel_shader));
   auto nPSH = newRawPixelShader(ctx, nullHeader, nullShader);
   nullPixelShader = nPSH;
 }
@@ -532,7 +532,7 @@ ShaderID ShaderProgramDatabase::newRawPixelShader(DeviceContext &ctx, const dxil
   return id;
 }
 
-ProgramID ShaderProgramDatabase::newComputeProgram(DeviceContext &ctx, const void *data)
+ProgramID ShaderProgramDatabase::newComputeProgram(DeviceContext &ctx, const void *data, CSPreloaded preloaded)
 {
   auto basicModule = decode_shader_layout<ComputeShaderModule>((const uint8_t *)data);
   if (!basicModule)
@@ -551,7 +551,7 @@ ProgramID ShaderProgramDatabase::newComputeProgram(DeviceContext &ctx, const voi
     ScopedLockWriteTemplate<OSReadWriteLock> lock(dataGuard);
     program = shaderProgramGroups.addComputeShaderProgram();
   }
-  ctx.addComputeProgram(program, eastl::move(module));
+  ctx.addComputeProgram(program, eastl::move(module), preloaded);
 
   return program;
 }

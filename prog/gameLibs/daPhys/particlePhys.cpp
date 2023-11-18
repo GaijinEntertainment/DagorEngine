@@ -108,7 +108,7 @@ struct EdgeConstraint : public Constraint
     {
       if (auto nodeB = ptB->gnNodeId)
       {
-        tree->setNodeWtmRelScalar(nodeB, render_space_tm * (ptB->tm * ptB->helperTm));
+        tree->setNodeWtmScalar(nodeB, render_space_tm * (ptB->tm * ptB->helperTm));
         tree->markNodeTmInvalid(nodeB);
       }
     }
@@ -318,7 +318,7 @@ struct ProjectionConstraint : public SliderConstraint
       Quat rot = quat_rotation_arc(posInitial, posNow);
       TMatrix rotTm = makeTM(rot);
       TMatrix finalTm = render_space_tm * ((pt->tm * rotTm) * pt->helperTm);
-      tree->setNodeWtmRelScalar(node, finalTm);
+      tree->setNodeWtmScalar(node, finalTm);
       tree->markNodeTmInvalid(node);
     }
   }
@@ -381,7 +381,7 @@ struct RevoluteConstraint : public Constraint
       TMatrix tm = makeBase(edge, axis) % inv_base_tm % pt_a->tm;
       tm.setcol(3, pt_a->tm.getcol(3));
       TMatrix finalTm = render_space_tm * (tm * pt_a->helperTm);
-      tree->setNodeWtmRelScalar(nodeA, finalTm);
+      tree->setNodeWtmScalar(nodeA, finalTm);
       tree->markNodeTmInvalid(nodeA);
     }
   }

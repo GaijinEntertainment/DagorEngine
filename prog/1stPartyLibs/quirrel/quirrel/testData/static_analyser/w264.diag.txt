@@ -1,7 +1,0 @@
-WARNING: w264 (plus-string) Usage of '+' for string concatenation.
-testData/static_analyser/w264.nut:7:7
-
-return a + 3
-       ^----
-
-

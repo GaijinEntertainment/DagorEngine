@@ -54,6 +54,7 @@ static inline bool should_use_compute_for_image_processing(std::initializer_list
 }
 
 static inline bool check_texformat(int cflg) { return d3di.check_texformat(cflg); }
+static inline int get_max_sample_count(int cflg) { return d3di.get_max_sample_count(cflg); }
 static inline unsigned get_texformat_usage(int cflg, int restype = RES3D_TEX) { return d3di.get_texformat_usage(cflg, restype); }
 static inline bool issame_texformat(int cflg1, int cflg2) { return d3di.issame_texformat(cflg1, cflg2); }
 static inline bool check_cubetexformat(int cflg) { return d3di.check_cubetexformat(cflg); }
@@ -159,7 +160,10 @@ static inline PROGRAM create_program(const uint32_t *vpr_native, const uint32_t 
   return d3di.create_program_1(vpr_native, fsh_native, vdecl, strides, streams);
 }
 
-static inline PROGRAM create_program_cs(const uint32_t *cs_native) { return d3di.create_program_cs(cs_native); }
+static inline PROGRAM create_program_cs(const uint32_t *cs_native, CSPreloaded preloaded)
+{
+  return d3di.create_program_cs(cs_native, preloaded);
+}
 
 static inline bool set_program(PROGRAM p) { return d3di.set_program(p); }
 static inline void delete_program(PROGRAM p) { return d3di.delete_program(p); }
@@ -272,20 +276,14 @@ static inline bool set_cb0_data(unsigned stage, const float *data, unsigned num_
 }
 static inline void release_cb0_data(unsigned /*stage*/) {}
 
-static inline Sbuffer *create_vb(int sz, int f, const char *name = "")
-{
-  d3d::validate_sbuffer_flags(f | SBCF_BIND_VERTEX, name);
-  return d3di.create_vb(sz, f, name);
-}
+static inline Sbuffer *create_vb(int sz, int f, const char *name = "") { return d3di.create_vb(sz, f, name); }
 static inline Sbuffer *create_ib(int size_bytes, int flags, const char *stat_name = "ib")
 {
-  d3d::validate_sbuffer_flags(flags | SBCF_BIND_INDEX, stat_name);
   return d3di.create_ib(size_bytes, flags, stat_name);
 }
 
 static inline Sbuffer *create_sbuffer(int struct_size, int elements, unsigned flags, unsigned texfmt, const char *name = "")
 {
-  d3d::validate_sbuffer_flags(flags, name);
   return d3di.create_sbuffer(struct_size, elements, flags, texfmt, name);
 }
 

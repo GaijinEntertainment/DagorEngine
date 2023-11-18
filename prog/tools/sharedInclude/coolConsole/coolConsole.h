@@ -6,6 +6,7 @@
 #include <libTools/util/iLogWriter.h>
 #include <libTools/util/progressInd.h>
 #include <libTools/containers/dag_StrMap.h>
+#include <gui/dag_visConsole.h>
 
 #include <util/dag_string.h>
 
@@ -16,7 +17,7 @@ struct HWND__;
 struct HFONT__;
 class DataBlock;
 
-class CoolConsole : public ILogWriter, public IGenericProgressIndicator, public IConsoleCmd
+class CoolConsole : public ILogWriter, public IGenericProgressIndicator, public IConsoleCmd, public console::IVisualConsoleDriver
 {
 public:
   CoolConsole(const char *caption, HWND__ *parent_wnd = NULL);
@@ -91,6 +92,25 @@ public:
   void saveCmdHistory(DataBlock &blk) const;
   void loadCmdHistory(const DataBlock &blk);
 
+  // IVisualConsoleDriver
+  void puts(const char *str, console::LineType type = console::CONSOLE_DEBUG) override;
+  void show() override { showConsole(); }
+  void hide() override { hideConsole(); }
+  bool is_visible() override { return isVisible(); }
+
+  void init(const char *) override {}
+  void shutdown() override {}
+  void render() override {}
+  void update() override {}
+  bool processKey(int, int, bool) override { return false; }
+  real get_cur_height() override { return 0; }
+  void set_cur_height(real) override {}
+  void reset_important_lines() override {}
+  void set_progress_indicator(const char *, const char *) override {}
+  void save_text(const char *) override {}
+  void setFontId(int) override {}
+  const char *getEditTextBeforeModify() const override { return nullptr; }
+
 private:
   HWND__ *hWnd;
   HWND__ *parentWnd;
@@ -112,6 +132,7 @@ private:
   int fatalsCnt;
 
   int globWarnCnt, globErrCnt, globFatalCnt;
+  int limitOutputLinesLeft = -1;
 
   Tab<String> cmdNames;
   StriMap<IConsoleCmd *> commands;

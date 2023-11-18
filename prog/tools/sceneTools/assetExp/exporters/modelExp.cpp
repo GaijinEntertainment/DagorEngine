@@ -43,7 +43,7 @@ public:
   dag::ConstSpan<Ref> __stdcall getAssetRefs(DagorAsset &a) override
   {
     tmp_refs.clear();
-    add_dag_texture_and_proxymat_refs(a.getTargetFilePath(), tmp_refs, a.getMgr());
+    add_dag_texture_and_proxymat_refs(a.getTargetFilePath(), tmp_refs, a);
     return tmp_refs;
   }
 };
@@ -116,23 +116,28 @@ void load_shaders_for_target(unsigned tc)
   }
 }
 
-String validate_texture_types(String tex_name, const char *class_name, int slot, DagorAssetMgr &mgr)
+String validate_texture_types(const char *_tex_name, const char *class_name, int slot, DagorAsset &a)
 {
   load_shaders_for_target(_MAKE4C('PC'));
 
   auto *sh_class = shBinDump(false).findShaderClass(class_name);
 
-  if (sh_class->staticTextureTypeBySlot.empty())
+  if (!sh_class || sh_class->staticTextureTypeBySlot.empty())
+    return {};
+
+  if (slot >= sh_class->staticTextureTypeBySlot.size())
     return {};
 
   auto texture_type = sh_class->staticTextureTypeBySlot[slot];
+  if (texture_type == SHVT_TEX_UNKNOWN)
+    return {};
   bool is_valid_texture_type = true;
 
   String tmp_stor;
-  tex_name.printf(64, "%s%s%s", texRefNamePrefix.str(), DagorAsset::fpath2asset(TextureMetaData::decodeFileName(tex_name, &tmp_stor)),
-    texRefNameSuffix.str());
+  _tex_name = TextureMetaData::decodeFileName(_tex_name, &tmp_stor);
+  String tex_name(0, "%s%s%s", texRefNamePrefix, DagorAsset::fpath2asset(_tex_name), texRefNameSuffix);
 
-  DagorAsset *tex_a = mgr.findAsset(tex_name, mgr.getTexAssetTypeId());
+  DagorAsset *tex_a = a.getMgr().findAsset(tex_name, a.getMgr().getTexAssetTypeId());
   if (!tex_a)
     return {};
 
@@ -154,9 +159,10 @@ String validate_texture_types(String tex_name, const char *class_name, int slot,
       case SHVT_TEX_CUBE: tex_type_in_shader = "cube"; break;
       case SHVT_TEX_2D_ARRAY: tex_type_in_shader = "tex2DArray"; break;
       case SHVT_TEX_CUBE_ARRAY: tex_type_in_shader = "cubeArray"; break;
+      default: return {}; // some bad/uninited type in slot
     }
-    return String(0, "Static texture type '%s' does not match the type of declaration in the shader '%s': texture '%s'",
-      tex_type_str ? tex_type_str : "tex2D", tex_type_in_shader, tex_name);
+    return String(0, "static tex type '%s' in slot #%d does not match type '%s' (declared in '%s' shader): texture %s",
+      tex_type_str ? tex_type_str : "tex2D", slot, tex_type_in_shader, class_name, tex_name);
   }
   return {};
 }

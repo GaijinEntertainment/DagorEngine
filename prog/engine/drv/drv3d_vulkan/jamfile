@@ -49,7 +49,7 @@ Sources =
   device_context/base_context.cpp
   device_context/render_pass.cpp
   render_work.cpp
-  timeline.cpp
+  timelines.cpp
   frame_info.cpp
   temp_buffers.cpp
   cleanup_queue.cpp
@@ -73,6 +73,7 @@ Sources =
   pipeline/stage_state_base.cpp
   pipeline/main_pipelines.cpp
   pipeline/variated_graphics.cpp
+  pipeline/compiler.cpp
   render_state_system.cpp
 
   #resources & memory

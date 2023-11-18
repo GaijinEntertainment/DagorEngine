@@ -20,6 +20,7 @@ static httprequests::RequestId make_request(const char *url, const void *data, u
   reqParams.postData = dag::ConstSpan<char>((const char *)data, size);
   reqParams.reqTimeoutMs = timeout * 1000;     // S -> MS
   reqParams.connectTimeoutMs = timeout * 1000; // S -> MS
+  reqParams.needResponseHeaders = false;
   reqParams.callback = httprequests::make_http_callback(callback);
   return httprequests::async_request(reqParams);
 }

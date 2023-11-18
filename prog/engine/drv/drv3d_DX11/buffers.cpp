@@ -12,6 +12,8 @@
 
 #include <validation.h>
 
+#include <validate_sbuf_flags.h>
+
 #define USE_NVAPI_MULTIDRAW 0 // GPU hangs on SLI and under the Nsight.
 #if HAS_NVAPI && USE_NVAPI_MULTIDRAW
 #include <nvapi.h>
@@ -293,6 +295,7 @@ Vbuffer *d3d::create_vb(int size, int flg, const char *name)
 {
   GenericBuffer *buf = new GenericBuffer();
   flg |= SBCF_BIND_VERTEX;
+  validate_sbuffer_flags(flg, name);
   G_ASSERT(((flg & SBCF_BIND_MASK) & ~(SBCF_BIND_VERTEX | SBCF_BIND_SHADER_RES)) == 0);
   bool res = g_buffers.createObj(buf, size, flg, (flg & SBCF_BIND_MASK) >> 16, name);
   if (!res)
@@ -308,6 +311,7 @@ Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name)
 {
   GenericBuffer *buf = new GenericBuffer();
   flg |= SBCF_BIND_INDEX;
+  validate_sbuffer_flags(flg, stat_name);
   G_ASSERT(((flg & SBCF_BIND_MASK) & ~(SBCF_BIND_INDEX | SBCF_BIND_SHADER_RES)) == 0);
   bool res = g_buffers.createObj(buf, size, flg, (flg & SBCF_BIND_MASK) >> 16, stat_name);
   if (!res)
@@ -321,6 +325,7 @@ Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name)
 
 Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char *name)
 {
+  validate_sbuffer_flags(flags, name);
   if (flags & SBCF_BIND_INDEX)
   {
     G_ASSERTF(format == 0, "Index buffer can't have a format");
@@ -334,7 +339,6 @@ Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsi
   GenericBuffer *buf = new GenericBuffer();
   if (flags & SBCF_BIND_CONSTANT)
   {
-    G_ASSERTF((flags & (SBCF_MAYBELOST | SBCF_DYNAMIC)), "constant buffers have to be either dynamic or maybelost only.");
     G_ASSERTF((flags & SBCF_BIND_SHADER_RES) == 0, "constant buffers shouldn't be bound as shader resource.");
   }
   bool res = g_buffers.createSObj(buf, struct_size, elements, flags, format, name); //== fixme: |SBCF_BIND_VERTEX

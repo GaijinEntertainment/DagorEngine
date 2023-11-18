@@ -90,8 +90,10 @@ eastl::vector<const shaderbindump::ShaderClass *> gather_shader_classes(const Ta
 
 #define MS(us) (int)((us)*1000)
 static const int COMPILE_TIME_LIMIT_DEFAULT = 100;
+static const int TAIL_WAIT_TIME = 100;
 static bool is_loading_thread = false;
 static int compileTimeLimit = 0;
+static int flushEveryNPipelines = 0;
 static int maxFlushPeriodMs = 0;
 enum
 {
@@ -142,18 +144,42 @@ public:
     G_ASSERT(gpuLocked);
 
     compiledPipelinesCount += 1;
-    if (compiledPipelinesCount == flushEveryNPipelines)
+    size_t queued = d3d::driver_command(DRV3D_COMMAND_GET_PIPELINE_COMPILATION_QUEUE_LENGTH, nullptr, nullptr, nullptr);
+    bool perPipeFlush = compiledPipelinesCount == flushEveryNPipelines;
+    bool perQueueFlush = queued >= (flushEveryNPipelines * 2);
+    bool doFlush = perPipeFlush | perQueueFlush;
+
+    int64_t timeus = 0;
+// detailed profiling
+#if 0
+    if (perPipeFlush)
     {
-      const int64_t timeus = flushCommands();
+      TIME_PROFILE_NAME(pp_flush, String(32, "per_pipe-%u-%u", compiledPipelinesCount, flushEveryNPipelines));
+      timeus = flushCommands();
+    }
+    else if (perQueueFlush)
+    {
+      TIME_PROFILE_NAME(pq_flush, String(32, "per_queued-%u-%u", queued, flushEveryNPipelines));
+      timeus = flushCommands();
+    }
+#else
+    if (doFlush)
+      timeus = flushCommands();
+#endif
+
+    if (perPipeFlush)
+    {
       if (timeus < compileTimeLimit)
         flushEveryNPipelines += 1;
       else
         flushEveryNPipelines = (flushEveryNPipelines > 2) ? flushEveryNPipelines - 2 : 1;
+    }
 
+    if (doFlush)
+    {
       int timems = timeus / 1000;
       if (timems > maxFlushPeriodMs)
         maxFlushPeriodMs = timems;
-
       compiledPipelinesCount = 0;
     }
   }
@@ -170,6 +196,7 @@ public:
 private:
   int64_t flushCommands()
   {
+    TIME_PROFILE(warmup_shaders_flush_cmds);
     if (is_loading_thread)
     {
       int64_t timeus = profile_ref_ticks();
@@ -204,12 +231,13 @@ private:
 private:
   bool gpuLocked = false;
   size_t compiledPipelinesCount = 0;
-  int flushEveryNPipelines = 1;
 };
 
 class ShadersWarmup
 {
 public:
+  ShadersWarmup(DynamicD3DFlusher &flusher) : d3dFlusher(flusher) {}
+
   void warmupShaders(const eastl::vector<const shaderbindump::ShaderClass *> &shader_classes)
   {
     for (const auto &shaderClass : shader_classes)
@@ -219,6 +247,7 @@ public:
 private:
   PtrTab<ScriptedShaderMaterial> materials;
   PtrTab<ScriptedShaderElement> elemetns;
+  DynamicD3DFlusher &d3dFlusher;
 
 
   virtual ScriptedShaderMaterial *initMaterial(const shaderbindump::ShaderClass &sc) = 0;
@@ -239,8 +268,6 @@ private:
       return;
     }
     materials.push_back(ssm);
-
-    DynamicD3DFlusher d3dFlusher;
 
     for (size_t staticVariantId = 0; staticVariantId < shaderClass.code.size(); ++staticVariantId)
     {
@@ -271,7 +298,7 @@ private:
 class GraphicsShadersWarmup final : public ShadersWarmup
 {
 public:
-  GraphicsShadersWarmup() { initResources(); }
+  GraphicsShadersWarmup(DynamicD3DFlusher &flusher) : ShadersWarmup(flusher) { initResources(); }
 
   ~GraphicsShadersWarmup()
   {
@@ -330,6 +357,9 @@ private:
 
 class ComputeShadersWarmup final : public ShadersWarmup
 {
+public:
+  ComputeShadersWarmup(DynamicD3DFlusher &flusher) : ShadersWarmup(flusher) {}
+
 private:
   virtual ScriptedShaderMaterial *initMaterial(const shaderbindump::ShaderClass &sc) override
   {
@@ -369,6 +399,7 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
 
   compileTimeLimit =
     MS(::dgs_get_settings()->getBlockByNameEx("shadersWarmup")->getInt("compileTimeLimitMs", COMPILE_TIME_LIMIT_DEFAULT));
+  flushEveryNPipelines = ::dgs_get_settings()->getBlockByNameEx("shadersWarmup")->getInt("flushEveryNPipelines", 1000);
 
   is_loading_thread = is_loading_thrd;
 
@@ -376,24 +407,43 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
   if (is_loading_thread)
     replace_on_swap_cb();
 
-  const auto graphicsShaderClasses = gather_shader_classes(graphics_shader_names);
-  if (!graphicsShaderClasses.empty())
   {
-    TIME_PROFILE(warmup_shaders_gr);
-    GraphicsShadersWarmup graphics;
-    graphics.warmupShaders(graphicsShaderClasses);
+    DynamicD3DFlusher d3dFlusher;
+    d3d::driver_command(DRV3D_COMMAND_SET_PIPELINE_COMPILATION_TIME_BUDGET, (void *)0, nullptr, nullptr);
+
+    const auto graphicsShaderClasses = gather_shader_classes(graphics_shader_names);
+    if (!graphicsShaderClasses.empty())
+    {
+      TIME_PROFILE(warmup_shaders_gr);
+      GraphicsShadersWarmup graphics(d3dFlusher);
+      graphics.warmupShaders(graphicsShaderClasses);
+    }
+
+    const auto computeShaderClasses = gather_shader_classes(compute_shader_names);
+    if (!computeShaderClasses.empty())
+    {
+      TIME_PROFILE(warmup_shaders_cs);
+      ComputeShadersWarmup compute(d3dFlusher);
+      compute.warmupShaders(computeShaderClasses);
+    }
+
+    d3d::driver_command(DRV3D_COMMAND_SET_PIPELINE_COMPILATION_TIME_BUDGET, (void *)-1, nullptr, nullptr);
   }
 
-  const auto computeShaderClasses = gather_shader_classes(compute_shader_names);
-  if (!computeShaderClasses.empty())
   {
-    TIME_PROFILE(warmup_shaders_cs);
-    ComputeShadersWarmup compute;
-    compute.warmupShaders(computeShaderClasses);
+    TIME_PROFILE(warmup_shaders_async_complete_wait);
+    while (d3d::driver_command(DRV3D_COMMAND_GET_PIPELINE_COMPILATION_QUEUE_LENGTH, nullptr, nullptr, nullptr) > 0)
+      sleep_msec(TAIL_WAIT_TIME);
   }
 
   if (is_loading_thread)
     restore_on_swap_cb();
+
+  {
+    TIME_PROFILE(warmup_shaders_save);
+    d3d::driver_command(DRV3D_COMMAND_SAVE_PIPELINE_CACHE, nullptr, nullptr, nullptr);
+  }
+
   time = profile_time_usec(time);
 
   // restrict precision to ms
@@ -404,7 +454,4 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
   statsd::histogram("render.shader_cache_warmup.max_flush_s", maxFlushS);
 
   debug("shaders warmup took %f sec, max flush time %f sec", dltS, maxFlushS);
-
-  TIME_PROFILE(warmup_shaders_save);
-  d3d::driver_command(DRV3D_COMMAND_SAVE_PIPELINE_CACHE, nullptr, nullptr, nullptr);
 }

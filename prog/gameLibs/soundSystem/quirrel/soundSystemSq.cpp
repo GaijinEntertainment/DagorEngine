@@ -8,6 +8,7 @@
 #include <soundSystem/handle.h>
 #include <soundSystem/vars.h>
 #include <soundSystem/soundSystem.h>
+#include <soundSystem/banks.h>
 #include <soundSystem/debug.h>
 #include <sqrat.h>
 #include <quirrel/sqrex.h>
@@ -26,9 +27,12 @@ void play_sound(const char *name, const Sqrat::Object &params, float volume, con
   sndsys::EventHandle eh = pos ? sndsys::init_event(name, *pos) : sndsys::init_event(name);
   if (!eh)
   {
-    if (sndsys::is_inited() && !sndsys::has_event(name))
+    if (sndsys::is_inited() && sndsys::banks::is_loaded(sndsys::banks::get_master_preset()))
     {
-      logerr("sqapi: there is no sound event '%s'", name);
+      if (!sndsys::has_event(name))
+      {
+        logerr("sqapi: there is no sound event '%s'", name);
+      }
     }
     return;
   }

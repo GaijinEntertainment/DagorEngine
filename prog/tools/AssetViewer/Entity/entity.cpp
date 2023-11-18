@@ -1374,7 +1374,7 @@ public:
             (t == 0) ? animGrp : *animGrp.createGroup(PID_ANIM_STATES_GROUP + t, String(0, "\"%s\" states", anim->getTagName(t)));
           for (int i = 0; i < stateCount; ++i)
             if (!anim->isStateNameAlias(i) && anim->getStateNameTag(i) == t)
-              animGrpT.createButton(PID_ANIM_STATE0 + anim->getStateIdx(anim->getStateName(i)), anim->getStateName(i));
+              animGrpT.createButtonLText(PID_ANIM_STATE0 + anim->getStateIdx(anim->getStateName(i)), anim->getStateName(i));
         }
 
         // fill states aliases to separate group

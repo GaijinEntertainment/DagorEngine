@@ -32,6 +32,7 @@
 #include <3d/dag_drv3d.h>
 #include <3d/dag_texPackMgr2.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_files.h>

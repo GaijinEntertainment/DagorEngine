@@ -1,6 +1,16 @@
 #pragma once
+
+#include <EASTL/bitset.h>
+
+#include "driver.h"
+#include "validation.h"
+#include "constants.h"
+#include "d3d12_utils.h"
 #include "versioned_com_ptr.h"
-#include <validation.h>
+#include "render_state.h"
+#include "pipeline_cache.h"
+#include "command_list.h"
+
 
 namespace drv3d_dx12
 {
@@ -296,6 +306,11 @@ public:
   void clearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE view, const FLOAT color[4], UINT rect_count, const D3D12_RECT *rects)
   {
     cmd.clearRenderTargetView(view, color, rect_count, rects);
+  }
+  void resolveSubresource(ID3D12Resource *dst_resource, UINT dst_subresource, ID3D12Resource *src_resource, UINT src_subresource,
+    DXGI_FORMAT format)
+  {
+    cmd.resolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
   }
   void clearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE view, D3D12_CLEAR_FLAGS flags, FLOAT d, UINT8 s, UINT rect_count,
     const D3D12_RECT *rects)

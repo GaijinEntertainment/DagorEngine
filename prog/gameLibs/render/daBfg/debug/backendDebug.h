@@ -1,7 +1,7 @@
 #pragma once
 
 #include <EASTL/span.h>
-#include <intermediateRepresentation.h>
+#include <backend/intermediateRepresentation.h>
 #include <util/dag_convar.h>
 
 

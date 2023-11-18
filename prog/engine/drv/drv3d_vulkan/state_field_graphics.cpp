@@ -413,10 +413,7 @@ void StateFieldGraphicsPipeline::applyTo(BackGraphicsStateStorage &state, Execut
     VariatedGraphicsPipeline::CompilationContext compCtx = {
       vkDev, drvDev.passMan, ctx.renderStateSystem, drvDev.getPipeCache(), state.nativeRenderPass.ptr};
 
-    bool compilationTimeout = target.back.pipelineCompilationTime > target.back.pipelineCompilationTimeBudget;
-    ptr = state.basePipeline.ptr->getVariant(compCtx, varDsc, compilationTimeout, target.back.pipelineCompilationTime);
-    if (compilationTimeout)
-      ++target.data.skippedGraphicsPipelines;
+    ptr = state.basePipeline.ptr->getVariant(compCtx, varDsc);
   }
 
   if (oldPtr == ptr && ptr)

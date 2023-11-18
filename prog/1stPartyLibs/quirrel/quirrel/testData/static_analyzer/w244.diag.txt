@@ -1,0 +1,9 @@
+WARNING: w244 (used-from-static) Access 'this.y' from static member function.
+testData/static_analyzer/w244.nut:16:8
+
+        this.sss(); // FP 3
+        this.y = 30 // EXPECTED 1
+        ^-----
+    }
+
+

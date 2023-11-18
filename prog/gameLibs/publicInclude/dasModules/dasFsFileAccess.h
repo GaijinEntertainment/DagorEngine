@@ -9,6 +9,7 @@
 #include "daScript/simulate/fs_file_info.h"
 #include <daScript/misc/sysos.h>
 #include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_vromfs.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
 #define DASLIB_MODULE_NAME "daslib"
@@ -130,6 +131,20 @@ public:
     if (localAccess)
       localAccess->delRef();
   }
+  int64_t getFileMtime(const das::string &fileName) const override
+  {
+    DagorStat stat;
+    auto res = df_stat(fileName.c_str(), &stat) >= 0 ? stat.mtime : -1;
+    if (res >= 0)
+      return res;
+#if _TARGET_ANDROID
+    VirtualRomFsData *vrom = NULL;
+    VromReadHandle data = vromfs_get_file_data(fileName.c_str(), &vrom);
+    if (vrom && vrom->version != 0)
+      return vrom->version;
+#endif
+    return 0;
+  }
   bool invalidateFileInfo(const das::string &fileName) override
   {
     bool res = false;
@@ -155,11 +170,7 @@ public:
           }
         if (EASTL_UNLIKELY(!found))
         {
-          DagorStat stat;
-          int64_t mtime = 0;
-          if (df_stat(fname.c_str(), &stat) != -1)
-            mtime = stat.mtime;
-          filesOpened.emplace(fname, mtime);
+          filesOpened.emplace(fname, getFileMtime(fname));
         }
       }
       return res;
@@ -172,11 +183,7 @@ public:
     }
     if (storeOpenedFiles)
     {
-      DagorStat stat;
-      int64_t mtime = 0;
-      if (df_fstat(f, &stat) != -1)
-        mtime = stat.mtime;
-      filesOpened.emplace(fname, mtime);
+      filesOpened.emplace(fname, getFileMtime(fname));
     }
     df_close(f);
     return setFileInfo(fname, das::make_unique<bind_dascript::FsFileInfo>());

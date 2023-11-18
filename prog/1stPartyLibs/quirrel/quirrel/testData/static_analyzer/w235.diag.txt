@@ -1,0 +1,7 @@
+WARNING: w235 (round-to-int) Result of division will be integer.
+testData/static_analyzer/w235.nut:3:19
+
+::aspect_ratio <- (1280 / (720))
+                   ^-----------
+
+

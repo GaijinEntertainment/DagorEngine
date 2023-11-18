@@ -1,0 +1,9 @@
+WARNING: w234 (div-by-zero) Integer division by zero.
+testData/static_analyzer/w234.nut:4:10
+
+let function foo() { //-declared-never-used
+  ::print(1 / (0))
+          ^------
+}
+
+

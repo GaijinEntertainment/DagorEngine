@@ -89,7 +89,7 @@ char *translate_to_string(char (&buf)[N], D3D12_RESOURCE_STATES state)
   auto start = buf;
   auto ed = buf + N - 1;
   auto concat = [&at, ed, start](const auto &s) {
-    auto len = array_size(s) - 1;
+    auto len = countof(s) - 1;
     auto left = ed - at;
     if (left >= 3 && start != at)
     {
@@ -172,7 +172,7 @@ char *translate_to_string(char (&buf)[N], ResourceBarrier barrier)
   auto start = buf;
   auto ed = buf + N - 1;
   auto concat = [&at, ed, start](const auto &s) {
-    auto len = array_size(s) - 1;
+    auto len = countof(s) - 1;
     auto left = ed - at;
     if (left >= 3 && start != at)
     {

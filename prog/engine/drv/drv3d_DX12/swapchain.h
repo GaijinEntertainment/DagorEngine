@@ -1,12 +1,23 @@
 #pragma once
 
+#include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
 #include <generic/dag_tab.h>
+#include <supp/dag_comPtr.h>
+#include <atomic>
+
+#include "extents.h"
+#include "image_view_state.h"
+#include "descriptor_heap.h"
+#include "winapi_helpers.h"
+
 
 namespace drv3d_dx12
 {
 struct BaseTex;
 class Image;
 class Device;
+class DeviceContext;
 
 enum class PresentationMode
 {

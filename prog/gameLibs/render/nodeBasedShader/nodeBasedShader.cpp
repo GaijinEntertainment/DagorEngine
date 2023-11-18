@@ -66,7 +66,7 @@ void NodeBasedShader::createShaders()
   shadersCache.reserve(shaderBins.size());
   for (const auto &shaderBin : shaderBins)
   {
-    PROGRAM updatedProgram = d3d::create_program_cs(shaderBin.data());
+    PROGRAM updatedProgram = d3d::create_program_cs(shaderBin.data(), CSPreloaded::No);
     G_ASSERTF(updatedProgram != BAD_PROGRAM, "Can't create compute shader");
     shadersCache.emplace_back(new PROGRAM{updatedProgram}); // -V1023
   }

@@ -9,6 +9,7 @@ int ShaderCompilerStat::totalVariants = 0;
 ShaderCompilerStat::DroppedVariants ShaderCompilerStat::droppedVariants = {0};
 Tab<ShaderCompilerStat::ShaderStatistics> ShaderCompilerStat::shaderStatisticsList(stdmem_ptr());
 int ShaderCompilerStat::hlslCompileCount = 0, ShaderCompilerStat::hlslCacheHitCount = 0, ShaderCompilerStat::hlslEqResultCount = 0;
+std::atomic_int ShaderCompilerStat::hlslExternalCacheHitCount = 0;
 
 void ShaderCompilerStat::reset()
 {
@@ -26,8 +27,9 @@ void ShaderCompilerStat::printReport(const char *dir)
   if (hlslCompileCount)
     sh_debug(SHLOG_INFO,
       "HLSL compilation: %d total;   %d reused cached;   cache hit ratio=%.3f;"
-      "   equ. result count=%d",
-      hlslCompileCount, hlslCacheHitCount, (float)hlslCacheHitCount / (float)hlslCompileCount, hlslEqResultCount);
+      "   equ. result count=%d;   external cache hit count: %d;   unique compilations: %i",
+      hlslCompileCount, hlslCacheHitCount, (float)hlslCacheHitCount / (float)hlslCompileCount, hlslEqResultCount,
+      hlslExternalCacheHitCount.load(), hlslCompileCount - hlslCacheHitCount - hlslExternalCacheHitCount.load());
 
 
   unsigned fshSize, fshCount, vprSize, vprCount, stcodeSize;

@@ -1258,8 +1258,8 @@ void AssetLightData::setReflectionTexture()
 
     {
       int varId = get_shader_variable_id(shaderVar, true);
-      if ((varId < 0))
-        get_app().getConsole().addMessage(ILogWriter::ERROR, "no shader variable '%s'", shaderVar.str());
+      if (!VariableMap::isGlobVariablePresent(varId))
+        get_app().getConsole().addMessage(ILogWriter::WARNING, "no shader variable '%s'", shaderVar.str());
       else if (!ShaderGlobal::set_texture(varId, texId))
         get_app().getConsole().addMessage(ILogWriter::ERROR, "error on loading texture: '%s', id=%d", textureName.str(), texId);
     }
@@ -1323,9 +1323,10 @@ void AssetLightData::setPaintDetailsTexture()
     environment::combinedPaintTex->getinfo(texInfo);
     ShaderGlobal::set_real(get_shader_variable_id("paint_details_tex_inv_h", true), safediv(1.f, (float)texInfo.h));
   }
-  else
-    DAEDITOR3.conError("failed to create combined painting texture (globTid=0x%x(%s) localTid=0x%x paintDetailsTexAsset=%s)",
-      globalPaintColorsTexId, get_managed_texture_name(globalPaintColorsTexId), localPaintColorsTexId, paintDetailsTexAsset);
+  else if (VariableMap::isGlobVariablePresent(paintDetailsVarId))
+    DAEDITOR3.conError("failed to create combined painting texture (globTid=0x%x(%s) localTid=0x%x paintDetailsTexAsset='%s' var=%d)",
+      globalPaintColorsTexId, get_managed_texture_name(globalPaintColorsTexId), localPaintColorsTexId, paintDetailsTexAsset,
+      paintDetailsVarId);
   release_managed_tex(globalPaintColorsTexId);
   release_managed_tex(localPaintColorsTexId);
   ShaderGlobal::set_texture(paintDetailsVarId, environment::combinedPaintTexId);

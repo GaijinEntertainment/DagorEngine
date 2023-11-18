@@ -1,6 +1,9 @@
 #pragma once
 
 #include <EASTL/unique_ptr.h>
+#include <EASTL/vector.h>
+#include <3d/dag_drv3dConsts.h>
+
 
 struct FfxFsr2ContextDescription;
 struct FfxFsr2Context;

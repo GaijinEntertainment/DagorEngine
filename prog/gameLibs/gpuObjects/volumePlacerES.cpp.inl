@@ -529,8 +529,7 @@ bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_trian
     {
       geometryMeshesBuffer.close();
       geometryMeshesBuffer = dag::create_sbuffer(sizeof(GeometryMesh), max<int>(geometryMeshes.size(), 64),
-        SBCF_BIND_SHADER_RES | SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED, 0,
-        "gpu_objects_geometry_meshes");
+        SBCF_BIND_SHADER_RES | SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED, 0, "gpu_objects_geometry_meshes");
       G_ASSERT(geometryMeshesBuffer.getBuf());
       geometryMeshesBufferSize = geometryMeshes.size();
     }

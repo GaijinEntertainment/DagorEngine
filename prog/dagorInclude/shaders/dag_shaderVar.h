@@ -6,6 +6,7 @@
 #pragma once
 
 #include <3d/dag_texMgr.h>
+#include <3d/dag_sampler.h>
 #include <shaders/dag_shaderVariableInfo.h>
 #include <math/integer/dag_IPoint4.h>
 #include <math/dag_Point2.h>
@@ -131,6 +132,7 @@ bool set_int4(int variable_id, const IPoint4 &v);
 bool set_int4_array(int variable_id, const IPoint4 *data, int count);
 bool set_texture(int variable_id, TEXTUREID texture_id);
 bool set_texture(int variable_id, const ManagedTex &texture);
+bool set_sampler(int variable_id, d3d::SamplerHandle handle);
 bool set_buffer(int variable_id, D3DRESID buffer_id);
 bool set_buffer(int variable_id, const ManagedBuf &buffer);
 bool set_texture(const ShaderVariableInfo &, const ManagedTex &texture);

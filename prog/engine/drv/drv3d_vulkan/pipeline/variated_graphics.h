@@ -52,8 +52,7 @@ public:
 private:
   GraphicsPipeline *findVariant(const GraphicsPipelineVariantDescription &dsc);
   GraphicsPipeline *mapDublicate(GraphicsPipelineVariantDescription &dsc);
-  GraphicsPipeline *compileNewVariant(CompilationContext &comp_ctx, const GraphicsPipelineVariantDescription &dsc,
-    unsigned &inOutTotalCompilationTime);
+  GraphicsPipeline *compileNewVariant(CompilationContext &comp_ctx, const GraphicsPipelineVariantDescription &dsc);
 
 public:
   typedef GraphicsPipelineLayout LayoutType;
@@ -88,27 +87,17 @@ public:
     DebugAttachedPipeline(l), modules(info.modules), variations(info.varStorage), program(inProg)
   {}
 
-  GraphicsPipeline *getVariant(CompilationContext &comp_ctx, const GraphicsPipelineVariantDescription &dsc, bool compilationTimeout,
-    unsigned &inOutTotalCompilationTime);
+  GraphicsPipeline *getVariant(CompilationContext &comp_ctx, const GraphicsPipelineVariantDescription &dsc);
 
-  void shutdown(VulkanDevice &device)
-  {
-    for (auto i : items)
-    {
-      if (!i.second->release())
-      {
-        i.second->shutdown(device);
-        delete i.second;
-      }
-    }
-    items.clear();
-  }
+  void shutdown(VulkanDevice &device);
 
   bool hasGeometryStage() const { return layout->hasGS(); }
 
   bool hasTessControlStage() const { return layout->hasTC(); }
 
   bool hasTessEvaluationStage() const { return layout->hasTE(); }
+
+  bool pendingCompilation();
 
 private:
   GraphicsPipelineShaderSet<const ShaderModule *> modules;

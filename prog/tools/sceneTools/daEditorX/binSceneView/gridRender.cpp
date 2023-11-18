@@ -37,10 +37,10 @@ bool GridRender::init(const char *shader_name, float ht, int subdiv, const Point
   gridRendElem->startIndex = 0;
   gridRendElem->numPrim = ((subdiv - 1) * (subdiv - 1) * 2);
 
-  gridVb = d3d::create_vb(gridRendElem->numVert * gridRendElem->stride, SBCF_MAYBELOST, "gridVb");
+  gridVb = d3d::create_vb(gridRendElem->numVert * gridRendElem->stride, 0, "gridVb");
   d3d_err(gridVb);
 
-  gridIb = d3d::create_ib(gridRendElem->numPrim * 2 * 3, SBCF_MAYBELOST);
+  gridIb = d3d::create_ib(gridRendElem->numPrim * 2 * 3, 0);
   d3d_err(gridIb);
   gridRendElem->vb = gridVb;
   gridRendElem->ib = gridIb;

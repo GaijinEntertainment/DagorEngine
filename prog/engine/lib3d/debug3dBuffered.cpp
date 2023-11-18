@@ -14,9 +14,11 @@ struct BufferedLine
 
 static Tab<BufferedLine> buffered_line_list(midmem_ptr()); // Note: sorted by deadline
 static size_t current_frame = 0;
+static bool last_frame_game_was_paused = false;
 
-void draw_debug_line_buffered(const Point3 &p0, const Point3 &p1, E3DCOLOR c, size_t frames)
+void draw_debug_line_buffered(const Point3 &p0, const Point3 &p1, E3DCOLOR c, size_t requested_frames)
 {
+  size_t frames = last_frame_game_was_paused ? 1 : requested_frames;
   size_t deadlineFrame = current_frame + frames;
   for (int last = buffered_line_list.size() - 1, i = last; i >= 0; --i) // lookup place to insert into (according to deadline)
     if (deadlineFrame >= buffered_line_list[i].deadlineFrame)
@@ -305,12 +307,13 @@ static int draw_buffered_lines(dag::ConstSpan<BufferedLine> lines, size_t cur_fr
   return eraseNum;
 }
 
-void flush_buffered_debug_lines(bool decriment_buffer_frames)
+void flush_buffered_debug_lines(bool game_is_paused)
 {
+  last_frame_game_was_paused = game_is_paused;
   if (buffered_line_list.empty())
     return;
 
-  if (!decriment_buffer_frames)
+  if (game_is_paused)
     for (auto &line : buffered_line_list)
       if (line.bufferFrames > 1)
         line.deadlineFrame++;

@@ -207,6 +207,8 @@ private:
 
   Tab<FbWithCreationInfo> compiledFBs;
 
+  std::atomic<size_t> pipelineCompileRefs = 0;
+
 public:
   RenderPassResource(const Description &in_desc, bool manage = true);
 
@@ -230,6 +232,10 @@ public:
 
   void bindInputAttachments(ExecutionContext &ctx, PipelineStageStateBase &tgt, uint32_t input_index, uint32_t register_index,
     const VariatedGraphicsPipeline *pipeline);
+
+  void addPipelineCompileRef() { ++pipelineCompileRefs; }
+  void releasePipelineCompileRef() { --pipelineCompileRefs; }
+  bool isPipelineCompileReferenced() { return pipelineCompileRefs.load() != 0; }
 };
 
 } // namespace drv3d_vulkan

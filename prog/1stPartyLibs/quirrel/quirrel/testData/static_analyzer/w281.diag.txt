@@ -1,0 +1,37 @@
+WARNING: w281 (unwanted-modification) Function 'extend' modifies object. You probably didn't want to modify the object here.
+testData/static_analyzer/w281.nut:9:9
+
+let function fn(arr) {
+  return (arr ?? []).extend(x)
+         ^--------------------
+//  ::y <- (arr ?? []).extend(x)
+
+
+WARNING: w281 (unwanted-modification) Function 'extend' modifies object. You probably didn't want to modify the object here.
+testData/static_analyzer/w281.nut:14:12
+
+local tab = {
+    watch = (::alertWatched ? ::alertWatched : []).extend(::titleWatched ? ::titleWatched : [])
+            ^----------------------------------------------------------------------------------
+  }
+
+
+WARNING: w281 (unwanted-modification) Function 'extend' modifies object. You probably didn't want to modify the object here.
+testData/static_analyzer/w281.nut:17:36
+
+local getSeasonMainPrizesData = @() (::premiumUnlock.value?.meta.promo ?? [])
+                                    ^-----------
+  .extend(::basicUnlock.value?.meta.promo ?? [])
+
+
+
+AN ERROR HAS OCCURRED [the index 'alertWatched' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w281.nut line [14]
+
+LOCALS
+[fn] CLOSURE=FN:fn
+[x] ARRAY=[1, 2]
+[vargv] ARRAY=[]
+[this] TABLE={}

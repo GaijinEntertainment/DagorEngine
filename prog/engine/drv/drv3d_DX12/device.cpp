@@ -238,6 +238,21 @@ uint64_t drv3d_dx12::calculate_texture_staging_buffer_size(Extent3D size, MipMap
   return totalSize;
 }
 
+bool Device::isSamplesCountSupported(DXGI_FORMAT format, int32_t samples_count)
+{
+  if (samples_count == 1)
+    return true;
+
+  D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS multisampleQualityLevels{};
+  multisampleQualityLevels.Format = format;
+  multisampleQualityLevels.SampleCount = samples_count;
+
+  auto result = device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, //
+    &multisampleQualityLevels, sizeof(multisampleQualityLevels));
+
+  return SUCCEEDED(result) && multisampleQualityLevels.NumQualityLevels > 0;
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE Device::getNonRecentImageViews(Image *img, ImageViewState state)
 {
   auto iter = eastl::find_if(begin(img->getOldViews()), end(img->getOldViews()),
@@ -259,7 +274,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE Device::getNonRecentImageViews(Image *img, ImageView
     viewInfo.state = state;
     if (state.isSRV())
     {
-      D3D12_SHADER_RESOURCE_VIEW_DESC desc = state.asSRVDesc(img->getType());
+      D3D12_SHADER_RESOURCE_VIEW_DESC desc = state.asSRVDesc(img->getType(), img->isMultisampled());
       viewInfo.handle = resources.allocateTextureSRVDescriptor(device.get());
       device->CreateShaderResourceView(img->getHandle(), &desc, viewInfo.handle);
     }
@@ -271,13 +286,13 @@ D3D12_CPU_DESCRIPTOR_HANDLE Device::getNonRecentImageViews(Image *img, ImageView
     }
     else if (state.isRTV())
     {
-      D3D12_RENDER_TARGET_VIEW_DESC desc = state.asRTVDesc(img->getType());
+      D3D12_RENDER_TARGET_VIEW_DESC desc = state.asRTVDesc(img->getType(), img->isMultisampled());
       viewInfo.handle = resources.allocateTextureRTVDescriptor(device.get());
       device->CreateRenderTargetView(img->getHandle(), &desc, viewInfo.handle);
     }
     else if (state.isDSV())
     {
-      D3D12_DEPTH_STENCIL_VIEW_DESC desc = state.asDSVDesc(img->getType());
+      D3D12_DEPTH_STENCIL_VIEW_DESC desc = state.asDSVDesc(img->getType(), img->isMultisampled());
       viewInfo.handle = resources.allocateTextureDSVDescriptor(device.get());
       device->CreateDepthStencilView(img->getHandle(), &desc, viewInfo.handle);
     }
@@ -695,8 +710,8 @@ void Device::shutdown(const DeviceCapsAndShaderModel &features)
   // smNone is a indicator for default constructed, eg on error case
   if (features.shaderModel != d3d::smNone)
   {
-    pipelineCacheSetup.generateBlks = dxBlock->getBool("generateCacheBlks", false);
-    pipelineCacheSetup.alwaysGenerateBlks = dxBlock->getBool("alwaysGenerateCacheBlks", false);
+    pipelineCacheSetup.generateBlks = dxBlock->getBool("generateCacheBlks", pipeMan.needToUpdateCache);
+    pipelineCacheSetup.alwaysGenerateBlks = dxBlock->getBool("alwaysGenerateCacheBlks", pipeMan.needToUpdateCache);
   }
   else
   {
@@ -735,7 +750,6 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
 
 
 #if _TARGET_PC_WIN
-  capabilities.shaderModel = 6.0_sm;
   capabilities.caps.hasDepthReadOnly = true;
   capabilities.caps.hasStructuredBuffers = true;
   capabilities.caps.hasNoOverwriteOnShaderResourceBuffers = true;
@@ -761,8 +775,7 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   capabilities.caps.hasUAVOnlyForcedSampleCount = true;
   capabilities.caps.hasNativeRenderPassSubPasses = false;
   capabilities.caps.hasDrawID = true;
-  capabilities.caps.hasRenderPassDepthResolve = false;
-  capabilities.caps.hasShaderFloat16Support = false;
+  capabilities.caps.hasRenderPassDepthResolve = true;
 
 #if HAS_NVAPI
   // This is a bloody workaround for broken terrain tessellation.
@@ -775,19 +788,20 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   }
 #endif
 
-  static constexpr D3D_SHADER_MODEL latestShaderModelWeSupport = D3D_SHADER_MODEL_6_6;
-
   auto op0 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS>();
   auto op1 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS1>();
   // auto op2 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS2>();
   auto op3 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS3>();
-  // auto op4 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS4>();
+  auto op4 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS4>();
   auto op5 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS5>();
   auto op6 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS6>();
   auto op7 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS7>();
   // auto op8 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS8>();
   auto op9 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS9>();
-  auto sm = checkFeatureSupport<D3D12_FEATURE_DATA_SHADER_MODEL>(latestShaderModelWeSupport);
+  auto sm = checkFeatureSupport<D3D12_FEATURE_DATA_SHADER_MODEL>(shader_model_to_dx(d3d::smMax));
+
+  capabilities.shaderModel = shader_model_from_dx(sm.HighestShaderModel);
+  debug("DX12: GPU has support for Shader Model %u.%u", capabilities.shaderModel.major, capabilities.shaderModel.minor);
 
   capabilities.caps.hasConservativeRassterization =
     D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED != op0.ConservativeRasterizationTier;
@@ -799,6 +813,7 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   // We don't support the limited max 128 SRVs per stage tier 1 supports.
   // Xbox always supports full heap of SRVs
   capabilities.caps.hasBindless = D3D12_RESOURCE_BINDING_TIER_2 <= op0.ResourceBindingTier;
+
   if (config.features.test(DeviceFeaturesConfig::DISABLE_BINDLESS))
   {
     capabilities.caps.hasBindless = false;
@@ -811,12 +826,13 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   capabilities.caps.hasOptimizedViewInstancing = D3D12_VIEW_INSTANCING_TIER_2 <= op3.ViewInstancingTier;
   capabilities.caps.hasAcceleratedViewInstancing = D3D12_VIEW_INSTANCING_TIER_3 <= op3.ViewInstancingTier;
 
+  capabilities.caps.hasShaderFloat16Support = op4.Native16BitShaderOpsSupported;
+
   caps.set(Caps::RAY_TRACING, D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier);
   capabilities.caps.hasRaytracing = D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier;
 
   caps.set(Caps::RAY_TRACING_T1_1, D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier);
-  capabilities.caps.hasRaytracingT11 =
-    D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && D3D_SHADER_MODEL_6_5 <= sm.HighestShaderModel;
+  capabilities.caps.hasRaytracingT11 = D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && (capabilities.shaderModel >= 6.5_sm);
 
   capabilities.caps.hasVariableRateShading = D3D12_VARIABLE_SHADING_RATE_TIER_1 <= op6.VariableShadingRateTier;
   caps.set(Caps::SHADING_RATE_T1, D3D12_VARIABLE_SHADING_RATE_TIER_1 <= op6.VariableShadingRateTier);
@@ -832,12 +848,8 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
 
   capabilities.caps.hasMeshShader = D3D12_MESH_SHADER_TIER_1 <= op7.MeshShaderTier;
 
-  if (D3D_SHADER_MODEL_6_6 <= sm.HighestShaderModel)
-  {
-    debug("GPU has support for Shader Model 6.6");
-    capabilities.caps.hasShader64BitIntegerResources = FALSE != op9.AtomicInt64OnTypedResourceSupported;
-    capabilities.shaderModel = 6.6_sm;
-  }
+  capabilities.caps.hasShader64BitIntegerResources =
+    (FALSE != op9.AtomicInt64OnTypedResourceSupported) && (capabilities.shaderModel >= 6.6_sm);
 
   capabilities.caps.hasDLSS = getContext().getDlssState() >= DlssState::SUPPORTED;
   capabilities.caps.hasXESS = getContext().getXessState() >= XessState::SUPPORTED;
@@ -942,6 +954,7 @@ Texture *Device::wrapD3DTex(ID3D12Resource *tex_res, ResourceBarrier current_sta
 
   BaseTex *tex = newTextureObject(layers.count() > 1 ? RES3D_ARRTEX : RES3D_TEX, flg);
   tex->tex.image = image;
+  tex->tex.image->setMultisampled(tex->isMultisampled());
 
   auto &ext = image->getBaseExtent();
   tex->setParams(ext.width, ext.height, layers.count() > 1 ? layers.count() : ext.depth, image->getMipLevelRange().count(), name);

@@ -282,6 +282,8 @@ VECTORCALL VECMATH_FINLINE vec4i v_negi(vec4i a);
 //! fabs(a)
 VECTORCALL VECMATH_FINLINE vec4f v_abs(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4i v_absi(vec4i a);
+//! check if /a can produce NaN's or inf
+VECTORCALL VECMATH_FINLINE vec4f v_is_unsafe_divisor(vec4f a);
 
 //! LERP a to b using parameter tttt
 VECTORCALL VECMATH_FINLINE quat4f v_lerp_vec4f(vec4f tttt, quat4f a, quat4f b);

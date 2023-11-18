@@ -41,6 +41,7 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
 
   FILL_ENTRY(get_texformat_usage);
   FILL_ENTRY(check_texformat);
+  FILL_ENTRY(get_max_sample_count);
   FILL_ENTRY(issame_texformat);
   FILL_ENTRY(check_cubetexformat);
   FILL_ENTRY(issame_cubetexformat);

@@ -302,13 +302,13 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
     Sbuffer::IReloadData *rld = this;
     unsigned used_d3d_buf_cnt = 0;
 
-    for (int i = 0; i < vdata.size(); i++)
+    for (int i = vdata.size() - 1; i >= 0; i--)
     {
       if ((!vdata[i].testFlags(VDATA_NO_VB) && vdata[i].getVB()) || (!vdata[i].testFlags(VDATA_NO_IB) && vdata[i].getIB()))
         used_d3d_buf_cnt++;
-      if (!vdata[i].testFlags(VDATA_NO_VB) && vdata[i].getVB() && vdata[i].getVB()->setReloadCallback(rld))
-        rld = &stub;
       if (!vdata[i].testFlags(VDATA_NO_IB) && vdata[i].getIB() && vdata[i].getIB()->setReloadCallback(rld))
+        rld = &stub;
+      if (!vdata[i].testFlags(VDATA_NO_VB) && vdata[i].getVB() && vdata[i].getVB()->setReloadCallback(rld))
         rld = &stub;
     }
     if (rld != this)

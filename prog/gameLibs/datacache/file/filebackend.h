@@ -12,7 +12,7 @@ namespace datacache
 class FileEntry;
 struct FindFilesAsyncJob;
 
-class FileBackend : public Backend
+class FileBackend final : public Backend
 {
 public:
   typedef eastl::hash_map<size_t, FileEntry *> EntriesMap;
@@ -21,25 +21,25 @@ public:
   ~FileBackend();
   static Backend *create(const FileBackendConfig &config);
 
-  virtual Entry *get(const char *key, ErrorCode *error, completion_cb_t, void *);
-  virtual Entry *set(const char *key, int64_t modtime);
-  virtual bool del(const char *key);
-  virtual void delAll();
+  Entry *get(const char *key, ErrorCode *error, completion_cb_t, void *) override;
+  Entry *set(const char *key, int64_t modtime) override;
+  bool del(const char *key) override;
+  void delAll() override;
 
-  virtual void control(int opcode, void *p1, void *)
+  void control(int opcode, void *p1, void *) override
   {
     if (opcode == _MAKE4C('CS'))
       csMgr = (WinCritSec *)p1;
   }
 
-  virtual Entry *nextEntry(void **iter);
-  virtual void endEnumeration(void **iter);
+  Entry *nextEntry(void **iter) override;
+  void endEnumeration(void **iter) override;
 
-  virtual int getEntriesCount();
+  int getEntriesCount() override;
 
-  virtual void poll() {}
+  void poll() override {}
 
-  virtual bool hasFreeSpace() const override { return !manualEviction || curSize < maxSize; }
+  bool hasFreeSpace() const override { return !manualEviction || curSize < maxSize; }
 
 public:
   void doPopulate();

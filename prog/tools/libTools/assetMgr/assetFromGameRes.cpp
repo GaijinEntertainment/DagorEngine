@@ -135,8 +135,8 @@ void DagorAssetMgr::fillGameResFolder(const char *type_name, int root_fidx, int 
       ca = NULL;
     }
     else
-      post_error_f(*msgPipe, "gameRes", "n/a", "duplicate asset %s of type <%s> in namespace %s", ca->getName(),
-        typeNames.getName(type), nspaceNames.getName(nsid));
+      post_msg(*msgPipe, msgPipe->WARNING, "duplicate asset %s of type <%s> in namespace %s", ca->getName(), typeNames.getName(type),
+        nspaceNames.getName(nsid));
   }
 
   del_it(ca);

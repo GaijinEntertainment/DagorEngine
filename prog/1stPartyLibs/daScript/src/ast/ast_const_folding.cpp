@@ -627,6 +627,11 @@ namespace das {
                     bool noSideEffects = true;
                     for ( auto & src : expr->sources ) {
                         noSideEffects &= src->noSideEffects;
+                        if ( !noSideEffects ) break;
+                        if ( src->type->isIterator() ) {
+                            noSideEffects = false;
+                            break;
+                        }
                     }
                     if ( noSideEffects ) {
                         reportFolding();

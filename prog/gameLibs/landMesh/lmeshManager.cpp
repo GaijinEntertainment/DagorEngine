@@ -1112,7 +1112,7 @@ void LandClassDetailTextures::resetGrassMask(const DataBlock &grassBlk, const ch
   if (grassMaskTexId == BAD_TEXTUREID)
     logerr("grass mask absent color_name = %@ info_grass_mask_name = %@ grassMaskName = %@", color_name, info_grass_mask_name,
       grassMaskName);
-  G_ASSERT(grassMaskTexId != BAD_TEXTUREID);
+  G_ASSERTF(grassMaskTexId != BAD_TEXTUREID, "grass_mask_black* mandatory asset not found");
   ::acquire_managed_tex(grassMaskTexId);
 }
 

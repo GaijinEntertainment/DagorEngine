@@ -8,7 +8,7 @@
 #include <ioSys/dag_genIo.h>
 #include <util/dag_stdint.h>
 #include <generic/dag_tab.h>
-#include <EASTL/map.h>
+#include <dag/dag_vectorMap.h>
 #include <EASTL/string_view.h>
 
 class WinCritSec;
@@ -32,11 +32,11 @@ enum class ProcessResult
   IoError
 };
 
-typedef eastl::map<eastl::string_view, eastl::string_view> StringMap;
+typedef dag::VectorMap<eastl::string_view, eastl::string_view> StringMap;
 
 typedef void (*completion_cb_t)(const char *name, int error, IGenLoad *ptr, void *cb_arg, int64_t last_modified, intptr_t req_id);
 typedef ProcessResult (*stream_data_cb_t)(dag::Span<const char> data, void *cb_arg, intptr_t req_id);
-typedef void (*header_cb_t)(StringMap const &headers, void *cb_arg);
+typedef void (*resp_headers_cb_t)(StringMap const &resp_headers, void *cb_arg);
 typedef void (*progress_cb_t)(const char *name, size_t dltotal, size_t dlnow);
 
 class Context
@@ -49,8 +49,8 @@ public:
   // Callback might get called before function return
   // Caller should delete returned stream when it no longer needed
   // If modified_since >= 0 then request callback might get called with errcode ERR_NOT_MODIFIED
-  virtual intptr_t createStream(const char *name, completion_cb_t complete_cb, stream_data_cb_t stream_cb, header_cb_t header_cb,
-    progress_cb_t progress_cb, void *cb_arg, int64_t modified_since = -1, bool do_sync = false) = 0;
+  virtual intptr_t createStream(const char *name, completion_cb_t complete_cb, stream_data_cb_t stream_cb,
+    resp_headers_cb_t resp_headers_cb, progress_cb_t progress_cb, void *cb_arg, int64_t modified_since = -1, bool do_sync = false) = 0;
   virtual void poll() = 0;
   virtual void abort() = 0;
   virtual void abort_request(intptr_t req_id) = 0;

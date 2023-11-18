@@ -82,8 +82,12 @@ bool load_das_script(const char *fname);
 bool load_das_script_debugger(const char *fname);
 bool load_das_script_with_debugcode(const char *fname);
 void warn_on_persistent_heap(bool value);
-bool enqueue_das_script(const char *fname);
 bool load_entry_script(const char *entry_point_name, TInitDas init, LoadEntryScriptCtx ctx = {});
+// internal use only
+void begin_loading_queue();
+bool stop_loading_queue(TInitDas init);
+void end_loading_queue(LoadEntryScriptCtx ctx);
+
 bool main_thread_post_load();
 bool unload_es_script(const char *fname);
 bool reload_all_scripts(const char *entry_point_name, TInitDas init);

@@ -116,7 +116,7 @@ local  version, width, neccblk1, neccblk2, datablkw, eccblkwid;
 let  ecclevel = 2;
 
 // set bit to indicate cell in qrframe is immutable.  symmetric around diagonal
-local function setmask(x, y) {
+function setmask(x, y) {
   local  bt;
   if (x > y) {
     bt = x;
@@ -133,7 +133,7 @@ local function setmask(x, y) {
 }
 
 // enter alignment pattern - black to qrframe, white to mask (later black frame merged to mask)
-let function putalign(x, y) {
+function putalign(x, y) {
   local j;
 
   qrframe[x + width * y] = 1;
@@ -154,7 +154,7 @@ let function putalign(x, y) {
 //========================================================================
 // Reed Solomon error correction
 // exponentiation mod N
-local function modnn(x) {
+function modnn(x) {
   while (x >= 255) {
     x -= 255;
     x = (x >> 8) + (x & 255);
@@ -165,7 +165,7 @@ local function modnn(x) {
 let genpoly = [];
 
 // Calculate and append ECC data to data block.  Block is in strinbuf, indexes to buffers given.
-let function appendrs(data, dlen, ecbuf, eclen) {
+function appendrs(data, dlen, ecbuf, eclen) {
   local i, j, fb;
 
   for (i = 0; i < eclen; i++)
@@ -187,7 +187,7 @@ let function appendrs(data, dlen, ecbuf, eclen) {
 // Frame data insert following the path rules
 
 // check mask - since symmetrical use half.
-local function ismasked(x, y) {
+function ismasked(x, y) {
   local  bt;
   if (x > y) {
     bt = x;
@@ -203,117 +203,115 @@ local function ismasked(x, y) {
 
 //========================================================================
 //  Apply the selected mask out of the 8.
-let function applymask(m) {
+function applymask(m) {
   local x, y, r3x, r3y;
-
-  switch (m) {
-    case 0:
-      for (y = 0; y < width; y++)
-        for (x = 0; x < width; x++)
-          if (!((x + y) & 1) && !ismasked(x, y))
-            qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
-      break;
-    case 1:
-      for (y = 0; y < width; y++)
-        for (x = 0; x < width; x++)
-          if (!(y & 1) && !ismasked(x, y))
-            qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
-      break;
-    case 2:
-      for (y = 0; y < width; y++) {
-        r3x = 0;
-        for (x = 0; x < width; x++) {
-          if (r3x == 3)
-            r3x = 0;
-          if (!r3x && !ismasked(x, y))
-            qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
-          r3x++
-        }
-      }
-      break;
-    case 3:
-      r3y = 0;
-      for (y = 0; y < width; y++) {
-        if (r3y == 3)
-          r3y = 0;
-
-        r3x = r3y;
-        for (x = 0; x < width; x++) {
-          if (r3x == 3)
-            r3x = 0;
-          if (!r3x && !ismasked(x, y))
-            qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
-          r3x++
-        }
-        r3y++
-      }
-      break;
-    case 4:
-      for (y = 0; y < width; y++) {
-        r3x = 0;
-        r3y = ((y >> 1) & 1);
-        for (x = 0; x < width; x++) {
-          if (r3x == 3) {
-            r3x = 0;
-            r3y = !r3y;
-          }
-          if (!r3y && !ismasked(x, y))
-            qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
-
-          r3x++
-        }
-      }
-      break;
-    case 5:
-      r3y = 0;
-      for (y = 0; y < width; y++) {
-        if (r3y == 3)
-          r3y = 0;
-        r3x = 0;
-        for (x = 0; x < width; x++) {
-          if (r3x == 3)
-            r3x = 0;
-          if (!((x & y & 1) + (!(!r3x || !r3y) ? 1 : 0)) && !ismasked(x, y))
-            qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
-          r3x++
-        }
-        r3y++
-      }
-      break;
-    case 6:
-      r3y = 0;
-      for (y = 0; y < width; y++) {
-        if (r3y == 3)
-          r3y = 0;
-
-        r3x = 0
-        for (x = 0; x < width; x++) {
-          if (r3x == 3)
-            r3x = 0;
-          if (!(((x & y & 1) + (r3x && (r3x == r3y) ? 1 : 0)) & 1) && !ismasked(x, y))
-            qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
-          r3x++
-        }
-        r3y++
-      }
-      break;
-    case 7:
-      r3y = 0;
-      for (y = 0; y < width; y++) {
-        if (r3y == 3)
-          r3y = 0;
-        r3x = 0
-        for (x = 0; x < width; x++) {
-          if (r3x == 3)
-            r3x = 0;
-          if (!(((r3x && (r3x == r3y) ? 1 : 0) + ((x + y) & 1)) & 1) && !ismasked(x, y))
-            qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
-          r3x++
-        }
-        r3y++
-      }
-      break;
+  if (m==0) {
+    for (y = 0; y < width; y++)
+      for (x = 0; x < width; x++)
+        if (!((x + y) & 1) && !ismasked(x, y))
+          qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
   }
+  else if (m==1) {
+    for (y = 0; y < width; y++)
+      for (x = 0; x < width; x++)
+        if (!(y & 1) && !ismasked(x, y))
+          qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
+    }
+  else if (m == 2) {
+    for (y = 0; y < width; y++) {
+      r3x = 0;
+      for (x = 0; x < width; x++) {
+        if (r3x == 3)
+          r3x = 0;
+        if (!r3x && !ismasked(x, y))
+          qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
+        r3x++
+      }
+    }
+  }
+  else if (m == 3) {
+    r3y = 0;
+    for (y = 0; y < width; y++) {
+      if (r3y == 3)
+        r3y = 0;
+
+      r3x = r3y;
+      for (x = 0; x < width; x++) {
+        if (r3x == 3)
+          r3x = 0;
+        if (!r3x && !ismasked(x, y))
+          qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
+        r3x++
+      }
+      r3y++
+    }
+  }
+  else if (m == 4) {
+    for (y = 0; y < width; y++) {
+      r3x = 0;
+      r3y = ((y >> 1) & 1);
+      for (x = 0; x < width; x++) {
+        if (r3x == 3) {
+          r3x = 0;
+          r3y = !r3y;
+        }
+        if (!r3y && !ismasked(x, y))
+          qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
+
+        r3x++
+      }
+    }
+  }
+  else if (m == 5) {
+    r3y = 0;
+    for (y = 0; y < width; y++) {
+      if (r3y == 3)
+        r3y = 0;
+      r3x = 0;
+      for (x = 0; x < width; x++) {
+        if (r3x == 3)
+          r3x = 0;
+        if (!((x & y & 1) + (!(!r3x || !r3y) ? 1 : 0)) && !ismasked(x, y))
+          qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
+        r3x++
+      }
+      r3y++
+    }
+  }
+  else if (m == 6) {
+    r3y = 0;
+    for (y = 0; y < width; y++) {
+      if (r3y == 3)
+        r3y = 0;
+
+      r3x = 0
+      for (x = 0; x < width; x++) {
+        if (r3x == 3)
+          r3x = 0;
+        if (!(((x & y & 1) + (r3x && (r3x == r3y) ? 1 : 0)) & 1) && !ismasked(x, y))
+          qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
+        r3x++
+      }
+      r3y++
+    }
+  }
+  else if (m == 7) {
+    r3y = 0;
+    for (y = 0; y < width; y++) {
+      if (r3y == 3)
+        r3y = 0;
+      r3x = 0
+      for (x = 0; x < width; x++) {
+        if (r3x == 3)
+          r3x = 0;
+        if (!(((r3x && (r3x == r3y) ? 1 : 0) + ((x + y) & 1)) & 1) && !ismasked(x, y))
+          qrframe[x + y * width] = qrframe[x + y * width] ^ 1;
+        r3x++
+      }
+      r3y++
+    }
+  }
+
   return;
 }
 
@@ -325,7 +323,7 @@ let N4 = 10
 
 // Using the table of the length of each run, calculate the amount of bad image
 // - long runs or those that look like finders; called twice, once each for X and Y
-let function badruns(length) {
+function badruns(length) {
   local i;
   local runsbad = 0;
   for (i = 0; i <= length; i++)
@@ -347,7 +345,7 @@ let function badruns(length) {
 }
 
 // Calculate how bad the masked image is - blocks, imbalance, runs, or finders.
-let function badcheck() {
+function badcheck() {
   rlens.resize(QR_RESERVE_ARRAY_SIZE)
   local x, y, h, b, b1;
   local thisbad = 0;
@@ -411,7 +409,7 @@ let function badcheck() {
   return thisbad;
 }
 
-let function genframe(instring) {
+function genframe(instring) {
   local x, y, k, t, v, i, j, m;
 
   // find the smallest version that fits the string
@@ -754,7 +752,7 @@ let function genframe(instring) {
 }
 
 
-let function generateQrArray(data) {
+function generateQrArray(data) {
   let frame = genframe(data ? data : "")
   let res = []
   local i
@@ -764,7 +762,7 @@ let function generateQrArray(data) {
   return res
 }
 
-let function generateQrBlocks(data) {
+function generateQrBlocks(data) {
   let codeArr = generateQrArray(data)
   let list = []
   foreach(rowIdx, row in codeArr) {

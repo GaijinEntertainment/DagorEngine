@@ -27,28 +27,31 @@ AddIncludes =
 ;
 
 Sources =
-  nodes/nodeTracker.cpp
-  nodes/nodeExecutor.cpp
-  nodes/nodeStateDeltas.cpp
-  nodeScheduling/nodeScheduler.cpp
-  resourceScheduling/resourceScheduler.cpp
-  resourceScheduling/nativeResourceScheduler.cpp
-  resourceScheduling/poolResourceScheduler.cpp
-  resourceUsage.cpp
-  backend.cpp
-  intermediateRepresentation.cpp
-  multiplexingInternal.cpp
-  nameResolver.cpp
+  api/cpp/detail/virtualResourceHandleBase.cpp
+  api/cpp/detail/virtualResourceRequestBase.cpp
+  api/cpp/bfg.cpp
+  api/cpp/registry.cpp
+  api/cpp/stateRequest.cpp
+  api/cpp/virtualPassRequest.cpp
+  api/cpp/autoResolutionRequest.cpp
+  api/cpp/nameSpace.cpp
+  api/cpp/nameSpaceRequest.cpp
 
-  api/detail/virtualResourceHandleBase.cpp
-  api/detail/virtualResourceRequestBase.cpp
-  api/bfg.cpp
-  api/registry.cpp
-  api/stateRequest.cpp
-  api/virtualPassRequest.cpp
-  api/autoResolutionRequest.cpp
-  api/nameSpace.cpp
-  api/nameSpaceRequest.cpp
+  common/resourceUsage.cpp
+
+  frontend/nodeTracker.cpp
+  frontend/nameResolver.cpp
+  frontend/multiplexingInternal.cpp
+
+  backend/intermediateRepresentation.cpp
+  backend/nodeStateDeltas.cpp
+  backend/nodeScheduler.cpp
+  backend/resourceScheduling/resourceScheduler.cpp
+  backend/resourceScheduling/nativeResourceScheduler.cpp
+  backend/resourceScheduling/poolResourceScheduler.cpp
+
+  runtime/nodeExecutor.cpp
+  runtime/backend.cpp
 ;
 
 if $(DABFG_ENABLE_DAS_INTEGRATION) = yes {
@@ -56,31 +59,31 @@ if $(DABFG_ENABLE_DAS_INTEGRATION) = yes {
     $(Root)/prog/1stPartyLibs/daScript/include
   ;
   Sources +=
-    api/dasModules/enumerations.cpp
-    api/dasModules/frameGraphModule.cpp
-    api/dasModules/nodeDataAnnotation.cpp
-    api/dasModules/structureAnnotations.cpp
+    api/das/enumerations.cpp
+    api/das/frameGraphModule.cpp
+    api/das/nodeDataAnnotation.cpp
+    api/das/structureAnnotations.cpp
   ;
   SourceDAS =
-    api/dasModules/frameGraphModule.das
+    api/das/frameGraphModule.das
   ;
   if $(DABFG_ENABLE_DAECS_INTEGRATION) = yes {
-    Sources += api/dasModules/nodeEcsRegistration.cpp ;
+    Sources += api/das/nodeEcsRegistration.cpp ;
   }
   else {
-    Sources += api/dasModules/nodeEcsRegistrationStub.cpp ;
+    Sources += api/das/nodeEcsRegistrationStub.cpp ;
   }
   UseProgLibs += 1stPartyLibs/daScript ;
   for s in $(SourceDAS) { StringifySourceFile $(s) : $(s).inl : $(s:S=.cpp) ; }
 }
 if $(DABFG_ENABLE_DAECS_INTEGRATION) = yes {
   SourceES =
-    ecs/frameGraphNodeES.cpp.inl
+    api/ecs/frameGraphNodeES.cpp.inl
   ;
   for s in $(SourceES) { GenESSourceFile $(s) ; }
 }
 AllSrcFolder_CPP =
-  resourceScheduling/packers
+  backend/resourceScheduling/packers
 ;
 
 

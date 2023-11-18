@@ -100,8 +100,9 @@ private:
   pthread_t id;
   KRNLIMP static void *threadEntry(void *arg);
 
-#elif _TARGET_PC | _TARGET_XBOX
+#elif _TARGET_PC_WIN | _TARGET_XBOX
   uintptr_t id;
+  bool minidumpSaveStack = true;
   KRNLIMP static unsigned __stdcall threadEntry(void *arg);
 
 #else
@@ -121,6 +122,7 @@ public:
   KRNLIMP const void *getCurrentThreadIdPtr() const { return &id; }
   KRNLIMP void setAffinity(unsigned int affinity); // TODO: make affinity ctor arg and remove this method
   KRNLIMP void setThreadIdealProcessor(int ideal_processor_no);
+  KRNLIMP void stripStackInMinidump();
 
   KRNLIMP static void terminate_all(bool wait, int timeout_ms = 3000);
 
@@ -132,12 +134,15 @@ public:
 
   KRNLIMP static const char *getCurrentThreadName();
   KRNLIMP static bool applyThisThreadPriority(int prio, const char *name = nullptr);
+#if _TARGET_PC | _TARGET_XBOX
+  KRNLIMP static bool isDaThreadWinUnsafe(uintptr_t thread_id, bool &minidump_save_stack); // no lock
+#endif
+  KRNLIMP static void setCurrentThreadName(const char *tname);
 
 protected:
   KRNLIMP virtual ~DaThread();
 
   void applyThreadPriority();
-  static void setCurrentThreadName(const char *tname);
   void afterThreadExecution();
   void applyThreadAffinity(unsigned int affinity);
   void doThread();

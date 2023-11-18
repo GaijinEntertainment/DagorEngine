@@ -399,4 +399,6 @@ struct Var<const Function&> : Var<Function> {Var(HSQUIRRELVM vm, SQInteger idx) 
 
 }
 
+DAG_DECLARE_RELOCATABLE(Sqrat::Function);
+
 #endif

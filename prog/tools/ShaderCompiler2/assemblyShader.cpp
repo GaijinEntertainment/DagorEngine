@@ -7,6 +7,7 @@
 #include "varMap.h"
 #include "globVar.h"
 #include "boolVar.h"
+#include "samplers.h"
 #include "sh_stat.h"
 #include "semUtils.h"
 #include "shaderTab.h"
@@ -35,6 +36,7 @@ extern d3d::shadermodel::Version getMaxFSHVersion();
 
 extern DebugLevel hlslDebugLevel;
 extern bool hlslDumpCodeAlways, hlslDumpCodeOnError;
+extern bool validateIdenticalBytecode;
 extern bool hlslSkipValidation;
 extern bool hlslNoDisassembly;
 extern bool hlslShowWarnings;
@@ -98,6 +100,7 @@ struct CachedShader
   int codeType;
   Tab<unsigned> relCode;
   ComputeShaderInfo computeShaderInfo;
+  String compileCtx;
   CachedShader() : relCode(midmem_ptr()), codeType(0) {}
 
   dag::ConstSpan<unsigned> getShaderOutCode(int type) const { return codeType == type ? relCode : dag::ConstSpan<unsigned>(); }
@@ -135,7 +138,7 @@ static int find_cached_shader(const CryptoHash &code_digest, const CryptoHash &c
   int &out_c1, int &out_c2, int &out_c3);
 
 //! writes shader to cache entry (c1,c2,c3); returns true when new unique shader added
-static bool post_shader_to_cache(int c1, int c2, int c3, const CompileResult &result, int type);
+static bool post_shader_to_cache(int c1, int c2, int c3, const CompileResult &result, int type, const String &compile_ctx);
 
 //! sets cached shader index =-2 for entry
 static void mark_cached_shader_entry_as_pending(int c1, int c2, int c3);
@@ -675,7 +678,7 @@ void AssembleShaderEvalCB::eval_blend_value(const Terminal &blend_func_tok, cons
   {
     // independent blending is not supported on all platforms yet
     // exclude this error on platforms, where driver support introduced
-#if !(_CROSS_TARGET_DX12 || _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL)
+#if !(_CROSS_TARGET_DX12 || _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL || _CROSS_TARGET_DX11)
     error("independent blending is not supported on this platform", &blend_func_tok);
 #endif
 
@@ -998,7 +1001,7 @@ void AssembleShaderEvalCB::eval_external_block(external_state_block &state_block
 #define TYPE_LIST_INT()   TYPE(i1) TYPE(i2) TYPE(i3) TYPE(i4)
 #define TYPE_LIST_BUF()   TYPE(buf) TYPE(cbuf)
 #define TYPE_LIST_TEX()   TYPE(tex) TYPE(tex2d) TYPE(tex3d) TYPE(texArray) TYPE(texCube) TYPE(texCubeArray)
-#define TYPE_LIST_SMP()   TYPE(smp) TYPE(smp2d) TYPE(smp3d) TYPE(smpArray) TYPE(smpCube) TYPE(smpCubeArray)
+#define TYPE_LIST_SMP()   TYPE(smp) TYPE(smp2d) TYPE(smp3d) TYPE(smpArray) TYPE(smpCube) TYPE(smpCubeArray) TYPE(sampler)
 #define TYPE_LIST_SHD() \
   TYPE(shd) TYPE(shdArray) TYPE(staticCube) TYPE(staticTexArray) TYPE(staticTex3D) TYPE(staticCubeArray) TYPE(uav)
 
@@ -1274,6 +1277,13 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
         name_space = isBindless ? (stage == STAGE_VS ? NamedConstSpace::vsf : NamedConstSpace::psf)
                                 : (stage == STAGE_VS ? NamedConstSpace::vsmp : NamedConstSpace::smp);
         break;
+      case VariableType::sampler:
+        if (stage != STAGE_PS)
+          error("@sampler is supported only in ps stage", var);
+        shcod = SHCOD_SAMPLER;
+        shtype = SHVT_SAMPLER;
+        name_space = NamedConstSpace::sampler;
+        break;
       case VariableType::cbuf:
         shcod = SHCOD_CONST_BUFFER;
         shtype = SHVT_BUFFER;
@@ -1437,6 +1447,7 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
       case VariableType::shdArray:
       case VariableType::smpArray: var_type_str = "Texture2DArray"; break;
       case VariableType::smpCubeArray: var_type_str = "TextureCubeArray"; break;
+      case VariableType::sampler: var_type_str = "SamplerState"; break;
 #endif
       case VariableType::shd: var_type_str = "Texture2D"; break;
     }
@@ -1803,6 +1814,19 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
 
         if (is_global)
         {
+          if (shtype == SHVT_SAMPLER)
+          {
+            const Sampler *smp = Sampler::get(value->expr->lhs->lhs->var_name->text);
+            if (!smp)
+            {
+              error(String(0, "Sampler with name '%s' was not found", value->expr->lhs->lhs->var_name->text),
+                value->expr->lhs->lhs->var_name);
+              continue;
+            }
+            curpass->push_stcode(shaderopcode::makeOp2(SHCOD_SAMPLER, id, var_id));
+            continue;
+          }
+
           int gc;
           Register reg;
           switch (shtype)
@@ -2559,6 +2583,7 @@ void AssembleShaderEvalCB::end_pass(Terminal *terminal)
   }
 
   bool accept = !dont_render;
+  const bool packedMaterial = supportsStaticCbuf == StaticCbuf::ARRAY;
   if (accept)
   {
     curvariant->suppBlk.resize(shConst.suppBlk.size());
@@ -2659,7 +2684,7 @@ void AssembleShaderEvalCB::end_pass(Terminal *terminal)
   {
     shConst.patchStcodeIndices(make_span(p.get_alt_curstcode(true)), false);
     shConst.patchStcodeIndices(make_span(p.get_alt_curstcode(false)), true);
-    if (shConst.staticCbufType == StaticCbuf::ARRAY)
+    if (packedMaterial)
       p.push_stblkcode(shaderopcode::makeOp0(SHCOD_PACK_MATERIALS));
   }
 
@@ -2928,7 +2953,7 @@ public:
     int base = append_items(source, 16);
     memset(&source[base], 0, 16);
 
-    if (hlslDumpCodeAlways)
+    if (hlslDumpCodeAlways || validateIdenticalBytecode)
       compileCtx = sh_get_compile_context();
 
     shader_variant_hash = variant_hash;
@@ -3205,6 +3230,7 @@ void CompileShaderJob::doJob()
             df_close(sha1BinFile);
             if (hlslDumpCodeAlways)
               debug("=== compiling code:\n%s\nreused built from %s", compileCtx, sha1SrcPath);
+            ShaderCompilerStat::hlslExternalCacheHitCount++;
             return;
           }
         }
@@ -3439,10 +3465,18 @@ void CompileShaderJob::addResults()
   G_ASSERT(curpass->getCidx(profile[0], c1, c2, c3, true));
 
   // Fill cache entry
-  bool added_new = post_shader_to_cache(c1, c2, c3, compile_result, CachedShader::typeFromProfile(profile));
+  bool added_new = post_shader_to_cache(c1, c2, c3, compile_result, CachedShader::typeFromProfile(profile), compileCtx);
 
   if (!added_new)
+  {
     ShaderCompilerStat::hlslEqResultCount++;
+    if (validateIdenticalBytecode)
+    {
+      auto &cache = resolve_cached_shader(c1, c2, c3);
+      sh_debug(SHLOG_INFO, "Equal shaders for profile %s were found:\n\nThe first one:\n%s\nThe second one:\n%s\n", profile,
+        cache.compileCtx, compileCtx);
+    }
+  }
 
   apply_from_cache(profile[0], c1, c2, c3, *curpass);
 
@@ -3617,7 +3651,7 @@ static int find_cached_shader(const CryptoHash &code_digest, const CryptoHash &c
   return -1;
 }
 
-static bool post_shader_to_cache(int c1, int c2, int c3, const CompileResult &result, int codeType)
+static bool post_shader_to_cache(int c1, int c2, int c3, const CompileResult &result, int codeType, const String &compile_ctx)
 {
   size_t size_in_unsigned = (result.bytecode.size() + 3) / sizeof(unsigned);
   bool added_new = false;
@@ -3638,6 +3672,8 @@ static bool post_shader_to_cache(int c1, int c2, int c3, const CompileResult &re
 
     cachedShader.relCode.resize(size_in_unsigned + 1);
     cachedShader.codeType = codeType;
+    if (validateIdenticalBytecode)
+      cachedShader.compileCtx = compile_ctx;
     switch (codeType)
     {
       case CachedShader::TYPE_VS:

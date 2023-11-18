@@ -1842,7 +1842,7 @@ struct Clouds2
     setCloudRenderingVars();
   }
 
-  void init(bool useHole = true)
+  void init(bool use_hole = true)
   {
 #define VAR(a, opt) a##VarId = ::get_shader_variable_id(#a, opt);
     CLOUDS_VARS_LIST
@@ -1856,7 +1856,7 @@ struct Clouds2
     light.init();
     cloudsForm.init();
     calcCloudsAlt();
-    if (useHole)
+    if (use_hole)
       initHole();
 
     invalidateWeather();
@@ -1907,6 +1907,9 @@ struct Clouds2
 
   void processHole()
   {
+    if (!useHole)
+      return;
+
     if (needHoleCPUUpdate == HOLE_UPDATED)
       return;
 
@@ -2050,7 +2053,7 @@ struct Clouds2
 
   bool findHole(const Point3 &main_light_dir)
   {
-    if (!((holeBuf || holeTex) && cloudShadows.cloudsShadowsVol))
+    if (!useHole || (!((holeBuf || holeTex) && cloudShadows.cloudsShadowsVol)))
       return false;
 
     ShaderGlobal::set_real(clouds_hole_densityVarId, holeDensity);
@@ -2094,6 +2097,7 @@ struct Clouds2
     }
     return true;
   }
+  void setUseHole(bool set) { useHole = set; }
   void resetHole(const Point3 &hole_target, const float &hole_density)
   {
     holeTarget = hole_target;
@@ -2168,6 +2172,7 @@ protected:
   Point3 holeTarget = {0, 0, 0};
   float holeDensity = 0;
   bool holeFound = true;
+  bool useHole = true;
   UniqueBufHolder holeBuf;
   UniqueTexHolder holeTex;
   UniqueTexHolder holePosTex;

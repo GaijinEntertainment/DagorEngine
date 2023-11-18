@@ -160,10 +160,10 @@ DropSplashes::DropSplashes(const DataBlock &blk) : splashRendElem(nullptr), spri
   initSplashShader();
   initSpriteShader();
 
-  splashVb = dag::create_vb(VERTICES_PER_SPLASH * sizeof(float) * 3, SBCF_MAYBELOST, "splashVb");
+  splashVb = dag::create_vb(VERTICES_PER_SPLASH * sizeof(float) * 3, 0, "splashVb");
   G_ASSERT(splashVb);
 
-  splashIb = dag::create_ib(INDICES_PER_SPLASH * sizeof(uint16_t), SBCF_MAYBELOST, "splashIb");
+  splashIb = dag::create_ib(INDICES_PER_SPLASH * sizeof(uint16_t), 0, "splashIb");
   G_ASSERT(splashIb);
   fillBuffers();
 

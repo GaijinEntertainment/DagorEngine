@@ -1762,7 +1762,7 @@ protected:
   ApexDestrExp exp;
 };
 
-String validate_texture_types(String tex_name, const char *class_name, int slot, DagorAssetMgr &mgr) { return {}; }
+String validate_texture_types(const char *tex_name, const char *class_name, int slot, DagorAsset &a) { return {}; }
 
 DABUILD_PLUGIN_API IDaBuildPlugin *__stdcall get_dabuild_plugin() { return new (midmem) ApexDestrExporterPlugin; }
 END_DABUILD_PLUGIN_NAMESPACE(apex)

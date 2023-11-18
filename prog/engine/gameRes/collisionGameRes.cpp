@@ -2351,18 +2351,20 @@ bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const T
   return testInclusion(node_to_test, tm_test, restraining_node.convexPlanes, restrainTm, test_node_tree);
 }
 
-VECTORCALL bool CollisionResource::rayHit(const mat44f &tm, vec3f v_from, vec3f v_dir, float in_t, int &out_mat_id) const
+VECTORCALL bool CollisionResource::rayHit(const mat44f &tm, const Point3 &from, const Point3 &dir, float in_t, int ray_mat_id,
+  int &out_mat_id) const
 {
   uint8_t behaviorFilter = CollisionNode::TRACEABLE;
 
-  auto nodeFilter = [&](const CollisionNode * /*node*/) -> bool { return true; };
-
-  auto callback = [&out_mat_id](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/) {
+  auto nodeFilter = [&](const CollisionNode *node) -> bool {
+    return ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId);
+  };
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/) {
     out_mat_id = node->physMatId;
   };
 
-  return forEachIntersectedNode<ANY_ONE_INTERSECTION, CollisionTraceType::RAY_HIT>(tm, nullptr /*geom_node_tree*/, v_from, v_dir, in_t,
-    false /*out_normal*/, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/);
+  return forEachIntersectedNode<ANY_ONE_INTERSECTION, CollisionTraceType::RAY_HIT>(tm, nullptr /*geom_node_tree*/, v_ldu(&from.x),
+    v_ldu(&dir.x), in_t, false /*out_normal*/, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/);
 }
 
 VECTORCALL bool CollisionResource::rayHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,

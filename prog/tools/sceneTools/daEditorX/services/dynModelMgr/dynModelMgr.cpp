@@ -19,6 +19,7 @@
 #include <startup/dag_globalSettings.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <3d/dag_texIdSet.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_TMatrix.h>

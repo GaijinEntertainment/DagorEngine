@@ -91,6 +91,11 @@ rem GUI tools
 jam -s Root=../.. -f dargbox/jamfile
   if errorlevel 1 goto error
 
+rem Blender plugin
+pushd dag4blend
+__build_pack.py FINAL
+popd
+
 rem 3ds Max plugins, we don't care if these plugins fail to compile (this could happen due to missing SDK or compiler)
 jam -s Root=../.. -s Platform=win64 -s MaxVer=Max2024 -f maxplug/jamfile
 jam -s Root=../.. -s Platform=win64 -s MaxVer=Max2024 -f maxplug/jamfile-imp

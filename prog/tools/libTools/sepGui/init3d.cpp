@@ -146,7 +146,7 @@ bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming)
   d3d::set_render_target();
   d3d::get_target_size(targetW, targetH);
   d3d::setview(0, 0, targetW, targetH, 0, 1);
-  d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(10, 10, 64, 0), 0, 0);
+  d3d::clearview(CLEAR_TARGET, E3DCOLOR(10, 10, 64, 0), 0, 0);
 
   enable_tex_mgr_mt(true, 64 << 10);
   inited = true;

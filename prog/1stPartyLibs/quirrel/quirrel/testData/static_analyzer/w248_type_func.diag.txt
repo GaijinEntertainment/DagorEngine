@@ -1,0 +1,9 @@
+WARNING: w248 (access-potentially-nulled) 'f' can be null, but is used as a function without checking.
+testData/static_analyzer/w248_type_func.nut:4:15
+
+    if ((type(colorStr) != "string" || (colorStr.len() != 8 && colorStr.len() != 6)) && (type(f) == "null") )
+        return f("first param must be string with len 6 or 8")
+               ^
+}
+
+

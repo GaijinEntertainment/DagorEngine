@@ -86,6 +86,7 @@ void LodGridVertexData::close()
     return;
   del_d3dres(ib);
   del_d3dres(quadsIb);
+  patchDim = 0;
 }
 
 bool LodGridVertexData::init(int dim)
@@ -96,12 +97,20 @@ bool LodGridVertexData::init(int dim)
     return true;
   }
   patchDim = dim;
+
+  return createBuffers();
+}
+
+bool LodGridVertexData::createBuffers()
+{
+  recreateBuffers = false;
   verticesCnt = (patchDim + 1) * (patchDim + 1);
 
   const int indexSize = 2;
   indicesCnt = patchDim * patchDim * 6;
   int totalIndicesCnt = indicesCnt * 2;
-  ib = d3d::create_ib(totalIndicesCnt * indexSize, indexSize == 4 ? SBCF_INDEX32 : 0);
+  G_ASSERT(!ib);
+  ib = d3d::create_ib(totalIndicesCnt * indexSize, (indexSize == 4 ? SBCF_INDEX32 : 0), "lod_grid_vdata_ib");
   d3d_err(ib);
   if (!ib)
     return false;
@@ -116,7 +125,8 @@ bool LodGridVertexData::init(int dim)
   if (hmap_tess_factorVarId != -1)
   {
     quadsIndicesCnt = indicesCnt / 6 * 4;
-    quadsIb = d3d::create_ib(quadsIndicesCnt * indexSize, indexSize == 4 ? SBCF_INDEX32 : 0);
+    G_ASSERT(!quadsIb);
+    quadsIb = d3d::create_ib(quadsIndicesCnt * indexSize, (indexSize == 4 ? SBCF_INDEX32 : 0), "lod_grid_vdata_quadsIb");
     d3d_err(quadsIb);
     if (!quadsIb)
       return false;
@@ -131,6 +141,21 @@ bool LodGridVertexData::init(int dim)
   return true;
 }
 
+void LodGridVertexData::beforeResetDevice()
+{
+  if (patchDim <= 0)
+    return;
+
+  recreateBuffers = true;
+  del_d3dres(ib);
+  del_d3dres(quadsIb);
+}
+
+void LodGridVertexData::afterResetDevice()
+{
+  if (recreateBuffers)
+    createBuffers();
+}
 
 static int heightmap_scale_offset_varId = -1;
 static int heightmap_scale_offset_c = 0;
@@ -149,6 +174,18 @@ void HeightmapRenderer::close()
   shElem = NULL; // Deleted in shmat
   del_it(shmat);
   vdata[dimBits - VDATA_OFS].close();
+}
+
+void HeightmapRenderer::beforeResetDevice()
+{
+  for (int i = 0; i < MAX_VDATA; ++i)
+    vdata[i].beforeResetDevice();
+}
+
+void HeightmapRenderer::afterResetDevice()
+{
+  for (int i = 0; i < MAX_VDATA; ++i)
+    vdata[i].afterResetDevice();
 }
 
 bool HeightmapRenderer::init(const char *shader_name, const char *mat_script, bool do_fatal, int bits)

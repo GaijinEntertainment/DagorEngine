@@ -301,11 +301,11 @@ struct AsyncJob : public cpujobs::IJob
         userCb[i].cb(key, ERR_UNKNOWN, NULL, userCb[i].arg);
   }
 
-  void callHeaderCb(streamio::StringMap const &headers)
+  void callRespHeadersCb(streamio::StringMap const &resp_headers)
   {
     for (int i = 0; i < userCb.size(); ++i)
-      if (userCb[i].header_cb)
-        userCb[i].header_cb(key, headers, userCb[i].arg);
+      if (userCb[i].resp_headers_cb)
+        userCb[i].resp_headers_cb(key, resp_headers, userCb[i].arg);
   }
 };
 
@@ -321,8 +321,6 @@ struct DownloadRequest : public AsyncJob
   ~DownloadRequest() { delete stream; }
 
   virtual streamio::ProcessResult onStreamData(dag::ConstSpan<char>) { return streamio::ProcessResult::Discarded; }
-
-  virtual void onHttpHeader() {}
 };
 
 struct IndexDownloadRequest : public DownloadRequest
@@ -582,30 +580,30 @@ streamio::ProcessResult WebBackend::onHttpData(DownloadRequest *req, dag::ConstS
 
 static eastl::string to_string(eastl::string_view const &sv) { return eastl::string(sv.begin(), sv.end()); }
 
-struct PassHeaderToCallback final : public cpujobs::IJob
+struct PassRespHeadersToCallback final : public cpujobs::IJob
 {
   DownloadRequest *req;
-  eastl::vector<eastl::pair<eastl::string, eastl::string>> headersList;
-  explicit PassHeaderToCallback(DownloadRequest *_req, streamio::StringMap const &_headers) : req(_req)
+  eastl::vector<eastl::pair<eastl::string, eastl::string>> respHeadersList;
+  explicit PassRespHeadersToCallback(DownloadRequest *_req, streamio::StringMap const &resp_headers) : req(_req)
   {
-    headersList.reserve(_headers.size());
-    for (auto const &kv : _headers)
-      headersList.push_back(eastl::make_pair(to_string(kv.first), to_string(kv.second)));
+    respHeadersList.reserve(resp_headers.size());
+    for (auto const &kv : resp_headers)
+      respHeadersList.push_back(eastl::make_pair(to_string(kv.first), to_string(kv.second)));
   }
 
   virtual void doJob() override{};
   void releaseJob() override
   {
     WinAutoLockOpt lock(req->backend->csMgr);
-    req->callHeaderCb(streamio::StringMap(headersList.begin(), headersList.end()));
+    req->callRespHeadersCb(streamio::StringMap(respHeadersList.begin(), respHeadersList.end()));
     delete this;
   }
 };
 
-void WebBackend::onHttpHeader(streamio::StringMap const &headers, DownloadRequest *req)
+void WebBackend::onHttpRespHeaders(streamio::StringMap const &resp_headers, DownloadRequest *req)
 {
   WinAutoLockOpt lock(csMgr);
-  auto job = new PassHeaderToCallback(req, headers);
+  auto job = new PassRespHeadersToCallback(req, resp_headers);
   if (req->syncJob)
   {
     job->doJob();
@@ -668,7 +666,7 @@ void WebBackend::onHttpReqComplete(DownloadRequest *req, const char *url, int er
   {
     DOTRACE1("re-request '%s' from new base %s", url, baseUrl.data());
     delete stream;
-    getOrCreateStreamCtx().createStream(url, onHttpReqCompleteCb, onHttpDataCb, onHttpHeaderCb, nullptr, req, req->lastModified);
+    getOrCreateStreamCtx().createStream(url, onHttpReqCompleteCb, onHttpDataCb, onHttpRespHeadersCb, nullptr, req, req->lastModified);
   }
 }
 
@@ -692,11 +690,11 @@ streamio::ProcessResult WebBackend::onHttpDataCb(dag::ConstSpan<char> data, void
   return streamio::ProcessResult::Discarded;
 }
 
-void WebBackend::onHttpHeaderCb(streamio::StringMap const &headers, void *arg)
+void WebBackend::onHttpRespHeadersCb(streamio::StringMap const &resp_headers, void *arg)
 {
   auto req = reinterpret_cast<DownloadRequest *>(arg);
   if (req->backend->UBMagic == INIT_UB_MAGIC)
-    req->backend->onHttpHeader(headers, req);
+    req->backend->onHttpRespHeaders(resp_headers, req);
   else
     fatal("attempt to access to deleted instance!");
 }
@@ -808,15 +806,16 @@ DownloadRequest *WebBackend::downloadFile(const char *url, const char *key, User
     streamio::Context &ctx = getOrCreateStreamCtx();
     lock.unlockFinal();
     req->syncJob = true;
-    ctx.createStream(url, onHttpReqCompleteCb, onHttpDataCb, onHttpHeaderCb, nullptr, req, modified_since, true);
+    auto hdrCb = user_cb.resp_headers_cb ? onHttpRespHeadersCb : nullptr;
+    ctx.createStream(url, onHttpReqCompleteCb, onHttpDataCb, hdrCb, nullptr, req, modified_since, true);
     return NULL;
   }
 
   addAsyncJob(key, req, user_cb);
 
   req->lastModified = modified_since; // save for possible re-request
-  intptr_t reqId =
-    getOrCreateStreamCtx().createStream(url, onHttpReqCompleteCb, onHttpDataCb, onHttpHeaderCb, nullptr, req, req->lastModified);
+  auto hdrCb = user_cb.resp_headers_cb ? onHttpRespHeadersCb : nullptr;
+  intptr_t reqId = getOrCreateStreamCtx().createStream(url, onHttpReqCompleteCb, onHttpDataCb, hdrCb, nullptr, req, req->lastModified);
   if (reqId != 0)
     activeRequests.push_back(reqId);
   return req;
@@ -934,16 +933,17 @@ Entry *WebBackend::getEntryNoIndex(const char *key, const char *url, ErrorCode *
 
 Entry *WebBackend::get(const char *key, ErrorCode *error, completion_cb_t cb, void *cb_arg)
 {
-  return getWithHeaders(key, error, cb, NULL, cb_arg);
+  return getWithRespHeaders(key, error, cb, NULL, cb_arg);
 }
 
-Entry *WebBackend::getWithHeaders(const char *key, ErrorCode *error, completion_cb_t cb, header_cb_t headers_cb, void *cb_arg)
+Entry *WebBackend::getWithRespHeaders(const char *key, ErrorCode *error, completion_cb_t cb, resp_headers_cb_t resp_headers_cb,
+  void *cb_arg)
 {
   DOTRACE3("%s '%s'", __FUNCTION__, key);
   if (shutdowning)
     RETURN_ENTRY(NULL, ERR_UNKNOWN);
 
-  UserCb userCb{cb, headers_cb, cb_arg};
+  UserCb userCb{cb, resp_headers_cb, cb_arg};
   char urlBuf[URL_BUF_SIZE], keyBuf[DAGOR_MAX_PATH];
   if (is_url(key))
     return getEntryNoIndex(NULL, key, error, userCb);

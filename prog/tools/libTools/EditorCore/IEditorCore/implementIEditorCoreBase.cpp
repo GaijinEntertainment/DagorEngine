@@ -6,6 +6,7 @@
 #include <3d/dag_drv3d.h>
 #include <math/dag_SHlight.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_memIo.h>

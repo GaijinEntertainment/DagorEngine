@@ -25,9 +25,7 @@ public:
     Tab<TMatrix> bindposeArr;
   };
 
-  MatrixBufferHeapManager(const char *name) :
-    sbufferHeapManager(name, ELEM_SIZE, SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED | SBCF_MAYBELOST, 0)
-  {}
+  MatrixBufferHeapManager(const char *name) : sbufferHeapManager(name, ELEM_SIZE, SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0) {}
 
   void copy(Heap &to, size_t to_offset, const Heap &from, size_t from_offset, size_t len)
   {

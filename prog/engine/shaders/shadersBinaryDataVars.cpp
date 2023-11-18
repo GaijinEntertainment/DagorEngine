@@ -532,6 +532,15 @@ bool ShaderGlobal::set_texture(int variable_id, const ManagedTex &texture)
   return ShaderGlobal::set_texture(variable_id, texture.getTexId());
 }
 
+bool ShaderGlobal::set_sampler(int var_id, d3d::SamplerHandle handle)
+{
+  CHECK_VAR_ID(SHVT_SAMPLER);
+
+  auto &smp = dump.globVars.get<d3d::SamplerHandle>(id);
+  smp = handle;
+  return true;
+}
+
 bool ShaderGlobal::set_buffer(int var_id, D3DRESID buf_id)
 {
 #if DAGOR_DBGLEVEL > 0

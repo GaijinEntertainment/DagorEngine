@@ -1,9 +1,0 @@
-WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
-testData/static_analyser/w200_arith_deep.nut:4:10
-
-local z = x?.y
-local a = z - 8
-          ^
-::print(a)
-
-

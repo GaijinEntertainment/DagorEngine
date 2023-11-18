@@ -1,11 +1,12 @@
 // classes for represenation & managment of various work blocks
 // with ability to move current execution point
 #pragma once
-#include "driver.h"
-#include "osApiWrappers/dag_events.h"
-#include "osApiWrappers/dag_critSec.h"
-#include "render_work.h"
-#include "frame_info.h"
+#include <osApiWrappers/dag_events.h>
+#include <osApiWrappers/dag_critSec.h>
+#include <perfMon/dag_cpuFreq.h>
+#include <EASTL/array.h>
+#include <atomic>
+#include <debug/dag_fatal.h>
 
 namespace drv3d_vulkan
 {
@@ -336,37 +337,6 @@ struct TimelineSyncPartNonWaitable
   };
 };
 
-class TimelineManager
-{
-
-  struct CpuReplaySync : public TimelineSyncPartLockFree,
-                         public TimelineSyncPartSingleWriterSingleReader,
-                         public TimelineSyncPartEventWaitable
-  {};
-
-  struct GpuExecuteSync : public TimelineSyncPartLockFree, public TimelineSyncPartNonConcurrent, public TimelineSyncPartNonWaitable
-  {};
-
-public:
-  typedef Timeline<RenderWork, CpuReplaySync, MAX_RETIREMENT_QUEUE_ITEMS> CpuReplay;
-  typedef Timeline<FrameInfo, GpuExecuteSync, FRAME_FRAME_BACKLOG_LENGTH> GpuExecute;
-
-private:
-  CpuReplay cpuReplay;
-  GpuExecute gpuExecute;
-
-  TimelineManager(const TimelineManager &) = delete;
-
-public:
-  template <typename T>
-  T &get();
-
-  void shutdown();
-  void init();
-
-  TimelineManager() = default;
-};
-
 template <typename T>
 class TimelineSpan
 {
@@ -376,7 +346,9 @@ class TimelineSpan
   TimelineSpan(const TimelineSpan &) = delete;
 
 public:
-  TimelineSpan(TimelineManager &tl_man) : timelineRef(tl_man.get<T>()) {}
+  template <typename Manager>
+  TimelineSpan(Manager &tl_man) : timelineRef(tl_man.template get<T>())
+  {}
 
   void start()
   {

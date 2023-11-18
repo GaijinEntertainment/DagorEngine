@@ -50,6 +50,31 @@ GraphicsPipelineVariationStorage::ExtendedVariantDescription &GraphicsPipelineVa
   }
 }
 
+bool VariatedGraphicsPipeline::pendingCompilation()
+{
+  for (const auto &[_, pipeline] : items)
+  {
+    if (!pipeline->checkCompiled())
+      return true;
+  }
+  return false;
+}
+
+void VariatedGraphicsPipeline::shutdown(VulkanDevice &device)
+{
+  for (const auto &[_, pipeline] : items)
+  {
+    if (!pipeline->release())
+    {
+      if (!pipeline->checkCompiled())
+        get_device().getContext().getBackend().pipelineCompiler.waitFor(pipeline);
+      pipeline->shutdown(device);
+      delete pipeline;
+    }
+  }
+  items.clear();
+}
+
 GraphicsPipeline *VariatedGraphicsPipeline::findVariant(const GraphicsPipelineVariantDescription &dsc)
 {
   auto hash = dsc.getHash();
@@ -64,7 +89,7 @@ GraphicsPipeline *VariatedGraphicsPipeline::findVariant(const GraphicsPipelineVa
 }
 
 GraphicsPipeline *VariatedGraphicsPipeline::compileNewVariant(CompilationContext &comp_ctx,
-  const GraphicsPipelineVariantDescription &dsc, unsigned &inOutTotalCompilationTime)
+  const GraphicsPipelineVariantDescription &dsc)
 {
   auto hash = dsc.getHash();
   auto eDsc = variations.get(dsc, hash, comp_ctx.rsBackend, comp_ctx.nativeRP);
@@ -76,67 +101,45 @@ GraphicsPipeline *VariatedGraphicsPipeline::compileNewVariant(CompilationContext
   {
     ScopedTimer compileTimer(compilationTime);
 
-    VulkanPipelineHandle parentPipe;
+    GraphicsPipeline *parentPipe = nullptr;
     if (!items.empty())
-      parentPipe = items[0].second->getHandle();
+      parentPipe = items[0].second;
 
-    {
+    bool async = get_device().pipeMan.asyncCompileEnabled();
+    GraphicsPipelineCompileScratchData localCompileData;
+    GraphicsPipelineCompileScratchData *csd = async ? new GraphicsPipelineCompileScratchData() : &localCompileData;
+    memset(csd, 0, sizeof(GraphicsPipelineCompileScratchData));
+    csd->allocated = async;
+
+    csd->varIdx = eDsc.index;
+    csd->varTotal = items.size();
+    csd->progIdx = program.get();
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-      String shortDebugName(128, "%s-%s", debugInfo.vs().name, debugInfo.fs().name);
-      TIME_PROFILE_NAME(vulkan_gr_pipeline_compile, shortDebugName)
-#else
-      TIME_PROFILE(vulkan_gr_pipeline_compile)
+    csd->shortDebugName = String(128, "%s-%s", debugInfo.vs().name, debugInfo.fs().name);
+    csd->fullDebugName = String(512, "vs: %s\nps: %s\nvaridx: %u", debugInfo.vs().debugName, debugInfo.fs().debugName, eDsc.index);
 #endif
 
-      ret = new GraphicsPipeline(comp_ctx.dev, comp_ctx.pipeCache, layout,
-        {comp_ctx.passMan, comp_ctx.rsBackend, eDsc.base, eDsc.mask, modules, crFeedback, parentPipe, comp_ctx.nativeRP});
-    }
+    ret = new GraphicsPipeline(comp_ctx.dev, comp_ctx.pipeCache, layout,
+      {comp_ctx.passMan, comp_ctx.rsBackend, eDsc.base, eDsc.mask, modules, parentPipe, comp_ctx.nativeRP, csd});
+
+    if (async)
+      get_device().getContext().getBackend().pipelineCompiler.queue(ret);
+    else
+      ret->compile();
 
     items.push_back(eastl::make_pair(hash, ret));
   }
-  inOutTotalCompilationTime += compilationTime;
-
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-  String fullDebugName(512, "vs: %s\nps: %s\nvaridx: %u", debugInfo.vs().debugName, debugInfo.fs().debugName, eDsc.index);
-#endif
-
-  if (is_null(ret->getHandle()))
-  {
-    logerr("vulkan: pipeline [gfx:%u:%u(%u)] not compiled but result was ok", program.get(), eDsc.index, items.size());
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-    logerr("vulkan: with\n %s", fullDebugName);
-#endif
-    return ret;
-  }
-
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-  get_device().setPipelineName(ret->getHandle(), fullDebugName.c_str());
-  if (items.size() == 1)
-    get_device().setPipelineLayoutName(getLayout()->handle, fullDebugName.c_str());
   totalCompilationTime += compilationTime;
   ++variantCount;
 #endif
 
-#if VULKAN_LOG_PIPELINE_ACTIVITY < 1
-  if (compilationTime > PIPELINE_COMPILATION_LONG_THRESHOLD)
-#endif
-  {
-    debug("vulkan: pipeline [gfx:%u:%u(%u)] compiled in %u us", program.get(), eDsc.index, items.size(), compilationTime);
-    crFeedback.logFeedback();
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-    debug("vulkan: with\n %s handle: %p", fullDebugName, generalize(ret->getHandle()));
-#endif
-  }
-
   return ret;
 }
 
-GraphicsPipeline *VariatedGraphicsPipeline::getVariant(CompilationContext &comp_ctx, const GraphicsPipelineVariantDescription &dsc,
-  bool compilationTimeout, unsigned &inOutTotalCompilationTime)
+GraphicsPipeline *VariatedGraphicsPipeline::getVariant(CompilationContext &comp_ctx, const GraphicsPipelineVariantDescription &dsc)
 {
   GraphicsPipeline *pipe = findVariant(dsc);
-  if (compilationTimeout && !pipe)
-    return nullptr;
 
 #if VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT
   if (!isUsageAllowed())
@@ -161,7 +164,7 @@ GraphicsPipeline *VariatedGraphicsPipeline::getVariant(CompilationContext &comp_
 
     // masking did not changed layout, no need to map dsc to something
     if (originalLayout.isSame(maskedLayout))
-      pipe = compileNewVariant(comp_ctx, dsc, inOutTotalCompilationTime);
+      pipe = compileNewVariant(comp_ctx, dsc);
     else
     {
       // register/find new input layout
@@ -170,7 +173,7 @@ GraphicsPipeline *VariatedGraphicsPipeline::getVariant(CompilationContext &comp_
 
       pipe = findVariant(modDsc);
       if (!pipe)
-        pipe = compileNewVariant(comp_ctx, modDsc, inOutTotalCompilationTime);
+        pipe = compileNewVariant(comp_ctx, modDsc);
 
       // add to list as mapped to another desc
       auto origHash = dsc.getHash();
@@ -180,10 +183,8 @@ GraphicsPipeline *VariatedGraphicsPipeline::getVariant(CompilationContext &comp_
     }
   }
 
-  if (is_null(pipe->getHandle()))
-  {
+  if (!pipe->checkCompiled())
     return nullptr;
-  }
 
   return pipe;
 }

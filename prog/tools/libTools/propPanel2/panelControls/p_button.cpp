@@ -4,10 +4,10 @@
 #include "../c_constants.h"
 
 CButton::CButton(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w,
-  const char caption[]) :
+  const char caption[], const bool text_align_left) :
 
   BasicPropertyControl(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_BUTTON_HEIGHT)),
-  mButton(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_BUTTON_HEIGHT))
+  mButton(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_BUTTON_HEIGHT), true, text_align_left)
 {
   mButton.setTextValue(caption);
   initTooltip(&mButton);

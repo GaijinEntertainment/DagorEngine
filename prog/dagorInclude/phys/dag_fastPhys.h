@@ -55,9 +55,6 @@ struct ClippedLine
   ClippedLine(int i1, int i2, int n) : p1Index(i1), p2Index(i2), numSegs(n) {}
 };
 
-void toggleDebugAnimChar(eastl::string &str);
-bool checkDebugAnimChar(eastl::string &str);
-void resetDebugAnimChars();
 
 }; // namespace FastPhys
 

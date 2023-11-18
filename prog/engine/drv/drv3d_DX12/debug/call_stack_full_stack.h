@@ -1,9 +1,15 @@
 #pragma once
 
 #include <osApiWrappers/dag_stackHlp.h>
-#include <eastl/hash_set.h>
-#include <eastl/hash_map.h>
-#include <eastl/array.h>
+#include <osApiWrappers/dag_critSec.h>
+#include <EASTL/hash_set.h>
+#include <EASTL/hash_map.h>
+#include <EASTL/array.h>
+#include <EASTL/string.h>
+#include <util/dag_string.h>
+
+
+class DataBlock;
 
 namespace drv3d_dx12
 {
@@ -13,7 +19,7 @@ namespace call_stack
 {
 namespace full_stack
 {
-static constexpr uint32_t max_call_stack_depth = 32;
+inline constexpr uint32_t max_call_stack_depth = 32;
 using CallStack = eastl::array<void *, max_call_stack_depth>;
 
 struct CallStackHasher

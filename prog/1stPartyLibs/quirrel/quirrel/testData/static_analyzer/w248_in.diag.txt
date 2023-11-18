@@ -1,0 +1,8 @@
+WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
+testData/static_analyzer/w248_in.nut:6:11
+
+    return text.d
+           ^---
+}
+
+

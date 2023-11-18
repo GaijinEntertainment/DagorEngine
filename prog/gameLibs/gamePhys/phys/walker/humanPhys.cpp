@@ -272,6 +272,7 @@ void HumanPhys::loadFromBlk(const DataBlock *blk, const CollisionResource * /*co
   maxWalkSpeedLimitRestoreSpeed = blk->getReal("maxWalkSpeedLimitRestoreSpeed", maxWalkSpeedLimitRestoreSpeed);
 
   maxObstacleHeight = blk->getReal("maxObstacleHeight", maxObstacleHeight) * scale;
+  maxStepOverHeight = blk->getReal("maxStepOverHeight", maxStepOverHeight) * scale;
   maxCrawlObstacleHeight = blk->getReal("maxCrawlObstacleHeight", maxObstacleHeight * invScale) * scale;
   maxObstacleDownReach = blk->getReal("maxObstacleDownReach", maxObstacleDownReach);
 
@@ -1609,6 +1610,10 @@ HumanPhys::TorsoCollisionResults HumanPhys::processTorsoCollision(TMatrix &tm, i
             if (!overObstacle)
               contact.wnormB = normalize(Point3::x0z(contact.wnormB)); // when climbing, reduce normal to horizontal offsets only
           }
+          bool canStepOver =
+            maxStepOverHeight > 0.f && dot(contact.wpos - tm.getcol(3), currentState.vertDirection) < maxStepOverHeight;
+          if (canStepOver)
+            speedCollHardness = 0.f;
           applyPushingImpulse(contact, torsoPosOffs, 1.f, speedCollHardness);
         }
       }

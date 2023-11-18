@@ -311,9 +311,8 @@ struct Renderer
 
     shElem = shMat->make_elem();
 
-    activeBuffer = d3d::create_vb(g_settings.activeVertexCount * sizeof(Vertex), SBCF_DYNAMIC | SBCF_MAYBELOST, "water_foam_trail_a");
-    finalizedBuffer =
-      d3d::create_vb(g_settings.finalizedVertexCount * sizeof(Vertex), SBCF_DYNAMIC | SBCF_MAYBELOST, "water_foam_trail_f");
+    activeBuffer = d3d::create_vb(g_settings.activeVertexCount * sizeof(Vertex), SBCF_DYNAMIC, "water_foam_trail_a");
+    finalizedBuffer = d3d::create_vb(g_settings.finalizedVertexCount * sizeof(Vertex), SBCF_DYNAMIC, "water_foam_trail_f");
 
     SharedTex maskTexRes = dag::get_tex_gameres(g_settings.texName);
     G_ASSERT(maskTexRes);

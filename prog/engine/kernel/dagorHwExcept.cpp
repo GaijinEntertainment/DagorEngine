@@ -12,6 +12,8 @@
 #include <util/limBufWriter.h>
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_stackHlp.h>
+#include <osApiWrappers/dag_threads.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <dbghelp.h>
 #include <time.h>
 #include <malloc.h>
@@ -23,6 +25,147 @@ static constexpr int EXCEPT_BUF_SZ = 2048;
 
 static char common_buf[EXCEPT_BUF_SZ];
 
+struct MinidumpExceptionData
+{
+  PMINIDUMP_EXCEPTION_INFORMATION excInfo = nullptr;
+  uint64_t stackBase = 0; // crashed thread
+  uint64_t stackEnd = 0;
+  uint64_t baseOfImage = 0; // module containing this file
+  uint64_t endOfImage = 0;
+  int scannedRegs = 0;
+
+  struct MemoryRange
+  {
+    uint64_t base;
+    uint32_t size;
+  };
+  uint32_t memRemoveQueueSize = 0;
+  MemoryRange memRemoveQueue[32]{};
+};
+
+static BOOL dump_memory(uintptr_t addr, uintptr_t bytes_fwd, uintptr_t bytes_back, MinidumpExceptionData *data,
+  PMINIDUMP_CALLBACK_OUTPUT callback_output)
+{
+  bool isStack = addr >= data->stackEnd && addr < data->stackBase;
+  bool isInGameModule = addr >= data->baseOfImage && addr < data->endOfImage;
+  if (addr > 0x100000 && !(uint64_t(addr) >> 48) && !isStack)
+  {
+    MEMORY_BASIC_INFORMATION mem;
+    if (VirtualQuery((void *)addr, &mem, sizeof(mem)))
+    {
+      uintptr_t start = max(addr - bytes_back, (uintptr_t)mem.BaseAddress);
+      uintptr_t end = min(addr + bytes_fwd, (uintptr_t)mem.BaseAddress + (uintptr_t)mem.RegionSize);
+      const int dataProt = PAGE_READONLY | PAGE_READWRITE;
+      const int codeProt = PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE;
+      bool excludeAsKnownCode = (mem.Protect & codeProt) && isInGameModule;
+      if ((mem.State & MEM_COMMIT) && (mem.Protect & (dataProt | codeProt)) && !excludeAsKnownCode && end > start)
+      {
+        callback_output->MemoryBase = int64_t(intptr_t(start));
+        callback_output->MemorySize = end - start;
+        return TRUE;
+      }
+    }
+  }
+  return FALSE;
+}
+
+static BOOL minidump_memory_callback(MinidumpExceptionData *data, PMINIDUMP_CALLBACK_OUTPUT callback_output)
+{
+#if _TARGET_64BIT
+  const int regsToScan = 16;
+  const uint64_t *regsBase = (uint64_t *)&data->excInfo->ExceptionPointers->ContextRecord->Rax;
+#else
+  const int regsToScan = 7;
+  const uint32_t *regsBase = (uint32_t *)&data->excInfo->ExceptionPointers->ContextRecord->Edi;
+#endif
+  while (data->scannedRegs < regsToScan)
+  {
+    uintptr_t regValue = regsBase[data->scannedRegs++];
+    if (dump_memory(regValue, 128 /*fwd*/, 32 /*back*/, data, callback_output))
+      return TRUE;
+  }
+  return FALSE;
+}
+
+static BOOL CALLBACK minidump_callback(PVOID callback_param, const PMINIDUMP_CALLBACK_INPUT callback_input,
+  PMINIDUMP_CALLBACK_OUTPUT callback_output)
+{
+  MinidumpExceptionData *data = (MinidumpExceptionData *)callback_param;
+  switch (callback_input->CallbackType) //-V::1037 Two or more case-branches perform the same actions.
+  {
+    case ModuleCallback:
+      if (uint64_t(&minidump_callback) > callback_input->Module.BaseOfImage &&
+          uint64_t(&minidump_callback) < callback_input->Module.BaseOfImage + callback_input->Module.SizeOfImage)
+      {
+        data->baseOfImage = callback_input->Module.BaseOfImage;
+        data->endOfImage = callback_input->Module.BaseOfImage + callback_input->Module.SizeOfImage;
+      }
+      // Here is common filter effective in most cases, but I prefer to have full memory map
+      // if (!(callback_output->ModuleWriteFlags & ModuleReferencedByMemory))
+      // callback_output->ModuleWriteFlags &= ~ModuleWriteModule;
+      return TRUE;
+
+    case IncludeThreadCallback:
+    {
+      bool saveStack = true;
+      if (callback_input->IncludeThread.ThreadId == data->excInfo->ThreadId ||
+          callback_input->IncludeThread.ThreadId == get_main_thread_id() ||
+          DaThread::isDaThreadWinUnsafe(callback_input->IncludeThread.ThreadId, saveStack))
+      {
+        callback_output->ThreadWriteFlags = ThreadWriteThread | ThreadWriteContext;
+        if (saveStack)
+          callback_output->ThreadWriteFlags |= ThreadWriteStack;
+        if (callback_input->IncludeThread.ThreadId == data->excInfo->ThreadId)
+          callback_output->ThreadWriteFlags |= ThreadWriteInstructionWindow;
+        return TRUE;
+      }
+      return FALSE;
+    }
+
+    case MemoryCallback: return minidump_memory_callback(data, callback_output);
+
+    case RemoveMemoryCallback:
+      if (data->memRemoveQueueSize)
+      {
+        MinidumpExceptionData::MemoryRange range = data->memRemoveQueue[--data->memRemoveQueueSize];
+        callback_output->MemoryBase = range.base;
+        callback_output->MemorySize = range.size;
+        return TRUE;
+      }
+      return FALSE;
+
+    case ThreadCallback:
+    case ThreadExCallback:
+      if (callback_input->Thread.ThreadId == data->excInfo->ThreadId)
+      {
+        data->stackBase = callback_input->Thread.StackBase;
+        data->stackEnd = callback_input->Thread.StackEnd;
+      }
+      if (!(callback_output->ThreadWriteFlags & ThreadWriteStack))
+      {
+        // ThreadWriteContext saves stack, so we need to strip it manually
+#if _TARGET_64BIT
+        uint64_t sp = callback_input->Thread.Context.Rsp;
+#else
+        uint64_t sp = int64_t(intptr_t(callback_input->Thread.Context.Esp));
+#endif
+        uint64_t base = sp + 128;
+        uint32_t size = uint32_t(uintptr_t(callback_input->Thread.StackBase) - uintptr_t(base));
+        if (int(size) > 0)
+        {
+          if (data->memRemoveQueueSize < countof(data->memRemoveQueue))
+            data->memRemoveQueue[data->memRemoveQueueSize++] = MinidumpExceptionData::MemoryRange{base, size};
+          else
+            callback_output->ThreadWriteFlags = 0;
+        }
+      }
+      return TRUE;
+
+    case IncludeModuleCallback: return TRUE;
+
+    default: return FALSE;
+  }
+}
 
 static void __cdecl hard_except_handler_named(EXCEPTION_POINTERS *eptr, char *buf, int buf_len)
 {
@@ -61,10 +204,14 @@ static void __cdecl hard_except_handler_named(EXCEPTION_POINTERS *eptr, char *bu
     if (INVALID_HANDLE_VALUE != hDumpFile)
     {
       MINIDUMP_EXCEPTION_INFORMATION minidumpExcInfo = {::GetCurrentThreadId(), eptr, FALSE};
-
       MINIDUMP_TYPE minidump_type = (MINIDUMP_TYPE)(MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory);
+      MinidumpExceptionData param;
+      param.excInfo = &minidumpExcInfo;
+      MINIDUMP_CALLBACK_INFORMATION mci;
+      mci.CallbackRoutine = minidump_callback;
+      mci.CallbackParam = (void *)&param;
 
-      if (MiniDumpWriteDump(::GetCurrentProcess(), ::GetCurrentProcessId(), hDumpFile, minidump_type, &minidumpExcInfo, NULL, NULL))
+      if (MiniDumpWriteDump(::GetCurrentProcess(), ::GetCurrentProcessId(), hDumpFile, minidump_type, &minidumpExcInfo, NULL, &mci))
       {
         debug_internal::dbgCrashDumpPath[0] = 0; // no more dumps
       }

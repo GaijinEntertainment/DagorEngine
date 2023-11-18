@@ -225,7 +225,7 @@ public:
   /// @param[in] x,y - x,y point coordinates
   /// @param[out] objs - reference to array of pointers to objects found
   /// @return @b true if one or many objects were picked, @b false in other case
-  bool pickObjects(IGenViewportWnd *wnd, int x, int y, Tab<RenderableEditableObject *> &objs);
+  virtual bool pickObjects(IGenViewportWnd *wnd, int x, int y, Tab<RenderableEditableObject *> &objs);
   bool checkObjSelFilter(RenderableEditableObject &obj);
   //@}
 

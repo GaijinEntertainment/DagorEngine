@@ -226,10 +226,10 @@ bool init_surface(int ui_width, int ui_height, SurfaceCurvature curvature)
   re.startIndex = 0;
   re.numPrim = VRGUI_GRID_SIZE * VRGUI_GRID_SIZE * 2;
 
-  render_params.vb = d3d::create_vb(re.numVert * re.stride, SBCF_MAYBELOST, "vrGuiVb");
+  render_params.vb = d3d::create_vb(re.numVert * re.stride, 0, "vrGuiVb");
   G_ASSERTF_RETURN(render_params.vb != nullptr, false, "[VRUI] failed to create vertex buffer");
 
-  render_params.ib = d3d::create_ib(re.numPrim * 3 * sizeof(short), SBCF_MAYBELOST, "vrGuiIb");
+  render_params.ib = d3d::create_ib(re.numPrim * 3 * sizeof(short), 0, "vrGuiIb");
   G_ASSERTF_RETURN(render_params.ib != nullptr, false, "[VRUI] failed to create index buffer");
   fill_buffers();
 

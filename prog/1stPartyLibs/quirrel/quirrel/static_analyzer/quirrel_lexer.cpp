@@ -918,6 +918,10 @@ bool Lexer::process()
           }
           else
           {
+            // HACK: just make code "x.$y" compilable
+            if (tokens.size() > 0 && tokens.back().type == TK_READER_MACRO)
+              tokens.erase(tokens.end() - 1, tokens.end());
+
             tokens.emplace_back(Token{ (TokenType)TK_IDENTIFIER, 0, (unsigned short)beginColumn, beginLine, u });
             addCurrentComments();
           }

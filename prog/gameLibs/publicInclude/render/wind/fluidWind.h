@@ -39,6 +39,12 @@ public:
     bool enabled = false;
     int numWaves = 1;
   };
+
+  struct PhaseAttack
+  {
+    bool enabled = false;
+    float maxAttackTime = 0.0f;
+  };
   enum ShapeType
   {
     SHAPE_SPHERE,
@@ -59,6 +65,7 @@ public:
     float duration = 0;
     float strength = 0;
     bool shake = false;
+    PhaseAttack phaseAttack;
     PhaseFade phaseFade;
     PhaseSin phaseSin;
   };

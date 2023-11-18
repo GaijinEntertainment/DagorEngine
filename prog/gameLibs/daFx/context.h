@@ -149,3 +149,8 @@ extern GenerationReferencedData<ContextId, Context, uint8_t, 0> g_ctx_list;
   G_ASSERTF_RETURN(ctxp, v, "dafx: GET_CTX_RET failed, rid: %d", (uint32_t)cid); \
   Context &ctx = *ctxp;
 } // namespace dafx
+
+DAG_DECLARE_RELOCATABLE(dafx::AsyncPrepareJob);
+DAG_DECLARE_RELOCATABLE(dafx::AsyncCpuComputeJob);
+DAG_DECLARE_RELOCATABLE(dafx::AsyncStartNextComputeBatchJob);
+DAG_DECLARE_RELOCATABLE(dafx::AsyncCpuCullJob);

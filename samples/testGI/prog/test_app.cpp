@@ -39,7 +39,6 @@
 #include <webui/helpers.h>
 #include <util/dag_console.h>
 #include <util/dag_convar.h>
-#include <render/dynamicCube.h>
 #include <render/sphHarmCalc.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <render/cascadeShadows.h>

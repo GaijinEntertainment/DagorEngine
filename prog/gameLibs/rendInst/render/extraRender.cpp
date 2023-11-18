@@ -30,6 +30,7 @@ float rendinst::riExtraLodDistSqMul = 1.f;
 float rendinst::riExtraCullDistSqMul = 1.f;
 float rendinst::render::riExtraMinSizeForReflection = 25.f;
 float rendinst::render::riExtraMinSizeForDraftDepth = 25.f;
+int rendinst::render::instancingTexRegNo = -1;
 rendinst::render::VbExtraCtx rendinst::render::vbExtraCtx[2];
 UniqueBufHolder rendinst::render::perDrawData;
 
@@ -1376,7 +1377,7 @@ void rendinst::render::renderRIGenExtra(const RiGenVisibility &vbase, RenderPass
   if (needToSetBlock)
     ShaderGlobal::setBlock(blockToSet, ShaderGlobal::LAYER_SCENE);
 
-  d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, vb->getRenderBuf());
+  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, vb->getRenderBuf());
 
   dag::ConstSpan<uint16_t> riResOrder = v.riexPoolOrder;
   if (layer == LayerFlag::Transparent || layer == LayerFlag::Decals || layer == LayerFlag::Distortion)
@@ -1444,7 +1445,7 @@ void rendinst::render::renderRIGenExtraSortedTransparentInstanceElems(const RiGe
   if (needToSetBlock)
     ShaderGlobal::setBlock(blockToSet, ShaderGlobal::LAYER_SCENE);
 
-  d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, vb->getRenderBuf());
+  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, vb->getRenderBuf());
 
   dag::ConstSpan<uint16_t> riResOrder = riExPoolIdxPerStage[get_layer_index(rendinst::LayerFlag::Transparent)];
 
@@ -1536,7 +1537,7 @@ void rendinst::render::renderRIGenExtraFromBuffer(Sbuffer *buffer, dag::ConstSpa
 
   ShaderGlobal::set_int(rendinst::render::rendinstRenderPassVarId, eastl::to_underlying(render_pass));
 
-  d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, buffer);
+  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, buffer);
   if (gpu_instancing)
     d3d::set_buffer(STAGE_VS, rendinst::render::GPU_INSTANCING_OFSBUFFER_TEXREG, ofs_buffer);
 

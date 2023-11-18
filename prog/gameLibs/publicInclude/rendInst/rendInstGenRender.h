@@ -20,7 +20,6 @@ namespace rendinst::render
 {
 
 inline constexpr int MAX_LOD_COUNT_WITH_ALPHA = rendinst::MAX_LOD_COUNT + 1;
-inline constexpr int INSTANCING_TEXREG = 14;
 inline constexpr int GPU_INSTANCING_OFSBUFFER_TEXREG = 11;
 inline constexpr int TREECROWN_TEXREG = 16;
 
@@ -32,6 +31,7 @@ extern bool tmInstColored;
 extern bool impostorPreshadowNeedUpdate;
 extern float riExtraMinSizeForReflection;
 extern float riExtraMinSizeForDraftDepth;
+extern int instancingTexRegNo;
 
 void useRiDepthPrepass(bool use);
 void useRiCellsDepthPrepass(bool use);

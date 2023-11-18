@@ -1,6 +1,10 @@
 #include "daScript/misc/platform.h"
 #include "daScript/ast/ast.h"
 
+#if !defined(DAS_NO_FILEIO)
+#include <sys/stat.h>
+#endif
+
 das::Context * get_context ( int stackSize=0 );
 
 namespace das {
@@ -63,6 +67,16 @@ namespace das {
         } else {
             DAS_FATAL_ERROR("failed to compile: %s\n%s", pak.c_str(), tout.str().c_str());
         }
+    }
+
+    int64_t FileAccess::getFileMtime ( const string & fileName) const {
+#if !defined(DAS_NO_FILEIO)
+        struct stat st;
+        stat(fileName.c_str(), &st);
+        return st.st_mtime;
+#else
+        return -1;
+#endif
     }
 
     bool ModuleFileAccess::canModuleBeUnsafe ( const string & mod, const string & fileName ) const {

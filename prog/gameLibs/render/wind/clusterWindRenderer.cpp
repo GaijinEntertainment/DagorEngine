@@ -187,7 +187,7 @@ ClusterWindRenderer::ClusterWindRenderer(bool need_historical_buffer)
   cluster_buf.set(d3d::buffers::create_persistent_cb(bufferSize, "cluster_buf"), "cluster_buf");
 
   if (need_historical_buffer)
-    cluster_buf_prev.set(d3d::create_sbuffer(sizeof(uint4), bufferSize, SBCF_BIND_CONSTANT | SBCF_MAYBELOST, 0, "cluster_buf_prev"),
+    cluster_buf_prev.set(d3d::create_sbuffer(sizeof(uint4), bufferSize, SBCF_BIND_CONSTANT, 0, "cluster_buf_prev"),
       "cluster_buf_prev");
 
   treeBendingMultVarId = get_shader_variable_id("cluster_wind_tree_bending_mult");

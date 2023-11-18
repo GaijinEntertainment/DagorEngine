@@ -1,8 +1,13 @@
 #pragma once
 
 #include <EASTL/variant.h>
+#include <EASTL/span.h>
+#include <supp/dag_comPtr.h>
 
+#include "driver.h"
 #include "configuration.h"
+#include "winapi_helpers.h"
+
 
 struct RENDERDOC_API_1_5_0;
 
@@ -11,6 +16,11 @@ interface DECLSPEC_UUID("9f251514-9d4d-4902-9d60-18988ab7d4b5") DECLSPEC_NOVTABL
   STDMETHOD_(void, BeginCapture)() PURE;
   STDMETHOD_(void, EndCapture)() PURE;
 };
+
+namespace drv3d_dx12
+{
+struct Direct3D12Enviroment;
+}
 
 namespace drv3d_dx12
 {

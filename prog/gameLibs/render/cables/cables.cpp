@@ -168,6 +168,9 @@ void Cables::onRIExtraDestroyed(const TMatrix &tm, const BBox3 &box) { destroyed
 
 void Cables::destroyCables()
 {
+  G_ASSERTF_RETURN(!tiledArea.grid.empty() || cables.empty() || destroyedRIExtra.empty(), ,
+    "tiledArea.grid.size()=%d cables.size()=%d destroyedRIExtra.size()=%d", //
+    tiledArea.grid.size(), cables.size(), destroyedRIExtra.size());
   for (RIExtraInfo &riex : destroyedRIExtra)
   {
     TMatrix tm = riex.tm;
@@ -175,6 +178,8 @@ void Cables::destroyCables()
     bbox3f riBBox;
     v_mat44_make_from_43cu_unsafe(riTm, tm.array);
     v_bbox3_init(riBBox, riTm, v_ldu_bbox3(riex.box));
+    G_ASSERT_CONTINUE(!isnan(v_extract_x(riBBox.bmin)) && !isnan(v_extract_x(riBBox.bmax)) && !isnan(v_extract_z(riBBox.bmin)) &&
+                      !isnan(v_extract_z(riBBox.bmax)));
     // inverse matrix usage is more accurate, but seems it works well as is
     // TMatrix invTm = inverse(tm);
     int i_start = max<int>((v_extract_x(riBBox.bmin) - tiledArea.gridBoundMin.x) / tiledArea.tileSize.x, 0);

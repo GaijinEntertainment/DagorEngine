@@ -24,7 +24,7 @@ public:
   explicit PostFxRenderer(const char *shader_name);
 
   void clear();
-  void init(const char *shader_name);
+  void init(const char *shader_name, bool is_optional = false);
 
   // Use to set shader params.
   ShaderMaterial *getMat() { return shmat; }

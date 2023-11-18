@@ -1265,6 +1265,7 @@ bool unload(const FMODGUID &event_id, bool is_strict)
 
 void events_init(const DataBlock &blk)
 {
+  SNDSYS_IS_MAIN_THREAD;
   g_max_event_instances = max(0, blk.getInt("maxEventInstances", 0));
   g_max_oneshot_event_instances = max(0, blk.getInt("maxOneshotEventInstances", g_max_event_instances));
   g_reject_far_oneshots = blk.getBool("rejectFarOneshots", false);
@@ -1286,6 +1287,7 @@ static inline auto events_close_impl()
 
 void events_close()
 {
+  SNDSYS_IS_MAIN_THREAD;
   auto instances = events_close_impl();
   for (FMOD::Studio::EventInstance *instance : instances)
     release_event_instance(*instance, true);

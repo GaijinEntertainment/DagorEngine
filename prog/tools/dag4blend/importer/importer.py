@@ -24,6 +24,7 @@ from ..object_properties            import object_properties
 from ..helpers.props                import fix_type
 from ..helpers.texts                import log
 from ..helpers.basename             import basename
+from ..helpers.popup                import show_popup
 from ..smooth_groups.smooth_groups  import uint_to_int,int_to_uint,sg_to_sharp_edges
 from ..tools.tools_panel            import fix_mat_slots, optimize_mat_slots
 
@@ -972,6 +973,10 @@ class DagImporter(Operator, ImportHelper):
         bpy.ops.dt.init_blend()
         filepath = '{:s}'.format(self.filepath)
         msg = f'IMPORTING {filepath}\n'
+        pref = context.preferences.addons[basename(__package__)].preferences
+        if not pref.project_active:
+            show_popup(message='Please configure at least one project in addon preferences',title='ERROR!', icon='ERROR')
+            return {'CANCELLED'}
         log(msg)#isn't necessary in the info panel
         if self.with_dmgs is False and self.with_dps is False and self.with_lods is False:
             self.load(filepath)

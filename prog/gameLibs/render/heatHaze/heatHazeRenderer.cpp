@@ -233,7 +233,7 @@ void HeatHazeRenderer::applyHaze(double total_time, Texture *back_buffer, const 
 
 void HeatHazeRenderer::render(double total_time, const RenderTargets &targets, const IPoint2 &back_buffer_resolution,
   int depth_tex_lod, RenderHazeParticlesCallback render_haze_particles, RenderCustomHazeCallback render_custom_haze,
-  RenderCustomHazeCallback render_ri_haze)
+  RenderCustomHazeCallback render_ri_haze, BeforeApplyHazeCallback before_apply_haze, AfterApplyHazeCallback after_apply_haze)
 {
   if (!areShadersValid())
     return;
@@ -254,8 +254,14 @@ void HeatHazeRenderer::render(double total_time, const RenderTargets &targets, c
     d3d::resource_barrier({targets.hazeColor, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 
+  if (before_apply_haze)
+    before_apply_haze();
+
   applyHaze(total_time, targets.backBuffer, targets.backBufferArea, targets.backBufferId, targets.resolvedDepthId, targets.hazeTemp,
     targets.hazeTempId, back_buffer_resolution);
+
+  if (after_apply_haze)
+    after_apply_haze();
 
   if (hazeFxRenderer)
     clearTargets(targets.hazeColor, targets.hazeOffset, targets.hazeDepth);

@@ -1,6 +1,7 @@
 #include "phys.h"
 #include <de3_lightService.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <EditorCore/ec_interface.h>
 #include <phys/physRagdoll.inc.cpp>
 #include <phys/dag_physDebug.h>

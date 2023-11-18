@@ -67,7 +67,7 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
                                                      : ImageGlobalSubresouceId::make_invalid();
 
       result.image = newImageObject(ResourceMemory{}, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips,
-        ii.arrays, subResIdBase);
+        ii.arrays, subResIdBase, ii.sampleDesc.Count > 1);
 
       recordTextureAllocated(result.image->getMipLevelRange(), result.image->getArrayLayers(), result.image->getBaseExtent(),
         result.image->getMemory().size(), result.image->getFormat(), name);
@@ -106,8 +106,8 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
                                                      ? allocateGlobalResourceIdRange(ii.getSubResourceCount())
                                                      : ImageGlobalSubresouceId::make_invalid();
 
-      result.image =
-        newImageObject(memory, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips, ii.arrays, subResIdBase);
+      result.image = newImageObject(memory, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips, ii.arrays,
+        subResIdBase, ii.sampleDesc.Count > 1);
 
       updateMemoryRangeUse(memory, result.image);
       recordTextureAllocated(result.image->getMipLevelRange(), result.image->getArrayLayers(), result.image->getBaseExtent(),
@@ -133,7 +133,7 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
       (ii.allocateSubresourceIDs) ? allocateGlobalResourceIdRange(ii.getSubResourceCount()) : ImageGlobalSubresouceId::make_invalid();
 
     result.image = newImageObject(ResourceMemory{}, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips,
-      ii.arrays, subResIdBase);
+      ii.arrays, subResIdBase, ii.sampleDesc.Count > 1);
   }
 
   result.image->setGPUChangeable(
@@ -158,7 +158,7 @@ Image *TextureImageFactory::adoptTexture(ID3D12Resource *texture, const char *na
   auto subResIdBase = allocateGlobalResourceIdRange(idCount);
   auto result = newImageObject(ResourceMemory{}, eastl::move(texture_ref), D3D12_RESOURCE_DIMENSION_TEXTURE2D, desc.Layout,
     dagorFormat, Extent3D{uint32_t(desc.Width), uint32_t(desc.Height), 1}, MipMapCount::make(desc.MipLevels),
-    ArrayLayerCount::make(desc.DepthOrArraySize), subResIdBase);
+    ArrayLayerCount::make(desc.DepthOrArraySize), subResIdBase, false);
 
   recordTextureAdopted(result->getMipLevelRange(), result->getArrayLayers(), result->getBaseExtent(), result->getFormat(), name);
 
@@ -589,7 +589,7 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(ID3D12Device *device, ::
 
   auto subResIdBase = allocateGlobalResourceIdRange(subResCount);
   result.image = newImageObject(memory, eastl::move(texture), dxDesc.Dimension, dxDesc.Layout, fmt, ext, mipMapCount, arrayLayerCount,
-    subResIdBase);
+    subResIdBase, dxDesc.SampleDesc.Count > 1);
 
   recordTexturePlacedInUserResourceHeap(result.image->getMipLevelRange(), result.image->getArrayLayers(),
     result.image->getBaseExtent(), result.image->getMemory().size(), result.image->getFormat(), name);
@@ -607,8 +607,6 @@ ResourceHeapGroupProperties AliasHeapProvider::getResourceHeapGroupProperties(::
 {
   ResourceHeapGroupProperties result;
   result.flags = 0;
-  // currently limited to 32 bits because of internal structures
-  constexpr uint64_t software_limit = 0x7FFF0000;
 
   if (isUMASystem())
   {
@@ -635,7 +633,7 @@ ResourceHeapGroupProperties AliasHeapProvider::getResourceHeapGroupProperties(::
   // On PC there is currently no HW where we could access and control usage of on chip memory
   result.isOnChip = false;
 
-  result.maxResourceSize = result.maxHeapSize = min(result.maxHeapSize, software_limit);
+  result.maxResourceSize = result.maxHeapSize;
   return result;
 }
 #else
@@ -645,8 +643,6 @@ ResourceHeapGroupProperties AliasHeapProvider::getResourceHeapGroupProperties(::
 
   ResourceHeapGroupProperties result;
   result.flags = 0;
-  // currently limited to 32 bits because of internal structures
-  constexpr uint64_t software_limit = 0x7FFF0000;
 
   result.isCPUVisible = true;
   result.isGPULocal = true;
@@ -664,7 +660,7 @@ ResourceHeapGroupProperties AliasHeapProvider::getResourceHeapGroupProperties(::
     result.isOnChip = false;
     size_t gameLimit = 0, gameUsed = 0;
     xbox_get_memory_status(gameUsed, gameLimit);
-    result.maxResourceSize = result.maxHeapSize = min(gameLimit, software_limit);
+    result.maxResourceSize = result.maxHeapSize = gameLimit;
   }
 
   return result;
@@ -926,8 +922,8 @@ ImageCreateResult AliasHeapProvider::aliasTexture(ID3D12Device *device, const Im
     }
 
     auto subResIdBase = allocateGlobalResourceIdRange(ii.getSubResourceCount());
-    result.image =
-      newImageObject(memory, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips, ii.arrays, subResIdBase);
+    result.image = newImageObject(memory, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips, ii.arrays,
+      subResIdBase, ii.sampleDesc.Count > 1);
 
     heap.images.push_back(result.image);
   }
@@ -1107,7 +1103,7 @@ void begin_selectable_row(const char *text)
   ImGui::Selectable(text, false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap);
 }
 
-void draw_segment(void *base, ValueRange<uint32_t> range, uint32_t max, const char *text)
+void draw_segment(void *base, ValueRange<uint64_t> range, uint64_t max, const char *text)
 {
   ByteUnits size = range.size();
   char strBuf[MAX_OBJECT_NAME_LENGTH + 64];
@@ -1115,15 +1111,15 @@ void draw_segment(void *base, ValueRange<uint32_t> range, uint32_t max, const ch
   sprintf_s(strBuf, "%s###%p+%u", text, base, range.front());
   begin_selectable_row(strBuf);
   ImGui::TableSetColumnIndex(2);
-  ImGui::Text("%08X", range.front());
+  ImGui::Text("%016llX", range.front());
   ImGui::TableSetColumnIndex(3);
-  ImGui::Text("%08X", range.back() + 1);
+  ImGui::Text("%016llX", range.back() + 1);
   ImGui::TableSetColumnIndex(6);
   ImGui::Text("%.2f %s", size.units(), size.name());
   G_UNUSED(max);
 }
 
-void draw_segment(void *base, uint32_t from, uint32_t to, uint32_t max, const char *text)
+void draw_segment(void *base, uint64_t from, uint64_t to, uint64_t max, const char *text)
 {
   ByteUnits size = to - from;
   char strBuf[MAX_OBJECT_NAME_LENGTH + 64];
@@ -1131,9 +1127,9 @@ void draw_segment(void *base, uint32_t from, uint32_t to, uint32_t max, const ch
   sprintf_s(strBuf, "%s###%p+%u", text, base, from);
   begin_selectable_row(strBuf);
   ImGui::TableSetColumnIndex(2);
-  ImGui::Text("%08X", from);
+  ImGui::Text("%016llX", from);
   ImGui::TableSetColumnIndex(3);
-  ImGui::Text("%08X", to);
+  ImGui::Text("%016llX", to);
   ImGui::TableSetColumnIndex(6);
   ImGui::Text("%.2f %s", size.units(), size.name());
   G_UNUSED(max);
@@ -1775,7 +1771,7 @@ MetricsVisualizer::GraphDisplayInfo MetricsVisualizer::drawGraphViewControls(Gra
   GraphDisplayInfo result = getGraphDisplayInfo(graph);
 
   auto m = static_cast<int>(result.mode);
-  ImGui::Combo("Graph Mode", &m, graph_mode_name_table, array_size(graph_mode_name_table));
+  ImGui::Combo("Graph Mode", &m, graph_mode_name_table, countof(graph_mode_name_table));
   result.mode = static_cast<GraphMode>(m);
   ImGui::SliderScalar("Window size", ImGuiDataType_U64, &result.windowSize, &min_graph_window_size, &max_graph_window_size, nullptr,
     ImGuiSliderFlags_AlwaysClamp);
@@ -1894,7 +1890,7 @@ MetricsVisualizer::PlotData MetricsVisualizer::setupPlotXRange(ConcurrentMetrics
 void MetricsVisualizer::drawMetricsCaptureControls()
 {
   constexpr int max_selectors_per_row = 5;
-  constexpr int child_element_count = ((array_size(metric_name_table) + max_selectors_per_row - 1) / max_selectors_per_row);
+  constexpr int child_element_count = ((countof(metric_name_table) + max_selectors_per_row - 1) / max_selectors_per_row);
   int child_height = (child_element_count + 2) * ImGui::GetFrameHeightWithSpacing();
 
   if (begin_sub_section("DX12-Live-Metrics-Capture-Controls", "Capture metrics", child_height))
@@ -1967,7 +1963,7 @@ void MetricsVisualizer::drawMetricsEvnetsViewFilterControls()
   constexpr int non_filter_metrics = 3;
   constexpr int max_selectors_per_row = 5;
   constexpr int child_element_count =
-    ((array_size(metric_name_table) - non_filter_metrics + max_selectors_per_row - 1) / max_selectors_per_row);
+    ((countof(metric_name_table) - non_filter_metrics + max_selectors_per_row - 1) / max_selectors_per_row);
   int child_height = (child_element_count + 6) * ImGui::GetFrameHeightWithSpacing();
 
   if (begin_sub_section("DX12-Live-Metrics-Event-Filter-Controls", "Events view filters", child_height))
@@ -3793,9 +3789,9 @@ void DebugView::drawUserHeapsTable()
             auto mem = image->getMemory();
             auto offset = heap.memory.calculateOffset(mem);
             ImGui::TableSetColumnIndex(2);
-            ImGui::Text("%08X", offset);
+            ImGui::Text("%016llX", offset);
             ImGui::TableSetColumnIndex(3);
-            ImGui::Text("%08X", offset + mem.size());
+            ImGui::Text("%016llX", offset + mem.size());
             ImGui::TableSetColumnIndex(4);
             auto sizeUnits = size_to_unit_table(mem.size());
             ImGui::Text("%.f %s", compute_unit_type_size(mem.size(), sizeUnits), get_unit_name(sizeUnits));
@@ -3812,9 +3808,9 @@ void DebugView::drawUserHeapsTable()
               auto &mem = buffer.bufferMemory;
               auto offset = heap.memory.calculateOffset(mem);
               ImGui::TableSetColumnIndex(2);
-              ImGui::Text("%08X", offset);
+              ImGui::Text("%016llX", offset);
               ImGui::TableSetColumnIndex(3);
-              ImGui::Text("%08X", offset + mem.size());
+              ImGui::Text("%016llX", offset + mem.size());
               ImGui::TableSetColumnIndex(4);
               auto sizeUnits = size_to_unit_table(mem.size());
               ImGui::Text("%.f %s", compute_unit_type_size(mem.size(), sizeUnits), get_unit_name(sizeUnits));
@@ -4565,7 +4561,7 @@ void DebugView::drawHeapsTable()
       // have to get access to buffer heaps before to heaps as otherwise we have a ordering issue and deadlock.
       auto bufferHeapStateAccess = bufferHeapState.access();
       OSSpinlockScopedLock lock{heapGroupMutex};
-      for (properties.raw = 0; properties.raw < array_size(groups); ++properties.raw)
+      for (properties.raw = 0; properties.raw < countof(groups); ++properties.raw)
       {
         auto &group = groups[properties.raw];
         FragmentationCalculatorContext overalFragmentation;

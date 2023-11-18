@@ -18,26 +18,9 @@ Global Symbols
 
 creates and returns array of a specified size. If the optional parameter fill is specified its value will be used to fill the new array's slots. If the fill parameter is omitted, null is used instead.
 
-.. sq:function:: seterrorhandler(func)
-
-
-sets the runtime error handler
-
 .. sq:function:: callee()
 
-
 returns the currently running closure
-
-.. sq:function:: setdebughook(hook_func)
-
-sets the debug hook
-
-hook_func should have follow signature
-  hook_func(hook_type:integer, source_file:string, line_num:integer, func_name:string)
-
-hook_type can be 'l' - line, 'r' - return, 'c' - call or 'x' for VM shutdown
-
-call of debughook for each line performed only when debuginfo is enabled
 
 .. sq:function:: getroottable()
 
@@ -83,54 +66,11 @@ or providing compile-time bindings::
     let compiledscript=compilestring("foo()", "bindings_test", api)
     compiledscript()
 
-.. sq:function:: collectgarbage()
-
-    Runs the garbage collector and returns the number of reference cycles found (and deleted). This function only works on garbage collector builds.
-
-.. sq:function:: resurrectunreachable()
-
-Runs the garbage collector and returns an array containing all unreachable object found. If no unreachable object is found, null is returned instead. This function is meant to help debugging reference cycles. This function only works on garbage collector builds.
-
 .. sq:function:: type(obj)
 
 return the 'raw' type of an object without invoking the metamethod '_typeof'.
 
-.. sq:function:: getstackinfos(level)
-
-returns the stack informations of a given call stack level. returns a table formatted as follow: ::
-
-    {
-        func="DoStuff", //function name
-
-        src="test.nut", //source file
-
-        line=10,        //line number
-
-        locals = {      //a table containing the local variables
-
-            a=10,
-
-            testy="I'm a string"
-        }
-    }
-
-level = 0 is getstackinfos() itself! level = 1 is the current function, level = 2 is the caller of the current function, and so on. If the stack level doesn't exist the function returns null.
-
 .. sq:function:: newthread(threadfunc)
-
-creates a new cooperative thread object(coroutine) and returns it
-
-.. sq:function:: min(x, y, [z], [w], ...)
-
-returns minimal value of all arguments
-
-.. sq:function:: max(x, y, [z], [w], ...)
-
-returns maximal value of all arguments
-
-.. sq:function:: clamp(x, min_val, max_val)
-
-returns value limited by provided min-max range
 
 creates a new cooperative thread object(coroutine) and returns it
 
@@ -139,21 +79,20 @@ creates a new cooperative thread object(coroutine) and returns it
 returns immutable reference to given object.
 Throws an error if argument is of POD type (to help prevent errors).
 
+.. sq:function:: call_type_method(object, <method_name>, [...])
+
+Calls built-in type method of an object, with arguments in variable arguments
+for example:
+
+  `call_type_method({foo=1}, "findvalue", @(v) v==1) //1`
+
+
 .. sq:function:: getobjflags(x)
 
 Given object handle, return its flags that may be:
 
   * 0 - no special flags
   * SQOBJ_FLAG_IMMUTABLE - bit set if the object handle is immutable
-
-.. sq:function:: getbuildinfo(x)
-
-returns table containing information on VM build parameters.
-
-  * **version** - string values describing the version of VM and compiler.
-  * **charsize** - size in bytes of the internal VM representation for characters(1 for ASCII builds 2 for UNICODE builds).
-  * **intsize** - size in bytes of the internal VM representation for integers(4 for 32bits builds 8 for 64bits builds).
-  * **floatsize** - size in bytes of the internal VM representation for floats(4 for single precision builds 8 for double precision builds).
 
 .. _default_delegates:
 
@@ -391,12 +330,12 @@ Table
 
 .. sq:function:: table.len()
 
-returns the number of slots contained in a table
+Returns the number of slots contained in a table
 
 
 .. sq:function:: table.rawget(key)
 
-tries to get a value from the slot 'key' without employing delegation
+Tries to get a value from the slot 'key' without employing delegation
 
 
 .. sq:function:: table.rawset(key,val)
@@ -411,12 +350,12 @@ Deletes the slot key without employing delegation and returns its value. If the 
 
 .. sq:function:: table.rawin(key)
 
-returns true if the slot 'key' exists. the function has the same effect as the operator 'in' but does not employ delegation.
+Returns true if the slot 'key' exists. the function has the same effect as the operator 'in' but does not employ delegation.
 
 
 .. sq:function:: table.weakref()
 
-returns a weak reference to the object.
+Returns a weak reference to the object.
 
 
 .. sq:function:: table.tostring()
@@ -426,7 +365,7 @@ Tries to invoke the _tostring metamethod. If that fails, it returns "(table : po
 
 .. sq:function:: table.clear()
 
-removes all the slots from the table. Returns table itself.
+Removes all the slots from the table. Returns table itself.
 
 .. sq:function:: table.filter(func(val, [key], [table_ref]))
 
@@ -434,15 +373,19 @@ Creates a new table with all values that pass the test implemented by the provid
 
 .. sq:function:: table.keys()
 
-returns an array containing all the keys of the table slots.
+Returns an array containing all the keys of the table slots.
 
 .. sq:function:: table.values()
 
-returns an array containing all the values of the table slots.
+Returns an array containing all the values of the table slots.
 
 .. sq:function:: table.topairs()
 
-returns an array containing arrays of pairs [key, value]. Useful when you need to sort data from table.
+Returns an array containing arrays of pairs [key, value]. Useful when you need to sort data from table.
+
+.. sq:function:: table.clone()
+
+Returns a clone of table.
 
 .. sq:function:: table.map(func(slot_value, [slot_key], [table_ref]))
 
@@ -499,6 +442,11 @@ Example: ::
     let foo = {fizz=1}
     let bar = foo.__update({buzz=2})
     => foo == {fizz=1, bazz=2}; bar={fizz=1, buzz=2}
+
+
+.. sq:function:: table.is_frozen()
+
+Return true if reference to the table is frozen with 'freeze' global function.
 
 
 ^^^^^^
@@ -649,6 +597,14 @@ Returns matched value (for which callback returned non-false value) or default v
 .. sq:function:: array.replace(source_arr)
 
 Copies content of source array into given array by replacing its contents. Returns target array itself.
+
+.. sq:function:: array.is_frozen()
+
+Return true if reference to the array is frozen with 'freeze' global function.
+
+.. sq:function:: array.clone()
+
+Return clone of the array.
 
 ^^^^^^^^
 Function
@@ -818,6 +774,10 @@ If instance has _call() metamethod, get info about it (see function.getfuncinfos
 .. sq:function:: instance.getmetamethod(name)
 
 Returns metamethod closure (e.g. foo.getmetamethod("_add")) or null if method is not implemented in class.
+
+.. sq:function:: instance.is_frozen()
+
+Return true if reference to the instance is frozen with 'freeze' global function.
 
 
 ^^^^^^^^^^^^^^

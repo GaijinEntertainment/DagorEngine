@@ -112,11 +112,11 @@ RainX7::RainX7(const DataBlock &blk) :
 
   // VB and IB.
   rendElem.numVert = 4 * numParticles;
-  vb = d3d::create_vb(rendElem.numVert * rendElem.stride, SBCF_MAYBELOST, "rainx7_vb");
+  vb = d3d::create_vb(rendElem.numVert * rendElem.stride, 0, "rainx7_vb");
   G_ASSERT(vb);
 
   rendElem.numPrim = 2 * numParticles;
-  ib = d3d::create_ib(3 * rendElem.numPrim * sizeof(unsigned short int), SBCF_MAYBELOST, "rainx7_ib");
+  ib = d3d::create_ib(3 * rendElem.numPrim * sizeof(unsigned short int), 0, "rainx7_ib");
 
   G_ASSERT(ib);
 

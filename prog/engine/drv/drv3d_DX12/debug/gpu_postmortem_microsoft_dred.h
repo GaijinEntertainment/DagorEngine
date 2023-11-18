@@ -4,6 +4,16 @@
 #include "command_list_trace.h"
 #include "command_list_trace_recorder.h"
 
+
+namespace drv3d_dx12
+{
+struct Direct3D12Enviroment;
+namespace debug
+{
+union Configuration;
+}
+} // namespace drv3d_dx12
+
 inline const char *to_string(D3D12_DRED_ALLOCATION_TYPE type)
 {
   switch (type)

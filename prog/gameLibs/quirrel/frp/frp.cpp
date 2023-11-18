@@ -11,7 +11,7 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/string.h>
 #include <EASTL/hash_map.h>
-#include <EASTL/map.h>
+#include <dag/dag_vectorMap.h>
 
 #include <squirrel/sqpcheader.h>
 #include <squirrel/sqvm.h>
@@ -430,7 +430,7 @@ void ObservablesGraph::checkLeaks()
     }
   }
 
-  eastl::map<int, eastl::string, eastl::greater<int>> sortedSsi;
+  dag::VectorMap<int, eastl::string, eastl::greater<int>> sortedSsi;
   eastl::transform(infoCounts.begin(), infoCounts.end(), eastl::inserter(sortedSsi, sortedSsi.begin()), flip_pair<eastl::string, int>);
 
   if (sortedSsi.size())
@@ -1729,6 +1729,7 @@ void bind_frp_classes(SqModules *module_mgr)
     .SquirrelFunc("mutate", forbid_computed_modify, 0)
     .SquirrelFunc("modify", forbid_computed_modify, 0)
     .SquirrelFunc("_call", forbid_computed_modify, 0)
+    .SquirrelFunc("_set", forbid_computed_modify, 0)
     .SquirrelFunc("_newslot", forbid_computed_modify, 0)
     .SquirrelFunc("_delslot", forbid_computed_modify, 0)
     .SquirrelFunc(

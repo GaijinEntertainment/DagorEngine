@@ -1,10 +1,30 @@
 #pragma once
 
+#include <3d/dag_drv3d.h>
+#include <EASTL/vector.h>
+#include <EASTL/variant.h>
+#include <EASTL/span.h>
+#include <osApiWrappers/dag_critSec.h>
+#include <supp/dag_comPtr.h>
+
+#include "image_view_state.h"
+#include "sampler_state.h"
+#include "container_mutex_wrapper.h"
+
+
 namespace drv3d_dx12
 {
+
+class Device;
+class DeviceContext;
+
 struct BaseTex;
+class Image;
 class ShaderResourceViewDescriptorHeapManager;
 class SamplerDescriptorHeapManager;
+
+struct NullResourceTable;
+
 namespace frontend
 {
 class BindlessManager

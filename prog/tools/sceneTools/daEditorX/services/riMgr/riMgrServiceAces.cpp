@@ -32,6 +32,7 @@
 #include <gameRes/dag_stdGameRes.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <ioSys/dag_ioUtils.h>
 #include <ioSys/dag_lzmaIo.h>
 #include <ioSys/dag_zstdIo.h>
@@ -1780,13 +1781,14 @@ public:
 
     DAGORED2->getConsole().addMessage(ILogWriter::REMARK, "Fetching non-sowed entities...");
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);
+    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
 
     for (unsigned int poolNo = 0; poolNo < poolsList.size(); poolNo++)
     {
       for (unsigned int entityNo = 0; entityNo < riPool.getPools()[poolNo]->getEntities().size(); entityNo++)
       {
         if (riPool.getPools()[poolNo]->getEntities()[entityNo] &&
-            riPool.getPools()[poolNo]->getEntities()[entityNo]->checkSubtypeMask(subtype_mask))
+            riPool.getPools()[poolNo]->getEntities()[entityNo]->checkSubtypeAndLayerHiddenMasks(subtype_mask, lh_mask))
         {
           if (poolsList[poolNo].isPos)
           {

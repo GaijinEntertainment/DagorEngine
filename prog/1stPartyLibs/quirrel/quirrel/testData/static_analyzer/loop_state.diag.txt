@@ -1,0 +1,15 @@
+
+AN ERROR HAS OCCURRED [cannot iterate null]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/loop_state.nut line [8]
+
+LOCALS
+[@ITERATOR@] NULL
+[_seg] NULL
+[@INDEX@] NULL
+[diap] NULL
+[found] false
+[foo] CLOSURE=FN:foo
+[vargv] ARRAY=[]
+[this] TABLE={}

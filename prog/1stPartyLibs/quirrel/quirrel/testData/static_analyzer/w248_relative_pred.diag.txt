@@ -1,0 +1,15 @@
+WARNING: w200 (potentially-nulled-ops) Comparison operation with potentially nullable expression.
+testData/static_analyzer/w248_relative_pred.nut:12:9
+
+if (x && y > 0) {
+         ^
+    r = b[10] / (y * 60)
+
+
+WARNING: w228 (declared-never-used) variable 'r' was declared but never used.
+testData/static_analyzer/w248_relative_pred.nut:8:0
+
+local r = null
+^--
+
+

@@ -142,6 +142,8 @@ class PipelineManager
 
 #undef PIPE_STORAGE_ENTRY
 
+  bool asyncCompileAllowed = false;
+
 public:
   template <typename PipelineType>
   PipelineType &get(ProgramID id)
@@ -208,6 +210,8 @@ public:
 #endif
   void unloadAll(VulkanDevice &device);
   void prepareRemoval(ProgramID program);
+  void setAsyncCompile(bool allowed) { asyncCompileAllowed = allowed; }
+  bool asyncCompileEnabled() { return asyncCompileAllowed; }
 };
 
 } // namespace drv3d_vulkan

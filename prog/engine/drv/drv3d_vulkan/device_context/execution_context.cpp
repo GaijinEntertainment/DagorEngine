@@ -289,7 +289,7 @@ void ExecutionContext::flushImageUploads()
   bool anyBindless = false;
   for (auto &&upload : data.imageUploads)
   {
-    if (!upload.image->isGPUWritable() && (upload.image->getUsage() & VK_IMAGE_USAGE_SAMPLED_BIT))
+    if (!upload.image->isSampledSRV())
     {
       upload.image->layout.roSealTargetLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       upload.image->requestRoSeal(data.id);
@@ -482,8 +482,9 @@ void ExecutionContext::flush(ThreadedFence *fence)
 
 
   back.contextState.cmdListsToSubmit.clear();
-
   onFrameCoreReset();
+
+  back.pipelineCompiler.processQueued();
   flushProcessed = true;
 }
 
@@ -1217,6 +1218,16 @@ void ExecutionContext::copyImage(Image *src, Image *dst, uint32_t src_mip, uint3
 
   VULKAN_LOG_CALL(vkDev.vkCmdCopyImage(frameCore, src->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->getHandle(),
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, region_count, data.imageCopyInfos.data() + first_region));
+
+  if (dst->isSampledSRV())
+    dst->layout.roSealTargetLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+  // we can't know is it readed or not, so assume readed
+  if (dst->isUsedInBindless())
+  {
+    trackBindlessRead(dst);
+    back.syncTrack.completeNeeded(frameCore, vkDev);
+  }
 }
 
 void ExecutionContext::blitImage(Image *src, Image *dst, const VkImageBlit &region)

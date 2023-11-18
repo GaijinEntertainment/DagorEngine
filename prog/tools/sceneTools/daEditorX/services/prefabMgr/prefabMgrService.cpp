@@ -19,6 +19,7 @@
 #include <scene/dag_occlusion.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_rayIntersectSphere.h>

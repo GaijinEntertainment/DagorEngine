@@ -43,6 +43,9 @@
   DAFX_INLINE float4 float4x4_row( const float4x4 &a, int r) { return a.getrow(r); }
 
   DAFX_INLINE float pow2( float v ) { return v * v; }
+  DAFX_INLINE float2 pow2( float2 v ) { return v * v; }
+  DAFX_INLINE float3 pow2( float3 v ) { return v * v; }
+  DAFX_INLINE float4 pow2( float4 v ) { return v * v; }
   DAFX_INLINE float pow4( float v ) { v *= v; return v * v; }
 
   DAFX_INLINE int2 int_xy( const int3 & a) { return int2( a.x, a.y ); }

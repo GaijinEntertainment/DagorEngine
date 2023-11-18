@@ -1,5 +1,9 @@
 #pragma once
 
+#include <EASTL/string_view.h>
+#include <ioSys/dag_dataBlock.h>
+
+
 namespace drv3d_dx12::debug
 {
 union Configuration

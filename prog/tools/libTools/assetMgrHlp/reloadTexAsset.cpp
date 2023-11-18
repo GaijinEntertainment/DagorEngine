@@ -90,7 +90,10 @@ bool reload_changed_texture_asset(const DagorAsset &a)
     {
       ddsx::Header &bq_hdr = *(ddsx::Header *)b.ptr;
       int bq_lev = get_log2i(max(bq_hdr.w, bq_hdr.h));
-      if (DagorAsset *hq_a = a.getMgr().findAsset(String(0, "%s$hq", a.getName()), a.getType()))
+      DagorAsset *hq_a = a.getMgr().findAsset(String(0, "%s$uhq", a.getName()), a.getType());
+      if (!hq_a)
+        hq_a = a.getMgr().findAsset(String(0, "%s$hq", a.getName()), a.getType());
+      if (hq_a)
       {
         Texture *bt = atex ? atex : tex;
         ddsx::Buffer hq_b;

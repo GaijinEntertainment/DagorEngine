@@ -12,11 +12,11 @@ namespace bindquirrel
 
 static eastl::unordered_map<eastl::string, eastl::unique_ptr<datacache::Backend>> datacaches;
 
-static void send_evbus_headers(const char *entry_key, streamio::StringMap const &headers)
+static void send_evbus_resp_headers(const char *entry_key, streamio::StringMap const &resp_headers)
 {
-  eastl::string eventName(eastl::string::CtorSprintf(), "datacache.headers.%s", entry_key);
+  eastl::string eventName(eastl::string::CtorSprintf(), "datacache.headers.%s", entry_key); // TODO: rename to .resp_headers
   Json::Value msg;
-  for (auto header : headers)
+  for (auto &header : resp_headers)
   {
     const eastl::string key(header.first.begin(), header.first.end());
     const eastl::string data(header.second.begin(), header.second.end());
@@ -32,7 +32,7 @@ static void send_evbus_error(const char *entry_key, const char *err, datacache::
   msg["error"] = err;
   msg["error_code"] = error_code;
   sqeventbus::send_event(eventName.c_str(), msg);
-  send_evbus_headers(entry_key, streamio::StringMap{}); // send empty header for unsubscribe
+  send_evbus_resp_headers(entry_key, streamio::StringMap{}); // send empty header for unsubscribe
 }
 
 static void send_evbus_entry_info(const char *entry_key, datacache::Entry *entry)
@@ -43,7 +43,7 @@ static void send_evbus_entry_info(const char *entry_key, datacache::Entry *entry
   msg["path"] = entry->getPath();
   msg["size"] = entry->getDataSize();
   sqeventbus::send_event(eventName.c_str(), msg);
-  send_evbus_headers(entry_key, streamio::StringMap{}); // send empty header for unsubscribe
+  send_evbus_resp_headers(entry_key, streamio::StringMap{}); // send empty header for unsubscribe
 }
 
 void init_cache(const char *cache_name, Sqrat::Table params)
@@ -81,7 +81,10 @@ void abort_requests(const char *cache_name)
   }
 }
 
-static void on_entry_headers(const char *key, streamio::StringMap const &headers, void *) { send_evbus_headers(key, headers); }
+static void on_entry_resp_headers(const char *key, streamio::StringMap const &resp_headers, void *)
+{
+  send_evbus_resp_headers(key, resp_headers);
+}
 
 static void on_entry_completion(const char *key, datacache::ErrorCode error, datacache::Entry *entry, void *)
 {
@@ -140,7 +143,7 @@ void request_entry(const char *cache_name, const char *entry_key)
   }
   eastl::unique_ptr<datacache::Backend> &datacache = it->second;
   datacache::ErrorCode error;
-  datacache::EntryHolder entry(datacache->getWithHeaders(entry_key, &error, on_entry_completion, on_entry_headers));
+  datacache::EntryHolder entry(datacache->getWithRespHeaders(entry_key, &error, on_entry_completion, on_entry_resp_headers));
   if (error == datacache::ERR_OK)
   {
     send_evbus_entry_info(entry_key, entry.get());

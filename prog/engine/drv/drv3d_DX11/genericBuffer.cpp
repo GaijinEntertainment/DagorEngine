@@ -254,18 +254,6 @@ bool GenericBuffer::create(uint32_t bufsize, int buf_flags, UINT bind_flags, con
   {
     return createBuf();
   }
-  if ((buf_flags & SBCF_BIND_UNORDERED) && !(buf_flags & SBCF_MAYBELOST))
-  {
-#if DAGOR_DBGLEVEL > 0
-    logerr("buffer <%s> with unordered access view is required to be created with system copy."
-           " Doesn't make any sense, add SBCF_MAYBELOST",
-      getResName());
-#endif
-    buf_flags |= SBCF_MAYBELOST;
-  }
-
-  if (!(buf_flags & SBCF_MAYBELOST))
-    systemCopy = new char[bufsize];
 
   return true; // delayed create
 }
@@ -299,8 +287,7 @@ bool GenericBuffer::recreateBuf(Sbuffer *sb)
   TEXQL_ON_BUF_ALLOC(this);
   if (bufFlags & (SBCF_BIND_INDEX | SBCF_BIND_VERTEX))
   {
-    if (bufFlags & (SBCF_DYNAMIC | SBCF_MAYBELOST))
-      result |= createBuf();
+    result |= createBuf();
   }
   else
   {
@@ -383,9 +370,6 @@ bool GenericBuffer::copyTo(Sbuffer *dest, uint32_t dst_ofs_bytes, uint32_t src_o
   if (!dest)
     return false;
   GenericBuffer *destvb = (GenericBuffer *)dest;
-  G_ASSERTF(((dest->getFlags() & SBCF_BIND_MASK) != SBCF_BIND_VERTEX && (dest->getFlags() & SBCF_BIND_MASK) != SBCF_BIND_INDEX) ||
-              (dest->getFlags() & SBCF_MAYBELOST), // it is valid to copy to non-immutable buffer
-    "destination index/vertex buffer is immutable");
   if (!destvb->buffer)
     return false;
   D3D11_BOX box;
@@ -428,21 +412,19 @@ bool GenericBuffer::updateData(uint32_t ofs_bytes, uint32_t size_bytes, const vo
       logerr("buffer lock in updateData during reset %s", getResName());
     return false;
   }
-  if (!buffer && (bufFlags & SBCF_DYNAMIC) == 0 && (bufFlags & SBCF_MAYBELOST))
+  if (!buffer && (bufFlags & SBCF_DYNAMIC) == 0)
     createBuf();
   if (!buffer)
   {
     if ((bufFlags & SBCF_DYNAMIC) == 0)
-      return updateDataWithLock(ofs_bytes, size_bytes, src, lockFlags); // case of delayed create. todo: we can also optimize rare case
-                                                                        // of SBCF_MAYBELOST, and not create system copy
+      return updateDataWithLock(ofs_bytes, size_bytes, src, lockFlags); // case of delayed create.
     logerr("buffer not created %s", getResName());
     return false;
   }
   if ((bufFlags &
         (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE)) || // dynamic and immutable are not updateable,
                                                    // https://msdn.microsoft.com/en-us/library/windows/desktop/ff476486(v=vs.85).aspx
-      (lockFlags & (VBLOCK_NOOVERWRITE | VBLOCK_DISCARD)) ||
-      !(bufFlags & SBCF_MAYBELOST)) // if it is not maybelost, we can't lost data on reset and have to update with sysmem copy
+      (lockFlags & (VBLOCK_NOOVERWRITE | VBLOCK_DISCARD)))
   {
     return updateDataWithLock(ofs_bytes, size_bytes, src, lockFlags);
   }

@@ -10,6 +10,7 @@
 #include <shaders/shUtils.h>
 #include <shaders/shOpcodeFormat.h>
 #include <shaders/shOpcode.h>
+#include <shaders/shFunc.h>
 #include <libTools/util/makeBindump.h>
 
 #include "shLog.h"
@@ -154,6 +155,7 @@ static void addRefsFromStCode(Tab<int> &refsTable)
         case SHCOD_GET_GBUF:
         case SHCOD_GET_GVEC:
         case SHCOD_GET_GMAT44:
+        case SHCOD_SAMPLER:
         {
           int vi = shaderopcode::getOp2p2(code[i]);
           G_ASSERT(vi >= 0 && vi < refsTable.size());
@@ -238,6 +240,7 @@ void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable
       case SHCOD_GET_GBUF:
       case SHCOD_GET_GVEC:
       case SHCOD_GET_GMAT44:
+      case SHCOD_SAMPLER:
       {
         int vi = shaderopcode::getOp2p2(code[i]);
         G_ASSERT(vi >= 0 && vi < remapTable.size());

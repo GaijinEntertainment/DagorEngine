@@ -316,7 +316,7 @@ bool CompressedHeightmap::loadData(CompressedHeightmap &hmap, IGenLoad &crd, uns
   int chunk_cnt = chunk_sz ? (hmap.bw * hmap.bh + blocks_per_chunk - 1) / blocks_per_chunk : 0;
   uint32_t cOfs = 0;
 
-  if (chunk_cnt && threadpool::get_num_workers())
+  if (chunk_cnt && threadpool::get_num_workers() >= 2)
   {
     struct UnpackChunkJob final : cpujobs::IJob
     {

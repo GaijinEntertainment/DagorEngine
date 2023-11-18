@@ -253,7 +253,6 @@ void RenderWork::process()
 {
   TIME_PROFILE(vulkan_render_work_process);
 
-  skippedGraphicsPipelines = 0;
   ExecutionContext executionContext(*this);
   executionContext.prepareFrameCore();
   processCommands(executionContext);

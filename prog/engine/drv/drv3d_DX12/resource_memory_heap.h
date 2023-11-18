@@ -1,5 +1,6 @@
 #pragma once
 
+#include "value_range.h"
 #include "free_list_utils.h"
 
 #if _TARGET_XBOX
@@ -12,26 +13,13 @@
 #define HEAP_LOG(...)
 #endif
 
-#include "resource_memory_heap_basic_components.h"
-#include "resource_memory_heap_object_components.h"
-#include "resource_memory_heap_descriptor_components.h"
-#include "resource_memory_heap_heap_components.h"
-
-#if DX12_USE_ESRAM
-#include "resource_memory_heap_esram_components_xbox.h"
-#else
-namespace drv3d_dx12
-{
-namespace resource_manager
-{
-using ESRamPageMappingProvider = ResourceMemoryHeapProvider;
-} // namespace resource_manager
-} // namespace drv3d_dx12
-#endif
-
-#include "resource_memory_heap_host_shared_components.h"
-#include "resource_memory_heap_buffer_components.h"
-#include "resource_memory_heap_rtx_components.h"
+#include "resource_manager/object_components.h"
+#include "resource_manager/descriptor_components.h"
+#include "resource_manager/heap_components.h"
+#include "resource_manager/esram_components.h"
+#include "resource_manager/host_shared_components.h"
+#include "resource_manager/buffer_components.h"
+#include "resource_manager/rtx_components.h"
 
 
 namespace drv3d_dx12
@@ -478,7 +466,7 @@ protected:
 #else
     G_UNUSED(adapter);
 #endif
-    for (; info.historyIndex < array_size(finalizerData); ++info.historyIndex)
+    for (; info.historyIndex < countof(finalizerData); ++info.historyIndex)
     {
       BaseType::completeFrameExecution(info, finalizerData[info.historyIndex]);
     }
@@ -499,7 +487,7 @@ protected:
 #else
     G_UNUSED(adapter);
 #endif
-    for (; info.historyIndex < array_size(finalizerData); ++info.historyIndex)
+    for (; info.historyIndex < countof(finalizerData); ++info.historyIndex)
     {
       BaseType::completeFrameExecution(info, finalizerData[info.historyIndex]);
     }
@@ -564,7 +552,7 @@ protected:
 
   char *getEventObjectNameFilterBasePointer() { return metricsVisualizerState.eventObjectNameFilter; }
 
-  size_t getEventObjectNameFilterMaxLength() { return array_size(metricsVisualizerState.eventObjectNameFilter); }
+  size_t getEventObjectNameFilterMaxLength() { return countof(metricsVisualizerState.eventObjectNameFilter); }
 
   bool checkStatusFlag(StatusFlag flag) const { return metricsVisualizerState.statusFlags.test(flag); }
 
@@ -588,7 +576,7 @@ protected:
   template <typename T>
   void iterateGraphDisplayInfos(T clb)
   {
-    for (size_t i = 0; i < array_size(metricsVisualizerState.graphDisplayInfos); ++i)
+    for (size_t i = 0; i < countof(metricsVisualizerState.graphDisplayInfos); ++i)
     {
       clb(static_cast<Graph>(i), metricsVisualizerState.graphDisplayInfos[i]);
     }

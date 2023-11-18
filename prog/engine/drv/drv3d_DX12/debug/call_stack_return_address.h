@@ -1,5 +1,10 @@
 #pragma once
 
+#include <ioSys/dag_dataBlock.h>
+#include <debug/dag_log.h>
+#include <EASTL/string_view.h>
+
+
 #if COMMANDS_STORE_RETURN_ADDRESS
 
 #include <osApiWrappers/dag_stackHlp.h>

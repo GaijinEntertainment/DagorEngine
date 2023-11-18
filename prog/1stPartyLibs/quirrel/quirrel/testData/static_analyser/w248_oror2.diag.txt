@@ -1,9 +1,0 @@
-WARNING: w248 (access-potentially-nulled) 'nullNotH' can be null, but is used as a function without checking.
-testData/static_analyser/w248_oror2.nut:7:4
-
-    onDoubleClickCb(itemDesc.__merge({ rectOrPos = event.targetRect }))
-    nullNotH()
-    ^-------
-  }
-
-

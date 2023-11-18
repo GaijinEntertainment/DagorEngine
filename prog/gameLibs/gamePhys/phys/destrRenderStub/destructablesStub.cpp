@@ -6,4 +6,4 @@
 destructables::DestrRendData *destructables::init_rend_data(DynamicPhysObjectClass<PhysWorld> *) { return nullptr; }
 void destructables::clear_rend_data(destructables::DestrRendData *) {}
 void destructables::before_render(const Point3 &) {}
-void destructables::render(dynrend::ContextId, const Frustum &) {}
+void destructables::render(dynrend::ContextId, const Frustum &, float) {}

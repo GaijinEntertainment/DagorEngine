@@ -354,8 +354,7 @@ shader volfog_occlusion_cs
   hlsl(cs) {
     float checkVolFogBox(float2 coord)
     {
-      float lod = 0;
-      float closestRawDepth = check_box_occl_visible_tc_base(saturate(coord.xyxy*inv_occlusion_resolution.xyxy + bbox_offset), lod);
+      float closestRawDepth = check_box_occl_visible_tc_base(saturate(coord.xyxy*inv_occlusion_resolution.xyxy + bbox_offset));
       return linearize_z(closestRawDepth, zn_zfar.zw);
     }
 

@@ -99,14 +99,27 @@ void FluidWind::update(float dt, const Point3 &origin)
     {
       // return -cos(time / duration * 2 * PI) * 0.5 + 0.5;
       // return 1.0 - abs(cos(time / duration * PI));
+      if (motor.phaseAttack.enabled)
+      {
+        float attackTime = min(motor.phaseAttack.maxAttackTime, motor.duration);
+        phase *= attackTime > 0 ? saturate(motor.time / attackTime) : 1.0f;
+      }
       float fade = min(motor.duration * 0.5f, motor.phaseFade.maxFadeTime);
       phase *= motor.duration > 0.001 ? (1.0 /*- SQR(1.0 - saturate(motor.time / fade))*/) -
-                                          (1.0 - SQR(1.0 - saturate(motor.time - motor.duration + fade) / fade))
+                                          (1.0 - SQR(1.0 - saturate((motor.time - motor.duration + fade) / fade)))
                                       : 1;
     }
     if (motor.phaseSin.enabled && motor.duration > 0.001)
     {
-      phase *= sin(motor.time / motor.duration * motor.phaseSin.numWaves * PI);
+      float sinOffset = 0.0f; // we do not use cos here to preserve old behavior when attackTime is not used
+      if (motor.phaseAttack.enabled)
+      {
+        sinOffset = ((float)motor.phaseSin.numWaves) * 0.5 * motor.duration;
+        float attackTime = min(sinOffset, motor.phaseAttack.maxAttackTime);
+        sinOffset -= attackTime;
+        phase *= attackTime > 0 ? saturate(motor.time / attackTime) : 1.0f;
+      }
+      phase *= sin(motor.time / motor.duration * motor.phaseSin.numWaves * PI + sinOffset);
       phase *= SQR(1.0 - motor.time / motor.duration);
     }
 
@@ -321,6 +334,7 @@ int FluidWind::pushMotor(MotorType type, const MotorBase &base)
   motor.shake = base.shake;
   motor.phaseFade = base.phaseFade;
   motor.phaseSin = base.phaseSin;
+  motor.phaseAttack = base.phaseAttack;
 
   motor.direction = Point3(1, 0, 0);
 

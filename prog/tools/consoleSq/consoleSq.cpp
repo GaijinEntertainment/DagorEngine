@@ -869,8 +869,9 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   if (do_static_analysis)
   {
     module_manager->compilationOptions.doStaticAnalysis = true;
-    sq_resetanalyserconfig();
-    sq_loadanalyserconfigblk(config_blk);
+    sq_resetanalyzerconfig();
+    sq_loadanalyzerconfigblk(config_blk);
+    sq_setcompilationoption(sqvm, CompilationOptions::CO_CLOSURE_HOISTING_OPT, false);
   }
 
   module_manager->setModuleImportCallback(is_module_allowed);

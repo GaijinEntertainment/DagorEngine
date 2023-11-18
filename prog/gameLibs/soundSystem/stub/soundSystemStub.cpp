@@ -15,7 +15,7 @@ class DataBlock;
 
 namespace sndsys
 {
-void init(const DataBlock &) {}
+bool init(const DataBlock &) { return false; }
 void shutdown() {}
 bool is_inited() { return false; }
 void get_memory_statistics(unsigned & /*system_allocated*/, unsigned & /*current_allocated*/, unsigned & /*max_allocated*/) {}
@@ -23,6 +23,7 @@ void get_memory_statistics(unsigned & /*system_allocated*/, unsigned & /*current
 void set_output_device(int) {}
 eastl::vector<DeviceInfo> get_output_devices() { return {}; }
 eastl::vector<DeviceInfo> get_record_devices() { return {}; }
+void set_device_changed_async_callbacks(record_list_changed_cb_t, output_list_changed_cb_t, device_lost_cb_t) {}
 
 void flush_commands() {}
 
@@ -41,7 +42,7 @@ void init(const DataBlock &) {}
 void enable(const char *, bool, const PathTags &) {}
 void enable_starting_with(const char *, bool, const PathTags &) {}
 
-const char *get_default_preset(const DataBlock &) { return ""; }
+const char *get_master_preset() { return ""; }
 bool is_enabled(const char *preset_name) { return false; }
 bool is_loaded(const char *preset_name) { return false; }
 bool is_exist(const char *preset_name) { return false; }
@@ -162,7 +163,9 @@ void set_pitch(float) {}
 // update.cpp
 void update_listener(float, const TMatrix &) {}
 void reset_3d_listener() {}
-void update(float, float) {}
+void set_time_speed(float) {}
+void update(float) {}
+void lazy_update() {}
 void override_time_speed(float) {}
 Point3 get_3d_listener_pos() { return {}; }
 TMatrix get_3d_listener() { return {}; }

@@ -13,6 +13,7 @@
 #include "internal/events.h"
 #include "internal/streams.h"
 #include "internal/debug.h"
+#include <atomic>
 
 static WinCritSec g_listener_cs;
 #define SNDSYS_LISTENER_BLOCK WinAutoLock listenerLock(g_listener_cs);
@@ -25,6 +26,8 @@ static bool g_reset_listener_tm = true;
 static float g_override_time_speed = 0.f;
 static float g_current_pitch = 1.f;
 static const Point4 g_speed_to_pitch = Point4(0.f, 4.f, 0.f, 4.f);
+static constexpr float g_max_listener_speed = 500;
+static constexpr float g_max_listener_speed_sq = g_max_listener_speed * g_max_listener_speed;
 
 using namespace fmodapi;
 
@@ -75,16 +78,18 @@ void update_listener(float delta_time, const TMatrix &listener_tm)
   g_listener_vel =
     Point3(safediv(g_listener_vel.x, delta_time), safediv(g_listener_vel.y, delta_time), safediv(g_listener_vel.z, delta_time));
   g_listener_tm = listener_tm;
-  float listenerSpeedSq = g_listener_vel.lengthSq();
-  constexpr float maxListenerSpeedSq = 250000.f;
-  if (listenerSpeedSq > maxListenerSpeedSq && listenerSpeedSq > 0.f)
-    g_listener_vel *= sqrt(maxListenerSpeedSq / listenerSpeedSq);
-
-  Attributes3D listener3dAttributes(listener_tm, g_listener_vel);
+  if constexpr (g_max_listener_speed_sq != 0.f)
+  {
+    G_STATIC_ASSERT(g_max_listener_speed_sq > VERY_SMALL_NUMBER);
+    const float listenerSpeedSq = g_listener_vel.lengthSq();
+    if (listenerSpeedSq > g_max_listener_speed_sq)
+      g_listener_vel *= sqrt(g_max_listener_speed_sq / listenerSpeedSq);
+  }
+  const Attributes3D listener3dAttributes(listener_tm, g_listener_vel);
   SOUND_VERIFY(get_studio_system()->setListenerAttributes(0, &listener3dAttributes));
 }
 
-static inline void apply_time_speed(float time_speed)
+void set_time_speed(float time_speed)
 {
   const float speed = g_override_time_speed > 0.f ? g_override_time_speed : time_speed;
   const float pitch = cvt(speed, g_speed_to_pitch.x, g_speed_to_pitch.y, g_speed_to_pitch.z, g_speed_to_pitch.w);
@@ -95,23 +100,39 @@ static inline void apply_time_speed(float time_speed)
   }
 }
 
-void update(float dt, float time_speed /* = 1.f*/)
-{
-  SNDSYS_IF_NOT_INITED_RETURN;
+static WinCritSec g_update_cs;
+#define UPDATE_BLOCK WinAutoLock updateLock(g_update_cs);
 
+static constexpr int g_lazy_step_ms = 500;
+static constexpr int g_invalid_lazy_value = -1;
+static std::atomic_int g_next_lazy_at = ATOMIC_VAR_INIT(g_invalid_lazy_value);
+
+void update(float dt)
+{
   TIME_PROFILE(sndsys_update);
 
-  apply_time_speed(time_speed);
+  g_next_lazy_at = get_time_msec() + g_lazy_step_ms;
+
+  UPDATE_BLOCK;
+  SNDSYS_IF_NOT_INITED_RETURN;
 
   events_update(dt);
 
   delayed::update(dt);
 
+  streams::update(dt);
+
   SOUND_VERIFY(get_studio_system()->update());
 
   banks::update();
+}
 
-  streams::update(dt);
+void lazy_update()
+{
+  if (g_next_lazy_at == g_invalid_lazy_value || get_time_msec() >= g_next_lazy_at)
+  {
+    update((g_lazy_step_ms + get_time_msec() - g_next_lazy_at) / 1000.f);
+  }
 }
 
 } // namespace sndsys

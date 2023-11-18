@@ -1,5 +1,7 @@
 #pragma once
 
+#include "driver.h" // MAKEFOURCC is defined somewhere there
+
 /* Formats
  * Most of these names have the following convention:
  *      A = Alpha

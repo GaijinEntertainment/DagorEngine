@@ -59,8 +59,6 @@ void DeferredRT::setVar()
 
 uint32_t DeferredRT::recreateDepthInternal(uint32_t targetFmt)
 {
-  if (targetFmt & TEXCF_MULTISAMPLED)
-    targetFmt |= TEXCF_MSAATARGET;
   if (!(d3d::get_texformat_usage(targetFmt) & d3d::USAGE_DEPTH))
   {
     debug("not supported depth format 0x%08x, fallback to TEXFMT_DEPTH24", targetFmt);
@@ -71,7 +69,7 @@ uint32_t DeferredRT::recreateDepthInternal(uint32_t targetFmt)
   {
     TextureInfo tinfo;
     depth.getTex2D()->getinfo(tinfo, 0);
-    currentFmt = tinfo.cflg & (TEXFMT_MASK | TEXCF_MSAATARGET | TEXCF_MULTISAMPLED | TEXCF_TC_COMPATIBLE);
+    currentFmt = tinfo.cflg & (TEXFMT_MASK | TEXCF_SAMPLECOUNT_MASK | TEXCF_TC_COMPATIBLE);
     targetFmt |= currentFmt & (~TEXFMT_MASK);
   }
   if (currentFmt == targetFmt)

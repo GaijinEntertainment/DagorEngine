@@ -28,6 +28,8 @@ class IndirectDrawcallsBuffer
 
   static bool packDrawCallIdAsOffset() { return d3d::get_driver_code().is(d3d::ps4 || d3d::ps5 || d3d::vulkan); }
 
+  static bool useDiscardOnFill() { return d3d::get_driver_code().is(d3d::vulkan); }
+
   static uint32_t dwordsCountPerDrawcall()
   {
     G_STATIC_ASSERT(sizeof(BaseArgsType) % sizeof(uint32_t) == 0);
@@ -59,7 +61,7 @@ public:
         fill_on_gpu == FillOnGPU::No ? SBCF_INDIRECT : SBCF_UA_INDIRECT, 0, bufferName.c_str());
     }
 
-    const uint32_t LOCK_FLAGS = VBLOCK_WRITEONLY;
+    const uint32_t LOCK_FLAGS = VBLOCK_WRITEONLY | (useDiscardOnFill() ? VBLOCK_DISCARD : 0);
     if (usesPackedDrawCallID())
     {
       if (auto data = lock_sbuffer<ExtendedDrawIndexedIndirectArgs>(buffer.getBuf(), 0, drawcalls_data.size(), LOCK_FLAGS))

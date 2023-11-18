@@ -41,5 +41,5 @@ struct NodeDeclaration
   NodeDeclaration(const NodeDeclaration &) = delete;
   NodeDeclaration &operator=(const NodeDeclaration &) = delete;
 };
-
 } // namespace resource_slot::detail
+DAG_DECLARE_RELOCATABLE(resource_slot::detail::NodeDeclaration);

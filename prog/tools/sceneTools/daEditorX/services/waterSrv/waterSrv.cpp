@@ -5,6 +5,7 @@
 #include <math/dag_mathUtils.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <debug/dag_debug.h>
+#include <render/dag_cur_view.h>
 #include <3d/dag_render.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderMesh.h>
@@ -54,8 +55,8 @@ public:
       return false;
     }
 
-    Ptr<ShaderMaterial> mat1 = new_shader_material_by_name("water_nv2");
-    Ptr<ShaderMaterial> mat2 = new_shader_material_by_name("water3d_compatibility");
+    Ptr<ShaderMaterial> mat1 = new_shader_material_by_name_optional("water_nv2");
+    Ptr<ShaderMaterial> mat2 = new_shader_material_by_name_optional("water3d_compatibility");
     if (!mat1.get() && !mat2.get())
     {
       DAEDITOR3.conError("WaterService disabled: shaders '%s' and '%s' not found", "water_nv2", "water3d_compatibility");

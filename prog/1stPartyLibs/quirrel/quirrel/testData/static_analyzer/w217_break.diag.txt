@@ -1,0 +1,18 @@
+WARNING: w217 (unconditional-terminated-loop) Unconditional 'break' inside a loop.
+testData/static_analyzer/w217_break.nut:7:4
+
+    y--;
+    break;
+    ^----
+    z--;
+
+
+WARNING: w205 (unreachable-code) Unreachable code after 'break'.
+testData/static_analyzer/w217_break.nut:8:4
+
+    break;
+    z--;
+    ^---
+  }
+
+

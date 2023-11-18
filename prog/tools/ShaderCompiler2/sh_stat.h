@@ -6,6 +6,7 @@
 
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>
+#include <atomic>
 
 namespace ShaderCompilerStat
 {
@@ -16,6 +17,7 @@ struct DroppedVariants
 };
 extern DroppedVariants droppedVariants;
 extern int hlslCompileCount, hlslCacheHitCount, hlslEqResultCount;
+extern std::atomic_int hlslExternalCacheHitCount;
 
 struct ShaderStatistics
 {

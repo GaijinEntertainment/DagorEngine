@@ -169,7 +169,11 @@ public:
 
   virtual void onDestroy() { del_it(app); }
 
-  static void clearBusy() { wingw::set_busy(false); }
+  static void clearBusy()
+  {
+    wingw::set_busy(false);
+    SplashScreen::kill();
+  }
 
 private:
   DagorEdAppWindow *app;

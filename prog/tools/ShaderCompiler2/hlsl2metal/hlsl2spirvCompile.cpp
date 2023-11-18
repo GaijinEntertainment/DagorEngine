@@ -30,11 +30,11 @@ static std::ostream &operator<<(std::ostream &os, const spv_position_t &position
 
 void applyD3DMacros(std::string &view, bool should_use_half)
 {
-  std::string macros =
-    "#define SHADER_COMPILER_DXC 1\n"
-    "#define HW_VERTEX_ID uint vertexId: SV_VertexID;\n"
-    "#define HW_BASE_VERTEX_ID [[vk::builtin(\"BaseVertex\")]] uint baseVertexId : DXC_SPIRV_BASE_VERTEX_ID;\n"
-    "#define HW_BASE_VERTEX_ID_OPTIONAL [[vk::builtin(\"BaseVertex\")]] uint baseVertexId : DXC_SPIRV_BASE_VERTEX_ID;\n";
+  std::string macros = "#define SHADER_COMPILER_DXC 1\n"
+                       "#define HW_VERTEX_ID uint vertexId: SV_VertexID;\n"
+                       "#define HW_BASE_VERTEX_ID error! not supported on this compiler/API\n"
+                       "#define HW_BASE_VERTEX_ID_OPTIONAL \n"
+                       "#define USE_VERTEX_ID_WITHOUT_BASE_OFFSET(input_struct) \n";
 
   if (should_use_half)
   {
@@ -62,10 +62,6 @@ Hlsl2SpirvResult hlsl2spirv(const char *source, const char *profile, const char 
   result.failed = true;
 
   std::string codeCopy(source);
-
-  // code preprocess to fix SV_VertexID disparity between DX and vulkan/metal
-  if (!fix_vertex_id_for_DXC(codeCopy, compile_result))
-    return result;
 
   eastl::vector<eastl::string_view> disabledSpirvOptims = scanDisabledSpirvOptimizations(source);
 

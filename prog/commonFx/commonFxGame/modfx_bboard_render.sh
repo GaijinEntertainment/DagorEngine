@@ -312,6 +312,7 @@ shader dafx_modfx_bboard_render, dafx_modfx_bboard_render_atest, dafx_modfx_bboa
       #undef MODFX_USE_GI
       #undef MODFX_USE_PACK_HDR
       #undef MODFX_USE_FOG
+      #undef MODFX_USE_DEPTH_MASK
     }
   }
 

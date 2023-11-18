@@ -1,9 +1,0 @@
-WARNING: w279 (mismatch-loop-variable) The variable used in for-loop does not match the initialized one.
-testData/static_analyser/w279_2.nut:4:25
-
-local j = 0;
-for (local k = 0; k < 5; j++) {
-                         ^---
-    k = 10
-
-

@@ -3,6 +3,7 @@
 #pragma once
 
 #include <streaming/dag_streamingBase.h>
+#include <render/dag_cur_view.h>
 #include <scene/dag_frtdumpInline.h>
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_asyncRead.h>

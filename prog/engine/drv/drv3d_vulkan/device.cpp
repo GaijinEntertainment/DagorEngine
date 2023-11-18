@@ -583,6 +583,15 @@ VkFormatFeatureFlags Device::getFormatFeatures(VkFormat format)
   return props.optimalTilingFeatures;
 }
 
+VkSampleCountFlags Device::getFormatSamples(VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage)
+{
+  VkImageFormatProperties properties;
+  VkResult result = VULKAN_CHECK_RESULT(device.getInstance().vkGetPhysicalDeviceImageFormatProperties(physicalDeviceInfo.device,
+    format, type, tiling, usage, 0, &properties));
+
+  return VULKAN_OK(result) ? properties.sampleCounts : 0;
+}
+
 bool Device::init(VulkanInstance &inst, const Config &ucfg, const PhysicalDeviceSet &set, const VkDeviceCreateInfo &config,
   const SwapchainMode &swc_info, const DeviceQueueGroup::Info &queue_info)
 {
@@ -637,6 +646,7 @@ bool Device::init(VulkanInstance &inst, const Config &ucfg, const PhysicalDevice
   context.getBackend().contextState.frame.start();
   shaders::RenderState emptyRS{};
   context.getBackend().contextState.renderStateSystem.setRenderStateData((shaders::DriverRenderStateId)0, emptyRS, *this);
+  context.getBackend().pipelineCompiler.init();
   context.initTimingRecord();
   context.initTempBuffersConfiguration();
   context.initMode(execMode);
@@ -803,6 +813,14 @@ const DataBlock *Device::getPerDriverPropertyBlock(const char *prop_name)
     if (fitsMin && fitsMax && gpuMatch)
       ret = entry.getBlockByNameEx("data");
   });
+
+  if (ret == &DataBlock::emptyBlock)
+    ret = ::dgs_get_settings()
+            ->getBlockByNameEx("vulkan")
+            ->getBlockByNameEx("vendor")
+            ->getBlockByNameEx("default")
+            ->getBlockByNameEx("driverProps")
+            ->getBlockByNameEx(prop_name);
 
   return ret;
 }
@@ -1160,25 +1178,6 @@ bool Device::hasGpuTimestamps()
 uint64_t Device::getGpuTimestampFrequency() const
 {
   return uint64_t(1000000000.0 / physicalDeviceInfo.properties.limits.timestampPeriod);
-}
-
-VkSampleCountFlagBits Device::calcMSAAQuality() const
-{
-  auto quality = ::dgs_get_settings()->getBlockByNameEx("vulkan")->getInt("msaaQuality", 4);
-  auto qualityLimit = physicalDeviceInfo.properties.limits.framebufferColorSampleCounts &
-                      physicalDeviceInfo.properties.limits.framebufferDepthSampleCounts;
-
-  while ((quality & qualityLimit) == 0 && quality > 1)
-    quality /= 2;
-
-  static int lastQuality = -1;
-  if (quality != lastQuality)
-  {
-    debug("vulkan: using %d samples for MSAA", quality);
-    lastQuality = quality;
-  }
-
-  return VkSampleCountFlagBits(quality);
 }
 
 Image *Device::createImage(const ImageCreateInfo &ii)

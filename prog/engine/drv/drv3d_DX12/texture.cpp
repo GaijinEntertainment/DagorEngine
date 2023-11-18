@@ -118,22 +118,19 @@ bool create_tex2d(D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint
   auto &device = get_device();
 
   uint32_t &flg = bt_in->cflg;
-  G_ASSERT(!((flg & TEXCF_MULTISAMPLED) && initial_data != nullptr));
+  G_ASSERT(!((flg & TEXCF_SAMPLECOUNT_MASK) && initial_data != nullptr));
   G_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & (TEXCF_DYNAMIC | TEXCF_RTARGET))));
-  if ((flg & TEXFMT_MASK) == TEXFMT_MSAA_MAX_SAMPLES) // we always support forced sample count
-    return false;
 
   if (flg & TEXCF_VARIABLE_RATE)
   {
     // Check rules for VRS textures
     G_ASSERTF_RETURN(TEXFMT_R8UI == (flg & TEXFMT_MASK), false, "Variable Rate Textures can only use R8 UINT format");
     G_ASSERTF_RETURN(0 == (flg & TEXCF_RTARGET), false, "Variable Rate Textures can not be used as render target");
-    G_ASSERTF_RETURN(0 == (flg & TEXCF_MULTISAMPLED), false, "Variable Rate Textures can not be multisampled");
+    G_ASSERTF_RETURN(0 == (flg & TEXCF_SAMPLECOUNT_MASK), false, "Variable Rate Textures can not be multisampled");
     G_ASSERTF_RETURN(1 == array_size, false, "Variable Rate Textures can not be a arrayed texture");
     G_ASSERTF_RETURN(false == cube, false, "Variable Rate Texture can not be a cube map");
     G_ASSERTF_RETURN(1 == levels, false, "Variable Rate Texture can only have one mip level");
   }
-
 
   ImageInfo desc;
   desc.type = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -143,9 +140,9 @@ bool create_tex2d(D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint
   desc.mips = MipMapCount::make(levels);
   desc.arrays = ArrayLayerCount::make((cube ? 6 : 1) * array_size);
   desc.format = FormatStore::fromCreateFlags(flg);
-  desc.usage = D3D12_RESOURCE_FLAG_NONE;
   desc.memoryLayout = (flg & TEXCF_TILED_RESOURCE) ? D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE : D3D12_TEXTURE_LAYOUT_UNKNOWN;
   desc.allocateSubresourceIDs = needs_subresource_tracking(flg);
+  desc.sampleDesc.Count = get_sample_count(flg);
 
   flg = BaseTex::update_flags_for_linear_layout(flg, desc.format);
   desc.memoryClass = BaseTex::get_memory_class(flg);
@@ -187,13 +184,6 @@ bool create_tex2d(D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint
   reinterpret_cast<uint32_t &>(desc.usage) |= (flg & TEXCF_UNORDERED) ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : 0;
 
   G_ASSERT(!(isDepth && (flg & TEXCF_READABLE)));
-
-
-  if (flg & (TEXCF_MULTISAMPLED | TEXCF_MSAATARGET))
-  {
-    logwarn("DX12: Requested multisampled texture, but DX12 backend has no support");
-    flg &= ~(TEXCF_MULTISAMPLED | TEXCF_MSAATARGET);
-  }
 
   if (!temp_alloc)
     TEXQL_PRE_CLEAN(bt_in->ressize());
@@ -443,7 +433,7 @@ bool create_tex3d(D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint
   auto &device = get_device();
   auto &ctx = device.getContext();
 
-  G_ASSERT((flg & TEXCF_MULTISAMPLED) == 0);
+  G_ASSERT((flg & TEXCF_SAMPLECOUNT_MASK) == 0);
   G_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & TEXCF_DYNAMIC)));
   G_ASSERTF_RETURN(0 == (flg & TEXCF_VARIABLE_RATE), false, "Variable Rate Texture can not be a volumetric texture");
 
@@ -455,7 +445,6 @@ bool create_tex3d(D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint
   desc.mips = MipMapCount::make(levels);
   desc.arrays = ArrayLayerCount::make(1);
   desc.format = FormatStore::fromCreateFlags(flg);
-  desc.usage = D3D12_RESOURCE_FLAG_NONE;
   desc.memoryLayout = (flg & TEXCF_TILED_RESOURCE) ? D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE : D3D12_TEXTURE_LAYOUT_UNKNOWN;
   desc.allocateSubresourceIDs = needs_subresource_tracking(flg);
 
@@ -689,6 +678,267 @@ bool create_tex3d(D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint
 }
 } // namespace
 
+ImageViewState BaseTex::getViewInfoUAV(MipMapIndex mip, ArrayLayerIndex layer, bool as_uint) const
+{
+  ImageViewState result;
+  if (resType == RES3D_TEX)
+  {
+    result.isCubemap = 0;
+    result.isArray = 0;
+    result.setSingleArrayRange(ArrayLayerIndex::make(0));
+    G_ASSERTF(layer.index() == 0, "UAV view for layer/face %u requested, but texture was 2d and has no layers/faces", layer);
+  }
+  else if (resType == RES3D_CUBETEX)
+  {
+    result.isCubemap = 1;
+    result.isArray = 0;
+    result.setArrayRange(getArrayCount().front(layer));
+    G_ASSERTF(layer < getArrayCount(),
+      "UAV view for layer/face %u requested, but texture was cubemap and has only 6 "
+      "faces",
+      layer);
+  }
+  else if (resType == RES3D_ARRTEX)
+  {
+    result.isArray = 1;
+    result.isCubemap = isArrayCube();
+    result.setArrayRange(getArrayCount().front(layer));
+    G_ASSERTF(layer < getArrayCount(), "UAV view for layer/face %u requested, but texture has only %u layers", layer, getArrayCount());
+  }
+  else if (resType == RES3D_VOLTEX)
+  {
+    result.isArray = 0;
+    result.isCubemap = 0;
+    result.setDepthLayerRange(0, max<uint16_t>(1, depth >> mip.index()));
+    G_ASSERTF(layer.index() == 0, "UAV view for layer/face %u requested, but texture was 3d and has no layers/faces", layer);
+  }
+  if (as_uint)
+  {
+    G_ASSERT(getFormat().getBytesPerPixelBlock() == 4 ||
+             (getFormat().getBytesPerPixelBlock() == 8 && d3d::get_driver_desc().caps.hasShader64BitIntegerResources));
+    if (getFormat().getBytesPerPixelBlock() == 4)
+      result.setFormat(FormatStore::fromCreateFlags(TEXFMT_R32UI));
+    else if (getFormat().getBytesPerPixelBlock() == 8)
+      result.setFormat(FormatStore::fromCreateFlags(TEXFMT_R32G32UI));
+  }
+  else
+  {
+    result.setFormat(getFormat().getLinearVariant());
+  }
+  result.setSingleMipMapRange(mip);
+  result.setUAV();
+  return result;
+}
+
+ImageViewState BaseTex::getViewInfoRenderTarget(MipMapIndex mip, ArrayLayerIndex layer, bool as_const) const
+{
+  FormatStore format = allowSrgbWrite() ? getFormat() : getFormat().getLinearVariant();
+  ImageViewState result;
+  result.isArray = resType == RES3D_ARRTEX;
+  result.isCubemap = resType == RES3D_CUBETEX;
+  result.setFormat(format);
+  result.setSingleMipMapRange(mip);
+
+  if (layer.index() < d3d::RENDER_TO_WHOLE_ARRAY)
+  {
+    result.setSingleArrayRange(layer);
+  }
+  else
+  {
+    if (RES3D_VOLTEX == resType)
+    {
+      result.setDepthLayerRange(0, max<uint16_t>(1, depth >> mip.index()));
+    }
+    else
+    {
+      result.setArrayRange(getArrayCount());
+    }
+  }
+
+  if (format.isColor())
+  {
+    result.setRTV();
+  }
+  else
+  {
+    result.setDSV(as_const);
+  }
+
+  return result;
+}
+
+ImageViewState BaseTex::getViewInfo() const
+{
+  ImageViewState result;
+  result.setFormat(allowSrgbRead() ? getFormat() : getFormat().getLinearVariant());
+  result.isArray = resType == RES3D_ARRTEX ? 1 : 0;
+  result.isCubemap = resType == RES3D_CUBETEX ? 1 : (resType == RES3D_ARRTEX ? int(isArrayCube()) : 0);
+  int32_t baseMip = clamp<int32_t>(maxMipLevel, 0, max(0, (int32_t)tex.realMipLevels - 1));
+  int32_t mipCount = (minMipLevel - maxMipLevel) + 1;
+  if (mipCount <= 0 || baseMip + mipCount > tex.realMipLevels)
+  {
+    mipCount = tex.realMipLevels - baseMip;
+  }
+  if (isStub())
+  {
+    baseMip = 0;
+    mipCount = 1;
+  }
+  result.setMipBase(MipMapIndex::make(baseMip));
+  result.setMipCount(max(mipCount, 1));
+  result.setArrayRange(getArrayCount());
+  result.setSRV();
+  result.sampleStencil = sampleStencil();
+  return result;
+}
+
+FormatStore BaseTex::getFormat() const { return tex.image ? tex.image->getFormat() : fmt; }
+
+void BaseTex::updateDeviceSampler()
+{
+  sampler = get_device().getSampler(samplerState);
+  lastSamplerState = samplerState;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE BaseTex::getDeviceSampler()
+{
+  if (!sampler.ptr || samplerState != lastSamplerState)
+  {
+    updateDeviceSampler();
+  }
+
+  return sampler;
+}
+
+Extent3D BaseTex::getMipmapExtent(uint32_t level) const
+{
+  Extent3D result;
+  result.width = max(width >> level, 1);
+  result.height = max(height >> level, 1);
+  result.depth = resType == RES3D_VOLTEX ? max(depth >> level, 1) : 1;
+  return result;
+}
+
+void BaseTex::updateTexName()
+{
+  // don't propagate down to stub images
+  if (isStub())
+    return;
+  if (tex.image)
+  {
+    get_device().setTexName(tex.image, getResName());
+  }
+}
+
+void BaseTex::notifySamplerChange()
+{
+  for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
+  {
+    if (srvBindingStages[s].any())
+    {
+      dirty_sampler(this, s, srvBindingStages[s]);
+    }
+  }
+}
+
+void BaseTex::notifySRViewChange()
+{
+  for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
+  {
+    if (srvBindingStages[s].any())
+    {
+      dirty_srv(this, s, srvBindingStages[s]);
+    }
+  }
+}
+
+void BaseTex::notifyTextureReplaceFinish()
+{
+  // if we are ending up here, we are still holding the lock of the state tracker
+  // to avoid a deadlock by reentering we have to do the dirtying without a lock
+  for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
+  {
+    if (srvBindingStages[s].any())
+    {
+      dirty_srv_and_sampler_no_lock(this, s, srvBindingStages[s]);
+    }
+  }
+}
+
+void BaseTex::dirtyBoundSRVsNoLock()
+{
+  for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
+  {
+    if (srvBindingStages[s].any())
+    {
+      dirty_srv_no_lock(this, s, srvBindingStages[s]);
+    }
+  }
+}
+
+void BaseTex::dirtyBoundUAVsNoLock()
+{
+  for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
+  {
+    if (uavBindingStages[s].any())
+    {
+      dirty_uav_no_lock(this, s, uavBindingStages[s]);
+    }
+  }
+}
+
+void BaseTex::setUAVBinding(uint32_t stage, uint32_t index, bool s)
+{
+  uavBindingStages[stage].set(index, s);
+  stateBitSet.set(acitve_binding_used_offset);
+  if (s)
+  {
+    stateBitSet.reset(active_binding_was_copied_to_stage_offset);
+  }
+}
+
+void BaseTex::setSRVBinding(uint32_t stage, uint32_t index, bool s)
+{
+  srvBindingStages[stage].set(index, s);
+  stateBitSet.set(acitve_binding_used_offset);
+}
+
+void BaseTex::setRTVBinding(uint32_t index, bool s)
+{
+  G_ASSERT(index < Driver3dRenderTarget::MAX_SIMRT);
+  stateBitSet.set(active_binding_rtv_offset + index, s);
+  stateBitSet.set(acitve_binding_used_offset);
+  if (s)
+  {
+    stateBitSet.reset(active_binding_was_copied_to_stage_offset);
+    stateBitSet.set(active_binding_dirty_rt);
+  }
+}
+
+void BaseTex::setDSVBinding(bool s)
+{
+  stateBitSet.set(active_binding_dsv_offset, s);
+  stateBitSet.set(acitve_binding_used_offset);
+  if (s)
+  {
+    stateBitSet.reset(active_binding_was_copied_to_stage_offset);
+    stateBitSet.set(active_binding_dirty_rt);
+  }
+}
+
+eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> BaseTex::getRTVBinding() const
+{
+  eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> ret;
+  ret.from_uint64((stateBitSet >> active_binding_rtv_offset).to_uint64());
+  return ret;
+}
+
+void BaseTex::setUsedWithBindless()
+{
+  stateBitSet.set(active_binding_bindless_used_offset);
+  stateBitSet.set(acitve_binding_used_offset);
+}
+
 void BaseTex::setParams(int w, int h, int d, int levels, const char *stat_name)
 {
   G_ASSERT(levels > 0);
@@ -702,6 +952,19 @@ void BaseTex::setParams(int w, int h, int d, int levels, const char *stat_name)
   setTexName(stat_name);
 }
 
+ArrayLayerCount BaseTex::getArrayCount() const
+{
+  if (resType == RES3D_CUBETEX)
+  {
+    return ArrayLayerCount::make(6);
+  }
+  else if (resType == RES3D_ARRTEX)
+  {
+    return ArrayLayerCount::make((isArrayCube() ? 6 : 1) * depth);
+  }
+  return ArrayLayerCount::make(1);
+}
+
 void BaseTex::setResApiName(const char *name) const
 {
   G_UNUSED(name);
@@ -711,7 +974,27 @@ void BaseTex::setResApiName(const char *name) const
 #endif
 }
 
+BaseTex::BaseTex(int res_type, uint32_t cflg_) :
+  resType(res_type), cflg(cflg_), minMipLevel(20), maxMipLevel(0), lockFlags(0), depth(1), width(0), height(0)
+{
+  samplerState.setBias(default_lodbias);
+  samplerState.setAniso(default_aniso);
+  samplerState.setW(D3D12_TEXTURE_ADDRESS_MODE_WRAP);
+  samplerState.setV(D3D12_TEXTURE_ADDRESS_MODE_WRAP);
+  samplerState.setU(D3D12_TEXTURE_ADDRESS_MODE_WRAP);
+  samplerState.setMip(D3D12_FILTER_TYPE_LINEAR);
+  samplerState.setFilter(D3D12_FILTER_TYPE_LINEAR);
+
+  if (RES3D_CUBETEX == resType)
+  {
+    samplerState.setV(D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+    samplerState.setU(D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+  }
+}
+
 BaseTex::~BaseTex() { setRld(nullptr); }
+
+void BaseTex::resolve(Image *dst) { get_device().getContext().resolveMultiSampleImage(tex.image, dst); }
 
 BaseTexture *BaseTex::makeTmpTexResCopy(int w, int h, int d, int l, bool staging_tex)
 {
@@ -813,6 +1096,15 @@ bool BaseTex::allocateTex()
     case RES3D_ARRTEX: return create_tex2d(tex, this, width, height, mipLevels, resType == RES3D_CUBEARRTEX, nullptr, depth);
   }
   return false;
+}
+
+void BaseTex::discardTex()
+{
+  if (stubTexIdx >= 0)
+  {
+    releaseTex();
+    recreate();
+  }
 }
 
 bool BaseTex::recreate()
@@ -1075,8 +1367,15 @@ int BaseTex::update(BaseTexture *src)
 #endif
   STORE_RETURN_ADDRESS();
   ScopedCommitLock ctxLock{get_device().getContext()};
-  // passing no regions is fast whole resource copy
-  get_device().getContext().copyImage(sTex->tex.image, tex.image, make_whole_resource_copy_info());
+  if (sTex->isMultisampled())
+  {
+    sTex->resolve(tex.image);
+  }
+  else
+  {
+    // passing no regions is fast whole resource copy
+    get_device().getContext().copyImage(sTex->tex.image, tex.image, make_whole_resource_copy_info());
+  }
   return 1;
 }
 
@@ -1196,6 +1495,12 @@ int BaseTex::generateMips()
     get_device().getContext().generateMipmaps(tex.image);
   }
   return 1;
+}
+
+bool BaseTex::setReloadCallback(IReloadData *_rld)
+{
+  setRld(_rld);
+  return true;
 }
 
 static constexpr int TEX_COPIED = 1 << 30;
@@ -1934,6 +2239,117 @@ int BaseTex::ressize() const
   return static_cast<int>(
     calculate_texture_staging_buffer_size(ext, MipMapCount::make(mipLevels), fmt, SubresourceRange::make(0, mipLevels)) *
     getArrayCount().count());
+}
+
+int BaseTex::getinfo(TextureInfo &ti, int level) const
+{
+  level = clamp<int>(level, 0, mipLevels - 1);
+
+  ti.w = max<uint32_t>(1u, width >> level);
+  ti.h = max<uint32_t>(1u, height >> level);
+  switch (resType)
+  {
+    case RES3D_CUBETEX:
+      ti.d = 1;
+      ti.a = 6;
+      break;
+    case RES3D_CUBEARRTEX:
+    case RES3D_ARRTEX:
+      ti.d = 1;
+      ti.a = getArrayCount().count();
+      break;
+    case RES3D_VOLTEX:
+      ti.d = max<uint32_t>(1u, getDepthSlices() >> level);
+      ti.a = 1;
+      break;
+    default:
+      ti.d = 1;
+      ti.a = 1;
+      break;
+  }
+
+  ti.mipLevels = mipLevels;
+  ti.resType = resType;
+  ti.cflg = cflg;
+  return 1;
+}
+
+int BaseTex::texaddr(int a)
+{
+  samplerState.setW(translate_texture_address_mode_to_dx12(a));
+  samplerState.setV(translate_texture_address_mode_to_dx12(a));
+  samplerState.setU(translate_texture_address_mode_to_dx12(a));
+  notifySamplerChange();
+  return 1;
+}
+
+int BaseTex::texaddru(int a)
+{
+  samplerState.setU(translate_texture_address_mode_to_dx12(a));
+  notifySamplerChange();
+  return 1;
+}
+
+int BaseTex::texaddrv(int a)
+{
+  samplerState.setV(translate_texture_address_mode_to_dx12(a));
+  notifySamplerChange();
+  return 1;
+}
+
+int BaseTex::texaddrw(int a)
+{
+  if (RES3D_VOLTEX == resType)
+  {
+    samplerState.setW(translate_texture_address_mode_to_dx12(a));
+    notifySamplerChange();
+    return 1;
+  }
+  return 0;
+}
+
+int BaseTex::texbordercolor(E3DCOLOR c)
+{
+  samplerState.setBorder(c);
+  notifySamplerChange();
+  return 1;
+}
+
+int BaseTex::texfilter(int m)
+{
+  samplerState.isCompare = m == TEXFILTER_COMPARE;
+  samplerState.setFilter(translate_filter_type_to_dx12(m));
+  notifySamplerChange();
+  return 1;
+}
+
+int BaseTex::texmipmap(int m)
+{
+  samplerState.setMip(translate_mip_filter_type_to_dx12(m));
+  notifySamplerChange();
+  return 1;
+}
+
+int BaseTex::texlod(float mipmaplod)
+{
+  samplerState.setBias(mipmaplod);
+  notifySamplerChange();
+  return 1;
+}
+
+int BaseTex::texmiplevel(int minlevel, int maxlevel)
+{
+  maxMipLevel = (minlevel >= 0) ? minlevel : 0;
+  minMipLevel = (maxlevel >= 0) ? maxlevel : (mipLevels - 1);
+  notifySRViewChange();
+  return 1;
+}
+
+int BaseTex::setAnisotropy(int level)
+{
+  samplerState.setAniso(clamp<int>(level, 1, 16));
+  notifySamplerChange();
+  return 1;
 }
 
 static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, Texture *baseTexture)

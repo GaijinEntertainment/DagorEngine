@@ -519,7 +519,7 @@ let function mkMemoizedMapSet(func){
         toDelete.append(k)
     }
     foreach(k in toDelete)
-      delete cache[k]
+      cache.$rawdelete(k)
     return cache
   }
 }

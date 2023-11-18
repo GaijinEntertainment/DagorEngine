@@ -69,3 +69,4 @@ the value of the deleted slot.::
     delete a.test1
     print(delete a.deleteme); //this will print the string "now"
 
+Note: Usage of this method could be prohibited with ``#forbid-delete-operator``

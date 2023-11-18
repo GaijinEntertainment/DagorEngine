@@ -11,6 +11,7 @@
 #include <EditorCore/ec_ObjectEditor.h>
 #include <oldEditor/de_cm.h>
 #include <de3_assetService.h>
+#include <de3_pixelPerfectSelectionService.h>
 #include <shaders/dag_overrideStateId.h>
 #include <ioSys/dag_dataBlock.h>
 
@@ -36,6 +37,7 @@ public:
   // ObjectEditor interface implementation
   virtual void fillToolBar(PropertyContainerControlBase *toolbar);
   virtual void updateToolbarButtons();
+  virtual bool pickObjects(IGenViewportWnd *wnd, int x, int y, Tab<RenderableEditableObject *> &objs) override;
 
   // virtual void handleCommand(int cmd);
   virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
@@ -159,6 +161,8 @@ public:
 
   bool usesRendinstPlacement() const override;
 
+  bool isSelectOnlyIfEntireObjectInRect() const { return selectOnlyIfEntireObjectInRect; }
+
 public:
   class LoftAndGeomCollider : public IDagorEdCustomCollider
   {
@@ -226,6 +230,13 @@ protected:
   void selectNewObjEntity(const char *name);
   SplineObject *findSplineAndDirection(IGenViewportWnd *wnd, SplinePointObject *p, bool &dirs_equal, SplineObject *excl = NULL);
 
+  static void fillPossiblePixelPerfectSelectionHits(IPixelPerfectSelectionService &selection_service,
+    LandscapeEntityObject &landscape_entity, IObjEntity &entity, const Point3 &ray_origin, const Point3 &ray_direction,
+    dag::Vector<IPixelPerfectSelectionService::Hit> &hits);
+
+  void getPixelPerfectHits(IPixelPerfectSelectionService &selection_service, IGenViewportWnd &wnd, int x, int y,
+    Tab<RenderableEditableObject *> &hits);
+
   Point3 *debugP1, *debugP2;
 
   SplinePointObject *catmul[4];
@@ -254,7 +265,10 @@ protected:
   IObjectCreator *objCreator;
   bool areLandHoleBoxesVisible;
   bool hideSplines;
+  bool usePixelPerfectSelection;
+  bool selectOnlyIfEntireObjectInRect;
 
+  dag::Vector<IPixelPerfectSelectionService::Hit> pixelPerfectSelectionHitsCache;
   Tab<NearSnowSource> nearSources;
 
   shaders::OverrideStateId zFuncLessStateId;

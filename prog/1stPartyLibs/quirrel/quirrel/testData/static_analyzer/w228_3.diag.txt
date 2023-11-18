@@ -1,0 +1,9 @@
+WARNING: w228 (declared-never-used) variable 'f' was declared but never used.
+testData/static_analyzer/w228_3.nut:4:2
+
+let function fn() { //-declared-never-used
+  local f = 123
+  ^----
+  local c = { f = 3 }
+
+

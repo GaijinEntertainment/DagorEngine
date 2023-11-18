@@ -167,7 +167,7 @@ bool DaSkies::currentGroundSunSkyColor(float &sun_cos, float &moon_cos, Color3 &
 
 static inline void set_resolution_var(int, int) {}
 
-bool DaSkies::isPrepareRequired() const { return clouds->isPrepareRequired(); }
+bool DaSkies::isPrepareRequired() const { return clouds && clouds->isPrepareRequired(); }
 
 void DaSkies::prepare(const Point3 &dir_to_sun, bool force_update, float dt)
 {
@@ -877,6 +877,12 @@ void DaSkies::resetCloudsHole()
 {
   if (clouds)
     return clouds->resetHole();
+}
+
+void DaSkies::setUseCloudsHole(bool set)
+{
+  if (clouds)
+    clouds->setUseHole(set);
 }
 
 Point2 DaSkies::getCloudsHolePosition() const

@@ -225,18 +225,21 @@ void TemporalAA::loadParamsFromBlk(const DataBlock *taaBlk)
 
 static float gaussianKernel(const Point2 &uv) { return expf(-2.29f * lengthSq(uv)); }
 
+extern Point2 get_halton_jitter(int counter, int subsamples, float subsample_scale)
+{
+  // +1 is because halton sequence returns 0 when index is 0. This causes first jitter to be (-0.5,-0.5).
+  // Halton sequence is correct when the index starts from 1.
+  int index = counter % subsamples + 1;
+  return Point2(halton_sequence(index, 2) - 0.5f, halton_sequence(index, 3) - 0.5f) * subsample_scale;
+}
+
 Point2 get_taa_jitter(int counter, const TemporalAAParams &p)
 {
   static const Point2 SSAA8x[8] = {Point2(0.0625, -0.1875), Point2(-0.0625, 0.1875), Point2(0.3125, 0.0625), Point2(-0.1875, -0.3125),
     Point2(-0.3125, 0.3125), Point2(-0.4375, -0.0625), Point2(0.1875, 0.4375), Point2(0.4375, -0.4375)};
 
   if (p.useHalton)
-  {
-    // +1 is because halton sequence returns 0 when index is 0. This causes first jitter to be (-0.5,-0.5).
-    // Halton sequence is correct when the index starts from 1.
-    int index = counter % p.subsamples + 1;
-    return Point2(halton_sequence(index, 2) - 0.5f, halton_sequence(index, 3) - 0.5f) * p.subsampleScale;
-  }
+    return get_halton_jitter(counter, p.subsamples, p.subsampleScale);
   else
   {
     int max_count = min(p.subsamples, 8);

@@ -567,6 +567,13 @@ static void applyRoadShapes(const splineclass::RoadData *asset)
 void SplineObject::generateRoadSegments(int start_idx, int end_idx, const splineclass::RoadData *asset_prev,
   splineclass::RoadData *asset, const splineclass::RoadData *asset_next)
 {
+  if (!asset_prev && !asset && !asset_next) // roads not used?
+  {
+    for (int i = start_idx; i < end_idx; i++)
+      points[i]->removeRoadGeom();
+    return;
+  }
+
   if (!loadRoadBuilderDll())
     return;
   if (!prepareRoadBuilder())
@@ -653,6 +660,9 @@ void SplineObject::generateRoadSegments(int start_idx, int end_idx, const spline
 
 void HmapLandObjectEditor::updateCrossRoadGeom()
 {
+  if (!crossRoads.size())
+    return;
+
   if (!loadRoadBuilderDll())
     return;
   if (!prepareRoadBuilder())

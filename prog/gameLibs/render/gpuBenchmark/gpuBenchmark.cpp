@@ -47,7 +47,7 @@ GpuBenchmark::GpuBenchmark()
   index_buffer::init_quads_32bit(QUADS_COUNT);
 
   int vbSize = sizeof(Point4) * 2 * VERT_COUNT;
-  vb.set(d3d::create_vb(vbSize, SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE, "gpu_benchmark_vb"), "gpu_benchmark");
+  vb.set(d3d::create_vb(vbSize, SBCF_CPU_ACCESS_WRITE, "gpu_benchmark_vb"), "gpu_benchmark");
   G_ASSERT(vb.getBuf());
 
   struct VertexData

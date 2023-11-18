@@ -51,7 +51,7 @@
 #endif
 
 #include "resource_manager.h"
-#include "timeline.h"
+#include "timelines.h"
 #include "execution_markers.h"
 
 namespace drv3d_vulkan
@@ -168,6 +168,7 @@ public:
   bool checkFormatSupport(VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage, VkImageCreateFlags flags,
     VkSampleCountFlags samples);
   VkFormatFeatureFlags getFormatFeatures(VkFormat format);
+  VkSampleCountFlags getFormatSamples(VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage);
   bool init(VulkanInstance &inst, const Config &ucfg, const PhysicalDeviceSet &set, const VkDeviceCreateInfo &config,
     const SwapchainMode &swc_info, const DeviceQueueGroup::Info &queue_info);
   bool isInitialized() const;
@@ -215,8 +216,6 @@ public:
   bool hasDepthStencilResolve() const;
   bool hasCreateRenderPass2() const;
   uint32_t getCurrentAvailableMemoryKb();
-
-  VkSampleCountFlagBits calcMSAAQuality() const;
 
   VulkanShaderModuleHandle makeVkModule(const ShaderModuleBlob *module);
 

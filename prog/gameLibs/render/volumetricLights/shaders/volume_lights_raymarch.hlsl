@@ -380,7 +380,11 @@ float4 accumulateFog_impl(uint2 dtId, float4 transformed_znzfar, float2 screen_t
     out_debug.ra = 1;
 #endif
 
-  float3 sunColor = sun_color_0.rgb * calc_sun_phase(viewVecN, from_sun_direction.rgb);
+  const float DF_NIGHT_SUN_COS = 0.1;
+  float3 sunColor = sun_color_0.rgb;
+  sunColor *= saturate(-from_sun_direction.y/DF_NIGHT_SUN_COS); // fix low angle (underground) sun color
+  sunColor *= calc_sun_phase(viewVecN, from_sun_direction.xyz);
+
   float3 ambientColor = get_base_ambient_color() * phaseFunctionConst();
 
   uint noiseIndex = calc_raymarch_noise_index(dtId); // TODO: maybe use reconstructionId as index (needs more testing)

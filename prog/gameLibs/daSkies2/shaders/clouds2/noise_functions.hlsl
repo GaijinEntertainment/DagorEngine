@@ -19,7 +19,7 @@ void perlin_hash(float3 gridcell, float s, bool3 tile,
   float d = DOMAIN - 1.5;
   float3 gridcell_inc1 = step( gridcell, float3( d,d,d ) ) * ( gridcell + 1.0 );
 
-  #if SHADER_COMPILER_HLSL2021
+  #if __HLSL_VERSION >= 2021
     gridcell_inc1 = select(tile, gridcell_inc1 % s, gridcell_inc1);
   #else
     gridcell_inc1 = tile ? gridcell_inc1 % s : gridcell_inc1;

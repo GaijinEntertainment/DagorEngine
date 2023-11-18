@@ -1,9 +1,0 @@
-WARNING: w206 (assigned-twice) Variable is assigned twice successively.
-testData/static_analyser/w206_arith.nut:11:0
-
-x /= foo();
-x = foo();
-^--------
-::print(x)
-
-

@@ -12,7 +12,7 @@ static carray<Sbuffer *, INST_BINS> instancesCB = {0};
 
 void endRenderInstancing()
 {
-  d3d::set_buffer(STAGE_VS, INSTANCING_TEXREG, 0);
+  d3d::set_buffer(STAGE_VS, instancingTexRegNo, 0);
   d3d::set_const_buffer(STAGE_VS, perinstBuffNo, nullptr);
   d3d::set_const_buffer(STAGE_VS, instanceBuffNo, nullptr);
   d3d::set_immediate_const(STAGE_VS, nullptr, 0);
@@ -30,7 +30,7 @@ void init_instances_tb()
   for (int i = 0; i < instancesCB.size(); ++i)
     instancesCB[i] = d3d::buffers::create_one_frame_cb(MIN_INST_COUNT << i, "perInstanceData");
   // instancesTB[i] = d3d::create_sbuffer(16, MIN_INST_COUNT<<i,
-  //     SBCF_DYNAMIC|SBCF_MAYBELOST|SBCF_BIND_SHADER_RES|SBCF_CPU_ACCESS_WRITE, TEXFMT_A32B32G32R32F, "perInstanceData");
+  //     SBCF_DYNAMIC|SBCF_BIND_SHADER_RES|SBCF_CPU_ACCESS_WRITE, TEXFMT_A32B32G32R32F, "perInstanceData");
   // on my 1070 ConstBuffer is proven to work faster than TB. We can actually handle a lot of instances in one CB. It may be worth
   // switching to CB only instancing... however, in synthetic tests both TB and SB were faster than CB when fetch 3 float4. I guess,
   // the difference is that we sample just ONE float4 for trees, and cache prefetching doesn't help us (like it does in TB/SB)
@@ -160,7 +160,7 @@ void RiShaderConstBuffers::setInstancePositions(const float *data, int vec4_coun
                     : min<int>(get_bigger_log2(1 + (vec4_count - 1) / MIN_INST_COUNT), rendinst::render::instancesCB.size() - 1);
 
   rendinst::render::instancesCB[bin]->updateDataWithLock(0, vec4_count * sizeof(vec4f), data, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-  // d3d::set_buffer(STAGE_VS, INSTANCING_TEXREG, rendinst::render::instancesCB[bin]);
+  // d3d::set_buffer(STAGE_VS, instancingTexRegNo, rendinst::render::instancesCB[bin]);
   // on my 1070 ConstBuffer is proven to work faster than TB. We can actually handle a lot of instances in one CB. It may be worth
   // switching to CB only instancing... however, in synthetic tests both TB and SB were faster than CB when fetch 3 float4. I guess,
   // the difference is that we sample just ONE float4 for trees, and cache prefetching doesn't help us (like it does in TB/SB)

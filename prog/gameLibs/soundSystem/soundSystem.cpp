@@ -96,8 +96,9 @@ static int g_max_channels = 0;
 static int g_max_software_channels = 0;
 static bool g_fixed_mem_pool = true;
 
-static int g_last_records_list_changed_time = 0;
-static int g_last_outputs_list_changed_time = 0;
+static record_list_changed_cb_t g_record_list_changed_cb = nullptr;
+static output_list_changed_cb_t g_output_list_changed_cb = nullptr;
+static device_lost_cb_t g_device_lost_cb = nullptr;
 
 static bool g_auto_change_device = false;
 
@@ -468,17 +469,15 @@ static FMOD_RESULT F_CALLBACK fmod_debug_cb(FMOD_DEBUG_FLAGS flags, const char *
 }
 #endif
 
-void init(const DataBlock &blk)
+bool init(const DataBlock &blk)
 {
-  SNDSYS_MAIN_THREAD;
+  SNDSYS_IS_MAIN_THREAD;
 
+  G_ASSERT(!is_inited());
   if (is_inited())
-    return;
+    return false;
 
   ScoopedJavaThreadAttacher scoopedJavaThreadAttacher;
-
-  g_last_outputs_list_changed_time = g_last_records_list_changed_time = get_time_msec();
-  g_is_inited = true;
 
   debug_init(blk);
 
@@ -511,11 +510,11 @@ void init(const DataBlock &blk)
   {
     debug("[SNDSYS] Not inited.");
     shutdown();
-    return;
+    return false;
   }
 
   events_init(blk);
-  streams::init(blk, settings::virtual_vol_limit);
+  streams::init(blk, settings::virtual_vol_limit, g_low_level_system);
   delayed::init(blk);
 
   eastl::basic_string<char, framemem_allocator> memoryInfo;
@@ -530,14 +529,15 @@ void init(const DataBlock &blk)
 #if _TARGET_IOS
   registerIOSNotifications(&set_snd_suspend);
 #endif
+
+  g_is_inited = true;
+
+  return g_is_inited;
 }
 
 void shutdown()
 {
-  SNDSYS_MAIN_THREAD;
-
-  if (!is_inited())
-    return;
+  SNDSYS_IS_MAIN_THREAD;
 
   ScoopedJavaThreadAttacher scoopedJavaThreadAttacher;
 
@@ -659,20 +659,23 @@ static FMOD_RESULT F_CALLBACK fmod_system_cb(FMOD_SYSTEM * /*system*/, FMOD_SYST
   if (type == FMOD_SYSTEM_CALLBACK_RECORDLISTCHANGED)
   {
     debug("[SNDSYS] Record devices list changed");
-    g_last_records_list_changed_time = get_time_msec();
+    if (g_record_list_changed_cb != nullptr)
+      g_record_list_changed_cb();
   }
   else if (type == FMOD_SYSTEM_CALLBACK_DEVICELISTCHANGED)
   {
     debug("[SNDSYS] Devices list changed");
     validate_output();
-    g_last_outputs_list_changed_time = get_time_msec();
+    if (g_output_list_changed_cb != nullptr)
+      g_output_list_changed_cb();
     if (g_auto_change_device)
       select_default_device();
   }
   else if (type == FMOD_SYSTEM_CALLBACK_DEVICELOST)
   {
     debug("[SNDSYS] Device lost");
-    g_last_outputs_list_changed_time = get_time_msec();
+    if (g_device_lost_cb != nullptr)
+      g_device_lost_cb();
     if (g_auto_change_device)
       select_default_device();
   }
@@ -753,7 +756,6 @@ static bool is_loopback_record_device(const char *dev_name)
 
 eastl::vector<DeviceInfo> get_record_devices()
 {
-
   eastl::vector<DeviceInfo> devices;
   SNDSYS_IF_NOT_INITED_RETURN_(devices);
   ScoopedJavaThreadAttacher scoopedJavaThreadAttacher;
@@ -804,13 +806,18 @@ void set_snd_suspend(bool suspend)
   suspend ? fmodapi::get_system()->mixerSuspend() : fmodapi::get_system()->mixerResume();
 }
 
-int get_last_records_list_changed_time() { return g_last_records_list_changed_time; }
-
-int get_last_outputs_list_changed_time() { return g_last_outputs_list_changed_time; }
+void set_device_changed_async_callbacks(record_list_changed_cb_t record_list_changed_cb,
+  output_list_changed_cb_t output_list_changed_cb, device_lost_cb_t device_lost_cb)
+{
+  SNDSYS_IS_MAIN_THREAD;
+  g_record_list_changed_cb = record_list_changed_cb;
+  g_output_list_changed_cb = output_list_changed_cb;
+  g_device_lost_cb = device_lost_cb;
+}
 
 void flush_commands()
 {
-  SNDSYS_MAIN_THREAD;
+  SNDSYS_IS_MAIN_THREAD;
   SNDSYS_IF_NOT_INITED_RETURN;
   g_system->flushCommands();
 }

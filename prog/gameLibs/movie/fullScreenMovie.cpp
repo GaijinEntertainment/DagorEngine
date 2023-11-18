@@ -211,7 +211,7 @@ static void play_movie(const char *fname, const char *audio_fname, const char *s
 #if _TARGET_PC | _TARGET_C1 | _TARGET_C2 | _TARGET_XBOX
   for (int i = 0; i < 3; ++i)
   {
-    d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL | CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 1, 0);
+    d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 1, 0);
     d3d::update_screen();
     dagor_idle_cycle();
   }
@@ -530,7 +530,7 @@ static void play_movie_gui(const char *fname, const char *audio_fname, const cha
 #if _TARGET_PC | _TARGET_C1 | _TARGET_C2 | _TARGET_XBOX
   for (int i = 0; i < 3; ++i)
   {
-    d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL | CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 1, 0);
+    d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 1, 0);
     d3d::update_screen();
     dagor_idle_cycle();
   }

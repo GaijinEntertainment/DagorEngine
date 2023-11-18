@@ -1637,7 +1637,7 @@ bool load_das_script(const char *name, const char *program_text)
   return scripts.loadScript(fname, access, globally_aot_mode, globally_resolve_ecs_on_load, globally_log_aot_errors);
 }
 
-inline bool internal_load_das_script_sync(const char *fname, ResolveECS resolve_ecs)
+static inline bool internal_load_das_script_sync(const char *fname, ResolveECS resolve_ecs)
 {
   String tmpPath;
   return scripts.loadScript(dd_resolve_named_mount(tmpPath, fname) ? tmpPath.c_str() : fname,
@@ -1645,15 +1645,23 @@ inline bool internal_load_das_script_sync(const char *fname, ResolveECS resolve_
     globally_log_aot_errors);
 }
 
-inline bool internal_load_das_script(const char *fname, ResolveECS resolve_ecs)
+bool load_das_script(const char *fname)
 {
   if (globally_loading_in_queue)
-    return bind_dascript::enqueue_das_script(fname);
+  {
+    loadingQueue.push_back(fname);
+#if DAGOR_DBGLEVEL > 0
+    const uint32_t pathHash = ecs_str_hash(fname);
+    if (loadingQueueHash.find(pathHash) != loadingQueueHash.end())
+      logerr("das: file '%s' was loaded multiple times, probably load_folder() was called multiple times with same arguments", fname);
+    else
+      loadingQueueHash.insert(pathHash);
+#endif
+    return true;
+  }
 
-  return internal_load_das_script_sync(fname, resolve_ecs);
+  return internal_load_das_script_sync(fname, globally_resolve_ecs_on_load);
 }
-
-bool load_das_script(const char *fname) { return internal_load_das_script(fname, globally_resolve_ecs_on_load); }
 
 bool load_das_script_debugger(const char *fname)
 {
@@ -1805,7 +1813,7 @@ static bool load_scripts_from_serialized_data()
   return ok;
 }
 
-static bool stop_das_loading_queue(TInitDas init)
+bool stop_loading_queue(TInitDas init)
 {
   globally_loading_in_queue = false;
 
@@ -1899,50 +1907,42 @@ static bool stop_das_loading_queue(TInitDas init)
   return ok;
 }
 
-bool internal_load_entry_script(const char *fname, TInitDas init)
+static bool internal_load_entry_script(const char *fname)
 {
-  G_ASSERT(!globally_loading_in_queue && loadingQueue.empty());
-  globally_loading_in_queue = true;
   const bool res = scripts.loadScript(fname, das::make_smart<DagFileAccess>(scripts.getFileAccess(), globally_hot_reload),
     globally_aot_mode, ResolveECS::NO, globally_log_aot_errors);
-  return stop_das_loading_queue(init) && res;
+  return res;
 }
 
-bool enqueue_das_script(const char *fname)
+static uint64_t entryScriptStartTime;
+static size_t entryScriptMemUsed;
+
+void begin_loading_queue()
 {
-  loadingQueue.push_back(fname);
-#if DAGOR_DBGLEVEL > 0
-  const uint32_t pathHash = ecs_str_hash(fname);
-  if (loadingQueueHash.find(pathHash) != loadingQueueHash.end())
-    logerr("das: file '%s' was loaded multiple times, probably load_folder() was called multiple times with same arguments", fname);
-  else
-    loadingQueueHash.insert(pathHash);
-#endif
-  return true;
+  entryScriptStartTime = profile_ref_ticks();
+  scripts.statistics = {}; // reset das load stats from previous load
+  entryScriptMemUsed = dagor_memory_stat::get_memory_allocated(true);
+  G_ASSERT(!globally_loading_in_queue && loadingQueue.empty());
+  globally_loading_in_queue = true;
 }
 
 bool load_entry_script(const char *entry_point_name, TInitDas init, LoadEntryScriptCtx ctx)
 {
-  const uint64_t startTime = profile_ref_ticks();
-  scripts.statistics = {}; // reset das load stats from previous load
-  const size_t memUsed = dagor_memory_stat::get_memory_allocated(true);
-  bool res = false;
-  if (globally_load_threads_num > 1)
-  {
-    das::ReuseCacheGuard guard;
-    res = internal_load_entry_script(entry_point_name, init);
-  }
-  else
-  {
-    res = internal_load_entry_script(entry_point_name, init);
-  }
+  begin_loading_queue();
+  bool res = internal_load_entry_script(entry_point_name) && stop_loading_queue(init);
+  end_loading_queue(ctx);
+  return res;
+}
+
+void end_loading_queue(LoadEntryScriptCtx ctx)
+{
   scripts.done();
   scripts.cleanupMemoryUsage();
   initDeserializer.moduleLibrary = nullptr; // Memory has already been reset
-  scripts.statistics.loadTimeMs = profile_time_usec(startTime) / 1000;
-  scripts.statistics.memoryUsage = int64_t(dagor_memory_stat::get_memory_allocated(true) - memUsed) + ctx.additionalMemoryUsage;
+  scripts.statistics.loadTimeMs = profile_time_usec(entryScriptStartTime) / 1000;
+  scripts.statistics.memoryUsage =
+    int64_t(dagor_memory_stat::get_memory_allocated(true) - entryScriptMemUsed) + ctx.additionalMemoryUsage;
   dump_statistics();
-  return res;
 }
 
 bool main_thread_post_load()
@@ -3065,6 +3065,7 @@ void das_load_ecs_templates()
   scripts.postProcessModuleGroups(); // currently module groups contains only templates
 }
 } // namespace bind_dascript
+DAG_DECLARE_RELOCATABLE(bind_dascript::DascriptLoadJob);
 
 static void pull()
 {

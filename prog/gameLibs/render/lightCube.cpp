@@ -1,5 +1,4 @@
 #include <3d/dag_drv3d.h>
-#include <render/dynamicCube.h>
 #include <3d/dag_resPtr.h>
 #include <math/dag_TMatrix4.h>
 #include <shaders/dag_shaders.h>
@@ -100,6 +99,7 @@ public:
           d3d::set_render_target(i, nullptr, 0);
       }
     }
+    d3d::settex(7, nullptr);
     if (cubTex == tex.getCubeTex())
       cubTex->texmiplevel(-1, -1);
   }

@@ -10,6 +10,7 @@
 #include <Guiddef.h>
 #include <unknwn.h>
 #include <EASTL/type_traits.h>
+#include <util/dag_globDef.h>
 
 // copy paste (with some small changes) from wrl/client.h
 // don't blame me for the stupid shit of this...

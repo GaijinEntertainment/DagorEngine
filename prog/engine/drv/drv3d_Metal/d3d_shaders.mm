@@ -66,7 +66,7 @@ PROGRAM d3d::create_program(const uint32_t *vpr_native, const uint32_t *fsh_nati
 }
 
 //if strides & streams are unset, will get them from VDECL
-PROGRAM d3d::create_program_cs(const uint32_t *cs_native)
+PROGRAM d3d::create_program_cs(const uint32_t *cs_native, CSPreloaded)
 {
   return render.createComputeProgram((const uint8_t*)cs_native);
 }

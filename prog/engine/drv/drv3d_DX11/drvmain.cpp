@@ -942,7 +942,7 @@ FSHADER d3d::create_pixel_shader_asm(const char * /*asm_text*/) { return BAD_FSH
 
 bool d3d::setscissor(int x, int y, int w, int h)
 {
-  G_ASSERT(w > 0 && h > 0);
+  G_ASSERTF(w > 0 && h > 0, "%s(%d, %d, %d, %d)", __FUNCTION__, x, y, w, h);
   g_render_state.nextRasterizerState.scissor_x = x;
   g_render_state.nextRasterizerState.scissor_y = y;
   g_render_state.nextRasterizerState.scissor_w = w;

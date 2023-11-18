@@ -434,7 +434,7 @@ void ParticleSystem::emit(float dt)
       continue;
 
     float maxLifetime = emitter.params.spawn.lifeTime + emitter.params.spawn.lifeSpread;
-    float maxAllowedEmissionFrequency = MAX_PARTICLES_PER_EMITTER / maxLifetime * 0.9f;
+    float maxAllowedEmissionFrequency = maxLifetime > 0.f ? MAX_PARTICLES_PER_EMITTER / maxLifetime * 0.9f : 0.f;
     float distance = length(emitter.lastPos - emitter.params.pose.pos);
     float emitPerSecond = min(emitter.params.spawn.emitPerSecond, maxAllowedEmissionFrequency);
     float emitPerMeter = emitter.params.spawn.emitPerMeter;

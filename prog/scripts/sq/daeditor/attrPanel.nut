@@ -31,7 +31,7 @@ let mkSortModeButton = require("components/mkSortModeButton.nut")
 let cursors = require("components/cursors.nut")
 let {mkTemplateTooltip, mkCompMetaInfoText} = require("components/templateHelp.nut")
 let {getCompSqTypePropEdit, getCompNamePropEdit} = require("propPanelControls.nut")
-let scrollbar = require("%daeditor/components/scrollbar.nut")
+let {makeVertScroll} = require("%daeditor/components/scrollbar.nut")
 
 let fieldReadOnly = require("components/apFieldReadOnly.nut")
 let compNameFilter = require("components/apNameFilter.nut")(filterString, selectedCompName)
@@ -1169,7 +1169,7 @@ let function compPanel() {
       size = flex()
       rendObj = ROBJ_SOLID
       color = Color(50,50,50,100)
-      children = scrollbar.makeVertScroll(rows, {
+      children = makeVertScroll(rows, {
         rootBase = class {
           size = flex()
           flow = FLOW_VERTICAL
@@ -1201,7 +1201,7 @@ let function compPanel() {
       size = flex()
       rendObj = ROBJ_SOLID
       color = Color(50,50,50,100)
-      children = scrollbar.makeVertScroll(listRows, {
+      children = makeVertScroll(listRows, {
         rootBase = class {
           size = flex()
           flow = FLOW_VERTICAL

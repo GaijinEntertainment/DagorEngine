@@ -45,6 +45,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <math/dag_colorMatrix.h>
 
 #include <debug/dag_debug.h>

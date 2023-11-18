@@ -2,6 +2,7 @@
 
 
 #include <de3_dynRenderService.h>
+#include <render/dag_cur_view.h>
 #include <streaming/dag_streamingBase.h>
 #include <scene/dag_visibility.h>
 #include <ioSys/dag_roDataBlock.h>

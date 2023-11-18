@@ -114,6 +114,10 @@ float4 hierarchRayMarch(float3 rayStart_uv_z, float3 R, float linear_roughness, 
   }
 
   hitRawDepth = result.z;
+
+  // hack: offset texture 1 pixel to raymarch direction for prevention of "leaking" of close objects to reflections of far objects
+  result.xy += normalize(rayStepUVz.xy) * ssr_inv_target_size.xy;//rcp(ssr_target_size.xy);
+
   result.z = linearize_z(result.z, zn_zfar.zw);
 
   return result;

@@ -1,0 +1,20 @@
+WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
+testData/static_analyzer/w248_complexcond.nut:7:8
+
+if (x == null && foo(2))
+    foo(x.y)
+        ^
+else
+
+
+
+AN ERROR HAS OCCURRED [the index 'x' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w248_complexcond.nut line [9]
+
+LOCALS
+[x] NULL
+[foo] CLOSURE=FN:foo
+[vargv] ARRAY=[]
+[this] TABLE={}

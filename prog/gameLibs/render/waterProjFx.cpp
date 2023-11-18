@@ -1,5 +1,6 @@
 #include <render/waterProjFx.h>
 #include <render/viewVecs.h>
+#include <render/dag_cur_view.h>
 #include <ioSys/dag_dataBlock.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_drv3dCmd.h>
@@ -75,7 +76,7 @@ void WaterProjectedFx::setTextures()
     internalTargets[i].setVar();
 }
 
-void WaterProjectedFx::setView() { setView(newViewTM, newProjTM, newViewItm); }
+void WaterProjectedFx::setView() { setView(newViewTM, newProjTM); }
 
 bool WaterProjectedFx::getView(TMatrix4 &view_tm, TMatrix4 &proj_tm, Point3 &camera_pos)
 {
@@ -90,122 +91,129 @@ bool WaterProjectedFx::getView(TMatrix4 &view_tm, TMatrix4 &proj_tm, Point3 &cam
 
 bool WaterProjectedFx::isValidView() const { return numIntersections > 0; }
 
-void WaterProjectedFx::prepare(const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, float water_level,
-  float significant_wave_height, int frame_no)
+void WaterProjectedFx::prepare(const TMatrix &view_tm, const TMatrix &view_itm, const TMatrix4 &proj_tm, const TMatrix4 &glob_tm,
+  float water_level, float significant_wave_height, int frame_no, bool change_projection)
 {
   waterLevel = water_level;
   numIntersections = 0;
 
   newViewTM = view_tm;
   newProjTM = proj_tm;
-  newViewItm = ::grs_cur_view.itm;
-  savedCamPos = ::grs_cur_view.pos;
+  newViewItm = view_itm;
+  savedCamPos = view_itm.getcol(3);
 
-  float wavesDeltaH = max(significant_wave_height * 2.2f, MIN_WAVE_HEIGHT);
-  float waterHeightTop = water_level + wavesDeltaH;
-  float waterHeightBottom = water_level - wavesDeltaH;
-
-  Point3 cameraDir = newViewItm.getcol(2);
-  Point3 cameraPos = newViewItm.getcol(3);
-  Point4 bottomPlane;
-  v_stu(&bottomPlane.x, Frustum(glob_tm).camPlanes[Frustum::BOTTOM]);
-  float cosA = min(bottomPlane.y, CAMERA_PLANE_BOTTOM_MIN_ANGLE);
-  cameraPos += -normalize(Point3(cameraDir.x, 0.0f, cameraDir.z)) *
-               max(waterHeightTop + CAMERA_PLANE_ELEVATION - abs(cameraPos.y), 0.0f) * safediv(cosA, safe_sqrt(1.0f - SQR(cosA)));
-  cameraPos.y = max(abs(cameraPos.y), waterHeightTop + CAMERA_PLANE_ELEVATION) * (cameraPos.y > 0 ? 1.0f : -1.0f);
-  newViewItm.setcol(3, cameraPos);
-
-  newViewTM = orthonormalized_inverse(newViewItm);
-  TMatrix4 currentGlobTm = TMatrix4(newViewTM) * newProjTM;
-
-  // We have current camera frustum - find intersection with water bounds (upper & lower water planes)
-  int i, j;
-  vec4f points[8];
-  Point3 frustumPoints[8];
-  Frustum frustum = Frustum(currentGlobTm);
-  // Points order (it is important) - for edges_vid
-  // -1 1 1
-  // -1 1 0
-  // -1 -1 1
-  // -1 -1 0
-  // 1 1 1
-  // 1 1 0
-  // 1 -1 1
-  // 1 -1 0
-  frustum.generateAllPointFrustm(points);
-
-  Point4 p;
-  for (i = 0; i < 8; i++)
+  if (change_projection)
   {
-    v_stu(&p.x, points[i]);
-    frustumPoints[i] = Point3::xyz(p);
-  }
-  int edges_vid[] = {0, 1, 2, 3, 4, 5, 6, 7, 0, 4, 4, 6, 6, 2, 2, 0, 1, 5, 5, 7, 7, 3, 3, 1};
+    float wavesDeltaH = max(significant_wave_height * 2.2f, MIN_WAVE_HEIGHT);
+    float waterHeightTop = water_level + wavesDeltaH;
+    float waterHeightBottom = water_level - wavesDeltaH;
 
-  // Total 12 frustum edges in frustum * 2 planes
-  carray<Point3, 12 + 12> intersectionPoints;
+    Point3 cameraDir = newViewItm.getcol(2);
+    Point3 cameraPos = newViewItm.getcol(3);
+    Point4 bottomPlane;
+    v_stu(&bottomPlane.x, Frustum(glob_tm).camPlanes[Frustum::BOTTOM]);
+    float cosA = min(bottomPlane.y, CAMERA_PLANE_BOTTOM_MIN_ANGLE);
+    cameraPos += -normalize(Point3(cameraDir.x, 0.0f, cameraDir.z)) *
+                 max(waterHeightTop + CAMERA_PLANE_ELEVATION - abs(cameraPos.y), 0.0f) * safediv(cosA, safe_sqrt(1.0f - SQR(cosA)));
+    cameraPos.y = max(abs(cameraPos.y), waterHeightTop + CAMERA_PLANE_ELEVATION) * (cameraPos.y > 0 ? 1.0f : -1.0f);
+    newViewItm.setcol(3, cameraPos);
 
-  for (j = 0; j < 2; j++)
-  {
-    float waterPlaneHeight = j == 0 ? waterHeightTop : waterHeightBottom;
-    for (i = 0; i < 24; i += 2)
+    newViewTM = orthonormalized_inverse(newViewItm);
+    TMatrix4 currentGlobTm = TMatrix4(newViewTM) * newProjTM;
+
+    // We have current camera frustum - find intersection with water bounds (upper & lower water planes)
+    int i, j;
+    vec4f points[8];
+    Point3 frustumPoints[8];
+    Frustum frustum = Frustum(currentGlobTm);
+    // Points order (it is important) - for edges_vid
+    // -1 1 1
+    // -1 1 0
+    // -1 -1 1
+    // -1 -1 0
+    // 1 1 1
+    // 1 1 0
+    // 1 -1 1
+    // 1 -1 0
+    frustum.generateAllPointFrustm(points);
+
+    Point4 p;
+    for (i = 0; i < 8; i++)
     {
-      // Frustum edge
-      Point3 &p1 = frustumPoints[edges_vid[i]];
-      Point3 &p2 = frustumPoints[edges_vid[i + 1]];
+      v_stu(&p.x, points[i]);
+      frustumPoints[i] = Point3::xyz(p);
+    }
+    int edges_vid[] = {0, 1, 2, 3, 4, 5, 6, 7, 0, 4, 4, 6, 6, 2, 2, 0, 1, 5, 5, 7, 7, 3, 3, 1};
 
-      float planeDist1 = p1.y - waterPlaneHeight;
-      float planeDist2 = p2.y - waterPlaneHeight;
+    // Total 12 frustum edges in frustum * 2 planes
+    carray<Point3, 12 + 12> intersectionPoints;
 
-      if (planeDist1 * planeDist2 < 0.f) // Points are opposite side of the plane? - then edge intersects the plane
+    for (j = 0; j < 2; j++)
+    {
+      float waterPlaneHeight = j == 0 ? waterHeightTop : waterHeightBottom;
+      for (i = 0; i < 24; i += 2)
       {
-        float k = safediv(planeDist1, planeDist1 - planeDist2); // Should be positive
-        Point3 intersectionPoint = p1 + (p2 - p1) * k;          // Frustum-edge intersection point with water plane
-        intersectionPoint.y = water_level;                      // Project point exactly on plane which we use for rendering
-        intersectionPoints[numIntersections++] = intersectionPoint;
+        // Frustum edge
+        Point3 &p1 = frustumPoints[edges_vid[i]];
+        Point3 &p2 = frustumPoints[edges_vid[i + 1]];
+
+        float planeDist1 = p1.y - waterPlaneHeight;
+        float planeDist2 = p2.y - waterPlaneHeight;
+
+        if (planeDist1 * planeDist2 < 0.f) // Points are opposite side of the plane? - then edge intersects the plane
+        {
+          float k = safediv(planeDist1, planeDist1 - planeDist2); // Should be positive
+          Point3 intersectionPoint = p1 + (p2 - p1) * k;          // Frustum-edge intersection point with water plane
+          intersectionPoint.y = water_level;                      // Project point exactly on plane which we use for rendering
+          intersectionPoints[numIntersections++] = intersectionPoint;
+        }
       }
     }
-  }
 
-  if (numIntersections > 0)
+    if (numIntersections > 0)
+    {
+      // Project all points on screen & calculate x&y bounds
+      Point2 boxMin = Point2(10000.f, 10000.f);
+      Point2 boxMax = Point2(-10000.f, -10000.f);
+      for (i = 0; i < numIntersections; i++)
+      {
+        currentGlobTm.transform(intersectionPoints[i], p);
+        boxMin.x = min(boxMin.x, safediv(p.x, p.w));
+        boxMin.y = min(boxMin.y, safediv(p.y, p.w));
+
+        boxMax.x = max(boxMax.x, safediv(p.x, p.w));
+        boxMax.y = max(boxMax.y, safediv(p.y, p.w));
+      }
+      boxMin.x = clamp(boxMin.x, -2.0f, 2.0f);
+      boxMin.y = clamp(boxMin.y, -2.0f, 2.0f);
+      boxMax.x = clamp(boxMax.x, -2.0f, 2.0f) + 0.001f;
+      boxMax.y = clamp(boxMax.y, -2.0f, 2.0f) + 0.001f;
+      TMatrix4 cropMatrix = matrix_perspective_crop(boxMin.x, boxMax.x, boxMin.y, boxMax.y, 0.0f, 1.0f);
+      newProjTM = newProjTM * cropMatrix;
+    }
+  }
+  else
   {
-    // Project all points on screen & calculate x&y bounds
-    Point2 boxMin = Point2(10000.f, 10000.f);
-    Point2 boxMax = Point2(-10000.f, -10000.f);
-    for (i = 0; i < numIntersections; i++)
-    {
-      currentGlobTm.transform(intersectionPoints[i], p);
-      boxMin.x = min(boxMin.x, safediv(p.x, p.w));
-      boxMin.y = min(boxMin.y, safediv(p.y, p.w));
-
-      boxMax.x = max(boxMax.x, safediv(p.x, p.w));
-      boxMax.y = max(boxMax.y, safediv(p.y, p.w));
-    }
-    boxMin.x = clamp(boxMin.x, -2.0f, 2.0f);
-    boxMin.y = clamp(boxMin.y, -2.0f, 2.0f);
-    boxMax.x = clamp(boxMax.x, -2.0f, 2.0f) + 0.001f;
-    boxMax.y = clamp(boxMax.y, -2.0f, 2.0f) + 0.001f;
-    TMatrix4 cropMatrix = matrix_perspective_crop(boxMin.x, boxMax.x, boxMin.y, boxMax.y, 0.0f, 1.0f);
-    newProjTM = newProjTM * cropMatrix;
-
-    if (taaEnabled)
-    {
-      const float watJitterx = 0.2f / ((float)frameWidth);
-      const float watJittery = 0.2f / ((float)frameHeight);
-
-      float xShift = (float)(frame_no % 2);
-      float yShift = (float)((frame_no % 4) / 2);
-      curJitter = Point2((-3.0f + 4.0f * xShift + 2.0f * yShift) * watJitterx, (-1.0f - 2.0f * xShift + 4.0f * yShift) * watJittery);
-      TMatrix4 jitterMatrix;
-      jitterMatrix.setcol(0, 1.f, 0.f, 0.f, 0.f);
-      jitterMatrix.setcol(1, 0.f, 1.f, 0.f, 0.f);
-      jitterMatrix.setcol(2, 0.f, 0.f, 1.f, 0.f);
-      jitterMatrix.setcol(3, curJitter.x, curJitter.y, 0.f, 1.f);
-      newProjTMJittered = newProjTM * jitterMatrix.transpose();
-    }
+    numIntersections = 1;
   }
 
-  currentGlobTm = TMatrix4(newViewTM) * newProjTM;
+  if (isValidView() && taaEnabled)
+  {
+    const float watJitterx = 0.2f / ((float)frameWidth);
+    const float watJittery = 0.2f / ((float)frameHeight);
+
+    float xShift = (float)(frame_no % 2);
+    float yShift = (float)((frame_no % 4) / 2);
+    curJitter = Point2((-3.0f + 4.0f * xShift + 2.0f * yShift) * watJitterx, (-1.0f - 2.0f * xShift + 4.0f * yShift) * watJittery);
+    TMatrix4 jitterMatrix;
+    jitterMatrix.setcol(0, 1.f, 0.f, 0.f, 0.f);
+    jitterMatrix.setcol(1, 0.f, 1.f, 0.f, 0.f);
+    jitterMatrix.setcol(2, 0.f, 0.f, 1.f, 0.f);
+    jitterMatrix.setcol(3, curJitter.x, curJitter.y, 0.f, 1.f);
+    newProjTMJittered = newProjTM * jitterMatrix.transpose();
+  }
+
+  TMatrix4 currentGlobTm = TMatrix4(newViewTM) * newProjTM;
   process_tm_for_drv_consts(currentGlobTm);
   setWaterMatrix(currentGlobTm);
 }
@@ -289,9 +297,7 @@ bool WaterProjectedFx::render(IWwaterProjFxRenderHelper *render_helper, dag::Spa
   bool taaEnabledForThisFrame = taaEnabled && !targetsCleared;
 
   SCOPE_VIEW_PROJ_MATRIX;
-  DagorCurView savedView = ::grs_cur_view;
-
-  setView(newViewTM, taaEnabledForThisFrame ? newProjTMJittered : newProjTM, newViewItm);
+  setView(newViewTM, taaEnabledForThisFrame ? newProjTMJittered : newProjTM);
 
   SCOPE_RENDER_TARGET;
   if (!targetsCleared)
@@ -317,7 +323,6 @@ bool WaterProjectedFx::render(IWwaterProjFxRenderHelper *render_helper, dag::Spa
     renderedAnything |= render_helper->render_geometry_without_aa();
 
   ShaderGlobal::set_int(renderWaterProjectibleDecalsVarId, 0);
-  ::grs_cur_view = savedView;
 
   if (taaEnabledForThisFrame)
   {
@@ -384,7 +389,7 @@ bool WaterProjectedFx::render(IWwaterProjFxRenderHelper *render_helper, dag::Spa
     for (int i = 0; i < nTargets; ++i)
       d3d::set_render_target(i, targets[i].getTex2D(), 0);
 
-    setView(newViewTM, newProjTM, newViewItm);
+    setView(newViewTM, newProjTM);
     renderedAnything |= render_helper->render_geometry_without_aa();
 
     ShaderGlobal::setBlock(globalFrameId, ShaderGlobal::LAYER_FRAME);
@@ -395,13 +400,10 @@ bool WaterProjectedFx::render(IWwaterProjFxRenderHelper *render_helper, dag::Spa
   return renderedAnything;
 }
 
-void WaterProjectedFx::setView(const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix &view_itm)
+void WaterProjectedFx::setView(const TMatrix &view_tm, const TMatrix4 &proj_tm)
 {
   d3d::settm(TM_VIEW, view_tm);
   d3d::settm(TM_PROJ, &proj_tm);
-  ::grs_cur_view.itm = view_itm;
-  ::grs_cur_view.tm = view_tm;
-  ::grs_cur_view.pos = view_itm.getcol(3);
 }
 
 void WaterProjectedFx::setWaterMatrix(const TMatrix4 &glob_tm)

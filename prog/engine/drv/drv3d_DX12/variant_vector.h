@@ -5,8 +5,13 @@
 #include <EASTL/span.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/numeric.h>
 #include <perfMon/dag_statDrv.h>
 #include <osApiWrappers/dag_lockProfiler.h>
+#include <atomic>
+
+#include "driver.h"
+
 
 template <typename...>
 struct TypePack;

@@ -262,7 +262,7 @@ struct RayHitStrat : public MaterialRayStrat
     Point3 & /*out_norm*/, rendinst::RendInstDesc *ri_desc, bool &have_collision, int layer_idx, int idx, int pool, int offs,
     int &out_mat_id, int /*cell_idx*/)
   {
-    if (coll_res->rayHit(tm, v_ld(&pos.x), v_ld(&dir.x), in_t, out_mat_id))
+    if (coll_res->rayHit(tm, pos, dir, in_t, rayMatId, out_mat_id))
     {
       if (ri_desc)
       {
@@ -281,7 +281,7 @@ struct RayHitStrat : public MaterialRayStrat
     float in_t, Point3 & /*out_norm*/, rendinst::RendInstDesc *ri_desc, bool &have_collision, int layer_idx, int idx, int pool,
     int offs, int &out_mat_id, int /*cell_idx*/, const BBox3 & /*bbox_all*/)
   {
-    if (coll_res->rayHit(tm, v_ld(&pos.x), v_ld(&dir.x), in_t, out_mat_id))
+    if (coll_res->rayHit(tm, pos, dir, in_t, rayMatId, out_mat_id))
     {
       if (ri_desc)
       {
@@ -786,7 +786,7 @@ static bool rayHit1RiExtra(Trace &trace, rendinst::RendInstDesc *ri_desc, Materi
 }
 
 template <typename Strategy>
-bool rayTraverseRiExtra(bbox3f_cref ray_box, dag::Span<Trace> traces, rendinst::RendInstDesc *ri_desc, Strategy &strategy,
+static bool rayTraverseRiExtra(bbox3f_cref ray_box, dag::Span<Trace> traces, rendinst::RendInstDesc *ri_desc, Strategy &strategy,
   bool &haveCollision, riex_handle_t skip_riex_handle = rendinst::RIEX_HANDLE_NULL) // pos bbox here!
 {
   riex_collidable_t ri_h;
@@ -855,7 +855,7 @@ bool rayTraverseRiExtra(bbox3f_cref ray_box, dag::Span<Trace> traces, rendinst::
 }
 
 template <typename Strategy>
-bool rayTraverseRendinst(bbox3f_cref rayBox, dag::Span<Trace> traces, bool trace_meshes, int layer_idx,
+static bool rayTraverseRendinst(bbox3f_cref rayBox, dag::Span<Trace> traces, bool trace_meshes, int layer_idx,
   rendinst::RendInstDesc *ri_desc, Strategy &strategy, bool &haveCollision) // pos bbox here!
 {
   RendInstGenData *rgl = rendinst::rgLayer[layer_idx];
@@ -907,7 +907,7 @@ bool rayTraverseRendinst(bbox3f_cref rayBox, dag::Span<Trace> traces, bool trace
 }
 
 template <typename Strategy>
-bool rayTraverse(dag::Span<Trace> traces, bool trace_meshes, rendinst::RendInstDesc *ri_desc, Strategy &strategy,
+static bool rayTraverse(dag::Span<Trace> traces, bool trace_meshes, rendinst::RendInstDesc *ri_desc, Strategy &strategy,
   riex_handle_t skip_riex_handle = rendinst::RIEX_HANDLE_NULL) // pos bbox here!
 {
   bool haveCollision = false;

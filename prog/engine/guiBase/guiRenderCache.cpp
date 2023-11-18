@@ -28,8 +28,8 @@ bool GuiVertexData::create(int num_vertices, int num_indices, const char *name)
   G_ASSERTF(!vb && !ib, "vb=%p ib=%p, destroy() not called?", ib, vb);
   int minIndices = max(num_indices, 6); // dummy minimal index buffer
   int flag32 = (indexSize() > 2) ? SBCF_INDEX32 : 0;
-  vb = d3d::create_vb(int(num_vertices * elemSize()), SBCF_MAYBELOST | SBCF_DYNAMIC, name);
-  ib = d3d::create_ib(int(minIndices * indexSize()), SBCF_MAYBELOST | SBCF_DYNAMIC | flag32);
+  vb = d3d::create_vb(int(num_vertices * elemSize()), SBCF_DYNAMIC, name);
+  ib = d3d::create_ib(int(minIndices * indexSize()), SBCF_DYNAMIC | flag32);
   if (vb && ib)
   {
     verticesTotal = num_vertices;

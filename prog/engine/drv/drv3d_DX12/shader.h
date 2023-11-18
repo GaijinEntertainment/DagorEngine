@@ -5,6 +5,7 @@
 #include <EASTL/variant.h>
 #include <EASTL/unordered_set.h>
 #include <EASTL/set.h>
+#include <EASTL/bitset.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_rwLock.h>
 #include <util/dag_hashedKeyMap.h>
@@ -13,9 +14,17 @@
 #include <osApiWrappers/dag_atomic.h>
 #include <shadersBinaryData.h>
 
-static constexpr uint32_t MAX_VERTEX_ATTRIBUTES = 16;
-static constexpr uint32_t MAX_VERTEX_INPUT_STREAMS = 4;
-static constexpr uint32_t MAX_SEMANTIC_INDEX = VSDR_TEXC14 + 1;
+#include "driver.h"
+#include "shader_program_id.h"
+#include "tagged_handles.h"
+#include "dynamic_array.h"
+#include "byte_units.h"
+#include "bitfield.h"
+
+
+inline constexpr uint32_t MAX_VERTEX_ATTRIBUTES = 16;
+inline constexpr uint32_t MAX_VERTEX_INPUT_STREAMS = 4;
+inline constexpr uint32_t MAX_SEMANTIC_INDEX = VSDR_TEXC14 + 1;
 
 namespace drv3d_dx12
 {
@@ -1297,7 +1306,7 @@ class ShaderProgramDatabase
   ShaderID newRawPixelShader(DeviceContext &ctx, const dxil::ShaderHeader &header, dag::ConstSpan<uint8_t> byte_code);
 
 public:
-  ProgramID newComputeProgram(DeviceContext &ctx, const void *data);
+  ProgramID newComputeProgram(DeviceContext &ctx, const void *data, CSPreloaded preloaded);
   ProgramID newGraphicsProgram(DeviceContext &ctx, InputLayoutID vdecl, ShaderID vs, ShaderID ps);
   InputLayoutID getInputLayoutForGraphicsProgram(ProgramID program);
   GraphicsProgramUsageInfo getGraphicsProgramForStateUpdate(ProgramID program);
@@ -1396,7 +1405,7 @@ public:
   template <typename T>
   void enumerateShaderFromHash(const dxil::HashValue &hash, T reciever) const
   {
-    for (uint32_t gi = 0; gi < array_size(dumps); ++gi)
+    for (uint32_t gi = 0; gi < countof(dumps); ++gi)
     {
       auto &group = dumps[gi];
       if (!group.owner)
@@ -1758,7 +1767,7 @@ public:
         return ShaderID::make(0, si);
       }
     }
-    for (uint32_t gi = 0; gi < array_size(shaderGroup); ++gi)
+    for (uint32_t gi = 0; gi < countof(shaderGroup); ++gi)
     {
       auto &group = shaderGroup[gi].vertex;
       for (uint32_t si = 0; si < group.size(); ++si)
@@ -1786,7 +1795,7 @@ public:
         return ShaderID::make(0, si);
       }
     }
-    for (uint32_t gi = 0; gi < array_size(shaderGroup); ++gi)
+    for (uint32_t gi = 0; gi < countof(shaderGroup); ++gi)
     {
       auto &group = shaderGroup[gi].pixel;
       for (uint32_t si = 0; si < group.size(); ++si)

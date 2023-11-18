@@ -40,4 +40,5 @@ THE SOFTWARE.
    stddatetimelib.rst
    stdstringlib.rst
    stdauxlib.rst
+   stddebuglib.rst
 

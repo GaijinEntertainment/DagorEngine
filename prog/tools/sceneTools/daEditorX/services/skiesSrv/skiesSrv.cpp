@@ -18,6 +18,7 @@
 #include <3d/dag_tex3d.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <math/dag_mathAng.h>
 #include <astronomy/astronomy.h>
 #include <math/dag_mathUtils.h>

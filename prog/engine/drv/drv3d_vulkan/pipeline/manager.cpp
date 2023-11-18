@@ -9,7 +9,7 @@ using namespace drv3d_vulkan;
 void PipelineManager::addCompute(VulkanDevice &device, VulkanPipelineCacheHandle cache, ProgramID program, const ShaderModuleBlob &sci,
   const ShaderModuleHeader &header)
 {
-  ComputePipeline::CreationInfo info = {&sci, {{&header}}};
+  ComputePipeline::CreationInfo info = {&sci, {{&header}}, asyncCompileEnabled()};
   compute.add(device, program, cache, info);
 }
 

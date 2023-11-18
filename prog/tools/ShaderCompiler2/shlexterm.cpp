@@ -3,6 +3,7 @@
 #include <debug/dag_log.h>
 #include "shsyn.h"
 #include "shsem.h"
+#include "globVarSem.h"
 #include "boolVar.h"
 using namespace ShaderTerminal;
 #include <debug/dag_debug.h>
@@ -229,6 +230,7 @@ struct MyShaderSyntaxParser : public ShaderSyntaxParser
   void add_shader(shader_decl *d)           override { ShaderParser::add_shader(d, *this); }
   void add_block(block_decl *d)             override { ShaderParser::add_block(d, *this); }
   void add_global_var(global_var_decl *d)   override { ShaderParser::add_global_var(d, *this); }
+  void add_sampler(sampler_decl *d)         override { ShaderParser::add_sampler(d, *this); }
   void add_global_interval(interval &i)     override { ShaderParser::add_global_interval(i, *this); }
   void add_global_assume(assume_stat &a)    override { ShaderParser::add_global_assume(a, *this); }
   void add_global_bool(bool_decl &d)        override { ShaderParser::add_global_bool(d, *this); }

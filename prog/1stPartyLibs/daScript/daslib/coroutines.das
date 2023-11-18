@@ -24,6 +24,7 @@ class private YieldFrom : AstCallMacro
     //! The idea is that coroutine or generator can continuesly yield from another sub-coroutine or generator.
     def override visit ( prog:ProgramPtr; mod:Module?; var call:smart_ptr<ExprCallMacro> ) : ExpressionPtr
         macro_verify( call.arguments |> length==1,prog,call.at,"expecting yeild_from(iterator)" )
+        macro_verify( call.arguments[0]._type!=null,prog,call.at,"expecting iterator" )
         macro_verify( call.arguments[0]._type.isIterator,prog,call.at,"expecting iterator" )
         let iname = make_unique_private_name("_yield_from_iterator",call.at)
         return <- qmacro_block <|

@@ -46,3 +46,5 @@ static constexpr unsigned HUID_ICableService = 0xA55B0B19u;         // ICableSer
 static constexpr unsigned HUID_ISplineGenService = 0x29780D3Eu;     // ISplineGenService
 static constexpr unsigned HUID_IGPUGrassService = 0x42424242u;      // IGPUGrassService
 static constexpr unsigned HUID_IWindService = 0xE1F67B0Bu;          // IWindService
+
+static constexpr unsigned HUID_IPixelPerfectSelectionService = 0xC7DED060u; // IPixelPerfectSelectionService

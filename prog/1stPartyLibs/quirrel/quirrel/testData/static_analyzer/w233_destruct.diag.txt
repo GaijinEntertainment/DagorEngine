@@ -1,0 +1,8 @@
+WARNING: w228 (declared-never-used) let 'y' was declared but never used.
+testData/static_analyzer/w233_destruct.nut:3:0
+
+local x = 10
+let y = x > 320 ? @() 20 : function() { return 30 }
+^--------------------------------------------------
+
+

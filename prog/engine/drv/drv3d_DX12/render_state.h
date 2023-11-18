@@ -1,6 +1,18 @@
 #pragma once
 
+#include <EASTL/vector.h>
 #include <ioSys/dag_dataBlock.h>
+#include <util/dag_string.h>
+#include <util/dag_strUtil.h>
+#include <osApiWrappers/dag_spinlock.h>
+#include <3d/dag_renderStates.h>
+#include <3d/dag_drv3d.h>
+
+#include "driver.h"
+#include "bitfield.h"
+#include "tagged_handles.h"
+#include "dynamic_array.h"
+
 
 #define MINIMUM_REPRESENTABLE_D32 3e-10
 #define MINIMUM_REPRESENTABLE_D24 33e-8
@@ -8,6 +20,9 @@
 
 namespace drv3d_dx12
 {
+
+class DeviceContext;
+
 BEGIN_BITFIELD_TYPE(PipelineOptionalDynamicStateMask, uint8_t)
   ADD_BITFIELD_MEMBER(hasDepthBoundsTest, 0, 1)
   ADD_BITFIELD_MEMBER(hasStencilTest, 1, 1)

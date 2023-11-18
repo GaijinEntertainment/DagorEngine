@@ -59,7 +59,8 @@ shaders::DriverRenderStateId current_render_state;
 shaders::DriverRenderStateId stretch_prepare_render_state;
 eastl::vector_map<int, shaders::DriverRenderStateId> clear_view_states;
 
-KeyMapHashed<COMProxyPtr<ID3D11BlendState>, BlendState::Key, 128> blend_state_cache; // currently we have ~70 in game, so we use hash
+KeyMapWideHashed<COMProxyPtr<ID3D11BlendState>, BlendState::Key, 128> blend_state_cache; // currently we have ~70 in game, so we use
+                                                                                         // hash
 KeyMapWideHashed<COMProxyPtr<ID3D11RasterizerState>, RasterizerState::Key, 32> rasterizer_state_cache;
 static int rasterizer_state_cacheCount = 0;
 KeyMap<COMProxyPtr<ID3D11DepthStencilState>, DepthStencilState::Key, 16> depth_stencil_state_cache; // currently we have ~10 depth
@@ -353,51 +354,53 @@ ID3D11BlendState *BlendState::getStateObject()
   ZeroMemory(&desc, sizeof(desc));
 
   desc.AlphaToCoverageEnable = toBOOL(alphaToCoverage);
-
-  uint32_t ablendEnableMask = ablendEnable ? 0xFF : 0; // fixme: we should use enabling blend per target. //ablendEnableMrt &
-                                                       // (ablendEnable ? 0xFF : 0);
-
-  bool useIndependentBlend = toBOOL(ablendEnableMask != 0 && ablendEnableMask != 0xFF); // -V560 always false
+  desc.IndependentBlendEnable = independentBlendEnabled;
   for (int i = 1; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-    useIndependentBlend |= (writeMask[0] != writeMask[i]);
-  desc.IndependentBlendEnable = useIndependentBlend;
-
-  bool blendEnable = ablendEnable | sepAblendEnable;
-
-  // available dagor blend modes directly corresponds to D3D11_BLEND
-  D3D11_BLEND ablendSrcASet, ablendDstASet;
-  if (!sepAblendEnable)
   {
-    static D3D11_BLEND blendRemap[20] = {
-      D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ONE,
-      D3D11_BLEND_SRC_ALPHA,     // D3D11_BLEND_SRC_COLOR   = 3,
-      D3D11_BLEND_INV_SRC_ALPHA, // D3D11_BLEND_INV_SRC_COLOR   = 4,
-      D3D11_BLEND_SRC_ALPHA, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_DEST_ALPHA, D3D11_BLEND_INV_DEST_ALPHA,
-      D3D11_BLEND_DEST_ALPHA,     // D3D11_BLEND_DEST_COLOR  = 9,
-      D3D11_BLEND_INV_DEST_ALPHA, // D3D11_BLEND_INV_DEST_COLOR  = 10,
-      D3D11_BLEND_SRC_ALPHA_SAT, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_BLEND_FACTOR, D3D11_BLEND_INV_BLEND_FACTOR,
-      D3D11_BLEND_SRC1_ALPHA,     // D3D11_BLEND_SRC1_COLOR,
-      D3D11_BLEND_INV_SRC1_ALPHA, // D3D11_BLEND_INV_SRC1_COLOR ,
-      D3D11_BLEND_SRC1_ALPHA,
-      D3D11_BLEND_INV_SRC1_ALPHA // 19
-    };
-
-    ablendSrcASet = (D3D11_BLEND)blendRemap[ablendSrc], ablendDstASet = (D3D11_BLEND)blendRemap[ablendDst];
+    desc.IndependentBlendEnable |= (writeMask[0] != writeMask[i]);
   }
-  else
-    ablendSrcASet = (D3D11_BLEND)ablendSrcA, ablendDstASet = (D3D11_BLEND)ablendDstA;
+
   for (int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
+    uint32_t blendParamsId = independentBlendEnabled && (i < shaders::RenderState::NumIndependentBlendParameters) ? i : 0;
+    const auto &blendParams = params[blendParamsId];
+
+    // available dagor blend modes directly corresponds to D3D11_BLEND
+    D3D11_BLEND ablendSrcASet, ablendDstASet;
+    if (!blendParams.sepAblendEnable)
+    {
+      static D3D11_BLEND blendRemap[20] = {
+        D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_ONE,
+        D3D11_BLEND_SRC_ALPHA,     // D3D11_BLEND_SRC_COLOR   = 3,
+        D3D11_BLEND_INV_SRC_ALPHA, // D3D11_BLEND_INV_SRC_COLOR   = 4,
+        D3D11_BLEND_SRC_ALPHA, D3D11_BLEND_INV_SRC_ALPHA, D3D11_BLEND_DEST_ALPHA, D3D11_BLEND_INV_DEST_ALPHA,
+        D3D11_BLEND_DEST_ALPHA,     // D3D11_BLEND_DEST_COLOR  = 9,
+        D3D11_BLEND_INV_DEST_ALPHA, // D3D11_BLEND_INV_DEST_COLOR  = 10,
+        D3D11_BLEND_SRC_ALPHA_SAT, D3D11_BLEND_ZERO, D3D11_BLEND_ZERO, D3D11_BLEND_BLEND_FACTOR, D3D11_BLEND_INV_BLEND_FACTOR,
+        D3D11_BLEND_SRC1_ALPHA,     // D3D11_BLEND_SRC1_COLOR,
+        D3D11_BLEND_INV_SRC1_ALPHA, // D3D11_BLEND_INV_SRC1_COLOR ,
+        D3D11_BLEND_SRC1_ALPHA,
+        D3D11_BLEND_INV_SRC1_ALPHA // 19
+      };
+      ablendSrcASet = blendRemap[blendParams.ablendSrc];
+      ablendDstASet = blendRemap[blendParams.ablendDst];
+    }
+    else
+    {
+      ablendSrcASet = static_cast<D3D11_BLEND>(blendParams.ablendSrcA);
+      ablendDstASet = static_cast<D3D11_BLEND>(blendParams.ablendDstA);
+    }
+
     D3D11_RENDER_TARGET_BLEND_DESC &rtb = desc.RenderTarget[i];
-    rtb.BlendEnable = toBOOL(ablendEnableMask & (1 << i));
+    rtb.BlendEnable = toBOOL(blendParams.ablendEnable);
     if (rtb.BlendEnable)
     {
-      rtb.SrcBlend = (D3D11_BLEND)ablendSrc; // same as D3D11_BLEND
-      rtb.DestBlend = (D3D11_BLEND)ablendDst;
-      rtb.BlendOp = (D3D11_BLEND_OP)ablendOp; // same as D3D11_BLEND_OP
+      rtb.SrcBlend = static_cast<D3D11_BLEND>(blendParams.ablendSrc); // same as D3D11_BLEND
+      rtb.DestBlend = static_cast<D3D11_BLEND>(blendParams.ablendDst);
+      rtb.BlendOp = static_cast<D3D11_BLEND_OP>(blendParams.ablendOp); // same as D3D11_BLEND_OP
       rtb.SrcBlendAlpha = ablendSrcASet;
       rtb.DestBlendAlpha = ablendDstASet;
-      rtb.BlendOpAlpha = D3D11_BLEND_OP(sepAblendEnable ? ablendOpA : ablendOp);
+      rtb.BlendOpAlpha = static_cast<D3D11_BLEND_OP>(blendParams.sepAblendEnable ? blendParams.ablendOpA : blendParams.ablendOp);
     }
     else
     {
@@ -410,7 +413,6 @@ ID3D11BlendState *BlendState::getStateObject()
     }
     rtb.RenderTargetWriteMask = writeMask[i]; // D3D11_COLOR_WRITE_ENABLE
   };
-
 
   {
     HRESULT hr = dx_device->CreateBlendState(&desc, &p.obj);
@@ -912,14 +914,18 @@ bool d3d::set_blend_factor(E3DCOLOR c)
 static DriverRenderState shader_render_state_to_driver_render_state(const shaders::RenderState &state)
 {
   BlendState blendState;
-  blendState.ablendEnable = state.blendParams[0].ablend;
-  blendState.sepAblendEnable = state.blendParams[0].sepablend;
-  blendState.ablendOp = state.blendParams[0].blendOp;
-  blendState.ablendOpA = state.blendParams[0].sepablendOp;
-  blendState.ablendSrc = state.blendParams[0].ablendFactors.src;
-  blendState.ablendDst = state.blendParams[0].ablendFactors.dst;
-  blendState.ablendSrcA = state.blendParams[0].sepablendFactors.src;
-  blendState.ablendDstA = state.blendParams[0].sepablendFactors.dst;
+  blendState.independentBlendEnabled = state.independentBlendEnabled;
+  for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
+  {
+    blendState.params[i].ablendEnable = state.blendParams[i].ablend;
+    blendState.params[i].sepAblendEnable = state.blendParams[i].sepablend;
+    blendState.params[i].ablendOp = state.blendParams[i].blendOp;
+    blendState.params[i].ablendOpA = state.blendParams[i].sepablendOp;
+    blendState.params[i].ablendSrc = state.blendParams[i].ablendFactors.src;
+    blendState.params[i].ablendDst = state.blendParams[i].ablendFactors.dst;
+    blendState.params[i].ablendSrcA = state.blendParams[i].sepablendFactors.src;
+    blendState.params[i].ablendDstA = state.blendParams[i].sepablendFactors.dst;
+  }
   blendState.alphaToCoverage = state.alphaToCoverage;
   uint32_t writeMask = state.colorWr;
   for (size_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; i++, writeMask >>= 4)

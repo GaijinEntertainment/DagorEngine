@@ -25,8 +25,12 @@ struct LodGridVertexData
   int quadsCnt = 0;
   int verticesCnt = 0, indicesCnt = 0, quadsIndicesCnt = 0;
   volatile int refCnt = 0;
+  bool recreateBuffers = false;
   void close();
   bool init(int dim);
+  bool createBuffers();
+  void beforeResetDevice();
+  void afterResetDevice();
 };
 
 class HeightmapHeightCulling

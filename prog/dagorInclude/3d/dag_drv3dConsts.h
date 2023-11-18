@@ -111,10 +111,9 @@ enum
 
 enum
 {
-  SBCF_DYNAMIC = 0x0004,   // Create dynamic buffer
-  SBCF_MAYBELOST = 0x0008, // Buffer contents may be safely lost
-  SBCF_ZEROMEM = 0x0010,   // Make sure driver has cleared the buffer (PS4, PS5)
-  SBCF_INDEX32 = 0x0020,   // Use 32-bit indices
+  SBCF_DYNAMIC = 0x0004, // Create dynamic buffer
+  SBCF_ZEROMEM = 0x0010, // Make sure driver has cleared the buffer (PS4, PS5)
+  SBCF_INDEX32 = 0x0020, // Use 32-bit indices
 
   // Uses fast discard codepath, allowing to more efficiently utilize mem management
   // there's few limitation - it can only be locked with discard flag, there has to be cpu write access flag
@@ -156,33 +155,33 @@ enum
   // Buffer flag sets.
   // Const buffers
   // Such buffers could be updated from time to time.
-  SBCF_CB_PERSISTENT = SBCF_BIND_CONSTANT | SBCF_DYNAMIC | SBCF_MAYBELOST,
+  SBCF_CB_PERSISTENT = SBCF_BIND_CONSTANT | SBCF_DYNAMIC,
   // Such buffers must be updated every frame. Because of that we don't care about its content on device reset.
-  SBCF_CB_ONE_FRAME = SBCF_BIND_CONSTANT | SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_FRAMEMEM,
+  SBCF_CB_ONE_FRAME = SBCF_BIND_CONSTANT | SBCF_DYNAMIC | SBCF_FRAMEMEM,
 
   // UAV buffers
   // (RW)ByteAddressBuffer in shader.
-  SBCF_UA_SR_BYTE_ADDRESS = SBCF_BIND_UNORDERED | SBCF_MAYBELOST | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES,
+  SBCF_UA_SR_BYTE_ADDRESS = SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES,
   // (RW)StructuredBuffer in shader.
-  SBCF_UA_SR_STRUCTURED = SBCF_BIND_UNORDERED | SBCF_MAYBELOST | SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES,
+  SBCF_UA_SR_STRUCTURED = SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES,
   // RWByteAddressBuffer in shader.
-  SBCF_UA_BYTE_ADDRESS = SBCF_BIND_UNORDERED | SBCF_MAYBELOST | SBCF_MISC_ALLOW_RAW,
+  SBCF_UA_BYTE_ADDRESS = SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW,
   // RWStructuredBuffer in shader.
-  SBCF_UA_STRUCTURED = SBCF_BIND_UNORDERED | SBCF_MAYBELOST | SBCF_MISC_STRUCTURED,
+  SBCF_UA_STRUCTURED = SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED,
   // The same as SBCF_UA_BYTE_ADDRESS but its content can be read on CPU
-  SBCF_UA_BYTE_ADDRESS_READBACK = SBCF_BIND_UNORDERED | SBCF_MAYBELOST | SBCF_MISC_ALLOW_RAW | SBCF_USAGE_READ_BACK,
+  SBCF_UA_BYTE_ADDRESS_READBACK = SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_USAGE_READ_BACK,
   // The same as SBCF_UA_STRUCTURED but its content can be read on CPU
-  SBCF_UA_STRUCTURED_READBACK = SBCF_BIND_UNORDERED | SBCF_MAYBELOST | SBCF_MISC_STRUCTURED | SBCF_USAGE_READ_BACK,
+  SBCF_UA_STRUCTURED_READBACK = SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED | SBCF_USAGE_READ_BACK,
   // Indirect buffer filled on GPU
-  SBCF_UA_INDIRECT = SBCF_BIND_UNORDERED | SBCF_MAYBELOST | SBCF_MISC_ALLOW_RAW | SBCF_MISC_DRAWINDIRECT,
+  SBCF_UA_INDIRECT = SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_MISC_DRAWINDIRECT,
 
   // GPU RO buffers
   // Indirect buffer filled on CPU
-  SBCF_INDIRECT = SBCF_MAYBELOST | SBCF_MISC_DRAWINDIRECT,
+  SBCF_INDIRECT = SBCF_MISC_DRAWINDIRECT,
 
   // Staging buffer
   // A buffer for data transfer on GPU
-  SBCF_STAGING_BUFFER = SBCF_CPU_ACCESS_READ | SBCF_CPU_ACCESS_WRITE | SBCF_MAYBELOST
+  SBCF_STAGING_BUFFER = SBCF_CPU_ACCESS_READ | SBCF_CPU_ACCESS_WRITE
 };
 
 //--- Render states ---------
@@ -296,6 +295,12 @@ enum class HdrOutputMode // corresponding values in hdr_ps_output.sh
   HDR10_AND_SDR = 1,
   HDR10_ONLY = 2,
   HDR_ONLY = 3
+};
+
+enum class CSPreloaded
+{
+  No,
+  Yes
 };
 
 
@@ -762,7 +767,7 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasCompareSampler}
   static constexpr bool hasCompareSampler = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
-  static constexpr bool hasShaderFloat16Support = false;
+  static constexpr bool hasShaderFloat16Support = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for \scarlett
@@ -795,8 +800,6 @@ struct DeviceDriverCapabilitiesScarlett : DeviceDriverCapabilitiesXboxOne
   //! \warning Documentation is contradicting it self about proper support of indirect dispatch with pipelines that use amplification
   //! shaders.
   static constexpr bool hasMeshShader = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
-  static constexpr bool hasShaderFloat16Support = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for

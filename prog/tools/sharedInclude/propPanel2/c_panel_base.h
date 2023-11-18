@@ -53,6 +53,7 @@ public:
     bool enabled = true, bool new_line = true);
   virtual void createCheckBox(int id, const char caption[], bool value = false, bool enabled = true, bool new_line = true);
   virtual void createButton(int id, const char caption[], bool enabled = true, bool new_line = true);
+  virtual void createButtonLText(int id, const char caption[], bool enabled = true, bool new_line = true);
   virtual void createIndent(int id = 0, bool new_line = true);
   virtual void createSeparator(int id = 0, bool new_line = true);
   virtual void createCombo(int id, const char caption[], const Tab<String> &vals, int index, bool enabled = true,

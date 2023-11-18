@@ -53,18 +53,31 @@ bool PipelineState::handleObjectRemoval(ProgramID object)
   // unfortunately it can't be verified at use-place
   // so just fill with empty programs (so it can be noticed) and hope for the best
   bool ret = false;
-  if (get<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>() == object)
+  int progType = get_program_type(object);
+  if (progType == program_type_graphics)
   {
-    // logerr("vulkan: removing active graphics program %u", object.get());
-    set<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>(ProgramID::Null());
-    ret |= true;
+    if (get<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>() == object)
+    {
+      // logerr("vulkan: removing active graphics program %u", object.get());
+      set<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>(ProgramID::Null());
+      ret |= true;
+    }
+
+    if (get_device().pipeMan.get<VariatedGraphicsPipeline>(object).pendingCompilation())
+      ret |= true;
   }
 
-  if (get<StateFieldComputeProgram, ProgramID, FrontComputeState>() == object)
+  if (progType == program_type_compute)
   {
-    // logerr("vulkan: removing active compute program %u", object.get());
-    set<StateFieldComputeProgram, ProgramID, FrontComputeState>(ProgramID::Null());
-    ret |= true;
+    if (get<StateFieldComputeProgram, ProgramID, FrontComputeState>() == object)
+    {
+      // logerr("vulkan: removing active compute program %u", object.get());
+      set<StateFieldComputeProgram, ProgramID, FrontComputeState>(ProgramID::Null());
+      ret |= true;
+    }
+
+    if (get_device().pipeMan.get<ComputePipeline>(object).pendingCompilation())
+      ret |= true;
   }
 
   return ret;
@@ -73,6 +86,8 @@ bool PipelineState::handleObjectRemoval(ProgramID object)
 template <>
 bool PipelineState::handleObjectRemoval(RenderPassResource *object)
 {
+  if (object->isPipelineCompileReferenced())
+    return true;
   FrontRenderPassState &rp = get<FrontRenderPassState, FrontRenderPassState, FrontGraphicsState>();
   return rp.handleObjectRemoval(object);
 }
@@ -99,13 +114,32 @@ bool PipelineState::isReferenced(Buffer *object) const
 template <>
 bool PipelineState::isReferenced(ProgramID object) const
 {
-  return (getRO<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>() == object) |
-         (getRO<StateFieldComputeProgram, ProgramID, FrontComputeState>() == object);
+  int progType = get_program_type(object);
+  if (progType == program_type_graphics)
+  {
+    if (getRO<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>() == object)
+      return true;
+    if (get_device().pipeMan.get<VariatedGraphicsPipeline>(object).pendingCompilation())
+      return true;
+  }
+
+  if (progType == program_type_compute)
+  {
+    if (getRO<StateFieldComputeProgram, ProgramID, FrontComputeState>() == object)
+      return true;
+
+    if (get_device().pipeMan.get<ComputePipeline>(object).pendingCompilation())
+      return true;
+  }
+
+  return false;
 }
 
 template <>
 bool PipelineState::isReferenced(RenderPassResource *object) const
 {
+  if (object->isPipelineCompileReferenced())
+    return true;
   const FrontRenderPassState &rp = getRO<FrontRenderPassState, FrontRenderPassState, FrontGraphicsState>();
   return rp.isReferenced(object);
 }

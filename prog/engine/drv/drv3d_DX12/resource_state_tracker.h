@@ -3,6 +3,20 @@
 #include <EASTL/bitvector.h>
 #include <EASTL/optional.h>
 #include <dag/dag_vector.h>
+#include <debug/dag_log.h>
+#include <3d/dag_drv3dConsts.h>
+
+#include "driver.h"
+#include "constants.h"
+#include "typed_bit_set.h"
+#include "d3d12_utils.h"
+#include "format_store.h"
+#include "pipeline.h"
+#include "stateful_command_buffer.h"
+#include "image_global_subresource_id.h"
+
+#include "resource_manager/image.h"
+
 
 namespace dag
 {
@@ -18,7 +32,7 @@ DAG_DECLARE_RELOCATABLE(D3D12_RESOURCE_BARRIER);
 namespace drv3d_dx12
 {
 // Meta stage, stage values of this indicate that any stage be meant (used for resource activation)
-static constexpr uint32_t STAGE_ANY = ~uint32_t(0);
+inline constexpr uint32_t STAGE_ANY = ~uint32_t(0);
 
 #if DX12_REPORT_TRANSITION_INFO
 #define REPORT debug
@@ -556,7 +570,7 @@ inline char *make_resource_barrier_string_from_state(char *str, size_t len, D3D1
       buf[ofs++] = '|';
       buf[ofs++] = ' ';
     }
-    auto ln = array_size(src);
+    auto ln = countof(src);
     auto space = ln - 1;
     if ((len - ofs - 1) < space)
       return ofs;
@@ -2740,6 +2754,21 @@ public:
       texture->getPlaneCount(), D3D12_RESOURCE_STATES_STATIC_TEXTURE_READ_STATE);
   }
 
+  // now only resolving one subresource
+  void useTextureAsResolveSource(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
+  {
+    G_ASSERT(texture->hasTrackedState());
+    transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), SubresourceIndex::make(0), 1,
+      texture->getSubresourcesPerPlane(), texture->getPlaneCount(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+  }
+
+  void useTextureAsResolveDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
+  {
+    G_ASSERT(texture->hasTrackedState());
+    transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), SubresourceIndex::make(0), 1,
+      texture->getSubresourcesPerPlane(), texture->getPlaneCount(), D3D12_RESOURCE_STATE_RESOLVE_DEST);
+  }
+
   void useTextureAsBlitSource(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ImageViewState view)
   {
     if (!texture->hasTrackedState())
@@ -4347,6 +4376,17 @@ public:
     G_ASSERT(texture->hasTrackedState());
     // for textures where shouldRecordData would return true, this is a noop, so nothing to track
     BaseType::finishUseTextureAsCopyDestination(barriers, stt, texture, sub_res);
+  }
+
+  // TODO: Similar to present (should we track? Its a driver internal thing...)
+  void useTextureAsResolveSource(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
+  {
+    BaseType::useTextureAsResolveSource(barriers, stt, texture);
+  }
+
+  void useTextureAsResolveDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
+  {
+    BaseType::useTextureAsResolveDestination(barriers, stt, texture);
   }
 
   void useTextureAsBlitSource(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ImageViewState view)

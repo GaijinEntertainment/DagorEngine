@@ -35,7 +35,7 @@ Sources =
   squirrel/memtrace.cpp
   squirrel/sqstringlib.cpp
   squirrel/optimizations/closureHoisting.cpp
-  squirrel/static_analyser/analyser.cpp
+  squirrel/static_analyzer/analyzer.cpp
 
   # custom extensions
   squirrel/sqext.cpp

@@ -135,8 +135,7 @@ VULKAN_END_CONTEXT_COMMAND
 
 VULKAN_BEGIN_CONTEXT_COMMAND(CompileComputePipeline)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.back.executionState.set<StateFieldActiveExecutionStage>(ActiveExecutionStage::COMPUTE);
-  ctx.flushComputeState();
+// nothing to do
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -1009,7 +1008,7 @@ VULKAN_END_CONTEXT_COMMAND
 VULKAN_BEGIN_CONTEXT_COMMAND(PipelineCompilationTimeBudget)
   VULKAN_CONTEXT_COMMAND_PARAM(unsigned, usecs)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.back.pipelineCompilationTimeBudget = usecs;
+  drv3d_vulkan::get_device().pipeMan.setAsyncCompile(usecs == 0);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 

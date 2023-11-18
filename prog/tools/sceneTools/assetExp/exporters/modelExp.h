@@ -45,8 +45,9 @@ struct AutoContext
   ~AutoContext() { reset_context(); }
 };
 
-void add_dag_texture_and_proxymat_refs(const char *dag_fn, Tab<IDagorAssetRefProvider::Ref> &tmpRefs, DagorAssetMgr &mgr,
+void add_dag_texture_and_proxymat_refs(const char *dag_fn, Tab<IDagorAssetRefProvider::Ref> &tmpRefs, DagorAsset &a,
   IProcessMaterialData *pm = nullptr);
+String validate_texture_types(const char *tex_name, const char *class_name, int slot, DagorAsset &a);
 
 void setup_tex_subst(const DataBlock &a_props);
 void reset_tex_subst();

@@ -9,6 +9,7 @@
 #include "render_state_system.h"
 #include <util/dag_hash.h>
 #include "render_pass_resource.h"
+#include "compiler_scratch_data.h"
 
 namespace drv3d_vulkan
 {
@@ -158,6 +159,7 @@ public:
   {
     const ShaderModuleBlob *sci;
     const LayoutType::CreationInfo &layout;
+    const bool allowAsyncCompile;
 
     CreationInfo() = delete;
   };
@@ -181,9 +183,14 @@ public:
   ComputePipeline(VulkanDevice &dev, ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info);
   void bind(VulkanDevice &vk_dev, VulkanCommandBufferHandle cmd_buffer);
 
+  void compile();
+  bool pendingCompilation();
+
 private:
   static const uint32_t workGroupDims = 3;
   static uint32_t spirvWorkGroupSizeDimConstantIds[workGroupDims];
+
+  ComputePipelineCompileScratchData *compileScratch;
 };
 
 struct GraphicsPipelineVariantDescription
@@ -311,9 +318,9 @@ public:
     const GraphicsPipelineVariantDescription &varDsc;
     const GraphicsPipelineDynamicStateMask &dynStateMask;
     const GraphicsPipelineShaderSet<const ShaderModule *> &modules;
-    CreationFeedback &crFeedback;
-    VulkanPipelineHandle parentPipeline;
+    GraphicsPipeline *parentPipeline;
     RenderPassResource *nativeRP;
+    GraphicsPipelineCompileScratchData *scratch;
 
     CreationInfo() = delete;
   };
@@ -325,6 +332,8 @@ public:
 
   int32_t addRef() { return ++refs; }
   int32_t release() { return --refs; }
+  void compile();
+  VulkanPipelineHandle createPipelineObject(CreationFeedback &cr_feedback);
 
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
   static const ShaderDebugInfo emptyDebugInfo;
@@ -332,6 +341,7 @@ public:
 
 private:
   GraphicsPipelineDynamicStateMask dynStateMask;
+  GraphicsPipelineCompileScratchData *compileScratch;
 };
 
 } // namespace drv3d_vulkan

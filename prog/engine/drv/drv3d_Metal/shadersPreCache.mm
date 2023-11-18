@@ -9,6 +9,7 @@
 #include <osApiWrappers/dag_files.h>
 #include <util/dag_watchdog.h>
 #include <thread>
+#include <EASTL/string.h>
 
 namespace drv3d_metal
 {
@@ -551,13 +552,21 @@ namespace drv3d_metal
 
   id <MTLFunction> ShadersPreCache::compileShader(const QueuedShader& shader)
   {
+    bool is_binary = shader.data.size() > 4 && memcmp(shader.data.data(), "MTLB", 4) == 0;
+#if DAGOR_DBGLEVEL > 0
+    auto newline = eastl::find(shader.data.begin(), shader.data.end(), '\n');
+    eastl::string name = is_binary || newline == shader.data.end() ? shader.entry
+      : eastl::string((char*)shader.data.data(), eastl::distance(shader.data.begin(), newline));
+    TIME_PROFILE_NAME(compile_shader, name.c_str());
+#else
     TIME_PROFILE(compile_shader);
+#endif
 
     id <MTLFunction> func = nil;
     id <MTLLibrary> lib = nil;
 
     NSError* err = nil;
-    if (shader.data.size() > 4 && memcmp(shader.data.data(), "MTLB", 4) == 0)
+    if (is_binary)
     {
       dispatch_data_t buffer = dispatch_data_create(shader.data.data(), shader.data.size(), nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
       lib = [drv3d_metal::render.device newLibraryWithData:buffer error:&err];

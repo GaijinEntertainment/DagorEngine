@@ -1,20 +1,6 @@
 #include <phys/dag_fastPhys.h>
 #include <math/dag_TMatrix.h>
 #include <debug/dag_debug3d.h>
-#include <EASTL/set.h>
-
-eastl::set<eastl::string> debugAnimCharsSet;
-
-void FastPhys::toggleDebugAnimChar(eastl::string &str)
-{
-  auto it = debugAnimCharsSet.find(str);
-  if (it != debugAnimCharsSet.end())
-    debugAnimCharsSet.erase(it);
-  else
-    debugAnimCharsSet.insert(str);
-}
-bool FastPhys::checkDebugAnimChar(eastl::string &str) { return debugAnimCharsSet.find(str) != debugAnimCharsSet.end(); }
-void FastPhys::resetDebugAnimChars() { debugAnimCharsSet.clear(); }
 
 
 void FastPhysSystem::debugRender()

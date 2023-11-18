@@ -910,7 +910,7 @@ bool FormatStore::isCopyConvertible(FormatStore other) const
   return false;
 }
 
-const char *drv3d_dx12::dxgi_format_name(DXGI_FORMAT fmt)
+const char *dxgi_format_name(DXGI_FORMAT fmt)
 {
   switch (fmt)
   {

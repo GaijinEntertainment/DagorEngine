@@ -857,14 +857,6 @@ float get_display_scale();
 // Override profile SLI settings, must be called before device creation.
 void disable_sli();
 
-inline void validate_sbuffer_flags(unsigned flags, const char *name)
-{
-  if (!((flags & SBCF_BIND_CONSTANT) != 0 || !(flags & SBCF_DYNAMIC) || (flags & SBCF_MAYBELOST) != 0))
-    logerr("Buffer \"%s\" was created with SBCF_DYNAMIC flag SBCF_MAYBELOST flag is missed!", name);
-  if (!(flags & (SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_MAYBELOST)))
-    logerr("Buffer \"%s\" was created without SBCF_MAYBELOST flag. It is currently allowed only for vertex and index buffers.", name);
-}
-
 static constexpr int RENDER_TO_WHOLE_ARRAY = 1023;
 #if !_TARGET_D3D_MULTI
 // Driver initialization API
@@ -951,6 +943,9 @@ bool should_use_compute_for_image_processing(std::initializer_list<unsigned> for
 /// check whether this texture format is available
 /// returns false if texture of the specified format can't be created
 bool check_texformat(int cflg);
+
+/// returns the maximum sample count for the given texture format
+int get_max_sample_count(int cflg);
 
 unsigned get_texformat_usage(int cflg, int restype = RES3D_TEX);
 /// check whether specified texture creation flags result in the same format
@@ -1119,7 +1114,7 @@ PROGRAM create_program(VPROG vprog, FSHADER fsh, VDECL vdecl, unsigned *strides 
 PROGRAM create_program(const uint32_t *vpr_native, const uint32_t *fsh_native, VDECL vdecl, unsigned *strides = 0,
   unsigned streams = 0);
 // if strides & streams are unset, will get them from VDECL
-PROGRAM create_program_cs(const uint32_t *cs_native);
+PROGRAM create_program_cs(const uint32_t *cs_native, CSPreloaded preloaded);
 
 bool set_program(PROGRAM);    // sets both pixel and vertex shader and vertex declaration
 void delete_program(PROGRAM); // deletes vprog and fshader. VDECL should be deleted independently

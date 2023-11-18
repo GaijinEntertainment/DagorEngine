@@ -38,7 +38,7 @@ let function mkLatestByTriggerStream(triggerObservable) {
     res.whiteListMutatorClosure(updateFunc)
     let function deleteKey(k){
       if (k in next_value)
-        delete next_value[k]
+        next_value.$rawdelete(k)
       triggerObservable.subscribe(updateFunc)
     }
     let function setKeyVal(k, v){
@@ -89,10 +89,8 @@ let function mkTriggerableLatestWatchedSetAndStorage(triggerableObservable) {
         state?.mutate(function(v) {
           foreach(eid, val in eidToUpdate){
             if (val == TO_DELETE) {
-              if (eid in storage)
-                delete storage[eid]
-              if (eid in v)
-                delete v[eid]
+              storage?.$rawdelete(eid)
+              v?.$rawdelete(eid)
             }
             else
               v[eid] <- val
@@ -105,10 +103,8 @@ let function mkTriggerableLatestWatchedSetAndStorage(triggerableObservable) {
         observableEidsSet?.mutate(function(v) {
           foreach(eid, val in eidToUpdate){
             if (val == TO_DELETE) {
-              if (eid in storage)
-                delete storage[eid]
-              if (eid in v)
-                delete v[eid]
+              storage?.$rawdelete(eid)
+              v?.$rawdelete(eid)
             }
             else
               v[eid] <- eid

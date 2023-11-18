@@ -10,6 +10,7 @@ Target      = tools/sceneTools/daEditorX/clipping.lib ;
 AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
 ;
 
 

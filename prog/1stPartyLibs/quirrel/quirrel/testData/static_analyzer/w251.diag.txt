@@ -1,0 +1,16 @@
+WARNING: w250 (cmp-with-container) Comparison with a declaration.
+testData/static_analyzer/w251.nut:3:8
+
+return (::a != {})
+        ^---------
+
+
+
+AN ERROR HAS OCCURRED [the index 'a' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w251.nut line [3]
+
+LOCALS
+[vargv] ARRAY=[]
+[this] TABLE={}

@@ -8,7 +8,6 @@
 #include <gamePhys/phys/destructableObject.h>
 #include <math/dag_frustum.h>
 
-
 void destructables::before_render(const Point3 &view_pos)
 {
   for (const auto destr : destructables::getDestructableObjects())
@@ -18,10 +17,13 @@ void destructables::before_render(const Point3 &view_pos)
   }
 }
 
-void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum)
+void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum, float min_bbox_radius)
 {
   static int instanceInitPosVarId = get_shader_variable_id("instance_init_pos_const_no", true);
   static int instanceInitPosConstNo = instanceInitPosVarId >= 0 ? ShaderGlobal::get_int_fast(instanceInitPosVarId) : -1;
+
+  float min_bbox_r2 = min_bbox_radius * min_bbox_radius;
+
   for (const auto destr : destructables::getDestructableObjects())
   {
     if (!destr->isAlive())
@@ -31,12 +33,16 @@ void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum)
     if (dynrend::is_initialized())
     {
       if (destr->rendData)
+      {
         for (const DestrRendData::RendData &rdata : destr->rendData->rendData)
         {
           if (!rdata.inst)
             continue;
 
-          if (!frustum.testSphere(rdata.inst->getBoundingSphere()))
+          const BSphere3 &boundingSphere = rdata.inst->getBoundingSphere();
+
+          if (
+            !frustum.testSphere(boundingSphere) || (min_bbox_r2 > 0 && rdata.inst->getBoundingBox().width().lengthSq() < min_bbox_r2))
             continue;
 
           dynrend::PerInstanceRenderData renderData;
@@ -44,6 +50,7 @@ void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum)
           renderData.params.push_back(initialPos);
           dynrend::add(inst_ctx, rdata.inst, rdata.initialNodes, &renderData);
         }
+      }
     }
     else
     {

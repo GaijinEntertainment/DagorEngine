@@ -14,6 +14,7 @@
 #include <libTools/util/iLogWriter.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <de3_dynRenderService.h>
+#include <de3_dxpFactory.h>
 
 #include <3d/dag_render.h>
 #include <3d/dag_texMgr.h>
@@ -601,6 +602,9 @@ void TexturesPlugin::fillPropPanel(PropertyContainerControlBase &panel)
     }
     if (curUhqAsset)
       rgrp->createRadio(ID_SHOW_TEXQ_UHQ, "Ultra-high quality");
+    if (showTexQ == ID_SHOW_TEXQ_UHQ && !curUhqAsset)
+      showTexQ = ID_SHOW_TEXQ_HIGH;
+
     igrp->setInt(ID_SHOW_TEXQ_GRP, showTexQ);
     if (ext_tex)
       igrp->createStatic(0, String(0, "stubTexIdx = %d", stub_idx));
@@ -708,6 +712,12 @@ void TexturesPlugin::fillPropPanel(PropertyContainerControlBase &panel)
   onChange(ID_COLOR_MODE_GRP, &panel);
   onChange(ID_MIP_LEVEL, &panel);
   onChange(ID_ALPHA_TEST, &panel);
+  if (texId)
+  {
+    TexQL curQL = get_managed_res_cur_tql(texId);
+    if (curQL != ((showTexQ == ID_SHOW_TEXQ_STUB) ? TQL_stub : TexQL(showTexQ - ID_SHOW_TEXQ_THUMB + TQL_thumb)))
+      onChange(ID_SHOW_TEXQ_GRP, &panel);
+  }
 }
 
 
@@ -813,13 +823,6 @@ void TexturesPlugin::onChange(int pid, PropertyContainerControlBase *panel)
       {
         if (showTexQ == ID_SHOW_TEXQ_STUB || (showTexQ == ID_SHOW_TEXQ_THUMB && !curTqAsset))
         {
-          if (
-            showTexQ == ID_SHOW_TEXQ_STUB && curTqAsset && texId == ::get_managed_texture_id(String(64, "%s*", curTqAsset->getName())))
-          {
-            ::release_managed_tex(texId);
-            texId = ::get_managed_texture_id(String(64, "%s*", curAsset->getName()));
-            texture = ::acquire_managed_tex(texId);
-          }
           if (showTexQ == ID_SHOW_TEXQ_STUB)
             texture->discardTex();
           panel->setCaption(ID_TEX_SIZE_LABEL, "STUB");
@@ -835,6 +838,8 @@ void TexturesPlugin::onChange(int pid, PropertyContainerControlBase *panel)
           texture = ::acquire_managed_tex(texId);
           if (texture)
           {
+            if (get_managed_texture_refcount(texId) > 1)
+              dxp_factory_reload_tex(texId, texmgr_internal::max_allowed_q);
             ddsx::tex_pack2_perform_delayed_data_loading();
             String _tex_size;
             TextureInfo ti;

@@ -45,6 +45,7 @@ enum class NamedConstSpace
   csf,
   vsmp,
   smp,
+  sampler,
   uav,
   vs_buf,
   ps_buf,
@@ -138,7 +139,7 @@ public:
 
   struct UsageIdx
   {
-    int vsf, vsmp, psf, smp, csf, uav, ps_buf, cs_buf, vs_buf, ps_cbuf, cs_cbuf, vs_cbuf;
+    int vsf, vsmp, psf, smp, sampler, csf, uav, ps_buf, cs_buf, vs_buf, ps_cbuf, cs_cbuf, vs_cbuf;
   };
   struct BuildTimeData
   {

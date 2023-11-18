@@ -25,6 +25,7 @@ Sources =
   sqRegExp.cpp
   sqUtf8.cpp
   autoBind.cpp
+  autoCleanup.cpp
 ;
 
 if $(ProjectUseQuirrel) in sq3r sq3r+ {

@@ -1,6 +1,6 @@
 #include "backendDebug.h"
 
-#include <api/internalRegistry.h>
+#include <frontend/internalRegistry.h>
 
 #include <EASTL/array.h>
 #include <EASTL/string.h>

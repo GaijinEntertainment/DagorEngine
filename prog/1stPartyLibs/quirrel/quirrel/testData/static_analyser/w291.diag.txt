@@ -1,9 +1,0 @@
-WARNING: w291 (invalid-underscore) The name of parameter '_y' is invalid. The identifier is marked as an unused with a prefix underscore, but it is used.
-testData/static_analyser/w291.nut:6:4
-
-    x,
-    _y,  // EXPECTED
-    ^-
-    _z   // FP
-
-

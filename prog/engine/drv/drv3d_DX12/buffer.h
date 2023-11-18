@@ -2,6 +2,12 @@
 
 #include <genericSbufferImplementation.h>
 
+#include "device_memory_class.h"
+#include "format_store.h"
+#include "constants.h"
+#include "pipeline.h"
+
+
 namespace drv3d_dx12
 {
 struct PlatformBufferInterfaceConfig;

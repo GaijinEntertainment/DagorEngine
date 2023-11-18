@@ -97,6 +97,7 @@ void HmapLandObjectEditor::handleKeyPress(IGenViewportWnd *wnd, int vk, int modi
       case '6': setSelectMode(-1); return;
       case '7': onClick(CM_SELECT_SPL_ENT, NULL); return;
       case '0': onClick(CM_HIDE_SPLINES, NULL); return;
+      case 'Q': onClick(CM_USE_PIXEL_PERFECT_SELECTION, nullptr); return;
     }
   return __super::handleKeyPress(wnd, vk, modif);
 }
@@ -999,6 +1000,16 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel2 *panel)
       setEditMode(CM_OBJED_MODE_SELECT);
       setSelectMode(selectMode == pcb_id ? -1 : pcb_id);
       return;
+
+    case CM_USE_PIXEL_PERFECT_SELECTION:
+      usePixelPerfectSelection = !usePixelPerfectSelection;
+      updateToolbarButtons();
+      break;
+
+    case CM_SELECT_ONLY_IF_ENTIRE_OBJECT_IN_RECT:
+      selectOnlyIfEntireObjectInRect = !selectOnlyIfEntireObjectInRect;
+      updateToolbarButtons();
+      break;
 
     case CM_OBJED_DROP:
     {

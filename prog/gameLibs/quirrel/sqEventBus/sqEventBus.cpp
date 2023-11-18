@@ -471,13 +471,21 @@ void bind(SqModules *module_mgr, const char *vm_id, ProcessingMode mode)
   Sqrat::Table api(vm);
 
   ///@module eventbus
-  api.SquirrelFunc("subscribe", subscribe, -3, ".sc a|s")
+  api
+    .SquirrelFunc("subscribe", subscribe, -3, ".sc a|s") // alias for backward compatibility
+    .SquirrelFunc("eventbus_subscribe", subscribe, -3, ".sc a|s")
     .SquirrelFunc("subscribe_onehit", subscribe_onehit, -3, ".sc a|s")
+    .SquirrelFunc("eventbus_subscribe_onehit", subscribe_onehit, -3, ".sc a|s")
     .SquirrelFunc("unsubscribe", unsubscribe, 3, ".sc")
+    .SquirrelFunc("eventbus_unsubscribe", unsubscribe, 3, ".sc")
     .SquirrelFunc("send", send, 3, ".s.", nullptr, 1, &sqVmId)
+    .SquirrelFunc("eventbus_send", send, 3, ".s.", nullptr, 1, &sqVmId)
     .SquirrelFunc("send_foreign", send_foreign, 3, ".s.", nullptr, 1, &sqVmId)
+    .SquirrelFunc("eventbus_send_foreign", send_foreign, 3, ".s.", nullptr, 1, &sqVmId)
+    .SquirrelFunc("eventbus_has_listeners", has_listeners, 2, ".s", nullptr, 1, &sqVmId)
     .SquirrelFunc("has_listeners", has_listeners, 2, ".s", nullptr, 1, &sqVmId)
-    .SquirrelFunc("has_foreign_listeners", has_foreign_listeners, 2, ".s", nullptr, 1, &sqVmId);
+    .SquirrelFunc("has_foreign_listeners", has_foreign_listeners, 2, ".s", nullptr, 1, &sqVmId)
+    .SquirrelFunc("eventbus_has_foreign_listeners", has_foreign_listeners, 2, ".s", nullptr, 1, &sqVmId);
 
   module_mgr->addNativeModule("eventbus", api);
 }

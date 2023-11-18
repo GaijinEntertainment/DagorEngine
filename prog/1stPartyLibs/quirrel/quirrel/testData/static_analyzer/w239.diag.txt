@@ -1,0 +1,8 @@
+WARNING: w239 (named-like-return-bool) Function name 'isLoggedIn' implies a return boolean type but not all control paths returns boolean.
+testData/static_analyzer/w239.nut:3:4
+
+let function isLoggedIn() { //-declared-never-used
+    ^
+  if (::userName == "")
+
+

@@ -18,6 +18,8 @@ class HeatHazeRenderer
 public:
   using RenderHazeParticlesCallback = eastl::function<void()>;
   using RenderCustomHazeCallback = eastl::function<void()>;
+  using BeforeApplyHazeCallback = eastl::function<void()>;
+  using AfterApplyHazeCallback = eastl::function<void()>;
 
   struct RenderTargets
   {
@@ -46,7 +48,8 @@ public:
 
   void render(double total_time, const RenderTargets &targets, const IPoint2 &back_buffer_resolution, int depth_tex_lod,
     RenderHazeParticlesCallback render_haze_particles, RenderCustomHazeCallback render_custom_haze,
-    RenderCustomHazeCallback render_ri_haze);
+    RenderCustomHazeCallback render_ri_haze, BeforeApplyHazeCallback before_apply_haze = nullptr,
+    AfterApplyHazeCallback after_apply_haze = nullptr);
 
   void clearTargets(Texture *haze_color, Texture *haze_offset, Texture *haze_depth);
   int getHazeResolutionDivisor() const { return hazeResolutionDivisor; }

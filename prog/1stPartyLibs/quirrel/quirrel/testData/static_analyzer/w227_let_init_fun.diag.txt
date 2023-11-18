@@ -1,0 +1,11 @@
+
+AN ERROR HAS OCCURRED [attempt to call 'null']
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w227_let_init_fun.nut line [5]
+
+LOCALS
+[setGroup] NULL
+[foo] CLOSURE=FN:foo
+[vargv] ARRAY=[]
+[this] TABLE={}

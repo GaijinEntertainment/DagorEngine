@@ -1,0 +1,28 @@
+WARNING: w264 (plus-string) Usage of '+' for string concatenation.
+testData/static_analyzer/w200_stringconcat.nut:9:9
+
+let ss = "a" + o + s
+         ^----------
+
+
+WARNING: w286 (decl-in-expression) Declaration used in arith expression as operand.
+testData/static_analyzer/w200_stringconcat.nut:9:15
+
+let ss = "a" + o + s
+               ^
+
+
+WARNING: w264 (plus-string) Usage of '+' for string concatenation.
+testData/static_analyzer/w200_stringconcat.nut:9:9
+
+let ss = "a" + o + s
+         ^------
+
+
+WARNING: w228 (declared-never-used) let 'ss' was declared but never used.
+testData/static_analyzer/w200_stringconcat.nut:9:0
+
+let ss = "a" + o + s
+^
+
+

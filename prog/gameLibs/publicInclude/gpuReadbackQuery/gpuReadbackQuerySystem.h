@@ -134,7 +134,7 @@ GpuReadbackQuerySystem<InputT, ResultT>::GpuReadbackQuerySystem(const GpuReadbac
 
   resultRingBuffer.init(sizeof(ResultT), desc.maxQueriesPerFrame, 3, desc.resultBufferName, SBCF_UA_STRUCTURED_READBACK, 0, false);
 
-  const uint32_t inputBufferFlags = SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES | SBCF_MAYBELOST;
+  const uint32_t inputBufferFlags = SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES;
   inputBuffer = dag::create_sbuffer(sizeof(InputT), desc.maxQueriesPerFrame, inputBufferFlags, 0, desc.inputBufferName);
 
   inputs.resize(desc.maxQueriesPerFrame);

@@ -11,6 +11,7 @@ if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/de3x ; 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/gameLibs/publicInclude
 ;
 
 Sources =

@@ -340,6 +340,17 @@ bool d3d::check_texformat(int cflg)
   return check_texformat(cflg, RES3D_TEX);
 }
 
+int d3d::get_max_sample_count(int cflg)
+{
+  for (int samples = get_sample_count(TEXCF_SAMPLECOUNT_MAX); samples; samples >>= 1)
+  {
+    if ([render.device supportsTextureSampleCount:samples])
+      return samples;
+  }
+
+  return 1;
+}
+
 /// check whether this cube texture format is available
 /// returns false if cube texture of the specified format can't be created
 bool d3d::check_cubetexformat(int cflg)

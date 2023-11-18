@@ -300,41 +300,35 @@ VECTORCALL VECMATH_FINLINE vec4f v_atan2(vec4f y, vec4f x)
   tmp2 = v_and(maskYlt0, V_C_PI);
   vec4f offs = v_sub(tmp1, tmp2);
 
-  vec4f maskXeq0 = v_cmp_gt(v_cast_vec4f(v_splatsi(/* FLT_MIN */ 0x00800000)), v_abs(x));
+  vec4f maskXeq0 = v_is_unsafe_divisor(x);
   vec4f atan = v_atan(v_div(y, x));
 
   atan = v_add(atan, offs);
-  atan = v_andnot(maskXeq0, atan);
-  val = v_and(maskXeq0, val);
-  return v_add(atan, val);
+  return v_sel(atan, val, maskXeq0);
 }
 
-// fast approx atan version. |error| is < 0.0004
-// ~40% faster then v_atan
-// NOTE: does not handle any of the following inputs:
-// (+0, +0), (+0, -0), (-0, +0), (-0, -0)
-// could be fixed to handle
-// calculates 4 in 2x speed of win libc implementation for 1, with same precision
+// fast approx atan2 version. |error| is < 0.0004
+// calculates 4 in ~1.47x+ (untested, faster than v_atan2) speed of win libc implementation for 1
 VECTORCALL VECMATH_INLINE  vec4f v_atan2_est(vec4f y, vec4f x)
 {
-  // compute the atan
-  vec4f raw_atan = v_atan_est(v_div_est(y, x));
+  vec4f maskYgt0 = v_cmp_ge(y, v_zero());
+  vec4f maskYlt0 = v_cmp_ge(v_zero(), y);
+  vec4f tmp1 = v_and(maskYgt0, V_C_HALFPI);
+  vec4f tmp2 = v_and(maskYlt0, V_C_HALFPI);
+  vec4f val = v_sub(tmp1, tmp2);
 
-  vec4f neg_x = is_neg_special(x);
-  vec4f neg_y = is_neg_special(y);
+  vec4f maskXlt0 = v_cmp_ge(v_zero(), x);
+  maskYgt0 = v_andnot(maskYlt0, maskXlt0);
+  maskYlt0 = v_and(maskYlt0, maskXlt0);
+  tmp1 = v_and(maskYgt0, V_C_PI);
+  tmp2 = v_and(maskYlt0, V_C_PI);
+  vec4f offs = v_sub(tmp1, tmp2);
 
-  vec4f in_quad2 = v_andnot(neg_y, neg_x);
-  vec4f quad2_fixed = v_sel(raw_atan, v_add(raw_atan, V_C_PI), in_quad2);
+  vec4f maskXeq0 = v_is_unsafe_divisor(x);
+  vec4f atan = v_atan_est(v_div(y, x));
 
-  // move from quadrant 1 to 3 by subtracting PI
-  vec4f in_quad3 = v_and(neg_x, neg_y);
-  vec4f quad23_fixed = v_sel(quad2_fixed, v_sub(raw_atan, V_C_PI), in_quad3);
-
-  vec4f y_zero = v_cmp_eq(x, v_zero());
-  vec4f halfpi = v_cast_vec4f(v_splatsi(0x3fc90fdb));
-  vec4f yzeropos_fixed = v_sel(quad23_fixed, halfpi, v_and(y_zero, v_cmp_gt(y, v_zero())));
-  vec4f yzeroneg_fixed = v_sel(yzeropos_fixed, v_neg(halfpi), v_and(y_zero, v_cmp_ge(v_zero(), y)));
-  return yzeroneg_fixed;
+  atan = v_add(atan, offs);
+  return v_sel(atan, val, maskXeq0);
 }
 
 VECTORCALL VECMATH_FINLINE void v_sincos_x(vec4f ang, vec4f& s, vec4f& c)

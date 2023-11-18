@@ -221,10 +221,20 @@ shader dof_downsample
           );
         float4 vCocNear4, vCocFar4;
         Compute4CircleOfConfusion(depths, vCocNear4, vCocFar4, dof_focus_params);
-        float cocNear = max(max(vCocNear4.x, vCocNear4.y), max(vCocNear4.z, vCocNear4.w));
+        float cocNear = dot(vCocNear4, 0.25);
         float maxCocFar = max(max(vCocFar4.x, vCocFar4.y), max(vCocFar4.z, vCocFar4.w));
         float minCocFar = min(min(vCocFar4.x, vCocFar4.y), min(vCocFar4.z, vCocFar4.w));
         float depth = dot(depths, 0.25);
+        ##if dof_coc_history != NULL && simplified_dof == off
+          float2 tc = IN.tc.xy + getCameraMotion(depth, IN.tc.xy);
+          float cocNearHistory = dof_coc_history.SampleLevel(dof_coc_history_samplerstate, tc, 0).x;
+          float nearDepth = max(max(depths.x, depths.y), max(depths.z, depths.w));
+          float nearDepthMin = min(min(depths.x, depths.y), min(depths.z, depths.w));
+          float cocNearMin = ComputeNearCircleOfConfusion(nearDepthMin, dof_focus_params);
+          float cocNearMax = ComputeNearCircleOfConfusion(nearDepth, dof_focus_params);
+          cocNearHistory = clamp(cocNearHistory, cocNearMin * 0.75, cocNearMax * 1.25);
+          cocNear = lerp(saturate(cocNear), cocNearHistory, 0.9);
+        ##endif
       ##endif
 
 

@@ -149,7 +149,7 @@ public:
       workcycle_internal::curFrameActs = 0;
     }
 
-    workcycle_internal::is_window_in_thread = pblk_video->getBool("threaded_window", false);
+    workcycle_internal::is_window_in_thread = pblk_video->getBool("threadedWindow", false);
 
     ::dgs_limit_fps = pblk_gr->getBool("limitfps", false);
 

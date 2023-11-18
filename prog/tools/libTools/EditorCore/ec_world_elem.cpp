@@ -7,6 +7,7 @@
 
 #include <3d/dag_drv3d_pc.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_gameScene.h>
 #include <libTools/renderViewports/renderViewport.h>

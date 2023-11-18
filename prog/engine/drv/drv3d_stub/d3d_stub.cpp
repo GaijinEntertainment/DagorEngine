@@ -894,6 +894,7 @@ unsigned d3d::get_texformat_usage(int cflg, int /*restype*/)
   return ret;
 }
 bool d3d::check_texformat(int /*cflg*/) { return true; }
+int d3d::get_max_sample_count(int) { return 1; }
 bool d3d::issame_texformat(int cflg1, int cflg2) { return cflg1 == cflg2; }
 bool d3d::check_cubetexformat(int /*cflg*/) { return true; }
 bool d3d::issame_cubetexformat(int cflg1, int cflg2) { return cflg1 == cflg2; }
@@ -1037,7 +1038,7 @@ PROGRAM d3d::create_program(VPROG, FSHADER, VDECL, unsigned *, unsigned) { retur
 
 PROGRAM d3d::create_program(const uint32_t *, const uint32_t *, VDECL, unsigned *, unsigned) { return 1; }
 
-PROGRAM d3d::create_program_cs(const uint32_t * /*cs_native*/) { return 1; }
+PROGRAM d3d::create_program_cs(const uint32_t * /*cs_native*/, CSPreloaded) { return 1; }
 
 bool d3d::set_program(PROGRAM) { return true; }
 void d3d::delete_program(PROGRAM) {}
@@ -1092,7 +1093,7 @@ void d3d::insert_wait_on_fence(GPUFENCEHANDLE & /*fence*/, GpuPipeline /*gpu_pip
 bool d3d::set_render_target()
 {
   currentRtState.setBackbufColor();
-  currentRtState.setBackbufDepth();
+  currentRtState.removeDepth();
   return true;
 }
 

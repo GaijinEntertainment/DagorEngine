@@ -1,8 +1,0 @@
-WARNING: w232 (always-true-or-false) Expression is always 'false'.
-testData/static_analyser/w232_false.nut:7:8
-
-}
-::print(a == ::XEnum.PARAM_A && a == ::XEnum.PARAM_B)
-        ^-------------------------------------------
-
-

@@ -192,7 +192,7 @@ bool BcCompressor::resetBuffer(unsigned int mips, unsigned int width, unsigned i
   }
 
 #if !(_TARGET_C1 | _TARGET_C2)
-  vb = d3d::create_vb(data_size(verts), SBCF_MAYBELOST, "bcCompr");
+  vb = d3d::create_vb(data_size(verts), 0, "bcCompr");
   d3d_err(vb);
   if (!vb)
     return false;

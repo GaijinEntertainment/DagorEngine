@@ -44,6 +44,7 @@ struct TemporalAAParams
 };
 
 class TMatrix4D;
+extern Point2 get_halton_jitter(int counter, int subsamples, float subsample_scale);
 extern Point2 get_taa_jitter(int counter, const TemporalAAParams &p);
 extern void set_temporal_reprojection_matrix(const TMatrix4D &cur_view_proj_no_jitter, const TMatrix4D &prev_view_proj_jittered);
 extern void set_temporal_resampling_filter_parameters(const Point2 &temporal_jitter_proj_offset);

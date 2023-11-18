@@ -154,14 +154,31 @@ bool LandscapeEntityObject::isSelectedByRectangle(IGenViewportWnd *vp, const EcR
     return p.x >= rect.l && p.y >= rect.t && p.x <= rect.r && p.y <= rect.b;
   }
 
-  Point2 cp[8];
   BBox3 box = entity->getBbox();
-  BBox2 box2;
   real z;
-  bool in_frustum = false;
 
   TMatrix tm;
   entity->getTm(tm);
+
+  HmapLandObjectEditor *editor = static_cast<HmapLandObjectEditor *>(getObjEditor());
+  if (editor && editor->isSelectOnlyIfEntireObjectInRect())
+  {
+    for (int i = 0; i < 8; i++)
+    {
+      Point2 sp;
+      if (!vp->worldToClient(tm * box.point(i), sp, &z))
+        return false;
+      if (z <= 0.0f || rect.l > sp.x || rect.t > sp.y || sp.x > rect.r || sp.y > rect.b)
+        return false;
+    }
+
+    return true;
+  }
+
+  Point2 cp[8];
+  BBox2 box2;
+  bool in_frustum = false;
+
 #define TEST_POINT(i, P)                                                                         \
   in_frustum |= vp->worldToClient(tm * P, cp[i], &z) && z > 0;                                   \
   if (z > 0 && rect.l <= cp[i].x && rect.t <= cp[i].y && cp[i].x <= rect.r && cp[i].y <= rect.b) \

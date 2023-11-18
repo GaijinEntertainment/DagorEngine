@@ -215,12 +215,12 @@ void DebugPrimitivesVbuffer::endCache()
   }
 
   const size_t vbuffer_size = vertexList.size() * sizeof(Point3);
-  vbuffer = d3d::create_vb((int)(vbuffer_size), SBCF_MAYBELOST, name);
+  vbuffer = d3d::create_vb((int)(vbuffer_size), 0, name);
   vbuffer->updateData(0, (uint32_t)vbuffer_size, (void *)vertexList.data(), 0);
 
   String ibName = String(0, "%s_ib", name);
   const size_t ibuffer_size = indices.size() * sizeof(int);
-  ibuffer = d3d::create_ib((int)ibuffer_size, SBCF_INDEX32 | SBCF_MAYBELOST, ibName);
+  ibuffer = d3d::create_ib((int)ibuffer_size, SBCF_INDEX32, ibName);
   ibuffer->updateData(0, (uint32_t)ibuffer_size, (void *)indices.data(), 0);
 
   clear_and_shrink(linesCache);

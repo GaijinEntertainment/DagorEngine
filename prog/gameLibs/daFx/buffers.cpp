@@ -208,7 +208,7 @@ unsigned char *start_updating_render_buffer(Context &ctx, int tag)
 
   if (recreate)
   {
-    uint flags = SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES;
+    uint flags = SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES;
     uint fmt = TEXFMT_R32UI;
 
     if (ctx.cfg.use_render_sbuffer)
@@ -257,7 +257,7 @@ unsigned char *start_updating_staging(Context &ctx, int size)
     ctx.staging.ring.reset(ctx.staging.size);
 
     bool r = create_gpu_res(ctx.staging.buffer, DAFX_ELEM_STRIDE, ctx.staging.size / DAFX_ELEM_STRIDE,
-      SBCF_DYNAMIC | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MAYBELOST, 0, "dafx_staging");
+      SBCF_DYNAMIC | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE, 0, "dafx_staging");
     debug("dafx staging reset: %d | %d", ctx.staging.size, r);
 
     if (!r)

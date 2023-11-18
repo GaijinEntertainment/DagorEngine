@@ -244,6 +244,7 @@ void build_distance_field(UniqueTexHolder &, int texture_size, int heightmap_tex
   RiverRendererCB *riversCB); // if reiversCB == 0, it won't be used. if detect_rivers_width<=0 it won't be used
 void build_flowmap(FFTWater *handle, FlowmapParams &flowmap_params, int flowmap_texture_size, int heightmap_texture_size,
   const Point3 &camera_pos, float range);
+void set_flowmap_tex(FlowmapParams &flowmap_params);
 void set_flowmap_params(FlowmapParams &flowmap_params);
 void set_flowmap_foam_params(FlowmapParams &flowmap_params);
 void close_flowmap(FlowmapParams &flowmap_params);

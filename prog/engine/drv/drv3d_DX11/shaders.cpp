@@ -1475,7 +1475,7 @@ PROGRAM d3d::create_program(const uint32_t *vpr_native, const uint32_t *fsh_nati
   return BAD_PROGRAM;
 }
 
-PROGRAM d3d::create_program_cs(const uint32_t *native_code)
+PROGRAM d3d::create_program_cs(const uint32_t *native_code, CSPreloaded)
 {
   SHADER_ID compute_shader = BAD_SHADER_ID;
 

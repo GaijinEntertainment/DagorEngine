@@ -3,11 +3,20 @@
 #include "call_stack.h"
 
 #include <EASTL/variant.h>
+#include <EASTL/span.h>
 #include <EASTL/unordered_map.h>
 
-#include "command_list_storage.h"
-#include "command_list_trace_recorder.h"
-#include "gpu_postmortem_null_trace.h"
+#include "pipeline.h"
+
+
+namespace drv3d_dx12
+{
+struct Direct3D12Enviroment;
+namespace debug
+{
+union Configuration;
+}
+} // namespace drv3d_dx12
 
 namespace drv3d_dx12::debug::gpu_postmortem
 {

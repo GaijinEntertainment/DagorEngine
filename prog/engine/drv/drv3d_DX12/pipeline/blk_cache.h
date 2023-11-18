@@ -1,5 +1,11 @@
 #pragma once
 
+#include <ioSys/dag_dataBlock.h>
+
+#include "derived_span.h"
+#include "pipeline_cache.h"
+
+
 namespace drv3d_dx12
 {
 struct GraphicsPipelineVariantSet
@@ -201,8 +207,14 @@ class DeviceCapsAndShaderModelDeEncoder : public DefaltInvokeDecoder<DeviceCapsA
 public:
   static inline const char *blockFormat = "fc_%u";
 
-  bool decode(const DataBlock &blk, DeviceCapsAndShaderModel &target) const;
-  bool encode(DataBlock &blk, const DeviceCapsAndShaderModel &source) const;
+  enum class EncodingMode
+  {
+    full,
+    pipelines
+  };
+
+  bool decode(const DataBlock &blk, EncodingMode mode, DeviceCapsAndShaderModel &target) const;
+  bool encode(DataBlock &blk, EncodingMode mode, const DeviceCapsAndShaderModel &source) const;
 };
 
 using DeviceCapsAndShaderModelDecoder = DeviceCapsAndShaderModelDeEncoder;
@@ -216,22 +228,33 @@ class FeatureSupportResolver : private DeviceCapsAndShaderModelDecoder, public D
 public:
   FeatureSupportResolver(const Driver3dDesc &f) : features{f} {}
 
-  bool decode(const DataBlock &blk, bool &target) const;
+  using CompatibilityMode = DeviceCapsAndShaderModelDecoder::EncodingMode;
+
+  bool decode(const DataBlock &blk, CompatibilityMode mode, bool &target) const;
 };
 
 using DeviceCapsAndShaderModelDecoder = DeviceCapsAndShaderModelDeEncoder;
 using DeviceCapsAndShaderModelEncoder = DeviceCapsAndShaderModelDeEncoder;
 
-class GraphicsPipelineVariantDeEncoder : public EncoderBlockNameStore<GraphicsPipelineVariantDeEncoder>
+class FeatureSetChecker
 {
   bool *featureSet = nullptr;
   uint32_t featureSetCount = 0;
 
 public:
+  FeatureSetChecker() = default;
+  FeatureSetChecker(bool *feature_set, uint32_t feature_set_count) : featureSet{feature_set}, featureSetCount{feature_set_count} {}
+
+  // will report true when either no feature set entry is present or a feature set is present and supported
+  bool checkFeatureSets(const DataBlock &blk) const;
+};
+
+class GraphicsPipelineVariantDeEncoder : public EncoderBlockNameStore<GraphicsPipelineVariantDeEncoder>, protected FeatureSetChecker
+{
+public:
   static inline const char *blockFormat = "v_%u";
 
-  GraphicsPipelineVariantDeEncoder(bool *feature_set, uint32_t feature_set_count) :
-    featureSet{feature_set}, featureSetCount{feature_set_count}
+  GraphicsPipelineVariantDeEncoder(bool *feature_set, uint32_t feature_set_count) : FeatureSetChecker{feature_set, feature_set_count}
   {}
   template <typename T>
   bool invoke(const DataBlock &blk, T target) const
@@ -317,18 +340,14 @@ using GraphicsPipelineDecoder = GraphicsPipelineDeEncoder;
 using GraphicsPipelineEncoder = GraphicsPipelineDeEncoder;
 
 class MeshPipelineVariantDeEncoder : public DefaltInvokeDecoder<MeshPipelineVariantState, MeshPipelineVariantDeEncoder>,
-                                     public EncoderBlockNameStore<GraphicsPipelineDeEncoder>
+                                     public EncoderBlockNameStore<GraphicsPipelineDeEncoder>,
+                                     protected FeatureSetChecker
 {
-  bool *featureSet = nullptr;
-  uint32_t featureSetCount = 0;
-
 public:
   static inline const char *blockFormat = "v_%u";
 
   MeshPipelineVariantDeEncoder() = default;
-  MeshPipelineVariantDeEncoder(bool *feature_set, uint32_t feature_set_count) :
-    featureSet{feature_set}, featureSetCount{feature_set_count}
-  {}
+  MeshPipelineVariantDeEncoder(bool *feature_set, uint32_t feature_set_count) : FeatureSetChecker{feature_set, feature_set_count} {}
   bool decode(const DataBlock &blk, MeshPipelineVariantState &target) const;
   bool encode(DataBlock &blk, const MeshPipelineVariantState &source) const;
 };
@@ -401,15 +420,15 @@ using MeshPipelineDecoder = MeshPipelineDeEncoder;
 using MeshPipelineEncoder = MeshPipelineDeEncoder;
 
 class ComputePipelineDeEncoder : public DefaltInvokeDecoder<ComputePipelineIdentifier, ComputePipelineDeEncoder>,
-                                 public EncoderBlockNameStore<ComputePipelineDeEncoder>
+                                 public EncoderBlockNameStore<ComputePipelineDeEncoder>,
+                                 protected FeatureSetChecker
 {
   bool *featureSet = nullptr;
   uint32_t featureSetCount = 0;
 
 public:
   static inline const char *blockFormat = "cp_%u";
-  ComputePipelineDeEncoder(bool *feature_set, uint32_t feature_set_count) : featureSet{feature_set}, featureSetCount{feature_set_count}
-  {}
+  ComputePipelineDeEncoder(bool *feature_set, uint32_t feature_set_count) : FeatureSetChecker{feature_set, feature_set_count} {}
   bool decode(const DataBlock &blk, ComputePipelineIdentifier &target) const;
   bool encode(DataBlock &blk, const ComputePipelineIdentifier &target) const;
 };

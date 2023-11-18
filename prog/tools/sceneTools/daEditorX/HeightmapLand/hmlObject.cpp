@@ -32,6 +32,7 @@
 
 #include <math/dag_math2d.h>
 #include <math/dag_mathBase.h>
+#include <math/dag_rayIntersectBox.h>
 #include <3d/dag_drv3d.h>
 #include <shaders/dag_overrideStates.h>
 #include <shaders/dag_shaderBlock.h>
@@ -147,6 +148,8 @@ HmapLandObjectEditor::HmapLandObjectEditor() :
   areLandHoleBoxesVisible = true;
   hideSplines = false;
   autoUpdateSpline = true;
+  usePixelPerfectSelection = false;
+  selectOnlyIfEntireObjectInRect = false;
   maxPointVisDist = 5000.0;
 
   memset(catmul, 0, sizeof(catmul));
@@ -262,6 +265,9 @@ void HmapLandObjectEditor::fillToolBar(PropertyContainerControlBase *toolbar)
   //  addButton(tb2, CM_SELECT_LT, "select_lt", "Select only light spheres (Ctrl+4)", true);
   if (HmapLandPlugin::self->isSnowAvailable())
     addButton(tb2, CM_SELECT_SNOW, "hide_multi_objects", "Select only snow sources (Ctrl+5)", true);
+  addButton(tb2, CM_USE_PIXEL_PERFECT_SELECTION, "ctrl_eff_from_att", "Use pixel perfect selection (Ctrl+Q)", true);
+  addButton(tb2, CM_SELECT_ONLY_IF_ENTIRE_OBJECT_IN_RECT, "select_only_if_entire_object_in_rect",
+    "Select only if the entire object is in the selection rectangle", true);
   tb2->createSeparator();
 
   //  addButton(tb2, CM_CREATE_HOLEBOX_MODE, "create_holebox", "Create land hole box", true);
@@ -322,6 +328,8 @@ void HmapLandObjectEditor::updateToolbarButtons()
   setButton(CM_HIDE_SPLINES, hideSplines);
   setButton(CM_MANUAL_SPLINE_REGEN_MODE, !autoUpdateSpline);
   setButton(CM_LAYERS_DLG, layersDlg.isVisible());
+  setButton(CM_USE_PIXEL_PERFECT_SELECTION, usePixelPerfectSelection);
+  setButton(CM_SELECT_ONLY_IF_ENTIRE_OBJECT_IN_RECT, selectOnlyIfEntireObjectInRect);
 
   if (HmapLandPlugin::self)
     enableButton(CM_SPLINE_REGEN, !autoUpdateSpline);
@@ -2231,4 +2239,97 @@ void HmapLandObjectEditor::moveObjects(PtrTab<RenderableEditableObject> &obj, co
     if (SplineObject *s = RTTI_cast<SplineObject>(obj[i]))
       s->markModifChanged();
   }
+}
+
+void HmapLandObjectEditor::fillPossiblePixelPerfectSelectionHits(IPixelPerfectSelectionService &selection_service,
+  LandscapeEntityObject &landscape_entity, IObjEntity &entity, const Point3 &ray_origin, const Point3 &ray_direction,
+  dag::Vector<IPixelPerfectSelectionService::Hit> &hits)
+{
+  TMatrix tm;
+  entity.getTm(tm);
+
+  float t;
+  if (!ray_intersect_box(ray_origin, ray_direction, entity.getBbox(), tm, t))
+    return;
+
+  ICompositObj *compositObj = entity.queryInterface<ICompositObj>();
+  if (compositObj)
+  {
+    const int subEntityCount = compositObj->getCompositSubEntityCount();
+    for (int subEntityIndex = 0; subEntityIndex < subEntityCount; ++subEntityIndex)
+    {
+      IObjEntity *subEntity = compositObj->getCompositSubEntity(subEntityIndex);
+      if (!subEntity)
+        continue;
+
+      fillPossiblePixelPerfectSelectionHits(selection_service, landscape_entity, *subEntity, ray_origin, ray_direction, hits);
+    }
+  }
+
+  IPixelPerfectSelectionService::Hit hit;
+  if (!selection_service.initializeHit(hit, entity))
+    return;
+
+  hit.transform = tm;
+  hit.userData = &landscape_entity;
+  hits.emplace_back(hit);
+}
+
+void HmapLandObjectEditor::getPixelPerfectHits(IPixelPerfectSelectionService &selection_service, IGenViewportWnd &wnd, int x, int y,
+  Tab<RenderableEditableObject *> &hits)
+{
+  Point3 rayDirection, rayOrigin;
+  wnd.clientToWorld(Point2(x, y), rayOrigin, rayDirection);
+
+  pixelPerfectSelectionHitsCache.clear();
+
+  for (RenderableEditableObject *object : objects)
+  {
+    if (!canSelectObj(object))
+      continue;
+
+    LandscapeEntityObject *landscapeEntityObject = RTTI_cast<LandscapeEntityObject>(object);
+    if (!landscapeEntityObject)
+      continue;
+
+    IObjEntity *entity = landscapeEntityObject->getEntity();
+    if (!entity)
+      continue;
+
+    fillPossiblePixelPerfectSelectionHits(selection_service, *landscapeEntityObject, *entity, rayOrigin, rayDirection,
+      pixelPerfectSelectionHitsCache);
+  }
+
+  selection_service.getHits(wnd, x, y, pixelPerfectSelectionHitsCache);
+
+  if (!pixelPerfectSelectionHitsCache.empty())
+  {
+    eastl::sort(pixelPerfectSelectionHitsCache.begin(), pixelPerfectSelectionHitsCache.end(),
+      [](const IPixelPerfectSelectionService::Hit &a, const IPixelPerfectSelectionService::Hit &b) {
+        if (a.z > b.z)
+          return true;
+        if (a.z < b.z)
+          return false;
+        return &a > &b;
+      });
+
+    for (const IPixelPerfectSelectionService::Hit &hit : pixelPerfectSelectionHitsCache)
+      hits.push_back(static_cast<LandscapeEntityObject *>(hit.userData));
+  }
+}
+
+bool HmapLandObjectEditor::pickObjects(IGenViewportWnd *wnd, int x, int y, Tab<RenderableEditableObject *> &objs)
+{
+  if (!usePixelPerfectSelection)
+    return __super::pickObjects(wnd, x, y, objs);
+
+  if (!wnd)
+    return false;
+
+  IPixelPerfectSelectionService *pixelPerfectSelectionService = DAGORED2->queryEditorInterface<IPixelPerfectSelectionService>();
+  if (!pixelPerfectSelectionService)
+    return false;
+
+  getPixelPerfectHits(*pixelPerfectSelectionService, *wnd, x, y, objs);
+  return !objs.empty();
 }

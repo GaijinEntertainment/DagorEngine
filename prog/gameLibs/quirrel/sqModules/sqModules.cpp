@@ -316,7 +316,7 @@ bool SqModules::compileScriptImpl(const dag::ConstSpan<char> &buf, const char *r
 
   if (compilationOptions.doStaticAnalysis)
   {
-    sq_analyseast(sqvm, ast, bindings, &buf[0], buf.size());
+    sq_analyzeast(sqvm, ast, bindings, &buf[0], buf.size());
   }
 
   if (onBytecode_cb)

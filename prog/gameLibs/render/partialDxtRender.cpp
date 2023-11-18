@@ -113,6 +113,7 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
   {                                                                                                                   \
     d3d::setwire(0);                                                                                                  \
     d3d::set_render_target();                                                                                         \
+    d3d::set_backbuf_depth();                                                                                         \
     dagor_work_cycle_flush_pending_frame();                                                                           \
     dagor_draw_scene_and_gui(true, true);                                                                             \
     d3d::update_screen();                                                                                             \

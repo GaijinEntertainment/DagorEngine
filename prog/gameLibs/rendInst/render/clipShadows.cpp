@@ -113,10 +113,10 @@ void initClipmapShadows()
   rendinstShadowsToClipmapShaderElem = rendinstShadowsToClipmapShaderMaterial->make_elem();
   debug("rendinst clip shadows tex instancing count is %d", count);
 
-  rendinstShadowsToClipmapVb = d3d::create_vb(size, SBCF_MAYBELOST, "rendinstShadowsToClipmapVb");
+  rendinstShadowsToClipmapVb = d3d::create_vb(size, 0, "rendinstShadowsToClipmapVb");
   G_ASSERT(rendinstShadowsToClipmapVb != nullptr);
 
-  rendinstShadowsToClipmapIb = d3d::create_ib(6 * sizeof(uint16_t) * count, SBCF_MAYBELOST, "rendinstShadowsToClipmapIb");
+  rendinstShadowsToClipmapIb = d3d::create_ib(6 * sizeof(uint16_t) * count, 0, "rendinstShadowsToClipmapIb");
   fill_buffers();
 
   blurOffset01VarId = get_shader_variable_id("blur_offset_0_1");
@@ -322,7 +322,7 @@ bool render_clipmap_shadow_pool(rendinst::render::RtPoolData &pool, RenderableIn
   ShaderGlobal::setBlock(rendinst::render::globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
   ShaderGlobal::setBlock(rendinst::render::rendinstSceneBlockId, ShaderGlobal::LAYER_SCENE);
 
-  d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, rendinst::render::oneInstanceTmVb);
+  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rendinst::render::oneInstanceTmVb);
   rendinst::render::RiShaderConstBuffers cb;
   cb.setBBoxZero();
   cb.setOpacity(0, 1);
@@ -579,7 +579,7 @@ void RendInstGenData::renderRendinstShadowsToClipmap(const BBox2 &region, int ne
   uint32_t flag = newForCascadeNo >= 0 ? (RendInstGenData::CellRtData::CLIPMAP_SHADOW_RENDERED << newForCascadeNo) : 0;
 
   rendinst::render::RiShaderConstBuffers cb;
-  d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, rtData->cellsVb.getHeap().getBuf());
+  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rtData->cellsVb.getHeap().getBuf());
   auto currentHeapGen = rtData->cellsVb.getManager().getHeapGeneration();
 
   for (int z = regions[1], cellI = regions[1] * cellNumW + regions[0]; z <= regions[3]; z++, cellI += cellXStride)

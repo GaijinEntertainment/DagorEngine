@@ -5,7 +5,27 @@ return {
   INVALID_ROOM_ID = -1
   INVALID_MEMBER_ID = -1
   INVALID_SQUAD_ID = -1
-
+  DisconnectReason = {
+    ConnectionClosed = 0
+    CalledByUser  = 1
+    ForcedLogout = 2
+    ForcedReconnect = 3
+    SecondLogin = 4
+  }
+  LoginResult = {
+    Ok = "Ok"
+    ServerListEmpty = "ServerListEmpty"
+    NameResolveFailed = "NameResolveFailed"
+    AlreadyConnected = "AlreadyConnected"
+    FailedToConnect = "FailedToConnect"
+    Maintenance = "Maintenance"
+    AccessDenied = "AccessDenied"
+    InvalidVersion = "InvalidVersion"
+    ProtocolMismatch = "ProtocolMismatch"
+    ServerBusy = "ServerBusy"
+    PeersLimitReached = "PeersLimitReached"
+    Banned = "Banned"
+  }
   OK =                                       0
   OPERATION_COMPLETE =                       0
   OPERATION_NOT_SUPPORTED =                  0x80000001

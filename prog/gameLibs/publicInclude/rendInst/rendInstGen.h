@@ -45,6 +45,8 @@ typedef void *(*ri_register_collision_cb)(const CollisionResource *collRes, cons
 typedef void (*ri_unregister_collision_cb)(void *&handle);
 typedef eastl::fixed_function<2 * sizeof(void *), void(const char *)> res_walk_cb;
 
+extern void (*do_delayed_ri_extra_destruction)();
+
 extern void (*shadow_invalidate_cb)(const BBox3 &box);
 extern BBox3 (*get_shadows_bbox_cb)();
 
@@ -148,8 +150,6 @@ extern bool rendinstSecondaryLayer; // should be set only once before init
 extern bool tmInst12x32bit;
 
 void set_billboards_vertical(bool is_vertical);
-void setImpostorDiffuseSizeMul(int value);
-bool enable_impostors_compression(bool enabled);
 void setDistMul(float distMul, float distOfs, bool force_impostors_and_mul = false,
   float impostors_far_dist_additional_mul = 1.f); // 0.2353, 0.0824 will remap 0.5 .. 2.2 to 0.2 .. 0.6
 void setImpostorsDistAddMul(float impostors_dist_additional_mul);

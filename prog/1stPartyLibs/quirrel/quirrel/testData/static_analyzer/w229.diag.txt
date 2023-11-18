@@ -1,0 +1,9 @@
+WARNING: w229 (copy-of-expression) Duplicate expression found inside the sequence of operations.
+testData/static_analyzer/w229.nut:4:16
+
+local a ={x=0, y=0, z=1}
+if (a.x == 0 && a.y == 0 && a.x == 0)
+                ^-------------------
+  ::print("vector == zero")
+
+

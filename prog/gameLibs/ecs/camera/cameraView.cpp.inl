@@ -2,6 +2,7 @@
 #include <ecs/core/entityManager.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <math/dag_mathBase.h>
 #include <math/dag_mathUtils.h>
 #include <startup/dag_globalSettings.h>
@@ -118,25 +119,26 @@ TMatrix4 calc_active_camera_globtm()
   return TMatrix4(viewTm) * projTm;
 }
 
-void calc_camera_values(const CameraSetup &camera_setup, TMatrix &view_tm, Driver3dPerspective &persp, int &view_w, int &view_h)
+TMatrix calc_camera_view_tm(const TMatrix &view_itm)
 {
-  G_ASSERT(!check_nan(camera_setup.transform));
+  G_ASSERT(!check_nan(view_itm));
 
 // we assume it is orthonormalized already
 #if DAGOR_DBGLEVEL > 0
-  if (fabsf(lengthSq(camera_setup.transform.getcol(0)) - 1) > 1e-5f || fabsf(lengthSq(camera_setup.transform.getcol(1)) - 1) > 1e-5f ||
-      fabsf(lengthSq(camera_setup.transform.getcol(2)) - 1) > 1e-5f ||
-      fabsf(dot(camera_setup.transform.getcol(0), camera_setup.transform.getcol(1))) > 1e-6f ||
-      fabsf(dot(camera_setup.transform.getcol(0), camera_setup.transform.getcol(2))) > 1e-6f ||
-      fabsf(dot(camera_setup.transform.getcol(1), camera_setup.transform.getcol(2))) > 1e-6f)
+  if (fabsf(lengthSq(view_itm.getcol(0)) - 1) > 1e-5f || fabsf(lengthSq(view_itm.getcol(1)) - 1) > 1e-5f ||
+      fabsf(lengthSq(view_itm.getcol(2)) - 1) > 1e-5f || fabsf(dot(view_itm.getcol(0), view_itm.getcol(1))) > 1e-6f ||
+      fabsf(dot(view_itm.getcol(0), view_itm.getcol(2))) > 1e-6f || fabsf(dot(view_itm.getcol(1), view_itm.getcol(2))) > 1e-6f)
   {
-    logerr("view matrix should be orthonormalized %@ %@ %@", camera_setup.transform.getcol(0), camera_setup.transform.getcol(1),
-      camera_setup.transform.getcol(2));
+    logerr("view matrix should be orthonormalized %@ %@ %@", view_itm.getcol(0), view_itm.getcol(1), view_itm.getcol(2));
   }
 #endif
 
-  d3d::get_screen_size(view_w, view_h);
-  view_tm = orthonormalized_inverse(camera_setup.transform);
+  return orthonormalized_inverse(view_itm);
+}
+
+Driver3dPerspective calc_camera_perspective(const CameraSetup &camera_setup, int view_w, int view_h)
+{
+  Driver3dPerspective persp;
   persp.zn = camera_setup.znear;
   persp.zf = camera_setup.zfar;
   persp.ox = 0;
@@ -162,6 +164,25 @@ void calc_camera_values(const CameraSetup &camera_setup, TMatrix &view_tm, Drive
 
   persp.wk = horFov;
   persp.hk = verFov;
+  return persp;
+}
+
+void calc_camera_values(const CameraSetup &camera_setup, TMatrix &view_tm, Driver3dPerspective &persp, int &view_w, int &view_h)
+{
+  d3d::get_screen_size(view_w, view_h);
+  persp = calc_camera_perspective(camera_setup, view_w, view_h);
+  view_tm = calc_camera_view_tm(camera_setup.transform);
+}
+
+void apply_camera_setup(const TMatrix &view_itm, const TMatrix &view_tm, const Driver3dPerspective &persp, int view_w, int view_h)
+{
+  ::grs_cur_view.itm = view_itm;
+  ::grs_cur_view.tm = view_tm;
+  ::grs_cur_view.pos = ::grs_cur_view.itm.getcol(3);
+
+  d3d::settm(TM_VIEW, ::grs_cur_view.tm);
+  d3d::setpersp(persp);
+  d3d::setview(0, 0, view_w, view_h, 0, 1);
 }
 
 void apply_camera_setup(const CameraSetup &camera_setup)
@@ -171,11 +192,5 @@ void apply_camera_setup(const CameraSetup &camera_setup)
   int view_w, view_h;
   calc_camera_values(camera_setup, viewTm, persp, view_w, view_h);
 
-  ::grs_cur_view.itm = camera_setup.transform;
-  ::grs_cur_view.tm = viewTm;
-  ::grs_cur_view.pos = ::grs_cur_view.itm.getcol(3);
-
-  d3d::settm(TM_VIEW, ::grs_cur_view.tm);
-  d3d::setpersp(persp);
-  d3d::setview(0, 0, view_w, view_h, 0, 1);
+  apply_camera_setup(camera_setup.transform, viewTm, persp, view_w, view_h);
 }

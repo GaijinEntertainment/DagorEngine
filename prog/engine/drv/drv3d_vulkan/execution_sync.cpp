@@ -101,7 +101,9 @@ struct OpsProcessAlgorithm
     // add other parts if any
     while (scratch.coverageMap.getArea(cachedArea))
     {
-      ops.arr.push_back(srcOp);
+      ops.arr.push_back_uninitialized();
+      // read from proper memory if vector was reallocated
+      ops.arr.back() = ops.arr[srcOpIndex];
       ops.arr.back().area = cachedArea;
     }
 
@@ -430,6 +432,19 @@ void ExecutionSyncTracker::completeAll(VulkanCommandBufferHandle cmd_buffer, con
 
     if (op.laddr.isWrite() && op.obj->isUsedInBindless())
       logerr("vulkan: sync: image: incompleted write while registered in bindless, must handle it! %s", op.format());
+
+    if (!op.laddr.isWrite() && op.obj->layout.roSealTargetLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+    {
+      bool canSeal = true;
+      for (VkImageLayout i : op.obj->layout.data)
+        if (i != op.obj->layout.roSealTargetLayout)
+        {
+          canSeal = false;
+          break;
+        }
+      if (canSeal)
+        op.obj->optionallyActivateRoSeal(gpu_work_id);
+    }
 
     srcLA.merge(op.laddr);
   }

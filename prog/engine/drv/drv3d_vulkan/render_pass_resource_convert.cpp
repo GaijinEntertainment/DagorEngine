@@ -551,8 +551,7 @@ void RenderPassResource::fillAttachmentDescription(const RenderPassDesc &rp_desc
       desc.flags = extDesc.aliased ? VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT : 0;
 
     desc.format = FormatStore::fromCreateFlags(texCf).asVkFormat();
-    bool multisample = texCf & (TEXCF_MULTISAMPLED | TEXCF_MSAATARGET);
-    desc.samples = multisample ? get_device().calcMSAAQuality() : VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+    desc.samples = VkSampleCountFlagBits(get_sample_count(texCf));
 
     uint32_t loadActions = 0;
     uint32_t storeActions = 0;
@@ -802,12 +801,12 @@ void RenderPassResource::storeSubpassAttachmentInfos()
         colorWriteMask |= 1 << bind.slot;
 
       unsigned texcf = getAttachmentTexcf(rpDesc, bind.target);
-      const bool hasMultisampleFlags = texcf & (TEXCF_MULTISAMPLED | TEXCF_MSAATARGET);
-      VkSampleCountFlagBits samples =
-        hasMultisampleFlags ? get_device().calcMSAAQuality() : VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+      const bool hasMultisampleFlags = texcf & TEXCF_SAMPLECOUNT_MASK;
+      VkSampleCountFlagBits samples = VkSampleCountFlagBits(get_sample_count(texcf));
+      bool isMultisampled = samples > VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
       msaaSamples = eastl::max(msaaSamples, samples);
       const bool isResolve = bind.action & RP_TA_SUBPASS_RESOLVE;
-      const bool isMultisampled = samples != VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+
 
       if (!isMultisampled && !isResolve)
       {

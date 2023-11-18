@@ -8,8 +8,8 @@
 #include <dag/dag_vector.h>
 #include <dag/dag_vectorSet.h>
 
-#include <backend.h>
-#include <nodes/nodeTracker.h>
+#include <runtime/backend.h>
+#include <frontend/nodeTracker.h>
 
 #include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_files.h>

@@ -201,6 +201,7 @@ string      <MAIN> ==> string;
 'static' <MAIN> => static;
 'tc' <MAIN> => tc;
 'texture' <MAIN> => texture;
+'sampler' <MAIN> => sampler;
 'buffer' <MAIN> => buffer;
 'const_buffer' <MAIN> => const_buffer;
 'render_stage' <MAIN> => render_stage;
@@ -338,6 +339,7 @@ keyword ->
   'static' |
   'tc' |
   'texture' |
+  'sampler' |
   'buffer' |
   'const_buffer' |
   'render_stage' |

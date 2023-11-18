@@ -24,6 +24,7 @@
 #include <debug/dag_debug.h>
 #include <stdlib.h>
 #include <3d/dag_renderStates.h>
+#include <3d/dag_sampler.h>
 #include <EASTL/unordered_map.h>
 
 using namespace mkbindump;
@@ -290,6 +291,7 @@ struct Variables
             case SHVT_FLOAT4X4: memset(&var.valPtr.get(), 0, 16 * sizeof(float)); break;
             case SHVT_TEXTURE: *(TEXTUREID *)&var.valPtr.get() = BAD_TEXTUREID; break;
             case SHVT_BUFFER: *(D3DRESID *)&var.valPtr.get() = BAD_D3DRESID; break;
+            case SHVT_SAMPLER: *(d3d::SamplerHandle *)&var.valPtr.get() = d3d::SamplerHandle{}; break;
           }
         }
       }
@@ -317,6 +319,15 @@ struct Variables
           stor_p = (stor_p + 4) & ~3;
         var.valPtr = storage.getElementAddress(stor_p);
         stor_p += tex_size;
+      }
+
+    for (auto &var : vl.v)
+      if (var.type == SHVT_SAMPLER)
+      {
+        if (stor_p & 3)
+          stor_p = (stor_p + 4) & ~3;
+        var.valPtr = storage.getElementAddress(stor_p);
+        stor_p += sizeof(d3d::SamplerHandle) / sizeof(int);
       }
 
     for (auto &var : vl.v)

@@ -51,8 +51,8 @@ public:
   bool getView(TMatrix4 &view_tm, TMatrix4 &proj_tm, Point3 &camera_pos);
   bool isValidView() const;
 
-  void prepare(const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, float water_level,
-    float significant_wave_height, int frame_no);
+  void prepare(const TMatrix &view_tm, const TMatrix &view_itm, const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, float water_level,
+    float significant_wave_height, int frame_no, bool change_projection);
   bool render(IWwaterProjFxRenderHelper *render_helper);
   bool render(IWwaterProjFxRenderHelper *render_helper, dag::Span<const TextureIDPair> targets,
     dag::Span<const TextureIDPair> taaTemp0 = {}, dag::Span<const TextureIDPair> taaTemp1 = {});
@@ -67,7 +67,7 @@ public:
   uint32_t getTargetAdditionalFlags() const;
 
 private:
-  void setView(const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix &view_itm);
+  void setView(const TMatrix &view_tm, const TMatrix4 &proj_tm);
   void setWaterMatrix(const TMatrix4 &glob_tm);
 
   TMatrix4 newProjTM, newProjTMJittered;

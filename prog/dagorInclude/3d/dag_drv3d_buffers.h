@@ -117,10 +117,9 @@ inline Sbuffer *create_persistent_cb(uint32_t registers_count, const char *name)
  * \param buffer_init The initialization option for the buffer.
  * \return A pointer to the created buffer.
  */
-inline Sbuffer *create_one_frame_cb(uint32_t registers_count, const char *name, Init buffer_init = Init::No)
+inline Sbuffer *create_one_frame_cb(uint32_t registers_count, const char *name)
 {
-  return d3d::create_sbuffer(CBUFFER_REGISTER_SIZE, registers_count,
-    SBCF_CB_ONE_FRAME | (buffer_init == Init::Zero ? SBCF_ZEROMEM : 0), 0, name);
+  return d3d::create_sbuffer(CBUFFER_REGISTER_SIZE, registers_count, SBCF_CB_ONE_FRAME, 0, name);
 }
 
 /*!
@@ -304,7 +303,7 @@ inline Sbuffer *create_staging(uint32_t size_in_bytes, const char *name)
 inline Sbuffer *create_persistent_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name, Init buffer_init = Init::No)
 {
   return d3d::create_sbuffer(get_tex_format_desc(format).bytesPerElement, elements_count,
-    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MAYBELOST | (buffer_init == Init::Zero ? SBCF_ZEROMEM : 0), format, name);
+    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | (buffer_init == Init::Zero ? SBCF_ZEROMEM : 0), format, name);
 }
 
 
@@ -322,9 +321,7 @@ inline Sbuffer *create_persistent_sr_tbuf(uint32_t elements_count, uint32_t form
 inline Sbuffer *create_persistent_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
 {
   return d3d::create_sbuffer(BYTE_ADDRESS_ELEMENT_SIZE, size_in_dwords,
-    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_ALLOW_RAW | SBCF_MAYBELOST |
-      (buffer_init == Init::Zero ? SBCF_ZEROMEM : 0),
-    0, name);
+    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_ALLOW_RAW | (buffer_init == Init::Zero ? SBCF_ZEROMEM : 0), 0, name);
 }
 
 
@@ -346,9 +343,7 @@ inline Sbuffer *create_persistent_sr_structured(uint32_t structure_size, uint32_
   Init buffer_init = Init::No)
 {
   return d3d::create_sbuffer(structure_size, elements_count,
-    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED | SBCF_MAYBELOST |
-      (buffer_init == Init::Zero ? SBCF_ZEROMEM : 0),
-    0, name);
+    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED | (buffer_init == Init::Zero ? SBCF_ZEROMEM : 0), 0, name);
 }
 
 
@@ -370,7 +365,7 @@ inline Sbuffer *create_persistent_sr_structured(uint32_t structure_size, uint32_
 inline Sbuffer *create_one_frame_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name)
 {
   return d3d::create_sbuffer(get_tex_format_desc(format).bytesPerElement, elements_count,
-    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_DYNAMIC | SBCF_FRAMEMEM | SBCF_MAYBELOST, format, name);
+    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_DYNAMIC | SBCF_FRAMEMEM, format, name);
 }
 
 
@@ -388,7 +383,7 @@ inline Sbuffer *create_one_frame_sr_tbuf(uint32_t elements_count, uint32_t forma
 inline Sbuffer *create_one_frame_sr_byte_address(uint32_t size_in_dwords, const char *name)
 {
   return d3d::create_sbuffer(BYTE_ADDRESS_ELEMENT_SIZE, size_in_dwords,
-    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_ALLOW_RAW | SBCF_DYNAMIC | SBCF_FRAMEMEM | SBCF_MAYBELOST, 0, name);
+    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_ALLOW_RAW | SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, name);
 }
 
 
@@ -409,7 +404,7 @@ inline Sbuffer *create_one_frame_sr_byte_address(uint32_t size_in_dwords, const 
 inline Sbuffer *create_one_frame_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name)
 {
   return d3d::create_sbuffer(structure_size, elements_count,
-    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED | SBCF_DYNAMIC | SBCF_FRAMEMEM | SBCF_MAYBELOST, 0, name);
+    SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED | SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, name);
 }
 
 } // namespace d3d::buffers

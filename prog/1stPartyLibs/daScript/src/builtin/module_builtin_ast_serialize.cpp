@@ -326,11 +326,6 @@ namespace das {
         string mangeldName = func->getMangledName();
         string moduleName = func->module->name;
         *this << moduleName << mangeldName;
-        if ( func->module->findFunction(mangeldName) == nullptr && func->module->builtIn && !func->module->promoted ) {
-            auto f = func->module->findUniqueFunction(func->name);
-            DAS_VERIFYF(f, "expected to find f");
-            *this << f->name;
-        }
     }
 
     void AstSerializer::writeIdentifications ( Enumeration * & ptr ) {
@@ -406,7 +401,10 @@ namespace das {
             splitTypeName(mangledName, modname, funcname);
             func = funcModule->findFunction(funcname).get();
         }
-        DAS_VERIFYF(func!=nullptr, "function '%s' is not found", mangledName.c_str());
+        if ( func == nullptr ) {
+            failed = true;
+            das_to_stderr("das: ser: function '%s' not found", mangledName.c_str());
+        }
     }
 
     void AstSerializer::findExternal ( Enumeration * & ptr ) {
@@ -838,6 +836,7 @@ namespace das {
             if ( !is_null ) {
                 string name; *this << name;
                 module = moduleLibrary->findModule(name);
+                DAS_VERIFYF(module, "expected to fetch module from library");
             } else {
                 module = nullptr;
             }
@@ -1291,17 +1290,20 @@ namespace das {
             if ( value->type->isPointer() ) {
                 DAS_VERIFYF(value->type->firstType->isStructure(), "expected to see structure field access via pointer");
                 mangledName = value->type->firstType->structType->getMangledName();
+                ser << value->type->firstType->structType->module;
             } else {
                 DAS_VERIFYF(value->type->isStructure(), "expected to see structure field access");
                 mangledName = value->type->structType->getMangledName();
+                ser << value->type->structType->module;
             }
             ser << mangledName;
         } else {
             bool has_field = false; ser << has_field;
             if ( !has_field ) return;
+            Module * module; ser << module;
             string mangledName; ser << mangledName;
             field = ( Structure::FieldDeclaration * ) 1;
-            ser.fieldRefs.emplace_back(&field, ser.thisModule, move(mangledName), name);
+            ser.fieldRefs.emplace_back(&field, module, move(mangledName), name);
         }
     }
 
@@ -1644,7 +1646,6 @@ namespace das {
         program->isCompiling = false;
         program->markMacroSymbolUse();
         program->allocateStack(ignore_logs);
-        daScriptEnvironment::bound->g_Program = program;
         program->makeMacroModule(ignore_logs);
     // unbind the module from the program
         return program->thisModule.release();
@@ -1654,6 +1655,7 @@ namespace das {
     void finalizeModule ( AstSerializer & ser, ModuleLibrary & lib, Module * this_mod ) {
         ProgramPtr program;
 
+        if ( ser.failed ) return;
     // simulate macros
         if ( ser.writing ) {
             bool is_macro_module = this_mod->macroContext; // it's a macro module if it has macroContext
@@ -1668,6 +1670,7 @@ namespace das {
             program->thisModuleGroup = ser.thisModuleGroup;
             program->thisModuleName.clear();
             program->library.reset();
+            program->policies.stack = 64 * 1024;
             program->thisModule.release();
             program->thisModule.reset(this_mod);
             lib.foreach([&] ( Module * pm ) {
@@ -1675,6 +1678,7 @@ namespace das {
                 return true;
             },"*");
         // always finalize annotations
+            daScriptEnvironment::bound->g_Program = program;
             program->finalizeAnnotations();
 
             bool is_macro_module = false;
@@ -1857,7 +1861,9 @@ namespace das {
         serializeGlobals(ser, globals); // globals require insertion in the same order
         serializeStructures(ser, structures);
         serializeFunctions(ser, functions);
+        if ( ser.failed ) return;
         serializeFunctions(ser, generics);
+        if ( ser.failed ) return;
         ser << functionsByName << genericsByName;
         ser << ownFileInfo;     //<< promotedAccess;
 
@@ -1907,6 +1913,11 @@ namespace das {
             for (auto mod : input) {
                 visited[mod] = NOT_SEEN;
             }
+        }
+
+        vector<Module*> getDependecyOrdered(Module * m) {
+            visit(m);
+            return std::move(sorted);
         }
 
         vector<Module*> getDependecyOrdered() {
@@ -1990,6 +2001,75 @@ namespace das {
         return *this;
     }
 
+    // Used in eden
+    void AstSerializer::serializeProgram ( ProgramPtr program, ModuleGroup & libGroup ) {
+        auto & ser = *this;
+
+        ser << program->thisNamespace << program->thisModuleName;
+
+        ser << program->totalFunctions      << program->totalVariables << program->newLambdaIndex;
+        ser << program->globalInitStackSize << program->globalStringHeapSize;
+        ser << program->flags;
+
+        ser << program->options << program->policies;
+
+        if ( writing ) {
+            TopSort ts(program->library.getModules());
+            auto modules = ts.getDependecyOrdered(program->thisModule.get());
+
+            uint64_t size = modules.size(); *this << size;
+
+            for ( auto & m : modules ) {
+                bool builtin = m->builtIn, promoted = m->promoted;
+                *this << builtin << promoted;
+                *this << m->name;
+
+                if ( m->builtIn && !m->promoted ) {
+                    continue;
+                }
+
+                if ( writingReadyModules.count(m) == 0 ) {
+                    writingReadyModules.insert(m);
+                    *this << *m;
+                }
+            }
+        } else {
+            uint64_t size = 0; ser << size;
+
+            program->library.reset();
+            program->thisModule.release();
+            moduleLibrary = &program->library;
+
+            for ( uint64_t i = 0; i < size; i++ ) {
+                bool builtin, promoted;
+                ser << builtin << promoted;
+                string name; ser << name;
+
+                if ( builtin && !promoted ) {
+                    auto m = Module::require(name);
+                    program->library.addModule(m);
+                    continue;
+                }
+
+                if ( auto m = libGroup.findModule(name) ) {
+                    program->library.addModule(m);
+                    continue;
+                }
+
+                auto deser = new Module();
+                program->library.addModule(deser);
+                ser << *deser;
+            }
+
+            for ( auto & m : program->library.getModules() ) {
+                if ( m->name == program->thisModuleName ) {
+                    program->thisModule.reset(m);
+                }
+            }
+        }
+    }
+
+    // Used in daNetGame currently
     void Program::serialize ( AstSerializer & ser ) {
         ser << thisNamespace << thisModuleName;
 

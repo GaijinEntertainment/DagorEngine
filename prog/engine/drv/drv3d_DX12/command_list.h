@@ -1,5 +1,12 @@
 #pragma once
 
+#include <debug/dag_log.h>
+#include <supp/dag_comPtr.h>
+
+#include "driver.h"
+#include "extents.h"
+
+
 namespace drv3d_dx12
 {
 #define DX12_BEGIN_VALIATION() bool hadError = false
@@ -1735,6 +1742,12 @@ public:
     this->list->ClearRenderTargetView(render_target_view, color_rgba, num_rects, rects);
   }
 
+  void resolveSubresource(ID3D12Resource *dst_resource, UINT dst_subresource, ID3D12Resource *src_resource, UINT src_subresource,
+    DXGI_FORMAT format)
+  {
+    this->list->ResolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
+  }
+
   void clearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view, D3D12_CLEAR_FLAGS clear_flags, FLOAT depth, UINT8 stencil,
     UINT num_rects, const D3D12_RECT *rects)
   {
@@ -1849,6 +1862,20 @@ public:
     DX12_FINALIZE_VALIDATAION();
 #undef DX12_VALIDATAION_CONTEXT
     BaseType::clearRenderTargetView(render_target_view, color_rgba, num_rects, rects);
+  }
+
+  // It validates the following properties of the inputs:
+  // - If resources is not 0
+  void resolveSubresource(ID3D12Resource *dst_resource, UINT dst_subresource, ID3D12Resource *src_resource, UINT src_subresource,
+    DXGI_FORMAT format)
+  {
+#define DX12_VALIDATAION_CONTEXT "resolveSubresource"
+    DX12_BEGIN_VALIATION();
+    DX12_VALIDATE_CONDITION(dst_resource != nullptr, "dst resource can not be 0");
+    DX12_VALIDATE_CONDITION(src_resource != nullptr, "src resource can not be 0");
+    DX12_FINALIZE_VALIDATAION();
+#undef DX12_VALIDATAION_CONTEXT
+    this->list->ResolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
   }
 
   // It validates the following properties of the inputs:

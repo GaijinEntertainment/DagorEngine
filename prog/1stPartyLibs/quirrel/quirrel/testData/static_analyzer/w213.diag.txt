@@ -1,0 +1,9 @@
+WARNING: w213 (then-and-else-equals) then' statement is equivalent to 'else' statement.
+testData/static_analyzer/w213.nut:8:7
+
+  }
+  else {
+       ^
+    x /= 4
+
+

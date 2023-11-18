@@ -1,0 +1,8 @@
+WARNING: w217 (unconditional-terminated-loop) Unconditional 'throw' inside a loop.
+testData/static_analyzer/w217_throw.nut:8:4
+
+    throw "err"
+    ^----------
+  }
+
+

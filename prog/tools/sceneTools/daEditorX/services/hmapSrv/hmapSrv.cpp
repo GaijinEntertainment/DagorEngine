@@ -25,6 +25,7 @@
 
 #include <3d/dag_drv3d_pc.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <util/dag_bitArray.h>
 #include <libTools/util/progressInd.h>
 #include <osApiWrappers/dag_files.h>

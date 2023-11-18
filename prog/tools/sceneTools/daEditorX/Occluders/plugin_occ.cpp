@@ -3,6 +3,7 @@
 #include <de3_interface.h>
 #include <scene/dag_occlusionMap.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <dllPluginCore/core.h>
 #include <libTools/util/makeBindump.h>
 #include <ioSys/dag_dataBlock.h>

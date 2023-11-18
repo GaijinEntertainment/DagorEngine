@@ -1,0 +1,9 @@
+WARNING: w306 (eq-paren-miss) Suspicious expression, probably parens are missed.
+testData/static_analyzer/w306.nut:6:4
+
+local z = 2
+if (x == y != z)
+    ^----------
+  ::print("a")
+
+

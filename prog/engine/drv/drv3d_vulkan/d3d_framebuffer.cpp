@@ -117,7 +117,7 @@ bool d3d::set_render_target()
 
   la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>({0, Bind::back_buffer});
   la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>(
-    {MRT_INDEX_DEPTH_STENCIL, Bind::back_buffer});
+    {MRT_INDEX_DEPTH_STENCIL, Bind::empty});
   la.pipeState.set<StateFieldFramebufferReadOnlyDepth, bool, FrontGraphicsState, FrontFramebufferState>(false);
   for (uint32_t i = 1; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
     la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>({i, Bind::empty});

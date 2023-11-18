@@ -74,9 +74,9 @@ bool create_visclipmesh(CfgReader &cfg, bool for_game)
     vcm_lines = false;
   }
 
-  vcm_vb = d3d::create_vb((MAX_VISCLIPMESH_FACETS * 6) * sizeof(VisClipMeshVertex), SBCF_DYNAMIC | SBCF_MAYBELOST, __FILE__);
+  vcm_vb = d3d::create_vb((MAX_VISCLIPMESH_FACETS * 6) * sizeof(VisClipMeshVertex), SBCF_DYNAMIC, __FILE__);
   d3d_err(vcm_vb);
-  vcm_ib = d3d::create_ib(MAX_VISCLIPMESH_FACETS * 3 * sizeof(uint16_t), SBCF_DYNAMIC | SBCF_MAYBELOST);
+  vcm_ib = d3d::create_ib(MAX_VISCLIPMESH_FACETS * 3 * sizeof(uint16_t), SBCF_DYNAMIC);
   d3d_err(vcm_ib);
 
   // vcm_consoleproc.demandInit();

@@ -169,10 +169,14 @@ static bool load_math_op(const DataBlock &blk, int &op, float &p0, float &p1)
   op = lup(opStr, opNames, countof(opNames), -1);
   if (const char *v = blk.getStr("named_p0", NULL))
     p0 = AnimV20::getEnumValueByName(v);
+  else if (const char *v = blk.getStr("slot_p0", NULL))
+    p0 = AnimCharV20::addSlotId(v);
   else
     p0 = blk.getReal("p0", 0);
   if (const char *v = blk.getStr("named_p1", NULL))
     p1 = AnimV20::getEnumValueByName(v);
+  else if (const char *v = blk.getStr("slot_p1", NULL))
+    p1 = AnimCharV20::addSlotId(v);
   else
     p1 = blk.getReal("p1", 0);
   return op >= 0;
@@ -2679,7 +2683,7 @@ void AnimPostBlendNodeLookatNodeCtrl::createNode(AnimationGraph &graph, const Da
 }
 
 AnimPostBlendEffFromAttachement::AnimPostBlendEffFromAttachement(AnimationGraph &g) :
-  AnimPostBlendCtrl(g), nodes(midmem), destVarId(midmem), slotId(-1), varId(-1)
+  AnimPostBlendCtrl(g), nodes(midmem), destVarId(midmem), namedSlotId(-1), varSlotId(-1), varId(-1)
 {}
 void AnimPostBlendEffFromAttachement::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
 {
@@ -2697,6 +2701,7 @@ void AnimPostBlendEffFromAttachement::process(IPureAnimStateHolder &st, real wt,
     return;
 
   LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
+  const int slotId = varSlotId >= 0 ? (int)st.getParam(varSlotId) : namedSlotId;
   GeomNodeTree *att_tree = slotId < 0 ? &tree : ctx.ac->getAttachedSkeleton(slotId);
 
   if (!att_tree)
@@ -2805,10 +2810,13 @@ void AnimPostBlendEffFromAttachement::createNode(AnimationGraph &graph, const Da
 
   AnimPostBlendEffFromAttachement *node = new AnimPostBlendEffFromAttachement(graph);
 
-  if (blk.getBool("localNode", false))
-    node->slotId = -1;
-  else
-    node->slotId = AnimCharV20::addSlotId(blk.getStr("slot"));
+  if (!blk.getBool("localNode", false))
+  {
+    if (const char *val = blk.getStr("slot", NULL))
+      node->namedSlotId = AnimCharV20::addSlotId(val);
+    else if (const char *val = blk.getStr("varSlot", NULL))
+      node->varSlotId = graph.addParamId(val, IPureAnimStateHolder::PT_ScalarParam);
+  }
   node->ignoreZeroWt = blk.getBool("ignoreZeroWt", false);
   for (int j = 0, nid = blk.getNameId("node"); j < blk.blockCount(); j++)
     if (blk.getBlock(j)->getBlockNameId() == nid)
@@ -2840,7 +2848,7 @@ void AnimPostBlendEffFromAttachement::createNode(AnimationGraph &graph, const Da
 
 
 AnimPostBlendNodesFromAttachement::AnimPostBlendNodesFromAttachement(AnimationGraph &g) :
-  AnimPostBlendCtrl(g), nodes(midmem), varId(-1), slotId(-1), copyWtm(false)
+  AnimPostBlendCtrl(g), nodes(midmem), varId(-1), namedSlotId(-1), varSlotId(-1), copyWtm(false)
 {}
 void AnimPostBlendNodesFromAttachement::reset(IPureAnimStateHolder &st)
 {
@@ -2868,6 +2876,7 @@ void AnimPostBlendNodesFromAttachement::process(IPureAnimStateHolder &st, real w
     return;
 
   LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
+  const int slotId = varSlotId >= 0 ? (int)st.getParam(varSlotId) : namedSlotId;
   GeomNodeTree *att_tree = ctx.ac->getAttachedSkeleton(slotId);
   unsigned att_uid = ctx.ac->getAttachmentUid(slotId);
 
@@ -2922,7 +2931,10 @@ void AnimPostBlendNodesFromAttachement::createNode(AnimationGraph &graph, const 
 
   AnimPostBlendNodesFromAttachement *node = new AnimPostBlendNodesFromAttachement(graph);
 
-  node->slotId = AnimCharV20::addSlotId(blk.getStr("slot"));
+  if (const char *val = blk.getStr("slot", NULL))
+    node->namedSlotId = AnimCharV20::addSlotId(val);
+  else if (const char *val = blk.getStr("varSlot", NULL))
+    node->varSlotId = graph.addParamId(val, IPureAnimStateHolder::PT_ScalarParam);
   node->copyWtm = blk.getBool("copyWtm", false);
   G_ASSERTF(!node->copyWtm, "copyWtm:b=yes not implemented, PBC %s", name);
   for (int j = 0, nid = blk.getNameId("node"); j < blk.blockCount(); j++)
@@ -3362,6 +3374,8 @@ void AnimPostBlendSetParam::createNode(AnimationGraph &graph, const DataBlock &b
   }
   else if (const char *val = blk.getStr("namedValue", NULL))
     node->val = AnimV20::getEnumValueByName(val);
+  else if (const char *val = blk.getStr("slotIdValue", NULL))
+    node->val = AnimCharV20::addSlotId(val);
   else
     node->val = blk.getReal("value", 0);
 

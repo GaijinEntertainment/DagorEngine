@@ -65,7 +65,7 @@ ID3D11DepthStencilView *getDepthStencilView(const Driver3dRenderTarget &rtState)
     {
       BaseTex *depthTex = (BaseTex *)g_driver_state.depthTextures[depthNo];
       if (depthTex->width == colorTexWidth && depthTex->height == colorTexHeight &&
-          (depthTex->cflg & TEXCF_MULTISAMPLED) == (colorTex->cflg & TEXCF_MULTISAMPLED) &&
+          (depthTex->cflg & TEXCF_SAMPLECOUNT_MASK) == (colorTex->cflg & TEXCF_SAMPLECOUNT_MASK) &&
           ((depthTex->restype() == RES3D_CUBETEX) == (colorTex->restype() == RES3D_CUBETEX) ||
             featureLevelsSupported > D3D_FEATURE_LEVEL_10_0))
       {
@@ -78,13 +78,13 @@ ID3D11DepthStencilView *getDepthStencilView(const Driver3dRenderTarget &rtState)
     {
       if (colorTex->restype() == RES3D_CUBETEX && featureLevelsSupported <= D3D_FEATURE_LEVEL_10_0)
       {
-        g_driver_state.depthTextures.push_back(
-          d3d::create_cubetex(colorTexWidth, TEXFMT_DEPTH24 | TEXCF_RTARGET | (colorTex->cflg & TEXCF_MULTISAMPLED), 1, "cubedepth"));
+        g_driver_state.depthTextures.push_back(d3d::create_cubetex(colorTexWidth,
+          TEXFMT_DEPTH24 | TEXCF_RTARGET | (colorTex->cflg & TEXCF_SAMPLECOUNT_MASK), 1, "cubedepth"));
       }
       else
       {
         g_driver_state.depthTextures.push_back(d3d::create_tex(NULL, colorTexWidth, colorTexHeight,
-          TEXFMT_DEPTH24 | TEXCF_RTARGET | (colorTex->cflg & TEXCF_MULTISAMPLED), 1, "depth"));
+          TEXFMT_DEPTH24 | TEXCF_RTARGET | (colorTex->cflg & TEXCF_SAMPLECOUNT_MASK), 1, "depth"));
       }
 
       tex = (BaseTex *)(g_driver_state.depthTextures.back());
@@ -392,7 +392,7 @@ bool d3d::set_render_target()
   rs.modified = rs.rtModified = true;
   rs.viewModified = VIEWMOD_FULL;
   rs.nextRtState.setBackbufColor();
-  rs.nextRtState.setBackbufDepth();
+  rs.nextRtState.removeDepth();
   return true;
 }
 
@@ -727,7 +727,7 @@ static bool try_copy_tex(BaseTexture *from, BaseTexture *to, RectInt *from_rect,
   BaseTex *fromBase = (BaseTex *)from;
   BaseTex *toBase = (BaseTex *)to;
 
-  if (fromBase->format != toBase->format || (fromBase->cflg & TEXCF_MULTISAMPLED) != (toBase->cflg & TEXCF_MULTISAMPLED))
+  if (fromBase->format != toBase->format || (fromBase->cflg & TEXCF_SAMPLECOUNT_MASK) != (toBase->cflg & TEXCF_SAMPLECOUNT_MASK))
     return false;
 
   int srcw, srch;
@@ -847,7 +847,6 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, RectInt *from_rect, R
       return false;
     }
     d3d::set_render_target();
-    d3d::set_depth(NULL, DepthAccess::RW);
     stretch_prepare(from);
     d3d::draw_up(PRIM_TRILIST, 1, fullScrTri, sizeof(fullScrTri[0]));
     rs.restore();
@@ -867,7 +866,6 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, RectInt *from_rect, R
     d3d::set_render_target();
     if (to)
       d3d::set_render_target((Texture *)to, 0);
-    d3d::set_depth(NULL, DepthAccess::RW);
     stretch_prepare(from);
     if (to_rect || from_rect)
     {

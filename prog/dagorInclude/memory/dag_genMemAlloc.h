@@ -55,6 +55,8 @@
     {                                                                                    \
       return MEM->realloc(p, sz);                                                        \
     }                                                                                    \
+    static inline void set_name(const char *)                                            \
+    {}                                                                                   \
   }
 
 DECLARE_MEMALLOC(MidmemAlloc, midmem);

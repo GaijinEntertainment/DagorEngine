@@ -351,7 +351,7 @@ void VRDevice::prepareScreenMask(const TMatrix4 &projection, int view_index)
   const char *vbName = view_index == 0 ? "OpenXRVisibilityVMask0" : "OpenXRVisibilityVMask1";
   const char *ibName = view_index == 0 ? "OpenXRVisibilityIMask0" : "OpenXRVisibilityIMask1";
 
-  int bufFlags = SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE;
+  int bufFlags = SBCF_CPU_ACCESS_WRITE;
 
   int vbSize = sizeof(Point4) * visibilityMaskVertices.size();
   int ibSize = sizeof(uint16_t) * visibilityMaskIndices.size();

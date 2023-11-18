@@ -7,7 +7,7 @@
 
 #include <render/editorGrass.h>
 #include <3d/dag_drv3d.h>
-#include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <generic/dag_initOnDemand.h>
 #include <startup/dag_globalSettings.h>
 #include <debug/dag_debug.h>

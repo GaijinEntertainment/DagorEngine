@@ -1,0 +1,24 @@
+WARNING: w259 (similar-assigned-expr) Assigned expression is very similar to one of the previous ones.
+testData/static_analyzer/w259.nut:20:26
+
+local numAnimations = ::a + ::b + ::c + ::d - (::a + ::b + ::c + ::d) * ::x + 123
+local numTextAnimations = ::a + ::b + ::c + ::d - (::a + ::b + ::c + ::d) * ::x + 124 // EXPECTED
+                          ^----------------------------------------------------------
+
+
+
+AN ERROR HAS OCCURRED [the index 'a' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w259.nut line [19]
+
+LOCALS
+[_M] CLOSURE=FN:_M
+[_P] CLOSURE=FN:_P
+[S] CLOSURE=FN:S
+[_ttp] NULL
+[_tt] NULL
+[au] TABLE={}
+[Computed] CLOSURE=FN:Computed
+[vargv] ARRAY=[]
+[this] TABLE={}

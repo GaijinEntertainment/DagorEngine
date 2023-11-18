@@ -273,7 +273,7 @@ public:
     setImpostorParams(cb, impostor.shadowImpostorWd, impostor.shadowImpostorHt);
   }
 
-  void setImpostor(RiShaderConstBuffers &cb, bool forShadow, BaseTexture *baked_preshadow = nullptr) const
+  void setImpostor(RiShaderConstBuffers &cb, bool forShadow) const
   {
     if (!hasImpostor())
     {
@@ -284,23 +284,6 @@ public:
     {
       d3d::settex(dynamic_impostor_texture_const_no + DYNAMIC_IMPOSTOR_TEX_SHADOW_OFFSET, rendinstGlobalShadowTex);
       setShadowImpostorBoundingSphere(cb);
-    }
-    else
-    {
-      if (baked_preshadow != nullptr)
-      {
-        d3d::settex(dynamic_impostor_texture_const_no + DYNAMIC_IMPOSTOR_TEX_SHADOW_OFFSET, baked_preshadow);
-      }
-      else
-      {
-        for (int j = 0; j < impostor.tex.size(); ++j)
-        {
-          if (!impostor.tex[j].getBaseTex())
-            break;
-          d3d::settex(dynamic_impostor_texture_const_no + j, impostor.tex[j].getBaseTex());
-        }
-      }
-      setDynamicImpostorBoundingSphere(cb);
     }
     ShaderElement::invalidate_cached_state_block();
   }

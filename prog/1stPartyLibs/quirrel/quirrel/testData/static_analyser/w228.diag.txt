@@ -1,9 +1,0 @@
-WARNING: w228 (declared-never-used) variable 'str' was declared but never used.
-testData/static_analyser/w228.nut:4:2
-
-let function x() { //-declared-never-used
-  local str = "string"
-  ^-----
-  return
-
-

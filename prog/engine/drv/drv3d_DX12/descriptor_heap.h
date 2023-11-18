@@ -1,5 +1,15 @@
 #pragma once
 
+#include <supp/dag_comPtr.h>
+#include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
+
+#include "driver.h"
+#include "d3d12_error_handling.h"
+#include "d3d12_utils.h"
+#include "value_range.h"
+
+
 namespace drv3d_dx12
 {
 template <D3D12_DESCRIPTOR_HEAP_TYPE Type>

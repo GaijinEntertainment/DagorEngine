@@ -1,9 +1,0 @@
-WARNING: w271 (forgot-subst) '{}' found inside string (forgot 'subst' or '$' ?).
-testData/static_analyser/w271.nut:9:15
-
-    else
-        return "$ xxxx={x}"  // EXPECTED
-               ^-----------
-}
-
-

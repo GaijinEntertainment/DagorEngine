@@ -337,6 +337,13 @@ void DaThread::setThreadIdealProcessor(int ideal_processor_no)
 #endif
 }
 
+void DaThread::stripStackInMinidump()
+{
+#if _TARGET_PC_WIN | _TARGET_XBOX
+  minidumpSaveStack = false;
+#endif
+}
+
 #if defined(HAVE_PTHREAD)
 void *DaThread::threadEntry(void *arg)
 {
@@ -531,6 +538,22 @@ void DaThread::terminate_all(bool wait, int timeout_ms)
   while (threads_list_head)
     threads_list_head->terminate(false);
 }
+
+#if _TARGET_PC_WIN | _TARGET_XBOX
+bool DaThread::isDaThreadWinUnsafe(uintptr_t thread_id, bool &minidump_save_stack)
+{
+  minidump_save_stack = false;
+  for (DaThread *t = threads_list_head; t; t = t->nextThread)
+  {
+    if (GetThreadId((HANDLE)t->id) == thread_id)
+    {
+      minidump_save_stack = t->minidumpSaveStack;
+      return true;
+    }
+  }
+  return false;
+}
+#endif
 
 #define EXPORT_PULL dll_pull_osapiwrappers_threads
 #include <supp/exportPull.h>

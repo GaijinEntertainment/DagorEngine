@@ -30,7 +30,7 @@ void init(const DataBlock &blk);
 void enable(const char *preset_name, bool enable = true, const PathTags &path_tags = {});
 void enable_starting_with(const char *preset_name_starts_with, bool enable = true, const PathTags &path_tags = {});
 
-const char *get_default_preset(const DataBlock &);
+const char *get_master_preset();
 
 bool is_enabled(const char *preset_name);
 bool is_loaded(const char *preset_name);
@@ -44,7 +44,6 @@ void clear_prohibited_guids();
 
 void set_preset_loaded_cb(PresetLoadedCallback cb);
 bool any_banks_pending();
-bool are_inited();
 
 void set_err_cb(ErrorCallback cb);
 void unload_banks_sample_data(void);

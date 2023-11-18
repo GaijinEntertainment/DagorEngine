@@ -1,4 +1,5 @@
 #include "hmlPlugin.h"
+#include "hmlEntity.h"
 #include "hmlSplineObject.h"
 #include "hmlSplinePoint.h"
 #include "recastNavMesh.h"
@@ -934,9 +935,9 @@ static bool isCustomJumpLink(const SplineObject *spline)
          spline->points.front()->getSplineClass()->isCustomJumplink;
 }
 
-static Tab<recastbuild::CustomJumpLink> get_relevant_custom_jumplinks(const BBox3 &box, const HmapLandObjectEditor *objEd)
+static void collect_custom_jumplinks_from_splines_in_box(Tab<recastbuild::CustomJumpLink> &relevantJumplinks, const BBox3 &box,
+  const HmapLandObjectEditor *objEd)
 {
-  Tab<recastbuild::CustomJumpLink> relevantJumplinks;
   const int splinesCount = objEd->splinesCount();
   for (int i = 0; i < splinesCount; ++i)
   {
@@ -966,6 +967,96 @@ static Tab<recastbuild::CustomJumpLink> get_relevant_custom_jumplinks(const BBox
     else if (box & jumpLinkEnd)
       relevantJumplinks.push_back({jumpLinkEnd, jumpLinkStart});
   }
+}
+
+static void process_spline_entity_for_relevant_jumplinks(const ISplineEntity &spline, const BBox3 &box, IAssetService *assetSrv,
+  Tab<recastbuild::CustomJumpLink> &relevantJumplinks)
+{
+  DataBlock splineBlk;
+  if (!spline.saveSplineTo(splineBlk) || splineBlk.blockCount() != 1)
+    return;
+  DataBlock *splineDataBlk = splineBlk.getBlockByName("spline");
+  if (!splineDataBlk)
+    return;
+
+  auto assetName = splineDataBlk->getStr("blkGenName", "");
+  const auto *assetData = assetSrv->getSplineClassData(assetName);
+
+  if (!assetData->isCustomJumplink)
+    return;
+
+  int nid = splineDataBlk->getNameId("point");
+  int numPoints = 0;
+  Point3 jumpLinkStart{};
+  Point3 jumpLinkEnd{};
+  for (int i = 0; i < splineDataBlk->blockCount() && numPoints < 2; ++i)
+  {
+    const DataBlock *pointBlk = splineDataBlk->getBlock(i);
+    if (pointBlk->getBlockNameId() != nid)
+      continue;
+
+    const Point3 point = pointBlk->getPoint3("pt", Point3(0, 0, 0));
+
+    if (numPoints == 0)
+      jumpLinkStart = point;
+    else
+      jumpLinkEnd = point;
+
+    ++numPoints;
+  }
+
+  if (numPoints < 2)
+  {
+    logerr("Custom spline jumplink should consist out of two points, but has less. Skipping");
+    return;
+  }
+
+  if (box & jumpLinkStart)
+    relevantJumplinks.push_back({jumpLinkStart, jumpLinkEnd});
+  else if (box & jumpLinkEnd)
+    relevantJumplinks.push_back({jumpLinkEnd, jumpLinkStart});
+}
+
+static void process_entity_for_relevant_jumplinks(IObjEntity *entity, const BBox3 &box, IAssetService *assetSrv,
+  Tab<recastbuild::CustomJumpLink> &relevantJumplinks)
+{
+  if (entity->queryInterface<ICompositObj>())
+  {
+    auto composit = entity->queryInterface<ICompositObj>();
+    const int subCount = composit->getCompositSubEntityCount();
+    for (int j = 0; j < subCount; ++j)
+      process_entity_for_relevant_jumplinks(composit->getCompositSubEntity(j), box, assetSrv, relevantJumplinks);
+  }
+  else if (entity->queryInterface<ISplineEntity>())
+    process_spline_entity_for_relevant_jumplinks(*entity->queryInterface<ISplineEntity>(), box, assetSrv, relevantJumplinks);
+}
+
+static void collect_custom_jumplinks_from_composits_in_box(Tab<recastbuild::CustomJumpLink> &relevantJumplinks, const BBox3 &box,
+  const HmapLandObjectEditor *objEd)
+{
+  IAssetService *assetSrv = EDITORCORE->queryEditorInterface<IAssetService>();
+
+  // for each composite recursively search for splines
+  // in its children and process all found custom jumplinks
+  const int objCount = objEd->objectCount();
+  for (int i = 0; i < objCount; ++i)
+  {
+    LandscapeEntityObject *object = RTTI_cast<LandscapeEntityObject>(objEd->getObject(i));
+    auto *entity = object ? object->getEntity() : nullptr;
+    if (!entity)
+      continue;
+
+    process_entity_for_relevant_jumplinks(entity, box, assetSrv, relevantJumplinks);
+  }
+}
+
+static Tab<recastbuild::CustomJumpLink> get_custom_jumplinks_in_box(const BBox3 &box, const HmapLandObjectEditor *objEd)
+{
+  Tab<recastbuild::CustomJumpLink> relevantJumplinks;
+
+  collect_custom_jumplinks_from_splines_in_box(relevantJumplinks, box, objEd);
+  collect_custom_jumplinks_from_composits_in_box(relevantJumplinks, box, objEd);
+
   return relevantJumplinks;
 }
 
@@ -1002,7 +1093,7 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
     if (nav_mesh_params.jlkParams.enabled)
       recastbuild::build_jumplinks_connstorage(connStorage, edges, nav_mesh_params.jlkParams, tile_ctx.chf, tile_ctx.solid);
 
-    const Tab<recastbuild::CustomJumpLink> customJumplinks = get_relevant_custom_jumplinks(box, objEd);
+    const Tab<recastbuild::CustomJumpLink> customJumplinks = get_custom_jumplinks_in_box(box, objEd);
     add_custom_jumplinks(connStorage, edges, customJumplinks);
 
     if (nav_mesh_params.jlkParams.crossObstaclesWithJumplinks && obstacle_flags_by_res_name_hash.size() > 0)

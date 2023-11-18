@@ -44,6 +44,7 @@
 #include <scene/dag_visibility.h>
 
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_texPackMgr2.h>
 #include <ioSys/dag_dataBlock.h>
@@ -386,12 +387,15 @@ void DagorEdAppWindow::initPlugins()
         plname.printf(260, "%s/%s", v_game_relpath, packlist);
         if (vrom)
           ::add_vromfs(vrom);
+        else if (!dd_file_exist(plname))
+          plname = "";
         DAEDITOR3.conNote("loading main resources: %s (from VROMFS %s, %p)", plname.str(), vrom_name.str(), vrom);
       }
       else
         DAEDITOR3.conNote("loading main resources: %s", plname.str());
 
-      ::load_res_packs_from_list(plname, true, loadDDSxPacks, mntPoint);
+      if (!plname.empty())
+        ::load_res_packs_from_list(plname, true, loadDDSxPacks, mntPoint);
       if (vrom)
       {
         ::remove_vromfs(vrom);

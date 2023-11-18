@@ -34,6 +34,7 @@
 #include <generic/dag_relocatableFixedVector.h>
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_statDrv.h>
 
 namespace layers
@@ -128,6 +129,7 @@ class JoltJobSystemImpl final : public JPH::JobSystem
   OSSpinlock fbaJobsSL, fbaBarriersSL;
   unsigned maxThreads;
   void *chunkHoldPtr1, *chunkHoldPtr2; //< to prevent chunk release when last work block is released
+  cpujobs::IJob *delayedFreeTail = nullptr;
 
 public:
   JoltJobSystemImpl(unsigned max_jobs, unsigned max_barriers, unsigned max_threads) :
@@ -138,8 +140,29 @@ public:
   }
   ~JoltJobSystemImpl()
   {
-    fbaJobs.freeOneBlock(chunkHoldPtr1);
     fbaBarriers.freeOneBlock(chunkHoldPtr2);
+
+    uint32_t _1, _2, usedMem = 0;
+    {
+      OSSpinlockScopedLock lock(fbaJobsSL);
+      flushDelayedFreeList();
+      fbaJobs.freeOneBlock(chunkHoldPtr1);
+      fbaJobs.getMemoryStats(_1, _2, usedMem);
+      if (DAGOR_LIKELY(usedMem == 0))
+      {
+        G_FAST_ASSERT(!delayedFreeTail);
+        return;
+      }
+    }
+
+    // Wait for rare jobs that wasn't added/waited by barrier
+    spin_wait([&] {
+      fbaJobsSL.lock();
+      flushDelayedFreeList();
+      fbaJobs.getMemoryStats(_1, _2, usedMem);
+      fbaJobsSL.unlock();
+      return usedMem != 0;
+    });
   }
 
   struct JobImpl final : public cpujobs::IJob, public Job
@@ -263,7 +286,15 @@ public:
     OSSpinlockScopedLock lock(fbaBarriersSL);
     return fbaBarriers.allocateOneBlock();
   }
-  Barrier *CreateBarrier() override { return ::new (allocBarrierMem(), _NEW_INPLACE) BarrierImpl; }
+  Barrier *CreateBarrier() override
+  {
+    if (DAGOR_UNLIKELY(interlocked_relaxed_load_ptr(delayedFreeTail)))
+    {
+      OSSpinlockScopedLock lock(fbaJobsSL);
+      flushDelayedFreeList();
+    }
+    return ::new (allocBarrierMem(), _NEW_INPLACE) BarrierImpl;
+  }
 
   /// Destroy a barrier when it is no longer used. The barrier should be empty at this point.
   void DestroyBarrier(Barrier *inBarrier) override
@@ -301,14 +332,29 @@ protected:
   {
     auto jptr = static_cast<JobImpl *>(inJob);
     G_FAST_ASSERT(inJob->IsDone());
-
-    // Addition to barrier can be skipped if job was already done (IsDone()=true) at Jolt,
-    // but we still have to wait for it to be done in threadpool
-    threadpool::wait(jptr, 0, jptr->tprio);
-
     jptr->~JobImpl();
+    // Addition to barrier can be skipped if job was already done (IsDone()=true) at Jolt. It might cause
+    // this method to be called from job itself causing it not to be `done' by threadpool side
     OSSpinlockScopedLock lock(fbaJobsSL);
-    fbaJobs.freeOneBlock(jptr);
+    if (interlocked_acquire_load(jptr->done))
+      fbaJobs.freeOneBlock(jptr);
+    else // Add to list in order to free it later
+    {
+      jptr->next = delayedFreeTail;
+      delayedFreeTail = jptr;
+    }
+  }
+
+  void flushDelayedFreeList()
+  {
+    for (auto *j2free = interlocked_acquire_load_ptr(delayedFreeTail); j2free;)
+    {
+      auto jprev = j2free->next;
+      threadpool::wait(j2free, 0, JobImpl::tprio);
+      fbaJobs.freeOneBlock(j2free);
+      j2free = jprev;
+    }
+    delayedFreeTail = nullptr;
   }
 };
 
@@ -583,8 +629,11 @@ void PhysWorld::init_engine(bool single_threaded)
 void PhysWorld::term_engine()
 {
   using namespace jolt_api;
-  del_it(physicsSystem);
+
+  // Note: phys world which does `fetchSimRes` in its dtor is assumed to be destroyed at this point
   del_it(jobSystem);
+
+  del_it(physicsSystem);
   del_it(tempAllocator);
 }
 
@@ -612,7 +661,7 @@ PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TM
   G_ASSERTF(objlayer_to_layer_mask(body.mObjectLayer) == layerMask, "layerMask=0x%x -> objLayer=0x%x", layerMask,
     (unsigned)body.mObjectLayer);
 
-  body.mMotionType = mass == 0.f ? (s.kinematic ? JPH::EMotionType::Kinematic : JPH::EMotionType::Static) : JPH::EMotionType::Dynamic;
+  body.mMotionType = isDynamic ? JPH::EMotionType::Dynamic : (s.kinematic ? JPH::EMotionType::Kinematic : JPH::EMotionType::Static);
   if (body.mMotionType != JPH::EMotionType::Static)
   {
     body.mOverrideMassProperties =

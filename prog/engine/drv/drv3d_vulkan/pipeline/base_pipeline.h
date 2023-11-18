@@ -7,6 +7,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <dag/dag_vector.h>
+#include <osApiWrappers/dag_atomic.h>
 
 namespace drv3d_vulkan
 {
@@ -153,7 +154,9 @@ template <typename PipelineLayoutType, typename PipelineProgramType>
 class BasePipeline : public CustomPipeline<PipelineLayoutType, PipelineProgramType>
 {
 public:
-  BasePipeline(PipelineLayoutType *iLayout) : CustomPipeline<PipelineLayoutType, PipelineProgramType>(iLayout), handle() {}
+  BasePipeline(PipelineLayoutType *iLayout) :
+    CustomPipeline<PipelineLayoutType, PipelineProgramType>(iLayout), handle(), compiledHandle()
+  {}
 
   void shutdown(VulkanDevice &device)
   {
@@ -161,10 +164,67 @@ public:
     handle = VulkanNullHandle();
   }
 
-  VulkanPipelineHandle getHandle() { return handle; }
+  VulkanPipelineHandle getHandle() const { return handle; }
 
-protected:
+#if VK_USE_64_BIT_PTR_DEFINES
+  bool checkCompiled()
+  {
+    if (is_null(handle))
+    {
+      if (interlocked_relaxed_load_ptr(compiledHandle.value) == VK_NULL_HANDLE)
+        return false;
+      swapHandles();
+    }
+    return true;
+  }
+
+  void swapHandles() { handle.value = interlocked_acquire_load_ptr(compiledHandle.value); }
+  void setCompiledHandle(VulkanPipelineHandle new_handle) { interlocked_release_store_ptr(compiledHandle.value, new_handle.value); }
+  void setHandle(VulkanPipelineHandle new_handle) { handle = new_handle; }
+  VulkanPipelineHandle getCompiledHandle()
+  {
+    VulkanPipelineHandle ret;
+    ret.value = interlocked_acquire_load_ptr(compiledHandle.value);
+    return ret;
+  }
+#else
+  bool checkCompiled()
+  {
+    if (is_null(handle))
+    {
+      if (interlocked_relaxed_load(compileSync) == 0)
+        return false;
+      swapHandles();
+    }
+    return true;
+  }
+
+  void swapHandles()
+  {
+    volatile int sync = interlocked_acquire_load(compileSync);
+    G_UNUSED(sync);
+    handle = compiledHandle;
+  }
+  void setCompiledHandle(VulkanPipelineHandle new_handle)
+  {
+    compiledHandle = new_handle;
+    interlocked_release_store(compileSync, 1);
+  }
+  void setHandle(VulkanPipelineHandle new_handle) { handle = new_handle; }
+  VulkanPipelineHandle getCompiledHandle()
+  {
+    volatile int sync = interlocked_acquire_load(compileSync);
+    G_UNUSED(sync);
+    return compiledHandle;
+  }
+#endif
+
+private:
   VulkanPipelineHandle handle;
+  VulkanPipelineHandle compiledHandle;
+#if !VK_USE_64_BIT_PTR_DEFINES
+  volatile uint32_t compileSync = 0;
+#endif
 };
 
 template <typename PipelineLayoutType, typename PipelineProgramType, template <typename, typename> class TargetPipelineType>

@@ -24,6 +24,7 @@
 #include <math/random/dag_random.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_mathUtils.h>
+#include <osApiWrappers/dag_critSec.h>
 #include <ioSys/dag_dataBlock.h>
 #include <memory/dag_framemem.h>
 #include <gamePhys/phys/rendinstDestrRefl.h>
@@ -39,6 +40,7 @@ static const Point3 RI_DESTROY_BBOX_MARGIN_UP = Point3(0, 0.05, 0);
 
 static bool apply_reflection = false;
 static bool apply_cached_destr = false;
+static bool apply_delayed_extra_destr = false;
 static rendinstdestr::create_tree_rend_inst_destr_cb create_tree_cb = NULL;
 static rendinstdestr::remove_tree_rendinst_destr_cb rem_tree_cb = NULL;
 static rendinstdestr::remove_physx_collision_object_callback rem_physx_collision_obj_cb = NULL;
@@ -53,9 +55,12 @@ static rendinstdestr::DestrSettings destrSettings;
 static rendinst::ri_damage_effect_cb ri_effect_cb = nullptr;
 static PhysWorld *phys_world = NULL;
 static danet::BitStream cachedDestr;
+static WinCritSec delayed_ri_extra_destr_mutex;
+static dag::Vector<rendinst::RendInstDesc> delayed_ri_extra_destruction;
 static Tab<RendInstPhys> riPhys(midmem);
 static Tab<CachedCollisionObjectInfo *> cachedCollisionObjects(midmem);
 static CollisionObject tree_collision;
+static void do_delayed_ri_extra_destruction_impl();
 #if ENABLE_APEX
 template <>
 struct eastl::hash<rendinst::RendInstDesc>
@@ -175,6 +180,8 @@ void rendinstdestr::init_ex(mpi::ObjectID oid, rendinstdestr::on_destr_changed_c
 {
   on_changed_destr_cb = on_destr_cb;
   init_refl_object(oid);
+  apply_cached_destr = true;
+  apply_delayed_extra_destr = true;
   rendinst::enable_apex = false;
   create_tree_cb = create_tree_destr_cb;
   rem_tree_cb = rem_tree_destr_cb;
@@ -184,6 +191,7 @@ void rendinstdestr::init_ex(mpi::ObjectID oid, rendinstdestr::on_destr_changed_c
   apex_force_remove_actor_cb = apex_remove_actor_cb;
   get_current_camera_pos = get_current_camera_pos_;
   rendinst::registerRIGenExtraInvalidateHandleCb(invalidate_handle_cb);
+  rendinst::do_delayed_ri_extra_destruction = do_delayed_ri_extra_destruction_impl;
 }
 
 void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, bool apply_cache,
@@ -240,6 +248,9 @@ void rendinstdestr::endSession()
   enable_reflection_refl_object(false);
   apply_reflection = false;
   cachedDestr.Reset();
+
+  WinAutoLock lock(delayed_ri_extra_destr_mutex);
+  clear_and_shrink(delayed_ri_extra_destruction);
 }
 
 mpi::IObject *rendinstdestr::getReflectionObject() { return get_refl_object(); }
@@ -841,6 +852,30 @@ bool rendinstdestr::serialize_destr_data(danet::BitStream &bs)
   return cellCount > 0;
 }
 
+static void do_delayed_ri_extra_destruction_impl()
+{
+  using namespace rendinstdestr;
+  if (!apply_delayed_extra_destr)
+    return;
+
+  WinAutoLock lock(delayed_ri_extra_destr_mutex);
+  for (auto it = delayed_ri_extra_destruction.begin(); it != delayed_ri_extra_destruction.end();)
+  {
+    auto desc = *it;
+    if (const auto idx = rendinst::find_restorable_data_index(desc); idx >= 0)
+    {
+      desc.idx = idx;
+      destroyRendinst(desc, false, ZERO<Point3>(), ZERO<Point3>(), 0.f, NULL, get_ri_damage_effect_cb() != nullptr,
+        get_ri_damage_effect_cb(), get_destr_settings().isClient);
+      it = delayed_ri_extra_destruction.erase_unsorted(it);
+    }
+    else
+    {
+      ++it;
+    }
+  }
+}
+
 void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply_flags, int max_simultaneous_destrs)
 {
   // Temporary structure to keep it
@@ -851,30 +886,30 @@ void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
   uint16_t cellCount = 0;
   bs.ReadCompressed(cellCount);
 
-  rendinst::getDestrCellData(0 /*primary layer*/, [&](const Tab<rendinst::DestroyedCellData> &destrCellData) {
-    if (!apply_reflection)
+  if (!apply_reflection)
+  {
+    cachedDestr = bs;
+    for (int i = 0; i < cellCount; ++i)
     {
-      cachedDestr = bs;
-      for (int i = 0; i < cellCount; ++i)
+      uint16_t poolCount = 0;
+
+      bs.IgnoreBytes(sizeof(int16_t));
+      bs.ReadCompressed(poolCount);
+      for (int j = 0; j < poolCount; ++j)
       {
-        uint16_t poolCount = 0;
+        uint16_t rangeCount = 0;
+        uint16_t poolIdx = 0;
 
-        bs.IgnoreBytes(sizeof(int16_t));
-        bs.ReadCompressed(poolCount);
-        for (int j = 0; j < poolCount; ++j)
-        {
-          uint16_t rangeCount = 0;
-          uint16_t poolIdx = 0;
+        bs.ReadCompressed(poolIdx);
+        bs.ReadCompressed(rangeCount);
 
-          bs.ReadCompressed(poolIdx);
-          bs.ReadCompressed(rangeCount);
-
-          bs.IgnoreBytes(2 * sizeof(uint16_t) * rangeCount);
-        }
+        bs.IgnoreBytes(2 * sizeof(uint16_t) * rangeCount);
       }
-      return true;
     }
+    return;
+  }
 
+  rendinst::getDestrCellData(0 /*primary layer*/, [&](const Tab<rendinst::DestroyedCellData> &destrCellData) {
     cellsNewDestrInfo.resize(cellCount);
 
     for (int i = 0; i < cellCount; ++i)
@@ -1043,6 +1078,7 @@ void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
   });
 
   newDestrs = ((apply_flags & INITIAL_REPLICATION) != 0) ? 0 : min(newDestrs, max_simultaneous_destrs);
+  dag::Vector<rendinst::RendInstDesc, framemem_allocator> delayedRiExtraDestruction;
 
   for (int i = 0; i < cellsNewDestrInfo.size(); ++i)
   {
@@ -1078,6 +1114,12 @@ void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
                 desc.idx = idx;
                 ok = true;
               }
+              else if (apply_delayed_extra_destr)
+              {
+                // if ri extra was not found, add it to delayed destruction list to destroy it
+                // in do_delayed_ri_extra_destruction, if it will appear later
+                delayedRiExtraDestruction.push_back(desc);
+              }
             }
             // Only call destroyRendinst if a handle (i.e. idx exists) is found, if it's not found,
             // then desc.idx will be 0 and will trigger all kinds of side effects with make_handle(pool, 0).
@@ -1096,6 +1138,17 @@ void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
     }
     if (shouldUpdateVb && cell.cellId >= 0)
       rendinst::updateRiGenVbCell(0, cell.cellId);
+  }
+
+  if (!delayedRiExtraDestruction.empty())
+  {
+    WinAutoLock lock(delayed_ri_extra_destr_mutex);
+    for (const auto &desc : delayedRiExtraDestruction)
+    {
+      if (eastl::find(delayed_ri_extra_destruction.begin(), delayed_ri_extra_destruction.end(), desc) ==
+          delayed_ri_extra_destruction.end())
+        delayed_ri_extra_destruction.push_back(desc);
+    }
   }
 }
 
@@ -1616,6 +1669,22 @@ void rendinstdestr::doRIExtraDamageInBox(const BBox3 &box, rendinst::ri_damage_e
     rendinst::CollisionInfo collInfo(riDesc);
     collInfo = rendinst::getRiGenDestrInfo(riDesc);
 
+    Point3 riPos = collInfo.tm.getcol(3);
+    if (check_sphere)
+    {
+      const BBox3 riBBox = collInfo.tm * collInfo.localBBox;
+      if (!(*check_sphere & riBBox))
+        continue;
+    }
+    if (check_itm)
+    {
+      BBox3 checkBox(Point3(-0.5f, 0.f, -0.5f), Point3(0.5f, 1.f, 0.5f));
+      Point3 p = *check_itm * riPos;
+      p.y = 0.5f;
+      if (!(checkBox & p))
+        continue;
+    }
+
     if (calc_expl_dmg_cb)
     {
       TIME_PROFILE(rendinstdestr__doRIExtraDamageInBox_calc_expl_dmg);
@@ -1631,17 +1700,6 @@ void rendinstdestr::doRIExtraDamageInBox(const BBox3 &box, rendinst::ri_damage_e
         continue;
     }
     bool local_create_destr = false;
-    Point3 riPos = collInfo.tm.getcol(3);
-    if (check_sphere && !(*check_sphere & riPos))
-      continue;
-    if (check_itm)
-    {
-      BBox3 checkBox(Point3(-0.5f, 0.f, -0.5f), Point3(0.5f, 1.f, 0.5f));
-      Point3 p = *check_itm * riPos;
-      p.y = 0.5f;
-      if (!(checkBox & p))
-        continue;
-    }
     if (create_destr && (!tooManyDestructables || ((view_pos - riPos).lengthSq() < destructables::minDestrRadiusSq)))
       local_create_destr = true;
     if (collInfo.isDestr)

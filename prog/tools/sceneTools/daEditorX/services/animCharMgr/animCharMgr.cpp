@@ -22,6 +22,7 @@
 #include <startup/dag_globalSettings.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_SHlight.h>
@@ -239,7 +240,7 @@ public:
 
             att.attSuffix = b.getStr("animCharSuffix", "_char");
             att.configDir = b.getStr("configDir", "");
-            if (att.configDir[0] == '#')
+            if (!att.configDir.empty() && att.configDir[0] == '#')
               att.configDir = String(0, "%s%s", EDITORCORE->getBaseWorkspace().getAppDir(), &att.configDir[1]);
 
             att.varBlockNm = b.getStr("varsForHolderBlockName", "");
@@ -523,34 +524,37 @@ public:
         replaceAtt(att.slotId, NULL);
       }
 
-      String cfg_fn(0, "%s/%s.blk", att.configDir, enum_val);
-      simplify_fname(cfg_fn);
-      if (dd_file_exists(cfg_fn))
+      if (!att.configDir.empty() && enum_val && *enum_val)
       {
-        AnimV20::AnimationGraph *ag = ac->getAnimGraph();
-        AnimV20::IAnimStateHolder *as = ac->getAnimState();
+        String cfg_fn(0, "%s/%s.blk", att.configDir, enum_val);
+        simplify_fname(cfg_fn);
+        if (dd_file_exists(cfg_fn))
+        {
+          AnimV20::AnimationGraph *ag = ac->getAnimGraph();
+          AnimV20::IAnimStateHolder *as = ac->getAnimState();
 
-        DataBlock blk(cfg_fn);
-        const DataBlock &b = *blk.getBlockByNameEx(att.varBlockNm);
-        for (int pi = 0; pi < b.paramCount(); pi++)
-          if (b.getParamType(pi) == b.TYPE_REAL)
-          {
-            int param_id = ag->getParamId(b.getParamName(pi), AnimV20::IAnimStateHolder::PT_ScalarParam);
-            if (param_id >= 0)
-              as->setParam(param_id, b.getReal(pi));
-          }
-          else if (b.getParamType(pi) == b.TYPE_INT)
-          {
-            int param_id = ag->getParamId(b.getParamName(pi), AnimV20::IAnimStateHolder::PT_ScalarParamInt);
-            if (param_id >= 0)
-              as->setParamInt(param_id, b.getInt(pi));
-          }
-        if (!b.paramCount())
-          DAEDITOR3.conWarning("empty block \"%s\" in \"%s\" for slotId=%d of animChar <%s>", att.varBlockNm, cfg_fn, att.slotId,
-            assetName());
+          DataBlock blk(cfg_fn);
+          const DataBlock &b = *blk.getBlockByNameEx(att.varBlockNm);
+          for (int pi = 0; pi < b.paramCount(); pi++)
+            if (b.getParamType(pi) == b.TYPE_REAL)
+            {
+              int param_id = ag->getParamId(b.getParamName(pi), AnimV20::IAnimStateHolder::PT_ScalarParam);
+              if (param_id >= 0)
+                as->setParam(param_id, b.getReal(pi));
+            }
+            else if (b.getParamType(pi) == b.TYPE_INT)
+            {
+              int param_id = ag->getParamId(b.getParamName(pi), AnimV20::IAnimStateHolder::PT_ScalarParamInt);
+              if (param_id >= 0)
+                as->setParamInt(param_id, b.getInt(pi));
+            }
+          if (!b.paramCount())
+            DAEDITOR3.conWarning("empty block \"%s\" in \"%s\" for slotId=%d of animChar <%s>", att.varBlockNm, cfg_fn, att.slotId,
+              assetName());
+        }
+        else
+          DAEDITOR3.conWarning("missing \"%s\" (for %s), slotId=%d of animChar <%s>", cfg_fn, enum_val, att.slotId, assetName());
       }
-      else
-        DAEDITOR3.conWarning("missing \"%s\" (for %s), slotId=%d of animChar <%s>", cfg_fn, enum_val, att.slotId, assetName());
     }
     for (int i = 0; i < dynAtt.size(); i++)
       if (auto attAc = ac->getAttachedChar(dynAtt[i].slotId))

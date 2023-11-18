@@ -24,7 +24,7 @@ Sources =
   pipeline_cache.cpp
   bindless.cpp
   resource_memory_heap.cpp
-  resource_memory_heap_heap_components.cpp
+  resource_manager/heap_components.cpp
   resource_update_buffer.cpp
   resource_usage_debugger.cpp
   pipeline/blk_cache.cpp
@@ -146,5 +146,9 @@ UseProgLibs +=
   engine/shaders
   gameLibs/dxil
 ;
+
+if $(PlatformSpec) = clang && ! $(CLangVer) in 15.0.7 14.0.6 12.0.1 11.0.0 10.0.0 { # >= 16 implied
+  CPPopt += -Wno-enum-constexpr-conversion ;
+}
 
 include $(Root)/prog/_jBuild/build.jam ;

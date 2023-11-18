@@ -237,6 +237,7 @@ public:
 
   HttpServer(Config *cfg) : DaThread("HttpServer", 128 << 10), listenSocket(OS_SOCKET_INVALID), listenPort(0), requests(midmem)
   {
+    stripStackInMinidump();
     if (os_sockets_init() < 0)
     {
       debug("sockets init failed");

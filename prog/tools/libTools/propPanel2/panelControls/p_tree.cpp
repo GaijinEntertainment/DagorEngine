@@ -4,6 +4,7 @@
 #include "../c_constants.h"
 
 #include <debug/dag_debug.h>
+#include <Shlwapi.h>
 
 
 CTree::CTree(ControlEventHandler *event_handler, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, hdpi::Px h,
@@ -159,6 +160,16 @@ void CTree::setSelLeaf(TLeafHandle value)
 
 
 void CTree::setCaptionValue(const char value[]) { mCaption.setTextValue(value); }
+
+
+bool node_filter(void *param, TTreeNode &node)
+{
+  const char *value = (const char *)param;
+  return value[0] == '\0' || StrStrIA(node.name.str(), value);
+}
+
+
+void CTree::setTextValue(const char value[]) { mTree.filter((void *)value, node_filter); }
 
 
 void CTree::setEnabled(bool enabled)

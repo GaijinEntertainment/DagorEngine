@@ -61,9 +61,6 @@ struct RenderWork
 
   size_t id = 0;
 
-  // this value is intact on cleanup for frontend readback
-  uint32_t skippedGraphicsPipelines = 0;
-
   eastl::vector<BufferCopyInfo> bufferUploads;
   eastl::vector<VkBufferCopy> bufferUploadCopies;
 

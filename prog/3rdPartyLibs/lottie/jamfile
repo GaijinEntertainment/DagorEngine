@@ -7,6 +7,7 @@ Target      = 3rdPartyLibs/lottie.lib ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 _INCLUDE = ;
+LOTTIE_USE_INTERNAL_STBI ?= yes ;
 
 AddIncludes =
   $(Root)/$(Location)/inc
@@ -46,8 +47,11 @@ Sources =
   src/vector/freetype/v_ft_stroker.cpp
   src/vector/freetype/v_ft_raster.cpp
   src/vector/freetype/v_ft_math.cpp
-  src/vector/stb/stb_image.cpp
 ;
+
+if $(LOTTIE_USE_INTERNAL_STBI) = yes {
+  Sources += src/vector/stb/stb_image.cpp ;
+}
 
 if $(Platform) in win32 win64 linux64 xboxOne scarlett ps4 ps5 || ( $(Platform) = macosx && $(MacOSXArch) = x86_64 ) {
   Sources += src/vector/vdrawhelper_sse2.cpp ;

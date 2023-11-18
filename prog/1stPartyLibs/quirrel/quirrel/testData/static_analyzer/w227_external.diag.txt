@@ -1,0 +1,8 @@
+WARNING: w227 (ident-hides-ident) parameter 'println' hides external binding with the same name.
+testData/static_analyzer/w227_external.nut:1:14
+
+function _foo(println) {
+              ^------
+    return println + 1
+
+

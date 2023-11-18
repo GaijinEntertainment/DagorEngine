@@ -351,12 +351,12 @@ class DAGOR_OT_SaveTextures(Operator):
                 title='Error!',
                 icon='ERROR')
             return {'CANCELLED'}
-        path=os.path.join(context.scene.dag_export_path,'textures\\')
+        path=os.path.join(bpy.data.scenes[0].dag4blend.exporter.dirpath,'textures\\')
         if not os.path.exists(path):
             os.mkdir(path)
             log(f'directory \n{path}\ncreated\n')
         tex_count=save_textures(sel,path)
-        log('saved {tex_count} texture(s)\n')
+        log(f'saved {tex_count} texture(s)\n')
         show_popup(f'finished in {round(time()-start,4)} sec')
         return{'FINISHED'}
 

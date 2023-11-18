@@ -272,6 +272,17 @@ void PropertyContainerControlBase::createButton(int id, const char caption[], bo
 }
 
 
+void PropertyContainerControlBase::createButtonLText(int id, const char caption[], bool enabled, bool new_line)
+{
+  CButton *newButton = new CButton(this->mEventHandler, this, id, this->getNextControlX(new_line), this->getNextControlY(new_line),
+    this->getClientWidth(), caption, true);
+
+  newButton->setEnabled(enabled);
+
+  this->addControl(newButton, new_line);
+}
+
+
 void PropertyContainerControlBase::createIndent(int id, bool new_line)
 {
   CIndent *newIdent = new CIndent(this->mEventHandler, this, id, this->getNextControlX(new_line), this->getNextControlY(new_line),

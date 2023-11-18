@@ -248,28 +248,101 @@ void RenderCanvasContext::renderRectangle(const Sqrat::Array &cmd) const
 
 void RenderCanvasContext::renderQuads(const Sqrat::Array &cmd) const
 {
-  // VECTOR_QUADS, (x, y, color) * 4 times, ...
-  bool isValidParams = cmd.Length() > 1 && (cmd.Length() - 1) % 12 == 0;
-
-  if (!isValidParams)
+  if (cmd.Length() == 3)
   {
-    darg_assert_trace_var("invalid number of parameters for VECTOR_QUADS", cmd, 0);
-    return;
-  }
+    // VECTOR_QUADS, [vertices], [quad indices]
 
-  Point2 p[4];
-  E3DCOLOR colors[4];
-
-  for (int i = 1; i < cmd.Length(); i += 12)
-  {
-    for (int k = 0, index = 0; k < 12; k += 3, index++) // 3 numbers per vertex - x, y, color
+    if (cmd[1].GetType() != OT_ARRAY || cmd[2].GetType() != OT_ARRAY)
     {
-      p[index] = offset + Point2(cmd[i + k].Cast<float>() * scale.x, cmd[i + k + 1].Cast<float>() * scale.y);
-      colors[index] = e3dcolor_mul(fillColor, script_decode_e3dcolor(cmd[i + k + 2].Cast<SQInteger>()));
+      darg_assert_trace_var("invalid parameters for VECTOR_QUADS, expected array of points and array of indices", cmd, 0);
+      return;
     }
 
-    ctx->render_quad_color(p[0], p[1], p[2], p[3], Point2(0, 0), Point2(0, 0), Point2(0, 0), Point2(0, 0), colors[0], colors[1],
-      colors[2], colors[3]);
+    const Sqrat::Array &sqPoints = cmd[1];
+    const Sqrat::Array &sqIndices = cmd[2];
+
+    if (sqPoints.Length() % 3 != 0)
+    {
+      darg_assert_trace_var("invalid size of points array for VECTOR_QUADS", cmd[1], 0);
+      return;
+    }
+
+    if (sqIndices.Length() % 4 != 0)
+    {
+      darg_assert_trace_var("invalid size of indices array for VECTOR_QUADS", cmd[2], 0);
+      return;
+    }
+
+    if (!fillColor)
+      return;
+
+    Tab<Point2> points(framemem_ptr());
+    Tab<E3DCOLOR> colors(framemem_ptr());
+    points.reserve(sqPoints.Length() / 3);
+    colors.reserve(sqPoints.Length() / 3);
+
+    for (int i = 0, len = sqPoints.Length(); i < len; i += 3)
+      points.push_back(offset + Point2(sqPoints[i].Cast<float>() * scale.x, sqPoints[i + 1].Cast<float>() * scale.y));
+
+    if (fillColor == 0xFFFFFFFFu)
+    {
+      for (int i = 0, len = sqPoints.Length(); i < len; i += 3)
+        colors.push_back(script_decode_e3dcolor(sqPoints[i + 2].Cast<SQInteger>()));
+    }
+    else
+    {
+      for (int i = 0, len = sqPoints.Length(); i < len; i += 3)
+        colors.push_back(e3dcolor_mul(fillColor, script_decode_e3dcolor(sqPoints[i + 2].Cast<SQInteger>())));
+    }
+
+
+    for (int i = 0, len = sqIndices.Length(); i < len; i += 4)
+    {
+      int idx[4];
+
+      for (int k = 0; k < 4; k++)
+      {
+        idx[k] = sqIndices[i + k].Cast<int>();
+        if (idx[k] < 0 || idx[k] >= points.size())
+        {
+          debug("ERROR: VECTOR_QUADS: point index = %d, points.size() = %d", idx[k], int(points.size()));
+          darg_assert_trace_var("VECTOR_QUADS: point index is out of range", sqIndices, 0);
+          return;
+        }
+      }
+
+      ctx->render_quad_color(points[idx[0]], points[idx[1]], points[idx[2]], points[idx[3]], Point2(0, 0), Point2(0, 0), Point2(0, 0),
+        Point2(0, 0), colors[idx[0]], colors[idx[1]], colors[idx[2]], colors[idx[3]]);
+    }
+  }
+  else
+  {
+    // VECTOR_QUADS, (x, y, color) * 4 times, ...
+    bool isValidParams = cmd.Length() > 1 && (cmd.Length() - 1) % 12 == 0;
+
+    if (!isValidParams)
+    {
+      darg_assert_trace_var("invalid number of parameters for VECTOR_QUADS", cmd, 0);
+      return;
+    }
+
+    if (!fillColor)
+      return;
+
+    Point2 p[4];
+    E3DCOLOR colors[4];
+
+    for (int i = 1, len = cmd.Length(); i < len; i += 12)
+    {
+      for (int k = 0, index = 0; k < 12; k += 3, index++) // 3 numbers per vertex - x, y, color
+      {
+        p[index] = offset + Point2(cmd[i + k].Cast<float>() * scale.x, cmd[i + k + 1].Cast<float>() * scale.y);
+        colors[index] = e3dcolor_mul(fillColor, script_decode_e3dcolor(cmd[i + k + 2].Cast<SQInteger>()));
+      }
+
+      ctx->render_quad_color(p[0], p[1], p[2], p[3], Point2(0, 0), Point2(0, 0), Point2(0, 0), Point2(0, 0), colors[0], colors[1],
+        colors[2], colors[3]);
+    }
   }
 }
 

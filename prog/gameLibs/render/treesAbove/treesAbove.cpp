@@ -4,6 +4,7 @@
 #include <math/dag_mathUtils.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/dag_bounds2.h>
+#include <math/dag_vecMathCompatibility.h>
 #include <render/scopeRenderTarget.h>
 #include <rendInst/rendInstGenRender.h>
 #include <rendInst/visibility.h>
@@ -14,7 +15,7 @@
 #include <util/dag_convar.h>
 
 #include <shaders/dag_shaderBlock.h>
-#include <shaders/dag_renderScene.h>
+#include <shaders/dag_shaders.h>
 
 #include <perfMon/dag_statDrv.h>
 
@@ -70,9 +71,9 @@ void TreesAbove::renderInvalidBboxes(const TMatrix &view_itm, float minZ, float 
   const float fullDistance = 2 * trees2dDist;
   const float texelSize = (fullDistance / trees2dHelper.texSize);
   const uint32_t updatesNum = min(invalidBoxes.size(), MAX_INVALID_TREES_PER_FRAME);
-  for (int i = 0; i < updatesNum; ++i)
+  dag::Span<bbox3f> bboxesToUpdate = make_span(invalidBoxes).last(updatesNum);
+  for (bbox3f bbox : bboxesToUpdate)
   {
-    bbox3f bbox = invalidBoxes[i];
     Point4 bMin = as_point4(&bbox.bmax);
     Point4 bMax = as_point4(&bbox.bmin);
     const BBox2 box2d = {Point2(bMax.x, bMax.z), Point2(bMin.x, bMin.z)};
@@ -89,7 +90,7 @@ void TreesAbove::renderInvalidBboxes(const TMatrix &view_itm, float minZ, float 
   d3d::resource_barrier({trees2d.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   d3d::resource_barrier({trees2dDepth.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
-  invalidBoxes.erase(invalidBoxes.begin(), invalidBoxes.begin() + updatesNum);
+  invalidBoxes.resize(invalidBoxes.size() - updatesNum);
   if (invalidBoxes.empty())
     invalidBoxes.shrink_to_fit();
 }

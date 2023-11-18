@@ -12,6 +12,7 @@
 #include <libTools/util/iLogWriter.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <math/dag_TMatrix.h>
 #include <util/dag_fastStrMap.h>
 #include <debug/dag_debug.h>

@@ -358,7 +358,7 @@ static void allocateRendInstVBs()
   debug("perDrawInstanceData %d (%d)", elements, (int)useStructuredBind);
 
   rendinst::render::perDrawData =
-    dag::create_sbuffer(structSize, elements, SBCF_MAYBELOST | SBCF_BIND_SHADER_RES | (useStructuredBind ? SBCF_MISC_STRUCTURED : 0),
+    dag::create_sbuffer(structSize, elements, SBCF_BIND_SHADER_RES | (useStructuredBind ? SBCF_MISC_STRUCTURED : 0),
       useStructuredBind ? 0 : TEXFMT_A32B32G32R32F, "perDrawInstanceData");
 
 #if !D3D_HAS_QUADS
@@ -843,7 +843,7 @@ void RendInstGenData::CellRtData::clear()
 
 RendInstGenData::RtData::RtData(int layer_idx) :
   cellsVb(SbufferHeapManager(String(128, "cells_vb_%d", layer_idx), //-V730
-    RENDER_ELEM_SIZE, SBCF_MAYBELOST | SBCF_BIND_SHADER_RES | (rendinst::render::useCellSbuffer ? SBCF_MISC_STRUCTURED : 0),
+    RENDER_ELEM_SIZE, SBCF_BIND_SHADER_RES | (rendinst::render::useCellSbuffer ? SBCF_MISC_STRUCTURED : 0),
     rendinst::render::useCellSbuffer ? 0 : (RENDINST_FLOAT_POS ? rendinst::render::unpacked_format : rendinst::render::packed_format)))
 {
   cellsVb.getManager().setShouldCopyToNewHeap(false);
@@ -1236,8 +1236,7 @@ void RendInstGenData::renderPerInstance(rendinst::RenderPass render_pass, int lo
 
     if (lodI > visibility.PI_LAST_MESH_LOD || (rtData->rtPoolData[ri_idx]->hasTransitionLod() && lodI == visibility.PI_LAST_MESH_LOD))
     {
-      rtData->rtPoolData[ri_idx]->setImpostor(cb, render_pass == rendinst::RenderPass::ToShadow,
-        rtData->riRes[ri_idx]->getPreshadowTexture());
+      rtData->rtPoolData[ri_idx]->setImpostor(cb, render_pass == rendinst::RenderPass::ToShadow);
     }
     else
       rtData->rtPoolData[ri_idx]->setNoImpostor(cb);
@@ -1296,8 +1295,7 @@ void RendInstGenData::renderCrossDissolve(rendinst::RenderPass render_pass, int 
     }
     if (lodI > RiGenVisibility::PI_LAST_MESH_LOD)
     {
-      rtData->rtPoolData[ri_idx]->setImpostor(cb, render_pass == rendinst::RenderPass::ToShadow,
-        rtData->riRes[ri_idx]->getPreshadowTexture());
+      rtData->rtPoolData[ri_idx]->setImpostor(cb, render_pass == rendinst::RenderPass::ToShadow);
     }
     else
       rtData->rtPoolData[ri_idx]->setNoImpostor(cb);
@@ -1530,7 +1528,7 @@ void RendInstGenData::renderByCells(rendinst::RenderPass render_pass, const rend
 #endif
 
   rtData->updateVbResetCS.lock();
-  d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, rtData->cellsVb.getHeap().getBuf());
+  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rtData->cellsVb.getHeap().getBuf());
   auto currentHeapGen = rtData->cellsVb.getManager().getHeapGeneration();
   G_UNUSED(currentHeapGen);
   LinearHeapAllocatorSbuffer::Region lastInfo = {};
@@ -1625,8 +1623,7 @@ void RendInstGenData::renderByCells(rendinst::RenderPass render_pass, const rend
       if (lodI == rtData->riResLodCount(ri_idx) - 1 || // impostor lod, all impostored rendinsts are put to impostor lod only to shadow
           (rtData->rtPoolData[ri_idx]->hasTransitionLod() && lodI == rtData->riResLodCount(ri_idx) - 2))
       {
-        rtData->rtPoolData[ri_idx]->setImpostor(cb, render_pass == rendinst::RenderPass::ToShadow,
-          rtData->riRes[ri_idx]->getPreshadowTexture());
+        rtData->rtPoolData[ri_idx]->setImpostor(cb, render_pass == rendinst::RenderPass::ToShadow);
 
         // all impostored rendinsts are rendered with impostor only
       }

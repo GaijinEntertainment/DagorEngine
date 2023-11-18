@@ -826,7 +826,7 @@ static inline void addUsedTextures(DagorAsset &a, OAHashNameMap<true> &resTexLis
           resTexList.addNameId(ta->getName());
       }
       else
-        logerr("failed to resolve tex asset: tid=%d, name=<%s>", tid, get_managed_texture_name(tid));
+        logwarn("failed to resolve tex asset: tid=0x%x, name=<%s> for asset <%s>", tid, get_managed_texture_name(tid), a.getName());
     release_game_resource((GameResource *)res);
   }
   else

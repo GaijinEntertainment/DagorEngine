@@ -5,6 +5,7 @@
 #include <EditorCore/ec_interface.h>
 
 #include <propPanel2/c_control_event_handler.h>
+#include <3d/dag_resPtr.h>
 
 class CollisionResource;
 class GeomNodeTree;
@@ -59,6 +60,7 @@ protected:
   CollisionResource *collisionRes;
   GeomNodeTree *nodeTree;
   NodesProcessing nodesProcessing;
+  UniqueTex faceOrientationRenderDepth;
   int selectedNodeId;
   bool drawNodeAnotate;
   bool showPhysCollidable;
@@ -71,6 +73,7 @@ protected:
   void printKdopLog();
   void clearAssetStats();
   void fillAssetStats();
+  void updateFaceOrientationRenderDepthFromCurRT();
 };
 
 void InitCollisionResource(const DagorAsset &asset, CollisionResource **collision_res, GeomNodeTree **node_tree);

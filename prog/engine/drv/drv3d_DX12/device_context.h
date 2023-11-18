@@ -12,7 +12,10 @@
 #include "texture.h"
 #include "buffer.h"
 #include "resource_memory_heap.h"
+#include "tagged_handles.h"
 #include "bindless.h"
+#include "device_queue.h"
+#include "swapchain.h"
 #include "ngx_wrapper.h"
 #include "xess_wrapper.h"
 #include "fsr2_wrapper.h"
@@ -23,6 +26,9 @@
 #include "command_list.h"
 #include "stateful_command_buffer.h"
 #include "resource_state_tracker.h"
+#include "viewport_state.h"
+#include "const_register_type.h"
+
 
 namespace drv3d_dx12
 {
@@ -399,7 +405,7 @@ struct FramebufferInfo
   FramebufferMask getMatchingAttachmentMask(Image *texture)
   {
     FramebufferMask result;
-    for (uint32_t i = 0; i < array_size(colorAttachments); ++i)
+    for (uint32_t i = 0; i < countof(colorAttachments); ++i)
     {
       result.colorAttachmentMask |= ((colorAttachments[i].image == texture) ? 1u : 0u) << i;
     }
@@ -573,7 +579,7 @@ struct GraphicsState
     {
       statusBits.set(INDEX_BUFFER_STATE_DIRTY);
     }
-    for (uint32_t i = 0; i < array_size(vertexBuffers); ++i)
+    for (uint32_t i = 0; i < countof(vertexBuffers); ++i)
     {
       if (vertexBuffers[i].resourceId == ident)
       {
@@ -1267,7 +1273,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debu
     void endConditionalRender();
     void addVertexShader(ShaderID id, VertexShaderModule *sci);
     void addPixelShader(ShaderID id, PixelShaderModule *sci);
-    void addComputePipeline(ProgramID id, ComputeShaderModule *csm);
+    void addComputePipeline(ProgramID id, ComputeShaderModule *csm, CSPreloaded preloaded);
     void addGraphicsPipeline(GraphicsProgramID program, ShaderID vs, ShaderID ps);
 #if D3D_HAS_RAY_TRACING
     void addRaytracePipeline(ProgramID program, uint32_t max_recursion, uint32_t shader_count, const ShaderID *shaders,
@@ -1296,6 +1302,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debu
       const ClearDepthStencilValue &value);
     void clearColorImage(Image *image, ImageViewState view, D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor, const ClearColorValue &value);
     void copyImage(Image *src, Image *dst, const ImageCopy &copy);
+    void resolveMultiSampleImage(Image *src, Image *dst);
     void blitImage(Image *src, Image *dst, ImageViewState src_view, ImageViewState dst_view,
       D3D12_CPU_DESCRIPTOR_HANDLE src_view_descroptor, D3D12_CPU_DESCRIPTOR_HANDLE dst_view_descriptor, D3D12_RECT src_rect,
       D3D12_RECT dst_rect, bool disable_predication);
@@ -1423,8 +1430,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debu
     void deactivateBuffer(BufferResourceReferenceAndAddressRange buffer, const ResourceMemory &memory, GpuPipeline gpu_pipeline);
     void deactivateTexture(Image *tex, GpuPipeline gpu_pipeline);
     void aliasFlush(GpuPipeline gpu_pipeline);
-    void twoPhaseCopyBuffer(BufferResourceReferenceAndOffset source, uint32_t destination_offset, ScratchBuffer scratch_memory,
-      uint32_t data_size);
+    void twoPhaseCopyBuffer(BufferResourceReferenceAndOffset source, uint64_t destination_offset, ScratchBuffer scratch_memory,
+      uint64_t data_size);
 
     void transitionBuffer(BufferResourceReference buffer, D3D12_RESOURCE_STATES state);
 
@@ -1723,6 +1730,7 @@ public:
   void clearDepthStencilImage(Image *image, const ImageSubresourceRange &area, const ClearDepthStencilValue &value);
   void clearColorImage(Image *image, const ImageSubresourceRange &area, const ClearColorValue &value);
   void copyImage(Image *src, Image *dst, const ImageCopy &copy);
+  void resolveMultiSampleImage(Image *src, Image *dst);
   void flushDraws();
   // Similar to flushDraws, with the exception that it will only execute a flush when no queries are active.
   // Returns true if it executed a flush, otherwise it returns false.
@@ -1771,7 +1779,7 @@ public:
   void removePixelShader(ShaderID id);
 
   void addGraphicsProgram(GraphicsProgramID program, ShaderID vs, ShaderID ps);
-  void addComputeProgram(ProgramID id, eastl::unique_ptr<ComputeShaderModule> csm);
+  void addComputeProgram(ProgramID id, eastl::unique_ptr<ComputeShaderModule> csm, CSPreloaded preloaded);
   void removeProgram(ProgramID program);
 
 #if D3D_HAS_RAY_TRACING

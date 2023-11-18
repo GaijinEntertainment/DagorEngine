@@ -1,5 +1,8 @@
 #include "device.h"
 #include "EASTL/functional.h"
+#include <ioSys/dag_memIo.h>
+
+#include "render_target_mask_util.h"
 
 using namespace drv3d_dx12;
 
@@ -663,6 +666,100 @@ bool PipelineVariant::loadMesh(ID3D12Device2 *device, backend::ShaderModuleManag
 #endif
 }
 
+void PipelineVariant::errorPrintBlkString(const BasePipeline &base, const InputLayout &input_layout, bool is_wire_frame,
+  const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top)
+{
+  // This is probably not the fastest and compactest way to generate the BLK data for production, but if we end up here, we
+  // are already in the "slow" path. As we are going to pay (probably a lot more) for compiling the pipeline just after this
+  // reporting.
+  DataBlock cacheOutBlock;
+  if (auto inputLayoutOutBlock = cacheOutBlock.addNewBlock("input_layouts"))
+  {
+    pipeline::DataBlockEncodeVisitor<pipeline::InputLayoutEncoder> visitor{*inputLayoutOutBlock};
+    visitor.encode(input_layout);
+  }
+
+  if (auto renderStateOutBlock = cacheOutBlock.addNewBlock("render_states"))
+  {
+    pipeline::DataBlockEncodeVisitor<pipeline::RenderStateEncoder> visitor{*renderStateOutBlock};
+    visitor.encode(static_state);
+  }
+
+  if (auto framebufferLayoutOutBlock = cacheOutBlock.addNewBlock("framebuffer_layouts"))
+  {
+    pipeline::DataBlockEncodeVisitor<pipeline::FramebufferLayoutEncoder> visitor{*framebufferLayoutOutBlock};
+    visitor.encode(fb_layout);
+  }
+
+  if (auto graphicsPipelinesOutBlock = cacheOutBlock.addNewBlock("graphics_pipelines"))
+  {
+    auto baseInfo = base.getIdentifier();
+    GraphicsPipelineVariantState variantInfo;
+    variantInfo.framebufferLayoutIndex = 0;
+    variantInfo.staticRenderStateIndex = 0;
+    variantInfo.isWireFrame = is_wire_frame;
+    variantInfo.topology = top;
+    variantInfo.inputLayoutIndex = 0;
+    pipeline::DataBlockEncodeVisitor<pipeline::GraphicsPipelineEncoder> visitor{*graphicsPipelinesOutBlock, nullptr, 0};
+    visitor.encode(baseInfo, eastl::span<const GraphicsPipelineVariantState>{&variantInfo, 1});
+  }
+
+  if (auto feeaturesOutBlock = cacheOutBlock.addNewBlock("features"))
+  {
+    pipeline::DataBlockEncodeVisitor<pipeline::DeviceCapsAndShaderModelEncoder> visitor{*feeaturesOutBlock};
+    visitor.encode(pipeline::DeviceCapsAndShaderModelEncoder::EncodingMode::pipelines,
+      DeviceCapsAndShaderModel::fromDriverDesc(d3d::get_driver_desc()));
+  }
+
+  char buffer[3 * 1024]{};
+  ConstrainedMemSaveCB stringGen{buffer, countof(buffer)};
+  cacheOutBlock.saveToTextStreamCompact(stringGen);
+  logerr("%s", buffer);
+}
+
+void PipelineVariant::errorPrintMeshBlkString(const BasePipeline &base, bool is_wire_frame,
+  const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout)
+{
+  // This is probably not the fastest and compactest way to generate the BLK data for production, but if we end up here, we
+  // are already in the "slow" path. As we are going to pay (probably a lot more) for compiling the pipeline just after this
+  // reporting.
+  DataBlock cacheOutBlock;
+  if (auto renderStateOutBlock = cacheOutBlock.addNewBlock("render_states"))
+  {
+    pipeline::DataBlockEncodeVisitor<pipeline::RenderStateEncoder> visitor{*renderStateOutBlock};
+    visitor.encode(static_state);
+  }
+
+  if (auto framebufferLayoutOutBlock = cacheOutBlock.addNewBlock("framebuffer_layouts"))
+  {
+    pipeline::DataBlockEncodeVisitor<pipeline::FramebufferLayoutEncoder> visitor{*framebufferLayoutOutBlock};
+    visitor.encode(fb_layout);
+  }
+
+  if (auto meshPipelinesOutBlock = cacheOutBlock.addNewBlock("mesh_pipelines"))
+  {
+    auto baseInfo = base.getIdentifier();
+    MeshPipelineVariantState variantInfo;
+    variantInfo.framebufferLayoutIndex = 0;
+    variantInfo.staticRenderStateIndex = 0;
+    variantInfo.isWireFrame = is_wire_frame;
+    pipeline::DataBlockEncodeVisitor<pipeline::MeshPipelineEncoder> visitor{*meshPipelinesOutBlock, nullptr, 0};
+    visitor.encode(baseInfo, eastl::span<const MeshPipelineVariantState>{&variantInfo, 1});
+  }
+
+  if (auto feeaturesOutBlock = cacheOutBlock.addNewBlock("features"))
+  {
+    pipeline::DataBlockEncodeVisitor<pipeline::DeviceCapsAndShaderModelEncoder> visitor{*feeaturesOutBlock};
+    visitor.encode(pipeline::DeviceCapsAndShaderModelEncoder::EncodingMode::pipelines,
+      DeviceCapsAndShaderModel::fromDriverDesc(d3d::get_driver_desc()));
+  }
+
+  char buffer[3 * 1024]{};
+  ConstrainedMemSaveCB stringGen{buffer, countof(buffer)};
+  cacheOutBlock.saveToTextStreamCompact(stringGen);
+  logerr("%s", buffer);
+}
+
 void PipelineManager::init(const SetupParameters &params)
 {
   D3D12SerializeRootSignature = params.serializeRootSignature;
@@ -930,7 +1027,7 @@ struct BasicGraphicsRootSignatureGenerator
   void setVisibilityPixelShader() { currentVisibility = D3D12_SHADER_VISIBILITY_PIXEL; }
   void addRootParameterConstantExplicit(uint32_t space, uint32_t index, uint32_t dwords, D3D12_SHADER_VISIBILITY vis)
   {
-    G_ASSERT(desc.NumParameters < array_size(params));
+    G_ASSERT(desc.NumParameters < countof(params));
 
     auto &target = params[desc.NumParameters++];
     target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
@@ -963,7 +1060,7 @@ struct BasicGraphicsRootSignatureGenerator
   {
     if (!shouldUseConstantBufferRootDescriptors())
     {
-      G_ASSERT(desc.NumParameters < array_size(params));
+      G_ASSERT(desc.NumParameters < countof(params));
       G_ASSERT(rangeSize > 0);
 
       auto &target = params[desc.NumParameters++];
@@ -984,7 +1081,7 @@ struct BasicGraphicsRootSignatureGenerator
     if (shouldUseConstantBufferRootDescriptors())
     {
       G_UNUSED(linear_index);
-      G_ASSERT(desc.NumParameters < array_size(params));
+      G_ASSERT(desc.NumParameters < countof(params));
 
       auto &target = params[desc.NumParameters++];
       target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -1013,7 +1110,7 @@ struct BasicGraphicsRootSignatureGenerator
   }
   void endSamplers()
   {
-    G_ASSERT(desc.NumParameters < array_size(params));
+    G_ASSERT(desc.NumParameters < countof(params));
     G_ASSERT(rangeSize > 0);
 
     auto &target = params[desc.NumParameters++];
@@ -1041,7 +1138,7 @@ struct BasicGraphicsRootSignatureGenerator
   {
     if (unboundedSamplersRootParam == nullptr)
     {
-      G_ASSERT(desc.NumParameters < array_size(params));
+      G_ASSERT(desc.NumParameters < countof(params));
       signature->def.layout.bindlessSamplersParamIndex = desc.NumParameters++;
       unboundedSamplersRootParam = &params[signature->def.layout.bindlessSamplersParamIndex];
       unboundedSamplersRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -1090,7 +1187,7 @@ struct BasicGraphicsRootSignatureGenerator
   }
   void endShaderResourceViews()
   {
-    G_ASSERT(desc.NumParameters < array_size(params));
+    G_ASSERT(desc.NumParameters < countof(params));
     G_ASSERT(rangeSize > 0);
 
     auto &target = params[desc.NumParameters++];
@@ -1118,7 +1215,7 @@ struct BasicGraphicsRootSignatureGenerator
   {
     if (bindlessSRVRootParam == nullptr)
     {
-      G_ASSERT(desc.NumParameters < array_size(params));
+      G_ASSERT(desc.NumParameters < countof(params));
       signature->def.layout.bindlessShaderResourceViewParamIndex = desc.NumParameters++;
       bindlessSRVRootParam = &params[signature->def.layout.bindlessShaderResourceViewParamIndex];
       bindlessSRVRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -1165,7 +1262,7 @@ struct BasicGraphicsRootSignatureGenerator
   }
   void endUnorderedAccessViews()
   {
-    G_ASSERT(desc.NumParameters < array_size(params));
+    G_ASSERT(desc.NumParameters < countof(params));
     G_ASSERT(rangeSize > 0);
 
     auto &target = params[desc.NumParameters++];
@@ -1473,7 +1570,7 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
       }
       void rootConstantBuffer(uint32_t space, uint32_t index, uint32_t dwords)
       {
-        G_ASSERT(desc.NumParameters < array_size(params));
+        G_ASSERT(desc.NumParameters < countof(params));
 
         signature->def.csLayout.rootConstantsParamIndex = desc.NumParameters;
 
@@ -1494,7 +1591,7 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
       {
         if (!shouldUseConstantBufferRootDescriptors())
         {
-          G_ASSERT(desc.NumParameters < array_size(params));
+          G_ASSERT(desc.NumParameters < countof(params));
           G_ASSERT(rangeSize > 0);
 
           auto &target = params[desc.NumParameters++];
@@ -1515,7 +1612,7 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
         if (shouldUseConstantBufferRootDescriptors())
         {
           G_UNUSED(linear_index);
-          G_ASSERT(desc.NumParameters < array_size(params));
+          G_ASSERT(desc.NumParameters < countof(params));
 
           auto &target = params[desc.NumParameters++];
           target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -1539,7 +1636,7 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
       void beginSamplers() { signature->def.csLayout.samplersParamIndex = desc.NumParameters; }
       void endSamplers()
       {
-        G_ASSERT(desc.NumParameters < array_size(params));
+        G_ASSERT(desc.NumParameters < countof(params));
         G_ASSERT(rangeSize > 0);
 
         auto &target = params[desc.NumParameters++];
@@ -1569,7 +1666,7 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
       {
         // compute has only one stage, all unbounded samplers should be added within a single begin-end block
         G_ASSERT(unboundedSamplersRootParam == nullptr);
-        G_ASSERT(desc.NumParameters < array_size(params));
+        G_ASSERT(desc.NumParameters < countof(params));
         signature->def.layout.bindlessSamplersParamIndex = desc.NumParameters++;
         unboundedSamplersRootParam = &params[signature->def.layout.bindlessSamplersParamIndex];
         unboundedSamplersRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -1597,7 +1694,7 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
       void beginShaderResourceViews() { signature->def.csLayout.shaderResourceViewParamIndex = desc.NumParameters; }
       void endShaderResourceViews()
       {
-        G_ASSERT(desc.NumParameters < array_size(params));
+        G_ASSERT(desc.NumParameters < countof(params));
         G_ASSERT(rangeSize > 0);
 
         auto &target = params[desc.NumParameters++];
@@ -1624,7 +1721,7 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
       }
       void beginBindlessShaderResourceViews()
       {
-        G_ASSERT(desc.NumParameters < array_size(params));
+        G_ASSERT(desc.NumParameters < countof(params));
         signature->def.layout.bindlessShaderResourceViewParamIndex = desc.NumParameters++;
         bindlessSRVRootParam = &params[signature->def.layout.bindlessShaderResourceViewParamIndex];
         bindlessSRVRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -1652,7 +1749,7 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
       void beginUnorderedAccessViews() { signature->def.csLayout.unorderedAccessViewParamIndex = desc.NumParameters; }
       void endUnorderedAccessViews()
       {
-        G_ASSERT(desc.NumParameters < array_size(params));
+        G_ASSERT(desc.NumParameters < countof(params));
         G_ASSERT(rangeSize > 0);
 
         auto &target = params[desc.NumParameters++];
@@ -1734,7 +1831,7 @@ BasePipeline *PipelineManager::getGraphics(GraphicsProgramID program)
 }
 
 void PipelineManager::addCompute(ID3D12Device2 *device, PipelineCache &cache, ProgramID id, ComputeShaderModule shader,
-  RecoverablePipelineCompileBehavior on_error, bool give_name)
+  RecoverablePipelineCompileBehavior on_error, bool give_name, CSPreloaded preloaded)
 {
   G_ASSERTF(id.isCompute(), "addCompute called for a non compute program!");
   uint32_t index = id.getIndex();
@@ -1751,6 +1848,33 @@ void PipelineManager::addCompute(ID3D12Device2 *device, PipelineCache &cache, Pr
 #endif
   if (auto signature = getComputePipelineSignature(device, cache, hasAccelerationStructure, shader.header.resourceUsageTable))
   {
+    if (validateInGameSpikes && preloaded == CSPreloaded::Yes)
+    {
+      logerr("Pipeline creation during game! Patch for cache will be updated. Share game/cache/dx12_cache.blk file with graphics "
+             "programmers.");
+      needToUpdateCache = true;
+
+      DataBlock cacheOutBlock;
+      if (auto computePipelinesOutBlock = cacheOutBlock.addNewBlock("compute_pipelines"))
+      {
+        pipeline::DataBlockEncodeVisitor<pipeline::ComputePipelineEncoder> visitor{*computePipelinesOutBlock, nullptr, 0};
+        ComputePipelineIdentifier pipeline;
+        pipeline.hash = shader.ident.shaderHash;
+        visitor.encode(pipeline);
+      }
+
+      if (auto feeaturesOutBlock = cacheOutBlock.addNewBlock("features"))
+      {
+        pipeline::DataBlockEncodeVisitor<pipeline::DeviceCapsAndShaderModelEncoder> visitor{*feeaturesOutBlock};
+        visitor.encode(pipeline::DeviceCapsAndShaderModelEncoder::EncodingMode::pipelines,
+          DeviceCapsAndShaderModel::fromDriverDesc(d3d::get_driver_desc()));
+      }
+
+      char buffer[2 * 1024]{};
+      ConstrainedMemSaveCB stringGen{buffer, countof(buffer)};
+      cacheOutBlock.saveToTextStreamCompact(stringGen);
+      logerr("%s", buffer);
+    }
     pipelineGroup[index] = eastl::make_unique<ComputePipeline>(*signature, eastl::move(shader), device, cache, on_error, give_name);
   }
 }
@@ -1785,6 +1909,12 @@ void PipelineManager::addGraphics(ID3D12Device2 *device, PipelineCache &cache, F
     auto pixelShader = getPixelShader(ps);
 
     target = createGraphics(device, cache, fbs, vertexShader, pixelShader, on_error, give_name);
+    if (validateInGameSpikes && target)
+    {
+      logerr("Pipeline creation during game! Patch for cache will be updated. Share game/cache/dx12_cache.blk file with graphics "
+             "programmers.");
+      needToUpdateCache = true;
+    }
   }
   if (target)
   {
@@ -2278,7 +2408,7 @@ template <typename T, typename U, typename V>
 uint32_t maching_object_mask(const T &obj, U &container, V extractor)
 {
   uint32_t mask = 0;
-  for (uint32_t i = 0; i < array_size(container); ++i)
+  for (uint32_t i = 0; i < countof(container); ++i)
   {
     mask |= ((extractor(container[i]) == obj) ? 1u : 0u) << i;
   }

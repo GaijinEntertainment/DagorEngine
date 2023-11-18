@@ -33,6 +33,7 @@
 #include <math/dag_cube_matrix.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <sepGui/wndGlobal.h>
 // #include <3d/ddsFormat.h>
@@ -1125,7 +1126,6 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
     return NULL;
 
   d3d::set_render_target(tex, 0);
-  d3d::set_backbuf_depth();
 
 
   const bool cacheUsed = ::ec_cached_viewports->isViewportCacheUsed(curVpIdx);

@@ -171,7 +171,7 @@ class DaInputGamepadPollThread final : public DaThread
   }
 
 public:
-  DaInputGamepadPollThread(int step) : DaThread("dainput::poll"), stepMsec(step) {}
+  DaInputGamepadPollThread(int step) : DaThread("dainput::poll"), stepMsec(step) { stripStackInMinidump(); }
 };
 
 static eastl::unique_ptr<DaInputGamepadPollThread> poll_thread = nullptr;

@@ -1,7 +1,13 @@
 #pragma once
 
 #include <EASTL/utility.h>
+#include <EASTL/vector.h>
 #include <osApiWrappers/dag_lockProfiler.h>
+#include <3d/dag_drv3d.h>
+
+#include "d3d12_error_handling.h"
+#include "d3d12_debug_names.h"
+
 
 #if _TARGET_XBOXONE
 #include <xg.h>

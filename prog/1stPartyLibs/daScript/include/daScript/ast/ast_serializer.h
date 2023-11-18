@@ -23,8 +23,11 @@ namespace das {
         Module *            thisModule = nullptr;
         Module *            astModule = nullptr;
         bool                writing = false;
+        bool                failed = false;
         size_t              readOffset = 0;
         vector<uint8_t>     buffer;
+        vector<uint8_t>     metadata;
+        bool                seenNewModule = false;
     // file info clean up
         vector<FileInfo*>         deleteUponFinish; // these pointers are for builtins (which we don't serialize) and need to be cleaned manually
         das_hash_set<FileInfo*>   doNotDelete;
@@ -53,7 +56,7 @@ namespace das {
         // fieldRefs tuple contains: fieldptr, module, structname, fieldname
         vector<tuple<const Structure::FieldDeclaration **, Module *, string, string>>       fieldRefs;
     // tracking for shared modules
-        das_hash_set<Module *> writingReadyModules;
+        das_hash_set<Module *>                      writingReadyModules;
         void tag ( const char * name );
         void read  ( void * data, size_t size );
         void write ( const void * data, size_t size );
@@ -112,6 +115,8 @@ namespace das {
         AstSerializer & operator << ( MakeStructPtr & ptr );
    // Top-level
         AstSerializer & operator << ( Module & module );
+
+        void serializeProgram ( ProgramPtr program, ModuleGroup & libGroup );
 
         template<typename T>
         void serializeSmartPtr( smart_ptr<T> & obj, das_hash_map<uint64_t, smart_ptr<T>> & objMap );

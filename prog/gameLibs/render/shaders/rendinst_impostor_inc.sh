@@ -12,11 +12,13 @@ macro INIT_BAKED_IMPOSTOR_STATIC_TEX()
   static texture impostor_albedo_alpha = 0;
   static texture impostor_normal_translucency = 0;
   static texture impostor_ao_smoothness = 0;
+  static texture impostor_preshadow = 0;
 
   (ps) {
     impostor_albedo_alpha@static = impostor_albedo_alpha;
     impostor_normal_translucency@static = impostor_normal_translucency;
     impostor_ao_smoothness@static = impostor_ao_smoothness;
+    impostor_preshadow@staticTexArray = impostor_preshadow;
   }
 endmacro
 
@@ -318,7 +320,7 @@ macro USE_BAKED_IMPOSTORS()
     #define impostor_tex_slice(tx, tc) \
       tex2DBindless(tx, tc)
     #define impostor_tex_slice_shadow(tx, tc, z) \
-      tex3D(tx, float3(tc, z))
+      tex2DBindless(tx, float3(tc, z))
 
 
     #if USE_MULTISLICED
@@ -564,11 +566,11 @@ macro INIT_AND_USE_BAKED_IMPOSTOR_PROPERTIES()
 ##elif baked_impostor_preshadows == preshadow_dynamic
       BRANCH
       if (hasPreshadow)
-        ret.shadowing = (sample_impostor_tex_shadow(preshadow_tex, tc1, tc2, paletteId, ds)).r;
+        ret.shadowing = (sample_impostor_tex_shadow(get_impostor_preshadow(), tc1, tc2, paletteId, ds)).r;
       else
         ret.shadowing = 1;
 ##else
-      ret.shadowing = (sample_impostor_tex_shadow(preshadow_tex, tc1, tc2, paletteId, ds)).r;
+      ret.shadowing = (sample_impostor_tex_shadow(get_impostor_preshadow(), tc1, tc2, paletteId, ds)).r;
 ##endif
       ret.depthSq = 0;
       return ret;

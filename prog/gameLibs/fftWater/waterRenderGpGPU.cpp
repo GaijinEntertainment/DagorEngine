@@ -283,11 +283,11 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   G_ASSERT(h0Mat);
   h0Element = h0Mat->make_elem();
   int num_quads = (numCascades + 1) / 2;
-  ht0Ibuf = d3d::create_ib(sizeof(uint16_t) * 6 * num_quads, SBCF_MAYBELOST, "ht0Ibuf");
+  ht0Ibuf = d3d::create_ib(sizeof(uint16_t) * 6 * num_quads, 0, "ht0Ibuf");
   d3d_err(ht0Ibuf);
 
   // create vbuffer for fft/butterflies
-  fftVbuf = d3d::create_vb(sizeof(Point3) * 3 * miNumButterflies, SBCF_MAYBELOST, "fftVbuf");
+  fftVbuf = d3d::create_vb(sizeof(Point3) * 3 * miNumButterflies, 0, "fftVbuf");
   d3d_err(fftVbuf);
   buffersReady = false;
   fftVMat = new_shader_material_by_name("fftV");
@@ -319,7 +319,7 @@ void GPGPUData::updateHt0WindowsVB(const NVWaveWorks_FFT_CPU_Simulation *fft, in
 
   int num_quads = (numCascades + 1) / 2;
   del_d3dres(ht0Vbuf);
-  ht0Vbuf = d3d::create_vb(sizeof(Ht0Vertex) * 4 * num_quads, SBCF_MAYBELOST, "ht0Vbuf");
+  ht0Vbuf = d3d::create_vb(sizeof(Ht0Vertex) * 4 * num_quads, 0, "ht0Vbuf");
   d3d_err(ht0Vbuf);
   G_ASSERT(ht0Vbuf);
   h0GPUUpdateRequired = true;

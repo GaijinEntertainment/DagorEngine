@@ -25,6 +25,7 @@ struct BufferedSphere
 static Tab<BufferedMesh> buffered_mesh_list(midmem_ptr());     // Note: sorted by deadline
 static Tab<BufferedSphere> buffered_sphere_list(midmem_ptr()); // Note: sorted by deadline
 static size_t current_frame = 0;
+static bool last_frame_game_was_paused = false;
 
 void clear_buffered_debug_solids()
 {
@@ -33,8 +34,9 @@ void clear_buffered_debug_solids()
 }
 
 static BufferedMesh get_mesh(const uint16_t *indices, int faces_count, const float *xyz_pos, int vertex_size, int vertices_count,
-  const TMatrix &tm, Color4 color, size_t frames)
+  const TMatrix &tm, Color4 color, size_t requested_frames)
 {
+  size_t frames = last_frame_game_was_paused ? 1 : requested_frames;
   BufferedMesh mesh = {current_frame + frames, frames, color, tm};
 
   mesh.indices = Tab<uint16_t>();
@@ -51,10 +53,11 @@ static BufferedMesh get_mesh(const uint16_t *indices, int faces_count, const flo
 }
 
 void draw_debug_solid_mesh_buffered(const uint16_t *indices, int faces_count, const float *xyz_pos, int vertex_size,
-  int vertices_count, const TMatrix &tm, Color4 color, size_t frames)
+  int vertices_count, const TMatrix &tm, Color4 color, size_t requested_frames)
 {
   if (faces_count <= 0 || vertex_size <= 0 || vertices_count <= 0)
     return;
+  size_t frames = last_frame_game_was_paused ? 1 : requested_frames;
   size_t deadlineFrame = current_frame + frames;
   for (int last = buffered_mesh_list.size() - 1, i = last; i >= 0; --i) // lookup place to insert into (according to deadline)
     if (deadlineFrame >= buffered_mesh_list[i].deadlineFrame)
@@ -71,8 +74,9 @@ void draw_debug_solid_mesh_buffered(const uint16_t *indices, int faces_count, co
     get_mesh(indices, faces_count, xyz_pos, vertex_size, vertices_count, tm, color, frames)); // insert first (oldest)
 }
 
-void draw_debug_ball_buffered(const Point3 &sphere_c, float sphere_r, const Color4 &color, size_t frames)
+void draw_debug_ball_buffered(const Point3 &sphere_c, float sphere_r, const Color4 &color, size_t requested_frames)
 {
+  size_t frames = last_frame_game_was_paused ? 1 : requested_frames;
   size_t deadlineFrame = current_frame + frames;
   for (int last = buffered_sphere_list.size() - 1, i = last; i >= 0; --i) // lookup place to insert into (according to deadline)
     if (deadlineFrame >= buffered_sphere_list[i].deadlineFrame)
@@ -246,12 +250,13 @@ static int draw_buffered_spheres(dag::ConstSpan<BufferedSphere> spheres, size_t 
   return eraseNum;
 }
 
-void flush_buffered_debug_meshes(bool decriment_buffer_frames)
+void flush_buffered_debug_meshes(bool game_is_paused)
 {
+  last_frame_game_was_paused = game_is_paused;
   if (buffered_mesh_list.empty() && buffered_sphere_list.empty())
     return;
 
-  if (!decriment_buffer_frames)
+  if (game_is_paused)
   {
     for (auto &mesh : buffered_mesh_list)
       if (mesh.bufferFrames > 1)

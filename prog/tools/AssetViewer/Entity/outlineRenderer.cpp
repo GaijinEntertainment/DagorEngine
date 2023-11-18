@@ -24,8 +24,8 @@ void OutlineRenderer::init()
   global_frame_block_id = ShaderGlobal::getBlockId("global_frame");
   rendinst_scene_block_id = ShaderGlobal::getBlockId("rendinst_scene");
 
-  rendinstMatrixBuffer.reset(d3d::create_sbuffer(sizeof(Point4), 4U, SBCF_MAYBELOST | SBCF_BIND_SHADER_RES, TEXFMT_A32B32G32R32F,
-    "simple_outline_matrix_buffer"));
+  rendinstMatrixBuffer.reset(
+    d3d::create_sbuffer(sizeof(Point4), 4U, SBCF_BIND_SHADER_RES, TEXFMT_A32B32G32R32F, "simple_outline_matrix_buffer"));
 
   ShaderGlobal::set_color4(simple_outline_colorVarId, outline_color);
 }

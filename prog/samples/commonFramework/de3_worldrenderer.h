@@ -79,6 +79,7 @@ protected:
   int targetW, targetH, sceneFmt;
   Texture *sceneRt, *postfxRt;
   TEXTUREID sceneRtId, postfxRtId;
+  Texture *sceneDepth;
   bool allowDynamicRender, useDynamicRender;
 
   void close();

@@ -234,9 +234,6 @@ bool immutable_textures = true;
 bool resetting_device_now = false;
 HRESULT device_is_lost = S_OK;
 unsigned texture_sysmemcopy_usage = 0, vbuffer_sysmemcopy_usage = 0, ibuffer_sysmemcopy_usage = 0;
-int max_aa_samples = 1;
-MsaaMaxSamplesDesc max_samples_format = {DXGI_FORMAT_UNKNOWN, 1};
-bool disable_backbuffer_aa = true;
 bool is_backbuffer_samplable_depth = false;
 static DXGI_ADAPTER_DESC adapterDesc;
 bool ignore_resource_leaks_on_exit = false;
@@ -787,10 +784,10 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
   bool inWin = dgs_get_window_mode() != WindowMode::FULLSCREEN_EXCLUSIVE;
 
-  DXGI_SWAP_EFFECT swapEffect = DXGI_SWAP_EFFECT_DISCARD; // The only flag with multisampling support.
-  if ((inWin && disable_backbuffer_aa && !_no_vsync && blk_dx.getBool("flipPresent", true)) // Use the best supported presentation
-                                                                                            // model.
-      || hdr_enabled             // HDR requires FLIP swap effect or fullscreen
+  DXGI_SWAP_EFFECT swapEffect = DXGI_SWAP_EFFECT_DISCARD;          // The only flag with multisampling support.
+  if ((inWin && !_no_vsync && blk_dx.getBool("flipPresent", true)) // Use the best supported presentation
+                                                                   // model.
+      || hdr_enabled                                               // HDR requires FLIP swap effect or fullscreen
       || used_flip_model_before) // If the window was used with a flip model, it cannot be used with another model, or Present will
                                  // silently fail.
   {                              // https://devblogs.microsoft.com/directx/dxgi-flip-model/ and
@@ -830,7 +827,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   scd.BufferDesc.RefreshRate.Denominator = 1; // While been correct according to MSDN, 0 crashes in some drivers.
   scd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED; // DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE;
   scd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED; // DXGI_MODE_SCALING_STRETCHED;//DXGI_MODE_SCALING_CENTERED;//
-  scd.SampleDesc.Count = disable_backbuffer_aa ? 1 : max_aa_samples;
+  scd.SampleDesc.Count = 1;
   scd.SampleDesc.Quality = 0;
   scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT; // To stretch from.
   scd.BufferCount = is_flip_model(swapEffect) ? 2 : 1;
@@ -1776,42 +1773,6 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     DXGI_FORMAT_R24G8_TYPELESS // MSAA support should be the same as for the DXGI_FORMAT_D24_UNORM_S8_UINT
   };
 
-  for (int formatNo = 0; formatNo < sizeof(msaaFormats) / sizeof(msaaFormats[0]); formatNo++)
-  {
-    for (; max_aa_samples > 1; max_aa_samples--)
-    {
-      uint32_t numQualityLevels = 0;
-      dx_device->CheckMultisampleQualityLevels(msaaFormats[formatNo], max_aa_samples, &numQualityLevels);
-      if (numQualityLevels > 0)
-        break;
-    }
-  }
-
-  DXGI_FORMAT maxMsaaFormats[] = {
-    DXGI_FORMAT_R8_UNORM, // sort by bit count
-    DXGI_FORMAT_R16_UNORM,
-    DXGI_FORMAT_R8G8_UNORM,
-    DXGI_FORMAT_B8G8R8A8_UNORM,
-  };
-  int bestSamples = 1;
-  const int maxSamples = 8;
-  for (int formatNo = 0; formatNo < sizeof(maxMsaaFormats) / sizeof(maxMsaaFormats[0]); formatNo++)
-  {
-    for (int samples = maxSamples; samples > bestSamples; samples--)
-    {
-      uint32_t numQualityLevels = 0;
-      dx_device->CheckMultisampleQualityLevels(maxMsaaFormats[formatNo], samples, &numQualityLevels);
-      if (numQualityLevels > 0)
-      {
-        max_samples_format.format = maxMsaaFormats[formatNo];
-        max_samples_format.samples = bestSamples = samples;
-        break;
-      }
-    }
-  }
-  debug("best possible aa samples count is %d, format %s", max_samples_format.samples,
-    dxgi_format_to_string(max_samples_format.format));
-
   nvlowlatency::init(dx_device, false);
 
   /*
@@ -2379,13 +2340,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *mwf, const char *wcname, int ncmds
 
   // debug("re sc %d %d",scr_wd,scr_ht);
   int screenBpp = blk_video.getBool("bits16", false) ? 16 : 32;
-  max_aa_samples = blk_dx.getInt("maxaa", 1);
-  if (cb && cb->desiredStereoRender())
-    max_aa_samples = 1;
-  if (max_aa_samples < 1)
-    max_aa_samples = 1;
 
-  disable_backbuffer_aa = blk_video.getBool("disable_backbuffer_aa", true);
   is_backbuffer_samplable_depth = blk_video.getBool("backbuffer_sampleable_depth", false); // false by default, to be tested if it
                                                                                            // slowing anything
 

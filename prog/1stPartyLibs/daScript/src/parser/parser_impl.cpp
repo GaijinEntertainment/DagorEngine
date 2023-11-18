@@ -535,13 +535,14 @@ namespace das {
             const LineInfo & fromBlock, const LineInfo & annLAt ) {
         func->atDecl = fromBlock;
         func->body = block;
+        auto isGeneric = func->isGeneric();
         if ( !yyextra->g_thisStructure ) {
             das_yyerror(scanner,"internal error or invalid macro. member function is declared outside of a class",
                 func->at, CompilationError::invalid_member_function);
         } else if ( yyextra->g_Program->policies.no_members_functions_in_struct && !yyextra->g_thisStructure->isClass ) {
             das_yyerror(scanner,"structure can't have a member function",
                 func->at, CompilationError::invalid_member_function);
-        } else if ( func->isGeneric() ) {
+        } else if ( isGeneric && !isStatic ) {
             das_yyerror(scanner,"generic function can't be a member of a class " + func->getMangledName(),
                 func->at, CompilationError::invalid_member_function);
         } else if ( isOpName(func->name) ) {
@@ -617,10 +618,18 @@ namespace das {
                 }
             }
             assignDefaultArguments(func);
-            runFunctionAnnotations(scanner, func, annL, annLAt);
-            if ( !yyextra->g_Program->addFunction(func) ) {
-                das_yyerror(scanner,"function is already defined " + func->getMangledName(),
-                    func->at, CompilationError::function_already_declared);
+            if ( isGeneric ) {
+                if ( !yyextra->g_Program->addGeneric(func) ) {
+                    das_yyerror(scanner,"generic function is already defined " + func->getMangledName(),
+                        func->at, CompilationError::function_already_declared);
+                }
+
+            } else {
+                runFunctionAnnotations(scanner, func, annL, annLAt);
+                if ( !yyextra->g_Program->addFunction(func) ) {
+                    das_yyerror(scanner,"function is already defined " + func->getMangledName(),
+                        func->at, CompilationError::function_already_declared);
+                }
             }
             func->delRef();
         }

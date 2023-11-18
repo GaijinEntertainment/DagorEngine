@@ -335,20 +335,32 @@ if (compatibility_mode == compatibility_mode_off)
 #endif
     }
 
-    void get_rain_ripples(float4 ripples_tc, float3 world_pos, float3 vertical_norm, float smoothness, float strength, out float3 result_norm, out float ripples_power CUBE_RAIN_DROPLETS_GRAD_SIG)
+    void get_rain_ripples_impl(float4 ripples_tc, float3 world_pos, float3 vertical_norm, float smoothness, float strength, out float3 result_norm CUBE_RAIN_DROPLETS_GRAD_SIG , out float dropletsFade, out float finalStrength)
     {
       half3 dropletsNorm, ripplesNorm;
       get_rain_normals(float3(ripples_tc.xy, world_pos.y * rain_ripple_params2.y), dropletsNorm, ripplesNorm CUBE_RAIN_DROPLETS_GRAD_ARG);
-      float dropletsFade = ClampRange(vertical_norm.y, -MAX_RAIN_FALL_ANGLE, 0);
-      float finalStrength = droplets_scale * strength;
+      dropletsFade = ClampRange(vertical_norm.y, -MAX_RAIN_FALL_ANGLE, 0);
+      finalStrength = droplets_scale * strength;
 
       result_norm = lerp(half3(0, 0, 1), dropletsNorm, dropletsFade);
       result_norm = lerp(result_norm, ripplesNorm, ripples_tc.w);
       result_norm = normalize(float3(result_norm.xy * rain_ripple_params2.z * finalStrength, result_norm.z)).xzy;
+    }
+
+    void get_rain_ripples(float4 ripples_tc, float3 world_pos, float3 vertical_norm, float smoothness, float strength, out float3 result_norm CUBE_RAIN_DROPLETS_GRAD_SIG)
+    {
+      float dropletsFade, finalStrength;
+      get_rain_ripples_impl(ripples_tc, world_pos, vertical_norm, smoothness, strength, result_norm CUBE_RAIN_DROPLETS_GRAD_ARG , dropletsFade, finalStrength);
+    }
+
+    void get_rain_ripples(float4 ripples_tc, float3 world_pos, float3 vertical_norm, float smoothness, float strength, out float3 result_norm, out float ripples_power CUBE_RAIN_DROPLETS_GRAD_SIG)
+    {
+      float dropletsFade, finalStrength;
+      get_rain_ripples_impl(ripples_tc, world_pos, vertical_norm, smoothness, strength, result_norm CUBE_RAIN_DROPLETS_GRAD_ARG , dropletsFade, finalStrength);
       ripples_power = dropletsFade * finalStrength * saturate((1.0 - result_norm.y) * rain_ripple_params2.w);
     }
 
-    void apply_rain_ripples(float3 world_pos, float3 vertical_norm, float smoothness, float strength, inout float3 world_normal, out float ripples_power)
+    void apply_rain_ripples(float3 world_pos, float3 vertical_norm, float smoothness, float strength, inout float3 world_normal)
     {
 #if use_grad
       float4 tc;
@@ -360,11 +372,11 @@ if (compatibility_mode == compatibility_mode_off)
       {
         float3 ripplesNorm;
 #if use_grad
-        get_rain_ripples(tc, world_pos, vertical_norm, smoothness, strength, ripplesNorm, ripples_power, tcDx, tcDy);
+        get_rain_ripples(tc, world_pos, vertical_norm, smoothness, strength, ripplesNorm, tcDx, tcDy);
 #else
         float4 tc;
         get_rain_ripples_tc(world_pos, vertical_norm, smoothness, tc);
-        get_rain_ripples(tc, world_pos, vertical_norm, smoothness, strength, ripplesNorm, ripples_power);
+        get_rain_ripples(tc, world_pos, vertical_norm, smoothness, strength, ripplesNorm);
 #endif
         world_normal = RNM_ndetail_normalized(world_normal.xzy, ripplesNorm.xzy).xzy;
       }
@@ -372,15 +384,14 @@ if (compatibility_mode == compatibility_mode_off)
 
     void apply_rain_ripples_water(float3 world_pos, float dist, inout float3 world_normal)
     {
-      float ripplesPower;
-      apply_rain_ripples(world_pos * 0.5, float3(0.0, 1.0, 0.0), 1.0, rain_ripple_params.x * saturate(12 - dist / (rain_ripple_params2.x * 48.0)), world_normal, ripplesPower);
+      apply_rain_ripples(world_pos * 0.5, float3(0.0, 1.0, 0.0), 1.0, rain_ripple_params.x * saturate(12 - dist / (rain_ripple_params2.x * 48.0)), world_normal);
     }
   }
 }
 else
 {
   hlsl(ps) {
-    #define apply_rain_ripples(world_pos, vertical_norm, smoothness, strength, world_normal, ripples_power)
+    #define apply_rain_ripples(world_pos, vertical_norm, smoothness, strength, world_normal)
     #define apply_rain_ripples_water(world_pos, dist, world_normal)
   }
 }

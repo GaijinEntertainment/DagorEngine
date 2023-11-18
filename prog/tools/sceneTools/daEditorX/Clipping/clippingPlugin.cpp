@@ -50,6 +50,7 @@
 #include <generic/dag_tab.h>
 #include "de3_box_vs_tri.h"
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 
 using hdpi::_pxScaled;
 

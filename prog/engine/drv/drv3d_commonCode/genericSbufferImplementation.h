@@ -1,5 +1,13 @@
 #pragma once
 
+#include <EASTL/unique_ptr.h>
+#include <3d/dag_drv3d.h>
+#include <perfMon/dag_graphStat.h>
+#include <debug/dag_log.h>
+
+#include "drv_returnAddrStore.h"
+
+
 template <typename T, bool /*REPORT_ERRORS*/ = true>
 class GenericBufferErrorHandler
 {
@@ -57,15 +65,6 @@ public:
     logerr("indirect buffer can't be structured one in DX11, check <%s>", name);
   }
 
-  static void errorUAVWithSysmemCopy(const char *name)
-  {
-#if DAGOR_DBGLEVEL > 0
-    logerr("Unordered access buffer, shouldn't have system copy, add SBCF_MAYBELOST to <%s>", name);
-#else
-    G_UNUSED(name);
-#endif
-  }
-
   static void errorDiscardWithoutPointer(const char *name)
   {
     logerr("%s: Discarded buffer '%s' without providing output pointer", name);
@@ -96,7 +95,6 @@ public:
   static void errorInvalidStructSizeForRawView(const char *, uint32_t) {}
   static void errorAllocationOfBufferFailed(const char *, uint32_t, uint32_t, uint32_t) {}
   static void errorStructuredIndirect(const char *) {}
-  static void errorUAVWithSysmemCopy(const char *) {}
   static void errorDiscardWithoutPointer(const char *) {}
   static void errorFormatUsedWithInvalidUsageFlags(const char *) {}
 };
@@ -169,7 +167,7 @@ class GenericBufferMemoryArchitecture
 protected:
   bool allocateHostCopyMemory(uint32_t buf_flags, uint32_t size)
   {
-    if (!(buf_flags & (SBCF_MAYBELOST | SBCF_DYNAMIC)) &&
+    if (!(buf_flags & SBCF_DYNAMIC) &&
         ((buf_flags & SBCF_BIND_MASK) == SBCF_BIND_VERTEX || (buf_flags & SBCF_BIND_MASK) == SBCF_BIND_INDEX))
     {
       localBuffer = eastl::make_unique<uint8_t[]>(size);
@@ -618,11 +616,6 @@ public:
   {
     setResName(stat_name);
 
-    if ((bufFlags & SBCF_BIND_UNORDERED) && !(bufFlags & SBCF_MAYBELOST)) // fixup
-    {
-      BufferErrorHandler::errorUAVWithSysmemCopy(stat_name);
-      bufFlags |= SBCF_MAYBELOST;
-    }
     BufferMemoryArchitecture::allocateHostCopyMemory(bufFlags, bufSize);
 
     validate_buffer_properties(bufFlags, format_flags, stat_name);
@@ -1207,16 +1200,7 @@ public:
     if (!T::isValidBuffer(buffer))
       return;
 
-    if (!BufferReloadImplementation::executeReload(this))
-    {
-      if (!(bufFlags & SBCF_MAYBELOST) && BufferMemoryArchitecture::hasHostCopy())
-      {
-        void *p = nullptr;
-        d3d_err(lock(0, 0, &p, VBLOCK_WRITEONLY));
-        // no need to copy, returned pointer is host memory
-        d3d_err(unlock());
-      }
-    }
+    BufferReloadImplementation::executeReload(this);
   }
   void deviceWritesTo()
   {

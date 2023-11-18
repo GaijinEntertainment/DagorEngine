@@ -8,7 +8,8 @@
 class CButton : public BasicPropertyControl
 {
 public:
-  CButton(ControlEventHandler *event_h, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, const char caption[]);
+  CButton(ControlEventHandler *event_h, PropertyContainerControlBase *parent, int id, int x, int y, hdpi::Px w, const char caption[],
+    bool text_align_left = false);
 
   static PropertyContainerControlBase *createDefault(int id, PropertyContainerControlBase *parent, const char caption[],
     bool new_line = true);

@@ -1,9 +1,9 @@
-#include <intermediateRepresentation.h>
+#include <backend/intermediateRepresentation.h>
 #include <dag/dag_vectorSet.h>
 #include <shaders/dag_shaderVar.h>
 #include <memory/dag_framemem.h>
 
-#include <api/internalRegistry.h>
+#include <frontend/internalRegistry.h>
 #include <id/idRange.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <render/daBfg/bfg.h>

@@ -1,0 +1,17 @@
+WARNING: w232 (always-true-or-false) Expression is always 'false'.
+testData/static_analyzer/w232_not.nut:3:8
+
+local i = {x = true}
+::print(i.x && !i.x)
+        ^-----------
+::print(!i.x || i.x)
+
+
+WARNING: w232 (always-true-or-false) Expression is always 'true'.
+testData/static_analyzer/w232_not.nut:4:8
+
+::print(i.x && !i.x)
+::print(!i.x || i.x)
+        ^----------
+
+

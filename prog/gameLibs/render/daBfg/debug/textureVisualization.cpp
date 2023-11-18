@@ -1,5 +1,5 @@
 #include "textureVisualization.h"
-#include <api/internalRegistry.h>
+#include <frontend/internalRegistry.h>
 #include <gui/dag_imguiUtil.h>
 #include <render/daBfg/bfg.h>
 #include <util/dag_console.h>

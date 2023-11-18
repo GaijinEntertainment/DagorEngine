@@ -33,7 +33,6 @@ Sources =
   compositeEditorUndo.cpp
   compositeEditorViewport.cpp
   outlineRenderer.cpp
-  pixelPerfectEntitySelector.cpp
 ;
 
 

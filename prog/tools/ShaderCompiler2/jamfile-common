@@ -46,6 +46,7 @@ Sources =
   shCode.cpp
   globvar.cpp
   intervals.cpp
+  samplers.cpp
   boolVar.cpp
   shaderVariant.cpp
   varMap.cpp

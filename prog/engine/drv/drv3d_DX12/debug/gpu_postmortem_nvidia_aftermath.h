@@ -1,8 +1,25 @@
 #pragma once
 
+#include <EASTL/span.h>
+#include <osApiWrappers/dag_critSec.h>
+
+#include "driver.h"
+#include "pipeline.h"
+#include "winapi_helpers.h"
+#include "command_list_storage.h"
+#include "call_stack.h"
+#include "configuration.h"
+
+// These headers are not self-contained and need to be included after driver.h
 #include <GFSDK_Aftermath.h>
 #include <GFSDK_Aftermath_GpuCrashDump.h>
 #include <GFSDK_Aftermath_GpuCrashDumpDecoding.h>
+
+
+namespace drv3d_dx12
+{
+struct Direct3D12Enviroment;
+}
 
 namespace drv3d_dx12::debug::gpu_postmortem::nvidia
 {

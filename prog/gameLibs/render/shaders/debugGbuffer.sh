@@ -266,7 +266,7 @@ shader debug_final_gbuffer
         float NoL = dot(gbuffer.normal, lightDir);
 
         float3 result = diffuse * lerp(max(NoL, 0), 1, LOD_AMBIENT_WEIGHT);
-        return half4(result,1);
+        return half4(result, 1);
       ##elif show_gbuffer == baseColor
         return half4(accurateLinearToSRGB(gbuf.albedo),1);
       ##elif show_gbuffer == diffuseColor

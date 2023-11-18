@@ -15,6 +15,7 @@
 #include "bindless.h"
 #include "device_context.h"
 #include "query_manager.h"
+#include "tagged_handles.h"
 #include "pipeline/blk_cache.h"
 
 #include <debug/dag_debug.h>
@@ -633,6 +634,7 @@ public:
   HRESULT findClosestMatchingMode(DXGI_MODE_DESC *out_desc);
 #endif
 
+  bool isSamplesCountSupported(DXGI_FORMAT format, int32_t samples_count);
 
   D3D12_FEATURE_DATA_FORMAT_SUPPORT getFormatFeatures(FormatStore fmt);
   ImageGlobalSubresouceId getSwapchainColorGlobalId() const { return resources.getSwapchainColorGlobalId(); }
@@ -1159,32 +1161,6 @@ inline void PipelineStageStateBase::migrateAllSamplers(ID3D12Device *device, Sam
 
 inline uint64_t DeviceContext::getCompletedFenceProgress() { return front.completedFrameProgress; }
 
-inline FormatStore BaseTex::getFormat() const { return tex.image ? tex.image->getFormat() : fmt; }
-inline void BaseTex::updateDeviceSampler()
-{
-  sampler = get_device().getSampler(samplerState);
-  lastSamplerState = samplerState;
-}
-inline D3D12_CPU_DESCRIPTOR_HANDLE BaseTex::getDeviceSampler()
-{
-  if (!sampler.ptr || samplerState != lastSamplerState)
-  {
-    updateDeviceSampler();
-  }
-
-  return sampler;
-}
-
-inline void BaseTex::updateTexName()
-{
-  // don't propagate down to stub images
-  if (isStub())
-    return;
-  if (tex.image)
-  {
-    get_device().setTexName(tex.image, getResName());
-  }
-}
 inline Extent2D FramebufferInfo::makeDrawArea(Extent2D def /*= {}*/) const
 {
   // if swapchain for 0 is used we need to check depth stencil use,

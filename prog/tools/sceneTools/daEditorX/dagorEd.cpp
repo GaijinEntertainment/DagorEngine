@@ -1,5 +1,4 @@
 #include "de_appwnd.h"
-#include "splashScreen.h"
 #include "de_batch.h"
 #include <de3_lightService.h>
 #include <de3_interface.h>

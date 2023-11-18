@@ -11,7 +11,6 @@ ExecutionContext::ExecutionContext(RenderWork &work_item) :
   vkDev(get_device().getVkDevice())
 {
   back.executionState.setExecutionContext(this);
-  back.pipelineCompilationTime = 0;
 #if VULKAN_VALIDATION_COLLECT_CALLER > 0
   tlsDbgActiveInstance = this;
 #endif

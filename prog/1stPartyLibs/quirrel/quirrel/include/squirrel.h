@@ -246,7 +246,7 @@ SQUIRREL_API SQRESULT sq_translatebinaryasttobytecode(HSQUIRRELVM v, const uint8
 
 SQUIRREL_API SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const SQChar *s, SQInteger size, const SQChar *sourcename, SQBool preserveComments, SQBool raiseerror);
 SQUIRREL_API SQRESULT sq_translateasttobytecode(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size, SQBool raiseerror, SQBool debugInfo);
-SQUIRREL_API void sq_analyseast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size);
+SQUIRREL_API void sq_analyzeast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, const HSQOBJECT *bindings, const SQChar *s, SQInteger size);
 SQUIRREL_API void sq_checktrailingspaces(HSQUIRRELVM v, const SQChar *sourceName, const SQChar *s, SQInteger size);
 
 SQUIRREL_API void sq_oncompilefile(HSQUIRRELVM v, const SQChar *sourcename);
@@ -421,9 +421,9 @@ SQUIRREL_API void sq_setcompilecheckmode(HSQUIRRELVM v, SQBool on);
 SQUIRREL_API void sq_forbidglobalconstrewrite(HSQUIRRELVM v, SQBool on);
 
 /*static analysis*/
-SQUIRREL_API void sq_resetanalyserconfig();
-SQUIRREL_API bool sq_loadanalyserconfig(const char *configFileName);
-SQUIRREL_API bool sq_loadanalyserconfigblk(const KeyValueFile &config);
+SQUIRREL_API void sq_resetanalyzerconfig();
+SQUIRREL_API bool sq_loadanalyzerconfig(const char *configFileName);
+SQUIRREL_API bool sq_loadanalyzerconfigblk(const KeyValueFile &config);
 
 SQUIRREL_API bool sq_switchdiagnosticstate_t(const char *diagId, bool state);
 SQUIRREL_API bool sq_switchdiagnosticstate_i(int32_t id, bool state);

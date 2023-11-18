@@ -1456,8 +1456,6 @@ void ClipmapImpl::processTileFeedback(TileInfoArr &result_arr, int &result_size,
 
   for (const auto &pair : aroundCameraTileIndexMap)
     result_arr[result_size++] = pair.second;
-
-  sort_tile_info_list(result_arr, result_size);
 }
 
 
@@ -1598,21 +1596,25 @@ void ClipmapImpl::updateMip(HWFeedbackMode hw_feedback_mode, bool force_update)
   {
     sort_tile_info_list(tileInfo, tileInfoSize);
 
-    int firstMismatchId;
-    if (hw_feedback_mode == HWFeedbackMode::DEBUG_COMPARE &&
-        getHWFeedbackMode(currentContext->captureTarget % MAX_FRAMES_AHEAD) == HWFeedbackMode::DEBUG_COMPARE &&
-        !compare_tile_info_results(tileInfo, tileInfoSize, debugTileInfo, debugTileInfoSize, firstMismatchId))
+    if (hw_feedback_mode == HWFeedbackMode::DEBUG_COMPARE)
     {
-      if (firstMismatchId >= 0)
+      sort_tile_info_list(debugTileInfo, debugTileInfoSize);
+
+      int firstMismatchId;
+      if (getHWFeedbackMode(currentContext->captureTarget % MAX_FRAMES_AHEAD) == HWFeedbackMode::DEBUG_COMPARE &&
+          !compare_tile_info_results(tileInfo, tileInfoSize, debugTileInfo, debugTileInfoSize, firstMismatchId))
       {
-        const TexTileInfo &a = tileInfo[firstMismatchId];      // tile feedback
-        const TexTileInfo &b = debugTileInfo[firstMismatchId]; // texture feedback
-        logerr("clipmap tile feedback mismatch (%d ; %d), {%d,%d, %d,%d,%d, %d} != {%d,%d, %d,%d,%d, %d}", tileInfoSize,
-          debugTileInfoSize, a.x, a.y, a.ri_index, a.mip, a.count, a.sortOrder, b.x, b.y, b.ri_index, b.mip, b.count, b.sortOrder);
-      }
-      else
-      {
-        logerr("clipmap tile feedback mismatch (%d ; %d)", tileInfoSize, debugTileInfoSize);
+        if (firstMismatchId >= 0)
+        {
+          const TexTileInfo &a = tileInfo[firstMismatchId];      // tile feedback
+          const TexTileInfo &b = debugTileInfo[firstMismatchId]; // texture feedback
+          logerr("clipmap tile feedback mismatch (%d ; %d), {%d,%d, %d,%d,%d, %d} != {%d,%d, %d,%d,%d, %d}", tileInfoSize,
+            debugTileInfoSize, a.x, a.y, a.ri_index, a.mip, a.count, a.sortOrder, b.x, b.y, b.ri_index, b.mip, b.count, b.sortOrder);
+        }
+        else
+        {
+          logerr("clipmap tile feedback mismatch (%d ; %d)", tileInfoSize, debugTileInfoSize);
+        }
       }
     }
   }

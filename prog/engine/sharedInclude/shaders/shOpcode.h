@@ -26,7 +26,7 @@ enum
   SHCOD_FSH_CONST, // 2p      | set PS const[ind] from VEC4 reg     | p1=ind p2=reg#
   SHCOD_TEXTURE,   // 2p      | set texture                         | p1=ind p2=reg#
   SHCOD_G_TM,      // 2p_8_16 | set 4xVEC4 const for GM/PM/VPM      | p1=type (8 bits)  p2=ind
-  SHCOD_NOP,
+  SHCOD_SAMPLER,   // 2p      | set sampler                         | p1=ind p2=varId
 
   SHCOD_MUL_REAL, // 3p      | REAL: dest# = left# * right#        | p1=dest# p2=left# p3=right#
   SHCOD_DIV_REAL, // 3p      | REAL: dest# = left# / right#        | p1=dest# p2=left# p3=right#

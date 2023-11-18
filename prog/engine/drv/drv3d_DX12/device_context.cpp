@@ -6,6 +6,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <EASTL/sort.h>
 #include <3d/dag_lowLatency.h>
+
 #include <drv_returnAddrStore.h>
 
 #if _TARGET_XBOX
@@ -14,6 +15,8 @@
 
 #include <util/dag_watchdog.h>
 #include <stereoHelper.h>
+#include "render_target_mask_util.h"
+
 
 #define DX12_LOCK_FRONT() WinAutoLock lock(getFrontGuard())
 
@@ -432,7 +435,8 @@ void DeviceContext::compilePipelineSet(const DataBlock *feature_sets, DynamicArr
     pipeline::DataBlockDecodeEnumarator<pipeline::FeatureSupportResolver> resolver{*feature_sets, 0, d3d::get_driver_desc()};
     for (; !resolver.completed(); resolver.next())
     {
-      resolver.decode(featureSetSupported[resolver.index()]);
+      auto mode = pipeline::FeatureSupportResolver::CompatibilityMode::pipelines;
+      resolver.decode(mode, featureSetSupported[resolver.index()]);
     }
   }
 
@@ -1216,6 +1220,14 @@ void DeviceContext::copyImage(Image *src, Image *dst, const ImageCopy &copy)
   immediateModeExecute();
 }
 
+void DeviceContext::resolveMultiSampleImage(Image *src, Image *dst)
+{
+  auto cmd = make_command<CmdResolveMultiSampleImage>(src, dst);
+
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+}
+
 void DeviceContext::flushDraws()
 {
   DX12_LOCK_FRONT();
@@ -1751,9 +1763,9 @@ void DeviceContext::addGraphicsProgram(GraphicsProgramID program, ShaderID vs, S
   immediateModeExecute();
 }
 
-void DeviceContext::addComputeProgram(ProgramID id, eastl::unique_ptr<ComputeShaderModule> csm)
+void DeviceContext::addComputeProgram(ProgramID id, eastl::unique_ptr<ComputeShaderModule> csm, CSPreloaded preloaded)
 {
-  auto cmd = make_command<CmdAddComputeProgram>(id, csm.release());
+  auto cmd = make_command<CmdAddComputeProgram>(id, csm.release(), preloaded);
   DX12_LOCK_FRONT();
   commandStream.pushBack(cmd);
   immediateModeExecute();
@@ -3483,7 +3495,7 @@ void DeviceContext::ExecutionContext::addVertexShader(ShaderID id, VertexShaderM
 
 void DeviceContext::ExecutionContext::addPixelShader(ShaderID id, PixelShaderModule *sci) { device.pipeMan.addPixelShader(id, sci); }
 
-void DeviceContext::ExecutionContext::addComputePipeline(ProgramID id, ComputeShaderModule *csm)
+void DeviceContext::ExecutionContext::addComputePipeline(ProgramID id, ComputeShaderModule *csm, CSPreloaded preloaded)
 {
   // if optimization pass is used, then it has to handle this, as it might needs the data for later
   // commands
@@ -3492,7 +3504,7 @@ void DeviceContext::ExecutionContext::addComputePipeline(ProgramID id, ComputeSh
   device.pipeMan.addCompute(device.device.get(), device.pipelineCache, id, eastl::move(*csm),
     get_recover_behvior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
       device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)),
-    device.shouldNameObjects());
+    device.shouldNameObjects(), preloaded);
 }
 
 void DeviceContext::ExecutionContext::addGraphicsPipeline(GraphicsProgramID program, ShaderID vs, ShaderID ps)
@@ -4058,6 +4070,21 @@ void DeviceContext::ExecutionContext::copyImage(Image *src, Image *dst, const Im
 
   dirtyTextureState(src);
   dirtyTextureState(dst);
+}
+
+void DeviceContext::ExecutionContext::resolveMultiSampleImage(Image *src, Image *dst)
+{
+  contextState.resourceStates.useTextureAsResolveSource(contextState.graphicsCommandListBarrierBatch,
+    contextState.graphicsCommandListSplitBarrierTracker, src);
+
+  contextState.resourceStates.useTextureAsResolveDestination(contextState.graphicsCommandListBarrierBatch,
+    contextState.graphicsCommandListSplitBarrierTracker, dst);
+
+  contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
+
+  G_ASSERT(src->getFormat().asDxGiFormat() == dst->getFormat().asDxGiFormat());
+
+  contextState.cmdBuffer.resolveSubresource(dst->getHandle(), 0, src->getHandle(), 0, src->getFormat().asDxGiFormat());
 }
 
 void DeviceContext::ExecutionContext::blitImage(Image *src, Image *dst, ImageViewState src_view, ImageViewState dst_view,
@@ -4669,6 +4696,18 @@ void DeviceContext::ExecutionContext::flushGraphicsMeshState()
     {
       auto &staticRenderState = device.pipeMan.getStaticRenderState(contextState.graphicsState.staticRenderStateIdent);
 
+      if (dgs_get_settings()->getBlockByNameEx("dx12")->getBool("validateInGameSpikes", false))
+      {
+        logerr("Pipeline creation during game! Patch for cache will be updated. Share game/cache/dx12_cache.blk file with graphics "
+               "programmers.");
+
+        device.pipeMan.needToUpdateCache = true;
+
+        contextState.graphicsState.pipeline->errorPrintMeshBlkString(*contextState.graphicsState.basePipeline,
+          contextState.graphicsState.statusBits.test(GraphicsState::USE_WIREFRAME), staticRenderState,
+          contextState.graphicsState.framebufferState.framebufferLayout);
+      }
+
       contextState.graphicsState.pipeline->loadMesh(device.device.get(), device.pipeMan, *contextState.graphicsState.basePipeline,
         device.pipelineCache, contextState.graphicsState.statusBits.test(GraphicsState::USE_WIREFRAME), staticRenderState,
         contextState.graphicsState.framebufferState.framebufferLayout,
@@ -4719,8 +4758,19 @@ void DeviceContext::ExecutionContext::flushGraphicsState(D3D12_PRIMITIVE_TOPOLOG
     if (!contextState.graphicsState.pipeline->isReady())
     {
       auto &inputLayout = device.pipeMan.getInputLayout(internlInputLayout);
-
       auto &staticRenderState = device.pipeMan.getStaticRenderState(contextState.graphicsState.staticRenderStateIdent);
+
+      if (dgs_get_settings()->getBlockByNameEx("dx12")->getBool("validateInGameSpikes", false))
+      {
+        logerr("Pipeline creation during game! Patch for cache will be updated. Share game/cache/dx12_cache.blk file with graphics "
+               "programmers.");
+
+        device.pipeMan.needToUpdateCache = true;
+
+        contextState.graphicsState.pipeline->errorPrintBlkString(*contextState.graphicsState.basePipeline, inputLayout,
+          contextState.graphicsState.statusBits.test(GraphicsState::USE_WIREFRAME), staticRenderState,
+          contextState.graphicsState.framebufferState.framebufferLayout, topType);
+      }
 
       contextState.graphicsState.pipeline->load(device.device.get(), device.pipeMan, *contextState.graphicsState.basePipeline,
         device.pipelineCache, inputLayout, contextState.graphicsState.statusBits.test(GraphicsState::USE_WIREFRAME), staticRenderState,
@@ -4753,7 +4803,8 @@ void DeviceContext::ExecutionContext::flushIndexBuffer()
 
     if (buffer && readyCommandList())
     {
-      D3D12_INDEX_BUFFER_VIEW view{buffer.gpuPointer, buffer.size, type};
+      G_ASSERT(buffer.size <= eastl::numeric_limits<uint32_t>::max());
+      D3D12_INDEX_BUFFER_VIEW view{buffer.gpuPointer, static_cast<uint32_t>(buffer.size), type};
       contextState.cmdBuffer.iaSetIndexBuffer(&view);
     }
   }
@@ -5523,7 +5574,7 @@ void DeviceContext::ExecutionContext::bufferBarrier(BufferResourceReference buff
     char cbuf[MAX_OBJECT_NAME_LENGTH];
     char maskNameBuffer[256];
     auto state = translate_buffer_barrier_to_state(barrier);
-    make_resource_barrier_string_from_state(maskNameBuffer, array_size(maskNameBuffer), state, barrier);
+    make_resource_barrier_string_from_state(maskNameBuffer, countof(maskNameBuffer), state, barrier);
     debug("DX12: Resource barrier for buffer %s - %p, with %s, during %s", get_resource_name(buffer.buffer, cbuf), buffer.buffer,
       maskNameBuffer, getEventPath());
   }
@@ -5638,7 +5689,7 @@ void DeviceContext::ExecutionContext::textureBarrier(Image *tex, SubresourceRang
     char cbuf[MAX_OBJECT_NAME_LENGTH];
     char maskNameBuffer[256];
     auto state = translate_texture_barrier_to_state(barrier, !tex->getFormat().isColor());
-    make_resource_barrier_string_from_state(maskNameBuffer, array_size(maskNameBuffer), state, barrier);
+    make_resource_barrier_string_from_state(maskNameBuffer, countof(maskNameBuffer), state, barrier);
     debug("DX12: Resource barrier for texture %s - %p [%u - %u], with %s, during %s", static_cast<uint32_t>(barrier),
       get_resource_name(tex->getHandle(), cbuf), tex->getHandle(), sub_res_range.start, sub_res_range.stop, maskNameBuffer,
       this->getEventPath());
@@ -5893,8 +5944,8 @@ void DeviceContext::ExecutionContext::aliasFlush(GpuPipeline gpu_pipeline)
   G_UNUSED(gpu_pipeline);
 }
 
-void DeviceContext::ExecutionContext::twoPhaseCopyBuffer(BufferResourceReferenceAndOffset source, uint32_t destination_offset,
-  ScratchBuffer scratch_memory, uint32_t data_size)
+void DeviceContext::ExecutionContext::twoPhaseCopyBuffer(BufferResourceReferenceAndOffset source, uint64_t destination_offset,
+  ScratchBuffer scratch_memory, uint64_t data_size)
 {
   if (!readyCommandList())
   {
@@ -6155,7 +6206,7 @@ void DeviceContext::ExecutionContext::loadComputeShaderFromDump(ProgramID progra
   device.pipeMan.loadComputeShaderFromDump(device.device.get(), device.pipelineCache, program,
     get_recover_behvior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
       device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)),
-    device.shouldNameObjects());
+    device.shouldNameObjects(), CSPreloaded::Yes);
 }
 
 void DeviceContext::ExecutionContext::compilePipelineSet(DynamicArray<InputLayoutID> &&input_layouts,

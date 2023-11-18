@@ -144,6 +144,7 @@ namespace das
         virtual bool invalidateFileInfo ( const string & fileName );
         virtual string getIncludeFileName ( const string & fileName, const string & incFileName ) const;
         void freeSourceData();
+        virtual int64_t getFileMtime ( const string & fileName ) const;
         FileInfoPtr letGoOfFileInfo ( const string & fileName );
         virtual ModuleInfo getModuleInfo ( const string & req, const string & from ) const;
         virtual bool isModuleAllowed ( const string &, const string & ) const { return true; };

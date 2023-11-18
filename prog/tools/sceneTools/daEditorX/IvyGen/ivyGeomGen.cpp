@@ -8,6 +8,7 @@
 #include <de3_lightService.h>
 #include <debug/dag_debug.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 
 #define MAX_OF(x, y) (x > y ? x : y)
 #define MIN_OF(x, y) (x < y ? x : y)

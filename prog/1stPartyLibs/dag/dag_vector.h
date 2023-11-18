@@ -99,9 +99,6 @@ small_vector_default_fill_n(ForwardIterator first, size_t n)
   eastl::uninitialized_default_fill_n(first, n);
 }
 
-template <typename T>
-struct is_type_relocatable<T, typename eastl::enable_if_t<eastl::is_trivially_copyable_v<T>>> : public eastl::true_type {};
-
 template <typename T, typename A, bool I, typename C> class Vector;
 template <typename T, typename A, bool I, typename C>
 struct is_type_relocatable<dag::Vector<T, A, I, C>, void> : public eastl::true_type {};
@@ -841,7 +838,7 @@ protected:
       IF_CONSTEXPR(is_type_relocatable<value_type>::value)
       {
         if (mpEnd != destPosition) // branch for append-like inserts
-          memmove(destPosition + n, destPosition, (char*)mpEnd - (char*)destPosition); //-V780
+          memmove((void*)&destPosition[n], (const void*)destPosition, (char*)mpEnd - (char*)destPosition); //-V780
         eastl::uninitialized_copy_ptr(first, last, destPosition);
       }
       else if (n < nExtra) // If the inserted values are entirely within initialized memory (i.e. are before mpEnd)...

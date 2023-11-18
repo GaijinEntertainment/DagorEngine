@@ -16,7 +16,7 @@ struct global_var_decl;
 struct default_shader_decl;
 struct interval;
 struct assume_stat;
-struct bool_decl;
+struct sampler_decl;
 
 class ShaderSyntaxParser;
 }; // namespace ShaderTerminal
@@ -27,6 +27,9 @@ void error(const char *msg, BaseParNamespace::Terminal *t, ShaderTerminal::Shade
 
 // add a new global variable to a global variable list
 void add_global_var(ShaderTerminal::global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &parser);
+
+// add a new sampler object
+void add_sampler(ShaderTerminal::sampler_decl *decl, ShaderTerminal::ShaderSyntaxParser &parser);
 
 // add a new global variable interval
 void add_global_interval(ShaderTerminal::interval &interv, ShaderTerminal::ShaderSyntaxParser &parser);

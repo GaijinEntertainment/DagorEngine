@@ -1,5 +1,8 @@
 #pragma once
 
+#include <EASTL/type_traits.h>
+
+
 // duplicated in vulkan backend...
 // taken from https://github.com/preshing/cpp11-on-multicore/blob/master/common/
 
@@ -172,3 +175,20 @@ struct BitFieldArray
 #define END_BITFIELD_TYPE() \
   }                         \
   ;
+
+// TODO: this should be replaced with a constexpr function. It will compile a lot faster.
+template <uint32_t I>
+struct BitsNeeded
+{
+  static constexpr int VALUE = BitsNeeded<I / 2>::VALUE + 1;
+};
+template <>
+struct BitsNeeded<0>
+{
+  static constexpr int VALUE = 1;
+};
+template <>
+struct BitsNeeded<1>
+{
+  static constexpr int VALUE = 1;
+};

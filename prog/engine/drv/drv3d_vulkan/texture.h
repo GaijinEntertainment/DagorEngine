@@ -170,12 +170,6 @@ struct BaseTex final : public BaseTexture
     return colorTable[int(as_float) | (int(isBlack) << 1) | (int(isTransparent) << 2)];
   }
 
-  enum RebindFlags
-  {
-    NONE = 0,
-    FORCE_REBIND = 1
-  };
-
   void rebindTRegs(SamplerState new_sampler) { samplerState = new_sampler; }
 
   inline void setUsedAsRenderTarget() { dirtyRt = 1; }

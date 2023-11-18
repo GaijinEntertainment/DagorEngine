@@ -3,6 +3,11 @@
 #include <3d/dag_tex3d.h>
 #include <util/dag_globDef.h>
 
+#include "driver.h"
+#include "bitfield.h"
+#include "tagged_types.h"
+
+
 namespace drv3d_dx12
 {
 // stores formats and offers some utility members
@@ -142,5 +147,4 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
 END_BITFIELD_TYPE()
 inline bool operator==(FormatStore l, FormatStore r) { return l.index == r.index; }
 inline bool operator!=(FormatStore l, FormatStore r) { return l.index != r.index; }
-const char *dxgi_format_name(DXGI_FORMAT fmt);
 } // namespace drv3d_dx12

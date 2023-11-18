@@ -19,6 +19,7 @@
 #include <3d/dag_drv3dCmd.h>
 #include <3d/dag_drv3d_platform.h>
 #include <3d/dag_dynAtlas.h>
+#include <render/dag_cur_view.h>
 #include <supp/dag_prefetch.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_rendInstRes.h>
@@ -715,9 +716,9 @@ void RandomGrass::resetLayersVB()
       String indexBufferName, vertexBufferName;
       indexBufferName.printf(0, "randomGrass::combinedLodIb%d", lodIdx);
       vertexBufferName.printf(0, "randomGrass::combinedLodVb%d", lodIdx);
-      combinedLod.lodIb = dag::create_ib(indexCount * sizeof(uint16_t), SBCF_MAYBELOST, indexBufferName);
+      combinedLod.lodIb = dag::create_ib(indexCount * sizeof(uint16_t), 0, indexBufferName);
       d3d_err(combinedLod.lodIb.getBuf());
-      combinedLod.lodVb = dag::create_vb(vertexCount * sizeof(CellVertex), SBCF_MAYBELOST, vertexBufferName);
+      combinedLod.lodVb = dag::create_vb(vertexCount * sizeof(CellVertex), 0, vertexBufferName);
       d3d_err(combinedLod.lodVb.getBuf());
 
       static CompiledShaderChannelId chan[] = {{SCTYPE_UINT1, SCUSAGE_POS, 0, 0}, {SCTYPE_UINT1, SCUSAGE_TC, 0, 0}};

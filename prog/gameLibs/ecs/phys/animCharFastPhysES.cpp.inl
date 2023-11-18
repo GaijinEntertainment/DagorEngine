@@ -10,6 +10,8 @@
 #include <ecs/render/updateStageRender.h>
 #include <debug/dag_debug3d.h>
 #include <util/dag_console.h>
+#include <EASTL/vector_set.h>
+#include <ecs/core/utility/ecsRecreate.h>
 
 
 using namespace AnimV20;
@@ -92,17 +94,87 @@ static void animchar_fast_phys_destroy_es_event_handler(const ecs::Event &, Anim
   }
 }
 
+eastl::vector_set<eastl::string> debugAnimCharsSet;
+#define TEMPLATE_NAME "animchar_fast_phys_debug_render"
+const char *template_name = TEMPLATE_NAME;
+void createTemplate()
+{
+  ecs::ComponentsMap map;
+  map[ECS_HASH(TEMPLATE_NAME)] = ecs::Tag();
+  eastl::string name = template_name;
+  g_entity_mgr->addTemplate(ecs::Template(template_name, eastl::move(map), ecs::Template::component_set(),
+    ecs::Template::component_set(), ecs::Template::component_set(), false));
+  g_entity_mgr->instantiateTemplate(g_entity_mgr->buildTemplateIdByName(template_name));
+}
+
+void removeSubTemplateAsync(ecs::EntityId eid)
+{
+  if (const char *fromTemplate = g_entity_mgr->getEntityTemplateName(eid))
+  {
+    if (!g_entity_mgr->getTemplateDB().getTemplateByName(template_name))
+      createTemplate();
+    const auto newTemplate = remove_sub_template_name(fromTemplate, template_name ? template_name : "");
+    g_entity_mgr->reCreateEntityFromAsync(eid, newTemplate.c_str());
+  }
+}
+
+void addSubTemplateAsync(ecs::EntityId eid)
+{
+  if (const char *fromTemplate = g_entity_mgr->getEntityTemplateName(eid))
+  {
+    if (!g_entity_mgr->getTemplateDB().getTemplateByName(template_name))
+      createTemplate();
+    const auto newTemplate = add_sub_template_name(fromTemplate, template_name ? template_name : "");
+    g_entity_mgr->reCreateEntityFromAsync(eid, newTemplate.c_str());
+  }
+}
+
+template <typename Callable>
+static void get_animchar_by_name_ecs_query(Callable c);
+
+
+void toggleDebugAnimChar(eastl::string &str)
+{
+  auto it = debugAnimCharsSet.find(str);
+  if (it != debugAnimCharsSet.end())
+  {
+    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, ecs::string &animchar__res) {
+      if (animchar__res == str)
+        removeSubTemplateAsync(eid);
+    });
+    debugAnimCharsSet.erase(it);
+  }
+  else
+  {
+    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, ecs::string &animchar__res) {
+      if (animchar__res == str)
+        addSubTemplateAsync(eid);
+    });
+    debugAnimCharsSet.insert(str);
+  }
+}
+
+void resetDebugAnimChars()
+{
+  for (auto it = debugAnimCharsSet.begin(); it != debugAnimCharsSet.end(); ++it)
+  {
+    eastl::string str = *it;
+    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, ecs::string &animchar__res) {
+      if (animchar__res == str)
+        removeSubTemplateAsync(eid);
+    });
+  }
+  debugAnimCharsSet.clear();
+}
+
 ECS_NO_ORDER
-ECS_REQUIRE(FastPhysTag animchar_fast_phys)
-ECS_TAG(render)
-static void debug_draw_fast_phys_es(const UpdateStageInfoRenderDebug &, AnimcharBaseComponent &animchar, ecs::string animchar__res)
+ECS_REQUIRE(FastPhysTag animchar_fast_phys, ecs::Tag animchar_fast_phys_debug_render)
+ECS_TAG(dev, render)
+static void debug_draw_fast_phys_es(const UpdateStageInfoRenderDebug &, AnimcharBaseComponent &animchar)
 {
   FastPhysSystem *fastPhys = animchar.getFastPhysSystem();
   if (!fastPhys)
     return;
-  if (!FastPhys::checkDebugAnimChar(animchar__res))
-    return;
-
   begin_draw_cached_debug_lines();
 
   for (auto action : fastPhys->updateActions)
@@ -121,10 +193,10 @@ static bool fastphys_console_handler(const char *argv[], int argc)
     if (argc > 1)
     {
       eastl::string resName(argv[1]);
-      FastPhys::toggleDebugAnimChar(resName);
+      toggleDebugAnimChar(resName);
     }
     else
-      FastPhys::resetDebugAnimChars();
+      resetDebugAnimChars();
   }
   return found;
 }

@@ -65,15 +65,20 @@ VECTORCALL VECMATH_FINLINE vec4i v_clampi(vec4i t, vec4i min_val, vec4i max_val)
   return v_maxi(v_mini(t, max_val), min_val);
 }
 
+VECTORCALL VECMATH_FINLINE vec4f v_is_unsafe_divisor(vec4f a)
+{
+  return v_cmp_lt(v_abs(a), V_C_VERY_SMALL_VAL);
+}
+
 VECTORCALL VECMATH_FINLINE vec4f v_safediv(vec4f a, vec4f b, vec4f def)
 {
-  vec4f isDiv0 = v_cmp_lt(v_abs(b), V_C_VERY_SMALL_VAL);
+  vec4f isDiv0 = v_is_unsafe_divisor(b);
   return v_sel(v_div(a, b), def, isDiv0);
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_rcp_safe(vec4f a, vec4f def)
 {
-  vec4f isDiv0 = v_cmp_lt(v_abs(a), V_C_VERY_SMALL_VAL);
+  vec4f isDiv0 = v_is_unsafe_divisor(a);
   return v_sel(v_rcp(a), def, isDiv0);
 }
 
@@ -1643,7 +1648,7 @@ VECTORCALL VECMATH_FINLINE vec3f three_plane_intersection(plane3f p0, plane3f p1
 {
   vec4f n1_n2 = v_cross3(p1, p2), n2_n0 = v_cross3(p2, p0), n0_n1 = v_cross3(p0, p1);
   vec4f cosTheta = v_dot3(p0, n1_n2);
-  invalid = v_cmp_lt(v_abs(cosTheta), V_C_VERY_SMALL_VAL);
+  invalid = v_is_unsafe_divisor(cosTheta);
   vec4f secTheta = v_rcp(cosTheta);
 
   vec4f intersectPt;

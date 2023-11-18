@@ -5,6 +5,8 @@
 //
 #pragma once
 
+#include <math/dag_adjpow2.h>
+
 // texture creation flags
 enum
 {
@@ -43,7 +45,7 @@ enum
 
   // Uses of the texture methods updateSubRegion and update require this, TEXCF_RTARGET or
   // TEXCF_UNORDERED usage flag to be set.
-  TEXCF_UPDATE_DESTINATION = 0x00080000U,
+  TEXCF_UPDATE_DESTINATION = 0x00004000U,
 
   TEXCF_SYSTEXCOPY = 0x00000010U, // make copy in system memory
 
@@ -52,16 +54,19 @@ enum
   TEXCF_DYNAMIC = 0x00000100U,  // changes frequently //D3DUSAGE_CPU_CACHED_MEMORY, XALLOC_MEMPROTECT_READWRITE
   TEXCF_READABLE = 0x00000200U, // can only be read, D3DLOCK_READONLY
   TEXCF_READONLY = 0,
-  TEXCF_WRITEONLY = 0x00000008U,    // cpu can write (TEXLOCK_WRITE)
-  TEXCF_LOADONCE = 0x00000400U,     // texture will be loaded only once - don't use with dynamic
-  TEXCF_MAYBELOST = 0x00000800U,    // contents of the texture may be safely lost - they will be regenerated before using it
-  TEXCF_STREAMING = 0x00000000U,    // should be deleted shortly, obsolete
-  TEXCF_SYSMEM = 0x00010000U,       // texture is allocated in system memory and used only as staging texture
-                                    // TEXCF_SYSMEM|TEXCF_WRITEONLY is allocated in WC memory on PS4
-  TEXCF_MULTISAMPLED = 0x00020000U, // multisampled render target format
-  TEXCF_MSAATARGET = 0x00008000U,   // multisampled render target format. should be used with TEXCF_MULTISAMPLED.
-                                    // Texture with TEXCF_MSAATARGET will be not auto resolved to non-msaa,target,
-                                    // so it has to be resolved with update method
+  TEXCF_WRITEONLY = 0x00000008U,     // cpu can write (TEXLOCK_WRITE)
+  TEXCF_LOADONCE = 0x00000400U,      // texture will be loaded only once - don't use with dynamic
+  TEXCF_MAYBELOST = 0x00000800U,     // contents of the texture may be safely lost - they will be regenerated before using it
+  TEXCF_STREAMING = 0x00000000U,     // should be deleted shortly, obsolete
+  TEXCF_SYSMEM = 0x00010000U,        // texture is allocated in system memory and used only as staging texture
+                                     // TEXCF_SYSMEM|TEXCF_WRITEONLY is allocated in WC memory on PS4
+  TEXCF_SAMPLECOUNT_2 = 0x00020000U, //  =
+  TEXCF_SAMPLECOUNT_4 = 0x00040000U, //  | multisampled render target formats
+  TEXCF_SAMPLECOUNT_8 = 0x00060000U, //  =
+  TEXCF_SAMPLECOUNT_MAX = TEXCF_SAMPLECOUNT_8,
+  TEXCF_SAMPLECOUNT_MASK = 0x00060000U,
+  TEXCF_SAMPLECOUNT_OFFSET = 17,
+
 #if _TARGET_C1 | _TARGET_C2
 
 
@@ -70,7 +75,7 @@ enum
 
 
 #elif _TARGET_XBOX
-  TEXCF_CPU_CACHED_MEMORY = 0x00040000U, // todo: implement allocation in onion instead of garlic mem
+  TEXCF_CPU_CACHED_MEMORY = 0x00008000U, // todo: implement allocation in onion instead of garlic mem
   TEXCF_LINEAR_LAYOUT = 0x00100000U,     // todo: implement without tiling
   TEXCF_ESRAM_ONLY = 0x00000020U,        // always reside in ESRAM
   TEXCF_MOVABLE_ESRAM = 0x00000040U,     // Create copy in DDR
@@ -167,11 +172,13 @@ enum
 
   TEXFMT_FIRST_DEPTH = TEXFMT_DEPTH24,
   TEXFMT_LAST_DEPTH = TEXFMT_DEPTH32_S8,
-  // this is fake MSAA target format, to emulate forced sample count
-  // format has as low bit's per sample as possible, while having as much samples as possible
-  // typically it is 4-8 samples of R8
-  // this is rtarget format, not depth format (as we hope to get R8)
-  TEXFMT_MSAA_MAX_SAMPLES = 0x40000000U, // unknown format, usually R8
-                                         // TEXFMT_               =0x__000000,
-  TEXFMT_MASK = 0xFF000000U,
+
+  TEXFMT_MASK = 0xFF000000U, // TEXFMT_               =0x__000000,
 };
+
+__forceinline int get_sample_count(int flags) { return 1 << ((flags & TEXCF_SAMPLECOUNT_MASK) >> TEXCF_SAMPLECOUNT_OFFSET); }
+
+__forceinline int make_sample_count_flag(int sample_count)
+{
+  return (get_log2i(sample_count) << TEXCF_SAMPLECOUNT_OFFSET) & TEXCF_SAMPLECOUNT_MASK;
+}

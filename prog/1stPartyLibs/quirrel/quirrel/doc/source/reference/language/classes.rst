@@ -269,6 +269,14 @@ A method of a base class can be explicitly invoked by a method of a derived clas
     //prints "I'm the derived"
     inst.DoIt()
 
+An alternative way to inheret class it to use Python-style syntax. It works the same way as described above.
+
+    class SuperFoo(Foo) {
+        function DoSomething() {
+            println("I'm doing something")
+        }
+    }
+
 ----------------------
 Metamethods
 ----------------------

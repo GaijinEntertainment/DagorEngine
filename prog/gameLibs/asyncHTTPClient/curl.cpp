@@ -129,11 +129,19 @@ static void logerr_http_in_retail(const eastl::string &url)
 }
 
 static CURL *make_curl_handle(const char *url, const char *user_agent, bool verify_peer, bool verify_host, void *user_data,
-  const char *chunk_range)
+  const char *chunk_range, bool need_resp_headers)
 {
+  G_UNUSED(need_resp_headers);
   CURL *curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-  curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
+  // To consider: always pass header callback for pre-reserve `response` using `Content-Length` header
+#ifndef USE_XCURL // For custom decompressor (e.g. brotli) setup
+  if (need_resp_headers || verbose_debug)
+#endif
+  {
+    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
+    curl_easy_setopt(curl, CURLOPT_HEADERDATA, user_data);
+  }
   curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, progress_callback);
   curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
   curl_easy_setopt(curl, CURLOPT_SHARE, curlsh);
@@ -146,7 +154,6 @@ static CURL *make_curl_handle(const char *url, const char *user_agent, bool veri
   curl_easy_setopt(curl, CURLOPT_URL, url);
   curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, user_data);
-  curl_easy_setopt(curl, CURLOPT_HEADERDATA, user_data);
   curl_easy_setopt(curl, CURLOPT_XFERINFODATA, user_data);
   curl_easy_setopt(curl, CURLOPT_PRIVATE, user_data);
   curl_easy_setopt(curl, CURLOPT_VERBOSE, verbose_debug ? 1L : 0L);
@@ -192,9 +199,9 @@ public:
     urlStr = params.url;
     logerr_http_in_retail(urlStr);
     curlHandle = make_curl_handle(urlStr.c_str(), params.userAgent ? params.userAgent : default_user_agent.c_str(), params.verifyCert,
-      params.verifyHost, this, params.chunkRange);
+      params.verifyHost, this, params.chunkRange, params.needResponseHeaders);
     callback = params.callback;
-    needHeaders = params.needHeaders;
+    needResponseHeaders = params.needResponseHeaders;
     maxDownloadSize = params.maxDownloadSize;
     sendResponseInMainThreadOnly = params.sendResponseInMainThreadOnly;
     headersList = nullptr;
@@ -322,15 +329,15 @@ public:
 
     if (!sendResponseInMainThreadOnly || is_main_thread())
     {
-      callback->onRequestDone(result, httpCode, response, headersMap);
+      callback->onRequestDone(result, httpCode, response, respHeadersMap);
       callback->release();
     }
     else
     {
       delayed_call([callback = this->callback, result, httpCode = this->httpCode, response = eastl::move(response),
-                     headers = copy_string_map_view(headersMap)] {
-        StringMap headersView(headers.begin(), headers.end());
-        callback->onRequestDone(result, httpCode, response, headersView);
+                     resp_headers = needResponseHeaders ? copy_string_map_view(respHeadersMap) : HeadersList{}] {
+        StringMap respHeaders(resp_headers.begin(), resp_headers.end());
+        callback->onRequestDone(result, httpCode, response, respHeaders);
         callback->release();
       });
     }
@@ -383,12 +390,11 @@ public:
   void trySetDecompressorByHeader(dag::Span<char> header)
   {
     eastl::string_view hv(header.data(), header.size());
-    eastl::string_view::size_type pos = hv.find("Content-Encoding:");
-    if (pos != eastl::string_view::npos)
+    if (eastl::string_view::size_type pos = hv.find("Content-Encoding:"); pos != hv.npos)
     {
       decompressor.reset();
       pos = hv.find("br", pos);
-      if (pos != eastl::string_view::npos)
+      if (pos != hv.npos)
         decompressor.reset(new BrotliStreamDecompress());
     }
   }
@@ -400,7 +406,11 @@ public:
 #if defined(USE_XCURL)
     trySetDecompressorByHeader(header);
 #endif
-    responseHeaders.emplace_back(header.begin(), header.end());
+    if (needResponseHeaders)
+    {
+      responseHeaders.emplace_back(header.begin(), header.end());
+      responseHeaders.back().reserve(sizeof(void *) * 3); // Disable SSO for string_view in `respHeadersMap`
+    }
   }
 
   void finishResponseHeader()
@@ -414,35 +424,26 @@ public:
       return;
     }
 
-    for (eastl::string const &header : responseHeaders)
+    for (const auto &header : responseHeaders)
     {
-      DEBUG_VERBOSE("finishResponseHeader header: %.*s", header.size(), header.data());
+      DEBUG_VERBOSE("finishResponseHeader header: %s", header.c_str());
       eastl::string_view hv(header.data(), header.size());
-      auto delimPos = hv.find(":");
-      if (delimPos != hv.npos)
+      if (auto delimPos = hv.find(":"); delimPos != hv.npos)
       {
         auto key = hv.substr(0, delimPos);
         auto value = hv.substr(delimPos + 1);
-
-        auto crlfPos = value.find("\r\n");
-        if (crlfPos != value.npos)
-        {
+        if (auto crlfPos = value.find("\r\n"); crlfPos != value.npos)
           value.remove_suffix(value.size() - crlfPos);
-        }
-
-        auto nonSpacePos = value.find_first_not_of(' ');
-        if (nonSpacePos != value.npos)
+        if (auto nonSpacePos = value.find_first_not_of(' '); nonSpacePos != value.npos)
         {
           value.remove_prefix(nonSpacePos);
-          headersMap[key] = value;
+          respHeadersMap[key] = value;
         }
       }
     }
 
-    if (!needHeaders)
-      return;
-
-    callback->onHttpHeaderResponse(headersMap);
+    if (needResponseHeaders)
+      callback->onHttpHeadersResponse(respHeadersMap);
   }
 
   void onDownloadProgress(size_t dltotal, size_t dlnow)
@@ -465,21 +466,23 @@ public:
   CURL *curlHandle;
   IAsyncHTTPCallback *callback;
   size_t maxDownloadSize;
-  bool needHeaders;
-  bool sendResponseInMainThreadOnly;
   curl_slist *headersList;
   eastl::string urlStr;
-  eastl::vector<char> reqData;
+  dag::Vector<char> reqData;
 
+  bool needResponseHeaders;
+  bool sendResponseInMainThreadOnly;
   bool abortFlag = false;
   bool shutdownFlag = false;
 
   int httpCode = 0;
   CURLcode curlResult = CURLE_OK;
   dag::Vector<char> response;
-  eastl::list<eastl::string> responseHeaders;
-  httprequests::StringMap headersMap;
+  dag::Vector<eastl::string> responseHeaders; // Note: string_view in `respHeadersMap` are pointing within
+  httprequests::StringMap respHeadersMap;
+#ifdef USE_XCURL
   eastl::unique_ptr<IStreamDecompress> decompressor;
+#endif
 };
 
 using RequestStatePtr = eastl::unique_ptr<RequestState>;

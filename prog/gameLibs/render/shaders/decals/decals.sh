@@ -46,8 +46,8 @@ macro USE_PLANAR_DECALS(start_params_no)
 
       float4 n0 = DECAL_GET_DYNREND_PARAM(norm_idx + 0, params);
       float4 n1 = DECAL_GET_DYNREND_PARAM(norm_idx + 1, params);
-      float influence0 = dot(model_normal, n0.xyz);
-      float influence1 = dot(model_normal, n1.xyz);
+      float influence0 = pow(dot(model_normal, n0.xyz), 3.);
+      float influence1 = pow(dot(model_normal, n1.xyz), 3.);
       FLATTEN
       if (dec_mul < 0 && influence1 > influence0)
       {
@@ -69,6 +69,8 @@ macro USE_PLANAR_DECALS(start_params_no)
           dot(modelPos4, DECAL_GET_DYNREND_PARAM(line_idx + 0, params)),
           dot(modelPos4, DECAL_GET_DYNREND_PARAM(line_idx + 1, params)));
       }
+#define INFLUENCE_MULT 8.0
+      decals_uv_depth_influence.w = saturate(decals_uv_depth_influence.w  * INFLUENCE_MULT); //increase influence back, to get full alpha on fading part
     }
 
     void apply_planar_decals_vs(

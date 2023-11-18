@@ -1,6 +1,8 @@
 #pragma once
 
 #include <EASTL/unordered_set.h>
+#include <EASTL/string.h>
+
 
 namespace drv3d_dx12::debug::event_marker
 {

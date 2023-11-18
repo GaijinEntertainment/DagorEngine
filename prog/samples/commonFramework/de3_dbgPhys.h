@@ -6,6 +6,7 @@
 
 #include "de3_debugObject.h"
 #include <phys/dag_physDebug.h>
+#include <render/dag_cur_view.h>
 
 /**
 \brief Initialize/terminate debug physics rendering.

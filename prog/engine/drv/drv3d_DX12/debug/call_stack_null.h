@@ -1,5 +1,10 @@
 #pragma once
 
+#include <ioSys/dag_dataBlock.h>
+#include <util/dag_string.h>
+#include <EASTL/string_view.h>
+
+
 namespace drv3d_dx12
 {
 namespace debug

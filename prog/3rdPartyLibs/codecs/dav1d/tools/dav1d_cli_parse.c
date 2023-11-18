@@ -62,6 +62,7 @@ enum {
     ARG_NEG_STRIDE,
     ARG_OUTPUT_INVISIBLE,
     ARG_INLOOP_FILTERS,
+    ARG_DECODE_FRAME_TYPE,
 };
 
 static const struct option long_opts[] = {
@@ -88,6 +89,7 @@ static const struct option long_opts[] = {
     { "negstride",       0, NULL, ARG_NEG_STRIDE },
     { "outputinvisible", 1, NULL, ARG_OUTPUT_INVISIBLE },
     { "inloopfilters",   1, NULL, ARG_INLOOP_FILTERS },
+    { "decodeframetype", 1, NULL, ARG_DECODE_FRAME_TYPE },
     { NULL,              0, NULL, 0 },
 };
 
@@ -145,7 +147,9 @@ static void usage(const char *const app, const char *const reason, ...) {
             " --negstride:          use negative picture strides\n"
             "                       this is mostly meant as a developer option\n"
             " --outputinvisible $num: whether to output invisible (alt-ref) frames (default: 0)\n"
-            " --inloopfilters $str: which in-loop filters to enable (none, (no)deblock, (no)cdef, (no)restoration or all; default: all)\n");
+            " --inloopfilters $str: which in-loop filters to enable (none, (no)deblock, (no)cdef, (no)restoration or all; default: all)\n"
+            " --decodeframetype $str: which frame types to decode (reference, intra, key or all; default: all)\n"
+            );
     exit(1);
 }
 
@@ -233,7 +237,13 @@ static const EnumParseTable inloop_filters_tbl[] = {
     { "restoration",   DAV1D_INLOOPFILTER_RESTORATION },
     { "norestoration", DAV1D_INLOOPFILTER_ALL - DAV1D_INLOOPFILTER_RESTORATION },
     { "all",           DAV1D_INLOOPFILTER_ALL },
-    { 0 },
+};
+
+static const EnumParseTable decode_frame_type_tbl[] = {
+    { "all",           DAV1D_DECODEFRAMETYPE_ALL },
+    { "reference",     DAV1D_DECODEFRAMETYPE_REFERENCE },
+    { "intra",         DAV1D_DECODEFRAMETYPE_INTRA },
+    { "key",           DAV1D_DECODEFRAMETYPE_KEY },
 };
 
 #define ARRAY_SIZE(n) (sizeof(n)/sizeof(*(n)))
@@ -381,6 +391,11 @@ void parse(const int argc, char *const *const argv,
             lib_settings->inloop_filters =
                 parse_enum(optarg, inloop_filters_tbl,
                            ARRAY_SIZE(inloop_filters_tbl),ARG_INLOOP_FILTERS, argv[0]);
+            break;
+        case ARG_DECODE_FRAME_TYPE:
+            lib_settings->decode_frame_type =
+                parse_enum(optarg, decode_frame_type_tbl,
+                           ARRAY_SIZE(decode_frame_type_tbl), ARG_DECODE_FRAME_TYPE, argv[0]);
             break;
         default:
             usage(argv[0], NULL);

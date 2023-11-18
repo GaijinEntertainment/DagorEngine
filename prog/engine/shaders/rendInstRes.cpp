@@ -33,6 +33,7 @@ RenderableInstanceLodsResource::ImpostorTextures RenderableInstanceLodsResource:
   VAR(impostor_albedo_alpha)        \
   VAR(impostor_normal_translucency) \
   VAR(impostor_ao_smoothness)       \
+  VAR(impostor_preshadow)           \
   VAR(cross_dissolve_mul)           \
   VAR(cross_dissolve_add)
 
@@ -273,11 +274,6 @@ RenderableInstanceLodsResource *RenderableInstanceLodsResource::makeStubRes(cons
 
 bool RenderableInstanceLodsResource::isBakedImpostor() const { return getImpostorParams().hasBakedTexture(); }
 
-BaseTexture *RenderableInstanceLodsResource::getPreshadowTexture() const
-{
-  return isBakedImpostor() ? getImpostorTextures().shadowAtlasTex : nullptr;
-}
-
 bool RenderableInstanceLodsResource::setImpostorVars(ShaderMaterial *mat, int buffer_offset) const
 {
   auto &impostorTextures = getImpostorTextures();
@@ -291,6 +287,7 @@ bool RenderableInstanceLodsResource::setImpostorVars(ShaderMaterial *mat, int bu
   res = mat->set_texture_param(impostor_albedo_alphaVarId, impostorTextures.albedo_alpha) && res;
   res = mat->set_texture_param(impostor_normal_translucencyVarId, impostorTextures.normal_translucency) && res;
   res = mat->set_texture_param(impostor_ao_smoothnessVarId, impostorTextures.ao_smoothness) && res;
+  res = mat->set_texture_param(impostor_preshadowVarId, impostorTextures.shadowAtlas) && res;
 
   if (isBakedImpostor())
     G_ASSERT(impostorTextures.albedo_alpha != BAD_TEXTUREID && impostorTextures.normal_translucency != BAD_TEXTUREID &&
@@ -479,9 +476,10 @@ void RenderableInstanceLodsResource::prepareTextures(const char *name, uint32_t 
 {
   auto &params = getImpostorParamsE();
   auto &impostorTextures = getImpostorTexturesE();
-  impostorTextures.close();
   if (hasImpostorData())
   {
+    if (impostorTextures.isInitialized())
+      return;
     impostorTextures.albedo_alpha = ::get_tex_gameres(String(0, "%s_aa", name));
     if (impostorTextures.albedo_alpha != BAD_TEXTUREID)
     {
@@ -518,15 +516,14 @@ void RenderableInstanceLodsResource::prepareTextures(const char *name, uint32_t 
               texture_format_flags | TEXCF_CLEAR_ON_CREATE, levelCount, textureName.c_str());
             if (shadowTex)
             {
-              impostorTextures.shadowAtlas = register_managed_tex(name, shadowTex);
+              impostorTextures.shadowAtlas = register_managed_tex(textureName, shadowTex);
               shadowTex->texlod(0);
               shadowTex->texfilter(TEXFILTER_DEFAULT);
               shadowTex->setAnisotropy(1);
               add_anisotropy_exception(impostorTextures.shadowAtlas);
 
               impostorTextures.shadowAtlasTex = acquire_managed_tex(impostorTextures.shadowAtlas);
-              release_managed_tex(impostorTextures.shadowAtlas); // get_tex_gameres() or register_managed_tex() hold main ref to
-                                                                 // texture
+              release_managed_tex(impostorTextures.shadowAtlas); // get_tex_gameres() or register_managed_tex() hold main ref to tex
             }
           }
         }

@@ -1,6 +1,6 @@
 #include <3d/dag_drv3d.h>
 #include <scene/dag_visibility.h>
-#include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include "de3_visibility_finder.h"
 
 void update_visibility_finder(VisibilityFinder &vf) // legacy

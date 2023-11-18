@@ -68,7 +68,6 @@ void DistortionRenderer::startRenderDistortion(Texture *distortionOffsetTex)
 
   d3d::get_render_target(prevRt);
   d3d::set_render_target(distortionOffsetTex, 0);
-  d3d::set_backbuf_depth();
   d3d::clearview(CLEAR_TARGET, E3DCOLOR_MAKE(0x80, 0x80, 0, 0), 0.f, 0);
 
   /*float prevHdrOverbright = ShaderGlobal::get_real_fast(hdrOverbrightGlobVarId);

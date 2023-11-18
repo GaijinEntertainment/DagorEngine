@@ -64,7 +64,7 @@ static const uint16_t box_indices[36] = {
 
 static void try_to_init_box_16bit(const bool modify_counter = true)
 {
-  box16bit = d3d::create_ib(36 * sizeof(uint16_t), SBCF_MAYBELOST, "ib_box_16bit");
+  box16bit = d3d::create_ib(36 * sizeof(uint16_t), 0, "ib_box_16bit");
   d3d_err(box16bit);
 
   uint16_t *indices = nullptr;
@@ -89,7 +89,7 @@ static void try_to_init_quads_16bit(const bool modify_counter = true)
   const uint32_t POINTS_COUNT = 1 << 16;
   const uint32_t QUADS_COUNT = POINTS_COUNT / 4;
   const uint32_t INDICES_COUNT = QUADS_COUNT * 6;
-  quads16bit = d3d::create_ib(INDICES_COUNT * sizeof(uint16_t), SBCF_MAYBELOST, "ib_quads_16bit");
+  quads16bit = d3d::create_ib(INDICES_COUNT * sizeof(uint16_t), 0, "ib_quads_16bit");
   d3d_err(quads16bit);
 
   uint16_t *indices = nullptr;
@@ -113,7 +113,7 @@ static void try_to_init_quads_32bit(const bool modify_counter = true)
 {
   if (quads32bitIndicesCount == 0)
     return;
-  Ibuffer *biggerBuffer = d3d::create_ib(quads32bitIndicesCount * sizeof(uint32_t), SBCF_INDEX32 | SBCF_MAYBELOST, "ib_quads_32bit");
+  Ibuffer *biggerBuffer = d3d::create_ib(quads32bitIndicesCount * sizeof(uint32_t), SBCF_INDEX32, "ib_quads_32bit");
   d3d_err(biggerBuffer);
 
   uint32_t *indices = nullptr;

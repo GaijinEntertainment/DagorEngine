@@ -1,0 +1,9 @@
+WARNING: w236 (shift-priority) Shift operator has lower priority. Perhaps parentheses are missing?
+testData/static_analyzer/w236.nut:4:30
+
+let function foo(berserkFx, state){ //-declared-never-used
+  if (!berserkFx && (state & (1 << ::SCRIPT_STATE_USER_SHIFT + 4)))
+                              ^---------------------------------
+    ::print(1)
+
+

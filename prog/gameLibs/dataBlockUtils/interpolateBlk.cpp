@@ -1,3 +1,5 @@
+#include <dataBlockUtils/interpolateBlk.h>
+
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_Point2.h>
 #include <math/dag_Point4.h>

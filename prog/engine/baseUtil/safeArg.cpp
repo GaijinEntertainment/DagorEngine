@@ -445,7 +445,7 @@ int DagorSafeArg::count_len(const char *fmt, const DagorSafeArg *arg, int anum)
 
 int DagorSafeArg::print_fmt(char *buf, int len, const char *fmt, const DagorSafeArg *arg, int anum)
 {
-  G_ASSERT(buf && fmt && len > 0);
+  G_FAST_ASSERT(buf && fmt && len > 0); // Don't use regular `G_ASSERT` since it might create unwanted recursion
 
   if (!anum)
   {

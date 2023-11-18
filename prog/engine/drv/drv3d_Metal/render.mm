@@ -735,7 +735,7 @@ namespace drv3d_metal
 
     {
       float clear_mesh[8] = { -1,-1, -1, 1, 1,-1, 1, 1 };
-      clear_mesh_buffer = d3d::create_vb(sizeof(clear_mesh), SBCF_MAYBELOST, "metal system clear");
+      clear_mesh_buffer = d3d::create_vb(sizeof(clear_mesh), 0, "metal system clear");
 
       float *verts = NULL;
       clear_mesh_buffer->lock(0, 0, (void**)&verts, VBLOCK_WRITEONLY);
@@ -2188,7 +2188,7 @@ namespace drv3d_metal
 #endif
     {
       desc.texture = tex ? tex->apiTex->rt_texture : nil;
-      desc.storeAction = tex && (tex->cflg & TEXFMT_MASK) == TEXFMT_MSAA_MAX_SAMPLES ?  MTLStoreActionDontCare : MTLStoreActionStore;
+      desc.storeAction = tex && (tex->cflg & TEXCF_SAMPLECOUNT_MASK) ? MTLStoreActionDontCare : MTLStoreActionStore;
       desc.level = level;
     }
   }

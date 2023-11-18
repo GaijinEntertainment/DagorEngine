@@ -1,0 +1,20 @@
+Root    ?= ../../../../../.. ;
+Location = prog/tools/sceneTools/daEditorX/services/pixelPerfectSelection ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/daEditorX/services/pixelPerfectSelectionService.lib ;
+
+
+AddIncludes =
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+
+Sources =
+  pixelPerfectSelection.cpp
+  pixelPerfectSelectionService.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

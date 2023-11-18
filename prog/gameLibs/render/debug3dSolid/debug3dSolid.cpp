@@ -157,8 +157,8 @@ static void create_shape_relem(dynrender::RElem &relem, SHAPE_TYPE shape)
   uint32_t ibSize = faceCount * sizeof(uint16_t) * 3;
 
   // Create the mesh
-  Vbuffer *vb = d3d::create_vb(vbSize, SBCF_MAYBELOST, "solid_sphere");
-  Ibuffer *ib = d3d::create_ib(ibSize, SBCF_MAYBELOST, "solid_sphere_ib");
+  Vbuffer *vb = d3d::create_vb(vbSize, 0, "solid_sphere");
+  Ibuffer *ib = d3d::create_ib(ibSize, 0, "solid_sphere_ib");
 
   uint8_t *vertices = NULL;
   uint8_t *indices = NULL;

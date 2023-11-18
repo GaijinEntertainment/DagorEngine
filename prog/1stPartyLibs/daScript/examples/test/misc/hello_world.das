@@ -1,17 +1,11 @@
-require dump_fields
-
-[|>dump_fields]
-struct Foo
-    a : int
-
-struct Bar : Foo
-    b : int
+class Foo
+    static a : int
+    def static bar ( A : auto )
+        a = int(A)
+        print("set to {a}\n")
 
 [export]
 def main
-    var a = Foo()
-    print("a = {a}\n")
-    var b = Bar()
-    print("b = {b}\n")
+    Foo`bar(13.1)
 
-options log
+

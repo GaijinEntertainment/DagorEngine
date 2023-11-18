@@ -201,7 +201,12 @@ int RendInstGenData::RtData::renderRendinstGlobalShadowsToTextures(const Point3 
 
     // vec4f eye = v_mul(sunDirV, v_splats(pool.sphereRadius));
     viewitm.col2 = sunDirV;
-    viewitm.col0 = v_norm3(v_cross3(V_C_UNIT_0100, viewitm.col2));
+    viewitm.col0 = v_cross3(V_C_UNIT_0100, viewitm.col2);
+    vec3f col0_len = v_length3(viewitm.col0);
+    if (v_extract_x(col0_len) > 2e-6f)
+      viewitm.col0 = v_div(viewitm.col0, col0_len);
+    else
+      viewitm.col0 = v_norm3(v_cross3(V_C_UNIT_0010, viewitm.col2));
     viewitm.col1 = v_cross3(viewitm.col2, viewitm.col0);
 
     if (pool.shadowImpostorUpdatePhase == PHASE_LOW_PASS_RENDER)
@@ -252,7 +257,7 @@ int RendInstGenData::RtData::renderRendinstGlobalShadowsToTextures(const Point3 
     d3d::settm(TM_VIEW, view);
     rendinst::render::setCoordType(riPosInst[poolNo] ? rendinst::render::COORD_TYPE_POS : rendinst::render::COORD_TYPE_TM);
 
-    d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, rendinst::render::oneInstanceTmVb);
+    d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rendinst::render::oneInstanceTmVb);
 
     if (pool.hasImpostor())
       cb.setInstancing(3, 1,

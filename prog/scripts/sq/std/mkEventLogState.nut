@@ -29,7 +29,7 @@ let function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEven
     local { ttl = defTtl, uid, removeMsec = null } = event
     if (uid in timersCb) {
       clearTimer(timersCb[uid])
-      delete timersCb[uid]
+      timersCb?.$rawdelete(uid)
     }
     if (ttl <= 0)
       return
@@ -39,8 +39,7 @@ let function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEven
     }
     timersCb[uid] <- function() {
       removeEvent(uid)
-      if (uid in timersCb)
-        delete timersCb[uid]
+      timersCb?.$rawdelete(uid)
     }
     setTimeout(math.max(0.001 * (removeMsec - get_time_msec()), 0.01), timersCb[uid])
   }

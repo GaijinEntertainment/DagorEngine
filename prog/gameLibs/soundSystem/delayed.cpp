@@ -118,6 +118,7 @@ void abandon(EventHandle handle, float add_delay)
 
 void init(const DataBlock &blk)
 {
+  SNDSYS_DELAYED_BLOCK;
   g_enable_distant_delay = blk.getBool("enableDistantDelay", false);
   g_dist_threshold = blk.getReal("distantDelayThreshold", 50.f);
 }
@@ -132,6 +133,7 @@ void close()
 
 void get_debug_info(size_t &events, size_t &actions, size_t &max_events, size_t &max_actions)
 {
+  SNDSYS_DELAYED_BLOCK;
   events = g_debug_num_events;
   actions = g_debug_num_actions;
   max_events = g_debug_max_events;
@@ -194,10 +196,15 @@ void update(float dt)
   g_events.erase(it, g_events.end());
 }
 
-void enable_distant_delay(bool enable) { g_enable_distant_delay = enable; }
+void enable_distant_delay(bool enable)
+{
+  SNDSYS_DELAYED_BLOCK;
+  g_enable_distant_delay = enable;
+}
 
 void release_delayed_events()
 {
+  SNDSYS_DELAYED_BLOCK;
   for (Event &e : g_events)
     release_immediate(e.handle);
   g_events.clear();

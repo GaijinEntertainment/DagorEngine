@@ -1,8 +1,17 @@
 #pragma once
 
-#include "render_state.h"
+#include <EASTL/bitset.h>
+#include <supp/dag_comPtr.h>
+#include <dxil/compiled_shader_header.h>
 
-static const char CACHE_FILE_NAME[] = "cache/dx12.cache";
+#include "render_state.h"
+#include "device_caps_and_shader_model.h"
+#include "format_store.h"
+#include "constants.h"
+#include "shader.h"
+
+
+inline const char CACHE_FILE_NAME[] = "cache/dx12.cache";
 
 namespace drv3d_dx12
 {

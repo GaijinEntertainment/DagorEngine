@@ -7,7 +7,6 @@ TargetType  = lib ;
 Target      = gameLibs/render/shaderCacheWarmup.lib ;
 
 AddIncludes =
-  $(Root)/prog/daNetGame
   $(Root)/prog/engine
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/gameLibs/publicInclude

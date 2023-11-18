@@ -24,17 +24,10 @@ int dynamicImpostorViewXVarId = -1;
 int dynamicImpostorViewYVarId = -1;
 bool impostorPreshadowNeedUpdate = false;
 
-static bool use_impostors_compression = false;
-static bool was_impostors_compression = false;
-static bool is_render_target_size_changed = false;
-static uint32_t maxAlbedoRTSizeMult = 1;
 static int impostor_tex_count = rendinst::render::IMP_COUNT;
-static uint32_t impostor_compressed_texformats[rendinst::render::IMP_COUNT] = {TEXFMT_DXT5 | TEXCF_SRGBREAD, TEXFMT_DXT5, TEXFMT_DXT5};
 static uint32_t impostor_texformats[rendinst::render::IMP_COUNT] = {TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 0, 0};
 static E3DCOLOR impostor_clear_color[rendinst::render::IMP_COUNT] = {0x00000000, 0x00FFFFFF, 0xFFFFFFFF};
 UniqueTex impostorColorTexture[rendinst::render::IMP_COUNT];
-UniqueTex impostorCompressionBuffers[rendinst::render::IMP_COUNT];
-BcCompressor *bcCompressors[rendinst::render::IMP_COUNT] = {nullptr, nullptr, nullptr};
 PostFxRenderer *postfxBuildMip = nullptr;
 static shaders::UniqueOverrideStateId impostorShadowOverride;
 
@@ -70,33 +63,10 @@ static unsigned int dynamicImpostorsPerFrame = 100;
 
 void rendinst::set_billboards_vertical(bool is_vertical) { rendinst::render::vertical_billboards = is_vertical; }
 
-bool rendinst::enable_impostors_compression(bool enabled)
-{
-  if (!rendinst::render::bcCompressors[0])
-    enabled = false;
-
-  bool ov = rendinst::render::use_impostors_compression;
-  rendinst::render::use_impostors_compression = enabled;
-  debug("rendinst:enable_impostors_compression: %d", enabled);
-  return ov;
-}
-
-void rendinst::setImpostorDiffuseSizeMul(int value)
-{
-  if (rendinst::render::maxAlbedoRTSizeMult != value)
-  {
-    rendinst::render::maxAlbedoRTSizeMult = value;
-    rendinst::render::is_render_target_size_changed = true;
-  }
-}
-
 void initImpostorsTempTextures()
 {
-  int texWidth = rendinst::render::use_impostors_compression
-                   ? rendinst::render::MAX_DYNAMIC_IMPOSTOR_TEX_SIZE * rendinst::render::maxAlbedoRTSizeMult
-                   : rendinst::render::MAX_DYNAMIC_IMPOSTOR_TEX_SIZE;
+  int texWidth = rendinst::render::MAX_DYNAMIC_IMPOSTOR_TEX_SIZE;
   int texHeight = texWidth * IMPOSTOR_MAX_ASPECT_RATIO;
-  int numMips = get_log2i(max(texWidth, texHeight)) + 1;
 
   if (rendinst::render::use_color_padding && !rendinst::render::impostorColorTexture[0].getTex2D())
   {
@@ -109,51 +79,8 @@ void initImpostorsTempTextures()
       rendinst::render::impostorColorTexture[i]->texaddrv(TEXADDR_CLAMP);
     }
   }
-
-  if (rendinst::render::use_impostors_compression && !rendinst::render::impostorCompressionBuffers[0].getTex2D())
-  {
-    for (int i = 0, e = rendinst::render::impostor_tex_count; i < e; ++i)
-    {
-      int flags = TEXCF_RTARGET | rendinst::render::impostor_texformats[i];
-      rendinst::render::impostorCompressionBuffers[i] =
-        dag::create_tex(nullptr, texWidth, texHeight, flags, numMips, String(0, "impostorCompressionBuffer%i", i).str());
-      rendinst::render::impostorCompressionBuffers[i]->texfilter(TEXFILTER_POINT);
-      rendinst::render::impostorCompressionBuffers[i]->texaddru(TEXADDR_CLAMP);
-      rendinst::render::impostorCompressionBuffers[i]->texaddrv(TEXADDR_CLAMP);
-    }
-  }
 }
 
-static inline BcCompressor::ECompressionType get_compressor(uint32_t i)
-{
-  const uint32_t fmt = rendinst::render::impostor_compressed_texformats[i];
-  const uint32_t fmt2 = fmt & TEXFMT_MASK;
-  if (fmt2 == TEXFMT_DXT1)
-    return BcCompressor::COMPRESSION_BC1;
-  else if (fmt2 == TEXFMT_DXT5)
-    return BcCompressor::COMPRESSION_BC3;
-  else if (fmt2 == TEXFMT_ATI1N)
-    return BcCompressor::COMPRESSION_BC4;
-  else if (fmt2 == TEXFMT_ATI2N)
-    return BcCompressor::COMPRESSION_BC5;
-  return BcCompressor::COMPRESSION_BC3;
-}
-
-static inline const char *get_compressor_shader(uint32_t i)
-{
-  const uint32_t fmt = rendinst::render::impostor_compressed_texformats[i];
-  const uint32_t fmt2 = fmt & TEXFMT_MASK;
-  const bool srgb = fmt & TEXCF_SRGBREAD ? true : false;
-  if (fmt2 == TEXFMT_DXT1)
-    return srgb ? "bc1_srgbwrite_compressor" : "bc1_compressor";
-  else if (fmt2 == TEXFMT_DXT5)
-    return srgb ? "bc3_srgbwrite_compressor" : "bc3_compressor";
-  else if (fmt2 == TEXFMT_ATI1N)
-    return "bc4_compressor";
-  else if (fmt2 == TEXFMT_ATI2N)
-    return "bc5_compressor";
-  return "bc3_compressor";
-}
 static inline uint32_t get_format(const char *fmt)
 {
   const bool srgb = strstr(fmt, "srgb") != 0;
@@ -198,12 +125,9 @@ void initImpostorsGlobals()
   rendinst::render::impostor_tex_count = graphics->getInt("impostorTexCount", compatibilityMode ? 1 : rendinst::render::IMP_COUNT);
 
   rendinst::render::impostor_texformats[0] = get_format(graphics->getStr("rendinstImpostorTex0", "argb8_srgb"));
-  rendinst::render::impostor_compressed_texformats[0] = get_format(graphics->getStr("rendinstImpostorCompressedTex0", "dxt5_srgb"));
   for (int i = 1; i < rendinst::render::impostor_tex_count; ++i)
   {
     rendinst::render::impostor_texformats[i] = get_format(graphics->getStr(String(0, "rendinstImpostorTex%d", i).c_str(), "argb8"));
-    rendinst::render::impostor_compressed_texformats[i] =
-      get_format(graphics->getStr(String(0, "rendinstImpostorCompressedTex%d", i).c_str(), "dxt5"));
   }
   for (int i = 0; i < rendinst::render::impostor_tex_count; ++i)
   {
@@ -234,31 +158,6 @@ void initImpostorsGlobals()
   if (!rendinst::render::postfxBuildMip)
     rendinst::render::use_color_padding = false;
 
-  bool compressionAvailable = false;
-  if (BcCompressor::isAvailable(BcCompressor::COMPRESSION_BC3))
-  {
-    rendinst::render::bcCompressors[0] = new BcCompressor(get_compressor(0), 0, 0, 0, 1, get_compressor_shader(0));
-    compressionAvailable = rendinst::render::bcCompressors[0]->isValid();
-    for (int i = 1; i < rendinst::render::impostor_tex_count && compressionAvailable; ++i)
-    {
-      rendinst::render::bcCompressors[i] = new BcCompressor(get_compressor(i), 0, 0, 0, 1, get_compressor_shader(i));
-      if (!rendinst::render::bcCompressors[i]->isValid())
-      {
-        compressionAvailable = false;
-        break;
-      }
-    }
-  }
-
-  if (!compressionAvailable)
-  {
-    for (int i = 0; i < rendinst::render::IMP_COUNT; ++i)
-      del_it(rendinst::render::bcCompressors[i]);
-
-    rendinst::render::use_impostors_compression = false;
-  }
-
-  debug("impostor compression is available: %d", compressionAvailable);
 
   initImpostorsTempTextures();
 
@@ -274,8 +173,6 @@ void termImpostorsGlobals()
   for (int i = 0; i < rendinst::render::impostor_tex_count; ++i)
   {
     rendinst::render::impostorColorTexture[i].close();
-    rendinst::render::impostorCompressionBuffers[i].close();
-    del_it(rendinst::render::bcCompressors[i]);
   }
   rendinst::render::impostorDepthTextures.clear();
 }
@@ -408,9 +305,7 @@ void RendInstGenData::RtData::initImpostors()
 
       rtSize = get_bigger_pow2(rtSize);
 
-      int maximumRTSize = rendinst::render::use_impostors_compression
-                            ? rendinst::render::MAX_DYNAMIC_IMPOSTOR_TEX_SIZE * rendinst::render::maxAlbedoRTSizeMult
-                            : rendinst::render::MAX_DYNAMIC_IMPOSTOR_TEX_SIZE;
+      int maximumRTSize = rendinst::render::MAX_DYNAMIC_IMPOSTOR_TEX_SIZE;
       rtSize = clamp(rtSize, (int)rendinst::render::MIN_DYNAMIC_IMPOSTOR_TEX_SIZE, maximumRTSize);
       int rtSizeY = rtSize;
       if (bboxAspectRatio > 1.75)
@@ -428,12 +323,8 @@ void RendInstGenData::RtData::initImpostors()
       _snprintf(name, sizeof(name), "impostor_color_RT_for_%d_%p", poolNo, this);
       name[sizeof(name) - 1] = 0;
       unsigned int texflags = TEXCF_RTARGET;
-      if (rendinst::render::use_impostors_compression)
-        texflags = TEXCF_CLEAR_ON_CREATE;
 
-      const unsigned int texflagsColor =
-        texflags | (rendinst::render::use_impostors_compression ? rendinst::render::impostor_compressed_texformats[0]
-                                                                : rendinst::render::impostor_texformats[0]);
+      const unsigned int texflagsColor = texflags | rendinst::render::impostor_texformats[0];
 
       pool.impostor.renderMips = IMPOSTOR_NOAUTO_MIPS;
       pool.impostor.numColorTexMips = pool.impostor.renderMips;
@@ -465,8 +356,7 @@ void RendInstGenData::RtData::initImpostors()
         name[sizeof(name) - 1] = 0;
 
         pool.impostor.tex[i].close();
-        const uint32_t fmt = (rendinst::render::use_impostors_compression ? rendinst::render::impostor_compressed_texformats[i]
-                                                                          : rendinst::render::impostor_texformats[i]);
+        const uint32_t fmt = rendinst::render::impostor_texformats[i];
         pool.impostor.tex[i] = dag::create_tex(nullptr, rtSize, rtSizeY, texflags | fmt, pool.impostor.renderMips, name);
         d3d_err(pool.impostor.tex[i].getBaseTex());
         pool.impostor.tex[i].getBaseTex()->texaddr(TEXADDR_CLAMP);
@@ -577,7 +467,7 @@ bool RendInstGenData::RtData::updateImpostorsPreshadow(int poolNo, const Point3 
   d3d::settm(TM_PROJ, &orthoProj);
 
   TMatrix view34;
-  memcpy(&view34, &view, sizeof(view34));
+  v_mat_43cu_from_mat44(&view34[0][0], view);
 
   TMatrix4 globtm;
   d3d::calcglobtm(view34, orthoProj, globtm);
@@ -670,9 +560,9 @@ bool RendInstGenData::RtData::updateImpostorsPreshadow(int poolNo, const Point3 
 
   UniqueTex depthAtlas = get_impostor_texture_mgr()->renderDepthAtlasForShadow(riRes[poolNo]);
 
-  d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, nullptr);
+  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, nullptr);
   bool updated = fill_palette_vb(palette.count, palette.rotations);
-  d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, rendinst::render::rotationPaletteTmVb);
+  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rendinst::render::rotationPaletteTmVb);
   if (!updated)
     return false;
   for (int i = 0; i < palette.count; ++i)
@@ -723,8 +613,7 @@ static void impostorMipSRVBarrier(rendinst::render::RtPoolData &pool, int mip)
 {
   for (int j = 0; j < pool.impostor.tex.size(); ++j)
   {
-    UniqueTex &tex =
-      rendinst::render::use_impostors_compression ? rendinst::render::impostorCompressionBuffers[j] : pool.impostor.tex[j];
+    UniqueTex &tex = pool.impostor.tex[j];
     BaseTexture *pTex = tex.getBaseTex();
     d3d::resource_barrier({pTex, RB_RO_SRV | RB_STAGE_PIXEL, (unsigned)(mip), 1});
   }
@@ -735,18 +624,9 @@ void renderImpostorMips(rendinst::render::RtPoolData &pool, int currentRenderMip
   PostFxRenderer *pFx = rendinst::render::postfxBuildMip;
   if (!pFx)
   {
-    if (rendinst::render::use_impostors_compression)
-    {
-      for (int j = 0; j < rendinst::render::impostor_tex_count; ++j)
-        if (rendinst::render::impostorCompressionBuffers[j].getTex2D())
-          rendinst::render::impostorCompressionBuffers[j].getTex2D()->generateMips();
-    }
-    else
-    {
-      for (int j = 0; j < pool.impostor.tex.size(); ++j)
-        if (pool.impostor.tex[j].getBaseTex())
-          pool.impostor.tex[j].getBaseTex()->generateMips();
-    }
+    for (int j = 0; j < pool.impostor.tex.size(); ++j)
+      if (pool.impostor.tex[j].getBaseTex())
+        pool.impostor.tex[j].getBaseTex()->generateMips();
 
     return;
   }
@@ -774,8 +654,7 @@ void renderImpostorMips(rendinst::render::RtPoolData &pool, int currentRenderMip
 
     for (int j = 0; j < pool.impostor.tex.size(); ++j)
     {
-      UniqueTex &tex =
-        rendinst::render::use_impostors_compression ? rendinst::render::impostorCompressionBuffers[j] : pool.impostor.tex[j];
+      UniqueTex &tex = pool.impostor.tex[j];
       BaseTexture *pTex = tex.getBaseTex();
       if (pTex)
       {
@@ -785,8 +664,7 @@ void renderImpostorMips(rendinst::render::RtPoolData &pool, int currentRenderMip
       }
     }
 
-    UniqueTex &tex =
-      rendinst::render::use_impostors_compression ? rendinst::render::impostorCompressionBuffers[0] : pool.impostor.tex[0];
+    UniqueTex &tex = pool.impostor.tex[0];
     TextureInfo ti;
     tex.getBaseTex()->getinfo(ti, src_mip);
     ShaderGlobal::set_color4(rendinst::render::texelSizeVarId, 1.f, 1.f, 1.f / ti.w, 1.f / ti.h);
@@ -806,31 +684,6 @@ void renderImpostorMips(rendinst::render::RtPoolData &pool, int currentRenderMip
     {
       pool.impostor.tex[j].getBaseTex()->texmiplevel(pool.impostor.baseMip, lastMip);
       pool.impostor.tex[j].getBaseTex()->texfilter(TEXFILTER_DEFAULT);
-    }
-    if (rendinst::render::use_impostors_compression)
-      rendinst::render::impostorCompressionBuffers[j].getTex2D()->texmiplevel(pool.impostor.baseMip, lastMip);
-  }
-}
-
-void compressImpostor(rendinst::render::RtPoolData &pool)
-{
-  for (int i = 0, e = pool.impostor.tex.size(); i < e; ++i)
-  {
-    int texWidth = (i == 0) ? rendinst::render::MAX_DYNAMIC_IMPOSTOR_TEX_SIZE * rendinst::render::maxAlbedoRTSizeMult
-                            : rendinst::render::MAX_DYNAMIC_IMPOSTOR_TEX_SIZE;
-    int texHeight = texWidth * IMPOSTOR_MAX_ASPECT_RATIO;
-    int bufMips = (get_log2i(max(texWidth / 4, texHeight / 4)) + 1);
-    BcCompressor *compr = rendinst::render::bcCompressors[i];
-    compr->resetBuffer(bufMips, texWidth, texHeight, 1);
-
-    for (int j = pool.impostor.baseMip; j < pool.impostor.renderMips; ++j)
-    {
-      TextureInfo ti;
-      BaseTexture *dstTex = pool.impostor.tex[i].getBaseTex();
-      dstTex->getinfo(ti, j);
-      int scrMipToAdd = (i != 0 && rendinst::render::maxAlbedoRTSizeMult > 1) ? 1 : 0;
-      compr->updateFromMip(rendinst::render::impostorCompressionBuffers[i].getTexId(), j + scrMipToAdd, j);
-      compr->copyToMip(dstTex, j, 0, 0, j, 0, 0, ti.w, ti.h);
     }
   }
 }
@@ -880,8 +733,8 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
   cb.setBBoxZero();
 
   rendinst::render::startRenderInstancing();
-  d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, nullptr);
-  d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, rendinst::render::rotationPaletteTmVb);
+  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, nullptr);
+  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rendinst::render::rotationPaletteTmVb);
   d3d::set_immediate_const(STAGE_VS, ZERO_PTR<uint32_t>(), 1);
 
   int numUpdated = 0;
@@ -1022,9 +875,7 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
     }
 
     // required to be set before block, soopengl driver use correct axis flipping
-    d3d::set_render_target(rendinst::render::use_impostors_compression ? rendinst::render::impostorCompressionBuffers[0].getTex2D()
-                                                                       : pool.impostor.tex[0].getBaseTex(),
-      0);
+    d3d::set_render_target(pool.impostor.tex[0].getBaseTex(), 0);
     d3d::set_backbuf_depth();
     ShaderGlobal::setBlock(rendinst::render::globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
     ShaderGlobal::setBlock(rendinst::render::rendinstSceneBlockId, ShaderGlobal::LAYER_SCENE);
@@ -1045,8 +896,6 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
       {
         if (rendinst::render::use_color_padding)
           dstRT[j] = &rendinst::render::impostorColorTexture[j];
-        else if (rendinst::render::use_impostors_compression)
-          dstRT[j] = &rendinst::render::impostorCompressionBuffers[j];
         else
           dstRT[j] = &pool.impostor.tex[j];
       }
@@ -1110,7 +959,7 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
 
       // set viewport
       float viewportPartX = 1.f, viewportPartY = 1.f;
-      if (rendinst::render::use_color_padding || rendinst::render::use_impostors_compression)
+      if (rendinst::render::use_color_padding)
       {
         TextureInfo tinfo;
         pool.impostor.tex[0].getBaseTex()->getinfo(tinfo, baseMip);
@@ -1120,8 +969,7 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
         d3d::setview(0, 0, vpWidth, vpHeight, 0.f, 1.f);
 
         TextureInfo tempRTInfo;
-        UniqueTex &tex = rendinst::render::use_impostors_compression ? rendinst::render::impostorCompressionBuffers[0]
-                                                                     : rendinst::render::impostorColorTexture[0];
+        UniqueTex &tex = rendinst::render::impostorColorTexture[0];
         tex.getTex2D()->getinfo(tempRTInfo, 0);
 
         G_ASSERT(vpWidth <= tempRTInfo.w && vpHeight <= tempRTInfo.h);
@@ -1175,8 +1023,7 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
 
         for (int j = 0; j < pool.impostor.tex.size(); ++j)
         {
-          UniqueTex &tex =
-            rendinst::render::use_impostors_compression ? rendinst::render::impostorCompressionBuffers[j] : pool.impostor.tex[j];
+          UniqueTex &tex = pool.impostor.tex[j];
           BaseTexture *pTex = tex.getBaseTex();
           if (pTex)
           {
@@ -1185,19 +1032,11 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
           }
         }
         TextureInfo ti;
-        UniqueTex &tex = rendinst::render::use_impostors_compression ? rendinst::render::impostorCompressionBuffers[0]
-                                                                     : rendinst::render::impostorColorTexture[0];
+        UniqueTex &tex = rendinst::render::impostorColorTexture[0];
         tex.getBaseTex()->getinfo(ti, 0);
         ShaderGlobal::set_color4(rendinst::render::texelSizeVarId, viewportPartX, viewportPartY, 1.f / ti.w, 1.f / ti.h);
         ShaderGlobal::set_int(maxTranslucancyVarId, 0);
         ShaderGlobal::set_int(rendinst::render::texIndVid, -1);
-
-        if (rendinst::render::use_impostors_compression)
-        {
-          TextureInfo ti;
-          pool.impostor.tex[0].getBaseTex()->getinfo(ti, pool.impostor.baseMip);
-          d3d::setview(0, 0, ti.w, ti.h, 0, 1);
-        }
 
         pFx->render();
       }
@@ -1209,15 +1048,9 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
       // in RO_SRV state before exiting generation
       for (int j = 0; j < pool.impostor.tex.size(); ++j)
       {
-        UniqueTex &tex =
-          rendinst::render::use_impostors_compression ? rendinst::render::impostorCompressionBuffers[j] : pool.impostor.tex[j];
+        UniqueTex &tex = pool.impostor.tex[j];
         Texture *pTex = tex.getBaseTex();
         d3d::resource_barrier({pTex, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-      }
-
-      if (rendinst::render::use_impostors_compression)
-      {
-        compressImpostor(pool);
       }
     }
 
@@ -1267,25 +1100,11 @@ void rendinst::updateRIGenImpostors(float shadowDistance, const Point3 &sunDir0,
 
   bool needsReset = false;
 
-  if (rendinst::render::use_impostors_compression != rendinst::render::was_impostors_compression ||
-      rendinst::render::is_render_target_size_changed || rendinst::render::impostorPreshadowNeedUpdate)
+  if (rendinst::render::impostorPreshadowNeedUpdate)
   {
-    if (rendinst::render::is_render_target_size_changed)
-    {
-      for (int i = 0; i < rendinst::render::impostor_tex_count; ++i)
-      {
-        rendinst::render::impostorColorTexture[i].close();
-        rendinst::render::impostorCompressionBuffers[i].close();
-      }
-      rendinst::render::impostorDepthTextures.clear();
-      rendinst::render::is_render_target_size_changed = false;
-    }
-
     initImpostorsTempTextures();
     needsReset = true;
   }
-
-  rendinst::render::was_impostors_compression = rendinst::render::use_impostors_compression;
 
   FOR_EACH_RG_LAYER_DO (rgl)
   {

@@ -1,3 +1,4 @@
+#include <osApiWrappers/dag_critSec.h>
 #include <fmod_studio.hpp>
 #include <fmod_studio_common.h>
 #include <fmod_errors.h>
@@ -6,6 +7,9 @@
 #include <soundSystem/fmodApi.h>
 #include <soundSystem/dsp.h>
 #include "internal/debug.h"
+
+static WinCritSec g_dsp_cs;
+#define DSP_BLOCK WinAutoLock dspLock(g_dsp_cs);
 
 namespace sndsys
 {
@@ -55,12 +59,23 @@ static void create_pan_dsp()
 
 void init(const DataBlock &blk)
 {
+  SNDSYS_IS_MAIN_THREAD;
+  DSP_BLOCK;
   const DataBlock &dspBlk = *blk.getBlockByNameEx("dsp");
   g_pan_3d_decay = saturate(dspBlk.getReal("pan3DDecay", 0.f));
 }
 
-void close() { release_pan_dsp(); }
+void close()
+{
+  SNDSYS_IS_MAIN_THREAD;
+  DSP_BLOCK;
+  release_pan_dsp();
+}
 
-void apply() { create_pan_dsp(); }
+void apply()
+{
+  DSP_BLOCK;
+  create_pan_dsp();
+}
 } // namespace dsp
 } // namespace sndsys

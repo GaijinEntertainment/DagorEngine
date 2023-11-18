@@ -127,6 +127,7 @@ terminal
          "static" (SHTOK_static),
          "tc" (SHTOK_tc),
          "texture" (SHTOK_texture),
+         "sampler" (SHTOK_sampler),
          "buffer" (SHTOK_buffer),
          "const_buffer" (SHTOK_const_buffer),
          "render_stage" (SHTOK_render_stage),
@@ -190,6 +191,7 @@ code_in_class          = {
     virtual void add_shader(shader_decl *d) {}
     virtual void add_block(block_decl *d) {}
     virtual void add_global_var(global_var_decl *d) {}
+    virtual void add_sampler(sampler_decl *d) {}
     virtual void add_global_interval(interval &i) {}
     virtual void add_global_assume(assume_stat &a) {}
     virtual void add_global_bool(bool_decl &d) {}
@@ -232,6 +234,7 @@ declaration(declaration) ->
   shader-decl=shader |
   block-decl=block |
   global-decl=global_decl |
+  sampler-decl=sampler_decl |
   (interval-decl=inteval_decl {add_global_interval(*(n->inteval_decl));}) |
   hlsl-global-decl |
   (assume-stat=global_assume {add_global_assume(*(n->global_assume));}) |
@@ -331,6 +334,14 @@ global-decl(global_var_decl) ->
   ["always_referenced"=is_always_referenced]
   ";"=nothing
   {add_global_var(n);};
+
+sampler-decl(sampler_decl) ->
+  "sampler"=nothing ident=name [
+    "{"=nothing
+      (ident=state_name "="=nothing ((ident=state)|(arithmetic-expr=expr)) ";"=nothing)+
+    "}"=nothing
+  ] ";"=nothing
+  {add_sampler(n);};
 
 interval-var-decl(interval_var) ->
   ident=name "<"=nothing signed-real=val ","=nothing;

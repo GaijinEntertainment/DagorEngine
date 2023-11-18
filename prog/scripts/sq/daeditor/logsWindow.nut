@@ -8,7 +8,7 @@ let {colors} = require("components/style.nut")
 let textButton = require("components/textButton.nut")
 let closeButton = require("components/closeButton.nut")
 let mkWindow = require("components/window.nut")
-let scrollbar = require("%daeditor/components/scrollbar.nut")
+let {makeVertScroll} = require("%daeditor/components/scrollbar.nut")
 let dagorDebug = require("dagor.debug")
 let {set_clipboard_text} = require("dagor.clipboard")
 
@@ -127,7 +127,7 @@ let function selectedLogExpanded() {
     color = logExpandedColor
     size = [flex(), hdpx(160)]
     watch = [logList, selectedLogIndex]
-    children = scrollbar.makeVertScroll({
+    children = makeVertScroll({
       margin = hdpx(10)
       rendObj = ROBJ_TEXTAREA
       behavior = Behaviors.TextArea
@@ -164,7 +164,7 @@ let function logsRoot() {
   }
 
 
-  let scrollList = scrollbar.makeVertScroll(listContent, {
+  let scrollList = makeVertScroll(listContent, {
     scrollHandler
     rootBase = class {
       size = flex()

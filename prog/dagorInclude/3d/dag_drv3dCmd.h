@@ -393,6 +393,10 @@ enum
   // par1: CompilePipelineSet*
   DRV3D_COMMAND_COMPILE_PIPELINE_SET,
 
+  // par1: Sbuffer*
+  // par2: uint64_t*
+  DRV3D_COMMAND_GET_BUFFER_GPU_ADDRESS,
+
   DRV3D_COMMAND_USER = 1000,
 };
 

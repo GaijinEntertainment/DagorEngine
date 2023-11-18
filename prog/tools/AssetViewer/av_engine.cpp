@@ -16,6 +16,7 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaderBlock.h>
+#include <render/dag_cur_view.h>
 
 #include <EditorCore/ec_gizmofilter.h>
 
@@ -37,7 +38,7 @@ extern void *get_generic_color_range_service();
 extern void *get_generic_rendinstgen_service();
 extern void *get_generic_spline_gen_service();
 extern void *get_generic_wind_service();
-
+extern void *get_pixel_perfect_selection_service();
 
 extern void terminate_interface_de3();
 extern InitOnDemand<DebugTexOverlay> av_show_tex_helper;
@@ -91,6 +92,9 @@ void *AssetViewerApp::queryEditorInterfacePtr(unsigned huid)
 
   if (huid == HUID_IWindService)
     return get_generic_wind_service();
+
+  if (huid == HUID_IPixelPerfectSelectionService)
+    return get_pixel_perfect_selection_service();
 
   return NULL;
 }

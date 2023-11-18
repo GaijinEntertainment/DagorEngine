@@ -84,15 +84,6 @@ ShVarBool eval_shader_bool(bool_expr &, ShaderBoolEvalCB &cb);
 void add_shader(shader_decl *, ShaderSyntaxParser &);
 void add_block(block_decl *, ShaderSyntaxParser &);
 
-// add a new global variable to a global variable list
-void add_global_var(global_var_decl *decl, ShaderSyntaxParser &parser);
-
-// add a new global variable interval
-void add_global_interval(ShaderTerminal::interval &interv, ShaderTerminal::ShaderSyntaxParser &parser);
-
-// add a global assume for interval
-void add_global_assume(ShaderTerminal::assume_stat &assume, ShaderTerminal::ShaderSyntaxParser &parser);
-
 // add a global bool var
 void add_global_bool(ShaderTerminal::bool_decl &bool_var, ShaderTerminal::ShaderSyntaxParser &parser);
 

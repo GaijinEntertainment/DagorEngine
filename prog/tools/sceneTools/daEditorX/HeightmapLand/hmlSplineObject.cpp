@@ -5,6 +5,7 @@
 
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <generic/dag_sort.h>
 #include <dllPluginCore/core.h>
 #include <debug/dag_debug.h>

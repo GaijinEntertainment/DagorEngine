@@ -92,7 +92,9 @@ static Bitset loaded_banks;
 static Bitset failed_banks;
 
 static eastl::fixed_string<char, 8> locale;
-static bool is_inited = false;
+static eastl::fixed_string<char, 8> master_preset_name;
+
+static bool g_was_inited = false;
 
 static void def_err_cb(const char *sndsys_message, const char *fmod_error_message, const char *bank_path, bool is_mod)
 {
@@ -461,9 +463,11 @@ static void add_bank(const char *name, const DataBlock &blk, const char *banks_f
 
 void init(const DataBlock &blk)
 {
+  SNDSYS_IS_MAIN_THREAD;
   G_ASSERT_RETURN(sndsys::is_inited(), );
   SNDSYS_BANKS_BLOCK;
-  G_ASSERT_RETURN(!is_inited, );
+  G_ASSERT_RETURN(!g_was_inited, );
+  g_was_inited = true;
 
   const DataBlock &banksBlk = *blk.getBlockByNameEx("banks");
   const DataBlock &modBlk = *blk.getBlockByNameEx("mod");
@@ -473,17 +477,18 @@ void init(const DataBlock &blk)
 
   const char *folder = banksBlk.getStr("folder", "sound");
   const char *extension = banksBlk.getStr("extension", ".bank");
+  master_preset_name = banksBlk.getStr("preset", "master");
 
   const bool enableMod = blk.getBool("enableMod", false) && modBlk.getBool("allow", true);
 
   g_report_bank_loading_time = blk.getBool("reportBankLoadingTime", false);
 
   FrameStr name, path;
-  const DataBlock *presetsBlk = banksBlk.getBlockByNameEx("presets");
-  all_presets.reserve(presetsBlk->blockCount());
-  for (int j = 0; j < presetsBlk->blockCount(); ++j)
+  const DataBlock &presetsBlk = *banksBlk.getBlockByNameEx("presets");
+  all_presets.reserve(presetsBlk.blockCount());
+  for (int j = 0; j < presetsBlk.blockCount(); ++j)
   {
-    const DataBlock *presetBlk = presetsBlk->getBlock(j);
+    const DataBlock *presetBlk = presetsBlk.getBlock(j);
     all_presets.emplace_back(presetBlk->getBlockName());
     Preset &preset = all_presets.back();
 
@@ -510,24 +515,9 @@ void init(const DataBlock &blk)
     const char *fileName = pluginBlk->getStr(PLUGIN_SUBSYSTEM);
     all_plugins.emplace_back(fileName);
   }
-
-  is_inited = true;
 }
 
-static constexpr const char *g_default_preset_name = "master";
-const char *get_default_preset(const DataBlock &blk)
-{
-  const DataBlock &banksBlk = *blk.getBlockByNameEx("banks");
-  const DataBlock &presetsBlk = *banksBlk.getBlockByNameEx("presets", banksBlk.getBlockByNameEx("games"));
-
-  const char *preset = banksBlk.getStr("preset", g_default_preset_name);
-  if (presetsBlk.blockExists(preset))
-    return preset;
-
-  G_ASSERTF(!preset || !*preset || !banksBlk.paramExists("preset"),
-    "Missing block sound{presets{%s{}}} in '%s'; parameter preset:t=\"%s\" is not valid", preset, blk.resolveFilename(), preset);
-  return "";
-}
+const char *get_master_preset() { return master_preset_name.c_str(); }
 
 static void enable_preset_impl(Preset &preset, bool enable, const PathTags &path_tags)
 {
@@ -616,12 +606,14 @@ bool is_exist(const char *preset_name)
 
 bool is_preset_has_failed_banks(const char *preset_name)
 {
+  SNDSYS_BANKS_BLOCK;
   const Preset *preset = find_preset(preset_name);
   return preset && (preset->banks & failed_banks).any();
 }
 
 void get_failed_banks_names(eastl::vector<eastl::string, framemem_allocator> &failed_banks_names)
 {
+  SNDSYS_BANKS_BLOCK;
   for (auto &bank : all_banks)
   {
     if (failed_banks.test(bank.id))
@@ -631,6 +623,7 @@ void get_failed_banks_names(eastl::vector<eastl::string, framemem_allocator> &fa
 
 void get_loaded_banks_names(eastl::vector<eastl::string, framemem_allocator> &banks_names)
 {
+  SNDSYS_BANKS_BLOCK;
   for (auto &bank : all_banks)
   {
     if (loaded_banks.test(bank.id))
@@ -638,16 +631,26 @@ void get_loaded_banks_names(eastl::vector<eastl::string, framemem_allocator> &ba
   }
 }
 
-void add_guid_to_prohibited(const FMODGUID &event_id) { g_guid_prohibited.insert(hash_fun(event_id)); }
+void add_guid_to_prohibited(const FMODGUID &event_id)
+{
+  SNDSYS_BANKS_BLOCK;
+  g_guid_prohibited.insert(hash_fun(event_id));
+}
 
 bool is_guid_prohibited(const FMODGUID &event_id)
 {
+  SNDSYS_BANKS_BLOCK;
   return g_guid_prohibited.empty() ? false : g_guid_prohibited.has_key(hash_fun(event_id));
 }
-void clear_prohibited_guids() { g_guid_prohibited.clear(); }
+void clear_prohibited_guids()
+{
+  SNDSYS_BANKS_BLOCK;
+  g_guid_prohibited.clear();
+}
 
 void prohibit_bank_events(const eastl::string &bank_name)
 {
+  SNDSYS_BANKS_BLOCK;
   auto pred = [bank_name](const Bank &bank) { return bank.path == bank_name; };
   auto it = eastl::find_if(all_banks.begin(), all_banks.end(), pred);
   if (it != all_banks.end())
@@ -703,8 +706,10 @@ void unload_banks_sample_data()
   }
 }
 
-bool any_banks_pending() { return pending_banks.any(); }
-
-bool are_inited() { return is_inited; }
+bool any_banks_pending()
+{
+  SNDSYS_BANKS_BLOCK;
+  return pending_banks.any();
+}
 
 } // namespace sndsys::banks

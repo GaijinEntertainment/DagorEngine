@@ -364,8 +364,7 @@ public:
     das::addExtern<double (*)(double), &safe_acos>(*this, lib, "safe_acos", das::SideEffects::none, "safe_acos");
     das::addExtern<float (*)(float), &safe_asin>(*this, lib, "safe_asin", das::SideEffects::none, "safe_asin");
     das::addExtern<double (*)(double), &safe_asin>(*this, lib, "safe_asin", das::SideEffects::none, "safe_asin");
-    das::addExtern<float (*)(float, float), &safe_atan2>(*this, lib, "safe_atan2", das::SideEffects::none, "safe_atan2");
-    das::addExtern<double (*)(double, double), &safe_atan2>(*this, lib, "safe_atan2", das::SideEffects::none, "safe_atan2");
+    // don't add safe_atan2. Use atan2 instead. It's safe
 
     // todo: add TMatrix, Capsule functions
     das::addCtorAndUsing<Capsule>(*this, lib, "Capsule", " ::Capsule");

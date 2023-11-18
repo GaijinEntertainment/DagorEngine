@@ -123,7 +123,7 @@ void HeroWetness::init()
 
   int vbSize = getVbSize();
   G_ASSERT(!waterHeightRendererVb);
-  waterHeightRendererVb = d3d::create_vb(sizeof(float) * vbSize, SBCF_MAYBELOST, "wetnessCalculationPostfx");
+  waterHeightRendererVb = d3d::create_vb(sizeof(float) * vbSize, 0, "wetnessCalculationPostfx");
   d3d_err(waterHeightRendererVb);
   fillVertexBuffer(vbSize);
 

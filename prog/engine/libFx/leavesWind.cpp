@@ -2,6 +2,7 @@
 #include <math/random/dag_random.h>
 #include <math/dag_color.h>
 #include <3d/dag_render.h>
+#include <math/dag_TMatrix.h>
 #include <shaders/dag_shaders.h>
 
 #include <fx/dag_leavesWind.h>

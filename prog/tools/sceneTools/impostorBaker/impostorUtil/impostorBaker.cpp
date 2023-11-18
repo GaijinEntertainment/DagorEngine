@@ -75,10 +75,10 @@ ImpostorBaker::ImpostorBaker(ILogWriter *log_writer, bool display) noexcept : lo
   Point3 minR = Point3(-0.28, -0.23, -0.24);
   Point3 maxR = Point3(0.29, 0.27, 0.24);
   init_and_get_perlin_noise_3d(minR, maxR).setVar();
-  treeCrown = dag::create_sbuffer(sizeof(TreeCrown), 1, SBCF_MAYBELOST | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "treeCrown");
+  treeCrown = dag::create_sbuffer(sizeof(TreeCrown), 1, SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "treeCrown");
 
-  objectsBuffer = dag::create_sbuffer(sizeof(Point4) * 3, 1, SBCF_MAYBELOST | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0,
-    "Impostor_texture_mgr_instancing");
+  objectsBuffer =
+    dag::create_sbuffer(sizeof(Point4) * 3, 1, SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "Impostor_texture_mgr_instancing");
   set_objects_buffer();
 }
 
@@ -338,7 +338,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
     for (int h = 0; h < gen_data.horizontalSamples; ++h, ++sliceId)
     {
       TIME_D3D_PROFILE(mask_impostor_slice);
-      d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, objectsBuffer.getBuf());
+      d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, objectsBuffer.getBuf());
       get_impostor_texture_mgr()->setTreeCrownDataBuf(treeCrown.getBuf());
       if (gen_data.octahedralImpostor)
         get_impostor_texture_mgr()->generate_mask_octahedral(h, v, gen_data, res, maskRt.get(), impostorMask.getTex2D());
@@ -448,7 +448,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
       {
         TIME_D3D_PROFILE(render_slice);
         SCOPE_RENDER_TARGET;
-        d3d::set_buffer(STAGE_VS, rendinst::render::INSTANCING_TEXREG, objectsBuffer.getBuf());
+        d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, objectsBuffer.getBuf());
         get_impostor_texture_mgr()->setTreeCrownDataBuf(treeCrown.getBuf());
         get_impostor_texture_mgr()->start_rendering_slices(rt.get());
         d3d::setview(0, 0, get_rt_extent(gen_data).x, get_rt_extent(gen_data).y, 0, 1);
@@ -557,7 +557,7 @@ AOData ImpostorBaker::generateAOData(RenderableInstanceLodsResource *res, const 
       continue;
     const GlobalVertexData *vd = elem.vertexData;
     eastl::unique_ptr<Sbuffer, DestroyDeleter<Sbuffer>> dstVB, dstIB;
-    dstVB.reset(d3d::create_sbuffer(1, elem.vertexData->getVbSize(), SBCF_MAYBELOST | SBCF_USAGE_READ_BACK, 0, "readBackVB"));
+    dstVB.reset(d3d::create_sbuffer(1, elem.vertexData->getVbSize(), SBCF_USAGE_READ_BACK, 0, "readBackVB"));
     vd->getVB()->copyTo(dstVB.get(), 0, elem.baseVertex * elem.vertexData->getStride(), elem.vertexData->getVbSize());
 
     uint8_t *memVB;
@@ -567,7 +567,7 @@ AOData ImpostorBaker::generateAOData(RenderableInstanceLodsResource *res, const 
       uint8_t *memIB;
       uint32_t count = elem.numf;
       uint32_t start = 0;
-      dstIB.reset(d3d::create_sbuffer(1, elem.vertexData->getIbSize(), SBCF_MAYBELOST | SBCF_USAGE_READ_BACK, 0, "readBackIB"));
+      dstIB.reset(d3d::create_sbuffer(1, elem.vertexData->getIbSize(), SBCF_USAGE_READ_BACK, 0, "readBackIB"));
       if (ib)
         ib->copyTo(dstIB.get(), 0, elem.si * elem.vertexData->getIbElemSz(), elem.vertexData->getIbSize());
 #if DAGOR_DBGLEVEL > 0

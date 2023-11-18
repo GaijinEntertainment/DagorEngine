@@ -96,7 +96,7 @@ protected:
   TLeafHandle getEnumsRootLeaf(PropertyContainerControlBase *tree);
   bool isEnumOrEnumItem(TLeafHandle leaf, PropertyContainerControlBase *tree);
   void fillTreePanels(PropertyContainerControlBase *panel);
-  void fillEnumTree(const DataBlock *settings, PropertyContainerControlBase *panel);
+  void fillEnumTree(const DataBlock *settings, PropertyContainerControlBase *panel, TLeafHandle tree_root);
   void fillAnimBlendSettings(PropertyContainerControlBase *tree, PropertyContainerControlBase *group);
   void fillAnimBlendFields(PropertyContainerControlBase *panel, const DataBlock *node, int &field_idx);
   void fillCtrlsSettings(PropertyContainerControlBase *panel);
@@ -112,6 +112,27 @@ protected:
   void saveControllerParamsSettings(PropertyContainerControlBase *panel, DataBlock *settings);
   void saveControllerBlocksSettings(PropertyContainerControlBase *panel, DataBlock *settings);
   void saveParamSwitchBlockSettings(PropertyContainerControlBase *panel, DataBlock *settings);
+  void setTreeFilter(PropertyContainerControlBase *panel, int tree_pid, int filter_pid);
+
+  void addEnumToAnimStatesTree(PropertyContainerControlBase *panel);
+  void addEnumItemToAnimStatesTree(PropertyContainerControlBase *panel);
+  void removeNodeFromAnimStatesTree(PropertyContainerControlBase *panel);
+  void saveSettingsAnimStatesTree(PropertyContainerControlBase *panel);
+  void selectedChangedAnimStatesTree(PropertyContainerControlBase *panel);
+
+  void addMaskToNodeMasksTree(PropertyContainerControlBase *panel);
+  void addNodeToNodeMasksTree(PropertyContainerControlBase *panel);
+  void removeNodeFromNodeMasksTree(PropertyContainerControlBase *panel);
+  void saveSettingsNodeMasksTree(PropertyContainerControlBase *panel);
+  void selectedChangedNodeMasksTree(PropertyContainerControlBase *panel);
+
+  void addIrqNodeToAnimNodesTree(PropertyContainerControlBase *panel);
+  void removeNodeFromAnimNodesTree(PropertyContainerControlBase *panel);
+  void saveSettingsAnimNodesTree(PropertyContainerControlBase *panel);
+  void selectedChangedAnimNodesTree(PropertyContainerControlBase *panel);
+  void irqTypeSelected(PropertyContainerControlBase *panel);
+  void animNodesFieldChanged(PropertyContainerControlBase *panel, int pid);
+
   void selectDynModel();
   void resetDynModel();
   void reloadDynModel();

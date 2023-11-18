@@ -36,6 +36,7 @@ enum
   PID_ENT_LAYER_LOCK,
   PID_ENT_LAYER_HIDE,
   PID_ENT_LAYER_RTM,
+  PID_ENT_LAYER_EXP,
   PID_ENT_LAYER_SEL,
   PID_ENT_LAYER_ADD,
 
@@ -44,6 +45,7 @@ enum
   PID_SPL_LAYER_LOCK,
   PID_SPL_LAYER_HIDE,
   PID_SPL_LAYER_RTM,
+  PID_SPL_LAYER_EXP,
   PID_SPL_LAYER_SEL,
   PID_SPL_LAYER_ADD,
 
@@ -52,6 +54,7 @@ enum
   PID_PLG_LAYER_LOCK,
   PID_PLG_LAYER_HIDE,
   PID_PLG_LAYER_RTM,
+  PID_PLG_LAYER_EXP,
   PID_PLG_LAYER_SEL,
   PID_PLG_LAYER_ADD,
 };
@@ -94,6 +97,7 @@ void HmapLandObjectEditor::LayersDlg::show()
     GRP.createCheckBox(PIDPREFIX##LAYER_LOCK + i * PIDSTEP_LAYER_PROPS, "lock", layerProps[i].lock, true, false);           \
     GRP.createCheckBox(PIDPREFIX##LAYER_HIDE + i * PIDSTEP_LAYER_PROPS, "hide", layerProps[i].hide, true, false);           \
     GRP.createCheckBox(PIDPREFIX##LAYER_RTM + i * PIDSTEP_LAYER_PROPS, "to mask", layerProps[i].renderToMask, true, false); \
+    GRP.createCheckBox(PIDPREFIX##LAYER_EXP + i * PIDSTEP_LAYER_PROPS, "export", layerProps[i].exp, true, false);           \
     GRP.createButton(PIDPREFIX##LAYER_SEL + i * PIDSTEP_LAYER_PROPS, "select objects", true, false);                        \
     GRP.createButton(PIDPREFIX##LAYER_ADD + i * PIDSTEP_LAYER_PROPS, "add to layer", true, false);                          \
     for (; i + 1 < layerProps.size(); i++)                                                                                  \
@@ -231,6 +235,10 @@ void HmapLandObjectEditor::LayersDlg::onChange(int pid, PropertyContainerControl
       case PID_ENT_LAYER_RTM:
       case PID_SPL_LAYER_RTM:
       case PID_PLG_LAYER_RTM: l.renderToMask = panel->getBool(pid) ? 1 : 0; break;
+
+      case PID_ENT_LAYER_EXP:
+      case PID_SPL_LAYER_EXP:
+      case PID_PLG_LAYER_EXP: l.exp = panel->getBool(pid) ? 1 : 0; break;
     }
   }
 }
@@ -353,6 +361,7 @@ void EditLayerProps::resetLayersToDefauls()
     layerProps[i].nameId = 0;
     layerProps[i].type = i;
     layerProps[i].renderToMask = 1;
+    layerProps[i].exp = 1;
 
     activeLayerIdx[i] = i;
   }
@@ -379,6 +388,7 @@ void EditLayerProps::loadLayersConfig(const DataBlock &blk, const DataBlock &loc
     layerProps[lidx].lock = b_local.getBool("lock", false);
     layerProps[lidx].hide = b_local.getBool("hide", false);
     layerProps[lidx].renderToMask = b_local.getBool("renderToMask", true);
+    layerProps[lidx].exp = b.getBool("export", true);
   }
 
   activeLayerIdx[0] = findLayer(ENT, layerNames.getNameId(layersBlk_local.getStr("ENT_active", "default")));
@@ -412,6 +422,8 @@ void EditLayerProps::saveLayersConfig(DataBlock &blk, DataBlock &local_data)
       b_local.setBool("lock", layerProps[i].lock);
       b_local.setBool("hide", layerProps[i].hide);
       b_local.setBool("renderToMask", layerProps[i].renderToMask);
+      if (!layerProps[i].exp)
+        b.setBool("export", layerProps[i].exp);
     }
 
     layersBlk_local.setStr("ENT_active", layerProps[activeLayerIdx[0]].name());

@@ -162,7 +162,7 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
 #define LAMBDA_BODY(forced_extra_lod_less_then_zero)                                                                            \
   G_UNUSED(ni);                                                                                                                 \
   if (render_for_shadow && scene::check_node_flags(m, RendinstTiledScene::CHECKED_IN_SHADOWS) &&                                \
-      !scene::check_node_flags(m, RendinstTiledScene::VISIBLE_IN_SHADOWS))                                                      \
+      !scene::check_node_flags(m, RendinstTiledScene::VISIBLE_IN_SHADOWS | RendinstTiledScene::NEEDS_CHECK_IN_SHADOW))          \
     return;                                                                                                                     \
   if (filter_rendinst_clipmap && !scene::check_node_flags(m, RendinstTiledScene::IS_RENDINST_CLIPMAP))                          \
     return;                                                                                                                     \

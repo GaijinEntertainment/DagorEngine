@@ -32,6 +32,7 @@ const char *NamedConstBlock::nameSpaceToStr(NamedConstSpace name_space)
     case NamedConstSpace::vsmp: return "@vsmp";
     case NamedConstSpace::psf: return "@psf";
     case NamedConstSpace::smp: return "@smp";
+    case NamedConstSpace::sampler: return "@sampler";
     case NamedConstSpace::csf: return "@csf";
     case NamedConstSpace::uav: return "@uav";
     default: return "?unk?";
@@ -256,6 +257,7 @@ int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space,
     case NamedConstSpace::cs_cbuf:
     case NamedConstSpace::psf:
     case NamedConstSpace::smp:
+    case NamedConstSpace::sampler:
     case NamedConstSpace::csf:
     case NamedConstSpace::uav:
     {
@@ -931,6 +933,7 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
     else HANDLE_NS(vs_cbuf);
     else HANDLE_NS(cs_cbuf);
     else HANDLE_NS(uav);
+    else HANDLE_NS(sampler);
 #if _CROSS_TARGET_C1 | _CROSS_TARGET_C2 | _CROSS_TARGET_DX11 | _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
     else if (strncmp(p + 1, "shd", 3) == 0)
     {
@@ -1009,6 +1012,8 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
 #else
         csym = 's';
 #endif
+      else if (ns == NamedConstSpace::sampler)
+        csym = 's';
       else if (ns == NamedConstSpace::uav)
         csym = 'u';
       else if (ns == NamedConstSpace::ps_buf || ns == NamedConstSpace::vs_buf || ns == NamedConstSpace::cs_buf)
@@ -1177,6 +1182,12 @@ void NamedConstBlock::patchStcodeIndices(dag::Span<int> stcode, bool static_blk)
           dest += 0x800;
         stcode[i] = shaderopcode::makeOp2(op, dest, shaderopcode::getOp3p3(stcode[i]));
         break;
+      case SHCOD_SAMPLER:
+        id = shaderopcode::getOp2p1(stcode[i]);
+        G_ASSERT(id < pixelProps.sc.size());
+        dest = pixelProps.sc[id].regIndex;
+        stcode[i] = shaderopcode::makeOp2(op, dest, shaderopcode::getOp2p2(stcode[i]));
+        break;
       case SHCOD_BUFFER:
       case SHCOD_CONST_BUFFER:
       {
@@ -1260,6 +1271,7 @@ ShaderStateBlock::ShaderStateBlock(const char *nm, int lev, const NamedConstBloc
     GET_MAX(vsmp);
     GET_MAX(psf);
     GET_MAX(smp);
+    GET_MAX(sampler);
     GET_MAX(csf);
     GET_MAX(uav);
     GET_MAX(cs_buf);
@@ -1355,6 +1367,8 @@ ShaderStateBlock::ShaderStateBlock(const char *nm, int lev, const NamedConstBloc
   ARRANGE_REG(vsmp);
   ARRANGE_REG(psf);
   ARRANGE_REG(smp);
+  final.sampler = shConst.arrangeRegIndices(final.smp, NamedConstSpace::sampler,
+    shConst.staticCbufType != StaticCbuf::NONE ? &start_cbuf_reg : nullptr);
   ARRANGE_REG(csf);
   ARRANGE_REG(uav);
   ARRANGE_REG(cs_buf);

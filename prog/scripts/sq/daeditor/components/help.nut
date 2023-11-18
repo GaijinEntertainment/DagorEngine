@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 let {colors} = require("style.nut")
-let scrollbar = require("%daeditor/components/scrollbar.nut")
+let {makeVertScroll} = require("%daeditor/components/scrollbar.nut")
 let textButton = require("textButton.nut")
 
 
@@ -90,7 +90,7 @@ let help = @(showHelp) function(){
 
     children = [
       caption
-      scrollbar.makeVertScroll(textContent)
+      makeVertScroll(textContent)
     ]
   }
 }

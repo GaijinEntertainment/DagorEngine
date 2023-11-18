@@ -194,8 +194,7 @@ void ObjectManager::recreateGrid(int cell_tile, int cells_size_count, float cell
   if (maxObjectsCountInCell > 0)
   {
     gatheredBuffer = dag::create_sbuffer(sizeof(Point4), maxObjectsCountInCell * cellsCount * ROWS_IN_MATRIX,
-      SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED | SBCF_MAYBELOST, TEXFMT_A32B32G32R32F,
-      String(0, "gathered_gpu_objects_%s", assetName));
+      SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED, TEXFMT_A32B32G32R32F, String(0, "gathered_gpu_objects_%s", assetName));
     countersBuffer = dag::buffers::create_ua_byte_address_readback(cellsCount, String(0, "ObjectManagerCounts_%s", assetName),
       dag::buffers::Init::Zero);
     bboxesBuffer = dag::buffers::create_ua_structured_readback(sizeof(int32_t), BBOX3F_SIZE_IN_INT * cellsCount,
@@ -229,7 +228,7 @@ void ObjectManager::makeMatricesOffsetsBuffer()
 {
   matricesOffsetsBuffer.close();
   uint32_t size = maxObjectsCountInCell > 0 ? cellsCount : 0;
-  matricesOffsetsBuffer = dag::create_sbuffer(sizeof(uint32_t) * 2, size + 1, SBCF_BIND_SHADER_RES | SBCF_MAYBELOST, TEXFMT_R32G32UI,
+  matricesOffsetsBuffer = dag::create_sbuffer(sizeof(uint32_t) * 2, size + 1, SBCF_BIND_SHADER_RES, TEXFMT_R32G32UI,
     String(0, "ObjectManager_MatricesOffsets_%s", assetName));
 }
 
@@ -646,8 +645,8 @@ void GpuObjects::setGpuInstancingRelemParams(int cascade_no)
 
   String bufferName;
   bufferName.printf(0, "generateIndirectParamsBuffer%d", cascade_no);
-  cascades[cascade_no].generateIndirectParamsBuffer = dag::create_sbuffer(sizeof(vec4f), GPUOBJDATA_SIZE * MAX_LODS * objCount,
-    SBCF_BIND_SHADER_RES | SBCF_MAYBELOST, TEXFMT_A32B32G32R32F, bufferName);
+  cascades[cascade_no].generateIndirectParamsBuffer =
+    dag::create_sbuffer(sizeof(vec4f), GPUOBJDATA_SIZE * MAX_LODS * objCount, SBCF_BIND_SHADER_RES, TEXFMT_A32B32G32R32F, bufferName);
 
   for (int lod = 0; lod < MAX_LODS; lod++)
   {
@@ -889,8 +888,8 @@ void GpuObjects::beforeDraw(rendinst::RenderPass render_pass, int cascade, const
       else
         logdbg("buffer for gpu objects created, %dMB for %d objects, %d instances placed on RI", (rowsInBuffer * sizeof(Point4)) >> 20,
           maxInstancesCount, maxInstancesCountOnRi);
-      cascades[cascade].matricesBuffer = dag::create_sbuffer(sizeof(Point4), rowsInBuffer,
-        SBCF_MAYBELOST | SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED, TEXFMT_A32B32G32R32F, "GPUobjects");
+      cascades[cascade].matricesBuffer = dag::create_sbuffer(sizeof(Point4), rowsInBuffer, SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED,
+        TEXFMT_A32B32G32R32F, "GPUobjects");
     }
   }
 

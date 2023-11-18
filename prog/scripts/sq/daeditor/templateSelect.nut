@@ -8,7 +8,7 @@ let textButton = require("components/textButton.nut")
 let closeButton = require("components/closeButton.nut")
 let nameFilter = require("components/nameFilter.nut")
 let combobox = require("%daeditor/components/combobox.nut")
-let scrollbar = require("%daeditor/components/scrollbar.nut")
+let {makeVertScroll} = require("%daeditor/components/scrollbar.nut")
 let {mkTemplateTooltip} = require("components/templateHelp.nut")
 
 let entity_editor = require("entity_editor")
@@ -230,7 +230,7 @@ let function dialogRoot() {
     }
   }
 
-  let scrollList = scrollbar.makeVertScroll(listContent, {
+  let scrollList = makeVertScroll(listContent, {
     scrollHandler
     rootBase = class {
       size = flex()

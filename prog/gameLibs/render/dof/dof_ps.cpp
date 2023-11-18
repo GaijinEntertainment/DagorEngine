@@ -121,7 +121,7 @@ void DepthOfFieldPS::initNear()
     if (dof_coc[i].getTex2D())
       dof_coc[i].getTex2D()->texaddr(TEXADDR_CLAMP);
   }
-  if (useCoCAccumulation)
+  if (useCoCAccumulation && !useSimplifiedRendering)
   {
     dof_coc_history = dag::create_tex(NULL, originalWidth, originalHeight, flg | TEXFMT_R8, 1, "dof_coc_history");
     if (dof_coc_history.getTex2D())
@@ -359,7 +359,8 @@ void DepthOfFieldPS::perform(const TextureIDPair &frame, const TextureIDPair &cl
   ShaderGlobal::set_texture(dof_far_layerVarId, hasFarDof ? dof_far_layer[0].getTexId() : BAD_TEXTUREID);
   ShaderGlobal::set_texture(dof_near_layerVarId, hasNearDof ? dof_near_layer[0].getTexId() : BAD_TEXTUREID);
 
-  ShaderGlobal::set_texture(dof_coc_historyVarId, useCoCAccumulation ? dof_coc_history.getTexId() : BAD_TEXTUREID);
+  ShaderGlobal::set_texture(dof_coc_historyVarId,
+    (useCoCAccumulation && !useSimplifiedRendering) ? dof_coc_history.getTexId() : BAD_TEXTUREID);
 
   // 1st downscale stage
   TextureInfo info;
@@ -509,7 +510,7 @@ void DepthOfFieldPS::perform(const TextureIDPair &frame, const TextureIDPair &cl
       d3d::resource_barrier({dof_far_layer[0].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 
-  if (useCoCAccumulation && dof_coc_history && dof_coc[0])
+  if (useCoCAccumulation && !useSimplifiedRendering && dof_coc_history && dof_coc[0])
   {
     eastl::swap(dof_coc_history, dof_coc[0]);
     dof_coc_history->texfilter(TEXFILTER_SMOOTH);

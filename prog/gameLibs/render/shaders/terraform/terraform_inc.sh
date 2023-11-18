@@ -61,6 +61,7 @@ macro USE_TFORM_COMMON(code)
       tform_height = lerp(0, tform_height, weight);
       return lerp(0, deltaHt, weight);
     #else
+      tform_height = 0;
       return 0;
     #endif
     }

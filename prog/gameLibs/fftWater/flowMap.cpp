@@ -70,8 +70,7 @@ void build_flowmap(FFTWater *handle, FlowmapParams &flowmap_params, int flowmap_
     frame = 1;
 
     init_shader_vars();
-    set_flowmap_params(flowmap_params);
-    set_flowmap_foam_params(flowmap_params);
+    set_flowmap_tex(flowmap_params);
 
     texA.close();
     texB.close();
@@ -88,12 +87,15 @@ void build_flowmap(FFTWater *handle, FlowmapParams &flowmap_params, int flowmap_
 
     builder.init("water_flowmap");
 
-    windsBuf = dag::create_sbuffer(sizeof(FlowmapWind), MAX_FLOWMAP_WINDS,
-      SBCF_BIND_CONSTANT | SBCF_CPU_ACCESS_WRITE | SBCF_MAYBELOST | SBCF_DYNAMIC, 0, "water_flowmap_winds");
+    windsBuf = dag::create_sbuffer(sizeof(FlowmapWind), MAX_FLOWMAP_WINDS, SBCF_BIND_CONSTANT | SBCF_CPU_ACCESS_WRITE | SBCF_DYNAMIC,
+      0, "water_flowmap_winds");
   }
 
   if (!texA || !texB)
     return;
+
+  set_flowmap_params(flowmap_params);
+  set_flowmap_foam_params(flowmap_params);
 
   float cameraSnap = float(flowmap_texture_size) / (range * 2);
   Point3 cameraPos = camera_pos;
@@ -165,6 +167,24 @@ void build_flowmap(FFTWater *handle, FlowmapParams &flowmap_params, int flowmap_
   d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
 }
 
+void set_flowmap_tex(FlowmapParams &flowmap_params)
+{
+  if (flowmap_params.frame == 0)
+    return;
+
+  SharedTexHolder &tex = flowmap_params.tex;
+  String &texName = flowmap_params.texName;
+  Point4 &texArea = flowmap_params.texArea;
+
+  tex.close();
+
+  if (texName && !texName.empty())
+  {
+    tex = dag::get_tex_gameres(texName.c_str(), "water_flowmap_tex");
+    ShaderGlobal::set_color4(world_to_flowmapVarId, texArea);
+  }
+}
+
 void set_flowmap_params(FlowmapParams &flowmap_params)
 {
   if (flowmap_params.frame == 0)
@@ -178,18 +198,6 @@ void set_flowmap_params(FlowmapParams &flowmap_params)
   ShaderGlobal::set_real(water_flowmap_fadingVarId, flowmap_params.flowmapFading);
   ShaderGlobal::set_color4(water_flowmap_strengthVarId, flowmapStrength);
   ShaderGlobal::set_color4(water_flowmap_strength_addVarId, flowmap_params.flowmapStrengthAdd);
-
-  SharedTexHolder &tex = flowmap_params.tex;
-  String &texName = flowmap_params.texName;
-  Point4 &texArea = flowmap_params.texArea;
-
-  tex.close();
-
-  if (texName && !texName.empty())
-  {
-    tex = dag::get_tex_gameres(texName.c_str(), "water_flowmap_tex");
-    ShaderGlobal::set_color4(world_to_flowmapVarId, texArea);
-  }
 }
 
 void set_flowmap_foam_params(FlowmapParams &flowmap_params)
@@ -270,6 +278,9 @@ void flowmap_floodfill(int texSize, Texture *heightmapTex, Texture *floodfillTex
               int fx = 0;
               int fy = 0;
 
+              int nx = 0;
+              int ny = 0;
+
               if ((u - 1 >= 0) && (height[-1] < heightmapLevel))
               {
                 if (flood[-1] == 0)
@@ -281,7 +292,11 @@ void flowmap_floodfill(int texSize, Texture *heightmapTex, Texture *floodfillTex
                     queueEnd = 0;
                 }
                 else if (flood[-1] > 1)
+                {
                   fx++;
+                  nx += ((flood[-1] >> 0) & 0xff) - 0x80;
+                  ny += ((flood[-1] >> 8) & 0xff) - 0x80;
+                }
               }
               if ((u + 1 < texSize) && (height[1] < heightmapLevel))
               {
@@ -294,7 +309,11 @@ void flowmap_floodfill(int texSize, Texture *heightmapTex, Texture *floodfillTex
                     queueEnd = 0;
                 }
                 else if (flood[1] > 1)
+                {
                   fx--;
+                  nx += ((flood[1] >> 0) & 0xff) - 0x80;
+                  ny += ((flood[1] >> 8) & 0xff) - 0x80;
+                }
               }
               if ((v - 1 >= 0) && (height[-texSize] < heightmapLevel))
               {
@@ -307,7 +326,11 @@ void flowmap_floodfill(int texSize, Texture *heightmapTex, Texture *floodfillTex
                     queueEnd = 0;
                 }
                 else if (flood[-texSize] > 1)
+                {
                   fy++;
+                  nx += ((flood[-texSize] >> 0) & 0xff) - 0x80;
+                  ny += ((flood[-texSize] >> 8) & 0xff) - 0x80;
+                }
               }
               if ((v + 1 < texSize) && (height[texSize] < heightmapLevel))
               {
@@ -320,10 +343,25 @@ void flowmap_floodfill(int texSize, Texture *heightmapTex, Texture *floodfillTex
                     queueEnd = 0;
                 }
                 else if (flood[texSize] > 1)
+                {
                   fy--;
+                  nx += ((flood[texSize] >> 0) & 0xff) - 0x80;
+                  ny += ((flood[texSize] >> 8) & 0xff) - 0x80;
+                }
               }
 
-              flood[0] = uint16_t(((fy * 0x7f + 0x80) << 8) | (fx * 0x7f + 0x80));
+              fx = fx * 6 + nx;
+              fy = fy * 6 + ny;
+
+              int i = fx * fx + fy * fy;
+              if (i)
+              {
+                float f = 127.0f / sqrtf(float(i));
+                fx = int(float(fx) * f);
+                fy = int(float(fy) * f);
+              }
+
+              flood[0] = uint16_t(((fy + 0x80) << 8) | (fx + 0x80));
             }
           }
         }

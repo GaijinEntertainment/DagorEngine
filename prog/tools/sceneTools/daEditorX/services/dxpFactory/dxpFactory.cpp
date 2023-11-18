@@ -49,6 +49,7 @@ public:
     RMGR.resQS[idx].setLdLev(ql == TQL_stub ? 1 : 2);
     RMGR.resQS[idx].setMaxQL(ql, ql);
   }
+  static auto console() { return EDITORCORE ? &EDITORCORE->getConsole() : nullptr; }
 
   bool scheduleTexLoading(TEXTUREID id, TexQL ql) override
   {
@@ -126,22 +127,19 @@ public:
 
       if (ql == TQL_thumb)
         if (DagorAsset *tq_a = DAEDITOR3.getAssetByName(fpath + "$tq", tex_atype))
-          if (!texconvcache::get_tex_asset_built_ddsx(*tq_a, b, _MAKE4C('PC'), NULL, EDITORCORE ? &EDITORCORE->getConsole() : nullptr))
+          if (!texconvcache::get_tex_asset_built_ddsx(*tq_a, b, _MAKE4C('PC'), NULL, console()))
             DAEDITOR3.conError("cannot convert <%s> tex asset", tq_a->getName());
 
-      if (
-        !b.ptr && texconvcache::get_tex_asset_built_ddsx(*a, b, _MAKE4C('PC'), NULL, EDITORCORE ? &EDITORCORE->getConsole() : nullptr))
+      if (!b.ptr && texconvcache::get_tex_asset_built_ddsx(*a, b, _MAKE4C('PC'), NULL, console()))
       {
         if (ql == TQL_uhq)
           if (DagorAsset *uhq_a = DAEDITOR3.getAssetByName(fpath + "$uhq", tex_atype))
-            if (!texconvcache::get_tex_asset_built_ddsx(*uhq_a, hq_b, _MAKE4C('PC'), NULL,
-                  EDITORCORE ? &EDITORCORE->getConsole() : nullptr))
+            if (!texconvcache::get_tex_asset_built_ddsx(*uhq_a, hq_b, _MAKE4C('PC'), NULL, console()))
               DAEDITOR3.conError("cannot convert <%s> tex asset", uhq_a->getName());
 
         if (!hq_b.ptr && ql >= TQL_high)
           if (DagorAsset *hq_a = DAEDITOR3.getAssetByName(fpath + "$hq", tex_atype))
-            if (!texconvcache::get_tex_asset_built_ddsx(*hq_a, hq_b, _MAKE4C('PC'), NULL,
-                  EDITORCORE ? &EDITORCORE->getConsole() : nullptr))
+            if (!texconvcache::get_tex_asset_built_ddsx(*hq_a, hq_b, _MAKE4C('PC'), NULL, console()))
               DAEDITOR3.conError("cannot convert <%s> tex asset", hq_a->getName());
 
         if (b.ptr && hq_b.ptr)
@@ -311,15 +309,14 @@ public:
     {
       ddsx::Buffer b;
       const int hdr_sz = sizeof(ddsx::Header);
-      if (texconvcache::get_tex_asset_built_ddsx(*a, b, _MAKE4C('PC'), NULL, EDITORCORE ? &EDITORCORE->getConsole() : nullptr))
+      if (texconvcache::get_tex_asset_built_ddsx(*a, b, _MAKE4C('PC'), NULL, console()))
       {
         unpackDdsxBuf(b);
         ddsx_forward_mips_inplace(*(ddsx::Header *)b.ptr, (char *)b.ptr + hdr_sz, b.len - hdr_sz);
         if (DagorAsset *hq_a = DAEDITOR3.getAssetByName(fpath + "$hq", tex_atype))
         {
           ddsx::Buffer hq_b;
-          if (
-            texconvcache::get_tex_asset_built_ddsx(*hq_a, hq_b, _MAKE4C('PC'), NULL, EDITORCORE ? &EDITORCORE->getConsole() : nullptr))
+          if (texconvcache::get_tex_asset_built_ddsx(*hq_a, hq_b, _MAKE4C('PC'), NULL, console()))
           {
             unpackDdsxBuf(hq_b);
             ddsx::Header &hq_hdr = *(ddsx::Header *)hq_b.ptr;
@@ -370,11 +367,11 @@ public:
   static bool isGameTex(const char *textureName) { return !gamePrefix.empty() && strnicmp(textureName, "tex/", 4) == 0; }
 
 
-  static bool load_tex_data(BaseTexture *bt, TEXTUREID tid, ddsx::Buffer *bq, ddsx::Buffer *hq, DagorAsset *a, TextureMetaData &tmd,
+  static bool load_tex_data(BaseTexture *_bt, TEXTUREID tid, ddsx::Buffer *bq, ddsx::Buffer *hq, DagorAsset *a, TextureMetaData &tmd,
     TexQL ql, const char *tex_fn = NULL)
   {
     static int tex_atype = DAEDITOR3.getAssetTypeId("tex");
-    if (!bt)
+    if (!_bt)
     {
       if (hq)
         hq->free();
@@ -417,15 +414,15 @@ public:
     AutoTexIdHolder bt_ref(tmd);
 
     ddsx::Buffer l_bq, l_hq;
-    TextureInfo ti;
-    bt->getinfo(ti, 0);
-    int target_lev = get_log2i(max(ti.w, ti.h));
+    if (ql == TQL_thumb && a && !bq)
+      if (DagorAsset *tq_a = DAEDITOR3.getAssetByName(String(0, "%s$tq", a->getName()), tex_atype))
+        a = tq_a;
     if (a && a->props.getBool("convert", false))
     {
       if (!bq)
       {
         bq = &l_bq;
-        if (!texconvcache::get_tex_asset_built_ddsx(*a, *bq, _MAKE4C('PC'), NULL, EDITORCORE ? &EDITORCORE->getConsole() : nullptr))
+        if (!texconvcache::get_tex_asset_built_ddsx(*a, *bq, _MAKE4C('PC'), NULL, console()))
         {
           DAEDITOR3.conError("cannot convert <%s> tex asset", a->getName());
           if (hq)
@@ -437,13 +434,15 @@ public:
       ddsx::Header &bq_hdr = *(ddsx::Header *)bq->ptr;
       int bq_lev = get_log2i(max(bq_hdr.w, bq_hdr.h));
       bool hold_sysmem = (bq_hdr.flags & bq_hdr.FLG_HOLD_SYSMEM_COPY) != 0;
-      if (DagorAsset *hq_a = ql > TQL_base ? DAEDITOR3.getAssetByName(String(0, "%s$hq", a->getName()), tex_atype) : NULL)
+      DagorAsset *hq_a = ql > TQL_high ? DAEDITOR3.getAssetByName(String(0, "%s$uhq", a->getName()), tex_atype) : NULL;
+      if (!hq_a && ql > TQL_base)
+        hq_a = DAEDITOR3.getAssetByName(String(0, "%s$hq", a->getName()), tex_atype);
+      if (hq_a)
       {
         if (!hq)
         {
           hq = &l_hq;
-          if (
-            !texconvcache::get_tex_asset_built_ddsx(*hq_a, *hq, _MAKE4C('PC'), NULL, EDITORCORE ? &EDITORCORE->getConsole() : nullptr))
+          if (!texconvcache::get_tex_asset_built_ddsx(*hq_a, *hq, _MAKE4C('PC'), NULL, console()))
           {
             DAEDITOR3.conError("cannot convert <%s> tex asset", hq_a->getName());
             bq->free();
@@ -454,6 +453,8 @@ public:
         ddsx::Header &hq_hdr = *(ddsx::Header *)hq->ptr;
         if (hq_hdr.levels)
         {
+          BaseTexture *bt = _bt->makeTmpTexResCopy(hq_hdr.w, hq_hdr.h, hq_hdr.depth, hq_hdr.levels + bq_hdr.levels);
+          int target_lev = get_log2i(max(hq_hdr.w, hq_hdr.h));
           hold_sysmem = (hq_hdr.flags & hq_hdr.FLG_HOLD_SYSMEM_COPY) != 0;
           if (hold_sysmem)
             RMGR.incBaseTexRc(tid);
@@ -470,10 +471,10 @@ public:
           if (!d3d_load_ddsx_tex_contents(bt, tid, bt_ref.id, hq_hdr, crd_hq, 0, 0, bq_lev))
             DAEDITOR3.conError("error loading tex %s", hq_a->getName());
           hq->free();
-          bt->texmiplevel(0, ti.mipLevels - 1);
 
           if (hold_sysmem)
             RMGR.decBaseTexRc(tid);
+          _bt->replaceTexResObject(bt);
           mark_cur_ql(tid.index(), ql);
           return true;
         }
@@ -482,19 +483,20 @@ public:
       else if (hq)
         hq->free();
 
+      BaseTexture *bt = _bt->makeTmpTexResCopy(bq_hdr.w, bq_hdr.h, bq_hdr.depth, bq_hdr.levels);
       if (hold_sysmem)
         RMGR.incBaseTexRc(tid);
 
       InPlaceMemLoadCB crd(bq->ptr, bq->len);
       crd.seekrel(sizeof(ddsx::Header));
       bt->allocateTex();
-      if (!d3d_load_ddsx_tex_contents(bt, tid, bt_ref.id, bq_hdr, crd, 0, target_lev - bq_lev, 1))
+      if (!d3d_load_ddsx_tex_contents(bt, tid, bt_ref.id, bq_hdr, crd, 0, 0, 1))
         DAEDITOR3.conError("error loading tex %s", a->getName());
       bq->free();
-      bt->texmiplevel(target_lev - bq_lev, ti.mipLevels - 1);
 
       if (hold_sysmem)
         RMGR.decBaseTexRc(tid);
+      _bt->replaceTexResObject(bt);
       mark_cur_ql(tid.index(), ql);
       return true;
     }
@@ -539,14 +541,14 @@ public:
     }
 
     ddsx::Header &bq_hdr = *(ddsx::Header *)bq->ptr;
-    int bq_lev = get_log2i(max(bq_hdr.w, bq_hdr.h));
+    BaseTexture *bt = _bt->makeTmpTexResCopy(bq_hdr.w, bq_hdr.h, bq_hdr.depth, bq_hdr.levels);
     InPlaceMemLoadCB crd(bq->ptr, bq->len);
     crd.seekrel(sizeof(ddsx::Header));
     bt->allocateTex();
-    if (!d3d_load_ddsx_tex_contents(bt, tid, BAD_TEXTUREID, *(ddsx::Header *)bq->ptr, crd, 0, target_lev - bq_lev, 1))
+    if (!d3d_load_ddsx_tex_contents(bt, tid, BAD_TEXTUREID, *(ddsx::Header *)bq->ptr, crd, 0, 0, 1))
       DAEDITOR3.conError("error loading tex %s", a ? a->getName() : tex_fn);
     bq->free();
-    bt->texmiplevel(target_lev - bq_lev, ti.mipLevels - 1);
+    _bt->replaceTexResObject(bt);
     mark_cur_ql(tid.index(), ql);
     return true;
   }
@@ -670,4 +672,10 @@ void dxp_factory_after_reset()
   tid = ddsx_tex_pack_factory.forceDiscardTid;
   dxp_factory_force_discard(true);
   dxp_factory_force_discard(tid);
+}
+
+void dxp_factory_reload_tex(TEXTUREID tid, TexQL ql)
+{
+  DdsxTexPackFactory::mark_cur_ql(tid.index(), TQL_stub);
+  ddsx_tex_pack_factory.scheduleTexLoading(tid, ql);
 }

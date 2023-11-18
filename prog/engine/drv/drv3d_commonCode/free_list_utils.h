@@ -1,5 +1,10 @@
 #pragma once
 
+#include <EASTL/iterator.h>
+#include <EASTL/algorithm.h>
+#include <util/dag_globDef.h>
+
+
 // Generic free list insert algorithm. A free list is a container that
 // is ValueRange<R> compatible and sorted by increasing 'front' member value.
 // The algorithm linearly searches for the position at the container that could

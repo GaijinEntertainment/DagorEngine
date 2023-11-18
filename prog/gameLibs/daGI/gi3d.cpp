@@ -114,6 +114,22 @@ bool GI3D::ensureSampledTarget(int w, int h, uint32_t fmt)
   return true;
 }
 
+static int find_max_msaa_format()
+{
+  using namespace eastl;
+  int maxMsaaFormats[] = {
+    TEXFMT_R8, // sort by bit count
+    TEXFMT_L16,
+    TEXFMT_R8G8,
+    TEXFMT_R8G8B8A8,
+  };
+  int maxMsaaSamples[size(maxMsaaFormats)] = {};
+  transform(begin(maxMsaaFormats), end(maxMsaaFormats), begin(maxMsaaSamples),
+    [](auto fmt) { return d3d::get_max_sample_count(fmt); });
+  auto maxIdx = distance(begin(maxMsaaSamples), max_element(begin(maxMsaaSamples), end(maxMsaaSamples)));
+  return make_sample_count_flag(maxMsaaSamples[maxIdx]) | maxMsaaFormats[maxIdx];
+}
+
 ConVarT<int, true> gi_use_forced_sample_count("render.gi_use_forced_sample_count", 1, 0, 2, "0 - OFF, 1 - ON, 2 - UAV only");
 bool GI3D::setSubsampledTargetAndOverride(int w, int h)
 {
@@ -121,7 +137,7 @@ bool GI3D::setSubsampledTargetAndOverride(int w, int h)
   {
     BaseTexture *backBuf = d3d::get_backbuffer_tex();
     TextureInfo tinfo;
-    if (!backBuf->getinfo(tinfo) || (tinfo.cflg & TEXCF_MULTISAMPLED) || tinfo.w < w || tinfo.h < h)
+    if (!backBuf->getinfo(tinfo) || (tinfo.cflg & TEXCF_SAMPLECOUNT_MASK) || tinfo.w < w || tinfo.h < h)
     {
       if (!ensureSampledTarget(w, h, TEXFMT_R8))
         return false;
@@ -135,7 +151,7 @@ bool GI3D::setSubsampledTargetAndOverride(int w, int h)
   }
   else
   {
-    if (!ensureSampledTarget(w, h, TEXFMT_MSAA_MAX_SAMPLES))
+    if (!ensureSampledTarget(w, h, find_max_msaa_format()))
     {
       //? w *= 2; h *= 2;//supersampling should be better, but probably videocard is really slow
       if (!ensureSampledTarget(w, h, TEXFMT_R8))
@@ -331,8 +347,8 @@ void GI3D::VolmapCommonData::initCommon()
 
   {
     typedef Point3_vec4 float3;
-    poissonBuf = dag::create_sbuffer(16, (sizeof(POISSON_SAMPLES) + 15) / 16,
-      SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES, TEXFMT_A32B32G32R32F, "poissonSamples");
+    poissonBuf = dag::create_sbuffer(16, (sizeof(POISSON_SAMPLES) + 15) / 16, SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES,
+      TEXFMT_A32B32G32R32F, "poissonSamples");
     poissonBuf->updateDataWithLock(0, sizeof(POISSON_SAMPLES), POISSON_SAMPLES, 0);
   }
   ssgi_clear_volmap_cs.reset(new_compute_shader("ssgi_clear_volmap_cs"));

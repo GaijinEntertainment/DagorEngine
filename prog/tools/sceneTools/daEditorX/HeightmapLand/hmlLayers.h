@@ -14,12 +14,12 @@ struct EditLayerProps
   };
   static const int MAX_LAYERS = 60;
 
-  unsigned lock : 1, hide : 1, renderToMask : 1;
+  unsigned lock : 1, hide : 1, renderToMask : 1, exp : 1;
   unsigned type : 3;
-  unsigned nameId : 10;
+  unsigned nameId : 9;
 
-  EditLayerProps() : lock(0), hide(0), renderToMask(0), type(TYPENUM), nameId(0) {}
-  EditLayerProps(unsigned t, unsigned nid) : lock(0), hide(0), renderToMask(0), type(t), nameId(nid) {}
+  EditLayerProps() : lock(0), hide(0), renderToMask(0), exp(1), type(TYPENUM), nameId(0) {}
+  EditLayerProps(unsigned t, unsigned nid) : lock(0), hide(0), renderToMask(0), exp(1), type(t), nameId(nid) {}
   const char *name() const { return layerNames.getName(nameId); }
 
 public:

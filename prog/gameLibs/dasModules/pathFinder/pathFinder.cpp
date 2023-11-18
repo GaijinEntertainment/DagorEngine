@@ -394,6 +394,10 @@ public:
     das::addConstant(*this, "POLYAREA_JUMP", (int)pathfinder::POLYAREA_JUMP);
     das::addConstant(*this, "POLYAREA_WALKABLE", 63); // @see DT_TILECACHE_WALKABLE_AREA
 
+    das::addConstant(*this, "NM_MAIN", (int)pathfinder::NM_MAIN);
+    das::addConstant(*this, "NM_EXT_1", (int)pathfinder::NM_EXT_1);
+    das::addConstant(*this, "NMS_COUNT", (int)pathfinder::NMS_COUNT);
+
     compileBuiltinModule("pathFinder.das", (unsigned char *)pathFinder_das, sizeof(pathFinder_das));
     verifyAotReady();
   }

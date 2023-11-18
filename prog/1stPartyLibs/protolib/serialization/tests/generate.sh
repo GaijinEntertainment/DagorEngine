@@ -1,2 +1,0 @@
-../../../../../prog/tools/custom-protoc/exec/custom-protoc-dbg --proto_path=../../../../../prog/tools/custom-protoc --proto_path=. --proto_path=../../../../../prog/3rdPartyLibs/protobuf/src --char_out=generated testMapSerialization.proto
-../../../../../prog/tools/custom-protoc/exec/custom-protoc-dbg --proto_path=../../../../../prog/tools/custom-protoc --proto_path=. --proto_path=../../../../../prog/3rdPartyLibs/protobuf/src --char_out=generated testVectorSerialization.proto

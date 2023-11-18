@@ -510,6 +510,7 @@ void DepthAOAboveRenderer::setInvalidVars()
 void DepthAOAboveRenderer::setVars()
 {
   worldAODepth.setVar();
+  blurredDepth.setVar();
   if (renderTransparent)
   {
     blurredDepthWithTransparency.setVar();

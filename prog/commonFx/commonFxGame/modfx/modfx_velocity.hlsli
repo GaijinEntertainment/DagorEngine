@@ -21,6 +21,10 @@ bool modfx_scene_collision_sample( float3 wpos, GlobalData_cref gdata,
   float4 spos = mul( float4( wpos, 1 ), gdata.globtm );
   spos.xyz /= spos.w;
 
+  o_tci = 0;
+  o_proj_depth = 0;
+  o_scene_depth = 0;
+
   o_stc = float2( spos.xy * float2( 0.5, -0.5 ) + float2( 0.5, 0.5 ) );
   if ( o_stc.x < 0 || o_stc.y < 0 || o_stc.x >= 1.f || o_stc.y >= 1 )
     return false;

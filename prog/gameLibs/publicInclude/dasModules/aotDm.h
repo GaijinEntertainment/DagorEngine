@@ -13,7 +13,6 @@
 #include <dasModules/aotProps.h>
 #include <dag/dag_vector.h>
 #include <dag/dag_vectorSet.h>
-#include <ecs/game/dm/damageModel.h>
 #include <damageModel/damageEffects.h>
 #include <damageModel/damageModelData.h>
 #include <damageModel/damageModelParams.h>
@@ -23,8 +22,9 @@
 #include <damageModel/splashDamage.h>
 #include <damageModel/syntheticShatterDamage.h>
 #include <damageModel/criticalDamageTester.h>
-#include <ecs/game/dm/partId.h>
 #include <damageModel/damagePartUtils.h>
+#include <ecs/game/dm/partId.h>
+#include <ecs/game/dm/damageModel.h>
 
 typedef dag::Vector<dm::DamagePartProps> DamageModelDataPartProps;
 typedef dag::Vector<dm::DamagePart> DamageModelDataParts;
@@ -56,6 +56,7 @@ MAKE_TYPE_FACTORY(PenetrationTableProps, dm::kinetic::PenetrationTableProps);
 MAKE_TYPE_FACTORY(DamageTableProps, dm::kinetic::DamageTableProps);
 MAKE_TYPE_FACTORY(EffectsProbabilityMultiplierProps, dm::kinetic::EffectsProbabilityMultiplierProps);
 MAKE_TYPE_FACTORY(DamageEffectActionCluster, dm::effect::ActionCluster);
+MAKE_TYPE_FACTORY(SplashProps, dm::splash::Properties);
 
 DAS_BIND_VECTOR_SET(MetaPartPartIds, MetaPartPartIds, dm::PartId, " ::MetaPartPartIds")
 DAS_BIND_VECTOR(MetaPartPropsVector, dm::MetaPartPropsVector, dm::MetaPartProp, " ::dm::MetaPartPropsVector")
@@ -164,9 +165,14 @@ inline bool is_part_inner(const dm::DamageModelData &dm_data, int part_id)
   return props && props->testFlag(dm::DamagePartProps::Flag::INNER);
 }
 
-inline dm::splash::Params calc_splash_params(int damage_props_id, bool underwater)
+inline dm::splash::Params calc_splash_params(int damage_props_id, const dm::splash::Properties &splash_properties, bool underwater)
 {
-  return dm::splash::calc_params(damage_props_id, underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR);
+  const dm::ExplosiveProps *explosiveProps = dm::ExplosiveProps::get_props(damage_props_id);
+  dm::splash::Params params;
+  dm::splash::calc_params(&splash_properties, explosiveProps, dm::splash::FallBySquare::get_value(damage_props_id),
+    dm::splash::DamageTypeProp::get_value(damage_props_id), underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR,
+    params);
+  return params;
 }
 
 inline dm::synthetic_shatter::Params calc_synthetic_shatter_params(int damage_props_id, float shell_mass, bool underwater)

@@ -952,7 +952,8 @@ class AnimPostBlendEffFromAttachement : public AnimPostBlendCtrl
   };
 
   int varId = -1;
-  int slotId = -1;
+  int namedSlotId = -1;
+  int varSlotId = -1;
   bool ignoreZeroWt = false;
   Tab<VarId> destVarId;
   Tab<NodeDesc> nodes;
@@ -1055,7 +1056,8 @@ class AnimPostBlendNodesFromAttachement : public AnimPostBlendCtrl
   };
 
   int varId = -1;
-  int slotId = -1;
+  int namedSlotId = -1;
+  int varSlotId = -1;
   bool copyWtm = false;
   bool wScaleInverted = false;
   int wScaleVarId = -1;

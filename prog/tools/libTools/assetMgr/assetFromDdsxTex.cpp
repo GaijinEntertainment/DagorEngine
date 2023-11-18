@@ -54,7 +54,7 @@ bool DagorAssetMgr::mountBuiltDdsxTex(const char *mount_folder_name)
         ca = NULL;
       }
       else
-        post_error_f(*msgPipe, "ddsxPack", "n/a", "duplicate asset %s of type <%s> in namespace %s", ca->getName(),
+        post_msg(*msgPipe, msgPipe->WARNING, "duplicate asset %s of type <%s> in namespace %s", ca->getName(),
           typeNames.getName(texAssetType), nspaceNames.getName(nsid));
     }
     del_it(ca);

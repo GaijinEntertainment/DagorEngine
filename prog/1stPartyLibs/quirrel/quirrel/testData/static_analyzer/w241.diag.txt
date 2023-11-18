@@ -1,0 +1,20 @@
+WARNING: w241 (already-required) Module 'string' has been required already.
+testData/static_analyzer/w241.nut:4:13
+
+local str1 = require("string")
+local str2 = require("string")
+             ^----------------
+::print(str1, str2)
+
+
+
+AN ERROR HAS OCCURRED [wrong number of parameters passed to native closure 'print' (3 passed, 2 required)]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w241.nut line [5]
+
+LOCALS
+[str2] TABLE={startswith=FN:startswith, lstrip=FN:lstrip, escape=FN:escape, ...} (10)
+[str1] TABLE={startswith=FN:startswith, lstrip=FN:lstrip, escape=FN:escape, ...} (10)
+[vargv] ARRAY=[]
+[this] TABLE={}

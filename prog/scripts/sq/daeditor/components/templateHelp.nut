@@ -245,9 +245,9 @@ let function getTemplateInfo(templName) {
 
   foreach(tpl, _val in addedTempls) {
     if (extendByTable?[tpl] != null)
-      delete extendByTable[tpl]
+      extendByTable.$rawdelete(tpl)
     if (insertToTable?[tpl] != null)
-      delete insertToTable[tpl]
+      insertToTable.$rawdelete(tpl)
   }
   foreach(tpl, _val in extendByTable)
     extendBy.append(tpl)
@@ -348,7 +348,7 @@ let function mkTemplateTooltip(templName) {
     local text = ""
     foreach (templ in ext) {
       if (text == "")
-        text = $" extends {templ}"
+        text = $" use {templ}"
       else
         text = $"{text} <- {templ}"
     }

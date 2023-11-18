@@ -71,15 +71,13 @@ void DagImGuiRenderer::render(ImDrawData *draw_data)
   // Create and grow vertex/index buffers if needed
   if (!vb.getBuf() || vbSize < draw_data->TotalVtxCount)
   {
-    vb = dag::create_vb(sizeof(ImDrawVert) * (draw_data->TotalVtxCount + 5000), SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE,
-      "imgui_vb");
+    vb = dag::create_vb(sizeof(ImDrawVert) * (draw_data->TotalVtxCount + 5000), SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE, "imgui_vb");
     G_ASSERT(vb.getBuf());
     vbSize = draw_data->TotalVtxCount + 5000;
   }
   if (!ib.getBuf() || ibSize < draw_data->TotalIdxCount)
   {
-    ib = dag::create_ib(sizeof(ImDrawIdx) * (draw_data->TotalIdxCount + 10000), SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE,
-      "imgui_ib");
+    ib = dag::create_ib(sizeof(ImDrawIdx) * (draw_data->TotalIdxCount + 10000), SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE, "imgui_ib");
     G_ASSERT(ib.getBuf());
     ibSize = draw_data->TotalIdxCount + 10000;
   }

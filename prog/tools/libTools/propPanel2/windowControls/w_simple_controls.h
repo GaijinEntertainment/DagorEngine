@@ -65,7 +65,8 @@ private:
 class WButton : public WindowControlBase
 {
 public:
-  WButton(WindowControlEventHandler *event_handler, WindowBase *parent, int x, int y, int w, int h, bool show_sel = true);
+  WButton(WindowControlEventHandler *event_handler, WindowBase *parent, int x, int y, int w, int h, bool show_sel = true,
+    bool text_align_left = false);
   virtual intptr_t onControlCommand(unsigned notify_code, unsigned elem_id);
 };
 

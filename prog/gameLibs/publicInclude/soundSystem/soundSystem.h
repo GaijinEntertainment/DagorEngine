@@ -52,12 +52,14 @@ struct DeviceInfo
   int rate;
 };
 
-void init(const DataBlock &blk);
+bool init(const DataBlock &blk);
 void shutdown();
 bool is_inited();
 
 void update_listener(float dt, const TMatrix &listener_tm);
-void update(float dt, float time_speed = 1.f);
+void set_time_speed(float time_speed);
+void update(float dt);
+void lazy_update();
 
 void override_time_speed(float time_speed); // should be > 0 to override value provided within update(float dt, float time_speed = 1.f)
 
@@ -107,8 +109,12 @@ eastl::vector<DeviceInfo> get_record_devices();
 
 void set_output_device(int device_id);
 
-int get_last_records_list_changed_time();
-int get_last_outputs_list_changed_time();
+typedef void (*record_list_changed_cb_t)();
+typedef void (*output_list_changed_cb_t)();
+typedef void (*device_lost_cb_t)();
+
+void set_device_changed_async_callbacks(record_list_changed_cb_t record_list_changed_cb,
+  output_list_changed_cb_t output_list_changed_cb, device_lost_cb_t device_lost_cb);
 
 void flush_commands();
 

@@ -89,7 +89,7 @@ bool debug::pc::DeviceState::setup(debug::GlobalState &global, ID3D12Device *dev
     auto denyId =
       get_ignored_validation_messages<D3D12_MESSAGE_ID>(*::dgs_get_settings()->getBlockByNameEx("dx12")->getBlockByNameEx("debug"));
     defaultFilter.DenyList.pSeverityList = denySeverity;
-    defaultFilter.DenyList.NumSeverities = static_cast<UINT>(array_size(denySeverity));
+    defaultFilter.DenyList.NumSeverities = static_cast<UINT>(countof(denySeverity));
     defaultFilter.DenyList.pIDList = denyId.data();
     defaultFilter.DenyList.NumIDs = static_cast<UINT>(denyId.size());
     debugQueue->AddRetrievalFilterEntries(&defaultFilter);

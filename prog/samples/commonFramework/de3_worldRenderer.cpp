@@ -51,6 +51,8 @@ WorldRenderer::WorldRenderer(WorldRenderer::IWorld *render_world, const DataBloc
   targetW = targetH = sceneFmt = 0;
   sceneRt = postfxRt = NULL;
   sceneRtId = postfxRtId = BAD_TEXTUREID;
+  sceneDepth = NULL; // It isn't initialized as well as other RTs. It's here just for consistency if this code ever will be needed.
+                     // (currently it's dead code)
 
   gameParamsBlk = new DataBlock;
   gameParamsBlk->setFrom(&blk);
@@ -72,6 +74,7 @@ void WorldRenderer::close()
   del_d3dres(sceneRt);
   del_d3dres(sceneRt);
   del_d3dres(postfxRt);
+  del_d3dres(sceneDepth);
 }
 
 void WorldRenderer::update(float dt)
@@ -93,7 +96,7 @@ void WorldRenderer::render(DagorGameScene &)
   d3d::getview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
 
   d3d::set_render_target(sceneRt, 0);
-  d3d::set_backbuf_depth();
+  d3d::set_depth(sceneDepth, DepthAccess::RW);
   d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(0, 0, 0, 0), DAGOR_FAR_DEPTH, 0);
 
   {
@@ -107,7 +110,6 @@ void WorldRenderer::render(DagorGameScene &)
     d3d::gettm(TM_PROJ, &projTm);
     postFx->apply(sceneRt, sceneRtId, postfxRt, postfxRtId, ::grs_cur_view.tm, projTm);
     d3d::set_render_target(postfxRt, 0);
-    d3d::set_backbuf_depth();
     d3d_err(d3d::stretch_rect(postfxRt, rt.getColor(0).tex, NULL, NULL));
   }
   else

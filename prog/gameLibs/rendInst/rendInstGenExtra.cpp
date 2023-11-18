@@ -1429,8 +1429,8 @@ void rendinst::prepareRiExtraRefs(const DataBlock &_riConf)
       addRiExtraRefs(b, riConf.getBlock(i), nullptr);
 }
 
-bool rayHitRiExtraInstance(vec4f from, vec4f dir, float len, rendinst::riex_handle_t handle, rendinst::RendInstDesc &ri_desc,
-  const MaterialRayStrat &strategy)
+bool rayHitRiExtraInstance(const Point3 &from, const Point3 &dir, float len, rendinst::riex_handle_t handle,
+  rendinst::RendInstDesc &ri_desc, const MaterialRayStrat &strategy)
 {
   uint32_t res_idx = rendinst::handle_to_ri_type(handle);
   const rendinst::RiExtraPool &pool = rendinst::riExtra[res_idx];
@@ -1452,10 +1452,10 @@ bool rayHitRiExtraInstance(vec4f from, vec4f dir, float len, rendinst::riex_hand
 
   CollisionResource *collRes = rendinst::riExtra[res_idx].collRes;
 
-  int matId = -1;
-  if (collRes->rayHit(tm, from, dir, len, matId))
+  int outMatId = PHYSMAT_INVALID;
+  if (collRes->rayHit(tm, from, dir, len, strategy.rayMatId, outMatId))
   {
-    if (strategy.shouldIgnoreRendinst(/*isPos*/ false, /* is_immortal */ false, matId))
+    if (strategy.shouldIgnoreRendinst(/*isPos*/ false, /* is_immortal */ false, outMatId))
       return false;
     ri_desc.setRiExtra();
     ri_desc.idx = idx;
@@ -1474,7 +1474,7 @@ bool rendinst::rayHitRIGenExtraCollidable(const Point3 &from, const Point3 &dir,
   RiGridObject ret = rigrid_find_ray_intersections(riExtraGrid, from, dir, len, [&](RiGridObject object) {
     if (v_extract_w(object.getWBSph()) < min_r)
       return false;
-    return rayHitRiExtraInstance(v_ldu(&from.x), v_ldu(&dir.x), len, object.handle, ri_desc, strategy);
+    return rayHitRiExtraInstance(from, dir, len, object.handle, ri_desc, strategy);
   });
   return ret != RIEX_HANDLE_NULL;
 }

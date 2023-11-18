@@ -517,9 +517,7 @@ void EffectsInterface::startup()
 
   for (int i = 0; i < countof(shaderNames); ++i)
   {
-    // compatibility: new premultalpha shaders are optional
-    bool optional = (i % FX__NUM_STD_SHADERS) >= (FX__NUM_STD_SHADERS - 3);
-    registerStdParticleCustomShader(shaderNames[i], optional);
+    registerStdParticleCustomShader(shaderNames[i], true);
   }
 
   lighting_power_vid = get_shader_variable_id("lighting_power", true);

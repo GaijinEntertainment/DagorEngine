@@ -185,9 +185,10 @@ static void set_paint_detail_texture()
     combinedPaintTex->getinfo(texInfo);
     ShaderGlobal::set_real(get_shader_variable_id("paint_details_tex_inv_h", true), safediv(1.f, (float)texInfo.h));
   }
-  else
-    DAEDITOR3.conError("failed to create combined painting texture (globTid=0x%x(%s) localTid=0x%x paintDetailsTexAsset=%s)",
-      globalPaintColorsTexId, get_managed_texture_name(globalPaintColorsTexId), localPaintColorsTexId, paintDetailsTexAsset);
+  else if (VariableMap::isGlobVariablePresent(paintDetailsVarId))
+    DAEDITOR3.conError("failed to create combined painting texture (globTid=0x%x(%s) localTid=0x%x paintDetailsTexAsset='%s' var=%d)",
+      globalPaintColorsTexId, get_managed_texture_name(globalPaintColorsTexId), localPaintColorsTexId, paintDetailsTexAsset,
+      paintDetailsVarId);
   release_managed_tex(globalPaintColorsTexId);
   release_managed_tex(localPaintColorsTexId);
   ShaderGlobal::set_texture(paintDetailsVarId, combinedPaintTexId);

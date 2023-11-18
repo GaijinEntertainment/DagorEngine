@@ -50,7 +50,7 @@ macro BASE_GPU_OCCLUSION(code)
 
     //sbox.xyXY in screen TC
     //return closeset raw depth
-    float check_box_occl_visible_tc_base(float4 sbox, out float lod)
+    float check_box_occl_visible_tc_base(float4 sbox)
     {
       uint2 dim;
     ##if separate_depth_mips == no
@@ -74,8 +74,6 @@ macro BASE_GPU_OCCLUSION(code)
         if (dims.x <= OCCLUSION_RECT_SZ && dims.y <= OCCLUSION_RECT_SZ)
           level = level_lower;
       }
-      lod = level;
-
 
       //minTc = (floor(sbox_vp.xy/exp2(level))+0.5)/(dim/exp2(level));
 
@@ -129,7 +127,7 @@ macro GPU_OCCLUSION(code)
       return VISIBLE;
     }
 
-    bool check_box_occl_visible_base(float3 minb, float3 maxb, out float4 sbox, out float lod, out float2 minMaxRawDepth)
+    bool check_box_occl_visible_base(float3 minb, float3 maxb, out float4 sbox, out float2 minMaxRawDepth)
     {
       //todo: we can speed it up
       float4 screenPos[8];
@@ -161,15 +159,15 @@ macro GPU_OCCLUSION(code)
       minMaxRawDepth.y = maxScreen.z;
       sbox = saturate(minMaxTc.xwzy);
 
-      if (check_box_occl_visible_tc_base(sbox, lod) > maxScreen.z)
+      if (check_box_occl_visible_tc_base(sbox) > maxScreen.z)
         return false;
       return true;
     }
     bool check_box_occl_visible(float3 minb, float3 maxb)
     {
-      float4 sbox; float lod; float2 minMaxRawDepth;
+      float4 sbox; float2 minMaxRawDepth;
       minMaxRawDepth = 0;
-      return check_box_occl_visible_base(minb, maxb, sbox, lod, minMaxRawDepth);
+      return check_box_occl_visible_base(minb, maxb, sbox, minMaxRawDepth);
     }
   }
 endmacro

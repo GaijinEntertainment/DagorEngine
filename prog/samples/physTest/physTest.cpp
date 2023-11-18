@@ -1940,3 +1940,6 @@ int DagorWinMain(int nCmdShow, bool debugmode)
 
 #include <landMesh/lmeshHoles.h>
 bool LandMeshHolesManager::check(const Point2 &) const { return false; }
+
+#include <render/dag_cur_view.h>
+DagorCurView grs_cur_view;

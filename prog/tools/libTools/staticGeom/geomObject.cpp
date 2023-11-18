@@ -35,6 +35,7 @@
 #include <stdlib.h>
 
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 
 #include <libTools/dagFileRW/textureNameResolver.h>
 

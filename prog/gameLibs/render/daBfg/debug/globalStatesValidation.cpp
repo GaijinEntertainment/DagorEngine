@@ -1,7 +1,7 @@
-#include <api/internalRegistry.h>
+#include <frontend/internalRegistry.h>
+#include <frontend/nameResolver.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaderBlock.h>
-#include <nameResolver.h>
 
 
 namespace dabfg

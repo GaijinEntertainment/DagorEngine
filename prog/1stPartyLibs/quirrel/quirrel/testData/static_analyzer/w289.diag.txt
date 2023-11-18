@@ -1,0 +1,8 @@
+WARNING: w289 (param-pos) The function parameter 'aaax' seems to be in the wrong position.
+testData/static_analyzer/w289.nut:6:13
+
+local b = -1;
+return fn(b, aaaX);
+             ^---
+
+

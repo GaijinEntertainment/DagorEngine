@@ -158,6 +158,7 @@ void shaderbindump::dumpVar(const shaderbindump::VarList &vars, int i)
       debug_("int4(%d,%d,%d,%d)\n", i4.x, i4.y, i4.z, i4.w);
       break;
     }
+    case SHVT_SAMPLER: debug_("sampler\n"); break;
     default: debug_("unknown type: %d\n", vars.getType(i));
   }
 }

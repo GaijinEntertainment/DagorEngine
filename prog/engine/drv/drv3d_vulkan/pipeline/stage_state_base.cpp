@@ -213,6 +213,7 @@ void PipelineStageStateBase::setBbuffer(uint32_t unit, BufferRef buffer)
   {
     getConstBufferRegister(unit).buffer.buffer = buffer.getHandle();
     getConstBufferRegister(unit).buffer.range = buffer.dataSize();
+    getConstBufferRegister(unit).buffer.offset = 0;
     getConstBufferRegister(unit).type = VkAnyDescriptorInfo::TYPE_BUF;
   }
   else

@@ -64,7 +64,7 @@ void ClusteredLights::validateDensity(uint32_t words)
     String name(128, "lights_full_grid_%d", i);
     lightsFullGridCB[i].close();
     lightsFullGridCB[i] = dag::create_sbuffer(sizeof(uint32_t), CLUSTERS_PER_GRID * allocatedWords,
-      SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, name);
+      SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, name);
   }
 }
 
@@ -631,10 +631,10 @@ void ClusteredLights::initConeSphere()
   static constexpr uint32_t SLICES = 5;
   calc_sphere_vertex_face_count(SLICES, SLICES, false, v_count, f_count);
   coneSphereVb.close();
-  coneSphereVb = dag::create_vb((v_count + 5) * sizeof(Point3), SBCF_MAYBELOST, "coneSphereVb");
+  coneSphereVb = dag::create_vb((v_count + 5) * sizeof(Point3), 0, "coneSphereVb");
   d3d_err((bool)coneSphereVb);
   coneSphereIb.close();
-  coneSphereIb = dag::create_ib((f_count + 6) * 6, SBCF_MAYBELOST, "coneSphereIb");
+  coneSphereIb = dag::create_ib((f_count + 6) * 6, 0, "coneSphereIb");
   d3d_err((bool)coneSphereIb);
 
   LockedBuffer<uint16_t> indicesLocked = lock_sbuffer<uint16_t>(coneSphereIb.getBuf(), 0, 0, VBLOCK_WRITEONLY);
@@ -1401,6 +1401,5 @@ void ClusteredLights::setNeedSsss(bool need_ssss)
   spotLightSsssShadowDescBuffer.close();
   if (need_ssss)
     spotLightSsssShadowDescBuffer = dag::create_sbuffer(sizeof(SpotlightShadowDescriptor), MAX_SPOT_LIGHTS,
-      SBCF_DYNAMIC | SBCF_MAYBELOST | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0,
-      "spot_lights_ssss_shadow_desc");
+      SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "spot_lights_ssss_shadow_desc");
 }

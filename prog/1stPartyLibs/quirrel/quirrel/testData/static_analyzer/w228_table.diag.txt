@@ -1,0 +1,8 @@
+WARNING: w228 (declared-never-used) let 'foo' was declared but never used.
+testData/static_analyzer/w228_table.nut:3:0
+
+function foo(y) {
+^
+    let x = y
+
+

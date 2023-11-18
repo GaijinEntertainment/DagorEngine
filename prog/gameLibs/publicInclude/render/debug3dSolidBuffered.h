@@ -8,7 +8,7 @@
 #include "debug3dSolid.h"
 #include <math/dag_color.h>
 
-void flush_buffered_debug_meshes(bool decriment_buffer_frames);
+void flush_buffered_debug_meshes(bool game_is_paused);
 void draw_debug_solid_mesh_buffered(const uint16_t *indices, int faces_count, const float *xyz_pos, int vertex_size,
   int vertices_count, const TMatrix &tm, Color4 color, size_t frames);
 

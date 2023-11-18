@@ -435,7 +435,9 @@ void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Po
     state.zBias = 0.00005f;
     debugWireOverride.reset(shaders::overrides::create(state));
   }
-  shaders::overrides::set(debugOverride);
+
+  // Using set_master_state to avoid "override already set" errors because draw_debug_solid_mesh also sets an override.
+  shaders::overrides::set_master_state(shaders::overrides::get(debugOverride));
 
   if (drawShaded)
   {
@@ -454,17 +456,17 @@ void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Po
     for (auto &coll : collisions)
       draw_collision_info(coll, view_pos, surfaceColor, true, false, drawPhysOnly, drawTraceOnly, max_coll_dist_sq, true);
 
-    shaders::overrides::reset();
+    shaders::overrides::reset_master_state();
     if (drawShadedWireframe)
     {
-      shaders::overrides::set(debugWireOverride);
+      shaders::overrides::set_master_state(shaders::overrides::get(debugWireOverride));
       d3d::setwire(true);
       max_coll_dist_sq = eastl::min(max_coll_dist_sq, 200.f * 200.f); // no need WIREFRAME on far distance
       ShaderGlobal::set_int(wireframeVarId, 1);
       for (auto &coll : collisions)
         draw_collision_info(coll, view_pos, surfaceColor, true, false, drawPhysOnly, drawTraceOnly, max_coll_dist_sq, true);
       d3d::setwire(false);
-      shaders::overrides::reset();
+      shaders::overrides::reset_master_state();
     }
 
     {
@@ -487,19 +489,19 @@ void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Po
         max_coll_dist_sq);
   }
 
-  shaders::overrides::reset();
+  shaders::overrides::reset_master_state();
   if (flags & DrawCollisionsFlag::Wireframe)
   {
     TIME_D3D_PROFILE(DRAW_COLLISIONS_WIREFRAME);
 
-    shaders::overrides::set(debugWireOverride);
+    shaders::overrides::set_master_state(shaders::overrides::get(debugWireOverride));
     d3d::setwire(true);
     max_coll_dist_sq = eastl::min(max_coll_dist_sq, 20.f * 20.f); // no need WIREFRAME on far distance
     for (int i = 0; i < collisions.size(); ++i)
       draw_collision_info(collisions[i], view_pos, linesColor, drawAnyRendinst, drawRendinstCanopy, drawPhysOnly, drawTraceOnly,
         max_coll_dist_sq);
     d3d::setwire(false);
-    shaders::overrides::reset();
+    shaders::overrides::reset_master_state();
   }
 
   {

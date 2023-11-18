@@ -11,6 +11,8 @@
 
 #include <3d/dag_drv3d.h>
 
+#include <validate_sbuf_flags.h>
+
 #include "render.h"
 
 using namespace drv3d_metal;
@@ -56,20 +58,20 @@ bool d3d::setvdecl(VDECL vdecl)
 Sbuffer *d3d::create_vb(int size, int flg, const char* name)
 {
   flg |= SBCF_BIND_VERTEX;
-  d3d::validate_sbuffer_flags(flg, name);
+  validate_sbuffer_flags(flg, name);
   return new Buffer(size, 0, flg, 0, name);
 }
 
 Sbuffer *d3d::create_ib(int size, int flg, const char *name)
 {
   flg |= SBCF_BIND_INDEX;
-  d3d::validate_sbuffer_flags(flg, name);
+  validate_sbuffer_flags(flg, name);
   return new Buffer(size, 0, flg, 0, name);
 }
 
 Sbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char* name)
 {
-  d3d::validate_sbuffer_flags(flags, name);
+  validate_sbuffer_flags(flags, name);
   return new Buffer(elements, struct_size, flags, format, name);
 }
 

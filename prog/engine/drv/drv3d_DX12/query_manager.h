@@ -1,8 +1,14 @@
 #pragma once
 
+#include <atomic>
+#include <generic/dag_objectPool.h>
+
+#include "driver.h"
+#include "pipeline.h"
+
 namespace drv3d_dx12
 {
-static constexpr uint32_t heap_size = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT / sizeof(uint64_t);
+inline constexpr uint32_t heap_size = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT / sizeof(uint64_t);
 class Device;
 class Query
 {

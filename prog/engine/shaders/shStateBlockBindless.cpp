@@ -43,7 +43,7 @@ static eastl::deque<eastl::remove_const_t<decltype(INVALID_MAT_ID)>, EASTLAlloca
 
 enum PackedConstsStateBits
 {
-  STCODE_BITS = 12,
+  PACKED_STCODE_BITS = 12,
   BUFFER_BITS = 7,
   LOCAL_STATE_BITS = 13
 };
@@ -76,30 +76,25 @@ static uint32_t allocate_packed_cell(int stcode_id)
   return stcodeIdToPacked[stcode_id];
 }
 
-static inline uint32_t remap_stcode_id(int stcode_id)
-{
-  if (EASTL_UNLIKELY((uint32_t)stcode_id >= stcodeIdToPacked.size() || stcodeIdToPacked[stcode_id] == INVALID_MAT_ID))
-    fatal("Packed material stcode=%d/%d not created", stcode_id, stcodeIdToPacked.size());
-  return stcodeIdToPacked[stcode_id];
-}
-
 class PackedConstsState
 {
-  static_assert(STCODE_BITS + BUFFER_BITS + LOCAL_STATE_BITS == 32, "We want to use the whole uint32_t for state id.");
+  static_assert(PACKED_STCODE_BITS + BUFFER_BITS + LOCAL_STATE_BITS == 32, "We want to use the whole uint32_t for state id.");
 
   uint32_t stateId;
 
 public:
-  PackedConstsState(int stcode_id, uint32_t buffer_id, uint32_t local_state_id)
+  PackedConstsState(int packed_stcode_id, uint32_t buffer_id, uint32_t local_state_id)
   {
-    G_ASSERT(stcode_id < (1 << STCODE_BITS) && buffer_id < (1 << BUFFER_BITS) && local_state_id < (1 << LOCAL_STATE_BITS));
-    stateId = (stcode_id < 0) ? local_state_id
-                              : (((((uint32_t)(stcode_id + 1) << BUFFER_BITS) | buffer_id) << LOCAL_STATE_BITS) | local_state_id);
+    G_ASSERT(
+      packed_stcode_id < (1 << PACKED_STCODE_BITS) && buffer_id < (1 << BUFFER_BITS) && local_state_id < (1 << LOCAL_STATE_BITS));
+    stateId = (packed_stcode_id < 0)
+                ? local_state_id
+                : (((((uint32_t)(packed_stcode_id + 1) << BUFFER_BITS) | buffer_id) << LOCAL_STATE_BITS) | local_state_id);
   }
 
   PackedConstsState(uint32_t state) : stateId(state) {}
 
-  int getStcodeId() const { return (int)(stateId >> (LOCAL_STATE_BITS + BUFFER_BITS)) - 1; }
+  int getPackedStcodeId() const { return (int)(stateId >> (LOCAL_STATE_BITS + BUFFER_BITS)) - 1; }
 
   uint32_t getGlobalStateId() const { return stateId & ((1 << LOCAL_STATE_BITS) - 1); }
 
@@ -107,7 +102,7 @@ public:
 
   uint32_t getBufferId() const { return (stateId >> LOCAL_STATE_BITS) & ((1 << BUFFER_BITS) - 1); }
 
-  uint32_t getMaterialId() const { return (stateId >> LOCAL_STATE_BITS) & ((1 << (STCODE_BITS + BUFFER_BITS)) - 1); }
+  uint32_t getMaterialId() const { return (stateId >> LOCAL_STATE_BITS) & ((1 << (PACKED_STCODE_BITS + BUFFER_BITS)) - 1); }
 
   operator uint32_t() const { return stateId; }
 };
@@ -120,9 +115,8 @@ struct BindlessState
   void updateTexForPackedMaterial(uint32_t self_idx, int tex_level)
   {
     PackedConstsState stateId(self_idx);
-    const int stcode_id = stateId.getStcodeId();
-    G_ASSERT(stcode_id != -1);
-    const uint32_t packedId = remap_stcode_id(stcode_id);
+    const int packedId = stateId.getPackedStcodeId();
+    G_ASSERT(packedId != -1);
 
     Sbuffer *constBuf = packedConstBuf[packedId][stateId.getBufferId()];
     if (!constBuf)
@@ -178,9 +172,8 @@ struct BindlessState
   void applyPackedMaterial(uint32_t self_idx)
   {
     PackedConstsState stateId(self_idx);
-    const int stcode_id = stateId.getStcodeId();
-    G_ASSERT(stcode_id != -1);
-    const uint32_t packedId = remap_stcode_id(stcode_id);
+    const int packedId = stateId.getPackedStcodeId();
+    G_ASSERT(packedId != -1);
 
     Sbuffer *constBuf = packedConstBuf[packedId][stateId.getBufferId()];
     if (!constBuf)
@@ -205,7 +198,7 @@ struct BindlessState
   void apply(uint32_t self_idx, int tex_level)
   {
     PackedConstsState stateId(self_idx);
-    const int stcode_id = stateId.getStcodeId();
+    const int stcode_id = stateId.getPackedStcodeId();
     G_ASSERT(stcode_id == -1);
 
     Sbuffer *constBuf = allConstBuf[stateId.getGlobalStateId()];
@@ -310,7 +303,7 @@ struct BindlessState
       const uint32_t bufferId = consts_count == 0 ? 0 : (localStateId / (MAX_CONST_BUFFER_SIZE / consts_count));
       if (consts_count != 0 && stcode_id != -1)
         bufferNeedsUpdate[packedId].set(bufferId);
-      return PackedConstsState(stcode_id, bufferId, localStateId);
+      return PackedConstsState(stcode_id == -1 ? -1 : packedId, bufferId, localStateId);
     }
 
     uint32_t bid = bindlessConstParams.size();
@@ -325,7 +318,7 @@ struct BindlessState
       uint32_t brange = d3d::allocate_bindless_resource_range(RES3D_TEX, addedBindlessTextures.size());
       for (auto &tex : addedBindlessTextures)
       {
-        uniqBindlessTex.push_back(BindlessTexRecord{TEXTUREID(tex), brange++, 0});
+        uniqBindlessTex.push_back(BindlessTexRecord{TEXTUREID(tex), brange++, 0, 0});
         tex = uniqBindlessTex.size() - 1;
       }
 
@@ -380,12 +373,13 @@ struct BindlessState
     }
     else
     {
-      if ((dataConstToAdd.size() + MAX_CONST_BUFFER_SIZE - 1) / MAX_CONST_BUFFER_SIZE > packedConstBuf[packedId].size())
+      if ((dataConstToAdd.size() + MAX_CONST_BUFFER_SIZE - 1) / MAX_CONST_BUFFER_SIZE > packedConstBuf[packedId].size() ||
+          packedConstBuf[packedId].empty())
         packedConstBuf[packedId].push_back(nullptr);
       bufferId = packedConstBuf[packedId].size() - 1;
       bufferNeedsUpdate[packedId].set(bufferId);
     }
-    return PackedConstsState(stcode_id, bufferId, id);
+    return PackedConstsState(stcode_id == -1 ? -1 : packedId, bufferId, id);
   }
   static void clear()
   {
@@ -429,15 +423,14 @@ struct BindlessState
   static void preparePackedConstBuf(uint32_t idx)
   {
     PackedConstsState stateId(idx);
-    const int stcode_id = stateId.getStcodeId();
-    G_ASSERT(stcode_id != -1);
-    const uint32_t packedId = remap_stcode_id(stcode_id);
+    const int packedId = stateId.getPackedStcodeId();
+    G_ASSERT(packedId != -1);
 
     const BindlessState &state = packedAll[packedId][stateId.getGlobalStateId()];
     auto &constBuffer = packedConstBuf[packedId][stateId.getBufferId()];
     if (!interlocked_acquire_load_ptr(constBuffer) && state.constsCount)
     {
-      String s(0, "staticCbuf%d_%d", stcode_id, stateId.getBufferId());
+      String s(0, "staticCbuf%d_%d", packedId, stateId.getBufferId());
       Sbuffer *constBuf = d3d::buffers::create_persistent_cb(MAX_CONST_BUFFER_SIZE, s.c_str());
       if (!constBuf)
       {
@@ -498,9 +491,9 @@ ShaderStateBlock create_bindless_state(const BindlessConstParams *bindless_data,
 void apply_bindless_state(uint32_t const_state_idx, int tex_level)
 {
   const PackedConstsState state(const_state_idx);
-  const int stcodeId = state.getStcodeId();
-  if (stcodeId >= 0)
-    packedAll[remap_stcode_id(stcodeId)][state.getGlobalStateId()].applyPackedMaterial(const_state_idx);
+  const int packedStcodeId = state.getPackedStcodeId();
+  if (packedStcodeId >= 0)
+    packedAll[packedStcodeId][state.getGlobalStateId()].applyPackedMaterial(const_state_idx);
   else
     all[state.getGlobalStateId()].apply(const_state_idx, tex_level);
 }
@@ -510,8 +503,8 @@ void clear_bindless_states() { BindlessState::clear(); }
 void req_tex_level_bindless(uint32_t const_state_idx, int tex_level)
 {
   const PackedConstsState state(const_state_idx);
-  const int stcodeId = state.getStcodeId();
-  if (stcodeId < 0)
+  const int packedStcodeId = state.getPackedStcodeId();
+  if (packedStcodeId < 0)
     all[state.getGlobalStateId()].reqTexLevel(tex_level);
 }
 
@@ -525,20 +518,22 @@ void dump_bindless_states_stat() { debug(" %d bindless states (%d total)", all.s
 void update_bindless_state(uint32_t const_state_idx, int tex_level)
 {
   const PackedConstsState state(const_state_idx);
-  G_ASSERT(state.getStcodeId() != -1);
-  packedAll[remap_stcode_id(state.getStcodeId())][state.getGlobalStateId()].updateTexForPackedMaterial(const_state_idx, tex_level);
+  G_ASSERT(state.getPackedStcodeId() != -1);
+  packedAll[state.getPackedStcodeId()][state.getGlobalStateId()].updateTexForPackedMaterial(const_state_idx, tex_level);
 }
 
 uint32_t PackedConstsState::getLocalStateId() const
 {
-  return getGlobalStateId() -
-         (MAX_CONST_BUFFER_SIZE / packedAll[remap_stcode_id(getStcodeId())][getGlobalStateId()].constsCount) * getBufferId();
+  const uint32_t constsCount = packedAll[getPackedStcodeId()][getGlobalStateId()].constsCount;
+  if (!constsCount)
+    return 0;
+  return getGlobalStateId() - (MAX_CONST_BUFFER_SIZE / constsCount) * getBufferId();
 }
 
 uint32_t get_material_offset(uint32_t const_state_idx)
 {
   const PackedConstsState state(const_state_idx);
-  G_ASSERT(state.getStcodeId() != -1);
+  G_ASSERT(state.getPackedStcodeId() != -1);
   return state.getLocalStateId();
 }
 

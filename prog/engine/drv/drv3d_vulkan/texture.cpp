@@ -123,7 +123,7 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
   BaseTex::ImageMem *initial_data, int array_size = 1, bool temp_alloc = false)
 {
   uint32_t &flg = bt_in->cflg;
-  G_ASSERT(!((flg & TEXCF_MULTISAMPLED) && initial_data != nullptr));
+  G_ASSERT(!((flg & TEXCF_SAMPLECOUNT_MASK) && initial_data != nullptr));
   G_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & (TEXCF_DYNAMIC | TEXCF_RTARGET))));
 
   ImageCreateInfo desc;
@@ -136,20 +136,10 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
   desc.arrays = (cube ? 6 : 1) * array_size;
   desc.residencyFlags = Image::MEM_NOT_EVICTABLE;
 
-  bool multisample = flg & (TEXCF_MULTISAMPLED | TEXCF_MSAATARGET);
+  bool multisample = flg & (TEXCF_SAMPLECOUNT_MASK);
   bool transient = flg & TEXCF_TRANSIENT;
-  if ((flg & TEXFMT_MASK) == TEXFMT_MSAA_MAX_SAMPLES)
-  {
-    const PhysicalDeviceSet::MsaaMaxSamplesDesc &maxSamplesFormat = get_device().getDeviceProperties().maxSamplesFormat;
-    if (maxSamplesFormat.samples <= 1)
-      return false;
-    flg = (flg & ~TEXFMT_MASK) | FormatStore::fromVkFormat(maxSamplesFormat.format).asTexFlags() |
-          (TEXCF_MULTISAMPLED | TEXCF_MSAATARGET | TEXCF_RTARGET);
-    desc.samples = maxSamplesFormat.samples;
-    multisample = true;
-  }
-  else
-    desc.samples = multisample ? get_device().calcMSAAQuality() : VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT;
+
+  desc.samples = VkSampleCountFlagBits(get_sample_count(flg));
 
   desc.format = FormatStore::fromCreateFlags(flg);
   desc.usage = 0;
@@ -287,7 +277,7 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
 bool create_tex3d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint32_t d, uint32_t flg, uint32_t levels,
   BaseTex::ImageMem *initial_data)
 {
-  G_ASSERT((flg & TEXCF_MULTISAMPLED) == 0);
+  G_ASSERT((flg & TEXCF_SAMPLECOUNT_MASK) == 0);
   G_ASSERT(!((flg & TEXCF_LOADONCE) && (flg & TEXCF_DYNAMIC)));
 
   ImageCreateInfo desc;
@@ -656,7 +646,7 @@ int BaseTex::update(BaseTexture *src)
     BaseTex *btex = getbasetex(src);
     if (btex)
     {
-      if (btex->cflg & TEXCF_MULTISAMPLED)
+      if (btex->cflg & TEXCF_SAMPLECOUNT_MASK)
         btex->resolve(tex.image);
       else if (btex->tex.image && tex.image)
       {

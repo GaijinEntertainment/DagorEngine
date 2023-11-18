@@ -91,7 +91,7 @@ static const PanelVertex rectVertices[4] = {
 template <typename Func, typename T, size_t count>
 static bool buildBuffer(Func createFunc, UniqueBuf &buffer, const T (&data)[count], const char *name)
 {
-  buffer = createFunc(sizeof(data), SBCF_CPU_ACCESS_WRITE | SBCF_MAYBELOST, name);
+  buffer = createFunc(sizeof(data), SBCF_CPU_ACCESS_WRITE, name);
   G_ASSERT_RETURN(buffer.getBuf(), false);
   G_ASSERT_RETURN(buffer.getBuf()->updateData(0, sizeof(data), data, VBLOCK_WRITEONLY), false);
   return true;

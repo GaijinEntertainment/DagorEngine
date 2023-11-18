@@ -6,6 +6,7 @@
 #include "shCompiler.h"
 
 #include "globVar.h"
+#include "samplers.h"
 #include <shaders/dag_shaderCommon.h>
 #include "varMap.h"
 #include "intervals.h"
@@ -159,6 +160,8 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     }
   }
 }
+
+void add_sampler(sampler_decl *decl, ShaderSyntaxParser &parser) { Sampler::add(*decl, parser); }
 
 void add_interval(IntervalList &intervals, interval &interv, ShaderVariant::VarType type, ShaderSyntaxParser &parser)
 {

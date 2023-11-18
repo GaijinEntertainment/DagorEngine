@@ -86,10 +86,10 @@ shader cull_ambient_voxels_cs, cull_ambient_voxels_cs_warp_64
       //check occlusion (voxel totally occluded)
       bool intersects = false;
 
-      float2 minMaxBoxRawDepth; float level;
+      float2 minMaxBoxRawDepth;
       float4 sbox;
       BRANCH
-      if (!check_box_occl_visible_base(centerb - extent, centerb + extent, sbox, level, minMaxBoxRawDepth))
+      if (!check_box_occl_visible_base(centerb - extent, centerb + extent, sbox, minMaxBoxRawDepth))
         return;
       /*##if downsampled_close_depth_tex != NULL
       //using downsampled_close_depth_tex is also an option, but provides more false positive (intersected)

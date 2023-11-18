@@ -8,7 +8,7 @@
 #include <3d/dag_tex3d.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_drv3d.h>
-#include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_bounds3.h>
 #include <shaders/dag_overrideStateId.h>

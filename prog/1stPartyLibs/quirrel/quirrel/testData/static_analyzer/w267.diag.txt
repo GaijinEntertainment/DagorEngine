@@ -1,0 +1,51 @@
+WARNING: w267 (suspicious-bracket) '(' will be parsed as 'function call' (forgot ',' ?)
+testData/static_analyzer/w267.nut:4:11
+
+foo("sum=" (6+7)) // EXPECTED 1
+           ^
+
+
+WARNING: w267 (suspicious-bracket) '[' will be parsed as 'access to member' (forgot ',' ?)
+testData/static_analyzer/w267.nut:6:13
+
+foo("array:" [6]) // EXPECTED 2 access
+             ^
+
+
+WARNING: w267 (suspicious-bracket) '[' will be parsed as 'access to member' (forgot ',' ?)
+testData/static_analyzer/w267.nut:11:8
+
+//    [6]       // compilation error
+    "t" [7]     // EXPECTED 3   access
+        ^
+    "y" (6+7)   // EXPECTED 4
+
+
+WARNING: w267 (suspicious-bracket) '(' will be parsed as 'function call' (forgot ',' ?)
+testData/static_analyzer/w267.nut:12:8
+
+    "t" [7]     // EXPECTED 3   access
+    "y" (6+7)   // EXPECTED 4
+        ^
+    "z"
+
+
+WARNING: w267 (suspicious-bracket) '(' will be parsed as 'function call' (forgot ',' ?)
+testData/static_analyzer/w267.nut:14:4
+
+    "z"
+    (6+7)       // EXPECTED 5
+    ^
+]
+
+
+
+AN ERROR HAS OCCURRED [attempt to call 'string']
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w267.nut line [4]
+
+LOCALS
+[foo] CLOSURE=FN:foo
+[vargv] ARRAY=[]
+[this] TABLE={}

@@ -53,6 +53,7 @@ typedef struct Dav1dTask Dav1dTask;
 #include "src/looprestoration.h"
 #include "src/mc.h"
 #include "src/msac.h"
+#include "src/pal.h"
 #include "src/picture.h"
 #include "src/recon.h"
 #include "src/refmvs.h"
@@ -115,6 +116,7 @@ struct Dav1dContext {
     Dav1dMasteringDisplay *mastering_display;
     Dav1dRef *itut_t35_ref;
     Dav1dITUTT35 *itut_t35;
+    int n_itut_t35;
 
     // decoded output picture queue
     Dav1dData in;
@@ -173,16 +175,8 @@ struct Dav1dContext {
     CdfThreadContext cdf[8];
 
     Dav1dDSPContext dsp[3 /* 8, 10, 12 bits/component */];
+    Dav1dPalDSPContext pal_dsp;
     Dav1dRefmvsDSPContext refmvs_dsp;
-
-    // tree to keep track of which edges are available
-    struct {
-        EdgeNode *root[2 /* BL_128X128 vs. BL_64X64 */];
-        EdgeBranch branch_sb128[1 + 4 + 16 + 64];
-        EdgeBranch branch_sb64[1 + 4 + 16];
-        EdgeTip tip_sb128[256];
-        EdgeTip tip_sb64[64];
-    } intra_edge;
 
     Dav1dPicAllocator allocator;
     int apply_grain;
@@ -194,6 +188,7 @@ struct Dav1dContext {
     int strict_std_compliance;
     int output_invisible_frames;
     enum Dav1dInloopFilterType inloop_filters;
+    enum Dav1dDecodeFrameType decode_frame_type;
     int drain;
     enum PictureFlags frame_flags;
     enum Dav1dEventFlags event_flags;
@@ -203,6 +198,7 @@ struct Dav1dContext {
     Dav1dLogger logger;
 
     Dav1dMemPool *picture_pool;
+    Dav1dMemPool *pic_ctx_pool;
 };
 
 struct Dav1dTask {
@@ -259,6 +255,10 @@ struct Dav1dFrameContext {
         filter_sbrow_fn filter_sbrow_lr;
         backup_ipred_edge_fn backup_ipred_edge;
         read_coef_blocks_fn read_coef_blocks;
+        copy_pal_block_fn copy_pal_block_y;
+        copy_pal_block_fn copy_pal_block_uv;
+        read_pal_plane_fn read_pal_plane;
+        read_pal_uv_fn read_pal_uv;
     } bd_fn;
 
     int ipred_edge_sz;
@@ -280,17 +280,14 @@ struct Dav1dFrameContext {
         atomic_uint *frame_progress, *copy_lpf_progress;
         // indexed using t->by * f->b4_stride + t->bx
         Av1Block *b;
-        struct CodedBlockInfo {
-            int16_t eob[3 /* plane */];
-            uint8_t txtp[3 /* plane */];
-        } *cbi;
+        int16_t *cbi; /* bits 0-4: txtp, bits 5-15: eob */
         // indexed using (t->by >> 1) * (f->b4_stride >> 1) + (t->bx >> 1)
-        uint16_t (*pal)[3 /* plane */][8 /* idx */];
+        pixel (*pal)[3 /* plane */][8 /* idx */];
         // iterated over inside tile state
         uint8_t *pal_idx;
         coef *cf;
         int prog_sz;
-        int pal_sz, pal_idx_sz, cf_sz;
+        int cbi_sz, pal_sz, pal_idx_sz, cf_sz;
         // start offsets per tile
         int *tile_start_off;
     } frame_thread;
@@ -319,7 +316,6 @@ struct Dav1dFrameContext {
         int start_of_tile_row_sz;
         int need_cdef_lpf_copy;
         pixel *p[3], *sr_p[3];
-        Av1Filter *mask_ptr, *prev_mask_ptr;
         int restore_planes; // enum LrRestorePlanes
     } lf;
 
@@ -368,6 +364,7 @@ struct Dav1dTileState {
     atomic_int progress[2 /* 0: reconstruction, 1: entropy */];
     struct {
         uint8_t *pal_idx;
+        int16_t *cbi;
         coef *cf;
     } frame_thread[2 /* 0: reconstruction, 1: entropy */];
 
@@ -397,11 +394,11 @@ struct Dav1dTaskContext {
         int16_t cf_8bpc [32 * 32];
         int32_t cf_16bpc[32 * 32];
     };
-    // FIXME types can be changed to pixel (and dynamically allocated)
-    // which would make copy/assign operations slightly faster?
-    uint16_t al_pal[2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
+    union {
+        uint8_t  al_pal_8bpc [2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
+        uint16_t al_pal_16bpc[2 /* a/l */][32 /* bx/y4 */][3 /* plane */][8 /* palette_idx */];
+    };
     uint8_t pal_sz_uv[2 /* a/l */][32 /* bx4/by4 */];
-    uint8_t txtp_map[32 * 32]; // inter-only
     ALIGN(union, 64) {
         struct {
             union {
@@ -426,17 +423,22 @@ struct Dav1dTaskContext {
                     uint8_t pal_ctx[64];
                 };
             };
-            int16_t ac[32 * 32];
-            uint8_t pal_idx[2 * 64 * 64];
-            uint16_t pal[3 /* plane */][8 /* palette_idx */];
-            ALIGN(union, 64) {
+            union {
+                int16_t ac[32 * 32]; // intra-only
+                uint8_t txtp_map[32 * 32]; // inter-only
+            };
+            uint8_t pal_idx_y[32 * 64];
+            uint8_t pal_idx_uv[64 * 64]; /* also used as pre-pack scratch buffer */
+            union {
                 struct {
                     uint8_t interintra_8bpc[64 * 64];
                     uint8_t edge_8bpc[257];
+                    ALIGN(uint8_t pal_8bpc[3 /* plane */][8 /* palette_idx */], 8);
                 };
                 struct {
                     uint16_t interintra_16bpc[64 * 64];
                     uint16_t edge_16bpc[257];
+                    ALIGN(uint16_t pal_16bpc[3 /* plane */][8 /* palette_idx */], 16);
                 };
             };
         };

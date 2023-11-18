@@ -1,6 +1,8 @@
 #pragma once
 
+#include <EASTL/vector.h>
 #include "call_stack.h"
+
 
 namespace drv3d_dx12::debug::break_point
 {

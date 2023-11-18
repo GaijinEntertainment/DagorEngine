@@ -8,62 +8,53 @@
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_geomTree.h>
 
-static Point3 local_solve_2bones_ik(float A, float B, const Point3 &P, const Point3 &D)
+VECTORCALL VECMATH_FINLINE vec4f local_solve_2bones_ik(float A, float B, vec3f P, vec3f D)
 {
-  TMatrix Minv;
-  Minv.setcol(0, normalize(P));
-  Minv.setcol(1, normalize(D - (D * Minv.getcol(0)) * Minv.getcol(0)));
-  Minv.setcol(2, Minv.getcol(0) % Minv.getcol(1));
-  Minv.setcol(3, 0.f, 0.f, 0.f);
+  mat44f Minv;
+  Minv.col0 = v_norm3(P);
+  Minv.col1 = v_norm3(v_sub(D, v_mul(v_dot3(D, Minv.col0), Minv.col0)));
+  Minv.col2 = v_cross3(Minv.col0, Minv.col1);
+  Minv.col3 = v_zero();
 
-  TMatrix Mfwd = inverse(Minv);
+  mat44f Mfwd;
+  v_mat44_orthonormal_inverse43(Mfwd, Minv);
 
-  Point3 R = Mfwd * P;
+  vec3f R = v_mat44_mul_vec3p(Mfwd, P);
+  float c = v_extract_x(v_length3_x(R));
+  float d = clamp(A, 0.f, (c + (A * A - B * B) / c) / 2.f);
+  float e = sqrtf(fabsf(A * A - d * d));
 
-  float c = length(R);
-  float d = max(0.f, min(A, (c + (A * A - B * B) / c) / 2.f));
-  float e = sqrt(fabsf(A * A - d * d));
-
-  Point3 S = Point3(d, e, 0.f);
-
-  return Minv * S;
+  vec4f S = v_make_vec4f(d, e, 0.f, 0.f);
+  return v_mat44_mul_vec3p(Minv, S);
 }
 
 static void solve_2bones_ik(mat44f &n0_wtm, mat44f &n1_wtm, mat44f &n2_wtm, const mat44f &target_tm, float length01, float length12,
-  const Point3 &flexion_point, float max_reach_scale = 1.0f)
+  vec3f flexion_point, float max_reach_scale = 1.0f)
 {
   // Set target tm to hand.
-
   n2_wtm = target_tm;
 
-
   // Solve IK in local coordinates.
-
-  Point3 ikNode2;
-  v_stu_p3(&ikNode2.x, v_sub(n2_wtm.col3, n0_wtm.col3));
+  vec3f ikNode2 = v_sub(n2_wtm.col3, n0_wtm.col3);
 
   float maxReachLen = max_reach_scale * (length01 + length12);
-  float targetLenSq = lengthSq(ikNode2);
+  float targetLenSq = v_extract_x(v_length3_sq_x(ikNode2));
   if (SQR(maxReachLen) < targetLenSq)
   {
-    n2_wtm.col3 = v_add(n0_wtm.col3, v_mul(v_splats(maxReachLen / sqrt(targetLenSq)), v_sub(n2_wtm.col3, n0_wtm.col3)));
-    v_stu_p3(&ikNode2.x, v_sub(n2_wtm.col3, n0_wtm.col3));
+    n2_wtm.col3 = v_add(n0_wtm.col3, v_mul(v_splats(maxReachLen / sqrtf(targetLenSq)), v_sub(n2_wtm.col3, n0_wtm.col3)));
+    ikNode2 = v_sub(n2_wtm.col3, n0_wtm.col3);
   }
 
-  Point3_vec4 ikNode1 = local_solve_2bones_ik(length01, length12, ikNode2, flexion_point);
-  ikNode1.resv = 0;
-
+  vec3f ikNode1 = local_solve_2bones_ik(length01, length12, ikNode2, flexion_point);
 
   // Set forearm matrix.
   mat44f m0, m1;
-
-  m1.col3 = v_add(n0_wtm.col3, v_ld(&ikNode1.x));
+  m1.col3 = v_add(n0_wtm.col3, ikNode1);
   m1.col0 = v_norm3(v_sub(n2_wtm.col3, m1.col3));
   m1.col1 = v_norm3(v_cross3(m1.col0, n1_wtm.col2));
   m1.col2 = v_norm3(v_cross3(m1.col1, m1.col0));
 
   n1_wtm = m1;
-
 
   // Set upper arm matrix.
   m0.col3 = n0_wtm.col3;

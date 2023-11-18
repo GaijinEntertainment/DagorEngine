@@ -1,0 +1,9 @@
+WARNING: w205 (unreachable-code) Unreachable code after 'return'.
+testData/static_analyzer/w205-2.nut:5:2
+
+  return
+  let t = { //-declared-never-used
+  ^
+    a = 1
+
+

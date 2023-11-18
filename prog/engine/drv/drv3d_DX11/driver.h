@@ -179,14 +179,6 @@ extern int gpuAcquireRefCount;
 extern bool mt_enabled;
 extern D3D_FEATURE_LEVEL featureLevelsSupported;
 extern __declspec(thread) HRESULT last_hres;
-extern int max_aa_samples;
-struct MsaaMaxSamplesDesc
-{
-  DXGI_FORMAT format;
-  int samples;
-};
-extern MsaaMaxSamplesDesc max_samples_format;
-extern bool disable_backbuffer_aa;
 extern bool is_backbuffer_samplable_depth;
 extern bool is_nvapi_initialized;
 extern int default_display_index;

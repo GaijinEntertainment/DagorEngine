@@ -109,6 +109,8 @@ public:
     pType->alias = "action_handle_t";
     addAlias(pType);
 
+    das::addExtern<DAS_BIND_FUN(dainput::get_double_click_time)>(*this, lib, "get_double_click_time", das::SideEffects::accessExternal,
+      "dainput::get_double_click_time");
     das::addExtern<DAS_BIND_FUN(dainput::get_actions_binding_column_active)>(*this, lib, "get_actions_binding_column_active",
       das::SideEffects::accessExternal, "dainput::get_actions_binding_column_active");
     das::addExtern<DAS_BIND_FUN(dainput::get_action_handle)>(*this, lib, "get_action_handle", das::SideEffects::accessExternal,

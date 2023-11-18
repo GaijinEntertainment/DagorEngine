@@ -15,8 +15,6 @@ void debug_trace_err(const char *format, ...);
 void debug_trace_log(const char *format, ...);
 
 void debug_draw(const TMatrix4 &glob_tm);
-void set_enable_debug_draw(bool enable);
-bool get_enable_debug_draw();
 void set_draw_audibility(bool enable);
 void debug_enum_events();
 }; // namespace sndsys

@@ -2,6 +2,7 @@
 #include <de3_interface.h>
 #include <ioSys/dag_dataBlock.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <oldEditor/de_interface.h>
 
 bool RandomGPUGrassRenderHelper::isValid() const { return hmap != nullptr; }

@@ -104,7 +104,7 @@ public:
   void init(int v_count, int v_stride, const char *stat_name = __FILE__)
   {
     close();
-    buf = d3d::create_vb(v_count * v_stride, SBCF_MAYBELOST | SBCF_DYNAMIC, stat_name);
+    buf = d3d::create_vb(v_count * v_stride, SBCF_DYNAMIC, stat_name);
     d3d_err(buf);
     stride = v_stride;
     size = v_count;
@@ -119,7 +119,6 @@ public:
   {
     close();
     G_ASSERT(v_stride % elem_size == 0);
-    flags |= SBCF_MAYBELOST;
     Sbuffer *stagingBuf = 0;
     if (d3d::get_driver_desc().caps.hasNoOverwriteOnShaderResourceBuffers &&
         !(d3d::get_driver_code().is(d3d::dx11) && (flags & SBCF_MISC_DRAWINDIRECT)))
@@ -127,8 +126,8 @@ public:
     else // not optimal, since we allocate in gpu memory too much. todo: optimize
     {
       stagingBuf = d3d::create_sbuffer(elem_size, v_count * (v_stride / elem_size),
-        SBCF_DYNAMIC | SBCF_BIND_VERTEX | SBCF_CPU_ACCESS_WRITE | SBCF_MAYBELOST, 0, stat_name); // we don't need SBCF_BIND_VERTEX, but
-                                                                                                 // DX driver demands it
+        SBCF_DYNAMIC | SBCF_BIND_VERTEX | SBCF_CPU_ACCESS_WRITE, 0, stat_name); // we don't need SBCF_BIND_VERTEX, but
+                                                                                // DX driver demands it
       d3d_err(stagingBuf);
     }
     buf = d3d::create_sbuffer(elem_size, v_count * (v_stride / elem_size), flags, format, stat_name);
@@ -174,7 +173,7 @@ public:
   void init(int i_count)
   {
     close();
-    buf = d3d::create_ib(i_count * 2, SBCF_MAYBELOST | SBCF_DYNAMIC);
+    buf = d3d::create_ib(i_count * 2, SBCF_DYNAMIC);
     d3d_err(buf);
     stride = 2;
     size = i_count;

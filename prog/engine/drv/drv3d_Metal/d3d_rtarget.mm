@@ -298,7 +298,7 @@ bool d3d::clearview(int what, E3DCOLOR c, float z, uint32_t stencil)
 bool d3d::set_render_target()
 {
   nextRtState.setBackbufColor();
-  nextRtState.setBackbufDepth();
+  nextRtState.removeDepth();
   nextRtState.changed = true;
 
   vp.used = false;

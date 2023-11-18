@@ -53,6 +53,9 @@ public:
     float shadowConstDepthBias = 0.00002;
     float shadowDepthSlopeBias = 0.83;
     float zRangeToDepthBiasScale = 1e-4;
+    // Skip rendering to CSM any destructable whose bounding box radius is less than
+    // (static shadow texel size) * (this multiplier)
+    float destructablesMinBboxRadiusTexelMul = 0.f;
   };
 
   struct ModeSettings

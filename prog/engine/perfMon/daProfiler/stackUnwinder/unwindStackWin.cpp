@@ -394,6 +394,7 @@ ThreadStackUnwinder *start_unwind_thread_stack(ThreadStackUnwindProvider &, intp
 
 int unwind_thread_stack(ThreadStackUnwindProvider &, ThreadStackUnwinder &s, uint64_t *addresses, size_t max_size)
 {
+  return 0;
   // directly and immediately unroll whole stack. there is no risk of having deadlock
   HANDLE thread = (HANDLE)(&s);
   if (SuspendThread(thread) == ~((DWORD)0)) //-V720

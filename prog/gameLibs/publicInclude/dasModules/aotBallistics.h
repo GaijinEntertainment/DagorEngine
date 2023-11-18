@@ -17,3 +17,12 @@ MAKE_TYPE_FACTORY(ProjectileBallisticsState, ballistics::ProjectileBallistics::S
 MAKE_TYPE_FACTORY(ProjectileBallistics, ballistics::ProjectileBallistics);
 MAKE_TYPE_FACTORY(ShellEnv, ballistics::ShellEnv);
 MAKE_TYPE_FACTORY(ShellState, ballistics::ShellState);
+
+namespace bind_dascript
+{
+inline void ballistics_simulate(const ballistics::ShellEnv &env, const ballistics::ShellProps &prop, ballistics::ShellState &state,
+  float dt, float current_time)
+{
+  ballistics::simulate(env, prop, state, dt, current_time);
+}
+} // namespace bind_dascript

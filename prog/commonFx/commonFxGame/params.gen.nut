@@ -83,7 +83,7 @@ let class BaseParam {
 
 
 
-let class InvalidParam extends BaseParam {
+let class InvalidParam (BaseParam) {
   typeName=null
 
   constructor(name, type)
@@ -107,7 +107,7 @@ let class InvalidParam extends BaseParam {
 
 
 
-let class RefSlotParam extends BaseParam {
+let class RefSlotParam (BaseParam) {
   slotType="Unknown"
 
   constructor(name, decl) {
@@ -145,7 +145,7 @@ glob_types.ref_slot <- RefSlotParam(null, { slotType="Unknown" });
 
 
 
-let class CubicCurveParam extends BaseParam {
+let class CubicCurveParam (BaseParam) {
   color = Color3(255, 255, 0)
 
   constructor(name, decl) {
@@ -174,7 +174,7 @@ let class CubicCurveParam extends BaseParam {
 
 glob_types.cubic_curve <- CubicCurveParam(null, {})
 
-let class GradientBoxParam extends BaseParam {
+let class GradientBoxParam (BaseParam) {
   constructor(name, decl) {
     this.paramName=name;
   }
@@ -200,7 +200,7 @@ glob_types.gradient_box <- GradientBoxParam(null, {})
 
 
 
-let class SimpleTypeParam extends BaseParam {
+let class SimpleTypeParam (BaseParam) {
   typeName = null
 
   function generateDeclText(text) {
@@ -222,7 +222,7 @@ let class SimpleTypeParam extends BaseParam {
 
 
 
-let class E3dcolorParam extends SimpleTypeParam {
+let class E3dcolorParam (SimpleTypeParam) {
   defVal = Color3(255, 255, 255)
 
   constructor(name, decl) {
@@ -244,7 +244,7 @@ let class E3dcolorParam extends SimpleTypeParam {
 
 glob_types.E3DCOLOR <- E3dcolorParam(null, {})
 
-let class IntParam extends SimpleTypeParam {
+let class IntParam (SimpleTypeParam) {
   defVal = 0
 
   constructor(name, decl) {
@@ -267,7 +267,7 @@ glob_types.int <- IntParam(null, {})
 
 
 
-let class RealParam extends SimpleTypeParam {
+let class RealParam (SimpleTypeParam) {
   defVal = 0.0
 
   constructor(name, decl) {
@@ -290,7 +290,7 @@ glob_types.real <- RealParam(null, {})
 
 
 
-let class BoolParam extends SimpleTypeParam {
+let class BoolParam (SimpleTypeParam) {
   defVal = false;
 
   constructor(name, decl) {
@@ -315,7 +315,7 @@ let class BoolParam extends SimpleTypeParam {
 
 glob_types.bool <- BoolParam(null, {})
 
-let class Point2Param extends SimpleTypeParam {
+let class Point2Param (SimpleTypeParam) {
   defVal = Point2(0, 0)
 
   constructor(name, decl) {
@@ -338,7 +338,7 @@ let class Point2Param extends SimpleTypeParam {
 glob_types.Point2 <- Point2Param(null, {})
 
 
-let class Point3Param extends SimpleTypeParam {
+let class Point3Param (SimpleTypeParam) {
   defVal = Point3(0, 0, 0)
 
   constructor(name, decl) {
@@ -361,7 +361,7 @@ let class Point3Param extends SimpleTypeParam {
 glob_types.Point3 <- Point3Param(null, {})
 
 
-let class TypeRefParam extends BaseParam {
+let class TypeRefParam (BaseParam) {
   typeRef = null
 
   constructor(name, type) {
@@ -383,7 +383,7 @@ let class TypeRefParam extends BaseParam {
 }
 
 
-let class DynArrayParam extends BaseParam {
+let class DynArrayParam (BaseParam) {
   typeRef = null
   memberToShowInCaption = null
 
@@ -435,7 +435,7 @@ glob_types.dyn_array <- DynArrayParam(null, {elemType=null})
 
 
 
-let class EnumParam extends BaseParam {
+let class EnumParam (BaseParam) {
   entries=null
 
   constructor(name, decl) {
@@ -489,7 +489,7 @@ glob_types.list <- EnumParam(null, {list=[]})
 
 
 
-let class ExternStruct extends BaseParam {
+let class ExternStruct (BaseParam) {
   constructor(name) {
     this.paramName=name
   }
@@ -501,7 +501,7 @@ let class ExternStruct extends BaseParam {
 
 
 
-let class ParamStruct extends BaseParam {
+let class ParamStruct (BaseParam) {
   members = null
   version = 0
 
@@ -624,8 +624,8 @@ local module_name = null
 let function include_decl_h(name) {
   local fname = name.slice(0,1).tolower()+name.slice(1)
   if (name!=module_name)
-    glob_decl_text.append("#include <"+fname+"_decl.h>\n")
-  glob_tools_text.append("#include <"+fname+"_decl.h>\n")
+    glob_decl_text.append($"#include <{fname}_decl.h>\n")
+  glob_tools_text.append($"#include <{fname}_decl.h>\n")
 }
 
 
@@ -636,8 +636,8 @@ let function begin_declare_params(name) {
 
 
 let function end_module() {
-  write_declarations(module_name+"_decl.h")
-  write_tools_code("../commonFxTools/"+module_name+"_tools.cpp")
+  write_declarations($"{module_name}_decl.h")
+  write_tools_code($"../commonFxTools/{module_name}_tools.cpp")
 
   module_name=null
 }

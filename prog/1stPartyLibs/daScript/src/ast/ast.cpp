@@ -2680,14 +2680,12 @@ namespace das {
     Module * Program::addModule ( const string & name ) {
         if ( auto lm = library.findModule(name) ) {
             return lm;
-        } else {
-            if ( auto pm = Module::require(name) ) {
-                library.addModule(pm);
-                return pm;
-            } else {
-                return nullptr;
-            }
         }
+        if ( auto pm = Module::require(name) ) {
+            library.addModule(pm);
+            return pm;
+        }
+        return nullptr;
     }
 
     bool Program::addAlias ( const TypeDeclPtr & at ) {

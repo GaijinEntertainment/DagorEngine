@@ -314,17 +314,19 @@ static inline void update_stream(Stream &stream, float dt)
     set_state(stream, StreamState::PLAYING);
 }
 
-void init(const DataBlock &blk, float virtual_vol_limit)
+void init(const DataBlock &blk, float virtual_vol_limit, FMOD::System *system)
 {
+  SNDSYS_IS_MAIN_THREAD;
   SNDSYS_POOL_BLOCK;
   const int defBufferSizeKb = 64;
   const int bufferSizeKb = blk.getInt("streamBufferSizeKb", defBufferSizeKb);
-  SOUND_VERIFY(get_system()->setStreamBufferSize(bufferSizeKb * 1024, FMOD_TIMEUNIT_RAWBYTES));
+  SOUND_VERIFY(system->setStreamBufferSize(bufferSizeKb * 1024, FMOD_TIMEUNIT_RAWBYTES));
   g_virtual_vol_limit = virtual_vol_limit;
 }
 
 void close()
 {
+  SNDSYS_IS_MAIN_THREAD;
   SNDSYS_POOL_BLOCK;
   all_streams.enumerate([&](Stream &stream) {
 #if DAGOR_DBGLEVEL > 0

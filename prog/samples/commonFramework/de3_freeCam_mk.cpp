@@ -2,6 +2,7 @@
 #include <ecs/input/hidEventRouter.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <workCycle/dag_workCycle.h>
 #include <humanInput/dag_hiGlobals.h>
 #include <humanInput/dag_hiKeybIds.h>

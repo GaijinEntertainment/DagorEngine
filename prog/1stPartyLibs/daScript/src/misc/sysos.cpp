@@ -404,14 +404,13 @@
     #include <dlfcn.h>
     #include <image.h>
     namespace das {
-		static char executablePath[MAXPATHLEN];
-		extern "C" void
-		initialize_before(image_id ourImage)
-		{
-			image_info ii;
-			get_image_info(ourImage, &ii);
-			snprintf(executablePath, sizeof(executablePath), "%s", ii.name);
-		}
+        static char executablePath[MAXPATHLEN];
+        extern "C" void
+        initialize_before(image_id ourImage) {
+            image_info ii;
+            get_image_info(ourImage, &ii);
+            snprintf(executablePath, sizeof(executablePath), "%s", ii.name);
+        }
         void hwSetBreakpointHandler ( void (*) ( int, void * ) ) { }
         int hwBreakpointSet ( void *, int, int ) {
             return -1;

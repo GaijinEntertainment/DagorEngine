@@ -8,35 +8,30 @@ Use Python style for extends
   let Bar = class {}
   let Baz = class(Bar) //(instead of Baz = class extends Bar
 
-**Status**: Needs implementation and detailed rfc
+**Status**: Implemented
 
-## Introduce way to call table methods
+## Introduce way to call builtin table methods
 
 to avoid ambiguity with table fields {values = @() print("values")}.values()
+Introduce operator '.$' (as well as ?.$ )
+  ```
+    print({keys = 1}.$keys()?[0]) //will print 'keys', not 'null'
 
-Suggestions:
-
-  - with 'prefix'-style, operator .$ ( print({keys = 1}.$keys()) //'keys', not 1)
-  - '::' (if and whe nwe remove :: operator) table::values()
-  - '->'
-  - '|>' (betterr keep for pipe)
-  - some other way, for example with like getMethod({}.values)({})
-
-**Status**: Needs implementation and detailed rfc
+**Status**: Implemented.
 
 ## Deprecate delete operator
 
 Use rawdelete instead
 
-**Status**: Needs implementation and detailed rfc
+**Status**: Implemented, as optional behavior specified with pragma #forbid-delete-operator #allow-delete-operator.
 
 ## Deprecate clone operator and replace it with .clone method
 
-**Status**: Needs implementation and detailed rfc
+**Status**: Implemented, as optional behavior currently. Can be specified by #forbid-clone-operator or #allow-clone-operator
 
-## Add is_freezed method to array and table
+## Add is_frozen method to array and table
 
-**Status**: Needs implementation and detailed rfc
+**Status**: Implemented
 
 ## Add for and foreach in ranges
 
@@ -49,7 +44,7 @@ Syntax like:
 
 Will allow to make code faster and safer than with for(local i=0; i<range; i++)
 
-**Status**: Needs implementation and detailed rfc
+**Status**: Implemented.
 
 ## NaN-tagging
 
@@ -84,7 +79,7 @@ Use getroottable() or write your own wrapper for shorter syntax
 like `let foo = function() {}` == `let foo = function foo() {}`
 or {foo = function()} == {foo = function foo()}
 
-**Status**: Needs implementation and detailed rfc
+**Status**: Implemented.
 
 ## Spread operator
 

@@ -35,6 +35,9 @@ public:
   ~HeightmapRenderer() { close(); }
   void close();
 
+  static void beforeResetDevice();
+  static void afterResetDevice();
+
 protected:
   ShaderMaterial *shmat;
   ShaderElement *shElem;

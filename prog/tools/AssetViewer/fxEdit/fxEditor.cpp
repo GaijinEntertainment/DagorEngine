@@ -44,7 +44,7 @@
 #include <gui/dag_stdGuiRenderEx.h>
 
 #include <dafxToolsHelper/dafxToolsHelper.h>
-#include <3d/dag_render.h> // grs_cur_view
+#include <render/dag_cur_view.h>
 
 #include "../av_cm.h"
 #include "fxSaveLoad.h"

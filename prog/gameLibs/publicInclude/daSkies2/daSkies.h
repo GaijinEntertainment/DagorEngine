@@ -274,6 +274,7 @@ public:
   // hole_target_pos - that wont be in shadow, density - amount of shadow
   void resetCloudsHole(const Point3 &hole_target_pos, const float &hole_density = 0);
   void resetCloudsHole();                     // but basically removes clouds hole. call updatePanorama right after, if you have one
+  void setUseCloudsHole(bool set);            // finding hole can be disabled to avoid sky jumping around while changing params
   Point2 getCloudsHolePosition() const;       // that's for debug only!
   void setCloudsHolePosition(const Point2 &); // that's for debug only!
 

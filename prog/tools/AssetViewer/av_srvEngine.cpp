@@ -367,7 +367,7 @@ public:
     IWndManager &mgr = get_app().getWndManager();
 
     IGenViewportWnd *viewport = EDITORCORE->getCurrentViewport();
-    int _x = 0, _y = 0, _w = 400, _h = 600;
+    int _x = 0, _y = 0, _w = hdpi::_pxS(400), _h = hdpi::_pxS(600);
 
     if (viewport)
     {

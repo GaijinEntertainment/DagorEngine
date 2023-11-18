@@ -1,0 +1,9 @@
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_arith_plus_eq.nut:4:0
+
+local a = x?.z
+a -= 10
+^
+::print(a)
+
+

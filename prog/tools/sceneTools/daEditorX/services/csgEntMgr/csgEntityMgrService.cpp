@@ -33,6 +33,7 @@
 #include <math/random/dag_random.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <math/dag_TMatrix.h>
 #include <generic/dag_carray.h>
 #include <debug/dag_debug.h>

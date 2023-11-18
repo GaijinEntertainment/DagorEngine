@@ -13,7 +13,7 @@ public:
   void create(int vertex_count)
   {
     close();
-    d3d_err(vb = d3d::create_vb(vertex_count * stride, SBCF_MAYBELOST | SBCF_DYNAMIC, __FILE__));
+    d3d_err(vb = d3d::create_vb(vertex_count * stride, SBCF_DYNAMIC, __FILE__));
     curVert = 0;
     size = vertex_count;
   }
@@ -114,7 +114,7 @@ public:
   void create(int ind_count)
   {
     close();
-    d3d_err(ib = d3d::create_ib(ind_count * sizeof(uint32_t), SBCF_MAYBELOST | SBCF_INDEX32 | SBCF_DYNAMIC));
+    d3d_err(ib = d3d::create_ib(ind_count * sizeof(uint32_t), SBCF_INDEX32 | SBCF_DYNAMIC));
     curInd = 0;
     size = ind_count;
   }

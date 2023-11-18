@@ -34,6 +34,7 @@
 
 #include <3d/dag_render.h>
 #include <3d/dag_drv3d.h>
+#include <render/dag_cur_view.h>
 #include <perfMon/dag_cpuFreq.h>
 
 #include <ioSys/dag_fileIo.h>
@@ -1290,6 +1291,11 @@ extern bool game_res_sys_v2;
 
 bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel2 *params)
 {
+  // Temporary show not exported RIs for buildAndWriteNavmesh
+  for (uint32_t i = 0; i < EditLayerProps::layerProps.size(); ++i)
+    if (EditLayerProps::layerProps[i].type == EditLayerProps::ENT && !EditLayerProps::layerProps[i].exp)
+      DAEDITOR3.setEntityLayerHiddenMask(DAEDITOR3.getEntityLayerHiddenMask() & ~(1ull << i));
+
   if (pendingResetRenderer)
     delayedResetRenderer();
   storeLayerTex();
@@ -1656,7 +1662,7 @@ bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &
               stexMap[land] = NULL;
               if (landclass::AssetData *d = getLandClassMgr().getLandClass(phys_li, land))
               {
-                if (d->detTex && d->detTex->getStr("splattingmap"))
+                if (d->detTex && d->detTex->getStr("splattingmap", nullptr))
                 {
                   const char *splattingMap = d->detTex->getStr("splattingmap");
                   if (splattingMap[0] == '*')
@@ -2259,7 +2265,8 @@ bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &
   {
     SplineObject *o = RTTI_cast<SplineObject>(objEd.getObject(i));
     BBox3 wbb;
-    if (o && o->isPoly() && o->polyGeom.altGeom && o->polyGeom.bboxAlignStep > 0 && o->getWorldBox(wbb))
+    if (o && EditLayerProps::layerProps[o->getEditLayerIdx()].exp && o->isPoly() && o->polyGeom.altGeom &&
+        o->polyGeom.bboxAlignStep > 0 && o->getWorldBox(wbb))
     {
       float grid = max(o->polyGeom.bboxAlignStep, 1.0f);
       wbb[0].x = floorf(wbb[0].x / grid) * grid;
@@ -2300,6 +2307,11 @@ bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &
     cwr.endBlock();
   }
   buildAndWriteNavMesh(cwr);
+
+  // Navmesh exported, hide not exported RIs as before
+  for (uint32_t i = 0; i < EditLayerProps::layerProps.size(); ++i)
+    if (EditLayerProps::layerProps[i].type == EditLayerProps::ENT && !EditLayerProps::layerProps[i].exp)
+      DAEDITOR3.setEntityLayerHiddenMask(DAEDITOR3.getEntityLayerHiddenMask() | (1ull << i));
 
   GeomObject *obj = dagGeom->newGeomObject(midmem);
   gatherStaticGeometry(*obj->getGeometryContainer(), StaticGeometryNode::FLG_RENDERABLE, false, 1);
@@ -4727,8 +4739,8 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
   lastMinHeight[1] = blk.getReal("lastMinHeightDet", MAX_REAL);
   lastHeightRange[1] = blk.getReal("lastHeightRangeDet", MAX_REAL);
 
-  waterHeightMinRangeDet = blk.getPoint2("waterHeightMinRangeDet");
-  waterHeightMinRangeMain = blk.getPoint2("waterHeightMinRangeMain");
+  waterHeightMinRangeDet = blk.getPoint2("waterHeightMinRangeDet", Point2(0, 0));
+  waterHeightMinRangeMain = blk.getPoint2("waterHeightMinRangeMain", Point2(0, 0));
 
   colorGenScriptFilename = blk.getStr("colorGenScriptFilename", "");
 
@@ -4991,7 +5003,9 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
   blkPath = String(128, "%s/entities.blk", base_path);
   DataBlock entBlk(blkPath);
   blkPath = String(128, "%s/lights.blk", base_path);
-  DataBlock ltBlk(blkPath);
+  DataBlock ltBlk;
+  if (dd_file_exist(blkPath))
+    ltBlk.load(blkPath);
 
   objEd.load(splinesBlk, polysBlk, entBlk, ltBlk, -1);
   if (DAGORED2->curPlugin() == this)
@@ -6660,6 +6674,12 @@ void HmapLandPlugin::onBeforeExport(unsigned target_code)
     else if (IObjEntityUserDataHolder *oeud = obj->getEntity()->queryInterface<IObjEntityUserDataHolder>())
       oeud->setSuperEntityRef(nm);
   }
+
+  for (uint32_t i = 0; i < EditLayerProps::layerProps.size(); ++i)
+    if (EditLayerProps::layerProps[i].exp)
+      DAEDITOR3.setEntityLayerHiddenMask(DAEDITOR3.getEntityLayerHiddenMask() & ~(1ull << i));
+    else
+      DAEDITOR3.setEntityLayerHiddenMask(DAEDITOR3.getEntityLayerHiddenMask() | (1ull << i));
 }
 
 void HmapLandPlugin::onAfterExport(unsigned target_code)
@@ -6669,6 +6689,12 @@ void HmapLandPlugin::onAfterExport(unsigned target_code)
 
   TMatrix itm;
   DAGORED2->getCurrentViewport()->getCameraTransform(itm);
+
+  for (uint32_t i = 0; i < EditLayerProps::layerProps.size(); ++i)
+    if (EditLayerProps::layerProps[i].hide)
+      DAEDITOR3.setEntityLayerHiddenMask(DAEDITOR3.getEntityLayerHiddenMask() | (1ull << i));
+    else
+      DAEDITOR3.setEntityLayerHiddenMask(DAEDITOR3.getEntityLayerHiddenMask() & ~(1ull << i));
 }
 
 void HmapLandPlugin::selectLayerObjects(int lidx, bool sel)

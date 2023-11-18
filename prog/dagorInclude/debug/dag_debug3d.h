@@ -236,7 +236,7 @@ void draw_debug_tetrapod_buffered(const Point3 &c, real radius, E3DCOLOR col = E
   size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
 void draw_debug_tehedron_buffered(const Point3 &c, real radius, E3DCOLOR col = E3DCOLOR_MAKE(255, 255, 64, 255),
   size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
-void flush_buffered_debug_lines(bool decriment_buffer_frames = true);
+void flush_buffered_debug_lines(bool game_is_paused = false);
 void clear_buffered_debug_lines();
 
 void draw_debug_capsule_buffered(const Point3 &p0, const Point3 &p1, real rad, E3DCOLOR col, int segs = 24,

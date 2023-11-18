@@ -17,13 +17,6 @@ struct PhysicalDeviceSet
   VkPhysicalDeviceSubgroupProperties subgroupProperties{};
   eastl::vector<VkExtensionProperties> extensions;
 
-  struct MsaaMaxSamplesDesc
-  {
-    VkFormat format;
-    VkSampleCountFlagBits samples;
-  };
-  MsaaMaxSamplesDesc maxSamplesFormat = {VK_FORMAT_UNDEFINED, VK_SAMPLE_COUNT_1_BIT};
-
 #if VK_KHR_imageless_framebuffer
   VkPhysicalDeviceImagelessFramebufferFeaturesKHR imagelessFramebufferFeature = //
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES_KHR, nullptr, false};
@@ -582,40 +575,9 @@ struct PhysicalDeviceSet
       formatProperties[i] = fp.formatProperties;
     }
 
-    setupMaxSamplesFormat(instance);
-
     deviceLocalHeapSizeKb = calculateTotalAvailableDeviceLocalMemoryKb();
 
     return true;
-  }
-
-  void setupMaxSamplesFormat(VulkanInstance &instance)
-  {
-    VkFormat maxMsaaFormats[] = {VK_FORMAT_R8_UNORM, VK_FORMAT_R16_UNORM, VK_FORMAT_R8G8_UNORM, VK_FORMAT_B8G8R8A8_UNORM};
-    int bestSamples = 1;
-    const int maxSamples = 8;
-    VkImageFormatProperties fmtProp;
-
-    for (int formatNo = 0; formatNo < sizeof(maxMsaaFormats) / sizeof(maxMsaaFormats[0]); formatNo++)
-    {
-      for (int samples = maxSamples; samples > bestSamples; samples--)
-      {
-        VkResult result = instance.vkGetPhysicalDeviceImageFormatProperties(device, maxMsaaFormats[formatNo], VK_IMAGE_TYPE_2D,
-          VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 0, &fmtProp);
-        if (VULKAN_FAIL(result))
-          continue;
-
-        if (fmtProp.sampleCounts & (1 << samples))
-        {
-          maxSamplesFormat.format = maxMsaaFormats[formatNo];
-          bestSamples = samples;
-          maxSamplesFormat.samples = (VkSampleCountFlagBits)(1 << samples);
-          break;
-        }
-      }
-    }
-    debug("vulkan: TEXFMT_MSAA_MAX_SAMPLES { samples %d, fmt %s } ", maxSamplesFormat.samples,
-      FormatStore::fromVkFormat(maxSamplesFormat.format).getNameString());
   }
 
   void initUnextended(VulkanInstance &instance)

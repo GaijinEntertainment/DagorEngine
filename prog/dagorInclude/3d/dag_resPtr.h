@@ -597,9 +597,9 @@ inline ResPtr<Sbuffer> create_persistent_cb(uint32_t registers_count, const char
   return resptr_detail::ResPtrFactory(d3d::buffers::create_persistent_cb(registers_count, name));
 }
 // Such buffers must be updated every frame. Because of that we don't care about its content on device reset.
-inline ResPtr<Sbuffer> create_one_frame_cb(uint32_t registers_count, const char *name, Init buffer_init = Init::No)
+inline ResPtr<Sbuffer> create_one_frame_cb(uint32_t registers_count, const char *name)
 {
-  return resptr_detail::ResPtrFactory(d3d::buffers::create_one_frame_cb(registers_count, name, buffer_init));
+  return resptr_detail::ResPtrFactory(d3d::buffers::create_one_frame_cb(registers_count, name));
 }
 
 // (RW)ByteAddressBuffer in shader.

@@ -21,6 +21,7 @@
 #include <libTools/renderViewports/renderViewport.h>
 
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <3d/dag_drv3d_pc.h>
 
 #include <stdlib.h>

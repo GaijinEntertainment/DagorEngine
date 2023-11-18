@@ -5,6 +5,7 @@
 #include <math/dag_mathUtils.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <debug/dag_debug.h>
+#include <render/dag_cur_view.h>
 #include <3d/dag_render.h>
 #include <shaders/dag_shaders.h>
 #include <sepGui/wndGlobal.h>
@@ -112,7 +113,7 @@ public:
     d3d::gettm(TM_VIEW, viewTm);
     d3d::gettm(TM_PROJ, &projTm);
     d3d::getglobtm(globTm);
-    renderer->prepare(viewTm, projTm, globTm, waterLevel, significantWaveHeight, frameNo++);
+    renderer->prepare(viewTm, ::grs_cur_view.itm, projTm, globTm, waterLevel, significantWaveHeight, frameNo++, true);
     renderer->render(&renderHelper);
   }
 };

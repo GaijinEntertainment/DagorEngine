@@ -1621,11 +1621,6 @@ bool AssetViewerApp::loadProject(const char *app_dir)
   if (fx_nut)
     fx_devres_base_path.printf(260, "%s/%s/", app_dir, fx_nut);
 
-  if (const DataBlock *remap =
-        appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("prefab")->getBlockByName("remapShaders"))
-    static_geom_mat_subst.setupMatSubst(*remap);
-  static_geom_mat_subst.setMatProcessor(new GenericTexSubstProcessMaterialData(nullptr, DataBlock::emptyBlock, &assetMgr, console));
-
   // detect new gameres system model and setup engine support for it
   const DataBlock *exp_blk = appblk.getBlockByNameEx("assets")->getBlockByName("export");
   bool loadGameResPacks = appblk.getBlockByNameEx("assets")->getStr("gameRes", NULL) != NULL;
@@ -1850,6 +1845,11 @@ bool AssetViewerApp::loadProject(const char *app_dir)
   console->startProgress();
 
   assetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
+  if (const DataBlock *remap =
+        appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("prefab")->getBlockByName("remapShaders"))
+    static_geom_mat_subst.setupMatSubst(*remap);
+  static_geom_mat_subst.setMatProcessor(new GenericTexSubstProcessMaterialData(nullptr, DataBlock::emptyBlock, &assetMgr, console));
+
 
   for (int i = 0; src_assets_scan_allowed && i < blk.paramCount(); i++)
     if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)

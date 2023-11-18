@@ -4,6 +4,7 @@
 #include <shaders/dag_shaderMesh.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <3d/dag_materialData.h>
 #include <gui/dag_stdGuiRender.h>
 

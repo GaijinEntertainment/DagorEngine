@@ -1,0 +1,7 @@
+WARNING: w286 (decl-in-expression) Declaration used in arith expression as operand.
+testData/static_analyzer/w286_2.nut:10:7
+
+return cls || ::fn2 //-const-in-bool-expr -undefined-global
+       ^--
+
+

@@ -1,5 +1,5 @@
 ..
-  This is auto generated file. See daBfg/api/dasModules/docs
+  This is auto generated file. See daBfg/api/das/docs
 
 .. _stdlib_daBfg:
 

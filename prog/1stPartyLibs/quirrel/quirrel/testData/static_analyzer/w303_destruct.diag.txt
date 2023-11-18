@@ -1,0 +1,20 @@
+WARNING: w228 (declared-never-used) parameter 'u' was declared but never used.
+testData/static_analyzer/w303_destruct.nut:3:13
+
+function foo() { return "1" }
+function bar(u) {}
+             ^
+
+
+
+AN ERROR HAS OCCURRED [the index 'x' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w303_destruct.nut line [5]
+
+LOCALS
+[x] NULL
+[bar] CLOSURE=FN:bar
+[foo] CLOSURE=FN:foo
+[vargv] ARRAY=[]
+[this] TABLE={}

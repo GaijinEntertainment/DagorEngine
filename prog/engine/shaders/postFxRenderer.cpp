@@ -22,13 +22,13 @@ void PostFxRenderer::clear()
   shElem = NULL;
 }
 
-void PostFxRenderer::init(const char *shader_name)
+void PostFxRenderer::init(const char *shader_name, bool is_optional)
 {
   shmat = new_shader_material_by_name_optional(shader_name, nullptr);
   if (shmat.get())
     shElem = shmat->make_elem();
   if (!shmat.get() || !shElem.get())
-    logerr("PostFxRenderer: shader '%s' not found.", shader_name);
+    logmessage(is_optional ? LOGLEVEL_DEBUG : LOGLEVEL_ERR, "PostFxRenderer: shader '%s' not found.", shader_name);
 }
 
 void PostFxRenderer::drawInternal(int num_tiles) const

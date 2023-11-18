@@ -118,6 +118,10 @@ public:
       ShaderGlobal::reset_from_vars_and_release_managed_tex(ao_smoothness);
       ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(shadowAtlas, shadowAtlasTex);
     }
+    bool isInitialized()
+    {
+      return albedo_alpha != BAD_TEXTUREID && normal_translucency != BAD_TEXTUREID && ao_smoothness != BAD_TEXTUREID;
+    }
     ImpostorTextures() = default;
     ~ImpostorTextures() { close(); }
     ImpostorTextures(const ImpostorTextures &) = delete;
@@ -176,7 +180,6 @@ public:
   inline float getMaxDist() const { return lods.size() ? lods.back().range : 0; }
 
   bool isBakedImpostor() const;
-  BaseTexture *getPreshadowTexture() const;
   bool setImpostorVars(ShaderMaterial * mat, int buffer_offset) const;
   bool setImpostorTransitionRange(ShaderMaterial * mat, float transition_lod_start, float transition_range) const;
   void prepareTextures(const char *name, uint32_t shadow_atlas_size, int shadow_atlas_mip_offset, int texture_format_flags);

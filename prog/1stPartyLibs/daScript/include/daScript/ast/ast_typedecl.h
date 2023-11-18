@@ -81,6 +81,7 @@ namespace das {
         __forceinline bool isGoodVariantType() const;
         __forceinline bool isVoid() const;
         __forceinline bool isRef() const;
+        __forceinline bool isAnyType() const;
         bool isRefType() const;
         bool isRefOrPointer() const { return isRef() || isPointer(); }
         bool canWrite() const;
@@ -614,7 +615,7 @@ namespace das {
         auto tt = typeFactory<TT>::make(ctx);
         if (tt->isRefType()) {
             tt->ref = false;
-        } else if (!tt->isRef()) {
+        } else if (!tt->isRef() && !tt->isAnyType()) {
             // note:
             //  C++ does not differentiate between void foo ( Foo ); and void foo ( const Foo );
             //  DAS differenciates for pointers
@@ -786,5 +787,9 @@ namespace das {
 
     __forceinline bool TypeDecl::isConst() const {
         return constant;
+    }
+
+    __forceinline bool TypeDecl::isAnyType() const {
+        return baseType==Type::anyArgument;
     }
 }

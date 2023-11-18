@@ -10,6 +10,7 @@
 #include <3d/dag_texMgr.h>
 #include <3d/dag_textureIDHolder.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/optional.h>
 #include <ecs/camera/getActiveCameraSetup.h>
 
 class PostFxRenderer;
@@ -18,6 +19,12 @@ typedef BaseTexture Texture;
 typedef BaseTexture CubeTexture;
 struct DagorCurView;
 struct Driver3dPerspective;
+
+struct CameraSetupPerspPair
+{
+  CameraSetup camera;
+  Driver3dPerspective persp;
+};
 
 class Video360
 {
@@ -39,8 +46,7 @@ public:
   void renderResultOnScreen();
   void finishRendering();
 
-  bool getCamera(DagorCurView &cur_view, Driver3dPerspective &persp);
-  bool getCamera(CameraSetup &cam, Driver3dPerspective &persp);
+  eastl::optional<CameraSetupPerspPair> getCamera() const;
   bool useFixedDt();
   float getFixedDt();
   int getCubeSize();

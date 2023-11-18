@@ -132,98 +132,127 @@ struct RasterizerState
     return k;
   };
 };
-/*
-  enum
-  {
-     ABLEND_MRT_MASK0 = (1<<0),
-     ABLEND_MRT_MASK1 = (1<<1),
-     ABLEND_MRT_MASK2 = (1<<2),
-     ABLEND_MRT_MASK3 = (1<<3),
-     ABLEND_MRT_ALL = (ABLEND_MRT_MASK0 | ABLEND_MRT_MASK1 | ABLEND_MRT_MASK2 | ABLEND_MRT_MASK3),
-     ABLEND_MRT_ILLEGAL = (1<<7)
-  };
-*/
+
 struct BlendState
 {
-  bool ablendEnable; // target 0
-  bool sepAblendEnable;
-  uint8_t ablendEnableMrt; // 1bit for every RT
+  struct BlendParams
+  {
+    bool ablendEnable;
+    bool sepAblendEnable;
+    uint8_t ablendOp; // D3D11_BLEND_OP 3 bits
+    uint8_t ablendOpA;
+    uint8_t ablendSrc; // D3D11_BLEND 5 bits
+    uint8_t ablendDst;
+    uint8_t ablendSrcA;
+    uint8_t ablendDstA;
+  };
+
   uint8_t alphaToCoverage;
+  bool independentBlendEnabled;
+  BlendParams params[shaders::RenderState::NumIndependentBlendParameters]; //-V730_NOINIT
+  uint8_t writeMask[Driver3dRenderTarget::MAX_SIMRT];                      // D3D11_COLOR_WRITE_ENABLE 4 bits
 
-  uint8_t ablendOp; // D3D11_BLEND_OP 3 bits
-  uint8_t ablendOpA;
-  uint8_t ablendSrc; // D3D11_BLEND_   5 bits
-  uint8_t ablendDst;
-  uint8_t ablendSrcA;
-  uint8_t ablendDstA;
+  struct Key
+  {
+  private:
+    friend struct BlendState;
 
-  uint8_t writeMask[Driver3dRenderTarget::MAX_SIMRT]; // D3D11_COLOR_WRITE_ENABLE 4 bits
+    union BlendKey
+    {
+      struct
+      {
+        uint32_t ablendEnable : 1;
+        uint32_t sepAblendEnable : 1;
+        uint32_t ablendOp : 3; // D3D11_BLEND_OP 3 bits
+        uint32_t ablendOpA : 3;
+        uint32_t ablendSrc : 5; // D3D11_BLEND 5 bits
+        uint32_t ablendDst : 5;
+        uint32_t ablendSrcA : 5;
+        uint32_t ablendDstA : 5;
+      };
+      uint32_t bits;
+    };
 
-  typedef uint64_t Key;
+    union
+    {
+      struct
+      {
+        uint32_t writeMask0 : 4;
+        uint32_t writeMask1 : 4;
+        uint32_t writeMask2 : 4;
+        uint32_t writeMask3 : 4;
+        uint32_t writeMask4 : 4;
+        uint32_t writeMask5 : 4;
+        uint32_t writeMask6 : 4;
+        uint32_t writeMask7 : 4;
+      };
+      uint32_t writeMaskBits;
+    };
+
+    BlendKey blendKeys[shaders::RenderState::NumIndependentBlendParameters];
+
+    uint32_t alphaToCoverage : 1;
+
+  public:
+    Key()
+    {
+      // makes sure all the bits of the key set to zero
+      memset(this, 0, sizeof(Key));
+    }
+    inline uint32_t getHash() const { return hash32shiftmult(writeMaskBits + blendKeys[0].bits); }
+  };
+
+  static_assert(sizeof(Key) == 4 + shaders::RenderState::NumIndependentBlendParameters * sizeof(Key::BlendKey) + 4);
 
   ID3D11BlendState *getStateObject();
 
-  BlendState() :
-    ablendEnable(false),
-    sepAblendEnable(false),
-    ablendEnableMrt(0x0),
-    alphaToCoverage(0), // alphaToOne(0),
-    ablendOp(BLENDOP_ADD),
-    ablendSrc(BLEND_ONE),
-    ablendDst(BLEND_ZERO),
-    ablendOpA(BLENDOP_ADD),
-    ablendSrcA(BLEND_ONE),
-    ablendDstA(BLEND_ZERO)
-
+  BlendState() : alphaToCoverage(0), independentBlendEnabled(false)
   {
+    for (auto &blendParams : params)
+    {
+      blendParams.ablendEnable = false;
+      blendParams.sepAblendEnable = false;
+      blendParams.ablendOp = BLENDOP_ADD;
+      blendParams.ablendSrc = BLEND_ONE;
+      blendParams.ablendDst = BLEND_ZERO;
+      blendParams.ablendOpA = BLENDOP_ADD;
+      blendParams.ablendSrcA = BLEND_ONE;
+      blendParams.ablendDstA = BLEND_ZERO;
+    }
+
     for (size_t i = 0; i < countof(writeMask); ++i)
       writeMask[i] = D3D11_COLOR_WRITE_ENABLE_ALL;
   }
 
   Key makeKey()
   {
-    union
+    Key key;
+    key.alphaToCoverage = alphaToCoverage;
+
+    for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
     {
-      Key k;
-      struct
-      {
-        uint64_t ablendEnableMrt : 7; // should be 8, for 8 mrt
-        uint64_t ablendEnable : 1;
-        uint64_t sepAblendEnable : 1;
-        uint64_t alphaToCoverage : 1;
-        uint64_t ablendOp_ablendOpA : 5; // D3D11_BLEND_OP 3 bits per parameter, but each param has only 5 variants (5 bits for all
-                                         // combinations)
-        uint64_t ablendSrc_Dst_SrcA_DstA : 17; // D3D11_BLEND_   5 bits per parameter, but each param has only 17 variants (17 bits for
-                                               // all combinations)
-        uint64_t writeMask0 : 4;
-        uint64_t writeMask1 : 4;
-        uint64_t writeMask2 : 4;
-        uint64_t writeMask3 : 4;
-        uint64_t writeMask4 : 4;
-        uint64_t writeMask5 : 4;
-        uint64_t writeMask6 : 4;
-        uint64_t writeMask7 : 4;
-      } s;
-    } u;
-    G_STATIC_ASSERT(sizeof(u) == sizeof(Key));
-    u.k = 0;
-    COPY_KEY(ablendEnable);
-    COPY_KEY(sepAblendEnable);
-    COPY_KEY(alphaToCoverage);
-    u.s.ablendEnableMrt = uint32_t(ablendEnableMrt & (uint32_t(1 << 8) - 1));
-    const uint32_t BLEND_OP_COUNT = 5; // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_blend_op
-    u.s.ablendOp_ablendOpA = ablendOp * BLEND_OP_COUNT + ablendOpA;
-    const uint32_t BLEND_COUNT = 17; // https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_blend
-    u.s.ablendSrc_Dst_SrcA_DstA = ((ablendSrc * BLEND_COUNT + ablendDst) * BLEND_COUNT + ablendSrcA) * BLEND_COUNT + ablendDstA;
-    u.s.writeMask0 = writeMask[0]; // MAX_SIMRT=4
-    u.s.writeMask1 = writeMask[1];
-    u.s.writeMask2 = writeMask[2];
-    u.s.writeMask3 = writeMask[3];
-    u.s.writeMask4 = writeMask[4];
-    u.s.writeMask5 = writeMask[5];
-    u.s.writeMask6 = writeMask[6];
-    u.s.writeMask7 = writeMask[7];
-    return u.k;
+      auto &blendKey = key.blendKeys[i];
+      const auto &blendParams = params[i];
+
+      blendKey.ablendEnable = blendParams.ablendEnable;
+      blendKey.sepAblendEnable = blendParams.sepAblendEnable;
+      blendKey.ablendOp = blendParams.ablendOp;
+      blendKey.ablendOpA = blendParams.ablendOpA;
+      blendKey.ablendSrc = blendParams.ablendSrc;
+      blendKey.ablendDst = blendParams.ablendDst;
+      blendKey.ablendSrcA = blendParams.ablendSrcA;
+      blendKey.ablendDstA = blendParams.ablendDstA;
+    }
+
+    key.writeMask0 = writeMask[0];
+    key.writeMask1 = writeMask[1];
+    key.writeMask2 = writeMask[2];
+    key.writeMask3 = writeMask[3];
+    key.writeMask4 = writeMask[4];
+    key.writeMask5 = writeMask[5];
+    key.writeMask6 = writeMask[6];
+    key.writeMask7 = writeMask[7];
+    return key;
   };
 };
 

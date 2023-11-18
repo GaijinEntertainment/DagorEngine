@@ -6,6 +6,9 @@
 #include <osApiWrappers/dag_direct.h>
 #include <util/dag_finally.h>
 
+#include "const_register_type.h"
+
+
 using namespace drv3d_dx12;
 
 #define DX12_ENABLE_CACHE_COMPRESSION 1
@@ -205,7 +208,7 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
     if (auto feeaturesOutBlock = cacheOutBlock.addNewBlock("features"))
     {
       pipeline::DataBlockEncodeVisitor<pipeline::DeviceCapsAndShaderModelEncoder> visitor{*feeaturesOutBlock};
-      visitor.encode(params.features);
+      visitor.encode(pipeline::DeviceCapsAndShaderModelEncoder::EncodingMode::pipelines, params.features);
     }
 
     cacheOutBlock.saveToTextFile("cache/dx12_cache.blk");

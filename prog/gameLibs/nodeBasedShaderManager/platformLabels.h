@@ -10,5 +10,5 @@ static const eastl::array<const char *, NodeBasedShaderManager::PLATFORM::LOAD_C
   "dx12xs",
   "ps5",
   "metal",
-  "spirv.bindless",
+  "spirvBindless",
 }};

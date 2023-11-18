@@ -136,7 +136,11 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
     DDSxDecodeCtxBase *ctx;
     unsigned wIdx = 0;
 
-    DecThread() : DaThread("DDSX decoder", 128 << 10), ctx(NULL) { os_event_create(&event, NULL); }
+    DecThread() : DaThread("DDSX decoder", 128 << 10), ctx(NULL)
+    {
+      stripStackInMinidump();
+      os_event_create(&event, NULL);
+    }
     ~DecThread() { os_event_destroy(&event); }
 
     void execute() override

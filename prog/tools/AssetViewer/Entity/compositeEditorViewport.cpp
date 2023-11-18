@@ -7,6 +7,7 @@
 #include <de3_entityGetSceneLodsRes.h>
 #include <de3_objEntity.h>
 #include <debug/dag_debug3d.h>
+#include <EditorCore/ec_interface.h>
 #include <math/dag_rayIntersectBox.h>
 #include <math/dag_TMatrix.h>
 #include <rendInst/rendInstExtra.h>
@@ -17,14 +18,18 @@ IObjEntity *CompositeEditorViewport::getHitSubEntity(IGenViewportWnd *wnd, int x
   if (!get_app().isCompositeEditorShown())
     return nullptr;
 
+  IPixelPerfectSelectionService *pixelPerfectSelectionService = EDITORCORE->queryEditorInterface<IPixelPerfectSelectionService>();
+  if (!pixelPerfectSelectionService)
+    return nullptr;
+
   Point3 dir, world;
   wnd->clientToWorld(Point2(x, y), world, dir);
 
   pixelPerfectSelectionHitsCache.clear();
-  fillPossiblePixelPerfectSelectionHits(entity, nullptr, world, dir, pixelPerfectSelectionHitsCache);
-  pixelPerfectEntitySelector.getHitsAt(*wnd, x, y, pixelPerfectSelectionHitsCache);
+  fillPossiblePixelPerfectSelectionHits(*pixelPerfectSelectionService, entity, nullptr, world, dir, pixelPerfectSelectionHitsCache);
 
-  return getNearestPixelPerfectSelectionHit(pixelPerfectSelectionHitsCache);
+  pixelPerfectSelectionService->getHits(*wnd, x, y, pixelPerfectSelectionHitsCache);
+  return pixelPerfectSelectionHitsCache.empty() ? nullptr : static_cast<IObjEntity *>(pixelPerfectSelectionHitsCache[0].userData);
 }
 
 bool CompositeEditorViewport::getSelectionBox(IObjEntity *entity, BBox3 &box) const
@@ -113,20 +118,6 @@ void CompositeEditorViewport::getRendInstQuantizedTm(IObjEntity &entity, TMatrix
   const IRendInstEntity *rendInstEntity = entity.queryInterface<IRendInstEntity>();
   if (!rendInstEntity || !rendInstEntity->getRendInstQuantizedTm(tm))
     entity.getTm(tm);
-}
-
-IObjEntity *CompositeEditorViewport::getNearestPixelPerfectSelectionHit(dag::ConstSpan<PixelPerfectEntitySelector::Hit> hits)
-{
-  const PixelPerfectEntitySelector::Hit *nearestHit = nullptr;
-  for (const PixelPerfectEntitySelector::Hit &hit : hits)
-  {
-    G_ASSERT(hit.entityForSelection);
-
-    if (!nearestHit || hit.z > nearestHit->z)
-      nearestHit = &hit;
-  }
-
-  return nearestHit ? nearestHit->entityForSelection : nullptr;
 }
 
 void CompositeEditorViewport::getAllHits(IObjEntity &entity, const Point3 &from, const Point3 &dir,
@@ -260,8 +251,9 @@ void CompositeEditorViewport::fillRenderElements(IObjEntity &entity, dag::Vector
   renderElements.emplace_back(renderElement);
 }
 
-void CompositeEditorViewport::fillPossiblePixelPerfectSelectionHits(IObjEntity &entity, IObjEntity *entityForSelection,
-  const Point3 &rayOrigin, const Point3 &rayDirection, dag::Vector<PixelPerfectEntitySelector::Hit> &hits)
+void CompositeEditorViewport::fillPossiblePixelPerfectSelectionHits(IPixelPerfectSelectionService &pixelPerfectSelectionService,
+  IObjEntity &entity, IObjEntity *entityForSelection, const Point3 &rayOrigin, const Point3 &rayDirection,
+  dag::Vector<IPixelPerfectSelectionService::Hit> &hits)
 {
   TMatrix tm;
   getRendInstQuantizedTm(entity, tm);
@@ -280,27 +272,16 @@ void CompositeEditorViewport::fillPossiblePixelPerfectSelectionHits(IObjEntity &
       if (!subEntity)
         continue;
 
-      fillPossiblePixelPerfectSelectionHits(*subEntity, entityForSelection ? entityForSelection : subEntity, rayOrigin, rayDirection,
-        hits);
+      fillPossiblePixelPerfectSelectionHits(pixelPerfectSelectionService, *subEntity,
+        entityForSelection ? entityForSelection : subEntity, rayOrigin, rayDirection, hits);
     }
   }
 
-  const int rendInstExtraResourceIndex = getEntityRendInstExtraResourceIndex(entity);
-  DynamicRenderableSceneInstance *sceneInstance = nullptr;
-  if (rendInstExtraResourceIndex < 0)
-  {
-    IEntityGetDynSceneLodsRes *dynSceneRes = entity.queryInterface<IEntityGetDynSceneLodsRes>();
-    if (dynSceneRes)
-      sceneInstance = dynSceneRes->getSceneInstance();
-    if (!sceneInstance)
-      return;
-  }
+  IPixelPerfectSelectionService::Hit hit;
+  if (!pixelPerfectSelectionService.initializeHit(hit, entity))
+    return;
 
-  PixelPerfectEntitySelector::Hit hit;
-  hit.entityForSelection = entityForSelection ? entityForSelection : &entity;
-  hit.rendInstExtraResourceIndex = rendInstExtraResourceIndex;
-  hit.sceneInstance = sceneInstance;
   hit.transform = tm;
-  hit.z = 0.0f;
+  hit.userData = entityForSelection ? entityForSelection : &entity;
   hits.emplace_back(hit);
 }

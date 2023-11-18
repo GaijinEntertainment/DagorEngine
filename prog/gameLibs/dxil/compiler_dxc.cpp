@@ -173,6 +173,10 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
   {
     compilerParams[compilerParamsCount++] = L"-HV 2021";
   }
+  else
+  {
+    compilerParams[compilerParamsCount++] = L"-HV 2018";
+  }
 
   wchar_t spaceName[] = L"AUTO_DX12_REGISTER_SPACE=space?";
   spaceName[30] = autoSpace[0];

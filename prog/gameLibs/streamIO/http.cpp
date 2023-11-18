@@ -42,7 +42,7 @@ struct StreamContext
 
   httprequests::RequestId getReqId() const { return *reqId; }
 
-  void sendRequest(const char *url, completion_cb_t complete_cb, stream_data_cb_t stream_cb, header_cb_t header_cb,
+  void sendRequest(const char *url, completion_cb_t complete_cb, stream_data_cb_t stream_cb, resp_headers_cb_t resp_headers_cb,
     progress_cb_t progress_cb, void *cb_arg, int64_t modified_since, CreationParams::Timeouts const &timeouts, HTTPContext *owner);
 
   void syncWait()
@@ -116,7 +116,7 @@ struct HTTPContext : public Context
     streams.erase(req_id);
   }
 
-  intptr_t createStream(const char *name, completion_cb_t complete_cb, stream_data_cb_t stream_cb, header_cb_t header_cb,
+  intptr_t createStream(const char *name, completion_cb_t complete_cb, stream_data_cb_t stream_cb, resp_headers_cb_t resp_headers_cb,
     progress_cb_t progress_cb, void *cb_arg, int64_t modified_since, bool do_sync) override
   {
     const char *scheme = strstr(name, "://");
@@ -127,7 +127,7 @@ struct HTTPContext : public Context
         if (dd_strnicmp(name, supported_schemes[i], scheme - name) == 0)
         {
           auto ctx = eastl::make_unique<StreamContext>();
-          ctx->sendRequest(name, complete_cb, stream_cb, header_cb, progress_cb, cb_arg, modified_since, timeouts, this);
+          ctx->sendRequest(name, complete_cb, stream_cb, resp_headers_cb, progress_cb, cb_arg, modified_since, timeouts, this);
           intptr_t id = ctx->getReqId();
           if (do_sync)
             ctx->syncWait();
@@ -152,21 +152,20 @@ struct HTTPContext : public Context
 
 Context *create(CreationParams *params) { return new HTTPContext(params); }
 
-void StreamContext::sendRequest(const char *url, completion_cb_t complete_cb, stream_data_cb_t stream_cb, header_cb_t header_cb,
-  progress_cb_t progress_cb, void *cb_arg, int64_t modified_since, CreationParams::Timeouts const &timeouts, HTTPContext *owner)
+void StreamContext::sendRequest(const char *url, completion_cb_t complete_cb, stream_data_cb_t stream_cb,
+  resp_headers_cb_t resp_headers_cb, progress_cb_t progress_cb, void *cb_arg, int64_t modified_since,
+  CreationParams::Timeouts const &timeouts, HTTPContext *owner)
 {
   httprequests::AsyncRequestParams reqParams;
   eastl::string urlSaved = url;
   eastl::string prUrlSaved = url;
   reqParams.url = url;
-  reqParams.needHeaders = header_cb != nullptr;
+  reqParams.needResponseHeaders = modified_since >= 0 || resp_headers_cb != nullptr;
   reqParams.reqType = httprequests::HTTPReq::GET;
 
   char dateBuf[512];
-  if (modified_since)
-  {
-    reqParams.headers.push_back(eastl::make_pair("If-Modified-Since", format_date(dateBuf, 512, modified_since)));
-  }
+  if (modified_since >= 0)
+    reqParams.headers.push_back(eastl::make_pair("If-Modified-Since", format_date(dateBuf, sizeof(dateBuf), modified_since)));
   reqParams.reqTimeoutMs = timeouts.reqTimeoutSec * 1000;
   reqParams.connectTimeoutMs = timeouts.connectTimeoutSec * 1000;
   reqParams.lowSpeedTime = timeouts.lowSpeedTimeSec;
@@ -175,7 +174,7 @@ void StreamContext::sendRequest(const char *url, completion_cb_t complete_cb, st
 
   reqParams.callback = httprequests::make_http_callback(
     [complete_cb, cb_arg, urlSaved = eastl::move(urlSaved), reqIdWptr, owner](httprequests::RequestStatus status, int http_code,
-      dag::ConstSpan<char> response, httprequests::StringMap const &headers) {
+      dag::ConstSpan<char> response, httprequests::StringMap const &resp_headers) {
       int result = ERR_UNKNOWN;
       MemGeneralLoadCB *loadCb = nullptr;
       int lastModified = 0;
@@ -186,14 +185,10 @@ void StreamContext::sendRequest(const char *url, completion_cb_t complete_cb, st
           result = ERR_NOT_MODIFIED;
         if (response.size() > 0 && http_code == HTTP_OK)
           loadCb = new MemGeneralLoadCB(response.data(), (int)response.size());
-
-        auto lmIt = headers.find("Last-Modified");
-        if (lmIt != headers.end())
+        if (auto lmIt = resp_headers.find("Last-Modified"); lmIt != resp_headers.end())
         {
-          eastl::string_view const &headerValue = lmIt->second;
-
-          // copy to string because headerValue is not zero-terminated
-          eastl::string dateStr(headerValue.begin(), headerValue.end());
+          // copy to string because it is not zero-terminated
+          eastl::string dateStr(lmIt->second.begin(), lmIt->second.end());
           lastModified = getdate(dateStr.c_str(), nullptr);
         }
       }
@@ -223,9 +218,9 @@ void StreamContext::sendRequest(const char *url, completion_cb_t complete_cb, st
       }
       return false;
     },
-    [header_cb, cb_arg](httprequests::StringMap const &headers) {
-      if (header_cb)
-        header_cb(headers, cb_arg);
+    [resp_headers_cb, cb_arg](httprequests::StringMap const &resp_headers) {
+      if (resp_headers_cb)
+        resp_headers_cb(resp_headers, cb_arg);
     },
     [progress_cb, prUrlSaved = eastl::move(prUrlSaved)](size_t dltotal, size_t dlnow) {
       if (progress_cb)

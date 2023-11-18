@@ -21,6 +21,7 @@
 #include <render/sphHarmCalc.h>
 #include <render/preIntegratedGF.h>
 #include <render/genericLUT/fullColorGradingLUT.h>
+#include <render/dag_cur_view.h>
 #include <startup/dag_globalSettings.h>
 #include <3d/dag_textureIDHolder.h>
 #include <rendInst/rendInstGenRtTools.h>
@@ -265,7 +266,7 @@ public:
     max_hdr_overbrightGVarId = ::get_shader_glob_var_id("max_hdr_overbright", true);
     camera_rightVarId = ::get_shader_glob_var_id("camera_right", true);
     camera_upVarId = ::get_shader_glob_var_id("camera_up", true);
-    combinedShadowsRenderer.init("combine_shadows");
+    combinedShadowsRenderer.init("combine_shadows", true);
 
     String fn;
     fn.printf(0, "%s%s", sgg::get_exe_path_full(), "/../commonData/isoLightEnvi/lin_float0000.ddsx");
@@ -301,7 +302,7 @@ public:
     depthMaskRenderStateId = shaders::render_states::create(rs);
     effects_depth_texVarId = ::get_shader_variable_id("effects_depth_tex", true);
 
-    if (::get_shader_variable_id("Exposure", true) >= 0)
+    if (VariableMap::isVariablePresent(get_shader_variable_id("Exposure", true)))
     {
       exposureBuffer = dag::buffers::create_ua_sr_structured(4, EXPOSURE_BUF_SIZE, "Exposure");
       writeExposure(1.0f);
@@ -475,6 +476,9 @@ public:
 
   Texture *resolvePostProcessing(bool use_postfx)
   {
+    if (!deferredTarget)
+      return sceneRt;
+
     if (use_postfx)
     {
       if (::grs_draw_wire)
@@ -488,16 +492,8 @@ public:
       TMatrix4 projTm;
       d3d::gettm(TM_PROJ, &projTm);
       postFx->apply(sceneRt, sceneRtId, postfxRt, postfxRtId, ::grs_cur_view.tm, projTm, true);
-      if (rtype == RTYPE_DYNAMIC_DEFERRED)
-      {
-        d3d::set_render_target(postfxRt, 0);
-        d3d::set_depth(deferredTarget->getDepth(), DepthAccess::SampledRO);
-      }
-      else
-      {
-        d3d::set_render_target(postfxRt, 0);
-        d3d::set_backbuf_depth();
-      }
+      d3d::set_render_target(postfxRt, 0);
+      d3d::set_depth(deferredTarget->getDepth(), DepthAccess::SampledRO);
       return postfxRt;
     }
     else if (noPfxResolve.getMat())
@@ -576,7 +572,7 @@ public:
 
     beforeRender();
     d3d::set_render_target(sceneRt, 0);
-    d3d::set_backbuf_depth();
+    d3d::set_depth(fallbackSceneDepth.getTex2D(), DepthAccess::RW);
     d3d::setview(0, 0, viewportW, viewportH, 0, 1);
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(64, 64, 64, 0), 0, 0);
 
@@ -673,7 +669,7 @@ public:
   render_again:
     beforeRender();
     d3d::set_render_target(sceneRt, 0);
-    d3d::set_backbuf_depth();
+    d3d::set_depth(fallbackSceneDepth.getTex2D(), DepthAccess::RW);
     d3d::setview(0, 0, viewportW, viewportH, viewportMinZ, viewportMaxZ);
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(64, 64, 64, 0), 0, 0);
 
@@ -728,9 +724,10 @@ public:
     // fill alfa mask using depthBuf
     {
       d3d::set_render_target(rt.getColor(0).tex, 0);
-      d3d::set_backbuf_depth();
       if (rtype == RTYPE_DYNAMIC_DEFERRED)
         d3d::set_depth(deferredTarget->getDepth(), DepthAccess::RW);
+      else
+        d3d::set_depth(fallbackSceneDepth.getTex2D(), DepthAccess::RW);
       d3d::setview(0, 0, viewportW, viewportH, viewportMinZ, viewportMaxZ);
 
       shaders::render_states::set(depthMaskRenderStateId);
@@ -1346,7 +1343,7 @@ public:
     initCommon();
     downsample_depth::init("downsample_depth2x");
     volFogCallback.init();
-    noPfxResolve.init("deferred_no_postfx_resolve");
+    noPfxResolve.init("deferred_no_postfx_resolve", true);
     preIntegratedGF = render_preintegrated_fresnel_GGX("preIntegratedGF", PREINTEGRATE_SPECULAR_DIFFUSE_QUALTY_MAX);
     reloadMicroDetails(blk);
 
@@ -1357,7 +1354,7 @@ public:
     state.sblend = BLEND_ZERO;
     state.dblend = BLEND_ZERO;
     wireframeState = shaders::overrides::create(state);
-    wireframeRenderer.init("apply_wireframe");
+    wireframeRenderer.init("apply_wireframe", true);
   }
 
   void initDeferredShadows(const DataBlock &blk)
@@ -1400,7 +1397,7 @@ public:
     GeomObject::initWater();
     windEffect.initWind(*dgs_get_game_params()->getBlockByNameEx("leavesWind"));
     worldViewPosVarId = ::get_shader_variable_id("world_view_pos");
-    resolvedDepthRenderer.init("intz_scene_to_float");
+    resolvedDepthRenderer.init("intz_scene_to_float", true);
   }
 
   void updateEnviProbe()
@@ -1554,7 +1551,10 @@ public:
 
       if (!combinedShadowsTex)
       {
-        combinedShadowsTex = dag::create_tex(nullptr, w, h, TEXFMT_L8 | TEXCF_RTARGET, 1, "combined_shadows");
+        if (VariableMap::isGlobVariablePresent(get_shader_variable_id("combined_shadows", true)))
+          combinedShadowsTex = dag::create_tex(nullptr, w, h, TEXFMT_L8 | TEXCF_RTARGET, 1, "combined_shadows");
+        else
+          debug("'%s' var not present, %s is not used", "combined_shadows", "combinedShadowsTex");
       }
     }
 
@@ -1581,9 +1581,13 @@ public:
     {
       sceneRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | hdr_render_format, 1);
       postfxRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | postfxRtFmt, 1);
+      fallbackSceneDepth = dag::create_tex(nullptr, w, h, TEXCF_RTARGET | TEXFMT_DEPTH32, 1, "scene_depth");
     }
     resolvedDepth = dag::create_tex(nullptr, w, h, TEXCF_RTARGET | TEXFMT_R32F, 1, "depth_tex");
-    wireframeTex = dag::create_tex(nullptr, w, h, TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, "wireframe_tex");
+    if (VariableMap::isGlobVariablePresent(get_shader_variable_id("wireframe_tex", true)))
+      wireframeTex = dag::create_tex(nullptr, w, h, TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, "wireframe_tex");
+    else
+      debug("'%s' var not present, %s is not used", "wireframe_tex", "wireframeTex");
 
     DataBlock *b = gameParamsBlk.addBlock("postfx_rt");
     b->setInt("use_w", targetW);
@@ -1906,8 +1910,8 @@ public:
     cubeData.prog = d3d::create_program(vs, ps, vd);
     d3d::set_program(cubeData.prog);
 
-    cubeData.vb = d3d::create_vb(sizeof(Point3) * 8, SBCF_MAYBELOST);
-    cubeData.ib = d3d::create_ib(sizeof(short) * 3 * 12, SBCF_MAYBELOST);
+    cubeData.vb = d3d::create_vb(sizeof(Point3) * 8, 0);
+    cubeData.ib = d3d::create_ib(sizeof(short) * 3 * 12, 0);
     debug("cubeData: prog=%d, vs=%d, ps=%d, vd=%d vb=%p ib=%p", cubeData.prog, vs, ps, vd, cubeData.vb, cubeData.ib);
 
     {
@@ -2017,7 +2021,7 @@ public:
     VDECL vd = d3d::create_vdecl(dcl);
     bkgData.prog = d3d::create_program(vs, ps, vd);
 
-    bkgData.vb = d3d::create_vb(sizeof(Point2) * 4, SBCF_MAYBELOST);
+    bkgData.vb = d3d::create_vb(sizeof(Point2) * 4, 0);
     debug("bkgData: prog=%d, vs=%d, ps=%d, vd=%d vb=%p", bkgData.prog, vs, ps, vd, bkgData.vb);
 
     {
@@ -2086,7 +2090,7 @@ public:
     VDECL vd = d3d::create_vdecl(dcl);
     voltexData.prog = d3d::create_program(vs, ps, vd);
 
-    voltexData.vb = d3d::create_vb(sizeof(Point2) * 4, SBCF_MAYBELOST);
+    voltexData.vb = d3d::create_vb(sizeof(Point2) * 4, 0);
     debug("voltexData: prog=%d, vs=%d, ps=%d, vd=%d vb=%p", voltexData.prog, vs, ps, vd, voltexData.vb);
 
     {
@@ -2184,6 +2188,7 @@ private:
   int targetW, targetH, sceneFmt;
   Texture *sceneRt, *postfxRt;
   TEXTUREID sceneRtId, postfxRtId;
+  UniqueTex fallbackSceneDepth; // For case when we don't have deferred rendering (do we have such case on practice?).
 
   UniqueTexHolder wireframeTex;
   shaders::OverrideStateId wireframeState;
@@ -2226,7 +2231,7 @@ private:
 
     void init()
     {
-      skyPlaneFx.init("demon_postfx_sky_plane");
+      skyPlaneFx.init("demon_postfx_sky_plane", true);
       depthId = BAD_TEXTUREID;
     }
     int process(int target_size_x, int target_size_y, Color4 target_coeffs) override

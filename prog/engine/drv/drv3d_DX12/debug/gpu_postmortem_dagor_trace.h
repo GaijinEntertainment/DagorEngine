@@ -1,8 +1,20 @@
 #pragma once
 
+#include <EASTL/span.h>
+
 #include "command_list_storage.h"
 #include "command_list_trace.h"
 #include "command_list_trace_recorder.h"
+
+
+namespace drv3d_dx12
+{
+struct Direct3D12Enviroment;
+namespace debug
+{
+union Configuration;
+}
+} // namespace drv3d_dx12
 
 namespace drv3d_dx12::debug::gpu_postmortem::dagor
 {

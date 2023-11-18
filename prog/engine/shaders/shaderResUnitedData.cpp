@@ -451,7 +451,7 @@ bool unitedvdata::BufPool::allocateBuffer(int idx, size_t size, const char *name
     sbuf[idx], idx, freeChunks[idx].size(), allowRebuild);
 
   const bool isIb = idx == IDX_IB;
-  const int flags = (isIb ? SBCF_BIND_INDEX : SBCF_BIND_VERTEX) | SBCF_MAYBELOST | SBCF_BIND_SHADER_RES | get_optional_buffer_flags();
+  const int flags = (isIb ? SBCF_BIND_INDEX : SBCF_BIND_VERTEX) | SBCF_BIND_SHADER_RES | get_optional_buffer_flags();
 
 
   Sbuffer *candidate = d3d::create_sbuffer(4, round_up<4>(size) / 4, flags, 0, name);

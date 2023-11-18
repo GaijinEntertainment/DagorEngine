@@ -43,7 +43,7 @@ void GlobalVertexData::initGvd(const char *name, unsigned vNum, unsigned vStride
   }
 
   // create vertex buffer
-  unsigned vbFlags = (flags & VDATA_NO_VB) || !(flags & VDATA_D3D_RESET_READY) ? 0 : SBCF_MAYBELOST;
+  unsigned vbFlags = 0;
   if (flags & VDATA_BIND_SHADER_RES)
     vbFlags |= SBCF_BIND_SHADER_RES;
   if (flags & VDATA_NO_VB)
@@ -60,7 +60,7 @@ void GlobalVertexData::initGvd(const char *name, unsigned vNum, unsigned vStride
   // create index buffer
   if (idxSize)
   {
-    unsigned ibFlags = (flags & VDATA_NO_IB) || !(flags & VDATA_D3D_RESET_READY) ? 0 : SBCF_MAYBELOST;
+    unsigned ibFlags = 0;
     if (flags & VDATA_I32)
       ibFlags |= SBCF_INDEX32;
     if (flags & VDATA_NO_IB)

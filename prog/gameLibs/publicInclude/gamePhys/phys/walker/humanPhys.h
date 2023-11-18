@@ -408,6 +408,7 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
   carray<Point3, ESS_NUM> collisionCenterPos;
   carray<Point3, ESS_NUM> ccdPos;
   float maxObstacleHeight = 0.5f;
+  float maxStepOverHeight = 0.0f;
   float maxCrawlObstacleHeight = 0.5f;
   float maxObstacleDownReach = 0.1f;
 

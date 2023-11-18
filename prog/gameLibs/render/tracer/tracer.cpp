@@ -759,8 +759,8 @@ void TracerManager::initTrails()
 
   const float noisePeriodScale = tailLengthMeters / (float)tailNoisePeriodMeters;
   const float numTailParticlesInv = 1.0f / numTailParticles;
-  tailParticles.create(instancingSBufSupported, sizeof(TailParticle), 0, numTailParticles,
-    SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED | SBCF_MAYBELOST, 0, "tailBuffer");
+  tailParticles.create(instancingSBufSupported, sizeof(TailParticle), 0, numTailParticles, SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED,
+    0, "tailBuffer");
   TailParticle *particleData;
   tailParticles.lock(0, 0, (void **)&particleData, VBLOCK_WRITEONLY);
   G_ASSERT(particleData);
@@ -775,7 +775,7 @@ void TracerManager::initTrails()
   tailParticles.unlock();
 
   uint32_t vbTotalParticles = numTailParticles * (1 - pow(0.5f, (float)numTailLods)) / (1 - 0.5f);
-  tailVb = dag::create_vb(vbTotalParticles * FX_VERTICES_PER_PARTICLE * vertexSize, SBCF_MAYBELOST, "tailVb");
+  tailVb = dag::create_vb(vbTotalParticles * FX_VERTICES_PER_PARTICLE * vertexSize, 0, "tailVb");
   G_ASSERT(tailVb);
 
   uint8_t *tailVbData;
@@ -805,7 +805,7 @@ void TracerManager::initTrails()
     }
   tailVb->unlock();
 
-  tailIb = dag::create_ib(numTailParticles * FX_INDICES_PER_PARTICLE * sizeof(uint16_t), SBCF_MAYBELOST, "tailIb");
+  tailIb = dag::create_ib(numTailParticles * FX_INDICES_PER_PARTICLE * sizeof(uint16_t), 0, "tailIb");
   G_ASSERT(tailIb);
 
   uint16_t *tailIbData;
@@ -830,7 +830,7 @@ void TracerManager::initTrails()
       VSD_REG(VSDR_TEXC0, VSDT_SHORT2), VSD_END};
     tailInstancingVdecl = d3d::create_vdecl(vsdInstancing);
     tailRendElem.vDecl = tailInstancingVdecl;
-    tailInstancesIds = dag::create_vb(MAX_FX_TRACERS * MAX_FX_SEGMENTS * sizeof(uint32_t), SBCF_MAYBELOST, "tailInstancesId");
+    tailInstancesIds = dag::create_vb(MAX_FX_TRACERS * MAX_FX_SEGMENTS * sizeof(uint32_t), 0, "tailInstancesId");
     d3d_err(!!tailInstancesIds);
     short *data;
     tailInstancesIds->lock(0, 0, (void **)&data, VBLOCK_WRITEONLY);
@@ -843,7 +843,7 @@ void TracerManager::initTrails()
   else
     tailParticles.close();
 
-  const uint32_t bufferFlags = SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED | SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_MAYBELOST;
+  const uint32_t bufferFlags = SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED | SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE;
   tracerBuffer.create(instancingSBufSupported, sizeof(GPUFxTracer), sizeof(GPUFxTracerCreate), MAX_FX_TRACERS,
     createCmdCs ? SBCF_UA_SR_STRUCTURED : bufferFlags, 0, "tracerBuffer");
   if (instancingSBufSupported && !createCmdCs)
@@ -965,7 +965,7 @@ void TracerManager::initHeads()
     headRendElem.startIndex = 0;
     headRendElem.numPrim = FX_PRIMITIVES_PER_PARTICLE;
 
-    headVb = dag::create_vb(MAX_FX_TRACERS * FX_HEAD_VERTICES_PER_PARTICLE * sizeof(HeadVertex), SBCF_MAYBELOST, "headVb");
+    headVb = dag::create_vb(MAX_FX_TRACERS * FX_HEAD_VERTICES_PER_PARTICLE * sizeof(HeadVertex), 0, "headVb");
     G_ASSERT(headVb);
 
     uint8_t *headVbData;
@@ -983,7 +983,7 @@ void TracerManager::initHeads()
     headVb->unlock();
   }
 
-  headIb = dag::create_ib(MAX_FX_TRACERS * FX_HEAD_INDICES_PER_PARTICLE * sizeof(uint16_t), SBCF_MAYBELOST, "headIb");
+  headIb = dag::create_ib(MAX_FX_TRACERS * FX_HEAD_INDICES_PER_PARTICLE * sizeof(uint16_t), 0, "headIb");
   G_ASSERT(headIb);
 
   uint16_t *headIbData;
@@ -1005,7 +1005,7 @@ void TracerManager::initHeads()
 
   bool instancingSBufSupported = computeSupported;
   tracerTypeBuffer.create(instancingSBufSupported, sizeof(GPUFXTracerType), 0, tracerTypes.size(),
-    SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED | SBCF_MAYBELOST, 0, "tracerTypeBuffer");
+    SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "tracerTypeBuffer");
   GPUFXTracerType *tracerTypeData = NULL;
   tracerTypeBuffer.lock(0, 0, (void **)&tracerTypeData, VBLOCK_WRITEONLY);
   if (tracerTypeData)

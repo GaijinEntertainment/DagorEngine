@@ -54,11 +54,19 @@ half contactShadowRayCastWithScale(
   {
     float3 sampleUVz = rayStartUVz + rayStepUVz * sampleT;
     #if USE_LINEAR_THRESHOLD
-      float sampleDepth = linearize_z(tex2Dlod( depth_gbuf, float4(sampleUVz.xy, 0,0) ).r, zn_zfar.zw);
+      #if FSR_DISTORTION
+        float sampleDepth = linearize_z(tex2Dlod(depth_gbuf, float4(linearToDistortedTc(sampleUVz.xy), 0, 0)).r, zn_zfar.zw);
+      #else
+        float sampleDepth = linearize_z(tex2Dlod(depth_gbuf, float4(sampleUVz.xy, 0, 0)).r, zn_zfar.zw);
+      #endif
       float depthDiff = sampleUVz.z - sampleDepth - 0.02 * linearDepth * TraceBias;
       bool hasHit = (depthDiff > 0.0 && depthDiff < zThickness);
     #else
-      float sampleDepth = tex2Dlod( depth_gbuf, float4(sampleUVz.xy, 0,0) ).r;
+      #if FSR_DISTORTION
+        float sampleDepth = tex2Dlod(depth_gbuf, float4(linearToDistortedTc(sampleUVz.xy), 0, 0)).r;
+      #else
+        float sampleDepth = tex2Dlod(depth_gbuf, float4(sampleUVz.xy, 0, 0)).r;
+      #endif
       float depthDiff = sampleUVz.z - sampleDepth;
       bool hasHit = abs( depthDiff + compareTolerance ) < compareTolerance;
     #endif

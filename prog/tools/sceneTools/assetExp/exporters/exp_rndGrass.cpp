@@ -190,7 +190,7 @@ public:
       {
         sn.printf(260, "%s.lod%02d.dag", a.props.getStr("lod_fn_prefix", a.getName()), id++);
         fn.printf(260, "%s/%s", basePath, blk->getStr("fname", sn));
-        add_dag_texture_and_proxymat_refs(fn, tmp_refs, a.getMgr());
+        add_dag_texture_and_proxymat_refs(fn, tmp_refs, a);
       }
     return tmp_refs;
   }

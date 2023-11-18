@@ -5,7 +5,7 @@
 #include "fastPhysEd.h"
 #include "fastPhysObject.h"
 #include <render/dynmodelRenderer.h>
-#include <3d/dag_render.h> // grs_cur_view
+#include <render/dag_cur_view.h>
 
 
 //------------------------------------------------------------------

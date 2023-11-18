@@ -6,6 +6,7 @@
 #include <ioSys/dag_dataBlockUtils.h>
 #include <debug/dag_debug.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <shaders/dag_shaders.h>
 #include <sepGui/wndGlobal.h>
 #include <oldEditor/de_util.h>

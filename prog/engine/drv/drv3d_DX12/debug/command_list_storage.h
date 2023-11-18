@@ -1,5 +1,10 @@
 #pragma once
 
+#include <EASTL/unordered_map.h>
+
+#include "driver.h"
+
+
 namespace drv3d_dx12::debug
 {
 // Possible improvement:

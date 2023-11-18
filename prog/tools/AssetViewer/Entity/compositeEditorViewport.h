@@ -1,7 +1,7 @@
 #pragma once
 #include "outlineRenderer.h"
-#include "pixelPerfectEntitySelector.h"
 #include <dag/dag_vector.h>
+#include <de3_pixelPerfectSelectionService.h>
 
 class BBox3;
 class IGenViewportWnd;
@@ -29,7 +29,6 @@ private:
   };
 
   static void getRendInstQuantizedTm(IObjEntity &entity, TMatrix &tm);
-  static IObjEntity *getNearestPixelPerfectSelectionHit(dag::ConstSpan<PixelPerfectEntitySelector::Hit> hits);
   static IObjEntity *getNearestHit(IObjEntity &entity, const Point3 &from, const Point3 &dir);
   static void getAllHits(IObjEntity &entity, const Point3 &from, const Point3 &dir, dag::Vector<CompositeEntityHit> &hits);
   static unsigned getEntityDataBlockId(IObjEntity &entity);
@@ -37,11 +36,11 @@ private:
   static int getEntityRendInstExtraResourceIndex(IObjEntity &entity);
   static void fillRenderElements(IObjEntity &entity, dag::Vector<OutlineRenderer::RenderElement> &renderElements);
 
-  static void fillPossiblePixelPerfectSelectionHits(IObjEntity &entity, IObjEntity *entityForSelection, const Point3 &rayOrigin,
-    const Point3 &rayDirection, dag::Vector<PixelPerfectEntitySelector::Hit> &hits);
+  static void fillPossiblePixelPerfectSelectionHits(IPixelPerfectSelectionService &pixelPerfectSelectionService, IObjEntity &entity,
+    IObjEntity *entityForSelection, const Point3 &rayOrigin, const Point3 &rayDirection,
+    dag::Vector<IPixelPerfectSelectionService::Hit> &hits);
 
   OutlineRenderer outlineRenderer;
-  PixelPerfectEntitySelector pixelPerfectEntitySelector;
   dag::Vector<OutlineRenderer::RenderElement> renderElementsCache;
-  dag::Vector<PixelPerfectEntitySelector::Hit> pixelPerfectSelectionHitsCache;
+  dag::Vector<IPixelPerfectSelectionService::Hit> pixelPerfectSelectionHitsCache;
 };

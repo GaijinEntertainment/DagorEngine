@@ -36,6 +36,7 @@
 #include "sqratAllocator.h"
 #include "sqratTypes.h"
 #include "sqratUtil.h"
+#include <dag/dag_relocatable.h>
 
 namespace Sqrat {
 
@@ -644,6 +645,8 @@ inline bool Object::Next(iterator& iter) const {
     }
 }
 
-}
+} // namespace Sqrat
+
+DAG_DECLARE_RELOCATABLE(Sqrat::Object);
 
 #endif

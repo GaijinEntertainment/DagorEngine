@@ -52,7 +52,6 @@ void android_screen_rotation::onFrameEnd()
   if (angle)
   {
     d3d::set_render_target();
-    d3d::set_depth(nullptr, DepthAccess::SampledRO);
     d3d::clearview(CLEAR_DISCARD_TARGET, E3DCOLOR(0), 0, 0);
     pass.render();
   }

@@ -607,6 +607,7 @@ void DeviceContext::shutdown()
   executionMode = ExecutionMode::INVALID;
 
   back.contextState.bindlessManagerBackend.shutdown(vkDev);
+  back.pipelineCompiler.shutdown();
   back.contextState.frame.end();
   front.replayRecord.end();
 }
@@ -732,7 +733,7 @@ void DeviceContext::setPipelineCompilationTimeBudget(unsigned usecs)
 uint32_t DeviceContext::getPiplineCompilationQueueLength()
 {
   VULKAN_LOCK_FRONT();
-  return front.replayRecord->skippedGraphicsPipelines;
+  return back.pipelineCompiler.getQueueLength();
 }
 
 size_t DeviceContext::getCurrentWorkItemId()

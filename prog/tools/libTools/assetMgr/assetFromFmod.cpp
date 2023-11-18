@@ -118,7 +118,7 @@ void DagorAssetMgr::addFmodAssets(int parent_fidx, const char *base_path, void *
             ca = NULL;
           }
           else
-            post_error_f(*msgPipe, "fmodEvent", "n/a", "duplicate asset %s of type <%s> in namespace %s", ca->getName(),
+            post_msg(*msgPipe, msgPipe->WARNING, "duplicate asset %s of type <%s> in namespace %s", ca->getName(),
               typeNames.getName(atype), nspaceNames.getName(nsid));
         }
       }

@@ -73,14 +73,14 @@ enum ErrorCode
 
 class Entry;
 typedef void (*completion_cb_t)(const char *key, ErrorCode error, Entry *entry, void *arg);
-typedef void (*header_cb_t)(const char *key, streamio::StringMap const &headers, void *arg);
+typedef void (*resp_headers_cb_t)(const char *key, streamio::StringMap const &headers, void *arg);
 class Backend
 {
 public:
   virtual ~Backend() {}
 
   // If ERR_PENDING is returned in 'error' param then callback will be called upon completion
-  virtual Entry *getWithHeaders(const char *, ErrorCode * = NULL, completion_cb_t = NULL, header_cb_t = NULL, void * = NULL)
+  virtual Entry *getWithRespHeaders(const char *, ErrorCode * = NULL, completion_cb_t = NULL, resp_headers_cb_t = NULL, void * = NULL)
   {
     return nullptr;
   };

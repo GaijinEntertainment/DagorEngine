@@ -52,6 +52,7 @@ public:
   virtual TLeafHandle getSelLeaf() const;
 
   void setCaptionValue(const char value[]);
+  void setTextValue(const char value[]) override;
 
   void setEnabled(bool enabled);
   void setWidth(hdpi::Px w);

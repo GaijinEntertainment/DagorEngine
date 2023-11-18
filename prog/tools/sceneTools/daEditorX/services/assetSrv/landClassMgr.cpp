@@ -293,7 +293,7 @@ bool SharedLandClassAssetData::loadAsset(const DataBlock &blk)
       if ((physMatId[1 + 3] = PhysMat::getMaterialId(mat)) == PHYSMAT_INVALID)
         DAEDITOR3.conError("bad detail/physMatBlack <%s> in asset: %s", mat, loadingAssetFname);
 
-    if (b->getStr("splattingmap"))
+    if (b->getStr("splattingmap", nullptr))
     {
       detTex = new (midmem) DataBlock(*b);
     }
@@ -306,7 +306,7 @@ bool SharedLandClassAssetData::loadAsset(const DataBlock &blk)
         detTex = new (midmem) DataBlock(*blk.getBlockByName("detail"));
         if (const DataBlock *detailsBlk = detTex->getBlockByName("details"))
         {
-          const char *defaultGroupName = detailsBlk->getBlockByNameEx("scheme")->getStr("detail_group");
+          const char *defaultGroupName = detailsBlk->getBlockByNameEx("scheme")->getStr("detail_group", nullptr);
           int physMatForDefaultGroup = indexedPhysMatId[0];
           const int detailGroupNameId = detailsBlk->getNameId("detail_group");
           ska::flat_hash_map<eastl::string, int> detailGroupPhysMats;

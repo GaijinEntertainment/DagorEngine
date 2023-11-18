@@ -1,6 +1,7 @@
 #include "ioSys/dag_dataBlock.h"
 #include <3d/dag_render.h>
 #include <3d/dag_drv3d.h>
+#include <render/dag_cur_view.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_shaders.h>
 #include "shaders/dag_shaderBlock.h"
@@ -128,50 +129,30 @@ static TMatrix build_cubemap_face_view_matrix(int face_index, const TMatrix &sou
   return cameraMatrix;
 }
 
-bool Video360::getCamera(DagorCurView &cur_view, Driver3dPerspective &persp)
+eastl::optional<CameraSetupPerspPair> Video360::getCamera() const
 {
   if (!enabled || frameIndex == -1)
-    return false;
+    return eastl::nullopt;
 
   int current_face_rendering = (frameIndex) % 6;
 
   TMatrix cameraMatrix = build_cubemap_face_view_matrix(current_face_rendering, TMatrix::IDENT);
   cameraMatrix = savedCameraTm * cameraMatrix;
 
-  cur_view.itm = cameraMatrix;
-  cur_view.tm = orthonormalized_inverse(curViewItm);
-  cur_view.pos = curViewItm.getcol(3);
-
-  persp.wk = 1.f;
-  persp.hk = 1.f;
-  persp.zn = zNear;
-  persp.zf = zFar;
-
-  return true;
-}
-
-bool Video360::getCamera(CameraSetup &cam, Driver3dPerspective &persp)
-{
-  if (!enabled || frameIndex == -1)
-    return false;
-
-  int current_face_rendering = (frameIndex) % 6;
-
-  TMatrix cameraMatrix = build_cubemap_face_view_matrix(current_face_rendering, TMatrix::IDENT);
-  cameraMatrix = savedCameraTm * cameraMatrix;
-
+  CameraSetup cam;
   cam.transform = cameraMatrix;
   cam.accuratePos = dpoint3(cameraMatrix.getcol(3));
   cam.fov = 90;
   cam.znear = zNear;
   cam.zfar = zFar;
 
+  Driver3dPerspective persp;
   persp.wk = 1.f;
   persp.hk = 1.f;
   persp.zn = zNear;
   persp.zf = zFar;
 
-  return true;
+  return CameraSetupPerspPair{cam, persp};
 }
 
 

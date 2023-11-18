@@ -122,6 +122,40 @@ Enable plus string concatenation
 
 Allow using plus operator '+' to concatenate strings.
 
+----------------------------------------------
+Clone operator
+----------------------------------------------
+
+  ::
+    
+    #allow-clone-operator
+
+Allow using 'clone' operator (let a = clone {})
+
+  ::
+    
+    forbid-clone-operator
+
+Forbid using 'clone' operator use .$clone instead (let a = {}.$clone())
+'clone' is not a keyword in this case you call variables with it for example.
+
+----------------------------------------------
+Delete operator
+----------------------------------------------
+
+  ::
+    
+    #allow-delete-operator
+
+Allow using 'delete' operator (let a = delete {foo = 2}["foo"] //2)
+
+  ::
+    
+    forbid-delete-operator
+
+Forbid using 'delete' operator use .$rawdelete instead (let a = {foo=2}.$rawdelete("foo") //2)
+'delete' is not a keyword in this case and you call variables with it for example.
+
 ------------------
 #strict
 ------------------
@@ -142,4 +176,5 @@ Enable all extra checks/restrictions
    #relaxed
 
 Disable all extra checks/restrictions
+
 

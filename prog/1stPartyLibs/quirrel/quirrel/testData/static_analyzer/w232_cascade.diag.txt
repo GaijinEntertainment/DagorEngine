@@ -1,0 +1,8 @@
+WARNING: w228 (declared-never-used) let 'foo' was declared but never used.
+testData/static_analyzer/w232_cascade.nut:6:0
+
+function foo(size, a, b) {
+^--
+    if (a && b)
+
+

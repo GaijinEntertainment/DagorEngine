@@ -89,7 +89,6 @@ namespace drv3d_metal
       //case TEXFMT_V16U16:     return MTLPixelFormatBC1_RGBA;
       case TEXFMT_L16:      return MTLPixelFormatR16Unorm;
       case TEXFMT_A8:       return MTLPixelFormatA8Unorm;
-      case TEXFMT_MSAA_MAX_SAMPLES:
       case TEXFMT_L8:       return MTLPixelFormatR8Unorm;
 #if _TARGET_PC_MACOSX
       case TEXFMT_A1R5G5B5:  return MTLPixelFormatBGRA8Unorm;
@@ -315,7 +314,6 @@ namespace drv3d_metal
       }
       case TEXFMT_A8:
       case TEXFMT_L8:
-      case TEXFMT_MSAA_MAX_SAMPLES:
       {
           break;
       }
@@ -582,10 +580,10 @@ namespace drv3d_metal
     width = w;
     height = h;
 
-    if (fmt == TEXFMT_MSAA_MAX_SAMPLES)
+    if (fmt & TEXCF_SAMPLECOUNT_MASK)
     {
       memoryless = true;
-      samples = [render.device supportsTextureSampleCount:8] ? 8 : 4;
+      samples = get_sample_count(fmt);
     }
 
     if (l < 1)

@@ -31,6 +31,9 @@ bool hasResourceConflictWithFramebuffer(Image *img, ImageViewState view, ShaderS
   FramebufferState &fbs = back.executionState.get<BackGraphicsState, BackGraphicsState>().framebufferState;
   RenderPassClass::FramebufferDescription &fbi = fbs.frameBufferInfo;
 
+  const ValueRange<uint32_t> mipRange(view.getMipBase(), view.getMipBase() + view.getMipCount());
+  const ValueRange<uint32_t> arrayRange(view.getArrayBase(), view.getArrayBase() + view.getArrayCount());
+
   if (img->getUsage() & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
   {
     uint32_t i;
@@ -47,10 +50,7 @@ bool hasResourceConflictWithFramebuffer(Image *img, ImageViewState view, ShaderS
       const ImageViewState &rtView = fbi.colorAttachments[i].view;
 
       const ValueRange<uint32_t> rtMipRange(rtView.getMipBase(), rtView.getMipBase() + rtView.getMipCount());
-      const ValueRange<uint32_t> rtArrayRange(rtView.getArrayBase(), rtView.getArrayBase() + rtView.getMipCount());
-
-      const ValueRange<uint32_t> mipRange(view.getMipBase(), view.getMipBase() + view.getMipCount());
-      const ValueRange<uint32_t> arrayRange(view.getArrayBase(), view.getArrayBase() + view.getMipCount());
+      const ValueRange<uint32_t> rtArrayRange(rtView.getArrayBase(), rtView.getArrayBase() + rtView.getArrayCount());
 
       if (mipRange.overlaps(rtMipRange) && arrayRange.overlaps(rtArrayRange))
         return true;
@@ -66,9 +66,6 @@ bool hasResourceConflictWithFramebuffer(Image *img, ImageViewState view, ShaderS
         return false;
 
       const ImageViewState &dsView = fbi.depthStencilAttachment.view;
-
-      const ValueRange<uint32_t> mipRange(view.getMipBase(), view.getMipBase() + view.getMipCount());
-      const ValueRange<uint32_t> arrayRange(view.getArrayBase(), view.getArrayBase() + view.getMipCount());
 
       auto mipIndex = dsView.getMipBase();
       auto arrayIndex = dsView.getArrayBase();

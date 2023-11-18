@@ -1,8 +1,0 @@
-WARNING: w231 (format-arguments-count) Format string: arguments count mismatch.
-testData/static_analyser/w231.nut:3:20
-
-local string = require("string")
-print(string.format("%d%%", 1, x))
-                    ^-----
-
-

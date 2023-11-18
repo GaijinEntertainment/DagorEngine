@@ -61,6 +61,7 @@ bool d3d::get_event_query_status(D3dEventQuery *q, bool force_flush) { return fa
 
 unsigned d3d::get_texformat_usage(int cflg, int restype) { return 0; }
 bool d3d::check_texformat(int cflg) { return false; }
+int d3d::get_max_sample_count(int cflg) { return 0; }
 bool d3d::issame_texformat(int cflg1, int cflg2) { return false; }
 bool d3d::check_cubetexformat(int cflg) { return false; }
 bool d3d::issame_cubetexformat(int cflg1, int cflg2) { return false; }
@@ -117,7 +118,7 @@ PROGRAM d3d::create_program(const uint32_t *vpr_native, const uint32_t *fsh_nati
   return BAD_PROGRAM;
 }
 
-PROGRAM d3d::create_program_cs(const uint32_t *cs_native) { return BAD_PROGRAM; }
+PROGRAM d3d::create_program_cs(const uint32_t *cs_native, CSPreloaded) { return BAD_PROGRAM; }
 
 bool d3d::set_program(PROGRAM) { return false; }
 void d3d::delete_program(PROGRAM) {}

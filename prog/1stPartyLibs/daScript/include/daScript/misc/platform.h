@@ -211,12 +211,12 @@ __forceinline uint32_t rotr_c(uint32_t a, uint32_t b) {
 void os_debug_break();
 
 #ifndef DAS_FATAL_LOG
-#define DAS_FATAL_LOG   printf
+#define DAS_FATAL_LOG(...)   do { printf(__VA_ARGS__); fflush(stdout); } while(0)
 #endif
 
 #ifndef DAS_FATAL_ERROR
 #define DAS_FATAL_ERROR(...) { \
-    printf(__VA_ARGS__); \
+    DAS_FATAL_LOG(__VA_ARGS__); \
     assert(0 && "fatal error"); \
     exit(-1); \
 }
@@ -228,8 +228,7 @@ void os_debug_break();
     #else
         #define DAS_ASSERT(cond) { \
             if ( !(cond) ) { \
-                printf("assertion failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
-                fflush(stdout); \
+                DAS_FATAL_LOG("assertion failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
                 os_debug_break(); \
             } \
         }
@@ -242,9 +241,8 @@ void os_debug_break();
     #else
         #define DAS_ASSERTF(cond,...) { \
             if ( !(cond) ) { \
-                printf("assertion failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
-                printf(__VA_ARGS__); \
-                fflush(stdout); \
+                DAS_FATAL_LOG("assertion failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
+                DAS_FATAL_LOG(__VA_ARGS__); \
                 os_debug_break(); \
             } \
         }
@@ -256,16 +254,14 @@ void os_debug_break();
     #ifdef NDEBUG
         #define DAS_VERIFY(cond) { \
             if ( !(cond) ) { \
-                printf("verify failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
-                fflush(stdout); \
+                DAS_FATAL_LOG("verify failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
                 exit(-1); \
             } \
         }
     #else
         #define DAS_VERIFY(cond) { \
             if ( !(cond) ) { \
-                printf("verify failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
-                fflush(stdout); \
+                DAS_FATAL_LOG("verify failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
                 os_debug_break(); \
             } \
         }
@@ -276,18 +272,16 @@ void os_debug_break();
     #ifdef NDEBUG
         #define DAS_VERIFYF(cond,...) { \
             if ( !(cond) ) { \
-                printf("verify failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
-                printf(__VA_ARGS__); \
-                fflush(stdout); \
+                DAS_FATAL_LOG("verify failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
+                DAS_FATAL_LOG(__VA_ARGS__); \
                 exit(-1); \
             } \
         }
     #else
         #define DAS_VERIFYF(cond,...) { \
             if ( !(cond) ) { \
-                printf("verify failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
-                printf(__VA_ARGS__); \
-                fflush(stdout); \
+                DAS_FATAL_LOG("verify failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
+                DAS_FATAL_LOG(__VA_ARGS__); \
                 os_debug_break(); \
             } \
         }

@@ -265,7 +265,7 @@ public:
       {
         sn.printf(260, "%s.lod%02d.dag", a.props.getStr("lod_fn_prefix", a.getName()), id++);
         fn.printf(260, "%s/%s", basePath, blk->getStr("fname", sn));
-        add_dag_texture_and_proxymat_refs(fn, tmp_refs, a.getMgr(), pm.mayProcess() ? &pm : nullptr);
+        add_dag_texture_and_proxymat_refs(fn, tmp_refs, a, pm.mayProcess() ? &pm : nullptr);
       }
     reset_tex_subst();
     return tmp_refs;

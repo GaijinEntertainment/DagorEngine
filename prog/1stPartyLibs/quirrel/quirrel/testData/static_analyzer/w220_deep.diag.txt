@@ -1,0 +1,9 @@
+WARNING: w220 (potentially-nulled-container) 'foreach' on potentially nullable expression.
+testData/static_analyzer/w220_deep.nut:5:15
+
+  local container = a?.y()
+  foreach(x in container) {
+               ^--------
+    ::print(x)
+
+

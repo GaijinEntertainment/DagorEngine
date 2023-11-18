@@ -224,7 +224,7 @@ static int create_filter_sbrow(Dav1dFrameContext *const f,
     int num_tasks = f->sbh * (1 + uses_2pass);
     if (num_tasks > f->task_thread.num_tasks) {
         const size_t size = sizeof(Dav1dTask) * num_tasks;
-        tasks = realloc(f->task_thread.tasks, size);
+        tasks = dav1d_realloc(ALLOC_COMMON_CTX, f->task_thread.tasks, size);
         if (!tasks) return -1;
         memset(tasks, 0, size);
         f->task_thread.tasks = tasks;
@@ -237,8 +237,8 @@ static int create_filter_sbrow(Dav1dFrameContext *const f,
     } else {
         const int prog_sz = ((f->sbh + 31) & ~31) >> 5;
         if (prog_sz > f->frame_thread.prog_sz) {
-            atomic_uint *const prog = realloc(f->frame_thread.frame_progress,
-                                              2 * prog_sz * sizeof(*prog));
+            atomic_uint *const prog = dav1d_realloc(ALLOC_COMMON_CTX, f->frame_thread.frame_progress,
+                                                    2 * prog_sz * sizeof(*prog));
             if (!prog) return -1;
             f->frame_thread.frame_progress = prog;
             f->frame_thread.copy_lpf_progress = prog + prog_sz;
@@ -275,7 +275,7 @@ int dav1d_task_create_tile_sbrow(Dav1dFrameContext *const f, const int pass,
         int alloc_num_tasks = num_tasks * (1 + uses_2pass);
         if (alloc_num_tasks > f->task_thread.num_tile_tasks) {
             const size_t size = sizeof(Dav1dTask) * alloc_num_tasks;
-            tasks = realloc(f->task_thread.tile_tasks[0], size);
+            tasks = dav1d_realloc(ALLOC_COMMON_CTX, f->task_thread.tile_tasks[0], size);
             if (!tasks) return -1;
             memset(tasks, 0, size);
             f->task_thread.tile_tasks[0] = tasks;
@@ -327,6 +327,7 @@ int dav1d_task_create_tile_sbrow(Dav1dFrameContext *const f, const int pass,
         f->task_thread.pending_tasks.tail->next = &tasks[0];
     f->task_thread.pending_tasks.tail = prev_t;
     atomic_store(&f->task_thread.pending_tasks.merge, 1);
+    atomic_store(&f->task_thread.init_done, 1);
     pthread_mutex_unlock(&f->task_thread.pending_tasks.lock);
 
     return 0;
@@ -499,7 +500,7 @@ static inline void delayed_fg_task(const Dav1dContext *const c,
     case DAV1D_TASK_TYPE_FG_APPLY:;
         int row = atomic_fetch_add(&ttd->delayed_fg.progress[0], 1);
         pthread_mutex_unlock(&ttd->lock);
-        int progmax = (out->p.h + 31) >> 5;
+        int progmax = (out->p.h + FG_BLOCK_SIZE - 1) / FG_BLOCK_SIZE;
     fg_apply_loop:
         if (row + 1 < progmax)
             pthread_cond_signal(&ttd->cond);
@@ -730,14 +731,11 @@ void *dav1d_worker_task(void *data) {
                             dav1d_decode_frame_exit(f, DAV1D_ERR(ENOMEM));
                             f->n_tile_data = 0;
                             pthread_cond_signal(&f->task_thread.cond);
-                            atomic_store(&f->task_thread.init_done, 1);
-                            continue;
                         } else {
                             pthread_mutex_unlock(&ttd->lock);
                         }
                     }
                 }
-                atomic_store(&f->task_thread.init_done, 1);
                 pthread_mutex_lock(&ttd->lock);
             } else {
                 pthread_mutex_lock(&ttd->lock);
@@ -795,6 +793,7 @@ void *dav1d_worker_task(void *data) {
                     atomic_load(&f->task_thread.done[0]) &&
                     (!uses_2pass || atomic_load(&f->task_thread.done[1])))
                 {
+                    error = atomic_load(&f->task_thread.error);
                     dav1d_decode_frame_exit(f, error == 1 ? DAV1D_ERR(EINVAL) :
                                             error ? DAV1D_ERR(ENOMEM) : 0);
                     f->n_tile_data = 0;
@@ -891,6 +890,7 @@ void *dav1d_worker_task(void *data) {
             if (!num_tasks && atomic_load(&f->task_thread.done[0]) &&
                 atomic_load(&f->task_thread.done[1]))
             {
+                error = atomic_load(&f->task_thread.error);
                 dav1d_decode_frame_exit(f, error == 1 ? DAV1D_ERR(EINVAL) :
                                         error ? DAV1D_ERR(ENOMEM) : 0);
                 f->n_tile_data = 0;
@@ -920,6 +920,7 @@ void *dav1d_worker_task(void *data) {
         if (!num_tasks && atomic_load(&f->task_thread.done[0]) &&
             (!uses_2pass || atomic_load(&f->task_thread.done[1])))
         {
+            error = atomic_load(&f->task_thread.error);
             dav1d_decode_frame_exit(f, error == 1 ? DAV1D_ERR(EINVAL) :
                                     error ? DAV1D_ERR(ENOMEM) : 0);
             f->n_tile_data = 0;

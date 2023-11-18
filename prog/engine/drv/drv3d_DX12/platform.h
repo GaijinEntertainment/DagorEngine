@@ -1,5 +1,12 @@
 #pragma once
 
+#include <supp/dag_comPtr.h>
+#include <debug/dag_log.h>
+
+#include "driver.h"
+#include "winapi_helpers.h"
+
+
 namespace drv3d_dx12
 {
 bool is_hdr_available(const ComPtr<IDXGIOutput> &output = {});

@@ -124,6 +124,7 @@ UseProgLibs =
 
   tools/sceneTools/daEditorX/services/dynRenderSrv
   tools/sceneTools/daEditorX/services/riMgr
+  tools/sceneTools/daEditorX/services/pixelPerfectSelection
   tools/sceneTools/daEditorX/services/prefabMgr
   tools/sceneTools/daEditorX/services/fxMgr
   tools/sceneTools/daEditorX/services/efxMgr

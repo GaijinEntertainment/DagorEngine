@@ -301,6 +301,7 @@ static void showUsage()
     "  -no_sanitize_hash - not sanitize hash\n"
     "  -codeDump  - always dump hlsl/Cg source code to be compiled to shaderlog\n"
     "  -codeDumpErr - dump hlsl/Cg source code to shaderlog when error occurs\n"
+    "  -validateIdenticalBytecode - dumps variants that were compiled but had identical bytecode\n"
     "  -shaderOn - default shaders are on\n"
     "  -invalidAsNull - by default invalid variants are marked NULL (just as dont_render)\n"
     "  -o <intermediate dir> - path to store obj files.\n"
@@ -374,6 +375,7 @@ bool hlslNoDisassembly = false;
 bool hlslShowWarnings = false;
 bool hlslWarningsAsErrors = false;
 bool hlslDumpCodeAlways = false, hlslDumpCodeOnError = false;
+bool validateIdenticalBytecode = false;
 bool hlsl2021 = false;
 bool enableFp16 = false;
 bool useCompression = true;
@@ -1122,6 +1124,8 @@ int DagorWinMain(bool debugmode)
       hlslDumpCodeAlways = true;
     else if (dd_stricmp(s, "-codeDumpErr") == 0)
       hlslDumpCodeOnError = true;
+    else if (dd_stricmp(s, "-validateIdenticalBytecode") == 0)
+      validateIdenticalBytecode = true;
     else if (dd_stricmp(s, "-w") == 0)
     {
       hlslShowWarnings = true;

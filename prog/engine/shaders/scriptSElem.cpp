@@ -179,7 +179,7 @@ static PROGRAM get_compute_prg(int i)
     FSHADER sh = BAD_PROGRAM;
     d3d::driver_command(DRV3D_COMMAND_GET_SHADER, void_ptr_cast(i), void_ptr_cast(ShaderCodeType::COMPUTE), &sh);
     if (sh == BAD_PROGRAM)
-      sh = d3d::create_program_cs(shBinDumpOwner().getCode(i, ShaderCodeType::COMPUTE, tmpbuf).data());
+      sh = d3d::create_program_cs(shBinDumpOwner().getCode(i, ShaderCodeType::COMPUTE, tmpbuf).data(), CSPreloaded::Yes);
     shBinDumpRW().fshId[i] = sh;
     restore_fp_exceptions_state();
     if (shBinDump().fshId[i] == BAD_PROGRAM)
@@ -221,7 +221,12 @@ __forceinline void ScriptedShaderElement::prepareShaderProgram(ID_T &pass_id, in
     if (debugInfoStr.empty())
     {
       bool hvc = variant_code != ~0u;
-      debugInfoStr.printf(0, "%s%s", (const char *)shClass.name, hvc ? "\n" : "");
+#if _TARGET_C1 || _TARGET_C2
+
+#else
+      const char *separator = "\n";
+#endif
+      debugInfoStr.printf(0, "%s%s", (const char *)shClass.name, hvc ? separator : "");
       if (hvc)
         shaderbindump::decodeVariantStr(code.dynVariants.codePieces, variant_code, debugInfoStr);
     }
@@ -956,6 +961,14 @@ void ScriptedShaderElement::exec_stcode(dag::ConstSpan<int> cod, const shaderbin
         BaseTexture *tex = D3dResManagerData::getBaseTex(tid);
         scripted_shader_element_on_before_resource_used(tex, shClass.name.data());
         d3d::set_tex(stageDest, ind, tex);
+      }
+      break;
+      case SHCOD_SAMPLER:
+      {
+        const uint32_t slot = shaderopcode::getOp2p1(opc);
+        const uint32_t id = shaderopcode::getOp2p2(opc);
+        d3d::SamplerHandle smp = shBinDump().globVars.get<d3d::SamplerHandle>(id);
+        d3d::set_sampler(stageDest, slot, smp);
       }
       break;
       case SHCOD_TEXTURE_VS:

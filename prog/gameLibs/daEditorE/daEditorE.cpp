@@ -13,6 +13,7 @@
 #include <gui/dag_stdGuiRenderEx.h>
 #include <gui/dag_baseCursor.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>

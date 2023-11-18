@@ -16,6 +16,7 @@ AddIncludes =
 
 Sources =
 #  bentCones.cpp
+  cur_view.cpp
   bigLightsShadows.cpp
   tdrGpu.cpp
   toroidalStaticShadows/toroidalStaticShadowCascade.cpp
@@ -47,7 +48,6 @@ Sources =
   distortion.cpp
   antialiasing.cpp
   partialDxtRender.cpp
-  dynamicCube.cpp
   dynamicLightProbe.cpp
   randomGrass.cpp
   landMask.cpp

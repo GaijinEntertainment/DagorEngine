@@ -1,8 +1,0 @@
-ERROR: Unknown variable [x]
-testData/static_analyser/w273.nut:3:0
-
-x <- 6
-^
-return x
-
-

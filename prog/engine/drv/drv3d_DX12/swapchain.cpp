@@ -101,7 +101,6 @@ BaseTex *frontend::Swapchain::getDepthStencilTexture(Device &device, Extent2D ex
   ii.arrays = ArrayLayerCount::make(1);
   ii.mips = MipMapCount::make(1);
   ii.format = getDepthStencilFormat();
-  ii.memoryLayout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
   ii.memoryClass = DeviceMemoryClass::DEVICE_RESIDENT_IMAGE;
   ii.allocateSubresourceIDs = true;
   swapchainDepthStencilTex->tex.image = device.createImageNoContextLock(ii, "swapchain depth stencil target");
@@ -132,7 +131,7 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
 
     if (info.state.isSRV())
     {
-      auto desc = info.state.asSRVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D);
+      auto desc = info.state.asSRVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D, image->isMultisampled());
       for (auto &buffer : colorTargets)
       {
         auto descriptor = swapchainBufferSRVHeap.allocate(device);
@@ -154,7 +153,7 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
     }
     else if (info.state.isRTV())
     {
-      auto desc = info.state.asRTVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D);
+      auto desc = info.state.asRTVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D, image->isMultisampled());
       for (auto &buffer : colorTargets)
       {
         auto descriptor = swapchainBufferRTVHeap.allocate(device);
@@ -177,7 +176,7 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
       {
         secondarySwapchainViewSet.push_back(info);
 
-        auto desc = info.state.asRTVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D);
+        auto desc = info.state.asRTVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D, image->isMultisampled());
 
         for (auto &buffer : secondaryColorTargets)
         {
@@ -623,7 +622,7 @@ void backend::Swapchain::bufferResize(Device &device, const Extent2D &extent, Fo
   if (!colorTarget)
   {
     colorTarget.reset(new Image({}, ComPtr<ID3D12Resource>{}, D3D12_RESOURCE_DIMENSION_TEXTURE2D, D3D12_TEXTURE_LAYOUT_UNKNOWN,
-      color_format, ext, MipMapCount::make(1), ArrayLayerCount::make(1), idBase));
+      color_format, ext, MipMapCount::make(1), ArrayLayerCount::make(1), idBase, false));
     colorTarget->setGPUChangeable(true);
   }
   else

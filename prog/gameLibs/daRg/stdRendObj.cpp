@@ -104,6 +104,27 @@ void RenderObjectSolid::renderCustom(StdGuiRender::GuiContext &ctx, const Elemen
 }
 
 
+void RenderObjectDebug::renderCustom(StdGuiRender::GuiContext &ctx, const Element *, const ElemRenderData *rdata,
+  const RenderState &render_state)
+{
+  RobjParamsColorOnly *params = static_cast<RobjParamsColorOnly *>(rdata->params);
+  G_ASSERT(params);
+  if (!params)
+    return;
+
+  E3DCOLOR color = color_apply_mods(params->color, render_state.opacity, params->brightness);
+
+  ctx.set_color(color);
+  ctx.set_texture(BAD_TEXTUREID);
+
+  Point2 lt = rdata->pos;
+  Point2 rb = lt + rdata->size;
+  ctx.render_frame(lt.x, lt.y, rb.x, rb.y, 1);
+  ctx.draw_line(lt.x, lt.y, rb.x, rb.y);
+  ctx.draw_line(lt.x, rb.y, rb.x, lt.y);
+}
+
+
 bool RobjParamsText::load(const Element *elem)
 {
   const Properties &props = elem->props;
@@ -2057,6 +2078,7 @@ void RenderObjectMovie::renderCustom(StdGuiRender::GuiContext &ctx, const Elemen
 
 
 ROBJ_FACTORY_IMPL(RenderObjectSolid, RobjParamsColorOnly)
+ROBJ_FACTORY_IMPL(RenderObjectDebug, RobjParamsColorOnly)
 ROBJ_FACTORY_IMPL(RenderObjectText, RobjParamsText)
 ROBJ_FACTORY_IMPL(RenderObjectInscription, RobjParamsInscription)
 ROBJ_FACTORY_IMPL(RenderObjectImage, RobjParamsImage)
@@ -2105,6 +2127,7 @@ void register_std_rendobj_factories()
 #define RF(name, cls) add_rendobj_factory(#name, ROBJ_FACTORY_PTR(cls))
 
   RF(ROBJ_SOLID, RenderObjectSolid);
+  RF(ROBJ_DEBUG, RenderObjectDebug);
   rendobj_text_id = RF(ROBJ_TEXT, RenderObjectText);
   rendobj_inscription_id = RF(ROBJ_INSCRIPTION, RenderObjectInscription);
   rendobj_image_id = RF(ROBJ_IMAGE, RenderObjectImage);

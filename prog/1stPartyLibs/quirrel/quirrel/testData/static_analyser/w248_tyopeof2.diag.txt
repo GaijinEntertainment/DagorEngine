@@ -1,9 +1,0 @@
-WARNING: w248 (access-potentially-nulled) 'f' can be null, but is used as a function without checking.
-testData/static_analyser/w248_tyopeof2.nut:6:15
-
-    if ((typeof colorStr != "string" || (colorStr.len() != 8 && colorStr.len() != 6)) && (typeof f == "null") )
-        return f("first param must be string with len 6 or 8")
-               ^
-}
-
-

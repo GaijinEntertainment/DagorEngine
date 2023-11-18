@@ -43,7 +43,6 @@ static const E3DCOLOR g_stopped_color = E3DCOLOR_MAKE(0xff, 0x80, 0, 0xff);
 static const E3DCOLOR g_stopping_color = E3DCOLOR_MAKE(0, 0, 0, 0xff);
 static const E3DCOLOR g_invalid_color = E3DCOLOR_MAKE(0xff, 0xff, 0, 0xff);
 static const E3DCOLOR g_snapshot_color = E3DCOLOR_MAKE(0x66, 0, 0xff, 0xff);
-static bool g_enable_debug_draw = false;
 static bool g_draw_audibility = false;
 
 enum class TraceLevel : int
@@ -514,9 +513,6 @@ void debug_draw(const TMatrix4 &glob_tm)
   StdGuiRender::reset_draw_str_attr();
   StdGuiRender::flush_data();
 }
-
-void set_enable_debug_draw(bool enable) { g_enable_debug_draw = enable; }
-bool get_enable_debug_draw() { return g_enable_debug_draw; }
 
 void set_draw_audibility(bool enable) { g_draw_audibility = enable; }
 

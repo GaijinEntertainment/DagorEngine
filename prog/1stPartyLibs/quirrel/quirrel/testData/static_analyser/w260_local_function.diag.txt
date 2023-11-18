@@ -1,7 +1,0 @@
-WARNING: w260 (named-like-must-return-result) Function 'getSettings' has name like it should return a value, but not all control paths returns a value.
-testData/static_analyser/w260_local_function.nut:3:6
-
-local function getSettings(path) { return } //-declared-never-used
-      ^------------------------------------
-
-

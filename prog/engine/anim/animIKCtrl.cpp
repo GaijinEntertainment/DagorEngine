@@ -63,7 +63,7 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
     mat44f &foot_tm = tree.getNodeTm(foot);
     mat44f &leg_wtm = tree.getNodeWtmRel(nodes[i].legId);
     vec3f foot_p1 = transform_vec_upto_root(tree, foot_parent, foot_tm.col3);
-    Point3_vec4 footNewPos(0.f, 0.f, 0.f);
+    vec3f footNewPos = v_zero();
     bool move_foot = false;
     const mat44f &animcharTm = tree.getRootWtmRel();
     vec4f vup = V_C_UNIT_0100;
@@ -82,18 +82,16 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
       mat44f animcharTmCorrected = animcharTm;
       animcharTmCorrected.col0 = animcharTm.col2;
       animcharTmCorrected.col2 = animcharTm.col0;
-      Point3_vec4 dir = as_point3(&animcharTm.col2);
+      vec3f dir = animcharTm.col2;
       Point3_vec4 kneeOffset = crawlKneeOffsetVec;
       kneeOffset[2] *= i == 0 ? -1 : 1;
-      v_st(&kneeOffset, v_mat44_mul_vec3p(animcharTmCorrected, v_ldu(&kneeOffset.x)));
       vec4f wofsVec4 = v_and(wofs, v_cast_vec4f(V_CI_MASK1110));
-      Point3_vec4 pt;
       float maxDist = crawlMaxRay;
-      v_st(&pt, v_add(v_mat44_mul_vec3p(tree.getRootWtmRel(), v_and(knee_p, v_cast_vec4f(V_CI_MASK1110))), wofs));
-      pt += kneeOffset;
-      if (ctx.irq(GIRQT_TraceFootStepDir, (intptr_t)(void *)&pt, (intptr_t)(void *)&dir, (intptr_t)(void *)&maxDist) == GIRQR_TraceOK)
+      vec3f pt = v_add(v_mat44_mul_vec3p(tree.getRootWtmRel(), v_and(knee_p, v_cast_vec4f(V_CI_MASK1110))), wofs);
+      pt = v_add(pt, v_mat44_mul_vec3p(animcharTmCorrected, v_ldu(&kneeOffset.x)));
+      if (ctx.irq(GIRQT_TraceFootStepDir, (intptr_t)(char *)&pt, (intptr_t)(char *)&dir, (intptr_t)(char *)&maxDist) == GIRQR_TraceOK)
       {
-        footNewPos = pt + dir * (maxDist - crawlFootOffset) - as_point3(&wofsVec4);
+        footNewPos = v_sub(v_madd(dir, v_splats(maxDist - crawlFootOffset), pt), wofsVec4);
         nodes[i].da = crawlFootAngle + acosf((crawlMaxRay - maxDist) / crawlMaxRay);
         move_foot = true;
       }
@@ -185,10 +183,10 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
       float len0 = v_extract_x(v_length3_x(v_sub(leg_wtm.col3, knee_wtm.col3)));
       float len1 = v_extract_x(v_length3_x(v_sub(foot_wtm.col3, knee_wtm.col3)));
       if (isCrawl)
-        as_point3(&foot_wtm.col3) = footNewPos;
+        foot_wtm.col3 = footNewPos;
       else
         foot_wtm.col3 = v_perm_xyzd(v_madd(vup, v_splats(nodes[i].dy), move_foot ? foot_p1 : foot_wtm.col3), V_C_UNIT_0001);
-      solve_2bones_ik(leg_wtm, knee_wtm, foot_wtm, foot_wtm, len0, len1, as_point3(&knee_wtm.col1));
+      solve_2bones_ik(leg_wtm, knee_wtm, foot_wtm, foot_wtm, len0, len1, knee_wtm.col1);
       if (ctx.acScale)
       {
         vec3f s = *ctx.acScale;

@@ -2,6 +2,7 @@
 #include <ecs/anim/anim.h>
 #include <animChar/dag_animCharVis.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <render/dynmodelRenderer.h>
 
 #include <ecs/renderEvents.h>

@@ -144,6 +144,28 @@ One would have to type ?. everywhere, writing it as
 
 Instead it is done by compiler - once a null-operator is met, it is also assumed for the subsequent ., [] and () operators in an expression.
 
+Note: 'key' should not be separated from '?.' or '.' by space[s] or new line.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.$ and ?.$ - Type methods access operator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. index::
+    pair: .$ and ?.$ Operators; Operators
+
+::
+
+    exp := value '.$' key
+
+
+::
+
+    exp := value '?.$' key
+
+
+If 'key' exists in value's type built-in methods (default delegates) returns method's closure, else returns null in case of '?.$' or throws an error if '.$'
+
+Note: 'key' should not be separated from '.$' and '?.$' by space[s] or new line.
 
 ^^^^^^^^^^^^^
 Arithmetic
@@ -443,6 +465,8 @@ recursion).
 After the new object is ready the "_cloned" meta method is called (see :ref:`Metamethods <metamethods>`).
 
 When a class instance is cloned the constructor is not invoked(initializations must rely on ```_cloned``` instead
+
+Note: Usage of this operator could be prohibited with ``#forbid-clone-operator``.
 
 -----------------
 Array contructor

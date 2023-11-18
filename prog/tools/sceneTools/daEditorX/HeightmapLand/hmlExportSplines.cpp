@@ -775,7 +775,7 @@ void HmapLandPlugin::exportSplines(mkbindump::BinDumpSaveCB &cwr)
   for (int i = 0; i < objEd.objectCount(); i++)
   {
     SplineObject *o = RTTI_cast<SplineObject>(objEd.getObject(i));
-    if (o && o->getProps().exportable && !o->points.empty())
+    if (o && EditLayerProps::layerProps[o->getEditLayerIdx()].exp && o->getProps().exportable && !o->points.empty())
       splines.push_back(o);
   }
 

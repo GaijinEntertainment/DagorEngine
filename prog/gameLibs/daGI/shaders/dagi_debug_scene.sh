@@ -179,7 +179,7 @@ shader ssgi_debug_rasterize_voxels
       float t = 0;
       pt = 0;
 
-      int cnt = n;
+      dist = MAX_REAL;
       voxel_normal = 0;
       result = half4(0,0,0,1);
 

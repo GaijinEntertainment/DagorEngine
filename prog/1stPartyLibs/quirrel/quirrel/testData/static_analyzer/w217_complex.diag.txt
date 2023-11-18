@@ -1,0 +1,40 @@
+WARNING: w217 (unconditional-terminated-loop) Unconditional 'break' inside a loop.
+testData/static_analyzer/w217_complex.nut:26:12
+
+            foo()
+            break
+            ^----
+        }
+
+
+WARNING: w217 (unconditional-terminated-loop) Unconditional 'throw' inside a loop.
+testData/static_analyzer/w217_complex.nut:44:8
+
+        foo()
+        throw "y"
+        ^--------
+    }
+
+
+WARNING: w217 (unconditional-terminated-loop) Unconditional 'return' inside a loop.
+testData/static_analyzer/w217_complex.nut:66:4
+
+    return 0
+    ^-------
+}
+
+
+
+AN ERROR HAS OCCURRED [the index 'v' does not exist]
+
+CALLSTACK
+*FUNCTION [__main__()] testData/static_analyzer/w217_complex.nut line [9]
+
+LOCALS
+[offset] 1
+[n] TABLE={}
+[qux] CLOSURE=FN:qux
+[bar] CLOSURE=FN:bar
+[foo] CLOSURE=FN:foo
+[vargv] ARRAY=[]
+[this] TABLE={}

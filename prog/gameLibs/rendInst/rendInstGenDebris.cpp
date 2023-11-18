@@ -375,17 +375,29 @@ static void print_debug_destr_data()
 }
 #endif
 
-static void debug_verify_destroy_pool_data(const rendinst::DestroyedPoolData &destrPoolData)
+static bool debug_verify_destroy_pool_data(const rendinst::DestroyedPoolData &pool, uint32_t offs = -1, uint32_t end = -1)
 {
-#if DAGOR_DBGLEVEL > 0
-  for (int i = 0, lastI = destrPoolData.destroyedInstances.size() - 1; i <= lastI; ++i)
+  for (int i = 0, lastI = pool.destroyedInstances.size() - 1; i <= lastI; ++i)
   {
-    G_ASSERT(destrPoolData.destroyedInstances[i].startOffs < destrPoolData.destroyedInstances[i].endOffs);
-    G_ASSERT(i == lastI || destrPoolData.destroyedInstances[i].endOffs < destrPoolData.destroyedInstances[i + 1].startOffs);
+    if (pool.destroyedInstances[i].startOffs > pool.destroyedInstances[i].endOffs ||
+        (i != 0 && pool.destroyedInstances[i - 1].endOffs >= pool.destroyedInstances[i].startOffs))
+    {
+      logerr("==================================================");
+      {
+        {
+          logerr(" pool (%d), last added %u %u", pool.poolIdx, offs, end);
+          for (int k = 0; k < pool.destroyedInstances.size(); ++k)
+          {
+            const rendinst::DestroyedInstanceRange &range = pool.destroyedInstances[k];
+            logerr("   range (%d)-(%d)", range.startOffs, range.endOffs);
+          }
+        }
+      }
+      logerr("==================================================");
+      return false;
+    }
   }
-#else
-  G_UNUSED(destrPoolData);
-#endif
+  return true;
 }
 
 static void add_destroyed_data(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen)
@@ -430,68 +442,41 @@ static void add_destroyed_data(const rendinst::RendInstDesc &desc, RendInstGenDa
 
   uint16_t stride = rendinst::getRIGenStride(desc.layer, desc.cellIdx, desc.pool);
   uint32_t offs = desc.offs;
+  uint32_t end = desc.offs + stride;
 
   bool found = false;
   for (int i = 0; i < destrPoolData->destroyedInstances.size(); ++i)
   {
-    // Inside already added range
-    if (offs >= destrPoolData->destroyedInstances[i].startOffs && offs + stride <= destrPoolData->destroyedInstances[i].endOffs)
+    // Merge
+    if ((offs >= destrPoolData->destroyedInstances[i].startOffs && offs <= destrPoolData->destroyedInstances[i].endOffs) ||
+        (end >= destrPoolData->destroyedInstances[i].startOffs && end <= destrPoolData->destroyedInstances[i].endOffs))
     {
+      destrPoolData->destroyedInstances[i].startOffs = min(destrPoolData->destroyedInstances[i].startOffs, offs);
+      destrPoolData->destroyedInstances[i].endOffs = max(destrPoolData->destroyedInstances[i].endOffs, end);
+      for (int j = i + 1; j < destrPoolData->destroyedInstances.size(); ++j) // Append next overlapped ranges
+      {
+        if (destrPoolData->destroyedInstances[j].startOffs <= destrPoolData->destroyedInstances[i].endOffs)
+        {
+          destrPoolData->destroyedInstances[i].endOffs =
+            max(destrPoolData->destroyedInstances[i].endOffs, destrPoolData->destroyedInstances[j].endOffs);
+          erase_items(destrPoolData->destroyedInstances, j, 1);
+        }
+      }
       found = true;
       break;
     }
-
-    if (offs < destrPoolData->destroyedInstances[i].startOffs)
+    // Insert between
+    if ((i == 0 || offs > destrPoolData->destroyedInstances[i - 1].endOffs) && end < destrPoolData->destroyedInstances[i].startOffs)
     {
+      insert_item_at(destrPoolData->destroyedInstances, i, rendinst::DestroyedInstanceRange(offs, end));
       found = true;
-      if (offs + stride >= destrPoolData->destroyedInstances[i].startOffs)
-      {
-        // It expands from head
-        if (i > 0 && offs == destrPoolData->destroyedInstances[i - 1].endOffs)
-        {
-          // And merges two ranges
-          destrPoolData->destroyedInstances[i - 1].endOffs = destrPoolData->destroyedInstances[i].endOffs;
-          erase_items(destrPoolData->destroyedInstances, i, 1);
-        }
-        else
-        {
-          destrPoolData->destroyedInstances[i].startOffs = offs; // Just expand
-          destrPoolData->destroyedInstances[i].endOffs = max(destrPoolData->destroyedInstances[i].endOffs, offs + stride);
-          for (int j = i + 1; j < destrPoolData->destroyedInstances.size(); ++j) // Append next overlapped ranges
-          {
-            if (destrPoolData->destroyedInstances[j].startOffs <= destrPoolData->destroyedInstances[i].endOffs)
-            {
-              destrPoolData->destroyedInstances[i].endOffs =
-                max(destrPoolData->destroyedInstances[i].endOffs, destrPoolData->destroyedInstances[j].endOffs);
-              erase_items(destrPoolData->destroyedInstances, j, 1);
-            }
-          }
-        }
-      }
-      else if (i > 0 && offs == destrPoolData->destroyedInstances[i - 1].endOffs)
-        destrPoolData->destroyedInstances[i - 1].endOffs = offs + stride; // It merges from tail of previous one
-      else
-        insert_item_at(destrPoolData->destroyedInstances, i, rendinst::DestroyedInstanceRange(offs, offs + stride)); // It's just
-                                                                                                                     // in-between
       break;
     }
   }
   if (!found) // it should be last then
-  {
-    rendinst::DestroyedInstanceRange *lastRange = destrPoolData->destroyedInstances.end() - 1;
-    if (!destrPoolData->destroyedInstances.empty() && lastRange->endOffs == offs)
-      lastRange->endOffs = offs + stride; // merges with last one
-    else
-      insert_item_at(destrPoolData->destroyedInstances, destrPoolData->destroyedInstances.size(),
-        rendinst::DestroyedInstanceRange(offs, offs + stride));
-  }
+    destrPoolData->destroyedInstances.emplace_back(rendinst::DestroyedInstanceRange(offs, end));
 
-#if DAGOR_DBGLEVEL > 0
-#if DEBUG_RI_DESTR
-  print_debug_destr_data();
-#endif
-  debug_verify_destroy_pool_data(*destrPoolData);
-#endif
+  G_ASSERT(debug_verify_destroy_pool_data(*destrPoolData, offs, end));
 }
 
 void rendinst::updateRiGenVbCell(int layer_idx, int cell_idx)
@@ -930,7 +915,7 @@ rendinst::riex_handle_t rendinst::restoreRiGenDestr(const RendInstDesc &desc, co
         break;
       }
 
-      debug_verify_destroy_pool_data(pool);
+      G_ASSERT(debug_verify_destroy_pool_data(pool));
       return h;
     }
   }

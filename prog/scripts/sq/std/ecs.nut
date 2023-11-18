@@ -98,7 +98,7 @@ local function register_es(name, onEvents={}, compsDesc={}, params = {}) {
       comps.comps_ro <- comps_ro
     assert(!(comps_track.len()>0 && params?.track!=null), "es cannot be registered if both 'comp_tracks' in components and 'track' in params")
     if (comps_track.len()>0) {
-      delete comps.comps_track
+      comps.$rawdelete("comps_track")
       params = (clone params).__merge({track=",".join(gatherComponentNames(comps_track))})
     }
     if ((comps?.comps_ro ?? []).filter(@(v) type(v)!="array").len()!=0)

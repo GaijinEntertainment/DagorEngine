@@ -62,6 +62,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
   Tab<int> cvar(tmpmem);
   cvar.resize(vars.size());
   int ofs = 0;
+  extern bool addTextureType;
 
   for (int i = 0; i < vars.size(); ++i)
   {
@@ -77,10 +78,11 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
     }
     cvar[i] = ofs;
     ofs += sz;
-    if (vars[i].slot >= 0)
+    if (addTextureType && vars[i].slot >= 0)
     {
       if (vars[i].slot >= code->staticTextureTypes.size())
-        code->staticTextureTypes.resize(vars[i].slot + 1);
+        for (int j = code->staticTextureTypes.size(); j <= vars[i].slot; j++)
+          code->staticTextureTypes.push_back(ShaderVarTextureType::SHVT_TEX_UNKNOWN);
       code->staticTextureTypes[vars[i].slot] = vars[i].texType;
     }
   }
@@ -175,6 +177,7 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar) const
       case SHCOD_FSH_CONST:
       case SHCOD_VPR_CONST:
       case SHCOD_CS_CONST:
+      case SHCOD_SAMPLER:
       case SHCOD_TEXTURE:
       case SHCOD_TEXTURE_VS:
       case SHCOD_REG_BINDLESS:

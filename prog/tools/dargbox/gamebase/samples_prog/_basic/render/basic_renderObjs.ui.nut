@@ -9,6 +9,16 @@ let button_image = Picture("!ui/button.png")
   - circular progress
 */
 
+
+let function sampleDebug() {
+  return {
+    rendObj = ROBJ_DEBUG
+    color = Color(255,230,200)
+    size = [100,30]
+  }
+}
+
+
 let function sampleSolid() {
   return {
     rendObj = ROBJ_SOLID
@@ -187,6 +197,7 @@ let function basicsRoot() {
         size = flex()
         gap = 40
         children = [
+          labeledElem(sampleDebug, "'ROBJ_DEBUG' rendObj. Has just one 'color' as render properties")
           labeledElem(sampleSolid, "'ROBJ_SOLID' rendObj. Has just one 'color' as render properties")
           labeledElem(frames, "'ROBJ_FRAME' rendObj. Has 'color' as border color and 'borderWidth' (1=2 ; 2=[2,0], 3=[0,0,2,0] )")
           labeledElem(sampleBox, "'ROBJ_BOX'. Has 'fillColor', 'borderColor' and 'borderWidth' (= [2,1,2,1] here)")

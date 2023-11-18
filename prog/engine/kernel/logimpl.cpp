@@ -134,7 +134,7 @@ static file_ptr_t xbox_debug_file = NULL;
 
 #define LOG_TAIL_BUF (_TARGET_XBOX || _TARGET_C1 || _TARGET_C2 || _TARGET_ANDROID || _TARGET_IOS)
 
-#if DAGOR_DBGLEVEL > 0
+#if DAGOR_DBGLEVEL > 0 || FORCE_THREAD_IDS
 static int next_thread_id = 1;
 #endif
 
@@ -143,7 +143,7 @@ static bool dbg_tid_enabled = false;
 void debug_enable_thread_ids(bool en_tid) { dbg_tid_enabled = en_tid; }
 void debug_set_thread_name(const char *persistent_thread_name_ptr)
 {
-#if !DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0
+#if !DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0 || FORCE_THREAD_IDS
   (&debug_internal::dbg_ctx)->threadName = persistent_thread_name_ptr;
 #else
   (void)(persistent_thread_name_ptr);
@@ -266,7 +266,7 @@ void debug_internal::vlog(int tag, const char *format, const void *arg, int anum
   char *buf = vlog_buf;
   int buf_used_len = i_strlen(buf);
 
-#if !DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0
+#if !DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0 || FORCE_THREAD_IDS
   if (!dbg_tid_enabled || (&dbg_ctx)->threadId)
     ; // do nothing
   else if (is_main_thread())
@@ -282,7 +282,7 @@ void debug_internal::vlog(int tag, const char *format, const void *arg, int anum
     return;
 
   int t = debug_internal::timestampEnabled ? get_time_msec() : -1;
-#if !DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0
+#if !DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0 || FORCE_THREAD_IDS
   int thread_id = dbg_tid_enabled ? (&dbg_ctx)->threadId - 1 : -1;
 #else
   int thread_id = -1;
