@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 extern const char *debug_output_dir;
 

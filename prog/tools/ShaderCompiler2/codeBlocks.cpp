@@ -18,7 +18,7 @@
 #include "fast_isalnum.h"
 #include "hash.h"
 
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
 #include <windows.h>
 #else
 #define __iscsym(_c) fast_isalnum_or_(_c)
