@@ -3319,10 +3319,10 @@ void CompileShaderJob::doJob()
       debug("=== compiling code:\n%s==== code end", source.str());
 
     sh_leave_atomic_debug();
-#if _TARGET_PC_MACOSX
-    usleep(150 * 1000);
-#else
+#if _TARGET_PC_WINDOWS
     Sleep(150);
+#else
+    usleep(150 * 1000);
 #endif
     return;
   }
