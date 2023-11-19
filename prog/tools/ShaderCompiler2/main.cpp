@@ -31,12 +31,13 @@
 #include "DebugLevel.h"
 #include <libTools/util/atomicPrintf.h>
 
-#if _TARGET_PC_WIN
+#if _TARGET_PC_WINDOWS
 #include <windows.h>
 #else
 
 #include <unistd.h>
 #include <spawn.h>
+#include <sys/wait.h>
 
 #if _TARGET_PC_MACOSX
 #include <AvailabilityMacros.h>
