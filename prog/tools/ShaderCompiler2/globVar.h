@@ -14,26 +14,20 @@ namespace ShaderGlobal
 {
 union StVarValue
 {
-  struct
-  {
-    Color4 c4;
-  };
-  struct
-  {
-    IPoint4 i4;
-  };
+  Color4 c4;
+  IPoint4 i4;
   real r;
   int i;
   struct
   {
-    TEXTUREID texId;
-    BaseTexture *tex;
-  };
+    TEXTUREID id;
+    BaseTexture *data;
+  } texture;
   struct
   {
-    D3DRESID bufId;
-    Sbuffer *buf;
-  };
+    D3DRESID id;
+    Sbuffer *data;
+  } buffer;
   StVarValue() {}
 };
 

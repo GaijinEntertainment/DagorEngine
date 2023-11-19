@@ -439,6 +439,20 @@ class string : public eastl::string
 
 public:
   BINDUMP_ENABLE_STREAMING(string, eastl::string, string);
+
+  // GCC complains of ambiguous overload if we don't specify an
+  // operator overload for C strings. Might benefit Clang and
+  // MSVC if we just specify the overload as well.
+  string &operator=(const char* other)
+  {
+    eastl::string::operator=(other);
+    return *this;
+  }
+  string &operator=(char* other) noexcept
+  {
+    eastl::string::operator=(eastl::move(other));
+    return *this;
+  }
 };
 
 template <typename Type>

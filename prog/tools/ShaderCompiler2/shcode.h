@@ -115,14 +115,8 @@ public:
 
   union StVarValue
   {
-    struct
-    {
-      Color4 c4;
-    };
-    struct
-    {
-      IPoint4 i4;
-    };
+    Color4 c4;
+    IPoint4 i4;
     real r;
     int i;
     TEXTUREID texId;

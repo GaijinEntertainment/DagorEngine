@@ -107,8 +107,8 @@ bool Var::operator==(const Var &right) const
     case SHVT_REAL: return value.r == right.value.r;
     case SHVT_COLOR4: return value.c4 == right.value.c4;
     case SHVT_FLOAT4X4: return true;
-    case SHVT_BUFFER: return value.bufId == right.value.bufId;
-    case SHVT_TEXTURE: return value.texId == right.value.texId;
+    case SHVT_BUFFER: return value.buffer.id == right.value.buffer.id;
+    case SHVT_TEXTURE: return value.texture.id == right.value.texture.id;
     default: G_ASSERT(0);
   }
   return false;

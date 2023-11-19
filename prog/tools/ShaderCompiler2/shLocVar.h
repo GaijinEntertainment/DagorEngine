@@ -25,10 +25,7 @@ struct LocalVar
 public:
   union ConstValue
   {
-    struct
-    {
-      Color4 c;
-    };
+    Color4 c;
     real r;
     ConstValue() {}
     ConstValue(float r, float g, float b, float a) : c(r, g, b, a) {}
