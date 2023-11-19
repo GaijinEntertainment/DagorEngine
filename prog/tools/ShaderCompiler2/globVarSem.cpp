@@ -148,12 +148,12 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
         // default value is not supported
         break;
       case SHVT_BUFFER:
-        variable_list[v].value.bufId = BAD_D3DRESID;
-        variable_list[v].value.buf = NULL;
+        variable_list[v].value.buffer.id = BAD_D3DRESID;
+        variable_list[v].value.buffer.data = NULL;
         break;
       case SHVT_TEXTURE:
-        variable_list[v].value.texId = BAD_TEXTUREID;
-        variable_list[v].value.tex = NULL;
+        variable_list[v].value.texture.id = BAD_TEXTUREID;
+        variable_list[v].value.texture.data = NULL;
         break;
       default: G_ASSERT(0);
     }
