@@ -1,0 +1,148 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+
+texture taa_frame_tex;
+texture taa_history_tex;
+texture taa_was_dynamic;
+float4 reproject_psf_0;
+float4 reproject_psf_1;
+float4 reproject_psf_2;
+float4 reproject_psf_3;
+float4 taa_filter0;
+float4 taa_filter1;
+float4 taa_jitter_offset;
+float4 taa_display_resolution;
+float taa_filter2;
+float taa_clamping_gamma_factor;
+float taa_new_frame_weight;
+float taa_sharpening_factor;
+float taa_motion_difference_max_inv;
+float taa_motion_difference_max_weight;
+float taa_luminance_max;
+int taa_restart_temporal;
+
+float taa_end_frame_blur_weight = 0.4;
+float taa_new_frame_weight_for_motion;
+float taa_new_frame_weight_dynamic;
+float taa_new_frame_weight_dynamic_for_motion;
+float taa_new_frame_weight_motion_lerp0;
+float taa_new_frame_weight_motion_lerp1;
+
+shader taa
+{
+  cull_mode  = none;
+  z_test = false;
+  z_write = false;
+
+
+  DECL_POSTFX_TC_VS_SCR()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput antialiasing_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      //float2 inpos = input.pos.xy;
+      float2 inpos = get_fullscreen_inpos(vertexId);
+
+      output.pos = float4(inpos,0,1);
+      output.tc = inpos * RT_SCALE_HALF + float2(0.50000, 0.50000);
+
+      return output;
+    }
+  }
+
+  (ps)
+  {
+    jitter_offset@f2 = taa_jitter_offset;
+    upsampling_ratio@f2 = (taa_display_resolution.x/rendering_res.x, taa_display_resolution.y/rendering_res.y, 0, 0);
+    display_resolution@f4 = (taa_display_resolution.x, taa_display_resolution.y, 1/taa_display_resolution.x, 1/taa_display_resolution.y);
+    reprojectionMatrix@f44 = {reproject_psf_0, reproject_psf_1, reproject_psf_2, reproject_psf_3};
+    sceneTex@smp2d = taa_frame_tex;
+    historyTex@smp2d = taa_history_tex;
+    //taa_was_dynamic@smp2d = taa_was_dynamic;
+    taa_filter0@f4 = taa_filter0;
+    taa_filter1@f4 = taa_filter1;
+    taa_filter2@f4 = (taa_filter2, taa_motion_difference_max_inv, taa_motion_difference_max_weight, taa_restart_temporal);
+    taa_params@f4 = (taa_clamping_gamma_factor, taa_new_frame_weight, taa_sharpening_factor, taa_luminance_max);
+    taa_params1@f4 = (
+      1.0/(taa_end_frame_blur_weight - taa_new_frame_weight),
+      taa_new_frame_weight / (taa_end_frame_blur_weight - taa_new_frame_weight), -taa_new_frame_weight_motion_lerp0/taa_new_frame_weight_motion_lerp1, 1.0 / taa_new_frame_weight_motion_lerp1);
+    taa_params2@f4 = (taa_new_frame_weight, taa_new_frame_weight_for_motion, taa_new_frame_weight_dynamic, taa_new_frame_weight_dynamic_for_motion);
+    screen_size@f4 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0)
+  }
+
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  hlsl(ps) {
+    StructuredBuffer<float> Exposure : register(t7);
+
+    #define TAA_VARIANCE_CLIPPING 1
+    #define TAA_DISTANCE_FOR_VARIANCE_CLIPPING 8
+    //#define TAA_SAMPLER_OBJECT_MOTION some_sampler
+
+    #define TAA_RESTART_TEMPORAL_X taa_filter2.w
+    //if TAA_RESTART_TEMPORAL_X  is 1, we restart temporality weights
+    //#define TAA_USE_ANTI_FLICKER_FILTER_DISTANCE_START 4
+    //TemporalParams[0].x
+    #define TAA_CLAMPING_GAMMA taa_params.x
+    //#define TAA_NEW_FRAME_WEIGHT taa_params.y
+    #define TAA_SHARPENING_FACTOR taa_params.z
+    #define TAA_LUMINANCE_MAX taa_params.w
+
+    #define TAA_NEW_FRAME_WEIGHT taa_params2.x
+    #define TAA_FRAME_WEIGHT_BLUR_F0 taa_params1.x
+    #define TAA_FRAME_WEIGHT_BLUR_F1 taa_params1.y
+    #define TAA_NEW_FRAME_MOTION_WEIGHT_LERP_0 taa_params1.z
+    #define TAA_NEW_FRAME_MOTION_WEIGHT_LERP_1 taa_params1.w
+
+    #define TAA_MOTION_DIFFERENCE_MAX_INVERSE taa_filter2.y
+    #define TAA_MOTION_DIFFERENCE_MAX_WEIGHT taa_filter2.z
+    #define HAS_DYNAMIC 0
+    #define TAA_MOTION_DIFFERENCE 0
+    #define TAA_USE_OPTIMIZED_NEIGHBORHOOD 0
+
+    #include "temporalAA.hlsl"
+    struct MRT_TAA
+    {
+      float3 color: SV_Target0;
+    };
+    MRT_TAA antialiasing_ps(VsOutput input)
+    {
+      MRT_TAA ret;
+      float4 history;
+      TAAParams params;
+
+      params.depthUVTransform = float4(1, 1, 0, 0);
+      params.screenUV = input.tc;
+      params.reprojectionMatrix = reprojectionMatrix;
+      params.displayResolution = display_resolution.xy;
+      params.displayResolutionInverse = display_resolution.zw;
+      params.renderResolution = screen_size.xy;
+      params.renderResolutionInverse = screen_size.zw;
+      params.upsamplingRatio = upsampling_ratio;
+      params.jitterOffset = jitter_offset;
+      params.exposure = Exposure[0];
+
+      TAA(history.a, history.xyz, sceneTex, sceneTex_samplerstate, depth_gbuf_read, depth_gbuf_read_samplerstate,
+          historyTex, historyTex_samplerstate, params);
+      ret.color = history.xyz;
+
+      return ret;
+    }
+  }
+
+
+  compile("target_ps", "antialiasing_ps");
+  compile("target_vs", "antialiasing_vs");
+}

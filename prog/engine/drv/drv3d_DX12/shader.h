@@ -1362,6 +1362,8 @@ public:
 
   InternalInputLayoutID remapInputLayout(InputLayoutID id, uint32_t layout_mask)
   {
+    G_ASSERTF(externalToInternalMap.size() > id.get(), "dx12: trying to use invalid input layout ID %u registered layouts %u",
+      id.get(), externalToInternalMap.size());
     auto &e = externalToInternalMap[id.get()];
     auto ref = eastl::find_if(begin(e.mapTable), end(e.mapTable), [layout_mask](auto &value) { return value.mask == layout_mask; });
     if (end(e.mapTable) != ref)

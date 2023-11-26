@@ -985,12 +985,15 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
   Tab<ShaderVariant::ExtType> interval_link_table(tmpmem);
   ShaderGlobal::link(shaders.variable_list, shaders.intervals, global_var_link_table, interval_link_table);
 
+  Tab<int> smp_link_table;
+  Sampler::link(shaders.static_samplers, smp_link_table);
+
   // Link stcode, stblkcode.
   Tab<int> stcode_lnktbl(tmpmem);
   stcode_lnktbl.resize(shaderStcodeFromFile.size());
   for (int i = 0; i < shaderStcodeFromFile.size(); i++)
   {
-    bindumphlp::patchStCode(make_span(shaderStcodeFromFile[i]), global_var_link_table);
+    bindumphlp::patchStCode(make_span(shaderStcodeFromFile[i]), global_var_link_table, smp_link_table);
     stcode_lnktbl[i] = add_stcode(shaderStcodeFromFile[i]);
   }
 
@@ -1129,6 +1132,7 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
     compressed.dependency_files.emplace_back(files[i].c_str());
 
   shaders.variable_list = eastl::move(ShaderGlobal::getMutableVariableList());
+  shaders.static_samplers = eastl::move(g_samplers);
   shaders.intervals = eastl::move(ShaderGlobal::getMutableIntervalList());
   shaders.empty_block = eastl::move(ShaderStateBlock::getEmptyBlock());
   shaders.state_blocks = eastl::move(ShaderStateBlock::getBlocks());

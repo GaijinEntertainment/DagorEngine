@@ -61,9 +61,7 @@ enum
 
 HmapLandObjectEditor::LayersDlg::LayersDlg()
 {
-  G_STATIC_ASSERT(sizeof(wr) == sizeof(RECT));
   dlg = EDITORCORE->createDialog(_pxScaled(1000), _pxScaled(1080), "Object Layers");
-  ::GetWindowRect((HWND)dlg->getHandle(), (RECT *)&wr);
   dlg->setCloseHandler(this);
   dlg->showButtonPanel(false);
 }
@@ -80,8 +78,6 @@ void HmapLandObjectEditor::LayersDlg::show()
   const Tab<EditLayerProps> &layerProps = EditLayerProps::layerProps;
   const int *activeLayerIdx = EditLayerProps::activeLayerIdx;
 
-  ::SetWindowPos((HWND)dlg->getHandle(), NULL, wr[0], wr[1], 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE);
-  dlg->show();
   PropertyContainerControlBase &panel = *dlg->getPanel();
   panel.setEventHandler(this);
 
@@ -124,6 +120,10 @@ void HmapLandObjectEditor::LayersDlg::show()
   pPlgM.createButton(PID_ADD_PLG_LAYER, "add new layer");
 
 #undef BUILD_LP_CONTROLS
+
+  dlg->autoSize(/*auto_center = */ firstShow);
+  dlg->show();
+  firstShow = false;
 }
 void HmapLandObjectEditor::LayersDlg::hide()
 {
@@ -140,7 +140,6 @@ void HmapLandObjectEditor::LayersDlg::refillPanel()
 {
   if (dlg->isVisible())
   {
-    ::GetWindowRect((HWND)dlg->getHandle(), (RECT *)&wr);
     panelState.reset();
     dlg->getPanel()->saveState(panelState);
     panelState.setInt("pOffset", dlg->getScrollPos());
@@ -249,7 +248,6 @@ void HmapLandObjectEditor::LayersDlg::onClick(int pid, PropertyContainerControlB
 
   if (pid == -DIALOG_ID_CLOSE)
   {
-    ::GetWindowRect((HWND)dlg->getHandle(), (RECT *)&wr);
     HmapLandPlugin::self->onLayersDlgClosed();
     if (dlg->getPanel()->getChildCount())
     {
@@ -276,6 +274,7 @@ void HmapLandObjectEditor::LayersDlg::onClick(int pid, PropertyContainerControlB
       lptype = EditLayerProps::PLG;
 
     CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(135), "Add layer");
+    dialog->setInitialFocus(DIALOG_ID_NONE);
     PropPanel2 *dpan = dialog->getPanel();
     dpan->createEditBox(1, "Enter layer name:");
     dpan->setFocusById(1);

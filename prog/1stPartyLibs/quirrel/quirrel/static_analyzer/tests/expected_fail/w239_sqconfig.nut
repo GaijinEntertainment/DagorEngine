@@ -1,9 +1,9 @@
 //expect:w239
 
-::serverName <- require("sq3_sa_test").serverName
+::serverName <- require("empty.txt")?.serverName
 
 
-let function returnBoolFunctionName() { //-declared-never-used
+let function returnBoolFunctionName() { //-declared-never-used -all-paths-return-value
   if (::serverName == "")
     return
 

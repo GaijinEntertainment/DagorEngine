@@ -50,9 +50,17 @@ MemoryRequirementInfo RenderPassResource::getMemoryReq()
   return ret;
 }
 
+VkMemoryRequirements RenderPassResource::getSharedHandleMemoryReq()
+{
+  fatal("vulkan: no handle reuse for render pass");
+  return {};
+}
+
 void RenderPassResource::bindMemory() {}
 
 void RenderPassResource::reuseHandle() { fatal("vulkan: no handle reuse for render pass"); }
+
+void RenderPassResource::releaseSharedHandle() { fatal("vulkan: no handle reuse for render pass"); }
 
 void RenderPassResource::evict() { fatal("vulkan: render pass are not evictable"); }
 

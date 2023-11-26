@@ -64,7 +64,8 @@ UseMemoryDebugLevel = off ;
 CPPopt = -DBINDUMP_TARGET_BE=0 -DIS_OFFLINE_SHADER_COMPILER=1 ;
 if $(Platform) in win32 win64 { VCMathOption = -fp:precise ; }
 
-if [ GLOB $(Root)/prog/tools/ShaderCompiler2/ps4transcode :  jamfile ] {
+if [ GLOB $(_DEVTOOL)/ps4.sdk.$(PS4SdkVer) : * ] && [ GLOB $(Root)/prog/tools/ShaderCompiler2/ps4transcode :  jamfile ] {
+
   Sources +=
     pssl.cpp
     ps5.cpp

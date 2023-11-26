@@ -1,0 +1,76 @@
+include "sky_shader_global.dshl"
+include "viewVecVS.dshl"
+include "panorama.dshl"
+include "clouds_sun_light.dshl"
+include "skies_special_vision.dshl"
+include "use_strata_clouds.dshl"
+
+shader strata_clouds//, strata_clouds_panorama
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=true;
+  blend_src = sa; blend_dst = isa;
+  blend_asrc = 0; blend_adst = 1;
+
+  CLOUDS_SUN_SKY_LIGHT_COLOR(ps)
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 viewVect     : TEXCOORD0;
+      float3 screentc     : TEXCOORD1;
+    };
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  USE_SPECIAL_VISION()
+  if (shader == strata_clouds_panorama)
+  {
+    (vs) { tc_pos_ofs@f4 = panoramaTC; }
+    (ps) { tc_pos_ofs@f4 = panoramaTC; skies_panorama_mu_horizon@f1 = (skies_panorama_mu_horizon);}
+  } else
+  {
+    SKY_HDR()
+    USE_AND_INIT_VIEW_VEC_VS()
+  }
+
+  hlsl(vs) {
+
+    VsOutput clouds_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos, 0, 1);
+      output.viewVect = get_view_vec_by_vertex_id(vertex_id);
+      output.screentc = output.pos.xyw;
+      return output;
+    }
+  }
+
+
+  BRUNETON_FOG()
+  GET_ATMO(ps)
+  (ps) {
+    skies_world_view_pos@f3 = skies_world_view_pos;
+    skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
+  }
+  USE_STRATA_CLOUDS(ps)
+
+  hlsl(ps) {
+    half4 clouds_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      float3 viewVect = input.viewVect;
+
+      half4 result = get_strata_clouds(normalize(viewVect), input.screentc.xy/input.screentc.z*float2(0.5, -0.5) + 0.5);
+      clip(result.a);
+      applySpecialVision(result);
+      return half4(pack_hdr(result.rgb).rgb, result.a);
+    }
+  }
+
+  compile("target_vs", "clouds_vs");
+  compile("target_ps", "clouds_ps");
+}

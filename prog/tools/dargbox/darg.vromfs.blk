@@ -1,6 +1,6 @@
-output_PC:t ="../../../tools/dargbox/darg.vromfs.bin"
-output_and:t ="../../../tools/dargbox/darg.and.vromfs.bin"
-output_iOS:t ="../../../tools/dargbox/darg.iOS.vromfs.bin"
+output_PC:t ="../../../tools/dargBox/darg.vromfs.bin"
+output_and:t ="../../../tools/dargBox/darg.and.vromfs.bin"
+output_iOS:t ="../../../tools/dargBox/darg.iOS.vromfs.bin"
 pack:b=true
 
 allowMkDir:b=yes

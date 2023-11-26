@@ -1215,7 +1215,7 @@ VECTORCALL VECMATH_FINLINE vec3f v_quat_mul_vec3(quat4f q, vec3f v)
   return v_add(v, v_madd(v_splat_w(q), t, v_cross3(q, t)));//v + q.w * t + v_cross3(q.xyz, t);
 }
 
-#if _TARGET_SIMD_VMX|_TARGET_SIMD_SPU|_TARGET_SIMD_SSE
+#if _TARGET_SIMD_SSE
 VECTORCALL VECMATH_FINLINE quat4f v_un_quat_from_mat(vec3f col0, vec3f col1, vec3f col2)
 {
   vec4f xx_yy, xx_yy_zz_xx, yy_zz_xx_yy, zz_xx_yy_zz, diagSum, diagDiff;
@@ -1226,15 +1226,9 @@ VECTORCALL VECMATH_FINLINE quat4f v_un_quat_from_mat(vec3f col0, vec3f col1, vec
   quat4f res;
 
   xx_yy = v_perm_xbzw(col0, col1);
-#if _TARGET_SIMD_VMX|_TARGET_SIMD_SPU
-  xx_yy_zz_xx = v_perm_xycx(xx_yy, col2);
-  yy_zz_xx_yy = v_perm_ycxy(xx_yy, col2);
-  zz_xx_yy_zz = v_perm_cxyc(xx_yy, col2);
-#elif _TARGET_SIMD_SSE
   xx_yy_zz_xx = v_perm_xycw(_mm_shuffle_ps(xx_yy, xx_yy, _MM_SHUFFLE(0,0,1,0)), col2);
   yy_zz_xx_yy = _mm_shuffle_ps(xx_yy_zz_xx, xx_yy_zz_xx, _MM_SHUFFLE(1,0,2,1));
   zz_xx_yy_zz = _mm_shuffle_ps(xx_yy_zz_xx, xx_yy_zz_xx, _MM_SHUFFLE(2,1,0,2));
-#endif
 
   diagSum = v_add(v_add(xx_yy_zz_xx, yy_zz_xx_yy), zz_xx_yy_zz );
   diagDiff = v_sub(v_sub(xx_yy_zz_xx, yy_zz_xx_yy), zz_xx_yy_zz );
@@ -1268,7 +1262,7 @@ VECTORCALL VECMATH_FINLINE quat4f v_un_quat_from_mat(vec3f col0, vec3f col1, vec
   zz = v_splat_z(col2);
   res = v_sel(res0, res1, v_cmp_gt(yy, xx));
   res = v_sel(res, res2, v_and(v_cmp_gt(zz, xx), v_cmp_gt(zz, yy)));
-  return v_sel(res, res3, v_cmp_gt(v_splat_x(diagSum), v_zero()));
+  return v_sel(res, res3, v_cmp_ge(v_splat_x(diagSum), v_zero()));
 }
 #endif
 VECTORCALL VECMATH_FINLINE quat4f v_un_quat_from_mat3(mat33f_cref m)
@@ -1524,10 +1518,11 @@ VECTORCALL VECMATH_FINLINE void v_mat33_decompose(mat33f_cref tm, quat4f &rot, v
   if (v_test_vec_x_lt_0(v_mat33_det(tm)))
     scl = v_perm_xycw(scl, v_neg(scl));
 
+  vec3f invScl = v_rcp_safe(scl);
   rot = v_un_quat_from_mat(
-    v_div(tm.col0, v_splat_x(scl)),
-    v_div(tm.col1, v_splat_y(scl)),
-    v_div(tm.col2, v_splat_z(scl)));
+    v_mul(tm.col0, v_splat_x(invScl)),
+    v_mul(tm.col1, v_splat_y(invScl)),
+    v_mul(tm.col2, v_splat_z(invScl)));
   rot = v_norm4(rot);
 }
 
@@ -1541,10 +1536,11 @@ VECTORCALL VECMATH_FINLINE void v_mat4_decompose(mat44f_cref tm, vec3f &pos, qua
   if (v_test_vec_x_lt_0(v_mat44_det43(tm)))
     scl = v_perm_xycw(scl, v_neg(scl));
 
+  vec3f invScl = v_rcp_safe(scl);
   rot = v_un_quat_from_mat(
-    v_div(tm.col0, v_splat_x(scl)),
-    v_div(tm.col1, v_splat_y(scl)),
-    v_div(tm.col2, v_splat_z(scl)));
+    v_mul(tm.col0, v_splat_x(invScl)),
+    v_mul(tm.col1, v_splat_y(invScl)),
+    v_mul(tm.col2, v_splat_z(invScl)));
   rot = v_norm4(rot);
 }
 

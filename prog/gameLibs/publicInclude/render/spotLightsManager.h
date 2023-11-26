@@ -7,12 +7,12 @@
 
 #include "spotLight.h"
 #include <vecmath/dag_vecMathDecl.h>
+#include <generic/dag_bitset.h>
 #include <generic/dag_tabFwd.h>
 #include <generic/dag_staticTab.h>
 #include <generic/dag_carray.h>
 #include <math/dag_hlsl_floatx.h>
 #include "renderLights.hlsli"
-#include <EASTL/bitset.h>
 
 #include <render/iesTextureManager.h>
 
@@ -172,9 +172,9 @@ public:
   bool isLightNonOptimized(int id) { return nonOptLightIds.test(id); }
   bool tryGetNonOptimizedLightId(int &id)
   {
-    if (nonOptLightIds.any())
+    if (int tId = nonOptLightIds.find_first(); tId != nonOptLightIds.kSize)
     {
-      id = nonOptLightIds.find_first();
+      id = tId;
       return true;
     }
     return false;
@@ -200,7 +200,7 @@ private:
   carray<mask_type_t, MAX_LIGHTS> masks; //-V730_NOINIT
 
   StaticTab<uint16_t, MAX_LIGHTS> freeLightIds; //-V730_NOINIT
-  eastl::bitset<MAX_LIGHTS> nonOptLightIds;
+  Bitset<MAX_LIGHTS> nonOptLightIds;
   IesTextureCollection *photometryTextures = nullptr;
   int maxLightIndex = -1;
 };

@@ -1401,6 +1401,11 @@ SQCOMPILERERROR sq_getcompilererrorhandler(HSQUIRRELVM v)
     return _ss(v)->_compilererrorhandler;
 }
 
+void sq_setcompilerdiaghandler(HSQUIRRELVM v, SQ_COMPILER_DIAG_CB f)
+{
+    _ss(v)->_compilerdiaghandler = f;
+}
+
 
 SQRESULT sq_writeclosure(HSQUIRRELVM v,SQWRITEFUNC w,SQUserPointer up)
 {
@@ -1876,12 +1881,12 @@ bool sq_loadanalyzerconfigblk(const KeyValueFile &config) {
   return SQCompilationContext::loadConfigFile(config);
 }
 
-bool sq_switchdiagnosticstate_t(const char *diagId, bool state) {
-  return SQCompilationContext::switchDiagnosticState(diagId, state);
+bool sq_setdiagnosticstatebyname(const char *diagId, bool state) {
+  return SQCompilationContext::enableWarning(diagId, state);
 }
 
-bool sq_switchdiagnosticstate_i(int32_t id, bool state) {
-  return SQCompilationContext::switchDiagnosticState(id, state);
+bool sq_setdiagnosticstatebyid(int32_t id, bool state) {
+  return SQCompilationContext::enableWarning(id, state);
 }
 
 void sq_invertwarningsstate() {
@@ -1892,16 +1897,12 @@ void sq_printwarningslist(FILE *ostream) {
   SQCompilationContext::printAllWarnings(ostream);
 }
 
-void sq_disablesyntaxwarnings() {
-  SQCompilationContext::switchSyntaxWarningsState(false);
-}
-
-void sq_enablesyntaxwarnings() {
-  SQCompilationContext::switchSyntaxWarningsState(true);
+void sq_enablesyntaxwarnings(bool on) {
+  SQCompilationContext::switchSyntaxWarningsState(on);
 }
 
 void sq_checkglobalnames(HSQUIRRELVM v) {
-  StaticAnalyzer::reportGlobalNameDiagnostics(v);
+  StaticAnalyzer::reportGlobalNamesWarnings(v);
 }
 
 void sq_mergeglobalnames(const HSQOBJECT *bindings) {

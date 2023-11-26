@@ -33,8 +33,10 @@ public:
   void destroyVulkanObject();
   void createVulkanObject();
   MemoryRequirementInfo getMemoryReq();
+  VkMemoryRequirements getSharedHandleMemoryReq();
   void bindMemory();
   void reuseHandle();
+  void releaseSharedHandle();
   void evict();
   void restoreFromSysCopy();
   bool isEvictable();

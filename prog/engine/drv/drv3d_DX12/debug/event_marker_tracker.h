@@ -1,7 +1,10 @@
 #pragma once
 
-#include <EASTL/unordered_set.h>
 #include <EASTL/string.h>
+
+#include <ska_hash_map/flat_hash_map2.hpp>
+#include <util/dag_oaHashNameMap.h>
+#include <dag/dag_vector.h>
 
 
 namespace drv3d_dx12::debug::event_marker
@@ -12,80 +15,80 @@ class Tracker
 {
   static constexpr char separator = '/';
 
-  using NameTableType = eastl::unordered_set<eastl::string>;
+  OAHashNameMap<false> nameTable;
+  using FullPathIdx = uint32_t;
+  using NameIdx = uint32_t;
+  const uint32_t INVALID_IDX = ~0u;
   struct EventPathEntry
   {
-    const EventPathEntry *parent = nullptr;
-    const eastl::string *name = nullptr;
-    // We keep a persistent copy of the full path for systems that rely on this, like Nvidia Aftermath
-    mutable eastl::string fullPath;
-
+    FullPathIdx parent;
+    NameIdx name;
     friend bool operator==(const EventPathEntry &l, const EventPathEntry &r) { return l.parent == r.parent && l.name == r.name; }
   };
+  dag::Vector<EventPathEntry> pathTable;
+  dag::Vector<eastl::string> fullpathTable;
+
   struct EventPathEntryHasher
   {
-    size_t operator()(const EventPathEntry &e) const
-    {
-      auto parentPtr = reinterpret_cast<uintptr_t>(e.parent);
-      auto namePtr = reinterpret_cast<uintptr_t>(e.name);
-      return eastl::hash<uintptr_t>{}(parentPtr ^ namePtr);
-    }
+    size_t operator()(const EventPathEntry &e) const { return eastl::hash<uintptr_t>{}((e.parent << 16) | e.name); }
   };
-  using PathTableType = eastl::unordered_set<EventPathEntry, EventPathEntryHasher>;
-  NameTableType nameTable;
-  PathTableType pathTable;
-  const EventPathEntry *currentPath = nullptr;
-  const eastl::string *lastMarker = nullptr;
+
+  ska::flat_hash_map<EventPathEntry, FullPathIdx, EventPathEntryHasher> pathLookup;
+  FullPathIdx currentPath = INVALID_IDX;
+  NameIdx lastMarker = INVALID_IDX;
 
 public:
   eastl::string_view beginEvent(eastl::string_view name)
   {
-    auto stringRef = nameTable.emplace(name.data(), name.length()).first;
+    NameIdx nameId = nameTable.addNameId(name.data(), name.length());
 
-    EventPathEntry path;
-    path.parent = currentPath;
-    path.name = &*stringRef;
+    const EventPathEntry previousEntry = {currentPath, nameId};
 
-    auto [pathRef, wasNew] = pathTable.insert(path);
-    // create full path only on new entry
-    if (wasNew)
+    if (pathLookup.find(previousEntry) == pathLookup.end())
     {
-      if (currentPath)
+      currentPath = pathTable.size();
+      pathTable.push_back(previousEntry);
+      pathLookup[previousEntry] = currentPath;
+      if (previousEntry.parent != INVALID_IDX)
       {
-        pathRef->fullPath.reserve(currentPath->fullPath.length() + 1 + name.length());
-        pathRef->fullPath.assign(begin(currentPath->fullPath), end(currentPath->fullPath));
-        pathRef->fullPath.push_back(separator);
-        pathRef->fullPath.append(begin(name), end(name));
+        fullpathTable.resize(pathTable.size());
+        fullpathTable.back().reserve(fullpathTable[previousEntry.parent].length() + 1 + name.length());
+        fullpathTable.back().assign(fullpathTable[previousEntry.parent].data(), fullpathTable[previousEntry.parent].length());
+        fullpathTable.back().push_back(separator);
       }
       else
       {
-        pathRef->fullPath.assign(begin(name), end(name));
+        fullpathTable.resize(pathTable.size());
+        fullpathTable.back().assign(name.data(), name.length());
       }
     }
-    currentPath = &*pathRef;
+    else
+    {
+      currentPath = pathLookup[previousEntry];
+    }
 
-    return {currentPath->name->data(), currentPath->name->length()};
+    return {nameTable.getName(nameId), name.length()};
   }
 
   void endEvent()
   {
-    if (currentPath)
+    if (currentPath != INVALID_IDX)
     {
-      currentPath = currentPath->parent;
+      currentPath = pathTable[currentPath].parent;
     }
   }
 
   eastl::string_view marker(eastl::string_view name)
   {
-    lastMarker = &*nameTable.emplace(name.data(), name.length()).first;
-    return {lastMarker->data(), lastMarker->length()};
+    lastMarker = nameTable.addNameId(name.data(), name.length());
+    return {nameTable.getName(lastMarker), name.length()};
   }
 
   eastl::string_view currentEventPath() const
   {
-    if (currentPath)
+    if (currentPath != INVALID_IDX)
     {
-      return {currentPath->fullPath.data(), currentPath->fullPath.length()};
+      return {fullpathTable[currentPath].data(), fullpathTable[currentPath].length()};
     }
     else
     {
@@ -95,9 +98,13 @@ public:
 
   eastl::string_view currentEvent() const
   {
-    if (currentPath)
+    if (currentPath != INVALID_IDX)
     {
-      return {currentPath->name->data(), currentPath->name->length()};
+      const uint32_t nameId = pathTable[currentPath].name;
+      const char *eventName = nameTable.getName(nameId);
+      if (!eventName)
+        return {};
+      return {eventName, strlen(eventName)};
     }
     else
     {
@@ -107,9 +114,12 @@ public:
 
   eastl::string_view currentMarker() const
   {
-    if (lastMarker)
+    if (lastMarker != INVALID_IDX)
     {
-      return {lastMarker->data(), lastMarker->length()};
+      const char *markerName = nameTable.getName(lastMarker);
+      if (!markerName)
+        return {};
+      return {markerName, strlen(markerName)};
     }
     else
     {

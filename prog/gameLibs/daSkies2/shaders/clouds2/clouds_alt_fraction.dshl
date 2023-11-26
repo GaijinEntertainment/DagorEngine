@@ -1,0 +1,71 @@
+include "clouds_hole_pos_tex.dshl"
+
+float4 clouds_origin_offset;
+float clouds_start_altitude2;
+float clouds_thickness2;
+float strata_clouds_altitude = 10;
+float strata_clouds_effect = 1;
+float global_clouds_sigma = -0.12;
+
+macro TOTAL_CLOUDS_MIN_MAX()
+  local float strata_clouds_altitude_eff = strata_clouds_altitude*strata_clouds_effect + clouds_start_altitude2*(1-strata_clouds_effect);
+  local float minCloudsAlt = min(strata_clouds_altitude_eff, clouds_start_altitude2);
+  local float maxCloudsThickness = max(max(strata_clouds_altitude_eff-minCloudsAlt, clouds_thickness2+clouds_start_altitude2-minCloudsAlt), 0.0001);
+endmacro
+macro SIMPLIFIED_CLOUDS_ALT_FRACTION(code)
+  (code) {
+    earth_center_thickness_fast@f4 = (0.001/clouds_thickness2, -clouds_start_altitude2/clouds_thickness2, 0.001/clouds_thickness2, -(skies_planet_radius + clouds_start_altitude2)/clouds_thickness2);
+  }
+  hlsl(code) {
+    float simplified_alt_fraction_in_clouds_y(float pY)
+    {
+      return (pY*earth_center_thickness_fast.x + earth_center_thickness_fast.y);//(p.y - earth_center_thickness.y)*earth_center_thickness.w assuming it is not curving = ;//assuming it is not curving
+    }
+    float simplified_alt_fraction_in_clouds(float3 p)
+    {
+      return simplified_alt_fraction_in_clouds_y(p.y);
+    }
+  }
+endmacro
+
+macro CLOUDS_ALT_FRACTION(code, clouds_view_pos)
+  USE_CLOUDS_HOLE_POS_TEX(code)
+  SIMPLIFIED_CLOUDS_ALT_FRACTION(code)
+  (code) {
+    earth_center_thickness@f4 = (clouds_view_pos.x, -skies_planet_radius*1000, clouds_view_pos.z, 0.001/clouds_thickness2);
+  }
+  hlsl(code) {
+    float precise_alt_fraction_in_clouds(float3 p)
+    {
+      return length(p - (earth_center_thickness.xyz + get_clouds_hole_pos_vec()))*earth_center_thickness_fast.z + earth_center_thickness_fast.w;//exact solution is length(pos +float3(0,planet_radius,0) - float3(0,planet_radius,0))/cloud_thickness
+    }
+
+    float precise_alt_fraction_in_clouds_with_hole(float3 p, float3 clouds_hole_pos_vec)
+    {
+      return length(p - (earth_center_thickness.xyz + clouds_hole_pos_vec))*earth_center_thickness_fast.z + earth_center_thickness_fast.w;//exact solution is length(pos +float3(0,planet_radius,0) - float3(0,planet_radius,0))/cloud_thickness
+    }
+
+    float alt_fraction_in_clouds_with_hole(float3 p, float3 clouds_hole_pos_vec)
+    {
+      //exact solution is slower, but clouds going to horizon, otherwise they disappear earlier due to alt fraction
+      //in taa/on screen case we instead use linear-step approximation
+      #if SIMPLIFIED_ALT_FRACTION
+        return simplified_alt_fraction_in_clouds(p);
+      #else
+        return precise_alt_fraction_in_clouds_with_hole(p, clouds_hole_pos_vec);
+      #endif
+    }
+
+    float alt_fraction_in_clouds(float3 p)
+    {
+      //exact solution is slower, but clouds going to horizon, otherwise they disappear earlier due to alt fraction
+      //in taa/on screen case we instead use linear-step approximation
+      #if SIMPLIFIED_ALT_FRACTION
+        return simplified_alt_fraction_in_clouds(p);
+      #else
+        return precise_alt_fraction_in_clouds(p);
+      #endif
+    }
+  }
+endmacro
+

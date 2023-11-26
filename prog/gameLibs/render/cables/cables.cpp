@@ -173,15 +173,14 @@ void Cables::destroyCables()
     tiledArea.grid.size(), cables.size(), destroyedRIExtra.size());
   for (RIExtraInfo &riex : destroyedRIExtra)
   {
-    TMatrix tm = riex.tm;
     mat44f riTm;
     bbox3f riBBox;
-    v_mat44_make_from_43cu_unsafe(riTm, tm.array);
+    v_mat44_make_from_43cu_unsafe(riTm, riex.tm.array);
     v_bbox3_init(riBBox, riTm, v_ldu_bbox3(riex.box));
     G_ASSERT_CONTINUE(!isnan(v_extract_x(riBBox.bmin)) && !isnan(v_extract_x(riBBox.bmax)) && !isnan(v_extract_z(riBBox.bmin)) &&
                       !isnan(v_extract_z(riBBox.bmax)));
     // inverse matrix usage is more accurate, but seems it works well as is
-    // TMatrix invTm = inverse(tm);
+    // TMatrix invTm = inverse(riex.tm);
     int i_start = max<int>((v_extract_x(riBBox.bmin) - tiledArea.gridBoundMin.x) / tiledArea.tileSize.x, 0);
     int i_end = min<int>((v_extract_x(riBBox.bmax) - tiledArea.gridBoundMin.x) / tiledArea.tileSize.x + 1, tiledArea.gridSize.x);
     int j_start = max<int>((v_extract_z(riBBox.bmin) - tiledArea.gridBoundMin.y) / tiledArea.tileSize.y, 0);
@@ -194,7 +193,7 @@ void Cables::destroyCables()
         {
           CablePointInfo &info = tiledArea.cables_points[tile.start + k];
           float4 &point = info.cableEnd ? cables[info.cableIndex].point2_sag : cables[info.cableIndex].point1_rad;
-          // Point3 localPoint = invTm % (Point3::xyz(point) - tm.getcol(3));
+          // Point3 localPoint = invTm % (Point3::xyz(point) - riex.tm.getcol(3));
           // if (riex.box & localPoint)
           if (v_bbox3_test_pt_inside(riBBox, v_ldu(&point.x)))
             setCable(info.cableIndex, Point3(0, 0, 0), Point3(0, 0, 0), 0, 0);

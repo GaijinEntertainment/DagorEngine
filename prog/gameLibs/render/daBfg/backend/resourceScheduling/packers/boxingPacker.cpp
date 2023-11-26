@@ -839,7 +839,7 @@ private:
     TimePoint left, right;
 
     // Important: this does not include end points!
-    bool openIntervalContains(TimePoint x) const { return left < x && x < right || (left >= right && (x < right || left < x)); }
+    bool openIntervalContains(TimePoint x) const { return (left < x && x < right) || (left >= right && (x < right || left < x)); }
 
     friend __forceinline bool operator==(const Segment &fst, const Segment &snd)
     {
@@ -967,7 +967,7 @@ private:
 
   static __forceinline bool jobAliveAt(Job job, TimePoint x)
   {
-    return job.left <= x && x < job.right || (job.left >= job.right && (x < job.right || job.left <= x));
+    return (job.left <= x && x < job.right) || (job.left >= job.right && (x < job.right || job.left <= x));
   }
 
   void boxAliveAtT(const eastl::span<const JobIndex> alive_job_idxs, const TimePoint crit_point, FmemVector<JobIndex> &out_unresolved)

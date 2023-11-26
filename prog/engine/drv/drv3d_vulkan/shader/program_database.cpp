@@ -247,10 +247,10 @@ void ShaderProgramDatabase::deleteShader(DeviceContext &ctx, ShaderID shader)
   shaders.remove(ctx, shader);
 }
 
-void ShaderProgramDatabase::init(DeviceContext &ctx)
+void ShaderProgramDatabase::init(bool has_bindless, DeviceContext &ctx)
 {
   initShaders(ctx);
-  initDebugProg(ctx);
+  initDebugProg(has_bindless, ctx);
   // set debug prog to states, unset shader is an error
   ctx.getFrontend().pipelineState.set<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>(debugProgId);
 }

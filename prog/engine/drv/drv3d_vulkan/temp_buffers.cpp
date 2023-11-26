@@ -20,7 +20,7 @@ BufferSubAllocation TempBufferManager::allocate(Device &device, uint32_t unalign
   auto ref = eastl::find_if(begin(buffers), end(buffers),
     [=](const TempBufferInfo &info) //
     {
-      auto space = info.buffer->dataSize() - info.fill;
+      auto space = info.buffer->getBlockSize() - info.fill;
       return space >= size;
     });
   if (ref == end(buffers))

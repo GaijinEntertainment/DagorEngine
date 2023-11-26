@@ -605,17 +605,6 @@ int d3d::driver_command(int command, void *par1, void *par2, void *par3)
       return secondary_backbuffer_color_tex ? 1 : 0;
     }
 
-    case DRV3D_COMMAND_GET_RESOLUTION:
-    {
-      if (par1 && par2)
-      {
-        *((int *)par1) = resolution.x;
-        *((int *)par2) = resolution.y;
-        return 1;
-      }
-      return 0;
-    }
-
     case DRV3D_COMMAND_OVERRIDE_MAX_ANISOTROPY_LEVEL:
     {
       override_max_anisotropy_level = (int)(intptr_t)par1; //-V542

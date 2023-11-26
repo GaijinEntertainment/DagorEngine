@@ -1,0 +1,307 @@
+include "clouds_weather.dshl"
+include "clouds_erosion_lut.dshl"
+include "clouds_alt_fraction.dshl"
+
+texture gen_cloud_shape;
+texture gen_cloud_detail;
+texture clouds_curl_2d;
+texture clouds_weather_texture;
+float4 clouds_wind_alt_gradient;
+float clouds_erosion_noise_tile_size = 811;
+float4 clouds_erosion_noise_wind_ofs;//this creates 'evolution' of noise, as erosion noise starts to scroll through clouds.
+int clouds_shape_scale = 8;
+int clouds_cumulonimbus_shape_scale = 4;
+int clouds_turbulence_freq=4;
+float clouds_turbulence_scale = 0.21;
+
+float clouds_extinction_low_val = 1;//not used - assumed 1
+float clouds_extinction_high_mul = 1;//not used - assumed 1
+
+float clouds_second_layer_density = 0.25;
+float clouds_first_layer_density = 1.;
+
+macro SAMPLE_CLOUDS_DENSITY_COMMON(code, clouds_view_pos)
+  (code) {
+    gen_cloud_detail@smp3d = gen_cloud_detail;
+    //clouds_extinction_low_val clouds_extinction_high_mul are not used or rather assumed 1,1 - so it is's just one madd
+    global_clouds_sigma@f1 = (global_clouds_sigma*1.44269504089, clouds_extinction_low_val, clouds_extinction_high_mul, 0);//1.44269504089 - is log2(e)
+    //clouds_wind_alt_gradient@f2 = (clouds_wind_alt_gradient);
+    clouds_erosion_offset@f4 = (clouds_erosion_noise_wind_ofs.x/clouds_erosion_noise_tile_size, clouds_erosion_noise_wind_ofs.z/clouds_erosion_noise_tile_size, 65536*1./clouds_erosion_noise_tile_size, 1./clouds_erosion_noise_tile_size);
+    weather_size@f4 = (clouds_weather_size, 1./clouds_weather_size,clouds_shape_scale/clouds_weather_size,clouds_cumulonimbus_shape_scale/clouds_weather_size);//clouds_cumulonimbus_shape_scale
+    //clouds_alt_thickness@f2 = (clouds_thickness2*1000, clouds_start_altitude2*1000,0,0);
+    //clouds_curl_3d@smp3d = clouds_curl_3d;
+  }
+  EROSION_HEIGHT_MATH(code)
+  hlsl(code) {
+    #define CLOUDS_SIGMA (global_clouds_sigma.x)
+    #define CLOUD_SHAPE_METERS_SCALE (weather_size.z)
+    #define WEATHER_SIZE (weather_size.x)
+    #define INV_WEATHER_SIZE (weather_size.y)
+
+
+    #define CLOUD_CURL_METERS_SCALE (1./1311)
+    #include <cloud_settings.hlsli>
+    #include <common_functions.hlsl>
+    #include <fast_shader_lib.hlsl>
+    #define CLOUDS_TRANSMITTANCE_THRESHOLD 0.005
+    float remap(float originalValue, float originalMin, float originalMax, float newMin, float newMax)
+    {
+      return newMin + (((originalValue - originalMin) / (originalMax - originalMin)) * (newMax - newMin));
+    }
+    float remap_shape_coverage(float shape, float coverage)//same as remap(shape, 1-coverage,1,0,1)
+    {
+      return (shape-1+coverage)/coverage;
+    }
+    float applyErosion(float3 p, float heightFraction, float density, float erosion_level_global, float lod)
+    {
+      float baseDensity = density;
+      BRANCH
+      if (erosion_level_global>0 && density>0)
+      {
+        float3 clouds_detail_sampling_coord = float3(p.xz*clouds_erosion_offset.w + clouds_erosion_offset.xy, p.y*clouds_erosion_offset.w).xzy;
+        //this enhances quality
+        //float2 curl_ofs = decode_curl(tex3Dlod(clouds_curl_3d, float4(clouds_detail_sampling_coord.zxy*0.27, 0)).xy);
+        //clouds_detail_sampling_coord.xy += curl_ofs*0.15*saturate(1.1-heightFraction);
+        float highFreqNoiseModifier = tex3Dlod(gen_cloud_detail, float4(clouds_detail_sampling_coord, lod)).x;
+        highFreqNoiseModifier *= erosion_level_global*erosionFunctionMath(heightFraction, density);
+        density = saturate((density-highFreqNoiseModifier)*rcp(1-highFreqNoiseModifier));
+      }
+      //return density*saturate(fastSqrtNR0(baseDensity));//this is how it was from dawn of daSkies2
+      //return density;//this is the harshest, would probably require decreasing extinction
+      return density*saturate(baseDensity*2 + 0.25);//this still ease out a bit at zero, while converges to harshest one at density ~0.4
+    }
+  }
+endmacro
+
+macro SAMPLE_CLOUDS_DENSITY_MATH(code, clouds_view_pos)
+  SAMPLE_CLOUDS_DENSITY_COMMON(code, clouds_view_pos)
+  (code) {
+    gen_cloud_shape@smp3d = gen_cloud_shape;
+    //gen_curl_clouds@smp2d = gen_curl_clouds;
+    clouds_curl_2d@smp2d = clouds_curl_2d;
+    clouds_weather_texture@smp2d = clouds_weather_texture;
+    clouds_turbulence@f4 = (clouds_turbulence_freq, clouds_turbulence_scale/clouds_turbulence_freq, clouds_first_layer_density, clouds_second_layer_density);
+  }
+  DENSITY_HEIGHT_GRADIENT_TEXTURE(code)
+  hlsl(code) {
+    #define CLOUDS_PREBAKED_FIELD 0
+    #define DENSITY_LAYER1 (clouds_turbulence.z)
+    #define DENSITY_LAYER2 (clouds_turbulence.w)
+    float2 get_pseudo_3d_curl(float3 curlTC)
+    {
+      float fIndex = floor(curlTC.z*16);
+      return
+        lerp(
+          tex2Dlod(clouds_curl_2d, float4(curlTC.xy+fIndex*0.125, 0,0)).xy,
+          tex2Dlod(clouds_curl_2d, float4(curlTC.xy+fIndex*0.125+0.125, 0,0)).xy,
+          //tex2Dlod(clouds_curl_2d, float4(curlTC.xy+curl_offsets[index], 0,0)).xy,
+          //tex2Dlod(clouds_curl_2d, float4(curlTC.xy+curl_offsets[(index+1)&3], 0,0)).xy,
+          frac(curlTC.z*16));
+    }
+    float sampleCloudDensityMath(float3 p, float lod, float heightFraction) {
+      //skew clouds in direction of wind.
+      //solved for (0:0), (0.25:0.20), (0.6:0.9), (1:1)
+      //float ef = ((-4.333333333*heightFraction + 5.683333333)*heightFraction - 0.35)*heightFraction - 4.440892099e-14;
+      //p.xz += ef*clouds_wind_alt_gradient;//the cost is 0.2 msec on XB1, but we bake/lut it, so np. However, I am not happy with result
+
+      float2 weatherUV = p.xz*INV_WEATHER_SIZE + 0.5;
+      float4 weather_data = tex2Dlod(clouds_weather_texture, float4(weatherUV, 0, 0));
+      float cloud_coverage1 = weather_data.r;
+      float cloud_coverage2 = weather_data.g;
+      //BRANCH
+      //if (cloud_coverage1 + cloud_coverage2 == 0)//this branch only helps when there is almost no clouds
+      //  return 0;
+      float base_cloud_type = weather_data.b;
+
+      //this is to exactly match prebaked field. We don't need it, as we use non prebaked for panorama only
+      //p.y = heightFraction * clouds_alt_thickness.x + clouds_alt_thickness.y;
+
+      float cumuloNimbusStr = saturate(base_cloud_type*4-2);
+      float notCumuloNimbusCloudStr = 1-cumuloNimbusStr;
+      float cloud_shape = 0;
+      //BRANCH
+      //if (notCumuloNimbusCloudStr > 0)
+      {
+        float3 clouds_shape_sampling_coord = (p*CLOUD_SHAPE_METERS_SCALE).xzy;
+        float turbulenceZ = 0.000041;
+        float3 curlTC = float3(clouds_turbulence.x*weatherUV, p.y*turbulenceZ);
+        float2 curl_noise;
+        curl_noise = get_pseudo_3d_curl(curlTC);// in rdr2, they use only pseudo 3d curl, with very high curl_freq_scale (like ~27)
+        //curl_noise = tex2Dlod(clouds_curl_2d, float4(curlTC.xy, 0,0)).xy;
+        //curl_noise = tex3Dlod(clouds_curl_3d, float4(curlTC*2,0)).xy;
+        float cloudBottomCurliness = heightFraction*clouds_turbulence.y;
+        //cloudBottomCurliness = heightFraction*curl_power/2;
+        curl_noise = decode_curl(curl_noise)*cloudBottomCurliness;
+        //we can also actually apply curl noise for each layer independently, if we primarily pre-bake
+        curl_noise = curl_noise*notCumuloNimbusCloudStr;//cumulonimbus have no time to be affected by turbulence (long time discrepancies in wind speed)
+        cloud_shape = tex3Dlod(gen_cloud_shape, float4(clouds_shape_sampling_coord.xy + curl_noise, clouds_shape_sampling_coord.z, lod)).x;
+      }
+      BRANCH
+      if (cumuloNimbusStr > 0)
+      {
+        float cumuloNimbusShape = tex3Dlod(gen_cloud_shape, float4(p.xzy*weather_size.w, lod)).x;
+        //cloud_shape = cumuloNimbusShape;
+        //cloud_shape = saturate(remap(lerp(cloud_shape, 1, cumuloNimbusShape), 1-cumuloNimbusShape, 1, 0, 1));
+        //cloud_shape = saturate(remap(cumuloNimbusShape, cloud_shape*0.2, 1-cloud_shape*0.2, 0, 1));
+        //cloud_shape = lerp(cloud_shape, saturate(remap_shape_coverage(cumuloNimbusShape, 0.5+0.5*cloud_shape)), cumuloNimbusStr);//*cumuloNimbusStr
+        //cloud_shape = saturate(remap(cumuloNimbusShape, cloud_shape*0.4,1-cloud_shape*0.4, 0,1));//*cumuloNimbusStr
+        //cloud_shape = cumuloNimbusShape;
+        cloud_shape = lerp(cloud_shape, cumuloNimbusShape*0.9+cloud_shape*0.25-0.075, cumuloNimbusStr);
+        //cloud_shape = cloud_shape*(1-cumuloNimbusStr)+cloud_shape*0.25*cumuloNimbusStr + (cumuloNimbusShape*0.9-0.075)*cumuloNimbusStr;
+        //cloud_shape = cloud_shape*(1-0.75*cumuloNimbusStr) + (cumuloNimbusShape*0.9-0.075)*cumuloNimbusStr;
+      }
+      float erosionLevel, density_height_gradient1, density_height_gradient2;
+      getCloudsTypeParamsTex(base_cloud_type, heightFraction, cloud_coverage1, density_height_gradient1, density_height_gradient2, erosionLevel);
+
+      float cloud_shape1 = cloud_shape*density_height_gradient1;
+      //density_height_gradient2 *= notCumuloNimbusCloudStr;
+      float cloud_shape2 = cloud_shape*density_height_gradient2;
+      //return base_cloud;
+
+      float base_cloud_with_coverage1 = (remap_shape_coverage(cloud_shape1, cloud_coverage1));
+      float base_cloud_with_coverage2 = (remap_shape_coverage(cloud_shape2, cloud_coverage2));
+
+      float density1 = saturate(cloud_coverage1*base_cloud_with_coverage1);
+      float density = density1*DENSITY_LAYER1 + saturate(cloud_coverage2*base_cloud_with_coverage2)*DENSITY_LAYER2;
+      density += density*weather_data.a;//rain map. we should probably use it for rain
+
+      return density;
+    }
+  }
+endmacro
+
+texture perlin_noise3d;
+float4 nuke_pos;
+// x - radius, y - blend distance, z - fade, w - cloud extinction radius
+float4 nuke_wave;
+
+int nuke_in_atmosphere = 0;
+interval nuke_in_atmosphere: off<1, on;
+
+macro SAMPLE_CLOUDS_NUKE_INVERSION(code)
+  (code) {
+    perlin_noise3d@smp3d = perlin_noise3d;
+    nuke_pos@f3 = (nuke_pos.x + clouds_origin_offset.x, nuke_pos.y, nuke_pos.z+clouds_origin_offset.y, 0);
+    nuke_wave@f4 = (nuke_wave.x, 1/(nuke_wave.y + 0.000001), nuke_wave.z, nuke_wave.w);
+  }
+
+  hlsl(code) {
+    float sampleNukeCloudsInversion(float3 p, float density, float heightFraction)
+    {
+      float waveDistance = nuke_wave.x;
+      float cloudDensity2 = 0;
+      float inversion = 1-saturate(nuke_wave.y*abs(waveDistance-length(p - nuke_pos.xyz)));
+      float waveFade = nuke_wave.z;
+      inversion*=waveFade;
+      if (inversion>0)
+      {
+        float noise2 = tex3Dlod(perlin_noise3d, float4(p*0.0002f, 0)).x*
+                       tex3Dlod(perlin_noise3d, float4(p*0.00003f, 0)).y;
+        cloudDensity2 = saturate(1 - 2*abs(heightFraction-0.5))*0.05*saturate(10*noise2-2.5);
+        cloudDensity2*=pow2(waveFade);
+      }
+      float extinctionDistance = nuke_wave.w;
+      float extinction = saturate(nuke_wave.y*(length(p - nuke_pos.xyz)-extinctionDistance));
+
+      return lerp(density*extinction*saturate(1-3*inversion), cloudDensity2, saturate(inversion*2.4f));
+    }
+  }
+endmacro
+
+texture clouds_field_volume;
+
+macro SAMPLE_CLOUDS_DENSITY_TEXTURE(code, clouds_view_pos)
+  SAMPLE_CLOUDS_DENSITY_COMMON(code, clouds_view_pos)
+  CLOUDS_ALT_FRACTION(code, clouds_view_pos)
+  (code) {
+    clouds_field_volume@smp3d = clouds_field_volume;
+  }
+  hlsl(code) {
+    #define CLOUDS_PREBAKED_FIELD 1
+    float3 getFieldTC(float3 p, float3 hole_pos_vec)
+    {
+      return float3(p.xz*INV_WEATHER_SIZE + 0.5, alt_fraction_in_clouds_with_hole(p, hole_pos_vec));
+    }
+
+    float sampleCloudDensity(float3 p, float erosion_level_global, float lod, inout float heightFraction, bool height_fraction_provided) {
+      if (!height_fraction_provided)
+        heightFraction = alt_fraction_in_clouds(p);
+      #if CLOUDS_CHECK_ALT_FRACTION_IS_OUT
+      //this check makes everything works a bit slower on xbox, as it is 99% of time useless, but for some reason it still optimizes code on nvidia
+        if (heightFraction <= 0.0)//if (heightFraction <= 0.0 || heightFraction >= 1.0)
+          return 0.0;
+      #endif
+      #if CLOUDS_FIXED_LOD
+        lod = 0;
+      #endif
+
+      float2 weatherUV = p.xz*INV_WEATHER_SIZE + 0.5;//this madd can be removed, if we pass p.xz already multiplied by. but first we need to simply alt_fraction_in_clouds
+      float density = tex3Dlod(clouds_field_volume, float4(weatherUV, heightFraction,0)).x*2;//decode density
+      density = applyErosion(p, heightFraction, density, erosion_level_global, lod);
+      return density;
+      //return density + density*heightFraction;//so it's just one madd, but only reasonable for cumulonimbus
+    }
+
+    float sampleCloudDensityWithHole(float3 p, float erosion_level_global, float lod, inout float heightFraction, float3 hole_pos_vec) {
+      heightFraction = alt_fraction_in_clouds_with_hole(p, hole_pos_vec);
+      return sampleCloudDensity(p, erosion_level_global, lod, heightFraction, true);
+    }
+  }
+endmacro
+
+macro SAMPLE_CLOUDS_DENSITY_MATH_ONLY(code, clouds_view_pos)
+  SAMPLE_CLOUDS_DENSITY_MATH(code, clouds_view_pos)
+  CLOUDS_ALT_FRACTION(code, clouds_view_pos)
+  hlsl(code) {
+    float sampleCloudDensity(float3 p, float erosion_level_global, float lod, inout float heightFraction, bool height_fraction_provided) {
+      if (!height_fraction_provided)
+        heightFraction = alt_fraction_in_clouds(p);
+      #if CLOUDS_CHECK_ALT_FRACTION_IS_OUT
+      //this check makes everything works a bit slower on xbox, as it is 99% of time useless, but for some reason it still optimizes code on nvidia
+        if (heightFraction <= 0.0)//if (heightFraction <= 0.0 || heightFraction >= 1.0)
+          return 0.0;
+      #endif
+      #if CLOUDS_FIXED_LOD
+        lod = 0;
+      #endif
+      float density = sampleCloudDensityMath(p, lod, heightFraction);
+      density = applyErosion(p, heightFraction, density, erosion_level_global, lod);
+      return density;
+      //return density + density*heightFraction;//so it's just one madd, but only reasonable for cumulonimbus
+    }
+
+    float sampleCloudDensityWithHole(float3 p, float erosion_level_global, float lod, inout float heightFraction, float3 hole_pos_vec) {
+      heightFraction = alt_fraction_in_clouds_with_hole(p, hole_pos_vec);
+      return sampleCloudDensity(p, erosion_level_global, lod, heightFraction, true);
+    }
+  }
+endmacro
+
+macro CLOUDS_LIGHTING_COMMON_MATH(code)
+  hlsl(code) {
+    void raymarchLightExtinction(inout float light_extinction, float3 worldPos, float shadowStepSize, float base_mip, float mip_add, float erosion_level, float extThreshold,
+                             float3 light_dir, uint steps, float expStep, float sigmaDs)
+    {
+      //todo: can be made just one constant, remove mul
+      float3 sunStep = light_dir*shadowStepSize;
+      float mip = base_mip;//
+      float3 cloudHolePosVec = get_clouds_hole_pos_vec();
+      LOOP// if it is additionl steps, better use unroll instead
+      for (uint i = 0; i < steps; ++i)
+      {
+        worldPos = worldPos + sunStep;
+        float heightFraction;
+        float cloudDensity = sampleCloudDensityWithHole(worldPos, erosion_level, mip, heightFraction, cloudHolePosVec);
+        light_extinction *= exp2(cloudDensity * sigmaDs);
+        if (heightFraction <= 0 || heightFraction >= 1 || light_extinction<extThreshold)//since we always start within the cloud layer, we can only get out when we are out
+          break;
+        sunStep += sunStep*expStep;
+        sigmaDs += sigmaDs*expStep;
+        mip += mip_add;
+        FLATTEN
+        if (light_extinction<0.3)//if already not much light
+         erosion_level = 0;
+      }
+    }
+  }
+endmacro

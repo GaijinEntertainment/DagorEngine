@@ -455,11 +455,17 @@ class RendinstGatherCollJob : public cpujobs::IJob
   Tab<Point3> &outVert;
   Tab<int> &outInd;
   BBox3 box;
+  const Tab<BBox3> &inExcludeBoxes;
 
 public:
   RendinstGatherCollJob(const BBox3 &in_box, Tab<Point3> &out_vert, Tab<int> &out_ind, Tab<IPoint2> &out_transparent,
-    Tab<NavMeshObstacle> &out_obstacles) :
-    box(in_box), outVert(out_vert), outInd(out_ind), outTransparent(out_transparent), outObstacles(out_obstacles)
+    Tab<NavMeshObstacle> &out_obstacles, const Tab<BBox3> &in_exclude_boxes) :
+    box(in_box),
+    outVert(out_vert),
+    outInd(out_ind),
+    outTransparent(out_transparent),
+    outObstacles(out_obstacles),
+    inExcludeBoxes(in_exclude_boxes)
   {}
 
   virtual void doJob()
@@ -476,7 +482,16 @@ public:
     transparent.reserve(cb.transparent.size());
     vertices.reserve(cb.vertNum);
     indices.reserve(cb.indNum);
-    cb.procAllCollision();
+    cb.procFilteredCollision([this](const rendinst::CollisionInfo &ci) {
+      if (ci.collRes == nullptr)
+        return false;
+      BBox3 curBox;
+      v_stu_bbox3(curBox, ci.collRes->vFullBBox);
+      curBox = ci.tm * curBox;
+
+      return eastl::all_of(inExcludeBoxes.begin(), inExcludeBoxes.end(),
+        [&curBox](const BBox3 &excludeBox) { return !curBox.non_empty_intersect(excludeBox); });
+    });
     debug("RendinstGatherCollJob proc done in %.2f sec", get_time_usec_qpc(refproc) / 1000000.0);
 
     if ((vertices.empty() || indices.empty()) && obstacles.empty())
@@ -1665,7 +1680,7 @@ public:
   };
 
   virtual void gatherCollision(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices, Tab<IPoint2> &transparent,
-    Tab<NavMeshObstacle> &obstacles)
+    Tab<NavMeshObstacle> &obstacles, const Tab<BBox3> &exclude_boxes)
   {
     navmeshLayers.load();
 
@@ -1696,7 +1711,8 @@ public:
                                  lerp(box.lim[0].z, box.lim[1].z, y * safeinv(float(subdivY)))),
             Point3(lerp(box.lim[0].x, box.lim[1].x, (x + 1) * safeinv(float(subdivX))), box.lim[1].y,
               lerp(box.lim[0].z, box.lim[1].z, (y + 1) * safeinv(float(subdivY)))));
-          cpujobs::add_job(coresId[current_core], new RendinstGatherCollJob(jobBox, vertices, indices, transparent, obstacles));
+          cpujobs::add_job(coresId[current_core],
+            new RendinstGatherCollJob(jobBox, vertices, indices, transparent, obstacles, exclude_boxes));
           current_core = (current_core + 1) % cores_count;
         }
       for (int ci = cores_count - 1; ci >= 0; --ci)
@@ -1713,7 +1729,16 @@ public:
       RendinstVertexDataCbEditor cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
         navmeshLayers.materialPools, navmeshLayers.navMeshOffsetPools, obstacles);
       rendinst::testObjToRIGenIntersection(box, TMatrix::IDENT, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
-      cb.procAllCollision();
+      cb.procFilteredCollision([&exclude_boxes](const rendinst::CollisionInfo &ci) {
+        if (ci.collRes == nullptr)
+          return false;
+        BBox3 curBox;
+        v_stu_bbox3(curBox, ci.collRes->vFullBBox);
+        curBox = ci.tm * curBox;
+
+        return eastl::all_of(exclude_boxes.begin(), exclude_boxes.end(),
+          [&curBox](const BBox3 &excludeBox) { return !curBox.non_empty_intersect(excludeBox); });
+      });
     }
   }
 

@@ -91,7 +91,7 @@ public:
   static const IPoint2 FEEDBACK_SIZE;
   static const int MAX_TEX_MIP_CNT;
 
-  void initVirtualTexture(int cacheDimX, int cacheDimY);
+  void initVirtualTexture(int cacheDimX, int cacheDimY, float maxEffectiveTargetResolution);
   void closeVirtualTexture();
   bool updateOrigin(const Point3 &cameraPosition, bool update_snap);
 
@@ -149,7 +149,7 @@ public:
   float getStartTexelSize() const;
   void setStartTexelSize(float st_texel_size);
 
-  void setTargetSize(int w, int h);
+  void setTargetSize(int w, int h, float mip_bias);
   void prepareRender(ClipmapRenderer &render, bool force_update = false, bool turn_off_decals_on_fallback = false);
   void prepareFeedback(ClipmapRenderer &render, const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm,
     float height, float maxDist0 = 0.f, float maxDist1 = 0.f, float approx_ht = 0.f, bool force_update = false,

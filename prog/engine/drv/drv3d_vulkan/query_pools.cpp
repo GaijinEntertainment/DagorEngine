@@ -65,7 +65,7 @@ ConditionalRenderingState SurveyQueryManager::startCondRender(uint32_t name) con
   auto *buf = surveyPool[poolIndex].dataStore;
 
   return ConditionalRenderingState //
-    {buf->getHandle(), buf->offset(static_cast<VkDeviceSize>(surveyId * sizeof(uint32_t)))};
+    {BufferRef(buf, sizeof(uint32_t)), surveyId * sizeof(uint32_t)};
 }
 
 void SurveyQueryManager::remove(uint32_t name)

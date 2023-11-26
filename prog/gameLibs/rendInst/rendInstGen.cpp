@@ -1649,6 +1649,9 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
     for (int j = 0; j < cellDestr.destroyedPoolInfo.size(); ++j)
     {
       const rendinst::DestroyedPoolData &poolDestr = cellDestr.destroyedPoolInfo[j];
+      if (!rtData->rtPoolData[poolDestr.poolIdx])
+        continue;
+
       bool posInst = rtData->riPosInst[poolDestr.poolIdx];
       int stride = (posInst ? 4 : 12) + perInstDataDwords * 2;
       uint8_t *basePoolPtr = vbPtr + crt.pools[poolDestr.poolIdx].baseOfs;

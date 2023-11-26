@@ -97,6 +97,8 @@ public:
 
   bool hasTessEvaluationStage() const { return layout->hasTE(); }
 
+  bool hasTesselationStage() const { return hasTessControlStage() && hasTessEvaluationStage(); }
+
   bool pendingCompilation();
 
 private:

@@ -28,7 +28,7 @@ enum
 };
 
 //! returns total number of calls to malloc since program start
-KRNLIMP void *alloc_phys_mem(size_t size, size_t alignment, uint32_t prot_flags, bool cpu_cached);
+KRNLIMP void *alloc_phys_mem(size_t size, size_t alignment, uint32_t prot_flags, bool cpu_cached, bool log_failure = true);
 
 //! returns total allocated memory size
 KRNLIMP void free_phys_mem(void *ptr);

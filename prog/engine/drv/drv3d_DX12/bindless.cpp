@@ -176,7 +176,9 @@ void frontend::BindlessManager::updateBindlessTexture(DeviceContext &ctx, uint32
     slot = info;
   }
 
-  texture->setUsedWithBindless();
+#if DAGOR_DBGLEVEL > 0
+  texture->setWasUsed();
+#endif
 
   ctx.bindlessSetResourceDescriptor(index, image, view);
 }

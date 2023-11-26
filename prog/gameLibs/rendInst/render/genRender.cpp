@@ -37,8 +37,7 @@
 #include <render/debugMesh.h>
 #include <3d/dag_resPtr.h>
 #include <math/dag_half.h>
-#include <3d/dag_indirectDrawcallsBuffer.h>
-#include <3d/dag_dynLinearAllocBuffer.h>
+#include <3d/dag_multidrawContext.h>
 
 #include <debug/dag_debug3d.h>
 #include <3d/dag_drv3dReset.h>
@@ -114,8 +113,7 @@ static VDECL rendinstDepthOnlyVDECL = BAD_VDECL;
 static int build_normal_type = -2;
 int normal_type = -1;
 
-IndirectDrawcallsBuffer<DrawIndexedIndirectArgs> indirectDrawCalls("RI_drawcalls");
-DynLinearAllocBuffer<rendinst::PerInstanceParameters> indirectDrawCallIds("ri_drawcall_ids");
+MultidrawContext<rendinst::PerInstanceParameters> multidrawContext("ri_multidraw");
 
 Vbuffer *oneInstanceTmVb = nullptr;
 Vbuffer *rotationPaletteTmVb = nullptr;
@@ -408,8 +406,7 @@ void RendInstGenData::termRenderGlobals()
   del_d3dres(rendinst::render::perDrawCB);
   del_d3dres(rendinst::render::oneInstanceTmVb);
   del_d3dres(rendinst::render::rotationPaletteTmVb);
-  rendinst::render::indirectDrawCalls.close();
-  rendinst::render::indirectDrawCallIds.close();
+  rendinst::render::multidrawContext.close();
   index_buffer::release_quads_16bit();
   rendinst::render::closeClipmapShadows();
   rendinst::render::close_depth_VDECL();
@@ -1208,6 +1205,9 @@ void RendInstGenData::renderPerInstance(rendinst::RenderPass render_pass, int lo
     float range = rtData->get_trees_last_range(rtData->rtPoolData[ri_idx]->lodRange[rtData->riResLodCount(ri_idx) - 1]);
     float deltaRcp = rtData->transparencyDeltaRcp / range;
 
+    float lodStartRange = safediv(visibility.crossDissolveRange[ri_idx], rendinst::render::lodsShiftDistMul);
+    cb.setCrossDissolveRange(lodStartRange);
+
     if (visibility.forcedLod >= 0)
     {
       cb.setOpacity(0.f, 1.f, 0.f, 0.f);
@@ -1279,9 +1279,10 @@ void RendInstGenData::renderCrossDissolve(rendinst::RenderPass render_pass, int 
     if (render_pass == rendinst::RenderPass::Normal)
       cb.setRandomColors(&rtData->riColPair[ri_idx * 2 + 0]);
 
-    float lodStartRange = visibility.crossDissolveRange[ri_idx];
-    lodStartRange = safediv(lodStartRange, rendinst::render::lodsShiftDistMul);
+    float lodStartRange = safediv(visibility.crossDissolveRange[ri_idx], rendinst::render::lodsShiftDistMul);
     float lodDissolveInvRange = 1.0f / TOTAL_CROSS_DISSOLVE_DIST;
+
+    cb.setCrossDissolveRange(lodStartRange);
 
     if (render_pass == rendinst::RenderPass::ToShadow)
     {
@@ -1513,6 +1514,7 @@ void RendInstGenData::renderByCells(rendinst::RenderPass render_pass, const rend
 
   rendinst::render::RiShaderConstBuffers cb;
   cb.setOpacity(0.f, 2.f);
+  cb.setCrossDissolveRange(0);
 
   float subCellOfsSize = grid2worldcellSz * ((rendinst::render::per_instance_visibility_for_everyone ? 0.75f : 0.25f) *
                                               (rendinst::render::globalDistMul * 1.f / RendInstGenData::SUBCELL_DIV));
@@ -1566,6 +1568,9 @@ void RendInstGenData::renderByCells(rendinst::RenderPass render_pass, const rend
     float lod0Range =
       rtData->rtPoolData[ri_idx]->hasImpostor() ? rtData->get_trees_range(initialLod0Range) : rtData->get_range(initialLod0Range);
     ShaderGlobal::set_real_fast(invLod0RangeVarId, 1.f / max(lod0Range + subCellOfsSize, 1.f));
+
+    float lodStartRange = safediv(visibility.crossDissolveRange[ri_idx], rendinst::render::lodsShiftDistMul);
+    cb.setCrossDissolveRange(lodStartRange);
 
     if (visibility.forcedLod >= 0)
     {

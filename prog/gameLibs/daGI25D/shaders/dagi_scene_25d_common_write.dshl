@@ -1,0 +1,59 @@
+include "dagi_scene_voxels_common_25d.dshl"
+include "dagi_quality.dshl"
+float4 scene_25d_voxels_invalid_coord_box;
+int voxels_25d_no = 6;
+
+macro SSGE_SCENE_25D_COMMON_INIT_WRITE_PS()
+  (ps) {
+    //scene_25d_voxels_invalid_start_width@f4 = scene_25d_voxels_invalid_start_width;
+    scene_25d_voxels_invalid_coord_box@f4 = scene_25d_voxels_invalid_coord_box;
+    //scene_25d_voxels_invalid_coord_box@f4 = (scene_25d_voxels_invalid_start_width.x - scene_25d_voxels_origin.z + 128,//128 is VOXEL_25D_RESOLUTION_X/2
+    //                                        scene_25d_voxels_invalid_start_width.y - scene_25d_voxels_origin.w + 128,//128 is VOXEL_25D_RESOLUTION_X/2
+    //                                        scene_25d_voxels_invalid_start_width.x + scene_25d_voxels_invalid_start_width.z - scene_25d_voxels_origin.z + 128,//128 is VOXEL_25D_RESOLUTION_X/2
+    //                                        scene_25d_voxels_invalid_start_width.y + scene_25d_voxels_invalid_start_width.w - scene_25d_voxels_origin.w + 128);//128 is VOXEL_25D_RESOLUTION_X/2
+    voxels25d@uav: register(voxels_25d_no) hlsl {
+      RWByteAddressBuffer voxels25d@uav;
+    }
+  }
+  INIT_VOXELS_25D(ps)
+endmacro
+
+macro SSGE_SCENE_25D_COMMON_WRITE_PS()
+  USE_VOXELS_25D(ps)
+
+  hlsl(ps) {
+  ##if gi_quality != only_ao
+    #define VOXEL_25D_USE_COLOR 1
+  ##endif
+    #include <dagi_write_voxels_25d.hlsl>
+
+    float getVoxel25dFloorCoordUnsafe(uint2 dtId)
+    {
+      return asfloat(loadBuffer(voxels25d, getFloorBlockAddress(dtId)));
+    }
+
+    float scene25dCoordYFromFloor(float worldPosY, float floorHt)
+    {
+      return worldPosY*getScene25dVoxelInvSizeY() - floorHt;
+    }
+
+    void writeScene25dVoxelDataSafe(float3 worldPos, float3 col, float emissionStrength, float4 emissionColor)
+    {
+      float2 unwrappedCoordF = scene25dWorldPosToCoordF(worldPos.xz);
+      int2 unwrappedCoord = int2(floor(unwrappedCoordF));
+      if (all(unwrappedCoord >= scene_25d_voxels_invalid_coord_box.xy) & all(unwrappedCoord < scene_25d_voxels_invalid_coord_box.zw))
+      {
+        //float coordYF = scene25dCoordY(worldPos);
+        uint2 wrapCoord2 = wrapSceneVoxel25dCoord(unwrappedCoord);
+        float coordYF = scene25dCoordYFromFloor(worldPos.y, getVoxel25dFloorCoordUnsafe(wrapCoord2));
+        if ((coordYF>=0) & (coordYF < VOXEL_25D_RESOLUTION_Y))
+        {
+          uint3 coordPart = uint3(frac(float3(unwrappedCoordF, coordYF))*2.f)&1;
+          uint alpha = 1U<<(coordPart.x + (coordPart.y<<1) + (coordPart.z<<2));
+          writeScene25DVoxelData(
+            uint3(wrapCoord2, uint(coordYF)), alpha, col, emissionStrength, emissionColor);
+        }
+      }
+    }
+  }
+endmacro

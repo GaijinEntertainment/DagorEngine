@@ -8,10 +8,10 @@ source
 {
   includePath:t="./source"
   include "../../commonShaders/shadersList.blk"
-  file:t = "testMat.sh"
-  file:t = "testTree.sh"
-  file:t = "testMatAO.sh"
-  file:t = "./source/dynamic_masked_chrome.sh"
+  file:t = "testMat.dshl"
+  file:t = "testTree.dshl"
+  file:t = "testMatAO.dshl"
+  file:t = "./source/dynamic_masked_chrome.dshl"
 }
 
 "@delete:explicit_var_ref" {}

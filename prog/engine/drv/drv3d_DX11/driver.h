@@ -304,8 +304,8 @@ struct RenderState : public FrameStateTM
   bool rtModified;
   uint8_t viewModified; // VIEWMOD_
   bool scissorModified;
-  bool psModified;
   bool vsModified;
+  bool psModified;
   bool csModified;
   bool vertexInputModified;
   bool rasterizerModified;
@@ -339,7 +339,7 @@ struct RenderState : public FrameStateTM
   Driver3dRenderTarget nextRtState;
   Driver3dRenderTarget currRtState;
 
-  uint8_t stencilRef = 0;
+  uint8_t stencilRef;
   float blendFactor[BLEND_FACTORS_COUNT];
 
   int8_t maxUsedTarget;
@@ -347,26 +347,32 @@ struct RenderState : public FrameStateTM
 
   RenderState() :
     modified(true),
-    depthStencilModified(true),
-    alphaBlendModified(true),
     rtModified(true),
     viewModified(VIEWMOD_FULL),
     scissorModified(false),
-    psModified(true),
     vsModified(true),
-    vertexInputModified(true),
+    psModified(true),
     csModified(true),
+    vertexInputModified(true),
+    rasterizerModified(true),
+    alphaBlendModified(true),
+    depthStencilModified(true),
+    srgb_bb_write(0),
     hdgBits(0),
     hullTopology(0),
-    rasterizerModified(true),
-    maxUsedTarget(-1),
+    nextVertexInput{},
+    currVertexInput{},
     currPrimType(0),
     nextVdecl(BAD_HANDLE),
-    nextPixelShader(BAD_HANDLE),
     nextVertexShader(BAD_HANDLE),
+    nextPixelShader(BAD_HANDLE),
     nextComputeShader(BAD_HANDLE),
-    currentFrameDip(0),
-    srgb_bb_write(0)
+    nextRasterizerState{},
+    nextRtState{},
+    currRtState{},
+    stencilRef(0),
+    maxUsedTarget(-1),
+    currentFrameDip(0)
   {
     blendFactor[0] = 1.0f;
     blendFactor[1] = 1.0f;
@@ -383,7 +389,6 @@ struct RenderState : public FrameStateTM
     constants = savedConstants;
     nextRtState.setBackbufColor();
   }
-
 
   void resetFrame()
   {

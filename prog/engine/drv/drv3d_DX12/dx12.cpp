@@ -1452,16 +1452,9 @@ int d3d::driver_command(int command, void *par1, void *par2, void *par3)
 
       //  case DRV3D_COMMAND_GET_SECONDARY_BACKBUFFER:
       //    break;
-    // case DRV3D_COMMAND_GET_VENDOR:
-    //   break;
-    case DRV3D_COMMAND_GET_RESOLUTION:
-      if (par1 && par2)
-      {
-        *((int *)par1) = api_state.windowState.settings.resolutionX;
-        *((int *)par2) = api_state.windowState.settings.resolutionY;
-        return 1;
-      }
-      break;
+      // case DRV3D_COMMAND_GET_VENDOR:
+      //   break;
+
     case DRV3D_COMMAND_BEGIN_MRT_CLEAR_SEQUENCE:
       api_state.state.beginMrtClear(reinterpret_cast<intptr_t>(par1));
       // tell caller that we implement this optimization
@@ -1773,7 +1766,6 @@ void recover_textures()
       if (tex->rld)
       {
         PushTextureAddressMode pushMode{tex};
-        tex->setDelayedCreate(true);
         tex->rld->reloadD3dRes(tex);
       }
       else if ((tex->cflg & TEXCF_SYSTEXCOPY) && data_size(tex->texCopy))
@@ -1787,7 +1779,6 @@ void recover_textures()
         hdr.flags = flg | (u & hdr.FLG_ADDRU_MASK) | ((v << 4) & hdr.FLG_ADDRV_MASK);
 
         InPlaceMemLoadCB mcrd(tex->texCopy.data() + sizeof(hdr), data_size(tex->texCopy) - (int)sizeof(hdr));
-        tex->setDelayedCreate(true);
         d3d::load_ddsx_tex_contents(tex, hdr, mcrd, sysCopyQualityId);
       }
       else
@@ -2024,12 +2015,17 @@ bool d3d::check_texformat(int cflg)
 
 int d3d::get_max_sample_count(int cflg)
 {
+  G_UNUSED(cflg);
+  return 1; // Force 1 sample, untill multisampled PSO is ready.
+
+  /*
   auto dxgiFormat = FormatStore::fromCreateFlags(cflg).asDxGiFormat();
   for (int32_t numSamples = get_sample_count(TEXCF_SAMPLECOUNT_MAX); numSamples > 1; numSamples /= 2)
     if (api_state.device.isSamplesCountSupported(dxgiFormat, numSamples))
       return numSamples;
 
   return 1;
+  */
 }
 
 bool d3d::issame_texformat(int cflg1, int cflg2)
@@ -2354,12 +2350,12 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned unit, BaseTexture *tex, uint
   ImageViewState view;
   if (texture)
   {
-    if (!texture->isUAV())
+    if (!texture->isUav())
     {
       logerr("Texture %p <%s> used as UAV texture, but has no UAV flag set", texture, texture->getResName());
       return false;
     }
-    view = texture->getViewInfoUAV(MipMapIndex::make(mip_level), ArrayLayerIndex::make(face), as_uint);
+    view = texture->getViewInfoUav(MipMapIndex::make(mip_level), ArrayLayerIndex::make(face), as_uint);
   }
   api_state.state.setStageUAVTexture(shader_stage, unit, texture, view);
   return true;
@@ -2371,16 +2367,15 @@ bool d3d::clear_rwtexi(BaseTexture *tex, const unsigned val[4], uint32_t face, u
   BaseTex *texture = cast_to_texture_base(tex);
   if (texture)
   {
-    if (!texture->isUAV())
+    if (!texture->isUav())
     {
       logerr("Texture %p <%s> cleared as UAV(i) texture, but has no UAV flag set", texture, texture->getResName());
       return false;
     }
-    texture->setWasCopiedToStage(false);
     Image *image = texture->getDeviceImage();
     // false for is_uint is same as in DX11 backend
     api_state.device.getContext().clearUAVTexture(image,
-      texture->getViewInfoUAV(MipMapIndex::make(mip_level), ArrayLayerIndex::make(face), false), val);
+      texture->getViewInfoUav(MipMapIndex::make(mip_level), ArrayLayerIndex::make(face), false), val);
   }
   return true;
 }
@@ -2391,15 +2386,14 @@ bool d3d::clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint
   BaseTex *texture = cast_to_texture_base(tex);
   if (texture)
   {
-    if (!texture->isUAV())
+    if (!texture->isUav())
     {
       logerr("Texture %p <%s> cleared as UAV(f) texture, but has no UAV flag set", texture, texture->getResName());
       return false;
     }
-    texture->setWasCopiedToStage(false);
     Image *image = texture->getDeviceImage();
     api_state.device.getContext().clearUAVTexture(image,
-      texture->getViewInfoUAV(MipMapIndex::make(mip_level), ArrayLayerIndex::make(face), false), val);
+      texture->getViewInfoUav(MipMapIndex::make(mip_level), ArrayLayerIndex::make(face), false), val);
   }
   return true;
 }
@@ -3317,11 +3311,6 @@ void drv3d_dx12::notify_discard(Sbuffer *buffer, bool check_vb, bool check_const
   api_state.state.notifyDiscard(buffer, check_vb, check_const, check_tex, check_storage);
 }
 
-void drv3d_dx12::execute_texture_replace(const TextureReplacer &replacer)
-{
-  api_state.state.replaceTexture(api_state.device.getContext(), replacer);
-}
-
 Texture *d3d::get_backbuffer_tex() { return api_state.device.getContext().getSwapchainColorTexture(); }
 
 Texture *d3d::get_secondary_backbuffer_tex() { return api_state.device.getContext().getSwapchainSecondaryColorTexture(); }
@@ -3993,7 +3982,7 @@ void d3d::resource_barrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline /*
     }
 
     auto btex = cast_to_texture_base(tex);
-    if (!validate_texture_barrier(state, btex->getFormat().isDepth(), btex->isRenderTarget(), btex->isUAV(), gpu_pipeline))
+    if (!validate_texture_barrier(state, btex->getFormat().isDepth(), btex->isRenderTarget(), btex->isUav(), gpu_pipeline))
     {
       logerr("DX12: Barrier validation resulted in skipped barrier for %s", btex->getResName());
       return;

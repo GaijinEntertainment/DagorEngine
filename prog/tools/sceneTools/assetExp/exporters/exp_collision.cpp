@@ -40,6 +40,7 @@ enum
   DEGENERATIVE_MESH_DO_REMOVE,
 };
 static int degenerative_mesh_strategy = DEGENERATIVE_MESH_DO_ERROR;
+static float degenerate_tri_area_threshold_sq = 5e-12f;
 static bool report_inverted_mesh_tm = false;
 
 template <typename StringType>
@@ -943,13 +944,15 @@ public:
           if (n.cachedMaxTmScale <= 1.0f)
             for (unsigned i = 0; i < m.face.size(); i++)
               if (lengthSq((m.vert[m.face[i].v[1]] - m.vert[m.face[i].v[0]]) % (m.vert[m.face[i].v[2]] - m.vert[m.face[i].v[0]])) <
-                  5e-12f)
+                  degenerate_tri_area_threshold_sq)
               {
                 zeroarea_faces_cnt++;
-                logerr("%s: %sdegenerate tri %d,%d,%d: %@, %@, %@ (edge len: %g, %g, %g)", a.getName(), label, m.face[i].v[0],
-                  m.face[i].v[1], m.face[i].v[2], m.vert[m.face[i].v[0]], m.vert[m.face[i].v[1]], m.vert[m.face[i].v[2]],
+                logerr("%s: %sdegenerate tri %d,%d,%d: %@, %@, %@ (edge len: %g, %g, %g; area threshold %g) node \"%s\" TV=%@, %@, %@",
+                  a.getName(), label, m.face[i].v[0], m.face[i].v[1], m.face[i].v[2], //
+                  m.vert[m.face[i].v[0]], m.vert[m.face[i].v[1]], m.vert[m.face[i].v[2]],
                   length(m.vert[m.face[i].v[0]] - m.vert[m.face[i].v[1]]), length(m.vert[m.face[i].v[1]] - m.vert[m.face[i].v[2]]),
-                  length(m.vert[m.face[i].v[2]] - m.vert[m.face[i].v[0]]));
+                  length(m.vert[m.face[i].v[2]] - m.vert[m.face[i].v[0]]), sqrtf(degenerate_tri_area_threshold_sq), n.name,
+                  n.tm * m.vert[m.face[i].v[0]], n.tm * m.vert[m.face[i].v[1]], n.tm * m.vert[m.face[i].v[2]]);
                 m.removeFacesFast(i, 1);
                 i--;
               }
@@ -1198,6 +1201,7 @@ public:
     else
       logerr("bad assets{ build{ collision{ %s:t=%s, leaving degenerative_mesh_strategy=%d", "degenerativeMeshStrategy",
         degen_strategy_str, degenerative_mesh_strategy);
+    degenerate_tri_area_threshold_sq = collisionBlk->getReal("degenerativeTriAreaThresholdSq", 5e-12f);
     report_inverted_mesh_tm = collisionBlk->getBool("errorOnInvertedMesh", false);
     return true;
   }

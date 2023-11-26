@@ -218,7 +218,7 @@ void StateFieldGraphicsConditionalRenderingState::dumpLog(const FrontGraphicsSta
   if (data == ConditionalRenderingState{})
     debug("conditional rendering: inactive");
   else
-    debug("conditional rendering: active on buffer %" PRIu64 ", offset %d", generalize(data.buffer), data.offset);
+    debug("conditional rendering: active on buffer %" PRIu64 ", offset %d", generalize(data.buffer.getHandle()), data.offset);
 }
 
 template <>
@@ -227,7 +227,7 @@ void StateFieldGraphicsConditionalRenderingScopeOpener::dumpLog(const BackGraphi
   if (data == ConditionalRenderingState{})
     debug("conditional rendering opener: inactive");
   else
-    debug("conditional rendering opener: active on buffer %" PRIu64 ", offset %d", generalize(data.buffer), data.offset);
+    debug("conditional rendering opener: active on buffer %" PRIu64 ", offset %d", generalize(data.buffer.getHandle()), data.offset);
 }
 
 template <>
@@ -248,10 +248,12 @@ void StateFieldGraphicsProgram::applyTo(FrontGraphicsStateStorage &, ExecutionSt
     InputLayoutID layoutID = spdb.getGraphicsProgInputLayout(handle);
     if (layoutID != InputLayoutID::Null())
     {
-      auto &newPipeline = get_device().pipeMan.get<VariatedGraphicsPipeline>(handle);
+      VariatedGraphicsPipeline &newPipeline = get_device().pipeMan.get<VariatedGraphicsPipeline>(handle);
       target.get<BackGraphicsState, BackGraphicsState>().pipelineState.inputLayout = layoutID;
       target.set<StateFieldGraphicsBasePipeline, VariatedGraphicsPipeline *, BackGraphicsState>(&newPipeline);
       target.set<StateFieldGraphicsPipelineLayout, GraphicsPipelineLayout *, BackGraphicsState>(newPipeline.getLayout());
+      target.set<StateFieldGraphicsPrimitiveTopology, StateFieldGraphicsPrimitiveTopology::TessOverride, BackGraphicsState>(
+        newPipeline.hasTesselationStage() ? true : false);
       target.set<StateFieldGraphicsPipeline, StateFieldGraphicsPipeline::Invalidate, BackGraphicsState>(1);
       return;
     }
@@ -261,6 +263,7 @@ void StateFieldGraphicsProgram::applyTo(FrontGraphicsStateStorage &, ExecutionSt
   target.get<BackGraphicsState, BackGraphicsState>().pipelineState.inputLayout = InputLayoutID::Null();
   target.set<StateFieldGraphicsBasePipeline, VariatedGraphicsPipeline *, BackGraphicsState>(nullptr);
   target.set<StateFieldGraphicsPipelineLayout, GraphicsPipelineLayout *, BackGraphicsState>(nullptr);
+  target.set<StateFieldGraphicsPrimitiveTopology, StateFieldGraphicsPrimitiveTopology::TessOverride, BackGraphicsState>(false);
   target.set<StateFieldGraphicsPipeline, StateFieldGraphicsPipeline::Invalidate, BackGraphicsState>(1);
 }
 
@@ -719,16 +722,16 @@ void StateFieldGraphicsIndexBuffer::applyTo(BackGraphicsStateStorage &, Executio
     return;
 
   target.back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_INDEX_READ_BIT}, data.buffer,
-    {data.dataOffset(0), data.dataSize()});
-  VULKAN_LOG_CALL(target.vkDev.vkCmdBindIndexBuffer(target.frameCore, data.getHandle(), data.dataOffset(0), indexType));
+    {data.bufOffset(0), data.visibleDataSize});
+  VULKAN_LOG_CALL(target.vkDev.vkCmdBindIndexBuffer(target.frameCore, data.getHandle(), data.bufOffset(0), indexType));
 }
 
 template <>
 void StateFieldGraphicsIndexBuffer::dumpLog(const BackGraphicsStateStorage &) const
 {
   if (data.buffer)
-    debug("IB: ptr %p handle %llu ofs %u name %s", data.buffer, generalize(data.getHandle()), data.dataOffset(0),
-      data.buffer->getDebugName());
+    debug("IB: ptr %p handle %llu ofs %u range %u name %s", data.buffer, generalize(data.getHandle()), data.bufOffset(0),
+      data.visibleDataSize, data.buffer->getDebugName());
   else
     debug("IB: none");
 }
@@ -940,11 +943,11 @@ void StateFieldGraphicsVertexBuffersBindArray::applyTo(BackGraphicsStateStorage 
 
   for (uint32_t i = 0; i < cnt; ++i)
   {
-    //    G_ASSERTF(offsets[i] >= resPtrs[i]->offset(0),
+    //    G_ASSERTF(offsets[i] >= resPtrs[i]->bufOffsetLoc(0),
     //      "vulkan: old discard index is referenced/invalid offset (zero offset %u specified %u) for vb[%u] %p:%s",
-    //      resPtrs[i]->offset(0), offsets[i], i, resPtrs[i], resPtrs[i]->getDebugName());
+    //      resPtrs[i]->bufOffsetLoc(0), offsets[i], i, resPtrs[i], resPtrs[i]->getDebugName());
     target.back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT}, resPtrs[i],
-      {offsets[i], resPtrs[i]->dataSize() - (offsets[i] % resPtrs[i]->dataSize())});
+      {offsets[i], resPtrs[i]->getBlockSize() - (offsets[i] % resPtrs[i]->getBlockSize())});
   }
 
   VULKAN_LOG_CALL(target.vkDev.vkCmdBindVertexBuffers(target.frameCore, 0, cnt, ary(buffers), offsets));
@@ -992,13 +995,15 @@ void StateFieldGraphicsPrimitiveTopology::applyTo(BackGraphicsStateStorage &stat
   if (!state.basePipeline.ptr)
     return;
 
+  VkPrimitiveTopology actual = useTessOverride ? VK_PRIMITIVE_TOPOLOGY_PATCH_LIST : data;
   bool hasGS = state.basePipeline.ptr->hasGeometryStage();
-  bool hasTesselation = state.basePipeline.ptr->hasTessControlStage() && state.basePipeline.ptr->hasTessEvaluationStage();
-  if (!validate_primitive_topology(data, hasGS, hasTesselation))
+  bool hasTesselation = state.basePipeline.ptr->hasTesselationStage();
+
+  if (!validate_primitive_topology(actual, hasGS, hasTesselation))
   {
     logerr("Invalid primitive topology %s for draw call encountered. Geometry stage active %s, "
            "Tessellation stage active %s.",
-      formatPrimitiveTopology(data), hasGS ? "yes" : "no", hasTesselation ? "yes" : "no");
+      formatPrimitiveTopology(actual), hasGS ? "yes" : "no", hasTesselation ? "yes" : "no");
   }
 #else
   G_UNUSED(state);
@@ -1008,7 +1013,7 @@ void StateFieldGraphicsPrimitiveTopology::applyTo(BackGraphicsStateStorage &stat
 template <>
 void StateFieldGraphicsPrimitiveTopology::dumpLog(const BackGraphicsStateStorage &) const
 {
-  debug("primTopo: %s", formatPrimitiveTopology(data));
+  debug("primTopo: %s tessOverride: %s", formatPrimitiveTopology(data), useTessOverride ? "yes" : "no");
 }
 
 void StateFieldGraphicsFlush::syncTLayoutsToRenderPass(BackGraphicsStateStorage &state, ExecutionContext &target) const
@@ -1064,6 +1069,7 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
 
   if (withGS)
   {
+    ctx.stageState[STAGE_VS].invalidateState();
     ctx.stageState[STAGE_VS].apply(vkDev, drvDev.getDummyResourceTable(), ctx.frame->index, regs.gs(), target, STAGE_VS,
       [&target, layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
       {
@@ -1075,6 +1081,7 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
 
   if (withTC)
   {
+    ctx.stageState[STAGE_VS].invalidateState();
     ctx.stageState[STAGE_VS].apply(vkDev, drvDev.getDummyResourceTable(), ctx.frame->index, regs.tc(), target, STAGE_VS,
       [&target, layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
       {
@@ -1086,6 +1093,7 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
 
   if (withTE)
   {
+    ctx.stageState[STAGE_VS].invalidateState();
     ctx.stageState[STAGE_VS].apply(vkDev, drvDev.getDummyResourceTable(), ctx.frame->index, regs.te(), target, STAGE_VS,
       [&target, layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
       {
@@ -1094,6 +1102,9 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
           ary(&set), offset_count, offsets));
       });
   }
+  // as we are sharing VS stage state, invalidate it in order to not break up followup rendering
+  if (withTE || withTC || withGS)
+    ctx.stageState[STAGE_VS].invalidateState();
 }
 
 void StateFieldGraphicsFlush::applyBarriers(BackGraphicsStateStorage &state, ExecutionContext &target) const

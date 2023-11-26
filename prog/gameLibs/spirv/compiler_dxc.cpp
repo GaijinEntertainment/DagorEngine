@@ -68,29 +68,15 @@ static const SemanticInfo vs_input_table[] = //
     {"TEXCOORD8", 0x5}, {"TEXCOORD9", 0x2}, {"TEXCOORD10", 0x3}, {"TEXCOORD11", 0x4}, {"TEXCOORD12", 0x1}, {"TEXCOORD13", 0x6},
     {"TEXCOORD14", 0x7}, {"NORMAL0", 0x2}, {"COLOR0", 0x3}, {"COLOR1", 0x4}, {"PSIZE0", 0x5}};
 
-static const SemanticInfo shader_link_table[] = //
-  {{"NORMAL", 0x0}, {"PSIZE", 0x1}, {"COLOR", 0x2}, {"TEXCOORD0", 0x3}, {"TEXCOORD1", 0x4}, {"TEXCOORD2", 0x5}, {"TEXCOORD3", 0x6},
-    {"TEXCOORD4", 0x7}, {"TEXCOORD5", 0x8}, {"TEXCOORD6", 0x9}, {"TEXCOORD7", 0xA}, {"TEXCOORD8", 0xB}, {"TEXCOORD9", 0xC},
-    {"TEXCOORD10", 0xD}, {"TEXCOORD11", 0xE}, {"TEXCOORD12", 0xF}, {"TEXCOORD13", 0x10}, {"TEXCOORD14", 0x11}, {"NORMAL0", 0x12},
-    {"COLOR0", 0x13}, {"COLOR1", 0x14}, {"PSIZE0", 0x15}};
-
 dag::ConstSpan<SemanticInfo> getInputSematicTable(const char *profile)
 {
   // vs has special input
   if (profile[0] == 'v' && profile[1] == 's')
     return make_span(vs_input_table);
-  return make_span(shader_link_table);
+  return {};
 }
 
-dag::ConstSpan<SemanticInfo> getOutputSematicTable(const char *profile)
-{
-  // ps has special output
-  // spiregg guesses the output locations correctly already
-  // TODO: verify this!
-  if (profile[0] == 'p' && profile[1] == 's')
-    return {};
-  return make_span(shader_link_table);
-}
+dag::ConstSpan<SemanticInfo> getOutputSematicTable(const char *profile) { return {}; }
 
 std::wstring getSpirvOptimizationConfigString(const eastl::vector<eastl::string_view> &disabledOptims)
 {

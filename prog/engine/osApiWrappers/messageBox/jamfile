@@ -21,8 +21,13 @@ if $(Platform) in win32 win64 {
   ;
   CPPopt += -Wno-error ;
 } else if $(Platform) in linux64 {
-  AddIncludes += $(_DEVTOOL)/fltk-1.3.3 ;
-  AddLibs += -lX11 $(_DEVTOOL)/fltk-1.3.3/lib/libfltk-minimal.a ;
+  AddLibs += -lX11 ;
+  if [ GLOB $(_DEVTOOL) : fltk-1.3.3 ] {
+    AddIncludes += $(_DEVTOOL)/fltk-1.3.3 ;
+    AddLibs += -lX11 $(_DEVTOOL)/fltk-1.3.3/lib/libfltk-minimal.a ;
+  } else {
+    AddLibs += -lX11 -lfltk ;
+  }
   Sources += linuxMessageBox.cpp ;
 } else if $(Platform) in ps4 ps5 {
   Sources += sonyMessageBox.cpp ;

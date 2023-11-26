@@ -1,0 +1,243 @@
+include "atmosphere.dshl"
+include_optional "skiesSettings.dshl"
+
+
+float4 skies_primary_sun_light_dir = (0,0.4,0.6,0);
+float4 skies_secondary_sun_light_dir;
+float4 skies_primary_sun_color = (1,1,1,1);
+float4 skies_secondary_sun_color;
+
+//these two constants are used everywhere, especially skies_planet_radius.
+//they define atmosphere size
+float skies_planet_radius = 6360;
+float skies_atmosphere_radius = 6420 always_referenced;
+
+//these 5 floats (3 + 2) are needed for applying fog in real time.
+//basically that's extrapolation mie coef + precomputed mie phase rgs
+float4 skies_mie_extrapolating_coef = (1, 0.005802/0.013558, 0.005802/0.033100, 0);//precomputed for sun
+float4 skies_mie_phase_consts = (1.64*2.377830829909436, -1.6*2.377830829909436,0.00001,0);//precomputed for 0.8 phase assymetry
+//
+
+float4 skies_world_view_pos;
+float4 preparedScatteringDistToTc = float4((110/128.)*(110/128.)/80000.,0,
+                                           (1-(110/128.)*(110/128.))/(300000-80000),
+                                           1 - 300000*(1-(110/128.)*(110/128.))/(300000-80000));
+texture preparedLoss;
+int skies_panoramic_scattering = 0;
+
+float4 skies_froxels_resolution;
+texture skies_frustum_scattering;
+float skies_frustum_scattering_last_tz = 1;
+float4x4 skies_globtm;
+
+define_macro_if_not_defined INIT_BRUNETON_FOG_COMPAT(stage)
+  INIT_BRUNETON_FOG(stage)
+endmacro
+
+macro INIT_BRUNETON_FOG(stage)
+  //SET_SCATTERING_CONSTANTS()
+  (stage) {
+    preparedLoss@smp2d = preparedLoss;
+    skies_frustum_scattering@smp3d = skies_frustum_scattering;
+    //skies_froxels_resolution@f4 = skies_froxels_resolution;
+    skies_panoramic_scattering__inv_distance@f4 = (
+      skies_panoramic_scattering,
+      skies_frustum_scattering_last_tz/skies_froxels_resolution.w,
+      2*skies_froxels_resolution.z,//we use clamp addressing, so our zero slice is always in center (0.5) of slice. And so it is never no scattering, even in 0.01 meters from camera
+      //to fight that we make SW border 'addressing', based on z-texcoord (for now!), or, alternatively based on distance.
+      //4*skies_froxels_resolution.z*skies_froxels_resolution.z/skies_froxels_resolution.w,//we use clamp addressing, so our zero slice is always in center (0.5) of slice. And so it is never no scattering, even in 0.01 meters from camera
+      skies_frustum_scattering_last_tz);//can be combined with preparedScatteringDistToTc
+    skies_globtm@f44 = skies_globtm;
+    preparedScatteringDistToTc@f4 = preparedScatteringDistToTc;
+  }
+endmacro
+
+macro BASE_FOG_MATH(code)
+  hlsl(code) {
+    float2 get_panoramic_scattering_tc(float3 view)
+    {
+      float theta = atan2( view.x, view.z );
+      return float2(theta * (0.5/PI)+0.5, view.y*0.5 + 0.5);
+    }
+    float3 get_panoramic_scattering_view(float2 texcoord)
+    {
+      float3 view;
+      view.y = texcoord.y*2-1;
+      float cosPhi = sqrt(1 - view.y*view.y);
+      float theta = texcoord.x*(2.h*PI)-PI;
+      sincos(theta, view.x, view.z);
+      view.xz *= cosPhi;
+      return view;
+    }
+    float2 get_camera_scattering_tc(float3 view, inout float dist, float4x4 gtm)//that is very unoptimal way to get screen tc. whereever possible avoid it
+    {
+      float4 viewP = mul(float4(view, 0), gtm);
+      float2 scatteringTC = viewP.xy/viewP.w*float2(0.5,-0.5) + 0.5;
+      FLATTEN
+      if (viewP.w <= 0)
+      {
+        scatteringTC = 0.5;//not sure if this is needed
+        dist = 0;
+      }
+      return scatteringTC;
+    }
+  }
+endmacro
+
+macro BASE_USE_BRUNETON_FOG(code)
+  BASE_FOG_MATH(code)
+  ATMO(code)
+  hlsl(code) {
+    #define APPLY_BRUNETON_FOG 1
+
+    #include "atmosphere/preparedScattering2.hlsl"
+    half3 get_fog_prepared_tc(float2 prepared_tc)
+    {
+      return (half3)GetPreparedTransmittanceUV(SamplerTexture2DFromName(preparedLoss), prepared_tc);
+    }
+    float get_scattering_tc_z(float dist) {return sqrt(dist*skies_panoramic_scattering__inv_distance.y);}
+
+    float2 getPreparedScatteringTc(float mu, float dist)
+    {
+      return short_get_prepared_scattering_tc(mu, dist, preparedScatteringDistToTc.xy);
+    }
+
+    half3 get_fog_loss(float3 view, float dist)
+    {
+      return get_fog_prepared_tc(getPreparedScatteringTc(-view.y, dist));
+    }
+
+    half4 get_scattering_tc_scatter_loss(float2 texcoord, float3 view, float dist, out float tcZ)
+    {
+      tcZ = min(get_scattering_tc_z(dist), skies_panoramic_scattering__inv_distance.w);
+      half4 combined = (half4)tex3Dlod(skies_frustum_scattering, float4(texcoord, tcZ, 0));
+      combined = lerp(half4(0.h,0.h,0.h,1.h), combined, (half)saturate(tcZ*skies_panoramic_scattering__inv_distance.z));
+      return combined;
+    }
+
+    float coloredTransmittanceInnerScaleInv(float3 colored_transmittance)
+    {
+      return max(1e-6, dot(colored_transmittance, 1./3));
+    }
+
+    // casting to float as it needs more precision here (not ideal)
+    half3 color_scatter_loss(float4 combined, float3 colored_transmittance)
+    {
+      return (half3)(colored_transmittance*combined.a/coloredTransmittanceInnerScaleInv(colored_transmittance));
+    }
+    half3 color_scatter_loss(float4 combined, float3 colored_transmittance, float z)
+    {
+      float coloredTransmittanceScale = combined.a/coloredTransmittanceInnerScaleInv(colored_transmittance);
+      return (half3)(colored_transmittance*(z < skies_panoramic_scattering__inv_distance.w ? coloredTransmittanceScale : min(1.0f, coloredTransmittanceScale)));
+    }
+
+    void get_scattering_scatter_colored_loss(half4 combined, float z, float3 view, float dist, out half3 transmittance, out half3 inscatter)
+    {
+      inscatter.rgb = combined.rgb;
+      transmittance = get_fog_prepared_tc(getPreparedScatteringTc(view.y, dist));//resolution should be only enough for colors
+      transmittance = color_scatter_loss(combined, transmittance, z);
+    }
+
+    void get_scattering_tc_fog(float2 texcoord, float3 view, float dist, out half3 transmittance, out half3 inscatter)
+    {
+      float tcZ;
+      half4 combined = get_scattering_tc_scatter_loss(texcoord, view, dist, tcZ);
+      get_scattering_scatter_colored_loss(combined, tcZ, view, dist, transmittance, inscatter);
+    }
+    void get_scattering_tc_fog(float2 texcoord, float3 pointToEye, out half3 transmittance, out half3 inscatter)
+    {
+      float dist2 = dot(pointToEye, pointToEye);
+      float rdist = rsqrt(dist2);
+      get_scattering_tc_fog(texcoord, pointToEye*rdist, dist2*rdist, transmittance, inscatter);
+    }
+    void apply_scattering_tc_fog(float2 texcoord, float3 view, float dist, inout half3 color)
+    {
+      half3 extinction, inscatter;
+      get_scattering_tc_fog(texcoord, view, dist, extinction, inscatter);
+      color = extinction * color + inscatter;
+    }
+    void apply_scattering_tc_fog(float2 texcoord, float3 pointToEye, inout half3 color)
+    {
+      float dist2 = dot(pointToEye, pointToEye);
+      float rdist = rsqrt(dist2);
+      apply_scattering_tc_fog(texcoord, pointToEye*rdist, dist2*rdist, color);
+    }
+
+    void get_panoramic_fog(float3 view, float dist, out half3 transmittance, out half3 inscatter)
+    {
+      get_scattering_tc_fog(get_panoramic_scattering_tc(view), view, dist, transmittance, inscatter);
+    }
+    void get_camera_fog(float3 view, float dist, out half3 transmittance, out half3 inscatter)
+    {
+      float2 scatteringTC = get_camera_scattering_tc(view, dist, skies_globtm);
+      get_scattering_tc_fog(scatteringTC, view, dist, transmittance, inscatter);
+    }
+
+    //generalized function. don't call it, unless you don't know how you render
+    //it was left to compatibility with a current code, but you need either get_panoramic_fog or get_camera_fog
+    void get_bruneton_fog(float3 view, float dist, out half3 transmittance, out half3 inscatter)
+    {
+      float2 scatteringTC;
+      if (skies_panoramic_scattering__inv_distance.x)
+        scatteringTC = get_panoramic_scattering_tc(view);
+      else
+        scatteringTC = get_camera_scattering_tc(view, dist, skies_globtm);
+      get_scattering_tc_fog(scatteringTC, view, dist, transmittance, inscatter);
+    }
+    void apply_bruneton_fog(float3 view, float dist, inout half3 color)
+    {
+      half3 extinction, inscatter;
+      get_bruneton_fog(view, dist, extinction, inscatter);
+      color = extinction * color + inscatter;
+    }
+
+    void get_fog(float3 point_to_eye, float dist, out half3 loss, out half3 add)
+    {
+      float3 lossf, addf;
+      get_bruneton_fog(-point_to_eye, dist, lossf, addf);
+      loss = (half3)lossf;
+      add  = (half3)addf;
+    }
+    void get_fog(float3 point_to_eye, out half3 loss, out half3 add)
+    {
+      float dist2 = dot(point_to_eye, point_to_eye);
+      float rdist = rsqrt(dist2);
+      get_fog(point_to_eye*rdist, dist2*rdist, loss, add);
+    }
+
+    half3 apply_fog(half3 color, float3 point_to_eye, float dist)
+    {
+      half3 add;
+      half3 loss;
+      get_fog(point_to_eye, dist, loss, add);
+      return color * loss + add;
+    }
+
+    half3 apply_fog(half3 color, float3 point_to_eye)
+    {
+      float dist2 = dot(point_to_eye, point_to_eye);
+      float rdist = rsqrt(dist2);
+      return apply_fog(color, point_to_eye*rdist, dist2*rdist);
+    }
+
+    void fog_modify_thermal(inout half3 fog_mul, inout half3 fog_add)
+    {
+      fog_add *= half3(0.25h, 0.0h, 0.0h);
+      // reduce fog influence on close distance a bit
+      fog_mul =  lerp(fog_mul, 0.5h + 0.5h*fog_mul, fog_mul.r);
+    }
+  }
+endmacro
+
+macro USE_BRUNETON_FOG()
+  BASE_USE_BRUNETON_FOG(ps)
+endmacro
+
+macro USE_BRUNETON_FOG_VS()
+  BASE_USE_BRUNETON_FOG(vs)
+endmacro
+
+macro BRUNETON_FOG()
+INIT_BRUNETON_FOG(ps)
+USE_BRUNETON_FOG()
+endmacro

@@ -34,7 +34,7 @@ public:
   virtual void onChange(int pcb_id, PropPanel2 *panel);
   virtual void onClick(int pcb_id, PropPanel2 *panel);
 
-  void autoSize();
+  virtual void autoSize(bool auto_center = true) override;
 
 private:
   void createHotkey(int idx, bool disable = false);

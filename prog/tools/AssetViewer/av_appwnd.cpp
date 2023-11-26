@@ -2395,11 +2395,13 @@ static void copy_terse_lod_asset_props_to_stream(DagorAsset *a, IGenSave &cwr)
 {
   String tmp(0, "%s { ", a->getName());
   cwr.write(tmp.str(), i_strlen(tmp));
+  int lodIndex = 0;
   for (int i = 0, nid = a->props.getNameId("lod"); i < a->props.blockCount(); i++)
     if (a->props.getBlock(i)->getBlockNameId() == nid)
     {
-      tmp.printf(0, "lod%d:r=%g; ", i, a->props.getBlock(i)->getReal("range", 0));
+      tmp.printf(0, "lod%d:r=%g; ", lodIndex, a->props.getBlock(i)->getReal("range", 0));
       cwr.write(tmp.str(), i_strlen(tmp));
+      ++lodIndex;
     }
   cwr.write("}\n", 2);
 }

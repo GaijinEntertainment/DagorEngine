@@ -363,7 +363,7 @@ bool detect_os_compatibility_mode(char *os_real_name, size_t os_real_name_size)
         if (os_real_name != NULL)
         {
           SNPRINTF(os_real_name, os_real_name_size, "Windows %s v%d.%d",
-            osvi.wProductType == VER_NT_WORKSTATION ? "Workstation" : "Server", dllVersionMajor, dllVersionMinor);
+            osvi.wProductType == VER_NT_WORKSTATION ? "Workstation" : "Server", (int)dllVersionMajor, (int)dllVersionMinor);
         }
         return true;
       }

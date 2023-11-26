@@ -1,0 +1,33 @@
+//godrays
+include "clouds_shadow.dshl"
+include "statistical_clouds_shadow.dshl"
+include_optional "project_skies_shadows.dshl"
+
+define_macro_if_not_defined PROJECT_SKIES_SHADOWS(code)
+  hlsl(code) {
+    //it is important that get_project_skies_shadows are stable and blurry. otherwise will cause temporal flicker
+    #define get_project_skies_shadows(wp, dist_km, radius_from_earth_center_km, view_mu) 1
+  }
+endmacro
+
+macro SKY_CLOUDS_SHADOWS(code, use_origin, sun_dir_x, sun_dir_y, sun_dir_z)
+  INIT_CLOUDS_SHADOW_BASE_REF(sun_dir_x, sun_dir_y, sun_dir_z, code)
+  (code) {shadow_origin@f3 = use_origin;}
+  USE_CLOUDS_SHADOW_BASE_REF(code)
+  GET_STATISTICAL_SHADOW_FUNC(code)
+  PROJECT_SKIES_SHADOWS(code)
+  hlsl(code) {
+    #if SHADOWMAP_ENABLED
+      #error already enabled
+    #endif
+    #define SHADOWMAP_ENABLED 1
+    float getShadow(float3 worldPos, float d, float r, float mu)
+    {
+      float shadow = get_project_skies_shadows(worldPos, d, r, mu);
+      if (d > 100)
+        return shadow * getCloudsStatisticalShadow(r, mu);//it is very noise and cache thrashy far
+      //return base_clouds_transmittance(worldPos);
+      return shadow * base_clouds_transmittance(worldPos);
+    }
+  }
+endmacro

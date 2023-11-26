@@ -108,7 +108,7 @@ public:
 
   void flushWrite()
   {
-    subAlloc.buffer->markNonCoherentRange(dataOffset(), subAlloc.size, true);
+    subAlloc.buffer->markNonCoherentRangeLoc(subAlloc.offset, subAlloc.size, true);
 #if DAGOR_DBGLEVEL > 0
     writesFlushed = true;
 #endif
@@ -116,9 +116,9 @@ public:
 
   const BufferSubAllocation &get() { return subAlloc; }
 
-  uint32_t dataOffset() { return subAlloc.buffer->dataOffset(subAlloc.offset); }
+  uint32_t bufOffset() { return subAlloc.buffer->bufOffsetLoc(subAlloc.offset); }
 
-  void *getPtr() { return subAlloc.buffer->dataPointer(subAlloc.offset); }
+  void *getPtr() { return subAlloc.buffer->ptrOffsetLoc(subAlloc.offset); }
 };
 
 } // namespace drv3d_vulkan

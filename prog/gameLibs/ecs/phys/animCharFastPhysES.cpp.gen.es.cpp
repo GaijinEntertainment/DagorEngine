@@ -89,16 +89,15 @@ static ecs::EntitySystemDesc animchar_fast_phys_destroy_es_event_handler_es_desc
 );
 static constexpr ecs::ComponentDesc get_animchar_by_name_ecs_query_comps[] =
 {
-//start of 1 rw components at [0]
-  {ECS_HASH("animchar__res"), ecs::ComponentTypeInfo<ecs::string>()},
-//start of 1 ro components at [1]
-  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()}
+//start of 2 ro components at [0]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("animchar__res"), ecs::ComponentTypeInfo<ecs::string>()}
 };
 static ecs::CompileTimeQueryDesc get_animchar_by_name_ecs_query_desc
 (
   "get_animchar_by_name_ecs_query",
-  make_span(get_animchar_by_name_ecs_query_comps+0, 1)/*rw*/,
-  make_span(get_animchar_by_name_ecs_query_comps+1, 1)/*ro*/,
+  empty_span(),
+  make_span(get_animchar_by_name_ecs_query_comps+0, 2)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -111,7 +110,7 @@ inline void get_animchar_by_name_ecs_query(Callable function)
         {
           function(
               ECS_RO_COMP(get_animchar_by_name_ecs_query_comps, "eid", ecs::EntityId)
-            , ECS_RW_COMP(get_animchar_by_name_ecs_query_comps, "animchar__res", ecs::string)
+            , ECS_RO_COMP(get_animchar_by_name_ecs_query_comps, "animchar__res", ecs::string)
             );
 
         }while (++comp != compE);

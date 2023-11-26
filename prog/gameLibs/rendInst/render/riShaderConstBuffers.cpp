@@ -77,7 +77,12 @@ void RiShaderConstBuffers::setBBox(vec4f p[2])
 
 void RiShaderConstBuffers::setOpacity(float p0, float p1, float p2, float p3) { perDraw[0] = v_make_vec4f(p0, p1, p2, p3); }
 
-void RiShaderConstBuffers::setBoundingBox(const vec4f &bounding_box) { perDraw[7] = bounding_box; }
+void RiShaderConstBuffers::setBoundingBox(const vec4f &bounding_box) { perDraw[7] = v_perm_xyzd(bounding_box, perDraw[7]); }
+
+void RiShaderConstBuffers::setCrossDissolveRange(float crossDissolveRange)
+{
+  perDraw[7] = v_perm_xyzd(perDraw[7], v_splats(crossDissolveRange));
+}
 
 void RiShaderConstBuffers::setBoundingSphere(float p0, float p1, float sphereRadius, float cylinderRadius, float sphereCenterY)
 {

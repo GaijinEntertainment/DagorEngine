@@ -73,10 +73,19 @@ bool evict_from_pool(ObjectPool<ResTypeName> &pool, VkDeviceSize &desired_size)
 
 } // namespace
 
+VulkanDeviceMemoryHandle ResourceMemory::deviceMemorySlow() const
+{
+  Device &device = get_device();
+  SharedGuardedObjectAutoLock resLock(device.resources);
+
+  return device.resources.getDeviceMemoryHandle(index);
+}
+
 void ResourceManager::init(WinCritSec *memory_lock, const PhysicalDeviceSet &dev_set)
 {
   uint32_t memTypesCount = dev_set.memoryProperties.memoryTypeCount;
   allowMixedPages = dev_set.properties.limits.bufferImageGranularity <= 1024;
+  allowBufferSuballoc = get_device().getPerDriverPropertyBlock("bufferSuballocation")->getBool("enable", false);
   debug("vulkan: %s type mixed allocators", allowMixedPages ? "using" : "not using");
   hotMemPushIdx = 0;
   sharedGuard = memory_lock;
@@ -118,19 +127,28 @@ AllocationMethodPriorityList ResourceManager::getAllocationMethods(const Allocat
   // select possible methods and their priority
   // based on allocation desc
   AllocationMethodPriorityList ret;
-  if (desc.isSharedHandleAllowed())
-  {
-    // we want to allocate from shared handle allocators
-    // but they are not yet ready
-    // ret.methods[ret.available++] = AllocationMethodName::BUFFER_SUBALLOC_SMALL_POW2_ALIGNED_PAGES;
-    // ret.methods[ret.available++] = AllocationMethodName::BUFFER_SUBALLOC_HEAP_FREE_LIST;
-    return ret;
-  }
 
   // if underlying memory is purely object baked
   if (desc.objectBaked)
   {
     ret.methods[ret.available++] = AllocationMethodName::OBJECT_BACKED_MEMORY;
+    return ret;
+  }
+
+  if (desc.isSharedHandleAllowed())
+  {
+    // we want to allocate from shared handle allocators
+    if (desc.obj.isBuffer() && allowBufferSuballoc)
+    {
+      if (desc.temporary)
+        ret.methods[ret.available++] = AllocationMethodName::BUFFER_SHARED_RINGED;
+      else
+      {
+        ret.methods[ret.available++] = AllocationMethodName::BUFFER_SHARED_SMALL_POW2_ALIGNED_PAGES;
+        ret.methods[ret.available++] = AllocationMethodName::BUFFER_SHARED_HEAP_FREE_LIST;
+      }
+    }
+    // must exit early, shared handle uses separate codepath in ResourceAlgorithm
     return ret;
   }
 
@@ -315,6 +333,12 @@ void ResourceManager::freeMemory(ResourceMemoryId memory_id)
 }
 
 const ResourceMemory &ResourceManager::getMemory(ResourceMemoryId memory_id) { return resAllocationsPool[memory_id]; }
+
+VulkanDeviceMemoryHandle ResourceManager::getDeviceMemoryHandle(ResourceMemoryId memory_id)
+{
+  ResourceMemory &mem = resAllocationsPool[memory_id];
+  return perMemoryTypeMethods[(int)mem.memType].getDeviceMemoryHandle(mem);
+}
 
 bool ResourceManager::evictResourcesFor(VkDeviceSize desired_size)
 {
@@ -519,15 +543,19 @@ void ResourceManager::MethodsArray::init(uint32_t mem_type, VkDeviceSize mixing_
   methods[(int)AllocationMethodName::BUFFER_SUBALLOC_SMALL_POW2_ALIGNED_PAGES] = new SuballocPow2Allocator();
   methods[(int)AllocationMethodName::IMAGE_SUBALLOC_SMALL_POW2_ALIGNED_PAGES] = new SuballocPow2Allocator();
   methods[(int)AllocationMethodName::RT_AS_SUBALLOC_SMALL_POW2_ALIGNED_PAGES] = new SuballocPow2Allocator();
+  methods[(int)AllocationMethodName::BUFFER_SHARED_SMALL_POW2_ALIGNED_PAGES] =
+    new SuballocPow2Allocator<SubAllocationMethod::BUF_OFFSET>();
 
   methods[(int)AllocationMethodName::MIXED_SUBALLOC_HEAP_FREE_LIST] = new SuballocFreeListAllocator();
   methods[(int)AllocationMethodName::BUFFER_SUBALLOC_HEAP_FREE_LIST] = new SuballocFreeListAllocator();
   methods[(int)AllocationMethodName::IMAGE_SUBALLOC_HEAP_FREE_LIST] = new SuballocFreeListAllocator();
   methods[(int)AllocationMethodName::RT_AS_SUBALLOC_HEAP_FREE_LIST] = new SuballocFreeListAllocator();
+  methods[(int)AllocationMethodName::BUFFER_SHARED_HEAP_FREE_LIST] = new SuballocFreeListAllocator<SubAllocationMethod::BUF_OFFSET>();
 
   methods[(int)AllocationMethodName::MIXED_SUBALLOC_RINGED] = new SuballocRingedAllocator();
   methods[(int)AllocationMethodName::BUFFER_SUBALLOC_RINGED] = new SuballocRingedAllocator();
   methods[(int)AllocationMethodName::IMAGE_SUBALLOC_RINGED] = new SuballocRingedAllocator();
+  methods[(int)AllocationMethodName::BUFFER_SHARED_RINGED] = new SuballocRingedAllocator<SubAllocationMethod::BUF_OFFSET>();
 
   for (AbstractAllocator *i : methods)
   {
@@ -560,6 +588,11 @@ bool ResourceManager::MethodsArray::alloc(ResourceMemory &target, AllocationMeth
 }
 
 void ResourceManager::MethodsArray::free(ResourceMemory &target) { methods[(int)target.allocator]->free(target); }
+
+VulkanDeviceMemoryHandle ResourceManager::MethodsArray::getDeviceMemoryHandle(ResourceMemory &target)
+{
+  return methods[(int)target.allocator]->getDeviceMemoryHandle(target);
+}
 
 const AbstractAllocator::Stats ResourceManager::MethodsArray::printStats()
 {

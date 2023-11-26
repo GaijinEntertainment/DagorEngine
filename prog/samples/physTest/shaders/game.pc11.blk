@@ -6,7 +6,7 @@ incDir:t="."
 incDir:t="../../../gameLibs/render/shaders"
 source
 {
-  file:t="gui.sh"
+  file:t="gui.dshl"
 }
 
 Compile { gi:b = false; fsh:t="4.0"; }

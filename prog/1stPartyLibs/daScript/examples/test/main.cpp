@@ -537,6 +537,7 @@ int main( int argc, char * argv[] ) {
 #endif
     uint64_t timeStamp = ref_time_ticks();
     bool ok = true;
+    // ok = run_all_standalone_context_tests() && ok;
     ok = run_compilation_fail_tests(getDasRoot() + "/examples/test/compilation_fail_tests") && ok;
     ok = run_unit_tests(getDasRoot() +  "/examples/test/unit_tests",    true,  false) && ok;
     ok = run_unit_tests(getDasRoot() +  "/examples/test/optimizations", false, false) && ok;

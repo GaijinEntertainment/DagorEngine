@@ -16,7 +16,7 @@ class GatherNameMap;
 namespace bindumphlp
 {
 void sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks);
-void patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable);
+void patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable, dag::ConstSpan<int> smpTable);
 
 // builds global variables remapping table
 void countRefAndRemapGlobalVars(Tab<int> &dest_ref, dag::ConstSpan<ShaderClass *> shaderClasses, mkbindump::GatherNameMap &varMap);

@@ -103,6 +103,7 @@ void PipelineCompiler::init()
 
   timeBlock.start();
   primaryWorker.start();
+  primaryWorker.setAffinity(-1);
 }
 
 void PipelineCompiler::shutdown()
@@ -227,6 +228,7 @@ void PipelineCompiler::startSecondaryWorkers()
   {
     secondaryWorkers[i] = eastl::make_unique<SecondaryWorkerThread>(*this, i);
     secondaryWorkers[i]->start();
+    secondaryWorkers[i]->setAffinity(-1);
   }
   // wait threads to start
   waitSecondaryWorkers();

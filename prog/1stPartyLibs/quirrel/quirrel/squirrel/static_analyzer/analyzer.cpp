@@ -2115,7 +2115,7 @@ static bool isDivOperator(enum TreeOp op) {
 }
 
 bool isPureArithOperator(enum TreeOp op) {
-  return TO_USHR <= op && op <= TO_SUB || TO_PLUSEQ <= op && op <= TO_MODEQ;
+  return (TO_USHR <= op && op <= TO_SUB) || (TO_PLUSEQ <= op && op <= TO_MODEQ);
 }
 
 bool isRelationOperator(enum TreeOp op) {
@@ -8012,15 +8012,6 @@ void NameShadowingChecker::visitFunctionDecl(FunctionDecl *f) {
   Visitor::visitFunctionDecl(f);
 }
 
-static bool isFunctionDecl(const Expr *e) {
-  if (e->op() != TO_DECL_EXPR)
-    return false;
-
-  const Decl *d = static_cast<const DeclExpr *>(e)->declaration();
-
-  return d->op() == TO_FUNCTION || d->op() == TO_CONSTRUCTOR;
-}
-
 void NameShadowingChecker::visitTableDecl(TableDecl *t) {
   Scope tableScope(this, t);
 
@@ -8092,12 +8083,7 @@ void NameShadowingChecker::visitForeachStatement(ForeachStatement *stmt) {
   nodeStack.pop_back();
 }
 
-static bool checkInBindings(const SQChar *id) {
-
-  return knownBindings.find(id) != knownBindings.end();
-}
-
-void StaticAnalyzer::reportGlobalNameDiagnostics(HSQUIRRELVM vm) {
+void StaticAnalyzer::reportGlobalNamesWarnings(HSQUIRRELVM vm) {
   auto errorFunc = _ss(vm)->_compilererrorhandler;
 
   if (!errorFunc)
@@ -8130,7 +8116,8 @@ void StaticAnalyzer::reportGlobalNameDiagnostics(HSQUIRRELVM vm) {
   for (auto it = usedGlobals.begin(); it != usedGlobals.end(); ++it) {
     const std::string &id = it->first;
 
-    if (checkInBindings(id.c_str()))
+    bool isKnownBinding = knownBindings.find(id) != knownBindings.end();
+    if (isKnownBinding)
       continue;
 
     if (declaredGlobals.find(id) != declaredGlobals.end())
@@ -8184,8 +8171,7 @@ void StaticAnalyzer::mergeKnownBindings(const HSQOBJECT *bindings) {
       if (sq_isstring(key)) {
         SQInteger len = _string(key)->_len;
         const SQChar *s = _string(key)->_val;
-        std::string name(s);
-        knownBindings.emplace(name);
+        knownBindings.emplace(std::string(s, s+len));
       }
       pos._unVal.nInteger = idx;
     }

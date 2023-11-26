@@ -1,0 +1,105 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+include "cloudsDensity.dshl"
+include "writeToTex.dshl"
+
+int skies_has_clouds=1;
+
+float4 cloud_volume_res = (32, 16, 32, 50000);//last one is distance
+
+macro WRITE_BUILD_VOLUME(code)
+  local float4 offseted_view_pos = (world_view_pos.x+clouds_origin_offset.x, world_view_pos.y, world_view_pos.z+clouds_origin_offset.y,0);
+  SAMPLE_CLOUDS_DENSITY_TEXTURE(code, offseted_view_pos)
+  SAMPLE_CLOUDS_NUKE_INVERSION(code)
+  VIEW_VEC_OPTIMIZED(code)
+  (code) {
+    invres@f4 = (1./cloud_volume_res.x, 1./cloud_volume_res.y, 0.5/cloud_volume_res.x, 0.5/cloud_volume_res.y);
+    cloud_volume_res@f4=cloud_volume_res;
+    clouds_start_trace@f3 = (offseted_view_pos);
+    skies_has_clouds@f1 = (skies_has_clouds);
+  }
+  hlsl(code) {
+    float iterateTransmittance(float2 texcoord, int2 scri, int slice_end)
+    {
+      float3 viewVect = getViewVecOptimized(texcoord);//intentionally not normalized
+      float transmittance = 1;
+      float lastDist = 0;
+      float3 clouds_hole_offset = get_clouds_hole_pos_vec();
+      for (int i = 1; i < slice_end; ++i)
+      {
+        float p = (i+0.5)/(cloud_volume_res.z-0.5);
+        float cDist = pow2(p)*cloud_volume_res.w;
+        const int subDivision = 4;
+        float dx = (cDist-lastDist)/subDivision;
+        float sigmaDs = CLOUDS_SIGMA*dx;
+        for (int j = 0; j < subDivision; ++j)
+        {
+          lastDist += dx;
+          float3 p = clouds_start_trace + clouds_hole_offset + viewVect*lastDist;
+          float heightFraction;
+          float cloudDensity = sampleCloudDensity(p, 1, 0, heightFraction, false);
+          ##if nuke_in_atmosphere == on
+            cloudDensity = sampleNukeCloudsInversion(p - clouds_hole_offset, cloudDensity, heightFraction);
+          ##endif
+          float beers_term = exp2(cloudDensity * sigmaDs);
+          transmittance *= beers_term;
+        }
+        #ifdef EACH_ITERATION
+        EACH_ITERATION(i, transmittance)
+        #endif
+      }
+      return transmittance;
+    }
+  }
+endmacro
+
+shader build_dacloud_volume_cs
+{
+  hlsl(cs) {
+    RWTexture3D<float> cloudsVolumeTransmittance:register(u0);
+    #define EACH_ITERATION(i, t) cloudsVolumeTransmittance[int3(scri, i)] = t;
+  }
+  WRITE_BUILD_VOLUME(cs)
+
+  USE_PS5_WAVE32_MODE()
+  hlsl(cs) {
+##if hardware.ps5
+    [numthreads(8, 2, 1)]
+##else
+    [numthreads(8, 8, 1)]
+##endif
+    void cs_main(uint2 dtid : SV_DispatchThreadID)
+    {
+      cloudsVolumeTransmittance[int3(dtid.xy,0)] = 1;
+      if (skies_has_clouds)
+        iterateTransmittance(dtid*invres.xy + invres.zw, dtid, cloud_volume_res.z);
+      else
+      {
+        for (int i = 1; i < cloud_volume_res.z; ++i)
+          cloudsVolumeTransmittance[int3(dtid.xy,i)] = 1;
+      }
+    }
+  }
+  compile("cs_5_0", "cs_main");
+}
+
+shader build_dacloud_volume_ps
+{
+  if (hardware.metal)
+  {
+    dont_render;
+  }
+  WRITE_TO_VOLTEX_TC()
+  WRITE_BUILD_VOLUME(ps)
+
+  hlsl(ps) {
+    half ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      if (input.slice_index == 0 || !skies_has_clouds)
+        return 1;
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      return iterateTransmittance(input.texcoord, screenpos.xy, input.slice_index+1);
+    }
+  }
+  compile("target_ps", "ps_main");
+}

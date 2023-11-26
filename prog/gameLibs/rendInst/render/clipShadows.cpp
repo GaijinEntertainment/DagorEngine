@@ -326,6 +326,7 @@ bool render_clipmap_shadow_pool(rendinst::render::RtPoolData &pool, RenderableIn
   rendinst::render::RiShaderConstBuffers cb;
   cb.setBBoxZero();
   cb.setOpacity(0, 1);
+  cb.setCrossDissolveRange(0);
   cb.setBoundingSphere(0, 0, 1, 1, 0);
   cb.setInstancing(pool.hasImpostor() ? 3 : 0, pool.hasImpostor() ? 1 : 3, impostor_buffer_offset);
   cb.flushPerDraw();

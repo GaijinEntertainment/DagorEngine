@@ -1381,7 +1381,8 @@ void ApbAnimateCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
       }
       if (!n || !n->isSubOf(AnimBlendNodeLeafCID))
       {
-        fatal_x("bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
+        if (!is_ignoring_unavailable_resources())
+          fatal_x("bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
         continue;
       }
 

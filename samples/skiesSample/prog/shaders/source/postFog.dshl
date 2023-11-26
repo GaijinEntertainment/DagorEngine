@@ -1,0 +1,96 @@
+include "sky_shader_global.dshl"
+include "clouds_vars.dshl"
+include "clouds_shadow.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+texture frame2_tex;
+int use_separate_fog = 0;
+interval use_separate_fog: off<1, on;
+
+shader postFog
+{
+  if (use_separate_fog == off)
+  {
+    dont_render;
+  }
+  no_ablend;
+  channel float2 pos = pos;
+  
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;//fixme: should be true ONLY for cascade other than [0, something]
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord     : TEXCOORD0;
+      float3 viewVect     : TEXCOORD1;
+    };
+  }
+  INIT_ZNZFAR()
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  hlsl(vs) {
+    struct VsInput
+    {
+      float2 pos        : POSITION;
+    };
+
+
+    VsOutput postfog_vs(VsInput input)
+    {
+      VsOutput output;
+      output.pos = float4(input.pos.xy, 1, 1);
+      output.texcoord = input.pos * float2(0.5, -0.5) + float2(0.500001, 0.500001);
+      output.viewVect = input.pos.y > 0 ? (input.pos.x < 0 ? view_vecLT : view_vecRT) : (input.pos.x < 0 ? view_vecLB : view_vecRB);
+
+      return output;
+    }
+  }
+
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+    frame2_tex@smp2d = frame2_tex;
+    transmittanceTexture@smp2d = transmittanceTexture;
+  }
+
+  hlsl(ps) {
+    #ifndef HAS_TRANSMITTANCE_SAMPLER
+    #define HAS_TRANSMITTANCE_SAMPLER 1
+    #endif
+    #include <samplerTransmittance.hlsl>
+  }
+
+  BRUNETON_FOG()
+  hlsl(ps) {
+    half4 postfog_ps(VsOutput input) : SV_Target
+    {
+      float rawDepth = tex2Dlod(depth_gbuf, float4(input.texcoord,0,0)).x;
+
+      BRANCH
+      if (rawDepth <= 0)//fixme apply sky? use depth bounds?
+        return 0;
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      float viewLenSq = dot(input.viewVect, input.viewVect);
+      float invViewLen = rsqrt(viewLenSq);
+      float viewLen = rcp(invViewLen);
+      float3 view = -input.viewVect*invViewLen;
+      float distToGround = w*viewLen;
+
+      float3 pointToEye = -input.viewVect * w;
+      //float3 view   = normalize(pointToEye);
+      float4 worldPos = float4(world_view_pos - pointToEye, 1);
+      float3 frame = tex2Dlod(frame2_tex, float4(input.texcoord,0,0));
+      apply_bruneton_fog(-view, distToGround, frame);
+      return half4(frame,1);
+    }
+  }
+  compile("target_vs", "postfog_vs");
+  compile("target_ps", "postfog_ps");
+}

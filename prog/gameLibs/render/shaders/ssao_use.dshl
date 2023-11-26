@@ -1,0 +1,146 @@
+include "ssao_inc.dshl"
+include "wsao.dshl"
+
+int use_contact_shadows = 0;
+interval use_contact_shadows: no_shadows < 1, use_shadows;
+
+bool ssao_wsao = gi_quality == only_ao;
+bool ssao_contact_shadows = use_contact_shadows != no_shadows;
+
+hlsl {
+  #define SSAO_ATTRS xyz
+  #define WSAO_ATTR y
+  #define CONTACT_SHADOWS_ATTR z
+}
+
+macro USE_PACK_SSAO_BASE(code)
+  hlsl(code) {
+    SSAO_TYPE setSSAO(SSAO_TYPE ssao)
+    {
+      ##if ssao_wsao
+      ssao.y = sqrt(ssao.y);
+      ##endif
+      ##if ssao_contact_shadows && !ssao_wsao
+      ssao.y = ssao.z;
+      ##endif
+      return ssao;
+    }
+  }
+  if (gi_quality == only_ao) {
+    WSAO_BASE(code)
+  }
+endmacro
+
+macro USE_PACK_SSAO()
+  USE_PACK_SSAO_BASE(ps)
+endmacro
+
+macro USE_SSAO_SIMPLE_BASE_WITH_SMP(code, _samplerstate)
+  USE_SCREENPOS_TO_LOWRES_TC_BASE(code)
+  hlsl(code) {
+    SSAO_TYPE getSSAOSimple(float2 screenpos)
+    {
+      SSAO_TYPE ao = 1;
+      float2 ssaotc = screen_pos_to_lowres_tc(screenpos);
+      float4 ssao = ssao_tex.SampleLevel(_samplerstate, ssaotc, 0);
+      ao.x = ssao.x;
+      ##if ssao_wsao
+      ao.WSAO_ATTR = ssao.WSAO_ATTR;
+      ao.WSAO_ATTR *= ao.WSAO_ATTR;
+      ##endif
+      ##if ssao_contact_shadows
+      ao.CONTACT_SHADOWS_ATTR = ssao.CONTACT_SHADOWS_ATTR;
+      ##endif
+      return ao;
+    }
+  }
+endmacro
+
+macro USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
+  USE_SCREENPOS_TO_LOWRES_TC_BASE(code)
+  USE_UPSCALE_SAMPLING_BASE(code)
+  hlsl(code) {
+    ##if ssao_contact_shadows && ssao_wsao
+      #define GATHER_WSAO GatherGreen
+      #define GATHER_SHADOW GatherBlue
+    ##else
+      #define GATHER_WSAO GatherGreen
+      #define GATHER_SHADOW GatherGreen
+    ##endif
+    SSAO_TYPE getSSAOUpscale(float2 screenpos)
+    {
+      float2 ssaotc = screen_pos_to_lowres_tc(screenpos);
+      float4 weights = SampleUpscaleWeight(screenpos);
+      float4 ssaoValue = ssao_tex.GatherRed(_samplerstate, ssaotc);
+      SSAO_TYPE ao = 1;
+      ao.x = dot(ssaoValue, weights);
+      ##if ssao_wsao
+      float4 wsaoValue = ssao_tex.GATHER_WSAO(_samplerstate, ssaotc);
+      ao.WSAO_ATTR = dot(wsaoValue, weights);
+      ao.WSAO_ATTR *= ao.WSAO_ATTR;
+      ##endif
+      ##if ssao_contact_shadows
+      float4 contactShadowValue = ssao_tex.GATHER_SHADOW(_samplerstate, ssaotc);
+      ao.CONTACT_SHADOWS_ATTR = dot(contactShadowValue, weights);
+      ##endif
+      return ao;
+    }
+    #undef GATHER_WSAO
+    #undef GATHER_SHADOW
+  }
+endmacro
+
+macro USE_SSAO_BASE_WITH_SMP(code, _samplerstate)
+
+  USE_SSAO_SIMPLE_BASE_WITH_SMP(code, _samplerstate)
+  if (upscale_sampling_tex != NULL)
+  {
+    USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
+  }
+  hlsl(code) {
+    ##if upscale_sampling_tex != NULL
+      #define getSSAO getSSAOUpscale
+    ##else
+      #define getSSAO(screenpos) getSSAOSimple(screenpos)
+    ##endif
+  }
+endmacro
+
+macro USE_SSAO_BASE(code)
+  USE_SSAO_BASE_WITH_SMP(code, ssao_tex_samplerstate)
+endmacro
+
+macro USE_SSAO()
+  USE_SSAO_BASE(ps)
+endmacro
+
+macro USING_SSAO_BASE(code)
+  if (ssao_tex != NULL) {
+    INIT_SSAO_BASE(code)
+    USE_SSAO_BASE(code)
+  } else {
+    hlsl(code) {
+      #define getSSAO(screenpos) SSAO_TYPE(1, 1, 1)
+    }
+  }
+endmacro
+
+macro USING_SSAO()
+  USING_SSAO_BASE(ps)
+endmacro
+
+macro USING_SSAO_BASE_COMPATIBILITY(code, _samplerstate)
+  if (ssao_tex != NULL) {
+    // INIT_SSAO_BASE without sampler2d
+    INIT_UPSCALE_SAMPLING_BASE(code)
+    USE_SSAO_BASE_WITH_SMP(code, _samplerstate)
+  } else {
+    hlsl(code) {
+      #define getSSAO(screenpos) SSAO_TYPE(1, 1, 1)
+    }
+  }
+endmacro
+
+macro USING_SSAO_COMPATIBILITY(_samplerstate)
+  USING_SSAO_BASE_COMPATIBILITY(ps, _samplerstate)
+endmacro

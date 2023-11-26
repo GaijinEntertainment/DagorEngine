@@ -78,7 +78,7 @@ half3 RNM_ndetail_normalized_worldspace(half3 n1, half3 n2, half3 ws_normal)
   return r;
 }
 
-half3 blend_normals_worldspace(half3 baseNormal, half3 detailNormal1, half3 detailNormal2, half mix_weight, half3 normal, float3 pointToEye,  float2 baseTC, float4 detailTC12)
+half3 blend_normals_worldspace(half3 baseNormal, half3 detailNormal1, half3 detailNormal2, half mix_weight, float3 normal, float3 pointToEye,  float2 baseTC, float4 detailTC12)
 {
   //mix 3 normal maps, 1-base 2&3 - detailed
   //1.calculate world normals (current normals are in texture space)
@@ -86,7 +86,7 @@ half3 blend_normals_worldspace(half3 baseNormal, half3 detailNormal1, half3 deta
 
   //1.calculate world normals (current normals in texture space)
   //we have 3 different uv's, that's why we need translate all 3 normals to world space separately using right uv's
-  half3 ws_normal = normalize(normal);
+  half3 ws_normal = half3(normalize(normal));
 
   // get edge vectors of the pixel triangle (only once, look perturb_normal() )
   float3 dp1 = ddx( pointToEye ); //normalize
@@ -105,9 +105,9 @@ half3 blend_normals_worldspace(half3 baseNormal, half3 detailNormal1, half3 deta
   return worldNormal;
 }
 
-half3 blend_normals_worldspace(half3 base_normal, half3 detail_normal, half3 vertex_normal, float3 point_to_eye, float2 base_texcoord, float2 detail_texcoord)
+half3 blend_normals_worldspace(half3 base_normal, half3 detail_normal, float3 vertex_normal, float3 point_to_eye, float2 base_texcoord, float2 detail_texcoord)
 {
-  half3 vertexWorldNormal = normalize(vertex_normal);
+  half3 vertexWorldNormal = half3(normalize(vertex_normal));
 
   // get edge vectors of the pixel triangle (only once, look perturb_normal() )
   float3 dp1 = ddx(point_to_eye);

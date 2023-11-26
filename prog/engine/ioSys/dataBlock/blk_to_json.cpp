@@ -6,6 +6,7 @@
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_e3dColor.h>
+#include <ctype.h>
 #include <stdio.h> // sprintf
 
 namespace

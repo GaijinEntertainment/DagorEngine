@@ -1,0 +1,88 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "caustics.dshl"
+include "static_shadow.dshl"
+include "water_heightmap.dshl"
+
+
+texture downsampled_normals;
+float4 caustics_texture_size;
+texture water_heightmap_lowres;
+texture downsampled_close_depth_tex;
+
+macro CAUSTICS_RENDER_CORE(code)
+  INIT_ZNZFAR_STAGE(code)
+
+  (code) {
+    world_view_pos@f3 = world_view_pos;
+    downsampled_close_depth_tex@smp2d = downsampled_close_depth_tex;
+
+    downsampled_normals@smp2d = downsampled_normals;
+
+    inv_caustics_texture_size@f2 = (1.0/caustics_texture_size.x, 1.0/caustics_texture_size.y);
+  }
+  if (water_heightmap_lowres != NULL)
+  {
+    INIT_WORLD_TO_WATER_HEIGHTMAP(code)
+    (code) {water_heightmap_lowres@smp2d = water_heightmap_lowres;}
+  }
+  else
+  {
+    (code) {water_level@f1 = water_level;}
+  }
+
+  if (static_shadows_cascades != off)
+  {
+    hlsl(code) {
+      #define HAS_STATIC_SHADOW 1
+    }
+
+    INIT_STATIC_SHADOW_BASE(code)
+    USE_STATIC_SHADOW_BASE(code)
+    hlsl(code){
+      #define get_shadow(shadowPos) getStaticShadow( shadowPos.xyz )
+    }
+  }
+  else
+  {
+    hlsl(code){
+      #define get_shadow(shadowPos) 1
+    }
+  }
+
+  hlsl(code) {
+    #define USE_CAUSTICS_RENDER 1
+  }
+
+  USE_SSR_CAUSTICS(code)
+
+  hlsl(code) {
+    half4 caustics(float2 texcoord, float3 viewVect)
+    {
+      float rawDepth = tex2Dlod(downsampled_close_depth_tex, float4(texcoord, 0, 0)).x;
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      BRANCH
+      if (rawDepth <= 0)
+        return 0;
+
+      half3 normal;
+      half4 normal_smoothness = tex2Dlod(downsampled_normals, float4(texcoord,0,0));
+      normal = normal_smoothness.xyz*2-1;
+
+      float3 cameraToPoint = viewVect.xyz * w;
+      float3 worldPos = world_view_pos + cameraToPoint;
+      float worldDist=length(cameraToPoint);
+
+      ##if water_heightmap_lowres != NULL
+      float2 water_heightmap_lowres_uv = worldPos.xz * world_to_water_heightmap.zw + world_to_water_heightmap.xy;
+      float water_level = tex2Dlod(water_heightmap_lowres, float4(water_heightmap_lowres_uv, 0, 0)).r;
+      ##endif
+
+      half4 result = get_ssr_caustics(worldPos, normal, water_level, worldDist);
+
+      return sqrt(result);
+    }
+  }
+endmacro

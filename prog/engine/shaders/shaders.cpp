@@ -621,6 +621,22 @@ static d3d::shadermodel::Version forceFSH = d3d::smAny;
 d3d::shadermodel::Version getMaxFSHVersion() { return forceFSH; }
 void limitMaxFSHVersion(d3d::shadermodel::Version f) { forceFSH = f; }
 
+void dump_shader_statistics()
+{
+#if DAGOR_DBGLEVEL > 0
+  if (dgs_get_settings()->getBlockByNameEx("debug")->getBool("dumpShaderStatistics", false))
+  {
+    auto game_name = dgs_get_settings()->getStr("contactsGameId");
+    String dump_name(64, ".logs~%s/game", game_name);
+    char fname[DAGOR_MAX_PATH];
+    build_shaderdump_filename(fname, dump_name, d3d::smAny);
+    strcat(fname, ".stat");
+    dump_shader_statistics(fname);
+    debug("Shader statistics has been dumped to %s", fname);
+  }
+#endif
+}
+
 class ShadersRestartProc : public SRestartProc
 {
 public:
@@ -682,18 +698,7 @@ public:
 
   void shutdown()
   {
-#if DAGOR_DBGLEVEL > 0
-    if (dgs_get_settings()->getBlockByNameEx("debug")->getBool("dumpShaderStatistics", false))
-    {
-      auto game_name = dgs_get_settings()->getStr("contactsGameId");
-      String dump_name(64, ".logs~%s/game", game_name);
-      char fname[DAGOR_MAX_PATH];
-      build_shaderdump_filename(fname, dump_name, maxFshVer);
-      strcat(fname, ".stat");
-      dump_shader_statistics(fname);
-      debug("Shader statistics has been dumped to %s", fname);
-    }
-#endif
+    dump_shader_statistics();
 
     del_restart_proc(&drvResetRp);
     close_vdecl();

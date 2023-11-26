@@ -33,6 +33,7 @@ struct JumpLinksParams
   // 0 - disabled
   float complexJumpTheshold;
   bool crossObstaclesWithJumplinks;
+  bool enableCustomJumplinks;
 };
 
 struct JumpLinkObstacle

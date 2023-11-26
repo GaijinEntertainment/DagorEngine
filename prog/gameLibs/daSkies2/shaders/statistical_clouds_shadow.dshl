@@ -1,0 +1,34 @@
+
+include "clouds2/clouds_alt_fraction.dshl"
+include "clouds2/cloudsBaseMSLighting.dshl"
+
+float clouds_shadow_coverage;
+
+macro GET_STATISTICAL_SHADOW_FUNC(code)
+  CLOUDS_MULTIPLE_SCATTERING_BASE()
+  local float4 ms_sigma_shadows = (ms_sigma)*clouds_shadow_coverage*1000*0.5;//kilometers to meters, and sqrt
+  (code) {
+    clouds_stat_shadows_params@f2 =
+      ((skies_planet_radius+clouds_start_altitude2)*(skies_planet_radius+clouds_start_altitude2),
+      (skies_planet_radius+clouds_start_altitude2+clouds_thickness2)*(skies_planet_radius+clouds_start_altitude2+clouds_thickness2),
+      0,0);
+    clouds_stat_shadows_sigma@f3 = (ms_sigma_shadows);
+    clouds_stat_shadows_contribution@f3 = (clouds_ms_contribution4_base);
+  }
+  hlsl(code) {
+    #include <atmosphere/statistical_clouds_shadow.hlsli>
+    float getCloudsStatisticalShadow(float r, float mu)
+    {
+      float len = getCloudsLength(r, mu, clouds_stat_shadows_params.x, clouds_stat_shadows_params.y);
+      return dot(exp2(clouds_stat_shadows_sigma * len), clouds_stat_shadows_contribution);
+    }
+  }
+endmacro
+
+macro GET_STATISTICAL_SHADOW(code)
+  GET_STATISTICAL_SHADOW_FUNC(code)
+  hlsl(code) {
+    #define SHADOWMAP_ENABLED 1
+    float getShadow(float3 worldPos, float d, float r, float mu) { return getCloudsStatisticalShadow(r,mu);}
+  }
+endmacro

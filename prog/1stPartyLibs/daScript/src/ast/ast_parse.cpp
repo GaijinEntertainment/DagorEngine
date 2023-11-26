@@ -299,11 +299,9 @@ namespace das {
 
         int64_t file_mtime = access->getFileMtime(fileName.c_str());
         int64_t saved_mtime = 0; *serializer_read << saved_mtime;
+        string saved_filename{}; *serializer_read << saved_filename;
 
-        string saved_filename; *serializer_read << saved_filename;
-        DAS_ASSERTF(saved_filename == fileName, "expected the same order of modules");
-
-        if ( file_mtime != saved_mtime ) {
+        if ( saved_filename != fileName || file_mtime != saved_mtime ) {
             serializer_read->seenNewModule = true;
             return false;
         }

@@ -1,0 +1,297 @@
+include "sky_shader_global.dshl"
+include "dagi_volmap_gi.dshl"
+include "dagi_scene_voxels_common.dshl"
+include "dagi_inline_raytrace.dshl"
+include "dagi_helpers.dshl"
+include "dagi_volmap_common_25d.dshl"
+//include "sample_voxels.dshl"
+hlsl {
+  #include "dagi_common_types.hlsli"
+}
+
+buffer gi_ambient_cube;
+
+//float4 ambient_voxels_visible_start;
+//float4 ambient_voxels_visible_width;
+
+define_macro_if_not_defined INIT_VOXELS_HEIGHTMAP_HELPERS(code)
+  hlsl(code) {
+    float ssgi_get_heightmap_2d_height(float3 worldPos) {return worldPos.y-100;}
+  }
+endmacro
+
+float4 ambient_voxels_move_ofs;
+
+shader light_initialize_clear_indirect_cs {
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    RWByteAddressBuffer dispatchIndirectBuffer : register( u0 );
+    [numthreads( 1, 1, 1 )]
+    void main()
+    {
+      storeBuffer(dispatchIndirectBuffer, 0 * 4, 0);
+      storeBuffer(dispatchIndirectBuffer, 1 * 4, 1);
+      storeBuffer(dispatchIndirectBuffer, 2 * 4, 1);
+    }
+  }
+  compile("cs_5_0", "main");
+}
+
+shader light_initialize_culling_cs, light_initialize_culling_check_age_cs
+{
+  RAY_CAST_VOXELS_VARS(cs)
+  RAY_CAST_VOXELS(cs)
+  SSGI_USE_VOLMAP_GI_COORD(cs)
+  VOXEL_SCENE_INTERSECTION(cs)
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal;
+    ambient_voxels_move_ofs@f4 = ambient_voxels_move_ofs;
+  }
+
+  hlsl(cs) {
+    RWByteAddressBuffer voxelCount : register( u0 );
+    RWStructuredBuffer<uint> visible_ambient_voxels: register(u1);
+
+    [numthreads(4, 4, 4)]
+    void light_voxels_cs( uint3 dtId : SV_DispatchThreadID )//
+    {
+      uint cascadeId = ambient_voxels_move_ofs.w;
+      int3 coord = dtId;
+      float3 worldPos;
+      if (getMovedWorldPos(coord, cascadeId, ambient_voxels_move_ofs.xzy, worldPos))
+        return;
+      int3 sceneCoord = sceneWorldPosToCoord(worldPos, 2);
+      int ofs = 0;
+      if (any(sceneCoord<ofs) || any(sceneCoord>=VOXEL_RESOLUTION-ofs))
+        return;
+      ##if shader == light_initialize_culling_check_age_cs
+        float voxelsBeneath = 2;//probably more or less reasonable copied
+      ##else
+        float voxelsBeneath = 3;
+      ##endif
+      if (worldPos.y < ssgi_get_heightmap_2d_height(worldPos)-getSceneVoxelSize(cascadeId).y*voxelsBeneath)//everything underneath heightmap is not that worth calculating
+        return;
+      ##if shader == light_initialize_culling_check_age_cs
+        float age = ssgi_ambient_volmap_temporal[uint3(coord.xy, coord.z + ssgi_cascade_z_crd_ofs(cascadeId))].x;
+        BRANCH
+        if (age > SSGI_TEMPORAL_COPIED_VALUE)//if we use > 1.2/255, we will raycast copied from coarse
+          return;
+        bool shouldRecastIntersectedCopy = true;
+        BRANCH
+        if (age > 0 && shouldRecastIntersectedCopy)//if we use > 1.2/255, we will raycast copied from coarse
+        {
+          if (!getIntersection(worldPos, ssgi_ambient_volmap_crd_to_world0_xyz(cascadeId).x*0.5))
+            return;
+        }
+      ##endif
+      uint encodedVoxel = encode_voxel_coord_bin(coord, 0);
+      uint at; voxelCount.InterlockedAdd(0 * 4, 1u, at);
+      visible_ambient_voxels[at] = encodedVoxel;
+    }
+  }
+  compile("cs_5_0", "light_voxels_cs");
+}
+
+buffer frustum_visible_ambient_voxels;
+
+shader light_initialize_ambient_voxels_cs, light_partial_initialize_ambient_voxels_cs
+{
+  SAMPLE_INIT_VOLMAP_25D(cs)
+  SSGI_USE_VOLMAP_GI_COORD(cs)
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #define INIT_RAYS 64
+    #define AVERAGE_CUBE_WARP_SIZE INIT_RAYS
+    #include <parallel_average_cube.hlsl>
+    #define FIXED_LOOP_COUNT 1
+    #if FIXED_LOOP_COUNT
+      #define CASCADE_0_DIST 4
+      #define CASCADE_1_DIST 4
+      #define MAX_DIST 8
+    #else
+      #define CASCADE_0_DIST 1.5f
+      #define CASCADE_1_DIST (CASCADE_0_DIST + 3.f)
+      #define MAX_DIST (12.f+CASCADE_1_DIST)
+    #endif
+  }
+  RAY_CAST_VOXELS_AND_INLINE_RT_INIT(cs)
+  VOXEL_SCENE_INTERSECTION(cs)
+
+  (cs) {
+    ambient_voxels_move_ofs@f4 = ambient_voxels_move_ofs;
+  }
+
+  if (shader == light_partial_initialize_ambient_voxels_cs)
+  {
+    (cs) {
+      frustum_visible_ambient_voxels@buf = frustum_visible_ambient_voxels hlsl {
+        StructuredBuffer<uint> frustum_visible_ambient_voxels@buf;
+      }
+    }
+  }
+  else
+  {
+    (cs) { ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal; }
+  }
+  if (gi_quality != raytracing)
+  {
+    (cs) {
+      gi_ambient_cube@buf = gi_ambient_cube hlsl {
+        #include <dagi_envi_cube_consts.hlsli>
+        StructuredBuffer<AmbientCube> gi_ambient_cube@buf;
+      }
+    }
+    hlsl(cs) {
+      float ssgi_get_heightmap_2d_height_25d_volmap(float2 worldPosXZ)
+      {
+        return ssgi_get_heightmap_2d_height(float3(worldPosXZ,0).xzy);
+      }
+    }
+    //INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(cs)
+    SAMPLE_VOLMAP_25D(cs)
+  }
+
+  hlsl(cs) {
+    RWTexture3D<float3>  gi_ambient_volmap_init : register(u6);
+    //RWTexture3D<float>   ssgi_ambient_volmap_temporal : register(u7);
+
+    #include <fibonacci_sphere.hlsl>
+    #include <dagi_integrate_ambient_cube.hlsl>
+    #define NUM_POISSON_SAMPLES INIT_RAYS
+
+    #include <poisson_256.hlsl>
+    float3 raycast_loop_with_attenuation_25d(uint startCascade, float3 worldPos, float3 worldDir, DIST_TYPE dist, float max_start_dist)
+    {
+      ##if (gi_quality != raytracing)
+      half4 ret = raycast_loop_base(startCascade, worldPos, worldDir, dist, max_start_dist);
+      ##if gi_quality == only_ao
+        return ret.r + ret.a;
+      ##endif
+
+      BRANCH
+      if (ret.a<=0.01)
+        return ret.rgb;
+      //enhance quality using 2.5d sampling results
+      half3 enviProbe = texCUBElod(envi_probe_specular, float4(worldDir,1)).rgb;
+      #if FIXED_LOOP_COUNT
+      float traceDist = (MAX_DIST*4+CASCADE_0_DIST+CASCADE_1_DIST*2)*getSceneVoxelSize(0).x;
+      #else
+      float traceDist = MAX_DIST;
+      #endif
+      //todo: use this analytics in all
+      //todo: we can preintegrate all INIT_RAYS (64) rays gi_ambient_cube values, and just sample it from cube
+      //as well as envi_probe_specular samplings (actually it can be done for ALL of our tracing, including first, non-intersected, and intersected.
+      half3 enviX, enviY, enviZ;
+      enviX = worldDir.x<0 ? structuredBufferAt(gi_ambient_cube, 0).col[1].rgb : structuredBufferAt(gi_ambient_cube, 0).col[0].rgb;
+      enviY = worldDir.y<0 ? structuredBufferAt(gi_ambient_cube, 0).col[2+1].rgb : structuredBufferAt(gi_ambient_cube, 0).col[2+0].rgb;
+      enviZ = worldDir.z<0 ? structuredBufferAt(gi_ambient_cube, 0).col[4+1].rgb : structuredBufferAt(gi_ambient_cube, 0).col[4+0].rgb;
+      float3 nSquared = worldDir * worldDir;
+      half3 integratedEnvi = enviX*nSquared.x + enviY*nSquared.y + enviZ*nSquared.z;
+      float3 giEnvi = integratedEnvi;
+      sample_25d_volmap(worldPos + worldDir*traceDist, worldDir, giEnvi);
+      enviProbe *= saturate(giEnvi/max(1e-6, integratedEnvi));//we only allow darkening in initial. so light bounce would increase brightness, that's for safety, and probably can be replaced with some clamp
+      return ret.rgb + enviProbe * ret.a;
+      ##else
+      return raycast_loop(startCascade, worldPos, worldDir, dist, max_start_dist);
+      ##endif
+      //return ret.rgb + (constant_ambient_light.rgb + normalize(ret.rgb+0.00001)*constant_ambient_light.a)*ao;
+    }
+    void raycast_light(uint3 coord, float3 worldPos, uint cascadeId, uint tid)
+    {
+      float3 col0=0, col1=0, col2=0, col3=0, col4=0, col5=0;
+      //if (0)
+      {
+        #if NUM_POISSON_SAMPLES
+          float3 enviLightDir = POISSON_SAMPLES[tid].xyz;
+        #else
+          float2 E = fibonacci_sphere(tid, INIT_RAYS);//faster by 20%+
+          float3 enviLightDir = uniform_sample_sphere( E ).xyz;
+        #endif
+
+        //todo: optimize: it is same for threads. We can use parallel reduction to find best planes, and then work against them.
+        //or just check one first convex
+        //float wallsDist = raycast_walls_from_inside_shrinked(worldPos, enviLightDir, 0.12f);// too slow until grid anyway
+        //FLATTEN
+        //if (wallsDist < 0)
+        //  wallsDist = 1e6;
+        float wallsDist = getProbeDiagonalSize(0);
+        half3 colorA = raycast_loop_with_attenuation_25d(0, worldPos, enviLightDir, MAX_DIST, wallsDist);
+        //fixme: in the end (if we miss) sample from 2.5d GI rather than just envi
+        //although it is incorrect, it is much closer to actual look
+        //or may be (again, as envi if we miss) use enviLightColor*sample25DCube(enviLightDir)/sampleEnviCube(enviLightDir), that is actually correct
+        half3 enviLightColor = isfinite(colorA.rgb) ? colorA.rgb : 0;
+        integrate_cube(enviLightDir, enviLightColor, col0,col1,col2,col3,col4,col5);
+      }
+
+      const float parallel_weight = 4./INIT_RAYS;
+
+      PARALLEL_CUBE_AVERAGE
+
+      if (tid == 0)
+      {
+        uint z_ofs = volmap_y_dim(cascadeId);
+        coord.z += ssgi_cascade_z_crd_ofs(cascadeId)*6;
+        gi_ambient_volmap_init[coord] = col0; coord.z += z_ofs;
+        gi_ambient_volmap_init[coord] = col1; coord.z += z_ofs;
+        gi_ambient_volmap_init[coord] = col2; coord.z += z_ofs;
+        gi_ambient_volmap_init[coord] = col3; coord.z += z_ofs;
+        gi_ambient_volmap_init[coord] = col4; coord.z += z_ofs;
+        gi_ambient_volmap_init[coord] = col5;
+      }
+    }
+
+    ##if shader == light_partial_initialize_ambient_voxels_cs
+    [numthreads(AVERAGE_CUBE_WARP_SIZE, 1, 1)]
+    void light_voxels_cs( uint gId : SV_GroupID, uint tid: SV_GroupIndex )//
+    {
+      uint cascadeId = ambient_voxels_move_ofs.w;
+      uint voxel = frustum_visible_ambient_voxels[gId];
+      uint bin;
+      uint3 coord = decode_voxel_coord_safe(voxel, bin);
+      float3 worldPos;
+      getMovedWorldPos(coord,cascadeId, ambient_voxels_move_ofs.xzy, worldPos);
+      raycast_light(coord, worldPos, cascadeId, tid);
+    }
+    ##else
+
+    [numthreads(AVERAGE_CUBE_WARP_SIZE, 1, 1)]
+    void light_voxels_cs( uint3 gId : SV_GroupID, uint tid: SV_GroupIndex )//
+    {
+      uint cascadeId = ambient_voxels_move_ofs.w;
+      uint3 coord = gId;
+      float3 worldPos;
+      if (getMovedWorldPos(coord, cascadeId, ambient_voxels_move_ofs.xzy, worldPos))
+        return;
+      int3 sceneCoord = sceneWorldPosToCoord(worldPos, 2);
+      int ofs = 0;
+      if (any(sceneCoord<ofs) || any(sceneCoord>=VOXEL_RESOLUTION-ofs))
+        return;
+      if (worldPos.y < ssgi_get_heightmap_2d_height(worldPos)-getSceneVoxelSize(cascadeId).y*3)
+        return;
+      float age = ssgi_ambient_volmap_temporal[uint3(coord.xy, coord.z + ssgi_cascade_z_crd_ofs(cascadeId))].x;
+      BRANCH
+      if (age > SSGI_TEMPORAL_COPIED_VALUE)//if we use > 1.2/255, we will raycast copied from coarse
+        return;
+      bool shouldRecastIntersectedCopy = true;
+      BRANCH
+      if (age > 0 && shouldRecastIntersectedCopy)//if we use > 1.2/255, we will raycast copied from coarse
+      {
+        if (!getIntersection(worldPos, ssgi_ambient_volmap_crd_to_world0_xyz(cascadeId).x*0.867))//sqrt(3)/2, length of diagonal
+          return;
+      }
+      raycast_light(coord, worldPos, cascadeId, tid);
+    }
+    ##endif
+  }
+  if (gi_quality == raytracing)
+  {
+    compile("cs_6_5", "light_voxels_cs");
+  }
+  else
+  {
+    compile("cs_5_0", "light_voxels_cs");
+  }
+}
+

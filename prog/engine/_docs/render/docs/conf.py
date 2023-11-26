@@ -70,6 +70,7 @@ breathe_projects_source = {
         'dag_drv3d.h',
         'dag_drv3dConsts.h',
         'dag_tex3d.h',
+        'dag_multidrawContext.h',
     ]),
     "daBFG": get_headers(os.path.join(dagor_prog_root, 'gameLibs/publicInclude/render/daBfg')),
     "resourceSlot": get_headers(os.path.join(dagor_prog_root, 'gameLibs/publicInclude/render/resourceSlot')),

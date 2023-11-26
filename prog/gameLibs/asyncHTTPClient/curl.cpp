@@ -533,6 +533,11 @@ static void move_queue_to_active_requests_nolock()
   static constexpr uint8_t MAX_ACTIVE_REQUESTS = 32;
 #endif
 
+#if _TARGET_XBOX
+  if (!xbox::has_network_access())
+    return;
+#endif
+
   if (queue_mutex)
   {
     WinAutoLock lock(*queue_mutex);
@@ -735,11 +740,6 @@ static eastl::unique_ptr<CurlPollThread> g_poll_thread;
 
 void poll()
 {
-#if _TARGET_XBOX
-  if (!xbox::has_network_access())
-    return;
-#endif
-
   if (g_poll_thread && g_poll_thread->thread_id != get_current_thread_id())
     return;
 

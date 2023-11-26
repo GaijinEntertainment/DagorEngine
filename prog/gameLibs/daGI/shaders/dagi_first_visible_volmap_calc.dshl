@@ -1,0 +1,143 @@
+include "sky_shader_global.dshl"
+include "viewVecVS.dshl"
+include "frustum.dshl"
+include "dagi_volmap_gi.dshl"
+include "dagi_scene_voxels_common.dshl"
+include "dagi_inline_raytrace.dshl"
+include "dagi_helpers.dshl"
+//include "gpu_occlusion.dshl"
+//include "sample_voxels.dshl"
+hlsl {
+  #include "dagi_common_types.hlsli"
+}
+
+//
+
+define_macro_if_not_defined INIT_VOXELS_HEIGHTMAP_HELPERS(code)
+  hlsl(code) {
+    float ssgi_get_heightmap_2d_height(float3 worldPos) {return worldPos.y-100;}
+  }
+endmacro
+
+buffer frustum_visible_point_voxels;
+
+shader calc_initial_ambient_walls_dist_cs
+{
+  CALC_CLOSEST_PLANES()
+  SSGI_USE_VOLMAP_GI_COORD(cs)
+  ENABLE_ASSERT(cs)
+  (cs) {
+    visible_ambient_voxels@buf = frustum_visible_point_voxels hlsl {
+      #include "dagi_common_types.hlsli"
+      StructuredBuffer<VisibleAmbientVoxelPoint> visible_ambient_voxels@buf;
+    };
+  }
+  hlsl(cs) {
+    RWStructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes: register(u0);
+    [numthreads(INITIAL_WALLS_DIST_WARP, 1, 1)]
+    void walls_voxels_cs( uint dtId : SV_DispatchThreadID )
+    {
+      uint voxelNo = dtId + ssgi_get_max_non_initial_voxels(cascade_id);
+      uint voxel = structuredBufferAt(visible_ambient_voxels, voxelNo).voxelId;
+      uint tag = 0;
+      uint3 coord = decode_voxel_coord_safe(voxel, tag);
+      float3 worldPos = ambientCoordToWorldPos(coord, cascade_id);
+      select_closest_walls_from_inside_grid(worldPos, structuredBufferAt(visible_ambient_voxels_walls_planes, voxelNo));
+    }
+  }
+  compile("cs_5_0", "walls_voxels_cs");
+}
+
+int visible_ambient_voxels_walls_planes_no = 14;
+int ssgi_ambient_volmap_temporal_no = 7;
+int gi_ambient_volmap_init_no = 6;
+
+shader light_initial_ambient_voxels_cs
+{
+  SSGI_USE_VOLMAP_GI_COORD(cs)
+  RAY_CAST_VOXELS_AND_INLINE_RT_INIT(cs)
+  USE_CLOSEST_PLANES()
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #define AVERAGE_CUBE_WARP_SIZE INITIAL_VOXELS_RAYS
+    #include <parallel_average_cube.hlsl>
+  }
+  (cs) {
+    visible_ambient_voxels@buf = frustum_visible_point_voxels hlsl {
+      #include "dagi_common_types.hlsli"
+      StructuredBuffer<VisibleAmbientVoxelPoint> visible_ambient_voxels@buf;
+    };
+    ssgi_ambient_volmap_temporal@uav: register(ssgi_ambient_volmap_temporal_no) hlsl {
+      RWTexture3D<float> ssgi_ambient_volmap_temporal@uav;
+    }
+    gi_ambient_volmap_init@uav: register(gi_ambient_volmap_init_no) hlsl {
+      RWTexture3D<float3> gi_ambient_volmap_init@uav;
+    }
+    visible_ambient_voxels_walls_planes@buf: register(visible_ambient_voxels_walls_planes_no) hlsl {
+      #include "dagi_common_types.hlsli"
+      StructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes@buf;
+    }
+  }
+
+  hlsl(cs) {
+
+    #include <fibonacci_sphere.hlsl>
+    #include <dagi_integrate_ambient_cube.hlsl>
+
+    #define NUM_POISSON_SAMPLES INITIAL_VOXELS_RAYS
+    #include <poisson_256.hlsl>
+
+    [numthreads(AVERAGE_CUBE_WARP_SIZE, 1, 1)]
+    void first_light_voxels_cs( uint gId : SV_GroupID, uint tid: SV_GroupIndex, uint dtId : SV_DispatchThreadID )//uint3 gId : SV_GroupId,
+    {
+      const uint NUM_RAYS = INITIAL_VOXELS_RAYS;
+      uint voxelNo = gId + ssgi_get_max_non_initial_voxels(cascade_id);
+      uint voxel = structuredBufferAt(visible_ambient_voxels, voxelNo).voxelId;
+      uint tag = 0;
+      uint3 coord = decode_voxel_coord_safe(voxel, tag);
+      float3 worldPos = ambientCoordToWorldPos(coord, cascade_id);
+
+      float3 col0=0, col1=0, col2=0, col3=0, col4=0, col5=0;
+
+      {
+        #if NUM_POISSON_SAMPLES
+          float3 enviLightDir = POISSON_SAMPLES[tid].xyz;// although poisson samples have better distribution, we prefer randomized samples
+        #else
+          float2 E = fibonacci_sphere(tid, NUM_RAYS);
+          float3 enviLightDir = uniform_sample_sphere( E ).xyz;
+        #endif
+        float maxStartDist = min(getProbeDiagonalSize(cascade_id), calc_max_start_dist(enviLightDir, structuredBufferAt(visible_ambient_voxels_walls_planes, voxelNo)));
+        float3 colorA = raycast_loop(cascade_id, worldPos, enviLightDir, MAX_TRACE_DIST, maxStartDist);
+        half3 enviLightColor = isfinite(colorA.rgb) ? colorA.rgb : 0;
+        integrate_cube(enviLightDir, enviLightColor, col0,col1,col2,col3,col4,col5);
+      }
+
+      const float parallel_weight = 4./NUM_RAYS;
+
+      PARALLEL_CUBE_AVERAGE
+
+      if (tid == 0)
+      {
+        coord.z += ssgi_cascade_z_crd_ofs(cascade_id);
+        ssgi_ambient_volmap_temporal[coord] = SSGI_TEMPORAL_INITED_VALUE;
+        coord.z += ssgi_cascade_z_crd_ofs(cascade_id)*5;
+        uint z_ofs = volmap_y_dim(cascade_id);
+        gi_ambient_volmap_init[coord] = col0;coord.z+=z_ofs;
+        gi_ambient_volmap_init[coord] = col1;coord.z+=z_ofs;
+        gi_ambient_volmap_init[coord] = col2;coord.z+=z_ofs;
+        gi_ambient_volmap_init[coord] = col3;coord.z+=z_ofs;
+        gi_ambient_volmap_init[coord] = col4;coord.z+=z_ofs;
+        gi_ambient_volmap_init[coord] = col5;
+      }
+    }
+  }
+
+  if (gi_quality == raytracing)
+  {
+    compile("cs_6_5", "first_light_voxels_cs");
+  }
+  else
+  {
+    compile("cs_5_0", "first_light_voxels_cs");
+  }
+}

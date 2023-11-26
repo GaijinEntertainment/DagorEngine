@@ -92,6 +92,7 @@ CDialogWindow::CDialogWindow(void *phandle, hdpi::Px w, hdpi::Px h, const char c
   mPropertiesPanel(NULL),
   mButtonsPanel(NULL),
   mpHandle(phandle),
+  mInitialFocusId(DIALOG_ID_OK),
   mIsModal(false),
   mDResult(DIALOG_ID_NONE),
   ceh(NULL),
@@ -116,6 +117,7 @@ CDialogWindow::CDialogWindow(void *phandle, int x, int y, hdpi::Px w, hdpi::Px h
   mPropertiesPanel(NULL),
   mButtonsPanel(NULL),
   mpHandle(phandle),
+  mInitialFocusId(DIALOG_ID_OK),
   mIsModal(false),
   mDResult(DIALOG_ID_NONE),
   ceh(NULL),
@@ -221,7 +223,7 @@ void CDialogWindow::center()
 }
 
 
-void CDialogWindow::autoSize()
+void CDialogWindow::autoSize(bool auto_center)
 {
   if (!mPropertiesPanel)
     return;
@@ -235,7 +237,9 @@ void CDialogWindow::autoSize()
     new_ht = (new_ht > MAX_HT) ? MAX_HT : new_ht;
     resizeWindow(_pxActual(mDialogWindow->getWidth()), _pxActual(new_ht));
   }
-  center();
+
+  if (auto_center)
+    center();
 }
 
 int CDialogWindow::getScrollPos() { return mPropertiesPanel->getScrollPos(); }
@@ -325,8 +329,11 @@ void CDialogWindow::show()
 {
   mDialogWindow->show();
 
-  SetFocus((HWND)mPropertiesPanel->getWindowHandle());
-  mButtonsPanel->setFocusById(DIALOG_ID_OK);
+  if (mInitialFocusId == DIALOG_ID_OK || mInitialFocusId == DIALOG_ID_CANCEL)
+  {
+    SetFocus((HWND)mPropertiesPanel->getWindowHandle());
+    mButtonsPanel->setFocusById(mInitialFocusId);
+  }
 
   mIsModal = false;
   mIsVisible = true;

@@ -125,6 +125,7 @@ static int camera_upVarId = -1;
 static Tab<IRenderingService *> rendSrv(tmpmem);
 static bool skip_next_frame = false;
 static bool preparing_light_probe = false;
+static bool use_cmpf_less_for_screenshots = false;
 
 static bool dump_frame = false;
 static void dump_ingame_profiler_cb(void *, uintptr_t cNode, uintptr_t pNode, const char *name, const TimeIntervalInfo &ti)
@@ -220,6 +221,7 @@ public:
   shaders::OverrideStateId noCullStateId;
   shaders::OverrideStateId geomEnviId;
   shaders::RenderStateId defaultRenderStateId;
+  shaders::RenderStateId alphaWriterRenderStateId;
   shaders::RenderStateId depthMaskRenderStateId;
   eastl::unique_ptr<FullColorGradingTonemapLUT> tonemapLUT;
 
@@ -300,6 +302,10 @@ public:
     rs.zFunc = CMPF_GREATEREQUAL;
     rs.zwrite = 0;
     depthMaskRenderStateId = shaders::render_states::create(rs);
+
+    rs.zFunc = CMPF_ALWAYS;
+    alphaWriterRenderStateId = shaders::render_states::create(rs);
+
     effects_depth_texVarId = ::get_shader_variable_id("effects_depth_tex", true);
 
     if (VariableMap::isVariablePresent(get_shader_variable_id("Exposure", true)))
@@ -730,9 +736,7 @@ public:
         d3d::set_depth(fallbackSceneDepth.getTex2D(), DepthAccess::RW);
       d3d::setview(0, 0, viewportW, viewportH, viewportMinZ, viewportMaxZ);
 
-      shaders::render_states::set(depthMaskRenderStateId);
       shaders::overrides::reset();
-
       d3d::set_program(d3d::get_debug_program());
       d3d::set_vs_const(0, &TMatrix4_vec4::IDENT, 4);
 
@@ -743,14 +747,18 @@ public:
       };
       static Vertex v[4];
       v[0].p.set(-1, -1, 0);
-      v[0].c = 0x00FFFFFF;
       v[1].p.set(+1, -1, 0);
-      v[1].c = 0x00FFFFFF;
       v[2].p.set(-1, +1, 0);
-      v[2].c = 0x00FFFFFF;
       v[3].p.set(+1, +1, 0);
-      v[3].c = 0x00FFFFFF;
+
+      shaders::render_states::set(alphaWriterRenderStateId);
+      v[0].c = v[1].c = v[2].c = v[3].c = 0xFFFFFFFF;
       d3d::draw_up(PRIM_TRISTRIP, 2, v, sizeof(v[0]));
+
+      shaders::render_states::set(depthMaskRenderStateId);
+      v[0].c = v[1].c = v[2].c = v[3].c = 0x00FFFFFF;
+      d3d::draw_up(PRIM_TRISTRIP, 2, v, sizeof(v[0]));
+
       d3d::set_program(BAD_PROGRAM);
       shaders::overrides::reset();
       shaders::render_states::set(defaultRenderStateId);

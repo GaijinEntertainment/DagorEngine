@@ -243,7 +243,7 @@ public:
     min(TILE_WIDTH * TILE_WIDTH * MAX_VTEX_CNT, FEEDBACK_WIDTH *FEEDBACK_HEIGHT);
   static constexpr uint32_t MAX_TILE_INFO_ELEMENT_CNT = MAX_TILE_CAPTURE_INFO_BUF_ELEMENTS * 2 + MAX_FAKE_TILE_CNT;
 
-  void initVirtualTexture(int cacheDimX, int cacheDimY);
+  void initVirtualTexture(int cacheDimX, int cacheDimY, float maxEffectiveTargetResolution);
   void closeVirtualTexture();
   bool updateOrigin(const Point3 &cameraPosition, bool update_snap);
 
@@ -358,7 +358,11 @@ public:
     invalidate(true);
   }
 
-  void setTargetSize(int w, int h) { targetSize = IPoint2(w, h); };
+  void setTargetSize(int w, int h, float mip_bias)
+  {
+    targetSize = IPoint2(w, h);
+    targetMipBias = mip_bias;
+  };
 
   void prepareRender(ClipmapRenderer &render, bool force_update = false, bool turn_off_decals_on_fallback = false);
   void prepareFeedback(ClipmapRenderer &render, const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm,
@@ -497,6 +501,8 @@ private:
   int tileInfoSize = 0;
 
   IPoint2 targetSize = {-1, -1};
+  float targetMipBias = 0.f;
+  float maxEffectiveTargetResolution = float(-1);
 
   // for debug comparison
   TileInfoArr debugTileInfo;
@@ -533,7 +539,10 @@ private:
 const IPoint2 Clipmap::FEEDBACK_SIZE = IPoint2(FEEDBACK_WIDTH, FEEDBACK_HEIGHT);
 const int Clipmap::MAX_TEX_MIP_CNT = TEX_MIPS;
 
-void Clipmap::initVirtualTexture(int cacheDimX, int cacheDimY) { clipmapImpl->initVirtualTexture(cacheDimX, cacheDimY); }
+void Clipmap::initVirtualTexture(int cacheDimX, int cacheDimY, float maxEffectiveTargetResolution)
+{
+  clipmapImpl->initVirtualTexture(cacheDimX, cacheDimY, maxEffectiveTargetResolution);
+}
 void Clipmap::closeVirtualTexture() { clipmapImpl->closeVirtualTexture(); }
 bool Clipmap::updateOrigin(const Point3 &cameraPosition, bool update_snap)
 {
@@ -604,7 +613,7 @@ void Clipmap::close() { clipmapImpl->close(); }
 void Clipmap::setMaxTexelSize(float max_texel_size) { clipmapImpl->setMaxTexelSize(max_texel_size); }
 float Clipmap::getStartTexelSize() const { return clipmapImpl->getStartTexelSize(); }
 void Clipmap::setStartTexelSize(float st_texel_size) { clipmapImpl->setStartTexelSize(st_texel_size); }
-void Clipmap::setTargetSize(int w, int h) { clipmapImpl->setTargetSize(w, h); }
+void Clipmap::setTargetSize(int w, int h, float mip_bias) { clipmapImpl->setTargetSize(w, h, mip_bias); }
 void Clipmap::prepareRender(ClipmapRenderer &render, bool force_update, bool turn_off_decals_on_fallback)
 {
   clipmapImpl->prepareRender(render, force_update, turn_off_decals_on_fallback);
@@ -1874,7 +1883,7 @@ void ClipmapImpl::setTileSizeVars()
   ShaderGlobal::set_color4(g_cache2uvVarId, Color4(cpx, cpy, (brd + HALF_TEXEL_OFSF) * cpx, (brd + HALF_TEXEL_OFSF) * cpy));
 }
 
-void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY)
+void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, float argMaxEffectiveTargetResolution)
 {
   if (!is_uav_supported())
     use_uav_feedback = false;
@@ -1889,6 +1898,7 @@ void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY)
 
   cacheDimX = argCacheDimX;
   cacheDimY = argCacheDimY;
+  maxEffectiveTargetResolution = argMaxEffectiveTargetResolution;
   tileInfoSize = 0;
   indirectionChanged = false;
 
@@ -3335,7 +3345,9 @@ void ClipmapImpl::setDDScale()
   float ddw = float(FEEDBACK_WIDTH) / float(targetSize.x);
   float ddh = float(FEEDBACK_HEIGHT) / float(targetSize.y);
 
-  float sddh = (targetSize.y > 1200) ? sqrtf(float(targetSize.y) / 1080) : 1;
+  float targetResolution = float(targetSize.x * targetSize.y);
+  float effectiveTargetResolution = targetResolution * exp2f(-2 * targetMipBias);
+  float sddh = sqrtf(targetResolution / min(effectiveTargetResolution, maxEffectiveTargetResolution));
   ShaderGlobal::set_color4(worldDDScaleVarId, Color4(ddw, ddh, sddh, sddh));
 }
 

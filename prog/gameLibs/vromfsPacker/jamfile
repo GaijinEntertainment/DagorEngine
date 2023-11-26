@@ -30,5 +30,6 @@ UseProgLibs +=
 ;
 
 CPPopt = ;
+if $(Platform) in macosx { CPPopt += -Wno-deprecated-declarations ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

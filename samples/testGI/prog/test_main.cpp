@@ -36,8 +36,10 @@
 #include <osApiWrappers/dag_basePath.h>
 #elif _TARGET_ANDROID
 #include <startup/dag_androidMain.inc.cpp>
-#else
+#elif _TARGET_PC_WIN
 #include <startup/dag_winMain.inc.cpp>
+#elif _TARGET_PC_LINUX
+#include <startup/dag_linuxMain.inc.cpp>
 #endif
 
 static DataBlock *global_settings_blk = NULL;
@@ -88,15 +90,15 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   dagor_install_dev_log_handler_callback();
 
 #if _TARGET_PC
-#if _TARGET_PC_WIN | _TARGET_PC_MACOSX
   ::dagor_init_keyboard_win();
   ::dagor_init_mouse_win();
-#endif
 #elif _TARGET_IOS | _TARGET_ANDROID
   ::dagor_init_keyboard_win();
   ::dagor_init_mouse_win();
   ::dagor_init_joystick();
 #else
+  ::dagor_init_mouse_null();
+  ::dagor_init_keyboard_null();
   ::dagor_init_joystick();
   if (global_cls_drv_joy)
     global_cls_drv_joy->enableAutoDefaultJoystick(true);

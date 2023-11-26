@@ -14,6 +14,7 @@
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <shaders/dag_shStateBlockBindless.h>
 #include <render/debugMesh.h>
+#include <rendInst/packedMultidrawParams.hlsli>
 
 
 // Tools don't have depth prepass for trees.
@@ -47,9 +48,7 @@ class RiExtraRendererT : public DynamicVariantsPolicy //-V730
     uint32_t count;
   };
   dag::Vector<PackedDrawCallsRange, Alloc, false> drawcallRanges;
-  dag::Vector<DrawIndexedIndirectArgs, Alloc, false> indirectDrawcalls;
   ska::flat_hash_map<uint32_t, uint16_t, eastl::hash<uint32_t>, eastl::equal_to<uint32_t>, Alloc> bindlessStatesToUpdateTexLevels;
-  dag::Vector<PerInstanceParameters, Alloc, false> drawcallIds;
 
 public:
   RiExtraRendererT() = default;
@@ -73,9 +72,7 @@ public:
     list.reserve(size_to_reserve);
     multidrawList.clear();
     drawcallRanges.clear();
-    indirectDrawcalls.clear();
     bindlessStatesToUpdateTexLevels.clear();
-    drawcallIds.clear();
     if (layer == rendinst::LayerFlag::Transparent)
       startStage = endStage = ShaderMesh::STG_trans;
     else if (layer == rendinst::LayerFlag::Decals)
@@ -114,9 +111,6 @@ public:
              a.rstate == b.rstate && get_material_id(a.cstate) == get_material_id(b.cstate) && a.prog == b.prog;
     };
 
-    indirectDrawcalls.push_back(DrawIndexedIndirectArgs{(uint32_t)multidrawList[0].numf * 3,
-      multidrawList[0].ofsAndCnt.y * instanceCountMultiply, (uint32_t)multidrawList[0].si, multidrawList[0].bv, 0});
-    drawcallIds.push_back(PerInstanceParameters{get_material_offset(multidrawList[0].cstate), (uint32_t)multidrawList[0].ofsAndCnt.x});
     drawcallRanges.push_back(PackedDrawCallsRange{0, 1});
     bindlessStatesToUpdateTexLevels.emplace(multidrawList[0].cstate, multidrawList[0].texLevel);
 
@@ -124,9 +118,6 @@ public:
     {
       const auto &currentRelem = multidrawList[i];
       const bool mergeWithPrevious = mergeComparator(currentRelem, multidrawList[i - 1]);
-      indirectDrawcalls.push_back(DrawIndexedIndirectArgs{(uint32_t)currentRelem.numf * 3,
-        currentRelem.ofsAndCnt.y * instanceCountMultiply, (uint32_t)currentRelem.si, currentRelem.bv, 0});
-      drawcallIds.push_back(PerInstanceParameters{get_material_offset(currentRelem.cstate), (uint32_t)currentRelem.ofsAndCnt.x});
       if (mergeWithPrevious)
       {
         drawcallRanges.back().count++;
@@ -146,16 +137,12 @@ public:
 
   void updateDataForPackedRender() const
   {
-    G_ASSERT(indirectDrawcalls.empty() == drawcallIds.empty());
-    if (indirectDrawcalls.empty())
+    if (bindlessStatesToUpdateTexLevels.empty())
       return;
 
     TIME_D3D_PROFILE(ri_extra_update_indirect_data);
     for (auto stateIdTexLevel : bindlessStatesToUpdateTexLevels)
       update_bindless_state(stateIdTexLevel.first, stateIdTexLevel.second);
-
-    uint32_t startDrawId = rendinst::render::indirectDrawCallIds.update(drawcallIds.data(), drawcallIds.size());
-    rendinst::render::indirectDrawCalls.fillBuffer(make_span_const(indirectDrawcalls), startDrawId);
   }
 
   inline void renderSortedMeshesPacked(dag::ConstSpan<uint16_t> riResOrder) const
@@ -168,6 +155,33 @@ public:
       return;
 
     updateDataForPackedRender();
+
+    multidrawContext.fillBuffers(multidrawList.size(),
+      [this](uint32_t draw_index, uint32_t &index_count_per_instance, uint32_t &instance_count, uint32_t &start_index_location,
+        int32_t &base_vertex_location, PerInstanceParameters &per_draw_data) {
+        index_count_per_instance = (uint32_t)multidrawList[draw_index].numf * 3;
+        instance_count = (uint32_t)multidrawList[draw_index].ofsAndCnt.y * instanceCountMultiply;
+        start_index_location = (uint32_t)multidrawList[draw_index].si;
+        base_vertex_location = (int32_t)multidrawList[draw_index].bv;
+        if (multidrawList[draw_index].ofsAndCnt.x % 4 != 0)
+        {
+          logerr("Assumption about alignment of offset in RI matrices buffer is incorrect.");
+          instance_count = 0;
+        }
+        const uint32_t instanceOffset = (uint32_t)multidrawList[draw_index].ofsAndCnt.x >> 2;
+        if (instanceOffset >= MAX_MATRIX_OFFSET)
+        {
+          logerr("Too big offset in instance matrix buffer %d.", instanceOffset);
+          instance_count = 0;
+        }
+        const uint32_t materialOffset = get_material_offset(multidrawList[draw_index].cstate);
+        if (materialOffset >= MAX_MATERIAL_OFFSET)
+        {
+          logerr("Too big material offset %d.", materialOffset);
+          instance_count = 0;
+        }
+        per_draw_data = (instanceOffset << MATRICES_OFFSET_SHIFT) | materialOffset;
+      });
 
     TIME_D3D_PROFILE(ri_extra_render_sorted_meshes_indirect);
 
@@ -210,8 +224,8 @@ public:
       rl.curShader->setReqTexLevel(rl.texLevel);
       set_states_for_variant(rl.curShader->native(), rl.cv, rl.prog, rl.state & ~rl.DISABLE_OPTIMIZATION_BIT_STATE);
 
-      d3d::multi_draw_indexed_indirect(PRIM_TRILIST, rendinst::render::indirectDrawCalls.getBuffer(), dcParams.count,
-        rendinst::render::indirectDrawCalls.getStride(), dcParams.start * rendinst::render::indirectDrawCalls.getStride());
+      d3d::multi_draw_indexed_indirect(PRIM_TRILIST, rendinst::render::multidrawContext.getBuffer(), dcParams.count,
+        rendinst::render::multidrawContext.getStride(), dcParams.start * rendinst::render::multidrawContext.getStride());
     }
 #if USE_DEPTH_PREPASS_FOR_TREES
     if (currentDepthPrepass)

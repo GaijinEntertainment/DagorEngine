@@ -1,0 +1,47 @@
+include "dafx_shaders.dshl"
+include "dafx_helpers.dshl"
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+
+shader dafx_modfx_emission, dafx_modfx_simulation, dafx_modfx_emission_adv, dafx_modfx_simulation_adv
+{
+  ENABLE_ASSERT(cs)
+  hlsl
+  {
+    #include "dafx_globals.hlsli"
+
+    ##if shader == dafx_modfx_emission_adv || shader == dafx_modfx_simulation_adv
+    #define MODFX_GPU_FEATURES_ENABLED 1
+    ##endif
+  }
+
+  USE_AND_INIT_VIEW_VEC_CS()
+  DAFX_COMPUTE_INIT()
+  DAFXEX_USE_DEPTH_FOR_COLLISION(cs)
+
+  if (shader == dafx_modfx_emission_adv || shader == dafx_modfx_simulation_adv)
+  {
+    DAFXEX_USE_DEPTH_ABOVE(cs)
+    DAFXEX_USE_HMAP(cs)
+  }
+
+  hlsl(cs)
+  {
+    #include "dafx_def.hlsli"
+    #include "dafx_hlsl_funcs.hlsli"
+    #include "dafx_loaders.hlsli"
+    #include "dafx_packers.hlsli"
+    #include "dafx_random.hlsli"
+    #include "modfx/modfx_decl.hlsl"
+    #include "modfx/modfx.hlsl"
+  }
+
+  if ( shader == dafx_modfx_emission || shader == dafx_modfx_emission_adv )
+  {
+    DAFX_EMISSION_USE()
+  }
+  if ( shader == dafx_modfx_simulation || shader == dafx_modfx_simulation_adv )
+  {
+    DAFX_SIMULATION_USE()
+  }
+}

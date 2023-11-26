@@ -33,8 +33,10 @@ namespace das {
         return ret;
     }
     float3x4 float3x4_neg ( const float3x4 & mat );
+    float float3x4_det ( const float3x4 & mat );
     float3x3 float3x3_inverse( const float3x3 & src);
     float3x3 float3x3_neg ( const float3x3 & mat );
+    float float3x3_det ( const float3x3 & a );
     float4x4 float4x4_from_float34 ( const float3x4 & mat );
     float3x3 float3x3_from_float44 ( const float4x4 & mat );
     float3x3 float3x3_from_float34 ( const float3x4 & mat );
@@ -68,6 +70,12 @@ namespace das {
         mat44f va;
         memcpy(&va,&a,sizeof(float4x4));
         return v_mat44_mul_vec4(va, b);
+    }
+
+    inline float float4x4_det(const float4x4 &a) {
+        mat44f va;
+        memcpy(&va,&a,sizeof(float4x4));
+        return v_extract_x(v_mat44_det(va));
     }
 
     inline float3 float3x3_mul_vec3(const float3x3 &a, float3 b) {

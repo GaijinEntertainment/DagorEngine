@@ -125,11 +125,11 @@ static FILE *ios_global_fp = NULL;
 static file_ptr_t xbox_debug_file = NULL;
 #endif
 
-#define PFUN(fmt, ...)                                                                  \
-  do                                                                                    \
-  {                                                                                     \
-    _snprintf(buf + buf_used_len, sizeof(vlog_buf) - buf_used_len, fmt, ##__VA_ARGS__); \
-    buf_used_len += i_strlen(buf + buf_used_len);                                       \
+#define PFUN(fmt, ...)                                                                 \
+  do                                                                                   \
+  {                                                                                    \
+    snprintf(buf + buf_used_len, sizeof(vlog_buf) - buf_used_len, fmt, ##__VA_ARGS__); \
+    buf_used_len += i_strlen(buf + buf_used_len);                                      \
   } while (0)
 
 #define LOG_TAIL_BUF (_TARGET_XBOX || _TARGET_C1 || _TARGET_C2 || _TARGET_ANDROID || _TARGET_IOS)

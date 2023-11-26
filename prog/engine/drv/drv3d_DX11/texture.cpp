@@ -581,59 +581,10 @@ int dxgi_format_to_bpp(DXGI_FORMAT fmt)
   return 0;
 }
 
-uint32_t texfmt_to_d3dformat(/*D3DFORMAT*/ uint32_t fmt)
-{
-  switch (fmt)
-  {
-    case TEXFMT_A8R8G8B8: return D3DFMT_A8R8G8B8;
-    case TEXFMT_R8G8B8A8: return D3DFMT_A8B8G8R8;
-    case TEXFMT_A2B10G10R10: return D3DFMT_A2B10G10R10;
-    case TEXFMT_A16B16G16R16: return D3DFMT_A16B16G16R16;
-    case TEXFMT_A16B16G16R16F: return D3DFMT_A16B16G16R16F;
-    case TEXFMT_A32B32G32R32F: return D3DFMT_A32B32G32R32F;
-    case TEXFMT_G16R16: return D3DFMT_G16R16;
-    case TEXFMT_V16U16: return D3DFMT_V16U16;
-    case TEXFMT_L16: return D3DFMT_L16;
-    case TEXFMT_A8: return D3DFMT_A8;
-    case TEXFMT_R8: return D3DFMT_L8;
-    case TEXFMT_A8L8: return D3DFMT_A8L8;
-    case TEXFMT_G16R16F: return D3DFMT_G16R16F;
-    case TEXFMT_G32R32F: return D3DFMT_G32R32F;
-    case TEXFMT_R16F: return D3DFMT_R16F;
-    case TEXFMT_R32F: return D3DFMT_R32F;
-    case TEXFMT_DXT1: return D3DFMT_DXT1;
-    case TEXFMT_DXT3: return D3DFMT_DXT3;
-    case TEXFMT_DXT5: return D3DFMT_DXT5;
-    case TEXFMT_A4R4G4B4: return D3DFMT_A4R4G4B4; // dxgi 1.2
-    case TEXFMT_A1R5G5B5: return D3DFMT_A1R5G5B5;
-    case TEXFMT_R5G6B5: return D3DFMT_R5G6B5;
-    case TEXFMT_ATI1N: return _MAKE4C('ATI1');
-    case TEXFMT_ATI2N: return _MAKE4C('ATI2');
-    case TEXFMT_BC6H: return _MAKE4C('BC6H');
-    case TEXFMT_BC7: return _MAKE4C('BC7 ');
-  }
-  G_ASSERTF(0, "can't convert tex format: %d", fmt);
-  return D3DFMT_A8R8G8B8;
-}
-
-
 void override_unsupported_bc(uint32_t &cflg)
 {
   if ((cflg & TEXFMT_MASK) == TEXFMT_BC7 && g_device_desc.shaderModel < 5.0_sm)
     cflg = (cflg & ~TEXFMT_MASK) | TEXFMT_DXT5;
-}
-
-
-static uint32_t auto_mip_levels_count(uint32_t w, uint32_t h, uint32_t mnsz)
-{
-  uint32_t lev = 1;
-  while (w > mnsz && h > mnsz)
-  {
-    lev++;
-    w >>= 1;
-    h >>= 1;
-  }
-  return lev;
 }
 
 uint32_t calc_surface_size(uint32_t w, uint32_t h, DXGI_FORMAT fmt)
@@ -1269,10 +1220,6 @@ void BaseTex::destroy()
   id = BAD_HANDLE;
   destroyObject();
 }
-
-
-static constexpr int TEX_COPIED = 1 << 30;
-
 
 #define LOCK_IN_THREAD_TIMEOUT_MS (500)
 

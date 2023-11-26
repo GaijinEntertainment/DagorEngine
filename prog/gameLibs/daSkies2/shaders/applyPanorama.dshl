@@ -1,0 +1,434 @@
+include "sky_shader_global.dshl"
+include "viewVecVS.dshl"
+include "clouds2/clouds_alt_fraction.dshl"
+include "panorama.dshl"
+include "writeToTex.dshl"
+include "skies_special_vision.dshl"
+include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
+include "use_custom_fog_sky.dshl"
+include "lightningFlashPanorama.dshl"
+include "brunetonSky.dshl"
+include "rgbm_inc.dshl"
+
+hlsl(ps) {
+  #define INFINITE_TRACE_DIST 320000.0f
+}
+
+
+float4 clouds_panorama_tex_res;
+float4 skies_panorama_light_dir;
+int clouds_panorama_use_biquadratic = 1;
+interval clouds_panorama_use_biquadratic: no<1, yes;
+float render_sun = 1;
+int tonemap_on = 1;
+interval tonemap_on:off<1, on;
+
+int panorama_discard_by_subpass_depth = 0;
+interval panorama_discard_by_subpass_depth: no<1, yes;
+
+int sky_panorama_patch = 1;
+interval sky_panorama_patch: off < 1, on;
+
+float skies_panorama_mobile_blendup_range = 200;
+float skies_panorama_mobile_blendup_coef = 0.0001;
+
+texture uav_depth_texture;
+
+shader applyCloudsPanorama
+{
+  //blend_src = 1; blend_dst = sa;
+  SKY_HDR()
+  USE_SPECIAL_VISION()
+  cull_mode = none;
+  z_write = false;
+  if (uav_depth_texture == NULL)
+  {
+    z_test = true;//fixme: should be true ONLY for cascade other than [0, something]
+  }
+  else
+  {
+    z_test = false;
+  }
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  ENABLE_ASSERT(ps)
+  POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
+
+
+  (ps) {
+    clouds_panorama_tex_res@f4 = (clouds_panorama_tex_res.x,clouds_panorama_tex_res.y, 1./clouds_panorama_tex_res.x, 1./clouds_panorama_tex_res.y);
+    clouds_panorama_tex@smp2d = clouds_panorama_tex;
+    clouds_panorama_patch_tex@smp2d = clouds_panorama_patch_tex;
+    currentPanoramaWorldOffset@f3 = ((currentPanoramaWorldOffset-skies_world_view_pos)*currentPanoramaWorldOffset.w);
+    skies_world_view_pos@f3 = skies_world_view_pos;
+    skies_panorama_light_dir@f3 = skies_panorama_light_dir;
+    skies_panorama_remove_sun_threshold@f1 = (1.5 + render_sun*1000,0,0,0);
+    rgbm_panorama_scale_factor@f1 = (rgbm_panorama_scale_factor);
+  }
+
+  if (uav_depth_texture != NULL)
+  {
+    (ps) {
+      uav_depth_texture@smp2d = uav_depth_texture;
+    }
+  }
+
+  INIT_PANORAMA_CLOUDS_DIST()
+  USE_PANORAMA_CLOUDS_DIST()
+  if (use_postfx == off)
+  {
+    FULL_TONEMAP_LUT_APPLY(ps)
+  }
+
+  INIT_ZNZFAR_STAGE(ps)
+  BRUNETON_FOG()
+  USE_CUSTOM_FOG_SKY(ps)
+
+  hlsl(ps) {
+    //TODO: there is similar function in panorama.dshl but it does not return modified view
+    float2 get_panorama_uv(float3 origin, inout float3 view)
+    {
+      float cloudDist = max(distanceToClouds0(origin, view), 1000);
+
+      float3 currentViewDirection = normalize(view*cloudDist - currentPanoramaWorldOffset.xyz);//reprojection
+      float theta = atan2( currentViewDirection.x, currentViewDirection.z );
+      //float phi = asin ( viewDirection.y );
+      //float2 sky_uv = float2( theta * 0.5/PI, viewDirection.y);//(sin(phi))
+      view = currentViewDirection; //for patch it is always new
+      return float2(theta * (0.5/PI)+0.5, PANORAMA_TC_FROM_VIEW(currentViewDirection.y));
+    }
+  }
+  INIT_PANORAMA_LIGHTNING_FLASH()
+  USE_PANORAMA_LIGHTNING_FLASH()
+  USE_DEF_RGBM_SH()
+
+  if (mobile_render == deferred &&
+    panorama_discard_by_subpass_depth == yes) {
+    USE_SUBPASS_LOADS()
+    INIT_SUBPASS_LOAD_DEPTH_GBUFFER(SP_PANORAMA_REG_DEPTH, SP_PANORAMA_IA_DEPTH)
+    USE_SUBPASS_LOAD_DEPTH_GBUFFER()
+
+    blend_src = sa;
+    blend_dst = isa;
+    color_write = 7;
+
+    (ps) {
+      skies_panorama_mobile_blendup_range@f1 = (skies_panorama_mobile_blendup_range);
+      skies_panorama_mobile_blendup_coef@f1 = (skies_panorama_mobile_blendup_coef);
+    }
+  }
+
+  hlsl(ps) {
+    ##if clouds_panorama_use_biquadratic == yes
+    #define USE_BIQUADRATIC_SAMPLING 1
+    ##endif
+    float4 sampleLevel0(float2 uv) {
+      float4 ret = tex2Dlod(clouds_panorama_tex, float4(uv,0,0));
+      // if compressed panorama is active this decodes rgbm, else it does nothing because .a = 1, factor = 1
+      return decode_rgbm(ret, rgbm_panorama_scale_factor);
+    }
+    float4 sample_biquadratic(float2 uv) {
+      float2 q = frac(uv * clouds_panorama_tex_res.xy);
+      float2 c = (q*(q - 1.0) + 0.5) * clouds_panorama_tex_res.zw;
+      float2 w0 = uv - c;
+      float2 w1 = uv + c;
+      float4 s = sampleLevel0(float2(w0.x, w0.y))
+               + sampleLevel0(float2(w0.x, w1.y))
+               + sampleLevel0(float2(w1.x, w1.y))
+               + sampleLevel0(float2(w1.x, w0.y));
+      return s / 4.0;
+    }
+    #if 0
+    // Dodgson's quadratic filter weights are defined by two parabolas.
+    // The center one is straightforward.
+    float2 DQCenter(float2 x, float R) {
+      return 0.5*(R+1.0) - 2.0*R*x*x;
+    }
+
+    float2 DQLobe(float2 x, float R) {
+      return R*x*x - (2.0*R+0.5)*abs(x) + 0.75*(R+1.0);
+    }
+    float4 DodgsonQuadraticFast(float2 uv, float2 texSize, float2 texScale, float R) {
+      // Compute integer and fractional texel coordinates.
+      float2 texUV = uv * texSize;
+      int2 itexel = int2(texUV);
+      float2 texelCenter = float2(itexel) + 0.5;
+      float2 ftexel = texUV - texelCenter;
+
+      // Compute weights based on fractional texel coordinates.
+      float2 texelSign;
+      texelSign.x = ftexel.x < 0.0 ? -1.0 : 1.0;
+      texelSign.y = ftexel.y < 0.0 ? -1.0 : 1.0;
+
+      float2 w0 = DQLobe(ftexel - texelSign, R);
+      float2 w1 = DQCenter(ftexel, R);
+      float2 w2 = float2(1.0,1.0) - w0 - w1;
+
+      // Rescale texel coordinates back to [0, 1].
+      texelCenter *= texScale;
+      texelSign *= texScale;
+
+      // Encode all 4 positive weighted taps in one bilinear sample.
+      // Note that these are relative weights and will need to be
+      // reweighted later.
+      float2 nudge = w0 / (w0 + w1);
+      float2 texelNudge = texelCenter + texelSign * nudge;
+
+      // Compute location of negative-weighted taps. We skip the low
+      // magnitude tap in the far corner because it will never change
+      // the output noticably.
+      float2 texelFar = texelCenter - texelSign;
+
+      // Use the negative weights directly, but renormalize the
+      // positive weight which compensates for the missing tap while
+      // avoiding a bit of extra computation.
+      float4 ret =
+          w2.x * sampleLevel0(float2(texelFar.x, texelNudge.y)) +
+          w2.y * sampleLevel0(float2(texelNudge.x, texelFar.y)) +
+          (1.0 - w2.x - w2.y) * sampleLevel0(texelNudge);
+
+      return ret;
+    }
+    float4 DodgsonQuadratic(float2 uv) {
+      // Dodgson's parameterization.
+      // 0.5: approximating (blurry)
+      // 1.0: interpolating (sharp)
+      // 0.8: Dodgson's compromise
+      // Crazy value below is to minimize absolute value of side lobe.
+      float R = 0.5*(1.0+sqrt(0.5));  // ~0.85355
+      R = 0.65;
+      return DodgsonQuadraticFast(uv, clouds_panorama_tex_res.xy, clouds_panorama_tex_res.zw, R);
+    }
+    #endif
+
+    half4 envi_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+
+      ##if mobile_render == deferred && panorama_discard_by_subpass_depth == yes
+        float depth = loadGbufferDepth(screenpos.xy);
+      ##elif uav_depth_texture != NULL
+        float depth = texelFetch(uav_depth_texture, screenpos.xy, 0).r;
+      ##endif
+
+      float retAlpha = 1;
+
+      ##if uav_depth_texture != NULL
+        if (depth != 0)
+        {
+          discard;
+          return 0;
+        }
+      ##endif
+
+      ##if (mobile_render == deferred && panorama_discard_by_subpass_depth == yes)
+        //fake distant fog/lightning
+        float w = linearize_z(depth, zn_zfar.zw) - skies_panorama_mobile_blendup_range;
+        if (w < 0)
+        {
+          discard;
+          return 0;
+        }
+        retAlpha = saturate(w*skies_panorama_mobile_blendup_coef);
+      ##endif
+
+      float3 viewDirection = normalize(input.viewVect);
+      float3 originalViewDirection = viewDirection;
+      //clip(viewDirection.y-PANORAMA_VIEW_THRESHOLD);//fixme: we should render sky below
+
+      #define TEMPORAL_REPROJECTION 1
+      #if TEMPORAL_REPROJECTION
+        float2 sky_uv = get_panorama_uv(skies_world_view_pos, viewDirection);
+        float3 currentViewDirection = viewDirection;
+      #else
+        float2 sky_uv = float2( atan2( viewDirection.x, viewDirection.z ) * (0.5/PI)+0.5,PANORAMA_TC_FROM_VIEW(viewDirection.y));
+      #endif
+
+      #if USE_BIQUADRATIC_SAMPLING
+      half4 panorama = sample_biquadratic(sky_uv);
+      //panorama = DodgsonQuadratic(sky_uv);//we don't use parametrized qudratic as it is slower, and basically we don't need sharpness
+      #else
+      half4 panorama = tex2D( clouds_panorama_tex, sky_uv );
+
+      // if compressed panorama is active this decodes rgbm, else it does nothing because .a = 1, factor = 1
+      panorama = decode_rgbm(panorama, rgbm_panorama_scale_factor);
+      #endif
+
+
+      ##if sky_panorama_patch == on
+        float patch_vignette = max(abs(viewDirection.x),abs(viewDirection.z));
+        BRANCH
+        if (patch_vignette < PANORAMA_PATCH_THRESHOLD && viewDirection.y>0)
+        {
+          float2 patchTc = viewDirection.xz*(0.5/PANORAMA_PATCH_THRESHOLD)+0.5;
+          half4 ptch = tex2Dlod( clouds_panorama_patch_tex, float4(patchTc,0,0) );
+          const float LERP_AMOUNT = 0.99;
+          panorama = lerp(panorama, ptch, saturate((-1.f/(1-LERP_AMOUNT))*patch_vignette + PANORAMA_PATCH_THRESHOLD*LERP_AMOUNT/(1-LERP_AMOUNT) ));
+        }
+      ##endif
+
+
+      BRANCH
+      if (panorama.r > skies_panorama_remove_sun_threshold)
+      {
+        float nu = dot(currentViewDirection, skies_panorama_light_dir.xzy);
+        float sunInnerRadius = cos(PI * 4*0.1 / 180.0);//copy from renderSkiesInc
+        float sunOuterRadius = cos(PI * 4*0.3 / 180.0);//copy from renderSkiesInc
+        float val = saturate(nu*(1.0/(sunInnerRadius-sunOuterRadius))-sunOuterRadius/(sunInnerRadius-sunOuterRadius));
+        half minSunL = skies_panorama_remove_sun_threshold;
+        half3 panoramaAdjusted = panorama.rgb-minSunL;
+        half L = luminance(panoramaAdjusted);
+        //panorama.rgb = L > 0 && panoramaAdjusted > 0 ? minSunL + panoramaAdjusted*lerp(1, 1/(L+1),  val) : panorama.rgb;//
+      }
+
+      apply_lightning_flash(sky_uv, originalViewDirection, panorama.rgb);
+
+      float2 jitteredVolfogTc = get_volfog_dithered_screen_tc(screenpos.xy, input.texcoord.xy);
+      apply_sky_custom_fog(panorama.rgb, input.texcoord.xy, jitteredVolfogTc);
+
+      applySpecialVision(panorama);
+
+      #if PBR_FORWARD_SHADING
+        half4 result;
+
+        result.rgb=half3(pack_hdr(panorama.rgb).rgb);
+        result.a = GetLuminanceScaled(result.rgb);
+        //hide tonemap_on interval usage under assumed interval
+        //to avoid extra variants
+        ##if mobile_render != off && tonemap_on == on && use_postfx == off
+          result.rgb = performLUTTonemap(result.rgb);
+        ##endif
+        result.a = retAlpha;
+      #else
+        half4 result=half4(pack_hdr(panorama.rgb).rgb, retAlpha);
+      #endif
+      return result;
+      //return lerp(tex2D( envi_sphere, sky_uv )*envi_exposure, float4(20,0,0,0), pow2(pow8(saturate(dot(viewDirection, normalize(float3(0.4,0.6,-0.4)))))));
+    }
+  }
+  compile("target_ps", "envi_ps");
+}
+
+shader clouds_panorama_mip
+{
+  //blend_src = 1; blend_dst = sa;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 baseTC0     : TEXCOORD0;
+      float4 baseTC1     : TEXCOORD1;
+    };
+  }
+
+  (vs) { texelOffset@f4 = (0.50000, 0.50000, 2/clouds_panorama_tex_res.x, 2/clouds_panorama_tex_res.y); }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  USE_DEF_RGBM_SH()
+
+  hlsl(vs) {
+    VsOutput downsample_panorama_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.xy, 0, 1);
+      float2 tc=pos.xy*RT_SCALE_HALF+float2(0.5,0.5);
+      output.baseTC0.xy = tc;
+      output.baseTC0.zw = tc+float2(texelOffset.z,0);
+      output.baseTC1.xy = tc+float2(0,texelOffset.w);
+      output.baseTC1.zw = tc+float2(texelOffset.z,texelOffset.w);
+      return output;
+    }
+  }
+
+
+  (ps) {
+    clouds_panorama_tex@smp2d = clouds_panorama_tex;
+    rgbm_panorama_scale_factor@f1 = (rgbm_panorama_scale_factor);
+  }
+
+  hlsl(ps) {
+    half4 samplePanorama(float2 uv)
+    {
+      float4 ret = tex2D(clouds_panorama_tex, uv);
+      // if compressed panorama is active this decodes rgbm, else it does nothing because .a = 1, factor = 1
+      return decode_rgbm(ret, rgbm_panorama_scale_factor);
+    }
+
+    half3 downsample_panorama_ps(VsOutput IN) : SV_Target
+    {
+      float4 tc0 = IN.baseTC0;
+      float4 tc1 = IN.baseTC1;
+
+      half3 col0 = samplePanorama(tc0.xy).rgb;
+      half3 col1 = samplePanorama(tc0.zw).rgb;
+      half3 col2 = samplePanorama(tc1.xy).rgb;
+      half3 col3 = samplePanorama(tc1.zw).rgb;
+      half3 result = (col0+col1+col2+col3)*0.25;
+      return result;
+    }
+  }
+  compile("target_vs", "downsample_panorama_vs");
+  compile("target_ps", "downsample_panorama_ps");
+}
+
+texture clouds_panorama_blend_from;
+float clouds_panorama_blend;
+
+shader clouds_panorama_blend
+{
+  WRITE_TO_TEX2D_TC()
+  (ps) {
+    clouds_panorama_blend_from@smp2d = clouds_panorama_blend_from;
+    clouds_panorama_blend@f1 = (clouds_panorama_blend);
+    //clouds_panorama_tex_res@f4 = (clouds_panorama_tex_res.x,clouds_panorama_tex_res.y, 1/clouds_panorama_tex_res.x,1/clouds_panorama_tex_res.y);
+  }
+  blend_src = sa;
+  blend_dst = isa;
+
+  hlsl(ps) {
+    half4 update_panorama_ps(VsOutput IN) : SV_Target
+    {
+      half4 result = tex2Dlod(clouds_panorama_blend_from, float4(IN.texcoord,0,0));
+      result.a = clouds_panorama_blend;
+      return result;
+    }
+  }
+  compile("target_ps", "update_panorama_ps");
+}
+
+/*texture clouds_panorama_temp_tex;
+float4 clouds_panorama_subpixel;
+
+shader clouds_panorama_update_subpixel
+{
+  WRITE_TO_TEX2D()
+  (ps) {
+    clouds_panorama_temp_tex@smp2d = clouds_panorama_temp_tex;
+    clouds_panorama_subpixel@f4 = clouds_panorama_subpixel;
+    //clouds_panorama_tex_res@f4 = (clouds_panorama_tex_res.x,clouds_panorama_tex_res.y, 1/clouds_panorama_tex_res.x,1/clouds_panorama_tex_res.y);
+  }
+  blend_src = sa;
+  blend_dst = isa;
+
+  hlsl(ps) {
+    half4 update_panorama_ps(VsOutput IN) : SV_Target
+    {
+      float4 screenpos = GET_SCREEN_POS(IN.pos);
+      int2 screenposi = int2(screenpos.xy);
+      if ((screenposi.x%int(clouds_panorama_subpixel.z) != int(clouds_panorama_subpixel.x)) ||
+          (screenposi.y%int(clouds_panorama_subpixel.w) != int(clouds_panorama_subpixel.y)))//on compute we could/should actually do it WAY better, by writing to just those pixels we are planning to
+        discard;
+      half4 result = clouds_panorama_temp_tex[screenposi/int2(clouds_panorama_subpixel.zw)];
+      //result.a=0.2;
+      result.rgb = pow2(result.rgb);//improves precision
+      return result;
+    }
+  }
+  compile("target_ps", "update_panorama_ps");
+}*/

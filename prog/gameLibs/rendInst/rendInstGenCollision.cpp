@@ -245,7 +245,7 @@ struct TraceRayAllUnsortedListStrat : public TraceRayStrat
           data.tOut = data.tIn;
           data.normOut = data.normIn;
         }
-        in_out_t = eastl::max(in_out_t, node.intersectionT);
+        // in_out_t = eastl::max(in_out_t, node.intersectionT);
       }
     }
     return false;
@@ -1411,7 +1411,7 @@ bool traceRayRendInstsListAllNormalized(const Point3 &from, const Point3 &dir, f
 template <typename T, typename IdxT, int StackSize>
 struct LocalIntersectionIdRemap
 {
-  eastl::fixed_vector<T, StackSize, true, framemem_allocator> data;
+  dag::RelocatableFixedVector<T, StackSize, true, framemem_allocator> data;
   IdxT add(const T &item)
   {
     auto it = eastl::find(data.begin(), data.end(), item);
@@ -1426,7 +1426,8 @@ struct LocalIntersectionIdRemap
   const T &get(IdxT id) const { return data[id]; }
 };
 
-void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, const Point3 &dir, SolidSectionsMerge merge_mode)
+void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, const Point3 &from, const Point3 &dir,
+  SolidSectionsMerge merge_mode)
 {
   if (EASTL_UNLIKELY(merge_mode == SolidSectionsMerge::NONE))
     return;
@@ -1445,9 +1446,10 @@ void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, co
       if (dbgNames.length() > 200)
         break;
     }
-    logerr("computeRiIntersectedSolids has received too big intersection list, this is probably a bug, it will not be processed "
-           "printing first rendinsts: %s",
-      dbgNames.c_str());
+    logerr("computeRiIntersectedSolids has received too big intersection list (%i), this is probably a bug, it will not be processed, "
+           "ray=(%.9f,%.9f,%.9f),(%.9f,%.9f,%.9f) printing first rendinsts: %s",
+      intersectionCount, from.x, from.y, from.z, dir.x, dir.y, dir.z, dbgNames.c_str());
+    intersected.clear();
     return;
   }
 
@@ -1467,10 +1469,10 @@ void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, co
     bool matches(LocalIntersectionId rhs) const { return collNodeId == rhs.collNodeId && matId == rhs.matId && riId == rhs.riId; }
   };
 
-  eastl::fixed_vector<LocalIntersectionId, 128u, true, framemem_allocator> intersectionData;
+  dag::RelocatableFixedVector<LocalIntersectionId, 128u, true, framemem_allocator> intersectionData;
   LocalIntersectionIdRemap<unsigned, uint8_t, 16> localCollNodeRemap;
   LocalIntersectionIdRemap<int, uint8_t, 16> localMatIdRemap;
-  LocalIntersectionIdRemap<RendInstDesc, uint8_t, 16> localRiRemap;
+  LocalIntersectionIdRemap<RendInstDesc, uint8_t, 4> localRiRemap;
 
   // [0, size) - coll node index and flags
   // [size, size * 2) - out intersection index

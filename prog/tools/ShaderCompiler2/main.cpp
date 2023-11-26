@@ -867,7 +867,9 @@ static String getDir(const char *filename)
 static String makeShBinDumpName(const char *filename)
 {
   String dump_fn(filename);
-  if (dump_fn.length() > 3 && dd_stricmp(&dump_fn[dump_fn.length() - 3], ".sh") == 0)
+  if (dump_fn.length() > 5 && dd_stricmp(&dump_fn[dump_fn.length() - 5], ".dshl") == 0)
+    erase_items(dump_fn, dump_fn.length() - 3, 3);
+  else if (dump_fn.length() > 3 && dd_stricmp(&dump_fn[dump_fn.length() - 3], ".sh") == 0)
     erase_items(dump_fn, dump_fn.length() - 3, 3);
   else if (dump_fn.length() > 4 && dd_stricmp(&dump_fn[dump_fn.length() - 4], ".blk") == 0)
     erase_items(dump_fn, dump_fn.length() - 4, 4);
@@ -1077,7 +1079,7 @@ int DagorWinMain(bool debugmode)
   const char *filename = __argv[1];
 
   // check file extension
-  if (strstr(filename, ".sh") || strstr(filename, ".SH"))
+  if (strstr(filename, ".dshl") || strstr(filename, ".sh") || strstr(filename, ".SH"))
   {
     // this is a single shader file
     singleBuild = true;

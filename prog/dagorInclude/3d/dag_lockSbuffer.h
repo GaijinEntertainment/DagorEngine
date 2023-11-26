@@ -37,6 +37,14 @@ public:
     eastl::swap(mData, rhs.mData);
     eastl::swap(mCount, rhs.mCount);
   }
+  LockedBuffer operator=(const LockedBuffer &rhs) = delete;
+  LockedBuffer &operator=(LockedBuffer &&rhs) noexcept
+  {
+    eastl::swap(mLockedObject, rhs.mLockedObject);
+    eastl::swap(mData, rhs.mData);
+    eastl::swap(mCount, rhs.mCount);
+    return *this;
+  }
   ~LockedBuffer()
   {
     if (mLockedObject)

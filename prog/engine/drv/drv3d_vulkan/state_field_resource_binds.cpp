@@ -526,7 +526,7 @@ void ImmediateConstBuffer::flushWrites()
     G_ASSERTF(buf, "vulkan: ImmediateConstBuffer: buffer or offset changed independently to each other");
 
     VkDeviceSize absOffset = (offset - 1) * blockSize;
-    buf->markNonCoherentRange(buf->dataOffset(0), absOffset, true);
+    buf->markNonCoherentRangeLoc(0, absOffset, true);
   }
 }
 
@@ -544,13 +544,13 @@ BufferRef ImmediateConstBuffer::push(const uint32_t *data)
 
     buf = get_device().createBuffer(element_size, DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER, initial_blocks,
       BufferMemoryFlags::NONE);
-    blockSize = buf->dataSize();
+    blockSize = buf->getBlockSize();
     offset = 0;
     ring[ringIdx] = buf;
   }
 
   VkDeviceSize absOffset = offset * blockSize;
-  memcpy(buf->dataPointer(absOffset), data, element_size);
+  memcpy(buf->ptrOffsetLoc(absOffset), data, element_size);
 
   BufferRef ret(buf);
   ret.discardIndex = offset;

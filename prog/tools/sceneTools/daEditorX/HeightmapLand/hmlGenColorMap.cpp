@@ -1745,7 +1745,8 @@ public:
 
         case EXT_BUTTON_INSERT:
         {
-          CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(120), "Insert generation layer");
+          CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Insert generation layer");
+          dialog->setInitialFocus(DIALOG_ID_NONE);
           PropPanel2 *panel = dialog->getPanel();
           panel->createEditBox(0, "Enter generation layer name:");
           panel->setFocusById(0);
@@ -1791,7 +1792,8 @@ public:
 
         case EXT_BUTTON_RENAME:
         {
-          CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(120), "Rename generation layer");
+          CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Rename generation layer");
+          dialog->setInitialFocus(DIALOG_ID_NONE);
           PropPanel2 *panel = dialog->getPanel();
           panel->createEditBox(0, "Change generation layer name:", paramName);
           panel->setFocusById(0);

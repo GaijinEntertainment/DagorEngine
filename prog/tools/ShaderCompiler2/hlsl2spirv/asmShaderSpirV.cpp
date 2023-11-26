@@ -571,6 +571,8 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
 
     spitfile(shader_name, entry, (mode == CompilerMode::HLSLCC) ? "spirv_hlslcc" : "spirv_dxc", shader_variant_hash,
       (void *)spirvDisas.data(), (int)data_size(spirvDisas));
+    spitfile(shader_name, entry, (mode == CompilerMode::HLSLCC) ? "spirv_hlslcc_raw" : "spirv_dxc_raw", shader_variant_hash,
+      (void *)spirv.data(), (int)data_size(spirv));
   }
 
   header.maxConstantCount = max_constants_no;

@@ -24,7 +24,8 @@ public:
 
     webui::plugin_lists[0] = webui::dagor_http_plugins;
     webui::plugin_lists[1] = webui::webview_http_plugins;
-    webui::plugin_lists[2] = http_plugins;
+    webui::plugin_lists[2] = webui::webview_files_http_plugins;
+    webui::plugin_lists[3] = http_plugins;
     webui::Config cfg;
     memset(&cfg, 0, sizeof(cfg));
     cfg.bindPort = 23457;

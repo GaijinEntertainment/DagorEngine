@@ -1,4 +1,5 @@
 #include <3d/dag_drv3d.h>
+#include <EASTL/tuple.h>
 #include <generic/dag_smallTab.h>
 
 
@@ -71,6 +72,9 @@ public:
 #endif
 };
 
+eastl::pair<int32_t, int> add_srgb_read_flag_and_count_mips(int w, int h, int32_t flg, int levels);
+
 // common helpers to convert DDSx format to TEXFMT_ one
 uint32_t d3dformat_to_texfmt(/*D3DFORMAT*/ uint32_t fmt);
+uint32_t texfmt_to_d3dformat(/*D3DFORMAT*/ uint32_t fmt);
 static inline uint32_t implant_d3dformat(uint32_t cflg, uint32_t fmt) { return (cflg & ~TEXFMT_MASK) | d3dformat_to_texfmt(fmt); }

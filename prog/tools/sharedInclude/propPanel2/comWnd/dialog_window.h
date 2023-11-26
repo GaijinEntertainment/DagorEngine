@@ -60,7 +60,7 @@ public:
   virtual void moveWindow(int x, int y);
   virtual void resizeWindow(hdpi::Px w, hdpi::Px h, bool internal = false);
   virtual void center();
-  virtual void autoSize();
+  virtual void autoSize(bool auto_center = true);
 
   virtual int getScrollPos();
   virtual void setScrollPos(int pos);
@@ -85,6 +85,11 @@ public:
 
   inline void setCloseHandler(ControlEventHandler *_ceh) { ceh = _ceh; }
 
+  // When showing the dialog the focus will be set to the speficified control.
+  // id: must be DIALOG_ID_NONE, DIALOG_ID_OK or DIALOG_ID_CANCEL.
+  //     When DIALOG_ID_NONE is specified then no focus will be set.
+  inline void setInitialFocus(int id) { mInitialFocusId = id; }
+
 protected:
   void buttonsToWidth();
   void click(int id);
@@ -97,6 +102,7 @@ protected:
   ControlEventHandler *ceh;
 
   void *mpHandle;
+  int mInitialFocusId;
   bool mIsModal;
   int mDResult;
   bool mIsVisible;

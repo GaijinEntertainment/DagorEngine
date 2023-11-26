@@ -1,2 +1,0 @@
-start ng serve
-:EOF

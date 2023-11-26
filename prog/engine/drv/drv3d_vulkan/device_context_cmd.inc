@@ -284,7 +284,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(CopyBuffer)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.beginCustomStage("CopyBuffer");
-  ctx.copyBuffer(source.buffer, dest.buffer, source.dataOffset(sourceOffset), dest.dataOffset(destOffset), dataSize);
+  ctx.copyBuffer(source.buffer, dest.buffer, source.bufOffset(sourceOffset), dest.bufOffset(destOffset), dataSize);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -302,7 +302,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(ClearBufferFloat)
   fAsI.f = values[0];
   // TODO: this is incorrect, but it works for now
   ctx.beginCustomStage("ClearBufferFloat");
-  ctx.fillBuffer(buffer.buffer, buffer.dataOffset(0), buffer.dataSize(), fAsI.i);
+  ctx.fillBuffer(buffer.buffer, buffer.bufOffset(0), buffer.visibleDataSize, fAsI.i);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -313,7 +313,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(ClearBufferInt)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   // TODO: this is incorrect, but it works for now
   ctx.beginCustomStage("ClearBufferInt");
-  ctx.fillBuffer(buffer.buffer, buffer.dataOffset(0), buffer.dataSize(), values[0]);
+  ctx.fillBuffer(buffer.buffer, buffer.bufOffset(0), buffer.visibleDataSize, values[0]);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -434,7 +434,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(EndSurvey)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.beginCustomStage("EndSurvey");
-  ctx.copyQueryResult(pool, index, 1, buffer, VK_QUERY_RESULT_WAIT_BIT);
+  ctx.copyQueryResult(pool, index, 1, buffer);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -593,7 +593,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(CaptureScreen)
 VULKAN_END_CONTEXT_COMMAND
 
 VULKAN_BEGIN_CONTEXT_COMMAND(SetConditionalRender)
-  VULKAN_CONTEXT_COMMAND_PARAM(VulkanBufferHandle, buffer)
+  VULKAN_CONTEXT_COMMAND_PARAM(BufferRef, buffer)
   VULKAN_CONTEXT_COMMAND_PARAM(VkDeviceSize, offset)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
@@ -726,7 +726,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(RaytraceBuildTopAccelerationStructure)
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
   ctx.beginCustomStage("RaytraceBuildTopAccelerationStructure");
   ctx.buildAccelerationStructure(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR, instanceCount, instanceBuffer.buffer,
-    instanceBuffer.dataOffset(0), 0, 0, ToVkBuildAccelerationStructureFlagsKHR(flags), update, as, {}, scratchBuffer);
+    instanceBuffer.bufOffset(0), 0, 0, ToVkBuildAccelerationStructureFlagsKHR(flags), update, as, {}, scratchBuffer);
 #endif
 
 #endif

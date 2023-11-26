@@ -1,5 +1,5 @@
 // Uncomment this to tweak decal params and unlock shader vars and console (needs shader/exe compilation)
-// also needs uncommenting in dynamic_decals_inc.sh
+// also needs uncommenting in dynamic_decals_inc.dshl
 
 // #define DYNAMIC_DECALS_TWEAKING
 

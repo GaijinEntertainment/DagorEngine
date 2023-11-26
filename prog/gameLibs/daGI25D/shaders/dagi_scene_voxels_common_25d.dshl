@@ -1,0 +1,111 @@
+include "hardware_defines.dshl"
+include "gi_heightmap_25d.dshl"
+include "gbuffer.dshl"
+buffer scene_25d_buf;
+float4  scene_25d_voxels_origin;
+float4  scene_25d_voxels_size;
+float4  scene_25d_voxels_toroidal_ofs;
+
+define_macro_if_not_defined INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(code)
+  hlsl(code) {
+    float ssgi_get_heightmap_2d_height_25d(float2 worldPosXZ) {return -2;}
+    float ssgi_get_heightmap_2d_height_25d_volmap(float2 worldPosXZ) {return -2;}
+    float3 ssgi_get_heightmap_2d_height_25d_normal(float2 worldPosXZ) {return float3(0,1,0);}
+  }
+endmacro
+define_macro_if_not_defined INIT_VOXELS_HEIGHTMAP_ALBEDO_25D(code)
+  hlsl(code) {
+    float3 ssgi_get_heightmap_2d_height_25d_diffuse(float2 worldPosXZ) { return half3(0.5,0.7,0.5);}
+  }
+endmacro
+
+macro SAMPLE_VOXELS_25D(code)
+  (code) { scene_25d_buf@buf= scene_25d_buf hlsl { ByteAddressBuffer scene_25d_buf@buf; } }
+
+  hlsl(code) {
+  ##if gi_quality != only_ao
+    #define VOXEL_25D_USE_COLOR 1
+  ##endif
+    #include <dagi_voxels_25d_encoding.hlsl>
+    uint getRawVoxel25dBufDataAlpha4Unsafe(uint address)
+    {
+      return loadBuffer(scene_25d_buf, address);
+    }
+    uint getRawVoxel25dBufDataAlpha4(uint address)
+    {
+      return address < VOXEL_25D_MAX_ALPHA_ADDRESS ? getRawVoxel25dBufDataAlpha4Unsafe(address) : 0;
+    }
+    uint getRawVoxel25dBufDataAlpha(uint3 dtId)
+    {
+      return extractAlpha(getRawVoxel25dBufDataAlpha4(getAlphaBlockAddress(dtId)), dtId);
+    }
+  #ifdef VOXEL_25D_USE_COLOR
+    void getVoxel25dColor(uint3 dtId, out float3 albedo, out float3 emission)
+    {
+      decode_scene_voxels_25d_color_uint_no_alpha(loadBuffer(scene_25d_buf, getColorBlockAddress(dtId)), albedo, emission);
+    }
+  #endif // VOXEL_25D_USE_COLOR
+    float getVoxel25dFloorCoord(uint2 dtId)
+    {
+      return asfloat(loadBuffer(scene_25d_buf, getFloorBlockAddress(dtId)));
+    }
+  }
+endmacro
+
+macro INIT_VOXELS_25D(code)
+  (code) {
+    scene_25d_voxels_origin@f4 = scene_25d_voxels_origin;
+    //scene_25d_voxels_toroidal_ofs postfix = scene_25d_voxels_toroidal_ofs;
+    scene_25d_voxels_size@f4 = (scene_25d_voxels_size.x, scene_25d_voxels_size.y, 1./scene_25d_voxels_size.y, scene_25d_voxels_size.w);//can fit more
+  }
+endmacro
+
+macro USE_VOXELS_25D(code)
+  hlsl(code) {
+    //if you increase cascades count, change getIntersection
+    //float4 scene_25d_voxels_toroidal_ofs postfix;
+    #include <dagi_voxels_consts_25d.hlsli>
+    //#include <voxels_functions.hlsli>
+    float getScene25dVoxelSizeXZ() {return scene_25d_voxels_size.x;}
+    float getScene25dVoxelSizeY() {return scene_25d_voxels_size.y;}
+    float getScene25dVoxelInvSizeY() {return scene_25d_voxels_size.z;}
+    float3 getScene25dVoxelSize() {return scene_25d_voxels_size.xyx;}
+    //float getScene25dMaxHeight() {return scene_25d_voxels_size.z;}
+    float getScene25dVoxelStep() {return scene_25d_voxels_size.w;}
+
+    float2 getScene25dVoxelOrigin() {return scene_25d_voxels_origin.xy;}
+    void getScene25dVoxelBox(out float2 bmin, out float2 bmax)
+    {
+      bmin = scene_25d_voxels_origin.xy;
+      //bmax = scene_voxels_bmax[cascade].xyz;
+      bmax = bmin + (VOXEL_25D_RESOLUTIONF.xy*getScene25dVoxelSizeXZ());
+    }
+
+    uint2 wrapSceneVoxel25dCoord(int2 coord) {return int2(coord + int2(scene_25d_voxels_origin.zw))&uint2(VOXEL_25D_RESOLUTIONU.xy-1);}
+    uint2 wrapSceneVoxel25dCoordF(float2 coord) {return int2(floor(coord + scene_25d_voxels_origin.zw))&uint2(VOXEL_25D_RESOLUTIONU.xy-1);}
+
+    float2 scene25dWorldPosToCoordF(float2 worldPosXZ)
+    {
+      return (worldPosXZ-getScene25dVoxelOrigin())/getScene25dVoxelSizeXZ();
+    }
+
+    float2 scene25dWorldPosToCoordMoveF(float2 worldDirXZ)
+    {
+      return worldDirXZ/getScene25dVoxelSizeXZ();
+    }
+
+    int2 scene25dWorldPosToCoord(float2 worldPosXZ)
+    {
+      return int2(floor(scene25dWorldPosToCoordF(worldPosXZ)));
+    }
+    float2 scene25DCoordToWorldPos(int2 coord)
+    {
+      float voxelSize = getScene25dVoxelSizeXZ();
+      return (coord.xy+0.5)*voxelSize + getScene25dVoxelOrigin();
+    }
+    float2 scene25DCoordRoundedToWorldPos(float2 coord)
+    {
+      return (floor(coord.xy)+0.5)*getScene25dVoxelSizeXZ() + getScene25dVoxelOrigin();
+    }
+  }
+endmacro

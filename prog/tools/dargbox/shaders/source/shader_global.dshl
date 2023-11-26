@@ -1,0 +1,107 @@
+include "hardware_defines.dshl"
+include "mulPointTm_inc.dshl"
+include "global_consts.dshl"
+
+int support_texture_array = 0;//should be assumed
+interval support_texture_array : off<1, on;
+
+int mobile_render = 0;
+interval mobile_render: off < 1, forward < 2, deferred;
+
+float4 world_view_pos;
+float global_transp_r;
+
+macro NO_ATEST()
+  hlsl(ps) {
+    #define clip_alpha(a)
+    #define clip_alpha_fast(a)
+  }
+endmacro
+
+macro USE_ATEST_255()
+  hlsl(ps) {
+    #define atest_use 1
+    #define atest_value_ref (1.00000)
+  }
+  hlsl(ps) {
+    #define clip_alpha(a) {if (a < atest_value_ref) discard;}
+    #define clip_alpha_fast(a) {clip(a - atest_value_ref);}//it is not consistent across depth-pass/color-pass. use for shadow
+  }
+endmacro
+
+macro USE_ATEST_1()
+  hlsl(ps) {
+    #define atest_use 1
+    #define atest_value_ref (1.0/255.0)
+  }
+  hlsl(ps) {
+    #define clip_alpha(a) {if (a <= 0) discard;}
+    #define clip_alpha_fast(a) {clip(a);}//it is not consistent across depth-pass/color-pass. use for shadow
+  }
+endmacro
+
+macro USE_ATEST_VALUE(value)
+  hlsl(ps) {
+    #define atest_use 1
+    #define atest_value_ref (value/255.0)
+  }
+  hlsl(ps) {
+    #define clip_alpha(a) {if (a < atest_value_ref) discard;}
+    #define clip_alpha_fast(a){clip(a - atest_value_ref);}//it is not consistent across depth-pass/color-pass. use for shadow
+  }
+endmacro
+
+macro USE_ATEST_DYNAMIC_VALUE(value)
+  hlsl(ps) {
+    #define atest_use 1
+  }
+  (ps) { atest_value_ref@f1 = (value); }
+  hlsl(ps) {
+    #define clip_alpha(a) {if (a < atest_value_ref) discard;}
+    #define clip_alpha_fast(a){clip(a - atest_value_ref);}//it is not consistent across depth-pass/color-pass. use for shadow
+  }
+endmacro
+
+macro USE_ATEST_HALF()
+  hlsl(ps) {
+    #define atest_use 1
+    #define atest_value_ref 0.5
+  }
+  hlsl(ps) {
+    #define clip_alpha(a) {if (a < atest_value_ref) discard;}
+    #define clip_alpha_fast(a){clip(a - atest_value_ref);}//it is not consistent across depth-pass/color-pass. use for shadow
+  }
+endmacro
+
+hlsl {
+#define linear_to_gamma(a) a
+#define linear_to_gamma_rgba(a) a
+#define gamma_to_linear(a) a
+#define gamma_to_linear_rgba(a) a
+}
+macro USE_HDR_SH()
+endmacro
+
+macro INIT_HDR_STCODE()
+endmacro
+
+macro USE_HDR_PS()
+  hlsl(ps) {
+    half3 pack_hdr(half3 a) {return a;}
+    half3 unpack_hdr(half3 a) {return a;}
+  }
+endmacro
+
+block(frame) global_frame
+{
+  (vs) { world_view_pos@f3 = world_view_pos; }
+}
+
+int compatibility_mode = 0;
+interval compatibility_mode:compatibility_mode_off<1, compatibility_mode_on;
+
+int toonshading = 0;
+
+hlsl {
+float pow2(float a) {return a*a;}
+}

@@ -8,7 +8,7 @@
 #include <math/dag_Point3.h>
 #include <render/viewVecs.h>
 #include <sstream>
-#include <EASTL/map.h>
+#include <dag/dag_vectorMap.h>
 
 enum class FoamTexture
 {
@@ -37,7 +37,7 @@ static const char *foamTextureNames[]{
 
 static const char *getFoamTextureName(FoamTexture tex) { return foamTextureNames[(int)tex]; }
 
-static eastl::map<FoamTexture, BaseTexture *> debugTextures;
+static dag::VectorMap<FoamTexture, BaseTexture *> debugTextures;
 
 static const char *prepare_debug_step[]{
   "pattern",

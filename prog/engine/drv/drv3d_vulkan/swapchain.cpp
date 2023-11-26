@@ -295,7 +295,7 @@ Swapchain::ChangeResult Swapchain::changeSwapchain(FrameInfo &frame)
   sci.queueFamilyIndexCount = 0;
   sci.pQueueFamilyIndices = nullptr;
   sci.clipped = VK_FALSE;
-  sci.oldSwapchain = handle;
+  sci.oldSwapchain = reuseHandle ? handle : VulkanSwapchainKHRHandle{};
 
   auto caps = querySurfaceCaps();
 
@@ -650,6 +650,9 @@ bool Swapchain::init(const SwapchainMode &initial_mode)
   activeMode = initial_mode;
   handle = VulkanNullHandle();
 
+  reuseHandle = device.getPerDriverPropertyBlock("reuseSwapchainHandle")->getBool("allow", true);
+  debug("vulkan: swapchain: %s reuse handle", reuseHandle ? "allow" : "disallow");
+
 #if _TARGET_ANDROID
   {
     char sdkVerS[PROP_VALUE_MAX + 1];
@@ -887,24 +890,6 @@ void Swapchain::present(ExecutionContext &ctx)
       if (!offscreenBuffer)
         colorTarget = nullptr;
       changeSwapState(offscreenBuffer ? SWP_DELAYED_ACQUIRE : SWP_EARLY_ACQUIRE);
-
-#if _TARGET_ANDROID
-      // only Android 10+ trigger suboptimals, on others we must poll (or do other stuff)
-      if (preRotation)
-      {
-        ++surfaceRotationPolling;
-        if ((surfaceRotationPolling % SURFACE_ROTATION_POLLING_INTERVAL) == 0 && preRotationProcessed && !is_null(activeMode.surface))
-        {
-          VkSurfaceCapabilitiesKHR caps = querySurfaceCaps();
-          if (preRotationAngle != surfaceTransformToAngle(caps.currentTransform))
-          {
-            // should be ok to just drop into headless
-            destroyOffscreenBuffer(ctx.back.contextState.frame.get());
-            changeSwapState(SWP_HEADLESS);
-          }
-        }
-      }
-#endif
     }
     else
     {

@@ -456,6 +456,7 @@ namespace das {
             if ( !fl.type->constant && !fl.capturedConstant && fl.type->needDelete() ) {
                 if ( !fl.doNotDelete && !fl.capturedRef ) {
                     if ( fl.type->isPointer() && fl.type->firstType && fl.type->firstType->constant ) continue;
+                    if ( ls->isLambda && !fl.type->isSafeToDelete() ) continue; // we don't do unsafe delete for lambda
                     auto fva = make_smart<ExprVar>(fl.at, "__this");
                     auto fld = make_smart<ExprField>(fl.at, fva, fl.name);
                     fld->ignoreCaptureConst = true;

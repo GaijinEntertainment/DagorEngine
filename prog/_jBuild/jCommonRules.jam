@@ -3,6 +3,11 @@ if $(OS) = NT { PYTHON_EXE ?= $(_DEVTOOL)/python3/python3.exe ; PYTHON_EXE ?= $(
 else if $(OS) in MACOSX { PYTHON_EXE ?= python3 ; }
 else if $(OS) in LINUX { PYTHON_EXE ?= python3 ; }
 
+if $(OS) in MACOSX && $(PYTHON_EXE) = python3 && ! [ GLOB /usr/bin : $(PYTHON_EXE) ] {
+  echo warning: $(PYTHON_EXE) not found, trying to use python ;
+  PYTHON_EXE = python ;
+}
+
 actions together quietly null_action
 {
 }

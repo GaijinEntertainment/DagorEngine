@@ -189,15 +189,17 @@ void SphHarmCalc::processFaceData(uint8_t *buf, int face, int width, int stride,
         uint8_t *ptr = (uint8_t *)(buf + x * 4);
         col = Color4(ptr[0] / 255.0f, ptr[1] / 255.0f, ptr[2] / 255.0f, 1);
       }
-      if (isLinearTarget)
-      {
-        G_ASSERTF(col.r > -0.1f && col.g > -0.1f && col.b > -0.1f, "col=%@", col); // Harmonics are an approximation, be tolerant.
-        col.clamp0();
-      }
-      else
-      {
+      if (!isLinearTarget)
         col = Color4(powf(max(0.f, col.r), gamma), powf(max(0.f, col.g), gamma), powf(max(0.f, col.b), gamma), 1);
+
+      // Harmonics are an approximation, be tolerant.
+      if (col.r < -0.1f || col.g < -0.1f || col.b < -0.1f || col.r > 100.f || col.g > 100.f || col.b > 100.f || !check_finite(col.r) ||
+          !check_finite(col.g) || !check_finite(col.b))
+      {
+        LOGERR_ONCE("Invalid SPH sample col=%@", col);
+        col = Color4(0.1f, 0.2f, 0.4f); // Neutral day color.
       }
+      col.clamp0();
 
       float at00 = at01;
       float at10 = at11;

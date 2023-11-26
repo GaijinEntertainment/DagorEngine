@@ -92,11 +92,7 @@ typedef TiledScenesGroup<4> RITiledScenes;
 extern RITiledScenes riExTiledScenes;
 extern float riExTiledSceneMaxDist[RITiledScenes::MAX_COUNT];
 
-struct PerInstanceParameters
-{
-  uint32_t materialOffset;
-  uint32_t matricesOffset;
-};
+using PerInstanceParameters = uint32_t;
 
 void init_tiled_scenes(const DataBlock *level_blk);
 void term_tiled_scenes();

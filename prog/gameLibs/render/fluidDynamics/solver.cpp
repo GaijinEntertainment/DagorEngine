@@ -1,5 +1,6 @@
 #include <render/fluidDynamics/solver.h>
 #include <perfMon/dag_statDrv.h>
+#include <math/integer/dag_IPoint3.h>
 
 namespace cfd
 {
@@ -60,7 +61,7 @@ void Solver::fillInitialConditions(float standard_density, const Point2 &standar
 
 void Solver::solveEquations(float dt, int num_dispatches)
 {
-  TIME_D3D_PROFILE("cfd::solveEquations");
+  TIME_D3D_PROFILE("cfd_solveEquations");
 
   int currentIdx = 0;
   int currentImplicit = 0;
@@ -106,12 +107,12 @@ float Solver::getSimulationTime() const { return simulationTime; }
 
 // CascadeSolver
 
-// TODO: account for different number of cascades
 static constexpr float cascadeDtMultipliers[4] = {2.0f, 2.0f, 1.5f, 1.0f};
+static constexpr float cascadeDispatchNumMultipliers[4] = {1.0f, 0.5f, 0.125f, 0.03125f};
 
-CascadeSolver::CascadeSolver(const char *solver_shader_name, uint32_t tex_width, uint32_t tex_height,
-  const eastl::array<uint32_t, 4> &num_dispatches_per_cascade, float spatial_step) :
-  numDispatchesPerCascade(eastl::move(num_dispatches_per_cascade))
+CascadeSolver::CascadeSolver(const char *solver_shader_name, IPoint3 tex_size, float spatial_step, const char *solver_name,
+  const eastl::array<uint32_t, 4> &num_dispatches_per_cascade) :
+  numDispatchesPerCascade(eastl::move(num_dispatches_per_cascade)), textureDepth(tex_size.z)
 {
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
   VARS_LIST
@@ -125,18 +126,24 @@ CascadeSolver::CascadeSolver(const char *solver_shader_name, uint32_t tex_width,
 
   for (int i = 0; i < NUM_CASCADES; ++i)
   {
-    auto &newCascade = cascades.push_back();
-    newCascade.texSize = IPoint2(tex_width / (1 << (NUM_CASCADES - 1 - i)), tex_height / (1 << (NUM_CASCADES - 1 - i)));
+    Cascade &newCascade = cascades[i];
+    newCascade.texSize = IPoint2(tex_size.x / (1 << (NUM_CASCADES - 1 - i)), tex_size.y / (1 << (NUM_CASCADES - 1 - i)));
     newCascade.spatialStep = spatial_step * (1 << (NUM_CASCADES - 1 - i));
     newCascade.dtMultiplier = cascadeDtMultipliers[i];
-    newCascade.velDensityTex[0] = dag::create_tex(NULL, newCascade.texSize.x, newCascade.texSize.y,
-      TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1, String(0, "velocity_pressure_cascade_%d", i));
-    newCascade.velDensityTex[1] = dag::create_tex(NULL, newCascade.texSize.x, newCascade.texSize.y,
-      TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1, String(0, "next_velocity_pressure_cascade_%d", i));
+    newCascade.velDensityTex[0] = dag::create_voltex(newCascade.texSize.x, newCascade.texSize.y, tex_size.z,
+      TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1, String(0, "velocity_density_cascade_%d_%s", i, solver_name));
+    newCascade.velDensityTex[1] = dag::create_voltex(newCascade.texSize.x, newCascade.texSize.y, tex_size.z,
+      TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1, String(0, "next_velocity_density_cascade_%d_%s", i, solver_name));
+
+    d3d::resource_barrier({cascades[i].velDensityTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
+    d3d::resource_barrier({cascades[i].velDensityTex[1].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
+
+    newCascade.velDensityTex[0].getVolTex()->texfilter(TEXFILTER_POINT);
+    newCascade.velDensityTex[1].getVolTex()->texfilter(TEXFILTER_POINT);
 
     // Mirror for ghost cells on the edges
-    newCascade.velDensityTex[0].getTex2D()->texaddr(TEXADDR_MIRROR);
-    newCascade.velDensityTex[1].getTex2D()->texaddr(TEXADDR_MIRROR);
+    newCascade.velDensityTex[0].getVolTex()->texaddr(TEXADDR_MIRROR);
+    newCascade.velDensityTex[1].getVolTex()->texaddr(TEXADDR_MIRROR);
   }
 }
 
@@ -144,51 +151,88 @@ void CascadeSolver::fillInitialConditions(float standard_density, const Point2 &
 {
   switchToCascade(0);
 
-  ShaderGlobal::set_real(standard_densityVarId, standard_density);
-  ShaderGlobal::set_color4(standard_velocityVarId, Color4(standard_velocity.x, standard_velocity.y, 0.0f, 0.0f));
+  standardDensity = standard_density;
+  standardVelocity = standard_velocity;
 
-  initialConditionsCs->dispatchThreads(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, 1);
+  ShaderGlobal::set_real(standard_densityVarId, standardDensity);
+  ShaderGlobal::set_color4(standard_velocityVarId, Color4(standardVelocity.x, standardVelocity.y, 0.0f, 0.0f));
+
+  initialConditionsCs->dispatchThreads(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, textureDepth);
+  d3d::resource_barrier({cascades[currentCascade].velDensityTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
 }
 
-void CascadeSolver::solveEquations(float dt, int num_dispatches)
+bool CascadeSolver::solveEquations(float dt, int base_num_dispatches)
 {
-  TIME_D3D_PROFILE("cfd::solveEquationsCascade");
+  TIME_D3D_PROFILE("cfd_solveEquationsCascade");
 
-  if (curNumDispatches > numDispatchesPerCascade[currentCascade])
-    return;
-
-  const float actualDt = dt * cascades[currentCascade].dtMultiplier;
-  int currentIdx = 0;
-  int currentImplicit = 0;
-  ShaderGlobal::set_real(simulation_dtVarId, actualDt);
-  for (int i = 0; i < num_dispatches; ++i)
-  {
-    ShaderGlobal::set_texture(velocity_density_texVarId, cascades[currentCascade].velDensityTex[currentIdx]);
-    ShaderGlobal::set_texture(next_velocity_density_texVarId, cascades[currentCascade].velDensityTex[1 - currentIdx]);
-
-    solverCs->dispatchThreads(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, 1);
-
-    simulationTime += actualDt;
-    currentIdx = (currentIdx + 1) % 2;
-    currentImplicit = (currentImplicit + 1) % 2;
-
-    ShaderGlobal::set_texture(velocity_density_texVarId, cascades[currentCascade].velDensityTex[currentIdx]);
-    ShaderGlobal::set_texture(next_velocity_density_texVarId, cascades[currentCascade].velDensityTex[1 - currentIdx]);
-
-    blurCs->dispatchThreads(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, 1);
-
-    currentIdx = (currentIdx + 1) % 2;
-  }
-
-  curNumDispatches += num_dispatches;
-  totalNumDispatches += num_dispatches;
   if (curNumDispatches >= numDispatchesPerCascade[currentCascade])
+    return false;
+
+  int i = 0;
+  const int actualNumDispatches = static_cast<int>(base_num_dispatches * cascadeDispatchNumMultipliers[currentCascade]);
+
+  ShaderGlobal::set_real(standard_densityVarId, standardDensity);
+  ShaderGlobal::set_color4(standard_velocityVarId, Color4(standardVelocity.x, standardVelocity.y, 0.0f, 0.0f));
+
+  while (i < actualNumDispatches)
   {
-    if (currentCascade != NUM_CASCADES - 1)
-      switchToCascade(currentCascade + 1);
-    else
-      return;
+    const float actualDt = dt * cascades[currentCascade].dtMultiplier;
+
+    ShaderGlobal::set_real(simulation_dtVarId, actualDt);
+    ShaderGlobal::set_int4(tex_sizeVarId,
+      IPoint4(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, textureDepth, 0));
+    ShaderGlobal::set_real(simulation_dxVarId, cascades[currentCascade].spatialStep);
+
+    int currentIdx = 0;
+    int currentImplicit = 0;
+
+    solverCs->setStates();
+    blurCs->setStates();
+    for (; i < actualNumDispatches && curNumDispatches < numDispatchesPerCascade[currentCascade]; ++i)
+    {
+      d3d::set_tex(STAGE_CS, 1, cascades[currentCascade].velDensityTex[currentIdx].getBaseTex());
+      d3d::set_rwtex(STAGE_CS, 0, cascades[currentCascade].velDensityTex[1 - currentIdx].getBaseTex(), 0, 0);
+
+      solverCs->dispatchThreads(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, textureDepth,
+        GpuPipeline::GRAPHICS, false);
+      d3d::resource_barrier({cascades[currentCascade].velDensityTex[currentIdx].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
+      d3d::resource_barrier({cascades[currentCascade].velDensityTex[1 - currentIdx].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
+
+      simulationTime += actualDt;
+      currentIdx = (currentIdx + 1) % 2;
+      currentImplicit = (currentImplicit + 1) % 2;
+
+      d3d::set_tex(STAGE_CS, 1, cascades[currentCascade].velDensityTex[currentIdx].getBaseTex());
+      d3d::set_rwtex(STAGE_CS, 0, cascades[currentCascade].velDensityTex[1 - currentIdx].getBaseTex(), 0, 0);
+
+      blurCs->dispatchThreads(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, textureDepth,
+        GpuPipeline::GRAPHICS, false);
+      d3d::resource_barrier({cascades[currentCascade].velDensityTex[currentIdx].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
+      d3d::resource_barrier({cascades[currentCascade].velDensityTex[1 - currentIdx].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
+
+      currentIdx = (currentIdx + 1) % 2;
+
+      ++curNumDispatches;
+      ++totalNumDispatches;
+    }
+
+    d3d::set_tex(STAGE_CS, 1, nullptr);
+    d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
+
+    if (curNumDispatches >= numDispatchesPerCascade[currentCascade])
+    {
+      d3d::resource_barrier(
+        {cascades[currentCascade].velDensityTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_RO_SRV, 0, 0});
+      if (currentCascade != NUM_CASCADES - 1)
+        switchToCascade(currentCascade + 1);
+      else
+      {
+        resultReady = true;
+        return true;
+      }
+    }
   }
+  return true;
 }
 
 void CascadeSolver::showResult(PlotType plot_type)
@@ -197,6 +241,17 @@ void CascadeSolver::showResult(PlotType plot_type)
   ShaderGlobal::set_texture(plot_texVarId, cascades[currentCascade].velDensityTex[0].getTexId());
   showSolution.render();
 }
+
+void CascadeSolver::reset()
+{
+  curNumDispatches = 0;
+  totalNumDispatches = 0;
+  simulationTime = 0.0f;
+  currentCascade = 0;
+  resultReady = false;
+}
+
+bool CascadeSolver::isResultReady() const { return resultReady; }
 
 TEXTUREID CascadeSolver::getVelocityDensityTexId() const { return cascades[currentCascade].velDensityTex[0].getTexId(); }
 
@@ -208,10 +263,11 @@ void CascadeSolver::switchToCascade(int cascade)
 {
   ShaderGlobal::set_texture(velocity_density_texVarId, cascades[cascade].velDensityTex[0]);
   ShaderGlobal::set_texture(next_velocity_density_texVarId, cascades[cascade].velDensityTex[1]);
-  ShaderGlobal::set_int4(tex_sizeVarId, IPoint4(cascades[cascade].texSize.x, cascades[cascade].texSize.y, 0, 0));
+  ShaderGlobal::set_int4(tex_sizeVarId, IPoint4(cascades[cascade].texSize.x, cascades[cascade].texSize.y, textureDepth, 0));
   ShaderGlobal::set_real(simulation_dxVarId, cascades[cascade].spatialStep);
 
-  fillNextCascadeInitialConditions();
+  if (cascade != 0)
+    fillNextCascadeInitialConditions();
 
   curNumDispatches = 0;
   currentCascade = cascade;
@@ -221,7 +277,9 @@ void CascadeSolver::fillNextCascadeInitialConditions()
 {
   ShaderGlobal::set_texture(initial_velocity_density_texVarId, cascades[currentCascade].velDensityTex[0]);
 
-  initialConditionsFromTexCs->dispatchThreads(cascades[currentCascade + 1].texSize.x, cascades[currentCascade + 1].texSize.y, 1);
+  initialConditionsFromTexCs->dispatchThreads(cascades[currentCascade + 1].texSize.x, cascades[currentCascade + 1].texSize.y,
+    textureDepth);
+  d3d::resource_barrier({cascades[currentCascade + 1].velDensityTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
 }
 
 } // namespace cfd

@@ -1,0 +1,102 @@
+include "sky_shader_global.dshl"
+include "dagi_volmap_gi.dshl"
+include "dagi_scene_voxels_common_25d.dshl"
+
+define_macro_if_not_defined INIT_VOXELS_HEIGHTMAP_HELPERS(code)
+  hlsl(code) {
+    float ssgi_get_heightmap_2d_height(float3 worldPos) {return worldPos.y-100;}
+  }
+endmacro
+float4 ambient_voxels_move_ofs;
+
+int dead_probes_no = 8;
+int octahedral_distances_no = 7;
+
+shader octahedral_distances_cs
+{
+  ENABLE_ASSERT(cs)
+  INIT_VOXELS(cs)
+  USE_VOXELS(cs)
+  SSGI_USE_VOLMAP_GI_COORD(cs)
+  INIT_VOXELS_HEIGHTMAP_HELPERS(cs)
+  (cs) {
+    ambient_voxels_move_ofs@f4 = ambient_voxels_move_ofs;
+    dead_probes@uav : register(dead_probes_no) hlsl {
+      RWTexture2DArray<float> dead_probes@uav;
+    }
+    octahedral_distances@uav : register(octahedral_distances_no) hlsl {
+      RWTexture2DArray<float>  octahedral_distances@uav;
+    }
+  }
+  hlsl(cs) {
+    #include "octahedral_tile_side_length.hlsli"
+    #include "octahedral.hlsl"
+    #include "dagi_volmap_cb.hlsli"
+
+    RaytracingAccelerationStructure accelerationStructure : register(t23);
+
+    groupshared int i = 0, j = 0, k = 0;
+    [numthreads(OCTAHEDRAL_TILE_SIDE_LENGTH, OCTAHEDRAL_TILE_SIDE_LENGTH, 1)]
+    void main_cs( uint3 gId : SV_GroupID, uint3 gTId : SV_GroupThreadID, uint tid: SV_GroupIndex, uint3 dtId : SV_DispatchThreadID)
+    {
+      uint cascadeId = ambient_voxels_move_ofs.w;
+      if (tid == 0)
+      {
+        i = 0; j = 0; k = 0;
+        dead_probes[uint3(gId.x, gId.y, gId.z + ssgi_cascade_z_crd_ofs(cascadeId))] = 0;
+      }
+      GroupMemoryBarrierWithGroupSync();
+      uint cornerTexelCoord = gId.x * OCTAHEDRAL_TILE_SIDE_LENGTH;
+
+      const int logSideLength = log2(OCTAHEDRAL_TILE_SIDE_LENGTH);
+      int2 relativeTexelCoord = int2(tid & (OCTAHEDRAL_TILE_SIDE_LENGTH - 1), tid >> logSideLength);
+      float3 worldDir = octDecode((float2(relativeTexelCoord) + 0.5) / OCTAHEDRAL_TILE_SIDE_LENGTH * 2.0 - 1.0);
+
+      uint3 coord = gId;
+      float3 worldPos;
+      getMovedWorldPos(coord, cascadeId, ambient_voxels_move_ofs.xzy, worldPos);
+
+      const float maxDist = getProbeDiagonalSize(cascadeId);
+      float floorHt = ssgi_get_heightmap_2d_height(worldPos);
+      float3 voxelSize = getSceneVoxelSize(cascadeId);
+      worldPos.y = max(floorHt + voxelSize.y + 0.1, worldPos.y);
+      RayDesc ray;
+      ray.Origin = worldPos;
+      ray.Direction = worldDir;
+      ray.TMin = 0.0;
+      ray.TMax = maxDist;
+      RayQuery<RAY_FLAG_FORCE_OPAQUE |
+                RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> q;
+      q.TraceRayInline(
+        accelerationStructure,
+        RAY_FLAG_NONE, // OR'd with flags above
+        0xff,
+        ray);
+      q.Proceed();
+      float rayDist = maxDist;
+      if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+      {
+        float3 hitPos = worldPos.xyz + worldDir * q.CommittedRayT();
+        rayDist = q.CommittedRayT();
+        if (q.CommittedTriangleFrontFace())
+          InterlockedAdd(i, 1);
+        InterlockedAdd(k, 1);
+      }
+      InterlockedAdd(j, 1);
+      // only happens once per threadgroup so no sync needed
+      if (j == OCTAHEDRAL_TILE_SIDE_LENGTH * OCTAHEDRAL_TILE_SIDE_LENGTH)
+      {
+        // at least half of the rays hit something was backface and at least half of the rays hit something, then the probe is dead
+        if (i > (k >> 1) && k > (j >> 1))
+          dead_probes[uint3(gId.x, gId.y, gId.z + ssgi_cascade_z_crd_ofs(cascadeId))] = 1.0;
+      }
+      float2 tc = octEncode(worldDir);
+      tc.xy = tc.xy * 0.5 + 0.5;
+      octahedral_distances[uint3(cornerTexelCoord + tc.x * OCTAHEDRAL_TILE_SIDE_LENGTH,
+        (gId.y + tc.y) * OCTAHEDRAL_TILE_SIDE_LENGTH,
+        coord.z + ssgi_cascade_z_crd_ofs(cascadeId))] = rayDist / maxDist;
+    }
+  }
+  compile("cs_6_5", "main_cs");
+  if (gi_quality != raytracing) {dont_render;}
+}

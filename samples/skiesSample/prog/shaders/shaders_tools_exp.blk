@@ -7,10 +7,10 @@ outMiniDumpName:t="../../tools/common/compiledShaders/tools.exp"
 source
 {
   includePath:t="./source"
-  file:t = "testMat.sh"
-  file:t = "testTree.sh"
-  file:t = "testMatAO.sh"
-  file:t = "./source/heightmap.sh"
+  file:t = "testMat.dshl"
+  file:t = "testTree.dshl"
+  file:t = "testMatAO.dshl"
+  file:t = "./source/heightmap.dshl"
 }
 
 "@delete:explicit_var_ref" {}

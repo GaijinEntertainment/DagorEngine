@@ -31,7 +31,7 @@ struct RiShaderConstBuffers
   // float4 deltas1 (opt) - imp_size deltas for slices 2,3
   // float4 deltas2 (opt) - imp_size deltas for slices 4,5
   // float4 deltas3 (opt) - imp_size deltas for slices 6,7
-  // float4 rendinst_bbox; - bounding box is used for vegetation interactions
+  // float4 rendinst_bbox__cross_dissolve_range - bounding box is used for vegetation interactions AND cross dissolve range
   // float4 color_from - first edge random color
   // float4 color_to - second edge random color
   // float4 rendinst_interaction_params - for shader interactions with other objects
@@ -57,6 +57,7 @@ struct RiShaderConstBuffers
   void setOpacity(float p0, float p1, float p2 = 0.f, float p3 = 0.f);
   void setBoundingSphere(float p0, float p1, float sphereRadius, float cylinderRadius, float sphereCenterY);
   void setBoundingBox(const vec4f &bbox);
+  void setCrossDissolveRange(float crossDissolveRange);
   void setImpostorMultiWidths(float widths[], float heights[]);
   void setImpostorLocalView(const Point3 &view_x, const Point3 &view_y);
   void setRadiusFade(float radius, float drown_scale);

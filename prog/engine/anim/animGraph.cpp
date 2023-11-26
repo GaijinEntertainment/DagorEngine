@@ -1793,7 +1793,8 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
   IAnimBlendNode *node = graph.getBlendNodePtr(root);
   if (!node)
   {
-    ANIM_ERR("root node '%s' not found!", root);
+    if (!is_ignoring_unavailable_resources())
+      ANIM_ERR("root node '%s' not found!", root);
     return false;
   }
   graph.replaceRoot(node);
@@ -2092,7 +2093,8 @@ void AnimBlendCtrl_1axis::createNode(AnimationGraph &graph, const DataBlock &blk
         IAnimBlendNode *n = graph.getBlendNodePtr(nm, nm_suffix);
         if (!n)
         {
-          ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
+          if (!is_ignoring_unavailable_resources())
+            ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
           return;
         }
         node->addBlendNode(n, cblk->getReal("start", 0), cblk->getReal("end", 1.0));
@@ -2138,7 +2140,8 @@ void AnimBlendCtrl_LinearPoly::createNode(AnimationGraph &graph, const DataBlock
         IAnimBlendNode *n = graph.getBlendNodePtr(nm, nm_suffix);
         if (!n)
         {
-          ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
+          if (!is_ignoring_unavailable_resources())
+            ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
           return;
         }
         node->addBlendNode(n, cblk->getReal("val", 0), graph, name, var_name);
@@ -2197,7 +2200,8 @@ void AnimBlendCtrl_RandomSwitcher::createNode(AnimationGraph &graph, const DataB
       IAnimBlendNode *n = graph.getBlendNodePtr(nm, nm_suffix);
       if (!n)
       {
-        logerr_ctx("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
+        if (!is_ignoring_unavailable_resources())
+          logerr_ctx("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
         continue;
       }
       node->addBlendNode(n, cblk->getReal(i), rblk ? rblk->getInt(nm, 1) : 1);
@@ -2244,7 +2248,7 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
       IAnimBlendNode *n = graph.getBlendNodePtr(nm, nm_suffix);
       if (!n)
       {
-        if (!isOptional)
+        if (!isOptional && !is_ignoring_unavailable_resources())
           logerr_ctx("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
         continue;
       }
@@ -2320,7 +2324,8 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
           IAnimBlendNode *n = graph.getBlendNodePtr(nm.c_str(), nm_suffix);
           if (!n)
           {
-            ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
+            if (!is_ignoring_unavailable_resources())
+              ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
             continue;
           }
           int eval = AnimV20::getEnumValueByName(enum_nm);
@@ -2393,7 +2398,8 @@ void AnimBlendCtrl_Hub::createNode(AnimationGraph &graph, const DataBlock &blk, 
           if (!isOptional)
           {
             delete node;
-            ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
+            if (!is_ignoring_unavailable_resources())
+              ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
             return;
           }
           else

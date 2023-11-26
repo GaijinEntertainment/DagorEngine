@@ -18,6 +18,7 @@ SQSharedState::SQSharedState(SQAllocContext allocctx) :
     defaultLangFeatures(0)
 {
     _compilererrorhandler = NULL;
+    _compilerdiaghandler = NULL;
     _printfunc = NULL;
     _errorfunc = NULL;
     _debuginfo = false;

@@ -12,7 +12,7 @@ namespace
 {
 namespace defaults
 {
-#include "../shaders/hdr/hdr_render_defaults.sh"
+#include "../shaders/hdr/hdr_render_defaults.dshl"
 }
 } // namespace
 

@@ -1,0 +1,563 @@
+include "shader_global.dshl"
+include "rendinst_opaque_inc.dshl"
+include "rendinst_impostor_inc.dshl"
+include "rendinst_vegetation_inc.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+
+int impostor_per_pixel_depth = 0;
+interval impostor_per_pixel_depth :
+  impostor_per_pixel_depth_off<1,
+  impostor_per_pixel_depth_on;
+
+int impostor_parallax_mode = 0;
+interval impostor_parallax_mode : impostor_no_parallax<1, impostor_depth_parallax;
+
+int impostor_view_mode = 0;
+interval impostor_view_mode : impostor_single_view<1, impostor_tri_view;
+
+shader rendinst_impostor_octahedral
+{
+  if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo ||
+      rendinst_render_pass == rendinst_render_pass_impostor_color  ||
+      rendinst_render_pass == rendinst_render_pass_depth  ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow) { dont_render; }
+
+  if (mobile_render != off) { dont_render; }
+
+  RENDINST_BLOCK()
+
+  channel float3 pos = pos;
+
+  z_write = true;
+  z_test = true;
+  cull_mode = none;
+
+  RENDINST_INSTANCING()
+  ROTATION_PALETTE()
+
+  hlsl {
+    struct VsOutput
+    {
+      centroid VS_OUT_POSITION(pos)
+      nointerpolation float4 scale_worldX : TEXCOORD0;
+      nointerpolation float4 colorMul_opacity : TEXCOORD1;
+      ##if impostor_view_mode == impostor_single_view || rendinst_render_pass == rendinst_render_pass_to_shadow
+        nointerpolation float4 texcoord_worldYxy : TEXCOORD2;
+        noperspective float4 reprojection_worldYz : TEXCOORD3;
+        ##if impostor_parallax_mode == impostor_depth_parallax && rendinst_render_pass != rendinst_render_pass_to_shadow
+          noperspective float2 localViewDir : TEXCOORD4;
+        ##endif
+        nointerpolation float4 slice_shift : TEXCOORD11;
+      ##else
+        noperspective float4 texcoord_w1_worldYx : TEXCOORD2;
+        noperspective float4 texcoord_w2_worldYy : TEXCOORD3;
+        noperspective float4 texcoord_w3_worldYz : TEXCOORD4;
+        noperspective float3 reprojection_1 : TEXCOORD5;
+        noperspective float3 reprojection_2 : TEXCOORD6;
+        noperspective float3 reprojection_3 : TEXCOORD7;
+        ##if impostor_parallax_mode == impostor_depth_parallax
+          noperspective float4 localViewDir_1_2 : TEXCOORD8;
+          noperspective float2 localViewDir_3 : TEXCOORD9;
+        ##endif
+        nointerpolation float4 slice_shift : TEXCOORD11;
+        nointerpolation float4 slice_shift1 : TEXCOORD12;
+        nointerpolation float4 slice_shift2 : TEXCOORD13;
+      ##endif
+      nointerpolation float paletteId : TEXCOORD10;
+    };
+  }
+
+  INIT_BAKED_IMPOSTOR_STATIC_TEX()
+  INIT_BAKED_IMPOSTOR_VARS(static)
+  OCTAHEDRAL_UTILS()
+  USE_RANDOM_COLOR()
+
+  INIT_VIEW_VEC_STAGE(vs)
+  (vs) {
+    impostor_texture_size@f4 = impostor_texture_size;
+    gbuffer_sun_light_dir@f3 = from_sun_direction;
+  }
+  hlsl(vs) {
+    float3 reproject(float2 tc, float3 viewDir, float3 viewVect, float3 pointToCamera, float inz, out float2 localViewDir)
+    {
+      float3 pointToEye = get_point_to_eye(tc);
+
+      pointToEye = normalize(pointToEye);
+      float3 side = float3(-pointToEye.z, 0, pointToEye.x); // cross(pointToEye, float3(0, 1, 0));
+      side /= sqrt(1.0 - (pointToEye.y*pointToEye.y)); // normalize
+      float3 up = cross(pointToEye, side);
+
+      float t = -dot(pointToCamera, pointToEye) / dot(viewDir, pointToEye);
+
+      ##if rendinst_render_pass == rendinst_render_pass_to_shadow
+        localViewDir = float2(0, 0);
+        float z = 1 / inz;
+        float3 pos = pointToCamera + viewDir*t;
+      ##else
+        float3 pos = viewDir*t;
+        float z = dot(viewVect, pos) / inz;
+        pos += pointToCamera;  // position in model space
+
+        localViewDir = float2(dot(side, viewDir), dot(up, viewDir));
+        localViewDir *= 0.5 * impostor_options.zw / (-dot(viewDir, pointToEye) * z);
+      ##endif
+
+
+      float2 uv = float2(dot(side, pos), dot(up, pos)) * impostor_scale.zw; // image space of orthogonal camera
+      return float3(tc + (uv*0.5+0.5) * impostor_options.zw, 1)/z;
+    }
+
+    float3 transform_direction(float3 dir, float invScale, float3 worldX, float3 worldY, float3 worldZ)
+    {
+      return float3(
+        dot(dir, worldX),
+        dot(dir, worldY),
+        dot(dir, worldZ)) * invScale * invScale;
+    }
+
+    float3 get_view_vect()
+    {
+      ##if rendinst_render_pass == rendinst_render_pass_to_shadow
+        return gbuffer_sun_light_dir;
+      ##else
+        return normalize(view_vecLT.xyz+view_vecRT.xyz+view_vecLB.xyz+view_vecRB.xyz);
+      ##endif
+    }
+
+
+    float3 get_view_to_vert_pos(float3 inpos)
+    {
+      // inpos - viewPos
+      ##if rendinst_render_pass == rendinst_render_pass_to_shadow
+        return gbuffer_sun_light_dir;
+      ##else
+        return inpos - world_view_pos;
+      ##endif
+    }
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos : POSITION;
+    };
+
+    float3 project_position(float3 pos, float3 eye_to_point, float3 plane_normal, float3 plane_point)
+    {
+      // Project point to plane
+      float t = dot(plane_point - pos, plane_normal) / dot(eye_to_point, plane_normal);
+      return pos + eye_to_point*t;
+    }
+
+    float4 get_slice_shift(float2 tc)
+    {
+      tc = tc*impostor_options.xy;
+
+      float2 impostorTc = clamp(floor(tc), float2(0, 0), impostor_options.xy-1);
+      int off = int(impostor_options.x*impostorTc.x + impostorTc.y);
+      float4 shift = impostor_slices_shifts[off + impostor_slice_data_offset];
+
+      const int sh_sqrt = 3;
+      float slice_hash = int(impostor_options.y*impostorTc.x + impostorTc.y + 1) % MAX_SLICE_HASH;
+      return 0.5*(shift + 1) + float4(slice_hash,0,0,0);
+    }
+
+    VsOutput impostor_vs(VsInput input, uint vertexId : SV_VertexID HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+      float3 inpos = input.pos.xzy;
+      float2 tc = inpos.xy;
+
+      float3 localPos = float3(0, 0, 0);
+      float3 localNormal = float3(0, 1, 0);
+
+      VB_PERFORM_INSTANCING
+      APPLY_ROTATION_PALETTE
+
+      output.paletteId = paletteId;
+
+      float4 color;
+
+      // PC and PS3 instancing.
+      output.colorMul_opacity.xyz = get_random_color(worldLocalPos).rgb;
+
+      float worldScale = length(worldLocalX);
+      float invScale = 1/worldScale;
+      output.scale_worldX = float4(worldScale, worldLocalX*invScale);
+
+      float3 impostorPos =
+        worldLocalX * impostor_bounding_sphere.x +
+        worldLocalY * impostor_bounding_sphere.y +
+        worldLocalZ * impostor_bounding_sphere.z +
+        worldLocalPos;
+
+
+      float distToInstance = 0;
+      float opacity = 1;
+      ##if rendinst_render_pass == rendinst_render_pass_to_shadow
+        float3 forward = gbuffer_sun_light_dir;
+      ##else
+        float3 forward = impostorPos - world_view_pos;
+        distToInstance = length(forward);
+        forward /= distToInstance;
+         ##if rendinst_dissolve == rendinst_dissolve_inout
+          opacity = saturate(distToInstance * rendinst_opacity.z + rendinst_opacity.w);
+        ##endif
+        opacity *= saturate(distToInstance * rendinst_opacity.x + rendinst_opacity.y);
+      ##endif
+      output.colorMul_opacity.w = opacity;
+      float3 side = normalize(float3(forward.z, 0, -forward.x));// = normalize(cross(float3(0, 1, 0), forward));
+      float3 up = cross(forward, side);
+
+      { // upper hemisphere only
+        inpos.xy = get_vertex_offset_hemisphere(inpos.xy, forward, worldLocalY*invScale, impostor_scale.xy, impostor_scale.xy).xy;
+      }
+
+      inpos = output.scale_worldX.x * inpos;
+      float3 localInpos = side * inpos.x + up * inpos.y + forward * inpos.z;
+      inpos = localInpos + impostorPos;
+
+
+      float3 viewDir = transform_direction(get_view_to_vert_pos(inpos), invScale, worldLocalX, worldLocalY, worldLocalZ);
+      float3 viewVect = transform_direction(get_view_vect(), invScale, worldLocalX, worldLocalY, worldLocalZ);
+
+      float inz = dot(viewVect, viewDir);
+
+      ##if rendinst_render_pass == rendinst_render_pass_to_shadow
+        float3 eyeToPos = -gbuffer_sun_light_dir;
+      ##else
+        float3 eyeToPos = inpos-world_view_pos;
+      ##endif
+
+      ##if impostor_per_pixel_depth == impostor_per_pixel_depth_on && rendinst_render_pass != rendinst_render_pass_to_shadow
+        inpos = inpos - impostor_bounding_sphere.w*normalize(eyeToPos)*worldScale;
+      ##endif
+
+      ##if rendinst_render_pass == rendinst_render_pass_to_shadow
+        float3 pointToCamera = transform_direction(localInpos, invScale, worldLocalX, worldLocalY, worldLocalZ);
+        float2 tex = dir_to_tex(transform_direction(-gbuffer_sun_light_dir, invScale, worldLocalX, worldLocalY, worldLocalZ));
+      ##else
+        float3 pointToCamera = transform_direction(world_view_pos - impostorPos, invScale, worldLocalX, worldLocalY, worldLocalZ);
+        float2 tex = dir_to_tex(pointToCamera);
+      ##endif
+
+      ##if hardware.fsh_5_0 && rendinst_render_pass == rendinst_render_pass_to_shadow
+        inpos -= forward * output.scale_worldX.x * impostor_bounding_sphere.w;
+      ##endif
+
+      ##if rendinst_render_pass != rendinst_render_pass_to_shadow
+        inpos -= forward * cylinder_radius * output.scale_worldX.x;
+      ##endif
+
+      ##if impostor_view_mode == impostor_single_view || rendinst_render_pass == rendinst_render_pass_to_shadow
+        output.texcoord_worldYxy = float4(get_texture_offset(tex), worldLocalY.xy*invScale);
+        float2 localViewDir;
+        output.reprojection_worldYz = float4(reproject(output.texcoord_worldYxy.xy, viewDir, viewVect, pointToCamera, inz, localViewDir), worldLocalY.z*invScale);
+        ##if impostor_parallax_mode == impostor_depth_parallax && rendinst_render_pass != rendinst_render_pass_to_shadow
+          output.localViewDir = localViewDir;
+        ##endif
+        output.slice_shift = get_slice_shift(output.reprojection_worldYz.xy/output.reprojection_worldYz.z);
+      ##else
+        float2 tex1, tex2, tex3;
+        float w1, w2, w3;
+        get_texture_offsets(tex, tex1, w1, tex2, w2, tex3, w3);
+
+        output.texcoord_w1_worldYx = float4(tex1, w1, worldLocalY.x*invScale);
+        output.texcoord_w2_worldYy = float4(tex2, w2, worldLocalY.y*invScale);
+        output.texcoord_w3_worldYz = float4(tex3, w3, worldLocalY.z*invScale);
+
+        float2 localViewDir_1;
+        float2 localViewDir_2;
+        float2 localViewDir_3;
+        output.reprojection_1 = reproject(output.texcoord_w1_worldYx.xy, viewDir, viewVect, pointToCamera, inz, localViewDir_1);
+        output.reprojection_2 = reproject(output.texcoord_w2_worldYy.xy, viewDir, viewVect, pointToCamera, inz, localViewDir_2);
+        output.reprojection_3 = reproject(output.texcoord_w3_worldYz.xy, viewDir, viewVect, pointToCamera, inz, localViewDir_3);
+        ##if impostor_parallax_mode == impostor_depth_parallax
+          output.localViewDir_1_2 = float4(localViewDir_1, localViewDir_2);
+          output.localViewDir_3 = localViewDir_3;
+        ##endif
+        output.slice_shift = get_slice_shift(output.reprojection_1.xy/output.reprojection_1.z);
+        output.slice_shift1 = get_slice_shift(output.reprojection_2.xy/output.reprojection_2.z);
+        output.slice_shift2 = get_slice_shift(output.reprojection_3.xy/output.reprojection_3.z);
+      ##endif
+
+      output.pos = mulPointTm(inpos, globtm);
+      return output;
+    }
+  }
+
+  WRITE_GBUFFER()
+  if (rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    USE_RENDINST_IMPOSTOR_SHADOW()
+  }
+  hlsl(ps) {
+    static float alpha_threshold = 0.5;
+    static float rendinst_shadow_bias = 0.3;
+
+    float mip_map_level(float2 texture_coordinate) // in texel units
+    {
+      float2 dx_vtc = ddx(texture_coordinate);
+      float2 dy_vtc = ddy(texture_coordinate);
+      float delta_max_sqr = max(dot(dx_vtc, dx_vtc), dot(dy_vtc, dy_vtc));
+      return 0.5 * log2(delta_max_sqr);
+    }
+
+    float4 get_texcoord_depth(float2 tc, float2 uv, float2 localViewDir, float scale, float4 slice_shift, out float4 adas)
+    {
+      adas = 0;
+      float level = mip_map_level(uv * impostor_texture_size.xy);
+      float2 size = impostor_options.zw*0.5;
+      float2 mtc = tc+size;
+      float3 new_uv;
+      if (any(abs(uv-mtc) >= size))
+        return float4(-1, -1, -1, -1);
+      new_uv = get_texture_offset_tr(uv, slice_shift);
+      adas = tex2DLodBindless(get_impostor_ao_depth_alpha_slice(), float4(new_uv.xy, 0, level));
+
+      if (adas.y >= 1 || abs(new_uv.z - adas.w) > 0.05)
+      {
+        adas.z = 0;
+        return float4(-1, -1, -1, -1);
+      }
+      float depth = adas.y*2 - 1;
+      ##if impostor_parallax_mode == impostor_depth_parallax && rendinst_render_pass != rendinst_render_pass_to_shadow
+        uv += depth * localViewDir;
+        if (any(abs(uv-mtc) >= size))
+          return float4(-1, -1, -1, -1);
+        new_uv = get_texture_offset_tr(uv, slice_shift);
+        adas = tex2DLodBindless(get_impostor_ao_depth_alpha_slice(), float4(new_uv.xy, 0, level));
+      ##endif
+      if (adas.y >= 1 || abs(new_uv.z - adas.w) > 0.05)
+      {
+        adas.z = 0;
+        return float4(-1, -1, -1, -1);
+      }
+      else
+        return float4(new_uv.xy, depth * scale * impostor_bounding_sphere.w, level);
+    }
+
+    float fast_noise_rad( float2 co )
+    {
+      float2 offset = co - float2( 0.5, 0.5 );
+      float r = dot( offset, offset );
+      float sr = sin( r * 6.4949 );
+      float rnd = frac( sr * 0.1437585453 ) +
+                  frac( sr * 42.7585453 ) * 0.11;
+
+      return clamp( rnd, -0.49, 0.49 );
+    }
+
+    ##if (hardware.fsh_5_0)
+      #define SHADOW_DEPTH_OUT SV_DepthGreaterEqual
+      #define COLOR_DEPTH_OUT SV_DepthLessEqual
+    ##else
+      #define SHADOW_DEPTH_OUT SV_Depth
+      #define COLOR_DEPTH_OUT SV_Depth
+    ##endif
+
+    ##if rendinst_render_pass == rendinst_render_pass_to_shadow
+
+      void impostor_ps_shadow(VsOutput input, out float depth_out : SHADOW_DEPTH_OUT HW_USE_SCREEN_POS)
+      {
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        float4 adas;
+        float4 texcoord_depth = get_texcoord_depth(
+            input.texcoord_worldYxy.xy, input.reprojection_worldYz.xy / input.reprojection_worldYz.z, float2(0, 0), input.scale_worldX.x,
+            input.slice_shift, adas);
+        float4 diff = tex2DLodBindless(get_impostor_albedo_smoothness(), float4(texcoord_depth.xy, 0, texcoord_depth.w));
+        float alpha = adas.z;
+
+        BRANCH
+        if (texcoord_depth.x < 0 || alpha < alpha_threshold)
+          discard;
+
+        float znf = zn_zfar.y - zn_zfar.x;
+        float znfinv = rcp( znf );
+
+        float depth = texcoord_depth.z + 7./256.f * impostor_bounding_sphere.w * input.scale_worldX.x;
+        ##if (hardware.fsh_5_0)
+          depth += input.scale_worldX.x * impostor_bounding_sphere.w;
+        ##endif
+        depth_out = screenpos.z + depth / (zn_zfar.y - zn_zfar.x);
+      }
+
+    ##elif rendinst_render_pass == rendinst_render_pass_normal
+
+      ##if impostor_per_pixel_depth == impostor_per_pixel_depth_on
+        GBUFFER_OUTPUT impostor_ps(VsOutput input, out float depth_out : COLOR_DEPTH_OUT HW_USE_SCREEN_POS)
+      ##else
+        GBUFFER_OUTPUT impostor_ps(VsOutput input HW_USE_SCREEN_POS)
+      ##endif
+      {
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        UnpackedGbuffer result;
+        init_gbuffer(result);
+
+        ##if impostor_view_mode == impostor_single_view || rendinst_render_pass == rendinst_render_pass_to_shadow
+          float z = 1.0 / input.reprojection_worldYz.z;
+          float4 adas;
+          ##if impostor_parallax_mode == impostor_no_parallax || rendinst_render_pass == rendinst_render_pass_to_shadow
+            float4 texcoord_depth = get_texcoord_depth(
+                input.texcoord_worldYxy.xy, input.reprojection_worldYz.xy * z, float2(0, 0), input.scale_worldX.x,
+                input.slice_shift, adas);
+          ##else
+            float4 texcoord_depth = get_texcoord_depth(
+                input.texcoord_worldYxy.xy, input.reprojection_worldYz.xy * z, input.localViewDir * z, input.scale_worldX.x,
+                input.slice_shift, adas);
+          ##endif
+          clip(texcoord_depth.x);
+          float alpha = adas.z;
+          BRANCH
+          if (input.colorMul_opacity.w < 0.99f)
+            alpha *= 1 - saturate(fast_noise_rad(texcoord_depth.xy) + 1.5 - input.colorMul_opacity.w*2);
+          clip(alpha-alpha_threshold);
+
+          float4 diff = tex2DLodBindless(get_impostor_albedo_smoothness(), float4(texcoord_depth.xy, 0, texcoord_depth.w));
+          float4 norm = tex2DLodBindless(get_impostor_normal_translucency(), float4(texcoord_depth.xy, 0, texcoord_depth.w));
+          ##if impostor_per_pixel_depth == impostor_per_pixel_depth_off
+            float preshadow = tex3D(impostor_shadow_atlas, float3(texcoord_depth.xy, input.paletteId)).r;
+          ##endif
+          float ao = adas.x;
+          float smoothness = diff.w;
+          float translucency = norm.w;
+          float3 normal = norm.xyz*2 - 1;
+
+          float depth = texcoord_depth.z;
+
+          float3 worldLocalY = float3(input.texcoord_worldYxy.zw, input.reprojection_worldYz.w);
+        ##else
+          float3 z = 1.0 / float3(input.reprojection_1.z, input.reprojection_2.z, input.reprojection_3.z);
+          float4 adas1;
+          float4 adas2;
+          float4 adas3;
+          ##if impostor_parallax_mode == impostor_no_parallax
+            float4 texcoord_depth_1 = get_texcoord_depth(
+                input.texcoord_w1_worldYx.xy, input.reprojection_1.xy * z.x, float2(0, 0), input.scale_worldX.x,
+                input.slice_shift, adas1);
+            float4 texcoord_depth_2 = get_texcoord_depth(
+                input.texcoord_w2_worldYy.xy, input.reprojection_2.xy * z.y, float2(0, 0), input.scale_worldX.x,
+                input.slice_shift1, adas2);
+            float4 texcoord_depth_3 = get_texcoord_depth(
+                input.texcoord_w3_worldYz.xy, input.reprojection_3.xy * z.z, float2(0, 0), input.scale_worldX.x,
+                input.slice_shift2, adas3);
+          ##else
+            float4 texcoord_depth_1 = get_texcoord_depth(
+                input.texcoord_w1_worldYx.xy, input.reprojection_1.xy * z.x, input.localViewDir_1_2.xy * z.x, input.scale_worldX.x,
+                input.slice_shift, adas1);
+            float4 texcoord_depth_2 = get_texcoord_depth(
+                input.texcoord_w2_worldYy.xy, input.reprojection_2.xy * z.y, input.localViewDir_1_2.zw * z.y, input.scale_worldX.x,
+                input.slice_shift1, adas2);
+            float4 texcoord_depth_3 = get_texcoord_depth(
+                input.texcoord_w3_worldYz.xy, input.reprojection_3.xy * z.z, input.localViewDir_3 * z.z, input.scale_worldX.x,
+                input.slice_shift2, adas3);
+          ##endif
+
+          BRANCH
+          if (texcoord_depth_1.x < 0 && texcoord_depth_2.x < 0 && texcoord_depth_3.x < 0)
+            discard;
+          float3 alpha_123 = float3(adas1.z, adas2.z, adas3.z);
+          BRANCH
+          if (input.colorMul_opacity.w < 0.99f)
+            alpha_123 *= 1 - saturate(fast_noise_rad(texcoord_depth_1.xy) + 1.5 - input.colorMul_opacity.w*2);
+          BRANCH
+          if (all(alpha_123 < alpha_threshold))
+            discard;
+
+          float4 as_1 = texcoord_depth_1.x < 0 ? 0 : tex2DLodBindless(get_impostor_albedo_smoothness(), float4(texcoord_depth_1.xy, 0, texcoord_depth_1.w));
+          float4 as_2 = texcoord_depth_2.x < 0 ? 0 : tex2DLodBindless(get_impostor_albedo_smoothness(), float4(texcoord_depth_2.xy, 0, texcoord_depth_2.w));
+          float4 as_3 = texcoord_depth_3.x < 0 ? 0 : tex2DLodBindless(get_impostor_albedo_smoothness(), float4(texcoord_depth_3.xy, 0, texcoord_depth_3.w));
+
+          float4 norm_1 = tex2DLodBindless(get_impostor_normal_translucency(), float4(texcoord_depth_1.xy, 0, texcoord_depth_1.w));
+          float4 norm_2 = tex2DLodBindless(get_impostor_normal_translucency(), float4(texcoord_depth_2.xy, 0, texcoord_depth_2.w));
+          float4 norm_3 = tex2DLodBindless(get_impostor_normal_translucency(), float4(texcoord_depth_3.xy, 0, texcoord_depth_3.w));
+
+          float ao_1 = tex2DLodBindless(get_impostor_ao_depth_alpha_slice(), float4(texcoord_depth_1.xy, 0, texcoord_depth_1.w)).x;
+          float ao_2 = tex2DLodBindless(get_impostor_ao_depth_alpha_slice(), float4(texcoord_depth_2.xy, 0, texcoord_depth_2.w)).x;
+          float ao_3 = tex2DLodBindless(get_impostor_ao_depth_alpha_slice(), float4(texcoord_depth_3.xy, 0, texcoord_depth_3.w)).x;
+
+          ##if impostor_per_pixel_depth == impostor_per_pixel_depth_off
+            float preshadow1 = tex3D(impostor_shadow_atlas, float3(texcoord_depth_1.xy, input.paletteId)).r;
+            float preshadow2 = tex3D(impostor_shadow_atlas, float3(texcoord_depth_2.xy, input.paletteId)).r;
+            float preshadow3 = tex3D(impostor_shadow_atlas, float3(texcoord_depth_3.xy, input.paletteId)).r;
+          ##endif
+
+
+          float3 weights = alpha_123 * float3(input.texcoord_w1_worldYx.z, input.texcoord_w2_worldYy.z, input.texcoord_w3_worldYz.z);
+          clip((weights.x + weights.y + weights.z)-0.4);
+          float3 foliageMask = float3(norm_1.w, norm_2.w, norm_3.w) >= 0.5;
+          float foliage = dot(weights, foliageMask);
+          float foliageLimit = 0.1;
+          weights *= foliage * (1.0 + 1.0/foliageLimit) > weights.x + weights.y + weights.z
+            ? foliageMask
+            : 1-foliageMask;
+
+          float weightSum = weights.x + weights.y + weights.z;
+          float invWeightSum = rcp(weightSum);
+
+          float4 as = (weights.x * as_1 + weights.y * as_2 + weights.z * as_3) * invWeightSum;
+          float4 diff = as;
+          float4 norm = (norm_1 * weights.x + norm_2 * weights.y + norm_3 * weights.z) * invWeightSum;
+
+          ##if impostor_per_pixel_depth == impostor_per_pixel_depth_off
+            float preshadow = dot(weights, float3(preshadow1, preshadow2, preshadow3)) * invWeightSum;
+          ##endif
+
+          float translucency = norm.w;
+          float3 normal = normalize(norm.xyz*2 - 1);
+
+
+          float ao = (weights.x * ao_1 + weights.y * ao_2 + weights.z * ao_3) * invWeightSum;
+          float smoothness = as.x;
+
+          float depth = dot(weights, float3(texcoord_depth_1.z, texcoord_depth_2.z, texcoord_depth_3.z)) * invWeightSum;
+
+          float3 worldLocalY = float3(
+            input.texcoord_w1_worldYx.w,
+            input.texcoord_w2_worldYy.w,
+            input.texcoord_w3_worldYz.w
+          );
+        ##endif
+
+        float3 worldLocalX = input.scale_worldX.yzw;
+        float3 worldLocalZ = cross(worldLocalX, worldLocalY);
+
+        normal = mul(normal, float3x3(worldLocalX, worldLocalY, worldLocalZ));
+
+
+        ##if impostor_per_pixel_depth == impostor_per_pixel_depth_on
+          depth += input.scale_worldX.x*impostor_bounding_sphere.w;
+          depth_out = inv_linearizeZ(linearize_z(screenpos.z, zn_zfar.zw) + depth, zn_zfar);
+        ##else
+          init_shadow(result, preshadow);
+        ##endif
+
+        float decodedTranslucency = translucency >= 0.5
+          ? (translucency-0.5)*2
+          : translucency/0.49;
+
+        diff.rgb = pow4(decodedTranslucency) < 0.01 ? diff.rgb : input.colorMul_opacity.rgb*diff.rgb;
+
+        init_albedo(result, diff.rgb);
+        init_translucency(result, decodedTranslucency);
+        init_smoothness(result, 1 - smoothness);
+        init_normal(result, normal);
+        init_metalness(result, 0);
+        init_ao(result, ao);
+        init_material(result, translucency > 0.5 ? SHADING_FOLIAGE : SHADING_NORMAL);
+
+        return encode_gbuffer(result, screenpos.xyz);
+      }
+    ##endif
+  }
+  compile("target_vs", "impostor_vs");
+  if (rendinst_render_pass == rendinst_render_pass_to_shadow)
+  {
+    compile("target_ps", "impostor_ps_shadow");
+  }
+  else if (rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    compile("target_ps", "impostor_ps");
+  }
+}

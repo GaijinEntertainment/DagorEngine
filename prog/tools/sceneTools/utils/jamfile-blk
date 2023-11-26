@@ -10,7 +10,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 
 OutDir = $(Root)/tools/dagor3_cdk/util ;
 if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) = linux64 { OutDir = $(OutDir)-linux64 ; }
+if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
 
 MultiTarget =
   tools/sceneTools/blk2robin
@@ -41,6 +41,7 @@ UseProgLibs =
   tools/libTools/util
 ;
 if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
+if $(Platform) = macosx { UseProgLibs += engine/perfMon/daProfilerStub ; }
 
 if $(UseSystemOpenSSL) != yes {
   AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;

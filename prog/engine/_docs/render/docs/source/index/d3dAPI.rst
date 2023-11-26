@@ -12,3 +12,4 @@ D3D API is our unified API which hides GAPI calls for different platforms.
    d3dAPI/other
    d3dAPI/constants
    d3dAPI/textures
+   d3dAPI/helperClasses

@@ -1108,7 +1108,7 @@ public:
 
     clipmap = new Clipmap(NULL, clipBlk->getBool("useUAVFeedback", false));
     clipmap->init(texel_sz, Clipmap::CPU_HW_FEEDBACK, clipBlk->getInt("texMips", 6));
-    clipmap->initVirtualTexture(clipBlk->getInt("cacheWidth", 4096), clipBlk->getInt("cacheHeight", 8192));
+    clipmap->initVirtualTexture(clipBlk->getInt("cacheWidth", 4096), clipBlk->getInt("cacheHeight", 8192), float(2 * 1920 * 1080));
     if (useToroidalHeightmap)
     {
       toroidalHeightmap = new ToroidalHeightmap;
@@ -2027,7 +2027,7 @@ public:
 
     int w, h;
     d3d::get_target_size(w, h);
-    clipmap->setTargetSize(w, h);
+    clipmap->setTargetSize(w, h, 0.f);
     clipmap->prepareRender(landmeshCMRenderer);
     clipmap->prepareFeedback(landmeshCMRenderer, ::grs_cur_view.pos, ::grs_cur_view.itm, gtm, ht_rel + ht_rel, 0.f);
 

@@ -1,8 +1,8 @@
-  file:t = "postfx.sh"
-  file:t = "downsampleDepth.sh"
-  file:t = "ssao.sh"
-  file:t = "light_probe.sh"
-  file:t = "debugGbuffer.sh"
-  file:t = "showGbuffer.sh"
-  file:t = "gui_default.sh"//for editor (and for future in game console)
-  file:t = "envi_sphere.sh"
+  file:t = "postfx.dshl"
+  file:t = "downsampleDepth.dshl"
+  file:t = "ssao.dshl"
+  file:t = "light_probe.dshl"
+  file:t = "debugGbuffer.dshl"
+  file:t = "showGbuffer.dshl"
+  file:t = "gui_default.dshl"//for editor (and for future in game console)
+  file:t = "envi_sphere.dshl"

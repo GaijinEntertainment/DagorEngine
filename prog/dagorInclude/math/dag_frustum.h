@@ -6,7 +6,6 @@
 #pragma once
 
 #include <vecmath/dag_vecMathDecl.h>
-#include <math/dag_mathBase.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_bounds3.h>
 #include <vecmath/dag_vecMath.h>

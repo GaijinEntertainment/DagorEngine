@@ -494,8 +494,6 @@ void rendinst::add_ri_pool_to_tiled_scenes(rendinst::RiExtraPool &pool, int pool
 
   if (!(pool.hideMask & 2)) // mask&2 - completely invisible, never rendered
   {
-    if (pool.hasImpostor()) // todo: or we know it is dynamic object, like door/window
-      pool.tsIndex = DYNAMIC_SCENE;
     if (isDynamic)
       pool.tsIndex = DYNAMIC_SCENE;
 
@@ -905,6 +903,7 @@ void rendinst::render::update_per_draw_gathered_data(uint32_t id)
   rendinst::render::RiShaderConstBuffers perDrawGatheredData;
   perDrawGatheredData.setBBoxNoChange();
   perDrawGatheredData.setOpacity(0, 1);
+  perDrawGatheredData.setCrossDissolveRange(0);
   perDrawGatheredData.setRandomColors(rendinst::riExtra[id].poolColors);
   perDrawGatheredData.setInstancing(0, 4, 0);
   perDrawGatheredData.setBoundingSphere(0, 0, rendinst::riExtra[id].sphereRadius, rendinst::riExtra[id].sphereRadius,

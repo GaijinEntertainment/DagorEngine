@@ -213,7 +213,7 @@ struct FrontendState
           auto tex = cast_to_texture_base(rts.getColor(i).tex);
           if (tex)
           {
-            tex->setRTVBinding(i, in_use);
+            tex->setRtvBinding(i, in_use);
           }
         }
       }
@@ -225,7 +225,7 @@ struct FrontendState
       {
         tex = ctx.getSwapchainDepthStencilTextureAnySize();
       }
-      tex->setDSVBinding(in_use);
+      tex->setDsvBinding(in_use);
     }
   }
 
@@ -501,8 +501,8 @@ struct FrontendState
         const Driver3dRenderTarget::RTState rtState = renderTargets.getColor(i);
         if (rtState.tex)
         {
-          cast_to_texture_base(rtState.tex)->dirtyBoundUAVsNoLock();
-          cast_to_texture_base(rtState.tex)->dirtyBoundSRVsNoLock();
+          cast_to_texture_base(rtState.tex)->dirtyBoundUavsNoLock();
+          cast_to_texture_base(rtState.tex)->dirtyBoundSrvsNoLock();
         }
       }
     }
@@ -517,14 +517,14 @@ struct FrontendState
       auto ot = cast_to_texture_base(renderTargets.getColor(index).tex);
       if (ot)
       {
-        ot->setRTVBinding(index, false);
+        ot->setRtvBinding(index, false);
       }
     }
     if (texture)
     {
-      texture->setRTVBinding(index, true);
-      texture->dirtyBoundSRVsNoLock();
-      texture->dirtyBoundUAVsNoLock();
+      texture->setRtvBinding(index, true);
+      texture->dirtyBoundSrvsNoLock();
+      texture->dirtyBoundUavsNoLock();
     }
     if (toggleBits.test(ToggleState::MRT_CLEAR))
     {
@@ -545,7 +545,7 @@ struct FrontendState
       auto ot = cast_to_texture_base(renderTargets.getColor(index).tex);
       if (ot)
       {
-        ot->setRTVBinding(index, false);
+        ot->setRtvBinding(index, false);
       }
     }
     renderTargets.removeColor(index);
@@ -563,7 +563,7 @@ struct FrontendState
           auto tex = cast_to_texture_base(renderTargets.getColor(i).tex);
           if (tex)
           {
-            tex->setRTVBinding(i, false);
+            tex->setRtvBinding(i, false);
           }
         }
       }
@@ -581,9 +581,9 @@ struct FrontendState
       {
         ot = ctx.getSwapchainDepthStencilTextureAnySize();
       }
-      ot->setDSVBinding(false);
+      ot->setDsvBinding(false);
     }
-    texture->setDSVBinding(true);
+    texture->setDsvBinding(true);
     renderTargets.setDepth(texture, face_index, read_only);
   }
   void removeDepthStencilTarget(DeviceContext &ctx)
@@ -597,7 +597,7 @@ struct FrontendState
       {
         ot = ctx.getSwapchainDepthStencilTextureAnySize();
       }
-      ot->setDSVBinding(false);
+      ot->setDsvBinding(false);
     }
     renderTargets.removeDepth();
   }
@@ -610,7 +610,7 @@ struct FrontendState
       auto ot = cast_to_texture_base(renderTargets.getDepth().tex);
       if (ot)
       {
-        ot->setDSVBinding(false);
+        ot->setDsvBinding(false);
       }
     }
     renderTargets.setBackbufDepth();
@@ -618,7 +618,7 @@ struct FrontendState
     auto swDST = ctx.getSwapchainDepthStencilTextureAnySize();
     if (swDST)
     {
-      swDST->setDSVBinding(true);
+      swDST->setDsvBinding(true);
     }
   }
 
@@ -670,7 +670,7 @@ struct FrontendState
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     if (target.tRegisterTextures[index])
     {
-      target.tRegisterTextures[index]->setSRVBinding(stage, index, false);
+      target.tRegisterTextures[index]->setSrvBinding(stage, index, false);
       target.tRegisterTextures[index] = nullptr;
     }
     target.markDirtyT(index, target.tRegisterBuffers[index] != buffer);
@@ -690,7 +690,7 @@ struct FrontendState
       OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
       if (target.uRegisterTextures[index])
       {
-        target.uRegisterTextures[index]->setUAVBinding(stage, index, false);
+        target.uRegisterTextures[index]->setUavBinding(stage, index, false);
         target.uRegisterTextures[index] = nullptr;
       }
       target.markDirtyU(index, target.uRegisterBuffers[index] != buffer);
@@ -717,18 +717,18 @@ struct FrontendState
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     if (texture)
     {
-      texture->dirtyBoundUAVsNoLock();
-      texture->dirtyBoundRTVsNoLock();
+      texture->dirtyBoundUavsNoLock();
+      texture->dirtyBoundRtvsNoLock();
     }
     target.markDirtyT(index, target.tRegisterTextures[index] != texture);
     target.markDirtyS(index, target.tRegisterTextures[index] != texture);
     if (target.tRegisterTextures[index])
     {
-      target.tRegisterTextures[index]->setSRVBinding(stage, index, false);
+      target.tRegisterTextures[index]->setSrvBinding(stage, index, false);
     }
     if (texture)
     {
-      texture->setSRVBinding(stage, index, true);
+      texture->setSrvBinding(stage, index, true);
     }
     target.tRegisterTextures[index] = texture;
     target.tRegisterBuffers[index] = nullptr;
@@ -756,17 +756,17 @@ struct FrontendState
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     if (texture)
     {
-      texture->dirtyBoundSRVsNoLock();
-      texture->dirtyBoundRTVsNoLock();
+      texture->dirtyBoundSrvsNoLock();
+      texture->dirtyBoundRtvsNoLock();
     }
     target.markDirtyU(index, target.uRegisterTextures[index] != texture || target.uRegisterTextureViews[index] != view);
     if (target.uRegisterTextures[index])
     {
-      target.uRegisterTextures[index]->setUAVBinding(stage, index, false);
+      target.uRegisterTextures[index]->setUavBinding(stage, index, false);
     }
     if (texture)
     {
-      texture->setUAVBinding(stage, index, true);
+      texture->setUavBinding(stage, index, true);
     }
     target.uRegisterTextures[index] = texture;
     target.uRegisterTextureViews[index] = view;
@@ -1213,63 +1213,66 @@ struct FrontendState
     }
 
 #if !_TARGET_XBOXONE
-    if (dirtyState.test(DirtyState::VARIABLE_RATE_SHADING) && (device.getVariableShadingRateTier() > 0))
+    if (auto shadingTier = device.getVariableShadingRateTier())
     {
-      ctx.setVariableRateShading(constantShadingRate, vertexShadingRateCombiner, pixelShadingRateCombiner);
-      // a few warnings about wrong configurations
-      if (shadingRateTexture)
+      if (dirtyState.test(DirtyState::VARIABLE_RATE_SHADING))
       {
-        if (D3D12_SHADING_RATE_COMBINER_PASSTHROUGH == pixelShadingRateCombiner)
+        ctx.setVariableRateShading(constantShadingRate, vertexShadingRateCombiner, pixelShadingRateCombiner);
+        // a few warnings about wrong configurations
+        if (shadingRateTexture)
         {
-          // sort of valid usage, but when no rate texture is needed it should be set to null
-          logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to PASSTHROUGH, but a sampling "
-                  "rate texture is set, with this combiner the texture is not used");
+          if (DAGOR_UNLIKELY(D3D12_SHADING_RATE_COMBINER_PASSTHROUGH == pixelShadingRateCombiner))
+          {
+            // sort of valid usage, but when no rate texture is needed it should be set to null
+            logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to PASSTHROUGH, but a sampling "
+                    "rate texture is set, with this combiner the texture is not used");
+          }
+        }
+        else if (shadingTier == 1)
+        {
+          // on T1 combiners have no effect
+          if (DAGOR_UNLIKELY(D3D12_SHADING_RATE_COMBINER_PASSTHROUGH != pixelShadingRateCombiner))
+          {
+            logwarn("DX12: VRS: Device is VRS Tier 1 and Pixel Shading Rate Combiner is not "
+                    "PASSTHROUGH, which is invalid and will be ignored");
+          }
+          if (DAGOR_UNLIKELY(D3D12_SHADING_RATE_COMBINER_PASSTHROUGH != vertexShadingRateCombiner))
+          {
+            logwarn("DX12: VRS: Device is VRS Tier 1 and Vertex Shading Rate Combiner is not "
+                    "PASSTHROUGH, which is invalid and will be ignored");
+          }
+        }
+        else
+        {
+          if (DAGOR_UNLIKELY(D3D12_SHADING_RATE_COMBINER_OVERRIDE == pixelShadingRateCombiner))
+          {
+            // this is turning VRS off in a wired way
+            logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to OVERRIDE, but no sampling rate "
+                    "texture is set, it will override to 1x1");
+          }
+          if (DAGOR_UNLIKELY(D3D12_SHADING_RATE_COMBINER_MIN == pixelShadingRateCombiner))
+          {
+            // this is turning VRS off in a wired way
+            logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to MIN, but no sampling rate "
+                    "texture is set, this will min to 1x1");
+          }
+          if (DAGOR_UNLIKELY(D3D12_SHADING_RATE_COMBINER_MAX == pixelShadingRateCombiner))
+          {
+            logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to MAX, but no sampling rate "
+                    "texture is set, consider using PASSTHROUGH instead");
+          }
+          if (DAGOR_UNLIKELY(D3D12_SHADING_RATE_COMBINER_SUM == pixelShadingRateCombiner))
+          {
+            logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to SUM, but no sampling rate "
+                    "texture is set, this is effectively adding one to the sampling rate of the "
+                    "previous stage");
+          }
         }
       }
-      else if (device.getVariableShadingRateTier() == 1)
+      if (dirtyState.test(DirtyState::VARIABLE_RATE_SHADING_TEXTURE) && shadingTier > 1)
       {
-        // on T1 combiners have no effect
-        if (D3D12_SHADING_RATE_COMBINER_PASSTHROUGH != pixelShadingRateCombiner)
-        {
-          logwarn("DX12: VRS: Device is VRS Tier 1 and Pixel Shading Rate Combiner is not "
-                  "PASSTHROUGH, which is invalid and will be ignored");
-        }
-        if (D3D12_SHADING_RATE_COMBINER_PASSTHROUGH != vertexShadingRateCombiner)
-        {
-          logwarn("DX12: VRS: Device is VRS Tier 1 and Vertex Shading Rate Combiner is not "
-                  "PASSTHROUGH, which is invalid and will be ignored");
-        }
+        ctx.setVariableRateShadingTexture(shadingRateTexture ? cast_to_texture_base(shadingRateTexture)->getDeviceImage() : nullptr);
       }
-      else
-      {
-        if (D3D12_SHADING_RATE_COMBINER_OVERRIDE == pixelShadingRateCombiner)
-        {
-          // this is turning VRS off in a wired way
-          logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to OVERRIDE, but no sampling rate "
-                  "texture is set, it will override to 1x1");
-        }
-        if (D3D12_SHADING_RATE_COMBINER_MIN == pixelShadingRateCombiner)
-        {
-          // this is turning VRS off in a wired way
-          logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to MIN, but no sampling rate "
-                  "texture is set, this will min to 1x1");
-        }
-        if (D3D12_SHADING_RATE_COMBINER_MAX == pixelShadingRateCombiner)
-        {
-          logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to MAX, but no sampling rate "
-                  "texture is set, consider using PASSTHROUGH instead");
-        }
-        if (D3D12_SHADING_RATE_COMBINER_SUM == pixelShadingRateCombiner)
-        {
-          logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to SUM, but no sampling rate "
-                  "texture is set, this is effectively adding one to the sampling rate of the "
-                  "previous stage");
-        }
-      }
-    }
-    if (dirtyState.test(DirtyState::VARIABLE_RATE_SHADING_TEXTURE) && (device.getVariableShadingRateTier() > 1))
-    {
-      ctx.setVariableRateShadingTexture(shadingRateTexture ? cast_to_texture_base(shadingRateTexture)->getDeviceImage() : nullptr);
     }
 #endif
 
@@ -1323,7 +1326,7 @@ struct FrontendState
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     if (target.tRegisterTextures[index])
     {
-      target.tRegisterTextures[index]->setSRVBinding(stage, index, false);
+      target.tRegisterTextures[index]->setSrvBinding(stage, index, false);
       target.tRegisterTextures[index] = nullptr;
     }
     target.markDirtyT(index, target.tRegisterRaytraceAccelerataionStructures[index] != as);
@@ -1579,19 +1582,6 @@ struct FrontendState
     graphicsDynamicState = state.dynamicState;
     graphicsStaticState = state.staticRenderStateID;
   };
-
-  void replaceTexture(DeviceContext &ctx, const TextureReplacer &replacer)
-  {
-    eastl::pair<Image *, HostDeviceSharedMemoryRegion> result;
-    {
-      OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
-      result = replacer.update();
-    }
-    if (result.first)
-      ctx.destroyImage(result.first);
-    if (result.second)
-      ctx.freeMemory(result.second);
-  }
 
 #if !_TARGET_XBOXONE
   void setVariableShadingRate(D3D12_SHADING_RATE constant_rate, D3D12_SHADING_RATE_COMBINER vertex_combiner,

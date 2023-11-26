@@ -135,7 +135,7 @@ void ConstantBuffers::create()
   desc.StructureByteStride = 0;
 
   {
-    G_STATIC_ASSERT(MAX_PS_CONSTS <= MIN_PS_CONSTS + PS_CONSTS_STEP * PS_BINS);
+    G_STATIC_ASSERT(MAX_PS_CONSTS <= MIN_PS_CONSTS + PS_CONSTS_STEP * (PS_BINS - 1));
     for (int i = 0; i < PS_BINS; ++i)
     {
       desc.ByteWidth = (MIN_PS_CONSTS + PS_CONSTS_STEP * i) * sizeof(vec4f);

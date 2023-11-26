@@ -18,7 +18,7 @@ namespace drv3d_dx12
 class Device;
 class DeviceContext;
 
-struct BaseTex;
+class BaseTex;
 class Image;
 class ShaderResourceViewDescriptorHeapManager;
 class SamplerDescriptorHeapManager;

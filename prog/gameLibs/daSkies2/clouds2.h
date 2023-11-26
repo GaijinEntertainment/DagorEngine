@@ -850,21 +850,10 @@ struct CloudsRenderer
     taaUseCompute &= use_compute.get();
 #endif
 
-    struct MyScopeRenderTarget
-    {
-      Driver3dRenderTarget prevRT;
-      bool should;
-      MyScopeRenderTarget(bool should_) : should(should_)
-      {
-        if (should)
-          d3d_get_render_target(prevRT);
-      }
-      ~MyScopeRenderTarget()
-      {
-        if (should)
-          d3d_set_render_target(prevRT);
-      }
-    } scoped(!useCompute || !taaUseCompute);
+    eastl::optional<ScopeRenderTarget> rtScope;
+    if (!useCompute || !taaUseCompute)
+      rtScope.emplace();
+
     renderTiledDist(data);
     int depthLevels = 1;
     int level = getNotLesserDepthLevel(data, depthLevels, depth.getTex2D());
@@ -1856,6 +1845,7 @@ struct Clouds2
     light.init();
     cloudsForm.init();
     calcCloudsAlt();
+    useHole = use_hole;
     if (use_hole)
       initHole();
 
@@ -2100,6 +2090,9 @@ struct Clouds2
   void setUseHole(bool set) { useHole = set; }
   void resetHole(const Point3 &hole_target, const float &hole_density)
   {
+    if (!useHole)
+      return;
+
     holeTarget = hole_target;
     holeDensity = hole_density;
     holeFound = false;

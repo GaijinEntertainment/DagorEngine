@@ -1,0 +1,290 @@
+include "water_heightmap.dshl"
+
+texture shore_distance_field_tex;
+int distance_field_texture_size = 1024;
+texture foam_tex;
+
+int shore_waves_on = 0;
+interval shore_waves_on: off<1, on;
+
+float4 world_to_heightmap = (1/32,1/32,0.5,0.5);
+float4 water_heightmap_min_max = (0, 0, 0, 0);
+float4 shore_damp = (2, 5, 0, 0);
+
+float foam_time = 0;
+float max_wave_height = 1;
+float wind_dir_x = 0.6;
+float wind_dir_y = 0.8;
+float wind_speed = 1.0;
+
+float shore_wave_height_to_amplitude = 0.25;
+float shore_amplitude_to_length = 30;        // Physically correct is 14, was 25.
+float shore_parallelism_to_wind = 0.1;       // Was 0.2, to much of parallelism.
+float shore_width_k = 3;
+float4 shore_waves_dist = (600, 1000, 0, 50);
+float shore_gerstner_speed = 1.0;
+float shore_depth_scale = 1;
+
+// for compatibility with old code
+macro USE_SHORE_DISPLACEMENT_VS()
+endmacro
+
+macro INIT_SHORE(stage)
+
+INIT_WATER_HEIGHTMAP(stage)
+(stage) {
+  shore_damp@f4 = (1.0 / (shore_damp.y - shore_damp.x), -shore_damp.x / (shore_damp.y - shore_damp.x), 0.5 * distance_field_texture_size, 2 / distance_field_texture_size);
+  shore_gspeed__depth_scale@f4 = (shore_gerstner_speed, shore_depth_scale, shore_waves_on, 1.0 / world_to_heightmap.x);
+
+  ftime_cscale_hmap@f4 = (foam_time, 0, water_heightmap_min_max.z, water_heightmap_min_max.w);
+  shore_distance_field_tex@smp2d = shore_distance_field_tex;
+  world_to_heightmap@f4 = world_to_heightmap;
+  water_level_max_wave_height@f2 = (water_level, max_wave_height, 0, 0);
+  wind_dir_speed@f3 = (wind_dir_x, wind_dir_y, wind_speed, 0);
+
+  shore_params@f4 = (shore_wave_height_to_amplitude, shore_amplitude_to_length, shore_parallelism_to_wind, shore_width_k);
+  shore_waves_dist@f4 = (
+    1.0 / (shore_waves_dist.y - shore_waves_dist.x), -shore_waves_dist.x / (shore_waves_dist.y - shore_waves_dist.x),
+    1.0 / (shore_waves_dist.w - shore_waves_dist.z), -shore_waves_dist.z / (shore_waves_dist.w - shore_waves_dist.z));
+}
+
+endmacro
+
+macro DECLARE_SHORE_DATA(stage)
+hlsl(stage) {
+  struct ShoreData
+  {
+    float3 shoreWavesDisplacement;
+    float oceanWavesMultiplier;
+    float oceanDetailsMultiplier;
+    float3 gerstner_normal;
+    float gerstnerFoamFactor;
+    float riverMultiplier;
+    float landHeight;
+  };
+}
+endmacro
+
+macro USE_SHORE(stage, bicubic, surf)
+
+DECLARE_SHORE_DATA(stage)
+USE_SAMPLE_BICUBIC()
+hlsl(stage) {
+  #define water_heightmap_pages_samplerstate shore_distance_field_tex_samplerstate
+  #define shore_waves_on (shore_gspeed__depth_scale.z == 1)
+  #define world_heightmap_size shore_gspeed__depth_scale.w
+
+  // to compensate a possible difference in the level of detalization
+  // when the texel size increases we make more rare and bigger waves otherwise
+  // the pattern and tilable small waves would became visible
+  #define dist_field_shore_scale (world_heightmap_size * 0.00006103515625)  //1/16384
+}
+USE_WATER_HEIGHTMAP(stage)
+
+hlsl(stage) {
+#if bicubic && surf
+  #define SAMPLE_SHORES(in_uv, res) \
+  { \
+    BRANCH \
+    if (shore_waves_on) \
+      SAMPLE_BICUBIC_LOD0(shore_distance_field_tex, float4(shore_damp.zzww), in_uv, res) \
+    else \
+      res = tex2Dlod(shore_distance_field_tex, float4(in_uv, 0, 0)); \
+  }
+#else
+  #define SAMPLE_SHORES(in_uv, res) { res = tex2Dlod(shore_distance_field_tex, float4(in_uv, 0, 0)); }
+#endif
+}
+
+hlsl(stage) {
+
+#define TWOPI (2*PI)
+#define kGerstnerSteepness (3.5 * dist_field_shore_scale)
+#define kSDFRadiusInPixels 64.0 // taken from SDF generation code
+#define kSDFTextureSize  1024.0 // taken from SDF generation code
+
+#if surf
+float2 decode_sdf(float4 sdf, out float riverFactor, out float oceanShadowFactor)
+{
+  sdf.yz = (128./127) - (255./127.)*sdf.yz;
+
+  float waterWindEffect = length(sdf.yz);
+  sdf.yz = sdf.yz*rcp(waterWindEffect+0.00001);
+  riverFactor = 1-saturate(sdf.w*3-2);
+  oceanShadowFactor = saturate(waterWindEffect+1.0/127);
+  return sdf.yz;
+}
+
+#if IS_DEFERRED_PASS
+void GetShoreSurfaceAttributes(float wave_height, float time, float sdf_size, float2 decode_hmap, float2 windDirection,
+                               float3 worldspaceXY, out float3 offsetOut, out float3 normalOut, out float breakerOut, out float foamTrailOut,
+                               out float shoreWavesMultiplierOut, out float oceanWavesMultiplierOut, out float riversMultiplierOut, float4 sdfIn, out float shore_wetness, float3 geomNormal, float water_level)
+#else
+void GetShoreSurfaceAttributes(float wave_height, float time, float sdf_size, float2 decode_hmap, float2 windDirection,
+                               float3 worldspaceXY, out float3 offsetOut, out float3 normalOut, out float breakerOut, out float foamTrailOut,
+                               out float shoreWavesMultiplierOut, out float oceanWavesMultiplierOut, out float riversMultiplierOut, float4 sdfIn)
+#endif
+{
+  float g_BaseGerstnerAmplitude = shore_params.x * wave_height;
+  float g_BaseGerstnerWavelength = shore_params.y * g_BaseGerstnerAmplitude * dist_field_shore_scale;// gerstner wave is breaking when it is 7X of wave height (2 amplitudes)
+  float g_BaseGerstnerParallelness = shore_params.z;
+  float g_BaseGerstnerSpeed = sqrt(9.81f*g_BaseGerstnerWavelength*(1/TWOPI)) * shore_gspeed__depth_scale.x;
+  float kBackWaveSpeed = 1.5;     // water/foam roll back on the terrain with this speed, meters/sec
+
+  // getting SDF texture 
+  float4 sdf = sdfIn;
+  float riverFactor, oceanShadowFactor;
+  sdf.yz = decode_sdf(sdfIn, riverFactor, oceanShadowFactor);
+
+  // initializing the outputs so we can exit early
+  oceanWavesMultiplierOut = 0.3 + 0.7*riverFactor;
+  oceanWavesMultiplierOut *= 0.5 + 0.5*oceanShadowFactor;
+  float inLandMul = pow4(saturate(4-6*sdf.w));
+  //oceanWavesMultiplierOut *= inLandMul;
+
+  normalOut = float3 (0.0,1.0,0.0);
+  offsetOut = float3 (0.0,0.0,0.0);
+  breakerOut = 0;
+  foamTrailOut = 0;
+  riversMultiplierOut = riverFactor;
+  //float terrain_dy = 0.75*(landHeight - landHeight2); // "0.5*" because of low SDF fidelity
+
+  // initializing variables common to all Gerstner waves
+  float phaseShift = time;
+  float sdfInMeters = -sdf_size*sdf.w;
+  float sdfPhase = sdfInMeters; // need meters
+  float shoreDist = sdf_size * 2 * (0.5 - sdf.w);
+  float distanceMultiplier = inLandMul
+    * (1.0 - saturate(shoreDist * shore_waves_dist.x + shore_waves_dist.y))
+    * (1.0 - saturate(-shoreDist * shore_waves_dist.z + shore_waves_dist.w))
+    * saturate(sdf.w*shore_params.w); // Shore waves linearly fade in 50 meters or in edges of sdf
+  float depth = sdf.r*decode_hmap.x + decode_hmap.y;
+  depth *= shore_gspeed__depth_scale.y;
+  float depthMultiplier = saturate((g_BaseGerstnerWavelength*0.25 + depth)*0.5); // Shore waves fade in when depth is less than quarter the wave length, we use 0.5 as this parameter also allows shore waves to heighten as the depth decreases
+  float worldSpacePosMultiplier = 0.75+0.25*sin(phaseShift*0.3 + 1.0*worldspaceXY.x/g_BaseGerstnerWavelength)*sin(phaseShift*0.4 + 1.0*worldspaceXY.y/g_BaseGerstnerWavelength); // slowly crawling worldspace aligned checkerboard pattern that damps gerstner waves further
+  shoreWavesMultiplierOut = distanceMultiplier*depthMultiplier*riverFactor*(0.5 + 0.5*oceanShadowFactor)*saturate(oceanShadowFactor*8-0.5);
+
+  // initializing variables to be changed along summing up the waves
+  float gerstnerWavelength = g_BaseGerstnerWavelength;
+  float gerstnerOmega = TWOPI * rcp(g_BaseGerstnerWavelength); // angular speed of gerstner wave
+  float gerstnerParallelness = g_BaseGerstnerParallelness; // "parallelness" of shore waves. 0 means the waves are parallel to shore, 1 means the waves are parallel to wind gradient
+  float gerstnerSpeed = g_BaseGerstnerSpeed; // phase speed of gerstner waves
+  float gerstnerAmplitude = g_BaseGerstnerAmplitude; 
+  float invGerstnerAmplitude = rcp(g_BaseGerstnerAmplitude); //fixme: move to pre-shader
+
+  // summing up the waves
+  float windPhase = dot(windDirection, worldspaceXY.xy); 
+  float gerstnerPhase = TWOPI*(lerp( sdfPhase, windPhase, gerstnerParallelness)/gerstnerWavelength); 
+  float2 propagationDirection = normalize( lerp(float2(1.0,1.0)*sdf.yz + windDirection * 0.000001f, windDirection.xy, gerstnerParallelness*gerstnerParallelness));
+  float gerstnerGroupSpeedPhase = TWOPI*(lerp( sdfPhase, windPhase, gerstnerParallelness*3.0)/gerstnerWavelength); // letting the group speed phase to be non-parallel to propagation phase, so altering parallelness modificator fot this
+
+  float groupSpeedMultiplier = 0.75+0.25*cos((gerstnerGroupSpeedPhase + gerstnerOmega*gerstnerSpeed*phaseShift/2.0)/2.7); // Group speed for water waves is half of the phase speed, we allow 2.7 wavelengths to be in wave group, not so much as breaking shore waves lose energy quickly
+  float gerstnerMultiplier = shoreWavesMultiplierOut*groupSpeedMultiplier*worldSpacePosMultiplier; // final scale factor applied to base Gerstner amplitude and used to mix between ocean waves and shore waves
+
+  float steepness = kGerstnerSteepness;   
+  float baseAmplitude = gerstnerMultiplier * gerstnerAmplitude; //amplitude gradually increases as wave runs over shallower seabed
+  float skewMultiplier = saturate((baseAmplitude*(2.0*1.28) + sdf.x)*invGerstnerAmplitude); // Wave height is 2*amplitude, a wave will start to break when it approximately reaches a water depth of 1.28 times the wave height, empirically: http://passyworldofmathematics.com/mathematics-of-ocean-waves-and-surfing/ 
+  float breakerPositionMultiplier = saturate((baseAmplitude*(2.0*1.28) + sdf.x)*invGerstnerAmplitude); // Wave height is 2*amplitude, a wave will start to break when it approximately reaches a water depth of 1.28 times the wave height, empirically: http://passyworldofmathematics.com/mathematics-of-ocean-waves-and-surfing/ 
+
+  // calculating normal
+  float s,c;
+  sincos(gerstnerPhase + gerstnerOmega*gerstnerSpeed*phaseShift, s, c);
+  float waveVerticalOffset = s * baseAmplitude;
+  offsetOut.z += waveVerticalOffset; 
+  offsetOut.xy += c * propagationDirection * steepness * baseAmplitude; // trochoidal Gerstner wave
+  offsetOut.xy -= propagationDirection * s * baseAmplitude * skewMultiplier*1.5; // adding wave forward skew due to its bottom slowing down, so the forward wave front gradually becomes vertical 
+
+  normalOut.y -= gerstnerOmega*steepness*baseAmplitude*s;
+  normalOut.xz -= gerstnerOmega*baseAmplitude*c*propagationDirection;   // orienting normal according to direction of wave propagation. No need to normalize, it is unit length.
+
+
+  // calculating foam parameters
+  float breakerFoamMultiplier = saturate((baseAmplitude*2.0*2.0 + depth)*invGerstnerAmplitude); 
+
+  float breakerPhase = gerstnerPhase + gerstnerOmega*gerstnerSpeed*phaseShift;
+  float fp = frac(breakerPhase*(1./TWOPI));
+  float breakerOutBase = (saturate(fp*10.0) - saturate(-1.0 + fp*10.0));
+  offsetOut.xy -= 0.5*baseAmplitude*propagationDirection*breakerPositionMultiplier*breakerOutBase; // moving breaking area of the wave further forward
+  offsetOut.z += baseAmplitude; // Adding vertical displacement as the wave increases while rolling on the shallow area
+  //offsetOut.z = max(offsetOut.z, lerp(offsetOut.z, depth-worldspaceXY.z, pow4(shoreWavesMultiplierOut)));
+  float sawtoothPattern = (saturate(fp*10.0) - fp);
+  foamTrailOut += depthMultiplier*(gerstnerMultiplier*breakerFoamMultiplier)*sawtoothPattern; // only breaking waves leave foamy trails
+  breakerOut += (gerstnerMultiplier*breakerFoamMultiplier)*breakerOutBase; // making narrow sawtooth pattern
+
+  #if IS_DEFERRED_PASS
+  float terrain_dy = 1-geomNormal.y; // "0.5*" because of low SDF fidelity
+  float k = kBackWaveSpeed*terrain_dy/((gerstnerSpeed/gerstnerWavelength)*baseAmplitude + 0.0001);
+  float sawtooth = 1.5 - k + k*sawtoothPattern;
+  shore_wetness = (sawtooth*baseAmplitude + baseAmplitude)-(worldspaceXY.z-water_level);
+  #endif
+  #if KEEP_WATER_ABOVE_SHORELINE
+  offsetOut.z = max(offsetOut.z, lerp(offsetOut.z, depth+0.25-worldspaceXY.z, pow4(saturate(2-2*sdf.w))));
+  #endif
+}
+#endif
+
+#if !IS_DEFERRED_PASS
+
+void getShoreAttributes(float3 worldPos, out ShoreData shoreData)
+{
+  shoreData.gerstner_normal = float3(0,1,0);
+  shoreData.gerstnerFoamFactor = 0;
+  shoreData.riverMultiplier = 1;
+  shoreData.shoreWavesDisplacement = float3(0, 0, 0);
+  shoreData.landHeight = 0;
+  shoreData.oceanWavesMultiplier = 1;
+  shoreData.oceanDetailsMultiplier = 1;
+
+#if DISABLE_SHORE
+  return;
+#endif
+
+  float4 sdf;
+  float2 tc = worldPos.xz * world_to_heightmap.xy + world_to_heightmap.zw;
+  SAMPLE_SHORES(tc, sdf);
+  if (tc.x < 0 || tc.y < 0 || tc.x >= 1 || tc.y >= 1)
+    sdf = 0;
+  float waterHeight = water_level_max_wave_height.x;
+  get_water_height(worldPos.xz, waterHeight);
+  float2 decode_hmap = float2(ftime_cscale_hmap.z, ftime_cscale_hmap.w - waterHeight);
+  shoreData.landHeight = sdf.x * decode_hmap.x + decode_hmap.y;
+  shoreData.oceanWavesMultiplier = saturate(max(-shoreData.landHeight, 0) * shore_damp.x + shore_damp.y);
+
+// Only means that a surf is an expensive option and if we want to save some fps then
+// we definitely do not needed the surf
+#if surf
+  BRANCH
+  if (shore_waves_on) //actually, if shore is on, if on tank, we always in this branch
+  {
+    // Performs srgb to linear convertation for verticies below water plane to improve precision
+    sdf.w = sdf.w < 0.5 ? 0.5 * sqrt(sdf.w * 2) : sdf.w;
+    //no displacement if very deep inside terrain
+    BRANCH
+    if (sdf.w > 0 && sdf.w < 1)
+    {
+      float shoreWavesMultiplier, oceanWavesMultiplier;
+      float breaker;
+      GetShoreSurfaceAttributes(water_level_max_wave_height.y, ftime_cscale_hmap.x, 2*(kSDFRadiusInPixels/kSDFTextureSize)*world_heightmap_size, decode_hmap, wind_dir_speed.xy,
+                              worldPos.xzy, shoreData.shoreWavesDisplacement, shoreData.gerstner_normal, breaker, shoreData.gerstnerFoamFactor,
+                                    shoreWavesMultiplier, oceanWavesMultiplier, shoreData.riverMultiplier, sdf);
+    }
+    else
+    {
+      float windShadow;
+      decode_sdf(sdf, shoreData.riverMultiplier, windShadow);
+    }
+  }
+#endif
+
+  // Ignore wind shadowing because it is exaggerated a bit, need more tuning
+  float shoresMultiplier = 0.3 + 0.7 * shoreData.riverMultiplier;
+  // Apply shores
+  shoreData.oceanWavesMultiplier *= shoresMultiplier;
+  shoreData.oceanDetailsMultiplier = shoresMultiplier;
+}
+
+#endif
+
+}
+
+endmacro

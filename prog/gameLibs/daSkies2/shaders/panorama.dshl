@@ -1,0 +1,132 @@
+//include "clouds_vars.dshl"
+
+float4 panoramaTC = (0,0,1,1);
+texture clouds_alpha_panorama_tex;
+texture clouds_panorama_tex;
+texture clouds_panorama_patch_tex;
+texture clouds_panorama_tex2;
+texture clouds_panorama_patch_tex2;
+float4 panoramaTemporalWorldOffset=(0,0,0,1);
+float4 currentPanoramaWorldOffset = (0,0,0,0);
+float4 currentPanoramaWorldOffset2;
+float skies_panorama_mu_horizon;
+
+float rgbm_panorama_scale_factor = 1;
+
+hlsl {
+  #define PANORAMA_VIEW_THRESHOLD_TC 0.04
+  #define PANORAMA_VIEW_THRESHOLD skies_panorama_mu_horizon
+  #define PANORAMA_VIEW_THRESHOLD_INV_SCALE (1-PANORAMA_VIEW_THRESHOLD)
+  #define PANORAMA_VIEW_THRESHOLD_SCALE (1.0/PANORAMA_VIEW_THRESHOLD_INV_SCALE)
+  #define PANORAMA_PATCH_THRESHOLD 0.2
+  #define PANORAMA_TC_FROM_VIEW(viewY) \
+   (PANORAMA_VIEW_THRESHOLD_TC + \
+    (viewY<PANORAMA_VIEW_THRESHOLD ? \
+      (viewY*(1./(1.+PANORAMA_VIEW_THRESHOLD)) - PANORAMA_VIEW_THRESHOLD/(1.+PANORAMA_VIEW_THRESHOLD))*PANORAMA_VIEW_THRESHOLD_TC \
+     : \
+      (viewY*(1./(1.-PANORAMA_VIEW_THRESHOLD)) - PANORAMA_VIEW_THRESHOLD*(1./(1-PANORAMA_VIEW_THRESHOLD)))*(1-PANORAMA_VIEW_THRESHOLD_TC))\
+   )
+
+
+  #define PANORAMA_VIEW_FROM_TC(texcoordY) \
+  { \
+    float tcY = (texcoordY) - PANORAMA_VIEW_THRESHOLD_TC; \
+    tcY = tcY * (tcY < 0 ? ((1./PANORAMA_VIEW_THRESHOLD_TC)*(1+PANORAMA_VIEW_THRESHOLD)) : \
+                     ((1./(1-PANORAMA_VIEW_THRESHOLD_TC)*(1-PANORAMA_VIEW_THRESHOLD)))) + PANORAMA_VIEW_THRESHOLD;\
+    viewVect.y = tcY;\
+  }
+
+  #define GENERATE_PANORAMA_VIEWVECT(texcoord)\
+    float3 viewVect;\
+    float theta = (texcoord).x*(2*PI)-PI;\
+    PANORAMA_VIEW_FROM_TC((texcoord).y)\
+    float cosPhi = sqrt(1-viewVect.y*viewVect.y);\
+    sincos(theta, viewVect.x, viewVect.z);\
+    viewVect.xz *= cosPhi;
+
+  #define GENERATE_PANORAMA_PATCH_VIEWVECT(texcoord)\
+    float3 patchView;\
+    patchView.xz = (texcoord)*(2*PANORAMA_PATCH_THRESHOLD) - PANORAMA_PATCH_THRESHOLD;\
+    patchView.y = sqrt(1 - dot(patchView.xz,patchView.xz));
+}
+
+
+float4 cloudsAlphaPanoramaWorldPos;
+macro INIT_PANORAMA_CLOUDS_DIST_BASE(code)
+  local float clouds_layer = (skies_planet_radius+min(1000, clouds_start_altitude2+clouds_thickness2*0.5));
+  (code) {
+    clouds_params@f3 = (clouds_layer, clouds_layer*clouds_layer, skies_planet_radius,0);
+    skies_panorama_mu_horizon@f1 = (skies_panorama_mu_horizon);
+  }
+endmacro
+
+macro INIT_PANORAMA_CLOUDS_DIST()
+  INIT_PANORAMA_CLOUDS_DIST_BASE(ps)
+endmacro
+
+macro USE_PANORAMA_CLOUDS_DIST_BASE(code)
+  hlsl(code) {
+    float distanceToClouds0(float3 origin, float3 view)
+    {
+      float planet_radius = clouds_params.z;
+      float cloud_radius = clouds_params.x;
+      float originInKm = origin.y*0.001f;
+      float radius_to_camera_offseted = (planet_radius+originInKm);
+      float Rh = min(radius_to_camera_offseted, cloud_radius);
+      float b=Rh*view.y;
+      float c=radius_to_camera_offseted*radius_to_camera_offseted-clouds_params.y;//Rh*Rh-RH*RH
+      float b24c=b*b-c;
+      return (-b+sqrt(b24c))*1000;//km to meters
+    }
+  }
+endmacro
+
+macro USE_PANORAMA_CLOUDS_DIST()
+  USE_PANORAMA_CLOUDS_DIST_BASE(ps)
+endmacro
+
+macro INIT_CLOUDS_PANORAMA_UV_BASE(code)
+  (code) { cloudsAlphaPanoramaWorldPos@f4 = (cloudsAlphaPanoramaWorldPos.x, cloudsAlphaPanoramaWorldPos.y, cloudsAlphaPanoramaWorldPos.z, currentPanoramaWorldOffset.w); }
+  INIT_PANORAMA_CLOUDS_DIST_BASE(code)
+endmacro
+
+macro INIT_CLOUDS_PANORAMA_UV()
+  INIT_CLOUDS_PANORAMA_UV_BASE(ps)
+endmacro
+
+macro USE_CLOUDS_PANORAMA_UV_BASE(code)
+  USE_PANORAMA_CLOUDS_DIST_BASE(code)
+  hlsl(code) {
+    float2 get_panorama_uv(float3 origin, float3 view)
+    {
+      float cloudDist = max(1000, distanceToClouds0(origin, view));
+      float3 currentViewDirection = normalize(view*cloudDist + (origin - cloudsAlphaPanoramaWorldPos.xyz)*cloudsAlphaPanoramaWorldPos.w);//reprojection
+      float theta = atan2( currentViewDirection.x, currentViewDirection.z );
+      float2 sky_uv = float2(theta * (0.5/PI)+0.5, PANORAMA_TC_FROM_VIEW(currentViewDirection.y));
+      return sky_uv;
+    }
+  }
+endmacro
+
+macro USE_CLOUDS_PANORAMA_UV()
+  USE_CLOUDS_PANORAMA_UV_BASE(ps)
+endmacro
+
+macro INIT_CLOUDS_ALPHA_PANORAMA()
+  (ps) { clouds_alpha_panorama_tex@smp2d = clouds_alpha_panorama_tex; }
+  INIT_CLOUDS_PANORAMA_UV()
+endmacro
+
+macro USE_CLOUDS_ALPHA_PANORAMA()
+  USE_CLOUDS_PANORAMA_UV()
+  hlsl(ps) {
+    float get_clouds_alpha_panorama_uv(float2 sky_uv)
+    {
+      return tex2Dlod(clouds_alpha_panorama_tex, float4(sky_uv,0,0)).x;
+    }
+    float get_clouds_alpha_panorama(float3 origin, float3 view)
+    {
+      return get_clouds_alpha_panorama_uv(get_panorama_uv(origin, view));
+    }
+  }
+endmacro

@@ -1,0 +1,60 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+
+texture texture_util_source_texture;
+
+shader texture_util_rotate
+{
+  supports global_frame;
+
+  z_write = false;
+  z_test = false;
+  cull_mode = none;
+
+  (ps) { source_tex@smp2d = texture_util_source_texture; }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 uv: TEXCOORD0;
+    };
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  hlsl(vs) {
+    uint rotation_id : register(c10);
+
+    half2 rotate_uv(half2 uv, uint rot_id)
+    {
+      if (rot_id == 1) return half2(  uv.y, 1-uv.x);
+      if (rot_id == 2) return half2(1-uv.x, 1-uv.y);
+      if (rot_id == 3) return half2(1-uv.y,   uv.x);
+      return uv;
+    }
+
+    VsOutput main_vs_rotate(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos.xy, 0.0, 1.0);
+
+      float2 uv = screen_to_texcoords(pos.xy);
+      output.uv = rotate_uv(uv, rotation_id);
+
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    half4 main_ps_rotate(VsOutput input) : SV_Target0
+    {
+      return tex2D(source_tex, input.uv);
+    }
+  }
+
+  compile("target_vs", "main_vs_rotate");
+  compile("target_ps", "main_ps_rotate");
+}

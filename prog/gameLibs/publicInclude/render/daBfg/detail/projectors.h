@@ -14,7 +14,7 @@ using TypeErasedProjector = void *(*)(void *);
 template <class C, typename T>
 C owner_type_of_memptr(T C::*memberPtr);
 
-template <class C, typename T>
+template <class DUMMY, class C, typename T>
 T member_type_of_memptr(T C::*memberPtr);
 
 template <auto memberPtr>

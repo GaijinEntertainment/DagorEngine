@@ -1,5 +1,5 @@
 # https://github.com/jrouwe/JoltPhysics.git
-# rev c8829c4f68286faefa8b63200f0eae079ad8b1e2
+# rev 6535d6ca60a47bed90153730b3fc3a409d48e274
 Root    ?= ../../../.. ;
 Location = prog/3rdPartyLibs/phys/joltPhysics ;
 if $(OS) = NT { Platform ?= win64 ; }

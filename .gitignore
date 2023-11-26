@@ -11,5 +11,5 @@
 /_output/
 *.pyc
 *.das.inl
-*.sh.log
+*.dshl.log
 ShaderLog-*

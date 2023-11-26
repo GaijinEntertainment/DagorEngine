@@ -71,7 +71,7 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *de
   rub->pitch = fmt.calculateRowPitch(width);
   rub->slicePitch = slicePitch;
   rub->uploadInfo =
-    make_copy_info(fmt, dest_mip, dest_slice, 1, {uint32_t(width), uint32_t(height), uint32_t(depth)}, stagingBuffer->dataOffset(0));
+    make_copy_info(fmt, dest_mip, dest_slice, 1, {uint32_t(width), uint32_t(height), uint32_t(depth)}, stagingBuffer->bufOffsetLoc(0));
   rub->uploadInfo.imageOffset.x = offset_x;
   rub->uploadInfo.imageOffset.y = offset_y;
   rub->uploadInfo.imageOffset.z = offset_z;
@@ -121,13 +121,13 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *dest_base
   {
     case RES3D_VOLTEX:
     {
-      rub->uploadInfo = make_copy_info(fmt, dest_mip, 0, 1, {base_ti.w, base_ti.h, 1}, stagingBuffer->dataOffset(0));
+      rub->uploadInfo = make_copy_info(fmt, dest_mip, 0, 1, {base_ti.w, base_ti.h, 1}, stagingBuffer->bufOffsetLoc(0));
       rub->uploadInfo.imageOffset.z = dest_slice;
       break;
     }
     default:
     {
-      rub->uploadInfo = make_copy_info(fmt, dest_mip, dest_slice, 1, {base_ti.w, base_ti.h, 1}, stagingBuffer->dataOffset(0));
+      rub->uploadInfo = make_copy_info(fmt, dest_mip, dest_slice, 1, {base_ti.w, base_ti.h, 1}, stagingBuffer->bufOffsetLoc(0));
       break;
     }
   }
@@ -150,14 +150,14 @@ char *d3d::get_update_buffer_addr_for_write(d3d::ResUpdateBuffer *rub)
   if (ResUpdateBufferImp *rub_imp = reinterpret_cast<ResUpdateBufferImp *>(rub))
   {
     G_ASSERT(rub_imp->stagingBuffer->hasMappedMemory());
-    return reinterpret_cast<char *>(rub_imp->stagingBuffer->dataPointer(0));
+    return reinterpret_cast<char *>(rub_imp->stagingBuffer->ptrOffsetLoc(0));
   }
   return nullptr;
 }
 
 size_t d3d::get_update_buffer_size(d3d::ResUpdateBuffer *rub)
 {
-  return rub ? ((ResUpdateBufferImp *)rub)->stagingBuffer->dataSize() : 0;
+  return rub ? ((ResUpdateBufferImp *)rub)->stagingBuffer->getBlockSize() : 0;
 }
 
 size_t d3d::get_update_buffer_pitch(d3d::ResUpdateBuffer *rub) { return rub ? ((ResUpdateBufferImp *)rub)->pitch : 0; }
@@ -174,7 +174,7 @@ bool d3d::update_texture_and_release_update_buffer(d3d::ResUpdateBuffer *&rub)
 
   ResUpdateBufferImp *&rub_imp = reinterpret_cast<ResUpdateBufferImp *&>(rub);
 
-  rub_imp->stagingBuffer->markNonCoherentRange(0, rub_imp->stagingBuffer->dataSize(), true);
+  rub_imp->stagingBuffer->markNonCoherentRangeLoc(0, rub_imp->stagingBuffer->getBlockSize(), true);
   drv3d_vulkan::get_device().getContext().copyBufferToImage(rub_imp->stagingBuffer, rub_imp->destTex->tex.image, 1,
     &rub_imp->uploadInfo, true);
 

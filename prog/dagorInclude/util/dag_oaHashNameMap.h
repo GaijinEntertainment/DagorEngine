@@ -12,11 +12,9 @@
 #include <util/dag_stringTableAllocator.h>
 #include <EASTL/unique_ptr.h>
 #include <generic/dag_sort.h>
-#include <generic/dag_smallTab.h>
 #include <debug/dag_assert.h>
 #include <util/dag_hashedKeyMap.h>
 #include <util/dag_nameHashers.h>
-#include <ctype.h>
 
 template <bool ignore_case, typename Hasher = DefaultOAHasher<ignore_case>>
 struct OAHashNameMap

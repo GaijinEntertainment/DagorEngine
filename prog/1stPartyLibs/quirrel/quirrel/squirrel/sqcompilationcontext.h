@@ -241,8 +241,8 @@ public:
 
   static void printAllWarnings(FILE *ostream);
   static void flipWarningsState();
-  static bool switchDiagnosticState(const char *diagName, bool state);
-  static bool switchDiagnosticState(int32_t id, bool state);
+  static bool enableWarning(const char *diagName, bool state);
+  static bool enableWarning(int32_t id, bool state);
   static void switchSyntaxWarningsState(bool state);
 
   Arena *arena() const { return _arena; }

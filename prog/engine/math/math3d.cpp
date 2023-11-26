@@ -338,6 +338,8 @@ static void adjoint(const T *in, TMatrix4D *out)
  *         det A
  */
 
+bool is_invertible(const TMatrix4 &mat) { return fabs(det4x4(mat)) > 1e-15f; }
+
 bool inverse44(const TMatrix4 &in, TMatrix4 &result, float &det)
 {
   int i, j;
@@ -390,7 +392,7 @@ TMatrix4 inverse44(const TMatrix4 &in)
   float det;
   if (!inverse44(in, result, det))
   {
-    G_ASSERTF(0, "Non-singular matrix, no inverse!");
+    G_ASSERTF(0, "Singular matrix, no inverse!");
     return TMatrix4::IDENT;
   }
   return result;

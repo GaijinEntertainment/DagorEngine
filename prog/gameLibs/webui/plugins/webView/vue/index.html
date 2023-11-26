@@ -1,0 +1,56 @@
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="vue/styles.css" rel="stylesheet">
+
+  <link href="vue/vendor/bootstrap-4.0.0.css" rel="stylesheet">
+  <link href="vue/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+
+  <link href="vue/vendor/vue-bootstrap-typeahead.css" rel="stylesheet">
+  <link href="vue/vendor/vue-virtual-scroller.css" rel="stylesheet">
+  <link href="vue/vendor/vue-multiselect.css" rel="stylesheet">
+  <link href="vue/vendor/vue-color.css" rel="stylesheet">
+
+  <script src="vue/vendor/vue-compat.global.js"></script>
+  <script src="vue/vendor/vue3-sfc-loader.js"></script>
+
+  <script src="vue/vendor/vue-bootstrap-typeahead.js"></script>
+  <script src="vue/vendor/vue-virtual-scroller.js"></script>
+  <script src="vue/vendor/vue-multiselect.js"></script>
+  <script src="vue/vendor/vue-color.js"></script>
+  <script src="vue/vendor/vue-bootstrap.js"></script>
+
+  <script src="vue/vendor/rxjs.js"></script>
+  <script src="vue/vendor/bson.js"></script>
+
+  <script type="module">
+    import { main } from "./vue/main.js";
+    main();
+  </script>
+</head>
+
+<body>
+  <div id="app" class="container-fluid mt-1">
+    <div class="d-inline">
+      Connection status:
+      <span :class="statusClass"> {{ status }} </span>
+    </div>
+
+    <b-popover target="popover-target-1" triggers="hover" placement="bottom">
+      <template #title>Help</template>
+      To enable this feature add <strong>enableWebSocketStream:b = yes</strong> to <strong>debug</strong> section in
+      <strong>config.blk</strong>
+    </b-popover>
+
+    <button id="popover-target-1" type="button" class="d-inline btn btn-sm btn-outline-primary"
+      placement="bottom">Help</button>
+    <hr />
+
+    <editor></editor>
+  </div>
+</body>
+
+</html>

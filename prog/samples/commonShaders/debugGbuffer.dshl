@@ -1,0 +1,121 @@
+include "shader_global.dshl"
+include "ssao_use.dshl"
+//include "bent_cones_use.dshl"
+include "gbuffer.dshl"
+include "ssr_use.dshl"
+include "viewVecVS.dshl"
+
+int show_gbuffer=0;
+interval show_gbuffer: diffuseColor<1, specularColor<2, normal<3, smoothness<4, baseColor<5, metallness<6, materialType<7, ssao<8, ao<9, albedo_ao<10, finalAO<11, preshadow<12, translucency<13, translucencyColor<14, ssr<15, ssrStrength;
+
+shader debug_final_gbuffer
+{
+  // setup constants
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  if (ssao_tex != NULL)
+  {
+    INIT_SSAO()
+    USE_SSAO()
+  } else
+  {
+    hlsl(ps) {
+      #define getSSAO(w, ssaotc) 1
+    }
+  }
+  if (ssr_target != NULL)
+  {
+    if (ssao_tex == NULL)
+    {
+      (ps){ downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex; }
+    }
+    //USE_HDR()
+    INIT_USE_SSR()
+    USE_SSR()
+  } else
+  {
+    hlsl(ps) {
+      #define getSSR(a,b) half4(0,0,0,0)
+    }
+  }
+
+  USE_AND_INIT_VIEW_VEC_PS()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+  POSTFX_VS_TEXCOORD(1, texcoord)
+  //INIT_USE_SSR()
+  //USE_SSR()
+
+  hlsl(ps) {
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    float4 debug_ps(VsOutput input): SV_Target
+    { 
+      float rd = readGbufferDepth(input.texcoord);
+
+      BRANCH
+      if (rd == 0)
+        return 0;
+      float w = linearize_z(rd, zn_zfar.zw);
+
+      /*##if bent_cones_on == on
+      half4 BNAO = getBNAO(w, input.texcoord);
+      half ssao = BNAO.w;
+      ##else
+      ##endif*/
+      half ssao = getSSAO(w, input.texcoord);
+
+      PackedGbuffer packGbuf = readPackedGbuffer(input.texcoord);
+      UnpackedGbuffer gbuf = unpackGbuffer(packGbuf);
+      ProcessedGbuffer gbuffer = processGbuffer(gbuf);
+      ##if show_gbuffer == baseColor
+        return half4(accurateLinearToSRGB(gbuf.albedo),1);
+      ##elif show_gbuffer == diffuseColor
+        return half4(accurateLinearToSRGB(gbuffer.diffuseColor),1);
+      ##elif show_gbuffer == specularColor
+        return gbuffer.metallness > 0 ? half4(accurateLinearToSRGB(gbuffer.specularColor),1) : half4(accurateLinearToSRGB(saturate(gbuffer.specularColor.rrr/0.04)).x,0,0,1);
+      ##elif show_gbuffer == normal
+        return half4(gbuffer.normal*0.5+0.5,1);
+      ##elif show_gbuffer == smoothness
+        return half4(gbuf.smoothness.xxx,1);
+      ##elif show_gbuffer == metallness
+        return half4(gbuffer.metallness.xxx,1);
+      ##elif show_gbuffer == translucency
+        return half4(gbuffer.translucency.xxx,1);
+      ##elif show_gbuffer == translucencyColor
+        return half4(accurateLinearToSRGB(gbuffer.translucencyColor),1);
+      ##elif show_gbuffer == ssao
+        return half4(ssao.xxx,1);
+      ##elif show_gbuffer == preshadow
+        return gbuffer.shadow;
+      ##elif show_gbuffer == ao
+        return half4(gbuffer.ao.xxx,1);
+      ##elif show_gbuffer == albedo_ao
+        return gbuffer.extracted_albedo_ao;
+      ##elif show_gbuffer == finalAO
+        half finalAO = gbuffer.ao*gbuffer.extracted_albedo_ao*ssao;
+        return half4(finalAO.xxx,1);
+      ##elif show_gbuffer == ssr
+        return half4(accurateLinearToSRGB(getSSR(gbuffer.linearRoughness, input.texcoord).rgb),1);
+      ##elif show_gbuffer == ssrStrength
+        return getSSR(gbuffer.linearRoughness, input.texcoord).a;
+      ##elif show_gbuffer == materialType
+        if (gbuffer.material == SHADING_FOLIAGE)
+          return half4(0,1,0,1);
+        else if (gbuffer.material == SHADING_SUBSURFACE)
+          return half4(1,1,0,1);
+        else if (gbuffer.material == SHADING_SELFILLUM)
+          return half4(0.5,1,1,1);
+        return half4(0.5,0.5,0.5,1);
+      ##endif
+      return 0;
+    }
+  }
+  compile("target_ps", "debug_ps");
+}

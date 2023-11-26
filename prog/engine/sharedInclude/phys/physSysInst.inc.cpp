@@ -407,7 +407,15 @@ PhysSystemInstance::Body::Body(PhysicsResource::Body &res_body, PhysWorld *world
     pbcd.materialId = PhysMat::getMaterial(matId).physBodyMaterial;
   pbcd.addToWorld = tm != nullptr;
 
-  body.reset(new PhysBody(world, res_body.mass, &coll, tm ? ((*tm) * res_body.tm) : res_body.tm, pbcd));
+  TMatrix physBodyTm = tm ? ((*tm) * res_body.tm) : res_body.tm;
+  if (tm != nullptr)
+  {
+    physBodyTm.setcol(0, normalize(physBodyTm.getcol(0)));
+    physBodyTm.setcol(1, normalize(physBodyTm.getcol(1)));
+    physBodyTm.setcol(2, normalize(physBodyTm.getcol(2)));
+  }
+
+  body.reset(new PhysBody(world, res_body.mass, &coll, physBodyTm, pbcd));
 
   coll.clear();
 }

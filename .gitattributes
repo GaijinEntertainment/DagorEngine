@@ -14,6 +14,5 @@
 *.tis text
 *.png binary
 *.jpg binary
-*.sh text text
+*.sh text eol=lf
 *.plist text eol=lf
-*compile_shaders*.sh text eol=lf

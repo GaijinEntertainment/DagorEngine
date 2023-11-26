@@ -87,6 +87,15 @@ void DedicatedAllocator::free(ResourceMemory &target)
   onWrongFree(target);
 }
 
+VulkanDeviceMemoryHandle DedicatedAllocator::getDeviceMemoryHandle(ResourceMemory &target)
+{
+  // we should not ask dedicated allocator about memory handle as we already know it via ResourceMemory object!
+  G_ASSERTF(0, "vulkan: trying to get device memory handle from dedicated allocator!");
+  if (target.allocatorIndex != -1)
+    return list[target.allocatorIndex].memory;
+  return VulkanDeviceMemoryHandle{};
+}
+
 const AbstractAllocator::Stats DedicatedAllocator::getStats()
 {
   Stats ret;
@@ -108,7 +117,8 @@ const AbstractAllocator::Stats DedicatedAllocator::getStats()
 
 //////////////////////////////
 
-void SuballocPow2Allocator::init()
+template <SubAllocationMethod subAllocMethod>
+void SuballocPow2Allocator<subAllocMethod>::init()
 {
   const DataBlock *settings =
     ::dgs_get_settings()->getBlockByNameEx("vulkan")->getBlockByNameEx("allocators")->getBlockByNameEx("pow2");
@@ -146,14 +156,16 @@ void SuballocPow2Allocator::init()
   }
 }
 
-void SuballocPow2Allocator::shutdown()
+template <SubAllocationMethod subAllocMethod>
+void SuballocPow2Allocator<subAllocMethod>::shutdown()
 {
   for (PageListType &i : categories)
     i.shutdown();
   clear_and_shrink(categories);
 }
 
-bool SuballocPow2Allocator::alloc(ResourceMemory &target, const AllocationDesc &desc)
+template <SubAllocationMethod subAllocMethod>
+bool SuballocPow2Allocator<subAllocMethod>::alloc(ResourceMemory &target, const AllocationDesc &desc)
 {
   VkDeviceSize resSize = desc.reqs.requirements.size;
   if (resSize > maxSize)
@@ -179,7 +191,8 @@ bool SuballocPow2Allocator::alloc(ResourceMemory &target, const AllocationDesc &
   return cat.alloc(this, target, desc, catIdx, mixingGranularity, catSize);
 }
 
-void SuballocPow2Allocator::free(ResourceMemory &target)
+template <SubAllocationMethod subAllocMethod>
+void SuballocPow2Allocator<subAllocMethod>::free(ResourceMemory &target)
 {
   uint32_t &allocatorIndex = target.allocatorIndex;
   if (allocatorIndex != -1)
@@ -192,14 +205,28 @@ void SuballocPow2Allocator::free(ResourceMemory &target)
   onWrongFree(target);
 }
 
-const AbstractAllocator::Stats SuballocPow2Allocator::getStats()
+template <SubAllocationMethod subAllocMethod>
+VulkanDeviceMemoryHandle SuballocPow2Allocator<subAllocMethod>::getDeviceMemoryHandle(ResourceMemory &target)
+{
+  G_ASSERTF(subAllocMethod != SubAllocationMethod::MEM_OFFSET,
+    "vulkan: trying to get device memory handle from raw memory allocator!");
+  uint32_t allocatorIndex = target.allocatorIndex;
+  if (allocatorIndex != -1)
+    return categories[DeviceMemoryPage::getCatIdx(allocatorIndex)]
+      .list[DeviceMemoryPage::getPageIdx(allocatorIndex)]
+      .getDeviceMemoryHandle();
+  return VulkanDeviceMemoryHandle{};
+}
+
+template <SubAllocationMethod subAllocMethod>
+const AbstractAllocator::Stats SuballocPow2Allocator<subAllocMethod>::getStats()
 {
   Stats ret;
   ret.vkAllocs = 0;
   ret.allocs = 0;
   ret.overhead = 0;
   ret.usage = 0;
-  ret.name = "pow2 mem offset allocator";
+  ret.name = subAllocMethod == SubAllocationMethod::MEM_OFFSET ? "pow2 mem offset allocator" : "pow2 buf offset allocator";
   ret.pageMap = "";
 
   for (intptr_t i = 0; i < categories.size(); ++i)
@@ -208,9 +235,16 @@ const AbstractAllocator::Stats SuballocPow2Allocator::getStats()
   return ret;
 }
 
+namespace drv3d_vulkan
+{
+template class SuballocPow2Allocator<SubAllocationMethod::MEM_OFFSET>;
+template class SuballocPow2Allocator<SubAllocationMethod::BUF_OFFSET>;
+} // namespace drv3d_vulkan
+
 //////////////////////////////
 
-void SuballocFreeListAllocator::init()
+template <SubAllocationMethod subAllocMethod>
+void SuballocFreeListAllocator<subAllocMethod>::init()
 {
   const DataBlock *settings =
     ::dgs_get_settings()->getBlockByNameEx("vulkan")->getBlockByNameEx("allocators")->getBlockByNameEx("freelist");
@@ -229,13 +263,15 @@ void SuballocFreeListAllocator::init()
   G_ASSERT(pageSize > maxElementSize);
 }
 
-void SuballocFreeListAllocator::shutdown()
+template <SubAllocationMethod subAllocMethod>
+void SuballocFreeListAllocator<subAllocMethod>::shutdown()
 {
   for (PageListType &i : pages)
     i.shutdown();
 }
 
-bool SuballocFreeListAllocator::alloc(ResourceMemory &target, const AllocationDesc &desc)
+template <SubAllocationMethod subAllocMethod>
+bool SuballocFreeListAllocator<subAllocMethod>::alloc(ResourceMemory &target, const AllocationDesc &desc)
 {
   VkDeviceSize size = desc.reqs.requirements.size;
   if (size >= maxElementSize)
@@ -245,7 +281,8 @@ bool SuballocFreeListAllocator::alloc(ResourceMemory &target, const AllocationDe
   return pages[bucket].alloc(this, target, desc, bucket, mixingGranularity);
 }
 
-void SuballocFreeListAllocator::free(ResourceMemory &target)
+template <SubAllocationMethod subAllocMethod>
+void SuballocFreeListAllocator<subAllocMethod>::free(ResourceMemory &target)
 {
   uint32_t &allocatorIndex = target.allocatorIndex;
   if (allocatorIndex != -1)
@@ -258,14 +295,28 @@ void SuballocFreeListAllocator::free(ResourceMemory &target)
   onWrongFree(target);
 }
 
-const AbstractAllocator::Stats SuballocFreeListAllocator::getStats()
+template <SubAllocationMethod subAllocMethod>
+VulkanDeviceMemoryHandle SuballocFreeListAllocator<subAllocMethod>::getDeviceMemoryHandle(ResourceMemory &target)
+{
+  G_ASSERTF(subAllocMethod != SubAllocationMethod::MEM_OFFSET,
+    "vulkan: trying to get device memory handle from raw memory allocator!");
+  uint32_t allocatorIndex = target.allocatorIndex;
+  if (allocatorIndex != -1)
+    return pages[DeviceMemoryPage::getCatIdx(allocatorIndex)]
+      .list[DeviceMemoryPage::getPageIdx(allocatorIndex)]
+      .getDeviceMemoryHandle();
+  return VulkanDeviceMemoryHandle{};
+}
+
+template <SubAllocationMethod subAllocMethod>
+const AbstractAllocator::Stats SuballocFreeListAllocator<subAllocMethod>::getStats()
 {
   Stats ret;
   ret.vkAllocs = 0;
   ret.allocs = 0;
   ret.overhead = 0;
   ret.usage = 0;
-  ret.name = "free list mem offset allocator";
+  ret.name = subAllocMethod == SubAllocationMethod::MEM_OFFSET ? "free list mem offset allocator" : "free list buf offset allocator";
   ret.pageMap = "";
 
   for (int i = BUCKET_SMALL; i < BUCKET_COUNT; ++i)
@@ -273,9 +324,16 @@ const AbstractAllocator::Stats SuballocFreeListAllocator::getStats()
   return ret;
 }
 
+namespace drv3d_vulkan
+{
+template class SuballocFreeListAllocator<SubAllocationMethod::MEM_OFFSET>;
+template class SuballocFreeListAllocator<SubAllocationMethod::BUF_OFFSET>;
+} // namespace drv3d_vulkan
+
 //////////////////////////////
 
-void SuballocRingedAllocator::init()
+template <SubAllocationMethod subAllocMethod>
+void SuballocRingedAllocator<subAllocMethod>::init()
 {
   const DataBlock *settings =
     ::dgs_get_settings()->getBlockByNameEx("vulkan")->getBlockByNameEx("allocators")->getBlockByNameEx("ring");
@@ -289,9 +347,14 @@ void SuballocRingedAllocator::init()
 #endif
 }
 
-void SuballocRingedAllocator::shutdown() { ring.shutdown(); }
+template <SubAllocationMethod subAllocMethod>
+void SuballocRingedAllocator<subAllocMethod>::shutdown()
+{
+  ring.shutdown();
+}
 
-bool SuballocRingedAllocator::alloc(ResourceMemory &target, const AllocationDesc &desc)
+template <SubAllocationMethod subAllocMethod>
+bool SuballocRingedAllocator<subAllocMethod>::alloc(ResourceMemory &target, const AllocationDesc &desc)
 {
   // no point to keep 1 element, so allow 2 minimum
   if ((ring.size >> 1) <= desc.reqs.requirements.size)
@@ -310,7 +373,8 @@ bool SuballocRingedAllocator::alloc(ResourceMemory &target, const AllocationDesc
   return ret;
 }
 
-void SuballocRingedAllocator::checkIntegrity()
+template <SubAllocationMethod subAllocMethod>
+void SuballocRingedAllocator<subAllocMethod>::checkIntegrity()
 {
 #if DAGOR_DBGLEVEL > 0
   if (!allocFailures)
@@ -330,7 +394,8 @@ void SuballocRingedAllocator::checkIntegrity()
   // we should catch all non temporals in ring before release
 }
 
-void SuballocRingedAllocator::free(ResourceMemory &target)
+template <SubAllocationMethod subAllocMethod>
+void SuballocRingedAllocator<subAllocMethod>::free(ResourceMemory &target)
 {
   if (target.allocatorIndex != -1)
   {
@@ -342,20 +407,37 @@ void SuballocRingedAllocator::free(ResourceMemory &target)
   onWrongFree(target);
 }
 
-const AbstractAllocator::Stats SuballocRingedAllocator::getStats()
+template <SubAllocationMethod subAllocMethod>
+VulkanDeviceMemoryHandle SuballocRingedAllocator<subAllocMethod>::getDeviceMemoryHandle(ResourceMemory &target)
+{
+  G_ASSERTF(subAllocMethod != SubAllocationMethod::MEM_OFFSET,
+    "vulkan: trying to get device memory handle from raw memory allocator!");
+  if (target.allocatorIndex != -1)
+    return ring.list[target.allocatorIndex].getDeviceMemoryHandle();
+  return VulkanDeviceMemoryHandle{};
+}
+
+template <SubAllocationMethod subAllocMethod>
+const AbstractAllocator::Stats SuballocRingedAllocator<subAllocMethod>::getStats()
 {
   Stats ret;
   ret.vkAllocs = 0;
   ret.allocs = 0;
   ret.overhead = 0;
   ret.usage = 0;
-  ret.name = "ring mem offset allocator";
+  ret.name = subAllocMethod == SubAllocationMethod::MEM_OFFSET ? "ring mem offset allocator" : "ring buf offset allocator";
   ret.pageMap = "";
 
   checkIntegrity();
   ring.accumulateStats(ret, 0);
   return ret;
 }
+
+namespace drv3d_vulkan
+{
+template class SuballocRingedAllocator<SubAllocationMethod::MEM_OFFSET>;
+template class SuballocRingedAllocator<SubAllocationMethod::BUF_OFFSET>;
+} // namespace drv3d_vulkan
 
 //////////////////////////////
 
@@ -382,6 +464,8 @@ bool ObjectBackedAllocator::alloc(ResourceMemory &target, const AllocationDesc &
 }
 
 void ObjectBackedAllocator::free(ResourceMemory &) { --count; }
+
+VulkanDeviceMemoryHandle ObjectBackedAllocator::getDeviceMemoryHandle(ResourceMemory &) { return VulkanDeviceMemoryHandle{}; }
 
 const AbstractAllocator::Stats ObjectBackedAllocator::getStats()
 {

@@ -1,9 +1,9 @@
 Location = prog/samples/physTest ;
 
 TargetType  = exe ;
-Target      = samples/physTest$(PhysEngine).exe ;
+Target      = samples/physTest$(PhysEngine) ;
 
-OutDir      = $(Root)/samples/PhysTest ;
+OutDir      = $(Root)/samples/physTest ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes =
@@ -62,10 +62,26 @@ if $(Platform) in win32 win64 {
   }
 } else if $(Platform) in linux64 {
   if $(Headless) != yes {
-    UseProgLibs += engine/drv/drv3d_vulkan ;
+    UseProgLibs +=
+      engine/drv/drv3d_vulkan
+      engine/drv/hid_mouse
+      engine/drv/hid_keyboard
+      engine/osApiWrappers/messageBox
+    ;
   } else {
     UseProgLibs += engine/osApiWrappers/messageBox/stub engine/workCycle/stub ;
   }
+} else if $(Platform) in macosx {
+  Sources += macosx_main.mm ;
+  if $(Headless) != yes {
+    UseProgLibs +=
+      engine/drv/hid_mouse
+      engine/drv/hid_keyboard
+      engine/osApiWrappers/messageBox
+    ;
+  }
+  BundleName = PhysTest$(PhysEngine) ;
+  include $(Root)/prog/samples/macOS-testApp-res/macOS-common.jam ;
 }
 
 include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;

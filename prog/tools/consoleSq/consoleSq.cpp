@@ -65,7 +65,7 @@
 using namespace sqimportparser;
 
 
-#define APP_VERSION "1.0.18"
+#define APP_VERSION "1.0.19"
 
 namespace visuallog
 {
@@ -827,6 +827,50 @@ static void dump_export_content()
   printf("### END EXPORT CONTENT\n\n");
 }
 
+static FILE *diag_json_file = nullptr;
+
+static void escape_json(const char *input, eastl::string &output)
+{
+  output.clear();
+  output.reserve(64);
+
+  int i = 0;
+  while (input[i])
+  {
+    switch (input[i])
+    {
+      case '"': output += "\\\""; break;
+      case '/': output += "\\/"; break;
+      case '\b': output += "\\b"; break;
+      case '\f': output += "\\f"; break;
+      case '\n': output += "\\n"; break;
+      case '\r': output += "\\r"; break;
+      case '\t': output += "\\t"; break;
+      case '\\': output += "\\\\"; break;
+      default: output += input[i]; break;
+    }
+
+    i++;
+  }
+}
+
+
+static void compiler_diag_cb(HSQUIRRELVM, const SQCompilerMessage *msg)
+{
+  G_ASSERT_RETURN(diag_json_file, );
+
+  eastl::string escapedMsg;
+  eastl::string escapedFile;
+  escape_json(msg->message, escapedMsg);
+  escape_json(msg->fileName, escapedFile);
+
+  fprintf(diag_json_file,
+    "\n{\"line\":%d,\"col\":%d,\"len\":%d,\"file\":\"%s\",\"intId\":%d,\"textId\":\"%s\",\"message\":\"%s\",\"isError\":%s}, ",
+    msg->line, msg->column + 1, max(1, msg->columnsWidth), escapedFile.c_str(), msg->intId, msg->textId, escapedMsg.c_str(),
+    msg->isError ? "true" : "false");
+}
+
+
 static bool process_file(const char *filename, const char *code, const KeyValueFile &config_blk, int moduleIndex,
   String &out_module_name, bool &is_execute)
 {
@@ -850,20 +894,20 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 
   if (do_static_analysis)
   {
-    sq_enablesyntaxwarnings();
+    sq_enablesyntaxwarnings(true);
   }
 
   int iterator = 0;
   while (const char *diagNum = ::dgs_get_argv("W", iterator))
   {
     int id = atoi(diagNum);
-    sq_switchdiagnosticstate_i(id, false);
+    sq_setdiagnosticstatebyid(id, false);
   }
 
   iterator = 0;
   while (const char *diagName = ::dgs_get_argv("D", iterator))
   {
-    sq_switchdiagnosticstate_t(diagName, false);
+    sq_setdiagnosticstatebyname(diagName, false);
   }
 
   if (do_static_analysis)
@@ -1032,6 +1076,19 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     String errorMsg;
     success = true;
 
+    if (const char *diagOutFn = ::dgs_get_argv("message-output-file"))
+    {
+      diag_json_file = fopen(diagOutFn, "wb");
+      if (!diag_json_file)
+      {
+        String errMsg(0, "Error: cannot open file '%s' for writing", diagOutFn);
+        report_error(errMsg);
+        quit_game(1, false);
+      }
+      fputs("{\"messages\":[  ", diag_json_file);
+      sq_setcompilerdiaghandler(sqvm, compiler_diag_cb);
+    }
+
     if (syntax_check_only)
     {
       check_syntax(module_manager, filename);
@@ -1046,6 +1103,14 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   if (do_static_analysis)
   {
     sq_checkglobalnames(sqvm);
+  }
+
+  if (diag_json_file)
+  {
+    fseek(diag_json_file, -2, SEEK_CUR);
+    fputs("]}\n", diag_json_file);
+    fclose(diag_json_file);
+    diag_json_file = nullptr;
   }
 
   if (const char *file_list_name = ::dgs_get_argv("visited-files-list"))
@@ -1182,6 +1247,7 @@ void print_usage()
   printf("  --syntax-check - don't execute, just check syntax\n");
   printf("  --final-message:<message> - print message at the end of execution without fatal errors\n");
   printf("  --static-analysis - perform static analysis of compiling .nut files (implies '--compiler:ast')\n");
+  printf("  --message-output-file:<file-name> - print compiler messages to file (JSON)\n");
   printf("  --inverse-warnings - flip warning diagnostic state (enbaled -> disabled and vice versa)\n");
   printf("  --warnings-list - print all warnings and exit");
   printf("  --absolute-path - use absolute path in diagnsotic render");
@@ -1403,13 +1469,13 @@ int DagorWinMain(bool debugmode)
 
   if (::dgs_get_argv("sqversion"))
   {
-    printf("%s", SQUIRREL_VERSION);
+    printf("%s\n", SQUIRREL_VERSION);
     return 0;
   }
 
   if (::dgs_get_argv("version"))
   {
-    printf("%s", APP_VERSION);
+    printf("%s\n", APP_VERSION);
     return 0;
   }
 

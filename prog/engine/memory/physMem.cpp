@@ -25,8 +25,9 @@ static uint32_t total_allocated_pages = 0; // protected by phys_map critsec
 static uint32_t max_allocated_pages = 0;   // protected by phys_map critsec
 static TabWithLock<MemBlock> phys_map(midmem_ptr());
 
-void *alloc_phys_mem(size_t size, size_t alignment, uint32_t prot_flags, bool cpu_cached)
+void *alloc_phys_mem(size_t size, size_t alignment, uint32_t prot_flags, bool cpu_cached, bool log_failure)
 {
+  G_UNUSED(log_failure);
   G_ASSERT(size != 0);
 
 #if _TARGET_ANDROID | _TARGET_PC_WIN | _TARGET_XBOX | _TARGET_C3

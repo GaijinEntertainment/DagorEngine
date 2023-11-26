@@ -123,10 +123,10 @@ public:
    * \param shader_var_name The name of the shader variable to bind.
    *   If not specified, the name of the resource will be used.
    */
-  template <auto memberPtr, REQUIRE_IMPL(!is_gpu && eastl::is_member_pointer_v<decltype(memberPtr)>)>
+  template <auto memberPtr, class DUMMY = void, REQUIRE_IMPL(!is_gpu && eastl::is_member_pointer_v<decltype(memberPtr)>)>
   VirtualResourceRequest<Res, policy> bindToShaderVar(const char *shader_var_name = nullptr) &&
   {
-    using MemberType = decltype(detail::member_type_of_memptr(memberPtr));
+    using MemberType = decltype(detail::member_type_of_memptr<DUMMY>(memberPtr));
     Base::bindToShaderVar(shader_var_name, tag_for<MemberType>(), detail::projector_for_member<memberPtr>());
     return {resUid, nodeId, registry};
   }
@@ -149,10 +149,10 @@ public:
    * \tparam memberPtr A pointer to the member of the blob to bind,
    *   e.g. `&Camera::viewTm`.
    */
-  template <auto memberPtr, REQUIRE_IMPL(!is_gpu && eastl::is_member_pointer_v<decltype(memberPtr)>)>
+  template <auto memberPtr, class DUMMY = void, REQUIRE_IMPL(!is_gpu && eastl::is_member_pointer_v<decltype(memberPtr)>)>
   VirtualResourceRequest<Res, policy> bindAsView() &&
   {
-    using MemberType = decltype(detail::member_type_of_memptr(memberPtr));
+    using MemberType = decltype(detail::member_type_of_memptr<DUMMY>(memberPtr));
     Base::bindAsView(tag_for<MemberType>(), detail::projector_for_member<memberPtr>());
     return {resUid, nodeId, registry};
   }
@@ -175,10 +175,10 @@ public:
    * \tparam memberPtr A pointer to the member of the blob to bind,
    *   e.g. `&Camera::projTm`.
    */
-  template <auto memberPtr, REQUIRE_IMPL(!is_gpu && eastl::is_member_pointer_v<decltype(memberPtr)>)>
+  template <auto memberPtr, class DUMMY = void, REQUIRE_IMPL(!is_gpu && eastl::is_member_pointer_v<decltype(memberPtr)>)>
   VirtualResourceRequest<Res, policy> bindAsProj() &&
   {
-    using MemberType = decltype(detail::member_type_of_memptr(memberPtr));
+    using MemberType = decltype(detail::member_type_of_memptr<DUMMY>(memberPtr));
     Base::bindAsProj(tag_for<MemberType>(), detail::projector_for_member<memberPtr>());
     return {resUid, nodeId, registry};
   }

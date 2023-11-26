@@ -4,6 +4,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <3d/dag_resizableTex.h>
 #include <3d/dag_resPtr.h>
+#include <3d/dag_drv3d.h>
 #include <memory/dag_framemem.h>
 
 #include <render/daBfg/resourceCreation.h>
@@ -14,23 +15,11 @@
 namespace dabfg
 {
 
-static uint32_t auto_mip_levels_count(uint32_t w, uint32_t h)
-{
-  uint32_t lev = 1;
-  uint32_t t = min(w, h);
-  while (t > 1)
-  {
-    lev++;
-    t >>= 1;
-  }
-  return lev;
-}
-
 static ResourceDescription fix_tex_params(const ResourceDescription &desc)
 {
   ResourceDescription fixed_desc = desc;
   if (desc.asTexRes.mipLevels == AUTO_MIP_COUNT)
-    fixed_desc.asTexRes.mipLevels = auto_mip_levels_count(desc.asTexRes.width, desc.asTexRes.height);
+    fixed_desc.asTexRes.mipLevels = auto_mip_levels_count(desc.asTexRes.width, desc.asTexRes.height, 1);
   return fixed_desc;
 }
 

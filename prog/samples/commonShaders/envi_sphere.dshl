@@ -1,0 +1,114 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+texture envi_sphere;
+float envi_exposure = 1;
+
+shader envi_sphere
+{
+  no_ablend;
+
+  
+
+  cull_mode = none;
+  z_write = false;
+  z_test = true;//fixme: should be true ONLY for cascade other than [0, something]
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord     : TEXCOORD0;
+      float3 viewVect     : TEXCOORD1;
+    };
+  }
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl(vs) {
+    VsOutput envi_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.xy, 0, 1);
+      output.texcoord = screen_to_texcoords(pos);
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+
+  (ps){
+    envi_sphere@smp2d = envi_sphere;
+    envi_exposure@f1 = (envi_exposure);
+  }
+
+  hlsl(ps) {
+    half4 envi_ps(VsOutput input) : SV_Target
+    {
+      float3 viewDirection = normalize(input.viewVect);
+      float theta = atan2( viewDirection.z, viewDirection.x );
+      float phi = asin ( viewDirection.y );
+      float2 sky_uv = float2( (theta/PI) * 0.5, ( -phi / PI ) + 0.5 );
+      return half4(tex2D( envi_sphere, sky_uv ).rgb*envi_exposure, 0);
+      //return lerp(tex2D( envi_sphere, sky_uv )*envi_exposure, float4(20,0,0,0), pow2(pow8(saturate(dot(viewDirection, normalize(float3(0.4,0.6,-0.4)))))));
+    }
+  }
+  compile("target_vs", "envi_vs");
+  compile("target_ps", "envi_ps");
+}
+
+shader copy_tex
+{
+  no_ablend;
+
+  
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord     : TEXCOORD0;
+    };
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl(vs) {
+    VsOutput copy_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos.xy, 0, 1);
+      output.texcoord = screen_to_texcoords(pos);
+
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    ##if hardware.dx11 || hardware.ps4 || hardware.ps5 || hardware.vulkan || hardware.metal
+    Texture2D tex:register(t2);
+    SamplerState tex_samplerstate:register(s2);
+    ##else
+    sampler2D tex:register(s2);
+    ##endif
+    struct MRT_OUTPUT
+    {
+      half4 color:SV_Target0;
+    };
+    MRT_OUTPUT copy_ps(VsOutput input)
+    {
+      MRT_OUTPUT result;
+      //float2 pos = input.texcoord*2-1;
+      //float dist = depth<= 0 ? 10000 : w*sqrt((1+dot(pos,pos)));
+      result.color = tex2D( tex, input.texcoord );
+      return result;
+      //return linearize_z(tex2Dlod( depth_gbuf, float4(input.texcoord,0,0) ).x, zn_zfar);
+    }
+  }
+  compile("target_vs", "copy_vs");
+  compile("target_ps", "copy_ps");
+}

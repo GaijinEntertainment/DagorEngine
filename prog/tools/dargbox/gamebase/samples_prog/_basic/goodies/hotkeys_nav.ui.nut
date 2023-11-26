@@ -141,7 +141,7 @@ return {
 
   hotkeys = [
     ["J:B | Esc ", function() {
-      msgbox.show({text="Messagebox test"})
+      msgbox.showMsgbox({text="Messagebox test"})
     }, "Show test messagebox"]
   ]
 }

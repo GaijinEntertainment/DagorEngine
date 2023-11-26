@@ -12,27 +12,44 @@ AddIncludes =
   $(Root)/prog/dagorInclude
 ;
 
-Sources =
-  webViewPlugin.cpp
-;
+WebViewLocation = $(Root)/$(Location) ;
 
-SourcesWeb =
-;
+actions together quietly make_serve_files
+{
+  echo $(var_name) = $(ref_var) ; >$(1:S=.jam)
+  call $(PYTHON_EXE) $(WebViewLocation)/make_serve_cpp.py $(1) $(var)
+}
+make_serve_files_DEPS = $(Root)/$(Location)/make_serve_cpp.py ;
 
 SourcesWebFolders = 
-  web
-  web/assets
+  vue
+  vue/components
+  vue/core
+  vue/vendor
+  vue/vendor/font-awesome/css
+  vue/vendor/font-awesome/fonts
 ;
 
-AutoscanBuildLists $(SourcesWebFolders) : *.eot : SourcesWeb ;
-AutoscanBuildLists $(SourcesWebFolders) : *.svg : SourcesWeb ;
-AutoscanBuildLists $(SourcesWebFolders) : *.ttf : SourcesWeb ;
-AutoscanBuildLists $(SourcesWebFolders) : *.woff : SourcesWeb ;
-AutoscanBuildLists $(SourcesWebFolders) : *.woff2 : SourcesWeb ;
-AutoscanBuildLists $(SourcesWebFolders) : *.js : SourcesWeb ;
-AutoscanBuildLists $(SourcesWebFolders) : *.css : SourcesWeb ;
-AutoscanBuildLists $(SourcesWebFolders) : *.html : SourcesWeb ;
+ServeFiles =
+;
 
-for s in $(SourcesWeb) { StringifySourceFile $(s) : $(s).inl : webViewPlugin.cpp : --array ; }
+AutoscanBuildLists $(SourcesWebFolders) : *.vue : ServeFiles ;
+AutoscanBuildLists $(SourcesWebFolders) : *.eot : ServeFiles ;
+AutoscanBuildLists $(SourcesWebFolders) : *.svg : ServeFiles ;
+AutoscanBuildLists $(SourcesWebFolders) : *.ttf : ServeFiles ;
+AutoscanBuildLists $(SourcesWebFolders) : *.woff : ServeFiles ;
+AutoscanBuildLists $(SourcesWebFolders) : *.woff2 : ServeFiles ;
+AutoscanBuildLists $(SourcesWebFolders) : *.js : ServeFiles ;
+AutoscanBuildLists $(SourcesWebFolders) : *.css : ServeFiles ;
+AutoscanBuildLists $(SourcesWebFolders) : *.html : ServeFiles ;
+
+StringifySourceFile vue/index.html : vue/index.html.inl : webViewPlugin.cpp : --array ;
+
+ServeFiles_action = make_serve_files ;
+
+Sources =
+  ServeFiles.jamvar
+  webViewPlugin.cpp
+;
 
 include $(Root)/prog/_jBuild/build.jam ;

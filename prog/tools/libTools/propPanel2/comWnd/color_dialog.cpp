@@ -224,6 +224,14 @@ ColorDialog::ColorDialog(void *phandle, const char caption[], E3DCOLOR color) :
 }
 
 
+void ColorDialog::show()
+{
+  autoSize();
+
+  __super::show();
+}
+
+
 void ColorDialog::onChange(int pcb_id, PropPanel2 *panel)
 {
   if (pcb_id >= ID_PALETTE_CELL_FIRST && pcb_id < ID_PALETTE_CELL_LAST)

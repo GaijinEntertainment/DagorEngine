@@ -57,6 +57,7 @@ class ColorDialog : public CDialogWindow
 public:
   ColorDialog(void *phandle, const char caption[], E3DCOLOR color);
 
+  virtual void show() override;
   virtual void onChange(int pcb_id, PropPanel2 *panel);
   virtual void onClick(int pcb_id, PropPanel2 *panel);
 

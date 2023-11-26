@@ -1,0 +1,106 @@
+include "shader_global.dshl"
+
+int text_color_mode;
+interval text_color_mode: modeRGB < 1, modeA < 2, modeRGBA;
+int tex_a_test_value;
+int tex_sRGB_mode;
+interval tex_sRGB_mode: linear < 1, sRGB;
+
+shader tex_view
+{
+  dynamic texture tex;
+  dynamic float4 viewportRect;
+
+  dynamic int transparent = 0;
+  dynamic int hasTexture = 0;
+
+  dynamic int fontFxType = 0;
+  dynamic float fontFxScale = 0;
+  dynamic float4 fontFxOfs;
+  dynamic float4 fontFxColor;
+
+  dynamic texture fontTex2;
+  dynamic float4 fontTex2ofs;
+
+  // setup constants
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  blend_src = sa; blend_dst = isa;
+
+
+  // init channels
+  channel short2 pos = pos mul_16k;
+  channel color8 vcol = vcol;
+  channel short2 tc = tc mul_4k;
+  channel short2 tc[1] = tc[1];
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 col: COLOR0;
+      float2 tc:  TEXCOORD0;
+    };
+  }
+  (vs)
+  {
+    viewport@f4 = viewportRect;
+  }
+  hlsl(vs) {
+    struct VsInput
+    {
+      int2 pos: POSITION;
+      float4 col: COLOR0;
+      int2 tc0: TEXCOORD0;
+    };
+
+
+    VsOutput gui_main_vs(VsInput v)
+    {
+      VsOutput o;
+
+      o.pos = float4(v.pos*viewport.xy+viewport.zw, 1, 1);
+      o.col = v.col;
+      o.tc = v.tc0/4096.0;
+
+      return o;
+    }
+  }
+  compile("target_vs", "gui_main_vs");
+
+  (ps)
+  {
+    texsmp@smp2d = tex;
+  }
+  hlsl(ps) {
+    float4 tex_main_ps(VsOutput v): SV_Target
+    { 
+      ##if text_color_mode == modeRGBA
+        return float4(tex2D(texsmp, v.tc) * v.col);
+      ##elif text_color_mode == modeA
+        return float4((tex2D(texsmp, v.tc)).aaa, 1);
+      ##else
+        return float4((tex2D(texsmp, v.tc)).rgb * v.col, 1);
+      ##endif
+    }
+    float4 tex_main_degamma_ps(VsOutput v): SV_Target
+    {
+      float4 value = tex_main_ps(v);
+      ##if text_color_mode == modeA
+      return value;
+      ##else
+      return float4(pow(value.rgb, 1.0/2.2), value.a);
+      ##endif
+    }
+  }
+  if (tex_sRGB_mode == linear)
+  {
+    compile("target_ps", "tex_main_ps");
+  }
+  else
+  {
+    compile("target_ps", "tex_main_degamma_ps");
+  }
+}

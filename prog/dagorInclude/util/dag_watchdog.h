@@ -43,6 +43,9 @@ KRNLIMP void watchdog_init(WatchdogConfig *cfg = NULL);
 KRNLIMP void watchdog_shutdown();
 KRNLIMP void watchdog_kick();
 KRNLIMP intptr_t watchdog_set_option(int option, intptr_t p0 = 0, intptr_t p1 = 0);
+#if _TARGET_PC_WIN
+KRNLIMP bool is_watchdog_thread(uintptr_t thread_id);
+#endif
 #include <supp/dag_undef_COREIMP.h>
 
 class ScopeSetWatchdogCurrentThreadDump

@@ -35,17 +35,9 @@ static void play_riextra_destroy_effect(rendinst::riex_handle_t id, mat44f_cref 
 
 static inline void prepareDestrExcl(RendInstGenData *rgl)
 {
-  if (rendinst::gen::destrExcl.bm.getW())
-  {
-    if (rendinst::gen::destrExcl.bm.getW() > 0 && rendinst::gen::destrExcl.bm.getW() <= 65536 &&
-        rendinst::gen::destrExcl.bm.getH() > 0 && rendinst::gen::destrExcl.bm.getH() <= 65536)
-      return;
-
-    fatal("rendinst::gen::destrExcl is broken: size=%d,%d", rendinst::gen::destrExcl.bm.getW(), rendinst::gen::destrExcl.bm.getH());
-    rendinst::gen::destrExcl.clear();
-  }
-  rendinst::gen::destrExcl.initExplicit(rgl->world0x(), rgl->world0z(), 0.5f, rgl->grid2world * rgl->cellSz * rgl->cellNumW,
-    rgl->grid2world * rgl->cellSz * rgl->cellNumH);
+  if (rendinst::gen::destrExcl.bm.getW() == 0)
+    rendinst::gen::destrExcl.initExplicit(rgl->world0x(), rgl->world0z(), 0.5f, rgl->grid2world * rgl->cellSz * rgl->cellNumW,
+      rgl->grid2world * rgl->cellSz * rgl->cellNumH);
 }
 
 static int sweepRIGenInBoxByMask(RendInstGenData *rgl, const BBox3 &_box, unsigned frameNo, rendinst::ri_damage_effect_cb effect_cb,

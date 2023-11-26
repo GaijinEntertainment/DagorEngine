@@ -1,0 +1,124 @@
+include "shader_global.dshl"
+include "dynamic_simple_inc.dshl"
+include "gbuffer.dshl"
+include "esm_shadows_inc.dshl"
+
+buffer esm_ao_decals;
+texture esm_shadows;
+float4 esm_ao_target_size;
+float4 esm_ao_view_pos;
+float esm_ao_bias_top = -0.25;
+float esm_ao_bias_bottom = -0.7;
+float esm_ao_gamma = 2.0;
+
+macro USE_ESM_AO_DECALS(code)
+  (code) {
+    esm_ao_decals@cbuf = esm_ao_decals hlsl {
+      #include <render/esm_ao_decals.hlsli>
+      cbuffer esm_ao_decals@cbuf
+      {
+        EsmAoDecal esm_ao_decals[MAX_ESM_AO_DECALS];
+      }
+    }
+  }
+endmacro
+
+shader esm_ao_decal_render
+{
+  z_write = false;
+  z_test = false;
+
+  (vs) {
+    viewProjTm@f44 = viewprojtm;
+    esm_ao_view_pos@f3 = esm_ao_view_pos;
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 tc_depth : NORMAL;
+      float3 eyeToPoint : TEXCOORD0;
+      nointerpolation int instanceId : TEXCOORD1;
+    };
+  }
+
+  USE_ESM_AO_DECALS(vs)
+
+  hlsl (vs) {
+    VsOutput esm_ao_decal_vs(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
+    {
+      float3 localPos = float3(vertex_id / 4, vertex_id / 2 % 2, vertex_id % 2 == 0) * 2.0 - 1.0;
+      float3 decalCenter = esm_ao_decals[instance_id].center;
+      float3 decalX = esm_ao_decals[instance_id].tmRow0;
+      float3 decalY = esm_ao_decals[instance_id].tmRow1;
+      float3 decalZ = esm_ao_decals[instance_id].tmRow2;
+      decalX /= dot(decalX, decalX);
+      decalY /= dot(decalY, decalY);
+      decalZ /= dot(decalZ, decalZ);
+
+      float3 worldPos = localPos.x * decalX + localPos.y * decalY + localPos.z * decalZ + decalCenter;
+
+      VsOutput output;
+      output.pos = mulPointTm(worldPos, viewProjTm);
+      output.tc_depth = float3((output.pos.xy * float2(1, -1) / output.pos.w + 1.0) * 0.5, output.pos.w);
+      output.eyeToPoint = worldPos - esm_ao_view_pos.xyz;
+      output.instanceId = instance_id;
+      return output;
+    }
+  }
+
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  INIT_ZNZFAR()
+  USE_ESM_AO_DECALS(ps)
+
+  (ps) {
+    esm_expK_expKExpMinusOne_oneMinusBiasTop_biasBottom@f4 = (esm_params.z, esm_params.w - 1.0, 1.0 - esm_ao_bias_top, esm_ao_bias_bottom);
+    screen_pos_to_texcoord__esm_gamma@f3 = (1 / esm_ao_target_size.x, 1 / esm_ao_target_size.y, esm_ao_gamma, 0);
+    esm_shadows@smpArray = esm_shadows;
+    esm_ao_view_pos@f3 = esm_ao_view_pos;
+  }
+
+  hlsl (ps) {
+    float esm_ao_decal_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float4 scrpos = GET_SCREEN_POS(input.pos);
+      float2 tc = scrpos.xy * screen_pos_to_texcoord__esm_gamma.xy;
+
+      float3 decalCenter = esm_ao_decals[input.instanceId].center;
+      float3 decalInvX = esm_ao_decals[input.instanceId].tmRow0;
+      float3 decalInvY = esm_ao_decals[input.instanceId].tmRow1;
+      float3 decalInvZ = esm_ao_decals[input.instanceId].tmRow2;
+
+      float dstZ = linearize_z(readGbufferDepth(tc), zn_zfar.zw);
+      float3 centerToDepthPos = input.eyeToPoint / input.tc_depth.z * dstZ + esm_ao_view_pos.xyz - decalCenter;
+
+      float3 decalLocalPos = float3(dot(centerToDepthPos, decalInvX),
+        dot(centerToDepthPos, decalInvY), dot(centerToDepthPos, decalInvZ));
+      float3 decalTc = (decalLocalPos + 1.0) * 0.5;
+
+      float expK = esm_expK_expKExpMinusOne_oneMinusBiasTop_biasBottom.x;
+      float expKExpMinusOne = esm_expK_expKExpMinusOne_oneMinusBiasTop_biasBottom.y;
+      float oneMinusBiasTop = esm_expK_expKExpMinusOne_oneMinusBiasTop_biasBottom.z;
+      float biasBottom = esm_expK_expKExpMinusOne_oneMinusBiasTop_biasBottom.w;
+      float esmAo = 1.0;
+      if (all(abs(decalLocalPos) < 1.0))
+      {
+        int sliceId = esm_ao_decals[input.instanceId].texSliceId;
+        float2 esmValues = tex3Dlod(esm_shadows, float4(decalTc.xy, sliceId, 0)).rg;
+
+        esmValues = esmValues * expKExpMinusOne + 1.0;
+
+        float2 srcEsmValues = exp2(expK * float2(decalTc.z - oneMinusBiasTop, biasBottom - decalTc.z));
+        float2 esmAoTopBottom = saturate(esmValues * srcEsmValues);
+        esmAo = max(esmAoTopBottom.x, esmAoTopBottom.y);
+        esmAo = pow(esmAo, screen_pos_to_texcoord__esm_gamma.z);
+      }
+      return esmAo;
+    }
+  }
+
+  compile("target_vs", "esm_ao_decal_vs");
+  compile("target_ps", "esm_ao_decal_ps");
+}

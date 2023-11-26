@@ -255,6 +255,7 @@ static void init(const DataBlock &blk, int nav_mesh_idx)
   nmParams.jlkParams.linkDegDist = cosf(DegToRad(blk.getReal("jumpLinksMergeDist", 5.0f)));
   nmParams.jlkParams.agentRadius = nmParams.agentRadius;
   nmParams.jlkParams.crossObstaclesWithJumplinks = blk.getBool("crossObstaclesWithJumplinks", false);
+  nmParams.jlkParams.enableCustomJumplinks = blk.getBool("enableCustomJumplinks", false);
 
   covParams.enabled = nav_mesh_idx == 0 && blk.getBool("coversEnabled", false);
   if (covParams.enabled)
@@ -1093,8 +1094,11 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
     if (nav_mesh_params.jlkParams.enabled)
       recastbuild::build_jumplinks_connstorage(connStorage, edges, nav_mesh_params.jlkParams, tile_ctx.chf, tile_ctx.solid);
 
-    const Tab<recastbuild::CustomJumpLink> customJumplinks = get_custom_jumplinks_in_box(box, objEd);
-    add_custom_jumplinks(connStorage, edges, customJumplinks);
+    if (nav_mesh_params.jlkParams.enableCustomJumplinks)
+    {
+      const Tab<recastbuild::CustomJumpLink> customJumplinks = get_custom_jumplinks_in_box(box, objEd);
+      add_custom_jumplinks(connStorage, edges, customJumplinks);
+    }
 
     if (nav_mesh_params.jlkParams.crossObstaclesWithJumplinks && obstacle_flags_by_res_name_hash.size() > 0)
     {
@@ -1657,6 +1661,18 @@ static void gather_colliders_meshes(Tab<Point3> &vertices, Tab<int> &indices, Ta
         indices.push_back(mesh.face[j].v[k] + idxBase);
   }
 
+  Tab<BBox3> riBlockers;
+  for (int i = 0, plugin_cnt = IEditorCoreEngine::get()->getPluginCount(); i < plugin_cnt; ++i)
+  {
+    IGenEditorPlugin *plugin = DAGORED2->getPlugin(i);
+    auto blockersGatherer = plugin->queryInterface<IGatherRiNavmeshBlockers>();
+    if (!blockersGatherer)
+      continue;
+    blockersGatherer->gatherRiNavmeshBlockers(riBlockers);
+    break;
+  }
+  debug("NavMesh: gathered %@ rendinst navmesh blockers", riBlockers.size());
+
   for (int i = 0, plugin_cnt = IEditorCoreEngine::get()->getPluginCount(); i < plugin_cnt; ++i)
   {
     IGenEditorPlugin *plugin = DAGORED2->getPlugin(i);
@@ -1664,7 +1680,7 @@ static void gather_colliders_meshes(Tab<Point3> &vertices, Tab<int> &indices, Ta
     if (!gatherColl)
       continue;
     int64_t refdet = ref_time_ticks_qpc();
-    gatherColl->gatherCollision(box, vertices, indices, transparent, obstacles);
+    gatherColl->gatherCollision(box, vertices, indices, transparent, obstacles, riBlockers);
     DAEDITOR3.conNote("Gathered geom for %.2f sec", get_time_usec_qpc(refdet) / 1000000.0);
     gatherColl->getObstaclesFlags(obstacle_flags_by_res_name_hash);
   }

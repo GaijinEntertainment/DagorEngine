@@ -1,0 +1,529 @@
+texture scene_voxels_data;
+texture scene_voxels_alpha;
+float4 scene_voxels_size;
+float4 scene_voxels_origin0;
+float4 scene_voxels_toroidal_ofs0;
+float4 scene_voxels_origin1;
+float4 scene_voxels_toroidal_ofs1;
+float4 scene_voxels_origin2;
+float4 scene_voxels_toroidal_ofs2;
+float4 scene_voxels_bmax0;
+float4 scene_voxels_bmax1;
+float4 scene_voxels_bmax2;
+
+//float4 constant_ambient_light = (0.0, 0.0,0,0.0);
+//float inv_constant_ambient_dist_sq = 1./(10*10);
+//float inv_constant_ambient_dist_ofs = -0.01;
+include "dagi_walls.dshl"
+include "dagi_windows.dshl"
+include "dagi_volmap_gi.dshl"
+include "static_shadow.dshl"
+include "dagi_scene_voxels_common_25d.dshl"
+include "csm.dshl"
+include "other_gi_ray_cast.dshl"
+
+macro SAMPLE_VOXELS(code)
+  (code) {
+    voxels_data@smp3d = scene_voxels_data;
+    voxels_alpha@smp3d = scene_voxels_alpha;
+  }
+  hlsl(code) {
+    #include <dagi_voxels_consts.hlsli>
+    float3 getVoxelsColor(int3 coord, uint cascade)
+    {
+##if gi_quality != only_ao
+      return decode_scene_voxels_color(voxels_data[coord+getCascadeShift(cascade)].xyz);
+##else
+      return voxels_alpha[coord+getCascadeShift(cascade)].xxx;
+##endif
+    }
+    float getVoxelsAlphaDirect(int3 coord, uint cascade)
+    {
+      #if SCENE_VOXELS_COLOR == SCENE_VOXELS_R11G11B10
+##if gi_quality != only_ao
+        return voxels_alpha[coord+getCascadeShift(cascade)].x;
+##else
+        return voxels_alpha[coord+getCascadeShift(cascade)].x > 0 ? 1 : 0;
+##endif
+      #else
+        return voxels_data[coord+getCascadeShift(cascade)].w;
+      #endif
+    }
+    float getVoxelsAlpha(int3 coord, uint cascade)
+    {
+      return saturate(getVoxelsAlphaDirect(coord, cascade)*SCENE_VOXELS_ALPHA_SCALE);
+    }
+    float sampleVoxelsAlpha(float3 tc, float lod)
+    {
+      #if SCENE_VOXELS_COLOR == SCENE_VOXELS_R11G11B10
+##if gi_quality != only_ao
+        return tex3Dlod(voxels_alpha, float4(tc, lod)).x;
+##else
+        return tex3Dlod(voxels_alpha, float4(tc, lod)).x > 0 ? 1 : 0;
+##endif
+      #else
+        return tex3Dlod(voxels_data, float4(tc, lod)).w;
+      #endif
+    }
+    float3 sampleVoxelsColor(float3 tc, float lod)
+    {
+##if gi_quality != only_ao
+      return tex3Dlod(voxels_data, float4(tc, lod)).rgb;
+##else
+      return tex3Dlod(voxels_alpha, float4(tc, lod)).rrr;
+##endif
+    }
+
+    bool getVoxelsSceneValueAt(float3 worldPos, uint cascade, inout half4 result)
+    {
+      int3 coord = sceneWorldPosToCoord(worldPos, cascade);
+      if (any(coord<0) || any(coord>=VOXEL_RESOLUTION))
+        return false;
+      uint3 wrapCoord = wrapSceneVoxelCoord(coord, cascade);
+      half alpha = getVoxelsAlpha(wrapCoord, cascade);
+      BRANCH
+      if (alpha==0)
+        return false;
+      half3 voxelColor = getVoxelsColor(wrapCoord, cascade);
+      result.rgb += result.a*voxelColor;//voxelColor is premultiplied by it's alpha
+      result.a *= 1-alpha;
+      return true;
+    }
+
+    void getVoxelSceneValueAt(float3 hitPos, out half4 ret)
+    {
+      ret = half4(0, 0, 0, 1);
+      BRANCH
+      if (!getVoxelsSceneValueAt(hitPos, 0, ret))
+      {
+        BRANCH
+        if (!getVoxelsSceneValueAt(hitPos, 1, ret))
+          getVoxelsSceneValueAt(hitPos, 2, ret);
+      }
+    }
+  }
+endmacro
+
+macro INIT_VOXELS(code)
+  (code) {
+    scene_voxels_size@f4 = scene_voxels_size;
+    scene_voxels_origin@f4[] = {scene_voxels_origin0, scene_voxels_origin1, scene_voxels_origin2};
+    scene_voxels_bmax@f4[] = {scene_voxels_bmax0, scene_voxels_bmax1, scene_voxels_bmax2};
+    scene_voxels_toroidal_ofs@f4[] = {scene_voxels_toroidal_ofs0, scene_voxels_toroidal_ofs1, scene_voxels_toroidal_ofs2};
+  }
+endmacro
+
+macro USE_VOXELS(code)
+  hlsl(code) {
+    //if you increase cascades count, change getIntersection
+    #include <dagi_voxels_consts.hlsli>
+    //#include <voxels_functions.hlsli>
+    uint getSceneVoxelNumCascades() {return scene_voxels_size.w;}
+    float getSceneVoxelNumCascadesF() {return scene_voxels_size.w;}
+    float3 getInvFullResolution() {return float3(1./VOXEL_RESOLUTION_X, 1./VOXEL_RESOLUTION_Z, scene_voxels_size.z);}
+    uint3 getCascadeShift(uint cascade) {return uint3(0,0,cascade*VOXEL_RESOLUTION_Y);}
+
+    float3 getSceneVoxelSize0() {return scene_voxels_size.xyx;}//for zero cascade
+    float  getSceneVoxelSizeScale(uint cascade) {return scene_voxels_origin[cascade].w;}
+    float3 getSceneVoxelSize(uint cascade) {return getSceneVoxelSize0()*getSceneVoxelSizeScale(cascade);}
+    float3 getSceneVoxelOrigin(uint cascade) {return scene_voxels_origin[cascade].xyz;}
+    float  getSceneVoxelStep(uint cascade) {return scene_voxels_bmax[cascade].w;}
+
+    uint3 wrapSceneVoxelCoord(int3 coord, uint cascade) {return int3(coord + scene_voxels_toroidal_ofs[cascade].xzy)&uint3(VOXEL_RESOLUTION-1);}
+
+    void getSceneVoxelBox(uint cascade, out float3 bmin, out float3 bmax)
+    {
+      bmin = scene_voxels_origin[cascade].xyz;
+      bmax = scene_voxels_bmax[cascade].xyz;
+      //bmax = bmin + (VOXEL_RESOLUTION.xzy*getSceneVoxelSize(cascade));//todo: can be const, but now it is two instructions
+    }
+
+    float3 sceneWorldPosToCoordF(float3 worldPos, uint cascade)
+    {
+      float3 voxelSize = getSceneVoxelSize(cascade);
+      return (worldPos.xzy-getSceneVoxelOrigin(cascade).xzy)/voxelSize.xzy;//todo: two instructions, one division
+      //return (worldPos*invVoxelSize(cascade) + getNegSceneVoxelOriginInVoxels(cascade)).xzy;//todo: one madd
+    }
+    float3 sceneWorldPosToCoordMoveF(float3 worldDir, uint cascade)
+    {
+      float3 voxelSize = getSceneVoxelSize(cascade);
+      return worldDir.xzy/voxelSize.xzy;//todo: one division, can be replaced with mul
+      //return (worldPos*invVoxelSize(cascade) + getNegSceneVoxelOriginInVoxels(cascade)).xzy;//todo: one madd
+    }
+    int3 sceneWorldPosToCoord(float3 worldPos, uint cascade)
+    {
+      return int3(floor(sceneWorldPosToCoordF(worldPos, cascade)));
+    }
+    float3 sceneCoordToWorldPos(int3 coord, uint cascade)
+    {
+      float3 voxelSize = getSceneVoxelSize(cascade);
+      return (coord.xzy+0.5)*voxelSize + getSceneVoxelOrigin(cascade);//
+    }
+    float3 sceneCoordFToWorldPos(float3 coordF, uint cascade)
+    {
+      return coordF.xzy*getSceneVoxelSize(cascade) + getSceneVoxelOrigin(cascade);
+    }
+    float2 get_box_intersect_general(float3 wpos, float3 wdir, float3 bmin, float3 bmax)//is_intersected ret.y>=0 && ret.y>=ret.x
+    {
+      float3 cb = (wdir >= 0.0f) ? bmin : bmax;
+
+      float3 invDir = rcp(wdir);
+      bool3 nonzero = (abs(wdir) > 1e-6);
+      float3 l1 = (bmin-wpos)*invDir, l2 = (bmax-wpos)*invDir;
+      float3 lmin = min(l1, l2), lmax = max(l1, l2);
+      return float2(max3(lmin.x,lmin.y,lmin.z), min3(lmax.x,lmax.y,lmax.z));
+    }
+    float2 get_box_intersect_cascade(uint cascade, float3 wpos, float3 wdir)//is_intersected ret.y>=0 && ret.y>=ret.x
+    {
+      float3 bmin, bmax;
+      getSceneVoxelBox(cascade, bmin, bmax);//todo: this is one madd now, optimize to noop
+      return get_box_intersect_general(wpos, wdir, bmin, bmax);
+    }
+    float3 sceneVoxelsCoordToTc(float3 coordF, uint cascade)
+    {
+      float3 cCoord = clamp(coordF, 0.5, VOXEL_RESOLUTION-.5);//avoid bilinear filtering across border
+      float3 wrappedTc = (coordF + scene_voxels_toroidal_ofs[cascade].xzy)/VOXEL_RESOLUTION;//todo:can be optimized to one madd
+
+      wrappedTc.z = clamp(frac(wrappedTc.z), 0.5/VOXEL_RESOLUTION.z, (VOXEL_RESOLUTION.z-0.5)/VOXEL_RESOLUTION.z);//to avoid filtering with cascades
+      return float3(wrappedTc.xy, (wrappedTc.z+cascade)/getSceneVoxelNumCascadesF());//todo: can optimized to one madd
+    }
+  }
+endmacro
+
+macro VOXEL_SCENE_INTERSECTION(code)
+  hlsl(code)
+  {
+    bool getIntersection(float3 center, float half_extension)
+    {
+      uint cascadesCount = 3;
+      uint sceneCascade = cascadesCount;
+      float3 sceneCoord = 0;
+      float sceneVoxelSize = getSceneVoxelSize(2).x;
+
+      //FLATTEN
+      //if (getSceneVoxelSize(0).x >= half_extension.x)
+      center -= half_extension;
+      float3 sceneCoord0 = sceneWorldPosToCoordF(center, 0),
+             sceneCoord1 = sceneWorldPosToCoordF(center, 1),
+             sceneCoord2 = sceneWorldPosToCoordF(center, 2);
+      FLATTEN
+      if (all(sceneCoord2>=0 && sceneCoord1<VOXEL_RESOLUTION))
+      {
+        sceneCascade = 2;
+        sceneCoord = sceneCoord2;
+      }
+      FLATTEN
+      if (getSceneVoxelSize(1).x >= half_extension && all(sceneCoord1>=0 && sceneCoord1<VOXEL_RESOLUTION))
+      {
+        sceneCascade = 1;
+        sceneCoord = sceneCoord1;
+        sceneVoxelSize = getSceneVoxelSize(1).x;
+      }
+      FLATTEN
+      if (getSceneVoxelSize(0).x >= half_extension && all(sceneCoord0>=0 && sceneCoord0<VOXEL_RESOLUTION))
+      {
+        sceneCascade = 0;
+        sceneCoord = sceneCoord0;
+        sceneVoxelSize = getSceneVoxelSize0().x;
+      }
+
+      float probeSizeInVoxels = 2.*saturate(half_extension/sceneVoxelSize);
+      sceneCoord = clamp(sceneCoord, 0.5, (VOXEL_RESOLUTION-.5) - probeSizeInVoxels);
+      sceneCoord.xyz = (sceneCoord + scene_voxels_toroidal_ofs[sceneCascade].xzy)%VOXEL_RESOLUTION;
+      float2 sceneTcXZ = sceneCoord.xy/VOXEL_RESOLUTION.xy;
+      float numSceneCascadesF = getSceneVoxelNumCascadesF();
+      uint numSceneCascades = getSceneVoxelNumCascades();
+      float3 invResolution = getInvFullResolution();
+      float3 offsetedSceneTc = float3(sceneTcXZ, (sceneCoord.z + float(getCascadeShift(sceneCascade).z))*invResolution.z);
+      return (sceneCascade < numSceneCascades) &&
+              max(sampleVoxelsAlpha(offsetedSceneTc, 0), sampleVoxelsAlpha(offsetedSceneTc + probeSizeInVoxels*invResolution, 0)) > 0;
+    }
+  }
+endmacro
+
+macro RAY_CAST_VOXELS_CASCADE(code)
+  INIT_VOXELS(code)
+  USE_VOXELS(code)
+  SAMPLE_VOXELS(code)
+  hlsl(code) {
+
+    #if FIXED_LOOP_COUNT
+      #define DIST_TYPE uint
+      #ifndef CASCADE_0_DIST
+        #define CASCADE_0_DIST 4
+      #endif
+      #ifndef CASCADE_1_DIST
+        #define CASCADE_1_DIST 10
+      #endif
+    #else
+      #define DIST_TYPE float
+      #ifndef CASCADE_0_DIST
+        #define CASCADE_0_DIST 3.f
+      #endif
+      #ifndef CASCADE_1_DIST
+        #define CASCADE_1_DIST 15.f
+      #endif
+    #endif
+
+    bool raycast_voxel_loop_coord_cascade(uint cascade, inout half4 result, inout float3 worldPos, float3 wdir, inout float len, DIST_TYPE maxDist)
+    {
+      float2 dd = get_box_intersect_cascade(cascade, worldPos, wdir);
+      if (dd.x > 0 || dd.y < 0)//either outside cascade or not intersect it
+        return false;
+      float cStep = getSceneVoxelStep(cascade);//getSceneVoxelSize(cascade).x*0.95;//todo: mul can be removed
+      wdir *= cStep;
+      float3 coordF = sceneWorldPosToCoordF(worldPos, cascade);
+      float3 coordStepF = sceneWorldPosToCoordMoveF(wdir, cascade);
+
+      #if FIXED_LOOP_COUNT
+      maxDist = min(DIST_TYPE(dd.y/cStep), maxDist);
+      for (uint i = 0; i < maxDist; ++i)
+      #else
+      //float lenTo = min(dd.y+len, maxDist);
+      //for (; len < lenTo; len += cStep)
+      int to = int(min(dd.y, maxDist-len)/cStep), i = 0;
+      for (; i<to; ++i)//for(int) loops seem to perform faster, than while loops
+      #endif
+      {
+        //if (any(coordF<0) || any(coordF>=VOXEL_RESOLUTION))
+        //  return false;
+        uint3 wrapCoord = wrapSceneVoxelCoord(int3(coordF), cascade);
+        half alpha = getVoxelsAlpha(wrapCoord, cascade);
+        BRANCH
+        if (alpha>0)
+        {
+          half3 voxelColor = getVoxelsColor(wrapCoord, cascade);
+          result.rgb += result.a*voxelColor;//voxelColor is already premultiplied by it's alpha
+          result.a *= 1-alpha;
+          if (result.a<0.05)
+            break;
+        }
+        coordF += coordStepF;
+      }
+      worldPos = sceneCoordFToWorldPos(coordF,cascade);
+      #if !FIXED_LOOP_COUNT
+      len += cStep*i;
+      #endif
+      return result.a<0.05;
+    }
+
+    half4 raycast_cone_base(uint startCascade, inout float3 wpos, float3 wdir, float len, DIST_TYPE maxDist)
+    {
+      half4 result = half4(0,0,0,1);
+      //raycast_voxel_loop_coord(0, result, wpos, wdir, 40.0);
+      //return result;
+      BRANCH
+      if (startCascade == 0 && raycast_voxel_loop_coord_cascade(0, result, wpos, wdir, len, CASCADE_0_DIST))
+        return result;
+      BRANCH
+      if (startCascade < 2 && raycast_voxel_loop_coord_cascade(1, result, wpos, wdir, len, CASCADE_1_DIST))
+        return result;
+      raycast_voxel_loop_coord_cascade(2, result, wpos, wdir, len, maxDist);
+      return result;
+    }
+    half4 raycast_cone(uint startCascade, inout float3 wpos, float3 wdir, DIST_TYPE maxDist)
+    {
+      return raycast_cone_base(startCascade, wpos, wdir, 0, maxDist);
+    }
+
+    //cone tracing using sampling. slower, but better quality
+    bool raycast_voxel_loop_coord_cascade_sample(uint cascade, inout half4 result, inout float3 worldPos, float3 wdir, inout float len, DIST_TYPE maxDist)
+    {
+      float2 dd = get_box_intersect_cascade(cascade, worldPos, wdir);
+      if (dd.x > 0 || dd.y < 0)//either outside cascade or not intersect it
+        return false;
+      float cStep = getSceneVoxelStep(cascade);//getSceneVoxelSize(cascade).x*0.95;//todo: mul can be removed
+      wdir *= cStep;
+      float3 coordF = sceneWorldPosToCoordF(worldPos, cascade);
+      float3 coordStepF = sceneWorldPosToCoordMoveF(wdir, cascade);
+
+      #if FIXED_LOOP_COUNT
+      maxDist = min(DIST_TYPE(dd.y/cStep), maxDist);
+      for (uint i = 0; i < maxDist; ++i)
+      #else
+      //float lenTo = min(dd.y+len, maxDist);
+      //for (; len < lenTo; len += cStep)
+      int to = int(min(dd.y, maxDist-len)/cStep), i = 0;
+      for (; i<to; ++i)//for(int) loops seem to perform faster, than while loops
+      #endif
+      {
+        //if (any(coordF<0) || any(coordF>=VOXEL_RESOLUTION))
+        //  return false;
+        float3 wrappedTc = sceneVoxelsCoordToTc(coordF, cascade);
+        half alpha = sampleVoxelsAlpha(wrappedTc, 0);
+        BRANCH
+        if (alpha>0)
+        {
+          half3 voxelColor = sampleVoxelsColor(wrappedTc,0);
+          result.rgb += result.a*voxelColor;//voxelColor is already premultiplied by it's alpha
+          result.a *= 1-alpha;
+          if (result.a<0.05)
+          {
+            result.rgb += result.a*voxelColor;//reapply twice
+            result.a *= 1-alpha;
+            break;
+          }
+        }
+        coordF += coordStepF;
+      }
+      worldPos = sceneCoordFToWorldPos(coordF,cascade);
+      #if !FIXED_LOOP_COUNT
+      len += cStep*i;
+      #endif
+      return result.a<0.05;
+    }
+
+    half4 raycast_cone_sample_base(uint startCascade, inout float3 wpos, float3 wdir, float len, DIST_TYPE maxDist)
+    {
+      half4 result = half4(0,0,0,1);
+      BRANCH
+      if (startCascade == 0 && raycast_voxel_loop_coord_cascade_sample(0, result, wpos, wdir, len, CASCADE_0_DIST))
+        return result;
+      BRANCH
+      if (startCascade < 2 && raycast_voxel_loop_coord_cascade_sample(1, result, wpos, wdir, len, CASCADE_1_DIST))
+        return result;
+      raycast_voxel_loop_coord_cascade_sample(2, result, wpos, wdir, len, maxDist);
+      return result;
+    }
+    half4 raycast_cone_sample(uint startCascade, inout float3 wpos, float3 wdir, DIST_TYPE maxDist)
+    {
+      return raycast_cone_sample_base(startCascade, wpos, wdir, 0, maxDist);
+    }
+  }
+endmacro
+
+define_macro_if_not_defined OTHER_GI_RAY_CAST_DIST(code)
+endmacro
+
+macro RAY_CAST_VOXELS(code)
+  RAY_CAST_VOXELS_CASCADE(code)
+  INIT_VOXELS_HEIGHTMAP_HELPERS(code)
+  SKIP_RAY_WINDOWS(code)
+  USE_WALLS(code)
+  OTHER_GI_RAY_CAST_DIST(code)
+  //(code) {constant_ambient_light@f4 = constant_ambient_light;}
+  //(code) {inv_constant_ambient_dist_sq@f2  = (inv_constant_ambient_dist_sq, inv_constant_ambient_dist_ofs, 0, 0);}
+  hlsl(code) {
+    #include <hammersley.hlsl>
+    #include <monteCarlo.hlsl>
+
+    /*half4 raycast_voxel_loop_coord(uint cascade, float3 wpos, float3 wdir, float maxDist)
+    {
+      half4 result = half4(0,0,0,1);
+      float len = 0;
+      raycast_voxel_loop_coord_cascade(0, result, wpos, wdir, len, maxDist);
+      return result;
+    }*/
+    float randOfset(float3 p)
+    {
+      return frac(sin(dot(p.xyz, float3(1, -2.7813, 3.01))*12.9898) * 43758.5453);
+    }
+
+    half4 raycast_loop_base(uint startCascade, float3 worldPos, float3 worldDir, DIST_TYPE dist, float max_start_dist)
+    {
+      #if HAS_OTHER_RAY_TRACE
+      {
+        float3 surfaceNorm; float surfaceDist;
+        worldPos += worldDir*0.05;
+        if (!other_ray_cast_dist(worldPos, worldDir, dist, surfaceDist, surfaceNorm))
+          return half4(0,0,0,1);//fixme: foliage
+        float3 rayHitPos = worldPos + surfaceDist*worldDir;
+        uint cascade = 0;
+        float floorHt = ssgi_get_heightmap_2d_height(rayHitPos);
+
+        rayHitPos.y = max(floorHt, rayHitPos.y);
+        for (;;) {
+          float3 coordF = sceneWorldPosToCoordF(rayHitPos, cascade);
+          if (all(coordF > 0.5 & coordF < VOXEL_RESOLUTION-0.5f))
+          {
+            float3 wrappedTc = sceneVoxelsCoordToTc(coordF, cascade);
+            half alpha = sampleVoxelsAlpha(wrappedTc, 0);
+            if (alpha > 0.01)//we hit something
+              return half4(sampleVoxelsColor(wrappedTc, 0).rgb/alpha, 0);//only working for non-transparent voxels (no foliage)
+          }
+          if (++cascade >= VOXEL_RESOLUTION_CASCADES)
+          {
+            return float4(0,0,0,0);//fixme: we need sample 2.5d albedo and relight
+          }
+        }
+      }
+      #endif
+      float floorHt = ssgi_get_heightmap_2d_height(worldPos);
+
+      float3 voxelSize = getSceneVoxelSize(startCascade);
+      worldPos.y = max(floorHt + voxelSize.y+0.1, worldPos.y);
+      {
+        int3 coord = sceneWorldPosToCoord(worldPos, startCascade);
+        if (any(coord<0) || any(coord>=VOXEL_RESOLUTION))
+          startCascade ++;
+        coord = sceneWorldPosToCoord(worldPos, startCascade);
+        if (any(coord<0) || any(coord>=VOXEL_RESOLUTION))
+          startCascade ++;
+      }
+
+      voxelSize = getSceneVoxelSize(startCascade);
+      float wallsDist = max_start_dist;
+      uint3 startCoord = wrapSceneVoxelCoord(sceneWorldPosToCoord(worldPos, startCascade), startCascade);
+      if (getVoxelsAlpha(startCoord, startCascade)>=1)//fixme: this is same getVoxelsAlpha for all threads from same voxel. can be optimized to one bit
+      {
+        #if HAS_OTHER_RAY_DIST
+        wallsDist = other_ray_cast_dist(worldPos, worldDir, wallsDist);
+        #endif
+        float startOfs = 0.25+0.5*randOfset(worldDir);
+        float distStep = (startOfs*voxelSize.x);
+        worldPos += min(wallsDist, distStep)*worldDir;
+        wallsDist = max(0, wallsDist - distStep);
+        uint3 startCoord2 = wrapSceneVoxelCoord(sceneWorldPosToCoord(worldPos, startCascade), startCascade);
+        bool sameCoord = all(startCoord2 == startCoord);
+        if (wallsDist > 0 && (sameCoord || getVoxelsAlpha(startCoord2, startCascade)>=1))
+        {
+          distStep = ((0.75+0.5*randOfset(worldPos))*voxelSize.x);
+          worldPos += min(wallsDist, distStep)*worldDir;
+        }
+        //if we still inside don't get so far away, use previous voxel. Less leaking of any kind
+        uint3 startCoord3 = wrapSceneVoxelCoord(sceneWorldPosToCoord(worldPos, startCascade), startCascade);
+        if (getVoxelsAlpha(startCoord3, startCascade)>=1)//still inside!
+          return half4(getVoxelsColor(sameCoord ? startCoord3 : startCoord2, startCascade).rgb, 0);
+      }
+      //half4 ret = raycast_voxel_loop_coord(startCascade, worldPos, worldDir, dist);
+      float3 wpos = worldPos;
+      half4 ret = raycast_cone(startCascade, wpos, worldDir, dist);
+      if (ret.a<0.05)
+      {
+        ret.rgb/=(1-ret.a);
+        ret.a = 0;
+      }
+      //float3 d = (worldPos-wpos);
+      //ao = length(d)*inv_constant_ambient_dist_sq.x;
+      //float constant_ambient_dist
+      //ao = saturate(dot(d,d)*inv_constant_ambient_dist_sq.x+inv_constant_ambient_dist_sq.y);//
+      //ao = ret.a == 1 ? 1 : ao;//ao trace dist independent, if hit sky - it is infinite
+      return ret;
+    }
+    float3 raycast_loop(uint startCascade, float3 worldPos, float3 worldDir, DIST_TYPE dist, float max_start_dist)
+    {
+      half4 ret = raycast_loop_base(startCascade, worldPos, worldDir, dist, max_start_dist);
+##if gi_quality == only_ao
+      return ret.r + ret.a;
+##else
+      half3 enviProbe = 0;
+      BRANCH
+      if (ret.a>0.01)
+        enviProbe = texCUBElod(envi_probe_specular, float4(worldDir,1)).rgb;
+      return ret.rgb + enviProbe * ret.a;
+##endif
+    }
+  }
+endmacro
+
+macro RAY_CAST_VOXELS_VARS(code)
+  (code) {
+    envi_probe_specular@smpCube = envi_probe_specular;
+    world_view_pos@f3 = world_view_pos;
+  }
+endmacro
+
+macro RAY_CAST_VOXELS_INIT(code)
+
+  RAY_CAST_VOXELS(code)
+endmacro

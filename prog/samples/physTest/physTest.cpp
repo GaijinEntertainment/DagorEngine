@@ -18,6 +18,7 @@
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaderBlock.h>
 #include <startup/dag_restart.h>
+#include <startup/dag_loadSettings.h>
 #include <workCycle/dag_gameScene.h>
 #include <workCycle/dag_startupModules.h>
 #include <gui/dag_guiStartup.h>
@@ -1023,6 +1024,14 @@ public:
   virtual void actScene()
   {
     freeCam->act();
+#if _TARGET_PC_MACOSX
+    if (HumanInput::raw_state_kbd.isKeyDown(HumanInput::DKEY_LWIN) && HumanInput::raw_state_kbd.isKeyDown(HumanInput::DKEY_Q))
+    {
+      debug("request to close (Cmd+Q)");
+      quit_game(0);
+      return;
+    }
+#endif
 
     if (physWorld)
     {

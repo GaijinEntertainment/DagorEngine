@@ -1,0 +1,136 @@
+include "sky_shader_global.dshl"
+include "viewVecVS.dshl"
+include "frustum.dshl"
+include "dagi_volmap_gi.dshl"
+include "dagi_scene_voxels_common.dshl"
+include "dagi_helpers.dshl"
+include "gpu_occlusion.dshl"
+
+hlsl {
+  #include "dagi_common_types.hlsli"
+}
+
+texture downsampled_close_depth_tex;
+
+float4 ambient_voxels_visible_start;
+float4 ambient_voxels_visible_width;
+
+shader cull_ambient_voxels_cs, cull_ambient_voxels_cs_warp_64
+{
+  INIT_AND_USE_FRUSTUM_CHECK_CS()
+
+  SSGI_USE_VOLMAP_GI_COORD(cs)
+
+  GPU_OCCLUSION(cs)
+  (cs) {
+    temporal_weight_limit@f1 = (ssgi_temporal_weight_limit);
+    ambient_voxels_visible_start@f4 = ambient_voxels_visible_start;
+    ambient_voxels_visible_width@f4 = ambient_voxels_visible_width;
+    ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal;
+  }
+
+  INIT_VOXELS(cs)
+  USE_VOXELS(cs)
+  SAMPLE_VOXELS(cs)
+  VOXEL_SCENE_INTERSECTION(cs)
+  ENABLE_ASSERT(cs)
+
+  hlsl(cs) {
+    RWStructuredBuffer<uint> visible_ambient_voxels: register(u1);
+    RWStructuredBuffer<uint> voxelCount : register( u0 );
+    //StructuredBuffer<BestBins> current_bins: register(t14);
+    //Texture3D<float> volmapTemporalWeight: register(t13);
+
+    #if CULL_ALL_CASCADE
+      [numthreads(4, 4, 4)]
+      void cull_voxels_cs( uint3 dtId : SV_DispatchThreadID )//uint3 gId : SV_GroupId,
+    #else
+    ##if shader == cull_ambient_voxels_cs_warp_64
+      [numthreads(64, 1, 1)]
+    ##else
+      [numthreads(32, 1, 1)]
+    ##endif
+      void cull_voxels_cs( uint dId : SV_DispatchThreadID )//uint3 gId : SV_GroupId,
+    #endif
+    {
+      #if CULL_ALL_CASCADE
+        uint3 coord = dtId;//if cull all cascade
+        float3 centerb = ambientCoordToWorldPos(coord, cascade_id);
+      #else
+        int3 startVisible = int3(ambient_voxels_visible_start.xyz);
+        uint4 visibleWidth = uint4(ambient_voxels_visible_width);
+        if (dId >= visibleWidth.w)
+          return;
+        uint visibleXZ = ambient_voxels_visible_start.w;//(visibleWidth.x*visibleWidth.z)
+        int3 unOffsCoord = (startVisible.xzy + int3(dId%visibleWidth.x, (dId%visibleXZ)/visibleWidth.x, dId/visibleXZ));
+        float3 centerb = (unOffsCoord.xzy+0.5)*ssgi_ambient_volmap_crd_to_world0_xyz(cascade_id);
+        //uint3 coord = ambientOffsetCoord2(unOffsCoord, cascade_id);
+        int3 dim = int3(volmap_xz_dim(cascade_id).xx, volmap_y_dim(cascade_id));
+        uint3 coord = uint3(unOffsCoord + (dim>>1))%(uint3(dim));
+        coord.z = unOffsCoord.z - int(ambient_voxels_visible_width.y);
+      #endif
+
+      //uint3 coord = dtId;
+      //float3 centerb = ambientCoordToWorldPos(coord, cascade_id);
+
+      //BRANCH
+      //if (ssgi_ambient_volmap_cascade_use_floor(cascade_id))
+      //  centerb.y += get_floor_height(centerb);
+      //todo: intentionally increase extent by 2. due to tri-linear filtering, voxels affects more than what it is
+      //should result in lower weight, though
+      //and we can also use same point selection algorithm to perform final culling (for each point), avoiding unoccluded later
+      float3 extent = ssgi_ambient_volmap_crd_to_world0_xyz(cascade_id);
+      if (!testBoxExtentB(centerb, extent*1.5))
+        return;
+      // we can schedule in different dispatch all random preselection
+      //check occlusion (voxel totally occluded)
+      bool intersects = false;
+
+      float2 minMaxBoxRawDepth;
+      float4 sbox;
+      BRANCH
+      if (!check_box_occl_visible_base(centerb - extent, centerb + extent, sbox, minMaxBoxRawDepth))
+        return;
+      /*##if downsampled_close_depth_tex != NULL
+      //using downsampled_close_depth_tex is also an option, but provides more false positive (intersected)
+      //we want to converge as fast as possible, so we want to keep better interstion using scene representation
+      if (minMaxBoxRawDepth.x>0)
+      {
+        float4 rawDepth = 0;
+        OCCLUSION_SAMPLE_RECT(downsampled_close_depth_tex, downsampled_close_depth_tex_samplerstate, max);
+
+        if (max(max(rawDepth.x, rawDepth.y), max(rawDepth.z, rawDepth.w)) >= minMaxBoxRawDepth.x)
+          intersects = true;
+      }
+      ##else
+        intersects = true;
+      ##endif*/
+      intersects = getIntersection(centerb, extent.x*0.5);
+      float temporalWeight = ssgi_ambient_volmap_temporal[uint3(coord.xy, coord.z + ssgi_cascade_z_crd_ofs(cascade_id))].x;
+      if (temporalWeight >= temporal_weight_limit)
+        return;
+
+      uint encodedVoxel = encode_voxel_coord_bin(coord, intersects ? 0 : 1);
+      uint at; InterlockedAdd(structuredBufferAt(voxelCount, 0), 1, at);
+      visible_ambient_voxels[at] = encodedVoxel;
+    }
+  }
+  compile("cs_5_0", "cull_voxels_cs");
+}
+
+shader create_point_occlusion_dispatch_cs {
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    RWByteAddressBuffer dispatchIndirectBuffer : register( u0 );
+    StructuredBuffer<uint> voxelCount : register( t1 );
+    [numthreads( 1, 1, 1 )]
+    void main()
+    {
+      storeBuffer(dispatchIndirectBuffer, 0 * 4, (structuredBufferAt(voxelCount, 0) + POINT_OCCLUSION_WARP_SIZE-1)/POINT_OCCLUSION_WARP_SIZE); //
+      storeBuffer(dispatchIndirectBuffer, 1 * 4, 1);
+      storeBuffer(dispatchIndirectBuffer, 2 * 4, 1);
+    }
+  }
+  compile("cs_5_0", "main");
+  //compile("cs_5_0", "main");
+}

@@ -177,6 +177,12 @@ MemoryRequirementInfo Image::getMemoryReq()
   return get_memory_requirements(dev, getHandle());
 }
 
+VkMemoryRequirements Image::getSharedHandleMemoryReq()
+{
+  fatal("vulkan: no image handle suballoc");
+  return {};
+}
+
 void Image::bindMemory()
 {
   G_ASSERT(getBaseHandle());
@@ -190,6 +196,8 @@ void Image::bindMemory()
 }
 
 void Image::reuseHandle() { fatal("vulkan: no image handle suballoc"); }
+
+void Image::releaseSharedHandle() { fatal("vulkan: no image handle suballoc"); }
 
 void Image::shutdown() { cleanupReferences(); }
 
@@ -264,7 +272,7 @@ void Image::fillImage2BufferCopyData(carray<VkBufferImageCopy, MAX_MIPMAPS> &cop
   for (uint32_t j = 0; j < desc.ici.mipLevels; ++j)
   {
     VkBufferImageCopy &copy = copies[j];
-    copy = make_copy_info(desc.format, j, 0, desc.ici.arrayLayers, desc.ici.extent, targetBuffer->dataOffset(bufferOffset));
+    copy = make_copy_info(desc.format, j, 0, desc.ici.arrayLayers, desc.ici.extent, targetBuffer->bufOffsetLoc(bufferOffset));
 
     bufferOffset += desc.format.calculateImageSize(copy.imageExtent.width, copy.imageExtent.height, copy.imageExtent.depth, 1) *
                     desc.ici.arrayLayers;

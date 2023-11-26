@@ -80,6 +80,7 @@ bool ddstexture::Converter::convert(const char *src_filename, const char *dst_fi
     case fmtDXT1a:
     case fmtDXT3:
     case fmtDXT5: dxt_fmt = true; break;
+    default: break;
   }
   if (!make_pow_2 && dxt_fmt)
     make_pow_2 = true;
@@ -168,6 +169,7 @@ bool ddstexture::Converter::convert(const char *src_filename, const char *dst_fi
         }
         memfree(img, tmpmem);
         return false;
+      default: break;
     }
 
     inpOptions.setTextureLayout(nvtt::TextureType_2D, img->w, img->h);

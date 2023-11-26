@@ -2,15 +2,15 @@ shader_root_dir:t="."
 outDumpName:t="../../tools/common/compiledShaders/tools"
 packBin:b=yes
 
-include common_inc_dirs.blk 
+include common_inc_dirs.blk
 
 source
 {
   includePath:t="./source"
 
   include "../../../../prog/samples/commonShaders/shadersList.blk"
-  file:t = "editor.sh"
-  file:t = "tex_view.sh"
+  file:t = "editor.dshl"
+  file:t = "tex_view.dshl"
   include fftWaterList.blk
   include shadersList.blk
   include "../../../../prog/gameLibs/daSkies2/shaders/daSkiesList.blk"

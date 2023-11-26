@@ -362,7 +362,7 @@ if __name__ == "__main__":
         use_configs = True
         gerrit_files = gerrit.list_files(args.changeid, args.revisionid, branch=args.branch, project=args.project)
         gerrit_files = [f[0] for f in gerrit_files.items() if f[1].get("status")!="D" and f[0].lower().endswith(".nut")]
-        gerrit_files = [f for f in gerrit_files if not f.startswith("prog/1stPartyLibs/quirrel/quirrel/testData")]
+        gerrit_files = [f for f in gerrit_files if not f.startswith("prog/1stPartyLibs/quirrel/quirrel/testData") and not f.startswith("launcher/")]
         gerrit_files = [f for f in gerrit_files if not f.startswith("skyquake/prog/scripts")]
         files = gather_files(gerrit_files, args.exclude, use_configs)
     else:

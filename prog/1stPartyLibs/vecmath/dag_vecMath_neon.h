@@ -896,7 +896,7 @@ VECTORCALL VECMATH_FINLINE void v_mat44_inverse(mat44f &dest, mat44f_cref m)
   vec4f detA2 = v_splat_z(det1);
   vec4f detB0 = v_sub(detA0, detA1);
   vec4f det = v_sub(detB0, detA2);
-  vec4f invdet = v_rcp(det);
+  vec4f invdet = v_rcp_safe(det);
   /* Multiply the cofactors by the reciprocal of the determinant.
   */
   dest.col0 = v_mul(out1, invdet);
@@ -911,7 +911,7 @@ VECTORCALL VECMATH_FINLINE void v_mat33_inverse(mat33f &dest, mat33f_cref m)
   tmp0 = v_cross3(m.col1, m.col2);
   tmp1 = v_cross3(m.col2, m.col0);
   dot = v_dot3(tmp2, m.col2);
-  invdet = v_rcp(dot);
+  invdet = v_rcp_safe(dot);
   inv0 = v_transpose3x(tmp0, tmp1, tmp2);
   inv1 = v_transpose3y(tmp0, tmp1, tmp2);
   inv2 = v_transpose3z(tmp0, tmp1, tmp2);
@@ -1008,7 +1008,7 @@ VECTORCALL VECMATH_FINLINE quat4f v_un_quat_from_mat(vec3f col0, vec3f col1, vec
 
   vec4f q = v_sel(res0, res1, v_cmp_gt(yy, xx));
   q = v_sel(q, res2, v_and(v_cmp_gt(zz, xx), v_cmp_gt(zz, yy)));
-  return v_sel(q, res3, v_cmp_gt(v_splat_x(diagSum), v_zero()));
+  return v_sel(q, res3, v_cmp_ge(v_splat_x(diagSum), v_zero()));
 }
 
 VECTORCALL VECMATH_FINLINE short v_extract_xi16(vec4i v) { return vgetq_lane_s16(vreinterpretq_s16_s32(v), 0); }

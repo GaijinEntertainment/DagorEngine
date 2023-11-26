@@ -159,7 +159,7 @@ class ShaderProgramDatabase
 public:
   ShaderProgramDatabase() = default;
 
-  void init(DeviceContext &ctx);
+  void init(bool has_bindless, DeviceContext &ctx);
 
   void shutdown()
   {
@@ -338,7 +338,7 @@ private:
 
   eastl::optional<ShaderInfo::CreationInfo> getShaderCreationInfo(DeviceContext &ctx, const CombinedChunkModules &modules);
 
-  void initDebugProg(DeviceContext &dc);
+  void initDebugProg(bool has_bindless, DeviceContext &dc);
   void initShaders(DeviceContext &ctx);
 
   ProgramID debugProgId;

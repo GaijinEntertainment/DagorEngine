@@ -39,6 +39,11 @@ if $(daScript_trackAllocations) = 1 {
   CPPopt += -DDAS_TRACK_ALLOCATIONS=$(daScript_trackAllocations) ;
 }
 
+if $(daScript_sanitizer) = 1 {
+  Target = $(Target:S=~sa$(daScript_sanitizer).lib) ;
+  CPPopt += -DDAS_SANITIZER=$(daScript_sanitizer) ;
+}
+
 if $(Platform) = macosx {
   CPPopt += -Wno-deprecated-declarations ;
 }

@@ -73,18 +73,67 @@ uint32_t DeviceMemoryPage::getCatIdx(uint32_t allocator_idx) { return allocator_
 
 bool DeviceMemoryPage::init(AbstractAllocator *allocator, SubAllocationMethod suballoc_method, VkDeviceSize in_size)
 {
+  Device &drvDev = get_device();
+  VulkanDevice &vkDev = drvDev.getVkDevice();
   subType = suballoc_method;
+  VkDeviceSize correctedSize = in_size;
+
+  if (suballoc_method == SubAllocationMethod::BUF_OFFSET)
+  {
+    // Create buffer
+    VkBufferCreateInfo bci;
+    bci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bci.pNext = NULL;
+    bci.flags = 0;
+    bci.size = in_size;
+    bci.usage = Buffer::getUsage(vkDev, drvDev.memory->isDeviceLocalMemoryType(allocator->getMemType())
+                                          ? DeviceMemoryClass::DEVICE_RESIDENT_BUFFER
+                                          : DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER);
+    bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    bci.queueFamilyIndexCount = 0;
+    bci.pQueueFamilyIndices = NULL;
+    const VkResult resCode = VULKAN_CHECK_RESULT(vkDev.vkCreateBuffer(vkDev.get(), &bci, NULL, ptr(buffer)));
+    if (resCode != VK_SUCCESS)
+      return false;
+
+    MemoryRequirementInfo ret = get_memory_requirements(vkDev, buffer);
+    correctedSize = ret.requirements.size;
+    if (!correctedSize)
+    {
+      vkDev.vkDestroyBuffer(vkDev.get(), buffer, nullptr);
+      return false;
+    }
+  }
 
   DeviceMemoryTypeAllocationInfo devMemDsc;
   devMemDsc.typeIndex = allocator->getMemType();
-  devMemDsc.size = in_size;
+  devMemDsc.size = correctedSize;
 
-  mem = get_device().memory->allocate(devMemDsc);
-  return !is_null(mem);
+  mem = drvDev.memory->allocate(devMemDsc);
+  if (is_null(mem))
+    return false;
+
+  if (suballoc_method == SubAllocationMethod::BUF_OFFSET)
+  {
+    const VkResult resCode = VULKAN_CHECK_RESULT(vkDev.vkBindBufferMemory(vkDev.get(), buffer, mem.memory, 0));
+    if (resCode != VK_SUCCESS)
+    {
+      vkDev.vkDestroyBuffer(vkDev.get(), buffer, nullptr);
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void DeviceMemoryPage::shutdown()
 {
+  if (buffer)
+  {
+    VulkanDevice &vkDev = get_device().getVkDevice();
+    vkDev.vkDestroyBuffer(vkDev.get(), buffer, nullptr);
+    buffer = VulkanNullHandle();
+  }
   get_device().memory->free(mem);
   mem.memory = VulkanNullHandle();
 }
@@ -100,9 +149,7 @@ bool DeviceMemoryPage::isAllocAllowedFor(const AllocationDesc &desc)
 void DeviceMemoryPage::useOffset(ResourceMemory &target, VkDeviceSize offset)
 {
   G_ASSERT(mem.size > offset);
-  // TODO: buf suballoc branch
-  // if (subType == SubAllocationMethod::BUF_OFFSET)
-  target.handle = generalize(mem.memory);
+  target.handle = subType == SubAllocationMethod::BUF_OFFSET ? generalize(buffer) : generalize(mem.memory);
   target.offset = offset;
   target.mappedPointer = mem.pointer;
 }
@@ -156,15 +203,15 @@ void FixedOccupancyPage::free(ResourceMemory &target)
     shutdown();
 }
 
-VkDeviceSize FixedOccupancyPage::getUnusedMemorySize() { return freePlaces.size() * getSize() / totalPlaces; }
+VkDeviceSize FixedOccupancyPage::getUnusedMemorySize() { return freePlaces.size() * getAllocatedMemorySize() / totalPlaces; }
 
 uint32_t FixedOccupancyPage::getOccupiedCount() { return totalPlaces - freePlaces.size(); }
 
 String FixedOccupancyPage::printMemoryMap(int32_t page_index)
 {
-  VkDeviceSize blockSize = getSize() / totalPlaces;
+  VkDeviceSize blockSize = getAllocatedMemorySize() / totalPlaces;
 
-  PageMemMap map(getSize(), page_index);
+  PageMemMap map(getAllocatedMemorySize(), page_index);
   for (VkDeviceSize i : freePlaces)
     map.markFreeBlock(i, blockSize);
   return map.print();
@@ -184,7 +231,7 @@ bool FreeListPage::init(AbstractAllocator *allocator, SubAllocationMethod suball
 
 void FreeListPage::shutdown()
 {
-  G_ASSERT(freeList.checkEmpty(getSize()));
+  G_ASSERT(freeList.checkEmpty(getAllocatedMemorySize()));
   G_ASSERT(refs == 0);
   freeList.reset();
   DeviceMemoryPage::shutdown();
@@ -223,7 +270,7 @@ void FreeListPage::free(ResourceMemory &target)
 
 String FreeListPage::printMemoryMap(uint32_t page_index)
 {
-  PageMemMap map(getSize(), page_index);
+  PageMemMap map(getAllocatedMemorySize(), page_index);
   freeList.iterate([&map](VkDeviceSize offset, VkDeviceSize size) { map.markFreeBlock(offset, size); });
   return map.print();
 }
@@ -233,6 +280,7 @@ bool LinearOccupancyPage::init(AbstractAllocator *allocator, SubAllocationMethod
   if (!DeviceMemoryPage::init(allocator, suballoc_method, page_size))
     return false;
 
+  usableSize = page_size;
   refs = 0;
   pushOffset = 0;
   return true;
@@ -253,7 +301,7 @@ bool LinearOccupancyPage::occupy(ResourceMemory &target, const AllocationDesc &d
   VkDeviceSize targetOffset = (pushOffset + invAlign) & ~invAlign;
   VkDeviceSize newOffset = targetOffset + size;
 
-  if (newOffset < getSize())
+  if (newOffset < usableSize)
   {
     useOffset(target, targetOffset);
     pushOffset = newOffset;
@@ -272,11 +320,11 @@ void LinearOccupancyPage::free(ResourceMemory &)
     pushOffset = 0;
 }
 
-VkDeviceSize LinearOccupancyPage::getUnusedMemorySize() { return getSize() - pushOffset; }
+VkDeviceSize LinearOccupancyPage::getUnusedMemorySize() { return getAllocatedMemorySize() - pushOffset; }
 
 String LinearOccupancyPage::printMemoryMap(uint32_t page_index)
 {
-  PageMemMap map(getSize(), page_index);
+  PageMemMap map(getAllocatedMemorySize(), page_index);
   map.markFreeBlock(pushOffset, getUnusedMemorySize());
   return map.print();
 }

@@ -10,7 +10,8 @@
 #include <ecs/render/updateStageRender.h>
 #include <debug/dag_debug3d.h>
 #include <util/dag_console.h>
-#include <EASTL/vector_set.h>
+#include <util/dag_hash.h>
+#include <dag/dag_vectorSet.h>
 #include <ecs/core/utility/ecsRecreate.h>
 
 
@@ -94,10 +95,10 @@ static void animchar_fast_phys_destroy_es_event_handler(const ecs::Event &, Anim
   }
 }
 
-eastl::vector_set<eastl::string> debugAnimCharsSet;
+static dag::VectorSet<uint32_t> debugAnimCharsSet;
 #define TEMPLATE_NAME "animchar_fast_phys_debug_render"
 const char *template_name = TEMPLATE_NAME;
-void createTemplate()
+static void createTemplate()
 {
   ecs::ComponentsMap map;
   map[ECS_HASH(TEMPLATE_NAME)] = ecs::Tag();
@@ -107,7 +108,7 @@ void createTemplate()
   g_entity_mgr->instantiateTemplate(g_entity_mgr->buildTemplateIdByName(template_name));
 }
 
-void removeSubTemplateAsync(ecs::EntityId eid)
+static void removeSubTemplateAsync(ecs::EntityId eid)
 {
   if (const char *fromTemplate = g_entity_mgr->getEntityTemplateName(eid))
   {
@@ -118,7 +119,7 @@ void removeSubTemplateAsync(ecs::EntityId eid)
   }
 }
 
-void addSubTemplateAsync(ecs::EntityId eid)
+static void addSubTemplateAsync(ecs::EntityId eid)
 {
   if (const char *fromTemplate = g_entity_mgr->getEntityTemplateName(eid))
   {
@@ -133,12 +134,12 @@ template <typename Callable>
 static void get_animchar_by_name_ecs_query(Callable c);
 
 
-void toggleDebugAnimChar(eastl::string &str)
+static void toggleDebugAnimChar(const eastl::string &str)
 {
-  auto it = debugAnimCharsSet.find(str);
+  auto it = debugAnimCharsSet.find(str_hash_fnv1(str.c_str()));
   if (it != debugAnimCharsSet.end())
   {
-    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, ecs::string &animchar__res) {
+    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, const ecs::string &animchar__res) {
       if (animchar__res == str)
         removeSubTemplateAsync(eid);
     });
@@ -146,21 +147,20 @@ void toggleDebugAnimChar(eastl::string &str)
   }
   else
   {
-    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, ecs::string &animchar__res) {
+    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, const ecs::string &animchar__res) {
       if (animchar__res == str)
         addSubTemplateAsync(eid);
     });
-    debugAnimCharsSet.insert(str);
+    debugAnimCharsSet.insert(str_hash_fnv1(str.c_str()));
   }
 }
 
-void resetDebugAnimChars()
+static void resetDebugAnimChars()
 {
-  for (auto it = debugAnimCharsSet.begin(); it != debugAnimCharsSet.end(); ++it)
+  for (auto &hash : debugAnimCharsSet)
   {
-    eastl::string str = *it;
-    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, ecs::string &animchar__res) {
-      if (animchar__res == str)
+    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, const ecs::string &animchar__res) {
+      if (str_hash_fnv1(animchar__res.c_str()) == hash)
         removeSubTemplateAsync(eid);
     });
   }
@@ -192,7 +192,7 @@ static bool fastphys_console_handler(const char *argv[], int argc)
   {
     if (argc > 1)
     {
-      eastl::string resName(argv[1]);
+      const eastl::string resName(argv[1]);
       toggleDebugAnimChar(resName);
     }
     else

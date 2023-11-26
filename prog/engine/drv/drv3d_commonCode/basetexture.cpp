@@ -66,3 +66,40 @@ int BaseTextureImpl::getinfo(TextureInfo &ti, int level) const
   ti.cflg = cflg;
   return 1;
 }
+
+uint32_t auto_mip_levels_count(uint32_t w, uint32_t h, uint32_t min_size)
+{
+  uint32_t lev = 1;
+  uint32_t minExtend = min(w, h);
+  while (minExtend > min_size)
+  {
+    lev++;
+    minExtend >>= 1;
+  }
+  return lev;
+}
+
+eastl::pair<int32_t, int> add_srgb_read_flag_and_count_mips(int w, int h, int32_t flg, int levels)
+{
+  const bool rt = (TEXCF_RTARGET & flg) != 0;
+  auto fmt = TEXFMT_MASK & flg;
+
+  if (rt && (0 != (TEXCF_SRGBWRITE & flg)) && (TEXFMT_A8R8G8B8 != fmt))
+  {
+    // TODO verify this requirement (RE-508)
+    if (0 != (TEXCF_SRGBREAD & flg))
+    {
+      debug("Adding TEXCF_SRGBREAD to texture flags, because chosen format needs it");
+      flg |= TEXCF_SRGBREAD;
+    }
+  }
+
+  if (0 == levels)
+  {
+    levels = auto_mip_levels_count(w, h, rt ? 1 : 4);
+    debug("Auto compute for texture mip levels yielded %d", levels);
+  }
+
+  // update format info if it had changed
+  return {(flg & ~TEXFMT_MASK) | fmt, levels};
+}

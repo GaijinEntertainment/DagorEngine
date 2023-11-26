@@ -1,0 +1,29 @@
+include "caustics_render_inc.dshl"
+
+shader caustics_render_cs
+{
+  if (hardware.fsh_5_0)
+  {
+    USE_AND_INIT_VIEW_VEC_CS()
+    CAUSTICS_RENDER_CORE(cs)
+
+    hlsl(cs) {
+      RWTexture2D<float4> caustics_tex : register(u0);
+
+      [numthreads(8, 8, 1)]
+      void caustics_cs(uint3 DTid : SV_DispatchThreadID)
+      {
+        float2 pixelCenter = DTid.xy + 0.5;
+        float2 texcoord    = pixelCenter * inv_caustics_texture_size.xy;
+        float3 viewVect    = lerp_view_vec(texcoord);
+
+        caustics_tex[DTid.xy] = caustics(texcoord, viewVect);
+      }
+    }
+    compile("target_cs", "caustics_cs");
+  }
+  else
+  {
+    dont_render;
+  }
+}

@@ -94,15 +94,15 @@ void ExecutionContext::processFillEmptySubresources()
 
     // greedy allocation to avoid reallocations and memory wasting
     VkDeviceSize subresSz = i->getSubresourceMaxSize();
-    if (!zeroBuf || (zeroBuf->dataSize() < subresSz))
+    if (!zeroBuf || (zeroBuf->getBlockSize() < subresSz))
     {
       if (zeroBuf)
         back.contextState.frame.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*zeroBuf);
       zeroBuf =
         get_device().createBuffer(subresSz, DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER, 1, BufferMemoryFlags::TEMP);
       zeroBuf->setDebugName("fill empty subres zero buf");
-      memset(zeroBuf->dataPointer(0), 0, zeroBuf->dataSize());
-      zeroBuf->markNonCoherentRange(0, zeroBuf->dataSize(), true);
+      memset(zeroBuf->ptrOffsetLoc(0), 0, zeroBuf->getBlockSize());
+      zeroBuf->markNonCoherentRangeLoc(0, zeroBuf->getBlockSize(), true);
     }
 
     ValueRange<uint8_t> mipRange = i->getMipLevelRange();
@@ -120,7 +120,7 @@ void ExecutionContext::processFillEmptySubresources()
             // present barrier is very special, as vkQueuePresent does all visibility ops
             // ref: vkQueuePresentKHR spec notes
             {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, i, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {mip, 1, arr, 1});
-          copies.push_back(i->makeBufferCopyInfo(mip, arr, zeroBuf->dataOffset(0)));
+          copies.push_back(i->makeBufferCopyInfo(mip, arr, zeroBuf->bufOffsetLoc(0)));
         }
 
     back.syncTrack.completeNeeded(frameCore, vkDev);
@@ -593,10 +593,12 @@ VulkanImageViewHandle ExecutionContext::getImageView(Image *img, ImageViewState 
 void ExecutionContext::beginQuery(VulkanQueryPoolHandle pool, uint32_t index, VkQueryControlFlags flags)
 {
   VULKAN_LOG_CALL(vkDev.vkCmdBeginQuery(frameCore, pool, index, flags));
+  directDrawCountInSurvey = directDrawCount;
 }
 
 void ExecutionContext::endQuery(VulkanQueryPoolHandle pool, uint32_t index)
 {
+  directDrawCountInSurvey = directDrawCount - directDrawCountInSurvey;
   VULKAN_LOG_CALL(vkDev.vkCmdEndQuery(frameCore, pool, index));
 }
 
@@ -604,11 +606,15 @@ void ExecutionContext::writeTimestamp(const TimestampQueryRef &query) { device.t
 
 void ExecutionContext::wait(ThreadedFence *fence) { fence->wait(vkDev); }
 
-void ExecutionContext::beginConditionalRender(VulkanBufferHandle buffer, VkDeviceSize offset)
+void ExecutionContext::beginConditionalRender(const BufferRef &buffer, VkDeviceSize offset)
 {
 #if VK_EXT_conditional_rendering
+  VkDeviceSize bufOffset = buffer.bufOffset(offset);
+  back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT, VK_ACCESS_CONDITIONAL_RENDERING_READ_BIT_EXT},
+    buffer.buffer, {bufOffset, sizeof(uint32_t)});
+
   VkConditionalRenderingBeginInfoEXT crbi = //
-    {VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT, nullptr, buffer, offset, 0};
+    {VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT, nullptr, buffer.getHandle(), bufOffset, 0};
   VULKAN_LOG_CALL(vkDev.vkCmdBeginConditionalRenderingEXT(frameCore, &crbi));
 #else
   G_UNUSED(buffer);
@@ -756,7 +762,7 @@ void ExecutionContext::buildAccelerationStructure(VkAccelerationStructureTypeKHR
   if (type == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR)
   {
     back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_SHADER_READ_BIT},
-      instance_buffer, {instance_buffer->dataOffset(instance_offset), sizeof(VkAccelerationStructureInstanceKHR) * instance_count});
+      instance_buffer, {instance_offset, sizeof(VkAccelerationStructureInstanceKHR) * instance_count});
   }
   else
   {
@@ -774,7 +780,7 @@ void ExecutionContext::buildAccelerationStructure(VkAccelerationStructureTypeKHR
 
   back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
                                    VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR},
-    scratch, {scratch->dataOffset(0), scratch->dataSize()});
+    scratch, {scratch->bufOffsetLoc(0), scratch->getBlockSize()});
 
   if (update)
     back.syncTrack.addAccelerationStructureAccess(
@@ -1009,7 +1015,7 @@ void ExecutionContext::captureScreen(Buffer *buffer)
   // do the copy to buffer
   auto extent = colorImage->getMipExtents2D(0);
   VkBufferImageCopy copy{};
-  copy.bufferOffset = buffer->dataOffset(0);
+  copy.bufferOffset = buffer->bufOffsetLoc(0);
   copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   copy.imageSubresource.layerCount = 1;
   copy.imageExtent.width = extent.width;
@@ -1020,7 +1026,7 @@ void ExecutionContext::captureScreen(Buffer *buffer)
   back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, colorImage,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {0, 1, 0, 1});
   back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, buffer,
-    {buffer->dataOffset(0), copySize});
+    {copy.bufferOffset, copySize});
 
   back.syncTrack.completeNeeded(frameCore, vkDev);
   VULKAN_LOG_CALL(vkDev.vkCmdCopyImageToBuffer(frameCore, colorImage->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -1080,7 +1086,7 @@ void ExecutionContext::dispatchIndirect(BufferRef buffer, uint32_t offset)
   trackIndirectArgAccesses(buffer, offset, 1, sizeof(VkDispatchIndirectCommand));
   flushComputeState();
 
-  VULKAN_LOG_CALL(vkDev.vkCmdDispatchIndirect(frameCore, buffer.getHandle(), buffer.dataOffset(offset)));
+  VULKAN_LOG_CALL(vkDev.vkCmdDispatchIndirect(frameCore, buffer.getHandle(), buffer.bufOffset(offset)));
   writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 }
 
@@ -1259,6 +1265,7 @@ void ExecutionContext::blitImage(Image *src, Image *dst, const VkImageBlit &regi
 
   VULKAN_LOG_CALL(vkDev.vkCmdBlitImage(frameCore, srcI->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstI->getHandle(),
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR));
+  writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_TRANSFER_BIT);
 }
 
 void ExecutionContext::resetQuery(VulkanQueryPoolHandle pool, uint32_t index, uint32_t count)
@@ -1267,18 +1274,24 @@ void ExecutionContext::resetQuery(VulkanQueryPoolHandle pool, uint32_t index, ui
   VULKAN_LOG_CALL(vkDev.vkCmdResetQueryPool(frameCore, pool, index, count));
 }
 
-void ExecutionContext::copyQueryResult(VulkanQueryPoolHandle pool, uint32_t index, uint32_t count, Buffer *dst,
-  VkQueryResultFlags flags)
+void ExecutionContext::copyQueryResult(VulkanQueryPoolHandle pool, uint32_t index, uint32_t count, Buffer *dst)
 {
   const uint32_t stride = sizeof(uint32_t);
-  uint32_t ofs = dst->dataOffset(index * stride);
+  uint32_t ofs = dst->bufOffsetLoc(index * stride);
   uint32_t sz = stride * count;
+
+  // do not copy if there was no writes to query, as copy will crash on some GPUs in this situation
+  if (directDrawCountInSurvey == 0)
+  {
+    // fill zero instead
+    fillBuffer(dst, ofs, sz, 1);
+    return;
+  }
 
   back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, dst, {ofs, sz});
   back.syncTrack.completeNeeded(frameCore, vkDev);
 
-  // TODO: put this at the end of the work item
-  VULKAN_LOG_CALL(vkDev.vkCmdCopyQueryPoolResults(frameCore, pool, index, count, dst->getHandle(), ofs, sz, flags));
+  VULKAN_LOG_CALL(vkDev.vkCmdCopyQueryPoolResults(frameCore, pool, index, count, dst->getHandle(), ofs, sz, VK_QUERY_RESULT_WAIT_BIT));
 }
 
 void ExecutionContext::generateMipmaps(Image *img)
@@ -1342,6 +1355,7 @@ void ExecutionContext::generateMipmaps(Image *img)
       lastMipExtent = mipExtent;
     }
   }
+  writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_TRANSFER_BIT);
 }
 
 void ExecutionContext::bindVertexUserData(BufferSubAllocation bsa)
@@ -1365,14 +1379,14 @@ void ExecutionContext::drawIndirect(BufferRef buffer, uint32_t offset, uint32_t 
     // emulate multi draw indirect
     for (uint32_t i = 0; i < count; ++i)
     {
-      VULKAN_LOG_CALL(vkDev.vkCmdDrawIndirect(frameCore, buffer.getHandle(), buffer.dataOffset(offset), 1, stride));
+      VULKAN_LOG_CALL(vkDev.vkCmdDrawIndirect(frameCore, buffer.getHandle(), buffer.bufOffset(offset), 1, stride));
       writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
       offset += stride;
     }
   }
   else
   {
-    VULKAN_LOG_CALL(vkDev.vkCmdDrawIndirect(frameCore, buffer.getHandle(), buffer.dataOffset(offset), count, stride));
+    VULKAN_LOG_CALL(vkDev.vkCmdDrawIndirect(frameCore, buffer.getHandle(), buffer.bufOffset(offset), count, stride));
     writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
   }
 }
@@ -1389,14 +1403,14 @@ void ExecutionContext::drawIndexedIndirect(BufferRef buffer, uint32_t offset, ui
     // emulate multi draw indirect
     for (uint32_t i = 0; i < count; ++i)
     {
-      VULKAN_LOG_CALL(vkDev.vkCmdDrawIndexedIndirect(frameCore, buffer.getHandle(), buffer.dataOffset(offset), 1, stride));
+      VULKAN_LOG_CALL(vkDev.vkCmdDrawIndexedIndirect(frameCore, buffer.getHandle(), buffer.bufOffset(offset), 1, stride));
       writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
       offset += stride;
     }
   }
   else
   {
-    VULKAN_LOG_CALL(vkDev.vkCmdDrawIndexedIndirect(frameCore, buffer.getHandle(), buffer.dataOffset(offset), count, stride));
+    VULKAN_LOG_CALL(vkDev.vkCmdDrawIndexedIndirect(frameCore, buffer.getHandle(), buffer.bufOffset(offset), count, stride));
     writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
   }
 }
@@ -1406,6 +1420,7 @@ void ExecutionContext::draw(uint32_t count, uint32_t instance_count, uint32_t st
   if (!renderAllowed)
     return;
 
+  ++directDrawCount;
   VULKAN_LOG_CALL(vkDev.vkCmdDraw(frameCore, count, instance_count, start, first_instance));
   writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 }
@@ -1416,13 +1431,14 @@ void ExecutionContext::drawIndexed(uint32_t count, uint32_t instance_count, uint
   if (!renderAllowed)
     return;
 
+  ++directDrawCount;
   VULKAN_LOG_CALL(vkDev.vkCmdDrawIndexed(frameCore, count, instance_count, index_start, vertex_base, first_instance));
   writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 }
 
 void ExecutionContext::bindIndexUser(BufferSubAllocation bsa)
 {
-  vkDev.vkCmdBindIndexBuffer(frameCore, bsa.buffer->getHandle(), bsa.buffer->offset(bsa.offset), VK_INDEX_TYPE_UINT16);
+  vkDev.vkCmdBindIndexBuffer(frameCore, bsa.buffer->getHandle(), bsa.buffer->bufOffsetLoc(bsa.offset), VK_INDEX_TYPE_UINT16);
   // set state dirty to restore after this intervention
   back.executionState.set<StateFieldGraphicsIndexBuffer, uint32_t, BackGraphicsState>(1);
 }
@@ -1536,7 +1552,7 @@ void ExecutionContext::trackStageResAccesses(const spirv::ShaderHeader &header, 
         break;
         case TRegister::TYPE_BUF:
           back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stageIndex, RegisterType::T),
-            reg.buf.buffer, {reg.buf.offset(0), reg.buf.dataSize()});
+            reg.buf.buffer, {reg.buf.bufOffset(0), reg.buf.visibleDataSize});
           break;
 #if D3D_HAS_RAY_TRACING
         case TRegister::TYPE_AS:
@@ -1563,7 +1579,7 @@ void ExecutionContext::trackStageResAccesses(const spirv::ShaderHeader &header, 
       else if (reg.buffer.buffer)
       {
         back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stageIndex, RegisterType::U),
-          reg.buffer.buffer, {reg.buffer.offset(0), reg.buffer.dataSize()});
+          reg.buffer.buffer, {reg.buffer.bufOffset(0), reg.buffer.visibleDataSize});
       }
     }
 
@@ -1576,14 +1592,14 @@ void ExecutionContext::trackStageResAccesses(const spirv::ShaderHeader &header, 
       const BufferRef &reg = state.bRegisters[i];
       if (reg.buffer)
         back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stageIndex, RegisterType::B),
-          reg.buffer, {reg.offset(0), reg.dataSize()});
+          reg.buffer, {reg.bufOffset(0), reg.visibleDataSize});
     }
 }
 
 void ExecutionContext::trackIndirectArgAccesses(BufferRef buffer, uint32_t offset, uint32_t count, uint32_t stride)
 {
   back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT}, buffer.buffer,
-    {buffer.offset(offset), stride * count});
+    {buffer.bufOffset(offset), stride * count});
 }
 
 void ExecutionContext::trackBindlessRead(Image *img)

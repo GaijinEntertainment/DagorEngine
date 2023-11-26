@@ -71,6 +71,7 @@ bool ddstexture::Converter::convertImageFast(IGenSave &cb, TexPixel32 *pix, int 
     case fmtDXT1a:
     case fmtDXT3:
     case fmtDXT5: dxt_fmt = true; break;
+    default: break;
   }
 
   if (!make_pow_2 && dxt_fmt)
@@ -431,6 +432,7 @@ bool ddstexture::Converter::convertImage(IGenSave &cb, TexPixel32 *pix, int w, i
         pf.dwRGBAlphaBitMask = 0xFF00;
         pf.dwBBitMask = 0x00FF;
         break;
+      default: break;
     }
 
     uint32_t FourCC = MAKEFOURCC('D', 'D', 'S', ' ');
@@ -514,6 +516,7 @@ bool ddstexture::Converter::convertImage(IGenSave &cb, TexPixel32 *pix, int w, i
         pf.dwRGBBitCount = 8;
         pf.dwRBitMask = 0x00FF;
         break;
+      default: break;
     }
 
     uint32_t FourCC = MAKEFOURCC('D', 'D', 'S', ' ');

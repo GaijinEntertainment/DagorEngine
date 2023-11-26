@@ -685,8 +685,9 @@ public:
 #else
   unsigned getVariableShadingRateTier() const
   {
-    // T2 can never be defined without T1, so this always yields 1 if only T1 is define and 2 with both are.
-    return unsigned(caps.test(Caps::SHADING_RATE_T2)) + unsigned(caps.test(Caps::SHADING_RATE_T1));
+    // The T1's bit is the 0b01, the T2's bit is the 0b10.
+    // T2 can never be defined without T1, so this always yields 1 if only T1 is define and 3 with both are.
+    return caps.test(Caps::SHADING_RATE_T2) ? 3 : (caps.test(Caps::SHADING_RATE_T1) ? 1 : 0);
   }
 #endif
 

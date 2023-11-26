@@ -200,6 +200,7 @@ struct BaseTex final : public BaseTexture
   bool delayedCreate = false;
   bool preallocBeforeLoad = false;
   bool isArrayCube = false;
+  bool unlockImageUploadSkipped = false;
 
   uint16_t width = 0;
   uint16_t height = 0;

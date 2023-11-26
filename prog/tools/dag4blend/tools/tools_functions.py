@@ -66,7 +66,7 @@ def is_mesh_empty(mesh):
 def triangulate(mesh):
     bm = bmesh.new()
     bm.from_mesh(mesh)
-    bmesh.ops.triangulate(bm, faces = bm.faces, quad_method = 'SHORT_EDGE', ngon_method = 'BEAUTY')
+    bmesh.ops.triangulate(bm, faces = bm.faces, quad_method = 'BEAUTY', ngon_method = 'BEAUTY')
     bm.to_mesh(mesh)
     del bm
     return

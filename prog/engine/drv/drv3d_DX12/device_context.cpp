@@ -95,6 +95,29 @@ U &resolve(T &, U &u)
 #undef HANDLE_RETURN_ADDRESS
 } // namespace
 
+BufferImageCopy drv3d_dx12::calculate_texture_subresource_copy_info(const Image &texture, uint32_t subresource_index, uint64_t offset)
+{
+  auto subResInfo = calculate_texture_subresource_info(texture, SubresourceIndex::make(subresource_index));
+  return {{offset, subResInfo.footprint}, subresource_index, {0, 0, 0}};
+}
+
+TextureMipsCopyInfo drv3d_dx12::calculate_texture_mips_copy_info(const Image &texture, uint32_t mip_levels)
+{
+  G_ASSERT(mip_levels <= MAX_MIPMAPS);
+  TextureMipsCopyInfo copies{mip_levels};
+  uint64_t offset = 0;
+  for (uint32_t j = 0; j < mip_levels; ++j)
+  {
+    BufferImageCopy &copy = copies[j];
+    auto subResInfo = calculate_texture_mip_info(texture, MipMapIndex::make(j));
+    copy = {{offset, subResInfo.footprint}, calculate_subresource_index(j, 0, 0, mip_levels, 1), {0, 0, 0}};
+    G_ASSERT(copy.layout.Offset % D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT == 0);
+    offset += subResInfo.rowCount * copy.layout.Footprint.RowPitch;
+    offset = (offset + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1);
+  }
+  return copies;
+}
+
 void DeviceContext::replayCommands()
 {
   ExecutionContext executionContext //

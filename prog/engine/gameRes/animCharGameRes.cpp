@@ -204,6 +204,7 @@ public:
 
   eastl::vector<ResData> resData;
   Tab<GameRes> gameRes;
+  bool warnAboutMissingAnimRes = true;
 
 
   int findResData(int res_id) const
@@ -422,7 +423,7 @@ public:
         {
           int res_id_ = ref_ids[i];
           a2d_list[i] = (AnimV20::AnimData *)::get_game_resource(res_id_);
-          G_ASSERTF(!(i == 0 && !a2d_list[i] && is_ignoring_unavailable_resources()),
+          G_ASSERTF(!(i == 0 && !a2d_list[i] && is_ignoring_unavailable_resources()) || !warnAboutMissingAnimRes,
             "%s can't load animation #0 to ignore unavailable resources (see log)", __FUNCTION__);
           if (!a2d_list[i] && is_ignoring_unavailable_resources() && i)
           {
@@ -431,7 +432,7 @@ public:
             nodesWithIgnoredAnimation.push_back(i);
           }
 #if DAGOR_DBGLEVEL > 0
-          if (!a2d_list[i])
+          if (!a2d_list[i] && warnAboutMissingAnimRes)
           {
             String res_name;
             get_game_resource_name(res_id_, res_name);
@@ -477,15 +478,15 @@ public:
   IMPLEMENT_DUMP_RESOURCES_REF_COUNT(gameRes, resId, refCount)
 };
 
-
 static InitOnDemand<AnimCharGameResFactory> char_factory;
 static InitOnDemand<AnimBnlGameResFactory> bnl_factory;
 
-void register_animchar_gameres_factory()
+void register_animchar_gameres_factory(bool warn_about_missing_anim)
 {
   bnl_factory.demandInit();
   ::add_factory(bnl_factory);
 
   char_factory.demandInit();
+  char_factory->warnAboutMissingAnimRes = warn_about_missing_anim;
   ::add_factory(char_factory);
 }

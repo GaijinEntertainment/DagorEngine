@@ -117,7 +117,7 @@ SqModules::SqModules(HSQUIRRELVM vm, SqModulesConfigBits cfg) :
   compilationOptions.doStaticAnalysis = false;
   compilationOptions.useAbsolutePath = false;
 
-  sq_disablesyntaxwarnings();
+  sq_enablesyntaxwarnings(false);
 
   registerModulesModule();
 }

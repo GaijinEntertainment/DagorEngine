@@ -65,9 +65,9 @@ PluginShowDialog::PluginShowDialog(void *phandle, const Tab<String> &tags, const
 }
 
 //==============================================================================
-void PluginShowDialog::autoSize()
+void PluginShowDialog::autoSize(bool auto_center)
 {
-  CDialogWindow::autoSize();
+  CDialogWindow::autoSize(auto_center);
   resizeTable();
 
   for (int i = 0; i < plugins.size(); ++i)

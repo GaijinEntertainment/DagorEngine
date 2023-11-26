@@ -142,7 +142,7 @@ void PipelineStageStateBase::apply(VulkanDevice &device, const ResourceDummySet 
 
     for (uint32_t i = GCBshift; i < spirv::B_REGISTER_INDEX_MAX; ++i)
       if (header.bRegisterUseMask & (1ul << i))
-        dynamicOffsets[dynamicOffsetCount++] = bRegisters[i] ? bRegisters[i].dataOffset(0) : 0;
+        dynamicOffsets[dynamicOffsetCount++] = bRegisters[i] ? bRegisters[i].bufOffset(0) : 0;
 
     checkForMissingBinds(header, dummy_resource_table, ctx, target_stage);
 

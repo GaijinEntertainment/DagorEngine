@@ -21,6 +21,7 @@ class DeviceMemoryPage
 {
   SubAllocationMethod subType;
   DeviceMemory mem;
+  VulkanBufferHandle buffer;
 
 public:
   static uint32_t toAllocatorIndex(uint32_t cat, uint32_t page);
@@ -34,7 +35,8 @@ public:
   void useOffset(ResourceMemory &target, VkDeviceSize offset);
 
   bool isValid() { return !is_null(mem); }
-  VkDeviceSize getSize() { return mem.size; }
+  VkDeviceSize getAllocatedMemorySize() { return mem.size; }
+  VulkanDeviceMemoryHandle getDeviceMemoryHandle() { return mem.memory; }
 };
 
 class FixedOccupancyPage : public DeviceMemoryPage
@@ -77,6 +79,7 @@ class LinearOccupancyPage : public DeviceMemoryPage
 {
   uint32_t refs;
   VkDeviceSize pushOffset;
+  VkDeviceSize usableSize;
 
 public:
   bool init(AbstractAllocator *allocator, SubAllocationMethod suballoc_method, VkDeviceSize page_size);

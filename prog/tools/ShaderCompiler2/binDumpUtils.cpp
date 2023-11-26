@@ -182,7 +182,7 @@ static void getRemapTable(Tab<int> &remapTable, Tab<int> &refTable)
   }
 }
 
-void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable)
+void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable, dag::ConstSpan<int> smpTable)
 {
   for (int i = 0; i < code.size(); i++)
   {
@@ -259,7 +259,7 @@ static void patchStCode(dag::ConstSpan<int> remapTable)
   for (int codeInd = 0; codeInd < stCode.size(); codeInd++)
   {
     Tab<int> &code = stCode[codeInd];
-    bindumphlp::patchStCode(make_span(code), remapTable);
+    bindumphlp::patchStCode(make_span(code), remapTable, {});
   }
 }
 

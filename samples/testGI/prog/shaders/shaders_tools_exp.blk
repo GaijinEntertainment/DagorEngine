@@ -8,12 +8,12 @@ source
 {
   includePath:t="./source"
   include "../../../../prog/samples/commonShaders/shadersList.blk"
-  file:t = "testMat.sh"
-  file:t = "testTree.sh"
-  file:t = "testMatAO.sh"
-  //file:t = "./source/heightmap.sh"
-  //file:t = "./source/layered.sh"
-  file:t = "./source/sponza.sh"
+  file:t = "testMat.dshl"
+  file:t = "testTree.dshl"
+  file:t = "testMatAO.dshl"
+  //file:t = "./source/heightmap.dshl"
+  //file:t = "./source/layered.dshl"
+  file:t = "./source/sponza.dshl"
 }
 
 "@delete:explicit_var_ref" {}

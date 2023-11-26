@@ -57,18 +57,19 @@ struct Cascade
 class CascadeSolver
 {
 public:
-  CascadeSolver(const char *solver_shader_name, uint32_t tex_width, uint32_t tex_height,
-    const eastl::array<uint32_t, 4> &num_dispatches_per_cascade = {4700, 1600, 650, 150}, float spatial_step = 1.f);
+  CascadeSolver(const char *solver_shader_name, IPoint3 tex_size, float spatial_step = 1.f, const char *solver_name = "",
+    const eastl::array<uint32_t, 4> &num_dispatches_per_cascade = {4700, 1600, 650, 150});
 
   void fillInitialConditions(float standard_density, const Point2 &standard_velocity);
-  void solveEquations(float dt, int num_dispatches);
+  bool solveEquations(float dt, int num_dispatches);
   void showResult(PlotType plot_type);
+  void reset();
+
+  bool isResultReady() const;
 
   TEXTUREID getVelocityDensityTexId() const;
   float getSimulationTime() const;
   int getNumDispatches() const;
-
-  static constexpr int NUM_CASCADES = 4;
 
 private:
   eastl::unique_ptr<ComputeShaderElement> initialConditionsCs;
@@ -77,16 +78,21 @@ private:
   eastl::unique_ptr<ComputeShaderElement> blurCs;
   PostFxRenderer showSolution;
 
+  static constexpr int NUM_CASCADES = 4;
   int currentCascade = 0;
 
   eastl::array<uint32_t, NUM_CASCADES> numDispatchesPerCascade;
 
   int curNumDispatches = 0;
   int totalNumDispatches = 0;
+  bool resultReady = false;
 
-  Tab<Cascade> cascades;
+  eastl::array<Cascade, NUM_CASCADES> cascades;
+  int textureDepth = 0;
 
   float simulationTime = 0.0f;
+  float standardDensity = 0.0f;
+  Point2 standardVelocity = Point2::ZERO;
 
   void switchToCascade(int cascade);
   void fillNextCascadeInitialConditions();

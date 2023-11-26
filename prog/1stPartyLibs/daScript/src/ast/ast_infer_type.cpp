@@ -2758,31 +2758,49 @@ namespace das {
                         if ( classDotMethod->rtti_isField() ) {
                             auto eField = static_pointer_cast<ExprField>(classDotMethod);
                             if ( eField->value->type && !eField->value->type->isAutoOrAlias() ) {
+                                Structure * stt = nullptr;
                                 if ( eField->value->type->baseType==Type::tStructure ) {
-                                    auto stt = eField->value->type->structType;
+                                    stt = eField->value->type->structType;
+                                } else if ( eField->value->type->baseType==Type::tPointer && eField->value->type->firstType && eField->value->type->firstType->baseType==Type::tStructure ) {
+                                    stt = eField->value->type->firstType->structType;
+                                }
+                                if ( stt ) {
                                     auto sttf = stt->findField(eField->name);
                                     if ( sttf ) {
-                                        if ( sttf->init && sttf->init->rtti_isAddr() ) {
-                                            auto fnAddr = static_pointer_cast<ExprAddr>(sttf->init);
-                                            if ( fnAddr->func ) {
-                                                int fnArgSize = int(fnAddr->func->arguments.size());
-                                                int fromFnArgSize = int(expr->arguments.size()-1);
-                                                bool allHaveInit = true;
-                                                for ( int ai=fromFnArgSize; ai<fnArgSize; ++ai ) {
-                                                    if ( !fnAddr->func->arguments[ai]->init ) {
-                                                        allHaveInit = false;
-                                                        break;
-                                                    }
+                                        if ( sttf->init ) {
+                                            smart_ptr<ExprAddr> fnAddr;
+                                            if ( sttf->init->rtti_isAddr() ) {
+                                                fnAddr = static_pointer_cast<ExprAddr>(sttf->init);
+                                            } else if ( sttf->init->rtti_isCast() ) {
+                                                auto cast = static_pointer_cast<ExprCast>(sttf->init);
+                                                if ( cast->subexpr->rtti_isAddr() ) {
+                                                    fnAddr = static_pointer_cast<ExprAddr>(cast->subexpr);
                                                 }
-                                                if ( allHaveInit ) {
+                                            }
+                                            if ( fnAddr ) {
+                                                if ( fnAddr->func ) {
+                                                    int fnArgSize = int(fnAddr->func->arguments.size());
+                                                    int fromFnArgSize = int(expr->arguments.size()-1);
+                                                    bool allHaveInit = true;
                                                     for ( int ai=fromFnArgSize; ai<fnArgSize; ++ai ) {
-                                                        expr->arguments.emplace_back(fnAddr->func->arguments[ai]->init->clone());
+                                                        if ( !fnAddr->func->arguments[ai]->init ) {
+                                                            allHaveInit = false;
+                                                            break;
+                                                        }
                                                     }
-                                                    reportAstChanged();
-                                                    return Visitor::visit(expr);
+                                                    if ( allHaveInit ) {
+                                                        for ( int ai=fromFnArgSize; ai<fnArgSize; ++ai ) {
+                                                            expr->arguments.emplace_back(fnAddr->func->arguments[ai]->init->clone());
+                                                        }
+                                                        reportAstChanged();
+                                                        return Visitor::visit(expr);
+                                                    }
+                                                } else {
+                                                    error(fnAddr->target + " is not fully resolved yet", "", "",
+                                                        expr->at, CompilationError::invalid_argument_count);
                                                 }
                                             } else {
-                                                error(fnAddr->target + " is not fully resolved yet", "", "",
+                                                error(fnAddr->target + " expecting class_ptr or cast<auto> class_ptr", "", "",
                                                     expr->at, CompilationError::invalid_argument_count);
                                             }
                                         } else {

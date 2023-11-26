@@ -1,0 +1,60 @@
+include "sky_shader_global.dshl"
+include "heightmap_common.dshl"
+include "dagi_scene_25d_common_write.dshl"
+include "giHelpers/voxelize_gs.dshl"
+include "giHelpers/trees_above_common.dshl"
+
+float4 scene_voxels_size;
+shader voxelize_trees_albedo
+{
+  supports none;
+  supports global_frame;
+  z_test = false;
+  z_write = false;
+  cull_mode = none;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord:TEXCOORD0;
+    };
+  }
+  hlsl(vs) {
+    VsOutput trees_depth_to_voxels_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 inpos = get_fullscreen_inpos(vertexId);
+      output.pos = float4(inpos.xy, 1, 1);
+      output.texcoord = inpos.xy*float2(0.5, -0.5) + 0.5;
+      return output;
+    }
+  }
+  INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(ps)
+  SSGE_SCENE_25D_COMMON_INIT_WRITE_PS()
+  SSGE_SCENE_25D_COMMON_WRITE_PS()
+  ENABLE_ASSERT(ps)
+  (ps) {
+    voxelize_box0@f3 = voxelize_box0;
+    voxelize_box1@f3 = (1 / voxelize_box1.x, 1 / voxelize_box1.y, 1 / voxelize_box1.z, 0);
+    scene_voxels_size@f4 = scene_voxels_size;
+  }
+  USE_HEIGHTMAP_COMMON_BASE(ps)
+  USE_TREES_ABOVE(ps)
+  hlsl(ps) {
+
+    void trees_depth_to_voxels_ps(VsOutput input)
+    {
+      float2 worldPosXZ = voxelize_box1.xz*input.texcoord + voxelize_box0.xz;
+      float3 worldPos; half3 color;
+      if (!trees_world_pos_to_worldPos(worldPosXZ, worldPos, color, false))
+        return;
+      writeScene25dVoxelDataSafe(worldPos.xyz, color.rgb, 0, 0);
+      writeScene25dVoxelDataSafe(worldPos.xyz+float3(0,1.2,0), color.rgb, 0, 0);//we'd better organize in loop and write whole tree. we need two layers of depth for that
+    }
+  }
+
+  compile("target_vs", "trees_depth_to_voxels_vs");
+  compile("target_ps", "trees_depth_to_voxels_ps");
+}
+

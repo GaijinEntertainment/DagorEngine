@@ -1,0 +1,180 @@
+texture depth_around;
+texture depth_around_transparent;
+texture blurred_depth;
+texture blurred_depth_transparent;
+
+float4 world_to_depth_ao;
+float4 depth_ao_heights;
+float depth_ao_height_scale = 1;
+
+int depth_ao_extra_enabled = 0;
+float4 world_to_depth_ao_extra;
+float4 depth_ao_heights_extra;
+
+float depth_ao_texture_size;
+float depth_ao_texture_rcp_size;
+
+macro INIT_BLURRED_DEPTH_ABOVE_CONSTS(code)
+  (code) {
+    world_to_depth_ao@f4 = world_to_depth_ao;
+    depth_ao_heights@f4 = depth_ao_heights;
+    depth_ao_texture_sizes@f2 = (depth_ao_texture_size, depth_ao_texture_rcp_size, 0, 0);
+    depth_ao_extra_enabled@i1 = depth_ao_extra_enabled;
+    world_to_depth_ao_extra@f4 = world_to_depth_ao_extra;
+    depth_ao_heights_extra@f4 = depth_ao_heights_extra;
+  }
+endmacro
+
+macro INIT_DEPTH_ABOVE(code, tex)
+  (code) {tex@smpArray = tex;}
+  INIT_BLURRED_DEPTH_ABOVE_CONSTS(code)
+endmacro
+
+macro INIT_BLURRED_DEPTH_ABOVE(code)
+  INIT_DEPTH_ABOVE(code, blurred_depth)
+endmacro
+
+macro INIT_DEPTH_ABOVE_WITHOUT_SAMPLER(code, tex_name, tex_samplerstate, samplerstate)
+  (code) { tex_name@texArray = tex_name; }
+  hlsl(code) {
+    #define tex_samplerstate samplerstate
+  }
+  INIT_BLURRED_DEPTH_ABOVE_CONSTS(code)
+endmacro
+
+macro INIT_BLURRED_DEPTH_ABOVE_WITHOUT_SAMPLER(code, samplerstate)
+  INIT_DEPTH_ABOVE_WITHOUT_SAMPLER(code, blurred_depth, blurred_depth_samplerstate, samplerstate)
+endmacro
+
+macro USE_DEPTH_ABOVE_TC(code)
+  hlsl(code) {
+    float applyVignette(float2 tc)
+    {
+      float2 vignette = saturate(abs(tc * 2 - 1) * 10 - 9);
+      return saturate(dot(vignette, vignette));
+    }
+    float3 getWorldBlurredDepthTC(float3 worldPos, out float vignette_effect)
+    {
+      float2 uncappedTc = world_to_depth_ao.xy * worldPos.xz + world_to_depth_ao.zw;
+      float2 cappedTc = saturate(uncappedTc);
+      float3 tcOffset = float3(-depth_ao_heights.zw, 0);
+
+      if (depth_ao_extra_enabled > 0 && any(cappedTc != uncappedTc))
+      {
+        cappedTc = saturate(world_to_depth_ao_extra.xy * worldPos.xz + world_to_depth_ao_extra.zw);
+        tcOffset = float3(-depth_ao_heights_extra.zw, 1);
+      }
+
+      vignette_effect = applyVignette(cappedTc);
+      return float3(cappedTc, 0) + tcOffset;
+    }
+    float decode_depth_above(float depthHt)
+    {
+      return depthHt*depth_ao_heights.x+depth_ao_heights.y;
+    }
+    float4 decode_depth_above4(float4 depthHt)
+    {
+      return depthHt*depth_ao_heights.x+depth_ao_heights.y;
+    }
+  }
+endmacro
+
+macro USE_DEPTH_ABOVE(code, tex)
+  USE_DEPTH_ABOVE_TC(code)
+  hlsl(code){
+
+    float sample_blurred_depth(float3 tc, int2 offset)
+    {
+      return textureLodOffset(tex, tc, 0, offset).x;
+    }
+
+    float getWorldBlurredDepthPrecise(float3 worldPos, out float vignette_effect)
+    {
+      float3 tc = getWorldBlurredDepthTC(worldPos, vignette_effect);
+
+      float2 cornerIdF = tc.xy * depth_ao_texture_sizes.xx - 0.5;
+      float3 cornerTc = float3(floor(cornerIdF) * depth_ao_texture_sizes.yy, tc.z);
+      float2 fract = frac(cornerIdF);
+
+      float4 height4;
+      height4.w = sample_blurred_depth(cornerTc, int2(0,0));
+      height4.z = sample_blurred_depth(cornerTc, int2(1,0));
+      height4.y = sample_blurred_depth(cornerTc, int2(1,1));
+      height4.x = sample_blurred_depth(cornerTc, int2(0,1));
+
+      float2 height2 = lerp(height4.wx, height4.zy, fract.x);
+      float height = lerp(height2.x, height2.y, fract.y);
+      return decode_depth_above(height);
+    }
+
+    float getWorldBlurredDepth(float3 worldPos, out float vignette_effect)
+    {
+      float3 tc = getWorldBlurredDepthTC(worldPos, vignette_effect);
+      return decode_depth_above(tex3Dlod(tex, float4(tc, 0)).x);
+    }
+    float4 gatherWorldBlurredDepth(float3 worldPos, out float vignette_effect, out float2 lerp_factor)
+    {
+      float3 tc = getWorldBlurredDepthTC(worldPos, vignette_effect);
+
+      tc.xy = frac(tc.xy); //to emulate wrap addressing
+      float2 coordF = tc.xy * depth_ao_texture_sizes.xx - 0.5;
+      lerp_factor  = frac(coordF);
+
+      float2 centerTc = (floor(coordF) + 1.0) * depth_ao_texture_sizes.yy;
+      return decode_depth_above4(textureGather(tex, float3(centerTc, tc.z)));
+    }
+    float lerpGatheredBlurredDepth(float4 depth_samples, float2 lerp_factor)
+    {
+      float ctop = lerp(depth_samples.w, depth_samples.z, lerp_factor.x);
+      float cbot = lerp(depth_samples.x, depth_samples.y, lerp_factor.x);
+
+      return lerp(ctop, cbot, lerp_factor.y);
+    }
+  }
+endmacro
+
+macro USE_BLURRED_DEPTH_ABOVE(shader_code)
+  USE_DEPTH_ABOVE(shader_code, blurred_depth)
+endmacro
+
+macro INIT_DEPTH_AO_STAGE(code)
+  INIT_WORLD_HEIGHTMAP_BASE(code)
+  INIT_BLURRED_DEPTH_ABOVE(code)
+endmacro
+
+macro INIT_DEPTH_AO()
+  INIT_DEPTH_AO_STAGE(ps)
+endmacro
+
+macro USE_DEPTH_AO_STAGE(code)
+  USE_BLURRED_DEPTH_ABOVE(code)
+  USE_HEIGHTMAP_COMMON_BASE(code)
+  (code) {
+        depth_ao_height_scale@f1 = (depth_ao_height_scale);
+  }
+  hlsl(code) {
+    float getWorldBlurredAO(float3 worldPos)
+    {
+      float vignetteEffect;
+      float depthHt = getWorldBlurredDepth(worldPos, vignetteEffect);
+      const float height_bias = 0.05;
+##if tex_hmap_low != NULL
+      const float height_scale = 1.0f;
+##else
+      const float height_scale = 0.5f;
+##endif
+      float occlusion = rcp((max(0.01, (depthHt - height_bias - worldPos.y)*(height_scale * depth_ao_height_scale)+1)));
+      float ao = saturate(occlusion)*0.9 + 0.1;
+##if tex_hmap_low != NULL
+      float worldD = getWorldHeight(worldPos.xz) + 0.01;
+      const float max_height_above_heightmap = 10.f;
+      ao = lerp(1, ao, pow2(1 - saturate((1. / max_height_above_heightmap)*(worldPos.y - worldD))));
+##endif
+      return lerp(ao, 1, vignetteEffect);
+    }
+  }
+endmacro
+
+macro USE_DEPTH_AO()
+  USE_DEPTH_AO_STAGE(ps)
+endmacro

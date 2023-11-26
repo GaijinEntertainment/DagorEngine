@@ -1,0 +1,109 @@
+include "dafx_shaders.dshl"
+include "viewVecVS.dshl"
+include "dafx_helpers.dshl"
+
+define_macro_if_not_defined DAFXEX_USE_DEPTH_FOR_COLLISION(stage)
+  hlsl {
+    float dafx_sample_linear_depth(uint2 tci, GlobalData_cref gparams) {return 0;}
+    float dafx_linearize_z(float depth, GlobalData_cref gparams) {return 0;}
+    half dafx_get_soft_depth_mask(float4 tc, float softness_depth_rcp, GlobalData_cref gdata) {return 1.f;}
+    half dafx_get_hard_depth_mask(float4 tc, GlobalData gdata) {return 1.f;}
+  }
+endmacro
+
+macro USE_DAFX_SYSTEM_COMMON()
+  DAFX_COMPUTE_INIT()
+  USE_AND_INIT_VIEW_VEC_CS()
+
+  hlsl(cs) {
+    #include "dafx_random.hlsli"
+    #include "dafx_hlsl_funcs.hlsli"
+    #include "dafx_loaders.hlsli"
+    #include "dafx_packers.hlsli"
+    #include "noise/SimplexPerlin3D_Deriv.hlsl"
+    #include "dafx_code_common_decl.hlsl"
+    #include "dafx_code_common.hlsl"
+    #include "dafx_globals.hlsli"
+  }
+
+  hlsl(cs) {
+    #define DEPTH_POS_BIAS 0.1
+    #define DEPTH_POS_BIAS_SIGN 5
+    #define DAMP_SPEED 10
+    #define MIN_CALM_FRICTION 1
+    #define MIN_VELOCITY_RESTITUTION 0.1
+
+    #define VELOCITY_LEN_BIAS 0.01
+    #define VELOCITY_DOT_BIAS 0.01
+
+    DAFX_INLINE
+    bool apply_depth_collision(GlobalData_cref gparams, float3 pos, float3 vel, float restitution, float friction, out float3 out_pos, out float3 out_vel, out float min_dist)
+    {
+      out_pos = pos;
+      out_vel = vel;
+      min_dist = 1000000.0;
+
+      float4 ndc = mul(float4(pos, 1), gparams.globtm_prev);
+      ndc.xyz /= ndc.w;
+      float4 ndcNew = mul(float4(pos + vel * gparams.dt, 1), gparams.globtm_prev);
+      ndcNew.xyz /= ndcNew.w;
+      float2 stc = ndc.xy * float2(0.5, -0.5) + float2(0.5, 0.5);
+      float2 stcNew = ndcNew.xy * float2(0.5, -0.5) + float2(0.5, 0.5);
+
+      bool stcValid = stc.x >= 0 && stc.x < 1 && stc.y >= 0 && stc.y < 1;
+      bool stcValidNew = stcNew.x >= 0 && stcNew.x < 1 && stcNew.y >= 0 && stcNew.y < 1;
+      if (!stcValid && !stcValidNew)
+        return false;
+
+      int2 ds = gparams.depth_size_for_collision.xy;
+      int2 dtc0 = clamp(int2(stc.x * ds.x, stc.y * ds.y), int2(0,0), ds.xy);
+      int2 dtc1 = clamp(int2(stc.x * ds.x + 1, stc.y * ds.y), int2(0,0), ds.xy);
+      int2 dtc2 = clamp(int2(stc.x * ds.x, stc.y * ds.y + 1), int2(0,0), ds.xy);
+      int2 dtcNew = int2(stcNew.x * ds.x, stcNew.y * ds.y);
+
+      float depth0 = dafx_sample_linear_depth(dtc0, gparams);
+      float depth1 = dafx_sample_linear_depth(dtc1, gparams);
+      float depth2 = dafx_sample_linear_depth(dtc2, gparams);
+      float depthNew = dafx_sample_linear_depth(dtcNew, gparams);
+
+      float3 worldPos0 = lerp_view_vec(stc) * depth0;
+      float3 worldPos1 = lerp_view_vec(stc + float2(gparams.depth_size_rcp_for_collision.x, 0.0)) * depth1;
+      float3 worldPos2 = lerp_view_vec(stc + float2(0.0, gparams.depth_size_rcp_for_collision.y)) * depth2;
+
+      float posDist = depth0 - dafx_linearize_z(ndc.z, gparams);
+      float posDistAbs = abs(posDist);
+      min_dist = posDist;
+      float posDistNew = depthNew - dafx_linearize_z(ndcNew.z, gparams);
+      float posDistNewAbs = abs(posDistNew);
+      float3 normal = normalize(cross(worldPos1 - worldPos0, worldPos2 - worldPos0));
+
+      bool isCollided = stcValid && stcValidNew && ((posDist < 0) != (posDistNew < 0) && (posDistAbs < DEPTH_POS_BIAS_SIGN || posDistNewAbs < DEPTH_POS_BIAS_SIGN));
+      isCollided = isCollided | (stcValid && posDistAbs < DEPTH_POS_BIAS);
+      isCollided = isCollided | (stcValidNew && posDistNewAbs < DEPTH_POS_BIAS);
+      if (!isCollided)
+        return false;
+
+      float velNorm = dot(vel, normal);
+      float velLen = length(vel);
+      float3 velDir = vel / max(velLen, VELOCITY_LEN_BIAS);
+      float3 binormal = velLen > VELOCITY_LEN_BIAS && abs(dot(velDir, normal)) < (1 - VELOCITY_DOT_BIAS) ? cross(normal, velDir) : (abs(normal.x) < 0.999 ? float3(1, 0, 0) : float3(0, 0, 1));
+      float3 tangent = normalize(cross(binormal, normal));
+      float velTang = dot(vel, tangent);
+
+      out_vel = velNorm < -MIN_VELOCITY_RESTITUTION ? normal * -velNorm * restitution :
+        (velNorm > MIN_VELOCITY_RESTITUTION ? normal * velNorm : 0);
+      out_vel += tangent * max(velTang - max(pow2(velTang), MIN_CALM_FRICTION) * friction * gparams.dt * pow2(max(normal.y, 0)), 0);
+      return true;
+    }
+  }
+endmacro
+
+macro USE_DAFX_RENDER_COMMON()
+  DAFX_RENDER_INIT()
+
+  hlsl {
+    #include "dafx_loaders.hlsli"
+    #include "dafx_code_common_decl.hlsl"
+    #include "dafx_globals.hlsli"
+  }
+endmacro

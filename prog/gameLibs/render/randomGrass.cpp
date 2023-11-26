@@ -931,9 +931,11 @@ void RandomGrass::fillLayerLod(GrassLayer &layer, unsigned int lod_idx, int rand
   if ((lod.maxRadius - lod.minRadius) < 1.f)
     numInstancesInCell = 0;
 
+  bool emptyLayer = false;
   if (numInstancesInCell == 0)
   {
     numInstancesInCell = 1;
+    emptyLayer = true;
   }
 
   if (vboForMaxElements)
@@ -951,7 +953,7 @@ void RandomGrass::fillLayerLod(GrassLayer &layer, unsigned int lod_idx, int rand
   lod.warpSize = (quadSize * 2 + 1);
   int maxInstancesInBuffer = lod.warpSize * lod.warpSize * (GRASS_WARP_SIZE_X * GRASS_WARP_SIZE_Y); // we can't see all instances
   lod.maxInstancesCount = maxInstancesInBuffer;
-  if (numInstancesInCell == 1) // empty layer
+  if (emptyLayer)
   {
     lod.warpSize = 0;
     lod.maxInstancesCount = 0;

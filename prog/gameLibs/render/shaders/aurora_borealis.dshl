@@ -1,0 +1,204 @@
+include "sky_shader_global.dshl"
+include "postfx_inc.dshl"
+include "viewVecVS.dshl"
+include "clouds2/clouds_alt_fraction.dshl"
+include "panorama.dshl"
+include "skies_special_vision.dshl"
+include "use_custom_fog_sky.dshl"
+
+float4 aurora_borealis_bottom = (0.1, 1.0, 1.0, 5.0);
+float4 aurora_borealis_top = (1.000, 0.1, 0.3, 9.0);
+float aurora_borealis_brightness = 2.2;
+float aurora_borealis_luminance = 8.0;
+float aurora_borealis_speed = 0.02;
+float aurora_borealis_ripples_scale = 20.0;
+float aurora_borealis_ripples_speed = 0.08;
+float aurora_borealis_ripples_strength = 0.8;
+
+texture aurora_borealis_tex;
+texture perlin_noise3d;
+
+shader aurora_borealis
+{
+  supports global_frame;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(0, uv, viewVect)
+  USE_SPECIAL_VISION()
+
+  (ps) {
+    aurora_borealis_bottom@f4 = (aurora_borealis_bottom.x, aurora_borealis_bottom.y, aurora_borealis_bottom.z, 0.02 * aurora_borealis_bottom.w);
+    aurora_borealis_top@f4 = (aurora_borealis_top.x, aurora_borealis_top.y, aurora_borealis_top.z, 0.02 * aurora_borealis_top.w);
+    brightness__phase@f3 = (aurora_borealis_brightness, aurora_borealis_speed * time_phase(0, 0), aurora_borealis_luminance, 0);
+    ripples@f3 = (
+      aurora_borealis_ripples_speed * time_phase(0, 0),
+      aurora_borealis_ripples_scale,
+      1.0 - aurora_borealis_ripples_strength,
+      0
+    );
+    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
+    perlin_noise3d@smp3d = perlin_noise3d;
+    skies_world_view_pos@f3 = skies_world_view_pos;
+  }
+
+  if (clouds_alpha_panorama_tex != NULL)
+  {
+    INIT_CLOUDS_ALPHA_PANORAMA()
+    USE_CLOUDS_ALPHA_PANORAMA()
+  }
+
+  hlsl(ps) {
+    #include <noise/noise_collection.hlsl>
+
+    #define LOW 0.1
+    #define HIGH 0.6
+    #define LOW_ACTIVATE 0.1
+    #define HIGH_ACTIVATE 0.3
+
+    half3 render_aurora(in float3 viewVect) {
+
+      float2 viewVectNormalized = viewVect.xz / viewVect.y;
+      float depthCoef = 2.0 * length(viewVectNormalized);
+      float azimuth = ripples.y * atan2(viewVect.z, viewVect.x) / (2.0 * PI);
+
+      half3 color = 0;
+      #define LOOP_COUNT 30
+
+      // This cycle will be optimized out
+      float layerWeights[LOOP_COUNT];
+      int i = 0;
+      UNROLL
+      for (i = 0; i < LOOP_COUNT; ++ i) {
+        float step = float(i + 1) / LOOP_COUNT;
+        layerWeights[i] = saturate(15.0 * step) * exp(-5.0 * step) / 5.053f; // calculated for LOOP_COUNT = 30 (see commit message)
+      }
+
+      UNROLL
+      for (i = 0; i < LOOP_COUNT; ++i)
+      {
+        float step = float(i + 1) / LOOP_COUNT;
+        float height = lerp(aurora_borealis_bottom.a, aurora_borealis_top.a, pow(step, 1.2));
+
+        float2 intersectionPoint = viewVectNormalized * height;
+
+        float3 coords = float3(intersectionPoint.x, brightness__phase.y, intersectionPoint.y);
+
+        float2 scale_weight = float2(3.0, 1.0);
+        float2 brightness_sumWeight = float2(0.0, 0.0);
+
+        UNROLL
+        for (int j = 0; j < 2; ++ j)
+        {
+          brightness_sumWeight += scale_weight.y * float2(noise_Cellular3D(coords * scale_weight.x), 1.0);
+          scale_weight *= float2(2.0, 0.5);
+        }
+
+        half layer = brightness_sumWeight.x / brightness_sumWeight.y;
+
+        float hash = tex3Dlod(perlin_noise3d, float4(azimuth, depthCoef * height, ripples.x, 0)).x;
+        hash = lerp(ripples.z, 1.0, hash);
+        layer *= hash;
+
+        layer *= brightness__phase.x;
+        layer = saturate((layer - 0.3) / 0.7);
+        layer = pow4(layer);
+
+        layer *= layerWeights[i];
+
+        color += layer  * lerp(aurora_borealis_bottom.rgb, aurora_borealis_top.rgb, sqrt(step));
+      }
+
+      color = saturate(color * brightness__phase.z);
+      // hide horizon and zenith because of artifacts
+      color *= saturate((viewVect.y - LOW) / LOW_ACTIVATE)
+        * pow2(saturate((HIGH - viewVect.y) / HIGH_ACTIVATE));
+
+      return color;
+    }
+
+    half3 aurora_borealis(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      float3 view = normalize(input.viewVect);
+      BRANCH
+      if (view.y < LOW || view.y > HIGH)
+        return 0.0;
+
+      float4 pos = GET_SCREEN_POS(input.pos);
+      float rawDepth = tex2Dlod(downsampled_far_depth_tex, float4(input.uv, 0, 0)).x;
+
+      ##if clouds_alpha_panorama_tex != NULL
+        float2 panoramaUV = get_panorama_uv(skies_world_view_pos, view);
+        float alpha = get_clouds_alpha_panorama_uv(panoramaUV);
+        alpha = pow4(alpha);
+      ##endif
+
+      BRANCH
+      if (rawDepth > 0
+      ##if clouds_alpha_panorama_tex != NULL
+        || alpha <= 1.0 / 16.0
+      ##endif
+      )
+        return 0.0;
+
+      half3 result = render_aurora(view);
+
+      ##if clouds_alpha_panorama_tex != NULL
+        result *= alpha;
+      ##endif
+
+      half4 res = half4(result, 1.0);
+      applySpecialVision(res);
+
+      return res.rgb;
+    }
+  }
+
+  compile("target_ps", "aurora_borealis");
+}
+
+
+shader apply_aurora_borealis
+{
+  supports global_frame;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = true;
+  blend_src = 1; blend_dst = 1;
+
+  POSTFX_VS_TEXCOORD(0, uv)
+
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    SKY_HDR()
+  }
+  else
+  {
+    // In compatibility mode, INIT_HDR_STCODE() is in <global_frame> block
+    USE_HDR()
+  }
+
+  USE_CUSTOM_FOG_SKY(ps)
+
+  (ps) {
+    aurora_borealis_tex@smp2d = aurora_borealis_tex;
+  }
+
+  hlsl(ps) {
+    half3 apply_aurora_borealis(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      float3 result = tex2Dlod(aurora_borealis_tex, float4(input.uv, 0, 0)).rgb;
+
+      float4 combinedFog = get_volumetric_light_sky(input.uv, input.uv); // aurora is noisy enough, no need for dithering (jittered tc)
+      result *= combinedFog.a; // with additive blending, only extinction is used
+
+      return pack_hdr(result);
+    }
+  }
+
+  compile("target_ps", "apply_aurora_borealis");
+}

@@ -22,17 +22,17 @@ class SpatialHash2D;
 typedef SpatialHash2D<eastl::intrusive_list<GridObject>, 32> GridHolder;
 typedef eastl::fixed_function<sizeof(intptr_t) * 4, bool(const GridObject *)> GridObjPred;
 
-const GridObject *VECTORCALL grid_find_in_box_by_pos(const GridHolder &grid_holder, const BBox3 &bbox, const GridObjPred &pred);
-const GridObject *VECTORCALL grid_find_in_box_by_bounding(const GridHolder &grid_holder, const BBox3 &bbox, const GridObjPred &pred);
-const GridObject *VECTORCALL grid_find_in_sphere_by_pos(const GridHolder &grid_holder, const Point3 &center, float radius,
+VECTORCALL const GridObject *grid_find_in_box_by_pos(const GridHolder &grid_holder, const BBox3 &bbox, const GridObjPred &pred);
+VECTORCALL const GridObject *grid_find_in_box_by_bounding(const GridHolder &grid_holder, const BBox3 &bbox, const GridObjPred &pred);
+VECTORCALL const GridObject *grid_find_in_sphere_by_pos(const GridHolder &grid_holder, const Point3 &center, float radius,
   const GridObjPred &pred);
-const GridObject *VECTORCALL grid_find_in_sphere_by_bounding(const GridHolder &grid_holder, const Point3 &center, float radius,
+VECTORCALL const GridObject *grid_find_in_sphere_by_bounding(const GridHolder &grid_holder, const Point3 &center, float radius,
   const GridObjPred &pred);
-const GridObject *VECTORCALL grid_find_in_capsule_by_pos(const GridHolder &grid_holder, const Point3 &from, const Point3 &dir,
+VECTORCALL const GridObject *grid_find_in_capsule_by_pos(const GridHolder &grid_holder, const Point3 &from, const Point3 &dir,
   float len, float radius, const GridObjPred &pred);
-const GridObject *VECTORCALL grid_find_in_capsule_by_bounding(const GridHolder &grid_holder, const Point3 &from, const Point3 &dir,
+VECTORCALL const GridObject *grid_find_in_capsule_by_bounding(const GridHolder &grid_holder, const Point3 &from, const Point3 &dir,
   float len, float radius, const GridObjPred &pred);
-const GridObject *VECTORCALL grid_find_in_transformed_box_by_pos(const GridHolder &grid_holder, const TMatrix &tm, const BBox3 &bbox,
+VECTORCALL const GridObject *grid_find_in_transformed_box_by_pos(const GridHolder &grid_holder, const TMatrix &tm, const BBox3 &bbox,
   const GridObjPred &pred);
-const GridObject *VECTORCALL grid_find_in_transformed_box_by_bounding(const GridHolder &grid_holder, const TMatrix &tm,
+VECTORCALL const GridObject *grid_find_in_transformed_box_by_bounding(const GridHolder &grid_holder, const TMatrix &tm,
   const BBox3 &bbox, const GridObjPred &pred);

@@ -55,7 +55,7 @@ struct ConditionalRenderingState
   struct InvalidateTag
   {};
 
-  VulkanBufferHandle buffer{};
+  BufferRef buffer{};
   VkDeviceSize offset{0};
 
   friend bool operator==(const This &left, const This &right) { return left.buffer == right.buffer && left.offset == right.offset; }
@@ -478,7 +478,7 @@ struct StateFieldGraphicsVertexBuffersBindArray : TrackedStateFieldBase<false, f
   {
     resPtrs[0] = bsa.buffer;
     buffers[0] = bsa.buffer->getHandle();
-    offsets[0] = bsa.buffer->dataOffset(bsa.offset);
+    offsets[0] = bsa.buffer->bufOffsetLoc(bsa.offset);
     countMask |= 1 << 0;
   }
   bool diff(const BufferSubAllocation &) const { return true; }
@@ -489,7 +489,7 @@ struct StateFieldGraphicsVertexBuffersBindArray : TrackedStateFieldBase<false, f
     {
       resPtrs[bind.index] = bind.val.bRef.buffer;
       buffers[bind.index] = bind.val.bRef.getHandle();
-      offsets[bind.index] = bind.val.bRef.dataOffset(bind.val.offset);
+      offsets[bind.index] = bind.val.bRef.bufOffset(bind.val.offset);
       countMask |= 1 << bind.index;
     }
     else
@@ -510,13 +510,24 @@ struct StateFieldGraphicsVertexBufferStrides
   : TrackedStateFieldArray<StateFieldGraphicsVertexBufferStride, MAX_VERTEX_INPUT_STREAMS, true, true>
 {};
 
-struct StateFieldGraphicsPrimitiveTopology : TrackedStateFieldBase<true, false>, TrackedStateFieldGenericSmallPOD<VkPrimitiveTopology>
+struct StateFieldGraphicsPrimitiveTopology : TrackedStateFieldBase<true, false>
 {
+  using TessOverride = bool;
+  TessOverride useTessOverride;
+  VkPrimitiveTopology data;
+
   template <typename StorageType>
   void reset(StorageType &)
   {
     data = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    useTessOverride = false;
   }
+
+  void set(VkPrimitiveTopology value) { data = value; }
+  bool diff(VkPrimitiveTopology value) const { return data != value; }
+
+  void set(TessOverride value) { useTessOverride = value; }
+  bool diff(TessOverride value) const { return useTessOverride != value; }
 
   VULKAN_TRACKED_STATE_FIELD_CB_DEFENITIONS();
 };

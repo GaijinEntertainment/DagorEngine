@@ -1,0 +1,239 @@
+include "sky_shader_global.dshl"
+include "viewVecVS.dshl"
+include "frustum.dshl"
+include "dagi_volmap_gi.dshl"
+include "dagi_scene_voxels_common.dshl"
+include "dagi_helpers.dshl"
+//include "gpu_occlusion.dshl"
+//include "sample_voxels.dshl"
+hlsl {
+  #include "dagi_common_types.hlsli"
+}
+
+int ssgi_current_frame;
+buffer frustum_visible_ambient_voxels;
+buffer frustum_visible_point_voxels;
+
+shader random_point_occlusion_ambient_voxels_cs
+{
+  SSGI_USE_VOLMAP_GI_COORD(cs)
+  (cs) {
+    world_view_pos@f3 = world_view_pos;
+    ssgi_current_frame@f1 = (ssgi_current_frame);
+    ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal;
+    frustum_visible_ambient_voxels@buf = frustum_visible_ambient_voxels hlsl{
+      StructuredBuffer<uint> frustum_visible_ambient_voxels@buf;
+    }
+  }
+  //INIT_READ_DEPTH_GBUFFER()
+  //USE_READ_DEPTH_GBUFFER_BASE(cs)
+  ENABLE_ASSERT(cs)
+
+  hlsl(cs) {
+
+    StructuredBuffer<float> prev_probability: register(t15);//todo: use it to better bin handling
+    StructuredBuffer<uint> frustum_visible_ambient_voxels_count: register(t13);
+
+    RWStructuredBuffer<VisibleAmbientVoxelPoint> visible_ambient_voxels: register(u0);
+    RWStructuredBuffer<uint> voxelsWeightHistogram: register(u1);
+
+    void add_pos(uint voxel, uint to)
+    {
+      VisibleAmbientVoxelPoint addVoxel;
+      addVoxel.voxelId = voxel;
+
+      structuredBufferAt(visible_ambient_voxels, to) = addVoxel;
+    }
+
+    float3 rand3(float3 co)
+    {
+      return frac(sin(co.xyz*12.9898) * 43758.5453);
+    }
+
+    groupshared uint localSecondHist[MAX_BINS];
+
+    [numthreads(POINT_OCCLUSION_WARP_SIZE, 1, 1)]
+    void cull_voxels_cs( uint dtId : SV_DispatchThreadID, uint localId : SV_GroupThreadID )
+    {
+      if (localId < MAX_BINS)
+        localSecondHist[localId] = 0;
+      GroupMemoryBarrierWithGroupSync();
+
+      uint voxelNo = dtId;
+      uint numVoxels = structuredBufferAt(frustum_visible_ambient_voxels_count, 0);
+      if (voxelNo < numVoxels)
+      {
+        int3 max_voxels_in_bin3 = ssgi_get_max_voxels_in_bin(cascade_id);
+        uint voxel = frustum_visible_ambient_voxels[voxelNo];
+        uint bin;
+        uint3 coord = decode_voxel_coord_safe(voxel, bin);
+        float3 center = ambientCoordToWorldPos(coord, cascade_id);
+
+        float3 ofs = ssgi_ambient_volmap_crd_to_world0_xyz(cascade_id)*0.5;
+        float3 minb = center-ofs;
+        float temporalEffect = ssgi_ambient_volmap_temporal[uint3(coord.xy, coord.z + ssgi_cascade_z_crd_ofs(cascade_id))].x;
+        if (temporalEffect == 0 || (temporalEffect <= SSGI_TEMPORAL_COPIED_VALUE && bin == 0))//either is not inited at all, or inited with raycast but intersected
+        {
+          uint index;
+          InterlockedAdd(structuredBufferAt(voxelsWeightHistogram, INITIALIZE_VOXELS_INDEX), 1, index);
+          if (index < max_voxels_in_bin3.z)
+            add_pos((voxel&VOLMAP_INDEX_MASK), index + ssgi_get_max_non_initial_voxels(cascade_id));
+        }
+        else
+        {
+          float worldRandValue = rand3(dot(rand3(center), float3(1, 2.7813, 1.01)).x + ssgi_current_frame*0.131).x;
+          InterlockedAdd(localSecondHist[bin], 1);
+
+          worldRandValue *= 1-pow2(1-temporalEffect);
+          float3 toCamera = center - world_view_pos.xyz;
+          worldRandValue = worldRandValue*saturate((1+length(toCamera))*ssgi_ambient_volmap_box0_xyz(cascade_id).x);
+
+          if (worldRandValue <= structuredBufferAt(prev_probability, bin))
+          {
+            uint index;
+            InterlockedAdd(structuredBufferAt(voxelsWeightHistogram, bin), 1, index);
+            if (index < dot(uint3(max_voxels_in_bin3), uint3(bin==0, bin==1, bin==2)))
+            {
+              uint voxelNo;
+              InterlockedAdd(structuredBufferAt(voxelsWeightHistogram, FULL_VOXELS_INDEX_BEFORE_TEMPORAL), 1, voxelNo);
+              uint oldTemporal = uint(temporalEffect*VOLMAP_BIN_MAX_VAL+0.5);
+              add_pos((voxel&VOLMAP_INDEX_MASK)|(oldTemporal<<VOLMAP_WEIGHT_SHIFT), voxelNo);
+            }
+          }
+        }
+      }
+      GroupMemoryBarrierWithGroupSync();
+
+      if (localId < MAX_BINS)
+        InterlockedAdd(structuredBufferAt(voxelsWeightHistogram, MAX_BINS+localId), localSecondHist[localId]);
+    }
+  }
+  compile("cs_5_0", "cull_voxels_cs");
+}
+
+shader ssgi_change_probability_cs
+{
+  SSGI_USE_VOLMAP_GI_COORD(cs)
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    StructuredBuffer<float> prev_probability: register(t15);//todo: use it to better bin handling
+
+    RWStructuredBuffer<float> next_probability: register(u0);
+    RWByteAddressBuffer dispatchIndirectBuffer : register( u1 );
+    RWStructuredBuffer<uint> voxelsWeightHistogram: register(u2);
+    float get_probability(uint max_voxels, uint cur_voxels, uint cur_should, float cur_probability)
+    {
+      //float linear_probability = float(cur_voxels+1)/max_voxels;
+      float next_probability = cur_probability;
+      //if (cur_voxels>max_voxels)
+      {
+        float linear_next_probability = saturate(max_voxels/float(cur_should+1));// 1024/(958+1) == 1
+        bool more_than_needed = (cur_voxels>max_voxels);//183 > 1024 == false
+        bool probability_bigger_than_needed = (cur_probability > linear_next_probability);// 0.202 > 1 == false
+        if (more_than_needed == probability_bigger_than_needed)
+          next_probability = 0.5*linear_next_probability + 0.5*cur_probability;
+        else
+          next_probability = cur_probability * (more_than_needed ? 0.99 : 1.01);
+      }
+
+      //float next_probability = cur_probability * (cur_voxels < max_voxels ? rcp(linear_probability) : (max_voxels < cur_voxels ? linear_probability : 1));
+      //todo:change speed based on difference: //(float(max_voxels) - float(cur_voxels));
+      return clamp(next_probability, 0.0001, 1);
+    }
+
+    [numthreads(INITIALIZE_VOXELS_INDEX+1, 1, 1)]
+    void select_bins_cs( uint tid: SV_GroupIndex )
+    {
+      uint full_voxels = structuredBufferAt(voxelsWeightHistogram, FULL_VOXELS_INDEX_BEFORE_TEMPORAL);
+      if (tid == 0)
+        structuredBufferAt(voxelsWeightHistogram, FULL_VOXELS_INDEX_AFTER_TEMPORAL) = full_voxels;
+      //uint max_voxels_in_bin[3] = {MAX_SELECTED_INTERSECTED_VOXELS, MAX_SELECTED_NON_INTERSECTED_VOXELS, MAX_SELECTED_INITIAL_VOXELS};
+      int3 max_voxels_in_bin3 = ssgi_get_max_voxels_in_bin(cascade_id);
+      //uint3 max_voxels_in_bin = ssgi_get_max_voxels_in_bin(cascade_id);
+      //if many bins can be made in threads
+      uint bin = tid;
+      if (bin<MAX_BINS)
+      {
+        uint cur_voxels = structuredBufferAt(voxelsWeightHistogram, bin);
+        float probability = get_probability(dot(uint3(max_voxels_in_bin3), uint3(bin==0, bin==1, bin==2)), cur_voxels, structuredBufferAt(voxelsWeightHistogram, MAX_BINS + bin), structuredBufferAt(prev_probability, bin));
+        next_probability[bin] = probability;
+      }
+      {
+        uint groups = 0;
+        if (tid == 0)
+          groups = (full_voxels + TEMPORAL_AMBIENT_VOXELS_WARP-1)/TEMPORAL_AMBIENT_VOXELS_WARP;
+        if (tid == 1)
+          groups = full_voxels*NUM_RAY_GROUPS;
+        if (tid == 2)
+          groups = full_voxels;
+        if (tid == 3)
+          groups = min(structuredBufferAt(voxelsWeightHistogram, INITIALIZE_VOXELS_INDEX), MAX_SELECTED_INITIAL_VOXELS);
+        if (tid == 4)
+          groups = (min(structuredBufferAt(voxelsWeightHistogram, INITIALIZE_VOXELS_INDEX), MAX_SELECTED_INITIAL_VOXELS) + INITIAL_WALLS_DIST_WARP-1)/INITIAL_WALLS_DIST_WARP;
+        if (tid <= 4)
+          storeBuffer(dispatchIndirectBuffer, (3 * tid + 0) * 4, groups);
+        structuredBufferAt(voxelsWeightHistogram, tid) = 0;
+      }
+    }
+  }
+  compile("cs_5_0", "select_bins_cs");
+}
+
+shader temporal_ambient_voxels_cs
+{
+  SSGI_USE_VOLMAP_GI_COORD(cs)
+  GI_USE_AMBIENT_VOLMAP(cs)
+
+  (cs) {
+    world_view_pos@f3 = world_view_pos;
+    gi_ambient_volmap@smp3d = gi_ambient_volmap;
+    frustum_visible_ambient_voxels@buf = frustum_visible_point_voxels hlsl{
+      #include "dagi_common_types.hlsli"
+      StructuredBuffer<VisibleAmbientVoxelPoint> frustum_visible_ambient_voxels@buf;
+    }
+  }
+  //INIT_READ_DEPTH_GBUFFER()
+  //USE_READ_DEPTH_GBUFFER_BASE(cs)
+  CALC_CLOSEST_PLANES()
+  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    StructuredBuffer<uint> voxelsWeightHistogram: register(t14);
+    RWStructuredBuffer<VisibleAmbientVoxel> visible_ambient_voxels: register(u0);
+    RWStructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes: register(u1);
+
+    void add_pos(uint at, VisibleAmbientVoxelPoint pt)
+    {
+      VisibleAmbientVoxel addVoxel;
+      reset_voxel(addVoxel);
+
+      uint tempW = 0;
+      uint3 coord = decode_voxel_coord_safe(pt.voxelId, tempW);
+      float3 worldPos = ambientCoordToWorldPos(coord, cascade_id);
+      coord.z += ssgi_cascade_z_crd_ofs(cascade_id)*6;
+      addVoxel.voxelId = pt.voxelId;
+      float3 col[6];
+      uint z_ofs = volmap_y_dim(cascade_id);
+      col[0] = FETCH_AMBIENT_VOLMAP(coord); coord.z += z_ofs;
+      col[1] = FETCH_AMBIENT_VOLMAP(coord); coord.z += z_ofs;
+      col[2] = FETCH_AMBIENT_VOLMAP(coord); coord.z += z_ofs;
+      col[3] = FETCH_AMBIENT_VOLMAP(coord); coord.z += z_ofs;
+      col[4] = FETCH_AMBIENT_VOLMAP(coord); coord.z += z_ofs;
+      col[5] = FETCH_AMBIENT_VOLMAP(coord);
+      encode_voxel_colors(addVoxel,
+        col[0], col[1], col[2], col[3], col[4], col[5]
+      );
+      structuredBufferAt(visible_ambient_voxels, at) = addVoxel;
+      select_closest_walls_from_inside_grid(worldPos, structuredBufferAt(visible_ambient_voxels_walls_planes, at));
+    }
+
+    [numthreads(TEMPORAL_AMBIENT_VOXELS_WARP, 1, 1)]
+    void cull_voxels_cs( uint dtId : SV_DispatchThreadID )//uint3 gId : SV_GroupId,
+    {
+      uint voxelNo = dtId;
+      if (voxelNo >= structuredBufferAt(voxelsWeightHistogram, FULL_VOXELS_INDEX_AFTER_TEMPORAL))
+        return;
+      add_pos(voxelNo, frustum_visible_ambient_voxels[voxelNo]);
+    }
+  }
+  compile("cs_5_0", "cull_voxels_cs");
+}

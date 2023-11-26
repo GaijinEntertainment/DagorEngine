@@ -22,7 +22,7 @@ void register_phys_obj_gameres_factory();
 void register_ragdoll_gameres_factory();
 void register_effect_gameres_factory();
 void register_isl_light_gameres_factory();
-void register_animchar_gameres_factory();
+void register_animchar_gameres_factory(bool warn_about_missing_anim = true);
 void register_cloud_gameres_factory();
 void register_material_gameres_factory();
 void register_lshader_gameres_factory();

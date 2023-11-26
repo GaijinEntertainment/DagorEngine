@@ -6,7 +6,7 @@ source
 {
   includePath:t="./source"
 
-  file:t = "fft_cs.sh"
+  file:t = "fft_cs.dshl"
   include "../../../../prog/gameLibs/daSkies2/shaders/daSkiesList.blk"
   include "../../../../prog/samples/commonShaders/shadersList.blk"
   include fftWaterList.blk

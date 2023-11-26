@@ -14,8 +14,7 @@
 #include <generic/dag_carray.h>
 #include <generic/dag_staticTab.h>
 #include <3d/dag_resPtr.h>
-#include <3d/dag_indirectDrawcallsBuffer.h>
-#include <3d/dag_dynLinearAllocBuffer.h>
+#include <3d/dag_multidrawContext.h>
 
 
 //-V:SWITCH_STATES:501
@@ -102,8 +101,7 @@ namespace rendinst::render
 #define ENCODED_RENDINST_RESCALE (32767. / 256)
 
 extern shaders::UniqueOverrideStateId afterDepthPrepassOverride;
-extern IndirectDrawcallsBuffer<DrawIndexedIndirectArgs> indirectDrawCalls;
-extern DynLinearAllocBuffer<rendinst::PerInstanceParameters> indirectDrawCallIds;
+extern MultidrawContext<rendinst::PerInstanceParameters> multidrawContext;
 
 extern bool use_ri_depth_prepass;
 extern int normal_type;

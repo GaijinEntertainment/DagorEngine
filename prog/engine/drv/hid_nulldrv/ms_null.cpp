@@ -59,3 +59,5 @@ IGenPointingClassDrv *HumanInput::createNullMouseClassDriver()
   memset(&raw_state_pnt, 0, sizeof(raw_state_pnt));
   return &drv;
 }
+
+void mouse_api_SetFullscreenMode(int, int) {}

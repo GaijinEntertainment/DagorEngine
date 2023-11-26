@@ -16,6 +16,8 @@
 #include <assets/assetMgr.h>
 #include <sepGui/wndPublic.h>
 
+#include <propPanel2/c_window_base.h>
+
 using hdpi::_pxScaled;
 
 enum

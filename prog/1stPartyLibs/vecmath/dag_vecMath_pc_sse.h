@@ -1059,7 +1059,7 @@ VECTORCALL VECMATH_FINLINE void v_mat44_inverse(mat44f &dest, mat44f_cref m)
   det = _mm_mul_ps(row0, minor0);
   det = _mm_add_ps(V_SHUFFLE(det, 0x4E), det);
   det = _mm_add_ss(V_SHUFFLE(det, 0xB1), det);
-  tmp1 = _mm_rcp_ss(det);
+  tmp1 = v_rcp_safe(det);
   det = _mm_sub_ss(_mm_add_ss(tmp1, tmp1), _mm_mul_ss(det, _mm_mul_ss(tmp1, tmp1)));
   det = v_splat_x(det);
   dest.col0 = _mm_mul_ps(det, minor0);
@@ -1076,7 +1076,7 @@ VECTORCALL VECMATH_FINLINE void v_mat33_inverse(mat33f &dest, mat33f_cref m)
   tmp0 = v_cross3(m.col1, m.col2);
   tmp1 = v_cross3(m.col2, m.col0);
   dot = v_dot3(tmp2, m.col2);
-  invdet = v_rcp(dot);
+  invdet = v_rcp_safe(dot);
 
   tmp3 = _mm_shuffle_ps(tmp0, tmp1, _MM_SHUFFLE(0,2,0,2));
   tmp4 = _mm_shuffle_ps(tmp0, tmp1, _MM_SHUFFLE(1,3,1,3));

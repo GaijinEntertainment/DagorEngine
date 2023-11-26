@@ -14,7 +14,7 @@
 
 namespace drv3d_dx12
 {
-struct BaseTex;
+class BaseTex;
 class Image;
 class Device;
 class DeviceContext;

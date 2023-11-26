@@ -36,6 +36,7 @@ public:
     bbox = BBox3(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5));
     ladderStepsCount = -1;
     isGroundHole = false;
+    isRiNavmeshBlocker = false;
     bsph.setempty();
     bsph = bbox;
     volType = VT_BOX;
@@ -97,6 +98,7 @@ public:
 
     ladderStepsCount = asset.props.getInt("ladderStepsCount", -1);
     isGroundHole = asset.props.getBool("isGroundHole", false);
+    isRiNavmeshBlocker = asset.props.getBool("isRiNavmeshBlocker", false);
 
     bsph = bbox;
     if (volType == VT_SPH)
@@ -134,6 +136,7 @@ public:
   BBox3 bbox;
   int ladderStepsCount;
   bool isGroundHole;
+  bool isRiNavmeshBlocker;
   BSphere3 bsph;
   enum
   {
@@ -175,6 +178,7 @@ public:
     bsph = e.bsph;
     ladderStepsCount = e.ladderStepsCount;
     isGroundHole = e.isGroundHole;
+    isRiNavmeshBlocker = e.isRiNavmeshBlocker;
     volType = e.volType;
     needsSuperEntRef = e.needsSuperEntRef;
 
@@ -229,6 +233,7 @@ class GameObjEntityManagementService : public IEditorService,
                                        public IBinaryDataBuilder,
                                        public IDagorAssetChangeNotify,
                                        public IGatherGroundHoles,
+                                       public IGatherRiNavmeshBlockers,
                                        public IGatherGameLadders
 {
 public:
@@ -270,6 +275,7 @@ public:
     RETURN_INTERFACE(huid, IObjEntityMgr);
     RETURN_INTERFACE(huid, IBinaryDataBuilder);
     RETURN_INTERFACE(huid, IGatherGroundHoles);
+    RETURN_INTERFACE(huid, IGatherRiNavmeshBlockers);
     RETURN_INTERFACE(huid, IGatherGameLadders);
     return NULL;
   }
@@ -414,6 +420,20 @@ public:
         const Point2 xAxis = Point2::xz(tm.getcol(0));
         const Point2 yAxis = Point2::xz(tm.getcol(2));
         obstacles.push_back(GroundHole(xAxis, yAxis, center, isSphere));
+      }
+  }
+
+  // IGatherRiNavmeshBlockers interface
+  virtual void gatherRiNavmeshBlockers(Tab<BBox3> &blockers)
+  {
+    dag::ConstSpan<GameObjEntity *> entities = objPool.getEntities();
+
+    for (GameObjEntity *entity : entities)
+      if (entity && entity->isRiNavmeshBlocker && entity->volType == VirtualGameObjEntity::VT_BOX)
+      {
+        TMatrix curTm;
+        entity->getTm(curTm);
+        blockers.push_back(curTm * entity->getBbox());
       }
   }
 

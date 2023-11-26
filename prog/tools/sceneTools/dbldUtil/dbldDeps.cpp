@@ -31,7 +31,11 @@
 #include <debug/dag_debug.h>
 #include <stdio.h>
 #include <stdlib.h>
+#if _TARGET_PC_WIN
 #include <direct.h>
+#elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <unistd.h>
+#endif
 
 unsigned int lightmap_quality = 0;
 

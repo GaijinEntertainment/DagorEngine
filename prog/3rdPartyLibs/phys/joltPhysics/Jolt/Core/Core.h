@@ -192,6 +192,10 @@
 			#define JPH_EXPORT __declspec(dllexport)
 		#else
 			#define JPH_EXPORT __attribute__ ((visibility ("default")))
+			#if defined(JPH_COMPILER_GCC)
+				// Prevents an issue with GCC attribute parsing (see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=69585)
+				#define JPH_EXPORT_GCC_BUG_WORKAROUND [[gnu::visibility("default")]]
+			#endif
 		#endif
 	#else
 		// When linking against Jolt, we must import these symbols
@@ -199,11 +203,19 @@
 			#define JPH_EXPORT __declspec(dllimport)
 		#else
 			#define JPH_EXPORT __attribute__ ((visibility ("default")))
+			#if defined(JPH_COMPILER_GCC)
+				// Prevents an issue with GCC attribute parsing (see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=69585)
+				#define JPH_EXPORT_GCC_BUG_WORKAROUND [[gnu::visibility("default")]]
+			#endif
 		#endif
 	#endif
 #else
 	// If the define is not set, we use static linking and symbols don't need to be imported or exported
 	#define JPH_EXPORT
+#endif
+
+#ifndef JPH_EXPORT_GCC_BUG_WORKAROUND
+	#define JPH_EXPORT_GCC_BUG_WORKAROUND JPH_EXPORT
 #endif
 
 // Macro used by the RTTI macros to not export a function
@@ -360,6 +372,9 @@
 	JPH_SUPPRESS_WARNING_POP
 
 // Standard C++ includes
+#include <float.h>
+#include <limits.h>
+#include <string.h>
 JPH_SUPPRESS_WARNINGS_STD_BEGIN
 #include <vector>
 #include <utility>
@@ -369,9 +384,6 @@ JPH_SUPPRESS_WARNINGS_STD_BEGIN
 #include <algorithm>
 #include <cstdint>
 JPH_SUPPRESS_WARNINGS_STD_END
-#include <limits.h>
-#include <float.h>
-#include <string.h>
 #if defined(JPH_USE_SSE)
 	#include <immintrin.h>
 #elif defined(JPH_USE_NEON)
@@ -500,7 +512,7 @@ static_assert(sizeof(void *) == (JPH_CPU_ADDRESS_BITS == 64? 8 : 4), "Invalid si
 #elif defined(JPH_COMPILER_CLANG)
 	// We compile without -ffast-math because pragma float_control(precise, on) doesn't seem to actually negate all of the -ffast-math effects and causes the unit tests to fail (even if the pragma is added to all files)
 	// On clang 14 and later we can turn off float contraction through a pragma (before it was buggy), so if FMA is on we can disable it through this macro
-	#if (defined(JPH_CPU_ARM) && __clang_major__ >= 16) || (defined(JPH_CPU_X86) && __clang_major__ >= 14)
+	#if (defined(JPH_CPU_ARM) && !defined(JPH_PLATFORM_ANDROID) && __clang_major__ >= 16) || (defined(JPH_CPU_X86) && __clang_major__ >= 14)
 		#define JPH_PRECISE_MATH_ON						\
 			_Pragma("float_control(precise, on, push)")	\
 			_Pragma("clang fp contract(off)")

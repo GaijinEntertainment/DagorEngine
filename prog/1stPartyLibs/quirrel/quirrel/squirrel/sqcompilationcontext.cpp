@@ -253,8 +253,6 @@ bool SQCompilationContext::loadConfigFile(const char *configFile) {
 }
 
 bool SQCompilationContext::loadConfigFile(const KeyValueFile &config) {
-
-
   //for (auto && v : config.getValuesList("format_function_name"))
   //{
   //  string functionName(v);
@@ -323,21 +321,6 @@ const char *SQCompilationContext::findLine(int lineNo) {
   return _linemap[lineNo];
 }
 
-static const char *strstr_nl(const char *str, const char *fnd) {
-
-  int len = strlen(fnd);
-
-  while (*str != '\0' && *str != '\n') {
-    if (*str == *fnd) {
-      if (strncmp(str, fnd, len) == 0) {
-        return str;
-      }
-    }
-    ++str;
-  }
-
-  return nullptr;
-}
 
 void SQCompilationContext::printAllWarnings(FILE *ostream) {
   for (auto &diag : diagnosticDescriptors) {
@@ -357,7 +340,7 @@ void SQCompilationContext::flipWarningsState() {
   }
 }
 
-bool SQCompilationContext::switchDiagnosticState(const char *diagName, bool state) {
+bool SQCompilationContext::enableWarning(const char *diagName, bool state) {
   for (auto &diag : diagnosticDescriptors) {
     if (strcmp(diagName, diag.textId) == 0) {
       if (diag.severity != DS_ERROR) {
@@ -369,7 +352,7 @@ bool SQCompilationContext::switchDiagnosticState(const char *diagName, bool stat
   return false;
 }
 
-bool SQCompilationContext::switchDiagnosticState(int32_t id, bool state) {
+bool SQCompilationContext::enableWarning(int32_t id, bool state) {
   for (auto &diag : diagnosticDescriptors) {
     if (id == diag.id) {
       if (diag.severity != DS_ERROR) {
@@ -541,6 +524,20 @@ void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t 
     auto errorFunc = _ss(_vm)->_compilererrorhandler;
 
     const char *msg = message.c_str();
+
+    auto diagMsgFunc = _ss(_vm)->_compilerdiaghandler;
+    if (diagMsgFunc) {
+      SQCompilerMessage cm;
+      cm.intId = desc.id;
+      cm.textId = desc.textId;
+      cm.line = line;
+      cm.column = pos;
+      cm.columnsWidth = width;
+      cm.message = msg;
+      cm.fileName = _sourceName;
+      cm.isError = isError;
+      diagMsgFunc(_vm, &cm);
+    }
 
     if (_raiseError && errorFunc) {
       errorFunc(_vm, msg, _sourceName, line, pos, extra);

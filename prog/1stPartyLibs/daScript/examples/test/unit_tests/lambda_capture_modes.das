@@ -19,7 +19,7 @@ def test_delete
 	assert ( pB==null )
 	invoke(lam)
 	delete lam
-	assert(g_counter==2)	// b and c were deleted, a stayed do to copy, not move, not clone
+	assert(g_counter==1)	// only C was safe to delete
 	return true
 
 

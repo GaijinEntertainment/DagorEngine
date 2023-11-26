@@ -1,10 +1,10 @@
 //expect:w239
 
-::userName <- require("sq3_sa_test").userName
-::serverName <- require("sq3_sa_test").serverName
+::userName <- require("empty.txt")?.userName
+::serverName <- require("empty.txt")?.serverName
 
 
-let function isLoggedIn() { //-declared-never-used
+let function isLoggedIn() { //-declared-never-used -all-paths-return-value
   if (::userName == "")
     return false;
 

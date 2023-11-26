@@ -117,6 +117,7 @@ CONSOLE_BOOL_VAL("volfog", froxel_fog_enable_linear_accumulation, true);
 CONSOLE_FLOAT_VAL_MINMAX("volfog", volfog_shadow_voxel_size, 8.0f, 0.1f, 20.0f);
 CONSOLE_FLOAT_VAL_MINMAX("volfog", volfog_shadow_accumulation_factor, 0.9f, 0.0f, 0.999f);
 
+CONSOLE_BOOL_VAL("volfog", use_fixed_froxel_fog_range, true);
 
 CONSOLE_FLOAT_VAL_MINMAX("volfog", froxel_fog_fading_range_ratio, 0.3f, 0.0f, 1.0f);
 
@@ -698,7 +699,8 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, cons
     resetDistantFog();
   }
 
-  if (isDistantFogEnabled()) // distant fog is much more stable with a fixed starting depth (depends on froxel range)
+  if (use_fixed_froxel_fog_range || isDistantFogEnabled()) // distant fog is much more stable with a fixed starting depth (depends on
+                                                           // froxel range)
     currentRange = froxel_fog_range;
 
   switchOn(); // set range params early for volfog passes

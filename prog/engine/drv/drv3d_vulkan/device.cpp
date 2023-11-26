@@ -40,7 +40,7 @@ VkAccelerationStructureGeometryKHR RaytraceGeometryDescriptionToVkAccelerationSt
   result.flags = toGeometryFlagsKHR(info.flags);
   return result;
 }
-VkAccelerationStructureGeometryKHR RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHRTriangles(VulkanDevice &vkDev,
+VkAccelerationStructureGeometryKHR RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHRTriangles(VulkanDevice &,
   const RaytraceGeometryDescription::TrianglesInfo &info)
 {
   auto devVbuf = ((GenericBufferInterface *)info.vertexBuffer)->getDeviceBuffer();
@@ -50,16 +50,15 @@ VkAccelerationStructureGeometryKHR RaytraceGeometryDescriptionToVkAccelerationSt
   result.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
   result.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
   result.geometry.triangles.pNext = nullptr;
-  result.geometry.triangles.vertexData.deviceAddress =
-    devVbuf->getDeviceAddress(vkDev) + devVbuf->dataOffset(info.vertexOffset * info.vertexStride);
-  result.geometry.triangles.maxVertex = devVbuf->dataSize() / info.vertexStride - 1; // assume any vertex can be accessed
+  result.geometry.triangles.vertexData.deviceAddress = devVbuf->devOffsetLoc(info.vertexOffset * info.vertexStride);
+  result.geometry.triangles.maxVertex = devVbuf->getBlockSize() / info.vertexStride - 1; // assume any vertex can be accessed
   result.geometry.triangles.vertexStride = info.vertexStride;
   result.geometry.triangles.vertexFormat = VSDTToVulkanFormat(info.vertexFormat);
   if (info.indexBuffer)
   {
     auto ibuf = (GenericBufferInterface *)info.indexBuffer;
     auto devIbuf = ibuf->getDeviceBuffer();
-    result.geometry.triangles.indexData.deviceAddress = devIbuf->getDeviceAddress(vkDev) + devIbuf->dataOffset(0);
+    result.geometry.triangles.indexData.deviceAddress = devIbuf->devOffsetLoc(0);
     result.geometry.triangles.indexType = ibuf->getIndexType();
   }
   result.flags = toGeometryFlagsKHR(info.flags);
@@ -132,6 +131,12 @@ void Device::configure(const Config &ucfg, const PhysicalDeviceSet &pds)
   debugLevel = ucfg.debugLevel;
 }
 
+bool Device::checkImageViewFormat(FormatStore fmt, Image *img)
+{
+  return checkFormatSupport(fmt.asVkFormat(), VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, img->getUsage(), img->getCreateFlags(),
+    img->getSampleCount());
+}
+
 // hot function
 VulkanImageViewHandle Device::getImageView(Image *img, ImageViewState state)
 {
@@ -143,12 +148,19 @@ VulkanImageViewHandle Device::getImageView(Image *img, ImageViewState state)
     TIME_PROFILE(vulkan_get_image_view_ctor);
     VkImageViewCreateInfo ivci;
     FormatStore fmt = state.getFormat();
-    if (!checkFormatSupport(fmt.asVkFormat(), VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, img->getUsage(), img->getCreateFlags(),
-          img->getSampleCount()))
+    bool fmtOk = checkImageViewFormat(fmt, img);
+    if (!fmtOk && fmt != img->getFormat())
     {
-      logerr("vulkan: unsupported view format %s, falling back for image original format %s", fmt.getNameString(),
+      debug("vulkan: unsupported view format %s, falling back for image original format %s", fmt.getNameString(),
         img->getFormat().getNameString());
       fmt = img->getFormat();
+      fmtOk = checkImageViewFormat(fmt, img);
+    }
+    if (!fmtOk)
+    {
+      logerr("vulkan: failed to create image view for %p:%s with format %s usage %s samples %u flags %u", img, img->getDebugName(),
+        fmt.getNameString(), formatImageUsageFlags(img->getUsage()), img->getSampleCount(), img->getCreateFlags());
+      return VulkanImageViewHandle{};
     }
     ivci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     ivci.pNext = NULL;
@@ -370,7 +382,7 @@ void Device::setupDummyResources()
   addBufferView(dummyBuffer, bufViewFmt);
   // zero out the buffer
   auto stage = createBuffer(dummySize, DeviceMemoryClass::HOST_RESIDENT_HOST_WRITE_ONLY_BUFFER, 1, BufferMemoryFlags::NONE);
-  memset(stage->dataPointer(0), 0, dummySize);
+  memset(stage->ptrOffsetLoc(0), 0, dummySize);
 
   // everything is 0 execept target image aspect, layer count and extent
   VkBufferImageCopy region = {};
@@ -528,21 +540,22 @@ void Device::setupDummyResources()
   dummyResourceTable[spirv::MISSING_STORAGE_BUFFER_SAMPLED_IMAGE_INDEX].resource = (void *)dummyBuffer;
   dummyResourceTable[spirv::MISSING_STORAGE_BUFFER_SAMPLED_IMAGE_INDEX].descriptor.texelBuffer = dummyBuffer->getView();
 
-  VkDeviceSize dummyUniformSize = min<uint32_t>(dummyBuffer->dataSize(), physicalDeviceInfo.properties.limits.maxUniformBufferRange);
+  VkDeviceSize dummyUniformSize =
+    min<uint32_t>(dummyBuffer->getBlockSize(), physicalDeviceInfo.properties.limits.maxUniformBufferRange);
 
   dummyResourceTable[spirv::MISSING_BUFFER_INDEX].resource = (void *)dummyBuffer;
   dummyResourceTable[spirv::MISSING_BUFFER_INDEX].descriptor.buffer.buffer = dummyBuffer->getHandle();
-  dummyResourceTable[spirv::MISSING_BUFFER_INDEX].descriptor.buffer.offset = dummyBuffer->dataOffset(0);
+  dummyResourceTable[spirv::MISSING_BUFFER_INDEX].descriptor.buffer.offset = dummyBuffer->bufOffsetLoc(0);
   dummyResourceTable[spirv::MISSING_BUFFER_INDEX].descriptor.buffer.range = dummyUniformSize;
 
   dummyResourceTable[spirv::MISSING_STORAGE_BUFFER_INDEX].resource = (void *)dummyBuffer;
   dummyResourceTable[spirv::MISSING_STORAGE_BUFFER_INDEX].descriptor.buffer.buffer = dummyBuffer->getHandle();
-  dummyResourceTable[spirv::MISSING_STORAGE_BUFFER_INDEX].descriptor.buffer.offset = dummyBuffer->dataOffset(0);
-  dummyResourceTable[spirv::MISSING_STORAGE_BUFFER_INDEX].descriptor.buffer.range = dummyBuffer->dataSize();
+  dummyResourceTable[spirv::MISSING_STORAGE_BUFFER_INDEX].descriptor.buffer.offset = dummyBuffer->bufOffsetLoc(0);
+  dummyResourceTable[spirv::MISSING_STORAGE_BUFFER_INDEX].descriptor.buffer.range = dummyBuffer->getBlockSize();
 
   dummyResourceTable[spirv::MISSING_CONST_BUFFER_INDEX].resource = (void *)dummyBuffer;
   dummyResourceTable[spirv::MISSING_CONST_BUFFER_INDEX].descriptor.buffer.buffer = dummyBuffer->getHandle();
-  dummyResourceTable[spirv::MISSING_CONST_BUFFER_INDEX].descriptor.buffer.offset = dummyBuffer->dataOffset(0);
+  dummyResourceTable[spirv::MISSING_CONST_BUFFER_INDEX].descriptor.buffer.offset = dummyBuffer->bufOffsetLoc(0);
   dummyResourceTable[spirv::MISSING_CONST_BUFFER_INDEX].descriptor.buffer.range = dummyUniformSize;
 
   // dummy is special, should be treated as null to avoid clearing up after fallback replacement
@@ -1215,10 +1228,11 @@ Buffer *Device::createBuffer(uint32_t size, DeviceMemoryClass memory_class, uint
 
 void Device::addBufferView(Buffer *buffer, FormatStore format)
 {
-  G_ASSERTF((buffer->dataSize() % format.getBytesPerPixelBlock()) == 0,
+  G_ASSERTF((buffer->getBlockSize() % format.getBytesPerPixelBlock()) == 0,
     "invalid view of buffer, buffer has a size of %u, format (%s) element size is %u"
     " which leaves %u dangling bytes",
-    buffer->dataSize(), format.getNameString(), format.getBytesPerPixelBlock(), buffer->dataSize() % format.getBytesPerPixelBlock());
+    buffer->getBlockSize(), format.getNameString(), format.getBytesPerPixelBlock(),
+    buffer->getBlockSize() % format.getBytesPerPixelBlock());
 
   uint32_t viewCount = buffer->getMaxDiscardLimit();
   eastl::unique_ptr<VulkanBufferViewHandle[]> views(new VulkanBufferViewHandle[viewCount]);
@@ -1229,7 +1243,7 @@ void Device::addBufferView(Buffer *buffer, FormatStore format)
   bvci.flags = 0;
   bvci.buffer = buffer->getHandle();
   bvci.format = format.asVkFormat();
-  bvci.range = buffer->dataSize();
+  bvci.range = buffer->getBlockSize();
 
   {
     uint64_t sizeLimit = physicalDeviceInfo.properties.limits.maxStorageBufferRange;
@@ -1249,7 +1263,7 @@ void Device::addBufferView(Buffer *buffer, FormatStore format)
 
   for (uint32_t d = 0; d < viewCount; ++d)
   {
-    bvci.offset = buffer->dataOffsetWithDiscardIndex(0, d);
+    bvci.offset = buffer->bufOffsetAbs(d * buffer->getBlockSize());
 
     VULKAN_EXIT_ON_FAIL(device.vkCreateBufferView(device.get(), &bvci, NULL, ptr(views[d])));
   }
@@ -1469,14 +1483,10 @@ bool Device::hasGeometryShader() const { return VK_FALSE != physicalDeviceInfo.f
 
 bool Device::hasTesselationShader() const
 {
-  // FIXME: disabled temporarily because DXC compiled shaders work wrongly
-  // need to fix them and enable back
-  return false;
-  //  const bool hasEnoughDescriptorSets = physicalDeviceInfo.properties.limits.maxBoundDescriptorSets >
-  //                                       spirv::graphics::evaluation::REGISTERS_SET_INDEX;
-  //
-  //  return physicalDeviceInfo.features.tessellationShader &&
-  //         hasEnoughDescriptorSets;
+  const bool hasEnoughDescriptorSets =
+    physicalDeviceInfo.properties.limits.maxBoundDescriptorSets > spirv::graphics::evaluation::REGISTERS_SET_INDEX;
+
+  return physicalDeviceInfo.features.tessellationShader && hasEnoughDescriptorSets;
 }
 
 bool Device::hasFragmentShaderUAV() const { return VK_FALSE != physicalDeviceInfo.features.fragmentStoresAndAtomics; }
@@ -1661,7 +1671,7 @@ void Device::ensureRoomForRaytraceBuildScratchBuffer(VkDeviceSize size)
   WinAutoLock lock(raytraceData.scratchReallocMutex);
   if (raytraceData.scratchBuffer)
   {
-    currentSize = raytraceData.scratchBuffer->dataSize();
+    currentSize = raytraceData.scratchBuffer->getBlockSize();
   }
 
   if (currentSize < size)

@@ -317,6 +317,8 @@ rendinst::RendInstDesc rendinst::get_restorable_desc(const RendInstDesc &ri_desc
 
 int rendinst::find_restorable_data_index(const RendInstDesc &desc)
 {
+  if (unsigned(desc.pool) >= riExtra.size())
+    return -1;
   const auto &ud = riExtra[desc.pool].riUniqueData;
   for (int r = 0; r < ud.size(); ++r)
     if (ud[r].cellId == -(desc.cellIdx + 1) && ud[r].offset == desc.offs)

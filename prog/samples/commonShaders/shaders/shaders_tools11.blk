@@ -1,14 +1,14 @@
 shader_root_dir:t="."
 outDumpName:t="../../../../samples/sampleShaders/tools/common/compiledShaders/tools"
 
-include common_inc_dirs.blk 
+include common_inc_dirs.blk
 
 source
 {
   includePath:t="./source"
   include "../../commonShaders/shadersList.blk"
-  file:t = "editor.sh"
-  file:t = "tex_view.sh"
+  file:t = "editor.dshl"
+  file:t = "tex_view.dshl"
 
   include fftWaterList.blk
   include shadersList.blk

@@ -1,0 +1,232 @@
+include "sky_shader_global.dshl"
+include "pbr.dshl"
+include "gbuffer.dshl"
+include "MonteCarlo.dshl"
+include "roughToMip.dshl"
+//include "skyLight.dshl"
+include "ssao_use.dshl"
+include "tile_lighting.dshl"
+include "punctualLights.dshl"
+include "normaldetail.dshl"
+include "viewVecVS.dshl"
+include "invGlobTm.dshl"
+include "clouds_vars.dshl"
+include "sq_clouds_shadow.dshl"
+include "static_shadow.dshl"
+include "use_prefiltered_gf.dshl"
+
+include "dagi_volmap_gi.dshl"
+include "dagi_helpers.dshl"
+include "dagi_scene_voxels_common.dshl"
+include "dagi_volmap_common_25d.dshl"
+
+int ssgi_current_frame;
+hlsl {
+  //#define NO_RAYTRACE 1
+}
+int use_gi_quality = 1;
+interval use_gi_quality: off<1, only_ao<2, full<3, raytraced;
+
+shader render_ambient
+{
+  no_ablend;
+
+  
+  cull_mode  = none;
+
+  z_test = false;
+  z_write = false;
+
+  channel float2 pos = pos;
+  (vs) {
+    screen_size@f4 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0);
+    world_view_pos@f3 = world_view_pos;
+  }
+  USE_POSTFX_VERTEX_POSITIONS()
+  USE_AND_INIT_VIEW_VEC_VS()
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  INIT_SKY_DIFFUSE()
+  USE_SKY_DIFFUSE()
+  INIT_ENVI_SPECULAR()
+
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+  }
+
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER_NORMAL()
+
+  if (use_gi_quality != off)
+  {
+    INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(ps)
+    SAMPLE_INIT_VOLMAP_25D(ps)
+    SAMPLE_VOLMAP_25D(ps)
+    hlsl(ps) {
+      #define AMBIENT 1
+      #define NEED_SAMPLE_DEPTH 1
+    }
+    SSGI_USE_VOLMAP_GI(ps)
+    if (use_gi_quality == raytraced)
+    {
+      RAY_CAST_VOXELS(ps)
+      (ps) { ssgi_current_frame@f1 = (ssgi_current_frame); }
+      hlsl(ps) {
+        #include <monteCarlo.hlsl>
+        #include <hammersley.hlsl>
+        #include <fibonacci_sphere.hlsl>
+        #include <interleavedGradientNoise.hlsl>
+        #include <scrambleTea.hlsl>
+        #include <wangHash.hlsl>
+      }
+      hlsl(ps){
+        float3 raycast_loop2(float3 worldPos, float3 worldDir, float3 worldNormal, float3 stepDir, float dist)
+        {
+          //return raycast_loop(0, worldPos, worldDir, dist);
+          uint startCascade = 0;
+          float floorHt = ssgi_get_heightmap_2d_height(worldPos);
+
+          float3 voxelSize = getSceneVoxelSize(startCascade);
+          worldPos.y = max(floorHt + voxelSize.y+0.1, worldPos.y);
+          {
+            int3 coord = sceneWorldPosToCoord(worldPos, startCascade);
+            if (any(coord<0) || any(coord>=VOXEL_RESOLUTION))
+              startCascade ++;
+            coord = sceneWorldPosToCoord(worldPos, startCascade);
+            if (any(coord<0) || any(coord>=VOXEL_RESOLUTION))
+              startCascade ++;
+          }
+
+          voxelSize = getSceneVoxelSize(startCascade);
+          //worldPos += stepDir*0.2;
+          float startOfs = 0.25+0.5*randOfset(worldDir);
+          startOfs*=0.1;
+          //worldPos += startOfs*voxelSize.x*worldDir;
+          bool insideVoxel = getVoxelsAlpha(wrapSceneVoxelCoord(sceneWorldPosToCoord(worldPos, startCascade), startCascade), startCascade)>=1;
+          if (insideVoxel)
+            worldPos += voxelSize*worldNormal;
+          if (getVoxelsAlpha(wrapSceneVoxelCoord(sceneWorldPosToCoord(worldPos, startCascade), startCascade), startCascade)>=1)
+            worldPos += voxelSize*stepDir;
+          //if (getVoxelsAlpha(wrapSceneVoxelCoord(sceneWorldPosToCoord(worldPos, startCascade), startCascade), startCascade)>=1)
+          //  worldPos += voxelSize*worldNormal;
+
+          //if (insideVoxel)
+          //  worldPos += (0.5*voxelSize.x)*stepDir;
+          //if (insideVoxel)
+          //  worldPos += ((startOfs + 0.75+0.5*randOfset(worldPos))*voxelSize.x)*worldDir;
+          //half4 ret = raycast_voxel_loop_coord(startCascade, worldPos, worldDir, dist);
+          half4 ret = raycast_cone(startCascade, worldPos, worldDir, dist);
+          BRANCH
+          if (ret.a<0.01)
+            return ret.rgb;
+          return ret.rgb + texCUBElod(envi_probe_specular, float4(worldDir,1)).rgb*ret.a;
+        }
+      }
+    }
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 viewVect : TEXCOORD0;
+      float2 texcoord : TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput shadows_to_target_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4( pos.xy, 1, 1 );
+      output.texcoord = screen_to_texcoords(pos);
+      output.viewVect = get_view_vec_by_vertex_id(vertexId);
+
+      return output;
+    }
+  }
+
+
+  hlsl(ps){
+
+    half3 shadows_to_target_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      #if NEED_SAMPLE_DEPTH
+      float rawDepth = readGbufferDepth(input.texcoord.xy);
+      if (rawDepth==0)
+        discard;
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      float3 pointToEye = -input.viewVect * w;
+      float3 worldPos = world_view_pos.xyz - pointToEye;
+      #endif
+
+      float3 normal;
+      half smoothness;
+      readPackedGbufferNormalSmoothness(input.texcoord.xy, normal, smoothness);
+      half3 enviLight = GetSkySHDiffuse(normal);
+      half3 ambient = enviLight;
+      ##if (use_gi_quality != off)
+        ##if (use_gi_quality == full)
+        float giAmount = get_ambient3d(worldPos, normal, enviLight, ambient);
+        BRANCH
+        if (giAmount < 1)
+        {
+        ##endif
+          half3 ambient25d = enviLight;
+          half ambient25dAmount = sample_25d_volmap(worldPos, normal, ambient25d);
+          enviLight = lerp(enviLight, ambient25d, ambient25dAmount);
+        ##if (use_gi_quality == full)
+        }
+        ambient = lerp(enviLight, ambient, giAmount);
+        ##else
+        ambient = enviLight;
+        ##endif
+        ##if use_gi_quality == raytraced
+          float3 traced = 0;
+          const int NUM_FILTER_SAMPLES = 2;
+          //uint2 Random = scramble_TEA( uint2(screenpos.xy)+wang_hash(ssgi_current_frame.x) );
+          uint2 Random = scramble_TEA( uint2(screenpos.xy));
+          //uint2 Random2 = scramble_TEA( Random);
+          //uint2 Random2 = Random + wang_hash(uint(ssgi_current_frame));
+          uint i = (uint(ssgi_current_frame))%NUM_FILTER_SAMPLES;
+          //uint i = (uint(wang_hash(Random2.x+Random2.y + ssgi_current_frame)))%NUM_FILTER_SAMPLES;
+          //int i = NUM_FILTER_SAMPLES*interleavedGradientNoiseFramed( screenpos.xy, ssgi_current_frame )*0.999;
+          //Random = uint2(jitterSample
+          const uint NUM_PER_SAMPLE_RAYS = 4;
+          //#include "poisson2d_256.hlsl"
+          #include "poisson2d_2048.hlsl"
+          for (uint ri = 0; ri < NUM_PER_SAMPLE_RAYS; ++ri)
+          {
+            uint ray = uint(i)*NUM_PER_SAMPLE_RAYS+ri;
+            //uint ray = uint(i)+ri*NUM_FILTER_SAMPLES;
+            float2 E = hammersley( ray, NUM_PER_SAMPLE_RAYS*NUM_FILTER_SAMPLES, Random );
+            //E = fibonacci_sphere_randomized( ray, NUM_PER_SAMPLE_RAYS*NUM_FILTER_SAMPLES, 0 );
+            E = POISSON_SAMPLES[(ray + Random.x*11 + Random.y*13)%SAMPLE_NUM];//hammersley( uint(i), NUM_FILTER_SAMPLES, Random );
+            //E = POISSON_SAMPLES[((Random.x^Random.y)+ray)%SAMPLE_NUM];//hammersley( uint(i), NUM_FILTER_SAMPLES, Random );
+            //E = POISSON_SAMPLES[((Random.x^Random.y)%SAMPLE_NUM+ray)%SAMPLE_NUM];//hammersley( uint(i), NUM_FILTER_SAMPLES, Random );
+            //E = POISSON_SAMPLES[((Random.x^Random.y)%SAMPLE_NUM+i)%SAMPLE_NUM];//hammersley( uint(i), NUM_FILTER_SAMPLES, Random );
+            float3 worldDir = tangent_to_world( cosine_sample_hemisphere( E ).xyz, normal );
+            float3 final = raycast_loop2(worldPos+worldDir*(ri*0.1/NUM_PER_SAMPLE_RAYS), worldDir, normal, normalize(pointToEye), 30);
+            //float3 final = texCUBElod(envi_probe_specular, float4(worldDir,1)).rgb;
+            traced += final;
+          }
+          traced *= 1./NUM_PER_SAMPLE_RAYS;
+          #if !NO_RAYTRACE
+            ambient = traced;
+          #endif
+        ##endif
+      //ambient = lerp(ambient, traced, traced.a);
+      ##endif
+      return ambient;
+    }
+  }
+
+  compile("target_vs", "shadows_to_target_vs");
+  compile("target_ps", "shadows_to_target_ps");
+}

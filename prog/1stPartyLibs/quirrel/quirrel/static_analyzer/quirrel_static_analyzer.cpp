@@ -3407,7 +3407,7 @@ public:
         }
 
       if (!!(flags & RT_NOTHING) &&
-        !!(flags & (RT_NUMBER | RT_STRING | RT_TABLE | RT_CLASS | RT_ARRAY | RT_CLOSURE | RT_UNRECOGNIZED | RT_THROW)))
+        !!(flags & (RT_BOOL | RT_NUMBER | RT_STRING | RT_TABLE | RT_CLASS | RT_ARRAY | RT_CLOSURE | RT_UNRECOGNIZED | RT_THROW)))
       {
         if ((flags & RT_THROW) == 0)
           ctx.warning("all-paths-return-value", node->tok);

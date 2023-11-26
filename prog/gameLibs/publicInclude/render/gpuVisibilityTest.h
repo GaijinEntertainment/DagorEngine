@@ -7,11 +7,8 @@
 
 #include <math/dag_bounds3.h>
 #include <math/dag_Point4.h>
-#include <math/dag_TMatrix.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_resPtr.h>
-#include <generic/dag_span.h>
-#include <EASTL/vector.h>
 #include <EASTL/deque.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <3d/dag_ringCPUQueryLock.h>

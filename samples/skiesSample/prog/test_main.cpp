@@ -56,8 +56,10 @@
 
 
 
-#else
+#elif _TARGET_PC_WIN
 #include <startup/dag_winMain.inc.cpp>
+#elif _TARGET_PC_LINUX
+#include <startup/dag_linuxMain.inc.cpp>
 #endif
 
 static InitOnDemand<De3GuiMgrDrawFps> gui_mgr;
@@ -137,10 +139,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   dagor_install_dev_log_handler_callback();
 
 #if _TARGET_PC
-#if _TARGET_PC_WIN | _TARGET_PC_MACOSX
   ::dagor_init_keyboard_win();
   ::dagor_init_mouse_win();
-#endif
 #elif _TARGET_C3
 
 
@@ -149,6 +149,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   ::dagor_init_mouse_win();
   ::dagor_init_joystick();
 #else
+  ::dagor_init_mouse_null();
+  ::dagor_init_keyboard_null();
   ::dagor_init_joystick();
   if (global_cls_drv_joy)
     global_cls_drv_joy->enableAutoDefaultJoystick(true);
@@ -157,8 +159,6 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   init_threads(*::dgs_get_settings());
   ::startup_game(RESTART_ALL);
   memreport::dump_memory_usage_report(0);
-  dagor_init_mouse_null();
-  dagor_init_keyboard_null();
   shaders_register_console(true);
 
   const char *def_sh_bindump_prefix = "compiledShaders/game";

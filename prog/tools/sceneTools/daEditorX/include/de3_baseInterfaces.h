@@ -200,7 +200,7 @@ public:
   static constexpr unsigned HUID = 0xA1D88598u;
 
   virtual void gatherCollision(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices, Tab<IPoint2> &transparent,
-    Tab<NavMeshObstacle> &obstacles) = 0;
+    Tab<NavMeshObstacle> &obstacles, const Tab<BBox3> &exclude_boxes) = 0;
   virtual void getObstaclesFlags(const ska::flat_hash_map<uint32_t, uint32_t> *&obstacle_flags_by_res_name_hash) = 0;
 };
 
@@ -211,6 +211,14 @@ public:
   static constexpr unsigned HUID = 0x0D508A8Eu; // IGatherGroundHoles
 
   virtual void gatherGroundHoles(Tab<GroundHole> &obstacles) = 0;
+};
+
+class IGatherRiNavmeshBlockers
+{
+public:
+  static constexpr unsigned HUID = 0xA41DA302u; // IGatherRiNavmeshBlockers
+
+  virtual void gatherRiNavmeshBlockers(Tab<BBox3> &blockers) = 0;
 };
 
 class IGatherGameLadders

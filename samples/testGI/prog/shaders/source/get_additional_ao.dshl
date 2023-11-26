@@ -1,0 +1,8 @@
+include "heightmap_common.dshl"
+include "giHelpers/heightmap_25d.dshl"
+define_macro_if_not_defined APPLY_ADDITIONAL_AO(code)
+  hlsl(code) {
+    float getAdditionalAmbientOcclusion(float ao, float3 worldPos, float3 worldNormal, float2 screenTc)
+    { return ao; }
+  }
+endmacro

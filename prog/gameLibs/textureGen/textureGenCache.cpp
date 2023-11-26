@@ -72,6 +72,9 @@ private:
   void cpu_algorithm(dag::ConstSpan<TextureInput> &inputs, dag::ConstSpan<D3dResource *> &outputs, const char *id,
     bool read_data_from_cache)
   {
+    if (!inputs[0].tex)
+      return;
+
     eastl::vector<uint8_t> textureData;
 
     if (!read_data_from_cache)
@@ -82,6 +85,8 @@ private:
 
 
     void *cached_data = regcache::get_record_data_ptr(id);
+    if (!cached_data)
+      return;
 
     int32_t format = 0;
     memcpy(&format, cached_data, sizeof(format));

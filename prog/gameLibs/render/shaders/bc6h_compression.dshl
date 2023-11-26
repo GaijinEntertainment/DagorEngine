@@ -1,0 +1,29 @@
+include "land_block_inc.dshl"
+include "bc_compression_inc.dshl"
+include "bc6h_compression_inc.dshl"
+
+texture src_tex;
+float src_mip = 0;
+float dst_mip = 0;
+
+int src_face = -1;
+interval src_face : src_single_face < 0, src_cube;
+
+
+shader bc6h_compressor
+{
+  USE_BC6H_COMPRESSION(ps)
+  hlsl(ps) {
+    uint4 compress(half4 texels[16], half4 min_color, half4 max_color);
+  }
+  COMMON_BC_SHADER(false, false)
+  hlsl(ps) {
+    uint4 compress(half4 texels[16], half4 min_color, half4 max_color)
+    {
+      //DXGI_FORMAT_BC6H_UF16 fmt is used, so limit negative values
+      for ( int i = 0; i < 16; ++i )
+        texels[i].rgb = max( 0., texels[i].rgb );
+      return pack_bc6h_block(texels);
+    }
+  }
+}

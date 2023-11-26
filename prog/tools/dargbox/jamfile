@@ -24,7 +24,7 @@ if $(Config) = rel { # this is only needed to build with warnings-as-errors
 }
 
 
-OutDir = $(Root)/tools/dargbox ;
+OutDir = $(Root)/tools/dargBox ;
 if $(Platform) in android iOS { OutDir = $(OutDir)/$(Platform) ; }
 
 if ( $(Platform) in win32 win64 linux64 ) { UseD3DMulti ?= yes ; }
@@ -225,7 +225,7 @@ else if $(Platform) = macosx {
     UseProgLibs += engine/drv/drv3d_Metal ;
   }
 
-  GlobalCPPopt += -Wno-deprecated-declarations ;
+  CPPopt += -Wno-deprecated-declarations ;
 
   LINKopt += -framework CoreAudio -framework AudioUnit ;
 

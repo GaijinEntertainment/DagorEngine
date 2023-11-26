@@ -35,8 +35,7 @@ void DasScripts<TLoadedScript, TContext>::fillSharedModules(TLoadedScript &scrip
   {
     for (das::ModuleInfo &moduleInfo : req)
     {
-      if (eastl::find_if(script.filesOpened.begin(), script.filesOpened.end(),
-            [&](auto it) { return it.first == moduleInfo.fileName; }) == script.filesOpened.end())
+      if (script.filesOpened.find_as(moduleInfo.fileName) == script.filesOpened.end())
       {
         if (globalFileAccess)
         {

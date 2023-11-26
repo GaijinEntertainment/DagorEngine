@@ -3,7 +3,7 @@ include "shaders_pc11.blk"
 
 "@override:source"
 {
-  file:t = "depth_hierarchy.sh"
+  file:t = "depth_hierarchy.dshl"
 }
 
 "@override:outDumpName":t="../../game/compiledShaders/gameDX12"

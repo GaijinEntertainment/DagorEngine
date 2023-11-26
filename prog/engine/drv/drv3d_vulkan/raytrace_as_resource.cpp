@@ -125,9 +125,17 @@ MemoryRequirementInfo RaytraceAccelerationStructure::getMemoryReq()
   return ret;
 }
 
+VkMemoryRequirements RaytraceAccelerationStructure::getSharedHandleMemoryReq()
+{
+  fatal("vulkan: no shared handle mode for RT AS");
+  return {};
+}
+
 void RaytraceAccelerationStructure::bindMemory() {}
 
 void RaytraceAccelerationStructure::reuseHandle() { fatal("vulkan: no shared handle mode for RT AS"); }
+
+void RaytraceAccelerationStructure::releaseSharedHandle() { fatal("vulkan: no shared handle mode for RT AS"); }
 
 void RaytraceAccelerationStructure::evict() { fatal("vulkan: RT AS is not evictable"); }
 

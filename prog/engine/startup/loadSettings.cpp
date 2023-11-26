@@ -110,7 +110,7 @@ void dgs_load_settings_blk_ex(bool apply_cmd, const char *settings_blk_fn, const
     if (apply_cmd)
     {
       OverrideFilter filter = gen_default_override_filter(changed_settings);
-      dgs_apply_command_line_to_config(&cfg, changed_settings ? &filter : nullptr);
+      dgs_apply_command_line_to_config(&cfg, &filter);
     }
 
     if (!cfg.isEmpty())

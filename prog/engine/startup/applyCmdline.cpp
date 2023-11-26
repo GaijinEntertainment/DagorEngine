@@ -50,8 +50,15 @@ void dgs_apply_command_line_arg_to_blk(DataBlock *target, const char *value, con
 
 OverrideFilter gen_default_override_filter(const SettingsHashMap *changed_settings)
 {
-  return [changed_settings](const char *setting) {
-    if (!changed_settings)
+  static SettingsHashMap accumulatedChangedSettings;
+  if (changed_settings)
+  {
+    for (int i = 0; i < changed_settings->nameCount(); i++)
+      accumulatedChangedSettings.addNameId(changed_settings->getName(i));
+  }
+  const SettingsHashMap *accumulatedChangedSettingsPtr = &accumulatedChangedSettings;
+  return [accumulatedChangedSettingsPtr](const char *setting) {
+    if (accumulatedChangedSettingsPtr->nameCount() == 0)
       return true;
     char tmpOpt[256];
     strncpy(tmpOpt, setting, sizeof(tmpOpt));
@@ -60,7 +67,7 @@ OverrideFilter gen_default_override_filter(const SettingsHashMap *changed_settin
     if (!nameEnd)
       return true;
     *nameEnd = '\0';
-    return changed_settings->getNameId(tmpOpt) < 0;
+    return accumulatedChangedSettingsPtr->getNameId(tmpOpt) < 0;
   };
 }
 

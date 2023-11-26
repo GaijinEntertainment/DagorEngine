@@ -103,8 +103,6 @@ extern uint32_t get_texture_res_size(const BaseTex *bt, int skip = 0);
 extern HRESULT map_without_context_blocking(ID3D11Resource *resource, UINT subresource, D3D11_MAP maptype, bool nosyslock,
   D3D11_MAPPED_SUBRESOURCE *mapped);
 
-static constexpr int TEX_COPIED = 1 << 30;
-
 template <class T>
 inline void set_res_view_mip(T &d, uint32_t mip_level, int32_t mip_count)
 {

@@ -1,7 +1,10 @@
 if ! [ GLOB $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk : * ] && $(Platform) = macosx {
   local ver = 10.7 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15 11.0 11.1 11.2 11.3 12.0 12.1 12.2 12.3 13.0 13.1 13.2 13.3 13.4 14.0 ;
+  local min_ver_passed = no ;
   for v in $(ver) {
+    if $(v) = $(MacOSXMinVer) { min_version_passed = yes ; }
     if [ GLOB $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(v).sdk : * ] {
+      if $(min_version_passed) != yes { MacOSXMinVer = $(v) ; }
       echo MacOSX SDK $(MacOSXVer) not found, switching to $(v) with -mmacosx-version-min=$(MacOSXMinVer) ;
       MacOSXVer = $(v) ;
       break ;

@@ -18,6 +18,12 @@ void StateRecorderImpl::Rewind()
 	mStream.seekg(0, std::stringstream::beg);
 }
 
+void StateRecorderImpl::Clear()
+{
+	mStream.clear();
+	mStream.str({});
+}
+
 void StateRecorderImpl::ReadBytes(void *outData, size_t inNumBytes)
 {
 	if (IsValidating())
@@ -28,7 +34,7 @@ void StateRecorderImpl::ReadBytes(void *outData, size_t inNumBytes)
 		if (memcmp(data, outData, inNumBytes) != 0)
 		{
 			// Mismatch, print error
-			Trace("Mismatch reading %d bytes", inNumBytes);
+			Trace("Mismatch reading %u bytes", (uint)inNumBytes);
 			for (size_t i = 0; i < inNumBytes; ++i)
 			{
 				int b1 = reinterpret_cast<uint8 *>(outData)[i];
@@ -73,7 +79,7 @@ bool StateRecorderImpl::IsEqual(StateRecorderImpl &inReference)
 		fail = inReference.mStream.get() != mStream.get();
 		if (fail)
 		{
-			Trace("Failed to properly recover state, different at offset %d!", i);
+			Trace("Failed to properly recover state, different at offset %d!", (int)i);
 			return false;
 		}
 	}

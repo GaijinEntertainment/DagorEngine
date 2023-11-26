@@ -18,7 +18,7 @@ Target      = util/csq ;
 
 OutDir = $(Root)/tools/dagor3_cdk/util ;
 if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) = linux64 { OutDir = $(OutDir)-$(Platform) ; }
+if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
 
 AddIncludes =
   $(Root)/prog/3rdPartyLibs/jsoncpp/include

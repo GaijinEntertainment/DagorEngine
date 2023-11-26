@@ -32,7 +32,6 @@ typedef dag::Vector<dm::DamagePart> DamageModelDataParts;
 using MetaPartPartIds = dag::VectorSet<dm::PartId>;
 
 MAKE_TYPE_FACTORY(DamageToPartEvent, dm::DamageToPartEvent)
-MAKE_TYPE_FACTORY(PowderProps, dm::damage::PowderProps)
 MAKE_TYPE_FACTORY(ExplosiveProps, dm::ExplosiveProps)
 MAKE_TYPE_FACTORY(ExplosiveMassToSplash, dm::ExplosiveMassToSplash)
 MAKE_TYPE_FACTORY(MetaPart, dm::MetaPart);
@@ -54,7 +53,6 @@ MAKE_TYPE_FACTORY(DmEffectPresetList, dm::effect::PresetList);
 MAKE_TYPE_FACTORY(MetaPartProp, dm::MetaPartProp);
 MAKE_TYPE_FACTORY(PenetrationTableProps, dm::kinetic::PenetrationTableProps);
 MAKE_TYPE_FACTORY(DamageTableProps, dm::kinetic::DamageTableProps);
-MAKE_TYPE_FACTORY(EffectsProbabilityMultiplierProps, dm::kinetic::EffectsProbabilityMultiplierProps);
 MAKE_TYPE_FACTORY(DamageEffectActionCluster, dm::effect::ActionCluster);
 MAKE_TYPE_FACTORY(SplashProps, dm::splash::Properties);
 
@@ -165,12 +163,17 @@ inline bool is_part_inner(const dm::DamageModelData &dm_data, int part_id)
   return props && props->testFlag(dm::DamagePartProps::Flag::INNER);
 }
 
+inline int get_part_physmat_id(const dm::DamageModelData &dm_data, int part_id)
+{
+  const dm::DamagePartProps *props = dm::get_part_props(dm_data, dm::PartId(part_id, -1));
+  return props ? props->physMaterialId : -1;
+}
+
 inline dm::splash::Params calc_splash_params(int damage_props_id, const dm::splash::Properties &splash_properties, bool underwater)
 {
   const dm::ExplosiveProps *explosiveProps = dm::ExplosiveProps::get_props(damage_props_id);
   dm::splash::Params params;
-  dm::splash::calc_params(&splash_properties, explosiveProps, dm::splash::FallBySquare::get_value(damage_props_id),
-    dm::splash::DamageTypeProp::get_value(damage_props_id), underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR,
+  dm::splash::calc_params(splash_properties, explosiveProps, underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR,
     params);
   return params;
 }

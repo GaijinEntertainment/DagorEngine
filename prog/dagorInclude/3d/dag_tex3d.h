@@ -299,12 +299,16 @@ public:
 
 protected:
   ~BaseTexture() override {}
+
+  static constexpr int TEX_COPIED = 1 << 30;
 };
 
 typedef BaseTexture Texture;
 typedef BaseTexture CubeTexture;
 typedef BaseTexture VolTexture;
 typedef BaseTexture ArrayTexture;
+
+uint32_t auto_mip_levels_count(uint32_t w, uint32_t h, uint32_t min_size);
 
 void assert_tex_size(Texture *tex, int w, int h);
 void apply_gen_tex_props(BaseTexture *t, const struct TextureMetaData &tmd, bool force_addr_from_tmd = true);

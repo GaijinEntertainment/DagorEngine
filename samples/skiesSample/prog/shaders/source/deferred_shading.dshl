@@ -1,0 +1,448 @@
+include "sky_shader_global.dshl"
+include "pbr.dshl"
+include "gbuffer.dshl"
+include "MonteCarlo.dshl"
+include "ssao_use.dshl"
+include "tile_lighting.dshl"
+include "punctualLights.dshl"
+
+include "ssr_use.dshl"
+include "csm.dshl"
+
+include "normaldetail.dshl"
+include "viewVecVS.dshl"
+include "invGlobTm.dshl"
+hlsl(ps) {
+//#define OPTIMIZATION_NUM_LAYERS 0
+//#define PREFER_ANALYTIC_TRANSMITTANCE 1
+}
+include "clouds_vars.dshl"
+include "sq_clouds_shadow.dshl"
+int shadow_cascade_tm_const_no = 28;
+int shadow_cascade_tc_mul_offset_const_no = 46;
+
+float4 light_probe_pos = (0,0,0,0);
+
+macro INIT_SUN_LIGHT()
+  (ps) {
+    from_sun_direction@f3 = from_sun_direction;
+    sun_light_color@f3 = sun_light_color;
+  }
+  hlsl (ps) {
+    #define to_sun_direction (-from_sun_direction)
+  }
+endmacro
+
+texture near_depth;
+texture far_depth;
+
+shader deferred_shading
+{
+  no_ablend;
+  INIT_USE_SSR()
+  USE_SSR()
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;//fixme: should be true ONLY for cascade other than [0, something]
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord     : TEXCOORD0;
+      float3 viewVect     : TEXCOORD1;
+    };
+  }
+  INIT_ZNZFAR()
+
+  INIT_SSAO()
+  USE_SSAO()
+  (vs) {
+    globtm@f44 = globtm;
+    lowres_rt_params@f4 = (lowres_rt_params.x, lowres_rt_params.y, 1./lowres_rt_params.x, 1./lowres_rt_params.y);
+  }
+  USE_AND_INIT_VIEW_VEC_VS()
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl(vs) {
+    VsOutput deferred_shading_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos.xy, 1, 1);
+      output.texcoord = screen_to_texcoords(pos);
+      output.viewVect = get_view_vec_by_vertex_id(vertex_id);
+
+      return output;
+    }
+  }
+
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  (ps) { world_view_pos@f3 = world_view_pos; }
+
+  STANDARD_BRDF_SHADING()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+  INIT_ENVI_SPECULAR()
+  USE_ROUGH_TO_MIP()
+  INIT_SKY()
+  USE_SKY()
+  INIT_CSM_SHADOW(ps)
+  USE_CSM_SHADOW_DEF_NUM()
+
+  INIT_SUN_LIGHT()
+  ONE_POINT_LIGHT()
+
+  BRUNETON_FOG()
+  SQ_INIT_CLOUDS_SHADOW()
+  SQ_CLOUDS_SHADOW()
+
+  hlsl(ps) {
+    half4 deferred_shading_ps(VsOutput input) : SV_Target
+    {
+      float rawDepth = readGbufferDepth(input.texcoord);
+  
+      BRANCH
+      if (rawDepth <= 0)
+      {
+        discard;
+        return 0;
+      }
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      float viewLenSq = dot(input.viewVect, input.viewVect);
+      float invViewLen = rsqrt(viewLenSq);
+      float viewLen = rcp(invViewLen);
+      float3 view = -input.viewVect*invViewLen;
+      float distToGround = w*viewLen;
+
+      float3 pointToEye = -input.viewVect * w;
+      //float3 view   = normalize(pointToEye);
+      float4 worldPos = float4(world_view_pos - pointToEye, 1);
+      ProcessedGbuffer gbuffer = readProcessedGbuffer(input.texcoord);
+      half translucencyStrength = gbuffer.translucency;
+      half4 ssrReflections = getSSR(gbuffer.linearRoughness, input.texcoord);
+      half enviSSR = 1-ssrReflections.a;
+
+      /*float porosity, puddle_amount;
+      get_2d_wet_params(worldPos.xyz, porosity, puddle_amount);
+      float wetness = saturate(gbuffer.normal.y*10 - 8) * puddle_amount;
+      //wetness = 1-pow2(1-wetness);
+      float water_amount = saturate((wetness+rain_params.z)*rain_params.w);
+
+      gbuffer.specularColor = lerp(gbuffer.specularColor, 0.05, water_amount);
+
+      porosity = lerp(1, saturate(1-wetness), gbuffer.roughness);
+      gbuffer.diffuseColor *= porosity;//pow2(saturate(-wetness))
+      //gbuffer.ao *= porosity;
+      gbuffer.diffuseColor = lerp(gbuffer.diffuseColor, half3(0,0.005,0.01), water_amount);
+      gbuffer.roughness *= saturate(1.01-water_amount);
+      gbuffer.normal = lerp( gbuffer.normal, float3(0,1,0), water_amount);*/
+
+      half ssao = getSSAO(w, input.texcoord);
+      //return ssao*dot(gbuffer.normal, normalize(float3(0.4,0.6,-0.4)));
+      float geometryFactor = 1;
+      float3 enviLightingNormal = gbuffer.normal;
+      
+
+      
+      float NdotV = dot(gbuffer.normal, view);
+      float3 reflectionVec = 2 * NdotV * gbuffer.normal - view;
+      float NoV = abs( NdotV ) + 1e-5;
+      float alpha = pow2(gbuffer.linearRoughness);
+
+      half finalAO = gbuffer.ao*ssao;
+      half finalAOForSpecular = min(gbuffer.ao, gbuffer.extracted_albedo_ao*0.5+0.5)*ssao;//
+      half specularAOcclusion = computeSpecOcclusion(NoV, finalAOForSpecular, alpha);// dice spec occlusion
+
+      //half ssaoToSun = saturate(ssao*0.5+0.5);
+      //half finalSunAO = gbuffer.ao*ssaoToSun;
+      //saturate(pow2(NoV+finalSunAO)+finalSunAO-1);//tri-ace specular occlusion
+      half3 specularColor = gbuffer.specularColor;
+
+      specularColor *= specularAOcclusion;
+
+      //SUN
+      float3 lightDir = to_sun_direction;
+      half3 lightColor = sun_light_color;
+
+      float NoL = dot(gbuffer.normal, lightDir);
+      half3 result = 0;
+      BRANCH
+      if (NoL>0)
+      {
+        half shadow = get_csm_shadow(pointToEye, w, 1.f)*clouds_shadow(worldPos.xyz);
+        half shadowTerm = shadow;
+
+        BRANCH
+        if (shadowTerm > 0)
+          result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, alpha, gbuffer.linearRoughness, enviSSR*specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal)*shadowTerm*lightColor;
+      }
+
+      BRANCH
+      if (gbuffer.material == SHADING_FOLIAGE)
+      {
+        half EdotL = saturate(-dot(view, lightDir));
+        half PowEdotL = pow4(EdotL);
+        half LdotNBack = -NoL;
+        //float exponent = 8;
+        //PowEdotL = PowEdotL * (exponent + 1) / (2.0f * PI);// Modified phong energy conservation.
+
+        // Energy conserving wrap
+        float diffuseWrap = .6f;
+        float backDiffuse = saturate(LdotNBack * (diffuseWrap * diffuseWrap) + (1 - diffuseWrap) * diffuseWrap) * (1/PI);
+        float viewDependenceAmount = .5f;
+        float backShading = lerp(backDiffuse, PowEdotL, viewDependenceAmount);
+
+        result += backShading * lightColor * gbuffer.translucencyColor;
+
+        //result = lerp(result, (translucencyStrength * BackShading)*gbuffer.diffuseColor*finalAO*lightColor, 0.5);
+      }
+      //-SUN
+
+      //specularColor *= 0.5+0.5*specularAOcclusion;//hack: other
+      float3 lightProbeReflectionVec = reflectionVec;
+
+      //lightProbeReflectionVec = Hit(worldPos, reflectionVec);
+
+      float3 roughR = getRoughReflectionVec(lightProbeReflectionVec.xyz, enviLightingNormal, alpha);
+
+      if (gbuffer.material == SHADING_FOLIAGE)
+      {
+        specularColor*=0.5;
+        gbuffer.linearRoughness = lerp(gbuffer.linearRoughness, 1, 0.5);
+      }
+      half3 enviBRDF = EnvBRDFApprox(specularColor, gbuffer.linearRoughness, NoV);
+      half3 environmentAmbientReflection = getSkyReflection(gbuffer.linearRoughness, roughR, NoV, enviBRDF);
+      environmentAmbientReflection.rgb *= geometryFactor;
+      //return distToIntersect > 0 ? environmentAmbientReflection.rgbr : 0;
+
+      //half4 ssrReflections = tex2Dlod(ssr_target, float4(input.texcoord,0,0));
+      half3 environmentAmbientUnoccludedLighting = GetSkySHDiffuse(enviLightingNormal)*gbuffer.diffuseColor;
+      half3 environmentAmbientLighting = (finalAO * geometryFactor)*environmentAmbientUnoccludedLighting;
+      half3 totalReflection = environmentAmbientReflection.rgb*enviSSR + ssrReflections.rgb*enviBRDF;
+
+      BRANCH
+      if (gbuffer.material == SHADING_FOLIAGE)
+      {
+        environmentAmbientLighting += finalAO*GetSkySHDiffuse(-gbuffer.normal)*gbuffer.translucencyColor;
+      }
+      //totalReflection = 0;
+      //totalReflection = environmentAmbientReflection;
+
+      //half3 reflection = totalReflection+environmentAmbientLighting;//correct                                                                                  
+      //half3 reflection = finalAO*(environmentAmbientLighting*(1-specularAOcclusion)+totalReflection);//tri ace from paper. diffuse ao got squared, and there is no ambient diffuse where there is no specular ao
+      //half3 reflection = finalAO*(environmentAmbientLighting+totalReflection);//modified tri ace from paper. diffuse ao got squared, specular ao multiplied twice
+      half3 reflection = environmentAmbientLighting+finalAO*totalReflection;//modified tri ace from paper. specular ao multiplied by lighting ao
+      //return reflection.rgbr;
+      //half3 reflection = totalReflection+environmentAmbientLighting;//correct
+      result += reflection;
+      //result = sun_light_color*(NoL/PI)*gbuffer.diffuseColor;
+      //return half4(result, 1);
+
+      apply_scattering_tc_fog(input.texcoord, -view, distToGround, result);
+      //apply_bruneton_fog(-view, distToGround, result);
+      return half4(result,1);
+    }
+  }
+  compile("target_vs", "deferred_shading_vs");
+  compile("target_ps", "deferred_shading_ps");
+}
+
+shader cube_deferred_shading
+{
+  no_ablend;
+
+  
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;//fixme: should be true ONLY for cascade other than [0, something]
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord     : TEXCOORD0;
+    };
+  }
+  INIT_ZNZFAR()
+  USE_AND_INIT_INV_GLOBTM_PS()
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  hlsl(vs) {
+
+    VsOutput deferred_shading_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.xy, 1, 1);
+      output.texcoord = screen_to_texcoords(pos);
+      return output;
+    }
+  }
+
+  hlsl {
+    #define SPECULAR_DISABLED 1
+  }
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  (ps){ world_view_pos@f3 = world_view_pos; }
+
+  STANDARD_BRDF_SHADING()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+  USE_ROUGH_TO_MIP()
+  INIT_ENVI_SPECULAR()
+  INIT_SKY()
+  USE_SKY()
+  INIT_SUN_LIGHT()
+  BRUNETON_FOG()
+  SQ_INIT_CLOUDS_SHADOW()
+  SQ_CLOUDS_SHADOW()
+
+  hlsl(ps) {
+    half4 deferred_shading_ps(VsOutput input) : SV_Target
+    {
+      float rawDepth = readGbufferDepth(input.texcoord);
+      BRANCH
+      if (rawDepth <= 0)
+        return 0;
+
+
+      ///*
+      #if NO_OBLIQUE_TRANSFORMATIONS
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float3 pointToEye = -input.viewVect * w;
+      float4 worldPos = float4(world_view_pos - pointToEye, 1);
+      #else
+      float4 farpos = float4(input.texcoord.xy * 2 - 1, rawDepth, 1.);
+      farpos.y = -farpos.y;
+      float4 worldpos_prj = mul(farpos, globtm_inv);
+      float4 worldPos = worldpos_prj / worldpos_prj.w;
+      float3 pointToEye = world_view_pos.xyz - worldPos.xyz;
+      #endif
+
+      float distSq = dot(pointToEye,pointToEye);
+      float invRsqrt = rsqrt(distSq);
+      float3 view  = pointToEye*invRsqrt;
+      float dist = rcp(invRsqrt);
+
+
+      ProcessedGbuffer gbuffer = readProcessedGbuffer(input.texcoord);
+      half translucencyStrength = gbuffer.translucency;
+
+
+      float NdotV = dot(gbuffer.normal, view);
+      float3 reflectionVec = 2 * NdotV * gbuffer.normal - view;
+      float NoV = abs( NdotV ) + 1e-5;
+      float alpha = pow2(gbuffer.linearRoughness);
+      //todo: replace metallic surfaces with albedo of their specular value
+
+      half finalSunAO = gbuffer.ao;
+      half3 specularColor = gbuffer.specularColor;
+      gbuffer.diffuseColor = lerp(gbuffer.diffuseColor, gbuffer.specularColor, gbuffer.metallness);
+      specularColor = 0;
+
+      //SUN
+      float3 lightDir = to_sun_direction;
+      half3 lightColor = sun_light_color;
+
+      float NoL = dot(gbuffer.normal, lightDir);
+
+      half3 result = standardBRDF( NoV, saturate(NoL), gbuffer.diffuseColor, alpha, gbuffer.linearRoughness, 0, 0, lightDir, view, gbuffer.normal)*lightColor;
+      result *= clouds_shadow(worldPos.xyz);
+
+      if (gbuffer.material == SHADING_FOLIAGE)
+      {
+        half EdotL = saturate(-dot(view, lightDir));
+        half PowEdotL = pow4(EdotL);
+        half LdotNBack = -NoL;
+        //float exponent = 8;
+        //PowEdotL = PowEdotL * (exponent + 1) / (2.0f * PI);// Modified phong energy conservation.
+
+        // Energy conserving wrap
+        float diffuseWrap = .6f;
+        float backDiffuse = saturate(LdotNBack * (diffuseWrap * diffuseWrap) + (1 - diffuseWrap) * diffuseWrap) * (1/PI);
+        float viewDependenceAmount = .5f;
+        float backShading = lerp(backDiffuse, PowEdotL, viewDependenceAmount);
+
+        result += backShading * lightColor * gbuffer.translucencyColor;
+
+        //result = lerp(result, (translucencyStrength * BackShading)*gbuffer.diffuseColor*finalAO*lightColor, 0.5);
+      }
+      //-SUN
+
+      half finalAO = gbuffer.ao;
+      half3 environmentAmbientLighting = GetSkySHDiffuse(gbuffer.normal)*gbuffer.diffuseColor;
+
+      if (gbuffer.material == SHADING_FOLIAGE)
+        environmentAmbientLighting += GetSkySHDiffuse(-gbuffer.normal)*gbuffer.translucencyColor;
+
+      result += environmentAmbientLighting*finalAO;
+      apply_bruneton_fog(-view, dist, result.rgb);
+
+      return half4(max(0, result),1);
+    }
+  }
+  compile("target_vs", "deferred_shading_vs");
+  compile("target_ps", "deferred_shading_ps");
+}
+
+texture water_reflection_tex_temp;
+
+shader clip_water_reflection
+{
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+
+  dynamic float4 texsz_consts = (0.0, 0.0, 0.5, 0.5);
+  dynamic float4 dir_level = (0, 0, 0, 0);
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord : TEXCOORD0;
+    };
+  }
+
+  (vs) {
+    texsz_consts@f4 = texsz_consts;
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  USE_AND_INIT_VIEW_VEC_VS()
+
+  hlsl(vs) {
+    VsOutput clip_water_reflection_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos.x, pos.y, 1, 1);
+      output.texcoord = screen_to_texcoords(pos);
+      output.pos.y = -output.pos.y;
+      return output;
+    }
+  }
+
+  (ps) {
+    sourceTex@smp2d = water_reflection_tex_temp;
+    texsz_consts@f4 = texsz_consts;
+    dir_level@f4 = dir_level;
+  }
+
+  hlsl(ps) {
+
+    half4 clip_water_reflection_ps(VsOutput input) : SV_Target
+    {
+      half4 result = tex2D(sourceTex, input.texcoord);
+      return result;
+    }
+  }
+
+  compile("target_vs", "clip_water_reflection_vs");
+  compile("target_ps", "clip_water_reflection_ps");
+}

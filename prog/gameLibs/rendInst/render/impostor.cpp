@@ -489,6 +489,7 @@ bool RendInstGenData::RtData::updateImpostorsPreshadow(int poolNo, const Point3 
 
   pool.setDynamicImpostorBoundingSphere(cb);
   cb.setOpacity(0.f, 1.f);
+  cb.setCrossDissolveRange(0);
 
   ShaderGlobal::setBlock(rendinst::render::globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
   ShaderGlobal::setBlock(rendinst::render::rendinstDepthSceneBlockId, ShaderGlobal::LAYER_SCENE);
@@ -882,6 +883,7 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
 
     pool.setDynamicImpostorBoundingSphere(cb);
     cb.setOpacity(0.f, 1.f);
+    cb.setCrossDissolveRange(0);
 
     cb.setInstancing(0, 3, 0);
     rendinst::render::setCoordType(rendinst::render::COORD_TYPE_TM);

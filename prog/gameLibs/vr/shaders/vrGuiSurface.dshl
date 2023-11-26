@@ -1,0 +1,65 @@
+include "shader_global.dshl"
+
+texture source_tex;
+
+float4 gui_texture_scale = (1, 1, 0, 0);
+int blend_gui_texture = 1;
+interval blend_gui_texture : no < 1, yes;
+
+shader vr_gui_surface
+{
+  cull_mode = none;
+
+  if (blend_gui_texture == yes)
+  {
+    blend_src = sa; blend_dst = isa;
+  }
+
+  channel float3 pos = pos;
+  channel float2 tc[0] = tc[0];
+
+  (vs) {
+    globtm@f44 = globtm;
+    gui_texture_scale@f4 = gui_texture_scale;
+  }
+  (ps) {
+    source_tex@smp2d = source_tex;
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord : TEXCOORD1;
+    };
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos        : POSITION;
+      float2 texcoord   : TEXCOORD0;
+    };
+
+    VsOutput vr_gui_surface_vs(VsInput input)
+    {
+      VsOutput output;
+      output.pos = mul(float4(input.pos, 1.0), globtm);
+      output.texcoord = input.texcoord * gui_texture_scale.xy + gui_texture_scale.zw;
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    half4 vr_gui_surface_ps(VsOutput input) : SV_Target
+    {
+      float4 result;
+
+      result = tex2D(source_tex, input.texcoord);
+
+      return result;
+    }
+  }
+  compile("target_vs", "vr_gui_surface_vs");
+  compile("target_ps", "vr_gui_surface_ps");
+}

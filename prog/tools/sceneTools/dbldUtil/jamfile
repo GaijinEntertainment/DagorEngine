@@ -5,10 +5,13 @@ ConsoleExe = yes ;
 ProjectAllowsOodle = yes ;
 
 TargetType  = exe ;
-Target      = tools/dbldUtil.exe ;
+Target      = tools/dbldUtil ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
 
 OutDir = $(Root)/tools/dagor3_cdk/util ;
 if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
@@ -59,5 +62,6 @@ UseProgLibs =
   gameLibs/daECS/gameResStub
   gameLibs/ecs/rendInst/stub
 ;
+if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

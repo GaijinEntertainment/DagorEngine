@@ -857,7 +857,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   }
 
   api_state.adjustCaps();
-  api_state.shaderProgramDatabase.init(api_state.device.getContext());
+  api_state.shaderProgramDatabase.init(api_state.driverDesc.caps.hasBindless, api_state.device.getContext());
 
   {
     // vulkan have limited memory swapping support now
@@ -1265,14 +1265,6 @@ int d3d::driver_command(int command, void *par1, void *par2, void *par3)
       //  case DRV3D_COMMAND_GET_SECONDARY_BACKBUFFER:
       //    break;
     case DRV3D_COMMAND_GET_VENDOR: return drv3d_vulkan::api_state.device.getDeviceVendor(); break;
-    case DRV3D_COMMAND_GET_RESOLUTION:
-      if (par1 && par2)
-      {
-        *((int *)par1) = api_state.windowState.settings.resolutionX;
-        *((int *)par2) = api_state.windowState.settings.resolutionY;
-        return 1;
-      }
-      break;
     case DRV3D_COMMAND_GET_FRAMERATE_LIMITING_FACTOR:
     {
       return api_state.lastLimitingFactor;
@@ -2296,7 +2288,7 @@ void *d3d::fast_capture_screen(int &w, int &h, int &stride_bytes, int &format)
 
   device.getContext().captureScreen(api_state.screenCaptureStagingBuffer);
   device.getContext().wait();
-  return api_state.screenCaptureStagingBuffer->dataPointer(0);
+  return api_state.screenCaptureStagingBuffer->ptrOffsetLoc(0);
 }
 
 void d3d::end_fast_capture_screen()

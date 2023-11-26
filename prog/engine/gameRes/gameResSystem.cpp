@@ -730,7 +730,16 @@ bool GameResPackInfo::processGrData()
       sleep_msec(0);
       gameres_cs.reLock(cnt);
     }
-    G_ASSERTF_BREAK(grData, "grData unexpectedly became %p", grData);
+
+    if (!grData)
+    {
+      if (is_ignoring_unavailable_resources())
+      {
+        debug("grData became NULL");
+        break;
+      }
+      G_ASSERTF_BREAK(grData, "grData unexpectedly became %p", grData);
+    }
   }
 
   debug_ctx("processed data from GRP %s", (char *)fileName);
@@ -1142,7 +1151,14 @@ void load_game_resource_pack(int res_id)
 
   if (resRestrictionList.size() && !resRestrictionList.get(res_id))
   {
-    logerr("res_id=%d <%s> is not present in res restriction list", res_id, resNameMap.getName(res_id));
+    String logStr(120, "res_id=%d <%s> is not present in res restriction list", res_id, resNameMap.getName(res_id));
+    if (::is_ignoring_unavailable_resources())
+    {
+      debug("%s - skip resPackId:%i", logStr.c_str(), resPackId);
+      resPackId = -1;
+    }
+    else
+      logerr(logStr.c_str());
     resRestrictionList.set(res_id); // for the case when we ignore next fatal in fatal handler
     resRestrictionList.set(grMap[info->grMapIdx].id.resId);
     clearLoadedPacksList();

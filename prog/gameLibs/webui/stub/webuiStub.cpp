@@ -30,6 +30,9 @@ HttpPlugin dagor_http_plugins[] = {
 HttpPlugin webview_http_plugins[] = {
   {nullptr},
 };
+HttpPlugin webview_files_http_plugins[] = {
+  {nullptr},
+};
 
 HttpPlugin profiler_http_plugin;
 HttpPlugin shader_http_plugin;

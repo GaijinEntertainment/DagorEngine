@@ -796,6 +796,8 @@ void WindowBase::hide() { ShowWindow((HWND)mHandle, SW_HIDE); }
 
 void WindowBase::setEnabled(bool enabled) { EnableWindow((HWND)mHandle, enabled); }
 
+void WindowBase::setRedraw(bool redraw) { SendMessage((HWND)mHandle, WM_SETREDRAW, redraw, 0); }
+
 void WindowBase::refresh(bool all) { InvalidateRect(HWND(mHandle), NULL, all); }
 
 void WindowBase::resizeWindow(unsigned w, unsigned h)

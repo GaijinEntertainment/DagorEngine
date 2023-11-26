@@ -27,9 +27,12 @@ bool Resource::tryAllocMemory(const AllocationDesc &dsc)
 
 bool Resource::tryReuseHandle(const AllocationDesc &dsc)
 {
-  if (!dsc.isSharedHandleAllowed())
-    return false;
   sharedHandle = tryAllocMemory(dsc);
+  if (!sharedHandle && memoryId != -1)
+  {
+    get_device().resources.freeMemory(memoryId);
+    memoryId = -1;
+  }
   return sharedHandle;
 }
 

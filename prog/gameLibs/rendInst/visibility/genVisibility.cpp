@@ -4,6 +4,7 @@
 
 #include "render/genRender.h"
 #include "riGen/genObjUtil.h"
+#include "visibility/cellVisibility.h"
 #include "visibility/cullingMath.h"
 
 #include <osApiWrappers/dag_cpuJobs.h>
@@ -89,100 +90,6 @@ void rendinst::sortRIGenVisibility(RiGenVisibility *visibility, const Point3 &vi
     rgl->sortRIGenVisibility(visibility[_layer], viewPos, viewDir, vertivalFov, horizontalFov, areaThreshold);
 }
 
-static inline bool getSubCellsVisibility(vec3f curViewPos, const Frustum &frustum, const bbox3f *__restrict bbox,
-  uint16_t &ranges_count, uint8_t *ranges, float &cellDist, Occlusion *use_occlusion)
-{
-  G_STATIC_ASSERT(RendInstGenData::SUBCELL_DIV == 8);
-  G_STATIC_ASSERT(RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV <= 256);
-
-  int nPlanes;
-  vec4f planes[6];
-  int cellIntersection = test_box_planes(bbox[0].bmin, bbox[0].bmax, frustum, planes, nPlanes);
-  if (cellIntersection == Frustum::OUTSIDE)
-  {
-    ranges_count = 0;
-    return false;
-  }
-  if (use_occlusion)
-  {
-    if (use_occlusion->isOccludedBox(bbox[0].bmin, bbox[0].bmax))
-    {
-      ranges_count = 0;
-      return false;
-    }
-  }
-  cellDist = v_extract_x(v_sqrt_x(v_distance_sq_to_bbox_x(bbox[0].bmin, bbox[0].bmax, curViewPos)));
-  if (cellIntersection == Frustum::INSIDE) //-V1051
-  {
-    if (use_occlusion)
-    {
-      int idx = 1;
-      for (; idx < RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV + 1; ++idx)
-        if (!use_occlusion->isOccludedBox(bbox[idx].bmin, bbox[idx].bmax))
-          break;
-
-      int idx2 = RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV;
-      for (; idx2 > idx; --idx2)
-        if (!use_occlusion->isOccludedBox(bbox[idx2].bmin, bbox[idx2].bmax))
-          break;
-      if (idx2 < idx)
-      {
-        ranges_count = 0;
-        return false;
-      }
-      ranges[0] = idx - 1;
-      ranges[1] = idx2 - 1;
-    }
-    else
-    {
-      ranges[0] = 0;
-      ranges[1] = RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV - 1;
-    }
-    ranges_count = 1;
-    return true;
-  }
-
-
-  ranges_count = 0;
-  for (int idx = 1; idx < RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV + 1; ++idx)
-  {
-    if (test_box_planesb(bbox[idx].bmin, bbox[idx].bmax, planes, nPlanes))
-    {
-      if (use_occlusion)
-      {
-        if (use_occlusion->isOccludedBox(bbox[idx].bmin, bbox[idx].bmax))
-          continue;
-      }
-      if (!ranges_count || ranges[-1] != idx - 2)
-      {
-        ranges[0] = ranges[1] = idx - 1;
-        ranges += 2;
-        ranges_count++;
-      }
-      else
-        ranges[-1] = idx - 1;
-    }
-  }
-  return ranges_count != 0;
-}
-
-struct RendInstGenRenderPrepareData
-{
-  static constexpr int MAX_VISIBLE_CELLS = 256;
-  int totalVisibleCells;
-  struct Cell
-  {
-    float distance;
-    uint16_t x, z;
-    uint16_t rangesStart;
-    uint16_t rangesCount; // it is actually only 5 bit, but for the sake of alignment, keep it 16bit
-  };
-  carray<Cell, MAX_VISIBLE_CELLS> cells = {};
-  carray<uint8_t, MAX_VISIBLE_CELLS * 2 * (RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV / 2 + 1)> cellRanges = {};
-  int visibleCellsCount() const { return totalVisibleCells; }
-  RendInstGenRenderPrepareData() : totalVisibleCells(0) {}
-};
-
 struct SortByY
 {
   bool operator()(const IPoint2 &a, const IPoint2 &b) const { return a.y < b.y; }
@@ -244,29 +151,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
   visibility.resizeRanges(rtData->riRes.size(), forShadow ? 4 : 8);
 
   ScopedLockRead lock(rtData->riRwCs);
-  RendInstGenRenderPrepareData visData;
-  uint8_t *ranges = visData.cellRanges.data();
-
-#define PREPARE_CELL(XX, ZZ)                                                                                                 \
-  {                                                                                                                          \
-    const RendInstGenData::Cell &cell = cells[cellI];                                                                        \
-    const RendInstGenData::CellRtData *crt_ptr = cell.isReady();                                                             \
-    if (crt_ptr && visData.totalVisibleCells < visData.MAX_VISIBLE_CELLS)                                                    \
-    {                                                                                                                        \
-      int cellNo = visData.visibleCellsCount();                                                                              \
-      RendInstGenRenderPrepareData::Cell &visCell = visData.cells[cellNo];                                                   \
-      if (getSubCellsVisibility(curViewPos, curFrustum, crt_ptr->bbox.data(), visCell.rangesCount, ranges, visCell.distance, \
-            use_occlusion))                                                                                                  \
-      {                                                                                                                      \
-        visCell.x = XX, visCell.z = ZZ;                                                                                      \
-        visCell.rangesStart = ranges - visData.cellRanges.data();                                                            \
-        visCell.rangesCount *= 2;                                                                                            \
-        ranges += visCell.rangesCount;                                                                                       \
-        G_ASSERT((int)(ranges - visData.cellRanges.data()) < visData.cellRanges.size());                                     \
-        visData.totalVisibleCells++;                                                                                         \
-      }                                                                                                                      \
-    }                                                                                                                        \
-  }
+  rendinst::VisibleCells<RendInstGenData::MAX_VISIBLE_CELLS, RendInstGenData::SUBCELL_DIV> visData;
 
   rtData->loadedCellsBBox.clip(regions[0], regions[1], regions[2], regions[3]);
 
@@ -284,13 +169,17 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
 
   unsigned int startCellI = startCellX + startCellZ * cellNumW;
   {
+    const auto calcRiCellVisibility = [&](int cell_idx, int cell_x, int cell_z) {
+      const auto cellRtData = cells[cell_idx].isReady();
+      if (cellRtData)
+        visData.calcCellVisibility(cell_x, cell_z, curViewPos, curFrustum, cellRtData->bbox.data(), use_occlusion);
+    };
+
     int maxRadius =
       max(max((regions[3] - startCellZ), (startCellZ - regions[1])), max((regions[2] - startCellX), (startCellX - regions[0])));
     if (startCellX >= 0 && startCellX < cellNumW && startCellZ < cellNumH && startCellZ >= 0)
-    {
-      int cellI = startCellI;
-      PREPARE_CELL(startCellX, startCellZ);
-    }
+      calcRiCellVisibility(startCellI, startCellX, startCellZ);
+
     int minX, maxX;
     int minZ, maxZ;
     for (int radius = 1; radius <= maxRadius; ++radius)
@@ -300,23 +189,23 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
 
       if (minZ >= regions[1] && minZ <= regions[3])
         for (int x = max(minX, regions[0]), cellI = minZ * cellNumW + x; x <= min(maxX, regions[2]); x++, cellI++)
-          PREPARE_CELL(x, minZ);
+          calcRiCellVisibility(cellI, x, minZ);
 
       if (maxZ <= regions[3] && maxZ >= regions[1])
         for (int x = max(minX, regions[0]), cellI = maxZ * cellNumW + x; x <= min(maxX, regions[2]); x++, cellI++)
-          PREPARE_CELL(x, maxZ);
+          calcRiCellVisibility(cellI, x, maxZ);
 
       if (minX >= regions[0] && minX <= regions[2])
         for (int z = max(minZ + 1, regions[1]), cellI = z * cellNumW + minX; z <= min(maxZ - 1, regions[3]); z++, cellI += cellNumW)
-          PREPARE_CELL(minX, z);
+          calcRiCellVisibility(cellI, minX, z);
 
       if (maxX <= regions[2] && maxX >= regions[0])
         for (int z = max(minZ + 1, regions[1]), cellI = z * cellNumW + maxX; z <= min(maxZ - 1, regions[3]); z++, cellI += cellNumW)
-          PREPARE_CELL(maxX, z);
+          calcRiCellVisibility(cellI, maxX, z);
     }
   }
 #undef PREPARE_CELL
-  if (!visData.visibleCellsCount())
+  if (!visData.cells.size())
     return false;
   mem_set_0(visibility.instNumberCounter);
   float subCellOfsSize = grid2worldcellSz * ((rendinst::render::per_instance_visibility_for_everyone ? 0.75f : 0.25f) *
@@ -330,7 +219,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
   if (rendinst::render::per_instance_visibility)
   {
     visibility.startTreeInstances();
-    for (int vi = 0; vi < min<int>(MAX_PER_INSTANCE_CELLS, visData.visibleCellsCount()); ++vi)
+    for (int vi = 0; vi < min<int>(MAX_PER_INSTANCE_CELLS, visData.cells.size()); ++vi)
     {
       int x = visData.cells[vi].x;
       int z = visData.cells[vi].z;
@@ -480,7 +369,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
 
     rendinst::gen::RotationPaletteManager::Palette palette =
       rendinst::gen::get_rotation_palette_manager()->getPalette({rtData->layerIdx, (int)ri_idx});
-    for (int vi = 0; vi < visData.visibleCellsCount(); vi++)
+    for (int vi = 0; vi < visData.cells.size(); vi++)
     {
       int x = visData.cells[vi].x;
       int z = visData.cells[vi].z;
@@ -534,17 +423,16 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
           lodI = rtData->riRes[ri_idx]->getQlBestLod();
 
         int cellAdded = -1;
-        for (uint8_t *rangeI = visData.cellRanges.data() + visData.cells[vi].rangesStart,
-                     *end = rangeI + visData.cells[vi].rangesCount;
-             rangeI != end; rangeI += 2)
+        for (auto range = visData.subCellRanges.begin() + visData.cells[vi].rangesStart, end = range + visData.cells[vi].rangesCount;
+             range != end; range++)
         {
-          const RendInstGenData::CellRtData::SubCellSlice &scss = crt.getCellSlice(ri_idx, rangeI[0]);
-          const RendInstGenData::CellRtData::SubCellSlice &scse = crt.getCellSlice(ri_idx, rangeI[1]);
+          const RendInstGenData::CellRtData::SubCellSlice &scss = crt.getCellSlice(ri_idx, range->start);
+          const RendInstGenData::CellRtData::SubCellSlice &scse = crt.getCellSlice(ri_idx, range->end);
           if (scse.ofs + scse.sz == scss.ofs)
             continue;
           // add to farLodNo
           if (cellAdded < 0)
-            cellAdded = visibility.addCell(lodI, x, z, startVbOfs, visData.cells[vi].rangesCount >> 1);
+            cellAdded = visibility.addCell(lodI, x, z, startVbOfs, visData.cells[vi].rangesCount);
           visibility.addRange(lodI, scss.ofs, (scse.ofs + scse.sz - scss.ofs));
           visibility.instNumberCounter[lodI] += (scse.ofs + scse.sz - scss.ofs) / visibility.stride;
         }
@@ -557,21 +445,21 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
         carray<int, rendinst::render::MAX_LOD_COUNT_WITH_ALPHA> cellAdded;
         int lastLod = -1;
         mem_set_ff(cellAdded);
-        for (uint8_t *rangeI = visData.cellRanges.data() + visData.cells[vi].rangesStart,
-                     *end = rangeI + visData.cells[vi].rangesCount;
-             rangeI != end; rangeI += 2)
+        for (auto range = visData.subCellRanges.begin() + visData.cells[vi].rangesStart, end = range + visData.cells[vi].rangesCount;
+             range != end; range++)
         {
-          const RendInstGenData::CellRtData::SubCellSlice &scss = crt.getCellSlice(ri_idx, rangeI[0]);
-          const RendInstGenData::CellRtData::SubCellSlice &scse = crt.getCellSlice(ri_idx, rangeI[1]);
+          const RendInstGenData::CellRtData::SubCellSlice &scss = crt.getCellSlice(ri_idx, range->start);
+          const RendInstGenData::CellRtData::SubCellSlice &scse = crt.getCellSlice(ri_idx, range->end);
           if (scse.ofs + scse.sz == scss.ofs)
             continue;
-          for (int cri = rangeI[0]; cri <= rangeI[1]; ++cri)
+          for (int cri = range->start; cri <= range->end; ++cri)
           {
             const RendInstGenData::CellRtData::SubCellSlice &sc = crt.getCellSlice(ri_idx, cri);
             if (!sc.sz) // empty subcell
               continue;
 
-            float subCellDistSq = v_extract_x(v_distance_sq_to_bbox_x(crt.bbox[cri + 1].bmin, crt.bbox[cri + 1].bmax, curViewPos));
+            const auto bboxIdx = cri + visData.SUBCELL_BBOX_OFFSET;
+            float subCellDistSq = v_extract_x(v_distance_sq_to_bbox_x(crt.bbox[bboxIdx].bmin, crt.bbox[bboxIdx].bmax, curViewPos));
 
             float maxDistSq = visibility.forcedLod < 0 ? farLodEndRangeSq : forcedLodDistSq;
             if (subCellDistSq >= maxDistSq)
@@ -579,7 +467,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
 
             if (use_external_filter)
             {
-              if (!external_filter(crt.bbox[cri + 1].bmin, crt.bbox[cri + 1].bmax))
+              if (!external_filter(crt.bbox[bboxIdx].bmin, crt.bbox[bboxIdx].bmax))
                 continue;
             }
             if (vi < MAX_PER_INSTANCE_CELLS && pool.hasImpostor() && rendinst::render::per_instance_visibility) // todo: support not

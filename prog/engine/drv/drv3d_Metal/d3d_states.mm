@@ -360,14 +360,6 @@ int d3d::driver_command(int command, void *par1, void *par2, void *par3)
 #endif
       //return drv3d_vulkan::api_state.device.getDeviceVendor();
       break;
-    case DRV3D_COMMAND_GET_RESOLUTION:
-      /*if (par1 && par2)
-      {
-        *((int *)par1) = api_state.windowState.settings.resolutionX;
-        *((int *)par2) = api_state.windowState.settings.resolutionY;
-        return 1;
-      }*/
-      break;
     case DRV3D_COMMAND_START_CAPTURE_FRAME:
     {
       render.start_capture = true;

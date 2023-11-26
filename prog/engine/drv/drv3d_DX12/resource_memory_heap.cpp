@@ -216,7 +216,7 @@ D3D12_RESOURCE_DESC AliasHeapProvider::as_desc(const BasicTextureResourceDescrip
   result.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
   result.MipLevels = desc.mipLevels;
   result.Format = format.asDxGiTextureCreateFormat();
-  result.SampleDesc.Count = 1;
+  result.SampleDesc.Count = get_sample_count(desc.cFlags);
   result.SampleDesc.Quality = 0;
   result.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
   if (TEXCF_RTARGET & desc.cFlags)
@@ -5373,7 +5373,7 @@ void ResourceMemoryHeap::generateResourceAndMemoryReport(uint32_t *num_textures,
                 out_text->aprintf(0,
                   "%6.2f %7s q%d  2d  %4dx%-4d, m%2d, aniso=%-2d filter=%7s mip=%s, %s "
                   "- '%s'",
-                  imageBytes.units(), imageBytes.name(), ql, tex->width, tex->height, tex->mipLevels, tex->samplerState.getAniso(),
+                  imageBytes.units(), imageBytes.name(), ql, tex->width, tex->height, tex->level_count(), tex->samplerState.getAniso(),
                   filter_type_to_string(tex->samplerState.getFilter()), filter_type_to_string(tex->samplerState.getMip()),
                   img->getFormat().getNameString(), tex->getResName());
               }
@@ -5384,7 +5384,7 @@ void ResourceMemoryHeap::generateResourceAndMemoryReport(uint32_t *num_textures,
               if (out_text)
               {
                 out_text->aprintf(0, "%6.2f %7s q%d cube %4d, m%2d, %s - '%s'", imageBytes.units(), imageBytes.name(), ql, tex->width,
-                  tex->mipLevels, img->getFormat().getNameString(), tex->getResName());
+                  tex->level_count(), img->getFormat().getNameString(), tex->getResName());
               }
               break;
             case RES3D_VOLTEX:
@@ -5395,7 +5395,7 @@ void ResourceMemoryHeap::generateResourceAndMemoryReport(uint32_t *num_textures,
                 out_text->aprintf(0,
                   "%6.2f %7s q%d  vol %4dx%-4dx%3d, m%2d, aniso=%-2d filter=%7s mip=%s, "
                   "%s - '%s'",
-                  imageBytes.units(), imageBytes.name(), ql, tex->width, tex->height, tex->depth, tex->mipLevels,
+                  imageBytes.units(), imageBytes.name(), ql, tex->width, tex->height, tex->depth, tex->level_count(),
                   tex->samplerState.getAniso(), filter_type_to_string(tex->samplerState.getFilter()),
                   filter_type_to_string(tex->samplerState.getMip()), img->getFormat().getNameString(), tex->getResName());
               }
@@ -5408,7 +5408,7 @@ void ResourceMemoryHeap::generateResourceAndMemoryReport(uint32_t *num_textures,
                 out_text->aprintf(0,
                   "%6.2f %7s q%d  arr %4dx%-4dx%3d, m%2d, aniso=%-2d filter=%7s mip=%s, "
                   "%s - '%s'",
-                  imageBytes.units(), imageBytes.name(), ql, tex->width, tex->height, tex->depth, tex->mipLevels,
+                  imageBytes.units(), imageBytes.name(), ql, tex->width, tex->height, tex->depth, tex->level_count(),
                   tex->samplerState.getAniso(), filter_type_to_string(tex->samplerState.getFilter()),
                   filter_type_to_string(tex->samplerState.getMip()), img->getFormat().getNameString(), tex->getResName());
               }

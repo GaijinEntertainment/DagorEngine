@@ -174,7 +174,7 @@ void PipelineStageStateBase::setTbuffer(uint32_t unit, BufferRef buffer)
   G_ASSERTF(buffer, "vulkan: binding empty tReg as buffer, should be filtered at bind point!");
   getBufferAsSampledImageRegister(unit).texelBuffer = buffer.getView();
   getBufferAsSampledImageRegister(unit).type = VkAnyDescriptorInfo::TYPE_BUF_VIEW;
-  getReadOnlyBufferRegister(unit).buffer = {buffer.getHandle(), buffer.dataOffset(0), buffer.dataSize()};
+  getReadOnlyBufferRegister(unit).buffer = {buffer.getHandle(), buffer.bufOffset(0), buffer.visibleDataSize};
   getReadOnlyBufferRegister(unit).type = VkAnyDescriptorInfo::TYPE_BUF;
 }
 
@@ -193,7 +193,7 @@ void PipelineStageStateBase::setUbuffer(uint32_t unit, BufferRef buffer)
   {
     getStorageBufferAsImageRegister(unit).texelBuffer = buffer.getView();
     getStorageBufferAsImageRegister(unit).type = VkAnyDescriptorInfo::TYPE_BUF_VIEW;
-    getStorageBufferRegister(unit).buffer = {buffer.getHandle(), buffer.dataOffset(0), buffer.dataSize()};
+    getStorageBufferRegister(unit).buffer = {buffer.getHandle(), buffer.bufOffset(0), buffer.visibleDataSize};
     getStorageBufferRegister(unit).type = VkAnyDescriptorInfo::TYPE_BUF;
   }
   else
@@ -212,7 +212,7 @@ void PipelineStageStateBase::setBbuffer(uint32_t unit, BufferRef buffer)
   if (buffer)
   {
     getConstBufferRegister(unit).buffer.buffer = buffer.getHandle();
-    getConstBufferRegister(unit).buffer.range = buffer.dataSize();
+    getConstBufferRegister(unit).buffer.range = buffer.visibleDataSize;
     getConstBufferRegister(unit).buffer.offset = 0;
     getConstBufferRegister(unit).type = VkAnyDescriptorInfo::TYPE_BUF;
   }
@@ -379,7 +379,7 @@ void PipelineStageStateBase::checkForMissingBinds(const spirv::ShaderHeader &hdr
         {
           Buffer *dummyBuf = (Buffer *)dummy_resource_table[hdr.missingTableIndex[i]].resource;
           ctx.back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stage, RegisterType::T),
-            dummyBuf, {0, dummyBuf->dataSize()});
+            dummyBuf, {dummyBuf->bufOffsetLoc(0), dummyBuf->getBlockSize()});
         }
         break;
 
@@ -388,7 +388,7 @@ void PipelineStageStateBase::checkForMissingBinds(const spirv::ShaderHeader &hdr
         {
           Buffer *dummyBuf = (Buffer *)dummy_resource_table[hdr.missingTableIndex[i]].resource;
           ctx.back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stage, RegisterType::U),
-            dummyBuf, {0, dummyBuf->dataSize()});
+            dummyBuf, {dummyBuf->bufOffsetLoc(0), dummyBuf->getBlockSize()});
         }
         break;
         default: break;

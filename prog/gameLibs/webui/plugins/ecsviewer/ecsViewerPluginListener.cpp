@@ -131,6 +131,8 @@ static void bson_ecs_component(BsonStream &bson, const char *name, const ecs::En
     bson_ecs_array(bson, name, comp);
   else if (comp.is<ecs::IntList>())
     bson_ecs_list<ecs::IntList>(bson, name, comp);
+  else if (comp.is<ecs::UInt8List>())
+    bson_ecs_list<ecs::UInt8List>(bson, name, comp);
   else if (comp.is<ecs::UInt16List>())
     bson_ecs_list<ecs::UInt16List>(bson, name, comp);
   else if (comp.is<ecs::StringList>())
@@ -700,6 +702,8 @@ struct ECSMessageListener : public websocket::MessageListener
       SET_TYPE(E3DCOLOR, E3dcolor);
     else if (type == "ecs::EntityId")
       SET_TYPE(ecs::EntityId, Int);
+    else if (type == "TMatrix")
+      SET_TYPE(TMatrix, Tm);
     else if (type == "ecs::Object")
     {
       ecs::ComponentsList alist;

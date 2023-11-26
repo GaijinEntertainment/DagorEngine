@@ -1,0 +1,108 @@
+include "sky_shader_global.dshl"
+include "viewVecVS.dshl"
+include "frustum.dshl"
+include "dagi_volmap_gi.dshl"
+include "dagi_scene_voxels_common.dshl"
+include "dagi_helpers.dshl"
+include "dagi_volmap_common_25d.dshl"
+//include "gpu_occlusion.dshl"
+//include "sample_voxels.dshl"
+hlsl {
+  #include "dagi_common_types.hlsli"
+}
+float4 ambient_voxels_move_ofs;
+float4 ssgi_start_copy_slice;
+float4 ssgi_copy_indices;
+buffer gi_ambient_cube;
+
+
+//use as much information as possible
+// depth blur above, 2.5d cascade other GI methods
+
+define_macro_if_not_defined SSGI_CLEAR_INITIAL_VOLMAP()
+  hlsl(cs) {
+    void ssgi_init_volmap(float3 worldPos, float3 lightVoxelSize, inout float3 col0, inout float3 col1, inout float3 col2, inout float3 col3, inout float3 col4, inout float3 col5, bool copied){}
+  }
+endmacro
+
+int gi_ambient_volmap_no = 6;
+int ssgi_ambient_volmap_temporal_no = 7;
+
+shader ssgi_clear_volmap_cs
+{
+  (cs) {
+    gi_ambient_cube@buf = gi_ambient_cube hlsl {
+      #include <dagi_envi_cube_consts.hlsli>
+      StructuredBuffer<AmbientCube> gi_ambient_cube@buf;
+    }
+    ssgi_ambient_volmap_temporal@uav: register(ssgi_ambient_volmap_temporal_no) hlsl {
+      RWTexture3D<float> ssgi_ambient_volmap_temporal@uav;
+    }
+  }
+  if (gi_quality != only_ao)
+  {
+    (cs) {
+      gi_ambient_volmap@uav: register(gi_ambient_volmap_no) hlsl {
+        RWTexture3D<float3> gi_ambient_volmap@uav;
+      }
+    }
+  }
+  else
+  {
+    (cs) {
+      gi_ambient_volmap@uav: register(gi_ambient_volmap_no) hlsl {
+        RWTexture3D<float> gi_ambient_volmap@uav;
+      }
+    }
+  }
+  SSGI_USE_VOLMAP_GI_COORD(cs)
+  (cs) { ambient_voxels_move_ofs@f4 = ambient_voxels_move_ofs; }
+  INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(cs)
+  SAMPLE_INIT_VOLMAP_25D(cs)
+  SAMPLE_VOLMAP_25D_NOT_INTERSECTED(cs)
+  SSGI_CLEAR_INITIAL_VOLMAP()
+  ENABLE_ASSERT(cs)
+
+  hlsl(cs) {
+    [numthreads(4, 4, 4)]
+    void ssgi_clear_volmap_cs( uint3 dtId : SV_DispatchThreadID )//uint3 gId : SV_GroupId,
+    {
+      uint cascadeId = ambient_voxels_move_ofs.w;
+      int3 coord = dtId;
+
+      float3 worldPos;
+      if (getMovedWorldPos(coord, cascadeId, ambient_voxels_move_ofs.xzy, worldPos))
+        return;
+
+      float3 col0 = structuredBufferAt(gi_ambient_cube, 0).col[0].rgb,
+             col1 = structuredBufferAt(gi_ambient_cube, 0).col[1].rgb,
+             col2 = structuredBufferAt(gi_ambient_cube, 0).col[2].rgb,
+             col3 = structuredBufferAt(gi_ambient_cube, 0).col[3].rgb,
+             col4 = structuredBufferAt(gi_ambient_cube, 0).col[4].rgb,
+             col5 = structuredBufferAt(gi_ambient_cube, 0).col[5].rgb;
+
+      float3 extent = volmap[cascadeId].voxelSize.xyx;
+      bool copied = sample_25d_volmap_no_vignette_cube_no_intersected(worldPos, col0, col1, col2, col3, col4, col5);
+      ssgi_init_volmap(worldPos, extent, col0, col1, col2, col3, col4, col5, copied);
+      ssgi_ambient_volmap_temporal[uint3(coord.xy, coord.z + ssgi_cascade_z_crd_ofs(cascadeId))] = copied ? SSGI_TEMPORAL_COPIED_VALUE : 0;
+      coord.z += ssgi_cascade_z_crd_ofs(cascadeId)*6;
+      uint z_ofs = volmap_y_dim(cascadeId);
+##if gi_quality != only_ao
+      gi_ambient_volmap[coord] = col0;coord.z+=z_ofs;
+      gi_ambient_volmap[coord] = col1;coord.z+=z_ofs;
+      gi_ambient_volmap[coord] = col2;coord.z+=z_ofs;
+      gi_ambient_volmap[coord] = col3;coord.z+=z_ofs;
+      gi_ambient_volmap[coord] = col4;coord.z+=z_ofs;
+      gi_ambient_volmap[coord] = col5;
+##else
+      gi_ambient_volmap[coord] = 1;coord.z+=z_ofs;
+      gi_ambient_volmap[coord] = 1;coord.z+=z_ofs;
+      gi_ambient_volmap[coord] = 1;coord.z+=z_ofs;
+      gi_ambient_volmap[coord] = 1;coord.z+=z_ofs;
+      gi_ambient_volmap[coord] = 1;coord.z+=z_ofs;
+      gi_ambient_volmap[coord] = 1;
+##endif
+    }
+  }
+  compile("cs_5_0", "ssgi_clear_volmap_cs");
+}

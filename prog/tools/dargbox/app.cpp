@@ -645,6 +645,13 @@ public:
     // Exit
     if (HumanInput::raw_state_kbd.isKeyDown(HumanInput::DKEY_F10))
       exit_button_pressed = true;
+#if _TARGET_PC_MACOSX
+    if (HumanInput::raw_state_kbd.isKeyDown(HumanInput::DKEY_LWIN) && HumanInput::raw_state_kbd.isKeyDown(HumanInput::DKEY_Q))
+    {
+      debug("request to close (Cmd+Q)");
+      exit_button_pressed = true;
+    }
+#endif
 #else
     // Exit
     if (HumanInput::raw_state_joy.buttons.get(5))

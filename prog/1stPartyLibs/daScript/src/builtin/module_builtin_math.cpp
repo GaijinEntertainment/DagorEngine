@@ -382,6 +382,11 @@ namespace das {
         return res;
     }
 
+    float float3x3_det ( const float3x3 & a ) {
+        mat33f va;  va.col0 = a.m[0]; va.col1 = a.m[1]; va.col2 = a.m[2];
+        return v_extract_x(v_mat33_det(va));
+    }
+
     float3x4 float3x4_neg ( const float3x4 & mat ) {
         float3x4 res;
         res.m[0] = v_neg(mat.m[0]);
@@ -389,6 +394,12 @@ namespace das {
         res.m[2] = v_neg(mat.m[2]);
         res.m[3] = v_neg(mat.m[3]);
         return res;
+    }
+
+    float float3x4_det ( const float3x4 & mat ) {
+        mat44f res;
+        v_mat44_make_from_43ca(res, (const float*)&mat);
+        return v_extract_x(v_mat44_det43(res));
     }
 
     float4x4 float4x4_identity_m ( void ) {
@@ -753,6 +764,8 @@ namespace das {
                 SideEffects::none,"float3x4_mul_vec3p")->args({"x","y"});
             addExtern<DAS_BIND_FUN(float4x4_mul_vec4), SimNode_ExtFuncCall>(*this, lib, "*",
                 SideEffects::none,"float4x4_mul_vec4")->args({"x","y"});
+            addExtern<DAS_BIND_FUN(float4x4_det)>(*this, lib, "determinant",
+                SideEffects::none,"float4x4_det")->arg("x");
             addExtern<DAS_BIND_FUN(float3x4_inverse), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,
                 "inverse", SideEffects::none, "float3x4_inverse")->arg("x");
             addExtern<DAS_BIND_FUN(float4x4_inverse), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,
@@ -767,6 +780,8 @@ namespace das {
                 SideEffects::none, "float3x4_nequ")->args({"x","y"});
             addExtern<DAS_BIND_FUN(float3x4_neg), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "-",
                 SideEffects::none,"float3x4_neg")->arg("x");
+            addExtern<DAS_BIND_FUN(float3x4_det)>(*this, lib, "determinant",
+                SideEffects::none,"float3x4_det")->arg("x");
             initFloatNxNIndex(addExtern<DAS_BIND_FUN((floatNxN_ati<float3x4>)), SimNode_ExtFuncCallRef>(*this, lib,
                 "[]", SideEffects::none, "floatNxN_ati<float4>")->args({"m","i","context","at"}));
             initFloatNxNIndex(addExtern<DAS_BIND_FUN((floatNxN_atci<float3x4>)), SimNode_ExtFuncCallRef>(*this, lib,
@@ -813,7 +828,9 @@ namespace das {
                 SideEffects::none, "float3x3_nequ")->args({"x","y"});
             addExtern<DAS_BIND_FUN(float3x3_neg), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "-",
                 SideEffects::none,"float3x3_neg")->arg("x");
-           initFloatNxNIndex(addExtern<DAS_BIND_FUN((floatNxN_ati<float3x3>)), SimNode_ExtFuncCallRef>(*this, lib,
+            addExtern<DAS_BIND_FUN(float3x3_det)>(*this, lib, "-detertminant",
+                SideEffects::none,"float3x3_det")->arg("x");
+            initFloatNxNIndex(addExtern<DAS_BIND_FUN((floatNxN_ati<float3x3>)), SimNode_ExtFuncCallRef>(*this, lib,
                 "[]", SideEffects::none, "floatNxN_ati<float4>")->args({"m","i","context","at"}));
             initFloatNxNIndex(addExtern<DAS_BIND_FUN((floatNxN_atci<float3x3>)), SimNode_ExtFuncCallRef>(*this, lib,
                 "[]", SideEffects::none, "floatNxN_atci<float4>")->args({"m","i","context","at"}));

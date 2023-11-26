@@ -39,8 +39,8 @@ struct HashedConstString
   hash_str_t hash;
 };
 
-#define ECS_HASH(a)      (ecs::HashedConstString({a, eastl::integral_constant<ecs::hash_str_t, ecs_str_hash(a)>::value}))
-#define ECS_HASH_SLOW(a) (ecs::HashedConstString({a, ecs_str_hash(a)}))
+#define ECS_HASH(a)      (ecs::HashedConstString{a, eastl::integral_constant<ecs::hash_str_t, ecs_str_hash(a)>::value})
+#define ECS_HASH_SLOW(a) (ecs::HashedConstString{a, ecs_str_hash(a)})
 
 inline hash_str_t ecs_hash(eastl::string_view str) { return ecs_mem_hash(str.data(), str.length()); }
 

@@ -74,7 +74,8 @@ void Irradiance::init(bool scalar_ao, float xz_size, float y_size)
 void Irradiance::invalidate()
 {
   toroidalOrigin += IPoint2{10000, -10000};
-  d3d::resource_barrier({volmap.getVolTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  if (volmap.getVolTex())
+    d3d::resource_barrier({volmap.getVolTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 }
 
 void Irradiance::close()

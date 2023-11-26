@@ -1,0 +1,11 @@
+include "shaders_pc11.blk"
+"@delete-all:packBin":b=false; packBin:b=yes
+
+"@override:outDumpName":t="../../game/compiledShaders/gameSpirV"
+"@override:Compile" {
+  "@override:fsh":t="5.0"
+  "@override:assume_vars" {
+    "@delete:render_inline_raytracing":i=0
+     //gi_voxelize_use_multidraw:i=1
+  }
+}

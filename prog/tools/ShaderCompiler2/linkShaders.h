@@ -3,6 +3,7 @@
 #include "shaderSave.h"
 #include "intervals.h"
 #include "globVar.h"
+#include "samplers.h"
 #include <util/dag_simpleString.h>
 #include <util/dag_bindump_ext.h>
 #include "shaderTab.h"
@@ -19,6 +20,7 @@ struct RenderState;
 struct ShadersBindump
 {
   SerializableTab<ShaderGlobal::Var> variable_list;
+  SerializableTab<Sampler> static_samplers;
   IntervalList intervals;
   bindump::Ptr<ShaderStateBlock> empty_block;
   SerializableTab<ShaderStateBlock *> state_blocks;

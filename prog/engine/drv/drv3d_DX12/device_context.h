@@ -2,6 +2,7 @@
 #include <drv_returnAddrStore.h>
 #include "query_manager.h"
 #include <EASTL/variant.h>
+#include <EASTL/fixed_vector.h>
 #include <osApiWrappers/dag_events.h>
 #include <emmintrin.h>
 #include <3d/dag_drvDecl.h>
@@ -334,6 +335,13 @@ struct BufferImageCopy
   UINT subresourceIndex;
   Offset3D imageOffset;
 };
+
+BufferImageCopy calculate_texture_subresource_copy_info(const Image &texture, uint32_t subresource_index = 0, uint64_t offset = 0);
+
+using TextureMipsCopyInfo = eastl::fixed_vector<BufferImageCopy, MAX_MIPMAPS, false>;
+
+TextureMipsCopyInfo calculate_texture_mips_copy_info(const Image &texture, uint32_t mip_levels);
+
 struct ImageCopy
 {
   SubresourceIndex srcSubresource;

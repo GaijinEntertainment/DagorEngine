@@ -1,0 +1,156 @@
+include "hardware_defines.dshl"
+include "bc_compression_inc.dshl"
+include "writeToTex.dshl"
+
+texture compress_voltex_bc4_source;
+texture clouds_gen_mips_3d_source;
+texture clouds_gen_mips_2d_source;
+
+macro USE_COMPRESS_VOLTEX_BC4(stage)
+  hlsl(stage) {
+    #if _HARDWARE_METAL
+    // have to use half2 instead of half1 here because of metal (it doesn't compile half1)
+      #define bc4_type half2
+    #else
+      #define bc4_type half1
+    #endif
+  }
+  (stage) {
+    source@smp = compress_voltex_bc4_source hlsl {
+      Texture3D<float> source@smp;
+    }
+  }
+  USE_BC4_COMPRESSION(stage)
+endmacro
+
+macro COMPRESS_VOLTEX_BC4_MAIN(stage)
+  hlsl(stage)
+  {
+    uint2 compress_voltex_bc4_main(uint3 tid)
+    {
+      bc4_type texels[4*4], minV = 2, maxV = -2;
+      uint3 srcId = uint3(tid.x<<2, tid.y<<2, tid.z);
+      #define GET_TEXEL(x, y)\
+      {\
+        bc4_type v = source[srcId + uint3(x,y,0)].r;\
+        texels[x+(y*4)] = v; minV = min(minV, v);maxV = max(maxV, v);\
+      }
+
+      GET_TEXEL(0,0);GET_TEXEL(1,0);GET_TEXEL(2,0);GET_TEXEL(3,0);
+      GET_TEXEL(0,1);GET_TEXEL(1,1);GET_TEXEL(2,1);GET_TEXEL(3,1);
+      GET_TEXEL(0,2);GET_TEXEL(1,2);GET_TEXEL(2,2);GET_TEXEL(3,2);
+      GET_TEXEL(0,3);GET_TEXEL(1,3);GET_TEXEL(2,3);GET_TEXEL(3,3);
+      return pack_bc4_block( texels, minV, maxV ).xy;
+    }
+  }
+endmacro
+
+//todo: we can actually generate directly to int2/BC4 block
+shader compress_voltex_bc4_cs
+{
+  USE_COMPRESS_VOLTEX_BC4(cs)
+  COMPRESS_VOLTEX_BC4_MAIN(cs)
+  hlsl(cs) {
+    RWTexture3D<uint2> output : register(u0);
+
+    [numthreads(4, 4, 4)]
+    void cs_main(uint3 tid : SV_DispatchThreadID) {
+      output[tid] = compress_voltex_bc4_main(tid);
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+shader compress_voltex_bc4_ps
+{
+  if (hardware.metal)
+  {
+    dont_render;
+  }
+  WRITE_TO_VOLTEX_TC()
+  USE_COMPRESS_VOLTEX_BC4(ps)
+  COMPRESS_VOLTEX_BC4_MAIN(ps)
+  hlsl(ps) {
+    uint2 ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      uint3 tid = dispatchThreadID(input);
+      return compress_voltex_bc4_main(tid);
+    }
+  }
+  compile("target_ps", "ps_main");
+}
+
+int clouds_gen_mips_3d_one_layer = 0;
+interval clouds_gen_mips_3d_one_layer: no <1, yes;
+shader clouds_gen_mips_3d_cs, clouds_gen_mips_2d_cs
+{
+  if (shader == clouds_gen_mips_3d_cs)
+  {
+    (cs) {
+      source@smp = clouds_gen_mips_3d_source hlsl {
+        Texture3D<float> source@smp;
+      }
+    }
+    hlsl(cs) {
+      RWTexture3D<float> output : register(u0);
+      [numthreads(4, 4, 4)]
+      void cs_main(uint3 tid : SV_DispatchThreadID) {
+        uint3 inp = tid*2;
+        float up = source[inp + uint3(0,0,0)].x + source[inp + uint3(1,0,0)].x + source[inp + uint3(0,1,0)].x + source[inp + uint3(1,1,0)].x;
+        ##if clouds_gen_mips_3d_one_layer == no
+        float down = source[inp + uint3(0,0,1)].x + source[inp + uint3(1,0,1)].x + source[inp + uint3(0,1,1)].x + source[inp + uint3(1,1,1)].x;
+        output[tid] = (up+down)*0.125;
+        ##else
+        output[tid] = up*0.25;
+        ##endif
+      }
+    }
+  } else
+  {
+    (cs) {
+      source@smp = clouds_gen_mips_2d_source hlsl {
+        Texture2D<float> source@smp;
+      }
+    }
+
+    hlsl(cs) {
+      RWTexture2D<float> output : register(u0);
+      [numthreads(8, 8, 1)]
+      void cs_main(uint2 tid : SV_DispatchThreadID) {
+        uint2 inp = tid*2;
+        output[tid] = (source[inp + uint2(0,0)].x + source[inp + uint2(1,0)].x + source[inp + uint2(0,1)].x + source[inp + uint2(1,1)].x)*0.25;
+      }
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+shader clouds_gen_mips_3d_ps
+{
+  if (hardware.metal)
+  {
+    dont_render;
+  }
+  WRITE_TO_VOLTEX_TC()
+
+  (ps) {
+    source@smp = clouds_gen_mips_3d_source hlsl {
+      Texture3D<float> source@smp;
+    }
+  }
+  hlsl(ps) {
+    float ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      uint3 tid = dispatchThreadID(input);
+      uint3 inp = tid*2;
+      float up = source[inp + uint3(0,0,0)].x + source[inp + uint3(1,0,0)].x + source[inp + uint3(0,1,0)].x + source[inp + uint3(1,1,0)].x;
+      ##if clouds_gen_mips_3d_one_layer == no
+        float down = source[inp + uint3(0,0,1)].x + source[inp + uint3(1,0,1)].x + source[inp + uint3(0,1,1)].x + source[inp + uint3(1,1,1)].x;
+        return (up+down)*0.125;
+      ##else
+        return up*0.25;
+      ##endif
+    }
+  }
+  compile("target_ps", "ps_main")
+}

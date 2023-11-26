@@ -28,6 +28,11 @@ enum class AllocationMethodName
   // for resources that does not allocate heap memory
   OBJECT_BACKED_MEMORY,
 
+  // allocators with shared handles
+  BUFFER_SHARED_SMALL_POW2_ALIGNED_PAGES,
+  BUFFER_SHARED_HEAP_FREE_LIST,
+  BUFFER_SHARED_RINGED,
+
   COUNT,
   INVALID
 };
@@ -62,21 +67,13 @@ struct ResourceMemory
 
   VulkanDeviceMemoryHandle deviceMemory() const
   {
-    // TODO:
-    // some parts of code need base memory handle for shared handle allocation
-    // and this will fail here, need to properly handle without much looses
     G_ASSERT(isDeviceMemory());
     return VulkanDeviceMemoryHandle(handle);
   }
 
-  bool isDeviceMemory() const
-  {
-    // TODO: enable this when buffer suballocs will use shared handle allocators
-    return true;
-    // (allocator != AllocationMethodName::BUFFER_SUBALLOC_HEAP_FREE_LIST) &&
-    // (allocator != AllocationMethodName::BUFFER_SUBALLOC_RINGED) &&
-    // (allocator != AllocationMethodName::BUFFER_SUBALLOC_SMALL_POW2_ALIGNED_PAGES);
-  }
+  VulkanDeviceMemoryHandle deviceMemorySlow() const;
+
+  bool isDeviceMemory() const { return allocator < AllocationMethodName::BUFFER_SHARED_SMALL_POW2_ALIGNED_PAGES; }
 
   uint8_t *mappedPtrOffset(uint32_t ofs) const { return mappedPointer + offset + ofs; }
 
@@ -133,6 +130,7 @@ public:
 
   virtual bool alloc(ResourceMemory &target, const AllocationDesc &desc) = 0;
   virtual void free(ResourceMemory &target) = 0;
+  virtual VulkanDeviceMemoryHandle getDeviceMemoryHandle(ResourceMemory &target) = 0;
 
   virtual const Stats getStats() = 0;
 
@@ -231,6 +229,7 @@ public:
 
   bool alloc(ResourceMemory &target, const AllocationDesc &desc) override;
   void free(ResourceMemory &target) override;
+  VulkanDeviceMemoryHandle getDeviceMemoryHandle(ResourceMemory &target) override;
 
   const Stats getStats() override;
 };
@@ -246,13 +245,15 @@ public:
 
   bool alloc(ResourceMemory &target, const AllocationDesc &desc) override;
   void free(ResourceMemory &target) override;
+  VulkanDeviceMemoryHandle getDeviceMemoryHandle(ResourceMemory &target) override;
 
   const Stats getStats() override;
 };
 
+template <SubAllocationMethod subAllocMethod = SubAllocationMethod::MEM_OFFSET>
 class SuballocPow2Allocator final : public AbstractAllocator
 {
-  typedef PageList<FixedOccupancyPage, SubAllocationMethod::MEM_OFFSET> PageListType;
+  typedef PageList<FixedOccupancyPage, subAllocMethod> PageListType;
   Tab<PageListType> categories;
   VkDeviceSize minSize;
   VkDeviceSize maxSize;
@@ -265,13 +266,18 @@ public:
 
   bool alloc(ResourceMemory &target, const AllocationDesc &desc) override;
   void free(ResourceMemory &target) override;
+  VulkanDeviceMemoryHandle getDeviceMemoryHandle(ResourceMemory &target) override;
 
   const Stats getStats() override;
 };
 
+extern template class SuballocPow2Allocator<SubAllocationMethod::MEM_OFFSET>;
+extern template class SuballocPow2Allocator<SubAllocationMethod::BUF_OFFSET>;
+
+template <SubAllocationMethod subAllocMethod = SubAllocationMethod::MEM_OFFSET>
 class SuballocFreeListAllocator final : public AbstractAllocator
 {
-  typedef PageList<FreeListPage, SubAllocationMethod::MEM_OFFSET> PageListType;
+  typedef PageList<FreeListPage, subAllocMethod> PageListType;
 
   enum
   {
@@ -291,13 +297,18 @@ public:
 
   bool alloc(ResourceMemory &target, const AllocationDesc &desc) override;
   void free(ResourceMemory &target) override;
+  VulkanDeviceMemoryHandle getDeviceMemoryHandle(ResourceMemory &target) override;
 
   const Stats getStats() override;
 };
 
+extern template class SuballocFreeListAllocator<SubAllocationMethod::MEM_OFFSET>;
+extern template class SuballocFreeListAllocator<SubAllocationMethod::BUF_OFFSET>;
+
+template <SubAllocationMethod subAllocMethod = SubAllocationMethod::MEM_OFFSET>
 class SuballocRingedAllocator final : public AbstractAllocator
 {
-  typedef PageList<LinearOccupancyPage, SubAllocationMethod::MEM_OFFSET> PageListType;
+  typedef PageList<LinearOccupancyPage, subAllocMethod> PageListType;
   PageListType ring;
 
 #if DAGOR_DBGLEVEL > 0
@@ -314,6 +325,7 @@ public:
 
   bool alloc(ResourceMemory &target, const AllocationDesc &desc) override;
   void free(ResourceMemory &target) override;
+  VulkanDeviceMemoryHandle getDeviceMemoryHandle(ResourceMemory &target) override;
 
   const Stats getStats() override;
 
@@ -321,14 +333,8 @@ public:
   void checkIntegrity();
 };
 
-class BufSuballocPow2Allocator : public DedicatedAllocator
-{};
-
-class BufSuballocFreeListAllocator : public DedicatedAllocator
-{};
-
-class BufSuballocRingedAllocator : public DedicatedAllocator
-{};
+extern template class SuballocRingedAllocator<SubAllocationMethod::MEM_OFFSET>;
+extern template class SuballocRingedAllocator<SubAllocationMethod::BUF_OFFSET>;
 
 struct AllocationMethodPriorityList
 {
@@ -362,11 +368,13 @@ class ResourceManager
 
     bool alloc(ResourceMemory &target, AllocationMethodPriorityList prio, const AllocationDesc &desc);
     void free(ResourceMemory &target);
+    VulkanDeviceMemoryHandle getDeviceMemoryHandle(ResourceMemory &target);
 
     const AbstractAllocator::Stats printStats();
   };
 
   bool allowMixedPages;
+  bool allowBufferSuballoc;
   AllocationMethodPriorityList getAllocationMethods(const AllocationDesc &desc);
 
   Tab<MethodsArray> perMemoryTypeMethods;
@@ -456,6 +464,7 @@ public:
   ResourceMemoryId allocMemory(const AllocationDesc &desc);
   void freeMemory(ResourceMemoryId memory_id);
   const ResourceMemory &getMemory(ResourceMemoryId memory_id);
+  VulkanDeviceMemoryHandle getDeviceMemoryHandle(ResourceMemoryId memory_id);
 
   template <typename ResType>
   ResType *alloc(const typename ResType::Description desc, bool manage = true)

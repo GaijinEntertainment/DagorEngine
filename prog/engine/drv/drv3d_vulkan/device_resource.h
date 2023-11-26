@@ -59,8 +59,19 @@ class ResourceAlgorithm
 
     if (!res.isHandleShared())
       destroyVkObj();
+    else
+      res.releaseSharedHandle();
 
     res.freeMemory();
+  }
+
+  bool tryReuseHandle(AllocationDesc &allocDsc)
+  {
+    if (!allocDsc.isSharedHandleAllowed())
+      return false;
+
+    allocDsc.reqs.requirements = res.getSharedHandleMemoryReq();
+    return res.tryReuseHandle(allocDsc);
   }
 
   bool allocVulkanResource(const typename ResourceImpl::Description &desc)
@@ -72,7 +83,7 @@ class ResourceAlgorithm
 
     AllocationDesc allocDsc{res};
     desc.fillAllocationDesc(allocDsc);
-    if (!res.tryReuseHandle(allocDsc))
+    if (!tryReuseHandle(allocDsc))
     {
       allocDsc.canUseSharedHandle = false;
       res.createVulkanObject();

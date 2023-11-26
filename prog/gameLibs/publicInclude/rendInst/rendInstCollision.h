@@ -112,7 +112,8 @@ struct TraceRayRendInstSolidData : TraceRayRendInstData
 using RendInstsIntersectionsList = dag::Vector<TraceRayRendInstData, framemem_allocator>;
 using RendInstsSolidIntersectionsList = dag::Vector<TraceRayRendInstSolidData, framemem_allocator>;
 
-void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, const Point3 &dir, SolidSectionsMerge merge_mode);
+void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, const Point3 &from, const Point3 &dir,
+  SolidSectionsMerge merge_mode);
 
 
 // ======= trace ray stuff ========

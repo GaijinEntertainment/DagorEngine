@@ -1,0 +1,287 @@
+include "sky_shader_global.dshl"
+include "clouds2/clouds_alt_fraction.dshl"
+include "moon.dshl"
+include "panorama.dshl"
+include "brunetonSkies.dshl"
+include "skies_special_vision.dshl"
+include "vr_reprojection.dshl"
+include "use_custom_fog_sky.dshl"
+
+float star_intensity = 1;
+float stars_scale = 1;
+float stars_lattitude;
+float stars_lst;
+texture stars_tex;
+texture sky_panorama_tex;
+
+int sky_space_mode = 0;
+interval sky_space_mode: sky_space_off < 1, sky_space_on;
+
+shader daStars, daMoon
+{
+  z_write=false;
+  z_test=true;
+  cull_mode = none;
+  channel short2 pos=pos;
+  channel half2 tc[0]=tc[0];
+
+  if (shader == daStars)
+  {
+    (vs) {
+      starIntensity@f2 = (stars_scale, star_intensity + 1.2e-07, 0, 0);        // Add ~FLT_EPSILON to compensate for FP errors in interpolation. Background sky bright points randomly blend through the moon on GeForce.
+      sincosLat_lst@f4 = (sin(stars_lattitude*(PI/180)), cos(stars_lattitude*(PI/180)), stars_lst*(15*PI/180), -0.5*PI);
+    }
+    (ps) { stars_tex@smp2d = stars_tex; }
+    blend_src = 1; blend_dst = 1;
+  } else
+  {
+    INIT_MOON_TEX()
+    (vs) {
+      stars_moon_size@f1 = (stars_moon_size);
+      stars_moon_dir@f3 = stars_moon_dir;
+    }
+    blend_src = 1; blend_dst = isa;
+  }
+  (ps) { skies_world_view_pos@f3 = skies_world_view_pos; skies_primary_sun_light_dir@f3=skies_primary_sun_light_dir;}
+  (vs) { skies_world_view_pos@f3 = skies_world_view_pos; }
+  if (clouds_alpha_panorama_tex != NULL)
+  {
+    INIT_CLOUDS_ALPHA_PANORAMA()
+    USE_CLOUDS_ALPHA_PANORAMA()
+    (ps) {sky_panorama_tex@smp2d = sky_panorama_tex; }
+  }
+
+  USE_SPECIAL_VISION()
+  SKY_HDR()
+
+  INIT_SKIES_LUT(ps)
+  USE_SKIES_LUT(ps)
+  ATMO(ps)
+  GET_ATMO(ps)
+  INIT_BOUNDING_VIEW_REPROJECTION(ps)
+  USE_BOUNDING_VIEW_REPROJECTION(ps)
+  ENABLE_ASSERT(ps)
+
+  (ps) {
+    skies_transmittance_texture@smp2d = skies_transmittance_texture;
+  }
+
+  INIT_ZNZFAR_STAGE(ps)
+  USE_CUSTOM_FOG_SKY(ps)
+
+  hlsl {
+    #include "star_rendering_consts.hlsli"
+
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord : TEXCOORD0;
+      float3 pointToEye : TEXCOORD1;
+      float4 screencoord_color : TEXCOORD2;
+    };
+  }
+
+  //SET_BRUNETON_CAMERA_POSITION(ps)
+  hlsl(ps) {
+    DimensionlessSpectrum getTransmittance(inout Position camera, float3 view_ray, inout Length r, inout Number mu)
+    {
+      Length rmu = r * mu;// Length rmu = dot(camera, view_ray);
+      Length distance_to_top_atmosphere_boundary = -rmu -
+          sqrt(rmu * rmu - r * r + theAtmosphere.top_radius * theAtmosphere.top_radius);
+      DimensionlessSpectrum transmittance = 0;
+      if (distance_to_top_atmosphere_boundary > 0.0 * meter) {
+        camera = camera + view_ray * distance_to_top_atmosphere_boundary;
+        r = theAtmosphere.top_radius;
+        rmu += distance_to_top_atmosphere_boundary;
+        mu = rmu / r;
+      } else if (r > theAtmosphere.top_radius) {
+        // If the view ray does not intersect the theAtmosphere, simply return 1
+        return DimensionlessSpectrum(1.0,1.0,1.0);
+      }
+      return GetTransmittanceToTopAtmosphereBoundary(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture), r, mu);
+    }
+    float4 stars_ps(VsOutput input) : SV_Target
+    {
+      float3 view = -normalize(input.pointToEye);
+      float3 viewdir = view.xzy;
+      float3 camera = float3(0,0,max(skies_world_view_pos.y*0.001,0.01) + theAtmosphere.bottom_radius);
+      Length r = camera.z;
+      Number mu = viewdir.z;
+
+      ##if sky_space_mode == sky_space_on
+      {
+        ##if shader == daStars
+          float4 result = tex2D(stars_tex, input.texcoord) * input.screencoord_color.w;
+        ##else
+          half4 result = getMoonTex(view.xzy);
+          half resultLum = luminance(result.rgb);
+          result.a *= saturate(1-pow8(1-resultLum));
+          result.rgb *= result.a;
+        ##endif
+        return result;
+      }
+      ##endif
+
+      if (RayIntersectsGround(theAtmosphere, r, mu))
+        discard;
+      DimensionlessSpectrum loss = getTransmittance(camera, viewdir, r, mu);
+
+      ##if clouds_alpha_panorama_tex != NULL
+        float2 panoramaUV = get_panorama_uv(skies_world_view_pos, view);
+        float alpha = pow4(get_clouds_alpha_panorama_uv(panoramaUV));
+      ##else
+        float alpha = 1;
+      ##endif
+
+      float2 scrTC = input.screencoord_color.xy/input.screencoord_color.z*float2(0.5,-0.5) + 0.5;
+
+      ##if clouds_alpha_panorama_tex != NULL
+        float3 inscatterColor = tex2Dlod(sky_panorama_tex, float4(panoramaUV,0,0)).rgb;
+      ##else
+##if use_bounding_vr_reprojection == on
+      scrTC = vr_bounding_view_reproject_tc(scrTC,0);
+##endif
+        float primaryNu = dot(view, skies_primary_sun_light_dir.xzy);
+        float miePhase = MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, primaryNu)*RayleighPhaseFunction(primaryNu);
+        float3 inscatterColor = sample_skies_scattering_color_camera(scrTC, view, miePhase).rgb;
+      ##endif
+
+      float4 combinedFog = float4(inscatterColor, alpha);
+      apply_sky_custom_fog(combinedFog, scrTC, scrTC);
+      inscatterColor = combinedFog.rgb;
+      alpha = combinedFog.a;
+
+      ##if shader == daMoon
+        half4 result = getMoonTex(view.xzy);
+        half resultLum = luminance(result.rgb);
+        result.a *= saturate(1-pow8(1-resultLum));
+        result.rgb *= result.a*theAtmosphere.moon_color*4;
+
+        ##if clouds_alpha_panorama_tex != NULL
+          result.rgb *= alpha;
+          result.a *= alpha;
+        ##endif
+        clip(result.a-0.001);
+      ##else
+        float4 result = tex2D(stars_tex, input.texcoord);
+        ##if clouds_alpha_panorama_tex != NULL
+          result.a *= alpha;
+          clip(result.a-0.0001);
+        ##endif
+      ##endif
+
+      ##if shader == daStars
+        result.a *= pow4(saturate(1-STAR_RENDERING_INSCATTER_THRESHOLD_INV*inscatterColor.b));
+        result.rgb *= result.a;
+        result.rgb *= input.screencoord_color.w;
+        result *= saturate(10*input.screencoord_color.w)*saturate(loss.r*100);
+        result.rgb *= loss;
+        //result.rgb += inscatterColor;
+      ##else
+        result.a *= saturate(1-luminance(inscatterColor.rgb));//not really needed
+        clip(loss.r-0.001);
+        result.rgb *= loss;
+        result.rgb += inscatterColor.rgb*result.a;
+      ##endif
+
+
+      applySpecialVision(result);
+
+      result.rgb = pack_hdr(result.rgb).rgb;
+      return result;
+    }
+  }
+  compile("target_ps", "stars_ps");
+
+
+
+  (vs) { globtm@f44=globtm; }
+
+  if (shader == daStars && sky_space_mode == sky_space_on)
+  {
+    (vs) {
+      world_local_x@f3 = world_local_x;
+      world_local_y@f3 = world_local_y;
+      world_local_z@f3 = world_local_z;
+      from_sun_direction@f3 = from_sun_direction;
+    }
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      int2 pos: POSITION;
+      float2 color_size : TEXCOORD0;
+    };
+
+    //float3 radec_2_xyz( float ra, float dec, float lst, float sinLat, float cosLat)//ra, dec and lst are in radians!
+    //{
+    //  float h = ( lst - ra )*15*pi/180;
+    //  float declRad = dec*PI/180;
+    // 
+
+    float3 radec_2_xyz( float h, float declRad, float sinLat, float cosLat)//h (lst-ra) and decRad are in radians!
+    {
+      float sinDecl = sin(declRad), cosDecl = cos(declRad);
+      float sinALT = sinDecl*sinLat+cosDecl*cosLat*cos(h);
+
+      float cosA = (sinDecl - sinALT*sinLat) / (sqrt(1-sinALT*sinALT)*cosLat);
+
+      float sinA = sqrt(1-cosA*cosA);
+
+      if (sin(h)>0)
+        sinA = -sinA;
+
+      float cosAlt = sqrt(1-sinALT*sinALT);
+      return float3(sinA * cosAlt, sinALT, cosA * cosAlt);
+      //return float3(cosA * cosAlt, sinA * cosAlt, sinALT).yzx;
+    }
+
+    VsOutput stars_vs(VsInput input)
+    {
+      VsOutput output;
+      float2 sgn = sign(input.color_size);
+      output.texcoord = sgn*0.5+0.5;
+
+      ##if shader == daMoon
+      float3 pos = stars_moon_dir;
+      float2 size_brightness = 1;
+      size_brightness.x = stars_moon_size;
+      ##else
+      float2 rightAscension_declination = input.pos.xy*float2((-2*PI)/32767.0f, PI/32767.0f) + sincosLat_lst.zw;
+      float3 pos = radec_2_xyz( rightAscension_declination.x, rightAscension_declination.y, sincosLat_lst.x, sincosLat_lst.y);
+      float2 size_brightness = abs(input.color_size.xy);
+      size_brightness*=starIntensity.xy;
+      output.texcoord.x/=4;//4 frames!
+      ##endif
+      float3 dirU = normalize(cross(pos, float3(0.f, 1.f, 0.f)));
+      float3 dirV = cross(pos, dirU);
+      float size = size_brightness.x;
+      float3 center = pos;
+      pos += (sgn.x * size)*dirU + (sgn.y * size) * dirV;
+
+      //##if shader == daMoon
+      output.pointToEye = -normalize(pos);
+      //##else
+      //output.pointToEye = -center;//good enough for small stars
+      //##endif
+      output.pos = mul(float4(pos * 10000, 0), globtm);
+      output.pos.z = 0;
+      ##if sky_space_mode != sky_space_on
+      if (output.pointToEye.y>0.2 && skies_world_view_pos.y*0.001 < 60)
+        output.pos.z = -output.pos.w;
+      ##endif
+
+      ##if shader == daStars && sky_space_mode == sky_space_on
+      float3 worldDir = output.pointToEye.x * world_local_x + output.pointToEye.y * world_local_y + output.pointToEye.z * world_local_z;
+      size_brightness.y = 1 - pow2(saturate(dot(-worldDir, from_sun_direction)));
+      ##endif
+
+      output.screencoord_color.xyz = output.pos.xyw;
+      output.screencoord_color.w = size_brightness.y;
+      return output;
+    }
+  }
+  compile("target_vs", "stars_vs");
+}
+

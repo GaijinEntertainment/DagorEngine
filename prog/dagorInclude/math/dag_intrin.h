@@ -5,12 +5,8 @@
 //
 #pragma once
 
-#if defined(_MSC_VER) && !defined(__clang__)
+#if (defined(_MSC_VER) && !defined(__clang__)) || defined(__BMI__)
 #include <immintrin.h>
-#endif
-
-#if defined(__BMI__)
-#include <bmiintrin.h>
 #endif
 
 inline unsigned __ctz_unsafe(unsigned long long value)
@@ -64,90 +60,11 @@ inline unsigned __ctz_unsafe(unsigned long value)
 
 inline unsigned __ctz_unsafe(long value) { return __ctz_unsafe((unsigned long)value); }
 
-inline unsigned __ctz(unsigned long long value)
-{
-#if defined(__arm64__) || defined(__ARM_ARCH) // Apple silicon or ARMv7 and above
-  return __builtin_ctzll(value);              //  rbit  + clz
-#else
-#if _TARGET_64BIT
-#if defined(__clang__)
-  return __builtin_ia32_tzcnt_u64(value); // bsf or tzct if -mbmi
-#elif defined(__GNUC__)
-#ifdef __BMI__
-  return __builtin_ctzll(value);            // tzcnt
-#else
-  return value ? __builtin_ctzll(value) : 64; // bsf
-#endif
-#elif defined(_MSC_VER)
-#if defined(__AVX2__)
-  return _tzcnt_u64(value); // tzcnt
-#else
-  unsigned long r;
-  _BitScanForward64(&r, value); // bsf
-  return value ? r : 64;
-#endif
-#endif
-#endif
-#endif
-
-  if (value) //-V779
-  {
-    unsigned n = 1;
-    // clang-format off
-    if((value & 0xFFFFFFFF) == 0) { n += 32; value >>= 32; }
-    if((value & 0x0000FFFF) == 0) { n += 16; value >>= 16; }
-    if((value & 0x000000FF) == 0) { n +=  8; value >>=  8; }
-    if((value & 0x0000000F) == 0) { n +=  4; value >>=  4; }
-    if((value & 0x00000003) == 0) { n +=  2; value >>=  2; }
-    // clang-format on
-    return (n - ((unsigned)value & 1));
-  }
-
-  return 64;
-}
+inline unsigned __ctz(unsigned long long value) { return value ? __ctz_unsafe(value) : 64; }
 
 inline unsigned __ctz(long long value) { return __ctz((unsigned long long)value); }
 
-inline unsigned __ctz(unsigned int value)
-{
-#if defined(__arm64__) || defined(__ARM_ARCH) // Apple silicon or ARMv7 and above
-  return __builtin_ctz(value);                // rbit + clz
-#else
-#if _TARGET_64BIT
-#if defined(__clang__)
-  return __builtin_ia32_tzcnt_u32(value); // bsf or tzct if -mbmi
-#elif defined(__GNUC__)
-#ifdef __BMI__
-  return __builtin_ctz(value);              // tzcnt
-#else
-  return value ? __builtin_ctz(value) : 32;   // bsf
-#endif
-#elif defined(_MSC_VER)
-#if defined(__AVX2__)
-  return _tzcnt_u32(value); // tzcnt
-#else
-  unsigned long r;
-  _BitScanForward(&r, value); // bsf
-  return value ? r : 32;
-#endif
-#endif
-#endif
-#endif
-
-  if (value) //-V779
-  {
-    unsigned n = 1;
-    // clang-format off
-    if((value & 0x0000FFFF) == 0) { n += 16; value >>= 16; }
-    if((value & 0x000000FF) == 0) { n +=  8; value >>=  8; }
-    if((value & 0x0000000F) == 0) { n +=  4; value >>=  4; }
-    if((value & 0x00000003) == 0) { n +=  2; value >>=  2; }
-    // clang-format on
-    return (n - ((unsigned)value & 1));
-  }
-
-  return 32;
-}
+inline unsigned __ctz(unsigned int value) { return value ? __ctz_unsafe(value) : 32; }
 
 inline unsigned __ctz(int value) { return __ctz((unsigned int)value); }
 
@@ -171,10 +88,10 @@ inline unsigned __clz_unsafe(unsigned long long value)
 #ifdef __LZCNT__
   return __builtin_ia32_lzcnt_u64(value); // lzcnt
 #else
-  return __builtin_clzll(value);              // bsr
+  return __builtin_clzll(value); // bsr
 #endif
 #elif defined(__GNUC__)
-  return __builtin_clzll(value);            // bsr or lznct if -mabm
+  return __builtin_clzll(value); // bsr or lznct if -mabm
 #elif defined(_MSC_VER)
 #if defined(__AVX2__)
   return _lzcnt_u64(value); // lzcnt
@@ -211,7 +128,7 @@ inline unsigned __clz_unsafe(unsigned int value)
 #ifdef __LZCNT__
   return __builtin_ia32_lzcnt_u32(value); // lzcnt
 #else
-  return __builtin_clz(value);              // bsr
+  return __builtin_clz(value);   // bsr
 #endif
 #elif defined(__GNUC__)
   return __builtin_clz(value); // bsr or lznct if -mabm
@@ -250,100 +167,11 @@ inline unsigned __clz_unsafe(unsigned long value)
 
 inline unsigned __clz_unsafe(long value) { return __clz_unsafe((unsigned long)value); }
 
-inline unsigned __clz(unsigned long long value)
-{
-#if defined(__arm64__) || defined(__aarch64__) // Apple silicon or ARMv8
-  return __builtin_clzll(value);               // clz
-#else
-#if _TARGET_64BIT
-#if defined(__clang__)
-#ifdef __LZCNT__
-  return __builtin_ia32_lzcnt_u64(value); // lzcnt
-#else
-  return value ? __builtin_clzll(value) : 64; // bsr
-#endif
-#elif defined(__GNUC__)
-#ifdef __LZCNT__
-  return __builtin_clzll(value);            // lzcnt
-#else
-  return value ? __builtin_clzll(value) : 64; // bsr
-#endif
-#elif defined(_MSC_VER)
-#if defined(__AVX2__)
-  return _lzcnt_u64(value); // lzcnt
-#else
-  unsigned long r;
-  _BitScanForward64(&r, value); // bsr
-  return value ? r ^ 63 : 64;
-#endif
-#endif
-#endif
-#endif
-
-  if (value) //-V779
-  {
-    unsigned n = 0;
-    // clang-format off
-    if(value & (0xFFFFFFFF00000000ull)) { n += 32; value >>= 32; }
-    if(value & 0xFFFF0000)              { n += 16; value >>= 16; }
-    if(value & 0xFFFFFF00)              { n +=  8; value >>=  8; }
-    if(value & 0xFFFFFFF0)              { n +=  4; value >>=  4; }
-    if(value & 0xFFFFFFFC)              { n +=  2; value >>=  2; }
-    if(value & 0xFFFFFFFE)              { n +=  1;               }
-    // clang-format on
-
-    return n;
-  }
-
-  return 64;
-}
+inline unsigned __clz(unsigned long long value) { return value ? __clz_unsafe(value) : 64; }
 
 inline unsigned __clz(long long value) { return __clz((unsigned long long)value); }
 
-inline unsigned __clz(unsigned int value)
-{
-#if defined(__ARM_ARCH)
-  return __builtin_clz(value); // clz
-#else
-#if defined(__clang__)
-#ifdef __LZCNT__
-  return __builtin_ia32_lzcnt_u32(value); // lzcnt
-#else
-  return value ? __builtin_clz(value) : 32; // bsr
-#endif
-#elif defined(__GNUC__)
-#ifdef __LZCNT__
-  return __builtin_clz(value); // lzcnt
-#else
-  return value ? __builtin_clz(value) : 32; // bsr
-#endif
-#elif defined(_MSC_VER)
-#if defined(__AVX2__)
-  return _lzcnt_u32(value); // lzcnt
-#else
-  unsigned long r;
-  _BitScanForward(&r, value); // bsr
-  return value ? r ^ 31 : 32;
-#endif
-#endif
-#endif
-
-  if (value) //-V779
-  {
-    unsigned n = 0;
-    // clang-format off
-    if(value & 0xFFFF0000)              { n += 16; value >>= 16; }
-    if(value & 0xFFFFFF00)              { n +=  8; value >>=  8; }
-    if(value & 0xFFFFFFF0)              { n +=  4; value >>=  4; }
-    if(value & 0xFFFFFFFC)              { n +=  2; value >>=  2; }
-    if(value & 0xFFFFFFFE)              { n +=  1;               }
-    // clang-format on
-
-    return n;
-  }
-
-  return 32;
-}
+inline unsigned __clz(unsigned int value) { return value ? __clz_unsafe(value) : 32; }
 
 inline unsigned __clz(int value) { return __clz((unsigned int)value); }
 

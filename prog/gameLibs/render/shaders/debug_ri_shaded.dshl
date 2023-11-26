@@ -1,0 +1,130 @@
+include "shader_global.dshl"
+
+texture debug_triplanar_tex;
+int debug_triplanar_tex_size;
+int debug_ri_wireframe;
+int debug_ri_diff;
+int debug_ri_face_orientation;
+float4 debug_ri_wire_color;
+
+shader debug_ri_shaded
+{
+  cull_mode = none;
+  blend_src = sa; blend_dst = isa;
+
+  channel float3 pos = pos;
+
+  hlsl {
+    struct VsInput
+    {
+      float3 pos : POSITION;
+    };
+
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 worldPos : TEXCOORD1;
+    };
+  }
+
+  INIT_SKY_DIFFUSE_BASE(ps)
+  USE_SKY_DIFFUSE()
+  INIT_ZNZFAR()
+  USE_SCREENPOS_TO_TC()
+
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+    triplanar_tex@smp2d = debug_triplanar_tex;
+    tex_size@i1 = debug_triplanar_tex_size;
+    from_sun_direction@f3 = from_sun_direction;
+    wireframe@i1 = debug_ri_wireframe;
+    diff@i1 = debug_ri_diff;
+    face_orientation@i1 = debug_ri_face_orientation;
+    wire_color@f4 = debug_ri_wire_color;
+    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
+    local_view_z@f3 = local_view_z;
+  }
+
+  hlsl(ps) {
+    float read_depth(float2 tc)
+    {
+      return tex2Dlod(downsampled_far_depth_tex, float4(tc, 0, 0)).x;
+    }
+
+    half4 debug_shaded_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target
+    {
+      if (wireframe == 1)
+        return wire_color;
+
+      if (diff == 1)
+      {
+        float4 pos = GET_SCREEN_POS(input.pos);
+        float2 tc = screen_pos_to_tc(pos.xy);
+        float downsampledDepth = linearize_z(read_depth(tc), zn_zfar.zw);
+
+        float depth = linearize_z(input.pos.z, zn_zfar.zw);
+
+        float4 black = float4(0, 0, 0, 1);
+        float4 red = float4(1, 0, 0, 1);
+        float4 green = float4(0, 1, 0, 1);
+
+        float diff = downsampledDepth - depth;
+        diff = clamp(diff, -0.5, 0.5);
+
+        if (diff > 0)
+          return lerp(black, green, lerp(0, 0.5, diff));
+        else
+          return lerp(black, red, lerp(0, 0.5, abs(diff)));
+      }
+
+      input.worldPos /= tex_size;
+
+      float3 pointToEye = input.worldPos - world_view_pos;
+
+      float3 projX = tex2D(triplanar_tex, input.worldPos.zy).rgb;
+      float3 projY = tex2D(triplanar_tex, input.worldPos.xz).rgb;
+      float3 projZ = tex2D(triplanar_tex, input.worldPos.xy).rgb;
+      float3 normal = normalize(cross(normalize(ddy(pointToEye)), normalize(ddx(pointToEye))));
+      float3 triW = abs(normal);
+      triW = triW / (triW.x + triW.y + triW.z);
+      float3 triplanarColor = projX * triW.x + projY * triW.y + projZ * triW.z;
+
+      float ambientAmount = saturate(length(GetSkySHDiffuseSimple(normal)));
+
+      float3 diffuse = max(0, dot(from_sun_direction, normal));
+
+      if (face_orientation == 1)
+      {
+        diffuse = float3(0, 0, 1);
+        SET_IF_IS_BACK_FACE(diffuse, float3(1, 0, 0));
+      }
+
+      return float4((diffuse + 0.5 * ambientAmount) * triplanarColor, 1.0);
+    }
+  }
+  compile("target_ps", "debug_shaded_ps");
+
+  (vs) {
+    world_view_pos@f3 = world_view_pos;
+    globtm@f44 = globtm;
+    local_view_z@f3 = local_view_z;
+  }
+
+  hlsl(vs) {
+    float3 world_local_x_vs:register(c8);
+    float3 world_local_y_vs:register(c9);
+    float3 world_local_z_vs:register(c10);
+    float3 world_local_pos_vs:register(c11);
+
+    VsOutput debug_shaded_vs(VsInput input)
+    {
+      VsOutput output;
+      float3 vertex_pos = input.pos;
+      output.worldPos = float3(vertex_pos.x * world_local_x_vs + vertex_pos.y * world_local_y_vs + vertex_pos.z * world_local_z_vs + world_local_pos_vs);
+      output.pos = mulPointTm(output.worldPos, globtm);
+
+      return output;
+    }
+  }
+  compile("target_vs", "debug_shaded_vs");
+}

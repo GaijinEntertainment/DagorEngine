@@ -23,7 +23,7 @@ main_cl      = [settings, smooth_groups, exporter, object_properties, export_pan
 bl_info = {"name": "dag4blend",
            "description": "Tools for editing dag files",
            "author": "Gaijin Entertainment",
-           "version": (2, 1, 2),#2023.11.14
+           "version": (2, 1, 3),#2023.11.24
            "blender": (3, 5, 1),
            "location": "File > Export",
            "wiki_url": "",

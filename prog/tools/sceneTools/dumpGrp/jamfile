@@ -11,8 +11,7 @@ Target      = tools/dumpGrp ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 OutDir = $(Root)/tools/dagor3_cdk/util ;
-if $(Platform) = linux64 { OutDir = $(OutDir)-linux64 ; }
-if $(Platform) = macosx { OutDir = $(OutDir)-macosx ; }
+if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
 #CopyTo = $(Root)/$(Location) ;
 
 AddIncludes =
@@ -56,5 +55,6 @@ UseProgLibs =
 #  engine/phys/physCommon
 #  engine/phys/fastPhys
 ;
+if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

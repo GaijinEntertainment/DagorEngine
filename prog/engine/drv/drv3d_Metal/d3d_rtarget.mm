@@ -174,7 +174,17 @@ bool setRtState(TrackDriver3dRenderTarget &oldrt, TrackDriver3dRenderTarget &rt)
         drv3d_metal::Texture* ri = nullptr;
         for (uint32_t i = 0; i < 8; ++i)
           if (rt.color[i].tex)
+          {
+#if DAGOR_DBGLEVEL > 0
+            drv3d_metal::Texture *curRt = (drv3d_metal::Texture*)rt.color[i].tex;
+            if (ri && (ri->getWidth() != curRt->getWidth() ||
+                       ri->getHeight() != curRt->getHeight()))
+                G_ASSERT_FAIL("Bound RT dimensions don't match %s:%dx%d %s:%dx%d ",
+                              ri->getResName(), ri->getWidth(), ri->getHeight(),
+                              curRt->getResName(), curRt->getWidth(), curRt->getHeight());
+#endif
             ri = (drv3d_metal::Texture*)rt.color[i].tex;
+          }
 
         for (int i = 0; i < tmp_depth.size() && ri; i++)
         {

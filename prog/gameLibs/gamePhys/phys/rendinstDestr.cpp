@@ -884,11 +884,10 @@ void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
 
   // always read cell count
   uint16_t cellCount = 0;
-  bs.ReadCompressed(cellCount);
-
   if (!apply_reflection)
   {
     cachedDestr = bs;
+    bs.ReadCompressed(cellCount);
     for (int i = 0; i < cellCount; ++i)
     {
       uint16_t poolCount = 0;
@@ -908,6 +907,7 @@ void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
     }
     return;
   }
+  bs.ReadCompressed(cellCount);
 
   rendinst::getDestrCellData(0 /*primary layer*/, [&](const Tab<rendinst::DestroyedCellData> &destrCellData) {
     cellsNewDestrInfo.resize(cellCount);

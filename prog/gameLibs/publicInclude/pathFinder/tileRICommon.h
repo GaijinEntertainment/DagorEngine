@@ -171,6 +171,14 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
       processCollision(coll);
   }
 
+  template <typename FilterCallback>
+  void procFilteredCollision(FilterCallback filter)
+  {
+    for (const rendinst::CollisionInfo &coll : collCache)
+      if (filter(coll))
+        processCollision(coll);
+  }
+
   virtual void processCollision(const rendinst::CollisionInfo &coll_info) = 0;
 
   virtual void addCollisionCheck(const rendinst::CollisionInfo &coll_info) { pushCollision(coll_info); }

@@ -141,6 +141,7 @@ public:
   Image *getDummy2DImage() { return dummyImage2D; }
   const ResourceDummySet &getDummyResourceTable() const { return dummyResourceTable; }
 
+  bool checkImageViewFormat(FormatStore fmt, Image *img);
   VulkanImageViewHandle getImageView(Image *img, ImageViewState state);
 
   VulkanDevice &getVkDevice() { return device; };

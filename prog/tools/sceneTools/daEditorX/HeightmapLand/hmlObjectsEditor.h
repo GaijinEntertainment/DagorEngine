@@ -215,8 +215,8 @@ public:
     }
 
     CDialogWindow *dlg;
-    int wr[4];
     DataBlock panelState;
+    bool firstShow = true;
   };
   LayersDlg layersDlg;
 

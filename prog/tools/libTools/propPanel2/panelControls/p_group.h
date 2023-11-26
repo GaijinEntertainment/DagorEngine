@@ -45,8 +45,8 @@ protected:
   virtual void onControlAdd(PropertyControlBase *control);
   virtual int getNextControlY(bool new_line = true);
 
-  WGroup mRect;
   WMaxGroupButton mMaxButton;
+  WGroup mRect;
   bool mMinimized;
   unsigned mMaximizedSize;
   void *mUserData = nullptr;

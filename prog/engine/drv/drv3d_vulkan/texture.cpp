@@ -21,6 +21,7 @@
 #include <util/dag_string.h>
 #include <EASTL/memory.h>
 #include <EASTL/tuple.h>
+#include <EASTL/span.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <3d/ddsFormat.h>
 #include <generic/dag_tab.h>
@@ -42,83 +43,6 @@ using namespace drv3d_vulkan;
 
 namespace
 {
-
-uint32_t texfmt_to_d3dformat(/*D3DFORMAT*/ uint32_t fmt)
-{
-  switch (fmt)
-  {
-    case TEXFMT_DEFAULT: return drv3d_vulkan::D3DFMT_A8R8G8B8;
-    case TEXFMT_R8G8B8A8: return drv3d_vulkan::D3DFMT_A8B8G8R8;
-    case TEXFMT_A2B10G10R10: return drv3d_vulkan::D3DFMT_A2B10G10R10;
-    case TEXFMT_A16B16G16R16: return drv3d_vulkan::D3DFMT_A16B16G16R16;
-    case TEXFMT_A16B16G16R16F: return drv3d_vulkan::D3DFMT_A16B16G16R16F;
-    case TEXFMT_A32B32G32R32F: return drv3d_vulkan::D3DFMT_A32B32G32R32F;
-    case TEXFMT_G16R16: return drv3d_vulkan::D3DFMT_G16R16;
-    case TEXFMT_V16U16: return drv3d_vulkan::D3DFMT_V16U16;
-    case TEXFMT_L16: return drv3d_vulkan::D3DFMT_L16;
-    case TEXFMT_A8: return drv3d_vulkan::D3DFMT_A8;
-    case TEXFMT_R8: return drv3d_vulkan::D3DFMT_L8;
-    case TEXFMT_A8L8: return drv3d_vulkan::D3DFMT_A8L8;
-    case TEXFMT_G16R16F: return drv3d_vulkan::D3DFMT_G16R16F;
-    case TEXFMT_G32R32F: return drv3d_vulkan::D3DFMT_G32R32F;
-    case TEXFMT_R16F: return drv3d_vulkan::D3DFMT_R16F;
-    case TEXFMT_R32F: return drv3d_vulkan::D3DFMT_R32F;
-    case TEXFMT_DXT1: return drv3d_vulkan::D3DFMT_DXT1;
-    case TEXFMT_DXT3: return drv3d_vulkan::D3DFMT_DXT3;
-    case TEXFMT_DXT5: return drv3d_vulkan::D3DFMT_DXT5;
-    case TEXFMT_A4R4G4B4: return drv3d_vulkan::D3DFMT_A4R4G4B4; // dxgi 1.2
-    case TEXFMT_A1R5G5B5: return drv3d_vulkan::D3DFMT_A1R5G5B5;
-    case TEXFMT_R5G6B5: return drv3d_vulkan::D3DFMT_R5G6B5;
-    case TEXFMT_ATI1N: return _MAKE4C('ATI1');
-    case TEXFMT_ATI2N: return _MAKE4C('ATI2');
-  }
-  G_ASSERTF(0, "can't convert tex format: %d", fmt);
-  return drv3d_vulkan::D3DFMT_A8R8G8B8;
-}
-
-uint32_t auto_mip_levels_count(uint32_t w, uint32_t h, uint32_t mnsz)
-{
-  uint32_t lev = 1;
-  while (w > mnsz && h > mnsz)
-  {
-    lev++;
-    w >>= 1;
-    h >>= 1;
-  }
-  return lev;
-}
-
-eastl::tuple<int32_t, int> fixup_tex_params(int w, int h, int32_t flg, int levels)
-{
-  const bool rt = 0 == (TEXCF_RTARGET & flg);
-  auto fmt = TEXFMT_MASK & flg;
-
-  if (rt)
-  {
-    if (0 != (TEXCF_SRGBWRITE & flg))
-    {
-      if ((TEXFMT_A8R8G8B8 != fmt))
-      {
-        // TODO verify this requirement
-        if (0 != (TEXCF_SRGBREAD & flg))
-        {
-          debug("vulkan: Adding TEXCF_SRGBREAD to texture flags, because chosen format needs it");
-          flg |= TEXCF_SRGBREAD;
-        }
-      }
-    }
-  }
-
-  if (0 == levels)
-  {
-    levels = auto_mip_levels_count(w, h, rt ? 1 : 4);
-    debug("vulkan: Auto compute for texture mip levels yielded %d", levels);
-  }
-
-  // update format info if it had changed
-  return eastl::make_tuple((flg & ~TEXFMT_MASK) | fmt, levels);
-}
-
 bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint32_t levels, bool cube,
   BaseTex::ImageMem *initial_data, int array_size = 1, bool temp_alloc = false)
 {
@@ -210,12 +134,12 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
       {
         BaseTex::ImageMem &src = initial_data[desc.mips * i + j];
         VkBufferImageCopy &copy = copies[j];
-        copy = make_copy_info(desc.format, j, i, 1, {desc.size.width, desc.size.height, 1}, tex.stagingBuffer->dataOffset(offset));
+        copy = make_copy_info(desc.format, j, i, 1, {desc.size.width, desc.size.height, 1}, tex.stagingBuffer->bufOffsetLoc(offset));
 
-        memcpy(tex.stagingBuffer->dataPointer(offset), src.ptr, src.memSize);
+        memcpy(tex.stagingBuffer->ptrOffsetLoc(offset), src.ptr, src.memSize);
         offset += src.memSize;
       }
-      tex.stagingBuffer->markNonCoherentRange(flushStart, offset - flushStart, true);
+      tex.stagingBuffer->markNonCoherentRangeLoc(flushStart, offset - flushStart, true);
       device.getContext().copyBufferToImage(tex.stagingBuffer, tex.image, desc.mips, copies.data(), true);
     }
 
@@ -252,16 +176,16 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
     if (tempStage)
       tex.useStaging(desc.format, desc.size.width, desc.size.height, desc.size.depth, 1, 1, true);
 
-    uint32_t size = tex.stagingBuffer->dataSize();
-    memset(tex.stagingBuffer->dataPointer(0), 0, size);
-    tex.stagingBuffer->markNonCoherentRange(0, size, true);
+    uint32_t size = tex.stagingBuffer->getBlockSize();
+    memset(tex.stagingBuffer->ptrOffsetLoc(0), 0, size);
+    tex.stagingBuffer->markNonCoherentRangeLoc(0, size, true);
 
     carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
 
     for (uint32_t i = 0; i < desc.arrays; ++i)
     {
       for (uint32_t j = 0; j < desc.mips; ++j)
-        copies[j] = make_copy_info(desc.format, j, i, 1, {desc.size.width, desc.size.height, 1}, tex.stagingBuffer->dataOffset(0));
+        copies[j] = make_copy_info(desc.format, j, i, 1, {desc.size.width, desc.size.height, 1}, tex.stagingBuffer->bufOffsetLoc(0));
       device.getContext().copyBufferToImage(tex.stagingBuffer, tex.image, desc.mips, copies.data(), false);
     }
 
@@ -353,13 +277,13 @@ bool create_tex3d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
     {
       VkBufferImageCopy &copy = copies[j];
       copy =
-        make_copy_info(desc.format, j, 0, 1, {desc.size.width, desc.size.height, desc.size.depth}, stage->dataOffset(bufferOffset));
+        make_copy_info(desc.format, j, 0, 1, {desc.size.width, desc.size.height, desc.size.depth}, stage->bufOffsetLoc(bufferOffset));
 
       uint32_t imgSize = desc.format.calculateImageSize(copy.imageExtent.width, copy.imageExtent.height, copy.imageExtent.depth, 1);
-      memcpy(stage->dataPointer(bufferOffset), initial_data[j].ptr, imgSize);
+      memcpy(stage->ptrOffsetLoc(bufferOffset), initial_data[j].ptr, imgSize);
       bufferOffset += imgSize;
     }
-    stage->markNonCoherentRange(0, size, true);
+    stage->markNonCoherentRangeLoc(0, size, true);
     device.getContext().copyBufferToImage(stage, tex.image, levels, copies.data(), true);
     device.getContext().destroyBuffer(stage);
   }
@@ -388,12 +312,12 @@ bool create_tex3d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
     uint32_t size = desc.format.calculateImageSize(desc.size.width, desc.size.height, desc.size.depth, 1);
     auto stage = device.createBuffer(size, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::TEMP);
     stage->setStagingDebugName(tex.image);
-    memset(stage->dataPointer(0), 0, size);
-    stage->markNonCoherentRange(0, size, true);
+    memset(stage->ptrOffsetLoc(0), 0, size);
+    stage->markNonCoherentRangeLoc(0, size, true);
 
     carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
     for (uint32_t j = 0; j < levels; ++j)
-      copies[j] = make_copy_info(desc.format, j, 0, 1, {desc.size.width, desc.size.height, desc.size.depth}, stage->dataOffset(0));
+      copies[j] = make_copy_info(desc.format, j, 0, 1, {desc.size.width, desc.size.height, desc.size.depth}, stage->bufOffsetLoc(0));
 
     device.getContext().copyBufferToImage(stage, tex.image, levels, copies.data(), false);
     device.getContext().destroyBuffer(stage);
@@ -712,8 +636,6 @@ int BaseTex::generateMips()
   return 1;
 }
 
-static constexpr int TEX_COPIED = 1 << 30;
-
 void BaseTex::D3DTextures::useStaging(FormatStore fmt, int32_t w, int32_t h, int32_t d, int32_t levels, uint16_t arrays,
   bool temporary /*=false*/)
 {
@@ -909,7 +831,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
       for (uint32_t j = 0; j < mipLevels; ++j)
       {
         VkBufferImageCopy &copy = copies[j];
-        copy = make_copy_info(getFormat(), j, 0, layers, {width, height, 1}, tex.stagingBuffer->dataOffset(bufferOffset));
+        copy = make_copy_info(getFormat(), j, 0, layers, {width, height, 1}, tex.stagingBuffer->bufOffsetLoc(bufferOffset));
 
         bufferOffset +=
           getFormat().calculateImageSize(copy.imageExtent.width, copy.imageExtent.height, copy.imageExtent.depth, 1) * layers;
@@ -975,7 +897,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
       tex.useStaging(getFormat(), width, height, getDepthSlices(), mipLevels, getArrayCount(), stagingIsTemporary);
     }
 
-    lockMsr.ptr = tex.stagingBuffer->dataPointer(offset);
+    lockMsr.ptr = tex.stagingBuffer->ptrOffsetLoc(offset);
     lockMsr.rowPitch = getFormat().calculateRowPitch(max(width >> lev, 1));
     lockMsr.slicePitch = getFormat().calculateSlicePich(max(width >> lev, 1), max(height >> lev, 1));
 
@@ -1004,7 +926,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
       waitEvent.reset();
     }
 
-    tex.stagingBuffer->markNonCoherentRange(offset, lockMsr.slicePitch * getArrayCount(), false);
+    tex.stagingBuffer->markNonCoherentRangeLoc(offset, lockMsr.slicePitch * getArrayCount(), false);
     *p = lockMsr.ptr;
 
     stride = getFormat().calculateRowPitch(width >> lev);
@@ -1032,11 +954,11 @@ int BaseTex::unlockimg()
       for (uint32_t j = 0; j < mipLevels; ++j)
       {
         VkBufferImageCopy &copy = copies[j];
-        copy = make_copy_info(getFormat(), j, 0, 1, {width, height, depth}, tex.stagingBuffer->dataOffset(bufferOffset));
+        copy = make_copy_info(getFormat(), j, 0, 1, {width, height, depth}, tex.stagingBuffer->bufOffsetLoc(bufferOffset));
 
         bufferOffset += getFormat().calculateImageSize(copy.imageExtent.width, copy.imageExtent.height, copy.imageExtent.depth, 1);
       }
-      tex.stagingBuffer->markNonCoherentRange(0, bufferOffset, true);
+      tex.stagingBuffer->markNonCoherentRangeLoc(0, bufferOffset, true);
       get_device().getContext().copyBufferToImage(tex.stagingBuffer, tex.image, mipLevels, copies.data(), false);
       return 1;
     }
@@ -1070,15 +992,17 @@ int BaseTex::unlockimg()
       if (lockFlags & TEXLOCK_DISCARD)
       {
         VkBufferImageCopy copy =
-          make_copy_info(getFormat(), lockedLevel, 0, 1, {width, height, depth}, tex.stagingBuffer->dataOffset(0));
+          make_copy_info(getFormat(), lockedLevel, 0, 1, {width, height, depth}, tex.stagingBuffer->bufOffsetLoc(0));
 
         uint32_t dirtySize =
           getFormat().calculateImageSize(copy.imageExtent.width, copy.imageExtent.height, copy.imageExtent.depth, 1);
-        tex.stagingBuffer->markNonCoherentRange(0, dirtySize, true);
+        tex.stagingBuffer->markNonCoherentRangeLoc(0, dirtySize, true);
         get_device().getContext().copyBufferToImageOrdered(tex.stagingBuffer, tex.image, 1, &copy);
         tex.destroyStaging();
       }
-      else if ((lockFlags & (TEXLOCK_RWMASK | TEXLOCK_UPDATEFROMSYSTEX)) != 0 && !(lockFlags & TEXLOCK_DONOTUPDATEON9EXBYDEFAULT))
+      else if ((lockFlags & TEXLOCK_DONOTUPDATEON9EXBYDEFAULT) != 0)
+        unlockImageUploadSkipped = true;
+      else if ((lockFlags & (TEXLOCK_RWMASK | TEXLOCK_UPDATEFROMSYSTEX)) != 0)
       {
         carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
         VkDeviceSize bufferOffset = 0;
@@ -1086,17 +1010,26 @@ int BaseTex::unlockimg()
         for (uint32_t j = 0; j < mipLevels; ++j)
         {
           VkBufferImageCopy &copy = copies[j];
-          copy = make_copy_info(getFormat(), j, 0, 1, {width, height, depth}, tex.stagingBuffer->dataOffset(bufferOffset));
+          copy = make_copy_info(getFormat(), j, 0, 1, {width, height, depth}, tex.stagingBuffer->bufOffsetLoc(bufferOffset));
 
           bufferOffset += getFormat().calculateImageSize(copy.imageExtent.width, copy.imageExtent.height, copy.imageExtent.depth, 1);
         }
-        tex.stagingBuffer->markNonCoherentRange(0, bufferOffset, true);
-        get_device().getContext().copyBufferToImage(tex.stagingBuffer, tex.image, mipLevels, copies.data(), false);
+        tex.stagingBuffer->markNonCoherentRangeLoc(0, bufferOffset, true);
+        // Sometimes we use TEXLOCK_DONOTUPDATEON9EXBYDEFAULT flag and don't copy locked subresource on unlock.
+        // Copy all mips is required after that action.
+        const eastl::span<VkBufferImageCopy> fullResource{copies.data(), mipLevels};
+        const eastl::span<VkBufferImageCopy> oneSubresource{&copies[lockedLevel], 1};
+        const auto uploadRegions = unlockImageUploadSkipped ? fullResource : oneSubresource;
+        get_device().getContext().copyBufferToImage(tex.stagingBuffer, tex.image, uploadRegions.size(), uploadRegions.data(), false);
+        unlockImageUploadSkipped = false;
       }
     }
 
     if ((lockFlags & TEXLOCK_DELSYSMEMCOPY) && !(cflg & TEXCF_DYNAMIC))
+    {
+      G_ASSERT(!unlockImageUploadSkipped);
       tex.destroyStaging();
+    }
 
     lockFlags = 0;
     return 1;
@@ -1109,9 +1042,9 @@ int BaseTex::unlockimg()
       if (lockFlags & TEXLOCK_WRITE)
       {
         VkBufferImageCopy copy =
-          make_copy_info(getFormat(), lockedLevel, lockedLayer, 1, {width, height, 1}, tex.stagingBuffer->dataOffset(0));
+          make_copy_info(getFormat(), lockedLevel, lockedLayer, 1, {width, height, 1}, tex.stagingBuffer->bufOffsetLoc(0));
 
-        tex.stagingBuffer->markNonCoherentRange(0, tex.stagingBuffer->dataSize(), true);
+        tex.stagingBuffer->markNonCoherentRangeLoc(0, tex.stagingBuffer->getBlockSize(), true);
         context.copyBufferToImage(tex.stagingBuffer, tex.image, 1, &copy, false);
       }
       tex.destroyStaging();
@@ -1152,7 +1085,7 @@ int BaseTex::lockimg(void **p, int &stride, int face, int lev, unsigned flags)
       tex.useStaging(format, levelWidth, levelHeight, 1, 1, 1, true);
       if (flags & TEXLOCK_READ)
       {
-        VkBufferImageCopy copy = make_copy_info(format, lev, face, 1, {width, height, 1}, tex.stagingBuffer->dataOffset(0));
+        VkBufferImageCopy copy = make_copy_info(format, lev, face, 1, {width, height, 1}, tex.stagingBuffer->bufOffsetLoc(0));
 
         if (p)
         {
@@ -1174,8 +1107,8 @@ int BaseTex::lockimg(void **p, int &stride, int face, int lev, unsigned flags)
           context.wait();
 
         waitEvent.reset();
-        tex.stagingBuffer->markNonCoherentRange(0, tex.stagingBuffer->dataSize(), false);
-        *p = tex.stagingBuffer->dataPointer(0);
+        tex.stagingBuffer->markNonCoherentRangeLoc(0, tex.stagingBuffer->getBlockSize(), false);
+        *p = tex.stagingBuffer->ptrOffsetLoc(0);
         stride = format.calculateRowPitch(levelWidth);
       }
     }
@@ -1211,16 +1144,16 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
 
     // only get a buffer large enough to hold the locked level
     tex.useStaging(format, levelWidth, levelHeight, levelDepth, 1, 1, true);
-    *data = tex.stagingBuffer->dataPointer(0);
+    *data = tex.stagingBuffer->ptrOffsetLoc(0);
 
     if (flags & TEXLOCK_READ)
     {
-      VkBufferImageCopy copy = make_copy_info(format, level, 0, 1, {width, height, depth}, tex.stagingBuffer->dataOffset(0));
+      VkBufferImageCopy copy = make_copy_info(format, level, 0, 1, {width, height, depth}, tex.stagingBuffer->bufOffsetLoc(0));
 
       context.copyImageToBuffer(tex.image, tex.stagingBuffer, 1, &copy, nullptr);
       blockingReadbackWait();
 
-      tex.stagingBuffer->markNonCoherentRange(0, tex.stagingBuffer->dataSize(), false);
+      tex.stagingBuffer->markNonCoherentRangeLoc(0, tex.stagingBuffer->getBlockSize(), false);
     }
     row_pitch = format.calculateRowPitch(levelWidth);
     slice_pitch = format.calculateSlicePich(levelWidth, levelHeight);
@@ -1281,9 +1214,9 @@ int BaseTex::unlockbox()
     if (lockFlags & TEXLOCK_WRITE)
     {
       VkBufferImageCopy copy =
-        make_copy_info(getFormat(), lockedLevel, 0, 1, {width, height, depth}, tex.stagingBuffer->dataOffset(0));
+        make_copy_info(getFormat(), lockedLevel, 0, 1, {width, height, depth}, tex.stagingBuffer->bufOffsetLoc(0));
 
-      tex.stagingBuffer->markNonCoherentRange(0, tex.stagingBuffer->dataSize(), true);
+      tex.stagingBuffer->markNonCoherentRangeLoc(0, tex.stagingBuffer->getBlockSize(), true);
       context.copyBufferToImage(tex.stagingBuffer, tex.image, 1, &copy, false);
     }
 
@@ -1313,7 +1246,7 @@ Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, con
   w = clamp<int>(w, dd.mintexw, dd.maxtexw);
   h = clamp<int>(h, dd.mintexh, dd.maxtexh);
 
-  eastl::tie(flg, levels) = fixup_tex_params(w, h, flg, levels);
+  eastl::tie(flg, levels) = add_srgb_read_flag_and_count_mips(w, h, flg, levels);
 
   if (img)
   {
@@ -1422,7 +1355,7 @@ CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat
   const Driver3dDesc &dd = d3d::get_driver_desc();
   size = get_bigger_pow2(clamp<int>(size, dd.mincubesize, dd.maxcubesize));
 
-  eastl::tie(flg, levels) = fixup_tex_params(size, size, flg, levels);
+  eastl::tie(flg, levels) = add_srgb_read_flag_and_count_mips(size, size, flg, levels);
 
   auto tex = allocate_texture(RES3D_CUBETEX, flg);
   tex->setParams(size, size, 1, levels, stat_name);
@@ -1443,7 +1376,7 @@ VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const c
     return nullptr;
   }
 
-  eastl::tie(flg, levels) = fixup_tex_params(w, h, flg, levels);
+  eastl::tie(flg, levels) = add_srgb_read_flag_and_count_mips(w, h, flg, levels);
 
   auto tex = allocate_texture(RES3D_VOLTEX, flg);
   tex->setParams(w, h, d, levels, stat_name);
@@ -1485,7 +1418,7 @@ VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const c
 
 ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name)
 {
-  eastl::tie(flg, levels) = fixup_tex_params(w, h, flg, levels);
+  eastl::tie(flg, levels) = add_srgb_read_flag_and_count_mips(w, h, flg, levels);
 
   auto tex = allocate_texture(RES3D_ARRTEX, flg);
   tex->setParams(w, h, d, levels, stat_name);
@@ -1500,7 +1433,7 @@ ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, co
 
 ArrayTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name)
 {
-  eastl::tie(flg, levels) = fixup_tex_params(side, side, flg, levels);
+  eastl::tie(flg, levels) = add_srgb_read_flag_and_count_mips(side, side, flg, levels);
 
   auto tex = allocate_texture(RES3D_ARRTEX, flg);
   tex->setParams(side, side, d, levels, stat_name);

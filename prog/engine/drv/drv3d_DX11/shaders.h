@@ -36,7 +36,7 @@ struct ConstantBuffers
   {
     MIN_PS_CONSTS = 16,
     PS_CONSTS_STEP = 32,
-    PS_BINS = 4
+    PS_BINS = 5 // The largest bin must fit MAX_PS_CONSTS
   };
   int psCurrentBuffer;
   carray<ID3D11Buffer *, PS_BINS> psConstBuffer;

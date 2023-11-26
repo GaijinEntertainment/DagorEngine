@@ -8,6 +8,7 @@
 #include <util/dag_globDef.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
+#include <math/dag_lsbVisitor.h>
 
 class BaseTexture;
 struct Driver3dRenderTarget;
@@ -159,9 +160,8 @@ public:
     if ((l.used & Driver3dRenderTarget::DEPTH) && l.depth != r.depth)
       return false;
 
-    for (uint32_t mask = l.used & Driver3dRenderTarget::COLOR_MASK, i = 0; mask && i < Driver3dRenderTarget::MAX_SIMRT;
-         ++i, mask >>= 1)
-      if ((mask & 1) && (l.color[i] != r.color[i]))
+    for (auto i : LsbVisitor{l.used & Driver3dRenderTarget::COLOR_MASK})
+      if (l.color[i] != r.color[i])
         return false;
 
     return true;

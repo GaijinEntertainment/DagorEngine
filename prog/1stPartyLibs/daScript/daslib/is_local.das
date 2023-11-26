@@ -28,7 +28,7 @@ def is_shared_expr ( expr:ExpressionPtr )
         return false
     elif expr is ExprAt
         let ea = expr as ExprAt
-        if ea.subexpr._type!=null && ea.subexpr._type.dim |> length!=0
+        if ea.subexpr._type!=null && (ea.subexpr._type.baseType==Type tArray || ea.subexpr._type.isArray)
             return is_shared_expr(ea.subexpr)
     elif expr is ExprField
         let ef = expr as ExprField

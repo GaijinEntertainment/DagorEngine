@@ -2,7 +2,7 @@
 
 #include "util/dag_baseDef.h"
 
-extern const int VER_OBJ_DXC_VAL = _MAKE4C('11.1');
+extern const int VER_OBJ_DXC_VAL = _MAKE4C('11.2');
 
 #if _CROSS_TARGET_DX12
 #include <dxil/compiled_shader_header.h>

@@ -630,8 +630,8 @@ void DeviceContext::endSurvey(uint32_t name)
 void DeviceContext::uploadBuffer(Buffer *src, Buffer *dst, uint32_t src_offset, uint32_t dst_offset, uint32_t size)
 {
   VkBufferCopy copy;
-  copy.srcOffset = src->dataOffset(src_offset);
-  copy.dstOffset = dst->dataOffset(dst_offset);
+  copy.srcOffset = src->bufOffsetLoc(src_offset);
+  copy.dstOffset = dst->bufOffsetLoc(dst_offset);
   copy.size = size;
   BufferCopyInfo info;
   info.src = src;
@@ -646,8 +646,8 @@ void DeviceContext::uploadBuffer(Buffer *src, Buffer *dst, uint32_t src_offset, 
 void DeviceContext::uploadBufferOrdered(Buffer *src, Buffer *dst, uint32_t src_offset, uint32_t dst_offset, uint32_t size)
 {
   VkBufferCopy copy;
-  copy.srcOffset = src->dataOffset(src_offset);
-  copy.dstOffset = dst->dataOffset(dst_offset);
+  copy.srcOffset = src->bufOffsetLoc(src_offset);
+  copy.dstOffset = dst->bufOffsetLoc(dst_offset);
   copy.size = size;
   BufferCopyInfo info;
   info.src = src;
@@ -662,8 +662,8 @@ void DeviceContext::uploadBufferOrdered(Buffer *src, Buffer *dst, uint32_t src_o
 void DeviceContext::downloadBuffer(Buffer *src, Buffer *dst, uint32_t src_offset, uint32_t dst_offset, uint32_t size)
 {
   VkBufferCopy copy;
-  copy.srcOffset = src->dataOffset(src_offset);
-  copy.dstOffset = dst->dataOffset(dst_offset);
+  copy.srcOffset = src->bufOffsetLoc(src_offset);
+  copy.dstOffset = dst->bufOffsetLoc(dst_offset);
   copy.size = size;
   BufferCopyInfo info;
   info.src = src;
@@ -695,7 +695,7 @@ Buffer *DeviceContext::discardBuffer(Buffer *to_discared, DeviceMemoryClass memo
   if (!to_discared->onDiscard(front.frameIndex))
   {
     uint32_t discardCount = to_discared->getMaxDiscardLimit() + FRAME_FRAME_BACKLOG_LENGTH + MAX_PENDING_WORK_ITEMS;
-    ret = device.createBuffer(to_discared->dataSize(), memory_class, discardCount, BufferMemoryFlags::NONE);
+    ret = device.createBuffer(to_discared->getBlockSize(), memory_class, discardCount, BufferMemoryFlags::NONE);
 
     if (to_discared->hasView())
       device.addBufferView(ret, view_format);
@@ -884,7 +884,7 @@ void DeviceContext::flushBufferToHost(Buffer *buffer, ValueRange<uint32_t> range
 {
   BufferFlushInfo info;
   info.buffer = buffer;
-  info.offset = buffer->dataOffset(range.front());
+  info.offset = buffer->bufOffsetLoc(range.front());
   info.range = range.size();
   VULKAN_LOCK_FRONT();
   front.replayRecord->bufferToHostFlushes.push_back(info);
@@ -1024,17 +1024,17 @@ RaytraceBLASBufferRefs getRaytraceGeometryRefs(const RaytraceGeometryDescription
         auto devIbuf = ((GenericBufferInterface *)desc.data.triangles.indexBuffer)->getDeviceBuffer();
         uint32_t indexSize =
           ((GenericBufferInterface *)desc.data.triangles.indexBuffer)->getIndexType() == VkIndexType::VK_INDEX_TYPE_UINT32 ? 4 : 2;
-        return {devVbuf, (uint32_t)devVbuf->dataOffset(vofs), (uint32_t)devVbuf->dataSize() - vofs, devIbuf,
-          (uint32_t)devIbuf->dataOffset(desc.data.triangles.indexOffset * indexSize), desc.data.triangles.indexCount * indexSize};
+        return {devVbuf, (uint32_t)devVbuf->bufOffsetLoc(vofs), (uint32_t)devVbuf->getBlockSize() - vofs, devIbuf,
+          (uint32_t)devIbuf->bufOffsetLoc(desc.data.triangles.indexOffset * indexSize), desc.data.triangles.indexCount * indexSize};
       }
       else
-        return {devVbuf, (uint32_t)devVbuf->dataOffset(vofs), (uint32_t)devVbuf->dataSize() - vofs, nullptr, 0, 0};
+        return {devVbuf, (uint32_t)devVbuf->bufOffsetLoc(vofs), (uint32_t)devVbuf->getBlockSize() - vofs, nullptr, 0, 0};
     }
     case RaytraceGeometryDescription::Type::AABBS:
     {
       auto devBuf = ((GenericBufferInterface *)desc.data.aabbs.buffer)->getDeviceBuffer();
       return {
-        devBuf, (uint32_t)devBuf->dataOffset(desc.data.aabbs.offset), desc.data.aabbs.stride * desc.data.aabbs.count, nullptr, 0, 0};
+        devBuf, (uint32_t)devBuf->bufOffsetLoc(desc.data.aabbs.offset), desc.data.aabbs.stride * desc.data.aabbs.count, nullptr, 0, 0};
     }
     default: G_ASSERTF(0, "vulkan: unknown geometry type %u in RaytraceGeometryDescription", (uint32_t)desc.type);
   }
@@ -1241,7 +1241,7 @@ void DeviceContext::copyRaytraceShaderGroupHandlesToMemory(ProgramID prog, uint3
 
   if (buffer->hasMappedMemory())
   {
-    cmd.ptr = buffer->dataPointer(offset);
+    cmd.ptr = buffer->ptrOffsetLoc(offset);
     VULKAN_DISPATCH_COMMAND(cmd);
   }
   else

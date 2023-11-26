@@ -446,22 +446,34 @@ static bool system_init(const DataBlock &blk, bool null_output)
 }
 
 #if DAGOR_DBGLEVEL > 0
-static FMOD_RESULT F_CALLBACK fmod_debug_cb(FMOD_DEBUG_FLAGS flags, const char *file, int line, const char *func, const char *message)
+static bool treat_fmod_errors_as_warnings = false;
+static int get_loglevel(FMOD_DEBUG_FLAGS flags, const char *message)
 {
-  G_UNUSED(file);
-  G_UNUSED(line);
-
-  int ll = LOGLEVEL_DEBUG;
   if (flags & FMOD_DEBUG_LEVEL_ERROR)
   {
+    if (treat_fmod_errors_as_warnings)
+      return LOGLEVEL_WARN;
+
     if (strstr(message, "assertion: 'inchannels <= mMixMatrixCurrent.numin()' failed"))
-      ll = LOGLEVEL_DEBUG; // workaround: suppress FMOD assert
-                           // https://qa.fmod.com/t/assertion-inchannels-mmixmatrixcurrent-numin/14511/2
-    else
-      ll = LOGLEVEL_ERR;
+      return LOGLEVEL_WARN; // workaround: suppress FMOD assert to disable logerr reporting
+                            // qa.fmod.com/t/assertion-inchannels-mmixmatrixcurrent-numin/14511/2
+
+    if (strstr(message, "returned 0x88890004")) // suppress FMOD assert (0x88890004 = AUDCLNT_E_DEVICE_INVALIDATED)
+      return LOGLEVEL_WARN;                     // youtrack.gaijin.team/issue/12-135114 youtrack.gaijin.team/issue/38-45149
+
+    return LOGLEVEL_ERR;
   }
-  else if (flags & FMOD_DEBUG_LEVEL_WARNING)
-    ll = LOGLEVEL_WARN;
+
+  if (flags & FMOD_DEBUG_LEVEL_WARNING)
+    return LOGLEVEL_WARN;
+
+  return LOGLEVEL_DEBUG;
+}
+
+static FMOD_RESULT F_CALLBACK fmod_debug_cb(FMOD_DEBUG_FLAGS flags, const char * /*file*/, int /*line*/, const char *func,
+  const char *message)
+{
+  const int ll = get_loglevel(flags, message);
 
   logmessage(ll, "[FMOD] %s: %.*s", func, /*cut `\n' off */ strlen(message) - 1, message);
 
@@ -491,6 +503,7 @@ bool init(const DataBlock &blk)
   settings_init(blk);
 
 #if DAGOR_DBGLEVEL > 0
+  treat_fmod_errors_as_warnings = blk.getBool("fmodErrorsAsWarnings", false);
   const char *fmodLoglevel = blk.getStr("fmodLoglevel", "errors");
   FMOD_DEBUG_FLAGS debugFlags = FMOD_DEBUG_LEVEL_NONE;
   if (strcmp(fmodLoglevel, "errors") == 0)

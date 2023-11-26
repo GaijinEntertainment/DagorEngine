@@ -111,18 +111,28 @@ void CPanelWindow::onWcResize(WindowBase *source)
 {
   int oldmH = mH;
   int oldmW = mW;
+  bool vScrollChanged = false;
 
   mH = mPanelWindow->getHeight();
   mW = mPanelWindow->getWidth();
 
   if (oldmH != mH)
   {
+    const bool hadVScroll = mPanelWindow->hasVScroll();
     this->scrollCheck();
+    vScrollChanged = mPanelWindow->hasVScroll() != hadVScroll;
   }
 
   if ((source == mPanelWindow) && ((oldmW != mW)))
   {
     this->setWidth(_pxActual(mW));
+  }
+  else if (source == mPanelWindow && vScrollChanged)
+  {
+    // These two calls correspond to CPanelWindow::setWidth without mPanelWindow->resizeWindow.
+    // The latter does not need to be called because the window's width has not changed.
+    this->resizeControl(mW, this->getNextControlY());
+    PropertyContainerVert::setWidth(_pxActual(mW));
   }
 
   __super::onWcResize(source);

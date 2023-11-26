@@ -1,0 +1,31 @@
+include "shader_global.dshl"
+include "depth_above.dshl"
+include "postfx_inc.dshl"
+
+float4 depth_above_copy_region;
+int depth_above_copy_layer = 0;
+
+shader depth_above_copy_regions
+{
+  supports global_frame;
+  z_test=true;
+  z_write=true;
+  cull_mode=none;
+  no_ablend;
+
+  (ps) {
+    depth_above@smpArray = depth_around;
+    copy_layer@i1 = depth_above_copy_layer;
+  }
+
+  POSTFX_VS(0)
+  ENABLE_ASSERT(ps)
+
+  hlsl(ps) {
+    float main_ps(VsOutput input) : SV_Depth
+    {
+      return texelFetch(depth_above, int3(input.pos.xy, copy_layer), 0).x;
+    }
+  }
+  compile("target_ps", "main_ps");
+}

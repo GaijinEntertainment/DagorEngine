@@ -45,6 +45,7 @@ public:
   virtual void hide();
   virtual void setEnabled(bool enabled);
 
+  void setRedraw(bool redraw);
   void refresh(bool all = false);
   void resizeWindow(unsigned w, unsigned h);
   void moveWindow(int x, int y);
@@ -135,3 +136,13 @@ private:
   static TFontHandle mFNH, mFBH, mFSPH, mFCH, mFSBH, mFSPlH;
   void *mRootWindowHandle;
 };
+
+// update panel if you want avoid flickering by pass lambda with removeById and createSomethingControl methods
+template <typename Func>
+static void flicker_free_change_panel(WindowBase *wnd, Func update_panel)
+{
+  wnd->setRedraw(false);
+  update_panel();
+  wnd->setRedraw(true);
+  wnd->refresh();
+}

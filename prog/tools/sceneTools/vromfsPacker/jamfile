@@ -37,8 +37,6 @@ if $(Platform) in win32 win64 {
   AddLibs += advapi32.lib ;
 } if $(Platform) in linux64 {
   AddLibs = -ldl ;
-} else if $(Platform) in macosx {
-  GlobalCPPopt = -Wno-deprecated-declarations ;
 }
 if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 

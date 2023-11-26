@@ -339,7 +339,7 @@ void AcesScene::loadLevel(const char *bindump)
   clipmap = new Clipmap;
 
   clipmap->init(texelSize, Clipmap::CPU_HW_FEEDBACK);
-  clipmap->initVirtualTexture(4096, 8192);
+  clipmap->initVirtualTexture(4096, 8192, float(2 * 1920 * 1080));
 
   carray<uint32_t, 4> bufFormats;
   int bufCnt = min<int>(bufFormats.size(), clipmapBlk.getInt("bufferCnt", 0));
@@ -927,7 +927,7 @@ void AcesScene::renderClipmaps()
 
   int w, h;
   d3d::get_target_size(w, h);
-  clipmap->setTargetSize(w, h);
+  clipmap->setTargetSize(w, h, 0.f);
 
   TMatrix4 clipmapFrustum;
   d3d::getglobtm(clipmapFrustum);

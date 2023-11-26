@@ -80,7 +80,7 @@ public:
 };
 
 
-class DagFileAccess final : public das::ModuleFileAccess
+class DagFileAccess : public das::ModuleFileAccess
 {
   das::das_map<das::string, das::string> extraRoots;
   das::FileAccess *localAccess;
@@ -160,15 +160,12 @@ public:
       auto res = owner->getFileInfo(fname);
       if (storeOpenedFiles && res)
       {
-        bool found = false;
-        for (auto &f : owner->filesOpened)
-          if (f.first == fname)
-          {
-            filesOpened.emplace(fname, f.second);
-            found = true;
-            break;
-          }
-        if (EASTL_UNLIKELY(!found))
+        auto it = owner->filesOpened.find_as(fname);
+        if (EASTL_LIKELY(it != owner->filesOpened.end()))
+        {
+          filesOpened.emplace(fname, it->second);
+        }
+        else
         {
           filesOpened.emplace(fname, getFileMtime(fname));
         }

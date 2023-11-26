@@ -131,6 +131,9 @@ private:
   bool swappyInitialized = false;
 #endif
 
+  // saved global configuration
+  bool reuseHandle = true;
+
   Image *offscreenBuffer = nullptr;
   Image *depthStencilImage = nullptr;
   Image *lastRenderedImage = nullptr;

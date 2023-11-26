@@ -1,0 +1,213 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+include "taa_inc.dshl"
+
+texture accumulation_tex;
+
+texture blur_depth_tex;
+texture blur_motion_vector_tex;
+texture blur_source_tex;
+
+float velocity_mul = 0.1;     // const / dt.
+float max_velocity = 0.1;
+float alpha_mul_on_apply = 4;
+float4 overscan_texcoord = (0.5, -0.5, 0.50001, 0.50001);
+float forward_blur = 0;
+float4 pixel_step = (0,0,0,0);
+float4 accumulation_size;
+
+float4x4 prev_globtm;
+
+//passing in depth_gbuf as linear depth results in a really weird looking effect that may be needed in AM
+int motion_blur_depth_type = 0;
+interval motion_blur_depth_type : raw < 1, linear;
+
+hlsl {
+#define ACCUM_COLOR_MUL 1
+#define ACCUM_ALPHA_MUL 1
+}
+
+
+shader accumulate_motion_blur, accumulate_motion_blur_mv
+{
+  supports global_frame;
+
+  cull_mode  = none;
+  z_test = false;
+  z_write = false;
+  blend_src = one; blend_dst = one;
+  blend_asrc = one; blend_adst = one;
+
+  (vs)
+  {
+    velocity_mul__max_velocity__forward_blur@f3 = (velocity_mul, max_velocity, forward_blur, 0);
+    blur_source_tex@smp2d = blur_source_tex;
+    accumulation_size@f4 = (accumulation_size.xy, 1.0 / accumulation_size.xy);
+  }
+  if (shader == accumulate_motion_blur)
+  {
+    USE_AND_INIT_VIEW_VEC_VS()
+    (vs)
+    {
+      prev_globtm@f44 = prev_globtm;
+      globtm@f44 = globtm;
+      blur_depth_tex@smp2d = blur_depth_tex;
+    }
+    if (motion_blur_depth_type == raw)
+    {
+      INIT_ZNZFAR_STAGE(vs)
+    }
+  }
+  else
+  {
+    (vs)
+    {
+      blur_motion_vector_tex@smp2d = blur_motion_vector_tex;
+    }
+    INIT_MOTION_VEC_DECODE(vs)
+    USE_MOTION_VEC_DECODE(vs)
+  }
+
+  hlsl
+  {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 color_power : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs)
+  {
+    static const float4 pos_to_tex = float4(0.5, -0.5, 0.5, 0.5);
+
+    VsOutput accumulate_motion_blur_vs(uint vertexId : SV_VertexID)
+    {
+      float3 pos;
+      pos.z = vertexId % 2;
+      uint lineNo = vertexId / 2;
+      pos.x = 2.0 * (lineNo % uint(accumulation_size.x)) * accumulation_size.z - 1.f;
+      pos.y = 1.f - 2.f * float(lineNo / uint(accumulation_size.x)) * accumulation_size.w;
+
+      float2 start = pos.xy;
+      float4 texcoord = float4(pos.xy * pos_to_tex.xy + pos_to_tex.zw, 0.0, 0.0);
+
+      // Get velocity.
+      ##if shader == accumulate_motion_blur
+        // Get start pos.
+        float3 viewVect = lerp(lerp(view_vecLT, view_vecRT, texcoord.x),
+                                lerp(view_vecLB, view_vecRB, texcoord.x), texcoord.y);
+        ##if motion_blur_depth_type == raw
+          float rawDepth = tex2Dlod(blur_depth_tex, texcoord).x;
+          float depth = linearize_z(rawDepth, zn_zfar.zw);
+        ##else
+          float depth = tex2Dlod(blur_depth_tex, texcoord).x;
+        ##endif
+        float4 worldPos = float4(viewVect*depth+world_view_pos, 1);
+
+        float4 H = mul(worldPos, globtm);
+        float4 prevScreenPos = mul(worldPos, prev_globtm);
+        const float delta = 0.001;
+
+        prevScreenPos = prevScreenPos.w < delta ? lerp(H, prevScreenPos, (H.w - delta) / (H.w - prevScreenPos.w)) : prevScreenPos;
+
+        prevScreenPos /= prevScreenPos.w;
+        float2 velocity = start - prevScreenPos.xy;
+      ##else
+        float2 velocity = decode_motion_vector(tex2Dlod(blur_motion_vector_tex, texcoord).xy) * float2(2, -2);
+      ##endif
+
+      float velocityLen = length(velocity);
+      velocity *=
+        clamp(velocity_mul__max_velocity__forward_blur.x * (velocityLen - 0.002), 0, velocity_mul__max_velocity__forward_blur.y)
+        / (velocityLen + 0.0001);
+
+      // Get end pos.
+      VsOutput output;
+      output.pos = float4(start, 0, 1);
+      output.pos.xy += (velocity_mul__max_velocity__forward_blur.z - pos.z) * velocity;
+
+      // Output.
+      const float maxBlurVelocity = 0.1;
+      float power = saturate(length(velocity)/maxBlurVelocity);
+      output.color_power.xyz = ACCUM_COLOR_MUL * power * tex2Dlod(blur_source_tex, texcoord).xyz;
+      output.color_power.w = ACCUM_ALPHA_MUL * power;
+
+      return output;
+    }
+  }
+
+  hlsl(ps)
+  {
+    float4 accumulate_motion_blur_ps(VsOutput input) : SV_Target
+    {
+      return input.color_power;
+    }
+  }
+
+  compile("target_vs", "accumulate_motion_blur_vs");
+  compile("target_ps", "accumulate_motion_blur_ps");
+}
+
+
+
+shader apply_motion_blur
+{
+  supports global_frame;
+
+  cull_mode  = none;
+
+  z_test = false;
+  z_write = false;
+
+  (ps)
+  {
+    accumulation_tex@smp2d = accumulation_tex;
+    alpha_mul_on_apply@f1 = (alpha_mul_on_apply);
+  }
+
+
+  blend_src = sa; blend_dst = isa;
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  SET_TEXSZ_CONST_RT(vs, overscan_texcoord, overscan_texcoord)
+
+
+  hlsl
+  {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs)
+  {
+    VsOutput apply_motion_blur_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.x, pos.y, 0, 1);
+      output.texcoord = pos * overscan_texcoord.xy + overscan_texcoord.zw;
+      return output;
+    }
+  }
+
+  hlsl(ps)
+  {
+    float4 apply_motion_blur_ps(VsOutput input) : SV_Target
+    {
+      float4 motionBlur = tex2D(accumulation_tex, input.texcoord);
+
+      motionBlur.a /= ACCUM_ALPHA_MUL;
+      motionBlur.rgb /= ACCUM_COLOR_MUL;
+      motionBlur.rgb /= motionBlur.a + 0.0001;
+
+      return float4(motionBlur.rgb, saturate(alpha_mul_on_apply * motionBlur.a));
+    }
+  }
+
+  compile("target_vs", "apply_motion_blur_vs");
+  compile("target_ps", "apply_motion_blur_ps");
+}

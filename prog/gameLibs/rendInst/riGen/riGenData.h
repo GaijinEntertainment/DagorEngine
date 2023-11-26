@@ -51,6 +51,7 @@ struct RenderStateContext;
 
 struct RendInstGenData
 {
+  static constexpr int MAX_VISIBLE_CELLS = 256;
   static constexpr int SUBCELL_DIV = 8;
   enum
   {

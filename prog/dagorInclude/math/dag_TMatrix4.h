@@ -317,11 +317,13 @@ INLINE real TMatrix4::det() const
          m[0][1] * m[1][0] * m[2][2] - m[1][2] * m[2][1] * m[0][0];
 }
 
-extern double det4x4(const TMatrix4 &m); //<returns determinant 4x4
+bool is_invertible(const TMatrix4 &mat);
 
-extern TMatrix4 inverse44(const TMatrix4 &a); //<produce a fatal if det() < 0
+double det4x4(const TMatrix4 &m); //<returns determinant 4x4
 
-extern bool inverse44(const TMatrix4 &in, TMatrix4 &result, float &det); //<returns false if det() < 0
+TMatrix4 inverse44(const TMatrix4 &a); //<produce a fatal if det() < 0
+
+bool inverse44(const TMatrix4 &in, TMatrix4 &result, float &det); //<returns false if det() < 0
 
 /// @todo inverts as 4x3 matrix!
 INLINE TMatrix4 inverse43(const TMatrix4 &a)

@@ -9,9 +9,9 @@ CGroup::CGroup(ControlEventHandler *event_handler, PropertyContainerControlBase 
   const char caption[], HorzFlow horzFlow) :
 
   PropertyContainerVert(id, event_handler, parent, x, y, w, h, horzFlow),
-  mRect(this, parent->getWindow(), x, y, _px(w), _px(h)),
   mMaxButton(this, parent->getWindow(), x + _pxS(GROUP_MINIMIZE_BUTTON_X), y + _pxS(GROUP_MINIMIZE_BUTTON_Y),
-    _px(w) - 2 * _pxS(GROUP_MINIMIZE_BUTTON_X), _pxS(GROUP_MINIMIZE_BUTTON_SIZE))
+    _px(w) - 2 * _pxS(GROUP_MINIMIZE_BUTTON_X), _pxS(GROUP_MINIMIZE_BUTTON_SIZE)),
+  mRect(this, parent->getWindow(), x, y, _px(w), _px(h))
 {
   mMinimized = false;
   mMaximizedSize = _px(h);

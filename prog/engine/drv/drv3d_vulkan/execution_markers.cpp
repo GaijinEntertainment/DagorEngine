@@ -59,16 +59,16 @@ void ExecutionMarkers::check()
 #if VK_AMD_buffer_marker
   if (executionMarkerBuffer)
   {
-    auto ptr = reinterpret_cast<const uint32_t *>(executionMarkerBuffer->dataPointer(0));
+    auto ptr = reinterpret_cast<const uint32_t *>(executionMarkerBuffer->ptrOffsetLoc(0));
     debug("Checking execution makers - VK_AMD_buffer_marker:");
-    debug("Next id would be: %u", commandIndex);
+    debug("Next id would be: %08lX", commandIndex);
     uint32_t maxValue = 0;
     for (uint32_t i = 0; i < MAX_DEBUG_MARKER_BUFFER_ENTRIES; ++i)
     {
       maxValue = max(maxValue, ptr[i]);
     }
-    debug("Max committed value is: %u", maxValue);
-    debug("Missing %u commits", commandIndex - maxValue);
+    debug("Max committed value is: %08lX", maxValue);
+    debug("Missing %08lX commits", commandIndex - maxValue);
     markAsPassedIfLessOrEquel(maxValue);
     return;
   }
@@ -177,7 +177,7 @@ void ExecutionMarkers::write(VulkanCommandBufferHandle cb, VkPipelineStageFlagBi
     dbgInfo.commandIndex = indexValue;
 
     VULKAN_LOG_CALL(vkDev.vkCmdWriteBufferMarkerAMD(cb, stage, executionMarkerBuffer->getHandle(),
-      executionMarkerBuffer->dataOffset((indexValue % MAX_DEBUG_MARKER_BUFFER_ENTRIES) * sizeof(uint32_t)), indexValue));
+      executionMarkerBuffer->bufOffsetLoc((indexValue % MAX_DEBUG_MARKER_BUFFER_ENTRIES) * sizeof(uint32_t)), indexValue));
 
     return;
   }

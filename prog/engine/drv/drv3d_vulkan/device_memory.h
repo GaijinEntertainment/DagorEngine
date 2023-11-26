@@ -191,6 +191,13 @@ public:
   {
     return DeviceMemoryTypeRange(classTypes[uint32_t(memory_class)], mask);
   }
+  uint32_t getMemoryTypeMaskForClass(DeviceMemoryClass memory_class) const
+  {
+    uint32_t ret = 0;
+    for (uint32_t i : classTypes[uint32_t(memory_class)])
+      ret |= 1 << i;
+    return ret;
+  }
   VkDeviceSize getFeeMemoryForMemoryType(uint32_t type) const { return types[type].heap->size - types[type].heap->inUse; }
   DeviceMemory allocate(const DeviceMemoryClassAllocationInfo &info);
   DeviceMemory allocate(const DeviceMemoryTypeAllocationInfo &info);

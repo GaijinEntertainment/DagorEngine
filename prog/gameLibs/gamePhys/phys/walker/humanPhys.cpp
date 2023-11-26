@@ -1539,7 +1539,7 @@ HumanPhys::TorsoCollisionResults HumanPhys::processTorsoCollision(TMatrix &tm, i
           }
         }
         const physmat::PhysDestructibleProps *destrProps = get_mat_props<physmat::PhysDestructibleProps>(contact);
-        constexpr float contactDepthThreshold = -0.05f;
+        constexpr float contactDepthThreshold = 0.05f;
         constexpr float contactDotThreshold = -0.5;
         const float spd = length(currentState.velocity);
         const float velDot = currentState.velocity * contact.wnormB;

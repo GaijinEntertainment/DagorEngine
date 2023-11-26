@@ -104,8 +104,6 @@ enum
 
   DRV3D_COMMAND_GET_VENDOR,
 
-  DRV3D_COMMAND_GET_RESOLUTION,
-
   DRV3D_COMMAND_OVERRIDE_MAX_ANISOTROPY_LEVEL,
 
   // Creates an engine texture object from a raw resource

@@ -277,5 +277,9 @@ intptr_t watchdog_set_option(int option, intptr_t p0, intptr_t p1)
   return -1;
 }
 
+#if _TARGET_PC_WIN
+bool is_watchdog_thread(uintptr_t thread_id) { return GetThreadId(*(HANDLE *)watchdog_thread->getCurrentThreadIdPtr()) == thread_id; }
+#endif
+
 #define EXPORT_PULL dll_pull_baseutil_watchdog
 #include <supp/exportPull.h>

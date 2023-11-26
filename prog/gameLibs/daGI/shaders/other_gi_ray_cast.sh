@@ -1,9 +1,0 @@
-//this is project-dependent implementation
-//if you have  way to exactly raycast distance to walls (i.e RTX with collision, or sdf)
-//put other_gi_ray_cast.sh in your app folder with this macro
-// macro OTHER_GI_RAY_CAST_DIST(code)
-//    hlsl(code) {
-//      #define HAS_OTHER_RAY_DIST 1
-//      float other_ray_cast_dist(float3 worldPos, float3 worldDir, float max_dist, int steps = 8){....}
-//    }
-//endmacro

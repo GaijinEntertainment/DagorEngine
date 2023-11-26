@@ -1984,18 +1984,23 @@ void PhysicsSystem::JobResolveCCDContacts(PhysicsUpdateContext *ioContext, Physi
 
 					// Calculate velocity bias due to restitution
 					float normal_velocity_bias;
-					if (ccd_body->mContactSettings.mCombinedRestitution > 0.0f && normal_velocity < -mPhysicsSettings.mMinVelocityForRestitution)
-						normal_velocity_bias = ccd_body->mContactSettings.mCombinedRestitution * normal_velocity;
+					const ContactSettings &contact_settings = ccd_body->mContactSettings;
+					if (contact_settings.mCombinedRestitution > 0.0f && normal_velocity < -mPhysicsSettings.mMinVelocityForRestitution)
+						normal_velocity_bias = contact_settings.mCombinedRestitution * normal_velocity;
 					else
 						normal_velocity_bias = 0.0f;
 
+					// Get inverse masses
+					float inv_m1 = contact_settings.mInvMassScale1 * body_mp->GetInverseMass();
+					float inv_m2 = body2.GetMotionPropertiesUnchecked() != nullptr? contact_settings.mInvMassScale2 * body2.GetMotionPropertiesUnchecked()->GetInverseMassUnchecked() : 0.0f;
+
 					// Solve contact constraint
 					AxisConstraintPart contact_constraint;
-					contact_constraint.CalculateConstraintProperties(body1, r1_plus_u, body2, r2, ccd_body->mContactNormal, normal_velocity_bias);
-					contact_constraint.SolveVelocityConstraint(body1, body2, ccd_body->mContactNormal, -FLT_MAX, FLT_MAX);
+					contact_constraint.CalculateConstraintPropertiesWithMassOverride(body1, inv_m1, contact_settings.mInvInertiaScale1, r1_plus_u, body2, inv_m2, contact_settings.mInvInertiaScale2, r2, ccd_body->mContactNormal, normal_velocity_bias);
+					contact_constraint.SolveVelocityConstraintWithMassOverride(body1, inv_m1, body2, inv_m2, ccd_body->mContactNormal, -FLT_MAX, FLT_MAX);
 
 					// Apply friction
-					if (ccd_body->mContactSettings.mCombinedFriction > 0.0f)
+					if (contact_settings.mCombinedFriction > 0.0f)
 					{
 						// Calculate friction direction by removing normal velocity from the relative velocity
 						Vec3 friction_direction = relative_velocity - normal_velocity * ccd_body->mContactNormal;
@@ -2006,11 +2011,11 @@ void PhysicsSystem::JobResolveCCDContacts(PhysicsUpdateContext *ioContext, Physi
 							friction_direction /= sqrt(friction_direction_len_sq);
 
 							// Calculate max friction impulse
-							float max_lambda_f = ccd_body->mContactSettings.mCombinedFriction * contact_constraint.GetTotalLambda();
+							float max_lambda_f = contact_settings.mCombinedFriction * contact_constraint.GetTotalLambda();
 
 							AxisConstraintPart friction;
-							friction.CalculateConstraintProperties(body1, r1_plus_u, body2, r2, friction_direction);
-							friction.SolveVelocityConstraint(body1, body2, friction_direction, -max_lambda_f, max_lambda_f);
+							friction.CalculateConstraintPropertiesWithMassOverride(body1, inv_m1, contact_settings.mInvInertiaScale1, r1_plus_u, body2, inv_m2, contact_settings.mInvInertiaScale2, r2, friction_direction);
+							friction.SolveVelocityConstraintWithMassOverride(body1, inv_m1, body2, inv_m2, friction_direction, -max_lambda_f, max_lambda_f);
 						}
 					}
 
@@ -2344,38 +2349,40 @@ void PhysicsSystem::JobSoftBodyPrepare(PhysicsUpdateContext *ioContext, PhysicsU
 {
 	JPH_PROFILE_FUNCTION();
 
-#ifdef JPH_ENABLE_ASSERTS
-	// Reading soft body positions
-	BodyAccess::Grant grant(BodyAccess::EAccess::None, BodyAccess::EAccess::Read);
-#endif
-
-	// Get the active soft bodies
-	BodyIDVector active_bodies;
-	mBodyManager.GetActiveBodies(EBodyType::SoftBody, active_bodies);
-
-	// Quit if there are no active soft bodies
-	if (active_bodies.empty())
 	{
-		// Kick the next step
-		if (ioStep->mStartNextStep.IsValid())
-			ioStep->mStartNextStep.RemoveDependency();
-		return;
-	}
+	#ifdef JPH_ENABLE_ASSERTS
+		// Reading soft body positions
+		BodyAccess::Grant grant(BodyAccess::EAccess::None, BodyAccess::EAccess::Read);
+	#endif
 
-	// Sort to get a deterministic update order
-	QuickSort(active_bodies.begin(), active_bodies.end());
+		// Get the active soft bodies
+		BodyIDVector active_bodies;
+		mBodyManager.GetActiveBodies(EBodyType::SoftBody, active_bodies);
 
-	// Allocate soft body contexts
-	ioContext->mNumSoftBodies = (uint)active_bodies.size();
-	ioContext->mSoftBodyUpdateContexts = (SoftBodyUpdateContext *)ioContext->mTempAllocator->Allocate(ioContext->mNumSoftBodies * sizeof(SoftBodyUpdateContext));
+		// Quit if there are no active soft bodies
+		if (active_bodies.empty())
+		{
+			// Kick the next step
+			if (ioStep->mStartNextStep.IsValid())
+				ioStep->mStartNextStep.RemoveDependency();
+			return;
+		}
 
-	// Initialize soft body contexts
-	for (SoftBodyUpdateContext *sb_ctx = ioContext->mSoftBodyUpdateContexts, *sb_ctx_end = ioContext->mSoftBodyUpdateContexts + ioContext->mNumSoftBodies; sb_ctx < sb_ctx_end; ++sb_ctx)
-	{
-		new (sb_ctx) SoftBodyUpdateContext;
-		Body &body = mBodyManager.GetBody(active_bodies[sb_ctx - ioContext->mSoftBodyUpdateContexts]);
-		SoftBodyMotionProperties *mp = static_cast<SoftBodyMotionProperties *>(body.GetMotionProperties());
-		mp->InitializeUpdateContext(ioContext->mStepDeltaTime, body, *this, *sb_ctx);
+		// Sort to get a deterministic update order
+		QuickSort(active_bodies.begin(), active_bodies.end());
+
+		// Allocate soft body contexts
+		ioContext->mNumSoftBodies = (uint)active_bodies.size();
+		ioContext->mSoftBodyUpdateContexts = (SoftBodyUpdateContext *)ioContext->mTempAllocator->Allocate(ioContext->mNumSoftBodies * sizeof(SoftBodyUpdateContext));
+
+		// Initialize soft body contexts
+		for (SoftBodyUpdateContext *sb_ctx = ioContext->mSoftBodyUpdateContexts, *sb_ctx_end = ioContext->mSoftBodyUpdateContexts + ioContext->mNumSoftBodies; sb_ctx < sb_ctx_end; ++sb_ctx)
+		{
+			new (sb_ctx) SoftBodyUpdateContext;
+			Body &body = mBodyManager.GetBody(active_bodies[sb_ctx - ioContext->mSoftBodyUpdateContexts]);
+			SoftBodyMotionProperties *mp = static_cast<SoftBodyMotionProperties *>(body.GetMotionProperties());
+			mp->InitializeUpdateContext(ioContext->mStepDeltaTime, body, *this, *sb_ctx);
+		}
 	}
 
 	// We're ready to collide the first soft body

@@ -32,8 +32,10 @@ public:
   void destroyVulkanObject();
   void createVulkanObject();
   MemoryRequirementInfo getMemoryReq();
+  VkMemoryRequirements getSharedHandleMemoryReq();
   void bindMemory();
   void reuseHandle();
+  void releaseSharedHandle();
   void evict();
   void restoreFromSysCopy();
   bool isEvictable();
@@ -52,27 +54,27 @@ public:
   void onDelayedCleanupFinish();
 
 private:
-  uint32_t currentDiscardIndex = 0;
   eastl::unique_ptr<VulkanBufferViewHandle[]> views;
   eastl::unique_ptr<uint32_t[]> discardAvailableFrames;
-  VkDeviceSize baseMemoryOffset = 0;
+  uint32_t currentDiscardIndex = 0;
   uint8_t *mappedPtr = nullptr;
-  VkDeviceSize nonCoherentMemoryOffset = 0;
+  VkDeviceSize sharedOffset = 0;
+  VkDeviceSize memoryOffset = 0;
   VulkanDeviceMemoryHandle nonCoherentMemoryHandle{};
 
-  uint32_t getDiscardBlockSize() const { return desc.blockSize; }
   uint32_t getCurrentDiscardOffset() const
   {
     G_ASSERT(currentDiscardIndex < desc.discardCount);
-    return getDiscardBlockSize() * currentDiscardIndex;
+    return desc.blockSize * currentDiscardIndex;
   }
 
   void reportToTQL(bool is_allocating);
+  void fillPointers(const ResourceMemory &mem);
 
 public:
-  void markNonCoherentRange(uint32_t offset, uint32_t size, bool flush);
+  void markNonCoherentRangeAbs(uint32_t offset, uint32_t size, bool flush);
+  void markNonCoherentRangeLoc(uint32_t offset, uint32_t size, bool flush);
 
-  VkDeviceSize getBaseOffsetIntoMemory(VkDeviceSize offset) const { return offset + baseMemoryOffset; }
   inline bool onDiscard(uint32_t frontFrameIdx)
   {
     G_ASSERT(currentDiscardIndex < desc.discardCount);
@@ -109,34 +111,49 @@ public:
   inline bool hasView() const { return nullptr != views; }
   bool hasMappedMemory() const;
 
-  uint8_t *getMappedOffset(VkDeviceSize ofs) const;
+private:
+public:
+  // <....*..................> - memory
+  //      ^ memory offset / device address
+  //      <...*..............> - shared buffer object (buf suballoc)
+  //          ^ shared buffer offset
+  //          <...|...|...>    - buffer object
+  //              ^ discard block offset
+  //              <...>        - discard block
+  //                ^ offset
 
-  inline uint8_t *dataPointer(VkDeviceSize ofs) const { return getMappedOffset(ofs + getCurrentDiscardOffset()); }
-  inline VkDeviceSize dataOffset(VkDeviceSize ofs) const { return baseMemoryOffset + ofs + getCurrentDiscardOffset(); }
-  inline VkDeviceSize dataOffsetWithDiscardIndex(VkDeviceSize ofs, uint32_t discard_index) const
-  {
-    return baseMemoryOffset + ofs + (getDiscardBlockSize() * discard_index);
-  }
-  inline VkDeviceSize offsetOfLastDiscardIndex(VkDeviceSize ofs) const
-  {
-    G_ASSERT(currentDiscardIndex > 0);
-    return baseMemoryOffset + ofs + getCurrentDiscardOffset() - getDiscardBlockSize();
-  }
-  inline VkDeviceSize offset(VkDeviceSize ofs) const { return baseMemoryOffset + ofs + getCurrentDiscardOffset(); }
-  inline VkDeviceSize offsetWithDiscardIndex(VkDeviceSize ofs, uint32_t discard_index) const
-  {
-    return baseMemoryOffset + ofs + (getDiscardBlockSize() * discard_index);
-  }
-  inline VkDeviceSize dataSize() const { return totalSize(); }
+  // 4 type of offsets with different bases
+  // memory
+  //   Abs - memory offset + shared buffer offset + X
+  //   Loc - memory offset + shared buffer offset + discard block offset + X
+  // buffer
+  //   Abs - shared buffer offset + X
+  //   Loc - shared buffer offset + discard block offset + X
+  // device
+  //   Abs - device address + shared buffer offset + X
+  //   Loc - device address + shared buffer offset + discard block offset + X
+  // ptr (mapped)
+  //   Abs - mappedPtr + X
+  //   Loc - mappedPtr + discard block offset + X
 
-  Buffer(const Description &in_desc, bool managed = true) : BufferImplBase(in_desc, managed), currentDiscardIndex(0) {}
+  VkDeviceSize memOffsetAbs(VkDeviceSize ofs) const { return memoryOffset + sharedOffset + ofs; }
+  VkDeviceSize bufOffsetAbs(VkDeviceSize ofs) const { return sharedOffset + ofs; }
+  uint8_t *ptrOffsetAbs(VkDeviceSize ofs) const { return mappedPtr + ofs; }
 
-  inline VkDeviceSize totalSize() const { return getDiscardBlockSize(); }
+  VkDeviceSize memOffsetLoc(VkDeviceSize ofs) const { return memOffsetAbs(ofs) + getCurrentDiscardOffset(); }
+  VkDeviceSize bufOffsetLoc(VkDeviceSize ofs) const { return bufOffsetAbs(ofs) + getCurrentDiscardOffset(); }
+  uint8_t *ptrOffsetLoc(VkDeviceSize ofs) const { return ptrOffsetAbs(ofs) + getCurrentDiscardOffset(); }
 
 #if VK_KHR_buffer_device_address
-  VkDeviceAddress getDeviceAddress(VulkanDevice &device);
+  VkDeviceAddress getDeviceAddress(VulkanDevice &device) const;
+  VkDeviceAddress devOffsetAbs(VkDeviceSize ofs) const;
+  VkDeviceAddress devOffsetLoc(VkDeviceSize ofs) const { return devOffsetAbs(ofs) + getCurrentDiscardOffset(); }
 #endif
 
+  VkDeviceSize getBlockSize() { return desc.blockSize; }
+  VkDeviceSize getTotalSize() { return desc.blockSize * desc.discardCount; }
+
+  Buffer(const Description &in_desc, bool managed = true) : BufferImplBase(in_desc, managed), currentDiscardIndex(0) {}
   static VkBufferUsageFlags getUsage(VulkanDevice &device, DeviceMemoryClass memClass);
 };
 
@@ -184,18 +201,15 @@ struct BufferRef
   ~BufferRef() = default;
   BufferRef(const BufferRef &) = default;
   BufferRef &operator=(const BufferRef &) = default;
-  // all defined in device.h
   // make this explicit to make it clear that we grab and hold on to the current
   // discard index
   explicit BufferRef(Buffer *bfr, uint32_t visible_data_size = 0);
   explicit operator bool() const;
   VulkanBufferHandle getHandle() const;
   VulkanBufferViewHandle getView() const;
-  VkDeviceSize dataOffset(VkDeviceSize ofs) const;
-  VkDeviceSize dataSize() const;
-  VkDeviceSize offset(VkDeviceSize ofs) const;
+  VkDeviceSize bufOffset(VkDeviceSize ofs) const;
+  VkDeviceSize memOffset(VkDeviceSize ofs) const;
   VkDeviceSize totalSize() const;
-  VkDeviceSize offsetOfLastDiscardIndex(VkDeviceSize ofs) const;
 };
 
 inline bool operator==(const BufferRef &l, const BufferRef &r) { return (l.buffer == r.buffer) && (l.discardIndex == r.discardIndex); }
@@ -205,7 +219,7 @@ inline bool operator!=(const BufferRef &l, const BufferRef &r) { return !(l == r
 inline BufferRef::BufferRef(Buffer *bfr, uint32_t visible_data_size) :
   buffer(bfr),
   discardIndex(bfr ? bfr->getCurrentDiscardIndex() : 0),
-  visibleDataSize(bfr && !visible_data_size ? bfr->dataSize() : visible_data_size)
+  visibleDataSize(bfr && !visible_data_size ? bfr->getBlockSize() : visible_data_size)
 {}
 
 inline BufferRef::operator bool() const { return nullptr != buffer; }
@@ -217,18 +231,15 @@ inline VulkanBufferViewHandle BufferRef::getView() const
   return buffer->hasView() ? buffer->getViewOfDiscardIndex(discardIndex) : VulkanBufferViewHandle{};
 }
 
-inline VkDeviceSize BufferRef::dataOffset(VkDeviceSize ofs) const { return buffer->dataOffsetWithDiscardIndex(ofs, discardIndex); }
-
-inline VkDeviceSize BufferRef::dataSize() const { return visibleDataSize; }
-
-inline VkDeviceSize BufferRef::offset(VkDeviceSize ofs) const { return buffer->offsetWithDiscardIndex(ofs, discardIndex); }
-
-inline VkDeviceSize BufferRef::totalSize() const { return buffer->totalSize(); }
-
-inline VkDeviceSize BufferRef::offsetOfLastDiscardIndex(VkDeviceSize ofs) const
+inline VkDeviceSize BufferRef::bufOffset(VkDeviceSize ofs) const
 {
-  G_ASSERT(discardIndex > 0);
-  return buffer->offsetWithDiscardIndex(ofs, discardIndex - 1);
+  return buffer->getBlockSize() * discardIndex + buffer->bufOffsetAbs(ofs);
 }
+inline VkDeviceSize BufferRef::memOffset(VkDeviceSize ofs) const
+{
+  return buffer->getBlockSize() * discardIndex + buffer->memOffsetAbs(ofs);
+}
+inline VkDeviceSize BufferRef::totalSize() const { return buffer->getBlockSize(); }
+
 
 } // namespace drv3d_vulkan

@@ -1123,6 +1123,8 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
         navMeshProps[navMeshIdx].getReal("complexJumpTheshold", 0.0f));
       grp->createCheckBox(baseOfs + NM_PARAM_JLK_CROSS_OBSTACLES_WITH_JUMPLINKS, "cross obstacles with jlinks",
         navMeshProps[navMeshIdx].getBool("crossObstaclesWithJumplinks", false));
+      grp->createCheckBox(baseOfs + NM_PARAM_JLK_GENERATE_CUSTOM_JUMPLINKS, "enable custom jumplinks",
+        navMeshProps[navMeshIdx].getBool("enableCustomJumplinks", false));
 
       grp->createSeparator(0);
       grp->createCheckBox(baseOfs + NM_PARAM_CVRS_ENABLED, "Export covers", navMeshProps[navMeshIdx].getBool("coversEnabled", false));
@@ -1615,6 +1617,9 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel2 *panel)
       case NM_PARAM_JLK_CPLX_THRESHOLD: navMeshProps[navMeshIdx].setReal("complexJumpTheshold", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_CROSS_OBSTACLES_WITH_JUMPLINKS:
         navMeshProps[navMeshIdx].setBool("crossObstaclesWithJumplinks", panel->getBool(pcb_id));
+        break;
+      case NM_PARAM_JLK_GENERATE_CUSTOM_JUMPLINKS:
+        navMeshProps[navMeshIdx].setBool("enableCustomJumplinks", panel->getBool(pcb_id));
         break;
 
       case NM_PARAM_CVRS_ENABLED: navMeshProps[navMeshIdx].setBool("coversEnabled", panel->getBool(pcb_id)); break;
@@ -2314,7 +2319,8 @@ bool HmapLandPlugin::importTileTex()
 bool HmapLandPlugin::createMask(int bpp, String *name)
 {
   static const int INPUT_STRING_EDIT_ID = 222;
-  CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(120), "Create mask");
+  CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create mask");
+  dialog->setInitialFocus(DIALOG_ID_NONE);
   PropPanel2 *panel = dialog->getPanel();
   panel->createEditBox(INPUT_STRING_EDIT_ID, "Enter mask name:");
   panel->setFocusById(INPUT_STRING_EDIT_ID);
@@ -2582,7 +2588,8 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel2 *panel)
   }
   else if (pcb_id == PID_ADDLAYER)
   {
-    CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(120), "Create generation layer");
+    CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create generation layer");
+    dialog->setInitialFocus(DIALOG_ID_NONE);
     PropPanel2 *panel = dialog->getPanel();
     panel->createEditBox(0, "Enter generation layer name:");
     panel->setFocusById(0);
@@ -2604,7 +2611,8 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel2 *panel)
   }
   else if (pcb_id == PID_GRASS_ADDLAYER)
   {
-    CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(120), "Create grass layer");
+    CDialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create grass layer");
+    dialog->setInitialFocus(DIALOG_ID_NONE);
     PropPanel2 *panel = dialog->getPanel();
     panel->createEditBox(0, "Enter grass layer name:");
     panel->setFocusById(0);

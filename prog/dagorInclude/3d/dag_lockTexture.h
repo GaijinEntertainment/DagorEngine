@@ -299,11 +299,14 @@ class LockedImage : public ImageView
   }
 
 public:
-  static LockedImage lock_texture(BaseTexture *tex, int level, unsigned flags) { return lock_texture(tex, {}, level, flags); }
+  static LockedImage lock_texture(BaseTexture *tex, int level, unsigned flags)
+  {
+    return lock_texture(tex, eastl::nullopt, level, flags);
+  }
 
   static LockedImage lock_texture(BaseTexture *tex, int layer, int level, unsigned flags)
   {
-    return lock_texture(tex, layer, level, flags);
+    return lock_texture(tex, eastl::optional<int>{layer}, level, flags);
   }
 
   ~LockedImage()

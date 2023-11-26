@@ -1,0 +1,148 @@
+include "hardware_defines.dshl"
+include "postfx_inc.dshl"
+
+float slice_offset = 0;
+float4 dispatch_size = (0, 0, 0, 0);
+
+macro WRITE_TO_TEX2D()
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      #ifdef WRITE_TO_TEX_INTERPOLANTS
+      WRITE_TO_TEX_INTERPOLANTS
+      #endif
+    };
+  }
+  hlsl(vs) {
+    VsOutput skies_gen_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.xy, 1, 1);
+      #ifdef WRITE_TO_TEX_GET_INTERPOLANTS
+        WRITE_TO_TEX_GET_INTERPOLANTS
+      #endif
+      return output;
+    }
+  }
+  compile("target_vs", "skies_gen_vs");
+endmacro
+
+macro WRITE_TO_TEX2D_TC()
+  hlsl {
+    #define WRITE_TO_TEX_INTERPOLANTS float2 texcoord : TEXCOORD0;
+    #define WRITE_TO_TEX_GET_INTERPOLANTS output.texcoord = screen_to_texcoords(pos);
+  }
+  WRITE_TO_TEX2D()
+  hlsl {
+    #undef WRITE_TO_TEX_INTERPOLANTS
+    #undef WRITE_TO_TEX_GET_INTERPOLANTS
+  }
+endmacro
+
+macro WRITE_TO_VOLTEX()
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl(ps) {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      #ifdef WRITE_TO_TEX_INTERPOLANTS
+      WRITE_TO_TEX_INTERPOLANTS
+      #endif
+      uint slice_index : SV_RenderTargetArrayIndex;
+    };
+  }
+  (ps) {
+    dispatch_size@f3 = (dispatch_size);
+  }
+  (vs) {
+    slice_offset@f1 = (slice_offset);
+  }
+  hlsl(gs) {
+
+    struct GsInput
+    {
+      float4 pos : VSOUT_POSITION;
+      #ifdef WRITE_TO_TEX_INTERPOLANTS
+      WRITE_TO_TEX_INTERPOLANTS
+      #endif
+      uint slice_index : TEXCOORD1;
+    };
+
+    struct GsOutput
+    {
+      float4 pos : VSOUT_POSITION;
+      #ifdef WRITE_TO_TEX_INTERPOLANTS
+      WRITE_TO_TEX_INTERPOLANTS
+      #endif
+      uint slice_index : SV_RenderTargetArrayIndex;
+    };
+
+    [maxvertexcount(3)]
+    void skies_gen_gs(triangle GsInput input[3], inout TriangleStream<GsOutput> output)
+    {
+      UNROLL
+      for (uint i = 0; i < 3; i++)
+      {
+        GsOutput tri;
+        tri.pos = input[i].pos;
+        tri.slice_index = input[i].slice_index + slice_offset;
+        #ifdef WRITE_TO_TEX_PASS_INTERPOLANTS
+          WRITE_TO_TEX_PASS_INTERPOLANTS
+        #endif
+        output.Append(tri);
+      }
+    }
+  }
+
+  hlsl(vs) {
+    struct VsOutput
+    {
+      float4 pos : VSOUT_POSITION;
+      #ifdef WRITE_TO_TEX_INTERPOLANTS
+      WRITE_TO_TEX_INTERPOLANTS
+      #endif
+      nointerpolation uint slice_index : TEXCOORD1;
+    };
+    VsOutput skies_gen_vs(uint vertexId : SV_VertexID, uint inst_id : SV_InstanceID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.xy, 1, 1);
+      #ifdef WRITE_TO_TEX_GET_INTERPOLANTS
+        WRITE_TO_TEX_GET_INTERPOLANTS
+      #endif
+      output.slice_index = inst_id;
+      return output;
+    }
+  }
+  compile("target_vs_for_gs", "skies_gen_vs");
+  compile("target_gs", "skies_gen_gs");
+endmacro
+
+macro WRITE_TO_VOLTEX_TC()
+  hlsl {
+    #define WRITE_TO_TEX_INTERPOLANTS float2 texcoord : TEXCOORD0;
+    #define WRITE_TO_TEX_GET_INTERPOLANTS output.texcoord = screen_to_texcoords(pos);
+    #define WRITE_TO_TEX_PASS_INTERPOLANTS tri.texcoord = input[i].texcoord;
+  }
+  WRITE_TO_VOLTEX()
+  hlsl(ps) {
+    uint3 dispatchThreadID(in VsOutput input) {
+      return uint3(floor(input.texcoord * dispatch_size.xy), input.slice_index);
+    }
+  }
+  hlsl {
+    #undef WRITE_TO_TEX_INTERPOLANTS
+    #undef WRITE_TO_TEX_GET_INTERPOLANTS
+    #undef WRITE_TO_TEX_PASS_INTERPOLANTS
+  }
+endmacro

@@ -1,0 +1,46 @@
+include "caustics_render_inc.dshl"
+include "frustum.dshl"
+
+
+
+shader caustics_render
+{
+  no_ablend;
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  CAUSTICS_RENDER_CORE(ps)
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
+
+  hlsl(ps) {
+    half4 caustics_ps(VsOutput input) : SV_Target
+    {
+      return caustics(input.texcoord, input.viewVect);
+    }
+  }
+  compile("target_ps", "caustics_ps");
+}
+
+shader indoor_probe_to_depth
+{
+  supports global_frame;
+  supports none;
+  color_write = 0;
+  z_test = true;
+  z_write = true;
+  cull_mode = none;
+  channel float3 pos = pos;
+  (vs) {globtm@f44 = globtm;}
+  hlsl(vs)
+  {
+    float4 very_basic_vs(float3 pos : POSITION) : SV_POSITION
+    {
+      return mulPointTm(pos, globtm);
+    }
+  }
+  compile("target_vs", "very_basic_vs");
+  compile("ps_null", "null_ps");
+}

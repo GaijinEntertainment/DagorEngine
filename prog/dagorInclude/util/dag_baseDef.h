@@ -116,24 +116,13 @@ struct DestroyDeleter
 #endif
 #endif
 
-#if defined(_MSC_VER)
-#define SNPRINTF(buf, buf_size, ...)                                 \
-  do                                                                 \
-  {                                                                  \
-    int sprintf_result_len_ = _snprintf(buf, buf_size, __VA_ARGS__); \
-    G_ASSERT((unsigned)sprintf_result_len_ < (unsigned)buf_size);    \
-    static_cast<void>(sprintf_result_len_);                          \
-    buf[(buf_size)-1] = 0;                                           \
+#define SNPRINTF(buf, buf_size, ...)                                \
+  do                                                                \
+  {                                                                 \
+    int sprintf_result_len_ = snprintf(buf, buf_size, __VA_ARGS__); \
+    G_ASSERT((unsigned)sprintf_result_len_ < (unsigned)buf_size);   \
+    static_cast<void>(sprintf_result_len_);                         \
   } while (0)
-#else
-#define SNPRINTF(buf, buf_size, ...)                                 \
-  do                                                                 \
-  {                                                                  \
-    int sprintf_result_len_ = _snprintf(buf, buf_size, __VA_ARGS__); \
-    G_ASSERT((unsigned)sprintf_result_len_ < (unsigned)buf_size);    \
-    static_cast<void>(sprintf_result_len_);                          \
-  } while (0)
-#endif
 
 #if _TARGET_PC_WIN | _TARGET_XBOX | _TARGET_C1 | _TARGET_C2
 static constexpr int DAGOR_MAX_PATH = 260;

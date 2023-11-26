@@ -213,6 +213,20 @@ enum CompilationOptions : SQUnsignedInteger {
 
 #undef BIT
 
+typedef struct tagSQCompilerMessage {
+  int intId;
+  const char* textId;
+  int line;
+  int column;
+  int columnsWidth;
+  const char* message;
+  const char* fileName;
+  bool isError;
+} SQCompilerMessage;
+
+typedef void (*SQ_COMPILER_DIAG_CB)(HSQUIRRELVM v, const SQCompilerMessage *msg);
+
+
 /*vm*/
 SQUIRREL_API HSQUIRRELVM sq_open(SQInteger initialstacksize);
 SQUIRREL_API HSQUIRRELVM sq_newthread(HSQUIRRELVM friendvm, SQInteger initialstacksize);
@@ -264,6 +278,7 @@ SQUIRREL_API SQBool sq_isvartracesupported();
 SQUIRREL_API void sq_lineinfo_in_expressions(HSQUIRRELVM v, SQBool enable);
 SQUIRREL_API void sq_notifyallexceptions(HSQUIRRELVM v, SQBool enable);
 SQUIRREL_API void sq_setcompilererrorhandler(HSQUIRRELVM v,SQCOMPILERERROR f);
+SQUIRREL_API void sq_setcompilerdiaghandler(HSQUIRRELVM v, SQ_COMPILER_DIAG_CB f);
 SQUIRREL_API SQCOMPILERERROR sq_getcompilererrorhandler(HSQUIRRELVM v);
 
 /*stack operations*/
@@ -425,12 +440,11 @@ SQUIRREL_API void sq_resetanalyzerconfig();
 SQUIRREL_API bool sq_loadanalyzerconfig(const char *configFileName);
 SQUIRREL_API bool sq_loadanalyzerconfigblk(const KeyValueFile &config);
 
-SQUIRREL_API bool sq_switchdiagnosticstate_t(const char *diagId, bool state);
-SQUIRREL_API bool sq_switchdiagnosticstate_i(int32_t id, bool state);
+SQUIRREL_API bool sq_setdiagnosticstatebyname(const char *diagId, bool val);
+SQUIRREL_API bool sq_setdiagnosticstatebyid(int32_t id, bool val);
 SQUIRREL_API void sq_invertwarningsstate();
 SQUIRREL_API void sq_printwarningslist(FILE *ostream);
-SQUIRREL_API void sq_disablesyntaxwarnings();
-SQUIRREL_API void sq_enablesyntaxwarnings();
+SQUIRREL_API void sq_enablesyntaxwarnings(bool on);
 SQUIRREL_API void sq_checkglobalnames(HSQUIRRELVM v);
 SQUIRREL_API void sq_mergeglobalnames(const HSQOBJECT *bindings);
 
@@ -468,7 +482,7 @@ SQUIRREL_API void sq_mergeglobalnames(const HSQOBJECT *bindings);
 #if defined(__GNUC__) || defined(__clang__)
 # define SQ_UNUSED_ARG(x) x __attribute__((__unused__))
 #else
-# define SQ_UNUSED_ARG(x) x
+# define SQ_UNUSED_ARG(x)
 #endif
 
 #ifdef __cplusplus

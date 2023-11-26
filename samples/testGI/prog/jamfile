@@ -81,6 +81,16 @@ if $(Platform) in win32 win64 {
   AddLibs +=
     Ws2_32.lib ;
 
+} else if $(Platform) = linux64 {
+  BundleName = SkiesSample ;
+  UseProgLibs +=
+    engine/drv/drv3d_pc_multi
+    engine/drv/hid_mouse
+    engine/drv/hid_keyboard
+    engine/drv/hid_nulldrv
+    engine/osApiWrappers/messageBox
+  ;
+
 } else if $(Platform) = macosx {
   BundleName = testGI ;
   Sources += macosx_main.mm ;

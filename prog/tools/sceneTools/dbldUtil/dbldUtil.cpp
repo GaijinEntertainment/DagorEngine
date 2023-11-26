@@ -17,6 +17,9 @@
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <unistd.h>
+#endif
 
 void __cdecl ctrl_break_handler(int) { quit_game(0); }
 
@@ -314,6 +317,10 @@ static void stderr_report_fatal_error(const char *, const char *msg, const char 
 
 int DagorWinMain(bool debugmode)
 {
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+  int __argc = dgs_argc;
+  char **__argv = dgs_argv;
+#endif
   dgs_report_fatal_error = stderr_report_fatal_error;
   if (__argc < 4)
   {

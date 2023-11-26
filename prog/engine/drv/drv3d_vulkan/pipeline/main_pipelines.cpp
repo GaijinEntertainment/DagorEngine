@@ -252,7 +252,18 @@ GraphicsPipeline::GraphicsPipeline(VulkanDevice &device, VulkanPipelineCacheHand
   csd.tesselation.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
   csd.tesselation.pNext = NULL;
   csd.tesselation.flags = 0;
-  csd.tesselation.patchControlPoints = 4;
+
+  // note: this is not totally correct approach, need to reflect from shader to be precise, but it is enough for now
+  switch (info.varDsc.topology)
+  {
+    case VK_PRIMITIVE_TOPOLOGY_POINT_LIST: csd.tesselation.patchControlPoints = 1; break;
+    case VK_PRIMITIVE_TOPOLOGY_LINE_LIST:
+    case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP: csd.tesselation.patchControlPoints = 2; break;
+    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST:
+    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP:
+    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN: csd.tesselation.patchControlPoints = 3; break;
+    default: csd.tesselation.patchControlPoints = 4; break;
+  }
 
   csd.raster.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
   csd.raster.pNext = NULL;
@@ -420,7 +431,8 @@ GraphicsPipeline::GraphicsPipeline(VulkanDevice &device, VulkanPipelineCacheHand
   csd.dynamicStates.pDynamicStates = grPipeDynamicStateList;
 
   csd.piasci = //
-    {VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL, 0, info.varDsc.topology, VK_FALSE};
+    {VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL, 0,
+      layout->hasTC() ? VK_PRIMITIVE_TOPOLOGY_PATCH_LIST : info.varDsc.topology, VK_FALSE};
 
   unsigned stagesCount = 0;
   for (size_t i = 0; i < spirv::graphics::MAX_SETS; ++i)
@@ -524,11 +536,15 @@ VulkanPipelineHandle GraphicsPipeline::createPipelineObject(CreationFeedback &cr
 {
   VulkanDevice &device = get_device().getVkDevice();
 
-  if (compileScratch->parentPipe && !is_null(compileScratch->parentPipe->getCompiledHandle()))
+  if (compileScratch->parentPipe)
   {
-    compileScratch->gpci.flags |= VK_PIPELINE_CREATE_DERIVATIVE_BIT;
-    compileScratch->gpci.basePipelineIndex = -1;
-    compileScratch->gpci.basePipelineHandle = compileScratch->parentPipe->getHandle();
+    VulkanPipelineHandle parentHandle = compileScratch->parentPipe->getCompiledHandle();
+    if (!is_null(parentHandle))
+    {
+      compileScratch->gpci.flags |= VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+      compileScratch->gpci.basePipelineIndex = -1;
+      compileScratch->gpci.basePipelineHandle = parentHandle;
+    }
   }
 
   cr_feedback.chainWith(compileScratch->gpci, device);

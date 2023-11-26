@@ -363,6 +363,7 @@ void ImpostorTextureManager::render(const Point3 &point_to_eye, const TMatrix &v
 
     rendinst::render::RiShaderConstBuffers cb;
     cb.setOpacity(0, 1);
+    cb.setCrossDissolveRange(0);
     cb.setBoundingSphere(0, 0, 1, 1, 0);
     cb.setRandomColors(defaultColors);
     cb.setInstancing(0, 3, 0);

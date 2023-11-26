@@ -6,18 +6,21 @@
 #include <EASTL/string.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
-ska::flat_hash_map<eastl::string, Sampler> g_samplers;
-int g_id = 0;
+Tab<Sampler> g_samplers;
+ska::flat_hash_map<eastl::string, int> g_samplers_id;
 
 void Sampler::add(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::ShaderSyntaxParser &parser)
 {
-  auto [it, inserted] = g_samplers.emplace(smp_decl.name->text, Sampler(smp_decl, parser));
+  int sampler_id = g_samplers.size();
+  auto [it, inserted] = g_samplers_id.emplace(smp_decl.name->text, sampler_id);
   if (!inserted)
   {
     eastl::string message(eastl::string::CtorSprintf{}, "Redefinition of sampler variable '%s'", smp_decl.name->text);
     ShaderParser::error(message.c_str(), smp_decl.name, parser);
     return;
   }
+
+  g_samplers.emplace_back(Sampler(smp_decl, parser));
 
   int id = VarMap::addVarId(smp_decl.name->text);
   int v = ShaderGlobal::get_var_internal_index(id);
@@ -28,7 +31,8 @@ void Sampler::add(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::Shader
     ShaderParser::error(message.c_str(), smp_decl.name, parser);
     return;
   }
-  it->second.mId = g_id++;
+  g_samplers.back().mId = sampler_id;
+  g_samplers.back().mNameId = id;
   parser.get_lex_parser().register_symbol(id, SymbolType::GLOBAL_VARIABLE, smp_decl.name);
 
   Tab<ShaderGlobal::Var> &variable_list = ShaderGlobal::getMutableVariableList();
@@ -135,8 +139,38 @@ Sampler::Sampler(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::ShaderS
   }
 }
 
+void Sampler::link(const Tab<Sampler> &samplers, Tab<int> &smp_link_table)
+{
+  int smp_num = samplers.size();
+  smp_link_table.resize(smp_num);
+  for (unsigned int i = 0; i < smp_num; i++)
+  {
+    auto &smp = samplers[i];
+
+    bool exists = false;
+    for (unsigned int existing_var = 0; existing_var < g_samplers.size(); existing_var++)
+    {
+      if (smp.mNameId == g_samplers[existing_var].mNameId)
+      {
+        auto &existing_smp = g_samplers[existing_var];
+        exists = true;
+        smp_link_table[i] = existing_var;
+
+        if (memcmp(&smp.mSamplerInfo, &existing_smp.mSamplerInfo, sizeof(d3d::SamplerInfo)) != 0)
+          fatal("Different sampler values: '%i'", smp.mNameId);
+      }
+    }
+
+    if (!exists)
+    {
+      smp_link_table[i] = g_samplers.size();
+      g_samplers.push_back(smp);
+    }
+  }
+}
+
 const Sampler *Sampler::get(const char *name)
 {
-  auto found = g_samplers.find(name);
-  return found == g_samplers.end() ? nullptr : &found->second;
+  auto found = g_samplers_id.find(name);
+  return found == g_samplers_id.end() ? nullptr : &g_samplers[found->second];
 }

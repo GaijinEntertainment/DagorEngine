@@ -25,6 +25,7 @@
 #include <debug/dag_log.h>
 #include <debug/dag_logSys.h>
 #include <generic/dag_tab.h>
+#include <math/dag_intrin.h>
 #include <math/dag_TMatrix4more.h>
 #include <3d/dag_texIdSet.h>
 #include <osApiWrappers/dag_spinlock.h>
@@ -1237,47 +1238,20 @@ void ScriptedShaderElement::exec_stcode(dag::ConstSpan<int> cod, const shaderbin
     }
   }
 
-  int start = 0, end, mask = 1;
   while (fsh_c_mask)
   {
-    while (!(fsh_c_mask & mask))
-    {
-      start++;
-      mask <<= 1;
-    }
-    end = start + 1;
-    mask <<= 1;
-    while (fsh_c_mask & mask)
-    {
-      end++;
-      mask <<= 1;
-    }
-    fsh_c_mask &= ~(mask - 1);
-
+    auto start = __ctz_unsafe(fsh_c_mask);
+    auto end = __ctz(fsh_c_mask + (1u << start));
+    fsh_c_mask &= uint64_t(eastl::numeric_limits<uint32_t>::max()) << end;
     d3d::set_ps_const(start, fsh_const + start * 4, end - start);
-    start = end;
   }
 
-  start = 0;
-  mask = 1;
   while (vpr_c_mask)
   {
-    while (!(vpr_c_mask & mask))
-    {
-      start++;
-      mask <<= 1;
-    }
-    end = start + 1;
-    mask <<= 1;
-    while (vpr_c_mask & mask)
-    {
-      end++;
-      mask <<= 1;
-    }
-    vpr_c_mask &= ~(mask - 1);
-
+    auto start = __ctz_unsafe(vpr_c_mask);
+    auto end = __ctz(vpr_c_mask + (1u << start));
+    vpr_c_mask &= uint64_t(eastl::numeric_limits<uint32_t>::max()) << end;
     d3d::set_vs_const(start, vpr_const + start * 4, end - start);
-    start = end;
   }
 
   MEASURE_STCODE_PERF_END;

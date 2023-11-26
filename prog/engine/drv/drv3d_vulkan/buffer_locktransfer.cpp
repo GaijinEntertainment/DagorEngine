@@ -106,14 +106,14 @@ void GenericBufferInterface::lockDMA(void **ptr)
     // sync with the host
     lockReadback(
       ptr, [&]() { ctx.flushBufferToHost(buffer, lockRange); },
-      [&]() { buffer->markNonCoherentRange(lockRange.front(), lockRange.size(), false); });
+      [&]() { buffer->markNonCoherentRangeLoc(lockRange.front(), lockRange.size(), false); });
   }
 
   if (ptr)
-    *ptr = buffer->dataPointer(lockRange.front());
+    *ptr = buffer->ptrOffsetLoc(lockRange.front());
 }
 
-void GenericBufferInterface::unlockWriteDMA() { buffer->markNonCoherentRange(lockRange.front(), lockRange.size(), true); }
+void GenericBufferInterface::unlockWriteDMA() { buffer->markNonCoherentRangeLoc(lockRange.front(), lockRange.size(), true); }
 
 // staging path - for device visible buffers
 
@@ -127,11 +127,11 @@ void GenericBufferInterface::lockStaging(void **ptr)
 
     lockReadback(
       ptr, [&]() { ctx.downloadBuffer(buffer, stagingBuffer, lockRange.front(), stageOffset, lockRange.size()); },
-      [&]() { stagingBuffer->markNonCoherentRange(stageOffset, lockRange.size(), false); });
+      [&]() { stagingBuffer->markNonCoherentRangeLoc(stageOffset, lockRange.size(), false); });
   }
 
   if (ptr)
-    *ptr = stagingBuffer->dataPointer(stageOffset);
+    *ptr = stagingBuffer->ptrOffsetLoc(stageOffset);
 }
 
 void GenericBufferInterface::unlockWriteStaging()
@@ -142,7 +142,7 @@ void GenericBufferInterface::unlockWriteStaging()
   if (stagingBufferIsPermanent())
     stageOffset = lockRange.front();
 
-  stagingBuffer->markNonCoherentRange(stageOffset, lockRange.size(), true);
+  stagingBuffer->markNonCoherentRangeLoc(stageOffset, lockRange.size(), true);
   ctx.uploadBuffer(stagingBuffer, buffer, stageOffset, lockRange.front(), lockRange.size());
 }
 

@@ -40,12 +40,18 @@ VkBufferUsageFlags Buffer::getUsage(VulkanDevice &device, DeviceMemoryClass memC
 }
 
 #if VK_KHR_buffer_device_address
-VkDeviceAddress Buffer::getDeviceAddress(VulkanDevice &device)
+VkDeviceAddress Buffer::getDeviceAddress(VulkanDevice &device) const
 {
   VkBufferDeviceAddressInfo info = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
   info.buffer = getHandle();
   return device.vkGetBufferDeviceAddressKHR(device.get(), &info);
 }
+
+VkDeviceAddress Buffer::devOffsetAbs(VkDeviceSize ofs) const
+{
+  return getDeviceAddress(get_device().getVkDevice()) + sharedOffset + ofs;
+}
+
 #endif
 
 void Buffer::reportToTQL(bool is_allocating)
@@ -114,29 +120,56 @@ MemoryRequirementInfo Buffer::getMemoryReq()
   return ret;
 }
 
+// TODO: improve this, aligment should be, per spec, same for usage&flags combo
+VkMemoryRequirements Buffer::getSharedHandleMemoryReq()
+{
+  Device &drvDev = get_device();
+  VulkanDevice &vkDev = drvDev.getVkDevice();
+
+  VkMemoryRequirements ret;
+  ret.alignment = drvDev.getMinimalBufferAlignment();
+  ret.size = getTotalSize();
+  ret.memoryTypeBits = drvDev.memory->getMemoryTypeMaskForClass(desc.memoryClass);
+
+  {
+    VulkanBufferHandle tmpBuf;
+    VkBufferCreateInfo bci;
+    bci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bci.pNext = NULL;
+    bci.flags = 0;
+    bci.size = getTotalSize();
+    bci.usage = Buffer::getUsage(vkDev, desc.memoryClass);
+    bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    bci.queueFamilyIndexCount = 0;
+    bci.pQueueFamilyIndices = NULL;
+    const VkResult resCode = VULKAN_CHECK_RESULT(vkDev.vkCreateBuffer(vkDev.get(), &bci, NULL, ptr(tmpBuf)));
+    if (resCode != VK_SUCCESS)
+    {
+      MemoryRequirementInfo ret2 = get_memory_requirements(vkDev, tmpBuf);
+      ret = ret2.requirements;
+      vkDev.vkDestroyBuffer(vkDev.get(), tmpBuf, nullptr);
+    }
+  }
+
+#if VULKAN_MAPPED_BUFFER_OVERRUN_WRITE_CHECK > 0
+  ret.size *= 2;
+#endif
+  return ret;
+}
+
 void Buffer::bindMemory()
 {
   G_ASSERT(getBaseHandle());
   G_ASSERT(getMemoryId() != -1);
 
-  Device &drvDev = get_device();
-  VulkanDevice &dev = drvDev.getVkDevice();
-
   const ResourceMemory &mem = getMemory();
+  G_ASSERT(mem.isDeviceMemory());
+  memoryOffset = mem.offset;
+  sharedOffset = 0;
+  fillPointers(mem);
+
   // we are binding object to memory offset
-  baseMemoryOffset = 0;
-  if (mem.mappedPointer)
-  {
-    mappedPtr = mem.mappedPtrOffset(baseMemoryOffset);
-#if VULKAN_MAPPED_BUFFER_OVERRUN_WRITE_CHECK > 0
-    memset(mappedPtr + mem.size / 2, buffer_tail_filler, mem.size / 2);
-#endif
-  }
-  if (!drvDev.isCoherencyAllowedFor(mem.memType))
-  {
-    nonCoherentMemoryHandle = mem.deviceMemory();
-    nonCoherentMemoryOffset = mem.offset;
-  }
+  VulkanDevice &dev = get_device().getVkDevice();
   VULKAN_EXIT_ON_FAIL(dev.vkBindBufferMemory(dev.get(), getHandle(), mem.deviceMemory(), mem.offset));
 
   reportToTQL(true);
@@ -144,13 +177,39 @@ void Buffer::bindMemory()
 
 void Buffer::reuseHandle()
 {
+  G_ASSERT(!getBaseHandle());
   G_ASSERT(getMemoryId() != -1);
 
   const ResourceMemory &mem = getMemory();
   G_ASSERT(!mem.isDeviceMemory());
+  memoryOffset = 0;
+  sharedOffset = mem.offset;
+  fillPointers(mem);
 
-  baseMemoryOffset = mem.offset;
+  // we are reusing handle
   setHandle(mem.handle);
+  reportToTQL(true);
+}
+
+void Buffer::releaseSharedHandle()
+{
+  G_ASSERT(!getMemory().isDeviceMemory());
+  G_ASSERT(isHandleShared());
+  reportToTQL(false);
+  setHandle(generalize(Handle()));
+}
+
+void Buffer::fillPointers(const ResourceMemory &mem)
+{
+  if (mem.mappedPointer)
+  {
+    mappedPtr = mem.mappedPtrOffset(0);
+#if VULKAN_MAPPED_BUFFER_OVERRUN_WRITE_CHECK > 0
+    memset(mappedPtr + mem.size / 2, buffer_tail_filler, mem.size / 2);
+#endif
+  }
+  if (!get_device().isCoherencyAllowedFor(mem.memType))
+    nonCoherentMemoryHandle = mem.isDeviceMemory() ? mem.deviceMemory() : mem.deviceMemorySlow();
 }
 
 void Buffer::evict() { fatal("vulkan: buffers are not evictable"); }
@@ -192,11 +251,14 @@ void Buffer::shutdown()
   discardAvailableFrames.reset();
 }
 
-uint8_t *Buffer::getMappedOffset(VkDeviceSize ofs) const { return mappedPtr + ofs; }
-
 bool Buffer::hasMappedMemory() const { return mappedPtr != nullptr; }
 
-void Buffer::markNonCoherentRange(uint32_t offset, uint32_t size, bool flush)
+void Buffer::markNonCoherentRangeLoc(uint32_t offset, uint32_t size, bool flush)
+{
+  markNonCoherentRangeAbs(offset + getCurrentDiscardOffset(), size, flush);
+}
+
+void Buffer::markNonCoherentRangeAbs(uint32_t offset, uint32_t size, bool flush)
 {
   // coherent memory does not need this
   if (is_null(nonCoherentMemoryHandle))
@@ -207,7 +269,7 @@ void Buffer::markNonCoherentRange(uint32_t offset, uint32_t size, bool flush)
 
   VkMappedMemoryRange range = {VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, nullptr};
   range.memory = nonCoherentMemoryHandle;
-  range.offset = dataOffset(offset) + nonCoherentMemoryOffset;
+  range.offset = memOffsetAbs(offset);
   range.size = size;
 
   // Conform it to VUID-VkMappedMemoryRange-size-01390

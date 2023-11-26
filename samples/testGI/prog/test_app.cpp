@@ -62,7 +62,7 @@
 #include <util/dag_delayedAction.h>
 #include <util/dag_oaHashNameMap.h>
 #include <math/dag_geomTree.h>
-#include <ioSys/dag_fileIO.h>
+#include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_files.h>
 #include <render/deferredRenderer.h>
 #include <render/downsampleDepth.h>

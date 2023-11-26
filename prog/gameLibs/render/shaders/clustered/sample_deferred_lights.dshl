@@ -1,0 +1,74 @@
+include "clustered/deferred_lights.dshl"
+include "sky_shader_global.dshl"
+include "viewVecVS.dshl"
+include "gbuffer.dshl"
+
+
+shader point_lights, spot_lights
+{
+  //supports global_frame;
+  INIT_AND_USE_PHOTOMETRY_TEXTURES(ps)
+  INIT_AND_USE_PHOTOMETRY_TEXTURES(vs)
+  DEFERRED_LIGHTS_COMMON_SHADER()
+
+  BRUNETON_FOG()
+  USE_SCREENPOS_TO_TC()
+  USE_AND_INIT_VIEW_VEC_PS()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+
+  INIT_ZNZFAR()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  hlsl(ps) {
+    #include "pbr.hlsl"
+  }
+
+  if (shader == point_lights)
+  {
+    DEFERRED_OMNI_LIGHTS_VS_SHADER()
+    DEFERRED_OMNI_LIGHTS_PS_SHADER()
+    hlsl(ps) {
+      half3 deferred_lights_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+      {
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        half3 result;
+        float3 view;
+        float2 tc;
+        float dist, w;
+        if (deferred_omni_light(input, screenpos, tc, view, dist, w, result))
+        {
+          result *= get_fog_loss(view, dist);
+          return result;
+        } else
+          return 0;
+      }
+    }
+  } else
+  {
+    hlsl(ps) {
+      #define SPOT_SHADOWS 0
+    }
+    DEFERRED_SPOT_LIGHTS_VS_SHADER()
+    DEFERRED_SPOT_LIGHTS_PS_SHADER()
+    hlsl(ps) {
+      half3 deferred_lights_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+      {
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        half3 result;
+        float3 view;
+        float2 tc;
+        float dist, w;
+        if (deferred_spot_light(input, screenpos, tc, view, dist, w, result))
+        {
+          result *= get_fog_loss(view, dist);
+          return result;
+        } else
+          return 0;
+      }
+    }
+  }
+  compile("target_vs", "deferred_lights_vs");
+  compile("target_ps", "deferred_lights_ps");
+}

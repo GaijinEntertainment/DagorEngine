@@ -197,6 +197,11 @@ public:
   bool flushProcessed = false;
 
   bool renderAllowed = false;
+  // counts amount of non-indirected drawcalls
+  uint32_t directDrawCount = 0;
+  // store amount of non-indirected drawcalls at start of survey
+  // to avoid waiting empty surveys as they can hang on some GPUs
+  uint32_t directDrawCountInSurvey = 0;
   VulkanCommandBufferHandle frameCore = VulkanHandle();
 
   typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::EXECUTION_PRIMARY> PrimaryPipelineBarrier;
@@ -291,7 +296,7 @@ public:
   void endQuery(VulkanQueryPoolHandle pool, uint32_t index);
   void writeTimestamp(const TimestampQueryRef &query);
   void wait(ThreadedFence *fence);
-  void beginConditionalRender(VulkanBufferHandle buffer, VkDeviceSize offset);
+  void beginConditionalRender(const BufferRef &buffer, VkDeviceSize offset);
   void endConditionalRender();
   void addShaderModule(const ShaderModuleBlob *sci, uint32_t id);
   void removeShaderModule(uint32_t id);
@@ -337,7 +342,7 @@ public:
     uint32_t first_region);
   void blitImage(Image *src, Image *dst, const VkImageBlit &region);
   void resetQuery(VulkanQueryPoolHandle pool, uint32_t index, uint32_t count);
-  void copyQueryResult(VulkanQueryPoolHandle pool, uint32_t index, uint32_t count, Buffer *dst, VkQueryResultFlags flags);
+  void copyQueryResult(VulkanQueryPoolHandle pool, uint32_t index, uint32_t count, Buffer *dst);
   void generateMipmaps(Image *img);
   void setGraphicsPipeline(ProgramID program);
   bool isInMultisampledFBPass();

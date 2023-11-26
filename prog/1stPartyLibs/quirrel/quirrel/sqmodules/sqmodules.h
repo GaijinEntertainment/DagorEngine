@@ -36,7 +36,7 @@ public:
     compilationOptions.debugInfo = false;
     compilationOptions.doStaticAnalysis = false;
     compilationOptions.useAbsolutePath = false;
-    sq_disablesyntaxwarnings();
+    sq_enablesyntaxwarnings(false);
   }
 
   HSQUIRRELVM getVM() { return sqvm; }

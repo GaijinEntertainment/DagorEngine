@@ -63,5 +63,6 @@ CPPopt =
   -DNVTT_EXPORTS -D__SSE2__ -D__SSE__ -D__MMX__
 ;
 if $(Platform) in win32 win64 { CPPopt += -DWIN32 -D_WINDOWS -D_USRDLL ; }
+if $(Platform) in macosx { CPPopt += -DSQUISH_USE_ALTIVEC=0 ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

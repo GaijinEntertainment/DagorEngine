@@ -201,7 +201,7 @@ public:
 		hull.DrawLabel("Build initial hull");
 #endif
 #ifdef JPH_EPA_PENETRATION_DEPTH_DEBUG
-		Trace("Init: num_points = %d", support_points.mY.size());
+		Trace("Init: num_points = %u", (uint)support_points.mY.size());
 #endif
 		hull.Initialize(0, 1, 2);
 		for (typename Points::size_type i = 3; i < support_points.mY.size(); ++i)
@@ -284,9 +284,9 @@ public:
 			if (!t->IsFacing(w) || !hull.AddPoint(t, new_index, FLT_MAX, new_triangles))
 				return false;
 
-			// If the triangle was removed we can free it now
-			if (t->mRemoved)
-				hull.FreeTriangle(t);
+			// The triangle is facing the support point "w" and can now be safely removed
+			JPH_ASSERT(t->mRemoved);
+			hull.FreeTriangle(t);
 
 			// If we run out of triangles or points, we couldn't include the origin in the hull so there must be very little penetration and we report no collision.
 			if (!hull.HasNextTriangle() || support_points.mY.size() >= cMaxPointsToIncludeOriginInHull)

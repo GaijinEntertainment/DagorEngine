@@ -4,7 +4,6 @@
 ColorDialogAppMat::ColorDialogAppMat(void *phandle, const char caption[]) :
   ColorDialog(phandle, caption, environment::getSinglePaintColor())
 {
-  resizeWindow(hdpi::_pxScaled(710), hdpi::_pxScaled(410));
   getPanel()->createCheckBox(ID_CHECKBOX_MODE, "Apply color to entity mode", environment::isUsingSinglePaintColor());
 }
 
