@@ -12,9 +12,10 @@ public:
   static constexpr unsigned HUID = 0x5177B0EEu; // occplugin::Occluder
 
 public:
+  EO_IMPLEMENT_RTTI(HUID, RenderableEditableObject)
+  
   Occluder(bool box_occluder);
   Occluder(const Occluder &);
-
 
   virtual void update(float);
 
@@ -41,9 +42,6 @@ public:
   virtual bool mayDelete() { return true; }
 
   virtual void onAdd(ObjectEditor *objEditor);
-
-  EO_IMPLEMENT_RTTI(HUID)
-
 
   bool isBox() const { return box; }
   bool getQuad(Point3 v[4]);

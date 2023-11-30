@@ -38,7 +38,7 @@ static const int CID_RenderableEditableObject = 0x6437E6D5;
 class RenderableEditableObject : public EditableObject
 {
 public:
-  EO_IMPLEMENT_RTTI(CID_RenderableEditableObject)
+  EO_IMPLEMENT_RTTI(CID_RenderableEditableObject, EditableObject)
 
   /// Object flags.
   enum RenderableEditableObjectFlags

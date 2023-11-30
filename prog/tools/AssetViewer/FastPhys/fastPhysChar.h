@@ -37,7 +37,7 @@ public:
   virtual void setMatrix(const Matrix3 &tm);
   virtual void setWtm(const TMatrix &wtm);
 
-  EO_IMPLEMENT_RTTI(HUID)
+  EO_IMPLEMENT_RTTI(HUID, RenderableEditableObject)
 
   // default implementation for some inherited methods
   virtual bool mayDelete() { return false; }

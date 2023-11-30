@@ -177,7 +177,7 @@ class FreeCameraElem : public CCameraElem
 {
 public:
   FreeCameraElem() : CCameraElem(FREE_CAMERA) {}
-  virtual void actInternal() { __super::actInternal(); }
+  virtual void actInternal() { CCameraElem::actInternal(); }
 };
 
 class MaxCameraElem : public CCameraElem

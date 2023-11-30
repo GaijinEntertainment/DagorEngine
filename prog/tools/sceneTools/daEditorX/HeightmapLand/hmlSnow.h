@@ -16,6 +16,8 @@ class SnowSourceObject : public RenderableEditableObject
 {
 public:
   SnowSourceObject();
+  
+  EO_IMPLEMENT_RTTI(CID_SnowSourceObject, RenderableEditableObject)
 
   virtual void update(float) {}
   virtual void beforeRender() {}
@@ -46,7 +48,6 @@ public:
 
   virtual void onObjectNameChange(RenderableEditableObject *obj, const char *old_name, const char *new_name) {}
 
-  EO_IMPLEMENT_RTTI(CID_SnowSourceObject)
 
   UndoRedoObject *makePropsUndoObj() { return new UndoPropsChange(this); }
   SnowSourceObject *clone();

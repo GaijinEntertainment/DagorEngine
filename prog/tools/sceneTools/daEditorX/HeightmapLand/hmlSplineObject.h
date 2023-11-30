@@ -123,7 +123,7 @@ public:
   virtual void onAdd(ObjectEditor *objEditor);
   virtual Point3 getPos() const { return splineCenter(); }
 
-  EO_IMPLEMENT_RTTI(CID_HMapSplineObject);
+  EO_IMPLEMENT_RTTI(CID_HMapSplineObject, RenderableEditableObject);
 
 
   void getSpline();

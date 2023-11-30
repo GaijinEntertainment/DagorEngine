@@ -17,6 +17,8 @@ public:
   static E3DCOLOR frozenColor;
 
 public:
+  EO_IMPLEMENT_RTTI(HUID, RenderableEditableObject)
+  
   IFPObject(FpdObject *obj, FastPhysEditor &editor);
   virtual ~IFPObject();
 
@@ -40,7 +42,6 @@ public:
   virtual void onPPChange(int pid, bool edit_finished, PropertyContainerControlBase &panel,
     dag::ConstSpan<RenderableEditableObject *> objects){};
 
-  EO_IMPLEMENT_RTTI(HUID)
 
 protected:
   Ptr<FpdObject> mObject;

@@ -241,7 +241,7 @@ public:
   virtual bool mayRename() { return true; }
   virtual bool mayDelete() { return true; }
 
-  EO_IMPLEMENT_RTTI(CID_IvyObject)
+  EO_IMPLEMENT_RTTI(CID_IvyObject, RenderableEditableObject)
 
   int getUid() const { return uid; }
   Point3 getPt() const { return pt; }

@@ -17,6 +17,8 @@ class HmapLandHoleObject : public RenderableEditableObject
 {
 public:
   Point3 boxSize;
+  
+  EO_IMPLEMENT_RTTI(CID_HmapLandHoleObject, RenderableEditableObject)
 
   HmapLandHoleObject();
 
@@ -43,7 +45,6 @@ public:
   virtual void load(const DataBlock &blk);
 
 
-  EO_IMPLEMENT_RTTI(CID_HmapLandHoleObject)
 
 
   void buildBoxEdges(IGenViewportWnd *vp, Point2 edges[12][2]) const;

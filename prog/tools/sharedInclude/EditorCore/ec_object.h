@@ -16,14 +16,14 @@
 ///     @b false in other case\n
 /// virtual DClassID @b getClassId () - Returns class ID
 /// @ingroup EditorCore
-#define EO_IMPLEMENT_RTTI(id)                    \
+#define EO_IMPLEMENT_RTTI(id, base)              \
   static DClassID getStaticClassId()             \
   {                                              \
     return id;                                   \
   }                                              \
   virtual bool isSubOf(DClassID cid)             \
   {                                              \
-    return cid == (id) || __super::isSubOf(cid); \
+    return cid == (id) || base::isSubOf(cid); \
   }                                              \
   virtual DClassID getClassId()                  \
   {                                              \
