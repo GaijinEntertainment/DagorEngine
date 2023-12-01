@@ -17,6 +17,7 @@ static constexpr unsigned CID_LandscapeEntityObject = 0xE79DC1EDu; // LandscapeE
 class LandscapeEntityObject : public RenderableEditableObject
 {
 public:
+  EO_IMPLEMENT_RTTI(CID_LandscapeEntityObject, RenderableEditableObject)
   LandscapeEntityObject(const char *ent_name, int rnd_seed = 0);
 
   virtual void update(float) {}
@@ -50,7 +51,6 @@ public:
 
   virtual void onObjectNameChange(RenderableEditableObject *obj, const char *old_name, const char *new_name) { objectPropsChanged(); }
 
-  EO_IMPLEMENT_RTTI(CID_LandscapeEntityObject)
 
   UndoRedoObject *makePropsUndoObj() { return new UndoPropsChange(this); }
   void renderBox();

@@ -75,6 +75,8 @@ protected:
   ~SplinePointObject();
 
 public:
+  EO_IMPLEMENT_RTTI(CID_SplinePointObject, RenderableEditableObject)
+  
   SplinePointObject();
 
   virtual void update(float) {}
@@ -115,7 +117,6 @@ public:
 
   virtual bool setPos(const Point3 &p);
 
-  EO_IMPLEMENT_RTTI(CID_SplinePointObject)
 
   Point3 getPt() const { return props.pt; }
   Point3 getBezierIn() const { return props.pt + getPtEffRelBezierIn(); }
