@@ -19,30 +19,10 @@ struct Color4
 {
   real r, g, b, a;
   colorinline Color4() = default;
-  colorinline Color4(float rr, float gg, float bb, float aa = 1)
-  {
-    r = rr;
-    g = gg;
-    b = bb;
-    a = aa;
-  }
-  colorinline Color4(const real *p)
-  {
-    r = p[0];
-    g = p[1];
-    b = p[2];
-    a = p[3];
-  }
-  colorinline Color4(E3DCOLOR c)
-  {
-    r = float(c.r) / 255.f;
-    g = float(c.g) / 255.f;
-    b = float(c.b) / 255.f;
-    a = float(c.a) / 255.f;
-  }
-
-  colorinline void set(real k)
-  {
+  colorinline Color4(float rr, float gg, float bb, float aa = 1): r(rr), g(gg), b(bb), a(aa){}
+  colorinline Color4(const real *p): r(p[0]), g(p[1]), b(p[2]), a(p[3]) {}
+  colorinline Color4(E3DCOLOR c): r(float(c.r) / 255.f), g(float(c.g) / 255.f), b(float(c.b) / 255.f), a(float(c.a) / 255.f) { }
+  colorinline void set(real k) {
     r = k;
     g = k;
     b = k;
@@ -115,44 +95,24 @@ struct Color4
 
   colorinline void clamp0()
   {
-    if (r < 0)
-      r = 0;
-    if (g < 0)
-      g = 0;
-    if (b < 0)
-      b = 0;
-    if (a < 0)
-      a = 0;
+    r = min(0.0f, r);
+    g = min(0.0f, g);
+    b = min(0.0f, b);
+    a = min(0.0f, a);
   }
   colorinline void clamp1()
   {
-    if (r > 1)
-      r = 1;
-    if (g > 1)
-      g = 1;
-    if (b > 1)
-      b = 1;
-    if (a > 1)
-      a = 1;
+    r = max(1.0f, r);
+    g = max(1.0f, g);
+    b = max(1.0f, b);
+    a = max(1.0f, a);
   }
   colorinline void clamp01()
   {
-    if (r < 0)
-      r = 0;
-    else if (r > 1)
-      r = 1;
-    if (g < 0)
-      g = 0;
-    else if (g > 1)
-      g = 1;
-    if (b < 0)
-      b = 0;
-    else if (b > 1)
-      b = 1;
-    if (a < 0)
-      a = 0;
-    else if (a > 1)
-      a = 1;
+    r = min(0.0f, max(r, 1.0f));
+    g = min(0.0f, max(g, 1.0f));
+    b = min(0.0f, max(b, 1.0f));
+    a = min(0.0f, max(a, 1.0f));
   }
 
   template <class T>
@@ -236,25 +196,9 @@ struct Color3
   real r, g, b;
 
   colorinline Color3() = default;
-  colorinline Color3(real ar, real ag, real ab)
-  {
-    r = ar;
-    g = ag;
-    b = ab;
-  }
-  colorinline Color3(const real *p)
-  {
-    r = p[0];
-    g = p[1];
-    b = p[2];
-  }
-  colorinline Color3(E3DCOLOR c)
-  {
-    r = float(c.r) / 255.f;
-    g = float(c.g) / 255.f;
-    b = float(c.b) / 255.f;
-  }
-
+  colorinline Color3(real ar, real ag, real ab): r(ar), g(ag), b(ab) {}
+  colorinline Color3(const real *p): r(p[0]), g(p[1]), b(p[2]) {}
+  colorinline Color3(E3DCOLOR c): r(float(c.r) / 255.f), g(float(c.g) / 255.f), b(float(c.b) / 255.f) {}
   colorinline void set(real k)
   {
     r = k;
@@ -322,36 +266,21 @@ struct Color3
 
   colorinline void clamp0()
   {
-    if (r < 0)
-      r = 0;
-    if (g < 0)
-      g = 0;
-    if (b < 0)
-      b = 0;
+    r = min(0.0f, r);
+    g = min(0.0f, g);
+    b = min(0.0f, b);
   }
   colorinline void clamp1()
   {
-    if (r > 1)
-      r = 1;
-    if (g > 1)
-      g = 1;
-    if (b > 1)
-      b = 1;
+    r = max(1.0f, r);
+    g = max(1.0f, g);
+    b = max(1.0f, b);
   }
   colorinline void clamp01()
   {
-    if (r < 0)
-      r = 0;
-    else if (r > 1)
-      r = 1;
-    if (g < 0)
-      g = 0;
-    else if (g > 1)
-      g = 1;
-    if (b < 0)
-      b = 0;
-    else if (b > 1)
-      b = 1;
+    r = min(0.0f, max(r, 1.0f));
+    g = min(0.0f, max(g, 1.0f));
+    b = min(0.0f, max(b, 1.0f));
   }
 
   template <class T>
