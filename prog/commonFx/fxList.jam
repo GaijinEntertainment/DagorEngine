@@ -2,7 +2,7 @@
 fxList =
   lightFx
   dafxSparks
-  dafxModfx
+  dafxModFx
   dafxCompound
 ;
 if $(SkipFlowAnCompoundPS) != yes {
