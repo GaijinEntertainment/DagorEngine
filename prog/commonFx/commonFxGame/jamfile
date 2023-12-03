@@ -18,7 +18,7 @@ include $(Root)/prog/commonFx/fxList.jam ;
 Sources =
   paramScriptsPool.cpp
   dafxSparksCpu.cpp
-  dafxModfxSystem.cpp
+  dafxModFxSystem.cpp
   modfx/modfx_cpu.cpp
 
   $(fxList).cpp
