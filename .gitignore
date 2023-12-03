@@ -9,6 +9,7 @@
 /outerSpace/tools
 /outerSpace/application.blk
 /_output/
+/prog/platform.jam
 *.pyc
 *.das.inl
 *.dshl.log
