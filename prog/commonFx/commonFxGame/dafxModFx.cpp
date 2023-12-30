@@ -333,7 +333,7 @@ struct DafxModFx : BaseParticleEffect
         float y = length(firstCirclePos - bottom) / (emitterDebug->sphereSector.radius * 2.0);
 
         float h = 2.0f * emitterDebug->sphereSector.radius * y;
-        float radius = sqrtf(2.0f * emitterDebug->sphereSector.radius * h - SQR(h));
+        float radius = sqrtf(2.0f * emitterDebug->sphereSector.radius * h - sqr(h));
         draw_debug_circle(firstCirclePos, cross, norm, radius, blue);
 
         Point3 p1 = firstCirclePos + cross * radius;
@@ -355,8 +355,8 @@ struct DafxModFx : BaseParticleEffect
         {
           float h1 = 2.0f * emitterDebug->sphereSector.radius * (i / (float)totalSegments);
           float h2 = 2.0f * emitterDebug->sphereSector.radius * ((i + 1) / (float)totalSegments);
-          float radiusLine1 = sqrtf(2.0f * emitterDebug->sphereSector.radius * h1 - SQR(h1));
-          radiusLine2 = sqrtf(2.0f * emitterDebug->sphereSector.radius * h2 - SQR(h2));
+          float radiusLine1 = sqrtf(2.0f * emitterDebug->sphereSector.radius * h1 - sqr(h1));
+          radiusLine2 = sqrtf(2.0f * emitterDebug->sphereSector.radius * h2 - sqr(h2));
           Point3 posLine1 = top - vec * (i / (float)totalSegments) * 2.0;
           posLine2 = top - vec * ((i + 1) / (float)totalSegments) * 2.0;
           for (int j = 0; j < 4; ++j)

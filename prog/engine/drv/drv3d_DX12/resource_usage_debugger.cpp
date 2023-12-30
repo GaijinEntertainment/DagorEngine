@@ -774,14 +774,14 @@ void ResourceUsageHistoryDataSetDebugger::debugOverlay()
         }
         if (ImGui::Button("Report to debug log"))
         {
-          debug("Texture usage analysis %s of <%s>", to_string(inspectinTextureMode), toInspect.name);
-          debug("Use | Current State | Used State | Expected Barrier | Segment");
+          logdbg("Texture usage analysis %s of <%s>", to_string(inspectinTextureMode), toInspect.name);
+          logdbg("Use | Current State | Used State | Expected Barrier | Segment");
           for (auto &e : analyzedTextureEntries)
           {
-            debug("%s | %08X | %08X | | %08X | %s", e.whatString, uint32_t(e.currentState),
+            logdbg("%s | %08X | %08X | | %08X | %s", e.whatString, uint32_t(e.currentState),
               uint32_t(translate_texture_barrier_to_state(e.expectedState, !isColorFormat)), uint32_t(e.expectedState), e.segment);
           }
-          debug("Listed %u entries", analyzedTextureEntries.size());
+          logdbg("Listed %u entries", analyzedTextureEntries.size());
         }
       }
       end_sub_section();
@@ -958,14 +958,14 @@ void ResourceUsageHistoryDataSetDebugger::debugOverlay()
         }
         if (ImGui::Button("Report to debug log"))
         {
-          debug("Buffer usage analysis %s of <%s>", to_string(inspectinTextureMode), toInspect.name);
-          debug("Use | Current State | Used State | Expected Barrier | Segment");
+          logdbg("Buffer usage analysis %s of <%s>", to_string(inspectinTextureMode), toInspect.name);
+          logdbg("Use | Current State | Used State | Expected Barrier | Segment");
           for (auto &e : analyzedBufferEntries)
           {
-            debug("%s | %08X | %08X | | %08X | %s", e.whatString, uint32_t(e.currentState),
+            logdbg("%s | %08X | %08X | | %08X | %s", e.whatString, uint32_t(e.currentState),
               uint32_t(translate_buffer_barrier_to_state(e.expectedState)), uint32_t(e.expectedState), e.segment);
           }
-          debug("Listed %u entries", analyzedBufferEntries.size());
+          logdbg("Listed %u entries", analyzedBufferEntries.size());
         }
       }
       end_sub_section();

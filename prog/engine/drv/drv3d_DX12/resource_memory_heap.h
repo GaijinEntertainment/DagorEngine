@@ -8,7 +8,7 @@
 #endif
 
 #if REPORT_HEAP_INFO
-#define HEAP_LOG(...) debug(__VA_ARGS__)
+#define HEAP_LOG(...) logdbg(__VA_ARGS__)
 #else
 #define HEAP_LOG(...)
 #endif
@@ -28,6 +28,8 @@ struct ScratchBuffer
 {
   ID3D12Resource *buffer = nullptr;
   size_t offset = 0;
+
+  explicit operator bool() const { return nullptr != buffer; }
 };
 namespace resource_manager
 {
@@ -97,7 +99,8 @@ class AliasHeapProvider : public TextureImageFactory
   static D3D12_RESOURCE_DESC as_desc(const ArrayCubeTextureResourceDescription &desc);
   static D3D12_RESOURCE_DESC as_desc(const BufferResourceDescription &desc);
   static D3D12_RESOURCE_DESC as_desc(const ResourceDescription &desc);
-  static DeviceMemoryClass get_memory_class(const ResourceDescription &desc);
+  // TODO: currently wrong naming convention (was static in the past), need to be fixed at some point.
+  DeviceMemoryClass get_memory_class(const ResourceDescription &desc);
 
 protected:
   struct PendingForCompletedFrameData : BaseType::PendingForCompletedFrameData
@@ -188,6 +191,8 @@ protected:
       {
         heap->accessRecodingPendingFrameCompletion<ScratchBufferProvider::PendingForCompletedFrameData>(
           [&](auto &data) { data.deletedScratchBuffers.push_back(eastl::move(buffer)); });
+
+        buffer = {};
       }
 
       while (nextSize < size)
@@ -217,12 +222,12 @@ protected:
       auto memoryProperties = heap->getProperties(D3D12_RESOURCE_FLAG_NONE, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER,
         D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
       auto memory = heap->allocate(adapter, device, memoryProperties, allocInfo, {});
+      if (!memory)
+      {
+        return false;
+      }
 
       auto errorCode = buffer.create(device, desc, memory, D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE, false);
-      if (is_oom_error_code(errorCode))
-      {
-        heap->reportOOMInformation();
-      }
 
       allocatedSpace = 0;
       if (DX12_CHECK_OK(errorCode))
@@ -255,8 +260,11 @@ protected:
       ScratchBufferProvider *heap)
     {
       auto space = getSpace(adapter, device, size, alignment, heap);
-      // alter allocatedSpace to turn this transient space into persistent
-      allocatedSpace = space.offset + size;
+      if (space)
+      {
+        // alter allocatedSpace to turn this transient space into persistent
+        allocatedSpace = space.offset + size;
+      }
       return space;
     }
 
@@ -291,14 +299,22 @@ public:
   ScratchBuffer getTempScratchBufferSpace(DXGIAdapter *adapter, ID3D12Device *device, size_t size, size_t alignment)
   {
     auto result = tempScratchBufferState.access()->getSpace(adapter, device, size, alignment, this);
-    recordScratchBufferTempUse(size);
+    checkForOOM(static_cast<bool>(result), "DX12: OOM during %s", "getTempScratchBufferSpace");
+    if (result)
+    {
+      recordScratchBufferTempUse(size);
+    }
     return result;
   }
   // Memory can be used anytime by multiple distinct operations until the frame has ended.
   ScratchBuffer getPersistentScratchBufferSpace(DXGIAdapter *adapter, ID3D12Device *device, size_t size, size_t alignment)
   {
     auto result = tempScratchBufferState.access()->getPersistentSpace(adapter, device, size, alignment, this);
-    recordScratchBufferPersistentUse(size);
+    checkForOOM(static_cast<bool>(result), "DX12: OOM during %s", "getPersistentScratchBufferSpace");
+    if (result)
+    {
+      recordScratchBufferPersistentUse(size);
+    }
     return result;
   }
   void completeFrameExecution(const CompletedFrameExecutionInfo &info, PendingForCompletedFrameData &data)
@@ -918,21 +934,21 @@ public:
   void waitForTemporaryUsesToFinish()
   {
     uint32_t retries = 0;
-    debug("DX12: Begin waiting for temporary memory uses to be completed...");
+    logdbg("DX12: Begin waiting for temporary memory uses to be completed...");
     while (!allTemporaryUsesCompleted([this](auto invoked) {
-      debug("DX12: Checking for temporary memory uses to be completed...");
+      logdbg("DX12: Checking for temporary memory uses to be completed...");
       visitAllFrameFinilazierData(invoked);
     }))
     {
       if (++retries > 100)
       {
-        debug("DX12: Waiting for too long, exiting, risking crashes...");
+        logdbg("DX12: Waiting for too long, exiting, risking crashes...");
         break;
       }
-      debug("DX12: Wating 10ms to complete temporary memory uses...");
+      logdbg("DX12: Wating 10ms to complete temporary memory uses...");
       sleep_msec(10);
     }
-    debug("DX12: Finished waiting for temporary memory uses...");
+    logdbg("DX12: Finished waiting for temporary memory uses...");
   }
 
   void generateResourceAndMemoryReport(uint32_t *num_textures, uint64_t *total_mem, String *out_text);

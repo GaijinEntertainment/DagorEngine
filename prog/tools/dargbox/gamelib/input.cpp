@@ -291,6 +291,7 @@ static SQInteger get_joystick_axis(HSQUIRRELVM vm)
 }
 
 
+///@module gamelib.input
 void bind_script(SqModules *module_mgr)
 {
   HSQUIRRELVM vm = module_mgr->getVM();

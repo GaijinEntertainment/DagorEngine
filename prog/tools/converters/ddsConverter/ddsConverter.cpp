@@ -11,7 +11,6 @@
 #include <image/dag_texPixel.h>
 #include <image/dag_loadImage.h>
 #include <debug/dag_logSys.h>
-#include <d3d9.h>
 #include <stdio.h>
 
 
@@ -29,7 +28,7 @@ public:
   {
     pow2 = 1;
     //----------------------------------------------------------------------------------------------
-    srcName = __argv[1];
+    srcName = argv[1];
     String loc;
     ::split_path(srcName, loc, dstName);
     srcName.toLower();
@@ -50,22 +49,22 @@ public:
     }
 
     //----------------------------------------------------------------------------------------------
-    for (int i = 2; i < __argc; i++)
+    for (int i = 2; i < argc; i++)
     {
-      if (__argv[i][0] != '-')
+      if (argv[i][0] != '-')
       {
-        printf("invalid param [%s]\n", __argv[i]);
+        printf("invalid param [%s]\n", argv[i]);
         dstName = "";
         return;
       }
-      if (strcmp(__argv[i], "-quiet") == 0)
+      if (strcmp(argv[i], "-quiet") == 0)
         continue;
 
-      String param(__argv[i] + 1);
+      String param(argv[i] + 1);
       const char *separator = param.find(':');
       if (!separator || !processParam(param, String(separator + 1)))
       {
-        printf("invalid param [%s]\n", __argv[i]);
+        printf("invalid param [%s]\n", argv[i]);
         dstName = "";
         return;
       }
@@ -333,7 +332,7 @@ int DagorWinMain(bool debugmode)
          "Copyright (C) Gaijin Games KFT, 2023\n\n");
   close_debug_files();
 
-  if (__argc < 2)
+  if (dgs_argc < 2)
   {
     printf("usage: ddsConverter-dev.exe source_filename <commands>\n"
            "where command can be:\n"
@@ -357,7 +356,7 @@ int DagorWinMain(bool debugmode)
     return -1;
   }
 
-  CmdLineOptions opt(__argc, __argv);
+  CmdLineOptions opt(dgs_argc, dgs_argv);
   int result = opt.convert();
   if (result > 0)
     printf("done\n");

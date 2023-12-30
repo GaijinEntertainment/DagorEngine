@@ -4,7 +4,7 @@
 Exposing C++ handled types
 ==========================
 
-Handled types represent the machinery designed to expose C++ types to daScript.
+Handled types represent the machinery designed to expose C++ types to Daslang.
 
 A handled type is created by deriving a custom type annotation from TypeAnnotation
 and adding an instance of that annotation to the desired module. For example::
@@ -177,34 +177,34 @@ Managed structure annotation automatically implements ``walk`` for the exposed f
 DummyTypeAnnotation
 -------------------
 
-``DummyTypeAnnotation`` is there when a type needs to be exposed to daScript,
+``DummyTypeAnnotation`` is there when a type needs to be exposed to Daslang,
 but no contents or operations are allowed.
 
 That way, the type can be part of other structures, and be passed to C++ functions which require it.
 
-The dummy type annotation constructor takes a daScript type name, C++ type name, its size, and alignment::
+The dummy type annotation constructor takes a Daslang type name, C++ type name, its size, and alignment::
 
     DummyTypeAnnotation(const string & name, const string & cppName, size_t sz, size_t al)
 
-Since ``TypeAnnotation`` is a strong daScript type,
-``DummyTypeAnnotation`` allows 'gluing' code in daScript without exposing the details of the C++ types.
+Since ``TypeAnnotation`` is a strong Daslang type,
+``DummyTypeAnnotation`` allows 'gluing' code in Daslang without exposing the details of the C++ types.
 Consider the following example:
 
         send_unit_to(get_unit("Ally"), get_unit_pos(get_unit("Enemy")))
 
 The result of ``get_unit`` is passed directly to ``send_unit_to``,
-without daScript knowing anything about the unit type (other than that it exists).
+without Daslang knowing anything about the unit type (other than that it exists).
 
 -----------------------
 ManagedVectorAnnotation
 -----------------------
 
-``ManagedVectorAnnotation`` is there to expose standard library vectors to daScript.
+``ManagedVectorAnnotation`` is there to expose standard library vectors to Daslang.
 
 For the most part, no integration is required, and vector annotations are automatically
 added to the modules, which register anything vector related in any form.
 
-Vectors get registered together with the following 4 functions, similar to those of daScript arrays::
+Vectors get registered together with the following 4 functions, similar to those of Daslang arrays::
 
     push(vec, value)
     pop(vec)
@@ -213,7 +213,7 @@ Vectors get registered together with the following 4 functions, similar to those
 
 Vectors also expose the field ``length`` which returns current size of vector.
 
-Managed vector annotation automatically implements ``walk``, similar to daScript arrays.
+Managed vector annotation automatically implements ``walk``, similar to Daslang arrays.
 
 ----------------------
 ManagedValueAnnotation

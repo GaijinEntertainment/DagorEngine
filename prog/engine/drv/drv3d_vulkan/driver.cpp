@@ -228,9 +228,11 @@ struct SelectType<false, A, B>
   typedef B Type;
 };
 
+#ifdef _MSC_VER
 #pragma warning(push)
 // obviously the comparison is always true/false for a type
 #pragma warning(disable : 4296)
+#endif
 template <typename A, typename B>
 struct MinByIndex
 {
@@ -242,7 +244,9 @@ struct MaxByIndex
 {
   typedef typename SelectType<(A::Index < B::Index), B, A>::Type Type;
 };
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 
 template <typename...>
@@ -402,7 +406,7 @@ typedef typename SortedFormatInfoTable<FormatInfoTable<FormatInfo<TEXFMT_DEFAULT
   FormatInfo<TEXFMT_ATI1N, VK_FORMAT_BC4_UNORM_BLOCK, VK_FORMAT_BC4_UNORM_BLOCK>,
   FormatInfo<TEXFMT_ATI2N, VK_FORMAT_BC5_UNORM_BLOCK, VK_FORMAT_BC5_UNORM_BLOCK>,
   FormatInfo<TEXFMT_R8G8B8A8, VK_FORMAT_A8B8G8R8_UNORM_PACK32, VK_FORMAT_A8B8G8R8_SRGB_PACK32>,
-  FormatInfo<TEXFMT_R32UI, VK_FORMAT_R32_UINT, VK_FORMAT_R32_UINT>,
+  FormatInfo<TEXFMT_R32UI, VK_FORMAT_R32_UINT, VK_FORMAT_R32_UINT>, FormatInfo<TEXFMT_R32SI, VK_FORMAT_R32_SINT, VK_FORMAT_R32_SINT>,
   FormatInfo<TEXFMT_R11G11B10F, VK_FORMAT_B10G11R11_UFLOAT_PACK32, VK_FORMAT_B10G11R11_UFLOAT_PACK32>,
   FormatInfo<TEXFMT_R9G9B9E5, VK_FORMAT_E5B9G9R9_UFLOAT_PACK32, VK_FORMAT_E5B9G9R9_UFLOAT_PACK32>,
   FormatInfo<TEXFMT_R8G8, VK_FORMAT_R8G8_UNORM, VK_FORMAT_R8G8_UNORM>,
@@ -889,6 +893,71 @@ String drv3d_vulkan::formatImageUsageFlags(VkImageUsageFlags flags)
   if (flags & VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT)
     ret.append("frag_density ");
 #endif
+  return ret;
+}
+
+String drv3d_vulkan::formatBufferUsageFlags(VkBufferUsageFlags flags)
+{
+  String ret;
+  if (flags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+    ret.append("src ");
+  if (flags & VK_BUFFER_USAGE_TRANSFER_DST_BIT)
+    ret.append("dst ");
+  if (flags & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT)
+    ret.append("utb ");
+  if (flags & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)
+    ret.append("stb ");
+  if (flags & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+    ret.append("ubo ");
+  if (flags & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
+    ret.append("sbo ");
+  if (flags & VK_BUFFER_USAGE_INDEX_BUFFER_BIT)
+    ret.append("index ");
+  if (flags & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
+    ret.append("vertex ");
+  if (flags & VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT)
+    ret.append("indirect ");
+  if (flags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+    ret.append("addr ");
+  if (flags & VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT)
+    ret.append("tfb ");
+  if (flags & VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT)
+    ret.append("tfc ");
+  if (flags & VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT)
+    ret.append("cond ");
+  if (flags & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR)
+    ret.append("acbuild ");
+  if (flags & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR)
+    ret.append("acstore ");
+  if (flags & VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR)
+    ret.append("binding ");
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+  if (flags & VK_BUFFER_USAGE_VIDEO_ENCODE_DST_BIT_KHR = 0x00008000,
+    ret.append("vedst ");
+#endif
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+  if (flags & VK_BUFFER_USAGE_VIDEO_ENCODE_SRC_BIT_KHR = 0x00010000,
+    ret.append("vesrc ");
+#endif
+
+  // switch uses some old headers
+#if !_TARGET_C3
+  if (flags & VK_BUFFER_USAGE_VIDEO_DECODE_SRC_BIT_KHR)
+    ret.append("vdsrc ");
+  if (flags & VK_BUFFER_USAGE_VIDEO_DECODE_DST_BIT_KHR)
+    ret.append("vddst ");
+  if (flags & VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT)
+    ret.append("sdesc ");
+  if (flags & VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT)
+    ret.append("rdesc ");
+  if (flags & VK_BUFFER_USAGE_PUSH_DESCRIPTORS_DESCRIPTOR_BUFFER_BIT_EXT)
+    ret.append("pddesc ");
+  if (flags & VK_BUFFER_USAGE_MICROMAP_BUILD_INPUT_READ_ONLY_BIT_EXT)
+    ret.append("mmbuild ");
+  if (flags & VK_BUFFER_USAGE_MICROMAP_STORAGE_BIT_EXT)
+    ret.append("mmstore ");
+#endif
+
   return ret;
 }
 

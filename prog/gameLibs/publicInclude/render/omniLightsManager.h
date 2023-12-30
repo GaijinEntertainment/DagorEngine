@@ -114,7 +114,7 @@ public:
 
   void setLightTexture(unsigned int id, int tex);
 
-  const mask_type_t getLightMask(unsigned int id) const { return masks[id]; }
+  mask_type_t getLightMask(unsigned int id) const { return masks[id]; }
   void setLightMask(unsigned int id, mask_type_t mask) { masks[id] = mask; }
 
   const Light &getLight(unsigned int id) const { return rawLights[id]; }

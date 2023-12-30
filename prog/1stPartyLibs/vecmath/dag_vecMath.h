@@ -282,11 +282,17 @@ VECTORCALL VECMATH_FINLINE vec4i v_negi(vec4i a);
 //! fabs(a)
 VECTORCALL VECMATH_FINLINE vec4f v_abs(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4i v_absi(vec4i a);
+
+//! special floats compare for relative equality
+VECTORCALL VECMATH_FINLINE vec4f v_cmp_relative_equal(vec4f a, vec4f b, vec4f max_diff = v_splats(1e-5f), vec4f max_rel_diff = v_splats(1.192092896e-07f));
+VECTORCALL VECMATH_FINLINE bool v_is_relative_equal_vec3f(vec4f a, vec4f b);
+VECTORCALL VECMATH_FINLINE bool v_is_relative_equal_vec4f(vec4f a, vec4f b);
+
 //! check if /a can produce NaN's or inf
 VECTORCALL VECMATH_FINLINE vec4f v_is_unsafe_divisor(vec4f a);
 
 //! LERP a to b using parameter tttt
-VECTORCALL VECMATH_FINLINE quat4f v_lerp_vec4f(vec4f tttt, quat4f a, quat4f b);
+VECTORCALL VECMATH_FINLINE vec4f v_lerp_vec4f(vec4f tttt, vec4f a, vec4f b);
 
 //! (a + b)
 VECTORCALL VECMATH_FINLINE vec4i v_addi(vec4i a, vec4i b);
@@ -567,6 +573,9 @@ VECTORCALL VECMATH_FINLINE vec3f v_mat43_mul_vec3p(mat43f_cref m, vec3f v);
 VECTORCALL VECMATH_FINLINE vec4f v_mat44_mul_bsph(mat44f_cref m, vec4f bsph);
 VECTORCALL VECMATH_FINLINE void v_mat44_mul_bsph(mat44f_cref m, vec4f &bsph_pos, vec4f &bsph_rad_x);
 
+//! LERP matrix a to b using parameter tttt
+VECTORCALL VECMATH_FINLINE mat44f v_mat44_lerp(vec4f tttt, mat44f_cref a, mat44f_cref b);
+
 //! q * v, rotate vector using normalized quaternion
 VECTORCALL VECMATH_FINLINE vec3f v_quat_mul_vec3(quat4f q, vec3f v);
 
@@ -709,11 +718,17 @@ VECTORCALL VECMATH_FINLINE vec4f v_mat44_max_scale43_x(mat44f_cref tm);
 //! .xyz = scales of 3 axes
 VECTORCALL VECMATH_FINLINE vec3f v_mat44_scale43_sq(mat44f_cref tm);
 
+//! stores mat33f to unaligned Matrix3
+VECTORCALL VECMATH_FINLINE void v_mat_33cu_from_mat33(float * __restrict m33, const mat33f& tm);
+
 //! stores mat44f to aligned TMatrix from mat44f
 VECTORCALL VECMATH_FINLINE void v_mat_43ca_from_mat44(float * __restrict m43, const mat44f &tm);
 
 //! stores mat44f to unaligned TMatrix
 VECTORCALL VECMATH_FINLINE void v_mat_43cu_from_mat44(float * __restrict m43, const mat44f &tm);
+
+//! mat33f from unaligned Matrix3
+VECTORCALL VECMATH_FINLINE void v_mat33_make_from_33cu(mat33f &tmV, const float *const __restrict m33);
 
 //! mat44f from unaligned TMatrix
 VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43cu(mat44f &tmV, const float *const __restrict m43);
@@ -974,12 +989,12 @@ VECTORCALL VECMATH_INLINE  bool v_is_point_in_triangle_2d(vec4f p, vec4f t1, vec
 // Quaternion math
 //
 
-//! make (unnormalized) quaternion from 3x3 rotation matrix
-VECTORCALL VECMATH_FINLINE quat4f v_un_quat_from_mat3(mat33f_cref m);
-//! make (unnormalized) quaternion from rotation part of 4x4 matrix
-VECTORCALL VECMATH_FINLINE quat4f v_un_quat_from_mat4(mat44f_cref m);
-//! make (unnormalized) quaternion from rotation part of 4x4 matrix
-VECTORCALL VECMATH_FINLINE quat4f v_un_quat_from_mat(vec3f col0, vec3f col1, vec3f col2);
+//! make quaternion from 3 normalized columns of 3x3 rotation matrix
+VECTORCALL VECMATH_FINLINE quat4f v_quat_from_mat(vec3f col0, vec3f col1, vec3f col2);
+//! make quaternion from 3x3 rotation matrix (should be not scaled)
+VECTORCALL VECMATH_FINLINE quat4f v_quat_from_mat33(mat33f_cref m);
+//! make quaternion from rotation part of 4x4 matrix (should be not scaled)
+VECTORCALL VECMATH_FINLINE quat4f v_quat_from_mat43(mat44f_cref m);
 
 //! make (unnormalized) quaternion to rotate 'ang' radians around normalized 'v';
 VECTORCALL inline quat4f v_quat_from_unit_vec_ang(vec3f v, vec4f ang);
@@ -989,11 +1004,13 @@ VECTORCALL VECMATH_FINLINE quat4f v_quat_from_unit_arc(vec3f v0, vec3f v1);
 VECTORCALL VECMATH_FINLINE quat4f v_quat_from_arc(vec3f v0, vec3f v1);
 //! make (unnormalized) quaternion from heading, attitude, bank angles in .xyz
 VECTORCALL inline quat4f v_quat_from_euler(vec3f angles);
-//! make heading, attitude, bank angles from (unnormalized) quaternion
-VECTORCALL inline vec3f v_euler_from_un_quat(quat4f quat);
+//! make heading, attitude, bank angles from quaternion
+VECTORCALL inline vec3f v_euler_from_quat(quat4f quat);
 
 //! linear interpolation between normalized quaternions using parameter tttt
 VECTORCALL VECMATH_FINLINE quat4f v_quat_lerp(vec4f tttt, quat4f a, quat4f b);
+//! spherical interpolation between normalized quaternions
+VECTORCALL VECMATH_FINLINE quat4f v_quat_slerp(vec4f t, quat4f a, quat4f b);
 //! fast quasi-spherical linear interpolation between normalized quaternions
 VECTORCALL VECMATH_FINLINE quat4f v_quat_qslerp(float t, quat4f a, quat4f b);
 //! fast quasi-spherical quadrangle interpolation between normalized quaternions
@@ -1003,6 +1020,10 @@ VECTORCALL VECMATH_FINLINE quat4f v_quat_qsquad(float t,
 //
 // Trigonometry
 //
+
+//! degrees <-> radians
+VECTORCALL VECMATH_FINLINE vec4f v_deg_to_rad(vec4f deg);
+VECTORCALL VECMATH_FINLINE vec4f v_rad_to_deg(vec4f rad);
 
 //! compute sine and cosine for all components: for C={xyzw}  s.C = sin(a.C); c.C = cos(a.C);
 VECTORCALL VECMATH_FINLINE void v_sincos4(vec4f a, vec4f& s, vec4f& c);

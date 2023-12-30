@@ -406,14 +406,14 @@ const char *AsgStatesGraph::getParentGroupName(AnimGraphState *s)
     return states[s->groupId.belongsTo]->name;
   return "--deleted--";
 }
-void AsgStatesGraph::addLink(int src_id, int dest_id, AnimGraphBrachType cond_type, const char *condition, bool customMorph,
+void AsgStatesGraph::addLink(int src_id, int dest_id, AnimGraphBranchType cond_type, const char *condition, bool customMorph,
   real customMorphTime)
 {
   if (dest_id < 0 || dest_id >= states.size() || !states[dest_id])
     return;
   addLink(src_id, states[dest_id]->name, cond_type, condition, customMorph, customMorphTime);
 }
-void AsgStatesGraph::addLink(int src_id, const char *dest_name, AnimGraphBrachType cond_type, const char *condition, bool customMorph,
+void AsgStatesGraph::addLink(int src_id, const char *dest_name, AnimGraphBranchType cond_type, const char *condition, bool customMorph,
   real customMorphTime)
 {
   Tab<AnimGraphCondition *> *cond = getCond(src_id, cond_type);
@@ -426,7 +426,7 @@ void AsgStatesGraph::addLink(int src_id, const char *dest_name, AnimGraphBrachTy
   c->customMorphTime = customMorphTime;
   cond->push_back(c);
 }
-void AsgStatesGraph::delLinks(int src_id, int dest_id, AnimGraphBrachType cond_type)
+void AsgStatesGraph::delLinks(int src_id, int dest_id, AnimGraphBranchType cond_type)
 {
   Tab<AnimGraphCondition *> *cond = getCond(src_id, cond_type);
   if (!cond)
@@ -442,7 +442,7 @@ void AsgStatesGraph::delLinks(int src_id, int dest_id, AnimGraphBrachType cond_t
       erase_items(*cond, i, 1);
     }
 }
-Tab<AnimGraphCondition *> *AsgStatesGraph::getCond(int state_id, AnimGraphBrachType cond_type)
+Tab<AnimGraphCondition *> *AsgStatesGraph::getCond(int state_id, AnimGraphBranchType cond_type)
 {
   if (state_id < 0 || state_id >= states.size())
     return NULL;
@@ -455,7 +455,7 @@ Tab<AnimGraphCondition *> *AsgStatesGraph::getCond(int state_id, AnimGraphBrachT
   }
   return NULL;
 }
-void AsgStatesGraph::delOneLink(int state_id, int cond_idx, AnimGraphBrachType cond_type)
+void AsgStatesGraph::delOneLink(int state_id, int cond_idx, AnimGraphBranchType cond_type)
 {
   Tab<AnimGraphCondition *> *cond = getCond(state_id, cond_type);
   if (!cond)
@@ -467,7 +467,7 @@ void AsgStatesGraph::delOneLink(int state_id, int cond_idx, AnimGraphBrachType c
   delete (*cond)[cond_idx];
   erase_items(*cond, cond_idx, 1);
 }
-void AsgStatesGraph::moveLink(int state_id, int cond_idx, AnimGraphBrachType cond_type, int dir)
+void AsgStatesGraph::moveLink(int state_id, int cond_idx, AnimGraphBranchType cond_type, int dir)
 {
   Tab<AnimGraphCondition *> *cond = getCond(state_id, cond_type);
   if (!cond || !dir)
@@ -484,7 +484,7 @@ void AsgStatesGraph::moveLink(int state_id, int cond_idx, AnimGraphBrachType con
   cond->at(new_idx) = tmp;
 }
 
-int AsgStatesGraph::getConditionsCount(int src_id, int dest_id, AnimGraphBrachType cond_type)
+int AsgStatesGraph::getConditionsCount(int src_id, int dest_id, AnimGraphBranchType cond_type)
 {
   Tab<AnimGraphCondition *> *cond = getCond(src_id, cond_type);
   if (!cond)

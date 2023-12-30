@@ -14,7 +14,7 @@ IPhysCar *create_bullet_raywheel_car(const char *res_name, const TMatrix &tm, vo
   PhysCarCreationData *pccd = (PhysCarCreationData *)get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(res_name), VehicleGameResClassId);
 
   if (!pccd)
-    fatal("can't find %s, type=Vehicle", res_name);
+    DAG_FATAL("can't find %s, type=Vehicle", res_name);
   G_ASSERT(pccd);
   G_ASSERT(pccd->bodyPhObjData);
 
@@ -28,7 +28,7 @@ IPhysCar *create_bullet_raywheel_car(const char *res_name, const TMatrix &tm, vo
   SimplePhysObject *body = new (midmem) SimplePhysObject;
   body->init(&bodyPhObjData, (PhysWorld *)phys_world);
   if (!body)
-    fatal("Can't create phys body for car '%s'", res_name);
+    DAG_FATAL("Can't create phys body for car '%s'", res_name);
 
   TMatrix physTm;
   body->getBody()->getTm(physTm);

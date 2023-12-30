@@ -16,7 +16,7 @@
 #include "shLocVar.h"
 #include "shaderVariantSrc.h"
 #include "shaderTab.h"
-#include "VarMap.h"
+#include "varMap.h"
 #include <memory/dag_regionMemAlloc.h>
 #include <EASTL/optional.h>
 
@@ -77,25 +77,25 @@ public:
       int cnt = (c2 << 16) + c3;
       switch (sh_profile)
       {
-        case 'v': vpr.set((unsigned *)c1, cnt); break;
+        case 'v': vpr.set((unsigned *)(void *)intptr_t(c1), cnt); break;
 #if _CROSS_TARGET_C1 | _CROSS_TARGET_C2
 
 
 #endif
-        case 'h': hs.set((unsigned *)c1, cnt); break;
-        case 'd': ds.set((unsigned *)c1, cnt); break;
-        case 'g': gs.set((unsigned *)c1, cnt); break;
-        case 'p': fsh.set((unsigned *)c1, cnt); break;
-        case 'c': cs.set((unsigned *)c1, cnt); break;
-        case 'm': vpr.set((unsigned *)c1, cnt); break;
-        case 'a': gs.set((unsigned *)c1, cnt); break;
+        case 'h': hs.set((unsigned *)(void *)intptr_t(c1), cnt); break;
+        case 'd': ds.set((unsigned *)(void *)intptr_t(c1), cnt); break;
+        case 'g': gs.set((unsigned *)(void *)intptr_t(c1), cnt); break;
+        case 'p': fsh.set((unsigned *)(void *)intptr_t(c1), cnt); break;
+        case 'c': cs.set((unsigned *)(void *)intptr_t(c1), cnt); break;
+        case 'm': vpr.set((unsigned *)(void *)intptr_t(c1), cnt); break;
+        case 'a': gs.set((unsigned *)(void *)intptr_t(c1), cnt); break;
       }
     }
 
     bool getCidx(const void *p, int cnt, int &c1, int &c2, int &c3, int sh_profile, bool verify) const
     {
       c1 = intptr_t(p) & 0xffffffff;
-      if ((void *)c1 != p || (c1 & 0xF) != 3)
+      if ((void *)intptr_t(c1) != p || (c1 & 0xF) != 3)
       {
         if (verify)
           sh_debug(SHLOG_ERROR, "Packed indexes are corrupted: p=%p, c1=%i, cnt=%i, profile=%c", p, c1, cnt, sh_profile);

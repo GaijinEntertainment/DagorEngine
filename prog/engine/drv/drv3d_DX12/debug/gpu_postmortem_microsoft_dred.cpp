@@ -16,7 +16,7 @@ bool debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::try_load(const
 {
   if (!config.enableDRED)
   {
-    debug("DX12: ...DRED is not allowed per configuration...");
+    logdbg("DX12: ...DRED is not allowed per configuration...");
     return false;
   }
 
@@ -24,28 +24,28 @@ bool debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::try_load(const
   {
     if (!is_dred_avilable())
     {
-      debug("DX12: ...after registry inspection, it seems DRED is not available, DRED is ignored...");
+      logdbg("DX12: ...after registry inspection, it seems DRED is not available, DRED is ignored...");
       return false;
     }
   }
   else
   {
-    debug("DX12: ...skipped DRED availability inspection of the registry, assuming it is available...");
+    logdbg("DX12: ...skipped DRED availability inspection of the registry, assuming it is available...");
   }
 
-  debug("DX12: ...loading debug interface query...");
+  logdbg("DX12: ...loading debug interface query...");
   PFN_D3D12_GET_DEBUG_INTERFACE D3D12GetDebugInterface = nullptr;
   reinterpret_cast<FARPROC &>(D3D12GetDebugInterface) = d3d_env.getD3DProcAddress("D3D12GetDebugInterface");
   if (!D3D12GetDebugInterface)
   {
-    debug("DX12: ...D3D12GetDebugInterface not found in direct dx runtime library...");
+    logdbg("DX12: ...D3D12GetDebugInterface not found in direct dx runtime library...");
     return false;
   }
 
   ComPtr<ID3D12DeviceRemovedExtendedDataSettings> dredConfig;
   if (FAILED(D3D12GetDebugInterface(COM_ARGS(&dredConfig))))
   {
-    debug("DX12: ...unable to query DRED settings interface, assuming it is unavailable...");
+    logdbg("DX12: ...unable to query DRED settings interface, assuming it is unavailable...");
     return false;
   }
 
@@ -61,11 +61,11 @@ bool debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::try_load(const
 void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::walkBreadcumbs(ID3D12DeviceRemovedExtendedData *dred,
   call_stack::Reporter &reporter)
 {
-  debug("DX12: Acquiring breadcrumb information from DRED...");
+  logdbg("DX12: Acquiring breadcrumb information from DRED...");
   D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT breacrumbInfo = {};
   if (FAILED(dred->GetAutoBreadcrumbsOutput(&breacrumbInfo)))
   {
-    debug("DX12: ...failed, no breadcrumb data available");
+    logdbg("DX12: ...failed, no breadcrumb data available");
     return;
   }
   walkBreadcumbs(breacrumbInfo.pHeadAutoBreadcrumbNode, reporter);
@@ -76,7 +76,7 @@ void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::walkBreadcumbs
 {
   if (!node)
   {
-    debug("No breadcrumb nodes found");
+    logdbg("No breadcrumb nodes found");
   }
 
   CommandListTraceBase::printLegend();
@@ -87,23 +87,23 @@ void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::walkBreadcumbs
     // value, than the cmd buffer was executed completely
     if (node->BreadcrumbCount == *node->pLastBreadcrumbValue)
     {
-      debug("Command Buffer was executed without error");
-      debug("Command Buffer: %p", node->pCommandList);
+      logdbg("Command Buffer was executed without error");
+      logdbg("Command Buffer: %p", node->pCommandList);
       report_alternate_name("Name: %s", node->pCommandListDebugNameA, node->pCommandListDebugNameW);
-      debug("Command Queue: %p", node->pCommandQueue);
+      logdbg("Command Queue: %p", node->pCommandQueue);
       report_alternate_name("Name: %s", node->pCommandQueueDebugNameA, node->pCommandQueueDebugNameW);
     }
     // if last breadcrumb value is 0, then this command buffer was probably never submitted
     // we report the first command to be sure
     else if (*node->pLastBreadcrumbValue == 0)
     {
-      debug("Command Buffer execution was likely not started yet");
-      debug("Command Buffer: %p", node->pCommandList);
+      logdbg("Command Buffer execution was likely not started yet");
+      logdbg("Command Buffer: %p", node->pCommandList);
       report_alternate_name("Name: %s", node->pCommandListDebugNameA, node->pCommandListDebugNameW);
-      debug("Command Queue: %p", node->pCommandQueue);
+      logdbg("Command Queue: %p", node->pCommandQueue);
       report_alternate_name("Name: %s", node->pCommandQueueDebugNameA, node->pCommandQueueDebugNameW);
-      debug("Breadcrumb count: %u", node->BreadcrumbCount);
-      debug("Last breadcrumb value: %u", *node->pLastBreadcrumbValue);
+      logdbg("Breadcrumb count: %u", node->BreadcrumbCount);
+      logdbg("Last breadcrumb value: %u", *node->pLastBreadcrumbValue);
       auto &listInfo = commandListTable.getList(node->pCommandList);
       auto visitorContext = listInfo.beginVisitation();
       listInfo.reportAsCompleted(visitorContext, node->pCommandHistory[0], reporter);
@@ -114,13 +114,13 @@ void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::walkBreadcumbs
       auto visitorContext = listInfo.beginVisitation();
       G_UNUSED(listInfo);
 
-      debug("Command Buffer execution incomplete");
-      debug("Command Buffer: %p", node->pCommandList);
+      logdbg("Command Buffer execution incomplete");
+      logdbg("Command Buffer: %p", node->pCommandList);
       report_alternate_name("Name: %s", node->pCommandListDebugNameA, node->pCommandListDebugNameW);
-      debug("Command Queue: %p", node->pCommandQueue);
+      logdbg("Command Queue: %p", node->pCommandQueue);
       report_alternate_name("Name: %s", node->pCommandQueueDebugNameA, node->pCommandQueueDebugNameW);
-      debug("Breadcrumb count: %u", node->BreadcrumbCount);
-      debug("Last breadcrumb value: %u", *node->pLastBreadcrumbValue);
+      logdbg("Breadcrumb count: %u", node->BreadcrumbCount);
+      logdbg("Last breadcrumb value: %u", *node->pLastBreadcrumbValue);
 
       auto lastValue = *node->pLastBreadcrumbValue;
       for (uint32_t i = 0; i < lastValue; ++i)
@@ -128,9 +128,9 @@ void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::walkBreadcumbs
         listInfo.reportAsCompleted(visitorContext, node->pCommandHistory[i], reporter);
       }
 
-      debug("~Last known good command~~");
+      logdbg("~Last known good command~~");
       listInfo.reportAsLastCompleted(visitorContext, node->pCommandHistory[lastValue], reporter);
-      debug("~First may be bad command~");
+      logdbg("~First may be bad command~");
 
       for (uint32_t i = lastValue + 1; i < node->BreadcrumbCount; ++i)
       {
@@ -243,11 +243,11 @@ void debug::gpu_postmortem::microsoft::DeviceRemovedExtendedData::onDeviceRemove
     // Data from DRED is not useful when the runtime detected a invalid call.
     return;
   }
-  debug("DX12: Acquiring DRED interface...");
+  logdbg("DX12: Acquiring DRED interface...");
   ComPtr<ID3D12DeviceRemovedExtendedData> dred;
   if (FAILED(device->QueryInterface(COM_ARGS(&dred))))
   {
-    debug("DX12: ...failed, no DRED information available");
+    logdbg("DX12: ...failed, no DRED information available");
     return;
   }
 

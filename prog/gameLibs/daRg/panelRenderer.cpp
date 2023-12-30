@@ -241,7 +241,7 @@ void panel_spatial_resolver(const TMatrix &vr_space, const TMatrix &camera, cons
       panelTransform = entity_resolver(info.anchorEntityId, info.anchorNodeName.data()) * panelTransform;
       break;
 
-    default: fatal("This PanelAnchor type should be handled here. %d", int(info.anchor)); return;
+    default: DAG_FATAL("This PanelAnchor type should be handled here. %d", int(info.anchor)); return;
   }
 
   // If all axes are locked, it means that the rotation of the panel is locked, and its orientation
@@ -275,7 +275,7 @@ void panel_spatial_resolver(const TMatrix &vr_space, const TMatrix &camera, cons
       orientTransform = orient_toward(entity_resolver(info.facingEntityId, nullptr).getcol(3), info.size, panelPosition, true);
       break;
 
-    default: fatal("This PanelRotationConstraint type should be handled here. %d", int(info.constraint)); return;
+    default: DAG_FATAL("This PanelRotationConstraint type should be handled here. %d", int(info.constraint)); return;
   }
 
   out_transform = orientTransform;

@@ -345,7 +345,7 @@ inline int ZstdLoadFromMemCB::tryReadImpl(void *ptr, int size)
   {
     if (ZSTD_isError(ret))
     {
-      fatal("zstd error %d (%s) in %s\nsource: '%s'\n", ret, ZSTD_getErrorName(ret), "ZSTD_decompressStream", getTargetName());
+      DAG_FATAL("zstd error %d (%s) in %s\nsource: '%s'\n", ret, ZSTD_getErrorName(ret), "ZSTD_decompressStream", getTargetName());
       RETURN_X_AFTER_FATAL(0);
     }
     if (outBuf.pos == outBuf.size)

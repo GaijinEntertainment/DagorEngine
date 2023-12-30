@@ -135,6 +135,7 @@ struct WrapType<ManagedTexView>
     value = false
   };
   typedef void *type;
+  typedef void *rettype;
 };
 template <>
 struct WrapType<ManagedBufView>
@@ -144,6 +145,7 @@ struct WrapType<ManagedBufView>
     value = false
   };
   typedef void *type;
+  typedef void *rettype;
 };
 
 template <class T>

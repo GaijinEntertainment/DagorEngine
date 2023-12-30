@@ -41,7 +41,7 @@ void draw_cached_debug_capsule_w(const Capsule &, E3DCOLOR) {}
 void draw_cached_debug_capsule_l(const Capsule &, E3DCOLOR) {}
 void draw_cached_debug_capsule(const Capsule &, E3DCOLOR, const TMatrix &) {}
 void draw_cached_debug_cylinder(const TMatrix &, float, float, E3DCOLOR) {}
-
+void draw_cached_debug_cone(const Point3 &, const Point3 &, real, E3DCOLOR, int) {}
 
 void draw_cached_debug_trilist(const Point3 *, int, E3DCOLOR) {}
 void draw_cached_debug_hex(const TMatrix &, const Point3 &, real, E3DCOLOR) {}
@@ -563,6 +563,39 @@ void draw_cached_debug_cylinder(const TMatrix &tm, float rad, float height, E3DC
     draw_cached_debug_line(tm * pos10, tm * pos11, c);
     draw_cached_debug_line(tm * pos00, tm * pos10, c);
   }
+}
+
+void draw_cached_debug_cone(const Point3 &p0, const Point3 &p1, real angleRad, E3DCOLOR col, int segs)
+{
+  Point3 dir = p1 - p0;
+  const float length = dir.length();
+  dir *= safeinv(length);
+  Point3 norm;
+  if (rabs(dir.x) >= FLT_EPSILON)
+    norm = Point3(0, dir.z, -dir.y); // dir % Point3(1,0,0)
+  else
+    norm = Point3(dir.z, 0, -dir.x); // Point3(0, 1, 0) % dir
+  norm.normalize();
+  ::draw_cached_debug_line(p0, p0 + dir * length, col);
+  const float rad = length * tanf(angleRad);
+
+  const float angleStep = 2 * PI / segs;
+  Point3 lastPoint = ZERO<Point3>();
+  Point3 firstPoint = ZERO<Point3>();
+  for (int i = 0; i < segs; ++i)
+  {
+    const Quat quaternion = Quat(dir, i * angleStep);
+    const Point3 newDir = quaternion * norm;
+    const Point3 newPos = p0 + newDir * rad;
+    const Point3 pushedPoint = newPos + dir * length;
+    ::draw_cached_debug_line(p0, pushedPoint, col);
+    if (i > 0)
+      ::draw_cached_debug_line(lastPoint, pushedPoint, col);
+    else
+      firstPoint = newPos + dir * length;
+    lastPoint = newPos + dir * length;
+  }
+  ::draw_cached_debug_line(lastPoint, firstPoint, col);
 }
 
 void draw_cached_debug_trilist(const Point3 *p, int tn, E3DCOLOR c) { cdld.addTriangles(p, tn, c); }

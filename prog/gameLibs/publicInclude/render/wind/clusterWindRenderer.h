@@ -31,7 +31,7 @@ public:
   void updateCurrentRendererIndex() { currentClusterIndex = ((currentClusterIndex + 1u) % 2u); };
   bool getClusterDescForCpuSim(int num, ClusterDescGpu &outputClusterDescGpu);
   ClusterCascadeDescGpu getClusterCascadeDescForCpuSim(int num) { return cascadeDescArr[(currentClusterIndex + 1u) % 2u][num]; };
-  const int getClusterCascadeDescNum() const { return cascadeDescArr[(currentClusterIndex + 1u) % 2u].size(); };
+  int getClusterCascadeDescNum() const { return cascadeDescArr[(currentClusterIndex + 1u) % 2u].size(); };
   bool getClusterGridsIdForCpuSim(int num, uint4 &outGridsId);
   ClusterWindRenderer(bool need_historical_buffer);
   ~ClusterWindRenderer();

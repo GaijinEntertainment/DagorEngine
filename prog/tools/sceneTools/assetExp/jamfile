@@ -1,4 +1,4 @@
-Platform ?= win64 ;
+if $(OS) = NT { Platform ?= win64 ; }
 
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/assetExp ;

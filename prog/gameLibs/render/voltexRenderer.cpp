@@ -74,7 +74,7 @@ void VoltexRenderer::render(const ManagedTex &voltex, int mip_level, IPoint3 sha
   }
   else
   {
-    fatal("can't render not inited VoltexRenderer");
+    DAG_FATAL("can't render not inited VoltexRenderer");
   }
 }
 

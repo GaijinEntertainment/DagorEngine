@@ -316,7 +316,7 @@ public:
   void checkWatermark() const
   {
     if (debugWatermark != DANET_WATERMARK)
-      fatal("Reflection: invalid object 0x%p", this);
+      DAG_FATAL("Reflection: invalid object 0x%p", this);
   }
 
   void enableReflection()
@@ -590,7 +590,7 @@ public:
   const T &get() const { return ReflectionVarMeta::getValue<T>(); }
   operator const T &() const { return get(); }
 
-  const T operator->() const
+  T operator->() const
   {
     G_STATIC_ASSERT(IsPtr<T>::Value == true);
     return ReflectionVarMeta::getValue<T>();
@@ -1001,6 +1001,12 @@ static inline reflection_var_encoder get_encoder_for(T *) // default coder (inst
   return &readwrite_var_raw<T>;
 }
 
+template <typename T>
+constexpr inline T c_expr(T value)
+{
+  return value;
+}
+
 // dummy encoder - does nothing
 static inline int empty_encoder(DANET_ENCODER_SIGNATURE)
 {
@@ -1133,7 +1139,7 @@ void on_reflection_var_changed(danet::ReflectionVarMeta *meta, danet::Reflectabl
 #define REFL_VAR_DECL(num, decl_typ, dispatch_typ, var_name, var_flags, var_bits, coder_f_init, additional_decl, init_code, templ) \
   class EventListenerFor_##num                                                                                                     \
   {                                                                                                                                \
-    G_STATIC_ASSERT(1 <= num && num <= SizeReflVarQuotaNumber);                                                                    \
+    G_STATIC_ASSERT(1 <= danet::c_expr(num) && num <= SizeReflVarQuotaNumber);                                                     \
                                                                                                                                    \
   public:                                                                                                                          \
     static inline void OnVarCreated(danet::ReflectionVarMeta *meta)                                                                \

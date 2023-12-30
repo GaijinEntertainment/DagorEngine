@@ -49,7 +49,7 @@ ShaderMaterial *new_shader_material(const MaterialData &m, bool sec_dump_for_exp
     return NULL;
   }
   if (dd_stricmp((const char *)sc->name, m.className))
-    fatal("Shader '%s' not found", m.className.str());
+    DAG_FATAL("Shader '%s' not found", m.className.str());
 
   ShaderMaterialProperties *smp = ShaderMaterialProperties::create(sc, m, sec_dump_for_exp);
   ShaderMaterial *mat = ScriptedShaderMaterial::create(*smp);
@@ -81,7 +81,7 @@ ShaderMaterial *new_shader_material_by_name(const char *shader_name, const char 
     return NULL;
   }
   if (dd_stricmp(sm->getShaderClassName(), shader_name) != 0)
-    fatal("Shader '%s' not found", shader_name);
+    DAG_FATAL("Shader '%s' not found", shader_name);
   return sm;
 }
 
@@ -439,7 +439,7 @@ const shaderbindump::ShaderCode *ScriptedShaderMaterial::find_variant() const
     if (!has_dump)
       shaderbindump::dumpShaderInfo(*props.sclass);
 #endif
-    fatal("static variant %u not found (shader %s)", variant_code, props.sclass->name.data());
+    DAG_FATAL("static variant %u not found (shader %s)", variant_code, props.sclass->name.data());
     return NULL;
   }
   if (id == props.sclass->stVariants.FIND_NULL)
@@ -447,7 +447,7 @@ const shaderbindump::ShaderCode *ScriptedShaderMaterial::find_variant() const
 
   if (id >= props.sclass->code.size())
   {
-    fatal("static variant %s:%u not found (ret=%08x)", (const char *)props.sclass->name, variant_code, id);
+    DAG_FATAL("static variant %s:%u not found (ret=%08x)", (const char *)props.sclass->name, variant_code, id);
     return NULL;
   }
 
@@ -680,7 +680,7 @@ void ShaderMaterialProperties::patchNonSharedData(void *base, dag::Span<TEXTUREI
   sclass = ::shBinDump(true).findShaderClass(shname);
 
   if (!sclass)
-    fatal("shader <%s> not found!", shname);
+    DAG_FATAL("shader <%s> not found!", shname);
 
   if (stvar.size() != sclass->localVars.v.size())
     logerr("%s: props.sclass->localVars.v.size()=%d != %d=props.stvar.size()"

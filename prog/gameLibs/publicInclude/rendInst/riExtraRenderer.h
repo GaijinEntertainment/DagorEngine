@@ -7,7 +7,6 @@
 
 #include <EASTL/allocator.h>
 
-
 namespace rendinst::render
 {
 

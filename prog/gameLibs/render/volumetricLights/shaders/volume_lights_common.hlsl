@@ -8,7 +8,7 @@
 #define CLOUDS_HEIGHT_BIAS 20.0 // a bias in meters, volfog fades away linearly above ((clouds start altitude) - bias)
 
 
-//fixme: move to constant buffer! otherwise it is suboptimal
+ // TODO: refactor and optimize it (in NBS too!!)
 #define SAMPLE_NUM 8
 static const float POISSON_Z_SAMPLES[SAMPLE_NUM] =
 {

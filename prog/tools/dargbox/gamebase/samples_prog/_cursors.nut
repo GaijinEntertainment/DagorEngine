@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 
-let function mkCursor(fillColor, borderColor){
+function mkCursor(fillColor, borderColor){
   return {
     rendObj = ROBJ_VECTOR_CANVAS
     size = [sh(3), sh(3)]
@@ -14,7 +14,7 @@ let function mkCursor(fillColor, borderColor){
   }
 }
 
-let function mkResizeCursor(rotate=0){
+function mkResizeCursor(rotate=0){
   return {
     transform = {pivot = [0.5,0.5], rotate=rotate}
     rendObj = ROBJ_VECTOR_CANVAS

@@ -53,7 +53,7 @@ d3d::ResUpdateBuffer *allocate_update_buffer(BaseTex *texture, Image *image, Mip
     D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
   if (!memory)
   {
-    debug("DX12: Out of memory for allocate_update_buffer_for_tex(_region)");
+    logdbg("DX12: Out of memory for allocate_update_buffer_for_tex(_region)");
     return nullptr;
   }
 

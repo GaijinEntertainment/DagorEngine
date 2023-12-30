@@ -18,11 +18,11 @@ let perSqTypeCtors = {
   bool    = fieldBoolCheckbox
 }
 
-let function registerPerCompPropEdit(compName, ctor) {
+function registerPerCompPropEdit(compName, ctor) {
   perCompEdits[compName] <- ctor
 }
 
-let function registerPerSqTypePropEdit(compName, ctor) {
+function registerPerSqTypePropEdit(compName, ctor) {
   perSqTypeCtors[compName] <- ctor
 }
 let getCompNamePropEdit = @(compName) perCompEdits?[compName]

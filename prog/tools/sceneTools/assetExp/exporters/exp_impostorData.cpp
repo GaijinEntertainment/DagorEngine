@@ -8,7 +8,7 @@
 #include <libTools/util/makeBindump.h>
 #include "fatalHandler.h"
 
-#include "dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 
 static const char *TYPE = "impostorData";
 

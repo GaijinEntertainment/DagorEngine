@@ -7,6 +7,7 @@
 #include "varTypes.h"
 #include "varMap.h"
 #include "shaderSave.h"
+#include "shVarVecTypes.h"
 
 class IntervalList;
 
@@ -14,27 +15,21 @@ namespace ShaderGlobal
 {
 union StVarValue
 {
-  struct
-  {
-    Color4 c4;
-  };
-  struct
-  {
-    IPoint4 i4;
-  };
+  shc::Col4 c4;
+  shc::Int4 i4;
   real r;
   int i;
   struct
   {
-    TEXTUREID texId;
+    unsigned texId;
     BaseTexture *tex;
   };
   struct
   {
-    D3DRESID bufId;
+    unsigned bufId;
     Sbuffer *buf;
   };
-  StVarValue() {}
+  StVarValue() : i4{0, 0, 0, 0} {}
 };
 
 class Var
@@ -44,11 +39,12 @@ public:
   NameId<VarMapAdapter> nameId;
   uint8_t type;
   bool isAlwaysReferenced, shouldIgnoreValue;
+  bool isImplicitlyReferenced;
   bindump::string fileName;
   int array_size = 0;
   int index = 0;
 
-  Var() : isAlwaysReferenced(false), shouldIgnoreValue(false) { memset(&value, 0, sizeof(value)); }
+  Var() : isAlwaysReferenced(false), shouldIgnoreValue(false), isImplicitlyReferenced(false) { memset(&value, 0, sizeof(value)); }
 
   inline const char *getName() const { return VarMap::getName(nameId); }
 

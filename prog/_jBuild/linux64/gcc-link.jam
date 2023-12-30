@@ -4,26 +4,22 @@ rule ProcessLinkTarget
 {
   local _LINUX_LIBS = rt pthread dl ;
 
-  if $(TargetType) = exe
-  {
-    _LINK_OPT = ;
-
-    _LINK_OPT = --Map=$($(Target)__TmpDir)/$(Target:S=.map) ;
-
-    objcopy = objcopy ;
-    if $(Config) = rel {
-      SeparateDebugInfo ?= yes ;
-    }
-    else {
-      SeparateDebugInfo ?= yes ;
-    }
+  if $(TargetType) in exe dll {
+    SeparateDebugInfo ?= yes ;
     if $(SeparateDebugInfo) = yes {
-      $(Target)__IMGBUILD = call $(objcopy) ;
+      $(Target)__IMGBUILD = call objcopy ;
       $(Target)__PDB = $(OutDir)/$(Target).debuginfo ;
     }
     else {
       $(Target)__IMGBUILD = rem ;
     }
+  }
+
+  if $(TargetType) = exe
+  {
+    _LINK_OPT = ;
+
+    _LINK_OPT = --Map=$($(Target)__TmpDir)/$(Target:S=.map) ;
 
     $(Target)__LINK      = $(_LINK) ;
     $(Target)__LINK_OPT  = $(_LINK_OPT) $(LINKopt) ;
@@ -41,7 +37,6 @@ rule ProcessLinkTarget
     _LINK = $(_LINK_DLL) ;
     $(Target)__LINK     = $(_LINK) ;
     $(Target)__LINK_OPT = $(LINKopt) ;
-    $(Target)__IMGBUILD = rem ;
   }
 
   local _ADD_LIBS = $(1) ;

@@ -8,12 +8,15 @@
 #include <3d/dag_drv3d.h>
 #include <3d/dag_resPtr.h>
 #include <shaders/dag_shaders.h>
+#include <3d/dag_lockSbuffer.h>
+
 #include <poisson-disk-generator/PoissonGenerator.h>
 
 //
 // NOTE: Resulting 2d points are padded to be aligned to float4 values!
 //
-inline bool generate_poission_points(UniqueBufHolder &buf, uint32_t seed, int num_samples, const char *name)
+inline bool generate_poission_points(UniqueBufHolder &buf, uint32_t seed, int num_samples, const char *name, const Point2 &offset_mul,
+  const Point2 &offset_add)
 {
   if (!VariableMap::isVariablePresent(get_shader_variable_id(name, true)))
     return false;
@@ -43,11 +46,16 @@ inline bool generate_poission_points(UniqueBufHolder &buf, uint32_t seed, int nu
 
   for (size_t index = 0; index < points.size(); index++)
   {
-    pointsGPU[index].x = points[index].x;
-    pointsGPU[index].y = points[index].y;
+    pointsGPU[index].x = points[index].x * offset_mul.x + offset_add.x;
+    pointsGPU[index].y = points[index].y * offset_mul.y + offset_add.y;
   }
 
   buf.setVar();
 
   return true;
+}
+
+inline bool generate_poission_points(UniqueBufHolder &buf, uint32_t seed, int num_samples, const char *name)
+{
+  return generate_poission_points(buf, seed, num_samples, name, Point2::ONE, Point2::ZERO);
 }

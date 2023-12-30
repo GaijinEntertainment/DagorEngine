@@ -32,6 +32,8 @@ enum FunctionId
   BF_SRGBREAD,
   BF_GET_DIMENSIONS,
   BF_GET_VIEWPORT,
+  BF_CREATE_SAMPLER,
+  BF_GET_SIZE,
 };
 
 //************************************************************************
@@ -97,7 +99,9 @@ inline const char *getFuncName(FunctionId id)
     case BF_WIND_COEFF: return "BF_WIND_COEFF";
     case BF_FADE_VAL: return "BF_FADE_VAL";
     case BF_GET_DIMENSIONS: return "BF_GET_DIMENSIONS";
+    case BF_GET_SIZE: return "BF_GET_SIZE";
     case BF_GET_VIEWPORT: return "BF_GET_VIEWPORT";
+    case BF_CREATE_SAMPLER: return "BF_CREATE_SAMPLER";
     default: G_ASSERT(0);
   }
   return "<???>";

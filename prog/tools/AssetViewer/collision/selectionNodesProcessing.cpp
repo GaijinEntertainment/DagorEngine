@@ -707,14 +707,13 @@ void SelectionNodesProcessing::saveCollisionNodes()
   save_nodes_from_container(kdopsSettings, nodes);
   save_nodes_from_container(convexsVhacdSettings, nodes);
   save_nodes_from_container(convexsComputerSettings, nodes);
+  clearSettings();
   if (curAsset->isVirtual())
   {
     curAsset->props.setStr("name", curAsset->getSrcFileName());
     curAsset->props.saveToTextFile(String(0, "%s/%s.collision.blk", curAsset->getFolderPath(), curAsset->getName()));
     curAsset->getMgr().callAssetChangeNotifications(*curAsset, curAsset->getNameId(), curAsset->getType());
   }
-
-  clearSettings();
 }
 
 void SelectionNodesProcessing::saveExportedCollisionNodes()

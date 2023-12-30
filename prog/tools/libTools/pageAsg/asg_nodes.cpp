@@ -31,7 +31,7 @@ AsgGraphNode::AsgGraphNode(IAsgGraphNodeManager &_idx, const AnimGraphState &gs,
 }
 
 void AsgGraphNode::resetInCount() { inLinkCnt = 0; }
-void AsgGraphNode::addLink(AsgGraphNode *dest, AnimGraphBrachType btype, const char *cond)
+void AsgGraphNode::addLink(AsgGraphNode *dest, AnimGraphBranchType btype, const char *cond)
 {
   int l = append_items(baseConditions, 1);
   baseConditions[l].cond = cond;

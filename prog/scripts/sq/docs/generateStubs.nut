@@ -10,7 +10,7 @@ let {mkStubStr} = require("%sqstd/moduleInfo.nut")
     we need return type of function or it is mostly useless even for stubs
     class are not generated yet
 */
-let function saveFile(file_path, data){
+function saveFile(file_path, data){
   assert(type(data) == "string", "data should be string")
   let file = io.file(file_path, "wt+")
   file.writestring(data)
@@ -18,7 +18,7 @@ let function saveFile(file_path, data){
   return true
 }
 
-local function generateStubs(stubsDir="", verbose=false){
+function generateStubs(stubsDir="", verbose=false){
   stubsDir = stubsDir ?? ""
   foreach(nm in get_native_module_names()) {
     local path = stubsDir=="" ? nm : $"{stubsDir}/{nm}"

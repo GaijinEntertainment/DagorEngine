@@ -60,7 +60,7 @@ void PhysCarParams::load(const DataBlock *b, const DataBlock &cars_blk)
 
   const DataBlock *brBlk = cars_blk.getBlockByNameEx("brakes")->getBlockByName(b->getStr("brakes", NULL));
   if (!brBlk)
-    fatal("can't load brakes preset <%s>", b->getStr("brakes", NULL));
+    DAG_FATAL("can't load brakes preset <%s>", b->getStr("brakes", NULL));
   frontBrakesTorque = brBlk->getReal("frontBrakesTorque", 0);
   rearBrakesTorque = brBlk->getReal("rearBrakesTorque", 0);
   handBrakesTorque = brBlk->getReal("handBrakesTorque", 0);

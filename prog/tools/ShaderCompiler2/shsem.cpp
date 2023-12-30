@@ -307,10 +307,10 @@ static void eval_shader_stat(shader_stat &s, ShaderEvalCB &cb)
     cb.eval_supports(*s.supports);
   else if (s.external_block)
     cb.eval_external_block(*s.external_block);
-  else if (s.immediate_const_block)
-    cb.eval(*s.immediate_const_block);
-  else if (s.bool_decl)
-    cb.eval_bool_decl(*s.bool_decl);
+  else if (s.imm_const_block)
+    cb.eval(*s.imm_const_block);
+  else if (s.boolean_decl)
+    cb.eval_bool_decl(*s.boolean_decl);
   else if (s.error)
     cb.eval_error_stat(*s.error);
   else
@@ -337,8 +337,8 @@ static void eval_optional_intervals_const(ShaderEvalCB &cb, bool compute)
     const Interval *interval = intervals.getInterval(i);
     if (!interval->isOptional())
       continue;
-    external_block.state_block_stat.emplace_back(new state_block_stat);
-    auto &block = *external_block.state_block_stat.back();
+    external_block.stblock_stat.emplace_back(new state_block_stat);
+    auto &block = *external_block.stblock_stat.back();
     block.var = new external_variable;
     block.var->var = new external_var_name;
     block.var->var->name = new Terminal;
@@ -373,6 +373,7 @@ static bool is_compute(hlsl_compile_class &hlsl_compile)
 
 void eval_shader(shader_decl &sh, ShaderEvalCB &cb)
 {
+  BoolVar::clear(true);
   if (optionalIntervalsAsBranches)
   {
     bool isCompute = false;
@@ -705,7 +706,8 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
       if (stVarCB.is_filename_message(i))
         sclass->messages.emplace_back(stVarCB.get_messages().getName(i));
       else
-        sclass->messages.emplace_back(eastl::string::CtorSprintf{}, "%s: %s", shname->text, stVarCB.get_messages().getName(i));
+        sclass->messages.emplace_back(
+          eastl::string{eastl::string::CtorSprintf{}, "%s: %s", shname->text, stVarCB.get_messages().getName(i)});
     }
   }
 
@@ -1022,8 +1024,8 @@ static void eval_block_stat(block_stat &s, AssembleShaderEvalCB &cb)
     cacheBlockStat ? (void)curBlockStat.push_back(&s) : cb.eval_state(*s.state);
   else if (s.external_block)
     cacheBlockStat ? (void)curBlockStat.push_back(&s) : cb.eval_external_block(*s.external_block);
-  else if (s.immediate_const_block)
-    cacheBlockStat ? (void)curBlockStat.push_back(&s) : cb.eval(*s.immediate_const_block);
+  else if (s.imm_const_block)
+    cacheBlockStat ? (void)curBlockStat.push_back(&s) : cb.eval(*s.imm_const_block);
   else if (s.if_stat)
     eval_block_if(*s.if_stat, cb);
   else if (s.supports)
@@ -1184,7 +1186,7 @@ void add_hlsl(hlsl_global_decl_class &sh, ShaderSyntaxParser &parser)
 
 void add_global_bool(ShaderTerminal::bool_decl &bool_var, ShaderTerminal::ShaderSyntaxParser &parser)
 {
-  BoolVar::add(nullptr, bool_var, parser);
+  BoolVar::add(false, bool_var, parser);
 
   String hlsl_bool_var(0, "##bool %s\n", bool_var.name->text);
   hlsl_glob_ps.append(hlsl_bool_var);

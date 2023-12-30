@@ -70,15 +70,15 @@ macro RENDER_FULL_TONEMAP_LUT()
   hlsl(ps) {
     struct MRT_OUTPUT
     {
-      half3 color0:SV_Target0;
-      half3 color1:SV_Target1;
-      half3 color2:SV_Target2;
-      half3 color3:SV_Target3;
+      float3 color0:SV_Target0;
+      float3 color1:SV_Target1;
+      float3 color2:SV_Target2;
+      float3 color3:SV_Target3;
       ##if tonemap_sim_rt == eight
-      half3 color4:SV_Target4;
-      half3 color5:SV_Target5;
-      half3 color6:SV_Target6;
-      half3 color7:SV_Target7;
+      float3 color4:SV_Target4;
+      float3 color5:SV_Target5;
+      float3 color6:SV_Target6;
+      float3 color7:SV_Target7;
       ##endif
     };
 

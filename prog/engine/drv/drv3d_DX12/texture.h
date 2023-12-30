@@ -1,9 +1,9 @@
 #pragma once
 
-#include <EASTL/bitset.h>
 #include <3d/tql.h>
 #include <3d/dag_drv3d.h>
 #include <generic/dag_smallTab.h>
+#include <generic/dag_bitset.h>
 #include <dxil/compiled_shader_header.h>
 
 #include "device_memory_class.h"
@@ -27,14 +27,14 @@ struct D3DTextures
   void release(uint64_t progress);
 };
 
-void notify_delete(BaseTex *texture, const eastl::bitset<dxil::MAX_T_REGISTERS> *srvs,
-  const eastl::bitset<dxil::MAX_U_REGISTERS> *uavs, eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> rtvs, bool dsv);
-void dirty_srv_no_lock(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots);
-void dirty_srv(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots);
-void dirty_sampler(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots);
-void dirty_srv_and_sampler_no_lock(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots);
-void dirty_uav_no_lock(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_U_REGISTERS> slots);
-void dirty_rendertarget_no_lock(BaseTex *texture, eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> slots);
+void notify_delete(BaseTex *texture, const Bitset<dxil::MAX_T_REGISTERS> *srvs, const Bitset<dxil::MAX_U_REGISTERS> *uavs,
+  Bitset<Driver3dRenderTarget::MAX_SIMRT> rtvs, bool dsv);
+void dirty_srv_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots);
+void dirty_srv(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots);
+void dirty_sampler(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots);
+void dirty_srv_and_sampler_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots);
+void dirty_uav_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_U_REGISTERS> slots);
+void dirty_rendertarget_no_lock(BaseTex *texture, Bitset<Driver3dRenderTarget::MAX_SIMRT> slots);
 
 inline constexpr uint32_t MAX_MIPMAPS = 16;
 inline constexpr uint32_t TEXTURE_TILE_SIZE = 64 * 1024;
@@ -70,7 +70,7 @@ public:
   void setSrvBinding(uint32_t stage, uint32_t index, bool s);
   void setRtvBinding(uint32_t index, bool s);
   void setDsvBinding(bool s);
-  eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> getRtvBinding() const;
+  Bitset<Driver3dRenderTarget::MAX_SIMRT> getRtvBinding() const;
   bool getDsvBinding() const { return stateBitSet.test(active_binding_dsv_offset); }
 #if DAGOR_DBGLEVEL > 0
   bool wasUsed() const { return stateBitSet.test(acitve_binding_was_used_offset); }
@@ -176,6 +176,9 @@ public:
     uint32_t memSize = 0;
   };
 
+  static HostDeviceSharedMemoryRegion allocate_read_write_staging_memory(const Image *image,
+    const SubresourceRange &subresource_range);
+
 private:
   bool isSrgbWriteAllowed() const { return (cflg & TEXCF_SRGBWRITE) != 0; }
   bool isSrgbReadAllowed() const { return (cflg & TEXCF_SRGBREAD) != 0; }
@@ -190,6 +193,17 @@ private:
 
   bool isTexResEqual(BaseTexture *bt) const { return bt && ((BaseTex *)bt)->tex.image == tex.image; }
 
+#if _TARGET_XBOX
+  void lockimgXboxLinearLayout(void **pointer, int &stride, int level, int face, uint32_t flags);
+#endif
+  bool copySubresourcesToStaging(void **pointer, int &stride, int level, uint32_t flags, uint32_t prev_flags);
+  void unlockimgRes3d();
+
+  bool waitAndResetProgress();
+  void freeStagingMemory();
+  void fillLockedLevelInfo(int level, uint64_t offset);
+  uint64_t prepareReadWriteStagingMemoryAndGetOffset(uint32_t flags);
+
   static constexpr float default_lodbias = 0.f;
   static constexpr int default_aniso = 1;
 
@@ -201,9 +215,9 @@ private:
   static constexpr uint32_t active_binding_is_array_cube_offset = 1 + active_binding_is_sample_stencil;
   static constexpr uint32_t unlock_image_is_upload_skipped = active_binding_is_array_cube_offset + 1;
   static constexpr uint32_t texture_state_bits_count = unlock_image_is_upload_skipped + 1;
-  eastl::bitset<dxil::MAX_T_REGISTERS> srvBindingStages[STAGE_MAX_EXT];
-  eastl::bitset<dxil::MAX_U_REGISTERS> uavBindingStages[STAGE_MAX_EXT];
-  eastl::bitset<texture_state_bits_count> stateBitSet;
+  Bitset<dxil::MAX_T_REGISTERS> srvBindingStages[STAGE_MAX_EXT];
+  Bitset<dxil::MAX_U_REGISTERS> uavBindingStages[STAGE_MAX_EXT];
+  Bitset<texture_state_bits_count> stateBitSet;
 
   uint32_t lockFlags = 0;
   uint64_t waitProgress = 0;

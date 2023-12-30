@@ -70,7 +70,7 @@ shader water_foam_trail
       float2 wire : TEXCOORD2;
       #endif
 
-      float2 locTc : TEXCOORD3;
+      float3 locTc_fadeoutTimeRcp : TEXCOORD3;
     };
   }
   hlsl(vs) {
@@ -83,8 +83,7 @@ shader water_foam_trail
   }
 
   hlsl(vs) {
-    #define fadein_rcp params.x
-    #define fadeout_rcp params.y
+    #define fadeout_time_rcp params.y
     #define fwd_expand params.z
     #define current_gen params.w
     #define dist_remap 0.015f
@@ -99,17 +98,13 @@ shader water_foam_trail
       float alpha = abs( input.dir.z );
 
       float step = sign( input.prm.w );
-      float finalized_gen = abs( input.prm.w ) - 1.f;
+      float alpha_fadeout_time_rcp = abs( input.prm.w );
 
       float gen_delta = ( current_gen - gen ) * input.prm.z;
-      float fadein = saturate( gen_delta * fadein_rcp );
-      float fadeout = 1.f - saturate( gen_delta * fadeout_rcp );
+      float fadeout = 1.f - saturate( gen_delta * fadeout_time_rcp );
 
       float width = lerp( 1.f, fwd_expand, ( 1.f - fadeout ) * input.dir.w );
       pos += input.dir.xy * width * 1.5;
-
-      if ( finalized_gen > 0.01 )
-        alpha *= 1.f - ( current_gen - finalized_gen ) * input.prm.z * 0.025;
 
       output.pos = mul( float4( pos.x, 0.f, pos.y, 1.f ), globtm );
       output.grd.x = saturate( side );
@@ -126,7 +121,7 @@ shader water_foam_trail
       output.wire.y = step;
       #endif
 
-      output.locTc = pos.xy;
+      output.locTc_fadeoutTimeRcp = float3(pos.xy, alpha_fadeout_time_rcp);
 
       return output;
     }
@@ -139,8 +134,7 @@ shader water_foam_trail
 
   hlsl(ps)
   {
-    #define fadein_rcp params.x
-    #define fadeout_rcp params.y
+    #define fadein_time_rcp params.x
     #define current_gen params.w
 
     #define disc_v 0.001f
@@ -148,8 +142,8 @@ shader water_foam_trail
     float4 foam_ps(VsOutput input) : SV_Target0
     {
       float gen_delta = ( current_gen - input.prm.z );
-      float fadein = saturate( gen_delta * fadein_rcp );
-      float fadeout = 1.f - saturate( gen_delta * fadeout_rcp );
+      float fadein = saturate( gen_delta * fadein_time_rcp );
+      float fadeout = 1.f - saturate( gen_delta * input.locTc_fadeoutTimeRcp.z );
       float alpha = fadein * fadeout * input.grd.z;
       float turn_k = input.prm.w;
 
@@ -180,7 +174,7 @@ shader water_foam_trail
 #endif
 
 ##if compatibility_mode == compatibility_mode_off
-      float foamLowFreq = tex2D(foam_tex, input.locTc.xy * 0.1).r;
+      float foamLowFreq = tex2D(foam_tex, input.locTc_fadeoutTimeRcp.xy * 0.1).r;
       res = get_modulated_foam(res * 1.5, foamLowFreq);
 ##endif
 

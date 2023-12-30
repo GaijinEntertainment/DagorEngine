@@ -109,7 +109,7 @@ struct X11
   static int xDisplayIOErrorHandler(Display *display)
   {
     G_UNREFERENCED(display);
-    fatal("x11: IO fatal error occurred! Application will be terminated");
+    DAG_FATAL("x11: IO fatal error occurred! Application will be terminated");
     return 0;
   }
 
@@ -122,7 +122,7 @@ struct X11
     rootDisplay = XOpenDisplay(NULL);
     if (!rootDisplay)
     {
-      fatal("x11: cannot connect to X server");
+      DAG_FATAL("x11: cannot connect to X server");
       return false;
     }
 

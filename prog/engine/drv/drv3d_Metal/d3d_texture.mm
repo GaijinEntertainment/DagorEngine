@@ -246,9 +246,9 @@ unsigned d3d::get_texformat_usage(int cflg, int restype)
 
   unsigned ret = 0;
   if (render.caps.readWriteTextureTier2 ||
-      (render.caps.readWriteTextureTier1 && (fmt == TEXFMT_R32F || fmt == TEXFMT_R32UI)))
+      (render.caps.readWriteTextureTier1 && (fmt == TEXFMT_R32F || fmt == TEXFMT_R32UI || fmt == TEXFMT_R32SI)))
   {
-    ret |= USAGE_PIXREADWRITE | USAGE_UNORDERED;
+    ret |= USAGE_PIXREADWRITE | USAGE_UNORDERED | USAGE_UNORDERED_LOAD;
   }
 
   switch (fmt)

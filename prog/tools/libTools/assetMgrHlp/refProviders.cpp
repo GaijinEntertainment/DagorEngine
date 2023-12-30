@@ -83,11 +83,7 @@ static bool loadSingleExporterPlugin(const DataBlock &appblk, DagorAssetMgr &mgr
 static bool load_plugins_from_dir(DataBlock &appblk, DagorAssetMgr &mgr, const char *dirpath)
 {
   alefind_t ff;
-#if _TARGET_PC_WIN
-  const String mask(260, "%s/*.dll", dirpath);
-#else
-  const String mask(260, "%s/*.so", dirpath);
-#endif
+  const String mask(260, "%s/*" DAGOR_PC_OS_DLL_SUFFIX, dirpath);
   String fname;
 
   if (::dd_find_first(mask, DA_FILE, &ff))
@@ -150,6 +146,8 @@ bool assetrefs::load_plugins(DagorAssetMgr &mgr, DataBlock &appblk, const char *
       const char *pfolder = blk.getStr(i);
 #if _TARGET_PC_LINUX
       const char *common_dir = "../bin-linux64/plugins/daBuild";
+#elif _TARGET_PC_MACOSX
+      const char *common_dir = "../bin-macosx/plugins/daBuild";
 #elif _TARGET_64BIT
       const char *common_dir = "../bin64/plugins/daBuild";
 #else

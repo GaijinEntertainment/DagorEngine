@@ -105,6 +105,7 @@ namespace drv3d_metal
       case TEXFMT_A32B32G32R32UI: return MTLPixelFormatRGBA32Uint;
       case TEXFMT_R8G8B8A8:     return MTLPixelFormatRGBA8Unorm;
       case TEXFMT_R32UI:      return MTLPixelFormatR32Uint;
+      case TEXFMT_R32SI:      return MTLPixelFormatR32Sint;
       case TEXFMT_R8UI:       return MTLPixelFormatR8Uint;
       case TEXFMT_R11G11B10F:   return MTLPixelFormatRG11B10Float;
       case TEXFMT_R9G9B9E5:   return MTLPixelFormatRGB9E5Float;
@@ -124,7 +125,7 @@ namespace drv3d_metal
       case TEXFMT_DEPTH32_S8:   return MTLPixelFormatDepth32Float_Stencil8;
     }
 
-    fatal("format2Metal unimplemented for format %i", fmt);
+    DAG_FATAL("format2Metal unimplemented for format %i", fmt);
 
     return MTLPixelFormatInvalid;
   }
@@ -272,6 +273,7 @@ namespace drv3d_metal
       case TEXFMT_G16R16F:
       case TEXFMT_R32F:
       case TEXFMT_R32UI:
+      case TEXFMT_R32SI:
       case TEXFMT_R11G11B10F:
       case TEXFMT_R9G9B9E5:
       {
@@ -334,7 +336,7 @@ namespace drv3d_metal
           break;
       }
       default:
-          fatal("getStride unimplemented for format %i", fmt);
+          DAG_FATAL("getStride unimplemented for format %i", fmt);
     }
 
     if (!is_copmressed)
@@ -447,8 +449,6 @@ namespace drv3d_metal
     texture = [render.device newTextureWithDescriptor : pTexDesc];
     setTexName(texture, base->getResName());
 
-    sub_texture = texture;
-
     int slises = 1;
     if (base->type == RES3D_ARRTEX || base->type == RES3D_VOLTEX)
       slises = base->depth;
@@ -459,10 +459,7 @@ namespace drv3d_metal
 
     if (base->metal_format != base->metal_rt_format)
     {
-      rt_texture = [texture newTextureViewWithPixelFormat : base->metal_rt_format
-                                              textureType : base->metal_type
-                                                   levels : NSMakeRange(0, base->mipLevels)
-                                                   slices : NSMakeRange(0, slises)];
+      rt_texture = [texture newTextureViewWithPixelFormat : base->metal_rt_format];
 
       setTexName(rt_texture, base->getResName());
     }
@@ -470,6 +467,18 @@ namespace drv3d_metal
     {
       rt_texture = texture;
     }
+
+    if (base->cflg & TEXCF_SRGBREAD)
+    {
+      texture_no_srgb = [texture newTextureViewWithPixelFormat : format2Metal(base->base_format)];
+
+      setTexName(texture_no_srgb, base->getResName());
+    }
+    else
+      texture_no_srgb = [texture retain];
+
+    sub_texture = texture;
+    sub_texture_no_srgb = texture_no_srgb;
 
     if (base->metal_format == MTLPixelFormatDepth32Float_Stencil8 && !base->memoryless)
     {
@@ -523,6 +532,8 @@ namespace drv3d_metal
 
       if (texture)
         [texture release];
+      if (texture_no_srgb)
+        [texture_no_srgb release];
     }
     else
     {
@@ -622,13 +633,13 @@ namespace drv3d_metal
       metal_format = format2Metal(fmt);
     }
 
-    if (cflg & TEXCF_SRGBWRITE)
+    if (cflg & TEXCF_RTARGET)
     {
-      metal_rt_format = format2MetalsRGB(fmt);
+      metal_rt_format = cflg & TEXCF_SRGBWRITE ? format2MetalsRGB(fmt) : format2Metal(fmt);
     }
     else
     {
-      metal_rt_format = format2Metal(fmt);
+      metal_rt_format = metal_format;
     }
 
     lockFlags = 0;
@@ -946,13 +957,14 @@ namespace drv3d_metal
     sampler_state.anisotropy = level;
   }
 
-  id<MTLTexture> Texture::ApiTexture::allocateOrCreateSubmip(int set_minlevel, int set_maxlevel)
+  id<MTLTexture> Texture::ApiTexture::allocateOrCreateSubmip(int set_minlevel, int set_maxlevel, bool is_uav)
   {
     G_ASSERT(base);
     for (auto & sub_mip : sub_mip_textures)
     {
       if (sub_mip.minLevel == set_minlevel &&
-          sub_mip.maxLevel == set_maxlevel)
+          sub_mip.maxLevel == set_maxlevel &&
+          sub_mip.is_uav == is_uav)
       {
         return sub_mip.tex;
       }
@@ -962,6 +974,7 @@ namespace drv3d_metal
 
     sub_mip.minLevel = set_minlevel;
     sub_mip.maxLevel = set_maxlevel;
+    sub_mip.is_uav = is_uav;
 
     int slises = 1;
 
@@ -980,7 +993,7 @@ namespace drv3d_metal
       slises = 6 * base->depth;
     }
 
-    sub_mip.tex = [texture newTextureViewWithPixelFormat : base->metal_format
+    sub_mip.tex = [texture newTextureViewWithPixelFormat : is_uav ? format2Metal(base->base_format) : base->metal_format
                                              textureType : base->metal_type
                                                   levels : NSMakeRange(set_minlevel, set_maxlevel - set_minlevel)
                                                   slices : NSMakeRange(0, slises)];
@@ -1004,7 +1017,7 @@ namespace drv3d_metal
       G_ASSERT(mipLevels >= 1);
       set_minlevel = min(set_minlevel, (int)mipLevels-1);
       set_maxlevel = min(set_maxlevel, (int)mipLevels);
-      apiTex->sub_texture = apiTex->allocateOrCreateSubmip(set_minlevel, set_maxlevel);
+      apiTex->sub_texture = apiTex->allocateOrCreateSubmip(set_minlevel, set_maxlevel, false);
     }
   }
 
@@ -1089,15 +1102,15 @@ namespace drv3d_metal
     out_smp = sampler;
   }
 
-  void Texture::apply(id<MTLTexture>& out_tex, bool is_read_stencil, int mip_level)
+  void Texture::apply(id<MTLTexture>& out_tex, bool is_read_stencil, int mip_level, bool is_uav)
   {
     G_ASSERT(apiTex);
     G_ASSERT(isStub() || apiTex->base == this || apiTex->base == nullptr);
-    auto tex = is_read_stencil && apiTex->stencil_read_texture ? apiTex->stencil_read_texture : apiTex->sub_texture;
+    auto tex = is_read_stencil && apiTex->stencil_read_texture ? apiTex->stencil_read_texture : (is_uav ? apiTex->sub_texture_no_srgb : apiTex->sub_texture);
     if (mip_level)
     {
       G_ASSERT(!(is_read_stencil && apiTex->stencil_read_texture));
-      tex = apiTex->allocateOrCreateSubmip(mip_level, mip_level+1);
+      tex = apiTex->allocateOrCreateSubmip(mip_level, mip_level+1, is_uav);
     }
 
     out_tex = tex;
@@ -1333,7 +1346,7 @@ namespace drv3d_metal
         {
           if (sys_image.image[sys_image.guard_offest + j] != 7 * j)
           {
-            fatal("Someone are corrupted temporary texture data");
+            DAG_FATAL("Someone are corrupted temporary texture data");
           }
         }
       }
@@ -1468,7 +1481,7 @@ static int sort_textures_by_size(const MetalBtSortRec *left, const MetalBtSortRe
   return right->lfu - left->lfu;
 }
 
-static int get_ib_vb_mem_used(String *, int &){return 0;}
+extern int get_ib_vb_mem_used(String *, int &);
 
 static const char *tex_mipfilter_string(uint32_t mipFilter)
 {
@@ -1529,6 +1542,7 @@ static const char* format2String(uint32_t fmt)
       case TEXFMT_A32B32G32R32UI: return "A32B32G32R32UI";
       case TEXFMT_R8G8B8A8:     return "R8G8B8A8";
       case TEXFMT_R32UI:      return "R32UI";
+      case TEXFMT_R32SI:      return "R32SI";
       case TEXFMT_R11G11B10F:   return "R11G11B10F";
       case TEXFMT_R8G8:       return "R8G8";
       case TEXFMT_R8G8S:      return "R8G8S";
@@ -1588,12 +1602,8 @@ void d3d::get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, St
 
   uint64_t texturesMem = totalSize2d + totalSizeCube + totalSizeVol + totalSizeArr;
   int vb_sysmem = 0;
-#if FULL_TEX_STAT_LOG
   String vbibmem;
   uint64_t vb_ib_mem = get_ib_vb_mem_used(&vbibmem, vb_sysmem);
-#else
-  uint64_t vb_ib_mem = get_ib_vb_mem_used(NULL, vb_sysmem);
-#endif
 
   if (total_mem)
     *total_mem = totalSize2d + totalSizeCube + totalSizeVol;
@@ -1623,7 +1633,6 @@ void d3d::get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, St
 
     *out_dump += String(0, "\n");
 
-#if FULL_TEX_STAT_LOG
     STAT_STR_BEGIN(add);
     for (unsigned int textureNo = 0; textureNo < sortedTexturesList.size(); textureNo++)
     {
@@ -1676,7 +1685,6 @@ void d3d::get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, St
     // *out_dump += vbibmem;
     // get_states_mem_used(vbibmem);
     // *out_dump += vbibmem;
-#endif
   }
 
   g_textures.unlock();

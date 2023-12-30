@@ -17,7 +17,7 @@
 
 
 // Branch condition
-enum AnimGraphBrachType
+enum AnimGraphBranchType
 {
   AGBT_EnterCondition,
   AGBT_CheckAtEnd,
@@ -217,14 +217,14 @@ public:
 
   bool checkValid();
 
-  void addLink(int src_id, int dest_id, AnimGraphBrachType cond_type, const char *condition, bool customMorph, real customMorphTime);
-  void addLink(int src_id, const char *dest_name, AnimGraphBrachType cond_type, const char *condition, bool customMorph,
+  void addLink(int src_id, int dest_id, AnimGraphBranchType cond_type, const char *condition, bool customMorph, real customMorphTime);
+  void addLink(int src_id, const char *dest_name, AnimGraphBranchType cond_type, const char *condition, bool customMorph,
     real customMorphTime);
-  void delLinks(int src_id, int dest_id, AnimGraphBrachType cond_type);
-  int getConditionsCount(int src_id, int dest_id, AnimGraphBrachType cond_type);
+  void delLinks(int src_id, int dest_id, AnimGraphBranchType cond_type);
+  int getConditionsCount(int src_id, int dest_id, AnimGraphBranchType cond_type);
 
-  void delOneLink(int state_id, int cond_idx, AnimGraphBrachType cond_type);
-  void moveLink(int state_id, int cond_idx, AnimGraphBrachType cond_type, int dir);
+  void delOneLink(int state_id, int cond_idx, AnimGraphBranchType cond_type);
+  void moveLink(int state_id, int cond_idx, AnimGraphBranchType cond_type, int dir);
 
   const char *getParentGroupName(AnimGraphState *s);
 
@@ -232,7 +232,7 @@ public:
   void getWndPosition(int groupId, IPoint2 &pos) const;
 
   bool isValidId(int id) { return id >= 0 && id < states.size(); }
-  Tab<AnimGraphCondition *> *getCond(int state_id, AnimGraphBrachType cond_type);
+  Tab<AnimGraphCondition *> *getCond(int state_id, AnimGraphBranchType cond_type);
 
   bool exportCppCode(const char *fname, int dbg, AsgStateGenParamGroup *rs, const char *res_name);
 
@@ -281,6 +281,6 @@ protected:
 
   bool checkAnimNodeExists(const char *name);
 
-  static void AsgStatesGraph::loadNamemap(const DataBlock &blk, const char *varname, NameMap &nm);
-  static void AsgStatesGraph::saveNamemap(DataBlock &blk, const char *varname, const NameMap &nm);
+  static void loadNamemap(const DataBlock &blk, const char *varname, NameMap &nm);
+  static void saveNamemap(DataBlock &blk, const char *varname, const NameMap &nm);
 };

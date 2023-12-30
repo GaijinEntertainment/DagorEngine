@@ -16,7 +16,7 @@ void HmapHillLandBrush::fillParams(PropPanel2 &panel)
 void HmapHillLandBrush::updateToPanel(PropPanel2 &panel)
 {
   panel.setFloat(PID_BRUSH_POWER, power);
-  __super::updateToPanel(panel);
+  HmapLandBrush::updateToPanel(panel);
   panel.setBool(PID_BRUSH_LIMIT_USE, limitValueUse);
   panel.setFloat(PID_BRUSH_LIMIT_VALUE, limitValue);
 }

@@ -21,7 +21,7 @@ float envi_cover_depth_mask_contrast = 1;
 float envi_cover_normal_mask_contrast = 1.5;
 texture envi_cover_intensity_map;
 float4 envi_cover_intensity_map_left_top_right_bottom = (-2048, 2048, 2048, -2048);
-float4 land_detail_mul_offset;
+float4 land_detail_mul_offset always_referenced;
 float envi_cover_water_level_fade_factor = 2.0;
 float envi_cover_lowest_intensity = 0.0;
 float envi_compatibility_intensity = 0.0;

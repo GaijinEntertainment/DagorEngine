@@ -103,9 +103,9 @@ bool Var::operator==(const Var &right) const
   switch (type)
   {
     case SHVT_INT: return value.i == right.value.i;
-    case SHVT_INT4: return value.i4 == right.value.i4;
+    case SHVT_INT4: return memcmp(&value.i4, &right.value.i4, sizeof(value.i4)) == 0;
     case SHVT_REAL: return value.r == right.value.r;
-    case SHVT_COLOR4: return value.c4 == right.value.c4;
+    case SHVT_COLOR4: return memcmp(&value.c4, &right.value.c4, sizeof(value.c4)) == 0;
     case SHVT_FLOAT4X4: return true;
     case SHVT_BUFFER: return value.bufId == right.value.bufId;
     case SHVT_TEXTURE: return value.texId == right.value.texId;
@@ -133,10 +133,13 @@ void link(const Tab<ShaderGlobal::Var> &variables, const IntervalList &intervals
         global_var_link_table[varNo] = existingVar;
 
         if (var.type != variable_list[existingVar].type)
-          fatal("Different variable types: '%s'", var.getName());
+          DAG_FATAL("Different variable types: '%s'", var.getName());
 
         if (var != variable_list[existingVar])
-          fatal("Different variable values: '%s'", var.getName());
+          DAG_FATAL("Different variable values: '%s'", var.getName());
+
+        if (var.isAlwaysReferenced != variable_list[existingVar].isAlwaysReferenced)
+          DAG_FATAL("Different variable always_referenced states: '%s'", var.getName());
       }
     }
 
@@ -155,7 +158,7 @@ void link(const Tab<ShaderGlobal::Var> &variables, const IntervalList &intervals
     {
       bool res = intervals.addInterval(*intervalsFromFile.getInterval(intervalNo));
       if (!res)
-        fatal("Different intervals: '%s'", intervalsFromFile.getInterval(intervalNo)->getNameStr());
+        DAG_FATAL("Different intervals: '%s'", intervalsFromFile.getInterval(intervalNo)->getNameStr());
 
       interval_link_table[intervalNo] = intervals.getIntervalIndex(intervalsFromFile.getInterval(intervalNo)->getNameId());
     }

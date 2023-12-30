@@ -29,7 +29,7 @@ eventbus.subscribe("joystick-button", function on_joystick_button(event) {
 
 
 
-let function button(text, handler) {
+function button(text, handler) {
   return {
     behavior = Behaviors.Button
     rendObj = ROBJ_SOLID
@@ -53,7 +53,7 @@ let axisText = Computed(function() {
   return $"Joystick axes: {axisX.value ?? NA} x {axisY.value ?? NA}"
 })
 
-let function axisState() {
+function axisState() {
   return {
     watch = axisText
     rendObj = ROBJ_TEXT

@@ -10,7 +10,7 @@
 
 #include <EditorCore/ec_startup.h>
 #include <libTools/dtx/ddsxPlugin.h>
-#include <libTools/util/makeBinDump.h>
+#include <libTools/util/makeBindump.h>
 #include <libTools/util/setupTexStreaming.h>
 #include <oldEditor/de_workspace.h>
 
@@ -126,7 +126,7 @@ void load_exp_shaders_for_target(unsigned tc)
   if (::load_shaders_bindump(String(0, "%.*s", strlen(fn) - suffix_len, fn), ver, true))
     debug("loaded export-specific shader dump (%c%c%c%c): %s", _DUMP4C(tc), fn);
   else
-    fatal("failed to load shaders: %s", fn);
+    DAG_FATAL("failed to load shaders: %s", fn);
 }
 
 void init3d()

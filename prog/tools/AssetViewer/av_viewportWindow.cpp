@@ -34,7 +34,7 @@ AssetViewerViewportWindow::AssetViewerViewportWindow(TEcHandle parent, int left,
 
 void AssetViewerViewportWindow::load(const DataBlock &blk)
 {
-  __super::load(blk);
+  ViewportWindow::load(blk);
 
   showAssetStats = blk.getBool("show_asset_stats", false);
 
@@ -58,7 +58,7 @@ void AssetViewerViewportWindow::load(const DataBlock &blk)
 
 void AssetViewerViewportWindow::save(DataBlock &blk) const
 {
-  __super::save(blk);
+  ViewportWindow::save(blk);
 
   blk.setBool("show_asset_stats", showAssetStats);
 
@@ -124,7 +124,7 @@ void AssetViewerViewportWindow::paint(int w, int h)
 {
   using hdpi::_pxScaled;
 
-  __super::paint(w, h);
+  ViewportWindow::paint(w, h);
 
   if (!needShowAssetStats())
     return;
@@ -176,7 +176,7 @@ void AssetViewerViewportWindow::paint(int w, int h)
 
 void AssetViewerViewportWindow::fillStatSettingsDialog(PropertyContainerControlBase &tab_panel)
 {
-  __super::fillStatSettingsDialog(tab_panel);
+  ViewportWindow::fillStatSettingsDialog(tab_panel);
 
   PropertyContainerControlBase *mainTabPage = tab_panel.getContainerById(CM_STATS_SETTINGS_MAIN_PAGE);
   G_ASSERT(mainTabPage);
@@ -200,7 +200,7 @@ void AssetViewerViewportWindow::handleStatSettingsDialogChange(int pcb_id)
   else if (pcb_id == CM_STATS_SETTINGS_MAIN_SHOW_ASSETS_STATS)
     showAssetStats = !showAssetStats;
   else
-    __super::handleStatSettingsDialogChange(pcb_id);
+    ViewportWindow::handleStatSettingsDialogChange(pcb_id);
 }
 
 int AssetViewerViewportWindow::getAssetStatByIndex(int index)

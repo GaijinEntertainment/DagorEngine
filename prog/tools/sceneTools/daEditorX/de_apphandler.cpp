@@ -47,7 +47,7 @@ void DagorEdAppEventHandler::handleViewportPaint(IGenViewportWnd *wnd)
     acquire_managed_tex(compass_nesw_tid);
   }
 
-  __super::handleViewportPaint(wnd);
+  GenericEditorAppWindow::AppEventHandler::handleViewportPaint(wnd);
 
 
   IGenEditorPlugin *plug = DAGORED2->curPlugin();
@@ -211,5 +211,5 @@ bool DagorEdAppEventHandler::handleMouseLBPress(IGenViewportWnd *wnd, int x, int
     }
   }
 
-  return __super::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
+  return GenericEditorAppWindow::AppEventHandler::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
 }

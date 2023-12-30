@@ -1,5 +1,6 @@
 #include <gameResPatcher/resUpdUtil.h>
 #include <util/dag_globDef.h>
+#include <startup/dag_globalSettings.h>
 #include <debug/dag_except.h>
 #include <libTools/util/progressInd.h>
 #include <util/dag_string.h>
@@ -26,26 +27,26 @@ int DagorWinMain(bool debugmode)
   const char *vfs_fn = "grp_hdr.vromfs.bin";
   const char *reslist_fn = "resPacks.blk";
 
-  for (int i = 1; i < __argc; i++)
-    if (__argv[i][0] == '-')
+  for (int i = 1; i < dgs_argc; i++)
+    if (dgs_argv[i][0] == '-')
     {
-      if (stricmp(__argv[i], "-dryRun") == 0)
+      if (stricmp(dgs_argv[i], "-dryRun") == 0)
         dryRun = true;
-      else if (stricmp(__argv[i], "-verbose") == 0)
+      else if (stricmp(dgs_argv[i], "-verbose") == 0)
         patch_update_game_resources_verbose = 1;
-      else if (strnicmp(__argv[i], "-vfs:", 5) == 0)
-        vfs_fn = __argv[i] + 5;
-      else if (strnicmp(__argv[i], "-resBlk:", 8) == 0)
-        reslist_fn = __argv[i] + 8;
+      else if (strnicmp(dgs_argv[i], "-vfs:", 5) == 0)
+        vfs_fn = dgs_argv[i] + 5;
+      else if (strnicmp(dgs_argv[i], "-resBlk:", 8) == 0)
+        reslist_fn = dgs_argv[i] + 8;
       else
-        printf("ERR: unknown option %s, skipping\n", __argv[i]);
+        printf("ERR: unknown option %s, skipping\n", dgs_argv[i]);
 
-      memmove(__argv + i, __argv + i + 1, (__argc - i - 1) * sizeof(__argv[0]));
-      __argc--;
+      memmove(dgs_argv + i, dgs_argv + i + 1, (dgs_argc - i - 1) * sizeof(dgs_argv[0]));
+      dgs_argc--;
       i--;
     }
 
-  if (__argc < 4 || (__argc & 1))
+  if (dgs_argc < 4 || (dgs_argc & 1))
   {
     print_header();
     printf("usage: resUpdate-dev.exe [switches] <game_root> [<new_vrom_file> <vromdest>]...\n\n"
@@ -81,21 +82,21 @@ int DagorWinMain(bool debugmode)
     virtual bool isCancelled() { return ctrl_c_pressed; }
   } pbar;
 
-  for (int i = 2; i + 1 < __argc; i += 2)
+  for (int i = 2; i + 1 < dgs_argc; i += 2)
   {
     DAGOR_TRY
     {
-      int ret = patch_update_game_resources(__argv[1], __argv[i], __argv[i + 1], &pbar, dryRun, vfs_fn, reslist_fn);
+      int ret = patch_update_game_resources(dgs_argv[1], dgs_argv[i], dgs_argv[i + 1], &pbar, dryRun, vfs_fn, reslist_fn);
       if (ret < 0)
       {
-        printf("\nERR: failed to update %s/%s with %s\n", __argv[1], __argv[i + 1], __argv[i]);
+        printf("\nERR: failed to update %s/%s with %s\n", dgs_argv[1], dgs_argv[i + 1], dgs_argv[i]);
         return 1;
       }
-      printf("updated %s/%s with %s,  %d%% data reusage\n\n", __argv[1], __argv[i + 1], __argv[i], ret);
+      printf("updated %s/%s with %s,  %d%% data reusage\n\n", dgs_argv[1], dgs_argv[i + 1], dgs_argv[i], ret);
     }
     DAGOR_CATCH(DagorException e)
     {
-      printf("\nERR: failed to update %s/%s with %s\n\nEXCEPTION %s\n%s\n", __argv[1], __argv[i + 1], __argv[i], e.excDesc,
+      printf("\nERR: failed to update %s/%s with %s\n\nEXCEPTION %s\n%s\n", dgs_argv[1], dgs_argv[i + 1], dgs_argv[i], e.excDesc,
         DAGOR_EXC_STACK_STR(e).str());
       return 1;
     }

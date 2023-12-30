@@ -1,6 +1,7 @@
 #include "de3_freeCam.h"
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
+#include <render/dag_cur_view.h>
 #include <workCycle/dag_workCycle.h>
 #include <util/dag_flyMode.h>
 #include <humanInput/dag_hiGlobals.h>

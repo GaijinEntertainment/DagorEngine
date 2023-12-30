@@ -1,6 +1,8 @@
 if ! $(Platform) || ! $(Config) { Exit Platform must be defined before including joltPhysics/setup.jam ; }
 if $(GLOBAL_DependOnJam) { DependOnJams += $(Root)/prog/3rdPartyLibs/phys/joltPhysics/setup.jam ; } # to handle depjam case
 
+CPPopt += -DJPH_CROSS_PLATFORM_DETERMINISTIC ;
+
 # Debug checks in asserts build mode fails TSAN checks (e.g. mutex ownership)
 if $(Sanitize) != thread && $(Config) in dev dbg { CPPopt += -DJPH_DEBUG_RENDERER -DJPH_ENABLE_ASSERTS ; }
 if ! $(Platform) in iOS tvOS nswitch android && ( $(Platform) != macosx || $(MacOSXArch) != arm64 ) &&

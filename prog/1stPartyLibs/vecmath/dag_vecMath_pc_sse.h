@@ -499,16 +499,25 @@ VECTORCALL VECMATH_FINLINE vec4f v_rcp_x(vec4f a)
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_rsqrt4_fast(vec4f a) { return _mm_rsqrt_ps(a); }
-VECTORCALL VECMATH_FINLINE vec4f v_rsqrt4(vec4f a) { return v_rcp(_mm_sqrt_ps(a)); }
+VECTORCALL VECMATH_FINLINE vec4f v_rsqrt4(vec4f a)
+{
+  vec4f r = v_rsqrt4_fast(a);
+  a = v_mul(a, r);
+  a = v_mul(a, r);
+  a = v_add(a, v_splats(-3.0f));
+  r = v_mul(r, v_splats(-0.5f));
+  return v_mul(a, r);
+}
 
 VECTORCALL VECMATH_FINLINE vec4f v_rsqrt_fast_x(vec4f a) { return _mm_rsqrt_ss(a); }
 VECTORCALL VECMATH_FINLINE vec4f v_rsqrt_x(vec4f a) // Reciprocal square root estimate and 1 Newton-Raphson iteration.
 {
-  vec4f y0, y0x, y0half;
-  y0 = v_rsqrt_fast_x(a);
-  y0x = v_mul_x(y0, a);
-  y0half = v_mul_x(y0, V_C_HALF);
-  return v_madd_x(v_nmsub_x(y0, y0x, V_C_ONE), y0half, y0);
+  vec4f r = v_rsqrt_fast_x(a);
+  a = v_mul_x(a, r);
+  a = v_mul_x(a, r);
+  a = v_add_x(a, v_set_x(-3.0f));
+  r = v_mul_x(r, v_set_x(-0.5f));
+  return v_mul_x(a, r);
 }
 VECTORCALL VECMATH_FINLINE vec4i sse2_mini(vec4i a, vec4i b)
 {
@@ -796,6 +805,20 @@ VECTORCALL VECMATH_FINLINE vec4f v_norm2(vec4f a) { return v_div(a, v_splat_x(v_
 VECTORCALL VECMATH_FINLINE vec4f v_plane_dist(plane3f a, vec3f b)
 {
   return v_splat_x(v_plane_dist_x(a, b));
+}
+
+VECTORCALL VECMATH_FINLINE void v_mat_33cu_from_mat33(float * __restrict m33, const mat33f& tm)
+{
+#if _TARGET_SIMD_SSE >= 4
+  vec4f v0 = _mm_insert_ps(tm.col0, tm.col1, _MM_MK_INSERTPS_NDX(0, 3, 0));
+  vec4f v1 = v_perm_xyab(v_rot_1(tm.col1), tm.col2);
+#else // _TARGET_SIMD_SSE >= 4
+  vec4f v0 = v_perm_xyzd(tm.col0, v_splat_x(tm.col1));
+  vec4f v1 = v_perm_xyab(v_rot_1(tm.col1), tm.col2);
+#endif // _TARGET_SIMD_SSE >= 4
+  v_stu(m33 + 0, v0);
+  v_stu(m33 + 4, v1);
+  m33[8] = v_extract_z(tm.col2);
 }
 
 VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43ca(mat44f& tm, const float *const __restrict m43)

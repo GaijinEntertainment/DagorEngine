@@ -326,16 +326,6 @@ Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name)
 Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char *name)
 {
   validate_sbuffer_flags(flags, name);
-  if (flags & SBCF_BIND_INDEX)
-  {
-    G_ASSERTF(format == 0, "Index buffer can't have a format");
-    return d3d::create_ib(struct_size * elements, flags, name);
-  }
-  if (flags & SBCF_BIND_VERTEX)
-  {
-    G_ASSERTF(format == 0, "Vertex buffer can't have a format");
-    return d3d::create_vb(struct_size * elements, flags, name);
-  }
   GenericBuffer *buf = new GenericBuffer();
   if (flags & SBCF_BIND_CONSTANT)
   {

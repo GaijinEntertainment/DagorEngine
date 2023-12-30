@@ -8,9 +8,9 @@ interval ambient_per_pixel_trace:off<1, on;
 
 macro LIGHT_VOXELS_SCENE_HELPER(code)
 
-  INIT_READ_DEPTH_GBUFFER()
+  INIT_READ_DEPTH_GBUFFER_BASE(code)
   USE_READ_DEPTH_GBUFFER_BASE(code)
-  INIT_READ_GBUFFER()
+  INIT_READ_GBUFFER_BASE(code)
   USE_READ_GBUFFER_BASE(code)
   (code) {
     from_sun_direction@f3 = from_sun_direction;

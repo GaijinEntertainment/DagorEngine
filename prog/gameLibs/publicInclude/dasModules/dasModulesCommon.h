@@ -114,6 +114,7 @@ struct WrapType<E3DCOLOR>
     value = true
   };
   typedef uint32_t type;
+  typedef uint32_t rettype;
 };
 
 // aliasing

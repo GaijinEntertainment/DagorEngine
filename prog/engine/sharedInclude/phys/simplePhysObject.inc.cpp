@@ -133,7 +133,7 @@ void SimplePhysObject::init(const DynamicPhysObjectData *data, PhysWorld *w)
       {
         treeHelpers[i - 1] = nodeTree->findNodeIndex(name);
         if (!treeHelpers[i - 1])
-          fatal("cannot find node <%s> in skeleton", name);
+          DAG_FATAL("cannot find node <%s> in skeleton", name);
       }
     });
   }

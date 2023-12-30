@@ -7,20 +7,20 @@ let {
 } = require("%sqstd/asyncHttp.nut")
 let Promise = require("%sqstd/Promise.nut")
 
-let function btn(text, handler){
+function btn(text, handler){
   return comp(Padding(hdpx(10)), RendObj(ROBJ_SOLID), Colr(60,60,60), comp(Button, OnClick(handler), txt(text)))
 }
 
 let consoleStream = Watched([""])
 const MAX_ITEMS = 20
 
-let function conlog(...){
+function conlog(...){
   let v = consoleStream.value.slice(-(MAX_ITEMS-vargv.len()))
   v.extend(vargv)
   consoleStream(v)
 }
 
-let function checkPromises(){
+function checkPromises(){
   Promise(@(resolve, _reject)
     gui_scene.setTimeout(0.2, @() resolve("Promise resolved first one"))
   ).then(function(res){
@@ -31,7 +31,7 @@ let function checkPromises(){
   }).then(@(res) conlog(res) )
 }
 
-let function checkObservables(){
+function checkObservables(){
   let eventStream = Watched(-1)
   local i = 0
   let isSuccessful = @(v) v < 5
@@ -48,7 +48,7 @@ let function checkObservables(){
 }
 
 let task = TaskHttpGet("https://gaijin.net").map(@(v) conlog(v.as_string()) ?? conlog("submit new request")).flatMap(@(_) TaskHttpGet("http://ya.ru"))
-let function checkHttpTask(){
+function checkHttpTask(){
   conlog("submitted requested")
   task.exec(@(...) conlog($"error {" ".join(vargv)}"), function(v) {
     conlog($"success {v.as_string()}")

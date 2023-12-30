@@ -72,7 +72,7 @@ namespace das
 #define DAS_ASSERT G_ASSERT
 #define DAS_ASSERTF G_ASSERTF
 #define DAS_FATAL_LOG logerr
-#define DAS_FATAL_ERROR(...) { fatal(__VA_ARGS__); }
+#define DAS_FATAL_ERROR(...) { DAG_FATAL(__VA_ARGS__); }
 #if !_TARGET_PC
   #define DAS_NO_FILEIO 1
 #endif

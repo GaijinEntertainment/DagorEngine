@@ -5,11 +5,11 @@ let {read_text_from_file} = require("dagor.fs")
 
 let defLogger = @(...) print(" ".join(vargv))
 let callableTypes = ["function","table","instance"]
-let function isCallable(v) {
+function isCallable(v) {
   return callableTypes.indexof(type(v)) != null && (v.getfuncinfos() != null)
 }
 
-let function defSaveJsonFile(file_path, data){
+function defSaveJsonFile(file_path, data){
   assert(type(data) == "string", "data should be string")
   let file = io.file(file_path, "wt+")
   file.writestring(data)
@@ -18,7 +18,7 @@ let function defSaveJsonFile(file_path, data){
 }
 
 let defParamsSave = {pretty_print=true, logger=defLogger, save_text_file = defSaveJsonFile}
-local function save(file_path, data, params = defParamsSave) {
+function save(file_path, data, params = defParamsSave) {
   let pretty_print = params?.pretty_print ?? defParamsSave.pretty_print
   let save_text_file = params?.save_text_file ?? defParamsSave.save_text_file
   let logger = params?.logger ?? defParamsSave.logger
@@ -45,7 +45,7 @@ local function save(file_path, data, params = defParamsSave) {
   }
 }
 
-let function read_text_directly_from_fs_file(file_path){
+function read_text_directly_from_fs_file(file_path){
   let file = io.file(file_path, "rt")
   let content = file.readblob(file.len()).as_string()
   file.close()
@@ -53,7 +53,7 @@ let function read_text_directly_from_fs_file(file_path){
 }
 
 let defParamsLoad = {logger=defLogger, load_text_file = read_text_from_file}
-let function load(file_path, params = defParamsLoad) {
+function load(file_path, params = defParamsLoad) {
   assert(type(file_path)=="string", "file_path should be string")
   let logger = params?.logger ?? defParamsLoad.logger
   let load_text_file = params?.load_text_file ?? defParamsLoad.load_text_file

@@ -44,12 +44,12 @@ macro SSGE_WRITE_VOXEL_DATA(code, color_reg, alpha_reg)
   }
 endmacro
 
-int ssge_scene_common_color_reg_no = 6;
-int ssge_scene_common_alpha_reg_no = 5;
+int ssgi_scene_common_color_reg_no = 6 always_referenced;
+int ssgi_scene_common_alpha_reg_no = 5 always_referenced;
 
 macro SSGE_SCENE_COMMON_WRITE(code)
   USE_VOXELS(code)
-  SSGE_WRITE_VOXEL_DATA(code, ssge_scene_common_color_reg_no, ssge_scene_common_alpha_reg_no)
+  SSGE_WRITE_VOXEL_DATA(code, ssgi_scene_common_color_reg_no, ssgi_scene_common_alpha_reg_no)
 
   hlsl(code) {
     uint getCurrentCascade() {return uint(scene_voxels_unwrapped_invalid_start.w);}

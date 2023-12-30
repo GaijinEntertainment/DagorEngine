@@ -38,7 +38,6 @@ add_subdirectory(squirrel)
 add_subdirectory(sqstdlib)
 add_subdirectory(sqmodules)
 add_subdirectory(sq)
-add_subdirectory(static_analyzer)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(tgts)

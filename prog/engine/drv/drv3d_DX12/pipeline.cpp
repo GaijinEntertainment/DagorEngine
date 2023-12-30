@@ -45,80 +45,6 @@ static bool has_acceleration_structure(const backend::PixelShaderModuleRefStore 
 }
 #endif
 
-eastl::string PipelineVariant::getVariantName(BasePipeline &base, const InputLayout & /*input_layout*/,
-  const RenderStateSystem::StaticState & /*static_state*/, const FramebufferLayout & /*fb_layout*/)
-{
-  eastl::string name;
-  if (!base.vsModule.header.debugName.empty())
-  {
-    name.sprintf("vs: \"%s", base.vsModule.header.debugName.c_str());
-    if (!name.empty() && name[name.size() - 1] == '\n')
-      name.pop_back();
-    name.append("\"");
-  }
-  if (!base.psModule.header.debugName.empty())
-  {
-    if (!name.empty())
-      name += ", ";
-    name.append_sprintf("ps: \"%s", base.psModule.header.debugName.c_str());
-    if (!name.empty() && name[name.size() - 1] == '\n')
-      name.pop_back();
-    name.append("\"");
-  }
-  if (!name.empty())
-  {
-    // TODO maybe some more properties here: if one or more pipeline properties prove to be needed in the
-    // profiling then include their names here
-  }
-
-  return name;
-}
-
-bool PipelineVariant::isVariantNameEmpty(BasePipeline &base, const InputLayout & /*input_layout*/,
-  const RenderStateSystem::StaticState & /*static_state*/, const FramebufferLayout & /*fb_layout*/)
-{
-  return base.vsModule.header.debugName.empty() && base.psModule.header.debugName.empty();
-}
-
-eastl::string PipelineVariant::getVariantName(BasePipeline &base, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout)
-{
-  G_UNUSED(static_state);
-  G_UNUSED(fb_layout);
-  eastl::string name;
-  if (!base.vsModule.header.debugName.empty())
-  {
-    name.sprintf("vs: \"%s", base.vsModule.header.debugName.c_str());
-    if (!name.empty() && name[name.size() - 1] == '\n')
-      name.pop_back();
-    name.append("\"");
-  }
-  if (!base.psModule.header.debugName.empty())
-  {
-    if (!name.empty())
-      name += ", ";
-    name.append_sprintf("ps: \"%s", base.psModule.header.debugName.c_str());
-    if (!name.empty() && name[name.size() - 1] == '\n')
-      name.pop_back();
-    name.append("\"");
-  }
-  if (!name.empty())
-  {
-    // TODO maybe some more properties here: if one or more pipeline properties prove to be needed in the
-    // profiling then include their names here
-  }
-
-  return name;
-}
-
-bool PipelineVariant::isVariantNameEmpty(BasePipeline &base, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout)
-{
-  G_UNUSED(static_state);
-  G_UNUSED(fb_layout);
-  return base.vsModule.header.debugName.empty() && base.psModule.header.debugName.empty();
-}
-
 bool PipelineVariant::calculateColorWriteMask(const BasePipeline &base, const RenderStateSystem::StaticState &static_state,
   const FramebufferLayout &fb_layout, uint32_t &color_write_mask) const
 {
@@ -159,9 +85,14 @@ bool PipelineVariant::generateOutputMergerDescriptions(const BasePipeline &base,
   uint32_t fbFinalColorWriteMask = 0;
   auto isOK = calculateColorWriteMask(base, static_state, fb_layout, fbFinalColorWriteMask);
 
-  if (fb_layout.hasDepth)
+  DXGI_SAMPLE_DESC &rtSampleDesc = target.append<CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC>();
+  rtSampleDesc.Count = 1;
+  rtSampleDesc.Quality = 0;
+
+  if (fb_layout.depthBitStates.hasDepth)
   {
     target.append<CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT>(fb_layout.depthStencilFormat.asDxGiFormat());
+    rtSampleDesc.Count = 1 << fb_layout.depthBitStates.depthMsaaLevel;
   }
 
   D3D12_RT_FORMAT_ARRAY &rtfma = target.append<CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS>();
@@ -174,6 +105,7 @@ bool PipelineVariant::generateOutputMergerDescriptions(const BasePipeline &base,
       {
         rtfma.RTFormats[i] = fb_layout.colorFormats[i].asDxGiFormat();
         rtfma.NumRenderTargets = i + 1;
+        rtSampleDesc.Count = 1 << fb_layout.getColorMsaaLevel(i);
       }
       else
       {
@@ -229,18 +161,19 @@ bool PipelineVariant::generateRasterDescription(const RenderStateSystem::StaticS
 
 bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
   PipelineCache &pipe_cache, const InputLayout &input_layout, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error, bool give_name)
+  const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error, bool give_name,
+  backend::PipelineNameGenerator &name_generator)
 {
   bool succeeded = true;
+  auto name = name_generator.generateGraphicsPipelineName(base.vsModule, base.psModule, static_state);
+
 #if DX12_REPORT_PIPELINE_CREATE_TIMING
   eastl::string profilerMsg;
-  AutoFuncProf funcProfiler(!isVariantNameEmpty(base, input_layout, static_state, fb_layout)
-                              ? (profilerMsg.sprintf("PipelineVariant (%s)::create: took %%dus",
-                                   getVariantName(base, input_layout, static_state, fb_layout).c_str()),
-                                  profilerMsg.c_str())
-                              : "PipelineVariant::create: took %dus");
+  profilerMsg.sprintf("PipelineVariant (%s)::create: took %%dus", name.c_str());
+  AutoFuncProf funcProfiler(profilerMsg.c_str());
 #endif
   TIME_PROFILE_DEV(PipelineVariant_create);
+  fb_layout.checkMsaaLevelsEqual();
 #if _TARGET_PC_WIN
   if (!base.signature.signature)
   {
@@ -249,7 +182,7 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
     // load a pipeline
     funcProfiler.fmt = nullptr;
 #endif
-    debug("DX12: Rootsignature was null, skipping creating graphics pipeline");
+    logdbg("DX12: Rootsignature was null, skipping creating graphics pipeline");
     return true;
   }
 
@@ -297,8 +230,9 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
   succeeded = calculateColorWriteMask(base, static_state, fb_layout, fbFinalColorWriteMask);
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {0};
-  desc.SampleMask = 0x1;
+  desc.SampleMask = ~0u;
   desc.DSVFormat = fb_layout.depthStencilFormat.asDxGiFormat();
+  desc.SampleDesc.Count = fb_layout.depthBitStates.hasDepth ? 1 << fb_layout.depthBitStates.depthMsaaLevel : 1;
 
   uint32_t mask = fb_layout.colorTargetMask;
   if (mask)
@@ -309,6 +243,7 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
       {
         desc.RTVFormats[i] = fb_layout.colorFormats[i].asDxGiFormat();
         desc.NumRenderTargets = i + 1;
+        desc.SampleDesc.Count = 1 << fb_layout.getColorMsaaLevel(i);
       }
       else
         desc.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
@@ -369,7 +304,7 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
     auto result = device->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline));
     if (FAILED(result) && cacheTarget.CachedBlobSizeInBytes > 0)
     {
-      debug("DX12: CreatePipelineState failed with attached cache blob, retrying without");
+      logdbg("DX12: CreatePipelineState failed with attached cache blob, retrying without");
       cacheTarget.pCachedBlob = nullptr;
       cacheTarget.CachedBlobSizeInBytes = 0;
       result = device->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline));
@@ -384,10 +319,12 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
       if (is_recoverable_error(result))
       {
         String fb_layout_info;
-        fb_layout_info.printf(64, "hasDepth %u", fb_layout.hasDepth);
-        if (fb_layout.hasDepth)
+        fb_layout_info.printf(64, "hasDepth %u", fb_layout.depthBitStates.hasDepth);
+        uint8_t sampleCount = 1;
+        if (fb_layout.depthBitStates.hasDepth)
         {
           fb_layout_info.aprintf(128, " depthStencilFormat %s", fb_layout.depthStencilFormat.getNameString());
+          sampleCount = 1 << fb_layout.depthBitStates.depthMsaaLevel;
         }
         fb_layout_info.aprintf(64, " colorTargetMask %u", fb_layout.colorTargetMask);
         if (fb_layout.colorTargetMask)
@@ -399,11 +336,14 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
             if (mask & 1)
             {
               fb_layout_info.aprintf(128, " %s", fb_layout.colorFormats[i].getNameString());
+              sampleCount = 1 << fb_layout.getColorMsaaLevel(i);
             }
             else
               fb_layout_info.aprintf(128, " DXGI_FORMAT_UNKNOWN");
           }
         }
+
+        fb_layout_info.aprintf(64, " sampleCount %d", sampleCount);
 
         String input_layout_info;
         input_layout_info.printf(64, "inputCount %u, mask %08X", inputCount, input_layout.vertexAttributeSet.locationMask);
@@ -470,15 +410,12 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
   }
 
 #if DX12_DOES_SET_DEBUG_NAMES
-  if (pipeline && give_name)
+  if (pipeline && give_name && !name.empty())
   {
-    auto debugName = getVariantName(base, input_layout, static_state, fb_layout);
-    if (!debugName.empty())
-    {
-      eastl::vector<wchar_t> nameBuf;
-      nameBuf.resize(debugName.length() + 1);
-      DX12_SET_DEBUG_OBJ_NAME(pipeline, lazyToWchar(debugName.data(), nameBuf.data(), nameBuf.size()));
-    }
+    shorten_name_for_pix(name);
+    eastl::vector<wchar_t> nameBuf;
+    nameBuf.resize(name.length() + 1);
+    DX12_SET_DEBUG_OBJ_NAME(pipeline, lazyToWchar(name.data(), nameBuf.data(), nameBuf.size()));
   }
 #else
   G_UNUSED(give_name);
@@ -489,16 +426,16 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
 #if !_TARGET_XBOXONE
 bool PipelineVariant::createMesh(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
   PipelineCache &pipe_cache, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, bool give_name)
+  const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, bool give_name,
+  backend::PipelineNameGenerator &name_generator)
 {
   bool succeeded = true;
+  auto name = name_generator.generateGraphicsPipelineName(base.vsModule, base.psModule, static_state);
+
 #if DX12_REPORT_PIPELINE_CREATE_TIMING
   eastl::string profilerMsg;
-  AutoFuncProf funcProfiler(
-    !isVariantNameEmpty(base, static_state, fb_layout)
-      ? (profilerMsg.sprintf("PipelineVariant (%s)::createMesh: took %%dus", getVariantName(base, static_state, fb_layout).c_str()),
-          profilerMsg.c_str())
-      : "PipelineVariant::createMesh: took %dus");
+  profilerMsg.sprintf("PipelineVariant (%s)::createMesh: took %%dus", name.c_str());
+  AutoFuncProf funcProfiler(profilerMsg.c_str());
 #endif
   TIME_PROFILE_DEV(PipelineVariant_create);
 
@@ -509,7 +446,7 @@ bool PipelineVariant::createMesh(ID3D12Device2 *device, backend::ShaderModuleMan
     // load a pipeline
     funcProfiler.fmt = nullptr;
 #endif
-    debug("DX12: Rootsignature was null, skipping creating graphics pipeline");
+    logdbg("DX12: Rootsignature was null, skipping creating graphics pipeline");
     return true;
   }
 
@@ -550,7 +487,7 @@ bool PipelineVariant::createMesh(ID3D12Device2 *device, backend::ShaderModuleMan
 #if _TARGET_PC_WIN
     if (FAILED(result) && cacheTarget.CachedBlobSizeInBytes > 0)
     {
-      debug("DX12: CreatePipelineState failed with attached cache blob, retrying without");
+      logdbg("DX12: CreatePipelineState failed with attached cache blob, retrying without");
       cacheTarget.pCachedBlob = nullptr;
       cacheTarget.CachedBlobSizeInBytes = 0;
       result = device->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline));
@@ -562,10 +499,12 @@ bool PipelineVariant::createMesh(ID3D12Device2 *device, backend::ShaderModuleMan
       if (is_recoverable_error(result))
       {
         String fb_layout_info;
-        fb_layout_info.printf(64, "hasDepth %u", fb_layout.hasDepth);
-        if (fb_layout.hasDepth)
+        fb_layout_info.printf(64, "hasDepth %u", fb_layout.depthBitStates.hasDepth);
+        uint8_t sampleCount = 1;
+        if (fb_layout.depthBitStates.hasDepth)
         {
           fb_layout_info.aprintf(128, " depthStencilFormat %s", fb_layout.depthStencilFormat.getNameString());
+          sampleCount = 1 << fb_layout.depthBitStates.depthMsaaLevel;
         }
         fb_layout_info.aprintf(64, " colorTargetMask %u", fb_layout.colorTargetMask);
         if (fb_layout.colorTargetMask)
@@ -577,11 +516,14 @@ bool PipelineVariant::createMesh(ID3D12Device2 *device, backend::ShaderModuleMan
             if (mask & 1)
             {
               fb_layout_info.aprintf(128, " %s", fb_layout.colorFormats[i].getNameString());
+              sampleCount = 1 << fb_layout.getColorMsaaLevel(i);
             }
             else
               fb_layout_info.aprintf(128, " DXGI_FORMAT_UNKNOWN");
           }
         }
+
+        fb_layout_info.aprintf(64, " sampleCount %d", sampleCount);
 
         switch (on_error)
         {
@@ -610,15 +552,12 @@ bool PipelineVariant::createMesh(ID3D12Device2 *device, backend::ShaderModuleMan
   }
 
 #if DX12_DOES_SET_DEBUG_NAMES
-  if (pipeline && give_name)
+  if (pipeline && give_name && !name.empty())
   {
-    auto debugName = getVariantName(base, static_state, fb_layout);
-    if (!debugName.empty())
-    {
-      eastl::vector<wchar_t> nameBuf;
-      nameBuf.resize(debugName.length() + 1);
-      DX12_SET_DEBUG_OBJ_NAME(pipeline, lazyToWchar(debugName.data(), nameBuf.data(), nameBuf.size()));
-    }
+    shorten_name_for_pix(name);
+    eastl::vector<wchar_t> nameBuf;
+    nameBuf.resize(name.length() + 1);
+    DX12_SET_DEBUG_OBJ_NAME(pipeline, lazyToWchar(name.data(), nameBuf.data(), nameBuf.size()));
   }
 #else
   G_UNUSED(give_name);
@@ -630,7 +569,8 @@ bool PipelineVariant::createMesh(ID3D12Device2 *device, backend::ShaderModuleMan
 
 bool PipelineVariant::load(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
   PipelineCache &pipe_cache, const InputLayout &input_layout, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error, bool give_name)
+  const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error, bool give_name,
+  backend::PipelineNameGenerator &name_generator)
 {
   if (pipeline)
     return true;
@@ -639,19 +579,21 @@ bool PipelineVariant::load(ID3D12Device2 *device, backend::ShaderModuleManager &
   G_ASSERT(!base.isMesh());
 #endif
   return create(device, shader_bytecodes, base, pipe_cache, input_layout, is_wire_frame, static_state, fb_layout, top, on_error,
-    give_name);
+    give_name, name_generator);
 }
 
 bool PipelineVariant::loadMesh(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
   PipelineCache &pipe_cache, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, bool give_name)
+  const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, bool give_name,
+  backend::PipelineNameGenerator &name_generator)
 {
   if (pipeline)
     return true;
   dynamicMask = static_state.getDynamicStateMask();
 #if !_TARGET_XBOXONE
   G_ASSERT(base.isMesh());
-  return createMesh(device, shader_bytecodes, base, pipe_cache, is_wire_frame, static_state, fb_layout, on_error, give_name);
+  return createMesh(device, shader_bytecodes, base, pipe_cache, is_wire_frame, static_state, fb_layout, on_error, give_name,
+    name_generator);
 #else
   G_UNUSED(device);
   G_UNUSED(shader_bytecodes);
@@ -662,6 +604,7 @@ bool PipelineVariant::loadMesh(ID3D12Device2 *device, backend::ShaderModuleManag
   G_UNUSED(fb_layout);
   G_UNUSED(on_error);
   G_UNUSED(give_name);
+  G_UNUSED(name_generator);
   return false;
 #endif
 }
@@ -700,7 +643,7 @@ void PipelineVariant::errorPrintBlkString(const BasePipeline &base, const InputL
     variantInfo.isWireFrame = is_wire_frame;
     variantInfo.topology = top;
     variantInfo.inputLayoutIndex = 0;
-    pipeline::DataBlockEncodeVisitor<pipeline::GraphicsPipelineEncoder> visitor{*graphicsPipelinesOutBlock, nullptr, 0};
+    pipeline::DataBlockEncodeVisitor<pipeline::GraphicsPipelineEncoder> visitor{*graphicsPipelinesOutBlock, nullptr, 0u};
     visitor.encode(baseInfo, eastl::span<const GraphicsPipelineVariantState>{&variantInfo, 1});
   }
 
@@ -743,7 +686,7 @@ void PipelineVariant::errorPrintMeshBlkString(const BasePipeline &base, bool is_
     variantInfo.framebufferLayoutIndex = 0;
     variantInfo.staticRenderStateIndex = 0;
     variantInfo.isWireFrame = is_wire_frame;
-    pipeline::DataBlockEncodeVisitor<pipeline::MeshPipelineEncoder> visitor{*meshPipelinesOutBlock, nullptr, 0};
+    pipeline::DataBlockEncodeVisitor<pipeline::MeshPipelineEncoder> visitor{*meshPipelinesOutBlock, nullptr, 0u};
     visitor.encode(baseInfo, eastl::span<const MeshPipelineVariantState>{&variantInfo, 1});
   }
 
@@ -854,7 +797,7 @@ void PipelineManager::createBlitSignature(ID3D12Device *device)
   ComPtr<ID3DBlob> errorBlob;
   if (DX12_CHECK_FAIL(D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSignBlob, &errorBlob)))
   {
-    fatal("DX12: D3D12SerializeRootSignature failed with %s", reinterpret_cast<const char *>(errorBlob->GetBufferPointer()));
+    DAG_FATAL("DX12: D3D12SerializeRootSignature failed with %s", reinterpret_cast<const char *>(errorBlob->GetBufferPointer()));
   }
   DX12_CHECK_RESULT(
     device->CreateRootSignature(0, rootSignBlob->GetBufferPointer(), rootSignBlob->GetBufferSize(), COM_ARGS(&blitSignature)));
@@ -974,7 +917,7 @@ ID3D12PipelineState *PipelineManager::createBlitPipeline(ID3D12Device2 *device, 
 
   if (FAILED(result))
   {
-    fatal("Failed to create blit pipeline");
+    DAG_FATAL("Failed to create blit pipeline");
     return nullptr;
   }
 
@@ -1296,7 +1239,7 @@ struct GraphicsRootSignatureGenerator : BasicGraphicsRootSignatureGenerator<5, G
     {
       default:
       case D3D12_SHADER_VISIBILITY_ALL:
-        fatal("DX12: Trying to update pipeline data for unexpected shader visibility!");
+        DAG_FATAL("DX12: Trying to update pipeline data for unexpected shader visibility!");
         [[fallthrough]];
       case D3D12_SHADER_VISIBILITY_VERTEX: return signature->def.vsLayout;
       case D3D12_SHADER_VISIBILITY_PIXEL: return signature->def.psLayout;
@@ -1334,7 +1277,7 @@ struct GraphicsMeshRootSignatureGenerator : BasicGraphicsRootSignatureGenerator<
     {
       default:
       case D3D12_SHADER_VISIBILITY_ALL:
-        fatal("DX12: Trying to update pipeline data for unexpected shader visibility!");
+        DAG_FATAL("DX12: Trying to update pipeline data for unexpected shader visibility!");
         [[fallthrough]];
       case D3D12_SHADER_VISIBILITY_MESH: return signature->def.vsLayout;
       case D3D12_SHADER_VISIBILITY_PIXEL: return signature->def.psLayout;
@@ -1425,13 +1368,13 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsPipelineSignature(ID3D12D
     G_ASSERTF(generator.signatureCost < 64, "Too many root signature parameters, the limit is 64 but this one needs %u",
       generator.signatureCost);
 #if DX12_REPORT_PIPELINE_CREATE_TIMING
-    debug("DX12: Generating graphics signature with approximately %u dwords used", generator.signatureCost);
+    logdbg("DX12: Generating graphics signature with approximately %u dwords used", generator.signatureCost);
 #endif
     ComPtr<ID3DBlob> rootSignBlob;
     ComPtr<ID3DBlob> errorBlob;
     if (DX12_CHECK_FAIL(D3D12SerializeRootSignature(&generator.desc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSignBlob, &errorBlob)))
     {
-      fatal("DX12: D3D12SerializeRootSignature failed with %s", reinterpret_cast<const char *>(errorBlob->GetBufferPointer()));
+      DAG_FATAL("DX12: D3D12SerializeRootSignature failed with %s", reinterpret_cast<const char *>(errorBlob->GetBufferPointer()));
       return nullptr;
     }
     auto result = DX12_CHECK_RESULT(
@@ -1494,13 +1437,13 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsMeshPipelineSignature(ID3
     G_ASSERTF(generator.signatureCost < 64, "Too many root signature parameters, the limit is 64 but this one needs %u",
       generator.signatureCost);
 #if DX12_REPORT_PIPELINE_CREATE_TIMING
-    debug("DX12: Generating graphics mesh signature with approximately %u dwords used", generator.signatureCost);
+    logdbg("DX12: Generating graphics mesh signature with approximately %u dwords used", generator.signatureCost);
 #endif
     ComPtr<ID3DBlob> rootSignBlob;
     ComPtr<ID3DBlob> errorBlob;
     if (DX12_CHECK_FAIL(D3D12SerializeRootSignature(&generator.desc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSignBlob, &errorBlob)))
     {
-      fatal("DX12: D3D12SerializeRootSignature failed with %s", reinterpret_cast<const char *>(errorBlob->GetBufferPointer()));
+      DAG_FATAL("DX12: D3D12SerializeRootSignature failed with %s", reinterpret_cast<const char *>(errorBlob->GetBufferPointer()));
       return nullptr;
     }
     auto result = DX12_CHECK_RESULT(
@@ -1784,14 +1727,14 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
     G_ASSERTF(generator.signatureCost < 64, "Too many root signature parameters, the limit is 64 but this one needs %u",
       generator.signatureCost);
 #if DX12_REPORT_PIPELINE_CREATE_TIMING
-    debug("DX12: Generating compute pipeline signature with approximately %u dwords used", generator.signatureCost);
+    logdbg("DX12: Generating compute pipeline signature with approximately %u dwords used", generator.signatureCost);
 #endif
     ComPtr<ID3DBlob> rootSignBlob;
     ComPtr<ID3DBlob> errorBlob;
 
     if (DX12_CHECK_FAIL(D3D12SerializeRootSignature(&generator.desc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSignBlob, &errorBlob)))
     {
-      fatal("DX12: D3D12SerializeRootSignature failed with %s", reinterpret_cast<const char *>(errorBlob->GetBufferPointer()));
+      DAG_FATAL("DX12: D3D12SerializeRootSignature failed with %s", reinterpret_cast<const char *>(errorBlob->GetBufferPointer()));
       return nullptr;
     }
 
@@ -1857,7 +1800,7 @@ void PipelineManager::addCompute(ID3D12Device2 *device, PipelineCache &cache, Pr
       DataBlock cacheOutBlock;
       if (auto computePipelinesOutBlock = cacheOutBlock.addNewBlock("compute_pipelines"))
       {
-        pipeline::DataBlockEncodeVisitor<pipeline::ComputePipelineEncoder> visitor{*computePipelinesOutBlock, nullptr, 0};
+        pipeline::DataBlockEncodeVisitor<pipeline::ComputePipelineEncoder> visitor{*computePipelinesOutBlock, nullptr, 0u};
         ComputePipelineIdentifier pipeline;
         pipeline.hash = shader.ident.shaderHash;
         visitor.encode(pipeline);
@@ -1875,7 +1818,8 @@ void PipelineManager::addCompute(ID3D12Device2 *device, PipelineCache &cache, Pr
       cacheOutBlock.saveToTextStreamCompact(stringGen);
       logerr("%s", buffer);
     }
-    pipelineGroup[index] = eastl::make_unique<ComputePipeline>(*signature, eastl::move(shader), device, cache, on_error, give_name);
+    pipelineGroup[index] =
+      eastl::make_unique<ComputePipeline>(*signature, eastl::move(shader), device, cache, on_error, give_name, *this);
   }
 }
 
@@ -1971,7 +1915,7 @@ eastl::unique_ptr<BasePipeline> PipelineManager::createGraphics(ID3D12Device2 *d
   }
   return eastl::make_unique<BasePipeline>(device, *signature, cache, static_cast<backend::ShaderModuleManager &>(*this),
     static_cast<backend::InputLayoutManager &>(*this), static_cast<backend::StaticRenderStateManager &>(*this), fbs, vertexShader,
-    pixelShader, on_error, give_name);
+    pixelShader, on_error, give_name, static_cast<backend::PipelineNameGenerator &>(*this));
 }
 
 void PipelineManager::unloadAll()
@@ -2116,7 +2060,7 @@ void PipelineManager::addRaytrace(ID3D12Device *device, PipelineCache &cache, Pr
   G_ASSERT(rayGenIndex < shader_count);
   if (rayGenIndex >= shader_count)
   {
-    fatal("Missing raygen shader for raytrace program");
+    DAG_FATAL("Missing raygen shader for raytrace program");
   }
 
   // TODO: may do some magic with the whole set of shaders
@@ -2436,38 +2380,43 @@ void PipelineStageStateBase::dirtyTextureState(Image *texture)
 void PipelineStageStateBase::flushResourceStates(uint32_t b_register_mask, uint32_t t_register_mask, uint32_t u_register_mask,
   uint32_t stage, ResourceUsageManagerWithHistory &res_usage, BarrierBatcher &barrier_batcher, SplitTransitionTracker &split_tracker)
 {
-  for_each_set_bit(bRegisterStateDirtyMask & b_register_mask, [&res_usage, &barrier_batcher, stage, this](uint32_t i) {
-    res_usage.useBufferAsCBV(barrier_batcher, stage, bRegisterBuffers[i]);
-  });
+  const auto bUpdateMask = LsbVisitor{bRegisterStateDirtyMask & b_register_mask};
   bRegisterStateDirtyMask &= ~b_register_mask;
 
-  for_each_set_bit(tRegisterStateDirtyMask & t_register_mask,
-    [&res_usage, &barrier_batcher, &split_tracker, stage, this](uint32_t i) //
-    {
-      if (tRegisters[i].image)
-      {
-        res_usage.useTextureAsSRV(barrier_batcher, split_tracker, stage, tRegisters[i].image, tRegisters[i].imageView,
-          isConstDepthStencil.test(i));
-      }
-      else if (tRegisters[i].buffer)
-      {
-        res_usage.useBufferAsSRV(barrier_batcher, stage, tRegisters[i].buffer);
-      }
-      // RT structures do not need any state tracking
-    });
+  const auto tUpdateMask = LsbVisitor{tRegisterStateDirtyMask & t_register_mask};
   tRegisterStateDirtyMask &= ~t_register_mask;
 
-  for_each_set_bit(uRegisterStateDirtyMask & u_register_mask,
-    [&res_usage, &barrier_batcher, &split_tracker, stage, this](uint32_t i) //
-    {
-      if (uRegisters[i].image)
-      {
-        res_usage.useTextureAsUAV(barrier_batcher, split_tracker, stage, uRegisters[i].image, uRegisters[i].imageView);
-      }
-      else if (uRegisters[i].buffer)
-      {
-        res_usage.useBufferAsUAV(barrier_batcher, stage, uRegisters[i].buffer);
-      }
-    });
+  const auto uUpdateMask = LsbVisitor{uRegisterStateDirtyMask & u_register_mask};
   uRegisterStateDirtyMask &= ~u_register_mask;
+
+  for (auto i : bUpdateMask)
+  {
+    res_usage.useBufferAsCBV(barrier_batcher, stage, bRegisterBuffers[i]);
+  }
+
+  for (auto i : tUpdateMask)
+  {
+    if (tRegisters[i].image)
+    {
+      res_usage.useTextureAsSRV(barrier_batcher, split_tracker, stage, tRegisters[i].image, tRegisters[i].imageView,
+        isConstDepthStencil.test(i));
+    }
+    else if (tRegisters[i].buffer)
+    {
+      res_usage.useBufferAsSRV(barrier_batcher, stage, tRegisters[i].buffer);
+    }
+    // RT structures do not need any state tracking
+  }
+
+  for (auto i : uUpdateMask)
+  {
+    if (uRegisters[i].image)
+    {
+      res_usage.useTextureAsUAV(barrier_batcher, split_tracker, stage, uRegisters[i].image, uRegisters[i].imageView);
+    }
+    else if (uRegisters[i].buffer)
+    {
+      res_usage.useBufferAsUAV(barrier_batcher, stage, uRegisters[i].buffer);
+    }
+  }
 }

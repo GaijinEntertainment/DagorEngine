@@ -128,8 +128,10 @@ static bool verify_nvidia_settings(int active_vendor, const GpuVideoSettings &vi
 }
 #endif
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4191)
+#endif
 
 static bool verify_ati_settings(int active_vendor, const GpuVideoSettings &video, GpuDriverConfig &out_cfg)
 {
@@ -247,7 +249,9 @@ static bool verify_ati_settings(int active_vendor, const GpuVideoSettings &video
   return true;
 }
 
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 void d3d::disable_sli()
 {

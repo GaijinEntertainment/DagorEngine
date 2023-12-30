@@ -1,7 +1,7 @@
 include "shader_global.dshl"
 include "rendinst_opaque_inc.dshl"
 include "rendinst_impostor_inc.dshl"
-include "rendinst_vegetation_inc.dshl"
+include "rendinst_rotation_palette.dshl"
 include "gbuffer.dshl"
 include "viewVecVS.dshl"
 

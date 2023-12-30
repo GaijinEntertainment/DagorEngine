@@ -60,7 +60,7 @@ private:
   struct HeapTimeStampVisibility
   {
     ComPtr<ID3D12QueryHeap> heap;
-    eastl::bitset<heap_size> freeMask = ~eastl::bitset<heap_size>();
+    Bitset<heap_size> freeMask = Bitset<heap_size>().set();
     ComPtr<ID3D12Resource> readBackBuffer;
     uint64_t *mappedMemory = nullptr;
   };
@@ -211,8 +211,7 @@ inline void BackendQueryManager::makeVisibilityQuery(Query *query_ptr, ID3D12Dev
   {
     return;
   }
-  auto slotIndex = ptr->freeMask.find_first();
-  ptr->freeMask.reset(slotIndex);
+  auto slotIndex = ptr->freeMask.find_first_and_reset();
   cmd->BeginQuery(ptr->heap.Get(), D3D12_QUERY_TYPE_OCCLUSION, slotIndex);
   auto heap_num = ptr - visibilityHeaps.data();
   query_ptr->setId(heap_size * heap_num + slotIndex, Query::Qtype::VISIBILITY);
@@ -244,8 +243,7 @@ inline void BackendQueryManager::makeTimeStampQuery(Query *query_ptr, ID3D12Devi
   {
     return;
   }
-  auto slotIndex = ptr->freeMask.find_first();
-  ptr->freeMask.reset(slotIndex);
+  auto slotIndex = ptr->freeMask.find_first_and_reset();
   cmd->EndQuery(ptr->heap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, slotIndex);
   auto heap_num = ptr - timeStampHeaps.data();
   query_ptr->setId(heap_size * heap_num + slotIndex, Query::Qtype::TIMESTAMP);
@@ -255,34 +253,23 @@ inline void BackendQueryManager::makeTimeStampQuery(Query *query_ptr, ID3D12Devi
   flush.result = ptr->mappedMemory + slotIndex;
   tsFlushes.push_back(flush);
 }
+
 inline void BackendQueryManager::heapResolve(ID3D12GraphicsCommandList *target, D3D12_QUERY_TYPE type,
   BackendQueryManager::HeapTimeStampVisibility &heap)
 {
-  if (heap.freeMask.none())
+  int base = 0;
+
+  for (size_t i : heap.freeMask)
   {
-    // heap is full
-    target->ResolveQueryData(heap.heap.Get(), type, 0, heap_size, heap.readBackBuffer.Get(), 0);
-    return;
-  }
-  if (!heap.freeMask.all())
-  {
-    int base = 0;
-    for (int i = 0; i < heap_size; i++)
+    if (base < i)
     {
-      if (heap.freeMask.test(i))
-      {
-        if (base < i)
-        {
-          target->ResolveQueryData(heap.heap.Get(), type, base, i - base, heap.readBackBuffer.Get(), 0);
-        }
-        base = i + 1;
-      }
+      target->ResolveQueryData(heap.heap.Get(), type, base, i - base, heap.readBackBuffer.Get(), 0);
     }
-    if (base < heap_size)
-    {
-      target->ResolveQueryData(heap.heap.Get(), type, base, heap_size - base, heap.readBackBuffer.Get(), 0);
-    }
+    base = i + 1;
   }
+
+  if (base < heap_size)
+    target->ResolveQueryData(heap.heap.Get(), type, base, heap_size - base, heap.readBackBuffer.Get(), 0);
 }
 
 inline void BackendQueryManager::resolve(ID3D12GraphicsCommandList *target)
@@ -308,7 +295,7 @@ inline void BackendQueryManager::flush()
     {
       heap.readBackBuffer->Unmap(0, &emptyRange);
     }
-    heap.freeMask = ~eastl::bitset<heap_size>();
+    heap.freeMask.set();
   }
   for (auto &&heap : visibilityHeaps)
   {
@@ -317,7 +304,7 @@ inline void BackendQueryManager::flush()
     {
       heap.readBackBuffer->Unmap(0, &emptyRange);
     }
-    heap.freeMask = ~eastl::bitset<heap_size>();
+    heap.freeMask.set();
   }
   for (auto &&flush : tsFlushes)
   {

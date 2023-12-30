@@ -327,7 +327,7 @@ public:
     clev = cl;
     topsz = 1 << (clev + LP);
   }
-  const int getLevels() const { return clev; }
+  int getLevels() const { return clev; }
   // (u,v,w) is some grid point of the leaf
   TopNode *findTopNode(int uc, int vc, int wc)
   {

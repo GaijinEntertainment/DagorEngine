@@ -2913,7 +2913,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
 
   int save(FILE *h, Interface *ip, TCHAR **textures, int max_textures)
   {
-    if ((util.expflg & EXP_MATOPT) && (util.expflg & EXP_MESH))
+    if (util.expflg & EXP_MESH)
     {
       Tab<bool> matUsed;
       int i;

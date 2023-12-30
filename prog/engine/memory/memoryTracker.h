@@ -435,7 +435,7 @@ struct MemoryTracker
     {
       numHeaps++;
       if (numHeaps >= MTR_MAX_HEAPS)
-        fatal("memory tracker run out of heaps");
+        DAG_FATAL("memory tracker run out of heaps");
       heapIDs[heapIdx] = heap;
       heaps[heapIdx].heapID = heap;
     }
@@ -445,7 +445,7 @@ struct MemoryTracker
     for (bitmapIdx = firstNonFullBitmapChunk; (1 < maxBlocks / BITMAP_BITS) && (~bitmap[bitmapIdx] == 0); bitmapIdx++)
       ;
     if (bitmapIdx >= maxBlocks / BITMAP_BITS)
-      fatal("memory tracker run out of blocks");
+      DAG_FATAL("memory tracker run out of blocks");
     firstNonFullBitmapChunk = bitmapIdx;
 
     bitmap_t bmp = bitmap[bitmapIdx];

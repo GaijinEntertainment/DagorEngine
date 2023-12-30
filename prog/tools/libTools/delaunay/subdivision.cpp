@@ -413,8 +413,4 @@ void Triangle::reshape(Edge *e)
 }
 
 
-void Triangle::update(Subdivision &)
-// called by reshape to update stuff
-//
-// the default method will do nothing
-{}
+void Triangle::update(Subdivision &) {} // called by reshape to update stuff, the default method will do nothing

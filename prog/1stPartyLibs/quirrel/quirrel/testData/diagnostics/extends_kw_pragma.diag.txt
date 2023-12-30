@@ -1,7 +1,8 @@
-ERROR: Old-style class inheritance using 'extends' keyword is forbidden. Use `class D (B) {}` syntax
-testData/diagnostics/extends_kw_pragma.nut.txt:16:9
+ERROR: expected '{'
+testData/diagnostics/extends_kw_pragma.nut.txt:4:9
 
-class D5 extends B { } // EXPECTED
+class D1 (B) { }
+class D2 extends B { } // FP 1
          ^------
 
 

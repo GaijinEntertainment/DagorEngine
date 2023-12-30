@@ -5,7 +5,7 @@
 #include <windows.h>
 #include <commctrl.h>
 
-static const int STR_SIZE = 64;
+static const int STR_SIZE = 128;
 static const DWORD UNFOCUSED_SELECTION_BG_COLOR_DEFAULT = RGB(240, 240, 240);
 static const DWORD UNFOCUSED_SELECTION_BG_COLOR_EXPLORER = RGB(217, 217, 217);
 

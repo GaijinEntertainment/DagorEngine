@@ -39,7 +39,7 @@ static void solve_2bones_ik(mat44f &n0_wtm, mat44f &n1_wtm, mat44f &n2_wtm, cons
 
   float maxReachLen = max_reach_scale * (length01 + length12);
   float targetLenSq = v_extract_x(v_length3_sq_x(ikNode2));
-  if (SQR(maxReachLen) < targetLenSq)
+  if (sqr(maxReachLen) < targetLenSq)
   {
     n2_wtm.col3 = v_add(n0_wtm.col3, v_mul(v_splats(maxReachLen / sqrtf(targetLenSq)), v_sub(n2_wtm.col3, n0_wtm.col3)));
     ikNode2 = v_sub(n2_wtm.col3, n0_wtm.col3);

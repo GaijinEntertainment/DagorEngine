@@ -327,10 +327,10 @@ void GPGPUData::updateHt0WindowsVB(const NVWaveWorks_FFT_CPU_Simulation *fft, in
   buffersReady = false;
 }
 
-void GPGPUData::fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
+bool GPGPUData::fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
 {
   if (buffersReady)
-    return;
+    return true;
   int num_quads = (numCascades + 1) / 2;
   const int N = 1 << fft[0].getParams().fft_resolution_bits;
   if (ht0Vbuf)
@@ -339,6 +339,8 @@ void GPGPUData::fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCa
     get_global_gauss_data(gauss_resolution, gauss_stride);
     Ht0Vertex *vertices;
     d3d_err(ht0Vbuf->lock(0, 0, (void **)&vertices, VBLOCK_WRITEONLY));
+    if (!vertices)
+      return false;
     G_ASSERT(N <= gauss_resolution);
     float gauss_corner0 = (gauss_resolution - N) * 0.5f / (gauss_resolution + 1.0f);
     float halfTexelOffsetX = 0.5f;
@@ -411,6 +413,8 @@ void GPGPUData::fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCa
   {
     uint16_t *indices;
     d3d_err(ht0Ibuf->lock(0, 0, &indices, VBLOCK_WRITEONLY));
+    if (!indices)
+      return false;
     for (int i = 0; i < num_quads; ++i, indices += 6)
     {
       int base = i * 4;
@@ -428,6 +432,8 @@ void GPGPUData::fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCa
   {
     Point3 *fftVertices;
     d3d_err(fftVbuf->lock(0, 0, (void **)&fftVertices, VBLOCK_WRITEONLY));
+    if (!fftVertices)
+      return false;
     for (int i = 0; i < miNumButterflies; ++i, fftVertices += 3)
     {
       float index = (i + 0.5f) / miNumButterflies;
@@ -438,15 +444,17 @@ void GPGPUData::fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCa
     fftVbuf->unlock();
   }
   buffersReady = true;
+  return true;
 }
 
-void GPGPUData::updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
+bool GPGPUData::updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
 {
   if (!h0GPUUpdateRequired)
-    return;
+    return true;
   if (!h0Element)
-    return;
-  fillBuffers(fft, numCascades);
+    return false;
+  if (!fillBuffers(fft, numCascades))
+    return false;
   ShaderGlobal::set_texture(k_texVarId, BAD_TEXTUREID);
   ShaderGlobal::set_texture(gauss_texVarId, gauss);
   d3d::set_render_target(ht0.getTex2D(), 0);
@@ -519,6 +527,7 @@ void GPGPUData::updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCasca
     }
   }*/
   h0GPUUpdateRequired = false;
+  return true;
 }
 
 void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades, double time)
@@ -528,9 +537,9 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
   TIME_D3D_PROFILE(gpGPUFFT);
   const int N = 1 << fft[0].getParams().fft_resolution_bits;
   fillOmega(fft, numCascades);
-  Driver3dRenderTarget prevRt;
-  d3d::get_render_target(prevRt);
-  updateH0(fft, numCascades);
+  ScopeRenderTarget scopeRt;
+  if (!updateH0(fft, numCascades))
+    return;
   d3d::set_render_target();
 
 #if _TARGET_TVOS
@@ -816,6 +825,4 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
       Color4(numCascades > 4 ? fft[4].getParams().choppy_scale : 1.0f, 1.0f, 1.0f, 1.0f));
   }
   displacementsRenderer.render();
-
-  d3d::set_render_target(prevRt);
 }

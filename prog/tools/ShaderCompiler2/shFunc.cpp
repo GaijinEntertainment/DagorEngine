@@ -67,7 +67,14 @@ int prepareArgs(FunctionId func, FuncArgument *args, int /*num*/)
       args[0].vt = shexpr::VT_TEXTURE;
       args[1].vt = shexpr::VT_REAL;
       return 2;
+    case BF_GET_SIZE: args[0].vt = shexpr::VT_BUFFER; return 1;
     case BF_GET_VIEWPORT: return 0;
+    case BF_CREATE_SAMPLER:
+      args[0].vt = shexpr::VT_REAL;
+      args[1].vt = shexpr::VT_COLOR4;
+      args[2].vt = shexpr::VT_REAL;
+      args[3].vt = shexpr::VT_REAL;
+      return 4;
     default: G_ASSERT(0);
   }
   return -1;
@@ -92,7 +99,9 @@ int getOpCount(FunctionId func)
     case BF_WIND_COEFF: return 2;
     case BF_FADE_VAL: return 4;
     case BF_GET_DIMENSIONS: return 2;
+    case BF_GET_SIZE: return 1;
     case BF_GET_VIEWPORT: return 0;
+    case BF_CREATE_SAMPLER: return 4;
     default: G_ASSERT(0);
   }
   return 0;
@@ -117,7 +126,9 @@ shexpr::ValueType getValueType(FunctionId func)
     case BF_SRGBREAD: return shexpr::VT_COLOR4;
     case BF_FADE_VAL: return shexpr::VT_REAL;
     case BF_GET_DIMENSIONS: return shexpr::VT_COLOR4;
+    case BF_GET_SIZE: return shexpr::VT_REAL;
     case BF_GET_VIEWPORT: return shexpr::VT_COLOR4;
+    case BF_CREATE_SAMPLER: return shexpr::VT_UNDEFINED;
     default: G_ASSERT(0);
   }
   return shexpr::VT_UNDEFINED;
@@ -131,7 +142,7 @@ static Color4 anim_frame(float arg0, float arg1, float arg2, float arg3)
   int total = (int)arg3; // 3 - total frame count
   if (!x || !y || !total)
   {
-    fatal("invalid arguments in shader function 'anim_frame(%.4f, %d, %d, %d)'", arg0, x, y, total);
+    DAG_FATAL("invalid arguments in shader function 'anim_frame(%.4f, %d, %d, %d)'", arg0, x, y, total);
   }
   int picture = (int)(arg0 * (total - 1));
 
@@ -160,7 +171,7 @@ bool evaluate(FunctionId func, Color4 &res, const ArgList &args)
 
       if (x < 0)
       {
-        fatal("invalid arguments in shader function 'sqrt(%.4f)'", x);
+        DAG_FATAL("invalid arguments in shader function 'sqrt(%.4f)'", x);
       }
 
       res.r = sqrtf(x);
@@ -170,7 +181,7 @@ bool evaluate(FunctionId func, Color4 &res, const ArgList &args)
     case BF_MAX: res.r = max(args[0].val.r, args[1].val.r); break;
     case BF_ANIM_FRAME: res = anim_frame(args[0].val.r, args[1].val.r, args[2].val.r, args[3].val.r); break;
     case BF_FSEL: res.r = fsel(args[0].val.r, args[1].val.r, args[2].val.r); break;
-    default: fatal("evaluate - no code for evaluate: id=%d name='%s'", func, getFuncName(func));
+    default: DAG_FATAL("evaluate - no code for evaluate: id=%d name='%s'", func, getFuncName(func));
   }
   return true;
 }
@@ -206,8 +217,12 @@ bool getFuncId(const char *name, FunctionId &ret_func)
     ret_func = BF_FADE_VAL;
   else if (dd_stricmp(name, "get_dimensions") == 0)
     ret_func = BF_GET_DIMENSIONS;
+  else if (dd_stricmp(name, "get_size") == 0)
+    ret_func = BF_GET_SIZE;
   else if (dd_stricmp(name, "get_viewport") == 0)
     ret_func = BF_GET_VIEWPORT;
+  else if (dd_stricmp(name, "create_sampler") == 0)
+    ret_func = BF_CREATE_SAMPLER;
   else
     return false;
   return true;

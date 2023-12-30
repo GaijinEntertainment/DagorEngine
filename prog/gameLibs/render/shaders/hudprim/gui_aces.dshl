@@ -202,7 +202,7 @@ shader gui_aces
   }
 
   hlsl(ps) {
-    fixed4 main_ps_gui_aces(VsOutput input) : SV_Target
+    float4 main_ps_gui_aces(VsOutput input) : SV_Target
     {
       OGL_DEPTH_TEST_FOR_INPUT(input);
 
@@ -230,7 +230,7 @@ shader gui_aces
 ##if night_vision_gui_mode == night_vision_on
       result.rgb *= 0.07;
 ##endif
-      return result;
+      return float4(result);
     }
   }
   compile("target_vs", "main_vs_gui_aces");

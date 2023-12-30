@@ -27,7 +27,7 @@ void RingCPUBufferLock::init(uint32_t element_size, uint32_t elements, int buffe
     char cname[64];
     SNPRINTF(cname, countof(cname), "%s%d", name, i);
     if (is_texture)
-      buffers[i].gpu = d3d::create_tex(NULL, element_size, elements, texfmt | TEXCF_LINEAR_LAYOUT | flags, 1, cname);
+      buffers[i].gpu = d3d::create_tex(NULL, element_size, elements, texfmt, 1, cname);
     else
       buffers[i].gpu = d3d::create_sbuffer(element_size, elements, flags, texfmt, name);
     buffers[i].event = d3d::create_event_query();

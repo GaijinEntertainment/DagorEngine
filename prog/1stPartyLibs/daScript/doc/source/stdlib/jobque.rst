@@ -69,10 +69,12 @@ Channel property operators are
 
 |structure_annotation-jobque-Atomic64|
 
-+++++++++++++++++++++
-Channel and JobStatus
-+++++++++++++++++++++
++++++++++++++++++++++++++++
+Channel, JobStatus, Lockbox
++++++++++++++++++++++++++++
 
+  *  :ref:`lock_box_create (context:__context const;line:__lineInfo const) : jobque::LockBox? <function-_at_jobque_c__c_lock_box_create_C_c_C_l>` 
+  *  :ref:`lock_box_remove (box:jobque::LockBox?& implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_lock_box_remove_&I1_ls_H_ls_jobque_c__c_LockBox_gr__gr_?_C_c_C_l>` 
   *  :ref:`append (channel:jobque::JobStatus? const implicit;size:int const;context:__context const;line:__lineInfo const) : int <function-_at_jobque_c__c_append_CI1_ls_H_ls_jobque_c__c_JobStatus_gr__gr_?_Ci_C_c_C_l>` 
   *  :ref:`channel_create (context:__context const;line:__lineInfo const) : jobque::Channel? <function-_at_jobque_c__c_channel_create_C_c_C_l>` 
   *  :ref:`channel_remove (channel:jobque::Channel?& implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_channel_remove_&I1_ls_H_ls_jobque_c__c_Channel_gr__gr_?_C_c_C_l>` 
@@ -81,6 +83,32 @@ Channel and JobStatus
   *  :ref:`join (job:jobque::JobStatus? const implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_join_CI1_ls_H_ls_jobque_c__c_JobStatus_gr__gr_?_C_c_C_l>` 
   *  :ref:`notify (job:jobque::JobStatus? const implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_notify_CI1_ls_H_ls_jobque_c__c_JobStatus_gr__gr_?_C_c_C_l>` 
   *  :ref:`notify_and_release (job:jobque::JobStatus?& implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_notify_and_release_&I1_ls_H_ls_jobque_c__c_JobStatus_gr__gr_?_C_c_C_l>` 
+  *  :ref:`job_status_create (context:__context const;line:__lineInfo const) : jobque::JobStatus? <function-_at_jobque_c__c_job_status_create_C_c_C_l>` 
+  *  :ref:`job_status_remove (jobStatus:jobque::JobStatus?& implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_job_status_remove_&I1_ls_H_ls_jobque_c__c_JobStatus_gr__gr_?_C_c_C_l>` 
+
+.. _function-_at_jobque_c__c_lock_box_create_C_c_C_l:
+
+.. das:function:: lock_box_create()
+
+lock_box_create returns  :ref:`jobque::LockBox <handle-jobque-LockBox>` ?
+
+|function-jobque-lock_box_create|
+
+.. _function-_at_jobque_c__c_lock_box_remove_&I1_ls_H_ls_jobque_c__c_LockBox_gr__gr_?_C_c_C_l:
+
+.. das:function:: lock_box_remove(box: jobque::LockBox?& implicit)
+
+.. warning:: 
+  This is unsafe operation.
+
++--------+-----------------------------------------------------------+
++argument+argument type                                              +
++========+===========================================================+
++box     + :ref:`jobque::LockBox <handle-jobque-LockBox>` ?& implicit+
++--------+-----------------------------------------------------------+
+
+
+|function-jobque-lock_box_remove|
 
 .. _function-_at_jobque_c__c_append_CI1_ls_H_ls_jobque_c__c_JobStatus_gr__gr_?_Ci_C_c_C_l:
 
@@ -191,6 +219,30 @@ channel_create returns  :ref:`jobque::Channel <handle-jobque-Channel>` ?
 
 |function-jobque-notify_and_release|
 
+.. _function-_at_jobque_c__c_job_status_create_C_c_C_l:
+
+.. das:function:: job_status_create()
+
+job_status_create returns  :ref:`jobque::JobStatus <handle-jobque-JobStatus>` ?
+
+|function-jobque-job_status_create|
+
+.. _function-_at_jobque_c__c_job_status_remove_&I1_ls_H_ls_jobque_c__c_JobStatus_gr__gr_?_C_c_C_l:
+
+.. das:function:: job_status_remove(jobStatus: jobque::JobStatus?& implicit)
+
+.. warning:: 
+  This is unsafe operation.
+
++---------+---------------------------------------------------------------+
++argument +argument type                                                  +
++=========+===============================================================+
++jobStatus+ :ref:`jobque::JobStatus <handle-jobque-JobStatus>` ?& implicit+
++---------+---------------------------------------------------------------+
+
+
+|function-jobque-job_status_remove|
+
 +++++++
 Queries
 +++++++
@@ -268,10 +320,24 @@ Internal invocations
 Construction
 ++++++++++++
 
+  *  :ref:`with_lock_box (block:block\<(var arg0:jobque::LockBox?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_with_lock_box_CI0_ls_1_ls_H_ls_jobque_c__c_LockBox_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l>` 
   *  :ref:`with_channel (block:block\<(var arg0:jobque::Channel?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_with_channel_CI0_ls_1_ls_H_ls_jobque_c__c_Channel_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l>` 
   *  :ref:`with_channel (count:int const;block:block\<(var arg0:jobque::Channel?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_with_channel_Ci_CI0_ls_1_ls_H_ls_jobque_c__c_Channel_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l>` 
   *  :ref:`with_job_status (total:int const;block:block\<(var arg0:jobque::JobStatus?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_with_job_status_Ci_CI0_ls_1_ls_H_ls_jobque_c__c_JobStatus_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l>` 
   *  :ref:`with_job_que (block:block\<void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_with_job_que_CI1_ls_v_gr__builtin__C_c_C_l>` 
+
+.. _function-_at_jobque_c__c_with_lock_box_CI0_ls_1_ls_H_ls_jobque_c__c_LockBox_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l:
+
+.. das:function:: with_lock_box(block: block<(var arg0:jobque::LockBox?):void> const implicit)
+
++--------+------------------------------------------------------------------------------+
++argument+argument type                                                                 +
++========+==============================================================================+
++block   +block<( :ref:`jobque::LockBox <handle-jobque-LockBox>` ?):void> const implicit+
++--------+------------------------------------------------------------------------------+
+
+
+|function-jobque-with_lock_box|
 
 .. _function-_at_jobque_c__c_with_channel_CI0_ls_1_ls_H_ls_jobque_c__c_Channel_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l:
 
@@ -329,9 +395,24 @@ Construction
 
 |function-jobque-with_job_que|
 
-+++++++++++++
-Uncategorized
-+++++++++++++
+++++++
+Atomic
+++++++
+
+  *  :ref:`atomic32_create (context:__context const;line:__lineInfo const) : jobque::Atomic32? <function-_at_jobque_c__c_atomic32_create_C_c_C_l>` 
+  *  :ref:`atomic32_remove (atomic:jobque::Atomic32?& implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_atomic32_remove_&I1_ls_H_ls_jobque_c__c_Atomic32_gr__gr_?_C_c_C_l>` 
+  *  :ref:`with_atomic32 (block:block\<(var arg0:jobque::Atomic32?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_with_atomic32_CI0_ls_1_ls_H_ls_jobque_c__c_Atomic32_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`set (atomic:jobque::Atomic32? const implicit;value:int const;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_set_CI1_ls_H_ls_jobque_c__c_Atomic32_gr__gr_?_Ci_C_c_C_l>` 
+  *  :ref:`get (atomic:jobque::Atomic32? const implicit;context:__context const;line:__lineInfo const) : int <function-_at_jobque_c__c_get_CI1_ls_H_ls_jobque_c__c_Atomic32_gr__gr_?_C_c_C_l>` 
+  *  :ref:`inc (atomic:jobque::Atomic32? const implicit;context:__context const;line:__lineInfo const) : int <function-_at_jobque_c__c_inc_CI1_ls_H_ls_jobque_c__c_Atomic32_gr__gr_?_C_c_C_l>` 
+  *  :ref:`dec (atomic:jobque::Atomic32? const implicit;context:__context const;line:__lineInfo const) : int <function-_at_jobque_c__c_dec_CI1_ls_H_ls_jobque_c__c_Atomic32_gr__gr_?_C_c_C_l>` 
+  *  :ref:`atomic64_create (context:__context const;line:__lineInfo const) : jobque::Atomic64? <function-_at_jobque_c__c_atomic64_create_C_c_C_l>` 
+  *  :ref:`atomic64_remove (atomic:jobque::Atomic64?& implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_atomic64_remove_&I1_ls_H_ls_jobque_c__c_Atomic64_gr__gr_?_C_c_C_l>` 
+  *  :ref:`with_atomic64 (block:block\<(var arg0:jobque::Atomic64?):void\> const implicit;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_with_atomic64_CI0_ls_1_ls_H_ls_jobque_c__c_Atomic64_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l>` 
+  *  :ref:`set (atomic:jobque::Atomic64? const implicit;value:int64 const;context:__context const;line:__lineInfo const) : void <function-_at_jobque_c__c_set_CI1_ls_H_ls_jobque_c__c_Atomic64_gr__gr_?_Ci64_C_c_C_l>` 
+  *  :ref:`get (atomic:jobque::Atomic64? const implicit;context:__context const;line:__lineInfo const) : int64 <function-_at_jobque_c__c_get_CI1_ls_H_ls_jobque_c__c_Atomic64_gr__gr_?_C_c_C_l>` 
+  *  :ref:`inc (atomic:jobque::Atomic64? const implicit;context:__context const;line:__lineInfo const) : int64 <function-_at_jobque_c__c_inc_CI1_ls_H_ls_jobque_c__c_Atomic64_gr__gr_?_C_c_C_l>` 
+  *  :ref:`dec (atomic:jobque::Atomic64? const implicit;context:__context const;line:__lineInfo const) : int64 <function-_at_jobque_c__c_dec_CI1_ls_H_ls_jobque_c__c_Atomic64_gr__gr_?_C_c_C_l>` 
 
 .. _function-_at_jobque_c__c_atomic32_create_C_c_C_l:
 
@@ -526,66 +607,5 @@ dec returns int64
 
 
 |function-jobque-dec|
-
-.. _function-_at_jobque_c__c_lock_box_create_C_c_C_l:
-
-.. das:function:: lock_box_create()
-
-lock_box_create returns  :ref:`jobque::LockBox <handle-jobque-LockBox>` ?
-
-|function-jobque-lock_box_create|
-
-.. _function-_at_jobque_c__c_lock_box_remove_&I1_ls_H_ls_jobque_c__c_LockBox_gr__gr_?_C_c_C_l:
-
-.. das:function:: lock_box_remove(box: jobque::LockBox?& implicit)
-
-.. warning:: 
-  This is unsafe operation.
-
-+--------+-----------------------------------------------------------+
-+argument+argument type                                              +
-+========+===========================================================+
-+box     + :ref:`jobque::LockBox <handle-jobque-LockBox>` ?& implicit+
-+--------+-----------------------------------------------------------+
-
-
-|function-jobque-lock_box_remove|
-
-.. _function-_at_jobque_c__c_with_lock_box_CI0_ls_1_ls_H_ls_jobque_c__c_LockBox_gr__gr_?_gr_1_ls_v_gr__builtin__C_c_C_l:
-
-.. das:function:: with_lock_box(block: block<(var arg0:jobque::LockBox?):void> const implicit)
-
-+--------+------------------------------------------------------------------------------+
-+argument+argument type                                                                 +
-+========+==============================================================================+
-+block   +block<( :ref:`jobque::LockBox <handle-jobque-LockBox>` ?):void> const implicit+
-+--------+------------------------------------------------------------------------------+
-
-
-|function-jobque-with_lock_box|
-
-.. _function-_at_jobque_c__c_job_status_create_C_c_C_l:
-
-.. das:function:: job_status_create()
-
-job_status_create returns  :ref:`jobque::JobStatus <handle-jobque-JobStatus>` ?
-
-|function-jobque-job_status_create|
-
-.. _function-_at_jobque_c__c_job_status_remove_&I1_ls_H_ls_jobque_c__c_JobStatus_gr__gr_?_C_c_C_l:
-
-.. das:function:: job_status_remove(jobStatus: jobque::JobStatus?& implicit)
-
-.. warning:: 
-  This is unsafe operation.
-
-+---------+---------------------------------------------------------------+
-+argument +argument type                                                  +
-+=========+===============================================================+
-+jobStatus+ :ref:`jobque::JobStatus <handle-jobque-JobStatus>` ?& implicit+
-+---------+---------------------------------------------------------------+
-
-
-|function-jobque-job_status_remove|
 
 

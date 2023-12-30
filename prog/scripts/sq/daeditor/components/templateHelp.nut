@@ -6,7 +6,7 @@ let txt = require("%daeditor/components/text.nut").dtext
 let entity_editor = require("entity_editor")
 
 
-let function modifyReduceExtends(arr) {
+function modifyReduceExtends(arr) {
   let cnt = arr.len()
   if (cnt < 2)
     return
@@ -32,7 +32,7 @@ let function modifyReduceExtends(arr) {
   arr.pop()
 }
 
-let function getTemplateExtendsReduced(templ, path) {
+function getTemplateExtendsReduced(templ, path) {
   local result = []
   let numParents = templ.getNumParentTemplates()
   if (numParents > 0 && (numParents <= (5-path.len()) || path.len() < 1)) {
@@ -56,7 +56,7 @@ let function getTemplateExtendsReduced(templ, path) {
 }
 
 
-let function getTemplateTemplsDescs(templ, addedTempls, need_tpl_desc, extendBy, insertTo) {
+function getTemplateTemplsDescs(templ, addedTempls, need_tpl_desc, extendBy, insertTo) {
   local result = []
 
   let templName = templ.getName()
@@ -103,7 +103,7 @@ let function getTemplateTemplsDescs(templ, addedTempls, need_tpl_desc, extendBy,
 }
 
 
-let function mkCompMetaInfoText(metaInfo, format="oneLiner") {
+function mkCompMetaInfoText(metaInfo, format="oneLiner") {
   local text = metaInfo?.desc ?? ""
 
   if (metaInfo?.values != null) {
@@ -153,7 +153,7 @@ let function mkCompMetaInfoText(metaInfo, format="oneLiner") {
 }
 
 
-let function getTemplateCompsDescs(templ, addedTempls, addedComps, valueComps) {
+function getTemplateCompsDescs(templ, addedTempls, addedComps, valueComps) {
   local result = []
 
   let templName = templ.getName()
@@ -221,7 +221,7 @@ let getCategoryTemplates = function(category) {
 }
 
 
-let function getTemplateInfo(templName) {
+function getTemplateInfo(templName) {
   local extendsListReduced = []
   local extendBy = []
   local insertTo = []
@@ -309,7 +309,7 @@ let mkTemplateInfoTag = @(text, fillColor = Color(100,100,200), size = SIZE_TO_C
   }
 }
 
-let function requestSliceLongText(inText, rowLen, cb) {
+function requestSliceLongText(inText, rowLen, cb) {
   if (inText.len() <= rowLen) {
     cb(true, inText)
     return
@@ -328,7 +328,7 @@ let function requestSliceLongText(inText, rowLen, cb) {
     cb(firstRow, text)
 }
 
-let function mkTemplateTooltip(templName) {
+function mkTemplateTooltip(templName) {
   let templInfo = getTemplateInfo(templName)
 
   let nameStyle = { fontSize = hdpx(17) }

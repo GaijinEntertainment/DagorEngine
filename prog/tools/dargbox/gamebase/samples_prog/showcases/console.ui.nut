@@ -3,7 +3,7 @@ from "%darg/ui_imports.nut" import *
 let textInput = require("samples_prog/_basic/components/textInput.nut")
 let scrollbar = require("samples_prog/_basic/components/scrollbar.nut")
 
-let function messageInLog(entry) {
+function messageInLog(entry) {
   return {
     rendObj = ROBJ_TEXTAREA
     behavior = Behaviors.TextArea
@@ -15,7 +15,7 @@ let function messageInLog(entry) {
 
 let scrollHandler = ScrollHandler()
 
-let function logContent(log_state) {
+function logContent(log_state) {
   return function() {
     return {
       size = [flex(), SIZE_TO_CONTENT]
@@ -26,7 +26,7 @@ let function logContent(log_state) {
   }
 }
 
-let function textLog(log_state) {
+function textLog(log_state) {
   return {
     size = [flex(), hdpx(300)]
     borderColor = Color(120, 120, 120)

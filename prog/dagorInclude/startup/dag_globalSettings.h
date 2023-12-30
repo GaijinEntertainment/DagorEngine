@@ -56,6 +56,10 @@ inline const char *dgs_get_argv(const char *name, const char *default_value = nu
   return dgs_get_argv(name, dummy, default_value);
 }
 
+//! returns true if argument was requested and found by dgs_get_argv()
+bool dgs_is_arg_used(int arg_index);
+void dgs_set_arg_used(int arg_index, bool used = true);
+
 #if _TARGET_PC
 void dgs_setproctitle(const char *title);
 #else

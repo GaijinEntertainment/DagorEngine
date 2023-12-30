@@ -1,7 +1,7 @@
 #include "robjDasCanvas.h"
 #include "guiScene.h"
 #include "dasScripts.h"
-#include "dasBinding.h"
+#include <daRg/dasBinding.h>
 #include "dargDebugUtils.h"
 
 #include <daRg/dag_stringKeys.h>

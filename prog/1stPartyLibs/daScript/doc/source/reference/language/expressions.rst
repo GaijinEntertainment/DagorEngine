@@ -23,7 +23,7 @@ Assignment
     exp := exp '<-' exp
     exp := exp ':=' exp
 
-daScript implements 3 kind of assignment: copy assignment(=)::
+Daslang implements 3 kind of assignment: copy assignment(=)::
 
     a = 10
 
@@ -185,7 +185,7 @@ Arithmetic
 
     exp:= 'exp' op 'exp'
 
-daScript supports the standard arithmetic operators ``+, -, *, / and %``.
+Daslang supports the standard arithmetic operators ``+, -, *, / and %``.
 It also supports compact operators ``+=, -=, *=, /=, %=`` and
 increment and decrement operators ``++ and --``::
 
@@ -209,7 +209,7 @@ Relational
 
     exp:= 'exp' op 'exp'
 
-Relational operators in daScript are : ``==, <, <=, >, >=, !=``.
+Relational operators in Daslang are : ``==, <, <=, >, >=, !=``.
 
 These operators return true if the expression is false and a value different than true if the
 expression is true.
@@ -226,7 +226,7 @@ Logical
     exp := exp op exp
     exp := '!' exp
 
-Logical operators in daScript are : ``&&, ||, ^^, !, &&=, ||=, ^^=``.
+Logical operators in Daslang are : ``&&, ||, ^^, !, &&=, ||=, ^^=``.
 
 The operator ``&&`` (logical and) returns false if its first argument is false, or otherwise returns
 its second argument.
@@ -252,7 +252,7 @@ Bitwise Operators
     exp:= 'exp' op 'exp'
     exp := '~' exp
 
-daScript supports the standard C-like bitwise operators ``&, |, ^, ~, <<, >>, <<<, >>>``.
+Daslang supports the standard C-like bitwise operators ``&, |, ^, ~, <<, >>, <<<, >>>``.
 Those operators only work on integer values.
 
 ^^^^^^^^^^^^^^^^^^^
@@ -267,7 +267,7 @@ Pipe Operators
     exp:= 'exp' |> 'exp'
     exp:= 'exp' <| 'exp'
 
-daScript supports pipe operators. Pipe operators are similar to 'call' expressions where the other expression is first argument.
+Daslang supports pipe operators. Pipe operators are similar to 'call' expressions where the other expression is first argument.
 
 ::
 

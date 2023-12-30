@@ -497,7 +497,6 @@ void rendinstfloating::init_floating_ri_res_groups(const DataBlock *ri_config, b
   });
 }
 
-ECS_AFTER(start_async_phys_sim_es) // after start_async_phys_sim_es to start phys sim job earlier
 ECS_TAG(gameClient)
 static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info, float floatingRiSystem__randomWavesAmplitude,
   float floatingRiSystem__randomWavesLength, float floatingRiSystem__randomWavesPeriod, Point2 floatingRiSystem__randomWavesVelocity)
@@ -627,6 +626,8 @@ static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info,
       tm.setcol(1, tm.getcol(1) * riFloatingPhys.scale.y);
       tm.setcol(2, tm.getcol(2) * riFloatingPhys.scale.z);
       TMatrix4_vec4 m4 = TMatrix4_vec4(tm);
+      // To consider: (if this ES is called in non main thread) send event for this move to avoid colliding with other threads on
+      // `rendInst::ccExtra`
       rendinst::moveRIGenExtra44(rendinst::make_handle(resIdx, riInstId), (mat44f &)m4, /*moved*/ true, /*do_not_lock*/ false);
       riFloatingPhys.prevVisualLoc = riFloatingPhys.visualLoc;
     }

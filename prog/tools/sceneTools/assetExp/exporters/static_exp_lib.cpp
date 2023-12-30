@@ -1,4 +1,4 @@
-#include "dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 #include <ioSys/dag_dataBlock.h>
 
 #define LIST    \
@@ -8,7 +8,6 @@
   DO(collision) \
   DO(fastPhys)  \
   DO(physObj)   \
-  DO(apex)      \
   DO(fx)        \
   DO(land)      \
   DO(locShader) \
@@ -17,14 +16,16 @@
   DO(spline)    \
   DO(composit)
 
+#define LIST_OPT   \
+  DO(vehicle)      \
+  DO(shipSections) \
+  DO(apex)
+
 #define DO(X) extern int pull_##X;
 LIST;
+LIST_OPT;
 #undef DO
 
 #define DO(X) +pull_##X
-int pull_all_dabuild_plugins = LIST;
+int pull_all_dabuild_plugins = LIST LIST_OPT;
 #undef DO
-
-#if !HAVE_APEX_DESTR
-int pull_apex = 0;
-#endif

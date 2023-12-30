@@ -120,7 +120,7 @@ void *CompressDXT(int mode, TexPixel32 *image, int /*stride_bytes*/, int width, 
 {
   __int64 t0Total = ref_time_ticks_qpc();
   if (!is_pow_of2(width) || !is_pow_of2(height))
-    fatal("Texture for DXT compression sizes must be powers of 2, not %d x %d", width, height);
+    DAG_FATAL("Texture for DXT compression sizes must be powers of 2, not %d x %d", width, height);
   // The size is same for both compression types
   // int iCompressedSize = width*height/16*(64+64)/8;
 
@@ -188,7 +188,7 @@ void *CompressDXT(int mode, TexPixel32 *image, int /*stride_bytes*/, int width, 
   else if (mode == MODE_DXT5)
     hdr->d3dFormat = _MAKE4C('DXT5'), hdr->dxtShift = 4;
   else
-    fatal("Unsupported mode");
+    DAG_FATAL("Unsupported mode");
   hdr->lQmip = 0;
   hdr->mQmip = 0;
   hdr->uQmip = 0;

@@ -108,6 +108,7 @@ rule ProcessCompileTarget
                     /wd5245 # Some functions' overloads aren't used and the compiler warns to remove then
                     /wd5246 # the MSC has the CWG defect #1270 and offers the old initialization behaviour, https://stackoverflow.com/a/70127399
                     /wd5264 # falsely identifies static const variables unused
+                    /wd5267 # Same as -Wno-deprecated-declarations in clang-sets.jam
     ;
     _SUPPRESS_OPT += /permissive- ;
   }

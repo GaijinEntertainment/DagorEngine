@@ -107,7 +107,7 @@ public:
   INLINE real length() const { return sqrtf(lengthSq()); }
   INLINE void normalize() { *this *= safeinv(length()); }
   /// fast (approximate) version
-  INLINE real lengthF() const { return rsqrt(lengthSq()); }
+  INLINE real lengthF() const { return fastsqrt(lengthSq()); }
   /// fast (approximate) version
   INLINE void normalizeF() { *this *= safeinvsqrtfast(lengthSq()); }
 
@@ -234,7 +234,7 @@ INLINE real lengthSq(const Point3 &a) { return a.x * a.x + a.y * a.y + a.z * a.z
 INLINE real length(const Point3 &a) { return sqrtf(lengthSq(a)); }
 INLINE Point3 normalize(const Point3 &a) { return a * safeinv(length(a)); }
 /// fast (approximate) version
-INLINE real lengthF(const Point3 &a) { return rsqrt(lengthSq(a)); }
+INLINE real lengthF(const Point3 &a) { return fastsqrt(lengthSq(a)); }
 /// fast (approximate) version
 INLINE Point3 normalizeF(const Point3 &a) { return a * safeinvsqrtfast(lengthSq(a)); }
 

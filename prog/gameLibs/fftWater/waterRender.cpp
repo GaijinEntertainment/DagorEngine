@@ -30,8 +30,10 @@
 
 #define MAX_LIGHT_SCATTER_DIST 900.f
 #define LIGHT_SCATTER_DIST_MUL 80.f
-#define WATER_SHADER_NAME      "water_nv2"
-#define WATER_SSR_SHADER_NAME  "water_ssr_nv2"
+
+static const char *water_shader_name[fft_water::RenderMode::MAX] = {"water_nv2", "water_depth_nv2", "water_ssr_nv2"};
+static const char *water_heightmap_shader_name[fft_water::RenderMode::MAX] = {
+  "water_nv2_heightmap", "water_depth_nv2_heightmap", "water_ssr_nv2_heightmap"};
 
 static int water_gradients_texVarId[WaterNVRender::MAX_NUM_CASCADES] = {-1, -1, -1, -1, -1};
 static int water_displacement_textureVarId[WaterNVRender::MAX_NUM_CASCADES] = {-1, -1, -1, -1, -1};
@@ -362,20 +364,18 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
       waterHeightmap->pagesY * waterHeightmap->PAGE_SIZE_PADDED, TEXFMT_L16, 1, "water_heightmap_pages");
     heightmapPagesTex->texaddr(TEXADDR_CLAMP);
     heightmapPagesTex->texfilter(TEXFILTER_SMOOTH);
-    int stride;
-    if (auto data = lock_texture<uint8_t>(heightmapPagesTex.getTex2D(), stride, 0, TEXLOCK_WRITE | TEXLOCK_DISCARD))
-      for (int j = 0; j < waterHeightmap->pagesY * waterHeightmap->PAGE_SIZE_PADDED; ++j)
-        memcpy(data.get() + j * stride, waterHeightmap->pages.data() + j * waterHeightmap->pagesX * waterHeightmap->PAGE_SIZE_PADDED,
-          waterHeightmap->pagesX * waterHeightmap->PAGE_SIZE_PADDED * sizeof(uint16_t));
+
+    if (auto data = lock_texture(heightmapPagesTex.getTex2D(), 0, TEXLOCK_WRITE | TEXLOCK_DISCARD))
+      if (waterHeightmap->pages.size())
+        data.writeRows(make_span_const(waterHeightmap->pages));
 
     heightmapGridTex =
       dag::create_tex(NULL, waterHeightmap->gridSize, waterHeightmap->gridSize, TEXFMT_L16, 1, "water_heightmap_grid");
     heightmapGridTex->texaddr(TEXADDR_CLAMP);
     heightmapGridTex->texfilter(TEXFILTER_SMOOTH);
-    if (auto data = lock_texture<uint8_t>(heightmapGridTex.getTex2D(), stride, 0, TEXLOCK_WRITE | TEXLOCK_DISCARD))
-      for (int j = 0; j < waterHeightmap->gridSize; ++j)
-        memcpy(data.get() + j * stride, waterHeightmap->grid.data() + j * waterHeightmap->gridSize,
-          waterHeightmap->gridSize * sizeof(uint16_t));
+    if (auto data = lock_texture(heightmapGridTex.getTex2D(), 0, TEXLOCK_WRITE | TEXLOCK_DISCARD))
+      if (waterHeightmap->grid.size())
+        data.writeRows(make_span_const(waterHeightmap->grid));
 
     ShaderGlobal::set_color4(::get_shader_variable_id("water_height_offset_scale"),
       Color4(waterHeightmap->heightOffset, waterHeightmap->heightScale, 0, 0));
@@ -418,12 +418,12 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
     else
       heightmapBuf.close();
 
-    heightmapShmat.reset(new_shader_material_by_name("water_nv2_heightmap", nullptr));
-    if (heightmapShmat)
-      heightmapShElem = heightmapShmat->make_elem();
-    heightmapSSRShmat.reset(new_shader_material_by_name("water_ssr_nv2_heightmap", nullptr));
-    if (heightmapSSRShmat)
-      heightmapSSRShElem = heightmapSSRShmat->make_elem();
+    for (int i = 0; i < fft_water::RenderMode::MAX; i++)
+    {
+      heightmapShmat[i].reset(new_shader_material_by_name(water_heightmap_shader_name[i], nullptr));
+      if (heightmapShmat[i])
+        heightmapShElem[i] = heightmapShmat[i]->make_elem();
+    }
   }
   else
   {
@@ -438,15 +438,11 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
 
   if ((d3d::get_texformat_usage(TEXFMT_A16B16G16R16F) & d3d::USAGE_VERTEXTEXTURE))
   {
-    if (!meshRenderer.init(WATER_SHADER_NAME, NULL, false,
-          water_dim_bits[(p.fft_resolution_bits == MIN_FFT_RESOLUTION && !waterHeightmap) ? 0 : geomQuality - 1]))
+    int rendererFirst = fft_water::RenderMode::WATER_SHADER;
+    int rendererLast = ssrRendererEnabled ? fft_water::RenderMode::WATER_SSR_SHADER : fft_water::RenderMode::WATER_SHADER;
+    for (int i = rendererFirst; i <= rendererLast; i++)
     {
-      return;
-    }
-
-    if (ssrRendererEnabled)
-    {
-      if (!ssrRenderer.init(WATER_SSR_SHADER_NAME, NULL, true,
+      if (!meshRenderer[i].init(water_shader_name[i], NULL, i == fft_water::RenderMode::WATER_SSR_SHADER,
             water_dim_bits[(p.fft_resolution_bits == MIN_FFT_RESOLUTION && !waterHeightmap) ? 0 : geomQuality - 1]))
       {
         return;
@@ -455,7 +451,7 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
   }
   else
   {
-    fatal("fft_water: no vfetch!");
+    DAG_FATAL("fft_water: no vfetch!");
   }
 
   for (int cascadeNo = 0; cascadeNo < MAX_NUM_CASCADES; ++cascadeNo)
@@ -1127,16 +1123,13 @@ int WaterNVRender::setWaterCell(float water_cell_size, bool auto_set_samplers_cn
 
 void WaterNVRender::setWaterDim(int dim_bits)
 {
-  if (meshRenderer.isInited() && meshRenderer.getDim() != 1 << dim_bits)
+  for (int i = 0; i < fft_water::RenderMode::MAX; i++)
   {
-    meshRenderer.close();
-    meshRenderer.init(WATER_SHADER_NAME, NULL, true, dim_bits);
-  }
-
-  if (ssrRenderer.isInited() && ssrRenderer.getDim() != 1 << dim_bits)
-  {
-    ssrRenderer.close();
-    ssrRenderer.init(WATER_SSR_SHADER_NAME, NULL, true, dim_bits);
+    if (meshRenderer[i].isInited() && meshRenderer[i].getDim() != 1 << dim_bits)
+    {
+      meshRenderer[i].close();
+      meshRenderer[i].init(water_shader_name[i], NULL, true, dim_bits);
+    }
   }
 }
 
@@ -1313,6 +1306,8 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   }
   Point2 centerOfHmap = Point2::xz(origin);
 
+  int gridDim = meshRenderer[fft_water::RenderMode::WATER_SHADER].getDim();
+
   if (renderQuad)
   {
     if (!frustum.testBoxB(BBox3(Point3(renderQuad->lim[0].x, minWaterLevel, renderQuad->lim[0].y),
@@ -1321,7 +1316,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
     centerOfHmap.x = clamp(centerOfHmap.x, renderQuad->lim[0].x, renderQuad->lim[1].x);
     centerOfHmap.y = clamp(centerOfHmap.y, renderQuad->lim[0].y, renderQuad->lim[1].y);
     float maxSize = min(renderQuad->lim[1].x - renderQuad->lim[0].x, renderQuad->lim[1].y - renderQuad->lim[0].y);
-    maxSize *= 0.5f / meshRenderer.getDim();
+    maxSize *= 0.5f / gridDim;
     while (scaledCell > maxSize && lod > 0)
     {
       scaledCell *= 0.5;
@@ -1338,12 +1333,11 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   LodGridCullData defaultCullData(framemem_ptr());
   BBox2 lodsRegion;
   cull_lod_grid(lodGrid, lodGrid.lodsCount, centerOfHmap.x, centerOfHmap.y, scaledCell, scaledCell, alignSize, alignSize, // alignment
-    minWaterLevel, maxWaterLevel, &frustum, renderQuad, defaultCullData, NULL, lod0AreaRadius, meshRenderer.getDim(),
-    false /*not used*/, nullptr, nullptr, &lodsRegion);
+    minWaterLevel, maxWaterLevel, &frustum, renderQuad, defaultCullData, NULL, lod0AreaRadius, gridDim, false /*not used*/, nullptr,
+    nullptr, &lodsRegion);
   if (!defaultCullData.getCount())
     return;
 
-  int gridDim = meshRenderer.getDim();
   Point4 cameraPatch(1, 0, 0, 0);
   for (auto &patch : defaultCullData.patches)
   {
@@ -1393,15 +1387,10 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
 
   ShaderElement *shElem = nullptr;
   HeightmapRenderer *renderer = nullptr;
-  if (render_mode == fft_water::RenderMode::WATER_SHADER)
+  if ((render_mode >= 0) && (render_mode < fft_water::RenderMode::MAX))
   {
-    shElem = heightmapShElem;
-    renderer = &meshRenderer;
-  }
-  else if (render_mode == fft_water::RenderMode::WATER_SSR_SHADER)
-  {
-    shElem = heightmapSSRShElem;
-    renderer = &ssrRenderer;
+    shElem = heightmapShElem[render_mode];
+    renderer = &meshRenderer[render_mode];
   }
   else
     logerr("Non-existent water rendering mode %d", render_mode);

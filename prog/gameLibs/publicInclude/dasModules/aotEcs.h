@@ -44,6 +44,7 @@ struct WrapType<ecs::EntityId>
     value = true
   };
   typedef ecs::entity_id_t type;
+  typedef ecs::entity_id_t rettype;
 };
 template <>
 struct WrapRetType<ecs::EntityId>
@@ -243,13 +244,7 @@ ECS_DECL_LIST_TYPES
   TYPE(ecs_Int64List)      \
   TYPE(ecs_UInt64List)
 
-enum class ContextLogLevel
-{
-  Info,
-  Error
-};
-
-typedef void (*das_context_log_cb)(das::Context *, const das::LineInfo *at, ContextLogLevel level, const char *message);
+typedef void (*das_context_log_cb)(das::Context *, const das::LineInfo *at, das::LogLevel level, const char *message);
 
 extern das_context_log_cb global_context_log_cb;
 
@@ -309,18 +304,51 @@ struct EsContext final : das::Context
   virtual void to_out(const das::LineInfo *at, const char *message) override
   {
     if (global_context_log_cb)
-      global_context_log_cb(this, at, ContextLogLevel::Info, message);
-    else
-      debug("%s", message);
+    {
+      global_context_log_cb(this, at, das::LogLevel::info, message);
+      return;
+    }
+#if DAGOR_DBGLEVEL > 0
+    if (at && at->fileInfo)
+    {
+      debug("%s:%d: %s", at->fileInfo->name.c_str(), at->line, message);
+      return;
+    }
+#endif
+    debug("%s", message);
   }
   virtual void to_err(const das::LineInfo *at, const char *message) override
   {
     if (global_context_log_cb)
-      global_context_log_cb(this, at, ContextLogLevel::Error, message);
-    else
-      logerr("%s", message);
+    {
+      global_context_log_cb(this, at, das::LogLevel::error, message);
+      return;
+    }
+#if DAGOR_DBGLEVEL > 0
+    debug("%s", getStackWalk(at, false, false).c_str());
+    if (at && at->fileInfo)
+    {
+      logerr("%s:%d: %s", at->fileInfo->name.c_str(), at->line, message);
+      return;
+    }
+#endif
+    logerr("%s", message);
   }
 };
+
+inline EsContext *cast_es_context(das::Context *ctx)
+{
+  EsContext *esCtx = static_cast<EsContext *>(ctx);
+  G_ASSERT(esCtx->magic == EsContext::MAGIC_NOMEM || esCtx->magic == EsContext::MAGIC_HASMEM);
+  return esCtx;
+}
+
+inline EsContext &cast_es_context(das::Context &ctx)
+{
+  EsContext &esCtx = static_cast<EsContext &>(ctx);
+  G_ASSERT(esCtx.magic == EsContext::MAGIC_NOMEM || esCtx.magic == EsContext::MAGIC_HASMEM);
+  return esCtx;
+}
 
 extern bool load_das_script(const char *fname);
 extern bool load_das_script_debugger(const char *fname);
@@ -369,27 +397,33 @@ void enable_thread_safe_das_ctx_region(bool on);
 
 __forceinline ecs::event_type_t ecs_hash(const char *str) { return ECS_HASH_SLOW(str ? str : "").hash; }
 
-template <bool sync>
-inline ecs::EntityId createEntityWithInitializer(const char *template_name, const das::TBlock<void, ecs::ComponentsInitializer> &block,
-  das::Context *context, das::LineInfoArg *at)
+template <bool sync, typename TInit>
+inline ecs::EntityId do_create_entity(const char *template_name, TInit &&block_or_init, das::Context *ctx, das::LineInfoArg *at)
 {
-  ecs::ComponentsInitializer init;
-  vec4f arg = das::cast<char *>::from((char *)&init);
-  context->invoke(block, &arg, nullptr, at);
-  if (sync)
-    return g_entity_mgr->createEntitySync(template_name, eastl::move(init));
+  if (EASTL_UNLIKELY(!template_name))
+    ctx->throw_error_at(at, "attempt to create entity with empty name");
+  ecs::ComponentsInitializer initTmp, *pInit = &initTmp;
+  if constexpr (eastl::is_same_v<eastl::remove_cvref_t<decltype(block_or_init)>, das::TBlock<void, ecs::ComponentsInitializer>>)
+  {
+    vec4f arg = das::cast<char *>::from((char *)pInit);
+    ctx->invoke(block_or_init, &arg, nullptr, at);
+  }
   else
-    return g_entity_mgr->createEntityAsync(template_name, eastl::move(init));
+    pInit = &block_or_init;
+  if (sync)
+    return g_entity_mgr->createEntitySync(template_name, eastl::move(*pInit));
+  else
+    return g_entity_mgr->createEntityAsync(template_name, eastl::move(*pInit));
 }
 inline ecs::EntityId createEntityWithComp(const char *template_name, const das::TBlock<void, ecs::ComponentsInitializer> &block,
   das::Context *context, das::LineInfoArg *at)
 {
-  return createEntityWithInitializer<false>(template_name, block, context, at);
+  return do_create_entity<false>(template_name, block, context, at);
 }
 inline ecs::EntityId createEntitySyncWithComp(const char *template_name, const das::TBlock<void, ecs::ComponentsInitializer> &block,
   das::Context *context, das::LineInfoArg *at)
 {
-  return createEntityWithInitializer<true>(template_name, block, context, at);
+  return do_create_entity<true>(template_name, block, context, at);
 }
 
 inline ecs::EntityId createInstantiatedEntitySyncWithComp(const char *template_name,
@@ -402,13 +436,15 @@ inline ecs::EntityId createInstantiatedEntitySyncWithComp(const char *template_n
   return ecs::createInstantiatedEntitySync(*g_entity_mgr, template_name, eastl::move(init));
 }
 
-inline ecs::EntityId _builtin_create_entity2(const char *template_name, ecs::ComponentsInitializer &init)
+inline ecs::EntityId _builtin_create_entity2(const char *template_name, ecs::ComponentsInitializer &init, das::Context *ctx,
+  das::LineInfoArg *at)
 {
-  return g_entity_mgr->createEntityAsync(template_name, eastl::move(init));
+  return do_create_entity<false>(template_name, init, ctx, at);
 }
-inline ecs::EntityId _builtin_create_entity_sync2(const char *template_name, ecs::ComponentsInitializer &init)
+inline ecs::EntityId _builtin_create_entity_sync2(const char *template_name, ecs::ComponentsInitializer &init, das::Context *ctx,
+  das::LineInfoArg *at)
 {
-  return g_entity_mgr->createEntitySync(template_name, eastl::move(init));
+  return do_create_entity<true>(template_name, init, ctx, at);
 }
 inline ecs::EntityId _builtin_create_instantiated_entity_sync(const char *template_name, ecs::ComponentsInitializer &init)
 {
@@ -426,6 +462,8 @@ inline ecs::EntityId do_entity_fn_with_init_and_lambda(ecs::EntityId eid, const 
   das::SimFunction *simFunc = *fnMnh;
   if (EASTL_UNLIKELY(!simFunc))
     context->throw_error_at(line_info, "invoke null function");
+  if (EASTL_UNLIKELY(!template_name))
+    context->throw_error_at(line_info, "attempt to create entity with empty name");
   auto pCapture = lambda.capture;
   ContextLockGuard lockg(*context);
   return entfn(eid, template_name, eastl::move(init), [=, lockg = eastl::move(lockg)](ecs::EntityId eid) {
@@ -574,8 +612,7 @@ const ecs::EntityComponentRef getEntityComponentRefList(const T &a, uint32_t idx
 template <typename T>
 void list_ctor(const das::TBlock<void, T> &block, das::Context *context, das::LineInfoArg *at)
 {
-  bind_dascript::EsContext *ctx = static_cast<bind_dascript::EsContext *>(context);
-  G_ASSERT(ctx->magic == bind_dascript::EsContext::MAGIC_NOMEM || ctx->magic == bind_dascript::EsContext::MAGIC_HASMEM);
+  bind_dascript::EsContext *ctx = cast_es_context(context);
   T list(ctx->mgr);
   vec4f arg = das::cast<T *>::from((T *)&list);
   context->invoke(block, &arg, nullptr, at);
@@ -586,8 +623,14 @@ inline ecs::EntityComponentRef cloneEntityComponentRef(const ecs::EntityComponen
 inline uint32_t castEid(ecs::EntityId e) { return ecs::entity_id_t(e); }
 inline ecs::EntityId eidCast(uint32_t e) { return ecs::EntityId(ecs::entity_id_t(e)); }
 
-inline ecs::EntityId createEntitySync(const char *template_name) { return g_entity_mgr->createEntitySync(template_name); }
-inline ecs::EntityId createEntity(const char *template_name) { return g_entity_mgr->createEntityAsync(template_name); }
+inline ecs::EntityId createEntitySync(const char *template_name, das::Context *ctx, das::LineInfoArg *at)
+{
+  return do_create_entity<true>(template_name, ecs::ComponentsInitializer{}, ctx, at);
+}
+inline ecs::EntityId createEntity(const char *template_name, das::Context *ctx, das::LineInfoArg *at)
+{
+  return do_create_entity<false>(template_name, ecs::ComponentsInitializer{}, ctx, at);
+}
 inline ecs::EntityId reCreateEntityFrom(ecs::EntityId eid, const char *template_name)
 {
   return g_entity_mgr->reCreateEntityFromAsync(eid, template_name);
@@ -758,18 +801,18 @@ struct EcsToDas<char *&, ecs::string>
 template <>
 struct EcsToDas<char *const &, ecs::string>
 {
-  static __forceinline char *const get(const ecs::string &v) { return (char *)v.c_str(); }
+  static __forceinline char *get(const ecs::string &v) { return (char *)v.c_str(); }
   static __forceinline char *get(const ecs::string *v, char *def_val) { return v ? (char *)v->c_str() : def_val; }
 };
 
 template <class DasType, class EcsType>
 struct EcsToDas<DasType *const, ecs::SharedComponent<EcsType> *const>
 {
-  static __forceinline DasType *const get(const ecs::SharedComponent<EcsType> *const v) { return v ? (*v).get() : nullptr; }
+  static __forceinline DasType *get(const ecs::SharedComponent<EcsType> *const v) { return v ? (*v).get() : nullptr; }
 };
 
-inline const char *const get_immutable_string(const ecs::string &v) { return v.c_str(); }
-inline const char *const get_default_immutable_string(const ecs::string *v, const char *const def) { return v ? v->c_str() : def; }
+inline const char *get_immutable_string(const ecs::string &v) { return v.c_str(); }
+inline const char *get_default_immutable_string(const ecs::string *v, const char *const def) { return v ? v->c_str() : def; }
 } // namespace das
 
 ECS_DECLARE_TYPE_ALIAS(das::float3x4, "TMatrix");

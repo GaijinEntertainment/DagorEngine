@@ -91,7 +91,7 @@ public:
   }
 
   // data members are left public
-  UINT m_refCount;
+  unsigned m_refCount;
   NvFaceInfo *m_face0, *m_face1;
   int m_v0, m_v1;
   NvEdgeInfo *m_nextV0, *m_nextV1;
@@ -124,7 +124,7 @@ typedef std::list<NvFaceInfo *> NvFaceInfoList;
 typedef std::list<NvFaceInfoVec *> NvStripList;
 typedef std::vector<NvEdgeInfo *> NvEdgeInfoVec;
 
-typedef std::vector<WORD> WordVec;
+typedef std::vector<unsigned short> WordVec;
 typedef std::vector<int> IntVec;
 // typedef std::vector<MyVertex> MyVertexVec;
 // typedef std::vector<MyFace> MyFaceVec;

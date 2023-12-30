@@ -55,7 +55,7 @@ void SimplePBlock::loadFromBlk(const DataBlock &blk)
       case DataBlock::TYPE_POINT3: setPoint3(typeId, blk.getPoint3(i)); break;
       case DataBlock::TYPE_BOOL: setBool(typeId, blk.getBool(i)); break;
       case DataBlock::TYPE_E3DCOLOR: setE3dColor(typeId, blk.getE3dcolor(i)); break;
-      default: fatal("param type %d of param %s in %s is not supported!", t, blk.getParamName(i), blk.getBlockName());
+      default: DAG_FATAL("param type %d of param %s in %s is not supported!", t, blk.getParamName(i), blk.getBlockName());
     }
   }
 }

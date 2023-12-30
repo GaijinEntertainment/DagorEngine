@@ -33,8 +33,8 @@ Brush::Brush(IBrushClient *bc) :
   prevCoord(-1, -1)
 {
   if (!editorCore)
-    fatal("IEditorCore instance not set.\n"
-          "Use IEditorCore::setIEditorCore() to set proper instance.");
+    DAG_FATAL("IEditorCore instance not set.\n"
+              "Use IEditorCore::setIEditorCore() to set proper instance.");
 
   step = radius / stepDiv;
 }

@@ -10,6 +10,7 @@
 #include <util/dag_hash.h>
 #include "render_pass_resource.h"
 #include "compiler_scratch_data.h"
+#include "sampler_resource.h"
 
 namespace drv3d_vulkan
 {

@@ -21,25 +21,50 @@ namespace bind_dascript
 typedef void (*DasExitFunctionPtr)(int);
 void set_das_exit_function_ptr(DasExitFunctionPtr func);
 
-inline void fatal_func(const char *a) { fatal("Fatal: %s", a); }
+inline void fatal_func(const char *a) { DAG_FATAL("Fatal: %s", a); }
 
 void exit_func(int exit_code);
 
-inline void logmsg_func(int a, const char *s)
+inline void logmsg_func(int a, const char *s, das::LineInfoArg *at)
 {
   G_UNUSED(a);
   G_UNUSED(s);
+  G_UNUSED(at);
+#if DAGOR_DBGLEVEL > 0
+  if (at && at->fileInfo)
+  {
+    logmessage(a, "das:%s:%d: %s", at->fileInfo->name.c_str(), at->line, s);
+    return;
+  }
+#endif
   logmessage(a, "das:%s", s);
 }
 inline void logerr_func(const char *s, das::Context *context, das::LineInfoArg *at)
 {
   G_UNUSED(s);
+  G_UNUSED(context);
+  G_UNUSED(at);
+#if DAGOR_DBGLEVEL > 0
   debug("%s", context->getStackWalk(at, false, false).c_str());
+  if (at && at->fileInfo)
+  {
+    logerr("das:%s:%d: %s", at->fileInfo->name.c_str(), at->line, s);
+    return;
+  }
+#endif
   logerr("das:%s", s);
 }
-inline void logwarn_func(const char *s)
+inline void logwarn_func(const char *s, das::LineInfoArg *at)
 {
   G_UNUSED(s);
+  G_UNUSED(at);
+#if DAGOR_DBGLEVEL > 0
+  if (at && at->fileInfo)
+  {
+    logwarn("das:%s:%d: %s", at->fileInfo->name.c_str(), at->line, s);
+    return;
+  }
+#endif
   logwarn("das:%s", s);
 }
 

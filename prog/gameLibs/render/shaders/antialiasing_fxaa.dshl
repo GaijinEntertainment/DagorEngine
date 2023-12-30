@@ -184,7 +184,7 @@ shader antialiasing
       #define FxaaTexLod0(t, p) ((half4)tex2Dlod(t, float4(p, 0.0, 0.0)))
       #define FxaaTexOff(t, p, o, r) ((half4)tex2Dlod(t, float4(p + (o * r), 0, 0)))
 
-      half4 antialiasing_ps(VsOutput IN): SV_Target
+      float4 antialiasing_ps(VsOutput IN): SV_Target
       {
         float4 posPos = IN.texcoord;
         float cockpitToolsWeight = 0;
@@ -1342,7 +1342,7 @@ shader antialiasing
       }
       /*==========================================================================*/
 
-      half4 antialiasing_ps(VsOutput IN): SV_Target
+      float4 antialiasing_ps(VsOutput IN): SV_Target
       {
         float2 pos = IN.texcoord;
         float cockpitToolsWeight = 0;

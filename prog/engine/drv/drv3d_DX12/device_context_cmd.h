@@ -1205,7 +1205,7 @@ DX12_BEGIN_CONTEXT_COMMAND(BeginTileMapping)
 DX12_BEGIN_CONTEXT_COMMAND(BeginTileMapping)
   DX12_CONTEXT_COMMAND_PARAM(Image *, tex)
   DX12_CONTEXT_COMMAND_PARAM(uintptr_t, address)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, size)
+  DX12_CONTEXT_COMMAND_PARAM(uint64_t, size)
   DX12_CONTEXT_COMMAND_PARAM(size_t, mappingCount)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.beginTileMapping(tex, address, size, mappingCount);

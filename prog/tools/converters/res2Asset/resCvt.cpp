@@ -201,7 +201,7 @@ static void writeModel(const char *fld_prefix, const char *model, const char *ro
   String src(256, "%s%s/", root_fld, fld_prefix);
   String dst(256, "%s%s.dds", destFld, res);
   String msk(64, "%s.lod*.dag", resName);
-  // fatal("5");
+  // DAG_FATAL("5");
   int cnt = copyFiles(src, destFld, msk, res, fullReport);
 
   DataBlock destDynModel;
@@ -277,7 +277,7 @@ static void convert(const DataBlock *blk, const char *now_in, const char *root_f
     const DataBlock *subBlock = blk->getBlock(i);
     const char *tmp = subBlock->getStr("name", NULL);
     if (!tmp)
-      fatal("not found 'name' in block '%s'", subBlock->getBlockName());
+      DAG_FATAL("not found 'name' in block '%s'", subBlock->getBlockName());
 
     String destFld(256, "%s%s/", dst_fld, tmp);
     String newFld(256, "%s%s/", now_in, tmp);
@@ -327,13 +327,13 @@ static void convert(const DataBlock *blk, const char *now_in, const char *root_f
       const char *resName = resdb.getStr("resName", NULL);
 
       if (!className)
-        fatal("not found 'className' in '%s'", (char *)resdbF);
+        DAG_FATAL("not found 'className' in '%s'", (char *)resdbF);
 
       if (restrict_types.getNameId(className) == -1)
         continue;
 
       if (!resName)
-        fatal("not found 'resName' in '%s'", (char *)resdbF);
+        DAG_FATAL("not found 'resName' in '%s'", (char *)resdbF);
 
       if (stricmp(className, "Texture") == 0)
       {
@@ -682,7 +682,7 @@ static void convert(const DataBlock *blk, const char *now_in, const char *root_f
           printf("[ERROR] can't read %s\n", src.str());
       }
       /*else
-        fatal("unsupported class name: '%s'", className);*/
+        DAG_FATAL("unsupported class name: '%s'", className);*/
     }
 
     if (destBlkNeedWrite)

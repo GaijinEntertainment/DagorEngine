@@ -352,9 +352,6 @@ void Animation::rewind()
 
 void Animation::playSound(const Sqrat::Object &key)
 {
-  if (!elem->etree->guiScene->isActive())
-    return;
-
   if (desc.sound.IsNull())
     return;
   Sqrat::Object src = desc.sound.RawGetSlot(key);

@@ -443,7 +443,7 @@ bool ShaderMesh::getVbInfo(RElem &relem, int usage, int usage_index, unsigned in
 
     unsigned int channelSize = 0;
     if (!channel_size(channel.t, channelSize))
-      fatal("Unknown channel type");
+      DAG_FATAL("Unknown channel type");
     stride += channelSize;
   }
 

@@ -83,6 +83,16 @@ inline bool traceray_navmesh(const Point3 &start_pos, const Point3 &end_pos, con
 {
   return pathfinder::traceray_navmesh(start_pos, end_pos, extents, reinterpret_cast<Point3 &>(out_pos), custom_nav);
 }
+inline bool traceray_navmesh(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, das::float3 &out_pos,
+  dtPolyRef &out_poly, pathfinder::CustomNav *custom_nav)
+{
+  return pathfinder::traceray_navmesh(start_pos, end_pos, extents, reinterpret_cast<Point3 &>(out_pos), out_poly, custom_nav);
+}
+inline bool traceray_navmesh(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, das::float3 &out_pos,
+  dtPolyRef &out_poly)
+{
+  return pathfinder::traceray_navmesh(start_pos, end_pos, extents, reinterpret_cast<Point3 &>(out_pos), out_poly);
+}
 inline bool project_to_nearest_navmesh_point(das::float3 &pos, float horz_extents)
 {
   return pathfinder::project_to_nearest_navmesh_point(reinterpret_cast<Point3 &>(pos), horz_extents);
@@ -171,6 +181,7 @@ inline bool query_navmesh_projections(const Point3 &pos, das::float3 extents, in
   const das::TBlock<void, const das::TTemporary<const das::TArray<das::float3>>> &block, das::Context *context, das::LineInfoArg *at)
 {
   Tab<Point3> points(framemem_ptr());
+  points.reserve(points_num + 1);
   const bool res = pathfinder::query_navmesh_projections(pos, reinterpret_cast<Point3 &>(extents), points, points_num);
   das::Array arr;
   arr.data = (char *)points.data();
@@ -183,11 +194,40 @@ inline bool query_navmesh_projections(const Point3 &pos, das::float3 extents, in
   return res;
 }
 
+inline bool query_navmesh_projections_with_polys(const Point3 &pos, das::float3 extents, int points_num,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<das::float3>>, const das::TTemporary<const das::TArray<uint64_t>>>
+    &block,
+  das::Context *context, das::LineInfoArg *at)
+{
+  Tab<Point3> points(framemem_ptr());
+  points.reserve(points_num + 1);
+  Tab<dtPolyRef> polys(framemem_ptr());
+  const bool res = pathfinder::query_navmesh_projections(pos, reinterpret_cast<Point3 &>(extents), points, polys, points_num);
+  das::Array pointsArr;
+  pointsArr.data = (char *)points.data();
+  pointsArr.size = uint32_t(points.size());
+  pointsArr.capacity = pointsArr.size;
+  pointsArr.lock = 1;
+  pointsArr.flags = 0;
+
+  das::Array polysArr;
+  polysArr.data = (char *)polys.data();
+  polysArr.size = uint32_t(polys.size());
+  polysArr.capacity = polysArr.size;
+  polysArr.lock = 1;
+  polysArr.flags = 0;
+
+  eastl::array args = {das::cast<das::Array *>::from(&pointsArr), das::cast<das::Array *>::from(&polysArr)};
+  context->invoke(block, args.data(), nullptr, at);
+  return res;
+}
+
 // Note: pos itself must be close to navmesh no matter how large the radius is. Or else it fails.
 inline bool find_random_points_around_circle(const Point3 &pos, float radius, int num_points,
   const das::TBlock<void, const das::TTemporary<const das::TArray<das::float3>>> &block, das::Context *context, das::LineInfoArg *at)
 {
   Tab<Point3> points(framemem_ptr());
+  points.reserve(num_points + 1);
   const bool res = pathfinder::find_random_points_around_circle(pos, radius, num_points, points);
   das::Array arr;
   arr.data = (char *)points.data();

@@ -106,13 +106,13 @@ protected:
     Health expected = Health::HEALTHY;
     if (contextHealth.compare_exchange_strong(expected, Health::ILL))
     {
-      debug("DX12: Device was in healthy state, entering ill state...");
+      logdbg("DX12: Device was in healthy state, entering ill state...");
     }
     else if (Health::ILL == expected)
     {
       // nothing to do, this case if we set ILL state manually and then the error reporter
       // sets it again
-      debug("DX12: Error state reported while already in ill state...");
+      logdbg("DX12: Error state reported while already in ill state...");
     }
     else if (Health::RECOVERING == expected)
     {
@@ -137,13 +137,13 @@ protected:
     Health expected = Health::RECOVERING;
     if (!contextHealth.compare_exchange_strong(expected, Health::HEALTHY))
     {
-      debug("DX12: Failed to recover device after critical error");
+      logdbg("DX12: Failed to recover device after critical error");
       return false;
     }
     else
     {
       notify_all(contextHealth);
-      debug("DX12: Device was successfully recovered after critical error");
+      logdbg("DX12: Device was successfully recovered after critical error");
       return true;
     }
   }
@@ -240,7 +240,7 @@ class DeviceErrorObserver
       // Change priority as the priority param of DaThread gets clamped, but this thread needs to be
       // on this priority to better capture reset info before any other thread can do anything else.
       SetThreadPriority(GetCurrentThread(), 15);
-      debug("DX12: Device error observer started...");
+      logdbg("DX12: Device error observer started...");
       // Could wait without event here, but some tools will deadlock, like PIX.
       // Those block other threads until each API call has returned, as calling
       // SetEventOnCompletion with null as event will wait until the fence is
@@ -248,16 +248,16 @@ class DeviceErrorObserver
       // dead locks.
       EventPointer trigger{CreateEvent(nullptr, FALSE, FALSE, nullptr)};
       // On error all fences will be signaled with ~0, or when we exit we set this too
-      debug("DX12: Device error observer trigger set, waiting...");
+      logdbg("DX12: Device error observer trigger set, waiting...");
       if (DX12_CHECK_OK(detector->SetEventOnCompletion(~uint64_t(0), trigger.get())))
       {
         WaitForSingleObject(trigger.get(), INFINITE);
-        debug("DX12: Device error observer trigger was signaled...");
+        logdbg("DX12: Device error observer trigger was signaled...");
       }
 
       detector.Reset();
       target->signalDeviceError();
-      debug("DX12: Device error observer finished execution, exiting...");
+      logdbg("DX12: Device error observer finished execution, exiting...");
     }
     ComPtr<ID3D12Fence> detector;
     D *target;
@@ -647,7 +647,7 @@ public:
 
     if (observerIsShuttingDown())
     {
-      debug("DX12: Device error observer shutdown");
+      logdbg("DX12: Device error observer shutdown");
       return;
     }
     // report everything into error log, so we have complete overview by just looking at that log
@@ -955,7 +955,8 @@ void notify_delete(Sbuffer *buffer);
 template <typename T>
 inline void PipelineStageStateBase::enumerateUAVResources(uint32_t uav_mask, T clb)
 {
-  for_each_set_bit(uav_mask, [this, &clb](uint32_t i) {
+  for (auto i : LsbVisitor{uav_mask})
+  {
     if (uRegisters[i].image)
     {
       clb(uRegisters[i].image->getHandle());
@@ -964,14 +965,14 @@ inline void PipelineStageStateBase::enumerateUAVResources(uint32_t uav_mask, T c
     {
       clb(uRegisters[i].buffer.buffer);
     }
-  });
+  }
 }
 
 inline void PipelineStageStateBase::pushConstantBuffers(ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &heap,
   ConstBufferStreamDescriptorHeap &stream_heap, D3D12_CONSTANT_BUFFER_VIEW_DESC default_const_buffer, uint32_t cb_mask,
   StatefulCommandBuffer &cmd, uint32_t stage, ConstantBufferPushMode mode)
 {
-  uint32_t count = __popcount(cb_mask);
+  const uint32_t count = ConstantBufferPushMode::DESCRIPTOR_HEAP == mode ? __popcount(cb_mask) : 0;
   if (bRegisterValidMask == cb_mask)
   {
     if (ConstantBufferPushMode::DESCRIPTOR_HEAP == mode)
@@ -987,163 +988,146 @@ inline void PipelineStageStateBase::pushConstantBuffers(ID3D12Device *device, Sh
       return;
     }
   }
+
+  bRegisterValidMask = cb_mask;
+
   if (0 == cb_mask)
   {
-    bRegisterValidMask = 0;
     bRegisterDescribtorRange = {};
     return;
   }
 
-  D3D12_CPU_DESCRIPTOR_HANDLE base{};
   if (ConstantBufferPushMode::DESCRIPTOR_HEAP == mode)
   {
-    base = stream_heap.getDescriptors(device, count);
-  }
-  auto width = stream_heap.getDescriptorSize();
-  auto pos = base;
-  if (cb_mask & 1)
-  {
-    auto &view = bRegisters[0].BufferLocation ? bRegisters[0] : constRegisterLastBuffer;
-    if (ConstantBufferPushMode::DESCRIPTOR_HEAP == mode)
+    const auto base = stream_heap.getDescriptors(device, count);
+    const auto width = stream_heap.getDescriptorSize();
+    auto pos = base;
+
+    auto defView = &constRegisterLastBuffer;
+
+    for (auto i : LsbVisitor{cb_mask}) // pos may be changed on each iteration
     {
-      device->CreateConstantBufferView(&view, pos);
+      auto view = bRegisters[i].BufferLocation ? &bRegisters[i] : defView;
+      defView = nullptr;
+      device->CreateConstantBufferView(view, pos);
       pos.ptr += width;
     }
-    else
-    {
-      cmd.setConstantBuffer(stage, 0, view.BufferLocation);
-    }
-  }
 
-  for_each_set_bit(cb_mask & ~1u, [=, &cmd](uint32_t i) mutable // pos may be changed on each iteration
-    {
-      auto view = bRegisters[i].BufferLocation ? &bRegisters[i] : nullptr;
-      auto adr = bRegisters[i].BufferLocation ? bRegisters[i].BufferLocation : default_const_buffer.BufferLocation;
-      if (ConstantBufferPushMode::DESCRIPTOR_HEAP == mode)
-      {
-        device->CreateConstantBufferView(view, pos);
-        pos.ptr += width;
-      }
-      else
-      {
-        cmd.setConstantBuffer(stage, i, adr);
-      }
-    });
-
-  bRegisterValidMask = cb_mask;
-
-  // Have to take into account space for possible later shader stage
-  if (ConstantBufferPushMode::DESCRIPTOR_HEAP == mode)
-  {
     auto index = heap.appendToConstScratchSegment(device, base, count);
     bRegisterDescribtorRange = DescriptorHeapRange::make(index, count);
   }
+  else
+  {
+    auto defAdr = constRegisterLastBuffer.BufferLocation;
+
+    for (auto i : LsbVisitor{cb_mask})
+    {
+      auto adr = bRegisters[i].BufferLocation ? bRegisters[i].BufferLocation : defAdr;
+      defAdr = default_const_buffer.BufferLocation;
+      cmd.setConstantBuffer(stage, i, adr);
+    }
+  }
 }
+
 
 inline void PipelineStageStateBase::pushSamplers(ID3D12Device *device, SamplerDescriptorHeapManager &heap,
   D3D12_CPU_DESCRIPTOR_HANDLE default_sampler, D3D12_CPU_DESCRIPTOR_HANDLE default_cmp_sampler, uint32_t sampler_mask,
   uint32_t cmp_sampler_mask)
 {
   // mask has to match exactly as a potentially sparse array is condensed into a continuous array
-  if (sRegisterValidMask != sampler_mask)
+  if (sRegisterValidMask == sampler_mask)
   {
-    uint32_t count = 0;
-    D3D12_CPU_DESCRIPTOR_HANDLE samplerTable[dxil::MAX_S_REGISTERS];
-    for_each_set_bit(sampler_mask, [&count, &samplerTable, this, cmp_sampler_mask, default_cmp_sampler, default_sampler](uint32_t i) {
-      if (sRegisters[i].ptr)
-      {
-        samplerTable[count++] = sRegisters[i];
-      }
-      else
-      {
-        samplerTable[count++] = (cmp_sampler_mask & (1u << i)) ? default_cmp_sampler : default_sampler;
-      }
-    });
-
-    auto index = heap.findInScratchSegment(samplerTable, count);
-    if (!index)
-    {
-      heap.ensureScratchSegmentSpace(device, count);
-      index = heap.appendToScratchSegment(device, samplerTable, count);
-    }
-    sRegisterDescriptorRange = DescriptorHeapRange::make(index, count);
-    sRegisterValidMask = sampler_mask;
+    return;
   }
+  sRegisterValidMask = sampler_mask;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE samplerTable[dxil::MAX_S_REGISTERS];
+  auto it = samplerTable;
+
+  for (auto i : LsbVisitor{sampler_mask})
+  {
+    *it++ = sRegisters[i].ptr ? sRegisters[i] : ((cmp_sampler_mask & (1u << i)) ? default_cmp_sampler : default_sampler);
+  }
+
+  uint32_t count = eastl::distance(samplerTable, it);
+  auto index = heap.findInScratchSegment(samplerTable, count);
+  if (!index)
+  {
+    heap.ensureScratchSegmentSpace(device, count);
+    index = heap.appendToScratchSegment(device, samplerTable, count);
+  }
+  sRegisterDescriptorRange = DescriptorHeapRange::make(index, count);
 }
 
 inline void PipelineStageStateBase::pushUnorderedViews(ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &heap,
   const NullResourceTable &null_table, uint32_t uav_mask, const uint8_t *uav_types)
 {
-  if (uRegisterValidMask != uav_mask)
+  if (uRegisterValidMask == uav_mask)
   {
-    D3D12_CPU_DESCRIPTOR_HANDLE table[dxil::MAX_U_REGISTERS];
-    uint32_t count = 0;
-
-    for_each_set_bit(uav_mask, [&count, &table, &null_table, uav_types, this](uint32_t i) {
-      auto resType = static_cast<D3D_SHADER_INPUT_TYPE>(uav_types[i] & 0xF);
-      auto resDim = static_cast<D3D_SRV_DIMENSION>(uav_types[i] >> 4);
-      if (uRegisters[i].is(resType, resDim))
-      {
-        table[count++] = uRegisters[i].view;
-      }
-      else
-      {
-        table[count++] = null_table.get(resType, resDim);
-      }
-    });
-
-    DescriptorHeapIndex index;
-#if DX12_REUSE_UNORDERD_ACCESS_VIEW_DESCRIPTOR_RANGES
-    index = heap.findInUAVScratchSegment(table, count);
-    if (!index)
-#endif
-    {
-      index = heap.appendToUAVScratchSegment(device, table, count);
-    }
-    uRegisterDescriptorRange = DescriptorHeapRange::make(index, count);
-    uRegisterValidMask = uav_mask;
+    return;
   }
+  uRegisterValidMask = uav_mask;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE table[dxil::MAX_U_REGISTERS];
+  auto it = table;
+
+  for (auto i : LsbVisitor{uav_mask})
+  {
+    auto resType = static_cast<D3D_SHADER_INPUT_TYPE>(uav_types[i] & 0xF);
+    auto resDim = static_cast<D3D_SRV_DIMENSION>(uav_types[i] >> 4);
+    *it++ = uRegisters[i].is(resType, resDim) ? uRegisters[i].view : null_table.get(resType, resDim);
+  }
+
+  uint32_t count = eastl::distance(table, it);
+
+  DescriptorHeapIndex index;
+#if DX12_REUSE_UNORDERD_ACCESS_VIEW_DESCRIPTOR_RANGES
+  index = heap.findInUAVScratchSegment(table, count);
+  if (!index)
+#endif
+  {
+    index = heap.appendToUAVScratchSegment(device, table, count);
+  }
+  uRegisterDescriptorRange = DescriptorHeapRange::make(index, count);
 }
 
 inline void PipelineStageStateBase::pushShaderResourceViews(ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &heap,
   const NullResourceTable &null_table, uint32_t srv_mask, const uint8_t *srv_types)
 {
-  if (tRegisterValidMask != srv_mask)
+  if (tRegisterValidMask == srv_mask)
   {
-    D3D12_CPU_DESCRIPTOR_HANDLE table[dxil::MAX_T_REGISTERS];
-    uint32_t count = 0;
-
-    for_each_set_bit(srv_mask, [&count, &table, &null_table, srv_types, this](uint32_t i) {
-      auto resType = static_cast<D3D_SHADER_INPUT_TYPE>(srv_types[i] & 0xF);
-      auto resDim = static_cast<D3D_SRV_DIMENSION>(srv_types[i] >> 4);
-      if (tRegisters[i].is(resType, resDim))
-      {
-        table[count++] = tRegisters[i].view;
-      }
-      else
-      {
-        table[count++] = null_table.get(resType, resDim);
-      }
-    });
-
-    DescriptorHeapIndex index;
-#if DX12_REUSE_SHADER_RESOURCE_VIEW_DESCRIPTOR_RANGES
-    if (heap.highSRVScratchSegmentUsage())
-    {
-      index = heap.findInSRVScratchSegment(table, count);
-    }
-    else
-    {
-      index = DescriptorHeapIndex::make_invalid();
-    }
-    if (!index)
-#endif
-    {
-      index = heap.appendToSRVScratchSegment(device, table, count);
-    }
-    tRegisterDescriptorRange = DescriptorHeapRange::make(index, count);
-    tRegisterValidMask = srv_mask;
+    return;
   }
+  tRegisterValidMask = srv_mask;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE table[dxil::MAX_T_REGISTERS];
+  auto it = table;
+
+  for (auto i : LsbVisitor{srv_mask})
+  {
+    auto resType = static_cast<D3D_SHADER_INPUT_TYPE>(srv_types[i] & 0xF);
+    auto resDim = static_cast<D3D_SRV_DIMENSION>(srv_types[i] >> 4);
+    *it++ = tRegisters[i].is(resType, resDim) ? tRegisters[i].view : null_table.get(resType, resDim);
+  }
+
+  uint32_t count = eastl::distance(table, it);
+
+  DescriptorHeapIndex index;
+#if DX12_REUSE_SHADER_RESOURCE_VIEW_DESCRIPTOR_RANGES
+  if (heap.highSRVScratchSegmentUsage())
+  {
+    index = heap.findInSRVScratchSegment(table, count);
+  }
+  else
+  {
+    index = DescriptorHeapIndex::make_invalid();
+  }
+  if (!index)
+#endif
+  {
+    index = heap.appendToSRVScratchSegment(device, table, count);
+  }
+  tRegisterDescriptorRange = DescriptorHeapRange::make(index, count);
 }
 
 inline void PipelineStageStateBase::migrateAllSamplers(ID3D12Device *device, SamplerDescriptorHeapManager &heap)
@@ -1156,7 +1140,7 @@ inline void PipelineStageStateBase::migrateAllSamplers(ID3D12Device *device, Sam
   sRegisterDescriptorRange = heap.migrateToActiveScratchSegment(device, sRegisterDescriptorRange);
   if (!sRegisterDescriptorRange)
   {
-    fatal("DX12: Did run out of sampler descriptor heap space");
+    DAG_FATAL("DX12: Did run out of sampler descriptor heap space");
   }
 }
 
@@ -1274,24 +1258,19 @@ inline void FrontendQueryManager::shutdownPredicate(DeviceContext &ctx)
   }
   predicateHeaps.clear();
 }
-#define CHECK_IMAGE_TYPE(type)                                                \
-  if (!image)                                                                 \
-  {                                                                           \
-    fatal("Expected an image but was a buffer!");                             \
-  }                                                                           \
-  else if (image->getType() != type)                                          \
-  {                                                                           \
-    fatal("Expected an image of type %u but was %u", type, image->getType()); \
-  }                                                                           \
-  else                                                                        \
+#define CHECK_IMAGE_TYPE(type)                                \
+  if (!image)                                                 \
+    DAG_FATAL("Expected an image but was a buffer!");         \
+  else if (image->getType() != type)                          \
+    DAG_FATAL("Expected an image of type %u but was %u", /**/ \
+      type, image->getType());                                \
+  else                                                        \
     return true;
 
-#define CHECK_BUFFER                              \
-  if (!buffer)                                    \
-  {                                               \
-    fatal("Expected an buffer but was a image!"); \
-  }                                               \
-  else                                            \
+#define CHECK_BUFFER                                  \
+  if (!buffer)                                        \
+    DAG_FATAL("Expected an buffer but was a image!"); \
+  else                                                \
     return true;
 
 #define ENABLE_RESOURCE_CHECK 0
@@ -1305,7 +1284,7 @@ inline static bool check_tregister(Image *image, const BufferResourceReference &
 #if ENABLE_RESOURCE_CHECK
   if (D3D_SIT_CBUFFER == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_TBUFFER == type)
   {
@@ -1325,7 +1304,7 @@ inline static bool check_tregister(Image *image, const BufferResourceReference &
       case D3D_SRV_DIMENSION_TEXTURE1D:
       case D3D_SRV_DIMENSION_TEXTURE1DARRAY:
       case D3D_SRV_DIMENSION_TEXTURE2DMS:
-      case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY: fatal("unexpected descriptor check"); break;
+      case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY: DAG_FATAL("unexpected descriptor check"); break;
       case D3D_SRV_DIMENSION_TEXTURE2D: CHECK_IMAGE_TYPE(D3D12_RESOURCE_DIMENSION_TEXTURE2D); break;
       case D3D_SRV_DIMENSION_TEXTURE2DARRAY: CHECK_IMAGE_TYPE(D3D12_RESOURCE_DIMENSION_TEXTURE2D); break;
       case D3D_SRV_DIMENSION_TEXTURE3D: CHECK_IMAGE_TYPE(D3D12_RESOURCE_DIMENSION_TEXTURE3D); break;
@@ -1335,11 +1314,11 @@ inline static bool check_tregister(Image *image, const BufferResourceReference &
   }
   else if (D3D_SIT_SAMPLER == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_UAV_RWTYPED == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_STRUCTURED == type)
   {
@@ -1347,7 +1326,7 @@ inline static bool check_tregister(Image *image, const BufferResourceReference &
   }
   else if (D3D_SIT_UAV_RWSTRUCTURED == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_BYTEADDRESS == type)
   {
@@ -1355,19 +1334,19 @@ inline static bool check_tregister(Image *image, const BufferResourceReference &
   }
   else if (D3D_SIT_UAV_RWBYTEADDRESS == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_UAV_APPEND_STRUCTURED == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_UAV_CONSUME_STRUCTURED == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   return false;
 #else
@@ -1386,7 +1365,7 @@ inline bool PipelineStageStateBase::TRegister::is(D3D_SHADER_INPUT_TYPE type, D3
 #if D3D_HAS_RAY_TRACING
     return view.ptr != 0 && as != nullptr;
 #else
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
 #endif
   }
   return check_tregister(image, buffer, view, type, dim);
@@ -1400,19 +1379,19 @@ inline bool PipelineStageStateBase::URegister::is(D3D_SHADER_INPUT_TYPE type, D3
 #if ENABLE_RESOURCE_CHECK
   if (D3D_SIT_CBUFFER == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_TBUFFER == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_TEXTURE == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_SAMPLER == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_UAV_RWTYPED == type)
   {
@@ -1422,7 +1401,7 @@ inline bool PipelineStageStateBase::URegister::is(D3D_SHADER_INPUT_TYPE type, D3
       case D3D_SRV_DIMENSION_TEXTURE1D:
       case D3D_SRV_DIMENSION_TEXTURE1DARRAY:
       case D3D_SRV_DIMENSION_TEXTURE2DMS:
-      case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY: fatal("unexpected descriptor lookup"); break;
+      case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY: DAG_FATAL("unexpected descriptor lookup"); break;
       case D3D_SRV_DIMENSION_BUFFER:
       case D3D_SRV_DIMENSION_BUFFEREX: CHECK_BUFFER; break;
       case D3D_SRV_DIMENSION_TEXTURE2D: CHECK_IMAGE_TYPE(D3D12_RESOURCE_DIMENSION_TEXTURE2D); break;
@@ -1434,7 +1413,7 @@ inline bool PipelineStageStateBase::URegister::is(D3D_SHADER_INPUT_TYPE type, D3
   }
   else if (D3D_SIT_STRUCTURED == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_UAV_RWSTRUCTURED == type)
   {
@@ -1442,7 +1421,7 @@ inline bool PipelineStageStateBase::URegister::is(D3D_SHADER_INPUT_TYPE type, D3
   }
   else if (D3D_SIT_BYTEADDRESS == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_UAV_RWBYTEADDRESS == type)
   {
@@ -1450,19 +1429,19 @@ inline bool PipelineStageStateBase::URegister::is(D3D_SHADER_INPUT_TYPE type, D3
   }
   else if (D3D_SIT_UAV_APPEND_STRUCTURED == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_UAV_CONSUME_STRUCTURED == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER == type)
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   else if (12 == type) // rtx structure TODO replace with correct symbol
   {
-    fatal("unexpected descriptor check");
+    DAG_FATAL("unexpected descriptor check");
   }
   return false;
 #else
@@ -1614,9 +1593,9 @@ inline uint8_t *BufferInterfaceConfigCommon::getMappedPointer(BufferReferenceTyp
 {
   return buffer.cpuPointer + buffer.size * buffer.currentDiscardIndex + offset;
 }
-inline void BufferInterfaceConfigCommon::invalidateMemory(HostDeviceSharedMemoryRegion mem, uint32_t offset, uint32_t size)
+inline void BufferInterfaceConfigCommon::invalidateMemory(HostDeviceSharedMemoryRegion mem, uint64_t offset, uint32_t size)
 {
-  mem.invalidateRegion(make_value_range<uint32_t>(offset, size));
+  mem.invalidateRegion(make_value_range(offset, size));
 }
 inline void BufferInterfaceConfigCommon::readBackBuffer(BufferReferenceType src, HostDeviceSharedMemoryRegion dst, uint32_t src_offset,
   uint32_t dst_offset, uint32_t size)

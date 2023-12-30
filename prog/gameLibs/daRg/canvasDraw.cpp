@@ -41,41 +41,6 @@ void RenderCanvasContext::renderLine(const Sqrat::Array &cmd, const Point2 &line
 }
 
 
-static void render_dashed_line(StdGuiRender::GuiContext *ctx, const Point2 &p0, const Point2 &p1, const float dash, const float space,
-  const float line_width, E3DCOLOR color)
-{
-  const float invLength = safeinv((p0 - p1).length());
-
-  const float x1 = p0.x;
-  const float y1 = p0.y;
-  const float kx = p1.x - p0.x;
-  const float ky = p1.y - p0.y;
-  float t = 0.f;
-
-  const float tDash = dash * invLength;
-  const float tSpace = space * invLength;
-
-  Tab<Point2> dashPoints(framemem_ptr());
-  dashPoints.resize(2);
-  while (t <= 1.f)
-  {
-    dashPoints[0].x = x1 + kx * t;
-    dashPoints[0].y = y1 + ky * t;
-    t += tDash;
-    if (t > 1.f)
-      t = 1.f;
-    dashPoints[1].x = x1 + kx * t;
-    dashPoints[1].y = y1 + ky * t;
-    t += tSpace;
-
-    ctx->render_line_aa(dashPoints, /*is_closed*/ false, line_width, ZERO<Point2>(), color);
-
-    if (t < 1e-4f) // max = 10000 dashes
-      return;
-  }
-}
-
-
 void RenderCanvasContext::renderLineDashed(const Sqrat::Array &cmd) const
 {
   bool isValidParams = cmd.Length() == 7;
@@ -108,7 +73,7 @@ void RenderCanvasContext::renderLineDashed(const Sqrat::Array &cmd) const
   const float dash = cmd[cmd.Length() - 2].Cast<float>();
   const float space = cmd[cmd.Length() - 1].Cast<float>();
 
-  render_dashed_line(ctx, points[0], points[1], dash, space, lineWidth, color);
+  ctx->render_dashed_line(points[0], points[1], dash, space, lineWidth, color);
 }
 
 
@@ -419,7 +384,7 @@ static SQInteger line_dashed_sq(HSQUIRRELVM vm)
 
   color = color_apply_opacity(color, rctx->renderStateOpacity);
 
-  render_dashed_line(rctx->ctx, points[0], points[1], dash, space, lineWidth, color);
+  rctx->ctx->render_dashed_line(points[0], points[1], dash, space, lineWidth, color);
   return 0;
 }
 

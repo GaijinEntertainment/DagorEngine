@@ -102,7 +102,7 @@ static ecs::EntitySystemDesc update_floating_rendinsts_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),
   0
-,"gameClient",nullptr,nullptr,"start_async_phys_sim_es");
+,"gameClient");
 //static constexpr ecs::ComponentDesc keep_floatable_destructables_es_comps[] ={};
 static void keep_floatable_destructables_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {

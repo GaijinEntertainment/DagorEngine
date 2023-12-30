@@ -21,7 +21,7 @@ let typesByTypechecks ={
   [0x00010000] = "weakref",
   [0x00020000] = "outer", //internal type
 }
-let function mkAssertStr(x, argname, verbose=false){
+function mkAssertStr(x, argname, verbose=false){
   if (verbose)
     log("type", x, "argname", argname)
   if (x < 0 || argname == null)
@@ -33,7 +33,7 @@ let function mkAssertStr(x, argname, verbose=false){
   return $"  assert({typestr}.contains(type({argname})), @() $\"type of argument should be one of: {infostr}\")"
 }
 
-let function typeCheckArrToStringCheck(mask, arguments, verbose = false) {
+function typeCheckArrToStringCheck(mask, arguments, verbose = false) {
   return "\n  ".join(mask.map(@(x, i) mkAssertStr(x, arguments?[i], verbose)).filter(@(v) v!=""))
 }
 
@@ -57,7 +57,7 @@ let valuesByTypechecks ={
   [0x00010000] = "weakref",
   [0x00020000] = "outer", //internal type
 }
-let function typeBitsToStringFirst(x) {
+function typeBitsToStringFirst(x) {
   if (x==null || x < 0)
     return "null"
   return (valuesByTypechecks.filter(@(_, bits) (x & bits)!=0)).values()?[0] ?? "null"
@@ -67,7 +67,7 @@ let def_params_names = ["a", "b", "c", "d", "e"].extend(array(10).map(@(_, i) $"
 
 const INDENT_SYM = "  "
 
-let function mkFunStubStr(func, name=null, indent = 0, verbose=false, manualModInfo=null){
+function mkFunStubStr(func, name=null, indent = 0, verbose=false, manualModInfo=null){
   let infos = func.getfuncinfos()
   let indentStr = "".join(array(indent, INDENT_SYM))
   local retValueStr = manualModInfo?[name].returnStr
@@ -111,7 +111,7 @@ let function mkFunStubStr(func, name=null, indent = 0, verbose=false, manualModI
         : $"function{name}({args_string}) \{\n{indentStr}{typechecks}\n{indentStr}\}"
 }
 
-let function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null){
+function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null){
   let typ = type(val)
   let indentStr = "".join(array(indent, INDENT_SYM))
   let mkStubSt = callee()

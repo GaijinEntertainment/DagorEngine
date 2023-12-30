@@ -12,7 +12,7 @@ using namespace drv3d_vulkan;
 // global fields accessor to reduce code footprint
 namespace
 {
-struct LocalAccesor
+struct LocalAccessor
 {
   PipelineState &pipeState;
   Device &drvDev;
@@ -20,7 +20,7 @@ struct LocalAccesor
   DeviceContext &ctx;
   ResourceManager &resources;
 
-  LocalAccesor() :
+  LocalAccessor() :
     pipeState(get_device().getContext().getFrontend().pipelineState),
     drvDev(get_device()),
     dev(get_device().getVkDevice()),
@@ -32,7 +32,7 @@ struct LocalAccesor
 
 d3d::RenderPass *d3d::create_render_pass(const RenderPassDesc &rp_desc)
 {
-  LocalAccesor la;
+  LocalAccessor la;
   SharedGuardedObjectAutoLock lock(la.resources);
 
   RenderPassResource *ret = la.resources.alloc<RenderPassResource>({&rp_desc});
@@ -43,7 +43,7 @@ d3d::RenderPass *d3d::create_render_pass(const RenderPassDesc &rp_desc)
 void d3d::delete_render_pass(d3d::RenderPass *rp)
 {
   // can happen from external thread by overall deletion rules, so must be processed in backend
-  LocalAccesor la;
+  LocalAccessor la;
   la.ctx.destroyRenderPassResource((RenderPassResource *)rp);
 }
 
@@ -51,11 +51,14 @@ void d3d::begin_render_pass(d3d::RenderPass *drv_rp, const RenderPassArea area, 
 {
   G_ASSERTF(drv_rp, "vulkan: can't start null render pass");
   using Bind = StateFieldRenderPassTarget;
-  LocalAccesor la;
+  LocalAccessor la;
 
   RenderPassResource *rp = (RenderPassResource *)drv_rp;
   for (uint32_t i = 0; i < rp->getTargetsCount(); ++i)
+  {
+    G_ASSERTF(targets[i].resource.tex, "vulkan: trying to start render pass %s with missing target %u", rp->getDebugName(), i);
     la.pipeState.set<StateFieldRenderPassTargets, Bind::IndexedRaw, FrontGraphicsState, FrontRenderPassState>({i, targets[i]});
+  }
 
   la.pipeState.set<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>(rp);
   la.pipeState.set<StateFieldRenderPassSubpassIdx, StateFieldRenderPassSubpassIdx::Zero, FrontGraphicsState, FrontRenderPassState>({});
@@ -67,7 +70,7 @@ void d3d::begin_render_pass(d3d::RenderPass *drv_rp, const RenderPassArea area, 
 
 void d3d::next_subpass()
 {
-  LocalAccesor la;
+  LocalAccessor la;
 
   la.pipeState.set<StateFieldRenderPassSubpassIdx, StateFieldRenderPassSubpassIdx::Next, FrontGraphicsState, FrontRenderPassState>({});
   const RenderPassArea &area =
@@ -78,7 +81,7 @@ void d3d::next_subpass()
 
 void d3d::end_render_pass()
 {
-  LocalAccesor la;
+  LocalAccessor la;
   using Bind = StateFieldRenderPassTarget;
 
   RenderPassResource *rp =

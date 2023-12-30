@@ -227,7 +227,6 @@ struct SplineData
   SplineData() : pathNodePoints(tmpmem) {}
 };
 
-float sqr(float a) { return a * a; }
 
 class SplineExporter
 {

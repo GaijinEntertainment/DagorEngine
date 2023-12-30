@@ -107,11 +107,14 @@ bool RenderPassClass::verifyPass(int clear_mask)
   {
     for (int i = 0; (i < Driver3dRenderTarget::MAX_SIMRT) && usedColorMask; ++i, usedColorMask >>= 1)
     {
+      if ((usedColorMask & 1) == 0)
+        continue;
+
       bool isMultiSampledAttachment = identifier.colorSamples[i] > 1;
 
       if (isMultiSampledAttachment && !clearColor)
       {
-        logwarn("MSAA verifyPass failed");
+        logerr("MSAA verifyPass failed for attachment %u", i);
         return false;
       }
     }

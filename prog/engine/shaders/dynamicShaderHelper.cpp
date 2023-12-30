@@ -12,7 +12,7 @@ bool DynamicShaderHelper::init(const char *shader_name, CompiledShaderChannelId 
   if (!material)
   {
     if (!optional)
-      fatal("No shader for class = %s", shader_name);
+      DAG_FATAL("No shader for class = %s", shader_name);
 
     return false;
   }
@@ -33,7 +33,7 @@ bool DynamicShaderHelper::init(const char *shader_name, CompiledShaderChannelId 
       return true;
     }
 
-    fatal("%s - invalid channels for shader '%s'!", module_info, material->getShaderClassName());
+    DAG_FATAL("%s - invalid channels for shader '%s'!", module_info, material->getShaderClassName());
     material = NULL;
     return false;
   }
@@ -42,7 +42,7 @@ bool DynamicShaderHelper::init(const char *shader_name, CompiledShaderChannelId 
   if (!shader)
   {
     if (!optional)
-      fatal("%s - empty shader '%s'!", module_info, material->getShaderClassName());
+      DAG_FATAL("%s - empty shader '%s'!", module_info, material->getShaderClassName());
     material = NULL;
     return false;
   }

@@ -233,7 +233,7 @@ const char *printable_increment(int x)
 	if(x<0)
 		snprintf(buf, 20, "%d", x);
 	else if(x==0)
-		snprintf(buf, 20, "");
+		strcpy(buf, "");
 	else if(x>0)
 		snprintf(buf, 20, "+%u", x);
 	else

@@ -1,3 +1,3 @@
 @echo on
-..\..\..\..\tools\dagor3_cdk\util64\dsc2-spirv-dev.exe .\shaders_spirv.blk -q -shaderOn -nodisassembly -commentPP -codeDumpErr -bones_start 70  -o ..\..\..\..\_output\skiesSample\shaders~spirv %1 %2 %3
+..\..\..\..\tools\dagor3_cdk\util64\dsc2-spirv-dev.exe .\shaders_spirv.blk -q -shaderOn -nodisassembly -commentPP -codeDumpErr -bones_start 70  -o ..\..\..\..\_output\shaders\skiesSample-game~spirv %1 %2 %3
 @echo off

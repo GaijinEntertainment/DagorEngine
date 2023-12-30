@@ -1,5 +1,4 @@
-#ifndef SUBDIVISION_INCLUDED // -*- C++ -*-
-#define SUBDIVISION_INCLUDED
+#pragma once
 
 #include "quadedge.h"
 
@@ -99,5 +98,3 @@ public:
 };
 
 }; // namespace delaunay
-
-#endif

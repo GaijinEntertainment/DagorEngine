@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 
-let function dmModule(count_total_state, count_broken_state) {
+function dmModule(count_total_state, count_broken_state) {
   return function () {
     let image = {
       rendObj = ROBJ_SOLID
@@ -24,7 +24,7 @@ let function dmModule(count_total_state, count_broken_state) {
       margin = [sh(0.3), sh(0.3)]
     }
 
-    let function dots () {
+    function dots () {
       let aliveCount = count_total_state.value - count_broken_state.value
       let children = []
       children.resize(aliveCount, dotAlive(count_total_state.value))

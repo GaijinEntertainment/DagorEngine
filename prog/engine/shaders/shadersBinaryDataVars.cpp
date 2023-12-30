@@ -407,18 +407,34 @@ int ShaderGlobal::get_var_type(int var_id)
   return dump.globVars.getType(id);
 }
 
-bool ShaderGlobal::is_var_assumed(int var_id)
+static const shaderbindump::Interval *get_interval(int var_id)
 {
   if (uint32_t(var_id) >= shvarNameMap.nameCountRelaxed())
-    return false;
+    return nullptr;
 
   auto &dump = shBinDump();
   int id = dump.globvarIdx[var_id];
   int iid = shBinDumpOwner().globVarIntervalIdx[id];
-  const shaderbindump::Interval &interval = dump.intervals[iid];
+  return &dump.intervals[iid];
+}
 
-  return (interval.type == shaderbindump::Interval::TYPE_VIOLATED_ASSUMED_INTERVAL) ||
-         (interval.type == shaderbindump::Interval::TYPE_ASSUMED_INTERVAL);
+bool ShaderGlobal::is_var_assumed(int var_id)
+{
+  auto interval = get_interval(var_id);
+  if (!interval)
+    return false;
+
+  return (interval->type == shaderbindump::Interval::TYPE_VIOLATED_ASSUMED_INTERVAL) ||
+         (interval->type == shaderbindump::Interval::TYPE_ASSUMED_INTERVAL);
+}
+
+int ShaderGlobal::get_interval_assumed_value(int var_id)
+{
+  G_ASSERT(is_var_assumed(var_id));
+  auto interval = get_interval(var_id);
+  if (!interval)
+    return -1;
+  return interval->getAssumedVal();
 }
 
 bool ShaderGlobal::has_associated_interval(int var_id)

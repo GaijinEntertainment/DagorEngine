@@ -139,16 +139,16 @@ static void report_agility_sdk_error(HRESULT hr)
   String dllPath(0, "%s%sD3D12Core.dll", exeDir, D3D12SDKPath);
   if (!dd_file_exists(dllPath))
   {
-    debug("DX12: %s is missing", dllPath.c_str());
+    logdbg("DX12: %s is missing", dllPath.c_str());
     return;
   }
   dllPath.printf(0, "%s%sd3d12SDKLayers.dll", exeDir, D3D12SDKPath);
   if (!dd_file_exists(dllPath))
   {
-    debug("DX12: %s is missing", dllPath.c_str());
+    logdbg("DX12: %s is missing", dllPath.c_str());
     return;
   }
-  debug("DX12: D3D12SDKVersion %d isn't available", D3D12SDKVersion);
+  logdbg("DX12: D3D12SDKVersion %d isn't available", D3D12SDKVersion);
 }
 
 static PresentationMode get_presentation_mode_from_settings()
@@ -506,7 +506,7 @@ void drv3d_dx12::hdr_changed(bool is_hdr_enabled, float min_lum, float max_lum, 
 {
   if (is_hdr_enabled)
   {
-    debug("DX12: HDR is %s: min lum: %f, max lum: %f, max FullFrame Lum %f", api_state.isHDREnabled ? "changed" : "enabled", min_lum,
+    logdbg("DX12: HDR is %s: min lum: %f, max lum: %f, max FullFrame Lum %f", api_state.isHDREnabled ? "changed" : "enabled", min_lum,
       max_lum, max_fullframe_lum);
 
     api_state.minLum = min_lum;
@@ -515,7 +515,7 @@ void drv3d_dx12::hdr_changed(bool is_hdr_enabled, float min_lum, float max_lum, 
   }
   else
   {
-    debug("DX12: HDR is disabled");
+    logdbg("DX12: HDR is disabled");
   }
 
   api_state.isHDREnabled = is_hdr_enabled;
@@ -525,25 +525,25 @@ static void set_sci_hdr_config(SwapchainCreateInfo &sci)
 {
 #if _TARGET_PC_WIN
   sci.enableHdr = get_enable_hdr_from_settings();
-  debug("DX12: HDR is %s from config", sci.enableHdr ? "enabled" : "disabled");
+  logdbg("DX12: HDR is %s from config", sci.enableHdr ? "enabled" : "disabled");
 
   const DataBlock *dxCfg = ::dgs_get_settings()->getBlockByNameEx("dx12");
   sci.forceHdr = dxCfg->getBool("forceHdr", false);
   if (sci.forceHdr)
-    debug("DX12: HDR will be forced due to config");
+    logdbg("DX12: HDR will be forced due to config");
 #elif _TARGET_XBOX
   if (is_hdr_available())
   {
     sci.enableHdr = get_enable_hdr_from_settings();
-    debug("DX12: HDR is %s from config", sci.enableHdr ? "enabled" : "disabled");
+    logdbg("DX12: HDR is %s from config", sci.enableHdr ? "enabled" : "disabled");
     const DataBlock *dxCfg = ::dgs_get_settings()->getBlockByNameEx("dx12");
     sci.autoGameDvr = dxCfg->getBool("autoGameDvr", true);
-    debug("DX12: GameDvr output will be create by %s", sci.autoGameDvr ? "system" : "engine");
+    logdbg("DX12: GameDvr output will be create by %s", sci.autoGameDvr ? "system" : "engine");
   }
   else
-    debug("DX12: HDR is disabled due to inappropriate hardware");
+    logdbg("DX12: HDR is disabled due to inappropriate hardware");
 #else
-  debug("DX12: HDR is disabled due to inappropriate hardware");
+  logdbg("DX12: HDR is disabled due to inappropriate hardware");
 #endif
 }
 
@@ -559,14 +559,14 @@ void setup_futex()
   auto futexLib = LoadLibraryA("API-MS-Win-Core-Synch-l1-2-0.dll");
   if (futexLib)
   {
-    debug("DX12 Memory wait uses WaitOnAddress");
+    logdbg("DX12 Memory wait uses WaitOnAddress");
     reinterpret_cast<FARPROC &>(drv3d_dx12::WaitOnAddress) = GetProcAddress(futexLib, "WaitOnAddress");
     reinterpret_cast<FARPROC &>(drv3d_dx12::WakeByAddressAll) = GetProcAddress(futexLib, "WakeByAddressAll");
     reinterpret_cast<FARPROC &>(drv3d_dx12::WakeByAddressSingle) = GetProcAddress(futexLib, "WakeByAddressSingle");
   }
   else
   {
-    debug("DX12 Memory wait uses polling");
+    logdbg("DX12 Memory wait uses polling");
   }
 }
 
@@ -630,29 +630,29 @@ APISupport check_adapter(Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVEL feat
   char strBuffer[sizeof(DXGI_ADAPTER_DESC1::Description) * 2 + 1];
   const size_t size = wcstombs(strBuffer, info.Description, sizeof(strBuffer));
   strBuffer[size] = '\0';
-  debug("DX12: Found device %s - 0x%08X - 0x%08X with flags 0x%08X", strBuffer, info.VendorId, info.DeviceId, info.Flags);
+  logdbg("DX12: Found device %s - 0x%08X - 0x%08X with flags 0x%08X", strBuffer, info.VendorId, info.DeviceId, info.Flags);
 
   // only accept non software devices we find
   if (is_software_device(info))
   {
-    debug("DX12: Rejected, because software device");
+    logdbg("DX12: Rejected, because software device");
     return APISupport::NO_DEVICE_FOUND;
   }
 
   auto version = get_driver_version_from_registry(info.AdapterLuid);
-  debug("DX12: Driver version %u.%u.%u.%u", version.productVersion, version.majorVersion, version.minorVersion, version.buildNumber);
+  logdbg("DX12: Driver version %u.%u.%u.%u", version.productVersion, version.majorVersion, version.minorVersion, version.buildNumber);
   if (gpu::VENDOR_ID_NVIDIA == info.VendorId)
   {
     // on NV we can deduce GeForce version and report more details.
     auto nvVersion = DriverVersionNVIDIA::fromDriverVersion(version);
-    debug("DX12: NVIDIA GeForce version %u.%02u", nvVersion.majorVersion, nvVersion.minorVersion);
+    logdbg("DX12: NVIDIA GeForce version %u.%02u", nvVersion.majorVersion, nvVersion.minorVersion);
   }
 
   if (gpu_cfg)
   {
     if (!use_any_device && !is_prefered_device(*gpu_cfg, info.VendorId, info.DeviceId))
     {
-      debug("DX12: Rejected, because the driver mode is \"auto\" and the device isn't a prefered one");
+      logdbg("DX12: Rejected, because the driver mode is \"auto\" and the device isn't a prefered one");
       return APISupport::NO_DEVICE_FOUND;
     }
 
@@ -661,11 +661,11 @@ APISupport check_adapter(Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVEL feat
     switch (result)
     {
       case APISupport::OUTDATED_DRIVER:
-        debug("DX12: Rejected, driver version is older than minVersion "
-              "%u.%u.%u.%u",
+        logdbg("DX12: Rejected, driver version is older than minVersion "
+               "%u.%u.%u.%u",
           minVersion.productVersion, minVersion.majorVersion, minVersion.minorVersion, minVersion.buildNumber);
         return result;
-      case APISupport::BLACKLISTED_DRIVER: debug("DX12: Rejected, driver version is blacklisted"); return result;
+      case APISupport::BLACKLISTED_DRIVER: logdbg("DX12: Rejected, driver version is blacklisted"); return result;
       default: break;
     }
   }
@@ -673,7 +673,7 @@ APISupport check_adapter(Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVEL feat
   ComPtr<ID3D12Device> device;
   if (auto hr = d3d12_env.D3D12CreateDevice(adapter.Get(), feature_level, COM_ARGS(&device)); FAILED(hr))
   {
-    debug("DX12: Rejected, unable to create DX12 device, %s", dxgi_error_code_to_string(hr));
+    logdbg("DX12: Rejected, unable to create DX12 device, %s", dxgi_error_code_to_string(hr));
     report_agility_sdk_error(hr);
     return APISupport::NO_DEVICE_FOUND;
   }
@@ -684,11 +684,11 @@ APISupport check_adapter(Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVEL feat
   device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &sm, sizeof(sm));
   if (sm.HighestShaderModel < D3D_SHADER_MODEL_6_0)
   {
-    debug("DX12: Rejected, no HLSL shader model 6.0+ support (DXIL)");
+    logdbg("DX12: Rejected, no HLSL shader model 6.0+ support (DXIL)");
     return APISupport::NO_DEVICE_FOUND;
   }
 
-  debug("DX12: Device fulfills requirements, DX12 is available!");
+  logdbg("DX12: Device fulfills requirements, DX12 is available!");
   return APISupport::FULL_SUPPORT;
 }
 
@@ -701,13 +701,13 @@ void check_and_add_adapter(Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVEL fe
   char strBuffer[sizeof(DXGI_ADAPTER_DESC1::Description) * 2 + 1];
   const size_t size = wcstombs(strBuffer, info.info.Description, sizeof(strBuffer));
   strBuffer[size] = '\0';
-  debug("DX12: Found device %s - 0x%08X - 0x%08X with flags 0x%08X", strBuffer, info.info.VendorId, info.info.DeviceId,
+  logdbg("DX12: Found device %s - 0x%08X - 0x%08X with flags 0x%08X", strBuffer, info.info.VendorId, info.info.DeviceId,
     info.info.Flags);
 
   // only accept non software devices we find
   if (is_software_device(info.info))
   {
-    debug("DX12: Rejected, because software device");
+    logdbg("DX12: Rejected, because software device");
     return;
   }
 
@@ -718,11 +718,11 @@ void check_and_add_adapter(Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVEL fe
     switch (result)
     {
       case APISupport::OUTDATED_DRIVER:
-        debug("DX12: Rejected, because inadequate gpu driver, the %u.%u.%u.%u is outdated", version.productVersion,
+        logdbg("DX12: Rejected, because inadequate gpu driver, the %u.%u.%u.%u is outdated", version.productVersion,
           version.majorVersion, version.minorVersion, version.buildNumber);
         return;
       case APISupport::BLACKLISTED_DRIVER:
-        debug("DX12: Rejected, because inadequate gpu driver, the %u.%u.%u.%u is blacklisted", version.productVersion,
+        logdbg("DX12: Rejected, because inadequate gpu driver, the %u.%u.%u.%u is blacklisted", version.productVersion,
           version.majorVersion, version.minorVersion, version.buildNumber);
         return;
       default: break;
@@ -732,7 +732,7 @@ void check_and_add_adapter(Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVEL fe
   // checks but does not create a device yet
   if (auto hr = d3d12_env.D3D12CreateDevice(adapter.Get(), feature_level, __uuidof(ID3D12Device), nullptr); FAILED(hr))
   {
-    debug("DX12: Rejected, because it failed DX12 support test, %s", dxgi_error_code_to_string(hr));
+    logdbg("DX12: Rejected, because it failed DX12 support test, %s", dxgi_error_code_to_string(hr));
     report_agility_sdk_error(hr);
     return;
   }
@@ -821,7 +821,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
 
   if (api_state.debugState.captureTool().isAnyPIXActive())
   {
-    debug("DX12: ...PIX frame capturing is active, disabling pipeline library cache to avoid replay errors...");
+    logdbg("DX12: ...PIX frame capturing is active, disabling pipeline library cache to avoid replay errors...");
     // pipeline library cache causes trouble with pix, it tries to replay but it
     // fails with driver version mismatch and then results in abort of replay
     // and pix reports TDR as an error.
@@ -831,24 +831,24 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
 #if DX12_DOES_SET_DEBUG_NAMES
   if (api_state.debugState.captureTool().isAnyActive())
   {
-    debug("DX12: ...frame capturing tool active, enabling naming of API objects...");
+    logdbg("DX12: ...frame capturing tool active, enabling naming of API objects...");
     deviceCfg.features.set(DeviceFeaturesConfig::NAME_OBJECTS);
   }
   else if (dxCfg->getBool("nameObjects", false))
   {
-    debug("DX12: ...naming of API objects enabled by config value...");
+    logdbg("DX12: ...naming of API objects enabled by config value...");
     deviceCfg.features.set(DeviceFeaturesConfig::NAME_OBJECTS);
   }
 #endif
 
-  debug("DX12: CreateDXGIFactory2 for DXGIFactory4...");
+  logdbg("DX12: CreateDXGIFactory2 for DXGIFactory4...");
   // on cpu validation we also turn on DXGI validation
   UINT flags = api_state.debugState.configuration().enableCPUValidation ? DXGI_CREATE_FACTORY_DEBUG : 0;
   auto hr = api_state.d3d12Env.CreateDXGIFactory2(flags, COM_ARGS(&api_state.dxgi14));
   if (FAILED(hr))
   {
     api_state.lastErrorCode = E_FAIL;
-    debug("DX12: Failed, %s", dxgi_error_code_to_string(hr));
+    logdbg("DX12: Failed, %s", dxgi_error_code_to_string(hr));
     api_state.releaseAll();
     return false;
   }
@@ -856,7 +856,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   if (!create_output_window(hinst, wnd_proc, wcname, ncmdshow, mainwnd, renderwnd, hicon, title, cb))
   {
     api_state.lastErrorCode = E_FAIL;
-    debug("DX12: Failed to create output window");
+    logdbg("DX12: Failed to create output window");
     api_state.releaseAll();
     return false;
   }
@@ -893,7 +893,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   ComPtr<IDXGIAdapter1> adapter1;
   if (dxCfg->getBool("UseWARP", false))
   {
-    debug("DX12: WARP requested, DXGIFactory4::EnumWarpAdapter...");
+    logdbg("DX12: WARP requested, DXGIFactory4::EnumWarpAdapter...");
     if (SUCCEEDED(api_state.dxgi14->EnumWarpAdapter(COM_ARGS(&adapter1))))
       init_device(eastl::move(adapter1), nullptr);
   }
@@ -908,7 +908,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
       luid.LowPart = static_cast<ULONG>(luidValue);
       luid.HighPart = static_cast<LONG>(luidValue >> 32);
 
-      debug("DX12: DXGIFactory4::EnumAdapterByLuid(%u)...", luidValue);
+      logdbg("DX12: DXGIFactory4::EnumAdapterByLuid(%u)...", luidValue);
       if (SUCCEEDED(api_state.dxgi14->EnumAdapterByLuid(luid, COM_ARGS(&adapter1))))
         init_device(eastl::move(adapter1), nullptr);
     }
@@ -919,7 +919,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     const char *displayName = get_monitor_name_from_settings();
     if (displayName)
     {
-      debug("DX12: DXGIFactory4::EnumAdapters : 'displayName'=%s...", displayName);
+      logdbg("DX12: DXGIFactory4::EnumAdapters : 'displayName'=%s...", displayName);
 
       for (uint32_t adapterIndex = 0; SUCCEEDED(api_state.dxgi14->EnumAdapters1(adapterIndex, &adapter1)); adapterIndex++)
       {
@@ -940,12 +940,12 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
       DXGI_GPU_PREFERENCE gpuPreference;
       if (videoCfg->getBool("preferiGPU", false))
       {
-        debug("DX12: Enumerating available devices to prefer iGPU...");
+        logdbg("DX12: Enumerating available devices to prefer iGPU...");
         gpuPreference = DXGI_GPU_PREFERENCE_MINIMUM_POWER;
       }
       else
       {
-        debug("DX12: Enumerating available devices in performance order...");
+        logdbg("DX12: Enumerating available devices in performance order...");
         gpuPreference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
       }
 
@@ -957,7 +957,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     }
     else
     {
-      debug("DX12: Enumerating available devices...");
+      logdbg("DX12: Enumerating available devices...");
       for (UINT index = 0; api_state.dxgi14->EnumAdapters1(index, &adapter1) != DXGI_ERROR_NOT_FOUND; ++index)
       {
         check_and_add_adapter(api_state.d3d12Env, featureLevel, gpuCfg, adapter1, adapterList);
@@ -969,7 +969,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
       else
         sort_adapters_by_perf(adapterList);
     }
-    debug("DX12: Found %u candidates", adapterList.size());
+    logdbg("DX12: Found %u candidates", adapterList.size());
 
     for (auto &&adapter : adapterList)
     {
@@ -977,7 +977,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
       const size_t size = wcstombs(strBuffer, adapter.info.Description, sizeof(strBuffer));
       strBuffer[size] = '\0';
       sci.output = get_default_monitor(adapter.adapter.Get());
-      debug("DX12: Trying with device %s", strBuffer);
+      logdbg("DX12: Trying with device %s", strBuffer);
       if (api_state.device.init(api_state.dxgi14.Get(), eastl::move(adapter), featureLevel, api_state.d3d12Env, eastl::move(sci),
             api_state.debugState, deviceCfg, dxCfg, cb ? cb->desiredStereoRender() : false))
       {
@@ -991,7 +991,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   if (!api_state.device.isInitialized())
   {
     api_state.lastErrorCode = E_FAIL;
-    debug("DX12: Failed to initialize, no suitable device found...");
+    logdbg("DX12: Failed to initialize, no suitable device found...");
     api_state.releaseAll();
     return false;
   }
@@ -1017,7 +1017,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
 
   tql::initTexStubs();
 
-  debug("DX12: init_video done");
+  logdbg("DX12: init_video done");
   return true;
 }
 #else
@@ -1032,7 +1032,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   if (!create_output_window(hinst, wnd_proc, wcname, ncmdshow, mainwnd, renderwnd, hicon, title, nullptr))
   {
     api_state.lastErrorCode = E_FAIL;
-    debug("DX12: Failed to create output window");
+    logdbg("DX12: Failed to create output window");
     api_state.releaseAll();
     return false;
   }
@@ -1068,7 +1068,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   if (!api_state.device.isInitialized())
   {
     api_state.lastErrorCode = E_FAIL;
-    debug("DX12: Failed to initialize, no suitable device found...");
+    logdbg("DX12: Failed to initialize, no suitable device found...");
     api_state.releaseAll();
     return false;
   }
@@ -1079,7 +1079,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
 
   api_state.shaderProgramDatabase.setup(api_state.device.getContext(), dxCfg->getBool("disablePreCache", false));
 
-  debug("DX12: init_video done");
+  logdbg("DX12: init_video done");
   api_state.initVideoDone = true;
   return true;
 }
@@ -1193,7 +1193,9 @@ void enable_tracking_on_resource(D3dResource *resource)
       static_cast<GenericBufferInterface *>(resource)->updateDeviceBuffer(
         [](auto &buf) { buf.resourceId.setReportStateTransitions(); });
       break;
-    default: fatal("DX12: Invalid type to enable resource state transition tracking %p - %d", resource, resource->restype()); break;
+    default:
+      DAG_FATAL("DX12: Invalid type to enable resource state transition tracking %p - %d", resource, resource->restype());
+      break;
   }
 }
 } // namespace
@@ -1867,8 +1869,7 @@ bool d3d::reset_device()
     // can continue
     if (!api_state.device.finalizeRecovery())
     {
-      fatal("DX12: Observed an critical error while recovering from a previous critical error, can "
-            "not continue");
+      DAG_FATAL("DX12: Observed an critical error while recovering from a previous critical error, can not continue");
       return false;
     }
   }
@@ -1963,7 +1964,13 @@ uint32_t map_dx12_format_features_to_tex_usage(D3D12_FEATURE_DATA_FORMAT_SUPPORT
     result |= d3d::USAGE_FILTER;
 
   if (mask & D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW)
+  {
     result |= d3d::USAGE_UNORDERED;
+    if (support.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD)
+    {
+      result |= d3d::USAGE_UNORDERED_LOAD;
+    }
+  }
 
   if (support.Support2 & D3D12_FORMAT_SUPPORT2_TILED)
     result |= d3d::USAGE_TILED;
@@ -1992,10 +1999,12 @@ bool check_format_features(int cflg, D3D12_FEATURE_DATA_FORMAT_SUPPORT support, 
   if (isMultisampled && (0 == (mask & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RENDERTARGET)))
     return false;
 
-  if (isMultisampled && (0 == (mask & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RESOLVE)))
+  if (isMultisampled && (fmt.isColor() || d3d::get_driver_desc().caps.hasRenderPassDepthResolve) &&
+      (0 == (mask & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_RESOLVE)))
     return false;
 
-  if (isMultisampled && (0 == (mask & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_LOAD)))
+  if (isMultisampled && (fmt.isColor() || d3d::get_driver_desc().caps.hasReadMultisampledDepth) &&
+      (0 == (mask & D3D12_FORMAT_SUPPORT1_MULTISAMPLE_LOAD)))
     return false;
 
   if ((cflg & TEXCF_TILED_RESOURCE) != 0 && (support.Support2 & D3D12_FORMAT_SUPPORT2_TILED) == 0)
@@ -2015,17 +2024,12 @@ bool d3d::check_texformat(int cflg)
 
 int d3d::get_max_sample_count(int cflg)
 {
-  G_UNUSED(cflg);
-  return 1; // Force 1 sample, untill multisampled PSO is ready.
-
-  /*
   auto dxgiFormat = FormatStore::fromCreateFlags(cflg).asDxGiFormat();
   for (int32_t numSamples = get_sample_count(TEXCF_SAMPLECOUNT_MAX); numSamples > 1; numSamples /= 2)
     if (api_state.device.isSamplesCountSupported(dxgiFormat, numSamples))
       return numSamples;
 
   return 1;
-  */
 }
 
 bool d3d::issame_texformat(int cflg1, int cflg2)
@@ -3486,7 +3490,7 @@ APISupport get_dx12_support_status(bool use_any_device = true)
   get_version_ex(&osvi);
   if (osvi.dwMajorVersion < 10)
   {
-    debug("DX12: Unsupported OS version %u", osvi.dwMajorVersion);
+    logdbg("DX12: Unsupported OS version %u", osvi.dwMajorVersion);
     return APISupport::NO_DEVICE_FOUND;
   }
 
@@ -3502,7 +3506,7 @@ APISupport get_dx12_support_status(bool use_any_device = true)
   ComPtr<DXGIFactory> dxgi14;
   if (auto hr = d3d12Env.CreateDXGIFactory2(0, COM_ARGS(&dxgi14)); FAILED(hr))
   {
-    debug("DX12: CreateDXGIFactory2 for DXGI 1.4 interface failed, %s", dxgi_error_code_to_string(hr));
+    logdbg("DX12: CreateDXGIFactory2 for DXGI 1.4 interface failed, %s", dxgi_error_code_to_string(hr));
     return APISupport::NO_DEVICE_FOUND;
   }
 
@@ -3514,7 +3518,7 @@ APISupport get_dx12_support_status(bool use_any_device = true)
   ComPtr<IDXGIAdapter1> adapter1;
   if (SUCCEEDED(dxgi14.As(&dxgi6)))
   {
-    debug("DX12: Scanning for viable devices in performance order...");
+    logdbg("DX12: Scanning for viable devices in performance order...");
 
     UINT index = 0;
     if (dxgi6->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, COM_ARGS(&adapter1)) != DXGI_ERROR_NOT_FOUND)
@@ -3526,7 +3530,7 @@ APISupport get_dx12_support_status(bool use_any_device = true)
   }
   else
   {
-    debug("DX12: Scanning for viable devices...");
+    logdbg("DX12: Scanning for viable devices...");
 
     eastl::vector<Device::AdapterInfo> adapterList;
     for (UINT index = 0; dxgi14->EnumAdapters1(index, &adapter1) != DXGI_ERROR_NOT_FOUND; ++index)
@@ -3541,7 +3545,7 @@ APISupport get_dx12_support_status(bool use_any_device = true)
 
       if (!use_any_device && !is_prefered_device(*gpuCfg, adapterList.front().info.VendorId, adapterList.front().info.DeviceId))
       {
-        debug("DX12: Rejected, because the driver mode is \"auto\" and the device isn't a prefered one");
+        logdbg("DX12: Rejected, because the driver mode is \"auto\" and the device isn't a prefered one");
         return APISupport::NO_DEVICE_FOUND;
       }
 
@@ -3550,11 +3554,11 @@ APISupport get_dx12_support_status(bool use_any_device = true)
       switch (apiSupport)
       {
         case APISupport::OUTDATED_DRIVER:
-          debug("DX12: Rejected, because inadequate gpu driver, the %u.%u.%u.%u is outdated", version.productVersion,
+          logdbg("DX12: Rejected, because inadequate gpu driver, the %u.%u.%u.%u is outdated", version.productVersion,
             version.majorVersion, version.minorVersion, version.buildNumber);
           break;
         case APISupport::BLACKLISTED_DRIVER:
-          debug("DX12: Rejected, because inadequate gpu driver, the %u.%u.%u.%u is blacklisted", version.productVersion,
+          logdbg("DX12: Rejected, because inadequate gpu driver, the %u.%u.%u.%u is blacklisted", version.productVersion,
             version.majorVersion, version.minorVersion, version.buildNumber);
           break;
         default: return apiSupport;
@@ -3562,7 +3566,7 @@ APISupport get_dx12_support_status(bool use_any_device = true)
     }
   }
 
-  debug("DX12: No viable device found, DX12 is unavailable!");
+  logdbg("DX12: No viable device found, DX12 is unavailable!");
   return apiSupport;
 }
 #endif
@@ -4019,38 +4023,38 @@ uint32_t d3d::register_bindless_sampler(BaseTexture *texture)
   return api_state.device.registerBindlessSampler((BaseTex *)texture);
 }
 
-void drv3d_dx12::dirty_srv_no_lock(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots)
+void drv3d_dx12::dirty_srv_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots)
 {
   api_state.state.dirtySRVNoLock(texture, stage, slots);
 }
 
-void drv3d_dx12::dirty_srv(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots)
+void drv3d_dx12::dirty_srv(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots)
 {
   api_state.state.dirtySRV(texture, stage, slots);
 }
 
-void drv3d_dx12::dirty_sampler(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots)
+void drv3d_dx12::dirty_sampler(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots)
 {
   api_state.state.dirtySampler(texture, stage, slots);
 }
 
-void drv3d_dx12::dirty_srv_and_sampler_no_lock(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots)
+void drv3d_dx12::dirty_srv_and_sampler_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots)
 {
   api_state.state.dirtySRVandSamplerNoLock(texture, stage, slots);
 }
 
-void drv3d_dx12::dirty_uav_no_lock(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_U_REGISTERS> slots)
+void drv3d_dx12::dirty_uav_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_U_REGISTERS> slots)
 {
   api_state.state.dirtyUAVNoLock(texture, stage, slots);
 }
 
-void drv3d_dx12::dirty_rendertarget_no_lock(BaseTex *texture, eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> slots)
+void drv3d_dx12::dirty_rendertarget_no_lock(BaseTex *texture, Bitset<Driver3dRenderTarget::MAX_SIMRT> slots)
 {
   api_state.state.dirtyRendertTargetNoLock(texture, slots);
 }
 
-void drv3d_dx12::notify_delete(BaseTex *texture, const eastl::bitset<dxil::MAX_T_REGISTERS> *srvs,
-  const eastl::bitset<dxil::MAX_U_REGISTERS> *uavs, eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> rtvs, bool dsv)
+void drv3d_dx12::notify_delete(BaseTex *texture, const Bitset<dxil::MAX_T_REGISTERS> *srvs, const Bitset<dxil::MAX_U_REGISTERS> *uavs,
+  Bitset<Driver3dRenderTarget::MAX_SIMRT> rtvs, bool dsv)
 {
   api_state.state.notifyDelete(texture, srvs, uavs, rtvs, dsv);
 }

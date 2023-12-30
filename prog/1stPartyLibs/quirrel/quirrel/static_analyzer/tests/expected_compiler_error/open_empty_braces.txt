@@ -1,4 +1,0 @@
-//expect:error
-
-x = 5
-{

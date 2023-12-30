@@ -23,7 +23,7 @@ namespace drv3d_dx12::debug::gpu_postmortem
 class NullTrace
 {
 public:
-  void configure() { debug("DX12: ...no GPU postmortem tracer active..."); }
+  void configure() { logdbg("DX12: ...no GPU postmortem tracer active..."); }
   void beginCommandBuffer(ID3D12Device3 *, ID3D12GraphicsCommandList *) {}
   void endCommandBuffer(ID3D12GraphicsCommandList *) {}
   void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>, eastl::span<const char>) {}
@@ -59,7 +59,7 @@ public:
   void blit(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *) {}
   void onDeviceRemoved(D3DDevice *, HRESULT, call_stack::Reporter &)
   {
-    debug("DX12: Device reset detected, no postmortem data available...");
+    logdbg("DX12: Device reset detected, no postmortem data available...");
   }
   bool sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
   void onDeviceShutdown() {}

@@ -20,7 +20,7 @@ let cursors = require("components/cursors.nut")
 let {modalWindowsComponent} = require("components/modalWindows.nut")
 let {msgboxComponent} = require("editor_msgbox.nut")
 
-let function getActionCursor(actionType) {
+function getActionCursor(actionType) {
   if (actionType=="point_action")
     return cursors.actionCircle
   if (actionType=="pick_action")

@@ -25,6 +25,7 @@ enum ValueType
   VT_REAL = 0,       // real-type value
   VT_COLOR4 = 1,     // color4-type value
   VT_TEXTURE = 2,    // texture-type value
+  VT_BUFFER = 3,     // buffer-type value
 };
 
 enum UnaryOperator

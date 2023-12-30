@@ -510,7 +510,7 @@ static bool validate_texture_name(String &name)
   if (!a)
     return false;
   name.printf(128, "%s*", a->getName());
-  strlwr(name);
+  dd_strlwr(name);
   return true;
 }
 
@@ -541,7 +541,7 @@ bool hmap_export_land(mkbindump::BinDumpSaveCB &cb, const char *land_name, int e
 {
   DagorAsset *a = DAEDITOR3.getAssetByName(land_name, DAEDITOR3.getAssetTypeId("land"));
   String ref(128, "%s", a ? a->getName() : "");
-  strlwr(ref);
+  dd_strlwr(ref);
   cb.beginBlock();
   cb.writeDwString(ref);
   // saves for now only!

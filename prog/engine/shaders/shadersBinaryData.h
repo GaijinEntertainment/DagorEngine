@@ -41,6 +41,7 @@ const ShaderCode &null_shader_code();
 
 using ScriptedShadersBinDump = bindump::Mapper<shader_layout::ScriptedShadersBinDump>;
 using ScriptedShadersBinDumpV2 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV2>;
+using ScriptedShadersBinDumpV3 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV3>;
 using StrHolder = bindump::Mapper<bindump::StrHolder>;
 
 enum class ShaderCodeType
@@ -68,6 +69,7 @@ struct ScriptedShadersBinDumpOwner
   ScriptedShadersBinDump *operator->() { return mShaderDump; }
   ScriptedShadersBinDump *getDump() { return mShaderDump; }
   ScriptedShadersBinDumpV2 *getDumpV2() { return mShaderDumpV2; }
+  ScriptedShadersBinDumpV3 *getDumpV3() { return mShaderDumpV3; }
 
   Tab<int16_t> globVarIntervalIdx;
   Tab<uint8_t> globIntervalNormValues;
@@ -84,6 +86,7 @@ private:
 
   ScriptedShadersBinDump *mShaderDump = nullptr;
   ScriptedShadersBinDumpV2 *mShaderDumpV2 = nullptr;
+  ScriptedShadersBinDumpV3 *mShaderDumpV3 = nullptr;
   Tab<uint8_t> mSelfData;
 
   eastl::unique_ptr<decompressed_groups_cache_t> mDecompressedGropusLru;

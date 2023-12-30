@@ -921,7 +921,8 @@ void DaSkies::initCloudsTracer()
   else
   {
     traceCloudsPs.init("trace_clouds_ps");
-    cloudsTraceResultRingBuffer.init(numCloudsTracesPerFramePs, 1, 3, "clouds_trace_result", TEXCF_RTARGET, TEXFMT_G32R32F, true);
+    cloudsTraceResultRingBuffer.init(numCloudsTracesPerFramePs, 1, 3, "clouds_trace_result", 0,
+      TEXCF_RTARGET | TEXFMT_G32R32F | TEXCF_LINEAR_LAYOUT, true);
   }
 }
 

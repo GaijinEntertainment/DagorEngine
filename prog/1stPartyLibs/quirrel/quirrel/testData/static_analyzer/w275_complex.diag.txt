@@ -2,7 +2,7 @@
 AN ERROR HAS OCCURRED [the index 'a' does not exist]
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w275_complex.nut line [11]
+*FUNCTION [__main__()] testData/static_analyzer/w275_complex.nut line [12]
 
 LOCALS
 [someBound] false

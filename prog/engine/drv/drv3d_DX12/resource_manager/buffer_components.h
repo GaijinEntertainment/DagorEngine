@@ -260,10 +260,6 @@ protected:
       }
 
       auto errorCode = newHeap.create(device, desc, allocation, initialState, properties.isCPUVisible());
-      if (is_oom_error_code(errorCode))
-      {
-        manager->reportOOMInformation();
-      }
       if (DX12_CHECK_FAIL(errorCode))
       {
         manager->free(allocation);
@@ -585,6 +581,8 @@ public:
     uint64_t payloadSize = size;
     auto offsetAlignment = calculateOffsetAlignment(cflags, max<uint32_t>(1, structure_size));
     BufferState result;
+    auto oomCheckOnExit = checkForOOMOnExit([&result]() { return static_cast<bool>(result.buffer); }, "DX12: OOM during %s for <%s>",
+      "allocateBuffer", name);
     if (canUseSubAlloc)
     {
       payloadSize = align_value<uint64_t>(payloadSize, offsetAlignment);
@@ -607,6 +605,10 @@ public:
         auto resIndex = bufferHeapStateAccess->createBufferHeap(this, adapter, device,
           align_value<uint64_t>(payloadSize * discard_count, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT), heapProperties, flags,
           memory_class, nullptr);
+        if (!resIndex)
+        {
+          return result;
+        }
 
         auto heapIndex = resIndex.index();
 
@@ -664,7 +666,7 @@ public:
         auto padd = payloadSize - size;
         if (padd)
         {
-          debug("DX12: Adding %u bytes of padding because of buffer alignment of %u", padd, offsetAlignment);
+          logdbg("DX12: Adding %u bytes of padding because of buffer alignment of %u", padd, offsetAlignment);
         }
 #endif
 
@@ -678,7 +680,7 @@ public:
         auto padd = payloadSize - size;
         if (padd)
         {
-          debug("DX12: Adding %u bytes of padding because min buffer size of %u", padd, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
+          logdbg("DX12: Adding %u bytes of padding because min buffer size of %u", padd, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
         }
 #endif
       }
@@ -694,6 +696,10 @@ public:
         {
           auto resIndex = bufferHeapStateAccess->createBufferHeap(this, adapter, device,
             align_value<uint64_t>(totalSize, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT), heapProperties, flags, memory_class, name);
+          if (!resIndex)
+          {
+            return result;
+          }
 
           auto heapIndex = resIndex.index();
 

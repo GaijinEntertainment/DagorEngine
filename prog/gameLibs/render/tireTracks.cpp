@@ -511,7 +511,7 @@ public:
     Point3 segmentDir = lastBatchVtxs ? pos - lastSegmentPos : normalize(movedir);
     float lastSegmLen = lastBatchVtxs ? (pos - lastSegmentPos).length() : 0.f;
 
-    if ((pos - lastPos).lengthSq() > SQR(segmentLength.getMax()))
+    if ((pos - lastPos).lengthSq() > sqr(segmentLength.getMax()))
     {
       finalize();
     }
@@ -687,7 +687,7 @@ void init(const char *blk_file, bool has_normalmap, bool has_vertex_norm, bool i
     maxTrackVertices = params->getInt("maxTrackVertices", maxTrackVertices);
 
     if (maxTrackVertices < MIN_TRACK_VERTICES)
-      fatal("Vertex count (%d) and max track vertices (%d) for tire tracks must be > %d!", vertexCount, maxTrackVertices,
+      DAG_FATAL("Vertex count (%d) and max track vertices (%d) for tire tracks must be > %d!", vertexCount, maxTrackVertices,
         MIN_TRACK_VERTICES);
 
     if (is_low_quality)
@@ -805,7 +805,7 @@ void init(const char *blk_file, bool has_normalmap, bool has_vertex_norm, bool i
 
   if (currentMaterial == NULL)
   {
-    fatal("StdGuiRender - shader '%s' not found!", shaderName.str());
+    DAG_FATAL("StdGuiRender - shader '%s' not found!", shaderName.str());
   }
 
   Tab<CompiledShaderChannelId> channels(framemem_ptr());
@@ -830,7 +830,7 @@ void init(const char *blk_file, bool has_normalmap, bool has_vertex_norm, bool i
 
   if (!currentMaterial->checkChannels(channels.data(), channels.size()))
   {
-    fatal("TireTracks::init - invalid channels for shader '%s'!", (char *)currentMaterial->getShaderClassName());
+    DAG_FATAL("TireTracks::init - invalid channels for shader '%s'!", (char *)currentMaterial->getShaderClassName());
   }
 
   currentElem = currentMaterial->make_elem();

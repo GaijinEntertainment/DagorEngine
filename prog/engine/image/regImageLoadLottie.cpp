@@ -324,6 +324,12 @@ struct LottieRenderThread final : public DaThread
     readyFrames.push(eastl::move(frame));
   }
 
+  bool noFramesFinished()
+  {
+    WinAutoLock lock(readyFramesMutex);
+    return readyFrames.empty();
+  }
+
   bool popReadyFrame(LottieReadyFrame &frame)
   {
     WinAutoLock lock(readyFramesMutex);
@@ -437,6 +443,9 @@ struct PictureManagerUpdater
 
   void loadPending()
   {
+    if (renderThread.noFramesFinished())
+      return;
+
     if (!atlas.tryLock())
       return;
 

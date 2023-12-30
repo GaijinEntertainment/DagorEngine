@@ -1,0 +1,25 @@
+# https://github.com/GameTechDev/ISPCTextureCompressor.git rev 691513b4fb406eccfc2f7d7f8213c8505ff5b897
+if $(OS) = NT { Platform ?= win64 ; }
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/convert/ispc_texcomp ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/convert/ispc_texcomp.lib ;
+
+Sources =
+  ispc_texcomp.cpp
+  ispc_texcomp_astc.cpp
+  kernel.ispc
+  kernel_astc.ispc
+;
+
+opt    on kernel.ispc kernel_astc.ispc = -O2 --pic --opt=fast-math --woff ;
+target on kernel.ispc kernel_astc.ispc = sse2 sse4 ;
+if $(Platform) != win32 { target on kernel.ispc kernel_astc.ispc += avx avx2 ; }
+
+dependents on kernel.ispc      = $(Location)/ispc_texcomp.cpp ;
+dependents on kernel_astc.ispc = $(Location)/ispc_texcomp_astc.cpp ;
+
+include $(Root)/prog/_jBuild/build.jam ;

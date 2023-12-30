@@ -166,6 +166,7 @@ void downsamplePS(const TextureIDPair &from_depth, int w, int h, const TextureID
 {
   G_ASSERT(far_depth_mips || close_depth || checkerboard_depth);
   G_ASSERT(!close_depth || close_depth && far_depth_mips && "DownsamplePS: `close_depth` only downsample has not implemented!");
+  G_ASSERT_RETURN(from_depth.getTex(), );
 
   int savedHasMotionVectors = ShaderGlobal::get_int(has_motion_vectorsVarId);
 #if DAGOR_DBGLEVEL > 0

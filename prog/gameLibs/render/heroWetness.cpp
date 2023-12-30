@@ -111,12 +111,12 @@ void HeroWetness::init()
   waterHeightRendererVDecl = dynrender::addShaderVdecl(chan, countof(chan));
 
   if (!waterHeightRendererShmat.get())
-    fatal("can't create ShaderMaterial for '%s'", shader_name);
+    DAG_FATAL("can't create ShaderMaterial for '%s'", shader_name);
   else
   {
     waterHeightRendererShElem = waterHeightRendererShmat->make_elem();
     if (!waterHeightRendererShElem)
-      fatal("can't create ShaderElement for ShaderMaterial '%s'", shader_name);
+      DAG_FATAL("can't create ShaderElement for ShaderMaterial '%s'", shader_name);
     if (waterHeightRendererShElem)
       waterHeightRendererShElem->replaceVdecl(waterHeightRendererVDecl);
   }

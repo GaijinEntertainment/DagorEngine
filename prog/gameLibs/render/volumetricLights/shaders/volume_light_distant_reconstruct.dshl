@@ -1,5 +1,6 @@
 include "sky_shader_global.dshl"
 include "viewVecVS.dshl"
+include "prev_screen_tc.dshl"
 include "gpu_occlusion.dshl"
 
 include "volume_light_distant_common.dshl"
@@ -370,12 +371,6 @@ shader distant_fog_reconstruct_cs
         }
       }
       return linearize_z(bestDepth);
-    }
-
-    float2 getPrevTc(float3 reprojectedWorldPos)
-    {
-      float3 prev_clipSpace;
-      return getPrevTc(reprojectedWorldPos, prev_clipSpace);
     }
 
     float2 calcHistoryUV(float reprojectDist, float3 viewVec)

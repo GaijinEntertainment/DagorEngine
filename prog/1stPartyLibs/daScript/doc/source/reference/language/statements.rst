@@ -8,11 +8,11 @@ Statements
 .. index::
     single: statements
 
-A daScript program is a simple sequence of statements::
+A Daslang program is a simple sequence of statements::
 
     stats ::= stat [';'|'\n'] stats
 
-Statements in daScript are comparable to those in C-family languages (C/C++, Java, C#,
+Statements in Daslang are comparable to those in C-family languages (C/C++, Java, C#,
 etc.): there are assignments, function calls, program flow control structures, etc.  There are also some
 custom statements like blocks, structs, and initializers (which will be covered in detail
 later in this document).
@@ -39,7 +39,7 @@ Control Flow Statements
 .. index::
     single: control flow statements
 
-daScript implements the most common control flow statements: ``if, while, for``
+Daslang implements the most common control flow statements: ``if, while, for``
 
 ^^^^^^^^^^^^^^
 true and false
@@ -50,7 +50,7 @@ true and false
     single: true
     single: false
 
-daScript has a strong boolean type (bool). Only expressions with a boolean type can be part of the condition in control statements.
+Daslang has a strong boolean type (bool). Only expressions with a boolean type can be part of the condition in control statements.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 if/elif/else statement
@@ -384,7 +384,7 @@ Declares a constant global variable.
 This variable is initialized once during initialization of the script (or each time when script init is manually called).
 
 ``shared`` indicates that the constant is to be initialized once,
-and its memory is shared between multiple instances of the daScript context.
+and its memory is shared between multiple instances of the Daslang context.
 
 ``private`` indicates that the variable is not visible outside of its module.
 
@@ -413,6 +413,6 @@ Expression statement
 
     stat ::= exp
 
-In daScript every expression is also allowed to be a statement.  If so, the result of the
+In Daslang every expression is also allowed to be a statement.  If so, the result of the
 expression is thrown away.
 

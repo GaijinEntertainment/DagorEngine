@@ -1,6 +1,6 @@
 let Rand = require("rand.nut")
 
-let function pickword(dictionary, seed=null, allow_cache=false){
+function pickword(dictionary, seed=null, allow_cache=false){
   let rand = Rand(seed)
   local totalWeight = 0.0
   assert(["table","array"].indexof(type(dictionary))!=null, "dictionary should be array or table")

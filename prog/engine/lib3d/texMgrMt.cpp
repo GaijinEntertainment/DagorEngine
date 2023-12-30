@@ -15,7 +15,7 @@ void enable_res_mgr_mt(bool enable, int max_tex_entry_count)
   else if (mt_enabled > 0)
     mt_enabled--;
   else
-    fatal("incorrect enable_tex_mgr_mt refcount=%d", mt_enabled);
+    DAG_FATAL("incorrect enable_tex_mgr_mt refcount=%d", mt_enabled);
 
   if (!prev && mt_enabled)
   {

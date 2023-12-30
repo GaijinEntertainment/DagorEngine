@@ -108,8 +108,8 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
         else
           actualFormats += tgt.image->getFormat().getNameString();
         actualFormats += "]";
-        fatal("vulkan: attachment %u of RP %p[%p]<%s> expected format %s, got some of %s in image %p<%s>", i, this, getBaseHandle(),
-          getDebugName(), expectedFormat.getNameString(), actualFormats, tgt.image, tgt.image->getDebugName());
+        DAG_FATAL("vulkan: attachment %u of RP %p[%p]<%s> expected format %s, got some of %s in image %p<%s>", i, this,
+          getBaseHandle(), getDebugName(), expectedFormat.getNameString(), actualFormats, tgt.image, tgt.image->getDebugName());
       }
     }
     newFB.extent = areaExtent;

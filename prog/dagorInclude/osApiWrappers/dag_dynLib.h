@@ -18,3 +18,11 @@ struct DagorDllCloser
 };
 
 #include <supp/dag_undef_COREIMP.h>
+
+#if _TARGET_PC_WIN
+#define DAGOR_PC_OS_DLL_SUFFIX ".dll"
+#elif _TARGET_PC_LINUX
+#define DAGOR_PC_OS_DLL_SUFFIX ".so"
+#elif _TARGET_PC_MACOSX
+#define DAGOR_PC_OS_DLL_SUFFIX ".dylib"
+#endif

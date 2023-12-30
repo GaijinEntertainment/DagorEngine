@@ -72,7 +72,7 @@ public:
 #endif
 };
 
-eastl::pair<int32_t, int> add_srgb_read_flag_and_count_mips(int w, int h, int32_t flg, int levels);
+int count_mips_if_needed(int w, int h, int32_t flg, int levels);
 
 // common helpers to convert DDSx format to TEXFMT_ one
 uint32_t d3dformat_to_texfmt(/*D3DFORMAT*/ uint32_t fmt);

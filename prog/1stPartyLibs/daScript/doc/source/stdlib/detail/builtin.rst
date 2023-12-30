@@ -32,7 +32,7 @@
 
 .. |function-builtin-get_command_line_arguments| replace:: returns array of command line arguments.
 
-.. |function-builtin-get_das_root| replace:: returns path to where `daslib` and other libraries exist. this is typically root folder of the daScript main repository
+.. |function-builtin-get_das_root| replace:: returns path to where `daslib` and other libraries exist. this is typically root folder of the Daslang main repository
 
 .. |function-builtin-hash| replace:: returns hash value of the `data`. current implementation uses FNV64a hash.
 
@@ -210,6 +210,8 @@
 
 .. |variable-builtin-ULONG_MAX| replace:: minimum possible value of 'uint64'
 
+.. |variable-builtin-DAS_MAX_FUNCTION_ARGUMENTS| replace:: maximum number of arguments for the function. this is used to pre-allocate stack space for the function arguments
+
 .. |variable-builtin-LOG_CRITICAL| replace:: indicates maximum log level. critial errors, panic, shutdown
 
 .. |variable-builtin-LOG_ERROR| replace:: indicates log level recoverable errors
@@ -243,6 +245,8 @@
 .. |function_annotation-builtin-no_lint| replace:: indicates that the lint pass should be skipped for the specific function
 
 .. |function_annotation-builtin-sideeffects| replace:: indicates that the function should be treated as if it has side-effects. for example it will not be optimized out
+
+.. |function_annotation-builtin-pinvoke| replace:: indicates that the function is a pinvoke function, and will be called via pinvoke machinery
 
 .. |function_annotation-builtin-run| replace:: ensures that the function is always evaluated at compilation time
 
@@ -360,9 +364,9 @@
 
 .. |structure_macro-builtin-macro_interface| replace:: [macro_interface] specifies that class and its inherited children are used as a macro interfaces, and would not be exported by default.
 
-.. |structure_macro-builtin-cpp_layout| replace:: [cpp_layout] specifies that structure uses C++ memory layout rules, as oppose to native daScript memory layout rules.
+.. |structure_macro-builtin-cpp_layout| replace:: [cpp_layout] specifies that structure uses C++ memory layout rules, as oppose to native Daslang memory layout rules.
 
-.. |structure_macro-builtin-persistent| replace:: [persistent] annotation specifies that structure is allocated (via new) on the C++ heap, as oppose to daScript context heap.
+.. |structure_macro-builtin-persistent| replace:: [persistent] annotation specifies that structure is allocated (via new) on the C++ heap, as oppose to Daslang context heap.
 
 .. |variable-builtin-SIZE_OF_PROLOGUE| replace:: size of the Prologue structure on the call stack.
 
@@ -452,4 +456,23 @@
 
 .. |function-builtin-memset128| replace:: Similar to memset, but fills values with 128 bit vector type values.
 
+.. |structure_annotation-builtin-HashBuilder| replace:: Helper structure to facilitate calculating hash values.
+
+.. |function-builtin-write| replace:: writes string to a hash-builder.
+
+.. |function-builtin-smart_ptr_is_valid| replace:: checks if smart pointer points to a valid data.
+
+.. |function-builtin-build_hash| replace:: returns hash value out of hash-builder.
+
+.. |function-builtin-malloc| replace:: C-style malloc
+
+.. |function-builtin-free| replace:: C-style free to be coupled with C-style malloc
+
+.. |function-builtin-is_intern_strings| replace:: returns true if string interning is enabled
+
+.. |function-builtin-malloc_usable_size| replace:: returns size of the allocated memory block
+
+.. |function-builtin-eval_main_loop| replace:: executes main loop for the application. has specific implementation in EMSCRIPTEN, otherwise invoke until false.
+
+.. |function-builtin-remove_value| replace:: removes first occurance of the key from the array.
 

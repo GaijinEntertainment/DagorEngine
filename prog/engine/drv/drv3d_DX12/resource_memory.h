@@ -114,7 +114,7 @@ public:
 
   uint64_t size() const { return range.size(); }
 
-  uintptr_t getOffset() const { return range.front(); }
+  uint64_t getOffset() const { return range.front(); }
 
   ResourceMemory subRange(uint64_t offset, uint64_t o_size) const
   {

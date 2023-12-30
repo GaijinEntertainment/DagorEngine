@@ -285,7 +285,7 @@ int ClipmapDecals::createDecalSubType(int decal_type, Point4 tc, int random_coun
       decalType.diffuseArray = dag::add_managed_array_texture(texname, arrnames);
       if (!decalType.diffuseArray)
       {
-        fatal("array texture not created");
+        DAG_FATAL("array texture not created");
       }
     }
     if (decalType.ntex != BAD_TEXTUREID)
@@ -303,7 +303,7 @@ int ClipmapDecals::createDecalSubType(int decal_type, Point4 tc, int random_coun
       decalType.normalArray = dag::add_managed_array_texture(texname, arrnames);
       if (!decalType.normalArray)
       {
-        fatal("array texture not created");
+        DAG_FATAL("array texture not created");
       }
     }
   }

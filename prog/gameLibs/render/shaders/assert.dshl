@@ -1,5 +1,6 @@
 
 buffer assertion_buffer;
+int assertion_buffer_slot = 9;
 int shader_class_id = -1;
 int stack_id = -1;
 
@@ -58,7 +59,7 @@ macro ENABLE_ASSERT_STAGE(stage)
     (stage) {
       shader_id@i1 = shader_class_id;
       stack_id@i1 = stack_id;
-      assertion_buffer@uav = assertion_buffer hlsl {
+      assertion_buffer@uav : register(assertion_buffer_slot) hlsl {
         #include "assert.hlsli"
         RWStructuredBuffer<AssertEntry> assertion_buffer@uav;
       }

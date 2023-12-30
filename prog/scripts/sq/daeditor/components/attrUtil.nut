@@ -12,11 +12,11 @@ let tofloat = @(v) v.tofloat()
 let tointeger = @(v) v.tointeger()
 let isStrInt = @(v) rexInt.match(strip(v))
 let isStrFloat = @(v) rexFloat.match(strip(v))
-let function isStrBool(text){
+function isStrBool(text){
   let s = strip(text)
   return (s == "true" || s == "1" || s == "false" || s == "0")
 }
-let function isValueTextValid(comp_type, text) {
+function isValueTextValid(comp_type, text) {
   let simpleTypeFunc = {
     string = @(_) true
     integer = isStrInt
@@ -41,7 +41,7 @@ let function isValueTextValid(comp_type, text) {
   return false
 }
 
-let function call_strfunc(str, func){
+function call_strfunc(str, func){
   local ret = str
   try {
     ret = func.pcall(str)
@@ -52,7 +52,7 @@ let function call_strfunc(str, func){
   return ret
 }
 
-let function safe_cvt_txt(str, func, empty){
+function safe_cvt_txt(str, func, empty){
   return str!="" ? call_strfunc(str, func) : empty
 }
 
@@ -66,7 +66,7 @@ let dagorMathClassFields = {
 }
 
 
-let function convertTextToValForDagorClass(name, fields){
+function convertTextToValForDagorClass(name, fields){
   let classFields = dagorMathClassFields?[name]
   if (fields.len()!=classFields?.len?())
     return null
@@ -89,7 +89,7 @@ let convertTextToValFuncs = {
   }
 }
 
-let function convertTextToVal(cur_value, comp_type, text) {
+function convertTextToVal(cur_value, comp_type, text) {
   if (convertTextToValFuncs?[comp_type] != null)
     return convertTextToValFuncs[comp_type](text)
 
@@ -143,8 +143,8 @@ let map_class_to_str = {
   },
 }
 
-let function instance_to_str(v, max_cvstr_len, compValToString_){
-  let function objToStr(o){
+function instance_to_str(v, max_cvstr_len, compValToString_){
+  function objToStr(o){
     local s = format("[%d]={", o.len())
     foreach (val in o) {
       let nexts = "{0}{{1}},".subst(s, compValToString_(val, max_cvstr_len))
@@ -159,7 +159,7 @@ let function instance_to_str(v, max_cvstr_len, compValToString_){
     return s
   }
 
-  let function arrayToStr(o){
+  function arrayToStr(o){
     local s = ""
     foreach (fieldName, fieldVal in o.getAll()) {
       if (s.len()>0)
@@ -187,19 +187,19 @@ let function instance_to_str(v, max_cvstr_len, compValToString_){
   return res
 }
 
-let function compValToString(v, max_cvstr_len = 80){
+function compValToString(v, max_cvstr_len = 80){
   let compValToString_ = callee()
   return type(v) == "instance"
     ? instance_to_str(v, max_cvstr_len, compValToString_)
     : (map_type_to_str?[type(v)]?(v) ?? v.tostring())
 }
 
-let function isCompReadOnly(eid, comp_name){
+function isCompReadOnly(eid, comp_name){
   local object = _dbg_get_comp_val_inspect(eid, comp_name)
   return object?.isReadOnly() ?? false
 }
 
-let function getValFromObj(eid, comp_name, path=null){
+function getValFromObj(eid, comp_name, path=null){
   local object = _dbg_get_comp_val_inspect(eid, comp_name)
   object = object?.getAll() ?? object
   local res = object
@@ -213,7 +213,7 @@ let function getValFromObj(eid, comp_name, path=null){
   return res
 }
 
-let function setValToObj(eid, comp_name, path, val){
+function setValToObj(eid, comp_name, path, val){
   let comp = _dbg_get_comp_val_inspect(eid, comp_name)
   if (comp?.isReadOnly() ?? false)
     return
@@ -236,7 +236,7 @@ let function setValToObj(eid, comp_name, path, val){
   }
 }
 
-let function updateComp(eid, comp_name){
+function updateComp(eid, comp_name){
   command?($"ecs.update_component {eid} {comp_name}")
 }
 

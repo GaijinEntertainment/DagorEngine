@@ -43,7 +43,7 @@ bool DedicatedAllocator::alloc(ResourceMemory &target, const AllocationDesc &des
       devMemDsc.targetImage = VulkanImageHandle(desc.obj.getBaseHandle());
     }
     else
-      fatal("vulkan: unsupported force dedicated resource type");
+      DAG_FATAL("vulkan: unsupported force dedicated resource type");
   }
 
   DeviceMemory ret = get_device().memory->allocate(devMemDsc);
@@ -140,7 +140,7 @@ void SuballocPow2Allocator<subAllocMethod>::init()
   {
     // we support mixing granularity only if it sub or equal to 1Kb
     // having this error is a bad configuration
-    fatal("vulkan: pow2 allocator misconfigured (minb %u maxb %u mixGran %u)", minSizeBit, maxSizeBit, mixingGranularity);
+    DAG_FATAL("vulkan: pow2 allocator misconfigured (minb %u maxb %u mixGran %u)", minSizeBit, maxSizeBit, mixingGranularity);
   }
 
   pageSize = 1ULL << pageSizeBit;

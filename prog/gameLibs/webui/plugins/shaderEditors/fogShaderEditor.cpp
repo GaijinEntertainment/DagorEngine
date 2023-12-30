@@ -21,6 +21,8 @@ String get_template_text_src_fog(uint32_t variant_id)
   switch (static_cast<NodeBasedShaderFogVariant>(variant_id))
   {
     case NodeBasedShaderFogVariant::Raymarch:
+      templateNames.push_back(String("../../../render/shaders/static_shadow_int.hlsl"));
+      templateNames.push_back(String("../../../render/shaders/static_shadow.hlsl"));
       templateNames.push_back(String("../../../render/volumetricLights/shaders/volume_lights_distant_common.hlsl"));
       templateNames.push_back(String("raymarchFogShaderTemplateHeader.hlsl"));
       templateNames.push_back(String("fogCommon.hlsl"));

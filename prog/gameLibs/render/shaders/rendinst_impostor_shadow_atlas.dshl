@@ -4,7 +4,6 @@ include "viewVecVS.dshl"
 include "rendinst_opaque_inc.dshl"
 
 include "rendinst_impostor_inc.dshl"
-include "rendinst_vegetation_inc.dshl"
 include "rendinst_inc.dshl"
 
 float4 impostor_slice = float4(0, 0, 0, 0);

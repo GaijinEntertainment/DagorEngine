@@ -645,7 +645,7 @@ void register_ddsx_load_implementation();
 } // namespace texmgr_internal
 
 #if DAGOR_DBGLEVEL > 0
-#define DEV_FATAL fatal
+#define DEV_FATAL DAG_FATAL
 #else
 #define DEV_FATAL logerr_ctx
 #endif

@@ -32,7 +32,7 @@ Completely empty functions (without arguments) can be also declared::
     def foo()
         print("foo")
 
-daScript can always infer a function's return type.
+Daslang can always infer a function's return type.
 Returning different types is a compilation error::
 
     def foo(a:bool)
@@ -156,7 +156,7 @@ Generic functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Generic functions are similar to C++ templated functions.
-daScript will instantiate them during the infer pass of compilation::
+Daslang will instantiate them during the infer pass of compilation::
 
     def twice(a)
         return a + a
@@ -221,7 +221,7 @@ Functions can be partially specialized::
     def twice(a)            // any other case
         return a + a
 
-daScript uses the following rules for matching partially specialized functions:
+Daslang uses the following rules for matching partially specialized functions:
 
     1. Non-``auto`` is more specialized than ``auto``.
     2. If both are non-``auto``, the one without a cast is more specialized.
@@ -231,7 +231,7 @@ daScript uses the following rules for matching partially specialized functions:
     6. For tables, tuples and variants, subtypes are compared, and all must be the same or equally specialized.
     7. For functions, blocks, or lambdas, subtypes and return types are compared, and all must be the same or equally specialized.
 
-When matching functions, daScript picks the ones which are most specialized and sorts by substitute distance.
+When matching functions, Daslang picks the ones which are most specialized and sorts by substitute distance.
 Substitute distance is increased by 1 for each argument if a cast is required for the LSP (Liskov substitution principle).
 At the end, the function with the least distance is picked. If more than one function is left for picking, a compilation error is reported.
 
@@ -263,7 +263,7 @@ Default Parameters
 .. index::
     single: Function Default Parameters
 
-daScript's functions can have default parameters.
+Daslang's functions can have default parameters.
 
 A function with default parameters is declared as follows: ::
 
@@ -272,7 +272,7 @@ A function with default parameters is declared as follows: ::
 
 When the function *test* is invoked and the parameters `c` or `d` are not specified,
 the compiler will generate a call with default value to the unspecified parameter. A default parameter can be
-any valid compile-time const daScript expression. The expression is evaluated at compile-time.
+any valid compile-time const Daslang expression. The expression is evaluated at compile-time.
 
 It is valid to declare default values for arguments other than the last one::
 
@@ -295,7 +295,7 @@ Default arguments can be combined with overloading::
 OOP-style calls
 ---------------
 
-There are no methods or function members of structs in daScript.
+There are no methods or function members of structs in Daslang.
 However, code can be easily written "OOP style" by using the right pipe operator ``|>``::
 
     struct Foo
@@ -323,14 +323,14 @@ Tail recursion is a method for partially transforming recursion in a program int
 iteration: it applies when the recursive calls in a function are the last executed
 statements in that function (just before the return).
 
-Currently, daScript doesn't support tail recursion.
-It is implied that a daScript function always returns.
+Currently, Daslang doesn't support tail recursion.
+It is implied that a Daslang function always returns.
 
 ---------------------------------------------
 Operator Overloading
 ---------------------------------------------
 
-daScript allows you to overload operators, which means that you can define custom behavior for operators when used with your own data types.
+Daslang allows you to overload operators, which means that you can define custom behavior for operators when used with your own data types.
 To overload an operator, you need to define a special function with the name of the operator you want to overload. Here's the syntax::
 
     def operator <operator>(<arguments>) : <return_type>
@@ -368,7 +368,7 @@ The second comparison (v1 == v3) returns false because the x and y components of
 Overloading the '.' and '?.' operators
 ---------------------------------------------
 
-daScript allows you to overload the dot . operator, which is used to access fields of structure or a class.
+Daslang allows you to overload the dot . operator, which is used to access fields of structure or a class.
 To overload the dot . operator, you need to define a special function with the name operator `.` Here's the syntax::
 
     def operator.(<object>: <type>; <name>: string) : <return_type>
@@ -418,7 +418,7 @@ The . . syntax is used to access the fields of a structure or a class while bypa
 Overloading accessors
 ---------------------------------------------
 
-daScript allows you to overload accessors, which means that you can define custom behavior for accessing fields of your own data types.
+Daslang allows you to overload accessors, which means that you can define custom behavior for accessing fields of your own data types.
 Here is an example of how to overload the accessor for a custom struct called Foo::
 
     struct Foo

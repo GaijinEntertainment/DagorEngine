@@ -20,6 +20,7 @@
 #include <dag/dag_relocatable.h>
 #include <util/dag_compilerDefs.h>
 #include <EASTL/memory.h>
+#include <EASTL/initializer_list.h>
 #include <memory/dag_genMemAlloc.h>
 #include <string.h> //memmove
 
@@ -267,6 +268,8 @@ public:
   {
     allocateAndCopy(v.size(), v.data());
   }
+
+  RelocatableFixedVector(std::initializer_list<value_type> ilist) { allocateAndCopy(eastl::size(ilist), eastl::data(ilist)); }
 
   RelocatableFixedVector &operator=(RelocatableFixedVector &&a);
   RelocatableFixedVector(const RelocatableFixedVector &a) { allocateAndCopy(a.size(), a.data()); }

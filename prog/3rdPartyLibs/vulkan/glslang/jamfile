@@ -86,7 +86,7 @@ if $(Platform) in win32 win64 {
     -DWIN32
   ;
 }
-if $(Platform) in macosx {
+if $(Platform) in macosx linu64 {
   Sources +=
     glslang/OSDependent/Unix/ossource.cpp
   ;

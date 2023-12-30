@@ -43,7 +43,7 @@ struct InstantiatedTemplate // it would be used for memcpy
   {
     return data[size_t(i) >> bitsShift] & (size_t(1UL) << (size_t(i) & size_t(BITS_IN_WORD - 1)));
   }
-  const bool isInited(uint32_t i) const
+  bool isInited(uint32_t i) const
   {
 #ifdef _DEBUG_TAB_
     G_ASSERT(i < componentsCount);

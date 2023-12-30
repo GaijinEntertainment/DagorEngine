@@ -1,0 +1,74 @@
+include "shader_global.dshl"
+include "skinning_inc2.dshl"
+include "dynamic_simple_inc.dshl"
+include "esm_shadows_inc.dshl"
+
+shader esm_depth
+{
+  cull_mode = none;
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+    };
+  }
+
+  channel float3 pos=pos;
+  channel color8 norm=norm unsigned_pack;
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos                  : POSITION;   // W defaults to 1.
+      float4 normal               : NORMAL;
+    };
+  }
+  NO_SKINNING_VS()
+  USE_FLOAT_POS_PACKING()
+  DYNAMIC_SIMPLE_VS_SHARED_DECL()
+
+  hlsl(vs) {
+
+    VsOutput dynamic_simple_vs(VsInput input)
+    {
+      VsOutput output;
+      // unpack positions using dynmodel bbox
+      input.pos.xyz = unpack_pos(input.pos);
+
+      // Skinning.
+
+      float3 eyeToPoint;
+      float3 worldDu;
+      float3 worldDv;
+      float3 worldNormal;
+      float3 localNormal = 1;
+
+      float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
+      instance_skinning(
+        input,
+        input.pos,
+        localNormal,
+        localDu,
+        localDv,
+        eyeToPoint,
+        output.pos,
+        worldNormal,
+        worldDu,
+        worldDv);
+      return output;
+    }
+  }
+  compile("target_vs", "dynamic_simple_vs");
+
+  (ps) { esm_depth_encode_params@f3 = (esm_params.z, esm_params.w, 1.0 / (esm_params.w - 1.0), 0); }
+
+  hlsl(ps) {
+    float2 esm_render_depth_ps(float4 screen_pos : VPOS) : SV_Target
+    {
+      float esmDepth = esm_depth_encode_params.x * (1.0 - screen_pos.z);
+      float2 esmDepthExp = exp2(float2(esmDepth, -esmDepth));
+      float expKExp = esm_depth_encode_params.y;
+      return float2(esmDepthExp.x - 1.0, expKExp * esmDepthExp.y - 1.0) * esm_depth_encode_params.z;
+    }
+  }
+  compile("target_ps", "esm_render_depth_ps");
+}

@@ -14,7 +14,8 @@ AddIncludes =
 ;
 
 Sources =
-  solver.cpp
+  eulerSolver.cpp
+  dirichletSolver.cpp
   voxelizeDepthAbove.cpp
 ;
 

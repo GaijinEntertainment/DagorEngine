@@ -236,16 +236,13 @@ static bool init_argb8_64_noise(const SharedTexHolder &t)
   if (!t)
     return true;
   const int seed1 = 0x11231233, seed2 = 0x31271213, seed3 = 0x51261235, seed4 = 0xA12314F;
-  int stride;
-  if (auto lockedTex = lock_texture<uint8_t>(t.getTex2D(), stride, 0, TEXLOCK_WRITE | TEXLOCK_DELSYSMEMCOPY))
+  if (auto lockedTex = lock_texture<E3DCOLOR>(t.getTex2D(), 0, TEXLOCK_WRITE | TEXLOCK_DELSYSMEMCOPY))
   {
-    uint8_t *data_ = lockedTex.get();
-    for (int j = 0, pos = 0; j < NOISE_W; ++j, data_ += stride)
+    for (int j = 0, pos = 0; j < NOISE_W; ++j)
     {
-      E3DCOLOR *data = (E3DCOLOR *)data_;
       for (int i = 0; i < NOISE_W; ++i, ++pos)
       {
-        data[i] = E3DCOLOR(uint_noise1D(pos, seed1) & 255, uint_noise1D(pos, seed2) & 255, uint_noise1D(pos, seed3) & 255,
+        lockedTex.at(i, j) = E3DCOLOR(uint_noise1D(pos, seed1) & 255, uint_noise1D(pos, seed2) & 255, uint_noise1D(pos, seed3) & 255,
           uint_noise1D(pos, seed4) & 255);
       }
     }
@@ -259,13 +256,11 @@ static bool init_l8_64_noise(const SharedTexHolder &t)
   if (!t)
     return true;
   int the_seed = 0x11231231;
-  int stride;
-  if (auto lockedTex = lock_texture<uint8_t>(t.getTex2D(), stride, 0, TEXLOCK_WRITE | TEXLOCK_DELSYSMEMCOPY))
+  if (auto lockedTex = lock_texture<uint8_t>(t.getTex2D(), 0, TEXLOCK_WRITE | TEXLOCK_DELSYSMEMCOPY))
   {
-    uint8_t *data = lockedTex.get();
-    for (int j = 0, pos = 0; j < NOISE_W; ++j, data += stride)
+    for (int j = 0, pos = 0; j < NOISE_W; ++j)
       for (int i = 0; i < NOISE_W; ++i, ++pos)
-        data[i] = uint_noise1D(pos, the_seed) & 0xFF;
+        lockedTex.at(i, j) = uint_noise1D(pos, the_seed) & 0xFF;
     return true;
   }
   return false; // we are in reset, so it will be called again anyway
@@ -423,11 +418,9 @@ private:
   {
     for (int level = 0, e = texture.getTex2D()->level_count(); level < e; level++)
     {
-      int stride;
-      if (auto lockedTex =
-            lock_texture<uint8_t>(texture.getTex2D(), stride, level, TEXLOCK_WRITE | (level == e - 1 ? TEXLOCK_DELSYSMEMCOPY : 0)))
+      if (auto lockedTex = lock_texture(texture.getTex2D(), level, TEXLOCK_WRITE | (level == e - 1 ? TEXLOCK_DELSYSMEMCOPY : 0)))
         stridedMemcpy(lockedTex.get(), image->getPixels(), image->w * image->h * sizeof(PixelType), image->w * sizeof(PixelType),
-          stride);
+          lockedTex.getByteStride());
       else
         return false; // we are in reset, so it will be called again anyway
 
@@ -468,9 +461,9 @@ static bool init_blue_noise(const SharedTexHolder &t)
   TextureInfo info;
   t.getTex2D()->getinfo(info);
 
-  int stride;
-  if (auto lockedTex = lock_texture<uint8_t>(t.getTex2D(), stride, 0, TEXLOCK_WRITE))
-    stridedMemcpy(lockedTex.get(), blue_noise_data::texture_128x128_rg8, BLUE_NOISE_W * BLUE_NOISE_W * 2, BLUE_NOISE_W * 2, stride);
+  if (auto lockedTex = lock_texture(t.getTex2D(), 0, TEXLOCK_WRITE))
+    stridedMemcpy(lockedTex.get(), blue_noise_data::texture_128x128_rg8, BLUE_NOISE_W * BLUE_NOISE_W * 2, BLUE_NOISE_W * 2,
+      lockedTex.getByteStride());
   else
     return false; // we are in reset, so it will be called again anyway
 

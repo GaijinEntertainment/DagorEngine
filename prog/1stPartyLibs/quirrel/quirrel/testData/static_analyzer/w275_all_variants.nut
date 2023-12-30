@@ -1,4 +1,4 @@
-
+#allow-switch-statement
 
 function foo() {}
 

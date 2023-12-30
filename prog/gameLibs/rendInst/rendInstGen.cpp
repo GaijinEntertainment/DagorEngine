@@ -8,6 +8,7 @@
 #include "riGen/riGenData.h"
 
 #include <util/dag_stlqsort.h>
+#include <util/dag_finally.h>
 #include <rendInst/rendInstGen.h>
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_shaderResUnitedData.h>
@@ -383,12 +384,15 @@ void RendInstGenData::prepareRtData(int layer_idx)
         rtData->entCntForOldFmt.size(), data_size(rtData->entCntForOldFmt), cells.size());
   }
 
-  rtData->riRes.reserve(pregenEnt.size());
-  rtData->riCollRes.reserve(pregenEnt.size());
-  rtData->riPosInst.reserve(pregenEnt.size());
-  rtData->riPaletteRotation.reserve(pregenEnt.size());
-  rtData->riColPair.reserve(pregenEnt.size() * 2);
-  rtData->riResName.reserve(pregenEnt.size());
+  int nReserve = pregenEnt.size();
+  for (auto &lc : landCls)
+    nReserve += lc.asset ? lc.asset->riRes.size() : 0;
+  rtData->riRes.reserve(nReserve);
+  rtData->riCollRes.reserve(nReserve);
+  rtData->riPosInst.reserve(nReserve);
+  rtData->riPaletteRotation.reserve(nReserve);
+  rtData->riColPair.reserve(nReserve * 2);
+  rtData->riResName.reserve(nReserve);
   rtData->preloadDistance = 64 + rendinst::rgAttr[layer_idx].poiRad;
   rtData->transparencyDeltaRcp = rtData->preloadDistance * 0.1f;
 
@@ -516,6 +520,7 @@ void RendInstGenData::prepareRtData(int layer_idx)
   rtData->riRes.shrink_to_fit();
   rtData->riCollRes.shrink_to_fit();
   rtData->riResName.shrink_to_fit();
+  rtData->riColPair.shrink_to_fit();
 
   int16_t *p = rtData->riResMapStor.data();
   for (int i = 0; i < landCls.size(); p += landCls[i].asset->riRes.size(), i++)
@@ -1177,16 +1182,19 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
   if (crt.vbSize <= 0)
     return crt_ptr;
 
-  if (!crt.sysMemData)
+  uint8_t *vbPtr = crt.sysMemData;
+  Finally setSysMemData([&] { interlocked_release_store_ptr(crt.sysMemData, vbPtr); }); // Delayed as it's influences cell "readyness"
+  if (!vbPtr)
   {
     G_ASSERT(crt.pools.size() <= USHRT_MAX);
     // allocate sysmem data copy and storage for SubCell slices
-    crt.sysMemData = new uint8_t[crt.vbSize];
+    vbPtr = new uint8_t[crt.vbSize];
     clear_and_resize(crt.scsRemap, crt.pools.size());
     clear_and_resize(crt.bbox, 1 + SUBCELL_DIV * SUBCELL_DIV);
   }
+  else
+    setSysMemData.release();
 
-  uint8_t *vbPtr = crt.sysMemData;
   for (int i = 0; i < crt.pools.size(); i++)
     crt.pools[i].avail = crt.pools[i].total, crt.pools[i].topPtr = vbPtr + crt.pools[i].baseOfs;
   dag::ConstSpan<uint16_t> riExtraIdxPair = rtData->riExtraIdxPair;
@@ -1639,38 +1647,37 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
   }
 #endif
 
-  rtData->riRwCs.lockRead();
-  for (int i = 0; i < rtData->riDestrCellData.size(); ++i)
+  if (!rtData->rtPoolData.empty()) // Resized for render only (see `RendInstGenData::initRender)
   {
-    const rendinst::DestroyedCellData &cellDestr = rtData->riDestrCellData[i];
-    if (cellDestr.cellId != cellId)
-      continue;
-
-    for (int j = 0; j < cellDestr.destroyedPoolInfo.size(); ++j)
+    rtData->riRwCs.lockRead();
+    for (const auto &cellDestr : rtData->riDestrCellData)
     {
-      const rendinst::DestroyedPoolData &poolDestr = cellDestr.destroyedPoolInfo[j];
-      if (!rtData->rtPoolData[poolDestr.poolIdx])
+      if (cellDestr.cellId != cellId)
         continue;
-
-      bool posInst = rtData->riPosInst[poolDestr.poolIdx];
-      int stride = (posInst ? 4 : 12) + perInstDataDwords * 2;
-      uint8_t *basePoolPtr = vbPtr + crt.pools[poolDestr.poolIdx].baseOfs;
-      for (int k = 0; k < poolDestr.destroyedInstances.size(); ++k)
+      for (auto &poolDestr : cellDestr.destroyedPoolInfo)
       {
-        const rendinst::DestroyedInstanceRange &range = poolDestr.destroyedInstances[k];
-        for (int16_t *data = (int16_t *)(basePoolPtr + range.startOffs), *data_e = (int16_t *)(basePoolPtr + range.endOffs);
-             data < data_e; data += stride)
+        if (!rtData->rtPoolData[poolDestr.poolIdx]) // Missing res?
+          continue;
+
+        bool posInst = rtData->riPosInst[poolDestr.poolIdx];
+        int stride = (posInst ? 4 : 12) + perInstDataDwords * 2;
+        uint8_t *basePoolPtr = vbPtr + crt.pools[poolDestr.poolIdx].baseOfs;
+        for (auto &range : poolDestr.destroyedInstances)
         {
-          if (posInst)
-            rendinst::destroy_pos_rendinst_data(data);
-          else
-            rendinst::destroy_tm_rendinst_data(data);
+          for (int16_t *data = (int16_t *)(basePoolPtr + range.startOffs), *data_e = (int16_t *)(basePoolPtr + range.endOffs);
+               data < data_e; data += stride)
+          {
+            if (posInst)
+              rendinst::destroy_pos_rendinst_data(data);
+            else
+              rendinst::destroy_tm_rendinst_data(data);
+          }
         }
       }
+      break;
     }
-    break;
+    rtData->riRwCs.unlockRead();
   }
-  rtData->riRwCs.unlockRead();
 
   if (zcrd)
   {
@@ -1691,7 +1698,7 @@ void rendinst::configurateRIGen(const DataBlock &riSetup)
 {
   FOR_EACH_RG_LAYER_DO (rgl)
   {
-    fatal("%s should be called only when all riGen layers are destroyed, but rgLayer[%d]=%p", __FUNCTION__, _layer, rgl);
+    DAG_FATAL("%s should be called only when all riGen layers are destroyed, but rgLayer[%d]=%p", __FUNCTION__, _layer, rgl);
     return;
   }
   rgLayer.resize(riSetup.getInt("layersCnt", 2));
@@ -2052,8 +2059,8 @@ struct RiGenCellSortPredicate
       float poiX, poiZ;
       poiX = i < poi.size() ? poi[i].x : rendinst::preloadPointForRendInsts.x;
       poiZ = i < poi.size() ? poi[i].z : rendinst::preloadPointForRendInsts.z;
-      inplace_min(ad2, SQR(poiX - ax) + SQR(poiZ - az));
-      inplace_min(bd2, SQR(poiX - bx) + SQR(poiZ - bz));
+      inplace_min(ad2, sqr(poiX - ax) + sqr(poiZ - az));
+      inplace_min(bd2, sqr(poiX - bx) + sqr(poiZ - bz));
     }
     return ad2 < bd2;
   }
@@ -2065,29 +2072,34 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
   class UnloadRiCell final : public cpujobs::IJob
   {
     RendInstGenData *rgl;
-    int idx;
-    unsigned tag;
+    uint8_t *smd = nullptr;
+    union
+    {
+      unsigned tag;
+      struct
+      {
+        unsigned idx : 24;
+        unsigned layer : 4;
+        unsigned job_tag : 4;
+      };
+    };
 
   public:
-    UnloadRiCell(RendInstGenData *ri_gen, int _idx, int layer_idx) :
-      rgl(ri_gen), idx(_idx), tag(UNLOAD_JOB_TAG | idx | (layer_idx << 24))
+    UnloadRiCell(RendInstGenData *ri_gen, int _idx, int layer_idx) : rgl(ri_gen), tag(UNLOAD_JOB_TAG | (layer_idx << 24) | _idx)
     {
-      rgl->rtData->toUnload.addInt(idx);
+      G_FAST_ASSERT(_idx == idx);
+      rgl->rtData->toUnload.addInt(_idx);
     }
     virtual void doJob() override
     {
       // debug("unload %d,%d", idx%rgl->cellNumW, idx/rgl->cellNumW);
-      G_ASSERT(idx >= 0 && idx < rgl->cells.size());
+      G_ASSERT((unsigned)idx < rgl->cells.size());
 
       ScopedLockWrite lock(rgl->rtData->riRwCs);
       bool wasReady = rgl->cells[idx].isReady();
       RendInstGenData::CellRtData *crt = rgl->cells[idx].rtData;
-      uint8_t *smd = nullptr;
       if (crt)
-      {
-        smd = crt->sysMemData;
-        crt->sysMemData = nullptr;
-      }
+        this->smd = eastl::exchange(crt->sysMemData, nullptr); // Stash to delete later
       rgl->rtData->loaded.delInt(idx);
       rgl->rtData->toUnload.delInt(idx);
       if (wasReady)
@@ -2108,10 +2120,13 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
       }
       if (crt)
         crt->clear();
-      del_it(smd);
     }
-    virtual unsigned getJobTag() { return tag; };
-    virtual void releaseJob() { delete this; }
+    virtual unsigned getJobTag() override { return tag; };
+    virtual void releaseJob() override
+    {
+      delete[] smd; // Delete in main thread to reduce chances of using deleted memory by main thread (during unload)
+      delete this;
+    }
   };
 
   class RegenRiCell final : public cpujobs::IJob
@@ -2163,7 +2178,7 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
         canceled = !rgl->rtData->toLoad.delInt(idx);
         if (crt->sysMemData) // if is ready
           rgl->rtData->loadedCellsBBox += IPoint2(cx, cz);
-        interlocked_release_store_ptr(rgl->cells[idx].rtData, crt);
+        interlocked_release_store_ptr(rgl->cells[idx].rtData, crt); // This makes cell "ready"
         last = rgl->rtData->toLoad.empty();
       }
 
@@ -2651,6 +2666,8 @@ void rendinst::clearRIGen()
   riExtraSubstNames.reset(false);
 }
 
+bool rendinst::isSecLayerEnabled() { return riGenSecLayerEnabled; }
+
 void rendinst::enableSecLayer(bool en)
 {
   riGenSecLayerEnabled = en;
@@ -2703,38 +2720,6 @@ bool RendInstGenData::updateLClassColors(const char *name, E3DCOLOR from, E3DCOL
     return true;
   }
   return false;
-}
-
-bool rendinst::update_rigen_color(const char *name, E3DCOLOR from, E3DCOLOR to)
-{
-  bool ret = false;
-  FOR_EACH_PRIMARY_RG_LAYER_DO (rgl)
-  {
-    if (rgl->updateLClassColors(name, from, to))
-    {
-      ret = true;
-      continue;
-    }
-
-    for (int i = 0, ie = rgl->rtData->riRes.size(); i < ie; i++)
-      if (rgl->rtData->riResName[i] && stricmp(rgl->rtData->riResName[i], name) == 0)
-      {
-        if (!rgl->rtData->riPosInst[i] && !rendinst::render::tmInstColored)
-        {
-          ret = true;
-          break;
-        }
-#if RI_VERBOSE_OUTPUT
-        debug("ri[%d] <%s> set from : %08X-%08X to:", i, rgl->rtData->riResName[i], rgl->rtData->riColPair[i * 2 + 0].u,
-          rgl->rtData->riColPair[i * 2 + 1].u, from.u, to.u);
-#endif
-        rgl->rtData->riColPair[i * 2 + 0].u = from.u;
-        rgl->rtData->riColPair[i * 2 + 1].u = to.u;
-        ret = true;
-        break;
-      }
-  }
-  return ret;
 }
 
 

@@ -7,7 +7,7 @@ let getDistance = @(x, y) sqrt(x*x + y*y)
 let getDistanceSq = @(x, y) x*x + y*y
 
 //cutRadius > 0 - cutFrom inner side.  cutRadius < 0 - cutFrom outher side
-let function mkLensFlareCutRadiusLeft(radius, outherWidth, innerWidth, cutRadius, cutWidth, cutOffset) {
+function mkLensFlareCutRadiusLeft(radius, outherWidth, innerWidth, cutRadius, cutWidth, cutOffset) {
   let center = radius + outherWidth + 1
   let cutCenter = cutRadius > 0 ? cutRadius + cutWidth : center + cutRadius
   let calcCutMul = cutRadius > 0

@@ -50,7 +50,7 @@ WaterProjectedFx::WaterProjectedFx(int frame_width, int frame_height, dag::Span<
     targetClearColors[i] = target_descs[i].clearColor;
     if (own_textures)
     {
-      uint32_t texCreationFlags = getTargetAdditionalFlags() | (target_descs[i].texFmt & TEXFMT_MASK) | TEXCF_CLEAR_ON_CREATE;
+      uint32_t texCreationFlags = getTargetAdditionalFlags() | (target_descs[i].texFmt & TEXFMT_MASK);
       internalTargets[i] = dag::create_tex(NULL, frameWidth, frameHeight, texCreationFlags, 1, target_descs[i].texName);
       if (internalTargets[i])
       {
@@ -60,6 +60,13 @@ WaterProjectedFx::WaterProjectedFx(int frame_width, int frame_height, dag::Span<
       if (taaEnabled)
         taaRtTempPools[i] = RTargetPool::get(frameWidth, frameHeight, texCreationFlags, 1);
     }
+  }
+  if (own_textures)
+  {
+    // Since clear colors can be anything, we can't get by with just TEXCF_CLEAR_ON_CREATE.
+    d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
+    clear();
+    d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
   }
 }
 
@@ -114,7 +121,7 @@ void WaterProjectedFx::prepare(const TMatrix &view_tm, const TMatrix &view_itm, 
     v_stu(&bottomPlane.x, Frustum(glob_tm).camPlanes[Frustum::BOTTOM]);
     float cosA = min(bottomPlane.y, CAMERA_PLANE_BOTTOM_MIN_ANGLE);
     cameraPos += -normalize(Point3(cameraDir.x, 0.0f, cameraDir.z)) *
-                 max(waterHeightTop + CAMERA_PLANE_ELEVATION - abs(cameraPos.y), 0.0f) * safediv(cosA, safe_sqrt(1.0f - SQR(cosA)));
+                 max(waterHeightTop + CAMERA_PLANE_ELEVATION - abs(cameraPos.y), 0.0f) * safediv(cosA, safe_sqrt(1.0f - sqr(cosA)));
     cameraPos.y = max(abs(cameraPos.y), waterHeightTop + CAMERA_PLANE_ELEVATION) * (cameraPos.y > 0 ? 1.0f : -1.0f);
     newViewItm.setcol(3, cameraPos);
 

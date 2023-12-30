@@ -59,7 +59,7 @@ loginData.subscribe(function(data){
   })
 })
 
-let function onFailReqTxt(...){
+function onFailReqTxt(...){
   let fbFilePath = curLangLegalConfig.value?.filePath
   remoteTextLoaded.set(false)
   try{
@@ -85,7 +85,7 @@ function onSuccessReqTxt(v) {
 let onAttachLegalsScreen = @() requestDocument(language.value, onSuccessReqTxt, onFailReqTxt)
 
 let closeBtn = txtBtn("x", @() openLegalsManually(false))
-let function legalsScreen(){
+function legalsScreen(){
   return {
     padding = sh(5) size = flex()
     watch = legalsText
@@ -111,7 +111,7 @@ needNotification.subscribe(function(v) {
     openLegalsManually(true)
 })
 
-let function confirmCurVersion(){
+function confirmCurVersion(){
   if (remoteVersion.value==null || confirmedVersions.value?.contains(remoteVersion.value))
     return
   confirmedVersions.set([remoteVersion.value].extend(confirmedVersions.value ?? []))

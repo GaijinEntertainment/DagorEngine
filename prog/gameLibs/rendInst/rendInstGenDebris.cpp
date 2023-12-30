@@ -40,8 +40,7 @@ static inline void prepareDestrExcl(RendInstGenData *rgl)
       rgl->grid2world * rgl->cellSz * rgl->cellNumH);
 }
 
-static int sweepRIGenInBoxByMask(RendInstGenData *rgl, const BBox3 &_box, unsigned frameNo, rendinst::ri_damage_effect_cb effect_cb,
-  const Point3 &axis, bool create_debris)
+static int sweepRIGenInBoxByMask(RendInstGenData *rgl, const BBox3 &_box, unsigned frameNo, const Point3 &axis, bool create_debris)
 {
   static constexpr int SUBCELL_DIV = RendInstGenData::SUBCELL_DIV;
   float subcellSz = rgl->grid2world * rgl->cellSz / SUBCELL_DIV;
@@ -108,6 +107,10 @@ static int sweepRIGenInBoxByMask(RendInstGenData *rgl, const BBox3 &_box, unsign
               float z3 = data[2] * subcellSz * SUBCELL_DIV / 32767.0f + cell_z0;
               if (rendinst::gen::destrExcl.isMarked(x3, z3))
               {
+                rendinst::RendInstDesc riDesc(ldi, idx, p, int(intptr_t(data) - intptr_t(data_s)), rgl->rtData->layerIdx);
+                if (rendinst::sweep_rendinst_cb)
+                  rendinst::sweep_rendinst_cb(riDesc);
+
                 if (RendInstGenData::renderResRequired)
                 {
                   rendinst::gen::unpack_tm_pos(tm, data, v_cell_add, v_cell_mul, palette_rotation);
@@ -122,17 +125,16 @@ static int sweepRIGenInBoxByMask(RendInstGenData *rgl, const BBox3 &_box, unsign
                       const float axisMultiplier = max(1 - (length(newAxis) / (_box.width().x * 0.5f)), 0.1f);
                       newAxis = normalize(newAxis);
                       newAxis *= axisMultiplier;
-                      rgl->rtData->addDebris(tm, p, frameNo, false, effect_cb, newAxis, axisMultiplier * rendinstAccumulatedPowerMult);
+                      rgl->rtData->addDebris(tm, p, frameNo, newAxis, axisMultiplier * rendinstAccumulatedPowerMult);
                     }
                     else
-                      rgl->rtData->addDebris(tm, p, frameNo, false, effect_cb, axis);
+                      rgl->rtData->addDebris(tm, p, frameNo, axis);
                   }
                 }
                 else
                 {
                   if (create_debris && rendinst::isRgLayerPrimary(rgl->rtData->layerIdx))
                   {
-                    rendinst::RendInstDesc riDesc(ldi, idx, p, int(intptr_t(data) - intptr_t(data_s)), rgl->rtData->layerIdx);
                     rendinst::RendInstBufferData riBuffer;
                     rendinst::RendInstDesc offsetedDesc = riDesc;
                     rendinst::riex_handle_t generatedHandle = rendinst::RIEX_HANDLE_NULL;
@@ -150,7 +152,8 @@ static int sweepRIGenInBoxByMask(RendInstGenData *rgl, const BBox3 &_box, unsign
           else
           {
             int stride_w = RIGEN_TM_STRIDE_B(rgl->perInstDataDwords) / 2;
-            for (int16_t *data = (int16_t *)(crt.sysMemData + scs.ofs), *data_e = data + scs.sz / 2; data < data_e; data += stride_w)
+            int16_t *data_s = (int16_t *)(crt.sysMemData + scs.ofs);
+            for (int16_t *data = data_s, *data_e = data + scs.sz / 2; data < data_e; data += stride_w)
             {
               if (rendinst::is_tm_rendinst_data_destroyed(data))
                 continue;
@@ -158,13 +161,17 @@ static int sweepRIGenInBoxByMask(RendInstGenData *rgl, const BBox3 &_box, unsign
               float z3 = data[11] * subcellSz * SUBCELL_DIV / 32767.0f + cell_z0;
               if (rendinst::gen::destrExcl.isMarked(x3, z3))
               {
+                rendinst::RendInstDesc riDesc(ldi, idx, p, int(intptr_t(data) - intptr_t(data_s)), rgl->rtData->layerIdx);
+                if (rendinst::sweep_rendinst_cb)
+                  rendinst::sweep_rendinst_cb(riDesc);
+
                 if (RendInstGenData::renderResRequired)
                 {
                   rendinst::gen::unpack_tm_full(tm, data, v_cell_add, v_cell_mul);
                   rendinst::destroy_tm_rendinst_data(data);
                   removed_cnt++;
                   if (create_debris)
-                    rgl->rtData->addDebris(tm, p, frameNo, false, effect_cb, axis);
+                    rgl->rtData->addDebris(tm, p, frameNo, axis);
                 }
                 else
                 {
@@ -195,33 +202,7 @@ static String get_name_for_skeleton_res(SimpleString s)
   return res_name + "skeleton";
 }
 
-bool rendinst::destroyRIGenWithBullets(const Point3 &from, const Point3 &dir, float &dist, Point3 &norm, bool killBuildings,
-  unsigned frameNo, ri_damage_effect_cb effect_cb)
-{
-  (void)from;
-  (void)dir;
-  (void)dist;
-  (void)norm;
-  (void)killBuildings;
-  (void)frameNo;
-  (void)effect_cb;
-  return false;
-}
-bool rendinst::destroyRIGenInSegment(const Point3 &p0, const Point3 &p1, bool trees, bool buildings, Point4 &contactPt, bool doKill,
-  unsigned frameNo, ri_damage_effect_cb effect_cb)
-{
-  (void)p0;
-  (void)p1;
-  (void)trees;
-  (void)buildings;
-  (void)contactPt;
-  (void)doKill;
-  (void)frameNo;
-  (void)effect_cb;
-  return false;
-}
-void rendinst::doRIGenDamage(const BSphere3 &sphere, unsigned frameNo, ri_damage_effect_cb effect_cb, const Point3 &axis,
-  bool create_debris)
+void rendinst::doRIGenDamage(const BSphere3 &sphere, unsigned frameNo, const Point3 &axis, bool create_debris)
 {
   FOR_EACH_RG_LAYER_DO (rgl)
   {
@@ -230,10 +211,10 @@ void rendinst::doRIGenDamage(const BSphere3 &sphere, unsigned frameNo, ri_damage
       prepareDestrExcl(rgl);
       rendinst::gen::destrExcl.markCircle(sphere.c.x, sphere.c.z, sphere.r);
     }
-    sweepRIGenInBoxByMask(rgl, sphere, frameNo, effect_cb, axis, create_debris);
+    sweepRIGenInBoxByMask(rgl, sphere, frameNo, axis, create_debris);
   }
 }
-void rendinst::doRIGenDamage(const BBox3 &box, unsigned frameNo, ri_damage_effect_cb effect_cb, const Point3 &axis, bool create_debris)
+void rendinst::doRIGenDamage(const BBox3 &box, unsigned frameNo, const Point3 &axis, bool create_debris)
 {
   FOR_EACH_RG_LAYER_DO (rgl)
   {
@@ -242,12 +223,11 @@ void rendinst::doRIGenDamage(const BBox3 &box, unsigned frameNo, ri_damage_effec
       prepareDestrExcl(rgl);
       rendinst::gen::destrExcl.markBox(box[0].x, box[0].z, box[1].x, box[1].z);
     }
-    sweepRIGenInBoxByMask(rgl, box, frameNo, effect_cb, axis, create_debris);
+    sweepRIGenInBoxByMask(rgl, box, frameNo, axis, create_debris);
   }
 }
 
-void rendinst::doRIGenDamage(const BBox3 &box, unsigned frameNo, ri_damage_effect_cb effect_cb, const TMatrix &check_itm,
-  const Point3 &axis, bool create_debris)
+void rendinst::doRIGenDamage(const BBox3 &box, unsigned frameNo, const TMatrix &check_itm, const Point3 &axis, bool create_debris)
 {
   FOR_EACH_RG_LAYER_DO (rgl)
   {
@@ -256,7 +236,7 @@ void rendinst::doRIGenDamage(const BBox3 &box, unsigned frameNo, ri_damage_effec
       prepareDestrExcl(rgl);
       rendinst::gen::destrExcl.markTM(box[0].x, box[0].z, box[1].x, box[1].z, check_itm);
     }
-    sweepRIGenInBoxByMask(rgl, box, frameNo, effect_cb, axis, create_debris);
+    sweepRIGenInBoxByMask(rgl, box, frameNo, axis, create_debris);
   }
 }
 
@@ -271,7 +251,7 @@ void rendinst::doRIGenDamage(const Point3 &pos, unsigned frameNo, ri_damage_effe
       prepareDestrExcl(rgl);
       rendinst::gen::destrExcl.markPoint(pos.x, pos.z);
     }
-    sweepRIGenInBoxByMask(rgl, box, frameNo, effect_cb, axis, create_debris);
+    sweepRIGenInBoxByMask(rgl, box, frameNo, axis, create_debris);
   }
 
   riex_collidable_t ri_h;
@@ -1194,8 +1174,7 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
 }
 
 
-void RendInstGenData::RtData::addDebris(mat44f &tm, int pool_idx, unsigned frameNo, bool effect,
-  rendinst::ri_damage_effect_cb effect_cb, const Point3 &axis, float accumulated_power)
+void RendInstGenData::RtData::addDebris(mat44f &tm, int pool_idx, unsigned frameNo, const Point3 &axis, float accumulated_power)
 {
   int curTotal = curDebris[0] + curDebris[1], maxTotal = maxDebris[0] + maxDebris[1];
   if (curTotal < maxTotal)
@@ -1248,9 +1227,6 @@ void RendInstGenData::RtData::addDebris(mat44f &tm, int pool_idx, unsigned frame
   else
     logerr("overflow1 %d >= %d (maxDebris: %d+%d) (curDebris: %d+%d) ri[%d]=%s", curTotal, maxTotal, maxDebris[0], maxDebris[1],
       curDebris[0], curDebris[1], pool_idx, riResName[pool_idx]);
-
-  if (effect)
-    play_destroy_effect(this, pool_idx, tm, effect_cb, true);
 }
 
 rendinst::DestroyedRi *RendInstGenData::RtData::addExternalDebris(mat44f &tm, int pool_idx)

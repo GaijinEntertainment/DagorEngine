@@ -1125,7 +1125,7 @@ float get_spectrum_rms_sqr(const NVWaveWorks_FFT_CPU_Simulation::Params &params)
 
   float phil_norm = AM_E * 0.25f / fft_period; // This normalization ensures that the simulation is invariant w.r.t. units and/or
                                                // fft_period
-  a *= SQR(phil_norm);                         // Use the square as we are accumulating RMS
+  a *= sqr(phil_norm);                         // Use the square as we are accumulating RMS
 
   // We can compute the integral of Phillips over a disc in wave vector space analytically, and by subtracting one
   // disc from the other we can compute the integral for the ring defined by {params.window_in,params.window_out}

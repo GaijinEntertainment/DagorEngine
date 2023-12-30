@@ -1,3 +1,4 @@
+#allow-switch-statement
 
 function foo(_a, _b) {}
 function bar() {}

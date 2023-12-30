@@ -44,7 +44,7 @@ let valignToText = {
   , [ALIGN_BOTTOM] = "bottom"
 }
 
-let function alignShow (style={}){
+function alignShow (style={}){
   let halign = style?.halign ?? ALIGN_LEFT
   let valign = style?.valign ?? ALIGN_TOP
   return {

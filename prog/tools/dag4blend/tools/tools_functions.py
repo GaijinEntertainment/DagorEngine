@@ -64,11 +64,31 @@ def is_mesh_empty(mesh):
 
 #Triangulates mesh
 def triangulate(mesh):
-    bm = bmesh.new()
-    bm.from_mesh(mesh)
-    bmesh.ops.triangulate(bm, faces = bm.faces, quad_method = 'BEAUTY', ngon_method = 'BEAUTY')
-    bm.to_mesh(mesh)
-    del bm
+#slower hack that preserves custom normals
+    if mesh.has_custom_normals:
+        temp_mesh = bpy.data.meshes.new("")
+    #can't apply mods to mesh with multiple users, so current mesh temporary replaced by empty one
+    #to make sure that current mesh has only one user
+        mesh.user_remap(temp_mesh)
+    #can't apply modifier to the mesh directly, we also need temp object
+        temp_obj = bpy.data.objects.new("", mesh)
+        mod = temp_obj.modifiers.new("", 'TRIANGULATE')
+        mod.quad_method = 'BEAUTY'
+        mod.ngon_method = 'BEAUTY'
+        mod.keep_custom_normals = True
+        with bpy.context.temp_override(object = temp_obj):
+            bpy.ops.object.modifier_apply(modifier=mod.name)
+    #returning our mesh to its owners after triangulation
+        temp_mesh.user_remap(mesh)
+        bpy.data.objects.remove(temp_obj)
+        bpy.data.meshes.remove(temp_mesh)
+#faster alorithm, but can't preserve custom normals
+    else:
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+        bmesh.ops.triangulate(bm, faces = bm.faces, quad_method = 'BEAUTY', ngon_method = 'BEAUTY')
+        bm.to_mesh(mesh)
+        del bm
     return
 
 def is_matrix_ok(matrix):

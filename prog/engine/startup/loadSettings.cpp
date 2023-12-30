@@ -51,7 +51,7 @@ void dgs_load_settings_blk_ex(bool apply_cmd, const char *settings_blk_fn, const
     const char *blknm = "texStreaming";
     DataBlock tsblk;
     if (!tsblk.load(tsfn))
-      fatal("failed to load texStreamingFile=%s", tsfn);
+      DAG_FATAL("failed to load texStreamingFile=%s", tsfn);
     else if (const DataBlock *b = tsblk.getBlockByName(blknm))
     {
       const_cast<DataBlock *>(dgs_get_settings())->removeBlock(blknm);
@@ -59,7 +59,7 @@ void dgs_load_settings_blk_ex(bool apply_cmd, const char *settings_blk_fn, const
       const_cast<DataBlock *>(dgs_get_settings())->addNewBlock(b, blknm);
     }
     else
-      fatal("failed to get %s block in texStreamingFile=%s", blknm, tsfn);
+      DAG_FATAL("failed to get %s block in texStreamingFile=%s", blknm, tsfn);
   }
   else if (!resolve_tex_streaming && stg.getStr("texStreamingFile", nullptr))
     const_cast<DataBlock *>(dgs_get_settings())->addBlock("texStreaming");

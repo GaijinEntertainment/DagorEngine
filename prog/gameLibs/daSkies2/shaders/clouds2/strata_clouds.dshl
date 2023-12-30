@@ -59,7 +59,7 @@ shader strata_clouds//, strata_clouds_panorama
   USE_STRATA_CLOUDS(ps)
 
   hlsl(ps) {
-    half4 clouds_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
+    float4 clouds_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
       float3 viewVect = input.viewVect;

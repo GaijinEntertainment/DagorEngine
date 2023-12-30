@@ -576,6 +576,7 @@ namespace das {
         pFunc->name = lfn;
         pFunc->privateFunction = true;
         pFunc->requestJit = (genFlags & generator_jit)!=0;
+        pFunc->requestNoJit = (genFlags & generator_nojit)!=0;
         auto fb = make_smart<ExprBlock>();
         fb->at = block->at;
         auto with = make_smart<ExprWith>(block->at);

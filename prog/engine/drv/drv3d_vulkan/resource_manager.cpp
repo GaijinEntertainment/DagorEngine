@@ -21,6 +21,12 @@ ObjectPool<RenderPassResource> &ResourceManager::resPool()
   return resPools.renderPass;
 }
 
+template <>
+ObjectPool<SamplerResource> &ResourceManager::resPool()
+{
+  return resPools.sampler;
+}
+
 #if D3D_HAS_RAY_TRACING
 template <>
 ObjectPool<RaytraceAccelerationStructure> &ResourceManager::resPool()
@@ -47,12 +53,12 @@ void check_leaks(ObjectPool<ResTypeName> &pool)
 }
 
 template <typename ResTypeName>
-bool evict_from_pool(ObjectPool<ResTypeName> &pool, VkDeviceSize &desired_size)
+bool try_evict_from_pool(ExecutionContext &ctx, ObjectPool<ResTypeName> &pool, VkDeviceSize &desired_size, bool evict_used)
 {
   uint32_t evictedCount = 0;
-  pool.iterateAllocatedBreakable([&evictedCount, &desired_size](ResTypeName *i) {
+  pool.iterateAllocatedBreakable([&ctx, &evictedCount, &desired_size, evict_used](ResTypeName *i) {
     ResourceAlgorithm<ResTypeName> alg(*i);
-    VkDeviceSize evictionSize = alg.evict();
+    VkDeviceSize evictionSize = alg.tryEvict(ctx, evict_used);
 
     if (!evictionSize)
       return true;
@@ -71,6 +77,18 @@ bool evict_from_pool(ObjectPool<ResTypeName> &pool, VkDeviceSize &desired_size)
   return evictedCount > 0;
 }
 
+template <typename ResTypeName>
+void evict_pending_from_pool(ObjectPool<ResTypeName> &pool)
+{
+  pool.iterateAllocated([](ResTypeName *i) {
+    if (!i->isEvicting())
+      return;
+    ResourceAlgorithm<ResTypeName> alg(*i);
+    alg.evict();
+  });
+}
+
+
 } // namespace
 
 VulkanDeviceMemoryHandle ResourceMemory::deviceMemorySlow() const
@@ -88,6 +106,7 @@ void ResourceManager::init(WinCritSec *memory_lock, const PhysicalDeviceSet &dev
   allowBufferSuballoc = get_device().getPerDriverPropertyBlock("bufferSuballocation")->getBool("enable", false);
   debug("vulkan: %s type mixed allocators", allowMixedPages ? "using" : "not using");
   hotMemPushIdx = 0;
+  outOfMemorySignal = 0;
   sharedGuard = memory_lock;
   perMemoryTypeMethods.resize(memTypesCount);
   for (uint32_t i = 0; i < memTypesCount; ++i)
@@ -295,7 +314,7 @@ ResourceMemoryId ResourceManager::allocMemory(const AllocationDesc &desc)
     }
   }
 
-  // return whatever we got, even empty memory
+  // return whatever we got, even empty memory that is used for object baked allocations
   return ret;
 }
 
@@ -340,48 +359,29 @@ VulkanDeviceMemoryHandle ResourceManager::getDeviceMemoryHandle(ResourceMemoryId
   return perMemoryTypeMethods[(int)mem.memType].getDeviceMemoryHandle(mem);
 }
 
-bool ResourceManager::evictResourcesFor(VkDeviceSize desired_size)
+bool ResourceManager::evictResourcesFor(ExecutionContext &ctx, VkDeviceSize desired_size, bool evict_used)
 {
-  debug("vulkan: trying to evict resources for %u Kb memory", desired_size >> 10);
-
-  // TODO: this should be more precise
-  if (evict_from_pool(resPool<Image>(), desired_size))
+  if (try_evict_from_pool(ctx, resPool<Image>(), desired_size, evict_used))
     return true;
-  if (evict_from_pool(resPool<Buffer>(), desired_size))
+  if (try_evict_from_pool(ctx, resPool<Buffer>(), desired_size, evict_used))
     return true;
 #if D3D_HAS_RAY_TRACING
-  if (evict_from_pool(resPool<RaytraceAccelerationStructure>(), desired_size))
+  if (try_evict_from_pool(ctx, resPool<RaytraceAccelerationStructure>(), desired_size, evict_used))
     return true;
 #endif
 
-  debug("vulkan: can't evict resources to fit %u Kb memory", desired_size >> 10);
-
   return false;
 }
 
-bool ResourceManager::aliasAcquire(ResourceMemoryId memory_id)
+void ResourceManager::processPendingEvictions()
 {
-  ResourceMemory &mem = resAllocationsPool[memory_id];
-  if (mem.isValid())
-  {
-    // maybe some internal aliasing managing
-    return true;
-  }
-
-  // full memory id recreation is needed
-  // resource algo should free this memory
-  return false;
+  evict_pending_from_pool(resPool<Image>());
+  evict_pending_from_pool(resPool<Buffer>());
+#if D3D_HAS_RAY_TRACING
+  evict_pending_from_pool(resPool<RaytraceAccelerationStructure>());
+#endif
 }
 
-void ResourceManager::aliasRelease(ResourceMemoryId memory_id)
-{
-  // add id to "aliased/non-resident" pool that can be reused or deallocated
-  // but for now just free it here as shortcut
-  ResourceMemory &mem = resAllocationsPool[memory_id];
-  G_ASSERT(mem.isValid());
-  perMemoryTypeMethods[(int)mem.memType].free(mem);
-  mem.invalidate();
-}
 
 void ResourceManager::onBackFrameEnd() { processHotMem(); }
 
@@ -506,7 +506,7 @@ void ResourceManager::printStats(bool list_resources, bool allocator_info)
 
     auto statPrintCb = [&perResTypeSize, &statBuffer](Resource *i) {
       ResourceStatData ret{0, i->printStatLog()};
-      if (i->isManaged())
+      if (i->isManaged() && i->isResident())
       {
         ret.totalSz = i->getMemory().size;
         perResTypeSize[(int)i->getResType()] += i->getMemory().originalSize;

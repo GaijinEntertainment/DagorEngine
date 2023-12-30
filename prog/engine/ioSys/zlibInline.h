@@ -25,13 +25,13 @@ public:
                 ? deflateInit2(&strm, level, Z_DEFLATED, -MAX_WBITS, MAX_MEM_LEVEL >= 8 ? 8 : MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY)
                 : deflateInit(&strm, level);
     if (err != Z_OK)
-      fatal("zlib error %d in %s", err, "deflateInit");
+      DAG_FATAL("zlib error %d in %s", err, "deflateInit");
   }
   ~ZLibPacker()
   {
     int err = deflateEnd(&strm);
     if (err != Z_OK)
-      fatal("zlib error %d in %s", err, "deflateEnd");
+      DAG_FATAL("zlib error %d in %s", err, "deflateEnd");
   }
   // returns Z_OK or Z_STREAM_END
   int pack(void *&inp, unsigned &insz, void *&outp, unsigned &outsz, int flush)
@@ -46,7 +46,7 @@ public:
     outp = strm.next_out;
     outsz = strm.avail_out;
     if (err != Z_OK && err != Z_STREAM_END)
-      fatal("zlib error %d in %s", err, "deflate");
+      DAG_FATAL("zlib error %d in %s", err, "deflate");
     return err;
   }
 };
@@ -102,7 +102,7 @@ public:
       if (err == Z_STREAM_END)
         break;
       if (err != Z_OK)
-        fatal("pack error %d", err);
+        DAG_FATAL("pack error %d", err);
     }
   }
 

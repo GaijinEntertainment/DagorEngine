@@ -93,7 +93,7 @@ shader build_dacloud_volume_ps
   WRITE_BUILD_VOLUME(ps)
 
   hlsl(ps) {
-    half ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    float ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
     {
       if (input.slice_index == 0 || !skies_has_clouds)
         return 1;

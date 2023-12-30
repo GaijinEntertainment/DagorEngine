@@ -416,17 +416,16 @@ static bool is_cluster_on_cascade(const BBox2 &box, const float3 &sph)
   float r = sph.z;
   float dmin = 0;
   if (pos.x < box.getMin().x)
-    dmin += SQR(pos.x - box.getMin().x);
+    dmin += sqr(pos.x - box.getMin().x);
   if (pos.x > box.getMax().x)
-    dmin += SQR(pos.x - box.getMax().x);
+    dmin += sqr(pos.x - box.getMax().x);
 
   if (pos.y < box.getMin().y)
-    dmin += SQR(pos.y - box.getMin().y);
+    dmin += sqr(pos.y - box.getMin().y);
   if (pos.y > box.getMax().y)
-    dmin += SQR(pos.y - box.getMax().y);
+    dmin += sqr(pos.y - box.getMax().y);
 
-  float sqr = SQR(r);
-  bool value = dmin <= sqr;
+  bool value = dmin <= sqr(r);
   return value;
 }
 
@@ -482,7 +481,7 @@ float3 ClusterWind::getBlastAtPosForParticle(const float3 &pos)
       continue;
     if (i > 0)
       for (int j = 0; j < i; ++j)
-        boxId += SQR(clusterWindRenderer->getClusterCascadeDescForCpuSim(j).boxWidthNum);
+        boxId += sqr(clusterWindRenderer->getClusterCascadeDescForCpuSim(j).boxWidthNum);
     if (boxId < 0)
       continue;
     for (int j = 0; j < cascade.clusterPerBox; ++j)
@@ -504,11 +503,11 @@ float3 ClusterWind::getBlastAtPosForParticle(const float3 &pos)
       float3 relPos = pos - float3(clusterDesc.sphere.x, clusterDesc.sphere.y, clusterDesc.sphere.z);
       float lenSq = lengthSq(relPos);
       float relRad = clusterDesc.time * BOMBS_BLAST_AIR_SPEED;
-      if (lenSq >= SQR(relRad) || relRad > (clusterDesc.sphere.w + DISK_RADIUS))
+      if (lenSq >= sqr(relRad) || relRad > (clusterDesc.sphere.w + DISK_RADIUS))
         continue;
 
       float len = sqrtf(lenSq);
-      float bandPower = SQR(1.f - len / relRad);
+      float bandPower = sqr(1.f - len / relRad);
 
       float3 vec = len > FLT_MIN ? relPos / len : float3(0, 0, 0);
       result += vec * bandPower * clusterDesc.power * particlesForceMul;
@@ -536,7 +535,7 @@ Point3 ClusterWind::getBlastAtPosForAntenna(const Point3 &pos)
           break;
         Point3 clusterToParticle =
           pos - Point3(clusterWinds[clusterId].sphere.x, clusterWinds[clusterId].sphere.y, clusterWinds[clusterId].sphere.z);
-        if (lengthSq(clusterToParticle) > SQR(clusterWinds[clusterId].sphere.w))
+        if (lengthSq(clusterToParticle) > sqr(clusterWinds[clusterId].sphere.w))
           continue;
         float clusterToParticleLength = length(clusterToParticle);
         float clusterToParticleLengthInv = clusterToParticleLength > FLT_MIN ? 1.f / clusterToParticleLength : 0;
@@ -567,7 +566,7 @@ Point3 ClusterWind::getBlastAtPosForAntenna(const Point3 &pos)
             Point2(clusterWinds[clusterId].direction.x, clusterWinds[clusterId].direction.z) * clusterWinds[clusterId].sphere.w;
           Point2 ldir = p1 - p0;
           Point2 toProjetcPoint = Point2(pos.x, pos.z) - p0;
-          float projectedLength = dot(toProjetcPoint, ldir) / SQR(clusterWinds[clusterId].sphere.w * 2.0);
+          float projectedLength = dot(toProjetcPoint, ldir) / sqr(clusterWinds[clusterId].sphere.w * 2.0);
           float power = sin(projectedLength * PI);
           weight += power; //[0,1]
           power *= powerFallof;

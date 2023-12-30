@@ -9,7 +9,7 @@ Pattern matching
 
 .. _match:
 
-The MATCH module implements pattern matching in daScript.
+The MATCH module implements pattern matching in Daslang.
 (See also the :ref:`pattern-matching` section.)
 
 All functions and symbols are in "match" module, use require to get access to it. ::
@@ -21,29 +21,29 @@ All functions and symbols are in "match" module, use require to get access to it
 Call macros
 +++++++++++
 
-.. _call-macro-match-multi_match:
-
-.. das:attribute:: multi_match
-
-Implements `multi_match` macro.
-
 .. _call-macro-match-match:
 
 .. das:attribute:: match
 
 Implements `match` macro.
 
-.. _call-macro-match-static_multi_match:
-
-.. das:attribute:: static_multi_match
-
-Implements `static_multi_match` macro.
-
 .. _call-macro-match-static_match:
 
 .. das:attribute:: static_match
 
 Implements `static_match` macro.
+
+.. _call-macro-match-multi_match:
+
+.. das:attribute:: multi_match
+
+Implements `multi_match` macro.
+
+.. _call-macro-match-static_multi_match:
+
+.. das:attribute:: static_multi_match
+
+Implements `static_multi_match` macro.
 
 ++++++++++++++++
 Structure macros

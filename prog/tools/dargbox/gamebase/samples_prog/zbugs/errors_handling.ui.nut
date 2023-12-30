@@ -1,14 +1,14 @@
 from "%darg/ui_imports.nut" import *
 
 //this better be syntax error in squirrel!
-let function fatal_bad_return() {
+function fatal_bad_return() {
   return
   { } //-unreachable-code
 }
 
-let function fatal_bad_components() {
-  let function retintfromfunction(){return 1}
-  let function retfunctionfromfunction(){return @(){}}
+function fatal_bad_components() {
+  function retintfromfunction(){return 1}
+  function retfunctionfromfunction(){return @(){}}
   return{
     children = [
       retfunctionfromfunction
@@ -16,12 +16,12 @@ let function fatal_bad_components() {
     ]
   }
 }
-let function badobservable(){
+function badobservable(){
   return {
     watch = false
   }
 }
-let function fatal_unknown_prop_type() {
+function fatal_unknown_prop_type() {
   return {
     size = 1
     color = 2
@@ -31,7 +31,7 @@ let function fatal_unknown_prop_type() {
   }
 }
 
-let function fatals() {
+function fatals() {
   let a = 10
   return {
     size = flex()

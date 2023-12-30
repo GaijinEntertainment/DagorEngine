@@ -87,7 +87,7 @@ endmacro
 
 macro LIGHTNING_PS()
   hlsl(ps) {
-    half4 lightning_bolt_ps(VsOutput input) : SV_Target0
+    float4 lightning_bolt_ps(VsOutput input) : SV_Target0
     {
       half4 diffuseColor = half4(get_emission_color().xyz, 1.0);
       diffuseColor.a = min(lightning_bolt_params.y, 1.0f);
@@ -98,7 +98,7 @@ macro LIGHTNING_PS()
       diffuseColor.rgb *= pow4(fadeinVal);
       if (floor(worldPos.y * lightning_bolt_params.z) < lightning_bolt_params.x)
         diffuseColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
-      return half4(pack_hdr(diffuseColor.rgb), diffuseColor.a);
+      return float4(pack_hdr(diffuseColor.rgb), diffuseColor.a);
     }
   }
   compile("target_ps", "lightning_bolt_ps");

@@ -977,7 +977,7 @@ shader clouds2_temporal_ps, clouds2_close_temporal_ps, clouds2_direct
   hlsl(ps) {
     struct PS_CLOUDS_RET
     {
-      half4 target0            : SV_Target0;
+      float4 target0            : SV_Target0;
       #if HAS_DEPTH_TARGET
       float target1            : SV_Target1;
       #endif
@@ -1135,9 +1135,9 @@ shader clouds_panorama, clouds_alpha_panorama
   hlsl(ps) {
     struct PS_CLOUDS_RET
     {
-      half4 target0            : SV_Target0;
+      float4 target0            : SV_Target0;
     ##if shader != clouds_alpha_panorama && clouds_panorama_depth_out == on
-      half4 target1            : SV_Target1;
+      float4 target1            : SV_Target1;
     ##endif
     };
 

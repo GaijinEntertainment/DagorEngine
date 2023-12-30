@@ -53,6 +53,7 @@ uint32_t d3dformat_to_texfmt(/*D3DFORMAT*/ uint32_t fmt)
     case TEXFMT_A32B32G32R32UI:
     case TEXFMT_R32G32UI:
     case TEXFMT_R32UI:
+    case TEXFMT_R32SI:
     case TEXFMT_R11G11B10F:
     case TEXFMT_R9G9B9E5:
     case TEXFMT_R8G8:

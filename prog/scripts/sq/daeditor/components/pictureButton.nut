@@ -5,7 +5,7 @@ let {endswith} = require("string")
 
 let defSize = [hdpx(21), hdpx(21)]
 
-let function imagePic(params){
+function imagePic(params){
   local image = params?.image
   let size = params?.size ?? defSize
 
@@ -20,7 +20,7 @@ let function imagePic(params){
   }
 }
 
-let function canvasPic(params){
+function canvasPic(params){
   return{
     rendObj = ROBJ_VECTOR_CANVAS
     image = params?.image
@@ -29,13 +29,13 @@ let function canvasPic(params){
   }.__update(params?.canvasObj ?? {})
 }
 
-let function picCmp(params){
+function picCmp(params){
   if (params?.canvasObj)
     return canvasPic(params)
   return imagePic(params)
 }
 
-let function pictureButton(params) {
+function pictureButton(params) {
   let stateFlags = Watched(0)
 
   return function() {

@@ -564,7 +564,7 @@ protected:
       }
     }
 
-    const value_type temp  = value;
+    const value_type temp  = value; //-V1002
     pointer mpEnd = end();
     const size_type nExtra = static_cast<size_type>(mpEnd - destPosition);
 

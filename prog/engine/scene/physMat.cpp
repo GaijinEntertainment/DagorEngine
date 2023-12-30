@@ -12,7 +12,7 @@
 void AssertPhysMatID_Valid(const char *file, int ln, PhysMat::MatID id)
 {
   if (!IsPhysMatID_Valid(id))
-    _core_fatal(file, ln, true, "phys mat id=%d is invalid (matnum=%d)", id, PhysMat::physMatCount());
+    _core_fatal(file, ln, "phys mat id=%d is invalid (matnum=%d)", id, PhysMat::physMatCount());
 }
 
 inline int stringIndex(const Tab<SimpleString> &tab, const char *s)
@@ -82,7 +82,7 @@ void InteractProps::load(const DataBlock &blk)
     {
       FXDesc *newFx = getFx(blk.getStr(i));
       if (!newFx)
-        fatal("cannot find matfx='%s'", blk.getStr(i));
+        DAG_FATAL("cannot find matfx='%s'", blk.getStr(i));
       fx.push_back(newFx);
     }
   }
@@ -289,12 +289,12 @@ void init(const char *filename, const DataBlock *loadedBlk, register_mat_props_c
   // load materials
   const DataBlock *materialsBlk = blk.getBlockByName("PhysMats");
   if (!materialsBlk)
-    fatal("'PhysMats' section required! (%s)", filename);
+    DAG_FATAL("'PhysMats' section required! (%s)", filename);
 
   // default params
   const DataBlock *defMatBlk = materialsBlk->getBlockByName("__DefaultParams");
   if (!defMatBlk)
-    fatal("'__DefaultParams' section required in 'PhysMats'! (%s)", filename);
+    DAG_FATAL("'__DefaultParams' section required in 'PhysMats'! (%s)", filename);
 
   loadMaterial(def, def, defMatBlk, register_mat_props_cb, ud);
 
@@ -310,7 +310,7 @@ void init(const char *filename, const DataBlock *loadedBlk, register_mat_props_c
     // mat name
     mat.name = matBlk->getBlockName();
     if (mat.name.length() == 0)
-      fatal("Empty physmat names is not allowed! (%s)", filename);
+      DAG_FATAL("Empty physmat names is not allowed! (%s)", filename);
 
     // material params
     loadMaterial(mat, def, matBlk, register_mat_props_cb, ud);
@@ -328,11 +328,11 @@ void init(const char *filename, const DataBlock *loadedBlk, register_mat_props_c
 
       curFx.type = getFxType(colFxBlk->getBlockName());
       if (curFx.type == PMFX_INVALID)
-        fatal("Invalid fx type '%s' (%s)", colFxBlk->getBlockName(), filename);
+        DAG_FATAL("Invalid fx type '%s' (%s)", colFxBlk->getBlockName(), filename);
 
       const char *fxName = colFxBlk->getStr("name", NULL);
       if (!fxName)
-        fatal("Empty fx names is not allowed! (type '%s') (%s)", colFxBlk->getBlockName(), filename);
+        DAG_FATAL("Empty fx names is not allowed! (type '%s') (%s)", colFxBlk->getBlockName(), filename);
       curFx.name = fxName;
       curFx.params.loadFromBlk(*colFxBlk);
     }
@@ -363,7 +363,7 @@ void init(const char *filename, const DataBlock *loadedBlk, register_mat_props_c
       BFClassID bf;
       bf = stringIndex(bfClasses, propBlk->getBlockName());
       if (bf == PHYSMAT_INVALID)
-        fatal("bf_class '%s' not found while loading defaults for BfClasses!", propBlk->getBlockName());
+        DAG_FATAL("bf_class '%s' not found while loading defaults for BfClasses!", propBlk->getBlockName());
       defProps[bf].id = 0;
       defProps[bf].load(*propBlk);
     }
@@ -388,7 +388,7 @@ void init(const char *filename, const DataBlock *loadedBlk, register_mat_props_c
   // fill with user values
   ipropsBlk = blk.getBlockByName("InteractPropsList");
   if (!ipropsBlk)
-    fatal("'InteractPropsList' section required! (%s)", filename);
+    DAG_FATAL("'InteractPropsList' section required! (%s)", filename);
 
   Tab<bool> initedByUser(tmpmem);
   initedByUser.resize(bfClasses.size() * bfClasses.size());
@@ -400,20 +400,21 @@ void init(const char *filename, const DataBlock *loadedBlk, register_mat_props_c
     BFClassID bf1;
     bf1 = stringIndex(bfClasses, prop1Blk->getBlockName());
     if (bf1 == PHYSMAT_INVALID)
-      fatal("bf_class '%s' not found while loading interact props!", prop1Blk->getBlockName());
+      DAG_FATAL("bf_class '%s' not found while loading interact props!", prop1Blk->getBlockName());
 
     for (int j = 0; j < prop1Blk->blockCount(); j++)
     {
       const DataBlock *prop2Blk = prop1Blk->getBlock(j);
       BFClassID bf2 = stringIndex(bfClasses, prop2Blk->getBlockName());
       if (bf2 == PHYSMAT_INVALID)
-        fatal("bf_class '%s' not found while loading interact props for '%s'!", prop2Blk->getBlockName(), prop1Blk->getBlockName());
+        DAG_FATAL("bf_class '%s' not found while loading interact props for '%s'!", prop2Blk->getBlockName(),
+          prop1Blk->getBlockName());
 
       InteractID iid = getInteractIdPM(bf1, bf2);
 
       if (initedByUser[iid])
       {
-        fatal("'%s' and '%s' interact props already set!", (const char *)bfClasses[bf1], (const char *)bfClasses[bf2]);
+        DAG_FATAL("'%s' and '%s' interact props already set!", (const char *)bfClasses[bf1], (const char *)bfClasses[bf2]);
       }
 
       inited[iid] = true;
@@ -493,7 +494,7 @@ void init(const char *filename, const DataBlock *loadedBlk, register_mat_props_c
     }
 
     if (notInitCount)
-      fatal("%d InteractProps are not inited!", notInitCount);
+      DAG_FATAL("%d InteractProps are not inited!", notInitCount);
     debug("Checking ok...");
   }
 }

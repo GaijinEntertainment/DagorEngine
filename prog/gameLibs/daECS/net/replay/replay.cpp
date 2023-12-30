@@ -255,7 +255,7 @@ struct ReplayFileReader
         {
           if (df_read(fp, &keyFrameTable[i], sizeof(KeyFrameInfo)) != sizeof(KeyFrameInfo))
           {
-            fatal("[Replay] Failed read key frame %i", i);
+            DAG_FATAL("[Replay] Failed read key frame %i", i);
             keyFrameTable.clear();
             df_seek_to(fp, pos);
             return;

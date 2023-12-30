@@ -1133,7 +1133,7 @@ bool OpenXRDevice::recreateOpenXr()
   {
     if (::get_time_msec() > startTime + 2000)
     {
-      fatal("[XR][device] Flushing the rendering pipeline is failed within 2 seconds!");
+      DAG_FATAL("[XR][device] Flushing the rendering pipeline is failed within 2 seconds!");
       return false;
     }
 

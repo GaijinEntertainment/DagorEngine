@@ -274,7 +274,7 @@ int TextureRemapHelper::addTextureName(const char *src_fname)
       return -1;
     }
     name = a->getName();
-    strlwr(name);
+    dd_strlwr(name);
     return texname.addNameId(name);
   }
 
@@ -283,7 +283,7 @@ int TextureRemapHelper::addTextureName(const char *src_fname)
     DAEDITOR3.conError("cannot resolve texture ref: %s", fname);
     return -1;
   }
-  strlwr(name);
+  dd_strlwr(name);
 
   return (validateTexture_(name)) ? texname.addNameId(name) : -1;
 }
@@ -324,7 +324,7 @@ int TextureRemapHelper::getTextureOrdinal(const char *src_fname) const
       return -1;
     }
     name = a->getName();
-    strlwr(name);
+    dd_strlwr(name);
     return texname.getNameId(name);
   }
 
@@ -333,7 +333,7 @@ int TextureRemapHelper::getTextureOrdinal(const char *src_fname) const
     DAEDITOR3.conError("cannot resolve texture ref: %s", fname);
     return -1;
   }
-  strlwr(name);
+  dd_strlwr(name);
 
   return texname.getNameId(name);
 }

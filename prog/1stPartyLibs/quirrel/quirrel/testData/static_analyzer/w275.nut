@@ -1,3 +1,4 @@
+#allow-switch-statement
 //expect:w275
 
 let function fn(x) { //-declared-never-used

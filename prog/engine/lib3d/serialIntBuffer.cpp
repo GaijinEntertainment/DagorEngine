@@ -91,7 +91,7 @@ void term_serial()
     del_d3dres(serial_ints);
   if (serial_ints_counter < 0)
   {
-    fatal("non paired termination of serial buffer");
+    DAG_FATAL("non paired termination of serial buffer");
     serial_ints_counter = 0;
   }
 }

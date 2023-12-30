@@ -72,4 +72,6 @@ void renderRendinstShadowsToTextures(const Point3 &sunDir0);
 
 void renderDebug();
 
+bool update_rigen_color(const char *name, E3DCOLOR from, E3DCOLOR to);
+
 }; // namespace rendinst::render

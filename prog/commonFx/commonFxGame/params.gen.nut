@@ -1,3 +1,4 @@
+// disable: -file:plus-string
 from "dagor.math" import Color3, Point2, Point3
 
 let {file} = require("io")
@@ -6,6 +7,7 @@ let glob_types = {}
 
 let codegen = {
   function writeFile(fn, text) {
+    println($"writing file: {fn}")
     let f = file(fn, "wt")
     f.writestring(text)
     f.close()
@@ -20,19 +22,17 @@ let class OutputText {
     this.text=""
   }
 
-  function append(s)
-  {
+  function append(s) {
     local len=s.len()
 
     for (local i=0; i<len; ) {
       local e=s.indexof("\r\n", i)
       if (e==null) {
-        this.text += s.slice(i)
+        this.text = "".concat(this.text, s.slice(i))
         break
       }
 
-      this.text += s.slice(i, e)
-      this.text += "\n"
+      this.text = "".concat(this.text, s.slice(i, e),"\n")
 
       i=e+2
     }
@@ -65,19 +65,19 @@ glob_tools_text.append("#include <fx/effectClassTools.h>\n\n")
 let class BaseParam {
   paramName = null
 
-  function createDecl(name, decl) {
+  function createDecl(_name, _decl) {
     error("bug: BaseParam::createDecl() called")
     return null
   }
 
-  function generateDeclText(text) {}
+  function generateDeclText(_text) {}
 
-  function generateLoadText(text) {}
+  function generateLoadText(_text) {}
 
   function generateTunedParamText() { return "/* FIXME: no code! */" }
 
   function generateTunedMemberText(text) {
-    text.append("  elems.push_back("+this.generateTunedParamText()+");\n")
+    text.append("".concat("  elems.push_back(", this.generateTunedParamText(), ");\n"))
   }
 }
 
@@ -86,19 +86,16 @@ let class BaseParam {
 let class InvalidParam (BaseParam) {
   typeName=null
 
-  constructor(name, type)
-  {
+  constructor(name, typ) {
     this.paramName=name
-    this.typeName=type.tostring()
+    this.typeName=typ.tostring()
   }
 
-  function generateDeclText(text)
-  {
+  function generateDeclText(text) {
     text.append($"  //== FIXME: {this.typeName} {this.paramName};  // <- invalid param\n")
   }
 
-  function generateLoadText(text)
-  {
+  function generateLoadText(text) {
     text.append($"    //== FIXME: {this.paramName}.load(ptr, len);  // <- invalid param\n")
   }
 
@@ -124,9 +121,8 @@ let class RefSlotParam (BaseParam) {
   }
 
   function generateLoadText(text) {
-    if (this.slotType == "Effects")
-    {
-      let idName = this.paramName + "_id";
+    if (this.slotType == "Effects") {
+      let idName = $"{this.paramName}_id";
       text.append($"    int {idName} = readType<int>(ptr, len);\n")
       text.append($"    {this.paramName} = load_cb->getReference({idName});\n")
       text.append($"    if ({this.paramName} == nullptr && load_cb->getBrokenRefName({idName}))\n")
@@ -175,7 +171,7 @@ let class CubicCurveParam (BaseParam) {
 glob_types.cubic_curve <- CubicCurveParam(null, {})
 
 let class GradientBoxParam (BaseParam) {
-  constructor(name, decl) {
+  constructor(name, _decl) {
     this.paramName=name;
   }
 
@@ -364,9 +360,9 @@ glob_types.Point3 <- Point3Param(null, {})
 let class TypeRefParam (BaseParam) {
   typeRef = null
 
-  constructor(name, type) {
+  constructor(name, typ) {
     this.paramName=name
-    this.typeRef=type
+    this.typeRef=typ
   }
 
   function generateDeclText(text) {
@@ -391,10 +387,8 @@ let class DynArrayParam (BaseParam) {
     this.paramName=name
 
     let etype=decl.elemType
-    if (etype!=null)
-    {
-      if (!(etype in glob_types))
-      {
+    if (etype!=null) {
+      if (!(etype in glob_types)) {
         this.typeRef=InvalidParam(etype, etype)
         codegen.error("Unknown type "+etype)
       }
@@ -411,7 +405,7 @@ let class DynArrayParam (BaseParam) {
   }
 
   function generateDeclText(text) {
-    text.append("  SmallTab<"+this.typeRef.paramName+"> "+this.paramName+";\n")
+    text.append("".concat("  SmallTab<", this.typeRef.paramName, "> "+this.paramName, ";\n"))
   }
 
   function generateLoadText(text) {
@@ -425,9 +419,9 @@ let class DynArrayParam (BaseParam) {
   }
 
   function generateTunedMemberText(text) {
-    text.append("  elems.push_back(create_tuned_array(\""+this.paramName+"\", " +this.typeRef.paramName+"::createTunedElement(\""+this.typeRef.paramName+"\")));\n")
+    text.append("".concat("  elems.push_back(create_tuned_array(\"", this.paramName, "\", ", this.typeRef.paramName, "::createTunedElement(\"", this.typeRef.paramName, "\")));\n"))
     if (this.memberToShowInCaption != null)
-      text.append("  set_tuned_array_member_to_show_in_caption(*elems.back(), \""+this.memberToShowInCaption+"\");\n\n")
+      text.append("".concat("  set_tuned_array_member_to_show_in_caption(*elems.back(), \"", this.memberToShowInCaption, "\");\n\n"))
   }
 }
 
@@ -494,7 +488,7 @@ let class ExternStruct (BaseParam) {
     this.paramName=name
   }
 
-  function createDecl(name, decl) {
+  function createDecl(name, _decl) {
     return TypeRefParam(name, this)
   }
 }
@@ -512,7 +506,7 @@ let class ParamStruct (BaseParam) {
   }
 
 
-  function createDecl(name, decl) {
+  function createDecl(name, _decl) {
     return TypeRefParam(name, this)
   }
 
@@ -520,7 +514,7 @@ let class ParamStruct (BaseParam) {
   function generateDeclText(text) {
     text.append("\nclass "+this.paramName+"\n{\npublic:\n")
 
-    foreach (index,mem in this.members)
+    foreach (mem in this.members)
       mem.generateDeclText(text)
 
     text.append("\n\n")
@@ -532,7 +526,7 @@ let class ParamStruct (BaseParam) {
 
     text.append("    CHECK_FX_VERSION(ptr, len, "+this.version+");\n\n")
 
-    foreach(index, mem in this.members)
+    foreach (mem in this.members)
       mem.generateLoadText(text)
 
     text.append("  }\n")
@@ -547,7 +541,7 @@ let class ParamStruct (BaseParam) {
     text.append("  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);\n")
     text.append("  elems.reserve("+this.members.len()+");\n\n")
 
-    foreach (index, mem in this.members)
+    foreach (mem in this.members)
       mem.generateTunedMemberText(text)
 
     text.append("\n  return ScriptHelpers::create_tuned_struct(name, "+this.version+", elems);\n");
@@ -591,8 +585,7 @@ let function declare_struct(name, version, list) {
     }
 
     local etype=decl.type
-    if (!(etype in glob_types))
-    {
+    if (!(etype in glob_types)) {
       s.addMember(InvalidParam(decl.name, etype))
       codegen.error("Unknown type "+etype)
       continue
@@ -631,13 +624,14 @@ let function include_decl_h(name) {
 
 let function begin_declare_params(name) {
   module_name = name
-  include_decl_h(module_name)
+  include_decl_h(name)
 }
 
 
 let function end_module() {
-  write_declarations($"{module_name}_decl.h")
-  write_tools_code($"../commonFxTools/{module_name}_tools.cpp")
+  let fname = "".concat(module_name.slice(0,1).tolower(), module_name.slice(1))
+  write_declarations($"{fname}_decl.h")
+  write_tools_code($"../commonFxTools/{fname}_tools.cpp")
 
   module_name=null
 }

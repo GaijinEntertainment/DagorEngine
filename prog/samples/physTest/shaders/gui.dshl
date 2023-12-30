@@ -149,7 +149,7 @@ shader gui_default
     struct VsInput
     {
       int2 pos: POSITION;
-      half4 col: COLOR0;
+      float4 col: COLOR0;
     ##if hasTexture != texOff
       int2 tc0: TEXCOORD0;
       ##if hasTexture >= texFontL8 && fontFxType != no
@@ -205,9 +205,9 @@ shader gui_default
   {
     hlsl(ps) {
 
-      half4 gui_default_ps_1(VsOutput input) : SV_Target
+      float4 gui_default_ps_1(VsOutput input) : SV_Target
       {
-        RETURN_ATEST(((half4)tex2D(tex, input.tc)) * input.col * gui_color_mult);
+        RETURN_ATEST((tex2D(tex, input.tc)) * input.col * gui_color_mult);
       }
     }
     compile("target_ps", "gui_default_ps_1");
@@ -217,7 +217,7 @@ shader gui_default
     hlsl(ps) {
 
     ##if fontFxType == no
-      half4 font_draw_ps(VsOutput v): SV_Target
+      float4 font_draw_ps(VsOutput v): SV_Target
       {
       ##if fontTex2 != NULL
         float4 t2 = tex2D(fontTex2, v.f2_tc);
@@ -316,7 +316,7 @@ shader gui_default
   else
   {
     hlsl(ps) {
-      half4 gui_default_ps_3(VsOutput input) : SV_Target
+      float4 gui_default_ps_3(VsOutput input) : SV_Target
       {
         RETURN_ATEST(input.col);
       }

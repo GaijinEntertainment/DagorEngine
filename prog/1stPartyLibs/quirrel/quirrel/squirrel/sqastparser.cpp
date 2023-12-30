@@ -96,12 +96,14 @@ static const SQPragmaDescriptor pragmaDescriptors[] = {
   { "allow-root-table", 0, LF_FORBID_ROOT_TABLE },
   { "disable-optimizer", LF_DISABLE_OPTIMIZER, 0 },
   { "enable-optimizer", 0, LF_DISABLE_OPTIMIZER },
-  { "forbid-extends-keyword", LF_FORBID_EXTENDS, 0 },
-  { "allow-extends-keyword", 0, LF_FORBID_EXTENDS },
+  { "forbid-extends-keyword", LF_FORBID_EXTENDS_KW, 0 },
+  { "allow-extends-keyword", 0, LF_FORBID_EXTENDS_KW },
   { "forbid-delete-operator", LF_FORBID_DELETE_OP, 0 },
   { "allow-delete-operator", 0, LF_FORBID_DELETE_OP },
   { "forbid-clone-operator", LF_FORBID_CLONE_OP, 0 },
   { "allow-clone-operator", 0, LF_FORBID_CLONE_OP },
+  { "forbid-switch-statement", LF_FORBID_SWITCH_STMT, 0 },
+  { "allow-switch-statement", 0, LF_FORBID_SWITCH_STMT },
   { "forbid-implicit-default-delegates", LF_FORBID_IMPLICIT_DEF_DELEGATE, 0 },
   { "allow-implicit-default-delegates", 0, LF_FORBID_IMPLICIT_DEF_DELEGATE }
 };
@@ -171,7 +173,12 @@ void SQParser::Lex()
             break;
     }
 
-    if (_token == TK_CLONE && (_lang_features & LF_FORBID_CLONE_OP)) {
+    const bool forceIdentifier =
+           (_token == TK_CLONE && (_lang_features & LF_FORBID_CLONE_OP))
+        || (_token == TK_EXTENDS && (_lang_features & LF_FORBID_EXTENDS_KW))
+        || ((_token == TK_SWITCH || _token == TK_CASE || _token == TK_DEFAULT) && (_lang_features & LF_FORBID_SWITCH_STMT));
+
+    if (forceIdentifier) {
       _token = TK_IDENTIFIER;
       _lex.SetStringValue();
     }
@@ -632,7 +639,7 @@ Expr* SQParser::CompExp()
         case TK_INSTANCEOF: lhs = BIN_EXP(&SQParser::ShiftExp, TO_INSTANCEOF, lhs); break;
         case TK_NOT: {
             Lex();
-            SQInteger l = line(), c = column(), w = width();
+            SQInteger l = line(), c = column();
             if (_token == TK_IN) {
                 lhs = BIN_EXP(&SQParser::ShiftExp, TO_IN, lhs);
                 lhs = setCoordinates(newNode<UnExpr>(TO_NOT, lhs), l, c);
@@ -1328,7 +1335,6 @@ IfStatement* SQParser::parseIfStatement()
     Statement *elseB = NULL;
     if (_token == TK_ELSE) {
         SQInteger el = line(), ec = column(), ew = width();
-        SQInteger prevTok2 = _lex._prevtoken;
         Lex();
         if (_token != _SC('{') && prevTok != TK_ELSE && wrapped && l != el && c != ec) {
           _ctx.reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT, el, ec, ew);
@@ -1808,9 +1814,6 @@ ClassDecl* SQParser::ClassExp(Expr *key)
     SQInteger l = line(), c = column();
     Expr *baseExpr = NULL;
     if(_token == TK_EXTENDS) {
-        if (_lang_features & LF_FORBID_EXTENDS) {
-          reportDiagnostic(DiagnosticsId::DI_OLD_STYLE_EXTEND_FORBIDDEN);
-        }
         Lex();
         baseExpr = Expression(SQE_RVALUE);
     }
@@ -1902,7 +1905,6 @@ FunctionDecl* SQParser::CreateFunction(Id *name, bool lambda, bool ctor)
     Expect(_SC(')'));
 
     Block *body = NULL;
-    SQInteger startLine = _lex._currentline;
 
     SQUnsignedInteger savedLangFeatures = _lang_features;
 

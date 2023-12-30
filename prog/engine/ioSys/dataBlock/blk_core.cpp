@@ -188,7 +188,7 @@ __forceinline T DataBlock::get(uint32_t param_idx, const T &def) const
     //  I am not sure if it is ever needed, and it's messy
     if (TypeOf<T>::type == TYPE_INT && p.type == TYPE_INT64)
     {
-      int64_t v = *(int64_t *)rwDataAt(getUsedSize() + pv);
+      int64_t v = memcpy_cast<int64_t>(rw ? rwDataAt(getUsedSize() + pv) : roDataAt(pv));
       if (DAGOR_LIKELY(v == int32_t(v)))
         return memcpy_cast<T, int32_t>(v);
     }

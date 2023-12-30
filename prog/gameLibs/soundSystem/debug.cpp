@@ -1,4 +1,4 @@
-#include <EASTL/map.h>
+#include <dag/dag_vectorMap.h>
 #include <EASTL/fixed_string.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/array.h>
@@ -240,7 +240,7 @@ static inline void draw_instances(int offset, const TMatrix4 &glob_tm)
   SOUND_VERIFY(get_studio_system()->getBankList(banks_list.begin(), banks_list.count, &numBanks));
   G_ASSERT(numBanks <= banks_list.count);
   numBanks = min(numBanks, (int)banks_list.count);
-  eastl::map<int, int, eastl::less<int>, framemem_allocator> commonPos;
+  dag::VectorMap<int, int, eastl::less<int>, framemem_allocator> commonPos;
   const int bottom = StdGuiRender::get_viewport().rightBottom.y;
 
   const auto banksSlice = make_span(banks_list.begin(), numBanks);
@@ -284,11 +284,10 @@ static inline void draw_instances(int offset, const TMatrix4 &glob_tm)
         if (cvt_debug_text_pos(glob_tm, sndsys::as_point3(attributes.position), pointOnScreen.x, pointOnScreen.y))
         {
           int pos = pointOnScreen.x + 10000 * pointOnScreen.y;
-          if (commonPos.find(pos) == commonPos.end())
-            commonPos.insert(eastl::make_pair(pos, 0));
-          else
-            commonPos[pos]++;
-          int yOffset = int(float(commonPos[pos]) * StdGuiRender::get_font_cell_size().y);
+          auto ins = commonPos.insert(eastl::make_pair(pos, 0));
+          if (!ins.second) // i.e. not inserted
+            ins.first->second++;
+          int yOffset = int(float(ins.first->second) * StdGuiRender::get_font_cell_size().y);
           E3DCOLOR color = get_color(*instance);
           if (g_draw_audibility)
             get_name_audibility(*instance, *desc, text);

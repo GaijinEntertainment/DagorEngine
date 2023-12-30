@@ -39,9 +39,12 @@ Sources =
 
   common/resourceUsage.cpp
 
+  frontend/dependencyDataCalculator.cpp
   frontend/nodeTracker.cpp
+  frontend/irGraphBuilder.cpp
   frontend/nameResolver.cpp
   frontend/multiplexingInternal.cpp
+  frontend/dumpInternalRegistry.cpp
 
   backend/intermediateRepresentation.cpp
   backend/nodeStateDeltas.cpp
@@ -51,7 +54,7 @@ Sources =
   backend/resourceScheduling/poolResourceScheduler.cpp
 
   runtime/nodeExecutor.cpp
-  runtime/backend.cpp
+  runtime/runtime.cpp
 ;
 
 if $(DABFG_ENABLE_DAS_INTEGRATION) = yes {

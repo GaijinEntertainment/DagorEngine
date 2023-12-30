@@ -181,7 +181,6 @@ UseProgLibs =
 ;
 
 ImportProgLibs = tools/libTools/daKernel ;
-CoExportProgDlls = $(ImportProgLibs) ;
 
 
 AddLibs +=

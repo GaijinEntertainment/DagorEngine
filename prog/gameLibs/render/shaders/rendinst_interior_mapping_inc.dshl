@@ -197,7 +197,7 @@ macro USE_RENDINST_INTERIOR_MAPPING()
   if (rendinst_render_pass == rendinst_render_pass_to_shadow)
   {
     hlsl(ps) {
-      half4 rendinst_render_depth_black_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+      float4 rendinst_render_depth_black_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
       {
         float4 screenpos = GET_SCREEN_POS(input.pos);
         #if NUKEDESTR_ACTIVE

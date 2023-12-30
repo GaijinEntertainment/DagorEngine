@@ -1,5 +1,4 @@
-#ifndef GEOM_INCLUDED // -*- C++ -*-
-#define GEOM_INCLUDED
+#pragma once
 
 ////////////////////////////////////////////////////////////////////////
 //
@@ -183,5 +182,3 @@ inline ostream &operator<<(ostream &out, const Line &l) { return out << "Line(a=
 #endif
 
 }; // namespace delaunay
-
-#endif

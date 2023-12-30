@@ -274,5 +274,5 @@ protected:
   void saveAnimBnl(DataBlock &blk, NameMap *a2d_map);
 
 
-  void AnimObjGraphTree::addBnl(const char *name, const char *a2d, int type, const DataBlock &blk);
+  void addBnl(const char *name, const char *a2d, int type, const DataBlock &blk);
 };

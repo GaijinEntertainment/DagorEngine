@@ -1,0 +1,45 @@
+macro USE_DIFFERENTIAL_UTILS(code)
+  hlsl(code) {
+    struct ValueCross
+    {
+      float left;
+      float right;
+      float top;
+      float bottom;
+    };
+    struct ValueCross2
+    {
+      float2 left;
+      float2 right;
+      float2 top;
+      float2 bottom;
+    };
+    float dval_dx(ValueCross cross, float h)
+    {
+      return (cross.right - cross.left) / (2.0 * h);
+    }
+    float dval_dy(ValueCross cross, float h)
+    {
+      return (cross.bottom - cross.top) / (2.0 * h);
+    }
+    float2 gradient(ValueCross cross, float h)
+    {
+      return float2(dval_dx(cross, h), dval_dy(cross, h));
+    }
+    float laplacian(float center, ValueCross cross, float h)
+    {
+      return (cross.right + cross.left + cross.top + cross.bottom - 4.0 * center) / (h * h);
+    }
+    // push_val is used to increase the potential of the boundary cells to make the velocity field push the fluid away from the boundary
+    float boundaryAwareLaplacian(float center, ValueCross cross, float h, bool boundaries[4], float push_val)
+    {
+      float laplacian = 0;
+      laplacian += boundaries[0] ? center + push_val / h : cross.top;
+      laplacian += boundaries[1] ? center + push_val / h : cross.right;
+      laplacian += boundaries[2] ? center + push_val / h : cross.bottom;
+      laplacian += boundaries[3] ? center + push_val / h : cross.left;
+      laplacian -= 4.0 * center;
+      return laplacian / (h * h);
+    }
+  }
+endmacro

@@ -8,11 +8,8 @@ namespace ecs
 
 InitOnDemand<SceneManager> g_scenes;
 
-bool SceneManager::loadScene(const char *path)
+void SceneManager::loadScene(const DataBlock &blk, const char *path)
 {
-  DataBlock blk(framemem_ptr());
-  if (!dblk::load(blk, path, dblk::ReadFlag::ROBUST_IN_REL)) // not ROBUST in dev to see syntax errors
-    return false;
   int import_depth = 0;
   auto onSceneEntityCreated = [this, &import_depth](ecs::EntityId eid, const char *tname, ecs::ComponentsList &&clist) {
     G_ASSERT(tname && *tname);
@@ -29,7 +26,6 @@ bool SceneManager::loadScene(const char *path)
     G_ASSERTF(import_depth >= 0, "unbalanced begin/end?");
   };
   create_entities_blk(blk, path, onSceneEntityCreated, onSceneImportBeginEnd);
-  return true;
 }
 
 } // namespace ecs

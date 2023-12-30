@@ -60,6 +60,8 @@ void draw_cached_debug_capsule(const Capsule &cap, E3DCOLOR c, const TMatrix &wt
 
 void draw_cached_debug_cylinder(const TMatrix &wtm, float rad, float height, E3DCOLOR c);
 
+void draw_cached_debug_cone(const Point3 &p0, const Point3 &p1, real angleRad, E3DCOLOR col, int segs = 24);
+
 // Draw bone link using draw_cached_debug_line().
 void draw_skeleton_link(const Point3 &local_target, real radius = 0.02f, E3DCOLOR link_color = E3DCOLOR(200, 180, 20));
 

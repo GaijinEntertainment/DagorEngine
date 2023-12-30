@@ -6,6 +6,9 @@ using namespace drv3d_vulkan;
 
 typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::PIPE_SYNC> InternalPipelineBarrier;
 
+// #define PROFILE_SYNC(x) TIME_PROFILE(x)
+#define PROFILE_SYNC(x)
+
 // universal operations sync algorithm
 // for each newly added operation, find any conflicting previous non-completed ones (conflicting = needed to be synced),
 // generate sync barriers for such operations via templated option of PipelineBarrier class
@@ -17,21 +20,23 @@ struct OpsProcessAlgorithm
   ExecutionSyncTracker::ScratchData &scratch;
   InternalPipelineBarrier &barrier;
   size_t gpuWorkId;
+  size_t lastAdded;
 
   OpsProcessAlgorithm(OpsArrayType &in_ops, ExecutionSyncTracker::ScratchData &in_scratch, InternalPipelineBarrier &in_barrier,
     size_t gpu_work_id) :
-    ops(in_ops), scratch(in_scratch), barrier(in_barrier), gpuWorkId(gpu_work_id)
+    ops(in_ops), scratch(in_scratch), barrier(in_barrier), gpuWorkId(gpu_work_id), lastAdded(ops.arr.size())
   {}
 
   void sortByObject()
   {
+    PROFILE_SYNC(vk_sync_sort);
     // sort added ops inside vector
     // and record range start-end for each unique object
-    for (size_t i = ops.lastProcessed; i < ops.arr.size();)
+    for (size_t i = ops.lastProcessed; i < lastAdded;)
     {
       void *currObj = (void *)ops.arr[i].obj;
       size_t startIdx = i;
-      for (size_t j = i + 1; j < ops.arr.size(); ++j)
+      for (size_t j = i + 1; j < lastAdded; ++j)
       {
         if (currObj == ((void *)ops.arr[j].obj))
         {
@@ -44,31 +49,35 @@ struct OpsProcessAlgorithm
           ++i;
         }
       }
-      scratch.objSorted[currObj] = {startIdx, i};
+      // last sync op is reused here to reflect "last" op in sorted single object sequence
+      ops.arr[startIdx].obj->setLastSyncOpRange(startIdx, i);
       ++i;
     }
   }
 
   void checkForSelfConflicts()
   {
-    for (const auto &i : scratch.objSorted)
+    PROFILE_SYNC(vk_sync_self_conflict_check);
+
+    // newly added ops are object sorted, use this fact to iterate faster
+    for (size_t i = ops.lastProcessed; i < lastAdded;)
     {
-      ExecutionSyncTracker::ScratchData::DstObjInfo dstOps = i.second;
-      for (size_t j = dstOps.start; j < dstOps.end; ++j)
-      {
-        for (size_t k = j + 1; k <= dstOps.end; ++k)
+      int rangeEnd = ops.arr[i].obj->getLastSyncOpIndex();
+      for (size_t k = i; k <= rangeEnd; ++k)
+        for (size_t j = k + 1; j <= rangeEnd; ++j)
         {
           // means that command stream will have conflicting RW ops that are not solvable
           // add additional sync at caller site between such ops
-          G_ASSERTF(ops.arr[j].verifySelfConflict(ops.arr[k]),
-            "vulkan: mutual-conflicting sync ops %u-%u in complete step!\n %s vs %s", j, k, ops.arr[j].format(), ops.arr[k].format());
+          G_ASSERTF(ops.arr[k].verifySelfConflict(ops.arr[j]),
+            "vulkan: mutual-conflicting sync ops %u-%u in complete step!\n %s vs %s", k, j, ops.arr[k].format(), ops.arr[j].format());
         }
-      }
+      i = rangeEnd + 1;
     }
   }
 
   void handlePartialCoverings(size_t srcOpIndex)
   {
+    PROFILE_SYNC(vk_sync_partial_covering);
     auto &srcOp = ops.arr[srcOpIndex];
     auto cachedArea = ops.arr[scratch.partialCoveringDsts[0]].area;
     scratch.coverageMap.init(srcOp.area);
@@ -114,29 +123,20 @@ struct OpsProcessAlgorithm
 
   void detectConflictingOps()
   {
-    // push once to scratch srcOps if any conflict found
-    const ExecutionSyncTracker::ScratchData::DstObjInfo emptyRefs{1, 0};
-    ExecutionSyncTracker::ScratchData::DstObjInfo objRefs = emptyRefs;
-    void *lastObj = nullptr;
+    PROFILE_SYNC(vk_sync_detect_conflicts);
 
     for (size_t i = ops.lastIncompleted; i < ops.lastProcessed; ++i)
     {
       auto &srcOp = ops.arr[i];
-      if (srcOp.completed)
+      G_ASSERTF(!srcOp.completed, "vulkan: loop reduce failed to sort out completed srcOps");
+      if (!srcOp.obj->hasLastSyncOpIndex())
         continue;
 
-      // op array is object sorted, so until object does not change, dst refs range is same
-      if (lastObj != ((void *)srcOp.obj))
-      {
-        lastObj = (void *)srcOp.obj;
-        auto objRefsIter = scratch.objSorted.find((void *)srcOp.obj);
-        objRefs = (objRefsIter == scratch.objSorted.end()) ? emptyRefs : objRefs = objRefsIter->second;
-      }
-      if (objRefs.start > objRefs.end)
-        continue;
-
+      // push once to scratch srcOps if any conflict found
       bool conflicting = false;
-      for (size_t j = objRefs.start; j <= objRefs.end; ++j)
+      size_t rStart = srcOp.obj->getFirstSyncOpIndex();
+      size_t rEnd = srcOp.obj->getLastSyncOpIndex();
+      for (size_t j = rStart; j <= rEnd; ++j)
       {
         auto &dstOp = ops.arr[j];
         if (dstOp.conflicts(srcOp))
@@ -171,22 +171,28 @@ struct OpsProcessAlgorithm
 
   void finalizeConflictSearch()
   {
+    PROFILE_SYNC(vk_sync_finalize);
     const bool fillDstScratch = scratch.src.size() > 0 || ops.arr[0].allowsConflictFromObject();
-    for (const auto &i : scratch.objSorted)
+    // newly added ops are object sorted, use this fact to iterate faster
+    for (size_t i = ops.lastProcessed; i < lastAdded;)
     {
-      const ExecutionSyncTracker::ScratchData::DstObjInfo dstOps = i.second;
       // clear last sync op in object here, as we are about to finish processing this last op
-      ops.arr[dstOps.start].obj->clearLastSyncOp();
+      size_t rangeEnd = ops.arr[i].obj->getLastSyncOpIndex();
+      ops.arr[i].obj->clearLastSyncOp();
       // fill dst ops to scratch buffer in order to not duplicate them
       if (fillDstScratch)
-        for (int j = dstOps.start; j <= dstOps.end; ++j)
+      {
+        for (size_t j = i; j <= rangeEnd; ++j)
           if (ops.arr[j].dstConflict || ops.arr[j].hasObjConflict())
             scratch.dst.push_back(j);
+      }
+      i = rangeEnd + 1;
     }
   }
 
   void buildBarrier()
   {
+    PROFILE_SYNC(vk_sync_build_barrier);
     if (scratch.src.size() == 0 && scratch.dst.size() == 0)
       return;
 
@@ -216,13 +222,12 @@ struct OpsProcessAlgorithm
 
   void reduceLoopRanges()
   {
-    for (size_t i = ops.lastIncompleted; i < ops.lastProcessed; ++i)
+    PROFILE_SYNC(vk_sync_reduce_ranges);
+    for (size_t i : scratch.src)
     {
-      if (!ops.arr[i].completed)
-      {
-        ops.lastIncompleted = i;
-        break;
-      }
+      if (i != ops.lastIncompleted)
+        ops.arr[i] = ops.arr[ops.lastIncompleted];
+      ++ops.lastIncompleted;
     }
     ops.lastProcessed = ops.arr.size();
   }
@@ -289,7 +294,7 @@ bool filterReadsOnSealedObjects(size_t gpu_work_id, OpsArrayType &ops, Resource 
       if (obj->tryRemoveRoSeal(gpu_work_id))
         return false;
       else
-        fatal("vulkan: trying to write into this work item RO sealed %s %p-%s\n%s", obj->resTypeString(), obj, obj->getDebugName(),
+        DAG_FATAL("vulkan: trying to write into this work item RO sealed %s %p-%s\n%s", obj->resTypeString(), obj, obj->getDebugName(),
           obj->getCallers());
     }
     else
@@ -345,7 +350,6 @@ void ExecutionSyncTracker::ScratchData::clear()
 {
   src.clear();
   dst.clear();
-  objSorted.clear();
 }
 
 void ExecutionSyncTracker::completeNeeded(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev)

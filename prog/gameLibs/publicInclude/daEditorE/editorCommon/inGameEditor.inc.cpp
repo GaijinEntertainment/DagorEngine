@@ -654,6 +654,8 @@ static TMatrix make_cam_spawn_tm()
   return tm;
 }
 
+/// @module entity_editor
+
 void register_editor_script(SqModules *module_mgr)
 {
   HSQUIRRELVM vm = module_mgr->getVM();

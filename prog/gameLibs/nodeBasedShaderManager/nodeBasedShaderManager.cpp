@@ -31,6 +31,7 @@ void NodeBasedShaderManager::updateBlkDataTextures(const DataBlock &shader_blk)
 {
   currentTextures2dBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_texture2D")));
   currentTextures3dBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_texture3D")));
+  currentTextures2dShdArrayBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_texture2D_shdArray")));
   currentTextures2dNoSamplerBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_texture2D_nosampler")));
   currentTextures3dNoSamplerBlk.reset(new DataBlock(*shader_blk.getBlockByNameEx("inputs_texture3D_nosampler")));
 }
@@ -457,7 +458,8 @@ bool NodeBasedShaderManager::invalidateCachedResources()
     release_managed_res(id);
   resIdsToRelease.resize(0);
 
-  nodeBasedTextures.resize(currentTextures2dBlk->paramCount() + currentTextures3dBlk->paramCount());
+  nodeBasedTextures.resize(
+    currentTextures2dBlk->paramCount() + currentTextures3dBlk->paramCount() + currentTextures2dShdArrayBlk->paramCount());
   nodeBasedTexturesNoSampler.resize(currentTextures2dNoSamplerBlk->paramCount() + currentTextures3dNoSamplerBlk->paramCount());
   nodeBasedBuffers.resize(currentBuffersBlk->paramCount());
 
@@ -465,6 +467,8 @@ bool NodeBasedShaderManager::invalidateCachedResources()
 
   fillTextureCache(nodeBasedTextures, *currentTextures2dBlk, 0, hasLoaded);
   fillTextureCache(nodeBasedTextures, *currentTextures3dBlk, currentTextures2dBlk->paramCount(), hasLoaded);
+  fillTextureCache(nodeBasedTextures, *currentTextures2dShdArrayBlk,
+    currentTextures2dBlk->paramCount() + currentTextures3dBlk->paramCount(), hasLoaded);
   fillTextureCache(nodeBasedTexturesNoSampler, *currentTextures2dNoSamplerBlk, 0, hasLoaded);
   fillTextureCache(nodeBasedTexturesNoSampler, *currentTextures3dNoSamplerBlk, currentTextures2dNoSamplerBlk->paramCount(), hasLoaded);
   fillBufferCache(*currentBuffersBlk, 0, hasLoaded);

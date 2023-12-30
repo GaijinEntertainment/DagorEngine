@@ -1,0 +1,103 @@
+//this is json with single line comments supported
+// QDox config file
+[
+{
+  "paths": ["prog/gameLibs"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/quirrel_gamelibs", //internal folder name, required
+  "chapter_desc": "Docs for Quirrel modules extracted from source in gameLibs", //displayed title, optional
+  "chapter_title": "Quirrel Gamelibs Native Modules", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "paths": ["prog/gameLibs/ecs/scripts"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/quirrel_daECS", //internal folder name, required
+  "chapter_desc": "Docs for Quirrel modules for dagor ECS", //displayed title, optional
+  "chapter_title": "Quirrel ECS", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "paths": ["prog/gameLibs/daRg"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/darg_framework", //internal folder name, required
+  "chapter_desc": "Docs for DaRG - Dagor Reactive GUI framework, based on Quirrel language and FRP.", //displayed title, optional
+  "chapter_title": "daRg framework", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "paths": ["prog/tools/dargbox"], //folders or files list, required,
+  "doc_chapter": "dargbox", //internal folder name, required
+  "chapter_desc": "Docs for DargBox - darg utlitiy application and sandbox.", //displayed title, optional
+  "chapter_title": "dargbox", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "paths": ["prog/daNetGameLibs"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/daNetGameLibs", //internal folder name, required
+  "chapter_desc": "Docs for daNetGameLibs Quirrel Modules. DaNetGameLibs can be used in any daNetGame based project", //displayed title, optional
+  "chapter_title": "daNetGameLibs", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "paths": ["prog/daNetGame"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/daNetGame", //internal folder name, required
+  "chapter_desc": "Docs for daNetGame Quirrel Modules. DaNetGame is framework for building games", //displayed title, optional
+  "chapter_title": "daNetGame", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "paths": ["launcher/client/scilauncher2/src"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/scilauncher2", //internal folder name, required
+  "chapter_desc": "Sciter Launcher2", //displayed title, optional
+  "chapter_title": "Sciter Launcher2 API", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "paths": ["skyquake/prog"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/skyquake_native", //internal folder name, required
+  "chapter_desc": "Docs for Skyquake based Quirrel Modules. VRT, WTM and WT are based on Skyquake", //displayed title, optional
+  "chapter_title": "skyquake native modules", //displayed title, optional
+  "extensions": [".cpp"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+},
+
+{
+  "paths": ["prog/gameLibs/soundSystem/quirrel"], //folders or files list, required,
+  "doc_chapter": "quirrel-modules/soundSystem", //internal folder name, required
+  "chapter_desc": "Docs for soundSystem Quirrel Modules. DaNetGameLibs can be used in any daNetGame based project", //displayed title, optional
+  "chapter_title": "soundSystem", //displayed title, optional
+  "extensions": [".cpp",".inl"], //optional, list of extensions of files
+  "exclude_dirs_re": [], //optional, list of regexps that should full match to exclude dirs in recursive search
+  "exclude_files_re": [], //optional, list of full match regexp to skip files'
+  "recursive": true //optional, do recursive search for folders'
+}
+
+]

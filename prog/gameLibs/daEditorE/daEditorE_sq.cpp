@@ -34,6 +34,9 @@ void set_point_action_preview_sq(const char *shape, float param)
     objEd()->setPointActionPreview(shape, param);
 }
 
+
+/// @module daEditorEmbedded
+
 void register_da_editor4_script(SqModules *module_mgr)
 {
   if (!curObjEdRef)

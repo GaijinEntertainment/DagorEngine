@@ -1095,7 +1095,7 @@ void EnvironmentPlugin::loadObjects(const DataBlock &blk, const DataBlock &local
       skiesSrv->fillPresets(weatherPresetsList, environmentNamesList, weatherTypesList);
 
       String preset = ::make_full_path(DAGORED2->getSdkDir(), String(blk.getStr("weatherPreset", "")));
-      strlwr(preset);
+      dd_strlwr(preset);
       selectedWeatherPreset = find_value_idx(weatherPresetsList, preset);
       if (selectedWeatherPreset < 0 && weatherPresetsList.size())
         selectedWeatherPreset = 0;

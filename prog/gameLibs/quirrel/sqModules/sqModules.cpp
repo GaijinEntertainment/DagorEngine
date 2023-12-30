@@ -26,8 +26,6 @@
 
 using namespace sqimportparser;
 
-SqModules::ModuleExeCallback SqModules::beforeExecutionCb = nullptr;
-SqModules::ModuleExeCallback SqModules::afterExecutionCb = nullptr;
 
 const char *SqModules::__main__ = "__main__";
 const char *SqModules::__fn__ = nullptr;
@@ -238,8 +236,7 @@ bool SqModules::checkCircularReferences(const String &resolved_fn, const char *r
       for (const string &stackItem : runningScripts)
         requireStack.aprintf(32, "\n * %s", stackItem.c_str());
 
-      fatal("Required script %s (%s) is currently being executed, possible circular require() call.\n"
-            "require() stack:%s",
+      DAG_FATAL("Required script %s (%s) is currently being executed, possible circular require() call.\nrequire() stack:%s",
         requested_fn, resolved_fn.str(), requireStack.str());
       return false;
     }
@@ -680,15 +677,8 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   bindModuleApi(hBindings, stateStorage, refHolder, __name__, resolvedFn.c_str());
   bindRequireApi(hBindings);
 
-  if (beforeExecutionCb)
-    beforeExecutionCb(vm, requested_fn, resolvedFn);
-
   if (!importModules(resolvedFn, bindingsTbl, imports, out_err_msg))
-  {
-    if (afterExecutionCb)
-      afterExecutionCb(vm, requested_fn, resolvedFn);
     return false;
-  }
 
   importParser.replaceImportBySpaces((char *)fileContents.data(), (char *)importPtr, keepRanges);
 
@@ -698,11 +688,7 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   hBindings._flags = SQOBJ_FLAG_IMMUTABLE;
   bool compileRes = compileScript(sourceCode, resolvedFn, requested_fn, &hBindings, scriptClosure, out_err_msg);
   if (!compileRes)
-  {
-    if (afterExecutionCb)
-      afterExecutionCb(vm, requested_fn, resolvedFn);
     return false;
-  }
 
   stackCheck.check();
 
@@ -718,9 +704,6 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   Sqrat::Object objThis(hThis, vm);
 
   SQRESULT callRes = sq_call(vm, 1, true, true);
-
-  if (afterExecutionCb)
-    afterExecutionCb(vm, requested_fn, resolvedFn);
 
   G_UNUSED(rsIdx);
   SQRAT_ASSERT(runningScripts.size() == rsIdx + 1);

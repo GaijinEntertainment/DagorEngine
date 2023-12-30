@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 
-let function box(offs, color, sortOrder) {
+function box(offs, color, sortOrder) {
   return {
     rendObj = ROBJ_SOLID
     color = color

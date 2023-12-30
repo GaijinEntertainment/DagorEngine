@@ -1,6 +1,7 @@
 texture shadow_cascade_depth_tex;
 float4 pcf_lerp = (0, 0, 0, 0);
 float start_csm_shadow_blend = 100;
+float4 csm_world_view_pos;
 
 int num_of_cascades = 4;
 interval num_of_cascades:two<3, three<4, four<5, five<6, six;
@@ -154,25 +155,29 @@ macro USE_CSM_SHADOW(code, num_cascades, for_compatibility)
   }
 endmacro
 
-macro USE_CSM_SHADOW_DEF_NUM()
+macro BASE_USE_CSM_SHADOW_DEF_NUM(code)
   if (num_of_cascades == two)
   {
-    USE_CSM_SHADOW(ps, 2, dummy)
+    USE_CSM_SHADOW(code, 2, dummy)
   }
   else if (num_of_cascades == three)
   {
-    USE_CSM_SHADOW(ps, 3, dummy)
+    USE_CSM_SHADOW(code, 3, dummy)
   }
   else if (num_of_cascades == four)
   {
-    USE_CSM_SHADOW(ps, 4, dummy)
+    USE_CSM_SHADOW(code, 4, dummy)
   }
   else if (num_of_cascades == five)
   {
-    USE_CSM_SHADOW(ps, 5, dummy)
+    USE_CSM_SHADOW(code, 5, dummy)
   }
   else
   {
-    USE_CSM_SHADOW(ps, 6, dummy)
+    USE_CSM_SHADOW(code, 6, dummy)
   }
+endmacro
+
+macro USE_CSM_SHADOW_DEF_NUM()
+  BASE_USE_CSM_SHADOW_DEF_NUM(ps)
 endmacro

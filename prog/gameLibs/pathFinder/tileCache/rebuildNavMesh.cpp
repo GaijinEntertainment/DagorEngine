@@ -448,9 +448,10 @@ static bool prepare_tile_context(rcContext &ctx, rcConfig &cfg, recastnavmesh::R
   return prepare_tile_context(ctx, cfg, tile_ctx, vertices, indices, transparent, false);
 }
 
-void collect_rendinst(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices, Tab<IPoint2> &transparent, Tab<MarkData> &obstacles)
+void collect_rendinst(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices, Tab<IPoint2> &transparent, Tab<MarkData> &obstacles,
+  const char *nav_mesh_kind)
 {
-  navmeshLayers.load();
+  navmeshLayers.load(nav_mesh_kind);
 
   RendinstVertexDataCbGame cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
     navmeshLayers.materialPools, navmeshLayers.navMeshOffsetPools, obstacles);
@@ -696,7 +697,7 @@ bool rebuildNavMesh_update_buildTiles(int n)
     extGeomBox.inflate(tileCache->getParams()->width * tileCache->getParams()->cs);
 
     collect_height_map_geometry(extGeomBox, vertices, indices);
-    collect_rendinst(extGeomBox, vertices, indices, transparent, obstacles);
+    collect_rendinst(extGeomBox, vertices, indices, transparent, obstacles, get_nav_mesh_kind(pathfinder::NM_MAIN));
     const Tab<IPoint2> noTransparent;
 
     // build tiles

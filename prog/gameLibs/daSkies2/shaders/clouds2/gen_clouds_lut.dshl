@@ -215,11 +215,11 @@ shader gen_clouds_light_texture_cs
 {
   GEN_CLOUDS_LIGHTING(cs)
   hlsl(cs) {
-    RWTexture3D<float3> output : register(u0);
+    RWTexture3D<float4> output : register(u0);
     [numthreads(8, 8, 1)]
     void cs_main(uint3 tid : SV_DispatchThreadID)
     {
-      output[tid] = clouds_light(tid.xy, tid.z);
+      output[tid] = float4(clouds_light(tid.xy, tid.z), 0);
     }
   }
   compile("cs_5_0", "cs_main");
@@ -234,7 +234,7 @@ shader gen_clouds_light_texture_ps
   GEN_CLOUDS_LIGHTING(ps)
   WRITE_TO_VOLTEX()
   hlsl(ps) {
-    half3 ps_main(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    float3 ps_main(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
       return clouds_light(int2(screenpos.xy), input.slice_index);

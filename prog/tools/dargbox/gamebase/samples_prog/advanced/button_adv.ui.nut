@@ -5,8 +5,8 @@ let cursors = require("samples_prog/_cursors.nut")
 // the idea here is to recursively through components and updated them with provided table of components with the same tree structure
 
 
-let function __update_r(target, source, deepLevel = -1) {
-  let function sub_update_r(target, source, deepLevel = -1) {
+function __update_r(target, source, deepLevel = -1) {
+  function sub_update_r(target, source, deepLevel = -1) {
     let res = {}.__update(target)
     foreach (key,value in source) {
       if (type(value) =="table" && deepLevel != 0 && key in target) {
@@ -20,7 +20,7 @@ let function __update_r(target, source, deepLevel = -1) {
   return sub_update_r(target, source, deepLevel)
 }
 
-let function copy_component(comp) {
+function copy_component(comp) {
   if (type(comp) == "table")
     return {}.__update(comp)
   if (type(comp) == "null")
@@ -28,15 +28,15 @@ let function copy_component(comp) {
   return comp
 }
 
-let function __update_darg_r(target, source, deepLevel = -1) {
+function __update_darg_r(target, source, deepLevel = -1) {
 
-  let function isUpdatable(component) {
+  function isUpdatable(component) {
     if (type(component) == "class" || type(component) == "table")
       return true
     return false
   }
 
-  let function sub_update_r(target, source, deepLevel = -1) {
+  function sub_update_r(target, source, deepLevel = -1) {
     let res = {}.__update(target)
     foreach (key, value in source) {
       if (key == "children" && key in target && type(value) == "array" && type(target[key]) == "array") {

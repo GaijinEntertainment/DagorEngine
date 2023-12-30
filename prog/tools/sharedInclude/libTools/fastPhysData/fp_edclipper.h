@@ -81,13 +81,13 @@ public:
   void recalcTm()
   {
     if (!nodeWtm)
-      __super::setPos(localTm.getcol(3));
+      FpdObject::setPos(localTm.getcol(3));
     else
     {
       TMatrix tm;
       GeomNodeTree::mat44f_to_TMatrix(*nodeWtm, tm);
       tm = tm * localTm;
-      __super::setPos(tm.getcol(3));
+      FpdObject::setPos(tm.getcol(3));
     }
   }
 
@@ -106,7 +106,7 @@ public:
     else
       localTm.setcol(3, p);
 
-    return __super::setPos(p);
+    return FpdObject::setPos(p);
   }
   virtual bool setMatrix(const Matrix3 &tm)
   {
@@ -146,5 +146,5 @@ public:
     return true;
   }
 
-  virtual bool isSubOf(DClassID id) { return id == FpdClipper::HUID || __super::isSubOf(id); }
+  virtual bool isSubOf(DClassID id) { return id == FpdClipper::HUID || FpdObject::isSubOf(id); }
 };

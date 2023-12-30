@@ -105,13 +105,13 @@ struct State
     {
       auto alloc = ctx.copyToTempBuffer(TempBufferManager::TYPE_UNIFORM, registerSpaceSizes[STAGE_VS] * SHADER_REGISTER_SIZE,
         getRegisterSectionStart(STAGE_VS));
-      ctx.setConstRegisterBuffer(alloc.get().buffer->getHandle(), alloc.bufOffset(), alloc.get().size, STAGE_VS);
+      ctx.setConstRegisterBuffer(alloc.get().buffer, alloc.bufOffset(), alloc.get().size, STAGE_VS);
     }
     if (dirtyState.test(DirtyState::PIXEL_CONST_REGISTERS))
     {
       auto alloc = ctx.copyToTempBuffer(TempBufferManager::TYPE_UNIFORM, registerSpaceSizes[STAGE_PS] * SHADER_REGISTER_SIZE,
         getRegisterSectionStart(STAGE_PS));
-      ctx.setConstRegisterBuffer(alloc.get().buffer->getHandle(), alloc.bufOffset(), alloc.get().size, STAGE_PS);
+      ctx.setConstRegisterBuffer(alloc.get().buffer, alloc.bufOffset(), alloc.get().size, STAGE_PS);
     }
 
     dirtyState &= unchangedMask;
@@ -125,7 +125,7 @@ struct State
     {
       auto alloc = ctx.copyToTempBuffer(TempBufferManager::TYPE_UNIFORM, registerSpaceSizes[STAGE_CS] * SHADER_REGISTER_SIZE,
         getRegisterSectionStart(STAGE_CS));
-      ctx.setConstRegisterBuffer(alloc.get().buffer->getHandle(), alloc.bufOffset(), alloc.get().size, STAGE_CS);
+      ctx.setConstRegisterBuffer(alloc.get().buffer, alloc.bufOffset(), alloc.get().size, STAGE_CS);
     }
 
     dirtyState &= ~computeMask;

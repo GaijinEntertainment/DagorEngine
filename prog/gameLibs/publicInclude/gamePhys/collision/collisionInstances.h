@@ -81,7 +81,7 @@ public:
   APEX_VIRTUAL bool update(float dt); // Return false if empty
 
 private:
-  const ScaledBulletInstance &getScaledInstance(const rendinst::RendInstDesc &desc, const Point3 &scale, bool &out_created);
+  const ScaledBulletInstance *getScaledInstance(const rendinst::RendInstDesc &desc, const Point3 &scale, bool &out_created);
 
 protected:
   // We can probably get away with 16 bit indexes but there is no padding in this struct so there is no point

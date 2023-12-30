@@ -316,11 +316,8 @@ namespace das {
             return false;
         }
 
-        // Writeback
         if ( serializer_write != nullptr ) {
-            *serializer_write << file_mtime;
-            *serializer_write << const_cast<string &>(fileName);
-            serializer_write->serializeProgram(program, libGroup);
+            serializer_write->parsedModules.push_back({fileName, file_mtime, program, program->thisModule.get()});
         }
 
         return true;
@@ -361,6 +358,7 @@ namespace das {
         parserState.das_def_tab_size = daScriptEnvironment::bound->das_def_tab_size;
         yyscan_t scanner = nullptr;
         das_yylex_init_extra(&parserState, &scanner);
+        int64_t file_mtime = access->getFileMtime(fileName.c_str());
         if ( auto fi = access->getFileInfo(fileName) ) {
             parserState.g_FileAccessStack.push_back(fi);
             const char * src = nullptr;
@@ -476,10 +474,7 @@ namespace das {
             }
             auto & serializer_write = daScriptEnvironment::bound->serializer_write;
             if ( serializer_write != nullptr ) {
-                int64_t file_mtime = access->getFileMtime(fileName.c_str());
-                *serializer_write << file_mtime;
-                *serializer_write << const_cast<string &>(fileName);
-                serializer_write->serializeProgram(program, libGroup);
+                serializer_write->parsedModules.push_back({fileName, file_mtime, program, program->thisModule.get()});
             }
             return program;
         }
@@ -583,6 +578,23 @@ namespace das {
         return !regFromShar;
     }
 
+    void writebackModules ( ModuleGroup & libGroup ) {
+        auto & serializer_write = daScriptEnvironment::bound->serializer_write;
+        for ( auto & parsedModule : serializer_write->parsedModules ) {
+            auto & [fileName, fileMtime, program, thisModule] = parsedModule; // parsedModule is tuple<string, int64_t, ProgramPtr, Module *>
+            *serializer_write << fileMtime;
+            *serializer_write << const_cast<string &>(fileName);
+            if ( program->thisModule && program->thisModule->name.empty() )  {
+                serializer_write->serializeProgram(program, libGroup);
+            } else {
+                // set thisModule to program
+                program->thisModule.reset(thisModule);
+                serializer_write->serializeProgram(program, libGroup);
+                program->thisModule.release();
+            }
+        }
+    }
+
     void addRttiRequireVariable ( ProgramPtr res, string fileName ) {
         TextWriter ss;
         for ( const auto & arq : res->allRequireDecl ) {
@@ -657,9 +669,10 @@ namespace das {
             updateSerializationMetadata(req);
             if ( policies.debugger ) {
                 addExtraDependency("debug", policies.debug_module, missing, circular, notAllowed, req, dependencies, access, libGroup, policies);
-            }
-            if ( policies.profiler ) {
+            } else if ( policies.profiler ) {
                 addExtraDependency("profiler", policies.profile_module, missing, circular, notAllowed, req, dependencies, access, libGroup, policies);
+            } /* else */ if ( policies.jit ) {
+                addExtraDependency("just_in_time", policies.jit_module, missing, circular, notAllowed, req, dependencies, access, libGroup, policies);
             }
             for ( auto & mod : req ) {
                 if ( libGroup.findModule(mod.moduleName) ) {
@@ -689,6 +702,10 @@ namespace das {
             auto & serializer_read = daScriptEnvironment::bound->serializer_read;
             if ( serializer_read && !policies.serialize_main_module ) serializer_read->seenNewModule = true;
             auto res = parseDaScript(fileName, access, logs, libGroup, exportAll, false, policies);
+            // wirteback all parsed modules from serializer_write
+            if ( daScriptEnvironment::bound->serializer_write != nullptr ) {
+                writebackModules(libGroup);
+            }
             policies.threadlock_context |= res->options.getBoolOption("threadlock_context",false);
             if ( !res->failed() ) {
                 if ( res->options.getBoolOption("log_symbol_use") ) {

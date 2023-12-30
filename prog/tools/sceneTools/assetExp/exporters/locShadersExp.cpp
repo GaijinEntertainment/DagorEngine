@@ -1,4 +1,5 @@
-#include "dabuild_exp_plugin_chain.h"
+#if _TARGET_PC_WIN
+#include <assets/daBuildExpPluginChain.h>
 #include <assets/assetPlugin.h>
 #include <assets/assetExporter.h>
 #include <assets/assetRefs.h>
@@ -223,6 +224,8 @@ private:
     templateNames.push_back(String("../../../render/volumetricLights/shaders/volume_lights_common.hlsl"));
     templateNames.push_back(String("../../../render/shaders/wind/sample_wind_common.hlsl"));
 
+    templateNames.push_back(String("../../../render/shaders/static_shadow_int.hlsl"));
+    templateNames.push_back(String("../../../render/shaders/static_shadow.hlsl"));
     templateNames.push_back(String("../../../render/volumetricLights/shaders/volume_lights_distant_common.hlsl"));
     templateNames.push_back(String("raymarchFogShaderTemplateHeader.hlsl"));
     templateNames.push_back(String("fogCommon.hlsl"));
@@ -300,3 +303,6 @@ protected:
 DABUILD_PLUGIN_API IDaBuildPlugin *__stdcall get_dabuild_plugin() { return new (midmem) NodeBasedLocShaderExporterPlugin; }
 END_DABUILD_PLUGIN_NAMESPACE(locShader)
 REGISTER_DABUILD_PLUGIN(locShader, nullptr)
+#else
+int pull_locShader = 1;
+#endif

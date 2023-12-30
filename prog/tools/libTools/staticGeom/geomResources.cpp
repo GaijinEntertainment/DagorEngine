@@ -39,7 +39,7 @@ void GeomResourcesHelper::createResources(const void *obj_id, const TMatrix &tm,
   if (objResources.get(obj_id, resTab))
   {
     if (resTab)
-      fatal("Object's resources already created");
+      DAG_FATAL("Object's resources already created");
     else
       doSet = true;
   }
@@ -91,7 +91,7 @@ void GeomResourcesHelper::remapResources(const void *obj_id_old, const void *obj
   if (objResources.get(obj_id_new, resTab))
   {
     if (resTab)
-      fatal("Object's resources already created");
+      DAG_FATAL("Object's resources already created");
     else
       doSet = true;
   }

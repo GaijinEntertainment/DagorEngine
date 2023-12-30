@@ -93,7 +93,7 @@ shader debug_indoor_boxes
 
   hlsl(ps)
   {
-    half3 debug_indoor_boxes_ps(VsOutput input):SV_Target0
+    float3 debug_indoor_boxes_ps(VsOutput input):SV_Target0
     {
       return float3(0,1,0);
     }

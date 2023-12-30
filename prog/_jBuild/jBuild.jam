@@ -437,27 +437,10 @@ rule ProcessTargetVariables
     {
       local _USE_LIBS = ;
       if $(ImportsRelativeDir) && $(Platform) in linux64 {
-        for t in $(CoExportProgDlls)
-        {
-          local dll = [ MakeEffectiveTarget $(t) : dll ] ;
-          local copy_t = $(OutDir)/$(ImportsRelativeDir)/$(dll:G=:D=) ;
-
-          Depends $(copy_t) : $(_Output)/$(dll) ;
-          MakeDirectory $(copy_t) : $(copy_t:D) ;
-          copy_posix_exe_file $(copy_t) : $(_Output)/$(dll) ;
-          __targets += $(copy_t) ;
-        }
         LINKopt += -L$(OutDir)/$(ImportsRelativeDir) -z,origin -rpath,$ORIGIN/$(ImportsRelativeDir) ;
-
-        CoExportProgDlls = ;
       }
+      $(Target)__ImportsRelativeDir = $(ImportsRelativeDir) ;
       ImportsRelativeDir = ;
-
-      for t in $(CoExportProgDlls)
-      {
-        local tt = [ MakeEffectiveTarget $(t) : dll ] ;
-        $(tt)__CopyTo += $(OutDir) ;
-      }
 
       if $(TargetType) = lib { $(Target)__UseLibs = $(_USE_LIBS) $(AddLibs) ; _USE_LIBS = ; AddLibs = ; }
 
@@ -615,7 +598,6 @@ rule ProcessTargetVariables
     }
   }
 
-  CoExportProgDlls = ;
   _TARGETS += $(Target) ;
 
   CPPopt = ;
@@ -1524,6 +1506,9 @@ actions together quietly echo_var_to_cpp
 # init non-specified params with defaults
 include $(Root)/prog/_jBuild/defaults.jam ;
 
+# setup Intel(r) Implicit SPMD Program Compiler (if Platform is applicable)
+include $(Root)/prog/_jBuild/ispc.jam ;
+
 if $(CheckOnly) = yes { Echo --- fast CheckOnly build --- ; }
 
 # check params and setup build-env
@@ -1689,7 +1674,7 @@ if $(SkipLicenseBuild) != yes && $(lic_file_list) {
     if ! $($(t)__TargetType) in exe dll { continue ; }
 
     local lic_target = $($(t)__OutDir)/LICENSE-$(t:B) ;
-    if $(Platform) = macosx { lic_target = $($(t)__OutDir)/../Resources/LICENSE-$(t:B) ; }
+    if $(Platform) = macosx && [ MATCH "(\.app/Contents/MacOS)" : $($(t)__OutDir)) ] { lic_target = $($(t)__OutDir)/../Resources/LICENSE-$(t:B) ; }
     Depends all : $(lic_target) ;
     Depends $(lic_target) : $(lic_file_list) ;
     MakeDirectory $(lic_target) : $(lic_target:D) ;
@@ -1974,6 +1959,12 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
           } else if $(Platform) in linux64 {
             local m = [ MATCH lib(.*)-imp\.lib : $(l:D=) ] ;
             aux_libs += -l$(m[1])-$(Config) ;
+          } else if $(Platform) in macosx {
+            local m = [ MATCH lib(.*)-imp\.lib : $(l:D=) ] ;
+            local dest_lib = lib$(m[1])-$(Config).dylib ;
+            local imp_rel = $($(target)__ImportsRelativeDir) ;
+            aux_libs += $($(target)__OutDir)/$(imp_rel)/$(dest_lib) ;
+            AddPostLinkCmdForImports $(target) : $(dest_lib) : /$(imp_rel)/ ;
           }
         } else if [ MATCH $(_Output)/(.*) : $(l) ] {
           link_libs += $(l) ;
@@ -1994,7 +1985,7 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
       }
       $(target)__LINK_LIBS = $(link_libs) $(sys_libs) $(aux_libs) ;
       link_libs on $(target) = $($(target)__LINK_LIBS) ;
-      for l in $(link_libs) { if ! [ MATCH (-imp\.lib|\.so)$ : $(l) ] { Depends $($(target)__OutDir)/$(target) : $(l) ; } }
+      for l in $(link_libs) { if ! [ MATCH (-imp\.lib|\.so|\.dylib)$ : $(l) ] { Depends $($(target)__OutDir)/$(target) : $(l) ; } }
     }
     __targets += $($(target)__OutDir)/$(target) ;
 
@@ -2033,6 +2024,8 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
         objs += $(src:S=_qrc$(_OBJ_SUFFIX)) ;
       } else if $(src:S) = .rc {
         objs += $(src:S=.res$(_OBJ_SUFFIX)) ;
+      } else if $(src:S) = .ispc {
+        objs += [ GatherISPCObjs $(src) ] ;
       } else {
         objs += $(src:S=$(_OBJ_SUFFIX)) ;
       }
@@ -2080,6 +2073,8 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
           CompileObjC $(obj_path) : $(location)/$(src) : $(target) ;
         case .mm :
           CompileObjCPP $(obj_path) : $(location)/$(src) : $(target) ;
+        case .ispc :
+          CompileISPC $(obj_path) : $(location)/$(src) : $(target) ;
         case .asm :
           CompileAsm $(obj_path) : $(location)/$(src) : $(target) ;
         case .s :

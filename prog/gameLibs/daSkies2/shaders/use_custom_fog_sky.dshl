@@ -11,7 +11,7 @@ endmacro
 
 define_macro_if_not_defined USE_VOLFOG_DITHERING_NOISE(code)
   hlsl(code) {
-    #define get_volfog_dithered_screen_tc(a,b) 0
+    #define get_volfog_dithered_screen_tc(screenpos, tc) tc
   }
 endmacro
 

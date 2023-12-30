@@ -5,7 +5,7 @@ from "math" import abs, fabs, sqrt, clamp, max
 import "samples_prog/_cursors.nut" as cursors
 
 
-let function gradient(params, bmp) {
+function gradient(params, bmp) {
   let {w, h} = params
   let { setPixel } = bmp
   for (local y=0; y<h; ++y) {
@@ -15,7 +15,7 @@ let function gradient(params, bmp) {
   }
 }
 
-let function gradientRounded(params, bmp) {
+function gradientRounded(params, bmp) {
   let {w, h} = params
   let rounding = 10
   let { setPixel } = bmp
@@ -35,7 +35,7 @@ let function gradientRounded(params, bmp) {
   }
 }
 
-let function mkImage(func) {
+function mkImage(func) {
   let pic = mkBitmapPicture(80, 80, func)
   return {
     rendObj = ROBJ_IMAGE

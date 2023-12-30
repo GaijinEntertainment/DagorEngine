@@ -2,6 +2,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_oaHashNameMap.h>
 #include <math/dag_mathAng.h>
+#include <vecmath/dag_vecMath.h>
 
 namespace dacoll
 {
@@ -14,7 +15,6 @@ void load_collision_links(CollisionLinks &links, const DataBlock &blk, float sca
   link.axis = blk.getPoint3("axis", Point3(0.f, 1.f, 0.f));
   link.offset = blk.getPoint3("offset", Point3(0.f, 0.f, 0.f)) * scale;
   link.capsuleRadiusScale = blk.getReal("capsuleRadiusScale", 1.0f);
-  link.paramMult = blk.getReal("paramMult", 1.f);
   link.oriParamMult = blk.getReal("oriParamMult", 0.f);
   link.haveCollision = blk.getBool("haveCollision", false);
   link.nameId = collision_names.addNameId(blk.getBlockName());
@@ -23,56 +23,67 @@ void load_collision_links(CollisionLinks &links, const DataBlock &blk, float sca
     load_collision_links(links, *blk.getBlock(i), scale);
 }
 
-static TMatrix generate_collisions(const TMatrix &tm, float param, const Point2 &ori_param, const CollisionLinkData &link,
+static mat44f generate_collisions(const mat44f &tm, const Point2 &ori_param, const CollisionLinkData &link,
   tmp_collisions_t &out_collisions)
 {
-  TMatrix curTm = tm;
+  mat44f curTm = tm;
 
-  curTm = curTm * makeTM(link.axis, link.paramMult * param);
   if (link.oriParamMult != 0.f)
   {
-    curTm = curTm * makeTM(Point3(0.f, 1.f, 0.f), safe_atan2(ori_param.y, ori_param.x) * length(ori_param));
-    curTm = curTm * makeTM(Point3(0.f, 0.f, -1.f), length(ori_param) * link.oriParamMult);
+    mat33f rot;
+    vec3f oriLen = v_length2(v_ldu_half(&ori_param.x));
+    vec3f yAngle = v_splat_x(v_mul_x(v_atan2_x(v_set_x(ori_param.y), v_set_x(ori_param.x)), oriLen));
+    mat33f m33;
+    v_mat33_from_mat44(m33, curTm);
+    v_mat33_make_rot_cw_y(rot, yAngle);
+    v_mat33_mul(m33, m33, rot);
+    v_mat33_make_rot_cw_z(rot, v_mul(v_splats(-link.oriParamMult), oriLen));
+    v_mat33_mul(m33, m33, rot);
+    curTm.set33(m33);
   }
-  curTm.setcol(3, curTm * link.offset);
+  curTm.col3 = v_mat44_mul_vec3p(curTm, v_ldu(&link.offset.x));
 
+  vec3f from = tm.col3;
+  vec3f to = curTm.col3;
+  vec3f dir = v_sub(to, from);
+  vec3f len = v_length3(dir);
+  dir = v_safediv(dir, len);
+
+  mat44f colTm;
+  colTm.col1 = dir;
+  vec3f left = v_cross3(curTm.col0, dir);
+  if (v_extract_x(v_length3_sq_x(left)) < 1e-5f)
   {
-    Point3 from = tm.getcol(3);
-    Point3 to = curTm.getcol(3);
-    Point3 dir = to - from;
-    float len = length(dir);
-    dir *= safeinv(len);
-
-    CollisionCapsuleProperties &colProps = out_collisions.push_back();
-    colProps.tm = curTm;
-    colProps.tm.setcol(1, dir);
-    colProps.nameId = link.nameId;
-    colProps.haveCollision = link.haveCollision;
-    Point3 left = colProps.tm.getcol(0) % colProps.tm.getcol(1);
-    if (lengthSq(left) < 1e-5f)
-    {
-      colProps.tm.setcol(0, normalize(colProps.tm.getcol(1) % colProps.tm.getcol(2)));
-      colProps.tm.setcol(2, normalize(colProps.tm.getcol(0) % colProps.tm.getcol(1)));
-    }
-    else
-    {
-      colProps.tm.setcol(2, normalize(left));
-      colProps.tm.setcol(0, normalize(colProps.tm.getcol(1) % colProps.tm.getcol(2)));
-    }
-
-    colProps.tm.setcol(3, (from + to) * 0.5f);
-    colProps.scale.set(link.capsuleRadiusScale, len / link.capsuleRadiusScale, 1.f);
+    colTm.col0 = v_norm3(v_cross3(dir, curTm.col2));
+    colTm.col2 = v_norm3(v_cross3(colTm.col0, dir));
   }
+  else
+  {
+    colTm.col2 = v_norm3(left);
+    colTm.col0 = v_norm3(v_cross3(dir, colTm.col2));
+  }
+  colTm.col3 = v_mul(v_add(from, to), V_C_HALF);
+  CollisionCapsuleProperties &colProps = *(CollisionCapsuleProperties *)out_collisions.push_back_uninitialized();
+  v_mat_43cu_from_mat44(colProps.tm.array, colTm);
+  colProps.scale.set(link.capsuleRadiusScale, v_extract_x(len) / link.capsuleRadiusScale, 1.f);
+  colProps.nameId = link.nameId;
+  colProps.haveCollision = link.haveCollision;
 
   return curTm;
 }
 
-void generate_collisions(const TMatrix &tm, float param, const Point2 &ori_param, const CollisionLinks &links,
-  tmp_collisions_t &out_collisions)
+void generate_collisions(const TMatrix &tm, const Point2 &ori_param, const CollisionLinks &links, tmp_collisions_t &out_collisions)
 {
-  TMatrix curTm = tm;
-  for (auto &link : links)
-    curTm = generate_collisions(curTm, param, ori_param, link, out_collisions);
+  mat44f curTm;
+  v_mat44_make_from_43cu_unsafe(curTm, tm.array);
+  curTm.col3 = v_zero(); // To local coords
+  for (const auto &link : links)
+    curTm = generate_collisions(curTm, ori_param, link, out_collisions);
+  if (!out_collisions.empty())
+  {
+    G_FAST_ASSERT(out_collisions.back().haveCollision); // Last is assumed to be effective one
+    out_collisions.back().tm.col[3] += tm.getcol(3);    // To world coords
+  }
 }
 
 void lerp_collisions(tmp_collisions_t &a_collisions, const tmp_collisions_t &b_collisions, float factor)
@@ -86,15 +97,13 @@ void lerp_collisions(tmp_collisions_t &a_collisions, const tmp_collisions_t &b_c
       if (bcol.nameId != acol.nameId)
         continue;
 
-      acol.scale = lerp(bcol.scale, acol.scale, factor);
-      // first quat, next pos
-      Quat prevQ(bcol.tm);
-      Quat curQ(acol.tm);
-      Quat resQ = qinterp(prevQ, curQ, factor);
-      Point3 interpPos = lerp(bcol.tm.getcol(3), acol.tm.getcol(3), factor);
+      v_stu_p3(&acol.scale.x, v_lerp_vec4f(v_splats(factor), v_ldu(&bcol.scale.x), v_ldu(&acol.scale.x)));
 
-      acol.tm = makeTM(resQ);
-      acol.tm.setcol(3, interpPos);
+      mat44f atm, btm;
+      v_mat44_make_from_43cu_unsafe(atm, acol.tm.array);
+      v_mat44_make_from_43cu_unsafe(btm, bcol.tm.array);
+      mat44f rtm = v_mat44_lerp(v_splats(factor), btm, atm);
+      v_mat_43cu_from_mat44(acol.tm.array, rtm);
       break;
     }
   }

@@ -158,15 +158,13 @@ struct RiGenVisibility
     cell.startSubCellCnt++;
   }
   G_STATIC_ASSERT(rendinst::MAX_LOD_COUNT >= 2);
-  // original lods + 2 dissolve for impostor + alpha
-  static constexpr int PER_INSTANCE_LODS = rendinst::MAX_LOD_COUNT + 3;
+  // original lods + alpha
+  static constexpr int PER_INSTANCE_LODS = rendinst::MAX_LOD_COUNT + 1;
   enum
   {
     PI_ALPHA_LOD = PER_INSTANCE_LODS - 1,
     PI_IMPOSTOR_LOD = PER_INSTANCE_LODS - 2,
-    PI_DISSOLVE_LOD1 = PER_INSTANCE_LODS - 4,
-    PI_DISSOLVE_LOD0 = PER_INSTANCE_LODS - 3,
-    PI_LAST_MESH_LOD = PER_INSTANCE_LODS - 5
+    PI_LAST_MESH_LOD = PER_INSTANCE_LODS - 3
   };
   carray<Tab<IPoint2>, PER_INSTANCE_LODS> perInstanceVisibilityCells; // todo: replace with list of cells for each ri_idx
   carray<Tab<vec4f>, PER_INSTANCE_LODS> instanceData;                 // plus cross dissolve between 0 and 1 lod
@@ -223,18 +221,4 @@ struct RiGenVisibility
 
   float riDistMul = 1.0f;
   void setRiDistMul(float mul) { riDistMul = mul; }
-};
-
-inline int remap_per_instance_lod(int l)
-{
-  if (l <= RiGenVisibility::PI_LAST_MESH_LOD)
-    return l;
-  return RiGenVisibility::PI_IMPOSTOR_LOD;
-};
-
-inline int remap_per_instance_lod_inv(int l)
-{
-  if (l <= RiGenVisibility::PI_LAST_MESH_LOD)
-    return l;
-  return l >= RiGenVisibility::PI_IMPOSTOR_LOD ? l - 2 : RiGenVisibility::PI_LAST_MESH_LOD;
 };

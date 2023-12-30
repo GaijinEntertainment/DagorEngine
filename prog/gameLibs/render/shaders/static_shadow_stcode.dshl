@@ -1,6 +1,6 @@
 texture static_shadow_tex;
 
-int static_shadows_cascades = 0;
+int static_shadows_cascades = 0 always_referenced; // need to be always referenced, so we can get its value even if it's assumed
 interval static_shadows_cascades: off<1, one < 2, two;
 
 float static_cascade_start = -1;
@@ -30,13 +30,10 @@ macro INIT_STATIC_SHADOW_BASE_ONE_CASCADE_STCODE(code)
 
   (code) {
     // cascade 0 matrix, returns cascade 0 tc (not offseted with tor)
-    staticShadowWorldRenderMatrix_0@f4[] =
-    {
-      static_shadow_matrix_0_0,
-      static_shadow_matrix_1_0,
-      static_shadow_matrix_2_0,
-      static_shadow_matrix_3_0
-    };
+    static_shadow_matrix_0_0@f4 = static_shadow_matrix_0_0;
+    static_shadow_matrix_1_0@f4 = static_shadow_matrix_1_0;
+    static_shadow_matrix_2_0@f4 = static_shadow_matrix_2_0;
+    static_shadow_matrix_3_0@f4 = static_shadow_matrix_3_0;
     static_shadow_cascade_0_tor@f2 = (static_shadow_cascade_0_scale_ofs_z_tor.z,static_shadow_cascade_0_scale_ofs_z_tor.w,0,0);
     static_cascade_start@f1 = static_cascade_start;
   }
@@ -45,13 +42,10 @@ endmacro
 macro INIT_STATIC_SHADOW_BASE_SECOND_CASCADE_STCODE(code)//each cascade needs 7 floats + 1-2 for vignette distance
   (code) {
     // cascade 1 matrix, returns cascade 1 tc (not offseted with tor)
-    staticShadowWorldRenderMatrix_1@f4[] =
-    {
-      static_shadow_matrix_0_1,
-      static_shadow_matrix_1_1,
-      static_shadow_matrix_2_1,
-      static_shadow_matrix_3_1
-    };
+    static_shadow_matrix_0_1@f4 = static_shadow_matrix_0_1;
+    static_shadow_matrix_1_1@f4 = static_shadow_matrix_1_1;
+    static_shadow_matrix_2_1@f4 = static_shadow_matrix_2_1;
+    static_shadow_matrix_3_1@f4 = static_shadow_matrix_3_1;
     static_shadow_cascade_1_scale_ofs_z_tor@f4 = static_shadow_cascade_1_scale_ofs_z_tor;
     static_shadow_cascade_1_tor@f2 = (static_shadow_cascade_1_scale_ofs_z_tor.z,static_shadow_cascade_1_scale_ofs_z_tor.w,0,0);
   }

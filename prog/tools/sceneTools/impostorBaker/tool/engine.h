@@ -37,7 +37,7 @@ public:
         errorCount++;
         break;
       case FATAL:
-        fatal("%d", msg);
+        DAG_FATAL("%d", msg);
         errorCount++;
         break;
       case REMARK: debug("Remark: %d", msg); break;

@@ -8,7 +8,7 @@ Modules and C++ bindings
 Builtin modules
 ---------------
 
-Builtin modules are the way to expose C++ functionality to daScript.
+Builtin modules are the way to expose C++ functionality to Daslang.
 
 Let's look at the ``FIO`` module as an example.
 To create a builtin module, an application needs to do the following:
@@ -28,7 +28,7 @@ Derive from the Module class and provide a custom module name to the constructor
 Specify the AOT type and provide a prefix with C++ includes (see :ref:`AOT <aot>`)::
 
     virtual ModuleAotType aotRequire ( TextWriter & tw ) const override {
-        tw << "#include \"daScript/simulate/aot_builtin_fio.h\"\n";
+        tw << "#include \"Daslang/simulate/aot_builtin_fio.h\"\n";
         return ModuleAotType::cpp;
     }
 
@@ -36,11 +36,11 @@ Register the module at the bottom of the C++ file using the ``REGISTER_MODULE`` 
 
     REGISTER_MODULE_IN_NAMESPACE(Module_FIO,das);
 
-Use the ``NEED_MODULE`` macro during application initialization before the daScript compiler is invoked::
+Use the ``NEED_MODULE`` macro during application initialization before the Daslang compiler is invoked::
 
     NEED_MODULE(Module_FIO);
 
-Its possible to have additional daScript files that accompany the builtin module,
+Its possible to have additional Daslang files that accompany the builtin module,
 and have them compiled at initialization time via the ``compileBuiltinModule`` function::
 
     Module_FIO() : Module("fio") {
@@ -83,7 +83,7 @@ The best way to verify it is to call ``verifyAotReady`` at the end of the module
 Additionally, modules need to write out a full list of required C++ includes::
 
     virtual ModuleAotType aotRequire ( TextWriter & tw ) const override {
-        tw << "#include \"daScript/simulate/aot_builtin_fio.h\"\n"; // like this
+        tw << "#include \"Daslang/simulate/aot_builtin_fio.h\"\n"; // like this
         return ModuleAotType::cpp;
     }
 
@@ -138,7 +138,7 @@ Builtin module macros
 -------------------------
 
 Custom macros of different types can be added via ``addAnnotation``, ``addTypeInfoMacro``, ``addReaderMacro``, ``addCallMacro``, and such.
-It is strongly preferred, however, to implement macros in daScript.
+It is strongly preferred, however, to implement macros in Daslang.
 
 See :ref:`macros <macros>` for more details.
 
@@ -152,11 +152,11 @@ Functions can be exposed to the builtin module via the ``addExtern`` and ``addIn
 addExtern
 ~~~~~~~~~
 
-``addExtern`` exposes standard C++ functions which are not specifically designed for daScript interop::
+``addExtern`` exposes standard C++ functions which are not specifically designed for Daslang interop::
 
     addExtern<DAS_BIND_FUN(builtin_fprint)>(*this, lib, "fprint", SideEffects::modifyExternal, "builtin_fprint");
 
-Here, the builtin_fprint function is exposed to daScript and given the name `fprint`.
+Here, the builtin_fprint function is exposed to Daslang and given the name `fprint`.
 The AOT name for the function is explicitly specified to indicate that the function is AOT ready.
 
 The side-effects of the function need to be explicitly specified (see :ref:`Side-effects <modules_function_sideeffects>`).
@@ -169,13 +169,13 @@ Let's look at the exposed function in detail::
         if ( text ) fputs(text,(FILE *)f);
     }
 
-C++ code can explicitly request to be provided with a daScript context, by adding the `Context` type argument.
-Making it last argument of the function makes context substitution transparent for daScript code,
+C++ code can explicitly request to be provided with a Daslang context, by adding the `Context` type argument.
+Making it last argument of the function makes context substitution transparent for Daslang code,
 i.e. it can simply call::
 
     fprint(f, "boo")    // current context with be provided transparently
 
-daScript strings are very similar to C++ ``char *``, however null also indicates empty string.
+Daslang strings are very similar to C++ ``char *``, however null also indicates empty string.
 That's the reason the `fputs` only occurs if text is not null in the example above.
 
 Let's look at another integration example from the builtin `math` module::
@@ -208,7 +208,7 @@ Interop functions are of the following pattern::
 They receive a context, calling node, and arguments.
 They are expected to marshal and return results, or v_zero().
 
-``addInterop`` exposes C++ functions, which are specifically designed around daScript::
+``addInterop`` exposes C++ functions, which are specifically designed around Daslang::
 
     addInterop<
         builtin_read,               // function to register
@@ -242,13 +242,13 @@ Argument values and return value are marshalled via ``cast`` infrastructure (see
 Function side-effects
 ---------------------
 
-The daScript compiler is very much an optimizin compiler and pays a lot of attention to functions' side-effects.
+The Daslang compiler is very much an optimizin compiler and pays a lot of attention to functions' side-effects.
 
 On the C++ side, ``enum class SideEffects`` contains possible side effect combinations.
 
 ``none`` indicates that a function is pure, i.e it has no side-effects whatsoever.
 A good example would be purely computational functions like ``cos`` or ``strlen``.
-daScript may choose to fold those functions at compilation time
+Daslang may choose to fold those functions at compilation time
 as well as completely remove them in cases where the result is not used.
 
 Trying to register void functions with no arguments and no side-effects causes the module initialization to fail.
@@ -256,19 +256,19 @@ Trying to register void functions with no arguments and no side-effects causes t
 ``unsafe`` indicates that a function has unsafe side-effects, which can cause a panic or crash.
 
 ``userScenario`` indicates that some other uncategorized side-effects are in works.
-daScript does not optimize or fold those functions.
+Daslang does not optimize or fold those functions.
 
-``modifyExternal`` indicates that the function modifies state, external to daScript;
+``modifyExternal`` indicates that the function modifies state, external to Daslang;
 typically it's some sort of C++ state.
 
-``accessExternal`` indicates that the function reads state, external to daScript.
+``accessExternal`` indicates that the function reads state, external to Daslang.
 
 ``modifyArgument`` means that the function modifies one of its input parameters.
-daScript will look into non-constant ref arguments and will assume that they may be modified during the function call.
+Daslang will look into non-constant ref arguments and will assume that they may be modified during the function call.
 
 Trying to register functions without mutable ref arguments and ``modifyArgument`` side effects causes module initialization to fail.
 
-``accessGlobal`` indicates that that function accesses global state, i.e. global daScript variables or constants.
+``accessGlobal`` indicates that that function accesses global state, i.e. global Daslang variables or constants.
 
 ``invoke`` indicates that the function may invoke another functions, lambdas, or blocks.
 
@@ -278,7 +278,7 @@ Trying to register functions without mutable ref arguments and ``modifyArgument`
 File access
 -----------
 
-daScript provides machinery to specify custom file access and module name resolution.
+Daslang provides machinery to specify custom file access and module name resolution.
 
 Default file access is implemented with the ``FsFileAccess`` class.
 
@@ -298,7 +298,7 @@ Given require string `req` and the module it was called `from`, it needs to full
         string  importName;     // import name, i.e. module namespace (by default same as module name)
     };
 
-It is better to implement module resolution in daScript itself, via a project.
+It is better to implement module resolution in Daslang itself, via a project.
 
 .. _modules_project:
 

@@ -37,7 +37,7 @@ let numSelectedEntities = Computed(function() {
 })
 
 
-let function matchEntityByText(eid, text) {
+function matchEntityByText(eid, text) {
   if (text==null || text=="" || eid.tostring().indexof(text)!=null)
     return true
   let tplName = g_entity_mgr.getEntityTemplateName(eid)
@@ -62,7 +62,7 @@ let filteredEntites = Computed(function() {
 
 let filteredEntitiesCount = Computed(@() filteredEntites.value.len())
 
-let function applySelection(cb) {
+function applySelection(cb) {
   selectionState.mutate(function(value) {
     foreach (k, v in value)
       value[k] = cb(k, v)
@@ -79,14 +79,14 @@ let selectNone = @() applySelection(@(_eid, _cur) false)
 let selectInvert = @() applySelection(@(eid, cur) matchEntityByText(eid, filterString.value) ? !cur : false)
 
 
-let function scrollBySelection() {
+function scrollBySelection() {
   scrollHandler.scrollToChildren(function(desc) {
     return ("eid" in desc) && selectionState.value?[desc.eid]
   }, 2, false, true)
 }
 
 
-let function doSelect() {
+function doSelect() {
   let eids = []
   foreach (k, v in selectionState.value) if (v) eids.append(k)
   entity_editor.get_instance().selectEntities(eids)
@@ -97,7 +97,7 @@ let function doSelect() {
 //  filterString.update("")
 }
 
-let function doLocate() {
+function doLocate() {
   let eids = []
   foreach (k, v in selectionState.value) if (v) eids.append(k)
   entity_editor.get_instance().selectEntities(eids)
@@ -106,13 +106,13 @@ let function doLocate() {
 }
 
 
-let function doCancel() {
+function doCancel() {
   showEntitySelect(false)
 //  filterString.update("")
 }
 
 
-let function statusLine() {
+function statusLine() {
   let nMrk = numSelectedEntities.value
   let nSel = selectedEntities.value.len()
 
@@ -166,7 +166,7 @@ let filter = nameFilter(filterString, {
   }
 })
 
-let function doSelectEid(eid, mod) {
+function doSelectEid(eid, mod) {
   let eids = []
   local found = false
   foreach (k, _v in selectedEntities.value) {
@@ -183,7 +183,7 @@ let function doSelectEid(eid, mod) {
 
 let removeSelectedByEditorTemplate = @(tname) tname.replace("+daeditor_selected+","+").replace("+daeditor_selected","").replace("daeditor_selected+","")
 
-let function listRow(eid, idx) {
+function listRow(eid, idx) {
   return watchElemState(function(sf) {
     let isSelected = selectionState.value?[eid]
     let color = isSelected ? colors.Active
@@ -269,7 +269,7 @@ let function listRow(eid, idx) {
   })
 }
 
-let function listRowMoreLeft(num, idx) {
+function listRowMoreLeft(num, idx) {
   return watchElemState(function(sf) {
     let color = (sf & S_TOP_HOVER) ? colors.GridRowHover : colors.GridBg[idx % colors.GridBg.len()]
     return {
@@ -287,7 +287,7 @@ let function listRowMoreLeft(num, idx) {
 }
 
 
-let function initEntitiesList() {
+function initEntitiesList() {
   let entities = entity_editor.get_instance()?.getEntities(selectedGroup.value) ?? []
   foreach (eid in entities) {
     let isSelected = selectedEntities.value?[eid] ?? false
@@ -307,10 +307,10 @@ entitySortState.subscribe(function(v) {
 selectedGroup.subscribe(@(_) initEntitiesList())
 de4workMode.subscribe(@(_) gui_scene.resetTimeout(0.1, initEntitiesList))
 
-let function entitySelectRoot() {
+function entitySelectRoot() {
   let templatesGroups = ["(all workset entities)"].extend(entity_editor.get_instance().getEcsTemplatesGroups())
 
-  let function listContent() {
+  function listContent() {
     const maxVisibleItems = 500
     let rows = filteredEntites.value.slice(0, maxVisibleItems).map(@(eid, idx) listRow(eid, idx))
     if (rows.len() < filteredEntites.value.len())

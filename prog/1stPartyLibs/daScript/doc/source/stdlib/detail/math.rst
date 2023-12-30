@@ -182,3 +182,16 @@
 .. |structure_annotation-math-float3x4| replace:: floating point matrix with 4 rows and 3 columns
 
 .. |structure_annotation-math-float3x3| replace:: floating point matrix with 3 rows and 3 columns
+
+.. |function-math-quat_from_unit_arc| replace:: Quaternion which represents rotation from `v0` to `v1`, both arguments need to be normalized
+
+.. |function-math-quat_from_unit_vec_ang| replace:: Quaternion which represents rotation for `ang` radians around vector `v`. `v` needs to be normalized
+
+.. |function-math-[]| replace:: Returns the component of the matrix `m` at the specified row.
+
+.. |function-math-determinant| replace:: Returns the determinant of the matrix `m`.
+
+.. |function-math-quat_from_euler| replace:: Construct quaternion from euler angles.
+
+.. |function-math-euler_from_un_quat| replace:: Construct euler angles from quaternion.
+

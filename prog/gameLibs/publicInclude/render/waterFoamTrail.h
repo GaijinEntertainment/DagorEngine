@@ -29,6 +29,7 @@ struct Settings
   float forwardExpand;
   float quadHeight;
   float widthThreshold;
+  float tailFadeInLength;
 
   int activeVertexCount;
   int finalizedVertexCount;

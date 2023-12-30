@@ -22,7 +22,7 @@ let wrapped = {
   })
 }
 
-let function Root() {
+function Root() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(10,30,50)

@@ -79,7 +79,7 @@ let bigLens = @() {
   imageValign = ALIGN_CENTER
 }
 
-let function sqBtn(text, onClick) {
+function sqBtn(text, onClick) {
   let stateFlags = Watched(0)
   return @() {
     watch = stateFlags
@@ -97,7 +97,7 @@ let function sqBtn(text, onClick) {
   }
 }
 
-let function mkControl(watch, hasNegative) {
+function mkControl(watch, hasNegative) {
   let setValue = @(v) watch(hasNegative ? v : abs(v))
   return {
     size = [flex(), SIZE_TO_CONTENT]

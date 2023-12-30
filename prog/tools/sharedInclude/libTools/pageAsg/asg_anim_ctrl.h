@@ -19,7 +19,7 @@ public:
   void addNeededBnls(NameMap &b, NameMap &a2d, AnimObjGraphTree &t, const char *suf) const override {}
   virtual void virtualCopy(const AnimObjCtrl *source)
   {
-    __super::virtualCopy(source);
+    AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlFifo *)source)->varname;
   }
 };
@@ -56,7 +56,7 @@ public:
   virtual bool canAdd() { return true; }
   virtual void virtualCopy(const AnimObjCtrl *source)
   {
-    __super::virtualCopy(source);
+    AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlLinear *)source)->varname;
     list = ((AnimObjCtrlLinear *)source)->list;
   }
@@ -89,7 +89,7 @@ public:
   virtual bool canAdd() { return true; }
   virtual void virtualCopy(const AnimObjCtrl *source)
   {
-    __super::virtualCopy(source);
+    AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlLinearPoly *)source)->varname;
     list = ((AnimObjCtrlLinearPoly *)source)->list;
   }
@@ -123,7 +123,7 @@ public:
   virtual bool canAdd() { return true; }
   virtual void virtualCopy(const AnimObjCtrl *source)
   {
-    __super::virtualCopy(source);
+    AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlRandomSwitch *)source)->varname;
     list = ((AnimObjCtrlRandomSwitch *)source)->list;
   }
@@ -158,7 +158,7 @@ public:
   virtual bool canAdd() { return true; }
   virtual void virtualCopy(const AnimObjCtrl *source)
   {
-    __super::virtualCopy(source);
+    AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlParametricSwitch *)source)->varname;
     list = ((AnimObjCtrlParametricSwitch *)source)->list;
     morphTime = ((AnimObjCtrlParametricSwitch *)source)->morphTime;
@@ -198,7 +198,7 @@ public:
   virtual bool canAdd() { return true; }
   virtual void virtualCopy(const AnimObjCtrl *source)
   {
-    __super::virtualCopy(source);
+    AnimObjCtrl::virtualCopy(source);
     _const = ((AnimObjCtrlHub *)source)->_const;
     list = ((AnimObjCtrlHub *)source)->list;
   }
@@ -232,7 +232,7 @@ public:
   virtual bool canAdd() { return true; }
   virtual void virtualCopy(const AnimObjCtrl *source)
   {
-    __super::virtualCopy(source);
+    AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlDirectSync *)source)->varname;
     list = ((AnimObjCtrlDirectSync *)source)->list;
   }
@@ -269,7 +269,7 @@ public:
   virtual void setParamValueReal(int param_no, int rec_no, const real &val);
   virtual void virtualCopy(const AnimObjCtrl *source)
   {
-    __super::virtualCopy(source);
+    AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlBlender *)source)->varname;
     node1 = ((AnimObjCtrlBlender *)source)->node1;
     node2 = ((AnimObjCtrlBlender *)source)->node2;
@@ -301,7 +301,7 @@ public:
   virtual void setParamValueReal(int param_no, int rec_no, const real &val);
   virtual void virtualCopy(const AnimObjCtrl *source)
   {
-    __super::virtualCopy(source);
+    AnimObjCtrl::virtualCopy(source);
     varname = ((AnimObjCtrlBIS *)source)->varname;
     node1 = ((AnimObjCtrlBIS *)source)->node1;
     node2 = ((AnimObjCtrlBIS *)source)->node2;
@@ -336,7 +336,7 @@ public:
   virtual void setParamValueReal(int param_no, int rec_no, const real &val);
   virtual void virtualCopy(const AnimObjCtrl *source)
   {
-    __super::virtualCopy(source);
+    AnimObjCtrl::virtualCopy(source);
     src = ((AnimObjCtrlAlignNode *)source)->src;
     target = ((AnimObjCtrlAlignNode *)source)->target;
     rot_euler = ((AnimObjCtrlAlignNode *)source)->rot_euler;
@@ -377,7 +377,7 @@ public:
   virtual bool canAdd() { return true; }
   virtual void virtualCopy(const AnimObjCtrl *source)
   {
-    __super::virtualCopy(source);
+    AnimObjCtrl::virtualCopy(source);
     paramName = ((AnimObjCtrlRotateNode *)source)->paramName;
     target = ((AnimObjCtrlRotateNode *)source)->target;
     axisCourse = ((AnimObjCtrlRotateNode *)source)->axisCourse;

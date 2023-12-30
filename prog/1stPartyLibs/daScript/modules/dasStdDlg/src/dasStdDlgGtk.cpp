@@ -93,4 +93,9 @@ namespace das {
         gtk_widget_destroy(dialog);
         return result;
 	}
+
+	string GetOpenFolderFromUser ( const char * ) {
+        string result;
+        return result;
+	}
 }

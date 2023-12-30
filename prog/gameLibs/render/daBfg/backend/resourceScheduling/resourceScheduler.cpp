@@ -10,7 +10,7 @@
 #include <3d/dag_drv3d.h>
 
 #include <common/resourceUsage.h>
-#include <runtime/backend.h>
+#include <runtime/runtime.h>
 #include <id/idRange.h>
 #include <backend/resourceScheduling/packer.h>
 #include <debug/backendDebug.h>
@@ -254,6 +254,13 @@ auto ResourceScheduler::scheduleResourcesIntoHeaps(const ResourceProperties &res
     input.timelineSize = allEvents.size() * allEvents[0].size();
     input.resources = packerResources;
     input.maxHeapSize = heapGroupProp.maxHeapSize;
+
+    // When running dx12 on windows, we have a weird additional limit
+    // on heap sizes that is not reported by the driver and can only be
+    // known by asking MS guys on discord, and it's 64MiBs.
+    if (heapGroupProp.optimalMaxHeapSize > 0)
+      input.maxHeapSize = eastl::min(input.maxHeapSize, heapGroupProp.optimalMaxHeapSize);
+
     // Do not increase the size of an existing heap if resources in it have hints.
     // Otherwise hinted resources will not be preserved, because of the heap recreation.
     if (heapHasHints && allocatedHeaps.isMapped(heapIdx) && allocatedHeaps[heapIdx].size != 0)
@@ -643,13 +650,15 @@ ResourceScheduler::EventsCollectionRef ResourceScheduler::scheduleEvents(const i
   EventsCollectionRef result;
   for (int j = 0; j < SCHEDULE_FRAME_WINDOW; ++j)
   {
-    result[j].reserve(scheduledEvents[j].size());
+    eventRefStorage[j].clear();
+    eventRefStorage[j].reserve(scheduledEvents[j].size());
     for (auto &eventsForNode : scheduledEvents[j])
     {
       Event *groupStart = &*eventStorage.end();
       eventStorage.insert(eventStorage.end(), eventsForNode.begin(), eventsForNode.end());
-      result[j].emplace_back(groupStart, eventsForNode.size());
+      eventRefStorage[j].emplace_back(groupStart, eventsForNode.size());
     }
+    result[j] = eventRefStorage[j];
   }
 
   return result;
@@ -901,7 +910,7 @@ ResourceScheduler::IntermediateRemapping ResourceScheduler::remapResources(const
   FRAMEMEM_VALIDATE;
 
   dag::VectorMap<ResNameId, intermediate::ResourceIndex, eastl::less<ResNameId>, framemem_allocator> resNameToIR;
-  resNameToIR.reserve(eastl::max(new_resources.size(), cachedIntermediateResources.size() * 8));
+  resNameToIR.reserve(eastl::max<size_t>(new_resources.size(), cachedIntermediateResources.size() * 8));
 
   for (auto [oldResIdx, res] : cachedIntermediateResources.enumerate())
     for (const auto resNameId : res.frontendResources)
@@ -950,6 +959,8 @@ ResourceScheduler::SchedulingResult ResourceScheduler::scheduleResources(int pre
     if (isResourcePreserved(prev_frame, idx))
       potentialDeactivations[cachedResIdxRemapping[idx]] = eastl::monostate{};
 
+  const auto oldHeapCount = allocatedHeaps.size();
+
   // Start tracking newly requested heap groups
   if (allocatedHeaps.size() < heapRequests.size())
     for (auto it = heapRequests.begin() + allocatedHeaps.size(); it != heapRequests.end(); ++it)
@@ -995,6 +1006,10 @@ ResourceScheduler::SchedulingResult ResourceScheduler::scheduleResources(int pre
             result.deactivations.emplace_back(res);
         },
         potentialDeactivations[oldIdx]);
+
+  for (auto i = oldHeapCount; i < heapToResourceList.size(); ++i)
+    if (const auto &list = heapToResourceList[static_cast<HeapIndex>(i)][0]; list.size() == 1)
+      logwarn("Heap %d had to be created for containing a single resource '%s'", i, cachedIntermediateResourceNames[list[0]].c_str());
 
   return result;
 }

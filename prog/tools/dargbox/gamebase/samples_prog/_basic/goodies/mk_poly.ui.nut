@@ -21,7 +21,7 @@ let mkRow = @(cellSize, y, colsNum){
   children = array(colsNum).map(@(_, x) mkCell(cellSize, x, y))
   gap
 }
-local function mkTable(colsNum, rowsNum, width=sh(50), height=null) {
+function mkTable(colsNum, rowsNum, width=sh(50), height=null) {
   height = height ?? width
   let cellSize = [(width-(colsNum-1)*gap)/colsNum, (height-(rowsNum-1*gap))/rowsNum]
   return {
@@ -37,7 +37,7 @@ let desc = {
 }
 /*
 let tas = {rendObj = ROBJ_TEXTAREA behavior=Behaviors.TextArea}
-let function ta(text, style = null) {
+function ta(text, style = null) {
   let obj = (typeof text == "table")
     ? text.__merge(tas)
     : tas.__merge({text})

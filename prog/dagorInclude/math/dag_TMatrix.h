@@ -529,10 +529,6 @@ INLINE TMatrix makeTM(const Quat &q)
 
 INLINE Quat::Quat(const TMatrix &om)
 {
-  /// @cond
-#define sq real_sq
-  /// @endcond
-
   TMatrix m = om;
   if (m.det() < 0)
     m.setcol(2, -m.getcol(2));
@@ -552,9 +548,9 @@ INLINE Quat::Quat(const TMatrix &om)
       for (int c = 0; c < 2; ++c)
         for (int d = 0; d < 2; ++d)
         {
-          real dif = sq(xx[a] * yy[b] * 2 - zz[c] * ww[d] * 2 - m.m[1][0]) + sq(xx[a] * zz[c] * 2 + yy[b] * ww[d] * 2 - m.m[2][0]) +
-                     sq(yy[b] * xx[a] * 2 + zz[c] * ww[d] * 2 - m.m[0][1]) + sq(yy[b] * zz[c] * 2 - xx[a] * ww[d] * 2 - m.m[2][1]) +
-                     sq(zz[c] * xx[a] * 2 - yy[b] * ww[d] * 2 - m.m[0][2]) + sq(zz[c] * yy[b] * 2 + xx[a] * ww[d] * 2 - m.m[1][2]);
+          real dif = sqr(xx[a] * yy[b] * 2 - zz[c] * ww[d] * 2 - m.m[1][0]) + sqr(xx[a] * zz[c] * 2 + yy[b] * ww[d] * 2 - m.m[2][0]) +
+                     sqr(yy[b] * xx[a] * 2 + zz[c] * ww[d] * 2 - m.m[0][1]) + sqr(yy[b] * zz[c] * 2 - xx[a] * ww[d] * 2 - m.m[2][1]) +
+                     sqr(zz[c] * xx[a] * 2 - yy[b] * ww[d] * 2 - m.m[0][2]) + sqr(zz[c] * yy[b] * 2 + xx[a] * ww[d] * 2 - m.m[1][2]);
           if (dif < md)
           {
             md = dif;
@@ -564,7 +560,6 @@ INLINE Quat::Quat(const TMatrix &om)
             w = ww[d];
           }
         }
-#undef sq
 }
 
 

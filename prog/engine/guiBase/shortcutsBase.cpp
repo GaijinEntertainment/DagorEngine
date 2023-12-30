@@ -1119,7 +1119,7 @@ ShortcutGroup *create_shortcut_group(const char *group_name, const EventClassId 
 
   ShortcutGroup *grp = get_shortcut_group(group_name);
   if (grp)
-    fatal("Shortcut group '%s' is already registered!", group_name);
+    DAG_FATAL("Shortcut group '%s' is already registered!", group_name);
 
   G_ASSERT(!(num_events && !events));
 

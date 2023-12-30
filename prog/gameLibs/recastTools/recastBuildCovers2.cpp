@@ -4,7 +4,9 @@
 #include <EASTL/vector.h>
 #include <EASTL/sort.h>
 
+#ifdef _MSC_VER
 #pragma warning(disable : 4701)
+#endif
 
 namespace
 {

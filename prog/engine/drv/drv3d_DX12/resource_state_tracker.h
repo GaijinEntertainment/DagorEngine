@@ -541,7 +541,7 @@ inline D3D12_RESOURCE_STATES translate_texture_barrier_to_state(ResourceBarrier 
   if (RB_NONE != (RB_RO_VARIABLE_RATE_SHADING_TEXTURE & barrier))
   {
 #if _TARGET_XBOXONE
-    fatal("DX12: RB_RO_VARIABLE_RATE_SHADING_TEXTURE on XBOX ONE used!");
+    DAG_FATAL("DX12: RB_RO_VARIABLE_RATE_SHADING_TEXTURE on XBOX ONE used!");
 #else
     result |= D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
 #endif
@@ -1099,24 +1099,24 @@ class InititalResourceStateSet : public InitialTextureResourceStateSet
 
 inline void print_barrier(const D3D12_RESOURCE_TRANSITION_BARRIER &transition)
 {
-  debug(".Transition.pResource = 0x%p", transition.pResource);
-  debug(".Transition.Subresource = %u", transition.Subresource);
-  debug(".Transition.StateBefore = 0x%X", (uint32_t)transition.StateBefore);
-  debug(".Transition.StateAfter = 0x%X", (uint32_t)transition.StateAfter);
+  logdbg(".Transition.pResource = 0x%p", transition.pResource);
+  logdbg(".Transition.Subresource = %u", transition.Subresource);
+  logdbg(".Transition.StateBefore = 0x%X", (uint32_t)transition.StateBefore);
+  logdbg(".Transition.StateAfter = 0x%X", (uint32_t)transition.StateAfter);
 }
 
 inline void print_barrier(const D3D12_RESOURCE_ALIASING_BARRIER &aliasing)
 {
-  debug(".Aliasing.pResourceBefore = 0x%p", aliasing.pResourceBefore);
-  debug(".Aliasing.pResourceAfter = 0x%p", aliasing.pResourceAfter);
+  logdbg(".Aliasing.pResourceBefore = 0x%p", aliasing.pResourceBefore);
+  logdbg(".Aliasing.pResourceAfter = 0x%p", aliasing.pResourceAfter);
 }
 
-inline void print_barrier(const D3D12_RESOURCE_UAV_BARRIER &uav) { debug(".UAV.pResource = 0x%p", uav.pResource); }
+inline void print_barrier(const D3D12_RESOURCE_UAV_BARRIER &uav) { logdbg(".UAV.pResource = 0x%p", uav.pResource); }
 
 inline void print_barrier(const D3D12_RESOURCE_BARRIER &barrier)
 {
-  debug(".Type = %u", (uint32_t)barrier.Type);
-  debug(".Flags = 0x%X", (uint32_t)barrier.Flags);
+  logdbg(".Type = %u", (uint32_t)barrier.Type);
+  logdbg(".Flags = 0x%X", (uint32_t)barrier.Flags);
   switch (barrier.Type)
   {
     case D3D12_RESOURCE_BARRIER_TYPE_TRANSITION: print_barrier(barrier.Transition); break;
@@ -1242,7 +1242,7 @@ public:
             }
           }
         }
-        debug("Barrier[%u]:%s", i, postFix);
+        logdbg("Barrier[%u]:%s", i, postFix);
         print_barrier(b);
       }
       G_ASSERTF(ref->Transition.StateAfter == from, "Unexpected barrier found, see listing in debug log for more detail!");
@@ -1701,54 +1701,54 @@ private:
     resource_state_mask_as_string(to, toTransitionMaskText);
     if (TransitionResult::Transtioned == action)
     {
-      debug("DX12: StateTrack: Transitioned %s 0x%p <%s>[%u] %u from <%s> to <%s>", resTypeTable[is_texture], resource, resnameBuffer,
+      logdbg("DX12: StateTrack: Transitioned %s 0x%p <%s>[%u] %u from <%s> to <%s>", resTypeTable[is_texture], resource, resnameBuffer,
         sub_res_index, global_base + sub_res_index, fromTransitionMaskText, toTransitionMaskText);
     }
     else if (TransitionResult::AutoPromoted == action)
     {
-      debug("DX12: StateTrack: Auto promoted %s 0x%p <%s>[%u] %u from <%s> to <%s>", resTypeTable[is_texture], resource, resnameBuffer,
-        sub_res_index, global_base + sub_res_index, fromTransitionMaskText, toTransitionMaskText);
+      logdbg("DX12: StateTrack: Auto promoted %s 0x%p <%s>[%u] %u from <%s> to <%s>", resTypeTable[is_texture], resource,
+        resnameBuffer, sub_res_index, global_base + sub_res_index, fromTransitionMaskText, toTransitionMaskText);
     }
     else if (TransitionResult::Merged == action)
     {
-      debug("DX12: StateTrack: Updated existing transition of %s 0x%p <%s>[%u] %u from <%s> with <%s>", resTypeTable[is_texture],
+      logdbg("DX12: StateTrack: Updated existing transition of %s 0x%p <%s>[%u] %u from <%s> with <%s>", resTypeTable[is_texture],
         resource, resnameBuffer, sub_res_index, global_base + sub_res_index, fromTransitionMaskText, toTransitionMaskText);
     }
     else if (TransitionResult::Folded == action)
     {
-      debug("DX12: StateTrack: Transformed split barrier into updated regular barrier (Folded) for "
-            "%s 0x%p <%s>[%u] %u from <%s> with <%s>",
+      logdbg("DX12: StateTrack: Transformed split barrier into updated regular barrier (Folded) for "
+             "%s 0x%p <%s>[%u] %u from <%s> with <%s>",
         resTypeTable[is_texture], resource, resnameBuffer, sub_res_index, global_base + sub_res_index, fromTransitionMaskText,
         toTransitionMaskText);
     }
     else if (TransitionResult::Skipped == action)
     {
-      debug("DX12: StateTrack: Skipped transition for %s 0x%p <%s>[%u] %u from <%s> to <%s>", resTypeTable[is_texture], resource,
+      logdbg("DX12: StateTrack: Skipped transition for %s 0x%p <%s>[%u] %u from <%s> to <%s>", resTypeTable[is_texture], resource,
         resnameBuffer, sub_res_index, global_base + sub_res_index, fromTransitionMaskText, toTransitionMaskText);
     }
     else if (TransitionResult::UserSkipped == action)
     {
-      debug("DX12: StateTrack: Skipped transition on user request for %s 0x%p <%s>[%u] %u from <%s> "
-            "to <%s>",
+      logdbg("DX12: StateTrack: Skipped transition on user request for %s 0x%p <%s>[%u] %u from <%s> "
+             "to <%s>",
         resTypeTable[is_texture], resource, resnameBuffer, sub_res_index, global_base + sub_res_index, fromTransitionMaskText,
         toTransitionMaskText);
     }
     else if (TransitionResult::UnderpsecifiedEnd == action)
     {
-      debug("DX12: StateTrack: Split barrier end was broader than the begin barrier of %s 0x%p "
-            "<%s>[%u] %u from <%s> to <%s>",
+      logdbg("DX12: StateTrack: Split barrier end was broader than the begin barrier of %s 0x%p "
+             "<%s>[%u] %u from <%s> to <%s>",
         resTypeTable[is_texture], resource, resnameBuffer, sub_res_index, global_base + sub_res_index, fromTransitionMaskText,
         toTransitionMaskText);
     }
     else if (TransitionResult::Expanded == action)
     {
-      debug("DX12: StateTrack: Expansion %s 0x%p <%s>[%u] %u from <%s> with additional <%s>", resTypeTable[is_texture], resource,
+      logdbg("DX12: StateTrack: Expansion %s 0x%p <%s>[%u] %u from <%s> with additional <%s>", resTypeTable[is_texture], resource,
         resnameBuffer, sub_res_index, global_base + sub_res_index, fromTransitionMaskText, toTransitionMaskText);
     }
     else if (TransitionResult::Fused == action)
     {
-      debug("DX12: StateTrack: Fused back and forth barrier %s 0x%p <%s>[%u] %u from <%s> to <%s>", resTypeTable[is_texture], resource,
-        resnameBuffer, sub_res_index, global_base + sub_res_index, fromTransitionMaskText, toTransitionMaskText);
+      logdbg("DX12: StateTrack: Fused back and forth barrier %s 0x%p <%s>[%u] %u from <%s> to <%s>", resTypeTable[is_texture],
+        resource, resnameBuffer, sub_res_index, global_base + sub_res_index, fromTransitionMaskText, toTransitionMaskText);
     }
   }
 
@@ -1779,7 +1779,7 @@ public:
     REPORT("DX12: Decaying state");
     if (reportDecay)
     {
-      debug("DX12: StateTrack: Decaying resource state of all regular buffers and auto promoted textures to <COMMON>");
+      logdbg("DX12: StateTrack: Decaying resource state of all regular buffers and auto promoted textures to <COMMON>");
       reportDecay = false;
     }
   }
@@ -3928,7 +3928,7 @@ public:
           barrier = barrier | RB_STAGE_RAYTRACE;
           what = UsageEntryType::CBV_RT;
           break;
-        default: fatal("DX12: Invalid shader stage %u", stage); break;
+        default: DAG_FATAL("DX12: Invalid shader stage %u", stage); break;
       }
       recordBuffer(buffer, barrier, what);
     }
@@ -3959,7 +3959,7 @@ public:
           barrier = barrier | RB_STAGE_RAYTRACE;
           what = UsageEntryType::SRV_RT;
           break;
-        default: fatal("DX12: Invalid shader stage %u", stage); break;
+        default: DAG_FATAL("DX12: Invalid shader stage %u", stage); break;
       }
       recordBuffer(buffer, barrier, what);
     }
@@ -3994,7 +3994,7 @@ public:
           barrier = barrier | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX;
           what = UsageEntryType::UAV_ANY;
           break;
-        default: fatal("DX12: Invalid shader stage %u", stage); break;
+        default: DAG_FATAL("DX12: Invalid shader stage %u", stage); break;
       }
       recordBuffer(buffer, barrier, what);
     }
@@ -4126,7 +4126,7 @@ public:
           barrier = barrier | RB_STAGE_RAYTRACE;
           what = UsageEntryType::SRV_RT;
           break;
-        default: fatal("DX12: Invalid shader stage %u", stage); break;
+        default: DAG_FATAL("DX12: Invalid shader stage %u", stage); break;
       }
       view.iterateSubresources(texture->getType(), texture->getMipLevelRange(), [=](auto sub_res) {
         if (view.getPlaneIndex().index() > 0)
@@ -4168,7 +4168,7 @@ public:
           barrier = barrier | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX;
           what = UsageEntryType::UAV_ANY;
           break;
-        default: fatal("DX12: Invalid shader stage %u", stage); break;
+        default: DAG_FATAL("DX12: Invalid shader stage %u", stage); break;
       }
       if (D3D12_RESOURCE_DIMENSION_TEXTURE3D == texture->getType())
       {
@@ -4219,7 +4219,7 @@ public:
           barrier = barrier | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX;
           what = UsageEntryType::UAV_ANY;
           break;
-        default: fatal("DX12: Invalid shader stage %u", stage); break;
+        default: DAG_FATAL("DX12: Invalid shader stage %u", stage); break;
       }
       view.iterateSubresources(texture->getType(), texture->getMipLevelRange(),
         [=](auto sub_res) { recordTexture(texture, sub_res, barrier, what); });

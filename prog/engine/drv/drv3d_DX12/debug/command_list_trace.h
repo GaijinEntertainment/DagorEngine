@@ -92,7 +92,7 @@ public:
 
   static void printLegend()
   {
-    debug("DX12: Entry with %s where executed, %s last command executed, %s command that was not completed",
+    logdbg("DX12: Entry with %s where executed, %s last command executed, %s command that was not completed",
       prefix(CompletionStatus::Completed), prefix(CompletionStatus::LastCompleted), prefix(CompletionStatus::NotCompleted));
   }
 };
@@ -112,7 +112,7 @@ class CommandListTrace : public CommandListTraceBase
 
     static constexpr D3D12_AUTO_BREADCRUMB_OP OpCode = D3D12_AUTO_BREADCRUMB_OP_BEGINEVENT;
 
-    void report(call_stack::Reporter &, CompletionStatus status) const { debug("DX12: %s <%s>", prefix(status), path); }
+    void report(call_stack::Reporter &, CompletionStatus status) const { logdbg("DX12: %s <%s>", prefix(status), path); }
   };
 
   struct EndEventTrace : EventTraceBase
@@ -121,7 +121,7 @@ class CommandListTrace : public CommandListTraceBase
 
     static constexpr D3D12_AUTO_BREADCRUMB_OP OpCode = D3D12_AUTO_BREADCRUMB_OP_ENDEVENT;
 
-    void report(call_stack::Reporter &, CompletionStatus status) const { debug("DX12: %s <%s>", prefix(status), path); }
+    void report(call_stack::Reporter &, CompletionStatus status) const { logdbg("DX12: %s <%s>", prefix(status), path); }
   };
 
   struct MarkerTrace : EventTraceBase
@@ -130,7 +130,7 @@ class CommandListTrace : public CommandListTraceBase
 
     static constexpr D3D12_AUTO_BREADCRUMB_OP OpCode = D3D12_AUTO_BREADCRUMB_OP_SETMARKER;
 
-    void report(call_stack::Reporter &, CompletionStatus status) const { debug("DX12: %s <%s>", prefix(status), path); }
+    void report(call_stack::Reporter &, CompletionStatus status) const { logdbg("DX12: %s <%s>", prefix(status), path); }
   };
 
   struct DrawTrace : OperationTraceBase, CallStackData
@@ -149,10 +149,10 @@ class CommandListTrace : public CommandListTraceBase
 
     void report(call_stack::Reporter &reporter, CompletionStatus status) const
     {
-      debug("DX12: %s %s", prefix(status), to_string(OpCode));
+      logdbg("DX12: %s %s", prefix(status), to_string(OpCode));
       if (CompletionStatus::NotCompleted == status)
       {
-        debug("DX12: ...Pipeline %p...", pipelineVariant);
+        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
         report_resources(vertexStageState, pixelStageState, pipelineBase);
         reporter.report(*this);
       }
@@ -176,10 +176,10 @@ class CommandListTrace : public CommandListTraceBase
 
     void report(call_stack::Reporter &reporter, CompletionStatus status) const
     {
-      debug("DX12: %s %s", prefix(status), to_string(OpCode));
+      logdbg("DX12: %s %s", prefix(status), to_string(OpCode));
       if (CompletionStatus::NotCompleted == status)
       {
-        debug("DX12: ...Pipeline %p...", pipelineVariant);
+        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
         report_resources(vertexStageState, pixelStageState, pipelineBase);
         reporter.report(*this);
       }
@@ -198,10 +198,10 @@ class CommandListTrace : public CommandListTraceBase
 
     void report(call_stack::Reporter &reporter, CompletionStatus status) const
     {
-      debug("DX12: %s %s", prefix(status), to_string(OpCode));
+      logdbg("DX12: %s %s", prefix(status), to_string(OpCode));
       if (CompletionStatus::NotCompleted == status)
       {
-        debug("DX12: ...Pipeline %p...", pipelineVariant);
+        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
         report_resources(vertexStageState, pixelStageState, pipelineBase);
         reporter.report(*this);
       }
@@ -220,10 +220,10 @@ class CommandListTrace : public CommandListTraceBase
 
     void report(call_stack::Reporter &reporter, CompletionStatus status) const
     {
-      debug("DX12: %s %s", prefix(status), to_string(OpCode));
+      logdbg("DX12: %s %s", prefix(status), to_string(OpCode));
       if (CompletionStatus::NotCompleted == status)
       {
-        debug("DX12: ...Pipeline %p...", pipelineVariant);
+        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
         report_resources(vertexStageState, pixelStageState, pipelineBase);
         reporter.report(*this);
       }
@@ -240,10 +240,10 @@ class CommandListTrace : public CommandListTraceBase
 
     void report(call_stack::Reporter &reporter, CompletionStatus status) const
     {
-      debug("DX12: %s %s", prefix(status), to_string(OpCode));
+      logdbg("DX12: %s %s", prefix(status), to_string(OpCode));
       if (CompletionStatus::NotCompleted == status)
       {
-        debug("DX12: ...Pipeline %p...", pipeline);
+        logdbg("DX12: ...Pipeline %p...", pipeline);
         report_resources(computeStageState, pipeline);
         reporter.report(*this);
       }
@@ -262,10 +262,10 @@ class CommandListTrace : public CommandListTraceBase
 
     void report(call_stack::Reporter &reporter, CompletionStatus status) const
     {
-      debug("DX12: %s %s", prefix(status), to_string(OpCode));
+      logdbg("DX12: %s %s", prefix(status), to_string(OpCode));
       if (CompletionStatus::NotCompleted == status)
       {
-        debug("DX12: ...Pipeline %p...", pipeline);
+        logdbg("DX12: ...Pipeline %p...", pipeline);
         report_resources(computeStageState, pipeline);
         reporter.report(*this);
       }
@@ -286,10 +286,10 @@ class CommandListTrace : public CommandListTraceBase
 
     void report(call_stack::Reporter &reporter, CompletionStatus status) const
     {
-      debug("DX12: %s %s", prefix(status), to_string(OpCode));
+      logdbg("DX12: %s %s", prefix(status), to_string(OpCode));
       if (CompletionStatus::NotCompleted == status)
       {
-        debug("DX12: ...Pipeline %p...", pipelineVariant);
+        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
         report_resources(vertexStageState, pixelStageState, pipelineBase);
         reporter.report(*this);
       }
@@ -310,10 +310,10 @@ class CommandListTrace : public CommandListTraceBase
 
     void report(call_stack::Reporter &reporter, CompletionStatus status) const
     {
-      debug("DX12: %s %s", prefix(status), to_string(OpCode));
+      logdbg("DX12: %s %s", prefix(status), to_string(OpCode));
       if (CompletionStatus::NotCompleted == status)
       {
-        debug("DX12: ...Pipeline %p...", pipelineVariant);
+        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
         report_resources(vertexStageState, pixelStageState, pipelineBase);
         reporter.report(*this);
       }
@@ -326,10 +326,10 @@ class CommandListTrace : public CommandListTraceBase
 
     void report(call_stack::Reporter &reporter, CompletionStatus status) const
     {
-      debug("DX12: %s %s", prefix(status), to_string(OpCode));
+      logdbg("DX12: %s %s", prefix(status), to_string(OpCode));
       if (CompletionStatus::NotCompleted == status)
       {
-        debug("DX12: Blit...");
+        logdbg("DX12: Blit...");
         reporter.report(*this);
       }
     }

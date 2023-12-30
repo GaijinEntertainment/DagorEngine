@@ -836,7 +836,7 @@ void HudPrimitives::renderTextEx(int x, int y, E3DCOLOR color, int font_id,
     x = int(align ? floor(x - pixelLen) : floor(x - pixelLen / 2));
   }
   else if (align != -1)
-    fatal("Unknown align value '%d'", align);
+    DAG_FATAL("Unknown align value '%d'", align);
 
   renderText(x, y, font_id, color, text, len, inout_handle);
 }

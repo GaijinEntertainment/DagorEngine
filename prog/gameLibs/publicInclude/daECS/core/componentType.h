@@ -261,9 +261,9 @@ enum ComponentTypeFlags : uint16_t
 };
 
 // that is not precisely is_pod. We assume it can be non-trivially creatable, BUT we can memcmp/memcpy on it
-inline const bool is_pod(ComponentTypeFlags flags) { return (flags & COMPONENT_TYPE_TRIVIAL_MASK) == COMPONENT_TYPE_TRIVIAL; }
-inline const bool has_io(ComponentTypeFlags flags) { return flags & COMPONENT_TYPE_HAS_IO; }
-inline const bool need_constructor(ComponentTypeFlags flags)
+inline bool is_pod(ComponentTypeFlags flags) { return (flags & COMPONENT_TYPE_TRIVIAL_MASK) == COMPONENT_TYPE_TRIVIAL; }
+inline bool has_io(ComponentTypeFlags flags) { return flags & COMPONENT_TYPE_HAS_IO; }
+inline bool need_constructor(ComponentTypeFlags flags)
 {
   return (flags & (COMPONENT_TYPE_BOXED | COMPONENT_TYPE_NON_TRIVIAL_CREATE)) != 0;
 }

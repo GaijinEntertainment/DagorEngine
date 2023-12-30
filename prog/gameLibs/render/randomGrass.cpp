@@ -34,6 +34,7 @@
 #include <render/randomGrassInstance.hlsli>
 #include <render/vertexDataCompression.hlsli>
 #include <3d/dag_lockSbuffer.h>
+#include <webui/editVarNotifications.h>
 
 
 #define LMESH_DELTA      5.f
@@ -141,6 +142,10 @@ RandomGrass::RandomGrass(const DataBlock &level_grass_blk, const DataBlock &para
   maxLodCount = 0;
   maxLayerCount = 0;
 
+#if DAGOR_DBGLEVEL > 0
+  varNotification = eastl::make_unique<EditableVariablesNotifications>();
+#endif
+
   // shader vars
   shaderVars.resize(SHV_COUNT);
 
@@ -172,7 +177,6 @@ RandomGrass::RandomGrass(const DataBlock &level_grass_blk, const DataBlock &para
 
   grassRadiusMul = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("grassRadiusMul", 1.f);
   grassDensityMul = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("grassDensityMul", 1.f);
-  numFakeLayers = ::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("grassMaliWorkaround", false) ? 1 : 0;
 
   // shader consts
   randomGrassIndirect = new_compute_shader("random_grass_create_indirect");
@@ -253,7 +257,7 @@ void RandomGrass::loadParams(const DataBlock &level_grass_blk, const DataBlock &
   rgbBitMask[1] = getBitMask(*level_grass_blk.getBlockByNameEx("greenMaskBiomes"), 2);
   rgbBitMask[2] = getBitMask(*level_grass_blk.getBlockByNameEx("blueMaskBiomes"), 4);
 
-  for (unsigned int blockNo = 0; blockNo < level_grass_blk.blockCount() + numFakeLayers; blockNo++)
+  for (unsigned int blockNo = 0; blockNo < level_grass_blk.blockCount(); blockNo++)
   {
     const DataBlock *layerBlk = level_grass_blk.getBlock(blockNo % level_grass_blk.blockCount());
     if (stricmp(layerBlk->getBlockName(), "layer") != 0)
@@ -311,6 +315,10 @@ void RandomGrass::loadParams(const DataBlock &level_grass_blk, const DataBlock &
 
     addLayer(layer_info);
   }
+
+#if DAGOR_DBGLEVEL > 0
+  initWebTools();
+#endif
 
   replaceVdecls();
   fillLayers(grassRadiusMul, params_blk);
@@ -454,12 +462,29 @@ void RandomGrass::renderDepthOptPrepass(const LandMask &land_mask)
   prepassIsValid = true;
 }
 
+#if DAGOR_DBGLEVEL > 0
+static inline float4 to_float4(const E3DCOLOR &v) { return float4(v.r / 255.0f, v.g / 255.0f, v.b / 255.0f, v.a / 255.0f); }
+#endif
+
 void RandomGrass::renderOpaque(const LandMask &land_mask)
 {
   TIME_D3D_PROFILE(grass_opaque);
 
   if (!shouldRender)
     return;
+
+#if DAGOR_DBGLEVEL > 0
+  if (varNotification && varNotification->varChanged)
+  {
+    Tab<carray<float4, MAX_COLOR_MASKS>> grassLayerData(framemem_ptr());
+    grassLayerData.resize(grassDescs.size());
+    for (int i = 0; i < grassLayerData.size(); ++i)
+      for (int j = 0; j < 6; ++j)
+        grassLayerData[i][j] = to_float4(grassDescs[i].colors[j]);
+    updateGrassColorLayer(grassLayerData);
+    varNotification->varChanged = false;
+  }
+#endif
 
   beginRender(land_mask);
   ShaderGlobal::set_int_fast(shaderVars[SHV_RENDER_TYPE], isDissolve ? RENDER_COLOR_DISSOLVE : RENDER_COLOR_OPAQUE);
@@ -844,6 +869,85 @@ GameResource *RandomGrass::loadLayerResource(const char *resName)
   return res;
 }
 
+#if DAGOR_DBGLEVEL > 0
+void RandomGrass::updateGrassColorLayer(Tab<carray<float4, MAX_COLOR_MASKS>> colors)
+{
+  if (auto layerData = lock_sbuffer<GrassLayersPS>(layerDataPS.getBuf(), 0, maxLayerCount, VBLOCK_WRITEONLY))
+  {
+    for (uint32_t layerIdx = 0; layerIdx < layers.size(); ++layerIdx)
+    {
+      layerData[layerIdx].rStart = colors[layerIdx][0];
+      layerData[layerIdx].rEnd = colors[layerIdx][1];
+      layerData[layerIdx].gStart = colors[layerIdx][2];
+      layerData[layerIdx].gEnd = colors[layerIdx][3];
+      layerData[layerIdx].bStart = colors[layerIdx][4];
+      layerData[layerIdx].bEnd = colors[layerIdx][5];
+    }
+  }
+}
+
+void RandomGrass::initWebTools()
+{
+  grassDescs.clear();
+  grassDescs.resize(layers.size());
+
+  struct RandomGrassNameCount
+  {
+    String name;
+    int count;
+  };
+
+  Tab<RandomGrassNameCount> grassNameCount(framemem_ptr()); // there's some duplication of grass
+
+  for (int i = 0; i < layers.size(); ++i)
+  {
+    GrassLayer *layer = layers[i];
+    int foundIdx = -1;
+    for (int i = 0; i < grassNameCount.size(); ++i)
+    {
+      if (strcmp(grassNameCount[i].name, layer->info.resName.str()) == 0)
+      {
+        foundIdx = i;
+        break;
+      }
+    }
+
+    if (foundIdx < 0)
+    {
+      grassNameCount.push_back({layer->info.resName, 0});
+      foundIdx = grassNameCount.size() - 1;
+    }
+    else
+    {
+      grassNameCount[foundIdx].count++;
+      grassNameCount[foundIdx].name = String(layer->info.resName + "_" + grassNameCount[foundIdx].count);
+    }
+
+    RandomGrassTypeDesc &layerDesc = grassDescs[i];
+    auto readColor = [&](E3DCOLOR &variable, Color4 defaultColor, const char *variable_name) {
+      variable = E3DCOLOR((char)(defaultColor.r * 255), (char)(defaultColor.g * 255), (char)(defaultColor.b * 255),
+        (char)(defaultColor.a * 255));
+      if (varNotification)
+        varNotification->registerE3dcolor(&variable, grassNameCount[foundIdx].name, variable_name);
+    };
+
+    for (int j = 0; j < CHANNEL_COUNT; ++j)
+    {
+      const char *colorMaskFromName = j == CHANNEL_RED     ? "color_mask_r_from"
+                                      : j == CHANNEL_GREEN ? "color_mask_g_from"
+                                                           : "color_mask_b_from";
+      const char *colorMaskToName = j == CHANNEL_RED ? "color_mask_r_to" : j == CHANNEL_GREEN ? "color_mask_g_to" : "color_mask_b_to";
+      E3DCOLOR testColor = E3DCOLOR(layer->info.colors[j].start.r, layer->info.colors[j].start.g, layer->info.colors[j].start.b,
+        layer->info.colors[j].start.a);
+      debug("testcolor.r = %f", testColor.r);
+      readColor(layerDesc.colors[j * 2], layer->info.colors[j].start, colorMaskFromName);
+      readColor(layerDesc.colors[j * 2 + 1], layer->info.colors[j].end, colorMaskToName);
+    }
+  }
+  varNotification->varChanged = false;
+}
+#endif
+
 void RandomGrass::reset_mask_number() {} // legacy
 
 
@@ -1125,7 +1229,7 @@ void RandomGrass::draw(const LandMask &land_mask, bool opaque, int startLod, int
 #if _TARGET_C1
 
 #endif
-      for (int i = 0; i < layers.size() - numFakeLayers; i++)
+      for (int i = 0; i < layers.size(); i++)
       {
         mark_managed_tex_lfu(layers[i]->lods[lodIdx].diffuseTexId);
         mark_managed_tex_lfu(layers[i]->lods[lodIdx].alphaTexId);

@@ -232,7 +232,9 @@ static void on_frame_finished()
   if (!(dagor_frame_no() & 0x7F))
   {
     int total_gpu_mem_sz_kb = 0, free_gpu_mem_sz_kb = 0;
-    if (d3d::is_inited() &&
+    // we can't tune quota of vulkan as it can make some resources non resident,
+    // and it is reflected on free GPU memory
+    if (d3d::is_inited() && !d3d::get_driver_code().is(d3d::vulkan) &&
         d3d::driver_command(DRV3D_COMMAND_GET_VIDEO_MEMORY_BUDGET, (void *)&total_gpu_mem_sz_kb, (void *)&free_gpu_mem_sz_kb, nullptr))
     {
       int new_quota_kb =
@@ -548,12 +550,12 @@ void init_managed_textures_streaming_support(int _reload_jobmgr_id)
     _reload_jobmgr_id = cpujobs::create_virtual_job_manager(256 << 10, WORKER_THREADS_AFFINITY_MASK, "reloadTex");
   if (d3d::is_inited())
   {
-    fatal("init_managed_textures_streaming_support() must be called BEFORE d3d init");
+    DAG_FATAL("init_managed_textures_streaming_support() must be called BEFORE d3d init");
     return;
   }
   if (tql::streaming_enabled)
   {
-    fatal("init_managed_textures_streaming_support() double call");
+    DAG_FATAL("init_managed_textures_streaming_support() double call");
     return;
   }
   const DataBlock &b = *dgs_get_settings()->getBlockByNameEx("texStreaming");

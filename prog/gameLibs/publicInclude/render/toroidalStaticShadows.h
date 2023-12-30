@@ -202,6 +202,10 @@ public:
 
   void setShaderVars();
   int cascadesCount() const { return cascades.size(); }
+
+  float getMaxWorldDistance() const;
+  float calculateCascadeDistance(int cascade, int cascade_count, float max_distance) const;
+
   float getDistance() const { return maxDistance; }
   const ManagedTexHolder &getTex() { return staticShadowTex; }
   void setMaxHtRange(float max_ht_range); // that is only for skewed matrix

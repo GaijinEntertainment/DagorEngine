@@ -4,7 +4,7 @@
 Class
 =====
 
-In daScript, classes are an extension of structures designed to provide OOP capabilities.
+In Daslang, classes are an extension of structures designed to provide OOP capabilities.
 Classes provides single parent inheritance, abstract and virtual methods, initializers, and finalizers.
 
 The basic class declaration is similar to that of a structure, but with the ``class`` keyword::
@@ -36,6 +36,12 @@ Finalizers can be defined explicitly as void functions named ``finalize``::
         def finalize                        // custom finalizer
             delFoo ++
 
+Alternative syntax is::
+
+    class Foo
+        ...
+        def operator delete                 // custom finalizer
+            delFoo ++
 
 There are no guarantees that a finalizer is called implicitly (see :ref:`Finalizers <finalizers>`).
 
@@ -109,6 +115,24 @@ Class methods can be operators::
             dir = normalize(dir) * value
         def const operator + ( other:Foo )
             return Foo(dir + other.dir)
+
+Class fields can be declared static, i.e. shared between all instances of the class::
+
+    class Foo
+        static count : int = 0
+        def Foo
+            count ++
+        def finalize
+            count --
+
+Class methods can be declared static. Static methods don't have access to 'self' but can access static fields::
+
+        class Foo
+            static count : int = 0
+            def static getCount : int
+                return count
+
+	    let count = Foo`getCount()  // they can be accessed outside of class
 
 ----------------------
 Implementation details

@@ -9,6 +9,7 @@ void SelectedNodesSettings::readProps(const DataBlock *props)
   isPhysCollidable = props->getBool("isPhysCollidable", false);
   isTraceable = props->getBool("isTraceable", false);
   nodeName = props->getBlockName();
+  physMat = props->getStr("phmat", "default");
   if (const DataBlock *refNodesBlock = props->getBlockByName("refNodes"))
   {
     for (int i = 0; i < refNodesBlock->blockCount(); ++i)
@@ -22,6 +23,7 @@ DataBlock *SelectedNodesSettings::saveProps(DataBlock *props) const
 {
   DataBlock *node = props->addBlock(nodeName);
   node->setStr("collision", get_export_type_name(type));
+  node->setStr("phmat", physMat.str());
   node->setBool("replaceNodes", replaceNodes);
   node->setBool("isPhysCollidable", isPhysCollidable);
   node->setBool("isTraceable", isTraceable);
@@ -36,6 +38,7 @@ DataBlock *SelectedNodesSettings::saveProps(DataBlock *props) const
 void SelectedNodesSettings::removeProps(DataBlock *props)
 {
   props->removeParam("collision");
+  props->removeParam("phmat");
   props->removeParam("replaceNodes");
   props->removeParam("isPhysCollidable");
   props->removeParam("isTraceable");

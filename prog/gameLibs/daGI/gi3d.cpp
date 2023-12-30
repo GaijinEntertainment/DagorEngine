@@ -1,5 +1,4 @@
 #include <math/dag_frustum.h>
-#include <math/dag_math3d.h>
 #include <math/dag_Point2.h>
 #include <math/integer/dag_IBBox2.h>
 #include <math/integer/dag_IBBox3.h>
@@ -10,12 +9,10 @@
 #include <3d/dag_tex3d.h>
 #include <shaders/dag_computeShaders.h>
 #include <perfMon/dag_statDrv.h>
-#include <render/toroidal_update.h>
 #include <generic/dag_smallTab.h>
 #include <textureUtil/textureUtil.h>
 
 #include <daGI/daGI.h>
-#include "load_data.h"
 #include "global_vars.h"
 
 #include "shaders/poisson_samples.hlsli"
@@ -102,7 +99,7 @@ bool GI3D::ensureSampledTarget(int w, int h, uint32_t fmt)
   TextureInfo tinfo;
   if (sampledTarget)
     sampledTarget->getinfo(tinfo);
-  if (((tinfo.cflg & TEXFMT_MASK) != fmt) || tinfo.w < w || tinfo.h < h)
+  if (((tinfo.cflg & TEXFMT_MASK) != (fmt & TEXFMT_MASK)) || tinfo.w < w || tinfo.h < h)
   {
     TexPtr tex = dag::create_tex(NULL, w, h, fmt | TEXCF_RTARGET, 1, "voxelization_msaa_target");
     debug("MSAA voxelization target %s %dx%d fmt 0x%X", tex ? "created" : "can't be created", w, h, fmt);
@@ -180,7 +177,7 @@ void GI3D::initDebug()
 }
 
 
-void GI3D::drawDebugAllProbes(int cascade, DebugAllVolmapType debug_type)
+void GI3D::drawDebugAllProbes(int cascade, const Frustum &camera_frustum, DebugAllVolmapType debug_type)
 {
   if (!drawDebugAllVolmap.shader)
     initDebug();
@@ -189,9 +186,7 @@ void GI3D::drawDebugAllProbes(int cascade, DebugAllVolmapType debug_type)
   TIME_D3D_PROFILE(debugVolmapAll);
 
   d3d::settm(TM_WORLD, TMatrix::IDENT);
-  mat44f globtm;
-  d3d::getglobtm(globtm);
-  set_frustum_planes(Frustum(globtm));
+  set_frustum_planes(camera_frustum);
 
   ShaderGlobal::set_int(debug_volmap_typeVarId, (int)debug_type);
   drawDebugAllVolmap.shader->setStates(0, true);

@@ -1,10 +1,166 @@
 include "shader_global.dshl"
 include "depth_above.dshl"
+include "differential_utils.dshl"
 include "cfd_inc.dshl"
 
 int4 cfd_voxel_tex_size;
 float4 cfd_voxel_size;
 float4 cfd_world_box_min;
+
+buffer cfd_depth_above_bounds_buf;
+
+texture cfd_terrain_depth_tex;
+texture cfd_terrain_tex;
+texture cfd_terrain_gradient_tex;
+float4 cfd_terrain_heights;
+float cfd_terrain_texel_size;
+float cfd_terrain_diff_tolerance = 1.0;
+
+shader cfd_clear_depth_above_bounds
+{
+  ENABLE_ASSERT(cs)
+  (cs) {
+    depth_above_bounds@uav = cfd_depth_above_bounds_buf hlsl {
+      RWStructuredBuffer<int> depth_above_bounds@uav;
+    };
+  }
+
+  hlsl(cs) {
+    [numthreads(1, 1, 1)]
+    void cs_main(uint3 tid : SV_DispatchThreadID)
+    {
+      depth_above_bounds[0] = 8848;
+      depth_above_bounds[1] = -10916;
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+shader cfd_depth_above_bounds
+{
+  ENABLE_ASSERT(cs)
+  INIT_DEPTH_ABOVE(cs, blurred_depth)
+  USE_DEPTH_ABOVE_TC(cs)
+
+  (cs) {
+    depth_above@smp2d = depth_around;
+    depth_above_bounds@uav = cfd_depth_above_bounds_buf hlsl {
+      RWStructuredBuffer<int> depth_above_bounds@uav;
+    };
+  }
+
+  hlsl(cs) {
+    groupshared int groupMin;
+    groupshared int groupMax;
+    [numthreads(8, 8, 1)]
+    void cs_main(uint3 tid : SV_DispatchThreadID, uint3 gid : SV_GroupThreadID)
+    {
+      uint2 coord = 2 * tid.xy;
+
+      if (gid.x == 0 && gid.y == 0)
+      {
+        groupMin = 8848;
+        groupMax = -10916;
+      }
+      GroupMemoryBarrierWithGroupSync();
+
+      int localMin = 8848;
+      int localMax = -10916;
+      int height00 = (decode_depth_above(texelFetch(depth_above, coord, 0).x));
+      int height01 = (decode_depth_above(texelFetch(depth_above, coord + uint2(1, 0), 0).x));
+      int height10 = (decode_depth_above(texelFetch(depth_above, coord + uint2(0, 1), 0).x));
+      int height11 = (decode_depth_above(texelFetch(depth_above, coord + uint2(1, 1), 0).x));
+      localMin = min(localMin, min(height00, min(height01, min(height10, height11))));
+      localMax = max(localMax, max(height00, max(height01, max(height10, height11))));
+
+      InterlockedMin(groupMin, localMin);
+      InterlockedMax(groupMax, localMax);
+      GroupMemoryBarrierWithGroupSync();
+
+      if (gid.x == 0 && gid.y == 0)
+      {
+        InterlockedMin(depth_above_bounds[0], groupMin);
+        InterlockedMax(depth_above_bounds[1], groupMax);
+      }
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+shader cfd_terrain_copy
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    terrain_depth_tex@smp2d = cfd_terrain_depth_tex;
+    terrain_tex@uav = cfd_terrain_tex hlsl {
+      RWTexture2D<float> terrain_tex@uav;
+    };
+    terrain_heights@f2 = cfd_terrain_heights;
+  }
+
+  hlsl(cs) {
+    [numthreads(8, 8, 1)]
+    void cs_main(uint3 tid : SV_DispatchThreadID)
+    {
+      if (tid.x >= 64 || tid.y >= 64)
+        return;
+
+      float2 tc = float2(tid.xy + 0.5) / float2(64, 64);
+      tc.y = 1 - tc.y;
+      float depth = tex2Dlod(terrain_depth_tex, float4(tc, 0, 0)).x;
+      float height = lerp(terrain_heights.x, terrain_heights.y, depth);
+      terrain_tex[tid.xy] = height;
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+shader cfd_terrain_gradient
+{
+  ENABLE_ASSERT(cs)
+  INIT_DEPTH_ABOVE(cs, blurred_depth)
+  USE_DEPTH_ABOVE_TC(cs)
+  USE_DIFFERENTIAL_UTILS(cs)
+
+  (cs) {
+    terrain_tex@smp2d = cfd_terrain_tex;
+    terrain_gradient_tex@uav = cfd_terrain_gradient_tex hlsl {
+      RWTexture2D<float2> terrain_gradient_tex@uav;
+    };
+    terrain_texel_size@f1 = cfd_terrain_texel_size;
+  }
+
+  hlsl(cs) {
+    float2 get_terrain_tc(int2 tid)
+    {
+      float2 tc = float2(tid + 0.5) / float2(64, 64);
+      return tc;
+    }
+  }
+
+  hlsl(cs) {
+    [numthreads(8, 8, 1)]
+    void cs_main(uint3 tid : SV_DispatchThreadID)
+    {
+      if (tid.x >= 64 || tid.y >= 64)
+        return;
+
+      int2 coord = int2(tid.xy);
+
+      ValueCross heightCross =
+      {
+        tex2Dlod(terrain_tex, float4(get_terrain_tc(coord + int2(-1, 0)), 0, 0)).x,
+        tex2Dlod(terrain_tex, float4(get_terrain_tc(coord + int2(1, 0)), 0, 0)).x,
+        tex2Dlod(terrain_tex, float4(get_terrain_tc(coord + int2(0, -1)), 0, 0)).x,
+        tex2Dlod(terrain_tex, float4(get_terrain_tc(coord + int2(0, 1)), 0, 0)).x
+      };
+
+      terrain_gradient_tex[coord] = gradient(heightCross, terrain_texel_size);
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
 
 shader voxelize_depth_above
 {
@@ -20,6 +176,9 @@ shader voxelize_depth_above
     tex_size@i3 = (cfd_voxel_tex_size.x, cfd_voxel_tex_size.y, cfd_voxel_tex_size.z);
     voxel_size@f3 = cfd_voxel_size;
     world_box_min@f3 = cfd_world_box_min;
+
+    wind_terrain_tex@smp2d = cfd_terrain_tex;
+    terrain_diff_tolerance@f1 = cfd_terrain_diff_tolerance;
   }
 
   hlsl(cs) {
@@ -38,15 +197,83 @@ shader voxelize_depth_above
 
       float3 voxelCorner = get_voxel_corner_in_world(tid);
       float3 voxelCenter = voxelCorner + voxel_size * 0.5f;
-      float2 depthAboveTc = saturate(world_to_depth_ao_extra.xy * voxelCenter.xz + world_to_depth_ao_extra.zw) - depth_ao_heights_extra.zw;
 
-      // tc.z is 1 because we use the bigger cascade always
-      float height = decode_depth_above(tex3Dlod(depth_above, float4(depthAboveTc, 1, 0)).x);
-
-      if (height > voxelCenter.y)
-        voxel_tex[tid] = 1;
+      float3 depthAboveTc = 0;
+      if (depth_ao_extra_enabled > 0)
+        depthAboveTc = float3(saturate(world_to_depth_ao_extra.xy * voxelCenter.xz + world_to_depth_ao_extra.zw) - depth_ao_heights_extra.zw, 1);
       else
-        voxel_tex[tid] = 0;
+        depthAboveTc = float3(saturate(world_to_depth_ao.xy * voxelCenter.xz + world_to_depth_ao.zw) - depth_ao_heights.zw, 0);
+
+      float height = decode_depth_above(tex3Dlod(depth_above, float4(depthAboveTc, 0)).x);
+
+      float2 tc = float2(tid.xy + 0.5) / float2(tex_size.xy);
+      float terrainHeight = tex2Dlod(wind_terrain_tex, float4(tc, 0, 0)).x;
+
+      height = height - terrainHeight;
+      if (height < terrain_diff_tolerance)
+        height = 0.f;
+
+      height += world_box_min.y;
+
+      // Boundary textures will have 5 bits of data about center and surrounding boundaries
+      float result = 0.0;
+      if (height > voxelCenter.y)
+        result = 1u / 32.0;
+      else
+        result = 0;
+
+      voxel_tex[tid] = result;
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+texture cfd_prev_boundaries;
+texture cfd_next_boundaries;
+int4 cfd_next_boundaries_tex_size;
+
+shader cfd_generate_boundaries
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    prev_boundaries@smp3d = cfd_prev_boundaries;
+    next_boundaries@uav = cfd_next_boundaries hlsl {
+      RWTexture3D<float> next_boundaries@uav;
+    };
+    tex_size@i3 = cfd_next_boundaries_tex_size;
+  }
+
+  hlsl(cs) {
+    float3 get_prev_tex_tc(uint3 id)
+    {
+      // Always take top left corner of 2x2 block of previous tex
+      // TODO: Improve this by analyzing all 4 texels
+      return float3(id.xy + 0.25, id.z + 0.5) / float3(tex_size);
+    }
+
+    uint get_boundary_data(float tex_data)
+    {
+      return uint(round(tex_data * 32.0));
+    }
+  }
+
+  hlsl(cs) {
+    [numthreads(8, 8, 1)]
+    void cs_main(uint3 tid : SV_DispatchThreadID)
+    {
+      if (tid.x >= tex_size.x || tid.y >= tex_size.y || tid.z >= tex_size.z)
+        return;
+
+      uint center = get_boundary_data(tex3Dlod(prev_boundaries, float4(get_prev_tex_tc(tid), 0)).x);
+      uint top = get_boundary_data(tex3Dlod(prev_boundaries, float4(get_prev_tex_tc(tid + uint3(0, -1, 0)), 0)).x) & (tid.y > 0 ? 1 : 0);
+      uint right = get_boundary_data(tex3Dlod(prev_boundaries, float4(get_prev_tex_tc(tid + uint3(1, 0, 0)), 0)).x) & (tid.x < tex_size.x - 1 ? 1 : 0);
+      uint bottom = get_boundary_data(tex3Dlod(prev_boundaries, float4(get_prev_tex_tc(tid + uint3(0, 1, 0)), 0)).x) & (tid.y < tex_size.y - 1 ? 1 : 0);
+      uint left = get_boundary_data(tex3Dlod(prev_boundaries, float4(get_prev_tex_tc(tid + uint3(-1, 0, 0)), 0)).x) & (tid.x > 0 ? 1 : 0);
+
+      uint result = (center & 1) | ((top & 1) << 1) | ((right & 1) << 2) | ((bottom & 1) << 3) | ((left & 1) << 4);
+
+      next_boundaries[tid] = float(result) / 32.0;
     }
   }
   compile("cs_5_0", "cs_main")

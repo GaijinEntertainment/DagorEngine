@@ -1,4 +1,3 @@
-#include <windows.h>
 #include "daBuild.h"
 #include <assets/assetMgr.h>
 #include <assets/assetExporter.h>
@@ -7,11 +6,12 @@
 #include <assets/assetHlp.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_symHlp.h>
+#include <osApiWrappers/dag_dynLib.h>
 #include <util/dag_string.h>
 #include <debug/dag_debug.h>
 
 #if _TARGET_STATIC_LIB
-#include "exporters/dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 DagorAssetExporterPlugin *DagorAssetExporterPlugin::tail = nullptr;
 #endif
 
@@ -19,7 +19,7 @@ struct DaBuildPluginState
 {
   IDaBuildPlugin *p;
 #if !_TARGET_STATIC_LIB
-  HMODULE dll;
+  void *dll;
 #endif
 };
 
@@ -76,17 +76,17 @@ bool loadSingleExporterPlugin(const DataBlock &appblk, DagorAssetMgr &mgr, const
   ILogWriter &log)
 {
 #if !_TARGET_STATIC_LIB
-  HMODULE dllHandle = ::LoadLibrary(fname);
+  void *dllHandle = os_dll_load(fname);
   IDaBuildPlugin *p = NULL;
 
   if (dllHandle)
   {
-    get_dabuild_plugin_t get_plugin = (get_dabuild_plugin_t)::GetProcAddress(dllHandle, GET_DABUILD_PLUGIN_PROC);
+    get_dabuild_plugin_t get_plugin = (get_dabuild_plugin_t)os_dll_get_symbol(dllHandle, GET_DABUILD_PLUGIN_PROC);
 
     if (get_plugin)
     {
       p = loadSingleExporterPlugin(get_plugin,
-        (dabuild_plugin_install_dds_helper_t)::GetProcAddress(dllHandle, DABUILD_PLUGIN_INSTALL_DDS_HLP_PROC), appblk, mgr,
+        (dabuild_plugin_install_dds_helper_t)os_dll_get_symbol(dllHandle, DABUILD_PLUGIN_INSTALL_DDS_HLP_PROC), appblk, mgr,
         exp_types_mask, log, fname);
 
       if (p)
@@ -99,7 +99,7 @@ bool loadSingleExporterPlugin(const DataBlock &appblk, DagorAssetMgr &mgr, const
     }
 
     if (!p)
-      ::FreeLibrary(dllHandle);
+      os_dll_close(dllHandle);
   }
   return p != NULL;
 #else
@@ -112,11 +112,7 @@ bool loadExporterPlugins(const DataBlock &appblk, DagorAssetMgr &mgr, const char
 {
 #if !_TARGET_STATIC_LIB
   alefind_t ff;
-#if _TARGET_PC_WIN
-  const String mask(260, "%s/*.dll", dirpath);
-#else
-  const String mask(260, "%s/*.so", dirpath);
-#endif
+  const String mask(260, "%s/*" DAGOR_PC_OS_DLL_SUFFIX, dirpath);
   String fname;
 
   if (::dd_find_first(mask, DA_FILE, &ff))
@@ -150,7 +146,7 @@ void unloadExporterPlugins(DagorAssetMgr &mgr)
 
 #if !_TARGET_STATIC_LIB
   for (int i = 0; i < plugins.size(); i++)
-    ::FreeLibrary(plugins[i].dll);
+    os_dll_close(plugins[i].dll);
 #endif
   clear_and_shrink(plugins);
 }

@@ -17,7 +17,7 @@ let colored_text = "\n".concat(
   "named: <color=@red>some text</color>, <header>HEADER</header>"
 )
 
-let function sText(txt, params={}) {
+function sText(txt, params={}) {
   return {
     ellipsis = true
     color = Color(198,198,128)
@@ -26,7 +26,7 @@ let function sText(txt, params={}) {
   }.__update(params, {rendObj = ROBJ_TEXT})
 }
 
-let function textarea(txt, params={}) {
+function textarea(txt, params={}) {
   return {
     rendObj = ROBJ_TEXTAREA
     color = Color(198,198,128)
@@ -42,7 +42,7 @@ let textAreaFrameState = Watched({
   pos  = [0, 0]
 })
 
-let function textAreaContainer(txt, params={}) {
+function textAreaContainer(txt, params={}) {
   let ta = {
     rendObj = ROBJ_TEXTAREA
     textOverflowY = TOVERFLOW_LINE

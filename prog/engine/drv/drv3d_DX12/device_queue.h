@@ -9,11 +9,29 @@
 #include "d3d12_debug_names.h"
 
 
-#if _TARGET_XBOXONE
-#include <xg.h>
-#elif _TARGET_SCARLETT
-#include <xg_xs.h>
+#if _TARGET_PC_WIN
+
+struct TileMapperAccel
+{
+  eastl::vector<D3D12_TILED_RESOURCE_COORDINATE> trcs;
+  eastl::vector<D3D12_TILE_REGION_SIZE> trss;
+  eastl::vector<UINT> offsets;
+  eastl::vector<UINT> counts;
+  eastl::vector<D3D12_TILE_RANGE_FLAGS> rangeFlags;
+  ID3D12Resource *tex = nullptr;
+  ID3D12Heap *heap = nullptr;
+  size_t heapBase = 0;
+
+  void beginTileMapping(ID3D12Resource *tex, ID3D12Heap *heap, size_t heap_base, size_t mapping_count);
+  void addTileMappings(const TileMapping *mapping, size_t mapping_count);
+  void endTileMapping(ID3D12CommandQueue *queue);
+  void clear();
+};
+
+#else
+#include "device_queue_xbox.h"
 #endif
+
 
 namespace drv3d_dx12
 {
@@ -72,37 +90,22 @@ public:
   bool syncWith(ID3D12Fence *f, uint64_t progress) { return DX12_CHECK_OK(queue->Wait(f, progress)); }
 
 #if _TARGET_PC_WIN
-  void beginTileMapping(ID3D12Resource *tex, ID3D12Heap *heap, size_t heap_base, size_t mapping_count);
+  void beginTileMapping(ID3D12Resource *tex, ID3D12Heap *heap, size_t heap_base, size_t mapping_count)
+  {
+    tileMapperAccel.beginTileMapping(tex, heap, heap_base, mapping_count);
+  }
 #else
-  void beginTileMapping(ID3D12Resource *tex, XGTextureAddressComputer *texAddressComputer, uintptr_t address, uint32_t size,
-    size_t mapping_count);
+  void beginTileMapping(ID3D12Resource *tex, TileMapperAccel::TexAddrComputer *texAddressComputer, uintptr_t address, uint64_t size,
+    size_t mapping_count)
+  {
+    tileMapperAccel.beginTileMapping(tex, texAddressComputer, address, size, mapping_count);
+  }
 #endif
-  void addTileMappings(const TileMapping *mapping, size_t mapping_count);
-  void endTileMapping();
+  void addTileMappings(const TileMapping *mapping, size_t mapping_count) { tileMapperAccel.addTileMappings(mapping, mapping_count); }
+  void endTileMapping() { tileMapperAccel.endTileMapping(queue.Get()); }
 
 private:
-  static struct TileMapperAccel
-  {
-#if _TARGET_PC_WIN
-    eastl::vector<D3D12_TILED_RESOURCE_COORDINATE> trcs;
-    eastl::vector<D3D12_TILE_REGION_SIZE> trss;
-    eastl::vector<UINT> offsets;
-    eastl::vector<UINT> counts;
-    eastl::vector<D3D12_TILE_RANGE_FLAGS> rangeFlags;
-    ID3D12Resource *tex = nullptr;
-    ID3D12Heap *heap = nullptr;
-    size_t heapBase = 0;
-#else
-    eastl::vector<D3D12XBOX_PAGE_MAPPING_BATCH> trBatches;
-    eastl::vector<D3D12XBOX_PAGE_MAPPING_RANGE> trRanges;
-    D3D12_GPU_VIRTUAL_ADDRESS sourcePoolPageVA = 0;
-    uint32_t sourcePoolPageSize = 0;
-    ID3D12Resource *tex = nullptr;
-    ComPtr<XGTextureAddressComputer> pTexComputer;
-#endif
-
-    void clear();
-  } tileMapperAccel;
+  static TileMapperAccel tileMapperAccel;
 };
 
 class AsyncProgress
@@ -250,10 +253,10 @@ inline DAGOR_NOINLINE bool wait_for_frame_progress_with_event_slow_path(DeviceQu
   }
   if (qs.checkFrameProgress() >= progress)
   {
-    debug("DX12: Progress check allowed continuation");
+    logdbg("DX12: Progress check allowed continuation");
     return true;
   }
-  debug("DX12: Calling SetEventOnCompletion with nullptr");
+  logdbg("DX12: Calling SetEventOnCompletion with nullptr");
   return qs.waitForFrameProgress(progress, nullptr);
 }
 

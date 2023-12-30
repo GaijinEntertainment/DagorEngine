@@ -143,7 +143,7 @@ let Box = kwarg(function(
   }
 })
 
-let function mkResearchItem(idx) {
+function mkResearchItem(idx) {
   return Box({
     size = [sh(15),sh(5)]
     margin=[0,hdpx(10),hdpx(20),hdpx(10)]
@@ -195,7 +195,7 @@ let function mkResearchItem(idx) {
   })
 }
 
-let function researchLine(_,r) {
+function researchLine(_,r) {
   return Box({
     flow = FLOW_HORIZONTAL
     halign = ALIGN_CENTER
@@ -206,7 +206,7 @@ let function researchLine(_,r) {
   })
 }
 
-let function researchTree() {
+function researchTree() {
   return Container({
     flow = FLOW_VERTICAL
     gap = hdpx(10)
@@ -223,7 +223,7 @@ let function researchTree() {
   })
 }
 
-let function researchTreeBlock(key) {
+function researchTreeBlock(key) {
   return Container({
     size = [sw(80),sh(80)]
     hplace = ALIGN_CENTER

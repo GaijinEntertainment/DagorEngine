@@ -88,7 +88,7 @@ My2LoadCB::~My2LoadCB()
 void My2LoadCB::nomem_error(const char *fn)
 {
   if (fatalOnError_)
-    fatal("Not enough memory to load %s", fn);
+    DAG_FATAL("Not enough memory to load %s", fn);
   else
     debug("Not enough memory to load %s", fn);
 }
@@ -96,7 +96,7 @@ void My2LoadCB::nomem_error(const char *fn)
 void My2LoadCB::open_error(const char *fn)
 {
   if (fatalOnError_)
-    fatal_x("Can't open %s", fn);
+    DAG_FATAL("Can't open %s", fn);
   else
     debug("Can't open %s", fn);
 }
@@ -104,7 +104,7 @@ void My2LoadCB::open_error(const char *fn)
 void My2LoadCB::format_error(const char *fn)
 {
   if (fatalOnError_)
-    fatal("File %s has invalid format", fn);
+    DAG_FATAL("File %s has invalid format", fn);
   else
     debug("File %s has invalid format", fn);
 }
@@ -112,7 +112,7 @@ void My2LoadCB::format_error(const char *fn)
 void My2LoadCB::read_error(const char *fn)
 {
   if (fatalOnError_)
-    fatal("Error reading %s", fn);
+    DAG_FATAL("Error reading %s", fn);
   else
     debug("Error reading %s", fn);
 }
@@ -504,7 +504,7 @@ int load_ascene2(const char *fn, AScene &sc, int flg, bool fatal_on_error, PtrTa
   if (!load_scene(fn, cb))
   {
     if (fatal_on_error)
-      fatal("invalid scene <%s>: unable to read", fn);
+      DAG_FATAL("invalid scene <%s>: unable to read", fn);
     else
       logerr("invalid scene <%s>: unable to read", fn);
     return 0;
@@ -516,7 +516,7 @@ int load_ascene2(const char *fn, AScene &sc, int flg, bool fatal_on_error, PtrTa
   if (!cb.root)
   {
     if (fatal_on_error)
-      fatal("invalid scene <%s>: no root node", fn);
+      DAG_FATAL("invalid scene <%s>: no root node", fn);
     else
       logerr("invalid scene <%s>: no root node", fn);
     return 0;

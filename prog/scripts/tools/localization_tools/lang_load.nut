@@ -2,7 +2,7 @@ let { readCsvFile } = require("tools/localization_tools/langs_validation.nut")
 let { get_time_msec } = require("dagor.time")
 
 
-local function loadLangFromFiles(lang_dir, lang_files, skip_last_cols = 0) {
+function loadLangFromFiles(lang_dir, lang_files, skip_last_cols = 0) {
   local fullLoadedLang = {}
 
   let startTime = get_time_msec()

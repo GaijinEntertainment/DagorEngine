@@ -9,9 +9,25 @@ namespace Sqrat
 class Table;
 }
 
+struct SQVM;
+typedef struct SQVM *HSQUIRRELVM;
 
 namespace darg
 {
+
+enum class AotMode
+{
+  NO_AOT,
+  AOT,
+};
+
+enum class LogAotErrors
+{
+  NO,
+  YES,
+};
+
+void set_das_loading_settings(HSQUIRRELVM vm, AotMode aot_mode, LogAotErrors need_aot_error_log);
 
 class DasLogWriter : public das::TextWriter
 {
@@ -44,6 +60,9 @@ public:
 
   das::TypeInfo *typeGuiContextRef = nullptr, *typeConstElemRenderDataRef = nullptr, *typeConstRenderStateRef = nullptr,
                 *typeConstPropsRef = nullptr;
+
+  AotMode aotMode = AotMode::AOT;
+  LogAotErrors needAotErrorLog = LogAotErrors::YES;
 };
 
 

@@ -216,18 +216,18 @@ public:
     static constexpr uint32_t AMD_VENDOR_ID = 0x1002;
     if (AMD_VENDOR_ID == vendor)
     {
-      debug("DX12: Device vendor is AMD, assuming emulated D24S8, patching D24S8 to D32S8X24...");
+      logdbg("DX12: Device vendor is AMD, assuming emulated D24S8, patching D24S8 to D32S8X24...");
       remapTo<DXGI_FORMAT_R32G8X24_TYPELESS, DXGI_FORMAT_D32_FLOAT_S8X24_UINT, DXGI_FORMAT_D32_FLOAT_S8X24_UINT>(
         TEXFMT_DEPTH24 >> FormatStore::CREATE_FLAGS_FORMAT_SHIFT);
     }
-    debug("DX12: Patching planar format info table...");
+    logdbg("DX12: Patching planar format info table...");
     // Now patch format table with planar info, most formats have 1 but for depth stencil they can be different
     for (uint32_t i = 0; i < sizeof...(Formats); ++i)
     {
       D3D12_FEATURE_DATA_FORMAT_INFO fmtInfo = {linearFormatArray[i]};
       device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &fmtInfo, sizeof(fmtInfo));
       planeCount[i] = fmtInfo.PlaneCount;
-      debug("DX12: %s PlantCount %u", dxgi_format_name(linearFormatArray[i]), fmtInfo.PlaneCount);
+      logdbg("DX12: %s PlantCount %u", dxgi_format_name(linearFormatArray[i]), fmtInfo.PlaneCount);
     }
   }
 #endif
@@ -508,6 +508,7 @@ FormatInfo<TEXFMT_ATI1N,          DXGI_FORMAT_BC4_TYPELESS,           DXGI_FORMA
 FormatInfo<TEXFMT_ATI2N,          DXGI_FORMAT_BC5_TYPELESS,           DXGI_FORMAT_BC5_UNORM,            DXGI_FORMAT_BC5_UNORM>,
 FormatInfo<TEXFMT_R8G8B8A8,       DXGI_FORMAT_R8G8B8A8_TYPELESS,      DXGI_FORMAT_R8G8B8A8_UNORM,       DXGI_FORMAT_R8G8B8A8_UNORM_SRGB>,
 FormatInfo<TEXFMT_R32UI,          DXGI_FORMAT_R32_TYPELESS,           DXGI_FORMAT_R32_UINT,             DXGI_FORMAT_R32_UINT>,
+FormatInfo<TEXFMT_R32SI,          DXGI_FORMAT_R32_TYPELESS,           DXGI_FORMAT_R32_SINT,             DXGI_FORMAT_R32_SINT>,
 FormatInfo<TEXFMT_R11G11B10F,     DXGI_FORMAT_R11G11B10_FLOAT,        DXGI_FORMAT_R11G11B10_FLOAT,      DXGI_FORMAT_R11G11B10_FLOAT>,
 FormatInfo<TEXFMT_R9G9B9E5,       DXGI_FORMAT_R9G9B9E5_SHAREDEXP,     DXGI_FORMAT_R9G9B9E5_SHAREDEXP,   DXGI_FORMAT_R9G9B9E5_SHAREDEXP>,
 FormatInfo<TEXFMT_R8G8,           DXGI_FORMAT_R8G8_TYPELESS,          DXGI_FORMAT_R8G8_UNORM,           DXGI_FORMAT_R8G8_UNORM>,
@@ -575,7 +576,7 @@ FormatStore FormatStore::fromDXGIDepthFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
     case DXGI_FORMAT_R32G8X24_TYPELESS: result.setFromFlagTexFlags(TEXFMT_DEPTH32_S8); break;
     default:
-      fatal("A texture with D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL set has a format of %s which we can't map to TEXFMT_*!",
+      DAG_FATAL("A texture with D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL set has a format of %s which we can't map to TEXFMT_*!",
         dxgi_format_name(fmt));
   }
 
@@ -644,6 +645,7 @@ bool FormatStore::isHDRFormat() const
     case TEXFMT_L8 >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_A8L8 >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R32UI >> CREATE_FLAGS_FORMAT_SHIFT:
+    case TEXFMT_R32SI >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R8G8 >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R8UI >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R8G8S >> CREATE_FLAGS_FORMAT_SHIFT:
@@ -704,6 +706,7 @@ bool FormatStore::isColor() const
     case TEXFMT_ATI2N >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R8G8B8A8 >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R32UI >> CREATE_FLAGS_FORMAT_SHIFT:
+    case TEXFMT_R32SI >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R11G11B10F >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R9G9B9E5 >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R8G8 >> CREATE_FLAGS_FORMAT_SHIFT:
@@ -753,6 +756,7 @@ bool FormatStore::isDepth() const
     case TEXFMT_ATI2N >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R8G8B8A8 >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R32UI >> CREATE_FLAGS_FORMAT_SHIFT:
+    case TEXFMT_R32SI >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R11G11B10F >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R9G9B9E5 >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R8G8 >> CREATE_FLAGS_FORMAT_SHIFT:
@@ -803,6 +807,7 @@ bool FormatStore::isStencil() const
     case TEXFMT_ATI2N >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R8G8B8A8 >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R32UI >> CREATE_FLAGS_FORMAT_SHIFT:
+    case TEXFMT_R32SI >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R11G11B10F >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R9G9B9E5 >> CREATE_FLAGS_FORMAT_SHIFT:
     case TEXFMT_R8G8 >> CREATE_FLAGS_FORMAT_SHIFT:

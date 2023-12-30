@@ -30,7 +30,7 @@ static void compile_error_handler(HSQUIRRELVM v, const SQChar *desc, const SQCha
 {
   String str;
   str.printf(128, "Squirrel compile error %s (%d:%d): %s", source, line, column, desc);
-  fatal(str);
+  DAG_FATAL(str);
 }
 
 
@@ -42,7 +42,7 @@ static SQInteger runtime_error_handler(HSQUIRRELVM v)
     errMsg = "Unknown error";
 
   sqstd_printcallstack(v);
-  fatal(errMsg);
+  DAG_FATAL(errMsg);
 
   return sq_suspendvm(v);
 }
@@ -78,7 +78,7 @@ void run_init_script(const char *scriptKey)
     {
       String msg;
       msg.printf(256, "Failed to load script module %s: %s", scriptFn, errMsg.c_str());
-      fatal(msg);
+      DAG_FATAL(msg);
     }
     unbind_dargbox_script_api(sqvm);
   }

@@ -18,7 +18,7 @@
     if (!(a))                                                              \
     {                                                                      \
       cdebug("assert failed : \"%s\" in %s : %i", #a, __FILE__, __LINE__); \
-      fatal_x("assert");                                                   \
+      DAG_FATAL("assert");                                                 \
       ::terminate_process(13);                                             \
     }                                                                      \
   }
@@ -28,7 +28,7 @@
     if (!(a))                                                              \
     {                                                                      \
       cdebug("assert failed : \"%s\" in %s : %i", #a, __FILE__, __LINE__); \
-      fatal_x("assert");                                                   \
+      DAG_FATAL("assert");                                                 \
     }                                                                      \
   }
 #endif

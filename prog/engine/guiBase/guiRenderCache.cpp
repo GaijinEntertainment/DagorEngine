@@ -281,7 +281,7 @@ void BufferedRenderer::validateShader(int buffer, GuiShader *mat)
 {
   GuiVertexData *buf = &buffers[buffer];
   if (!mat->material->checkChannels(buf->channels.data(), buf->channels.size()))
-    fatal("StdGuiRender - invalid channels for shader '%s'!", (char *)mat->material->getShaderClassName());
+    DAG_FATAL("StdGuiRender - invalid channels for shader '%s'!", (char *)mat->material->getShaderClassName());
 }
 
 void BufferedRenderer::setBufAndShader(int buffer, GuiShader *mat)

@@ -295,7 +295,7 @@ macro GTAO_MAIN_CORE(code)
           w * contact_shadow_len*fovScale, shadow_steps, dither - 0.5, projectionMatrix,
           w, viewProjectionMatrixNoOfs, hitUV, float2(100, 99)
         );
-        gtao_value.CONTACT_SHADOWS_ATTR = getAdditionalShadow(gtao_value.CONTACT_SHADOWS_ATTR, cameraToPoint, wsNormal);
+        gtao_value.CONTACT_SHADOWS_ATTR = getAdditionalShadow(gtao_value.CONTACT_SHADOWS_ATTR, cameraToPoint, wsNormal, texcoord, w);
       }
       ##endif
 

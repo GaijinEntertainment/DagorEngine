@@ -19,10 +19,10 @@ namespace dabfg::detail
 struct NodeUid
 {
   NodeNameId nodeId;
-  uint32_t generation : 31;
-  uint32_t valid : 1;
+  uint16_t generation : 15;
+  uint16_t valid : 1;
 };
 
-static_assert(sizeof(NodeUid) == sizeof(uint32_t) * 2);
+static_assert(sizeof(NodeUid) == sizeof(uint16_t) * 2);
 
 } // namespace dabfg::detail

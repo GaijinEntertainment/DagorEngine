@@ -140,7 +140,7 @@ CameraController::CameraController(IPhysCar *_car) :
 
   maxWVel = Point3(TWOPI, TWOPI, 0);
   maxCosTeta = cosf(45.0f * DEG_TO_RAD);
-  maxVel2ForRotY = real_sq(20 / 3.6);
+  maxVel2ForRotY = sqr(20 / 3.6);
   testTimeMax = 0.6;
 
   sphVelMax = Point3(3500 * 3.6, 1800 * DEG_TO_RAD, 3600 * DEG_TO_RAD);
@@ -198,7 +198,7 @@ void CameraController::setParamsPreset(int n_preset)
 
   const DataBlock *b = blk.getBlockByNameEx("ChaseCamera")->getBlock(n_preset);
   if (!b)
-    fatal("Invalid preset %d", n_preset);
+    DAG_FATAL("Invalid preset %d", n_preset);
   else
   {
     vOffsTargetFullScreen = b->getPoint3("vOffsTargetFullScreen", Point3(0, 1.8, 0));
@@ -244,7 +244,7 @@ void CameraController::update(float dt)
   Point3 vOffsCamera = ::lerp(vOffsCamera1, vOffsCamera2, fovFactor);
 
   // got too far from vehicle
-  const float maxDistSq = real_sq(80.0f);
+  const float maxDistSq = sqr(80.0f);
   if (back || lengthSq(itm.getcol(3) - targetPt) > maxDistSq)
   {
     if (back == CANCEL_LOOK_BACK)
@@ -272,10 +272,10 @@ void CameraController::update(float dt)
   }
 
   {
-    const float idleDistSq = real_sq(0.3f);
+    const float idleDistSq = sqr(0.3f);
     float speed = length(cvel);
     const Point2 speedRange(3.0f / 3.6f, 15.0f / 3.6f);
-    if (lengthSq(tgtLookTurnK) > real_sq(0.05f))
+    if (lengthSq(tgtLookTurnK) > sqr(0.05f))
       idleInertiaFactor = 0;
     else if ((speed < speedRange[1]) && (lengthSq(vDestination - itm.getcol(3)) < idleDistSq))
     {
@@ -358,7 +358,7 @@ void CameraController::updateValues(float dt)
   {
     const float maxShakeSpeed = 150.0f / 3.6f;
     if (speed < maxShakeSpeed)
-      tgtShake = real_sq(sinf(speed / maxShakeSpeed * PI));
+      tgtShake = sqr(sinf(speed / maxShakeSpeed * PI));
     else
       tgtShake = 0.5f;
   }
@@ -451,7 +451,7 @@ Point3 CameraController::getVirtualPos(const Point3 &vOffs, const Point3 &target
 
   //==
   BBox3 bbox = car->getLocalBBox();
-  float carXZRad = sqrtf(::real_sq(bbox.lim[0].x - bbox.lim[1].x) + ::real_sq(bbox.lim[0].z - bbox.lim[1].z)) / 2;
+  float carXZRad = sqrtf(sqr(bbox.lim[0].x - bbox.lim[1].x) + sqr(bbox.lim[0].z - bbox.lim[1].z)) / 2;
   float zCorrect = -max((carXZRad - 2.5f) * 1.8f, 0.0f);
 
   Point3 relPos = vXDir * vp.x + vUpDir * vp.y + vBackDir * (vp.z + zCorrect);

@@ -658,12 +658,13 @@ int patch_update_game_resources_mem(const char *game_dir, const char *cache_dir,
   String mnt_dir(0, "%s/%s", game_dir, rel_mount_dir);
   String save_dir(0, "%s/%s", useCache ? cache_dir : game_dir, rel_mount_dir);
   String res_list_fn(0, "%s/%s", mnt_dir.str(), res_blk_name);
+  const char *eff_mnt_dir = strcmp(rel_mount_dir, ".") == 0 ? nullptr : mnt_dir.c_str();
   String eff_mnt = mnt;
   if (strcmp(rel_mount_dir, "res") != 0)
     eff_mnt.aprintf(0, "%s/", rel_mount_dir);
 
   add_vromfs(old_vfs, true, eff_mnt);
-  if (!load_packs(res_list_fn, mnt_dir, NULL, old_grp, old_dxp, NULL, NULL, false, pbar, true))
+  if (!load_packs(res_list_fn, eff_mnt_dir, NULL, old_grp, old_dxp, NULL, NULL, false, pbar, true))
   {
     logerr("can't load old packs");
     remove_vromfs(old_vfs);
@@ -674,7 +675,7 @@ int patch_update_game_resources_mem(const char *game_dir, const char *cache_dir,
   remove_vromfs(old_vfs);
 
   add_vromfs(new_vfs, true, eff_mnt);
-  if (!load_packs(res_list_fn, mnt_dir, save_dir.str(), new_grp, new_dxp, &grpSavePath, &dxpSavePath, true, pbar, false))
+  if (!load_packs(res_list_fn, eff_mnt_dir, save_dir.str(), new_grp, new_dxp, &grpSavePath, &dxpSavePath, true, pbar, false))
   {
     logerr("can't load new pack headers");
     remove_vromfs(new_vfs);

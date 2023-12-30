@@ -46,8 +46,8 @@ macro USE_PLANAR_DECALS(start_params_no)
 
       float4 n0 = DECAL_GET_DYNREND_PARAM(norm_idx + 0, params);
       float4 n1 = DECAL_GET_DYNREND_PARAM(norm_idx + 1, params);
-      float influence0 = pow(dot(model_normal, n0.xyz), 3.);
-      float influence1 = pow(dot(model_normal, n1.xyz), 3.);
+      float influence0 = dot(model_normal, n0.xyz);
+      float influence1 = dot(model_normal, n1.xyz);
       FLATTEN
       if (dec_mul < 0 && influence1 > influence0)
       {

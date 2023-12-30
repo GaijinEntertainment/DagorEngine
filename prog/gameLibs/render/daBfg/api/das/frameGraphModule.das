@@ -91,11 +91,11 @@ struct NamedSlot
 
 [generic]
 def root() : NameSpace
-  return [[NameSpace nameSpaceId = (getTracker() |> getRegistry()).knownNames |> root]]
+  return [[NameSpace nameSpaceId = getRegistry().knownNames |> root]]
 
 [generic]
 def operator /(var self : NameSpace; child_name : string) : NameSpace
-  return [[NameSpace nameSpaceId = (getTracker() |> getRegistry()).knownNames |> addNameId`NameSpaceNameId(self.nameSpaceId, child_name)]]
+  return [[NameSpace nameSpaceId = getRegistry().knownNames |> addNameId`NameSpaceNameId(self.nameSpaceId, child_name)]]
 
 [generic]
 def fillSlot(var self : NameSpace; slot : NamedSlot; res_name_space : NameSpace; res_name : string)
@@ -113,8 +113,11 @@ def registerNode(var self : NameSpace; name : string; var declaration_callback :
 
     return <- registerNodeId |> invoke(registry.nodes |> get(nodeId))
 
-  return <- registerNodeName |> invoke(getTracker() |> getRegistry())
+  return <- registerNodeName |> invoke(getRegistry())
 
+[generic]
+def root(var self : Registry) : NameSpaceRequest
+  return [[NameSpaceRequest nameSpaceId = self.registry.knownNames |> root, nodeId = self.nodeId, registry = self.registry]]
 
 [generic]
 def orderMeBefore(var self : Registry; name : string) : Registry
@@ -200,7 +203,7 @@ def operator /(var self : NameSpaceRequest; child_name : string) : NameSpaceRequ
 [generic]
 def getResolution(var self : NameSpaceRequest; type_name : string; multiplier : float = 1.f) : AutoResolutionRequest
   return [[AutoResolutionRequest
-    autoResTypeId=self.registry.knownNames |> getNameId`AutoResTypeNameId(self.nameSpaceId, type_name),
+    autoResTypeId=self.registry.knownNames |> addNameId`AutoResTypeNameId(self.nameSpaceId, type_name),
     multiplier=multiplier,
     registry=self.registry]]
 
@@ -337,21 +340,31 @@ def blob(var self : VirtualResourceSemiRequest) : VirtualResourceRequest
 
 
 [generic]
-def thisRequest(var self : VirtualResourceRequest) : ResourceRequest
-  return (self.resUid.history ?
+def modifyRequest(var self : VirtualResourceRequest; modifier : block<(var request : daBfg::ResourceRequest&) : void>)
+  invoke(modifier, self.resUid.history ?
     self.registry.nodes[self.nodeId].historyResourceReadRequests[self.resUid.nameId] :
     self.registry.nodes[self.nodeId].resourceRequests[self.resUid.nameId])
 
+[generic]
+def optional(var self : auto(TT)) : TT
+  let setOptional = $ <| (var request : ResourceRequest &)
+    request.optional = true
+  self |> modifyRequest(setOptional)
+  return self
 
 [generic]
 def useAs(var self : auto(TT); usageType : Usage) : TT
-  thisRequest(self).usage.usageType = usageType
+  let setUsage = $ <| (var request : ResourceRequest &)
+    request.usage.usageType = usageType
+  self |> modifyRequest(setUsage)
   return self
 
 
 [generic]
 def atStage(var self : auto(TT); stage : Stage) : TT
-  thisRequest(self).usage.stage = stage
+  let setStage = $ <| (var request : ResourceRequest &)
+    request.usage.stage = stage
+  self |> modifyRequest(setStage)
   return self
 
 
@@ -374,7 +387,7 @@ def bindToShaderVar(var self : auto(TT); name : string = "") : TT
       error("Encountered duplicate shader var {name_} binding in {selfName} frame graph node! Ignoring one of the them!")
 
   invoke(setBinding, self, svId, name) <| self.registry.nodes[self.nodeId].bindings
-  thisRequest(self).usage.usageType = Usage SHADER_RESOURCE
+  useAs(self, Usage SHADER_RESOURCE)
   return self
 
 
@@ -397,6 +410,9 @@ def view(handle : VirtualTextureHandle) : ManagedTexView
 def view(handle : VirtualBufferHandle) : ManagedBufView
   return handle.registry |> getResourceProvider |> getBufView(handle.resUid.nameId, handle.resUid.history)
 
+[generic]
+def get(resolution : AutoResolutionRequest) : int2
+  return resolution.registry |> getResourceProvider |> getResolution(resolution.autoResTypeId)
 
 [generic]
 def requestState(var self : Registry) : StateRequest

@@ -443,6 +443,7 @@ DXGI_FORMAT dxgi_format_from_flags(uint32_t cflg)
     case TEXFMT_R16F: return DXGI_FORMAT_R16_FLOAT;
     case TEXFMT_R32F: return DXGI_FORMAT_R32_FLOAT;
     case TEXFMT_R32UI: return DXGI_FORMAT_R32_UINT;
+    case TEXFMT_R32SI: return DXGI_FORMAT_R32_SINT;
     case TEXFMT_DXT1: return DXGI_FORMAT_BC1_UNORM;
     case TEXFMT_DXT3: return DXGI_FORMAT_BC2_UNORM;
     case TEXFMT_DXT5: return DXGI_FORMAT_BC3_UNORM;
@@ -760,10 +761,10 @@ bool remove_texture_from_states(BaseTexture *tex, bool recreate, TextureFetchSta
       if (stage.resources[i].texture == tex)
       {
         found = true;
-        stage.resources[i].setTex(NULL, stageI);
+        stage.resources[i].setTex(NULL, stageI, false);
         if (recreate)
         {
-          stage.resources[i].setTex(tex, stageI);
+          stage.resources[i].setTex(tex, stageI, true);
           g_render_state.modified = true;
           stage.modifiedMask |= 1 << i;
           debug("recreate tex=%p in %s[%d]  %s", tex, stage_names[stageI], i, ((BaseTex *)tex)->getResName());
@@ -1185,7 +1186,7 @@ unsigned int get_texture_size(IDirect3DBaseTexture9 *texture)
 
   unsigned int surfaceSize = calc_surface_size(surfaceDesc.Width,  surfaceDesc.Height);
    if (surfaceSize == 0)
-     fatal("unsupported fmt: %08X", surfaceDesc.Format);
+     DAG_FATAL("unsupported fmt: %08X", surfaceDesc.Format);
 
   unsigned int size = 0;
   for (unsigned int mipNo = 0; mipNo < texture->GetLevelCount(); mipNo++)
@@ -1265,7 +1266,8 @@ unsigned d3d::get_texformat_usage(int cflg, int restype)
     return 0;
 
   UINT flags = 0;
-  if (dx_device->CheckFormatSupport(dxgi_format_from_flags(format), &flags) != S_OK)
+  DXGI_FORMAT dxgiFormat = dxgi_format_from_flags(format);
+  if (dx_device->CheckFormatSupport(dxgiFormat, &flags) != S_OK)
     return 0;
   if ((restype == RES3D_TEX) && !(flags & D3D11_FORMAT_SUPPORT_TEXTURE2D))
     return 0;
@@ -1300,7 +1302,17 @@ unsigned d3d::get_texformat_usage(int cflg, int restype)
   if (flags & D3D11_FORMAT_SUPPORT_BLENDABLE)
     ret |= USAGE_BLEND;
   if (flags & D3D11_FORMAT_SUPPORT_TYPED_UNORDERED_ACCESS_VIEW)
+  {
     ret |= USAGE_UNORDERED;
+    D3D11_FEATURE_DATA_FORMAT_SUPPORT2 feature2 = {dxgiFormat, 0};
+    if (S_OK == dx_device->CheckFeatureSupport(D3D11_FEATURE_FORMAT_SUPPORT2, &feature2, sizeof(feature2)))
+    {
+      if (feature2.OutFormatSupport2 & D3D11_FORMAT_SUPPORT2_UAV_TYPED_LOAD)
+      {
+        ret |= USAGE_UNORDERED_LOAD;
+      }
+    }
+  }
 
   return ret | USAGE_PIXREADWRITE;
   // return (format == TEXFMT_A4R4G4B4) ? 0 : (unsigned)-1;

@@ -26,8 +26,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <windows.h>
-#undef ERROR
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <unistd.h>
+#endif
 
 static String stripPrefix;
 #define RELEASE_ASSETS_PACKS()   \
@@ -504,10 +505,11 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
             if (!get_exported_assets(asset_list, tex_pack[i]->assets, target_str, profile))
               continue;
 
+            int pkid = -1;
             if (dabuild_build_tex_separate)
               goto process_tex_assets;
 
-            int pkid = tex_pack[i]->packageId;
+            pkid = tex_pack[i]->packageId;
             assethlp::build_package_dest_strings(dest_base, pack_fname_prefix, expblk, pkid < 0 ? nullptr : addPackages.getName(pkid),
               app_dir, target_str, profile);
             make_cache_fname(cache_fname, cache_base, addPackages.getName(pkid), tex_pack[i]->packName, target_str, profile);
@@ -1121,7 +1123,7 @@ bool cmp_data_eq(mkbindump::BinDumpSaveCB &cwr, const char *pack_fname)
   MemoryLoadCB crd(cwr.getMem(), false);
   while (sz > 0)
   {
-    int rdsz = __min(sz, BUF_SZ);
+    int rdsz = eastl::min(sz, BUF_SZ);
     df_read(fp, buf, rdsz);
     crd.read(buf2, rdsz);
     if (memcmp(buf, buf2, rdsz) != 0)
@@ -1151,7 +1153,7 @@ bool cmp_data_eq(const void *data, int sz, const char *pack_fname)
   InPlaceMemLoadCB crd(data, sz);
   while (sz > 0)
   {
-    int rdsz = __min(sz, BUF_SZ);
+    int rdsz = eastl::min(sz, BUF_SZ);
     df_read(fp, buf, rdsz);
     crd.read(buf2, rdsz);
     if (memcmp(buf, buf2, rdsz) != 0)
@@ -1495,6 +1497,7 @@ int stat_pack_removed = 0;
 bool dabuild_dry_run = false;
 bool dabuild_strip_d3d_res = false;
 bool dabuild_collapse_packs = false;
+bool dabuild_stop_on_first_error = true;
 bool dabuild_skip_any_build = false;
 bool dabuild_force_dxp_rebuild = false;
 bool dabuild_build_tex_separate = false;
@@ -1502,9 +1505,9 @@ String dabuild_progress_prefix_text;
 
 int64_t get_file_sz(const char *fn)
 {
-  struct __stat64 st;
-  if (_stat64(fn, &st) == 0)
-    return st.st_size;
+  DagorStat st;
+  if (df_stat(fn, &st) == 0)
+    return st.size;
   return 0;
 }
 
@@ -1561,7 +1564,7 @@ void dabuild_finish_out_blk(DataBlock &dest, DagorAssetMgr &mgr, const DataBlock
             logerr("failed to create mutex %s", dd_get_fname(fn));
             continue;
           }
-          if (WaitForSingleObject(m, 2 * 60 * 1000) != WAIT_OBJECT_0)
+          if (global_mutex_enter(m, 2 * 60 * 1000) != 0)
           {
             global_mutex_destroy(m, dd_get_fname(fn));
             logerr("failed to wait on mutex %s for 2 min!", dd_get_fname(fn));

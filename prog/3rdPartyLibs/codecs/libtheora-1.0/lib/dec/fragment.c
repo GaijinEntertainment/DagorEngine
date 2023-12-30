@@ -77,7 +77,7 @@ void oc_frag_recon_intra_check(const unsigned char *_dst,int _dst_ystride,const 
       }
     }
   if (bugs)
-    fatal("bugs=%d dst=%p pitch=%p", bugs, _dst-_dst_ystride*8, _dst_ystride);
+    DAG_FATAL("bugs=%d dst=%p pitch=%p", bugs, _dst-_dst_ystride*8, _dst_ystride);
 }
 
 void oc_frag_recon_inter_check(const unsigned char *_dst,int _dst_ystride,
@@ -96,7 +96,7 @@ void oc_frag_recon_inter_check(const unsigned char *_dst,int _dst_ystride,
       }
     }
   if (bugs)
-    fatal("bugs=%d src=%p dst=%p pitch=(%p %p)",
+    DAG_FATAL("bugs=%d src=%p dst=%p pitch=(%p %p)",
       bugs, _src-_src_ystride*8, _dst-_dst_ystride*8, _src_ystride, _dst_ystride);
 }
 
@@ -118,7 +118,7 @@ void oc_frag_recon_inter2_check(const unsigned char *_dst,int _dst_ystride,
       }
     }
   if (bugs)
-    fatal("bugs=%d src1=%p src2=%p dst=%p pitch=(%p %p %p)",
+    DAG_FATAL("bugs=%d src1=%p src2=%p dst=%p pitch=(%p %p %p)",
       bugs, _src1-_src1_ystride*8, _src2-_src2_ystride*8, _dst-_dst_ystride*8,
       _src1_ystride, _src2_ystride, _dst_ystride);
 }
@@ -134,7 +134,7 @@ void oc_frag_recon_intra_c(unsigned char *_dst,int _dst_ystride,
 
   #if DBG_CHECK_ALTIVEC
   if (A16_DISP(_residue) | A8_DISP(_dst) | (_dst_ystride & 0xF))
-    fatal("non-aligned: _residue=%p, _dst=%p, stride=%d", _residue, _dst, _dst_ystride);
+    DAG_FATAL("non-aligned: _residue=%p, _dst=%p, stride=%d", _residue, _dst, _dst_ystride);
   #endif
 
   #define LOOP2() \
@@ -182,7 +182,7 @@ void oc_frag_recon_inter_c(unsigned char *_dst,int _dst_ystride,
 
   #if DBG_CHECK_ALTIVEC
   if (A16_DISP(_residue) | A8_DISP(_dst) | (_dst_ystride & 0xF) | (_src_ystride & 0xF))
-    fatal("non-aligned: _residue=%p, _dst=%p, stride=%p, _src=%p _src_ystride=%p",
+    DAG_FATAL("non-aligned: _residue=%p, _dst=%p, stride=%p, _src=%p _src_ystride=%p",
       _residue, _dst, _dst_ystride, _src, _src_ystride);
   #endif
 
@@ -268,7 +268,7 @@ void oc_frag_recon_inter2_c(unsigned char *_dst,int _dst_ystride,
 
   #if DBG_CHECK_ALTIVEC
   if (A16_DISP(_residue) | A8_DISP(_dst) | (_dst_ystride & 0xF) | (_src1_ystride & 0xF) | (_src2_ystride & 0xF))
-    fatal("non-aligned: _residue=%p, _dst=%p, stride=%p, _src1=%p _src1_ystride=%p, _src2=%p _src2_ystride=%p",
+    DAG_FATAL("non-aligned: _residue=%p, _dst=%p, stride=%p, _src1=%p _src1_ystride=%p, _src2=%p _src2_ystride=%p",
       _residue, _dst, _dst_ystride, _src1, _src1_ystride, _src2, _src2_ystride);
   #endif
 

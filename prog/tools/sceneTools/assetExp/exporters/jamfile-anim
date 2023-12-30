@@ -1,13 +1,10 @@
 Root    ?= ../../../../.. ;
 Location = prog/tools/sceneTools/assetExp/exporters ;
-DriverLinkage   = dynamic ;
-include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType  = dll ;
-Target = tools/sceneTools/animCharExp.dll ;
+Target = tools/sceneTools/animCharExp ;
 
-OutDir = $(Root)/tools/dagor3_cdk/bin/plugins/dabuild ;
-if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/dabuild ; }
+include $(Root)/$(Location)/../dabuild_plugin_common.jam ;
 
 Sources =
   animCharExp.cpp
@@ -37,7 +34,5 @@ UseProgLibs =
   tools/libTools/dagFileRW
   tools/libTools/ambientOcclusion
 ;
-
-ImportProgLibs = tools/libTools/daKernel ;
 
 include $(Root)/prog/_jBuild/build.jam ;

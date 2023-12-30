@@ -101,12 +101,12 @@ void tql::initTexStubs()
 
       if (idx < 1 || idx > MAX_EXPLICIT_STUBS)
       {
-        fatal("bad idx:i=%d in block #%d of texStreaming (1..%d allowed)", idx, i, MAX_EXPLICIT_STUBS);
+        DAG_FATAL("bad idx:i=%d in block #%d of texStreaming (1..%d allowed)", idx, i, MAX_EXPLICIT_STUBS);
         continue;
       }
       if (strcmp(ttype, "tex") != 0 && strcmp(ttype, "cube") != 0 && strcmp(ttype, "vol") != 0 && strcmp(ttype, "arr") != 0)
       {
-        fatal("bad type:i=%s in block #%d of texStreaming", ttype, i);
+        DAG_FATAL("bad type:i=%s in block #%d of texStreaming", ttype, i);
         continue;
       }
 

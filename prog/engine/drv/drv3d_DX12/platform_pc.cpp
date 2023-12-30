@@ -305,24 +305,24 @@ struct RegistryKey
 bool is_this_application_config_name(eastl::string_view app_path, eastl::span<char> config)
 {
   eastl::string_view configPath{config.data(), strlen(config.data())};
-  debug("DX12: Checking if <%s> is covering <%s>...", configPath.data(), app_path.data());
+  logdbg("DX12: Checking if <%s> is covering <%s>...", configPath.data(), app_path.data());
   if (configPath.length() > app_path.length())
   {
-    debug("DX12: Config path is too long...");
+    logdbg("DX12: Config path is too long...");
     return false;
   }
   if (configPath == app_path)
   {
-    debug("DX12: Exact match...");
+    logdbg("DX12: Exact match...");
     return true;
   }
   if (configPath.back() == '\\')
   {
-    debug("DX12: Config path is a path, looking if its a base of application path...");
+    logdbg("DX12: Config path is a path, looking if its a base of application path...");
     if (configPath == app_path.substr(0, configPath.length()))
     {
       // TODO see if this is accurate or not
-      debug("DX12: Application path did match...");
+      logdbg("DX12: Application path did match...");
       return true;
     }
   }
@@ -393,7 +393,7 @@ D3D12_DRED_ENABLEMENT drv3d_dx12::get_application_DRED_enablement_from_registry(
   if (!baseKey)
   {
     DEBUG_REG("DX12: Failed...");
-    debug("DX12: Unable to open current user registry path <%s>", debug_settings_path);
+    logdbg("DX12: Unable to open current user registry path <%s>", debug_settings_path);
     return result;
   }
 

@@ -133,3 +133,12 @@ static constexpr int DAGOR_MAX_PATH = 516;
 #if !(_TARGET_PC_WIN | _TARGET_XBOX)
 static constexpr int MAX_PATH = DAGOR_MAX_PATH;
 #endif
+
+// define these before dag_fatal.h and dag_debug.h
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(__MACOSX__)
+#define PRINTF_LIKE  __attribute__((format(printf, 1, 2)))
+#define PRINTF_LIKE2 __attribute__((format(printf, 2, 3)))
+#else
+#define PRINTF_LIKE
+#define PRINTF_LIKE2
+#endif

@@ -1,5 +1,3 @@
-require llvm/llvm_jit
-
 class Node
     def eval ( i : int )
         pass

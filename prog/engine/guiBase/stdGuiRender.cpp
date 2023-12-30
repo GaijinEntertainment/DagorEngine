@@ -273,7 +273,7 @@ void init_fonts(DataBlock &blk)
   }
 
   if (needSomeFont && rfont.size() == 0)
-    fatal("No fonts found.");
+    DAG_FATAL("No fonts found.");
   debug("init fonts OK");
 }
 
@@ -761,7 +761,7 @@ bool GuiShader::init(const char *shader_name, bool do_fatal)
   if (shMat == NULL)
   {
     if (do_fatal)
-      fatal("StdGuiRender - shader '%s' not found!", shader_name);
+      DAG_FATAL("StdGuiRender - shader '%s' not found!", shader_name);
     return false;
   }
 
@@ -1014,7 +1014,7 @@ void init_render()
   new (&ctx, _NEW_INPLACE) GuiContext();
   bool res = ctx.createBuffer(0, &stdgui_default_shader, max_dynbuf_quad_num, max_extra_indices, "stdgui.buf");
   if (!res)
-    fatal("Can't init stdgui");
+    DAG_FATAL("Can't init stdgui");
 
   ctx.setTarget();
   debug("StdGuiRender::init_render: phys res %dx%d == log res", ctx.screenWidth, ctx.screenHeight);
@@ -1478,7 +1478,7 @@ int GuiContext::beginChunk()
 
   if (viewportList.size() != 0)
   {
-    fatal("you must call StdGuiRender::end_render() before new StdGuiRender::start_render()!");
+    DAG_FATAL("you must call StdGuiRender::end_render() before new StdGuiRender::start_render()!");
   }
 
   //    debug("%.4f %.4f - %.4f %.4f",
@@ -1528,7 +1528,7 @@ void GuiContext::endChunk()
 
   if (viewportList.size() != 1)
   {
-    fatal("set_viewport/restore_viewport mismatch! left %d viewports in the stack!", viewportList.size() - 1);
+    DAG_FATAL("set_viewport/restore_viewport mismatch! left %d viewports in the stack!", viewportList.size() - 1);
   }
   viewportList.clear();
 
@@ -2476,6 +2476,39 @@ void GuiContext::render_line_aa(const Point2 *points, int points_count, bool is_
       render_line_ending_aa(color, innerTo, dir, left, halfW);
 }
 
+void GuiContext::render_dashed_line(const Point2 p0, const Point2 p1, const float dash, const float space, const float line_width,
+  E3DCOLOR color)
+{
+  const float invLength = safeinv((p0 - p1).length());
+
+  const float x1 = p0.x;
+  const float y1 = p0.y;
+  const float kx = p1.x - p0.x;
+  const float ky = p1.y - p0.y;
+  float t = 0.f;
+
+  const float tDash = dash * invLength;
+  const float tSpace = space * invLength;
+
+  Tab<Point2> dashPoints(framemem_ptr());
+  dashPoints.resize(2);
+  while (t <= 1.f)
+  {
+    dashPoints[0].x = x1 + kx * t;
+    dashPoints[0].y = y1 + ky * t;
+    t += tDash;
+    if (t > 1.f)
+      t = 1.f;
+    dashPoints[1].x = x1 + kx * t;
+    dashPoints[1].y = y1 + ky * t;
+    t += tSpace;
+
+    render_line_aa(dashPoints, /*is_closed*/ false, line_width, ZERO<Point2>(), color);
+
+    if (t < 1e-4f) // max = 10000 dashes
+      return;
+  }
+}
 
 void GuiContext::render_poly(dag::ConstSpan<Point2> points, E3DCOLOR fill_color)
 {

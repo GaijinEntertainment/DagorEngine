@@ -22,6 +22,7 @@
 
 
 #include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstGenRender.h>
 
 using namespace webui;
 
@@ -70,7 +71,7 @@ void on_rendinst_colors(RequestInfo *params)
     sscanf(to, "%02X%02X%02X%02X", &r, &g, &b, &a);
     E3DCOLOR c1(r, g, b, a);
 
-    rendinst::update_rigen_color(name, c0, c1);
+    rendinst::render::update_rigen_color(name, c0, c1);
     html_response_raw(params->conn, "");
   }
   // else if (!strcmp(params->params[0], "detach")) {}

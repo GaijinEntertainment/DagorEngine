@@ -47,6 +47,11 @@
 #define BRDF_SPEC_F SPEC_F_SHLICK
 #endif
 
+// Sheen
+#ifndef SHEEN_SPECULAR
+#define SHEEN_SPECULAR 0
+#endif
+
 float3 BRDF_diffuse( float3 diffuseColor, float linearRoughness, float NoV, float NoL, float VoH )
 {
 #if   BRDF_DIFFUSE == DIFFUSE_LAMBERT
@@ -118,6 +123,22 @@ float3 BRDF_fresnel( float3 specularColor, float VoH )
 #elif BRDF_SPEC_F == 2
   return fresnelFresnel( specularColor, VoH );
 #endif
+}
+
+float3 BRDF_specular(float ggx_alpha, float NoV, float NoL, float VoH, float NoH, half sheenStrength, half3 sheenColor)
+{
+  float D = BRDF_distribution( ggx_alpha, NoH );
+  float G = BRDF_geometricVisibility( ggx_alpha, NoV, NoL, VoH );
+  float3 result = D*G;
+  #if SHEEN_SPECULAR
+    if (sheenStrength > 0)
+    {
+      float clothD = distributionCloth( ggx_alpha, NoH );
+      float clothG = geometryCloth( NoV, NoL );
+      result = lerp(result,sheenColor*(clothD*clothG), sheenStrength);
+    }
+  #endif
+  return result;
 }
 
 half foliageSSSBackDiffuseAmount(half NoL)

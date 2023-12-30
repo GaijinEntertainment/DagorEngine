@@ -38,9 +38,7 @@ extern "C"
 #endif
 
   KRNLIMP FATAL_PREFIX void _core_cfatal(const char *, ...) FATAL_SUFFIX PRINTF_LIKE;
-  KRNLIMP FATAL_PREFIX void _core_cfatal_x(const char *, ...) FATAL_SUFFIX PRINTF_LIKE;
   KRNLIMP FATAL_PREFIX void _core_cvfatal(const char *, va_list ap) FATAL_SUFFIX;
-  KRNLIMP FATAL_PREFIX void _core_cvfatal_x(const char *, va_list ap) FATAL_SUFFIX;
 
   KRNLIMP void _core_set_fatal_ctx(const char *fn, int ln);
 
@@ -55,19 +53,17 @@ extern "C"
 
 #ifdef __cplusplus
 
-#define DSA_OVERLOADS_PARAM_DECL const char *fn, int ln, bool q,
-#define DSA_OVERLOADS_PARAM_PASS fn, ln, q,
+#define DSA_OVERLOADS_PARAM_DECL const char *fn, int ln,
+#define DSA_OVERLOADS_PARAM_PASS fn, ln,
 DECLARE_DSA_OVERLOADS_FAMILY(static inline void _core_fatal, KRNLIMP void _core_fatal_fmt, _core_fatal_fmt);
 #undef DSA_OVERLOADS_PARAM_DECL
 #undef DSA_OVERLOADS_PARAM_PASS
 
-#define fatal(...)   _core_fatal(__FILE__, __LINE__, true, __VA_ARGS__)
-#define fatal_x(...) _core_fatal(__FILE__, __LINE__, false, __VA_ARGS__)
+#define DAG_FATAL(...) _core_fatal(__FILE__, __LINE__, __VA_ARGS__)
 
 #else
 
-#define fatal   _core_set_fatal_ctx(__FILE__, __LINE__), _core_cfatal
-#define fatal_x _core_set_fatal_ctx(__FILE__, __LINE__), _core_cfatal_x
+#define DAG_FATAL _core_set_fatal_ctx(__FILE__, __LINE__), _core_cfatal
 
 #endif
 

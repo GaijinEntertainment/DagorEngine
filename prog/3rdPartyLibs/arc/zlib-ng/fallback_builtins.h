@@ -50,7 +50,7 @@ static __forceinline unsigned long long __builtin_ctzll(uint64_t value) {
 #ifdef __AVX2__
 #include <immintrin.h>
 
-#if (!defined(__clang__) && defined(__GNUC__) && __GNUC__ < 10)
+#if (!defined(__clang__) && defined(__GNUC__) && __GNUC__ < 10 && !defined(__e2k__))
 static inline __m256i _mm256_zextsi128_si256(__m128i a) {
     __m128i r;
     __asm__ volatile ("vmovdqa %1,%0" : "=x" (r) : "x" (a));

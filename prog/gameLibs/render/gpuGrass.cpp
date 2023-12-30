@@ -268,14 +268,14 @@ void GPUGrassBase::loadGrassTypes(const DataBlock &grassSettings, const eastl::h
   // this code is needed only so check_managed_texture_loaded will return true. textures are already clamped
   if (!grassTex) //-V1051
   {
-    fatal("array texture not created");
+    DAG_FATAL("array texture not created");
     return;
   }
   grassTex->texaddrv(TEXADDR_CLAMP);
 
   if (!grassAlphaTex)
   {
-    fatal("array texture not created");
+    DAG_FATAL("array texture not created");
     return;
   }
   grassAlphaTex->texaddrv(TEXADDR_CLAMP);
@@ -722,7 +722,6 @@ void GPUGrassBase::generateGrass(const Point2 &pos, const Point3 &view_dir, floa
       prevLodDistancePart = min(1.f, prevLodDistancePart * nextLodDistMul);
       currentGrassDistance = lod == lodCount ? grassDistanceMultiplied : grassDistanceMultiplied * prevLodDistancePart; //?
       const int quad_size = int(currentGrassDistance / currentGridSize);
-      auto sqr = [](float t) { return t * t; };
       int lodInstCount = max(0,
         min(quad_size * quad_size * 4, (int)ceilf((sqr(quad_size + 1) - sqr(floorf(lodStartDistancePart / currentGridSize))) * PI)));
 
@@ -886,6 +885,7 @@ void GPUGrass::init(const DataBlock &grassSettings)
 {
   close();
   base.init(grassSettings);
+  boxesForInvalidation.reserve(32);
 
   shaders::OverrideState state;
   state.set(shaders::OverrideState::FLIP_CULL);
@@ -1019,7 +1019,10 @@ void GPUGrass::generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassR
   alignedOrigin = point2(maskTexHelper.curOrigin) * texelSize;
 
   IPoint2 move = abs(maskTexHelper.curOrigin - newTexelsOrigin);
-  if (move.x >= THRESHOLD || move.y >= THRESHOLD)
+  bool needToInvalidate = boxesForInvalidation.size() > 0;
+  bool needToToroidalUpdate = move.x >= THRESHOLD || move.y >= THRESHOLD;
+
+  if (needToToroidalUpdate || needToInvalidate)
   {
     TIME_D3D_PROFILE(grass_mask)
     SCOPE_RENDER_TARGET;
@@ -1033,11 +1036,21 @@ void GPUGrass::generate(const Point3 &pos, const Point3 &view_dir, IRandomGrassR
       else
         newTexelsOrigin.y = maskTexHelper.curOrigin.y;
     }
+    else
+    {
+      needToInvalidate = false; // We're going to update everything, no invalidate boxes needed
+      needToToroidalUpdate = true;
+    }
+
     MaskRenderCallback maskcb(texelSize, cb, maskTex.getTex2D(), colorTex.getTex2D(), &copy_grass_decals, eastl::move(pre_render_cb));
 
     shaders::overrides::set(flipCullStateId);
-    toroidal_update(newTexelsOrigin, maskTexHelper, fullUpdateThresholdTexels, maskcb);
+    if (needToToroidalUpdate)
+      toroidal_update(newTexelsOrigin, maskTexHelper, fullUpdateThresholdTexels, maskcb);
+    if (needToInvalidate)
+      toroidal_invalidate_boxes(maskTexHelper, texelSize, boxesForInvalidation, maskcb);
     shaders::overrides::reset();
+    boxesForInvalidation.clear();
 
     Point2 ofs = point2((maskTexHelper.mainOrigin - maskTexHelper.curOrigin) % maskTexHelper.texSize) / maskTexHelper.texSize;
     alignedOrigin = point2(maskTexHelper.curOrigin) * texelSize;
@@ -1067,6 +1080,17 @@ void GPUGrass::invalidate(bool regenerate)
   maskTexHelper.curOrigin.y = 100000;
   if (regenerate)
     base.invalidate();
+}
+
+void GPUGrass::invalidateBoxes(const dag::ConstSpan<BBox2> &boxes)
+{
+  boxesForInvalidation.insert(boxesForInvalidation.end(), boxes.begin(), boxes.end());
+}
+
+void GPUGrass::invalidateBoxes(const dag::ConstSpan<BBox3> &boxes)
+{
+  for (auto &box : boxes)
+    boxesForInvalidation.emplace_back(Point2::xz(box.boxMin()), Point2::xz(box.boxMax()));
 }
 
 GrassQuality str_to_grass_quality(const char *quality_str)

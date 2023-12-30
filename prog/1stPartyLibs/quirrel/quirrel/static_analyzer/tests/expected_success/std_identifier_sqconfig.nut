@@ -1,1 +1,0 @@
-return vargv_std;

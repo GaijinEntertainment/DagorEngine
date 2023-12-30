@@ -95,7 +95,7 @@ void PostFx::restart(const DataBlock *level_settings, const DataBlock *game_sett
   else if (!dd_stricmp(hdrMode, "float"))
     ::hdr_render_mode = HDR_MODE_FLOAT;
   else
-    fatal("Invalid hdr mode <%s>.", hdrMode);
+    DAG_FATAL("Invalid hdr mode <%s>.", hdrMode);
 
   unsigned working_flags = d3d::USAGE_FILTER | d3d::USAGE_BLEND | d3d::USAGE_RTARGET;
 
@@ -302,7 +302,7 @@ bool PostFx::updateSettings(const DataBlock *level_settings, const DataBlock *ga
   else if (!dd_stricmp(hdrMode, "xblades"))
     hdr_mode = HDR_MODE_XBLADES;
   else
-    fatal("Invalid hdr mode <%s>.", hdrMode);
+    DAG_FATAL("Invalid hdr mode <%s>.", hdrMode);
 
   unsigned working_flags = d3d::USAGE_FILTER | d3d::USAGE_BLEND | d3d::USAGE_RTARGET;
 

@@ -48,7 +48,7 @@ const GRPMODE_USER       = 3
 let riGroup = Watched("")
 let riGroups = []
 
-let function riGroupGetID(name) {
+function riGroupGetID(name) {
   foreach (idx, nam in riGroups)
     if (nam == name)
       return idx
@@ -65,7 +65,7 @@ let riGroupsData = [
   }
 ]
 
-let function riAddPredefinedGroup(name, tags) {
+function riAddPredefinedGroup(name, tags) {
   riGroupsData.append({
     mode = GRPMODE_PREDEFINED
     name = name
@@ -75,7 +75,7 @@ let function riAddPredefinedGroup(name, tags) {
   })
 }
 
-let function riAddFavoritesGroup() {
+function riAddFavoritesGroup() {
   riGroupsData.append({
     mode = GRPMODE_FAVORITES
     name = "<< Favorites >>"
@@ -84,7 +84,7 @@ let function riAddFavoritesGroup() {
   })
 }
 
-let function riCalcNameInGroup(name, group) {
+function riCalcNameInGroup(name, group) {
   let isFavorites = group.mode == GRPMODE_FAVORITES
   if (!isFavorites && group.mode != GRPMODE_USER)
     return -1
@@ -94,14 +94,14 @@ let function riCalcNameInGroup(name, group) {
   return 0
 }
 
-let function riCalcNameInGroups(name) {
+function riCalcNameInGroups(name) {
   local result = 0
   foreach (group in riGroupsData)
     result = math.max(result, riCalcNameInGroup(name, group))
   return result
 }
 
-let function riBuildNamesGroups() {
+function riBuildNamesGroups() {
   riNamesGroups.clear()
   foreach (name in riNames) {
     let result = riCalcNameInGroups(name)
@@ -110,14 +110,14 @@ let function riBuildNamesGroups() {
   }
 }
 
-let function riIsUserGroup(name) {
+function riIsUserGroup(name) {
   let groupID = riGroupGetID(name)
   if (groupID == null || groupID < 0 || groupID >= riGroupsData.len())
     return false
   return riGroupsData[groupID].mode == GRPMODE_USER
 }
 
-let function riIsEmptyGroup(name) {
+function riIsEmptyGroup(name) {
   let groupID = riGroupGetID(name)
   if (groupID == null || groupID < 0 || groupID >= riGroupsData.len())
     return false
@@ -125,7 +125,7 @@ let function riIsEmptyGroup(name) {
   return list != null && list.len() == 0
 }
 
-let function riHasUserGroups() {
+function riHasUserGroups() {
   foreach (group in riGroupsData)
     if (group.mode == GRPMODE_USER)
       return true
@@ -134,7 +134,7 @@ let function riHasUserGroups() {
 
 const EDITOR_RI_GROUPS_CONFIG_FILE_PATHNAME = "editor_ri_groups.blk"
 
-let function riSaveUserGroups() {
+function riSaveUserGroups() {
   local groupsBlk = DataBlock()
 
   foreach(group in riGroupsData) {
@@ -155,7 +155,7 @@ let function riSaveUserGroups() {
   groupsBlk.saveToTextFile(EDITOR_RI_GROUPS_CONFIG_FILE_PATHNAME)
 }
 
-let function riSortUserGroups() {
+function riSortUserGroups() {
   if (!riHasUserGroups())
     return
 
@@ -175,7 +175,7 @@ let function riSortUserGroups() {
   })
 }
 
-let function riHasTag(name, tag) {
+function riHasTag(name, tag) {
   let tagLen = tag.len()
   let nameLen = name.len()
   let lastPos = nameLen - tagLen
@@ -190,22 +190,22 @@ let function riHasTag(name, tag) {
   return false
 }
 
-let function riGroupListName(name, count) {
+function riGroupListName(name, count) {
   return $"{name} ({count})"
 }
 
-let function riRebuildGroupsList() {
+function riRebuildGroupsList() {
   riGroups.clear()
   foreach (group in riGroupsData)
     riGroups.append(riGroupListName(group.name, group.count))
 }
 
 
-let function riIsDigit(ch) {
+function riIsDigit(ch) {
   return ch != null && ch >= '0' && ch <= '9'
 }
 
-let function riBuildTags() {
+function riBuildTags() {
   riTags.clear()
 
   local allWords = {}
@@ -236,7 +236,7 @@ let function riBuildTags() {
   riTagsOffset.trigger()
 }
 
-let function riLoadUserGroups() {
+function riLoadUserGroups() {
   local groupsBlk = DataBlock()
   try
     groupsBlk.load(EDITOR_RI_GROUPS_CONFIG_FILE_PATHNAME)
@@ -298,7 +298,7 @@ local riFillPGCnt = 0
 local riFillPGGrp = 0
 local riFillPGTag = 0
 local riFillPGHash = {}
-let function riFillPredefinedGroups() {
+function riFillPredefinedGroups() {
   local done = false
   let maxIters = (riFillPGCnt < 1) ? 1 : 100
   for (local i = 0; i < maxIters; i++) {
@@ -348,7 +348,7 @@ let function riFillPredefinedGroups() {
   }
 }
 
-let function riInits() {
+function riInits() {
   if (riNames.len() > 0)
     return
   if (riFile.value == null)
@@ -386,7 +386,7 @@ let riEditGroupNameElem = nameFilter(riEditGroupName, {
   }
 })
 
-let function riGroupRename() {
+function riGroupRename() {
   let groupID = riGroupGetID(riGroup.value)
   if (groupID == null || groupID < 0 || groupID >= riGroupsData.len())
     return
@@ -396,30 +396,30 @@ let function riGroupRename() {
   riEditGroupNameMode(1)
 }
 
-let function riGroupNew() {
+function riGroupNew() {
   riEditGroupName("")
   riEditGroupNameMode(2)
 }
 
-let function riGroupRenameOrNewCancel() {
+function riGroupRenameOrNewCancel() {
   riEditGroupNameMode(0)
 }
 
 let validRIGroupNameRegExp = regexp(@"[a-z,A-Z,0-9,!,@,#,$,%,^,&,(,),_,+,-,:,',., ]*")
-let function riIsValidGroupName(name) {
+function riIsValidGroupName(name) {
   if (name == null)
     return false
   return validRIGroupNameRegExp.match(name)
 }
 
-let function riGroupNameUsed(name) {
+function riGroupNameUsed(name) {
   foreach(group in riGroupsData)
     if (group.mode == GRPMODE_USER && group.name == name)
       return true
   return false
 }
 
-let function riDeleteGroup(name) {
+function riDeleteGroup(name) {
   local groupIdx = -1
   foreach(idx, group in riGroupsData)
     if (group.mode == GRPMODE_USER && group.name == name)
@@ -438,7 +438,7 @@ let function riDeleteGroup(name) {
   riGroupsChanged.trigger()
 }
 
-let function riGroupRenameFinish() {
+function riGroupRenameFinish() {
   riEditGroupNameMode(0)
 
   let groupID = riGroupGetID(riGroup.value)
@@ -481,7 +481,7 @@ let function riGroupRenameFinish() {
   riGroupsChanged.trigger()
 }
 
-let function riGroupNewFinish() {
+function riGroupNewFinish() {
   riEditGroupNameMode(0)
   let newName = riEditGroupName.value
   if (!riIsValidGroupName(newName)) {
@@ -511,14 +511,14 @@ let function riGroupNewFinish() {
 }
 
 
-let function riAddWithExludes(out_filtered, name, excludes) {
+function riAddWithExludes(out_filtered, name, excludes) {
   foreach (idx, exclude in excludes)
     if (idx > 0 && exclude != "" && name.contains(exclude))
       return
   out_filtered.append(name)
 }
 
-let function riFilterNames(out_filtered, names, by_filter) {
+function riFilterNames(out_filtered, names, by_filter) {
   let excludes = by_filter.split("-")
   let filter = excludes[0]
 
@@ -600,7 +600,7 @@ let riDisplayed = Computed(function() {
   return displayed
 })
 
-let function riGotoPage(page) {
+function riGotoPage(page) {
   set_kb_focus(null)
   if (page < 0)
     page = 0
@@ -609,7 +609,7 @@ let function riGotoPage(page) {
   riPage(page)
 }
 
-let function riGotoPageByValue(v) {
+function riGotoPageByValue(v) {
   let filtered = riFiltered.value
   let fcount = filtered.len()
   for (local i = 0; i < fcount; i++) {
@@ -645,14 +645,14 @@ let riNameFilter = nameFilter(riFilter, {
 })
 
 
-let function riSelectChange(v) {
+function riSelectChange(v) {
   set_kb_focus(null)
   if (riSelectValue.value != v) {
     riSelectValue(v)
     riSelectCB?(v)
   }
 }
-let function riSelectChangeAndClose(v) {
+function riSelectChangeAndClose(v) {
   riTagsShown(false)
   riSelectChange(v)
   riSelectShown(false)
@@ -676,7 +676,7 @@ let riTagsDisplayed = Computed(function() {
   return displayed
 })
 
-let function riTagScroll(offs) {
+function riTagScroll(offs) {
   let last = riTags.len() - riTagsPageCount
   if (offs > last)
     offs = last
@@ -685,7 +685,7 @@ let function riTagScroll(offs) {
   riTagsOffset(offs)
 }
 
-let function riTagApply(tag) {
+function riTagApply(tag) {
   riGroup("")
   riGotoPage(0)
   riSelectTag(tag)
@@ -705,47 +705,47 @@ riFilter.subscribe(function(v) {
 })
 
 
-let function riNavFirst() {
+function riNavFirst() {
   if (!riTagsShown.value)
     riGotoPage(0)
   else
     riTagScroll(0)
 }
 
-let function riNavPrev() {
+function riNavPrev() {
   if (!riTagsShown.value)
     riGotoPage(riPageClamped.value-1)
   else
     riTagScroll(riTagsOffset.value - riTagsPageCount)
 }
 
-let function riNavNext() {
+function riNavNext() {
   if (!riTagsShown.value)
     riGotoPage(riPageClamped.value+1)
   else
     riTagScroll(riTagsOffset.value + riTagsPageCount)
 }
 
-let function riNavLast() {
+function riNavLast() {
   if (!riTagsShown.value)
     riGotoPage(riPages.value-1)
   else
     riTagScroll(riTags.len())
 }
 
-let function riNavBy() {
+function riNavBy() {
   if (riTagsShown.value)
     return "Tags"
   return "Page"
 }
 
-let function riNavAt() {
+function riNavAt() {
   if (riTagsShown.value)
     return (riTagsOffset.value + riTagsPageCount)
   return 1+riPageClamped.value
 }
 
-let function riNavOf() {
+function riNavOf() {
   if (riTagsShown.value)
     return riTags.len()
   return riPages.value
@@ -756,21 +756,21 @@ riGroup.subscribe(function(_v) {
 })
 
 
-let function riGetFavGroupID() {
+function riGetFavGroupID() {
   foreach (idx, group in riGroupsData)
     if (group.mode == GRPMODE_FAVORITES)
       return idx
   return -1
 }
 
-let function riGetUserGroupID(group_name) {
+function riGetUserGroupID(group_name) {
   foreach (idx, group in riGroupsData)
     if (group.mode == GRPMODE_USER && group.name == group_name)
       return idx
   return -1
 }
 
-let function riAddToGroup(name, group_idx) {
+function riAddToGroup(name, group_idx) {
   if (group_idx < 0)
     return
   let group = riGroupsData[group_idx]
@@ -798,7 +798,7 @@ let function riAddToGroup(name, group_idx) {
     riGroup(riGroupListName(group.name, group.count))
 }
 
-let function riDelFromGroup(name, group_idx) {
+function riDelFromGroup(name, group_idx) {
   if (group_idx < 0)
     return
   let group = riGroupsData[group_idx]
@@ -826,7 +826,7 @@ let riEditGroupsData = Watched({
   groups = []
 })
 
-let function riOpenEditGroups(name, already) {
+function riOpenEditGroups(name, already) {
   if (!already) {
     riAddToGroup(name, riGetFavGroupID())
     riGroupsChanged.trigger()
@@ -848,20 +848,20 @@ let function riOpenEditGroups(name, already) {
   riEditGroupsData.trigger()
 }
 
-let function riEditGroupsToggle(name) {
+function riEditGroupsToggle(name) {
   foreach (group in riEditGroupsData.value.groups)
     if (group.name == name)
       group.now = !group.now
   riEditGroupsData.trigger()
 }
 
-let function riCloseEditGroups() {
+function riCloseEditGroups() {
   riEditGroupsData.value.name = null
   riEditGroupsData.value.groups.clear()
   riEditGroupsData.trigger()
 }
 
-let function riApplyEditGroups() {
+function riApplyEditGroups() {
   let name = riEditGroupsData.value.name
   foreach (group in riEditGroupsData.value.groups) {
     let groupIdx = group.fave ? riGetFavGroupID() : riGetUserGroupID(group.name)
@@ -881,7 +881,7 @@ riGroupsChanged.subscribe(function(_v) {
 })
 
 
-let function mouseWheelCb(mouseEvent) {
+function mouseWheelCb(mouseEvent) {
   let ctrl = mouseEvent?.ctrlKey ?? false
   let step = -(mouseEvent?.button ?? 0) * (ctrl ? 10 : 1)
   if (!riTagsShown.value)
@@ -892,7 +892,7 @@ let function mouseWheelCb(mouseEvent) {
 
 let riTagTextCtor = @(v) $"{v.word} ({v.count})"
 
-let function mkTag(opt, i) {
+function mkTag(opt, i) {
   let tagWord = riTags?[riTagsOffset.value + i].word ?? "<invalid>"
   let isSelected = Computed(@() riSelectTag.value == tagWord)
   let onClick = @() riTagApply(tagWord)
@@ -977,7 +977,7 @@ let buttonStyleOn  = {textStyle = {normal = {color = Color(0,0,0,255)}},
 let buttonStyleOff = {textStyle = {normal = {color = Color(120,120,120,255)}, hover = {color = Color(120,120,120,255)}}, off = true,
                       boxStyle  = {normal = {fillColor = Color(0,0,0,120)}, hover = {fillColor = Color(0,0,0,120)}}}
 
-let function mkEditGroup(group) {
+function mkEditGroup(group) {
   return {
     children = [
       { size = [0, sh(0.2)] }
@@ -986,7 +986,7 @@ let function mkEditGroup(group) {
   }
 }
 
-let function riGroupUpdate(v) {
+function riGroupUpdate(v) {
   riGroup(v)
   riGotoPageByValue(riSelectValue.value)
 }
@@ -1107,7 +1107,7 @@ let riSelectWindow = function() {
   }
 }
 
-let function openSelectRI(selectedRI, onSelect=null) {
+function openSelectRI(selectedRI, onSelect=null) {
   riInits()
   riSelectCB = onSelect
   riSelectSaved(selectedRI.value)
@@ -1122,7 +1122,7 @@ propPanelVisible.subscribe(function(v) {
     riSelectShown(false)
 })
 
-let function onSelectRI(v){
+function onSelectRI(v){
   let eid = riSelectEid.value
   if ((eid ?? INVALID_ENTITY_ID) != INVALID_ENTITY_ID){
     obsolete_dbg_set_comp_val(eid, "ri_extra__name", v)
@@ -1135,7 +1135,7 @@ let function onSelectRI(v){
   }
 }
 
-let function initRISelect(file, groups) {
+function initRISelect(file, groups) {
   riFile(file)
   foreach (group in groups)
     riAddPredefinedGroup(group.name, group.tags)
@@ -1151,7 +1151,7 @@ let function initRISelect(file, groups) {
   })
 }
 
-let function openRISelectForEntity(eid) {
+function openRISelectForEntity(eid) {
   riInits()
   let riName = obsolete_dbg_get_comp_val(eid, "ri_extra__name")
   if (riName == null)

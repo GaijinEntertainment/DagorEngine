@@ -7,7 +7,7 @@ Locks
 
 .. index:: single: locks
 
-There are several locking mechanisms available in daScript. They are designed to ensure runtime safety of the code.
+There are several locking mechanisms available in Daslang. They are designed to ensure runtime safety of the code.
 
 ----------------
 Context locks

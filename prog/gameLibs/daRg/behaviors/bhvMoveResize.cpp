@@ -60,7 +60,7 @@ struct BhvMoveResizeData
 };
 
 
-BhvMoveResize::BhvMoveResize() : Behavior(0, F_HANDLE_MOUSE) {}
+BhvMoveResize::BhvMoveResize() : Behavior(0, F_HANDLE_MOUSE | F_HANDLE_TOUCH) {}
 
 
 void BhvMoveResize::onAttach(Element *elem)
@@ -87,6 +87,11 @@ int BhvMoveResize::mouseEvent(ElementTree *etree, Element *elem, InputDevice dev
   return pointingEvent(etree, elem, device, event, pointer_id, data, Point2(mx, my), accum_res);
 }
 
+int BhvMoveResize::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing * /*pnt*/, int touch_idx,
+  const HumanInput::PointingRawState::Touch &touch, int accum_res)
+{
+  return pointingEvent(etree, elem, DEVID_TOUCH, event, touch_idx, 0, Point2(touch.x, touch.y), accum_res);
+}
 
 int BhvMoveResize::pointingEvent(ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
   const Point2 &pos, int accum_res)
@@ -108,8 +113,14 @@ int BhvMoveResize::pointingEvent(ElementTree *, Element *elem, InputDevice devic
         elem->setGroupStateFlags(activeStateFlags);
 
         bhvData->start(device, pointer_id, button_id, pos, newHandle);
+        bhvData->prevPos = pos;
         setHandleCursor(elem, newHandle);
 
+        Sqrat::Table &scriptDesc = elem->props.scriptDesc;
+        HSQUIRRELVM vm = scriptDesc.GetVM();
+        Sqrat::Function onMoveResizeStarted(vm, scriptDesc, scriptDesc.RawGetSlot("onMoveResizeStarted"));
+        if (!onMoveResizeStarted.IsNull())
+          onMoveResizeStarted(pos.x, pos.y, elem->getElementBBox(vm));
         result |= R_PROCESSED;
       }
     }

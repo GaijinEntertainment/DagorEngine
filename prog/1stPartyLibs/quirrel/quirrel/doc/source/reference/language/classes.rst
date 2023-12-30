@@ -183,11 +183,10 @@ Inheritance
     pair: inheritance; Class
     single: Inheritance
 
-Quirrel's classes support single inheritance by adding the keyword ``extends``, followed
-by an expression, in the class declaration.
+Quirrel's classes support single inheritance.
 The syntax for a derived class is the following: ::
 
-    class SuperFoo extends Foo {
+    class DerivedClas(BaseClass) {
         function DoSomething() {
             println("I'm doing something")
         }
@@ -198,10 +197,12 @@ new class then proceeds with evaluating the rest of the declaration.
 
 A derived class inherit all members and properties of it's base, if the derived class
 overrides a base function the base implementation is shadowed.
-It's possible to access a overridden method of the base class by fetching the method from
+It's possible to access a overridden method of the base class by fetching the method from it
 through the 'base' keyword.
 
-Here an example: ::
+Here an example:
+
+::
 
     class Foo {
         function DoSomething() {
@@ -209,7 +210,7 @@ Here an example: ::
         }
     };
 
-    class SuperFoo extends Foo {
+    class SuperFoo(Foo) {
         //overridden method
         function DoSomething() {
             //calls the base method
@@ -218,7 +219,10 @@ Here an example: ::
         }
     }
 
-Same rule apply to the constructor. The constructor is a regular function (apart from being automatically invoked on construction).::
+
+Same rule apply to the constructor. The constructor is a regular function (apart from being automatically invoked on construction).
+
+::
 
     class BaseClass {
         constructor() {
@@ -226,7 +230,7 @@ Same rule apply to the constructor. The constructor is a regular function (apart
         }
     }
 
-    class ChildClass extends BaseClass {
+    class ChildClass(BaseClass) {
         constructor() {
             base.constructor()
             println("Child constructor")
@@ -235,14 +239,20 @@ Same rule apply to the constructor. The constructor is a regular function (apart
 
     let test = ChildClass()
 
-The base class of a derived class can be retrieved through the built-in method ``getbase()``.::
+
+The base class of a derived class can be retrieved through the built-in method ``getbase()``.
+
+::
 
     let thebaseclass = SuperFoo.getbase()
+
 
 Note that because methods do not have special protection policies when calling methods of the same
 objects, a method of a base class that calls a method of the same class can end up calling a overridden method of the derived class.
 
-A method of a base class can be explicitly invoked by a method of a derived class though the keyword ``base`` (as in base.MyMethod() ).::
+A method of a base class can be explicitly invoked by a method of a derived class though the keyword ``base`` (as in base.MyMethod() ).
+
+::
 
     class Foo {
         function DoSomething() {
@@ -253,7 +263,7 @@ A method of a base class can be explicitly invoked by a method of a derived clas
         }
     };
 
-    class SuperFoo extends Foo {
+    class SuperFoo(Foo) {
         //overridden method
         function DoSomething() {
             println("I'm the derived")
@@ -269,13 +279,17 @@ A method of a base class can be explicitly invoked by a method of a derived clas
     //prints "I'm the derived"
     inst.DoIt()
 
+
 An alternative way to inheret class it to use Python-style syntax. It works the same way as described above.
+
+::
 
     class SuperFoo(Foo) {
         function DoSomething() {
             println("I'm doing something")
         }
     }
+
 
 ----------------------
 Metamethods

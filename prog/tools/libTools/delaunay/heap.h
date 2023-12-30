@@ -1,5 +1,4 @@
-#ifndef HEAP_INCLUDED // -*- C++ -*-
-#define HEAP_INCLUDED
+#pragma once
 
 #include "geom.h"
 #include "array.h"
@@ -73,5 +72,3 @@ public:
 };
 
 }; // namespace delaunay
-
-#endif

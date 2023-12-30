@@ -13,6 +13,18 @@
 
 namespace das
 {
+
+    GcRootLambda::GcRootLambda( const Lambda & that, Context * _context ) : Lambda(that.capture) {
+        context = _context;
+        context->addGcRoot( (void *)capture, nullptr );
+    }
+
+    GcRootLambda::~GcRootLambda() {
+        if ( capture && context ) {
+            context->removeGcRoot( (void *)capture );
+        }
+    }
+
     bool PointerDimIterator::first ( Context &, char * _value ) {
         char ** value = (char **) _value;
         if ( data != data_end ) {
@@ -1088,6 +1100,14 @@ namespace das
         restart();
     }
 
+    void Context::addGcRoot ( void * ptr, TypeInfo * type ) {
+        gcRoots[ptr] = type;
+    }
+
+    void Context::removeGcRoot ( void * ptr ) {
+        gcRoots.erase(ptr);
+    }
+
     Context::~Context() {
         on_debug_agent_mutex([&](){
             // unregister
@@ -1568,9 +1588,9 @@ namespace das
             context->shared_from_this()
         };
         DebugAgent * newAgentPtr = newAgent.get();
-        for ( auto & ap : g_DebugAgents ) {
-            ap.second.debugAgent->onInstall(newAgentPtr);
-        }
+        for_each_debug_agent([newAgentPtr](DebugAgentPtr agent){
+            agent->onInstall(newAgentPtr);
+        });
     }
 
     void installDebugAgent ( DebugAgentPtr newAgent, const char * category, LineInfoArg * at, Context * context ) {

@@ -4,6 +4,9 @@ float4 mip_target_size;
 
 int prev_mip_tex_register_const_no = 4 always_referenced;
 
+int mip_blur_filter_nan_validation = 0;
+interval mip_blur_filter_nan_validation: no < 1, yes;
+
 macro GAUSSIAN_MIP_CORE(code)
   hlsl(code) {
     Texture2D prev_mip_tex: register(t4);
@@ -63,7 +66,7 @@ shader gaussian_mipchain
 
   hlsl(ps)
   {
-    half4 gauss_mip_ps(VsOutput input) : SV_Target
+    float4 gauss_mip_ps(VsOutput input) : SV_Target
     {
       return gauss_mip(input.texcoord00.xy);
     }
@@ -106,6 +109,7 @@ shader bloom_filter_mipchain
   z_test = false;
 
   POSTFX_VS_TEXCOORD(0, texcoord00)
+  ENABLE_ASSERT(ps)
 
   (ps) { mip_target_size@f4 = mip_target_size; }
 
@@ -155,12 +159,27 @@ shader bloom_filter_mipchain
       GET(-1,1)
       addBlock(blockCC);
       blockTL *= 0.25; blockTR *= 0.25; blockBR *= 0.25; blockBL *= 0.25; blockCC *= 0.25;
+      ##if mip_blur_filter_nan_validation == yes
+        bool divisionIsSafe = (any(isnan(blockTL)) || ((1 - GetLuminance(blockTL)) > 0.00001)) &&
+                              (any(isnan(blockTR)) || ((1 - GetLuminance(blockTR)) > 0.00001)) &&
+                              (any(isnan(blockBR)) || ((1 - GetLuminance(blockBR)) > 0.00001)) &&
+                              (any(isnan(blockBL)) || ((1 - GetLuminance(blockBL)) > 0.00001)) &&
+                              (any(isnan(blockCC)) || ((1 - GetLuminance(blockCC)) > 0.00001));
+        ##assert(divisionIsSafe, "fix division in bloom_filter_mipchain shader");
+      ##endif
       blockTL /= (1 - GetLuminance(blockTL));
       blockTR /= (1 - GetLuminance(blockTR));
       blockBR /= (1 - GetLuminance(blockBR));
       blockBL /= (1 - GetLuminance(blockBL));
       blockCC /= (1 - GetLuminance(blockCC));
       float3 bloomColor = 0.5 * blockCC + 0.125 * (blockTL + blockTR + blockBR + blockBL);
+      ##if mip_blur_filter_nan_validation == yes
+        if (any(isnan(bloomColor)))
+        {
+          ##assert(0, "got NaN in prev_frame_tex at (%f, %f)", tc.x, tc.y);
+          bloomColor = 0;
+        }
+      ##endif
       return half4(bloomColor, 1);
     }
   }

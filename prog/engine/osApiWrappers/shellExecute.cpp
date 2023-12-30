@@ -28,6 +28,7 @@ class ShellExecuteJob : public cpujobs::IJob
   char file[maxTextLength + 2];
   char params[maxTextLength + 2];
   char dir[maxTextLength + 2];
+  int openMode;
 
   void checkForErrors(HINSTANCE hi)
   {
@@ -49,12 +50,13 @@ class ShellExecuteJob : public cpujobs::IJob
   }
 
 public:
-  ShellExecuteJob(const T *op_, const T *file_, const T *params_, const T *dir_)
+  ShellExecuteJob(const T *op_, const T *file_, const T *params_, const T *dir_, OpenConsoleMode open_mode)
   {
     initOneString(op, op_);
     initOneString(file, file_);
     initOneString(params, params_);
     initOneString(dir, dir_);
+    openMode = open_mode == OpenConsoleMode::Show ? SW_SHOW : SW_HIDE;
 
     char *dirIt = dir;
     while ((dirIt = strchr(dirIt, '/')) != NULL)
@@ -71,14 +73,14 @@ public:
 template <>
 void ShellExecuteJob<char>::doJob()
 {
-  checkForErrors(ShellExecute(NULL, op, file, params, dir, SW_SHOW));
+  checkForErrors(ShellExecute(NULL, op, file, params, dir, openMode));
 }
 
 template <>
 void ShellExecuteJob<wchar_t>::doJob()
 {
   checkForErrors(
-    ShellExecuteW(NULL, (const wchar_t *)op, (const wchar_t *)file, (const wchar_t *)params, (const wchar_t *)dir, SW_SHOW));
+    ShellExecuteW(NULL, (const wchar_t *)op, (const wchar_t *)file, (const wchar_t *)params, (const wchar_t *)dir, openMode));
 }
 
 template <>
@@ -103,9 +105,10 @@ int get_win_execute_mgr_id()
   return win_execute_mgr_id;
 }
 
-void os_shell_execute(const char *op, const char *file, const char *params, const char *dir, bool force_sync)
+void os_shell_execute(const char *op, const char *file, const char *params, const char *dir, bool force_sync,
+  OpenConsoleMode open_mode)
 {
-  ShellExecuteJob<char> *job = new ShellExecuteJob<char>(op, file, params, dir);
+  ShellExecuteJob<char> *job = new ShellExecuteJob<char>(op, file, params, dir, open_mode);
   if (cpujobs::is_inited() && !force_sync)
     cpujobs::add_job(get_win_execute_mgr_id(), job);
   else
@@ -115,9 +118,10 @@ void os_shell_execute(const char *op, const char *file, const char *params, cons
   }
 }
 
-void os_shell_execute_w(const wchar_t *op, const wchar_t *file, const wchar_t *params, const wchar_t *dir, bool force_sync)
+void os_shell_execute_w(const wchar_t *op, const wchar_t *file, const wchar_t *params, const wchar_t *dir, bool force_sync,
+  OpenConsoleMode open_mode)
 {
-  ShellExecuteJob<wchar_t> *job = new ShellExecuteJob<wchar_t>(op, file, params, dir);
+  ShellExecuteJob<wchar_t> *job = new ShellExecuteJob<wchar_t>(op, file, params, dir, open_mode);
   if (cpujobs::is_inited() && !force_sync)
     cpujobs::add_job(get_win_execute_mgr_id(), job);
   else
@@ -129,7 +133,7 @@ void os_shell_execute_w(const wchar_t *op, const wchar_t *file, const wchar_t *p
 
 #elif _TARGET_PC_LINUX
 
-void os_shell_execute(const char *op, const char *file, const char *params, const char *dir, bool)
+void os_shell_execute(const char *op, const char *file, const char *params, const char *dir, bool, OpenConsoleMode)
 {
   if (params && *params == 0)
     params = NULL;
@@ -172,10 +176,10 @@ void os_shell_execute(const char *op, const char *file, const char *params, cons
   }
 }
 
-void os_shell_execute_w(const wchar_t *, const wchar_t *, const wchar_t *, const wchar_t *, bool) { G_ASSERT(0); }
+void os_shell_execute_w(const wchar_t *, const wchar_t *, const wchar_t *, const wchar_t *, bool, OpenConsoleMode) { G_ASSERT(0); }
 
 #elif _TARGET_ANDROID
-void os_shell_execute(const char *op, const char *file, const char *params, const char *dir, bool)
+void os_shell_execute(const char *op, const char *file, const char *params, const char *dir, bool, OpenConsoleMode)
 {
   android_app *app = (android_app *)win32_get_instance();
   if (!app || !app->activity)
@@ -211,14 +215,16 @@ void os_shell_execute(const char *op, const char *file, const char *params, cons
   jniEnv->ExceptionClear();
 }
 
-void os_shell_execute_w(const wchar_t *, const wchar_t *, const wchar_t *, const wchar_t *, bool) { G_ASSERT(0); }
+void os_shell_execute_w(const wchar_t *, const wchar_t *, const wchar_t *, const wchar_t *, bool, OpenConsoleMode) { G_ASSERT(0); }
 
 #elif _TARGET_C1 | _TARGET_C2 | _TARGET_XBOX | _TARGET_C3
 
-void os_shell_execute(const char *, const char *, const char *, const char *, bool) {}
-void os_shell_execute_w(const wchar_t *, const wchar_t *, const wchar_t *, const wchar_t *, bool) {}
+void os_shell_execute(const char *, const char *, const char *, const char *, bool, OpenConsoleMode) {}
+void os_shell_execute_w(const wchar_t *, const wchar_t *, const wchar_t *, const wchar_t *, bool, OpenConsoleMode) {}
 
 #endif
 
+#if _TARGET_PC_WIN | _TARGET_PC_LINUX
 #define EXPORT_PULL dll_pull_osapiwrappers_shellExecute
 #include <supp/exportPull.h>
+#endif

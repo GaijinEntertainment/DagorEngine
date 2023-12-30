@@ -3,6 +3,10 @@
 
 #include <3d/dag_lockSbuffer.h>
 
+#include <util/dag_convar.h>
+
+CONSOLE_BOOL_VAL("bindpose", log_unique_bindpose_changes, false);
+
 
 static bool compareBindPoseArrays(dag::ConstSpan<TMatrix> a, dag::ConstSpan<TMatrix> b)
 {
@@ -113,7 +117,8 @@ Ptr<BindPoseElem> BindPoseBufferManager::createOrGetBindposeElem(dag::ConstSpan<
   bindposeElemArr.push_back(bindPoseElem);
   bindPoseElem.delRef(); // bindposeElemArr has basically weak pointers
 
-  debug("Unique bindpose inserted: %s -> %d", region.offset, region.size);
+  if (log_unique_bindpose_changes)
+    debug("Unique bindpose inserted: %s -> %d", region.offset, region.size);
 
   return bindPoseElem;
 }
@@ -127,7 +132,9 @@ void BindPoseBufferManager::closeElem(RegionId region_id)
   G_ASSERT_RETURN(it != bindposeElemArr.end(), );
 
   const Region region = bindposeAllocator.get(region_id);
-  debug("Unique bindpose removed: %s -> %d", region.offset, region.size);
+
+  if (log_unique_bindpose_changes)
+    debug("Unique bindpose removed: %s -> %d", region.offset, region.size);
 
   bindposeAllocator.free(region_id);
   erase_items(bindposeElemArr, it - bindposeElemArr.begin(), 1);

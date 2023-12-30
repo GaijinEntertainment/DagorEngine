@@ -377,7 +377,7 @@ shader water_nv2
     return Output;
   }
 
-  half4 water_nv_ps(VS_OUTPUT In HW_USE_SCREEN_POS) : SV_Target0
+  float4 water_nv_ps(VS_OUTPUT In HW_USE_SCREEN_POS) : SV_Target0
   {
     float4 screenpos = GET_SCREEN_POS(In.pos_clip);
     ##if water_foam_tex != NULL

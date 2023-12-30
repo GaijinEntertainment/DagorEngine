@@ -7,7 +7,9 @@
 #include <osApiWrappers/dag_progGlobals.h>
 #include <supp/dag_android_native_app_glue.h>
 #include <sys/system_properties.h>
+#if ENABLE_SWAPPY
 #include <swappy/swappyVk.h>
+#endif
 #endif
 
 using namespace drv3d_vulkan;
@@ -192,7 +194,7 @@ bool Swapchain::checkVkSwapchainError(VkResult rc, const char *source_call)
   if (VK_ERROR_SURFACE_LOST_KHR == rc)
   {
     // only real possibility is that the window got closed first
-    fatal("vulkan: %s = VK_ERROR_SURFACE_LOST_KHR, unrecoverable state", source_call);
+    DAG_FATAL("vulkan: %s = VK_ERROR_SURFACE_LOST_KHR, unrecoverable state", source_call);
     return false;
   }
   else if (VK_ERROR_OUT_OF_DATE_KHR == rc)
@@ -217,7 +219,7 @@ bool Swapchain::checkVkSwapchainError(VkResult rc, const char *source_call)
   {
     drv3d_vulkan::generateFaultReport();
     // out of memory or device failure
-    fatal("vulkan: %s failed, can't continue. code: %i", source_call, rc);
+    DAG_FATAL("vulkan: %s failed, can't continue. code: %i", source_call, rc);
     return false;
   }
 
@@ -542,15 +544,11 @@ void Swapchain::doBlit(ExecutionContext &ctx, Image *from, Image *to)
 
 void Swapchain::makeReadyForBlit(ExecutionContext &ctx, Image *from, Image *to)
 {
-  ctx.back.syncTrack.addImageAccess(
-    // present barrier is very special, as vkQueuePresent does all visibility ops
-    // ref: vkQueuePresentKHR spec notes
-    {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, from, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {0, 1, 0, 1});
+  ctx.back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, from,
+    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {0, 1, 0, 1});
 
-  ctx.back.syncTrack.addImageAccess(
-    // present barrier is very special, as vkQueuePresent does all visibility ops
-    // ref: vkQueuePresentKHR spec notes
-    {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, to, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {0, 1, 0, 1});
+  ctx.back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, to,
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {0, 1, 0, 1});
 
   ctx.back.syncTrack.completeNeeded(ctx.frameCore, ctx.vkDev);
 }
@@ -568,10 +566,17 @@ void Swapchain::makeReadyForPresent(ExecutionContext &ctx, Image *img)
   else if (lastRenderedImage)
     doBlit(ctx, img, lastRenderedImage);
 
-  ctx.back.syncTrack.addImageAccess(
-    // present barrier is very special, as vkQueuePresent does all visibility ops
-    // ref: vkQueuePresentKHR spec notes
-    {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_ACCESS_NONE}, img, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, {0, 1, 0, 1});
+  // present barrier is very special, as vkQueuePresent does all visibility ops
+  // ref: vkQueuePresentKHR spec notes, quote
+  //
+  //  When transitioning the image to VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR or VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+  //  there is no need to delay subsequent processing, or perform any visibility operations
+  //  (as vkQueuePresentKHR performs automatic visibility operations).
+  //  To achieve this, the dstAccessMask member of the VkImageMemoryBarrier should be set to 0,
+  //  and the dstStageMask parameter should be set to VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT.
+  //
+  ctx.back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_ACCESS_NONE}, img, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+    {0, 1, 0, 1});
 
   ctx.back.syncTrack.completeNeeded(ctx.frameCore, ctx.vkDev);
 }
@@ -786,8 +791,10 @@ void Swapchain::preRotateStart(uint32_t offscreen_binding_idx, FrameInfo &frame,
     auto replacementFormat = offscreenBuffer->getFormat();
     replacementFormat.isSrgb = activeMode.colorFormat.isSrgb && replacementFormat.isSrgbCapableFormatType();
     tReg.img.view.setFormat(replacementFormat);
-    tReg.img.sampler = {};
     resBinds.set<StateFieldTRegisterSet, StateFieldTRegister::Indexed>({offscreen_binding_idx, tReg});
+
+    SRegister sReg(SamplerState{});
+    resBinds.set<StateFieldSRegisterSet, StateFieldSRegister::Indexed>({offscreen_binding_idx, sReg});
     savedOffscreenBinding = offscreen_binding_idx;
 
     changeSwapState(SWP_PRE_ROTATE);
@@ -961,7 +968,7 @@ void Swapchain::onFrameBegin(ExecutionContext &ctx)
         if (changeConsequtiveFailures == changeConsequtiveFailuresLimit)
           logerr("vulkan: can't init swapchain");
         if (changeConsequtiveFailures > changeConsequtiveFailuresLimit * 2)
-          fatal("vulkan: can't init swapchain, crash");
+          DAG_FATAL("vulkan: can't init swapchain, crash");
       }
     }
   }

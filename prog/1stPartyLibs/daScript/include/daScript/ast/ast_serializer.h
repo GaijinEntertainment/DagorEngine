@@ -55,6 +55,8 @@ namespace das {
         vector<pair<Enumeration **,uint64_t>>       enumerationRefs;
         // fieldRefs tuple contains: fieldptr, module, structname, fieldname
         vector<tuple<const Structure::FieldDeclaration **, Module *, string, string>>       fieldRefs;
+        // parseModule tuple contains: moduleName, mtime, thisModule, thisModule
+        vector<tuple<string, uint64_t, ProgramPtr, Module*>> parsedModules;
     // tracking for shared modules
         das_hash_set<Module *>                      writingReadyModules;
         void tag ( const char * name );

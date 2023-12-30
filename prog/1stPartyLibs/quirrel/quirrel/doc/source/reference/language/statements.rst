@@ -124,9 +124,9 @@ expression evaluates to false.::
         a += 1
     } while(a>100)
 
-^^^^^^^^^^^^^^^^^
-switch statement
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+switch statement (deprecated, use ``if``)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. index::
     pair: switch; statement

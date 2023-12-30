@@ -44,6 +44,11 @@ public:
   {
     logerr("%s: Buffer '%s' locked with invalid combination of locking flags 0x%X", T::driverName(), name, flags);
   }
+  static void errorLockOffsetIsNotZero(const char *name, uint32_t offset, uint32_t flags)
+  {
+    logerr("%s: Buffer '%s' lock with offset of %u (for 0x%X locking flags only 0 offset is supported)", T::driverName(), name, offset,
+      flags);
+  }
   static void errorDiscardingBuffer(const char *name) { logerr("%s: Error while discarding buffer '%s'", T::driverName(), name); }
   static void errorUnlockWithoutPreviousLock(const char *name)
   {
@@ -89,6 +94,7 @@ public:
   static void errorLockOffsetIsTooLarge(const char *, uint32_t, uint32_t) {}
   static void errorLockSizeIsTooLarge(const char *, uint32_t, uint32_t, uint32_t) {}
   static void errorLockWithInvalidLockingFlags(const char *, uint32_t) {}
+  static void errorLockOffsetIsNotZero(const char *, uint32_t, uint32_t) {}
   static void errorDiscardingBuffer(const char *) {}
   static void errorUnlockWithoutPreviousLock(const char *) {}
   static void errorUnexpectedUseCase(const char *) {}
@@ -792,6 +798,10 @@ public:
     {
       BufferErrorHandler::errorLockWithInvalidLockingFlags(getResName(), flags);
     }
+    if ((flags & VBLOCK_DISCARD) != 0 && ofs_bytes != 0)
+    {
+      BufferErrorHandler::errorLockOffsetIsNotZero(getResName(), ofs_bytes, flags);
+    }
 
     lastLockFlags = static_cast<uint16_t>(flags);
 
@@ -802,7 +812,7 @@ public:
     {
       if (bufferLockDiscardRequested(flags))
       {
-        temporaryMemory = T::discardStreamMememory(this, bufSize, structSize, bufFlags, temporaryMemory, getResName());
+        temporaryMemory = T::discardStreamMememory(this, lockSize, structSize, bufFlags, temporaryMemory, getResName());
       }
       if (!T::isValidMemory(temporaryMemory))
       {
@@ -1131,11 +1141,16 @@ public:
 
     G_ASSERT_RETURN(size_bytes, false);
 
+    if ((lock_flags & VBLOCK_DISCARD) != 0 && ofs_bytes != 0)
+    {
+      BufferErrorHandler::errorLockOffsetIsNotZero(getResName(), ofs_bytes, lock_flags);
+    }
+
     if (isStreamBuffer())
     {
       if (bufferLockDiscardRequested(lock_flags))
       {
-        temporaryMemory = T::discardStreamMememory(this, bufSize, structSize, bufFlags, temporaryMemory, getResName());
+        temporaryMemory = T::discardStreamMememory(this, size_bytes, structSize, bufFlags, temporaryMemory, getResName());
       }
       memcpy(T::getMemoryPointer(temporaryMemory, ofs_bytes), src, size_bytes);
       return true;

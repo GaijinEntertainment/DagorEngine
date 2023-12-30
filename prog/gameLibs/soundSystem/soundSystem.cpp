@@ -42,7 +42,7 @@ extern JavaVM *g_jvm;
 ScoopedJavaThreadAttacher::ScoopedJavaThreadAttacher()
 {
   if (!g_jvm)
-    fatal("JavaVirtual Machive pointer not setted");
+    DAG_FATAL("JavaVirtual Machive pointer not setted");
   JNIEnv *env;
   isAttach = false;
   int getEnvStat = g_jvm->GetEnv((void **)&env, JNI_VERSION_1_6);
@@ -50,7 +50,7 @@ ScoopedJavaThreadAttacher::ScoopedJavaThreadAttacher()
   {
     //      debug_ctx("GetEnv: expected behavior not attached");
     if (g_jvm->AttachCurrentThread(&env, NULL) != 0)
-      fatal("Failed to attach JavaThread");
+      DAG_FATAL("Failed to attach JavaThread");
     isAttach = true;
   }
   else if (getEnvStat == JNI_OK)
@@ -59,14 +59,14 @@ ScoopedJavaThreadAttacher::ScoopedJavaThreadAttacher()
     debug_ctx("GetEnv: not expected behavior attached");
   }
   else if (getEnvStat == JNI_EVERSION)
-    fatal("Java GetEnv: version not supported");
+    DAG_FATAL("Java GetEnv: version not supported");
   else
-    fatal("Unexpected error Java GetEnv: %u", getEnvStat);
+    DAG_FATAL("Unexpected error Java GetEnv: %u", getEnvStat);
 }
 ScoopedJavaThreadAttacher::~ScoopedJavaThreadAttacher()
 {
   if (!g_jvm)
-    fatal("JavaVirtual Machive pointer not setted");
+    DAG_FATAL("JavaVirtual Machive pointer not setted");
   if (isAttach)
     g_jvm->DetachCurrentThread();
 }

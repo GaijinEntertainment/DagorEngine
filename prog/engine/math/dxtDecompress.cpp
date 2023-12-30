@@ -184,15 +184,15 @@ void decompress_dxt(unsigned char *decompressedData, int lw, int lh, int row_pit
 void decompress_dxt1_downsample4x(unsigned char *downsampledData, int lw, int lh, int row_pitch, unsigned char *src_data,
   unsigned char *decodedData)
 {
-  fatal("not implemented");
+  DAG_FATAL("not implemented");
 }
 void decompress_dxt5_downsample4x(unsigned char *downsampledData, int lw, int lh, int row_pitch, unsigned char *src_data,
   unsigned char *decodedData)
 {
-  fatal("not implemented");
+  DAG_FATAL("not implemented");
 }
 void decompress_dxt3_downsample4x(unsigned char *downsampledData, int lw, int lh, int row_pitch, unsigned char *src_data,
   unsigned char *decodedData)
 {
-  fatal("not implemented");
+  DAG_FATAL("not implemented");
 }

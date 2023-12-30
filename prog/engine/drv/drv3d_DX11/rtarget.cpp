@@ -643,7 +643,7 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
     d3d::set_vertex_shader(g_default_clear_vs);
     d3d::setvdecl(g_default_clear_vdecl);
 
-    if (clear_view_states.find(write_mask) == clear_view_states.end())
+    if (auto ins = clear_view_states.insert(write_mask); ins.second)
     {
       shaders::RenderState state;
       state.independentBlendEnabled = 0;
@@ -666,7 +666,7 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
         state.stencilRef = stencil_value;
         state.stencil.fail = state.stencil.pass = state.stencil.zFail = STNCLOP_REPLACE;
       }
-      clear_view_states[write_mask] = d3d::create_render_state(state);
+      ins.first->second = d3d::create_render_state(state);
     }
     d3d::setstencil(stencil_value);
     d3d::set_render_state(clear_view_states[write_mask]);

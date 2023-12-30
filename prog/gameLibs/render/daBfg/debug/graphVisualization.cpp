@@ -8,7 +8,7 @@
 #include <dag/dag_vector.h>
 #include <dag/dag_vectorSet.h>
 
-#include <runtime/backend.h>
+#include <runtime/runtime.h>
 #include <frontend/nodeTracker.h>
 
 #include <ioSys/dag_fileIo.h>
@@ -32,6 +32,13 @@ constexpr auto IMGUI_VISUALIZE_DEPENDENCIES_WINDOW = "Node Dependencies##FRAMEGR
 
 static dabfg::NodeHandle debugTextureCopyNode;
 static UniqueTex copiedTexture;
+
+template <class T, class... Ts>
+static void hashPack(size_t &hash, T first, const Ts &...other)
+{
+  hash ^= eastl::hash<T>{}(first) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+  (hashPack(hash, other), ...);
+}
 
 namespace dabfg
 {
@@ -104,7 +111,8 @@ static void add_debug_edge(uint32_t from, uint32_t to, EdgeType type, ResNameId 
 
 static struct DebugVisualizer
 {
-  const NodeTracker *nodeTracker = nullptr;
+  InternalRegistry *registry = nullptr;
+  const DependencyData *depData = nullptr;
 
   void collectValidNodes(eastl::span<const NodeNameId> node_execution_order)
   {
@@ -116,14 +124,14 @@ static struct DebugVisualizer
     resIds.clear();
     labeled_graph.clear();
     labeled_graph.resize(nodeIds.size());
-    if (!nodeTracker)
+    if (!registry || !depData)
       return;
 
-    IdIndexedMapping<NodeNameId, uint32_t> executionTimeForNode(nodeTracker->registry.nodes.size(), CULLED_OUT_NODE);
+    IdIndexedMapping<NodeNameId, uint32_t> executionTimeForNode(registry->nodes.size(), CULLED_OUT_NODE);
     for (size_t i = 0; i < node_execution_order.size(); ++i)
       executionTimeForNode[node_execution_order[i]] = i;
 
-    for (auto [nodeId, nodeData] : nodeTracker->registry.nodes.enumerate())
+    for (auto [nodeId, nodeData] : registry->nodes.enumerate())
     {
       for (const NodeNameId prevId : nodeData.precedingNodeIds)
         if (executionTimeForNode.isMapped(prevId))
@@ -134,7 +142,7 @@ static struct DebugVisualizer
           add_debug_edge(executionTimeForNode[nodeId], executionTimeForNode[nextId], EdgeType::EXPLICIT_FOLLOW, ResNameId::Invalid);
     }
 
-    for (auto [resId, lifetime] : nodeTracker->resourceLifetimes.enumerate())
+    for (auto [resId, lifetime] : depData->resourceLifetimes.enumerate())
     {
       if (lifetime.introducedBy == NodeNameId::Invalid || executionTimeForNode[lifetime.introducedBy] == CULLED_OUT_NODE)
         continue;
@@ -173,7 +181,7 @@ static struct DebugVisualizer
         resIds.push_back(resId);
     }
     stlsort::sort(resIds.begin(), resIds.end(),
-      [&names = nodeTracker->registry.knownNames](ResNameId fst, ResNameId snd) { return names.getName(fst) < names.getName(snd); });
+      [&names = registry->knownNames](ResNameId fst, ResNameId snd) { return names.getName(fst) < names.getName(snd); });
     nodeNames = gatherNames<NodeNameId>(nodeIds);
     resNames = gatherNames<ResNameId>(resIds);
   }
@@ -181,7 +189,7 @@ static struct DebugVisualizer
   template <class EnumType>
   eastl::string_view getName(EnumType res_id)
   {
-    return nodeTracker->registry.knownNames.getName(res_id);
+    return registry->knownNames.getName(res_id);
   }
 
   template <class EnumType>
@@ -253,15 +261,17 @@ static void generate_planarized_layout()
   }
 }
 
-void update_graph_visualization(const NodeTracker *node_tracker, eastl::span<const NodeNameId> node_execution_order)
+void update_graph_visualization(InternalRegistry &registry, const DependencyData &deps,
+  eastl::span<const NodeNameId> node_execution_order)
 {
-  visualizer.nodeTracker = node_tracker;
-  if (node_tracker && debugTextureCopyNode)
+  visualizer.registry = &registry;
+  visualizer.depData = &deps;
+
+  if (debugTextureCopyNode)
   {
     dag::Vector<NodeNameId> new_node_execution_order;
     new_node_execution_order.assign(node_execution_order.begin(), node_execution_order.end());
-    NodeNameId debugNodeNameId =
-      node_tracker->registry.knownNames.getNameId<NodeNameId>(node_tracker->registry.knownNames.root(), "debug_texture_copy_node");
+    NodeNameId debugNodeNameId = registry.knownNames.getNameId<NodeNameId>(registry.knownNames.root(), "debug_texture_copy_node");
     erase_item_by_value(new_node_execution_order, debugNodeNameId);
     visualizer.collectValidNodes(new_node_execution_order);
     visualizer.generateDependencyEdges(new_node_execution_order);
@@ -276,13 +286,18 @@ void update_graph_visualization(const NodeTracker *node_tracker, eastl::span<con
 
 void invalidate_graph_visualization()
 {
-  update_graph_visualization(nullptr, {});
+  visualizer = {};
+
+  visualizer.collectValidNodes({});
+  visualizer.generateDependencyEdges({});
+  generate_planarized_layout();
+
   copiedTexture.close();
 }
 
 void reset_texture_visualization() { debugTextureCopyNode = {}; }
 
-void Backend::dumpGraph(const eastl::string &filename) const
+void Runtime::dumpGraph(const eastl::string &filename) const
 {
   dag::Vector<String> nodeLabels;
   nodeLabels.reserve(labeled_graph.size());
@@ -355,7 +370,7 @@ static bool frame_graph_console_handler(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("dabfg", "dump_graph", 1, 1)
   {
     const eastl::string FILENAME = "dabfg.dot";
-    dabfg::Backend::get().dumpGraph(FILENAME);
+    dabfg::Runtime::get().dumpGraph(FILENAME);
     console::print_d("Frame graph saved to %s", FILENAME.c_str());
   }
   return found;
@@ -428,14 +443,18 @@ static void visualize_framegraph_dependencies()
     ImGui::PopStyleColor();
   }
 
+  static bool colorPasses = false;
+  ImGui::Checkbox("Color nodes based on passes", &colorPasses);
+  ImGui::SameLine();
+
   static dabfg::VisualizedEdge *selectedEdge = nullptr;
   static dabfg::NodeNameId selectedEdgePrecedingNode = dabfg::NodeNameId::Invalid;
   static dabfg::ResNameId selectedResId = dabfg::ResNameId::Invalid;
 
-  if (!dabfg::visualizer.nodeTracker)
+  if (!dabfg::visualizer.registry)
     return;
 
-  auto &registry = dabfg::visualizer.nodeTracker->registry;
+  auto &registry = *dabfg::visualizer.registry;
   fg_texture_visualization_imgui_line(selectedResId, registry, selectedEdgePrecedingNode);
 
   static ImGuiEx::Canvas canvas;
@@ -528,7 +547,28 @@ static void visualize_framegraph_dependencies()
         }
 
         drawList->ChannelsSetCurrent(1);
-        drawList->AddRectFilled(nodeRectMin, nodeRectMax, IM_COL32(75, 75, 75, 255), 4.0f);
+
+        ImU32 nodeFillColor = IM_COL32(75, 75, 75, 255);
+        if (colorPasses)
+          if (const auto &node = registry.nodes[dabfg::nodeIds[nodeId]]; node.renderingRequirements)
+          {
+            size_t hash = 0;
+
+            const auto &pass = *node.renderingRequirements;
+
+            hashPack(hash, pass.depthReadOnly);
+            for (auto color : pass.colorAttachments)
+              hashPack(hash, color.nameId, color.mipLevel, color.layer);
+            hashPack(hash, pass.depthAttachment.nameId, pass.depthAttachment.mipLevel, pass.depthAttachment.layer);
+
+            constexpr size_t HUE_COUNT = 7919;
+            float hue = static_cast<float>(hash % HUE_COUNT) / static_cast<float>(HUE_COUNT - 1);
+
+            ImVec4 color(0, 0, 0, 1);
+            ImGui::ColorConvertHSVtoRGB(hue, 1.f, 1.f, color.x, color.y, color.z);
+            nodeFillColor = ImGui::ColorConvertFloat4ToU32(color);
+          }
+        drawList->AddRectFilled(nodeRectMin, nodeRectMax, nodeFillColor, 4.0f);
         drawList->AddRect(nodeRectMin, nodeRectMax, nodeBorderColor, 4.0f, 0, nodeBorderThickness);
 
         nodeLeftAnchors[nodeId] = nodeRectMin + ImVec2(0, nodeSize.y / 2);

@@ -154,7 +154,7 @@ bool DTXTextureSampler::construct(unsigned char *data, size_t size)
           {
             success = false;
             const char *cc = (char *)&desc->pixelFormat.dwFourCC;
-            fatal("unsupported four-CC format (%c%c%c%c)", cc[0], cc[1], cc[2], cc[3]);
+            DAG_FATAL("unsupported four-CC format (%c%c%c%c)", cc[0], cc[1], cc[2], cc[3]);
           }
         }
       }

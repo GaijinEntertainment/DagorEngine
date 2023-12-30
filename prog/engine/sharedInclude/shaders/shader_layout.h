@@ -1,6 +1,7 @@
 #pragma once
 
 #include <3d/dag_renderStates.h>
+#include <3d/dag_sampler.h>
 #include <shaders/shInternalTypes.h>
 #include <shaders/dag_renderStateId.h>
 #include <shaders/dag_shaderCommon.h>
@@ -101,7 +102,7 @@ BINDUMP_BEGIN_LAYOUT(Interval)
 
   uint32_t getAssumedVal() const
   {
-    G_ASSERT(type == TYPE_ASSUMED_INTERVAL);
+    G_ASSERT(type == TYPE_ASSUMED_INTERVAL || type == TYPE_VIOLATED_ASSUMED_INTERVAL);
     // The assumed value is stored in the `mCount` field of the `maxVal` member,
     // this is done because the `maxVal` member is not used for the assumed interval,
     // and there are no other fields, and in order not to change the dump format, it is done this way
@@ -152,6 +153,51 @@ BINDUMP_BEGIN_LAYOUT(VariantTable)
     if (mapType == MAPTYPE_QDIRECT)
       return qfindDirectVariant(code);
     return qfindIntervalVariant(code);
+  }
+
+  // This reverses findVariant, it takes a variant index and returns all shader codes that is mapped to this variant
+  template <typename CLB>
+  inline void enumerateCodesForVariant(unsigned variant, CLB clb) const
+  {
+    if (MAPTYPE_EQUAL == mapType)
+    {
+      clb(variant);
+    }
+    else if (MAPTYPE_LOOKUP == mapType)
+    {
+      for (uint32_t i = 0; i < mapData.size(); ++i)
+      {
+        if (variant == mapData[i])
+        {
+          clb(i);
+        }
+      }
+    }
+    else if (MAPTYPE_QDIRECT == mapType)
+    {
+      auto halfSize = mapData.size() / 2;
+      for (uint32_t i = 0; i < halfSize; ++i)
+      {
+        if (variant == mapData[halfSize + i])
+        {
+          clb(mapData[i]);
+        }
+      }
+    }
+    else
+    {
+      auto halfSize = mapData.size() / 2;
+      for (uint32_t i = 0; i < halfSize; ++i)
+      {
+        if (variant == mapData[halfSize + i])
+        {
+          for (uint32_t j = mapData[i]; j < mapData[i + 1]; ++j)
+          {
+            clb(j);
+          }
+        }
+      }
+    }
   }
 
 protected:
@@ -380,5 +426,10 @@ BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV2, ScriptedShadersBinDump)
       return false;
     return bucket.getIntervalInfoByHash(interval_name_hash).intervalNameHash == interval_name_hash;
   }
+BINDUMP_END_LAYOUT()
+
+BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV3, ScriptedShadersBinDumpV2)
+  BINDUMP_USING_EXTENSION()
+  VecHolder<d3d::SamplerInfo> samplers;
 BINDUMP_END_LAYOUT()
 } // namespace shader_layout

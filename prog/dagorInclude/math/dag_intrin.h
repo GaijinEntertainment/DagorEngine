@@ -185,7 +185,7 @@ inline unsigned __clz(unsigned long value)
 
 inline unsigned __clz(long value) { return __clz((unsigned long)value); }
 
-inline unsigned __blsr(unsigned long long value)
+inline unsigned long long __blsr(unsigned long long value)
 {
 #if defined(__BMI__) && _TARGET_64BIT
   return _blsr_u64(value);
@@ -194,9 +194,9 @@ inline unsigned __blsr(unsigned long long value)
 #endif
 }
 
-inline unsigned __blsr(long long value) { return __blsr((unsigned long long)value); }
+inline long long __blsr(long long value) { return __blsr((unsigned long long)value); }
 
-inline unsigned __blsr(unsigned int value)
+inline unsigned int __blsr(unsigned int value)
 {
 #if defined(__BMI__)
   return _blsr_u32(value);
@@ -205,9 +205,9 @@ inline unsigned __blsr(unsigned int value)
 #endif
 }
 
-inline unsigned __blsr(int value) { return __blsr((unsigned int)value); }
+inline int __blsr(int value) { return __blsr((unsigned int)value); }
 
-inline unsigned __blsr(unsigned long value)
+inline unsigned long __blsr(unsigned long value)
 {
   if constexpr (sizeof(value) == 8)
     return __blsr((unsigned long long)value);
@@ -215,4 +215,4 @@ inline unsigned __blsr(unsigned long value)
     return __blsr((unsigned int)value);
 }
 
-inline unsigned __blsr(long value) { return __blsr((unsigned long)value); }
+inline long __blsr(long value) { return __blsr((unsigned long)value); }

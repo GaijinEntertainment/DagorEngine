@@ -393,15 +393,13 @@ static void fillTextureWithColor(BaseTexture &texture, uint32_t color)
   TextureInfo textureInfo;
   texture.getinfo(textureInfo);
 
-  int stride = 0;
-  LockedTexture<uint8_t> lockedTexture = lock_texture<uint8_t>(&texture, stride, 0, TEXLOCK_WRITE);
+  LockedImage2DView<uint32_t> lockedTexture = lock_texture<uint32_t>(&texture, 0, TEXLOCK_WRITE);
   if (!lockedTexture)
     return;
 
-  uint8_t *lockedTextureData = lockedTexture.get();
-  for (int y = 0; y < textureInfo.h; ++y, lockedTextureData += stride)
+  for (int y = 0; y < textureInfo.h; ++y)
     for (int x = 0; x < textureInfo.w; ++x)
-      *reinterpret_cast<uint32_t *>(&lockedTextureData[x * 4]) = color;
+      lockedTexture.at(x, y) = color;
 }
 
 void updatePaintColorTexture()
@@ -1221,7 +1219,7 @@ void environment::load_skies_settings(const DataBlock &blk)
       blk.getStr("preset", ""));
   else
   {
-    strlwr(ps);
+    dd_strlwr(ps);
     simplify_fname(ps);
   }
   idx = find_value_idx(preset, ps);

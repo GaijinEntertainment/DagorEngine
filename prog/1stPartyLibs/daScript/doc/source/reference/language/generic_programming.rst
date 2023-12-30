@@ -8,7 +8,7 @@ Generic Programming
 .. index::
     single: Generic Programming
 
-daScript allows ommision of types in statements, functions, and function declaration, making writing in it similar to dynamically typed languages, such as Python or Lua.
+Daslang allows ommision of types in statements, functions, and function declaration, making writing in it similar to dynamically typed languages, such as Python or Lua.
 Said functions are *instantiated* for specific types of arguments on the first call.
 
 There are also ways to inspect the types of the provided arguments, in order to change the behaviour of function, or to provide reasonable meaningful errors during the compilation phase.

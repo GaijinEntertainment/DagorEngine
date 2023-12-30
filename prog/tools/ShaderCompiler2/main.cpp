@@ -27,17 +27,22 @@
 #include <debug/dag_debug.h>
 
 #include <libTools/util/hash.h>
+#include <util/dag_strUtil.h>
 
 #include "DebugLevel.h"
 #include <libTools/util/atomicPrintf.h>
 
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
 #include <windows.h>
 #else
 
 #include <unistd.h>
 #include <spawn.h>
+#if _TARGET_PC_MACOSX
 #include <AvailabilityMacros.h>
+#elif _TARGET_PC_LINUX
+#include <sys/wait.h>
+#endif
 extern int __argc;
 extern char **__argv;
 char **environ;
@@ -93,7 +98,7 @@ void SleepEx(uint32_t ms, bool) { usleep(ms * 1000); }
 #include <d3dcompiler.h>
 #else
 #define OUTPUT_DIR "_output/"
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
 #include <d3dcompiler.h>
 #endif
 #endif
@@ -145,7 +150,7 @@ static void terminateChildProcesses()
     {
       if (ret_code != STILL_ACTIVE)
       {
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
         CloseHandle(childCompilatioProcessInfo[j].hThread);
         CloseHandle(childCompilatioProcessInfo[j].hProcess);
 #endif
@@ -154,7 +159,7 @@ static void terminateChildProcesses()
       if (ret_code == 0)
         childCompilatioTargetObj[j] = NULL;
     }
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
     if (childCompilatioProcessInfo[j].dwProcessId)
       GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, childCompilatioProcessInfo[j].dwProcessId);
 #else
@@ -520,15 +525,15 @@ restart:
       return;
     }
 #else
-    Tab<char *> arguments;
+    Tab<const char *> arguments;
     arguments.push_back(cmdname);
     for (int arg = 1; arg < __argc; arg++)
       arguments.push_back(__argv[arg]);
     arguments.push_back("-r");
     arguments.push_back("-c");
-    arguments.push_back((char *)sv.sourceFilesList[i].c_str());
+    arguments.push_back(sv.sourceFilesList[i].c_str());
     arguments.push_back(nullptr);
-    int res = posix_spawn(&piNext->hProcess, cmdname, nullptr, nullptr, arguments.data(), environ);
+    int res = posix_spawn(&piNext->hProcess, cmdname, nullptr, nullptr, (char *const *)arguments.data(), environ);
     if (res)
     {
       terminateChildProcesses();
@@ -716,6 +721,9 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
     blk.saveToTextStream(*hasher);
     get_computed_hash(hasher, blkHash.data(), blkHash.size());
     destory_hash_computer_cb(hasher);
+    String new_hash_hex;
+    data_to_str_hex(new_hash_hex, blkHash.data(), blkHash.size());
+    // blk.saveToTextFile(String(0, "%s-stripped-%s.blk", blk_file_name, new_hash_hex));
     auto blkHashFile = df_open(blkHashFilename.c_str(), DF_READ);
     if (blkHashFile)
     {
@@ -723,13 +731,16 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
       df_read(blkHashFile, previosBlkHash.data(), previosBlkHash.size());
       df_close(blkHashFile);
       isBlkChanged = memcmp(previosBlkHash.data(), blkHash.data(), blkHash.size()) != 0;
-      sh_debug(SHLOG_INFO, "'%s' hash=%16s, '%s' hash=%16s => isBlkChanged=%d", blkHashFilename.c_str(), previosBlkHash.data(),
-        blk_file_name, blkHash.data(), isBlkChanged);
+      String old_hash_hex;
+      data_to_str_hex(old_hash_hex, previosBlkHash.data(), previosBlkHash.size());
+      sh_debug(SHLOG_INFO, "'%s' hash=%s, '%s' hash=%s => isBlkChanged=%d", blkHashFilename.c_str(), old_hash_hex, blk_file_name,
+        new_hash_hex, isBlkChanged);
     }
     else
     {
       isBlkChanged = true;
-      sh_debug(SHLOG_INFO, "Previous hash missed, '%s' hash=%16s => isBlkChanged=%d", blk_file_name, blkHash.data(), isBlkChanged);
+      sh_debug(SHLOG_INFO, "Previous hash missed (%s), '%s' hash=%s => isBlkChanged=%d", blkHashFilename.c_str(), blk_file_name,
+        new_hash_hex, isBlkChanged);
     }
   }
 
@@ -879,6 +890,8 @@ static String makeShBinDumpName(const char *filename)
 static eastl::vector<String> dsc_include_paths;
 #define USE_FAST_INC_LOOKUP (__cplusplus >= 201703L)
 #if _TARGET_PC_MACOSX && MAC_OS_X_VERSION_MIN_REQUIRED < 101500 // macOS SDK < 10.15
+#undef USE_FAST_INC_LOOKUP
+#elif _TARGET_PC_LINUX && defined(__clang_major__) && __clang_major__ < 12 // older compilers lacking filesystem (e.g. on AstraLinux)
 #undef USE_FAST_INC_LOOKUP
 #endif
 #if USE_FAST_INC_LOOKUP

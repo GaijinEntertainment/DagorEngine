@@ -10,7 +10,11 @@
 #include <debug/dag_log.h>
 
 #include <stdio.h>
+#if _TARGET_PC_WIN
 #include <io.h>
+#elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <unistd.h>
+#endif
 
 #define INSERT_THOROUGH_LOG(text) \
   if (thorough_logs)              \

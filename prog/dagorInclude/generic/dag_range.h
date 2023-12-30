@@ -54,7 +54,7 @@ public:
   inline bool rangeIt(T &value) const;
 
   // return ranged value (if value out of bounds)
-  inline const T getRanged(const T &value) const;
+  inline T getRanged(const T &value) const;
 
   // return min & max bounds
   inline const T &getMin(bool validate = false) const;
@@ -82,7 +82,7 @@ public:
   inline bool operator!=(const Range &other) const;
 
   // return length between max & min values |max - min|
-  inline const T getLength() const;
+  inline T getLength() const;
 
   // return min or max value
   inline const T &operator[](int index) const;
@@ -224,7 +224,7 @@ inline bool RANGE::operator!=(const Range &other) const { return !operator==(oth
 
 // return length between max & min values |max - min|
 RANGE_TEMPLATE
-inline const T RANGE::getLength() const
+inline T RANGE::getLength() const
 {
   const T v = max_range - min_range;
   return v >= 0 ? v : -v;
@@ -232,7 +232,7 @@ inline const T RANGE::getLength() const
 
 // return ranged value (if value out of bounds)
 RANGE_TEMPLATE
-inline const T RANGE::getRanged(const T &value) const
+inline T RANGE::getRanged(const T &value) const
 {
   T val = value;
   rangeIt(val);

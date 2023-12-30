@@ -21,10 +21,26 @@ KRNLIMP void debug_dump_stack(const char *text, int skip_frames);
 
 #else // C++ interface start
 
-#define debug(...)      logdbg(__VA_ARGS__)      //< outputs formatted string and adds \n
-#define debug_(...)     logdbg_(__VA_ARGS__)     //< outputs only formatted string (no \n added)
-#define debug_ctx(...)  logdbg_ctx(__VA_ARGS__)  //< outputs formatted string with prefix 'FILE,#line: ' and adds \n
-#define debug_ctx_(...) logdbg_ctx_(__VA_ARGS__) //< outputs formatted string with prefix 'FILE,#line: ' (no \n added)
+template <typename... Args>
+inline void debug([[maybe_unused]] const Args &...args) //< outputs formatted string and adds \n
+{
+  logdbg(args...);
+}
+template <typename... Args>
+inline void debug_([[maybe_unused]] const Args &...args) //< outputs only formatted string (no \n added)
+{
+  logdbg_(args...);
+}
+template <typename... Args>
+inline void debug_ctx([[maybe_unused]] const Args &...args) //< outputs formatted string with prefix 'FILE,#line: ' and adds \n
+{
+  logdbg_ctx(args...);
+}
+template <typename... Args>
+inline void debug_ctx_([[maybe_unused]] const Args &...args) //< outputs formatted string with prefix 'FILE,#line: ' (no \n added)
+{
+  logdbg_ctx_(args...);
+}
 
 #define mt_debug(...)      debug(__VA_ARGS__)
 #define mt_debug_(...)     debug_(__VA_ARGS__)

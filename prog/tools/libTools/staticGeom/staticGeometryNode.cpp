@@ -126,7 +126,7 @@ void StaticGeometryNode::setMaterialLighting(StaticGeometryMaterial &mat) const
         mat.flags &= ~MatFlags::FLG_USE_LM;
         mat.flags |= MatFlags::FLG_USE_VLM;
         break;
-      default: fatal("Unknown lighting type");
+      default: DAG_FATAL("Unknown lighting type");
 #endif
     }
 

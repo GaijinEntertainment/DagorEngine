@@ -29,6 +29,7 @@
 #include <common/bindingType.h>
 
 #include <id/idIndexedMapping.h>
+#include <id/idSentinels.h>
 
 
 // This files contains an intermediate representation of the graph which
@@ -40,19 +41,19 @@ namespace dabfg::intermediate
 {
 
 // Denotes an index inside GraphIR::nodes
-enum NodeIndex : uint32_t
+enum NodeIndex : uint16_t
 {
 };
 
 // Denotes an index inside GraphIR::resources
-enum ResourceIndex : uint32_t
+enum ResourceIndex : uint16_t
 {
 };
 
 // Opaque index denoting the iteration of multiplexing that this entity
 // corresponds to. Should only be used for determining the index to
 // provide to frontend, not for actual logic.
-enum MultiplexingIndex : uint32_t
+enum MultiplexingIndex : uint16_t
 {
 };
 
@@ -172,7 +173,7 @@ struct Binding
   // projected type of "what"
   ResourceSubtypeTag projectedTag = ResourceSubtypeTag::Invalid;
   // projector to get the value
-  detail::TypeErasedProjector projector = +[](void *data) { return data; };
+  detail::TypeErasedProjector projector = +[](const void *data) { return data; };
 };
 
 using BindingsMap = dag::FixedVectorMap<int, Binding, 8>;
@@ -250,8 +251,8 @@ struct Graph
 // These support structures can be used to determine which IR entity
 // a frontend resource or a node got mapped to (and whether they got mapped at all)
 
-inline constexpr ResourceIndex RESOURCE_NOT_MAPPED{~0u};
-inline constexpr NodeIndex NODE_NOT_MAPPED{~0u};
+inline constexpr ResourceIndex RESOURCE_NOT_MAPPED = MINUS_ONE_SENTINEL_FOR<ResourceIndex>;
+inline constexpr NodeIndex NODE_NOT_MAPPED = MINUS_ONE_SENTINEL_FOR<NodeIndex>;
 
 class Mapping final
 {
@@ -265,6 +266,8 @@ public:
   uint32_t multiplexingExtent() const;
   uint32_t mappedNodeNameIdCount() const { return mappedNodeNameIdCount_; }
   uint32_t mappedResNameIdCount() const { return mappedResNameIdCount_; }
+  uint32_t mappedNodeIndexCount() const { return nodeNameIdMapping_.size(); }
+  uint32_t mappedResourceIndexCount() const { return resNameIdMapping_.size(); }
 
   ResourceIndex &mapRes(ResNameId id, MultiplexingIndex multiIdx);
   ResourceIndex mapRes(ResNameId id, MultiplexingIndex multiIdx) const;

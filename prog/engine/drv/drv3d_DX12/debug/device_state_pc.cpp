@@ -57,7 +57,7 @@ void __stdcall process_debug_log(D3D12_MESSAGE_CATEGORY category, D3D12_MESSAGE_
     case D3D12_MESSAGE_SEVERITY_ERROR: logerr("DX12: [#%u] %s", id, description); break;
     case D3D12_MESSAGE_SEVERITY_WARNING: logwarn("DX12: [#%u] %s", id, description); break;
     case D3D12_MESSAGE_SEVERITY_INFO:
-    case D3D12_MESSAGE_SEVERITY_MESSAGE: debug("DX12: [#%u] %s", id, description); break;
+    case D3D12_MESSAGE_SEVERITY_MESSAGE: logdbg("DX12: [#%u] %s", id, description); break;
   }
 }
 
@@ -77,11 +77,11 @@ bool debug::pc::DeviceState::setup(debug::GlobalState &global, ID3D12Device *dev
   globalState = &global;
   globalState->postmortemTrace().setupDevice(device, global.configuration(), d3d_env);
 
-  debug("DX12: Trying to acquire debug message log...");
+  logdbg("DX12: Trying to acquire debug message log...");
   if (SUCCEEDED(device->QueryInterface(COM_ARGS(&debugQueue))))
   {
     // TODO: make this setup configurable
-    debug("DX12: Success, reporting queued debug messages on frame end and reset errors");
+    logdbg("DX12: Success, reporting queued debug messages on frame end and reset errors");
     D3D12_INFO_QUEUE_FILTER defaultFilter{};
     // on default we don't care about messages and info
     D3D12_MESSAGE_SEVERITY denySeverity[] = //
@@ -106,7 +106,7 @@ bool debug::pc::DeviceState::setup(debug::GlobalState &global, ID3D12Device *dev
     {
       G_ASSERTF(false, "DX12: User requested debug layer to be enabled, but it is not available.");
     }
-    debug("DX12: Failed, no debug messages are reported to the log...");
+    logdbg("DX12: Failed, no debug messages are reported to the log...");
   }
 
   return static_cast<bool>(debugQueue);
@@ -214,8 +214,8 @@ void debug::pc::DeviceState::onDeviceRemoved(D3DDevice *device, HRESULT remove_r
 {
   if (DXGI_ERROR_INVALID_CALL == remove_reason)
   {
-    debug("DX12: Removed reason was DXGI_ERROR_INVALID_CALL, no postmortem data collected. "
-          "Application should be run with debugLevel set to 2, for CPU validation.");
+    logdbg("DX12: Removed reason was DXGI_ERROR_INVALID_CALL, no postmortem data collected. "
+           "Application should be run with debugLevel set to 2, for CPU validation.");
   }
 
   globalState->postmortemTrace().onDeviceRemoved(device, remove_reason, *this);
@@ -251,9 +251,9 @@ void debug::pc::DeviceState::sendGPUCrashDump(const char *type, const void *data
   }
 }
 
-void debug::pc::DeviceState::processDebugLog()
+void debug::pc::DeviceState::processDebugLogImpl()
 {
-  if (!debugQueue || callbackCookie)
+  if (callbackCookie)
     return;
 
   // ClearStoredMessages can corrupt the internal counter and GetNumStoredMessages can return 0xffffffffffffffff

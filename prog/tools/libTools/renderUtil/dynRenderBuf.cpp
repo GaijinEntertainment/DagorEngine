@@ -49,7 +49,7 @@ DynRenderBuffer::DynRenderBuffer(const char *class_name) : edVerts(midmem), edFa
   texVarId = get_shader_variable_id("tex");
 
   if (!edMat->checkChannels(channels, sizeof(channels) / sizeof(channels[0])))
-    fatal("Invalid channels for shader '%s'!", (char *)edMat->getShaderClassName());
+    DAG_FATAL("Invalid channels for shader '%s'!", (char *)edMat->getShaderClassName());
 
   edShader = edMat->make_elem();
   G_ASSERT(edShader);

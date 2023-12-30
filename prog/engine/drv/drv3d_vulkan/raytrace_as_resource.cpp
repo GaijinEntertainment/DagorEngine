@@ -127,23 +127,23 @@ MemoryRequirementInfo RaytraceAccelerationStructure::getMemoryReq()
 
 VkMemoryRequirements RaytraceAccelerationStructure::getSharedHandleMemoryReq()
 {
-  fatal("vulkan: no shared handle mode for RT AS");
+  DAG_FATAL("vulkan: no shared handle mode for RT AS");
   return {};
 }
 
 void RaytraceAccelerationStructure::bindMemory() {}
 
-void RaytraceAccelerationStructure::reuseHandle() { fatal("vulkan: no shared handle mode for RT AS"); }
+void RaytraceAccelerationStructure::reuseHandle() { DAG_FATAL("vulkan: no shared handle mode for RT AS"); }
 
-void RaytraceAccelerationStructure::releaseSharedHandle() { fatal("vulkan: no shared handle mode for RT AS"); }
+void RaytraceAccelerationStructure::releaseSharedHandle() { DAG_FATAL("vulkan: no shared handle mode for RT AS"); }
 
-void RaytraceAccelerationStructure::evict() { fatal("vulkan: RT AS is not evictable"); }
+void RaytraceAccelerationStructure::evict() { DAG_FATAL("vulkan: RT AS is not evictable"); }
 
-void RaytraceAccelerationStructure::restoreFromSysCopy() { fatal("vulkan: RT AS is not evictable"); }
+void RaytraceAccelerationStructure::restoreFromSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: RT AS is not evictable"); }
 
 bool RaytraceAccelerationStructure::nonResidentCreation() { return false; }
 
-void RaytraceAccelerationStructure::makeSysCopy() { fatal("vulkan: RT AS is not evictable"); }
+void RaytraceAccelerationStructure::makeSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: RT AS is not evictable"); }
 
 bool RaytraceAccelerationStructure::isEvictable() { return false; }
 

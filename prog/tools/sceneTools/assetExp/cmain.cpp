@@ -15,12 +15,15 @@
 #include <libTools/util/conLogWriter.h>
 #include <libTools/util/strUtil.h>
 #include <libTools/util/makeBindump.h>
+#include <libTools/util/fileUtils.h>
 #include <ioSys/dag_findFiles.h>
 #include <ioSys/dag_fileIo.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_symHlp.h>
 #include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_sharedMem.h>
+#include <osApiWrappers/dag_messageBox.h>
 #include <debug/dag_debug.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,6 +38,11 @@
 #include <util/dag_fastIntList.h>
 #include "asset_ref_hlp.h"
 #include "loadAssetBase.h"
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <spawn.h>
+#include <time.h>
+extern char **environ;
+#endif
 
 extern "C" IDaBuildInterface *__stdcall get_dabuild_interface();
 static inline void clearCache(const String &path, const char *mask);
@@ -75,6 +83,7 @@ public:
       case WARNING: mark = 'W'; break;
       case ERROR: mark = 'E'; break;
       case FATAL: mark = 'F'; break;
+      default: break;
     }
     logmessage_fmt(LOGLEVEL_DEBUG, String(0, "%c %s", mark, fmt), arg, anum);
 
@@ -115,10 +124,8 @@ static time_t start_at_time = time(nullptr);
 static void showTitle()
 {
   char stamp_buf[256], start_time_buf[32] = {0};
-  if (asctime_s(start_time_buf, sizeof(start_time_buf), gmtime(&start_at_time)) != 0)
+  if (!strftime(start_time_buf, sizeof(start_time_buf), "%Y-%m-%d %H:%M:%S", gmtime(&start_at_time)))
     strcpy(start_time_buf, "???");
-  else if (char *p = strchr(start_time_buf, '\n'))
-    *p = '\0';
   printf("daBuild v1.38\n"
          "Copyright (C) Gaijin Games KFT, 2023\n[%s]\n(started at %s UTC+0)\n\n",
     dagor_get_build_stamp_str_ex(stamp_buf, sizeof(stamp_buf), "", "*", "") + 19, start_time_buf);
@@ -173,11 +180,12 @@ static void __cdecl release_job_mem()
   debug_cp();
   jobMem->pid = 0xFFFFFFFFU;
   AssetExportCache::setJobSharedMem(NULL);
-  HANDLE hMapFile = jobMem->mapHandle;
+  intptr_t hMapFile = jobMem->mapHandle;
+#if _TARGET_PC_WIN
   for (int i = 0; i < jobMem->jobCount; i++)
     CloseHandle(jobMem->jobHandle[i]);
-  UnmapViewOfFile(jobMem);
-  CloseHandle(hMapFile);
+#endif
+  close_global_map_shared_mem(hMapFile, jobMem, sizeof(DabuildJobSharedMem));
   jobMem = NULL;
 }
 static void dgs_release_job_mem() { release_job_mem(); }
@@ -195,20 +203,13 @@ int DagorWinMain(bool debugmode)
 {
   dgs_pre_shutdown_handler = dgs_release_job_mem;
   setvbuf(stdout, NULL, _IOFBF, 4096);
-  char start_dir[260];
-  if (_fullpath(start_dir, __argv[0], 260))
-  {
-    char *p = strrchr(start_dir, '\\');
-    if (p)
-      *p = '\0';
-  }
+  char start_dir[260] = "";
+  dag_get_appmodule_dir(start_dir, sizeof(start_dir));
   symhlp_load("daKernel-dev.dll");
   {
     char stamp_buf[256], start_time_buf[32] = {0};
-    if (asctime_s(start_time_buf, sizeof(start_time_buf), gmtime(&start_at_time)) != 0)
+    if (!strftime(start_time_buf, sizeof(start_time_buf), "%Y-%m-%d %H:%M:%S", gmtime(&start_at_time)))
       strcpy(start_time_buf, "???");
-    else if (char *p = strchr(start_time_buf, '\n'))
-      *p = '\0';
     debug("%s [started at %s UTC+0]\n", dagor_get_build_stamp_str_ex(stamp_buf, sizeof(stamp_buf), "", "*", ""), start_time_buf);
   }
 
@@ -287,6 +288,8 @@ int DagorWinMain(bool debugmode)
       pkg_list_deps.addNameId(__argv[i] + 18);
     else if (stricmp(__argv[i], "-dry_run") == 0)
       dabuild_dry_run = true;
+    else if (stricmp(__argv[i], "-keep_building_after_error") == 0)
+      dabuild_stop_on_first_error = false;
     else if (stricmp(__argv[i], "-validate_pkg") == 0)
       validate_pkg = 1;
     else if (stricmp(__argv[i], "-validate_pkg:strict") == 0)
@@ -518,7 +521,8 @@ int DagorWinMain(bool debugmode)
       {
         const char *name = mgr.getAssetTypeName(i);
         name = name ? name : "";
-        printf("  %s%*s  ver:%3d  cls:0x%08X\n", name, 16 - i_strlen(name), "", exp->getGameResVersion(), exp->getGameResClassId());
+        printf("  %s%*s  ver:%3d  cls:0x%08X\n", name, int(16 - i_strlen(name)), "", exp->getGameResVersion(),
+          exp->getGameResClassId());
       }
     dabuild->unloadExporterPlugins();
     return 0;
@@ -1130,49 +1134,45 @@ int DagorWinMain(bool debugmode)
     AtomicPrintfMutex::init("dabuild", __argv[0]);
 
     // create file mapping
+#if _TARGET_PC_WIN
     int pid = GetProcessId(GetCurrentProcess());
+#elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+    pid_t pid = getpid();
+#endif
     String fn(128, "daBuild-shared-mem-%d", pid);
-    HANDLE hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(DabuildJobSharedMem), fn);
-    debug("%d jobs: %s -> %p (sz=%d)", jobs, fn.str(), hMapFile, sizeof(DabuildJobSharedMem));
+    intptr_t hMapFile = 0;
+    jobMem = (DabuildJobSharedMem *)create_global_map_shared_mem(fn, nullptr, sizeof(DabuildJobSharedMem), hMapFile);
+    debug("%d jobs: %s -> 0x%x (sz=%d)", jobs, fn.str(), hMapFile, sizeof(DabuildJobSharedMem));
 
-    if (hMapFile)
+    if (jobMem)
     {
-      jobMem = (DabuildJobSharedMem *)MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(DabuildJobSharedMem));
-      if (jobMem)
+      memset(jobMem, 0, sizeof(DabuildJobSharedMem));
+      jobMem->fullMemSize = sizeof(DabuildJobSharedMem);
+      jobMem->mapHandle = hMapFile;
+      jobMem->pid = pid;
+      jobMem->jobCount = jobs;
+      jobMem->dryRun = dabuild_dry_run;
+      jobMem->stopOnFirstError = dabuild_stop_on_first_error;
+      jobMem->stripD3Dres = dabuild_strip_d3d_res;
+      jobMem->collapsePacks = dabuild_collapse_packs;
+      jobMem->logLevel = quiet ? log.ERROR : log.NOTE;
+      jobMem->nopbar = nopbar;
+      jobMem->quiet = dgs_execute_quiet;
+      jobMem->showImportantWarnings = show_important_warnings;
+      jobMem->expTex = export_tex;
+      jobMem->expRes = export_res;
+      jobMem->forceRebuildAssetIdxCount = force_rebuild_assets.size();
+      G_ASSERTF(jobMem->forceRebuildAssetIdxCount <= countof(DabuildJobSharedMem::forceRebuildAssetIdx),
+        "forceRebuildAssetIdxCount=%d max=%d", jobMem->forceRebuildAssetIdxCount, countof(DabuildJobSharedMem::forceRebuildAssetIdx));
+      mem_copy_to(force_rebuild_assets.getList(), jobMem->forceRebuildAssetIdx);
+      if (int cnt = jobMem->forceRebuildAssetIdxCount)
       {
-        memset(jobMem, 0, sizeof(DabuildJobSharedMem));
-        jobMem->fullMemSize = sizeof(DabuildJobSharedMem);
-        jobMem->mapHandle = hMapFile;
-        jobMem->pid = pid;
-        jobMem->jobCount = jobs;
-        jobMem->dryRun = dabuild_dry_run;
-        jobMem->stripD3Dres = dabuild_strip_d3d_res;
-        jobMem->collapsePacks = dabuild_collapse_packs;
-        jobMem->logLevel = quiet ? log.ERROR : log.NOTE;
-        jobMem->nopbar = nopbar;
-        jobMem->quiet = dgs_execute_quiet;
-        jobMem->showImportantWarnings = show_important_warnings;
-        jobMem->expTex = export_tex;
-        jobMem->expRes = export_res;
-        jobMem->forceRebuildAssetIdxCount = force_rebuild_assets.size();
-        G_ASSERTF(jobMem->forceRebuildAssetIdxCount <= countof(DabuildJobSharedMem::forceRebuildAssetIdx),
-          "forceRebuildAssetIdxCount=%d max=%d", jobMem->forceRebuildAssetIdxCount,
-          countof(DabuildJobSharedMem::forceRebuildAssetIdx));
-        mem_copy_to(force_rebuild_assets.getList(), jobMem->forceRebuildAssetIdx);
-        if (int cnt = jobMem->forceRebuildAssetIdxCount)
-        {
-          log.addMessage(log.NOTE, "force rebuild of %d asset(s):", cnt);
-          for (int i = 0, cnt = jobMem->forceRebuildAssetIdxCount; i < cnt; i++)
-            log.addMessage(log.NOTE, "  [%d] %s", i, mgr.getAsset(jobMem->forceRebuildAssetIdx[i]).getNameTypified());
-        }
-        atexit(release_job_mem);
-        signal(SIGINT, ctrl_break_handler);
+        log.addMessage(log.NOTE, "force rebuild of %d asset(s):", cnt);
+        for (int i = 0, cnt = jobMem->forceRebuildAssetIdxCount; i < cnt; i++)
+          log.addMessage(log.NOTE, "  [%d] %s", i, mgr.getAsset(jobMem->forceRebuildAssetIdx[i]).getNameTypified());
       }
-      else
-      {
-        jobs = 0;
-        CloseHandle(hMapFile);
-      }
+      atexit(release_job_mem);
+      signal(SIGINT, ctrl_break_handler);
     }
     else
       jobs = 0;
@@ -1180,15 +1180,19 @@ int DagorWinMain(bool debugmode)
     if (jobMem)
       AssetExportCache::setJobSharedMem(jobMem);
 
+    String dabuild_job_nm(0, "%s/%s", start_dir, strstr(__argv[0], "-asan-") ? "daBuild-job-asan-dev" : "daBuild-job-dev");
+#if _TARGET_PC_WIN
+    dabuild_job_nm += ".exe";
+#endif
     for (int i = 0; i < jobs; i++)
     {
+#if _TARGET_PC_WIN
       PROCESS_INFORMATION pi;
       STARTUPINFO si;
 
       ::ZeroMemory(&si, sizeof(STARTUPINFO));
       si.cb = sizeof(STARTUPINFO);
-      String cmd(260, "%s\\%s %s %d %d", start_dir, strstr(__argv[0], "-asan-") ? "daBuild-job-asan-dev.exe" : "daBuild-job-dev.exe",
-        arg[0], pid, i);
+      String cmd(260, "%s %s %d %d", dabuild_job_nm, arg[0], pid, i);
       iterate_names(rebuild_types, [&cmd](int, const char *name) { cmd.aprintf(16, " %s", name); });
 
       if (::CreateProcess(NULL, cmd, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) // DETACHED_PROCESS
@@ -1198,6 +1202,18 @@ int DagorWinMain(bool debugmode)
       }
       else
         debug("FAILED to launch process: %s", cmd.str());
+#elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+      String pid_str(0, "%d", pid), i_str(0, "%d", i);
+
+      Tab<const char *> arguments;
+      arguments.push_back(dabuild_job_nm);
+      arguments.push_back(arg[0]);
+      arguments.push_back(pid_str);
+      arguments.push_back(i_str);
+      arguments.push_back(nullptr);
+      if (posix_spawn(&jobMem->jobHandle[i], arguments[0], nullptr, nullptr, (char *const *)arguments.data(), environ) != 0)
+        debug("FAILED to launch process: %s %s %s %d", arguments[0], arguments[1], arguments[2], arguments[3]);
+#endif
     }
     if (quiet)
       log.level = log.NOTE;
@@ -1240,10 +1256,9 @@ int DagorWinMain(bool debugmode)
   release_job_mem();
   ATOMIC_PRINTF("\n");
   if (show_important_warnings && log.impWarnCnt)
-    MessageBox(NULL,
-      String(2048, "daBuild registered %d serious warnings%s:\n\n%s", log.impWarnCnt,
-        log.impWarnCnt > 20 ? ";\nfirst 20 assets are" : "", log.impWarn.str()),
-      "dBuild warnings", MB_OK | MB_ICONSTOP);
+    os_message_box(String(2048, "daBuild registered %d serious warnings%s:\n\n%s", log.impWarnCnt,
+                     log.impWarnCnt > 20 ? ";\nfirst 20 assets are" : "", log.impWarn.str()),
+      "daBuild warnings", GUI_MB_OK | GUI_MB_ICON_ERROR);
   return !success;
 }
 

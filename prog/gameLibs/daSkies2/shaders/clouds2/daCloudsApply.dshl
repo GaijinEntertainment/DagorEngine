@@ -269,7 +269,7 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
       #endif
     }
 
-    half4 apply_clouds_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    float4 apply_clouds_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
       float rawDepth;
@@ -288,7 +288,7 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
         result.a = 1 - result.a;
       }
       result.rgb = pack_hdr(result.rgb);
-      return result;
+      return float4(result);
     }
   }
 

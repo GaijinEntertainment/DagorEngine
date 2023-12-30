@@ -34,7 +34,7 @@ void setupBenchmark(IGameCamera *cam, void (*quitCallback)())
     if (dd_file_exist(cameraFileName.c_str()))
       cameraBlock.load(cameraFileName.c_str());
     else
-      fatal((eastl::string("Benchmark mode: Can't locate ") + cameraFileName).c_str());
+      DAG_FATAL((eastl::string("Benchmark mode: Can't locate ") + cameraFileName).c_str());
 
     const DataBlock *IDblock = cameraBlock.getBlockByNameEx("selected_camera");
     const unsigned int id = IDblock->getInt("id", 1);

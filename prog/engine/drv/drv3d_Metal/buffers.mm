@@ -13,6 +13,21 @@ static inline int DivideRoundingUp(int i, int j)
   return (i + (j - 1)) / j;
 }
 
+static int g_vb_memory_used = 0;
+static int g_ib_memory_used = 0;
+static int g_buffer_memory_used = 0;
+
+int get_ib_vb_mem_used(String *stat, int &sysmem)
+{
+  sysmem = 0;
+  if (stat)
+  {
+    stat->aprintf(128, "%5dK inline vertex buffer\n", g_vb_memory_used >> 10);
+    stat->aprintf(128, "%5dK inline index buffer\n", g_ib_memory_used >> 10);
+  }
+  return g_vb_memory_used + g_ib_memory_used + g_buffer_memory_used;
+}
+
 namespace drv3d_metal
 {
 
@@ -54,7 +69,7 @@ void clear_buffers_pool_garbage() { g_buffers.clearGarbage(); }
   BufCache global_cache;
 #endif
 
-  void Buffer::BufTex::create(MTLResourceOptions storage, MTLTextureDescriptor* pTexDesc, int flags,
+  void Buffer::BufTex::create(MTLResourceOptions storage, MTLTextureDescriptor* pTexDesc,
                               int aligment, int tex_format, const char* name)
   {
 #if HAS_SMALL_BUFFER_CACHE
@@ -65,6 +80,13 @@ void clear_buffers_pool_garbage() { g_buffers.clearGarbage(); }
     else
 #endif
       buffer = [render.device newBufferWithLength : bufsize options : storage];
+
+    if (flags & SBCF_BIND_VERTEX)
+      g_vb_memory_used += bufsize;
+    else if (flags & SBCF_BIND_INDEX)
+      g_ib_memory_used += bufsize;
+    else
+      g_buffer_memory_used += bufsize;
 
     if (flags & SBCF_ZEROMEM)
       render.clearBuffer(this);
@@ -109,6 +131,13 @@ void clear_buffers_pool_garbage() { g_buffers.clearGarbage(); }
     if (buffer)
     {
       [buffer release];
+
+      if (flags & SBCF_BIND_VERTEX)
+        g_vb_memory_used -= bufsize;
+      else if (flags & SBCF_BIND_INDEX)
+        g_ib_memory_used -= bufsize;
+      else
+        g_buffer_memory_used -= bufsize;
     }
     TEXQL_ON_BUF_RELEASE(this);
 
@@ -215,9 +244,9 @@ void clear_buffers_pool_garbage() { g_buffers.clearGarbage(); }
 
       for (int i = 0; i < max_buffers; i++)
       {
-        BufTex* buf = new BufTex(bufSize);
+        BufTex* buf = new BufTex(bufSize, bufFlags);
         buf->index = i;
-        buf->create(storage, pTexDesc, bufFlags, aligment, tex_format, name);
+        buf->create(storage, pTexDesc, aligment, tex_format, name);
         buf->frame = -1;
 
         if (i==0)
@@ -244,8 +273,8 @@ void clear_buffers_pool_garbage() { g_buffers.clearGarbage(); }
     }
     else
     {
-      cur_buffer = new BufTex(bufSize);
-      cur_buffer->create(storage, pTexDesc, bufFlags, aligment, tex_format, name);
+      cur_buffer = new BufTex(bufSize, bufFlags);
+      cur_buffer->create(storage, pTexDesc, aligment, tex_format, name);
       cur_render_buffer = cur_buffer;
     }
   }
@@ -319,8 +348,8 @@ void clear_buffers_pool_garbage() { g_buffers.clearGarbage(); }
 
           max_buffers++;
 
-          BufTex* buf = new BufTex(bufSize);
-          buf->create(storage, pTexDesc, bufFlags, aligment, tex_format, "");
+          BufTex* buf = new BufTex(bufSize, bufFlags);
+          buf->create(storage, pTexDesc, aligment, tex_format, "");
           buf->index = max_buffers - 1;
 
           prev_buffer->next = buf;

@@ -8,7 +8,7 @@ class BulletDbgRender : public btIDebugDraw
 
 public:
   const Point3 *camPos = nullptr;
-  float renderDistSq = SQR(1000.0f);
+  float renderDistSq = sqr(1000.0f);
 
 public:
   void drawLine(const btVector3 &from, const btVector3 &to, const btVector3 &color) override
@@ -76,7 +76,7 @@ void physdbg::renderWorld(PhysWorld *pw, physdbg::RenderFlags rflg, const Point3
     scn->setDebugDrawer(&bullet_dbg_render);
 
     float prev_dist_sq = bullet_dbg_render.renderDistSq;
-    bullet_dbg_render.renderDistSq = SQR(render_dist);
+    bullet_dbg_render.renderDistSq = sqr(render_dist);
     bullet_dbg_render.camPos = cam_pos;
 
     ::begin_draw_cached_debug_lines((rflg & RenderFlag::USE_ZTEST) ? true : false, false);

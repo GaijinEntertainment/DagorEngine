@@ -31,3 +31,6 @@ int64_t get_time_nsec(int64_t ref) { return ref_time_delta_to_nsec(ref_time_tick
 int get_time_usec(int64_t ref) { return (int)ref_time_delta_to_usec(ref_time_ticks() - ref); }
 
 int get_time_msec() { return int((ref_time_ticks() - startup_ref_time) / int64_t(1000000)); }
+
+#define EXPORT_PULL dll_pull_kernel_cpuFreq
+#include <supp/exportPull.h>

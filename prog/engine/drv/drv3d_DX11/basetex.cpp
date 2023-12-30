@@ -925,8 +925,9 @@ ID3D11UnorderedAccessView *BaseTex::getUaView(uint32_t face, uint32_t mip_level,
           {
             D3D11_BUFFER_DESC desc;
             static_cast<ID3D11Buffer *>(tex.texRes)->GetDesc(&desc);
-            fatal("CreateUnorderedAccessView failed on ID3D11Buffer with %d. (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u)", hr,
-              desc.ByteWidth, desc.Usage, desc.BindFlags, desc.CPUAccessFlags, desc.MiscFlags, desc.StructureByteStride,
+            DAG_FATAL("CreateUnorderedAccessView failed on ID3D11Buffer with %d."
+                      " (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u)",
+              hr, desc.ByteWidth, desc.Usage, desc.BindFlags, desc.CPUAccessFlags, desc.MiscFlags, desc.StructureByteStride,
               descView.Format, descView.ViewDimension, descView.Buffer.FirstElement, descView.Buffer.NumElements,
               descView.Buffer.Flags);
             break;
@@ -935,7 +936,8 @@ ID3D11UnorderedAccessView *BaseTex::getUaView(uint32_t face, uint32_t mip_level,
           {
             D3D11_TEXTURE1D_DESC desc;
             static_cast<ID3D11Texture1D *>(tex.texRes)->GetDesc(&desc);
-            fatal("CreateUnorderedAccessView failed on ID3D11Texture1D with %d. (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u)",
+            DAG_FATAL("CreateUnorderedAccessView failed on ID3D11Texture1D with %d."
+                      " (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u)",
               hr, desc.Width, desc.MipLevels, desc.ArraySize, desc.Format, desc.Usage, desc.BindFlags, desc.CPUAccessFlags,
               desc.MiscFlags, descView.Format, descView.ViewDimension, descView.Texture1DArray.MipSlice,
               descView.Texture1DArray.FirstArraySlice, descView.Texture1DArray.ArraySize);
@@ -945,8 +947,8 @@ ID3D11UnorderedAccessView *BaseTex::getUaView(uint32_t face, uint32_t mip_level,
           {
             D3D11_TEXTURE2D_DESC desc;
             static_cast<ID3D11Texture2D *>(tex.texRes)->GetDesc(&desc);
-            fatal("CreateUnorderedAccessView failed on ID3D11Texture2D with %d. (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, "
-                  "%u, %u, %u)",
+            DAG_FATAL("CreateUnorderedAccessView failed on ID3D11Texture2D with %d."
+                      " (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u)",
               hr, desc.Width, desc.Height, desc.MipLevels, desc.ArraySize, desc.Format, desc.SampleDesc.Count, desc.SampleDesc.Quality,
               desc.Usage, desc.BindFlags, desc.CPUAccessFlags, desc.MiscFlags, descView.Format, descView.ViewDimension,
               descView.Texture2DArray.MipSlice, descView.Texture2DArray.FirstArraySlice, descView.Texture2DArray.ArraySize);
@@ -956,8 +958,8 @@ ID3D11UnorderedAccessView *BaseTex::getUaView(uint32_t face, uint32_t mip_level,
           {
             D3D11_TEXTURE3D_DESC desc;
             static_cast<ID3D11Texture3D *>(tex.texRes)->GetDesc(&desc);
-            fatal(
-              "CreateUnorderedAccessView failed on ID3D11Texture3D with %d. (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u)",
+            DAG_FATAL("CreateUnorderedAccessView failed on ID3D11Texture3D with %d."
+                      " (%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u)",
               hr, desc.Width, desc.Height, desc.Depth, desc.MipLevels, desc.Format, desc.Usage, desc.BindFlags, desc.CPUAccessFlags,
               desc.MiscFlags, descView.Format, descView.ViewDimension, descView.Texture3D.MipSlice, descView.Texture3D.FirstWSlice,
               descView.Texture3D.WSize);

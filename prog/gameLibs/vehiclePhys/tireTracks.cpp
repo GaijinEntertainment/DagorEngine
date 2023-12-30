@@ -577,7 +577,7 @@ void init(const char *blk_file, bool pack_normal_into_color_)
     trackSlope = params->getReal("slope", trackSlope);
     vertexCount = params->getInt("vertexCount", vertexCount);
     if (vertexCount <= 32)
-      fatal("Vertex count (%d) for tire tracks must be > 32!", vertexCount);
+      DAG_FATAL("Vertex count (%d) for tire tracks must be > 32!", vertexCount);
 
     DataBlock *angles = params->getBlockByName("critical_angle");
     if (angles)
@@ -654,12 +654,12 @@ void init(const char *blk_file, bool pack_normal_into_color_)
 
   if (currentMaterial == NULL)
   {
-    fatal("StdGuiRender - shader '%s' not found!", SHADER_NAME);
+    DAG_FATAL("StdGuiRender - shader '%s' not found!", SHADER_NAME);
   }
 
   if (!currentMaterial->checkChannels(channels.data(), channels.size()))
   {
-    fatal("TireTracks::init - invalid channels for shader '%s'!", (char *)currentMaterial->getShaderClassName());
+    DAG_FATAL("TireTracks::init - invalid channels for shader '%s'!", (char *)currentMaterial->getShaderClassName());
   }
 
   currentElem = currentMaterial->make_elem();

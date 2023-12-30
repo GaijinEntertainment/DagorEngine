@@ -5,10 +5,10 @@ TargetType  = lib ;
 Target      = tools/sceneTools/assetExp/exporters/scriptHelpersLt.lib ;
 
 Sources =
-  ScriptCurves.cpp
-  ScriptGradientBox.cpp
-  ScriptGui.cpp
-  ScriptLoad.cpp
+  scriptCurves.cpp
+  scriptGradientBox.cpp
+  scriptGui.cpp
+  scriptLoad.cpp
 ;
 
 AddIncludes =

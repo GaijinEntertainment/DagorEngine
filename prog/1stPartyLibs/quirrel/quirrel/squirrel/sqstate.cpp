@@ -15,7 +15,7 @@
 SQSharedState::SQSharedState(SQAllocContext allocctx) :
     _alloc_ctx(allocctx),
     _refs_table(allocctx),
-    defaultLangFeatures(0)
+    defaultLangFeatures(LF_FORBID_EXTENDS_KW | LF_FORBID_SWITCH_STMT)
 {
     _compilererrorhandler = NULL;
     _compilerdiaghandler = NULL;

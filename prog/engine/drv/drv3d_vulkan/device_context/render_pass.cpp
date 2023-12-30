@@ -28,6 +28,7 @@ void ExecutionContext::ensureStateForColorAttachments()
     const RenderPassClass::FramebufferDescription::AttachmentInfo &colorAtt =
       getFramebufferState().frameBufferInfo.colorAttachments[i];
     G_ASSERTF(colorAtt.img, "vulkan: no color attachment specified for render pass class with used attachment %u", i);
+    verifyResident(colorAtt.img);
     colorAtt.img->checkDead();
 
     back.syncTrack.addImageAccess(
@@ -45,6 +46,7 @@ void ExecutionContext::ensureStateForDepthAttachment()
   {
     RenderPassClass::FramebufferDescription::AttachmentInfo &dsai = fbs.frameBufferInfo.depthStencilAttachment;
     G_ASSERTF(dsai.img, "vulkan: no depth attachment specified for render pass class with enabled depth");
+    verifyResident(dsai.img);
     dsai.img->checkDead();
 
     G_ASSERTF(fbs.renderPassClass.colorSamples[0] == dsai.img->getSampleCount(),
@@ -57,13 +59,13 @@ void ExecutionContext::ensureStateForDepthAttachment()
     back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forAttachmentWithLayout(dsLayout), dsai.img, dsLayout,
       {ivs.getMipBase(), ivs.getMipCount(), ivs.getArrayBase(), ivs.getArrayCount()});
 
-    back.contextState.stageState[STAGE_PS].syncDepthROStateInT(dsai.img, ivs.getMipBase(), ivs.getArrayBase(), ro);
-    back.contextState.stageState[STAGE_VS].syncDepthROStateInT(dsai.img, ivs.getMipBase(), ivs.getArrayBase(), ro);
+    back.executionState.getResBinds(STAGE_PS).syncDepthROStateInT(dsai.img, ivs.getMipBase(), ivs.getArrayBase(), ro);
+    back.executionState.getResBinds(STAGE_VS).syncDepthROStateInT(dsai.img, ivs.getMipBase(), ivs.getArrayBase(), ro);
   }
   else
   {
-    back.contextState.stageState[STAGE_PS].syncDepthROStateInT(nullptr, 0, 0, ro);
-    back.contextState.stageState[STAGE_VS].syncDepthROStateInT(nullptr, 0, 0, ro);
+    back.executionState.getResBinds(STAGE_PS).syncDepthROStateInT(nullptr, 0, 0, ro);
+    back.executionState.getResBinds(STAGE_VS).syncDepthROStateInT(nullptr, 0, 0, ro);
   }
 }
 
@@ -89,7 +91,7 @@ void ExecutionContext::beginPassInternal(RenderPassClass *pass_class, VulkanFram
   if (!pass_class->verifyPass(fbs.clearMode))
   {
     generateFaultReport();
-    fatal("vulkan: MSAA pass was wrongly splitted around caller %s", getCurrentCmdCaller());
+    DAG_FATAL("vulkan: MSAA pass was wrongly splitted around caller %s", getCurrentCmdCaller());
   }
 
   VkRenderPassBeginInfo rpbi = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, nullptr};
@@ -128,7 +130,7 @@ void ExecutionContext::endPass(const char *why)
   InPassStateFieldType inPassState = back.executionState.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
 
   if (inPassState == InPassStateFieldType::NATIVE_PASS)
-    fatal("vulkan: trying to end native rp via internal break <%s>, caller\n%s", why, getCurrentCmdCaller());
+    DAG_FATAL("vulkan: trying to end native rp via internal break <%s>, caller\n%s", why, getCurrentCmdCaller());
 
   if (inPassState == InPassStateFieldType::NORMAL_PASS)
   {
@@ -235,6 +237,5 @@ void ExecutionContext::interruptFrameCoreForRenderPassStart()
   switchFrameCore();
   // only non re-applied state is one we don't track with tracked state approach
   // invalidate them by hand
-  back.contextState.onFrameStateInvalidate();
   back.executionState.set<StateFieldGraphicsPipeline, StateFieldGraphicsPipeline::FullInvalidate, BackGraphicsState>({});
 }

@@ -47,7 +47,6 @@ if $(UseSystemOpenSSL) != yes {
 }
 
 ImportProgLibs = tools/libTools/daKernel ;
-CoExportProgDlls = $(ImportProgLibs) ;
 if $(Platform) = linux64 { ImportsRelativeDir = . ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -19,7 +19,7 @@
     result will be text that will be automatically update text with time and username, and time can be disaplayed with clocks widget
 */
 
-let function mkTextRow(fullText, mkText, replaceTable) {
+function mkTextRow(fullText, mkText, replaceTable) {
   local res = [fullText]
   foreach(key, comp in replaceTable) {
     let curList = res

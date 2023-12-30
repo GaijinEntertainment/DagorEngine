@@ -1,13 +1,10 @@
 Root    ?= ../../../../.. ;
 Location = prog/tools/sceneTools/assetExp/refProviders ;
-DriverLinkage   = dynamic ;
-include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType  = dll ;
-Target = tools/sceneTools/efxRefProv.dll ;
+Target = tools/sceneTools/efxRefProv ;
 
-OutDir = $(Root)/tools/dagor3_cdk/bin/plugins/dabuild ;
-if $(Platform) = win64 { OutDir = $(Root)/tools/dagor3_cdk/bin64/plugins/dabuild ; }
+include $(Root)/$(Location)/../dabuild_plugin_common.jam ;
 
 Sources = efxRefProv.cpp ;
 
@@ -22,7 +19,5 @@ UseProgLibs =
   tools/libTools/assetMgr
   tools/libTools/util
 ;
-
-ImportProgLibs = tools/libTools/daKernel ;
 
 include $(Root)/prog/_jBuild/build.jam ;

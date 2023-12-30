@@ -66,7 +66,7 @@
   #endif
 
   float3 lightDir = point2light*rcpDistFromLight;
-  half3 result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, lightDir, view, gbuffer.normal);
+  half3 result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, lightDir, view, gbuffer.normal, gbuffer.translucencyColor, gbuffer.translucency);
   #if !DYNAMIC_LIGHTS_EARLY_EXIT
   result = NoL>0 ? result : 0;
   #endif

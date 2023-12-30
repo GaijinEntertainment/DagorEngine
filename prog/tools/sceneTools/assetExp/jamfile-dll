@@ -1,15 +1,12 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/assetExp ;
-DriverLinkage   = dynamic ;
-include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType  = dll ;
-Target = tools/sceneTools/daBuild.dll ;
+Target = tools/sceneTools/daBuild ;
 
-include $(Root)/prog/_jBuild/defaults.jam ;
-
-OutDir = $(Root)/tools/dagor3_cdk/bin ;
-if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+include $(Root)/$(Location)/dabuild_plugin_common.jam ;
+OutDir = $(OutDir:D) ; OutDir = $(OutDir:D) ; # apply ../.. to OutDir
+ImportsRelativeDir = . ;
 
 Sources =
   loadPlugins.cpp
@@ -38,7 +35,6 @@ UseProgLibs =
   3rdPartyLibs/hash
 ;
 
-ImportProgLibs = tools/libTools/daKernel ;
 daBuild-dev.dll__PDB = $(OutDir)/daBuild-dll.pdb ;
 
 include $(Root)/prog/_jBuild/build.jam ;

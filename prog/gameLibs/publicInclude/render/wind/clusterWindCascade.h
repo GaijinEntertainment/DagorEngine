@@ -66,7 +66,7 @@ public:
   const Point3 getActualPosition() const;
   Point3 getBoxPosition(int boxId);
   bool isClusterOnCascade(const Point3 &pos, float r) const;
-  const int getAllClusterId(int boxId) const;
+  int getAllClusterId(int boxId) const;
   int getClusterId(int boxId, int at);
   int getClosestStaticBoxId(const Point3 &pos) const;
   IPoint2 getStaticBoxXY(int boxId);

@@ -7,6 +7,8 @@
 #include <debug/dag_debug.h>
 #include <util/dag_string.h>
 #include <util/dag_globDef.h>
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_unicode.h>
 #include "kbd_private.h"
 #include <stdio.h>
@@ -45,6 +47,38 @@ IGenKeyboardClassDrv *HumanInput::createWinKeyboardClassDriver()
   return cd;
 }
 
+#if _TARGET_PC_WIN
+static bool set_english_layout()
+{
+  static const int sublanguages[] = {
+    SUBLANG_ENGLISH_US,
+    SUBLANG_ENGLISH_UK,
+    SUBLANG_ENGLISH_AUS,
+    SUBLANG_ENGLISH_CAN,
+    SUBLANG_ENGLISH_NZ,
+    SUBLANG_ENGLISH_INDIA,
+    SUBLANG_ENGLISH_MALAYSIA,
+    SUBLANG_ENGLISH_SINGAPORE,
+    SUBLANG_ENGLISH_PHILIPPINES,
+    SUBLANG_ENGLISH_CARIBBEAN,
+    SUBLANG_ENGLISH_EIRE,
+    SUBLANG_ENGLISH_SOUTH_AFRICA,
+    SUBLANG_ENGLISH_JAMAICA,
+    SUBLANG_ENGLISH_BELIZE,
+    SUBLANG_ENGLISH_TRINIDAD,
+    SUBLANG_ENGLISH_ZIMBABWE,
+  };
+
+  for (int sublanguage : sublanguages)
+  {
+    intptr_t langId = MAKELANGID(LANG_ENGLISH, sublanguage);
+    if (IsValidLocale(MAKELCID(langId, SORT_DEFAULT), LCID_INSTALLED) && ActivateKeyboardLayout((HKL)langId, KLF_SETFORPROCESS))
+      return true;
+  }
+
+  return false;
+}
+#endif
 
 bool WinKeyboardClassDriver::init()
 {
@@ -82,7 +116,19 @@ bool WinKeyboardClassDriver::init()
         }
 #endif
 
-  // debug("kbd layout=%p", GetKeyboardLayout(0));
+#if _TARGET_PC_WIN && !IS_CONSOLE_EXE
+  HKL prevLayout = GetKeyboardLayout(0);
+
+  bool useKeyNamesFromEnglishLayout =
+    !::dgs_get_settings() || ::dgs_get_settings()->getBlockByNameEx("input")->getBool("useKeyNamesFromEnglishLayout", true);
+
+  if (useKeyNamesFromEnglishLayout && !set_english_layout())
+  {
+    logwarn("WinKeyboardClassDriver.init(): Failed to set English keyboard layout");
+    useKeyNamesFromEnglishLayout = false;
+  }
+#endif
+
   memset(HumanInput::key_name, 0xFF, sizeof(HumanInput::key_name));
   for (int i = 0; i < 256; i++)
   {
@@ -129,6 +175,11 @@ bool WinKeyboardClassDriver::init()
     append_items(keyNames, len + 1, kname_ut8);
 #endif
   }
+
+#if _TARGET_PC_WIN
+  if (useKeyNamesFromEnglishLayout)
+    ActivateKeyboardLayout(prevLayout, KLF_SETFORPROCESS);
+#endif
 
   keyNames.shrink_to_fit();
   for (int i = 0; i < 256; i++)

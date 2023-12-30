@@ -246,9 +246,9 @@ void RenderScene::loadBinary(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap, bo
 #if _TARGET_PC && !_TARGET_STATIC_LIB
     logwarn("can't load binary scene: %s, %s", e.excDesc, DAGOR_EXC_STACK_STR(e));
 #elif defined(DAGOR_EXCEPTIONS_ENABLED)
-    fatal("can't load binary scene: %s, %s", e.excDesc, DAGOR_EXC_STACK_STR(e));
+    DAG_FATAL("can't load binary scene: %s, %s", e.excDesc, DAGOR_EXC_STACK_STR(e));
 #else
-    fatal("can't load binary scene");
+    DAG_FATAL("can't load binary scene");
 #endif
   }
 

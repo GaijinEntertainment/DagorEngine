@@ -44,6 +44,7 @@ float shadow_render_expand_from_sun_mul = 0.0f;
 static int csmShadowFadeOutVarId = -1, shadowCascadeDepthRangeVarId = -1, deferredShadowPassVarId = -1;
 
 #define GLOBAL_VARS_OPTIONAL_LIST \
+  VAR(csm_world_view_pos)         \
   VAR(csm_distance)               \
   VAR(num_of_cascades)            \
   VAR(csm_range_cascade_0)        \
@@ -60,7 +61,7 @@ static int csmShadowFadeOutVarId = -1, shadowCascadeDepthRangeVarId = -1, deferr
 
 #define GLOBAL_CONST_LIST
 
-#define VAR(a) static int a##VarId = -1;
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_OPTIONAL_LIST
 #undef VAR
 
@@ -244,9 +245,6 @@ CascadeShadowsPrivate::CascadeShadowsPrivate(ICascadeShadowsClient *in_client, c
 {
   G_ASSERT(client);
 
-#define VAR(a) a##VarId = get_shader_variable_id(#a, true);
-  GLOBAL_VARS_OPTIONAL_LIST
-#undef VAR
 #define VAR(a)                                              \
   {                                                         \
     int tmp = get_shader_variable_id(#a "_const_no", true); \
@@ -458,21 +456,21 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
     distances[0] = min(modeSettings.cascade0Dist + modeSettings.shadowStart, distances[0]);
 
   const int csm_range_cascade_vars[] = {
-    csm_range_cascade_0VarId,
-    csm_range_cascade_1VarId,
-    csm_range_cascade_2VarId,
+    int(csm_range_cascade_0VarId),
+    int(csm_range_cascade_1VarId),
+    int(csm_range_cascade_2VarId),
   };
 
   const int csm_meter_to_uv_cascade_vars[] = {
-    csm_meter_to_uv_cascade_0VarId,
-    csm_meter_to_uv_cascade_1VarId,
-    csm_meter_to_uv_cascade_2VarId,
+    int(csm_meter_to_uv_cascade_0VarId),
+    int(csm_meter_to_uv_cascade_1VarId),
+    int(csm_meter_to_uv_cascade_2VarId),
   };
 
   const int csm_uv_minmax_cascade_vars[] = {
-    csm_uv_minmax_cascade_0VarId,
-    csm_uv_minmax_cascade_1VarId,
-    csm_uv_minmax_cascade_2VarId,
+    int(csm_uv_minmax_cascade_0VarId),
+    int(csm_uv_minmax_cascade_1VarId),
+    int(csm_uv_minmax_cascade_2VarId),
   };
 
   for (unsigned int cascadeNo = 0; cascadeNo < numCascadesToRender; cascadeNo++)
@@ -924,6 +922,7 @@ void CascadeShadowsPrivate::setCascadesToShader()
   }
   ShaderGlobal::set_color4_array(shadow_cascade_tm_transpVarId, transposed.data(), numCascadesToRender * 4);
   ShaderGlobal::set_color4_array(shadow_cascade_tc_mul_offsetVarId, shadowCascadeTcMulOffset.data(), numCascadesToRender);
+  ShaderGlobal::set_color4(csm_world_view_posVarId, P3D(shadowSplits[0].viewPos), 0);
 }
 
 void CascadeShadowsPrivate::debugSetParams(float shadow_depth_bias, float shadow_const_depth_bias, float shadow_depth_slope_bias)

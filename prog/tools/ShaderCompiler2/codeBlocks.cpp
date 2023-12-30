@@ -18,9 +18,10 @@
 #include "fast_isalnum.h"
 #include "hash.h"
 
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
 #include <windows.h>
 #else
+#include <stdlib.h>
 #define __iscsym(_c) fast_isalnum_or_(_c)
 #endif
 
@@ -303,10 +304,12 @@ bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, Shade
 
           tmpFileName.printf(260, "%.*s", t2 - t - 1, t + 1);
 
-          char fullName[260];
-#if _TARGET_PC_MACOSX
-          realpath(tmpFileName, fullName);
+#if _TARGET_PC_MACOSX | _TARGET_PC_LINUX
+          char fullName[4096];
+          if (!realpath(tmpFileName, fullName))
+            strcpy(fullName, tmpFileName);
 #else
+          char fullName[260];
           GetFullPathName(tmpFileName, 260, fullName, NULL);
           dd_simplify_fname_c(fullName);
 #endif
@@ -896,26 +899,24 @@ bool CodeSourceBlocks::ppDoInclude(const char *incl_fn, Tab<char> &out_text, con
   crd.read(fcont.data(), file_sz);
   fcont[file_sz] = 0;
 
-  const char *ssp = fcont.data(), *sp = strchr(ssp, '#');
+  // Validation
+  const char *ssp = fcont.data();
+  const char *sp = ssp;
   while (sp)
   {
-    if (sp[1] == '#')
-    {
+    while (isspace(*sp))
       sp++;
-      if (strncmp(sp, "#include", 8) != 0)
-      {
-        const char *p = sp - 1;
-        while (p > fcont.data() && (*p == ' ' || *p == '\t'))
-          p--;
-        if (*p == '\n' || *p == '\r' || p <= fcont.data())
-        {
-          append_items(out_text, sp - ssp, ssp);
-          out_text.push_back('#');
-          ssp = sp;
-        }
-      }
+    if (!*sp)
+      break;
+
+    // Restrict dagor precompiler macros in hlsl include files outside of #define-s
+    if (sp[0] == '#' && sp[1] == '#')
+    {
+      sh_debug(SHLOG_ERROR, "dagor precompiler macros are illegal in hlsl include files: %s", incl_fn);
+      return false;
     }
-    sp = strchr(sp + 1, '#');
+
+    sp = strchr(sp, '\n');
   }
   append_items(out_text, fcont.data() + fcont.size() - 1 - ssp, ssp);
 

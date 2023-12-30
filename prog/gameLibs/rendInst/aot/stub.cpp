@@ -52,8 +52,9 @@ int getRiGenExtraInstances(Tab<riex_handle_t> &, uint32_t, const bbox3f &)
   return 0;
 }
 void gatherRIGenExtraCollidable(riex_collidable_t &, const BBox3 &, bool) { G_ASSERT(0); }
+void gatherRIGenExtraCollidable(riex_collidable_t &, const TMatrix &, const BBox3 &, bool) { G_ASSERT(0); }
 void drawDebugCollisions(DrawCollisionsFlags, mat44f_cref, const Point3 &, bool, float, float) { G_ASSERT(0); }
-void doRIGenDamage(const BSphere3 &, unsigned, ri_damage_effect_cb, const Point3 &, bool) { G_ASSERT(0); }
+void doRIGenDamage(const BSphere3 &, unsigned, const Point3 &, bool) { G_ASSERT(0); }
 bool isRIGenDestr(const RendInstDesc &)
 {
   G_ASSERT(0);
@@ -117,6 +118,11 @@ const CollisionResource *getRiGenCollisionResource(const RendInstDesc &)
 }
 void getRIGenExtra44(riex_handle_t, mat44f &) { G_ASSERT(0); }
 const char *getRIGenResName(const RendInstDesc &)
+{
+  G_ASSERT(0);
+  return nullptr;
+}
+const char *getRIGenDestrFxTemplateName(const RendInstDesc &)
 {
   G_ASSERT(0);
   return nullptr;

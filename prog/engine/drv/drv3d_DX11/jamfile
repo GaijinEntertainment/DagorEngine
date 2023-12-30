@@ -14,6 +14,7 @@ Sources =
   texture.cpp
   shaders.cpp
   buffers.cpp
+  sampler.cpp
   genericBuffer.cpp
   init_d3di.cpp
   basetex.cpp

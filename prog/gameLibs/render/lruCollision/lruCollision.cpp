@@ -41,13 +41,15 @@ extern uint32_t lru_collision_get_type(rendinst::riex_handle_t h);
 uint32_t LRURendinstCollision::getMaxBatchSize() const { return MAX_VOXELIZATION_INSTANCES; }
 
 static constexpr uint32_t compute_vb_flags = (can_voxelize_in_compute ? SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW : 0);
+static int ssgi_scene_common_color_reg_no_const = 6, ssgi_scene_common_alpha_reg_no_const = 5;
 
 LRURendinstCollision::LRURendinstCollision() :
   vbAllocator(SbufferHeapManager("vb_collision_", 4, compute_vb_flags | SBCF_BIND_VERTEX)),
   ibAllocator(SbufferHeapManager("ib_collision_", 4, compute_vb_flags | SBCF_BIND_INDEX))
 {
   create_cubic_indices(make_span((uint8_t *)boxIndices.data(), COLLISION_BOX_INDICES_NUM * sizeof(uint16_t)), 1, false);
-
+  ShaderGlobal::get_int_by_name("ssgi_scene_common_color_reg_no", ssgi_scene_common_color_reg_no_const);
+  ShaderGlobal::get_int_by_name("ssgi_scene_common_alpha_reg_no", ssgi_scene_common_alpha_reg_no_const);
   supportNoOverwrite = d3d::get_driver_desc().caps.hasNoOverwriteOnShaderResourceBuffers;
   instanceTms = dag::create_sbuffer(sizeof(Point4), getMaxBatchSize() * 3,
     (supportNoOverwrite ? (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE) : 0) | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0,
@@ -484,9 +486,9 @@ void LRURendinstCollision::drawInstances(dag::ConstSpan<rendinst::riex_handle_t>
 {
   TIME_D3D_PROFILE(LRU_draw_instances);
   if (alpha)
-    d3d::set_rwtex(STAGE_PS, 5, alpha, 0, 0);
+    d3d::set_rwtex(STAGE_PS, ssgi_scene_common_alpha_reg_no_const, alpha, 0, 0);
   if (color)
-    d3d::set_rwtex(STAGE_PS, 6, color, 0, 0);
+    d3d::set_rwtex(STAGE_PS, ssgi_scene_common_color_reg_no_const, color, 0, 0);
 
   d3d::setind(ibAllocator.getHeap().getBuf());
   d3d::setvsrc_ex(0, vbAllocator.getHeap().getBuf(), 0, sizeof(CollisionVertex)); // we can set with different offset, but we rely on
@@ -505,9 +507,9 @@ void LRURendinstCollision::drawInstances(dag::ConstSpan<rendinst::riex_handle_t>
   d3d::setvsrc(0, 0, 0); // we can set with different offset, but we rely on same vertex size
   d3d::setvsrc(1, 0, 0); // we can set with different offset, but we rely on same vertex size
   if (color)
-    d3d::set_rwtex(STAGE_PS, 6, 0, 0, 0);
+    d3d::set_rwtex(STAGE_PS, ssgi_scene_common_color_reg_no_const, 0, 0, 0);
   if (alpha)
-    d3d::set_rwtex(STAGE_PS, 5, 0, 0, 0);
+    d3d::set_rwtex(STAGE_PS, ssgi_scene_common_alpha_reg_no_const, 0, 0, 0);
 }
 
 void LRURendinstCollision::drawInstances(uint32_t start_instance, const uint32_t *types_counts, uint32_t batches, VolTexture *color,
@@ -609,19 +611,20 @@ void LRURendinstCollision::dispatchInstances(dag::ConstSpan<rendinst::riex_handl
   G_ASSERT(ibAllocator.getHeap().getBuf()->getFlags() & SBCF_BIND_SHADER_RES);
   TIME_D3D_PROFILE(LRU_dispatch_instances);
   if (alpha)
-    d3d::set_rwtex(STAGE_CS, 5, alpha, 0, 0);
+    d3d::set_rwtex(STAGE_CS, ssgi_scene_common_alpha_reg_no_const, alpha, 0, 0);
   if (color)
-    d3d::set_rwtex(STAGE_CS, 6, color, 0, 0);
+    d3d::set_rwtex(STAGE_CS, ssgi_scene_common_color_reg_no_const, color, 0, 0);
   cs.setStates();
+
   ShaderGlobal::set_buffer(gi_voxelization_vbufferVarId, vbAllocator.getHeap().getBufId());
   ShaderGlobal::set_buffer(gi_voxelization_ibufferVarId, ibAllocator.getHeap().getBufId());
   batchInstances(handles.begin(), handles.end(), [&](uint32_t start_instance, const uint32_t *types_counts, uint32_t count) {
     dispatchInstances(start_instance, types_counts, count, color, alpha, cs.getThreadGroupSizes()[0]);
   });
   if (color)
-    d3d::set_rwtex(STAGE_CS, 6, 0, 0, 0);
+    d3d::set_rwtex(STAGE_CS, ssgi_scene_common_color_reg_no_const, 0, 0, 0);
   if (alpha)
-    d3d::set_rwtex(STAGE_CS, 5, 0, 0, 0);
+    d3d::set_rwtex(STAGE_CS, ssgi_scene_common_alpha_reg_no_const, 0, 0, 0);
 }
 
 void LRURendinstCollision::draw(dag::ConstSpan<rendinst::riex_handle_t> handles, VolTexture *color, VolTexture *alpha,

@@ -11,7 +11,7 @@ namespace rendinst::gpuobjects
 
 struct GpuObjectsEntry
 {
-  String name;
+  eastl::string name;
   int grid_tile, grid_size;
   float cell_size;
   gpu_objects::PlacingParameters parameters;

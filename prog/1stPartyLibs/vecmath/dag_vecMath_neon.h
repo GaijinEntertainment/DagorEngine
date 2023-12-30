@@ -676,6 +676,46 @@ VECTORCALL VECMATH_FINLINE vec4f v_plane_dist(plane3f a, vec3f b) { return v_spl
 
 VECTORCALL VECMATH_FINLINE vec4f v_perm_yzxz(vec4f a) { return __builtin_shufflevector(a, a, 1, 2, 0, 2); }
 
+VECTORCALL VECMATH_FINLINE void v_mat_33cu_from_mat33(float * __restrict m33, const mat33f& tm)
+{
+  vec4f v0 = v_perm_xyzd(tm.col0, v_splat_x(tm.col1));
+  vec4f v1 = v_perm_xyab(v_rot_1(tm.col1), tm.col2);
+  v_stu(m33 + 0, v0);
+  v_stu(m33 + 4, v1);
+  m33[8] = v_extract_z(tm.col2);
+}
+
+VECTORCALL VECMATH_FINLINE void v_mat_43ca_from_mat44(float * __restrict m43, const mat44f &tm)
+{
+  v_mat_43cu_from_mat44(m43, tm);
+}
+
+VECTORCALL VECMATH_FINLINE void v_mat_43cu_from_mat44(float * __restrict m43, const mat44f &tm)
+{
+  v_stu_p3(m43 + 0, tm.col0);
+  v_stu_p3(m43 + 3, tm.col1);
+  v_stu_p3(m43 + 6, tm.col2);
+  v_stu_p3(m43 + 9, tm.col3);
+}
+
+//mat44f from unaligned TMatrix
+VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43cu(mat44f &tmV, const float *const __restrict m43)
+{
+  tmV.col0 = v_and(v_ldu(m43 + 0), (vec4f)V_CI_MASK1110);
+  tmV.col1 = v_and(v_ldu(m43 + 3), (vec4f)V_CI_MASK1110);
+  tmV.col2 = v_and(v_ldu(m43 + 6), (vec4f)V_CI_MASK1110);
+  tmV.col3 = v_add(v_and(v_rot_1(v_ldu(m43 + 8)), (vec4f)V_CI_MASK1110), V_C_UNIT_0001);
+}
+
+//mat44f from aligned TMatrix
+VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43ca(mat44f &tmV, const float *const __restrict m43)
+{
+  tmV.col0 = v_and(v_ld(m43 + 0), (vec4f)V_CI_MASK1110);
+  tmV.col1 = v_and(v_ldu(m43 + 3), (vec4f)V_CI_MASK1110);
+  tmV.col2 = v_and(v_ldu(m43 + 6), (vec4f)V_CI_MASK1110);
+  tmV.col3 = v_add(v_and(v_rot_1(v_ldu(m43 + 8)), (vec4f)V_CI_MASK1110), V_C_UNIT_0001);
+}
+
 VECTORCALL VECMATH_FINLINE void v_mat44_ident(mat44f &dest)
 {
   dest.col3 = V_C_UNIT_0001;
@@ -974,41 +1014,6 @@ VECTORCALL VECMATH_FINLINE vec4f v_insert(float s, vec4f v, int i)
 VECTORCALL VECMATH_FINLINE vec4f v_promote(float s, int /*i*/)
 {
   return vmovq_n_f32(s);
-}
-
-VECTORCALL VECMATH_FINLINE quat4f v_un_quat_from_mat(vec3f col0, vec3f col1, vec3f col2)
-{
-  /* compute quaternion for each case */
-  const vec4f xx_yy = v_perm_xbzw(col0, col1);
-  const vec4f xx_yy_zz_xx = v_perm_xycx(xx_yy, col2);
-  const vec4f yy_zz_xx_yy = v_perm_ycxy(xx_yy, col2);
-  const vec4f zz_xx_yy_zz = v_perm_cxyc(xx_yy, col2);
-
-  const vec4f diagSum = v_add(v_add(xx_yy_zz_xx, yy_zz_xx_yy), zz_xx_yy_zz);
-  const vec4f diagDiff = v_sub(v_sub(xx_yy_zz_xx, yy_zz_xx_yy), zz_xx_yy_zz);
-  const vec4f radicand = v_add(v_perm_xyzd(diagDiff, diagSum), V_C_ONE);
-  const vec4f invSqrt = v_rsqrt4(v_sel(radicand, V_C_ONE, v_cmp_ge(v_zero(), radicand)));
-
-  const vec4f zy_xz_yx = v_perm_zayx(v_perm_xycw(col0, col1), col2);
-  const vec4f yz_zx_xy = v_perm_bzxx(v_perm_ayzw(col0, col1), col2);
-
-  const vec4f sum = v_add(zy_xz_yx, yz_zx_xy);
-  const vec4f diff = v_sub(zy_xz_yx, yz_zx_xy);
-
-  const vec4f scale = v_mul(invSqrt, V_C_HALF);
-  const vec4f res0 = v_mul(v_perm_ayzw(v_perm_xzya(sum, diff), radicand), v_splat_x(scale));
-  const vec4f res1 = v_mul(v_perm_xbzw(v_perm_zxxb(sum, diff), radicand), v_splat_y(scale));
-  const vec4f res2 = v_mul(v_perm_xycw(v_perm_yxac(sum, diff), radicand), v_splat_z(scale));
-  const vec4f res3 = v_mul(v_perm_xyzd(diff, radicand), v_splat_w(scale));
-
-  /* determine case and select answer */
-  vec4f xx = v_splat_x(col0);
-  vec4f yy = v_splat_y(col1);
-  vec4f zz = v_splat_z(col2);
-
-  vec4f q = v_sel(res0, res1, v_cmp_gt(yy, xx));
-  q = v_sel(q, res2, v_and(v_cmp_gt(zz, xx), v_cmp_gt(zz, yy)));
-  return v_sel(q, res3, v_cmp_ge(v_splat_x(diagSum), v_zero()));
 }
 
 VECTORCALL VECMATH_FINLINE short v_extract_xi16(vec4i v) { return vgetq_lane_s16(vreinterpretq_s16_s32(v), 0); }

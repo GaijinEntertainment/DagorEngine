@@ -1,6 +1,7 @@
 #pragma once
 
 #include <dag/dag_vector.h>
+#include <debug/dag_assert.h>
 #include "idEnumerateView.h"
 
 
@@ -23,6 +24,7 @@ struct IdIndexedMapping : dag::Vector<ValueType, Allocator, true, eastl::underly
   template <class... Args>
   eastl::pair<EnumType, ValueType &> appendNew(Args &&...args)
   {
+    G_FAST_ASSERT(Container::size() < eastl::numeric_limits<eastl::underlying_type_t<EnumType>>::max());
     auto newIndex = static_cast<EnumType>(Container::size());
     return {newIndex, Container::emplace_back(eastl::forward<Args>(args)...)};
   }

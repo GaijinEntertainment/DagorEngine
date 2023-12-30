@@ -3,8 +3,9 @@
 #import <Foundation/NSURL.h>
 #include <wchar.h>
 #include <debug/dag_debug.h>
+#include <osApiWrappers/dag_shellExecute.h>
 
-void os_shell_execute(const char *op, const char *file, const char *params, const char *dir, bool force_sync)
+void os_shell_execute(const char *op, const char *file, const char *params, const char *dir, bool force_sync, OpenConsoleMode)
 {
 #if _TARGET_IOS
   [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[NSString stringWithUTF8String:file]]];
@@ -13,7 +14,7 @@ void os_shell_execute(const char *op, const char *file, const char *params, cons
 #endif
 }
 void os_shell_execute_w(const wchar_t *op, const wchar_t *file, const wchar_t *params, const wchar_t *dir,
-  bool force_sync)
+  bool force_sync, OpenConsoleMode)
 {
 #if _TARGET_TVOS
   logerr("unsupported: shell_execute_w(...)");

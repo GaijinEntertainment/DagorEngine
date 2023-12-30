@@ -64,7 +64,7 @@ public:
     }
 
     if (gpuFenceWait(device) != State::SIGNALED)
-      fatal("vulkan: waited fence is unreachable");
+      DAG_FATAL("vulkan: waited fence is unreachable");
   }
 
   inline void shutdown(VulkanDevice &device)
@@ -141,7 +141,7 @@ private:
       else
       {
         generateFaultReport();
-        fatal("vulkan: GPU crash detected (code: %08lX)", waitRet);
+        DAG_FATAL("vulkan: GPU crash detected (code: %08lX)", waitRet);
       }
 
       // if fatal is skipped, just wait without timeout

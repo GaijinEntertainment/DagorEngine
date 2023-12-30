@@ -38,12 +38,14 @@ int clipmapShadowScaleVarId = -1;
 static Point2 offsetSunDistMin(0, 0), offsetSunDistMax(0, 0);
 static PostFxRenderer blurRenderer;
 static int blurOffset01VarId = -1, blurOffset23VarId = -1, blurOffset45VarId = -1, blurOffset67VarId = -1, sourceTexVarId = -1;
+static bool areBuffersFilled = false;
 
 void release_clipmap_shadows();
 void allocate_clipmap_shadows();
 
 void closeClipmapShadows()
 {
+  areBuffersFilled = false;
   rendinstShadowsToClipmapShaderElem = nullptr;
   rendinstShadowsToClipmapShaderMaterial = nullptr;
   del_d3dres(rendinstShadowsToClipmapVb);
@@ -57,10 +59,19 @@ static const unsigned quadSize = 4 * sizeof(Point3); // replace to short!
 static const unsigned count = 1;                     // TODO: do we need to support count > 1?
 static const unsigned size = count * quadSize;
 
+static bool is_clipmap_shadows_renderable() { return rendinstShadowsToClipmapShaderMaterial && areBuffersFilled; }
+
 static void fill_buffers()
 {
+  areBuffersFilled = false;
+
   void *data;
-  rendinstShadowsToClipmapVb->lock(0, size, &data, VBLOCK_WRITEONLY);
+  if (!rendinstShadowsToClipmapVb->lock(0, size, &data, VBLOCK_WRITEONLY))
+  {
+    if (!d3d::is_in_device_reset_now())
+      logerr("can't lock shadows to clipmap vertex buffer");
+    return;
+  }
   // error handling is not implemented, but this is ancient code anyways
   G_ASSERT(data != nullptr);
   Point3 *vertices = (Point3 *)data;
@@ -75,7 +86,13 @@ static void fill_buffers()
   rendinstShadowsToClipmapVb->unlock();
 
   uint16_t *indices;
-  rendinstShadowsToClipmapIb->lock(0, 6 * sizeof(uint16_t) * count, &indices, VBLOCK_WRITEONLY);
+  if (!rendinstShadowsToClipmapIb->lock(0, 6 * sizeof(uint16_t) * count, &indices, VBLOCK_WRITEONLY))
+  {
+    if (!d3d::is_in_device_reset_now())
+      logerr("can't lock shadows to clipmap index buffer");
+    return;
+  }
+
 
   for (int i = 0; i < count; ++i, indices += 6) // -V1008
   {
@@ -88,6 +105,8 @@ static void fill_buffers()
   }
 
   rendinstShadowsToClipmapIb->unlock();
+
+  areBuffersFilled = true;
 }
 
 static void clip_shadows_after_reset_device(bool)
@@ -106,6 +125,8 @@ void initClipmapShadows()
     logwarn("no clipmap shadows");
     return;
   }
+
+  areBuffersFilled = false;
 
   removeRotationVarId = ::get_shader_glob_var_id("remove_rotation");
   clipmapShadowScaleVarId = ::get_shader_glob_var_id("clipmap_shadow_scale", true);
@@ -540,7 +561,7 @@ bool RendInstGenData::notRenderedStaticShadowsBBox(BBox3 &box)
 
 void RendInstGenData::setClipmapShadowsRendered(int cascadeNo)
 {
-  if (!rendinstShadowsToClipmapShaderMaterial)
+  if (!rendinst::render::is_clipmap_shadows_renderable())
     return;
   G_ASSERT(cascadeNo < CellRtData::CLIPMAP_SHADOW_CASCADES);
   ScopedLockRead lock(rtData->riRwCs);
@@ -554,6 +575,9 @@ void RendInstGenData::setClipmapShadowsRendered(int cascadeNo)
 
 void RendInstGenData::renderRendinstShadowsToClipmap(const BBox2 &region, int newForCascadeNo)
 {
+  if (!rendinst::render::is_clipmap_shadows_renderable())
+    return;
+
   bbox3f regionBBox;
   regionBBox.bmin =
     v_make_vec4f(region[0].x + rendinst::render::offsetSunDistMin.x, MIN_REAL, region[0].y + rendinst::render::offsetSunDistMin.y, 0);
@@ -691,7 +715,7 @@ void RendInstGenData::renderRendinstShadowsToClipmap(const BBox2 &region, int ne
 
 void rendinst::startUpdateRIGenClipmapShadows()
 {
-  if (!rendinstClipmapShadows || !rendinstShadowsToClipmapShaderMaterial)
+  if (!rendinstClipmapShadows || !rendinst::render::is_clipmap_shadows_renderable())
     return;
 
   FOR_EACH_RG_LAYER_RENDER (rgl, rgRenderMaskCMS)
@@ -703,7 +727,7 @@ void rendinst::startUpdateRIGenClipmapShadows()
 
 bool rendinst::render::renderRIGenClipmapShadowsToTextures(const Point3 &sunDir0, bool for_sli, bool force_update)
 {
-  if (!rendinstClipmapShadows || !rendinstShadowsToClipmapShaderMaterial)
+  if (!rendinstClipmapShadows || !rendinst::render::is_clipmap_shadows_renderable())
     return true;
 
   TIME_D3D_PROFILE(ri_clipmap_shadows);
@@ -729,7 +753,7 @@ bool rendinst::render::renderRIGenClipmapShadowsToTextures(const Point3 &sunDir0
 
 bool rendinst::render::notRenderedClipmapShadowsBBox(BBox2 &box, int cascadeNo)
 {
-  if (!rendinstClipmapShadows || !rendinstShadowsToClipmapShaderMaterial)
+  if (!rendinstClipmapShadows || !rendinst::render::is_clipmap_shadows_renderable())
     return false;
 
   bool succeeded = false;
@@ -740,7 +764,7 @@ bool rendinst::render::notRenderedClipmapShadowsBBox(BBox2 &box, int cascadeNo)
 
 void rendinst::render::setClipmapShadowsRendered(int cascadeNo)
 {
-  if (!rendinstClipmapShadows || !rendinstShadowsToClipmapShaderMaterial)
+  if (!rendinstClipmapShadows || !rendinst::render::is_clipmap_shadows_renderable())
     return;
   FOR_EACH_RG_LAYER_RENDER (rgl, rgRenderMaskCMS)
     rgl->setClipmapShadowsRendered(cascadeNo);
@@ -748,7 +772,7 @@ void rendinst::render::setClipmapShadowsRendered(int cascadeNo)
 
 void rendinst::render::renderRIGenShadowsToClipmap(const BBox2 &region, int newForCascadeNo)
 {
-  if (!rendinstClipmapShadows || !rendinstShadowsToClipmapShaderMaterial)
+  if (!rendinstClipmapShadows || !rendinst::render::is_clipmap_shadows_renderable())
     return;
   FOR_EACH_RG_LAYER_RENDER (rgl, rgRenderMaskCMS)
     rgl->renderRendinstShadowsToClipmap(region, newForCascadeNo);

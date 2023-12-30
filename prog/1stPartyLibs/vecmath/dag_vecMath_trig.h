@@ -52,6 +52,16 @@
 #define _ATAN_EST_S2        0.68193064729268275701e1f
 #define _ATAN_EST_S3        0.28205206687035841409e2f
 
+VECTORCALL VECMATH_FINLINE vec4f v_deg_to_rad(vec4f deg)
+{
+  return v_mul(deg, v_splats(float(M_PI / 180.0)));
+}
+
+VECTORCALL VECMATH_FINLINE vec4f v_rad_to_deg(vec4f rad)
+{
+  return v_mul(rad, v_splats(float(180.0 / M_PI)));
+}
+
 // calculates 4 in ~2.14x speed of win libc implementation for 1, with same precision
 VECTORCALL VECMATH_FINLINE void v_sincos4(vec4f ang, vec4f& s, vec4f& c)
 {

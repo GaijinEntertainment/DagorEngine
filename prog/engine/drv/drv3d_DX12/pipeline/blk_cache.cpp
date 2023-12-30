@@ -307,12 +307,10 @@ bool drv3d_dx12::pipeline::FramebufferLayoutDeEncoder::decodeDX12(const DataBloc
 
       lastParamIndex = blk.findParam(formatNameId, lastParamIndex);
     }
+    target.colorMsaaLevels = blk.getInt("colorMsaaLevels", 0);
   }
   if (blk.paramExists("depthStencilFormat"))
-  {
-    target.hasDepth = 1;
-    target.depthStencilFormat = FormatStore(blk.getInt("depthStencilFormat", 0));
-  }
+    target.setDepthStencilAttachment(blk.getInt("depthMsaaLevel", 0), FormatStore(blk.getInt("depthStencilFormat", 0)));
   return true;
 }
 
@@ -340,11 +338,12 @@ bool drv3d_dx12::pipeline::FramebufferLayoutDeEncoder::decodeEngine(const DataBl
 
       lastParamIndex = blk.findParam(formatNameId, lastParamIndex);
     }
+    target.colorMsaaLevels = blk.getInt("colorMsaaLevels", 0);
   }
   if (blk.paramExists("depthStencilFormat"))
   {
-    target.hasDepth = 1;
-    target.depthStencilFormat = FormatStore::fromCreateFlags(blk.getInt("depthStencilFormat", 0));
+    const FormatStore depthStencilFormat = FormatStore::fromCreateFlags(blk.getInt("depthStencilFormat", 0));
+    target.setDepthStencilAttachment(blk.getInt("depthMsaaLevel", 0), depthStencilFormat);
   }
   return true;
 }
@@ -372,10 +371,12 @@ bool drv3d_dx12::pipeline::FramebufferLayoutDeEncoder::encode(DataBlock &blk, co
       }
       blk.addInt("colorFormats", source.colorFormats[i].wrapper.value);
     }
+    blk.addInt("colorMsaaLevels", source.colorMsaaLevels);
   }
-  if (source.hasDepth)
+  if (source.depthBitStates.hasDepth)
   {
     blk.setInt("depthStencilFormat", source.depthStencilFormat.wrapper.value);
+    blk.setInt("depthMsaaLevel", source.depthBitStates.depthMsaaLevel);
   }
   return true;
 }

@@ -278,3 +278,13 @@ actions together quietly make_module_pull_cpp
   call $(PYTHON_EXE) $(Root)/prog/_jBuild/_scripts/make_module_pull_cpp.py $(1) $(var)
 }
 make_module_pull_cpp_DEPS = $(Root)/prog/_jBuild/_scripts/make_module_pull_cpp.py ;
+
+rule StripStrings # in_string_list : in_string_list_to_strip
+{
+  if $(2) {
+    local filtered = ;
+    for s in $(1) { if ! $(s) in $(2) { filtered += $(s) ; } }
+    return $(filtered) ;
+  }
+  return $(1) ;
+}

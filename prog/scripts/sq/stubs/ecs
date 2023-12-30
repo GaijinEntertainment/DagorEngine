@@ -1,12 +1,12 @@
 local isComps = @(c) type(c ?? [])=="array"
 local callableTypes = ["function","table","instance"]
-local function isCallable(v) {
+function isCallable(v) {
   return callableTypes.indexof(type(v)) != null && (v.getfuncinfos() != null)
 }
 
 let allowedKwargTypes = { table = true, ["class"] = true, instance = true }
 
-local function kwarg(func){
+function kwarg(func){
   assert(isCallable(func), "kwarg can be applied only to functions as first arguments")
   local infos = func.getfuncinfos()
   local funcargs = infos.parameters.slice(1)

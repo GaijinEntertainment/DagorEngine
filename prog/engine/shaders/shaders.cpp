@@ -234,7 +234,7 @@ void dynrender::convert_channels_to_vsd(const CompiledShaderChannelId *ch, int n
         break;
     }
     if (r < 0)
-      fatal("unknown shader channel %d,%d", ch[c].vbu, ch[c].vbui);
+      DAG_FATAL("unknown shader channel %d,%d", ch[c].vbu, ch[c].vbui);
     switch (ch[c].t)
     {
       case SCTYPE_FLOAT1: t = VSDT_FLOAT1; break;
@@ -259,7 +259,7 @@ void dynrender::convert_channels_to_vsd(const CompiledShaderChannelId *ch, int n
       case SCTYPE_UINT4: t = VSDT_UINT4; break;
     }
     if (t < 0)
-      fatal("unknown shader channel type %d", ch[c].t);
+      DAG_FATAL("unknown shader channel type %d", ch[c].t);
     out_vsd.push_back(VSD_REG(r, t));
   }
 
@@ -515,7 +515,7 @@ static bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Ver
   }
   if (!shaders_internal::shader_reload_allowed && dest.getDump() && dest->classes.size())
   {
-    fatal("shader reload is disabled by project");
+    DAG_FATAL("shader reload is disabled by project");
     return false;
   }
 
@@ -560,7 +560,7 @@ static bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Ver
     {
       debug("[SH] Precompiled shaders from '%s' loaded OK regs = %d", fname, dest->maxRegSize);
       if (dest->maxRegSize > MAX_TEMP_REGS)
-        fatal("too much shader temp registers %d, current limit is %d", dest->maxRegSize, MAX_TEMP_REGS);
+        DAG_FATAL("too much shader temp registers %d, current limit is %d", dest->maxRegSize, MAX_TEMP_REGS);
 
       if (!prev_sh.getDump() || shaders_internal::reload_shaders_materials(prev_sh))
       {
@@ -582,7 +582,7 @@ static bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Ver
   }
 
   debug("[SH] Invalid '%s' version", fname);
-  fatal("Invalid '%s' version - recompile shaders!", fname);
+  DAG_FATAL("Invalid '%s' version - recompile shaders!", fname);
   return false;
 }
 static String last_loaded_dump[2];
@@ -684,9 +684,9 @@ public:
       }
       if (d3d::smNone == selectedVersion)
       {
-        fatal("Cannot find precompiled shaders for this videocard\n"
-              "(while looking for files %s.psXX.shdump.bin)\n"
-              "This can imply that videocard doesn't meet game's requirements\n\n",
+        DAG_FATAL("Cannot find precompiled shaders for this videocard\n"
+                  "(while looking for files %s.psXX.shdump.bin)\n"
+                  "This can imply that videocard doesn't meet game's requirements\n\n",
           (char *)fileName);
       }
       maxFshVer = selectedVersion;

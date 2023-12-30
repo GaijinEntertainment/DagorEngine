@@ -8,7 +8,6 @@
 #include <shaders/dag_shadersRes.h>
 #include <shaders/dag_instShaderMeshRes.h>
 #include <math/dag_bounds3.h>
-#include <vecmath/dag_vecMath.h>
 #include <3d/dag_textureIDHolder.h>
 #include <math/dag_Point4.h>
 #include <math/integer/dag_IPoint2.h>
@@ -180,7 +179,8 @@ public:
   inline float getMaxDist() const { return lods.size() ? lods.back().range : 0; }
 
   bool isBakedImpostor() const;
-  bool setImpostorVars(ShaderMaterial * mat, int buffer_offset) const;
+  bool setImpostorVars(ShaderMaterial * mat) const;
+  bool hasImpostorVars(ShaderMaterial * mat) const;
   bool setImpostorTransitionRange(ShaderMaterial * mat, float transition_lod_start, float transition_range) const;
   void prepareTextures(const char *name, uint32_t shadow_atlas_size, int shadow_atlas_mip_offset, int texture_format_flags);
 
@@ -228,6 +228,7 @@ public:
   static void unlockClonesList() {}
   static void (*on_higher_lod_required)(RenderableInstanceLodsResource * res, unsigned req_lod, unsigned cur_lod);
 
+  static constexpr short int qlReqLodInitialValue = 16;
   unsigned getQlReqLod() const { return interlocked_relaxed_load(qlReqLod); }
   unsigned getQlReqLodEff() const
   {
@@ -310,7 +311,7 @@ protected:
   uint32_t packedFields;
   unsigned char rotationPaletteSize = 1;
   unsigned char qlMinAllowedLod = 0;
-  volatile unsigned short qlReqLod = 16, qlReqLodPrev = 16;
+  volatile unsigned short qlReqLod = qlReqLodInitialValue, qlReqLodPrev = qlReqLodInitialValue;
   int qlReqLFU = 0;
   PATCHABLE_64BIT_PAD32(_resv);
   Ptr<ShaderMatVdata> smvd;

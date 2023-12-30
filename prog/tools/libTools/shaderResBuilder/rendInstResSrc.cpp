@@ -33,7 +33,7 @@
 #include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_files.h>
 
-#define ISSUE_FATAL(...) log ? log->addMessage(ILogWriter::FATAL, __VA_ARGS__) : fatal(__VA_ARGS__)
+#define ISSUE_FATAL(...) log ? log->addMessage(ILogWriter::FATAL, __VA_ARGS__) : DAG_FATAL(__VA_ARGS__)
 
 extern bool shadermeshbuilder_strip_d3dres;
 bool RenderableInstanceLodsResSrc::optimizeForCache = true;
@@ -347,19 +347,18 @@ void RenderableInstanceLodsResSrc::addMeshNode(Lod &lod, Node *n_, Node *key_nod
 
           if (elem.numf % 2 != 0)
           {
-            fatal("Invalid number of faces (%d) in billboard '%s' - should be multiple of 2", elem.numf, (char *)lod.fileName);
+            DAG_FATAL("Invalid number of faces (%d) in billboard '%s' - should be multiple of 2", elem.numf, lod.fileName);
           }
 
           if (elem.numv % 4 != 0)
           {
-            fatal("Invalid number of vertices (%d) in billboard '%s' - should be multiple of 4", elem.numv, (char *)lod.fileName);
+            DAG_FATAL("Invalid number of vertices (%d) in billboard '%s' - should be multiple of 4", elem.numv, lod.fileName);
           }
 
           if (elem.numv / 4 != elem.numf / 2)
           {
-            fatal("Invalid number of vertices (%d) or faces (%d) in billboard '%s'"
-                  " - should be 4 vertices per 2 faces",
-              elem.numv, elem.numf, (char *)lod.fileName);
+            DAG_FATAL("Invalid number of vertices (%d) or faces (%d) in billboard '%s' - should be 4 vertices per 2 faces", elem.numv,
+              elem.numf, lod.fileName);
           }
 
           unsigned char *quadedVertices = new unsigned char[(int)(elem.numf / 2) * 4 * elem.vertexData->stride];
@@ -417,7 +416,7 @@ void RenderableInstanceLodsResSrc::addMeshNode(Lod &lod, Node *n_, Node *key_nod
 
                 if (numUsedVertices != 3)
                 {
-                  fatal("Degenerate triangle in billboard '%s'", (char *)lod.fileName);
+                  DAG_FATAL("Degenerate triangle in billboard '%s'", lod.fileName);
                 }
 
                 faceQuadded[firstFaceNo] = true;
@@ -473,13 +472,13 @@ void RenderableInstanceLodsResSrc::addMeshNode(Lod &lod, Node *n_, Node *key_nod
 
             if (secondFaceNo == elem.numf)
             {
-              fatal("Second face for quad in '%s' not found", (char *)lod.fileName);
+              DAG_FATAL("Second face for quad in '%s' not found", lod.fileName);
             }
 
             if (numUsedVertices != 4)
             {
-              fatal("Invalid quad with %d vertices in billboard '%s' - should be 4 vertices per quad", numUsedVertices,
-                (char *)lod.fileName);
+              DAG_FATAL("Invalid quad with %d vertices in billboard '%s' - should be 4 vertices per quad", numUsedVertices,
+                lod.fileName);
             }
 
             unsigned int vertexOrder[4];
@@ -733,13 +732,13 @@ void RenderableInstanceLodsResSrc::addMeshNode(Lod &lod, Node *n_, Node *key_nod
         p.set(mesh.vert[0], mesh.vert[1], mesh.vert[3]);
         if (p.getNormal().length() < 1e-6)
         {
-          fatal("degenerate occluder quad %@,%@,%@,%@", mesh.vert[0], mesh.vert[1], mesh.vert[2], mesh.vert[3]);
+          DAG_FATAL("degenerate occluder quad %@,%@,%@,%@", mesh.vert[0], mesh.vert[1], mesh.vert[2], mesh.vert[3]);
           clear_and_shrink(occlMesh.vert);
         }
       }
       else if (p.distance(mesh.vert[3]) > 1e-3 * p.getNormal().length()) // with normalization for big quads
       {
-        fatal("non-planar occluder quad %@,%@,%@,%@ dist=%.7f", mesh.vert[0], mesh.vert[1], mesh.vert[2], mesh.vert[3],
+        DAG_FATAL("non-planar occluder quad %@,%@,%@,%@ dist=%.7f", mesh.vert[0], mesh.vert[1], mesh.vert[2], mesh.vert[3],
           p.distance(mesh.vert[3]));
         clear_and_shrink(occlMesh.vert);
       }
@@ -755,8 +754,8 @@ void RenderableInstanceLodsResSrc::addMeshNode(Lod &lod, Node *n_, Node *key_nod
           ; // ok, quad is convex
         else
         {
-          fatal("non-convex occluder quad %@,%@,%@,%@ (%.3f %.3f %.3f %.3f)", mesh.vert[0], mesh.vert[1], mesh.vert[2], mesh.vert[3],
-            sm1, sm2, sm3, sm4);
+          DAG_FATAL("non-convex occluder quad %@,%@,%@,%@ (%.3f %.3f %.3f %.3f)", //
+            mesh.vert[0], mesh.vert[1], mesh.vert[2], mesh.vert[3], sm1, sm2, sm3, sm4);
           clear_and_shrink(occlMesh.vert);
         }
       }

@@ -138,7 +138,7 @@ void doRIExtraDamageInBox(const BBox3 &box, rendinst::ri_damage_effect_cb effect
 inline void doRendinstDamage(const BSphere3 &sphere, bool, uint32_t frameNo, rendinst::damage_effect_cb effect_cb, float at_time,
   bool is_client, bool create_destr, const Point3 &view_pos, calc_expl_damage_cb calc_expl_dmg_cb, rendinst::DestrOptionFlags flags)
 {
-  rendinst::doRIGenDamage(sphere, frameNo, effect_cb, {0.f, 0.f, 0.f}, create_destr);
+  rendinst::doRIGenDamage(sphere, frameNo, {0.f, 0.f, 0.f}, create_destr);
   doRIExtraDamageInBox(BBox3(sphere), effect_cb, at_time, is_client, create_destr, view_pos, calc_expl_dmg_cb, &sphere, nullptr,
     flags);
 }
@@ -146,7 +146,7 @@ inline void doRendinstDamage(const BSphere3 &sphere, bool, uint32_t frameNo, ren
 inline void doRendinstDamage(const BBox3 &box, bool, uint32_t frameNo, rendinst::damage_effect_cb effect_cb, float at_time,
   bool is_client, bool create_destr, const Point3 &view_pos, calc_expl_damage_cb calc_expl_dmg_cb, rendinst::DestrOptionFlags flags)
 {
-  rendinst::doRIGenDamage(box, frameNo, effect_cb, {0.f, 0.f, 0.f}, create_destr);
+  rendinst::doRIGenDamage(box, frameNo, {0.f, 0.f, 0.f}, create_destr);
   doRIExtraDamageInBox(box, effect_cb, at_time, is_client, create_destr, view_pos, calc_expl_dmg_cb, nullptr, nullptr, flags);
 }
 
@@ -154,7 +154,7 @@ inline void doRendinstDamage(const BBox3 &box, bool, uint32_t frameNo, rendinst:
   bool is_client, bool create_destr, const Point3 &view_pos, calc_expl_damage_cb calc_expl_dmg_cb, const TMatrix &check_itm,
   rendinst::DestrOptionFlags flags)
 {
-  rendinst::doRIGenDamage(box, frameNo, effect_cb, check_itm, {0.f, 0.f, 0.f}, create_destr);
+  rendinst::doRIGenDamage(box, frameNo, check_itm, {0.f, 0.f, 0.f}, create_destr);
   doRIExtraDamageInBox(box, effect_cb, at_time, is_client, create_destr, view_pos, calc_expl_dmg_cb, nullptr, &check_itm, flags);
 }
 

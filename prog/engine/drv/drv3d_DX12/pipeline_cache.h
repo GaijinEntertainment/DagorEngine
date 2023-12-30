@@ -1,8 +1,10 @@
 #pragma once
 
-#include <EASTL/bitset.h>
+#include <generic/dag_bitset.h>
+#include <math/dag_lsbVisitor.h>
 #include <supp/dag_comPtr.h>
 #include <dxil/compiled_shader_header.h>
+#include <math/dag_lsbVisitor.h>
 
 #include "render_state.h"
 #include "device_caps_and_shader_model.h"
@@ -20,37 +22,96 @@ struct FramebufferLayout
   FormatStore colorFormats[Driver3dRenderTarget::MAX_SIMRT] = {};
   FormatStore depthStencilFormat = {};
   uint8_t colorTargetMask = 0;
-  uint8_t hasDepth = 0;
+  uint16_t colorMsaaLevels = 0;
+  static constexpr int MSAA_LEVEL_BITS_PER_RT = BitsNeeded<(TEXCF_SAMPLECOUNT_MAX >> TEXCF_SAMPLECOUNT_OFFSET)>::VALUE;
+  static_assert(sizeof(colorMsaaLevels) * 8 >= MSAA_LEVEL_BITS_PER_RT * Driver3dRenderTarget::MAX_SIMRT);
+  BEGIN_BITFIELD_TYPE(DepthBitStates, uint8_t)
+    ADD_BITFIELD_MEMBER(hasDepth, 0, 1)
+    ADD_BITFIELD_MEMBER(depthMsaaLevel, 1, MSAA_LEVEL_BITS_PER_RT)
+  END_BITFIELD_TYPE()
+  static_assert(MSAA_LEVEL_BITS_PER_RT + 1 <= 8);
+  DepthBitStates depthBitStates;
 
   void clear()
   {
     eastl::fill(eastl::begin(colorFormats), eastl::end(colorFormats), FormatStore{});
     depthStencilFormat = FormatStore{};
     colorTargetMask = 0;
-    hasDepth = 0;
+    depthBitStates.hasDepth = 0;
+    depthBitStates.depthMsaaLevel = 0;
+    colorMsaaLevels = 0;
+  }
+
+  void setColorAttachment(uint8_t index, uint8_t msaa_level, FormatStore format)
+  {
+    colorTargetMask |= 1 << index;
+    colorFormats[index] = format;
+    setColorMsaaLevel(msaa_level, index);
+  }
+
+  void clearColorAttachment(uint8_t index)
+  {
+    colorTargetMask &= ~(1 << index);
+    colorFormats[index] = FormatStore(0);
+    clearColorMsaaLevel(index);
+  }
+
+  void setDepthStencilAttachment(uint8_t msaa_level, FormatStore format)
+  {
+    depthBitStates.hasDepth = 1;
+    depthStencilFormat = format;
+    depthBitStates.depthMsaaLevel = msaa_level;
+  }
+
+  void clearDepthStencilAttachment()
+  {
+    depthBitStates.hasDepth = 0;
+    depthStencilFormat = FormatStore(0);
+    depthBitStates.depthMsaaLevel = 0;
+  }
+
+  uint8_t getColorMsaaLevel(uint8_t index) const { return (colorMsaaLevels >> (index * MSAA_LEVEL_BITS_PER_RT)) & MSAA_LEVEL_MASK; }
+
+  void checkMsaaLevelsEqual() const
+  {
+    eastl::optional<uint8_t> previous;
+    for (const auto index : LsbVisitor{colorTargetMask})
+    {
+      G_ASSERT(!previous || *previous == getColorMsaaLevel(index));
+      previous = getColorMsaaLevel(index);
+    }
+    G_ASSERT(!previous || !depthBitStates.hasDepth || *previous == depthBitStates.depthMsaaLevel);
   }
 
   // Calculates the color write mask for all targets, per target channel mask depends on format
   uint32_t getColorWriteMask() const
   {
     uint32_t mask = 0;
-    uint32_t tm = colorTargetMask;
-    for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT && tm; ++i, tm >>= 1)
+    for (auto i : LsbVisitor{colorTargetMask})
     {
-      if (tm & 1)
-      {
-        auto m = colorFormats[i].getChannelMask();
-        mask |= m << (i * 4);
-      }
+      auto m = colorFormats[i].getChannelMask();
+      mask |= m << (i * 4);
     }
-
     return mask;
+  }
+
+private:
+  static constexpr int MSAA_LEVEL_MASK = TEXCF_SAMPLECOUNT_MASK >> TEXCF_SAMPLECOUNT_OFFSET;
+
+  void clearColorMsaaLevel(uint8_t index) { colorMsaaLevels &= ~(MSAA_LEVEL_MASK << (index * MSAA_LEVEL_BITS_PER_RT)); }
+
+  void setColorMsaaLevel(uint8_t level, uint8_t index)
+  {
+    clearColorMsaaLevel(index);
+    colorMsaaLevels |= level << (index * MSAA_LEVEL_BITS_PER_RT);
   }
 };
 
 inline bool operator==(const FramebufferLayout &l, const FramebufferLayout &r)
 {
-  return (l.colorTargetMask == r.colorTargetMask) && (l.hasDepth == r.hasDepth) && (l.depthStencilFormat == r.depthStencilFormat) &&
+  return (l.colorTargetMask == r.colorTargetMask) && (l.depthBitStates.hasDepth == r.depthBitStates.hasDepth) &&
+         (l.depthStencilFormat == r.depthStencilFormat) && l.colorMsaaLevels == r.colorMsaaLevels &&
+         l.depthBitStates.depthMsaaLevel == r.depthBitStates.depthMsaaLevel &&
          eastl::equal(eastl::begin(l.colorFormats), eastl::end(l.colorFormats), eastl::begin(r.colorFormats));
 }
 
@@ -177,19 +238,19 @@ struct ComputePipelineSignature
   // range
   template <typename C>
   void updateCBVRange(C cmd, D3D12_GPU_VIRTUAL_ADDRESS *cbvs, D3D12_GPU_DESCRIPTOR_HANDLE offset,
-    eastl::bitset<dxil::MAX_B_REGISTERS> dirty_mask, bool descriptor_range_dirty)
+    Bitset<dxil::MAX_B_REGISTERS> dirty_mask, bool descriptor_range_dirty)
   {
     uint32_t index = def.csLayout.getConstBufferDescriptorIndex();
     if (def.csLayout.usesConstBufferRootDescriptors())
     {
-      for_each_set_bit(def.registers.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX),
-        [dirty_mask, cmd, cbvs, index](uint32_t i) mutable {
-          if (dirty_mask.test(i))
-          {
-            cmd.setComputeRootConstantBufferView(index, cbvs[i]);
-          }
-          ++index;
-        });
+      for (auto i : LsbVisitor{def.registers.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      {
+        if (dirty_mask.test(i))
+        {
+          cmd.setComputeRootConstantBufferView(index, cbvs[i]);
+        }
+        ++index;
+      }
     }
     else if (descriptor_range_dirty)
     {
@@ -237,7 +298,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateRootConstants(C cmd, uint32_t values[MAX_ROOT_CONSTANTS], eastl::bitset<MAX_ROOT_CONSTANTS> dirty_bits)
+  void updateRootConstants(C cmd, uint32_t values[MAX_ROOT_CONSTANTS], Bitset<MAX_ROOT_CONSTANTS> dirty_bits)
   {
     if (def.registers.rootConstantDwords)
     {
@@ -303,50 +364,49 @@ struct GraphicsPipelineSignature
 
   bool hasUAVAccess() const { return 0 != (vsCombinedURegisterMask | def.pixelShaderRegisters.uRegisterUseMask); }
 
-  // const buffer is different, there each cbv is one entry directly at the signature and not a
-  // range
+  // const buffer is different, there each cbv is one entry directly at the signature and not a range
   template <typename C>
   void updateVertexCBVRange(C cmd, D3D12_GPU_VIRTUAL_ADDRESS *bcvs, D3D12_GPU_DESCRIPTOR_HANDLE offset,
-    eastl::bitset<dxil::MAX_B_REGISTERS> dirty_mask, bool descriptor_range_dirty)
+    Bitset<dxil::MAX_B_REGISTERS> dirty_mask, bool descriptor_range_dirty)
   {
     if (def.psLayout.usesConstBufferRootDescriptors(def.vsLayout, def.gsLayout, def.hsLayout, def.dsLayout))
     {
       uint32_t index = def.vsLayout.getConstBufferDescriptorIndex();
-      for_each_set_bit(def.vertexShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX),
-        [dirty_mask, cmd, index, bcvs](uint32_t i) mutable {
-          if (dirty_mask.test(i))
-          {
-            cmd.setGraphicsRootConstantBufferView(index, bcvs[i]);
-          }
-          ++index;
-        });
+      for (auto i : LsbVisitor{def.vertexShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      {
+        if (dirty_mask.test(i))
+        {
+          cmd.setGraphicsRootConstantBufferView(index, bcvs[i]);
+        }
+        ++index;
+      }
       index = def.gsLayout.getConstBufferDescriptorIndex();
-      for_each_set_bit(def.geometryShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX),
-        [dirty_mask, cmd, index, bcvs](uint32_t i) mutable {
-          if (dirty_mask.test(i))
-          {
-            cmd.setGraphicsRootConstantBufferView(index, bcvs[i]);
-          }
-          ++index;
-        });
+      for (auto i : LsbVisitor{def.geometryShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      {
+        if (dirty_mask.test(i))
+        {
+          cmd.setGraphicsRootConstantBufferView(index, bcvs[i]);
+        }
+        ++index;
+      }
       index = def.hsLayout.getConstBufferDescriptorIndex();
-      for_each_set_bit(def.hullShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX),
-        [dirty_mask, cmd, index, bcvs](uint32_t i) mutable {
-          if (dirty_mask.test(i))
-          {
-            cmd.setGraphicsRootConstantBufferView(index, bcvs[i]);
-          }
-          ++index;
-        });
+      for (auto i : LsbVisitor{def.hullShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      {
+        if (dirty_mask.test(i))
+        {
+          cmd.setGraphicsRootConstantBufferView(index, bcvs[i]);
+        }
+        ++index;
+      }
       index = def.dsLayout.getConstBufferDescriptorIndex();
-      for_each_set_bit(def.domainShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX),
-        [dirty_mask, cmd, index, bcvs](uint32_t i) mutable {
-          if (dirty_mask.test(i))
-          {
-            cmd.setGraphicsRootConstantBufferView(index, bcvs[i]);
-          }
-          ++index;
-        });
+      for (auto i : LsbVisitor{def.domainShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      {
+        if (dirty_mask.test(i))
+        {
+          cmd.setGraphicsRootConstantBufferView(index, bcvs[i]);
+        }
+        ++index;
+      }
     }
     else if (descriptor_range_dirty)
     {
@@ -432,23 +492,22 @@ struct GraphicsPipelineSignature
     }
   }
 
-  // const buffer is different, there each cbv is one entry directly at the signature and not a
-  // range
+  // const buffer is different, there each cbv is one entry directly at the signature and not a range
   template <typename C>
   void updatePixelCBVRange(C cmd, D3D12_GPU_VIRTUAL_ADDRESS *cbvs, D3D12_GPU_DESCRIPTOR_HANDLE offset,
-    eastl::bitset<dxil::MAX_B_REGISTERS> dirty_mask, bool descriptor_range_dirty)
+    Bitset<dxil::MAX_B_REGISTERS> dirty_mask, bool descriptor_range_dirty)
   {
     uint32_t index = def.psLayout.getConstBufferDescriptorIndex();
     if (def.psLayout.usesConstBufferRootDescriptors())
     {
-      for_each_set_bit(def.pixelShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX),
-        [dirty_mask, cmd, index, cbvs](uint32_t i) mutable {
-          if (dirty_mask.test(i))
-          {
-            cmd.setGraphicsRootConstantBufferView(index, cbvs[i]);
-          }
-          ++index;
-        });
+      for (auto i : LsbVisitor{def.pixelShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      {
+        if (dirty_mask.test(i))
+        {
+          cmd.setGraphicsRootConstantBufferView(index, cbvs[i]);
+        }
+        ++index;
+      }
     }
     else if (descriptor_range_dirty)
     {
@@ -480,7 +539,7 @@ struct GraphicsPipelineSignature
     }
   }
   template <typename C>
-  void updateVertexRootConstants(C cmd, uint32_t values[MAX_ROOT_CONSTANTS], eastl::bitset<MAX_ROOT_CONSTANTS> dirty_bits)
+  void updateVertexRootConstants(C cmd, uint32_t values[MAX_ROOT_CONSTANTS], Bitset<MAX_ROOT_CONSTANTS> dirty_bits)
   {
     auto first_bit = dirty_bits.find_first();
     if (def.vertexShaderRegisters.rootConstantDwords)
@@ -524,7 +583,7 @@ struct GraphicsPipelineSignature
     }
   }
   template <typename C>
-  void updatePixelRootConstants(C cmd, uint32_t values[MAX_ROOT_CONSTANTS], eastl::bitset<MAX_ROOT_CONSTANTS> dirty_bits)
+  void updatePixelRootConstants(C cmd, uint32_t values[MAX_ROOT_CONSTANTS], Bitset<MAX_ROOT_CONSTANTS> dirty_bits)
   {
     if (def.pixelShaderRegisters.rootConstantDwords)
     {
@@ -703,6 +762,8 @@ public:
       clb(il);
   }
 
+  void onBindumpLoad(ID3D12Device1 *device, eastl::span<const dxil::HashValue> all_shader_hashes);
+
 private:
   bool loadFromFile(const SetupParameters &params);
 
@@ -859,6 +920,8 @@ private:
   eastl::vector<RenderStateSystem::StaticState> staticRenderStates;
   eastl::vector<InputLayout> inputLayouts;
   eastl::vector<FramebufferLayout> framebufferLayouts;
+  uint32_t shaderInDumpCount = 0;
+  dxil::HashValue shaderInDumpHash{};
   D3D12_SHADER_CACHE_SUPPORT_FLAGS deviceFeatures = D3D12_SHADER_CACHE_SUPPORT_NONE;
   bool hasChanged = false;
 };

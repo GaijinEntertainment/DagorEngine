@@ -1,4 +1,4 @@
-The cpp_bind module implements generation of C++ bindings for the daScript interfaces.
+The cpp_bind module implements generation of C++ bindings for the Daslang interfaces.
 
 All functions and symbols are in "cpp_bind" module, use require to get access to it. ::
 

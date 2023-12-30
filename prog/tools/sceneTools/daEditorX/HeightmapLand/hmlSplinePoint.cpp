@@ -563,7 +563,7 @@ Point3 SplinePointObject::getPtEffRelBezierOut() const
 
 void SplinePointObject::setWtm(const TMatrix &wtm)
 {
-  __super::setWtm(wtm);
+  RenderableEditableObject::setWtm(wtm);
 
   if (selObj == SELOBJ_POINT)
     props.pt = getPos();
@@ -601,7 +601,7 @@ void SplinePointObject::onRemove(ObjectEditor *objEditor)
 
 void SplinePointObject::selectObject(bool select)
 {
-  __super::selectObject(select);
+  RenderableEditableObject::selectObject(select);
 
   if (select && selObj != targetSelObj)
   {
@@ -663,10 +663,10 @@ SplinePointObject *SplinePointObject::getLinkedPt(int id)
 
 void SplinePointObject::moveObject(const Point3 &delta, IEditorCoreEngine::BasisType basis)
 {
-  __super::putMoveUndo();
+  RenderableEditableObject::putMoveUndo();
   if (spline)
     spline->putObjTransformUndo();
-  __super::moveObject(delta, basis);
+  RenderableEditableObject::moveObject(delta, basis);
 
   objectWasMoved = true;
 
@@ -724,7 +724,7 @@ void SplinePointObject::scaleObject(const Point3 &delta, const Point3 &origin, I
 
 bool SplinePointObject::setPos(const Point3 &p)
 {
-  bool ret = __super::setPos(p);
+  bool ret = RenderableEditableObject::setPos(p);
 
   if (spline)
     spline->getSpline();
@@ -739,7 +739,7 @@ bool SplinePointObject::setPos(const Point3 &p)
 
 void SplinePointObject::putMoveUndo()
 {
-  __super::putMoveUndo();
+  RenderableEditableObject::putMoveUndo();
   getObjEditor()->getUndoSystem()->put(makePropsUndoObj());
   if (spline)
     spline->putObjTransformUndo();
@@ -748,14 +748,14 @@ void SplinePointObject::putMoveUndo()
 
 void SplinePointObject::putRotateUndo()
 {
-  __super::putRotateUndo();
+  RenderableEditableObject::putRotateUndo();
   getObjEditor()->getUndoSystem()->put(makePropsUndoObj());
 }
 
 
 void SplinePointObject::putScaleUndo()
 {
-  __super::putScaleUndo();
+  RenderableEditableObject::putScaleUndo();
   getObjEditor()->getUndoSystem()->put(makePropsUndoObj());
 }
 

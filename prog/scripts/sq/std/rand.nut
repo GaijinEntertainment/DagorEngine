@@ -6,7 +6,7 @@ let _default_seed = random.get_rnd_seed() + cdate.sec + cdate.min*60 + cdate.yda
 let math = require("math")
 
 local position = 0
-let function new_rnd_seed() {//setting new rnd
+function new_rnd_seed() {//setting new rnd
   position++
   return random.uint_noise1D(position, _default_seed)
 }
@@ -16,7 +16,7 @@ const maxrndfloat = 16777215.0 // float can only hold 23-bits integers without d
 const maxrndfloatmask = 16777215 // (1<24)-1
 const maxnoiseint = 0xffffffff // 32 bits
 
-let function randint_uniform(lo, hi, rand) { // returns random int in range [lo,hi], closed interval
+function randint_uniform(lo, hi, rand) { // returns random int in range [lo,hi], closed interval
   let n = hi - lo + 1
   assert(n != 0)
   let maxx = maxnoiseint - (maxnoiseint % n)
@@ -118,8 +118,8 @@ let pp = @(...) print("".concat(" ".join(vargv), "\n"))
 let ppa = @(v) pp.acall([null].extend(v))
 let module = @(v) v<0 ? -v : v
 
-let function testRandomEnoughByPirsonCriteria(){
-  let function mkDistribution(buckets, runs, func){
+function testRandomEnoughByPirsonCriteria(){
+  function mkDistribution(buckets, runs, func){
     let rand = Rand()
     let res = {}
     for (local i=0;i<runs;i++){
@@ -137,7 +137,7 @@ let function testRandomEnoughByPirsonCriteria(){
     [3.841, 6.635],[5.991,9.21],[7.815,11.345],[9.488,13.277],[11.07,15.086],[12.592,16.812],[14.067,18.475],[15.507,20.09],[16.919,21.666],[18.307,23.209],[19.675,24.725],[21.026,26.217],[22.362,27.688],
     [23.685,29.141],[24.996,30.578],[26.296,32],[27.587,33.409],[28.869,34.805],[30.144,36.191],[31.41,37.566],
   ]
-  local function doit(funcname, buckets=hitable.len()-1, samplesTotal=100000){
+  function doit(funcname, buckets=hitable.len()-1, samplesTotal=100000){
     samplesTotal = samplesTotal.tofloat()
     let samples = mkDistribution(buckets, samplesTotal, funcname).values()
     let prob = samplesTotal / buckets
@@ -157,7 +157,7 @@ let function testRandomEnoughByPirsonCriteria(){
   return doit("rint",10) && doit("rfloat",10)
 }
 
-let function testShuffle(){
+function testShuffle(){
   pp("\nArray of ints shuffled:")
   ppa(Rand.shuffle(array(20).map(@(_v,i) i)))
 }

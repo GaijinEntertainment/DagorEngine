@@ -139,7 +139,7 @@ public:
       w /= l;
     }
   }
-  INLINE real lengthF() const { return rsqrt(lengthSq()); }
+  INLINE real lengthF() const { return fastsqrt(lengthSq()); }
   INLINE void normalizeF()
   {
     real l = lengthSq();
@@ -218,7 +218,7 @@ INLINE Point4 normalize(const Point4 &a)
   real l = length(a);
   return (l == 0) ? Point4(0, 0, 0, 0) : Point4(a.x / l, a.y / l, a.z / l, a.w / l);
 }
-INLINE real lengthF(const Point4 &a) { return rsqrt(lengthSq(a)); }
+INLINE real lengthF(const Point4 &a) { return fastsqrt(lengthSq(a)); }
 INLINE Point4 normalizeF(const Point4 &a)
 {
   real l = lengthSq(a);

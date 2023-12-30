@@ -21,6 +21,7 @@ float calc_raymarch_noise_offset_8(uint noise_index)
   return POISSON_Z_SAMPLES[noise_index % SAMPLE_NUM];
 }
 
+ // TODO: refactor and optimize it (in NBS too!!)
 float calc_raymarch_noise_offset_32_impl(uint noise_index, Texture2D<float4> poisson_samples)
 {
   return texelFetch(poisson_samples, uint2(noise_index % 32, 0), 0).x;

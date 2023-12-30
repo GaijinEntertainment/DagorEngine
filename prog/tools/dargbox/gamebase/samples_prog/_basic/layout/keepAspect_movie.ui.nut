@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 
-let function img(size, keepAspect, layoutOverride={}) {
+function img(size, keepAspect, layoutOverride={}) {
   return {
     size = size
     rendObj = ROBJ_SOLID

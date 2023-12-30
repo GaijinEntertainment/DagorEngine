@@ -198,3 +198,12 @@
 
 .. |function-ast_boost-getVectorOffset| replace:: Offset of the element in the vector type, for example 4 for "y" in float2.
 
+.. |class-ast_boost-SetupFunctionAnnotation| replace:: This is base class for function annotation setup.
+
+.. |class-ast_boost-SetupBlockAnnotation| replace:: This is base class for block annotation setup.
+
+.. |class-ast_boost-SetupStructureAnnotation| replace:: This is base class for structure annotation setup.
+
+.. |class-ast_boost-SetupContractAnnotation| replace:: This is base class for contract annotation setup.
+
+

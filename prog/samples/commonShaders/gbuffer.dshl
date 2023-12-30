@@ -24,6 +24,7 @@ hlsl(code) {
 #define PACK_UNPACK_GBUFFER_DEFINED 1
   struct ProcessedGbuffer
   {
+    half3 albedo;
     half3 diffuseColor;
     half3 specularColor;
     half3 translucencyColor;
@@ -39,6 +40,7 @@ hlsl(code) {
     half3 emissionColor;
     half emission_part;
     float material;
+    bool dynamic;
   };
 
   struct UnpackedGbuffer
@@ -56,13 +58,14 @@ hlsl(code) {
     half emission_strength;//either ao, or emission
     half shadow;
     float material;
+    bool dynamic;
   };
 
   struct PackedGbuffer
   {
     half4 albedo_ao;
     float4 normal_smoothness_material;
-    half2 metallTranslucency_shadow;//processed
+    half3 metallTranslucency_shadow_dynamic;//processed
   };
   half3 encodeNormal(half3 n1)
   {
@@ -98,7 +101,7 @@ hlsl(code) {
     gbuf.albedo_ao = half4(gbuffer.albedo, isEmissiveShader(gbuffer.material) ? gbuffer.emission_strength*(1.0f/MAX_EMISSION) : gbuffer.ao);
     //gbuf.albedo_ao = half4(pow(gbuffer.albedo, 1/2.2), gbuffer.ao);
     //gbuf.metallTranslucency_shadow = (floor(metallnessOrTranslucency*15)*16+floor(gbuffer.shadow*15))*(1.0/255.0);
-    gbuf.metallTranslucency_shadow = float2(metallnessOrTranslucency, gbuffer.shadow);
+    gbuf.metallTranslucency_shadow_dynamic  = float3(metallnessOrTranslucency, gbuffer.shadow, gbuffer.dynamic);
     return gbuf;
   }
   void unpackNormalSmoothness(half4 normal_smoothness_material, out float3 normal, out half smoothness)
@@ -121,8 +124,8 @@ hlsl(code) {
     //half metallTranslucency_shadow = gbuf.metallTranslucency_shadow.x*(255.0/16.0);
     //half shadow = frac(metallTranslucency_shadow)*(16.0/15.0);
     //half metallnessOrTranslucency = floor(metallTranslucency_shadow)*(1./15);
-    half shadow = gbuf.metallTranslucency_shadow.y;
-    half metallnessOrTranslucency = gbuf.metallTranslucency_shadow.x;
+    half shadow = gbuf.metallTranslucency_shadow_dynamic.y;
+    half metallnessOrTranslucency = gbuf.metallTranslucency_shadow_dynamic.x;
     gbuffer.albedo = gbuf.albedo_ao.xyz;
     unpackGbufferNormalSmoothness(gbuf, gbuffer.normal, gbuffer.smoothness);
 
@@ -133,6 +136,7 @@ hlsl(code) {
     gbuffer.ao = isEmissiveShader(gbuffer.material) ? 1 : gbuf.albedo_ao.w;
     gbuffer.emission_strength = isEmissiveShader(gbuffer.material) ? gbuf.albedo_ao.w*MAX_EMISSION : 0;
     gbuffer.shadow = shadow;
+    gbuffer.dynamic = gbuf.metallTranslucency_shadow_dynamic.z;
     //gbuffer.diffuseColor = albedo*(1-gbuffer.metallness);
     //half fresnel0Dielectric = 0.04f;//lerp(0.16f,0.01f, smoothness);//sqr((1.0 - refractiveIndex)/(1.0 + refractiveIndex)) for dielectrics;
     //gbuffer.specularColor = lerp(half3(fresnel0Dielectric, fresnel0Dielectric, fresnel0Dielectric), albedo, gbuffer.metallness);
@@ -151,6 +155,7 @@ hlsl(code) {
     gbuffer.emission_part = gbuf.emission_part;
     gbuffer.extracted_albedo_ao = decode_albedo_ao(gbuf.albedo);
     gbuffer.diffuseColor = gbuf.albedo-gbuffer.metallness*gbuf.albedo;//*(1-met)
+    gbuffer.albedo = gbuf.albedo;
     gbuffer.shadow = gbuf.shadow;
     gbuffer.translucencyColor = gbuffer.diffuseColor*gbuffer.translucency;
     //FLATTEN
@@ -163,6 +168,7 @@ hlsl(code) {
     fresnel0Dielectric *= (1-gbuffer.translucency);
     gbuffer.specularColor = lerp(half3(fresnel0Dielectric, fresnel0Dielectric, fresnel0Dielectric), gbuf.albedo, gbuffer.metallness);
     gbuffer.ao = gbuf.ao;
+    gbuffer.dynamic = gbuf.dynamic;
     return gbuffer;
   }
 
@@ -173,7 +179,10 @@ hlsl(code) {
     result.emission_part = result.emission_strength = 0;
     result.ao = result.shadow = 1;
     result.material = SHADING_NORMAL;
+    result.dynamic = false;
   }
+  void init_dynamic(inout UnpackedGbuffer result, bool dynamic)
+    {result.dynamic = dynamic;}
   void init_albedo(inout UnpackedGbuffer result, half3 albedo)
     {result.albedo.xyz = albedo;}
   void init_smoothness(inout UnpackedGbuffer result, half smoothness)
@@ -212,16 +221,16 @@ if (compatibility_mode == compatibility_mode_off)
   hlsl(ps) {
     struct GBUFFER_OUTPUT
     {
-      half4 albedo_ao : SV_Target0;
+      float4 albedo_ao : SV_Target0;
       float4 normal_smoothness_material : SV_Target1;
-      half4 metallTranslucency_shadow : SV_Target2;
+      float4 metallTranslucency_shadow_dynamic : SV_Target2;
     };
     GBUFFER_OUTPUT write_gbuffer(PackedGbuffer gbuf)
     {
       GBUFFER_OUTPUT gbufOut;
       gbufOut.albedo_ao = gbuf.albedo_ao;
       gbufOut.normal_smoothness_material = gbuf.normal_smoothness_material;
-      gbufOut.metallTranslucency_shadow = half4(gbuf.metallTranslucency_shadow,0,0);
+      gbufOut.metallTranslucency_shadow_dynamic = half4(gbuf.metallTranslucency_shadow_dynamic,0);
       return gbufOut;
     }
     GBUFFER_OUTPUT encode_gbuffer_raw(UnpackedGbuffer gbuffer)
@@ -326,7 +335,7 @@ hlsl(code) {
     PackedGbuffer gbuf;
     gbuf.albedo_ao = tex2Dlod(albedo_gbuf_read, float4(tc,0,0));
     gbuf.normal_smoothness_material = tex2Dlod(normal_gbuf_read, float4(tc,0,0));
-    gbuf.metallTranslucency_shadow = tex2Dlod(material_gbuf_read, float4(tc,0,0)).xy;
+    gbuf.metallTranslucency_shadow_dynamic = tex2Dlod(material_gbuf_read, float4(tc,0,0)).xyz;
     return gbuf;
   }
   ProcessedGbuffer readProcessedGbuffer(float2 tc)
@@ -356,7 +365,7 @@ macro USE_LOAD_GBUFFER_BASE(code)
       PackedGbuffer gbuf;
       gbuf.albedo_ao = texelFetch(albedo_gbuf_load, tc, 0);
       gbuf.normal_smoothness_material = texelFetch(normal_gbuf_load, tc, 0);
-      gbuf.metallTranslucency_shadow = texelFetch(material_gbuf_load, tc, 0).xy;
+      gbuf.metallTranslucency_shadow_dynamic = texelFetch(material_gbuf_load, tc, 0).xyz;
       return gbuf;
     }
     ProcessedGbuffer loadProcessedGbuffer(int2 tc)

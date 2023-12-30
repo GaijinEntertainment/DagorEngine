@@ -231,14 +231,14 @@ void HmapLandHoleObject::onPPChange(int pid, bool edit_finished, PropPanel2 &pan
 
   setBoxSize(boxSize);
 
-  // else __super::onPPChange(pid, edit_finished, panel, objects);
+  // else RenderableEditableObject::onPPChange(pid, edit_finished, panel, objects);
 
 #undef CHANGE_VAL
 }
 
 void HmapLandHoleObject::scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis)
 {
-  __super::scaleObject(delta, origin, basis);
+  RenderableEditableObject::scaleObject(delta, origin, basis);
 
   boxSize.x = matrix.getcol(0).x;
   boxSize.y = matrix.getcol(1).y;

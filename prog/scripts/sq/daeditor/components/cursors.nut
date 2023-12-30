@@ -12,7 +12,7 @@ let tooltipBox = @(content) {
 
 let tooltipGen = Watched(0)
 let tooltipComp = {value = null}
-let function setTooltip(val){
+function setTooltip(val){
   tooltipComp.value = val
   tooltipGen(tooltipGen.value+1)
 }
@@ -96,7 +96,7 @@ let cursorPick = {
     }
 }
 
-let function mkPcCursor(children, cursorBase=cursorPc){
+function mkPcCursor(children, cursorBase=cursorPc){
   return {
     size = [fsh(2), fsh(2)]
     hotspot = [0, 0]
@@ -142,7 +142,7 @@ cursors.actionPick <- Cursor(function(){
 let getEvenIntegerHdpx = @(px) hdpx(0.5 * px).tointeger() * 2
 let cursorSzResizeDiag = getEvenIntegerHdpx(18)
 
-let function mkResizeC(commands, angle=0){
+function mkResizeC(commands, angle=0){
   return {
     rendObj = ROBJ_VECTOR_CANVAS
     size = [cursorSzResizeDiag, cursorSzResizeDiag]

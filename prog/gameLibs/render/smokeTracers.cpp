@@ -144,7 +144,7 @@ int SmokeTracerManager::updateTracerPos(unsigned id, const Point3 &pos)
 }
 
 int SmokeTracerManager::createTracer(const Point3 &start_pos, const Point3 &ndir, float radius, const Color4 &smoke_color,
-  const Color4 &head_color, float time_to_live)
+  const Color4 &head_color, float time_to_live, const Color3 &start_head_color, float start_time)
 {
   if (!freeTracers.size())
   {
@@ -164,8 +164,9 @@ int SmokeTracerManager::createTracer(const Point3 &start_pos, const Point3 &ndir
   tracers[id].framesWithoutUpdate = 0;
 #endif
   aliveTracers.set(id);
-  createCommands.push_back(TracerCreateCommand(id, start_pos, ndir * radius, time_to_live,
-    reinterpret_cast<const float4 &>(smoke_color), reinterpret_cast<const float4 &>(head_color)));
+  createCommands.push_back(
+    TracerCreateCommand(id, start_pos, ndir * radius, time_to_live, reinterpret_cast<const float4 &>(smoke_color),
+      reinterpret_cast<const float4 &>(head_color), reinterpret_cast<const float3 &>(start_head_color), safeinv(start_time)));
 
   usedTracers[currentUsed].push_back(id);
   return id;
@@ -196,7 +197,8 @@ void SmokeTracerManager::performGPUCommands()
     TIME_D3D_PROFILE(create_commands);
     d3d::set_rwbuffer(STAGE_CS, 2, tracerBuffer.get());
     // debug("%d createCommands", createCommands.size());
-    G_STATIC_ASSERT(sizeof(createCommands[0]) % 16 == 0);
+    G_STATIC_ASSERT(sizeof(createCommands[0]) % sizeof(float4) == 0);
+    G_STATIC_ASSERT(sizeof(createCommands[0]) == TRACER_SMOKE_CREATE_COMMAND_SIZE * sizeof(float4));
     // it is rare we create more than 28 tracers each frame, so use common constant buffer
     const int command_size_in_consts = (elem_size(createCommands) + 15) / 16;
     const int req_size = 4 + createCommands.size() * command_size_in_consts;
@@ -233,7 +235,8 @@ void SmokeTracerManager::performGPUCommands()
     d3d::set_buffer(STAGE_CS, 0, tracerBuffer.get());
     TIME_D3D_PROFILE(update_commands);
     // debug("%d updateCommands", updateCommands.size());
-    G_STATIC_ASSERT(sizeof(updateCommands[0]) % 16 == 0);
+    G_STATIC_ASSERT(sizeof(updateCommands[0]) % sizeof(float4) == 0);
+    G_STATIC_ASSERT(sizeof(updateCommands[0]) == TRACER_SMOKE_UPDATE_COMMAND_SIZE * sizeof(float4));
     v[0] = updateCommands.size();
     const int command_size_in_consts = (elem_size(updateCommands) + 15) / 16;
     const int startFromReg = 4;

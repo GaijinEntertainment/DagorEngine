@@ -46,6 +46,7 @@ typedef void (*ri_unregister_collision_cb)(void *&handle);
 typedef eastl::fixed_function<2 * sizeof(void *), void(const char *)> res_walk_cb;
 
 extern void (*do_delayed_ri_extra_destruction)();
+extern void (*sweep_rendinst_cb)(const RendInstDesc &);
 
 extern void (*shadow_invalidate_cb)(const BBox3 &box);
 extern BBox3 (*get_shadows_bbox_cb)();
@@ -104,10 +105,10 @@ int scheduleRIGenPrepare(dag::ConstSpan<Point3> poi);
 bool isRIGenPrepareFinished();
 
 void get_ri_color_infos(eastl::fixed_function<sizeof(void *) * 4, void(E3DCOLOR colorFrom, E3DCOLOR colorTo, const char *name)> cb);
-bool update_rigen_color(const char *name, E3DCOLOR from, E3DCOLOR to);
 extern void regenerateRIGen();
 
 extern void enableSecLayer(bool en);
+extern bool isSecLayerEnabled();
 
 extern void applyBurningDecalsToRi(const bbox3f &decal);
 
@@ -156,6 +157,7 @@ void setImpostorsDistAddMul(float impostors_dist_additional_mul);
 void setImpostorsFarDistAddMul(float impostors_far_dist_additional_mul);
 void updateSettingsDistMul();
 void updateSettingsDistMul(float v);
+float getSettingsDistMul();
 void updateMinCullSettingsDistMul(float v);
 void updateRIExtraMulScale();
 void setLodsShiftDistMult();
@@ -187,7 +189,8 @@ extern float getMaxRendinstHeight();
 extern float getMaxRendinstHeight(int variableId);
 void closeImpostorShadowTempTex();
 
-extern void updateHeapVb(); // Optional, when you need to do it outside of the render.
+void updateHeapVb(); // Optional, when you need to do it outside of the render.
+void updateHeapVbNoLock();
 
 using RiApexIterationCallback = eastl::fixed_function<32, void(const char *riResName, const char *apexDestructionOptionsPresetName)>;
 void iterate_apex_destructible_rendinst_data(RiApexIterationCallback callback);

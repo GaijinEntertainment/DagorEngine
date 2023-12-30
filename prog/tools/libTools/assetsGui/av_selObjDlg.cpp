@@ -118,7 +118,7 @@ bool SelectAssetDlg::changeFilters(DagorAssetMgr *_mgr, dag::ConstSpan<int> type
 
 void SelectAssetDlg::resizeWindow(hdpi::Px w, hdpi::Px h, bool internal)
 {
-  __super::resizeWindow(w, h, false);
+  CDialogWindow::resizeWindow(w, h, false);
 
   PropertyContainerControlBase *_pp = getPanel();
   G_ASSERT(_pp && "SelectAssetDlg::SelectAssetDlg : No panel with controls");

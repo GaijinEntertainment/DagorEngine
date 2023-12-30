@@ -310,6 +310,9 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
     binds.push_back(bind);
   }
 
+  if (shaderType == ShaderType::Vertex)
+    this->position_invariant = true;
+
   std::string msource;
   try
   {

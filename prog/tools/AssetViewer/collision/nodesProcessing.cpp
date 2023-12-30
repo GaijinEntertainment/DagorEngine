@@ -4,6 +4,7 @@
 #include <osApiWrappers/dag_localConv.h>
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
+#include <scene/dag_physMat.h>
 
 NodesProcessing::NodesProcessing()
 {
@@ -73,6 +74,11 @@ void NodesProcessing::onClick(int pcb_id)
     case PID_CANCEL_EDIT_NODE: switchPropPanel(pcb_id); break;
 
     case PID_DELETE_NODE: deleteCollisionNode(); break;
+    case PID_SAVE_CHANGES:
+      saveCollisionNodes();
+      if (!curAsset->isVirtual())
+        curAsset->getMgr().callAssetChangeNotifications(*curAsset, curAsset->getNameId(), curAsset->getType());
+      break;
   }
 }
 
@@ -146,6 +152,7 @@ void NodesProcessing::fillCollisionInfoPanel()
   group->createButton(PID_CREATE_NEW_NODE, "Create new node");
   group->createButton(PID_EDIT_NODE, "Edit node", false);
   group->createButton(PID_DELETE_NODE, "Delete node", false);
+  group->createButton(PID_SAVE_CHANGES, "Save changes");
 }
 
 static void fill_node_type_names(Tab<String> &type_names)
@@ -163,15 +170,19 @@ void NodesProcessing::fillEditNodeInfoPanel()
   Tab<String> nodes;
   selectionNodesProcessing.fillNodeNamesTab(nodes);
   Tab<String> typeNames;
+  Tab<String> materialTypes;
   fill_node_type_names(typeNames);
+  for (const PhysMat::MaterialData &data : PhysMat::getMaterials())
+    materialTypes.emplace_back(data.name);
 
   PropertyContainerControlBase *group = panel->createGroup(PID_EDIT_COLLISION_NODE_GROUP, "Create new node");
-  group->createMultiSelectList(PID_SELECTABLE_NODES_LIST, nodes, hdpi::_pxScaled(300));
+  group->createMultiSelectList(PID_SELECTABLE_NODES_LIST, nodes, hdpi::_pxScaled(304));
   group->createEditBox(PID_NEW_NODE_NAME, "New node name");
   group->createCheckBox(PID_REPLACE_NODE, "Replace selected nodes", true);
   group->createCheckBox(PID_PHYS_COLLIDABLE_FLAG, "Phys Collidable", true);
   group->createCheckBox(PID_TRACEABLE_FLAG, "Traceable", true);
   group->createCombo(PID_SELECTED_TYPE, "Collision type", typeNames, 0);
+  group->createCombo(PID_MATERIAL_TYPE, "Material type", materialTypes, 0);
   group->createButton(PID_NEXT_EDIT_NODE, "Save", false);
   group->createButton(PID_CANCEL_EDIT_NODE, "Cancel");
 }
@@ -274,6 +285,7 @@ void NodesProcessing::switchPropPanel(int pcb_id)
       newNodeSettings.isPhysCollidable = panel->getBool(PID_PHYS_COLLIDABLE_FLAG);
       newNodeSettings.replaceNodes = panel->getBool(PID_REPLACE_NODE);
       newNodeSettings.type = static_cast<ExportCollisionNodeType>(panel->getInt(PID_SELECTED_TYPE));
+      newNodeSettings.physMat = panel->getText(PID_MATERIAL_TYPE);
 
       if (newNodeSettings.refNodes.empty() ||
           selectionNodesProcessing.rejectExportedCollisions(newNodeSettings.refNodes, newNodeSettings.replaceNodes))
@@ -475,6 +487,7 @@ static void set_settings_on_panel(const SelectedNodesSettings &settings, Tab<Str
   panel->setBool(PID_PHYS_COLLIDABLE_FLAG, settings.isPhysCollidable);
   panel->setBool(PID_TRACEABLE_FLAG, settings.isTraceable);
   panel->setInt(PID_SELECTED_TYPE, settings.type);
+  panel->setText(PID_MATERIAL_TYPE, settings.physMat.str());
 }
 
 void NodesProcessing::restoreEditInfoPanel(const SelectedNodesSettings &settings)
@@ -515,6 +528,7 @@ void NodesProcessing::switchSelectedType()
   newNodeSettings.isPhysCollidable = panel->getBool(PID_PHYS_COLLIDABLE_FLAG);
   newNodeSettings.replaceNodes = panel->getBool(PID_REPLACE_NODE);
   newNodeSettings.type = static_cast<ExportCollisionNodeType>(panel->getInt(PID_SELECTED_TYPE));
+  newNodeSettings.physMat = panel->getText(PID_MATERIAL_TYPE);
   setButtonNameByType(newNodeSettings.type);
   if (newNodeSettings.type == ExportCollisionNodeType::KDOP || newNodeSettings.type == ExportCollisionNodeType::CONVEX_COMPUTER ||
       newNodeSettings.type == ExportCollisionNodeType::CONVEX_VHACD)
@@ -526,7 +540,8 @@ void NodesProcessing::switchSelectedType()
     selectedPanelGroup = PID_EDIT_COLLISION_NODE_GROUP;
     newNodeSettings.type = static_cast<ExportCollisionNodeType>(panel->getInt(PID_SELECTED_TYPE));
     combinedNodesProcessing.setSelectedNodesSettings(eastl::move(newNodeSettings));
-    curAsset->getMgr().callAssetChangeNotifications(*curAsset, curAsset->getNameId(), curAsset->getType());
+    add_delayed_action(make_delayed_action(
+      [this]() { curAsset->getMgr().callAssetChangeNotifications(*curAsset, curAsset->getNameId(), curAsset->getType()); }));
     return;
   }
   combinedNodesProcessing.setSelectedNodesSettings(eastl::move(newNodeSettings));
@@ -626,10 +641,17 @@ void NodesProcessing::deleteCollisionNode()
   {
     ExportCollisionNodeType type;
     deleteNodeFromProcessing(nodeName, type, selectionNodesProcessing.deleteSelectedNode(nodeName, type));
+    tree->clear();
+    selectionNodesProcessing.fillInfoTree(tree);
   }
   else
   {
     selectedPanelGroup = PID_COLLISION_INFO_GROUP;
+    if (curAsset->isVirtual())
+    {
+      curAsset->props.setStr("name", curAsset->getSrcFileName());
+      curAsset->props.saveToTextFile(String(0, "%s/%s.collision.blk", curAsset->getFolderPath(), curAsset->getName()));
+    }
     curAsset->getMgr().callAssetChangeNotifications(*curAsset, curAsset->getNameId(), curAsset->getType());
   }
   selectionNodesProcessing.updateHiddenNodes();

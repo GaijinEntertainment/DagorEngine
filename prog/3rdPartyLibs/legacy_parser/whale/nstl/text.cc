@@ -303,4 +303,5 @@ basic_formatter<charT, traits>::test()
 	basic_formatter<char>(cout, "%s %{d}\n").counter(10) << "10 dup 'd' : ";
     basic_formatter<char>(cout, "%s %{ %s }\n").counter(0) << "lonely";
     basic_formatter<char>(cout, "%{ xxx %s } %s").counter(0) << "zzzz";
+    return true;
 };

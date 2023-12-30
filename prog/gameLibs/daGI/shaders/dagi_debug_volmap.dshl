@@ -99,7 +99,7 @@ shader debug_render_volmap
   }
 
   hlsl(ps) {
-    half3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    float3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
       //float3 normal = normalize(cross(ddx_fine(input.pointToEye), ddy_fine(input.pointToEye)));
@@ -192,7 +192,7 @@ shader debug_render_all_volmap
   VOXEL_SCENE_INTERSECTION(ps)
   hlsl(ps) {
     #include <octahedral.hlsl>
-    half3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    float3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
       uint cascadeId = input.coord.w;
    ##if (gi_quality == raytracing)
@@ -207,8 +207,8 @@ shader debug_render_all_volmap
         float2 visibility = octahedral_distances[octCoord + uint3(octOffset, 0)];
         float dead = dead_probes[input.coord.xyz+uint3(0,0,ssgi_cascade_z_crd_ofs(cascadeId))].x;
         if (dead > 0.6f)
-          return (half3)0.f;
-        return half3(visibility.x, 0, 0);
+          return float3(0, 0, 0);
+        return float3(visibility.x, 0, 0);
       }
 ##endif
       float4 screenpos = GET_SCREEN_POS(input.pos);

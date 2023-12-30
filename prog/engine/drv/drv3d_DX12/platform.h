@@ -33,7 +33,7 @@ struct Direct3D12Enviroment
     d3d12Lib.reset(LoadLibraryA("d3d12.dll"));
     if (!d3d12Lib)
     {
-      debug("DX12: Direct3D12Enviroment::setup: Unable to load d3d12.dll");
+      logdbg("DX12: Direct3D12Enviroment::setup: Unable to load d3d12.dll");
       teardown();
       return false;
     }
@@ -41,7 +41,7 @@ struct Direct3D12Enviroment
     dxgiLib.reset(LoadLibraryA("dxgi.dll"));
     if (!dxgiLib)
     {
-      debug("DX12: Direct3D12Enviroment::setup: Unable to load dxgi.dll");
+      logdbg("DX12: Direct3D12Enviroment::setup: Unable to load dxgi.dll");
       teardown();
       return false;
     }
@@ -50,7 +50,7 @@ struct Direct3D12Enviroment
       getD3DProcAddress("D3D12CreateDevice");
     if (!D3D12CreateDevice)
     {
-      debug("DX12: Direct3D12Enviroment::setup: d3d12.dll does not exports D3D12CreateDevice");
+      logdbg("DX12: Direct3D12Enviroment::setup: d3d12.dll does not exports D3D12CreateDevice");
       return false;
     }
 
@@ -58,8 +58,8 @@ struct Direct3D12Enviroment
       getD3DProcAddress("D3D12SerializeRootSignature");
     if (!D3D12SerializeRootSignature)
     {
-      debug("DX12: Direct3D12Enviroment::setup: d3d12.dll does not exports "
-            "D3D12SerializeRootSignature");
+      logdbg("DX12: Direct3D12Enviroment::setup: d3d12.dll does not exports "
+             "D3D12SerializeRootSignature");
       return false;
     }
 
@@ -67,7 +67,7 @@ struct Direct3D12Enviroment
       getDXGIProcAddress("CreateDXGIFactory2");
     if (!CreateDXGIFactory2)
     {
-      debug("DX12: Direct3D12Enviroment::setup: dxgi.dll does not export CreateDXGIFactory2");
+      logdbg("DX12: Direct3D12Enviroment::setup: dxgi.dll does not export CreateDXGIFactory2");
       return false;
     }
 

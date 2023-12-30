@@ -369,7 +369,7 @@ String dumpCmdParam(const TRegister &tReg, CmdDumpContext ctx)
   {
     case TRegister::TYPE_IMG:
       ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)tReg.img.ptr);
-      return String(64, "img %p spl %llu %s %s", tReg.img.ptr, (uint64_t)tReg.img.sampler, tReg.isSwapchainColor ? "swc_clr" : "-",
+      return String(64, "img %p %s %s", tReg.img.ptr, tReg.isSwapchainColor ? "swc_clr" : "-",
         tReg.isSwapchainDepth ? "swc_depth" : "-");
     case TRegister::TYPE_BUF:
       ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)tReg.buf.buffer);
@@ -382,6 +382,22 @@ String dumpCmdParam(const TRegister &tReg, CmdDumpContext ctx)
     default: return String(32, "empty");
   }
 }
+
+String dumpCmdParam(const SRegister &sReg, CmdDumpContext ctx)
+{
+  if (sReg.type == SRegister::TYPE_NULL)
+    return String(32, "spl empty");
+  else if (sReg.type == SRegister::TYPE_RES)
+  {
+    ctx.addRef(FaultReportDump::GlobalTag::TAG_OBJECT, (uint64_t)sReg.resPtr);
+    return String(32, "spl res %p", sReg.resPtr);
+  }
+  else if (sReg.type == SRegister::TYPE_STATE)
+    return String(32, "spl state %016llX", sReg.state);
+  else
+    return String(32, "spl unknown type %u", sReg.type);
+}
+
 
 String dumpCmdParam(const RenderPassArea &area, CmdDumpContext)
 {

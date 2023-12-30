@@ -484,7 +484,7 @@ class DagImporter(Operator, ImportHelper):
 #non-proxymat
             if not m.mat.dagormat.is_proxy:
                 if (m.flags & DAG_MF_2SIDED) == DAG_MF_2SIDED:
-                    m.mat.dagormat.sides = '1'
+                    m.mat.dagormat.sides = 1
                 for i in range(DAGTEXNUM):
                     tex='tex'+str(i)
                     if m.tex[i] != DAGBADMATID:
@@ -501,7 +501,7 @@ class DagImporter(Operator, ImportHelper):
                     for param in params:
                         if param[0] == "real_two_sided":
                             if param[1]=='yes' or param[1]==1:
-                                m.mat.dagormat.sides = '2'
+                                m.mat.dagormat.sides = 2
                             continue
                         else:
                             try:

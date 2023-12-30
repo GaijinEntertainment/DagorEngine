@@ -304,7 +304,9 @@ public:
     size_type max_size() const { return static_cast<size_type>(-1) / sizeof(T); }
     size_type max_size(int size) const { return static_cast<size_type>(-1) / size; }
 
+#if 0
     void setAllocator(TPoolAllocator* a) { allocator = *a; }
+#endif
     TPoolAllocator& getAllocator() const { return allocator; }
 
 protected:

@@ -17,7 +17,7 @@ shader create_beam_tracer_commands_cs
 
     float currentTime: register(c2);
     uint commandsCount: register(c3);
-    BeamTracerCreateCommand commands[TRACER_MAX_CREATE_COMMANDS] : register(c4);
+    BeamTracerCreateCommand commands[TRACER_BEAM_MAX_CREATE_COMMANDS] : register(c4);
 
     [numthreads( TRACER_COMMAND_WARP_SIZE, 1, 1 )]
     void main( uint3 dtId : SV_DispatchThreadID )

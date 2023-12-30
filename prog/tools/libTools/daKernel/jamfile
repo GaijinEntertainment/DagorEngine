@@ -10,8 +10,9 @@ TargetType    = dll ;
 Target        = tools/libTools/daKernel ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-if $(PlatformSpec) != clang && $(Platform) in win32 win64 { HideExports   = yes ; }
-
+OutDir = $(Root)/tools/dagor3_cdk/bin ;
+if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
 
 Sources =
   daKernel.cpp

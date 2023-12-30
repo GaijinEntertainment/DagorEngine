@@ -124,7 +124,7 @@ bool set_clipboard_bmp_image(TexPixel32 *im, int wd, int ht, int stride)
 }
 } // namespace clipboard
 
-#define EXPORT_PULL dll_pull_osapiwrappers_winClipboard
+#define EXPORT_PULL dll_pull_osapiwrappers_clipboard
 #include <supp/exportPull.h>
 
 #else

@@ -52,7 +52,7 @@ void set_ttl_for_collision_instances(float value) { default_time_to_live = value
 
 extern void push_non_empty_ri_instance_list(CollisionInstances &ci);
 
-const ScaledBulletInstance &CollisionInstances::getScaledInstance(const rendinst::RendInstDesc &desc, const Point3 &scale,
+const ScaledBulletInstance *CollisionInstances::getScaledInstance(const rendinst::RendInstDesc &desc, const Point3 &scale,
   bool &out_created)
 {
   float timeOfDeath = get_ri_instances_time() + default_time_to_live;
@@ -63,7 +63,7 @@ const ScaledBulletInstance &CollisionInstances::getScaledInstance(const rendinst
 
     si.timeOfDeath = timeOfDeath;
     out_created = false;
-    return si;
+    return &si;
   }
   //
   // Nothing found, create a new one
@@ -74,13 +74,19 @@ const ScaledBulletInstance &CollisionInstances::getScaledInstance(const rendinst
     for (auto it = bulletInstances.begin(); it != &ret; ++it)
       it->updateUserDataPtr();
 
+  if (DAGOR_UNLIKELY(!ret.obj)) // Phys body alloc failed
+  {
+    bulletInstances.pop_back();
+    return nullptr;
+  }
+
 #ifndef ENABLE_APEX
   if (bulletInstances.size() == 1)
     push_non_empty_ri_instance_list(*this);
 #endif
 
   out_created = true;
-  return ret;
+  return &ret;
 }
 
 extern void remove_empty_ri_instance_list(CollisionInstances &ci);
@@ -155,7 +161,10 @@ CollisionObject CollisionInstances::getCollisionObject(const rendinst::RendInstD
 {
   bool created = false;
   Point3 localScaling = Point3(tm.getcol(0).length(), tm.getcol(1).length(), tm.getcol(2).length());
-  CollisionObject cobj = getScaledInstance(desc, localScaling, created).obj;
+  auto instPtr = getScaledInstance(desc, localScaling, created);
+  if (!instPtr) // PhysBody alloc failed?
+    return {};
+  CollisionObject cobj = instPtr->obj;
 
   for (int i = 0; i < 3; ++i)
     tm.setcol(i, tm.getcol(i) * safeinv(localScaling[i]));
@@ -178,8 +187,10 @@ CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc,
 {
   bool created = false;
   Point3 localScaling = Point3(tm.getcol(0).length(), tm.getcol(1).length(), tm.getcol(2).length());
-  const ScaledBulletInstance &scaledInstance = getScaledInstance(desc, localScaling, created);
-  CollisionObject cobj = scaledInstance.obj;
+  const ScaledBulletInstance *scaledInstance = getScaledInstance(desc, localScaling, created);
+  if (!scaledInstance) // PhysBody alloc failed?
+    return {};
+  CollisionObject cobj = scaledInstance->obj;
 
   TMatrix normTm = tm;
   for (int i = 0; i < 3; ++i)
@@ -187,7 +198,7 @@ CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc,
 
   get_phys_world()->fetchSimRes(true);
 
-  if (localScaling != scaledInstance.scale)
+  if (localScaling != scaledInstance->scale)
     cobj.body->patchCollisionScaledCopy(localScaling, originalObj.body);
 
   cobj.body->setTm(normTm);
@@ -207,16 +218,13 @@ CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc,
   if (!rendinst::isRiGenDescValid(desc) || !isCollisionObjectEnabled(desc))
     return CollisionObject();
   TMatrix tm = rendinst::getRIGenMatrix(desc);
-
-  CollisionObject cobj = updateTm(desc, tm);
-
-  if (cobj.body)
+  if (CollisionObject cobj = updateTm(desc, tm))
   {
     cobj.body->setVelocity(vel);
     cobj.body->setAngularVelocity(omega);
+    return cobj;
   }
-
-  return cobj;
+  return {};
 }
 
 } // namespace dacoll

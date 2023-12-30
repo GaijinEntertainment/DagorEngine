@@ -41,14 +41,16 @@ Sources =
   texExp.cpp
 
   exp_impostorData.cpp
+
+  vehiclePhysExp.jamvar
+  shipSectionsExp.jamvar
 ;
 
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/3rdPartyLibs/convert/nvtt-2.0.7
-  $(Root)/prog/3rdPartyLibs/convert/PVRTexLib
-  $(Root)/prog/3rdPartyLibs/convert/ispctexturecompressor/include
+  $(Root)/prog/3rdPartyLibs/convert/ispc_texcomp
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/gameLibs/publicInclude
@@ -85,6 +87,7 @@ UseProgLibs =
 
   3rdPartyLibs/math/srcc_msu
   3rdPartyLibs/convert/nvtt-2.0.7
+  3rdPartyLibs/convert/ispc_texcomp
   3rdPartyLibs/image/avif
   3rdPartyLibs/image/jpeg-6b
   3rdPartyLibs/image/psdRead
@@ -94,7 +97,16 @@ UseProgLibs =
 ;
 
 
-if [ GLOB $(Root)/prog/3rdPartyLibs/phys/fractureTool : * ] && $(DabuildEmbeddedInGame) != yes {
+if vehiclePhys in $(DabuildUseOptionalExporters) {
+  vehiclePhysExp = \# include \"../../../../gameLibs/vehiclePhys/exporters/vehicleExp.cpp\" ;
+} else { vehiclePhysExp = int pull_vehicle=0; ; }
+
+if shipSections in $(DabuildUseOptionalExporters) {
+  shipSectionsExp = \# include \"../../../../gameLibs/gamePhys/phys/shipSections/exporters/sectionsExp.cpp\" ;
+  UseProgLibs += gameLibs/gamePhys/phys/shipSections gameLibs/gamePhys/props ;
+} else { shipSectionsExp = int pull_shipSections=0; ; }
+
+if apex in $(DabuildUseOptionalExporters) {
   Sources += apexDestrExp.cpp ;
 
   local apex_include =
@@ -117,16 +129,12 @@ if [ GLOB $(Root)/prog/3rdPartyLibs/phys/fractureTool : * ] && $(DabuildEmbedded
   if $(Config) != dbg {
     opt on apexDestrExp.cpp += -DNDEBUG ;
   }
+  if $(Platform) in macosx { opt on apexDestrExp.cpp += -Wno-deprecated-declarations ; }
 
   UseProgLibs += 3rdPartyLibs/phys/fractureTool ;
-  CPPopt += -DHAVE_APEX_DESTR ;
-}
+} else { apexExp = int pull_apex \= 0\; ; Sources += apexExp.jamvar ; }
 
 if $(DabuildEmbeddedInGame) != yes {
-  AddLibs =
-    $(Root)/prog/3rdPartyLibs/convert/PVRTexLib/$(Platform)/PVRTexLib.lib
-    $(Root)/prog/3rdPartyLibs/convert/ispctexturecompressor/lib/$(Platform)/ispc_texcomp.lib
-  ;
   CPPopt += -D_DEBUG_TAB_ ;
 } else {
   Target  = $(Target:S=~emb.lib) ;

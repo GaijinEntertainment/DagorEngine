@@ -1642,8 +1642,8 @@ bool navmesh_point_has_obstacle(const Point3 &pos, const CustomNav *custom_nav)
   return false;
 }
 
-bool query_navmesh_projections(const Point3 &pos, const Point3 &extents, Tab<Point3> &projections, int points_num,
-  const CustomNav *custom_nav)
+static bool query_navmesh_projections_impl(const Point3 &pos, const Point3 &extents, Tab<Point3> &projections,
+  Tab<dtPolyRef> *out_polys, int points_num, const CustomNav *custom_nav)
 {
   if (!navQuery)
     return false;
@@ -1661,8 +1661,22 @@ bool query_navmesh_projections(const Point3 &pos, const Point3 &extents, Tab<Poi
     if (dtStatusFailed(navQuery->closestPointOnPoly(poly, &pos.x, &res.x, &posOverPoly)))
       continue;
     projections.push_back(res);
+    if (out_polys != nullptr)
+      out_polys->push_back(poly);
   }
   return !projections.empty();
+}
+
+bool query_navmesh_projections(const Point3 &pos, const Point3 &extents, Tab<Point3> &projections, int points_num,
+  const CustomNav *custom_nav)
+{
+  return query_navmesh_projections_impl(pos, extents, projections, nullptr, points_num, custom_nav);
+}
+
+bool query_navmesh_projections(const Point3 &pos, const Point3 &extents, Tab<Point3> &projections, Tab<dtPolyRef> &out_polys,
+  int points_num, const CustomNav *custom_nav)
+{
+  return query_navmesh_projections_impl(pos, extents, projections, &out_polys, points_num, custom_nav);
 }
 
 float get_distance_to_wall(const Point3 &pos, float horz_extents, float search_rad, const CustomNav *custom_nav)
@@ -1798,8 +1812,21 @@ bool traceray_navmesh(const Point3 &start_pos, const Point3 &end_pos, const Poin
   return traceray_navmesh(navQuery, start_pos, end_pos, extents, get_nav_params(NM_MAIN), out_pos, custom_nav);
 }
 
+bool traceray_navmesh(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, Point3 &out_pos, dtPolyRef &out_poly,
+  const CustomNav *custom_nav)
+{
+  return traceray_navmesh(navQuery, start_pos, end_pos, extents, get_nav_params(NM_MAIN), out_pos, out_poly, custom_nav);
+}
+
 bool traceray_navmesh(dtNavMeshQuery *nav_query, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
   const NavParams &nav_params, Point3 &out_pos, const CustomNav *custom_nav)
+{
+  dtPolyRef poly;
+  return traceray_navmesh(nav_query, start_pos, end_pos, extents, nav_params, out_pos, poly, custom_nav);
+}
+
+bool traceray_navmesh(dtNavMeshQuery *nav_query, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
+  const NavParams &nav_params, Point3 &out_pos, dtPolyRef &out_poly, const CustomNav *custom_nav)
 {
   out_pos = start_pos;
   if (!nav_query)
@@ -1824,6 +1851,11 @@ bool traceray_navmesh(dtNavMeshQuery *nav_query, const Point3 &start_pos, const 
     float h = out_pos.y;
     nav_query->getPolyHeight(polys[pathCount - 1], &out_pos.x, &h);
     out_pos.y = h;
+    out_poly = polys[pathCount - 1];
+  }
+  else
+  {
+    out_poly = startPoly;
   }
   return t <= 1.f;
 }

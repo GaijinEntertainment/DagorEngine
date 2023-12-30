@@ -1113,6 +1113,10 @@ void HmapLandPlugin::fillPanel(PropPanel2 &panel)
       grp->createEditFloat(baseOfs + NM_PARAM_JLK_JUMP_LENGTH, "jump length, m",
         navMeshProps[navMeshIdx].getReal("jumpLinksLength", typoDefJumpLength));
       grp->createEditFloat(baseOfs + NM_PARAM_JLK_MIN_WIDTH, "min width, m", navMeshProps[navMeshIdx].getReal("jumpLinksWidth", 1.0f));
+      grp->createEditFloat(baseOfs + NM_PARAM_JLK_AGENT_HEIGHT, "agent height, m",
+        navMeshProps[navMeshIdx].getReal("jumpLinksAgentHeight", 1.5f));
+      grp->createEditFloat(baseOfs + NM_PARAM_JLK_AGENT_MIN_SPACE, "agent min space, m",
+        navMeshProps[navMeshIdx].getReal("jumpLinksAgentMinSpace", 1.0f));
       grp->createEditFloat(baseOfs + NM_PARAM_JLK_DH_THRESHOLD, "delta height threshold, m",
         navMeshProps[navMeshIdx].getReal("jumpLinksDeltaHeightTreshold", 0.5f));
       grp->createEditFloat(baseOfs + NM_PARAM_JLK_MERGE_ANGLE, "merge delta angle, deg",
@@ -1611,6 +1615,8 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel2 *panel)
       case NM_PARAM_JLK_JUMP_OVER_HEIGHT: navMeshProps[navMeshIdx].setReal("jumpLinksHeight", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_JUMP_LENGTH: navMeshProps[navMeshIdx].setReal("jumpLinksLength", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_MIN_WIDTH: navMeshProps[navMeshIdx].setReal("jumpLinksWidth", panel->getFloat(pcb_id)); break;
+      case NM_PARAM_JLK_AGENT_HEIGHT: navMeshProps[navMeshIdx].setReal("jumpLinksAgentHeight", panel->getFloat(pcb_id)); break;
+      case NM_PARAM_JLK_AGENT_MIN_SPACE: navMeshProps[navMeshIdx].setReal("jumpLinksAgentMinSpace", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_DH_THRESHOLD: navMeshProps[navMeshIdx].setReal("jumpLinksDeltaHeightTreshold", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_MERGE_ANGLE: navMeshProps[navMeshIdx].setReal("jumpLinksMergeAngle", panel->getFloat(pcb_id)); break;
       case NM_PARAM_JLK_MERGE_DIST: navMeshProps[navMeshIdx].setReal("jumpLinksMergeDist", panel->getFloat(pcb_id)); break;

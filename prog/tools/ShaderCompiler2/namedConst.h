@@ -98,6 +98,7 @@ struct NamedConstBlock
 
   CryptoHash getDigest(bool ps_const, bool cs_const) const;
 
+  void buildDrawcallIdHlslDecl(String &out_text) const;
   void buildStaticConstBufHlslDecl(String &out_text) const;
   void buildGlobalConstBufHlslDecl(String &out_text, bool pixel_shader, bool compute_shader, SCFastNameMap &added_names) const;
   void buildHlslDeclText(String &out_text, bool pixel_shader, bool compute_shader, SCFastNameMap &added_names,

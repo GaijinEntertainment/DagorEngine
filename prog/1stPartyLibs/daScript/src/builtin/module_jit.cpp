@@ -41,14 +41,14 @@ namespace das {
         }
     }
 
-    bool das_instrument_jit ( void * pfun, const Func func, Context * context ) {
+    bool das_instrument_jit ( void * pfun, const Func func, Context & context ) {
         auto simfn = func.PTR;
         if ( !simfn ) return false;
         if ( simfn->code && simfn->code->rtti_node_isJit() ) {
             auto jitNode = static_cast<SimNode_Jit *>(simfn->code);
             jitNode->func = (JitFunction) pfun;
         } else {
-            auto node = context->code->makeNode<SimNode_Jit>(LineInfo(), (JitFunction)pfun);
+            auto node = context.code->makeNode<SimNode_Jit>(LineInfo(), (JitFunction)pfun);
             node->saved_code = simfn->code;
             node->saved_aot = simfn->aot;
             node->saved_aot_function = simfn->aotFunction;
@@ -60,8 +60,8 @@ namespace das {
         return true;
     }
 
-    void jit_exception ( const char * text, Context * context ) {
-        context->throw_error(text);
+    void jit_exception ( const char * text, Context * context, LineInfoArg * at ) {
+        context->throw_error_at(at, "%s", text ? text : "");
     }
 
     void * das_get_jit_exception ( ) {
@@ -213,7 +213,7 @@ namespace das {
         char * SP;
     };
 
-    void jit_prologue ( int32_t stackSize, JitStackState * stackState, Context * context, LineInfoArg * at ) {
+    void jit_prologue ( void * funcLineInfo, int32_t stackSize, JitStackState * stackState, Context * context, LineInfoArg * at ) {
         if (!context->stack.push(stackSize, stackState->EP, stackState->SP)) {
             context->throw_error_at(at, "stack overflow");
         }
@@ -221,6 +221,7 @@ namespace das {
         Prologue * pp = (Prologue *)context->stack.sp();
         pp->info = nullptr;
         pp->fileName = "`jit`";
+        pp->functionLine = (LineInfo *) funcLineInfo;
         pp->stackSize = stackSize;
 #endif
     }
@@ -277,6 +278,46 @@ namespace das {
         return (void *) &builtin_iterator_close;
     }
 
+    char * jit_str_cat ( char * sA, char * sB, Context * context ) {
+        auto la = stringLength(*context, sA);
+        auto lb = stringLength(*context, sB);
+        uint32_t commonLength = la + lb;
+        if ( !commonLength ) {
+            return nullptr;
+        } else if ( char * sAB = (char * ) context->stringHeap->allocateString(nullptr, commonLength) ) {
+            memcpy ( sAB, sA, la );
+            memcpy ( sAB+la, sB, lb+1 );
+            context->stringHeap->recognize(sAB);
+            return sAB;
+        } else {
+            context->throw_error("can't add two strings, out of heap"); // this is so unlikely
+            return nullptr;
+        }
+    }
+
+    void * das_get_jit_str_cat () {
+        return (void *) &jit_str_cat;
+    }
+
+    void * das_get_jit_new ( TypeDeclPtr htype, Context * context, LineInfoArg * at ) {
+        if ( !htype ) context->throw_error_at(at, "can't get `new`, type is null");
+        if ( !htype->isHandle() ) context->throw_error_at(at, "can't get `new`, type is not a handle");
+        return htype->annotation->jitGetNew();
+    }
+
+    void * das_get_jit_delete ( TypeDeclPtr htype, Context * context, LineInfoArg * at ) {
+        if ( !htype ) context->throw_error_at(at, "can't get `delete`, type is null");
+        if ( !htype->isHandle() ) context->throw_error_at(at, "can't get `delete`, type is not a handle");
+        return htype->annotation->jitGetDelete();
+    }
+
+    void * das_instrument_line_info ( const LineInfo & info, Context * context, LineInfoArg * at ) {
+        LineInfo * info_ptr = (LineInfo *) context->code->allocate(sizeof(LineInfo));
+        if ( !info_ptr ) context->throw_error_at(at, "can't instrument line info, out of heap");
+        *info_ptr = info;
+        return (void *) info_ptr;
+    }
+
     class Module_Jit : public Module {
     public:
         Module_Jit() : Module("jit") {
@@ -294,6 +335,9 @@ namespace das {
             addExtern<DAS_BIND_FUN(das_remove_jit)>(*this, lib, "remove_jit",
                 SideEffects::worstDefault, "das_remove_jit")
                     ->args({"function"})->unsafeOperation = true;
+            addExtern<DAS_BIND_FUN(das_instrument_line_info)>(*this, lib, "instrument_line_info",
+                SideEffects::worstDefault, "das_instrument_line_info")
+                    ->args({"info","context","at"});
             addExtern<DAS_BIND_FUN(das_is_jit_function)>(*this, lib, "is_jit_function",
                 SideEffects::worstDefault, "das_is_jit_function")
                     ->args({"function"});
@@ -331,6 +375,8 @@ namespace das {
                 SideEffects::none, "das_get_jit_table_find");
             addExtern<DAS_BIND_FUN(das_get_jit_str_cmp)>(*this, lib, "get_jit_str_cmp",
                 SideEffects::none, "das_get_jit_str_cmp");
+            addExtern<DAS_BIND_FUN(das_get_jit_str_cat)>(*this, lib, "get_jit_str_cat",
+                SideEffects::none, "das_get_jit_str_cat");
             addExtern<DAS_BIND_FUN(das_get_jit_prologue)>(*this, lib, "get_jit_prologue",
                 SideEffects::none, "das_get_jit_prologue");
             addExtern<DAS_BIND_FUN(das_get_jit_epilogue)>(*this, lib, "get_jit_epilogue",
@@ -354,6 +400,12 @@ namespace das {
             addExtern<DAS_BIND_FUN(das_sb_make_interop_node)>(*this, lib,  "make_interop_node",
                 SideEffects::none, "das_sb_make_interop_node")
                     ->args({"ctx","builder","context","at"});
+            addExtern<DAS_BIND_FUN(das_get_jit_new)>(*this, lib,  "get_jit_new",
+                SideEffects::none, "das_get_jit_new")
+                    ->args({"type","context","at"});
+            addExtern<DAS_BIND_FUN(das_get_jit_delete)>(*this, lib,  "get_jit_delete",
+                SideEffects::none, "das_get_jit_delete")
+                    ->args({"type","context","at"});
             addConstant<uint32_t>(*this, "SIZE_OF_PROLOGUE", uint32_t(sizeof(Prologue)));
             addConstant<uint32_t>(*this, "CONTEXT_OFFSET_OF_EVAL_TOP", uint32_t(uint32_t(offsetof(Context, stack) + offsetof(StackAllocator, evalTop))));
             addConstant<uint32_t>(*this, "CONTEXT_OFFSET_OF_GLOBALS", uint32_t(uint32_t(offsetof(Context, globals))));

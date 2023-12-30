@@ -49,7 +49,7 @@ IvyObjectEditor::~IvyObjectEditor()
 
 void IvyObjectEditor::fillToolBar(PropertyContainerControlBase *toolbar)
 {
-  __super::fillToolBar(toolbar);
+  ObjectEditor::fillToolBar(toolbar);
 
   PropertyContainerControlBase *tb = toolbar->createToolbarPanel(0, "");
 
@@ -65,14 +65,14 @@ void IvyObjectEditor::fillToolBar(PropertyContainerControlBase *toolbar)
 
 void IvyObjectEditor::updateToolbarButtons()
 {
-  __super::updateToolbarButtons();
+  ObjectEditor::updateToolbarButtons();
   setRadioButton(CM_CREATE_IVY, getEditMode());
 }
 
 
 void IvyObjectEditor::beforeRender()
 {
-  __super::beforeRender();
+  ObjectEditor::beforeRender();
 
   for (int i = 0; i < objects.size(); i++)
   {
@@ -164,7 +164,7 @@ void IvyObjectEditor::renderTrans()
 
 void IvyObjectEditor::gizmoStarted()
 {
-  __super::gizmoStarted();
+  ObjectEditor::gizmoStarted();
   inGizmo = false;
   getAxes(locAx[0], locAx[1], locAx[2]);
   inGizmo = true;
@@ -213,7 +213,7 @@ void IvyObjectEditor::gizmoEnded(bool apply)
     isGizmoStarted = false;
   }
   else
-    __super::gizmoEnded(apply);
+    ObjectEditor::gizmoEnded(apply);
   inGizmo = false;
 }
 
@@ -345,13 +345,13 @@ void IvyObjectEditor::update(real dt)
       break;
   }
 
-  __super::update(dt);
+  ObjectEditor::update(dt);
 }
 
 
 void IvyObjectEditor::setEditMode(int cm)
 {
-  __super::setEditMode(cm);
+  ObjectEditor::setEditMode(cm);
   DAGORED2->repaint();
 }
 
@@ -370,7 +370,7 @@ bool IvyObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool i
     updateGizmo();
     wnd->invalidateCache();
   }
-  return __super::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -402,7 +402,7 @@ bool IvyObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, boo
     updateGizmo();
     wnd->invalidateCache();
   }
-  return __super::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -426,7 +426,7 @@ bool IvyObjectEditor::handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, b
     updateGizmo();
     wnd->invalidateCache();
   }
-  return __super::handleMouseLBRelease(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseLBRelease(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -444,7 +444,7 @@ bool IvyObjectEditor::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, boo
     updateGizmo();
     wnd->invalidateCache();
   }
-  return __super::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -530,7 +530,7 @@ void IvyObjectEditor::onClick(int pcb_id, PropPanel2 *panel)
   updateGizmo();
   updateToolbarButtons();
 
-  __super::onClick(pcb_id, panel);
+  ObjectEditor::onClick(pcb_id, panel);
 }
 
 

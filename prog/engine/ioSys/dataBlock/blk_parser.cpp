@@ -15,7 +15,9 @@
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_e3dColor.h>
+#ifdef _MSC_VER
 #pragma warning(disable : 4577)
+#endif
 #include <fast_float/fast_float.h>
 #include "blk_comments_def.h"
 

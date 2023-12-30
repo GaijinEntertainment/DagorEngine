@@ -10,7 +10,7 @@ let defBoxStyle = {
   hoverColor = Color(250,250,250)
 }
 
-let function defMkText(text, state=null, stateFlags=null, style = null){
+function defMkText(text, state=null, stateFlags=null, style = null){
   return @(){
     watch = [state, stateFlags]
     rendObj = ROBJ_TEXT
@@ -18,7 +18,7 @@ let function defMkText(text, state=null, stateFlags=null, style = null){
   }.__update(style ?? {})
 }
 
-let function defMkBox(size, state=null, stateFlags=null, boxStyle=null){
+function defMkBox(size, state=null, stateFlags=null, boxStyle=null){
   let color = boxStyle?.color ?? defBoxStyle.color
   let hoverColor = boxStyle?.hoverColor ?? defBoxStyle.hoverColor
   let borderRadius = boxStyle?.borderRadius ?? defBoxStyle.borderRadius
@@ -43,7 +43,7 @@ let function defMkBox(size, state=null, stateFlags=null, boxStyle=null){
   }
 }
 
-let function checkboxCtor(state, text = null, style = defStyle, textCtor = defMkText, textStyle = defTextStyle, boxCtor = defMkBox, boxStyle = defBoxStyle){
+function checkboxCtor(state, text = null, style = defStyle, textCtor = defMkText, textStyle = defTextStyle, boxCtor = defMkBox, boxStyle = defBoxStyle){
   let stateFlags = Watched(0)
   let h =calc_comp_size(textCtor("h"))
   let hWidth = h[0]

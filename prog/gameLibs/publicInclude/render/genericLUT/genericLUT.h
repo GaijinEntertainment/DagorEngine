@@ -22,7 +22,7 @@ public:
   bool init(const char *lut_name, const char *render_shader_name, const char *compute_shader_name, HDROutput hdr, int lut_size = 32);
   bool perform();
   const UniqueTexHolder &getLUT() const { return lut; }
-  const int getLUTSize() const { return lutSize; }
+  int getLUTSize() const { return lutSize; }
   bool isValid() const { return renderLUT || computeLUT; }
 
   GenericTonemapLUT();

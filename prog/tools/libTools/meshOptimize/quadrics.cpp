@@ -535,7 +535,7 @@ int Quadrics::optimize(int target_num_faces)
   while (cface > target_num_faces)
   {
     if (!checkSanity())
-      fatal("errors");
+      DAG_FATAL("errors");
 #if USE_SET
     if (0 == vertSet.size())
       // we're done

@@ -1,3 +1,5 @@
+#allow-switch-statement
+
 for (local i = 0; i < 5; i++) // EXPECTED
 {
   ::print(i)

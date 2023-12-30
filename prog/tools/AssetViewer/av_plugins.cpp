@@ -19,7 +19,6 @@ extern void init_plugin_vehicle();
 extern void init_plugin_fastphys();
 extern void init_plugin_rndgrass();
 extern void init_plugin_csg_entities();
-extern void init_plugin_shader_graph();
 extern void init_plugin_wt_unit();
 extern void init_plugin_a2d();
 extern void init_plugin_anim_tree();
@@ -49,7 +48,6 @@ void init_all_editor_plugins()
   INIT_SERVICE("fastPhys", ::init_plugin_fastphys());
   INIT_SERVICE("rndGrass", ::init_plugin_rndgrass());
   INIT_SERVICE("csg", ::init_plugin_csg_entities());
-  INIT_SERVICE("shaderGraph", ::init_plugin_shader_graph());
   INIT_SERVICE("animTree", ::init_plugin_anim_tree());
 #if HAS_PLUGIN_WT_UNIT
   INIT_SERVICE("wtUnit", ::init_plugin_wt_unit());

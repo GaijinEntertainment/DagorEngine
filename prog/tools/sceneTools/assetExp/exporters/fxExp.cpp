@@ -1,4 +1,4 @@
-#include "dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 #include <assets/assetPlugin.h>
 #include <assets/assetExporter.h>
 #include <assets/assetRefs.h>
@@ -25,7 +25,7 @@ public:
 
   virtual const char *__stdcall getAssetType() const { return TYPE; }
   virtual unsigned __stdcall getGameResClassId() const { return EffectGameResClassId; }
-  virtual unsigned __stdcall getGameResVersion() const { return 106; }
+  virtual unsigned __stdcall getGameResVersion() const { return 110; }
 
   virtual void __stdcall onRegister() {}
   virtual void __stdcall onUnregister() {}

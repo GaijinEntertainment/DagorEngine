@@ -1050,7 +1050,7 @@ BaseTexture *DDSxTexturePack2::Factory::createTexture(TEXTUREID tid)
   int rec_id = pack.texNames.getNameId(name);
   RMGR_TRACE("create <%s>", name);
   if (rec_id == -1)
-    fatal("not found %s", name);
+    DAG_FATAL("not found %s", name);
 
   int idx = RMGR.toIndex(tid);
   TextureMetaData tmd;
@@ -1163,7 +1163,7 @@ void DDSxTexturePack2::Factory::releaseTexture(BaseTexture *texture, TEXTUREID i
   int rec_id = pack.texNames.getNameId(name);
   RMGR_TRACE("release %s", name);
   if (rec_id == -1)
-    fatal("not found %s", name);
+    DAG_FATAL("not found %s", name);
 
   {
     TEX_REC_LOCK();
@@ -1434,7 +1434,7 @@ bool DDSxTexturePack2::Factory::performDelayedLoad(int prio)
   if (void *handle = pack.file->getHandle())
     fastSeqCrd->assignFile(handle, pack.file->baseOfs, pack.file->getSize(), pack.file->packName, pack.file->chunk, 32);
   else
-    fatal("Can't open TexPack '%s'", pack.file->name);
+    DAG_FATAL("Can't open TexPack '%s'", pack.file->name);
 
   if (rangesBuf.size() < localLoad.size())
     clear_and_resize(rangesBuf, localLoad.size());
@@ -2163,7 +2163,7 @@ void ddsx::add_texname_to_mq_tex_list(TEXTUREID texId)
 }
 
 #if DAGOR_DBGLEVEL > 0
-#define FATALERR fatal
+#define FATALERR DAG_FATAL
 #else
 #define FATALERR logerr
 #endif

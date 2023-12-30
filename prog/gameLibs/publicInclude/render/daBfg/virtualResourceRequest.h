@@ -119,15 +119,18 @@ public:
    * \brief Requests for a sub-object of a blob to be bound to a shader
    * variable with the specified name.
    *
-   * \tparam memberPtr A pointer to the member of the blob to bind, i.e. `&BlobType::field`.
+   * \tparam projector A function to extract the value to bind from
+   *   the blob. Can be a pointer-to-member, i.e. `&BlobType::field`.
    * \param shader_var_name The name of the shader variable to bind.
    *   If not specified, the name of the resource will be used.
    */
-  template <auto memberPtr, class DUMMY = void, REQUIRE_IMPL(!is_gpu && eastl::is_member_pointer_v<decltype(memberPtr)>)>
+  template <auto projector, REQUIRE_IMPL(!is_gpu && eastl::is_invocable_v<decltype(projector), Res>)>
   VirtualResourceRequest<Res, policy> bindToShaderVar(const char *shader_var_name = nullptr) &&
   {
-    using MemberType = decltype(detail::member_type_of_memptr<DUMMY>(memberPtr));
-    Base::bindToShaderVar(shader_var_name, tag_for<MemberType>(), detail::projector_for_member<memberPtr>());
+    using InvokeResult = eastl::invoke_result_t<decltype(projector), const Res &>;
+    static_assert(detail::is_const_lvalue_reference<InvokeResult>, "Invoking a projector must return a const lvalue reference!");
+    using ProjectedType = eastl::remove_cvref_t<InvokeResult>;
+    Base::bindToShaderVar(shader_var_name, tag_for<ProjectedType>(), detail::erase_projector_type<projector, Res>());
     return {resUid, nodeId, registry};
   }
 
@@ -146,14 +149,16 @@ public:
    * \brief Requests for a matrix-like sub-object of a blob to be bound
    * as the current view matrix.
    *
-   * \tparam memberPtr A pointer to the member of the blob to bind,
-   *   e.g. `&Camera::viewTm`.
+   * \tparam projector A function to extract the value to bind from
+   *   the blob. Can be a pointer-to-member, i.e. `&BlobType::field`.
    */
-  template <auto memberPtr, class DUMMY = void, REQUIRE_IMPL(!is_gpu && eastl::is_member_pointer_v<decltype(memberPtr)>)>
+  template <auto projector, REQUIRE_IMPL(!is_gpu && eastl::is_invocable_v<decltype(projector), Res>)>
   VirtualResourceRequest<Res, policy> bindAsView() &&
   {
-    using MemberType = decltype(detail::member_type_of_memptr<DUMMY>(memberPtr));
-    Base::bindAsView(tag_for<MemberType>(), detail::projector_for_member<memberPtr>());
+    using InvokeResult = eastl::invoke_result_t<decltype(projector), const Res &>;
+    static_assert(detail::is_const_lvalue_reference<InvokeResult>, "Invoking a projector must return a const lvalue reference!");
+    using ProjectedType = eastl::remove_cvref_t<InvokeResult>;
+    Base::bindAsView(tag_for<ProjectedType>(), detail::erase_projector_type<projector, Res>());
     return {resUid, nodeId, registry};
   }
 
@@ -172,14 +177,16 @@ public:
    * \brief Requests for a matrix-like sub-object of a blob to be bound
    * as the current projection matrix.
    *
-   * \tparam memberPtr A pointer to the member of the blob to bind,
-   *   e.g. `&Camera::projTm`.
+   * \tparam projector A function to extract the value to bind from
+   *   the blob. Can be a pointer-to-member, i.e. `&BlobType::field`.
    */
-  template <auto memberPtr, class DUMMY = void, REQUIRE_IMPL(!is_gpu && eastl::is_member_pointer_v<decltype(memberPtr)>)>
+  template <auto projector, REQUIRE_IMPL(!is_gpu && eastl::is_invocable_v<decltype(projector), const Res &>)>
   VirtualResourceRequest<Res, policy> bindAsProj() &&
   {
-    using MemberType = decltype(detail::member_type_of_memptr<DUMMY>(memberPtr));
-    Base::bindAsProj(tag_for<MemberType>(), detail::projector_for_member<memberPtr>());
+    using InvokeResult = eastl::invoke_result_t<decltype(projector), const Res &>;
+    static_assert(detail::is_const_lvalue_reference<InvokeResult>, "Invoking a projector must return a const lvalue reference!");
+    using ProjectedType = eastl::remove_cvref_t<InvokeResult>;
+    Base::bindAsProj(tag_for<ProjectedType>(), detail::erase_projector_type<projector, Res>());
     return {resUid, nodeId, registry};
   }
 

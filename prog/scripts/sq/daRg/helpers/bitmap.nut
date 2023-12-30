@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 from "base64" import encodeBlob
 from "iostream" import blob
 
-let function mkBitmapPicture(w, h, fillcb, prefix="") {
+function mkBitmapPicture(w, h, fillcb, prefix="") {
   const HEADER_SIZE = 18
   let BITMAP_SIZE = w*h*4
 
@@ -26,7 +26,7 @@ let function mkBitmapPicture(w, h, fillcb, prefix="") {
   for (local i=0;i<BITMAP_SIZE; ++i)
     b.writen(0, 'c')
 
-  let function setPixel(x_, y_, c) {
+  function setPixel(x_, y_, c) {
     let x = x_.tointeger()
     let y = y_.tointeger()
     if (x<0 || x>=w || y<0 || y>=h)
@@ -35,14 +35,14 @@ let function mkBitmapPicture(w, h, fillcb, prefix="") {
     b.writen(c, 'i')
   }
 
-  let function bufSetAt(idx, byte) {
+  function bufSetAt(idx, byte) {
     if (idx<0 || idx>BITMAP_SIZE)
       throw $"Invalid index {idx} for bitmap of size {w}x{h}"
     b.seek(HEADER_SIZE+idx)
     b.writen(byte, 'b')
   }
 
-  let function bufGetAt(idx) {
+  function bufGetAt(idx) {
     if (idx<0 || idx>BITMAP_SIZE)
       throw $"Invalid index {idx} for bitmap of size {w}x{h}"
     b.seek(HEADER_SIZE+idx)
@@ -57,7 +57,7 @@ let function mkBitmapPicture(w, h, fillcb, prefix="") {
 let cache = {}
 local maxCachedSize = sw(15) * sh(15)
 //create picture cached by fillCb on call.
-let function mkBitmapPictureLazy(w, h, fillCb, prefix = "") {
+function mkBitmapPictureLazy(w, h, fillCb, prefix = "") {
   if (w * h > maxCachedSize)
     logerr($"Queued mkBitmapPictureLazy has size = {w}*{h} = {w*h} bigger than sw(15) * sh(15) = {maxCachedSize}")
   return function() {

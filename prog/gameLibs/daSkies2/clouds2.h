@@ -455,7 +455,7 @@ struct GenNoise
           resCloud1.setVar();
           resCloud2.setVar();
           break;
-        default: fatal("unexpected state=%d", int(state));
+        default: DAG_FATAL("unexpected state=%d", int(state));
       }
     }
 
@@ -1459,12 +1459,12 @@ struct CloudsField
 
     if (!readbackData.valid && d3d::get_event_query_status(readbackData.query.get(), false))
     {
-      int stride;
       TIME_PROFILE(end_clouds_gpu_readback);
-      if (auto lockedTex = lock_texture<Point4>(layersHeights.getTex2D(), stride, 0, TEXLOCK_READ))
+      if (auto lockedTex = lock_texture<const Point4>(layersHeights.getTex2D(), 0, TEXLOCK_READ))
       {
-        readbackData.layerAltStart = lockedTex[1].x;
-        readbackData.layerAltTop = lockedTex[1].y;
+        Point4 src = lockedTex.at(1, 0);
+        readbackData.layerAltStart = src.x;
+        readbackData.layerAltTop = src.y;
       }
       readbackData.valid = true;
     }
@@ -2102,10 +2102,10 @@ struct Clouds2
     Point2 point(0, 0);
     if (holePosTex.getTex2D() && holeFound)
     {
-      int stride;
-      if (auto lockedTex = lock_texture<Point2>(holePosTex.getTex2D(), stride, 0, TEXLOCK_READ))
+      if (auto lockedTex = lock_texture<const Point4>(holePosTex.getTex2D(), 0, TEXLOCK_READ))
       {
-        point = lockedTex[0];
+        Point4 src = lockedTex.at(0, 0);
+        point = Point2(src.x, src.y);
         d3d::resource_barrier({holePosTex.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_ALL_GRAPHICS, 0, 0});
       }
     }

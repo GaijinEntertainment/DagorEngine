@@ -154,8 +154,7 @@ protected:
   int vertexDisplaceSamplers;
   double currentSimulatedTime;
   double lastFoamTime;
-  HeightmapRenderer meshRenderer;
-  HeightmapRenderer ssrRenderer;
+  HeightmapRenderer meshRenderer[fft_water::RenderMode::MAX];
   const fft_water::WaterHeightmap *waterHeightmap = nullptr;
   int waterHeightmapPatchesGridRes = 0;
   int waterHeightmapPatchesCount = 0;
@@ -182,10 +181,8 @@ protected:
   UniqueTexHolder heightmapPagesTex;
 
   UniqueBufHolder heightmapBuf;
-  eastl::unique_ptr<ShaderMaterial> heightmapShmat;
-  ShaderElement *heightmapShElem = nullptr;
-  eastl::unique_ptr<ShaderMaterial> heightmapSSRShmat;
-  ShaderElement *heightmapSSRShElem = nullptr;
+  eastl::unique_ptr<ShaderMaterial> heightmapShmat[fft_water::RenderMode::MAX];
+  ShaderElement *heightmapShElem[fft_water::RenderMode::MAX] = {nullptr, nullptr, nullptr};
 
   float waterLevel, maxWaveHeight, significantWaveHeight;
   float maxWaveSize[MAX_NUM_CASCADES];

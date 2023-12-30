@@ -166,9 +166,9 @@ void BulletRbRayCar::Wheel::onWheelContact(bool has_hit, const BulletRbRayCar::W
   //   wid, prevL, spring.curL, spring.curV, contact, cosa, suspForce, to_point3(wSpringAxis), to_point3(groundNorm));
 #if DAGOR_DBGLEVEL > 0
   if (check_nan(suspForce) || check_nan(wheelFz))
-    fatal("invalid suspForce=%.3f or wheelFz=%.3f", suspForce, wheelFz);
+    DAG_FATAL("invalid suspForce=%.3f or wheelFz=%.3f", suspForce, wheelFz);
   if (fabs(suspForce) > 1e6 || fabs(wheelFz) > 1e6)
-    fatal("extra large suspForce=%.3f or wheelFz=%.3f", suspForce, wheelFz);
+    DAG_FATAL("extra large suspForce=%.3f or wheelFz=%.3f", suspForce, wheelFz);
 #endif
 }
 
@@ -232,9 +232,9 @@ void BulletRbRayCar::Wheel::response()
 
 #if DAGOR_DBGLEVEL > 0
   if (check_nan(f_lat) || check_nan(f_long))
-    fatal("invalid f_lat=%.3f or f_long=%.3f", f_lat, f_long);
+    DAG_FATAL("invalid f_lat=%.3f or f_long=%.3f", f_lat, f_long);
   if (fabs(f_lat) > 1e6 || fabs(f_long) > 1e6)
-    // fatal("extra large f_lat=%.3f or f_long=%.3f", f_lat, f_long);
+    // DAG_FATAL("extra large f_lat=%.3f or f_long=%.3f", f_lat, f_long);
     logerr_ctx("extra large f_lat=%.3f or f_long=%.3f", f_lat, f_long);
 #else
   if (check_nan(f_lat) || check_nan(f_long))
@@ -610,7 +610,7 @@ void BulletRbRayCar::calculateForce(float ifps)
 
 #if DAGOR_DBGLEVEL > 0
       if (check_nan(fy) || fabs(fy) > 1e6)
-        fatal("bad fy=%.3f", fy);
+        DAG_FATAL("bad fy=%.3f", fy);
 #endif
       object->applyCentralImpulse(wUp * (fy * ifps));
     }

@@ -16,7 +16,7 @@ void HmapShadowsBrush::onBrushPaintEnd(int buttons, int key_modif)
 {
   HmapLandPlugin::self->calcGoodLandLightingInBox(dirtyBrushBox);
 
-  __super::onBrushPaintEnd(buttons, key_modif);
+  HmapLandBrush::onBrushPaintEnd(buttons, key_modif);
 }
 
 

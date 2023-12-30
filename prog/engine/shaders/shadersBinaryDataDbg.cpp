@@ -171,9 +171,22 @@ void shaderbindump::dumpVars(const shaderbindump::VarList &vars)
 
 void shaderbindump::dumpShaderInfo(const shaderbindump::ShaderClass &cls, bool dump_variants)
 {
-  debug("--- shader[%d] %s dump:\n"
+  uint32_t total_passes = 0;
+  uint32_t total_unique_shaders = 0;
+  {
+    ska::flat_hash_set<uint32_t> unique_shader_ids = {};
+    for (const ShaderCode &code : cls.code)
+    {
+      total_passes += code.passes.size();
+      for (const ShaderCode::Pass &pass : code.passes)
+        unique_shader_ids.insert((pass.rpass->vprId << 16) | pass.rpass->fshId);
+    }
+    total_unique_shaders = unique_shader_ids.size();
+  }
+
+  debug("--- shader[%d] %s dump (%d passes, %d unique passes):\n"
         " local vars(%d):",
-    cls.nameId, (const char *)cls.name, cls.localVars.v.size());
+    cls.nameId, (const char *)cls.name, total_passes, total_unique_shaders, cls.localVars.v.size());
   shaderbindump::dumpVars(cls.localVars);
 
   debug_("\n static init(%d):\n", cls.initCode.size() / 2);

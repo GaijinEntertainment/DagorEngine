@@ -4,16 +4,16 @@
 Ahead of time compilation and C++ operation bindings
 ====================================================
 
-For optimal performance and seamless integration, daScript is capable of ahead of time compilation,
-i.e. producing C++ files, which are semantically equivalent to simulated daScript nodes.
+For optimal performance and seamless integration, Daslang is capable of ahead of time compilation,
+i.e. producing C++ files, which are semantically equivalent to simulated Daslang nodes.
 
 The output C++ is designed to be to some extent human readable.
 
-For the most part, daScript produces AOT automatically,
+For the most part, Daslang produces AOT automatically,
 but some integration effort may be required for custom types.
 Plus, certain performance optimizations can be achieved with additional integration effort.
 
-daScript AOT integration is done on the AST expression tree level, and not on the simulation node level.
+Daslang AOT integration is done on the AST expression tree level, and not on the simulation node level.
 
 ---------
 das_index
@@ -107,7 +107,7 @@ AOT settings for individual functions
 
 There are several function annotations which control how function AOT is generated.
 
-The ``[hybrid]`` annotation indicates that a function is always called via the full daScript interop ABI (slower),
+The ``[hybrid]`` annotation indicates that a function is always called via the full Daslang interop ABI (slower),
 as oppose to a direct function call via C++ language construct (faster).
 Doing this removes the dependency between the two functions in the semantic hash,
 which in turn allows for replacing only one of the functions with the simulated version.

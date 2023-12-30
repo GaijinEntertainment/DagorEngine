@@ -52,13 +52,13 @@ shader blend_light_probes
   hlsl(ps) {
     struct MRT_OUTPUT
     {
-      half4 color0:SV_Target0;
-      half4 color1:SV_Target1;
-      half4 color2:SV_Target2;
+      float4 color0:SV_Target0;
+      float4 color1:SV_Target1;
+      float4 color2:SV_Target2;
       #if !JUST_THREE_FACES
-      half4 color3:SV_Target3;
-      half4 color4:SV_Target4;
-      half4 color5:SV_Target5;
+      float4 color3:SV_Target3;
+      float4 color4:SV_Target4;
+      float4 color5:SV_Target5;
       #define FACES
       #endif
     };
@@ -124,13 +124,13 @@ shader blend_light_probe_face
   POSTFX_VS_TEXCOORD(1, texcoord)
 
   hlsl(ps) {
-    half4 blend_cube_face_ps(VsOutput input) : SV_Target
+    float4 blend_cube_face_ps(VsOutput input) : SV_Target
     {
       float3 tc = GetCubemapVector(input.texcoord, int(blend_face_no+0.01));
       tc = mul(float4(tc, 0), probetm).xyz;
       half3 cube = texCUBElod(dynamic_cube_tex_1, float4(tc, 0)).rgb;
       half4 face = tex2D(tex, input.texcoord);
-      return half4(lerp(cube, face.rgb, face.a), 1);
+      return float4(lerp(cube, face.rgb, face.a), 1);
     }
   }
 

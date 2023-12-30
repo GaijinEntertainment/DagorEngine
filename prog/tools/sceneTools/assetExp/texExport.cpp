@@ -246,6 +246,7 @@ public:
     clear_and_resize(rec, texName.strCount());
     mem_set_0(rec);
 
+    int build_errors = 0;
     int ord_idx = 0;
     Tab<int> sorted_ids;
     gather_ids_in_lexical_order(sorted_ids, texName.getMap());
@@ -264,6 +265,9 @@ public:
       if (!dd_file_exist(tex_path))
       {
         log.addMessage(ILogWriter::ERROR, "Can't open image: %s", tex_path);
+        build_errors++;
+        if (!dabuild_stop_on_first_error)
+          return IterateStatus::Continue;
         return IterateStatus::StopFail;
       }
 
@@ -308,7 +312,9 @@ public:
         if (!texconvcache::get_tex_asset_built_ddsx(*a, b, cwr.getTarget(), profile, &log))
         {
           log.addMessage(ILogWriter::ERROR, "Can't export tex asset: %s", a->getName());
-          return IterateStatus::StopFail;
+          build_errors++;
+          if (dabuild_stop_on_first_error)
+            return IterateStatus::StopFail;
         }
         pbar.incDone();
         return IterateStatus::Continue;
@@ -359,12 +365,14 @@ public:
       if (!texconvcache::convert_dds(b, tex_path, a, cwr.getTarget(), cp))
       {
         log.addMessage(ILogWriter::ERROR, "Can't export image: %s, err=%s", tex_path, ddsx::get_last_error_text());
-        return IterateStatus::StopFail;
+        build_errors++;
+        if (dabuild_stop_on_first_error)
+          return IterateStatus::StopFail;
       }
       pbar.incDone();
       return IterateStatus::Continue;
     });
-    if (status != IterateStatus::StopDoneAll)
+    if (status != IterateStatus::StopDoneAll || build_errors)
       return false;
     iterate_names_in_order(texName.getMap(), sorted_ids, [&](int id, const char *name) {
       DagorAsset *a = texAsset[id];
@@ -503,8 +511,7 @@ public:
     String tname_enc_lwr(tname);
     if (should_encode_tmd(a, tq_nsid))
       tname_enc_lwr = tmd.encode(tname);
-    strlwr(tname_enc_lwr);
-    strlwr(fpath);
+    dd_strlwr(tname_enc_lwr);
 
     texName.addString(tname_enc_lwr);
 
@@ -741,7 +748,7 @@ bool checkDdsxTexPackUpToDate(unsigned tc, const char *profile, bool be, dag::Co
       String tname_enc_lwr(tname);
       if (should_encode_tmd(assets[i], tq_nsid))
         tname_enc_lwr = tmd.encode(tname);
-      strlwr(tname_enc_lwr);
+      dd_strlwr(tname_enc_lwr);
       texName.addString(tname_enc_lwr);
     }
 

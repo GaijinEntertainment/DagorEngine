@@ -83,7 +83,7 @@ void AnimObjGraphTree::loadAnimBnl(const DataBlock &blk)
     {
       String a2d_fname(b->getStr("a2d", "N/A"));
       ::dd_simplify_fname_c(a2d_fname);
-      strlwr(a2d_fname);
+      dd_strlwr(a2d_fname);
 
       a2dList.addNameId(a2d_fname);
 
@@ -286,7 +286,7 @@ void AnimObjBnl::load(const DataBlock &blk)
       loadNamedRanges(labels, *blk.getBlockByNameEx("labels"));
       break;
 
-    default: fatal_x("unknow type %d", type);
+    default: DAG_FATAL("unknow type %d", type);
   }
   disableOriginVel = blk.getBool("disable_origin_vel", false);
   additive = blk.getBool("additive", false);

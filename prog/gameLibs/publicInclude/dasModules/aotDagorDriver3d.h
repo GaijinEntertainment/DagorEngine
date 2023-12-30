@@ -14,6 +14,7 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_overrideStates.h>
 #include <ecs/render/postfx_renderer.h>
+#include <ecs/render/compute_shader.h>
 
 extern bool grs_draw_wire;
 
@@ -21,6 +22,7 @@ MAKE_TYPE_FACTORY(Driver3dPerspective, Driver3dPerspective);
 MAKE_TYPE_FACTORY(ShadersECS, ShadersECS);
 MAKE_TYPE_FACTORY(OverrideState, shaders::OverrideState);
 MAKE_TYPE_FACTORY(PostFxRenderer, PostFxRenderer);
+MAKE_TYPE_FACTORY(ComputeShader, ComputeShader);
 
 namespace bind_dascript
 {
@@ -65,5 +67,7 @@ inline float d3d_get_vsync_refresh_rate()
   d3d::driver_command(DRV3D_COMMAND_GET_VSYNC_REFRESH_RATE, &refreshRate, NULL, NULL);
   return refreshRate;
 }
+
+inline void d3d_stretch_rect(BaseTexture *src, BaseTexture *dst) { d3d::stretch_rect(src, dst); }
 
 } // namespace bind_dascript

@@ -655,7 +655,7 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
     if (!landclassShader[li].material)
     {
       if (li != LC_MEGA_DETAILED && li != LC_DETAILED_R)
-        fatal("can't create ShaderMaterial for '%s'", landclassShaderName[li]);
+        DAG_FATAL("can't create ShaderMaterial for '%s'", landclassShaderName[li]);
     }
     else
       landclassShader[li].elem = landclassShader[li].material->make_elem();
@@ -800,8 +800,12 @@ void LandMeshRenderer::resetTextures()
   d3d::driver_command(DRV3D_COMMAND_RELEASE_OWNERSHIP, NULL, NULL, NULL);
 }
 
-
 void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, float hmap_camera_height)
+{
+  prepare(provider, pos, hmap_camera_height, HeightmapHeightCulling::NO_WATER_ON_LEVEL);
+}
+
+void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, float hmap_camera_height, float water_level)
 {
   if (provider.isDecodedToWorldPos() && !optScn)
   {
@@ -818,7 +822,7 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
   else if (provider.getHmapHandler())
   {
     renderHeightmapType =
-      (provider.mayRenderHmap && provider.getHmapHandler()->prepare(pos, hmap_camera_height)) ? TESSELATED_HMAP : NO_HMAP;
+      (provider.mayRenderHmap && provider.getHmapHandler()->prepare(pos, hmap_camera_height, water_level)) ? TESSELATED_HMAP : NO_HMAP;
     provider.cullingState.useExclBox = renderHeightmapType != NO_HMAP;
   }
 

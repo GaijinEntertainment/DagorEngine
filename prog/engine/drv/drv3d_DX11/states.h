@@ -336,17 +336,22 @@ struct DepthStencilState
   };
 };
 
+class SamplerStateObject;
+
 struct SamplerState
 {
-  ID3D11ShaderResourceView *viewObject = nullptr;
-  ID3D11SamplerState *stateObject = nullptr;
-  BaseTexture *texture = nullptr;
-  GenericBuffer *buffer = nullptr;
+  enum class SamplerSource : uint8_t
+  {
+    None = 0,
+    Texture = 1,
+    Sampler = 2,
+    Latest = 3
+  };
 
   struct Key
   {
-    uint32_t borderColor;
-    uint32_t lodBias;
+    E3DCOLOR borderColor;
+    float lodBias;
     union
     {
       uint32_t k;
@@ -358,29 +363,43 @@ struct SamplerState
         uint32_t addrW : 3;
         uint32_t texFilter : 3;
         uint32_t mipFilter : 3;
-      } s;
-    } u;
-
-    void copy(const BaseTex *tex, int anisotropy_level)
-    {
-      borderColor = uint32_t(tex->borderColor);
-      lodBias = *((uint32_t *)(&tex->lodBias));
-      u.k = tex->key & tex->SAMPLER_KEY_MASK; //
+      };
     };
-    inline uint32_t getHash() const { return hash32shiftmult(u.k); }
+
+    void copy(const BaseTex *tex)
+    {
+      borderColor = tex->borderColor;
+      lodBias = tex->lodBias;
+      k = tex->key & BaseTextureImpl::SAMPLER_KEY_MASK;
+    };
+    inline uint32_t getHash() const { return hash32shiftmult(k); }
   };
 
-  static Key makeKey(const BaseTex *tex, int anisotropy_level)
+  ID3D11ShaderResourceView *viewObject = nullptr;
+  ID3D11SamplerState *stateObject = nullptr;
+  SamplerState::Key latestSamplerKey = {};
+
+  BaseTexture *texture = nullptr;
+  GenericBuffer *buffer = nullptr;
+  SamplerStateObject *sampler = nullptr;
+  SamplerSource samplerSource = SamplerSource::None;
+
+  static Key makeKey(const BaseTex *tex)
   {
     Key k;
     ZeroMemory(&k, sizeof(k));
-    k.copy(tex, anisotropy_level);
+    k.copy(tex);
     return k;
   };
 
   // return true if modified
-  bool setTex(BaseTexture *tex, unsigned shader_stage)
+  bool setTex(BaseTexture *tex, unsigned shader_stage, bool use_sampler)
   {
+    if (use_sampler)
+    {
+      samplerSource = tex ? SamplerSource::Texture : SamplerSource::None;
+    }
+
     if (buffer)
     {
       buffer = NULL;
@@ -389,20 +408,27 @@ struct SamplerState
       stateObject = NULL;
       BaseTex *bt = (BaseTex *)tex;
       if (bt)
+      {
         bt->unsetModified(shader_stage);
+      }
       return true;
     }
+
     if (texture == tex)
     {
       if (tex != NULL)
       {
         BaseTex *bt = (BaseTex *)tex;
         if (!bt->getModified(shader_stage))
+        {
           return false;
+        }
         bt->unsetModified(shader_stage);
       }
-      else // tex = NULL
+      else // tex == NULL
+      {
         return false;
+      }
     }
 
     texture = tex;
@@ -411,6 +437,7 @@ struct SamplerState
     stateObject = NULL;
     return true;
   }
+
   bool setBuffer(GenericBuffer *buf)
   {
     if (texture)
@@ -423,12 +450,29 @@ struct SamplerState
     }
 
     if (buffer == buf)
+    {
       return false;
+    }
 
     buffer = buf;
     // will be filled on flush
     viewObject = NULL;
     stateObject = NULL;
+    return true;
+  }
+
+  bool setSampler(SamplerStateObject *smp)
+  {
+    bool unchanged =
+      ((samplerSource == SamplerSource::Sampler) && (smp == sampler)) || ((samplerSource == SamplerSource::None) && (smp == nullptr));
+    if (unchanged)
+    {
+      return false;
+    }
+
+    stateObject = nullptr;
+    samplerSource = smp ? SamplerSource::Sampler : SamplerSource::None;
+    sampler = smp;
     return true;
   }
 };
@@ -442,6 +486,7 @@ struct TextureFetchState
     G_STATIC_ASSERT(MAX_RESOURCES <= sizeof(decltype(modifiedMask)) * CHAR_BIT);
     bool flush(unsigned shader_stage, bool force, ID3D11ShaderResourceView **views, ID3D11SamplerState **states, int &first, int &max);
     ID3D11SamplerState *getStateObject(const BaseTex *basetex);
+    ID3D11SamplerState *getStateObject(const SamplerState::Key &key);
   };
   carray<Samplers, STAGE_MAX_EXT> resources;
 

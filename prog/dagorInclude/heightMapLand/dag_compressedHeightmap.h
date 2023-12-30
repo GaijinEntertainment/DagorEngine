@@ -49,14 +49,14 @@ struct CompressedHeightmap
   struct BlockInfo
   {
     uint16_t mn, delta;
-    const uint16_t getMin() const { return mn; }
-    const uint16_t getMax() const { return mn + delta; }
-    const uint16_t decodeVariance(uint8_t v) const { return mn + uint32_t(uint32_t(v) * delta + 127) / 255; }
-    const uint8_t encodeVarianceUnsafe(uint16_t h) const // not checking if delta == 0 or  mn <= h <= mn + delta
+    uint16_t getMin() const { return mn; }
+    uint16_t getMax() const { return mn + delta; }
+    uint16_t decodeVariance(uint8_t v) const { return mn + uint32_t(uint32_t(v) * delta + 127) / 255; }
+    uint8_t encodeVarianceUnsafe(uint16_t h) const // not checking if delta == 0 or  mn <= h <= mn + delta
     {
       return uint32_t(uint32_t(h - mn) * 255 + (delta >> 1)) / delta;
     }
-    const uint8_t encodeVariance(uint16_t h) const
+    uint8_t encodeVariance(uint16_t h) const
     {
       if (!delta)
         return 0;
@@ -104,7 +104,7 @@ struct CompressedHeightmap
   const uint8_t *getBlockVariance(uint32_t b) const { return blockVariance + (b << block_size_shift); }
   const BlockInfo &getBlockInfo(uint32_t bx, uint32_t by) const { return getBlockInfo(bx + by * bw); }
   const uint8_t *getBlockVariance(uint32_t bx, uint32_t by) const { return getBlockVariance(bx + by * bw); }
-  const uint16_t decodeBlockPixelUnsafe(uint32_t blockId, uint32_t in_block_coord) const
+  uint16_t decodeBlockPixelUnsafe(uint32_t blockId, uint32_t in_block_coord) const
   {
     const BlockInfo block = getBlockInfo(blockId);
     auto vi = getBlockVariance(blockId);
@@ -112,7 +112,7 @@ struct CompressedHeightmap
       return block.mn;
     return block.decodeVariance(vi[in_block_coord]);
   }
-  const uint16_t decodePixelUnsafe(uint32_t x, uint32_t y) const
+  uint16_t decodePixelUnsafe(uint32_t x, uint32_t y) const
   {
     const uint32_t bx = x >> block_width_shift, by = y >> block_width_shift, bi = x & block_width_mask, bj = y & block_width_mask;
     return decodeBlockPixelUnsafe(bx + by * bw, bi + (bj << block_width_shift));

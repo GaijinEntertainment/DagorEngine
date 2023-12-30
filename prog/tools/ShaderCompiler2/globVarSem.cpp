@@ -117,7 +117,7 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     variable_list[v].nameId = variableNameID;
     variable_list[v].isAlwaysReferenced = decl->is_always_referenced ? true : false;
     variable_list[v].shouldIgnoreValue = decl->undefined ? true : false;
-    variable_list[v].fileName = parser.get_lex_parser().get_filename(decl->name->file_start);
+    variable_list[v].fileName = bindump::string(parser.get_lex_parser().get_filename(decl->name->file_start));
     variable_list[v].array_size = size;
     variable_list[v].index = i;
 
@@ -139,21 +139,19 @@ void add_global_var(global_var_decl *decl, ShaderTerminal::ShaderSyntaxParser &p
     }
     switch (t)
     {
-      case SHVT_COLOR4: variable_list[v].value.c4 = val; break;
+      case SHVT_COLOR4: variable_list[v].value.c4.set(val); break;
       case SHVT_REAL: variable_list[v].value.r = val[0]; break;
       case SHVT_INT: variable_list[v].value.i = real2int(val[0]); break;
-      case SHVT_INT4:
-        variable_list[v].value.i4 = IPoint4(real2int(val[0]), real2int(val[1]), real2int(val[2]), real2int(val[3]));
-        break;
+      case SHVT_INT4: variable_list[v].value.i4.set(real2int(val[0]), real2int(val[1]), real2int(val[2]), real2int(val[3])); break;
       case SHVT_FLOAT4X4:
         // default value is not supported
         break;
       case SHVT_BUFFER:
-        variable_list[v].value.bufId = BAD_D3DRESID;
+        variable_list[v].value.bufId = unsigned(BAD_D3DRESID);
         variable_list[v].value.buf = NULL;
         break;
       case SHVT_TEXTURE:
-        variable_list[v].value.texId = BAD_TEXTUREID;
+        variable_list[v].value.texId = unsigned(BAD_TEXTUREID);
         variable_list[v].value.tex = NULL;
         break;
       default: G_ASSERT(0);

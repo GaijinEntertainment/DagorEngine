@@ -38,7 +38,7 @@ public:
     if (!tn)
     {
       if (BASE::nodeCount() != createdNode.size())
-        fatal_x("Deserialized");
+        DAG_FATAL("Deserialized");
       createdNode.push_back(typename BASE::TopNode(uc, vc, wc));
       BASE::nodes.init(&createdNode[0], createdNode.size());
       tn = &createdNode.back();

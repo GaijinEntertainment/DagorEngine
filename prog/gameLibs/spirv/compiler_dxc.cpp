@@ -1,5 +1,7 @@
 // clang-format off
+#ifdef _MSC_VER
 #pragma warning(disable : 4995)
+#endif
 #include "module_nodes.h"
 #include <spirv/module_builder.h>
 
@@ -277,15 +279,36 @@ static ReflectionInfo convertVariableInfo(NodePointer<NodeOpVariable> var, bool 
   return ret;
 }
 
-static eastl::vector<ReflectionInfo> compileReflection(ModuleBuilder &builder, bool overwrite_sets)
+static eastl::vector<ReflectionInfo> compileReflection(ModuleBuilder &builder, bool overwrite_sets, bool &atomic_textures)
 {
   eastl::vector<ReflectionInfo> ret;
-  builder.enumerateAllGlobalVariables([&ret, overwrite_sets](auto var) //
+  eastl::vector<NodePointer<NodeOpVariable>> uav_textures;
+  eastl::vector<NodePointer<NodeOpImageTexelPointer>> uav_texture_pointers;
+  builder.enumerateAllGlobalVariables([&ret, &uav_textures, overwrite_sets](auto var) //
     {
       auto ptrType = as<NodeOpTypePointer>(var->resultType);
       if (ptrType->storageClass == StorageClass::UniformConstant || ptrType->storageClass == StorageClass::Uniform)
-        ret.push_back(convertVariableInfo(var, is<NodeOpTypeSampler>(ptrType->type), overwrite_sets));
+      {
+        ReflectionInfo info = convertVariableInfo(var, is<NodeOpTypeSampler>(ptrType->type), overwrite_sets);
+        ret.push_back(info);
+        if (info.uav && info.type == ReflectionInfo::Type::Texture)
+          uav_textures.push_back(var);
+      }
     });
+  for (auto &var : uav_textures)
+  {
+    builder.enumerateConsumersOf(var, [&](auto tex_consumer, auto &) {
+      if (tex_consumer->opCode == Op::OpImageTexelPointer)
+        uav_texture_pointers.push_back(tex_consumer);
+    });
+  }
+  for (auto &tex_consumer : uav_texture_pointers)
+  {
+    builder.enumerateConsumersOf(tex_consumer, [&](auto atomic_op, auto &) {
+      if (atomic_op->opCode >= Op::OpAtomicLoad && atomic_op->opCode <= Op::OpAtomicXor)
+        atomic_textures = true;
+    });
+  }
   return ret;
 }
 
@@ -297,8 +320,10 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
   IDxcCompiler *compiler = nullptr;
 #if _TARGET_PC_WIN
   const String libPath("dxcompiler.dll");
-#else
+#elif _TARGET_PC_MACOSX
   const String libPath = folders::get_exe_dir() + "dxcompiler.dylib";
+#elif _TARGET_PC_LINUX
+  const String libPath = folders::get_exe_dir() + "libdxcompiler.so";
 #endif
   eastl::unique_ptr<void, DagorDllCloser> library;
   library.reset(os_dll_load(libPath.c_str()));
@@ -469,9 +494,15 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
         result.computeShaderInfo = resolveComputeShaderInfo(module);
         if ((flags & CompileFlags::OUTPUT_REFLECTION) == CompileFlags::OUTPUT_REFLECTION)
         {
+          bool atomic_textures = false;
           result.header = {};
-          result.reflection =
-            compileReflection(module, (flags & CompileFlags::OVERWRITE_DESCRIPTOR_SETS) == CompileFlags::OVERWRITE_DESCRIPTOR_SETS);
+          result.reflection = compileReflection(module,
+            (flags & CompileFlags::OVERWRITE_DESCRIPTOR_SETS) == CompileFlags::OVERWRITE_DESCRIPTOR_SETS, atomic_textures);
+          if (atomic_textures)
+          {
+            result.infoLog.emplace_back("Shader uses atomic ops for textures. this doesn't work on metal");
+            return result;
+          }
         }
         else
         {

@@ -45,7 +45,7 @@ void CameraConfig::save(DataBlock &blk)
 
 void FpsCameraConfig::load(const DataBlock &blk)
 {
-  __super::load(blk);
+  CameraConfig::load(blk);
   moveStep = blk.getReal("move_step", 3.5);
   strifeStep = blk.getReal("strife_step", 3.5);
   controlMultiplier = blk.getReal("control_multiplier", 3.5);
@@ -61,7 +61,7 @@ void FpsCameraConfig::load(const DataBlock &blk)
 
 void FpsCameraConfig::save(DataBlock &blk)
 {
-  __super::save(blk);
+  CameraConfig::save(blk);
   blk.setReal("height", height);
   blk.setReal("half_height", halfHeight);
   blk.setReal("step_height", stepHeight);
@@ -74,7 +74,7 @@ void FpsCameraConfig::save(DataBlock &blk)
 
 void TpsCameraConfig::load(const DataBlock &blk)
 {
-  __super::load(blk);
+  FpsCameraConfig::load(blk);
   minDist = blk.getReal("minDist", 4.5);
   maxMaxDist = blk.getReal("maxMaxDist", 10.0);
   maxOutSpeed = blk.getReal("maxOutSpeed", 5.0);
@@ -85,7 +85,7 @@ void TpsCameraConfig::load(const DataBlock &blk)
 
 void TpsCameraConfig::save(DataBlock &blk)
 {
-  __super::save(blk);
+  FpsCameraConfig::save(blk);
   blk.setReal("minDist", minDist);
   blk.setReal("maxMaxDist", maxMaxDist);
   blk.setReal("maxOutSpeed", maxOutSpeed);
@@ -225,7 +225,7 @@ FPSCameraTab::FPSCameraTab(PropertyContainerControlBase *tab_page, CameraConfig 
 
 void FPSCameraTab::onOk()
 {
-  __super::onOk();
+  FreeCameraTab::onOk();
 
   FpsCameraConfig *fpsConf = (FpsCameraConfig *)mConfig;
   if (!fpsConf)
@@ -265,7 +265,7 @@ TPSCameraTab::TPSCameraTab(PropertyContainerControlBase *tab_page, CameraConfig 
 
 void TPSCameraTab::onOk()
 {
-  __super::onOk();
+  FPSCameraTab::onOk();
 
   TpsCameraConfig *tpsConf = (TpsCameraConfig *)mConfig;
   if (!tpsConf)

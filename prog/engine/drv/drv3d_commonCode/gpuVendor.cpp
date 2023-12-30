@@ -62,8 +62,10 @@ const NvPhysicalGpuHandle &gpu::get_nv_physical_gpu()
   return nvPhysicalGpuHandle;
 }
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4191)
+#endif
 
 void gpu::get_nv_gpu_memory(uint32_t &out_dedicated_kb, uint32_t &out_shared_kb, uint32_t &out_dedicated_free_kb)
 {
@@ -85,7 +87,9 @@ void gpu::get_nv_gpu_memory(uint32_t &out_dedicated_kb, uint32_t &out_shared_kb,
   }
 }
 
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 void gpu::get_video_nvidia_str(String &out_str)
 {

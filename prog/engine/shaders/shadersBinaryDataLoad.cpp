@@ -164,6 +164,7 @@ bool ScriptedShadersBinDumpOwner::loadData(const uint8_t *dump, int size)
   }
 
   mShaderDumpV2 = bindump::map<shader_layout::ScriptedShadersBinDumpV2>(mSelfData.data());
+  mShaderDumpV3 = bindump::map<shader_layout::ScriptedShadersBinDumpV3>(mSelfData.data());
 
   uint64_t cache_size_in_mb = 0;
   const DataBlock *graphicsBlk = ::dgs_get_settings()->getBlockByNameEx("graphics");

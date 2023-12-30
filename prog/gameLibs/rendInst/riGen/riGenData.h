@@ -220,7 +220,7 @@ struct RendInstGenData
     Point2 lastPoi;
     float lastPreloadDistance = 0.f;
     SmartReadWriteFifoLock riRwCs;
-    WinCritSec updateVbResetCS;
+    WinCritSec updateVbResetCS; // TODO: ensure that `cellsVb` mutation is done in main thread only and remove this
     float rendinstFarPlane;
     float rendinstMaxLod0Dist;
     float rendinstMaxDestructibleSizeSum;
@@ -273,8 +273,7 @@ struct RendInstGenData
     void copyVisibileImpostorsData(const RiGenVisibility &visibility, bool clear_data);
 
     void initDebris(const DataBlock &ri_blk, int (*get_fx_type_by_name)(const char *name));
-    void addDebris(mat44f &tm, int pool_idx, unsigned frameNo, bool effect, rendinst::ri_damage_effect_cb effect_cb,
-      const Point3 &axis, float accumulatedPower = 0.0f);
+    void addDebris(mat44f &tm, int pool_idx, unsigned frameNo, const Point3 &axis, float accumulatedPower = 0.0f);
     rendinst::DestroyedRi *addExternalDebris(mat44f &tm, int pool_idx);
     void addDebrisForRiExtraRange(const DataBlock &ri_blk, uint32_t res_idx, uint32_t count);
     void updateDebris(uint32_t curFrame, float dt);
@@ -313,7 +312,7 @@ struct RendInstGenData
 
     void clear();
     void setTextureMinMipWidth(int textureSize, int impostorSize);
-    bool isHiddenId(const int ri_idx)
+    bool isHiddenId(const int ri_idx) const
     {
 #if DAGOR_DBGLEVEL > 0
       return hiddenIdx.find(ri_idx) != hiddenIdx.end();
@@ -352,7 +351,6 @@ struct RendInstGenData
     }; // 4 cascades tops
     uint32_t cellStateFlags = LOADED;
     bool burned = false;
-    // WinCritSec *updateVbResetCS;
 
     CellRtData(int ri_cnt, RtData *parent) : rtData(parent) //-V730
     {
@@ -470,18 +468,10 @@ public:
     const rendinst::VisibilityExternalFilter &external_filter = {});
   void sortRIGenVisibility(RiGenVisibility &visibility, const Point3 &viewPos, const Point3 &viewDir, float vertivalFov,
     float horizontalFov, float value);
-  void renderPreparedOpaque(rendinst::RenderPass renderPass, const RiGenVisibility &visibility, bool depth_optimized, int lodI,
-    int realdLodI, bool &isStarted);
-  void renderByCells(rendinst::RenderPass renderPass, const rendinst::LayerFlags layer_flags, const RiGenVisibility &visibility,
-    bool optimization_depth_prepass, bool depth_optimized);
   void renderPreparedOpaque(rendinst::RenderPass renderPass, rendinst::LayerFlags layer_flags, const RiGenVisibility &visibility,
     const TMatrix &view_itm, bool depth_optimized);
   void renderOptimizationDepthPrepass(const RiGenVisibility &visibility, const TMatrix &view_itm);
   void renderDebug();
-  void renderPerInstance(rendinst::RenderPass renderPass, int lod, int realLodI, const RiGenVisibility &visibility);
-  inline void renderInstances(int ri_idx, int realLodI, const vec4f *data, int count, RenderStateContext &context,
-    const int max_instances, const int skip_atest_mask, const int last_stage);
-  void renderCrossDissolve(rendinst::RenderPass renderPass, int ri_idx, int realLodI, const RiGenVisibility &visibility);
 
   void render(rendinst::RenderPass renderPass, const RiGenVisibility &visibility, const TMatrix &view_itm,
     rendinst::LayerFlags layer_flags, bool depth_optimized);
@@ -515,7 +505,7 @@ public:
   void setClipmapShadowsRendered(int cacscadeNo);
   bool updateLClassColors(const char *name, E3DCOLOR from, E3DCOLOR to); // for tuning
   void clearDelayedRi();
-  void updateHeapVb();
+  void updateHeapVbNoLock();
 
   static RendInstGenData *getGenDataByLayer(const rendinst::RendInstDesc &desc);
 };
@@ -607,6 +597,19 @@ inline bool is_rendinst_marked_collision_ignored(const int16_t *data, int per_in
     return data[stride] == 0xBAD;
   return false;
 }
+
+inline bool getRIGenCanopyBBox(const RendInstGenData::RendinstProperties &prop, const BBox3 &ri_world_bbox, BBox3 &out_canopy_bbox)
+{
+  float canopyWidth = prop.canopyWidthPart * (ri_world_bbox[1].y - ri_world_bbox[0].y) * 0.5f;
+  float boxHeight = ri_world_bbox[1].y - ri_world_bbox[0].y;
+  Point3 boxCenter = ri_world_bbox.center();
+  out_canopy_bbox[0].set(boxCenter.x - canopyWidth, ri_world_bbox[1].y - boxHeight * (prop.canopyTopPart + prop.canopyTopOffset),
+    boxCenter.z - canopyWidth);
+  out_canopy_bbox[1].set(boxCenter.x + canopyWidth, ri_world_bbox[1].y - boxHeight * prop.canopyTopOffset, boxCenter.z + canopyWidth);
+
+  return prop.canopyOpacity > 0.0;
+}
+
 }; // namespace rendinst
 
 #define FOR_EACH_RG_LAYER_DO(VAR)                                   \

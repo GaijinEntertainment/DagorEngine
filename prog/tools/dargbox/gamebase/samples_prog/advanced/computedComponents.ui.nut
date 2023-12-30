@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 
-local function watchElems(elems, params = {}) {
+function watchElems(elems, params = {}) {
   if (typeof(elems) != "array")
     elems = [elems]
   local { watch = null } = params

@@ -81,7 +81,7 @@ void CToolWindow::onWcResize(WindowBase *source)
     this->setWidth(_pxActual(mW));
   }
 
-  __super::onWcResize(source);
+  PropertyContainerHorz::onWcResize(source);
 }
 
 

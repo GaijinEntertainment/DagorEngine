@@ -113,7 +113,11 @@ public:
     loadExporterPlugins();
 #endif
     // load DDSx export plugins
-#if _TARGET_64BIT
+#if _TARGET_PC_LINUX
+    const char *ddsxPluginsPathBase = "../bin-linux64/plugins/ddsx";
+#elif _TARGET_PC_MACOSX
+    const char *ddsxPluginsPathBase = "../bin-macosx/plugins/ddsx";
+#elif _TARGET_64BIT
     const char *ddsxPluginsPathBase = "../bin64/plugins/ddsx";
 #else
     const char *ddsxPluginsPathBase = "../bin/plugins/ddsx";
@@ -491,12 +495,18 @@ protected:
 
 static AssetExport daBuildExp;
 
-#ifndef _TARGET_DABUILD_STATIC
-extern "C" __declspec(dllexport) IDaBuildInterface *__stdcall get_dabuild_interface()
+#if _TARGET_DABUILD_STATIC
+#define DABUILD_DLL_API extern "C"
+#elif _TARGET_PC_WIN
+#define DABUILD_DLL_API extern "C" __declspec(dllexport)
+#else
+#define DABUILD_DLL_API extern "C" __attribute__((visibility("default")))
+#endif
+
+DABUILD_DLL_API IDaBuildInterface *__stdcall get_dabuild_interface()
 {
+#if !_TARGET_DABUILD_STATIC
   reqFastConv = true;
+#endif
   return &daBuildExp;
 }
-#else
-extern "C" IDaBuildInterface *__stdcall get_dabuild_interface() { return &daBuildExp; }
-#endif

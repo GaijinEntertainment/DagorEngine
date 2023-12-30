@@ -490,17 +490,17 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
   const Direct3D12Enviroment &d3d_env, SwapchainCreateInfo swapchain_create_info, debug::GlobalState &debug_state, const Config &cfg,
   const DataBlock *dxCfg, bool stereo_render)
 {
-  debug("DX12: IDXGIAdapter1::QueryInterface IDXGIAdapter4...");
+  logdbg("DX12: IDXGIAdapter1::QueryInterface IDXGIAdapter4...");
   if (FAILED(adapterInfo.adapter.As(&adapter)))
   {
-    debug("DX12: Failed...");
+    logdbg("DX12: Failed...");
     return false;
   }
-  debug("DX12: D3D12CreateDevice...");
+  logdbg("DX12: D3D12CreateDevice...");
   if (!device.autoQuery([&d3d_env, this, feature_level](auto uuid, auto ptr) //
         { return SUCCEEDED(d3d_env.D3D12CreateDevice(this->adapter.Get(), feature_level, uuid, ptr)); }))
   {
-    debug("DX12: Failed...");
+    logdbg("DX12: Failed...");
     shutdown({});
     return false;
   }
@@ -519,7 +519,7 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
   {
     // When validation is enabled we should name objects to aid debugging
 #if DX12_DOES_SET_DEBUG_NAMES
-    debug("DX12: Detected enabled validation layer, enabling object naming");
+    logdbg("DX12: Detected enabled validation layer, enabling object naming");
     config.features.set(DeviceFeaturesConfig::NAME_OBJECTS);
 #else
     logwarn("DX12: Detected enabled validation layer, but this build can not name objects!");
@@ -527,7 +527,7 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
   }
   startDeviceErrorObserver(device.get());
 
-  debug("DX12: Checking shader model...");
+  logdbg("DX12: Checking shader model...");
   // Right now we require shader model 6.0 as our shaders are DXIL and they are 6.0
   // and above. If we want to support 5.1 shader than the shader compiler has to
   // compile them into DXBC _and_ DXIL. This is possible but increases the shader
@@ -536,29 +536,29 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
   device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &sm, sizeof(sm));
   if (sm.HighestShaderModel < D3D_SHADER_MODEL_6_0)
   {
-    debug("DX12: Failed, does not support shader model 6.0 or higher");
+    logdbg("DX12: Failed, does not support shader model 6.0 or higher");
     // on debug builds we allow dxbc shaders to work with debug tools, dxbc has better support
 #if DAGOR_DBGLEVEL > 0
-    debug("DX12: Debug build, allowing target without DXIL support");
+    logdbg("DX12: Debug build, allowing target without DXIL support");
 #else
     shutdown({});
     return false;
 #endif
   }
 
-  debug("DX12: Creating queues...");
+  logdbg("DX12: Creating queues...");
   if (!queues.init(device.get(), shouldNameObjects()))
   {
-    debug("DX12: Failed...");
+    logdbg("DX12: Failed...");
     shutdown({});
     return false;
   }
 
-  debug("DX12: Creating swapchain...");
+  logdbg("DX12: Creating swapchain...");
   if (!context.back.swapchain.setup(*this, context.front.swapchain, factory, queues[DeviceQueueType::GRAPHICS].getHandle(),
         eastl::move(swapchain_create_info)))
   {
-    debug("DX12: Failed...");
+    logdbg("DX12: Failed...");
     shutdown({});
     return false;
   }
@@ -761,7 +761,7 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   capabilities.caps.hasDepthBoundsTest = hasDepthBoundsTest();
   capabilities.caps.hasConditionalRender = true;
   capabilities.caps.hasResourceCopyConversion = true;
-  capabilities.caps.hasReadMultisampledDepth = true;
+  capabilities.caps.hasReadMultisampledDepth = false;
   capabilities.caps.hasInstanceID = true;
   capabilities.caps.hasQuadTessellation = true;
   capabilities.caps.hasGather4 = true;
@@ -775,7 +775,7 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   capabilities.caps.hasUAVOnlyForcedSampleCount = true;
   capabilities.caps.hasNativeRenderPassSubPasses = false;
   capabilities.caps.hasDrawID = true;
-  capabilities.caps.hasRenderPassDepthResolve = true;
+  capabilities.caps.hasRenderPassDepthResolve = false;
 
 #if HAS_NVAPI
   // This is a bloody workaround for broken terrain tessellation.
@@ -801,7 +801,7 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   auto sm = checkFeatureSupport<D3D12_FEATURE_DATA_SHADER_MODEL>(shader_model_to_dx(d3d::smMax));
 
   capabilities.shaderModel = shader_model_from_dx(sm.HighestShaderModel);
-  debug("DX12: GPU has support for Shader Model %u.%u", capabilities.shaderModel.major, capabilities.shaderModel.minor);
+  logdbg("DX12: GPU has support for Shader Model %u.%u", capabilities.shaderModel.major, capabilities.shaderModel.minor);
 
   capabilities.caps.hasConservativeRassterization =
     D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED != op0.ConservativeRasterizationTier;
@@ -821,7 +821,7 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
 
   capabilities.minWarpSize = op1.WaveOps ? op1.WaveLaneCountMin : 0;
 
-  debug("GPU has tier %d for view instancing.", op3.ViewInstancingTier);
+  logdbg("GPU has tier %d for view instancing.", op3.ViewInstancingTier);
   capabilities.caps.hasBasicViewInstancing = D3D12_VIEW_INSTANCING_TIER_1 <= op3.ViewInstancingTier;
   capabilities.caps.hasOptimizedViewInstancing = D3D12_VIEW_INSTANCING_TIER_2 <= op3.ViewInstancingTier;
   capabilities.caps.hasAcceleratedViewInstancing = D3D12_VIEW_INSTANCING_TIER_3 <= op3.ViewInstancingTier;
@@ -954,7 +954,7 @@ Texture *Device::wrapD3DTex(ID3D12Resource *tex_res, ResourceBarrier current_sta
 
   BaseTex *tex = newTextureObject(layers.count() > 1 ? RES3D_ARRTEX : RES3D_TEX, flg);
   tex->tex.image = image;
-  tex->tex.image->setMultisampled(tex->isMultisampled());
+  G_ASSERT(1 << tex->tex.image->getMsaaLevel() == get_sample_count(tex->cflg));
 
   auto &ext = image->getBaseExtent();
   tex->setParams(ext.width, ext.height, layers.count() > 1 ? layers.count() : ext.depth, image->getMipLevelRange().count(), name);
@@ -1029,7 +1029,7 @@ void Device::addBufferView(BufferState &buffer, BufferViewType view_type, Buffer
   }
   else
   {
-    fatal("DX12: Invalid input to Device::addBufferView");
+    DAG_FATAL("DX12: Invalid input to Device::addBufferView");
     return;
   }
 }
@@ -1293,20 +1293,20 @@ bool Device::recover(DXGIFactory *factory, ComPtr<IDXGIAdapter1> input_adapter, 
   const Direct3D12Enviroment &d3d_env, HWND wnd, SwapchainCreateInfo &&sci)
 {
   enterRecoveringState();
-  debug("DX12: Entering recovering state...");
+  logdbg("DX12: Entering recovering state...");
 
-  debug("DX12: IDXGIAdapter1::QueryInterface IDXGIAdapter4...");
+  logdbg("DX12: IDXGIAdapter1::QueryInterface IDXGIAdapter4...");
   if (FAILED(input_adapter.As(&adapter)))
   {
-    debug("DX12: Failed...");
+    logdbg("DX12: Failed...");
     enterErrorState();
     return false;
   }
-  debug("DX12: D3D12CreateDevice...");
+  logdbg("DX12: D3D12CreateDevice...");
   if (!device.autoQuery([&d3d_env, this, feature_level](auto uuid, auto ptr) //
         { return SUCCEEDED(d3d_env.D3D12CreateDevice(this->adapter.Get(), feature_level, uuid, ptr)); }))
   {
-    debug("DX12: Failed...");
+    logdbg("DX12: Failed...");
     enterErrorState();
     return false;
   }
@@ -1314,7 +1314,7 @@ bool Device::recover(DXGIFactory *factory, ComPtr<IDXGIAdapter1> input_adapter, 
   debug::DeviceState::recover(device.get(), d3d_env);
   startDeviceErrorObserver(device.get());
 
-  debug("DX12: Checking shader model...");
+  logdbg("DX12: Checking shader model...");
   // Right now we require shader model 6.0 as our shaders are DXIL and they are 6.0
   // and above. If we want to support 5.1 shader than the shader compiler has to
   // compile them into DXBC _and_ DXIL. This is possible but increases the shader
@@ -1323,25 +1323,25 @@ bool Device::recover(DXGIFactory *factory, ComPtr<IDXGIAdapter1> input_adapter, 
   device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &sm, sizeof(sm));
   if (sm.HighestShaderModel < D3D_SHADER_MODEL_6_0)
   {
-    debug("DX12: Failed, does not support shader model 6.0 or higher");
+    logdbg("DX12: Failed, does not support shader model 6.0 or higher");
     // on debug builds we allow dxbc shaders to work with debug tools, dxbc has better support
 #if DAGOR_DBGLEVEL > 0
-    debug("DX12: Debug build, allowing target without DXIL support");
+    logdbg("DX12: Debug build, allowing target without DXIL support");
 #else
     enterErrorState();
     return false;
 #endif
   }
 
-  debug("DX12: Creating queues...");
+  logdbg("DX12: Creating queues...");
   if (!queues.init(device.get(), shouldNameObjects()))
   {
-    debug("DX12: Failed...");
+    logdbg("DX12: Failed...");
     enterErrorState();
     return false;
   }
 
-  debug("DX12: Creating swapchain...");
+  logdbg("DX12: Creating swapchain...");
   // reconstruct from current state
   sci.window = wnd;
   sci.presentMode = context.front.swapchain.getPresentationMode();
@@ -1349,7 +1349,7 @@ bool Device::recover(DXGIFactory *factory, ComPtr<IDXGIAdapter1> input_adapter, 
   if (!context.back.swapchain.setup(*this, context.front.swapchain, factory, queues[DeviceQueueType::GRAPHICS].getHandle(),
         eastl::move(sci)))
   {
-    debug("DX12: Failed...");
+    logdbg("DX12: Failed...");
     enterErrorState();
     return false;
   }
@@ -1547,8 +1547,8 @@ int64_t FrameInfo::beginFrame(Device &device, DeviceQueueGroup &queue_group, Pip
 
   // usual ranges are from sub 100 to about 2k on resources and sub 100 to about 300 for samplers
 #if DX12_REPORT_DESCRIPTOR_USES
-  debug("DX12: Frame %u used %u resource descriptors", progress, resourceViewHeaps.getTotalUsedDescriptors());
-  debug("DX12: Frame %u used %u sampler descriptors", progress, samplerHeaps.getTotalUsedDescriptors());
+  logdbg("DX12: Frame %u used %u resource descriptors", progress, resourceViewHeaps.getTotalUsedDescriptors());
+  logdbg("DX12: Frame %u used %u sampler descriptors", progress, samplerHeaps.getTotalUsedDescriptors());
 #endif
 
   resourceViewHeaps.clearScratchSegments();
@@ -1653,12 +1653,12 @@ bool is_threaded_command_execution(const char *name)
   {
     if (0 == (grnd() % 2))
     {
-      debug("random execution mode: concurrent mode selected");
+      logdbg("random execution mode: concurrent mode selected");
       return true;
     }
     else
     {
-      debug("random execution mode: immediate mode selected");
+      logdbg("random execution mode: immediate mode selected");
       return false;
     }
   }
@@ -1691,11 +1691,11 @@ Device::Config drv3d_dx12::get_device_config(const DataBlock *cfg)
 
   if (result.features.test(DeviceFeaturesConfig::USE_THREADED_COMMAND_EXECUTION))
   {
-    debug("DX12: concurrent execution mode selected");
+    logdbg("DX12: concurrent execution mode selected");
   }
   else
   {
-    debug("DX12: immediate execution mode selected");
+    logdbg("DX12: immediate execution mode selected");
   }
 
   result.features.set(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL,
@@ -1735,13 +1735,13 @@ Device::Config drv3d_dx12::get_device_config(const DataBlock *cfg)
   load_config_into_memory_setup(result.memorySetup, cfg->getBlockByNameEx("memory"));
 
   // defaulting to false, currently breaks things like FX
-  result.features.set(DeviceFeaturesConfig::ALLOW_STREAM_BUFFERS, cfg->getBool("allowStreamBuffers", false));
+  result.features.set(DeviceFeaturesConfig::ALLOW_STREAM_BUFFERS, cfg->getBool("allowStreamBuffers", true));
   // only for constant buffer enabled by default as its the only variant that is using this "hack"
   result.features.set(DeviceFeaturesConfig::ALLOW_STREAM_CONST_BUFFERS, cfg->getBool("allowStreamConstBuffers", true));
-  result.features.set(DeviceFeaturesConfig::ALLOW_STREAM_VERTEX_BUFFERS, cfg->getBool("allowStreamVertexBuffers", false));
-  result.features.set(DeviceFeaturesConfig::ALLOW_STREAM_INDEX_BUFFERS, cfg->getBool("allowStreamIndexBuffers", false));
-  result.features.set(DeviceFeaturesConfig::ALLOW_STREAM_INDIRECT_BUFFERS, cfg->getBool("allowStreamIndirectBuffers", false));
-  result.features.set(DeviceFeaturesConfig::ALLOW_STREAM_STAGING_BUFFERS, cfg->getBool("allowStreamStagingBuffers", false));
+  result.features.set(DeviceFeaturesConfig::ALLOW_STREAM_VERTEX_BUFFERS, cfg->getBool("allowStreamVertexBuffers", true));
+  result.features.set(DeviceFeaturesConfig::ALLOW_STREAM_INDEX_BUFFERS, cfg->getBool("allowStreamIndexBuffers", true));
+  result.features.set(DeviceFeaturesConfig::ALLOW_STREAM_INDIRECT_BUFFERS, cfg->getBool("allowStreamIndirectBuffers", true));
+  result.features.set(DeviceFeaturesConfig::ALLOW_STREAM_STAGING_BUFFERS, cfg->getBool("allowStreamStagingBuffers", true));
 
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
   result.features.set(DeviceFeaturesConfig::ROOT_SIGNATURES_USES_CBV_DESCRIPTOR_RANGES,

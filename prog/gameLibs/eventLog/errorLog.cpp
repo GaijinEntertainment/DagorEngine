@@ -113,7 +113,7 @@ void send_error_log(const char *error_message, ErrorLogSendParams const &params)
   {
     if (gfrnd() > fatal_probability)
     {
-      fatal(error_message);
+      DAG_FATAL(error_message);
       return;
     }
   }

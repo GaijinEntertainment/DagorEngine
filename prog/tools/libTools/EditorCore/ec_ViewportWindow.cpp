@@ -598,7 +598,7 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
       rectSelect.active = false;
   }
 
-  return __super::windowProc(h_wnd, msg, w_param, l_param);
+  return EcWindow::windowProc(h_wnd, msg, w_param, l_param);
 }
 
 
@@ -846,7 +846,7 @@ int ViewportWindow::handleCommand(int p1, int p2, int p3)
           SetCursorPos(restoreCursorAtX, restoreCursorAtY);
           break;
 
-        default: fatal("Unknown camera type. Contact developers.");
+        default: DAG_FATAL("Unknown camera type. Contact developers.");
       }
 
       break;

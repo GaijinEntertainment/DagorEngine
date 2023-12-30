@@ -12,6 +12,7 @@
 
 #define USE_SEPARATE_PHASE 0 // NOT fully implemented (and it's expensive)
 
+#define VOLFOG_DITHERING_POISSON_SAMPLE_CNT 8
 
 
 #define RAYMARCH_WARP_SIZE 8

@@ -22,13 +22,13 @@ let panelCursor = Cursor({
 
 
 
-let function isCurrent(curIdx,i) {
+function isCurrent(curIdx,i) {
   return curIdx==i
 }
 
 let m = @(curIdx, idx, sf) (sf & S_HOVER) || isCurrent(curIdx, idx) ? 2:1
 
-let function s(idx){
+function s(idx){
   let c = Color(math.rand(),math.rand(),math.rand(),255)
   let onSelect = @() dlog($"{idx} selected")
   return {
@@ -128,7 +128,7 @@ let freePanelLayout = {
 }
 
 
-let function root() {
+function root() {
   return {
     size = flex()
     function onAttach() {

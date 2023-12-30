@@ -1,16 +1,7 @@
 import os
 import subprocess
 import sys, platform
-
-class pushd:
-    def __init__(self, path):
-        self.olddir = os.getcwd()
-        if path != '':
-            os.chdir(os.path.normpath(path))
-    def __enter__(self):
-        pass
-    def __exit__(self, type, value, traceback):
-        os.chdir(self.olddir)
+from fs_helpers import pushd
 
 if platform.system() == "Windows" :
   csq = r"..\..\tools\dagor3_cdk\util\csq-dev"

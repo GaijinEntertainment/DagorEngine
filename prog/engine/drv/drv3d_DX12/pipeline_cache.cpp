@@ -14,7 +14,7 @@ using namespace drv3d_dx12;
 #define DX12_ENABLE_CACHE_COMPRESSION 1
 
 #if 0
-#define CACHE_INFO_VERBOSE(...) debug(__VA_ARGS__)
+#define CACHE_INFO_VERBOSE(...) logdbg(__VA_ARGS__)
 #else
 #define CACHE_INFO_VERBOSE(...)
 #endif
@@ -31,6 +31,7 @@ struct CacheFileHeader
   uint32_t subSystemID;
   uint32_t revisionID;
   uint32_t flags;
+  uint32_t shaderHashCount;
   uint32_t computeCaches;
   uint32_t graphicsBaseCaches;
   uint32_t computeSignatureCaches;
@@ -45,6 +46,7 @@ struct CacheFileHeader
   uint64_t rawDriverVersion;
   dxil::HashValue headerChecksum;
   dxil::HashValue dataChecksum;
+  dxil::HashValue shaderHashHash;
 };
 
 enum CacheFileFlags
@@ -53,7 +55,7 @@ enum CacheFileFlags
 };
 
 constexpr uint32_t CACHE_FILE_MAGIC = _MAKE4C('CX12');
-constexpr uint32_t CACHE_FILE_VERSION = 22;
+constexpr uint32_t CACHE_FILE_VERSION = 24;
 constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *));
 // Version history:
 // 1 - initial
@@ -80,6 +82,8 @@ constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *))
 // 21 - BasePipelineIdentifier only has hashes for vs and ps. Dropped hashes for gs, hs and ds as its no longer used.
 //      Also changes pipeline library names.
 // 22 - GraphicsPipeline::VariantCacheEntry changed
+// 23 - MSAA support
+// 24 - shader bin dump table / cache invalidation
 } // namespace
 
 void PipelineCache::init(const SetupParameters &params)
@@ -92,11 +96,11 @@ void PipelineCache::init(const SetupParameters &params)
     deviceFeatures = cacheFlags.SupportFlags & params.allowedModes;
   }
 
-  debug("PipelineCache features:");
-  debug("Per PSO cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_SINGLE_PSO) != 0);
-  debug("Pipeline cache library: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_LIBRARY) != 0);
-  debug("Automatic OS in memory cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_INPROC_CACHE) != 0);
-  debug("Automatic OS on disk cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_DISK_CACHE) != 0);
+  logdbg("PipelineCache features:");
+  logdbg("Per PSO cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_SINGLE_PSO) != 0);
+  logdbg("Pipeline cache library: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_LIBRARY) != 0);
+  logdbg("Automatic OS in memory cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_INPROC_CACHE) != 0);
+  logdbg("Automatic OS on disk cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_DISK_CACHE) != 0);
 
   library.Reset();
 
@@ -164,7 +168,7 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
 
     if (auto graphicsPipelinesOutBlock = cacheOutBlock.addNewBlock("graphics_pipelines"))
     {
-      pipeline::DataBlockEncodeVisitor<pipeline::GraphicsPipelineEncoder> visitor{*graphicsPipelinesOutBlock, nullptr, 0};
+      pipeline::DataBlockEncodeVisitor<pipeline::GraphicsPipelineEncoder> visitor{*graphicsPipelinesOutBlock, nullptr, 0u};
       for (auto &pipeline : graphicsCache)
       {
         if (pipeline.variantCache.empty())
@@ -181,7 +185,7 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
 
     if (auto meshPipelinesOutBlock = cacheOutBlock.addNewBlock("mesh_pipelines"))
     {
-      pipeline::DataBlockEncodeVisitor<pipeline::MeshPipelineEncoder> visitor{*meshPipelinesOutBlock, nullptr, 0};
+      pipeline::DataBlockEncodeVisitor<pipeline::MeshPipelineEncoder> visitor{*meshPipelinesOutBlock, nullptr, 0u};
       for (auto &pipeline : graphicsCache)
       {
         if (pipeline.variantCache.empty())
@@ -198,7 +202,7 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
 
     if (auto computePipelinesOutBlock = cacheOutBlock.addNewBlock("compute_pipelines"))
     {
-      pipeline::DataBlockEncodeVisitor<pipeline::ComputePipelineEncoder> visitor{*computePipelinesOutBlock, nullptr, 0};
+      pipeline::DataBlockEncodeVisitor<pipeline::ComputePipelineEncoder> visitor{*computePipelinesOutBlock, nullptr, 0u};
       for (auto &pipeline : computeBlobs)
       {
         visitor.encode(pipeline);
@@ -228,7 +232,7 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
     return;
   }
 
-  debug("DX12: Serializing pipeline caches to %s", params.fileName);
+  logdbg("DX12: Serializing pipeline caches to %s", params.fileName);
 
   CacheFileHeader fileHeader = {};
   fileHeader.magic = CACHE_FILE_MAGIC;
@@ -238,6 +242,7 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
   fileHeader.deviceID = params.deviceID;
   fileHeader.subSystemID = params.subSystemID;
   fileHeader.revisionID = params.revisionID;
+  fileHeader.shaderHashCount = shaderInDumpCount;
   fileHeader.computeCaches = static_cast<uint32_t>(computeBlobs.size());
   fileHeader.graphicsBaseCaches = static_cast<uint32_t>(graphicsCache.size());
   fileHeader.computeSignatureCaches = static_cast<uint32_t>(computeSignatures.size());
@@ -246,6 +251,7 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
   fileHeader.graphicsStaticStateCaches = static_cast<uint32_t>(staticRenderStates.size());
   fileHeader.inputLayoutCaches = static_cast<uint32_t>(inputLayouts.size());
   fileHeader.framebufferLayoutCaches = static_cast<uint32_t>(framebufferLayouts.size());
+  fileHeader.shaderHashHash = shaderInDumpHash;
   fileHeader.flags = 0;
   if (params.rootSignaturesUsesCBVDescriptorRanges)
   {
@@ -341,7 +347,7 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
   fileHeader.dataChecksum = dxil::HashValue::calculate(mem.buf.data(), mem.buf.size());
   fileHeader.headerChecksum = dxil::HashValue::calculate(&fileHeader, 1);
 
-  debug("D12: Writing pipeline cache with %u bytes of size",
+  logdbg("D12: Writing pipeline cache with %u bytes of size",
     sizeof(fileHeader) + (fileHeader.compressedContentSize ? fileHeader.compressedContentSize : fileHeader.uncompressedContentSize));
   cacheFile.write(&fileHeader, sizeof(fileHeader));
   if (!compressedMemory.empty())
@@ -830,11 +836,11 @@ void PipelineCache::recover(ID3D12Device1 *device, D3D12_SHADER_CACHE_SUPPORT_FL
     deviceFeatures = cacheFlags.SupportFlags & allowed_modes;
   }
 
-  debug("PipelineCache features:");
-  debug("Per PSO cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_SINGLE_PSO) != 0);
-  debug("Pipeline cache library: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_LIBRARY) != 0);
-  debug("Automatic OS in memory cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_INPROC_CACHE) != 0);
-  debug("Automatic OS on disk cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_DISK_CACHE) != 0);
+  logdbg("PipelineCache features:");
+  logdbg("Per PSO cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_SINGLE_PSO) != 0);
+  logdbg("Pipeline cache library: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_LIBRARY) != 0);
+  logdbg("Automatic OS in memory cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_INPROC_CACHE) != 0);
+  logdbg("Automatic OS on disk cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_DISK_CACHE) != 0);
 
   library.Reset();
 
@@ -853,8 +859,45 @@ void PipelineCache::recover(ID3D12Device1 *device, D3D12_SHADER_CACHE_SUPPORT_FL
 #endif
 }
 
+void PipelineCache::onBindumpLoad(ID3D12Device1 *device, eastl::span<const dxil::HashValue> all_shader_hashes)
+{
+  logdbg("DX12: onBindumpLoad...");
+  auto newHash = dxil::HashValue::calculate(all_shader_hashes.data(), all_shader_hashes.size());
+
+  if (static_cast<uint32_t>(all_shader_hashes.size()) == shaderInDumpCount && newHash == shaderInDumpHash)
+  {
+    logdbg("DX12: Full match!");
+    return;
+  }
+
+  logdbg("DX12: No match, resetting cache");
+  // not matching
+  shaderInDumpCount = static_cast<uint32_t>(all_shader_hashes.size());
+  shaderInDumpHash = newHash;
+  // only need to clear out pipelines
+  graphicsCache.clear();
+  computeBlobs.clear();
+  computeSignatures.clear();
+  graphicsSignatures.clear();
+  graphicsMeshSignatures.clear();
+#if !_TARGET_SCARLETT
+  library.Reset();
+
+  if (useLibrary())
+  {
+    DX12_DEBUG_RESULT(device->CreatePipelineLibrary(nullptr, 0, COM_ARGS(&library)));
+  }
+#else
+  G_UNUSED(device);
+#endif
+  initialPipelineBlob.clear();
+}
+
 bool PipelineCache::loadFromFile(const SetupParameters &params)
 {
+  shaderInDumpCount = 0;
+  shaderInDumpHash = {};
+
   FullFileLoadCB cacheFile{params.fileName, DF_IGNORE_MISSING | DF_READ};
   if (!cacheFile.fileHandle)
   {
@@ -873,15 +916,15 @@ bool PipelineCache::loadFromFile(const SetupParameters &params)
   if (fileHeader.version != CACHE_FILE_VERSION)
   {
     // begin outdated is okay.
-    debug("DX12: Pipeline cache file is outdated");
+    logdbg("DX12: Pipeline cache file is outdated");
     return false;
   }
 
   if ((0 != (fileHeader.flags & CFF_ROOT_SIGNATURES_USES_CBV_DESCRIPTOR_RANGES)) != params.rootSignaturesUsesCBVDescriptorRanges)
   {
     // If used root signature mode does not match, we can not reuse cache
-    debug("DX12: Pipeline incompatible root signature layout mode (CBV root descriptors vs "
-          "descriptor ranges)");
+    logdbg("DX12: Pipeline incompatible root signature layout mode (CBV root descriptors vs "
+           "descriptor ranges)");
     return false;
   }
 
@@ -1266,23 +1309,26 @@ bool PipelineCache::loadFromFile(const SetupParameters &params)
 #endif
   }
 
-  debug("DX12: Pipeline cache load statistics:");
-  debug("DX12: Restored %u compute pipelines with %u bytes from cache", computeBlobsLoaded, computeBlobsSize);
-  debug("DX12: Restored %u compute pipeline signatures with %u bytes from cache", fileHeader.computeSignatureCaches,
+  logdbg("DX12: Pipeline cache load statistics:");
+  logdbg("DX12: Restored %u compute pipelines with %u bytes from cache", computeBlobsLoaded, computeBlobsSize);
+  logdbg("DX12: Restored %u compute pipeline signatures with %u bytes from cache", fileHeader.computeSignatureCaches,
     computeSignatureBlobSize);
-  debug("DX12: Restored %u graphics pipeline variants of %u (%u) base pipelines", graphicsVairantsFound, graphicsWithAnyVariant,
+  logdbg("DX12: Restored %u graphics pipeline variants of %u (%u) base pipelines", graphicsVairantsFound, graphicsWithAnyVariant,
     fileHeader.graphicsBaseCaches);
-  debug("DX12: Restored %u graphics pipelines with %u bytes from cache", graphicsVariantBlobsLoaded, graphicsVariantBlobsSize);
-  debug("DX12: Restored %u graphics pipeline signatures with %u bytes from cache", fileHeader.graphicsSignatureCaches,
+  logdbg("DX12: Restored %u graphics pipelines with %u bytes from cache", graphicsVariantBlobsLoaded, graphicsVariantBlobsSize);
+  logdbg("DX12: Restored %u graphics pipeline signatures with %u bytes from cache", fileHeader.graphicsSignatureCaches,
     graphicsSignatureBlobSize);
-  debug("DX12: Restored %u graphics mesh pipeline signatures with %u bytes from cache", fileHeader.graphicsMeshSignatureCaches,
+  logdbg("DX12: Restored %u graphics mesh pipeline signatures with %u bytes from cache", fileHeader.graphicsMeshSignatureCaches,
     graphicsMeshSignatureBlobSize);
-  debug("DX12: Restored %u graphics pipeline static render states", staticRenderStates.size());
-  debug("DX12: Restored %u graphics pipeline input layouts", inputLayouts.size());
-  debug("DX12: Restored %u graphics pipeline framebuffer layouts", framebufferLayouts.size());
-  debug("DX12: Restored pipeline library with %u bytes from cache", initialPipelineBlob.size());
+  logdbg("DX12: Restored %u graphics pipeline static render states", staticRenderStates.size());
+  logdbg("DX12: Restored %u graphics pipeline input layouts", inputLayouts.size());
+  logdbg("DX12: Restored %u graphics pipeline framebuffer layouts", framebufferLayouts.size());
+  logdbg("DX12: Restored pipeline library with %u bytes from cache", initialPipelineBlob.size());
 
   hasChanged = false;
+
+  shaderInDumpCount = fileHeader.shaderHashCount;
+  shaderInDumpHash = fileHeader.shaderHashHash;
 
   return true;
 }

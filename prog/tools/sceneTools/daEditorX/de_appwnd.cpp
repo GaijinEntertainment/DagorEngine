@@ -342,7 +342,7 @@ void DagorEdAppWindow::init()
 
   makeDafaultLayout();
 
-  __super::init();
+  GenericEditorAppWindow::init();
 
   IGenViewportWnd *curVP = ged.getViewport(0);
   if (curVP)
@@ -1314,7 +1314,7 @@ bool DagorEdAppWindow::canClose()
 {
   if (!::blockCloseMessage)
   {
-    const bool ret = __super::canClose();
+    const bool ret = GenericEditorAppWindow::canClose();
 
     if (ret)
       ::blockCloseMessage = true;

@@ -13,7 +13,7 @@ let labels = [
 let activeSection = Watched(labels[0])
 let markerTarget = MoveToAreaTarget()
 
-let function requestMoveToElem(elem) {
+function requestMoveToElem(elem) {
   let x = elem.getScreenPosX()
   let y = elem.getScreenPosY()
   let w = elem.getWidth()
@@ -21,7 +21,7 @@ let function requestMoveToElem(elem) {
   markerTarget.set(x,y,x+w,y+h)
 }
 
-let function item(label) {
+function item(label) {
   return watchElemState(@(sf) {
     watch = [activeSection]
     rendObj = ROBJ_TEXT

@@ -4,7 +4,7 @@ let cursors = require("samples_prog/_cursors.nut")
 
 let stateFlags = Watched(0)
 
-let function button0() {
+function button0() {
   let sf = stateFlags.value
   return {
     watch = [stateFlags]
@@ -66,7 +66,7 @@ let buttonInside = @(parentStateFlags) @() {
     : null
 }
 
-let function doubleButton() {
+function doubleButton() {
   let sFlags = Watched(0)
   return @() {
     watch = [sFlags]

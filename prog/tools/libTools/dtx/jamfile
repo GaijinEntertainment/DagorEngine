@@ -21,19 +21,14 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/convert/nvtt-2.0.7
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/engine/sharedInclude
-  $(Root)/prog/3rdPartyLibs/convert/PVRTexLib
 ;
 
 UseProgLibs =
+  engine/image
   3rdPartyLibs/convert/nvtt-2.0.7
   3rdPartyLibs/image/jpeg-6b
   3rdPartyLibs/image/avif
 ;
-if $(Platform) in win32 win64 && $(DabuildEmbeddedInGame) != yes {
-  AddLibs =
-    $(Root)/prog/3rdPartyLibs/convert/PVRTexLib/$(Platform)/PVRTexLib.lib
-  ;
-}
 
 if $(DriverLinkage) != dynamic {
   UseProgLibs +=

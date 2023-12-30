@@ -822,7 +822,7 @@ void LandscapeEntityObject::setPerInstSeed(int seed)
 
 void LandscapeEntityObject::setWtm(const TMatrix &wtm)
 {
-  __super::setWtm(wtm);
+  RenderableEditableObject::setWtm(wtm);
   if (entity)
     updateEntityPosition(true);
 }
@@ -920,7 +920,7 @@ void LandscapeEntityObject::setPosOnCollision(Point3 pos)
 
 bool LandscapeEntityObject::setPos(const Point3 &p)
 {
-  if (!__super::setPos(p))
+  if (!RenderableEditableObject::setPos(p))
     return false;
 
   if (entity)
@@ -1026,7 +1026,7 @@ void LandscapeEntityObject::putMoveUndo()
 {
   HmapLandObjectEditor *ed = (HmapLandObjectEditor *)getObjEditor();
   if (!ed->isCloneMode())
-    __super::putMoveUndo();
+    RenderableEditableObject::putMoveUndo();
 }
 
 void HmapLandObjectEditor::splitComposits()

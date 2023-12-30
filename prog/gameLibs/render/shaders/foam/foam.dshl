@@ -148,7 +148,7 @@ shader foam_prepare
       float mask = pow(tex2D(foam_mask, input.uv).r, inv_foam_mask_gamma);
 
       // Pattern
-      ##if water_flowmap_tex == NULL && water_flowmap_tex_add == NULL
+      ##if water_flowmap_tex == NULL
         float pattern = pow(tex2D(foam_generator_tile, foam_tile_uv_scale*(world_position.xz-foam_distortion_scale*nvsf_normal.xy)).a, inv_foam_pattern_gamma);
       ##else
         float3 worldPos = world_position.xyz;
@@ -168,8 +168,6 @@ shader foam_prepare
             flowmapSample += flowmapSample1 * water_flowmap_strength.x;
             flowmapSample.z += flowmapFoam;
           }
-        ##endif
-        ##if water_flowmap_tex_add != NULL
           float2 flowmapUVAdd = worldPos.xz * world_to_flowmap_add.xy + world_to_flowmap_add.zw;
           if (all(flowmapUVAdd >= 0) && all(flowmapUVAdd <= 1))
           {

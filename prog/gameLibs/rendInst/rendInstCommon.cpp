@@ -133,6 +133,8 @@ void updateSettingsDistMul(float v)
   setDistMul(unitDistMul, unitDistOfs);
 }
 
+float getSettingsDistMul() { return rendinst::render::settingsDistMul; }
+
 void updateMinCullSettingsDistMul(float v) { rendinst::render::settingsMinCullDistMul = v; }
 
 void updateRIExtraMulScale()

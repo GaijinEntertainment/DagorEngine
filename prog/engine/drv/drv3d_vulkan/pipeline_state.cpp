@@ -92,6 +92,12 @@ bool PipelineState::handleObjectRemoval(RenderPassResource *object)
   return rp.handleObjectRemoval(object);
 }
 
+template <>
+bool PipelineState::handleObjectRemoval(SamplerResource *object)
+{
+  return handleObjectRemovalInResBinds(object);
+}
+
 // specializations for isReferenced
 
 template <>
@@ -142,6 +148,12 @@ bool PipelineState::isReferenced(RenderPassResource *object) const
     return true;
   const FrontRenderPassState &rp = getRO<FrontRenderPassState, FrontRenderPassState, FrontGraphicsState>();
   return rp.isReferenced(object);
+}
+
+template <>
+bool PipelineState::isReferenced(SamplerResource *object) const
+{
+  return isReferencedByResBinds(object);
 }
 
 } // namespace drv3d_vulkan

@@ -103,7 +103,7 @@ extern int get_present_dest_idx();
 extern void dump_memory_if_needed(HRESULT hr);
 } // namespace drv3d_dx11
 
-#define __DXFATAL(x, ...) fatal(x, ##__VA_ARGS__)
+#define __DXFATAL(x, ...) DAG_FATAL(x, ##__VA_ARGS__)
 #define __DXERR(x, ...)   logerr_ctx(x, ##__VA_ARGS__)
 //-V:DXFATAL:1048
 #define DXFATAL(expr, text, ...)                                                                        \
@@ -267,6 +267,7 @@ using namespace drv3d_generic;
 #include "buffers.h"
 #include "states.h"
 #include "shaders.h"
+#include "sampler.h"
 
 
 namespace drv3d_dx11

@@ -154,7 +154,7 @@ int CGroup::getCaptionValue(char *buffer, int buflen) const { return mMaxButton.
 
 void CGroup::clear()
 {
-  __super::clear();
+  PropertyContainerVert::clear();
   restore();
 }
 
@@ -166,7 +166,7 @@ int CGroup::saveState(DataBlock &datablk)
   DataBlock *_block = datablk.addNewBlock(String(64, "group_%d", this->getID()).str());
   _block->addBool("minimize", this->getBoolValue());
 
-  __super::saveState(datablk);
+  PropertyContainerVert::saveState(datablk);
   return 0;
 }
 
@@ -177,6 +177,6 @@ int CGroup::loadState(DataBlock &datablk)
   if (_block)
     this->setBoolValue(_block->getBool("minimize", true));
 
-  __super::loadState(datablk);
+  PropertyContainerVert::loadState(datablk);
   return 0;
 }

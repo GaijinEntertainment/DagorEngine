@@ -76,6 +76,8 @@ float4 hierarchRayMarch(float3 rayStart_uv_z, float3 R, float linear_roughness, 
   float traceStep = STEP;
   float4 sampleNormDistT = (stepOfs + float4(1, 2, 3, 4)) * traceStep;
 
+  bool useHitHack = false;
+
   LOOP
   for (int i = 0; i < numSteps; i += 4)
   {
@@ -91,14 +93,17 @@ float4 hierarchRayMarch(float3 rayStart_uv_z, float3 R, float linear_roughness, 
     float4 depthDiff = tcZ - rawDepth;
     float4 compareToleranceUp = toleranceUpMAD.x * sampleNormDist + toleranceUpMAD.y;
 
-    bool4 hasHit = bool4(depthDiff < 0) && bool4(depthDiff > compareToleranceUp);
+    bool4 toleranceUpResult = bool4(depthDiff > compareToleranceUp);
+
+    bool4 hasHit = bool4(depthDiff < 0) && toleranceUpResult;
+
+    useHitHack = useHitHack || any(!toleranceUpResult);
 
     BRANCH if (any(hasHit))
     {
       float hitDpth = hasHit.x ? rawDepth.x : (hasHit.y ? rawDepth.y : (hasHit.z ? rawDepth.z : rawDepth.w));
       float2 hit_scr = hasHit.x ? tc0.xy : (hasHit.y ? tc0.zw : (hasHit.z ? tc1.xy : tc1.zw));
       result = float4(hit_scr.xy, hitDpth, 1);
-
       // Use rest of tracings to find more accurate intersection
       float minHitNormDist = hasHit.x ? sampleNormDistT.x : (hasHit.y ? sampleNormDistT.y : (hasHit.z ? sampleNormDistT.z : sampleNormDistT.w));
       sampleNormDistT.xyzw = max(0.04, minHitNormDist - traceStep); // point before closest hit
@@ -116,7 +121,10 @@ float4 hierarchRayMarch(float3 rayStart_uv_z, float3 R, float linear_roughness, 
   hitRawDepth = result.z;
 
   // hack: offset texture 1 pixel to raymarch direction for prevention of "leaking" of close objects to reflections of far objects
-  result.xy += normalize(rayStepUVz.xy) * ssr_inv_target_size.xy;//rcp(ssr_target_size.xy);
+  float2 hackResult = normalize(rayStepUVz.xy) * ssr_inv_target_size.xy;
+
+  if (useHitHack)
+    result.xy += 2*hackResult;
 
   result.z = linearize_z(result.z, zn_zfar.zw);
 

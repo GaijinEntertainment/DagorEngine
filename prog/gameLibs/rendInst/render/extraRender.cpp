@@ -104,6 +104,8 @@ namespace rendinst::render
 static eastl::hash_set<eastl::string> dynamicRiExtra;
 static uint32_t oldPoolsCount = 0;
 
+MultidrawContext<rendinst::RiExPerInstanceParameters> riExMultidrawContext("ri_ex_multidraw");
+
 }; // namespace rendinst::render
 
 void rendinst::render::termElems()
@@ -1471,6 +1473,7 @@ void rendinst::render::renderRIGenExtraSortedTransparentInstanceElems(const RiGe
       riexr.addObjectToRender(elem.poolId, optimizationInstances, optimization_depth_prepass, ignore_optimization_instances_limits,
         ofsAndCount, elem.lod, elem.poolOrder, tex_ctx, elem.dist2);
     }
+    riexr.coalesceDrawcalls();
     riexr.renderSortedMeshesPacked(riResOrder);
     riexr.renderSortedMeshes<RiExtraRenderer::NO_GPU_INSTANCING>(riResOrder);
   }

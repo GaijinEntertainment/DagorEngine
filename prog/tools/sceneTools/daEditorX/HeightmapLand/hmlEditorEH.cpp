@@ -99,7 +99,7 @@ void HmapLandObjectEditor::handleKeyPress(IGenViewportWnd *wnd, int vk, int modi
       case '0': onClick(CM_HIDE_SPLINES, NULL); return;
       case 'Q': onClick(CM_USE_PIXEL_PERFECT_SELECTION, nullptr); return;
     }
-  return __super::handleKeyPress(wnd, vk, modif);
+  return ObjectEditor::handleKeyPress(wnd, vk, modif);
 }
 
 void HmapLandObjectEditor::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif)
@@ -110,7 +110,7 @@ void HmapLandObjectEditor::handleKeyRelease(IGenViewportWnd *wnd, int vk, int mo
     wnd->invalidateCache();
     return;
   }
-  return __super::handleKeyRelease(wnd, vk, modif);
+  return ObjectEditor::handleKeyRelease(wnd, vk, modif);
 }
 
 bool HmapLandObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
@@ -225,7 +225,7 @@ bool HmapLandObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, b
     else if (is_creating_entity_mode(getEditMode()))
     {
       newObj->setPlaceOnCollision(wingw::is_key_pressed(wingw::V_ALT));
-      return __super::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
+      return ObjectEditor::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
     }
     else if (getEditMode() == CM_SPLIT_POLY)
     {
@@ -285,7 +285,7 @@ bool HmapLandObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, b
     updateGizmo();
     wnd->invalidateCache();
   }
-  return __super::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
 }
 
 bool HmapLandObjectEditor::usesRendinstPlacement() const
@@ -549,10 +549,10 @@ bool HmapLandObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y
       }
     }
     else
-      __super::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
+      ObjectEditor::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
   }
   else
-    __super::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
+    ObjectEditor::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
 
   updateGizmo();
   return true;
@@ -610,7 +610,7 @@ bool HmapLandObjectEditor::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y
   else if (is_creating_entity_mode(getEditMode()))
   {
     if (buttons & 1)
-      return __super::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
+      return ObjectEditor::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
     setCreateBySampleMode(NULL);
     selectNewObjEntity(NULL);
     setEditMode(CM_OBJED_MODE_SELECT);
@@ -630,7 +630,7 @@ bool HmapLandObjectEditor::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y
   del_it(debugP2);
 
   setEditMode(CM_OBJED_MODE_SELECT);
-  return (l_result) ? true : __super::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
+  return (l_result) ? true : ObjectEditor::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -737,7 +737,7 @@ bool HmapLandObjectEditor::handleMouseLBRelease(IGenViewportWnd *wnd, int x, int
 
   objectWasMoved = objectWasRotated = objectWasScaled = false;
 
-  return __super::handleMouseLBRelease(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseLBRelease(wnd, x, y, inside, buttons, key_modif);
 }
 
 HmapLandObjectEditor::PlacementRotation HmapLandObjectEditor::buttonIdToPlacementRotation(int id)
@@ -1334,7 +1334,7 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel2 *panel)
   updateGizmo();
   updateToolbarButtons();
 
-  __super::onClick(pcb_id, panel);
+  ObjectEditor::onClick(pcb_id, panel);
 }
 
 

@@ -3,19 +3,19 @@ include "static_shadow_stcode.dshl"
 macro STATIC_SHADOW_DEFINE_SAMPLER_TYPE(code)
   hlsl(code)
   {
-      #define sampler_state_ref SamplerComparisonState
+      #define STATIC_SHADOW_SAMPLER_STATE_REF SamplerComparisonState
 
     ##if (hardware.fsh_5_0)
-      #define texture_ref Texture2DArray<float4>
+      #define STATIC_SHADOW_TEXTURE_REF Texture2DArray<float4>
 
-      half static_shadow_sample(float2 uv, float z, texture_ref tex, sampler_state_ref tex_cmpSampler, float layer)
+      half static_shadow_sample(float2 uv, float z, STATIC_SHADOW_TEXTURE_REF tex, STATIC_SHADOW_SAMPLER_STATE_REF tex_cmpSampler, float layer)
       {
         return (half)shadow2DArray(tex, float4(uv, layer, z));
       }
     ##else
-      #define texture_ref Texture2D<float4>
+      #define STATIC_SHADOW_TEXTURE_REF Texture2D<float4>
 
-      half static_shadow_sample(float2 uv, float z, texture_ref tex, sampler_state_ref tex_cmpSampler, float layer)
+      half static_shadow_sample(float2 uv, float z, STATIC_SHADOW_TEXTURE_REF tex, STATIC_SHADOW_SAMPLER_STATE_REF tex_cmpSampler, float layer)
       {
         return half(shadow2D(tex, float3(uv, z)));
       }
@@ -28,38 +28,9 @@ macro USE_STATIC_SHADOW_BASE_INT(code, num_cascades)
   {
     #if HAS_STATIC_SHADOW
 
-      #if num_cascades != 0
-        #ifndef STATIC_SHADOW_USE_CASCADE_0
-          #define STATIC_SHADOW_USE_CASCADE_0 1
-        #endif
-      #endif
+      #define STATIC_SHADOW_CASCADE_NUM num_cascades
+      #include <static_shadow_int.hlsl>
 
-      #if num_cascades == 2
-        #ifndef STATIC_SHADOW_REFERENCE_FXAA_IMPL
-          #define STATIC_SHADOW_REFERENCE_FXAA_IMPL 1
-        #endif
-
-        #ifndef STATIC_SHADOW_USE_CASCADE_1
-          #define STATIC_SHADOW_USE_CASCADE_1 1
-        #endif
-      #else
-        #ifndef STATIC_SHADOW_CUSTOM_FXAA_DIR
-          #define STATIC_SHADOW_CUSTOM_FXAA_DIR 1
-        #endif
-      #endif
-
-      //To keep the same interface as the toroidal shadow map
-      float3 get_static_shadow_tc_base(float3 worldPos, float4 shadowWorldRenderMatrix[4])
-      {
-        return worldPos.x*shadowWorldRenderMatrix[0].xyz + worldPos.y*shadowWorldRenderMatrix[1].xyz + worldPos.z*shadowWorldRenderMatrix[2].xyz + shadowWorldRenderMatrix[3].xyz;
-      }
-      float4 get_static_shadow_tc(float3 tc, float2 ofs_tor, float dither, bool hard_vignette)
-      {
-        float2 vignette = saturate(abs(tc.xy) * 20 - 19);
-        float vignetteVal = hard_vignette ? max(abs(tc.x), abs(tc.y)) < 511./512+dither*-1./256: saturate(1.0 - dot(vignette, vignette)) ;
-        float3 uv = float3(tc.xy * 0.5 + ofs_tor, tc.z);//todo: check xbox microcode, may be we can optimize it by smashing into one constant, i.e. tc.xy*ofs_tor.x + ofs_tor.yz
-        return float4(uv, vignetteVal);
-      }
     #endif
   }
 endmacro

@@ -15,7 +15,7 @@ ComputeShaderElement *new_compute_shader(const char *shader_name, const bool opt
   }
 
   if (dd_stricmp((const char *)sc->name, shader_name))
-    fatal("Compute shader '%s' not found", shader_name);
+    DAG_FATAL("Compute shader '%s' not found", shader_name);
 
   MaterialData m;
   ShaderMaterialProperties *smp = ShaderMaterialProperties::create(sc, m);

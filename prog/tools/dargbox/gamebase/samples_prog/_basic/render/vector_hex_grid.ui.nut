@@ -199,7 +199,7 @@ let vectorCanvasVerticesIndices = {
 }
 
 
-let function basicsRoot() {
+function basicsRoot() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(30, 40, 50)

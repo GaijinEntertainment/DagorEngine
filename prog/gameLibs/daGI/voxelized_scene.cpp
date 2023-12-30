@@ -1,7 +1,5 @@
 #include <math/dag_frustum.h>
-#include <math/dag_math3d.h>
 #include <math/dag_Point2.h>
-#include <math/dag_cube_matrix.h>
 #include <math/integer/dag_IBBox2.h>
 #include <math/integer/dag_IBBox3.h>
 #include <daGI/daGI.h>
@@ -10,12 +8,10 @@
 #include <3d/dag_tex3d.h>
 #include <shaders/dag_computeShaders.h>
 #include <perfMon/dag_statDrv.h>
-#include <render/toroidal_update.h>
 
 #include <math/dag_hlsl_floatx.h>
 #include "shaders/dagi_voxels_consts.hlsli"
 #include "shaders/dagi_scene_common_types.hlsli"
-#include "load_data.h"
 #include "global_vars.h"
 #include <util/dag_convar.h>
 #include <textureUtil/textureUtil.h>
@@ -192,7 +188,7 @@ void GI3D::fillRestrictedUpdateBox(TMatrix4 globtm)
   lastRestrictedUpdateGiBox = resultBbox;
 }
 
-void GI3D::markVoxelsFromRT(float speed)
+void GI3D::markVoxelsFromRT(const TMatrix4 &globtm, float speed)
 {
   if (getBouncingMode() == TILL_CONVERGED || !sceneVoxelsColor.getVolTex())
     return;
@@ -204,16 +200,14 @@ void GI3D::markVoxelsFromRT(float speed)
     d3d::resource_barrier({selectedGbufVoxelsCount.get(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
     invalidateCount = false;
   }
-  TMatrix4 globtm;
-  d3d::getglobtm(globtm);
 
   fillRestrictedUpdateBox(globtm);
 
-  globtm = globtm.transpose();
-  ShaderGlobal::set_color4(globtm_psf_0VarId, Color4(globtm[0]));
-  ShaderGlobal::set_color4(globtm_psf_1VarId, Color4(globtm[1]));
-  ShaderGlobal::set_color4(globtm_psf_2VarId, Color4(globtm[2]));
-  ShaderGlobal::set_color4(globtm_psf_3VarId, Color4(globtm[3]));
+  TMatrix4 globtmTransposed = globtm.transpose();
+  ShaderGlobal::set_color4(globtm_psf_0VarId, Color4(globtmTransposed[0]));
+  ShaderGlobal::set_color4(globtm_psf_1VarId, Color4(globtmTransposed[1]));
+  ShaderGlobal::set_color4(globtm_psf_2VarId, Color4(globtmTransposed[2]));
+  ShaderGlobal::set_color4(globtm_psf_3VarId, Color4(globtmTransposed[3]));
   const uint32_t groups =
     clamp((uint32_t)(speed * MAX_MARKED_SCENE_VOXELS_GROUPS), (uint32_t)1, (uint32_t)MAX_MARKED_SCENE_VOXELS_GROUPS);
   ShaderGlobal::set_int(ssgi_total_scene_mark_dipatchVarId, groups * MARK_VOXELS_WARP_SIZE);

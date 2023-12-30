@@ -47,10 +47,11 @@ struct IdEnumerateView<Container>::iterator
   // No need to provide anything stronger than a forward iterator, as
   // we only support a single usecase:
   // `for (auto[i, obj] : idIndexedThing.enumerate())`
-  using iterator_category = eastl::forward_iterator_tag;
+  using iterator_category = eastl::bidirectional_iterator_tag;
   using difference_type = typename eastl::iterator_traits<BaseIterator>::difference_type;
   using value_type = typename IdEnumerateView<Container>::value_type;
   using reference = value_type;
+  using pointer = void;
 
 
   auto operator*() { return reference{static_cast<index_type>(pos), *current}; }
@@ -60,10 +61,22 @@ struct IdEnumerateView<Container>::iterator
     ++pos;
     return *this;
   }
+  iterator &operator--()
+  {
+    --current;
+    --pos;
+    return *this;
+  }
   iterator operator++(int)
   {
     iterator tmp = *this;
     ++*this;
+    return tmp;
+  }
+  iterator operator--(int)
+  {
+    iterator tmp = *this;
+    --*this;
     return tmp;
   }
 

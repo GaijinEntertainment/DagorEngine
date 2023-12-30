@@ -1,4 +1,3 @@
-
 #include <math/dag_TMatrix.h>
 #include <pthread.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -43,9 +42,11 @@ namespace drv3d_metal
 
   int clear_vshd = -1;
   int clear_pshdi = -1;
+  int clear_pshdui = -1;
   int clear_pshdf = -1;
   int clear_vdecl = -1;
   int clear_progi = -1;
+  int clear_progui = -1;
   int clear_progf = -1;
 
   int copy_vshd = -1;
@@ -342,14 +343,15 @@ namespace drv3d_metal
 
       id<MTLTexture> texture = nil;
 
+      bool is_uav = slot >= MAX_SHADER_TEXTURES;
       if (textures[slot])
-        textures[slot]->apply(texture, textures_read_stencil[slot], textures_mip_level[slot]);
+        textures[slot]->apply(texture, textures_read_stencil[slot], textures_mip_level[slot], is_uav);
       else
       {
-        if (slot >= MAX_SHADER_TEXTURES)
-            render.blank_tex_rw[shader->tex_type[i]]->apply(texture, false, 0);
+        if (is_uav)
+            render.blank_tex_rw[shader->tex_type[i]]->apply(texture, false, 0, false);
         else
-            render.blank_tex[shader->tex_type[i]]->apply(texture, false, 0);
+            render.blank_tex[shader->tex_type[i]]->apply(texture, false, 0, false);
       }
 
       if (texture && textures_metal[tslot] != texture)
@@ -679,14 +681,17 @@ namespace drv3d_metal
 
     clear_vshd = createVertexShader((const uint8_t*)clear_vs_metal);
     clear_pshdi = createPixelShader((const uint8_t*)clear_ps_metal_i);
+    clear_pshdui = createPixelShader((const uint8_t*)clear_ps_metal_ui);
     clear_pshdf = createPixelShader((const uint8_t*)clear_ps_metal_f);
     clear_vdecl = createVDdecl(clear_dcl);
 
     PatchShader(clear_vshd, 1, 0);
     PatchShader(clear_pshdi, 1, 1);
+    PatchShader(clear_pshdui, 1, 1);
     PatchShader(clear_pshdf, 1, 1);
 
     clear_progi = createProgram(clear_vshd, clear_pshdi, clear_vdecl, 0, 0);
+    clear_progui = createProgram(clear_vshd, clear_pshdui, clear_vdecl, 0, 0);
     clear_progf = createProgram(clear_vshd, clear_pshdf, clear_vdecl, 0, 0);
 
     copy_vshd = createVertexShader((const uint8_t*)copy_vs_metal);
@@ -1907,6 +1912,13 @@ namespace drv3d_metal
     }
   }
 
+  static bool is_signed_int_format(Texture* tex)
+  {
+    if (tex == nullptr)
+      return false;
+    return tex->base_format == TEXFMT_R32SI;
+  }
+
   void Render::doClear(Texture* dst, int dst_level, int dst_layer, float z, float color[4],
                        bool clear_int, bool color_write, bool depth_write)
   {
@@ -1917,7 +1929,7 @@ namespace drv3d_metal
 
     vs_stage.setBuf(0, (Buffer*)clear_mesh_buffer);
 
-    doSetProgram(clear_int ? clear_progi : clear_progf, false);
+    doSetProgram(clear_int ? (is_signed_int_format(dst) ? clear_progi : clear_progui) : clear_progf, false);
     if (dst)
       setRenderTarget(dst, dst_level, dst_layer);
 
@@ -2601,7 +2613,7 @@ namespace drv3d_metal
     {
       if (used_query >= QUERIES_MAX)
       {
-        fatal("Count of used queries was exceeded of max available value");
+        DAG_FATAL("Count of used queries was exceeded of max available value");
         return NULL;
       }
 
@@ -2685,9 +2697,11 @@ namespace drv3d_metal
     deleteVertexShader(clear_vshd);
     deleteVertexShader(copy_vshd);
     deletePixelShader(clear_pshdi);
+    deletePixelShader(clear_pshdui);
     deletePixelShader(clear_pshdf);
     deletePixelShader(copy_pshd);
     deleteProgram(clear_progi);
+    deleteProgram(clear_progui);
     deleteProgram(clear_progf);
     deleteProgram(copy_prog);
     deleteVDecl(clear_vdecl);

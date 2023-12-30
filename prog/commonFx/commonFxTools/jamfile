@@ -1,6 +1,5 @@
 Root    ?= ../../.. ;
 Location = prog/commonFx/commonFxTools ;
-UseQuirrel = sq3+ ;
 
 TargetType  = lib ;
 Target      = commonFx/commonFxTools.lib ;
@@ -8,7 +7,6 @@ Target      = commonFx/commonFxTools.lib ;
 
 AddIncludes     =
   $(Root)/prog/tools/sharedInclude
-  $(Root)/prog/gameLibs/publicInclude/quirrel
   $(Root)/prog/commonFx/commonFxGame
 ;
 
@@ -21,10 +19,10 @@ Sources =
   commonFxTools.cpp
 
   $(fxList)_tools.cpp
-  DafxEmitter_tools.cpp
-  StdEmitter_tools.cpp
-  StaticVisSphere_tools.cpp
-  StdFxShaderParams_tools.cpp
+  dafxEmitter_tools.cpp
+  stdEmitter_tools.cpp
+  staticVisSphere_tools.cpp
+  stdFxShaderParams_tools.cpp
 ;
 
 if $(DabuildEmbeddedInGame) = yes {

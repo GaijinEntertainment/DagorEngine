@@ -20,9 +20,9 @@ namespace dabfg::detail
 struct ResUid
 {
   ResNameId resId;
-  uint32_t history : 1;
+  uint16_t history : 1;
 };
 
-static_assert(sizeof(ResUid) == sizeof(uint32_t) * 2);
+static_assert(sizeof(ResUid) == sizeof(uint16_t) * 2);
 
 } // namespace dabfg::detail

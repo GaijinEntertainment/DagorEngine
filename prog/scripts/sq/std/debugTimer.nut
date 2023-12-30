@@ -9,7 +9,7 @@ let show = @(msg = "show", printFunc = log) timers.len() > 0
   ? printFunc($"dbg_timer: {msg}: {get_time_msec() - timers.top()}")
   : printFunc($"dbg_timer: not found timer for {msg}")
 
-let function stop(msg = "stop", printFunc = log) {
+function stop(msg = "stop", printFunc = log) {
   show(msg, printFunc)
   if (timers.len())
     timers.pop()

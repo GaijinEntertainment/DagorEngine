@@ -212,7 +212,7 @@ void GlobalVertexDataSrc::attachDataPart(const GlobalVertexDataSrc &other_data, 
     G_ASSERT(other_data.iData32.size() >= _numf * 3 + _si);
   }
   else
-    fatal("GlobalVertexDataSrc::iData and GlobalVertexDataSrc::iData32 are empty");
+    DAG_FATAL("GlobalVertexDataSrc::iData and GlobalVertexDataSrc::iData32 are empty");
 
   append_items(vData, stride * _numv, &other_data.vData[stride * _sv]);
 
@@ -337,9 +337,9 @@ bool ShaderMeshData::build(class Mesh &m, ShaderMaterial **mats, int nummats, IC
     {
       if (!m.createTextureSpaceData(SCUSAGE_EXTRA, 50, 51))
       {
-        fatal("cannot create texture space data:\n"
-              "  tface[0].size()=%d face.size()=%d\n"
-              "  chIdDu=%d chIdDv=%d",
+        DAG_FATAL("cannot create texture space data:\n"
+                  "  tface[0].size()=%d face.size()=%d\n"
+                  "  chIdDu=%d chIdDv=%d",
           m.getTFace(0).size(), m.getFace().size(), m.find_extra_channel(SCUSAGE_EXTRA, 50), m.find_extra_channel(SCUSAGE_EXTRA, 51));
         return false;
       }
@@ -724,7 +724,7 @@ static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDesc
       {
         case SCUSAGE_POS:
           if (vDescSrc[c].ui != 0)
-            fatal("%s: chan[%d]: unknown pos channel %d", re.mat->getShaderClassName(), c, vDescSrc[c].ui);
+            DAG_FATAL("%s: chan[%d]: unknown pos channel %d", re.mat->getShaderClassName(), c, vDescSrc[c].ui);
           vertCount = m.getVert().size();
           vertType = MeshData::CHT_FLOAT3;
           vertices = (const uint8_t *)m.getVert().data();
@@ -743,13 +743,13 @@ static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDesc
           vertices = (const uint8_t *)m.getVertNorm().data();
           vertStride = elem_size(m.getVertNorm());
           if (!m.getNormFace().size())
-            fatal("%s: no normals in mesh", re.mat->getShaderClassName());
+            DAG_FATAL("%s: no normals in mesh", re.mat->getShaderClassName());
           indices = (const uint8_t *)&m.getNormFace()[0][0];
           faceStride = elem_size(m.getNormFace());
           break;
         case SCUSAGE_VCOL:
           if (vDescSrc[c].ui != 0)
-            fatal("%s: chan[%d]: unknown vcol channel %d", re.mat->getShaderClassName(), c, vDescSrc[c].ui);
+            DAG_FATAL("%s: chan[%d]: unknown vcol channel %d", re.mat->getShaderClassName(), c, vDescSrc[c].ui);
           vertCount = m.getCVert().size();
           vertType = MeshData::CHT_FLOAT4;
           colorConvert = true;
@@ -760,7 +760,7 @@ static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDesc
           break;
         case SCUSAGE_TC:
           if (vDescSrc[c].ui < 0 || vDescSrc[c].ui >= NUMMESHTCH)
-            fatal("%s: chan[%d]: unknown tc channel %d", re.mat->getShaderClassName(), c, vDescSrc[c].ui);
+            DAG_FATAL("%s: chan[%d]: unknown tc channel %d", re.mat->getShaderClassName(), c, vDescSrc[c].ui);
           vertCount = m.getTVert(vDescSrc[c].ui).size();
           vertType = MeshData::CHT_FLOAT2;
           vertices = (const uint8_t *)m.getTVert(vDescSrc[c].ui).data();
@@ -769,8 +769,8 @@ static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDesc
           faceStride = elem_size(m.getTFace(vDescSrc[c].ui));
           break;
         default:
-          fatal("%s: unknown chan[%d] #%d (vbu=%d vbui=%d t=0x%x), check mesh vertices & vcolor", re.mat->getShaderClassName(), c,
-            vDescSrc[c].u, vDescSrc[c].vbu, vDescSrc[c].vbui, vDescSrc[c].t);
+          DAG_FATAL("%s: unknown chan[%d] #%d (vbu=%d vbui=%d t=0x%x), check mesh vertices & vcolor", //
+            re.mat->getShaderClassName(), c, vDescSrc[c].u, vDescSrc[c].vbu, vDescSrc[c].vbui, vDescSrc[c].t);
       }
     Color4 encodeOfs(0, 0, 0, 0), encodeMul(1, 1, 1, 1);
     if (vDescSrc[c].mod == CMOD_BOUNDING_PACK)
@@ -794,7 +794,8 @@ static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDesc
     }
     ChannelVertices &cv = channels[c];
     if (!channel_size(vDescSrc[c].t, cv.encodedSize))
-      fatal("unknown shader channel type #%d (u=%d vbu=%d vbui=%d)", vDescSrc[c].t, vDescSrc[c].u, vDescSrc[c].vbu, vDescSrc[c].vbui);
+      DAG_FATAL("unknown shader channel type #%d (u=%d vbu=%d vbui=%d)", //
+        vDescSrc[c].t, vDescSrc[c].u, vDescSrc[c].vbu, vDescSrc[c].vbui);
     remapVerts.clear();
     Color4 cval{0, 0, 0, 1};
     if (!indices)

@@ -64,7 +64,7 @@ void CarDrivelineElement::addChild(CarDrivelineElement *comp)
   else if (!child[1])
     child[1] = comp;
   else
-    // fatal("component already has 2 children");
+    // DAG_FATAL("component already has 2 children");
     G_ASSERT(!"component already has 2 children");
 
   // Declare us as parent of the child

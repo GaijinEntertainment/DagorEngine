@@ -42,16 +42,16 @@ shader vertexDensityOverlay
   VERTEX_DENSITY_READ()
 
   hlsl(ps) {
-    half4 main_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    float4 main_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
       half3 heatColor = readVertexDensityPos(input.tc);
       if (any(heatColor))
-        return half4(heatColor, vertexDensityOverlayBlendFactor);
+        return float4(heatColor, vertexDensityOverlayBlendFactor);
       //special case for zero density, show original color if blending is enabled, otherwise render black
       else if (vertexDensityOverlayBlendFactor < 1.0)
-        return half4(0,0,0,0);
+        return float4(0,0,0,0);
       else
-        return half4(heatColor, 1);
+        return float4(heatColor, 1);
     }
   }
 

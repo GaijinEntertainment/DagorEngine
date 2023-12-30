@@ -1,5 +1,6 @@
 #include <rendInst/rendInstGen.h>
 #include "riGen/riGenData.h"
+#include "riGen/riGenRenderer.h"
 #include "riGen/riRotationPalette.h"
 #include "render/genRender.h"
 
@@ -466,6 +467,7 @@ bool rendinst::render::renderRIGenGlobalShadowsToTextures(const Point3 &sunDir0,
       if (rgl->rtData->renderRendinstGlobalShadowsToTextures(sunDir0, false, use_compression) != RET_ALL_DONE)
         return false;
     }
+    RiGenRenderer::updatePerDrawData(*rgl->rtData, rgl->perInstDataDwords);
   }
   return true;
 }

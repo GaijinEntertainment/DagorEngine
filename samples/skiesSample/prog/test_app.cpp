@@ -87,6 +87,7 @@
 #include <render/daBfg/bfg.h>
 #include <render/fx/auroraBorealis.h>
 #include <render/noiseTex.h>
+#include <render/spheres_consts.hlsli>
 
 #include <dag/dag_vectorSet.h>
 
@@ -527,10 +528,8 @@ public:
 
     if (global_cls_drv_pnt)
       global_cls_drv_pnt->getDevice(0)->setClipRect(0, 0, width, height);
-    sphereVb = NULL;
-    sphereIb = NULL;
-    sphereMat = cornellMat = NULL;
-    sphereElem = cornellElem = NULL;
+    sphereMat = NULL;
+    sphereElem = NULL;
     enviProbe = NULL;
 
 #define VAR(a) a##VarId = get_shader_variable_id(#a);
@@ -589,15 +588,11 @@ public:
 
     release_perline_noise_3d();
     del_it(test);
-    del_d3dres(sphereVb);
-    del_d3dres(sphereIb);
     del_it(visualConsoleDriver);
     del_it(debugTexOverlay);
     del_it(sphereMat);
     light_probe::destroy(enviProbe);
     sphereElem = NULL;
-    del_it(cornellMat);
-    cornellElem = NULL;
     closeHeightmap();
 
     cpujobs::stop_job_manager(1, true);
@@ -1232,16 +1227,9 @@ public:
     TIME_D3D_PROFILE(plane);
     ShaderGlobal::set_int(planeVarId, 1);
     sphereElem->setStates(0, true);
-    Point3 vert[4] = {Point3(-1, -2, -1), Point3(-1, -2, +1), Point3(+1, -2, -1), Point3(+1, -2, +1)};
-    d3d::draw_up(PRIM_TRISTRIP, 2, vert, sizeof(Point3));
-  }
-  void drawCornell()
-  {
-    if (!cornellElem)
-      return;
-    cornellElem->setStates(0, true);
-    float vert[36];
-    d3d::draw_up(PRIM_TRILIST, 12, vert, sizeof(float));
+    d3d::draw_instanced(PRIM_TRILIST, 0, 6, 1);
+    //Point3 vert[4] = {Point3(-1, -2, -1), Point3(-1, -2, +1), Point3(+1, -2, -1), Point3(+1, -2, +1)};
+    //d3d::draw_up(PRIM_TRISTRIP, 2, vert, sizeof(Point3));
   }
   void drawSpheres()
   {
@@ -1250,10 +1238,8 @@ public:
     TIME_D3D_PROFILE(spheres);
     ShaderGlobal::set_int(planeVarId, 0);
     sphereElem->setStates(0, true);
-    d3d::setind(sphereIb);
-    d3d::setvsrc(0, sphereVb, sizeof(Point3));
-    d3d::setvsrc_ex(1, NULL, 0, 0);
-    d3d::drawind_instanced(PRIM_TRILIST, 0, f_count, 0, NUM_ROUGHNESS * NUM_METALLIC);
+    d3d::setvsrc_ex(0, NULL, 0, 0);
+    d3d::draw_instanced(PRIM_TRILIST, 0, SPHERES_INDICES_TO_DRAW, NUM_ROUGHNESS * NUM_METALLIC);
   }
   HeightmapRenderer meshRenderer;
   UniqueTexHolder heightmap;
@@ -1322,7 +1308,6 @@ public:
   void renderOpaque(bool render_decals)
   {
     TIME_D3D_PROFILE(opaque);
-    drawCornell();
     drawPlane();
     drawSpheres();
     renderTrees();
@@ -2422,36 +2407,14 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
   light_probe::Cube *enviProbe;
   void createSpheres()
   {
-    enum
-    {
-      SLICES = 33
-    };
-    calc_sphere_vertex_face_count(SLICES, SLICES, false, v_count, f_count);
-    d3d_err(sphereVb = d3d::create_vb(v_count * sizeof(Point3), 0, "sphere"));
-    d3d_err(sphereIb = d3d::create_ib(f_count * 6, 0));
-    uint16_t *indices;
-    void *vertices;
-    sphereIb->lock(0, 0, &indices, VBLOCK_WRITEONLY);
-    d3d_err(sphereVb->lock(0, 0, &vertices, VBLOCK_WRITEONLY));
-    create_sphere_mesh(dag::Span<uint8_t>((uint8_t *)vertices, v_count * sizeof(Point3)),
-      dag::Span<uint8_t>((uint8_t *)indices, f_count * 6), 1.0f, SLICES, SLICES, sizeof(Point3), false, false, false, false);
-    sphereVb->unlock();
-    sphereIb->unlock();
 
     sphereMat = new_shader_material_by_name("sphereMaterial");
     sphereMat->addRef();
     sphereElem = sphereMat->make_elem();
-
-    cornellMat = new_shader_material_by_name("cornellBox");
-    cornellMat->addRef();
-    cornellElem = cornellMat->make_elem();
   }
 
-  uint32_t v_count, f_count;
-  Vbuffer *sphereVb;
-  Ibuffer *sphereIb;
-  ShaderMaterial *sphereMat, *cornellMat;
-  ShaderElement *sphereElem, *cornellElem;
+  ShaderMaterial *sphereMat;
+  ShaderElement *sphereElem;
   console::IVisualConsoleDriver *visualConsoleDriver;
 
   void scheduleHeightmapLoad(const char *name)

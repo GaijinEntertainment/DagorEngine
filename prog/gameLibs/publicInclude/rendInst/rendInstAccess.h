@@ -21,6 +21,7 @@ namespace rendinst
 
 
 int getRIGenMaterialId(const RendInstDesc &desc, bool need_lock = true);
+bool getRIGenCanopyBBox(const RendInstDesc &desc, const TMatrix &tm, BBox3 &out_canopy_bbox, bool need_lock = true);
 CollisionResource *getRIGenCollInfo(const RendInstDesc &desc);
 void *getCollisionResourceHandle(const RendInstDesc &desc);
 const CollisionResource *getRiGenCollisionResource(const RendInstDesc &desc);
@@ -34,6 +35,7 @@ TMatrix getRIGenMatrixNoLock(const RendInstDesc &desc);
 TMatrix getRIGenMatrixDestr(const RendInstDesc &desc);
 const char *getRIGenResName(const RendInstDesc &desc);
 const char *getRIGenDestrName(const RendInstDesc &desc);
+const char *getRIGenDestrFxTemplateName(const RendInstDesc &desc);
 bool isRIGenDestr(const RendInstDesc &desc);
 
 int getRIGenStrideRaw(int layer_idx, int pool_id);

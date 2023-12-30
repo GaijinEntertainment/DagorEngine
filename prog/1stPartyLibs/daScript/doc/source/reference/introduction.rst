@@ -7,10 +7,10 @@ Introduction
 .. index::
     single: introduction
 
-daScript is a high-performance, strong and statically typed scripting language, designed to be high-performance
+Daslang is a high-performance, strong and statically typed scripting language, designed to be high-performance
 as an embeddable "scripting" language for real-time applications (like games).
 
-daScript offers a wide range of features like strong static typing, generic programming with iterative type inference,
+Daslang offers a wide range of features like strong static typing, generic programming with iterative type inference,
 Ruby-like blocks, semantic indenting, native machine types, ahead-of-time "compilation" to C++, and fast and simplified bindings to C++ program.
 
 It's philosophy is build around a modified Zen of Python.
@@ -24,12 +24,12 @@ It's philosophy is build around a modified Zen of Python.
 * *Complex is better than complicated.*
 * *Flat is better than nested.*
 
-daScript is supposed to work as a "host data processor".
+Daslang is supposed to work as a "host data processor".
 While it is technically possible to maintain persistent state within a script context (with a certain option set),
-daScript is designed to transform your host (C++) data/implement scripted behaviors.
+Daslang is designed to transform your host (C++) data/implement scripted behaviors.
 
 In a certain sense, it is pure functional - i.e. all persistent state is out of the scope of the scripting context, and the script's state is temporal by its nature.
-Thus, the memory model and management of persistent state are the responsibility of the application.  This leads to an extremely simple and fast memory model in daScript itself.
+Thus, the memory model and management of persistent state are the responsibility of the application.  This leads to an extremely simple and fast memory model in Daslang itself.
 
 +++++++++++++
 Performance.
@@ -37,12 +37,12 @@ Performance.
 
 In a real world scenarios, it's interpretation is 10+ times faster than LuaJIT without JIT (and can be even faster than LuaJIT with JIT).
 Even more important for embedded scripting languages, its interop with C++ is extremely fast (both-ways), an order of magnitude faster than most other popular scripting languages.
-Fast calls from C++ to daScript allow you to use daScript for simple stored procedures, and makes it an ECS/Data Oriented Design friendly language.
-Fast calls to C++ from daScript allow you to write performant scripts which are processing host (C++) data, and rely on bound host (C++) functions.
+Fast calls from C++ to Daslang allow you to use Daslang for simple stored procedures, and makes it an ECS/Data Oriented Design friendly language.
+Fast calls to C++ from Daslang allow you to write performant scripts which are processing host (C++) data, and rely on bound host (C++) functions.
 
 It also allows Ahead-of-Time compilation, which is not only possible on all platforms (unlike JIT), but also always faster/not-slower (JIT is known to sometimes slow down scripts).
 
-daScript already has implemented AoT (C++ transpiler) which produces code more or less similar with C++11 performance of the same program.
+Daslang already has implemented AoT (C++ transpiler) which produces code more or less similar with C++11 performance of the same program.
 
 `Table with performance comparisons on a synthetic samples/benchmarks
 <https://docs.google.com/spreadsheets/d/1y1G4exD4J9o3kPYw6Y-eaVoffbJ5h_mWVG121wp2k9s/htmlview>`_.
@@ -76,7 +76,7 @@ The same samples with curly brackets, for those who prefer this type of syntax::
         } else {
             return fibR(n - 1) + fibR(n - 2);
         }
-    }   
+    }
     def fibI(n) {
         var last = 0;
         var cur = 1;
@@ -96,7 +96,7 @@ Generic programming and type system
 
 Although above sample may seem to be dynamically typed, it is actually generic programming.
 The actual instance of the fibI/fibR functions is strongly typed and basically is just accepting and returning an ``int``. This is similar to templates in C++ (although C++ is not a strong-typed language) or ML.
-Generic programming in daScript allows very powerful compile-time type reflection mechanisms, significantly simplifying writing optimal and clear code.
+Generic programming in Daslang allows very powerful compile-time type reflection mechanisms, significantly simplifying writing optimal and clear code.
 Unlike C++ with it's SFINAE, you can use common conditionals (if) in order to change the instance of the function depending on type info of its arguments.
 Consider the following example::
 
@@ -112,8 +112,8 @@ This function sets `someField` in the provided argument *if* it is a struct with
 Compilation time macros
 +++++++++++++++++++++++
 
-daScript does a lot of heavy lifting during compilation time so that it does not have to do it at run time.
-In fact, the daScript compiler runs the daScript interpreter for each module and has the entire AST available to it.
+Daslang does a lot of heavy lifting during compilation time so that it does not have to do it at run time.
+In fact, the Daslang compiler runs the Daslang interpreter for each module and has the entire AST available to it.
 
 The following example modifies function calls at compilation time to add a precomputed hash of a constant string argument::
 

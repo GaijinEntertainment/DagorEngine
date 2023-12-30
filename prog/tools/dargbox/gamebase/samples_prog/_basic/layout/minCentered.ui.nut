@@ -30,7 +30,7 @@ let item = @(text, hasIcon = false) {
 
 // this workaround only shows approach to make task done but it isn't solve
 // problem and even doesn't expand external container to the self size
-let function itemTrick(text, hasIcon = false) {
+function itemTrick(text, hasIcon = false) {
   let textArea = {
     rendObj = ROBJ_TEXTAREA
     size = [flex(), SIZE_TO_CONTENT]

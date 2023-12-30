@@ -269,32 +269,6 @@ SQInteger _read_two_bytes(IOBuffer *iobuffer)
     return 0;
 }
 
-static SQInteger _io_file_lexfeed_PLAIN(SQUserPointer iobuf)
-{
-    IOBuffer *iobuffer = (IOBuffer *)iobuf;
-    return _read_byte(iobuffer);
-
-}
-
-static SQInteger _io_file_lexfeed_UCS2_LE(SQUserPointer iobuf)
-{
-    SQInteger ret;
-    IOBuffer *iobuffer = (IOBuffer *)iobuf;
-    if( (ret = _read_two_bytes(iobuffer)) > 0 )
-        return ret;
-    return 0;
-}
-
-static SQInteger _io_file_lexfeed_UCS2_BE(SQUserPointer iobuf)
-{
-    SQInteger c;
-    IOBuffer *iobuffer = (IOBuffer *)iobuf;
-    if( (c = _read_two_bytes(iobuffer)) > 0 ) {
-        c = ((c>>8)&0x00FF)| ((c<<8)&0xFF00);
-        return c;
-    }
-    return 0;
-}
 
 SQInteger file_read(SQUserPointer file,SQUserPointer buf,SQInteger size)
 {

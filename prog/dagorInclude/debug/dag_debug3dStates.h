@@ -41,6 +41,7 @@ class CachedStates
 {
   shaders::RenderStateId renderStateId;
   carray<shaders::UniqueOverrideStateId, StateKey::VARIANTS_COUNT> stateOverrides = {};
+  shaders::OverrideStateId savedOverride;
   void makeState(const StateKey &key);
   shaders::UniqueOverrideStateId &getState(const StateKey &key);
 

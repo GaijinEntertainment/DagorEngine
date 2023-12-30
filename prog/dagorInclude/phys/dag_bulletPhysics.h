@@ -195,6 +195,8 @@ public:
 
   void wakeUp();
 
+  constexpr bool isValid() const { return true; }
+
   static PhysBody *from_bt_body(const btCollisionObject *b) { return b ? (PhysBody *)b->getUserPointer() : nullptr; }
 
 protected:
@@ -252,7 +254,7 @@ public:
     if (dirLenSq != 0.0f && fabsf(dirLenSq - 1.0f) > 0.01f)
     {
 #if DAGOR_DBGLEVEL > 0
-      fatal("Invalid dir " FMT_P3 ", len = %f", P3D(d), length(d));
+      DAG_FATAL("Invalid dir " FMT_P3 ", len = %f", P3D(d), length(d));
 #endif
       invalid |= 2;
     }

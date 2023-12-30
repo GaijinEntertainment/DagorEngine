@@ -42,7 +42,7 @@ extern void apply_hinstance(void *hInstance, void *hPrevInstance);
 extern void messagebox_win_report_fatal_error(const char *title, const char *msg, const char *call_stack);
 static int dagor_program_exec(int nCmdShow, int debugmode);
 
-static void __cdecl abort_handler(int) { fatal("SIGABRT"); }
+static void __cdecl abort_handler(int) { DAG_FATAL("SIGABRT"); }
 
 int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLine*/, int nCmdShow)
 {

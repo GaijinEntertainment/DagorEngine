@@ -63,10 +63,6 @@ inline constexpr int RENDER_ELEM_SIZE_PACKED = 8;
 inline constexpr int RENDER_ELEM_SIZE_UNPACKED = 16;
 inline constexpr int RENDER_ELEM_SIZE = RENDINST_FLOAT_POS ? RENDER_ELEM_SIZE_UNPACKED : RENDER_ELEM_SIZE_PACKED;
 
-inline constexpr float LOD0_DISSOLVE_RANGE = 0.0f;
-inline constexpr float LOD1_DISSOLVE_RANGE = 6.0f;
-inline constexpr float TOTAL_CROSS_DISSOLVE_DIST = LOD0_DISSOLVE_RANGE + LOD1_DISSOLVE_RANGE;
-
 inline constexpr int DYNAMIC_IMPOSTOR_TEX_SHADOW_OFFSET = 2;
 
 extern bool check_occluders;
@@ -95,13 +91,21 @@ inline int get_last_mip_idx(Texture *tex, int dest_size)
   return min(tex->level_count() - 1, int(src > dest_size ? get_log2i(src / dest_size) : 0));
 }
 
+template struct eastl::array<uint32_t, 2>;
+
 namespace rendinst::render
 {
 // on disc we store in short4N
 #define ENCODED_RENDINST_RESCALE (32767. / 256)
 
+struct RiGenPerInstanceParameters
+{
+  uint32_t perDrawData;
+  uint32_t instanceOffset;
+};
+
 extern shaders::UniqueOverrideStateId afterDepthPrepassOverride;
-extern MultidrawContext<rendinst::PerInstanceParameters> multidrawContext;
+extern MultidrawContext<rendinst::render::RiGenPerInstanceParameters> riGenMultidrawContext;
 
 extern bool use_ri_depth_prepass;
 extern int normal_type;

@@ -1,0 +1,4 @@
+local R = prog/gameLibs/daEditorE ;
+Sources +=
+  $(R)/aot/stub.cpp
+;

@@ -3,7 +3,7 @@ let dw = require_optional("dagor.workcyle")
 
 //This is list of all darg native functions and consts, to use in mockups
 
-let function Color(r,g,b,a=255) {
+function Color(r,g,b,a=255) {
   return (a.tointeger() << 24) + (r.tointeger() << 16) + (g.tointeger() << 8) + b.tointeger()
 }
 
@@ -47,7 +47,6 @@ let gui_scene = {
   circleButtonAsAction = false
   setXmbFocus = @(_v) null
   xmbMode = Watched(true)
-  isActive = Watched(true)
   getCompAABBbyKey = @(_key) [0,0,1,1]
   keyboardLocks = Watched(0)
   keyboardLayout = Watched("ru")
@@ -151,7 +150,14 @@ let darg = {
   ph = @(val) val
   elemw = @(val) val
   elemh = @(val) val
-  get_font_metrics = @(v) assert(type(v)=="integer")
+  get_font_metrics = function(fontId, fontSize=null) {
+    assert(type(fontId)=="integer")
+    assert(fontSize==null || type(fontSize)=="float")
+    return {
+      ascent = 0.0
+      descent = 0.0
+    }
+  }
   MoveToAreaTarget = class{ function set(_l,_t,_r,_b){}; function clear(){}}
 }
 

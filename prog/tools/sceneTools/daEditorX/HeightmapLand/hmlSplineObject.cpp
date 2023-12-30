@@ -2096,9 +2096,9 @@ void SplineObject::moveObject(const Point3 &delta, IEditorCoreEngine::BasisType 
   if (!points.size())
     return;
 
-  __super::putMoveUndo();
+  RenderableEditableObject::putMoveUndo();
   putObjTransformUndo();
-  __super::moveObject(delta, basis);
+  RenderableEditableObject::moveObject(delta, basis);
 
   int pnum = isClosed() ? points.size() - 1 : points.size();
   for (int i = 0; i < pnum; i++)
@@ -2118,9 +2118,9 @@ void SplineObject::rotateObject(const Point3 &delta, const Point3 &origin, IEdit
   if (basis == IEditorCoreEngine::BASIS_Local)
     return;
 
-  __super::putRotateUndo();
+  RenderableEditableObject::putRotateUndo();
   putObjTransformUndo();
-  __super::rotateObject(delta, origin, basis);
+  RenderableEditableObject::rotateObject(delta, origin, basis);
 
 
   Matrix3 dtm = rotxM3(delta.x) * rotyM3(delta.y) * rotzM3(delta.z);
@@ -2155,9 +2155,9 @@ void SplineObject::scaleObject(const Point3 &delta, const Point3 &origin, IEdito
   if (!points.size())
     return;
 
-  __super::putScaleUndo();
+  RenderableEditableObject::putScaleUndo();
   putObjTransformUndo();
-  __super::scaleObject(delta, origin, basis);
+  RenderableEditableObject::scaleObject(delta, origin, basis);
 
   Matrix3 dtm;
   dtm.zero();
@@ -2345,7 +2345,7 @@ void SplineObject::updateSpline(int stage)
       splineChanged = false;
       return;
 
-    default: fatal("bad stage: %d");
+    default: DAG_FATAL("bad stage: %d");
   }
 }
 
@@ -2760,7 +2760,7 @@ void SplineObject::putMoveUndo()
 {
   HmapLandObjectEditor *ed = (HmapLandObjectEditor *)getObjEditor();
   if (!ed->isCloneMode())
-    __super::putMoveUndo();
+    RenderableEditableObject::putMoveUndo();
 }
 
 void SplineObject::attachTo(SplineObject *s, int to_idx)

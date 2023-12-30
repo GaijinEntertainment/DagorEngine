@@ -17,7 +17,7 @@ let popupWrapperAnim = [
 ]
 
 
-let function itemToOption(item, wdata){
+function itemToOption(item, wdata){
   let tp = type(item)
   local value
   local text
@@ -47,7 +47,7 @@ let function itemToOption(item, wdata){
 }
 
 
-let function findCurOption(opts, wdata){
+function findCurOption(opts, wdata){
   local found
   foreach (item in opts) {
     let f = itemToOption(item, wdata)
@@ -61,12 +61,12 @@ let function findCurOption(opts, wdata){
 }
 
 
-let function setValueByOptions(opts, wdata, wupdate){
+function setValueByOptions(opts, wdata, wupdate){
   wupdate(findCurOption(opts, wdata).value)
 }
 
 
-let function popupWrapper(popupContent, dropDirDown) {
+function popupWrapper(popupContent, dropDirDown) {
   let align = dropDirDown ? ALIGN_TOP : ALIGN_BOTTOM
   let children = [
     {size = [flex(), ph(100)]}
@@ -89,7 +89,7 @@ let function popupWrapper(popupContent, dropDirDown) {
 }
 
 
-let function dropdownBgOverlay(onClick) {
+function dropdownBgOverlay(onClick) {
   return {
     pos = [-9000, -9000]
     size = [19999, 19999]
@@ -100,7 +100,7 @@ let function dropdownBgOverlay(onClick) {
 }
 
 
-let function combobox(watches, options, combo_style=comboStyle) {
+function combobox(watches, options, combo_style=comboStyle) {
   if (type(options)!="instance")
     options = Watched(options)
 
@@ -129,7 +129,7 @@ let function combobox(watches, options, combo_style=comboStyle) {
 
   local onAttachRoot, onDetachRoot
   if (changeVarOnListUpdate) {
-    let function inputWatchesChangeListener(_) {
+    function inputWatchesChangeListener(_) {
       setValueByOptions(options.value, wdata, wupdate)
     }
 
@@ -145,7 +145,7 @@ let function combobox(watches, options, combo_style=comboStyle) {
   }
 
 
-  let function dropdownList() {
+  function dropdownList() {
     let xmbNodes = options.value.map(@(_) XmbNode())
     local curXmbNode = xmbNodes?[0]
     let children = options.value.map(function(item, idx) {
@@ -153,7 +153,7 @@ let function combobox(watches, options, combo_style=comboStyle) {
       if (isCurrent)
         curXmbNode = xmbNodes[idx]
 
-      let function handler() {
+      function handler() {
         wupdate(value)
         comboOpen.update(false)
       }

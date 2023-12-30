@@ -65,26 +65,6 @@ In the example above a query is added to the `update_ai` stage. The query also r
 Call macros
 +++++++++++
 
-.. _call-macro-decs_boost-find_query:
-
-.. das:attribute:: find_query
-
-This macro implmenets 'find_query` functionality.
-It is similar to `query` in most ways, with the main differences being:
-    * there is no eid-based find query
-    * the find_query stops once the first match is found
-For example::
-
-    let found = find_query <| $ ( pos,dim:float3; obstacle:Obstacle )
-    if !obstacle.wall
-        return false
-    let aabb = [[AABB min=pos-dim*0.5, max=pos+dim*0.5 ]]
-    if is_intersecting(ray, aabb, 0.1, dist)
-        return true
-
-In the example above the find_query will return `true` once the first intesection is found.
-Note: if return is missing, or end of find_query block is reached - its assumed that find_query did not find anything, and will return false.
-
 .. _call-macro-decs_boost-query:
 
 .. das:attribute:: query
@@ -133,6 +113,26 @@ Note: apart from tagging structure as a template, the macro also generates `appl
     for i in range(3)
         create_entity <| @ ( eid, cmp )
             apply_decs_template(cmp, [[Particle pos=float3(i), vel=float3(i+1)]])
+
+.. _call-macro-decs_boost-find_query:
+
+.. das:attribute:: find_query
+
+This macro implmenets 'find_query` functionality.
+It is similar to `query` in most ways, with the main differences being:
+    * there is no eid-based find query
+    * the find_query stops once the first match is found
+For example::
+
+    let found = find_query <| $ ( pos,dim:float3; obstacle:Obstacle )
+    if !obstacle.wall
+        return false
+    let aabb = [[AABB min=pos-dim*0.5, max=pos+dim*0.5 ]]
+    if is_intersecting(ray, aabb, 0.1, dist)
+        return true
+
+In the example above the find_query will return `true` once the first intesection is found.
+Note: if return is missing, or end of find_query block is reached - its assumed that find_query did not find anything, and will return false.
 
 ++++++++++++++++
 Structure macros

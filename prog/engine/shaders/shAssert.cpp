@@ -26,8 +26,9 @@ ScopedShaderAssert::~ScopedShaderAssert() = default;
 
 SHADER_VAR(shader_class_id);
 SHADER_VAR(stack_id);
+SHADER_VAR(assertion_buffer_slot);
 
-static UniqueBufHolder g_assertion_buffer;
+static UniqueBuf g_assertion_buffer;
 static RingCPUBufferLock g_assertion_ring_buffer;
 
 static eastl::vector_set<int> g_failed_by_class;
@@ -153,6 +154,9 @@ ScopedShaderAssert::ScopedShaderAssert(const shaderbindump::ShaderClass &sh_clas
   if (!g_assertion_buffer || get_dump_v2()->messagesByShclass[mShaderClassId].empty())
     return;
 
+  int slot = ShaderGlobal::get_int(assertion_buffer_slot.shadervarId);
+  d3d::set_rwbuffer(ShaderStage::STAGE_PS, slot, g_assertion_buffer.getBuf());
+  d3d::set_rwbuffer(ShaderStage::STAGE_CS, slot, g_assertion_buffer.getBuf());
   ShaderGlobal::set_int(shader_class_id.shadervarId, mShaderClassId);
   ShaderGlobal::set_int(stack_id.shadervarId, (int)g_stacks_on_frames[g_current_frame].size());
 

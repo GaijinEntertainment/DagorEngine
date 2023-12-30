@@ -191,7 +191,7 @@ void WaterRipples::advance(float dt, const Point2 &origin)
     else
       ShaderGlobal::set_int(waterRipplesDropCountVarId, 0);
 
-    if (lengthSq(originDelta) < SQR(MIN_JITTER_THRESHOLD / texSize))
+    if (lengthSq(originDelta) < sqr(MIN_JITTER_THRESHOLD / texSize))
       originDelta = Point2(0.25f, 0.25f) / texSize * (curBuffer ? 1.0f : -1.0f);
     ShaderGlobal::set_color4(waterRipplesOriginDeltaVarId, Color4::xyz0(Point3::x0y(originDelta)));
 

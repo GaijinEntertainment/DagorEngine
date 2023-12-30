@@ -62,7 +62,7 @@ public:
 };
 
 #define DAGOR_TRY      if (1)
-#define DAGOR_THROW(x) fatal("exception: " #x)
+#define DAGOR_THROW(x) DAG_FATAL("exception: " #x)
 #define DAGOR_RETHROW()
 //-V:DAGOR_CATCH:646
 #define DAGOR_CATCH(x)         if (0)

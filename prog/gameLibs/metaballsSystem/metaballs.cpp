@@ -8,11 +8,6 @@
 #include "metaballsSystem/metaballs.h"
 #include "marchingCubeTables.h"
 
-template <typename T>
-inline T sqr(T t)
-{
-  return t * t;
-}
 
 CONSOLE_FLOAT_VAL_MINMAX("metaballs", threshold, 0.5, 0, 10);
 

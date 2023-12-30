@@ -85,7 +85,7 @@ static bool outputTex(const char *tga_tex_name, const ImageDesc &srcImage, const
 {
   if (tabutils::find(tgaFiles, String(tga_tex_name)))
   {
-    fatal("texture '%s' duplicated!", tga_tex_name);
+    DAG_FATAL("texture '%s' duplicated!", tga_tex_name);
   }
   else
   {

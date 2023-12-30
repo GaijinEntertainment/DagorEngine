@@ -1,8 +1,10 @@
 #pragma once
 
 #include <3d/dag_drv3d.h>
-#include <EASTL/bitset.h>
+#include <generic/dag_bitset.h>
+#include <generic/dag_enumerate.h>
 #include <math/dag_adjpow2.h>
+#include <math/dag_lsbVisitor.h>
 #include <perfMon/dag_graphStat.h>
 
 #include "texture.h"
@@ -204,18 +206,11 @@ struct FrontendState
 
   static void updateRenderTargetBindingStates(DeviceContext &ctx, const Driver3dRenderTarget &rts, bool in_use)
   {
-    if (rts.isColorUsed())
+    for (auto i : LsbVisitor{rts.used & Driver3dRenderTarget::COLOR_MASK})
     {
-      for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+      if (auto tex = cast_to_texture_base(rts.getColor(i).tex))
       {
-        if (rts.isColorUsed(i))
-        {
-          auto tex = cast_to_texture_base(rts.getColor(i).tex);
-          if (tex)
-          {
-            tex->setRtvBinding(i, in_use);
-          }
-        }
+        tex->setRtvBinding(i, in_use);
       }
     }
     if (rts.isDepthUsed())
@@ -234,8 +229,8 @@ struct FrontendState
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
     dirtyState = ~DirtyState::Type(0);
     resourceDirtyState = ~ResourceDirtyState::Type{0};
-    for (int i = 0; i < STAGE_MAX_EXT; i++)
-      stageResources[i].allDirty();
+    for (auto &stage : stageResources)
+      stage.allDirty();
   }
 
   eastl::span<ConstRegisterType> getRegisterSection(uint32_t stage)
@@ -269,125 +264,90 @@ struct FrontendState
     return range.second != eastl::copy(range.first, src.end(), range.second);
   }
 
-  template <typename A, typename D, typename U>
-  void flushResources(A &ctx, uint32_t stage, D is_const_ds, U update_srv_buffer)
+  template <typename A, typename U, typename D>
+  void flushResources(A &ctx, uint32_t stage, U update_srv_buffer, D is_const_ds)
   {
     StageResourcesState &target = stageResources[stage];
     const auto updateMask = target.dirtyMasks;
     target.dirtyMasks = {};
-    if (updateMask.bRegisterMask.any())
+
+    for (auto i : updateMask.bRegisterMask)
     {
-      const size_t last = eastl::min(updateMask.bRegisterMask.find_last(), size_t(dxil::MAX_B_REGISTERS - 1));
-      for (size_t i = updateMask.bRegisterMask.find_first(); i <= last; ++i)
+      if (auto gbuf = (GenericBufferInterface *)target.bRegisterBuffers[i])
       {
-        if (updateMask.bRegisterMask.test(i))
-        {
-          Sbuffer *buffer = target.bRegisterBuffers[i];
-          if (buffer)
-          {
-            auto gbuf = (GenericBufferInterface *)buffer;
-            gbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsConstOrVertexBuffer(); });
-            ctx.setConstBuffer(stage, i, {get_any_buffer_ref(gbuf), target.bRegisterOffsets[i], target.bRegisterSizes[i]});
-          }
-          else
-          {
-            ctx.setConstBuffer(stage, i, {});
-          }
-        }
+        gbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsConstOrVertexBuffer(); });
+        ctx.setConstBuffer(stage, i, {get_any_buffer_ref(gbuf), target.bRegisterOffsets[i], target.bRegisterSizes[i]});
+      }
+      else
+      {
+        ctx.setConstBuffer(stage, i, {});
       }
     }
-    if (updateMask.tRegisterMask.any())
-    {
-      const size_t last = eastl::min(updateMask.tRegisterMask.find_last(), size_t(dxil::MAX_T_REGISTERS - 1));
-      const size_t first = updateMask.tRegisterMask.find_first();
-      // have to check all slots regardless of mask, a state of a texture might has changed
-      for (size_t i = first; i <= last; ++i)
-      {
-        if (updateMask.tRegisterMask.test(i))
-        {
-          if (target.tRegisterBuffers[i])
-          {
-            auto gbuf = (GenericBufferInterface *)target.tRegisterBuffers[i];
-            gbuf->updateDeviceBuffer(update_srv_buffer);
-            G_ASSERT(!gbuf->isStreamBuffer());
-            ctx.setSRVBuffer(stage, i, gbuf->getDeviceBuffer());
-          }
-          else if (target.tRegisterTextures[i])
-          {
-            BaseTex *texture = target.tRegisterTextures[i];
-            // if it is right now a stub texture then use it explicitly to avoid a race
-            if (texture->isStub())
-            {
-              texture = texture->getStubTex();
-            }
 
-            ImageViewState view = texture->getViewInfo();
-            ctx.setSRVTexture(stage, i, texture, view, is_const_ds(texture, view));
-          }
+    // have to check all slots regardless of mask, a state of a texture might has changed
+    for (auto i : updateMask.tRegisterMask)
+    {
+      if (auto gbuf = (GenericBufferInterface *)target.tRegisterBuffers[i])
+      {
+        gbuf->updateDeviceBuffer(update_srv_buffer);
+        G_ASSERT(!gbuf->isStreamBuffer());
+        ctx.setSRVBuffer(stage, i, gbuf->getDeviceBuffer());
+      }
+      else if (auto texture = target.tRegisterTextures[i])
+      {
+        // if it is right now a stub texture then use it explicitly to avoid a race
+        if (texture->isStub())
+        {
+          texture = texture->getStubTex();
+        }
+
+        ImageViewState view = texture->getViewInfo();
+        ctx.setSRVTexture(stage, i, texture, view, is_const_ds(texture, view));
+      }
 #if D3D_HAS_RAY_TRACING
-          else if (target.tRegisterRaytraceAccelerataionStructures[i])
-          {
-            ctx.setRaytraceAccelerationStructure(stage, i, target.tRegisterRaytraceAccelerataionStructures[i]);
-          }
+      else if (auto as = target.tRegisterRaytraceAccelerataionStructures[i])
+      {
+        ctx.setRaytraceAccelerationStructure(stage, i, as);
+      }
 #endif
-          else
-          {
-            ctx.setSRVNull(stage, i);
-          }
-        }
+      else
+      {
+        ctx.setSRVNull(stage, i);
       }
     }
 
-    if (updateMask.sRegisterMask.any())
+    // have to check all slots regardless of mask, a state of a texture might has changed
+    for (auto i : updateMask.sRegisterMask)
     {
-      const size_t last = eastl::min(updateMask.sRegisterMask.find_last(), size_t(dxil::MAX_T_REGISTERS - 1));
-      const size_t first = updateMask.sRegisterMask.find_first();
-      // have to check all slots regardless of mask, a state of a texture might has changed
-      for (size_t i = first; i <= last; ++i)
+      if (auto sampler = target.sRegisterSamplers[i])
       {
-        if (updateMask.sRegisterMask.test(i))
-        {
-          if (target.sRegisterSamplers[i])
-          {
-            ctx.setSamplerHandle(stage, i, target.sRegisterSamplers[i]);
-          }
-          else if (target.tRegisterTextures[i])
-          {
-            ctx.setSampler(stage, i, target.tRegisterTextures[i]->getDeviceSampler());
-          }
-          else
-          {
-            ctx.setSampler(stage, i, {});
-          }
-        }
+        ctx.setSamplerHandle(stage, i, sampler);
+      }
+      else if (auto texture = target.tRegisterTextures[i])
+      {
+        ctx.setSampler(stage, i, texture->getDeviceSampler());
+      }
+      else
+      {
+        ctx.setSampler(stage, i, {});
       }
     }
 
-    if (updateMask.uRegisterMask.any())
+    for (auto i : updateMask.uRegisterMask)
     {
-      const size_t last = eastl::min(updateMask.uRegisterMask.find_last(), size_t(dxil::MAX_U_REGISTERS - 1));
-      for (size_t i = updateMask.uRegisterMask.find_first(); i <= last; ++i)
+      if (auto gbuf = (GenericBufferInterface *)target.uRegisterBuffers[i])
       {
-        if (updateMask.uRegisterMask.test(i))
-        {
-          if (target.uRegisterBuffers[i])
-          {
-            auto gbuf = (GenericBufferInterface *)target.uRegisterBuffers[i];
-            gbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsUAVBuffer(); });
-            G_ASSERT(!gbuf->isStreamBuffer());
-            ctx.setUAVBuffer(stage, i, gbuf->getDeviceBuffer());
-          }
-          else if (target.uRegisterTextures[i])
-          {
-            BaseTex *texture = target.uRegisterTextures[i];
-            Image *image = texture->getDeviceImage();
-            ctx.setUAVTexture(stage, i, image, target.uRegisterTextureViews[i]);
-          }
-          else
-          {
-            ctx.setUAVNull(stage, i);
-          }
-        }
+        gbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsUAVBuffer(); });
+        G_ASSERT(!gbuf->isStreamBuffer());
+        ctx.setUAVBuffer(stage, i, gbuf->getDeviceBuffer());
+      }
+      else if (auto texture = target.uRegisterTextures[i])
+      {
+        ctx.setUAVTexture(stage, i, texture->getDeviceImage(), target.uRegisterTextureViews[i]);
+      }
+      else
+      {
+        ctx.setUAVNull(stage, i);
       }
     }
   }
@@ -494,16 +454,12 @@ struct FrontendState
     updateRenderTargetBindingStates(ctx, renderTargets, false);
     updateRenderTargetBindingStates(ctx, rt, true);
     renderTargets = rt;
-    for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+    for (auto i : LsbVisitor{renderTargets.used & Driver3dRenderTarget::COLOR_MASK})
     {
-      if (renderTargets.isColorUsed(i))
+      if (auto tex = cast_to_texture_base(renderTargets.getColor(i).tex))
       {
-        const Driver3dRenderTarget::RTState rtState = renderTargets.getColor(i);
-        if (rtState.tex)
-        {
-          cast_to_texture_base(rtState.tex)->dirtyBoundUavsNoLock();
-          cast_to_texture_base(rtState.tex)->dirtyBoundSrvsNoLock();
-        }
+        tex->dirtyBoundUavsNoLock();
+        tex->dirtyBoundSrvsNoLock();
       }
     }
   }
@@ -554,18 +510,11 @@ struct FrontendState
   {
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
     resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
-    if (renderTargets.isColorUsed())
+    for (auto i : LsbVisitor{renderTargets.used & Driver3dRenderTarget::COLOR_MASK})
     {
-      for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+      if (auto tex = cast_to_texture_base(renderTargets.getColor(i).tex))
       {
-        if (renderTargets.isColorUsed(i))
-        {
-          auto tex = cast_to_texture_base(renderTargets.getColor(i).tex);
-          if (tex)
-          {
-            tex->setRtvBinding(i, false);
-          }
-        }
+        tex->setRtvBinding(i, false);
       }
     }
     renderTargets.setBackbufColor();
@@ -806,45 +755,40 @@ struct FrontendState
 
   Extent2D getFramebufferExtentInternal(DeviceContext &ctx) const
   {
-    auto result = ctx.getSwapchainExtent();
     if (!renderTargets.isBackBufferColor())
     {
       if (renderTargets.isColorUsed())
       {
-        for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
-        {
-          if (renderTargets.isColorUsed(i))
-          {
-            const Extent3D &size = cast_to_texture_base(*renderTargets.color[i].tex).getMipmapExtent(renderTargets.color[i].level);
-            result.width = size.width;
-            result.height = size.height;
-            break;
-          }
-        }
+        auto &color = renderTargets.color[__ctz_unsafe(renderTargets.used & Driver3dRenderTarget::COLOR_MASK)];
+        const Extent3D &size = cast_to_texture_base(*color.tex).getMipmapExtent(color.level);
+        return {size.width, size.height};
       }
-      else if (renderTargets.isDepthUsed() && renderTargets.depth.tex)
+      if (renderTargets.isDepthUsed() && renderTargets.depth.tex)
       {
         const Extent3D &size = cast_to_texture_base(*renderTargets.depth.tex).getMipmapExtent(renderTargets.depth.level);
-        result.width = size.width;
-        result.height = size.height;
+        return {size.width, size.height};
       }
     }
-    return result;
+    return ctx.getSwapchainExtent();
   }
 
   void calculateViewport(DeviceContext &ctx)
   {
     if (!dirtyState.test(DirtyState::VIEWPORT_FROM_RENDER_TARGETS))
       return;
+    dirtyState.reset(DirtyState::VIEWPORT_FROM_RENDER_TARGETS);
 
     auto extent = getFramebufferExtentInternal(ctx);
-    ViewportState newViewport = viewports[0];
-    newViewport.x = 0;
-    newViewport.y = 0;
-    newViewport.width = extent.width;
-    newViewport.height = extent.height;
-
-    setViewports({&newViewport, 1});
+    if (auto &vp = viewports[0];
+        vp.x != 0 || vp.y != 0 || vp.width != extent.width || vp.height != extent.height || viewportCount != 1)
+    {
+      vp.x = 0;
+      vp.y = 0;
+      vp.width = extent.width;
+      vp.height = extent.height;
+      viewportCount = 1;
+      markDirty(DirtyState::VIEWPORT, true);
+    }
   }
 
   template <typename T>
@@ -979,19 +923,15 @@ struct FrontendState
       }
     }
 
-    for (uint32_t i = 1; i < Driver3dRenderTarget::MAX_SIMRT && (0 != ((renderTargets.used & Driver3dRenderTarget::COLOR_MASK) >> i));
-         ++i)
+    for (auto i : LsbVisitor{renderTargets.used & Driver3dRenderTarget::COLOR_MASK & ~1u})
     {
-      if (renderTargets.isColorUsed(i))
-      {
-        ImageViewState &targetView = newViews[i];
-        Image *&targetImage = newImages[i];
+      ImageViewState &targetView = newViews[i];
+      Image *&targetImage = newImages[i];
 
-        BaseTex *base = cast_to_texture_base(renderTargets.color[i].tex);
-        targetView = base->getViewInfoRenderTarget(MipMapIndex::make(renderTargets.color[i].level),
-          ArrayLayerIndex::make(renderTargets.color[i].layer), false);
-        targetImage = base->getDeviceImage();
-      }
+      BaseTex *base = cast_to_texture_base(renderTargets.color[i].tex);
+      targetView = base->getViewInfoRenderTarget(MipMapIndex::make(renderTargets.color[i].level),
+        ArrayLayerIndex::make(renderTargets.color[i].layer), false);
+      targetImage = base->getDeviceImage();
     }
 
     if (renderTargets.isDepthUsed())
@@ -1159,16 +1099,14 @@ struct FrontendState
     }
 
     flushResources(
-      ctx, STAGE_VS,
-      [=](BaseTex *tex, ImageViewState view) //
-      { return isConstDepthStencilTarget(tex, view); },
-      [](auto &buf) { buf.resourceId.markUsedAsNonPixelShaderResource(); });
+      ctx, STAGE_VS, //
+      [](auto &buf) { buf.resourceId.markUsedAsNonPixelShaderResource(); },
+      [=](BaseTex *tex, ImageViewState view) { return isConstDepthStencilTarget(tex, view); });
 
     flushResources(
-      ctx, STAGE_PS,
-      [=](BaseTex *tex, ImageViewState view) //
-      { return isConstDepthStencilTarget(tex, view); },
-      [](auto &buf) { buf.resourceId.markUsedAsPixelShaderResource(); });
+      ctx, STAGE_PS, //
+      [](auto &buf) { buf.resourceId.markUsedAsPixelShaderResource(); },
+      [=](BaseTex *tex, ImageViewState view) { return isConstDepthStencilTarget(tex, view); });
 
     if (dirtyState.test(DirtyState::VERTEX_CONST_REGISTERS))
     {
@@ -1201,11 +1139,15 @@ struct FrontendState
         ctx.bindVertexDecl(externalInputLayout);
       }
 
-      for (uint32_t i = 0; i < MAX_VERTEX_INPUT_STREAMS; ++i)
+      constexpr uint32_t vertexBufferMask = 1u << ResourceDirtyState::VERTEX_BUFFER_0 | 1u << ResourceDirtyState::VERTEX_BUFFER_1 |
+                                            1u << ResourceDirtyState::VERTEX_BUFFER_2 | 1u << ResourceDirtyState::VERTEX_BUFFER_3;
+
+      const uint32_t vertexBufferBits = (resourceDirtyState.to_uint32() & vertexBufferMask) >> ResourceDirtyState::VERTEX_BUFFER_0;
+
+      for (auto i : LsbVisitor{vertexBufferBits})
       {
-        if (resourceDirtyState.test(uint32_t(ResourceDirtyState::VERTEX_BUFFER_0) + i) && vertexBuffers[i])
+        if (auto gbuf = (GenericBufferInterface *)vertexBuffers[i])
         {
-          auto gbuf = (GenericBufferInterface *)vertexBuffers[i];
           gbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsConstOrVertexBuffer(); });
           ctx.bindVertexBuffer(i, {get_any_buffer_ref(gbuf), vertexBufferOffsets[i]}, vertexStries[i]);
         }
@@ -1296,8 +1238,10 @@ struct FrontendState
     // check returns always false, compute shader can not conflict with framebuffer
     // also no check needed for const depth stencil target, pass has to end
     flushResources(
-      ctx, STAGE_CS, [](BaseTex *, ImageViewState) { return false; },
-      [](auto &buf) { buf.resourceId.markUsedAsNonPixelShaderResource(); });
+      ctx, STAGE_CS,                                                        //
+      [](auto &buf) { buf.resourceId.markUsedAsNonPixelShaderResource(); }, //
+      [](BaseTex *, ImageViewState) { return false; });
+
 
     if (dirtyState.test(DirtyState::COMPUTE_CONST_REGISTERS))
     {
@@ -1347,8 +1291,9 @@ struct FrontendState
     // check returns always false, raytrace shader can not conflict with framebuffer
     // also no check needed for const depth stencil target, pass has to end
     flushResources(
-      ctx, STAGE_RAYTRACE, [](BaseTex *, ImageViewState) { return false; },
-      [](auto &buf) { buf.resourceId.markUsedAsNonPixelShaderResource(); });
+      ctx, STAGE_RAYTRACE,                                                  //
+      [](auto &buf) { buf.resourceId.markUsedAsNonPixelShaderResource(); }, //
+      [](BaseTex *, ImageViewState) { return false; });
 
     dirtyState &= ~raytraceMask;
   }
@@ -1448,22 +1393,21 @@ struct FrontendState
     }
     if (check_vb)
     {
-      for (uint32_t i = 0; i < MAX_VERTEX_INPUT_STREAMS; ++i)
+      for (auto [i, vBuffer] : enumerate(vertexBuffers, ResourceDirtyState::VERTEX_BUFFER_0))
       {
-        if (vertexBuffers[i] == buffer)
+        if (vBuffer == buffer)
         {
-          markResourceDirty(ResourceDirtyState::Bits(ResourceDirtyState::VERTEX_BUFFER_0 + i), true);
+          markResourceDirty(ResourceDirtyState::Bits(i), true);
         }
       }
     }
-    for (uint32_t i = 0; i < STAGE_MAX_EXT; ++i)
+    for (auto &stage : stageResources)
     {
-      auto &stage = stageResources[i];
       if (check_const)
       {
-        for (uint32_t j = 0; j < dxil::MAX_B_REGISTERS; ++j)
+        for (auto [j, bBuffer] : enumerate(stage.bRegisterBuffers))
         {
-          if (stage.bRegisterBuffers[j] == buffer)
+          if (bBuffer == buffer)
           {
             stage.markDirtyB(j, true);
           }
@@ -1471,9 +1415,9 @@ struct FrontendState
       }
       if (check_tex)
       {
-        for (uint32_t j = 0; j < dxil::MAX_T_REGISTERS; ++j)
+        for (auto [j, tBuffer] : enumerate(stage.tRegisterBuffers))
         {
-          if (stage.tRegisterBuffers[j] == buffer)
+          if (tBuffer == buffer)
           {
             stage.markDirtyT(j, true);
           }
@@ -1481,9 +1425,9 @@ struct FrontendState
       }
       if (check_storage)
       {
-        for (uint32_t j = 0; j < dxil::MAX_U_REGISTERS; ++j)
+        for (auto [j, uBuffer] : enumerate(stage.uRegisterBuffers))
         {
-          if (stage.uRegisterBuffers[j] == buffer)
+          if (uBuffer == buffer)
           {
             stage.markDirtyU(j, true);
           }
@@ -1497,29 +1441,28 @@ struct FrontendState
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     if (indexBuffer == buffer)
     {
-      debug("Active index buffer <%s> was deleted...", buffer->getBufName());
+      logdbg("Active index buffer <%s> was deleted...", buffer->getBufName());
       markResourceDirty(ResourceDirtyState::INDEX_BUFFER, true);
       indexBuffer = nullptr;
     }
-    for (uint32_t i = 0; i < MAX_VERTEX_INPUT_STREAMS; ++i)
+    for (auto [i, vBuffer] : enumerate(vertexBuffers, ResourceDirtyState::VERTEX_BUFFER_0))
     {
-      if (vertexBuffers[i] == buffer)
+      if (vBuffer == buffer)
       {
-        debug("Active vertex buffer <%s> (slot %u) deleted...", buffer->getBufName(), i);
-        markResourceDirty(ResourceDirtyState::Bits(ResourceDirtyState::VERTEX_BUFFER_0 + i), true);
+        logdbg("Active vertex buffer <%s> (slot %u) deleted...", buffer->getBufName(), i);
+        markResourceDirty(ResourceDirtyState::Bits(i), true);
         vertexBuffers[i] = nullptr;
         vertexBufferOffsets[i] = 0;
         vertexStries[i] = 0;
       }
     }
-    for (uint32_t i = 0; i < STAGE_MAX_EXT; ++i)
+    for (auto [i, stage] : enumerate(stageResources))
     {
-      auto &stage = stageResources[i];
       for (uint32_t j = 0; j < dxil::MAX_B_REGISTERS; ++j)
       {
         if (stage.bRegisterBuffers[j] == buffer)
         {
-          debug("Active const buffer <%s> (stage %u, slot %u) deleted...", buffer->getBufName(), i, j);
+          logdbg("Active const buffer <%s> (stage %u, slot %u) deleted...", buffer->getBufName(), i, j);
           stage.markDirtyB(j, true);
           stage.bRegisterBuffers[j] = nullptr;
           stage.bRegisterOffsets[j] = 0;
@@ -1530,7 +1473,7 @@ struct FrontendState
       {
         if (stage.tRegisterBuffers[j] == buffer)
         {
-          debug("Active texture buffer <%s> (stage %u, slot %u) deleted...", buffer->getBufName(), i, j);
+          logdbg("Active texture buffer <%s> (stage %u, slot %u) deleted...", buffer->getBufName(), i, j);
           stage.markDirtyT(j, true);
           stage.tRegisterBuffers[j] = nullptr;
           stage.tRegisterTextures[j] = nullptr;
@@ -1543,7 +1486,7 @@ struct FrontendState
       {
         if (stage.uRegisterBuffers[j] == buffer)
         {
-          debug("Active storage buffer <%s> (stage %u, slot %u) deleted...", buffer->getBufName(), i, j);
+          logdbg("Active storage buffer <%s> (stage %u, slot %u) deleted...", buffer->getBufName(), i, j);
           stage.markDirtyU(j, true);
           stage.uRegisterBuffers[j] = nullptr;
           stage.uRegisterTextures[j] = nullptr;
@@ -1555,14 +1498,14 @@ struct FrontendState
   void removeTRegisterBuffer(Sbuffer *buffer)
   {
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
-    for (uint32_t i = 0; i < STAGE_MAX_EXT; ++i)
+    // for (auto [i, stage] : enumerate(stageResources))
+    for (auto &stage : stageResources)
     {
-      auto &stage = stageResources[i];
       for (uint32_t j = 0; j < dxil::MAX_T_REGISTERS; ++j)
       {
         if (stage.tRegisterBuffers[j] == buffer)
         {
-          // debug("Active texture buffer (stage %u, slot %u) bound as UAV...", i, j);
+          // logdbg("Active texture buffer (stage %u, slot %u) bound as UAV...", i, j);
           stage.markDirtyT(j, true);
           stage.tRegisterBuffers[j] = nullptr;
           stage.tRegisterTextures[j] = nullptr;
@@ -1601,69 +1544,56 @@ struct FrontendState
   }
 #endif
 
-  void dirtySRVNoLock(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots)
+  void dirtySRVNoLock([[maybe_unused]] BaseTex *texture, uint32_t stage, const Bitset<dxil::MAX_T_REGISTERS> &slots)
   {
-    G_UNUSED(texture); // can be used to validate
     auto &st = stageResources[stage];
     G_ASSERT(slots.any());
-    auto start = slots.find_first();
-    auto stop = slots.find_last();
-    for (; start <= stop; ++start)
+    for (auto i : slots)
     {
-      st.markDirtyT(start, slots.test(start));
+      st.markDirtyT(i, true);
     }
   }
 
-  void dirtySRV(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots)
+  void dirtySRV(BaseTex *texture, uint32_t stage, const Bitset<dxil::MAX_T_REGISTERS> &slots)
   {
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
     dirtySRVNoLock(texture, stage, slots);
   }
 
-  void dirtySampler(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots)
+  void dirtySampler([[maybe_unused]] BaseTex *texture, uint32_t stage, const Bitset<dxil::MAX_T_REGISTERS> &slots)
   {
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
-    G_UNUSED(texture); // can be used to validate
     auto &st = stageResources[stage];
     G_ASSERT(slots.any());
-    auto start = slots.find_first();
-    auto stop = slots.find_last();
-    for (; start <= stop; ++start)
+    for (auto i : slots)
     {
-      st.markDirtyS(start, slots.test(start));
+      st.markDirtyS(i, true);
     }
   }
 
-  void dirtySRVandSamplerNoLock(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_T_REGISTERS> slots)
+  void dirtySRVandSamplerNoLock([[maybe_unused]] BaseTex *texture, uint32_t stage, const Bitset<dxil::MAX_T_REGISTERS> &slots)
   {
-    G_UNUSED(texture); // can be used to validate
     auto &st = stageResources[stage];
     G_ASSERT(slots.any());
-    auto start = slots.find_first();
-    auto stop = slots.find_last();
-    for (; start <= stop; ++start)
+    for (auto i : slots)
     {
-      st.markDirtyT(start, slots.test(start));
-      st.markDirtyS(start, slots.test(start));
+      st.markDirtyT(i, true);
+      st.markDirtyS(i, true);
     }
   }
 
-  void dirtyUAVNoLock(BaseTex *texture, uint32_t stage, eastl::bitset<dxil::MAX_U_REGISTERS> slots)
+  void dirtyUAVNoLock([[maybe_unused]] BaseTex *texture, uint32_t stage, const Bitset<dxil::MAX_U_REGISTERS> &slots)
   {
-    G_UNUSED(texture); // can be used to validate
     auto &st = stageResources[stage];
     G_ASSERT(slots.any());
-    auto start = slots.find_first();
-    auto stop = slots.find_last();
-    for (; start <= stop; ++start)
+    for (auto i : slots)
     {
-      st.markDirtyU(start, slots.test(start));
+      st.markDirtyU(i, true);
     }
   }
 
-  void dirtyRendertTargetNoLock(BaseTex *texture, eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> slots)
+  void dirtyRendertTargetNoLock([[maybe_unused]] BaseTex *texture, const Bitset<Driver3dRenderTarget::MAX_SIMRT> &slots)
   {
-    G_UNUSED(texture); // can be used to validate
     if (slots.any() /*|| dsv*/)
       resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
     toggleBits.set(ToggleState::FORCE_SET_BACKBUFFER);
@@ -1706,43 +1636,37 @@ struct FrontendState
       }
     }*/
 
-  void notifyDelete(BaseTex *texture, const eastl::bitset<dxil::MAX_T_REGISTERS> *srvs,
-    const eastl::bitset<dxil::MAX_U_REGISTERS> *uavs, eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> rtvs, bool dsv)
+  void notifyDelete(BaseTex *texture, const Bitset<dxil::MAX_T_REGISTERS> *srvs, const Bitset<dxil::MAX_U_REGISTERS> *uavs,
+    const Bitset<Driver3dRenderTarget::MAX_SIMRT> &rtvs, bool dsv)
   {
-    G_UNUSED(texture); // can be used to validate
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
-    for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
+
+    for (auto [s, st] : enumerate(stageResources))
     {
-      auto &st = stageResources[s];
-      if (srvs[s].any())
+      if (auto srv = srvs[s]; srv.any())
       {
-        auto start = srvs[s].find_first();
-        auto stop = srvs[s].find_last();
-        for (; start <= stop; ++start)
-        {
-          st.markDirtyT(start, srvs[s].test(start));
-          // no need to notify S
-          st.tRegisterTextures[s] = nullptr;
-        }
+        st.tRegisterTextures[s] = nullptr; // no need to notify S
+        st.dirtyMasks.tRegisterMask |= srv;
       }
-      if (uavs[s].any())
+
+      if (auto uav = uavs[s]; uav.any())
       {
-        auto start = uavs[s].find_first();
-        auto stop = uavs[s].find_last();
-        for (; start <= stop; ++start)
-        {
-          st.markDirtyU(start, uavs[s].test(start));
-          st.uRegisterTextures[s] = nullptr;
-        }
+        st.uRegisterTextures[s] = nullptr;
+        st.dirtyMasks.uRegisterMask |= uav;
       }
     }
-    for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+
+    for (auto i : LsbVisitor{renderTargets.used & Driver3dRenderTarget::COLOR_MASK})
     {
       if (renderTargets.color[i].tex == texture)
       {
         renderTargets.removeColor(i);
         resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
       }
+    }
+
+    for (auto i : LsbVisitor{activeRenderTargets.used & Driver3dRenderTarget::COLOR_MASK})
+    {
       if (activeRenderTargets.color[i].tex == texture)
       {
         activeRenderTargets.removeColor(i);
@@ -1750,19 +1674,11 @@ struct FrontendState
       }
     }
 
-    if (rtvs.any())
+    for (auto i : rtvs)
     {
-      auto start = rtvs.find_first();
-      auto stop = rtvs.find_last();
-      for (; start <= stop; ++start)
-      {
-        if (rtvs.test(start))
-        {
-          renderTargets.removeColor(start);
-          toggleBits.set(ToggleState::FORCE_SET_BACKBUFFER);
-          resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
-        }
-      }
+      renderTargets.removeColor(i);
+      toggleBits.set(ToggleState::FORCE_SET_BACKBUFFER);
+      resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
     }
 
     if (dsv)

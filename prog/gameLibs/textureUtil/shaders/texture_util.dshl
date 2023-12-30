@@ -49,7 +49,7 @@ shader texture_util_rotate
   }
 
   hlsl(ps) {
-    half4 main_ps_rotate(VsOutput input) : SV_Target0
+    float4 main_ps_rotate(VsOutput input) : SV_Target0
     {
       return tex2D(source_tex, input.uv);
     }

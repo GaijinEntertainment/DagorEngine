@@ -20,6 +20,16 @@
 #include <stdlib.h>
 #include <limits.h>
 
+#if _TARGET_PC_WIN
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX 1
+#include "windows.h"
+#elif _TARGET_PC_LINUX
+#include <unistd.h>
+#include <limits.h>
+#endif
+
+
 #if _TARGET_PC_WIN | _TARGET_XBOX | _TARGET_C3
 // nothing
 #else // posix os
@@ -30,8 +40,6 @@
 #define LOGLEVEL_DEBUG _MAKE4C('HTTP')
 
 #define RECEIVE_POST_DATA_TIMEOUT_MSEC (1000)
-#define HTML_TITLE                     "Gaijin webui"
-#define HTML_HEADER                    "Welcome to " HTML_TITLE
 
 #if _TARGET_XBOX
 #define HTTP_PORT 4600 // the only allowed on xbox
@@ -341,16 +349,44 @@ public:
 
   bool isValid() const { return listenSocket != OS_SOCKET_INVALID; }
 
+  static String getNameOfExecutable()
+  {
+#if _TARGET_PC_WIN
+    char name[MAX_PATH];
+    GetModuleFileNameA(NULL, name, sizeof(name));
+    const char *slash = max(strrchr(name, '\\'), strrchr(name, '/'));
+    return String(slash ? slash + 1 : name);
+#elif _TARGET_PC_LINUX
+    char name[PATH_MAX];
+    int len = readlink("/proc/self/exe", name, sizeof(name) - 1);
+    if (len != -1)
+    {
+      name[len] = 0;
+      const char *slash = strrchr(name, '/');
+      return String(slash ? slash + 1 : name);
+    }
+    return String();
+#else
+    return String();
+#endif
+  }
+
   static void generateIndex(SocketType conn, char *req, int)
   {
+    String exeName = getNameOfExecutable();
     Tab<char> buf(framemem_ptr());
     buf.resize(32 << 10);
     char *end = buf.data() + (buf.capacity() - 1);
     char *p = buf.data();
     p += _snprintf(buf.data(), end - p,
-      "<html>\n<head><title>" HTML_TITLE " for %s</title></head>\n<body>\n"
-      "<h1>" HTML_HEADER "</h1>\n<table>\n",
-      get_platform_string_id());
+      "<head>\n"
+      "  <style>\n"
+      "    body { font-family: Verdana, sans-serif; }\n"
+      "  </style>\n"
+      "</head>\n"
+      "<html>\n<head><title>%s - Web UI</title></head>\n<body>\n"
+      "<h1>%s - %s</h1>\n<table>\n",
+      exeName.c_str(), exeName.c_str(), get_platform_string_id());
 
     char *was_p = p;
 

@@ -14,6 +14,15 @@ void clear_command_queue(Context &ctx);
 void clear_all_command_queues_locked(Context &ctx);
 void populate_free_instances(Context &ctx);
 
+static inline void start_job(const Config &cfg, cpujobs::IJob &job, bool wake = true)
+{
+  using namespace threadpool;
+  if (cfg.use_async_thread)
+    add(&job, cfg.low_prio_jobs ? PRIO_LOW : PRIO_DEFAULT, wake);
+  else
+    job.doJob();
+}
+
 ContextId create_context(const Config &cfg)
 {
   DBG_OPT("create_context - start");
@@ -698,17 +707,13 @@ void start_next_cpu_cull_threads(ContextId cid)
     job.cid = cid;
     job.start = i * step;
     job.count = i < threads - 1 ? step : step + tail;
-
-    if (ctx.cfg.use_async_thread)
-      threadpool::add(&job, threadpool::PRIO_DEFAULT, /*wake*/ false);
-    else
-      job.doJob();
+    start_job(ctx.cfg, job, /*wake*/ false);
   }
   if (ctx.cfg.use_async_thread)
     threadpool::wake_up_all();
 }
 
-void start_next_cpu_compute_threads(ContextId cid, int depth, bool is_emission)
+static void start_next_cpu_compute_threads(ContextId cid, int depth, bool is_emission)
 {
   TIME_PROFILE(start_next_cpu_compute_threads);
   GET_CTX();
@@ -798,7 +803,7 @@ void start_next_cpu_compute_threads(ContextId cid, int depth, bool is_emission)
 #endif
 
   for (auto &j : ctx.asyncCpuComputeJobs)
-    threadpool::add(&j, threadpool::PRIO_DEFAULT, /*wake*/ false);
+    start_job(ctx.cfg, j, /*wake*/ false);
   threadpool::wake_up_all();
 }
 
@@ -843,13 +848,8 @@ void AsyncCpuComputeJob::doJob()
   if (interlocked_decrement(ctx.asyncCounter) == 0)
   {
     // Do it via separate job instance in order to be able safely re-use cpu compute job instances
-    if (ctx.cfg.use_async_thread)
-    {
-      bool wake = threadpool::get_current_worker_id() < 0;
-      threadpool::add(ctx.startNextComputeBatchJob.prepare(cid, depth + 1, emission), threadpool::PRIO_DEFAULT, wake);
-    }
-    else
-      start_next_cpu_compute_threads(cid, depth + 1, emission);
+    bool wake = threadpool::get_current_worker_id() < 0;
+    start_job(ctx.cfg, *ctx.startNextComputeBatchJob.prepare(cid, depth + 1, emission), wake);
   }
 }
 
@@ -871,7 +871,7 @@ void AsyncCpuCullJob::doJob()
     interlocked_release_store(ctx.asyncCounter, -1);
 }
 
-void start_update(ContextId cid, float dt, bool update_gpu)
+void start_update(ContextId cid, float dt, bool update_gpu, bool tp_wake_up)
 {
 #if DAFX_FLUSH_BEFORE_UPDATE
   d3d::driver_command(DRV3D_COMMAND_D3D_FLUSH, NULL, NULL, NULL);
@@ -911,11 +911,7 @@ void start_update(ContextId cid, float dt, bool update_gpu)
 
   interlocked_release_store(ctx.asyncCounter, 0);
 
-  if (ctx.cfg.use_async_thread)
-    // Save on wake up if this routine itself is called from threadpool - assume that it will be executed in current worker
-    threadpool::add(&ctx.asyncPrepareJob, threadpool::PRIO_DEFAULT, /*wake*/ threadpool::get_current_worker_id() < 0);
-  else
-    ctx.asyncPrepareJob.doJob();
+  start_job(ctx.cfg, ctx.asyncPrepareJob, tp_wake_up);
 }
 
 void finish_update(ContextId cid, bool update_gpu_fetch, bool beforeRenderFrameFrameBoundary)

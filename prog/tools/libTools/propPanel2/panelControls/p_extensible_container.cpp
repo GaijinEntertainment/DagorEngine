@@ -16,7 +16,7 @@ CExtensible::CExtensible(ControlEventHandler *event_handler, PropertyContainerCo
   mButtonStatus(EXT_BUTTON_NONE),
   mWResize(false)
 {
-  __super::setVerticalInterval(hdpi::Px::ZERO);
+  PropertyContainerVert::setVerticalInterval(hdpi::Px::ZERO);
 
   mPlusButton.setTextValue("+");
   mRect.hide();
@@ -122,7 +122,7 @@ void CExtensible::resizeControl(unsigned w, unsigned h)
 void CExtensible::onChildResize(int id)
 {
   if (!mWResize)
-    __super::onChildResize(id);
+    PropertyContainerVert::onChildResize(id);
 }
 
 

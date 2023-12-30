@@ -11,7 +11,7 @@ let radius = 2 * gap
 let bgColor = 0xFF000080
 let amount = 6
 
-let function block(height, order, margin = null) {
+function block(height, order, margin = null) {
   let stateFlags = Watched(0)
   let borderRadius = order == LAST ? [0, 0, radius, radius]
     : order == FIRST ? [radius, radius, 0, 0]

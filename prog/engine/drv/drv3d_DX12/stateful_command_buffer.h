@@ -1,7 +1,5 @@
 #pragma once
 
-#include <EASTL/bitset.h>
-
 #include "driver.h"
 #include "validation.h"
 #include "constants.h"
@@ -56,7 +54,7 @@ class StatefulCommandBuffer
         COUNT,
         INVALID = COUNT
       };
-      typedef eastl::bitset<COUNT> type;
+      typedef Bitset<COUNT> type;
     };
     void markChange(uint32_t index, bool change)
     {
@@ -67,8 +65,8 @@ class StatefulCommandBuffer
     void clearChange(uint32_t index) { dirtyState.set(index, false); }
     void dirtyAll() { dirtyState = ~RaytraceState::DirtySet::type(0); }
     DirtySet::type dirtyState = DirtySet::type(0);
-    eastl::bitset<dxil::MAX_B_REGISTERS> constBufferDirtyState = {};
-    eastl::bitset<MAX_ROOT_CONSTANTS> rootConstantDirtyState = {};
+    Bitset<dxil::MAX_B_REGISTERS> constBufferDirtyState = {};
+    Bitset<MAX_ROOT_CONSTANTS> rootConstantDirtyState = {};
     ShaderStageState raygenShader;
     ID3D12StateObject *pipeline = nullptr;
     RaytracePipelineSignature *rootSignature = nullptr;
@@ -91,7 +89,7 @@ class StatefulCommandBuffer
         COUNT,
         INVALID = COUNT
       };
-      typedef eastl::bitset<COUNT> type;
+      typedef Bitset<COUNT> type;
     };
     void markChange(uint32_t index, bool change)
     {
@@ -102,8 +100,8 @@ class StatefulCommandBuffer
     void clearChange(uint32_t index) { dirtyState.set(index, false); }
     void dirtyAll() { dirtyState = ~ComputeState::DirtySet::type(0); }
     DirtySet::type dirtyState = DirtySet::type(0);
-    eastl::bitset<dxil::MAX_B_REGISTERS> constBufferDirtyState = {};
-    eastl::bitset<MAX_ROOT_CONSTANTS> rootConstantDirtyState = {};
+    Bitset<dxil::MAX_B_REGISTERS> constBufferDirtyState = {};
+    Bitset<MAX_ROOT_CONSTANTS> rootConstantDirtyState = {};
     ShaderStageState computeShader;
     ID3D12PipelineState *pipeline = nullptr;
     ComputePipelineSignature *rootSignature = nullptr;
@@ -159,7 +157,7 @@ class StatefulCommandBuffer
         COUNT,
         INVALID = COUNT
       };
-      typedef eastl::bitset<COUNT> type;
+      typedef Bitset<COUNT> type;
     };
     void markChange(uint32_t index, bool change)
     {
@@ -170,10 +168,10 @@ class StatefulCommandBuffer
     void clearChange(uint32_t index) { dirtyState.set(index, false); }
     void dirtyAll() { dirtyState.set(); }
     DirtySet::type dirtyState = DirtySet::type(0);
-    eastl::bitset<dxil::MAX_B_REGISTERS> vertexConstBufferDirtyState = {};
-    eastl::bitset<dxil::MAX_B_REGISTERS> pixelConstBufferDirtyState = {};
-    eastl::bitset<MAX_ROOT_CONSTANTS> vertexRootConstantDirtyState = {};
-    eastl::bitset<MAX_ROOT_CONSTANTS> pixelRootConstantDirtyState = {};
+    Bitset<dxil::MAX_B_REGISTERS> vertexConstBufferDirtyState = {};
+    Bitset<dxil::MAX_B_REGISTERS> pixelConstBufferDirtyState = {};
+    Bitset<MAX_ROOT_CONSTANTS> vertexRootConstantDirtyState = {};
+    Bitset<MAX_ROOT_CONSTANTS> pixelRootConstantDirtyState = {};
     ShaderStageState vertexShader;
     ShaderStageState pixelShader;
     ID3D12PipelineState *pipeline = nullptr;
@@ -198,7 +196,7 @@ class StatefulCommandBuffer
         COUNT,
         INVALID = COUNT
       };
-      typedef eastl::bitset<COUNT> type;
+      typedef Bitset<COUNT> type;
     };
     DirtySet::type dirtyState = DirtySet::type(0);
     // only two, uav/srv and sampler
@@ -244,7 +242,7 @@ class StatefulCommandBuffer
       COUNT,
       INVALID = COUNT,
     };
-    typedef eastl::bitset<COUNT> Type;
+    typedef Bitset<COUNT> Type;
   };
   GraphicsState graphicsState;
   ComputeState computeState;

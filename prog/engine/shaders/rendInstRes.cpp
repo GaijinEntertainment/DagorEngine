@@ -274,7 +274,7 @@ RenderableInstanceLodsResource *RenderableInstanceLodsResource::makeStubRes(cons
 
 bool RenderableInstanceLodsResource::isBakedImpostor() const { return getImpostorParams().hasBakedTexture(); }
 
-bool RenderableInstanceLodsResource::setImpostorVars(ShaderMaterial *mat, int buffer_offset) const
+bool RenderableInstanceLodsResource::setImpostorVars(ShaderMaterial *mat) const
 {
   auto &impostorTextures = getImpostorTextures();
   bool res = true;
@@ -293,6 +293,17 @@ bool RenderableInstanceLodsResource::setImpostorVars(ShaderMaterial *mat, int bu
     G_ASSERT(impostorTextures.albedo_alpha != BAD_TEXTUREID && impostorTextures.normal_translucency != BAD_TEXTUREID &&
              impostorTextures.ao_smoothness != BAD_TEXTUREID);
 
+  return res;
+}
+
+bool RenderableInstanceLodsResource::hasImpostorVars(ShaderMaterial *mat) const
+{
+  bool res = true;
+  TEXTUREID textureIdStub;
+  res = res && mat->getTextureVariable(impostor_albedo_alphaVarId, textureIdStub);
+  res = res && mat->getTextureVariable(impostor_normal_translucencyVarId, textureIdStub);
+  res = res && mat->getTextureVariable(impostor_ao_smoothnessVarId, textureIdStub);
+  res = res && mat->getTextureVariable(impostor_preshadowVarId, textureIdStub);
   return res;
 }
 

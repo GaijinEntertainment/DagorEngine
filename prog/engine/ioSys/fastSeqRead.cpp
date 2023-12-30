@@ -227,7 +227,7 @@ void FastSeqReader::placeRequests()
 #if DAGOR_EXCEPTIONS_ENABLED
           DAGOR_THROW(LoadException("async read failed", buf[i].sa)); // To consider: store copy of string within DagorException?
 #else
-          fatal("exception: LoadException(\"async read from '%s' failed with error %d\")", targetFilename.c_str(), sz);
+          DAG_FATAL("exception: LoadException(\"async read from '%s' failed with error %d\")", targetFilename.c_str(), sz);
 #endif
         }
         G_ASSERT(sz);
@@ -317,7 +317,8 @@ void FastSeqReader::seekto(int pos)
   if (pos < file.pos)
   {
     if (file.pos > pos + maxBackSeek)
-      fatal("too long back seek: pos=%d, relseek=%d, maxBackSeek=%d, src=%s", file.pos, pos - file.pos, maxBackSeek, getTargetName());
+      DAG_FATAL("too long back seek: pos=%d, relseek=%d, maxBackSeek=%d, src=%s", file.pos, pos - file.pos, maxBackSeek,
+        getTargetName());
     if (cBuf && pos < cBuf->sa)
       cBuf = NULL;
   }

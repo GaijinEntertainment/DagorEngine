@@ -11,7 +11,7 @@
 KRNLIMP void *global_mutex_create(const char *mutex_name);
 
 //! locks named inter-process mutex
-KRNLIMP int global_mutex_enter(void *mutex);
+KRNLIMP int global_mutex_enter(void *mutex, int timeout_msec = -1 /*infinite*/);
 
 //! unlocks named inter-process mutex
 KRNLIMP int global_mutex_leave(void *mutex);

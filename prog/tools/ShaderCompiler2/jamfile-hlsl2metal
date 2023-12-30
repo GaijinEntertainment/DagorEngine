@@ -82,10 +82,9 @@ else
 {
   CPPopt += -Wno-comment -Wno-writable-strings -Wno-int-to-pointer-cast -Wno-switch -Wno-tautological-constant-out-of-range-compare
          -Wno-undefined-bool-conversion
+         -Wno-deprecated-declarations
          -D_STD_RTL_MEMORY=1
   ;
-
-  GlobalCPPopt = -Wno-deprecated-declarations -Wno-overriding-t-option -fno-fast-math ;
 }
 
 }

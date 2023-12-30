@@ -42,7 +42,7 @@ fracture::FractureDesc - fracture properties for entire apex asset (for MeshSyst
 */
 
 
-#include "dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 #include <assets/assetExporter.h>
 #include <assets/asset.h>
 #include <libTools/util/makeBindump.h>
@@ -63,7 +63,7 @@ fracture::FractureDesc - fracture properties for entire apex asset (for MeshSyst
 #include <image/dag_texPixel.h>
 #include <util/dag_string.h>
 #include <osApiWrappers/dag_direct.h>
-#include <FractureConfig.h>
+#include <fractureConfig.h>
 #include <NxApexUserProgress.h>
 #include <NxDestructibleAsset.h>
 #include <NxApexSDKCachedData.h>
@@ -1571,8 +1571,8 @@ public:
     NodeFractureOptions &fracture_options)
   {
     Listener listener;
-    std::vector<PxVec3> voronoiSites(desc.mFractureVoronoiDesc.siteCount);
-    std::vector<PxU32> siteChunkIndices(desc.mFractureVoronoiDesc.siteCount);
+    dag::Vector<PxVec3> voronoiSites(desc.mFractureVoronoiDesc.siteCount);
+    dag::Vector<PxU32> siteChunkIndices(desc.mFractureVoronoiDesc.siteCount);
     author->createVoronoiSitesInsideMesh(&voronoiSites[0], &siteChunkIndices[0], desc.mFractureVoronoiDesc.siteCount,
       &desc.mRandomSeed, &desc.mMeshProcessingParameters.microgridSize, desc.mMeshProcessingParameters.meshMode, listener);
 

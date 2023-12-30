@@ -30,7 +30,7 @@ shader point_lights, spot_lights
     DEFERRED_OMNI_LIGHTS_VS_SHADER()
     DEFERRED_OMNI_LIGHTS_PS_SHADER()
     hlsl(ps) {
-      half3 deferred_lights_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+      float3 deferred_lights_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
       {
         float4 screenpos = GET_SCREEN_POS(input.pos);
         half3 result;
@@ -53,7 +53,7 @@ shader point_lights, spot_lights
     DEFERRED_SPOT_LIGHTS_VS_SHADER()
     DEFERRED_SPOT_LIGHTS_PS_SHADER()
     hlsl(ps) {
-      half3 deferred_lights_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+      float3 deferred_lights_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
       {
         float4 screenpos = GET_SCREEN_POS(input.pos);
         half3 result;

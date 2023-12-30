@@ -16,6 +16,7 @@ Sources =
   commonLUT.cpp
   colorGradingLUT.cpp
   fullColorGradingLUT.cpp
+  dynamicLUT.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

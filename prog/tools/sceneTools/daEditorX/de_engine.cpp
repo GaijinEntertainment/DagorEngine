@@ -222,7 +222,7 @@ bool DagorEdAppWindow::ignorePlugin(IGenEditorPlugin *p)
   for (i = 0; i < plugin.size(); ++i)
     for (int j = 0; j < ignore.size(); ++j)
       if (cmdline_force_enabled_plugins.getNameId(ignore[j]) < 0 && !::stricmp(ignore[j], plugin[i].p->getMenuCommandName()))
-        fatal("Disabled plugin already registered <%s> enId=%d", ignore[j], cmdline_force_enabled_plugins.getNameId(ignore[j]));
+        DAG_FATAL("Disabled plugin already registered <%s> enId=%d", ignore[j], cmdline_force_enabled_plugins.getNameId(ignore[j]));
 
   for (i = 0; i < plugin.size(); ++i)
   {

@@ -1,5 +1,7 @@
 include "sky_shader_global.dshl"
 include "heightmap_common.dshl"
+include "viewVecVS.dshl"
+include "prev_screen_tc.dshl"
 include "volume_light_common.dshl"
 include "volume_light_hardcoded_media.dshl"
 
@@ -11,6 +13,7 @@ int volfog_shadow_no = 7;
 
 float4 volfog_shadow_res = (1,1,1,1);
 float4 volfog_shadow_prev_frame_tc_offset = (0,0,0,0.9); // .w is accumulation factor
+float volfog_prev_range_ratio;
 
 shader volfog_shadow_cs
 {
@@ -18,6 +21,9 @@ shader volfog_shadow_cs
   INIT_AND_USE_VOLFOG_MODIFIERS(cs)
   GET_MEDIA_HARDCODED(cs)
   VOLUME_DEPTH_CONVERSION(cs)
+  INIT_TRANSFORMED_ZNZFAR_STAGE(cs)
+  VIEW_VEC_OPTIMIZED(cs)
+  USE_PREV_TC(cs)
   ENABLE_ASSERT(cs)
 
   (cs) {
@@ -28,12 +34,21 @@ shader volfog_shadow_cs
     volfog_shadow_res@f4 = volfog_shadow_res;
     volfog_shadow_prev_frame_tc_offset@f4 = volfog_shadow_prev_frame_tc_offset;
 
+    frame_id@f1 = jitter_ray_offset.w;
+    volfog_prev_range_ratio@f1 = volfog_prev_range_ratio;
+
     volfog_shadow@uav: register(volfog_shadow_no) hlsl {
       RWTexture3D<float4> volfog_shadow@uav;
     }
   }
 
   hlsl(cs) {
+
+    float3 calcViewVec(float2 screen_tc)
+    {
+      return getViewVecOptimized(screen_tc);
+    }
+
     #include "volfog_shadow.hlsl"
 
     [numthreads( MEDIA_WARP_SIZE_X, MEDIA_WARP_SIZE_Y, MEDIA_WARP_SIZE_Z )]

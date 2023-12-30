@@ -43,13 +43,13 @@ shader envi_sphere
   }
 
   hlsl(ps) {
-    half4 envi_ps(VsOutput input) : SV_Target
+    float4 envi_ps(VsOutput input) : SV_Target
     {
       float3 viewDirection = normalize(input.viewVect);
       float theta = atan2( viewDirection.z, viewDirection.x );
       float phi = asin ( viewDirection.y );
       float2 sky_uv = float2( (theta/PI) * 0.5, ( -phi / PI ) + 0.5 );
-      return half4(tex2D( envi_sphere, sky_uv ).rgb*envi_exposure, 0);
+      return float4(tex2D( envi_sphere, sky_uv ).rgb*envi_exposure, 0);
       //return lerp(tex2D( envi_sphere, sky_uv )*envi_exposure, float4(20,0,0,0), pow2(pow8(saturate(dot(viewDirection, normalize(float3(0.4,0.6,-0.4)))))));
     }
   }
@@ -97,7 +97,7 @@ shader copy_tex
     ##endif
     struct MRT_OUTPUT
     {
-      half4 color:SV_Target0;
+      float4 color:SV_Target0;
     };
     MRT_OUTPUT copy_ps(VsOutput input)
     {

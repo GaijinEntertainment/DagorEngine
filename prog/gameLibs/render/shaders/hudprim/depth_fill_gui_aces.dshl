@@ -45,7 +45,7 @@ shader depth_fill_gui_aces
   }
 
   hlsl(ps) {
-    fixed4 depth_fill_gui_aces_ps(VsOutput input) : SV_Target
+    float4 depth_fill_gui_aces_ps(VsOutput input) : SV_Target
     {
       fixed4 result = h4tex2D(tex, input.texcoord);
       clip_alpha(result.a);

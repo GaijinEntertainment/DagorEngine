@@ -37,6 +37,11 @@ float4 front_sprite_params = float4(0.25, 1.25, 0.99999, 0.0);
 float tracer_start_color_fade_time_inv = 4.0;
 //x = 0..n - inv fade time for start tracer color
 
+float4 vr_projtc_matrix0 = (1,0,0,0);
+float4 vr_projtc_matrix1 = (0,1,0,0);
+float4 vr_projtc_matrix2 = (0,0,1,0);
+float4 vr_projtc_matrix3 = (0,0,0,1);
+
 int tracer_prim_type = 0;
 interval tracer_prim_type: tracer_prim_type_dir < 1, tracer_prim_type_caps;
 
@@ -204,7 +209,7 @@ shader tracer_head2
   }
 
   hlsl(ps) {
-    half4 tracer_head_ps(VsOutput input) : SV_Target
+    float4 tracer_head_ps(VsOutput input) : SV_Target
     {
       float lenHalf = input.tc_size.z;
       float rad = input.tc_size.w;
@@ -241,6 +246,9 @@ shader tracer_head2
   }
   compile("target_ps", "tracer_head_ps");
 
+  (vs) {
+    vr_projtc_matrix@f44 = {vr_projtc_matrix0, vr_projtc_matrix1, vr_projtc_matrix2, vr_projtc_matrix3};
+  }
   hlsl(vs) {
 ##if fx_instancing_type == fx_instancing_sbuf
     float4 headData[FX_HEAD_MAXIUM_REGISTERS]: register(c70);
@@ -334,6 +342,10 @@ shader tracer_head2
       float3 worldPos = wPos + sideVec * vPos.x * xSize + upVec * vPos.y * (ySize + distMaxRad);
 
       float4 projPos = mul(float4(worldPos, 1.0), globtm);
+      float4 projTc = projPos;
+  ##if hmd_device != hmd_device_off
+      projTc = mul(float4(worldPos, 1.0), vr_projtc_matrix);
+  ##endif
       float distAlpha = saturate(pow2(0.5 * (headHalfLen + headRadius) / pixWorldSize));
       ##if tracer_prim_type != tracer_prim_type_caps
       // tail fade
@@ -355,9 +367,9 @@ shader tracer_head2
       output.tc_size = float4(localTc, lerp(xSize, ySize, (1 - head.beam) * lerp(1, ARROW_SHAPE, saturate(ARROW_SHAPE_VIEW_SCALE * viewDotInv))), ySize);
       output.dtc_dista_drad = float3(distTc, distAlpha, distMaxRad);
       output.screenTexcoord = float4(
-        projPos.xy * RT_SCALE_HALF + float2(0.5, 0.5) * projPos.w,
-        projPos.z,
-        projPos.w);
+        projTc.xy * RT_SCALE_HALF + float2(0.5, 0.5) * projTc.w,
+        projTc.z,
+        projTc.w);
       if (headRadius <= 0)
         output.pos = float4(-2, -2, 1, 1);
       output.pointToEye = eyeVec;

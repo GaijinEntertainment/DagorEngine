@@ -940,13 +940,13 @@
 
 .. |function-ast-add_keyword| replace:: Adds new `keyword`. It can appear in the `keyword <type> expr` or `keyword expr block` syntax. See daslib/match as implementation example.
 
-.. |function-ast-describe_typedecl| replace:: Returns description of the `TypeDecl` which should match corresponding daScript type declaration.
+.. |function-ast-describe_typedecl| replace:: Returns description of the `TypeDecl` which should match corresponding Daslang type declaration.
 
 .. |function-ast-describe_typedecl_cpp| replace:: Returns description of the `TypeDecl` which should match corresponding C++ type declaration.
 
-.. |function-ast-describe_expression| replace:: Returns description of the `Expression` which should match corresponding daScript code.
+.. |function-ast-describe_expression| replace:: Returns description of the `Expression` which should match corresponding Daslang code.
 
-.. |function-ast-describe_function| replace:: Returns description of the `Function` which should match corresponding daScript function declaration.
+.. |function-ast-describe_function| replace:: Returns description of the `Function` which should match corresponding Daslang function declaration.
 
 .. |function-ast-find_bitfield_name| replace:: Finds name of the corresponding bitfield value in the specified type.
 
@@ -1015,7 +1015,7 @@
 .. |function-ast-macro_error| replace:: Reports error to the currently compiling program to whatever current pass is.
     Usually called from inside the macro function.
 
-.. |function-ast-describe| replace:: Describes object and produces corresponding daScript code as string.
+.. |function-ast-describe| replace:: Describes object and produces corresponding Daslang code as string.
 
 .. |function-ast-describe_cpp| replace:: Describes `TypeDecl` and produces corresponding C++ code as a string.
 
@@ -1379,7 +1379,15 @@
 
 .. |function-ast-get_handled_type_field_offset| replace:: Returns offset of the field in the ManagedStructure handled type.
 
-.. |function-ast-get_underlying_value_type| replace:: Returns daScript type which is aliased with ManagedValue handled type.
+.. |function-ast-get_underlying_value_type| replace:: Returns Daslang type which is aliased with ManagedValue handled type.
+
+.. |method-ast-AstVisitor.preVisitExprTypeDecl| replace:: before `ExprTypeDecl`
+
+.. |method-ast-AstVisitor.visitExprTypeDecl| replace:: after `ExprTypeDecl`
+
+.. |function-ast-add_module_require| replace:: Add module dependencies similar to "require" keyword.
+
+.. |function-ast-get_handled_type_field_type| replace:: Returns type of the field in the ManagedStructure handled type.
 
 
 

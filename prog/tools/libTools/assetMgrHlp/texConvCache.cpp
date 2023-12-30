@@ -56,6 +56,17 @@ public:
 };
 static SimpleQuietLogWriter qCon;
 
+static void checkIfMsvcrDllExists()
+{
+#if _TARGET_PC_WIN
+  HMODULE h = LoadLibraryExA("msvcr120.dll", 0, LOAD_LIBRARY_AS_DATAFILE);
+  if (h)
+    FreeLibrary(h);
+  else
+    logerr("msvcr120.dll cannot be found. Try installing the Visual C++ Redistributable.");
+#endif
+}
+
 static IDagorAssetExporter *loadSingleExporterPlugin(const DataBlock &appblk, DagorAssetMgr &mgr, const char *fname, int req_type)
 {
   dllHandle = os_dll_load(fname);
@@ -115,8 +126,11 @@ struct BuildMutexAutoAcquire
 {
   BuildMutexAutoAcquire(const char *ddsx_c4_bin)
   {
-#if _TARGET_PC_LINUX
-    ddsx_c4_bin = dd_get_fname(ddsx_c4_bin);
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+    String name_stor(ddsx_c4_bin);
+    for (char *p = name_stor.str(); *p; p++)
+      *p = (*p == ':' || *p == '/' || *p == '\\') ? '_' : *p;
+    ddsx_c4_bin = name_stor.str();
 #endif
     void *m = dryRun ? NULL : global_mutex_create(ddsx_c4_bin);
     if (!dryRun)
@@ -178,20 +192,24 @@ bool texconvcache::init(DagorAssetMgr &mgr, const DataBlock &appblk, const char 
   texExp = mgr.getAssetExporter(texActype);
   if (!texExp)
   {
-#if !_TARGET_STATIC_LIB
+#if _TARGET_STATIC_LIB
+    return false;
+#else
     // no dabuild available, so load tex exporter manually
     alefind_t ff;
 #if _TARGET_PC_LINUX
     const char *common_dir = "../bin-linux64/plugins/dabuild";
+#elif _TARGET_PC_MACOSX
+    const char *common_dir = "../bin-macosx/plugins/daBuild";
 #elif _TARGET_64BIT
     const char *common_dir = "../bin64/plugins/daBuild";
 #else
     const char *common_dir = "../bin/plugins/daBuild";
 #endif
 #if _TARGET_PC_WIN
-    const String mask(260, "%s/%s/tex*.dll", startdir, common_dir);
-#else
-    const String mask(260, "%s/%s/tex*.so", startdir, common_dir);
+    const String mask(260, "%s/%s/tex*" DAGOR_PC_OS_DLL_SUFFIX, startdir, common_dir);
+#elif _TARGET_PC
+    const String mask(260, "%s/%s/libtex*" DAGOR_PC_OS_DLL_SUFFIX, startdir, common_dir);
 #endif
     String fname;
 
@@ -204,8 +222,11 @@ bool texconvcache::init(DagorAssetMgr &mgr, const DataBlock &appblk, const char 
 
     dd_find_close(&ff);
     if (!texExp)
-#endif
+    {
+      checkIfMsvcrDllExists();
       return false;
+    }
+#endif
   }
 
   const DataBlock &expblk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("export");

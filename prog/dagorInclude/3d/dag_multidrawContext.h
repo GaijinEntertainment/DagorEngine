@@ -5,6 +5,8 @@
 //
 #pragma once
 
+#include <EASTL/fixed_function.h>
+#include <EASTL/optional.h>
 #include <EASTL/string.h>
 #include <EASTL/variant.h>
 
@@ -36,6 +38,15 @@ class MultidrawContext
    * @brief Number of draw calls that can be stored in buffer.
    */
   uint32_t allocatedDrawcallsInBuffer = 0;
+
+  /**
+   * @brief Offset in buffer for next draw call.
+   */
+  uint32_t actualStart = 0;
+  /**
+   * @brief Offset in buffer for next unused draw call.
+   */
+  uint32_t lastOffset = 0;
 
   /**
    * @brief Extended draw call arguments structure.
@@ -108,6 +119,51 @@ public:
   MultidrawContext &operator=(MultidrawContext &) = delete;
 
   /**
+   * @brief Executor for multidraw calls.
+   *
+   * This class is used to pass multidraw buffers to a draw call. It could be constructed only by MultidrawContext.
+   * It is used to hide multidraw buffers from a user.
+   */
+  class MultidrawRenderExecutor
+  {
+    friend class MultidrawContext;
+    /**
+     * @brief Pointer to a context that is used for rendering.
+     */
+    const MultidrawContext *context;
+    /**
+     * @brief Default constructors and operator= are deleted.
+     */
+    MultidrawRenderExecutor() = delete;
+    MultidrawRenderExecutor(MultidrawRenderExecutor &&) = delete;
+    MultidrawRenderExecutor &operator=(MultidrawRenderExecutor &&) = delete;
+    MultidrawRenderExecutor(MultidrawRenderExecutor &) = delete;
+    MultidrawRenderExecutor &operator=(MultidrawRenderExecutor &) = delete;
+
+  public:
+    /**
+     * @brief Constructor.
+     * @param context reference to a context that is used for rendering. If context is a nullptr, render method does nothing.
+     */
+    MultidrawRenderExecutor(const MultidrawContext *context) : context(context) {}
+    /**
+     * @brief Renders draw calls.
+     * @param primitive_type type of primitive.
+     * @param first_drawcall index of first draw call in the buffer.
+     * @param drawcalls_count number of draw calls to execute.
+     *
+     * This method renders draw calls using multidraw indirect buffers.
+     */
+    void render(uint32_t primitive_type, uint32_t first_drawcall, uint32_t drawcalls_count) const
+    {
+      if (!context)
+        return;
+      d3d::multi_draw_indexed_indirect(primitive_type, context->multidrawArguments.getBuf(), drawcalls_count,
+        context->bytesCountPerDrawcall(), (first_drawcall + context->actualStart) * context->bytesCountPerDrawcall());
+    }
+  };
+
+  /**
    * @brief Type for a callback that is called for each draw call to fill draw call parameters.
    * We don't allow to fill startInstanceLocation because it is used for draw call id on some platforms.
    */
@@ -119,18 +175,21 @@ public:
    * @brief Fills multidraw buffers.
    * @param drawcalls_count number of draw calls.
    * @param params_setter function that sets draw call parameters.
+   * @return executor that could be used to render draw calls.
    *
    * This method iterates over locked buffers content and calls params_setter for each draw call to fill only allowed parameters of
    * drawcall. If the buffers are too small, it recreates them.
    */
-  void fillBuffers(uint32_t drawcalls_count, const MultidrawParametersSetter &params_setter)
+  MultidrawRenderExecutor fillBuffers(uint32_t drawcalls_count, const MultidrawParametersSetter &params_setter)
   {
+    uint32_t lockFlags = VBLOCK_NOOVERWRITE;
     if (allocatedDrawcallsInBuffer < drawcalls_count || !multidrawArguments.getBuf())
     {
-      allocatedDrawcallsInBuffer = drawcalls_count;
+      const uint32_t CHUNK_SIZE = 2000;
+      allocatedDrawcallsInBuffer = (drawcalls_count + CHUNK_SIZE - 1) / CHUNK_SIZE * CHUNK_SIZE;
       multidrawArguments.close();
-      multidrawArguments =
-        dag::create_sbuffer(sizeof(uint32_t), allocatedDrawcallsInBuffer * dwordsCountPerDrawcall(), SBCF_INDIRECT, 0, name.c_str());
+      multidrawArguments = dag::create_sbuffer(sizeof(uint32_t), allocatedDrawcallsInBuffer * dwordsCountPerDrawcall(),
+        SBCF_INDIRECT | SBCF_DYNAMIC, 0, name.c_str());
       if (needPerDrawParamsBuffer())
       {
         perDrawArgsBuffer.close();
@@ -138,34 +197,41 @@ public:
           SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES | SBCF_DYNAMIC, 0, getPerDrawArgsBufferName().c_str());
       }
     }
+    if (drawcalls_count + lastOffset > allocatedDrawcallsInBuffer)
+    {
+      lastOffset = 0;
+      lockFlags = VBLOCK_DISCARD;
+    }
 
     eastl::variant<eastl::monostate, LockedBuffer<DrawIndexedIndirectArgs>, LockedBuffer<ExtendedDrawIndexedIndirectArgs>>
       multidrawArgs;
     bool bufferLocked = true;
     if (usesExtendedMultiDrawStruct())
     {
-      multidrawArgs = lock_sbuffer<ExtendedDrawIndexedIndirectArgs>(multidrawArguments.getBuf(), 0, drawcalls_count, VBLOCK_DISCARD);
+      multidrawArgs = lock_sbuffer<ExtendedDrawIndexedIndirectArgs>(multidrawArguments.getBuf(),
+        lastOffset * sizeof(ExtendedDrawIndexedIndirectArgs), drawcalls_count, lockFlags);
       bufferLocked = (bool)eastl::get<2>(multidrawArgs);
     }
     else
     {
-      multidrawArgs = lock_sbuffer<DrawIndexedIndirectArgs>(multidrawArguments.getBuf(), 0, drawcalls_count, VBLOCK_DISCARD);
+      multidrawArgs = lock_sbuffer<DrawIndexedIndirectArgs>(multidrawArguments.getBuf(), lastOffset * sizeof(DrawIndexedIndirectArgs),
+        drawcalls_count, lockFlags);
       bufferLocked = (bool)eastl::get<1>(multidrawArgs);
     }
     if (!bufferLocked)
     {
       logerr("Buffer %s data wasn't updated.", multidrawArguments.getBuf()->getBufName());
-      return;
+      return MultidrawRenderExecutor(nullptr);
     }
 
     eastl::optional<LockedBuffer<PerDrawDataT>> perDrawArgs;
     if (needPerDrawParamsBuffer())
     {
-      perDrawArgs.value() = lock_sbuffer<PerDrawDataT>(perDrawArgsBuffer.getBuf(), 0, drawcalls_count, VBLOCK_DISCARD);
+      perDrawArgs.emplace(lock_sbuffer<PerDrawDataT>(perDrawArgsBuffer.getBuf(), 0, drawcalls_count, VBLOCK_DISCARD));
       if (!perDrawArgs)
       {
         logerr("Buffer %s data wasn't updated.", perDrawArgsBuffer.getBuf()->getBufName());
-        return;
+        return MultidrawRenderExecutor(nullptr);
       }
     }
     for (uint32_t i = 0; i < drawcalls_count; ++i)
@@ -179,6 +245,10 @@ public:
       if (perDrawArgs)
         drawcallId = i;
     }
+    actualStart = lastOffset;
+    lastOffset += drawcalls_count;
+
+    return MultidrawRenderExecutor(this);
   }
   /**
    * @brief Closes buffers.
@@ -189,13 +259,4 @@ public:
     perDrawArgsBuffer.close();
     allocatedDrawcallsInBuffer = 0;
   }
-  /**
-   * @brief Returns buffer for draw call arguments.
-   */
-  Sbuffer *getBuffer() const { return multidrawArguments.getBuf(); }
-
-  /**
-   * @brief Stride for draw call arguments buffer to use it in a draw call.
-   */
-  static uint32_t getStride() { return bytesCountPerDrawcall(); }
 };

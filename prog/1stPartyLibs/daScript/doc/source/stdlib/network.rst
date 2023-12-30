@@ -10,7 +10,7 @@ Network socket library
 The NETWORK module implements basic TCP socket listening server (currently only one connection).
 It would eventually be expanded to support client as well.
 
-It its present form its used in daScript Visual Studio Code plugin and upcoming debug server.
+It its present form its used in Daslang Visual Studio Code plugin and upcoming debug server.
 
 All functions and symbols are in "network" module, use require to get access to it. ::
 
@@ -180,13 +180,13 @@ send returns bool
 Low lever NetworkServer IO
 ++++++++++++++++++++++++++
 
-  *  :ref:`make_server (class:void? const implicit;info:rtti::StructInfo const? const implicit;context:__context const) : bool <function-_at_network_c__c_make_server_CI?_CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_?_C_c>` 
-  *  :ref:`server_init (server:smart_ptr\<network::NetworkServer\> const implicit;port:int const;context:__context const;at:__lineInfo const) : bool <function-_at_network_c__c_server_init_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_Ci_C_c_C_l>` 
-  *  :ref:`server_is_open (server:smart_ptr\<network::NetworkServer\> const implicit;context:__context const;at:__lineInfo const) : bool <function-_at_network_c__c_server_is_open_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_C_c_C_l>` 
-  *  :ref:`server_is_connected (server:smart_ptr\<network::NetworkServer\> const implicit;context:__context const;at:__lineInfo const) : bool <function-_at_network_c__c_server_is_connected_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_C_c_C_l>` 
-  *  :ref:`server_tick (server:smart_ptr\<network::NetworkServer\> const implicit;context:__context const;at:__lineInfo const) : void <function-_at_network_c__c_server_tick_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_C_c_C_l>` 
-  *  :ref:`server_send (server:smart_ptr\<network::NetworkServer\> const implicit;data:uint8? const implicit;size:int const;context:__context const;at:__lineInfo const) : bool <function-_at_network_c__c_server_send_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_CI1_ls_u8_gr_?_Ci_C_c_C_l>` 
-  *  :ref:`server_restore (server:smart_ptr\<network::NetworkServer\> const implicit;class:void? const implicit;info:rtti::StructInfo const? const implicit;context:__context const;at:__lineInfo const) : void <function-_at_network_c__c_server_restore_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_CI?_CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_?_C_c_C_l>` 
+  *  :ref:`make_server (class:void? const implicit;info:rtti::StructInfo const? const implicit;context:__context const) : bool <function-_at_network_c__c_make_server_CI?_CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_?_C_c>`
+  *  :ref:`server_init (server:smart_ptr\<network::NetworkServer\> const implicit;port:int const;context:__context const;at:__lineInfo const) : bool <function-_at_network_c__c_server_init_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_Ci_C_c_C_l>`
+  *  :ref:`server_is_open (server:smart_ptr\<network::NetworkServer\> const implicit;context:__context const;at:__lineInfo const) : bool <function-_at_network_c__c_server_is_open_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_C_c_C_l>`
+  *  :ref:`server_is_connected (server:smart_ptr\<network::NetworkServer\> const implicit;context:__context const;at:__lineInfo const) : bool <function-_at_network_c__c_server_is_connected_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_C_c_C_l>`
+  *  :ref:`server_tick (server:smart_ptr\<network::NetworkServer\> const implicit;context:__context const;at:__lineInfo const) : void <function-_at_network_c__c_server_tick_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_C_c_C_l>`
+  *  :ref:`server_send (server:smart_ptr\<network::NetworkServer\> const implicit;data:uint8? const implicit;size:int const;context:__context const;at:__lineInfo const) : bool <function-_at_network_c__c_server_send_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_CI1_ls_u8_gr_?_Ci_C_c_C_l>`
+  *  :ref:`server_restore (server:smart_ptr\<network::NetworkServer\> const implicit;class:void? const implicit;info:rtti::StructInfo const? const implicit;context:__context const;at:__lineInfo const) : void <function-_at_network_c__c_server_restore_CI1_ls_H_ls_network_c__c_NetworkServer_gr__gr_?M_CI?_CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_?_C_c_C_l>`
 
 .. _function-_at_network_c__c_make_server_CI?_CI1_ls_CH_ls_rtti_c__c_StructInfo_gr__gr_?_C_c:
 

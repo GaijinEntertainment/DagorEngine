@@ -54,6 +54,18 @@ void DasScripts<TLoadedScript, TContext>::fillSharedModules(TLoadedScript &scrip
   }
 }
 
+void populateDummyLibGroup(das::ProgramPtr program, das::ModuleGroup *dummyLibGroup)
+{
+  program->thisModuleGroup = dummyLibGroup;
+  program->library.foreach(
+    [&](das::Module *m) {
+      if (!m->name.empty())
+        dummyLibGroup->addModule(m);
+      return true;
+    },
+    "*");
+}
+
 template <typename TLoadedScript, typename TContext>
 bool DasScripts<TLoadedScript, TContext>::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFileAccess> access,
   AotMode aot_mode, ResolveECS resolve_ecs, LogAotErrors log_aot_errors, EnableDebugger enable_debugger)
@@ -99,6 +111,7 @@ bool DasScripts<TLoadedScript, TContext>::loadScriptInternal(const das::string &
   policies.no_aliasing = true;
   policies.strict_unsafe_delete = true;
   policies.strict_smart_pointers = true;
+  policies.no_local_class_members = true;
   policies.stack = 4096;
 
   das::ProgramPtr program;
@@ -108,13 +121,10 @@ bool DasScripts<TLoadedScript, TContext>::loadScriptInternal(const das::string &
     program = das::make_smart<das::Program>();
     initDeserializer.thisModuleGroup = dummyLibGroup.get();
     program->serialize(initDeserializer);
-    program->thisModuleGroup = dummyLibGroup.get();
-    program->library.foreach(
-      [&](das::Module *m) {
-        dummyLibGroup->addModule(m);
-        return true;
-      },
-      "*");
+    access->getFileInfo(fname); // add script file to openedFiles to support hot reload
+                                // (other openedFiles are added later in getPrerequisites function,
+                                //    but main file is not a prerequisite for itself)
+    populateDummyLibGroup(program, dummyLibGroup.get());
   }
   else
   {

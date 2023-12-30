@@ -25,6 +25,8 @@ void populate_resource_provider(ResourceProvider &provider, // passed by ref to 
   provider.providedHistoryResources.reserve(registry.nodes[nodeId].historyResourceReadRequests.size());
 
   auto processRes = [&](ResNameId unresolvedResNameId, bool history, bool optional) {
+    G_UNUSED(optional);
+
     auto setRes = [unresolvedResNameId, history, &provider](auto resource) {
       auto &storage = history ? provider.providedHistoryResources : provider.providedResources;
       storage[unresolvedResNameId] = resource;
@@ -32,13 +34,7 @@ void populate_resource_provider(ResourceProvider &provider, // passed by ref to 
 
     ResNameId resId = resolver.resolve(unresolvedResNameId);
 
-    if (!registry.resources.isMapped(resId))
-    {
-      if (EASTL_UNLIKELY(!optional))
-        logerr("Encountered an active node with an unmapped mandatory resource!"
-               " This is an impossible situation, likely a bug in frame graph!");
-      return;
-    }
+    G_ASSERT(registry.resources.isMapped(resId)); // Sanity check, nodeTracker makes sure this doesn't happen
 
     switch (registry.resources[resId].type)
     {
@@ -420,7 +416,7 @@ void NodeExecutor::bindBlob(int bind_idx, const intermediate::Binding &binding, 
   {
     // TODO: should we try and reset things to zero when unbinding?
     const auto blob = getBlobView(*binding.resource, frame);
-    bindSetter(bind_idx, *static_cast<eastl::remove_reference_t<ProjectedType> *>((binding.projector)(blob.data)));
+    bindSetter(bind_idx, *static_cast<const eastl::remove_reference_t<ProjectedType> *>((binding.projector)(blob.data)));
   }
 }
 

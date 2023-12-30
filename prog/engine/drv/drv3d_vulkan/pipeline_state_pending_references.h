@@ -4,6 +4,7 @@
 #include "image_resource.h"
 #include "buffer_resource.h"
 #include "render_pass_resource.h"
+#include "sampler_resource.h"
 
 namespace drv3d_vulkan
 {
@@ -14,6 +15,7 @@ class PipelineStatePendingReferenceList
   eastl::vector<Buffer *> buffers;
   eastl::vector<ProgramID> progs;
   eastl::vector<RenderPassResource *> renderPasses;
+  eastl::vector<SamplerResource *> samplers;
 
   template <typename T>
   void cleanupNonUsed(const PipelineState &state)
@@ -56,6 +58,7 @@ public:
     shutdownArray<Buffer *>();
     shutdownArray<ProgramID>();
     shutdownArray<RenderPassResource *>();
+    shutdownArray<SamplerResource *>();
   }
 
   void cleanupAllNonUsed(const PipelineState &state)
@@ -64,6 +67,7 @@ public:
     cleanupNonUsed<Buffer *>(state);
     cleanupNonUsed<ProgramID>(state);
     cleanupNonUsed<RenderPassResource *>(state);
+    cleanupNonUsed<SamplerResource *>(state);
   }
 
   template <typename T>

@@ -29,7 +29,6 @@ scan_folders = [
   'dag4blend/tools',
   'dag4blend/cmp',
   'dag4blend/extras',
-  'dag4blend/object_properties/presets',
 ]
 
 for f in scan_folders:

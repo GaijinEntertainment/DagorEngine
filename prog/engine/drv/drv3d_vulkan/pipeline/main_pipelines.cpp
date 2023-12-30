@@ -430,6 +430,15 @@ GraphicsPipeline::GraphicsPipeline(VulkanDevice &device, VulkanPipelineCacheHand
   csd.dynamicStates.dynamicStateCount = array_size(grPipeDynamicStateList);
   csd.dynamicStates.pDynamicStates = grPipeDynamicStateList;
 
+  if (!layout->hasTC() && info.varDsc.topology == VK_PRIMITIVE_TOPOLOGY_PATCH_LIST)
+  {
+#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
+    logerr("vulkan: pipeline %p:%s (%s) without TC used with patch list topology", this, csd.shortDebugName, csd.fullDebugName);
+#else
+    logerr("vulkan: pipeline %p without TC used with patch list topology", this);
+#endif
+  }
+
   csd.piasci = //
     {VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, NULL, 0,
       layout->hasTC() ? VK_PRIMITIVE_TOPOLOGY_PATCH_LIST : info.varDsc.topology, VK_FALSE};

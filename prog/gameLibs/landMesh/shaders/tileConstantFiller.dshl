@@ -34,7 +34,7 @@ macro TILE_CONSTANT_FILLER()
     }
   }
   hlsl(ps) {
-    half4 fill_constant_ps(VsOutput input): SV_Target
+    float4 fill_constant_ps(VsOutput input): SV_Target
     {
       return input.color;
     }

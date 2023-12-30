@@ -1,7 +1,7 @@
 from "%darg/ui_imports.nut" import *
 
 let lineHeight = hdpx(30)
-let function anyToString(a) {
+function anyToString(a) {
   if (typeof a == "string")
     return $"\"{a}\""
   else
@@ -9,7 +9,7 @@ let function anyToString(a) {
 }
 
 
-let function tableToString(tbl) {
+function tableToString(tbl) {
   let s = tbl.reduce(function(a,b, key) {
     a.append($"{key} = {anyToString(b)}")
     return a
@@ -19,7 +19,7 @@ let function tableToString(tbl) {
 }
 
 
-let function text(s){
+function text(s){
   return {
     rendObj = ROBJ_TEXT
     halign = ALIGN_LEFT
@@ -28,7 +28,7 @@ let function text(s){
   }
 }
 
-let function sampleText(a,b){
+function sampleText(a,b){
   return {
     rendObj = ROBJ_TEXT
     halign = ALIGN_LEFT
@@ -37,16 +37,16 @@ let function sampleText(a,b){
   }
 }
 
-let function sampleSubstTextTable(str, table) {
+function sampleSubstTextTable(str, table) {
   return text($"\"{str}\".subst(\{ {tableToString(table)} \}) => \" {str.subst(table)} \"")
 }
 
-let function sampleSubstTextTableTable(str, table1, table2) {
+function sampleSubstTextTableTable(str, table1, table2) {
   return text($"\"{str}\".subst(\{{tableToString(table1)}\}, \{{tableToString(table2)}\}) => \"{str.subst(table1, table2)}\"")
 }
 
 
-let function basicsRoot() {
+function basicsRoot() {
   return {
     rendObj = ROBJ_SOLID
     size = [pw(100), ph(100)]

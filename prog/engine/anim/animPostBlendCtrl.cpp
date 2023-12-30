@@ -471,11 +471,11 @@ void AnimPostBlendAlignCtrl::process(IPureAnimStateHolder &st, real wt, GeomNode
     return;
 
   NodeId *nodeId = (NodeId *)st.getInlinePtr(paramId);
-  unsigned s_uid = srcSlotId < 0 ? INVALID_ATTACHMENT_UID : ctx.ac->getAttachmentUid(srcSlotId);
+  unsigned s_uid = srcSlotId < 0 ? 0xFFFFFFFF : ctx.ac->getAttachmentUid(srcSlotId);
   GeomNodeTree *s_tree = srcSlotId < 0 ? &tree : ctx.ac->getAttachedSkeleton(srcSlotId);
   if (nodeId->lastRefUid != s_uid)
   {
-    nodeId->src = s_tree ? resolve_node_by_name(tree, srcNodeName) : dag::Index16();
+    nodeId->src = s_tree ? resolve_node_by_name(*s_tree, srcNodeName) : dag::Index16();
     nodeId->lastRefUid = s_uid;
   }
 
@@ -539,7 +539,7 @@ void AnimPostBlendAlignCtrl::createNode(AnimationGraph &graph, const DataBlock &
 
   if (!name)
   {
-    fatal_x("not found 'name' param");
+    DAG_FATAL("not found 'name' param");
     return;
   }
 
@@ -617,8 +617,8 @@ void AnimPostBlendAlignExCtrl::process(IPureAnimStateHolder &st, real wt, GeomNo
     helpTm.col1 = hlpCol[1] > 0 ? (&n_wtm.col0)[hlpCol[1] - 1] : v_neg((&n_wtm.col0)[-hlpCol[1] - 1]);
     helpTm.col2 = hlpCol[2] > 0 ? (&n_wtm.col0)[hlpCol[2] - 1] : v_neg((&n_wtm.col0)[-hlpCol[2] - 1]);
 
-    quat4f qs = v_norm4(v_un_quat_from_mat(v_norm3(helpTm.col0), v_norm3(helpTm.col1), v_norm3(helpTm.col2)));
-    quat4f qd = v_norm4(v_un_quat_from_mat(v_norm3(rootTm.col0), v_norm3(rootTm.col1), v_norm3(rootTm.col2)));
+    quat4f qs = v_quat_from_mat(v_norm3(helpTm.col0), v_norm3(helpTm.col1), v_norm3(helpTm.col2));
+    quat4f qd = v_quat_from_mat(v_norm3(rootTm.col0), v_norm3(rootTm.col1), v_norm3(rootTm.col2));
     qd = v_quat_mul_quat(qd, v_quat_conjugate(qs));
 
     float w = wt * (i + 1 < targetNode.size() ? targetNode[nodeId.id[i].nodeRemap].wt : 1.0);
@@ -860,12 +860,12 @@ void AnimPostBlendRotateCtrl::createNode(AnimationGraph &graph, const DataBlock 
 
   if (!name)
   {
-    fatal_x("not found 'name' param");
+    DAG_FATAL("not found 'name' param");
     return;
   }
   if (!pname)
   {
-    fatal_x("not found 'param' param");
+    DAG_FATAL("not found 'param' param");
     return;
   }
 
@@ -982,12 +982,12 @@ void AnimPostBlendRotateAroundCtrl::createNode(AnimationGraph &graph, const Data
 
   if (!name)
   {
-    fatal_x("not found 'name' param");
+    DAG_FATAL("not found 'name' param");
     return;
   }
   if (!pname)
   {
-    fatal_x("not found 'param' param");
+    DAG_FATAL("not found 'param' param");
     return;
   }
 
@@ -1089,12 +1089,12 @@ void AnimPostBlendScaleCtrl::createNode(AnimationGraph &graph, const DataBlock &
 
   if (!name)
   {
-    fatal_x("not found 'name' param");
+    DAG_FATAL("not found 'name' param");
     return;
   }
   if (!pname)
   {
-    fatal_x("not found 'param' param");
+    DAG_FATAL("not found 'param' param");
     return;
   }
 
@@ -1236,12 +1236,12 @@ void AnimPostBlendMoveCtrl::createNode(AnimationGraph &graph, const DataBlock &b
 
   if (!name)
   {
-    fatal_x("not found 'name' param");
+    DAG_FATAL("not found 'name' param");
     return;
   }
   if (!pname)
   {
-    fatal_x("not found 'param' param");
+    DAG_FATAL("not found 'param' param");
     return;
   }
 
@@ -1352,7 +1352,7 @@ void ApbAnimateCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 
   if (!name)
   {
-    fatal_x("not found 'name' param");
+    DAG_FATAL("not found 'name' param");
     return;
   }
 
@@ -1370,19 +1370,19 @@ void ApbAnimateCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 
       if (!nm || !*nm)
       {
-        fatal_x("bad param in ApbAnimateCtrl '%s', block %d", nm, name, j);
+        DAG_FATAL("bad param in ApbAnimateCtrl '%s', block %d", nm, name, j);
         continue;
       }
       IAnimBlendNode *n = bnl_nm ? graph.getBlendNodePtr(bnl_nm) : NULL;
       if (!bnl_nm || !*bnl_nm)
       {
-        fatal_x("bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
+        DAG_FATAL("bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
         continue;
       }
       if (!n || !n->isSubOf(AnimBlendNodeLeafCID))
       {
         if (!is_ignoring_unavailable_resources())
-          fatal_x("bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
+          DAG_FATAL("bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
         continue;
       }
 
@@ -1488,7 +1488,7 @@ void AnimV20::createNodeApbAnimateAndPostBlendProc(AnimationGraph &graph, const 
   const int animateNodeBlockNum = blk.findBlock("animateNode");
   if (animateNodeBlockNum < 0)
   {
-    fatal_x("'animateNode' block is missed in '%s' block", blk.getBlockName());
+    DAG_FATAL("'animateNode' block is missed in '%s' block", blk.getBlockName());
     return;
   }
 
@@ -1496,7 +1496,7 @@ void AnimV20::createNodeApbAnimateAndPostBlendProc(AnimationGraph &graph, const 
   const char *animNodeName = animateNodeBlk.getStr("name", nullptr);
   if (animNodeName == nullptr)
   {
-    fatal_x("'name' is missed in '%s' block %d of '%s'", animateNodeBlk.getBlockName(), animateNodeBlockNum, blk.getBlockName());
+    DAG_FATAL("'name' is missed in '%s' block %d of '%s'", animateNodeBlk.getBlockName(), animateNodeBlockNum, blk.getBlockName());
     return;
   }
 
@@ -1510,7 +1510,7 @@ void AnimV20::createNodeApbAnimateAndPostBlendProc(AnimationGraph &graph, const 
         continue;
       const DataBlock *procNodeBlk = blk.getBlock(i);
       if (procNodeBlk->findParam("targetNode") < 0)
-        fatal_x("targetNode:t is missed in '%s' block %d of '%s'", procNodeBlk->getBlockName(), i, blk.getBlockName());
+        DAG_FATAL("targetNode:t is missed in '%s' block %d of '%s'", procNodeBlk->getBlockName(), i, blk.getBlockName());
       AnimPostBlendRotateCtrl::createNode(graph, *procNodeBlk);
       (*create_anim_node_func)(graph, *procNodeBlk, nm_suffix);
     }
@@ -1524,7 +1524,7 @@ void AnimV20::createNodeApbAnimateAndPostBlendProc(AnimationGraph &graph, const 
       const DataBlock *procNodeBlk = blk.getBlock(i);
       if (procNodeBlk->findParam("targetNode") < 0)
       {
-        fatal_x("targetNode:t is missed in '%s' block %d of '%s'", procNodeBlk->getBlockName(), i, blk.getBlockName());
+        DAG_FATAL("targetNode:t is missed in '%s' block %d of '%s'", procNodeBlk->getBlockName(), i, blk.getBlockName());
         continue;
       }
       DataBlock emptyProcNodeBlk = *procNodeBlk;
@@ -1547,7 +1547,7 @@ bool AnimPostBlendCondHideCtrl::loadCondition(const DataBlock &blk, AnimationGra
     const char *pnm = blk.getStr("param", NULL);
     if (!pnm || !*pnm)
     {
-      fatal_x("bad param '%s' in AnimPostBlendCondHideCtrl '%s', block %d", pnm, name, index);
+      DAG_FATAL("bad param '%s' in AnimPostBlendCondHideCtrl '%s', block %d", pnm, name, index);
       out_condition.leaf.pid = -1;
     }
     else
@@ -1570,7 +1570,7 @@ bool AnimPostBlendCondHideCtrl::loadCondition(const DataBlock &blk, AnimationGra
       case OPB_OR:
         if (out_condition.branches.size() < 2)
         {
-          fatal_x("less than 2 operands for condition '%s' in AnimPostBlendCondHideCtrl %s, block %d", blk.getStr("op", ""), name,
+          DAG_FATAL("less than 2 operands for condition '%s' in AnimPostBlendCondHideCtrl %s, block %d", blk.getStr("op", ""), name,
             index);
           return false;
         }
@@ -1578,7 +1578,7 @@ bool AnimPostBlendCondHideCtrl::loadCondition(const DataBlock &blk, AnimationGra
       case OPB_NOT:
         if (out_condition.branches.size() < 1)
         {
-          fatal_x("no operands for condition '%s' in AnimPostBlendCondHideCtrl %s, block %d", blk.getStr("op", ""), name, index);
+          DAG_FATAL("no operands for condition '%s' in AnimPostBlendCondHideCtrl %s, block %d", blk.getStr("op", ""), name, index);
           return false;
         }
         break;
@@ -1699,7 +1699,7 @@ void AnimPostBlendCondHideCtrl::createNode(AnimationGraph &graph, const DataBloc
 
   if (!name)
   {
-    fatal_x("not found 'name' param");
+    DAG_FATAL("not found 'name' param");
     return;
   }
 
@@ -1717,7 +1717,7 @@ void AnimPostBlendCondHideCtrl::createNode(AnimationGraph &graph, const DataBloc
       bool uncond = b.getBool("always", false);
       if (!nm || !*nm)
       {
-        fatal_x("bad dest node %s in AnimPostBlendCondHideCtrl '%s', block %d", nm, name, j);
+        DAG_FATAL("bad dest node %s in AnimPostBlendCondHideCtrl '%s', block %d", nm, name, j);
         continue;
       }
 
@@ -1841,7 +1841,7 @@ static void load_ops(const DataBlock &blk, AnimationGraph &graph, Tab<ApbParamCt
     {
       if (!nm || !*nm)
       {
-        fatal_x("bad dest param in ApbParamCtrl '%s', block %d", nm, name, j);
+        DAG_FATAL("bad dest param in ApbParamCtrl '%s', block %d", nm, name, j);
         continue;
       }
       ApbParamCtrl::ParamOp &r = ops.push_back();
@@ -1884,7 +1884,7 @@ void ApbParamCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 
   if (!name)
   {
-    fatal_x("not found 'name' param");
+    DAG_FATAL("not found 'name' param");
     return;
   }
 
@@ -1899,7 +1899,7 @@ void ApbParamCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
       const char *nm = b.getStr("param", NULL);
       if (!nm || !*nm)
       {
-        fatal_x("bad dest param in ApbParamCtrl '%s', block %d", nm, name, j);
+        DAG_FATAL("bad dest param in ApbParamCtrl '%s', block %d", nm, name, j);
         continue;
       }
 
@@ -1924,13 +1924,13 @@ void ApbParamCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
       const char *nm = b.getStr("param", NULL);
       if (!nm || !*nm)
       {
-        fatal_x("bad source param in ApbParamCtrl '%s', block %d", nm, name, j);
+        DAG_FATAL("bad source param in ApbParamCtrl '%s', block %d", nm, name, j);
         continue;
       }
       const char *destNm = b.getStr("destParam", NULL);
       if (!destNm || !*destNm)
       {
-        fatal_x("bad dest param in ApbParamCtrl '%s', block %d", destNm, name, j);
+        DAG_FATAL("bad dest param in ApbParamCtrl '%s', block %d", destNm, name, j);
         continue;
       }
       RemapRec &r = node->mapRec.push_back();
@@ -1996,7 +1996,7 @@ void DefClampParamCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 
   if (!name)
   {
-    fatal_x("not found 'name' param");
+    DAG_FATAL("not found 'name' param");
     return;
   }
 
@@ -2010,7 +2010,7 @@ void DefClampParamCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
     {
       if (!nm || !*nm)
       {
-        fatal_x("bad dest param in DefClampParamCtrl '%s', block %d", nm, name, j);
+        DAG_FATAL("bad dest param in DefClampParamCtrl '%s', block %d", nm, name, j);
         continue;
       }
       DefClampParamCtrl::Params &r = node->ps.push_back();
@@ -2249,7 +2249,7 @@ void AnimPostBlendAimCtrl::createNode(AnimationGraph &graph, const DataBlock &bl
 
   if (!name)
   {
-    fatal_x("not found 'name' param");
+    DAG_FATAL("not found 'name' param");
     return;
   }
 
@@ -2433,7 +2433,7 @@ void AttachGeomNodeCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
     const char *node_nm = b.getStr("node", NULL);
     if ((!var_nm || !*var_nm) || (!node_nm || !*node_nm))
     {
-      fatal("AttachGeomNodeCtrl<%s> bad params: var=%s node=%s", name, var_nm, node_nm);
+      DAG_FATAL("AttachGeomNodeCtrl<%s> bad params: var=%s node=%s", name, var_nm, node_nm);
       continue;
     }
     node->nodeNames.push_back() = node_nm;
@@ -2528,12 +2528,12 @@ void AnimPostBlendNodeLookatCtrl::createNode(AnimationGraph &graph, const DataBl
 
   if (!name)
   {
-    fatal_x("not found 'name' param in lookat controller");
+    DAG_FATAL("not found 'name' param in lookat controller");
     return;
   }
   if (!pname)
   {
-    fatal_x("not found 'param' param in '%s'", name);
+    DAG_FATAL("not found 'param' param in '%s'", name);
     return;
   }
 
@@ -2555,7 +2555,7 @@ void AnimPostBlendNodeLookatCtrl::createNode(AnimationGraph &graph, const DataBl
       node->targetNodes.push_back().name = blk.getStr(j);
 
   if (node->targetNodes.empty())
-    fatal_x("no target nodes in '%s'", name);
+    DAG_FATAL("no target nodes in '%s'", name);
 
   // allocate state variable
   node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNodes.size(), IPureAnimStateHolder::PT_InlinePtr);
@@ -2576,12 +2576,12 @@ void AnimPostBlendNodeLookatNodeCtrl::init(IPureAnimStateHolder &st, const GeomN
   upNodeId = tree.findINodeIndex(upNodeName);
   if (!lookatNodeId)
   {
-    fatal_x("lookat node '%s' does not exist", lookatNodeName);
+    DAG_FATAL("lookat node '%s' does not exist", lookatNodeName);
     valid = false;
   }
   if (!upNodeId)
   {
-    fatal_x("up node '%s' does not exist", upNodeName);
+    DAG_FATAL("up node '%s' does not exist", upNodeName);
     valid = false;
   }
 }
@@ -2632,7 +2632,7 @@ void AnimPostBlendNodeLookatNodeCtrl::createNode(AnimationGraph &graph, const Da
 
   if (!name)
   {
-    fatal_x("not found 'name' param in lookat controller");
+    DAG_FATAL("not found 'name' param in lookat controller");
     return;
   }
 
@@ -2655,7 +2655,7 @@ void AnimPostBlendNodeLookatNodeCtrl::createNode(AnimationGraph &graph, const Da
 
   if (!valid)
   {
-    fatal_x("lookat node controller should either have 'targetNode', 'lookatNode' and 'upNode' specified");
+    DAG_FATAL("lookat node controller should either have 'targetNode', 'lookatNode' and 'upNode' specified");
     return;
   }
 
@@ -3017,6 +3017,9 @@ void AnimPostBlendNodeEffectorFromChildIK::createNode(AnimationGraph &graph, con
   node->resetEffInvVal = blk.getBool("resetEffInvVal", false);
   G_ASSERTF(node->resetEffByValId >= 0, "resetEffByVal is absent");
 
+  if (const char *val = blk.getStr("varSlot", nullptr))
+    node->varSlotId = graph.addParamId(val, IPureAnimStateHolder::PT_ScalarParam);
+
   graph.registerBlendNode(node, name);
 }
 
@@ -3030,14 +3033,14 @@ void AnimPostBlendNodeEffectorFromChildIK::init(IPureAnimStateHolder &st, const 
   ldata.destVarId = graph.getParamId(String(0, "%s.m", destVarName), IPureAnimStateHolder::PT_InlinePtr);
 
   G_ASSERTF(ldata.parentNodeId, "parentNode %s not found", parentNodeName);
-  G_ASSERTF(ldata.childNodeId, "childNode %s not found", childNodeName);
+  G_ASSERTF(ldata.childNodeId || varSlotId >= 0, "childNode %s not found", childNodeName);
   G_ASSERTF(ldata.srcVarId >= 0, "srcVar %s.m not found", srcVarName);
   G_ASSERTF(ldata.destEffId >= 0, "destVar %s not found", destVarName);
   G_ASSERTF(ldata.destVarId >= 0, "destVar %s.m not found", destVarName);
 }
 
 void AnimPostBlendNodeEffectorFromChildIK::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree,
-  AnimPostBlendCtrl::Context & /*ctx*/)
+  AnimPostBlendCtrl::Context &ctx)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(localDataVarId);
 
@@ -3054,7 +3057,16 @@ void AnimPostBlendNodeEffectorFromChildIK::process(IPureAnimStateHolder &st, rea
   }
 
   const mat44f &parent_wtm = tree.getNodeWtmRel(ldata.parentNodeId);
-  const mat44f &child_wtm = tree.getNodeWtmRel(ldata.childNodeId);
+  dag::Index16 childWtmNodeIdx = ldata.childNodeId;
+  if (varSlotId >= 0)
+  {
+    const dag::Index16 idx = ctx.ac->getSlotNodeIdx(st.getParam(varSlotId));
+    if (idx.valid())
+      childWtmNodeIdx = idx;
+    else if (!childWtmNodeIdx.valid())
+      return;
+  }
+  const mat44f &child_wtm = tree.getNodeWtmRel(childWtmNodeIdx);
   AttachGeomNodeCtrl::AttachDesc &srcAd = AttachGeomNodeCtrl::getAttachDesc(st, ldata.srcVarId);
   AttachGeomNodeCtrl::AttachDesc &destAd = AttachGeomNodeCtrl::getAttachDesc(st, ldata.destVarId);
   if (srcAd.w < 1e-3)

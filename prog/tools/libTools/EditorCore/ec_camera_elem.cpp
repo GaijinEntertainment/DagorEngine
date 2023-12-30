@@ -483,7 +483,7 @@ void FpsCameraElem::actInternal()
     vpw->setCameraPos(pos);
   prevPos = pos;
 
-  __super::actInternal();
+  CCameraElem::actInternal();
 }
 
 //=====================================================================================
@@ -554,7 +554,7 @@ void FpsCameraElem::moveOn(const Point3 &dpos)
 //=====================================================================================
 void FpsCameraElem::clear()
 {
-  __super::clear();
+  CCameraElem::clear();
 
   speed = Point3(0, 0, 0);
   accelerate = Point3(0, 0, 0);
@@ -562,7 +562,7 @@ void FpsCameraElem::clear()
 
 
 //=====================================================================================
-void FpsCameraElem::handleKeyPress(int vk) { return __super::handleKeyPress(vk); }
+void FpsCameraElem::handleKeyPress(int vk) { return CCameraElem::handleKeyPress(vk); }
 
 
 //=====================================================================================
@@ -581,7 +581,7 @@ void FpsCameraElem::handleKeyRelease(int vk)
       break;
   }
 
-  return __super::handleKeyRelease(vk);
+  return CCameraElem::handleKeyRelease(vk);
 }
 
 
@@ -690,7 +690,7 @@ void TpsCameraElem::actInternal()
 
   target.prevPos = target.pos;
 
-  __super::actInternal();
+  CCameraElem::actInternal();
 
   if (cam.changed)
   {
@@ -823,7 +823,7 @@ void TpsCameraElem::moveOn(const Point3 &dpos)
 //=====================================================================================
 void TpsCameraElem::clear()
 {
-  __super::clear();
+  CCameraElem::clear();
 
   target.vel = Point3(0, 0, 0);
   target.acc = Point3(0, 0, 0);
@@ -831,7 +831,7 @@ void TpsCameraElem::clear()
 
 
 //=====================================================================================
-void TpsCameraElem::handleKeyPress(int vk) { return __super::handleKeyPress(vk); }
+void TpsCameraElem::handleKeyPress(int vk) { return CCameraElem::handleKeyPress(vk); }
 
 
 //=====================================================================================
@@ -849,7 +849,7 @@ void TpsCameraElem::handleKeyRelease(int vk)
       }
       break;
   }
-  return __super::handleKeyRelease(vk);
+  return CCameraElem::handleKeyRelease(vk);
 }
 
 

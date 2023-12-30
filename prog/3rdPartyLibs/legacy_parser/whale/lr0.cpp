@@ -169,7 +169,7 @@ struct State
 };
 
 template<>
-struct hash<State>
+struct std::hash<State>
 {
 	size_t operator()(const State& s)
 	{

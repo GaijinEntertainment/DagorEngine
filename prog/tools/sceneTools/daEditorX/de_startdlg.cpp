@@ -74,13 +74,13 @@ void StartupDlg::onAddWorkspace()
 {
   ((DeWorkspace &)wsp).clear();
 
-  __super::onAddWorkspace();
+  EditorStartDialog::onAddWorkspace();
 }
 
 //==============================================================================
 void StartupDlg::onChangeWorkspace(const char *name)
 {
-  __super::onChangeWorkspace(name);
+  EditorStartDialog::onChangeWorkspace(name);
 
   String caption;
 
@@ -129,7 +129,7 @@ void StartupDlg::onChangeWorkspace(const char *name)
 
 void StartupDlg::onCustomFillPanel(PropPanel2 &panel)
 {
-  __super::onCustomFillPanel(panel);
+  EditorStartDialog::onCustomFillPanel(panel);
 
   fillExportPluginsGrp(panel);
 }
@@ -138,7 +138,7 @@ void StartupDlg::onCustomFillPanel(PropPanel2 &panel)
 //==============================================================================
 bool StartupDlg::onCustomSettings(PropPanel2 &panel)
 {
-  __super::onCustomSettings(panel);
+  EditorStartDialog::onCustomSettings(panel);
 
   DeWorkspace &deWsp = (DeWorkspace &)wsp;
 
@@ -219,7 +219,7 @@ bool StartupDlg::onOk()
 {
   mSelected = mPanel->getInt(ID_GROUP);
 
-  if (!__super::onOk())
+  if (!EditorStartDialog::onOk())
   {
     mScreenshotMetaInfo.reset();
     mFilePathFromScreenshotMetaInfo.clear();

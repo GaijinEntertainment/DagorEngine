@@ -13,6 +13,10 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
 
   result.state = propertiesToInitialState(desc.Dimension, desc.Flags, ii.memoryClass);
 
+  HRESULT errorCode = S_OK;
+  auto oomCheckOnExit = checkForOOMOnExit([&errorCode, &result]() { return (!is_oom_error_code(errorCode)) && result.image; },
+    "DX12: OOM during %s for <%s>", "createTexture", name);
+
   if (ii.memoryClass != DeviceMemoryClass::RESERVED_RESOURCE)
   {
     auto allocInfo = get_resource_allocation_info(device, desc);
@@ -48,13 +52,8 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
 
       D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
 
-      auto errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(
+      errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(
         device->CreateCommittedResource(&heapProperties, heapFlags, &desc, result.state, nullptr, COM_ARGS(&texture)));
-
-      if (is_oom_error_code(errorCode))
-      {
-        reportOOMInformation();
-      }
 
       if (!texture)
       {
@@ -67,7 +66,7 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
                                                      : ImageGlobalSubresouceId::make_invalid();
 
       result.image = newImageObject(ResourceMemory{}, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips,
-        ii.arrays, subResIdBase, ii.sampleDesc.Count > 1);
+        ii.arrays, subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
 
       recordTextureAllocated(result.image->getMipLevelRange(), result.image->getArrayLayers(), result.image->getBaseExtent(),
         result.image->getMemory().size(), result.image->getFormat(), name);
@@ -83,18 +82,13 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
     else
     {
       ComPtr<ID3D12Resource> texture;
-      auto errorCode =
+      errorCode =
 #if _TARGET_XBOX
         DX12_CHECK_RESULT_NO_OOM_CHECK(xbox_create_placed_resource(device, memory.getAddress(), desc, result.state, nullptr, texture));
 #else
         DX12_CHECK_RESULT_NO_OOM_CHECK(
           device->CreatePlacedResource(memory.getHeap(), memory.getOffset(), &desc, result.state, nullptr, COM_ARGS(&texture)));
 #endif
-
-      if (is_oom_error_code(errorCode))
-      {
-        reportOOMInformation();
-      }
 
       if (!texture)
       {
@@ -107,7 +101,7 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
                                                      : ImageGlobalSubresouceId::make_invalid();
 
       result.image = newImageObject(memory, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips, ii.arrays,
-        subResIdBase, ii.sampleDesc.Count > 1);
+        subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
 
       updateMemoryRangeUse(memory, result.image);
       recordTextureAllocated(result.image->getMipLevelRange(), result.image->getArrayLayers(), result.image->getBaseExtent(),
@@ -117,12 +111,7 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
   else
   {
     ComPtr<ID3D12Resource> texture;
-    auto errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreateReservedResource(&desc, result.state, nullptr, COM_ARGS(&texture)));
-
-    if (is_oom_error_code(errorCode))
-    {
-      reportOOMInformation();
-    }
+    errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreateReservedResource(&desc, result.state, nullptr, COM_ARGS(&texture)));
 
     if (!texture)
     {
@@ -133,7 +122,7 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, ID3D1
       (ii.allocateSubresourceIDs) ? allocateGlobalResourceIdRange(ii.getSubResourceCount()) : ImageGlobalSubresouceId::make_invalid();
 
     result.image = newImageObject(ResourceMemory{}, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips,
-      ii.arrays, subResIdBase, ii.sampleDesc.Count > 1);
+      ii.arrays, subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
   }
 
   result.image->setGPUChangeable(
@@ -158,7 +147,7 @@ Image *TextureImageFactory::adoptTexture(ID3D12Resource *texture, const char *na
   auto subResIdBase = allocateGlobalResourceIdRange(idCount);
   auto result = newImageObject(ResourceMemory{}, eastl::move(texture_ref), D3D12_RESOURCE_DIMENSION_TEXTURE2D, desc.Layout,
     dagorFormat, Extent3D{uint32_t(desc.Width), uint32_t(desc.Height), 1}, MipMapCount::make(desc.MipLevels),
-    ArrayLayerCount::make(desc.DepthOrArraySize), subResIdBase, false);
+    ArrayLayerCount::make(desc.DepthOrArraySize), subResIdBase, 0);
 
   recordTextureAdopted(result->getMipLevelRange(), result->getArrayLayers(), result->getBaseExtent(), result->getFormat(), name);
 
@@ -188,7 +177,8 @@ void TextureImageFactory::destroyTextures(eastl::span<Image *> textures)
   {
     if (texture->getGlobalSubResourceIdBase().isValid())
     {
-      freeGlobalResourceIdRange(texture->getGlobalSubresourceIdRange());
+      auto idrange = texture->getGlobalSubresourceIdRange();
+      freeGlobalResourceIdRange(ValueRange<ImageGlobalSubresouceId>(idrange.start, idrange.stop));
     }
     if (texture->isHeapAllocated() && !texture->isAliased())
     {
@@ -329,7 +319,7 @@ DeviceMemoryClass AliasHeapProvider::get_memory_class(const ResourceDescription 
   if (RES3D_SBUF == desc.resType)
   {
 #if DX12_USE_ESRAM
-    if (desc.asBasicRes.cFlags & SBCF_MISC_ESRAM_ONLY)
+    if ((desc.asBasicRes.cFlags & SBCF_MISC_ESRAM_ONLY) && hasESRam())
     {
       return DeviceMemoryClass::ESRAM_RESOURCE;
     }
@@ -339,7 +329,7 @@ DeviceMemoryClass AliasHeapProvider::get_memory_class(const ResourceDescription 
   else
   {
 #if DX12_USE_ESRAM
-    if (desc.asBasicRes.cFlags & TEXCF_ESRAM_ONLY)
+    if ((desc.asBasicRes.cFlags & TEXCF_ESRAM_ONLY) && hasESRam())
     {
       return DeviceMemoryClass::ESRAM_RESOURCE;
     }
@@ -445,6 +435,10 @@ void AliasHeapProvider::freeUserHeap(ID3D12Device *device, ::ResourceHeap *ptr)
     logerr("DX12: Tried to free already freed resource heap %p", ptr);
     return;
   }
+
+  HEAP_LOG("DX12: Free user heap %p of size %.2f %s", heap.memory.getAddress(), ByteUnits{heap.memory.size()}.units(),
+    ByteUnits{heap.memory.size()}.name());
+
   ResourceHeapProperties properties;
   properties.raw = heap.memory.getHeapID().group;
   recordDeletedUserResouceHeap(heap.memory.size(), !properties.isCPUVisible());
@@ -518,6 +512,10 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(ID3D12Device *device, ::
   // heap ptr / index starts with 1, so adjust to start from 0
   auto index = reinterpret_cast<uintptr_t>(heap) - 1;
 
+  HRESULT errorCode = S_OK;
+  auto oomCheckOnExit = checkForOOMOnExit([&errorCode, &result]() { return (!is_oom_error_code(errorCode)) && result.image; },
+    "DX12: OOM during %s for <%s>", "placeTextureInHeap", name);
+
   auto aliasHeapsAccess = aliasHeaps.access();
   if (index >= aliasHeapsAccess->size())
   {
@@ -550,7 +548,7 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(ID3D12Device *device, ::
   }
 
   ComPtr<ID3D12Resource> texture;
-  auto errorCode =
+  errorCode =
 #if _TARGET_XBOX
     DX12_CHECK_RESULT_NO_OOM_CHECK(
       xbox_create_placed_resource(device, memory.getAddress(), dxDesc, result.state, clearValuePtr, texture));
@@ -558,11 +556,6 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(ID3D12Device *device, ::
     DX12_CHECK_RESULT_NO_OOM_CHECK(
       device->CreatePlacedResource(memory.getHeap(), memory.getOffset(), &dxDesc, result.state, clearValuePtr, COM_ARGS(&texture)));
 #endif
-
-  if (is_oom_error_code(errorCode))
-  {
-    reportOOMInformation();
-  }
 
   if (!texture)
   {
@@ -589,7 +582,7 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(ID3D12Device *device, ::
 
   auto subResIdBase = allocateGlobalResourceIdRange(subResCount);
   result.image = newImageObject(memory, eastl::move(texture), dxDesc.Dimension, dxDesc.Layout, fmt, ext, mipMapCount, arrayLayerCount,
-    subResIdBase, dxDesc.SampleDesc.Count > 1);
+    subResIdBase, get_log2i_of_pow2(dxDesc.SampleDesc.Count));
 
   recordTexturePlacedInUserResourceHeap(result.image->getMipLevelRange(), result.image->getArrayLayers(),
     result.image->getBaseExtent(), result.image->getMemory().size(), result.image->getFormat(), name);
@@ -634,6 +627,12 @@ ResourceHeapGroupProperties AliasHeapProvider::getResourceHeapGroupProperties(::
   result.isOnChip = false;
 
   result.maxResourceSize = result.maxHeapSize;
+  // Suggested optimal size on the DX discord by some MS representatives. Windows may not be able to
+  // allocate larger heaps on the device and silently falls back to alternative memory sources.
+  // Suggested sizes where 64 or 32 MiBytes, currently we will use fixed 64 MiBytes for now, but may be
+  // later we use different values for different max available memory.
+  constexpr uint64_t optimal_max_heap_size = 64 * 1024 * 1024;
+  result.optimalMaxHeapSize = min(result.maxHeapSize, optimal_max_heap_size);
   return result;
 }
 #else
@@ -642,6 +641,8 @@ ResourceHeapGroupProperties AliasHeapProvider::getResourceHeapGroupProperties(::
   auto properties = getHeapGroupProperties(heap_group);
 
   ResourceHeapGroupProperties result;
+  // no optimal size
+  result.optimalMaxHeapSize = 0;
   result.flags = 0;
 
   result.isCPUVisible = true;
@@ -661,6 +662,10 @@ ResourceHeapGroupProperties AliasHeapProvider::getResourceHeapGroupProperties(::
     size_t gameLimit = 0, gameUsed = 0;
     xbox_get_memory_status(gameUsed, gameLimit);
     result.maxResourceSize = result.maxHeapSize = gameLimit;
+    // Workaround for OOM on xbox that is probably caused by an attempt to allocate too big heap when memory is fragmented.
+    const uint64_t optimal_max_heap_size =
+      ::dgs_get_settings()->getBlockByNameEx("dx12")->getInt("optimal_max_heap_size", 64 * 1024 * 1024);
+    result.optimalMaxHeapSize = min(result.maxHeapSize, optimal_max_heap_size);
   }
 
   return result;
@@ -736,6 +741,10 @@ BufferState AliasHeapProvider::placeBufferInHeap(ID3D12Device *device, ::Resourc
   // heap ptr / index starts with 1, so adjust to start from 0
   auto index = reinterpret_cast<uintptr_t>(heap) - 1;
 
+  HRESULT errorCode = S_OK;
+  auto oomCheckOnExit = checkForOOMOnExit([&errorCode, &result]() { return (!is_oom_error_code(errorCode)) && result; },
+    "DX12: OOM during %s for <%s>", "placeBufferInHeap", name);
+
   auto aliasHeapsAccess = aliasHeaps.access();
   if (index >= aliasHeapsAccess->size())
   {
@@ -752,11 +761,7 @@ BufferState AliasHeapProvider::placeBufferInHeap(ID3D12Device *device, ::Resourc
   auto heapProperties = getHeapGroupProperties(alloc_info.heapGroup);
   auto memory = heapRef.memory.aliasSubRange(index, offset, alloc_info.sizeInBytes);
 
-  auto errorCode = newHeap.create(device, dxDesc, memory, state, heapProperties.isCPUVisible());
-  if (is_oom_error_code(errorCode))
-  {
-    reportOOMInformation();
-  }
+  errorCode = newHeap.create(device, dxDesc, memory, state, heapProperties.isCPUVisible());
 
   if (DX12_CHECK_FAIL(errorCode))
   {
@@ -872,6 +877,9 @@ ImageCreateResult AliasHeapProvider::aliasTexture(ID3D12Device *device, const Im
     freshAlias = true;
   }
 
+  HRESULT errorCode = S_OK;
+  auto oomCheckOnExit = checkForOOMOnExit([&errorCode, &result]() { return (!is_oom_error_code(errorCode)) && result.image; },
+    "DX12: OOM during %s for <%s>", "aliasTexture", name);
   {
     auto aliasHeapsAccess = aliasHeaps.access();
     auto &heap = (*aliasHeapsAccess)[baseHeapID.index];
@@ -903,18 +911,13 @@ ImageCreateResult AliasHeapProvider::aliasTexture(ID3D12Device *device, const Im
     result.state = getInitialTextureResourceState(ii.usage);
 
     ComPtr<ID3D12Resource> texture;
-    auto errorCode =
+    errorCode =
 #if _TARGET_XBOX
       DX12_CHECK_RESULT_NO_OOM_CHECK(xbox_create_placed_resource(device, memory.getAddress(), desc, result.state, nullptr, texture));
 #else
       DX12_CHECK_RESULT_NO_OOM_CHECK(
         device->CreatePlacedResource(memory.getHeap(), memory.getOffset(), &desc, result.state, nullptr, COM_ARGS(&texture)));
 #endif
-
-    if (is_oom_error_code(errorCode))
-    {
-      reportOOMInformation();
-    }
 
     if (!texture)
     {
@@ -923,7 +926,7 @@ ImageCreateResult AliasHeapProvider::aliasTexture(ID3D12Device *device, const Im
 
     auto subResIdBase = allocateGlobalResourceIdRange(ii.getSubResourceCount());
     result.image = newImageObject(memory, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips, ii.arrays,
-      subResIdBase, ii.sampleDesc.Count > 1);
+      subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
 
     heap.images.push_back(result.image);
   }
@@ -1389,21 +1392,21 @@ void DebugViewBase::storeViewSettings()
   auto blk = imgui_get_blk();
   if (!blk)
   {
-    debug("DX12: ResourceMemoryHeap::storeViewSettings 'imgui_get_blk' returned null");
+    logdbg("DX12: ResourceMemoryHeap::storeViewSettings 'imgui_get_blk' returned null");
     return;
   }
 
   auto dx12Block = blk->addBlock("dx12");
   if (!dx12Block)
   {
-    debug("DX12: ResourceMemoryHeap::storeViewSettings unable to write dx12 block");
+    logdbg("DX12: ResourceMemoryHeap::storeViewSettings unable to write dx12 block");
     return;
   }
 
   auto memoryBlock = dx12Block->addBlock("memory");
   if (!memoryBlock)
   {
-    debug("DX12: ResourceMemoryHeap::storeViewSettings unable to write memory block");
+    logdbg("DX12: ResourceMemoryHeap::storeViewSettings unable to write memory block");
     return;
   }
   memoryBlock->setStr("event_object_name_filter", getEventObjectNameFilterBasePointer());
@@ -1444,21 +1447,21 @@ void DebugViewBase::restoreViewSettings()
   auto blk = imgui_get_blk();
   if (!blk)
   {
-    debug("DX12: ResourceMemoryHeap::restoreViewSettings 'imgui_get_blk' returned null");
+    logdbg("DX12: ResourceMemoryHeap::restoreViewSettings 'imgui_get_blk' returned null");
     return;
   }
 
   auto dx12Block = blk->getBlockByNameEx("dx12");
   if (!dx12Block)
   {
-    debug("DX12: ResourceMemoryHeap::restoreViewSettings unable to read dx12 block");
+    logdbg("DX12: ResourceMemoryHeap::restoreViewSettings unable to read dx12 block");
     return;
   }
 
   auto memoryBlock = dx12Block->getBlockByNameEx("memory");
   if (!memoryBlock)
   {
-    debug("DX12: ResourceMemoryHeap::restoreViewSettings unable to read memory block");
+    logdbg("DX12: ResourceMemoryHeap::restoreViewSettings unable to read memory block");
     return;
   }
   auto filter = memoryBlock->getStr("event_object_name_filter", "");
@@ -4247,10 +4250,10 @@ void DebugView::drawBuffersTable()
 
         if (heap)
         {
-          ByteUnits freeSize = eastl::accumulate(begin(heap.freeRanges), end(heap.freeRanges), 0,
-            [](size_t size, ValueRange<uint32_t> range) { return size + range.size(); });
+          ByteUnits freeSize = eastl::accumulate(begin(heap.freeRanges), end(heap.freeRanges), 0ull,
+            [](uint64_t size, ValueRange<uint64_t> range) { return size + range.size(); });
           ByteUnits readySize = eastl::accumulate(begin(bufferHeapStateAccess->bufferHeapDiscardStandbyList),
-            end(bufferHeapStateAccess->bufferHeapDiscardStandbyList), 0,
+            end(bufferHeapStateAccess->bufferHeapDiscardStandbyList), 0ull,
             [id = heap.resId.index()](size_t size, auto &info) { return size + ((info.index == id) ? info.range.size() : 0); });
           ByteUnits totalSize = heap.bufferMemory.size();
           ByteUnits allocatedSize = totalSize - freeSize - readySize;
@@ -4319,11 +4322,11 @@ void DebugView::drawBuffersTable()
     {
       auto bufferHeapStateAccess = bufferHeapState.access();
       gpuStandbyAllocateSize = eastl::accumulate(begin(bufferHeapStateAccess->bufferHeapDiscardStandbyList),
-        end(bufferHeapStateAccess->bufferHeapDiscardStandbyList), 0,
+        end(bufferHeapStateAccess->bufferHeapDiscardStandbyList), 0ull,
         [&bufferHeapStateAccess](size_t size, auto &info) //
         { return size + ((nullptr == bufferHeapStateAccess->bufferHeaps[info.index].getCPUPointer()) ? info.range.size() : 0); });
       systemStandbyAllocateSize = eastl::accumulate(begin(bufferHeapStateAccess->bufferHeapDiscardStandbyList),
-        end(bufferHeapStateAccess->bufferHeapDiscardStandbyList), 0,
+        end(bufferHeapStateAccess->bufferHeapDiscardStandbyList), 0ull,
         [&bufferHeapStateAccess](size_t size, auto &info) //
         { return size + ((nullptr != bufferHeapStateAccess->bufferHeaps[info.index].getCPUPointer()) ? info.range.size() : 0); });
 
@@ -4331,7 +4334,7 @@ void DebugView::drawBuffersTable()
       {
         if (heap)
         {
-          auto freeMem = eastl::accumulate(begin(heap.freeRanges), end(heap.freeRanges), 0,
+          auto freeMem = eastl::accumulate(begin(heap.freeRanges), end(heap.freeRanges), 0ull,
             [](size_t size, auto range) { return size + range.size(); });
           if (heap.getCPUPointer())
           {
@@ -5231,6 +5234,14 @@ struct ResourceHeapVisitor
     str.aprintf(128, "Size %6.2f %7s Free %6.2f %7s, %3u%% fragmentation\n", total_size.units(), total_size.name(), free_size.units(),
       free_size.name(), fragmentation_percent);
   }
+
+  void visitHeapUsedRange(ValueRange<uint64_t>) {}
+
+  void visitHeapFreeRange(ValueRange<uint64_t> range)
+  {
+    ByteUnits sizeBytes{range.size()};
+    str.aprintf(128, "DX12: Free segment at %016llX with %6.2f %7s\n", range.front(), sizeBytes.units(), sizeBytes.name());
+  }
 };
 } // namespace
 
@@ -5462,12 +5473,12 @@ void OutOfMemoryRepoter::reportOOMInformation()
     G_STATIC_ASSERT((eastl::is_base_of<OutOfMemoryRepoter, ResourceMemoryHeap>::value));
     // can't use static cast as it respects visibility rules
     ((ResourceMemoryHeap *)this)->generateResourceAndMemoryReport(nullptr, nullptr, &texStat);
-    debug("GPU MEMORY STATISTICS:\n======================");
-    debug(texStat.str());
-    debug("======================\nEND GPU MEMORY STATISTICS");
+    logdbg("GPU MEMORY STATISTICS:\n======================");
+    logdbg(texStat.str());
+    logdbg("======================\nEND GPU MEMORY STATISTICS");
   }
   else
   {
-    debug("GPU MEMORY STATISTICS: not reported as this is not the first time.");
+    logdbg("GPU MEMORY STATISTICS: not reported as this is not the first time.");
   }
 }

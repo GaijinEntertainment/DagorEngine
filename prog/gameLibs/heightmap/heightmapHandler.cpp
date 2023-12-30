@@ -244,13 +244,12 @@ void HeightmapHandler::fillHmapRegion(int region_index)
   }
   else
   {
-    int stride;
-    if (auto lockedTex = lock_texture<uint8_t>(destTex, stride, 0,
+    if (auto lockedTex = lock_texture(destTex, 0,
           TEXLOCK_WRITE | (isRegion ? TEXLOCK_DISCARD : (level_count > 1 ? TEXLOCK_DONOTUPDATEON9EXBYDEFAULT : 0))))
     {
       uint8_t *data = lockedTex.get();
-      copy_texture_data(data, compressed, texFMT, stride, regionPivot, regionWidth);
-      copy_visual_heights(data, visualHeights, texFMT, stride, regionPivot, hmapWidth.x, regionWidth);
+      copy_texture_data(data, compressed, texFMT, lockedTex.getByteStride(), regionPivot, regionWidth);
+      copy_visual_heights(data, visualHeights, texFMT, lockedTex.getByteStride(), regionPivot, hmapWidth.x, regionWidth);
     }
 
     if (isRegion)
@@ -319,8 +318,7 @@ void HeightmapHandler::fillHmapRegion(int region_index)
       else
       {
         uint32_t stagingBufferMip = isRegion ? 0 : l;
-        int stride;
-        if (auto lockedTex = lock_texture<uint8_t>(destTex, stride, stagingBufferMip,
+        if (auto lockedTex = lock_texture(destTex, stagingBufferMip,
               TEXLOCK_WRITE |
                 (isRegion ? TEXLOCK_DISCARD : (l == level_count - 1 ? TEXLOCK_DELSYSMEMCOPY : TEXLOCK_DONOTUPDATEON9EXBYDEFAULT))))
         {
@@ -333,7 +331,7 @@ void HeightmapHandler::fillHmapRegion(int region_index)
             continue;
           }
 
-          copy_texture_data(data, destDownData, texFMT, stride, IPoint2::ZERO, w, IPoint2(w, h));
+          copy_texture_data(data, destDownData, texFMT, lockedTex.getByteStride(), IPoint2::ZERO, w, IPoint2(w, h));
         }
 
         if (isRegion)
@@ -408,12 +406,13 @@ void HeightmapHandler::invalidateCulling(const IBBox2 &ib)
     heightmapHeightCulling->updateMinMaxHeights(this, ib);
 }
 
-bool HeightmapHandler::prepare(const Point3 &world_pos, float camera_height)
+bool HeightmapHandler::prepare(const Point3 &world_pos, float camera_height, float water_level)
 {
   if (!heightmapHeightCulling)
     invalidateCulling(IBBox2{{0, 0}, {hmapWidth.x - 1, hmapWidth.y - 1}});
   preparedOriginPos = world_pos;
   preparedCameraHeight = camera_height;
+  preparedWaterLevel = water_level;
   ShaderGlobal::set_texture(heightmapTexVarId, renderData->heightmap);
   float distanceToSwitch = hmapDistanceMul * max(worldSize.x, worldSize.y);
   if (lengthSq(getClippedOrigin(world_pos) - world_pos) > distanceToSwitch * distanceToSwitch)
@@ -495,7 +494,7 @@ void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const Point3 &
     Point3 clippedOrigin = getClippedOrigin(world_pos);
     cull_lod_grid(cull_data.lodGrid, cull_data.lodGrid.lodsCount - min_tank_lod, clippedOrigin.x, clippedOrigin.z, scale, scale, align,
       align, worldBox[0].y, worldBox[1].y, &frustum, &worldBox2, cull_data, occlusion, lod0AreaSize, renderer.getDim(), true,
-      heightmapHeightCulling.get(), hmtd);
+      heightmapHeightCulling.get(), hmtd, nullptr, preparedWaterLevel, &world_pos);
 #if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
   };
   if (!hmtd)

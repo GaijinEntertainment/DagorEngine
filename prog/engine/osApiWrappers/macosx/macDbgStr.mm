@@ -50,3 +50,6 @@ bool is_debug_console_ios_file_output()
   return only_file_log;
 }
 #endif
+
+#define EXPORT_PULL dll_pull_osapiwrappers_dbgStr
+#include <supp/exportPull.h>

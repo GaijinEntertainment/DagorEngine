@@ -1,7 +1,8 @@
 ERROR: Unknown variable [x]
-testData/diagnostics/const_scope_3.nut:6:6
+testData/diagnostics/const_scope_3.nut:4:8
 
-print(x)
-      ^
+else
+  print(x)
+        ^
 
 

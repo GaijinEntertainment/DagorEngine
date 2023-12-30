@@ -2,8 +2,10 @@
 include "shader_global.dshl"
 include "use_volumetric_light.dshl"
 include "viewVecVS.dshl"
+include "prev_screen_tc.dshl"
 
 include "heightmap_common.dshl"
+include "static_shadow.dshl"
 
 include "volume_light_distant_common.dshl"
 
@@ -49,16 +51,6 @@ macro USE_RAYMARCH_JITTERED_TC(code, frame_id)
   }
 endmacro
 
-macro INIT_TRANSFORMED_ZNZFAR_STAGE(code)
-  INIT_ZNZFAR_STAGE(code)
-  hlsl(code){
-    float4 get_transformed_zn_zfar()
-    {
-      return zn_zfar;
-    }
-  }
-endmacro
-
 macro USE_BASE_AMBIENT_COLOR(code)
   INIT_SIMPLE_AMBIENT(code)
   hlsl(code){
@@ -89,6 +81,8 @@ int OutputDist_no = 5;
 int OutputExtinction_no = 6;
 int OutputInscatter_no = 7;
 
+int distant_fog_use_static_shadows = 1 always_referenced;
+
 shader distant_fog_raymarch_cs
 {
   supports global_const_block;
@@ -105,6 +99,7 @@ shader distant_fog_raymarch_cs
     distant_fog_raymarch_params_1@f4 = distant_fog_raymarch_params_1;
     distant_fog_raymarch_params_2@f4 = distant_fog_raymarch_params_2;
     volfog_blended_slice_start_depth@f1 = (volfog_blended_slice_start_depth);
+    distant_fog_use_static_shadows@i1 = distant_fog_use_static_shadows;
   }
   VIEW_VEC_OPTIMIZED(cs)
   INIT_TRANSFORMED_ZNZFAR_STAGE(cs)
@@ -120,6 +115,15 @@ shader distant_fog_raymarch_cs
   ENABLE_ASSERT(cs)
 
   USE_FOG_SHADOWS(cs)
+
+  hlsl(cs) {
+    #define HAS_STATIC_SHADOW 1
+    #define FASTEST_STATIC_SHADOW_PCF 1
+  }
+
+  INIT_STATIC_SHADOW_BASE_ONE_CASCADE(cs)
+  INIT_STATIC_SHADOW_BASE_SECOND_CASCADE_STCODE(cs)
+  USE_STATIC_SHADOW_BASE_NUM(cs, 2)
 
   if (distant_fog_use_smart_raymarching_pattern == off)
   {

@@ -121,7 +121,7 @@ void NamedConstBlock::markStatic(int id, NamedConstSpace name_space)
         pixelProps.sc[id].isDynamic = false;
       break;
 
-    default: fatal("unsupported namespace: %d", (int)name_space);
+    default: DAG_FATAL("unsupported namespace: %d", (int)name_space);
   }
 }
 
@@ -295,7 +295,7 @@ int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space,
       break;
     }
 
-    default: fatal("unsupported namespace: %d", (int)name_space);
+    default: DAG_FATAL("unsupported namespace: %d", (int)name_space);
   }
   return base_reg;
 }
@@ -383,6 +383,7 @@ CryptoHash NamedConstBlock::getDigest(bool ps_const, bool cs_const) const
   {
     String res;
     SCFastNameMap added_names;
+    buildDrawcallIdHlslDecl(res);
     if (hasStaticCbuf)
       buildStaticConstBufHlslDecl(res);
     buildHlslDeclText(res, ps_const, cs_const, added_names, hasStaticCbuf);
@@ -534,6 +535,14 @@ static void gather_static_consts(const NamedConstBlock::RegisterProperties &reg_
   }
 }
 
+void NamedConstBlock::buildDrawcallIdHlslDecl(String &out_text) const
+{
+  const bool shaderSupportsMultidraw = staticCbufType != StaticCbuf::SINGLE;
+  const char *drawCallIdDeclaration =
+    shaderSupportsMultidraw ? "static uint DRAW_CALL_ID = 10000;\n" : "static const uint DRAW_CALL_ID = 0;\n";
+  out_text = drawCallIdDeclaration;
+}
+
 void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text) const
 {
   const bool shaderSupportsMultidraw = staticCbufType == StaticCbuf::ARRAY;
@@ -563,8 +572,6 @@ void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text) const
     bindlessType = shaderSupportsMultidraw ? "#define BINDLESS_CBUFFER_ARRAY\n" : "#define BINDLESS_CBUFFER_SINGLE\n";
   }
 
-  const char *drawCallIdDeclaration =
-    shaderSupportsMultidraw ? "static uint DRAW_CALL_ID = 10000;\n" : "static const uint DRAW_CALL_ID = 0;\n";
   int regIndex = 0;
   String constantAccessFunctions;
   String materialPropsStruct;
@@ -574,12 +581,11 @@ void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text) const
   const uint32_t MAX_CBUFFER_VECTORS = 4096;
   const uint32_t propSetsCount = shaderSupportsMultidraw ? MAX_CBUFFER_VECTORS / regIndex : 1;
 
-  out_text.printf(0,
-    "%s%s%s"
+  out_text.aprintf(0,
+    "%s%s"
     "struct MaterialProperties\n{\n%s\n};\n\n"
     "cbuffer shader_static_cbuf:register(b1) { MaterialProperties %s[%d]; };\n\n%s\n\n",
-    bindlessType, drawCallIdDeclaration, bindlessProlog, materialPropsStruct, MATERIAL_PROPS_NAME, propSetsCount,
-    constantAccessFunctions);
+    bindlessType, bindlessProlog, materialPropsStruct, MATERIAL_PROPS_NAME, propSetsCount, constantAccessFunctions);
 }
 
 void NamedConstBlock::buildGlobalConstBufHlslDecl(String &out_text, bool pixel_shader, bool compute_shader,
@@ -730,6 +736,7 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
   bool hasStaticCbuf = staticCbufType != StaticCbuf::NONE;
   {
     SCFastNameMap added_names;
+    buildDrawcallIdHlslDecl(res);
     if (hasStaticCbuf)
       buildStaticConstBufHlslDecl(res);
     buildHlslDeclText(res, pixel_shader, compute_shader, added_names, hasStaticCbuf);
@@ -1244,7 +1251,7 @@ void NamedConstBlock::patchStcodeIndices(dag::Span<int> stcode, bool static_blk)
 
       case SHCOD_CALL_FUNCTION: i += shaderopcode::getOp3p3(stcode[i]); break;
 
-      default: fatal("stcode: %d '%s' not processed!", stcode[i], ShUtils::shcod_tokname(op));
+      default: DAG_FATAL("stcode: %d '%s' not processed!", stcode[i], ShUtils::shcod_tokname(op));
     }
   }
 }

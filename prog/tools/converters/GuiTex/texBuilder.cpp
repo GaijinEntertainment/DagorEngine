@@ -1,4 +1,3 @@
-#include <windows.h>
 #include <libTools/dtx/dtx.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/util/strUtil.h>
@@ -9,6 +8,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_chainedMemIo.h>
+#include <ioSys/dag_findFiles.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <3d/ddsxTex.h>
@@ -23,6 +23,9 @@
 #include <startup/dag_globalSettings.h>
 #include <math/integer/dag_IPoint2.h>
 #include <util/dag_oaHashNameMap.h>
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <unistd.h>
+#endif
 
 enum
 {
@@ -32,7 +35,6 @@ enum
 };
 
 static bool premultAlpha = false;
-static bool export_iOS = false;
 
 extern int unpackTex(const char *coordblk, const char *dest_dir, bool no_stripes);
 
@@ -50,7 +52,6 @@ static bool __quietMode = false, __mkref = false;
 static bool __mkbundle = false;
 static unsigned __ddsx_target = 0;
 static const char *__cmd_outdir = NULL, *__cmd_outblk = NULL;
-static const char *__pvrtexOpt = NULL;
 
 static char *map = NULL;
 static uint32_t *occupied_map = NULL; // bitmask
@@ -285,71 +286,6 @@ void cropTex(TexImage32 *tex, IPoint2 &lt_ofs, IPoint2 &vis_sz)
 {
   lt_ofs.zero();
   vis_sz.set(tex->w, tex->h);
-  if (!export_iOS)
-    return;
-
-  TexPixel32 *p = tex->getPixels();
-  for (int y = 0, ye = tex->h, xe = tex->w, x; y < ye; y++)
-  {
-    for (x = 0; x < xe; x++, p++)
-      if (p->a)
-        break;
-    if (x == xe)
-      lt_ofs.y++;
-    else
-      break;
-  }
-
-  for (int x = 0, ye = tex->h, xe = tex->w, y; x < xe; x++)
-  {
-    for (p = tex->getPixels() + x, y = 0; y < ye; y++, p += xe)
-      if (p->a)
-        break;
-    if (y == ye)
-      lt_ofs.x++;
-    else
-      break;
-  }
-
-  vis_sz -= lt_ofs;
-  p = tex->getPixels() + tex->w * tex->h - 1;
-  for (int y = 0, ye = tex->h, xe = tex->w, x; y < ye; y++)
-  {
-    for (x = 0; x < xe; x++, p--)
-      if (p->a)
-        break;
-    if (x == xe)
-      vis_sz.y--;
-    else
-      break;
-  }
-
-  for (int x = tex->w - 1, ye = tex->h, xe = tex->w, y; x >= 0; x--)
-  {
-    for (p = tex->getPixels() + x, y = 0; y < ye; y++, p += xe)
-      if (p->a)
-        break;
-    if (y == ye)
-      vis_sz.x--;
-    else
-      break;
-  }
-
-  if (vis_sz.x <= 0 || vis_sz.y <= 0)
-  {
-    lt_ofs.zero();
-    vis_sz.zero();
-    return;
-  }
-
-  if (lt_ofs.x > 0)
-    lt_ofs.x--, vis_sz.x++;
-  if (lt_ofs.y > 0)
-    lt_ofs.y--, vis_sz.y++;
-  if (lt_ofs.x + vis_sz.x < tex->w)
-    vis_sz.x++;
-  if (lt_ofs.y + vis_sz.y < tex->h)
-    vis_sz.y++;
 }
 
 IPoint2 placeTex(TexImage32 *tex, const IPoint2 &lt_ofs, const IPoint2 &vis_sz, int MARGIN, int &transf_code, bool may_flip)
@@ -462,9 +398,6 @@ static int cmp_horz(const IPoint2 &a, const IPoint2 &b)
 
 void sortTextures(const DataBlock &blk, Tab<String> &names, int width, int height)
 {
-  WIN32_FIND_DATA fdata;
-  HANDLE hFind;
-
   TexImage32 *img;
   Tab<IPoint2> size(tmpmem);
 
@@ -494,30 +427,26 @@ void sortTextures(const DataBlock &blk, Tab<String> &names, int width, int heigh
         exit(13);
       }
 
-      HANDLE hFild = FindFirstFile(directory + "/" + "*.*", &fdata);
-      if (hFild == INVALID_HANDLE_VALUE)
+      Tab<SimpleString> files;
+      if (!find_files_in_folder(files, directory, "", false, true, false))
         error("There are no textures of necessary format in input directory");
-      do
+      for (auto &fn : files)
       {
-        if ((fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+        if (includeNames)
         {
-          if (includeNames)
+          char *p = strchr(fn.str(), '.');
+          if (p)
+            *p = '\0';
+          if (includeNames->getNameId(dd_get_fname(fn)) < 0)
           {
-            char *p = strchr(fdata.cFileName, '.');
-            if (p)
-              *p = '\0';
-            if (includeNames->getNameId(fdata.cFileName) < 0)
-            {
-              skipped_pic_count++;
-              continue;
-            }
-            if (p)
-              *p = '.';
+            skipped_pic_count++;
+            continue;
           }
-          names.push_back() = directory + "/" + fdata.cFileName;
+          if (p)
+            *p = '.';
         }
-      } while (FindNextFile(hFild, &fdata));
-      FindClose(hFild);
+        names.push_back() = fn;
+      }
     }
 
   nid = blk.getNameId("file");
@@ -610,7 +539,7 @@ int DagorWinMain(bool debugmode)
   ::register_png_tex_load_factory();
   ::register_avif_tex_load_factory();
 
-  if (__argc <= 1)
+  if (dgs_argc <= 1)
   {
     printTitle();
 
@@ -658,7 +587,7 @@ int DagorWinMain(bool debugmode)
 
   String textureName, coordblk;
   short width, height;
-  if (!dd_file_exist(__argv[1]))
+  if (!dd_file_exist(dgs_argv[1]))
     error("config file doesn't exist");
 
   bool noStripes = false, quietMode = false, mkref = false;
@@ -666,36 +595,33 @@ int DagorWinMain(bool debugmode)
   const char *unpackDir = NULL;
   const char *cmd_outdir = NULL, *cmd_outblk = NULL;
   const char *cmd_copyto = NULL;
-  const char *pvrtexOpt = "";
 
   // get flags commandline flags
-  for (int i = 2; i < __argc; i++)
+  for (int i = 2; i < dgs_argc; i++)
   {
-    if (stricmp(__argv[i], "-conva") == 0)
+    if (stricmp(dgs_argv[i], "-conva") == 0)
       premultAlpha = true;
-    else if (strnicmp(__argv[i], "-unpack:", strlen("-unpack:")) == 0)
-      unpackDir = __argv[i] + strlen("-unpack:"); // unpack texture
-    else if (stricmp(__argv[i], "-nostripes") == 0)
+    else if (strnicmp(dgs_argv[i], "-unpack:", strlen("-unpack:")) == 0)
+      unpackDir = dgs_argv[i] + strlen("-unpack:"); // unpack texture
+    else if (stricmp(dgs_argv[i], "-nostripes") == 0)
       noStripes = true;
-    else if (strnicmp(__argv[i], "-pvrtex:", 8) == 0)
-      pvrtexOpt = __argv[i] + 8;
-    else if (stricmp(__argv[i], "-q") == 0)
+    else if (stricmp(dgs_argv[i], "-q") == 0)
       quietMode = true;
-    else if (stricmp(__argv[i], "-mkbundle") == 0)
+    else if (stricmp(dgs_argv[i], "-mkbundle") == 0)
       __mkbundle = true;
-    else if (stricmp(__argv[i], "-mkref") == 0)
+    else if (stricmp(dgs_argv[i], "-mkref") == 0)
       mkref = true;
-    else if (strnicmp(__argv[i], "-ddsx:", 6) == 0)
+    else if (strnicmp(dgs_argv[i], "-ddsx:", 6) == 0)
     {
       for (int j = 6; j < 10; j++)
-        if (__argv[i][j] == '\0')
+        if (dgs_argv[i][j] == '\0')
           break;
         else
-          ddsx_target = (ddsx_target >> 8) | (__argv[i][j] << 24);
+          ddsx_target = (ddsx_target >> 8) | (dgs_argv[i][j] << 24);
     }
-    else if (strnicmp(__argv[i], "-odir:", 6) == 0)
-      cmd_outdir = __argv[i] + 6;
-    else if (strnicmp(__argv[i], "-cache:", 7) == 0)
+    else if (strnicmp(dgs_argv[i], "-odir:", 6) == 0)
+      cmd_outdir = dgs_argv[i] + 6;
+    else if (strnicmp(dgs_argv[i], "-cache:", 7) == 0)
     {
       if (!cmd_outdir)
       {
@@ -704,30 +630,26 @@ int DagorWinMain(bool debugmode)
         return 1;
       }
       cmd_copyto = cmd_outdir;
-      cmd_outdir = __argv[i] + 7;
+      cmd_outdir = dgs_argv[i] + 7;
       dd_mkdir(cmd_copyto);
     }
-    else if (strnicmp(__argv[i], "-oblkdir:", 9) == 0)
-      cmd_outblk = __argv[i] + 9;
+    else if (strnicmp(dgs_argv[i], "-oblkdir:", 9) == 0)
+      cmd_outblk = dgs_argv[i] + 9;
   }
 
   if (!quietMode)
     printTitle();
 
   if (unpackDir)
-    return unpackTex(__argv[1], unpackDir, noStripes);
+    return unpackTex(dgs_argv[1], unpackDir, noStripes);
 
   // if ( !quietMode && ddsx_target )
   //   printf ( "convert to DDSx, target: %c%c%c%c\n", _DUMP4C(ddsx_target));
 
-  DataBlock d(__argv[1]);
+  DataBlock d(dgs_argv[1]);
 
   premultAlpha |= d.getBool("conva", false);
   __mkbundle = d.getBool("mkbundle", __mkbundle);
-  export_iOS = d.getBool("export_iOS", false);
-  if (export_iOS && __mkbundle)
-    error("export_iOS conflicts with -mkbundle");
-  pvrtexOpt = d.getStr("pvrtexOpt", pvrtexOpt);
 
   DataBlock *dd = d.getBlockByName("Input");
   if (dd == NULL)
@@ -741,10 +663,10 @@ int DagorWinMain(bool debugmode)
   height = dd->getReal(String("height_") + mkbindump::get_target_str(ddsx_target), dd->getReal("height", 0));
   if (height <= 0)
     error("height wasn't found or <=0");
-  String fname_base(dd_get_fname(__argv[1]));
+  String fname_base(dd_get_fname(dgs_argv[1]));
   remove_trailing_string(fname_base, ".tiles.blk");
 
-  textureName = dd->getStr("texture", export_iOS ? fname_base.str() : "def_atlas");
+  textureName = dd->getStr("texture", "def_atlas");
   if (ddsx_target)
     textureName += ".ddsx";
   else
@@ -773,13 +695,12 @@ int DagorWinMain(bool debugmode)
     __mkbundle = false;
   __cmd_outdir = cmd_outdir;
   __cmd_outblk = cmd_outblk;
-  __pvrtexOpt = pvrtexOpt;
 
   Tab<String> texNames(tmpmem), outNames(tmpmem);
   sortTextures(*d.getBlockByNameEx("Input"), texNames, width, height);
 
   String target_fname(0, "%s/%s", __cmd_outdir ? __cmd_outdir : d.getBlockByNameEx("Output")->getStr("outdir", "."), coordblk);
-  String cache_fname(0, "%s.%s.c4.bin", cmd_copyto ? target_fname : __argv[1], mkbindump::get_target_str(ddsx_target));
+  String cache_fname(0, "%s.%s.c4.bin", cmd_copyto ? target_fname : dgs_argv[1], mkbindump::get_target_str(ddsx_target));
   GenericBuildCache c4;
   bool uptodate = true;
   if (__mkbundle)
@@ -794,7 +715,7 @@ int DagorWinMain(bool debugmode)
       }
     }
 
-    if (c4.checkFileChanged(__argv[0])) //== depend on EXE revision
+    if (c4.checkFileChanged(dgs_argv[0])) //== depend on EXE revision
       uptodate = false;
 
     DataBlock srcBlk;
@@ -802,7 +723,7 @@ int DagorWinMain(bool debugmode)
     for (int i = 0; i < texNames.size(); i++)
       srcBlk.addStr("_pic", texNames[i]);
 
-    if (c4.checkDataBlockChanged(__argv[1], srcBlk))
+    if (c4.checkDataBlockChanged(dgs_argv[1], srcBlk))
       uptodate = false;
     for (int i = 0; i < texNames.size(); i++)
       if (c4.checkFileChanged(texNames[i]))
@@ -876,17 +797,10 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
 
   DataBlock d;
   DataBlock *dd = d.addNewBlock("tex");
-  if (export_iOS)
-  {
-    String tex_base_fn(textureName);
-    remove_trailing_string(tex_base_fn, dd_get_fname_ext(tex_base_fn));
-    strlwr(tex_base_fn);
-    dd->addStr("name", tex_base_fn + ".pvr");
-  }
-  else if (!__mkbundle)
+  if (!__mkbundle)
   {
     String name(textureName);
-    dd->addStr("name", strlwr(name));
+    dd->addStr("name", dd_strlwr(name));
   }
 
   int usedH = 0;
@@ -910,25 +824,14 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
     IPoint2 place = placeTex(imIn, lt_ofs, vis_sz, MARGIN, transf_code, may_flip);
     if (place.x == -1) // no place on this texture
     {
-      if (!export_iOS)
-      {
-        printf("Not enough space for texture %s\n", texNames[i].str());
+      printf("Not enough space for texture %s\n", texNames[i].str());
 
-        d.saveToTextFile(coordblk);
-        save_tga32(saveTextureName + ".tga", imOut);
+      d.saveToTextFile(coordblk);
+      save_tga32(saveTextureName + ".tga", imOut);
 
-        char buf[80];
-        SNPRINTF(buf, sizeof(buf), "Not enough space in atlas '%s'.", textureName);
-        error(buf);
-      }
-      else
-      {
-        if (outNames.empty())
-          printf("Not enough space in atlas %s. one more atlas texture will be created.\n", textureName);
-
-        outNames.push_back() = texNames[i].str();
-        continue;
-      }
+      char buf[80];
+      SNPRINTF(buf, sizeof(buf), "Not enough space in atlas '%s'.", textureName);
+      error(buf);
     }
     if (usedH < place.y + imIn->h + 1)
       usedH = place.y + imIn->h + 1;
@@ -937,11 +840,7 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
     S += real(imIn->w) * imIn->h;
 
     DataBlock *ddd;
-    String s(export_iOS ? texNames[i] : dd_get_fname(texNames[i]));
-    if (export_iOS)
-      for (int i = 0; i < s.size(); i++)
-        if (s[i] == '\\' || s[i] == '/')
-          s[i] = '_';
+    String s(dd_get_fname(texNames[i]));
 
     s[int(strlen(s) - strlen(dd_get_fname_ext(s)))] = 0; // cut extention
     s.resize(strlen(s) + 1);
@@ -988,10 +887,7 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
     }
     else
     {
-      if (export_iOS)
-        strupr(s);
-      else
-        strlwr(s);
+      dd_strlwr(s);
       int ncnt = nmap.nameCount();
       if (nmap.addNameId(s) < ncnt)
       {
@@ -1007,18 +903,6 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
       ddd->addReal("ht", imIn->h - (vs || ss) * 2);
       if (transf_code)
         ddd->setInt("transf", transf_code);
-
-      if (export_iOS)
-      {
-        if (lt_ofs.x)
-          ddd->addReal("ox", lt_ofs.x);
-        if (lt_ofs.y)
-          ddd->addReal("oy", lt_ofs.y);
-        if (vis_sz.x != lt_ofs.x + imIn->w - (hs || ss) * 2)
-          ddd->addReal("vw", vis_sz.x);
-        if (vis_sz.y != lt_ofs.y + imIn->h - (vs || ss) * 2)
-          ddd->addReal("vh", vis_sz.y);
-      }
     }
     memfree(imIn, tmpmem);
     if (!__quietMode)
@@ -1033,13 +917,12 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
     if (__ddsx_target)
     {
       char startdir[260];
-      if (_fullpath(startdir, __argv[0], 200))
-      {
-        char *p = strrchr(startdir, '\\');
-        if (p)
-          *p = '\0';
-      }
-#if _TARGET_64BIT
+      dag_get_appmodule_dir(startdir, sizeof(startdir));
+#if _TARGET_PC_LINUX
+      int pc = ddsx::load_plugins(String(260, "%s/../bin-linux64/plugins/ddsx", startdir));
+#elif _TARGET_PC_MACOSX
+      int pc = ddsx::load_plugins(String(260, "%s/../bin-macosx/plugins/ddsx", startdir));
+#elif _TARGET_64BIT
       int pc = ddsx::load_plugins(String(260, "%s/../bin64/plugins/ddsx", startdir));
 #else
       int pc = ddsx::load_plugins(String(260, "%s/../bin/plugins/ddsx", startdir));
@@ -1048,7 +931,7 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
         printf("loaded %d DDSx export plugin(s) (%s)\n", pc, startdir);
     }
 
-    DataBlock cfg(__argv[1]);
+    DataBlock cfg(dgs_argv[1]);
     DataBlock &out = *cfg.getBlockByName("Output");
 
     const char *crop_opt = out.getStr("autocrop", "auto");
@@ -1121,7 +1004,7 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
       path.printf(260, "%s/%s", (__cmd_outblk && !__mkbundle) ? __cmd_outblk : outdir.str(), coordblk);
 
     dd_mkpath(path);
-    strlwr(path);
+    dd_strlwr(path);
 
     if (!__mkbundle)
     {
@@ -1132,40 +1015,6 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
     }
 
     int tex_mem_sz = 0, tex_file_sz = 0;
-    if (export_iOS)
-    {
-      /*
-      for (TexPixel32 *p = imOut->getPixels(), *pe=p+imOut->w*imOut->h; p < pe; p++)
-        if (!p->a && (p->r | p->g | p->b))
-          if (!(p[-imOut->w-1].a|p[-imOut->w].a|p[-imOut->w+1].a|
-                p[-1].a|p[+1].a|
-                p[imOut->w-1].a|p[imOut->w].a|p[imOut->w+1].a))
-            p->r = p->g = p->b = 0;
-      */
-
-      String bin_fn(__argv[0]);
-      String tex_base_fn(path);
-
-      remove_trailing_string(tex_base_fn, dd_get_fname_ext(tex_base_fn));
-      location_from_path(bin_fn);
-      if (!strlen(bin_fn))
-        bin_fn = ".";
-      else
-        make_ms_slashes(bin_fn);
-      strlwr(tex_base_fn);
-
-      unlink(tex_base_fn + ".pvr");
-      save_tga32(tex_base_fn + ".tga", imOut);
-      system(bin_fn + "\\3rdParty\\PVRTexTool.exe " + out.getStr("format", "-f8888") + " " + __pvrtexOpt + " -i" + tex_base_fn +
-             ".tga -o" + tex_base_fn + ".pvr");
-      if (!dd_file_exist(tex_base_fn + ".pvr"))
-        printf("ERR: failed to convert using PVRTexTool.exe\n");
-      else
-        unlink(tex_base_fn + ".tga");
-      if (__mkref)
-        save_tga32(get_file_name_wo_ext(textureName) + ".ref.tga", imOut);
-    }
-    else
     {
       FullFileSaveCB cwr(path);
       if (!cwr.fileHandle)

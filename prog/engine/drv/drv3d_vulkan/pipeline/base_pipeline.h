@@ -95,9 +95,15 @@ public:
 
   bool matches(const CreationInfo &headers) const
   {
+    for (uint32_t i = 0; i < ShaderConfig::count; ++i) // -V1008
+      if (headers.list[i] && i >= activeRegisters)
+        return false;
+
     for (uint32_t i = 0; i < activeRegisters; ++i)
+    {
       if (!registers.list[i].matches(headers.list[i]))
         return false;
+    }
 
     return true;
   }

@@ -126,6 +126,7 @@ namespace das
         union {
             struct {
                 const char * fileName;
+                LineInfo *   functionLine;
                 int32_t      stackSize;
             };
             struct {
@@ -634,6 +635,15 @@ namespace das
 
         __forceinline bool isGlobalPtr ( char * ptr ) const { return globals<=ptr && ptr<(globals+globalsSize); }
         __forceinline bool isSharedPtr ( char * ptr ) const { return shared<=ptr && ptr<(shared+sharedSize); }
+
+        void addGcRoot ( void * ptr, TypeInfo * type );
+        void removeGcRoot ( void * ptr );
+        template <typename TT>
+        __forceinline void foreach_gc_root ( TT && fn ) {
+            for ( auto & gr : gcRoots ) {
+                fn(gr.first, gr.second);
+            }
+        }
     public:
         uint64_t *                      annotationData = nullptr;
         smart_ptr<StringHeapAllocator>  stringHeap;
@@ -697,6 +707,8 @@ namespace das
         vec4f result;
     public:
         recursive_mutex * contextMutex = nullptr;
+    protected:
+        das_hash_map<void *, TypeInfo *> gcRoots;
     public:
 #if DAS_ENABLE_SMART_PTR_TRACKING
         static vector<smart_ptr<ptr_ref_count>> sptrAllocations;

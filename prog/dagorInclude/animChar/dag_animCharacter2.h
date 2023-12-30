@@ -218,8 +218,9 @@ public:
   IMotionMatchingController *getMotionMatchingController() const { return motionMatchingController; }
   void setMotionMatchingController(IMotionMatchingController *controller) { motionMatchingController = controller; }
 
-  //! attach animchar to named slot
-  bool setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent *attChar, bool recalcable = true);
+  //! attach animchar to named slot. return attachment_idx >= 0 in case success or negative otherwise
+  int setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent *attChar, bool recalcable = true);
+  void releaseAttachment(int attachment_idx);
 
   //! returns animchar attached to named slot
   unsigned getAttachmentUid(int slot_id) const
@@ -310,8 +311,9 @@ protected:
     dag::Index16 nodeIdx;
     bool recalcable;
   };
+  uint64_t recalcableAttachments = 0; // Bit mask of `recalcable` flags for first 64 attachment slots
   SmallTab<Attachment, MidmemAlloc> attachment;
-  SmallTab<int, MidmemAlloc> attachmentSlotId;
+  SmallTab<int16_t, MidmemAlloc> attachmentSlotId;
 
   typedef Tab<IGenericIrq *> IrqTab;
   Tab<IrqTab> irqHandlers;
@@ -327,7 +329,7 @@ protected:
   void recalcWtm(vec3f world_translate);
   void postRecalcWtm();
   void calcAnimWtm(bool may_calc_anim);
-  void recalcHelpers();
+  void recalcAttachments();
   real getSqDistanceToViewerLegacy() const;
 
   void setupAnim();
@@ -335,7 +337,6 @@ protected:
   void setOriginalNodeTreeRes(GeomNodeTree *n);
   void loadData(const AnimCharCreationProps &props, GeomNodeTree *skeleton, AnimationGraph *ag);
   bool loadAnimGraphCpp(const char *res_name);
-  void releaseAttachment(int idx);
 
   friend class ::CharacterGameResFactory;
 };
@@ -543,7 +544,7 @@ public:
   FastPhysSystem *getFastPhysSystem() const { return base.getFastPhysSystem(); }
   PhysicsResource *getPhysicsResource() const { return base.getPhysicsResource(); }
 
-  bool setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent *attChar, bool recalcable = true)
+  int setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent *attChar, bool recalcable = true)
   {
     return base.setAttachedChar(slot_id, uid, attChar, recalcable);
   }

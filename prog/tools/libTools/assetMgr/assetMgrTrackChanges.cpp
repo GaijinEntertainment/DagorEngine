@@ -87,7 +87,7 @@ public:
         Sleep(10);
     }
     else if (interlocked_acquire_load_ptr(f[idx]->hFolder))
-      fatal("cannot create file: %s hFolder=%p", f[idx]->fname.str(), f[idx]->hFolder);
+      DAG_FATAL("cannot create file: %s hFolder=%p", f[idx]->fname.str(), f[idx]->hFolder);
     erase_ptr_items(f, idx, 1);
   }
 

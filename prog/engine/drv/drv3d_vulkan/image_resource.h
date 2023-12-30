@@ -4,6 +4,8 @@
 namespace drv3d_vulkan
 {
 
+class ExecutionContext;
+
 struct ImageCreateInfo
 {
   VkImageType type;
@@ -74,6 +76,13 @@ struct ImageLayoutInfo
         setForIndex(mipAndLayerToIndex(i, j), s);
   }
 
+  void resetTo(VkImageLayout in_val)
+  {
+    roSealTargetLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    for (VkImageLayout &i : data)
+      i = in_val;
+  }
+
   bool anySubresInState(VkImageLayout in_val)
   {
     for (VkImageLayout i : data)
@@ -103,8 +112,7 @@ public:
   enum
   {
     CLEANUP_DESTROY = 0,
-    CLEANUP_EVICT = 1,
-    CLEANUP_DELAYED_DESTROY = 2
+    CLEANUP_DELAYED_DESTROY = 1
   };
   static constexpr int MAX_VIEW_FORMAT = 4;
   using ViewFormatList = StaticTab<VkFormat, MAX_VIEW_FORMAT>;
@@ -117,11 +125,12 @@ public:
   void reuseHandle();
   void releaseSharedHandle();
   void evict();
-  void restoreFromSysCopy();
   bool isEvictable();
   void shutdown();
   bool nonResidentCreation();
-  void makeSysCopy();
+  void restoreFromSysCopy(ExecutionContext &ctx);
+  void makeSysCopy(ExecutionContext &ctx);
+  void delayedRestoreFromSysCopy(ExecutionContext &ctx, VulkanCommandBufferHandle cmdb);
 
   template <int Tag>
   void onDelayedCleanupBackend(ContextBackend &);
@@ -149,6 +158,7 @@ private:
 public:
   enum
   {
+    MEM_NORMAL = 0x0,
     MEM_NOT_EVICTABLE = 0x1,
     MEM_LAZY_ALLOCATION = 0x2,
     MEM_DEDICATE_ALLOC = 0x4
@@ -164,7 +174,6 @@ public:
     G_ASSERT(!isManaged());
     setHandle(generalize(new_handle));
   }
-  void doResidencyRestore(DeviceContext &context);
   Buffer *getHostCopyBuffer();
   void fillImage2BufferCopyData(carray<VkBufferImageCopy, MAX_MIPMAPS> &copies, Buffer *targetBuffer);
   VkBufferImageCopy makeBufferCopyInfo(uint8_t mip, uint16_t arr, VkDeviceSize buf_offset);

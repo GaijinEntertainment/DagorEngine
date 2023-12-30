@@ -1,4 +1,4 @@
-include "shaders_pc11.blk"
+include "shaders_dx11.blk"
 
 "@override:outDumpName":t="../../game/compiledShaders/gameDX12"
 "@override:Compile" {

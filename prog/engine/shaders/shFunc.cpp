@@ -1,5 +1,6 @@
 // Copyright 2023 by Gaijin Games KFT, All rights reserved.
 #include <shaders/shFunc.h>
+#include "shadersBinaryData.h"
 #include <shaders/dag_shaders.h>
 #include <3d/dag_tex3d.h>
 #include <3d/dag_drv3d.h>
@@ -76,7 +77,7 @@ static Color4 anim_frame(float arg0, float arg1, float arg2, float arg3)
   int total = (int)arg3; // 3 - total frame count
   if (!x || !y || !total)
   {
-    fatal("invalid arguments in shader function 'anim_frame(%.4f, %d, %d, %d)'", arg0, x, y, total);
+    DAG_FATAL("invalid arguments in shader function 'anim_frame(%.4f, %d, %d, %d)'", arg0, x, y, total);
   }
   int picture = (int)(arg0 * (total - 1));
 
@@ -155,6 +156,16 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
       break;
     }
 
+    case BF_GET_SIZE:
+    {
+      Sbuffer *buf = buf_reg(regs, in_regs[0]);
+      int size = 0;
+      if (buf)
+        size = buf->getNumElements();
+      OUT = size;
+      break;
+    }
+
     case BF_GET_VIEWPORT:
     {
       int x = 0, y = 0, w = 0, h = 0;
@@ -164,7 +175,26 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
       break;
     }
 
-    default: fatal("Invalid stcode function id %d", id);
+    case BF_CREATE_SAMPLER:
+    {
+      int sampler_id = out_reg;
+      auto *dump = shBinDumpOwner().getDumpV3();
+      G_ASSERTF(dump, "Used incompatible version of shader dump for call 'create_sampler' intrinsic");
+      d3d::SamplerInfo info = dump->samplers[sampler_id];
+      if (in_regs[1] >= 0)
+      {
+        Color4 border_color = color4_reg(regs, in_regs[1]);
+        info.border_color = E3DCOLOR(border_color.r, border_color.g, border_color.b, border_color.a);
+      }
+      if (in_regs[2] >= 0)
+        info.anisotropic_max = ARG2;
+      if (in_regs[3] >= 0)
+        info.mip_map_bias = ARG3;
+      ShaderGlobal::set_sampler((int)ARG0, d3d::create_sampler(info));
+      break;
+    }
+
+    default: DAG_FATAL("Invalid stcode function id %d", id);
   }
 }
 

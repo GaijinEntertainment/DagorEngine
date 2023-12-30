@@ -56,7 +56,7 @@ struct WindowState
     int numberOfVisuals;
     XVisualInfo *vi = XGetVisualInfo(x11.rootDisplay, visualMask, &vInfoTemplate, &numberOfVisuals);
     if (!vi)
-      fatal("x11: can't get usefull VisualInfo from xlib");
+      DAG_FATAL("x11: can't get usefull VisualInfo from xlib");
 
     debug("x11: zero visual info id: %u class: %i depth: %u", vi->visualid, vi->c_class, vi->depth);
 

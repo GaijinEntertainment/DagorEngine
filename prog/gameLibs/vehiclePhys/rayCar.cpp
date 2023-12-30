@@ -119,7 +119,7 @@ RayCar::RayCar(const char *car_name, PhysBody *body_, const TMatrix &phys_to_log
   vehicle = IPhysVehicle::createRayCarBullet(phBody, ::dagor_game_act_rate < 100 ? 4 : 2);
 
 #else
-  fatal("unsupported physics!");
+  DAG_FATAL("unsupported physics!");
 #endif
 
   vehicle->setCwaa(this);
@@ -134,9 +134,9 @@ RayCar::RayCar(const char *car_name, PhysBody *body_, const TMatrix &phys_to_log
   eng_blk = carsBlk.getBlockByNameEx("engines")->getBlockByName(b->getStr("engine", "standard"));
   gb_blk = carsBlk.getBlockByNameEx("gearboxes")->getBlockByName(b->getStr("gearbox", "standard"));
   if (!eng_blk)
-    fatal("can't load engine preset <%s>", b->getStr("engine", "standard"));
+    DAG_FATAL("can't load engine preset <%s>", b->getStr("engine", "standard"));
   if (!gb_blk)
-    fatal("can't load gearbox preset <%s>", b->getStr("gearbox", "standard"));
+    DAG_FATAL("can't load gearbox preset <%s>", b->getStr("gearbox", "standard"));
 
   PhysCarGearBoxParams gboxParams;
   gboxParams.load(gb_blk);
@@ -204,7 +204,7 @@ RayCar::RayCar(const char *car_name, PhysBody *body_, const TMatrix &phys_to_log
 
 #if 0
   if (fabs(lat_fwk-0.5) > 0.01 || fabs(lat_rwk-0.5) > 0.01)
-    fatal("shifted Cg: %.1f:%.1f/%.1f:%.1f  due to lat_fwk=%.4f lat_rwk=%.4f",
+    DAG_FATAL("shifted Cg: %.1f:%.1f/%.1f:%.1f  due to lat_fwk=%.4f lat_rwk=%.4f",
       long_wk*100*lat_fwk, long_wk*100*(1-lat_fwk),
       (1-long_wk)*100*lat_rwk, (1-long_wk)*100*(1-lat_rwk),
       lat_fwk, lat_rwk);
@@ -1775,9 +1775,9 @@ void RayCar::reloadCarParams()
   eng_blk = carsBlk.getBlockByNameEx("engines")->getBlockByName(b->getStr("engine", "standard"));
   gb_blk = carsBlk.getBlockByNameEx("gearboxes")->getBlockByName(b->getStr("gearbox", "standard"));
   if (!eng_blk)
-    fatal("can't load engine preset <%s>", b->getStr("engine", "standard"));
+    DAG_FATAL("can't load engine preset <%s>", b->getStr("engine", "standard"));
   if (!gb_blk)
-    fatal("can't load gearbox preset <%s>", b->getStr("gearbox", "standard"));
+    DAG_FATAL("can't load gearbox preset <%s>", b->getStr("gearbox", "standard"));
 
   PhysCarGearBoxParams gboxParams;
   gboxParams.load(gb_blk);
@@ -2007,14 +2007,14 @@ void RayCar::setWheelParamsPreset(const char *front_tyre, const char *rear_tyre)
 
   pacejkaBlk = carsBlk.getBlockByNameEx("tires")->getBlockByName(frontWheelPreset);
   if (!pacejkaBlk)
-    fatal("Pacejka params '%s' not found (front wheels)", frontWheelPreset.str());
+    DAG_FATAL("Pacejka params '%s' not found (front wheels)", frontWheelPreset.str());
   else
     debug("load Pacejka params %s (front wheels)", frontWheelPreset.str());
   loadWheelsParams(*pacejkaBlk, true);
 
   pacejkaBlk = carsBlk.getBlockByNameEx("tires")->getBlockByName(rearWheelPreset);
   if (!pacejkaBlk)
-    fatal("Pacejka params '%s' not found (rear wheels)", rearWheelPreset.str());
+    DAG_FATAL("Pacejka params '%s' not found (rear wheels)", rearWheelPreset.str());
   else
     debug("load Pacejka params %s (rear wheels)", rearWheelPreset.str());
   loadWheelsParams(*pacejkaBlk, false);

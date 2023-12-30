@@ -126,7 +126,7 @@ protected:
 
     Object() : meshData(NULL), visible(true), expandRadius(0), maxSubRad(0), lightingObjectDataNo(0xFFFFFFFF) {}
 
-    Object(const Object &c) { fatal_x("Implement properly copy constructor"); }
+    Object(const Object &c) { DAG_FATAL("Implement properly copy constructor"); }
 
     ~Object() { del_it(meshData); }
 

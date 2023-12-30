@@ -186,6 +186,7 @@ public:
     }
 
     CharData chd(res_id);
+    chd.createVisInst = false;
 
     unsigned ver = cb.readInt();
     if (ver == _MAKE4C('CHR2') || ver == _MAKE4C('CHR1'))

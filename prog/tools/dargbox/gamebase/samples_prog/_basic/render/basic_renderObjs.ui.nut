@@ -10,7 +10,7 @@ let button_image = Picture("!ui/button.png")
 */
 
 
-let function sampleDebug() {
+function sampleDebug() {
   return {
     rendObj = ROBJ_DEBUG
     color = Color(255,230,200)
@@ -19,7 +19,7 @@ let function sampleDebug() {
 }
 
 
-let function sampleSolid() {
+function sampleSolid() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(250,25,205)
@@ -28,7 +28,7 @@ let function sampleSolid() {
 }
 
 
-let function sampleFrameP(borderWidth=1, color=Color(200,200,200)) {
+function sampleFrameP(borderWidth=1, color=Color(200,200,200)) {
   return {
     rendObj = ROBJ_FRAME
     color = color
@@ -37,7 +37,7 @@ let function sampleFrameP(borderWidth=1, color=Color(200,200,200)) {
   }
 }
 
-let function sampleBox() {
+function sampleBox() {
   return {
     rendObj = ROBJ_BOX
     fillColor = Color(100,50,50)
@@ -47,7 +47,7 @@ let function sampleBox() {
   }
 }
 
-let function labeledElem(elem,text) {
+function labeledElem(elem,text) {
   return {
     flow = FLOW_HORIZONTAL
     gap = 20
@@ -72,7 +72,7 @@ let function labeledElem(elem,text) {
   }
 }
 
-let function sampleImageP(size, image = cup) {
+function sampleImageP(size, image = cup) {
   return {
     size = size
     rendObj = ROBJ_IMAGE
@@ -182,7 +182,7 @@ let sampleRoundedImage = {
 }
 
 
-let function basicsRoot() {
+function basicsRoot() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(30,40,50)

@@ -1,5 +1,6 @@
 include "sky_shader_global.dshl"
 include "viewVecVS.dshl"
+include "prev_screen_tc.dshl"
 include "csm.dshl"
 include "heightmap_common.dshl"
 include "static_shadow.dshl"
@@ -106,13 +107,16 @@ float skies_scattering_effect = 1.; // it's only purpose is cuisine royale eclip
 
 int4 channel_swizzle_indices = (1, 0, 0, 0);
 
-int AccumulatedInscatter_view_result_no = 7;
-int volfog_occlusion_no = 7;
+int AccumulatedInscatter_view_result_const_no = 7 always_referenced;
+int volfog_occlusion_const_no = 7 always_referenced;
 
-int AccumulatedInscatter_no = 4;
-int initial_phase_no = 5;
-int initial_inscatter_no = 6;
-int initial_extinction_no = 7;
+float volfog_gi_amount_weight = 0.9;
+
+int volfog_weight_const_no = 3 always_referenced;
+int AccumulatedInscatter_const_no = 4 always_referenced;
+int initial_phase_const_no = 5 always_referenced;
+int initial_inscatter_const_no = 6 always_referenced;
+int initial_extinction_const_no = 7 always_referenced;
 
 // TODO: deprecate it if the merged version has no problems in practice
 shader view_result_inscatter_cs
@@ -150,7 +154,7 @@ shader view_result_inscatter_cs
     skies_ms_texture@smp2d = skies_ms_texture;
 
     // last layer is volfog-only (no scattering)
-    AccumulatedInscatter@uav: register(AccumulatedInscatter_view_result_no) hlsl {
+    AccumulatedInscatter@uav: register(AccumulatedInscatter_view_result_const_no) hlsl {
       RWTexture3D<float4> AccumulatedInscatter@uav;
     }
   }
@@ -342,7 +346,7 @@ shader volfog_occlusion_cs
     volume_z_offset@f1 = (inv_volfog_froxel_volume_res.z,0,0,0); // adds one slice, so reprojection work better
     inv_occlusion_resolution@f4 = (inv_volfog_froxel_volume_res.x, inv_volfog_froxel_volume_res.y, inv_volfog_froxel_volume_res.z, volfog_froxel_range_params.x);
 
-    volfog_occlusion@uav: register(volfog_occlusion_no) hlsl {
+    volfog_occlusion@uav: register(volfog_occlusion_const_no) hlsl {
       RWTexture2D<float> volfog_occlusion@uav;
     }
   }
@@ -402,7 +406,7 @@ shader fill_media_cs
     }
   }
   (cs) {
-    initial_media@uav: register(initial_media_no) hlsl {
+    initial_media@uav: register(initial_media_const_no) hlsl {
       RWTexture3D<float4> initial_media@uav;
     }
   }
@@ -434,7 +438,12 @@ shader fill_media_cs
 texture prev_initial_inscatter;
 texture prev_initial_extinction;
 texture initial_media;
+texture volfog_weight;
+texture prev_volfog_weight;
 float volfog_prev_range_ratio;
+
+int froxel_fog_use_experimental_offscreen_reprojection = 0 always_referenced;
+interval froxel_fog_use_experimental_offscreen_reprojection: no<1, yes;
 
 int shadows_quality = 1;
 interval shadows_quality: low<1, high;
@@ -443,6 +452,13 @@ int dynamic_lights_count = 0;
 interval dynamic_lights_count: lights_off<1, lights_omni_1<2, lights_spot_1<3, lights_omnispot_1<4, lights_clustered;
 
 float4 volumelight_reprojection_factors = (0.97, 0.9, 0, 0);
+
+// TODO: remove these after the offscreen reprojection is no longer experimental
+float volfog_test_frame_step = 1.5;
+float volfog_test_sample_cnt = 12;
+float volfog_test_step_start = 2;
+float volfog_test_range_media = 1.5;
+float volfog_test_range_shadow = 1;
 
 
 macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
@@ -496,8 +512,10 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
     local_view_z@f3 = local_view_z;
     prev_initial_inscatter@smp3d = prev_initial_inscatter;
     prev_initial_extinction@smp3d = prev_initial_extinction;
-    initial_media@tex3d = initial_media;
+    initial_media@smp3d = initial_media;
     volfog_occlusion@tex2d = volfog_occlusion;
+    prev_volfog_weight@smp3d = prev_volfog_weight;
+    volfog_gi_amount_weight@f1 = volfog_gi_amount_weight;
 
     channel_swizzle_indices__volfog_blended_slice_cnt@i3 = (channel_swizzle_indices.x, channel_swizzle_indices.y, volfog_blended_slice_cnt, 0);
     volumelight_reprojection_factors__volfog_froxel_volume_res_z__volfog_multi_scatter_ao_weight@f4 =
@@ -507,6 +525,19 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
     skies_primary_sun_light_dir__volfog_prev_range_ratio@f4 =
       (skies_primary_sun_light_dir.x, skies_primary_sun_light_dir.y, skies_primary_sun_light_dir.z, volfog_prev_range_ratio);
   }
+
+  if (froxel_fog_use_experimental_offscreen_reprojection == yes)
+  {
+    (stage)
+    {
+      volfog_test_frame_step@f1 = volfog_test_frame_step;
+      volfog_test_sample_cnt@f1 = volfog_test_sample_cnt;
+      volfog_test_step_start@f1 = volfog_test_step_start;
+      volfog_test_range_media@f1 = volfog_test_range_media;
+      volfog_test_range_shadow@f1 = volfog_test_range_shadow;
+    }
+  }
+
   hlsl(stage)
   {
     #define volfog_froxel_range (inv_resolution.w)
@@ -573,16 +604,19 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
   USE_SPOT_LIGHT_MASK(stage)
 
   (stage) {
-    AccumulatedInscatter@uav: register(AccumulatedInscatter_no) hlsl {
+    volfog_weight@uav: register(volfog_weight_const_no) hlsl {
+      RWTexture3D<float> volfog_weight@uav;
+    }
+    AccumulatedInscatter@uav: register(AccumulatedInscatter_const_no) hlsl {
       RWTexture3D<float4> AccumulatedInscatter@uav;
     }
-    initial_phase@uav: register(initial_phase_no) hlsl {
+    initial_phase@uav: register(initial_phase_const_no) hlsl {
       RWTexture3D<float> initial_phase@uav;
     }
-    initial_inscatter@uav: register(initial_inscatter_no) hlsl {
+    initial_inscatter@uav: register(initial_inscatter_const_no) hlsl {
       RWTexture3D<float3> initial_inscatter@uav;
     }
-    initial_extinction@uav: register(initial_extinction_no) hlsl {
+    initial_extinction@uav: register(initial_extinction_const_no) hlsl {
       RWTexture3D<float3> initial_extinction@uav;
     }
   }
@@ -616,6 +650,40 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
       if (extinction > 0.0001) // improves perf assuming mostly empty spaces
         out_prev_inscatter = float4(get_swizzled_color(tex3Dlod(prev_initial_inscatter, float4(tc,0)).rgb, channel_swizzle_indices.y), extinction);
       return true;
+    }
+
+    float sampleStaticShadowForVolfogImpl(float3 world_pos)
+    {
+      float3 staticShadowPointToEye = world_view_pos.xyz - world_pos;
+
+      float shadowEffect = 0;
+      uint cascade_id;
+      float3 shadowTc = get_csm_shadow_tc(staticShadowPointToEye, cascade_id, shadowEffect);
+
+      float shadow = 1;
+      ##if shadows_quality == high
+        shadow = get_downsampled_shadows(shadowTc);
+        BRANCH
+        if (cascade_id > 2)
+          shadow *= getStaticShadow(world_pos);
+      ##else
+        shadow = getStaticShadow(world_pos);
+        #if HAS_DOWNSAMPLED_SHADOWS
+        FLATTEN
+        if (shadowTc.z < 1)
+          shadow = shadow*get_downsampled_shadows(shadowTc);
+        #endif
+      ##endif
+      return shadow;
+    }
+
+    float sampleStaticShadowForVolfog(float2 screen_tc_2d_jittered, float jittered_w, float3 shadowBiasOffset)
+    {
+      float3 jitteredViewVect = getViewVecOptimized(screen_tc_2d_jittered);
+      float3 jitteredPointToEye = -jitteredViewVect*jittered_w;
+      float3 jitteredWorldPos = world_view_pos.xyz - jitteredPointToEye.xyz;
+      float3 staticShadowWorldPos = jitteredWorldPos + shadowBiasOffset;
+      return sampleStaticShadowForVolfogImpl(staticShadowWorldPos);
     }
 
     #define __XBOX_REGALLOC_VGPR_LIMIT 48
@@ -701,41 +769,6 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
       float3 jitteredPointToEye = -jitteredViewVect*jitteredW;
       float3 jitteredWorldPos = world_view_pos.xyz - jitteredPointToEye.xyz;
 
-      float shadowBiasTowardsSun = nextDepth - startDepth;
-      float3 staticShadowWorldPos = jitteredWorldPos + from_sun_direction * shadowBiasTowardsSun;
-      float3 staticShadowPointToEye = world_view_pos.xyz - staticShadowWorldPos;
-
-      float shadowEffect = 0;
-      uint cascade_id;
-      float3 shadowTc = get_csm_shadow_tc(staticShadowPointToEye, cascade_id, shadowEffect);
-
-      float shadow = 1;
-      ##if shadows_quality == high
-        shadow = get_downsampled_shadows(shadowTc);
-        BRANCH
-        if (cascade_id > 2)
-          shadow *= getStaticShadow(staticShadowWorldPos);
-      ##else
-        shadow = getStaticShadow(staticShadowWorldPos);
-        #if HAS_DOWNSAMPLED_SHADOWS
-        FLATTEN
-        if (shadowTc.z < 1)
-          shadow = shadow*get_downsampled_shadows(shadowTc);
-        #endif
-      ##endif
-
-      shadow *= getFOMShadow(jitteredWorldPos);
-
-      float cloudExtinction = base_clouds_transmittance(jitteredWorldPos);
-      float shadowForScattering = shadow * cloudExtinction;
-
-      shadow *= clouds_shadow_from_extinction(cloudExtinction);
-
-
-      float4 media = texelFetch(initial_media, dtId, 0);
-      float3 color = media.rgb;
-      float density = media.a;
-
       //==
 
       //for high mie we need self shadow from media. Instead we change mie extrincity
@@ -747,7 +780,7 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
       float3 inScatterAmbLight = amb_color*blurredAO;//fixme: replace with SH ambient
       float3 giAmbient = inScatterAmbLight;
       float giAmount = get_ambient3d(jitteredWorldPos, -jitteredView, amb_color, giAmbient);
-      giAmount *= get_gi_param(screenTc.x) * eclipse_gi_weight_atten;
+      giAmount *= get_gi_param(screenTc.x) * eclipse_gi_weight_atten * volfog_gi_amount_weight;
       inScatterAmbLight = lerp(inScatterAmbLight, giAmbient, giAmount);
 
       float3 sunLightingNoShadow = sun_color_0;
@@ -828,8 +861,51 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
       float prevDepth = volfog_prev_range_ratio*linearize_z(prev_clipSpace.z, prev_zn_zfar.zw);
       float3 prev_tc = float3(prev_tc_2d, depth_to_volume_pos(prevDepth));
 
+##if froxel_fog_use_experimental_offscreen_reprojection == yes
+      bool isPrevFrameOffscreen = checkOffscreenTc3d(prev_tc);
+
+      #define VOLFOG_USE_BLURRED_OFFSCREEN_SHADOWS 1 // this makes offscreen shadow look more natural, less blocky (but it costs half of the offscreen improvement overhead)
+      const float convergenceSampleCnt = volfog_test_sample_cnt;
+      const float frameStep = volfog_test_frame_step/255;
+      const float finalFrameWeight = volumelight_reprojection_factors.x;
+
+      float prevWeightN = tex3Dlod(prev_volfog_weight, float4(prev_tc,0)).x * 255;
+      float prevFrameOffscreenWeight = saturate(1 - prevWeightN / convergenceSampleCnt);
+
+      bool resetTemporalWeights = isPrevFrameOffscreen;
+      float4 prevValue;
+      float2 prevTemporalShadows;
+      if (!samplePrevValue(prev_tc, prevValue, prevTemporalShadows))
+      {
+        resetTemporalWeights = true;
+        prevValue = 0;
+        prevTemporalShadows = 0;
+      }
+
+      // accumulate first X samples linearly, then the rest exponentially (using fixed weight)
+      float clampEventFrame = prevWeightN > convergenceSampleCnt ? 255.0 : ceil(prevWeightN);
+
+      if (resetTemporalWeights)
+      {
+        prevFrameOffscreenWeight = 1;
+        clampEventFrame = 0;
+      }
+
+      volfog_weight[dtId] = resetTemporalWeights ? 0.0 : saturate(clampEventFrame*(1./255) + frameStep);
+
+      float weight = resetTemporalWeights ? 0.0 : min(finalFrameWeight, 1 - rcp(volfog_test_step_start + clampEventFrame));
+      if (!resetTemporalWeights)
+      {
+        //try reject history of fast moving froxels
+        float dt = saturate(abs(prev_tc.z - screenTcJittered.z)-inv_resolution.z);
+        float velocityFactor = exp2(-dt*64.0);
+        float velWeight = volumelight_reprojection_factors.y;
+        weight *= lerp(1.0, velocityFactor, velWeight);
+      }
+##else
+
       float weight = volumelight_reprojection_factors.x;
-      FLATTEN if (any(abs(prev_tc - 0.5) >= 0.4999))
+      FLATTEN if (checkOffscreenTc3d(prev_tc))
         weight = 0;
 
       float4 prevValue;
@@ -849,6 +925,54 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
         float velWeight = volumelight_reprojection_factors.y;
         weight *= lerp(1.0, velocityFactor, velWeight);
       }
+##endif
+
+      float shadowBiasTowardsSun = nextDepth - startDepth;
+      float3 shadowBiasOffset =  from_sun_direction * shadowBiasTowardsSun;
+      float shadow = sampleStaticShadowForVolfog(screenTcJittered.xy, jitteredW, shadowBiasOffset);
+
+      float4 media = initial_media[dtId];
+
+##if froxel_fog_use_experimental_offscreen_reprojection == yes
+      BRANCH
+      if (prevFrameOffscreenWeight > 0.0001) // supersampling of current frame data if prev frames were offscreen
+      {
+        // the offset of the extra samples from center is getting smaller over the frames (when they are not offscreen)
+        float rangeOffsetMul = prevFrameOffscreenWeight * saturate(1 - screenTc.z);
+
+        // media is blurred in 2d plane from generated samples (in NBS), from 5 samples
+        const float mediaRangeOffsetFroxelSize = volfog_test_range_media;
+        float mediaRangeOffset = rangeOffsetMul * mediaRangeOffsetFroxelSize;
+        media += tex3Dlod(initial_media, float4(screenTc + inv_resolution.xyz*float3(-1,-1,0)*mediaRangeOffset,0));
+        media += tex3Dlod(initial_media, float4(screenTc + inv_resolution.xyz*float3(+1,-1,0)*mediaRangeOffset,0));
+        media += tex3Dlod(initial_media, float4(screenTc + inv_resolution.xyz*float3(-1,+1,0)*mediaRangeOffset,0));
+        media += tex3Dlod(initial_media, float4(screenTc + inv_resolution.xyz*float3(+1,+1,0)*mediaRangeOffset,0));
+        media /= 5;
+
+        // blurred shadow (downsampled and static) from the 4 corners of the 2d froxel plane, TODO: very inefficient and not even accurate
+        const float shadowRangeOffsetFroxelSize = volfog_test_range_shadow;
+        float shadowRangeOffset = rangeOffsetMul * shadowRangeOffsetFroxelSize;
+        #if VOLFOG_USE_BLURRED_OFFSCREEN_SHADOWS
+          float avgCenterShadow = 0;
+          avgCenterShadow += sampleStaticShadowForVolfog(screenTc.xy + inv_resolution.xy*float2(-1,-1)*shadowRangeOffset, cdepth, shadowBiasOffset);
+          avgCenterShadow += sampleStaticShadowForVolfog(screenTc.xy + inv_resolution.xy*float2(+1,-1)*shadowRangeOffset, cdepth, shadowBiasOffset);
+          avgCenterShadow += sampleStaticShadowForVolfog(screenTc.xy + inv_resolution.xy*float2(-1,+1)*shadowRangeOffset, cdepth, shadowBiasOffset);
+          avgCenterShadow += sampleStaticShadowForVolfog(screenTc.xy + inv_resolution.xy*float2(+1,+1)*shadowRangeOffset, cdepth, shadowBiasOffset);
+          avgCenterShadow /= 4;
+        #else
+          float avgCenterShadow = avgCenterShadow = sampleStaticShadowForVolfog(screenTc.xy, cdepth, shadowBiasOffset);
+        #endif
+        // over the frames, we use less from the blurred (and unjittered) shadows
+        shadow = lerp(shadow, avgCenterShadow, prevFrameOffscreenWeight);
+      }
+##endif
+
+      shadow *= getFOMShadow(jitteredWorldPos);
+
+      float cloudExtinction = base_clouds_transmittance(jitteredWorldPos);
+      float shadowForScattering = shadow * cloudExtinction;
+
+      shadow *= clouds_shadow_from_extinction(cloudExtinction);
 
       float2 temporalShadows = lerp(float2(shadowForScattering, blurredAO), prevTemporalShadows, weight);
 
@@ -878,7 +1002,7 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
 #endif
 
       float3 inScatterLight = sunLightingNoShadow*shadow + ambientLighting + dynamicLighting;
-      float4 result = float4(color*inScatterLight, density);
+      float4 result = float4(media.rgb*inScatterLight, media.a);
 
       float4 result_inscatter = lerp(result, prevValue, weight);
 

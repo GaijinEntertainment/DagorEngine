@@ -81,12 +81,15 @@ VkAccelerationStructureGeometryKHR drv3d_vulkan::RaytraceGeometryDescriptionToVk
 }
 #endif
 
-uint32_t Device::getMinimalBufferAlignment() const
+VkDeviceSize Device::getMinimalBufferAlignment() const { return bufferAligments.min; }
+
+VkDeviceSize Device::getBufferAligmentForUsageAndFlags(VkBufferCreateFlags flags, VkBufferUsageFlags usage)
 {
-  return max<uint32_t>(1, max(max(max(physicalDeviceInfo.properties.limits.minStorageBufferOffsetAlignment,
-                                    physicalDeviceInfo.properties.limits.minTexelBufferOffsetAlignment),
-                                physicalDeviceInfo.properties.limits.minUniformBufferOffsetAlignment),
-                            physicalDeviceInfo.properties.limits.nonCoherentAtomSize));
+  G_ASSERTF(flags == 0, "vulkan: non zero buffer flags are not supported");
+  G_ASSERTF(bufferAligments.perUsageFlags.find(usage) != bufferAligments.perUsageFlags.end(), "vulkan: unknown buffer usage flags %s",
+    formatBufferUsageFlags(usage));
+  G_UNUSED(flags);
+  return bufferAligments.perUsageFlags[usage];
 }
 
 bool Device::shouldUsePool(const VkImageCreateInfo &ici)
@@ -324,7 +327,7 @@ void Device::tryCreateDummyImage(const Image::Description::TrimmedCreateInfo &ii
       return;
     }
     else
-      fatal("vulkan: can't create dummy %s texture", tex_name);
+      DAG_FATAL("vulkan: can't create dummy %s texture", tex_name);
   }
   setTexName(target, tex_name);
 }
@@ -635,10 +638,6 @@ bool Device::init(VulkanInstance &inst, const Config &ucfg, const PhysicalDevice
     resources.init(&memory.getGuard(), set);
   }
 
-  if (ucfg.features.test(DeviceFeaturesConfig::COMMAND_MARKER))
-    execMarkers.init();
-
-
   configure(ucfg, set);
   if (!swapchain.init(swc_info))
   {
@@ -665,6 +664,9 @@ bool Device::init(VulkanInstance &inst, const Config &ucfg, const PhysicalDevice
   context.initMode(execMode);
   ExecutionSyncTracker::LogicAddress::setAttachmentNoStoreSupport(hasAttachmentNoStoreOp());
 
+  setupBufferAligments();
+  if (ucfg.features.test(DeviceFeaturesConfig::COMMAND_MARKER))
+    execMarkers.init();
   setupDummyResources();
 
   arrayImageTo3DBufferSize = 0;
@@ -1053,6 +1055,34 @@ void Device::adjustCaps(Driver3dDesc &caps)
   caps.caps.hasBindless = false;
   caps.caps.hasRenderPassDepthResolve = physicalDeviceInfo.hasDepthStencilResolve;
 
+#define GJN_DEPTH_RESOLVE_MODES          \
+  GJN_DEPTH_RESOLVE_MODE_FN(SAMPLE_ZERO) \
+  GJN_DEPTH_RESOLVE_MODE_FN(AVERAGE)     \
+  GJN_DEPTH_RESOLVE_MODE_FN(MIN)         \
+  GJN_DEPTH_RESOLVE_MODE_FN(MAX)
+
+#define GJN_DEPTH_RESOLVE_MODE_VK(baseName)  VK_RESOLVE_MODE_##baseName##_BIT
+#define GJN_DEPTH_RESOLVE_MODE_D3D(baseName) DepthResolveMode::DEPTH_RESOLVE_MODE_##baseName
+
+  VkResolveModeFlags depthResolveModes = physicalDeviceInfo.depthStencilResolveProps.supportedDepthResolveModes;
+  if (physicalDeviceInfo.depthStencilResolveProps.independentResolveNone != VK_TRUE)
+  {
+    depthResolveModes &= physicalDeviceInfo.depthStencilResolveProps.supportedStencilResolveModes;
+  }
+  {
+#define GJN_DEPTH_RESOLVE_MODE_FN(modeName)                         \
+  if (depthResolveModes & GJN_DEPTH_RESOLVE_MODE_VK(modeName))      \
+  {                                                                 \
+    caps.depthResolveModes |= GJN_DEPTH_RESOLVE_MODE_D3D(modeName); \
+    debug("vulkan: depth resolve mode %s supported", #modeName);    \
+  }
+    GJN_DEPTH_RESOLVE_MODES
+#undef GJN_DEPTH_RESOLVE_MODE_FN
+  }
+#undef GJN_DEPTH_RESOLVE_MODE_D3D
+#undef GJN_DEPTH_RESOLVE_MODE_VK
+#undef GJN_DEPTH_RESOLVE_MODES
+
   caps.shaderModel = 6.0_sm;
   if (!hasWaveOperations(VK_SHADER_STAGE_FRAGMENT_BIT) || !hasWaveOperations(VK_SHADER_STAGE_COMPUTE_BIT))
   {
@@ -1206,7 +1236,7 @@ Image *Device::createImage(const ImageCreateInfo &ii)
 
   bool useDedAlloc = !shouldUsePool(ici.toVk());
 
-  uint8_t memFlags = (useDedAlloc ? (Image::MEM_DEDICATE_ALLOC | Image::MEM_NOT_EVICTABLE) : 0) | ii.residencyFlags;
+  uint8_t memFlags = (useDedAlloc ? (Image::MEM_DEDICATE_ALLOC) : 0) | ii.residencyFlags;
 
   if (ici.usage & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT)
     memFlags = Image::MEM_LAZY_ALLOCATION;
@@ -1276,6 +1306,15 @@ SamplerInfo *Device::getSampler(SamplerState state)
     if (samplers[i]->state == state)
       return samplers[i];
 
+  SamplerInfo *info = new SamplerInfo;
+  *info = createSampler(state);
+
+  samplers.push_back(info);
+  return info;
+}
+
+SamplerInfo Device::createSampler(SamplerState state)
+{
   VkSamplerCreateInfo sci;
   sci.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
   sci.pNext = NULL;
@@ -1300,18 +1339,17 @@ SamplerInfo *Device::getSampler(SamplerState state)
   sci.borderColor = state.getBorder();
   sci.unnormalizedCoordinates = VK_FALSE;
 
-  SamplerInfo *info = new SamplerInfo;
-  info->state = state;
+  SamplerInfo info = {};
+  info.state = state;
 
   sci.mipmapMode = state.getMip();
   sci.compareEnable = VK_FALSE;
-  VULKAN_EXIT_ON_FAIL(device.vkCreateSampler(device.get(), &sci, NULL, ptr(info->sampler[0])));
+  VULKAN_EXIT_ON_FAIL(device.vkCreateSampler(device.get(), &sci, NULL, ptr(info.sampler[0])));
 
   sci.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
   sci.compareEnable = VK_TRUE;
-  VULKAN_EXIT_ON_FAIL(device.vkCreateSampler(device.get(), &sci, NULL, ptr(info->sampler[1])));
+  VULKAN_EXIT_ON_FAIL(device.vkCreateSampler(device.get(), &sci, NULL, ptr(info.sampler[1])));
 
-  samplers.push_back(info);
   return info;
 }
 
@@ -1685,6 +1723,54 @@ void Device::ensureRoomForRaytraceBuildScratchBuffer(VkDeviceSize size)
 }
 #endif
 
+void Device::setupBufferAligments()
+{
+  bufferAligments.min = max<VkDeviceSize>(1, max(max(max(physicalDeviceInfo.properties.limits.minStorageBufferOffsetAlignment,
+                                                       physicalDeviceInfo.properties.limits.minTexelBufferOffsetAlignment),
+                                                   physicalDeviceInfo.properties.limits.minUniformBufferOffsetAlignment),
+                                               physicalDeviceInfo.properties.limits.nonCoherentAtomSize));
+
+#define ALIGMENT_CALC(x)                                                                          \
+  {                                                                                               \
+    VkBufferUsageFlags buflags = Buffer::getUsage(device, x);                                     \
+    bufferAligments.perUsageFlags[buflags] = calculateBufferAligmentForUsageAndFlags(0, buflags); \
+  }
+
+  ALIGMENT_CALC(DeviceMemoryClass::DEVICE_RESIDENT_BUFFER);
+  ALIGMENT_CALC(DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER);
+  ALIGMENT_CALC(DeviceMemoryClass::HOST_RESIDENT_HOST_READ_ONLY_BUFFER);
+#if !_TARGET_C3
+  ALIGMENT_CALC(DeviceMemoryClass::HOST_RESIDENT_HOST_WRITE_ONLY_BUFFER);
+#endif
+  ALIGMENT_CALC(DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER);
+
+#undef ALIGMENT_CALC
+}
+
+VkDeviceSize Device::calculateBufferAligmentForUsageAndFlags(VkBufferCreateFlags flags, VkBufferUsageFlags usage)
+{
+  G_ASSERTF(flags == 0, "vulkan: non zero buffer flags are not supported");
+  G_UNUSED(flags);
+  VulkanBufferHandle tmpBuf;
+  VkBufferCreateInfo bci;
+  bci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  bci.pNext = NULL;
+  bci.flags = 0;
+  bci.size = 0x1000;
+  bci.usage = usage;
+  bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  bci.queueFamilyIndexCount = 0;
+  bci.pQueueFamilyIndices = NULL;
+  const VkResult resCode = VULKAN_CHECK_RESULT(device.vkCreateBuffer(device.get(), &bci, NULL, ptr(tmpBuf)));
+  if (resCode == VK_SUCCESS)
+  {
+    MemoryRequirementInfo ret = get_memory_requirements(device, tmpBuf);
+    device.vkDestroyBuffer(device.get(), tmpBuf, nullptr);
+    return ret.requirements.alignment;
+  }
+  return 0;
+}
+
 Device::Config drv3d_vulkan::get_device_config(const DataBlock *cfg)
 {
   Device::Config result;
@@ -1746,7 +1832,7 @@ Device::Config drv3d_vulkan::get_device_config(const DataBlock *cfg)
   else
   {
     String execModeList = String(0, "%s, %s", threaded_exection_name, deferred_exection_name);
-    fatal("vulkan: invalid execution mode %s, use one of [%s]", config_exection, execModeList);
+    DAG_FATAL("vulkan: invalid execution mode %s, use one of [%s]", config_exection, execModeList);
   }
 
   if (result.features.test(DeviceFeaturesConfig::USE_THREADED_COMMAND_EXECUTION))

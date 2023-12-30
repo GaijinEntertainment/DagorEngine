@@ -140,4 +140,28 @@ namespace das {
 		CoTaskMemFree(filePath);
 		return wstring_to_string(result);
 	}
+
+	string GetOpenFolderFromUser ( const char * initialPath) {
+		DECL_AUTO_RELEASE_PTR(IFileOpenDialog, dialog);
+		if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) return string();
+		dialog->SetOptions(FOS_PICKFOLDERS);
+		if (initialPath && *initialPath) {
+			DECL_AUTO_RELEASE_PTR(IShellItem, folder);
+			wstring path = string_to_wstring(initialPath);
+			if (PathIsDirectoryW(path.c_str())) {
+				if (SUCCEEDED(SHCreateItemFromParsingName(path.c_str(), NULL, IID_PPV_ARGS(&folder)))) {
+					dialog->SetDefaultFolder(folder);
+				}
+			}
+		}
+		dialog->Show(GetHWND());
+		DECL_AUTO_RELEASE_PTR(IShellItem, shellItem);
+		if (FAILED(dialog->GetResult(&shellItem))) return string();
+		PWSTR filePath = NULL;
+		if (FAILED(shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filePath))) return string();
+		wstring result = filePath;
+		CoTaskMemFree(filePath);
+		return wstring_to_string(result);
+	}
+
 }

@@ -21,7 +21,7 @@ void HmapAlignLandBrush::fillParams(PropPanel2 &panel)
 
 void HmapAlignLandBrush::updateToPanel(PropPanel2 &panel)
 {
-  __super::updateToPanel(panel);
+  HmapLandBrush::updateToPanel(panel);
 
   panel.setInt(PID_BRUSH_TRAIL, trail * 100);
   panel.setInt(PID_BRUSH_SIGMA, sigma * 100);

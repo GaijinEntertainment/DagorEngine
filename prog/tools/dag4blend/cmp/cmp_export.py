@@ -149,7 +149,7 @@ def cmp_export(col,path):
         os.makedirs(P.dirpath)
         msg = f'directory successfully created: {P.dirpath}\n'
         log(msg)
-    path=os.path.join(P.dirpath,P.col_export.name+'.composit.blk')
+    path=os.path.join(P.dirpath,P.collection.name+'.composit.blk')
     with open((path), 'w') as outfile:#TODO: remove that blend text thing, work directly with .blk
         outfile.write(cmp.as_string())
         outfile.close()
@@ -164,12 +164,12 @@ class DAGOR_OP_CmpExport(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        P = bpy.data.scenes[0].dag4blend.cmp
-        if P.col_export is None:
+        P = bpy.data.scenes[0].dag4blend.cmp.exporter
+        if P.collection is None:
             show_popup(message='Select cmp collection!', title = 'ERROR', icon = 'ERROR')
             return {'CANCELLED'}
         start=time()
-        cmp_export(P.col_export,P.dirpath)
+        cmp_export(P.collection,P.dirpath)
         show_popup(f'finished in {round(time()-start,4)} sec')
         return{'FINISHED'}
 

@@ -128,7 +128,7 @@ static void close_all()
   flush_debug_file();
 }
 
-static FATAL_PREFIX void vfatal(bool quit_type, const char *fmt, const void *arg, int anum) FATAL_SUFFIX;
+static FATAL_PREFIX void vfatal(const char *fmt, const void *arg, int anum) FATAL_SUFFIX;
 
 static void enter_quit_critsec()
 {
@@ -153,7 +153,7 @@ static void enter_quit_critsec()
   }
 }
 
-static void vfatal(bool quit_type, const char *fmt, const void *args, int anum)
+static void vfatal(const char *fmt, const void *args, int anum)
 {
   FatalFlagHandler _flag_handler;
 
@@ -196,13 +196,12 @@ static void vfatal(bool quit_type, const char *fmt, const void *args, int anum)
     }
   }
 
-  if (quit_type)
-    close_all();
+  close_all();
 
   flush_debug_file();
   CALLBACK_IF_POSSIBLE(dgs_report_fatal_error, "FATAL ERROR", buf, stackmsg);
 
-  quit_game(!quit_type ? -1 : 1);
+  quit_game(1);
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -221,7 +220,6 @@ static void vfatal(bool quit_type, const char *fmt, const void *args, int anum)
 #endif
   flush_debug_file();
 
-  (void)quit_type;
   {
     CallbackGuard g((CallbackGuard::cb_ptr_t)dgs_fatal_handler);
     if (g.canExecuteCallback() &&
@@ -237,7 +235,6 @@ static void vfatal(bool quit_type, const char *fmt, const void *args, int anum)
   }
 
 #else // DAGOR_DBGLEVEL <= 0
-  (void)quit_type;
   CALLBACK_IF_POSSIBLE(dgs_fatal_handler, buf, NULL, _fatal_origin_file, _fatal_origin_line);
 #endif
 
@@ -273,7 +270,7 @@ void quit_game(int c, bool restart, const char **args)
 
 #if 0 && DAGOR_DBGLEVEL > 0
   if (c==0 && logWasWritten)
-    fatal("some error messages were written to log file, please examine them and take measures");
+    DAG_FATAL("some error messages were written to log file, please examine them and take measures");
 #endif
 
   if (c != -1)
@@ -378,27 +375,17 @@ void _core_cfatal(const char *s, ...)
 {
   va_list ap;
   va_start(ap, s);
-  vfatal(true, s, &ap, -1);
+  vfatal(s, &ap, -1);
   va_end(ap);
 }
 
 
-void _core_cvfatal(const char *s, va_list ap) { vfatal(true, s, &ap, -1); }
+void _core_cvfatal(const char *s, va_list ap) { vfatal(s, &ap, -1); }
 
-void _core_cfatal_x(const char *s, ...)
-{
-  va_list ap;
-  va_start(ap, s);
-  vfatal(false, s, &ap, -1);
-  va_end(ap);
-}
-
-void _core_cvfatal_x(const char *s, va_list ap) { vfatal(false, s, &ap, -1); }
-
-void _core_fatal_fmt(const char *fn, int ln, bool qterm, const char *fmt, const DagorSafeArg *arg, int anum)
+void _core_fatal_fmt(const char *fn, int ln, const char *fmt, const DagorSafeArg *arg, int anum)
 {
   _core_set_fatal_ctx(fn, ln);
-  vfatal(qterm, fmt, arg, anum);
+  vfatal(fmt, arg, anum);
 }
 
 #define EXPORT_PULL dll_pull_kernel_fatalerr

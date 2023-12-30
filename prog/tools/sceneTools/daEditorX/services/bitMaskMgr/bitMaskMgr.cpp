@@ -184,8 +184,8 @@ public:
     img.init();
 
     TIFF *image;
-    uint16 photo, bps, spp, fillorder;
-    uint32 width, height;
+    uint16_t photo, bps, spp, fillorder;
+    uint32_t width, height;
     tsize_t stripSize;
     unsigned long result;
     int stripMax;
@@ -350,7 +350,7 @@ public:
     makeFullPath(fname, folder, image_name, ".tif");
 
     TIFF *image;
-    uint16 photo, bps, spp, fillorder;
+    uint16_t photo, bps, spp, fillorder;
     tsize_t stripSize;
     unsigned long result;
     int stripMax;
@@ -374,8 +374,8 @@ public:
     makeFullPath(fname, folder, image_name, ".tif");
 
     TIFF *image;
-    uint16 photo, bps, spp, fillorder;
-    uint32 width, height;
+    uint16_t photo, bps, spp, fillorder;
+    uint32_t width, height;
     tsize_t stripSize;
     unsigned long result;
     int stripMax;

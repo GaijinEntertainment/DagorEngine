@@ -15,6 +15,8 @@ if $(UseSystemOpenSSL) = yes {
 
 Sources =
   crypto/cryptlib.c
+  crypto/cpuid.c
+  crypto/ctype.c
   [ CollectC crypto/sha : keccak1600.c ]
 ;
 
@@ -28,6 +30,8 @@ else {
              crypto/x86_64cpuid.$(ASMExt)
   ;
 }
+
+if $(Platform) in win32 win64 { AddLibs += Ws2_32.lib Advapi32.lib ; }
 
 ExplicitLicenseUsed += $(Root)/$(Location) ;
 

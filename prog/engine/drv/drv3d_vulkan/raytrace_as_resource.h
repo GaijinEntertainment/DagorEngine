@@ -8,6 +8,8 @@
 namespace drv3d_vulkan
 {
 
+class ExecutionContext;
+
 struct RaytraceASDescription
 {
   RaytraceGeometryDescription *geometry;
@@ -38,11 +40,11 @@ public:
   void reuseHandle();
   void releaseSharedHandle();
   void evict();
-  void restoreFromSysCopy();
   bool isEvictable();
   void shutdown();
   bool nonResidentCreation();
-  void makeSysCopy();
+  void restoreFromSysCopy(ExecutionContext &ctx);
+  void makeSysCopy(ExecutionContext &ctx);
 
   template <int Tag>
   void onDelayedCleanupBackend(ContextBackend &){};

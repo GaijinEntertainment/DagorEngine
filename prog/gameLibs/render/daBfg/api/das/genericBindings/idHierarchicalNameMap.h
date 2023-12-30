@@ -95,7 +95,7 @@ struct typeFactory<IdHierarchicalNameMap<Ts...>>
       // use a lambda + operator comma + fold expression trick to iterate
       // through Ts at compile time.
       (
-        [&mod, &library, &commaSeparatedCppParameters]() {
+        [&mod, &library]() {
           const auto &name = typeName<Ts>::name();
           const auto cppName = describeCppType(makeType<Ts>(library));
           addExtern<DAS_BIND_FUN((id_hierarchical_name_map_get_parent<Ts, Ts...>))>(*mod, library, //

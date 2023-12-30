@@ -46,6 +46,8 @@ static void init_shader_vars()
 #undef VAR
 }
 
+static const char *water_flowmap_texture_name[3] = {"water_flowmap_tex", "water_flowmap_tex_a", "water_flowmap_tex_b"};
+
 CONSOLE_BOOL_VAL("render", debug_water_flowmap, false);
 
 namespace fft_water
@@ -71,15 +73,17 @@ void build_flowmap(FFTWater *handle, FlowmapParams &flowmap_params, int flowmap_
 
     init_shader_vars();
     set_flowmap_tex(flowmap_params);
+    set_flowmap_params(flowmap_params);
+    set_flowmap_foam_params(flowmap_params);
 
     texA.close();
     texB.close();
 
     // build flowmap
     texA = dag::create_tex(NULL, flowmap_texture_size, flowmap_texture_size,
-      TEXCF_RTARGET | TEXFMT_A16B16G16R16F | TEXCF_CLEAR_ON_CREATE, 1, "water_flowmap_tex_a");
+      TEXCF_RTARGET | TEXFMT_A16B16G16R16F | TEXCF_CLEAR_ON_CREATE, 1, water_flowmap_texture_name[1]);
     texB = dag::create_tex(NULL, flowmap_texture_size, flowmap_texture_size,
-      TEXCF_RTARGET | TEXFMT_A16B16G16R16F | TEXCF_CLEAR_ON_CREATE, 1, "water_flowmap_tex_b");
+      TEXCF_RTARGET | TEXFMT_A16B16G16R16F | TEXCF_CLEAR_ON_CREATE, 1, water_flowmap_texture_name[2]);
     texA.getTex2D()->texaddr(TEXADDR_CLAMP);
     texB.getTex2D()->texaddr(TEXADDR_CLAMP);
     texA.getTex2D()->texfilter(TEXFILTER_SMOOTH);
@@ -93,9 +97,6 @@ void build_flowmap(FFTWater *handle, FlowmapParams &flowmap_params, int flowmap_
 
   if (!texA || !texB)
     return;
-
-  set_flowmap_params(flowmap_params);
-  set_flowmap_foam_params(flowmap_params);
 
   float cameraSnap = float(flowmap_texture_size) / (range * 2);
   Point3 cameraPos = camera_pos;
@@ -172,16 +173,15 @@ void set_flowmap_tex(FlowmapParams &flowmap_params)
   if (flowmap_params.frame == 0)
     return;
 
-  SharedTexHolder &tex = flowmap_params.tex;
-  String &texName = flowmap_params.texName;
-  Point4 &texArea = flowmap_params.texArea;
-
-  tex.close();
-
-  if (texName && !texName.empty())
+  flowmap_params.tex.close();
+  if (flowmap_params.enabled)
   {
-    tex = dag::get_tex_gameres(texName.c_str(), "water_flowmap_tex");
-    ShaderGlobal::set_color4(world_to_flowmapVarId, texArea);
+    if (!flowmap_params.texName.empty())
+      flowmap_params.tex = dag::get_tex_gameres(flowmap_params.texName.c_str(), water_flowmap_texture_name[0]);
+    else
+      flowmap_params.tex = dag::create_tex(NULL, 1, 1, TEXFMT_A8R8G8B8 | TEXCF_CLEAR_ON_CREATE, 1, water_flowmap_texture_name[0]);
+
+    ShaderGlobal::set_color4(world_to_flowmapVarId, flowmap_params.texArea);
   }
 }
 
@@ -191,6 +191,11 @@ void set_flowmap_params(FlowmapParams &flowmap_params)
     return;
 
   Point4 flowmapStrength = flowmap_params.flowmapStrength;
+  if (flowmap_params.texName.empty())
+  {
+    flowmapStrength.x = 0;
+    flowmapStrength.y = 0;
+  }
   if (!flowmap_params.usingFoamFx)
     flowmapStrength.w = 0;
 
@@ -231,17 +236,17 @@ void flowmap_floodfill(int texSize, Texture *heightmapTex, Texture *floodfillTex
 {
   TIME_D3D_PROFILE(flowmap_floodfill);
 
+  LockedImage2DReadOnly heightmapLockedTex = lock_texture_ro(heightmapTex, 0, TEXLOCK_READ);
   int heightmapStrideX = sizeof(uint16_t);
-  int heightmapStrideY = texSize * heightmapStrideX;
-  LockedTexture<uint8_t> heightmapLockedTex = lock_texture<uint8_t>(heightmapTex, heightmapStrideY, 0, TEXLOCK_READ);
+  int heightmapStrideY = heightmapLockedTex.getByteStride();
 
+  LockedImage2D floodfillLockedTex = lock_texture(floodfillTex, 0, TEXLOCK_WRITE);
   int floodfillStrideX = sizeof(uint16_t);
-  int floodfillStrideY = texSize * floodfillStrideX;
-  LockedTexture<uint8_t> floodfillLockedTex = lock_texture<uint8_t>(floodfillTex, floodfillStrideY, 0, TEXLOCK_WRITE);
+  int floodfillStrideY = floodfillLockedTex.getByteStride();
 
   if (heightmapLockedTex && floodfillLockedTex)
   {
-    uint8_t *heightmapData = heightmapLockedTex.get();
+    const uint8_t *heightmapData = heightmapLockedTex.get();
     uint8_t *floodfillData = floodfillLockedTex.get();
     memset(floodfillData, 0, texSize * floodfillStrideY);
 

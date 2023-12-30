@@ -127,7 +127,7 @@ bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming)
   }
 
   if (!d3d::init_driver())
-    fatal("Error initializing 3D driver:\n%s", d3d::get_last_error());
+    DAG_FATAL("Error initializing 3D driver:\n%s", d3d::get_last_error());
 
   dgs_set_window_mode(WindowMode::WINDOWED);
 

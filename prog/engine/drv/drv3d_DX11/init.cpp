@@ -93,7 +93,7 @@ public:
     {
       logerr("Possible deadlock at the context flush is detected. Force the exit");
       if (isReset)
-        fatal("Flush in close device after the reset failed", ERROR_POSSIBLE_DEADLOCK);
+        DAG_FATAL("Flush in close device after the reset failed", ERROR_POSSIBLE_DEADLOCK);
       ExitProcess(ERROR_POSSIBLE_DEADLOCK);
     }
   }
@@ -1437,7 +1437,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     debug("Error initializing video, Microsoft Basic Render Driver is not supported");
     if (get_d3d_reset_counter() > 1 || get_d3d_full_reset_counter() > 1)
     {
-      fatal("Failed to restore GPU driver after device resetting");
+      DAG_FATAL("Failed to restore GPU driver after device resetting");
     }
     return false;
   }
@@ -1474,49 +1474,25 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 #endif
   if (hAtiDLL)
   {
-    WCHAR fileName[_MAX_PATH];
-    DWORD size = GetModuleFileNameW(hAtiDLL, fileName, _MAX_PATH);
-    fileName[size] = NULL;
-    DWORD handle = 0;
-    size = GetFileVersionInfoSizeW(fileName, &handle);
-    BYTE *versionInfo = new BYTE[size];
-    if (!GetFileVersionInfoW(fileName, handle, size, versionInfo))
-      delete[] versionInfo;
-    else
+    PFNAmdDxExtCreate11 AmdDxExtCreate = reinterpret_cast<PFNAmdDxExtCreate11>(GetProcAddress(hAtiDLL, "AmdDxExtCreate11"));
+    if (AmdDxExtCreate != nullptr)
     {
-      UINT len = 0;
-      VS_FIXEDFILEINFO *vsfi = NULL;
-      VerQueryValueW(versionInfo, L"\\", (void **)&vsfi, &len);
-      if (LOWORD(vsfi->dwProductVersionLS) >= 519) // Catalyst 13.9 file version.
-      {
-        PFNAmdDxExtCreate11 AmdDxExtCreate = reinterpret_cast<PFNAmdDxExtCreate11>(GetProcAddress(hAtiDLL, "AmdDxExtCreate11"));
-        if (AmdDxExtCreate != nullptr)
-        {
-          HRESULT hr = AmdDxExtCreate(dx_device, &amdExtension);
-          debug("AmdDxExtCreate: hr=0x%08x, p=0x%p", hr, amdExtension);
-          g_device_desc.minWarpSize = 64;
+      HRESULT hr = AmdDxExtCreate(dx_device, &amdExtension);
+      debug("AmdDxExtCreate: hr=0x%08x, p=0x%p", hr, amdExtension);
+      g_device_desc.minWarpSize = 64;
 
-          // Get the AMD Depth Bounds Extension Interface
-          if (SUCCEEDED(hr) && amdExtension != nullptr)
-          {
-            g_device_desc.caps.hasATIApi = true;
-            amdDepthBoundsExtension = static_cast<IAmdDxExtDepthBounds *>(amdExtension->GetExtInterface(AmdDxExtDepthBoundsID));
-            debug("amdDepthBoundsExtension=0x%p", amdDepthBoundsExtension);
-            if (amdDepthBoundsExtension != nullptr)
-            {
-              ati_dbt_supported = true;
-              g_device_desc.caps.hasDepthBoundsTest = true;
-            }
-          }
+      // Get the AMD Depth Bounds Extension Interface
+      if (SUCCEEDED(hr) && amdExtension != nullptr)
+      {
+        g_device_desc.caps.hasATIApi = true;
+        amdDepthBoundsExtension = static_cast<IAmdDxExtDepthBounds *>(amdExtension->GetExtInterface(AmdDxExtDepthBoundsID));
+        debug("amdDepthBoundsExtension=0x%p", amdDepthBoundsExtension);
+        if (amdDepthBoundsExtension != nullptr)
+        {
+          ati_dbt_supported = true;
+          g_device_desc.caps.hasDepthBoundsTest = true;
         }
       }
-      else
-      {
-        debug("ATI ver=%d, DeviceDriverCapabilities::hasResourceCopyConversion disabled", vsfi->dwProductVersionLS);
-        g_device_desc.caps.hasResourceCopyConversion = false;
-      }
-
-      delete[] versionInfo;
     }
   }
 
@@ -2204,7 +2180,7 @@ bool d3d::reset_device()
     if (!init_device(stereo_config_callback, main_window_hwnd, resolution.x, resolution.y,
           blk_video.getBool("bits16", false) ? 16 : 32, displayName, blk_dx.getInt64("adapterLuid", 0), "DagorWClass"))
     {
-      fatal("Error initializing device(%s):\n%s", d3d::get_driver_name(), d3d::get_last_error());
+      DAG_FATAL("Error initializing device(%s):\n%s", d3d::get_driver_name(), d3d::get_last_error());
       resetting_device_now = false;
       return false;
     }
@@ -2234,7 +2210,7 @@ bool d3d::reset_device()
     // caused by changing swapchain output
     if (!set_window_params(nullptr, nullptr, 0, main_window_hwnd, render_window_hwnd, nullptr, nullptr, wndSettings))
     {
-      fatal("Error with set_window_params in reseting device");
+      DAG_FATAL("Error with set_window_params in reseting device");
       return false;
     }
 
@@ -2302,7 +2278,7 @@ bool d3d::reset_device()
     // SetFullscreenState can somehow interfere with window params, need to set these again
     if (!set_window_params(nullptr, nullptr, 0, main_window_hwnd, render_window_hwnd, nullptr, nullptr, wndSettings))
     {
-      fatal("Error with set_window_params in reseting device");
+      DAG_FATAL("Error with set_window_params in reseting device");
       return false;
     }
     ShowWindow(render_window_hwnd, SW_SHOW); // justincase

@@ -248,13 +248,13 @@ protected:
     FullFileLoadCB crd(fn);
     if (!crd.fileHandle)
     {
-      fatal("can't open scene file '%s'", fn);
+      DAG_FATAL("can't open scene file '%s'", fn);
       return;
     }
 
     if (crd.readInt() != _MAKE4C('scnf'))
     {
-      fatal("not scene file '%s'", fn);
+      DAG_FATAL("not scene file '%s'", fn);
       return;
     }
     Tab<TEXTUREID> texMap(tmpmem);

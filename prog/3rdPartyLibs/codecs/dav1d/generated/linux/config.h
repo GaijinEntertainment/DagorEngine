@@ -25,9 +25,9 @@
 
 #define HAVE_POSIX_MEMALIGN 1
 
-#define HAVE_ASM 1
+#define HAVE_ASM !defined(__e2k__)
 
-#define HAVE_AVX512ICL 1
+#define HAVE_AVX512ICL !defined(__e2k__)
 
 #define HAVE_IO_H 1
 

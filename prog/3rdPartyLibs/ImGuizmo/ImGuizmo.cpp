@@ -2264,7 +2264,8 @@ namespace ImGuizmo
       // behind camera
       vec_t camSpacePosition;
       camSpacePosition.TransformPoint(makeVect(0.f, 0.f, 0.f), gContext.mMVP);
-      if (!gContext.mIsOrthographic && camSpacePosition.z < 0.001f)
+      vec_t projectedPosition = camSpacePosition * (1.f / camSpacePosition.w); // took into account .w component, clip gizmo when it out of view
+      if (!gContext.mIsOrthographic && !(projectedPosition.z >= 0.0f && abs(projectedPosition.x) <= 1.f && abs(projectedPosition.y) <= 1.f))
       {
          return false;
       }

@@ -1,22 +1,30 @@
 #pragma once
 
+#include <stdint.h>
+#include <sys/types.h>
+
 struct DabuildJobSharedMem
 {
   unsigned fullMemSize;
   unsigned pid;
-  void *mapHandle;
+  intptr_t mapHandle;
   unsigned jobCount;
+#if _TARGET_PC_WIN
   void *jobHandle[64];
+#else
+  pid_t jobHandle[64];
+#endif
   int logLevel;
   bool quiet;
   bool nopbar;
   bool showImportantWarnings;
   bool dryRun;
+  bool stopOnFirstError;
   bool stripD3Dres;
   bool collapsePacks;
   bool expTex, expRes;
 
-  volatile long cmdGen, respGen;
+  volatile int cmdGen, respGen;
 
   struct JobCtx
   {
@@ -27,12 +35,13 @@ struct DabuildJobSharedMem
     volatile char profileName[32];
     volatile int pkgId, packId;
     volatile int donePk, totalPk;
-    volatile __int64 szDiff;
-    volatile __int64 szChangedTotal;
+    volatile int64_t szDiff;
+    volatile int64_t szChangedTotal;
     char data[1024 - 8 * 4 - 8 * 2 - 32];
 
     void setup(unsigned tc, const char *prof);
-  } __declspec(align(4096)) jobCtx[64];
+  };
+  alignas(4096) JobCtx jobCtx[64];
 
   unsigned forceRebuildAssetIdxCount, forceRebuildAssetIdx[0x4000 - 1];
 

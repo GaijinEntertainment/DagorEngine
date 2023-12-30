@@ -202,20 +202,20 @@ bool HeightmapRenderer::init(const char *shader_name, const char *mat_script, bo
   if (!shmat)
   {
     if (do_fatal)
-      fatal("can't create ShaderMaterial for '%s'", shader_name);
+      DAG_FATAL("can't create ShaderMaterial for '%s'", shader_name);
     return false;
   }
   shElem = shmat->make_elem();
   if (!shElem)
   {
     if (do_fatal)
-      fatal("can't create ShaderElement for ShaderMaterial '%s'", shader_name);
+      DAG_FATAL("can't create ShaderElement for ShaderMaterial '%s'", shader_name);
     return false;
   }
   if (!vdata[dimBits - VDATA_OFS].init(1 << dimBits)) // || !vdata[dimBits-VDATA_OFS].vb)
   {
     if (do_fatal)
-      fatal("can not init heightmap buffers");
+      DAG_FATAL("can not init heightmap buffers");
     return false;
   }
   return true;
@@ -366,7 +366,8 @@ static inline bool cull_node_by_clip(const Point3_vec4 &pos, const Point3_vec4 &
   return true;
 }
 
-static inline bool cull_node(const Point3_vec4 &pos, const Point3_vec4 &posRB, const GridCullingContext &ctx)
+static inline bool cull_node(const Point3_vec4 &pos, const Point3_vec4 &posRB, const GridCullingContext &ctx, float waterLevel,
+  const Point3 *viewPos)
 {
   if (ctx.frustum)
   {
@@ -378,6 +379,38 @@ static inline bool cull_node(const Point3_vec4 &pos, const Point3_vec4 &posRB, c
     if (ctx.use_occlusion && ctx.use_occlusion->isOccludedBoxExtent2(center2, extent2))
       return false;
   }
+
+  bool isWaterOnLevel = waterLevel > HeightmapHeightCulling::NO_WATER_ON_LEVEL;
+  if (isWaterOnLevel && viewPos)
+  {
+    static constexpr float SWIMMING_MAX_CAMERA_HEIGHT_ABOVE_WATER = 0.2f;
+    bool isPlayerSwimming = viewPos->y < waterLevel + SWIMMING_MAX_CAMERA_HEIGHT_ABOVE_WATER;
+    if (!isPlayerSwimming)
+    {
+      Point3 cornerToEyeAbsDiff = abs(posRB - *viewPos) - abs(pos - *viewPos);
+
+      // Choosing closest to camera corner of a box, checks passing for which will guarantee checks passing for all points on current
+      // heightmap patch:
+      Point3 closestPatchPoint =
+        Point3(cornerToEyeAbsDiff.x > 0 ? pos.x : posRB.x, posRB.y, cornerToEyeAbsDiff.z > 0 ? pos.z : posRB.z);
+      Point3 patchToEye = *viewPos - closestPatchPoint;
+      float distSquared = patchToEye.lengthSq();
+
+      // Threshold incidence angle is approximately 73 degrees:
+      static constexpr float THRESHOLD_INCIDENCE_ANGLE_SINE_SQUARED = 0.3f * 0.3f;
+      static constexpr float THRESHOLD_DIST_SQUARED_BY_SINE_SQUARED = 20.f * 20.f * THRESHOLD_INCIDENCE_ANGLE_SINE_SQUARED;
+      static constexpr float CAMERA_HEIGHT_FACTOR = 1.f / 3.f;
+
+      // Angle of incidence with water level surface is greater than the threshold angle and the point is further from the camera than
+      // threshold distance:
+      if (
+        THRESHOLD_INCIDENCE_ANGLE_SINE_SQUARED * distSquared > max(patchToEye.y * patchToEye.y, THRESHOLD_DIST_SQUARED_BY_SINE_SQUARED)
+        // Point under water is below certain depth, which is increasing with camera position height:
+        && closestPatchPoint.y < waterLevel - patchToEye.y * CAMERA_HEIGHT_FACTOR)
+        return false;
+    }
+  }
+
   return true;
 }
 
@@ -411,7 +444,8 @@ static inline float float_pack_edges_tess(int edgeTessOut[4])
 void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float originPosY, float scaleX, float scaleY, float alignX,
   float alignY, float hMin, float hMax, const Frustum *frustum, const BBox2 *clip, LodGridCullData &cull_data,
   const Occlusion *use_occlusion, float &out_lod0_area_radius, int dim, bool fight_t_junctions,
-  const HeightmapHeightCulling *heightCulling, const HMapTesselationData *hmap_tdata, BBox2 *innerLodsRegion)
+  const HeightmapHeightCulling *heightCulling, const HMapTesselationData *hmap_tdata, BBox2 *innerLodsRegion, float waterLevel,
+  const Point3 *viewPos)
 {
   G_UNREFERENCED(fight_t_junctions);
   G_ASSERT(scaleX == scaleY);
@@ -562,7 +596,7 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
                   posRB.z += lodGrid.lastLodExtension;
               }
 
-              if (cull_node_by_clip(pos, posRB, ctx) && cull_node(pos, posRB, ctx))
+              if (cull_node_by_clip(pos, posRB, ctx) && cull_node(pos, posRB, ctx, waterLevel, viewPos))
               {
                 IPoint2 patchPos = IPoint2(chunkX, chunkY);
                 // Add patch and pack info needed to find edge tesselation at patch.y
@@ -624,7 +658,7 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
           if (innerLodsRegion && lod != numLods - 1)
             (*innerLodsRegion) += BBox2(Point2(pos.x, pos.z), Point2(posRB.x, posRB.z));
 
-          if (!cull_node(pos, posRB, ctx))
+          if (!cull_node(pos, posRB, ctx, waterLevel, viewPos))
             continue;
 
           if (BBox2 cellRoot(origin, origin + Point2(patchSize, patchSize));

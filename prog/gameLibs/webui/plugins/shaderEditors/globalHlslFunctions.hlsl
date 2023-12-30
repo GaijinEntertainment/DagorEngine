@@ -13,6 +13,9 @@
 #define IS_DISTANT_FOG 0
 #endif
 
+#ifndef shadow2DArray
+  #define shadow2DArray(a, uv) a.SampleCmpLevelZero(a##_cmpSampler, (uv).xyz, (uv).w)
+#endif
 
 #define tex_hmap_low_samplerstate  land_heightmap_tex_samplerstate
 #define volfog_mask_tex_samplerstate  land_heightmap_tex_samplerstate
@@ -21,6 +24,22 @@
 #define prev_downsampled_far_depth_tex_samplerstate     downsampled_far_depth_tex_samplerstate
 #define downsampled_close_depth_tex_samplerstate        downsampled_far_depth_tex_samplerstate
 #define distant_heightmap_tex_samplerstate              land_heightmap_tex_samplerstate
+
+
+#define HAS_STATIC_SHADOW 1
+#define FASTEST_STATIC_SHADOW_PCF 1
+#define STATIC_SHADOW_CASCADE_NUM 2
+#define static_shadow_cascade_0_tor static_shadow_cascade_0_scale_ofs_z_tor.zw
+#define static_shadow_cascade_1_tor static_shadow_cascade_1_scale_ofs_z_tor.zw
+
+#define STATIC_SHADOW_SAMPLER_STATE_REF SamplerComparisonState
+#define STATIC_SHADOW_TEXTURE_REF Texture2DArray<float4>
+
+half static_shadow_sample(float2 uv, float z, STATIC_SHADOW_TEXTURE_REF tex, STATIC_SHADOW_SAMPLER_STATE_REF tex_cmpSampler, float layer)
+{
+  return (half)shadow2DArray(tex, float4(uv, layer, z));
+}
+
 
 #define NaN asfloat(0x7F800001)
 
@@ -513,6 +532,37 @@ float sample_spheres_density(StructuredBuffer<float4> spheres, int spheres_count
       density += lerp(densityParams.x, densityParams.y, weight);
   }
   return density;
+}
+
+float2 getPrevTc(float3 world_pos, out float3 prev_clipSpace)
+{
+  // TODO: very ugly and subpotimal
+  float4x4 prev_globtm_psf;
+  prev_globtm_psf._m00_m10_m20_m30 = prev_globtm_psf_0;
+  prev_globtm_psf._m01_m11_m21_m31 = prev_globtm_psf_1;
+  prev_globtm_psf._m02_m12_m22_m32 = prev_globtm_psf_2;
+  prev_globtm_psf._m03_m13_m23_m33 = prev_globtm_psf_3;
+  float4 lastClipSpacePos = mul(float4(world_pos, 1), prev_globtm_psf);
+  prev_clipSpace = lastClipSpacePos.w < 0.0001 ? float3(2,2,2) : lastClipSpacePos.xyz/lastClipSpacePos.w;
+  return prev_clipSpace.xy*float2(0.5,-0.5) + float2(0.5,0.5);
+}
+float2 getPrevTc(float3 world_pos)
+{
+  float3 prevClip;
+  return getPrevTc(world_pos, prevClip);
+}
+bool checkOffscreenTc3d(float3 screen_tc)
+{
+  return any(abs(screen_tc - 0.5) >= 0.4999);
+}
+bool checkOffscreenTc2d(float2 screen_tc)
+{
+  return checkOffscreenTc3d(float3(screen_tc, 0.5));
+}
+
+float4 get_transformed_zn_zfar()
+{
+  return float4(zn_zfar.x, zn_zfar.y, 1.0 / zn_zfar.y, (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
 }
 
 float4 texelFetch(Texture2D<float4> a, int2 tc, int lod) { return a.Load(int3(tc, lod)); }

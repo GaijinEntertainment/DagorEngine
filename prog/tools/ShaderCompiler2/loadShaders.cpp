@@ -117,7 +117,7 @@ bool load_scripted_shaders(const char *filename, bool check_dep)
   ShadersBindump shaders;
   bindump::FileReader reader(filename);
   if (!load_shaders_bindump(shaders, reader))
-    fatal("corrupted OBJ file: %s", filename);
+    DAG_FATAL("corrupted OBJ file: %s", filename);
 
   loadedshaders::render_state = eastl::move(shaders.render_states);
   loadedshaders::fsh = eastl::move(shaders.shaders_fsh);

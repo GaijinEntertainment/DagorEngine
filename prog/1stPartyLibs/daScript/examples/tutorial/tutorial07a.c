@@ -81,7 +81,7 @@ shutdown:;
 
 // this is test function
 vec4f das_c_func ( das_context * ctx, das_node * node, vec4f * args ) {
-    ctx; node;
+    (void)ctx; (void)node;
     printf("from das_c_func(%i)\n", das_argument_int(args[0]));     // access argument
     return das_result_void();                                       // return result
 }
@@ -120,7 +120,7 @@ das_module * register_module_tutorial_07() {
 }
 
 int main( int argc, char ** argv ) {
-    argc; argv;
+    (void)argc; (void)argv;
     // Initialize all default modules
     das_initialize();
     // register modules

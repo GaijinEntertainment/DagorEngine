@@ -115,7 +115,7 @@ ObjectManager::ObjectManager(const char *name, uint32_t ri_pool_id, int cell_til
 
   if (!parameters.map.empty())
   {
-    mapTexId = dag::get_tex_gameres(parameters.map, "gpu_objects_map");
+    mapTexId = dag::get_tex_gameres(parameters.map.c_str(), "gpu_objects_map");
     if (!mapTexId)
       logerr("Texture %s for gpu objects mask not found in resources.", parameters.map);
   }
@@ -207,7 +207,6 @@ void ObjectManager::recreateGrid(int cell_tile, int cells_size_count, float cell
   size_t vectorSize = maxObjectsCountInCell > 0 ? cellsCount : 0;
   counters.assign(vectorSize, 0);
   cellsBboxes.resize(vectorSize);
-  renderOrder.resize(vectorSize);
   appendOrder.resize(vectorSize);
   updateQueue.get_container().clear();
 
@@ -340,7 +339,7 @@ void ObjectManager::onLandPlacing()
 
 void ObjectManager::dispatchCells(const ToroidalQuadRegion &region)
 {
-  TIME_D3D_PROFILE(ObjectManager_dispatchCells)
+  TIME_PROFILE(ObjectManager_dispatchCells)
   for (int i = 0; i < region.wd.x; ++i)
   {
     for (int j = 0; j < region.wd.y; ++j)
@@ -368,21 +367,32 @@ void ObjectManager::gatherBuffers()
 {
   if (maxObjectsCountInCell == 0)
     return;
-  TIME_D3D_PROFILE(ObjectManager_gatherBuffers)
+
+  TIME_PROFILE(ObjectManager_gatherBuffers);
+
+  // To consider: instead of resorting whole array each time - maintain it's in sorted order
+  // since usually origin doesnt change that much from frame to frame
+  vec3f vLastOrigin = v_ldu(&lastOrigin.x), vCellSize = v_splats(cellSize);
   for (int i = 0, flatIdx = 0; i < cellsSideCount; ++i)
     for (int j = 0; j < cellsSideCount; ++j, ++flatIdx)
     {
       Point3 cellPos(toroidalGrid.mainOrigin.x + i + 0.5f - cellsSideCount * 0.5f, 0,
-        toroidalGrid.mainOrigin.y + j + 0.5f - cellsSideCount * 0.5f);
-      cellPos = cellPos * cellSize;
-      appendOrder[flatIdx].first = (lastOrigin - cellPos).lengthSq();
-      appendOrder[flatIdx].second = flatIdx;
+        toroidalGrid.mainOrigin.y + j + 0.5f - cellsSideCount * 0.5f); // TODO: SIMDify this
+      vec3f vCellPos = v_mul(v_ldu_p3(&cellPos.x), vCellSize);
+      appendOrder[flatIdx].distSq = v_extract_x(v_length3_sq_x(v_sub(vLastOrigin, vCellPos)));
+      appendOrder[flatIdx].idx = flatIdx;
     }
 
-  stlsort::sort(appendOrder.begin(), appendOrder.end());
+  {
+    TIME_PROFILE_DEV(sort_appendOrder);
+    stlsort::sort_branchless(appendOrder.begin(), appendOrder.end());
+  }
 
-  for (int i = 0; i < appendOrder.size(); ++i)
-    renderOrder[i] = appendOrder[i].second;
+#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
+  char dmfmt[64]; // Note: DAP has internal limits too, there is no much sense to increaes it further
+  snprintf(dmfmt, sizeof(dmfmt), "grid:%%d %s", assetName.c_str());
+  DA_PROFILE_TAG(ObjectManager_gatherBuffers, dmfmt, cellsSideCount);
+#endif
 }
 
 void ObjectManager::updateVisibilityAndLods(const Frustum &frustum, const Occlusion *occlusion, ShadowPass for_shadow)
@@ -396,7 +406,9 @@ void ObjectManager::updateVisibilityAndLods(const Frustum &frustum, const Occlus
   if (for_shadow == ShadowPass::YES && !isRenderedIntoShadows())
     return;
 
-  for (uint32_t idx : renderOrder)
+  for (const auto &ao : appendOrder)
+  {
+    unsigned idx = ao.idx;
     if (counters[idx] && frustum.testBoxB(cellsBboxes[idx].bmin, cellsBboxes[idx].bmax) &&
         (!occlusion || occlusion->isVisibleBox(cellsBboxes[idx])))
     {
@@ -407,6 +419,7 @@ void ObjectManager::updateVisibilityAndLods(const Frustum &frustum, const Occlus
       if (lod < numLods)
         cellIndexesByLods[lod].push_back(idx);
     }
+  }
 }
 
 void ObjectManager::copyMatrices(const eastl::vector<uint32_t> &cells_to_copy, const eastl::vector<uint32_t> &cell_counters,
@@ -622,7 +635,7 @@ void ObjectManager::validateParams() const
 
 void GpuObjects::update(const Point3 &origin)
 {
-  TIME_PROFILE(GpuObjects_update)
+  TIME_D3D_PROFILE(GpuObjects_update)
   for (ObjectManager &object : objects)
     object.update(origin);
   if (VolumePlacer *volumePlacer = get_volume_placer_mgr())

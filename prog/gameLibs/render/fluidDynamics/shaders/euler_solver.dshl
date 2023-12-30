@@ -61,22 +61,24 @@ shader fill_initial_conditions
     velocity_density@uav = velocity_density_tex hlsl {
       RWTexture3D<float4> velocity_density@uav;
     };
+    solid_boundaries@smp3d = solid_boundaries_tex;
 
     standard_density@f1 = (standard_density, 0, 0, 0);
     standard_velocity@f2 = (standard_velocity.x, standard_velocity.y, 0, 0);
 
-    texSize@i3 = (tex_size.x, tex_size.y, tex_size.z, 0);
+    tex_size@i3 = (tex_size.x, tex_size.y, tex_size.z, 0);
   }
 
   hlsl(cs) {
     [numthreads(8, 8, 1)]
     void cs_main(uint3 tid : SV_DispatchThreadID)
     {
-      uint3 size = texSize;
+      uint3 size = tex_size;
       if (tid.x >= size.x || tid.y >= size.y || tid.z >= size.z)
         return;
 
-      velocity_density[tid] = float4(standard_velocity, 0, standard_density);
+      float boundaryData = tex3Dlod(solid_boundaries, float4(float3(tid + 0.5) / float3(tex_size), 0)).x;
+      velocity_density[tid] = float4(boundaryData > 0 ? float2(0, 0) : standard_velocity, 0, standard_density);
     }
   }
 
@@ -91,7 +93,9 @@ shader fill_initial_conditions_from_tex
     velocity_density@uav = velocity_density_tex hlsl {
       RWTexture3D<float4> velocity_density@uav;
     };
+    solid_boundaries@smp3d = solid_boundaries_tex;
 
+    standard_density@f1 = (standard_density, 0, 0, 0);
     initial_velocity_density@smp3d = initial_velocity_density_tex;
 
     texSize@i3 = (tex_size.x, tex_size.y, tex_size.z, 0);
@@ -105,7 +109,9 @@ shader fill_initial_conditions_from_tex
       if (tid.x >= size.x || tid.y >= size.y || tid.z >= size.z)
         return;
 
-      velocity_density[tid] = tex3Dlod(initial_velocity_density, float4(float3(tid) / float3(size), 0));
+      float3 tc = float3(tid + 0.5) / float3(size);
+      float boundaryData = tex3Dlod(solid_boundaries, float4(tc, 0)).x;
+      velocity_density[tid] = boundaryData > 0 ? float4(0, 0, 0, standard_density) : tex3Dlod(initial_velocity_density, float4(tc, 0));
     }
   }
 
@@ -137,10 +143,14 @@ shader euler_simulation_cs
 
     float2 frictionForce(uint3 coord, float2 v)
     {
-      float boundaryData = tex3Dlod(solid_boundaries, float4(float3(coord) / float3(tex_size), 0)).x;
+      float3 tc = float3(coord + 0.5) / float3(tex_size);
+      float boundaryData = tex3Dlod(solid_boundaries, float4(tc, 0)).x;
+
+      float2 vignette = saturate(abs(tc.xy * 2 - 1) * 10 - 8.9);
+      float vignetteEffect = max(vignette.x, vignette.y);
 
       if (boundaryData > 0)
-        return -v * 10000.0;
+        return -v * 10000.0 * lerp(1, 0, vignetteEffect);
 
       return 0;
     }
@@ -259,7 +269,7 @@ shader euler_simulation_explicit_implicit_cs
 
     float2 frictionForce(uint2 coord, float2 v)
     {
-      float boundaryData = tex2Dlod(solid_boundaries, float4(float2(coord) / float2(tex_size), 0, 0)).w;
+      float boundaryData = tex2Dlod(solid_boundaries, float4(float2(coord + 0.5) / float2(tex_size), 0, 0)).w;
 
       if (boundaryData > 0)
         return -v * 10000.0;
@@ -424,6 +434,7 @@ shader blur_result_cs
 
     standard_density@f1 = (standard_density, 0, 0, 0);
     standard_velocity@f2 = (standard_velocity.x, standard_velocity.y, 0, 0);
+    solid_boundaries@smp3d = solid_boundaries_tex;
   }
 
   hlsl(cs) {
@@ -437,11 +448,31 @@ shader blur_result_cs
     {
       float4 blurredVelDensity = 0;
 
+      float centerBoundary = tex3Dlod(solid_boundaries, float4(float3(coord + 0.5) / float3(tex_size), 0)).x;
+      if (centerBoundary > 0)
+      {
+        next_velocity_density[coord] = float4(0, 0, 0, standard_density);
+        return;
+      }
+
       float4 velDensityCenter = texelFetch(velocity_density, coord, 0);
       float4 velDensityLeft = coord.x != 0 ? texelFetch(velocity_density, coord - x_ofs, 0) : float4(standard_velocity, 0, standard_density);
       float4 velDensityRight = coord.x != tex_size.x - 1 ? texelFetch(velocity_density, coord + x_ofs, 0) : float4(standard_velocity, 0, standard_density);
       float4 velDensityTop = coord.y != 0 ? texelFetch(velocity_density, coord - y_ofs, 0) : float4(standard_velocity, 0, standard_density);
       float4 velDensityBottom = coord.y != tex_size.y - 1 ? texelFetch(velocity_density, coord + y_ofs, 0) : float4(standard_velocity, 0, standard_density);
+
+      ValueCross boundaryCross =
+      {
+        tex3Dlod(solid_boundaries, float4(float3(coord - x_ofs + 0.5) / float3(tex_size), 0)).x,
+        tex3Dlod(solid_boundaries, float4(float3(coord + x_ofs + 0.5) / float3(tex_size), 0)).x,
+        tex3Dlod(solid_boundaries, float4(float3(coord - y_ofs + 0.5) / float3(tex_size), 0)).x,
+        tex3Dlod(solid_boundaries, float4(float3(coord + y_ofs + 0.5) / float3(tex_size), 0)).x
+      };
+
+      velDensityLeft.xy = boundaryCross.left > 0 ? velDensityCenter.xy : velDensityLeft.xy;
+      velDensityRight.xy = boundaryCross.right > 0 ? velDensityCenter.xy : velDensityRight.xy;
+      velDensityTop.xy = boundaryCross.top > 0 ? velDensityCenter.xy : velDensityTop.xy;
+      velDensityBottom.xy = boundaryCross.bottom > 0 ? velDensityCenter.xy : velDensityBottom.xy;
 
       float v_x = blurWeights.y*(blurWeights.x*velDensityCenter.x + velDensityRight.x +
                                                                   + velDensityLeft.x +

@@ -120,7 +120,12 @@ void DeviceContext::reportAlliveObjects(FaultReportDump &dump)
 void DeviceContext::cleanupFrontendReplayResources()
 {
   for (auto &i : front.tempBufferManagers)
-    i.onFrameEnd([=](auto buffer) { front.replayRecord->cleanups.enqueue(*buffer); });
+  {
+    i.onFrameEnd([&](auto buffer) {
+      CmdDestroyBuffer cmd{buffer};
+      front.replayRecord->pushCommand(cmd);
+    });
+  }
   front.completionStateRefs.clear();
 }
 
@@ -143,10 +148,10 @@ void DeviceContext::setPipelineUsability(ProgramID program, bool value)
 #endif
 }
 
-void DeviceContext::setConstRegisterBuffer(VulkanBufferHandle buffer, uint32_t offset, uint32_t size, ShaderStage stage)
+void DeviceContext::setConstRegisterBuffer(Buffer *buffer, uint32_t offset, uint32_t size, ShaderStage stage)
 {
   auto &resBinds = front.pipelineState.getStageResourceBinds(stage);
-  if (resBinds.set<StateFieldGlobalConstBuffer, StateFieldGlobalConstBuffer::BufferRangedRef>({buffer, offset, size}))
+  if (resBinds.set<StateFieldGlobalConstBuffer, BufferRef>(BufferRef{buffer, size, offset}))
     front.pipelineState.markResourceBindDirty(stage);
 }
 
@@ -403,30 +408,6 @@ void DeviceContext::flushDraws()
   afterBackendFlush();
 }
 
-// special versions of copyBufferToImage/copyImageToBuffer that work without lock
-void DeviceContext::copyImageToHostCopyBuffer(Image *image, Buffer *buffer, uint32_t region_count, VkBufferImageCopy *regions)
-{
-  ImageCopyInfo info;
-  info.image = image;
-  info.buffer = buffer;
-  info.copyCount = region_count;
-  info.copyIndex = front.replayRecord->imageDownloadCopies.size();
-  front.replayRecord->imageDownloads.push_back(info);
-  front.replayRecord->imageDownloadCopies.insert(end(front.replayRecord->imageDownloadCopies), regions, regions + region_count);
-}
-
-void DeviceContext::copyHostCopyToImage(Buffer *src, Image *dst, uint32_t region_count, VkBufferImageCopy *regions)
-{
-  ImageCopyInfo info;
-  info.image = dst;
-  info.buffer = src;
-  info.copyCount = region_count;
-  info.copyIndex = front.replayRecord->imageUploadCopies.size();
-  front.replayRecord->imageUploads.push_back(info);
-  front.replayRecord->imageUploadCopies.insert(end(front.replayRecord->imageUploadCopies), regions, regions + region_count);
-  front.replayRecord->cleanups.enqueue(*src);
-}
-
 void DeviceContext::copyImageToBuffer(Image *image, Buffer *buffer, uint32_t region_count, VkBufferImageCopy *regions,
   AsyncCompletionState *sync)
 {
@@ -490,13 +471,11 @@ void DeviceContext::updateBindlessResource(uint32_t index, D3dResource *res)
     auto tex = (BaseTex *)res;
     if (tex->isStub())
       tex = tex->getStubTex();
-    tex->setUsed();
     Image *image = tex->getDeviceImage(true);
     const ImageViewState &viewState = tex->getViewInfo();
 
     VULKAN_LOCK_FRONT();
-    CmdUpdateBindlessTexture cmd{index, image, viewState};
-    VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
+    front.replayRecord->bindlessTexUpdates.push_back({index, 1, image, viewState});
   }
   else
   {
@@ -509,12 +488,7 @@ void DeviceContext::updateBindlessResourcesToNull(uint32_t resourceType, uint32_
   if (RES3D_SBUF != resourceType)
   {
     VULKAN_LOCK_FRONT();
-
-    for (uint32_t i = index; i < index + count; ++i)
-    {
-      CmdUpdateBindlessTexture cmd{i, nullptr, {}};
-      VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
-    }
+    front.replayRecord->bindlessTexUpdates.push_back({index, count, nullptr, {}});
   }
   else
   {
@@ -522,11 +496,10 @@ void DeviceContext::updateBindlessResourcesToNull(uint32_t resourceType, uint32_
   }
 }
 
-void DeviceContext::updateBindlessSampler(uint32_t index, SamplerInfo *samplerInfo)
+void DeviceContext::updateBindlessSampler(uint32_t index, SamplerState sampler)
 {
   VULKAN_LOCK_FRONT();
-  CmdUpdateBindlessSampler cmd{index, samplerInfo};
-  VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
+  front.replayRecord->bindlessSamplerUpdates.push_back({index, sampler});
 }
 
 void DeviceContext::copyBindlessTextureDescriptors(uint32_t src, uint32_t dst, uint32_t count)
@@ -689,6 +662,13 @@ void DeviceContext::destroyRenderPassResource(RenderPassResource *rp)
   VULKAN_DISPATCH_COMMAND(cmd);
 }
 
+void DeviceContext::destroySamplerResource(SamplerResource *sampler)
+{
+  G_ASSERT(sampler != nullptr);
+  CmdDestroySamplerResource cmd{sampler};
+  VULKAN_DISPATCH_COMMAND(cmd);
+}
+
 Buffer *DeviceContext::discardBuffer(Buffer *to_discared, DeviceMemoryClass memory_class, FormatStore view_format, uint32_t bufFlags)
 {
   Buffer *ret = to_discared;
@@ -721,8 +701,6 @@ void DeviceContext::destroyImage(Image *img)
   CmdDestroyImage cmd{img};
   VULKAN_DISPATCH_COMMAND(cmd);
 }
-
-void DeviceContext::evictImage(Image *img) { front.replayRecord->cleanups.enqueue<Image::CLEANUP_EVICT>(*img); }
 
 void DeviceContext::setPipelineCompilationTimeBudget(unsigned usecs)
 {
@@ -928,7 +906,7 @@ void DeviceContext::waitFor(AsyncCompletionState &sync)
   if (!sync.isCompleted())
   {
     // we can't really continue, caller hardly depend on this sync
-    fatal("vulkan: AsyncCompletionState wait failed");
+    DAG_FATAL("vulkan: AsyncCompletionState wait failed");
   }
 }
 

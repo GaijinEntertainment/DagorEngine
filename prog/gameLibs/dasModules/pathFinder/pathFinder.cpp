@@ -141,6 +141,13 @@ public:
       &traceray_navmesh>(*this, lib, "traceray_navmesh", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::traceray_navmesh");
 
+    das::addExtern<bool (*)(const Point3 &, const Point3 &, const Point3 &, das::float3 &, dtPolyRef &, pathfinder::CustomNav *),
+      &traceray_navmesh>(*this, lib, "traceray_navmesh", das::SideEffects::modifyArgumentAndAccessExternal,
+      "bind_dascript::traceray_navmesh");
+
+    das::addExtern<bool (*)(const Point3 &, const Point3 &, const Point3 &, das::float3 &, dtPolyRef &), &traceray_navmesh>(*this, lib,
+      "traceray_navmesh", das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::traceray_navmesh");
+
     das::addExtern<bool (*)(das::float3 &, float), &project_to_nearest_navmesh_point>(*this, lib, "project_to_nearest_navmesh_point",
       das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::project_to_nearest_navmesh_point");
 
@@ -279,6 +286,9 @@ public:
 
     das::addExtern<DAS_BIND_FUN(query_navmesh_projections)>(*this, lib, "query_navmesh_projections", das::SideEffects::accessExternal,
       "bind_dascript::query_navmesh_projections");
+
+    das::addExtern<DAS_BIND_FUN(query_navmesh_projections_with_polys)>(*this, lib, "query_navmesh_projections",
+      das::SideEffects::accessExternal, "bind_dascript::query_navmesh_projections_with_polys");
 
     das::addExtern<DAS_BIND_FUN(pathfinder::init_path_corridor)>(*this, lib, "init_path_corridor",
       das::SideEffects::modifyArgumentAndExternal, "pathfinder::init_path_corridor");

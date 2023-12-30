@@ -30,9 +30,6 @@ GenericBufferInterface::GenericBufferInterface(uint32_t struct_size, uint32_t el
 
   buffer = device.createBuffer(bufSize, getMemoryClass(), getInitialDiscardCount(), BufferMemoryFlags::NONE);
 
-  if (!buffer->isResident())
-    return;
-
   device.setBufName(buffer, getResName());
 
   if (!isDMAPathAvailable() && stagingBufferIsPermanent())

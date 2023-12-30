@@ -74,7 +74,7 @@ if ( -D_WIN32_WINNT=0x0501 in $(GlobalCPPopt) ) {
 if $(Platform) in win32 win64 xboxOne scarlett {
   Sources += src/win32/thread.c ;
 }
-if $(Platform) in win32 win64 xboxOne scarlett ps4 ps5 linux64 {
+if ( $(Platform) in win32 win64 xboxOne scarlett ps4 ps5 ) || ( $(Platform) = linux64 && $(LinuxArch) = x86_64 ) {
   AutoscanBuildLists src/x86 : *.asm : Sources : (16_(sse|avx)|filmgrain_common) ;
   AutoscanBuildLists src/x86 : *.c : Sources ;
 }
@@ -118,6 +118,8 @@ Copt += -DBITDEPTH=8 ;
 
 if $(Platform) in win32 win64 xboxOne scarlett && $(PlatformSpec) != clang {
   Copt += /wd4028 /wd4244 /wd4267 /wd4996 /wd4090 /wd4133 ;
+} else if $(Platform) = linux64 && $(PlatformSpec) = gcc && $(LinuxArch) = e2k {
+  Copt += -w167 -w513 -Wno-bad-initializer-type -Wno-incompatible-pointer-types -Wno-reduced-alignment ;
 } else {
   Copt += -Wno-incompatible-pointer-types ;
 }

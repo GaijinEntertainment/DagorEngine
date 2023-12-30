@@ -5,7 +5,7 @@
 
 let storage = {}
 
-let function makeKey(path) {
+function makeKey(path) {
   let tp = type(path)
   if (tp=="array") {
     assert(path.len()>0)

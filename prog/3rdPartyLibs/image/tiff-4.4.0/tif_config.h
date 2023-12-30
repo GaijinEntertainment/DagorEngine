@@ -161,19 +161,9 @@
 /* Define for large files, on AIX-style hosts. */
 #undef _LARGE_FILES
 
-#if !defined(__MINGW32__)
-#  define TIFF_SIZE_FORMAT "zu"
-#endif
-#if SIZEOF_SIZE_T == 8
-#  define TIFF_SSIZE_FORMAT PRId64
-#  if defined(__MINGW32__)
-#    define TIFF_SIZE_FORMAT PRIu64
-#  endif
-#elif SIZEOF_SIZE_T == 4
-#  define TIFF_SSIZE_FORMAT PRId32
-#  if defined(__MINGW32__)
-#    define TIFF_SIZE_FORMAT PRIu32
-#  endif
+#if SIZEOF_SIZE_T == 8 || SIZEOF_SIZE_T == 4
+#  define TIFF_SSIZE_FORMAT PRIdPTR
+#  define TIFF_SIZE_FORMAT  PRIuPTR
 #else
 #  error "Unsupported size_t size; please submit a bug report"
 #endif

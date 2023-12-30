@@ -159,8 +159,10 @@ static int get_dx11_feature_level_supported()
 static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t &out_video_memory_mb,
   uint32_t &out_free_video_memory_mb, int &feature_level_supported, uint32_t drv_ver[4], DagorDateTime &drv_date, uint32_t &device_id)
 {
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4191) // 'type cast' : unsafe conversion from 'FARPROC'
+#endif
 
   debug("get_active_gpu_vendor...");
 
@@ -315,7 +317,9 @@ static int get_active_gpu_vendor_pc(String &out_active_gpu_description, uint32_t
 
   return vendor;
 
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 }
 
 #elif _TARGET_PC_MACOSX

@@ -11,6 +11,7 @@ struct SelectedNodesSettings
   bool isTraceable = false;
   ExportCollisionNodeType type = ExportCollisionNodeType::MESH;
   String nodeName;
+  SimpleString physMat;
   dag::Vector<String> refNodes;
 
   void readProps(const DataBlock *props);

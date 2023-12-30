@@ -16,7 +16,7 @@ Sources =
   blake3_portable.c
 ;
 
-if $(Platform) in win32 {
+if ( $(Platform) in win32 ) || ( $(Platform) = linux64 && $(LinuxArch) = e2k ) {
   Copt = -DBLAKE3_NO_SSE2 -DBLAKE3_NO_SSE41 -DBLAKE3_NO_AVX2 -DBLAKE3_NO_AVX512 ;
 } else if $(Platform) in win64 xboxOne scarlett  {
   Sources +=

@@ -33,7 +33,7 @@ let xmbDebugCursor = Cursor({
 })
 
 
-let function btn(params) {
+function btn(params) {
   local mainNode
 
   let leftBtnNode = XmbNode({
@@ -112,7 +112,7 @@ let function btn(params) {
 }
 
 
-let function hPanel() {
+function hPanel() {
   let children = array(20).map(function(_, idx) {
     return btn({
       text = idx

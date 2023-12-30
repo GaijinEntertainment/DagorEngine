@@ -113,17 +113,22 @@ inline Quat quat_rotation_look(const Point3 &forward, const Point3 &upward)
 inline float ssmooth(float t, float min = 0.f, float max = 1.f) { return min + t * t * (3 - 2 * t) * (max - min); }
 
 template <class T>
-inline T sqr(T x)
-{
-  return x * x;
-};
-
-template <class T>
 inline T sign(T x)
 {
   return (x * 1 < 0) ? -1 : ((x > 0) ? 1 : 0); // *1 - to avoid pointers
 };
 
+// Integer division with round to positive infinity (ceil).
+template <class T>
+inline T div_ceil(T x, T y)
+{
+  T div_result = x / y;
+  bool div_has_remainder = x % y != 0;
+  if constexpr (std::is_signed_v<T>)
+    return div_result + (((x < 0) == (y < 0)) && div_has_remainder);
+  else
+    return div_result + div_has_remainder;
+}
 
 template <typename T>
 struct DoNotPutPointersIntoClamp

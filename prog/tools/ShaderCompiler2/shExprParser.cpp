@@ -121,7 +121,7 @@ LocalVar *ExpressionParser::parseLocalVarDecl(local_var_decl &decl)
   }
   if (var->isConst)
   {
-    var->cv.c = v;
+    var->cv.c.set(v);
     return var;
   }
 
@@ -318,7 +318,7 @@ bool ExpressionParser::parseOperand(ShaderTerminal::arithmetic_operand &s, shexp
         if (locVar->valueType == shexpr::VT_COLOR4)
         {
           // add this as color4 constant
-          ConstColor4Value *newExpr = new ConstColor4Value(s.var_name, locVar->cv.c);
+          ConstColor4Value *newExpr = new ConstColor4Value(s.var_name, Color4::rgbV(locVar->cv.c, locVar->cv.c.a));
 
           if (colorChExpr)
           {
@@ -434,6 +434,7 @@ bool ExpressionParser::parseOperand(ShaderTerminal::arithmetic_operand &s, shexp
           break;
 
         case SHVT_TEXTURE: varType = shexpr::VT_TEXTURE; break;
+        case SHVT_BUFFER: varType = shexpr::VT_BUFFER; break;
         default: G_ASSERT(0);
       }
     }

@@ -155,7 +155,7 @@ public:
   }
 
   int getWcharGlyphIdx(int ch) { return curHt >= 0 ? FT_Get_Char_Index(face, ch) : 0; }
-  const FT_GlyphSlot renderGlyph(int index)
+  FT_GlyphSlot renderGlyph(int index)
   {
     if (curHt <= 0)
       return NULL;
@@ -1570,7 +1570,7 @@ void DagorFontBinDump::loadFonts(FontArray &fonts, const char *fname_prefix, int
   int fsize = df_length(crd.fileHandle);
   if (fsize < 8)
   {
-    fatal("bad font file size %d: <%s>, h=%d", fsize, fname_prefix, scr_h);
+    DAG_FATAL("bad font file size %d: <%s>, h=%d", fsize, fname_prefix, scr_h);
     return;
   }
   debug("load fonts from '%s'", crd.getTargetName());
@@ -1676,7 +1676,7 @@ void DagorFontBinDump::loadFontsStream(IGenLoad &crd, FontArray &fonts, const ch
       for (int i = first_index; i < fonts.size(); i++)
         fonts[i].discard();
   }
-  DAGOR_CATCH(IGenLoad::LoadException) { fatal("Error reading fonts file '%s'", fname_prefix); }
+  DAGOR_CATCH(IGenLoad::LoadException) { DAG_FATAL("Error reading fonts file '%s'", fname_prefix); }
 }
 
 

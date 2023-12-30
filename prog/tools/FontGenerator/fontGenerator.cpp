@@ -1,9 +1,13 @@
-#include <windows.h>
 #include "fontFileFormat.h"
 #include <stdio.h>
 #include <ctype.h>
 #include <signal.h>
+#if _TARGET_PC_WIN
 #include <io.h>
+#else
+#include <unistd.h>
+#include <wctype.h>
+#endif
 #include <libTools/util/genericCache.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/fileUtils.h>
@@ -198,9 +202,9 @@ struct FontInfo
 {
   const char *file;
   String name;
-  const char *atlas;
+  SimpleString atlas;
   const char *cpfile;
-  const char *prefix;
+  SimpleString prefix;
   String defName;
   double size;
   bool monochrome;
@@ -277,7 +281,7 @@ struct FontInfo
     generateMissingGlyphBox = blk.getBool("generateMissingGlyphBox", global_generateMissingGlyphBox);
 
     if (!::dgs_execute_quiet)
-      printf("load atlas = %s\n", atlas);
+      printf("load atlas = %s\n", atlas.str());
 
     rgba32 = blk.getBool("colorFont", false);
     font_color = blk.getE3dcolor("font_color", 0xFFFFFFFF);
@@ -728,7 +732,7 @@ struct FontInfo
       {
         const char *str = blk.getStr(k);
         utf16.resize(strlen(str));
-        int used = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, str, (int)strlen(str), utf16.data(), utf16.size());
+        int used = utf8_to_wcs_ex(str, (int)strlen(str), utf16.data(), utf16.size()) ? wcslen(utf16.data()) : 0;
 
         G_ASSERT(used <= utf16.size());
         utf16.resize(used);
@@ -752,7 +756,7 @@ struct FontInfo
           fclose(fp);
 
           utf16.resize(utf8.size());
-          int used = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8.data(), utf8.size(), utf16.data(), utf16.size());
+          int used = utf8_to_wcs_ex(utf8.data(), utf8.size(), utf16.data(), utf16.size()) ? wcslen(utf16.data()) : 0;
           G_ASSERT(used <= utf16.size());
           utf16.resize(used);
 
@@ -1056,7 +1060,7 @@ static bool loadFreeTypeFont(const FontInfo &font_info, int ht, FreeTypeFont &f)
 
   if (!f.import_ttf(font_info.file, font_info.symbCharMap))
   {
-    fatal("TrueType can't load font from \"%s\"", font_info.file);
+    DAG_FATAL("TrueType can't load font from \"%s\"", font_info.file);
     return false;
   }
   int original_ht = ht;
@@ -1083,7 +1087,7 @@ static bool loadFreeTypeFont(const FontInfo &font_info, int ht, FreeTypeFont &f)
     printf(" using font height %d pix (instead of %d)\n", ht, original_ht);
 
   f.srcDesc.printf(0, "%s?%d?%d?%d", font_info.file, ht - 2 * font_info.border, font_info.valve_upscale, font_info.forceAutoHinting);
-  strlwr(f.srcDesc);
+  dd_strlwr(f.srcDesc);
   simplify_fname(f.srcDesc);
   return true;
 }
@@ -1146,7 +1150,7 @@ static bool dimCompile(Tab<FontInfo *> &info, int hres_id, bool genTga, int targ
     }
   }
 
-  if (c4.checkFileChanged(__argv[0])) //== depend on EXE revision
+  if (c4.checkFileChanged(dgs_argv[0])) //== depend on EXE revision
     uptodate = false;
   if (c4.checkDataBlockChanged(cfgBlk.resolveFilename(), cfgBlk))
     uptodate = false;
@@ -1709,8 +1713,8 @@ static bool dimCompile(Tab<FontInfo *> &info, int hres_id, bool genTga, int targ
       for (int c_ind = 0; c_ind < cmap.size(); ++c_ind)
         if (cmap[c_ind])
         {
-          uint16_t up_case = LOWORD(CharUpperW((LPWSTR)(uintptr_t)cmap[c_ind]));                              //-V:542 LCMapString
-          uint16_t low_case = LOWORD(CharLowerW((LPWSTR)(uintptr_t)cmap[c_ind]));                             //-V:542
+          uint16_t up_case = towupper(cmap[c_ind]);
+          uint16_t low_case = towlower(cmap[c_ind]);
           uint16_t search_case = up_case != cmap[c_ind] ? up_case : (low_case != cmap[c_ind] ? low_case : 0); //-V:542
 
           if (search_case)
@@ -1832,7 +1836,7 @@ static bool dimCompile(Tab<FontInfo *> &info, int hres_id, bool genTga, int targ
     if (opt_i == -1)
     {
       if (opt_part_i == -1)
-        fatal("glyph is too big to fit in %dx%d", TEX_MAX_SIZE, TEX_MAX_SIZE);
+        DAG_FATAL("glyph is too big to fit in %dx%d", TEX_MAX_SIZE, TEX_MAX_SIZE);
       opt_i = opt_part_i;
       opt_texh = TEX_MAX_SIZE;
       // printf ( "partial, opt_part_glnext=%d\n", opt_part_glnext );
@@ -1916,7 +1920,6 @@ static void showUsage()
          "  -dbgfile:<fname>  - output debug to specified filename\n"
          "  -fullDynamic - build BLK for new fully dynamic fonts\n");
 }
-SimpleString pvrtexOpt;
 
 static void __cdecl ctrl_break_handler(int)
 {
@@ -1924,7 +1927,7 @@ static void __cdecl ctrl_break_handler(int)
   fflush(stdout);
   MutexAutoAcquire::release_mutexes();
   debug_flush(true);
-  ExitProcess(13);
+  _exit(13);
 }
 static void on_shutdown_handler() { MutexAutoAcquire::release_mutexes(); }
 static void stdout_report_fatal_error(const char *title, const char *msg, const char *call_stack)
@@ -2207,12 +2210,12 @@ int DagorWinMain(bool debugmode)
     dgs_report_fatal_error = &stdout_report_fatal_error;
 
   // get options
-  if (__argc < 2)
+  if (dgs_argc < 2)
   {
     showUsage();
     return 1;
   }
-  const char *filename = __argv[1];
+  const char *filename = dgs_argv[1];
   const char *ext = dd_get_fname_ext(filename);
   if (!ext || strcmp(ext, ".blk") != 0)
   {
@@ -2225,38 +2228,35 @@ int DagorWinMain(bool debugmode)
   bool verbose = false;
   bool fullDynamic = false;
   int target = _MAKE4C('PC');
-  pvrtexOpt = "-fOGL4444 -nt";
 
-  for (int i = 2; i < __argc; i++)
-    if (stricmp(__argv[i], "-tga") == 0)
+  for (int i = 2; i < dgs_argc; i++)
+    if (stricmp(dgs_argv[i], "-tga") == 0)
       genTga = true;
-    else if (stricmp(__argv[i], "-ps4") == 0)
+    else if (stricmp(dgs_argv[i], "-ps4") == 0)
       target = _MAKE4C('PS4');
-    else if (stricmp(__argv[i], "-iOS") == 0)
+    else if (stricmp(dgs_argv[i], "-iOS") == 0)
       target = _MAKE4C('iOS');
-    else if (stricmp(__argv[i], "-and") == 0)
+    else if (stricmp(dgs_argv[i], "-and") == 0)
       target = _MAKE4C('and');
-    else if (strnicmp(__argv[i], "-pvrtex:", 8) == 0)
-      pvrtexOpt = __argv[i] + 8;
-    else if (stricmp(__argv[i], "-verbose") == 0)
+    else if (stricmp(dgs_argv[i], "-verbose") == 0)
       verbose = true;
-    else if (stricmp(__argv[i], "-fullDynamic") == 0)
+    else if (stricmp(dgs_argv[i], "-fullDynamic") == 0)
       fullDynamic = true;
-    else if (stricmp(__argv[i], "-?") == 0 || stricmp(__argv[i], "-help") == 0)
+    else if (stricmp(dgs_argv[i], "-?") == 0 || stricmp(dgs_argv[i], "-help") == 0)
     {
       showUsage();
       return 0;
     }
-    else if (stricmp(__argv[i], "-noeh") == 0 || stricmp(__argv[i], "/noeh") == 0 || stricmp(__argv[i], "-debug") == 0 ||
-             stricmp(__argv[i], "/debug") == 0)
+    else if (stricmp(dgs_argv[i], "-noeh") == 0 || stricmp(dgs_argv[i], "/noeh") == 0 || stricmp(dgs_argv[i], "-debug") == 0 ||
+             stricmp(dgs_argv[i], "/debug") == 0)
       continue;
-    else if (stricmp(__argv[i], "-quiet") == 0)
+    else if (stricmp(dgs_argv[i], "-quiet") == 0)
       continue;
-    else if (strnicmp(__argv[i], "-dbgfile:", 9) == 0)
+    else if (strnicmp(dgs_argv[i], "-dbgfile:", 9) == 0)
       continue;
     else
     {
-      printf("\n[FATAL ERROR] unknown option <%s>\n", __argv[i]);
+      printf("\n[FATAL ERROR] unknown option <%s>\n", dgs_argv[i]);
       return 13;
     }
 
@@ -2269,9 +2269,6 @@ int DagorWinMain(bool debugmode)
     return 1;
   }
   dag::Vector<FontInfo> fontPack;
-
-  if (blk.getStr("pvrtexOpt", NULL))
-    pvrtexOpt = blk.getStr("pvrtexOpt");
 
   int fontNameId = blk.getNameId("font");
   const char *cp = blk.getStr("codepage", NULL);

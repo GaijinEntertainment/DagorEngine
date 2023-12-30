@@ -6,7 +6,7 @@ let scrollbar = require("samples_prog/_basic/components/scrollbar.nut")
 
 
 
-let function makeCells() {
+function makeCells() {
   let colors = [
     Color(200,30,20), Color(20,200,30), Color(0,30,200),
     Color(180,160,20), Color(150,30,170), Color(50,140,160),

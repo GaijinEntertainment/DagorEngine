@@ -45,7 +45,6 @@ public:
   using string = Sqrat::string;
 
   typedef bool (*BeforeImportModuleCallback)(SqModules *sq_modules, const char *module_name);
-  typedef void (*ModuleExeCallback)(HSQUIRRELVM vm, const char *requested_module_name, const char *resolved_module_name);
 
   struct IFileSystemOverride
   {
@@ -103,12 +102,6 @@ public:
   template <bool must_exist>
   static SQInteger sqRequire(HSQUIRRELVM vm);
 
-  static void setModuleExecutionCallbacks(ModuleExeCallback before_execution_cb, ModuleExeCallback after_execution_cb)
-  {
-    beforeExecutionCb = before_execution_cb;
-    afterExecutionCb = after_execution_cb;
-  }
-
   void setModuleImportCallback(BeforeImportModuleCallback before_import_module_callback)
   {
     beforeImportModuleCb = before_import_module_callback;
@@ -137,8 +130,6 @@ private:
   void registerModulesModule();
   Sqrat::Array getNativeModuleNames();
 
-  static ModuleExeCallback beforeExecutionCb;
-  static ModuleExeCallback afterExecutionCb;
   BeforeImportModuleCallback beforeImportModuleCb;
 
   bool mergeBindings(Sqrat::Table &target, Sqrat::Object &key, Sqrat::Object &value, String &out_err_msg);

@@ -19,7 +19,7 @@ class Occlusion;
 
 struct UpdateStageInfoBeforeRender : public ecs::Event, public TransformHolder
 {
-  ECS_BROADCAST_EVENT_DECL(UpdateStageInfoBeforeRender);
+  ECS_INSIDE_EVENT_DECL(UpdateStageInfoBeforeRender, ::ecs::EVCAST_BROADCAST | ::ecs::EVFLG_PROFILE);
   float dt = 0.f, actDt = 0.f, realDt = 0.f;
   Frustum mainCullingFrustum;
   Frustum froxelFogCullingFrustum; // TODO: maybe separate it
@@ -72,7 +72,7 @@ struct UpdateStageInfoRender : public ecs::Event, public TransformHolder
   };
   uint8_t hints = 0;
   int renderPass = RENDER_UNKNOWN;
-  ECS_BROADCAST_EVENT_DECL(UpdateStageInfoRender);
+  ECS_INSIDE_EVENT_DECL(UpdateStageInfoRender, ::ecs::EVCAST_BROADCAST | ::ecs::EVFLG_PROFILE);
   UpdateStageInfoRender(uint32_t hints_, const Frustum &culling, const TMatrix &itm, const TMatrix &view_tm, const TMatrix4 &proj_tm,
     const Point3 &main_cam, vec4f neg_rounded_cam_pos, vec4f neg_remainder_cam_pos, Occlusion *occl, int render_pass = RENDER_UNKNOWN,
     const dynmodel_renderer::DynModelRenderingState *pState_ = NULL, TexStreamingContext tex_context = TexStreamingContext(0)) :
@@ -95,16 +95,14 @@ struct UpdateStageInfoRenderTrans : public ecs::Event, public TransformHolder
 {
   TMatrix viewItm;
   Occlusion *occlusion;
-  Driver3dRenderTarget target;
-  ECS_BROADCAST_EVENT_DECL(UpdateStageInfoRenderTrans);
+  ECS_INSIDE_EVENT_DECL(UpdateStageInfoRenderTrans, ::ecs::EVCAST_BROADCAST | ::ecs::EVFLG_PROFILE);
   TexStreamingContext texCtx;
   UpdateStageInfoRenderTrans(const TMatrix &view_tm, const TMatrix4 &proj_tm, const TMatrix &itm, Occlusion *occl,
-    const Driver3dRenderTarget &target, TexStreamingContext tex_context = TexStreamingContext(0)) :
+    TexStreamingContext tex_context = TexStreamingContext(0)) :
     ECS_EVENT_CONSTRUCTOR(UpdateStageInfoRenderTrans),
     TransformHolder(view_tm, proj_tm),
     viewItm(itm),
     occlusion(occl),
-    target(target),
     texCtx(tex_context)
   {}
 };

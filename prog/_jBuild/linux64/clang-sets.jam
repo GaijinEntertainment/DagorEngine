@@ -19,7 +19,7 @@ local _DEF_COM_CMDLINE =
   -D_vsnprintf=vsnprintf
   -Dstricmp=strcasecmp
   -Dstrnicmp=strncasecmp
-  -D_TARGET_PC=3 -D_TARGET_PC_LINUX=3 -D_TARGET_STATIC_LIB=1
+  -D_TARGET_PC=3 -D_TARGET_PC_LINUX=3
   -D_TARGET_64BIT=1
   -D__LINUX__=64
   -D_TARGET_SIMD_SSE=$(SSEVersion)
@@ -27,6 +27,7 @@ local _DEF_COM_CMDLINE =
   -D__STDC_CONSTANT_MACROS
 ;
 if $(DriverLinkage) = static { _DEF_COM_CMDLINE += -D_TARGET_STATIC_LIB=1 ; }
+if $(LinuxArch) = e2k { _DEF_COM_CMDLINE += -D_XM_NO_INTRINSICS_ ; }
 
 local STDLIB_COMP = -stdlib=libstdc++ ;
 local STDLIB_LINK = -stdlib=libstdc++ -lstdc++ ;
@@ -61,13 +62,14 @@ if $(Sanitize) != disabled {
 }
 
 _LIB          = ar ranlib ;
-_C_COMPILER   = $(DISTCC) clang $(_DEF_COM_CMDLINE) $(_DEF_C_CMDLINE) ;
-_CPP_COMPILER = $(DISTCC) clang $(_DEF_COM_CMDLINE) $(_DEF_CPP_CMDLINE) ;
+_C_COMPILER   = $(DISTCC) clang [ StripStrings $(_DEF_COM_CMDLINE) $(_DEF_C_CMDLINE) : $(RemoveCompilerSwitches_$(_BuildEnv)) ] ;
+_CPP_COMPILER = $(DISTCC) clang [ StripStrings $(_DEF_COM_CMDLINE) $(_DEF_CPP_CMDLINE) : $(RemoveCompilerSwitches_$(_BuildEnv)) ] ;
 _ASM_COMPILER = nasm -f elf64 ;
 _GAS_COMPILER = $(DISTCC) clang -g -c ;
 
 
 _INCLUDE      = $(Root)/prog/dagorInclude $(Root)/prog/1stPartyLibs $(Root)/prog/3rdPartyLibs ;
+if $(LinuxArch) = e2k { _INCLUDE += $(Root)/prog/dagorInclude/supp/elbrus_e2k ; }
 
 # make compiler cmd-line ###
 _CPP_BASE_INCLUDES = "-iwithprefix "$(MasterPreInclude) "-I "$(MasterPreInclude) -I /usr/include "-I "$(Root)/prog/3rdPartyLibs/eastl/include ;

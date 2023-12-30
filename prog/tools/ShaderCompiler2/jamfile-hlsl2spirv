@@ -7,13 +7,7 @@ CopyDxcLib = yes ;
 
 include $(Root)/$(Location)/jamfile-common ;
 
-if $(OS) = NT {
-  Target = tools/dsc2-spirv.exe ;
-} else if $(OS) = MACOSX {
-  Target = tools/dsc2-spirv ;
-} else {
-  Exit OS=$(OS) is not supported! ;
-}
+Target = tools/dsc2-spirv ;
 
 AddIncludes +=
   $(Root)/prog/3rdPartyLibs/vulkan/include
@@ -32,6 +26,8 @@ CPPopt += -D_CROSS_TARGET_SPIRV=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECA
 
 if $(Platform) = macosx {
   CPPopt += -Wno-switch ;
+} else if $(Platform) = linux64 {
+  if $(PlatformSpec) = clang { CPPopt += -Wno-switch -Wno-sometimes-uninitialized ; }
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

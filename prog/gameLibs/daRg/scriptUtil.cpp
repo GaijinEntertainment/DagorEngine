@@ -37,10 +37,16 @@ void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
 }
 
 
-void compile_error_handler(HSQUIRRELVM v, const SQChar *desc, const SQChar *source, SQInteger line, SQInteger column, const SQChar *)
+void compile_error_handler(HSQUIRRELVM v, const SQChar *desc, const SQChar *source, SQInteger line, SQInteger column,
+  const SQChar *extra)
 {
   String str;
   str.printf(128, "Squirrel compile error %s (%d:%d): %s", source, line, column, desc);
+  if (extra)
+  {
+    str.append("\n", 1);
+    str.append(extra);
+  }
 
   GuiScene *scene = GuiScene::get_from_sqvm(v);
   scene->errorMessageWithCb(str.str());

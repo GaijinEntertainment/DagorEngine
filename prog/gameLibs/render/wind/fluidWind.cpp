@@ -105,8 +105,8 @@ void FluidWind::update(float dt, const Point3 &origin)
         phase *= attackTime > 0 ? saturate(motor.time / attackTime) : 1.0f;
       }
       float fade = min(motor.duration * 0.5f, motor.phaseFade.maxFadeTime);
-      phase *= motor.duration > 0.001 ? (1.0 /*- SQR(1.0 - saturate(motor.time / fade))*/) -
-                                          (1.0 - SQR(1.0 - saturate((motor.time - motor.duration + fade) / fade)))
+      phase *= motor.duration > 0.001 ? (1.0 /*- sqr(1.0 - saturate(motor.time / fade))*/) -
+                                          (1.0 - sqr(1.0 - saturate((motor.time - motor.duration + fade) / fade)))
                                       : 1;
     }
     if (motor.phaseSin.enabled && motor.duration > 0.001)
@@ -120,7 +120,7 @@ void FluidWind::update(float dt, const Point3 &origin)
         phase *= attackTime > 0 ? saturate(motor.time / attackTime) : 1.0f;
       }
       phase *= sin(motor.time / motor.duration * motor.phaseSin.numWaves * PI + sinOffset);
-      phase *= SQR(1.0 - motor.time / motor.duration);
+      phase *= sqr(1.0 - motor.time / motor.duration);
     }
 
     ShaderGlobal::set_color4(fluidMotorCenterRadiusVarId, Color4(centerLocal.x, centerLocal.y, centerLocal.z, radiusLocalMax));

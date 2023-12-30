@@ -221,6 +221,10 @@
 # undef EV_AVOID_STDIO
 #endif
 
+#if defined(_TARGET_C3)
+
+#endif
+
 /* OS X, in its infinite idiocy, actually HARDCODES
  * a limit of 1024 into their select. Where people have brains,
  * OS X engineers apparently have a vacuum. Or maybe they were
@@ -2351,6 +2355,8 @@ evpipe_write (EV_P_ EV_ATOMIC_T *flag)
           buf.buf = (char*)&buf;
           buf.len = 1;
           WSASend (EV_FD_TO_WIN32_HANDLE (evpipe [1]), &buf, 1, &sent, 0, 0, 0);
+#elif _TARGET_C3
+
 #else
           int ecb_unused r = write (evpipe [1], &(evpipe [1]), 1);
 #endif
@@ -2386,6 +2392,8 @@ pipecb (EV_P_ ev_io *iow, int revents)
           buf.buf = dummy;
           buf.len = sizeof (dummy);
           WSARecv (EV_FD_TO_WIN32_HANDLE (evpipe [0]), &buf, 1, &recvd, &flags, 0, 0);
+#elif _TARGET_C3
+
 #else
           int ecb_unused r = read (evpipe [0], &dummy, sizeof (dummy));
 #endif

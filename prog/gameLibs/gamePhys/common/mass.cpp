@@ -736,7 +736,7 @@ void Mass::setFuelCustom(float amount, bool internal, bool external, int fuel_sy
     for (int i = 0; i < numTanks; ++i)
     {
       FuelTank &fuelTank = fuelTanks[i];
-      if (fuelTank.fuelSystemNum == fuel_system_num && fuelTank.priority == p)
+      if (fuelTank.fuelSystemNum == fuel_system_num && fuelTank.priority == p && fuelTank.available)
       {
         if (fuelTank.external ? external : internal)
           fuelTank.currentFuel = percentage * fuelTank.capacity;

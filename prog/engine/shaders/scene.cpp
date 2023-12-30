@@ -192,7 +192,7 @@ void RenderScene::buildOptSceneData()
 
   for (int i = 0; i < elems.size(); ++i)
     if (!elems[i])
-      fatal("not filled elem %d", i);
+      DAG_FATAL("not filled elem %d", i);
 
   elemnum = 0;
   clear_and_resize(optScn.mats, mats.size());
@@ -575,14 +575,14 @@ void RenderScene::load(const char *lmdir, bool use_vis)
 
   FullFileLoadCB crd(fn);
   if (!crd.fileHandle)
-    fatal("can't open scene file '%s'", fn.str());
+    DAG_FATAL("can't open scene file '%s'", fn.str());
 
   STARTUP_POINT("open");
 
   loading_progress_point();
   if (crd.readInt() != _MAKE4C('scnf'))
   {
-    fatal("non-scene file"); // DAGOR_THROW(IGenLoad::LoadException("non-scene file", crd.tell()));
+    DAG_FATAL("non-scene file"); // DAGOR_THROW(IGenLoad::LoadException("non-scene file", crd.tell()));
     return;
   }
 

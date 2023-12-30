@@ -2,11 +2,6 @@
 #define VOLUME_LIGHTS_RAYMARCH_INCLUDED 1
 
 
-// reserved for proper, per-sample shadows
-#ifndef GET_DISTANT_FOG_SHADOW
-#define GET_DISTANT_FOG_SHADOW(screenTcJittered, distW, jitteredWorldPos) 1.0
-#endif
-
 #ifndef DEBUG_DISTANT_FOG_RAYMARCH
 #define DEBUG_DISTANT_FOG_RAYMARCH 0
 #endif
@@ -95,11 +90,10 @@ float clouds_shadow(float3 worldPos, AccumulationConstParams cp)
 
 
 void accumulatePreparedFogStep(AccumulationConstParams const_params,
-  float4 media, float dist, float3 worldPos, float step_len,
+  float4 media, float dist, float3 worldPos, float step_len, float shadow,
   inout float4 accumulated_scattering, out float transmittance)
 {
   float muE = media.a;
-  float3 shadow = clouds_shadow(worldPos, const_params) * GET_DISTANT_FOG_SHADOW(const_params.screenTc,dist,worldPos);
   transmittance = exp(-muE * step_len);
   float3 S = media.rgb * (const_params.sun_color * shadow + const_params.ambient_color);
   float3 Sint = (S - S * transmittance) / max(VOLFOG_MEDIA_DENSITY_EPS, muE);
@@ -129,6 +123,12 @@ void accumulateFogStep(
 
     float subTransmittance;
     float stepLen = const_params.stepLen;
+
+    float shadow = clouds_shadow(worldPos, const_params);
+    FLATTEN // not having a branch for static shadows is faster when it is enabled (and it is an edge case to have it disabled, but not DF)
+    if (distant_fog_use_static_shadows)
+      shadow *= getStaticShadow(worldPos);
+
 #if USE_SUBSTEPPING
     if (use_substeps)
     {
@@ -138,14 +138,14 @@ void accumulateFogStep(
       {
         float4 subMedia = sample_media(dist, const_params.screenTc, const_params.view_vec, worldPos) * sampleWeight;
         ++sampleCnt;
-        accumulatePreparedFogStep(const_params, subMedia, dist, worldPos, stepLen, accumulated_scattering, subTransmittance);
+        accumulatePreparedFogStep(const_params, subMedia, dist, worldPos, stepLen, shadow, accumulated_scattering, subTransmittance);
         dist += const_params.subStepSize;
         transmittance *= subTransmittance;
       }
     }
 #endif
     // accumulate last substep using the already sampled media
-    accumulatePreparedFogStep(const_params, media, dist, worldPos, stepLen, accumulated_scattering, subTransmittance);
+    accumulatePreparedFogStep(const_params, media, dist, worldPos, stepLen, shadow, accumulated_scattering, subTransmittance);
     transmittance *= subTransmittance;
   }
 }
@@ -301,11 +301,6 @@ float getReprojectedOcclusionDepth(float2 screen_tc, float4 transformed_znzfar)
     }
   }
   return linearize_z(bestDepth, transformed_znzfar.zw);
-}
-float2 getPrevTc(float3 reprojectedWorldPos)
-{
-  float3 prev_clipSpace;
-  return getPrevTc(reprojectedWorldPos, prev_clipSpace);
 }
 float2 calcHistoryUV(float reprojectDist, float3 viewVec)
 {

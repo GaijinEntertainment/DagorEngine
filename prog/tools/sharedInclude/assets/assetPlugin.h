@@ -5,6 +5,8 @@
 //
 #pragma once
 
+#include <osApiWrappers/dag_dynLib.h>
+
 class DataBlock;
 class IGenSave;
 class ILogWriter;
@@ -49,7 +51,7 @@ typedef void(__stdcall *dabuild_plugin_install_dds_helper_t)(
 #endif
 
 #if DAGOR_DBGLEVEL > 1
-#define DAGOR_DLL "-dbg.dll"
+#define DAGOR_DLL "-dbg" DAGOR_PC_OS_DLL_SUFFIX
 #else
-#define DAGOR_DLL "-dev.dll"
+#define DAGOR_DLL "-dev" DAGOR_PC_OS_DLL_SUFFIX
 #endif

@@ -47,8 +47,8 @@ static inline void updateTouchPos(HumanInput::PointingRawState::Touch &touch, fl
   touch.deltaY = my - touch.y;
   touch.x = mx;
   touch.y = my;
-  float dist2 = SQR(mx - touch.x0) + SQR(my - touch.y0);
-  if (SQR(touch.maxDist) < dist2)
+  float dist2 = sqr(mx - touch.x0) + sqr(my - touch.y0);
+  if (sqr(touch.maxDist) < dist2)
     touch.maxDist = sqrtf(dist2);
 }
 

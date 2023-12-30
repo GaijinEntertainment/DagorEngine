@@ -47,6 +47,8 @@ void StateFieldFramebufferAttachment::applyTo(uint32_t index, FrontFramebufferSt
       }
     }
   }
+  else if (actualImage)
+    ctx.verifyResident(actualImage);
 
   G_ASSERTF(!actualImage || actualImage->isAllowedForFramebuffer(),
     "vulkan: trying to bind non-RT image %p-%s as framebuffer attachment %u", actualImage, actualImage->getDebugName(), index);

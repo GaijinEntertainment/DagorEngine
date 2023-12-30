@@ -63,6 +63,8 @@ void StateFieldRenderPassTarget::applyTo(uint32_t index, FrontRenderPassStateSto
   }
   ivs.isRenderTarget = 1;
 
+  target.getExecutionContext().verifyResident(image);
+
   att.view = get_device().getImageView(image, ivs);
   att.layers = ivs.isArray ? ivs.getArrayCount() : 1;
 

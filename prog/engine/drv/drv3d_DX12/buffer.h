@@ -78,7 +78,7 @@ struct BufferInterfaceConfigCommon
   static void invalidateMappedRange(BufferReferenceType buffer, uint32_t offset, uint32_t size);
   static void flushMappedRange(BufferReferenceType buffer, uint32_t offset, uint32_t size);
   static uint8_t *getMappedPointer(BufferReferenceType buffer, uint32_t offset);
-  static void invalidateMemory(HostDeviceSharedMemoryRegion mem, uint32_t offset, uint32_t size);
+  static void invalidateMemory(HostDeviceSharedMemoryRegion mem, uint64_t offset, uint32_t size);
   static void readBackBuffer(BufferReferenceType src, HostDeviceSharedMemoryRegion dst, uint32_t src_offset, uint32_t dst_offset,
     uint32_t size);
   static void blockingReadBackBuffer(BufferReferenceType src, HostDeviceSharedMemoryRegion dst, uint32_t src_offset,

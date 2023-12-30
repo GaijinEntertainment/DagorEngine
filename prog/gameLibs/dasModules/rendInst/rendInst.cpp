@@ -128,6 +128,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(gather_ri_gen_extra_collidable)>(*this, lib, "gather_ri_gen_extra_collidable",
       das::SideEffects::accessExternal, "bind_dascript::gather_ri_gen_extra_collidable");
+    das::addExtern<DAS_BIND_FUN(gather_ri_gen_extra_collidable_in_transformed_box)>(*this, lib, "gather_ri_gen_extra_collidable",
+      das::SideEffects::accessExternal, "bind_dascript::gather_ri_gen_extra_collidable_in_transformed_box");
     das::addExtern<DAS_BIND_FUN(get_ri_gen_extra_instances)>(*this, lib, "get_ri_gen_extra_instances",
       das::SideEffects::accessExternal, "bind_dascript::get_ri_gen_extra_instances");
     das::addExtern<DAS_BIND_FUN(get_ri_gen_extra_instances_by_box)>(*this, lib, "getRiGenExtraInstances",
@@ -152,6 +154,8 @@ public:
       "rendinst::getRIGenResName");
     das::addExtern<DAS_BIND_FUN(rendinst::getRIGenDestrName)>(*this, lib, "getRIGenDestrName", das::SideEffects::accessExternal,
       "rendinst::getRIGenDestrName");
+    das::addExtern<DAS_BIND_FUN(rendinst::getRIGenDestrFxTemplateName)>(*this, lib, "getRIGenDestrFxTemplateName",
+      das::SideEffects::accessExternal, "rendinst::getRIGenDestrFxTemplateName");
 
     das::addExtern<DAS_BIND_FUN(rendinst::getRIGenBBox), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "getRIGenBBox",
       das::SideEffects::accessExternal, "rendinst::getRIGenBBox");

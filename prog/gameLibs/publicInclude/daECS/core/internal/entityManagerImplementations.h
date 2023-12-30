@@ -529,7 +529,7 @@ inline void EntityManager::setFilterTags(dag::ConstSpan<const char *> tags) { te
 inline ecs::template_t EntityManager::getEntityTemplateId(ecs::EntityId eid) const
 {
   const unsigned idx = eid.index();
-  if (!entDescs.doesEntityExist(idx, eid.generation()))
+  if (!entDescs.doesEntityExist(idx, eid.generation()) || idx >= entDescs.allocated_size())
     return INVALID_TEMPLATE_INDEX;
   return entDescs[idx].template_id;
 }

@@ -52,19 +52,19 @@ MemoryRequirementInfo RenderPassResource::getMemoryReq()
 
 VkMemoryRequirements RenderPassResource::getSharedHandleMemoryReq()
 {
-  fatal("vulkan: no handle reuse for render pass");
+  DAG_FATAL("vulkan: no handle reuse for render pass");
   return {};
 }
 
 void RenderPassResource::bindMemory() {}
 
-void RenderPassResource::reuseHandle() { fatal("vulkan: no handle reuse for render pass"); }
+void RenderPassResource::reuseHandle() { DAG_FATAL("vulkan: no handle reuse for render pass"); }
 
-void RenderPassResource::releaseSharedHandle() { fatal("vulkan: no handle reuse for render pass"); }
+void RenderPassResource::releaseSharedHandle() { DAG_FATAL("vulkan: no handle reuse for render pass"); }
 
-void RenderPassResource::evict() { fatal("vulkan: render pass are not evictable"); }
+void RenderPassResource::evict() { DAG_FATAL("vulkan: render pass are not evictable"); }
 
-void RenderPassResource::restoreFromSysCopy() { fatal("vulkan: render pass are not evictable"); }
+void RenderPassResource::restoreFromSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: render pass are not evictable"); }
 
 bool RenderPassResource::isEvictable() { return false; }
 
@@ -78,7 +78,7 @@ void RenderPassResource::shutdown()
 
 bool RenderPassResource::nonResidentCreation() { return false; }
 
-void RenderPassResource::makeSysCopy() { fatal("vulkan: render pass are not evictable"); }
+void RenderPassResource::makeSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: render pass are not evictable"); }
 
 // helpers/getters functions
 
@@ -142,9 +142,10 @@ void RenderPassResource::setFrameImageLayout(ExecutionContext &ctx, uint32_t att
     case ImageLayoutSync::END_EDGE:
       for (int i = 0; i < arrayRange; ++i)
         tgt.image->layout.set(tgt.mipLevel, arrayBase + i, new_layout);
-      // fallthrough
+      [[fallthrough]];
     case ImageLayoutSync::START_EDGE:
     {
+      ctx.verifyResident(tgt.image);
       uint32_t extOpIdx =
         sync_type == ImageLayoutSync::END_EDGE ? RenderPassDescription::EXTERNAL_OP_END : RenderPassDescription::EXTERNAL_OP_START;
       ctx.back.syncTrack.addImageAccess(

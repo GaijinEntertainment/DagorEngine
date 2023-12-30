@@ -1360,7 +1360,7 @@ void d3d::get_screen_size(int &w, int &h)
   h = g_driver_state.height;
 }
 
-static void na_func() { fatal("D3DI function not implemented"); }
+static void na_func() { DAG_FATAL("D3DI function not implemented"); }
 
 
 void d3d::reserve_res_entries(bool /*strict_max*/, int max_tex, int /*max_vs*/, int /*max_ps*/, int /*max_vdecl*/, int max_vb,

@@ -23,7 +23,7 @@ let mkAnimation = function(delay) {
   //  { prop=AnimProp.opacity, from=1, to=1, duration=delay/2, easing=OutCubic, playFadeOut=true}
   ]
 }
-let function mkAnim(ch, i, total){
+function mkAnim(ch, i, total){
   let l = total.len()
   let delay = i*max(0.1, min(2.0/l, 0.3))
   return {
@@ -36,7 +36,7 @@ let function mkAnim(ch, i, total){
   }
 }
 let show = Watched(true)
-let function mkAnimText(txt) {
+function mkAnimText(txt) {
   let ut = utf8(txt)
   let chars = []
   for(local i=1; i <= ut.charCount(); i++){
@@ -49,7 +49,7 @@ let function mkAnimText(txt) {
   }
 }
 
-let function root() {
+function root() {
   return {
     valign = ALIGN_CENTER
     halign= ALIGN_CENTER

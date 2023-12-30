@@ -1,4 +1,4 @@
-let class Foo {
+class Foo {
     function DoSomething() {
         println("I'm the base")
     }
@@ -7,7 +7,7 @@ let class Foo {
     }
 }
 
-let class SuperFoo extends Foo {
+class SuperFoo(Foo) {
     //overridden method
     function DoSomething() {
         println("I'm the derived")

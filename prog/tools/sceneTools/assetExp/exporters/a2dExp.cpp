@@ -1,4 +1,4 @@
-#include "dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 #include "a2dOptimizer.h"
 #include <assets/assetPlugin.h>
 #include <assets/assetExporter.h>
@@ -219,10 +219,10 @@ protected:
         case 0x39056464u: return AnimV20::DATATYPE_QUAT;    // DATATYPE_QUAT
         case 0xEE0BD66Au: return AnimV20::DATATYPE_REAL;    // DATATYPE_REAL
       }
-      fatal("unknown type %08X", dataType);
+      DAG_FATAL("unknown type %08X", dataType);
       return 0;
     }
-    static int convertChanType(int chanType)
+    static unsigned convertChanType(unsigned chanType)
     {
       switch (chanType)
       {
@@ -232,7 +232,7 @@ protected:
         case 0x31DE5F48u: return AnimV20::CHTYPE_ORIGIN_LINVEL;
         case 0x09FD7093u: return AnimV20::CHTYPE_ORIGIN_ANGVEL;
       }
-      fatal("unknown chan type %08X", chanType);
+      DAG_FATAL("unknown chan type %08X", chanType);
       return 0;
     }
   };
@@ -854,7 +854,7 @@ protected:
               cwr.writeTabData32ex(tmpKeys);
               break;
             case AnimV20::DATATYPE_REAL: cwr.write32ex(ch.nodeAnim[i].key, keyNum * sizeof(OldAnimKeyReal)); break;
-            default: fatal("unsupported dataType=%d", ch.dataType);
+            default: DAG_FATAL("unsupported dataType=%d", ch.dataType);
           }
         }
         else
@@ -890,7 +890,7 @@ protected:
               cwr.writeTabData32ex(tmpKeys);
               break;
             case AnimV20::DATATYPE_REAL: cwr.write32ex(ch.nodeAnim[i].key, keyNum * sizeof(OldAnimKeyReal)); break;
-            default: fatal("unsupported dataType=%d", ch.dataType);
+            default: DAG_FATAL("unsupported dataType=%d", ch.dataType);
           }
         }
 

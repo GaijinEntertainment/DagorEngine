@@ -26,9 +26,9 @@
 
 .. |function-rtti-builtin_is_same_type| replace:: Returns true if two `TypeInfo` objects are the same given comparison criteria.
 
-.. |function-rtti-compile| replace:: Compile daScript program given as string.
+.. |function-rtti-compile| replace:: Compile Daslang program given as string.
 
-.. |function-rtti-compile_file| replace:: Compile daScript program given as file in the `FileAccess` object.
+.. |function-rtti-compile_file| replace:: Compile Daslang program given as file in the `FileAccess` object.
 
 .. |function-rtti-context_for_each_function| replace:: Iterates through all functions in the `Context`.
 
@@ -76,7 +76,7 @@
 
 .. |function-rtti-program_for_each_module| replace:: Iterates through all modules of the `Program` object.
 
-.. |function-rtti-program_for_each_registered_module| replace:: Iterates through all registered modules of the daScript runtime.
+.. |function-rtti-program_for_each_registered_module| replace:: Iterates through all registered modules of the Daslang runtime.
 
 .. |function-rtti-rtti_builtin_structure_for_each_annotation| replace:: Iterates through each annotation for the `Structure` object.
 
@@ -122,13 +122,13 @@
 
 .. |structure_annotation-rtti-ModuleGroup| replace:: Collection of modules.
 
-.. |structure_annotation-rtti-Program| replace:: Object representing full information about daScript program during and after compilation (but not the simulated result of the program).
+.. |structure_annotation-rtti-Program| replace:: Object representing full information about Daslang program during and after compilation (but not the simulated result of the program).
 
 .. |structure_annotation-rtti-StructInfo| replace:: Type object which represents structure or class.
 
 .. |structure_annotation-rtti-TypeAnnotation| replace:: Handled type.
 
-.. |structure_annotation-rtti-TypeInfo| replace:: Object which represents any daScript type.
+.. |structure_annotation-rtti-TypeInfo| replace:: Object which represents any Daslang type.
 
 .. |structure_annotation-rtti-VarInfo| replace:: Object which represents variable declaration.
 
@@ -152,7 +152,7 @@
 
 .. |typedef-rtti-StructInfoFlags| replace:: Flags which represent properties of the `StructInfo` object (rtti object which represents structure type).
 
-.. |structure_annotation-rtti-Context| replace:: Object which holds single daScript Context. Context is the result of the simulation of the daScript program.
+.. |structure_annotation-rtti-Context| replace:: Object which holds single Daslang Context. Context is the result of the simulation of the Daslang program.
 
 .. |structure_annotation-rtti-CodeOfPolicies| replace:: Object which holds compilation and simulation settings and restrictions.
 
@@ -166,7 +166,7 @@
 
 .. |function-rtti-for_each_require_declaration| replace:: Iterates though each `require` declaration of the compiled program.
 
-.. |function-rtti-simulate| replace:: Simulates daScript program and creates 'Context' object.
+.. |function-rtti-simulate| replace:: Simulates Daslang program and creates 'Context' object.
 
 .. |function-rtti-add_annotation_argument| replace:: Adds annotation argument to the `AnnotationArgumentList` object.
 
@@ -209,3 +209,12 @@
 .. |function-rtti-get_type_align| replace:: Returns alignment of the type in bytes.
 
 .. |function-rtti-get_table_key_index| replace:: Returns index of the key in the table.
+
+.. |function-rtti-with_program_serialized| replace:: Serializes program and then deserializes it. This is to test serialization.
+
+.. |function-rtti-get_tuple_field_offset| replace:: Returns offset of the tuple field.
+
+.. |function-rtti-get_variant_field_offset| replace:: Returns offset of the variant field.
+
+.. |function-rtti-each| replace:: Iterates through each element of the object.
+

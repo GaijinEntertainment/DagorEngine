@@ -6,7 +6,7 @@
 #pragma once
 
 #include <stdarg.h>
-#include <util/dag_globDef.h>
+#include <util/dag_baseDef.h>
 
 #include <supp/dag_define_COREIMP.h>
 
@@ -160,3 +160,4 @@ inline void __log_set_ctx_ln(bool = true) {}
   } while (0)
 
 #include <supp/dag_undef_COREIMP.h>
+#include <debug/dag_debug.h>

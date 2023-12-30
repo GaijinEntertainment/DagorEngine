@@ -248,19 +248,17 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
         (pool.hasImpostor() || rtData->riPosInst[ri_idx] || rtData->riResElemMask[ri_idx * rendinst::MAX_LOD_COUNT].atest))
       continue;
 
-    bool crossDissolveForPool = false, shortAlpha = forShadow;
+    bool shortAlpha = forShadow;
     if (pool.hasImpostor() && rendinst::render::per_instance_visibility) // fixme: allow for all types of impostors
     {
       v_tree_min = rtData->riResBb[ri_idx].bmin;
       v_tree_max = rtData->riResBb[ri_idx].bmax;
-      crossDissolveForPool = !pool.hasTransitionLod() && rendinst::render::use_cross_dissolve && visibility.forcedLod < 0;
       shortAlpha = false;
     }
     // unsigned int stride = RIGEN_STRIDE_B(rtData->riPosInst[ri_idx], perInstDataDwords);
     int lodCnt = rtData->riResLodCount(ri_idx);
     int farLodNo = lodCnt - 1;
     int alphaFarLodNo = farLodNo + 1;
-    int farLodNo_translated = RiGenVisibility::PI_LAST_MESH_LOD;
     G_ASSERT(alphaFarLodNo < rendinst::render::MAX_LOD_COUNT_WITH_ALPHA); // one lod is for transparence
     float farLodStartRange;
     if (farLodNo)
@@ -285,81 +283,52 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
     float alphaBlendOnCellRadius = alphaBlendStartRadius - startAlphaDistance;
     float alphaBlendOnSubCellRadius = alphaBlendStartRadius - startAlphaDistance * (1.f / RendInstGenData::SUBCELL_DIV);
 
-
-    float lodDistancesSq[rendinst::render::MAX_LOD_COUNT_WITH_ALPHA] = {0};
     float lodDistancesSq_perInst[RiGenVisibility::PER_INSTANCE_LODS] = {0};
     G_ASSERT(lodCnt < rendinst::render::MAX_LOD_COUNT_WITH_ALPHA);
     int lodTranslation = rendinst::MAX_LOD_COUNT - lodCnt;
     bool hasImpostor = pool.hasImpostor();
     if (!hasImpostor)
     {
+      lodDistancesSq_perInst[visibility.PI_IMPOSTOR_LOD] = FLT_MAX;
       G_ASSERT(lodTranslation > 0);
       if (lodTranslation > 0)
         lodTranslation--;
     }
     for (int lodI = 1; lodI < lodCnt; ++lodI)
     {
-      lodDistancesSq[lodI + lodTranslation] =
+      const auto instanceLod = lodI + lodTranslation;
+      lodDistancesSq_perInst[instanceLod] =
         pool.hasImpostor() ? rtData->get_trees_range(pool.lodRange[lodI - 1]) : rtData->get_range(pool.lodRange[lodI - 1]);
-      lodDistancesSq_perInst[remap_per_instance_lod(lodI + lodTranslation)] = lodDistancesSq[lodI + lodTranslation];
     }
     if (!hasImpostor)
-    {
-      lodDistancesSq[rendinst::MAX_LOD_COUNT - 1] = 100000;
-      lodDistancesSq_perInst[remap_per_instance_lod(rendinst::MAX_LOD_COUNT - 1)] = 100000;
-    }
+      lodDistancesSq_perInst[visibility.PI_ALPHA_LOD] = 100000;
 
-    if (crossDissolveForPool)
-    {
-      lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD1] =
-        lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD0 + 1] - TOTAL_CROSS_DISSOLVE_DIST; // fixed size for cross dissolve
-      lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD0] =
-        lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD1] + LOD1_DISSOLVE_RANGE; // fixed size for cross dissolve
-    }
-    else
-    {
-      lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD1] = lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD0] = 100000;
-    }
-
-    for (int lodI = 1 + lodTranslation; lodI < rendinst::MAX_LOD_COUNT; ++lodI)
-      lodDistancesSq[lodI] = safediv(lodDistancesSq[lodI], rendinst::render::lodsShiftDistMul);
-
-    for (int lodI = 1 + lodTranslation; lodI < rendinst::MAX_LOD_COUNT; ++lodI)
-      lodDistancesSq[lodI] *= lodDistancesSq[lodI];
-
-    lodDistancesSq[lodTranslation] = -1.f; // all rendinst closer, then lod1
-    lodDistancesSq_perInst[remap_per_instance_lod(lodTranslation)] = -1.f;
+    lodDistancesSq_perInst[lodTranslation] = -1.f;
     if (alphaBlendOnSubCellRadius < 0)
-    {
-      lodDistancesSq[farLodNo_translated + 2] = lodDistancesSq[farLodNo_translated + 1];
       lodDistancesSq_perInst[visibility.PI_ALPHA_LOD] = lodDistancesSq_perInst[visibility.PI_IMPOSTOR_LOD];
-    }
     else
-    {
-      lodDistancesSq[farLodNo_translated + 2] = alphaBlendOnSubCellRadius * alphaBlendOnSubCellRadius;
       lodDistancesSq_perInst[visibility.PI_ALPHA_LOD] = alphaBlendOnSubCellRadius + subCellOfsSize;
-    }
 
-    if (crossDissolveForPool)
+    if (pool.hasTransitionLod())
     {
-      lodDistancesSq_perInst[visibility.PI_ALPHA_LOD] = perInstanceAlphaBlendStartRadius;
-      // lodDistancesSq_perInst[visibility.PI_ALPHA_LOD-1] = lodDistancesSq_perInst[visibility.PI_ALPHA_LOD];
-      lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD0] = min(lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD0],
-        lodDistancesSq_perInst[visibility.PI_ALPHA_LOD] - LOD0_DISSOLVE_RANGE);
-      lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD1] = min(lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD1],
-        lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD0] - LOD1_DISSOLVE_RANGE);
-      visibility.crossDissolveRange[ri_idx] = lodDistancesSq_perInst[visibility.PI_DISSOLVE_LOD1];
+      const int impostorLodNum = lodCnt - 1;
+      const int transitionLodNum = impostorLodNum - 1;
+      const int lastMeshLodNum = transitionLodNum - 1;
+      const float defaultTransitionLodRange = rtData->riResLodRange(ri_idx, transitionLodNum, nullptr);
+      const float transitionRange = defaultTransitionLodRange - rtData->riResLodRange(ri_idx, lastMeshLodNum, nullptr);
+      const float transitionStart = lodDistancesSq_perInst[visibility.PI_IMPOSTOR_LOD] - transitionRange;
+
+      visibility.crossDissolveRange[ri_idx] = safediv(transitionStart, rendinst::render::lodsShiftDistMul);
     }
 
-    for (int lodI = 1 + lodTranslation; lodI < RiGenVisibility::PER_INSTANCE_LODS - 1; ++lodI)
-      lodDistancesSq_perInst[lodI] = safediv(lodDistancesSq_perInst[lodI], rendinst::render::lodsShiftDistMul);
+    for (int instanceLod = 1 + lodTranslation; instanceLod < RiGenVisibility::PER_INSTANCE_LODS - 1; ++instanceLod)
+      lodDistancesSq_perInst[instanceLod] = safediv(lodDistancesSq_perInst[instanceLod], rendinst::render::lodsShiftDistMul);
 
-    for (int lodI = 1 + lodTranslation; lodI < RiGenVisibility::PER_INSTANCE_LODS; ++lodI)
-      lodDistancesSq_perInst[lodI] *= lodDistancesSq_perInst[lodI];
+    for (int instanceLod = 1 + lodTranslation; instanceLod < RiGenVisibility::PER_INSTANCE_LODS; ++instanceLod)
+      lodDistancesSq_perInst[instanceLod] *= lodDistancesSq_perInst[instanceLod];
 
-    float distanceToCheckPerInstanceSq =
-      hasImpostor ? max(32.f * 32.f, lodDistancesSq_perInst[remap_per_instance_lod(visibility.PI_IMPOSTOR_LOD)])
-                  : max(32.f * 32.f, lodDistancesSq_perInst[remap_per_instance_lod(visibility.PI_LAST_MESH_LOD)]);
+    float distanceToCheckPerInstanceSq = hasImpostor ? max(32.f * 32.f, lodDistancesSq_perInst[visibility.PI_IMPOSTOR_LOD])
+                                                     : max(32.f * 32.f, lodDistancesSq_perInst[visibility.PI_LAST_MESH_LOD]);
 
     visibility.stride = RIGEN_STRIDE_B(pool.hasImpostor(), perInstDataDwords); // rtData->riPosInst[ri_idx]
     visibility.startRenderRange(ri_idx);
@@ -525,32 +494,21 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
                       else if (use_occlusion->isOccludedBox(occBmin, occBmax))
                         continue;
                     }
-                    int lodI;
-                    float instance_dist2 = crossDissolveForPool || pool.hasTransitionLod()
+                    int instanceLod;
+                    float instance_dist2 = pool.hasTransitionLod()
                                              ? v_extract_x(v_length3_sq_x(v_sub(v_pos, curViewPos)))
                                              : v_extract_x(v_distance_sq_to_bbox_x(treeBBox.bmin, treeBBox.bmax, curViewPos));
 
-                    for (lodI = visibility.PI_ALPHA_LOD; lodI > 0; --lodI) // alphaFarLodNo!
-                      if (lodI != visibility.PI_DISSOLVE_LOD0 && instance_dist2 > lodDistancesSq_perInst[lodI])
+                    for (instanceLod = visibility.PI_ALPHA_LOD; instanceLod > 0; --instanceLod) // alphaFarLodNo!
+                      if (instance_dist2 > lodDistancesSq_perInst[instanceLod])
                         break;
-                    rtData->riRes[ri_idx]->updateReqLod(min<int>(lodI, rtData->riRes[ri_idx]->lods.size() - 1));
-                    if (lodI < rtData->riRes[ri_idx]->getQlBestLod())
-                      lodI = rtData->riRes[ri_idx]->getQlBestLod();
+                    rtData->riRes[ri_idx]->updateReqLod(min<int>(instanceLod, rtData->riRes[ri_idx]->lods.size() - 1));
+                    if (instanceLod < rtData->riRes[ri_idx]->getQlBestLod())
+                      instanceLod = rtData->riRes[ri_idx]->getQlBestLod();
 
                     vec4f v_packed_data = rendinst::gen::pack_entity_data(v_pos, v_scale, v_palette_id);
-                    int instanceLod = lodI == visibility.PI_DISSOLVE_LOD1 ? visibility.PI_LAST_MESH_LOD : lodI;
-                    if (lodI == RiGenVisibility::PI_DISSOLVE_LOD1 || lodI == RiGenVisibility::PI_DISSOLVE_LOD0)
-                    {
-                      if (lodI == visibility.PI_DISSOLVE_LOD1)
-                      {
-                        visibility.addTreeInstance(ri_idx, perInstanceData[RiGenVisibility::PI_DISSOLVE_LOD0], v_packed_data,
-                          RiGenVisibility::PI_DISSOLVE_LOD0);
-                        visibility.addTreeInstance(ri_idx, perInstanceData[RiGenVisibility::PI_DISSOLVE_LOD1], v_packed_data,
-                          RiGenVisibility::PI_DISSOLVE_LOD1);
-                      }
-                    }
-                    else if (pool_front_to_back && (lodI <= RiGenVisibility::PI_DISSOLVE_LOD1) &&
-                             perInstanceDistanceCnt[instanceLod] < perInstanceDistance[instanceLod].size())
+                    if (pool_front_to_back && (instanceLod <= RiGenVisibility::PI_LAST_MESH_LOD) &&
+                        perInstanceDistanceCnt[instanceLod] < perInstanceDistance[instanceLod].size())
                     {
                       sortedInstances[instanceLod][perInstanceDistanceCnt[instanceLod]] = v_packed_data;
                       int distance = bitwise_cast<int, float>(instance_dist2);
@@ -561,27 +519,13 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
                       perInstanceDistance[instanceLod][perInstanceDistanceCnt[instanceLod]] =
                         IPoint2(perInstanceDistanceCnt[instanceLod], distance);
                       perInstanceDistanceCnt[instanceLod]++;
-                      if (lodI == visibility.PI_DISSOLVE_LOD1)
-                      {
-                        visibility.addTreeInstance(ri_idx, perInstanceData[lodI], v_packed_data, lodI); // lod 1 dissappear, lod0 as is
-                      }
                     }
                     else
-                    {
-                      visibility.addTreeInstance(ri_idx, perInstanceData[lodI], v_packed_data, lodI);
-                      if (lodI == visibility.PI_DISSOLVE_LOD1)
-                        visibility.addTreeInstance(ri_idx, perInstanceData[visibility.PI_LAST_MESH_LOD], v_packed_data,
-                          visibility.PI_LAST_MESH_LOD); // lod 1 dissappear, lod0 as is
-                      else if (lodI == visibility.PI_DISSOLVE_LOD0)
-                        visibility.addTreeInstance(ri_idx, perInstanceData[visibility.PI_IMPOSTOR_LOD], v_packed_data,
-                          visibility.PI_IMPOSTOR_LOD); // lod 0 dissappear, lod1 as is
-                    }
+                      visibility.addTreeInstance(ri_idx, perInstanceData[instanceLod], v_packed_data, instanceLod);
 
-                    visibility.instNumberCounter[remap_per_instance_lod_inv(lodI)]++;
-                    if (lodI >= RiGenVisibility::PI_IMPOSTOR_LOD) // PI_ALPHA_LOD also requires an impostor texture.
-                    {
+                    visibility.instNumberCounter[instanceLod]++;
+                    if (instanceLod == visibility.PI_ALPHA_LOD) // PI_ALPHA_LOD also requires an impostor texture.
                       riRenderRanges[ri_idx].vismask |= VIS_HAS_IMPOSTOR;
-                    }
                   }
                 }
                 continue;
@@ -590,7 +534,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
             // todo:replace to binary search?
             for (int lodI = pool.hasImpostor() ? farLodNo : alphaFarLodNo, lodE = rtData->riResFirstLod(ri_idx); lodI >= lodE; --lodI)
             {
-              if (subCellDistSq > lodDistancesSq[lodI + lodTranslation] || lodI == lodE)
+              if (subCellDistSq > lodDistancesSq_perInst[lodI + lodTranslation] || lodI == lodE)
               {
                 if (forShadow && lodI == alphaFarLodNo)
                   break;

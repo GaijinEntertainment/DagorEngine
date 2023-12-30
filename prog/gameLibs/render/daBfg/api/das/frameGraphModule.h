@@ -4,6 +4,7 @@
 #include <frontend/internalRegistry.h>
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/aotDagorDriver3d.h>
+#include <dasModules/dasManagedTab.h>
 #include <dasModules/dasScriptsLoader.h>
 #include <api/das/genericBindings/relocatableFixedVector.h>
 #include <api/das/genericBindings/optional.h>
@@ -15,7 +16,7 @@
 
 namespace dabfg
 {
-inline NodeHandle register_external_node(NodeNameId node_id, uint32_t generation) { return {{node_id, generation, true}}; }
+inline NodeHandle register_external_node(NodeNameId node_id, uint16_t generation) { return {{node_id, generation, true}}; }
 } // namespace dabfg
 
 struct DasNameSpaceRequest
@@ -87,6 +88,8 @@ MAKE_TYPE_FACTORY(VrsStateRequirements, dabfg::VrsStateRequirements)
 MAKE_TYPE_FACTORY(VirtualSubresourceRef, dabfg::VirtualSubresourceRef)
 MAKE_TYPE_FACTORY(Binding, dabfg::Binding)
 MAKE_TYPE_FACTORY(nullopt, eastl::nullopt_t)
+using NodeHandleVector = dag::Vector<dabfg::NodeHandle>;
+DAS_BIND_VECTOR(NodeHandleVector, NodeHandleVector, dabfg::NodeHandle, "::dag::Vector<dabfg::NodeHandle>")
 
 namespace das
 {
@@ -128,8 +131,10 @@ namespace bind_dascript
 ManagedTexView getTexView(const dabfg::ResourceProvider &provider, dabfg::ResNameId resId, bool history);
 ManagedBufView getBufView(const dabfg::ResourceProvider &provider, dabfg::ResNameId resId, bool history);
 const dabfg::ResourceProvider &getProvider(dabfg::InternalRegistry *registry);
-dabfg::InternalRegistry &getRegistry(const dabfg::NodeTracker &tracker);
+dabfg::NodeTracker &getTracker();
+dabfg::InternalRegistry &getRegistry();
 int getShaderVariableId(const char *name);
+void registerNode(dabfg::NodeTracker &node_tracker, dabfg::NodeNameId nodeId, das::Context *context);
 void setEcsNodeHandleHint(ecs::ComponentsInitializer &init, const char *name, uint32_t hash, dabfg::NodeHandle &handle);
 void setEcsNodeHandle(ecs::ComponentsInitializer &init, const char *name, dabfg::NodeHandle &handle);
 void fastSetInitChildComp(ecs::ComponentsInitializer &init, const ecs::component_t name, const ecs::FastGetInfo &lt,

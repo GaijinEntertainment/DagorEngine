@@ -127,7 +127,7 @@ int ShaderMaterialsSaver::addMaterial(ShaderMaterial *m, MaterialData *src)
     return i;
   i = append_items(mats, 1);
   mats[i].mat = m;
-  mats[i].par = src ? src->matScript : "";
+  mats[i].par = src ? src->matScript.c_str() : "";
   return i;
 }
 
@@ -141,7 +141,7 @@ int ShaderMaterialsSaver::addMaterial(ShaderMaterial *m, ShaderTexturesSaver &te
     return i;
   i = append_items(mats, 1);
   mats[i].mat = m;
-  mats[i].par = src ? src->matScript : "";
+  mats[i].par = src ? src->matScript.c_str() : "";
 
   int numTex = m->get_num_textures();
   for (int j = 0; j < numTex; ++j)
@@ -435,6 +435,6 @@ int ShaderMaterialsSaver::getGlobVData(GlobalVertexDataSrc *v)
     if (vdata[i] == v)
       break;
   if (i == vdata.size())
-    fatal("vdata %p is not found! vdata.size()=%d", v, vdata.size());
+    DAG_FATAL("vdata %p is not found! vdata.size()=%d", v, vdata.size());
   return i;
 }

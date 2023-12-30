@@ -5,7 +5,7 @@
 #include <de3_baseInterfaces.h>
 #include <de3_writeObjsToPlaceDump.h>
 #include <de3_entityUserData.h>
-#include <de3_groundHole.h>
+#include <landMesh/lmeshHoles.h>
 #include <oldEditor/de_common_interface.h>
 #include <assets/assetChangeNotify.h>
 #include <assets/assetMgr.h>
@@ -36,6 +36,7 @@ public:
     bbox = BBox3(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5));
     ladderStepsCount = -1;
     isGroundHole = false;
+    holeShapeIntersection = false;
     isRiNavmeshBlocker = false;
     bsph.setempty();
     bsph = bbox;
@@ -98,6 +99,7 @@ public:
 
     ladderStepsCount = asset.props.getInt("ladderStepsCount", -1);
     isGroundHole = asset.props.getBool("isGroundHole", false);
+    holeShapeIntersection = asset.props.getBool("holeShapeIntersection", false);
     isRiNavmeshBlocker = asset.props.getBool("isRiNavmeshBlocker", false);
 
     bsph = bbox;
@@ -136,6 +138,7 @@ public:
   BBox3 bbox;
   int ladderStepsCount;
   bool isGroundHole;
+  bool holeShapeIntersection;
   bool isRiNavmeshBlocker;
   BSphere3 bsph;
   enum
@@ -178,6 +181,7 @@ public:
     bsph = e.bsph;
     ladderStepsCount = e.ladderStepsCount;
     isGroundHole = e.isGroundHole;
+    holeShapeIntersection = e.holeShapeIntersection;
     isRiNavmeshBlocker = e.isRiNavmeshBlocker;
     volType = e.volType;
     needsSuperEntRef = e.needsSuperEntRef;
@@ -406,7 +410,7 @@ public:
   }
 
   // IGatherGroundHoles interface
-  virtual void gatherGroundHoles(Tab<GroundHole> &obstacles)
+  virtual void gatherGroundHoles(LandMeshHolesCell &obstacles)
   {
     dag::ConstSpan<GameObjEntity *> entities = objPool.getEntities();
     for (GameObjEntity *entity : entities)
@@ -416,10 +420,7 @@ public:
         TMatrix tm;
         entity->getTm(tm);
         const bool isSphere = entity->volType == VirtualGameObjEntity::VT_SPH;
-        const Point2 center = Point2::xz(tm.getcol(3));
-        const Point2 xAxis = Point2::xz(tm.getcol(0));
-        const Point2 yAxis = Point2::xz(tm.getcol(2));
-        obstacles.push_back(GroundHole(xAxis, yAxis, center, isSphere));
+        obstacles.addHole({tm, isSphere, entity->holeShapeIntersection});
       }
   }
 

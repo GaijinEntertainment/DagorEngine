@@ -121,6 +121,29 @@ static ecs::ComponentsMap gather_all_components(const char *template_name)
   return result;
 }
 
+static eastl::vector_set<ecs::component_t> gather_all_tracked(const ecs::Template *templ)
+{
+  eastl::vector_set<ecs::component_t> result;
+
+  ecs::Template::ComponentsSet templTracked = templ->trackedSet();
+  for (auto &c : templTracked)
+    result.insert(c);
+
+  eastl::vector<uint32_t> parents;
+  flatten_parents(templ, parents);
+  for (const uint32_t p : parents)
+  {
+    auto pr = g_entity_mgr->getTemplateDB().getTemplateById(p);
+    if (pr != nullptr)
+    {
+      ecs::Template::ComponentsSet parentTracked = pr->trackedSet();
+      for (auto &c : parentTracked)
+        result.insert(c);
+    }
+  }
+  return result;
+}
+
 /// replace 'file_name.das_l123_c21' with 'file_name.das:123:21' for easier seraching in the editor
 static std::string to_searchable_querry_name(std::string qname)
 {
@@ -610,6 +633,90 @@ static void who_can_access_component_of_template(const char *component_name, con
           break;
         }
       }
+    }
+  }
+
+  console::print_d(""); // formatting
+
+  if (outputSystems.size() > 0)
+    console::print_d("Systems:");
+  for (auto name : outputSystems)
+    console::print_d("\t%s", name);
+
+  if (outputQueries.size() > 0)
+    console::print_d("Queries:");
+  for (auto name : outputQueries)
+    console::print_d("\t%s", name.c_str());
+
+  console::print_d("Systems: %d queries: %d.", outputSystems.size(), outputQueries.size());
+}
+
+static void who_modifies_tracked_components_of_template(const char *template_name)
+{
+  const ecs::ComponentsMap compMap = gather_all_components(template_name);
+
+  const ecs::Template *templ = g_entity_mgr->getTemplateDB().getTemplateByName(template_name);
+  if (!templ)
+    return;
+  eastl::vector_set<ecs::component_t> tracked = gather_all_tracked(templ);
+
+  console::print_d(""); // formatting
+  console::print_d("%d Tracked components:", tracked.size());
+  for (auto &c : tracked)
+  {
+    const char *name = g_entity_mgr->getTemplateDB().getComponentName(c);
+    console::print_d("\t%s", name);
+  }
+
+  auto componentsToStr = [](eastl::vector<ecs::component_type_t> trackedComps) {
+    String result;
+    for (auto &c : trackedComps)
+    {
+      const char *name = g_entity_mgr->getTemplateDB().getComponentName(c);
+      if (result.size() > 0)
+        result.append(String(0, ", %s", name));
+      else
+        result.append(String(0, "%s", name));
+    }
+    return result;
+  };
+
+  eastl::vector<String> outputSystems;
+  auto systems = g_entity_mgr->getSystems();
+  for (const ecs::EntitySystemDesc *s : systems)
+  {
+    eastl::vector<ecs::component_type_t> trackedComps;
+    for (auto &c : s->componentsRW)
+    {
+      if (tracked.find(c.name) != tracked.end())
+        trackedComps.push_back(c.name);
+    }
+    if (trackedComps.size() > 0)
+    {
+      if (!check_query_processes_template(s, compMap))
+        continue;
+      outputSystems.push_back(String(0, "%s\n%s", s->name, componentsToStr(trackedComps).c_str()));
+    }
+  }
+
+  eastl::vector<String> outputQueries;
+  uint32_t queryCount = g_entity_mgr->getQueriesCount();
+  for (uint32_t i = 0; i < queryCount; i++)
+  {
+    ecs::QueryId qid = g_entity_mgr->getQuery(i);
+    const ecs::BaseQueryDesc qd = g_entity_mgr->getQueryDesc(qid);
+    eastl::vector<ecs::component_type_t> trackedComps;
+    for (auto &c : qd.componentsRW)
+    {
+      if (tracked.find(c.name) != tracked.end())
+        trackedComps.push_back(c.name);
+    }
+    if (trackedComps.size() > 0)
+    {
+      if (!check_query_processes_template(&qd, compMap))
+        continue;
+      auto queryName = to_searchable_querry_name(std::string(g_entity_mgr->getQueryName(qid)));
+      outputQueries.push_back(String(0, "%s\n%s", queryName.c_str(), componentsToStr(trackedComps).c_str()));
     }
   }
 
@@ -1227,6 +1334,10 @@ static bool ecs_console_handler(const char *argv[], int argc)
     diff_systems_for_eids(atoi(argv[1]), atoi(argv[2]), argc > 3 ? argv[3] : nullptr, argc > 4 ? argv[4] : nullptr);
   }
   CONSOLE_CHECK_NAME("ecs", "search_for_eid_in_entities", 2, 2) { search_for_eid_in_entities(atoi(argv[1])); }
+  CONSOLE_CHECK_NAME("ecs", "who_modifies_tracked_components_of_template", 2, 2)
+  {
+    who_modifies_tracked_components_of_template(argv[1]);
+  }
 #endif
   return found;
 }

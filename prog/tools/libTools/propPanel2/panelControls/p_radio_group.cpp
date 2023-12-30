@@ -98,7 +98,7 @@ void CRadioGroup::onWcChange(WindowBase *source)
 void CRadioGroup::clear()
 {
   mSelectedIndex = RADIO_SELECT_NONE;
-  __super::clear();
+  PropertyContainerVert::clear();
 }
 
 
@@ -142,7 +142,7 @@ void CRadioGroup::setWidth(hdpi::Px w)
 void CRadioGroup::onChildResize(int id)
 {
   if (!mWResize)
-    __super::onChildResize(id);
+    PropertyContainerVert::onChildResize(id);
 }
 
 

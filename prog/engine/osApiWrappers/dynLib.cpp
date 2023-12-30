@@ -12,8 +12,10 @@
 // Load dynamic library. Return NULL if failed.
 void *os_dll_load(const char *filename)
 {
-#if _TARGET_PC_LINUX | _TARGET_APPLE | _TARGET_ANDROID
+#if _TARGET_PC_LINUX
+  return ::dlopen(filename, RTLD_LAZY | RTLD_DEEPBIND); // RTLD_DEEPBIND requires GLIBC 2.3.4 (introduced in 2004-12-29)
 
+#elif _TARGET_APPLE | _TARGET_ANDROID
   return ::dlopen(filename, RTLD_LAZY);
 
 #elif _TARGET_PC_WIN | _TARGET_XBOX

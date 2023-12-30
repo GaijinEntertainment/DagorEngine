@@ -32,7 +32,7 @@ UseProgLibs =
   engine/ioSys
   engine/math
 
-  3rdPartyLibs/EASTL
+  3rdPartyLibs/eastl
   3rdPartyLibs/unittest-cpp
 
   engine/perfMon/daProfilerStub

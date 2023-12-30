@@ -17,5 +17,5 @@ void win32_set_window_title_tooltip_utf8(const char *title, const char *tooltip)
   workcycle_internal::set_title_tooltip(title, tooltip, true);
 }
 
-#define EXPORT_PULL dll_pull_osapiwrappers_winSetTitle
+#define EXPORT_PULL dll_pull_osapiwrappers_setTitle
 #include <supp/exportPull.h>

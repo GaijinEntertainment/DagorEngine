@@ -33,11 +33,14 @@ static int issued_fatal_count = 0;
 
 #define CLEAR_FATALS_ISSUED() issued_fatal_count = 0
 
-#define ISSUE_FATAL(...)                                                        \
-  do                                                                            \
-  {                                                                             \
-    issued_fatal_count++;                                                       \
-    log ? log->addMessage(ILogWriter::FATAL, __VA_ARGS__) : fatal(__VA_ARGS__); \
+#define ISSUE_FATAL(...)                               \
+  do                                                   \
+  {                                                    \
+    issued_fatal_count++;                              \
+    if (log)                                           \
+      log->addMessage(ILogWriter::FATAL, __VA_ARGS__); \
+    else                                               \
+      DAG_FATAL(__VA_ARGS__);                          \
   } while (0)
 
 #define WERE_FATALS_ISSUED() (issued_fatal_count > 0 || (log ? log->hasErrors() : false))
@@ -422,7 +425,7 @@ void DynamicRenderableSceneLodsResSrc::addMeshNode(Lod &lod, Node *n_, LodsEqual
       if (!has_any_mat || !mesh.getVert().size() || !mesh.getFace().size()) // no renderable geometry
         goto add_children;
 
-      int rigidId = lod.addRigid(nodeNameMap.addNameId(n.parent ? n.name : "@root"));
+      int rigidId = lod.addRigid(nodeNameMap.addNameId(n.parent ? n.name.c_str() : "@root"));
 
       for (i = 0; i < mesh.getVert().size(); i++)
         lod.rigids[rigidId].sph += mesh.getVert()[i];
@@ -637,7 +640,7 @@ void DynamicRenderableSceneLodsResSrc::addSkinNode(Lod &lod, Node *n_, LodsEqual
 
         Ptr<MaterialData> subMat = n.mat->getSubMat(i);
         if (!subMat)
-          fatal("invalid sub-material #%d of '%s'", i + 1, (const char *)n.name);
+          DAG_FATAL("invalid sub-material #%d of '%s'", i + 1, (const char *)n.name);
 
         CfgReader c;
         c.getdiv_text(String(128, "[q]\r\n%s\r\n", subMat->matScript.str()), "q");
@@ -703,12 +706,13 @@ void DynamicRenderableSceneLodsResSrc::addSkinNode(Lod &lod, Node *n_, LodsEqual
 
         Mesh localMesh = mesh;
         bool needToPackVcolor = false;
-        for (int i = 0; i < n.mat->subMatCount(); ++i)
-          if (strstr(n.mat->getSubMat(i)->matScript, "cut_mesh=1"))
-            needToPackVcolor = true;
+        for (int j = 0; j < n.mat->subMatCount(); ++j)
+          if (auto *submat = n.mat->getSubMat(j))
+            if (strstr(submat->matScript, "cut_mesh=1"))
+              needToPackVcolor = true;
         if (!meshData->build(localMesh, *mh.bones, shmat.data(), shmat.size(), curCount, &nodeNameMap, needToPackVcolor))
         {
-          fatal("cannot build skinned mesh data! (node='%s'; VPRConstCount=%d)", (const char *)n.name, curCount);
+          DAG_FATAL("cannot build skinned mesh data! (node='%s'; VPRConstCount=%d)", (const char *)n.name, curCount);
         }
 
         // enum new materials

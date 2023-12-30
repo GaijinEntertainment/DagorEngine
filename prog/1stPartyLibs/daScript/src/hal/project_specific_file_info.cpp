@@ -37,7 +37,7 @@ smart_ptr<das::FileAccess> get_file_access( char * pak ) {
     if (specificGetFileAccess)
         return specificGetFileAccess(pak);
 #if !DAS_NO_FILEIO
-    if ( pak ) {
+    if ( pak && *pak ) {
         return make_smart<FsFileAccess>(pak, make_smart<FsFileAccess>());
     } else {
         return make_smart<FsFileAccess>();

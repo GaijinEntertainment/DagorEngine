@@ -59,8 +59,7 @@ template <>
 void StateFieldRaytraceLayout::applyTo(BackRaytraceStateStorage &, ExecutionContext &target) const
 {
   target.back.contextState.bindlessManagerBackend.bindSets(target, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, ptr->handle);
-  ContextState &ctxState = target.back.contextState;
-  ctxState.stageState[STAGE_RAYTRACE].invalidateState();
+  target.back.executionState.getResBinds(STAGE_RAYTRACE).invalidateState();
 }
 
 template <>
@@ -93,7 +92,7 @@ void StateFieldRaytraceFlush::applyTo(BackRaytraceStateStorage &state, Execution
 
   target.trackStageResAccesses(regRef.header, STAGE_RAYTRACE);
 
-  ctxState.stageState[STAGE_RAYTRACE].apply(
+  target.back.executionState.getResBinds(STAGE_RAYTRACE).apply(
     target.vkDev, target.device.getDummyResourceTable(),
     ctxState.frame->index,
     regRef, target, STAGE_RAYTRACE,

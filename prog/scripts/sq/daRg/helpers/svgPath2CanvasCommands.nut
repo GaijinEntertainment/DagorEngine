@@ -53,7 +53,7 @@ foreach(i in COMMANDS_KEYS){
 let NUMBERS = [0,1,2,3,4,5,6,7,8,9, "."].map(@(v) v.tostring())
 const MINUS = "-"
 
-let function prP(str, start=0){
+function prP(str, start=0){
   for (local i=start; i<str.len(); i++){
     let chr = str[i].tochar()
     if ((i == start && chr == MINUS) || NUMBERS.contains(chr))
@@ -62,7 +62,7 @@ let function prP(str, start=0){
   }
   return {substr = str.slice(start), end=str.len()}
 }
-let function parsePoints(str){
+function parsePoints(str){
   let res = []
   local start = 0
   while (start<str.len()){
@@ -77,7 +77,7 @@ let function parsePoints(str){
   return res.map(@(v) v.tofloat())
 }
 
-let function parsePath(pathstr){
+function parsePath(pathstr){
   let res = []
   local last = -1
   local lastcommand = null
@@ -116,7 +116,7 @@ let function parsePath(pathstr){
   return res
 }
 
-let function transformP(point, offset, scale, curpos, command=null){
+function transformP(point, offset, scale, curpos, command=null){
   if (command?.abs)
     curpos = [0,0]
   return [(point[0]+offset[0]+curpos[0])*scale[0], (point[1]+offset[1]+curpos[1])*scale[1]]
@@ -124,7 +124,7 @@ let function transformP(point, offset, scale, curpos, command=null){
 
 let DRAWLINE_CMDS = COMMANDS.filter(@(v) !v?.draw)
 
-let function curPos(curCursorPos, point, command=null){
+function curPos(curCursorPos, point, command=null){
   let abs = command?.abs
   if (abs) {
     return [point[0], point[1]]
@@ -132,7 +132,7 @@ let function curPos(curCursorPos, point, command=null){
   return [curCursorPos[0]+point[0], curCursorPos[1]+point[1]]
 }
 
-let function pathToCanvas(path, viewBox=null, fill=false){
+function pathToCanvas(path, viewBox=null, fill=false){
   viewBox = viewBox ?? [0,0,100,100]
   let offset = [viewBox[0], viewBox[1]]
   let scale = [100.0/(viewBox[2]-offset[0]),100.0/(viewBox[3]-offset[1])]

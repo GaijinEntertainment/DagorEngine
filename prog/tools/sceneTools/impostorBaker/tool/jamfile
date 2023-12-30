@@ -77,7 +77,6 @@ UseProgLibs =
 ;
 
 ImportProgLibs = tools/libTools/daKernel ;
-CoExportProgDlls = $(ImportProgLibs) ;
 
 
 include $(Root)/prog/_jBuild/build.jam ;

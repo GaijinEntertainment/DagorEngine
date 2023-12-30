@@ -157,7 +157,7 @@ void Sampler::link(const Tab<Sampler> &samplers, Tab<int> &smp_link_table)
         smp_link_table[i] = existing_var;
 
         if (memcmp(&smp.mSamplerInfo, &existing_smp.mSamplerInfo, sizeof(d3d::SamplerInfo)) != 0)
-          fatal("Different sampler values: '%i'", smp.mNameId);
+          DAG_FATAL("Different sampler values: '%i'", smp.mNameId);
       }
     }
 

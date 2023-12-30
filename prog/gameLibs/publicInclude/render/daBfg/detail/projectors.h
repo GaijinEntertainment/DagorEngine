@@ -5,23 +5,20 @@
 //
 #pragma once
 
+#include <EASTL/functional.h>
 
 namespace dabfg::detail
 {
 
-using TypeErasedProjector = void *(*)(void *);
+using TypeErasedProjector = const void *(*)(const void *);
 
-template <class C, typename T>
-C owner_type_of_memptr(T C::*memberPtr);
+template <class T>
+constexpr bool is_const_lvalue_reference = eastl::is_lvalue_reference_v<T> && eastl::is_const_v<eastl::remove_reference_t<T>>;
 
-template <class DUMMY, class C, typename T>
-T member_type_of_memptr(T C::*memberPtr);
-
-template <auto memberPtr>
-TypeErasedProjector projector_for_member()
+template <auto projector, class T>
+TypeErasedProjector erase_projector_type()
 {
-  using PointerClassType = decltype(owner_type_of_memptr(memberPtr));
-  return [](void *sv) -> void * { return &(static_cast<PointerClassType *>(sv)->*memberPtr); };
+  return [](const void *blob) -> const void * { return &eastl::invoke(projector, *static_cast<const T *>(blob)); };
 };
 
 } // namespace dabfg::detail

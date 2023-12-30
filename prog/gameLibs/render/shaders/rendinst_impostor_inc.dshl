@@ -1,3 +1,5 @@
+include "rendinst_rotation_palette.dshl"
+
 int baked_impostor_multisample = 0;
 interval baked_impostor_multisample: no < 1, yes;
 

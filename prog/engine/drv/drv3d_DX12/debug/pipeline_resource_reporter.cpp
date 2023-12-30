@@ -7,77 +7,80 @@ namespace
 void report_resources_impl(const PipelineStageStateBase &state, uint32_t b_reg_mask, uint32_t t_reg_mask, uint32_t u_reg_mask,
   uint32_t s_reg_mask, uint32_t s_reg_with_cmp_mask)
 {
-  for_each_set_bit(b_reg_mask, [&state](uint32_t i) {
+  for (auto i : LsbVisitor{b_reg_mask})
+  {
     auto gpuPointer = state.bRegisters[i].BufferLocation;
     if (gpuPointer)
     {
       auto &bufferResource = state.bRegisterBuffers[i];
-      debug("DX12: ...B register slot %u with %p / %u @ %u...", i, gpuPointer, bufferResource.buffer, bufferResource.resourceId,
+      logdbg("DX12: ...B register slot %u with %p / %u @ %u...", i, gpuPointer, bufferResource.buffer, bufferResource.resourceId,
         gpuPointer - bufferResource.buffer->GetGPUVirtualAddress());
     }
     else if (i == 0)
     {
-      debug("DX12: ...B register slot %u with register constant buffer...", i);
+      logdbg("DX12: ...B register slot %u with register constant buffer...", i);
     }
     else
     {
-      debug("DX12: ...B register slot %u has no buffer bound to...", i);
+      logdbg("DX12: ...B register slot %u has no buffer bound to...", i);
     }
-  });
+  }
 
-  for_each_set_bit(t_reg_mask, [&state](uint32_t i) {
+  for (auto i : LsbVisitor{t_reg_mask})
+  {
     auto &slot = state.tRegisters[i];
     if (slot.image)
     {
-      debug("DX12: ...T register slot %u with texture %p (%u) and view %u...", i, slot.image->getHandle(), slot.image->getType(),
+      logdbg("DX12: ...T register slot %u with texture %p (%u) and view %u...", i, slot.image->getHandle(), slot.image->getType(),
         slot.view.ptr);
     }
     else if (slot.buffer)
     {
-      debug("DX12: ...T register slot %u with buffer %p and view %u...", i, slot.buffer.buffer, slot.view.ptr);
+      logdbg("DX12: ...T register slot %u with buffer %p and view %u...", i, slot.buffer.buffer, slot.view.ptr);
     }
     else
     {
-      debug("DX12: ...T register slot %u has no resource bound to, null resource is used instead...", i);
+      logdbg("DX12: ...T register slot %u has no resource bound to, null resource is used instead...", i);
     }
-  });
+  }
 
-  for_each_set_bit(u_reg_mask, [&state](uint32_t i) {
+  for (auto i : LsbVisitor{u_reg_mask})
+  {
     auto &slot = state.uRegisters[i];
     if (slot.image)
     {
-      debug("DX12: ...U register slot %u with texture %p (%u) and view %u...", i, slot.image->getHandle(), slot.image->getType(),
+      logdbg("DX12: ...U register slot %u with texture %p (%u) and view %u...", i, slot.image->getHandle(), slot.image->getType(),
         slot.view.ptr);
     }
     else if (slot.buffer)
     {
-
-      debug("DX12: ...U register slot %u with buffer %p and view %u...", i, slot.buffer.buffer, slot.view.ptr);
+      logdbg("DX12: ...U register slot %u with buffer %p and view %u...", i, slot.buffer.buffer, slot.view.ptr);
     }
     else
     {
-      debug("DX12: ...U register slot %u has no resource bound to, null resource is used instead...", i);
+      logdbg("DX12: ...U register slot %u has no resource bound to, null resource is used instead...", i);
     }
-  });
+  }
 
-  for_each_set_bit(s_reg_mask, [&state, s_reg_with_cmp_mask](uint32_t i) {
+  for (auto i : LsbVisitor{s_reg_mask})
+  {
     auto slot = state.sRegisters[i];
     if (slot.ptr)
     {
       if (s_reg_with_cmp_mask & (1u << i))
       {
-        debug("DX12: ...S register slot %u with comparison sampler %u...", i, slot.ptr);
+        logdbg("DX12: ...S register slot %u with comparison sampler %u...", i, slot.ptr);
       }
       else
       {
-        debug("DX12: ...S register slot %u with sampler %u...", i, slot.ptr);
+        logdbg("DX12: ...S register slot %u with sampler %u...", i, slot.ptr);
       }
     }
     else
     {
-      debug("DX12: ...S register slot %u has no sampler bound to!...", i);
+      logdbg("DX12: ...S register slot %u has no sampler bound to!...", i);
     }
-  });
+  }
 
   // TODO: bindless is a global state and we don't have any debug info for those
 }

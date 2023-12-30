@@ -13,31 +13,12 @@
 #include "modfx_trimming.hlsli"
 #include "modfx_part_data.hlsli"
 #include "modfx_toroidal_movement.hlsli"
+#include "modfx_render_placement.hlsli"
 
 DAFX_INLINE
 float4 modfx_get_culling( float3_cref wpos, float radius )
 {
   return float4( wpos.x, wpos.y, wpos.z, radius );
-}
-
-DAFX_INLINE
-BBox modfx_apply_placement_to_culling( DAFX_CREF(ModfxParentRenData) parent_rdata, BufferData_cref buf, float4_cref v )
-{
-  BBox bbox;
-  bbox.bmin = float3(v.x - v.w, v.y - v.w, v.z - v.w);
-  bbox.bmax = float3(v.x + v.w, v.y + v.w, v.z + v.w);
-
-  if ( parent_rdata.mods_offsets[MODFX_RMOD_ABOVE_DEPTH_PLACEMENT_THRESHOLD] )
-  {
-    float placementThresholdMod = dafx_get_1f(buf, parent_rdata.mods_offsets[MODFX_RMOD_ABOVE_DEPTH_PLACEMENT_THRESHOLD]);
-    if ( placementThresholdMod > 0 )
-    {
-      bbox.bmin.y -= placementThresholdMod;
-      bbox.bmax.y += placementThresholdMod;
-    }
-  }
-
-  return bbox;
 }
 
 ModfxDeclCollisionDecay ModfxDeclCollisionDecay_load( BufferData_cref buf, uint ofs )
@@ -78,7 +59,7 @@ void modfx_apply_sim(
     float grad_k = FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_COLOR_GRAD_USE_PART_IDX_AS_KEY ) ? part_distr_k : sdata.life_norm;
     float curve_k = FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_COLOR_CURVE_USE_PART_IDX_AS_KEY ) ? part_distr_k : sdata.life_norm;
 
-    modfx_color_sim( parent_sdata, buf, sdata.rnd_seed, grad_k, curve_k, sdata.life_norm, sdata.em_color, rdata.color, rdata.emission_fade );
+    modfx_color_sim( parent_sdata, buf, sdata.rnd_seed, grad_k, curve_k, sdata.life_norm, part_distr_k, sdata.em_color, rdata.color, rdata.emission_fade );
   }
 
   bool sdeclVelocity = MODFX_SDECL_VELOCITY_ENABLED( parent_sdata.decls );
@@ -167,6 +148,7 @@ BBox dafx_emission_shader_cb(
   rdata.up_vec = float3( 0, 0, 0 );
   rdata.right_vec = float3( 0, 0, 0 );
   rdata.pos_offset = float3( 0, 0, 0 );
+  rdata.unique_id = 0;
 
   ModfxSimData sdata;
   sdata.life_norm = 0;
@@ -179,13 +161,17 @@ BBox dafx_emission_shader_cb(
   bool apply_etm = !FLAG_ENABLED( parent_rdata.flags,MODFX_RFLAG_USE_ETM_AS_WTM );
   float4x4 etm = dafx_get_44mat( buf, parent_rdata.mods_offsets[MODFX_RMOD_INIT_TM] );
 
-  // trail
+  // trail and unique id
+  int serviceLoad_ofs = 0;
+
   bool last_sim_part = cdesc.idx == ( cdesc.count - 1 );
   float3 prev_last_emitter_pos;
   float3 cur_emitter_pos = float3( etm[3][0], etm[3][1], etm[3][2] );
   if ( FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_TRAIL_ENABLED ) )
   {
-    ModfxDeclServiceTrail pp = ModfxDeclServiceTrail_load( buf, cdesc.serviceDataOffset );
+    ModfxDeclServiceTrail pp = ModfxDeclServiceTrail_load( buf, cdesc.serviceDataOffset + serviceLoad_ofs );
+    serviceLoad_ofs += MODFX_SERVICE_TRAIL_SIZE / 4;
+
     if ( last_sim_part )
       prev_last_emitter_pos = pp.last_emitter_pos;
 
@@ -198,6 +184,13 @@ BBox dafx_emission_shader_cb(
 
       lag_comp = 0.f;
     }
+  }
+  if ( MODFX_RDECL_UNIQUE_ID_ENABLED( parent_rdata.decls ) )
+  {
+    ModfxDeclServiceUniqueId pp = ModfxDeclServiceUniqueId_load( buf, cdesc.serviceDataOffset + serviceLoad_ofs );
+    serviceLoad_ofs += MODFX_SERVICE_UNIQUE_ID_SIZE / 4;
+
+    rdata.unique_id = pp.particles_emitted + cdesc.idx;
   }
 
   modfx_life_init( parent_sdata, buf, sdata.rnd_seed, sdata.life_norm );
@@ -274,13 +267,27 @@ BBox dafx_emission_shader_cb(
   modfx_save_sim_data(buf, cdesc.dataSimOffsetCurrent, parent_sdata.decls, true, sdata);
 
   // only last part can overwrite service (shared) data, so we can skip mem barrier usage
-  if ( FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_TRAIL_ENABLED ) && last_sim_part )
+  if ( last_sim_part )
   {
-    ModfxDeclServiceTrail pp;
-    pp.prev_last_emitter_pos = prev_last_emitter_pos;
-    pp.last_emitter_pos = cur_emitter_pos;
-    pp.flags = MODFX_TRAIL_FLAG_LAST_POS_VALID | MODFX_TRAIL_FLAG_EMITTED_THIS_FRAME;
-    ModfxDeclServiceTrail_save( pp, buf, cdesc.serviceDataOffset );
+    int serviceSave_ofs = 0;
+    if ( FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_TRAIL_ENABLED ) )
+    {
+      ModfxDeclServiceTrail pp;
+      pp.prev_last_emitter_pos = prev_last_emitter_pos;
+      pp.last_emitter_pos = cur_emitter_pos;
+      pp.flags = MODFX_TRAIL_FLAG_LAST_POS_VALID | MODFX_TRAIL_FLAG_EMITTED_THIS_FRAME;
+
+      ModfxDeclServiceTrail_save( pp, buf, cdesc.serviceDataOffset + serviceSave_ofs );
+      serviceSave_ofs += MODFX_SERVICE_TRAIL_SIZE / 4;
+    }
+    if ( MODFX_RDECL_UNIQUE_ID_ENABLED( parent_rdata.decls ) )
+    {
+      ModfxDeclServiceUniqueId pp;
+      pp.particles_emitted = rdata.unique_id + 1;
+
+      ModfxDeclServiceUniqueId_save( pp, buf, cdesc.serviceDataOffset + serviceSave_ofs );
+      serviceSave_ofs += MODFX_SERVICE_UNIQUE_ID_SIZE / 4;
+    }
   }
 
   float3 cull_pos = apply_etm ? rdata.pos : float_xyz( mul( float4( rdata.pos, 1.f ), etm ) );

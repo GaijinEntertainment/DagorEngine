@@ -131,11 +131,11 @@ inline HRESULT dx12_debug_result(HRESULT result, const char *DAGOR_HAS_LOGS(expr
   auto resultStr = dxgi_error_code_to_string(result);
   if ('\0' == resultStr[0])
   {
-    debug("%s returned unknown return code %u, %s %u", expr, result, file, line);
+    logdbg("%s returned unknown return code %u, %s %u", expr, result, file, line);
   }
   else
   {
-    debug("%s returned %s, %s %u", expr, resultStr, file, line);
+    logdbg("%s returned %s, %s %u", expr, resultStr, file, line);
   }
 
   return result;

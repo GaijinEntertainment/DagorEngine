@@ -131,6 +131,10 @@ namespace das
             return context.code->makeNode<SimNode_PlacementNew<CType,Args...>>(at,fnName);
         }
         const char * fnName = nullptr;
+        static void placementNewFunc ( CType * cmres, Args... args ) {
+            new (cmres) CType(args...);
+        }
+        virtual void * getBuiltinAddress() const override { return (void *) &placementNewFunc; }
     };
 
     template  <typename CType, typename ...Args>
@@ -142,6 +146,7 @@ namespace das
             this->aotTemplate = true;
             this->modifyExternal = true;
             this->invoke = true;
+            this->jitContextAndLineInfo = true; // we need context and line info for usingFunc
             vector<TypeDeclPtr> args = makeBuiltinArgs<void,Args...>(lib);
             auto argT = makeType<CType>(lib);
             if ( !argT->canCopy() && !argT->canMove() ) {
@@ -154,6 +159,13 @@ namespace das
         virtual SimNode * makeSimNode ( Context & context, const vector<ExpressionPtr> & ) override {
             return context.code->makeNode<SimNode_Using<CType,Args...>>(at);
         }
+        static void usingFunc ( Args... args, TBlock<void,TTemporary<TExplicit<CType>>> && block, Context * context, LineInfo * at ) {
+            CType value(args...);
+            vec4f bargs[1];
+            bargs[0] = cast<CType *>::from(&value);
+            context->invoke(block,bargs,nullptr,at);
+        }
+        virtual void * getBuiltinAddress() const override { return (void *) &usingFunc; }
     };
 
     void addExternFunc(Module& mod, const FunctionPtr & fx, bool isCmres, SideEffects seFlags);

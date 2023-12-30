@@ -21,26 +21,32 @@
 #include <EASTL/vector.h>
 
 class HeightmapHandler;
+class LandMeshHolesCell
+{
+public:
+  struct HoleData
+  {
+    bool shapeIntersection;
+    bool round;
+    union
+    {
+      Matrix3 inverseProjTm;
+      TMatrix inverseTm;
+    };
+    HoleData(const TMatrix &tm, bool is_round, bool shape_intersection);
+  };
+  void addHole(const HoleData &hole);
+  void clear();
+  bool check(const Point2 &posXZ, const HeightmapHandler *hmapHandler) const;
+  bool check(const Point3 &posXYZ) const;
+  size_t count() const { return holes.size(); }
 
+private:
+  eastl::vector<HoleData> holes;
+  bool needsValidHeight = false;
+};
 class LandMeshHolesManager
 {
-  struct LandMeshHolesCell
-  {
-    struct HoleData
-    {
-      bool shapeIntersection;
-      bool round;
-      union
-      {
-        Matrix3 inverseProjTm;
-        TMatrix inverseTm;
-      };
-      HoleData(const TMatrix &tm, bool is_round, bool shape_intersection);
-    };
-    eastl::vector<HoleData> holes;
-    bool check(const Point2 &p, const HeightmapHandler *hmapHandler) const;
-  };
-
 public:
   struct HoleArgs
   {
@@ -55,9 +61,12 @@ public:
   LandMeshHolesManager(const HeightmapHandler *hmap_handler, int cells_count = 16);
   void clearAndAddHoles(const eastl::vector<HoleArgs> &holes);
   void clearHoles();
-  bool check(const Point2 &p) const;
+  bool check(const Point2 &posXZ) const;
+  bool check(const Point2 &posXZ, float hmap_height) const;
 
 private:
+  size_t getCellIndex(const Point2 &p) const;
+
   int holeCellsCount;
   BBox2 holesRegion;
   Point2 cellSize;

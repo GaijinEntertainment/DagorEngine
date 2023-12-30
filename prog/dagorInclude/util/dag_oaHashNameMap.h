@@ -67,7 +67,7 @@ struct OAHashNameMap
       return it;
     }
     // check hash collision
-    return hashToStringId.findOr(hash, -1, [&](uint32_t id) { return string_equal(name, name_len, id); });
+    return hashToStringId.findOr(hash, -1, [this, name, name_len](uint32_t id) { return string_equal(name, name_len, id); });
   }
   int getNameId(const char *name, size_t name_len) const { return getNameId(name, name_len, string_hash(name, name_len)); }
   int getNameId(const char *name) const { return name ? getNameId(name, strlen(name)) : -1; }
@@ -84,7 +84,7 @@ struct OAHashNameMap
       }
     }
     else
-      it = hashToStringId.findOr(hash, -1, [&](uint32_t id) { return string_equal(name, name_len, id); });
+      it = hashToStringId.findOr(hash, -1, [this, name, name_len](uint32_t id) { return string_equal(name, name_len, id); });
     if (it == -1)
     {
       uint32_t id = addString(name, name_len);
@@ -105,7 +105,7 @@ struct OAHashNameMap
     if (DAGOR_LIKELY(noCollisions()))
       hashToStringId.erase(hash);
     else
-      hashToStringId.erase(hash, [&](uint32_t id) { return string_equal(name, name_len, id); });
+      hashToStringId.erase(hash, [this, name, name_len](uint32_t id) { return string_equal(name, name_len, id); });
     for (auto &i : hashToStringId)
       if (i.val() > id)
         i.val()--;
@@ -211,7 +211,7 @@ struct FixedCapacityOAHashNameMap
   }
   int getNameId(const char *name, size_t name_len, const hash_t hash) const
   {
-    return hashToStringId.findOr(hash, -1, [&](uint32_t id) { return string_equal(name, name_len, id); });
+    return hashToStringId.findOr(hash, -1, [this, name, name_len](uint32_t id) { return string_equal(name, name_len, id); });
   }
   int getNameId(const char *name, size_t name_len) const { return getNameId(name, name_len, string_hash(name, name_len)); }
   int getNameId(const char *name) const { return getNameId(name, strlen(name)); }

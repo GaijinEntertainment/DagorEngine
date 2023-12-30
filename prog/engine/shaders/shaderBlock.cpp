@@ -165,7 +165,7 @@ int ShaderGlobal::getBlockId(const char *block_name, int layer)
     G_ASSERT(layer >= 0 && layer < shaderbindump::MAX_BLOCK_LAYERS);
     G_ASSERT(nullBlock[layer]);
     if (nullBlock[layer]->uidMask != shBinDump().blocks[id].uidMask)
-      fatal("block <%s> doesn't belong to layer #%d, block mask=%04X, required=%04X", block_name, layer,
+      DAG_FATAL("block <%s> doesn't belong to layer #%d, block mask=%04X, required=%04X", block_name, layer,
         shBinDump().blocks[id].uidMask, nullBlock[layer]->uidMask);
   }
   if (!block_init_code.size() && shBinDump().blockNameMap.size())
@@ -191,7 +191,7 @@ static void setBlockPrivate(int block_id, int layer)
   using shaderbindump::nullBlock;
 
 #if DAGOR_DBGLEVEL > 0
-#define LOGERR fatal
+#define LOGERR DAG_FATAL
 #elif DAGOR_FORCE_LOGS
 #define LOGERR logerr
 #else
@@ -580,8 +580,8 @@ static void exec_stcode(dag::ConstSpan<int> cod, int block_id, ConstSetter *cons
       case SHCOD_GET_GINT_TOREAL: real_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<int>(getOp2p2(opc)); break;
 
       default:
-        fatal("%s: exec_stcode: illegal instruction %u %s (index=%d)", find_block(cod), getOp(opc), ShUtils::shcod_tokname(getOp(opc)),
-          codp - cod.data());
+        DAG_FATAL("%s: exec_stcode: illegal instruction %u %s (index=%d)", find_block(cod), getOp(opc),
+          ShUtils::shcod_tokname(getOp(opc)), codp - cod.data());
     }
 }
 

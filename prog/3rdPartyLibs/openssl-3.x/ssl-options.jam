@@ -62,6 +62,7 @@ rule CollectASM
 if $(Platform) in win32 android macosx tvOS iOS nswitch ps5 {
   NoASM = true ;
 }
+if $(Platform) = linux64 && $(LinuxArch) = e2k { NoASM = true ; }
 
 Copt += -DMODULESDIR=\\\"\\\" -DOPENSSLDIR=\\\"\\\" -DENGINESDIR=\\\"\\\" ;
 Copt += -DOPENSSL_NO_UI_CONSOLE -DDSO_NONE -DOPENSSL_NO_INLINE_ASM -DOPENSSL_NO_KTLS ;

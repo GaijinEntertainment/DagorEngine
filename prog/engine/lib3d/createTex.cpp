@@ -52,7 +52,7 @@ BaseTexture *create_texture(const char *fn, int flg, int levels, bool fatalerr, 
   if (!ctf_list)
   {
     if (fatalerr)
-      fatal("can't create tex: %s", fn);
+      DAG_FATAL("can't create tex: %s", fn);
     return NULL;
   }
 
@@ -62,7 +62,7 @@ BaseTexture *create_texture(const char *fn, int flg, int levels, bool fatalerr, 
   if (!fn_ptr)
   {
     if (fatalerr)
-      fatal("invalid file string: %s", fn);
+      DAG_FATAL("invalid file string: %s", fn);
     return NULL;
   }
 
@@ -72,6 +72,6 @@ BaseTexture *create_texture(const char *fn, int flg, int levels, bool fatalerr, 
     return t;
 
   if (fatalerr)
-    fatal("can't create tex: %s", fn);
+    DAG_FATAL("can't create tex: %s", fn);
   return NULL;
 }

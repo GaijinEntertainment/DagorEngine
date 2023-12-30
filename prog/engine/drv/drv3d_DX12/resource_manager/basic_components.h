@@ -168,6 +168,10 @@ class OutOfMemoryRepoter : public ConcurrentAccessControler
 
   bool didReportOOM = false;
 
+  template <typename... Args>
+  void markParamsAsUsed(Args &&...)
+  {}
+
 protected:
   void setup(const SetupInfo &info)
   {
@@ -176,6 +180,44 @@ protected:
   }
 
   void reportOOMInformation();
+  template <typename... Args>
+  bool checkForOOM(bool was_okay, Args &&...args)
+  {
+    markParamsAsUsed(eastl::forward<Args>(args)...);
+    if (!was_okay)
+    {
+      reportOOMInformation();
+    }
+    G_ASSERTF(was_okay, eastl::forward<Args>(args)...);
+    return was_okay;
+  }
+
+  template <typename C, typename... Args>
+  class ScopeExitChecker
+  {
+    OutOfMemoryRepoter &self;
+    C checker;
+    eastl::tuple<Args...> args;
+
+  public:
+    ScopeExitChecker(OutOfMemoryRepoter &s, C &&c, Args &&...a) : self{s}, checker{c}, args{eastl::forward<Args>(a)...} {}
+
+    ScopeExitChecker(const ScopeExitChecker &) = delete;
+    ScopeExitChecker(ScopeExitChecker &&) = delete;
+    ScopeExitChecker &operator=(const ScopeExitChecker &) = delete;
+    ScopeExitChecker &operator=(ScopeExitChecker &&) = delete;
+
+    ~ScopeExitChecker()
+    {
+      eastl::apply([this](auto &&...args) { this->self.checkForOOM(this->checker(), args...); }, args);
+    }
+  };
+
+  template <typename C, typename... Args>
+  ScopeExitChecker<C, Args...> checkForOOMOnExit(C &&checker, Args &&...args)
+  {
+    return {*this, eastl::forward<C>(checker), eastl::forward<Args>(args)...};
+  }
 };
 
 class MetricsProviderBase : public OutOfMemoryRepoter

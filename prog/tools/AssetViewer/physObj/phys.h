@@ -25,7 +25,7 @@ enum
 
 extern real springFactor;
 extern real damperFactor;
-extern Tab<PhysicsResource *> simObjRes;
+extern PtrTab<PhysicsResource> simObjRes;
 static const float def_base_plane_ht = -2.05f;
 
 void simulate(float dt);

@@ -132,7 +132,10 @@ class DAGOR_OT_save_op_preset(Operator):
         name = pref.prop_preset_name
         if name == '':
             name = 'unnamed'
-        path = user_resource('SCRIPTS') + f"\\addons\\{addon_name}\\object_properties\\presets\\{name}.txt"
+        dirpath = user_resource('SCRIPTS') + f"\\addons\\{addon_name}\\object_properties\\presets"
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)
+        path = f"{dirpath}\\{name}.txt"
         with open (path,'w') as preset:
             for line in bpy.data.texts["props_temp"].lines:
                 if line.body!='':

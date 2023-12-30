@@ -33,12 +33,11 @@ static __forceinline T roll_bit(T bit)
 #if DAGOR_DBGLEVEL > 0
 static inline void verify_trace(const Trace &trace)
 {
-  G_ASSERTF(!check_nan(trace.dir), "trace.dir=(%.2f %.2f %.2f)", trace.dir.x, trace.dir.y, trace.dir.z);
-  G_ASSERTF(!check_nan(trace.pos), "trace.pos=(%.2f %.2f %.2f)", trace.pos.x, trace.pos.y, trace.pos.z);
-  G_ASSERTF(trace.pos.outT >= 0, "outT=%.2f < 0, trace.pos=(%.2f %.2f %.2f)", trace.pos.outT, P3D(trace.pos));
-  static constexpr float TRACE_RAY_MAX_LENGTH = 100000.f;
-  G_ASSERTF(trace.pos.outT < TRACE_RAY_MAX_LENGTH, "outT=%.2f >= TRACE_RAY_MAX_LENGTH (%f), trace.pos=(%.2f %.2f %.2f)",
-    trace.pos.outT, TRACE_RAY_MAX_LENGTH, P3D(trace.pos));
+  vec3f vtpos = v_ld(&trace.pos.x);
+  G_ASSERTF(!check_nan(v_extract_x(v_length3_sq_x(vtpos))) && v_test_vec_x_lt(v_length3_sq_x(vtpos), v_set_x(1e11f)) &&
+              !check_nan(v_extract_x(v_length3_sq_x(v_ld(&trace.dir.x)))) && (trace.pos.outT >= 0.f && trace.pos.outT < 1e5f),
+    "trace.{pos,dir,outT}=%@,%@,%f", trace.pos, trace.dir, trace.pos.outT);
+  G_UNUSED(vtpos);
 }
 #else
 static inline void verify_trace(const Trace &) {}
@@ -395,12 +394,8 @@ struct RayTransparencyStrat
       float exitAt = 0.f;
 
       BBox3 canopyBox; // synthetical tree canopy box
-      float canopyWidth = riProp.canopyWidthPart * (bbox_all[1].y - bbox_all[0].y) * 0.5f;
-      float boxHeight = bbox_all[1].y - bbox_all[0].y;
-      Point3 boxCenter = bbox_all.center();
-      canopyBox[0].set(boxCenter.x - canopyWidth, bbox_all[1].y - boxHeight * (riProp.canopyTopPart + riProp.canopyTopOffset),
-        boxCenter.z - canopyWidth);
-      canopyBox[1].set(boxCenter.x + canopyWidth, bbox_all[1].y - boxHeight * riProp.canopyTopOffset, boxCenter.z + canopyWidth);
+      getRIGenCanopyBBox(riProp, bbox_all, canopyBox);
+
       if (riProp.canopyTriangle)
       {
         Point3 canopyBoxCenter = canopyBox.center();
@@ -408,6 +403,7 @@ struct RayTransparencyStrat
         Point3 canopyVertex = {canopyBoxCenter.x, canopyBox.boxMax().y, canopyBoxCenter.z};
         float ats[2] = {0};
         bool valid[2];
+        float canopyWidth = canopyBox.width().x * 0.5f;
         int intersectionCount = does_line_intersect_vert_cone_two_points(canopyWidth, canopyHeight, canopyVertex, pos,
           pos + dir * out_t, ats, valid); // note: if intersectionCount = 2 then ats[0] > ats[1]
         if (intersectionCount > 0)
@@ -2093,11 +2089,25 @@ static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const 
   const TMatrix &obj_tm, GatherRiTypeFlags ri_types, Strategy &strategy, bool unlock_in_cb)
 {
   G_ASSERT(!v_bbox3_is_empty(v_ldu_bbox3(obj_obb)));
+#if _TARGET_STATIC_LIB
+  // it shouldn't be significantly larger than phys size of tested object
+  G_ASSERTF(obj_obb.width().lengthSq() <= sqr(500.f), "Test intersection with oversize box width %f", obj_obb.width().length());
+#endif
   RendInstGenData *rgl = rendinst::rgLayer[layer];
   if (EASTL_UNLIKELY(!rgl))
     return {};
 
   TIME_PROFILE_DEV(testObjToRIGenIntersection_NoCache);
+
+#if _TARGET_STATIC_LIB
+  static constexpr uint32_t MAX_SANE_NUM_CB_EXECS = 10000;
+#else
+  static constexpr uint32_t MAX_SANE_NUM_CB_EXECS = ~0u; // Unrestricted for tools (De3X, AV2)
+#endif
+  uint32_t numDebugCbExecs = 0;
+  G_UNUSED(numDebugCbExecs);
+  G_UNUSED(MAX_SANE_NUM_CB_EXECS);
+
   CheckBoxRIResultFlags result;
   int testedNum = 0, trianglesNum = 0;
   G_UNUSED(testedNum + trianglesNum);
@@ -2143,6 +2153,7 @@ static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const 
       rendinst::RendInstDesc riDesc(-1, riIdx, riType, 0, layer);
       if (unlock_in_cb)
         lock.unlockRead();
+      G_FAST_ASSERT(++numDebugCbExecs <= MAX_SANE_NUM_CB_EXECS);
       result |= strategy.executeForTm(rgl, riDesc, riTm, pool.collRes->boundingBox);
 #if DA_PROFILER_ENABLED
       testedNum++;
@@ -2185,7 +2196,7 @@ static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const 
 #if DAGOR_DBGLEVEL > 0
   if (regions[2] >= rgl->cellNumW || regions[3] >= rgl->cellNumH || regions[0] < 0 || regions[1] < 0)
   {
-    fatal("invalid region (%d,%d)-(%d,%d), build from (%f,%f)-(%f,%f) box, cellNum=(%d,%d)", regions[0], regions[1], regions[2],
+    DAG_FATAL("invalid region (%d,%d)-(%d,%d), build from (%f,%f)-(%f,%f) box, cellNum=(%d,%d)", regions[0], regions[1], regions[2],
       regions[3], obj_world_aabb.boxMin().x, obj_world_aabb.boxMin().z, obj_world_aabb.boxMax().x, obj_world_aabb.boxMax().z,
       rgl->cellNumW, rgl->cellNumH);
   }
@@ -2270,6 +2281,7 @@ static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const 
                   v_stu_bbox3(localBBox, v_collResBox);
 
                   rendinst::RendInstDesc riDesc(cellI, idx, p, int(intptr_t(data) - intptr_t(data_s)), layer);
+                  G_FAST_ASSERT(++numDebugCbExecs <= MAX_SANE_NUM_CB_EXECS);
                   result |= strategy.executeForTm(rgl, riDesc, riTm, localBBox);
 #if DA_PROFILER_ENABLED
                   testedNum++;
@@ -2309,6 +2321,7 @@ static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const 
                       continue;
 
                     rendinst::RendInstDesc riDesc(cellI, idx, p, int(intptr_t(data) - intptr_t(data_s)), layer);
+                    G_FAST_ASSERT(++numDebugCbExecs <= MAX_SANE_NUM_CB_EXECS);
                     result |= strategy.executeForPos(rgl, riDesc, tm, localBBox);
 #if DA_PROFILER_ENABLED
                     testedNum++;
@@ -2338,6 +2351,7 @@ static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const 
                       continue;
 
                     rendinst::RendInstDesc riDesc(cellI, idx, p, int(intptr_t(data) - intptr_t(data_s)), layer);
+                    G_FAST_ASSERT(++numDebugCbExecs <= MAX_SANE_NUM_CB_EXECS);
                     result |= strategy.executeForPos(rgl, riDesc, v_pos, v_scale, localBBox);
 #if DA_PROFILER_ENABLED
                     testedNum++;

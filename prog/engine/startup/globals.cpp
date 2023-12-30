@@ -4,9 +4,12 @@
 #include <startup/dag_globalSettings.h>
 #include <util/dag_globDef.h>
 #include <util/dag_simpleString.h>
+#include <util/dag_bitArray.h>
 
 #include <string.h>
 #include <stdio.h>
+
+static Bitarray arg_used;
 
 static const char *arg_value_delimiters = ":=";
 
@@ -17,6 +20,19 @@ static const char *_arg_value(const char *arg)
       return s + 1;
 
   return nullptr;
+}
+
+
+bool dgs_is_arg_used(int arg_index)
+{
+  return (arg_index > 0 && arg_index < arg_used.size()) ? arg_used[arg_index] : !arg_index; // argv[0] is always 'used'
+}
+
+
+void dgs_set_arg_used(int arg_index, bool used)
+{
+  if (arg_index > 0 && arg_index < arg_used.size())
+    arg_used.set(arg_index, used ? 1 : 0);
 }
 
 
@@ -53,6 +69,7 @@ const char *dgs_get_argv(const char *name, int &it, const char *default_value)
     size_t len = strlen(name);
     if (arg && STRINGS_MATCH(arg, name, len) && (!arg[len] || strchr(arg_value_delimiters, arg[len]) != nullptr))
     {
+      dgs_set_arg_used(it);
       const char *value = _arg_value(arg);
       if (!value)
       {
@@ -116,6 +133,8 @@ void dgs_init_argv(int argc, char **argv)
 
   for (int i = 1; i < argc; ++i)
     argv[i] = ps_title + ps_title_size;
+
+  arg_used.resize(argc);
 }
 
 #else
@@ -123,6 +142,7 @@ void dgs_init_argv(int argc, char **argv)
 {
   ::dgs_argc = argc;
   ::dgs_argv = argv;
+  arg_used.resize(argc);
 }
 #endif
 

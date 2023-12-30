@@ -4,6 +4,7 @@ if sys.version_info.major < 3:
   print("\nERROR: Python 3 or a higher version is required to run this script.")
   exit(1)
 
+import sys
 import subprocess
 import pathlib
 import os
@@ -19,13 +20,18 @@ if len(sys.argv) != 2:
   print('\nUsage: make_devtools.py DEVTOOLS_DEST_DIR\nexample: python3 make_devtools.py d:\\devtools\n')
   exit(1)
 
+if sys.platform == 'darwin':
+  exit(exec(open(os.path.join(os.path.dirname(__file__), "make_devtools_macOS.py")).read()))
+elif sys.platform == 'linux':
+  exit(exec(open(os.path.join(os.path.dirname(__file__), "make_devtools_linux.py")).read()))
+
 def error(s):
-  print(f"\nERROR: {s}\n")
+  print("\nERROR: {0}\n".format(s))
   exit(1)
 
 def ask(s):
   while True:
-    answer = input(f"\n{s} [Y/n]: ").strip().lower()
+    answer = input("\n{0} [Y/n]: ".format(s)).strip().lower()
     if answer == "y" or answer == "y" or answer == "":
       return True
     if answer == "n" or answer == "no":
@@ -57,21 +63,21 @@ def make_directory_symlink(src, dest):
   try:
     subprocess.run(['cmd', '/C', 'mklink', '/J', os.path.normpath(dest), os.path.normpath(src)], shell = True, check = True)
   except subprocess.CalledProcessError as e:
-    error(f"Symlink command failed with a non-zero exit code. Error: {e}, Source = '{src}', Destination = '{dest}'")
+    error("Symlink command failed with a non-zero exit code. Error: {0}, Source = '{1}', Destination = '{2}'".format(e, src, dest))
   except OSError as e:
-    print(f"An OSError occurred. Symlink command may have failed. Error: {e}, Source = '{src}', Destination = '{dest}'")
+    print("An OSError occurred. Symlink command may have failed. Error: {0}, Source = '{1}', Destination = '{2}'".format(e, src, dest))
 
 def make_file_link(src, dest):
   os.link(src, dest)
 
 def run(cmd):
   try:
-    print(f"Running: {cmd}")
+    print("Running: {0}".format(cmd))
     subprocess.run(cmd, shell = True, check = True)
   except subprocess.CalledProcessError as e:
-    error(f"subprocess.run failed with a non-zero exit code. Error: {e}")
+    print("subprocess.run failed with a non-zero exit code. Error: {0}".format(e))
   except OSError as e:
-    print(f"An OSError occurred, subprocess.run command may have failed. Error: {e}")
+    print("An OSError occurred, subprocess.run command may have failed. Error: {0}".format(e))
 
 
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -82,7 +88,7 @@ def download_url2(url, file):
     print("Downloading '{0}' to '{1}' ...".format(url, file));
     response = request.urlretrieve(url, file)
   else:
-    print(f"Package '{file}' already exists");
+    print("Package '{0}' already exists".format(file));
 
 def download_url(url):
   path, file = os.path.split(os.path.normpath(url))
@@ -139,7 +145,7 @@ def setup_vs140(check_again_after_download):
     else:
       print('--- VC2015 not found (VS140COMNTOOLS env var is empty), install VisualStudio 2015 upd.3 and re-run setup')
       if not check_again_after_download:
-        error(f"Visual Studio 2015 is required but not found at '{vc2015_src_folder}'")
+        error("Visual Studio 2015 is required but not found at '{0}'".format(vc2015_src_folder))
       microsoft_retry.append(setup_vs140)
 
 #Visual Studio 2015 is turned off
@@ -160,12 +166,12 @@ def setup_vs142(check_again_after_download):
 
     if (not pathlib.Path(vc2019_dest_folder + '/bin/HostX64/x64/1033').exists() or
        (real_path.find("Microsoft") != -1 and real_path.find(vs142_ver) == -1)):
-      print(f"{vc2019_dest_folder} contains invalid version of build tools.")
-      print(f"...removing {vc2019_dest_folder}")
+      print(vc2019_dest_folder+" contains invalid version of build tools.")
+      print("...removing "+vc2019_dest_folder)
       try:
         os.remove(vc2019_dest_folder)
       except OSError as e:
-        error(f"Cannot remove link {vc2019_dest_folder}: {e}")
+        error("Cannot remove link {0}: {1}".format(vc2019_dest_folder, e))
 
 
   if pathlib.Path(vc2019_dest_folder).exists():
@@ -192,7 +198,7 @@ def setup_vs142(check_again_after_download):
     else:
       print('--- VC2019 not found, install VisualStudio 2019 16.10.3+ and re-run setup')
       if not check_again_after_download:
-        error(f"Visual Studio 2019 is required but not found at '{vc2019_src_folder}'")
+        error("Visual Studio 2019 is required but not found at '{0}'".format(vc2019_src_folder))
       microsoft_retry.append(setup_vs142)
 
 
@@ -212,7 +218,7 @@ def setup_winsdk_100(check_again_after_download):
     else:
       print('--- Windows 10 SDK not found, install Windows SDK and re-run setup')
       if not check_again_after_download:
-        error(f"Windows 10 SDK is required but not found at '{winsdk_src_folder}'")
+        error("Windows 10 SDK is required but not found at '{0}'".format(winsdk_src_folder))
       microsoft_retry.append(setup_winsdk_100)
 
 setup_winsdk_100(True)
@@ -231,11 +237,11 @@ def setup_winsdk_81(check_again_after_download):
     else:
       print('--- Windows 8.1 SDK not found, install Windows SDK and re-run setup')
       if not check_again_after_download:
-        error(f"Windows 8.1 SDK is required but not found at '{winsdk_src_folder}'")
+        error("Windows 8.1 SDK is required but not found at '{0}'".format(winsdk_src_folder))
 
-      pathlib.Path(f"{dest_dir}/.packages/vs140").mkdir(parents=True, exist_ok=True)
-      download_url2("https://aka.ms/vs/15/release/vs_buildtools.exe", f"vs140/vs_buildtools.exe")
-      run(f"{dest_dir}/.packages/vs140/vs_buildtools.exe --wait --passive --add " +
+      pathlib.Path(dest_dir+"/.packages/vs140").mkdir(parents=True, exist_ok=True)
+      download_url2("https://aka.ms/vs/15/release/vs_buildtools.exe", "vs140/vs_buildtools.exe")
+      run(dest_dir+"/.packages/vs140/vs_buildtools.exe --wait --passive --add " +
            "Microsoft.VisualStudio.Component.Windows81SDK ")
       setup_winsdk_81(False)
 
@@ -244,7 +250,7 @@ setup_winsdk_81(True)
 
 if len(microsoft_retry) > 0:
   download_url('https://aka.ms/vs/17/release/vs_buildtools.exe')
-  run(f"{dest_dir}/.packages/vs_buildtools.exe --wait --passive --addProductLang en-US --add " +
+  run(dest_dir+"/.packages/vs_buildtools.exe --wait --passive --addProductLang en-US --add " +
     " Microsoft.VisualStudio.Component.Roslyn.Compiler" +
     " Microsoft.Component.MSBuild" +
     " Microsoft.VisualStudio.Component.CoreBuildTools" +
@@ -354,7 +360,7 @@ def install_3ds_Max_SDK(ver, url):
   if pathlib.Path(maxsdk_dest_folder).exists():
     print('=== 3ds Max SDK {1} symlink found at {0}, skipping setup'.format(maxsdk_dest_folder, ver))
   else:
-    if ask(f"Do you want to install 3ds Max {ver} SDK?"):
+    if ask("Do you want to install 3ds Max {0} SDK?".format(ver)):
       maxsdk_src_folder = '{0}/Autodesk/3ds Max {1} SDK'.format(os.environ['ProgramFiles'], ver)
       if not pathlib.Path(maxsdk_src_folder+'/maxsdk').exists():
         print('--- 3ds Max SDK '+ver+' not found, trying to install')
@@ -367,14 +373,6 @@ def install_3ds_Max_SDK(ver, url):
         make_directory_symlink(maxsdk_src_folder+'/maxsdk', maxsdk_dest_folder)
       else:
         print('--- 3ds Max SDK {1} not found at {0}, skipped setup'.format(maxsdk_src_folder, ver))
-
-install_3ds_Max_SDK('2024',
-  'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN+Extranet/M%26E/Max/Autodesk+3ds+Max+2024/SDK_3dsMax2024.msi')
-install_3ds_Max_SDK('2023',
-  'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN+Extranet/M%26E/Max/Autodesk+3ds+Max+2023/SDK_3dsMax2023.msi')
-#install_3ds_Max_SDK('2019',
-#  'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN%20Extranet/M%26E/Max/Autodesk%203ds%20Max%202019/SDK_3dsMax2019.msi')
-
 
 # FMOD
 fmod_dest_folder = dest_dir+'/fmod-studio-2.xx.xx'
@@ -400,6 +398,8 @@ else:
     pathlib.Path(fmod_dest_folder+'/studio/win64').mkdir(parents=True, exist_ok=True)
     make_directory_symlink(fmod_src_folder+'/api/studio/inc', fmod_dest_folder+'/studio/win64/inc')
     make_directory_symlink(fmod_src_folder+'/api/studio/lib/x64', fmod_dest_folder+'/studio/win64/lib')
+    shutil.copyfile(fmod_src_folder+'/doc/LICENSE.TXT', fmod_dest_folder+'/LICENSE.TXT')
+    shutil.copyfile(fmod_src_folder+'/doc/revision.txt', fmod_dest_folder+'/revision.txt')
   else:
     print('--- FMOD not found at {0}, creating stub folders'.format(fmod_src_folder))
     print('consider downloading and installing https://www.fmod.com/download#fmodengine - Windows Download')
@@ -454,15 +454,43 @@ else:
       shutil.copyfile(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/LICENSE.TXT', dxc_dest_folder+'/LICENSE.TXT')
       print('+++ DXC Jul 2022 installed at {0}'.format(dxc_dest_folder))
 
+# astcenc-4.5.1
+astcenc_dest_folder = dest_dir+'/astcenc-4.6.1'
+if pathlib.Path(astcenc_dest_folder).exists():
+  print('=== ASTC encoder 4.6.1 {0}, skipping setup'.format(astcenc_dest_folder))
+else:
+  download_url('https://github.com/ARM-software/astc-encoder/releases/download/4.6.1/astcenc-4.6.1-windows-x64.zip')
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/astcenc-4.6.1-windows-x64.zip'), 'r') as zip_file:
+    zip_file.extractall(dest_dir+'/astcenc-4.6.1')
+    os.rename(os.path.normpath(dest_dir+'/astcenc-4.6.1/bin'), os.path.normpath(dest_dir+'/astcenc-4.6.1/win64'));
+    print('+++ ASTC encoder 4.6.1 installed at {0}'.format(astcenc_dest_folder))
+
+# ispc-v1.22.0
+ispc_dest_folder = dest_dir+'/ispc-v1.22.0-windows'
+if pathlib.Path(ispc_dest_folder).exists():
+  print('=== ISPC v1.22.0 {0}, skipping setup'.format(ispc_dest_folder))
+else:
+  download_url('https://github.com/ispc/ispc/releases/download/v1.22.0/ispc-v1.22.0-windows.zip')
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/ispc-v1.22.0-windows.zip'), 'r') as zip_file:
+    zip_file.extractall(dest_dir)
+    print('+++ ISPC v1.22.0 installed at {0}'.format(ispc_dest_folder))
+
+
+# install 3ds Max SDKs
+install_3ds_Max_SDK('2024',
+  'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN+Extranet/M%26E/Max/Autodesk+3ds+Max+2024/SDK_3dsMax2024.msi')
+install_3ds_Max_SDK('2023',
+  'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN+Extranet/M%26E/Max/Autodesk+3ds+Max+2023/SDK_3dsMax2023.msi')
+#install_3ds_Max_SDK('2019',
+#  'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN%20Extranet/M%26E/Max/Autodesk%203ds%20Max%202019/SDK_3dsMax2019.msi')
+
 
 # re-write platform.jam
-if pathlib.Path('prog/platform.jam').exists():
+if pathlib.Path("prog").exists():
   with open('prog/platform.jam', 'w') as fd:
     fd.write('_DEVTOOL = {0} ;\n'.format(dest_dir))
-    fd.write('CODE_CHECK = rem ;\n')
-    fd.write('FmodStudio = 2.xx.xx ;\n')
-    fd.write('BulletSdkVer = 3 ;\n')
-    fd.write('OpenSSLVer = 3.x ;\n')
+    if pathlib.Path(fmod_dest_folder+'/LICENSE.TXT').exists():
+      fd.write('FmodStudio = 2.xx.xx ;\n')
     fd.close()
 
 
@@ -481,11 +509,11 @@ elif os.environ.get('GDEVTOOL', '') != nomalized_dest:
     env_updated = True
 
 if nomalized_dest not in os.environ.get('PATH', '').split(os.pathsep):
-  if ask(f"'{nomalized_dest}' is not found in 'PATH' variable. Do you want to add it?"):
-    print(f"adding {nomalized_dest} to 'PATH', it may take a while...")
-    add_path_command = (f'[System.Environment]::SetEnvironmentVariable("PATH", ' +
-                        f'"{nomalized_dest};" + [System.Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::User), ' +
-                        f'[System.EnvironmentVariableTarget]::User)')
+  if ask("'{0}' is not found in 'PATH' variable. Do you want to add it?".format(nomalized_dest)):
+    print("adding {0} to 'PATH', it may take a while...".format(nomalized_dest))
+    add_path_command = ('[System.Environment]::SetEnvironmentVariable("PATH", ' +
+                        '"{0};" + [System.Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::User), '.format(nomalized_dest) +
+                        '[System.EnvironmentVariableTarget]::User)')
     subprocess.run(["powershell", "-Command", add_path_command], shell=True, text=True)
     env_updated = True
 

@@ -12,7 +12,7 @@ let colored_text = "\n".concat(
   $"- deciaml: <color={Color(200, 120, 100)}>some text</color>"
 )
 
-let function sText(txt, params={}) {
+function sText(txt, params={}) {
   return {
     rendObj = ROBJ_INSCRIPTION
     ellipsis = true

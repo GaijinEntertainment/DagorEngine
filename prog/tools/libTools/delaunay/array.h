@@ -1,5 +1,4 @@
-#ifndef ARRAY_INCLUDED // -*- C++ -*-
-#define ARRAY_INCLUDED
+#pragma once
 
 #include <generic/dag_tab.h>
 
@@ -80,5 +79,3 @@ inline T &array2<T>::ref(int i, int j)
   return data[j * w + i];
 }
 } // namespace delaunay
-
-#endif

@@ -101,7 +101,7 @@ public:
     {
       return;
     }
-    debug("%s", doResolve(data));
+    logdbg(doResolve(data).c_str());
   }
 
   void append(String &buffer, const char *prefix, const CommandData &data)

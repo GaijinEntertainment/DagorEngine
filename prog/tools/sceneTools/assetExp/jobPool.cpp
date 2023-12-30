@@ -1,9 +1,10 @@
 #include "jobSharedMem.h"
-#include <windows.h>
-#include <intrin.h>
+#include <osApiWrappers/dag_atomic.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <debug/dag_debug.h>
 #include <stdio.h>
+#include <atomic>
 
 #include <libTools/util/atomicPrintf.h>
 AtomicPrintfMutex AtomicPrintfMutex::inst;
@@ -21,9 +22,9 @@ void DabuildJobSharedMem::changeCtxState(JobCtx &ctx, int state)
 {
   if (ctx.state >= 4)
     return;
-  _ReadWriteBarrier();
+  std::atomic_thread_fence(std::memory_order_seq_cst);
   ctx.state = state;
-  InterlockedIncrement(&respGen);
+  interlocked_increment(respGen);
 }
 
 DabuildJobPool::Ctx *DabuildJobPool::getAvailableJobId(int timeout_msec)
@@ -39,9 +40,9 @@ DabuildJobPool::Ctx *DabuildJobPool::getAvailableJobId(int timeout_msec)
         case 4:
           ATOMIC_PRINTF("ERR: job j%02d become inoperable\n", cJobIdx);
           logerr("job j%02d become inoperable", cJobIdx);
-          _ReadWriteBarrier();
+          std::atomic_thread_fence(std::memory_order_seq_cst);
           m->jobCtx[cJobIdx].state = 5;
-          InterlockedIncrement(&m->respGen);
+          interlocked_increment(m->respGen);
           inoperable_jobs++;
           break;
         case 5: inoperable_jobs++; break;
@@ -58,7 +59,7 @@ DabuildJobPool::Ctx *DabuildJobPool::getAvailableJobId(int timeout_msec)
 
     int gen = m->respGen;
     if (gen == respGen)
-      Sleep(100);
+      sleep_msec(100);
     respGen = gen;
 
     if (get_time_msec() > te)
@@ -75,7 +76,7 @@ bool DabuildJobPool::waitAllJobsDone(int timeout_msec, Ctx **out_done)
   {
     int working = 0, gen = m->respGen;
     if (gen == respGen)
-      Sleep(100);
+      sleep_msec(100);
     respGen = gen;
 
     for (int i = 0; i < jobs; i++)
@@ -121,9 +122,9 @@ bool DabuildJobPool::waitAllJobsDone(int timeout_msec, Ctx **out_done)
 void DabuildJobPool::startJob(Ctx *ctx, int cmd)
 {
   ctx->cmd = cmd;
-  _ReadWriteBarrier();
+  std::atomic_thread_fence(std::memory_order_seq_cst);
   ctx->state = 1;
-  InterlockedIncrement(&m->cmdGen);
+  interlocked_increment(m->cmdGen);
 }
 
 bool DabuildJobPool::startAllJobs(int broadcast_cmd, unsigned target_code, const char *profile)
@@ -136,9 +137,9 @@ bool DabuildJobPool::startAllJobs(int broadcast_cmd, unsigned target_code, const
       case 0:
         m->jobCtx[i].cmd = broadcast_cmd;
         m->jobCtx[i].setup(target_code, profile);
-        _ReadWriteBarrier();
+        std::atomic_thread_fence(std::memory_order_seq_cst);
         m->jobCtx[i].state = 1;
-        InterlockedIncrement(&m->cmdGen);
+        interlocked_increment(m->cmdGen);
         break;
       case 4: // inoperable
       case 5: break;

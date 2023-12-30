@@ -19,19 +19,6 @@
 #include "resource_manager/image.h"
 
 
-#if _TARGET_XBOX
-#if _TARGET_SCARLETT
-#include <xg_xs.h>
-#else
-#include <xg.h>
-#endif
-#include <EASTL/intrusive_ptr.h>
-inline void intrusive_ptr_add_ref(XGTextureAddressComputer *ptr) { ptr->AddRef(); }
-
-inline void intrusive_ptr_release(XGTextureAddressComputer *ptr) { ptr->Release(); }
-#endif
-
-
 namespace drv3d_dx12
 {
 
@@ -127,7 +114,7 @@ struct ImageInfo
     {
       default:
       case D3D12_RESOURCE_DIMENSION_UNKNOWN:
-      case D3D12_RESOURCE_DIMENSION_BUFFER: fatal("DX12: Invalid texture dimension"); return desc;
+      case D3D12_RESOURCE_DIMENSION_BUFFER: DAG_FATAL("DX12: Invalid texture dimension"); return desc;
       case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
         desc.Height = 1;
         desc.DepthOrArraySize = arrays.count();

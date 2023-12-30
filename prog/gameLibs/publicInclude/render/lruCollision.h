@@ -7,12 +7,7 @@
 
 #include <EASTL/vector_set.h>
 #include <EASTL/unique_ptr.h>
-#include <util/dag_baseDef.h>
-#include <util/dag_stdint.h>
-#include <generic/dag_span.h>
 #include <generic/dag_carray.h>
-#include <memory/dag_framemem.h>
-#include <vecmath/dag_vecMathDecl.h>
 #include <rendInst/riexHandle.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_serialIntBuffer.h>

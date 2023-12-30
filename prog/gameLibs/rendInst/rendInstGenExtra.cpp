@@ -193,8 +193,8 @@ void rendinst::RiExtraPool::validateLodLimits()
 {
   int maxl = min<int>(res->lods.size(), MAX_LODS) - 1;
 
-  if (isPosInst() && maxl)
-    maxl--; //== skip last LOD for posInst since imposters not supported for riExtra
+  // RiExtra does not support impostors. Need to skip impostor and transition lods.
+  maxl -= maxl ? hasTransitionLod + posInst : 0;
 
   for (int i = 0; i < 4; i++)
   {
@@ -239,7 +239,12 @@ static inline float riResLodRange(RenderableInstanceLodsResource *riRes, int lod
 
   if (!ri_ovr || lod > 3)
     return riRes->lods[lod].range;
-  return ri_ovr->getReal(lod_nm[lod], riRes->lods[lod].range);
+
+  const bool shouldOnlyExtend = ri_ovr->getBool("extendOnly", false);
+  const float overrideVal = ri_ovr->getReal(lod_nm[lod], riRes->lods[lod].range);
+  if (shouldOnlyExtend)
+    return max(overrideVal, riRes->lods[lod].range);
+  return overrideVal;
 }
 
 static const DataBlock &getRiParamsBlockByName(const char *ri_res_name)
@@ -559,8 +564,22 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
   const DataBlock *ri_ovr = rendinst::ri_lod_ranges_ovr.getBlockByName(ri_res_name);
   int lod_cnt = riRes->lods.size();
   float max_lod_dist = lod_cnt ? riResLodRange(riRes, lod_cnt - 1, ri_ovr) : (RendInstGenData::renderResRequired ? 0.0f : 1e5f);
-  if (riExtra[id].isPosInst() && lod_cnt)
-    lod_cnt--; //== skip last LOD for posInst since imposters not supported for riExtra
+  // RiExtra does not support impostors. Need to skip impostor and transition lods.
+  if (riExtra[id].isPosInst() && lod_cnt > 1)
+  {
+    Tab<ShaderMaterial *> mats;
+    riRes->lods[lod_cnt - 2].scene->gatherUsedMat(mats); // transition is penultimate lod
+    for (size_t j = 0; j < mats.size(); ++j)
+    {
+      if (riRes->hasImpostorVars(mats[j]))
+        riExtra[id].hasTransitionLod = true;
+    }
+    lod_cnt -= 1 + riExtra[id].hasTransitionLod;
+  }
+
+  if (lod_cnt > rendinst::RiExtraPool::MAX_LODS)
+    logerr("riExtra[%d] %s, have %d lods but MAX_LODS are %d, please reduce number of lods", id, ri_res_name, lod_cnt,
+      rendinst::RiExtraPool::MAX_LODS);
 
   if (RendInstGenData::renderResRequired)
   {
@@ -578,7 +597,7 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
     riExtra[id].hasColoredShaders = riExtra[id].isPosInst();
     riExtra[id].isRendinstClipmap = 0;
     riExtra[id].isPaintFxOnHit = params_block.getBool("isPaintFxOnHit", true);
-    for (unsigned int lodNo = 0; lodNo < lod_cnt; lodNo++)
+    for (unsigned int lodNo = 0; lodNo < min<int>(lod_cnt, rendinst::RiExtraPool::MAX_LODS); lodNo++)
     {
       ShaderMesh *m = riRes->lods[lodNo].scene->getMesh()->getMesh()->getMesh();
       uint32_t mask = 0;
@@ -1371,6 +1390,25 @@ void rendinst::gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const 
     eastl::sort(out_handles.begin(), out_handles.end());
 }
 
+void rendinst::gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const TMatrix &tm, const BBox3 &box, bool read_lock)
+{
+  if (read_lock)
+    rendinst::ccExtra.lockRead();
+  {
+    TIME_PROFILE_DEV(gather_riex_collidable_transformed_box);
+    rigrid_find_in_transformed_box_by_bounding(riExtraGrid, tm, box, [&](RiGridObject object) {
+      out_handles.push_back(object.handle);
+      return false;
+    });
+  }
+  if (read_lock)
+    rendinst::ccExtra.unlockRead();
+
+  if (!out_handles.empty())
+    eastl::sort(out_handles.begin(), out_handles.end());
+}
+
+
 void rendinst::gatherRIGenExtraCollidableMin(riex_collidable_t &out_handles, bbox3f_cref box, float min_bsph_rad)
 {
   ScopedRIExtraReadLock rd;
@@ -1488,8 +1526,9 @@ void rendinst::reapplyLodRanges()
 
     int lod_cnt = riRes->lods.size();
     float max_lod_dist = lod_cnt ? riResLodRange(riRes, lod_cnt - 1, ri_ovr) : (RendInstGenData::renderResRequired ? 0.0f : 1e5f);
-    if (riExtra[id].isPosInst() && lod_cnt)
-      lod_cnt--; //== skip last LOD for posInst since imposters not supported for riExtra
+
+    // RiExtra does not support impostors. Need to skip impostor and transition lods.
+    lod_cnt -= lod_cnt ? riExtra[id].hasTransitionLod + riExtra[id].posInst : 0;
 
     riExtra[id].distSqLOD[0] = lod_cnt > 1 ? riResLodRange(riRes, 0, ri_ovr) : max_lod_dist;
     if (lod_cnt > 0)

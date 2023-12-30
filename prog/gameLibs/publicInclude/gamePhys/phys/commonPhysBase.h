@@ -243,6 +243,7 @@ public:
   }
   void applyPseudoVelOmegaDelta(const DPoint3 &add_pos, const DPoint3 &add_ori) override final
   {
+    G_ASSERT(lengthSq(add_pos) < sqr(1000.f));
     DPoint3 centerOfGravityBefore = dpoint3(currentState.location.O.getQuat() * getCenterOfMass());
     Quat orientInc = Quat(add_ori, length(add_ori));
     currentState.location.O.setQuat(currentState.location.O.getQuat() * orientInc);

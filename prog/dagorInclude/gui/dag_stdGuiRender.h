@@ -798,6 +798,9 @@ public:
     render_line_aa(points.data(), points.size(), is_closed, line_width, line_indent, color);
   }
 
+  void render_dashed_line(const Point2 p0, const Point2 p1, const float dash, const float space, const float line_width,
+    E3DCOLOR color);
+
   void render_poly(dag::ConstSpan<Point2> points, E3DCOLOR fill_color);
   void render_inverse_poly(dag::ConstSpan<Point2> points_ccw, E3DCOLOR fill_color, const Point2 &left_top, const Point2 &right_bottom);
   void render_ellipse_aa(Point2 pos, Point2 radius, float line_width, E3DCOLOR color, E3DCOLOR fill_color);

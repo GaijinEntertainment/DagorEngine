@@ -4,7 +4,7 @@
 Temporary types
 ===============
 
-Temporary types are designed to address lifetime issues of data, which are exposed to daScript directly from C++.
+Temporary types are designed to address lifetime issues of data, which are exposed to Daslang directly from C++.
 
 Let's review the following C++ example::
 
@@ -15,11 +15,11 @@ Let's review the following C++ example::
     }
 
 The C++ function here exposes a pointer a to c-string, internal to std::string.
-From daScript's perspective, the declaration of the function looks like this::
+From Daslang's perspective, the declaration of the function looks like this::
 
     def peek ( str : das_string; blk : block<(arg:string#):void> )
 
-Where string# is a temporary version of a daScript string type.
+Where string# is a temporary version of a Daslang string type.
 
 The main idea behind temporary types is that they can't `escape` outside of the scope of the block they are passed to.
 

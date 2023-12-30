@@ -307,9 +307,9 @@ public:
     for (int i = 0; i < 3; i++)
     {
       if (c[i] < b.lim[0][i])
-        dmin += SQR(c[i] - b.lim[0][i]);
+        dmin += sqr(c[i] - b.lim[0][i]);
       else if (c[i] > b.lim[1][i])
-        dmin += SQR(c[i] - b.lim[1][i]);
+        dmin += sqr(c[i] - b.lim[1][i]);
     }
     return dmin <= r2;
   }

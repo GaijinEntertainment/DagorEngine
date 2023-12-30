@@ -258,7 +258,7 @@ void partition_workers_if_outside_sphere(ContextId cid, CullingId cull_id_from, 
 void partition_workers_if_inside_sphere(ContextId cid, CullingId cull_id_from, CullingId cull_id_to,
   const eastl::vector<eastl::string> &tags, Point4 sphere);
 
-void start_update(ContextId cid, float dt, bool update_gpu = true);
+void start_update(ContextId cid, float dt, bool update_gpu = true, bool tp_wake_up = true);
 void finish_update(ContextId cid, bool update_gpu_fetch = true, bool beforeRenderFrameFrameBoundary = false);
 void finish_update_cpu_only(ContextId cid); // must be called before finish_update_gpu_only
 void finish_update_gpu_only(ContextId cid, bool update_gpu_fetch,
@@ -316,6 +316,7 @@ struct Config
 
   bool vrs_enabled = false;
   bool use_async_thread = true;
+  bool low_prio_jobs = false;
   unsigned int max_async_threads = 0; // if 0, threadpool::get_num_workers() will be used
 
   int render_buffer_gc_tail = 100;

@@ -5,7 +5,7 @@ TargetType  = lib ;
 Target      = 3rdPartyLibs/math/vhacd.lib ;
 
 Sources =
-  vhacd.cpp
+  VHACD.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

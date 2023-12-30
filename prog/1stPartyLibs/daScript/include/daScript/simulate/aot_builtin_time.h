@@ -13,7 +13,7 @@ namespace das {
         static __forceinline Time to ( vec4f x )               { union { Time t; vec4f vec; } T; T.vec = x; return T.t; }
         static __forceinline vec4f from ( Time x )             { union { Time t; vec4f vec; } T; T.t = x; return T.vec; }
     };
-    template <> struct WrapType<Time> { enum { value = false }; typedef time_t type; };
+    template <> struct WrapType<Time> { enum { value = false }; typedef time_t type; typedef time_t rettype; };
 
     template<>
     struct SimPolicy<Time> {

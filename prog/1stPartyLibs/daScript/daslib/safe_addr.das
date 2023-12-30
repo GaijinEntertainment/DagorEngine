@@ -44,6 +44,7 @@ def public temp_ptr(var x : auto(T)? implicit ==const) : T ?#
 
 [tag_function(shared_addr_tag)]
 def public shared_addr ( tab:table<auto(KEY); auto(VAL)>; k:KEY )
+    //! returns address of the given shared variable. it's safe because shared variables never go out of scope
     return unsafe(find(tab,k))
 
 [tag_function(shared_addr_tag)]

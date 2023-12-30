@@ -14,7 +14,7 @@ using namespace drv3d_vulkan;
 // global fields accessor to reduce code footprint
 namespace
 {
-struct LocalAccesor
+struct LocalAccessor
 {
   PipelineState &pipeState;
   Device &drvDev;
@@ -22,7 +22,7 @@ struct LocalAccesor
   Swapchain &swapchain;
   DeviceContext &ctx;
 
-  LocalAccesor() :
+  LocalAccessor() :
     pipeState(get_device().getContext().getFrontend().pipelineState),
     drvDev(get_device()),
     dev(get_device().getVkDevice()),
@@ -34,7 +34,7 @@ struct LocalAccesor
 
 bool d3d::set_srgb_backbuffer_write(bool on)
 {
-  LocalAccesor la;
+  LocalAccessor la;
   // df proprogated to 0 attachment on apply as attachments is nested field
   bool changed = la.pipeState.set<StateFieldFramebufferSwapchainSrgbWrite, bool, FrontGraphicsState, FrontFramebufferState>(on);
 
@@ -53,7 +53,7 @@ bool d3d::set_srgb_backbuffer_write(bool on)
 
 bool d3d::copy_from_current_render_target(BaseTexture *to_tex)
 {
-  LocalAccesor la;
+  LocalAccessor la;
 
   G_ASSERTF(to_tex, "vulkan: can't copy to null texture");
   TextureInterfaceBase *dstTex = cast_to_texture_base(to_tex);
@@ -112,7 +112,7 @@ bool d3d::copy_from_current_render_target(BaseTexture *to_tex)
 
 bool d3d::set_render_target()
 {
-  LocalAccesor la;
+  LocalAccessor la;
   using Bind = StateFieldFramebufferAttachment;
 
   la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>({0, Bind::back_buffer});
@@ -130,7 +130,7 @@ bool d3d::set_depth(Texture *tex, DepthAccess access) { return set_depth(tex, 0,
 
 bool d3d::set_depth(BaseTexture *tex, int layer, DepthAccess access)
 {
-  LocalAccesor la;
+  LocalAccessor la;
   using Bind = StateFieldFramebufferAttachment;
 
   if (!tex)
@@ -139,7 +139,6 @@ bool d3d::set_depth(BaseTexture *tex, int layer, DepthAccess access)
   else
   {
     // depth tex is always considered used as we implictly read from it on draw
-    cast_to_texture_base(tex)->setUsed();
     la.pipeState.set<StateFieldFramebufferAttachments, Bind::RawIndexed, FrontGraphicsState, FrontFramebufferState>(
       {MRT_INDEX_DEPTH_STENCIL, {tex, 0, layer}});
   }
@@ -153,7 +152,7 @@ bool d3d::set_depth(BaseTexture *tex, int layer, DepthAccess access)
 
 bool d3d::set_backbuf_depth()
 {
-  LocalAccesor la;
+  LocalAccessor la;
   using Bind = StateFieldFramebufferAttachment;
 
   la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>(
@@ -169,7 +168,7 @@ bool d3d::set_render_target(int ri, BaseTexture *tex, int layer, int level)
 {
   G_ASSERTF(ri >= 0, "vulkan: no meaning of negative render target index is present");
 
-  LocalAccesor la;
+  LocalAccessor la;
   using Bind = StateFieldFramebufferAttachment;
 
   la.pipeState.set<StateFieldFramebufferAttachments, Bind::RawIndexed, FrontGraphicsState, FrontFramebufferState>(
@@ -187,7 +186,7 @@ bool d3d::set_render_target(int ri, BaseTexture *tex, int layer, int level)
 
 bool d3d::set_render_target(const Driver3dRenderTarget &rt)
 {
-  LocalAccesor la;
+  LocalAccessor la;
   using Bind = StateFieldFramebufferAttachment;
 
   if (rt.isBackBufferColor())
@@ -214,7 +213,6 @@ bool d3d::set_render_target(const Driver3dRenderTarget &rt)
     {
       const Driver3dRenderTarget::RTState &rts = rt.depth;
       // depth tex is always considered used as we implictly read from it on draw
-      cast_to_texture_base(rts.tex)->setUsed();
       la.pipeState.set<StateFieldFramebufferAttachments, Bind::RawIndexed, FrontGraphicsState, FrontFramebufferState>(
         {MRT_INDEX_DEPTH_STENCIL, {rts.tex, rts.level, rts.layer}});
     }
@@ -242,13 +240,13 @@ bool d3d::set_render_target(const Driver3dRenderTarget &rt)
 
 void d3d::get_render_target(Driver3dRenderTarget &out_rt)
 {
-  LocalAccesor la;
+  LocalAccessor la;
   out_rt = la.pipeState.get<FrontFramebufferState, FrontFramebufferState, FrontGraphicsState>().asDriverRT();
 }
 
 bool d3d::get_target_size(int &w, int &h)
 {
-  LocalAccesor la;
+  LocalAccessor la;
   const Driver3dRenderTarget &rt = la.pipeState.get<FrontFramebufferState, FrontFramebufferState, FrontGraphicsState>().asDriverRT();
 
   if (rt.isBackBufferColor())
@@ -263,7 +261,7 @@ bool d3d::get_target_size(int &w, int &h)
 
 bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev)
 {
-  LocalAccesor la;
+  LocalAccessor la;
 
   if (!rt_tex)
   {
@@ -285,7 +283,7 @@ bool d3d::clearview(int what, E3DCOLOR color, float z, uint32_t stencil)
   if (!what)
     return true;
 
-  LocalAccesor la;
+  LocalAccessor la;
   la.pipeState.set<StateFieldFramebufferClearColor, E3DCOLOR, FrontGraphicsState, FrontFramebufferState>(color);
   la.pipeState.set<StateFieldFramebufferClearDepth, float, FrontGraphicsState, FrontFramebufferState>(z);
   la.pipeState.set<StateFieldFramebufferClearStencil, uint8_t, FrontGraphicsState, FrontFramebufferState>((uint8_t)stencil);

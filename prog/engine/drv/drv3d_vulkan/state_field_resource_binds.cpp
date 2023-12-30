@@ -11,71 +11,9 @@ namespace drv3d_vulkan
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldURegisterSet, uRegs, StateFieldResourceBindsStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldTRegisterSet, tRegs, StateFieldResourceBindsStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldBRegisterSet, bRegs, StateFieldResourceBindsStorage);
+VULKAN_TRACKED_STATE_FIELD_REF(StateFieldSRegisterSet, sRegs, StateFieldResourceBindsStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldImmediateConst, immConst, StateFieldResourceBindsStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGlobalConstBuffer, globalConstBuf, StateFieldResourceBindsStorage);
-
-bool hasResourceConflictWithFramebuffer(Image *img, ImageViewState view, ShaderStage stage)
-{
-  // FIXME: try to bind textures back if FB changes
-  // but maybe this should be a debug only code? as this code is quite HOT and checking quite rare case here
-  // looks like thing that should be removed
-
-  // cs can't conflict with FB right now, as no async compute is in action
-  if (stage == STAGE_CS)
-    return false;
-
-  if (0 == ((VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) & img->getUsage()))
-    return false;
-
-  ContextBackend &back = get_device().getContext().getBackend();
-  FramebufferState &fbs = back.executionState.get<BackGraphicsState, BackGraphicsState>().framebufferState;
-  RenderPassClass::FramebufferDescription &fbi = fbs.frameBufferInfo;
-
-  const ValueRange<uint32_t> mipRange(view.getMipBase(), view.getMipBase() + view.getMipCount());
-  const ValueRange<uint32_t> arrayRange(view.getArrayBase(), view.getArrayBase() + view.getArrayCount());
-
-  if (img->getUsage() & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-  {
-    uint32_t i;
-    uint32_t bit;
-    for (i = 0, bit = 1; i < Driver3dRenderTarget::MAX_SIMRT; ++i, bit = bit << 1)
-    {
-      if (!(fbs.renderPassClass.colorTargetMask & bit))
-        continue;
-
-      G_ASSERTF(!fbi.colorAttachments[i].empty(), "vulkan: empty attachment %u while it used by render pass class", i);
-      if (fbi.colorAttachments[i].img != img)
-        continue;
-
-      const ImageViewState &rtView = fbi.colorAttachments[i].view;
-
-      const ValueRange<uint32_t> rtMipRange(rtView.getMipBase(), rtView.getMipBase() + rtView.getMipCount());
-      const ValueRange<uint32_t> rtArrayRange(rtView.getArrayBase(), rtView.getArrayBase() + rtView.getArrayCount());
-
-      if (mipRange.overlaps(rtMipRange) && arrayRange.overlaps(rtArrayRange))
-        return true;
-    }
-  }
-
-  if (img->getUsage() & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-  {
-    if (fbs.renderPassClass.hasDepth() && !fbs.renderPassClass.hasRoDepth())
-    {
-      G_ASSERTF(!fbi.depthStencilAttachment.empty(), "vulkan: empty depth attachment while it used by render pass class");
-      if (fbi.depthStencilAttachment.img != img)
-        return false;
-
-      const ImageViewState &dsView = fbi.depthStencilAttachment.view;
-
-      auto mipIndex = dsView.getMipBase();
-      auto arrayIndex = dsView.getArrayBase();
-      if (mipRange.isInside(mipIndex) && arrayRange.isInside(arrayIndex))
-        return true;
-    }
-  }
-
-  return false;
-}
 
 bool isConstDepthStencilTargetForNativeRP(Image *img)
 {
@@ -128,11 +66,10 @@ void StateFieldURegister::transit(uint32_t index, StateFieldResourceBindsStorage
 }
 
 template <>
-void StateFieldURegister::applyTo(uint32_t index, StateFieldResourceBindsStorage &state, ExecutionState &) const
+void StateFieldURegister::applyTo(uint32_t index, StateFieldResourceBindsStorage &state, ExecutionState &target) const
 {
-  // TODO: redo stage state base with tracked state, put in execution state and correct this code
   Device &drvDev = get_device();
-  PipelineStageStateBase &sts = get_device().getContext().getBackend().contextState.stageState[state.stage];
+  PipelineStageStateBase &sts = target.getResBinds(state.stage);
 
   if (data.buffer)
     sts.setUbuffer(index, data.buffer);
@@ -141,19 +78,10 @@ void StateFieldURegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
     VulkanImageViewHandle ivh;
     Image *actualImage = nullptr;
 
-    if (data.image->isResident())
-    {
-      if (!hasResourceConflictWithFramebuffer(data.image, data.imageView, state.stage))
-      {
-        ivh = drvDev.getImageView(data.image, data.imageView);
-        actualImage = data.image;
-      }
-      else
-      {
-        // debug("vulkan: regU %s:%u:%p (%s) conflicts with FB",
-        //   formatShaderStage(state.stage), index, data.image, data.image->getDebugName());
-      }
-    }
+    target.getExecutionContext().verifyResident(data.image);
+
+    ivh = drvDev.getImageView(data.image, data.imageView);
+    actualImage = data.image;
 
     sts.setUtexture(index, actualImage, data.imageView, ivh);
   }
@@ -175,10 +103,24 @@ void StateFieldBRegister::transit(uint32_t index, StateFieldResourceBindsStorage
 }
 
 template <>
-void StateFieldBRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage &state, ExecutionState &) const
+void StateFieldBRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage &state, ExecutionState &target) const
 {
-  // TODO: redo stage state base with tracked state, put in execution state and correct this code
-  PipelineStageStateBase &sts = get_device().getContext().getBackend().contextState.stageState[state.stage];
+  PipelineStageStateBase &sts = target.getResBinds(state.stage);
+
+  if (sts.GCBSlot == index)
+  {
+    if (!data.buffer)
+    {
+      if (state.globalConstBuf.data)
+        sts.setBbuffer(index, state.globalConstBuf.data);
+      else
+        sts.setBempty(index);
+      sts.bGCBActive = true;
+      return;
+    }
+    sts.bGCBActive = false;
+  }
+
   if (data.buffer)
     sts.setBbuffer(index, data);
   else
@@ -191,7 +133,7 @@ void StateFieldTRegister::dumpLog(uint32_t index, const StateFieldResourceBindsS
   if (data.type == TRegister::TYPE_BUF)
     debug("regT %s:%u buf %p", formatShaderStage(state.stage), index, data.buf.buffer);
   else if (data.type == TRegister::TYPE_IMG)
-    debug("regT %s:%u img %p spl %llu", formatShaderStage(state.stage), index, data.img.ptr, (uint64_t)data.img.sampler);
+    debug("regT %s:%u img %p", formatShaderStage(state.stage), index, data.img.ptr);
 #if D3D_HAS_RAY_TRACING
   else if (data.type == TRegister::TYPE_AS)
     debug("regT %s:%u as %p", data.rtas);
@@ -210,10 +152,8 @@ void StateFieldTRegister::transit(uint32_t index, StateFieldResourceBindsStorage
 template <>
 void StateFieldTRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage &state, ExecutionState &target) const
 {
-
-  // TODO: redo stage state base with tracked state, put in execution state and correct this code
   Device &drvDev = get_device();
-  PipelineStageStateBase &sts = get_device().getContext().getBackend().contextState.stageState[state.stage];
+  PipelineStageStateBase &sts = target.getResBinds(state.stage);
 
   if (data.type == TRegister::TYPE_BUF)
     sts.setTbuffer(index, data.buf);
@@ -232,14 +172,7 @@ void StateFieldTRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
       patchedView.setFormat(replacementFormat);
       auto iv = drvDev.getImageView(image, patchedView);
 
-      if (!hasResourceConflictWithFramebuffer(image, patchedView, state.stage))
-        sts.setTtexture(index, image, patchedView, image->getSampler(data.img.sampler), false, iv);
-      else
-      {
-        // debug("vulkan: regT %s:%u:%p (%s) conflicts with FB",
-        //   formatShaderStage(state.stage), index, image, image->getDebugName());
-        sts.setTempty(index);
-      }
+      sts.setTtexture(index, image, patchedView, false, iv);
     }
     else if (data.isSwapchainDepth)
     {
@@ -248,17 +181,8 @@ void StateFieldTRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
         get_device().getContext().getBackend().contextState.frame.get());
       auto iv = drvDev.getImageView(image, data.img.view);
 
-      if (!hasResourceConflictWithFramebuffer(image, data.img.view, state.stage))
-      {
-        bool isConstDs = isConstDepthStencilTarget(image, data.img.view) && (state.stage != STAGE_CS);
-        sts.setTtexture(index, image, data.img.view, image->getSampler(data.img.sampler), isConstDs, iv);
-      }
-      else
-      {
-        // debug("vulkan: regT %s:%u:%p (%s) conflicts with FB",
-        //   formatShaderStage(state.stage), index, image, image->getDebugName());
-        sts.setTempty(index);
-      }
+      bool isConstDs = isConstDepthStencilTarget(image, data.img.view) && (state.stage != STAGE_CS);
+      sts.setTtexture(index, image, data.img.view, isConstDs, iv);
     }
     else
     {
@@ -269,36 +193,17 @@ void StateFieldTRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
           formatShaderStage(state.stage), index, target.getExecutionContext().getCurrentCmdCaller());
         return sts.setTempty(index);
       }
+      target.getExecutionContext().verifyResident(data.img.ptr);
 
-      VulkanImageViewHandle ivh;
-      Image *actualImage = nullptr;
+      VulkanImageViewHandle ivh = drvDev.getImageView(data.img.ptr, data.img.view);
       bool isConstDs = false;
-      // FIXME: this is too HOT code to handle it here, need to handle it at residency change time
-      // if (data.img.ptr->isResident())
-      {
-        RenderPassResource *rpRes = target.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
-        if (rpRes)
-        {
-          ivh = drvDev.getImageView(data.img.ptr, data.img.view);
-          isConstDs = isConstDepthStencilTargetForNativeRP(data.img.ptr);
-          actualImage = data.img.ptr;
-        }
-        else if (!hasResourceConflictWithFramebuffer(data.img.ptr, data.img.view, state.stage))
-        {
-          ivh = drvDev.getImageView(data.img.ptr, data.img.view);
-          isConstDs = isConstDepthStencilTarget(data.img.ptr, data.img.view) && (state.stage != STAGE_CS);
-          actualImage = data.img.ptr;
-        }
-        else
-        {
-          return sts.setTempty(index);
-          // debug("vulkan: regT %s:%u:%p (%s) conflicts with FB",
-          //   formatShaderStage(state.stage), index, data.img.ptr, data.img.ptr->getDebugName());
-        }
-      }
+      RenderPassResource *rpRes = target.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
+      if (rpRes)
+        isConstDs = isConstDepthStencilTargetForNativeRP(data.img.ptr);
+      else
+        isConstDs = (state.stage != STAGE_CS) && isConstDepthStencilTarget(data.img.ptr, data.img.view);
 
-      sts.setTtexture(index, actualImage, data.img.view, actualImage ? actualImage->getSampler(data.img.sampler) : nullptr, isConstDs,
-        ivh);
+      sts.setTtexture(index, data.img.ptr, data.img.view, isConstDs, ivh);
     }
   }
 #if D3D_HAS_RAY_TRACING
@@ -309,6 +214,56 @@ void StateFieldTRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
     sts.setTempty(index);
 }
 
+
+template <>
+void StateFieldSRegister::dumpLog(uint32_t index, const StateFieldResourceBindsStorage &state) const
+{
+  if (data.type == SRegister::TYPE_NULL)
+    debug("regS %s:%u empty", formatShaderStage(state.stage), index);
+  else if (data.type == SRegister::TYPE_RES)
+    debug("regS %s:%u res sampler_info %p state %llu colorHandle %u compareHandle %u", formatShaderStage(state.stage), index,
+      data.resPtr, data.resPtr->samplerInfo.state, data.resPtr->samplerInfo.colorSampler().value,
+      data.resPtr->samplerInfo.compareSampler().value);
+  else if (data.type == SRegister::TYPE_STATE)
+    debug("regS %s:%u state %llu", formatShaderStage(state.stage), index, data.state);
+  else
+    debug("regS uknown sampler type %u", data.type);
+}
+
+template <>
+void StateFieldSRegister::transit(uint32_t index, StateFieldResourceBindsStorage &state, DeviceContext &target) const
+{
+  CmdTransitSRegister cmd{state.stage, index, data};
+  target.dispatchCommandNoLock(cmd);
+}
+
+template <>
+void StateFieldSRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage &state, ExecutionState &target) const
+{
+  PipelineStageStateBase &sts = target.getResBinds(state.stage);
+
+  if (data.type == SRegister::TYPE_NULL)
+  {
+    sts.setSempty(index);
+    return;
+  }
+
+  const SamplerInfo *splInfo;
+  if (data.type == SRegister::TYPE_RES)
+    splInfo = &data.resPtr->samplerInfo;
+  else
+  {
+    G_ASSERTF(data.type == SRegister::TYPE_STATE, "vulkan: unknown sampler type %u", data.type);
+    TRegister &tReg = state.tRegs.data[index].data;
+    // use cached sampler only for normal images
+    if ((tReg.type == TRegister::TYPE_IMG) && tReg.isSwapchainColor == 0 && tReg.isSwapchainDepth == 0)
+      splInfo = tReg.img.ptr->getSampler(data.state);
+    else
+      splInfo = get_device().getSampler(data.state);
+  }
+  sts.setSSampler(index, splInfo);
+}
+
 template <>
 bool StateFieldResourceBinds::handleObjectRemoval(Buffer *object)
 {
@@ -316,6 +271,9 @@ bool StateFieldResourceBinds::handleObjectRemoval(Buffer *object)
   StateFieldBRegister *bRegs = &get<StateFieldBRegisterSet, StateFieldBRegister>();
   StateFieldTRegister *tRegs = &get<StateFieldTRegisterSet, StateFieldTRegister>();
   StateFieldURegister *uRegs = &get<StateFieldURegisterSet, StateFieldURegister>();
+
+  if (get<StateFieldGlobalConstBuffer, BufferRef>().buffer == object)
+    ret |= true;
 
   for (uint32_t j = 0; j < spirv::B_REGISTER_INDEX_MAX; ++j)
   {
@@ -420,6 +378,22 @@ bool StateFieldResourceBinds::handleObjectRemoval(Image *object)
 }
 
 template <>
+bool StateFieldResourceBinds::handleObjectRemoval(SamplerResource *object)
+{
+  bool ret = false;
+  StateFieldSRegister *sRegs = &get<StateFieldSRegisterSet, StateFieldSRegister>();
+
+  for (uint32_t j = 0; j < spirv::S_REGISTER_INDEX_MAX; ++j)
+    if (sRegs[j].data.type == SRegister::TYPE_RES && sRegs[j].data.resPtr == object)
+    {
+      set<StateFieldSRegisterSet, uint32_t>(j);
+      ret |= true;
+    }
+
+  return ret;
+}
+
+template <>
 bool StateFieldResourceBinds::isReferenced(Image *object) const
 {
   const StateFieldTRegister *tRegs = &getRO<StateFieldTRegisterSet, StateFieldTRegister>();
@@ -443,6 +417,9 @@ bool StateFieldResourceBinds::isReferenced(Buffer *object) const
   const StateFieldTRegister *tRegs = &getRO<StateFieldTRegisterSet, StateFieldTRegister>();
   const StateFieldURegister *uRegs = &getRO<StateFieldURegisterSet, StateFieldURegister>();
 
+  if (getRO<StateFieldGlobalConstBuffer, BufferRef>().buffer == object)
+    return true;
+
   for (uint32_t j = 0; j < spirv::B_REGISTER_INDEX_MAX; ++j)
     if (bRegs[j].data.buffer == object)
       return true;
@@ -459,13 +436,25 @@ bool StateFieldResourceBinds::isReferenced(Buffer *object) const
 }
 
 template <>
+bool StateFieldResourceBinds::isReferenced(SamplerResource *object) const
+{
+  const StateFieldSRegister *sRegs = &getRO<StateFieldSRegisterSet, StateFieldSRegister>();
+
+  for (uint32_t j = 0; j < spirv::S_REGISTER_INDEX_MAX; ++j)
+    if (sRegs[j].data.type == SRegister::TYPE_RES && sRegs[j].data.resPtr == object)
+      return true;
+
+  return false;
+}
+
+template <>
 void StateFieldImmediateConst::dumpLog(const StateFieldResourceBindsStorage &state) const
 {
   debug("%s: immediate consts [%08X, %08X, %08X, %08X]", formatShaderStage(state.stage), data[0], data[1], data[2], data[3]);
 }
 
 template <>
-void StateFieldImmediateConst::applyTo(StateFieldResourceBindsStorage &state, ExecutionState &) const
+void StateFieldImmediateConst::applyTo(StateFieldResourceBindsStorage &state, ExecutionState &target) const
 {
   // TODO: reimplement with vkCmdPushConstants
 
@@ -476,7 +465,7 @@ void StateFieldImmediateConst::applyTo(StateFieldResourceBindsStorage &state, Ex
 
   ContextBackend &back = get_device().getContext().getBackend();
   ImmediateConstBuffer &icb = back.immediateConstBuffers[state.stage];
-  PipelineStageStateBase &sts = back.contextState.stageState[state.stage];
+  PipelineStageStateBase &sts = target.getResBinds(state.stage);
 
   sts.setBbuffer(IMMEDAITE_CB_REGISTER_NO, icb.push(&data[0]));
 }
@@ -492,25 +481,25 @@ void StateFieldImmediateConst::transit(StateFieldResourceBindsStorage &state, De
 template <>
 void StateFieldGlobalConstBuffer::dumpLog(const StateFieldResourceBindsStorage &state) const
 {
-  debug("%s: global cb [handle: %p, offset: %u, size: %u]", formatShaderStage(state.stage), ref.buffer, ref.offset, ref.size);
+  if (data)
+    debug("%s: global cb [buf: %p handle: %p, offset: %u, size: %u]", formatShaderStage(state.stage), data.buffer,
+      generalize(data.buffer->getHandle()), data.bufOffset(0), data.visibleDataSize);
+  else
+    debug("%s: global cb [empty]", formatShaderStage(state.stage));
 }
 
 template <>
-void StateFieldGlobalConstBuffer::applyTo(StateFieldResourceBindsStorage &state, ExecutionState &) const
+void StateFieldGlobalConstBuffer::applyTo(StateFieldResourceBindsStorage &state, ExecutionState &target) const
 {
-  ContextBackend &back = get_device().getContext().getBackend();
-  PipelineStageStateBase &sts = back.contextState.stageState[state.stage];
-
-  sts.constRegisterLastBuffer = ref.buffer;
-  sts.constRegisterLastBufferOffset = ref.offset;
-  sts.constRegisterLastBufferRange = ref.size;
-  sts.bRegisterValidMask &= ~1ul;
+  PipelineStageStateBase &sts = target.getResBinds(state.stage);
+  if (data && sts.bGCBActive)
+    sts.setBbuffer(sts.GCBSlot, data);
 }
 
 template <>
 void StateFieldGlobalConstBuffer::transit(StateFieldResourceBindsStorage &state, DeviceContext &target) const
 {
-  CmdSetConstRegisterBuffer cmd{ref.buffer, ref.offset, ref.size, state.stage};
+  CmdSetConstRegisterBuffer cmd{data, state.stage};
   target.dispatchCommandNoLock(cmd);
 }
 
@@ -609,19 +598,13 @@ TRegister::TRegister(Sbuffer *sb) : type(TYPE_NULL) //-V730
   type = TYPE_BUF;
 }
 
-TRegister::TRegister(BaseTexture *in_texture) : type(TYPE_NULL) //-V1077
+TRegister::TRegister(BaseTex *texture) : type(TYPE_NULL) //-V1077
 {
-  if (!in_texture)
+  if (!texture)
     return;
-
-  BaseTex *texture = cast_to_texture_base(in_texture);
-
-  if (texture->isStub())
-    texture = texture->getStubTex();
 
   img.ptr = texture->getDeviceImage(false);
   img.view = texture->getViewInfo();
-  img.sampler = texture->samplerState;
 
   isSwapchainColor = (texture == d3d::get_backbuffer_tex()) ? 1 : 0;
   isSwapchainDepth = (texture == d3d::get_backbuffer_tex_depth()) ? 1 : 0;

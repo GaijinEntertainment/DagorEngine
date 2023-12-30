@@ -24,7 +24,7 @@ let defButtonStyle = {
   }
 }
 
-let function textButton(text, handler= @() null, params = {}, style = defButtonStyle){
+function textButton(text, handler= @() null, params = {}, style = defButtonStyle){
   let stateFlags = Watched(0)
   let disabled = params?.disabled
   let textStyle = style?.text ?? defButtonStyle.text

@@ -82,17 +82,17 @@ namespace das {
     ___noinline DAS_FINITE_MATH inline bool   fisnan(float  a) { return __builtin_isnan(a); }
     ___noinline DAS_FINITE_MATH inline bool   disnan(double  a) { return __builtin_isnan(a); }
 #endif
-    ___noinline DAS_FINITE_MATH inline bool   fisfinite(float  a) { return !__builtin_isinf(a); }
-    ___noinline DAS_FINITE_MATH inline bool   disfinite(double  a) { return !__builtin_isinf(a); }
+    ___noinline DAS_FINITE_MATH inline bool   fisfinite(float  a) { return __builtin_isfinite(a); }
+    ___noinline DAS_FINITE_MATH inline bool   disfinite(double  a) { return __builtin_isfinite(a); }
 #undef DAS_FINITE_MATH
 #if defined(__clang__) && !defined(__arm64__) && !defined(_TARGET_C3)
 #pragma float_control(pop)
 #endif
 #else
     //msvc just does not optimize fast math
-    __forceinline bool   fisfinite(float  a) { return !isinf(a); }
+    __forceinline bool   fisfinite(float  a) { return isfinite(a); }
     __forceinline bool   fisnan(float  a) { return isnan(a); }
-    __forceinline bool   disfinite(double  a) { return !isinf(a); }
+    __forceinline bool   disfinite(double  a) { return isfinite(a); }
     __forceinline bool   disnan(double  a) { return isnan(a); }
 #endif
 

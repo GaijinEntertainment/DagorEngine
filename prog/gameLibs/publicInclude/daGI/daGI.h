@@ -6,7 +6,6 @@
 #pragma once
 
 #include <3d/dag_resPtr.h>
-#include <util/dag_baseDef.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_staticTab.h>
 #include <EASTL/unique_ptr.h>
@@ -69,7 +68,7 @@ public:
   //--
   void afterReset();
   void render(const TMatrix &view_tm, const TMatrix4 &proj_tm);
-  void markVoxelsFromRT(float speed = 0.5);
+  void markVoxelsFromRT(const TMatrix4 &globtm, float speed = 0.5);
   float getSceneDist3D() const;  // 3d quality dist of lit area provided in that dist
   float getLightDist3D() const;  // 3d quality dist of lit area provided in that dist
   float getLightMaxDist() const; // 2.5d quality dist of lit area provided in that dist
@@ -121,7 +120,7 @@ public:
   void initWalls(eastl::unique_ptr<scene::TiledScene> &&walls);
   void initWindows(eastl::unique_ptr<scene::TiledScene> &&windows);
 
-  void drawDebugAllProbes(int cascade, DebugAllVolmapType debug_all_volmap = AMBIENT);
+  void drawDebugAllProbes(int cascade, const Frustum &camera_frustum, DebugAllVolmapType debug_type = AMBIENT);
   void drawDebug(int cascade, DebugVolmapType debug_volmap);
   void debugSceneVoxelsRayCast(DebugSceneType debug_scene, int cascade = 0);
   void debugScene25DVoxelsRayCast(dagi25d::SceneDebugType debug_scene);

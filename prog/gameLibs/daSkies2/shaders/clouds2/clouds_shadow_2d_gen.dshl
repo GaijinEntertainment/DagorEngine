@@ -19,7 +19,7 @@ shader build_shadows_2d_ps
       float_octaves allOctaves = getMSExtinction(lastOctave);
       return dot(clouds_ms_contribution4 . octaves_attributes, allOctaves)*4;//remove phase function
     }
-    half ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    float ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
     {
       //return oneShadow(input.texcoord);
       #if METERS_BLUR

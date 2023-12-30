@@ -89,6 +89,9 @@ void modfx_load_ren_data(BufferData_cref buf, uint ofs, uint decls, DAFX_OREF(Mo
   if (MODFX_RDECL_VELOCITY_LENGTH_ENABLED(decls))
     o.velocity_length = dafx_load_1f(buf, ofs);
 
+  if (MODFX_RDECL_UNIQUE_ID_ENABLED(decls))
+    o.unique_id = dafx_load_1ui(buf, ofs);
+
   // 1 byte packing after this line
   uint packed_bits = countbits(decls & MODFX_RDECL_PACKED_MASK);
   uint4 packed_data[2];
@@ -151,6 +154,12 @@ void modfx_save_ren_data(BufferData_ref buf, uint ofs, uint decls, uint sflags, 
   if (MODFX_RDECL_VELOCITY_LENGTH_ENABLED(decls))
     dafx_store_1f(v.velocity_length, buf, ofs);
 
+  if (MODFX_RDECL_UNIQUE_ID_ENABLED(decls))
+  {
+    if (is_emission)
+      dafx_set_1ui(v.unique_id, buf, ofs);
+    ofs++;
+  }
   // 1 byte packing after this line
   // (cant write to uint4 as array directly, see: HLSL error: X3500)
   // (can use arrays to storing temp data, due to Spirv error)

@@ -3,6 +3,7 @@
 #if _TARGET_ANDROID
 #include <unistd.h>
 #endif
+#include <math/dag_lsbVisitor.h>
 
 using namespace drv3d_vulkan;
 
@@ -59,6 +60,67 @@ void ExecutionContext::flushUnorderedImageCopies()
     copyImage(i.src, i.dst, i.srcMip, i.dstMip, i.mipCount, i.regionCount, i.regionIndex);
 }
 
+void ExecutionContext::cleanupMemory()
+{
+
+  bool needMemoryCleanup = false;
+  bool cleanupAllPossibleMemory = false;
+  needMemoryCleanup |= RenderWork::cleanUpMemoryEveryWorkItem;
+  if (device.resources.isOutOfMemorySignalReceived())
+  {
+    needMemoryCleanup |= true;
+    cleanupAllPossibleMemory |= true;
+    debug("vulkan: processing OOM signal");
+  }
+
+  if (!needMemoryCleanup)
+    return;
+
+  const VkDeviceSize evictBlockSize = 10 << 20; // 10Mb
+
+  TIME_PROFILE(vulkan_cleanup_memory);
+
+  // wait for all outstanding accesses to finish
+  finishAllGPUWorkItems();
+
+  // prepare syscopy for resources that can be evicted
+  {
+    TIME_PROFILE(vulkan_make_syscopy);
+
+    allocFrameCore();
+    back.contextState.cmdListsToSubmit.push_back(VulkanCommandBufferHandle{});
+    {
+      SharedGuardedObjectAutoLock lock(device.resources);
+      do
+      {
+        TIME_PROFILE(vulkan_make_syscopy_iter);
+        cleanupAllPossibleMemory &= device.resources.evictResourcesFor(*this, evictBlockSize, cleanupAllPossibleMemory /*evict_used*/);
+      } while (cleanupAllPossibleMemory);
+    }
+
+    {
+      TIME_PROFILE(vulkan_wait_syscopy);
+      // complete syscopy filling
+      flush(back.contextState.frame.get().frameDone);
+      back.contextState.frame.end();
+      finishAllGPUWorkItems();
+      back.contextState.frame.start();
+    }
+  }
+
+  // remove vulkan objects of evicted resources and free up memory
+  {
+    TIME_PROFILE(vulkan_free_released_memory);
+    SharedGuardedObjectAutoLock lock(device.resources);
+    device.resources.processPendingEvictions();
+    device.resources.consumeOutOfMemorySignal();
+  }
+
+  // proceed to normal workload execution
+  flushProcessed = false;
+  frameCore = VulkanNullHandle();
+}
+
 void ExecutionContext::prepareFrameCore()
 {
   G_ASSERTF(is_null(frameCore), "vulkan: execution context already prepared for command execution");
@@ -75,6 +137,29 @@ void ExecutionContext::prepareFrameCore()
   processFillEmptySubresources();
   flushBufferUploads(frameCore);
   flushOrderedBufferUploads(frameCore);
+  processBindlessUpdates();
+}
+
+void ExecutionContext::processBindlessUpdates()
+{
+  if (data.bindlessTexUpdates.size())
+  {
+    TIME_PROFILE(vulkan_bindless_tex_update);
+    for (const BindlessTexUpdateInfo &i : data.bindlessTexUpdates)
+    {
+      if (i.img)
+        trackBindlessRead(i.img);
+      for (int j = 0; j < i.count; ++j)
+        back.contextState.bindlessManagerBackend.updateBindlessTexture(i.index + j, i.img, i.viewState);
+    }
+  }
+
+  if (data.bindlessSamplerUpdates.size())
+  {
+    TIME_PROFILE(vulkan_bindless_smp_update);
+    for (const BindlessSamplerUpdateInfo &i : data.bindlessSamplerUpdates)
+      back.contextState.bindlessManagerBackend.updateBindlessSampler(i.index, device.getSampler(i.sampler));
+  }
 }
 
 void ExecutionContext::processFillEmptySubresources()
@@ -108,6 +193,7 @@ void ExecutionContext::processFillEmptySubresources()
     ValueRange<uint8_t> mipRange = i->getMipLevelRange();
     ValueRange<uint16_t> arrRange = i->getArrayLayerRange();
 
+    verifyResident(i);
     for (uint16_t arr : arrRange)
       for (uint8_t mip : mipRange)
         if (i->layout.get(mip, arr) == VK_IMAGE_LAYOUT_UNDEFINED)
@@ -135,6 +221,13 @@ void ExecutionContext::processFillEmptySubresources()
     back.contextState.frame.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*zeroBuf);
 }
 
+void ExecutionContext::restoreImageResidencies(VulkanCommandBufferHandle cmd_b)
+{
+  for (Image *img : back.imageResidenceRestores)
+    img->delayedRestoreFromSysCopy(*this, cmd_b);
+  back.imageResidenceRestores.clear();
+}
+
 VulkanCommandBufferHandle ExecutionContext::allocAndBeginCommandBuffer()
 {
   FrameInfo &frame = back.contextState.frame.get();
@@ -160,8 +253,7 @@ VulkanCommandBufferHandle ExecutionContext::flushImageDownloads(VulkanCommandBuf
   {
     if (!download.image)
       download.image = getSwapchainColorImage();
-    else if (!download.image->isResident())
-      continue;
+    verifyResident(download.image);
 
     for (auto iter = begin(data.imageDownloadCopies) + download.copyIndex,
               ed = begin(data.imageDownloadCopies) + download.copyIndex + download.copyCount;
@@ -182,9 +274,6 @@ VulkanCommandBufferHandle ExecutionContext::flushImageDownloads(VulkanCommandBuf
 
   for (auto &&download : data.imageDownloads)
   {
-    if (!download.image->isResident())
-      continue;
-
     // do the copy
     VULKAN_LOG_CALL(vkDev.vkCmdCopyImageToBuffer(cmd_b, download.image->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
       download.buffer->getHandle(), download.copyCount, data.imageDownloadCopies.data() + download.copyIndex));
@@ -275,6 +364,7 @@ void ExecutionContext::flushImageUploads()
       mergedRangeStart = i;
     }
 
+    verifyResident(upload.image);
     for (auto iter = begin(data.imageUploadCopies) + upload.copyIndex,
               ed = begin(data.imageUploadCopies) + upload.copyIndex + upload.copyCount;
          iter != ed; ++iter)
@@ -289,7 +379,7 @@ void ExecutionContext::flushImageUploads()
   bool anyBindless = false;
   for (auto &&upload : data.imageUploads)
   {
-    if (!upload.image->isSampledSRV())
+    if (upload.image->isSampledSRV())
     {
       upload.image->layout.roSealTargetLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       upload.image->requestRoSeal(data.id);
@@ -437,6 +527,14 @@ void ExecutionContext::flush(ThreadedFence *fence)
     preFrame = allocAndBeginCommandBuffer();
     device.timestamps.writeResetsAndQueueReadbacks(preFrame);
   }
+  if (back.imageResidenceRestores.size())
+  {
+    if (is_null(preFrame))
+      preFrame = allocAndBeginCommandBuffer();
+
+    restoreImageResidencies(preFrame);
+  }
+
   if (!is_null(preFrame))
     back.contextState.cmdListsToSubmit[0] = preFrame;
 
@@ -886,6 +984,9 @@ void ExecutionContext::resolveMultiSampleImage(Image *src, Image *dst)
 
   Image *effectiveDst = dst ? dst : swapchain.getColorImage();
 
+  verifyResident(src);
+  verifyResident(effectiveDst);
+
   back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, src,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {0, 1, 0, 1});
   back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, effectiveDst,
@@ -923,7 +1024,7 @@ void ExecutionContext::reportMissingPipelineComponent(const char *component)
 {
   logerr("vulkan: missing pipeline component %s at state apply, caller %s", component, getCurrentCmdCaller());
   generateFaultReport();
-  fatal("vulkan: missing pipeline %s (broken state flush)", component);
+  DAG_FATAL("vulkan: missing pipeline %s (broken state flush)", component);
 }
 
 void ExecutionContext::recordFrameTimings(Drv3dTimings *timing_data, uint64_t kickoff_stamp)
@@ -1023,6 +1124,8 @@ void ExecutionContext::captureScreen(Buffer *buffer)
   copy.imageExtent.depth = 1;
   const auto copySize = colorImage->getFormat().calculateImageSize(copy.imageExtent.width, copy.imageExtent.height, 1, 1);
 
+  verifyResident(colorImage);
+
   back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, colorImage,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {0, 1, 0, 1});
   back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, buffer,
@@ -1118,6 +1221,8 @@ void ExecutionContext::clearDepthStencilImage(Image *image, const VkImageSubreso
   // TODO flush_clear_state is only needed if the image is a cleared attachment
   beginCustomStage("clearDepthStencilImage");
 
+  verifyResident(image);
+
   back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, image,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {area.baseMipLevel, area.levelCount, area.baseArrayLayer, area.layerCount});
   back.syncTrack.completeNeeded(frameCore, vkDev);
@@ -1160,6 +1265,8 @@ void ExecutionContext::clearColorImage(Image *image, const VkImageSubresourceRan
 
   beginCustomStage("clearColorImage");
 
+  verifyResident(image);
+
   back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, image,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {area.baseMipLevel, area.levelCount, area.baseArrayLayer, area.layerCount});
   back.syncTrack.completeNeeded(frameCore, vkDev);
@@ -1167,31 +1274,47 @@ void ExecutionContext::clearColorImage(Image *image, const VkImageSubresourceRan
   VULKAN_LOG_CALL(vkDev.vkCmdClearColorImage(frameCore, image->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &value, 1, &area));
 }
 
-void ExecutionContext::copyBufferToImageOrdered(Image *dst, Buffer *src, const VkBufferImageCopy &region)
+void ExecutionContext::copyBufferToImageOrdered(Image *dst, Buffer *src, const VkBufferImageCopy *regions, int count)
 {
-  if (!dst->isResident())
-    return;
-
-  const auto sz =
-    dst->getFormat().calculateImageSize(region.imageExtent.width, region.imageExtent.height, region.imageExtent.depth, 1);
-  back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, src, {region.bufferOffset, sz});
-  back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, dst,
-    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    {region.imageSubresource.mipLevel, 1, region.imageSubresource.baseArrayLayer, region.imageSubresource.layerCount});
+  verifyResident(dst);
+  for (int i = 0; i < count; ++i)
+  {
+    const VkBufferImageCopy &region = regions[i];
+    const auto sz =
+      dst->getFormat().calculateImageSize(region.imageExtent.width, region.imageExtent.height, region.imageExtent.depth, 1);
+    back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, src, {region.bufferOffset, sz});
+    back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, dst,
+      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      {region.imageSubresource.mipLevel, 1, region.imageSubresource.baseArrayLayer, region.imageSubresource.layerCount});
+  }
   back.syncTrack.completeNeeded(frameCore, vkDev);
 
   VULKAN_LOG_CALL(
-    vkDev.vkCmdCopyBufferToImage(frameCore, src->getHandle(), dst->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region));
+    vkDev.vkCmdCopyBufferToImage(frameCore, src->getHandle(), dst->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, count, regions));
+}
+
+void ExecutionContext::copyImageToBufferOrdered(Buffer *dst, Image *src, const VkBufferImageCopy *regions, int count)
+{
+  verifyResident(src);
+  for (int i = 0; i < count; ++i)
+  {
+    const VkBufferImageCopy &region = regions[i];
+    const auto sz =
+      src->getFormat().calculateImageSize(region.imageExtent.width, region.imageExtent.height, region.imageExtent.depth, 1);
+    back.syncTrack.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, dst, {region.bufferOffset, sz});
+    back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, src,
+      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+      {region.imageSubresource.mipLevel, 1, region.imageSubresource.baseArrayLayer, region.imageSubresource.layerCount});
+  }
+  back.syncTrack.completeNeeded(frameCore, vkDev);
+
+  VULKAN_LOG_CALL(
+    vkDev.vkCmdCopyImageToBuffer(frameCore, src->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->getHandle(), count, regions));
 }
 
 void ExecutionContext::copyImage(Image *src, Image *dst, uint32_t src_mip, uint32_t dst_mip, uint32_t mip_count, uint32_t region_count,
   uint32_t first_region)
 {
-  if (!src->isResident())
-    return;
-  if (!dst->isResident())
-    return;
-
 #if DAGOR_DBGLEVEL > 0
   for (int i = 0; i < region_count; ++i)
   {
@@ -1215,6 +1338,9 @@ void ExecutionContext::copyImage(Image *src, Image *dst, uint32_t src_mip, uint3
           region.srcSubresource.baseArrayLayer + j, src_mip + k);
   }
 #endif
+
+  verifyResident(src);
+  verifyResident(dst);
 
   back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, src,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {src_mip, mip_count, 0, src->getArrayLayers()});
@@ -1254,6 +1380,9 @@ void ExecutionContext::blitImage(Image *src, Image *dst, const VkImageBlit &regi
     srcI = getSwapchainColorImage();
   if (!dstI)
     dstI = getSwapchainColorImage();
+
+  verifyResident(srcI);
+  verifyResident(dstI);
 
   back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, srcI,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -1296,6 +1425,8 @@ void ExecutionContext::copyQueryResult(VulkanQueryPoolHandle pool, uint32_t inde
 
 void ExecutionContext::generateMipmaps(Image *img)
 {
+  verifyResident(img);
+
   back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, img,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {0, 1, 0, img->getArrayLayers()});
   back.syncTrack.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, img,
@@ -1508,7 +1639,6 @@ bool ExecutionContext::interruptFrameCore()
 
 void ExecutionContext::onFrameCoreReset()
 {
-  back.contextState.onFrameStateInvalidate();
   back.pipelineState.makeDirty();
   back.executionState.reset();
   back.executionState.makeDirty();
@@ -1528,72 +1658,82 @@ void ExecutionContext::startNode(ExecutionNode node)
   }
 }
 
-void ExecutionContext::trackStageResAccesses(const spirv::ShaderHeader &header, ShaderStage stageIndex)
+void ExecutionContext::trackTResAccesses(uint32_t slot, PipelineStageStateBase &state, ShaderStage stage)
 {
-  PipelineStageStateBase &state = back.contextState.stageState[stageIndex];
-  if (uint32_t applyBits = ~state.tRegisterValidMask & header.tRegisterUseMask)
-    for (uint8_t i = 0; i < spirv::T_REGISTER_INDEX_MAX; ++i)
+  const TRegister &reg = state.tBinds[slot];
+  switch (reg.type)
+  {
+    case TRegister::TYPE_IMG:
     {
-      if ((applyBits & (1 << i)) == 0)
-        continue;
-
-      const TRegister &reg = state.tRegisters[i];
-      switch (reg.type)
-      {
-        case TRegister::TYPE_IMG:
-        {
-          bool roDepth = state.isConstDepthStencil.test(i);
-          VkImageLayout srvLayout =
-            roDepth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-          back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forImageOnExecStage(stageIndex, RegisterType::T),
-            reg.img.ptr, srvLayout,
-            {reg.img.view.getMipBase(), reg.img.view.getMipCount(), reg.img.view.getArrayBase(), reg.img.view.getArrayCount()});
-        }
-        break;
-        case TRegister::TYPE_BUF:
-          back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stageIndex, RegisterType::T),
-            reg.buf.buffer, {reg.buf.bufOffset(0), reg.buf.visibleDataSize});
-          break;
+      bool roDepth = state.isConstDepthStencil.test(slot);
+      VkImageLayout srvLayout = roDepth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forImageOnExecStage(stage, RegisterType::T), reg.img.ptr,
+        srvLayout, {reg.img.view.getMipBase(), reg.img.view.getMipCount(), reg.img.view.getArrayBase(), reg.img.view.getArrayCount()});
+    }
+    break;
+    case TRegister::TYPE_BUF:
+      back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stage, RegisterType::T), reg.buf.buffer,
+        {reg.buf.bufOffset(0), reg.buf.visibleDataSize});
+      break;
 #if D3D_HAS_RAY_TRACING
-        case TRegister::TYPE_AS:
-          back.syncTrack.addAccelerationStructureAccess(
-            ExecutionSyncTracker::LogicAddress::forAccelerationStructureOnExecStage(stageIndex, RegisterType::T), reg.rtas);
-          break;
+    case TRegister::TYPE_AS:
+      back.syncTrack.addAccelerationStructureAccess(
+        ExecutionSyncTracker::LogicAddress::forAccelerationStructureOnExecStage(stage, RegisterType::T), reg.rtas);
+      break;
 #endif
-        default: break;
-      }
-    }
+    default: break;
+  }
+}
 
-  if (uint32_t applyBits = ~state.uRegisterValidMask & header.uRegisterUseMask)
-    for (uint8_t i = 0; i < spirv::U_REGISTER_INDEX_MAX; ++i)
-    {
-      if ((applyBits & (1 << i)) == 0)
-        continue;
-      const URegister &reg = state.uRegisters[i];
-      if (reg.image)
-      {
-        back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forImageOnExecStage(stageIndex, RegisterType::U), reg.image,
-          VK_IMAGE_LAYOUT_GENERAL,
-          {reg.imageView.getMipBase(), reg.imageView.getMipCount(), reg.imageView.getArrayBase(), reg.imageView.getArrayCount()});
-      }
-      else if (reg.buffer.buffer)
-      {
-        back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stageIndex, RegisterType::U),
-          reg.buffer.buffer, {reg.buffer.bufOffset(0), reg.buffer.visibleDataSize});
-      }
-    }
+void ExecutionContext::trackUResAccesses(uint32_t slot, PipelineStageStateBase &state, ShaderStage stage)
+{
+  const URegister &reg = state.uBinds[slot];
+  if (reg.image)
+  {
+    back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forImageOnExecStage(stage, RegisterType::U), reg.image,
+      VK_IMAGE_LAYOUT_GENERAL,
+      {reg.imageView.getMipBase(), reg.imageView.getMipCount(), reg.imageView.getArrayBase(), reg.imageView.getArrayCount()});
+  }
+  else
+  {
+    back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stage, RegisterType::U), reg.buffer.buffer,
+      {reg.buffer.bufOffset(0), reg.buffer.visibleDataSize});
+  }
+}
 
-  if (uint32_t applyBits = ~state.bRegisterValidMask & header.bRegisterUseMask)
-    for (uint8_t i = 0; i < spirv::B_REGISTER_INDEX_MAX; ++i)
-    {
-      if ((applyBits & (1 << i)) == 0)
-        continue;
+void ExecutionContext::trackBResAccesses(uint32_t slot, PipelineStageStateBase &state, ShaderStage stage)
+{
+  const BufferRef &reg = state.bBinds[slot];
+  if (slot == state.GCBSlot && state.bGCBActive)
+    return;
+  back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stage, RegisterType::B), reg.buffer,
+    {reg.bufOffset(0), reg.visibleDataSize});
+}
 
-      const BufferRef &reg = state.bRegisters[i];
-      if (reg.buffer)
-        back.syncTrack.addBufferAccess(ExecutionSyncTracker::LogicAddress::forBufferOnExecStage(stageIndex, RegisterType::B),
-          reg.buffer, {reg.bufOffset(0), reg.visibleDataSize});
-    }
+void ExecutionContext::trackStageResAccessesNonParallel(const spirv::ShaderHeader &header, ShaderStage stage)
+{
+  PipelineStageStateBase &state = back.executionState.getResBinds(stage);
+  for (uint32_t i : LsbVisitor{state.tBinds.validMask() & header.tRegisterUseMask})
+    trackTResAccesses(i, state, stage);
+
+  for (uint32_t i : LsbVisitor{state.uBinds.validMask() & header.uRegisterUseMask})
+    trackUResAccesses(i, state, stage);
+
+  for (uint32_t i : LsbVisitor{state.bBinds.validMask() & header.bRegisterUseMask})
+    trackBResAccesses(i, state, stage);
+}
+
+void ExecutionContext::trackStageResAccesses(const spirv::ShaderHeader &header, ShaderStage stage)
+{
+  PipelineStageStateBase &state = back.executionState.getResBinds(stage);
+  for (uint32_t i : LsbVisitor{state.tBinds.validDirtyMask() & header.tRegisterUseMask})
+    trackTResAccesses(i, state, stage);
+
+  for (uint32_t i : LsbVisitor{state.uBinds.validDirtyMask() & header.uRegisterUseMask})
+    trackUResAccesses(i, state, stage);
+
+  for (uint32_t i : LsbVisitor{(state.bBinds.validDirtyMask() | state.bOffsetDirtyMask) & header.bRegisterUseMask})
+    trackBResAccesses(i, state, stage);
 }
 
 void ExecutionContext::trackIndirectArgAccesses(BufferRef buffer, uint32_t offset, uint32_t count, uint32_t stride)
@@ -1608,6 +1748,28 @@ void ExecutionContext::trackBindlessRead(Image *img)
                               ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
                               : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
+  verifyResident(img);
   back.syncTrack.addImageAccess(ExecutionSyncTracker::LogicAddress::forImageBindlessRead(), img, srvLayout,
     {0, img->getMipLevels(), 0, img->getArrayLayers()});
+}
+
+template <typename ResType>
+void ExecutionContext::verifyResident(ResType *obj)
+{
+  obj->setUsedInRendering();
+  if (!obj->isResident())
+  {
+    SharedGuardedObjectAutoLock lock(device.resources);
+    ResourceAlgorithm<ResType> alg(*obj);
+    if (!alg.makeResident(*this))
+      obj->reportOutOfMemory();
+  }
+}
+
+template void ExecutionContext::verifyResident<Image>(Image *);
+
+void ExecutionContext::finishAllGPUWorkItems()
+{
+  while (device.timelineMan.get<TimelineManager::GpuExecute>().advance())
+    ; // VOID
 }

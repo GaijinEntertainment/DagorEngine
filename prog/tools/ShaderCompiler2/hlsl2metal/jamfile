@@ -41,5 +41,6 @@ CPPopt = -D_CROSS_TARGET_METAL=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECAT
   # use only when it is really necessary and avoid committing it because it breaks dbg builds
   #-D_HAS_ITERATOR_DEBUGGING=1
 ;
+if $(Platform) = macosx { CPPopt += -Wno-deprecated-declarations ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

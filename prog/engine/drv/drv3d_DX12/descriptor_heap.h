@@ -180,14 +180,8 @@ struct BasicBlockHeap
   };
   struct SubHeapData
   {
-    eastl::bitset<BlockSize> freeMap;
-    uint32_t allocate()
-    {
-      auto slot = static_cast<uint32_t>(freeMap.find_first());
-      if (isValidSlot(slot))
-        freeMap.reset(slot);
-      return slot;
-    }
+    Bitset<BlockSize> freeMap;
+    uint32_t allocate() { return static_cast<uint32_t>(freeMap.find_first_and_reset()); }
     constexpr bool isValidSlot(uint32_t slot) const { return slot < BlockSize; }
     void free(uint32_t slot) { freeMap.set(slot); }
     void init(const HeapData &) { freeMap.set(); }

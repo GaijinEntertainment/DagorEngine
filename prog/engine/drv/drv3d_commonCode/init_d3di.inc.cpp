@@ -5,7 +5,7 @@
 #include <3d/dag_drv3dCmd.h>
 #include <debug/dag_fatal.h>
 
-static void na_func() { fatal("D3DI function not implemented"); }
+static void na_func() { DAG_FATAL("D3DI function not implemented"); }
 
 #define FILL_ENTRY(X)     d3dit.X = d3d::X
 #define FILL_ENTRY2(X, Y) d3dit.X = d3d::Y

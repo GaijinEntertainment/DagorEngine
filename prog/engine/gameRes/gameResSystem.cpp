@@ -136,8 +136,8 @@ void add_factory(GameResourceFactory *fac)
 
     if (factories[i]->getResClassId() == fac->getResClassId())
     {
-      fatal("Conflicting GameResourceFactory id 0x%X for %s (%p) and %s (%p)", fac->getResClassId(), factories[i]->getResClassName(),
-        factories[i], fac->getResClassName(), fac);
+      DAG_FATAL("Conflicting GameResourceFactory id 0x%X for %s (%p) and %s (%p)", fac->getResClassId(),
+        factories[i]->getResClassName(), factories[i], fac->getResClassName(), fac);
       return;
     }
   }
@@ -427,9 +427,9 @@ static void addGameResInfo(int res_id, unsigned class_id, int pack_id, int ref_b
     ::getGameResName(grEntry.id.resId, resName2);
     ::getResClassName(grEntry.id.classId, className2);
 
-    fatal("Invalid game resource packs:\n"
-          "resource %s from %s is %s:%s\n"
-          "but the same resource from %s is %s:%s",
+    DAG_FATAL("Invalid game resource packs:\n"
+              "resource %s from %s is %s:%s\n"
+              "but the same resource from %s is %s:%s",
       (char *)resName, (char *)packInfo[grInfo[i].packId].fileName, (char *)className1, (char *)resName,
       (char *)packInfo[pack_id].fileName, (char *)className2, (char *)resName2);
   }
@@ -483,12 +483,12 @@ void gameresprivate::scanGameResPack(const char *filename)
       clear_and_resize(grp_hdr, dump_data.size());
       if (grp_crd.tryRead(grp_hdr.data(), grp_hdr.size()) != grp_hdr.size())
       {
-        fatal("inconsistent cache for %s (short grp)", filename);
+        DAG_FATAL("inconsistent cache for %s (short grp)", filename);
         cb.open(filename, DF_READ);
       }
       if (!mem_eq(dump_data, grp_hdr.data()))
       {
-        fatal("inconsistent cache for %s (grp header differs)", filename);
+        DAG_FATAL("inconsistent cache for %s (grp header differs)", filename);
         cb.open(filename, DF_READ);
       }
     }
@@ -512,7 +512,7 @@ void gameresprivate::scanGameResPack(const char *filename)
     {
       debug("no GRP2 label (hdr: 0x%x 0x%x 0x%x 0x%x)", ghdr.label, ghdr.descOnlySize, ghdr.fullDataSize, ghdr.restFileSize);
 #if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
-      fatal("no GRP2 label in %s", filename);
+      DAG_FATAL("no GRP2 label in %s", filename);
 #endif
       DAGOR_THROW(IGenLoad::LoadException("no GRP2 label", cb.tell()));
     }
@@ -520,7 +520,7 @@ void gameresprivate::scanGameResPack(const char *filename)
     {
       debug("Corrupt file: hdr+restFileSize=%u != filesz=%d", unsigned(ghdr.restFileSize + sizeof(ghdr)), df_length(cb.fileHandle));
 #if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
-      fatal("Corrupt file %s", filename);
+      DAG_FATAL("Corrupt file %s", filename);
 #endif
       DAGOR_THROW(IGenLoad::LoadException("Corrupt file: restFileSize", cb.tell()));
     }
@@ -712,7 +712,7 @@ bool GameResPackInfo::processGrData()
       ::getResClassName(classId, className);
 
       if (noFactoryFatal)
-        fatal("No factory for resource %s:%s", className.str(), resName.str());
+        DAG_FATAL("No factory for resource %s:%s", className.str(), resName.str());
       else
         logwarn("No factory for resource %s:%s", className.str(), resName.str());
 
@@ -797,7 +797,7 @@ void GameResPackInfo::loadPack()
     char cwdbuf[256];
     cwd = getcwd(cwdbuf, sizeof(cwdbuf));
 #endif
-    fatal("Can't open GameResPack file '%s', error %d(%s), cwd '%s'", fileName.str(), errn, errs, cwd);
+    DAG_FATAL("Can't open GameResPack file '%s', error %d(%s), cwd '%s'", fileName.str(), errn, errs, cwd);
     return;
   }
   debug_ctx("loading GRP %s", (char *)fileName);
@@ -829,7 +829,7 @@ void GameResPackInfo::loadPack()
       {
         debug("no GRP2 label (hdr: 0x%x 0x%x 0x%x 0x%x)", ghdr.label, ghdr.descOnlySize, ghdr.fullDataSize, ghdr.restFileSize);
 #if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
-        fatal("no GRP2 label in %s", fileName.str());
+        DAG_FATAL("no GRP2 label in %s", fileName.str());
 #endif
         DAGOR_THROW(IGenLoad::LoadException("no GRP2 label", cb.tell()));
       }
@@ -837,7 +837,7 @@ void GameResPackInfo::loadPack()
       {
         debug("Corrupt file: hdr+restFileSize=%u != filesz=%d", unsigned(ghdr.restFileSize + sizeof(ghdr)), file_sz);
 #if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
-        fatal("Corrupt file %s", fileName.str());
+        DAG_FATAL("Corrupt file %s", fileName.str());
 #endif
         DAGOR_THROW(IGenLoad::LoadException("Corrupt file: restFileSize", cb.tell()));
       }
@@ -931,7 +931,7 @@ void GameResPackInfo::loadPack()
         ::getGameResName(gdNameId[rre->resId], resName);
 
         if (noFactoryFatal)
-          fatal("No factory for game resource %s:%s", className.str(), resName.str());
+          DAG_FATAL("No factory for game resource %s:%s", className.str(), resName.str());
         else
           logwarn("No factory for game resource %s:%s", className.str(), resName.str());
 
@@ -995,7 +995,7 @@ static void loadGameResPack(int pack_id, int res_id)
   if (one_grp_load_enabled == OGLE_NOT_ENABLED)
   {
     if (!ignoreUnavailableResources)
-      fatal("(!one_grp_load_enabled) loading of <%s> is not allowed, required for res=<%s>", packInfo[pack_id].fileName.str(),
+      DAG_FATAL("(!one_grp_load_enabled) loading of <%s> is not allowed, required for res=<%s>", packInfo[pack_id].fileName.str(),
         res_id < 0 ? "NULL" : ::resNameMap.getName(res_id));
     goto end_;
   }
@@ -1077,7 +1077,7 @@ GameResource *get_game_resource(int res_id)
   if (!fac)
   {
     if (noFactoryFatal)
-      fatal("No GameResourceFactory for classId 0x%X", classId);
+      DAG_FATAL("No GameResourceFactory for classId 0x%X", classId);
     else
       logwarn("No GameResourceFactory for classId 0x%X", classId);
     return NULL;
@@ -1191,7 +1191,7 @@ bool is_game_resource_pack_loaded(const char *fname)
       return packInfo[i].surelyLoaded;
     }
   }
-  fatal("is_game_resource_pack_loaded(%s): pack not found", fname);
+  DAG_FATAL("is_game_resource_pack_loaded(%s): pack not found", fname);
   return false;
 }
 
@@ -1288,7 +1288,7 @@ void game_resource_add_ref(GameResource *resource)
     if (factories[i]->addRefGameResource(resource))
       return;
 #if DAGOR_DBGLEVEL > 0
-  fatal("res %p is not recognized by factories in game_resource_add_ref()", resource);
+  DAG_FATAL("res %p is not recognized by factories in game_resource_add_ref()", resource);
 #endif
 }
 
@@ -1322,7 +1322,7 @@ void release_gameres_or_texres(GameResource *resource)
     if (factories[i]->releaseGameResource(resource))
       return;
 #if DAGOR_DBGLEVEL > 0
-  fatal("res %p is not recognized by factories in release_gameres_or_texres()", resource);
+  DAG_FATAL("res %p is not recognized by factories in release_gameres_or_texres()", resource);
 #endif
 }
 
@@ -1335,7 +1335,7 @@ void release_game_resource(GameResource *resource)
     if (factories[i]->releaseGameResource(resource))
       return;
 #if DAGOR_DBGLEVEL > 0
-  fatal("res %p is not recognized by factories in release_game_resource()", resource);
+  DAG_FATAL("res %p is not recognized by factories in release_game_resource()", resource);
 #endif
 }
 

@@ -51,7 +51,7 @@ shader vr_gui_surface
   }
 
   hlsl(ps) {
-    half4 vr_gui_surface_ps(VsOutput input) : SV_Target
+    float4 vr_gui_surface_ps(VsOutput input) : SV_Target
     {
       float4 result;
 

@@ -23,6 +23,7 @@
 #include <damageModel/syntheticShatterDamage.h>
 #include <damageModel/criticalDamageTester.h>
 #include <damageModel/damagePartUtils.h>
+#include <damageModel/explosive.h>
 #include <ecs/game/dm/partId.h>
 #include <ecs/game/dm/damageModel.h>
 
@@ -32,7 +33,7 @@ typedef dag::Vector<dm::DamagePart> DamageModelDataParts;
 using MetaPartPartIds = dag::VectorSet<dm::PartId>;
 
 MAKE_TYPE_FACTORY(DamageToPartEvent, dm::DamageToPartEvent)
-MAKE_TYPE_FACTORY(ExplosiveProps, dm::ExplosiveProps)
+MAKE_TYPE_FACTORY(ExplosiveProps, dm::ExplosiveProperties);
 MAKE_TYPE_FACTORY(ExplosiveMassToSplash, dm::ExplosiveMassToSplash)
 MAKE_TYPE_FACTORY(MetaPart, dm::MetaPart);
 MAKE_TYPE_FACTORY(CollisionData, dm::CollisionData);
@@ -46,13 +47,10 @@ DAS_BIND_VECTOR(DamageModelDataParts, DamageModelDataParts, dm::DamagePart, "Dam
 MAKE_TYPE_FACTORY(PartId, dm::PartId);
 DAS_BIND_VECTOR(PartIdList, dm::PartIdList, dm::PartId, "::dm::PartIdList");
 MAKE_TYPE_FACTORY(SplashParams, dm::splash::Params);
-MAKE_TYPE_FACTORY(SyntheticShattersParams, dm::synthetic_shatter::Params);
 MAKE_TYPE_FACTORY(DamageModelParams, dm::DamageModelParams);
 MAKE_TYPE_FACTORY(DamageEffectPreset, dm::effect::Preset);
 MAKE_TYPE_FACTORY(DmEffectPresetList, dm::effect::PresetList);
 MAKE_TYPE_FACTORY(MetaPartProp, dm::MetaPartProp);
-MAKE_TYPE_FACTORY(PenetrationTableProps, dm::kinetic::PenetrationTableProps);
-MAKE_TYPE_FACTORY(DamageTableProps, dm::kinetic::DamageTableProps);
 MAKE_TYPE_FACTORY(DamageEffectActionCluster, dm::effect::ActionCluster);
 MAKE_TYPE_FACTORY(SplashProps, dm::splash::Properties);
 
@@ -83,11 +81,6 @@ int dm_read_overrided_preset(PropertyPresets<Preset> &presets, const DataBlock &
   int default_preset_id, const Params &params)
 {
   return read_overrided_preset(presets, blk, preset_param_name, default_preset_id, &params);
-}
-
-inline int dm_register_props_ex(const char *name, const DataBlock &blk, const char *class_name)
-{
-  return dm::register_props_ex(name, &blk, class_name);
 }
 
 inline uint16_t get_rel_hp_fixed(const dm::DamageModelData &dm_data, int part_id)
@@ -169,19 +162,13 @@ inline int get_part_physmat_id(const dm::DamageModelData &dm_data, int part_id)
   return props ? props->physMaterialId : -1;
 }
 
-inline dm::splash::Params calc_splash_params(int damage_props_id, const dm::splash::Properties &splash_properties, bool underwater)
+inline dm::splash::Params calc_splash_params(const dm::ExplosiveProperties &explosive_props,
+  const dm::splash::Properties &splash_properties, bool underwater)
 {
-  const dm::ExplosiveProps *explosiveProps = dm::ExplosiveProps::get_props(damage_props_id);
   dm::splash::Params params;
-  dm::splash::calc_params(splash_properties, explosiveProps, underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR,
-    params);
+  dm::splash::calc_params(splash_properties, explosive_props.mass > 0.f ? &explosive_props : nullptr,
+    underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR, 1.f, params);
   return params;
-}
-
-inline dm::synthetic_shatter::Params calc_synthetic_shatter_params(int damage_props_id, float shell_mass, bool underwater)
-{
-  return dm::synthetic_shatter::calc_params(damage_props_id, shell_mass,
-    underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR);
 }
 
 inline const dm::effect::ActionCluster *get_damage_effect_action_cluster(const dm::effect::Preset &preset, bool on_kill,

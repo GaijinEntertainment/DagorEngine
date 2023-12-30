@@ -3,31 +3,26 @@
 #include <EASTL/string.h>
 #include <EASTL/unordered_map.h>
 
-static eastl::unordered_map<eastl::string, BoolVar> g_bool_vars;
+static eastl::unordered_map<eastl::string, BoolVar> g_global_bool_vars;
+static eastl::unordered_map<eastl::string, BoolVar> g_local_bool_vars;
 static int g_id = 0;
 
-eastl::string build_name(const char *name_space, const char *name)
+static BoolVar *find_bool_var(const char *name)
 {
-  return eastl::string(eastl::string::CtorSprintf{}, "%s/%s", name_space ? name_space : "", name);
-}
-
-static BoolVar *find(const char *name_space, const char *name)
-{
-  eastl::string n = build_name(name_space, name);
-  auto found = g_bool_vars.find(n);
-  if (found != g_bool_vars.end())
-    return &found->second;
-
-  if (name_space)
-    return find(nullptr, name);
+  auto localFound = g_local_bool_vars.find(name);
+  if (localFound != g_local_bool_vars.end())
+    return &localFound->second;
+  auto globalFound = g_global_bool_vars.find(name);
+  if (globalFound != g_global_bool_vars.end())
+    return &globalFound->second;
   return nullptr;
 }
 
-void BoolVar::add(const char *name_space, ShaderTerminal::bool_decl &var, ShaderTerminal::ShaderSyntaxParser &parser, bool ignore_dup)
+void BoolVar::add(bool is_local, ShaderTerminal::bool_decl &var, ShaderTerminal::ShaderSyntaxParser &parser, bool ignore_dup)
 {
   G_ASSERT(var.expr);
-  eastl::string n = build_name(name_space, var.name->text);
-  auto [it, inserted] = g_bool_vars.emplace(n, BoolVar(var.expr));
+  auto &map = is_local ? g_local_bool_vars : g_global_bool_vars;
+  auto [it, inserted] = map.emplace(var.name->text, BoolVar(var.expr));
   if (!inserted)
   {
     if (ignore_dup)
@@ -42,10 +37,9 @@ void BoolVar::add(const char *name_space, ShaderTerminal::bool_decl &var, Shader
   parser.get_lex_parser().register_symbol(it->second.id, SymbolType::BOOL_VARIABLE, var.name);
 }
 
-ShaderTerminal::bool_expr *BoolVar::get_expr(const char *name_space, ShaderTerminal::SHTOK_ident &ident,
-  ShaderTerminal::ShaderSyntaxParser &parser)
+ShaderTerminal::bool_expr *BoolVar::get_expr(ShaderTerminal::SHTOK_ident &ident, ShaderTerminal::ShaderSyntaxParser &parser)
 {
-  auto found = find(name_space, ident.text);
+  auto found = find_bool_var(ident.text);
   if (!found)
   {
     eastl::string message(eastl::string::CtorSprintf{}, "Bool variable '%s' not found", ident.text);
@@ -55,16 +49,20 @@ ShaderTerminal::bool_expr *BoolVar::get_expr(const char *name_space, ShaderTermi
   return found->mExpr;
 }
 
-ShaderTerminal::bool_expr *BoolVar::maybe(const char *name_space, ShaderTerminal::SHTOK_ident &ident)
+ShaderTerminal::bool_expr *BoolVar::maybe(ShaderTerminal::SHTOK_ident &ident)
 {
-  auto found = find(name_space, ident.text);
+  auto found = find_bool_var(ident.text);
   if (!found)
     return nullptr;
   return found->mExpr;
 }
 
-void BoolVar::clear()
+void BoolVar::clear(bool clear_only_local)
 {
-  g_bool_vars.clear();
-  g_id = 0;
+  g_local_bool_vars.clear();
+  if (!clear_only_local)
+  {
+    g_global_bool_vars.clear();
+    g_id = 0;
+  }
 }

@@ -386,6 +386,40 @@ pop_and_clone_one returns auto
 
 reads one command from channel
 
+.. _function-_at_jobque_boost_c__c_push_batch_clone_C1_ls_H_ls_jobque_c__c_Channel_gr__gr_?_C1_ls_Y_ls_TT_gr_._gr_A:
+
+.. das:function:: push_batch_clone(channel: jobque::Channel? const; data: array<auto(TT)> const)
+
+push_batch_clone returns auto
+
++--------+-------------------------------------------------------+
++argument+argument type                                          +
++========+=======================================================+
++channel + :ref:`jobque::Channel <handle-jobque-Channel>` ? const+
++--------+-------------------------------------------------------+
++data    +array<auto(TT)> const                                  +
++--------+-------------------------------------------------------+
+
+
+clones data and pushed values to the channel (at the end)
+
+.. _function-_at_jobque_boost_c__c_push_batch_C1_ls_H_ls_jobque_c__c_Channel_gr__gr_?_C1_ls_1_ls_._gr_?_gr_A:
+
+.. das:function:: push_batch(channel: jobque::Channel? const; data: array<auto?> const)
+
+push_batch returns auto
+
++--------+-------------------------------------------------------+
++argument+argument type                                          +
++========+=======================================================+
++channel + :ref:`jobque::Channel <handle-jobque-Channel>` ? const+
++--------+-------------------------------------------------------+
++data    +array<auto?> const                                     +
++--------+-------------------------------------------------------+
+
+
+pushes values to the channel (at the end)
+
 .. _function-_at_jobque_boost_c__c_set_C1_ls_H_ls_jobque_c__c_LockBox_gr__gr_?_CY_ls_TT_gr_.:
 
 .. das:function:: set(box: jobque::LockBox? const; data: auto(TT) const)

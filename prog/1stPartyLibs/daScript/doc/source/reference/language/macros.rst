@@ -4,7 +4,7 @@
 Macros
 ======
 
-In daScript, macros are the machinery that allow direct manipulation of the syntax tree.
+In Daslang, macros are the machinery that allow direct manipulation of the syntax tree.
 
 Macros are exposed via the :ref:`daslib/ast <stdlib_ast>` module and :ref:`daslib/ast_boost <stdlib_ast_boost>` helper module.
 
@@ -15,7 +15,7 @@ Macros assigned to a specific module are evaluated as part of the module every t
 Compilation passes
 ------------------
 
-The daScript compiler performs compilation passes in the following order for each module (see :ref:`Modules <modules>`):
+The Daslang compiler performs compilation passes in the following order for each module (see :ref:`Modules <modules>`):
 
 #. Parser transforms das program to AST
 
@@ -261,13 +261,13 @@ Let's review the following example from :ref:`daslib/ast_boost <stdlib_ast_boost
 
 Here, the macro takes advantage of the ExprIsVariant syntax.
 It replaces the ``expr is TYPENAME`` expression with an ``expr.__rtti = "TYPENAME"`` expression.
-The ``isExpression`` function ensures that `expr` is from the `ast::Expr*` family, i.e. part of the daScript syntax tree.
+The ``isExpression`` function ensures that `expr` is from the `ast::Expr*` family, i.e. part of the Daslang syntax tree.
 
 --------------
 AstReaderMacro
 --------------
 
-``AstReaderMacro`` allows embedding a completely different syntax inside daScript code.
+``AstReaderMacro`` allows embedding a completely different syntax inside Daslang code.
 
 ``add_new_reader_macro`` adds a reader macro to a module.
 There is additionally the ``[reader_macro]`` annotation, which essentially automates the same thing.
@@ -482,7 +482,7 @@ AstSimulateMacro
 AstVisitor
 ----------
 
-``AstVisitor`` implements the visitor pattern for the daScript expression tree.
+``AstVisitor`` implements the visitor pattern for the Daslang expression tree.
 It contains a callback for every single expression in prefix and postfix form, as well as some additional callbacks::
 
     class AstVisitor
@@ -494,7 +494,7 @@ It contains a callback for every single expression in prefix and postfix form, a
 
 Postfix callbacks can return expressions to replace the ones passed to the callback.
 
-PrintVisitor from the `ast_print` example implements the printing of every single expression in daScript syntax.
+PrintVisitor from the `ast_print` example implements the printing of every single expression in Daslang syntax.
 
 ``make_visitor`` creates a visitor adapter from the class, derived from ``AstVisitor``.
 The adapter then can be applied to a program via the ``visit`` function::

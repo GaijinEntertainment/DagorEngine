@@ -1,4 +1,4 @@
-The export_constructor module simplifies creation of daScript structure and classes from C++ side.
+The export_constructor module simplifies creation of Daslang structure and classes from C++ side.
 
 In the following example::
 

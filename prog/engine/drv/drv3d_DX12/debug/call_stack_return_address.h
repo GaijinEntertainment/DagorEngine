@@ -76,7 +76,7 @@ public:
     {
       return;
     }
-    debug("%s", doResolve(data));
+    logdbg(doResolve(data).c_str());
   }
 
   void append(String &buffer, const char *prefix, const CommandData &data)
@@ -122,7 +122,7 @@ class Generator
 public:
   void configure(const DataBlock *)
   {
-    debug("DX12: debug::call_stack::return_address using null implementation! No return addresses are available!");
+    logdbg("DX12: debug::call_stack::return_address using null implementation! No return addresses are available!");
   }
   CommandData generateCommandData() const { return {}; }
   const char *getLastCommandName() const { return ""; }

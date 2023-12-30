@@ -1,0 +1,82 @@
+int palette_rotation_mode = 1;
+interval palette_rotation_mode: palette_rotation_off < 1, palette_rotation_on;
+
+macro PALETTE_HELPERS(stage)
+  hlsl(stage) {
+    float3 worldToPalette(float3 dir, float paletteRotationCos, float paletteRotationSin)
+    {
+      return float3(
+        paletteRotationCos * dir.x + paletteRotationSin * dir.z,
+        dir.y,
+        -paletteRotationSin * dir.x + paletteRotationCos * dir.z);
+    }
+
+    float3 paletteToWorld(float3 dir, float paletteRotationCos, float paletteRotationSin)
+    {
+      return float3(
+        paletteRotationCos * dir.x - paletteRotationSin * dir.z,
+        dir.y,
+        paletteRotationSin * dir.x + paletteRotationCos * dir.z);
+    }
+  }
+endmacro
+
+macro ROTATION_PALETTE()
+  PALETTE_HELPERS(vs)
+  hlsl(vs) {
+    ##if palette_rotation_mode == palette_rotation_on
+      #include <rendInst/rotation_palette_consts.hlsli>
+
+      #define IMPOSTOR_PALETTE_ROTATIONS\
+        float4 paletteRotationData = impostor_data_buffer[IMPOSTOR_DATA_OFFSET+IMPOSTOR_DATA_PALETTE_OFFSET+paletteId/2];\
+        float paletteRotationCos = (paletteId&1) ? paletteRotationData.w : paletteRotationData.y;\
+        float paletteRotationSin = (paletteId&1) ? paletteRotationData.z : paletteRotationData.x;
+    ##else
+      #define IMPOSTOR_PALETTE_ROTATIONS\
+        float paletteRotationCos = 1;\
+        float paletteRotationSin = 0;
+    ##endif
+
+    ##if palette_rotation_mode == palette_rotation_on
+      #define APPLY_ROTATION_PALETTE\
+        IMPOSTOR_PALETTE_ROTATIONS\
+        worldLocalX = paletteToWorld(worldLocalX, paletteRotationCos, paletteRotationSin);\
+        worldLocalY = paletteToWorld(worldLocalY, paletteRotationCos, paletteRotationSin);\
+        worldLocalZ = paletteToWorld(worldLocalZ, paletteRotationCos, paletteRotationSin);\
+        worldPos = localPos.x * worldLocalX + localPos.y * worldLocalY + localPos.z * worldLocalZ + worldLocalPos;\
+        worldNormal = normalize(localNormal.x * worldLocalX + localNormal.y * worldLocalY + localNormal.z * worldLocalZ);
+    ##else
+      #define APPLY_ROTATION_PALETTE\
+        IMPOSTOR_PALETTE_ROTATIONS
+    ##endif
+  }
+endmacro
+macro ROTATION_PALETTE_STUB()
+  hlsl(vs) {
+    float3 worldToPalette(float3 dir, float paletteRotationCos, float paletteRotationSin)
+    {
+      return dir;
+    }
+
+    float3 paletteToWorld(float3 dir, float paletteRotationCos, float paletteRotationSin)
+    {
+      return dir;
+    }
+  }
+  hlsl(vs) {
+    #define APPLY_ROTATION_PALETTE
+    #define IMPOSTOR_PALETTE_ROTATIONS\
+        float paletteRotationCos = 1;\
+        float paletteRotationSin = 0;
+  }
+endmacro
+macro ROTATION_PALETTE_FOR_POS_INST()
+  if (instancing_type == pos_vb || instancing_type == pos_cb)
+  {
+    ROTATION_PALETTE()
+  }
+  else
+  {
+    ROTATION_PALETTE_STUB()
+  }
+endmacro

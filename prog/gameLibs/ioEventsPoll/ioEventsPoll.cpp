@@ -60,7 +60,7 @@ static void syserr_cb(const char *msg) EV_THROW
 #else
   int err = errno;
 #endif
-  fatal("%s, err=%d", msg, err);
+  DAG_FATAL("%s, err=%d", msg, err);
 }
 static void dummy_cb(EvLoop *, ev_async *, int) {}
 
@@ -131,12 +131,12 @@ static void unsubscribe_child_all(EvLoop *loop, ChildSubsMap &subscribers)
 #else
 static void subscribe_child(EvLoop *loop, ChildSubsMap &subscribers, FileDesc child_pid, IOCallbackPtr cb)
 {
-  fatal("EV_CHILD events are not supported on current platform");
+  DAG_FATAL("EV_CHILD events are not supported on current platform");
 }
 
 static void unsubscribe_child(EvLoop *loop, ChildSubsMap &subscribers, FileDesc child_pid)
 {
-  fatal("EV_CHILD events are not supported on current platform");
+  DAG_FATAL("EV_CHILD events are not supported on current platform");
 }
 
 static void unsubscribe_child_all(EvLoop *loop, ChildSubsMap &subscribers) {}

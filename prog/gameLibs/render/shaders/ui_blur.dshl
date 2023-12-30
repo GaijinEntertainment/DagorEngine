@@ -68,7 +68,7 @@ shader ui_downsample_4x4
   }
   hlsl(ps) {
     #include "tonemapHelpers/ui_blurred_tonemap.hlsl"
-    half3 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float3 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float2 texSize = texSize__bw.xy;
       float2 tc = IN.tc - texSize.xy;
@@ -98,7 +98,7 @@ shader ui_downsample_4x4_and_blend
   USE_SHADER_GAMMA()
   hlsl(ps) {
     #include "tonemapHelpers/ui_blurred_tonemap.hlsl"
-    half3 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float3 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float2 texSize = texSize__bw.xy;
       half bw = texSize__bw.z;
@@ -145,7 +145,7 @@ shader ui_downsample_blur
     {
       return (p0 + p1 + p2 + p3) * 0.25f;
     }
-    half4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float2 TexSize = texSize__bw.xy;
 
@@ -195,7 +195,7 @@ shader ui_downsample_blur
       blockTL /= 4; blockTR /= 4; blockBR /= 4; blockBL /= 4; blockCC /= 4;
       half3 res = 0.5 * blockCC + 0.125 * (blockTL + blockTR + blockBR + blockBL);
       res = lerp(res, luminance(res), texSize__bw.z);
-      return half4(res, 1);
+      return float4(res, 1);
     }
   }
 
@@ -235,9 +235,9 @@ shader ui_additional_blur
         #undef stepCount
     }
 
-    half4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
-      return half4(GaussianBlur(IN.tc.xy, pixel_offset),1);
+      return float4(GaussianBlur(IN.tc.xy, pixel_offset),1);
     }
   }
 

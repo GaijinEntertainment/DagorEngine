@@ -14,5 +14,5 @@ __forceinline void animerr_helper(const char *fmt, const Args &...args)
 }
 #define ANIM_ERR(fmt, ...) animerr_helper(fmt "%s", ##__VA_ARGS__)
 #else
-#define ANIM_ERR fatal_x
+#define ANIM_ERR DAG_FATAL
 #endif

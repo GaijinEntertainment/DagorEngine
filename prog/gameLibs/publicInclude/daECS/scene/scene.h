@@ -79,7 +79,7 @@ class SceneManager
 {
 public:
   Scene &getActiveScene() { return scene; }
-  bool loadScene(const char *path);
+  void loadScene(const DataBlock &scene_blk, const char *scene_path);
   void clearScene() { scene.clear(); }
 
 private:

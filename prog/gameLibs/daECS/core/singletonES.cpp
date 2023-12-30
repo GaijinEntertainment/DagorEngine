@@ -31,7 +31,7 @@ static constexpr ComponentDesc singleton_creation_comps[] = {
 inline void singleton_creation_event(const Event &evt, const QueryView &components)
 {
   auto *__restrict eid = ECS_QUERY_COMP_RO_PTR(EntityId, singleton_creation_comps, "eid");
-  const char *eidTemplName = g_entity_mgr->getEntityTemplateName(*eid);
+  const char *eidTemplName = components.manager().getEntityTemplateName(*eid);
   if (!eidTemplName)
   {
     logerr("entity %d has no template!", entity_id_t(*eid));
@@ -40,8 +40,8 @@ inline void singleton_creation_event(const Event &evt, const QueryView &componen
   if (evt.is<EventComponentsDisappear>() || evt.is<EventComponentsAppear>())
     logerr("Entity:%d(%s) is adding singleton to entity. That's illegal.", entity_id_t(*eid), eidTemplName);
   const auto hash = get_base_template_hash(eidTemplName);
-  auto it = g_entity_mgr->singletonEntities.find(hash);
-  const bool hasEntity = it != g_entity_mgr->singletonEntities.end();
+  auto it = components.manager().singletonEntities.find(hash);
+  const bool hasEntity = it != components.manager().singletonEntities.end();
   if (evt.is<EventComponentsDisappear>() || evt.is<EventEntityDestroyed>()) // disappearing
   {
     if (!hasEntity)
@@ -49,7 +49,7 @@ inline void singleton_creation_event(const Event &evt, const QueryView &componen
       logerr("singleton template %s on destroy entity %d wasn't registered", eidTemplName, entity_id_t(*eid));
     }
     else
-      g_entity_mgr->singletonEntities.erase(it);
+      components.manager().singletonEntities.erase(it);
     return;
   }
   if (hasEntity) // appearing
@@ -57,7 +57,7 @@ inline void singleton_creation_event(const Event &evt, const QueryView &componen
     logerr("singleton template %s already created in entity %d, while creating %d, %s", eidTemplName, entity_id_t(it->second),
       entity_id_t(*eid), evt.getName());
   }
-  g_entity_mgr->singletonEntities[hash] = *eid;
+  components.manager().singletonEntities[hash] = *eid;
 }
 
 static EntitySystemDesc singleton_creation_events_es_desc("singleton_creation_events_es",

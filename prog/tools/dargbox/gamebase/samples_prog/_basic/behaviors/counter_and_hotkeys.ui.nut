@@ -21,7 +21,7 @@ let observable_counter = persist("counter", @() Watched(0)) //or model
 let counter_doubled = Computed(@() observable_counter.value*2)
 
 
-let function button(params) {
+function button(params) {
   let text = params?.text ?? ""
   let onClick = params?.onClick
   let onHover = params?.onHover
@@ -53,10 +53,10 @@ observable_counter.subscribe(function(new_val) {
   prev_val = new_val
 })
 
-let function increment() {
+function increment() {
   observable_counter.update(observable_counter.value + 1)
 }
-let function decrement() {
+function decrement() {
   observable_counter.update(observable_counter.value - 1)
 }
 

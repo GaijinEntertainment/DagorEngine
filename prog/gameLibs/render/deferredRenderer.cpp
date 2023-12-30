@@ -196,7 +196,7 @@ void ShadingResolver::resolve(BaseTexture *resolveTarget, const TMatrix &view_tm
 
 void ShadingResolver::recreateTileBuffersIfNeeded(const int w, const int h)
 {
-  // Unfortunately, eastl::array does not know how to binds to elements unlike the std one
+  // Unfortunately, eastl::array does not know how to bind to elements unlike the std one
   auto group_sizes = classifyTilesCS->getThreadGroupSizes();
   const int new_tiles_w = (w + group_sizes[0] - 1) / group_sizes[0];
   const int new_tiles_h = (h + group_sizes[1] - 1) / group_sizes[1];

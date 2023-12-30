@@ -18,6 +18,10 @@ static OSSpinlock float_exceptions_lock;
 #if _TARGET_PC_LINUX
 static int feenablefpexcept(int excepts)
 {
+#if defined(__e2k__)
+  (void)excepts;
+  return 0;
+#else
   unsigned short int new_exc;
   unsigned short int old_exc;
   __asm__("fstcw %0" : "=m"(*&new_exc));
@@ -26,6 +30,7 @@ static int feenablefpexcept(int excepts)
   new_exc &= ~excepts;
   __asm__("fldcw %0" : : "m"(*&new_exc));
   return old_exc;
+#endif
 }
 #endif
 

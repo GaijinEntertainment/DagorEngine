@@ -23,7 +23,7 @@ struct ScopedRIExtraWriteTryLock
     if (isLocked())
       rendinst::ccExtra.unlockWrite();
   }
-  const bool isLocked() { return locked; }
+  bool isLocked() { return locked; }
 
 protected:
   bool locked = false;

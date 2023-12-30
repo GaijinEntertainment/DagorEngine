@@ -12,7 +12,7 @@ let udp = require("dagor.udp")
 local logMessages = Watched([])
 local echoPort = Watched("8192")
 
-let function print_log(msg) {
+function print_log(msg) {
   local newKey = logMessages.value.len() ? logMessages.value.top().key + 1 : 0
   logMessages.mutate(@(v)
     v.append(
@@ -20,7 +20,7 @@ let function print_log(msg) {
     ))
 }
 
-let function error_log(msg) {
+function error_log(msg) {
   local newKey = logMessages.value.len() ? logMessages.value.top().key + 1 : 0
   logMessages.mutate(@(v)
     v.append(
@@ -43,7 +43,7 @@ eventbus.subscribe("udp.on_packet", function(evt) {
   }
 })
 
-let function onStartButtonClick() {
+function onStartButtonClick() {
   print_log("Asynchronous UDP echo test starting.")
   udp.close_socket("echo-server-socket")
   udp.close_socket("client-socket")

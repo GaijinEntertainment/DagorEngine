@@ -5,13 +5,13 @@
 //
 #pragma once
 
-#include <EASTL/bitset.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/numeric.h>
 #include <debug/dag_assert.h>
+#include "dag_bitset.h"
 
 // Pool should scan from oldest to newest block for a free slot
 struct ObjectPoolBlockSearchOrderFrontToBack
@@ -31,7 +31,7 @@ struct ObjectPoolPolicyRandomAllocationAndFree
   template <typename T, size_t BlockSize>
   struct BlockData
   {
-    eastl::bitset<BlockSize> freeMask = ~eastl::bitset<BlockSize>(0);
+    Bitset<BlockSize> freeMask = Bitset<BlockSize>{}.set();
 
     bool hasSpace() const { return freeMask.any(); }
     size_t findFreeSlot() const { return freeMask.find_first(); }

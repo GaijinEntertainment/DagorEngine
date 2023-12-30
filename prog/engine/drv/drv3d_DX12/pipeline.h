@@ -29,6 +29,19 @@ using CD3DX12_PIPELINE_STATE_STREAM_MS =
 
 namespace drv3d_dx12
 {
+// pix has some issues to properly display the object listing when names are too long
+// so we have to shorten long ones to a fixed max
+inline void shorten_name_for_pix(eastl::string &name)
+{
+  constexpr size_t max_length = 256;
+  if (name.length() > max_length)
+  {
+    name.resize(max_length - 3);
+    name.push_back('.');
+    name.push_back('.');
+    name.push_back('.');
+  }
+}
 namespace backend
 {
 class BindlessSetManager;
@@ -82,8 +95,8 @@ public:
 
   explicit operator bool() const { return value != ~uint32_t(0); }
 
-  friend bool operator==(const BufferGlobalId l, const BufferGlobalId r) { return (l.value & index_mask) == (r.value & index_mask); }
-  friend bool operator!=(const BufferGlobalId l, const BufferGlobalId r) { return (l.value & index_mask) != (r.value & index_mask); }
+  friend bool operator==(const BufferGlobalId l, const BufferGlobalId r) { return ((l.value ^ r.value) & index_mask) == 0; }
+  friend bool operator!=(const BufferGlobalId l, const BufferGlobalId r) { return ((l.value ^ r.value) & index_mask) != 0; }
   uint32_t get() const { return value; }
 };
 
@@ -620,6 +633,7 @@ struct PipelineCreateInfoData : PipelineCreateInfoDataBase
   ADD_TRACKED_STATE(CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC, blendDesc);
   ADD_TRACKED_STATE(CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT, inputLayout);
   ADD_TRACKED_STATE(CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER, rasterizer);
+  ADD_TRACKED_STATE(CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC, sampleDesc);
   ADD_TRACKED_STATE(CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL, depthStencil);
   ADD_TRACKED_STATE(CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL1, depthStencil1);
   ADD_TRACKED_STATE(CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE, rootSignature);
@@ -676,15 +690,6 @@ class PipelineVariant
   ComPtr<ID3D12PipelineState> pipeline;
   PipelineOptionalDynamicStateMask dynamicMask;
 
-  eastl::string getVariantName(BasePipeline &base, const InputLayout &input_layout, const RenderStateSystem::StaticState &static_state,
-    const FramebufferLayout &fb_layout);
-  bool isVariantNameEmpty(BasePipeline &base, const InputLayout &input_layout, const RenderStateSystem::StaticState &static_state,
-    const FramebufferLayout &fb_layout);
-
-  eastl::string getVariantName(BasePipeline &base, const RenderStateSystem::StaticState &static_state,
-    const FramebufferLayout &fb_layout);
-  bool isVariantNameEmpty(BasePipeline &base, const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout);
-
   bool calculateColorWriteMask(const BasePipeline &base, const RenderStateSystem::StaticState &static_state,
     const FramebufferLayout &fb_layout, uint32_t &color_write_mask) const;
   // Generates description for color target formats, depth stencil format, blend modes, color masks and depth stencil modes.
@@ -698,23 +703,23 @@ class PipelineVariant
 
   bool create(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base, PipelineCache &pipe_cache,
     const InputLayout &input_layout, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-    const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error,
-    bool give_name);
+    const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error, bool give_name,
+    backend::PipelineNameGenerator &name_generator);
 #if !_TARGET_XBOXONE
   bool createMesh(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base, PipelineCache &pipe_cache,
     bool is_wire_frame, const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout,
-    RecoverablePipelineCompileBehavior on_error, bool give_name);
+    RecoverablePipelineCompileBehavior on_error, bool give_name, backend::PipelineNameGenerator &name_generator);
 #endif
 
 public:
   // Returns false if any error was discovered, in some cases the pipeline may be created anyway
   bool load(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base, PipelineCache &pipe_cache,
     const InputLayout &input_layout, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-    const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error,
-    bool give_name);
+    const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error, bool give_name,
+    backend::PipelineNameGenerator &name_generator);
   bool loadMesh(ID3D12Device2 *device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base, PipelineCache &pipe_cache,
     bool is_wire_frame, const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout,
-    RecoverablePipelineCompileBehavior on_error, bool give_name);
+    RecoverablePipelineCompileBehavior on_error, bool give_name, backend::PipelineNameGenerator &name_generator);
 
   void errorPrintBlkString(const BasePipeline &base, const InputLayout &input_layout, bool is_wire_frame,
     const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top);
@@ -895,7 +900,7 @@ public:
     backend::ShaderModuleManager &shader_bytecodes, backend::InputLayoutManager &input_layouts,
     backend::StaticRenderStateManager &static_states, FramebufferLayoutManager &framebuffer_layouts,
     backend::VertexShaderModuleRefStore vsm, backend::PixelShaderModuleRefStore psm, RecoverablePipelineCompileBehavior on_error,
-    bool give_name) :
+    bool give_name, backend::PipelineNameGenerator &name_generator) :
     program(GraphicsProgramID::Null()), signature(s), vsModule(vsm), psModule(psm)
   {
     PipelineCache::BasePipelineIdentifier cacheIdent = {};
@@ -936,7 +941,7 @@ public:
     if (cnt > 0)
     {
       // Only report this when *something* can be loaded from cache
-      debug("DX12: Graphics pipeline create found %u variants in cache, loading...", cnt);
+      logdbg("DX12: Graphics pipeline create found %u variants in cache, loading...", cnt);
 
       const bool weAreMesh = isMesh();
       size_t i = 0;
@@ -956,7 +961,7 @@ public:
           auto &variant = getVariantFromConfiguration(layoutID, staticRenderStateID,
             framebuffer_layouts.getLayoutID(framebufferLayout), top, isWireFrame);
           if (!variant.load(device, shader_bytecodes, *this, cache, inputLayout, isWireFrame, staticState, framebufferLayout, top,
-                on_error, give_name))
+                on_error, give_name, name_generator))
           {
             cnt = cache.removeGraphicsPipelineVariant(cacheId, i);
             continue;
@@ -967,7 +972,7 @@ public:
           auto &variant =
             getMeshVariantFromConfiguration(staticRenderStateID, framebuffer_layouts.getLayoutID(framebufferLayout), isWireFrame);
           if (!variant.loadMesh(device, shader_bytecodes, *this, cache, isWireFrame, staticState, framebufferLayout, on_error,
-                give_name))
+                give_name, name_generator))
           {
             cnt = cache.removeGraphicsPipelineVariant(cacheId, i);
             continue;
@@ -1083,16 +1088,16 @@ class ComputePipeline
   ComPtr<ID3D12PipelineState> pipeline;
 
   bool load(ID3D12Device2 *device, PipelineCache &cache, RecoverablePipelineCompileBehavior on_error, bool from_cache_only,
-    bool give_name)
+    bool give_name, backend::PipelineNameGenerator &name_generator)
   {
+    G_UNUSED(give_name);
     if (pipeline)
       return true;
+    auto name = name_generator.generateComputePipelineName(shaderModule);
 #if DX12_REPORT_PIPELINE_CREATE_TIMING
     eastl::string profilerMsg;
-    AutoFuncProf funcProfiler(
-      !shaderModule.debugName.empty()
-        ? (profilerMsg.sprintf("ComputePipeline(\"%s\")::load: took %%dus", shaderModule.debugName.c_str()), profilerMsg.c_str())
-        : "ComputePipeline::load: took %dus");
+    profilerMsg.sprintf("ComputePipeline(\"%s\")::load: took %%dus", name.c_str());
+    AutoFuncProf funcProfiler{profilerMsg.c_str()};
 #endif
     TIME_PROFILE_DEV(ComputePipeline_load);
 
@@ -1104,18 +1109,29 @@ class ComputePipeline
       // load a pipeline
       funcProfiler.fmt = nullptr;
 #endif
-      debug("DX12: Rootsignature was null, skipping creating compute pipeline");
+      logdbg("DX12: Rootsignature for %s was null, skipping creating compute pipeline", name);
       return true;
     }
+
     ComputePipelineCreateInfoData cpci;
 
     cpci.append<CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE>(signature.signature.Get());
     cpci.emplace<CD3DX12_PIPELINE_STATE_STREAM_CS, CD3DX12_SHADER_BYTECODE>(shaderModule.byteCode.get(), shaderModule.byteCodeSize);
     D3D12_CACHED_PIPELINE_STATE &cacheTarget = cpci.append<CD3DX12_PIPELINE_STATE_STREAM_CACHED_PSO>();
+
     D3D12_PIPELINE_STATE_STREAM_DESC cpciDesc = {cpci.rootSize(), cpci.root()};
     pipeline = cache.loadCompute(shaderModule.ident.shaderHash, cpciDesc, cacheTarget);
     if (pipeline)
+    {
+      if (give_name)
+      {
+        shorten_name_for_pix(name);
+        eastl::vector<wchar_t> nameBuf;
+        nameBuf.resize(name.size() + 1);
+        DX12_SET_DEBUG_OBJ_NAME(pipeline, lazyToWchar(name.data(), nameBuf.data(), nameBuf.size()));
+      }
       return true;
+    }
 
     // if we only want to load from cache and loadCompute on the cache did not load it
     // and we don't have a pso blob for creation, we don't have a cache entry for this
@@ -1133,6 +1149,7 @@ class ComputePipeline
     // console has no cache so we load only when the shader is needed the first time
     if (from_cache_only)
       return true;
+
     G_UNUSED(cache);
     D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {0};
     desc.pRootSignature = signature.signature.Get();
@@ -1160,7 +1177,7 @@ class ComputePipeline
           return true;
         }
 
-        debug("DX12: Retrying to create compute pipeline without cache");
+        logdbg("DX12: Retrying to create compute pipeline without cache");
         cacheTarget.pCachedBlob = nullptr;
         cacheTarget.CachedBlobSizeInBytes = 0;
         result = DX12_CHECK_RESULT(device->CreatePipelineState(&cpciDesc, COM_ARGS(&pipeline)));
@@ -1198,11 +1215,12 @@ class ComputePipeline
 #endif
     }
 
-    if (give_name && pipeline && !shaderModule.debugName.empty())
+    if (give_name && pipeline && !name.empty())
     {
+      shorten_name_for_pix(name);
       eastl::vector<wchar_t> nameBuf;
-      nameBuf.resize(shaderModule.debugName.length() + 1);
-      DX12_SET_DEBUG_OBJ_NAME(pipeline, lazyToWchar(shaderModule.debugName.data(), nameBuf.data(), nameBuf.size()));
+      nameBuf.resize(name.size() + 1);
+      DX12_SET_DEBUG_OBJ_NAME(pipeline, lazyToWchar(name.data(), nameBuf.data(), nameBuf.size()));
     }
     return true;
   }
@@ -1210,21 +1228,22 @@ class ComputePipeline
 public:
   ComputePipelineSignature &getSignature() const { return signature; };
   ID3D12PipelineState *loadAndGetHandle(ID3D12Device2 *device, PipelineCache &cache, RecoverablePipelineCompileBehavior on_error,
-    bool give_name)
+    bool give_name, backend::PipelineNameGenerator &name_generator)
   {
-    load(device, cache, on_error, false, give_name);
+    load(device, cache, on_error, false, give_name, name_generator);
     return pipeline.Get();
   }
 
   ComputePipeline(ComputePipelineSignature &sign, ComputeShaderModule module, ID3D12Device2 *device, PipelineCache &cache,
-    RecoverablePipelineCompileBehavior on_error, bool give_name) :
+    RecoverablePipelineCompileBehavior on_error, bool give_name, backend::PipelineNameGenerator &name_generator) :
     shaderModule{eastl::move(module)}, signature{sign}
   {
-    load(device, cache, on_error, true, give_name);
+    load(device, cache, on_error, true, give_name, name_generator);
   }
   const dxil::ShaderHeader &getHeader() const { return shaderModule.header; }
 
   void preRecovery() { pipeline.Reset(); }
+  bool matches(const dxil::HashValue &hash) const { return shaderModule.ident.shaderHash == hash; }
 };
 
 #if D3D_HAS_RAY_TRACING
@@ -1391,17 +1410,17 @@ public:
     }
     else if (ident.get() > staticRenderStateTable.size())
     {
-      fatal("DX12: registerStaticRenderState was called with ident of %u but table has %u entries", ident.get(),
+      DAG_FATAL("DX12: registerStaticRenderState was called with ident of %u but table has %u entries", ident.get(),
         staticRenderStateTable.size());
     }
     else if (staticRenderStateTable[ident.get()] != state)
     {
-      debug("DX12: need to patch render state %u", ident.get());
+      logdbg("DX12: need to patch render state %u", ident.get());
       auto ref = eastl::find(begin(staticRenderStateTable) + ident.get() + 1, end(staticRenderStateTable), state);
       if (end(staticRenderStateTable) == ref)
       {
         auto moveID = StaticRenderStateID::make(staticRenderStateTable.size());
-        debug("DX12: moving existing render state to %u", moveID.get());
+        logdbg("DX12: moving existing render state to %u", moveID.get());
         staticRenderStateTable.push_back(staticRenderStateTable[ident.get()]);
         staticRenderStateTable[ident.get()] = state;
         for (auto &group : graphicsPipelines)
@@ -1422,7 +1441,7 @@ public:
       else
       {
         auto swapID = StaticRenderStateID::make(ref - begin(staticRenderStateTable));
-        debug("DX12: swapping existing render state with %u", swapID.get());
+        logdbg("DX12: swapping existing render state with %u", swapID.get());
         staticRenderStateTable[swapID.get()] = staticRenderStateTable[ident.get()];
         staticRenderStateTable[ident.get()] = state;
         for (auto &group : graphicsPipelines)
@@ -1568,6 +1587,8 @@ public:
   void addShaderGroup(ID3D12Device2 *device, PipelineCache *pipelineCache, FramebufferLayoutManager *fbs, uint32_t group,
     ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader)
   {
+    auto v2 = dump->getDumpV2();
+    pipelineCache->onBindumpLoad(device, {v2->shaderHashes.begin(), v2->shaderHashes.end()});
     ScriptedShaderBinDumpInspector inspector;
     inspector.group = group;
     inspector.nullPixelShader = null_pixel_shader;
@@ -1658,26 +1679,26 @@ public:
   {
     for (auto &pipeline : graphics_pipelines)
     {
-      debug("DX12: precomiling graphics pipeline...");
+      logdbg("DX12: precomiling graphics pipeline...");
 
       char hashString[1 + 2 * sizeof(dxil::HashValue)];
       pipeline.base.vs.convertToString(hashString, countof(hashString));
-      debug("DX12: Looking for VS %s...", hashString);
+      logdbg("DX12: Looking for VS %s...", hashString);
       auto vsID = findVertexShader(pipeline.base.vs);
       if (ShaderID::Null() == vsID)
       {
-        debug("DX12: ...shader not found");
+        logdbg("DX12: ...shader not found");
         continue;
       }
       pipeline.base.ps.convertToString(hashString, countof(hashString));
-      debug("DX12: Looking for PS %s...", hashString);
+      logdbg("DX12: Looking for PS %s...", hashString);
       auto psID = findPixelShader(pipeline.base.ps);
       if (ShaderID::Null() == psID)
       {
-        debug("DX12: ...shader not found");
+        logdbg("DX12: ...shader not found");
         continue;
       }
-      debug("DX12: looking for existing pipeline...");
+      logdbg("DX12: looking for existing pipeline...");
       BasePipeline *pipelineBase = nullptr;
       for (auto &preloadInfo : preloadedGraphicsPipelines)
       {
@@ -1685,7 +1706,7 @@ public:
         {
           continue;
         }
-        debug("DX12: ...found in preloadedGraphicsPipelines");
+        logdbg("DX12: ...found in preloadedGraphicsPipelines");
         pipelineBase = preloadInfo.pipeline.get();
         break;
       }
@@ -1703,41 +1724,41 @@ public:
           preloadedPipeline.pipeline =
             createGraphics(device, pipeline_cache, fbs, vs, ps, RecoverablePipelineCompileBehavior::REPORT_ERROR, true);
           pipelineBase = preloadedPipeline.pipeline.get();
-          debug("DX12: ...none found, creating new...");
+          logdbg("DX12: ...none found, creating new...");
         }
         else
         {
-          debug("DX12: ...found loaded pipeline");
+          logdbg("DX12: ...found loaded pipeline");
         }
       }
       if (!pipelineBase)
       {
-        debug("DX12: ...failed");
+        logdbg("DX12: ...failed");
         continue;
       }
-      debug("DX12: ...loading variants...");
+      logdbg("DX12: ...loading variants...");
       for (auto &variant : pipeline.variants)
       {
         if ((variant.inputLayoutIndex >= input_layouts.size()) || (variant.framebufferLayoutIndex >= framebuffer_layouts.size()) ||
             (variant.staticRenderStateIndex >= static_render_states.size()))
         {
-          debug("DX12: ...invalid state index, ignoring pipeline variant...");
+          logdbg("DX12: ...invalid state index, ignoring pipeline variant...");
           continue;
         }
         if (StaticRenderStateID::Null() == static_render_states[variant.staticRenderStateIndex])
         {
-          debug("DX12: ...unsupported render state, ignoring pipeline variant...");
+          logdbg("DX12: ...unsupported render state, ignoring pipeline variant...");
           continue;
         }
-        debug("DX12: ...resolving input layout and output layout...");
+        logdbg("DX12: ...resolving input layout and output layout...");
         auto inputLayout = remapInputLayout(input_layouts[variant.inputLayoutIndex], pipelineBase->getVertexShaderInputMask());
-        debug("DX12: ...resolving frame buffer layout...");
+        logdbg("DX12: ...resolving frame buffer layout...");
         auto fbLayout = fbs.getLayoutID(framebuffer_layouts[variant.framebufferLayoutIndex]);
-        debug("DX12: ...compiling variant...");
+        logdbg("DX12: ...compiling variant...");
         pipelineBase->getVariantFromConfiguration(inputLayout, static_render_states[variant.staticRenderStateIndex], fbLayout,
           variant.topology, 0 != variant.isWireFrame);
       }
-      debug("DX12: ...completed");
+      logdbg("DX12: ...completed");
     }
   }
 
@@ -1747,26 +1768,26 @@ public:
   {
     for (auto &pipeline : mesh_pipelines)
     {
-      debug("DX12: precomiling mesh pipeline...");
+      logdbg("DX12: precomiling mesh pipeline...");
 
       char hashString[1 + 2 * sizeof(dxil::HashValue)];
       pipeline.base.vs.convertToString(hashString, countof(hashString));
-      debug("DX12: Looking for VS %s...", hashString);
+      logdbg("DX12: Looking for VS %s...", hashString);
       auto vsID = findVertexShader(pipeline.base.vs);
       if (ShaderID::Null() == vsID)
       {
-        debug("DX12: ...shader not found");
+        logdbg("DX12: ...shader not found");
         continue;
       }
       pipeline.base.ps.convertToString(hashString, countof(hashString));
-      debug("DX12: Looking for PS %s...", hashString);
+      logdbg("DX12: Looking for PS %s...", hashString);
       auto psID = findPixelShader(pipeline.base.ps);
       if (ShaderID::Null() == psID)
       {
-        debug("DX12: ...shader not found");
+        logdbg("DX12: ...shader not found");
         continue;
       }
-      debug("DX12: looking for existing pipeline...");
+      logdbg("DX12: looking for existing pipeline...");
       BasePipeline *pipelineBase = nullptr;
       for (auto &preloadInfo : preloadedGraphicsPipelines)
       {
@@ -1774,7 +1795,7 @@ public:
         {
           continue;
         }
-        debug("DX12: ...found in preloadedGraphicsPipelines");
+        logdbg("DX12: ...found in preloadedGraphicsPipelines");
         pipelineBase = preloadInfo.pipeline.get();
         break;
       }
@@ -1792,39 +1813,39 @@ public:
           preloadedPipeline.pipeline =
             createGraphics(device, pipeline_cache, fbs, vs, ps, RecoverablePipelineCompileBehavior::REPORT_ERROR, true);
           pipelineBase = preloadedPipeline.pipeline.get();
-          debug("DX12: ...none found, creating new...");
+          logdbg("DX12: ...none found, creating new...");
         }
         else
         {
-          debug("DX12: ...found loaded pipeline");
+          logdbg("DX12: ...found loaded pipeline");
         }
       }
       if (!pipelineBase)
       {
-        debug("DX12: ...failed");
+        logdbg("DX12: ...failed");
         continue;
       }
-      debug("DX12: ...loading variants...");
+      logdbg("DX12: ...loading variants...");
       for (auto &variant : pipeline.variants)
       {
         if ((variant.framebufferLayoutIndex >= framebuffer_layouts.size()) ||
             (variant.staticRenderStateIndex >= static_render_states.size()))
         {
-          debug("DX12: ...invalid state index, ignoring pipeline variant...");
+          logdbg("DX12: ...invalid state index, ignoring pipeline variant...");
           continue;
         }
         if (StaticRenderStateID::Null() == static_render_states[variant.staticRenderStateIndex])
         {
-          debug("DX12: ...unsupported render state, ignoring pipeline variant...");
+          logdbg("DX12: ...unsupported render state, ignoring pipeline variant...");
           continue;
         }
-        debug("DX12: ...resolving frame buffer layout...");
+        logdbg("DX12: ...resolving frame buffer layout...");
         auto fbLayout = fbs.getLayoutID(framebuffer_layouts[variant.framebufferLayoutIndex]);
-        debug("DX12: ...compiling variant...");
+        logdbg("DX12: ...compiling variant...");
         pipelineBase->getMeshVariantFromConfiguration(static_render_states[variant.staticRenderStateIndex], fbLayout,
           0 != variant.isWireFrame);
       }
-      debug("DX12: ...completed");
+      logdbg("DX12: ...completed");
     }
   }
 
@@ -1833,10 +1854,10 @@ public:
   {
     for (auto &pipeline : compute_pipelines)
     {
-      debug("DX12: precomiling compute pipeline...");
+      logdbg("DX12: precomiling compute pipeline...");
       char hashString[1 + 2 * sizeof(dxil::HashValue)];
       pipeline.base.hash.convertToString(hashString, countof(hashString));
-      debug("DX12: Looking for CS %s...", hashString);
+      logdbg("DX12: Looking for CS %s...", hashString);
       bool found = false;
       enumerateShaderFromHash(pipeline.base.hash, [device, &pipeline_cache, &found, this](auto gi, auto si, auto vs_count) {
         // has collision with a vs?!
@@ -1861,12 +1882,12 @@ public:
         auto &progGroup = computePipelines[progId.getGroup()];
         if (progId.getIndex() < progGroup.size() && progGroup[progId.getIndex()])
         {
-          debug("DX12: ...already loaded...");
+          logdbg("DX12: ...already loaded...");
           // already loaded, so we are done
           found = true;
           return false;
         }
-        debug("DX12: ...loading...");
+        logdbg("DX12: ...loading...");
         // CSPreloaded::No as we doing the preload right now
         loadComputeShaderFromDump(device, pipeline_cache, progId, RecoverablePipelineCompileBehavior::REPORT_ERROR, true,
           CSPreloaded::No);
@@ -1875,11 +1896,11 @@ public:
       });
       if (found)
       {
-        debug("DX12: ...completed");
+        logdbg("DX12: ...completed");
       }
       else
       {
-        debug("DX12: ...not found");
+        logdbg("DX12: ...not found");
       }
     }
   }
@@ -1932,7 +1953,7 @@ struct NullResourceTable
     //-V::1037
     if (D3D_SIT_CBUFFER == type)
     {
-      fatal("unexpected descriptor lookup");
+      DAG_FATAL("unexpected descriptor lookup");
     }
     else if (D3D_SIT_TBUFFER == type)
     {
@@ -1946,7 +1967,7 @@ struct NullResourceTable
         case D3D_SRV_DIMENSION_TEXTURE1D:
         case D3D_SRV_DIMENSION_TEXTURE1DARRAY:
         case D3D_SRV_DIMENSION_TEXTURE2DMS:
-        case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY: fatal("unexpected descriptor lookup"); break;
+        case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY: DAG_FATAL("unexpected descriptor lookup"); break;
         case D3D_SRV_DIMENSION_BUFFER: return table[SRV_BUFFER];
         case D3D_SRV_DIMENSION_TEXTURE2D: return table[SRV_TEX2D];
         case D3D_SRV_DIMENSION_TEXTURE2DARRAY: return table[SRV_TEX2D_ARRAY];
@@ -1958,7 +1979,7 @@ struct NullResourceTable
     }
     else if (D3D_SIT_SAMPLER == type)
     {
-      fatal("unexpected descriptor lookup");
+      DAG_FATAL("unexpected descriptor lookup");
     }
     else if (D3D_SIT_UAV_RWTYPED == type)
     {
@@ -1970,7 +1991,7 @@ struct NullResourceTable
         case D3D_SRV_DIMENSION_TEXTURE2DMS:
         case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY:
         case D3D_SRV_DIMENSION_TEXTURECUBE:
-        case D3D_SRV_DIMENSION_TEXTURECUBEARRAY: fatal("unexpected descriptor lookup"); break;
+        case D3D_SRV_DIMENSION_TEXTURECUBEARRAY: DAG_FATAL("unexpected descriptor lookup"); break;
         case D3D_SRV_DIMENSION_BUFFER: return table[UAV_BUFFER];
         case D3D_SRV_DIMENSION_TEXTURE2D: return table[UAV_TEX2D];
         case D3D_SRV_DIMENSION_TEXTURE2DARRAY: return table[UAV_TEX2D_ARRAY];
@@ -1996,19 +2017,19 @@ struct NullResourceTable
     }
     else if (D3D_SIT_UAV_APPEND_STRUCTURED == type)
     {
-      fatal("Use of invalid resource type D3D_SIT_UAV_APPEND_STRUCTURED");
+      DAG_FATAL("Use of invalid resource type D3D_SIT_UAV_APPEND_STRUCTURED");
     }
     else if (D3D_SIT_UAV_CONSUME_STRUCTURED == type)
     {
-      fatal("Use of invalid resource type D3D_SIT_UAV_APPEND_STRUCTURED");
+      DAG_FATAL("Use of invalid resource type D3D_SIT_UAV_APPEND_STRUCTURED");
     }
     else if (D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER == type)
     {
-      fatal("Use of invalid resource type D3D_SIT_UAV_APPEND_STRUCTURED");
+      DAG_FATAL("Use of invalid resource type D3D_SIT_UAV_APPEND_STRUCTURED");
     }
     else if (12 == type) // rtx structure TODO replace with correct symbol
     {
-      fatal("ray trace acceleration structure was not set!");
+      DAG_FATAL("ray trace acceleration structure was not set!");
     }
     return {0};
   }

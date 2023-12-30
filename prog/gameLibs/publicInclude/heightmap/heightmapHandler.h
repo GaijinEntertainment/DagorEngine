@@ -45,6 +45,7 @@ public:
   HeightmapHandler() :
     preparedOriginPos(0.f, 0.f, 0.f),
     preparedCameraHeight(0.f),
+    preparedWaterLevel(HeightmapHeightCulling::NO_WATER_ON_LEVEL),
     lodDistance(1),
     lodCount(BASE_HMAP_LOD_COUNT),
     hmapDimBits(0),
@@ -61,8 +62,9 @@ public:
   bool isEnabledMipsUpdating() const { return enabledMipsUpdating; }
   void setEnableMipsUpdating(bool enable) { enabledMipsUpdating = enable; }
 
-  bool prepare(const Point3 &world_pos, float camera_height); // return true if we should render it
-  void render(int min_tank_lod);                              // Uses parameters from prepare call.
+  // Returns true if we should render it
+  bool prepare(const Point3 &world_pos, float camera_height, float water_level = HeightmapHeightCulling::NO_WATER_ON_LEVEL);
+  void render(int min_tank_lod); // Uses parameters from prepare call.
 
   void frustumCulling( // Independent from prepare for multithreading.
     LodGridCullData &data, const Point3 &world_pos, float camera_height, const Frustum &frustum, int min_tank_lod,
@@ -112,6 +114,7 @@ protected:
   HeightmapRenderer renderer;
   Point3 preparedOriginPos;
   float preparedCameraHeight;
+  float preparedWaterLevel;
   eastl::unique_ptr<HeightmapRenderData> renderData;
   int hmapDimBits;
   int lodDistance;

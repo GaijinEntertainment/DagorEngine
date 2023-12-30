@@ -21,10 +21,11 @@ local _DEF_COM_CMDLINE =
   -D_vsnprintf=vsnprintf
   -Dstricmp=strcasecmp
   -Dstrnicmp=strncasecmp
-  -D_TARGET_PC=2 -D_TARGET_PC_MACOSX=2 -D_TARGET_APPLE=1 -D_TARGET_STATIC_LIB=1 -D_TARGET_64BIT=1
+  -D_TARGET_PC=2 -D_TARGET_PC_MACOSX=2 -D_TARGET_APPLE=1 -D_TARGET_64BIT=1
   -D__MACOSX__=1
   -Di_strlen=strlen
 ;
+if $(DriverLinkage) = static { _DEF_COM_CMDLINE += -D_TARGET_STATIC_LIB=1 ; }
 
 switch $(MacOSXArch) {
   case x86_64 : _DEF_COM_CMDLINE += -msse4.1 -D_TARGET_SIMD_SSE=$(SSEVersion) ;
@@ -50,6 +51,12 @@ _LINK = $(_CLANG_BIN)/clang++ -pipe -arch $(MacOSXArch) -isysroot $(_DEVTOOL)/ma
         -ObjC -framework Foundation -framework QuartzCore -framework CoreLocation -framework Cocoa -framework IOKit
         -framework CoreFoundation -framework Security -framework Carbon -framework SystemConfiguration
         -Wl,-headerpad_max_install_names
+;
+_LINK_DLL = $(_CLANG_BIN)/clang++ -pipe -arch $(MacOSXArch) -isysroot $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk
+        -mmacosx-version-min=$(MacOSXMinVer)
+        -ObjC -framework Foundation -framework QuartzCore -framework Cocoa
+        -Wl,-headerpad_max_install_names
+        -shared
 ;
 
 _LINK += -framework Metal ;

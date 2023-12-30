@@ -204,6 +204,7 @@ struct IRenderDynamicCubeFace2
   virtual void renderLightProbeOpaque() = 0;
   virtual void renderLightProbeEnvi() = 0;
 };
+static int ssgi_scene_common_color_reg_no_const = 6, ssgi_scene_common_alpha_reg_no_const = 5;
 
 class RenderDynamicCube
 {
@@ -436,6 +437,8 @@ public:
 
   void initSSGIVoxels()
   {
+    ShaderGlobal::get_int_by_name("ssgi_scene_common_color_reg_no", ssgi_scene_common_color_reg_no_const);
+    ShaderGlobal::get_int_by_name("ssgi_scene_common_alpha_reg_no", ssgi_scene_common_alpha_reg_no_const);
     TIME_D3D_PROFILE(gi_init);
     if (ssgi_panel.volmap_res_xz.pullValueChange() || ssgi_panel.volmap_res_y.pullValueChange() ||
         ssgi_panel.quality.pullValueChange() || ssgi_panel.gi25DWidthScale.pullValueChange() || ssgi_panel.giWidth.pullValueChange() ||
@@ -478,18 +481,25 @@ public:
       pos,
       [this](const BBox3 &box, const Point3 &voxel_size) {
         Sbuffer *scene = ssgi.getSceneVoxels25d().getBuf();
-        STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_PS, 7, VALUE), scene);
+        STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_PS, ssgi_scene_common_color_reg_no_const, VALUE), scene);
         renderVoxelsMediaGeom(box, voxel_size, SCENE_MODE_VOXELIZE_ALBEDO);
       },
       [](const BBox3 &, const Point3 &) {},
       [this](const BBox3 &box, const Point3 &voxel_size) {
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_PS, 6, VALUE, 0, 0), ssgi.getSceneVoxelsAlpha().getVolTex());
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_PS, 7, VALUE, 0, 0), ssgi.getSceneVoxels().getVolTex());
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_PS, ssgi_scene_common_alpha_reg_no_const, VALUE, 0, 0),
+          ssgi.getSceneVoxelsAlpha().getVolTex());
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_PS, ssgi_scene_common_color_reg_no_const, VALUE, 0, 0),
+          ssgi.getSceneVoxels().getVolTex());
         renderVoxelsMediaGeom(box, voxel_size, SCENE_MODE_VOXELIZE);
       });
     update_visibility_finder();
   }
-  void updateSSGISceneVoxels() { ssgi.markVoxelsFromRT(); }
+  void updateSSGISceneVoxels()
+  {
+    TMatrix4 globtm;
+    d3d::getglobtm(globtm);
+    ssgi.markVoxelsFromRT(globtm);
+  }
   void updateSSGI(const TMatrix &view_tm, const TMatrix4 &proj_tm)
   {
     farDownsampledDepth[currentDownsampledDepth]->texfilter(TEXFILTER_POINT);
@@ -588,7 +598,12 @@ public:
                             : ssgi_panel.debug_volmap == PROBE_INTERSECTION ? dagi25d::IrradianceDebugType::INTERSECTION
                                                                             : dagi25d::IrradianceDebugType::AMBIENT);
       else if (ssgi_panel.debug_volmap >= PROBE_AMBIENT && ssgi_panel.debug_volmap <= PROBE_AGE)
-        ssgi.drawDebugAllProbes(ssgi_panel.probeCascade, (dagi::GI3D::DebugAllVolmapType)(ssgi_panel.debug_volmap - PROBE_AMBIENT));
+      {
+        mat44f globtm;
+        d3d::getglobtm(globtm);
+        ssgi.drawDebugAllProbes(ssgi_panel.probeCascade, Frustum(globtm),
+          (dagi::GI3D::DebugAllVolmapType)(ssgi_panel.debug_volmap - PROBE_AMBIENT));
+      }
       else
         ssgi.drawDebug(ssgi_panel.probeCascade, (dagi::GI3D::DebugVolmapType)ssgi_panel.debug_volmap);
     }

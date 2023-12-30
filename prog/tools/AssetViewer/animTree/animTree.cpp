@@ -151,7 +151,7 @@ enum IrqType
     DECL_CTRL(nodesFromAttachement), DECL_CTRL(matFromNode), DECL_CTRL(hub), DECL_CTRL(paramSwitch), DECL_CTRL(linearPoly),    \
     DECL_CTRL(rotateNode), DECL_CTRL(rotateAroundNode), DECL_CTRL(paramsCtrl), DECL_CTRL(randomSwitch), DECL_CTRL(alignEx),    \
     DECL_CTRL(alignNode), DECL_CTRL(moveNode), DECL_CTRL(fifo3), DECL_CTRL(legsIK), DECL_CTRL(twistCtrl), DECL_CTRL(condHide), \
-    DECL_CTRL(lookat), DECL_CTRL(scaleNode), DECL_CTRL(defClampCtrl)
+    DECL_CTRL(lookat), DECL_CTRL(scaleNode), DECL_CTRL(defClampCtrl), DECL_CTRL(lookatNode), DECL_CTRL(deltaRotateShiftCalc)
 
 #define DECL_CTRL(x) String(#x)
 Tab<String> ctrl_type = {CONTROLLERS_LIST};
@@ -375,6 +375,8 @@ static bool fill_field_by_type(PropertyContainerControlBase *panel, const DataBl
     panel->createCheckBox(field_idx, node->getParamName(param_idx), node->getBool(param_idx));
   else if (node->getParamType(param_idx) == DataBlock::TYPE_POINT3)
     panel->createPoint3(field_idx, node->getParamName(param_idx), node->getPoint3(param_idx));
+  else if (node->getParamType(param_idx) == DataBlock::TYPE_INT)
+    panel->createEditInt(field_idx, node->getParamName(param_idx), node->getInt(param_idx));
   else
   {
     logerr("skip param type: %d", node->getParamType(param_idx));

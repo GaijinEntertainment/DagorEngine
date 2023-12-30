@@ -1240,6 +1240,8 @@ bool StVarValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code
       cod = SHCOD_GET_GVEC;
     else if (valueType == shexpr::VT_TEXTURE)
       cod = SHCOD_GET_GTEX;
+    else if (valueType == shexpr::VT_BUFFER)
+      cod = SHCOD_GET_GBUF;
     else
       G_ASSERT(false);
   }

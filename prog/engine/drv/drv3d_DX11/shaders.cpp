@@ -528,7 +528,7 @@ VPROG create_vertex_shader_internal(const void *shader_bin, uint32_t size, uint3
       if (e.shader == NULL || IsBadReadPtr(e.shader, 1))
       {
         logerr("CreateVertexShader (or hull/domain/geometry) failed: vs=0x%08X, hres=0x%08X", e.shader, last_hres);
-        fatal("dx11 error: broken driver");
+        DAG_FATAL("dx11 error: broken driver");
       }
     }
   }
@@ -572,7 +572,7 @@ FSHADER create_pixel_shader_unpacked(const void *shader_bin, uint32_t size, uint
       if (e.shader == NULL || IsBadReadPtr(e.shader, 1))
       {
         logerr("CreatePixelShader failed: ps=0x%08X, hres=0x%08X", e.shader, last_hres);
-        fatal("dx11 error: broken driver");
+        DAG_FATAL("dx11 error: broken driver");
       }
     }
   }

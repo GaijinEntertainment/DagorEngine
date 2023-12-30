@@ -8,17 +8,17 @@ In the world of computer programming, there is a concept known as pattern matchi
 This technique allows us to take a complex value, such as an array or a variant, and compare it to a set of patterns.
 If the value fits a certain pattern, the matching process continues and we can extract specific values from that value.
 This is a powerful tool for making our code more readable and efficient,
-and in this section we'll be exploring the different ways that pattern matching can be used in daScript.
+and in this section we'll be exploring the different ways that pattern matching can be used in Daslang.
 
-In daScript pattern matching is implement via macros in the `daslib/match` module.
+In Daslang pattern matching is implement via macros in the `daslib/match` module.
 
 ^^^^^^^^^^^^^^^^^^^^
 Enumeration Matching
 ^^^^^^^^^^^^^^^^^^^^
 
-daScript supports pattern matching on enumerations, which allows you to match the value of an enumeration with specific patterns.
+Daslang supports pattern matching on enumerations, which allows you to match the value of an enumeration with specific patterns.
 You can use this feature to simplify your code by eliminating the need for multiple if-else statements or switch statements.
-To match enumerations in daScript, you use the match keyword followed by the enumeration value, and a series of if statements,
+To match enumerations in Daslang, you use the match keyword followed by the enumeration value, and a series of if statements,
 each representing a pattern to match. If a match is found, the corresponding code block is executed.
 
 Example::
@@ -46,7 +46,7 @@ and the if _ statement is a catch-all that matches any other enumeration value t
 Matching Variants
 ^^^^^^^^^^^^^^^^^^^^
 
-Variants in daScript can be matched using the match statement.
+Variants in Daslang can be matched using the match statement.
 A variant is a discriminated union type that holds one of several possible values, each of a different type.
 
 In the example, the IF variant has two possible values: i of type int, and f of type float.
@@ -71,7 +71,7 @@ Example::
             if _
                 return "anything"
 
-Variants can be matched in daScript using the same syntax used to create new variants.
+Variants can be matched in Daslang using the same syntax used to create new variants.
 
 Here's an example::
 
@@ -92,11 +92,11 @@ he last case matches anything that doesn't match the first two cases and returns
 Declaring Variables in Pattern Matching
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In daScript, you can declare variables in pattern matching statements, including variant matching.
+In Daslang, you can declare variables in pattern matching statements, including variant matching.
 To declare a variable, use the syntax $v(decl) where decl is the name of the variable being declared.
 The declared variable is then assigned the value of the matched pattern.
 
-This feature is not restricted to variant matching, and can be used in any pattern matching statement in daScript.
+This feature is not restricted to variant matching, and can be used in any pattern matching statement in Daslang.
 In the example, the if $v(as_int) statement matches the variant value when it holds an integer and declares a variable as_int
 to store the value. Similarly, the if $v(as_float) statement matches the variant value when it holds a floating-point value and declares a variable as_float to store the value.
 
@@ -119,7 +119,7 @@ Example::
 Matching Structs
 ^^^^^^^^^^^^^^^^^^^^
 
-daScript supports matching structs using the match statement.
+Daslang supports matching structs using the match statement.
 A struct is a composite data type that groups variables of different data types under a single name.
 
 In the example, the Foo struct has one member a of type int.
@@ -145,7 +145,7 @@ Example::
 Using Guards
 ^^^^^^^^^^^^^^^^^^^^
 
-daScript supports the use of guards in its pattern matching mechanism.
+Daslang supports the use of guards in its pattern matching mechanism.
 Guards are conditions that must be satisfied in addition to a successful pattern match.
 
 In the example, the AB struct has two members a and b of type int.
@@ -173,10 +173,10 @@ Example::
 Tuple Matching
 ^^^^^^^^^^^^^^^^^^^^
 
-Matching tuples in daScript is done with double square brackets and uses the same syntax as creating a new tuple.
+Matching tuples in Daslang is done with double square brackets and uses the same syntax as creating a new tuple.
 The type of the tuple must be specified or auto can be used to indicate automatic type inference.
 
-Here is an example that demonstrates tuple matching in daScript::
+Here is an example that demonstrates tuple matching in Daslang::
 
     def tuple_match ( A : tuple<int;float;string> )
         match A
@@ -213,7 +213,7 @@ If none of the patterns match, the _ clause is executed and the function returns
 Matching Static Arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Static arrays in daScript can be matched using the double square bracket syntax, similarly to tuples.
+Static arrays in Daslang can be matched using the double square bracket syntax, similarly to tuples.
 Additionally, static arrays must have their type specified, or the type can be automatically inferred using the auto keyword.
 
 Here is an example of matching a static array of type int[3]::
@@ -247,7 +247,7 @@ Dynamic Array Matching
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Dynamic arrays are used to store a collection of values that can be changed during runtime.
-In daScript, dynamic arrays can be matched with patterns using similar syntax as for tuples, but with the added check for the number of elements in the array.
+In Daslang, dynamic arrays can be matched with patterns using similar syntax as for tuples, but with the added check for the number of elements in the array.
 
 Here is an example of matching on a dynamic array of integers::
 
@@ -284,7 +284,7 @@ It is important to note that the number of elements in the dynamic array must ma
 Match Expressions
 ^^^^^^^^^^^^^^^^^^^^
 
-In daScript, match expressions allow you to reuse variables declared earlier in the pattern to match expressions later in the pattern.
+In Daslang, match expressions allow you to reuse variables declared earlier in the pattern to match expressions later in the pattern.
 
 Here's an example that demonstrates how to use match expressions to check if an array of integers is in ascending order::
 
@@ -302,7 +302,7 @@ If all three elements match, the function returns true. If there is no match, th
 Matching with || Expression
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In daScript, you can use the || expression to match either of the provided options in the order they appear. This is useful when you want to match a variant based on multiple criteria.
+In Daslang, you can use the || expression to match either of the provided options in the order they appear. This is useful when you want to match a variant based on multiple criteria.
 
 Here is an example of matching with || expression::
 
@@ -328,7 +328,7 @@ It's important to note that for the || expression to work, both sides of the sta
 [match_as_is] Structure Annotation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The [match_as_is] structure annotation in daScript allows you to perform pattern matching for structures of different types.
+The [match_as_is] structure annotation in Daslang allows you to perform pattern matching for structures of different types.
 This allows you to match structures of different types in a single pattern matching expression,
 as long as the necessary is and as operators have been implemented for the matching types.
 
@@ -379,7 +379,7 @@ In the matching_as_and_is function, cmd is matched against the CmdMove structure
 [match_copy] Structure Annotation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The [match_copy] structure annotation in daScript allows you to perform pattern matching for structures of different types.
+The [match_copy] structure annotation in Daslang allows you to perform pattern matching for structures of different types.
 This allows you to match structures of different types in a single pattern matching expression,
 as long as the necessary match_copy function has been implemented for the matching types.
 
@@ -427,7 +427,7 @@ In the example above, the necessary match_copy function has been implemented for
 Static Matching
 ^^^^^^^^^^^^^^^^^^^^
 
-Static matching is a way to match on generic expressions daScript. It works similarly to regular matching, but with one key difference:
+Static matching is a way to match on generic expressions Daslang. It works similarly to regular matching, but with one key difference:
 when there is a type mismatch between the match expression and the pattern, the match will be ignored at compile-time, as opposed to a compilation error.
 This makes static matching robust for generic functions.
 
@@ -473,7 +473,7 @@ If color is not Color first match will fail. If blah is not Color, second match 
 match_type
 ^^^^^^^^^^
 
-The match_type subexpression in daScript allows you to perform pattern matching based on the type of an expression.
+The match_type subexpression in Daslang allows you to perform pattern matching based on the type of an expression.
 It is used within the static_match statement to specify the type of expression that you want to match.
 
 The syntax for match_type is as follows::
@@ -500,7 +500,7 @@ In this example, what is the expression that is being matched. If what is of typ
 Multi-Match
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In daScript, you can use the multi_match feature to match multiple values in a single expression. This is useful when you want to match a value based on several different conditions.
+In Daslang, you can use the multi_match feature to match multiple values in a single expression. This is useful when you want to match a value based on several different conditions.
 
 Here is an example of using the multi_match feature::
 

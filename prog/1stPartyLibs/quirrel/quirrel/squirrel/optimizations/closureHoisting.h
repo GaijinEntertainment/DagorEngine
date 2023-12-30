@@ -181,7 +181,7 @@ class ClosureHoistingOpt {
   };
 
   int computeScopes(RootBlock *);
-  int findCantidates(RootBlock *);
+  int findCandidates(RootBlock *);
   void hoistClosures(RootBlock *);
   void remapUsages(RootBlock *);
 

@@ -67,8 +67,10 @@ struct UnpackedBranch
   leaf_id_t rightIdx;
 };
 
+#ifdef _MSC_VER
 #pragma warning(disable : 4582)
 #pragma warning(disable : 4583)
+#endif
 
 template <typename ObjectType>
 union alignas(16) LinearGridLeaf // 16 bytes [extend branches to 32?]

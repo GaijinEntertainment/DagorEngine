@@ -152,7 +152,7 @@ public:
   INLINE bool operator!=(const IPoint3 &a) const { return (x != a.x || y != a.y || z != a.z); }
   INLINE int lengthSq() const { return x * x + y * y + z * z; }
   INLINE float length() const { return sqrtf(lengthSq()); }
-  INLINE real lengthF() const { return rsqrt(lengthSq()); }
+  INLINE real lengthF() const { return fastsqrt(lengthSq()); }
 
   template <class T>
   static IPoint3 xyz(const T &a)

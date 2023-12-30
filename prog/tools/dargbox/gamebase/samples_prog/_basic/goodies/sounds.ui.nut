@@ -4,7 +4,7 @@ let cursors = require("samples_prog/_cursors.nut")
 
 let showElem = Watched(false)
 
-let function extraItem() {
+function extraItem() {
   let children = []
   if (showElem.value)
     children.append({
@@ -27,7 +27,7 @@ let function extraItem() {
   }
 }
 
-let function sampleButton() {
+function sampleButton() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(0,25,205)
@@ -48,7 +48,7 @@ let function sampleButton() {
   }
 }
 
-let function sampleButton2() {
+function sampleButton2() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(0,205,25)
@@ -68,7 +68,7 @@ let function sampleButton2() {
   }
 }
 
-let function soundsRoot() {
+function soundsRoot() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(30,40,50)

@@ -1247,7 +1247,7 @@ void Element::calcSizeConstraints(int axis, float *sz_min, float *sz_max) const
   *sz_max = szMax;
 }
 
-static const float calc_flowing_spacing(int axis, const Element *prev_child, const Element *cur_child, float gap)
+static float calc_flowing_spacing(int axis, const Element *prev_child, const Element *cur_child, float gap)
 {
   return ::max(prev_child->layout.margin.rb()[axis], cur_child->layout.margin.lt()[axis]) + gap;
 }
@@ -1484,7 +1484,7 @@ void Element::alignChildren(int axis)
       else if (place == ALIGN_RIGHT_OR_BOTTOM)
         relPos = screenCoord.size[axis] - chsc.size[axis] - ::max(child->layout.margin.rb()[axis], layout.padding.rb()[axis]);
       else if (place == ALIGN_CENTER)
-        relPos = (screenCoord.size[axis] - chsc.size[axis]) / 2;
+        relPos = (screenCoord.size[axis] - chsc.size[axis]) / 2 + (layout.padding.lt()[axis] - layout.padding.rb()[axis]) / 2;
       else
         G_ASSERTF(0, "Unexpected alignment %d", place);
 
@@ -1929,9 +1929,6 @@ void Element::clearGroupStateFlags(int f)
 
 void Element::playStateChangeSound(int prev_flags, int cur_flags)
 {
-  if (!etree->guiScene->isActive())
-    return;
-
   const Sqrat::Object *key = nullptr;
 
   if ((cur_flags & S_ACTIVE) && !(prev_flags & S_ACTIVE))
@@ -1957,9 +1954,6 @@ void Element::playStateChangeSound(int prev_flags, int cur_flags)
 
 void Element::playSound(const Sqrat::Object &key)
 {
-  if (!etree->guiScene->isActive())
-    return;
-
   Sqrat::string sndName;
   Sqrat::Object params;
   float vol;

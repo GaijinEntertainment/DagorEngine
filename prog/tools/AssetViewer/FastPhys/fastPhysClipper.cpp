@@ -129,10 +129,10 @@ public:
 
 FPObjectClipper::FPObjectClipper(FpdObject *obj, FastPhysEditor &editor) : IFPObject(obj, editor)
 {
-  __super::setPos(obj->getPos());
+  IFPObject::setPos(obj->getPos());
   Matrix3 m3;
   if (obj->getMatrix(m3))
-    __super::setMatrix(m3);
+    IFPObject::setMatrix(m3);
 }
 
 
@@ -525,7 +525,7 @@ bool FPObjectClipper::setPos(const Point3 &p)
 
   clipperObject->setPos(p);
 
-  return __super::setPos(p);
+  return IFPObject::setPos(p);
 }
 
 void FPObjectClipper::setMatrix(const Matrix3 &tm)
@@ -535,7 +535,7 @@ void FPObjectClipper::setMatrix(const Matrix3 &tm)
 
   clipperObject->setMatrix(tm);
 
-  return __super::setMatrix(tm);
+  return IFPObject::setMatrix(tm);
 }
 
 

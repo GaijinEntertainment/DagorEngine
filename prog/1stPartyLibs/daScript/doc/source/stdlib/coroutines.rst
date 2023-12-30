@@ -67,7 +67,7 @@ Function annotations
 .. das:attribute:: coroutine
 
 This macro converts coroutine function into generator, adds return false.
-daScript impelmentation of coroutine is generator based. Function is converted into a state machine,
+Daslang impelmentation of coroutine is generator based. Function is converted into a state machine,
 which can be resumed and suspended. The function is converted into a generator.
 Generator yields bool if its a void coroutine, and yields the return type otherwise.
 If return type is specified coroutine can serve as an advanced form of a generator.
@@ -75,6 +75,14 @@ If return type is specified coroutine can serve as an advanced form of a generat
 +++++++++++
 Call macros
 +++++++++++
+
+.. _call-macro-coroutines-co_continue:
+
+.. das:attribute:: co_continue
+
+This macro converts co_continue to yield true.
+The idea is that coroutine without specified type is underneath a coroutine which yields bool.
+That way co_continue() does not distract from the fact that it is a generator<bool>.
 
 .. _call-macro-coroutines-co_await:
 
@@ -98,20 +106,12 @@ This macro converts yield_from(THAT) expression into::
 
 The idea is that coroutine or generator can continuesly yield from another sub-coroutine or generator.
 
-.. _call-macro-coroutines-co_continue:
-
-.. das:attribute:: co_continue
-
-This macro converts co_continue to yield true.
-The idea is that coroutine without specified type is underneath a coroutine which yields bool.
-That way co_continue() does not distract from the fact that it is a generator<bool>.
-
 ++++++++++++++++++++++++++++++
 Top level coroutine evaluation
 ++++++++++++++++++++++++++++++
 
-  *  :ref:`cr_run (a:iterator\<bool\> -const) : void <function-_at_coroutines_c__c_cr_run_Y_ls_Coroutine_gr_1_ls_b_gr_G>` 
-  *  :ref:`cr_run_all (a:array\<iterator\<bool\>\> -const) : void <function-_at_coroutines_c__c_cr_run_all_Y_ls_Coroutines_gr_1_ls_Y_ls_Coroutine_gr_1_ls_b_gr_G_gr_A>` 
+  *  :ref:`cr_run (a:iterator\<bool\> -const) : void <function-_at_coroutines_c__c_cr_run_Y_ls_Coroutine_gr_1_ls_b_gr_G>`
+  *  :ref:`cr_run_all (a:array\<iterator\<bool\>\> -const) : void <function-_at_coroutines_c__c_cr_run_all_Y_ls_Coroutines_gr_1_ls_Y_ls_Coroutine_gr_1_ls_b_gr_G_gr_A>`
 
 .. _function-_at_coroutines_c__c_cr_run_Y_ls_Coroutine_gr_1_ls_b_gr_G:
 

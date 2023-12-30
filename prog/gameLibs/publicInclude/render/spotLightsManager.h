@@ -124,10 +124,10 @@ public:
     resetLightOptimization(id);
     updateBoundingSphere(id);
   }
-  const mask_type_t getLightMask(unsigned int id) const { return masks[id]; }
+  mask_type_t getLightMask(unsigned int id) const { return masks[id]; }
   void setLightMask(unsigned int id, mask_type_t mask) { masks[id] = mask; }
-  const Point3 getLightPos(unsigned int id) const { return Point3::xyz(rawLights[id].pos_radius); }
-  const Point4 getLightPosRadius(unsigned int id) const { return rawLights[id].pos_radius; }
+  Point3 getLightPos(unsigned int id) const { return Point3::xyz(rawLights[id].pos_radius); }
+  Point4 getLightPosRadius(unsigned int id) const { return rawLights[id].pos_radius; }
   void getLightView(unsigned int id, mat44f &viewITM);
   void getLightPersp(unsigned int id, mat44f &proj);
   void setLightDirAngle(unsigned int id, const Point4 &dir_angle)

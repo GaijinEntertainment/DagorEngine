@@ -1,5 +1,5 @@
 WARNING: w217 (unconditional-terminated-loop) Unconditional 'break' inside a loop.
-testData/static_analyzer/w217_complex.nut:26:12
+testData/static_analyzer/w217_complex.nut:27:12
 
             foo()
             break
@@ -8,7 +8,7 @@ testData/static_analyzer/w217_complex.nut:26:12
 
 
 WARNING: w217 (unconditional-terminated-loop) Unconditional 'throw' inside a loop.
-testData/static_analyzer/w217_complex.nut:44:8
+testData/static_analyzer/w217_complex.nut:45:8
 
         foo()
         throw "y"
@@ -17,7 +17,7 @@ testData/static_analyzer/w217_complex.nut:44:8
 
 
 WARNING: w217 (unconditional-terminated-loop) Unconditional 'return' inside a loop.
-testData/static_analyzer/w217_complex.nut:66:4
+testData/static_analyzer/w217_complex.nut:67:4
 
     return 0
     ^-------
@@ -28,7 +28,7 @@ testData/static_analyzer/w217_complex.nut:66:4
 AN ERROR HAS OCCURRED [the index 'v' does not exist]
 
 CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w217_complex.nut line [9]
+*FUNCTION [__main__()] testData/static_analyzer/w217_complex.nut line [10]
 
 LOCALS
 [offset] 1

@@ -19,6 +19,8 @@
 namespace sqeventbus
 {
 
+NativeEventHandler g_native_event_handler = nullptr;
+
 struct EvHandler
 {
   Sqrat::Function func;
@@ -194,6 +196,11 @@ void send_event(const char *event_name, const Sqrat::Object &data, const char *s
 {
   G_ASSERT(is_main_thread());
   G_ASSERT_RETURN(source_id, );
+  if (g_native_event_handler)
+  {
+    Json::Value json = quirrel_to_jsoncpp(data);
+    g_native_event_handler(event_name, json, source_id, /*immediate*/ false);
+  }
 
   if (data.GetVM() == nullptr)
     return;
@@ -210,6 +217,8 @@ void send_event(const char *event_name, const Sqrat::Object &data, const char *s
 void send_immediate_event(const char *event_name, const Json::Value &data, const char *source_id)
 {
   G_ASSERT(is_main_thread());
+  if (g_native_event_handler)
+    g_native_event_handler(event_name, data, source_id, /*immediate*/ true);
   for (auto &v : vms)
   {
     HSQUIRRELVM vm_to = v.first;
@@ -237,6 +246,8 @@ void send_immediate_event(const char *event_name, const Json::Value &data, const
 void send_event(const char *event_name, const Json::Value &data, const char *source_id)
 {
   G_ASSERT(is_main_thread());
+  if (g_native_event_handler)
+    g_native_event_handler(event_name, data, source_id, /*immediate*/ false);
   for (auto &v : vms)
   {
     HSQUIRRELVM vm_to = v.first;
@@ -513,6 +524,8 @@ HSQUIRRELVM get_vm()
   auto it = vms.begin();
   return it != vms.end() ? it->first : nullptr;
 }
+
+void set_native_event_handler(NativeEventHandler handler) { g_native_event_handler = handler; }
 
 
 } // namespace sqeventbus

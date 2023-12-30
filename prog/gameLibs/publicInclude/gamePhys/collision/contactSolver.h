@@ -23,7 +23,7 @@ class ContactSolver
 {
   struct Body
   {
-    uint32_t flags = Flags::ProcessAll;
+    uint32_t flags = ContactSolver::ProcessAll;
     int layer = 0;
     float boundingRadius = 0.f;
     IPhysBase *phys = nullptr;

@@ -1,4 +1,5 @@
 #pragma once
+
 #include <memory/dag_mem.h>
 
 namespace delaunay

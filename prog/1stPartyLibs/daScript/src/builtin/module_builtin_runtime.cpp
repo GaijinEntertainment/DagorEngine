@@ -85,6 +85,14 @@ namespace das
         };
     };
 
+    struct RequestNoJitFunctionAnnotation : MarkFunctionAnnotation {
+        RequestNoJitFunctionAnnotation() : MarkFunctionAnnotation("no_jit") { }
+        virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
+            func->requestNoJit = true;
+            return true;
+        };
+    };
+
     struct DeprecatedFunctionAnnotation : MarkFunctionAnnotation {
         DeprecatedFunctionAnnotation() : MarkFunctionAnnotation("deprecated") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
@@ -1391,6 +1399,7 @@ namespace das
         addAnnotation(make_smart<MacroFnFunctionAnnotation>());
         addAnnotation(make_smart<HintFunctionAnnotation>());
         addAnnotation(make_smart<RequestJitFunctionAnnotation>());
+        addAnnotation(make_smart<RequestNoJitFunctionAnnotation>());
         addAnnotation(make_smart<DeprecatedFunctionAnnotation>());
         addAnnotation(make_smart<AliasCMRESFunctionAnnotation>());
         addAnnotation(make_smart<NeverAliasCMRESFunctionAnnotation>());

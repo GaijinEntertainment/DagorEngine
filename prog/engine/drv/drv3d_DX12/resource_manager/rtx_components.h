@@ -65,6 +65,10 @@ protected:
 public:
   void ensureRaytraceScratchBufferSize(DXGIAdapter *adapter, ID3D12Device *device, uint64_t size)
   {
+    HRESULT errorCode = S_OK;
+    auto oomCheckOnExit = checkForOOMOnExit([&errorCode]() { return !is_oom_error_code(errorCode); }, "DX12: OOM during %s",
+      "ensureRaytraceScratchBufferSize");
+
     auto scratchBufferAccess = scratchBuffer.access();
     if (scratchBufferAccess->bufferMemory.size() >= size)
     {
@@ -74,6 +78,8 @@ public:
     {
       accessRecodingPendingFrameCompletion<PendingForCompletedFrameData>(
         [&](auto &data) { data.deletedRaytraceScratchBuffers.push_back(eastl::move(*scratchBufferAccess)); });
+
+      *scratchBufferAccess = {};
     }
 
     D3D12_RESOURCE_DESC desc;
@@ -100,15 +106,12 @@ public:
 
     if (!allocation)
     {
+      errorCode = E_OUTOFMEMORY;
       return;
     }
 
-    auto errorCode =
+    errorCode =
       scratchBufferAccess->create(device, desc, allocation, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, properties.isCPUVisible());
-    if (is_oom_error_code(errorCode))
-    {
-      reportOOMInformation();
-    }
     if (DX12_CHECK_FAIL(errorCode))
     {
       free(allocation);
@@ -200,20 +203,27 @@ protected:
     allocInfo.SizeInBytes = desc.Width;
     allocInfo.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 
-    auto memory = allocate(adapter, device, properties, allocInfo, {});
+    RaytraceAccelerationStructure *newStruct = nullptr;
+    HRESULT errorCode = S_OK;
+    auto oomCheckOnExit = checkForOOMOnExit(
+      [&errorCode, &newStruct]() { return (!is_oom_error_code(errorCode)) && newStruct && newStruct->getResourceHandle(); },
+      "DX12: OOM during %s", "newRaytraceAccelerationStructure");
 
-    auto newStruct = raytraceAccelerationStructurePool.access()->allocate();
-    auto errorCode =
-      newStruct->create(device, desc, memory, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, properties.isCPUVisible());
-    if (is_oom_error_code(errorCode))
+    auto memory = allocate(adapter, device, properties, allocInfo, {});
+    if (!memory)
     {
-      reportOOMInformation();
+      errorCode = E_OUTOFMEMORY;
+      return newStruct;
     }
+
+    newStruct = raytraceAccelerationStructurePool.access()->allocate();
+    errorCode =
+      newStruct->create(device, desc, memory, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, properties.isCPUVisible());
     if (DX12_CHECK_FAIL(errorCode))
     {
       raytraceAccelerationStructurePool.access()->free(newStruct);
       free(memory);
-      return nullptr;
+      newStruct = nullptr;
     }
 
     return newStruct;

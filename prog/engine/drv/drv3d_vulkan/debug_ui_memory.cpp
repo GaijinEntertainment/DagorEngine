@@ -14,12 +14,13 @@ namespace
 
 dag::Vector<String> const_info_lines;
 
-constexpr uint64_t HEAP_USAGE_HISTORY_LEN = 256;
-dag::Vector<UiPlotScrollBuffer<HEAP_USAGE_HISTORY_LEN, ImU64>> heapUsagePlots;
+constexpr uint64_t USAGE_HISTORY_LEN = 256;
+dag::Vector<UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64>> heapUsagePlots;
 uint64_t maxHeapLimitMb = 0;
 
-constexpr uint64_t BUDGET_USAGE_HISTORY_LEN = 256;
-UiPlotScrollBuffer<BUDGET_USAGE_HISTORY_LEN, ImU64> budgetPlot;
+UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64> budgetPlot;
+UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64> imgUploadPlot;
+UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64> bufUploadPlot;
 
 uint64_t trackingFrameIdx = 0;
 bool data_initialized = false;
@@ -71,12 +72,14 @@ void initData()
   data_initialized = true;
 }
 
-void setPlotLimits()
+void setPlotLimitsVarY(uint64_t default_max)
 {
-  ImPlot::SetNextPlotLimitsX(trackingFrameIdx < HEAP_USAGE_HISTORY_LEN ? 0 : trackingFrameIdx - HEAP_USAGE_HISTORY_LEN,
-    trackingFrameIdx, ImGuiCond_Always);
-  ImPlot::SetNextPlotLimitsY(0, maxHeapLimitMb, ImGuiCond_Once);
+  ImPlot::SetNextPlotLimitsX(trackingFrameIdx < USAGE_HISTORY_LEN ? 0 : trackingFrameIdx - USAGE_HISTORY_LEN, trackingFrameIdx,
+    ImGuiCond_Always);
+  ImPlot::SetNextPlotLimitsY(0, default_max, ImGuiCond_Once);
 }
+
+void setPlotLimits() { setPlotLimitsVarY(maxHeapLimitMb); }
 
 void drawConstInfo()
 {
@@ -103,6 +106,11 @@ void drawUsage()
         heapUsagePlots[i].xData.size(), heapUsagePlots[i].offset);
     ImPlot::EndPlot();
   }
+  ImGui::Checkbox("Clean memory every work item", &RenderWork::cleanUpMemoryEveryWorkItem);
+  if (ImGui::Button("Trigger soft OOM signal"))
+  {
+    drvDev.resources.triggerOutOfMemorySignal();
+  }
 }
 
 void drawBudget()
@@ -122,6 +130,40 @@ void drawBudget()
   if (ImPlot::BeginPlot("##GPU memory budget", nullptr, "Free memory, Mb"))
   {
     ImPlot::PlotLine("GPU mem", &budgetPlot.xData[0], &budgetPlot.yData[0], budgetPlot.xData.size(), budgetPlot.offset);
+    ImPlot::EndPlot();
+  }
+}
+
+void drawUploadInfo()
+{
+  // find and use one of last finished work items with offset that guarantie we not using this work
+  const size_t finishedWorkOffset = MAX_PENDING_WORK_ITEMS + 1;
+  const uint64_t defaultYLim = 100;
+  Device &drvDev = get_device();
+  size_t maxId = 0;
+  drvDev.timelineMan.get<TimelineManager::CpuReplay>().enumerate([&maxId](size_t, const RenderWork &ctx) //
+    {
+      if (maxId < ctx.id)
+        maxId = ctx.id;
+    });
+  const RenderWork *lastWork = nullptr;
+  if (maxId < finishedWorkOffset)
+    return;
+  drvDev.timelineMan.get<TimelineManager::CpuReplay>().enumerate(
+    [maxId, finishedWorkOffset, &lastWork](size_t, const RenderWork &ctx) //
+    {
+      if (ctx.id == (maxId - finishedWorkOffset))
+        lastWork = &ctx;
+    });
+
+  bufUploadPlot.addPoint(trackingFrameIdx, lastWork->bufferUploadCopies.size());
+  imgUploadPlot.addPoint(trackingFrameIdx, lastWork->imageUploadCopies.size());
+
+  setPlotLimitsVarY(defaultYLim);
+  if (ImPlot::BeginPlot("##Uploads amounts", nullptr, "Uploads, count"))
+  {
+    ImPlot::PlotLine("Buf", &bufUploadPlot.xData[0], &bufUploadPlot.yData[0], bufUploadPlot.xData.size(), bufUploadPlot.offset);
+    ImPlot::PlotLine("Img", &imgUploadPlot.xData[0], &imgUploadPlot.yData[0], imgUploadPlot.xData.size(), imgUploadPlot.offset);
     ImPlot::EndPlot();
   }
 }
@@ -146,6 +188,12 @@ void drv3d_vulkan::debug_ui_memory()
   if (ImGui::TreeNode("Budget##3"))
   {
     drawBudget();
+    ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNode("Upload##3"))
+  {
+    drawUploadInfo();
     ImGui::TreePop();
   }
 

@@ -72,3 +72,25 @@ X:\develop\DagorEngine\samples\testGI\game
 To build the "testGI" sample, navigate to the X:\develop\DagorEngine\samples\testGI\prog folder and run the "jam" command. After building, the executable file will be placed in the testGI\game folder.
 
 Run DagorEngine/build_all.cmd to build the entire project toolkit from the source code. This process may take a considerable amount of time.
+
+## Open-source roadmap
+
+We are going to open-source more parts of our Engine and tools.
+These are general and broad plans for next year, can be changed.
+
+### Documentation
+
+* dagor render
+* how to work with dagor assets
+* dagor level editor
+* dagor reactive gui framework
+
+### Basic dagor samples
+
+* Binaries of basic render and game samples (terrain, clouds, water, grass; inputs and controls) with assets sources
+* Sources of basic game samples
+
+### The Pretty Games framework
+
+Framework with samples and documentation, based on daslang and dagor.
+Details yet to come.

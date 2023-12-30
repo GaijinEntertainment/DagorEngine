@@ -12,9 +12,9 @@ Target      = util/ddsx2dds ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 OutDir = $(Root)/tools/converters ;
-if $(Platform) = linux64 { OutDir = $(Root)/tools/dagor3_cdk/util-linux64 ; }
-if $(Platform) = win32 { CopyTo = $(Root)/tools/dagor3_cdk/util ; }
-if $(Platform) = win64 { CopyTo = $(Root)/tools/dagor3_cdk/util64 ; }
+CopyTo = $(Root)/tools/dagor3_cdk/util ;
+if $(Platform) = win64 { CopyTo = $(CopyTo)64 ; }
+if $(Platform) in linux64 macosx { CopyTo = $(CopyTo)-$(Platform) ; }
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude

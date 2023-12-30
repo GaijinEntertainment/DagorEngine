@@ -413,7 +413,7 @@ void tempArrayAliasExample(const das::TArray<Point3> & arr,
     context->invoke(blk, args, nullptr, at);
 }
 
-struct FancyClassAnnotation : ManagedStructureAnnotation <FancyClass> {
+struct FancyClassAnnotation : ManagedStructureAnnotation <FancyClass,true,true> {
     FancyClassAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("FancyClass", ml) {
         addField<DAS_BIND_MANAGED_FIELD(value)>("value");
     }

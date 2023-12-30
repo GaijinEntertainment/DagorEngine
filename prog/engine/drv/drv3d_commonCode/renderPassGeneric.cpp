@@ -130,11 +130,12 @@ void RenderPass::execute(uint32_t idx, ClearAccumulator &clear_acm)
   }
   else if (bind.action & RP_TA_SUBPASS_RESOLVE)
   {
-    for (RenderPassBind &i : actions)
-      if ((i.slot == bind.slot) && (i.subpass == bind.subpass))
-      {
-        rp_impl::msaaResolves.push_back({i.target, bind.target});
-      }
+    for (int srcIndex = 0; srcIndex < actions.size(); srcIndex++)
+    {
+      const RenderPassBind &srcBind = actions[srcIndex];
+      if ((srcBind.slot == bind.slot) && (srcBind.subpass == bind.subpass) && (srcIndex != idx))
+        rp_impl::msaaResolves.push_back({srcBind.target, bind.target});
+    }
   }
 }
 

@@ -67,23 +67,78 @@ static const char *find_next_delimiter(const char *str)
 }
 
 
-static const int get_key_code(HumanInput::IGenKeyboard *kbd, const char *key_name)
+static int is_real_keyboard_present()
 {
-  for (int i = 0; i < kbd->getKeyCount(); i++)
+  for (int k = 0; k < global_cls_drv_kbd->getDeviceCount(); k++)
   {
-    String underscoredKeyName(kbd->getKeyName(i));
-    for (int j = 0; j < underscoredKeyName.length(); j++)
-      if (underscoredKeyName[j] == ' ')
-        underscoredKeyName[j] = '_';
+    HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd->getDevice(k);
+    if (kbd && kbd->getKeyName(HumanInput::DKEY_F1) != nullptr)
+      return true;
+  }
+  return false;
+}
 
-    underscoredKeyName.toLower();
-    if (!strcmp(key_name, underscoredKeyName.str()))
+
+static int get_key_code(const char *key_name)
+{
+  for (int k = 0; k < global_cls_drv_kbd->getDeviceCount(); k++)
+  {
+    HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd->getDevice(k);
+    if (kbd)
     {
-      return i;
+      if (kbd->getKeyName(HumanInput::DKEY_F1) == nullptr) // only real keyboards
+        continue;
+
+      for (int i = 0; i < kbd->getKeyCount(); i++)
+      {
+        String underscoredKeyName(kbd->getKeyName(i));
+        for (int j = 0; j < underscoredKeyName.length(); j++)
+          if (underscoredKeyName[j] == ' ')
+            underscoredKeyName[j] = '_';
+
+        underscoredKeyName.toLower();
+        if (!strcmp(key_name, underscoredKeyName.str()))
+        {
+          return i;
+        }
+      }
     }
   }
 
   return -1;
+}
+
+
+static void list_keys()
+{
+  if (!global_cls_drv_kbd)
+    return;
+
+  for (int k = 0; k < global_cls_drv_kbd->getDeviceCount(); k++)
+  {
+    HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd->getDevice(k);
+    if (kbd)
+    {
+      if (kbd->getKeyName(HumanInput::DKEY_F1) == nullptr) // only real keyboards
+        continue;
+
+      console::print("Keys of keyboard #%d:", k);
+
+      for (int i = 0; i < kbd->getKeyCount(); i++)
+      {
+        String underscoredKeyName(kbd->getKeyName(i));
+        for (int j = 0; j < underscoredKeyName.length(); j++)
+          if (underscoredKeyName[j] == ' ')
+            underscoredKeyName[j] = '_';
+
+        if (underscoredKeyName.empty())
+          continue;
+
+        underscoredKeyName.toLower();
+        console::print("%s", underscoredKeyName.str());
+      }
+    }
+  }
 }
 
 
@@ -95,13 +150,6 @@ static bool parse_shortcut(const char *key_comb, const char *error_prefix, unsig
   String keyComb(key_comb);
 
   keyComb.toLower();
-  HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd->getDevice(0);
-  if (!kbd)
-    return false;
-
-  // just check if we have return key, if not, then we don't have a keyboard, or this is null device driver
-  if (kbd->getKeyName(HumanInput::DKEY_RETURN) == nullptr)
-    return false;
 
   const char *cur = keyComb.str();
   const char *next = find_next_delimiter(cur);
@@ -127,7 +175,7 @@ static bool parse_shortcut(const char *key_comb, const char *error_prefix, unsig
     if (!found)
     {
       // if we didn't find a modifier, maybe we hit some strange key which we wanted to treat as a modifier (e.g. num_1)
-      result_key_code = get_key_code(kbd, cur);
+      result_key_code = get_key_code(cur);
       if (result_key_code != -1)
         break;
 
@@ -148,7 +196,7 @@ static bool parse_shortcut(const char *key_comb, const char *error_prefix, unsig
   }
 
   if (result_key_code == -1) // we might have found the key while checking for modifiers, so let's not do the search twice
-    result_key_code = get_key_code(kbd, keyName);
+    result_key_code = get_key_code(keyName);
 
   if (result_key_code == -1)
   {
@@ -170,6 +218,9 @@ bool bind(const char *key_comb, const char *command)
     console::error("console.bind - invalid arguments, shortcut or command is empty");
     return false;
   }
+
+  if (!is_real_keyboard_present())
+    return false;
 
   int keyCode = -1;
   unsigned modifiers = 0;
@@ -323,6 +374,11 @@ static bool consoleKeybindings_console_handler(const char *argv[], int argc)
   CONSOLE_CHECK_NAME_EX("console", "binds_save", 1, 1, "Save all current binds to be auto loaded on next launch", "")
   {
     console_keybindings::save_binds_to_file();
+    return true;
+  }
+  CONSOLE_CHECK_NAME_EX("console", "bind_list_keys", 1, 1, "Print all possible key names for bindings", "")
+  {
+    console_keybindings::list_keys();
     return true;
   }
   CONSOLE_CHECK_NAME_EX("console", "unbind", 2, 2, "Remove binding", "<shortcut>")

@@ -44,10 +44,13 @@ void NameResolver::updateMapping()
 
 void NameResolver::updateInverseMapping()
 {
-  inverseMapping.clear();
+  // Don't free memory pre-allocated inside the vector maps
   inverseMapping.resize(registry.knownNames.nameCount<NodeNameId>());
-  inverseHistoryMapping.clear();
+  for (auto &mapping : inverseMapping)
+    mapping.clear();
   inverseHistoryMapping.resize(registry.knownNames.nameCount<NodeNameId>());
+  for (auto &mapping : inverseHistoryMapping)
+    mapping.clear();
   for (auto [nodeId, nodeData] : registry.nodes.enumerate())
   {
     for (const auto &[resId, _] : nodeData.resourceRequests)
@@ -66,9 +69,8 @@ T NameResolver::resolve(T name_id) const
 
   // We may want to have slots stuff other than resources in the future
   if constexpr (eastl::is_same_v<T, ResNameId>)
-    if (registry.resourceSlots.isMapped(name_id))
-      if (const auto &slotData = registry.resourceSlots[name_id]; slotData.has_value())
-        name_id = slotData->contents;
+    if (const auto &slotData = registry.resourceSlots[name_id]; slotData.has_value())
+      name_id = slotData->contents;
 
   return name_id;
 }

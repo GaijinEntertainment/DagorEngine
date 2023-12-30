@@ -5,7 +5,6 @@
 //
 #pragma once
 
-#include <rendInst/riExtraRenderer.h>
 #include <rendInst/visibilityDecl.h>
 
 #include <3d/dag_texStreamingContext.h>

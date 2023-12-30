@@ -179,7 +179,7 @@ public:
               if (attAc && a)
                 init_ref_default_state(attAc, a->props);
 
-              if (attAc && ac->setAttachedChar(slot_id, uid, &attAc->baseComp()))
+              if (attAc && ac->setAttachedChar(slot_id, uid, &attAc->baseComp()) >= 0)
               {
                 DAEDITOR3.conNote("attached char <%s> to slot <%s> of animChar <%s>", attAcNm, slot_name, name);
                 replaceAtt(slot_id, attAc);
@@ -503,7 +503,7 @@ public:
         if (attAc)
           init_ref_default_state(attAc, a->props);
 
-        if (attAc && ac->setAttachedChar(att.slotId, a->getNameId(), &attAc->baseComp()))
+        if (attAc && ac->setAttachedChar(att.slotId, a->getNameId(), &attAc->baseComp()) >= 0)
           DAEDITOR3.conNote("attached char <%s> to slotId=%d of animChar <%s>", a->getName(), att.slotId, assetName());
         else
         {

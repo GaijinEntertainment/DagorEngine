@@ -4,10 +4,7 @@
   DEF_DESCRIPTOR("raytrace", VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_IMAGE_VIEW_TYPE_1D, \
     spirv::T_ACCELERATION_STRUCTURE_OFFSET, false),
 
-const bool isRaytraceAcclerationStructure(VkDescriptorType descType)
-{
-  return descType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-}
+bool isRaytraceAcclerationStructure(VkDescriptorType descType) { return descType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR; }
 
 RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(RaytraceGeometryDescription *desc,
   uint32_t count, RaytraceBuildFlags flags)

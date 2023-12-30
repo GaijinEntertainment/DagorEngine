@@ -1,13 +1,15 @@
 import bpy, os
 
-from bpy.props      import StringProperty, BoolProperty, EnumProperty,CollectionProperty,IntProperty,PointerProperty
-from bpy.types      import PropertyGroup,Operator,AddonPreferences,Panel
-from bpy.utils      import user_resource
-from os             import listdir
-from os.path        import exists, splitext, isfile, join
+from bpy                import context as C
 
-from .read_config   import read_config
-from .helpers.popup import show_popup
+from bpy.props          import StringProperty, BoolProperty, EnumProperty,CollectionProperty,IntProperty,PointerProperty
+from bpy.types          import PropertyGroup,Operator,AddonPreferences,Panel
+from bpy.utils          import user_resource
+from os                 import listdir
+from os.path            import exists, splitext, isfile, join
+
+from .read_config       import read_config
+from .helpers.popup     import show_popup
 
 #projects interaction#####################################################
 def get_projects(self, context):
@@ -153,27 +155,6 @@ class DagShaderClass(PropertyGroup):
     name:    StringProperty()
     shaders: CollectionProperty(type = DagShader)
 
-def get_shader_classes(self,context):
-    pref=context.preferences.addons[__package__].preferences
-    items = []
-    for shader_class in pref.shader_classes:
-        name = shader_class.name
-        item = (name, name, name)
-        items.append(item)
-    return items
-
-def get_shaders(self,context):
-    pref=context.preferences.addons[__package__].preferences
-    items = []
-    for cl in pref.shader_classes:
-        if cl.name==pref.shader_class_active:
-            shaders=pref.shader_classes[pref.shader_class_active]['shaders']
-    for shader in shaders:
-        name = shader['name']
-        item = (name, name, name)
-        items.append(item)
-    return items
-
 def get_obj_prop_presets(self, context):
     pref=bpy.context.preferences.addons[__package__].preferences
     path = user_resource('SCRIPTS') + f'\\addons\\{__package__}\\object_properties\\presets\\'
@@ -184,25 +165,6 @@ def get_obj_prop_presets(self, context):
         items.append((i,i,i))
     return items
 
-def upd_shader_class(self,context):
-    pref=context.preferences.addons[__package__].preferences
-    try:
-        context.object.active_material.dagormat.shader_class=pref.shader_active
-    except:
-        pass
-def upd_shader_selector(self,context):
-    pref=context.preferences.addons[__package__].preferences
-    shader_active=context.object.active_material.dagormat.shader_class
-    for shader_class in pref.shader_classes:
-        for shader in shader_class.shaders:
-            if shader['name']==shader_active:
-                pref.shader_class_active=shader_class.name
-                pref.shader_active=shader.name
-                break
-
-def upd_prop_selector(self,context):
-    pref=context.preferences.addons[__package__].preferences
-    return
 #IMPORTER
 class Dag_Import_Props(PropertyGroup):
     with_subfolders :BoolProperty  (name="Search in subfolders", default=False, description = 'Search for .dags in subfolders as well')
@@ -299,7 +261,7 @@ class DagSettings(AddonPreferences):
     projects:           CollectionProperty(type =DagProject)
     project_active:     EnumProperty      (items=get_projects, update = upd_project)
 #shaders
-    shader_classes:     CollectionProperty(type =DagShaderClass)
+    shader_categories:     CollectionProperty(type =DagShaderClass)
 #Addon features
     projects_maximized:     BoolProperty(default=False,description='Projects')
     experimental_maximized: BoolProperty(default=False,description='Experimental features')
@@ -324,16 +286,13 @@ class DagSettings(AddonPreferences):
     colprops_all_maximized: BoolProperty(default=True)
 #UI/dagormat
     mat_maximized:          BoolProperty(default=True)
+    backfacing_maximized:   BoolProperty(default=True)
     tex_maximized:          BoolProperty(default=True)
     opt_maximized:          BoolProperty(default=True)
     tools_maximized:        BoolProperty(default=True)
     proxy_maximized:        BoolProperty(default=True)
 
-    old_shader_selector:    BoolProperty(default=False, description = 'use old shader selector',update=upd_shader_selector)
-    shader_class_active:    EnumProperty(items=get_shader_classes,update=upd_shader_class)
-    shader_active:          EnumProperty(items=get_shaders,       update=upd_shader_class)
 
-    old_prop_selector:      BoolProperty(default=False, description = 'show as dropdown list',  update=upd_prop_selector)
 #UI/dagormat/tools
     process_all:            BoolProperty(default=False, description = 'Process every element instead of active only')
 
@@ -413,8 +372,8 @@ class DAG_OT_SetSearchFolder(Operator):
     def execute(self, context):
         pref=context.preferences.addons[__package__].preferences
         i=int(pref.project_active)
-        context.scene.dag_import_path=pref.projects[i].path
-        context.scene.dag_import_subfolders=True
+        bpy.data.scenes[0].dag4blend.importer.dirpath=pref.projects[i].path
+        bpy.data.scenes[0].dag4blend.importer.with_subfolders=True
         show_popup(message='Import without full name of an asset as mask will be extremely slow!',title='WARNING!', icon='INFO')
         return {'FINISHED'}
 
@@ -458,12 +417,12 @@ classes = [DagProject,
             dag4blend_props,
             DagSettings]
 
-def init_shader_classes():
-    shader_classes=bpy.context.preferences.addons[__package__].preferences.shader_classes
+def init_shader_categories():
+    shader_categories=bpy.context.preferences.addons[__package__].preferences.shader_categories
     dagorShaders=read_config()
-    shader_classes.clear()
+    shader_categories.clear()
     for shader_class in dagorShaders:
-        new_shader_class=shader_classes.add()
+        new_shader_class=shader_categories.add()
         new_shader_class.name=shader_class[0].replace('-','')
         for shader in shader_class[1]:
             new_shader=new_shader_class.shaders.add()
@@ -477,7 +436,7 @@ def init_shader_classes():
 def register():
     for cl in classes:
         bpy.utils.register_class(cl)
-    init_shader_classes()
+    init_shader_categories()
     bpy.types.Scene.dag4blend = PointerProperty(type = dag4blend_props)
     return
 

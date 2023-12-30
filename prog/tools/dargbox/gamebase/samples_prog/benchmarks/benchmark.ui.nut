@@ -26,11 +26,11 @@ gui_scene.setUpdateHandler(function(dt) {
 })
 
 
-let function simpleComponent(val){
+function simpleComponent(val){
   let pos = useFlow ? null : [sw(math.rand()*80/math.RAND_MAX), sh(math.rand()*80/math.RAND_MAX)]
   let size = [sh(math.rand()*15/math.RAND_MAX+2), sh(math.rand()*15/math.RAND_MAX+2) / (useFlow ? 10 : 1)]
   let color = Color(math.rand()*255/math.RAND_MAX, math.rand()*255/math.RAND_MAX, math.rand()*255/math.RAND_MAX)
-  let function frc() {return (math.rand()*255/math.RAND_MAX).tointeger()}
+  function frc() {return (math.rand()*255/math.RAND_MAX).tointeger()}
   let children = []
 
   if (borders && showChild[val].value) {
@@ -84,7 +84,7 @@ let function simpleComponent(val){
   }
 }
 
-let function benchmark() {
+function benchmark() {
   local children = null
   let flow = useFlow ? FLOW_VERTICAL : null
   children = []

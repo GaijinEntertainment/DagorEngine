@@ -184,12 +184,12 @@ void CScintillaWindow::initScintilla()
   hwndScParent = ::CreateWindowEx(0, SCPARENT_WINDOW_CLASS_NAME, "", WS_CHILD | WS_VISIBLE, 100, 100, 100, 100, (HWND)mParentHandle,
     NULL, inst, NULL);
   if (!hwndScParent)
-    fatal("Failed to create scintilla parent window");
+    DAG_FATAL("Failed to create scintilla parent window");
 
   hwndScintilla = ::CreateWindowExW(0, L"Scintilla", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_CLIPCHILDREN, 100, 100, 100, 100,
     (HWND)hwndScParent, NULL, inst, NULL);
   if (!hwndScintilla)
-    fatal("Failed to create scintilla window");
+    DAG_FATAL("Failed to create scintilla window");
 
   ::SetWindowLongPtr((HWND)hwndScintilla, GWLP_USERDATA, (LONG_PTR)this);
 

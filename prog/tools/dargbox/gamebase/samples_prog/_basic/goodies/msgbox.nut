@@ -104,12 +104,12 @@ let dstyling = {
 
 }
 
-let function mkMsgbox(id, defStyling=dstyling){
+function mkMsgbox(id, defStyling=dstyling){
   let widgets = persist($"{id}_widgets", @() [])
   let msgboxGeneration = persist($"{id}_msgboxGeneration", @() Watched(0))
   let hasMsgBoxes = Computed(@() msgboxGeneration.value >= 0 && widgets.len() > 0)
 
-  let function getCurMsgbox(){
+  function getCurMsgbox(){
     if (widgets.len()==0)
       return null
     return widgets.top()
@@ -117,12 +117,12 @@ let function mkMsgbox(id, defStyling=dstyling){
 
   //let log = getroottable()?.log ?? @(...) print(" ".join(vargv))
 
-  let function addWidget(w) {
+  function addWidget(w) {
     widgets.append(w)
     defer(@() msgboxGeneration(msgboxGeneration.value+1))
   }
 
-  let function removeWidget(w, uid=null) {
+  function removeWidget(w, uid=null) {
     let idx = widgets.indexof(w) ?? (uid!=null ? widgets.findindex(@(v) v?.uid == uid) : null)
     if (idx == null)
       return
@@ -130,12 +130,12 @@ let function mkMsgbox(id, defStyling=dstyling){
     msgboxGeneration(msgboxGeneration.value+1)
   }
 
-  let function removeAllMsgboxes() {
+  function removeAllMsgboxes() {
     widgets.clear()
     msgboxGeneration(msgboxGeneration.value+1)
   }
 
-  let function updateWidget(w, uid){
+  function updateWidget(w, uid){
     let idx = widgets.findindex(@(w) w.uid == uid)
     if (idx == null)
       addWidget(w)
@@ -145,7 +145,7 @@ let function mkMsgbox(id, defStyling=dstyling){
     }
   }
 
-  let function removeMsgboxByUid(uid) {
+  function removeMsgboxByUid(uid) {
     let idx = widgets.findindex(@(w) w.uid == uid)
     if (idx == null)
       return false
@@ -154,7 +154,7 @@ let function mkMsgbox(id, defStyling=dstyling){
     return true
   }
 
-  let function isMsgboxInList(uid) {
+  function isMsgboxInList(uid) {
     return widgets.findindex(@(w) w.uid == uid) != null
   }
 
@@ -178,12 +178,12 @@ let function mkMsgbox(id, defStyling=dstyling){
   let defaultButtons = [{text="OK" customStyle={hotkeys=[["^Esc | Enter", skpdescr]]}}]
 
 
-  let function show(params, styling=defStyling) {
+  function show(params, styling=defStyling) {
     log($"[MSGBOX] show: text = '{params?.text}'")
     let self = {v = null}
     let uid = params?.uid ?? {}
 
-    let function doClose() {
+    function doClose() {
       removeWidget(self.v, uid)
       if ("onClose" in params && params.onClose)
         params.onClose()
@@ -191,7 +191,7 @@ let function mkMsgbox(id, defStyling=dstyling){
       log($"[MSGBOX] closed: text = '{params?.text}'")
     }
 
-    let function handleButton(button_action) {
+    function handleButton(button_action) {
       if (button_action) {
         if (button_action?.getfuncinfos?().parameters.len()==2) {
           // handler performs closing itself
@@ -221,18 +221,18 @@ let function mkMsgbox(id, defStyling=dstyling){
 
     let curBtnIdx = Watched(initialBtnIdx)
 
-    let function moveBtnFocus(dir) {
+    function moveBtnFocus(dir) {
       curBtnIdx.update((curBtnIdx.value + dir + btnsDesc.value.len()) % btnsDesc.value.len())
     }
 
-    let function activateCurBtn() {
+    function activateCurBtn() {
       log($"[MSGBOX] handling active '{btnsDesc.value[curBtnIdx.value]?.text}' button: text = '{params?.text}'")
       handleButton(btnsDesc.value[curBtnIdx.value]?.action)
     }
 
     let buttonsBlockKey = {}
 
-    let function buttonsBlock() {
+    function buttonsBlock() {
       return @() {
         watch = [curBtnIdx, btnsDesc]
         key = buttonsBlockKey
@@ -242,7 +242,7 @@ let function mkMsgbox(id, defStyling=dstyling){
 
         children = btnsDesc.value.map(function(desc, idx) {
           let conHover = desc?.onHover
-          let function onHover(on){
+          function onHover(on){
             if (!on)
               return
             curBtnIdx.update(idx)
@@ -262,7 +262,7 @@ let function mkMsgbox(id, defStyling=dstyling){
             behavior = behaviors
             onRecalcLayout = onRecalcLayout
           })
-          let function onClick() {
+          function onClick() {
             log($"[MSGBOX] clicked '{desc?.text}' button: text = '{params?.text}'")
             handleButton(desc?.action)
           }

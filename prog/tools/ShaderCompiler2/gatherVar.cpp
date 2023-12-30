@@ -90,7 +90,7 @@ void GatherVarShaderEvalCB::eval_assume_stat(assume_stat &s)
 
 void GatherVarShaderEvalCB::eval_bool_decl(bool_decl &decl)
 {
-  BoolVar::add(shname_token->text, decl, parser, true);
+  BoolVar::add(true, decl, parser, true);
 
   String hlsl_bool_var(0, "##bool %s\n", decl.name->text);
   hlslVs.append(hlsl_bool_var);
@@ -113,7 +113,7 @@ void GatherVarShaderEvalCB::decl_bool_alias(const char *name, bool_expr &expr)
   decl.name = &ident;
   decl.name->text = name;
   decl.expr = &expr;
-  BoolVar::add(shname_token->text, decl, parser, true);
+  BoolVar::add(true, decl, parser, true);
 }
 
 int GatherVarShaderEvalCB::add_message(const char *message, bool file_name)
@@ -346,8 +346,8 @@ void GatherVarShaderEvalCB::eval_external_block(external_state_block &state_bloc
 
     auto eval_stats = [&](auto &stats) {
       for (auto &stat : stats)
-        if (stat->state_block_if_stat)
-          eval_if_stat(*stat->state_block_if_stat, eval_if_stat);
+        if (stat->stblock_if_stat)
+          eval_if_stat(*stat->stblock_if_stat, eval_if_stat);
     };
 
     ShVarBool b = eval_expr(*s.expr);
@@ -362,9 +362,9 @@ void GatherVarShaderEvalCB::eval_external_block(external_state_block &state_bloc
     }
   };
 
-  for (auto stat : state_block.state_block_stat)
-    if (stat->state_block_if_stat)
-      eval_if_stat(*stat->state_block_if_stat, eval_if_stat);
+  for (auto stat : state_block.stblock_stat)
+    if (stat->stblock_if_stat)
+      eval_if_stat(*stat->stblock_if_stat, eval_if_stat);
 }
 
 ShVarBool GatherVarShaderEvalCB::eval_expr(bool_expr &e)
@@ -418,13 +418,13 @@ ShVarBool GatherVarShaderEvalCB::eval_bool_value(bool_value &e)
   }
   else if (e.bool_var)
   {
-    auto expr = BoolVar::get_expr(shname_token->text, *e.bool_var, parser);
+    auto expr = BoolVar::get_expr(*e.bool_var, parser);
     if (expr)
       return ShVarBool(eval_expr(*expr).value, false);
   }
   else if (e.maybe)
   {
-    auto expr = BoolVar::maybe(shname_token->text, *e.maybe_bool_var);
+    auto expr = BoolVar::maybe(*e.maybe_bool_var);
     if (expr)
       return ShVarBool(eval_expr(*expr).value, false);
     else

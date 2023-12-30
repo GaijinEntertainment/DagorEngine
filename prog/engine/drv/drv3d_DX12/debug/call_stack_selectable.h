@@ -112,11 +112,11 @@ public:
     if (eastl::end(modes) != ref)
     {
       generatorMode = ref->mode;
-      debug("DX12: debug::call_stack::selectable using mode '%s'", ref->name);
+      logdbg("DX12: debug::call_stack::selectable using mode '%s'", ref->name);
     }
     else
     {
-      debug("DX12: debug::call_stack::selectable invalid mode '%s' from %s/debug/call_stack/mode:t=, using default %s", modeName,
+      logdbg("DX12: debug::call_stack::selectable invalid mode '%s' from %s/debug/call_stack/mode:t=, using default %s", modeName,
         blockName, defaultMode->name);
       generatorMode = defaultMode->mode;
     }

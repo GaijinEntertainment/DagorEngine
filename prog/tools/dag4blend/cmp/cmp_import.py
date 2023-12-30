@@ -361,7 +361,7 @@ def read_cmp(path_import,with_sub_cmp,with_dags,with_lods,assets):
         log(msg)
         dags_to_import.clear()#we don't need it to be modified dynamically
         for dag in dags:
-            bpy.ops.import_scene.dag(filepath = dag, import_lods = with_lods)
+            bpy.ops.import_scene.dag(filepath = dag, with_lods = with_lods)
     log(f'IMPORTED {os.path.basename(path_import)}\n')
     return
 

@@ -4,6 +4,7 @@
 #include <EASTL/memory.h>
 #include <EASTL/algorithm.h>
 #include "vulkan_device.h"
+#include "pipeline/descriptor_table.h"
 
 namespace drv3d_vulkan
 {
@@ -99,7 +100,7 @@ private:
   eastl::vector<VulkanDescriptorSetHandle> setRings[FRAME_FRAME_BACKLOG_LENGTH];
   uint32_t ringOffset = 0;
   uint32_t ringIndex = 0;
-  uint32_t lastAbsFrameIndex = 0;
+  size_t lastAbsFrameIndex = 0;
 
 public:
   inline VulkanDescriptorSetLayoutHandle getLayout() const { return layout; }
@@ -345,13 +346,9 @@ public:
     return set;
   }
 
-  VulkanDescriptorSetHandle getSet(VulkanDevice &device, uint32_t abs_frame_index, const VkAnyDescriptorInfo *desc_array)
+  VulkanDescriptorSetHandle getSet(VulkanDevice &device, size_t abs_frame_index, const VkAnyDescriptorInfo *desc_array)
   {
-    if (is_null(layout))
-    {
-      VulkanDescriptorSetHandle dsh;
-      return dsh;
-    }
+    G_ASSERTF(!is_null(layout), "vulkan: used uninitialized descriptor set");
 
     // change ring every new abs frame index to avoid ring growth
     if (lastAbsFrameIndex != abs_frame_index)

@@ -956,7 +956,7 @@ void TracerManager::initHeads()
   {
     static CompiledShaderChannelId chan[] = {{SCTYPE_SHORT2, SCUSAGE_POS, 0, 0}};
     if (!headMat->checkChannels(chan, countof(chan)))
-      fatal("invalid channels for this material!");
+      DAG_FATAL("invalid channels for this material!");
     headRendElem.vDecl = dynrender::addShaderVdecl(chan, countof(chan));
     headRendElem.stride = dynrender::getStride(chan, countof(chan));
     G_ASSERT(headRendElem.vDecl != BAD_VDECL);

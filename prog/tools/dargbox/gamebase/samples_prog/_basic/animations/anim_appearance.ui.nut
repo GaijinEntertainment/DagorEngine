@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 
-let function elem() {
+function elem() {
   return {
     flow  = FLOW_VERTICAL
     hplace = ALIGN_CENTER
@@ -55,7 +55,7 @@ InOutBezier, CosineFull, InStep, OutStep,
 Descrete8
 */
 
-let function root() {
+function root() {
   return {
     valign = ALIGN_CENTER
     flow = FLOW_VERTICAL

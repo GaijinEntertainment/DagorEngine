@@ -18,7 +18,7 @@
 static bool needSimulate = false;
 static int physType = 0;
 static bool isGridVisibleLast = false;
-Tab<PhysicsResource *> physsimulator::simObjRes;
+PtrTab<PhysicsResource> physsimulator::simObjRes;
 
 static int objIdx = -1, subBodyIdx = -1;
 static Point3 contactPointLocal(0, 0, 0);

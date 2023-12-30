@@ -1,6 +1,4 @@
-switch (5) {
-  case 0:
-    const x = 6;
-}
-
-print(x)
+if (true)
+  const x = 6
+else
+  print(x)

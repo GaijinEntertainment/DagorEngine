@@ -135,7 +135,7 @@ void CPanelWindow::onWcResize(WindowBase *source)
     PropertyContainerVert::setWidth(_pxActual(mW));
   }
 
-  __super::onWcResize(source);
+  PropertyContainerVert::onWcResize(source);
 }
 
 static int recursiveFillMenu(IMenu *contextMenu, PropertyControlBase *curControl, int menu_id, int depth)
@@ -277,14 +277,14 @@ int CPanelWindow::saveState(DataBlock &datablk)
   DataBlock *_block = datablk.addNewBlock(String(64, "panel_%d", this->getID()).str());
   _block->addInt("vscroll", this->getScrollPos());
 
-  __super::saveState(datablk);
+  PropertyContainerVert::saveState(datablk);
   return 0;
 }
 
 
 int CPanelWindow::loadState(DataBlock &datablk)
 {
-  __super::loadState(datablk);
+  PropertyContainerVert::loadState(datablk);
 
   DataBlock *_block = datablk.getBlockByName(String(64, "panel_%d", this->getID()).str());
   if (_block)

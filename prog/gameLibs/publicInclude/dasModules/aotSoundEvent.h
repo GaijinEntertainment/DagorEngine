@@ -44,6 +44,7 @@ struct WrapType<sndsys::EventHandle>
     value = false
   };
   typedef sndsys::sound_handle_t type;
+  typedef sndsys::sound_handle_t rettype;
 };
 
 template <>
@@ -62,6 +63,7 @@ struct WrapType<SoundVarId>
     value = false
   };
   typedef sndsys::var_id_t type;
+  typedef sndsys::var_id_t rettype;
 };
 
 template <>

@@ -2,8 +2,10 @@
 #include <generic/dag_smallTab.h>
 #include <generic/dag_tab.h>
 #include <libTools/dtx/dtxHeader.h>
+#include <libTools/util/fileUtils.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
+#include <startup/dag_globalSettings.h>
 #include <util/dag_globDef.h>
 #include <util/dag_string.h>
 #include <signal.h>
@@ -42,58 +44,58 @@ int DagorWinMain(bool debugmode)
   bool quiet = false, decode_dds_fname = false;
   ddsx::ConvertParams cp;
 
-  for (int i = 1; i < __argc; i++)
+  for (int i = 1; i < dgs_argc; i++)
   {
-    if (__argv[i][0] != '-')
-      argv.push_back(__argv[i]);
-    else if (stricmp(&__argv[i][1], "q") == 0)
+    if (dgs_argv[i][0] != '-')
+      argv.push_back(dgs_argv[i]);
+    else if (stricmp(&dgs_argv[i][1], "q") == 0)
       quiet = true;
-    else if (stricmp(&__argv[i][1], "opt") == 0)
+    else if (stricmp(&dgs_argv[i][1], "opt") == 0)
       cp.optimize = true;
-    else if (stricmp(&__argv[i][1], "opt-") == 0)
+    else if (stricmp(&dgs_argv[i][1], "opt-") == 0)
       cp.optimize = false;
-    else if (stricmp(&__argv[i][1], "pow2") == 0)
+    else if (stricmp(&dgs_argv[i][1], "pow2") == 0)
       cp.allowNonPow2 = false;
-    else if (stricmp(&__argv[i][1], "pow2-") == 0)
+    else if (stricmp(&dgs_argv[i][1], "pow2-") == 0)
       cp.allowNonPow2 = true;
-    else if (stricmp(&__argv[i][1], "pack") == 0 || stricmp(&__argv[i][1], "zlib") == 0)
+    else if (stricmp(&dgs_argv[i][1], "pack") == 0 || stricmp(&dgs_argv[i][1], "zlib") == 0)
       cp.canPack = true;
-    else if (stricmp(&__argv[i][1], "pack-") == 0 || stricmp(&__argv[i][1], "zlib-") == 0)
+    else if (stricmp(&dgs_argv[i][1], "pack-") == 0 || stricmp(&dgs_argv[i][1], "zlib-") == 0)
       cp.canPack = false;
-    else if (stricmp(&__argv[i][1], "no7z") == 0)
+    else if (stricmp(&dgs_argv[i][1], "no7z") == 0)
       ddsx::ConvertParams::forceZlibPacking = true;
-    else if (stricmp(&__argv[i][1], "pack:7zip") == 0)
+    else if (stricmp(&dgs_argv[i][1], "pack:7zip") == 0)
       ddsx::ConvertParams::preferZstdPacking = ddsx::ConvertParams::forceZlibPacking = ddsx::ConvertParams::allowOodlePacking = false;
-    else if (stricmp(&__argv[i][1], "pack:zlib") == 0)
+    else if (stricmp(&dgs_argv[i][1], "pack:zlib") == 0)
       ddsx::ConvertParams::forceZlibPacking = true;
-    else if (stricmp(&__argv[i][1], "pack:zstd") == 0)
+    else if (stricmp(&dgs_argv[i][1], "pack:zstd") == 0)
       ddsx::ConvertParams::preferZstdPacking = true;
-    else if (stricmp(&__argv[i][1], "pack:oodle") == 0)
+    else if (stricmp(&dgs_argv[i][1], "pack:oodle") == 0)
       ddsx::ConvertParams::preferZstdPacking = ddsx::ConvertParams::allowOodlePacking = true;
-    else if (strnicmp(&__argv[i][1], "packThres:", 10) == 0)
-      cp.packSzThres = atoi(&__argv[i][10]);
-    else if (strnicmp(&__argv[i][1], "addru:", 6) == 0)
-      cp.addrU = parseAddrMode(&__argv[i][7]);
-    else if (strnicmp(&__argv[i][1], "addrv:", 6) == 0)
-      cp.addrV = parseAddrMode(&__argv[i][7]);
-    else if (strnicmp(&__argv[i][1], "hq:", 3) == 0)
-      cp.hQMip = atoi(&__argv[i][4]);
-    else if (strnicmp(&__argv[i][1], "mq:", 3) == 0)
-      cp.mQMip = atoi(&__argv[i][4]);
-    else if (strnicmp(&__argv[i][1], "lq:", 3) == 0)
-      cp.lQMip = atoi(&__argv[i][4]);
-    else if (stricmp(&__argv[i][1], "ddsSuffix") == 0)
+    else if (strnicmp(&dgs_argv[i][1], "packThres:", 10) == 0)
+      cp.packSzThres = atoi(&dgs_argv[i][10]);
+    else if (strnicmp(&dgs_argv[i][1], "addru:", 6) == 0)
+      cp.addrU = parseAddrMode(&dgs_argv[i][7]);
+    else if (strnicmp(&dgs_argv[i][1], "addrv:", 6) == 0)
+      cp.addrV = parseAddrMode(&dgs_argv[i][7]);
+    else if (strnicmp(&dgs_argv[i][1], "hq:", 3) == 0)
+      cp.hQMip = atoi(&dgs_argv[i][4]);
+    else if (strnicmp(&dgs_argv[i][1], "mq:", 3) == 0)
+      cp.mQMip = atoi(&dgs_argv[i][4]);
+    else if (strnicmp(&dgs_argv[i][1], "lq:", 3) == 0)
+      cp.lQMip = atoi(&dgs_argv[i][4]);
+    else if (stricmp(&dgs_argv[i][1], "ddsSuffix") == 0)
       decode_dds_fname = true;
-    else if (stricmp(&__argv[i][1], "gamma1") == 0)
+    else if (stricmp(&dgs_argv[i][1], "gamma1") == 0)
       cp.imgGamma = 1.0;
-    else if (stricmp(&__argv[i][1], "mipRev") == 0)
+    else if (stricmp(&dgs_argv[i][1], "mipRev") == 0)
       cp.mipOrdRev = true;
-    else if (stricmp(&__argv[i][1], "mipRev-") == 0)
+    else if (stricmp(&dgs_argv[i][1], "mipRev-") == 0)
       cp.mipOrdRev = false;
     else
     {
       print_title();
-      printf("ERR: unknown option <%s>\n", __argv[i]);
+      printf("ERR: unknown option <%s>\n", dgs_argv[i]);
       return 1;
     }
   }
@@ -149,14 +151,13 @@ int DagorWinMain(bool debugmode)
   df_close(fp);
 
   char start_dir[260];
-  if (_fullpath(start_dir, __argv[0], 260))
-  {
-    char *p = strrchr(start_dir, '\\');
-    if (p)
-      *p = '\0';
-  }
+  dag_get_appmodule_dir(start_dir, sizeof(start_dir));
 
-#if _TARGET_64BIT
+#if _TARGET_PC_LINUX
+  int pc = ddsx::load_plugins(String(260, "%s/../bin-linux64/plugins/ddsx", start_dir));
+#elif _TARGET_PC_MACOSX
+  int pc = ddsx::load_plugins(String(260, "%s/../bin-macosx/plugins/ddsx", start_dir));
+#elif _TARGET_64BIT
   int pc = ddsx::load_plugins(String(260, "%s/../bin64/plugins/ddsx", start_dir));
 #else
   int pc = ddsx::load_plugins(String(260, "%s/../bin/plugins/ddsx", start_dir));

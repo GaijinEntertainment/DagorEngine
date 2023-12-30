@@ -279,7 +279,7 @@ void CodegenVisitor::visitWhileStatement(WhileStatement *whileLoop) {
 
         visitForceGet(whileLoop->condition());
 
-        BEGIN_BREAKBLE_BLOCK();
+        BEGIN_BREAKABLE_BLOCK();
 
         _fs->AddInstruction(_OP_JZ, _fs->PopTarget());
 
@@ -294,7 +294,7 @@ void CodegenVisitor::visitWhileStatement(WhileStatement *whileLoop) {
         _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1);
         _fs->SetInstructionParam(jzpos, 1, _fs->GetCurrentPos() - jzpos);
 
-        END_BREAKBLE_BLOCK(jmppos);
+        END_BREAKABLE_BLOCK(jmppos);
     }
     END_SCOPE();
 }
@@ -305,7 +305,7 @@ void CodegenVisitor::visitDoWhileStatement(DoWhileStatement *doWhileLoop) {
     BEGIN_SCOPE();
     {
         SQInteger jmptrg = _fs->GetCurrentPos();
-        BEGIN_BREAKBLE_BLOCK();
+        BEGIN_BREAKABLE_BLOCK();
 
         BEGIN_SCOPE();
         doWhileLoop->body()->visit(this);
@@ -316,7 +316,7 @@ void CodegenVisitor::visitDoWhileStatement(DoWhileStatement *doWhileLoop) {
 
         _fs->AddInstruction(_OP_JZ, _fs->PopTarget(), 1);
         _fs->AddInstruction(_OP_JMP, 0, jmptrg - _fs->GetCurrentPos() - 1);
-        END_BREAKBLE_BLOCK(continuetrg);
+        END_BREAKABLE_BLOCK(continuetrg);
 
     }
     END_SCOPE();
@@ -366,7 +366,7 @@ void CodegenVisitor::visitForStatement(ForStatement *forLoop) {
         _fs->PopInstructions(expsize);
     }
 
-    BEGIN_BREAKBLE_BLOCK();
+    BEGIN_BREAKABLE_BLOCK();
     forLoop->body()->visit(this);
     SQInteger continuetrg = _fs->GetCurrentPos();
     if (expsize > 0) {
@@ -377,7 +377,7 @@ void CodegenVisitor::visitForStatement(ForStatement *forLoop) {
     _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1, 0);
     if (jzpos > 0) _fs->SetInstructionParam(jzpos, 1, _fs->GetCurrentPos() - jzpos);
 
-    END_BREAKBLE_BLOCK(continuetrg);
+    END_BREAKABLE_BLOCK(continuetrg);
 
     END_SCOPE();
 }
@@ -415,12 +415,12 @@ void CodegenVisitor::visitForeachStatement(ForeachStatement *foreachLoop) {
     SQInteger foreachpos = _fs->GetCurrentPos();
     _fs->AddInstruction(_OP_POSTFOREACH, container, 0, indexpos);
 
-    BEGIN_BREAKBLE_BLOCK();
+    BEGIN_BREAKABLE_BLOCK();
     foreachLoop->body()->visit(this);
     _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1);
     _fs->SetInstructionParam(foreachpos, 1, _fs->GetCurrentPos() - foreachpos);
     _fs->SetInstructionParam(foreachpos + 1, 1, _fs->GetCurrentPos() - foreachpos);
-    END_BREAKBLE_BLOCK(foreachpos - 1);
+    END_BREAKABLE_BLOCK(foreachpos - 1);
     //restore the local variable stack(remove index,val and ref idx)
     _fs->PopTarget();
     END_SCOPE();
@@ -887,7 +887,6 @@ void CodegenVisitor::visitEnumDecl(EnumDecl *enums) {
     addLineNumber(enums);
     SQObject table = _fs->CreateTable();
     table._flags = SQOBJ_FLAG_IMMUTABLE;
-    SQInteger nval = 0;
 
     SQObject id = _fs->CreateString(enums->name());
 
@@ -1631,6 +1630,9 @@ void CodegenVisitor::visitId(Id *id) {
             break;
         case OT_BOOL:
             _fs->AddInstruction(_OP_LOADBOOL, stkPos, _integer(constval));
+            break;
+        case OT_NULL:
+            _fs->AddInstruction(_OP_LOADNULLS, stkPos, 1);
             break;
         default:
             _fs->AddInstruction(_OP_LOAD, stkPos, _fs->GetConstant(constval));

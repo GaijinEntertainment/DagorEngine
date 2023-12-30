@@ -23,7 +23,7 @@ void RayCarDamping::loadParams(const DataBlock *db, const DataBlock *ddb, RayCar
   crashDampingMinKmh = db->getReal("crashDampingMinKmh", ddb->getReal("crashDampingMinKmh", 4));
   maxTimeSinceCrash = db->getReal("maxTimeSinceCrash", ddb->getReal("maxTimeSinceCrash", 0.04));
 
-  minCrashNormImpSq = real_sq(db->getReal("minCrashNormImp", ddb->getReal("minCrashNormImp", 40)));
+  minCrashNormImpSq = sqr(db->getReal("minCrashNormImp", ddb->getReal("minCrashNormImp", 40)));
 }
 
 void RayCarDamping::resetTimer(RayCar * /*dummy*/) { timeSinceCrash = MAX_TIME_SINCE_CRASH; }
@@ -70,7 +70,7 @@ void RayCarDamping::onCollision(RayCar *car, PhysBody *other, const Point3 &norm
   //  float norm_imp_aligned =
   //    other ? length(norm_imp): -norm_imp*normalize(car->getPhysBody()->getVelocity());
 
-  // if ( real_sq(norm_imp_aligned) > minCrashNormImpSq )
+  // if ( sqr(norm_imp_aligned) > minCrashNormImpSq )
   if (lengthSq(norm_imp) > minCrashNormImpSq)
   {
     // debug("crash! imp=" FMT_P3 " (aligned=%.3f)", P3D(norm_imp), norm_imp_aligned);

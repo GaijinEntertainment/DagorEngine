@@ -44,7 +44,7 @@ private:
   IdNameResolver<NameSpaceNameId, ResNameId, NodeNameId, AutoResTypeNameId> resolver;
 
 
-  using ResolvedToUnresolved = dag::FixedVectorMap<ResNameId, dag::RelocatableFixedVector<ResNameId, 4>, 4>;
+  using ResolvedToUnresolved = dag::FixedVectorMap<ResNameId, dag::RelocatableFixedVector<ResNameId, 4>, 16>;
   // Mapping (node, resolved res id) -> unresolved res Ids
   IdIndexedMapping<NodeNameId, ResolvedToUnresolved> inverseMapping;
   IdIndexedMapping<NodeNameId, ResolvedToUnresolved> inverseHistoryMapping;

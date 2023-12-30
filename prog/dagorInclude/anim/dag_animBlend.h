@@ -312,11 +312,19 @@ public:
   struct CharNodeModif
   {
     vec3f sScale;
-    vec3f pScale_id;
+    union
+    {
+      vec3f pScale_id;
+      struct
+      {
+        int pad[3];
+        int id;
+      };
+    };
     vec3f pOfs;
 
-    int chanNodeId() const { return ((int *)&pScale_id)[3]; }
-    void setChanNodeId(int id) { ((int *)&pScale_id)[3] = id; }
+    int chanNodeId() const { return id; }
+    void setChanNodeId(int id_) { id = id_; }
   };
 
   enum

@@ -227,7 +227,7 @@ void sh_process_errors()
     }
     else
     {
-      fatal("Shader parser (%d errors) - see ShaderLog.\n", ErrorCounter::allShaders().err);
+      DAG_FATAL("Shader parser (%d errors) - see ShaderLog.\n", ErrorCounter::allShaders().err);
     }
   }
 }

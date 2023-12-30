@@ -1,13 +1,13 @@
-#include <runtime/backend.h>
+#include <runtime/runtime.h>
 #include <render/daBfg/bfg.h>
 
 namespace dabfg
 {
-void update_graph_visualization(const NodeTracker *, eastl::span<const NodeNameId>) {}
+void update_graph_visualization(InternalRegistry &, const DependencyData &, eastl::span<const NodeNameId>) {}
 void invalidate_graph_visualization() {}
 void reset_texture_visualization() {}
 
-void Backend::dumpGraph(const eastl::string &) const {}
+void Runtime::dumpGraph(const eastl::string &) const {}
 
 void update_resource_visualization(const InternalRegistry &, eastl::span<const NodeNameId>) {}
 void debug_rec_resource_placement(ResNameId, int, int, int, int) {}

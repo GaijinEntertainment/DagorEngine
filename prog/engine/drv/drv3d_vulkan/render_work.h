@@ -40,6 +40,20 @@ struct ImageCopyInfo
   static void deduplicate(eastl::vector<ImageCopyInfo> &info, eastl::vector<VkBufferImageCopy> &copies);
 };
 
+struct BindlessTexUpdateInfo
+{
+  uint32_t index;
+  uint32_t count;
+  Image *img;
+  ImageViewState viewState;
+};
+
+struct BindlessSamplerUpdateInfo
+{
+  uint32_t index;
+  SamplerState sampler;
+};
+
 struct RaytraceBLASBufferRefs
 {
   Buffer *geometry;
@@ -56,6 +70,7 @@ class ExecutionContext;
 struct RenderWork
 {
   static bool recordCommandCallers;
+  static bool cleanUpMemoryEveryWorkItem;
 
   CleanupQueue cleanups;
 
@@ -81,6 +96,8 @@ struct RenderWork
   eastl::vector<CmdClearColorTexture> unorderedImageColorClears;
   eastl::vector<CmdClearDepthStencilTexture> unorderedImageDepthStencilClears;
   eastl::vector<Image *> imagesToFillEmptySubresources;
+  eastl::vector<BindlessTexUpdateInfo> bindlessTexUpdates;
+  eastl::vector<BindlessSamplerUpdateInfo> bindlessSamplerUpdates;
 
 #if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
   eastl::vector<VkAccelerationStructureBuildRangeInfoKHR> raytraceBuildRangeInfoKHRStore;
@@ -113,6 +130,8 @@ struct RenderWork
     size += CALC_VEC_BYTES(unorderedImageColorClears);
     size += CALC_VEC_BYTES(unorderedImageDepthStencilClears);
     size += CALC_VEC_BYTES(imagesToFillEmptySubresources);
+    size += CALC_VEC_BYTES(bindlessTexUpdates);
+    size += CALC_VEC_BYTES(bindlessSamplerUpdates);
 #if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
     size += CALC_VEC_BYTES(raytraceBuildRangeInfoKHRStore);
     size += CALC_VEC_BYTES(raytraceGeometryKHRStore);

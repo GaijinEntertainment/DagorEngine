@@ -321,7 +321,7 @@ void AnimObjBnl::save(DataBlock &blk) const
         saveNamedRanges(labels, *blk.addNewBlock("labels"));
       break;
 
-    default: fatal_x("unknow type %d", type);
+    default: DAG_FATAL("unknow type %d", type);
   }
   if (disableOriginVel)
     blk.setBool("disable_origin_vel", disableOriginVel);

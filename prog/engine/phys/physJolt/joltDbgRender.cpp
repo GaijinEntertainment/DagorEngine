@@ -8,7 +8,7 @@
 
 static const Point3 *camPos = nullptr;
 static const Frustum *frustum = nullptr;
-static float renderDistSq = SQR(1000.0f);
+static float renderDistSq = sqr(1000.0f);
 static bool forcedBufferedDebugDrawMode = false;
 
 class JoltDebugRendererImp final : public JPH::DebugRenderer
@@ -121,7 +121,7 @@ void physdbg::renderWorld(PhysWorld *pw, physdbg::RenderFlags rflg, const Point3
       float prev_dist_sq = ::renderDistSq;
       ::camPos = cam_pos;
       ::frustum = f;
-      ::renderDistSq = SQR(render_dist);
+      ::renderDistSq = sqr(render_dist);
 
       ::begin_draw_cached_debug_lines((rflg & RenderFlag::USE_ZTEST) ? true : false, false);
       if (rflg & RenderFlag::BODIES)

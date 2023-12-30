@@ -13,13 +13,6 @@ bool d3d::setgamma(float) { return false; }
 void d3d::change_screen_aspect_ratio(float) {}
 bool d3d::get_vrr_supported() { return false; }
 
-// samplers
-
-d3d::SamplerHandle d3d::create_sampler(const d3d::SamplerInfo & /*sampler_info*/) { return 0; }
-void d3d::destroy_sampler(d3d::SamplerHandle /*sampler*/) {}
-
-void d3d::set_sampler(unsigned /*shader_stage*/, unsigned /*slot*/, d3d::SamplerHandle /*sampler*/) {}
-
 // mesh shaders
 
 void d3d::dispatch_mesh(uint32_t /* thread_group_x */, uint32_t /* thread_group_y */, uint32_t /* thread_group_z */)

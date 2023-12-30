@@ -1,5 +1,5 @@
-import bpy,os
-from bpy.props import StringProperty, FloatProperty, FloatVectorProperty, BoolProperty, PointerProperty, EnumProperty
+import bpy, os
+from bpy.props import BoolProperty, IntProperty, FloatProperty, FloatVectorProperty, StringProperty, PointerProperty, EnumProperty
 from bpy.types import Operator, PropertyGroup, Panel
 
 from .build_node_tree       import buildMaterial
@@ -73,6 +73,31 @@ def find_proxymats(mats):
                         bpy.data.materials[proxy].dagormat.proxy_path=subdir+os.sep
                         read_proxy_blk(bpy.data.materials[proxy])
 
+#functions/getters
+def get_shader_categories(self,context):
+    pref = bpy.context.preferences.addons[basename(__package__)].preferences
+    items = []
+    for shader_class in pref.shader_categories:
+        name = shader_class.name
+        item = (name, name, name)
+        items.append(item)
+    return items
+
+def get_shaders(self,context):
+    pref=context.preferences.addons[basename(__package__)].preferences
+    items = []
+    for cl in pref.shader_categories:
+        if cl.name==self.shader_category_active:
+            shaders=pref.shader_categories[self.shader_category_active]['shaders']
+    for shader in shaders:
+        name = shader['name']
+        item = (name, name, name)
+        items.append(item)
+    current = self.shader_class
+    if (current, current, current) not in items:
+        items.append((current, current, current))
+    return items
+
 #functions/props
 def get_props(self,context):
     DM     =context.object.active_material.dagormat
@@ -80,58 +105,68 @@ def get_props(self,context):
     exclude.append('real_two_sided')#already exists in ui
     items  =[]
     pref   =context.preferences.addons[basename(__package__)].preferences
-    for shader_class in pref.shader_classes:
+    found = False
+    for shader_class in pref.shader_categories:
         for shader in shader_class['shaders']:
             if shader['name']==DM.shader_class:
+                found = True
                 for prop in shader['props']:
                     if prop['name'] not in exclude:
                         item=(prop['name'])
                         items.append((item,item,item))
-
-    if items.__len__()==0:#no available props. Shader not listed in cfg?
-        for prop in pref.shader_classes[0]['shaders'][0]['props']:#gi_black, because it has only non-optional props
-            if prop.name not in exclude:
-                item=(prop['name'])
-                items.append((item,item,item))
+                break
+            if found:
+                break
+        if found:
+            break
+    p = self.prop_name
+    if (p, p, p) not in items:
+        items.append((p,p,p))
     return items
 
-def update_prop(self, context):
+def upd_prop_active(self, context):
     pref=context.preferences.addons[basename(__package__)].preferences
-    DM  =context.object.active_material.dagormat
-    DM.prop_name=DM.prop_active
-    DM.prop_value=''
-    for shader_class in pref.shader_classes:
+    self.prop_name = self.prop_active
+    self.prop_value = '???'
+    found = False
+    for shader_class in pref.shader_categories:
         for shader in shader_class['shaders']:
-            if shader['name']==DM.shader_class:
-                for prop in shader['props']:
-                    if prop['name']==DM.prop_active:
-                        if prop['type'] == 'text':
-                            DM.prop_value='0,0,0,0'
-                        elif prop['type'] == 'bool':
-                            DM.prop_value='yes'
-                        elif prop['type'] == 'real':
-                            DM.prop_value='0.0'
-                        elif prop['type'] == 'int':
-                            DM.prop_value='0'
-                        else:
-                            DM.prop_value='???'
-    '''
-    #global params for unknown shader
-    for prop in pref.shader_classes[0]['shaders'][0]['props']:
-        if prop['name']==DM.prop_active:
-            if prop['type'] == 'text':
-                DM.prop_value='0,0,0,0'
-            elif prop['type'] == 'bool':
-                DM.prop_value='yes'
-            elif prop['type'] == 'real':
-                DM.prop_value='0.0'
-            elif prop['type'] == 'int':
-                DM.prop_value='0'
-            else:
-                DM.prop_value='???'
-    '''
+            if shader['name'] != self.shader_class:
+                continue
+            for prop in shader['props']:
+                if prop['name'] == self.prop_active:
+                    if prop['type'] == 'text':
+                        self.prop_value='0,0,0,0'
+                    elif prop['type'] == 'bool':
+                        self.prop_value='yes'
+                    elif prop['type'] == 'real':
+                        self.prop_value='0.0'
+                    elif prop['type'] == 'int':
+                        self.prop_value='0'
+                    found = True
+                if found:
+                    break
+            if found:
+                break
+        if found:
+            break
+    return
+
+def upd_prop_name(self, context):
+    if self.prop_active!=self.prop_name:
+        self.prop_active = self.prop_name
+    return
 
 #functions/upd
+def upd_prop_selector(self,context):
+    if self.prop_active == self.prop_name:
+        return
+    if self.use_prop_enum:
+        self.prop_active = self.prop_name
+    else:
+        self.prop_name = self.prop_active
+    return
+
 def clear_tex_paths(mat):
     T=mat.dagormat.textures
     for tex in T.keys():
@@ -153,11 +188,51 @@ def update_tex_paths(mat):
             T[tex]=img.filepath
     return
 
+def update_backface_culling(self, context):
+    #self is dagormat
+    material = self.id_data#material, owner of current dagormat PropertyGroup
+    material.use_backface_culling = self.sides == 0
+    return
+
 def update_material(self,context):
-    if context.active_object is None or context.active_object.active_material is None:
-        return
-    material = context.active_object.active_material
+    material = self.id_data
     buildMaterial(material)
+    return
+
+def upd_shader_selector(self, context):
+    if self.shader_class_active == self.shader_class:
+        return
+    if self.use_shader_enum:
+        self.shader_class_active = self.shader_class
+    else:
+        self.shader_class = self.shader_class_active
+    return
+
+def upd_shader_category(self,context):
+    if self.shader_class == self.shader_class_active:
+        return
+    pref = bpy.context.preferences.addons[basename(__package__)].preferences
+    for shader in pref.shader_categories[self.shader_category_active]['shaders']:
+        if self.shader_class == shader['name']:
+            self.shader_class_active = self.shader_class
+            return
+    self.shader_class_active = pref.shader_categories[self.shader_category_active]['shaders'][0]['name']
+    return
+
+def upd_active_shader(self,context):
+    if self.shader_class == self.shader_class_active:
+        return
+    self.shader_class = self.shader_class_active
+    return
+
+def update_shader_class(self, context):
+    if self.shader_class_active != self.shader_class:
+        self.shader_class_active = self.shader_class
+    if self.use_prop_enum and not self.prop_active == self.prop_name:
+            self.prop_active = self.prop_name
+    material = self.id_data
+    buildMaterial(material)
+    return
 
 def update_proxy_path(self,context):
     if context.active_object is None or context.active_object.active_material is None:
@@ -173,6 +248,7 @@ def update_proxy_path(self,context):
         DM.proxy_path=os.path.dirname(DM.proxy_path)
     if DM.proxy_path[-1]!=os.sep:
         DM.proxy_path=DM.proxy_path+os.sep
+    return
 
 #functions/proxy_rw
 def read_proxy_blk(mat):
@@ -422,6 +498,21 @@ class DAGOR_OT_upd_tex_paths(Operator):#V
         show_popup(message=f'finished in {round(time()-start,5)} sec')
         return {'FINISHED'}
 
+class DAGOR_OT_set_mat_sides(Operator):
+    bl_idname = "dt.set_mat_sides"
+    bl_label = ""
+    bl_description = "How backfaces should be processed?"
+    bl_options = {'UNDO'}
+# 0 = single_sided, 1 = two_sided, 2 = real_two_sided
+    sides: IntProperty(default = 0, min = 0, max = 2)
+    @classmethod
+    def poll(self, context):
+        return context.active_object.active_material is not None
+
+    def execute(self, context):
+        DM = context.DM #set in UI right before call
+        DM.sides = self.sides
+        return {'FINISHED'}
 #properties
 class dagor_optional(PropertyGroup):
     pass
@@ -445,23 +536,26 @@ class dagormat(PropertyGroup):
     diffuse:        FloatVectorProperty(default=(1.0,1.0,1.0),max=1.0,min=0.0,subtype='COLOR')
     emissive:       FloatVectorProperty(default=(0.0,0.0,0.0),max=1.0,min=0.0,subtype='COLOR')
     power:          FloatProperty(default=0.0)
-    sides:          EnumProperty(items={
-                        ('0','single_sided','No backfacing. Best perfomance.'),
-                        ('1','two_sided','Shader based backfacing. Mostly for trees.'),
-                        ('2','real_two_sided','Duplicated geometry with flipped normals. For dynmodels, RI, RIExtra')},
-                        default = '0',
-                        update=update_material)#modern replacement for "two_sided". Should be in 'optional, but easier to access like that
-    shader_class:   StringProperty(default='rendinst_simple',update=update_material)
+# 0 - single_sided, 1 - two_sided, 2 - real_two_sided
+    sides:          IntProperty(default = 0, min = 0, max = 2, update = update_backface_culling)
+#shader_class related stuff
+    shader_class:           StringProperty(default='rendinst_simple',update = update_shader_class)
+    use_shader_enum:        BoolProperty(default=False, description = 'use old shader selector',
+                                            update = upd_shader_selector)
+    shader_category_active: EnumProperty(items=get_shader_categories, update = upd_shader_category)
+    shader_class_active:    EnumProperty(items=get_shaders, update = upd_active_shader)
 #property groups
     textures:   PointerProperty(type=dagor_textures)
     optional:   PointerProperty(type=dagor_optional)
 #temporary props for UI
-    prop_name:  StringProperty (default='atest')
-    prop_value: StringProperty (default='127')
-    prop_active:EnumProperty   (items = get_props,update=update_prop)
+    prop_name:          StringProperty (default='atest', update = upd_prop_name)
+    prop_value:         StringProperty (default='127')
+    prop_active:        EnumProperty   (items = get_props, update=upd_prop_active)
+    use_prop_enum:  BoolProperty(default=False, description = 'show as dropdown list',  update=upd_prop_selector)
 #proxymat related properties
     is_proxy:   BoolProperty   (default=False,description='is it proxymat?')
-    proxy_path: StringProperty (default='', subtype = 'FILE_PATH', description='\\<Material.name>.proxymat.blk',update=update_proxy_path)
+    proxy_path: StringProperty (default='', subtype = 'FILE_PATH', description='\\<Material.name>.proxymat.blk',
+                                update=update_proxy_path)
 
 #panel
 class DAGOR_PT_dagormat(Panel):
@@ -474,6 +568,37 @@ class DAGOR_PT_dagormat(Panel):
     @classmethod
     def poll(self, context):
         return context.active_object.active_material is not None
+
+    def draw_sides_switcher(self,context, layout):
+        DM = bpy.context.object.active_material.dagormat
+        sides = DM.sides
+        box = layout.box()
+        col = box.column(align = True)
+        pref = bpy.context.preferences.addons[basename(__package__)].preferences
+        bool = pref.backfacing_maximized
+        labels = ['single_sided', 'two_sided', 'real_two_sided']
+        row = col.row(align = True)
+        row.prop(pref, 'backfacing_maximized', text = "", emboss = False,
+            icon = 'DOWNARROW_HLT' if bool else 'RIGHTARROW')
+        row.prop(pref, 'backfacing_maximized', emboss = False,
+            text = "Backface mode:" if bool else f"Backface mode: {labels[sides]}")
+        if not bool:
+            return
+        col.context_pointer_set(name = "DM", data = DM)#called in operator
+
+        row = col.row(align = True)
+        row.operator('dt.set_mat_sides', text = "single_sided",
+            icon ='RADIOBUT_ON' if sides == 0 else 'RADIOBUT_OFF').sides = 0
+
+        row = col.row(align = True)
+        row.operator('dt.set_mat_sides', text = "two_sided",
+            icon ='RADIOBUT_ON' if sides == 1 else 'RADIOBUT_OFF').sides = 1
+
+        row = col.row(align = True)
+        row.operator('dt.set_mat_sides', text = "real_two_sided",
+            icon ='RADIOBUT_ON' if sides == 2 else 'RADIOBUT_OFF').sides = 2
+        return
+
     def draw(self,context):
         layout = self.layout
         pref=bpy.context.preferences.addons[basename(__package__)].preferences
@@ -491,7 +616,7 @@ class DAGOR_PT_dagormat(Panel):
                         emboss=False,text='Main',expand=True)
                     header.label(text='',icon='MATERIAL')
                     if pref.mat_maximized:
-                        mat.prop(DM,'sides', text = '')
+                        self.draw_sides_switcher(context, mat)
                         colors=mat.row()
                         colors.prop(DM,  'ambient', text='')
                         colors.prop(DM,  'specular',text='')
@@ -499,14 +624,15 @@ class DAGOR_PT_dagormat(Panel):
                         colors.prop(DM,  'emissive',text='')
                         mat.prop   (DM,  'power')
                         cl=mat.row ()
-                        if pref.old_shader_selector:
-                            cl.prop    (pref,'shader_class_active', text='')
-                            cl=mat.row ()
-                            cl.prop    (pref,  'shader_active',text='shader')
-                            cl.prop    (pref,'old_shader_selector', icon='MENU_PANEL', text='')
+
+                        if DM.use_shader_enum:
+                            cl.prop (DM,  'shader_class_active',text='shader')
+                            cl.prop (DM,'use_shader_enum', icon='MENU_PANEL', text='')
+                            cl=mat.row()
+                            cl.prop(DM,'shader_category_active', text='category')
                         else:
-                            cl.prop    (DM,  'shader_class',text='shader')
-                            cl.prop    (pref,'old_shader_selector', icon='MENU_PANEL', text='')
+                            cl.prop (DM,  'shader_class',text='shader')
+                            cl.prop (DM,'use_shader_enum', icon='MENU_PANEL', text='')
 #Material/Textures
                     tex=layout.box()
                     header=tex.row()
@@ -538,16 +664,13 @@ class DAGOR_PT_dagormat(Panel):
                         add.name=DM.prop_name
                         add.value=DM.prop_value
                         prew=addbox.row()
-                        if pref.old_prop_selector:
+                        if DM.use_prop_enum:
                             prew.prop(DM,'prop_active',text='')
-                            prew.label(text='',icon='FORWARD')
-                            prew.prop(DM,'prop_value',text='')
-                            prew.prop(pref,'old_prop_selector', icon='MENU_PANEL', text='')
                         else:
                             prew.prop(DM,'prop_name',text='')
-                            prew.label(text='',icon='FORWARD')
-                            prew.prop(DM,'prop_value',text='')
-                            prew.prop(pref,'old_prop_selector', icon='MENU_PANEL', text='')
+                        prew.label(text='',icon='FORWARD')
+                        prew.prop(DM,'prop_value',text='')
+                        prew.prop(DM,'use_prop_enum', icon='MENU_PANEL', text='')
                         for key in DM.optional.keys():
                             prop=opt.box()
                             rem=prop.row()
@@ -599,6 +722,7 @@ class DAGOR_PT_dagormat(Panel):
                     shared.operator('dt.clear_tex_paths',text='Clear texture paths',  icon='TEXTURE').mats=mats
 
 classes = [dagor_optional,dagor_textures,dagormat,
+            DAGOR_OT_set_mat_sides,
             DAGOR_OT_removeMaterialParam, DAGOR_OT_addMaterialParam,
             DAGOR_OT_clear_tex_paths, DAGOR_OT_upd_tex_paths,
             DAGOR_OT_dagormat_to_text, DAGOR_OT_dagormat_from_text,

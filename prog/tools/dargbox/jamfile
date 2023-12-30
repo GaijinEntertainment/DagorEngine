@@ -24,12 +24,12 @@ if $(Config) = rel { # this is only needed to build with warnings-as-errors
 }
 
 
-OutDir = $(Root)/tools/dargBox ;
+OutDir = $(Root)/tools/dargbox ;
 if $(Platform) in android iOS { OutDir = $(OutDir)/$(Platform) ; }
 
 if ( $(Platform) in win32 win64 linux64 ) { UseD3DMulti ?= yes ; }
 
-if $(Platform) in win32 win64 && [ GLOB $(Root)/prog/gameLibs/vr : * ] {
+if $(Platform) in win32 win64 {
   VRDeviceSupport ?= yes ;
 }
 
@@ -51,10 +51,13 @@ AddIncludes =
 Sources =
   app.cpp
   main.cpp
+  fileDropHandler.cpp
   joystick.cpp
   screenshotMetaInfoLoader.cpp
   scriptBindings.cpp
   initScript.cpp
+  vr.cpp
+  vrInput.cpp
   gamelib/input.cpp
 ;
 
@@ -88,6 +91,7 @@ UseProgLibs =
   engine/gameRes
   commonFx/commonFxGame
 
+  gameLibs/vr
   gameLibs/webui
   gameLibs/daRg
   gameLibs/folders
@@ -304,13 +308,7 @@ if $(VRDeviceSupport) = yes {
     @$(OpenXrSdkPath)/$(Platform)/bin/openxr_loader.dll openxr_loader.dll
     @$(OpenXrSdkPath)/$(Platform)/bin/openxr_loader.pdb openxr_loader.pdb
   ;
-  Sources += vr.cpp vrInput.cpp ;
-  UseProgLibs += gameLibs/vr ;
-  CPPopt += -DHAS_VR ;
-} else {
-  Sources += vrStub.cpp ;
 }
-
 if [ GLOB $(Root)/prog/gameLibs/quirrel/matchingModule : jamfile ] {
   UseProgLibs += gameLibs/matchingClient gameLibs/quirrel/matchingModule 1stPartyLibs/matching gameLibs/quirrel/sqext ;
   CPPopt += -DHAS_MATCHING_MODULE ;

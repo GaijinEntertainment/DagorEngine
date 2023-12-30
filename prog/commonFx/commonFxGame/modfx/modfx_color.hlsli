@@ -49,7 +49,8 @@ void modfx_color_apply_curve( BufferData_cref buf, uint ofs, float life_k, float
 
 DAFX_INLINE
 void modfx_color_sim( ModfxParentSimData_cref parent_sdata, BufferData_cref buf,
-  rnd_seed_ref rnd_seed, float grad_k, float curve_k, float emm_k, float4_cref mul_color, float4_ref o_color, float_ref o_emission_fade )
+  rnd_seed_ref rnd_seed, float grad_k, float curve_k, float emm_k, float part_distr_k,
+  float4_cref mul_color, float4_ref o_color, float_ref o_emission_fade )
 {
   modfx_color_init( parent_sdata, buf, rnd_seed, o_color );
 
@@ -58,6 +59,11 @@ void modfx_color_sim( ModfxParentSimData_cref parent_sdata, BufferData_cref buf,
 
   if ( parent_sdata.mods_offsets[MODFX_SMOD_COLOR_OVER_PART_LIFE_CURVE] )
     modfx_color_apply_curve( buf, parent_sdata.mods_offsets[MODFX_SMOD_COLOR_OVER_PART_LIFE_CURVE], curve_k, o_color );
+
+  if ( parent_sdata.mods_offsets[MODFX_SMOD_COLOR_OVER_PART_IDX_CURVE] )
+  {
+    modfx_color_apply_curve( buf, parent_sdata.mods_offsets[MODFX_SMOD_COLOR_OVER_PART_IDX_CURVE], part_distr_k, o_color );
+  }
 
   if ( parent_sdata.mods_offsets[MODFX_SMOD_COLOR_EMISSION_OVER_PART_LIFE] )
     o_emission_fade = modfx_get_1f_curve( buf, parent_sdata.mods_offsets[MODFX_SMOD_COLOR_EMISSION_OVER_PART_LIFE], emm_k );

@@ -65,7 +65,7 @@
 using namespace sqimportparser;
 
 
-#define APP_VERSION "1.0.19"
+#define APP_VERSION "1.0.21"
 
 namespace visuallog
 {
@@ -74,19 +74,18 @@ void logmsg(const char *, LogItemCBProc, void *, E3DCOLOR, int) {}
 } // namespace visuallog
 
 
-static void before_execute_module(HSQUIRRELVM vm, const char *requested_module_name, const char *resolved_module_name);
-static void after_execute_module(HSQUIRRELVM vm, const char *requested_module_name, const char *resolved_module_name);
+extern int __argc;
+extern char **__argv;
+static int argc_limit = -1; // index of '--' argument
 
 static bool syntax_check_only = false;
 static bool has_errors = false;
 static bool csq_time = false;
-static bool csq_print_to_string = false;
 static bool csq_show_native_modules = false;
 static bool use_debug_file = false;
 static bool check_fname_case = false;
 static bool do_static_analysis = false;
 static bool flip_diagnostic_state = false;
-static String csq_output_string;
 static String sqconfig_dir;
 
 static HSQUIRRELVM sqvm = nullptr;
@@ -95,10 +94,6 @@ static SqModules *module_manager = nullptr;
 static eastl::unique_ptr<sqfrp::ObservablesGraph> frp_graph;
 static std::vector<std::string> allowed_native_modules;
 static std::vector<std::string> char_server_urls;
-
-static const char *print_sorted_root_code =
-#include "print_sorted_root.nut.inl"
-  ;
 
 
 static void stderr_report_fatal_error(const char *, const char *msg, const char *call_stack)
@@ -111,16 +106,8 @@ static void stderr_report_fatal_error(const char *, const char *msg, const char 
 
 static void output_text(const char *msg)
 {
-  if (csq_print_to_string)
-  {
-    csq_output_string.reserve(65536);
-    csq_output_string += msg;
-  }
-  else
-  {
-    printf("%s", msg);
-    debug_("%s", msg);
-  }
+  printf("%s", msg);
+  debug_("%s", msg);
 }
 
 
@@ -339,96 +326,6 @@ static SQInteger get_type_delegates(HSQUIRRELVM v)
   return 1;
 }
 
-static void split_string_lines(String s, Tab<String> &output, Tab<String> &output_name)
-{
-  clear_and_shrink(output);
-  s.replaceAll("\r\n", "\n");
-
-  String buf;
-  for (int i = 0; i < s.length(); i++)
-  {
-    if (s[i] == '\n')
-    {
-      output.push_back(buf);
-      int endOfName = max<int>(find_value_idx(buf, '|'), 0);
-      String substr;
-      substr.setSubStr(buf.str(), buf.str() + endOfName);
-      output_name.push_back(substr);
-
-      clear_and_shrink(buf);
-      continue;
-    }
-    buf += s[i];
-  }
-
-  if (buf.length() > 0)
-  {
-    output.push_back(buf);
-    int endOfName = max<int>(find_value_idx(buf, '|'), 0);
-    String substr;
-    substr.setSubStr(buf.str(), buf.str() + endOfName);
-    output_name.push_back(substr);
-  }
-}
-
-
-static void print_key(const String &full, const String &name, bool overwrites)
-{
-  printf(overwrites ? "> " : "  ");
-
-  printf("%s", name.str());
-  const char *params = strstr(full.str(), "|params:");
-  if (params)
-    printf("%s", params + sizeof("|params:") - 1);
-
-  if (strstr(full.str(), "(class :"))
-    printf(" // class");
-
-  if (strstr(full.str(), "(array :"))
-    printf(" // array");
-
-  if (strstr(full.str(), "(table :"))
-    printf(" // table");
-
-  if (strstr(full.str(), "(null :"))
-    printf(" // null");
-
-  printf("\n");
-}
-
-static void after_execute(const char *code)
-{
-  static Tab<String> exeBase;
-  static Tab<String> exeBaseName;
-
-  clear_and_shrink(csq_output_string);
-  if (!run_sq_code("print_sorted_root_code", print_sorted_root_code))
-    quit_game(1, false);
-
-  if (!code)
-  {
-    split_string_lines(csq_output_string, exeBase, exeBaseName);
-  }
-  else
-  {
-    printf("\n%s:\n", code);
-    Tab<String> cur;
-    Tab<String> curName;
-    split_string_lines(csq_output_string, cur, curName);
-    for (int i = 0; i < cur.size(); i++)
-    {
-      if (find_value_idx(exeBase, cur[i]) >= 0)
-        continue;
-
-      bool overwrites = (find_value_idx(exeBaseName, curName[i]) >= 0);
-      print_key(cur[i], curName[i], overwrites);
-    }
-
-    exeBase = cur;
-    exeBaseName = curName;
-  }
-}
-
 
 static String read_file_ignoring_utf8bom(const char *filename)
 {
@@ -506,326 +403,6 @@ static void check_syntax(SqModules *module_mgr, const char *filename)
     quit_game(1, false);
 }
 
-
-struct ModuleStackRecord
-{
-  eastl::string requestedModuleName;
-  eastl::string resolvedModuleName;
-  eastl::string absoluteFileName;
-};
-
-static eastl::vector<ModuleStackRecord> modules_list;
-
-// index in modules_list
-static eastl::vector<int> module_stack;
-
-// identifiler -> index in modules_list
-static eastl::unordered_map<eastl::string, int> root_identifiers;
-static eastl::unordered_map<eastl::string, int> const_identifiers;
-static bool first_execute = true;
-
-static eastl::vector<eastl::string> file_names_in_order_of_execution;
-
-static void dump_export_item(Sqrat::Object &key, Sqrat::Object &value, eastl::string *result = nullptr)
-{
-  if (key.GetType() != OT_STRING)
-    return;
-
-  eastl::string str;
-
-  const Sqrat::Var<const char *> keyVar = key.GetVar<const char *>();
-  str.append(keyVar.value);
-
-  if (value.GetType() == OT_CLOSURE)
-    str.append(" function");
-  else if (value.GetType() == OT_NATIVECLOSURE)
-    str.append(" native");
-  else if (value.GetType() == OT_TABLE)
-    str.append(" table");
-  else if (value.GetType() == OT_ARRAY)
-    str.append(" array");
-  else if (value.GetType() == OT_CLASS)
-    str.append(" class");
-  else if (value.GetType() == OT_INSTANCE)
-    str.append(" instance");
-  else if (value.GetType() == OT_NULL)
-    str.append(" null");
-  else if (value.GetType() == OT_INTEGER)
-    str.append(" integer");
-  else if (value.GetType() == OT_FLOAT)
-    str.append(" float");
-  else if (value.GetType() == OT_BOOL)
-    str.append(" bool");
-  else if (value.GetType() == OT_STRING)
-    str.append(" string");
-  else
-    str.append(" other");
-
-  if (value.GetType() == OT_CLOSURE)
-  {
-    HSQOBJECT &obj = value.GetObject();
-    SQFunctionProto *func = obj._unVal.pClosure->_function;
-    int maxParams = max(int(func->_nparameters) - 1, 0);
-    int minParams = max(int(maxParams - func->_ndefaultparams), 0);
-
-    eastl::vector<eastl::string> paramNames;
-    for (int i = 0; i < func->_nparameters; i++)
-    {
-      SQObjectPtr &param = func->_parameters[i];
-      if (param._type == OT_STRING)
-        paramNames.push_back((const char *)param._unVal.pString->_val);
-    }
-
-    if (!paramNames.empty() && func->_varparams)
-    {
-      paramNames.pop_back(); // remove 'vargv'
-      minParams = max(minParams - 1, 0);
-      maxParams = 99;
-    }
-
-    str.append_sprintf(" %d %d", minParams, maxParams);
-
-    for (const eastl::string &paramName : paramNames)
-      if (paramName != "this")
-        str.append_sprintf(" %s", paramName.c_str());
-  }
-
-  if (value.GetType() == OT_NATIVECLOSURE)
-  {
-    HSQOBJECT &obj = value.GetObject();
-    SQNativeClosure *func = obj._unVal.pNativeClosure;
-    if (func->_nparamscheck < 0)
-      str.append_sprintf(" %d %d", abs(int(func->_nparamscheck)) - 1, 99);
-    else
-    {
-      int params = max(int(func->_nparamscheck) - 1, 0);
-      str.append_sprintf(" %d %d", params, params);
-    }
-  }
-
-  if (value.GetType() == OT_TABLE || value.GetType() == OT_CLASS || value.GetType() == OT_INSTANCE)
-  {
-    Sqrat::Table::iterator iter;
-    while (value.Next(iter))
-    {
-      Sqrat::Object sqKey(iter.getKey(), sqvm);
-      if (sqKey.GetType() == OT_STRING)
-        str.append_sprintf(" %s", sqKey.GetVar<const char *>().value);
-    }
-  }
-
-  if (!result)
-    printf("%s\n", str.c_str());
-  else
-    eastl::swap(str, *result);
-}
-
-
-static void collect_root_and_const_names(HSQUIRRELVM vm, eastl::vector<eastl::string> &root_names,
-  eastl::vector<eastl::string> &const_names)
-{
-  {
-    Sqrat::RootTable exports(vm);
-    Sqrat::Table::iterator iter;
-    while (exports.Next(iter))
-    {
-      Sqrat::Object sqKey(iter.getKey(), vm);
-      Sqrat::Object sqValue(iter.getValue(), vm);
-      eastl::string tmp;
-      dump_export_item(sqKey, sqValue, &tmp);
-      root_names.emplace_back(tmp);
-    }
-  }
-
-  {
-    Sqrat::ConstTable exports(vm);
-    Sqrat::Table::iterator iter;
-    while (exports.Next(iter))
-    {
-      Sqrat::Object sqKey(iter.getKey(), vm);
-      Sqrat::Object sqValue(iter.getValue(), vm);
-      eastl::string tmp;
-      dump_export_item(sqKey, sqValue, &tmp);
-      const_names.emplace_back(tmp);
-    }
-  }
-}
-
-
-static void before_execute_module(HSQUIRRELVM vm, const char *requested_module_name, const char *resolved_module_name)
-{
-  if (first_execute) // dump identifiers from root and consttable that a present by default
-  {
-    first_execute = false;
-    modules_list.push_back({"", "", ""});
-    module_stack.push_back(0);
-    eastl::vector<eastl::string> root_names;
-    eastl::vector<eastl::string> const_names;
-    collect_root_and_const_names(vm, root_names, const_names);
-
-    for (const eastl::string &name : root_names)
-      if (root_identifiers.find(name) == root_identifiers.end())
-        root_identifiers[name] = 0;
-
-    for (const eastl::string &name : const_names)
-      if (const_identifiers.find(name) == const_identifiers.end())
-        const_identifiers[name] = 0;
-  }
-
-  if (!resolved_module_name || !resolved_module_name[0])
-    resolved_module_name = requested_module_name;
-
-  modules_list.push_back({requested_module_name, resolved_module_name, resolve_absolute_file_name(resolved_module_name)});
-  module_stack.push_back(modules_list.size() - 1);
-}
-
-static void after_execute_module(HSQUIRRELVM vm, const char *requested_module_name, const char *resolved_module_name)
-{
-  G_UNUSED(resolved_module_name);
-  G_UNUSED(requested_module_name);
-  int moduleIndex = module_stack.back();
-  G_ASSERT(modules_list[moduleIndex].requestedModuleName == requested_module_name);
-
-  eastl::vector<eastl::string> root_names;
-  eastl::vector<eastl::string> const_names;
-  collect_root_and_const_names(vm, root_names, const_names);
-
-  for (const eastl::string &name : root_names)
-    if (root_identifiers.find(name) == root_identifiers.end())
-      root_identifiers[name] = moduleIndex;
-
-  for (const eastl::string &name : const_names)
-    if (const_identifiers.find(name) == const_identifiers.end())
-      const_identifiers[name] = moduleIndex;
-
-  module_stack.pop_back();
-
-  file_names_in_order_of_execution.push_back(resolve_absolute_file_name(resolved_module_name));
-}
-
-static int find_module_index_by_resolved_name(const char *resolved_name)
-{
-  for (int i = 0; i < modules_list.size(); i++)
-    if (modules_list[i].resolvedModuleName == resolved_name)
-      return i;
-  // printf("#Internal error: cannot find module by resolved name '%s'\n", resolved_name);
-  return -1;
-}
-
-static void dump_export_content()
-{
-  printf("\n### BEGIN EXPORT CONTENT\n");
-  HSQUIRRELVM vm = module_manager->getVM();
-  for (SqModules::Module &module : module_manager->modules)
-  {
-    int index = find_module_index_by_resolved_name(module.fn.c_str());
-    printf("### SCRIPT MODULE %s %s %s\n", modules_list[index].requestedModuleName.c_str(), module.fn.c_str(),
-      modules_list[index].absoluteFileName.c_str());
-
-    Sqrat::Object &exports = module.exports;
-    if (exports.GetType() == OT_TABLE || exports.GetType() == OT_CLASS)
-    {
-      Sqrat::Table::iterator iter;
-      while (exports.Next(iter))
-      {
-        Sqrat::Object sqKey(iter.getKey(), vm);
-        Sqrat::Object sqValue(iter.getValue(), vm);
-        dump_export_item(sqKey, sqValue);
-      }
-    }
-    else
-    {
-      Sqrat::Object key("=", vm);
-      dump_export_item(key, exports);
-    }
-
-    printf("### MODULE EXPORT TO ROOT\n");
-    for (auto &item : root_identifiers)
-      if (item.second == index)
-        printf("%s\n", item.first.c_str());
-
-    printf("### MODULE EXPORT TO CONST\n");
-    for (auto &item : const_identifiers)
-      if (item.second == index)
-        printf("%s\n", item.first.c_str());
-  }
-
-  // native modules
-  for (auto &module : module_manager->nativeModules)
-  {
-    int index = find_module_index_by_resolved_name(module.first.c_str());
-
-    printf("### NATIVE MODULE %s\n", module.first.c_str());
-    Sqrat::Object exports = module.second;
-    if (exports.GetType() == OT_TABLE || exports.GetType() == OT_CLASS)
-    {
-      Sqrat::Table::iterator iter;
-      while (exports.Next(iter))
-      {
-        Sqrat::Object sqKey(iter.getKey(), vm);
-        Sqrat::Object sqValue(iter.getValue(), vm);
-        dump_export_item(sqKey, sqValue);
-      }
-    }
-    else
-    {
-      Sqrat::Object key("=", vm);
-      dump_export_item(key, exports);
-    }
-
-    printf("### MODULE EXPORT TO ROOT\n");
-    for (auto &item : root_identifiers)
-      if (item.second == index)
-        printf("%s\n", item.first.c_str());
-
-    printf("### MODULE EXPORT TO CONST\n");
-    for (auto &item : const_identifiers)
-      if (item.second == index)
-        printf("%s\n", item.first.c_str());
-  }
-
-  // initial
-  {
-    printf("### INITIAL ROOT\n");
-    for (auto &item : root_identifiers)
-      if (item.second == 0)
-        printf("%s\n", item.first.c_str());
-
-    printf("### INITIAL CONST\n");
-    for (auto &item : const_identifiers)
-      if (item.second == 0)
-        printf("%s\n", item.first.c_str());
-  }
-
-  // default type deligates
-  {
-    const char *types[] = {"table", "array", "string", "integer", "generator", "closure", "thread", "class", "instance", "weakref"};
-    for (const char *type : types)
-    {
-      printf("### NATIVE MODULE '%s' default deligate\n", type);
-      sq_pushroottable(vm);
-      sq_pushstring(vm, (SQChar *)type, -1);
-      get_type_delegates(vm);
-      HSQOBJECT hExports;
-      SQRAT_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &hExports)));
-      Sqrat::Object exports(hExports, vm);
-      Sqrat::Table::iterator iter;
-      while (exports.Next(iter))
-      {
-        Sqrat::Object sqKey(iter.getKey(), vm);
-        Sqrat::Object sqValue(iter.getValue(), vm);
-        dump_export_item(sqKey, sqValue);
-      }
-      sq_pop(vm, 3);
-    }
-  }
-
-  for (eastl::string name : file_names_in_order_of_execution)
-    if (::dd_file_exists(name.c_str()))
-      printf("### PROCESS FILE %s\n", name.c_str());
-
-  printf("### END EXPORT CONTENT\n\n");
-}
 
 static FILE *diag_json_file = nullptr;
 
@@ -920,16 +497,10 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 
   module_manager->setModuleImportCallback(is_module_allowed);
 
-  SqModules::setModuleExecutionCallbacks(before_execute_module, after_execute_module);
-
   allowed_native_modules = config_blk.getValuesList("allowed_native_modules");
   char_server_urls = config_blk.getValuesList("char_server_urls");
 
-  {
-    extern int dgs_argc;
-    extern char **dgs_argv;
-    sqstd_register_command_line_args(sqvm, dgs_argc, dgs_argv);
-  }
+  sqstd_register_command_line_args(sqvm, __argc, __argv);
 
   {
     Sqrat::RootTable rootTbl(sqvm);
@@ -984,9 +555,6 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   indexCounter++;
   if (moduleIndex < 0 || moduleIndex == indexCounter)
   {
-    if (moduleIndex >= 0)
-      after_execute(nullptr);
-
     is_execute = true;
 
     int executeCount = 0;
@@ -1003,9 +571,6 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
         if (!s[0])
           continue;
 
-        bool saved = csq_print_to_string;
-        csq_print_to_string = false;
-
         if (exeString)
         {
           out_module_name.printf(0, "execute \"%s\"", s);
@@ -1021,8 +586,6 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
           String exportName;
           exportName.printf(0, "%s/execute:#%d", resolve_absolute_file_name(config_blk.getFileName().c_str()).c_str(), executeCount);
 
-          before_execute_module(module_manager->getVM(), exportName.c_str(), exportName.c_str());
-
           if (!script.CompileString(s, errMsg, srcName.c_str(), &bindings.GetObject()) ||
               (!syntax_check_only && !script.Run(errMsg, &nullThis)))
           {
@@ -1035,8 +598,6 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
           {
             sq_mergeglobalnames(&bindings.GetObject());
           }
-
-          after_execute_module(module_manager->getVM(), exportName.c_str(), exportName.c_str());
         }
         else
         {
@@ -1051,11 +612,6 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
             quit_game(1, false);
           }
         }
-
-        csq_print_to_string = saved;
-
-        if (moduleIndex >= 0)
-          after_execute(out_module_name);
       }
     }
   }
@@ -1140,9 +696,6 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   if (csq_time)
     printf("Execution time: %d ms\n", t1 - t0);
 
-  if (success && ::dgs_get_argv("export-modules-content"))
-    dump_export_content();
-
   if (frp_graph)
     frp_graph->notifyObservablesOnShutdown(true);
   del_it(module_manager);
@@ -1172,59 +725,6 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 }
 
 
-static void show_modules_content(const KeyValueFile &config_blk)
-{
-  Tab<String> base;
-  Tab<String> baseName;
-  Tab<String> accum;
-  Tab<String> accumName;
-  Tab<String> nativeModules;
-
-  csq_print_to_string = true;
-
-  clear_and_shrink(csq_output_string);
-  String tmpS;
-  bool tmpB;
-  process_file("print_sorted_root", print_sorted_root_code, config_blk, 0, tmpS, tmpB);
-  split_string_lines(csq_output_string, base, baseName);
-
-
-  for (int moduleIndex = 1;; moduleIndex++)
-  {
-    String givenName;
-    bool inExecute = false;
-    clear_and_shrink(csq_output_string);
-    if (process_file("print_sorted_root", print_sorted_root_code, config_blk, moduleIndex, givenName, inExecute))
-    {
-      Tab<String> cur;
-      Tab<String> curName;
-      split_string_lines(csq_output_string, cur, curName);
-
-      if (!inExecute)
-      {
-        printf("\n%s:\n", givenName.str());
-        for (int i = 0; i < cur.size(); i++)
-        {
-          if (find_value_idx(baseName, curName[i]) >= 0)
-            continue;
-
-          bool overwrites = (find_value_idx(accumName, curName[i]) >= 0);
-          print_key(cur[i], curName[i], overwrites);
-
-          accum.push_back(cur[i]);
-          accumName.push_back(curName[i]);
-        }
-      }
-    }
-    else
-    {
-      csq_print_to_string = false;
-      return;
-    }
-  }
-}
-
-
 void print_usage()
 {
   printf("\nUsage: csq [options] <script.nut>\n");
@@ -1235,8 +735,6 @@ void print_usage()
   printf("  --show-basepaths - show all base paths\n");
   printf("  --set-sqconfig:<file-name> - specialize .sqconfig file\n");
   printf("  --sample-config - print reference .sqconfig in output\n");
-  printf("  --modules-content - show modules content ('>' - overwrites previous)\n");
-  printf("  --export-modules-content - show content of mudules (used by sq3_sa)\n");
   printf("  --native-modules - show list of available native modules\n");
   printf("  --mount-vromfs:<vrom> - all vroms will be mounted\n");
   printf("  --mount:<mount>=<path> - add mount point (--mount:darg=../../prog/daRg)\n");
@@ -1246,16 +744,17 @@ void print_usage()
   printf("  --add-basepath - will add basepath (relative to current dir)\n");
   printf("  --syntax-check - don't execute, just check syntax\n");
   printf("  --final-message:<message> - print message at the end of execution without fatal errors\n");
-  printf("  --static-analysis - perform static analysis of compiling .nut files (implies '--compiler:ast')\n");
+  printf("  --static-analysis - perform static analysis of compiling .nut files\n");
   printf("  --message-output-file:<file-name> - print compiler messages to file (JSON)\n");
-  printf("  --inverse-warnings - flip warning diagnostic state (enbaled -> disabled and vice versa)\n");
-  printf("  --warnings-list - print all warnings and exit");
-  printf("  --absolute-path - use absolute path in diagnsotic render");
-  printf("  --visited-files-list:<file_name> - dump all visited scripts file names into specified file (appends if existed)");
-  printf("  --W:<id> - disable diagnostic by numeric id");
-  printf("  --D:<diagnostic_id> - disable diagnostic by text id");
+  printf("  --warnings-list - print all warnings and exit\n");
+  printf("  --absolute-path - use absolute path in diagnsotic render\n");
+  printf("  --visited-files-list:<file_name> - dump all visited scripts file names into specified file (appends if existed)\n");
+  printf("  --W:<id> - disable diagnostic by numeric id\n");
+  printf("  --D:<diagnostic_id> - disable diagnostic by text id\n");
+  printf("  --inverse-warnings - flip warning diagnostic state (enabled -> disabled and vice versa)\n");
   printf("  --sqversion - print version of quirrel\n");
   printf("  --version - print version of csq\n");
+  printf("  --ignore-unknown-args - ignore unknown command line arguments\n");
   printf("  -- - ignore arguments after '--', but these arguments are still available in '__argv' array\n");
   printf("\n");
 }
@@ -1347,24 +846,36 @@ void on_file_open(const char *fname, void * /*file_handle*/, int flags)
 }
 
 
+int check_unused_args()
+{
+  if (::dgs_get_argv("ignore-unknown-args"))
+    return has_errors;
+
+  for (int i = 1; i < argc_limit; i++)
+    if (!dgs_is_arg_used(i))
+    {
+      has_errors = true;
+      printf("\nERROR: Invlid argument '%s'\n", __argv[i]);
+    }
+
+  return has_errors ? 1 : 0;
+}
+
+
 int DagorWinMain(bool debugmode)
 {
-  extern int __argc;
-  extern char **__argv;
-
   G_UNUSED(debugmode);
+  argc_limit = __argc;
   dgs_report_fatal_error = stderr_report_fatal_error;
   debug_set_log_callback(log_err_callback);
   bindquirrel::set_sq_exit_function_ptr(sq_exit_func);
-  // SqModules::setModuleImportCallback(before_import_module_cb);
-  // SqModules::setModuleExecutionCallbacks(before_exec_module, after_exec_module);
 
   dag_on_file_open = on_file_open;
 
   if (::dgs_get_argv("help"))
   {
     print_usage();
-    return 0;
+    return check_unused_args();
   }
 
   Tab<String> inputFiles(tmpmem);
@@ -1375,19 +886,32 @@ int DagorWinMain(bool debugmode)
     if (*s == '-')
     {
       if (!strcmp(s, "--"))
+      {
+        argc_limit = i;
         break;
+      }
 
       if (!strcmp(s, "--time"))
-        csq_time = true;
-
-      if (!strcmp(s, "--debugfile") && !use_debug_file)
       {
-        use_debug_file = true;
-        start_classic_debug_system("debug");
+        csq_time = true;
+        dgs_set_arg_used(i);
+      }
+
+      if (!strcmp(s, "--debugfile"))
+      {
+        dgs_set_arg_used(i);
+        if (!use_debug_file)
+        {
+          use_debug_file = true;
+          start_classic_debug_system("debug");
+        }
       }
     }
     else
+    {
+      dgs_set_arg_used(i);
       inputFiles.push_back(String(s));
+    }
   }
 
   if (inputFiles.size() > 0 && inputFiles[0].length() < 512)
@@ -1442,7 +966,7 @@ int DagorWinMain(bool debugmode)
   if (::dgs_get_argv("config-path"))
   {
     printf("%s\n", sqconfigPath.str());
-    return 0;
+    return check_unused_args();
   }
 
   if (::dgs_get_argv("sample-config"))
@@ -1464,25 +988,25 @@ int DagorWinMain(bool debugmode)
 
     printf("\n");
 
-    return 0;
+    return check_unused_args();
   }
 
   if (::dgs_get_argv("sqversion"))
   {
     printf("%s\n", SQUIRREL_VERSION);
-    return 0;
+    return check_unused_args();
   }
 
   if (::dgs_get_argv("version"))
   {
     printf("%s\n", APP_VERSION);
-    return 0;
+    return check_unused_args();
   }
 
   if (::dgs_get_argv("warnings-list"))
   {
     sq_printwarningslist(stdout);
-    return 0;
+    return check_unused_args();
   }
 
   if (::dgs_get_argv("static-analysis"))
@@ -1580,7 +1104,7 @@ int DagorWinMain(bool debugmode)
     VirtualRomFsData *d = load_vromfs_dump(fn, inimem);
     if (!d)
     {
-      printf("ERR: failed to load vromfs: %s\n", fn);
+      printf("ERROR: failed to load vromfs: %s\n", fn);
       return 1;
     }
     add_vromfs(d, false, mount_at ? str_dup(String(0, "%s/", mount_at), inimem) : NULL);
@@ -1612,13 +1136,7 @@ int DagorWinMain(bool debugmode)
         break;
 
     printf("\n");
-    return 0;
-  }
-
-  if (::dgs_get_argv("modules-content"))
-  {
-    show_modules_content(configBlk);
-    return 0;
+    return check_unused_args();
   }
 
   syntax_check_only = ::dgs_get_argv("syntax-check");
@@ -1648,5 +1166,5 @@ int DagorWinMain(bool debugmode)
   if (const char *finalMsg = ::dgs_get_argv("final-message"))
     printf("%s", finalMsg);
 
-  return has_errors ? 1 : 0;
+  return check_unused_args();
 }

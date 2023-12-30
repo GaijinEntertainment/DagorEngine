@@ -8,7 +8,7 @@ let conprint = log.console_print
 let { get_time_msec } = require("dagor.time")
 let { hardPersistWatched } = require("globalState.nut")
 
-let function registerScriptProfiler(prefix) {
+function registerScriptProfiler(prefix) {
   if (DBGLEVEL > 0) {
     let profiler = require("dagor.profiler")
     let profiler_reset = profiler.reset_values
@@ -19,7 +19,7 @@ let function registerScriptProfiler(prefix) {
     let spikesThresholdMs = hardPersistWatched($"{prefix}spikesThresholdMs", 10)
 
     local st = 0
-    let function toggleProfiler(newVal = null, fileName = null) {
+    function toggleProfiler(newVal = null, fileName = null) {
       local ret
       if (newVal == isProfileOn.value)
         ret = "already"
@@ -47,12 +47,12 @@ let function registerScriptProfiler(prefix) {
       conprint(ret)
       return ret
     }
-    let function profileSpikes(){
+    function profileSpikes(){
       if (profiler_get_total_time() > spikesThresholdMs.value*1000)
         profiler_dump()
       profiler_reset()
     }
-    let function toggleSpikesProfiler(){
+    function toggleSpikesProfiler(){
       isSpikesProfileOn(!isSpikesProfileOn.value)
       if (isSpikesProfileOn.value){
         conprint("starting spikes profiler with threshold {0}ms".subst(spikesThresholdMs.value))
@@ -66,7 +66,7 @@ let function registerScriptProfiler(prefix) {
         clearTimer(profileSpikes)
       }
     }
-    let function setSpikesThreshold(val){
+    function setSpikesThreshold(val){
       spikesThresholdMs(val.tofloat())
       conprint("set spikes threshold to {0} ms".subst(spikesThresholdMs.value))
     }

@@ -259,6 +259,7 @@ public:
     Tab<int> nameMapOfs(tmpmem);
     Tab<char> strData(tmpmem);
     int desc_sz = 0, data_sz = 0;
+    int build_errors = 0;
 
     reorderResData(log);
 
@@ -417,6 +418,9 @@ public:
             {
               log.addMessage(ILogWriter::ERROR, "Errors while exporting asset \"%s\"", mgr.getAssetName(rrd.nameId));
 
+              build_errors++;
+              if (!dabuild_stop_on_first_error)
+                goto finalize_label;
               cwr.popOrigin();
               return false;
             }
@@ -472,6 +476,9 @@ public:
           log.addMessage(ILogWriter::ERROR, "Failed %d comparison attempts while exporting asset \"%s\"", CMP_ATTEMPTS_COUNT,
             mgr.getAssetName(rrd.nameId));
 
+          build_errors++;
+          if (!dabuild_stop_on_first_error)
+            goto finalize_label;
           cwr.popOrigin();
           return false;
         }
@@ -483,10 +490,13 @@ public:
       }
       data_len = cwr.tell();
       c4.setAssetDataPos(nameTypified, dataOfs, data_len);
+    finalize_label:
       cwr.popOrigin();
 
       rrd.dataOffset = dataOfs;
     }
+    if (build_errors)
+      return false;
 
     // patch real-res data offsets in header
     for (int i = 0; i < realResData.size(); ++i)

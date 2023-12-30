@@ -186,8 +186,8 @@ shader clouds2_taa_ps, clouds2_taa_ps_has_empty, clouds2_taa_ps_no_empty
   hlsl(ps) {
     struct MRT
     {
-      half4 color:SV_Target0;
-      half taaWeight:SV_Target1;
+      float4 color:SV_Target0;
+      float taaWeight:SV_Target1;
     };
     MRT clouds_ps(VsOutput input HW_USE_SCREEN_POS)
     {

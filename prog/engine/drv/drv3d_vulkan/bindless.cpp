@@ -85,7 +85,7 @@ void BindlessManager::freeBindlessResourceRange(uint32_t resourceType, uint32_t 
 
 uint32_t BindlessManager::registerBindlessSampler(BaseTex *texture)
 {
-  auto sampler = texture->samplerState;
+  SamplerState sampler = texture->samplerState;
 
   uint32_t newIndex;
   {
@@ -100,7 +100,7 @@ uint32_t BindlessManager::registerBindlessSampler(BaseTex *texture)
   }
 
   auto &device = get_device();
-  device.getContext().updateBindlessSampler(newIndex, device.getSampler(sampler));
+  device.getContext().updateBindlessSampler(newIndex, sampler);
   return newIndex;
 }
 

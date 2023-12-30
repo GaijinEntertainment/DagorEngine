@@ -318,7 +318,7 @@ bool HL2Model::gatherMesh(mstudiomesh_t *studioMesh, OptimizedModel::MeshHeader_
       {
         faces += strip->numIndices - 2;
         debug("strip %d", strip->numIndices);
-        fatal("not implemented");
+        DAG_FATAL("not implemented");
       }
       else
       {
@@ -604,7 +604,7 @@ bool HL2Model::load(const char *_bfn, const String &root_textures)
     OptimizedModel::FileHeader_t *vtxhdr = (OptimizedModel::FileHeader_t *)&vtx[0];
     if (vtxhdr->numBodyParts != phdr->numbodyparts)
     {
-      fatal("vtx_bodyparts(%d)!=model_bodypart(%d)", vtxhdr->numBodyParts, phdr->numbodyparts);
+      DAG_FATAL("vtx_bodyparts(%d)!=model_bodypart(%d)", vtxhdr->numBodyParts, phdr->numbodyparts);
     }
     for (bodyPartID = 0; bodyPartID < phdr->numbodyparts; bodyPartID++)
     {
@@ -624,7 +624,7 @@ bool HL2Model::load(const char *_bfn, const String &root_textures)
       OptimizedModel::BodyPartHeader_t *vtxBody = vtxhdr->pBodyPart(bodyPartID);
       if (vtxBody->numModels != pBodyPart->nummodels)
       {
-        fatal("%d, vtx_bodymodels(%d)!=model_bodymodels(%d)", bodyPartID, vtxBody->numModels, pBodyPart->nummodels);
+        DAG_FATAL("%d, vtx_bodymodels(%d)!=model_bodymodels(%d)", bodyPartID, vtxBody->numModels, pBodyPart->nummodels);
       }
       int modelID;
       for (modelID = 0; modelID < pBodyPart->nummodels; modelID++)
@@ -643,7 +643,7 @@ bool HL2Model::load(const char *_bfn, const String &root_textures)
         debug("model = %s meshes %d %d", pModel->name, pModel->nummeshes, pModel->meshindex);
         if (vtxLodModel->numMeshes != pModel->nummeshes)
         {
-          fatal("%d %d, vtx_bodymodelmeshes(%d)!=model_bodymodelmeshes(%d)", bodyPartID, modelID, vtxLodModel->numMeshes,
+          DAG_FATAL("%d %d, vtx_bodymodelmeshes(%d)!=model_bodymodelmeshes(%d)", bodyPartID, modelID, vtxLodModel->numMeshes,
             pModel->nummeshes);
         }
         int n = append_items(nodes, 1);
@@ -668,7 +668,7 @@ bool HL2Model::load(const char *_bfn, const String &root_textures)
         }
 
         /*if (pModel->nummeshes!=1) {
-          fatal_x("Not implemented meshes count");
+          DAG_FATAL("Not implemented meshes count");
         }*/
         BBox3 bbox;
         BBox2 tbox;
@@ -1236,7 +1236,7 @@ struct BSP
       td[i].width = b.readInt();
       td[i].height = b.readInt(); // width, heigh
       if (td[i].nameid >= texname.size())
-        fatal_x("invalid id");
+        DAG_FATAL("invalid id");
       td[i].name = texname[td[i].nameid];
       b.readInt();
       b.readInt(); // view width, heigh

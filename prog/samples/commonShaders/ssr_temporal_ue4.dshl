@@ -154,7 +154,7 @@ float4 HdrLerp(float4 ColorA, float4 ColorB, float Blend, float Exposure)
 }
 
 
-    void ssr_temporal_ps(VsOutput input, out half4 OutColor:SV_Target)
+    void ssr_temporal_ps(VsOutput input, out float4 OutColor:SV_Target)
     {
       float4 CameraMotion[5];
       float SampleWeights[9];

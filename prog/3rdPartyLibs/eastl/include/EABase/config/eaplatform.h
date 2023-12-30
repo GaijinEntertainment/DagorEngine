@@ -412,6 +412,10 @@
 		#define EA_PROCESSOR_POWERPC_32 1
 		#define EA_SYSTEM_BIG_ENDIAN 1
 		#define EA_PLATFORM_DESCRIPTION "Linux on PowerPC"
+	#elif defined(__e2k__)
+		#define EA_PROCESSOR_E2K 1
+		#define EA_SYSTEM_LITTLE_ENDIAN 1
+		#define EA_PLATFORM_DESCRIPTION "Elbrus E2K"
 	#else
 		#error Unknown processor
 		#error Unknown endianness
@@ -644,7 +648,7 @@
 #ifndef EA_PLATFORM_PTR_SIZE
 	#if defined(__WORDSIZE) // Defined by some variations of GCC.
 		#define EA_PLATFORM_PTR_SIZE ((__WORDSIZE) / 8)
-	#elif defined(_WIN64) || defined(__LP64__) || defined(_LP64) || defined(_M_IA64) || defined(__ia64__) || defined(__arch64__) || defined(__aarch64__) || defined(__mips64__) || defined(__64BIT__) || defined(__Ptr_Is_64)
+	#elif defined(_WIN64) || defined(__LP64__) || defined(_LP64) || defined(_M_IA64) || defined(__ia64__) || defined(__arch64__) || defined(__aarch64__) || defined(__mips64__) || defined(__64BIT__) || defined(__Ptr_Is_64) || defined(__e2k__)
 		#define EA_PLATFORM_PTR_SIZE 8
 	#elif defined(__CC_ARM) && (__sizeof_ptr == 8)
 		#define EA_PLATFORM_PTR_SIZE 8

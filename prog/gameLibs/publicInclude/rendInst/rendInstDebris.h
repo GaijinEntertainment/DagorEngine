@@ -26,33 +26,13 @@ namespace rendinst
 using ri_damage_effect_cb = void (*)(int type, const TMatrix &emitter_tm, const TMatrix &fx_tm, int pool_idx, bool is_player,
   AcesEffect **locked_fx, const char *effect_template);
 
-bool destroyRIGenWithBullets(const Point3 &from, const Point3 &dir, float &dist, Point3 &norm, bool killBuildings, unsigned frameNo,
-  ri_damage_effect_cb effect_cb);
-bool destroyRIGenInSegment(const Point3 &p0, const Point3 &p1, bool trees, bool buildings, Point4 &contactPt, bool doKill,
-  unsigned frameNo, ri_damage_effect_cb effect_cb);
-
-
 using damage_effect_cb = void (*)(int type, const TMatrix &emitter_tm, const TMatrix &fx_tm, int pool_idx, bool is_player,
   AcesEffect **locked_fx, const char *effect_template);
 
-inline bool destroyRIInSegment(const Point3 &p0, const Point3 &p1, bool trees, bool buildings, Point4 &contactPt, bool doKill,
-  uint32_t frameNo, damage_effect_cb effect_cb)
-{
-  return destroyRIGenInSegment(p0, p1, trees, buildings, contactPt, doKill, frameNo, effect_cb);
-}
-inline bool destroyRIWithBullets(const Point3 &from, const Point3 &dir, float &dist, Point3 &norm, bool killBuildings,
-  uint32_t frameNo, damage_effect_cb effect_cb)
-{
-  return destroyRIGenWithBullets(from, dir, dist, norm, killBuildings, frameNo, effect_cb);
-}
-
-
-void doRIGenDamage(const BSphere3 &sphere, unsigned frameNo, ri_damage_effect_cb effect_cb, const Point3 &axis = Point3(0.f, 0.f, 0.f),
+void doRIGenDamage(const BSphere3 &sphere, unsigned frameNo, const Point3 &axis = Point3(0.f, 0.f, 0.f), bool create_debris = true);
+void doRIGenDamage(const BBox3 &box, unsigned frameNo, const Point3 &axis = Point3(0.f, 0.f, 0.f), bool create_debris = true);
+void doRIGenDamage(const BBox3 &box, unsigned frameNo, const TMatrix &check_itm, const Point3 &axis = Point3(0.f, 0.f, 0.f),
   bool create_debris = true);
-void doRIGenDamage(const BBox3 &box, unsigned frameNo, ri_damage_effect_cb effect_cb, const Point3 &axis = Point3(0.f, 0.f, 0.f),
-  bool create_debris = true);
-void doRIGenDamage(const BBox3 &box, unsigned frameNo, ri_damage_effect_cb effect_cb, const TMatrix &check_itm,
-  const Point3 &axis = Point3(0.f, 0.f, 0.f), bool create_debris = true);
 void doRIGenDamage(const Point3 &pos, unsigned frameNo, ri_damage_effect_cb effect_cb, const Point3 &axis = Point3(0.f, 0.f, 0.f),
   float dmg_pts = 1000, bool create_debris = true);
 
@@ -72,16 +52,6 @@ DynamicPhysObjectData *doRIGenDestr(const RendInstDesc &desc, RendInstBufferData
 DynamicPhysObjectData *doRIGenDestrEx(const RendInstDesc &desc, float dmg_pts, ri_damage_effect_cb effect_cb = nullptr,
   int32_t user_data = -1);
 DynamicPhysObjectData *doRIExGenDestrEx(rendinst::riex_handle_t riex_handle, ri_damage_effect_cb effect_cb = nullptr);
-
-inline void doRendinstDebris(const BBox3 &, bool, uint32_t, damage_effect_cb)
-{
-  // fixme: not implemented!
-}
-
-inline void doRendinstDebris(const BSphere3 &, bool, uint32_t, damage_effect_cb)
-{
-  // fixme: not implemented!
-}
 
 bool restoreRiGen(const RendInstDesc &desc, const RendInstBufferData &buffer);
 riex_handle_t restoreRiGenDestr(const RendInstDesc &desc, const RendInstBufferData &buffer);

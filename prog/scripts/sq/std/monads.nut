@@ -13,7 +13,7 @@ local Foo = class {get = @(_) null}
 checkInterface(Foo, [{name = "get", params = ["v"]}])
 
 */
-let function checkInterface(klass, methods){
+function checkInterface(klass, methods){
   let failedMethods = []
   foreach (method in methods){
     if (type(method) == "string") {
@@ -171,7 +171,7 @@ Some = class (_Maybe) {
 
 none = _None()
 let None = @() none
-let function Maybe(a){
+function Maybe(a){
   if (a==null)
     return none
   else

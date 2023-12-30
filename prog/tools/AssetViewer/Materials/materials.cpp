@@ -265,7 +265,7 @@ MatParam &MaterialsPlugin::findMatParam(const char *name)
   String paramVal(::get_script_param(curMat->script, name));
   const MaterialParamDescr *desc = findParameterDescr(name);
   if (!desc)
-    fatal("Couldn't find description for parameter \"%s\"", name);
+    DAG_FATAL("Couldn't find description for parameter \"%s\"", name);
 
   MatParam *parameter = NULL;
   MatTripleInt *pi = NULL;

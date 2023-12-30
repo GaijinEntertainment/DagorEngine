@@ -9,8 +9,8 @@ void debug::gpu_postmortem::dagor::Trace::walkBreadcumbs(call_stack::Reporter &r
   commandListTable.visitAll([&reporter](auto cmd, auto &cmdList) {
     if (cmdList.traceRecodring.isCompleted())
     {
-      debug("DX12: Command Buffer was executed without error");
-      debug("DX12: Command Buffer: %p", cmd);
+      logdbg("DX12: Command Buffer was executed without error");
+      logdbg("DX12: Command Buffer: %p", cmd);
     }
     else
     {
@@ -18,10 +18,10 @@ void debug::gpu_postmortem::dagor::Trace::walkBreadcumbs(call_stack::Reporter &r
 
       if (0 == count)
       {
-        debug("DX12: Command Buffer execution was likely not started yet");
-        debug("DX12: Command Buffer: %p", cmd);
-        debug("DX12: Breadcrumb count: %u", count);
-        debug("DX12: Last breadcrumb value: %u", cmdList.traceRecodring.indexToTraceID(0));
+        logdbg("DX12: Command Buffer execution was likely not started yet");
+        logdbg("DX12: Command Buffer: %p", cmd);
+        logdbg("DX12: Breadcrumb count: %u", count);
+        logdbg("DX12: Last breadcrumb value: %u", cmdList.traceRecodring.indexToTraceID(0));
         auto vistorContext = cmdList.traceList.beginVisitation();
         cmdList.traceList.reportEverythingAsNotCompleted(vistorContext, cmdList.traceRecodring.indexToTraceID(1), reporter);
       }
@@ -30,19 +30,19 @@ void debug::gpu_postmortem::dagor::Trace::walkBreadcumbs(call_stack::Reporter &r
         auto completedTraceID = cmdList.traceRecodring.indexToTraceID(count);
         auto vistorContext = cmdList.traceList.beginVisitation();
 
-        debug("DX12: Command Buffer execution incomplete");
-        debug("DX12: Command Buffer: %p", cmd);
-        debug("DX12: Breadcrumb count: %u", count);
-        debug("DX12: Last breadcrumb value: %u", completedTraceID);
+        logdbg("DX12: Command Buffer execution incomplete");
+        logdbg("DX12: Command Buffer: %p", cmd);
+        logdbg("DX12: Breadcrumb count: %u", count);
+        logdbg("DX12: Last breadcrumb value: %u", completedTraceID);
 
         // Report everything until the trace it as regular completed
         cmdList.traceList.reportEverythingUntilAsCompleted(vistorContext, completedTraceID, reporter);
 
         // Report everything that matches the trace as last completed
-        debug("DX12: ~Last known good command~~");
+        logdbg("DX12: ~Last known good command~~");
         cmdList.traceList.reportEverythingMatchingAsLastCompleted(vistorContext, completedTraceID, reporter);
 
-        debug("DX12: ~First may be bad command~");
+        logdbg("DX12: ~First may be bad command~");
         // Will print full dump for all remaining trace entries
         cmdList.traceList.reportEverythingAsNoCompleted(vistorContext, reporter);
       }
@@ -54,38 +54,38 @@ bool debug::gpu_postmortem::dagor::Trace::try_load(const Configuration &config, 
 {
   if (!config.enableDagorGPUTrace)
   {
-    debug("DX12: Dagor GPU trace is disabled by configuration");
+    logdbg("DX12: Dagor GPU trace is disabled by configuration");
     return false;
   }
 
-  debug("DX12: Dagor GPU trace is enabled...");
+  logdbg("DX12: Dagor GPU trace is enabled...");
 
   // when page fault should be tracked we try to use DRED, if it works nice, if not, no loss
   if (!config.trackPageFaults)
   {
-    debug("DX12: ...page fault tracking is disabled by configuration");
+    logdbg("DX12: ...page fault tracking is disabled by configuration");
     return true;
   }
 
-  debug("DX12: Trying to capture page faults with DRED, may not work...");
-  debug("DX12: ...loading debug interface query...");
+  logdbg("DX12: Trying to capture page faults with DRED, may not work...");
+  logdbg("DX12: ...loading debug interface query...");
   PFN_D3D12_GET_DEBUG_INTERFACE D3D12GetDebugInterface = nullptr;
   reinterpret_cast<FARPROC &>(D3D12GetDebugInterface) = d3d_env.getD3DProcAddress("D3D12GetDebugInterface");
   if (!D3D12GetDebugInterface)
   {
-    debug("DX12: ...D3D12GetDebugInterface not found in direct dx runtime library");
+    logdbg("DX12: ...D3D12GetDebugInterface not found in direct dx runtime library");
     return true;
   }
 
   ComPtr<ID3D12DeviceRemovedExtendedDataSettings> dredConfig;
   if (FAILED(D3D12GetDebugInterface(COM_ARGS(&dredConfig))))
   {
-    debug("DX12: ...unable to acquire DRED config interface");
+    logdbg("DX12: ...unable to acquire DRED config interface");
     return false;
   }
 
   dredConfig->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
-  debug("DX12: ...enabled page fault tracking of DRED");
+  logdbg("DX12: ...enabled page fault tracking of DRED");
   return true;
 }
 
@@ -207,11 +207,11 @@ void debug::gpu_postmortem::dagor::Trace::onDeviceRemoved(D3DDevice *device, HRE
   }
 
   // For possible page fault information we fall back to DRED
-  debug("DX12: Acquiring DRED interface...");
+  logdbg("DX12: Acquiring DRED interface...");
   ComPtr<ID3D12DeviceRemovedExtendedData> dred;
   if (FAILED(device->QueryInterface(COM_ARGS(&dred))))
   {
-    debug("DX12: ...failed, no DRED information available");
+    logdbg("DX12: ...failed, no DRED information available");
     return;
   }
 
@@ -229,12 +229,12 @@ bool debug::gpu_postmortem::dagor::Trace::onDeviceSetup(ID3D12Device *device, co
   D3D12_FEATURE_DATA_D3D12_OPTIONS3 level3Options = {};
   if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS3, &level3Options, sizeof(level3Options))))
   {
-    debug("DX12: CheckFeatureSupport for OPTIONS3 failed, assuming no WriteBufferImmediate support");
+    logdbg("DX12: CheckFeatureSupport for OPTIONS3 failed, assuming no WriteBufferImmediate support");
     return false;
   }
   if (0 == (level3Options.WriteBufferImmediateSupportFlags & D3D12_COMMAND_LIST_SUPPORT_FLAG_DIRECT))
   {
-    debug("DX12: No support for WriteBufferImmediate on direct queue");
+    logdbg("DX12: No support for WriteBufferImmediate on direct queue");
     return false;
   }
 
@@ -243,12 +243,12 @@ bool debug::gpu_postmortem::dagor::Trace::onDeviceSetup(ID3D12Device *device, co
   D3D12_FEATURE_DATA_EXISTING_HEAPS existingHeap = {};
   if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_EXISTING_HEAPS, &existingHeap, sizeof(existingHeap))))
   {
-    debug("DX12: CheckFeatureSupport for EXISTING_HEAPS failed, assuming no existing heap support");
+    logdbg("DX12: CheckFeatureSupport for EXISTING_HEAPS failed, assuming no existing heap support");
     return false;
   }
   if (FALSE == existingHeap.Supported)
   {
-    debug("DX12: No support for existing heaps");
+    logdbg("DX12: No support for existing heaps");
     return false;
   }
   return true;

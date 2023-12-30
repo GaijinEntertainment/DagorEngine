@@ -364,7 +364,7 @@ void AnimBlendNodeContinuousLeaf::setRange(int tStart, int tEnd, real anim_time,
 {
   G_UNREFERENCED(name);
   if (anim_time < 0.0001)
-    fatal("incorrect anim time=%.5f", anim_time);
+    DAG_FATAL("incorrect anim time=%.5f", anim_time);
 
   duration = anim_time;
   avgSpeed = (duration > 0) ? move_dist / duration : 0.0f;
@@ -762,7 +762,7 @@ void AnimBlendCtrl_1axis::addBlendNode(IAnimBlendNode *n, real start, real end)
 {
   int l = append_items(slice, 1);
   if (l < 0)
-    fatal("no mem");
+    DAG_FATAL("no mem");
 
   slice[l].node = n;
   slice[l].start = start;
@@ -931,7 +931,7 @@ void AnimBlendCtrl_LinearPoly::addBlendNode(IAnimBlendNode *n, real p0, Animatio
 {
   int l = append_items(poly, 1);
   if (l < 0)
-    fatal("no mem");
+    DAG_FATAL("no mem");
 
   poly[l].node = n;
   poly[l].p0 = p0;

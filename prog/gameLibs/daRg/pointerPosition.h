@@ -23,7 +23,7 @@ public:
   HumanInput::IGenPointing *getMouse();
   void onShutdown();
   void update(float dt);
-  void onSceneActivate();
+  void onActivateSceneInput();
   void onAppActivate();
   void debugRender(StdGuiRender::GuiContext *ctx);
 

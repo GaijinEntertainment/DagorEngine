@@ -88,10 +88,9 @@ void AmbientWind::setWindParametersToShader(const AmbientWindParameters &params)
 
 void AmbientWind::fillFlowmapTexFallback(const Point2 &wind_dir)
 {
-  int stride;
-  if (auto lockedTex = lock_texture<E3DCOLOR>(flowmapTexFallback.getTex2D(), stride, 0, TEXLOCK_WRITE))
+  if (auto lockedTex = lock_texture<E3DCOLOR>(flowmapTexFallback.getTex2D(), 0, TEXLOCK_WRITE))
   {
-    *lockedTex.get() = E3DCOLOR_MAKE(real2uchar(0.5f * wind_dir.x + 0.5f), real2uchar(0.5f * wind_dir.y + 0.5f), 0, 255);
+    lockedTex.at(0, 0) = E3DCOLOR_MAKE(real2uchar(0.5f * wind_dir.x + 0.5f), real2uchar(0.5f * wind_dir.y + 0.5f), 0, 255);
   }
 }
 

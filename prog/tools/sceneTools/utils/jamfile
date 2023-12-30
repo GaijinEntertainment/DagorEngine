@@ -15,7 +15,6 @@ MultiTarget =
 AddIncludes = $(Root)/prog/tools/sharedInclude ;
 
 Sources(tools/sceneTools/ltout2img.exe)     = ltout2img.cpp ;
-Sources(tools/sceneTools/ltdir2img.exe)     = ltdir2img.cpp ;
 Sources(tools/sceneTools/detClientMask.exe) = detClientMask.cpp ;
 
 UseProgLibs =

@@ -150,6 +150,19 @@ ModfxDeclPosInitSphereSector ModfxDeclPosInitSphereSector_load( BufferData_cref 
 }
 
 DAFX_INLINE
+ModfxDeclPosInitGpuPlacement ModfxDeclPosInitGpuPlacement_load( BufferData_cref buf, uint ofs )
+{
+#ifdef __cplusplus
+  return *(ModfxDeclPosInitGpuPlacement*)( buf + ofs );
+#else
+  ModfxDeclPosInitGpuPlacement pp;
+  pp.flags = dafx_load_1ui(buf, ofs);
+  pp.height_threshold = dafx_load_1f(buf, ofs);
+  return pp;
+#endif
+}
+
+DAFX_INLINE
 void modfx_pos_init_sphere_sector( BufferData_cref buf, uint ofs, rnd_seed_ref rnd_seed, uint dispatch_seed,
                                    float3_ref o_p, float3_ref o_v )
 {
@@ -190,9 +203,7 @@ bool modfx_pos_gpu_placement(ModfxParentSimData_cref parent_sdata, BufferData_cr
   if (!ofs)
     return true;
 
-  ModfxDeclPosInitGpuPlacement pp;
-  pp.flags = dafx_load_1ui(buf, ofs);
-  pp.height_threshold = dafx_load_1f(buf, ofs);
+  ModfxDeclPosInitGpuPlacement pp = ModfxDeclPosInitGpuPlacement_load(buf, ofs);
 
   float vignette = 1.f;
   float r = gdata.water_level;

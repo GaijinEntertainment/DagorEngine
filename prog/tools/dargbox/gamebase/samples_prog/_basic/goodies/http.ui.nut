@@ -11,7 +11,7 @@ let statusText = {
 }
 
 
-let function mkhttpButton(text, request){
+function mkhttpButton(text, request){
   return @() {
     rendObj = ROBJ_SOLID
     color = Color(0,25,205)
@@ -28,7 +28,7 @@ let function mkhttpButton(text, request){
     }
   }
 }
-let function callback(response){
+function callback(response){
   vlog($"status = {response?.status}")
   vlog($"http_code = {response?.http_code} ({statusText?[response?.http_code]})")
   vlog($"body = {response?.body?.as_string?()}")
@@ -82,7 +82,7 @@ let sampleBlobPostButton = mkhttpButton("Blob POST",{
   callback
 })
 
-let function Root() {
+function Root() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(30,40,50)

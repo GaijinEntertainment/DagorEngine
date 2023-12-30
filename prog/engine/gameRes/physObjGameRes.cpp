@@ -27,17 +27,6 @@ public:
     int resId;
     int refCount = 0;
     eastl::unique_ptr<DynamicPhysObjectData> data;
-
-    GameRes() = default;
-    GameRes(GameRes &&) = default;
-    GameRes &operator=(GameRes &&) = default;
-    ~GameRes()
-    {
-      if (data)
-        for (int i = 0; i < data->models.size(); i++)
-          if (data->models[i])
-            data->models[i]->delInstanceRef();
-    }
   };
 
   Tab<ResData> resData;
@@ -93,7 +82,7 @@ public:
     if (id < 0)
       return NULL;
 
-    gameRes[id].refCount++;
+    addRef(id);
     return (GameResource *)gameRes[id].data.get();
   }
 
@@ -104,11 +93,19 @@ public:
     if (id < 0)
       return false;
 
-    gameRes[id].refCount++;
+    addRef(id);
     return true;
   }
 
 
+  void addRef(int id)
+  {
+    if (auto *data = gameRes[id].data.get())
+      for (auto &m : data->models)
+        if (m)
+          m->addInstanceRef();
+    gameRes[id].refCount++;
+  }
   void delRef(int id)
   {
     if (id < 0)
@@ -123,6 +120,10 @@ public:
     }
 
     gameRes[id].refCount--;
+    if (auto *data = gameRes[id].data.get())
+      for (auto &m : data->models)
+        if (m)
+          m->delInstanceRef();
   }
 
 
@@ -238,8 +239,6 @@ public:
     {
       auto m = (DynamicRenderableSceneLodsResource *)::get_game_resource(ref_ids[index]);
       data->models.push_back(m);
-      if (m)
-        m->addInstanceRef();
       ::release_game_resource((GameResource *)m);
     }
 

@@ -8,7 +8,6 @@
 #include "driver.h"
 #include "vulkan_device.h"
 #include <EASTL/vector.h>
-#include <ska_hash_map/flat_hash_map2.hpp>
 
 namespace drv3d_vulkan
 {
@@ -34,6 +33,7 @@ public:
     bool mergeConflicting(const LogicAddress &cmp) const;
     bool isRead() const;
     bool isWrite() const;
+    bool isComputeOrTransfer() const;
     void merge(const LogicAddress &v)
     {
       stage |= v.stage;
@@ -315,13 +315,6 @@ public:
 
   struct ScratchData
   {
-    struct DstObjInfo
-    {
-      size_t start;
-      size_t end;
-    };
-
-    ska::flat_hash_map<void *, DstObjInfo> objSorted;
     eastl::vector<size_t> src;
     eastl::vector<size_t> dst;
     eastl::vector<size_t> partialCoveringDsts;

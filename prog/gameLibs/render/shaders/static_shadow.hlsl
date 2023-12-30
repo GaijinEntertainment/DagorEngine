@@ -1,7 +1,7 @@
 #ifndef STATIC_SHADOW_HLSL
 #define STATIC_SHADOW_HLSL 1
 
-half static_shadow_sample_fxaa(float2 pos, float z, texture_ref tex, sampler_state_ref tex_samplerstate, float layer, float texel_size )
+half static_shadow_sample_fxaa(float2 pos, float z, STATIC_SHADOW_TEXTURE_REF tex, STATIC_SHADOW_SAMPLER_STATE_REF tex_samplerstate, float layer, float texel_size )
 {
   float2 fxaaConsoleRcpFrameOpt = 0.5*texel_size;
 
@@ -74,7 +74,7 @@ static const float2 static_shadow_offsets[NUM_STATIC_SHADOW_SAMPLES] = {
 #define STATIC_SHADOW_DITHER_RADIUS 2
 #endif
 
-half static_shadow_sample_8_tap(float2 pos, float z, texture_ref tex, sampler_state_ref tex_samplerstate, float layer, float texel_size, float dither )
+half static_shadow_sample_8_tap(float2 pos, float z, STATIC_SHADOW_TEXTURE_REF tex, STATIC_SHADOW_SAMPLER_STATE_REF tex_samplerstate, float layer, float texel_size, float dither )
 {
   float3 depthShadowTC = float3(pos,z);
   float2 rotation;
@@ -113,23 +113,23 @@ half getStaticShadow(float3 worldPos, float dither, out uint cascade_id)
   hardVignette0 = true;
   #endif
 
-  float3 baseTc0 = get_static_shadow_tc_base(worldPos, staticShadowWorldRenderMatrix_0);
+  float3 baseTc0 = get_static_shadow_tc_base(worldPos, static_shadow_matrix_0_0, static_shadow_matrix_1_0, static_shadow_matrix_2_0, static_shadow_matrix_3_0);
   float4 tc = get_static_shadow_tc(baseTc0, static_shadow_cascade_0_tor, dither, hardVignette0);
-  float texel_size = staticShadowWorldRenderMatrix_0[0].w;
+  float texel_size = static_shadow_matrix_0_0.w;
   float layer = 0;
   #if STATIC_SHADOW_USE_CASCADE_1
     bool hardVignette1 = false;
     #if STATIC_SHADOW_NO_VIGNETTE
     hardVignette1 = true;
     #endif
-    float3 baseTc1 = get_static_shadow_tc_base(worldPos, staticShadowWorldRenderMatrix_1);
+    float3 baseTc1 = get_static_shadow_tc_base(worldPos, static_shadow_matrix_0_1, static_shadow_matrix_1_1, static_shadow_matrix_2_1, static_shadow_matrix_3_1);
     float4 tc1 = get_static_shadow_tc(baseTc1, static_shadow_cascade_1_tor.xy, dither, hardVignette1);
     FLATTEN
     if ( !(tc.w > 0 && tc.z > 0.f) || (tc.z >= 1 && tc1.z < 1))
     {
       layer = 1;
       tc = tc1;
-      texel_size = staticShadowWorldRenderMatrix_1[0].w;
+      texel_size = static_shadow_matrix_0_1.w;
     }
   #endif
 

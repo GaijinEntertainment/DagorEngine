@@ -38,7 +38,7 @@ from "%darg/ui_imports.nut" import *
 
 */
 let unknownTag = @(...) {rendObj=ROBJ_SOLID opacity=0.2 size=[flex(), hdpx(2)], margin=[0, hdpx(5)], color = Color(255,120,120)}
-let function defTextArea(params, _formatAstFunc, style={}){
+function defTextArea(params, _formatAstFunc, style={}){
   return {
     rendObj = ROBJ_TEXTAREA
     text = params?.v

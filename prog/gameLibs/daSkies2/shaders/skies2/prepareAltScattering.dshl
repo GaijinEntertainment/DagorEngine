@@ -78,7 +78,7 @@ shader skies_prepare_transmittance_for_altitude_ps
   PREPARE_TRANSMITTANCE(ps)
 
   hlsl(ps) {
-    half3 skies_gen_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    float3 skies_gen_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target0
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
       float2 texcoord = input.texcoord.xy;

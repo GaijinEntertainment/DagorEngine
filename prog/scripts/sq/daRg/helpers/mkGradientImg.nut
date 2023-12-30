@@ -15,7 +15,7 @@ let blendModesPrefix = {
   [BLEND_MODE_ADDITIVE] = "+"
 }
 
-let function mkGradPointStyle(point, idx, points){
+function mkGradPointStyle(point, idx, points){
   let offset = point?.offset ?? (100 * idx/(points.len()-1))
 //  assert(offset<=100 && offset >=0 && (["integer", "float"].contains(type(offset))))
   local color = point?.color
@@ -40,7 +40,7 @@ enum GRADSPREAD {
   REPEAT = "repeat"
 }
 
-let function mkLinearGradSvgTxtImpl(points, width, height, x1=0, y1=0, x2=null, y2=0, spreadMethod=GRADSPREAD.PAD, transform=null){
+function mkLinearGradSvgTxtImpl(points, width, height, x1=0, y1=0, x2=null, y2=0, spreadMethod=GRADSPREAD.PAD, transform=null){
   x2 = x2 ?? width
   assert(type(points)=="array", "points should be array of objects with color=[r,g,b,optional alpha] and optional offset. If offset is missing points are evenly distributed")
   assert(width>1 && height>1 && width+height > 15, "gradient should be created with some reasonable sizes")
@@ -63,7 +63,7 @@ let mkLinearGradientImg = kwarg(function(points, width, height, x1=0, y1=0, x2=n
   return pic($"{prefix}b64://{text}.svg:{width}:{height}?Ac")
 })
 
-let function mkRadialGradSvgTxtImpl(points, width, height, cx=null, cy=null, r=null, fx=null, fy=null, spreadMethod=GRADSPREAD.PAD, transform=null){
+function mkRadialGradSvgTxtImpl(points, width, height, cx=null, cy=null, r=null, fx=null, fy=null, spreadMethod=GRADSPREAD.PAD, transform=null){
   assert(type(points)=="array", "points should be array of objects with color=[r,g,b,optional alpha] and optional offset. If offset is missing points are evenly distributed")
   assert(width>1 && height>1 && width+height > 15, "gradient should be created with some reasonable sizes")
   spreadMethod=spreadMethod ?? GRADSPREAD.PAD

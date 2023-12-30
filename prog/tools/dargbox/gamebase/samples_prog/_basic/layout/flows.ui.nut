@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 let cursors = require("samples_prog/_cursors.nut")
 
-let function make_samples() {
+function make_samples() {
 ///utility function to create lots of childs
   let ret = []
   foreach (i in [1 2 3 4 5 6]) {

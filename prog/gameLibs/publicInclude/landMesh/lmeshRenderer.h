@@ -116,6 +116,7 @@ public:
 
   void resetOptSceneAndStates();
   void prepare(LandMeshManager &provider, const Point3 &view_pos, float hmap_camera_height);
+  void prepare(LandMeshManager &provider, const Point3 &view_pos, float hmap_camera_height, float water_level);
   // void set_land_classes(dag::ConstSpan<SimpleString> land_classes);
 
   void resetTextures();

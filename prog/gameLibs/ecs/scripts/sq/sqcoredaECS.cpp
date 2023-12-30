@@ -2803,7 +2803,7 @@ static const ecs::Template *tpldb_get_template_by_name(const ecs::TemplateDB *db
 {
   return db->getTemplateByName(name);
 }
-static const uint32_t tpldb_get_size(const ecs::TemplateDB *db) { return db->size(); }
+static uint32_t tpldb_get_size(const ecs::TemplateDB *db) { return db->size(); }
 
 static const DataBlock *tpldb_get_template_meta_info(const ecs::TemplateDB *db, const char *templ_name)
 {

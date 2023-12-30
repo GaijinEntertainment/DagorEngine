@@ -834,7 +834,7 @@ public:
     if (!p)
     {
       LAST_RESORT_ON_OOM(sz, mt_dlmalloc(sz));
-      dumpUsedMem(), fatal("Not enough memory to alloc %llu bytes", sz);
+      dumpUsedMem(), DAG_FATAL("Not enough memory to alloc %llu bytes", sz);
     }
     memory_tracker.addBlock(this, p, sz);
     return p;
@@ -851,7 +851,7 @@ public:
     if (!p)
     {
       LAST_RESORT_ON_OOM(sz, mt_dlmemalign(sz, alignment));
-      dumpUsedMem(), fatal("Not enough memory to alloc %llu bytes (alignment: %u)", sz, alignment);
+      dumpUsedMem(), DAG_FATAL("Not enough memory to alloc %llu bytes (alignment: %u)", sz, alignment);
     }
     memory_tracker.addBlock(this, p, sz);
     return p;
@@ -896,7 +896,7 @@ public:
     if (!np && sz)
     {
       LAST_RESORT_ON_OOM(sz, mt_dlrealloc(p, sz));
-      dumpUsedMem(), fatal("Not enough memory in realloc(%p,%llu) call", p, sz);
+      dumpUsedMem(), DAG_FATAL("Not enough memory in realloc(%p,%llu) call", p, sz);
     }
     memory_tracker.addBlock(this, np, sz);
     return np;

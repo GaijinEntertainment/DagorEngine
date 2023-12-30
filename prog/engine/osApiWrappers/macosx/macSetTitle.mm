@@ -50,3 +50,6 @@ const char *os_get_default_lang()
     strcpy(buf, "en");
   return buf;
 }
+
+#define EXPORT_PULL dll_pull_osapiwrappers_setTitle
+#include <supp/exportPull.h>

@@ -148,13 +148,13 @@ shader wires
     blend_src = sa; blend_dst = isa;
     blend_asrc = 0; blend_adst = 1;
     hlsl(ps) {
-      half4 cables_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+      float4 cables_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
       {
         ##if in_editor_assume == no
           if (input.normal_blend.w > 1)
             discard; //to avoid render transparent cable on opaque one
         ##endif
-        return half4(pack_hdr(input.fogAdd).rgb, saturate(input.normal_blend.w)); //return blended black color with fog and scattered light applied
+        return float4(pack_hdr(input.fogAdd).rgb, saturate(input.normal_blend.w)); //return blended black color with fog and scattered light applied
       }
     }
   }

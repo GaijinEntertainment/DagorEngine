@@ -8,7 +8,7 @@ let {min}  = require("math")
 //===== DARG specific methods=====
   this function create element that has internal basic stateFlags (S_HOVER S_ACTIVE S_DRAG)
 */
-let function watchElemState(builder, params={}) {
+function watchElemState(builder, params={}) {
   let stateFlags = params?.stateFlags ?? Watched(0)
   let onElemState = @(sf) stateFlags.update(sf)
   return function() {
@@ -39,7 +39,7 @@ let NamedColor = {
 /*
 //===== DARG specific methods=====
 */
-let function isDargComponent(comp) {
+function isDargComponent(comp) {
 //better to have natived daRg function to check if it is valid component!
   local c = comp
   if (type(c) == "function") {
@@ -72,7 +72,7 @@ let hdpxi = @(pixels) hdpx(pixels).tointeger()
 let fsh = sh(100) <= sw(75) ? sh : @(v) sw(0.75 * v)
 
 let wrapParams= {width=0, flowElemProto={}, hGap=null, vGap=0, height=null, flow=FLOW_HORIZONTAL}
-let function wrap(elems, params=wrapParams) {
+function wrap(elems, params=wrapParams) {
   //TODO: move this to native code
   let paddingLeft=params?.paddingLeft
   let paddingRight=params?.paddingRight
@@ -99,7 +99,7 @@ let function wrap(elems, params=wrapParams) {
   if (paddingLeft && !isFlowHor)
     flowElems.append(paddingLeft)
   local tail = elems
-  let function buildFlowElem(elems, gap, flowElemProto, dimensionLim) {  //warning disable: -ident-hides-ident -param-hides-param
+  function buildFlowElem(elems, gap, flowElemProto, dimensionLim) {  //warning disable: -ident-hides-ident -param-hides-param
     let children = []
     local curwidth=0.0
     local tailidx = 0
@@ -140,7 +140,7 @@ let function wrap(elems, params=wrapParams) {
 }
 
 
-let function dump_observables() {
+function dump_observables() {
   let list = gui_scene.getAllObservables()
   print("{0} observables:".subst(list.len()))
   foreach (obs in list)
@@ -148,24 +148,24 @@ let function dump_observables() {
 }
 
 let colorPart = @(value) min(255, (value + 0.5).tointeger())
-let function mul_color(color, mult) {
+function mul_color(color, mult) {
   return Color(  colorPart(((color >> 16) & 0xff) * mult),
                  colorPart(((color >>  8) & 0xff) * mult),
                  colorPart((color & 0xff) * mult),
                  colorPart(((color >> 24) & 0xff) * mult))
 }
 
-let function XmbNode(params={}) {
+function XmbNode(params={}) {
   return clone params
 }
 
-let function XmbContainer(params={}) {
+function XmbContainer(params={}) {
   return XmbNode({
     canFocus = false
   }.__merge(params))
 }
 
-let function mkWatched(persistFunc, persistKey, defVal=null, observableInitArg=null){
+function mkWatched(persistFunc, persistKey, defVal=null, observableInitArg=null){
   let container = persistFunc(persistKey, @() {v=defVal})
   let watch = observableInitArg==null ? Watched(container.v) : Watched(container.v, observableInitArg)
   watch.subscribe(@(v) container.v=v)

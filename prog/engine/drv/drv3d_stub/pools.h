@@ -120,7 +120,7 @@ protected:
       return tex;                                       \
                                                         \
     if (!useTexDynPool)                                 \
-      fatal("texture max count reached");               \
+      DAG_FATAL("texture max count reached");           \
                                                         \
     return texDynPool.add();                            \
   }                                                     \

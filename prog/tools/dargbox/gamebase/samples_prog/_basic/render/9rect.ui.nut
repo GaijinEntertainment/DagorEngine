@@ -17,7 +17,7 @@ let borderCross = 0xFFFFFFFF
 let isSide = @(v) v < gradCircCornerSize || v >= gradCircFullSize - gradCircCornerSize
 let isBorderIn = @(v) v == gradCircCornerSize - 1 || v == gradCircFullSize - gradCircCornerSize
 let isBorderOut = @(v) v == gradCircCornerSize || v == gradCircFullSize - gradCircCornerSize - 1
-let function chooseColor(func, x, y, colorDouble, colorSingle, colorNothing = null) {
+function chooseColor(func, x, y, colorDouble, colorSingle, colorNothing = null) {
   let isX = func(x)
   let isY = func(y)
   return isX && isY ? colorDouble

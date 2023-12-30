@@ -129,7 +129,7 @@ void RiShaderConstBuffers::setRandomColors(const E3DCOLOR *colors)
 #endif
 }
 
-void RiShaderConstBuffers::flushPerDraw()
+void RiShaderConstBuffers::flushPerDraw() const
 {
 #if _TARGET_C1 | _TARGET_C2
 

@@ -24,7 +24,7 @@ GlobeRenderer::GlobeRenderer(Parameters &&parameters) : params(parameters)
   starsJulianDay = 2457388.5; // 2016-01-01:00
 
   textureSlices.resize(params.textureSlicesNames.size());
-  G_ASSERT(textureSlices.size() == 2 || textureSlices.size() == SQR(int(sqrtf(textureSlices.size()) + 0.5f)));
+  G_ASSERT(textureSlices.size() == 2 || textureSlices.size() == sqr(int(sqrtf(textureSlices.size()) + 0.5f)));
   for (int sliceNo = 0; sliceNo < textureSlices.size(); ++sliceNo)
   {
     const Parameters::TextureSliceNames &sliceNames = params.textureSlicesNames[sliceNo];

@@ -92,7 +92,7 @@ uint32_t DeferredRT::recreateDepthInternal(uint32_t targetFmt)
 
   if (!depthTex)
   {
-    fatal("can't create intzDepthTex (INTZ, DF24, RAWZ) due to err '%s'", d3d::get_last_error());
+    DAG_FATAL("can't create intzDepthTex (INTZ, DF24, RAWZ) due to err '%s'", d3d::get_last_error());
   }
 
   depth = eastl::move(depthTex);

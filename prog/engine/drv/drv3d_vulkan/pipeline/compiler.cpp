@@ -174,7 +174,7 @@ void PipelineCompiler::processQueuedBlocked()
     while (!compileQueue.waitAcquireSpace(maxWaitCycles))
       logwarn("vulkan: long pipe compiler wait");
     if (!processQueued())
-      fatal("vulkan: can't complete blocked wait for compiler timeline");
+      DAG_FATAL("vulkan: can't complete blocked wait for compiler timeline");
   }
 }
 
@@ -255,7 +255,7 @@ void PipelineCompiler::waitSecondaryWorkers()
 
   TIME_PROFILE(vulkan_pipe_compiler_wait_secondary);
   if (os_event_wait(&secondaryWorkersFinishEvent, OS_WAIT_INFINITE) != OS_WAIT_OK)
-    fatal("vulkan: pipe compiler secondary wait failed");
+    DAG_FATAL("vulkan: pipe compiler secondary wait failed");
   shouldWaitThreads = false;
 }
 
@@ -266,7 +266,11 @@ void PipelineCompiler::shutdownSecondaryWorkers()
   setPendingWorkers(cfg.maxSecondaryThreads);
   for (int i = 0; i < cfg.maxSecondaryThreads; ++i)
     secondaryWorkers[i]->wakeAndTerminate();
-  waitSecondaryWorkers();
+  // do not wait as we already waited on terminate
+  // and event may be skipped as thread can exit before entering wake event wait
+  pendingWorkers = 0;
+  shouldWaitThreads = false;
+
   for (int i = 0; i < cfg.maxSecondaryThreads; ++i)
     secondaryWorkers[i].reset();
 }

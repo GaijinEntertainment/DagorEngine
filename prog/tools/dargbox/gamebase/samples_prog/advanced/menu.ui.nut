@@ -23,7 +23,7 @@ let defButtonStyle = {
   }
 }
 
-let function textButton(text, handler= @() null, params = {}, style = defButtonStyle){
+function textButton(text, handler= @() null, params = {}, style = defButtonStyle){
   let stateFlags = Watched(0)
   let disabled = params?.disabled
   let textStyle = style?.text ?? defButtonStyle.text
@@ -95,7 +95,7 @@ let backButton = {
     }
   }
 }
-let function menuhandler(menuItemId, params = {leaveAction=null, action=null, submenu=null}) {
+function menuhandler(menuItemId, params = {leaveAction=null, action=null, submenu=null}) {
   let submenu = params?.submenu
   let leaveAction = params?.leaveAction
   let action = params?.action
@@ -120,7 +120,7 @@ let function menuhandler(menuItemId, params = {leaveAction=null, action=null, su
   }
 }
 
-let function buildmenu(_params={addBackBtn=false}) {
+function buildmenu(_params={addBackBtn=false}) {
   let children = []
   foreach (item in menuState.curMenuItems.value) {
     if (item?.isAvailable == null || item?.isAvailable())
@@ -136,7 +136,7 @@ let function buildmenu(_params={addBackBtn=false}) {
   }
 }
 
-let function breadcrumps(){
+function breadcrumps(){
   let children  = []
   let curBreadCrumps = menuState.breadCrumps.value
   for(local i=0; i<curBreadCrumps.len(); i++) { //map
@@ -164,11 +164,11 @@ let function breadcrumps(){
   }
 }
 
-let function startQuickMatch(){vlog("started")}
-let function exitgame(){}
-let function showOptions(){}
-let function showCreateMatch(){}
-let function showFindMatch(){}
+function startQuickMatch(){vlog("started")}
+function exitgame(){}
+function showOptions(){}
+function showCreateMatch(){}
+function showFindMatch(){}
 let menuItems = [
   {text= "Quick Match", leaveAction=startQuickMatch, isAvailable=@() true}
   {text= "Custom Match", isAvailable=@() true

@@ -8,6 +8,7 @@ namespace drv3d_vulkan
 {
 
 struct BufferRef;
+struct BaseTex;
 class SBuffer;
 #if D3D_HAS_RAY_TRACING
 class RaytraceAccelerationStructure;
@@ -19,7 +20,6 @@ struct TRegister
   {
     Image *ptr = nullptr;
     ImageViewState view = {};
-    SamplerState sampler = {};
   };
   union
   {
@@ -43,8 +43,10 @@ struct TRegister
   uint8_t isSwapchainColor : 1;
   uint8_t isSwapchainDepth : 1;
 
+  void clear() { type = TYPE_NULL; }
+
   TRegister(Sbuffer *sb);
-  TRegister(BaseTexture *in_texture);
+  TRegister(BaseTex *in_texture);
 #if D3D_HAS_RAY_TRACING
   TRegister(RaytraceAccelerationStructure *in_as);
 #endif
@@ -72,8 +74,8 @@ inline bool operator!=(const TRegister &l, const TRegister &r)
   switch (l.type)
   {
     case TRegister::TYPE_IMG:
-      return (l.img.ptr != r.img.ptr) || (l.img.view != r.img.view) || (l.img.sampler != r.img.sampler) ||
-             (l.isSwapchainColor != r.isSwapchainColor) || (l.isSwapchainDepth != r.isSwapchainDepth);
+      return (l.img.ptr != r.img.ptr) || (l.img.view != r.img.view) || (l.isSwapchainColor != r.isSwapchainColor) ||
+             (l.isSwapchainDepth != r.isSwapchainDepth);
     case TRegister::TYPE_BUF: return (l.buf != r.buf);
 #if D3D_HAS_RAY_TRACING
     case TRegister::TYPE_AS: return (l.rtas != r.rtas);
@@ -91,11 +93,64 @@ struct URegister
   URegister() = default;
   URegister(BaseTexture *tex, uint32_t face, uint32_t mip_level, bool as_uint);
   URegister(Sbuffer *sb);
+  void clear()
+  {
+    image = nullptr;
+    imageView = {};
+    buffer.clear();
+  }
 };
 
 inline bool operator!=(const URegister &l, const URegister &r)
 {
   return (l.image != r.image) || (l.imageView != r.imageView) || (l.buffer != r.buffer);
+}
+
+struct SRegister
+{
+  union
+  {
+    SamplerState state;
+    const SamplerResource *resPtr;
+  };
+
+  enum
+  {
+    TYPE_NULL = 0,
+    TYPE_RES = 1,
+    TYPE_STATE = 2
+  };
+  uint8_t type : 2;
+
+// MSVC decides that zero-init ctors in union is non-trivial, making itself unhappy about any ctors
+// but code is initializing relevant union fields, so just silence this warning up
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4582)
+#endif
+  SRegister() : type(TYPE_NULL) {}
+  SRegister(const SamplerResource *val) : type(TYPE_RES) { resPtr = val; }
+  SRegister(SamplerState val) : type(TYPE_STATE) { state = val; }
+#ifdef _MSC_VER
+// C4582 off
+#pragma warning(pop)
+#endif
+};
+
+inline bool operator!=(const SRegister &l, const SRegister &r)
+{
+  if (l.type != r.type)
+    return true;
+
+  if (l.type == SRegister::TYPE_NULL)
+    return false;
+  else if (l.type == SRegister::TYPE_RES)
+    return l.resPtr != r.resPtr;
+  else if (l.type == SRegister::TYPE_STATE)
+    return !(l.state == r.state);
+
+  G_ASSERTF(0, "vulkan: uknown sreg type %u", l.type);
+  return false;
 }
 
 struct StateFieldBRegister : TrackedStateFieldGenericPOD<BufferRef>
@@ -122,6 +177,13 @@ struct StateFieldURegister : TrackedStateFieldGenericPOD<URegister>
   VULKAN_TRACKED_STATE_ARRAY_FIELD_CB_DEFENITIONS();
 };
 
+struct StateFieldSRegister : TrackedStateFieldGenericPOD<SRegister>
+{
+  using Indexed = TrackedStateIndexedDataRORef<SRegister>;
+
+  VULKAN_TRACKED_STATE_ARRAY_FIELD_CB_DEFENITIONS();
+};
+
 struct StateFieldBRegisterSet : TrackedStateFieldArray<StateFieldBRegister, spirv::B_REGISTER_INDEX_MAX, true, true>
 {};
 
@@ -129,6 +191,9 @@ struct StateFieldTRegisterSet : TrackedStateFieldArray<StateFieldTRegister, spir
 {};
 
 struct StateFieldURegisterSet : TrackedStateFieldArray<StateFieldURegister, spirv::U_REGISTER_INDEX_MAX, true, true>
+{};
+
+struct StateFieldSRegisterSet : TrackedStateFieldArray<StateFieldSRegister, spirv::S_REGISTER_INDEX_MAX, true, true>
 {};
 
 class ImmediateConstBuffer
@@ -181,40 +246,8 @@ struct StateFieldImmediateConst : TrackedStateFieldBase<false, false>
   VULKAN_TRACKED_STATE_FIELD_CB_DEFENITIONS();
 };
 
-struct StateFieldGlobalConstBuffer : TrackedStateFieldBase<true, false>
+struct StateFieldGlobalConstBuffer : TrackedStateFieldBase<true, true>, TrackedStateFieldGenericPOD<BufferRef>
 {
-  struct BufferRangedRef
-  {
-    VulkanBufferHandle buffer;
-    uint32_t offset;
-    uint32_t size;
-  };
-
-  BufferRangedRef ref;
-
-  template <typename StorageType>
-  void reset(StorageType &)
-  {
-    ref = {VulkanBufferHandle(), 0, 0};
-  }
-
-  // external value - already diff filtered
-  void set(BufferRangedRef val) { ref = val; }
-  bool diff(BufferRangedRef) const { return true; }
-
-  // internal value - must be diff filtered
-  void set(StateFieldGlobalConstBuffer val) { ref = val.ref; }
-  bool diff(StateFieldGlobalConstBuffer val) const
-  {
-    if (ref.buffer != val.ref.buffer)
-      return true;
-    if (ref.offset != val.ref.offset)
-      return true;
-    if (ref.size != val.ref.size)
-      return true;
-    return false;
-  }
-
   VULKAN_TRACKED_STATE_FIELD_CB_DEFENITIONS();
 };
 
@@ -225,6 +258,7 @@ struct StateFieldResourceBindsStorage
   StateFieldURegisterSet uRegs;
   StateFieldTRegisterSet tRegs;
   StateFieldBRegisterSet bRegs;
+  StateFieldSRegisterSet sRegs;
   ShaderStage stage;
 
   void reset() {}
@@ -233,8 +267,9 @@ struct StateFieldResourceBindsStorage
   VULKAN_TRACKED_STATE_STORAGE_CB_DEFENITIONS();
 };
 
-class StateFieldResourceBinds : public TrackedState<StateFieldResourceBindsStorage, StateFieldURegisterSet, StateFieldTRegisterSet,
-                                  StateFieldBRegisterSet, StateFieldImmediateConst, StateFieldGlobalConstBuffer>
+class StateFieldResourceBinds
+  : public TrackedState<StateFieldResourceBindsStorage, StateFieldURegisterSet, StateFieldTRegisterSet, StateFieldBRegisterSet,
+      StateFieldSRegisterSet, StateFieldImmediateConst, StateFieldGlobalConstBuffer>
 {
 public:
   template <typename T>

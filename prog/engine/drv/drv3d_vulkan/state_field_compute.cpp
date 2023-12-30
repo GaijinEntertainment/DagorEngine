@@ -74,8 +74,7 @@ template <>
 void StateFieldComputeLayout::applyTo(BackComputeStateStorage &, ExecutionContext &target) const
 {
   target.back.contextState.bindlessManagerBackend.bindSets(target, VK_PIPELINE_BIND_POINT_COMPUTE, ptr->handle);
-  ContextState &ctxState = target.back.contextState;
-  ctxState.stageState[STAGE_CS].invalidateState();
+  target.back.executionState.getResBinds(STAGE_CS).invalidateState();
 }
 
 template <>
@@ -92,10 +91,10 @@ void StateFieldComputeFlush::applyTo(BackComputeStateStorage &state, ExecutionCo
   auto &regRef = ptr->getLayout()->registers.cs();
   VulkanPipelineLayoutHandle layoutHandle = ptr->getLayout()->handle;
 
-  target.trackStageResAccesses(regRef.header, STAGE_CS);
+  target.trackStageResAccessesNonParallel(regRef.header, STAGE_CS);
 
-  ctxState.stageState[STAGE_CS].apply(target.vkDev, target.device.getDummyResourceTable(), ctxState.frame->index, regRef, target,
-    STAGE_CS,
+  target.back.executionState.getResBinds(STAGE_CS).apply(target.vkDev, target.device.getDummyResourceTable(), ctxState.frame->index,
+    regRef, target, STAGE_CS,
     [&target, layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
     {
       VULKAN_LOG_CALL(target.vkDev.vkCmdBindDescriptorSets(target.frameCore, VK_PIPELINE_BIND_POINT_COMPUTE, layoutHandle,

@@ -83,11 +83,18 @@ namespace das
 
 
 #define ADD_NUMERIC_LIMITS(TYPENAME,CTYPE)  \
-    addConstant(*this, #TYPENAME "_MIN", (CTYPE)TYPENAME##_MIN); \
-    addConstant(*this, #TYPENAME "_MAX", (CTYPE)TYPENAME##_MAX);
+    addConstant<CTYPE>(*this, #TYPENAME "_MIN", (CTYPE)TYPENAME##_MIN); \
+    addConstant<CTYPE>(*this, #TYPENAME "_MAX", (CTYPE)TYPENAME##_MAX);
 
 #define ADD_NUMERIC_LIMITS_UNSIGNED(TYPENAME,CTYPE)  \
-    addConstant(*this, #TYPENAME "_MAX", (CTYPE)TYPENAME##_MAX);
+    addConstant<CTYPE>(*this, #TYPENAME "_MAX", (CTYPE)TYPENAME##_MAX);
+
+#define ADD_NUMERIC_LIMITS_EX(TYPENAME,CONSTNAME,CTYPE)  \
+    addConstant<CTYPE>(*this, #TYPENAME "_MIN", (CTYPE)CONSTNAME##_MIN); \
+    addConstant<CTYPE>(*this, #TYPENAME "_MAX", (CTYPE)CONSTNAME##_MAX);
+
+#define ADD_NUMERIC_LIMITS_EX_UNSIGNED(TYPENAME,CONSTNAME,CTYPE)  \
+    addConstant<CTYPE>(*this, #TYPENAME "_MAX", (CTYPE)CONSTNAME##_MAX);
 
     void verifyOptions();
 
@@ -133,7 +140,7 @@ namespace das
         addFunctionOrdered<int64_t>(*this,lib);
         addFunctionBit<int64_t>(*this,lib);
         ADD_NUMERIC_CASTS(int64, int64_t);
-        ADD_NUMERIC_LIMITS(LONG, int64_t);
+        ADD_NUMERIC_LIMITS_EX(LONG, INT64, int64_t);
         // uint64
         addFunctionBasic<uint64_t>(*this,lib);
         addFunctionNumericWithMod<uint64_t>(*this,lib);
@@ -141,7 +148,7 @@ namespace das
         addFunctionOrdered<uint64_t>(*this,lib);
         addFunctionBit<uint64_t>(*this,lib);
         ADD_NUMERIC_CASTS(uint64, uint64_t);
-        ADD_NUMERIC_LIMITS_UNSIGNED(ULONG, uint64_t);
+        ADD_NUMERIC_LIMITS_EX_UNSIGNED(ULONG, UINT64, uint64_t);
         // float
         addFunctionBasic<float>(*this,lib);
         addFunctionNumericWithMod<float>(*this,lib);

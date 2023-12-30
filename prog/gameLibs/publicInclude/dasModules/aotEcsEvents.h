@@ -132,8 +132,7 @@ __forceinline void _builtin_broadcast_blobevent2(ecs::EntityManager *mgr, char *
 
 __forceinline void _builtin_broadcast_blobevent_immediate2(das::Context &context, char *evt_data, const char *evt_type_name)
 {
-  bind_dascript::EsContext &ctx = static_cast<bind_dascript::EsContext &>(context);
-  G_ASSERT(ctx.magic == bind_dascript::EsContext::MAGIC_NOMEM || ctx.magic == bind_dascript::EsContext::MAGIC_HASMEM);
+  bind_dascript::EsContext &ctx = cast_es_context(context);
   _builtin_send_blobevent2_impl(ctx.mgr, evt_data, evt_type_name, [&ctx](ecs::Event &evt) { ctx.mgr->broadcastEventImmediate(evt); });
 }
 
@@ -141,8 +140,7 @@ inline vec4f _builtin_send_blobevent(das::Context &context, das::SimNode_CallBas
 {
   G_FAST_ASSERT(call->nArguments == 3);
   G_UNUSED(call);
-  bind_dascript::EsContext &ctx = static_cast<bind_dascript::EsContext &>(context);
-  G_ASSERT(ctx.magic == bind_dascript::EsContext::MAGIC_NOMEM || ctx.magic == bind_dascript::EsContext::MAGIC_HASMEM);
+  bind_dascript::EsContext &ctx = cast_es_context(context);
   _builtin_send_blobevent2(ctx.mgr, das::cast<ecs::EntityId>::to(args[0]), das::cast<char *>::to(args[1]),
     das::cast<char *>::to(args[2]));
   return v_zero();
@@ -152,8 +150,7 @@ inline vec4f _builtin_broadcast_blobevent(das::Context &context, das::SimNode_Ca
 {
   G_FAST_ASSERT(call->nArguments == 2);
   G_UNUSED(call);
-  bind_dascript::EsContext &ctx = static_cast<bind_dascript::EsContext &>(context);
-  G_ASSERT(ctx.magic == bind_dascript::EsContext::MAGIC_NOMEM || ctx.magic == bind_dascript::EsContext::MAGIC_HASMEM);
+  bind_dascript::EsContext &ctx = cast_es_context(context);
   _builtin_broadcast_blobevent2(ctx.mgr, das::cast<char *>::to(args[0]), das::cast<char *>::to(args[1]));
   return v_zero();
 }
@@ -162,8 +159,7 @@ inline vec4f _builtin_send_blobevent_immediate(das::Context &context, das::SimNo
 {
   G_FAST_ASSERT(call->nArguments == 3);
   G_UNUSED(call);
-  bind_dascript::EsContext &ctx = static_cast<bind_dascript::EsContext &>(context);
-  G_ASSERT(ctx.magic == bind_dascript::EsContext::MAGIC_NOMEM || ctx.magic == bind_dascript::EsContext::MAGIC_HASMEM);
+  bind_dascript::EsContext &ctx = cast_es_context(context);
   _builtin_send_blobevent_immediate2(ctx.mgr, das::cast<ecs::EntityId>::to(args[0]), das::cast<char *>::to(args[1]),
     das::cast<char *>::to(args[2]));
   return v_zero();
@@ -186,8 +182,7 @@ inline void send_schemeless(ecs::EntityId eid, const char *evt_name, const das::
   const char *delimiter = strstr(evt_name, "::");
   const char *realName = delimiter ? delimiter + 2 : evt_name;
   ecs::SchemelessEvent evt(ECS_HASH_SLOW(realName).hash, eastl::move(data));
-  bind_dascript::EsContext *context = static_cast<bind_dascript::EsContext *>(ctx);
-  G_ASSERT(context->magic == bind_dascript::EsContext::MAGIC_NOMEM || context->magic == bind_dascript::EsContext::MAGIC_HASMEM);
+  bind_dascript::EsContext *context = cast_es_context(ctx);
   context->mgr->sendEvent(eid, eastl::move(evt));
 }
 
@@ -200,8 +195,7 @@ inline void broadcast_schemeless(const char *evt_name, const das::TBlock<void, e
   const char *delimiter = strstr(evt_name, "::");
   const char *realName = delimiter ? delimiter + 2 : evt_name;
   ecs::SchemelessEvent evt(ECS_HASH_SLOW(realName).hash, eastl::move(data));
-  bind_dascript::EsContext *context = static_cast<bind_dascript::EsContext *>(ctx);
-  G_ASSERT(context->magic == bind_dascript::EsContext::MAGIC_NOMEM || context->magic == bind_dascript::EsContext::MAGIC_HASMEM);
+  bind_dascript::EsContext *context = cast_es_context(ctx);
   context->mgr->broadcastEvent(eastl::move(evt));
 }
 

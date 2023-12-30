@@ -6,6 +6,7 @@
 #include "varMap.h"
 #include "shcode.h"
 #include "namedConst.h"
+#include "samplers.h"
 
 #include "shLog.h"
 #include <osApiWrappers/dag_files.h>
@@ -510,7 +511,7 @@ struct Variants
             else
               debug((ir.type == ir.TYPE_INTERVAL) ? "LOCAL/%s" : "GLOBAL/%s", varMap.getOrdinalName(ir.nameId));
           }
-          fatal("%s: code=%d >=65535, lastmul=%d\nsee details in ShaderLog*\n", shader_nm, code, ib[pcs - 1].totalMul);
+          DAG_FATAL("%s: code=%d >=65535, lastmul=%d\nsee details in ShaderLog*\n", shader_nm, code, ib[pcs - 1].totalMul);
         }
         G_ASSERT(cvar.codeId < (int)codeRemap.size());
 
@@ -1118,7 +1119,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   // write shaders binary dump
   //
   bindump::Master<shader_layout::ScriptedShadersBinDumpCompressed> shaders_dump_compressed;
-  bindump::Master<shader_layout::ScriptedShadersBinDumpV2> shaders_dump;
+  bindump::Master<shader_layout::ScriptedShadersBinDumpV3> shaders_dump;
 
   // write dump header
   shaders_dump_compressed.signPart1 = _MAKE4C('VSPS');
@@ -1445,6 +1446,11 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     if (b.btd.suppListOfs >= 0)
       shaders_dump.blocks[i + HARDCODED_BLK_NUM].suppBlockUid = shaders_dump.blkPartSign.getElementAddress(b.btd.suppListOfs);
   }
+
+  shaders_dump.samplers.resize(g_samplers.size());
+  int smp_id = 0;
+  for (auto &s : g_samplers)
+    shaders_dump.samplers[smp_id++] = s.mSamplerInfo;
 
   // write shader classes
   extern bool addTextureType;

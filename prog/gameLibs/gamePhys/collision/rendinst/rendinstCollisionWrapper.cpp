@@ -36,6 +36,8 @@ void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::Collision
   TMatrix normalizedTm = coll_info.tm;
   CollisionObject empty;
   CollisionObject cobj = processCollisionInstance(coll_info, empty, normalizedTm);
+  if (!cobj) // PhysBody alloc failed?
+    return;
 
   RendinstCollisionUserInfo userInfo(coll_info.desc);
   userInfo.bbox = coll_info.localBBox;
@@ -84,6 +86,8 @@ void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo 
 
   TMatrix normalizedTm = coll_info.tm;
   CollisionObject obj = processCollisionInstance(coll_info, rendinstdestr::get_tree_collision(), normalizedTm);
+  if (!obj) // PhysBody alloc failed?
+    return;
 
   RendinstCollisionUserInfo userInfo(coll_info.desc);
   userInfo.bbox = coll_info.localBBox;

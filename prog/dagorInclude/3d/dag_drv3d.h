@@ -635,6 +635,16 @@ struct ResourceHeapGroupProperties
   // the maximum size of a individual heap, this is usually limited by the
   // amount that is installed in the system. Drivers may impose other limitations.
   uint64_t maxHeapSize;
+  // This is a hint for the user to try to aim for this heap size for best performance.
+  // Larger heaps until maxHeapSize are still possible, but larger heaps than optimalMaxHeapSize
+  // may yield worse performance, as the runtime may has to use sub-optimal memory sources
+  // to satisfy the allocation request.
+  // A value of 0 indicates that there is no optimal size and any size is expected to
+  // perform similarly.
+  // For example on DX12 on Windows the optimal size is 64 MiBytes, suggested by MS
+  // representatives, as windows may not be able to provide heaps in the requested
+  // memory source.
+  uint64_t optimalMaxHeapSize;
 };
 
 struct ResourceAllocationProperties
@@ -820,6 +830,8 @@ enum
   USAGE_PIXREADWRITE = 0x400,
   USAGE_TILED = 0x800,
   USAGE_UNORDERED = 0x1000,
+  /// Indicates the format supports unordered loads
+  USAGE_UNORDERED_LOAD = 0x2000
 };
 
 enum
@@ -1666,7 +1678,7 @@ extern bool dagor_d3d_force_driver_reset;
       if (dagor_d3d_force_driver_reset || d3d::device_lost(&canReset)) \
         d3derr_in_device_reset(m);                                     \
       else                                                             \
-        fatal("%s:\n%s", m, d3d::get_last_error());                    \
+        DAG_FATAL("%s:\n%s", m, d3d::get_last_error());                \
     }                                                                  \
   } while (0)
 

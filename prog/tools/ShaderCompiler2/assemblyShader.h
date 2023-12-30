@@ -71,6 +71,16 @@ public:
   eastl::map<eastl::string, eastl::vector<eastl::string>> combinedNameToOrigNames;
   bool needToMerge = true;
 
+private:
+  enum PipelineType
+  {
+    PIPELINE_UNDEFINED,
+    PIPELINE_GRAPHICS,
+    PIPELINE_COMPUTE
+  };
+  PipelineType pipeline = PIPELINE_UNDEFINED;
+
+public:
   /************************************************************************/
   /* AssemblyShader.cpp
   /************************************************************************/

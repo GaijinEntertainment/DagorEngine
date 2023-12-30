@@ -326,6 +326,7 @@ Character traits
 ++++++++++++++++
 
   *  :ref:`is_hex (ch:int const) : bool <function-_at_strings_boost_c__c_is_hex_Ci>` 
+  *  :ref:`is_tab_or_space (ch:int const) : bool <function-_at_strings_boost_c__c_is_tab_or_space_Ci>` 
 
 .. _function-_at_strings_boost_c__c_is_hex_Ci:
 
@@ -341,10 +342,6 @@ is_hex returns bool
 
 
 |function-strings_boost-is_hex|
-
-+++++++++++++
-Uncategorized
-+++++++++++++
 
 .. _function-_at_strings_boost_c__c_is_tab_or_space_Ci:
 

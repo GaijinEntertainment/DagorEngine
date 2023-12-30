@@ -1,6 +1,6 @@
 #include "shadervarGenerator.h"
 
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
 
 #include "shLog.h"
 #include <osApiWrappers/dag_direct.h>

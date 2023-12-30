@@ -42,7 +42,6 @@ HttpPlugin color_pipette_http_plugin;
 HttpPlugin cookie_http_plugin;
 HttpPlugin editvar_http_plugin;
 HttpPlugin ecsviewer_http_plugin;
-HttpPlugin auto_drey_http_plugin;
 HttpPlugin colorgradient_http_plugin;
 HttpPlugin rendinst_colors_http_plugin;
 

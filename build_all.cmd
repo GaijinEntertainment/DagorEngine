@@ -31,7 +31,7 @@ pushd samples\skiesSample\prog
 jam
 cd shaders
 call compile_shaders_dx12.bat
-call compile_shaders_pc11.bat
+call compile_shaders_dx11.bat
 call compile_shaders_metal.bat
 call compile_shaders_spirv.bat
 call compile_shaders_tools.bat
@@ -41,7 +41,7 @@ pushd samples\testGI\prog
 jam
 cd shaders
 call compile_shaders_dx12.bat
-call compile_shaders_pc11.bat
+call compile_shaders_dx11.bat
 call compile_shaders_metal.bat
 call compile_shaders_spirv.bat
 call compile_shaders_tools.bat

@@ -5,13 +5,13 @@ let {getValFromObj, compValToString} = require("attrUtil.nut")
 
 let getCompVal = @(eid, comp_name, path) path!=null ? getValFromObj(eid, comp_name, path) : _dbg_get_comp_val_inspect(eid, comp_name)
 
-let function fieldReadOnly(params = {}) {
+function fieldReadOnly(params = {}) {
   let {path, eid, rawComponentName=null} = params
   let val = getCompVal(eid, rawComponentName, path)
 
   if (rawComponentName == "transform") {
     let valText = Watched(compValToString(val))
-    let function updateTransformFromEcs() {
+    function updateTransformFromEcs() {
       let updVal = getCompVal(eid, rawComponentName, path)
       valText(compValToString(updVal))
       gui_scene.setTimeout(0.25, updateTransformFromEcs)

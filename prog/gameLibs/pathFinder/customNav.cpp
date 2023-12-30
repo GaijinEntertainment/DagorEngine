@@ -47,13 +47,13 @@ static inline bool testCircleAABB(const BBox3 &aabb, const Point3 &c, float r2)
 {
   float dmin = 0;
   if (c.x < aabb.lim[0].x)
-    dmin += SQR(c.x - aabb.lim[0].x);
+    dmin += sqr(c.x - aabb.lim[0].x);
   else if (c.x > aabb.lim[1].x)
-    dmin += SQR(c.x - aabb.lim[1].x);
+    dmin += sqr(c.x - aabb.lim[1].x);
   if (c.z < aabb.lim[0].z)
-    dmin += SQR(c.z - aabb.lim[0].z);
+    dmin += sqr(c.z - aabb.lim[0].z);
   else if (c.z > aabb.lim[1].z)
-    dmin += SQR(c.z - aabb.lim[1].z);
+    dmin += sqr(c.z - aabb.lim[1].z);
   return dmin <= r2;
 }
 

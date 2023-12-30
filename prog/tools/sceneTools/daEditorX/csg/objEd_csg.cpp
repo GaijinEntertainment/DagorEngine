@@ -44,7 +44,7 @@ void ObjEd::fillToolBar(PropertyContainerControlBase *toolbar)
 
   tb1->createSeparator();
 
-  __super::fillToolBar(toolbar);
+  ObjectEditor::fillToolBar(toolbar);
 
   PropertyContainerControlBase *tb2 = toolbar->createToolbarPanel(0, "");
 }
@@ -54,13 +54,13 @@ void ObjEd::addButton(PropertyContainerControlBase *tb, int id, const char *bmp_
 {
   if (id == CM_OBJED_DROP || id == CM_OBJED_MODE_SURF_MOVE)
     return;
-  __super::addButton(tb, id, bmp_name, hint, check);
+  ObjectEditor::addButton(tb, id, bmp_name, hint, check);
 }
 
 
 void ObjEd::updateToolbarButtons()
 {
-  __super::updateToolbarButtons();
+  ObjectEditor::updateToolbarButtons();
   setRadioButton(CM_CREATE_OCCLUDER_BOX, getEditMode());
 }
 
@@ -71,7 +71,7 @@ void ObjEd::reset()
   showLocalBoxCSG = true;
 }
 
-void ObjEd::beforeRender() { __super::beforeRender(); }
+void ObjEd::beforeRender() { ObjectEditor::beforeRender(); }
 
 
 void ObjEd::objRender()
@@ -126,7 +126,7 @@ void ObjEd::objRenderTr()
 }
 
 
-void ObjEd::gizmoStarted() { __super::gizmoStarted(); }
+void ObjEd::gizmoStarted() { ObjectEditor::gizmoStarted(); }
 
 
 void ObjEd::gizmoEnded(bool apply)
@@ -142,7 +142,7 @@ void ObjEd::gizmoEnded(bool apply)
     isGizmoStarted = false;
   }
   else
-    __super::gizmoEnded(apply);
+    ObjectEditor::gizmoEnded(apply);
 }
 
 
@@ -266,7 +266,7 @@ bool ObjEd::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int
     // return objCreator->handleMouseMove(wnd, x, y, inside, buttons, key_modif^CTRL_PRESSED, true);
     return objCreator->handleMouseMove(wnd, x, y, inside, buttons, !wingw::is_key_pressed(wingw::V_CONTROL), true);
   }
-  return __super::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -274,7 +274,7 @@ bool ObjEd::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, 
 {
   if (objCreator)
     return objCreator->handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
-  return __super::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -282,7 +282,7 @@ bool ObjEd::handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside
 {
   if (objCreator)
     return objCreator->handleMouseLBRelease(wnd, x, y, inside, buttons, key_modif);
-  return __super::handleMouseLBRelease(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseLBRelease(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -290,7 +290,7 @@ bool ObjEd::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, 
 {
   if (objCreator)
     return objCreator->handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
-  return __super::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -304,10 +304,10 @@ void ObjEd::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
       onClick(CM_OBJED_MODE_SELECT, NULL);
   }
 
-  __super::handleKeyPress(wnd, vk, modif);
+  ObjectEditor::handleKeyPress(wnd, vk, modif);
 }
 
-void ObjEd::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) { __super::handleKeyRelease(wnd, vk, modif); }
+void ObjEd::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) { ObjectEditor::handleKeyRelease(wnd, vk, modif); }
 
 
 void ObjEd::onClick(int pcb_id, PropPanel2 *panel)
@@ -334,5 +334,5 @@ void ObjEd::onClick(int pcb_id, PropPanel2 *panel)
   updateGizmo();
   updateToolbarButtons();
 
-  __super::onClick(pcb_id, panel);
+  ObjectEditor::onClick(pcb_id, panel);
 }

@@ -372,16 +372,18 @@ static void act()
 {
   TIME_PROFILE(act);
 
-  global_cls_drv_update_cs.lock();
-  if (::global_cls_drv_joy)
-    ::global_cls_drv_joy->updateDevices();
+  {
+    TIME_PROFILE(update_input_devices);
+    WinAutoLock lock(global_cls_drv_update_cs);
+    if (::global_cls_drv_joy)
+      ::global_cls_drv_joy->updateDevices();
 #if _TARGET_C1 | _TARGET_C2
 
 
 #endif
-  if (::global_cls_drv_pnt)
-    ::global_cls_drv_pnt->updateDevices();
-  global_cls_drv_update_cs.unlock();
+    if (::global_cls_drv_pnt)
+      ::global_cls_drv_pnt->updateDevices();
+  }
 
   if (::dagor_gui_manager)
   {

@@ -46,23 +46,38 @@ Will allow to make code faster and safer than with for(local i=0; i<range; i++)
 
 **Status**: Implemented.
 
-## NaN-tagging
+## Automatically assign names to unnamed functions
 
-**Status**: Needs implementation and detailed rfc
+like `let foo = function() {}` == `let foo = function foo() {}`
+or {foo = function()} == {foo = function foo()}
 
-## Incremental GC
-
-**Status**: Needs implementation and detailed rfc
+**Status**: Implemented.
 
 ## Replace let with const
 
 Replace 'let' for immutables with 'const' keyword
+or make them aliases.
+
+const and let for simple types works the same from coder PoV, but differently under the hood.
+for other types const should generate 'binding' like let do now.
+
+**Status**: Needs implementation
+
+## Return back _inherited and _newmember metamethods for classes, or implement some other way to validate children classes
 
 **Status**: Needs implementation and detailed rfc
 
 ## Remove :: operator
 
 Use getroottable() or write your own wrapper for shorter syntax
+
+**Status**: Needs implementation and detailed rfc
+
+## NaN-tagging
+
+**Status**: Needs implementation and detailed rfc
+
+## Incremental GC
 
 **Status**: Needs implementation and detailed rfc
 
@@ -73,13 +88,6 @@ Use getroottable() or write your own wrapper for shorter syntax
 ## Insert-ordered tables (like in Python)
 
 **Status**: Needs implementation and detailed rfc
-
-## Automatically assign names to unnamed functions
-
-like `let foo = function() {}` == `let foo = function foo() {}`
-or {foo = function()} == {foo = function foo()}
-
-**Status**: Implemented.
 
 ## Spread operator
 

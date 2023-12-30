@@ -184,7 +184,8 @@ namespace das {
      */
     enum {
         generator_needYield = (1<<0),
-        generator_jit = (1<<1)
+        generator_jit = (1<<1),
+        generator_nojit = (1<<2)
     };
     FunctionPtr generateLambdaFunction ( const string & lambdaName, ExprBlock * block,
                                         const StructurePtr & ls, const safe_var_set & capt,

@@ -75,17 +75,16 @@ bool ClusterWindCascade::isSphereOnBox(const BBox2 &box, const Point2 &pos, floa
 {
   float dmin = 0;
   if (pos.x < box.getMin().x)
-    dmin += SQR(pos.x - box.getMin().x);
+    dmin += sqr(pos.x - box.getMin().x);
   if (pos.x > box.getMax().x)
-    dmin += SQR(pos.x - box.getMax().x);
+    dmin += sqr(pos.x - box.getMax().x);
 
   if (pos.y < box.getMin().y)
-    dmin += SQR(pos.y - box.getMin().y);
+    dmin += sqr(pos.y - box.getMin().y);
   if (pos.y > box.getMax().y)
-    dmin += SQR(pos.y - box.getMax().y);
+    dmin += sqr(pos.y - box.getMax().y);
 
-  float sqr = SQR(r);
-  bool value = dmin <= sqr;
+  bool value = dmin <= sqr(r);
   return value;
 }
 
@@ -146,7 +145,7 @@ bool ClusterWindCascade::isClusterOnCascade(const Point3 &pos, float r) const
   return isSphereOnBox(gridBoundary, position2D, r);
 }
 
-const int ClusterWindCascade::getAllClusterId(int boxId) const
+int ClusterWindCascade::getAllClusterId(int boxId) const
 {
   int y = boxId / boxWidthNum;
   int x = boxId - y * boxWidthNum;
@@ -224,7 +223,7 @@ void ClusterWindCascade::resetId(int boxId = -1)
   y = abs((y + offset.y) % boxWidthNum);
   x = abs((x + offset.x) % boxWidthNum);
   int boxIdWithOffset = x + y * boxWidthNum;
-  if (boxIdWithOffset >= 0 && boxIdWithOffset < SQR(boxWidthNum))
+  if (boxIdWithOffset >= 0 && boxIdWithOffset < sqr(boxWidthNum))
   {
     gridBoxes[boxIdWithOffset].allIds = NO_INDEX_ALL;
     return;

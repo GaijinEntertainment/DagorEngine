@@ -42,13 +42,13 @@ public:
       VirtualAlloc(nullptr, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)));
     if (!traceMemory)
     {
-      debug("DX12: VirtualAlloc of %u bytes failed, can not record GPU trace", D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
+      logdbg("DX12: VirtualAlloc of %u bytes failed, can not record GPU trace", D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
       return;
     }
 
     if (FAILED(device->OpenExistingHeapFromAddress(traceMemory.get(), COM_ARGS(&traceMemoryHeap))))
     {
-      debug("DX12: OpenExistingHeapFromAddress failed, can not record GPU trace");
+      logdbg("DX12: OpenExistingHeapFromAddress failed, can not record GPU trace");
       traceMemory.reset();
       return;
     }
@@ -77,14 +77,14 @@ public:
     if (FAILED(device->CreatePlacedResource(traceMemoryHeap.Get(), 0, &bufferDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
           COM_ARGS(&traceBuffer))))
     {
-      debug("DX12: CreatePlacedResource failed, can not record GPU trace");
+      logdbg("DX12: CreatePlacedResource failed, can not record GPU trace");
       traceMemoryHeap.Reset();
       traceMemory.reset();
       return;
     }
 
     traceBufferAddress = traceBuffer->GetGPUVirtualAddress();
-    debug("DX12: New GPU trace recording buffer, memory at %p, heap %p, buffer %p at GPU address %u", traceMemory.get(),
+    logdbg("DX12: New GPU trace recording buffer, memory at %p, heap %p, buffer %p at GPU address %u", traceMemory.get(),
       traceMemoryHeap.Get(), traceBuffer.Get(), traceBufferAddress);
   }
 

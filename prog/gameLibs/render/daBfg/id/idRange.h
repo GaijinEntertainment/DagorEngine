@@ -10,7 +10,8 @@ class IdRange
   using Underlying = eastl::underlying_type_t<EnumType>;
 
 public:
-  IdRange(Underlying end) : end_{end} {}
+  IdRange(Underlying end) : begin_{0}, end_{end} {}
+  IdRange(Underlying beg, Underlying end) : begin_{beg}, end_{end} { G_ASSERT(beg <= end); }
 
   class Iterator
   {
@@ -42,6 +43,18 @@ public:
       return copy;
     }
 
+    Iterator operator--()
+    {
+      --current_;
+      return *this;
+    }
+    Iterator operator--(int)
+    {
+      auto copy = *this;
+      --current_;
+      return copy;
+    }
+
     friend bool operator==(Iterator a, Iterator b) { return a.current_ == b.current_; }
     friend bool operator!=(Iterator a, Iterator b) { return a.current_ != b.current_; }
 
@@ -49,9 +62,10 @@ public:
     Underlying current_;
   };
 
-  Iterator begin() const { return Iterator(0); }
+  Iterator begin() const { return Iterator(begin_); }
   Iterator end() const { return Iterator(end_); }
 
 private:
+  Underlying begin_;
   Underlying end_;
 };

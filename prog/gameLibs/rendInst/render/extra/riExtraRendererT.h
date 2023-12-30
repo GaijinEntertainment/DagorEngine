@@ -41,6 +41,7 @@ class RiExtraRendererT : public DynamicVariantsPolicy //-V730
   bool optimizeDepthPass;
   bool isVoxelizationPass;
   bool isDecalPass;
+  bool isTransparentPass;
 
   struct PackedDrawCallsRange
   {
@@ -63,30 +64,31 @@ public:
     IgnoreOptimizationLimits ignore_optimization_instances_limits = IgnoreOptimizationLimits::No, uint32_t count_multiply = 1)
   {
     layer = layer_, instanceCountMultiply = eastl::max(1u, count_multiply);
-    isDepthPass = render_pass == rendinst::RenderPass::ToShadow || render_pass == rendinst::RenderPass::Depth;
-    optimizeDepthPass = isDepthPass && optimization_depth_pass == rendinst::OptimizeDepthPass::Yes;
-    isVoxelizationPass = (render_pass == rendinst::RenderPass::VoxelizeAlbedo || render_pass == rendinst::RenderPass::Voxelize3d);
-    isDecalPass = layer == rendinst::LayerFlag::Decals;
+    isDepthPass = render_pass == RenderPass::ToShadow || render_pass == RenderPass::Depth;
+    optimizeDepthPass = isDepthPass && optimization_depth_pass == OptimizeDepthPass::Yes;
+    isVoxelizationPass = (render_pass == RenderPass::VoxelizeAlbedo || render_pass == RenderPass::Voxelize3d);
+    isDecalPass = layer == LayerFlag::Decals;
+    isTransparentPass = layer == LayerFlag::Transparent;
 
     list.clear();
     list.reserve(size_to_reserve);
     multidrawList.clear();
     drawcallRanges.clear();
     bindlessStatesToUpdateTexLevels.clear();
-    if (layer == rendinst::LayerFlag::Transparent)
+    if (layer == LayerFlag::Transparent)
       startStage = endStage = ShaderMesh::STG_trans;
-    else if (layer == rendinst::LayerFlag::Decals)
+    else if (layer == LayerFlag::Decals)
       startStage = endStage = ShaderMesh::STG_decal;
-    else if (layer == rendinst::LayerFlag::Distortion)
+    else if (layer == LayerFlag::Distortion)
       startStage = endStage = ShaderMesh::STG_distortion;
     else
     {
       startStage = ShaderMesh::STG_opaque;
-      if (optimization_depth_prepass == rendinst::OptimizeDepthPrepass::Yes &&
-          ignore_optimization_instances_limits == rendinst::IgnoreOptimizationLimits::No)
+      if (optimization_depth_prepass == OptimizeDepthPrepass::Yes &&
+          ignore_optimization_instances_limits == IgnoreOptimizationLimits::No)
         endStage = ShaderMesh::STG_opaque;
       else
-        endStage = (render_pass == rendinst::RenderPass::Normal) ? ShaderMesh::STG_imm_decal : ShaderMesh::STG_atest;
+        endStage = (render_pass == RenderPass::Normal) ? ShaderMesh::STG_imm_decal : ShaderMesh::STG_atest;
     }
   }
 
@@ -105,6 +107,8 @@ public:
   void coalesceDrawcalls()
   {
     TIME_D3D_PROFILE(ri_extra_coalesce_drawcalls);
+    if (!multidrawList.size())
+      return;
 
     const auto mergeComparator = [](const RIExRenderRecord &a, const RIExRenderRecord &b) -> bool {
       return a.isTree == b.isTree && a.drawOrder_stage == b.drawOrder_stage && a.vstride == b.vstride && a.vbIdx == b.vbIdx &&
@@ -131,8 +135,12 @@ public:
         iter->second = max(iter->second, currentRelem.texLevel);
     }
 
-    stlsort::sort(drawcallRanges.begin(), drawcallRanges.end(),
-      [&](const auto &a, const auto &b) { return multidrawList[a.start].poolOrder < multidrawList[b.start].poolOrder; });
+    stlsort::sort(drawcallRanges.begin(), drawcallRanges.end(), [&](const auto &a, const auto &b) {
+      if (multidrawList[a.start].drawOrder_stage != multidrawList[b.start].drawOrder_stage)
+        return multidrawList[a.start].drawOrder_stage < multidrawList[b.start].drawOrder_stage;
+      else
+        return multidrawList[a.start].poolOrder < multidrawList[b.start].poolOrder;
+    });
   }
 
   void updateDataForPackedRender() const
@@ -156,9 +164,9 @@ public:
 
     updateDataForPackedRender();
 
-    multidrawContext.fillBuffers(multidrawList.size(),
+    const auto multiDrawRenderer = riExMultidrawContext.fillBuffers(multidrawList.size(),
       [this](uint32_t draw_index, uint32_t &index_count_per_instance, uint32_t &instance_count, uint32_t &start_index_location,
-        int32_t &base_vertex_location, PerInstanceParameters &per_draw_data) {
+        int32_t &base_vertex_location, RiExPerInstanceParameters &per_draw_data) {
         index_count_per_instance = (uint32_t)multidrawList[draw_index].numf * 3;
         instance_count = (uint32_t)multidrawList[draw_index].ofsAndCnt.y * instanceCountMultiply;
         start_index_location = (uint32_t)multidrawList[draw_index].si;
@@ -187,7 +195,7 @@ public:
 
     d3d_err(d3d::setind(unitedvdata::riUnitedVdata.getIB()));
 
-    rendinst::render::RiShaderConstBuffers cb;
+    RiShaderConstBuffers cb;
     cb.setInstancing(0, 4, 0, true);
     cb.flushPerDraw();
 
@@ -206,9 +214,8 @@ public:
       d3d_err(d3d::setvsrc(0, vb, rl.vstride));
 
 #if USE_DEPTH_PREPASS_FOR_TREES
-      rendinst::RiExtraPool &riPool = rendinst::riExtra[riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK];
-      const bool needDepthPrepass =
-        (!isVoxelizationPass && !isDepthPass && !isDecalPass && riPool.isTree && rendinst::render::use_ri_depth_prepass);
+      RiExtraPool &riPool = riExtra[riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK];
+      const bool needDepthPrepass = (!isVoxelizationPass && !isDepthPass && !isDecalPass && riPool.isTree && use_ri_depth_prepass);
 
       if (needDepthPrepass != currentDepthPrepass)
       {
@@ -216,7 +223,7 @@ public:
         currentDepthPrepass = needDepthPrepass;
         shaders::overrides::reset();
         if (needDepthPrepass)
-          shaders::overrides::set(rendinst::render::afterDepthPrepassOverride);
+          shaders::overrides::set(afterDepthPrepassOverride);
         else
           shaders::overrides::set(previousOverrideId);
       }
@@ -224,8 +231,7 @@ public:
       rl.curShader->setReqTexLevel(rl.texLevel);
       set_states_for_variant(rl.curShader->native(), rl.cv, rl.prog, rl.state & ~rl.DISABLE_OPTIMIZATION_BIT_STATE);
 
-      d3d::multi_draw_indexed_indirect(PRIM_TRILIST, rendinst::render::multidrawContext.getBuffer(), dcParams.count,
-        rendinst::render::multidrawContext.getStride(), dcParams.start * rendinst::render::multidrawContext.getStride());
+      multiDrawRenderer.render(PRIM_TRILIST, dcParams.start, dcParams.count);
     }
 #if USE_DEPTH_PREPASS_FOR_TREES
     if (currentDepthPrepass)
@@ -252,7 +258,7 @@ public:
 
     d3d_err(d3d::setind(unitedvdata::riUnitedVdata.getIB()));
 
-    rendinst::render::RiShaderConstBuffers cb;
+    RiShaderConstBuffers cb;
     cb.setInstancing(0, 4, 0, true);
     cb.flushPerDraw();
 
@@ -276,8 +282,7 @@ public:
         if (rl.vbIdx == unitedvdata::BufPool::IDX_IB)
         {
           logerr("Invalid united VB index in ri='%s', shader='%s', numf=%d",
-            rendinst::riExtraMap.getName(riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK), rl.curShader->getShaderClassName(),
-            rl.numf);
+            riExtraMap.getName(riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK), rl.curShader->getShaderClassName(), rl.numf);
           continue;
         }
         cVbIdx = rl.vbIdx;
@@ -296,18 +301,18 @@ public:
         skipApply = false;
       }
 
-      rendinst::RiExtraPool &riPool = rendinst::riExtra[riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK];
+      RiExtraPool &riPool = riExtra[riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK];
 #if USE_DEPTH_PREPASS_FOR_TREES
 
       const bool needDepthPrepass =
-        (!isVoxelizationPass && !isDepthPass && !isDecalPass && riPool.isTree && rendinst::render::use_ri_depth_prepass);
+        (!isVoxelizationPass && !isDepthPass && !isDecalPass && riPool.isTree && use_ri_depth_prepass && !isTransparentPass);
       if (needDepthPrepass != currentDepthPrepass)
       {
         G_ASSERTF(validOverride, "Only disabled backface culling is available override here in colored pass");
         currentDepthPrepass = needDepthPrepass;
         shaders::overrides::reset();
         if (needDepthPrepass)
-          shaders::overrides::set(rendinst::render::afterDepthPrepassOverride);
+          shaders::overrides::set(afterDepthPrepassOverride);
         else
           shaders::overrides::set(previousOverrideId);
       }
@@ -336,7 +341,7 @@ public:
         bool isImpostor = rl.lod == RiExtraPool::MAX_LODS - 1;
         if (riPool.isTree && !isImpostor)
         {
-          const auto tcConsts = rendinst::render::getCommonImmediateConstants();
+          const auto tcConsts = getCommonImmediateConstants();
           uint32_t immediateConsts[] = {0u, tcConsts[0], tcConsts[1]};
           d3d::set_immediate_const(STAGE_PS, immediateConsts, sizeof(immediateConsts) / sizeof(immediateConsts[0]));
         }
@@ -444,23 +449,22 @@ public:
     bool ignore_optimization_instances_limits, IPoint2 ofsAndCnt, int lod, uint16_t pool_order, const TexStreamingContext &texCtx,
     float dist2, const ShaderElement *shader_override = nullptr, bool gpu_instancing = false)
   {
-    if (ri_idx >= rendinst::riExtra.size())
+    if (ri_idx >= riExtra.size())
     {
-      logerr("Attempted to add riex with pool index '%d' to RiExtraRendererT, total pool amount was '%d'.", ri_idx,
-        rendinst::riExtra.size());
+      logerr("Attempted to add riex with pool index '%d' to RiExtraRendererT, total pool amount was '%d'.", ri_idx, riExtra.size());
       return;
     }
 
     if (should_hide_ri_extra_object_with_id(ri_idx))
       return;
 
-    rendinst::RiExtraPool &riPool = rendinst::riExtra[ri_idx];
-    if (layer == rendinst::LayerFlag::RendinstClipmapBlend && !riPool.usingClipmap) // to be removed from here!
+    RiExtraPool &riPool = riExtra[ri_idx];
+    if (layer == LayerFlag::RendinstClipmapBlend && !riPool.usingClipmap) // to be removed from here!
       return;
-    // rendinsts patching heightmap are rendered only with rendinst::LAYER_RENDINST_HEIGHTMAP_PATCH layer
-    if (riPool.patchesHeightmap ^ (layer == rendinst::LayerFlag::RendinstHeightmapPatch))
+    // rendinsts patching heightmap are rendered only with LAYER_RENDINST_HEIGHTMAP_PATCH layer
+    if (riPool.patchesHeightmap ^ (layer == LayerFlag::RendinstHeightmapPatch))
       return;
-    const bool renderBrokenTreesToDepth = isDepthPass && riPool.isTree && rendinst::render::use_ri_depth_prepass;
+    const bool renderBrokenTreesToDepth = isDepthPass && riPool.isTree && use_ri_depth_prepass;
     if (optimization_depth_prepass && !ignore_optimization_instances_limits && !optimizationInstances && !renderBrokenTreesToDepth)
       return;
     int count = ofsAndCnt.y;
@@ -470,19 +474,26 @@ public:
     {
       if (count > 0)
         riPool.res->updateReqLod(min<int>(lod, riPool.res->lods.size() - 1));
+
       if (lod < riPool.res->getQlBestLod())
+      {
         lod = riPool.res->getQlBestLod();
+        if (riPool.isPosInst() && (lod == riPool.res->lods.size() - 1)) // No imposters allowed here
+          return;
+        if (lod >= RiExtraPool::MAX_LODS)
+          return;
+      }
     }
     else
-      logerr("Empty resource for pool %d. %d pools in total", ri_idx, rendinst::riExtra.size());
-    uint32_t startEIOfs = (lod * rendinst::riExtra.size() + ri_idx) * ShaderMesh::STG_COUNT + startStage;
+      logerr("Empty resource for pool %d. %d pools in total", ri_idx, riExtra.size());
+    uint32_t startEIOfs = (lod * riExtra.size() + ri_idx) * ShaderMesh::STG_COUNT + startStage;
 
     // Flag shaders and
     // Tree shaders are generally incompatible by VS with other RI shaders and with each other.
     const bool disableOptimization = riPool.isTree || riPool.hasDynamicDisplacement;
     const uint32_t disableOptimizationBit = disableOptimization ? RIExRenderRecord::DISABLE_OPTIMIZATION_BIT_STATE : 0;
 
-    int texLevel = texCtx.getTexLevel(rendinst::riExtra[ri_idx].res->getTexScale(lod), dist2);
+    int texLevel = texCtx.getTexLevel(riExtra[ri_idx].res->getTexScale(lod), dist2);
 
 #if USE_DEPTH_PREPASS_FOR_TREES
     uint32_t correctedEndStage = renderBrokenTreesToDepth ? ShaderMesh::STG_atest : endStage;
@@ -521,7 +532,7 @@ public:
 
         if (elem.vbIdx == unitedvdata::BufPool::IDX_IB)
         {
-          logwarn("Invalid united VB index in ri='%s', shader='%s', numf=%d", rendinst::riExtraMap.getName(ri_idx),
+          logwarn("Invalid united VB index in ri='%s', shader='%s', numf=%d", riExtraMap.getName(ri_idx),
             elem.shader->getShaderClassName(), elem.numf);
           continue;
         }

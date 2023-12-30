@@ -640,7 +640,7 @@ static void convert_library(const DataBlock *blk, const char *now_in, const char
 
     const char *tmp = subBlock->getStr("name", NULL);
     if (!tmp)
-      fatal("not found 'name' in block '%s'", subBlock->getBlockName());
+      DAG_FATAL("not found 'name' in block '%s'", subBlock->getBlockName());
 
     String destFld(256, "%s%s/", dst_fld, tmp);
     String newFld(256, "%s%s/", now_in, tmp);

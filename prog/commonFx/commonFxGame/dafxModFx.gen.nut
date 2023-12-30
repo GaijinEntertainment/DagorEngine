@@ -149,7 +149,14 @@ declare_struct("FxColorCurveOpt", 4,
   { name="curve", type="cubic_curve" },
 ]);
 
-declare_struct("FxColor", 2,
+declare_struct("FxMaskedCurveOpt", 1,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="mask", type="E3DCOLOR", defVal=Color4(255, 255, 255, 255) },
+  { name="curve", type="cubic_curve" },
+]);
+
+declare_struct("FxColor", 3,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="allow_game_override", type="bool", defVal=0 },
@@ -157,6 +164,7 @@ declare_struct("FxColor", 2,
   { name="col_max", type="E3DCOLOR", defVal=Color4(128, 128, 128, 255) },
   { name="grad_over_part_life", type="FxValueGradOpt" },
   { name="curve_over_part_life", type="FxColorCurveOpt" },
+  { name="curve_over_part_idx", type="FxMaskedCurveOpt" },
 ]);
 
 declare_struct("FxRotation", 2,
@@ -408,9 +416,10 @@ declare_struct("FxRenderShapeBillboard", 9,
   { name="screen_view_clamp", type="Point2", defVal=Point2(0, 0) },
 ]);
 
-declare_struct("FxRenderShapeRibbon", 2,
+declare_struct("FxRenderShapeRibbon", 3,
 [
   { name="type", type="list", list=["side_only", "side_and_head"] },
+  { name="uv_mapping", type="list", list=["relative", "static"] },
   { name="uv_tile", type="real", defVal=1 },
   { name="side_fade_threshold", type="real", defVal=1 },
   { name="side_fade_pow", type="real", defVal=1 },
@@ -457,9 +466,10 @@ declare_struct("FxRenderShaderVolShape", 1,
   { name="radius_pow", type="real", defVal=2 },
 ]);
 
-declare_struct("FxRenderShaderAboveDepth", 1,
+declare_struct("FxRenderShaderAboveDepth", 2,
 [
   { name="placement_threshold", type="real", defVal=-1 },
+  { name="terrain_only", type="bool", defVal=0 },
 ]);
 
 declare_struct("FxRenderVolfogInjection", 1,

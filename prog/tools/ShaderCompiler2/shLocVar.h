@@ -8,6 +8,7 @@
 #include <math/dag_color.h>
 #include <generic/dag_tab.h>
 #include "shExpr.h"
+#include "shVarVecTypes.h"
 
 //************************************************************************
 //* forwards
@@ -25,16 +26,13 @@ struct LocalVar
 public:
   union ConstValue
   {
-    struct
-    {
-      Color4 c;
-    };
+    shc::Col4 c;
     real r;
-    ConstValue() {}
-    ConstValue(float r, float g, float b, float a) : c(r, g, b, a) {}
+    ConstValue() : c{0, 0, 0, 0} {}
+    ConstValue(float r, float g, float b, float a) : c{r, g, b, a} {}
   };
 
-  ConstValue cv{0, 0, 0, 0};
+  ConstValue cv;
   bool isConst = false;
   bool isDynamic = false;
   const int varNameId = -1;
@@ -42,10 +40,7 @@ public:
   int reg = -1;
   LocalVar() = default;
 
-  inline LocalVar(int _varNameId, shexpr::ValueType val_type) : varNameId(_varNameId), valueType(val_type)
-  {
-    cv.c = Color4(0, 0, 0, 0);
-  }
+  inline LocalVar(int _varNameId, shexpr::ValueType val_type) : varNameId(_varNameId), valueType(val_type) {}
 }; // class LocalVar
 //
 

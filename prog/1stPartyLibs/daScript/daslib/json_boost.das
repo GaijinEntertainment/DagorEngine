@@ -16,6 +16,63 @@ require daslib/strings_boost
 require daslib/apply
 require daslib/macro_boost
 
+
+def operator ?[] ( a : json::JsonValue? == const; key:string ) : JsonValue? const
+    return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
+
+def operator ?[] ( var a : json::JsonValue? == const; key:string ) : JsonValue?
+    return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
+
+def operator ?. ( a : json::JsonValue? == const; key:string ) : JsonValue? const
+    return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
+
+def operator ?. ( var a : json::JsonValue? == const; key:string ) : JsonValue?
+    return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
+
+def operator ?[] ( a : json::JsonValue? == const; idx:int ) : JsonValue? const
+    return a != null && a.value is _array ? (a.value as _array)?[idx] ?? JVNull() : JVNull()
+
+def operator ?[] ( var a : json::JsonValue? == const; idx:int ) : JsonValue?
+    return a != null && a.value is _array ? (a.value as _array)?[idx] ?? JVNull() : JVNull()
+
+def operator ?? ( a : json::JsonValue?; val:double ) : double
+    return a != null && a.value is _number ? a.value as _number : val
+
+def operator ?? ( a : json::JsonValue?; val:float ) : float
+    return a != null && a.value is _number ? float(a.value as _number) : val
+
+def operator ?? ( a : json::JsonValue?; val:int8 ) : int8
+    return a != null && a.value is _number ? int8(a.value as _number) : val
+
+def operator ?? ( a : json::JsonValue?; val:int16 ) : int16
+    return a != null && a.value is _number ? int16(a.value as _number) : val
+
+def operator ?? ( a : json::JsonValue?; val:int ) : int
+    return a != null && a.value is _number ? int(a.value as _number) : val
+
+def operator ?? ( a : json::JsonValue?; val:int64 ) : int64
+    return a != null && a.value is _number ? int64(a.value as _number) : val
+
+def operator ?? ( a : json::JsonValue?; val:uint8 ) : uint8
+    return a != null && a.value is _number ? uint8(a.value as _number) : val
+
+def operator ?? ( a : json::JsonValue?; val:uint16 ) : uint16
+    return a != null && a.value is _number ? uint16(a.value as _number) : val
+
+def operator ?? ( a : json::JsonValue?; val:uint ) : uint
+    return a != null && a.value is _number ? uint(a.value as _number) : val
+
+def operator ?? ( a : json::JsonValue?; val:uint64 ) : uint64
+    return a != null && a.value is _number ? uint64(a.value as _number) : val
+
+def operator ?? ( a : json::JsonValue?; val:bool ) : bool
+    return a != null && a.value is _bool ? a.value as _bool : val
+
+def operator ?? ( a : json::JsonValue?; val:string ) : string
+    return a != null && a.value is _string ? a.value as _string : val
+
+
+[macro_function]
 def private is_json_ptr_value ( td : TypeDeclPtr )
     if td.baseType != Type tPointer
         return false
@@ -47,6 +104,13 @@ class private BetterJsonMacro : AstVariantMacro
         if is_json_ptr_value(expr.value._type)
             var inscope vdr <- new [[ExprField() at=expr.at, name:="value", value <- clone_expression(expr.value)]]
             var inscope isv <- new [[ExprAsVariant() at=expr.at, name:=expr.name, value <- vdr ]]
+            isv.genFlags = expr.genFlags
+            return <- isv
+        return <- [[ExpressionPtr]]
+    def override visitExprSafeAsVariant(prog:ProgramPtr; mod:Module?; expr:smart_ptr<ExprSafeAsVariant>) : ExpressionPtr
+        if is_json_ptr_value(expr.value._type)
+            var inscope vdr <- new [[ExprField() at=expr.at, name:="value", value <- clone_expression(expr.value)]]
+            var inscope isv <- new [[ExprSafeAsVariant() at=expr.at, name:=expr.name, value <- vdr ]]
             isv.genFlags = expr.genFlags
             return <- isv
         return <- [[ExpressionPtr]]

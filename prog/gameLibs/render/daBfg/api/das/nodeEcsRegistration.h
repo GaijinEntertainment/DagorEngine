@@ -12,14 +12,7 @@
 
 struct NodeEcsRegistrationAnnotation final : das::FunctionAnnotation
 {
-  struct RegistrationArguments
-  {
-    eastl::string nodeName{};
-    eastl::string entityName{};
-    eastl::string handleName{};
-  };
-  NodeEcsRegistrationAnnotation() : das::FunctionAnnotation("bfg_ecs_node") {}
-  NodeEcsRegistrationAnnotation(const char *name) : das::FunctionAnnotation(name) {}
+  NodeEcsRegistrationAnnotation(das::mutex &mtx) : das::FunctionAnnotation("bfg_ecs_node"), dabfgRuntimeMutex{mtx} {}
 
   bool apply(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &) override
   {
@@ -33,6 +26,16 @@ struct NodeEcsRegistrationAnnotation final : das::FunctionAnnotation
     das::string &) override
   {
     return true;
+  };
+
+private:
+  das::mutex &dabfgRuntimeMutex;
+  struct RegistrationArguments
+  {
+    eastl::string nodeName{};
+    eastl::string entityName{};
+    eastl::string handleName{};
+    eastl::string counterHandleName{};
   };
   dag::FixedVectorMap<eastl::string, RegistrationArguments, 4> arguments;
   using StrRegistrationArgumentsPair = eastl::pair<eastl::string, RegistrationArguments>;

@@ -219,7 +219,7 @@ public:
     }
     CONSOLE_CHECK_NAME("app", "divzero", 1, 1) { debug("%f", 1.0f / test_zero); }
     CONSOLE_CHECK_NAME("app", "crash", 1, 1) { *(volatile int *)0 = 0; }
-    CONSOLE_CHECK_NAME("app", "fatal", 1, 1) { fatal("manual fatal"); }
+    CONSOLE_CHECK_NAME("app", "fatal", 1, 1) { DAG_FATAL("manual fatal"); }
     CONSOLE_CHECK_NAME("app", "threadcrash", 1, 1)
     {
       TestErrorThread thr(true);

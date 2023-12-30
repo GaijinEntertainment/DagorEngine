@@ -260,16 +260,16 @@ static void compFaceIntegrals(GeomMeshHelper &m, int fi)
 
   Faa = k1 * Paa;
   Fbb = k1 * Pbb;
-  Fcc = k3 * (SQR(n[A]) * Paa + 2 * n[A] * n[B] * Pab + SQR(n[B]) * Pbb + w * (2 * (n[A] * Pa + n[B] * Pb) + w * P1));
+  Fcc = k3 * (sqr(n[A]) * Paa + 2 * n[A] * n[B] * Pab + sqr(n[B]) * Pbb + w * (2 * (n[A] * Pa + n[B] * Pb) + w * P1));
 
   Faaa = k1 * Paaa;
   Fbbb = k1 * Pbbb;
-  Fccc = -k4 * (CUBE(n[A]) * Paaa + 3 * SQR(n[A]) * n[B] * Paab + 3 * n[A] * SQR(n[B]) * Pabb + CUBE(n[B]) * Pbbb +
-                 3 * w * (SQR(n[A]) * Paa + 2 * n[A] * n[B] * Pab + SQR(n[B]) * Pbb) + w * w * (3 * (n[A] * Pa + n[B] * Pb) + w * P1));
+  Fccc = -k4 * (CUBE(n[A]) * Paaa + 3 * sqr(n[A]) * n[B] * Paab + 3 * n[A] * sqr(n[B]) * Pabb + CUBE(n[B]) * Pbbb +
+                 3 * w * (sqr(n[A]) * Paa + 2 * n[A] * n[B] * Pab + sqr(n[B]) * Pbb) + w * w * (3 * (n[A] * Pa + n[B] * Pb) + w * P1));
 
   Faab = k1 * Paab;
   Fbbc = -k2 * (n[A] * Pabb + n[B] * Pbbb + w * Pbb);
-  Fcca = k3 * (SQR(n[A]) * Paaa + 2 * n[A] * n[B] * Paab + SQR(n[B]) * Pabb + w * (2 * (n[A] * Paa + n[B] * Pab) + w * Pa));
+  Fcca = k3 * (sqr(n[A]) * Paaa + 2 * n[A] * n[B] * Paab + sqr(n[B]) * Pabb + w * (2 * (n[A] * Paa + n[B] * Pab) + w * Pa));
 }
 
 static void compVolumeIntegrals(GeomMeshHelper &m)

@@ -40,11 +40,11 @@ public:
 
     (carray<size_t, elements_size>::operator[]((int)(i >> bitsShift))) &= ~(size_t(1UL) << (i & bitsMask));
   }
-  __forceinline const bool get(int i) const
+  __forceinline bool get(int i) const
   {
     return (bool)((carray<size_t, elements_size>::operator[]((int)(i >> bitsShift))) & ((size_t(1UL) << (i & bitsMask))));
   }
-  __forceinline const bool operator[](size_t i) const { return get(i); }
+  __forceinline bool operator[](size_t i) const { return get(i); }
 };
 
 ///@}

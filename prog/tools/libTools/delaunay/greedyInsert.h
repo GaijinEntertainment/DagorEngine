@@ -1,5 +1,4 @@
-#ifndef GREEDYINSERT_INCLUDED // -*- C++ -*-
-#define GREEDYINSERT_INCLUDED
+#pragma once
 
 #include "heap.h"
 #include "subdivision.h"
@@ -100,5 +99,3 @@ public:
 #define DATA_POINT_IGNORED 2
 #define DATA_VALUE_UNKNOWN 3
 }; // namespace delaunay
-
-#endif

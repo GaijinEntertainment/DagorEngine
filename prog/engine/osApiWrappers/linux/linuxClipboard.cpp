@@ -134,5 +134,5 @@ void set_selection_ready() {}
 } // namespace clipboard_private
 #endif
 
-#define EXPORT_PULL dll_pull_osapiwrappers_winClipboard
+#define EXPORT_PULL dll_pull_osapiwrappers_clipboard
 #include <supp/exportPull.h>

@@ -641,14 +641,14 @@ void IvyObject::onPPBtnPressed(int pid, PropPanel2 &panel, dag::ConstSpan<Render
 
 void IvyObject::setWtm(const TMatrix &wtm)
 {
-  __super::setWtm(wtm);
+  RenderableEditableObject::setWtm(wtm);
   pt = getPos();
 }
 
 
 void IvyObject::moveObject(const Point3 &delta, IEditorCoreEngine::BasisType basis)
 {
-  __super::moveObject(delta, basis);
+  RenderableEditableObject::moveObject(delta, basis);
   objectWasMoved = true;
 }
 

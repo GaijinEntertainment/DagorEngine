@@ -49,7 +49,7 @@ void rebuild_gpu_instancing_relem_params()
 
 bool has_pending() { return !gpu_objects_to_add.empty(); }
 
-void add(const String &name, int cell_tile, int grid_size, float cell_size, const gpu_objects::PlacingParameters &parameters)
+void add(const eastl::string &name, int cell_tile, int grid_size, float cell_size, const gpu_objects::PlacingParameters &parameters)
 {
   if (manager)
   {
@@ -59,11 +59,11 @@ void add(const String &name, int cell_tile, int grid_size, float cell_size, cons
       gpu_objects_to_add.emplace_back(entry);
       return;
     }
-    int id = rendinst::riExtraMap.getNameId(name);
+    int id = rendinst::riExtraMap.getNameId(name.c_str());
     if (id == -1)
     {
       debug("GPUObjects: auto adding <%s> as riExtra.", name);
-      id = addRIGenExtraResIdx(name, -1, -1, AddRIFlag::UseShadow);
+      id = addRIGenExtraResIdx(name.c_str(), -1, -1, AddRIFlag::UseShadow);
       if (id < 0)
         return;
     }
@@ -126,18 +126,18 @@ void validate_displaced(float displacement_tex_range)
     manager->validateDisplacedGPUObjs(displacement_tex_range);
 }
 
-void change_parameters(const String &name, const gpu_objects::PlacingParameters &parameters)
+void change_parameters(const eastl::string &name, const gpu_objects::PlacingParameters &parameters)
 {
   d3d::GpuAutoLock lock;
   if (manager)
-    manager->changeParameters(rendinst::riExtraMap.getNameId(name), parameters);
+    manager->changeParameters(rendinst::riExtraMap.getNameId(name.c_str()), parameters);
 }
 
-void change_grid(const String &name, int cell_tile, int grid_size, float cell_size)
+void change_grid(const eastl::string &name, int cell_tile, int grid_size, float cell_size)
 {
   d3d::GpuAutoLock lock;
   if (manager)
-    manager->changeGrid(rendinst::riExtraMap.getNameId(name), cell_tile, grid_size, cell_size);
+    manager->changeGrid(rendinst::riExtraMap.getNameId(name.c_str()), cell_tile, grid_size, cell_size);
 }
 
 void invalidate_inside_bbox(const BBox2 &bbox)

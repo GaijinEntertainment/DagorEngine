@@ -22,6 +22,45 @@ int rendinst::getRIGenMaterialId(const RendInstDesc &desc, bool need_lock)
   return -1;
 }
 
+
+bool rendinst::getRIGenCanopyBBox(const RendInstDesc &desc, const TMatrix &tm, BBox3 &out_canopy_bbox, bool need_lock)
+{
+  int pool = desc.isRiExtra() ? riExtra[desc.pool].riPoolRef : desc.pool;
+  if (pool < 0)
+    return false;
+
+  RendInstGenData *rgl = rendinst::getRgLayer(desc.isRiExtra() ? rendinst::riExtra[desc.pool].riPoolRefLayer : desc.layer);
+  if (!rgl)
+    return false;
+
+  ScopedLockRead lock(need_lock ? &rgl->rtData->riRwCs : nullptr);
+
+  const auto &riProps = rgl->rtData->riProperties;
+  if (pool >= riProps.size())
+  {
+    logerr("getRIGenCanopyBBox: no 'riProperties' for an invalid pool id '%i', totalPoolsCount=%i", pool, riProps.size());
+    return false;
+  }
+
+  const auto &riRes = rgl->rtData->riRes[pool];
+  if (!riRes)
+  {
+    logerr("getRIGenCanopyBBox: no 'riRes' for an invalid pool id '%i', totalPoolsCount=%i", pool, riProps.size());
+    return false;
+  }
+
+  mat44f riTm;
+  v_mat44_make_from_43cu_unsafe(riTm, tm.array);
+
+  bbox3f allBBox;
+  v_bbox3_init(allBBox, riTm, v_ldu_bbox3(riRes->bbox));
+
+  BBox3 worldBBox;
+  v_stu_bbox3(worldBBox, allBBox);
+
+  return getRIGenCanopyBBox(riProps[pool], worldBBox, out_canopy_bbox);
+}
+
 CollisionResource *rendinst::getRIGenCollInfo(const rendinst::RendInstDesc &desc)
 {
   RendInstGenData *v = RendInstGenData::getGenDataByLayer(desc);
@@ -189,6 +228,19 @@ const char *rendinst::getRIGenResName(const RendInstDesc &desc)
     return rendinst::riExtraMap.getName(desc.pool);
   RendInstGenData *rgl = getRgLayer(desc.layer);
   return rgl && desc.pool >= 0 && desc.pool < rgl->rtData->riResName.size() ? rgl->rtData->riResName[desc.pool] : nullptr;
+}
+
+const char *rendinst::getRIGenDestrFxTemplateName(const RendInstDesc &desc)
+{
+  if (desc.isRiExtra())
+  {
+    RendInstGenData *rgl = getRgLayer(riExtra[desc.pool].riPoolRefLayer);
+    int pool = riExtra[desc.pool].riPoolRef;
+    return (rgl && pool) ? rgl->rtData->riDebrisMap[pool].fxTemplate.str() : nullptr;
+  }
+  RendInstGenData *rgl = getRgLayer(desc.layer);
+  return rgl && desc.pool >= 0 && desc.pool < rgl->rtData->riDebrisMap.size() ? rgl->rtData->riDebrisMap[desc.pool].fxTemplate.str()
+                                                                              : nullptr;
 }
 
 const char *rendinst::getRIGenDestrName(const RendInstDesc &desc)

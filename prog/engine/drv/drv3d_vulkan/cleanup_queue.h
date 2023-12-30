@@ -4,6 +4,7 @@
 #include "driver.h"
 #include "buffer_resource.h"
 #include "image_resource.h"
+#include "sampler_resource.h"
 #include "async_completion_state.h"
 #if D3D_HAS_RAY_TRACING
 #include "raytrace_as_resource.h"
@@ -39,7 +40,6 @@ class CleanupQueue
 
   Tab<DelayedCleanup<Buffer, Buffer::CLEANUP_DESTROY>> bufferDestructions;
   Tab<DelayedCleanup<Image, Image::CLEANUP_DESTROY>> imageDestructions;
-  Tab<DelayedCleanup<Image, Image::CLEANUP_EVICT>> imageEvictions;
   Tab<DelayedCleanup<AsyncCompletionState, AsyncCompletionState::CLEANUP_DESTROY>> asyncCompletionStateDestructions;
 #if D3D_HAS_RAY_TRACING
   Tab<DelayedCleanup<RaytraceAccelerationStructure, RaytraceAccelerationStructure::CLEANUP_DESTROY_TOP>> rtASTopDestructions;
@@ -52,6 +52,7 @@ class CleanupQueue
   Tab<DelayedCleanup<RaytracePipeline, RaytracePipeline::CLEANUP_DESTROY>> raytracePipelineDestructions;
 #endif
   Tab<DelayedCleanup<RenderPassResource, RenderPassResource::CLEANUP_DESTROY>> renderPassDestructions;
+  Tab<DelayedCleanup<SamplerResource, SamplerResource::CLEANUP_DESTROY>> samplerDestructions;
 
   template <typename T>
   T getQueue();
@@ -61,7 +62,6 @@ class CleanupQueue
   {
     cb(bufferDestructions);
     cb(imageDestructions);
-    cb(imageEvictions);
     cb(asyncCompletionStateDestructions);
 #if D3D_HAS_RAY_TRACING
     cb(rtASTopDestructions);
@@ -81,7 +81,6 @@ class CleanupQueue
   {
     cb(bufferDestructions);
     cb(imageDestructions);
-    cb(imageEvictions);
     cb(asyncCompletionStateDestructions);
 #if D3D_HAS_RAY_TRACING
     cb(rtASTopDestructions);

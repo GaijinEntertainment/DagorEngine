@@ -38,7 +38,7 @@ static void script_fatal(const char *msg)
   if (console_output)
     printf("SQ_FATAL: %s\n", msg);
 
-  fatal("[SQ]: Fatal error:\n%s\n", msg);
+  DAG_FATAL("[SQ]: Fatal error:\n%s\n", msg);
 }
 
 static SQInteger script_logerr(HSQUIRRELVM vm)

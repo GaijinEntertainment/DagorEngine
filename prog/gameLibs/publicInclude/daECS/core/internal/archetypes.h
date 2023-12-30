@@ -92,11 +92,11 @@ protected:
   uint32_t generation() const { return size(); } // as we are currently not erasing archetypes
   archetype_component_id getArchetypeComponentIdUnsafe(uint32_t archetype, component_index_t id) const;
 
-  __forceinline const uint32_t getArchetypeComponentOfsUnsafe(uint32_t archetype) const
+  __forceinline uint32_t getArchetypeComponentOfsUnsafe(uint32_t archetype) const
   {
     return archetypes.get<COMPONENT_OFS>()[archetype];
   }
-  __forceinline const uint32_t getArchetypeComponentOfs(uint32_t archetype) const
+  __forceinline uint32_t getArchetypeComponentOfs(uint32_t archetype) const
   {
     return archetype < size() ? archetypes.get<COMPONENT_OFS>()[archetype] : 0;
   }

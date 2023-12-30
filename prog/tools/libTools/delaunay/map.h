@@ -1,5 +1,4 @@
-#ifndef MAP_INCLUDED // -*- C++ -*-
-#define MAP_INCLUDED
+#pragma once
 
 #include <stdlib.h>
 #include <iostream>
@@ -9,5 +8,3 @@ using namespace std;
 
 #include "geom.h"
 #include <delaunay/delaunay.h>
-
-#endif

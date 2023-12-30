@@ -195,7 +195,7 @@ void SnowSourceObject::onPPChange(int pid, bool edit_finished, PropPanel2 &panel
 
 void SnowSourceObject::scaleObject(const Point3 &delta, const Point3 &origin, IEditorCoreEngine::BasisType basis)
 {
-  __super::scaleObject(delta, origin, basis);
+  RenderableEditableObject::scaleObject(delta, origin, basis);
 
   Point3 size = getSize();
   if (size.x != size.y || size.x != size.z)
@@ -226,7 +226,7 @@ void SnowSourceObject::load(const DataBlock &blk)
 }
 
 
-void SnowSourceObject::setWtm(const TMatrix &wtm) { __super::setWtm(wtm); }
+void SnowSourceObject::setWtm(const TMatrix &wtm) { RenderableEditableObject::setWtm(wtm); }
 
 void SnowSourceObject::onRemove(ObjectEditor *) { propsChanged(); }
 
@@ -234,7 +234,7 @@ void SnowSourceObject::onAdd(ObjectEditor *objEditor) {}
 
 bool SnowSourceObject::setPos(const Point3 &p)
 {
-  if (!__super::setPos(p))
+  if (!RenderableEditableObject::setPos(p))
     return false;
 
   propsChanged();
@@ -264,7 +264,7 @@ void SnowSourceObject::putMoveUndo()
 {
   HmapLandObjectEditor *ed = (HmapLandObjectEditor *)getObjEditor();
   if (!ed->isCloneMode())
-    __super::putMoveUndo();
+    RenderableEditableObject::putMoveUndo();
 }
 
 //-----------------------------------------

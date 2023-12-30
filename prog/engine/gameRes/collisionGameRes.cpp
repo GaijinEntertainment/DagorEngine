@@ -273,7 +273,7 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
   bool hasMaterialData = version >= 0x20150115;
   bool hasCollisionFlags = version >= 0x20180510;
   if (version != 0x20200300 && version != 0x20180510 && version != 0x20160120 && version != 0x20150115 && version != 0x20080925)
-    fatal("Invalid collision resource version %#08X", version);
+    DAG_FATAL("Invalid collision resource version %#08X", version);
 
   BSphere3 boundingSphere;
   _cb.beginBlock();
@@ -401,7 +401,7 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
         G_UNUSED(res_id);
         resName = "unknown";
 #endif
-        fatal("Mesh vertexes count %i > %i in node <%s> of res <%s>", tempVertices.size(), verticesLimit, node.name.c_str(),
+        DAG_FATAL("Mesh vertexes count %i > %i in node <%s> of res <%s>", tempVertices.size(), verticesLimit, node.name.c_str(),
           resName.c_str());
       }
       node.vertices.set(memalloc_typed<Point3_vec4>(tempVertices.size(), midmem), tempVertices.size());
@@ -1041,15 +1041,19 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       vec3f vGridLocalFrom = vLocalFrom;
       float gridLocalT = localT;
       float incT = 0.f;
+      int fromFaceId = -1;
       for (;;)
       {
         int faceId = -1;
         switch (trace_type)
         {
-          case CollisionTraceType::TRACE_RAY: faceId = tracer->tracerayNormalized(vGridLocalFrom, vLocalDir, gridLocalT); break;
+          case CollisionTraceType::TRACE_RAY:
+            faceId = tracer->tracerayNormalized(vGridLocalFrom, vLocalDir, gridLocalT, fromFaceId);
+            break;
           case CollisionTraceType::RAY_HIT: faceId = tracer->rayhitNormalizedIdx(vGridLocalFrom, vLocalDir, gridLocalT); break;
           default: G_ASSERTF(false, "CollisionResource trace failed: unsupported trace_type");
         }
+        fromFaceId = faceId;
         if (faceId < 0)
           break;
 

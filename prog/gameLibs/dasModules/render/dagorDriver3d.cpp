@@ -16,6 +16,10 @@ struct PostFxRendererAnnotation : das::ManagedStructureAnnotation<PostFxRenderer
   PostFxRendererAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("PostFxRenderer", ml, "PostFxRenderer") {}
 };
 
+struct ComputeShaderAnnotation : das::ManagedStructureAnnotation<ComputeShader, false>
+{
+  ComputeShaderAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("ComputeShader", ml, "ComputeShader") {}
+};
 
 struct Driver3dPerspectiveAnnotation : das::ManagedStructureAnnotation<Driver3dPerspective, false>
 {
@@ -65,6 +69,7 @@ public:
     addAnnotation(das::make_smart<Driver3dPerspectiveAnnotation>(lib));
     addAnnotation(das::make_smart<ShadersECSAnnotation>(lib));
     addAnnotation(das::make_smart<PostFxRendererAnnotation>(lib));
+    addAnnotation(das::make_smart<ComputeShaderAnnotation>(lib));
     addAnnotation(das::make_smart<OverrideStateAnnotation>(lib));
     addEnumeration(das::make_smart<EnumerationDepthAccess>());
 
@@ -94,6 +99,7 @@ public:
     BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal, bool (*)(int, BaseTexture *, int));
     BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal,
       bool (*)(int, BaseTexture *, int, int));
+    BIND_FUNC(d3d::set_rwtex, "d3d_set_rwtex", modifyArgumentAndExternal);
     BIND_FUNC(d3d::get_screen_size, "d3d_get_screen_size", modifyArgument);
     BIND_FUNC(d3d::setwire, "d3d_setwire", modifyExternal);
     BIND_FUNC(d3d::clearview, "d3d_clearview", modifyExternal);
@@ -104,6 +110,7 @@ public:
     BIND_FUNC(d3d::setview, "d3d_setview", modifyExternal);
     BIND_FUNC(d3d::getview, "d3d_getview", accessExternal);
     BIND_FUNC(d3d::get_driver_name, "d3d_get_driver_name", accessExternal);
+    BIND_WRAP_FUNC(d3d_stretch_rect, "d3d_stretch_rect", accessExternal);
     BIND_WRAP_FUNC(get_grs_draw_wire, "get_grs_draw_wire", accessExternal);
     BIND_WRAP_FUNC(shader_setStates, "setStates", modifyExternal);
     BIND_WRAP_FUNC(postfx_setStates, "setStates", modifyExternal);
@@ -113,6 +120,8 @@ public:
 
 
     CLASS_MEMBER(PostFxRenderer::render, "render", das::SideEffects::modifyExternal)
+    CLASS_MEMBER(ComputeShader::dispatchThreads, "dispatchThreads", das::SideEffects::modifyExternal)
+
 
 #undef CLASS_MEMBER
 #undef BIND_FUNC

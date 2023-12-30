@@ -6,7 +6,7 @@ let cursors = require("samples_prog/_cursors.nut")
 require("daRg").gui_scene.config.kbCursorControl = true
 
 
-let function item(...) {
+function item(...) {
   let expanded = Watched(false)
 
   let button = watchElemState(@(sf) {

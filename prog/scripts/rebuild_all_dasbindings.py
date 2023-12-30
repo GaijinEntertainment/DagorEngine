@@ -1,6 +1,19 @@
 import os
 import subprocess
 import sys
+from fs_helpers import pushd
+
+def shell(cmd, print_stdout=True):
+    print("cmd:", cmd)
+    res = []
+    with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as p:
+        for line in p.stdout:
+            if print_stdout:
+              print(line, end='') # process line here
+            res.append(line)
+    if p.returncode != 0:
+        raise subprocess.CalledProcessError(p.returncode, p.args)
+    return res
 
 bindings_checks = [
   {"wdir":"../../skyquake/prog","cmds":
@@ -25,29 +38,6 @@ bindings_checks = [
     ("jam  -sPlatform=win64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
   },
 ]
-
-class pushd:
-    def __init__(self, path):
-        print("changing wdir to:", path)
-        self.olddir = os.getcwd()
-        if path != '':
-            os.chdir(os.path.normpath(path))
-    def __enter__(self):
-        pass
-    def __exit__(self, type, value, traceback):
-        os.chdir(self.olddir)
-
-def shell(cmd, print_stdout=True):
-    print("cmd:", cmd)
-    res = []
-    with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, bufsize=1, universal_newlines=True) as p:
-        for line in p.stdout:
-            if print_stdout:
-              print(line, end='') # process line here
-            res.append(line)
-    if p.returncode != 0:
-        raise subprocess.CalledProcessError(p.returncode, p.args)
-    return res
 
 def main():
     for e in bindings_checks:

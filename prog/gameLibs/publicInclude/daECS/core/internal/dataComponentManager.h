@@ -94,9 +94,9 @@ public:
     uint32_t &moved_index); // moved_index has became index
 
   RESTRICT_FUN uint8_t *__restrict getChunkData(chunk_type_t chunkId, uint32_t &stride) const;
-  const uint32_t getChunksCount() const;
-  const uint32_t getChunkCapacity(uint32_t chunkId) const;
-  const uint32_t getChunkUsed(uint32_t chunkId) const;
+  uint32_t getChunksCount() const;
+  uint32_t getChunkCapacity(uint32_t chunkId) const;
+  uint32_t getChunkUsed(uint32_t chunkId) const;
   void removeChunk(uint32_t c);
   __forceinline dag::Span<Chunk> getChunks() { return aliasedChunks.getChunks(); }
   __forceinline dag::ConstSpan<Chunk> getChunksConst() const { return aliasedChunks.getChunksConst(); }
@@ -331,15 +331,12 @@ __forceinline const DataComponentManager::Chunk &DataComponentManager::getChunk(
   return getChunksConstPtr()[chunk_id];
 }
 __forceinline DataComponentManager::Chunk &DataComponentManager::getChunk(uint32_t chunk_id) { return getChunksPtr()[chunk_id]; }
-__forceinline const uint32_t DataComponentManager::getChunksCount() const { return aliasedChunks.getChunksCount(); }
-__forceinline const uint32_t DataComponentManager::getChunkCapacity(uint32_t chunkId) const
+__forceinline uint32_t DataComponentManager::getChunksCount() const { return aliasedChunks.getChunksCount(); }
+__forceinline uint32_t DataComponentManager::getChunkCapacity(uint32_t chunkId) const
 {
   return getChunksConstPtr()[chunkId].getCapacity();
 }
-__forceinline const uint32_t DataComponentManager::getChunkUsed(uint32_t chunkId) const
-{
-  return getChunksConstPtr()[chunkId].getUsed();
-}
+__forceinline uint32_t DataComponentManager::getChunkUsed(uint32_t chunkId) const { return getChunksConstPtr()[chunkId].getUsed(); }
 
 RESTRICT_FUN
 __forceinline void *__restrict DataComponentManager::getDataUnsafeNoCheck(uint32_t ofs, uint32_t sz, chunk_type_t chunkId,

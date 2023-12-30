@@ -481,6 +481,8 @@ shader tile_ssr_compute
       if (NEEDSSR)
         result = normal_aware_blur(GTid.xy, GI, newFrame, w, 0.20, linear_roughness);
 
+      if (any(isnan(result)))
+        result = float4(0,0,0,0);
       Result[screenCoord] = result;
     }
   }
@@ -501,7 +503,7 @@ shader ssr
   POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
 
   hlsl(ps) {
-    half4 ssr_ps(VsOutput input) : SV_Target
+    float4 ssr_ps(VsOutput input) : SV_Target
     {
       half3 normal;
       half linear_roughness;
@@ -643,7 +645,7 @@ shader ssr_mipchain
   }
 
   hlsl(ps) {
-    half4 ssr_mip_ps(VsOutput input) : SV_Target
+    float4 ssr_mip_ps(VsOutput input) : SV_Target
     {
       half4 lt = tex2Dlod(ssr_target, float4(input.texcoord01.xy, 0,0));
       half4 rt = tex2Dlod(ssr_target, float4(input.texcoord01.zw, 0,0));
@@ -675,7 +677,7 @@ shader ssr_only
   POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
 
   hlsl(ps) {
-    half4 ssr_only_ps(VsOutput input) : SV_Target
+    float4 ssr_only_ps(VsOutput input) : SV_Target
     {
       half3 normal;
       half linear_roughness;
@@ -702,10 +704,10 @@ shader ssr_only
       #if SSR_TRACEWATER == 1
         if (underwater_params.w * (realWorldPos.y - water_level) < 0)
           return 0;
-        half4 result = performSSR(pixelPos, input.texcoord, linear_roughness, normal,
+        float4 result = performSSR(pixelPos, input.texcoord, linear_roughness, normal,
                                rawDepth, w, cameraToPoint, globtm_no_ofs_psf, water_level - realWorldPos.y + worldPos.y, worldPos);
       #else
-        half4 result = performSSR(pixelPos, input.texcoord, linear_roughness, normal,
+        float4 result = performSSR(pixelPos, input.texcoord, linear_roughness, normal,
                                rawDepth, w, cameraToPoint, globtm_no_ofs_psf, 0, worldPos);
       #endif
 
@@ -875,7 +877,7 @@ shader ssr_resolve
       return lerp(ssr_neighborhood_bias_wide, ssr_neighborhood_bias_tight, disocclusion);
     }
 
-    half4 ssr_resolve_ps(VsOutput input) : SV_Target
+    float4 ssr_resolve_ps(VsOutput input) : SV_Target
     {
       float rawDepth = tex2Dlod(depth_tex, float4(input.texcoord, 0, 0)).x;
       float depth = linearize_z(rawDepth, zn_zfar.zw);
@@ -948,7 +950,7 @@ shader ssr_vtr
   }
 
   hlsl(ps) {
-    half4 ssr_vtr_ps(VsOutput input) : SV_Target
+    float4 ssr_vtr_ps(VsOutput input) : SV_Target
     {
       float rawDepth = tex2Dlod(depth_tex, float4(input.texcoord, 0, 0)).x;
       BRANCH if (rawDepth <= 0)
@@ -965,7 +967,7 @@ shader ssr_vtr
       BRANCH if (ssrValue.a == 0.0 && ssrValue.b == 0.0)
         return 0;
 
-      half4 result = 0;
+      float4 result = 0;
       uint2 pixelPos = uint2(input.texcoord * vtr_target_size);
       float w = linearize_z(rawDepth, zn_zfar.zw);
       float3 cameraToPoint = input.viewVect.xyz * w;
@@ -995,7 +997,7 @@ shader ssr_composite
   }
 
   hlsl(ps) {
-    half4 ssr_composite_ps(VsOutput input) : SV_Target
+    float4 ssr_composite_ps(VsOutput input) : SV_Target
     {
       float4 ssr = tex2Dlod(ssr_target, float4(input.texcoord, 0, 0));
       float4 vtr = tex2Dlod(vtr_target, float4(input.texcoord, 0, 0));

@@ -1,4 +1,4 @@
-#include "dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 #include <assets/assetPlugin.h>
 #include <assets/assetExporter.h>
 #include <assets/assetRefs.h>
@@ -78,6 +78,7 @@ struct CollisionObjectProps
 {
   BBox3 boundingBoxs = BBox3();
   String objectName;
+  String physMat;
   int objectCollisionType = -1;
   bool objectTreeCapsule = false;
   bool objectHasKdop = false;
@@ -287,6 +288,7 @@ static void collision_preprocessing(const DataBlock *nodes, Tab<GeomMeshHelperDa
       collisionObject.name = node->getBlockName();
       collisionObject.wtm = TMatrix::IDENT;
       collisionProps.objectName = collisionObject.name;
+      collisionProps.physMat = node->getStr("phmat", "");
 
       collision_object_setup(dag_objects_list, collision_objects_props, refNodes, collisionObject, collisionProps);
 
@@ -695,7 +697,11 @@ public:
       }
       else
         cwr.writeDwString(dagObjectsList[objectNo].name);
-      cwr.writeDwString(dagNodeScriptBlk.getStr("phmat", ""));
+
+      if (collisionObjectProps.physMat.empty())
+        cwr.writeDwString(dagNodeScriptBlk.getStr("phmat", ""));
+      else
+        cwr.writeDwString(collisionObjectProps.physMat.str());
 
       TMatrix wtm = dagObjectsList[objectNo].wtm;
 

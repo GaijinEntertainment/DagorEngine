@@ -1,13 +1,9 @@
 include "shader_global.dshl"
-include "frustum.dshl"
 include "vtex.dshl"
+include "clipmap_feedback_common.dshl"
+include "hardware_defines.dshl"
 
 
-
-
-int clipmap_clear_histogram_buf_rw_const_no = 6;
-int clipmap_clear_tile_info_buf_rw_const_no = 7;
-int clipmap_fill_histogram_buf_rw_const_no = 7;
 
 hlsl
 {
@@ -18,26 +14,16 @@ hlsl
 }
 
 
-macro USE_POSTFX()
-  z_test = false;
-  z_write = false;
-  cull_mode = none;
 
-  if (mobile_render == off)
-  {
-    supports global_frame;
-  }
-
-  POSTFX_VS(0)
-endmacro
-
+buffer clipmap_histogram_buf_rw;
+buffer clipmap_tile_info_buf_rw;
 
 macro CLIPMAP_CLEAR_HISTOGRAM(stage)
   (stage) {
-    clipmap_histogram_buf_rw@uav : register(clipmap_clear_histogram_buf_rw_const_no) hlsl {
+    clipmap_histogram_buf_rw@uav = clipmap_histogram_buf_rw hlsl {
       RWByteAddressBuffer clipmap_histogram_buf_rw@uav;
     }
-    clipmap_tile_info_buf_rw@uav : register(clipmap_clear_tile_info_buf_rw_const_no) hlsl {
+    clipmap_tile_info_buf_rw@uav = clipmap_tile_info_buf_rw hlsl {
       RWByteAddressBuffer clipmap_tile_info_buf_rw@uav;
     }
   }
@@ -46,7 +32,7 @@ macro CLIPMAP_CLEAR_HISTOGRAM(stage)
   {
     void clearHistogram(uint dtId)
     {
-      if (dtId >= TEX_TOTAL_ELEMENTS)
+      if (dtId >= CLIPMAP_HIST_TOTAL_ELEMENTS)
         return;
 
       if (dtId == 0)
@@ -57,26 +43,6 @@ macro CLIPMAP_CLEAR_HISTOGRAM(stage)
   }
 endmacro
 
-
-shader clipmap_clear_histogram_ps
-{
-  ENABLE_ASSERT(ps)
-  USE_POSTFX()
-
-  CLIPMAP_CLEAR_HISTOGRAM(ps)
-
-  hlsl(ps)
-  {
-    void render_ps(VsOutput input HW_USE_SCREEN_POS)
-    {
-      uint2 dtId = uint2(GET_SCREEN_POS(input.pos).xy);
-      uint dtIdFlattened = dtId.y * (TILE_WIDTH * TEX_MIPS) + dtId.x;
-      clearHistogram(dtIdFlattened);
-    }
-  }
-
-  compile("target_ps", "render_ps");
-}
 
 shader clipmap_clear_histogram_cs
 {
@@ -97,80 +63,127 @@ shader clipmap_clear_histogram_cs
 
 
 
-int clipmap_histogram_buf_rw_const_no = 7 always_referenced;
-texture clipmap_feedback_tex;
 
 int clipmap_tex_mips = 0;
 interval clipmap_tex_mips: other_low<4, n_4<5, n_5<6, n_6<7, n_7<8, other_high;
 
+int feedback_downsample_dim = 2;
+interval feedback_downsample_dim: dim_1 < 2, dim_2 < 4, dim_4 < 8, dim_8 < 16, dim_16 < 32, dim_other;
 
-macro CLIPMAP_FILL_HISTOGRAM(stage)
-  ENABLE_ASSERT(stage)
-  (stage)
+int clipmap_feedback_calc_histogram_on_gpu = 0;
+interval clipmap_feedback_calc_histogram_on_gpu: no < 1, yes;
+
+buffer clipmap_feedback_buf;
+buffer clipmap_feedback_readback_buf_rw;
+int clipmap_feedback_readback_size;
+int clipmap_feedback_sride;
+int clipmap_feedback_readback_sride;
+
+shader clipmap_process_feedback_cs
+{
+  ENABLE_ASSERT(cs)
+
+  USE_FEEDBACK_PACKER(cs)
+  (cs)
   {
-    clipmap_feedback_tex@tex2d = clipmap_feedback_tex;
+    clipmap_feedback_buf@buf = clipmap_feedback_buf hlsl { ByteAddressBuffer clipmap_feedback_buf@buf; };
+    clipmap_feedback_readback_buf_rw@uav = clipmap_feedback_readback_buf_rw hlsl { RWByteAddressBuffer clipmap_feedback_readback_buf_rw@uav; };
+    clipmap_feedback_readback_size@i1 = clipmap_feedback_readback_size;
     clipmap_tex_mips@i1 = clipmap_tex_mips;
-    clipmap_histogram_buf_rw@uav : register(clipmap_fill_histogram_buf_rw_const_no) hlsl {
-      RWByteAddressBuffer clipmap_histogram_buf_rw@uav;
-    }
   }
-  hlsl(stage)
+  if (clipmap_feedback_calc_histogram_on_gpu == yes)
   {
-    void fillHistogram(uint2 dtId)
+    (cs)
     {
-      if (any(dtId >= uint2(FEEDBACK_WIDTH, FEEDBACK_HEIGHT)))
-        return;
-
-      uint4 rawFeedback = uint4(texelFetch(clipmap_feedback_tex, dtId, 0) * 255 + 0.5);
-      uint2 pos = rawFeedback.xy;
-      uint mip = rawFeedback.z;
-
-#if MAX_RI_VTEX_CNT_BITS > 0
-      uint ri_index = rawFeedback.w;
-#else
-      uint ri_index = 0;
-#endif
-
-      if ( all(pos < TILE_WIDTH && mip < clipmap_tex_mips && ri_index < MAX_VTEX_CNT) )
-      {
-        uint histId = calc_histogram_index(pos.x, pos.y, mip, ri_index);
-        clipmap_histogram_buf_rw.InterlockedAdd(histId*4, 1u);
+      clipmap_histogram_buf_rw@uav = clipmap_histogram_buf_rw hlsl {
+        RWByteAddressBuffer clipmap_histogram_buf_rw@uav;
       }
     }
   }
-endmacro
-
-
-shader clipmap_fill_histogram_ps
-{
-  ENABLE_ASSERT(ps)
-  USE_POSTFX()
-
-  CLIPMAP_FILL_HISTOGRAM(ps)
-
-  hlsl(ps)
+  if (feedback_downsample_dim != dim_1)
   {
-    void render_ps(VsOutput input HW_USE_SCREEN_POS)
+    (cs)
     {
-      uint2 dtId = uint2(GET_SCREEN_POS(input.pos).xy);
-      fillHistogram(dtId);
+      clipmap_feedback_sride@i1 = clipmap_feedback_sride;
+      clipmap_feedback_readback_sride@i1 = clipmap_feedback_readback_sride;
     }
   }
 
-  compile("target_ps", "render_ps");
-}
-
-shader clipmap_fill_histogram_cs
-{
-  ENABLE_ASSERT(cs)
-  CLIPMAP_FILL_HISTOGRAM(cs)
+  if (feedback_downsample_dim == dim_2)
+  {
+    hlsl(cs) {#define DOWNSAMPLE_DIM 2 }
+  }
+  else if (feedback_downsample_dim == dim_4)
+  {
+    hlsl(cs) {#define DOWNSAMPLE_DIM 4 }
+  }
+  else if ( feedback_downsample_dim == dim_8 )
+  {
+    hlsl(cs) {#define DOWNSAMPLE_DIM 8 }
+  }
+  else if ( feedback_downsample_dim == dim_16 )
+  {
+    hlsl(cs) {#define DOWNSAMPLE_DIM 16 }
+  }
+  else if ( feedback_downsample_dim != dim_1 ) // fallback for >8K resolutions
+  {
+    (cs) { downsample_dim@i1 = feedback_downsample_dim;}
+    hlsl(cs) {
+      #define DOWNSAMPLE_DIM downsample_dim.x
+      #define UNROLL
+    }
+  }
 
   hlsl(cs)
   {
-    [numthreads( 8, 8, 1)]
-    void render_cs( uint2 dtId : SV_DispatchThreadID )
+    uint loadFeedback(uint dtId)
     {
-      fillHistogram(dtId);
+##if feedback_downsample_dim == dim_1
+      uint feedback = loadBuffer(clipmap_feedback_buf, dtId*4);
+##else
+      uint2 dtId2d;
+      dtId2d.y = dtId / clipmap_feedback_readback_sride;
+      dtId2d.x = dtId - dtId2d.y * clipmap_feedback_readback_sride;
+
+      int flattenedId0 = (dtId2d.y * clipmap_feedback_sride + dtId2d.x) * DOWNSAMPLE_DIM;
+      uint feedback = loadBuffer(clipmap_feedback_buf, flattenedId0*4);
+      UNROLL
+      for (uint j = 0; j < DOWNSAMPLE_DIM; ++j)
+      {
+        UNROLL
+        for (uint i = 0; i < DOWNSAMPLE_DIM; ++i)
+        {
+          if (i == 0 && j == 0)
+            continue;
+
+          uint flattenedId = flattenedId0 + j*clipmap_feedback_sride + i;
+          feedback = max(feedback, loadBuffer(clipmap_feedback_buf, flattenedId*4));
+        }
+      }
+##endif
+      return feedback;
+    }
+
+    [numthreads( 64, 1, 1)]
+    void render_cs( uint dtId : SV_DispatchThreadID )
+    {
+      if (dtId >= clipmap_feedback_readback_size)
+        return;
+
+      uint2 pos; uint mip; uint ri_index;
+      unpackFeedbackInfo(loadFeedback(dtId), pos.xy, mip, ri_index);
+
+      if ( all(pos < TILE_WIDTH && mip < clipmap_tex_mips && ri_index < MAX_VTEX_CNT) )
+      {
+##if clipmap_feedback_calc_histogram_on_gpu == yes
+        uint histId = calc_histogram_index(pos.x, pos.y, mip, ri_index);
+        clipmap_histogram_buf_rw.InterlockedAdd(histId*4, 1u);
+##endif
+      }
+
+      // pack again, but without dummy clear offset, to make it consistent (pack/unpack can use tricks)
+      uint feedback = packFinalFeedbackInfo(pos.xy, mip, ri_index);
+      storeBuffer(clipmap_feedback_readback_buf_rw, dtId*4, feedback);
     }
   }
 
@@ -181,7 +194,6 @@ shader clipmap_fill_histogram_cs
 
 
 
-int clipmap_tile_info_buf_rw_const_no = 7 always_referenced;
 buffer clipmap_histogram_buf;
 
 
@@ -190,7 +202,7 @@ macro BUILD_TILE_INFO(stage)
   {
     clipmap_histogram_buf@buf = clipmap_histogram_buf hlsl { ByteAddressBuffer clipmap_histogram_buf@buf; };
     clipmap_tex_mips@i1 = (clipmap_tex_mips);
-    clipmap_tile_info_buf_rw@uav : register(clipmap_tile_info_buf_rw_const_no) hlsl {
+    clipmap_tile_info_buf_rw@uav = clipmap_tile_info_buf_rw hlsl {
       RWByteAddressBuffer clipmap_tile_info_buf_rw@uav;
     }
   }
@@ -255,25 +267,6 @@ macro BUILD_TILE_INFO(stage)
   }
 endmacro
 
-
-shader clipmap_build_tile_info_ps
-{
-  ENABLE_ASSERT(ps)
-  USE_POSTFX()
-
-  BUILD_TILE_INFO(ps)
-
-  hlsl(ps)
-  {
-    void render_ps(VsOutput input HW_USE_SCREEN_POS)
-    {
-      uint2 dtId = uint2(GET_SCREEN_POS(input.pos).xy);
-      buildTileInfo(dtId);
-    }
-  }
-
-  compile("target_ps", "render_ps");
-}
 
 
 shader clipmap_build_tile_info_cs

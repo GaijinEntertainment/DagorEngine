@@ -9,6 +9,9 @@ class IGraphDumper
 {
 public:
   virtual void dumpRawUserGraph() const = 0;
+
+protected:
+  ~IGraphDumper() = default;
 };
 
 } // namespace dabfg

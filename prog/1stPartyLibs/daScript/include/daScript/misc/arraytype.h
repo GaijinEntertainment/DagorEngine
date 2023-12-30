@@ -35,6 +35,10 @@ namespace das
         struct SimFunction * PTR;
         Func() : PTR(nullptr) {}
         Func(SimFunction * P) : PTR(P) {}
+        Func(void * P) : PTR((SimFunction *)P) {}
+        __forceinline operator void * () const {
+            return PTR;
+        }
         __forceinline explicit operator bool () const {
             return PTR!=nullptr;
         }
@@ -81,6 +85,28 @@ namespace das
         TLambda()  {}
         TLambda( const TLambda & ) = default;
         TLambda( const Lambda & that ) { *(Lambda *)this = that; }
+    };
+
+    struct GcRootLambda : Lambda  {
+        GcRootLambda() = default;
+        GcRootLambda( const GcRootLambda & ) = delete;
+        GcRootLambda( GcRootLambda && other) : Lambda(other.capture), context(other.context) {
+            other.capture = nullptr;
+            other.context = nullptr;
+        }
+        GcRootLambda & operator = ( const GcRootLambda & ) = delete;
+        __forceinline GcRootLambda & operator = ( GcRootLambda && l ) {
+            if ( this == &l ) return *this;
+            capture = l.capture;
+            context = l.context;
+            l.capture = nullptr;
+            l.context = nullptr;
+            return *this;
+        }
+        GcRootLambda( const Lambda & that, Context * _context );
+        ~GcRootLambda();
+        void reset() { capture = nullptr; context = nullptr; }
+        Context * context = nullptr;
     };
 
     struct Tuple {

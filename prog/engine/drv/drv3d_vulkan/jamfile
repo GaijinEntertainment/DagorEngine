@@ -25,6 +25,7 @@ Sources =
   d3d_framebuffer.cpp
   d3d_render_pass.cpp
   d3d_bindless.cpp
+  d3d_samplers.cpp
   d3d_unimplemented.cpp
   init_d3di.cpp
   buffer.cpp
@@ -89,6 +90,7 @@ Sources =
   render_pass_resource.cpp
   render_pass_resource_fb.cpp
   render_pass_resource_convert.cpp
+  sampler_resource.cpp
 
   #debug stuff
   execution_markers.cpp

@@ -70,6 +70,7 @@ void set_das_root(const char *root_path);
 void set_command_line_arguments(int argc, char *argv[]);
 int set_load_threads_num(int load_threads_num);
 int get_load_threads_num();
+void set_thread_init_script(const char *file_name);
 ResolveECS get_resolve_ecs_on_load();
 void set_resolve_ecs_on_load(ResolveECS);
 void init_das(AotMode enable_aot, HotReload allow_hot_reload, LogAotErrors log_aot_errors);

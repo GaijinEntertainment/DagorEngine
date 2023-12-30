@@ -20,7 +20,12 @@ half3 perform_light_brdf(float3 view, float NoV, ProcessedGbuffer gbuffer, half3
       return 0;
 
     float ggx_alpha = max(1e-4, gbuffer.linearRoughness*gbuffer.linearRoughness);
-    half3 result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, gbuffer.normal);
+    #if SHEEN_SPECULAR
+      half3 result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, gbuffer.normal, gbuffer.translucencyColor, gbuffer.translucency);
+    #else
+      half3 result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, gbuffer.normal);
+    #endif
+
 
     if (isSubSurfaceShader(gbuffer.material))
       result += (foliageSSS(NoL, view, dirFromLight)*gbuffer.ao) * gbuffer.translucencyColor;//can make gbuffer.ao*gbuffer.translucencyColor only once for all lights
@@ -30,7 +35,12 @@ half3 perform_light_brdf(float3 view, float NoV, ProcessedGbuffer gbuffer, half3
     if (attenuation <= 0)
       return 0;
     float ggx_alpha = max(1e-4, gbuffer.linearRoughness*gbuffer.linearRoughness);
-    half3 result = standardBRDF_NO_NOL( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, gbuffer.normal);
+    #if SHEEN_SPECULAR
+      half3 result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, gbuffer.normal, gbuffer.translucencyColor, gbuffer.translucency);
+    #else
+      half3 result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, gbuffer.normal);
+    #endif
+
   #endif
   return result*attenuation*light_color.xyz;
 }

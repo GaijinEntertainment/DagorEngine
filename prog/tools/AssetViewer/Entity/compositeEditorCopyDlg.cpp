@@ -18,5 +18,5 @@ void CompositeEditorCopyDlg::show()
 {
   autoSize();
 
-  __super::show();
+  CDialogWindow::show();
 }

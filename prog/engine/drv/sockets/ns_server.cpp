@@ -166,7 +166,7 @@ public:
     else if (stricmp(s, "PF_UNSPEC") == 0)
       family = PF_UNSPEC;
     else
-      fatal_x("family=%s", s);
+      DAG_FATAL("family=%s", s);
 
     s = blk.getStr("socket_type", "TCP");
     if (stricmp(s, "TCP") == 0)
@@ -174,7 +174,7 @@ public:
     else if (stricmp(s, "UDP") == 0)
       socketType = SOCK_DGRAM;
     else
-      fatal_x("socket_type=%s", s);
+      DAG_FATAL("socket_type=%s", s);
 
     rawMode = blk.getBool("tcpRaw", false);
 
@@ -462,7 +462,7 @@ public:
       mt_debug_ctx("--- can't wait for server termination for more than %d ms", 500);
       if (!waitThreadTermination(9500))
         if (_fatal)
-          fatal("can't wait for server termination for more than %d ms", 10000);
+          DAG_FATAL("can't wait for server termination for more than %d ms", 10000);
         else
         {
           mt_debug_ctx("can't wait for server termination for more than %d ms", 10000);

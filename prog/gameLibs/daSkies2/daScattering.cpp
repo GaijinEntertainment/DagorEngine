@@ -191,6 +191,7 @@ PreparedSkies *create_prepared_skies(const char *base_name, const PreparedSkiesP
         skies->skiesLutMieTex[i]->texaddrv(TEXADDR_CLAMP);
       }
     }
+    skies->skiesLutRestartTemporal = true;
     skies->resetGen = 0;
   }
 
@@ -298,6 +299,12 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
   if (skies.skiesLutTex[0] && !panorama_skies)
   {
     TIME_D3D_PROFILE(trace_sky);
+    if (skies.skiesLutRestartTemporal)
+    {
+      skies.skiesLutRestartTemporal = false;
+      restart_temporal = true;
+    }
+
     TextureInfo info;
     skies.skiesLutTex[cFrame]->getinfo(info, 0);
     ShaderGlobal::set_color4(prepare_resolutionVarId, info.w, info.h, 0, 0);
@@ -318,6 +325,10 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
     }
     d3d::resource_barrier({skies.skiesLutTex[cFrame].getTex2D(), RB_RO_SRV | RB_STAGE_ALL_GRAPHICS | RB_STAGE_COMPUTE, 0, 0});
     d3d::resource_barrier({skies.skiesLutMieTex[cFrame].getTex2D(), RB_RO_SRV | RB_STAGE_ALL_GRAPHICS | RB_STAGE_COMPUTE, 0, 0});
+  }
+  else if (skies.skiesLutTex[0] && panorama_skies && !skies.skiesLutRestartTemporal)
+  {
+    skies.skiesLutRestartTemporal = true;
   }
 
   {
@@ -480,14 +491,13 @@ bool DaScattering::finishGpuReadback()
   if (!gpuReadbackStarted || !skies_irradiance_texture)
     return false;
   TIME_PROFILE(skies_updateCPUIrradiance);
-  int stride;
-  if (auto lockedTex = lock_texture<uint16_t>(skies_irradiance_texture.getTex2D(), stride, 0, TEXLOCK_READ | TEXLOCK_NOSYSLOCK))
+  if (auto lockedTex = lock_texture_ro(skies_irradiance_texture.getTex2D(), 0, TEXLOCK_READ | TEXLOCK_NOSYSLOCK))
   {
 #if DAGOR_DBGLEVEL > 0
     debug("updateCPUIrradiance from GPU");
 #endif
-    updateCPUIrradiance(lockedTex.get(), stride);
-    lockedTex.reset(); // unlock for resource barrier
+    updateCPUIrradiance(reinterpret_cast<const uint16_t *>(lockedTex.get()), lockedTex.getByteStride());
+    lockedTex.close(); // unlock for resource barrier
     d3d::resource_barrier({skies_irradiance_texture.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
     gpuReadbackStarted = false;
     return true;

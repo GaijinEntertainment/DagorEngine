@@ -1,5 +1,5 @@
 #include "dasScripts.h"
-#include "dasBinding.h"
+#include <daRg/dasBinding.h>
 #include "guiScene.h"
 
 #include <osApiWrappers/dag_files.h>
@@ -17,7 +17,7 @@ struct DargContext final : das::Context
 
   DargContext(Context &ctx, uint32_t category) = delete;
 
-  void to_out(const das::LineInfo *, const char *message) { debug("daRg-das: %s", message); }
+  void to_out(const das::LineInfo *, const char *message) { ::debug("daRg-das: %s", message); }
 
   void to_err(const das::LineInfo *, const char *message) { scene->errorMessageWithCb(message); }
 
@@ -31,7 +31,7 @@ void DasLogWriter::output()
   if (newPos != pos)
   {
     int len = newPos - pos;
-    debug("daRg-das: %.*s", len, data.data() + pos);
+    ::debug("daRg-das: %.*s", len, data.data() + pos);
     pos = newPos;
   }
 }
@@ -123,6 +123,17 @@ static void process_loaded_script(const das::Context &ctx, const char *filename)
   }
 }
 
+void set_das_loading_settings(HSQUIRRELVM vm, AotMode aot_mode, LogAotErrors need_aot_error_log)
+{
+  GuiScene *guiScene = GuiScene::get_from_sqvm(vm);
+  G_ASSERT(guiScene);
+  DasScriptsData *dasMgr = guiScene->dasScriptsData.get();
+  if (dasMgr)
+  {
+    dasMgr->aotMode = aot_mode;
+    dasMgr->needAotErrorLog = need_aot_error_log;
+  }
+}
 
 static SQInteger load_das(HSQUIRRELVM vm)
 {
@@ -135,8 +146,12 @@ static SQInteger load_das(HSQUIRRELVM vm)
   if (!dasMgr)
     return sq_throwerror(vm, "Not using daScript in this VM");
 
+  ::debug("daScript: load script <%s> aot:%d", filename, dasMgr->aotMode == AotMode::AOT ? 1 : 0);
   CodeOfPolicies policies;
-  // policies.ignore_shared_modules = hard_reload;
+  policies.aot = dasMgr->aotMode == AotMode::AOT;
+  policies.fail_on_no_aot = false;
+  policies.fail_on_lack_of_aot_export = true;
+  //  policies.ignore_shared_modules = hard_reload;
 
   eastl::string strFileName(filename);
 
@@ -155,6 +170,16 @@ static SQInteger load_das(HSQUIRRELVM vm)
     }
     guiScene->errorMessageWithCb(details.c_str());
     return sqstd_throwerrorf(vm, "Failed to compile '%s'", filename);
+  }
+
+  if (dasMgr->aotMode == AotMode::AOT && !program->aotErrors.empty())
+  {
+    logwarn("daScript: failed to link cpp aot <%s>\n", filename);
+    if (dasMgr->needAotErrorLog == LogAotErrors::YES)
+      for (auto &err : program->aotErrors)
+      {
+        logwarn(das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr).c_str());
+      }
   }
 
   auto ctx = make_smart<DargContext>(guiScene, program->getContextStackSize());
@@ -181,6 +206,26 @@ static SQInteger load_das(HSQUIRRELVM vm)
   s->filename = filename;
   s->ctx = ctx;
   s->program = program;
+  if (ctx)
+  {
+    int aotFn = 0;
+    int intFn = 0;
+    for (int i = 0, is = ctx->getTotalFunctions(); i != is; ++i)
+    {
+      if (SimFunction *fn = ctx->getFunction(i))
+      {
+        if (fn->aot)
+          ++aotFn;
+        else
+        {
+          ++intFn;
+          if (dasMgr->aotMode == AotMode::AOT)
+            ::debug("daScript: function %s interpreted in file %s", fn->name, filename);
+        }
+      }
+    }
+    ::debug("daScript: <%s> loaded: %d interpreted func, %d aot func", filename, intFn, aotFn);
+  }
 
   // Sqrat::ClassType<DasScript>::PushNativeInstance(vm, s);
 

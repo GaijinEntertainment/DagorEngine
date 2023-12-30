@@ -179,7 +179,7 @@ template<class T> UnionOfIntervals<T> operator |(const UnionOfIntervals<T> &ui1,
 		// if there is a gap between *p1 and *p2, then close the
 		// current interval.
 		
-		if(p1->first<p2->first && p1->second<p2->first && p1->second+1<p2->first)
+		if(p1->first<p2->first && p1->second<p2->first && int64_t(p1->second)+1<p2->first)
 		{
 		#ifdef __DOLPHIN__INTERVALS_H__DEBUG
 			std::cout << "\tclose: making " << std::make_pair(x, p1->second) << ", advance p1, ";
@@ -196,7 +196,7 @@ template<class T> UnionOfIntervals<T> operator |(const UnionOfIntervals<T> &ui1,
 			std::cout << "x=" << x << "\n";
 		#endif
 		}
-		else if(p2->first<p1->first && p2->second<p1->first && p2->second+1<p1->first)
+		else if(p2->first<p1->first && p2->second<p1->first && int64_t(p2->second)+1<p1->first)
 		{
 		#ifdef __DOLPHIN__INTERVALS_H__DEBUG
 			std::cout << "\tclose: making " << std::make_pair(x, p2->second) << ", advance p2, ";

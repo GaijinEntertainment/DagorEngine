@@ -1,4 +1,4 @@
-#include <startup/dag_dllMain.inc.cpp>
+#include <assets/daBuildExpPluginChain.h>
 #include <assets/assetPlugin.h>
 #include <assets/assetExporter.h>
 #include <assets/assetRefs.h>
@@ -10,6 +10,8 @@
 #include <math/dag_boundingSphere.h>
 #include <osApiWrappers/dag_direct.h>
 #include <util/dag_string.h>
+
+BEGIN_DABUILD_PLUGIN_NAMESPACE(vehicle)
 
 class VehicleDescExporter : public IDagorAssetExporter
 {
@@ -200,4 +202,6 @@ protected:
   VehicleRefs refs;
 };
 
-extern "C" __declspec(dllexport) IDaBuildPlugin *__stdcall get_dabuild_plugin() { return new (midmem) VehicleExporterPlugin; }
+DABUILD_PLUGIN_API IDaBuildPlugin *__stdcall get_dabuild_plugin() { return new (midmem) VehicleExporterPlugin; }
+END_DABUILD_PLUGIN_NAMESPACE(vehicle)
+REGISTER_DABUILD_PLUGIN(vehicle, nullptr)

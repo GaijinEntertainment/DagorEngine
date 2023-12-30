@@ -472,7 +472,7 @@ class DagExporter(Operator, ExportHelper):
         DM = mat.dagormat
         optional = DM.optional
         dagormat_scripts = []
-        if DM.sides=='2':
+        if DM.sides == 2:
             dagormat_scripts.append("real_two_sided=yes")
         for param in optional.keys():
             try:
@@ -611,7 +611,7 @@ class DagExporter(Operator, ExportHelper):
             self.writer.writeFloat(DM.power)
             # flags
             flags = 0
-            if DM.sides == '1':
+            if DM.sides == 1:
                 flags |= DAG_MF_2SIDED
                 flags |= DAG_MF_16TEX
             self.writer.writeDWord(flags)

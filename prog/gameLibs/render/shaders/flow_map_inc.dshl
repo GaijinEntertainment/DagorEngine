@@ -44,7 +44,8 @@ macro USE_WATER_FLOWMAP(code)
       if ((flowmapUVAdd.x >= 0) && (flowmapUVAdd.y >= 0) && (flowmapUVAdd.x <= 1) && (flowmapUVAdd.y <= 1))
       {
         float flowmapStrengthAdd = saturate(viewDist * water_flowmap_strength_add.x + water_flowmap_strength_add.y) * water_flowmap_strength_add.z;
-        flowmapSample += tex2Dlod(water_flowmap_tex_add, float4(flowmapUVAdd, 0, 0)).xy * flowmapStrengthAdd;
+        float2 flowmapSampleAdd = tex2Dlod(water_flowmap_tex_add, float4(flowmapUVAdd, 0, 0)).xy;
+        flowmapSample += flowmapSampleAdd * flowmapStrengthAdd;
       }
       float2 flowmapVec = flowmapSample * water_flowmap_fading;
 

@@ -290,7 +290,8 @@ void AnimcharBaseComponent::recalcWtm()
 {
   if (!nodeTree.isWtmValid(false))
     recalcWtm(nodeTree.translateToZero());
-  postRecalcWtm();
+  else
+    postRecalcWtm();
 }
 
 void AnimcharBaseComponent::recalcWtm(vec3f world_translate)
@@ -316,7 +317,8 @@ void AnimcharBaseComponent::postRecalcWtm()
   if (fastPhysSystem && totalDeltaTime > 0)
     fastPhysSystem->update(totalDeltaTime, nodeTree.getWtmOfs());
 
-  recalcHelpers();
+  if (recalcableAttachments || attachment.size() > sizeof(recalcableAttachments) * CHAR_BIT)
+    recalcAttachments();
 
   totalDeltaTime = 0;
 }
@@ -409,14 +411,14 @@ bool AnimcharBaseComponent::loadAnimGraphCpp(const char *res_name)
   stateDirector = makeGraphFromRes(res_name);
   if (!stateDirector)
   {
-    fatal("can't create state director from graph <%s>", res_name);
+    DAG_FATAL("can't create state director from graph <%s>", res_name);
     RETURN_X_AFTER_FATAL(false);
   }
 
   if (!stateDirector->init(animGraph, animState))
   {
     destroyGraph(stateDirector);
-    fatal("can't init state director from graph <%s>", res_name);
+    DAG_FATAL("can't init state director from graph <%s>", res_name);
     RETURN_X_AFTER_FATAL(false);
   }
 
@@ -524,8 +526,8 @@ void AnimcharBaseComponent::loadData(const AnimCharCreationProps &props, GeomNod
   if (const RoDataBlock *b = props.props.get())
   {
     int nid = b->getNameId("attachment");
-    Tab<int> slots;
-    slots.reserve(16);
+    decltype(attachmentSlotId) slots;
+    slots.reserve(48);
 
     for (int i = 0; i < b->blockCount(); i++)
       if (b->getBlock(i)->getBlockNameId() == nid)
@@ -538,15 +540,19 @@ void AnimcharBaseComponent::loadData(const AnimCharCreationProps &props, GeomNod
           continue;
         }
         if (find_value_idx(slots, slot_id) < 0)
+        {
+          G_FAST_ASSERT(slot_id == decltype(slots)::value_type(slot_id)); // No overflow
           slots.push_back(slot_id);
+        }
         else
           logerr("duplicate slot <%s> definition in block #%d (animchar %s)", slot_nm, i + 1, creationInfo.resName);
       }
 
+    recalcableAttachments = 0;
     clear_and_resize(attachment, slots.size());
     mem_set_0(attachment);
-    attachmentSlotId = slots;
-    clear_and_shrink(slots);
+    slots.shrink_to_fit();
+    attachmentSlotId = eastl::move(slots);
 
     for (int i = 0; i < b->blockCount(); i++)
       if (b->getBlock(i)->getBlockNameId() == nid)
@@ -604,6 +610,7 @@ void AnimcharBaseComponent::cloneTo(AnimcharBaseComponent *as, bool reset_anim) 
   as->centerNodeBsphRad = centerNodeBsphRad;
   as->centerNodeIdx = centerNodeIdx;
 
+  as->recalcableAttachments = recalcableAttachments;
   as->attachmentSlotId = attachmentSlotId;
   as->attachment = attachment;
   for (int i = 0; i < attachment.size(); i++)
@@ -619,16 +626,18 @@ void AnimcharBaseComponent::cloneTo(AnimcharBaseComponent *as, bool reset_anim) 
     as->resetAnim();
 }
 
-bool AnimcharBaseComponent::setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent *attChar, bool recalcable)
+int AnimcharBaseComponent::setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent *attChar, bool recalcable)
 {
   int idx = slot_id >= 0 ? find_value_idx(attachmentSlotId, slot_id) : -1;
   if (idx < 0)
-    return false;
+    return idx;
   releaseAttachment(idx);
   attachment[idx].animChar = attChar;
   attachment[idx].uid = uid;
   attachment[idx].recalcable = recalcable;
-  return true;
+  if (attChar && recalcable && idx < sizeof(recalcableAttachments) * CHAR_BIT)
+    recalcableAttachments |= decltype(recalcableAttachments)(1) << idx;
+  return idx;
 }
 
 AnimcharBaseComponent *AnimcharBaseComponent::getAttachedChar(int slot_id) const
@@ -683,6 +692,8 @@ void AnimcharBaseComponent::releaseAttachment(int idx)
     return;
   attachment[idx].uid = INVALID_ATTACHMENT_UID;
   attachment[idx].animChar = NULL;
+  if (idx < sizeof(recalcableAttachments) * CHAR_BIT)
+    recalcableAttachments &= ~(decltype(recalcableAttachments)(1) << idx);
 }
 
 void AnimcharBaseComponent::setupAnim()
@@ -838,16 +849,14 @@ void AnimcharBaseComponent::calcAnimWtm(bool may_calc_anim)
   recalcWtm();
 }
 
-void AnimcharBaseComponent::recalcHelpers()
+void AnimcharBaseComponent::recalcAttachments()
 {
   for (int i = 0, e = attachment.size(); i < e; i++)
   {
     G_ASSERTF(nodeTree.isIndexValid(attachment[i].nodeIdx), "nodeIdx=%d nodeTree=%p (%d nodes)", (int)attachment[i].nodeIdx, &nodeTree,
       nodeTree.nodeCount());
-    if (attachment[i].animChar)
+    if (attachment[i].animChar && attachment[i].recalcable)
     {
-      if (!attachment[i].recalcable)
-        continue;
       mat44f tm;
       //== we could use bitflag for identity tm to skip mat44f multiplication (but for now ALL tms are not identical)
       v_mat44_mul(tm, nodeTree.getNodeWtmRel(attachment[i].nodeIdx), attachment[i].tm);

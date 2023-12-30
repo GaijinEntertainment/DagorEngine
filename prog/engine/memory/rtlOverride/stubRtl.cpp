@@ -18,7 +18,7 @@ public:
   virtual void freeAligned(void *p) = 0;
 };
 
-#if _TARGET_PC_LINUX
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
 #define _STD_RTL_MEMORY 1
 #endif
 

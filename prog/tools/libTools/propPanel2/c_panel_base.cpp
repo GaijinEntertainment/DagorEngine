@@ -1327,7 +1327,7 @@ int PropertyContainerControlBase::getNextControlY(bool new_line) { return _pxS(D
 
 int PropertyContainerControlBase::saveState(DataBlock &datablk)
 {
-  __super::saveState(datablk);
+  PropertyControlBase::saveState(datablk);
 
   for (int i = 0; i < mControlArray.size(); i++)
   {
@@ -1341,7 +1341,7 @@ int PropertyContainerControlBase::saveState(DataBlock &datablk)
 
 int PropertyContainerControlBase::loadState(DataBlock &datablk)
 {
-  __super::loadState(datablk);
+  PropertyControlBase::loadState(datablk);
 
   for (int i = 0; i < mControlArray.size(); i++)
   {

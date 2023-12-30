@@ -3,12 +3,12 @@ from "%darg/ui_imports.nut" import *
 let cursors = require("samples_prog/_cursors.nut")
 let math = require("math")
 
-local coord = [50, 0, 50, 16, 36, 26, 36,  30,  0, 60,  52, 45,  110, 125, 110, 120]
-local cmd = [VECTOR_INVERSE_POLY, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0,  0, 0, 0, 0]
+let coord = [50, 0, 50, 16, 36, 26, 36,  30,  0, 60,  52, 45,  110, 125, 110, 120]
+let cmd = [VECTOR_INVERSE_POLY, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0,  0, 0, 0, 0]
 local t = 0.0
 
 
-local vectorCanvas = {
+let vectorCanvas = {
   rendObj = ROBJ_VECTOR_CANVAS
   flow = FLOW_HORIZONTAL
   halign = ALIGN_CENTER
@@ -35,7 +35,7 @@ local vectorCanvas = {
 
 
 
-local function basicsRoot() {
+function basicsRoot() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(30, 40, 50)

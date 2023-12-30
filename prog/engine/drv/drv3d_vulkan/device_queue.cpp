@@ -1,7 +1,9 @@
 #include "device.h"
 
 #if _TARGET_ANDROID
+#if ENABLE_SWAPPY
 #include <swappy/swappyVk.h>
+#endif
 #endif
 
 using namespace drv3d_vulkan;

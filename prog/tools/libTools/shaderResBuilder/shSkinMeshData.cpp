@@ -258,7 +258,7 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
 
   if (mesh_bones.boneNames.size() >= MAXBONE)
   {
-    fatal("Too many bones!");
+    DAG_FATAL("Too many bones!");
     return false;
   }
 

@@ -125,7 +125,7 @@ static inline VPROG get_vprog(int i, F get_debug_info)
     }
   }
   else
-    fatal("Cant create VS #%d: %s\nDriver3d error:\n%s", i, get_debug_info(), d3d::get_last_error());
+    DAG_FATAL("Cant create VS #%d: %s\nDriver3d error:\n%s", i, get_debug_info(), d3d::get_last_error());
   return vpr;
 }
 
@@ -163,7 +163,7 @@ static inline FSHADER get_fshader(int i, F get_debug_info)
     }
   }
   else
-    fatal("Cant create PS #%d: %s\nDriver3d error:\n%s", i, get_debug_info(), d3d::get_last_error());
+    DAG_FATAL("Cant create PS #%d: %s\nDriver3d error:\n%s", i, get_debug_info(), d3d::get_last_error());
 
   return fsh;
 }
@@ -184,7 +184,7 @@ static PROGRAM get_compute_prg(int i)
     shBinDumpRW().fshId[i] = sh;
     restore_fp_exceptions_state();
     if (shBinDump().fshId[i] == BAD_PROGRAM)
-      fatal("Cant create CS program #%d\nDriver3d error:\n%s", i, d3d::get_last_error());
+      DAG_FATAL("Cant create CS program #%d\nDriver3d error:\n%s", i, d3d::get_last_error());
     shBinDumpRW().fshId[i] |= 0x10000000;
   }
   G_ASSERT(shBinDump().fshId[i] & 0x10000000);
@@ -439,14 +439,14 @@ ScriptedShaderElement::ScriptedShaderElement(const shaderbindump::ShaderCode &ma
           int varIndex = m.props.sclass->localVars.findVar(interval.nameId);
           if (varIndex < 0)
           {
-            fatal("[ERROR] variable '%s' not found in shader element", (const char *)shBinDump().varMap[interval.nameId]);
+            DAG_FATAL("[ERROR] variable '%s' not found in shader element", (const char *)shBinDump().varMap[interval.nameId]);
             continue;
           }
 
           int offset = code.findVar(varIndex);
           if (offset < 0)
           {
-            fatal("[ERROR] value of variable '%s' not found in shader element", (const char *)shBinDump().varMap[interval.nameId]);
+            DAG_FATAL("[ERROR] value of variable '%s' not found in shader element", (const char *)shBinDump().varMap[interval.nameId]);
             continue;
           }
           type = m.props.sclass->localVars.v[varIndex].type;
@@ -461,14 +461,14 @@ ScriptedShaderElement::ScriptedShaderElement(const shaderbindump::ShaderCode &ma
           int offset = shBinDump().globVars.findVar(interval.nameId);
           if (offset < 0)
           {
-            fatal("[ERROR] global variable '%s' not found in shader element", (const char *)shBinDump().varMap[interval.nameId]);
+            DAG_FATAL("[ERROR] global variable '%s' not found in shader element", (const char *)shBinDump().varMap[interval.nameId]);
             continue;
           }
           type = shBinDump().globVars.v[offset].type;
         }
         break;
 
-        default: fatal("invalid dynamic type=%d nameId/extType=%d", interval.type, interval.nameId);
+        default: DAG_FATAL("invalid dynamic type=%d nameId/extType=%d", interval.type, interval.nameId);
       }
       varMapTable[i].varOfs = var_ofs;
       varMapTable[i].type = type;
@@ -751,10 +751,10 @@ __forceinline int ScriptedShaderElement::chooseDynamicVariant(dag::ConstSpan<uin
     if (!has_dump)
       shaderbindump::dumpShaderInfo(shClass);
     tmp.clear();
-    fatal("%p.dynamic variant %u not found (shader %s/%d)\n\n"
-          "normalized dynvariant:\n  %s\n\n"
-          "in one of normalized statvariants:\n%s\n\n"
-          "Check for assumes/validVariants or render code conditions",
+    DAG_FATAL("%p.dynamic variant %u not found (shader %s/%d)\n\n"
+              "normalized dynvariant:\n  %s\n\n"
+              "in one of normalized statvariants:\n%s\n\n"
+              "Check for assumes/validVariants or render code conditions",
       this, variant_code, (const char *)shClass.name, &code - shClass.code.begin(), varstr, tmp_st);
 #else
     logerr("%p.dynamic variant %u not found (shader %s/%d)", this, variant_code, (const char *)shClass.name,
@@ -1089,7 +1089,7 @@ void ScriptedShaderElement::exec_stcode(dag::ConstSpan<int> cod, const shaderbin
 #if DAGOR_DBGLEVEL > 0
           debug("shclass: %s", (const char *)shClass.name);
           ShUtils::shcod_dump(cod, &shBinDump().globVars, &shClass.localVars, code.stVarMap);
-          fatal("divide by zero [real] while exec shader code. stopped at operand #%d", codp - cod.data());
+          DAG_FATAL("divide by zero [real] while exec shader code. stopped at operand #%d", codp - cod.data());
 #endif
           real_reg(regs, regDst) = real_reg(regs, regL);
         }
@@ -1212,7 +1212,7 @@ void ScriptedShaderElement::exec_stcode(dag::ConstSpan<int> cod, const shaderbin
           {
             debug("shclass: %s", (const char *)shClass.name);
             ShUtils::shcod_dump(cod, &shBinDump().globVars, &shClass.localVars, code.stVarMap);
-            fatal("divide by zero [color4[%d]] while exec shader code. stopped at operand #%d", j, codp - cod.data());
+            DAG_FATAL("divide by zero [color4[%d]] while exec shader code. stopped at operand #%d", j, codp - cod.data());
           }
 #endif
       }
@@ -1233,7 +1233,7 @@ void ScriptedShaderElement::exec_stcode(dag::ConstSpan<int> cod, const shaderbin
       }
       break;
       default:
-        fatal("exec_stcode: illegal instruction %u %s (index=%d)", shaderopcode::getOp(opc),
+        DAG_FATAL("exec_stcode: illegal instruction %u %s (index=%d)", shaderopcode::getOp(opc),
           ShUtils::shcod_tokname(shaderopcode::getOp(opc)), codp - cod.data());
     }
   }

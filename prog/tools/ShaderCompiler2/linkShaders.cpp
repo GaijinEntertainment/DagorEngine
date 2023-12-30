@@ -494,7 +494,7 @@ struct RecompileVPRogJob : RecompileJobBase
         dx12::dxil::recompileVertexProgram(shaders_vpr[compileTarget], targetPlatform, dx12_pdb_cache_dir, hlslDebugLevel);
       if (!recompiledVProg)
       {
-        fatal("Recompilation of vprog failed");
+        DAG_FATAL("Recompilation of vprog failed");
       }
       recompiledVProgBlob = eastl::move(*recompiledVProg);
     }
@@ -538,7 +538,7 @@ struct RecompilePShJob : RecompileJobBase
         dx12::dxil::recompilePixelSader(shaders_fsh[compileTarget], targetPlatform, dx12_pdb_cache_dir, hlslDebugLevel);
       if (!recompiledFSh)
       {
-        fatal("Recompilation of fsh failed");
+        DAG_FATAL("Recompilation of fsh failed");
       }
       recompiledFShBlob = eastl::move(*recompiledFSh);
     }
@@ -963,7 +963,7 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
   ShadersBindump shaders;
   bindump::MemoryReader compressed_reader(mapped_data, data_size);
   if (!load_shaders_bindump(shaders, compressed_reader))
-    fatal("corrupted OBJ file: %s", filename);
+    DAG_FATAL("corrupted OBJ file: %s", filename);
 
   shadervar_generator.addShadervarsAndIntervals(make_span(shaders.variable_list), shaders.intervals);
 

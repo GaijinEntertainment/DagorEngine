@@ -119,7 +119,7 @@ static RenderPair init_shader(const char *shader_name, const uint32_t count_of_c
 
   static CompiledShaderChannelId chan[] = {{SCTYPE_FLOAT3, SCUSAGE_POS, 0, 0}};
   if (!material->checkChannels(chan, count_of_channels))
-    fatal("invalid channels for this material!");
+    DAG_FATAL("invalid channels for this material!");
 
   eastl::unique_ptr<dynrender::RElem> rendElem = eastl::make_unique<dynrender::RElem>();
   rendElem->vDecl = dynrender::addShaderVdecl(chan, count_of_channels);

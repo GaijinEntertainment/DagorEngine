@@ -75,7 +75,7 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
     float GetLuminance(float3 v) {return dot(v, float3(0.212671, 0.715160, 0.072169));}
     struct MRT_OUTPUT
     {
-      half3 bloomColor: SV_Target0;
+      float3 bloomColor: SV_Target0;
     };
 
     MRT_OUTPUT main(VsOutput IN HW_USE_SCREEN_POS)
@@ -226,7 +226,7 @@ shader bloom_upsample
   }
   hlsl(ps) {
 
-    half3 main(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float3 main(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float4 pos = GET_SCREEN_POS(IN.pos);
       float2 offset = params.xy;
@@ -287,7 +287,7 @@ shader bloom_horizontal_blur_4, bloom_vertical_blur_4
         #undef stepCount
     }
 
-    half3 main(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float3 main(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float4 pos = GET_SCREEN_POS(IN.pos);
       ##if shader == bloom_horizontal_blur_4

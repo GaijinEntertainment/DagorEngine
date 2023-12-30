@@ -885,9 +885,6 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
 
   // tex streaming need to know that driver is inited
   tql::initTexStubs();
-  // we don't care was they used or not
-  for (int i = 0; i < tql::texStub.size(); i++)
-    ((BaseTex *)tql::texStub[i])->setUsed();
 
   // state inited to NULL target by default, reset to BB
   d3d::set_render_target();
@@ -1539,10 +1536,7 @@ bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc, RectIn
   Image *dstImg = nullptr;
 
   if (srcTex)
-  {
     srcImg = srcTex->getDeviceImage(false);
-    srcTex->setUsed();
-  }
 
   if (dstTex)
     dstImg = dstTex->getDeviceImage(false);
@@ -1652,7 +1646,7 @@ unsigned d3d::get_texformat_usage(int cflg, int restype)
           result |= USAGE_FILTER;
       }
       if (features & (VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT))
-        result |= USAGE_UNORDERED;
+        result |= USAGE_UNORDERED | USAGE_UNORDERED_LOAD;
       break;
     case RES3D_SBUF: break;
   }
@@ -1678,7 +1672,7 @@ static void decode_shader_binary(const uint32_t *native_code, uint32_t, VkShader
     crd.ceaseReading();
   }
   else
-    fatal("vulkan: unknown shader binary ident %llX", native_code[0]);
+    DAG_FATAL("vulkan: unknown shader binary ident %llX", native_code[0]);
 }
 
 static int create_shader_for_stage(const uint32_t *native_code, VkShaderStageFlagBits stage, uintptr_t size)
@@ -1864,19 +1858,27 @@ bool d3d::set_blend_factor(E3DCOLOR color)
   return true;
 }
 
-bool d3d::set_tex(unsigned shader_stage, unsigned unit, BaseTexture *tex, bool /*use_sampler*/)
+bool d3d::set_tex(unsigned shader_stage, unsigned unit, BaseTexture *tex, bool use_sampler)
 {
   BaseTex *texture = cast_to_texture_base(tex);
+  if (texture && texture->isStub())
+    texture = texture->getStubTex();
 
   PipelineState &pipeState = api_state.device.getContext().getFrontend().pipelineState;
   auto &resBinds = pipeState.getStageResourceBinds((ShaderStage)shader_stage);
-  TRegister tReg(texture);
-  if (resBinds.set<StateFieldTRegisterSet, StateFieldTRegister::Indexed>({unit, tReg}))
+
+  bool anyDiff = false;
+
+  if (use_sampler && texture)
   {
-    if (texture)
-      texture->setUsed();
-    pipeState.markResourceBindDirty((ShaderStage)shader_stage);
+    SRegister sReg(texture->samplerState);
+    anyDiff |= resBinds.set<StateFieldSRegisterSet, StateFieldSRegister::Indexed>({unit, sReg});
   }
+  TRegister tReg(texture);
+  anyDiff |= resBinds.set<StateFieldTRegisterSet, StateFieldTRegister::Indexed>({unit, tReg});
+
+  if (anyDiff)
+    pipeState.markResourceBindDirty((ShaderStage)shader_stage);
 
   return true;
 }
@@ -1887,12 +1889,7 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned unit, BaseTexture *tex, uint
   auto &resBinds = pipeState.getStageResourceBinds((ShaderStage)shader_stage);
   URegister uReg(tex, face, mip_level, as_uint);
   if (resBinds.set<StateFieldURegisterSet, StateFieldURegister::Indexed>({unit, uReg}))
-  {
-    BaseTex *texture = cast_to_texture_base(tex);
-    if (texture)
-      texture->setUsed();
     pipeState.markResourceBindDirty((ShaderStage)shader_stage);
-  }
 
   return true;
 }
@@ -2529,10 +2526,11 @@ void d3d::clear_render_states()
   // do nothing
 }
 
-void d3d::resource_barrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/)
+void d3d::resource_barrier(ResourceBarrierDesc /*desc*/, GpuPipeline /*gpu_pipeline = GpuPipeline::GRAPHICS*/)
 {
-  if (is_global_lock_acquired())
-    api_state.device.getContext().resourceBarrier(desc, gpu_pipeline);
+  // not used right now, disabled for time being
+  // if (is_global_lock_acquired())
+  //  api_state.device.getContext().resourceBarrier(desc, gpu_pipeline);
 }
 
 IMPLEMENT_D3D_RESOURCE_ACTIVATION_API_USING_GENERIC()

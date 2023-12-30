@@ -16,7 +16,7 @@ shader caustics_render
   POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
 
   hlsl(ps) {
-    half4 caustics_ps(VsOutput input) : SV_Target
+    float4 caustics_ps(VsOutput input) : SV_Target
     {
       return caustics(input.texcoord, input.viewVect);
     }

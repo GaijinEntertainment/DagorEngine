@@ -190,7 +190,7 @@ bool SplineRoads::getRoadAround(const Point3 &src, const Point3 &dst, float dist
   for (int i = 0; i != roadObjects.size(); ++i)
   {
     srcSplinePoints[i].closestPt = getClosest(Point2::xz(src), i, srcSplinePoints[i].pt, srcSplinePoints[i].distSq);
-    if (srcSplinePoints[i].distSq < SQR(dist_around))
+    if (srcSplinePoints[i].distSq < sqr(dist_around))
       noSrcPoints = false;
   }
 
@@ -225,7 +225,7 @@ bool SplineRoads::getRoadAround(const Point3 &src, const Point3 &dst, float dist
   for (int i = 0; i < roadObjects.size(); ++i)
   {
     dstSplinePoints[i].closestPt = getClosest(Point2::xz(dst), i, dstSplinePoints[i].pt, dstSplinePoints[i].distSq);
-    if (dstSplinePoints[i].distSq < SQR(dist_around) && srcSplinePoints[i].distSq < SQR(dist_around))
+    if (dstSplinePoints[i].distSq < sqr(dist_around) && srcSplinePoints[i].distSq < sqr(dist_around))
     {
       noDstPoints = false;
       if (dont_turn_around && src_spline_id == i &&
@@ -258,7 +258,7 @@ bool SplineRoads::getRoadAround(const Point3 &src, const Point3 &dst, float dist
     }
   }
 
-  if (same_spline ? noDstPoints : (minSrcDist > SQR(dist_around) || minDstDist > SQR(dist_around)))
+  if (same_spline ? noDstPoints : (minSrcDist > sqr(dist_around) || minDstDist > sqr(dist_around)))
     return false;
 
   // Finally, we can say, that everything is set, so we can fill all values and return true.

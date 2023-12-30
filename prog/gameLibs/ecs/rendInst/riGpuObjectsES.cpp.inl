@@ -1,5 +1,5 @@
-#include <rendInst/rendInstGen.h>
 #include <rendInst/gpuObjects.h>
+#include <rendInst/rendInstGen.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/core/entityManager.h>
 #include <ecs/core/utility/ecsRecreate.h>
@@ -33,14 +33,14 @@ static void perform_multiple_objects(T &&lambda, const ecs::Array &multiple_obje
     weight /= weightsSum;
     params.weightRange = Point2(weightOffset, weightOffset + weight);
     weightOffset += weight;
-    lambda(String(name.c_str()), params);
+    lambda(name, params);
   }
 }
 
 gpu_objects::PlacingParameters gpu_objects::prepare_gpu_object_parameters(int ri_gpu_object__seed,
   const Point3 &ri_gpu_object__up_vector, float ri_gpu_object__incline_delta, const Point2 &ri_gpu_object__scale_range,
   const Point2 &ri_gpu_object__rotate_range, const Point4 &ri_gpu_object__biom_indexes, const bool ri_gpu_object__is_using_normal,
-  const String &ri_gpu_object__map, const Point2 &ri_gpu_object__map_size, const Point2 &ri_gpu_object__map_offset,
+  const eastl::string &ri_gpu_object__map, const Point2 &ri_gpu_object__map_size, const Point2 &ri_gpu_object__map_offset,
   const E3DCOLOR &ri_gpu_object__color_from, const E3DCOLOR &ri_gpu_object__color_to, const Point2 &ri_gpu_object_slope_factor,
   const ecs::Array &ri_gpu_object__biome_params, const float &ri_gpu_object__hardness, const bool ri_gpu_object__decal,
   const bool ri_gpu_object__transparent, const bool ri_gpu_object__distorsion, const float &ri_gpu_object__sparse_weight,
@@ -122,20 +122,19 @@ static __forceinline void ri_gpu_object_create_es_event_handler(const ecs::Event
     return;
   }
 
-  gpu_objects::PlacingParameters parameters =
-    gpu_objects::prepare_gpu_object_parameters(ri_gpu_object__seed, ri_gpu_object__up_vector, ri_gpu_object__incline_delta,
-      ri_gpu_object__scale_range, ri_gpu_object__rotate_range, ri_gpu_object__biom_indexes, ri_gpu_object__is_using_normal,
-      String(ri_gpu_object__map.c_str()), ri_gpu_object__map_size, ri_gpu_object__map_offset, ri_gpu_object__color_from,
-      ri_gpu_object__color_to, ri_gpu_object__slope_factor, ri_gpu_object__biome_params, ri_gpu_object__hardness, ri_gpu_object__decal,
-      ri_gpu_object__transparent, ri_gpu_object__distorsion, ri_gpu_object__sparse_weight, ri_gpu_object__place_on_water,
-      ri_gpu_object__enable_displacement, ri_gpu_object__render_into_shadows, ri_gpu_object__coast_range, ri_gpu_object__face_coast);
+  gpu_objects::PlacingParameters parameters = gpu_objects::prepare_gpu_object_parameters(ri_gpu_object__seed, ri_gpu_object__up_vector,
+    ri_gpu_object__incline_delta, ri_gpu_object__scale_range, ri_gpu_object__rotate_range, ri_gpu_object__biom_indexes,
+    ri_gpu_object__is_using_normal, ri_gpu_object__map, ri_gpu_object__map_size, ri_gpu_object__map_offset, ri_gpu_object__color_from,
+    ri_gpu_object__color_to, ri_gpu_object__slope_factor, ri_gpu_object__biome_params, ri_gpu_object__hardness, ri_gpu_object__decal,
+    ri_gpu_object__transparent, ri_gpu_object__distorsion, ri_gpu_object__sparse_weight, ri_gpu_object__place_on_water,
+    ri_gpu_object__enable_displacement, ri_gpu_object__render_into_shadows, ri_gpu_object__coast_range, ri_gpu_object__face_coast);
 
   if (ri_gpu_object__multiple_objects.empty())
-    rendinst::gpuobjects::add(String(ri_gpu_object__name.c_str()), ri_gpu_object__grid_tiling, ri_gpu_object__grid_size,
-      ri_gpu_object__cell_size, parameters);
+    rendinst::gpuobjects::add(ri_gpu_object__name, ri_gpu_object__grid_tiling, ri_gpu_object__grid_size, ri_gpu_object__cell_size,
+      parameters);
   else
     perform_multiple_objects(
-      [&](const String &name, const gpu_objects::PlacingParameters &parameters) {
+      [&](const eastl::string &name, const gpu_objects::PlacingParameters &parameters) {
         rendinst::gpuobjects::add(name, ri_gpu_object__grid_tiling, ri_gpu_object__grid_size, ri_gpu_object__cell_size, parameters);
       },
       ri_gpu_object__multiple_objects, parameters);
@@ -155,20 +154,19 @@ static __forceinline void ri_gpu_object_update_params_es_event_handler(const ecs
   const bool ri_gpu_object__place_on_water, const bool ri_gpu_object__enable_displacement,
   const bool ri_gpu_object__render_into_shadows, const Point2 &ri_gpu_object__coast_range, const bool ri_gpu_object__face_coast)
 {
-  gpu_objects::PlacingParameters parameters =
-    gpu_objects::prepare_gpu_object_parameters(ri_gpu_object__seed, ri_gpu_object__up_vector, ri_gpu_object__incline_delta,
-      ri_gpu_object__scale_range, ri_gpu_object__rotate_range, ri_gpu_object__biom_indexes, ri_gpu_object__is_using_normal,
-      String(ri_gpu_object__map.c_str()), ri_gpu_object__map_size, ri_gpu_object__map_offset, ri_gpu_object__color_from,
-      ri_gpu_object__color_to, ri_gpu_object__slope_factor, ri_gpu_object__biome_params, ri_gpu_object__hardness, ri_gpu_object__decal,
-      ri_gpu_object__transparent, ri_gpu_object__distorsion, ri_gpu_object__sparse_weight, ri_gpu_object__place_on_water,
-      ri_gpu_object__enable_displacement, ri_gpu_object__render_into_shadows, ri_gpu_object__coast_range, ri_gpu_object__face_coast);
+  gpu_objects::PlacingParameters parameters = gpu_objects::prepare_gpu_object_parameters(ri_gpu_object__seed, ri_gpu_object__up_vector,
+    ri_gpu_object__incline_delta, ri_gpu_object__scale_range, ri_gpu_object__rotate_range, ri_gpu_object__biom_indexes,
+    ri_gpu_object__is_using_normal, ri_gpu_object__map, ri_gpu_object__map_size, ri_gpu_object__map_offset, ri_gpu_object__color_from,
+    ri_gpu_object__color_to, ri_gpu_object__slope_factor, ri_gpu_object__biome_params, ri_gpu_object__hardness, ri_gpu_object__decal,
+    ri_gpu_object__transparent, ri_gpu_object__distorsion, ri_gpu_object__sparse_weight, ri_gpu_object__place_on_water,
+    ri_gpu_object__enable_displacement, ri_gpu_object__render_into_shadows, ri_gpu_object__coast_range, ri_gpu_object__face_coast);
 
   if (ri_gpu_object__multiple_objects.empty())
-    rendinst::gpuobjects::change_parameters(String(ri_gpu_object__name.c_str()), parameters);
+    rendinst::gpuobjects::change_parameters(ri_gpu_object__name, parameters);
   else
     perform_multiple_objects(
-      [](const String &name, const gpu_objects::PlacingParameters &parameters) {
-        rendinst::gpuobjects::change_parameters(String(name.c_str()), parameters);
+      [](const eastl::string &name, const gpu_objects::PlacingParameters &parameters) {
+        rendinst::gpuobjects::change_parameters(name, parameters);
       },
       ri_gpu_object__multiple_objects, parameters);
 }
@@ -181,13 +179,13 @@ static __forceinline void ri_gpu_object_track_es_event_handler(const ecs::Event 
   const ecs::Array &ri_gpu_object__multiple_objects)
 {
   if (ri_gpu_object__multiple_objects.empty())
-    rendinst::gpuobjects::change_grid(String(ri_gpu_object__name.c_str()), ri_gpu_object__grid_tiling, ri_gpu_object__grid_size,
+    rendinst::gpuobjects::change_grid(ri_gpu_object__name, ri_gpu_object__grid_tiling, ri_gpu_object__grid_size,
       ri_gpu_object__cell_size);
   else
   {
     gpu_objects::PlacingParameters parameters;
     perform_multiple_objects(
-      [&](const String &name, const gpu_objects::PlacingParameters &) {
+      [&](const eastl::string &name, const gpu_objects::PlacingParameters &) {
         rendinst::gpuobjects::change_grid(name, ri_gpu_object__grid_tiling, ri_gpu_object__grid_size, ri_gpu_object__cell_size);
       },
       ri_gpu_object__multiple_objects, parameters);

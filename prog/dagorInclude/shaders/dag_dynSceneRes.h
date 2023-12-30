@@ -213,7 +213,7 @@ public:
   inline int getLodNoForDistSq(real dist_sq)
   {
     for (int i = 0; i < lods.size(); ++i)
-      if (dist_sq <= SQR(lods[i].range))
+      if (dist_sq <= sqr(lods[i].range))
       {
         updateReqLod(i);
         uint32_t qlBestLod = getQlBestLod();
@@ -303,6 +303,7 @@ public:
   static void unlockClonesList();
   static void (*on_higher_lod_required)(DynamicRenderableSceneLodsResource * res, unsigned req_lod, unsigned cur_lod);
 
+  static constexpr short int qlReqLodInitialValue = 16;
   unsigned getQlReqLod() const { return interlocked_relaxed_load(qlReqLod); }
   unsigned getQlReqLodEff() const
   {
@@ -349,6 +350,7 @@ public:
     while (interlocked_compare_exchange(packedFields, (storedValue & m) | v, storedValue) != storedValue)
       storedValue = interlocked_acquire_load(packedFields);
   }
+  int getInstanceRefCount() const { return interlocked_acquire_load(instanceRefCount); }
 
 protected:
   void setQlReqLod(uint16_t new_lod) { interlocked_release_store(qlReqLod, new_lod); }
@@ -378,7 +380,7 @@ protected:
     "Since we use one dword for the bitfield, we shouldn't have unhandled bits there.");
   uint32_t packedFields;
   int instanceRefCount;
-  volatile unsigned short qlReqLod = 16, qlReqLodPrev = 16;
+  volatile unsigned short qlReqLod = qlReqLodInitialValue, qlReqLodPrev = qlReqLodInitialValue;
   int qlReqLFU = 0;
   mutable DynamicRenderableSceneLodsResource *nextClonedRes = nullptr;
   mutable Ptr<DynamicRenderableSceneLodsResource> originalRes;
@@ -396,7 +398,11 @@ protected:
     instanceRefCount = 0;
   }
   DynamicRenderableSceneLodsResource(const DynamicRenderableSceneLodsResource &);
-  ~DynamicRenderableSceneLodsResource() { clearData(); }
+  ~DynamicRenderableSceneLodsResource()
+  {
+    G_ASSERT(getInstanceRefCount() == 0);
+    clearData();
+  }
   void addToCloneLost(const DynamicRenderableSceneLodsResource &from);
 
   // patches data after resource dump loading

@@ -49,8 +49,23 @@ class ProfilerDebugAgent : DapiDebugAgent
     manual : bool = false
     report_memory : bool = false
     instrumented : table<uint64>
+    map_time_units : table<string; int64> <- {{
+        "ns" => 1l;
+        "us" => 1_000l;
+        "ms" => 1_000_000l;
+        "s" => 1_000_000_000l
+    }}
+    time_unit : string = "ns"
+
     def dependency
         return @@set_enable_profiler
+
+    def is_time_unit_correct(unit : string)
+        return key_exists(map_time_units, unit)
+
+    def convert_ns_to_unit(time : int64; to : string)
+        return time / map_time_units[to]
+
     def override onInstall ( agent:DebugAgent? ) : void
         this_context().name := "__PROFILER__"
         var args <- get_command_line_arguments()
@@ -63,6 +78,12 @@ class ProfilerDebugAgent : DapiDebugAgent
                 report_memory = true
                 unsafe
                     self.onInstrumentFunction = reinterpret<function<(var agent:DapiDebugAgent;var ctx:Context;fn:SimFunction?;entering:bool;userData:uint64):void>> self.onInstrumentFunctionWithMemory
+            elif argv=="--das-profiler-time-unit" && ((i+1)<length(args))
+                let unit = args[i+1]
+                if !is_time_unit_correct(unit)
+                    to_log(LOG_ERROR, "Time unit '{unit}' is not defined!")
+                else
+                    time_unit = unit
         write("[")
         g_d_agent = unsafe(addr(self))
         us0 = ref_time_ticks()
@@ -129,6 +150,7 @@ class ProfilerDebugAgent : DapiDebugAgent
         if node==null
             return
         if node.fun!=null
+            let total_time = convert_ns_to_unit(node.total_time, time_unit)
             let tabs = repeat("  ",tab)
             if report_memory
                 var hb = node.total_heap_bytes
@@ -136,9 +158,9 @@ class ProfilerDebugAgent : DapiDebugAgent
                 for ch in values(node.children)
                     hb -= ch.total_heap_bytes
                     shb -= ch.total_string_heap_bytes
-                to_log(LOG_INFO,"{tabs}{node.fun.mangledName} {int64(node.count)} {node.total_time}ns heap={int64(hb)} string_heap={int64(shb)}\n")
+                to_log(LOG_INFO,"{tabs}{node.fun.mangledName} {int64(node.count)} {total_time}{time_unit} heap={int64(hb)} string_heap={int64(shb)}\n")
             else
-                to_log(LOG_INFO,"{tabs}{node.fun.mangledName} {int64(node.count)} {node.total_time}ns\n")
+                to_log(LOG_INFO,"{tabs}{node.fun.mangledName} {int64(node.count)} {total_time}{time_unit}\n")
         for ch in values(node.children)
             dump_node(ch, tab+1)
     def dump_context_stack ( tid:uint64 )

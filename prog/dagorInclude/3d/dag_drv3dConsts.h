@@ -303,6 +303,37 @@ enum class CSPreloaded
   Yes
 };
 
+/**
+ * This enum defines bits signalling supported depth resolve modes.
+ * Depth resolve is a functionality supported by some GAPIs which allows to resolve MSAA depth into a single sampled one.
+ *
+ * In the context of Vulkan, we do additional checks to determine supported depth resolve modes. Therefore, fewer modes than the
+ * driver returns can be reported.
+ */
+enum DepthResolveMode : unsigned
+{
+  /**
+   * Depth resolve unsupported.
+   */
+  DEPTH_RESOLVE_MODE_NONE = 0,
+  /**
+   * Use a value from the 0th sample. If depth resolve is supported, this is generally supported too.
+   */
+  DEPTH_RESOLVE_MODE_SAMPLE_ZERO = 1 << 0,
+  /**
+   * Use the average value from all samples. Not supported on iOS, rarely supported on Android Vulkan.
+   */
+  DEPTH_RESOLVE_MODE_AVERAGE = 1 << 1,
+  /**
+   * Use the smallest value from all samples. Supported on iOS, rarely supported on Android Vulkan.
+   */
+  DEPTH_RESOLVE_MODE_MIN = 1 << 2,
+  /**
+   * Same as DEPTH_RESOLVE_MODE_MIN, but the largest value is used instead.
+   */
+  DEPTH_RESOLVE_MODE_MAX = 1 << 3
+};
+
 
 /**
  * A boolean bitfield that describes which optional features that are available with the used device / driver combination.
@@ -1921,6 +1952,8 @@ struct Driver3dDesc // -V730
   // differ. On XBOX SCARLETT these are always 8.
   unsigned variableRateTextureTileSizeX;
   unsigned variableRateTextureTileSizeY;
+  // When DeviceDriverCapabilities::hasRenderPassDepthResolve is set, this variable enumerates supported resolve modes
+  unsigned depthResolveModes = DepthResolveMode::DEPTH_RESOLVE_MODE_NONE;
   DeviceDriverCapabilities caps;
   DeviceDriverIssues issues;
   DeviceDriverShaderModelVersion shaderModel;

@@ -199,6 +199,9 @@ public:
 
   void wakeUp() { api().ActivateBody(bodyId); }
 
+  // Note: body could be invalid if allocation (`CreateBody`) failed (e.g. due max bodies limit)
+  bool isValid() const { return bodyId != JPH::BodyID(); }
+
   JPH::BodyID bodyId;
 
   static PhysBody *from_body_id(JPH::BodyID bid) { return (PhysBody *)(void *)(uintptr_t)api().GetUserData(bid); }

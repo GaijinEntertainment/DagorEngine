@@ -70,12 +70,12 @@ public:
   void recalcPos()
   {
     if (!nodeWtm)
-      __super::setPos(as_point3(&localPos));
+      FpdObject::setPos(as_point3(&localPos));
     else
     {
       Point3_vec4 p;
       v_st(&p, v_mat44_mul_vec3p(*nodeWtm, localPos));
-      __super::setPos(p);
+      FpdObject::setPos(p);
     }
   }
 
@@ -90,8 +90,8 @@ public:
     else
       as_point3(&localPos) = p;
 
-    return __super::setPos(p);
+    return FpdObject::setPos(p);
   }
 
-  virtual bool isSubOf(DClassID id) { return id == FpdPoint::HUID || __super::isSubOf(id); }
+  virtual bool isSubOf(DClassID id) { return id == FpdPoint::HUID || FpdObject::isSubOf(id); }
 };

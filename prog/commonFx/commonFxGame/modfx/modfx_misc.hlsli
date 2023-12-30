@@ -126,6 +126,24 @@ void ModfxDeclServiceTrail_save( DAFX_CREF(ModfxDeclServiceTrail) v, BufferData_
 }
 
 DAFX_INLINE
+ModfxDeclServiceUniqueId ModfxDeclServiceUniqueId_load( BufferData_cref buf, uint ofs )
+{
+#ifdef __cplusplus
+  return *(ModfxDeclServiceUniqueId*)( buf + ofs );
+#else
+  ModfxDeclServiceUniqueId pp;
+  pp.particles_emitted = dafx_load_1ui( buf, ofs );
+  return pp;
+#endif
+}
+
+DAFX_INLINE
+void ModfxDeclServiceUniqueId_save( DAFX_CREF(ModfxDeclServiceUniqueId) v, BufferData_ref buf, uint ofs )
+{
+  dafx_store_1ui( v.particles_emitted, buf, ofs );
+}
+
+DAFX_INLINE
 ModfxDeclFrameInfo ModfxDeclFrameInfo_load( BufferData_cref buf, uint ofs )
 {
 #ifdef __cplusplus

@@ -79,6 +79,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   local 850 = 300 ;
   PS4CrossGenSdkVer ?= $($(PS4SdkVer)) ;
   PS5SdkVer     ?= 700 ;
+  LinuxArch     ?= x86_64 ;
   MacOSXVer     ?= 11.0 ;
   MacOSXMinVer  ?= $(MacOSXVer) ;
   MacOSXArch    ?= x86_64 ;
@@ -308,7 +309,10 @@ if ! $(__DEFAULTS_INCLUDED) {
       if $(Platform) in win32 win64 xboxOne { return $(1).dll ; }
       if $(Platform) in ps4 ps5 { return $(1).prx ; }
       if $(Platform) in android { return $(1).so ; }
-      if $(Platform) in macosx iOS tvOS { return $(1).dylib ; }
+      if $(Platform) in macosx iOS tvOS {
+        if macosx-shortform in $(3) { return $(1:S=.dylib) ; }
+        if $(1:D) { return $(1:D)/lib$(1:D=:S=.dylib) ; } else { return lib$(1:D=:S=.dylib) ; }
+      }
       if $(Platform) in linux64 { if $(1:D) { return $(1:D)/lib$(1:D=:S=.so) ; } else { return lib$(1:D=:S=.so) ; } }
     }
     return $(1) ;
@@ -345,6 +349,8 @@ if ! $(__DEFAULTS_INCLUDED) {
       PlatformOutputDir ?= $(PlatformSpec)-$(VCUpdateVer) ;
     } else if $(PlatformSpec) = clang && $(Platform) in win32 win64 {
       PlatformOutputDir ?= $(PlatformSpec)~$(CLangVer) ;
+    } else if $(Platform) = linux64 && $(LinuxArch) != x86_64 {
+      PlatformOutputDir ?= $(LinuxArch)~$(PlatformSpec) ;
     }
 
     PlatformOutputDir ?= $(PlatformSpec) ;

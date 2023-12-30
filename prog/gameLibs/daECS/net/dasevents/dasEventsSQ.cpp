@@ -57,6 +57,7 @@ static SQRESULT sq_broadcast_net_event(HSQUIRRELVM vm)
   return 0;
 }
 
+///@module dasevents
 void net::register_dasevents(SqModules *module_mgr)
 {
   Sqrat::Object *existingModule = module_mgr->findNativeModule("dasevents");

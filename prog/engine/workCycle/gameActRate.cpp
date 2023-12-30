@@ -10,7 +10,7 @@ float dagor_game_time_scale = 1.0;
 void dagor_set_game_act_rate(int rate)
 {
   if (rate == 0 || rate > 10000)
-    fatal("incorrect act rate: %d", rate);
+    DAG_FATAL("incorrect act rate: %d", rate);
   else if (rate < 0)
   {
     // set variable-act-rate mode

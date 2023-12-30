@@ -11,8 +11,6 @@ jam -s Root=../.. -s Platform=win64 -f sceneTools/assetExp/jamfile
   if errorlevel 1 goto error
 jam -s Root=../.. -s Platform=win64 -f converters/ddsxCvt2/jamfile
   if errorlevel 1 goto error
-jam -s Root=../.. -f ../3rdPartyLibs/convert/PVRTexLib/astc-runner/jamfile
-  if errorlevel 1 goto error
 
 rem AssetViewer
 jam -s Root=../.. -s Platform=win64 -f AssetViewer/jamfile
@@ -47,7 +45,7 @@ jam -s Root=../.. -f shaderCompiler2/jamfile-dx12
   if errorlevel 1 goto error
 jam -s Root=../.. -f shaderCompiler2/nodeBased/jamfile
   if errorlevel 1 goto error
-jam -s Root=../.. -f shaderInfo/jamfile
+jam -s Root=../.. -s Platform=win64 -f shaderInfo/jamfile
   if errorlevel 1 goto error
 
 rem utils
@@ -59,33 +57,31 @@ jam -s Root=../.. -s Platform=win64 -f converters/ddsxCvt/jamfile
   if errorlevel 1 goto error
 jam -s Root=../.. -s Platform=win64 -f converters/ddsx2dds/jamfile
   if errorlevel 1 goto error
-jam -s Root=../.. -f converters/ddsConverter/jamfile
+jam -s Root=../.. -s Platform=win64 -f converters/ddsConverter/jamfile
   if errorlevel 1 goto error
 jam -s Root=../.. -s Platform=win64 -f FontGenerator/jamfile
   if errorlevel 1 goto error
 jam -s Root=../.. -s Platform=win64 -f converters/GuiTex/jamfile
   if errorlevel 1 goto error
-jam -s Root=../.. -s Platform=win64 -f sceneTools/utils/jamfile-blk
+jam -s Root=../.. -s Platform=win64 -f sceneTools/utils/jamfile-binBlk
   if errorlevel 1 goto error
 
-jam -s Root=../.. -f sceneTools/dumpGrp/jamfile
-  if errorlevel 1 goto error
-jam -s Root=../.. -s Platform=win64 -f sceneTools/utils/jamfile-blk
+jam -s Root=../.. -s Platform=win64 -f sceneTools/dumpGrp/jamfile
   if errorlevel 1 goto error
 jam -s Root=../.. -s Platform=win64 -f sceneTools/dbldUtil/jamfile
   if errorlevel 1 goto error
-jam -s Root=../.. -f sceneTools/resDiff/jamfile
+jam -s Root=../.. -s Platform=win64 -f sceneTools/resDiff/jamfile
   if errorlevel 1 goto error
-jam -s Root=../.. -f sceneTools/resUpdate/jamfile
+jam -s Root=../.. -s Platform=win64 -f sceneTools/resUpdate/jamfile
   if errorlevel 1 goto error
-jam -s Root=../.. -f sceneTools/resClean/jamfile
+jam -s Root=../.. -s Platform=win64 -f sceneTools/resClean/jamfile
   if errorlevel 1 goto error
 
 jam -s Root=../.. -sConfig=dev -sPlatform=win64 -f consoleSq/jamfile
   if errorlevel 1 goto error
 
-jam -s Root=../.. -f miscUtils/fastdep-0.16/jamfile
-  if errorlevel 1 goto error
+rem jam -s Root=../.. -f miscUtils/fastdep-0.16/jamfile
+rem   if errorlevel 1 goto error
 
 rem GUI tools
 jam -s Root=../.. -f dargbox/jamfile

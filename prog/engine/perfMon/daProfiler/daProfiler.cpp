@@ -255,7 +255,11 @@ void ProfilerData::shutdown(bool pre_destructor)
       {
         // we can't do that if we are in destructor. Threads can be _terminated_ suddenly, without notice
         if (thread_is_running(thread->storage.threadId))
+        {
           interlocked_release_store_ptr(*thread->tlsStorage, (ThreadStorage *)nullptr); // ensure no events will start any more
+          // clear threadId to avoid wrong "same id thread" detection when profiler is restarted after shutdown
+          thread->storage.threadId = ~0ull;
+        }
         memAllocated += thread->storage.memAllocated();
         memGpuAllocated += thread->storage.gpuEvents.memAllocated();
       }

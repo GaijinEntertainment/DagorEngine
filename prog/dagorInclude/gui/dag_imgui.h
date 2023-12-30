@@ -28,6 +28,7 @@ using OnStateChangeHandlerFunc = eastl::function<void(ImGuiState, ImGuiState)>;
 
 bool init_on_demand();
 void imgui_set_override_blk(const DataBlock &imgui_blk); // call this before init_on_demand() called
+void imgui_enable_imgui_submenu(bool enabled);
 void imgui_shutdown();
 ImGuiState imgui_get_state();
 bool imgui_want_capture_mouse();

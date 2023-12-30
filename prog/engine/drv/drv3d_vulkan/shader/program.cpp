@@ -54,11 +54,11 @@ void ComputeProgram::addToContext(DeviceContext &ctx, ProgramID prog, const Crea
 {
   auto smb = eastl::make_unique<ShaderModuleBlob>(spirv_extractor::getBlob(info.chunks, info.chunk_data, 0));
   if (smb->blob.empty())
-    fatal("Shader has no byte code blob");
+    DAG_FATAL("Shader has no byte code blob");
 
   auto header = spirv_extractor::getHeader(VK_SHADER_STAGE_COMPUTE_BIT, info.chunks, info.chunk_data, 0);
   if (!header)
-    fatal("Shader has no header");
+    DAG_FATAL("Shader has no header");
 
   ctx.addComputeProgram(prog, eastl::move(smb), *header);
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA

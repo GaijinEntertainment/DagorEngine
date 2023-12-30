@@ -113,7 +113,7 @@ public:
   INLINE bool operator!=(const IPoint2 &a) const { return (x != a.x || y != a.y); }
   INLINE int lengthSq() const { return x * x + y * y; }
   INLINE float length() const { return sqrtf(lengthSq()); }
-  INLINE real lengthF() const { return rsqrt(lengthSq()); }
+  INLINE real lengthF() const { return fastsqrt(lengthSq()); }
 
   template <class T>
   static IPoint2 xy(const T &a)

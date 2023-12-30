@@ -167,6 +167,7 @@ namespace das {
         bool checkUnsafe;
         bool checkDeprecated;
         bool disableInit;
+        bool noLocalClassMembers;
     public:
         LintVisitor ( const ProgramPtr & prog ) : program(prog) {
             checkOnlyFastAot = program->options.getBoolOption("only_fast_aot", program->policies.only_fast_aot);
@@ -179,6 +180,7 @@ namespace das {
             checkUnsafe = program->policies.no_unsafe || program->thisModule->doNotAllowUnsafe;
             checkDeprecated = program->options.getBoolOption("no_deprecated", program->policies.no_deprecated);
             disableInit = prog->options.getBoolOption("no_init", prog->policies.no_init);
+            noLocalClassMembers = prog->options.getBoolOption("no_local_class_members", prog->policies.no_local_class_members);
         }
     protected:
         void verifyOnlyFastAot ( Function * _func, const LineInfo & at ) {
@@ -277,7 +279,13 @@ namespace das {
             Visitor::preVisitStructureField(var, decl, last);
             if (!isValidVarName(decl.name)) {
                 program->error("invalid structure field name " + decl.name, "", "",
-                    var->at, CompilationError::invalid_name );
+                    decl.at, CompilationError::invalid_name );
+            }
+            if ( noLocalClassMembers ) {
+                if ( !decl.type->ref && decl.type->hasClasses() ) {
+                    program->error("class can't contain local class declarations", decl.name + " : " + decl.type->describe(), "",
+                        decl.at, CompilationError::invalid_structure_field_type);
+                }
             }
         }
         virtual void preVisitGlobalLet ( const VariablePtr & var ) override {
@@ -752,6 +760,7 @@ namespace das {
         "no_aliasing",                  Type::tBool,
         "strict_smart_pointers",        Type::tBool,
         "no_init",                      Type::tBool,
+        "no_local_class_members",       Type::tBool,
     // memory
         "stack",                        Type::tInt,
         "intern_strings",               Type::tBool,

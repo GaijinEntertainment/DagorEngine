@@ -189,13 +189,13 @@ public:
 
   type_index_t getItemTypeId() const { return componentTypeIndex; }
 
-  const auto getEntityComponentRef(ecs::EntityManager *mgr) const
+  auto getEntityComponentRef(ecs::EntityManager *mgr) const
   {
     type_index_t ti = find_component_type_index(ecs::ComponentTypeInfo<ecs::List<T>>::type, mgr);
     return EntityComponentRef((void *)(this), ecs::ComponentTypeInfo<ecs::List<T>>::type, ti, INVALID_COMPONENT_INDEX);
   }
 
-  const auto getEntityComponentRef(size_t i) const
+  auto getEntityComponentRef(size_t i) const
   {
     return EntityComponentRef((void *)(data() + i), ecs::ComponentTypeInfo<T>::type, getItemTypeId(), INVALID_COMPONENT_INDEX);
   }

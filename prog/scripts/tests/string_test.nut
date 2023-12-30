@@ -1,6 +1,6 @@
 let string = require("%sqstd/string.nut")
 
-let function testFunction(func, tests=[], shouldPass=true, testname = null) {
+function testFunction(func, tests=[], shouldPass=true, testname = null) {
   let funcname = testname ?? func.getfuncinfos().name
   foreach (test in tests) {
     let test_ = test?.name ?? test

@@ -78,13 +78,13 @@ serverNotify.subscribe(function(val) {
 
 let printNotify = @(name, notify) serverNotify(json_to_string(notify.__merge({name}), true))
 
-let function subscribeNotify(name, handler = printNotify) {
+function subscribeNotify(name, handler = printNotify) {
   matching_api.listen_notify(name)
   eventbus.subscribe(name, @(obj) handler(name, obj))
   lastResult($"subscribed to {name}")
 }
 
-let function sendRPC() {
+function sendRPC() {
   let reqInfo = matching_api.call(rpcCmd.value, parse_json(rpcParams.value))
   if (reqInfo?.reqId != null) {
     eventbus.subscribe_onehit($"{rpcCmd.value}.{reqInfo.reqId}",
@@ -114,7 +114,7 @@ eventbus.subscribe("matching.on_disconnect", function(reason) {
   loginState(LoginState.Disconnected)
 })
 
-let function onLoginButtonClick() {
+function onLoginButtonClick() {
   if (loginState.value == LoginState.Disconnected) {
     loginState(LoginState.Connecting)
     matching_api.dial(loginInfo)

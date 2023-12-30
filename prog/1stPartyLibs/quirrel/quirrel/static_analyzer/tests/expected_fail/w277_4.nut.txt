@@ -1,3 +1,0 @@
-//expect:w277
-return @"abc 
-"

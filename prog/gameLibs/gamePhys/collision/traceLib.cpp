@@ -22,6 +22,8 @@
 #endif
 
 static const float invalid_water_height = -1e10f;
+static void first_mirroring_transform(float &in_out_x, float &in_out_z, float &out_x_k, float &out_z_k);
+
 
 bool dacoll::traceray_normalized_frt(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm)
 {
@@ -46,9 +48,18 @@ bool dacoll::traceray_normalized_lmesh(const Point3 &p, const Point3 &dir, real 
 {
   if (!get_lmesh())
     return false;
-  bool res = get_lmesh()->traceray(p, dir, t, out_norm);
+  Point3 transPos(p);
+  float xk, zk;
+  first_mirroring_transform(transPos.x, transPos.z, xk, zk);
+  Point3 transDir = Point3(dir.x * xk, dir.y, dir.z * zk);
+  bool res = get_lmesh()->traceray(transPos, transDir, t, out_norm);
   if (res && out_pmid)
-    *out_pmid = get_lmesh_mat_id_at_point(Point2::xz(p + dir * t)); // reset mid
+    *out_pmid = get_lmesh_mat_id_at_point(Point2::xz(transPos + transDir * t)); // reset mid
+  if (res && out_norm)
+  {
+    out_norm->x *= xk;
+    out_norm->z *= zk;
+  }
   return res;
 }
 
@@ -59,7 +70,11 @@ bool dacoll::rayhit_normalized_frt(const Point3 &p, const Point3 &dir, real t)
 
 bool dacoll::rayhit_normalized_lmesh(const Point3 &p, const Point3 &dir, real t)
 {
-  return get_lmesh() ? get_lmesh()->rayhitNormalized(p, dir, t) : false;
+  Point3 transPos(p);
+  float xk, zk;
+  first_mirroring_transform(transPos.x, transPos.z, xk, zk);
+  Point3 transDir = Point3(dir.x * xk, dir.y, dir.z * zk);
+  return get_lmesh() ? get_lmesh()->rayhitNormalized(transPos, transDir, t) : false;
 }
 
 bool dacoll::rayhit_normalized_ri(const Point3 &p, const Point3 &dir, real t, rendinst::TraceFlags additional_trace_flags,
@@ -166,7 +181,8 @@ bool dacoll::traceray_normalized(const Point3 &p, const Point3 &dir, real &t, in
 bool dacoll::traceray_normalized_coll_type(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm, int flags,
   rendinst::RendInstDesc *out_desc, int *out_coll_type, int ray_mat_id, const TraceMeshFaces *handle)
 {
-  G_ASSERT(!check_nan(p) && !check_nan(dir) && !check_nan(t));
+  G_ASSERTF(!check_nan(p) && p.lengthSq() < 1e11f && !check_nan(dir) && !check_nan(t), "%@ %@ %f", p, dir, t);
+
   bool res = false;
 #if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
   auto do_traceray = [&]() {
@@ -551,7 +567,10 @@ float dacoll::traceht_lmesh(const Point2 &pos)
   if (get_lmesh())
   {
     LandMeshHolesManager *holes = get_lmesh()->getHolesManager();
-    if ((!holes || !holes->check(pos)) && get_lmesh()->getHeight(pos, height, nullptr))
+    Point2 transPos(pos);
+    float xk, zk;
+    first_mirroring_transform(transPos.x, transPos.y, xk, zk);
+    if ((!holes || !holes->check(pos)) && get_lmesh()->getHeight(transPos, height, nullptr))
       return height;
   }
   return -1e5f;

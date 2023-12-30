@@ -345,8 +345,8 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
       else
         get_impostor_texture_mgr()->generate_mask_billboard(sliceId, res, maskRt.get(), impostorMask.getTex2D());
       get_impostor_texture_mgr()->setTreeCrownDataBuf(nullptr);
-      int stride = 0;
-      if (auto data = lock_texture<uint8_t>(impostorMask.getTex2D(), stride, 0, TEXLOCK_READ))
+
+      if (auto data = lock_texture_ro(impostorMask.getTex2D(), 0, TEXLOCK_READ))
       {
         Point3 pointToEye;
         if (gen_data.octahedralImpostor)
@@ -361,7 +361,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
         {
           for (unsigned int x0 = 0; x0 < sliceWidth; ++x0)
           {
-            const size_t idx = static_cast<size_t>(y0 * stride) + x0; //-V1028
+            const size_t idx = static_cast<size_t>(y0 * data.getByteStride()) + x0; //-V1028
             const bool used = data.get()[idx] != 0;
             if (!used)
               continue;
@@ -384,7 +384,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
             scales[id2] = std::max(scales[id2], scale);
           }
         }
-        sliceLayout.setSlice(h, data.get(), stride);
+        sliceLayout.setSlice(h, data.get(), data.getByteStride());
       }
 #if DAGOR_DBGLEVEL > 0
       else

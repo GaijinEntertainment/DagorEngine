@@ -1,12 +1,11 @@
 #include "main.h"
+#include "fileDropHandler.h"
 #include "scriptBindings.h"
 #include "vr.h"
 #include "vrInput.h"
 #include "gamelib/sound.h"
 #include "gamelib/input.h"
-#if HAS_VR
 #include <vr/vrGuiSurface.h>
-#endif
 
 #include <daRg/dag_guiScene.h>
 #include <daRg/dag_picture.h>
@@ -615,10 +614,8 @@ public:
       auto resolveEntityTm = [](uint32_t, const char *) { return TMatrix::IDENT; };
 
       auto vr_surface_intersect = [](const Point3 &pos, const Point3 &dir, Point2 &point_in_gui, Point3 &intersection) {
-#if HAS_VR
         if (vrgui::is_inited())
           return vrgui::intersect(pos, dir, point_in_gui, intersection);
-#endif
         return false;
       };
 
@@ -1021,6 +1018,7 @@ void dargbox_app_init()
 void dargbox_app_shutdown()
 {
   force_feedback::rumble::shutdown();
+  release_file_drop_handler();
   dagor_select_game_scene(NULL);
   del_it(game_scene);
   io_events_poll.reset();

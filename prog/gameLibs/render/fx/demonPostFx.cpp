@@ -1683,10 +1683,16 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
   }
 
   if (output_tex)
-    d3d::set_render_target(output_tex, output_tex->restype() == RES3D_ARRTEX ? target_layer : 0, 0);
+  {
+    d3d::set_render_target({depth_tex, 0}, depth_tex ? DepthAccess::SampledRO : DepthAccess::RW,
+      {{output_tex, 0u, output_tex->restype() == RES3D_ARRTEX ? unsigned(target_layer) : 0u}});
+  }
   else
+  {
     d3d::set_render_target();
-  d3d::set_depth(depth_tex, DepthAccess::SampledRO);
+    if (depth_tex)
+      d3d::set_depth(depth_tex, DepthAccess::SampledRO);
+  }
 
   if (output_viewport)
   {

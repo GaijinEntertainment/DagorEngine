@@ -4,6 +4,8 @@
 namespace drv3d_vulkan
 {
 
+class ExecutionContext;
+
 enum BufferMemoryFlags
 {
   NONE = 0x0,
@@ -37,11 +39,11 @@ public:
   void reuseHandle();
   void releaseSharedHandle();
   void evict();
-  void restoreFromSysCopy();
   bool isEvictable();
   void shutdown();
   bool nonResidentCreation();
-  void makeSysCopy();
+  void restoreFromSysCopy(ExecutionContext &ctx);
+  void makeSysCopy(ExecutionContext &ctx);
 
   template <int Tag>
   void onDelayedCleanupBackend(ContextBackend &)
@@ -196,6 +198,7 @@ struct BufferRef
 {
   Buffer *buffer = nullptr;
   uint32_t discardIndex = 0;
+  uint32_t offset = 0;
   VkDeviceSize visibleDataSize = 0;
   BufferRef() = default;
   ~BufferRef() = default;
@@ -204,23 +207,43 @@ struct BufferRef
   // make this explicit to make it clear that we grab and hold on to the current
   // discard index
   explicit BufferRef(Buffer *bfr, uint32_t visible_data_size = 0);
+  explicit BufferRef(Buffer *bfr, uint32_t visible_data_size, uint32_t in_offset);
   explicit operator bool() const;
   VulkanBufferHandle getHandle() const;
   VulkanBufferViewHandle getView() const;
   VkDeviceSize bufOffset(VkDeviceSize ofs) const;
   VkDeviceSize memOffset(VkDeviceSize ofs) const;
   VkDeviceSize totalSize() const;
+  void clear()
+  {
+    buffer = nullptr;
+    discardIndex = 0;
+    visibleDataSize = 0;
+    offset = 0;
+  }
 };
 
-inline bool operator==(const BufferRef &l, const BufferRef &r) { return (l.buffer == r.buffer) && (l.discardIndex == r.discardIndex); }
+inline bool operator==(const BufferRef &l, const BufferRef &r)
+{
+  return (l.buffer == r.buffer) && (l.discardIndex == r.discardIndex) && (l.offset == r.offset);
+}
 
 inline bool operator!=(const BufferRef &l, const BufferRef &r) { return !(l == r); }
 
 inline BufferRef::BufferRef(Buffer *bfr, uint32_t visible_data_size) :
   buffer(bfr),
   discardIndex(bfr ? bfr->getCurrentDiscardIndex() : 0),
-  visibleDataSize(bfr && !visible_data_size ? bfr->getBlockSize() : visible_data_size)
+  visibleDataSize(bfr && !visible_data_size ? bfr->getBlockSize() : visible_data_size),
+  offset(0)
 {}
+
+inline BufferRef::BufferRef(Buffer *bfr, uint32_t visible_data_size, uint32_t in_offset) :
+  buffer(bfr),
+  discardIndex(bfr ? bfr->getCurrentDiscardIndex() : 0),
+  visibleDataSize(bfr && !visible_data_size ? bfr->getBlockSize() : visible_data_size),
+  offset(in_offset)
+{}
+
 
 inline BufferRef::operator bool() const { return nullptr != buffer; }
 
@@ -233,11 +256,11 @@ inline VulkanBufferViewHandle BufferRef::getView() const
 
 inline VkDeviceSize BufferRef::bufOffset(VkDeviceSize ofs) const
 {
-  return buffer->getBlockSize() * discardIndex + buffer->bufOffsetAbs(ofs);
+  return buffer->getBlockSize() * discardIndex + buffer->bufOffsetAbs(ofs) + offset;
 }
 inline VkDeviceSize BufferRef::memOffset(VkDeviceSize ofs) const
 {
-  return buffer->getBlockSize() * discardIndex + buffer->memOffsetAbs(ofs);
+  return buffer->getBlockSize() * discardIndex + buffer->memOffsetAbs(ofs) + offset;
 }
 inline VkDeviceSize BufferRef::totalSize() const { return buffer->getBlockSize(); }
 

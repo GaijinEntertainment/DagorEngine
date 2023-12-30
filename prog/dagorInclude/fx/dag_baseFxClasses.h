@@ -71,11 +71,12 @@ static constexpr unsigned HUID_BATCH_GROUP = 0x3904D1FCu; // HUID_BATCH_GROUP
 static constexpr unsigned HUID_LIGHT_PARAMS = 0x1971045du;
 static constexpr unsigned HUID_LIGHT_POS = 0x1ff30453u;
 
-#define CHECK_FX_VERSION(ptr, len, ver)                                                                                  \
-  G_ASSERT(len >= sizeof(int));                                                                                          \
-  if (*(int *)ptr != (ver))                                                                                              \
-    fatal("unsupported version %d (expected %d)\nin %s:%d, %s()", *(int *)ptr, (ver), __FILE__, __LINE__, __FUNCTION__); \
-  len -= sizeof(int);                                                                                                    \
+#define CHECK_FX_VERSION(ptr, len, ver)                                    \
+  G_ASSERT(len >= sizeof(int));                                            \
+  if (*(int *)ptr != (ver))                                                \
+    DAG_FATAL("unsupported version %d (expected %d)\nin %s:%d, %s()", /**/ \
+      *(int *)ptr, (ver), __FILE__, __LINE__, __FUNCTION__);               \
+  len -= sizeof(int);                                                      \
   ptr += sizeof(int);
 
 // #define IF_STUB(name) virtual void name(void *value) = 0;

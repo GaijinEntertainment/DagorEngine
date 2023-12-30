@@ -45,7 +45,7 @@ extern bool phys_bullet_load_collision(IGenLoad &crd);
 
 static bool needSimulate = false;
 static int physType = 0;
-static PhysicsResource *simObjRes = NULL;
+static Ptr<PhysicsResource> simObjRes = NULL;
 static float curSimDt = 0.01;
 
 

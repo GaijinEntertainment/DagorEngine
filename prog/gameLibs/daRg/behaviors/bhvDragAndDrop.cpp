@@ -23,10 +23,12 @@ struct DragAndDropState
   InputDevice activeDeviceId = DEVID_NONE;
   int activePointerId = -1;
   Point2 startPointerPos = ZERO<Point2>();
+  Point2 startPointerOffs = ZERO<Point2>();
   bool isDragMode = false;
   float maxMoveDistance = 0;
   Sqrat::Object targetHandler;
   int lastClickTime = 0;
+  bool needDelayedRecalcAfterWheel = false;
 
   bool isClicked() const { return activeDeviceId != DEVID_NONE; }
 
@@ -36,17 +38,18 @@ struct DragAndDropState
 
   bool isDragging(InputDevice device, int pointer_id) const { return isDragMode && isClicked(device, pointer_id); }
 
-  void startDrag(InputDevice device, int pointer_id, const Point2 &pos)
+  void startDrag(InputDevice device, int pointer_id, const Point2 &pos, const Point2 &offs)
   {
-    startClick(device, pointer_id, pos);
+    startClick(device, pointer_id, pos, offs);
     isDragMode = true;
   }
 
-  void startClick(InputDevice device, int pointer_id, const Point2 &pos)
+  void startClick(InputDevice device, int pointer_id, const Point2 &pos, const Point2 &offs)
   {
     activeDeviceId = device;
     activePointerId = pointer_id;
     startPointerPos = pos;
+    startPointerOffs = offs;
     isDragMode = false;
   }
 
@@ -55,9 +58,11 @@ struct DragAndDropState
     activeDeviceId = DEVID_NONE;
     activePointerId = -1;
     startPointerPos = ZERO<Point2>();
+    startPointerOffs = ZERO<Point2>();
     targetHandler.Release();
     maxMoveDistance = 0;
     isDragMode = false;
+    needDelayedRecalcAfterWheel = false;
   }
 };
 
@@ -65,7 +70,7 @@ struct DragAndDropState
 BhvDragAndDrop bhv_drag_and_drop;
 
 
-BhvDragAndDrop::BhvDragAndDrop() : Behavior(0, F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_CAN_HANDLE_CLICKS) {}
+BhvDragAndDrop::BhvDragAndDrop() : Behavior(STAGE_BEFORE_RENDER, F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_CAN_HANDLE_CLICKS) {}
 
 
 bool BhvDragAndDrop::willHandleClick(Element *elem)
@@ -284,7 +289,7 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
 
     if (canDrag)
     {
-      ddState->startDrag(device, pointer_id, pointer_pos);
+      ddState->startDrag(device, pointer_id, pointer_pos, pointer_pos - elem->calcTransformedBbox().leftTop());
       elem->setGroupStateFlags(Element::S_DRAG);
 
       elem->updFlags(Element::F_ZORDER_ON_TOP, true);
@@ -301,7 +306,7 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
 
       if (canClick)
       {
-        ddState->startClick(device, pointer_id, pointer_pos);
+        ddState->startClick(device, pointer_id, pointer_pos, pointer_pos - elem->calcTransformedBbox().leftTop());
         elem->setGroupStateFlags(activeStateFlag);
         result |= R_PROCESSED;
       }
@@ -361,21 +366,39 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
   {
     if (ddState->isDragging(device, pointer_id))
     {
-      Point2 dPos = pointer_pos - ddState->startPointerPos;
-      ddState->maxMoveDistance = ::max(ddState->maxMoveDistance, ::max(fabsf(dPos.x), fabsf(dPos.y)));
-
-      if (elem->transform)
-        elem->transform->translate = dPos;
-
-      Sqrat::Object curTargetHandler;
-      Element *curTarget = findDropTarget(etree, pointer_pos, elem, curTargetHandler);
-      activateTarget(etree, elem, ddState, curTarget, curTargetHandler, activeStateFlag);
+      applyPointerMove(pointer_pos, ddState, elem, etree, activeStateFlag);
 
       result |= R_PROCESSED;
     }
   }
+  else if (event == INP_EV_MOUSE_WHEEL)
+  {
+    if (ddState->isDragging(device, pointer_id))
+    {
+      // handle hierarchic scroll
+      ddState->needDelayedRecalcAfterWheel = true;
+    }
+  }
 
   return result;
+}
+
+void BhvDragAndDrop::applyPointerMove(const Point2 &pointer_pos, darg::DragAndDropState *ddState, darg::Element *elem,
+  darg::ElementTree *etree, int activeStateFlag)
+{
+  Point2 dPos = pointer_pos - ddState->startPointerPos;
+
+  ddState->maxMoveDistance = ::max(ddState->maxMoveDistance, ::max(fabsf(dPos.x), fabsf(dPos.y)));
+
+  if (elem->transform)
+  {
+    // works only with transforms consisting of translations
+    elem->transform->translate += pointer_pos - (elem->calcTransformedBbox().leftTop() + ddState->startPointerOffs);
+  }
+
+  Sqrat::Object curTargetHandler;
+  Element *curTarget = findDropTarget(etree, pointer_pos, elem, curTargetHandler);
+  activateTarget(etree, elem, ddState, curTarget, curTargetHandler, activeStateFlag);
 }
 
 
@@ -422,6 +445,29 @@ int BhvDragAndDrop::onDeactivateInput(Element *elem, InputDevice device, int poi
   ddState->resetState();
 
   return R_REBUILD_RENDER_AND_INPUT_LISTS;
+}
+
+
+int BhvDragAndDrop::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
+{
+  DragAndDropState *ddState = elem->props.storage.RawGetSlotValue<DragAndDropState *>(elem->csk->dragAndDropState, nullptr);
+  if (!ddState)
+    return 0;
+
+  if (ddState->needDelayedRecalcAfterWheel)
+  {
+    // Assume that there is only one mouse maximum
+    // If parent was scrolled, refresh relative positions
+    Point2 mousePos = GuiScene::get_from_elem(elem)->getMousePos();
+    ElementTree *etree = elem->etree;
+    int activeStateFlag = active_state_flags_for_device(DEVID_MOUSE);
+
+    applyPointerMove(mousePos, ddState, elem, etree, activeStateFlag);
+
+    ddState->needDelayedRecalcAfterWheel = false;
+  }
+
+  return 0;
 }
 
 } // namespace darg

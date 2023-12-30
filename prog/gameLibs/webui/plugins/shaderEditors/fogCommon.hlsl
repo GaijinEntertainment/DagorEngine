@@ -8,7 +8,11 @@ float depth_to_volume_pos(float v)
   float invRange = volfog_froxel_range_params.y;
   return depth_to_volume_pos(v, invRange);
 }
-
+float volume_pos_to_depth(float v)
+{
+  float range = volfog_froxel_range_params.x;
+  return volume_pos_to_depth(v, range);
+}
 
 // TODO: instead of this, a use a header for fog vs GPU obj and define HEIGHTMAP_LOD
 float get_ground_height(float3 world_pos)

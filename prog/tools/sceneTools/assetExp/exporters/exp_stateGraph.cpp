@@ -1,4 +1,4 @@
-#include "dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 #include <assets/assetExporter.h>
 #include <assets/assetRefs.h>
 #include <assets/asset.h>
@@ -14,25 +14,26 @@
 #include <ioSys/dag_ioUtils.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_globalMutex.h>
 #include <debug/dag_debug.h>
-
-#include <windows.h>
-#undef ERROR
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <unistd.h>
+#endif
 
 BEGIN_DABUILD_PLUGIN_NAMESPACE(stateGraph)
 struct InterProcessMutex
 {
-  HANDLE mutex;
+  const char *mutex_name = "dagor4-animCharExp.dll";
+  void *mutex = nullptr;
   InterProcessMutex()
   {
-    const char *name = "Global\\dagor2-animCharExp.dll";
-    mutex = CreateMutex(NULL, FALSE, name);
+    mutex = global_mutex_create(mutex_name);
     if (!mutex)
-      logerr("animCharExp.dll: cannot create mutex <%s>!\n", name);
-    if (WaitForSingleObject(mutex, INFINITE) != WAIT_OBJECT_0)
+      logerr("animCharExp.dll: cannot create mutex <%s>!\n", mutex_name);
+    if (global_mutex_enter(mutex) != 0)
     {
       logerr("animCharExp.dll: cannot aquire mutex!\n");
-      CloseHandle(mutex);
+      global_mutex_destroy(mutex, mutex_name);
       mutex = NULL;
     }
   }
@@ -40,8 +41,7 @@ struct InterProcessMutex
   {
     if (!mutex)
       return;
-    ReleaseMutex(mutex);
-    CloseHandle(mutex);
+    global_mutex_leave_destroy(mutex, mutex_name);
     mutex = NULL;
   }
 };

@@ -424,6 +424,8 @@ CollisionObject dacoll::create_coll_obj_from_shape(const PhysCollision &shape, v
   pbcd.userPtr = userPtr;
   pbcd.allowFastInaccurateCollTm = false;
   PhysBody *obj = new PhysBody(dacoll::get_phys_world(), 0.f, &shape, (wtm ? *wtm : TMatrix::IDENT), pbcd);
+  if (DAGOR_UNLIKELY(!obj->isValid())) // Internal alloc failure?
+    del_it(obj);
   return CollisionObject(obj, NULL);
 }
 

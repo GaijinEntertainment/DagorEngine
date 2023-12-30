@@ -16,8 +16,11 @@ static const char *dbg_name();
 #include <libTools/util/conLogWriter.h>
 #include <libTools/util/strUtil.h>
 #include <libTools/util/makeBindump.h>
+#include <libTools/util/fileUtils.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_symHlp.h>
+#include <osApiWrappers/dag_sharedMem.h>
+#include <osApiWrappers/dag_messageBox.h>
 #include <debug/dag_debug.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -65,6 +68,7 @@ public:
       case WARNING: mark = 'W'; break;
       case ERROR: mark = 'E'; break;
       case FATAL: mark = 'F'; break;
+      default: break;
     }
     logmessage_fmt(LOGLEVEL_DEBUG, String(0, "%c %s", mark, fmt), arg, anum);
 
@@ -102,7 +106,7 @@ public:
 };
 
 static DabuildJobSharedMem *jobMem = NULL;
-static void *jobMemHandle = NULL;
+static intptr_t jobMemHandle = 0;
 static int jobAssignedId = -1;
 static int jobIdBroken = -1;
 static void __cdecl release_job_mem()
@@ -117,8 +121,7 @@ static void __cdecl release_job_mem()
     jobMem->jobCtx[jobAssignedId].result = 0;
     jobMem->changeCtxState(jobMem->jobCtx[jobAssignedId], 4);
   }
-  UnmapViewOfFile(jobMem);
-  CloseHandle(jobMemHandle);
+  close_global_map_shared_mem(jobMemHandle, jobMem, sizeof(DabuildJobSharedMem));
   jobMem = NULL;
   jobAssignedId = -1;
 }
@@ -149,13 +152,8 @@ static int do_main(bool debugmode)
   AtomicPrintfMutex::init("dabuild", __argv[1]);
   dgs_pre_shutdown_handler = dgs_release_job_mem;
   setvbuf(stdout, NULL, _IOFBF, 4096);
-  char start_dir[260];
-  if (_fullpath(start_dir, __argv[0], 260))
-  {
-    char *p = strrchr(start_dir, '\\');
-    if (p)
-      *p = '\0';
-  }
+  char start_dir[260] = "";
+  dag_get_appmodule_dir(start_dir, sizeof(start_dir));
   symhlp_load("daKernel" DAGOR_DLL);
   {
     char stamp_buf[256];
@@ -165,19 +163,11 @@ static int do_main(bool debugmode)
   String fn(128, "daBuild-shared-mem-%s", __argv[2]);
   int job_id = atoi(__argv[3]);
   jobAssignedId = job_id;
-  jobMemHandle = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, fn);
+  jobMem = (DabuildJobSharedMem *)open_global_map_shared_mem(fn, nullptr, sizeof(DabuildJobSharedMem), jobMemHandle);
 
-  if (!jobMemHandle)
-  {
-    debug("failed to open shared memory, hr=%p", GetLastError());
-    return 1;
-  }
-
-  jobMem = (DabuildJobSharedMem *)MapViewOfFile(jobMemHandle, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(DabuildJobSharedMem));
   if (!jobMem)
   {
-    debug("failed to map view, hr=%p", GetLastError());
-    CloseHandle(jobMemHandle);
+    logerr("failed to open shared memory (or to map view of shared memory)");
     return 1;
   }
   atexit(release_job_mem);
@@ -188,6 +178,7 @@ static int do_main(bool debugmode)
   }
   dgs_execute_quiet = jobMem->quiet;
   dabuild_dry_run = jobMem->dryRun;
+  dabuild_stop_on_first_error = jobMem->stopOnFirstError;
   dabuild_strip_d3d_res = jobMem->stripD3Dres;
   dabuild_collapse_packs = jobMem->collapsePacks;
   dgs_report_fatal_error = dabuild_job_report_fatal;
@@ -233,6 +224,7 @@ static int do_main(bool debugmode)
   appblk.setStr("dagorCdkDir", simplify_fname(cdk_dir));
   appblk.setBool("strip_d3dres", dabuild_strip_d3d_res);
   appblk.setBool("collapse_packs", dabuild_collapse_packs);
+  appblk.setInt("dabuildJobCount", jobMem->jobCount);
 
   DataBlock::setRootIncludeResolver(app_dir);
 
@@ -333,7 +325,7 @@ static int do_main(bool debugmode)
     }
     if (gen == cmdGen)
     {
-      Sleep(100);
+      sleep_msec(100);
       if (get_time_msec() > last_idle_reported_time + idle_report_interval)
       {
         idle_report_interval *= 10;
@@ -530,10 +522,9 @@ static int do_main(bool debugmode)
     dabuild->release();
 
   if (show_important_warnings && log.impWarnCnt)
-    MessageBox(NULL,
-      String(2048, "daBuild job%d registered %d serious warnings%s:\n\n%s", job_id, log.impWarnCnt,
-        log.impWarnCnt > 20 ? ";\nfirst 20 assets are" : "", log.impWarn.str()),
-      "dBuild warnings", MB_OK | MB_ICONSTOP);
+    os_message_box(String(2048, "daBuild job%d registered %d serious warnings%s:\n\n%s", job_id, log.impWarnCnt,
+                     log.impWarnCnt > 20 ? ";\nfirst 20 assets are" : "", log.impWarn.str()),
+      "daBuild warnings", GUI_MB_OK | GUI_MB_ICON_ERROR);
   return 0;
 }
 

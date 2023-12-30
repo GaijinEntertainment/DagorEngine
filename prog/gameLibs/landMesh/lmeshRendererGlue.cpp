@@ -110,9 +110,9 @@ void landmesh::buildOptSceneData(landmesh::OptimizedScene &optScn, LandMeshManag
   optScn.vData = elems.size() ? elems[0]->vertexData : NULL;
   for (int i = 0; i < elems.size(); ++i)
     if (!elems[i])
-      fatal("not filled elem %d", i);
+      DAG_FATAL("not filled elem %d", i);
     else if (optScn.vData != elems[i]->vertexData)
-      fatal("elem %d refers to different vData", i);
+      DAG_FATAL("elem %d refers to different vData", i);
 
   elemnum = 0;
   clear_and_resize(optScn.mats, mats.size());

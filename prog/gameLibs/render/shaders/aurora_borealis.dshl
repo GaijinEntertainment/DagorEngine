@@ -120,7 +120,7 @@ shader aurora_borealis
       return color;
     }
 
-    half3 aurora_borealis(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    float3 aurora_borealis(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
       float3 view = normalize(input.viewVect);
       BRANCH
@@ -189,14 +189,14 @@ shader apply_aurora_borealis
   }
 
   hlsl(ps) {
-    half3 apply_aurora_borealis(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    float4 apply_aurora_borealis(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
       float3 result = tex2Dlod(aurora_borealis_tex, float4(input.uv, 0, 0)).rgb;
 
       float4 combinedFog = get_volumetric_light_sky(input.uv, input.uv); // aurora is noisy enough, no need for dithering (jittered tc)
       result *= combinedFog.a; // with additive blending, only extinction is used
 
-      return pack_hdr(result);
+      return float4(pack_hdr(result), 0);
     }
   }
 

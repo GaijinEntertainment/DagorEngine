@@ -103,4 +103,10 @@ namespace das {
         [filter_obj release];
         return c_name;
 	}
+
+	string GetOpenFolderFromUser ( const char * ) {
+        char c_name[1024];
+        c_name[0]=0;
+        return c_name;
+	}
 }

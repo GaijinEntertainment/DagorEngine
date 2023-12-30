@@ -164,7 +164,7 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
     }
     else
     {
-      fatal("DX12: Invalid view type for swapchain");
+      DAG_FATAL("DX12: Invalid view type for swapchain");
     }
   }
 #if _TARGET_XBOX
@@ -188,13 +188,13 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
       }
       else
       {
-        fatal("DX12: Invalid view type for secondary swapchain");
+        DAG_FATAL("DX12: Invalid view type for secondary swapchain");
       }
     }
   }
   else
   {
-    fatal("DX12: Invalid image for swapchainView register");
+    DAG_FATAL("DX12: Invalid image for swapchainView register");
   }
 #endif
 }
@@ -409,7 +409,7 @@ bool backend::Swapchain::setGamma(float power)
 
   if (gcc.NumGammaControlPoints <= 1)
   {
-    debug("DX12: setGamma: NumGammaControlPoints %u, no effect", gcc.NumGammaControlPoints);
+    logdbg("DX12: setGamma: NumGammaControlPoints %u, no effect", gcc.NumGammaControlPoints);
     return true;
   }
 
@@ -456,7 +456,7 @@ void backend::Swapchain::prepareForShutdown(Device &device)
     }
     else
     {
-      fatal("DX12: Found a ViewState which is neither SRV, UAV, RTV or DSV");
+      DAG_FATAL("DX12: Found a ViewState which is neither SRV, UAV, RTV or DSV");
     }
   };
   if (colorTarget)
@@ -581,7 +581,7 @@ void backend::Swapchain::bufferResize(Device &device, const Extent2D &extent, Fo
   // have to always resize the buffer, even if size has not changed
   DXGI_SWAP_CHAIN_DESC currentDesc;
   swapchain->GetDesc(&currentDesc);
-  debug("DX12: ResizeBuffers(%u, %u, %u, %u, 0x%08X)", currentDesc.BufferCount, extent.width, extent.height,
+  logdbg("DX12: ResizeBuffers(%u, %u, %u, %u, 0x%08X)", currentDesc.BufferCount, extent.width, extent.height,
     static_cast<uint32_t>(currentDesc.BufferDesc.Format), static_cast<uint32_t>(currentDesc.Flags));
   swapchain->ResizeBuffers(currentDesc.BufferCount, extent.width, extent.height, currentDesc.BufferDesc.Format, currentDesc.Flags);
 
@@ -611,8 +611,8 @@ void backend::Swapchain::bufferResize(Device &device, const Extent2D &extent, Fo
     {
       // Workaround: swapImage is null for some reason when quitting the game with ALT+F4 in
       // exclusive fullscreen mode
-      debug("DX12: swapImage for index %d was null in Swapchain::getSwapchainBuffers, we assume we "
-            "are quitting the application.",
+      logdbg("DX12: swapImage for index %d was null in Swapchain::getSwapchainBuffers, we assume we "
+             "are quitting the application.",
         i);
     }
   }
@@ -622,7 +622,7 @@ void backend::Swapchain::bufferResize(Device &device, const Extent2D &extent, Fo
   if (!colorTarget)
   {
     colorTarget.reset(new Image({}, ComPtr<ID3D12Resource>{}, D3D12_RESOURCE_DIMENSION_TEXTURE2D, D3D12_TEXTURE_LAYOUT_UNKNOWN,
-      color_format, ext, MipMapCount::make(1), ArrayLayerCount::make(1), idBase, false));
+      color_format, ext, MipMapCount::make(1), ArrayLayerCount::make(1), idBase, 0));
     colorTarget->setGPUChangeable(true);
   }
   else
@@ -656,7 +656,7 @@ bool backend::Swapchain::isInExclusiveFullscreenMode()
 void backend::Swapchain::changeFullscreenExclusiveMode(bool is_exclusive)
 {
   DX12_DEBUG_RESULT(swapchain->SetFullscreenState(is_exclusive, is_exclusive ? output.Get() : nullptr));
-  debug("DX12: Swapchain full screen exclusive mode changed. is_exclusive: %s", is_exclusive ? "true" : "false");
+  logdbg("DX12: Swapchain full screen exclusive mode changed. is_exclusive: %s", is_exclusive ? "true" : "false");
   isInExclusiveFullscreenModeEnabled = isInExclusiveFullscreenMode();
 }
 

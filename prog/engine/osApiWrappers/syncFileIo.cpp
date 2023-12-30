@@ -65,7 +65,7 @@ static void check_file_case(FILE *fp, const char *fn)
       dd_simplify_fname_c(realname);
 
       if (!strstr(realname, fn))
-        fatal("trying to open %s as %s", realname, fn);
+        DAG_FATAL("trying to open %s as %s", realname, fn);
     }
 }
 #else

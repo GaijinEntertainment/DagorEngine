@@ -24,19 +24,15 @@ int pull_dll_sum =
   dll_pull_osapiwrappers_dbgStrFmt + dll_pull_osapiwrappers_directoryService + dll_pull_osapiwrappers_directory_watch +
   dll_pull_osapiwrappers_findFile + dll_pull_osapiwrappers_getRealFname + dll_pull_osapiwrappers_localCmp +
   dll_pull_osapiwrappers_cpuJobs + dll_pull_osapiwrappers_miscApi + dll_pull_osapiwrappers_simplifyFname +
-  dll_pull_osapiwrappers_winProgGlobals + dll_pull_osapiwrappers_winSetThreadName + dll_pull_osapiwrappers_winSetTitle +
+  dll_pull_osapiwrappers_progGlobals + dll_pull_osapiwrappers_setThreadName + dll_pull_osapiwrappers_setTitle +
 #if _TARGET_PC_WIN
   dll_pull_osapiwrappers_winXSaveFeatures +
 #endif
-  dll_pull_osapiwrappers_wndProcComponent + dll_pull_osapiwrappers_winClipboard + dll_pull_osapiwrappers_unicode +
+  dll_pull_osapiwrappers_wndProcComponent + dll_pull_osapiwrappers_clipboard + dll_pull_osapiwrappers_unicode +
   dll_pull_osapiwrappers_threads + dll_pull_osapiwrappers_events + dll_pull_osapiwrappers_globalMutex +
   dll_pull_osapiwrappers_sharedMem + dll_pull_osapiwrappers_spinlock + dll_pull_osapiwrappers_symHlp + dll_pull_osapiwrappers_dynLib +
-  dll_pull_osapiwrappers_shellExecute +
-#if _TARGET_PC_LINUX | _TARGET_PC_WIN
-  dll_pull_osapiwrappers_messageBox +
-#endif
-  dll_pull_osapiwrappers_sockets + dll_pull_osapiwrappers_mmap + dll_pull_osapiwrappers_virtualMem +
-  dll_pull_osapiwrappers_cpuFeatures +
+  dll_pull_osapiwrappers_shellExecute + dll_pull_osapiwrappers_messageBox + dll_pull_osapiwrappers_sockets +
+  dll_pull_osapiwrappers_mmap + dll_pull_osapiwrappers_virtualMem + dll_pull_osapiwrappers_cpuFeatures +
 
   dll_pull_kernel_cpuFreq + dll_pull_kernel_dagorHwExcept + dll_pull_kernel_debug + dll_pull_kernel_fatalerr +
   dll_pull_kernel_kernelGlobalSetting + dll_pull_kernel_log + dll_pull_kernel_debugDumpStack + dll_pull_kernel_cpu_control +

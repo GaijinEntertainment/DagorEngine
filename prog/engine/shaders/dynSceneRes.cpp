@@ -404,7 +404,7 @@ void DynamicRenderableSceneResource::render(DynamicRenderableSceneInstance &cb, 
       on_dynsceneres_beforedrawmeshes(cb, o.nodeId);
 
     if (!o.mesh->getMesh())
-      fatal("DynamicRenderableSceneResource:render - mesh in NULL! (object build not called?)");
+      DAG_FATAL("DynamicRenderableSceneResource:render - mesh in NULL! (object build not called?)");
 
     o.mesh->getMesh()->render();
   }
@@ -597,7 +597,7 @@ bool DynamicRenderableSceneResource::traceRayRigids(DynamicRenderableSceneInstan
         if (channel.u == SCUSAGE_POS && channel.ui == 0)
         {
           if (channel.t != VSDT_FLOAT3 && channel.t != VSDT_HALF4)
-            fatal("Invalid pos channel type");
+            DAG_FATAL("Invalid pos channel type");
 
           posType = channel.t;
           posOffset = vbStride;
@@ -605,7 +605,7 @@ bool DynamicRenderableSceneResource::traceRayRigids(DynamicRenderableSceneInstan
         else if (channel.u == SCUSAGE_NORM && channel.ui == 0)
         {
           if (channel.t != VSDT_FLOAT3 && channel.t != VSDT_E3DCOLOR)
-            fatal("Invalid normal channel type");
+            DAG_FATAL("Invalid normal channel type");
 
           normalType = channel.t;
           normalOffset = vbStride;
@@ -613,7 +613,7 @@ bool DynamicRenderableSceneResource::traceRayRigids(DynamicRenderableSceneInstan
         else if (uv && channel.u == SCUSAGE_TC && tcOffset == 0xFFFFFFFF)
         {
           if (channel.t != VSDT_FLOAT2 && channel.t != VSDT_SHORT2 && channel.t != VSDT_HALF2)
-            fatal("Invalid texture channel type");
+            DAG_FATAL("Invalid texture channel type");
 
           tcType = channel.t;
           tcOffset = vbStride;
@@ -623,7 +623,7 @@ bool DynamicRenderableSceneResource::traceRayRigids(DynamicRenderableSceneInstan
         unsigned int channelSize = 0;
         if (!channel_size(channel.t, channelSize))
         {
-          fatal("Unknown channel type");
+          DAG_FATAL("Unknown channel type");
         }
         vbStride += channelSize;
       }
@@ -1005,7 +1005,9 @@ void DynamicRenderableSceneLodsResource::addInstanceRef()
 }
 void DynamicRenderableSceneLodsResource::delInstanceRef()
 {
-  if (interlocked_decrement(instanceRefCount) == 0)
+  int newRefCount = interlocked_decrement(instanceRefCount);
+  G_ASSERT(newRefCount >= 0);
+  if (newRefCount == 0)
     releaseTexRefs();
 }
 
@@ -1233,6 +1235,11 @@ DynamicRenderableSceneLodsResource *DynamicRenderableSceneInstance::cloneLodsRes
   if (lods)
   {
     DynamicRenderableSceneLodsResource *newLods = lods->clone();
+    if (instanceActive)
+    {
+      lods->delInstanceRef();
+      newLods->addInstanceRef();
+    }
     lods = newLods;
   }
   return lods;
@@ -1275,7 +1282,7 @@ int DynamicRenderableSceneInstance::chooseLodByDistSq(float dist_sq)
   }
   else
   {
-    curLodNo = lods->getLodNoForDistSq(SQR(lodDistanceScale) * dist_sq);
+    curLodNo = lods->getLodNoForDistSq(sqr(lodDistanceScale) * dist_sq);
     if (curLodNo >= 0)
     {
       curLodNo = max(curLodNo, bestLodLimit);

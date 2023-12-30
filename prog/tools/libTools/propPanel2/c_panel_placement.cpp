@@ -138,7 +138,7 @@ void PropertyContainerVert::onChildResize(int id)
 
 void PropertyContainerVert::clear()
 {
-  __super::clear();
+  PropertyContainerControlBase::clear();
   this->resizeControl(this->getWidth(), this->getNextControlY());
 }
 

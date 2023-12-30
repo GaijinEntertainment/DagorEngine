@@ -243,7 +243,7 @@ shader screen_droplets
       col = lerp(col, 0.8 * paint,  pow2(drops.y * 0.3));
     }
 
-    half4 screen_droplets_ps(VsOutput input) : SV_Target
+    float4 screen_droplets_ps(VsOutput input) : SV_Target
     {
       float2 screenUV = input.texcoord.xy;
       float4 drops = get_droplets(screenUV, input.texcoord.zw);

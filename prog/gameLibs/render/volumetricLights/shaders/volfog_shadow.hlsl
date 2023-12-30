@@ -27,14 +27,35 @@ float calc_final_volfog_shadow(uint3 dtId)
 {
   float3 invRes = 1.0 / volfog_shadow_res.xyz;
 
-  float3 prevTc = (dtId + 0.5) * invRes + volfog_shadow_prev_frame_tc_offset.xyz;
+  // TODO: refactor it
+
+  float3 screenTc = (dtId+0.5f)*invRes;
+  float3 viewVect = calcViewVec(screenTc.xy);
+  float cdepth = volume_pos_to_depth(screenTc.z);
+  float3 viewToPoint = cdepth*viewVect;
+  float3 worldPos = viewToPoint + world_view_pos.xyz;
+
+  float3 screenTcJittered = calc_jittered_tc(dtId, (uint)jitter_ray_offset.w, invRes);
+  float3 jitteredViewVect = calcViewVec(screenTcJittered.xy);
+  float jitteredW = max(volume_pos_to_depth(screenTcJittered.z), 0.05);
+  float3 jitteredPointToEye = -jitteredViewVect*jitteredW;
+  float3 jitteredWorldPos = world_view_pos.xyz - jitteredPointToEye.xyz;
+
+  float3 prev_clipSpace;
+  float2 prev_tc_2d = getPrevTc(worldPos, prev_clipSpace);
+  float4 prev_zn_zfar = get_transformed_zn_zfar(); // for now
+  float prevDepth = volfog_prev_range_ratio*linearize_z(prev_clipSpace.z, prev_zn_zfar.zw);
+  float3 prevTc = float3(prev_tc_2d, depth_to_volume_pos(prevDepth));
+
+  float weight = volfog_shadow_prev_frame_tc_offset.w;
   float prevShadow = tex3Dlod(prev_volfog_shadow, float4(prevTc,0)).x;
 
-  float3 jitteredTc = calc_jittered_tc(dtId, (uint)jitter_ray_offset.w, invRes);
-  float3 jitteredWorldPos = volfog_shadow_tc_to_world_pos(jitteredTc);
+  if (checkOffscreenTc3d(prevTc))
+    weight = 0;
+
   float shadow = calc_volfog_shadow(jitteredWorldPos);
 
-  shadow = lerp(shadow, prevShadow, volfog_shadow_prev_frame_tc_offset.w);
+  shadow = lerp(shadow, prevShadow, weight);
 
   return shadow;
 }

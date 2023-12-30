@@ -547,7 +547,7 @@ class GenericHeightMapService : public IHmapService
         logerr("%s: size mismatch (%dx%d,%d) != (%dx%d,%d)", mainFn.str(), sx, sy, esz, mapSizeX, mapSizeY, elemSize);
         hmap_stor_mismatch_cnt++;
         if (hmap_stor_mismatch_cnt == 1000)
-          fatal("%s: size mismatch (%dx%d,%d) != (%dx%d,%d)\n(too many errors)", mainFn.str(), sx, sy, esz, mapSizeX, mapSizeY,
+          DAG_FATAL("%s: size mismatch (%dx%d,%d) != (%dx%d,%d)\n(too many errors)", mainFn.str(), sx, sy, esz, mapSizeX, mapSizeY,
             elemSize);
         return false;
       }
@@ -2559,7 +2559,7 @@ public:
         continue;
       }
       texSaver.texNames[i].printf(128, "%s*", a->getName());
-      strlwr(texSaver.texNames[i]);
+      dd_strlwr(texSaver.texNames[i]);
     }
     texSaver.writeTexStr(cwr);
     // texSaver.writeTexIdx(cwr, texSaver.textures);

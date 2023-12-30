@@ -18,7 +18,7 @@ let qrCanvas = {
 }
 
 
-let function basicsRoot() {
+function basicsRoot() {
 
   let qr = generateQrArray("https://gaijin.team/ABCD&=456345635635")
   qrCanvas.commands = []

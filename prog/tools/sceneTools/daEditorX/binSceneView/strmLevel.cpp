@@ -370,7 +370,7 @@ void AcesScene::loadLevel(const char *bindump)
   bindumpHandle = load_binary_dump(bindump, *this);
 
   if (!bindumpHandle)
-    fatal("can't load binary level dump: %s", bindump);
+    DAG_FATAL("can't load binary level dump: %s", bindump);
 
   if (lmeshMgr && !lmeshRenderer)
     lmeshRenderer = lmeshMgr->createRenderer();

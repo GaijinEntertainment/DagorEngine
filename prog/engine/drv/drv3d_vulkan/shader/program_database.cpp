@@ -93,25 +93,25 @@ ShaderID ShaderProgramDatabase::newShader(DeviceContext &ctx, eastl::vector<VkSh
 
   if (vsIndex < 0)
   {
-    fatal("Combo shader has no vertex stage");
+    DAG_FATAL("Combo shader has no vertex stage");
     return ShaderID::Null();
   }
 
   if (teIndex < 0 && tcIndex < 0 && gsIndex < 0)
   {
-    fatal("Combo shader has vertex stage only. Expected to have some of HS,DS,GS");
+    DAG_FATAL("Combo shader has vertex stage only. Expected to have some of HS,DS,GS");
     return ShaderID::Null();
   }
 
   if (tcIndex < 0 && teIndex >= 0)
   {
-    fatal("Combo shader has HS without DS");
+    DAG_FATAL("Combo shader has HS without DS");
     return ShaderID::Null();
   }
 
   if (tcIndex >= 0 && teIndex < 0)
   {
-    fatal("Combo shader has DS without HS");
+    DAG_FATAL("Combo shader has DS without HS");
     return ShaderID::Null();
   }
 
@@ -144,7 +144,7 @@ bool ShaderProgramDatabase::extractShaderModules(const VkShaderStageFlagBits sta
   auto header = spirv_extractor::getHeader(stage, chunk_header, chunk_data, 0);
   if (!header)
   {
-    fatal("missing shader header chunk");
+    DAG_FATAL("missing shader header chunk");
     return false;
   }
   shader_header = *header;
@@ -152,7 +152,7 @@ bool ShaderProgramDatabase::extractShaderModules(const VkShaderStageFlagBits sta
   shader_blob = spirv_extractor::getBlob(chunk_header, chunk_data, 0);
   if (shader_blob.blob.empty())
   {
-    fatal("missing shader byte code chunk");
+    DAG_FATAL("missing shader byte code chunk");
     return false;
   }
 

@@ -27,6 +27,7 @@ void EsmShadows::init(int w, int h, int slices, float esm_exp)
   ShaderGlobal::set_color4(get_shader_variable_id("esm_params"), w, h, esm_exp, esmKExp);
 
   initEsmShadowsStateId();
+  esmDepthShader.init("esm_depth", nullptr, 0, "esm_depth", false);
 }
 
 void EsmShadows::close()

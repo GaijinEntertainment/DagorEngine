@@ -26,9 +26,9 @@ public:
   ~GPGPUData() { close(); }
 
 private:
-  void updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int num);
+  bool updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int num);
   bool fillOmega(const NVWaveWorks_FFT_CPU_Simulation *fft, int num);
-  void fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades);
+  bool fillBuffers(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades);
 
   UniqueTex butterfly;
 

@@ -169,6 +169,13 @@ const Driver3dDesc &d3d::get_driver_desc()
     g_device_desc.caps.hasCompareSampler = [render.device supportsFamily:MTLGPUFamilyApple3];
 #endif
     g_device_desc.caps.hasRenderPassDepthResolve = [render.device supportsFamily:MTLGPUFamilyApple3];
+    if (g_device_desc.caps.hasRenderPassDepthResolve)
+    {
+      g_device_desc.depthResolveModes =
+        DepthResolveMode::DEPTH_RESOLVE_MODE_SAMPLE_ZERO |
+        DepthResolveMode::DEPTH_RESOLVE_MODE_MIN |
+        DepthResolveMode::DEPTH_RESOLVE_MODE_MAX;
+    }
 
 #if APPLE_RT_SUPPORTED && D3D_HAS_RAY_TRACING
 #if DAGOR_DBGLEVEL > 0

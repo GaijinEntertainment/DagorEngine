@@ -24,7 +24,7 @@ void create_critical_section(void *p, const char *name)
 #endif
   if (InitializeCriticalSectionEx(cc, CS_SPIN_COUNT, initFlags))
     return;
-  fatal("InitializeCriticalSectionEx failed with %d", ::GetLastError());
+  DAG_FATAL("InitializeCriticalSectionEx failed with %d", ::GetLastError());
 #else // winxp compat
   InitializeCriticalSectionAndSpinCount(cc, CS_SPIN_COUNT);
 #endif
@@ -44,7 +44,7 @@ void create_critical_section(void *p, const char *name)
   csimpl::lockcount::release(p);
 #if DAGOR_DBGLEVEL > 0
   if (ret != 0)
-    fatal_x("pthread_mutex_create failed: 0x%08X", ret);
+    DAG_FATAL("pthread_mutex_create failed: 0x%08X", ret);
 #endif
 #endif
 }
@@ -67,7 +67,7 @@ void destroy_critical_section(void *p)
 #endif
 #if DAGOR_DBGLEVEL > 0
   if (ret != 0)
-    fatal_x("pthread_mutex_destroy failed: 0x%08X\n", ret);
+    DAG_FATAL("pthread_mutex_destroy failed: 0x%08X\n", ret);
 #endif
 
   memset(cc, 0, sizeof(pthread_mutex_t));

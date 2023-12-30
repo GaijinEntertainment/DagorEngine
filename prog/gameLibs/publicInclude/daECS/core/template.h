@@ -145,9 +145,9 @@ public:
   size_t componentsCount() const { return components.size(); }
 
 private:
-  const uint32_t trackedOfs() const { return 0; }
-  const uint32_t replicatedOfs() const { return trackedCount; }
-  const uint32_t ignoredOfs() const { return replicatedOfs() + replicatedCount; }
+  uint32_t trackedOfs() const { return 0; }
+  uint32_t replicatedOfs() const { return trackedCount; }
+  uint32_t ignoredOfs() const { return replicatedOfs() + replicatedCount; }
   void buildSets(const component_set &tracked, const component_set &repl, const component_set &ignored);
   uint32_t resolveComponentsFlagsRecursive(const TemplatesData &db) const;
   void resolveFlags(const TemplatesData &db)
@@ -367,7 +367,7 @@ struct TemplateRefs : public TemplatesData
   void reportBrokenParents(CB cb) const; // only works before finalize
   template <typename CB>                 // const char *child, const char *parent
   void reportLoops(CB cb) const;         // only works before finalize
-  const uint32_t getEmptyCount() const { return emptyCount; }
+  uint32_t getEmptyCount() const { return emptyCount; }
   void reserve(uint32_t c) { templates.reserve(c); }
   uint32_t ensureTemplate(const char *p)
   {

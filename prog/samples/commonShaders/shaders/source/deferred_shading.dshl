@@ -1,7 +1,7 @@
 include "sky_shader_global.dshl"
 include "pbr.dshl"
 include "gbuffer.dshl"
-include "MonteCarlo.dshl"
+include "monteCarlo.dshl"
 include "ssao_use.dshl"
 include "tile_lighting.dshl"
 include "punctualLights.dshl"
@@ -115,7 +115,7 @@ shader deferred_shading
   USE_CLOUDS_SHADOW()
 
   hlsl(ps) {
-    half4 deferred_shading_ps(VsOutput input) : SV_Target
+    float4 deferred_shading_ps(VsOutput input) : SV_Target
     {
       float rawDepth = tex2Dlod(depth_gbuf, float4(input.texcoord,0,0)).x;
 
@@ -322,7 +322,7 @@ shader cube_deferred_shading
   USE_CLOUDS_SHADOW()
 
   hlsl(ps) {
-    half4 deferred_shading_ps(VsOutput input) : SV_Target
+    float4 deferred_shading_ps(VsOutput input) : SV_Target
     {
       float rawDepth = tex2Dlod(depth_gbuf, float4(input.texcoord,0,0)).x;
       BRANCH
@@ -402,7 +402,7 @@ shader cube_deferred_shading
       result += environmentAmbientLighting*finalAO;
       apply_bruneton_fog(-view, dist, result.rgb);
 
-      return half4(max(0, result),1);
+      return float4(max(0, result),1);
     }
   }
   compile("target_vs", "deferred_shading_vs");

@@ -79,12 +79,12 @@ Builder::~Builder()
 
 Id Builder::import(const char* name)
 {
-    Instruction* import = new Instruction(getUniqueId(), NoType, OpExtInstImport);
-    import->addStringOperand(name);
-    module.mapInstruction(import);
+    Instruction* imp = new Instruction(getUniqueId(), NoType, OpExtInstImport);
+    imp->addStringOperand(name);
+    module.mapInstruction(imp);
 
-    imports.push_back(std::unique_ptr<Instruction>(import));
-    return import->getResultId();
+    imports.push_back(std::unique_ptr<Instruction>(imp));
+    return imp->getResultId();
 }
 
 // Emit an OpLine if we've been asked to emit OpLines and the line number

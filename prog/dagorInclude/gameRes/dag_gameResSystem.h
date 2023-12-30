@@ -80,12 +80,12 @@ public:
   virtual GameResource *discardOlderResAfterUpdate([[maybe_unused]] int res_id) { return nullptr; }
 };
 
-#define FATAL_ON_UNLOADING_USED_RES(resId, refcnt)                       \
-  do                                                                     \
-  {                                                                      \
-    String name;                                                         \
-    get_game_resource_name(resId, name);                                 \
-    fatal("unloading res <%s> which is in use: %d", name.str(), refcnt); \
+#define FATAL_ON_UNLOADING_USED_RES(resId, refcnt)                     \
+  do                                                                   \
+  {                                                                    \
+    String name;                                                       \
+    get_game_resource_name(resId, name);                               \
+    DAG_FATAL("unloading res <%s> which is in use: %d", name, refcnt); \
   } while (0)
 
 

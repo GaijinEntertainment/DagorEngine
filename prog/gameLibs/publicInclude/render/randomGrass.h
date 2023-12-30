@@ -28,11 +28,14 @@
 #include <render/atlasTexManager.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <EASTL/unique_ptr.h>
+#include <webui/editVarHolder.h>
+#include <webui/editVarPlugin.h>
 
 #define GRID_SIZE              10
 #define VB_GRID_SIZE           8
 #define MAX_VERTICES_IN_CELL   65534
 #define INSTANCES_IN_SINGLE_VB 100
+#define MAX_COLOR_MASKS        6
 
 
 class BaseTexture;
@@ -47,6 +50,7 @@ class BBox2;
 class Occlusion;
 class LandMask;
 class ComputeShaderElement;
+class IEditableVariablesNotifications;
 
 struct ColorRange
 {
@@ -196,6 +200,24 @@ public:
   void setLayerRes(GrassLayer *layer);
   GameResource *loadLayerResource(const char *resName);
 
+#if DAGOR_DBGLEVEL > 0
+
+  struct RandomGrassTypeDesc
+  {
+    E3DCOLOR colors[MAX_COLOR_MASKS];
+  };
+  Tab<RandomGrassTypeDesc> grassDescs;
+  eastl::unique_ptr<IEditableVariablesNotifications> varNotification;
+
+
+  GrassLayer *getGrassLayerAt(int idx) { return layers[idx]; }
+  int getGrassLayerCount() const { return layers.size(); }
+  void updateGrassColorLayer(Tab<carray<float4, MAX_COLOR_MASKS>> colors);
+  void initWebTools();
+
+
+#endif
+
   static void reset_mask_number();
 
   void setAlphaToCoverage(bool alpha_to_coverage);
@@ -225,7 +247,6 @@ protected:
   float grassDensityMul;
   bool useSorting;
   bool vboForMaxElements;
-  int numFakeLayers;
 
   float cellSize;
   unsigned int baseNumInstances;

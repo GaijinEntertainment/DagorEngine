@@ -55,7 +55,7 @@ interop.state <- {
 }
 
 
-let function HelicopterRocketAim(line_style) {
+function HelicopterRocketAim(line_style) {
 
   let lines = line_style.__merge({
       rendObj = ROBJ_VECTOR_CANVAS
@@ -83,7 +83,7 @@ let function HelicopterRocketAim(line_style) {
 }
 
 
-let function HelicopterFlightDirection(line_style) {
+function HelicopterFlightDirection(line_style) {
   let lines = line_style.__merge({
       rendObj = ROBJ_VECTOR_CANVAS
       size = [sh(0.75), sh(0.75)]
@@ -111,7 +111,7 @@ let function HelicopterFlightDirection(line_style) {
 }
 
 
-let function HelicopterGunDirection(line_style) {
+function HelicopterGunDirection(line_style) {
 
   let lines = line_style.__merge({
       rendObj = ROBJ_VECTOR_CANVAS
@@ -140,7 +140,7 @@ let function HelicopterGunDirection(line_style) {
 }
 
 
-let function verticalSpeedInd(line_style, height) {
+function verticalSpeedInd(line_style, height) {
   return line_style.__merge({
     rendObj = ROBJ_VECTOR_CANVAS
     size = [height, height]
@@ -151,7 +151,7 @@ let function verticalSpeedInd(line_style, height) {
   })
 }
 
-let function verticalSpeedScale(line_style, width, height) {
+function verticalSpeedScale(line_style, width, height) {
   return line_style.__merge({
     rendObj = ROBJ_VECTOR_CANVAS
     size = [width, height]
@@ -169,7 +169,7 @@ let function verticalSpeedScale(line_style, width, height) {
   })
 }
 
-let function HelicopterVertSpeed(elemStyle) {
+function HelicopterVertSpeed(elemStyle) {
   let scaleWidth = sh(1)
   let height = sh(20)
 
@@ -228,7 +228,7 @@ let function HelicopterVertSpeed(elemStyle) {
 }
 
 
-let function helicopterHUDs (color) {
+function helicopterHUDs (color) {
   return [
     HelicopterRocketAim(color)
     HelicopterFlightDirection(color)
@@ -240,7 +240,7 @@ let function helicopterHUDs (color) {
 }
 
 
-let function Root() {
+function Root() {
   let children = helicopterHUDs(style.lineBackground)
   children.extend(helicopterHUDs(style.lineForeground))
 

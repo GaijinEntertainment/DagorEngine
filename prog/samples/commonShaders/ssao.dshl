@@ -39,7 +39,7 @@ texture downsampled_checkerboard_depth_tex;
 hlsl(ps) {
   #define OUTPUT_CONE 0
   #if OUTPUT_CONE
-  #define OUT_TYPE half4
+  #define OUT_TYPE float4
   half4 encodeBNAO(half3 normal, half AO)
   {
     return half4(normal.xyz*0.5+0.5, AO);

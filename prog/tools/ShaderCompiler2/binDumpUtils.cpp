@@ -163,7 +163,7 @@ static void addRefsFromStCode(Tab<int> &refsTable)
         }
         break;
 
-        default: fatal("code not processed: %s at %d!", ShUtils::shcod_tokname(op), i); G_ASSERT(0);
+        default: DAG_FATAL("code not processed: %s at %d!", ShUtils::shcod_tokname(op), i); G_ASSERT(0);
       }
     }
   }
@@ -230,8 +230,24 @@ void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable
       case SHCOD_IMM_VEC: i += 4; break;
 
       case SHCOD_CALL_FUNCTION:
+      {
+        int fun = shaderopcode::getOp3p1(code[i]);
+        if (fun == functional::BF_CREATE_SAMPLER)
+        {
+          if (!smpTable.empty())
+          {
+            int id = shaderopcode::getOp3p2(code[i]);
+            G_ASSERT(id >= 0 && id < smpTable.size());
+            code[i] = shaderopcode::makeOp3(op, fun, smpTable[id], shaderopcode::getOp3p3(code[i]));
+          }
+
+          int vi = code[i + 1];
+          G_ASSERT(vi >= 0 && vi < remapTable.size());
+          code[i + 1] = remapTable[vi];
+        }
         i += shaderopcode::getOp3p3(code[i]); // skip params
-        break;
+      }
+      break;
 
       case SHCOD_GET_GINT:
       case SHCOD_GET_GINT_TOREAL:
@@ -248,7 +264,7 @@ void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable
       }
       break;
 
-      default: fatal("code not processed: %s at %d!", ShUtils::shcod_tokname(op), i); G_ASSERT(0);
+      default: DAG_FATAL("code not processed: %s at %d!", ShUtils::shcod_tokname(op), i); G_ASSERT(0);
     }
   }
 }
@@ -358,7 +374,8 @@ void bindumphlp::countRefAndRemapGlobalVars(Tab<int> &remapTable, dag::ConstSpan
   addRefsFromVariants(refsTable, shaderClasses, varMap);
   addRefsFromStCode(refsTable);
   for (int i = 0; i < refsTable.size(); i++)
-    if (!refsTable[i] && (ShaderGlobal::get_var(i).isAlwaysReferenced || shc::isGlobVarRequired(ShaderGlobal::get_var(i).getName())))
+    if (!refsTable[i] && (ShaderGlobal::get_var(i).isAlwaysReferenced || ShaderGlobal::get_var(i).isImplicitlyReferenced ||
+                           shc::isGlobVarRequired(ShaderGlobal::get_var(i).getName())))
     {
       debug("explicitly referenced <%s>", ShaderGlobal::get_var(i).getName());
       refsTable[i]++;

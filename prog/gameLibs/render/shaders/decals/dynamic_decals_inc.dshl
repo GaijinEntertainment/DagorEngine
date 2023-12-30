@@ -1,6 +1,9 @@
 include "decals.dshl"
+include "global_consts.dshl"
 
 texture dyn_decals_noise;
+float4 cockpit_pos;
+float cockpit_radius = 2.25; // 1.5 * 1.5
 
 macro DYNAMIC_DECALS_PARAMS()
   hlsl(ps)
@@ -62,6 +65,9 @@ endmacro
 macro INIT_DYNAMIC_DECALS()
   (ps) {
     dyn_noise@smp2d = dyn_decals_noise;
+    cockpit_pos@f4 = (cockpit_pos.x, cockpit_pos.y, cockpit_pos.z, 0);
+    cockpitFadeSmoothness@f1 = cockpitFadeSmoothness;
+    cockpit_radius@f1 = cockpit_radius;
   }
   DYNAMIC_DECALS_PARAMS()
 endmacro
@@ -130,6 +136,8 @@ macro USE_DYNAMIC_DECALS(start_params_no, cutting_planes, capsule_holes, sphere_
 
       float alphaInGm;
       float alphaOutGm;
+
+      float cockpitFade;
     };
 
     float unpack_value(uint value, float precision, float minValue, float maxValue)
@@ -376,6 +384,7 @@ macro USE_DYNAMIC_DECALS(start_params_no, cutting_planes, capsule_holes, sphere_
       float radiusNoiseSign = sign(radiusNoise);
       radiusNoise = abs(radiusNoise);
       float distNoise = radiusNoiseSign * min(dyn_decals_params.x * radiusNoise, radius);
+      distNoise += decals.cockpitFade;
       diffDist += distNoise;
 
       dist += distNoise;
@@ -392,6 +401,7 @@ macro USE_DYNAMIC_DECALS(start_params_no, cutting_planes, capsule_holes, sphere_
 
       float rimNoiseSample = tex2Dlod(dyn_noise, float4(uvOffset + dyn_decals_params.y * uv_rad.xy * rim_rand_noises.x, 0, 0)).a * rim_rand_noises.y +
       tex2Dlod(dyn_noise,float4(uvOffset + dyn_decals_params.y * uv_rad.xy * rim_rand_noises.z, 0, 0)).a * rim_rand_noises.w;
+      rimNoiseSample += decals.cockpitFade;
       rimDist = dist - max(diff_params.y, min(diff_params.z, uv_rad.w * rim_params.x * rimNoiseSample));
       decals.rimDist = rim ? min(decals.rimDist, rimDist) : decals.rimDist;
     }
@@ -426,6 +436,11 @@ macro USE_DYNAMIC_DECALS(start_params_no, cutting_planes, capsule_holes, sphere_
       decals.diffDist = 1000;
       decals.diffDistGm = 1000;
       decals.rimDistGm = 1000;
+
+      float3 modelPosToCockpit = model_pos - cockpit_pos.xyz;
+      float lengthCircleSq = dot(modelPosToCockpit, modelPosToCockpit);
+      decals.cockpitFade = smoothstep(lengthCircleSq - cockpitFadeSmoothness, lengthCircleSq + cockpitFadeSmoothness, cockpit_radius);
+
     #if cutting_planes
     {
       float4 uvRad;

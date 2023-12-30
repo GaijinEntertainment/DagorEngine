@@ -6,6 +6,7 @@
 #include "stripobj.h"
 #include "vcache.h"
 #include <util/dag_bitArray.h>
+#include <stdio.h>
 using namespace TriStripifier;
 
 #define CACHE_INEFFICIENCY 6

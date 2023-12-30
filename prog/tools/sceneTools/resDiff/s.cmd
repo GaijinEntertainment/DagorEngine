@@ -1,4 +1,3 @@
-@..\..\..\..\tools\dagor3_cdk\util\resDiffUtil-dev.exe d:/dagor4_wop_1_57_1_X/skyquake/gameOnline d:/dagor4/skyquake/gameOnline res d:/dagor4/skyquake/gameOnline/content/patch
-@..\..\..\..\tools\dagor3_cdk\util\resDiffUtil-dev.exe d:/dagor4_wop_1_57_1_X/skyquake/gameOnline d:/dagor4/skyquake/gameOnline content/pkg_main/res d:/dagor4/skyquake/gameOnline/content/patch
+@rem ..\..\..\..\tools\dagor3_cdk\util64\resDiffUtil-dev.exe d:/WarThunder-prod d:/dagor4/skyquake/gameOnline content/base/res patch
+@rem ..\..\..\..\tools\dagor3_cdk\util64\resDiffUtil-dev.exe d:/dagor4/samples/skiesSample/game d:/dagor4/samples/skiesSample/game- . d:/dagor4/samples/skiesSample/game.patch -vfs:res/grp_hdr.vromfs.bin -resBlk:res/respacks.blk
 @rem -verbose -dryRun
-@rem ..\..\..\..\tools\dagor3_cdk\util\resDiffUtil-dev.exe D:\dagor4_tools\samples\skiesSample\game D:\dagor4_tools\samples\skiesSample\game- res D:\dagor4_tools\samples\skiesSample\game.patch

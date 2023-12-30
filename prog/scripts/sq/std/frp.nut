@@ -1,6 +1,6 @@
 from "frp" import Computed, Watched, FRP_INITIAL, FRP_DONT_CHECK_NESTED, set_nested_observable_debug, make_all_observables_immutable
 
-let function watchedTable2TableOfWatched(state, fieldsList = null) {
+function watchedTable2TableOfWatched(state, fieldsList = null) {
   assert(state instanceof Watched, "state has to be Watched")
   let list = fieldsList ?? state.value
   assert(type(list) == "table", "fieldsList should be provided as table")
@@ -19,12 +19,12 @@ let function watchedTable2TableOfWatched(state, fieldsList = null) {
   that will update it's value only on tick observable change
 */
 
-let function mkLatestByTriggerStream(triggerObservable) {
+function mkLatestByTriggerStream(triggerObservable) {
   return function mkLatestStream(defValue = null, name = null){
     let isTable = type(defValue) == "table"
     local next_value = defValue
     let res = Watched(defValue)
-    let function updateFunc(...) {
+    function updateFunc(...) {
       let oldValue = res.value
       triggerObservable.unsubscribe(updateFunc)
       res.set(next_value)
@@ -36,20 +36,20 @@ let function mkLatestByTriggerStream(triggerObservable) {
       }
     }
     res.whiteListMutatorClosure(updateFunc)
-    let function deleteKey(k){
+    function deleteKey(k){
       if (k in next_value)
         next_value.$rawdelete(k)
       triggerObservable.subscribe(updateFunc)
     }
-    let function setKeyVal(k, v){
+    function setKeyVal(k, v){
       next_value[k] <- v
       triggerObservable.subscribe(updateFunc)
     }
-    let function setValue(val){
+    function setValue(val){
       next_value = val
       triggerObservable.subscribe(updateFunc)
     }
-    let function modify(val){
+    function modify(val){
       next_value = val(next_value)
       triggerObservable.subscribe(updateFunc)
     }
@@ -77,7 +77,7 @@ let function mkLatestByTriggerStream(triggerObservable) {
 let TO_DELETE = persist("TO_DELETE", @() freeze({}))
 const MK_COMBINED_STATE = true
 
-let function mkTriggerableLatestWatchedSetAndStorage(triggerableObservable) {
+function mkTriggerableLatestWatchedSetAndStorage(triggerableObservable) {
   return function mkLatestWatchedSetAndStorage(key=null, mkCombined=false) {
     let observableEidsSet = mkCombined ? null : Watched({})
     let state = mkCombined ? Watched({}) : null
@@ -139,7 +139,7 @@ let function mkTriggerableLatestWatchedSetAndStorage(triggerableObservable) {
           else
             storage[eid].update(val)
         }
-    let function getWatchedByEid(eid){
+    function getWatchedByEid(eid){
       return storage?[eid]
     }
     if (mkCombined == MK_COMBINED_STATE)

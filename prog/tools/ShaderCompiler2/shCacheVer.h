@@ -15,7 +15,7 @@ enum
 };
 
 // Increase this number if changes in the compiler affect all APIs
-static const int SHADER_CACHE_COMMON_VER = 7;
+static const int SHADER_CACHE_COMMON_VER = 8;
 
 static int make_shader_cache_ver(int ver)
 {

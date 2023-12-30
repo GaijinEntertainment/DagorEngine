@@ -56,6 +56,7 @@ public:
     ADD_EXTERN(end_draw_cached_debug_lines_ex);
 
     ADD_EXTERN(draw_cached_debug_cylinder);
+    ADD_EXTERN(draw_cached_debug_cone);
 
     das::addExtern<DAS_BIND_FUN(::set_cached_debug_lines_wtm)>(*this, lib, "set_cached_debug_lines_wtm",
       das::SideEffects::modifyExternal, "::set_cached_debug_lines_wtm");

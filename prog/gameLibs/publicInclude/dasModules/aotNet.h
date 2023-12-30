@@ -49,6 +49,7 @@ struct WrapType<net::ConnectionId>
     value = true
   };
   typedef int type;
+  typedef int rettype;
 };
 } // namespace das
 

@@ -139,7 +139,7 @@ public:
 
   FpdContainerAction *getContainerByName(const char *name) { return rtti_cast<FpdContainerAction>(getActionByName(name)); }
 
-  virtual bool isSubOf(DClassID id) { return id == FpdContainerAction::HUID || __super::isSubOf(id); }
+  virtual bool isSubOf(DClassID id) { return id == FpdContainerAction::HUID || FpdAction::isSubOf(id); }
 
 protected:
   PtrTab<FpdAction> subActions;
@@ -186,7 +186,7 @@ public:
   virtual void initActions(FpdContainerAction *init_a, FpdContainerAction *upd_a, IFpdLoad &ld) = 0;
   virtual void getActions(Tab<FpdAction *> &actions) = 0;
 
-  virtual bool isSubOf(DClassID id) { return id == FpdObject::HUID || __super::isSubOf(id); }
+  virtual bool isSubOf(DClassID id) { return id == FpdObject::HUID || DObject::isSubOf(id); }
 
 protected:
   SimpleString name;

@@ -100,6 +100,9 @@ using namespace desktop;
 const uint32_t B_REGISTER_INDEX_MAX = 8;
 // limit for t register entries, this is for the renderer to store the bindings
 const uint32_t T_REGISTER_INDEX_MAX = 32;
+// limit for s register entries, this is for the renderer to store the bindings
+// it's the same as for t registers, since we use combined imaged samplers
+const uint32_t S_REGISTER_INDEX_MAX = T_REGISTER_INDEX_MAX;
 // limit for u register entries, this is for the renderer to store the bindings
 const uint32_t U_REGISTER_INDEX_MAX = 13;
 

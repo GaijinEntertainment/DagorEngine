@@ -2,7 +2,7 @@ Root  ?= ../../../.. ;
 Location = prog/3rdPartyLibs/openssl-3.x ;
 
 TargetType  = lib ;
-Target      = 3rdPartyLibs/openssl_3_x/crypto.lib ;
+Target      = 3rdPartyLibs/openssl-3.x/crypto.lib ;
 if $(NoASM) {
   Target = $(Target:S=~noasm.lib) ;
 }
@@ -25,8 +25,6 @@ Sources =
   crypto/core_fetch.c
   crypto/core_namemap.c
   crypto/cpt_err.c
-  crypto/cpuid.c
-  crypto/ctype.c
   crypto/cversion.c
   crypto/der_writer.c
   crypto/dllmain.c
@@ -132,6 +130,9 @@ Sources =
 
   crypto/poly1305/poly1305.c
 ;
+if $(Platform) = linux64 && $(LinuxArch) = e2k {
+  opt on crypto/async/arch/async_posix.c = -Dmakecontext=makecontext_e2k ;
+}
 
 if $(NoASM) {
   Sources += crypto/aes/aes_core.c

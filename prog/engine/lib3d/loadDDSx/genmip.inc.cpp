@@ -352,7 +352,7 @@ void d3d_genmip_reserve(int sz)
     }
 
     if (!genmip_mem)
-      fatal("Not enough memory - needed %dK", genmip_memsz >> 10);
+      DAG_FATAL("Not enough memory - needed %dK", genmip_memsz >> 10);
 
     ::create_critical_section(memCritSec);
   }

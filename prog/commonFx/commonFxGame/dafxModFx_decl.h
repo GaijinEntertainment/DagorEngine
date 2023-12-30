@@ -407,6 +407,27 @@ public:
   }
 };
 
+class FxMaskedCurveOpt
+{
+public:
+  bool enabled;
+  E3DCOLOR mask;
+  CubicCurveSampler curve;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION(ptr, len, 1);
+
+    enabled = readType<int>(ptr, len);
+    mask = readType<E3DCOLOR>(ptr, len);
+    curve.load(ptr, len);
+  }
+};
+
 class FxColor
 {
 public:
@@ -416,6 +437,7 @@ public:
   E3DCOLOR col_max;
   FxValueGradOpt grad_over_part_life;
   FxColorCurveOpt curve_over_part_life;
+  FxMaskedCurveOpt curve_over_part_idx;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
@@ -423,7 +445,7 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 2);
+    CHECK_FX_VERSION(ptr, len, 3);
 
     enabled = readType<int>(ptr, len);
     allow_game_override = readType<int>(ptr, len);
@@ -431,6 +453,7 @@ public:
     col_max = readType<E3DCOLOR>(ptr, len);
     grad_over_part_life.load(ptr, len, load_cb);
     curve_over_part_life.load(ptr, len, load_cb);
+    curve_over_part_idx.load(ptr, len, load_cb);
   }
 };
 
@@ -1068,6 +1091,7 @@ class FxRenderShapeRibbon
 {
 public:
   int type;
+  int uv_mapping;
   real uv_tile;
   real side_fade_threshold;
   real side_fade_pow;
@@ -1080,9 +1104,10 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 2);
+    CHECK_FX_VERSION(ptr, len, 3);
 
     type = readType<int>(ptr, len);
+    uv_mapping = readType<int>(ptr, len);
     uv_tile = readType<real>(ptr, len);
     side_fade_threshold = readType<real>(ptr, len);
     side_fade_pow = readType<real>(ptr, len);
@@ -1215,6 +1240,7 @@ class FxRenderShaderAboveDepth
 {
 public:
   real placement_threshold;
+  bool terrain_only;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
@@ -1222,9 +1248,10 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 1);
+    CHECK_FX_VERSION(ptr, len, 2);
 
     placement_threshold = readType<real>(ptr, len);
+    terrain_only = readType<int>(ptr, len);
   }
 };
 

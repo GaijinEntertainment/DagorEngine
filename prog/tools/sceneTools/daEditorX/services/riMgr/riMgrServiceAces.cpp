@@ -1680,9 +1680,9 @@ public:
   };
 
   virtual void gatherCollision(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices, Tab<IPoint2> &transparent,
-    Tab<NavMeshObstacle> &obstacles, const Tab<BBox3> &exclude_boxes)
+    Tab<NavMeshObstacle> &obstacles, const Tab<BBox3> &exclude_boxes, const char *nav_mesh_kind)
   {
-    navmeshLayers.load();
+    navmeshLayers.load(nav_mesh_kind);
 
     const int max_cores = 128;
     bool started[max_cores];
@@ -1740,6 +1740,9 @@ public:
           [&curBox](const BBox3 &excludeBox) { return !curBox.non_empty_intersect(excludeBox); });
       });
     }
+
+    if (nav_mesh_kind != nullptr && nav_mesh_kind[0] != '\0')
+      navmeshLayers.load();
   }
 
   virtual void getObstaclesFlags(const ska::flat_hash_map<uint32_t, uint32_t> *&obstacle_flags_by_res_name_hash)

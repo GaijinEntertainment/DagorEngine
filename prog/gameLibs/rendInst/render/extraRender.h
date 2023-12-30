@@ -6,10 +6,13 @@
 
 #include <3d/dag_ringDynBuf.h>
 #include <3d/dag_resPtr.h>
+#include <3d/dag_multidrawContext.h>
 
 
 namespace rendinst::render
 {
+
+extern MultidrawContext<rendinst::RiExPerInstanceParameters> riExMultidrawContext;
 
 inline constexpr uint32_t ADDITIONAL_DATA_IDX = rendinst::RIEXTRA_VECS_COUNT - 1; // It is always last vector
 

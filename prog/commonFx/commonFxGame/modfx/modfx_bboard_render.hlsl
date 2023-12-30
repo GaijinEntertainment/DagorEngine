@@ -4,6 +4,7 @@
 #include "modfx/modfx_curve.hlsli"
 #include "modfx/modfx_misc.hlsli"
 #include "modfx/modfx_part_data.hlsli"
+#include "modfx/modfx_render_placement.hlsli"
 
 // #define MODFX_TEX_DEBUG_ENABLED 1
 
@@ -12,7 +13,7 @@
   #define MODFX_USE_FOG_PS_APPLY 0 // no per-pixel fog apply if we don't have volfog at all
 #endif
 
-#if MODFX_SHADER_RIBBON || (MODFX_USE_FOG && !MODFX_USE_FOG_PS_APPLY && !FX_FOG_MULT_ALPHA)
+#if MODFX_RIBBON_SHAPE || (MODFX_USE_FOG && !MODFX_USE_FOG_PS_APPLY && !FX_FOG_MULT_ALPHA)
   #define COLOR_INTERPOLATION linear
 #else
   #define COLOR_INTERPOLATION nointerpolation
@@ -21,7 +22,7 @@
   #endif
 #endif
 
-#if MODFX_SHADER_RIBBON
+#if MODFX_RIBBON_SHAPE
   #define PARAM_INTERPOLATION linear
 #else
   #define PARAM_INTERPOLATION nointerpolation
@@ -46,7 +47,7 @@
     COLOR_INTERPOLATION float3 emission   : TEXCOORD4;
 #endif
 
-#if MODFX_USE_SHADOW
+#if MODFX_USE_SHADOW || DAFX_USE_CLOUD_SHADOWS
     float4 lighting   : TEXCOORD7;
 #elif MODFX_USE_LIGHTING
     float3 lighting   : TEXCOORD7;
@@ -56,10 +57,10 @@
     float3 ambient    : TEXCOORD12;
 #endif
 
-#if MODFX_SHADER_RIBBON
+#if MODFX_RIBBON_SHAPE
     float2 delta_tc   : TEXCOORD1;
     float frame_idx   : TEXCOORD3;
-  #if !MODFX_SHADER_RIBBON_IS_SIDE_ONLY
+  #if !MODFX_RIBBON_SHAPE_IS_SIDE_ONLY
     uint ribbon_side  : TEXCOORD8;
   #endif
     float3 fwd_dir    : TEXCOORD9;
@@ -71,7 +72,7 @@
     nointerpolation float3 up_dir     : TEXCOORD11;
 #endif
 
-#if !MODFX_SHADER_RIBBON || (MODFX_USE_FOG && MODFX_USE_FOG_PS_APPLY)
+#if !MODFX_RIBBON_SHAPE || (MODFX_USE_FOG && MODFX_USE_FOG_PS_APPLY)
     PARAM_INTERPOLATION float3 view_dir   : TEXCOORD13;
 #endif
 
@@ -127,7 +128,7 @@
     bool use_uv_rotation,
     float angle_cos,
     float angle_sin,
-#if MODFX_SHADER_RIBBON
+#if MODFX_RIBBON_SHAPE
     float2 delta_tc,
 #else
     inout float2 delta,
@@ -137,7 +138,7 @@
     ModfxDeclFrameInfo finfo = ModfxDeclFrameInfo_load( 0, parent_data.mods_offsets[MODFX_RMOD_FRAME_INFO] );
     float4 tc = 0;
 
-#if !MODFX_SHADER_RIBBON
+#if !MODFX_RIBBON_SHAPE
   // disabled for ribbons for now (it has a completely different pos/tc calc)
   #if MODFX_USE_FRAMEBOUNDS
     if (finfo.boundary_id_offset != DAFX_INVALID_BOUNDARY_OFFSET)
@@ -307,9 +308,9 @@
 
     bool is_dead = false;
 
-#if MODFX_SHADER_RIBBON
+#if MODFX_RIBBON_SHAPE
 
-    #if MODFX_SHADER_RIBBON_IS_SIDE_ONLY
+    #if MODFX_RIBBON_SHAPE_IS_SIDE_ONLY
       bool ribbon_side = 1;
     #else
       bool ribbon_side = vertex_id < 4;
@@ -402,15 +403,15 @@
     if ( apply_wtm )
     {
       rdata.pos = mul( float4( rdata.pos, 1 ), wtm ).xyz;
-#if MODFX_SHADER_RIBBON
+#if MODFX_RIBBON_SHAPE
       older_pos = mul( float4( older_pos, 1 ), wtm ).xyz;
       newer_pos = mul( float4( newer_pos, 1 ), wtm ).xyz;
 #endif
     }
 
 #if MODFX_ABOVE_DEPTH_PLACEMENT
-    float placementThresholdMod = dafx_get_1f(0, parent_data.mods_offsets[MODFX_RMOD_ABOVE_DEPTH_PLACEMENT_THRESHOLD]);
-    if (!place_fx_above(rdata.pos, placementThresholdMod)) // place effect above the objects
+    ModfxDeclRenderPlacementParams placementParams = ModfxDeclRenderPlacementParams_load(0, parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS]);
+    if (!place_fx_above(rdata.pos, placementParams.placement_threshold, placementParams.terrain_only))
       is_dead = true;
 #endif
 
@@ -453,7 +454,7 @@
     }
 #endif
 
-#if MODFX_SHADER_RIBBON
+#if MODFX_RIBBON_SHAPE
     float2 delta_tc = float2( delta.x, 1.f - delta.y );
 
     float3 wpos;
@@ -716,7 +717,7 @@
     }
 #endif
 
- #if !MODFX_SHADER_RIBBON
+ #if !MODFX_RIBBON_SHAPE
 
     float2 screen_clamp = 0;
     if ( parent_data.mods_offsets[MODFX_RMOD_SCREEN_CLAMP] )
@@ -735,6 +736,9 @@
     vs_out.color = rdata.color;
     vs_out.emission.rgb = emission_mask;
 #if MODFX_USE_SHADOW || MODFX_USE_LIGHTING
+    #if MODFX_USE_SHADOW || DAFX_USE_CLOUD_SHADOWS
+      vs_out.lighting.a = 1.f;
+    #endif
     #if MODFX_USE_SHADOW
     //this is a way to reduce flickering due to tesselation insufficiency
     //we sample shadow closer to center
@@ -743,18 +747,28 @@
       getFOMShadow(wpos - gdata.from_sun_direction.xyz * rdata.radius) * clouds_shadow(shadowWorldPos);
     vs_out.lighting.a = shadow;
     #endif
+    #if DAFX_USE_CLOUD_SHADOWS
+      vs_out.lighting.a *= dafx_get_clouds_shadow(rdata.pos);
+    #endif
+
     vs_out.lighting.rgb = lighting.rgb;
 #endif
-#if MODFX_SHADER_RIBBON
+#if MODFX_RIBBON_SHAPE
     if ( ribbon_side )
     {
+      int ribbon_id = instance_id;
+      if (FLAG_ENABLED( flags, MODFX_RFLAG_RIBBON_UV_STATIC ))
+      {
+        uint start_unique_id = rdata.unique_id + (!ribbon_start ? ( !reverse_order ? +1 : -1 ) : 0);
+        ribbon_id = !reverse_order ? start_unique_id : -start_unique_id;
+      }
       float uv_tile_inv = rcp( (float)pp.uv_tile );
       delta_tc.y *= uv_tile_inv;
-      delta_tc.y += ( instance_id % pp.uv_tile ) * uv_tile_inv;
+      delta_tc.y += ( ribbon_id % pp.uv_tile )* uv_tile_inv;
     }
     vs_out.delta_tc.xy = delta_tc;
     vs_out.frame_idx = (float)rdata.frame_idx + max( rdata.frame_blend, 0.0001f );
-    #if !MODFX_SHADER_RIBBON_IS_SIDE_ONLY
+    #if !MODFX_RIBBON_SHAPE_IS_SIDE_ONLY
       vs_out.ribbon_side = ribbon_side;
     #endif
     vs_out.fwd_dir = cross( rotated_up_vec, rotated_right_vec );
@@ -802,7 +816,7 @@
       vs_out.fog_add = fog_add;
       #if FX_FOG_MULT_ALPHA // then COLOR_PS_FOG_MULT is defined
         vs_out.fog_mul = float3(fog_mul);
-        #if MODFX_USE_SHADOW || MODFX_USE_LIGHTING
+        #if MODFX_USE_SHADOW || MODFX_USE_LIGHTING || DAFX_USE_CLOUD_SHADOWS
         vs_out.lighting.rgb *= fog_mul;
         #endif
       #else
@@ -900,7 +914,7 @@
     input.emission.rgb *= input.fog_mul;
 #endif
 
-#if !MODFX_SHADER_RIBBON
+#if !MODFX_RIBBON_SHAPE
 
 #if MODFX_TEX_DEBUG_ENABLED || MODFX_DEBUG_RENDER_ENABLED
 
@@ -938,9 +952,9 @@
     const bool tex_enabled = MOD_ENABLED( parent_data.mods, MODFX_RMOD_FRAME_INFO );
 #endif
 
-#if MODFX_SHADER_RIBBON
+#if MODFX_RIBBON_SHAPE
 
-    #if MODFX_SHADER_RIBBON_IS_SIDE_ONLY
+    #if MODFX_RIBBON_SHAPE_IS_SIDE_ONLY
       bool ribbon_side = 1;
     #else
       bool ribbon_side = input.ribbon_side;
@@ -1029,7 +1043,7 @@
     if ( parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] )
     {
       ModfxDepthMask pp = ModfxDepthMask_load( 0, parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] );
-      depth_mask = dafx_get_soft_depth_mask(float4(viewport_tc.xyz * viewport_tc.w, viewport_tc.w), pp.depth_softness_rcp, gdata);
+      depth_mask = dafx_get_soft_depth_mask(viewport_tc, pp.depth_softness_rcp, gdata);
     }
 #endif
 
@@ -1148,7 +1162,7 @@
     float radius_pow = dafx_get_1f( 0, parent_data.mods_offsets[MODFX_RMOD_VOLSHAPE_PARAMS] + 1u );
 
 #ifdef DAFX_DEPTH_TEX
-    float dst_depth = dafx_get_depth_base(float4(viewport_tc.xyz * viewport_tc.w, viewport_tc.w), gdata);
+    float dst_depth = dafx_get_depth_base(viewport_tc.xy, gdata);
 #else
     float dst_depth = gdata.zn_zfar.y;
 #endif
@@ -1194,7 +1208,7 @@
       float sphere_power = pp.sphere_normal_power / 255.f;
       float normal_softness = pp.normal_softness / 255.f;
 
-#if MODFX_SHADER_RIBBON
+#if MODFX_RIBBON_SHAPE
       float3 fwd_dir = input.fwd_dir;
       float ndl, nda;
       float3 wnorm = 0;
@@ -1247,7 +1261,7 @@
 
       float specular = 0;
 
-#if !MODFX_SHADER_RIBBON
+#if !MODFX_RIBBON_SHAPE
       if ( FLAG_ENABLED( flags, MODFX_RFLAG_LIGHTING_SPECULART_ENABLED ) )
       {
         float3 h = normalize( input.view_dir - gdata.from_sun_direction );
@@ -1258,8 +1272,8 @@
 
       ndl = ndl * ( 1.f - normal_softness ) + normal_softness;
       ndl = lerp( ndl, 1.f, saturate( dot( gdata.from_sun_direction, fwd_dir ) ) * translucency );
-#if MODFX_USE_SHADOW || MODFX_USE_LIGHTING
-      #if MODFX_USE_SHADOW
+#if MODFX_USE_SHADOW || MODFX_USE_LIGHTING || DAFX_USE_CLOUD_SHADOWS
+      #if MODFX_USE_SHADOW || DAFX_USE_CLOUD_SHADOWS
       half shadow = input.lighting.a;
       #else
       half shadow = 1.f;

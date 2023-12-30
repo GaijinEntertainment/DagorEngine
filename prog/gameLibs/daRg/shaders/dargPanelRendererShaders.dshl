@@ -73,7 +73,9 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
       panel_world_normal@f44 = panel_world_normal;
     }
     (ps) {
-      panel_smoothness_reflectance_metalnessfactor@f3 = (panel_smoothness, panel_reflectance, 1-(1-panel_metalness)*(1-panel_metalness), 0);
+      panel_smoothness@f1 = panel_smoothness;
+      panel_reflectance@f1 = panel_reflectance
+      panel_metalness@f1 = 1-(1-panel_metalness)*(1-panel_metalness);
     }
 
     VR_MULTIVIEW_RENDERING(true, true)
@@ -162,8 +164,8 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
     hlsl(ps) {
       struct PsOutput
       {
-        half4 color : SV_Target0;
-        half4 motion : SV_Target1;
+        float4 color : SV_Target0;
+        float4 motion : SV_Target1;
       };
 
       PsOutput darg_panel_shader_frame_buffer_ps(VsOutput input)
@@ -204,6 +206,7 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
     WRITE_GBUFFER()
     PACK_UNPACK_GBUFFER()
     USE_MOTION_VEC_MASK_ONLY()
+    USE_NO_LIGHTING_EMISSIVE_SHADING(ps)
 
     hlsl(ps) {
       GBUFFER_OUTPUT darg_panel_gbuffer_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
@@ -216,11 +219,22 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
         UnpackedGbuffer result;
         init_gbuffer(result);
 
-        init_albedo(result, color.rgb);
-        init_smoothness(result, panel_smoothness_reflectance_metalnessfactor.x);
-        init_normal(result, MUL_VFACE(normalize(input.worldNormal)));
-        init_reflectance(result, panel_smoothness_reflectance_metalnessfactor.y);
-        init_metalness(result, panel_smoothness_reflectance_metalnessfactor.z);
+        bool isEmissive = panel_smoothness < 0;
+
+        if (isEmissive)
+        {
+          float emissiveStrength = -panel_smoothness; // TODO: use a new param for this
+          init_no_lighting_emissive_shading(result, color.rgb, emissiveStrength);
+        }
+        else
+        {
+          init_albedo(result, color.rgb);
+          init_smoothness(result, panel_smoothness);
+          init_normal(result, MUL_VFACE(normalize(input.worldNormal)));
+          init_reflectance(result, panel_reflectance);
+          init_metalness(result, panel_metalness);
+        }
+
         init_dynamic(result, true);
         init_motion_vector(result, encode_motion_mask());
 

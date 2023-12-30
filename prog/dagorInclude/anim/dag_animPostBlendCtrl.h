@@ -988,6 +988,7 @@ class AnimPostBlendNodeEffectorFromChildIK : public AnimPostBlendCtrl
     int destVarId;
     int destEffId;
   };
+  int varSlotId = -1;
   int localDataVarId = -1;
   int resetEffByValId = -1;
   bool resetEffInvVal = false;

@@ -52,7 +52,7 @@ inline void report_alternate_name(const char *fmt, const char *a_str, const wcha
 {
   if (a_str)
   {
-    debug(fmt, a_str);
+    logdbg(fmt, a_str);
   }
   else if (w_str)
   {
@@ -61,11 +61,11 @@ inline void report_alternate_name(const char *fmt, const char *a_str, const wcha
     for (i = 0; i < 1023 && w_str[i] != L'\0'; ++i)
       buf[i] = static_cast<char>(w_str[i]);
     buf[i] = '\0';
-    debug(fmt, buf);
+    logdbg(fmt, buf);
   }
   else
   {
-    debug(fmt, "NULL");
+    logdbg(fmt, "NULL");
   }
 }
 
@@ -73,7 +73,7 @@ inline void report_allocation_info(const D3D12_DRED_ALLOCATION_NODE *node)
 {
   if (!node)
   {
-    debug("DX12: No allocation nodes found");
+    logdbg("DX12: No allocation nodes found");
   }
   else
   {
@@ -81,7 +81,7 @@ inline void report_allocation_info(const D3D12_DRED_ALLOCATION_NODE *node)
     {
       if (node->ObjectNameA)
       {
-        debug("NODE: %s '%s'", to_string(node->AllocationType), node->ObjectNameA);
+        logdbg("NODE: %s '%s'", to_string(node->AllocationType), node->ObjectNameA);
       }
       else if (node->ObjectNameW)
       {
@@ -92,11 +92,11 @@ inline void report_allocation_info(const D3D12_DRED_ALLOCATION_NODE *node)
         for (i = 0; i < sizeof(buf) - 1 && node->ObjectNameW[i] != L'\0'; ++i)
           buf[i] = node->ObjectNameW[i] > 127 ? '.' : node->ObjectNameW[i];
         buf[i] = '\0';
-        debug("NODE: %s '%s'", to_string(node->AllocationType), buf);
+        logdbg("NODE: %s '%s'", to_string(node->AllocationType), buf);
       }
       else
       {
-        debug("NODE: %s with no name", to_string(node->AllocationType));
+        logdbg("NODE: %s with no name", to_string(node->AllocationType));
       }
     }
   }
@@ -104,19 +104,19 @@ inline void report_allocation_info(const D3D12_DRED_ALLOCATION_NODE *node)
 
 inline void report_page_fault(ID3D12DeviceRemovedExtendedData *dred)
 {
-  debug("DX12: Acquiring page fault information from DRED...");
+  logdbg("DX12: Acquiring page fault information from DRED...");
   D3D12_DRED_PAGE_FAULT_OUTPUT pagefaultInfo = {};
   if (FAILED(dred->GetPageFaultAllocationOutput(&pagefaultInfo)))
   {
-    debug("DX12: ...failed, no page fault data available");
+    logdbg("DX12: ...failed, no page fault data available");
     return;
   }
 
-  debug("DX12: Page fault info (DRED):");
-  debug("DX12: GPU page fault address %016X", pagefaultInfo.PageFaultVA);
-  debug("DX12: Heap existing allocations:");
+  logdbg("DX12: Page fault info (DRED):");
+  logdbg("DX12: GPU page fault address %016X", pagefaultInfo.PageFaultVA);
+  logdbg("DX12: Heap existing allocations:");
   report_allocation_info(pagefaultInfo.pHeadExistingAllocationNode);
-  debug("DX12: Heap recently freed allocations:");
+  logdbg("DX12: Heap recently freed allocations:");
   report_allocation_info(pagefaultInfo.pHeadRecentFreedAllocationNode);
 }
 
@@ -148,7 +148,7 @@ public:
   DeviceRemovedExtendedData(DeviceRemovedExtendedData &&) = delete;
   DeviceRemovedExtendedData &operator=(DeviceRemovedExtendedData &&) = delete;
   DeviceRemovedExtendedData() = default;
-  ~DeviceRemovedExtendedData() { debug("DX12: Shutting down DRED"); }
+  ~DeviceRemovedExtendedData() { logdbg("DX12: Shutting down DRED"); }
   void configure();
   void beginCommandBuffer(ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
   void endCommandBuffer(ID3D12GraphicsCommandList *);

@@ -3,6 +3,7 @@
 #include <shaders/shOpcodeFormat.h>
 #include <shaders/shOpcode.h>
 #include <shaders/shUtils.h>
+#include <shaders/shFunc.h>
 
 #include "varMap.h"
 #include "globVar.h"
@@ -55,7 +56,7 @@ static bool is_hlsl_debug() { return hlslDebugLevel != DebugLevel::NONE; }
 extern dx12::dxil::Platform targetPlatform;
 #endif
 
-#if !_TARGET_PC_MACOSX
+#if _TARGET_PC_WIN
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -275,12 +276,10 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
     }
     switch (t)
     {
-      case SHVT_COLOR4: sclass.stvar[sv].defval.c4 = val; break;
+      case SHVT_COLOR4: sclass.stvar[sv].defval.c4.set(val); break;
       case SHVT_REAL: sclass.stvar[sv].defval.r = val[0]; break;
       case SHVT_INT: sclass.stvar[sv].defval.i = real2int(val[0]); break;
-      case SHVT_INT4:
-        sclass.stvar[sv].defval.i4 = IPoint4(real2int(val[0]), real2int(val[1]), real2int(val[2]), real2int(val[3]));
-        break;
+      case SHVT_INT4: sclass.stvar[sv].defval.i4.set(real2int(val[0]), real2int(val[1]), real2int(val[2]), real2int(val[3])); break;
       case SHVT_FLOAT4X4:
         // default value is not supported
         break;
@@ -290,7 +289,7 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
           error("texture may be inited only with 0", s.name);
           return;
         }
-        sclass.stvar[sv].defval.texId = BAD_TEXTUREID;
+        sclass.stvar[sv].defval.texId = unsigned(BAD_TEXTUREID);
         break;
       default: G_ASSERT(0);
     }
@@ -315,16 +314,11 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
     eval_init_stat(s.name, *s.init);
 }
 
-static String mangle(const char *name, const ShaderVariant::VariantInfo &variant)
-{
-  return String(0, "%s_stat_%p_dyn_%p", name, &variant.stat, variant.dyn);
-}
-
 // clang-format off
 // clang-format linearizes this function
 void AssembleShaderEvalCB::eval_bool_decl(bool_decl &decl)
 {
-  BoolVar::add(mangle(shname_token->text, variant), decl, parser);
+  BoolVar::add(true, decl, parser);
 }
 // clang-format on
 
@@ -676,12 +670,6 @@ void AssembleShaderEvalCB::eval_blend_value(const Terminal &blend_func_tok, cons
   auto blend_factor = get_blend_k(blend_func_tok);
   if (index_tok)
   {
-    // independent blending is not supported on all platforms yet
-    // exclude this error on platforms, where driver support introduced
-#if !(_CROSS_TARGET_DX12 || _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL || _CROSS_TARGET_DX11)
-    error("independent blending is not supported on this platform", &blend_func_tok);
-#endif
-
     auto index = semutils::int_number(index_tok->text);
     if (index < 0 || index >= shaders::RenderState::NumIndependentBlendParameters)
     {
@@ -960,6 +948,15 @@ void AssembleShaderEvalCB::eval_external_block(external_state_block &state_block
     }
   if (stage >= STAGE_MAX)
     error(String(32, "external block <%s> is not one of <vs, ps, cs>", state_block.scope->text), state_block.scope);
+  else
+  {
+    if (stage == STAGE_CS && pipeline == PIPELINE_GRAPHICS)
+      error(String(32, "external block <%s> is illegal in graphics pipeline", state_block.scope->text), state_block.scope);
+    else if ((stage == STAGE_VS || stage == STAGE_PS) && pipeline == PIPELINE_COMPUTE)
+      error(String(32, "external block <%s> is illegal in compute pipeline", state_block.scope->text), state_block.scope);
+    else if (pipeline == PIPELINE_UNDEFINED)
+      pipeline = stage == STAGE_CS ? PIPELINE_COMPUTE : PIPELINE_GRAPHICS;
+  }
 
   auto eval_if_stat = [this, stage](state_block_if_stat &s, auto &&eval_if_stat) -> void {
     G_ASSERT(s.expr);
@@ -967,8 +964,8 @@ void AssembleShaderEvalCB::eval_external_block(external_state_block &state_block
     auto eval_stats = [&](auto &stats) {
       for (auto &stat : stats)
       {
-        if (stat->state_block_if_stat)
-          eval_if_stat(*stat->state_block_if_stat, eval_if_stat);
+        if (stat->stblock_if_stat)
+          eval_if_stat(*stat->stblock_if_stat, eval_if_stat);
         else
           eval_external_block_stat(*stat, stage);
       }
@@ -988,10 +985,10 @@ void AssembleShaderEvalCB::eval_external_block(external_state_block &state_block
     }
   };
 
-  for (auto stat : state_block.state_block_stat)
+  for (auto stat : state_block.stblock_stat)
   {
-    if (stat->state_block_if_stat)
-      eval_if_stat(*stat->state_block_if_stat, eval_if_stat);
+    if (stat->stblock_if_stat)
+      eval_if_stat(*stat->stblock_if_stat, eval_if_stat);
     else
       eval_external_block_stat(*stat, stage);
   }
@@ -1408,7 +1405,7 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
       if (is_global)
       {
         hardcoded_reg = ShaderGlobal::get_var(vi).value.i;
-        ShaderGlobal::get_var(vi).isAlwaysReferenced = true;
+        ShaderGlobal::get_var(vi).isImplicitlyReferenced = true;
       }
       else
         error("Only global variables for hardcoded registers are supported", shader_var);
@@ -1822,6 +1819,39 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
               error(String(0, "Sampler with name '%s' was not found", value->expr->lhs->lhs->var_name->text),
                 value->expr->lhs->lhs->var_name);
               continue;
+            }
+            if (smp->mIsStaticSampler)
+            {
+              int reg_bc = -1, reg_am = -1, reg_mb = -1;
+              if (smp->mBorderColor)
+              {
+                String local_bc(32, "local float4 __border_color%i = 0;", smp->mId);
+                auto *local_bc_stat = parse_shader_stat(local_bc, local_bc.length(), &rm_alloc);
+                local_bc_stat->local_decl->expr = smp->mBorderColor;
+                reg_bc = ExpressionParser::getStatic().parseLocalVarDecl(*local_bc_stat->local_decl)->reg;
+              }
+
+              if (smp->mAnisotropicMax)
+              {
+                String local_am(32, "local float __anisotropic_max%i = 0;", smp->mId);
+                auto *local_am_stat = parse_shader_stat(local_am, local_am.length(), &rm_alloc);
+                local_am_stat->local_decl->expr = smp->mAnisotropicMax;
+                reg_am = ExpressionParser::getStatic().parseLocalVarDecl(*local_am_stat->local_decl)->reg;
+              }
+
+              if (smp->mMipmapBias)
+              {
+                String local_mb(32, "local float __mipmap_bias%i = 0;", smp->mId);
+                auto *local_mb_stat = parse_shader_stat(local_mb, local_mb.length(), &rm_alloc);
+                local_mb_stat->local_decl->expr = smp->mMipmapBias;
+                reg_mb = ExpressionParser::getStatic().parseLocalVarDecl(*local_mb_stat->local_decl)->reg;
+              }
+
+              curpass->push_stcode(shaderopcode::makeOp3(SHCOD_CALL_FUNCTION, functional::BF_CREATE_SAMPLER, smp->mId, 4));
+              curpass->push_stcode(var_id);
+              curpass->push_stcode(reg_bc);
+              curpass->push_stcode(reg_am);
+              curpass->push_stcode(reg_mb);
             }
             curpass->push_stcode(shaderopcode::makeOp2(SHCOD_SAMPLER, id, var_id));
             continue;
@@ -2319,13 +2349,13 @@ ShVarBool AssembleShaderEvalCB::eval_bool_value(bool_value &e)
   }
   else if (e.bool_var)
   {
-    auto expr = BoolVar::get_expr(mangle(shname_token->text, variant), *e.bool_var, parser);
+    auto expr = BoolVar::get_expr(*e.bool_var, parser);
     if (expr)
       return eval_expr(*expr);
   }
   else if (e.maybe)
   {
-    auto expr = BoolVar::maybe(mangle(shname_token->text, variant), *e.maybe_bool_var);
+    auto expr = BoolVar::maybe(*e.maybe_bool_var);
     if (expr)
       return eval_expr(*expr);
     else
@@ -2494,13 +2524,13 @@ void AssembleShaderEvalCB::merge_external_blocks()
 
       if (dim1 + dim2 == 4)
       {
-        handle_external_block_stat(*merged_var_stat->external_block->state_block_stat[0], (ShaderStage)stage);
+        handle_external_block_stat(*merged_var_stat->external_block->stblock_stat[0], (ShaderStage)stage);
         ShaderParser::Register(reg1, *this);
         ShaderParser::Register(reg2, *this);
       }
       else
       {
-        vars[dim1 + dim2].emplace_back(merged_var_stat->external_block->state_block_stat[0]);
+        vars[dim1 + dim2].emplace_back(merged_var_stat->external_block->stblock_stat[0]);
       }
 
       merge(vars, dim1, dim2, merge);
@@ -3359,10 +3389,10 @@ void CompileShaderJob::doJob()
       debug("=== compiling code:\n%s==== code end", source.str());
 
     sh_leave_atomic_debug();
-#if _TARGET_PC_MACOSX
-    usleep(150 * 1000);
-#else
+#if _TARGET_PC_WIN
     Sleep(150);
+#else
+    usleep(150 * 1000);
 #endif
     return;
   }

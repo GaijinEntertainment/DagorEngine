@@ -13,7 +13,7 @@ let defParams = {num=30,emitter_sz=[500,200], part=null}
 let rnd_arange =@(range) (range[1]-range[0]).tofloat()*math.rand()/math.RAND_MAX+range[0]
 let rndP = @(range) [rnd_arange(range),rnd_arange(range)]
 
-let function mkParticles(params=defParams){
+function mkParticles(params=defParams){
   let particles=[]
   let part = {transform={pivot=[0.5,0.5]}}.__merge(params?.part ?? {})
   let emitter_sz= params?.emitter_sz ?? defParams.emitter_sz
@@ -51,7 +51,7 @@ let function mkParticles(params=defParams){
 }
 let part = {rendObj=ROBJ_SOLID size=[120,120] transform={pivot=[0.5,0.5]} color=Color(0,0,0,20)}
 
-let function root() {
+function root() {
   return {
     valign = ALIGN_CENTER
     size=flex()

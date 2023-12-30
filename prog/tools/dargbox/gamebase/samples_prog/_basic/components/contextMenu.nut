@@ -33,13 +33,13 @@ let style = {
 
 local lastMenuIdx = 0
 
-let function contextMenu(x, y, width, actions, menu_style = style) {
+function contextMenu(x, y, width, actions, menu_style = style) {
   lastMenuIdx++
   let uid = "context_menu_{0}".subst(lastMenuIdx)
   let closeMenu = @() removeModalWindow(uid)
   let menuBgColor = menu_style?.menuBgColor ?? style.menuBgColor
   let closeHotkeys = menu_style?.closeHotkeys ?? [ ["Esc", closeMenu] ]
-  let function defMenuCtor(){
+  function defMenuCtor(){
     return {
       rendObj = ROBJ_SOLID
       size = [width, SIZE_TO_CONTENT]

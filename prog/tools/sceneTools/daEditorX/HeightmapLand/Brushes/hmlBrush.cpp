@@ -55,7 +55,7 @@ void HmapLandBrush::fillParams(PropPanel2 &panel)
 
 void HmapLandBrush::updateToPanel(PropPanel2 &panel)
 {
-  __super::updateToPanel(panel);
+  Brush::updateToPanel(panel);
 
   panel.setInt(PID_BRUSH_MASK, maskInd);
   // commented following option, 'couse it worked strange

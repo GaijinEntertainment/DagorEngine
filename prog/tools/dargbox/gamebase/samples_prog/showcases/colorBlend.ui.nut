@@ -20,7 +20,7 @@ let resColor = Computed(function() {
     & 0xffffffff
 })
 
-let function mkColorBox(color, hoverWatch, override = {}) {
+function mkColorBox(color, hoverWatch, override = {}) {
   let stateFlags = Watched(0)
   return @() {
     watch = stateFlags

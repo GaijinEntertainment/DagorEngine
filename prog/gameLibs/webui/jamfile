@@ -29,7 +29,6 @@ UseProgLibs =
   $(Plugins)/screenshot
   $(Plugins)/shadervars
   $(Plugins)/quirrel
-  $(Plugins)/autoDrey
 ;
 
 if $(Platform) = tvOS {

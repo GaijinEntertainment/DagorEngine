@@ -9,6 +9,7 @@
 #include "riGen/riGenData.h"
 #include "riGen/genObjUtil.h"
 #include "riGen/riRotationPalette.h"
+#include "riGen/riGenRenderer.h"
 #include "render/genRender.h"
 #include "render/impostor.h"
 #include "render/extraRender.h"
@@ -45,7 +46,6 @@
 
 #define LOGLEVEL_DEBUG _MAKE4C('RGEN')
 
-static constexpr float SHADOW_APPEAR_PART = 0.1f;
 // todo make custom mipmap generation for some of last mipmaps - weighted filter, weights only non-clipped pixels
 
 #define DEBUG_RI 0
@@ -113,7 +113,7 @@ static VDECL rendinstDepthOnlyVDECL = BAD_VDECL;
 static int build_normal_type = -2;
 int normal_type = -1;
 
-MultidrawContext<rendinst::PerInstanceParameters> multidrawContext("ri_multidraw");
+MultidrawContext<rendinst::render::RiGenPerInstanceParameters> riGenMultidrawContext("ri_gen_multidraw");
 
 Vbuffer *oneInstanceTmVb = nullptr;
 Vbuffer *rotationPaletteTmVb = nullptr;
@@ -406,7 +406,8 @@ void RendInstGenData::termRenderGlobals()
   del_d3dres(rendinst::render::perDrawCB);
   del_d3dres(rendinst::render::oneInstanceTmVb);
   del_d3dres(rendinst::render::rotationPaletteTmVb);
-  rendinst::render::multidrawContext.close();
+  rendinst::render::riExMultidrawContext.close();
+  rendinst::render::riGenMultidrawContext.close();
   index_buffer::release_quads_16bit();
   rendinst::render::closeClipmapShadows();
   rendinst::render::close_depth_VDECL();
@@ -489,7 +490,7 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
 
   rendinst::render::dynamic_impostor_texture_const_no =
     ShaderGlobal::get_int_fast(::get_shader_glob_var_id("dynamic_impostor_texture_const_no"));
-  rendinst::render::rendinst_ao_mul = ShaderGlobal::get_real_fast(::get_shader_glob_var_id("rendinst_ao_mul"));
+  rendinst::render::rendinst_ao_mul = ShaderGlobal::get_real_fast(::get_shader_glob_var_id("rendinst_ao_mul", true));
 
   invLod0RangeVarId = ::get_shader_glob_var_id("rendinst_inv_lod0_range", true);
 
@@ -589,8 +590,6 @@ void RendInstGenData::initRender(const DataBlock *level_blk)
       {
         if (rtData->riRes[i]->isBakedImpostor())
         {
-          int bufferOffset = rendinst::gen::get_rotation_palette_manager()->getImpostorDataBufferOffset({rtData->layerIdx, i},
-            rtData->riResName[i], rtData->riRes[i]);
           rendinst::gen::RotationPaletteManager::Palette palette =
             rendinst::gen::get_rotation_palette_manager()->getPalette({rtData->layerIdx, i});
           uint32_t shadowAtlasSize = palette.count;
@@ -605,7 +604,7 @@ void RendInstGenData::initRender(const DataBlock *level_blk)
           rtData->riRes[i]->lods.back().scene->gatherUsedMat(mats);
           for (size_t j = 0; j < mats.size(); ++j)
           {
-            if (!rtData->riRes[i]->setImpostorVars(mats[j], bufferOffset))
+            if (!rtData->riRes[i]->setImpostorVars(mats[j]))
               logerr("Could not set all impostor shader variables for <%s> (material=%s, lod=%d)", rtData->riResName[i],
                 mats[j]->getShaderClassName(), rtData->riRes[i]->lods.size() - 1);
           }
@@ -618,7 +617,7 @@ void RendInstGenData::initRender(const DataBlock *level_blk)
             rtData->riRes[i]->lods[transitionLodId].scene->gatherUsedMat(mats);
             for (size_t j = 0; j < mats.size(); ++j)
             {
-              if (rtData->riRes[i]->setImpostorVars(mats[j], bufferOffset))
+              if (rtData->riRes[i]->setImpostorVars(mats[j]))
                 rtData->rtPoolData[i]->flags |= rendinst::render::RtPoolData::HAS_TRANSITION_LOD;
             }
           }
@@ -679,6 +678,8 @@ void RendInstGenData::initRender(const DataBlock *level_blk)
     if (!treeCrownTransmittance.enabled)
       cascade0Dist = -1.f;
   }
+
+  rendinst::render::RiGenRenderer::updatePerDrawData(*rtData, perInstDataDwords);
 }
 
 void RendInstGenData::applyLodRanges()
@@ -790,7 +791,16 @@ void RendInstGenData::RtData::setTextureMinMipWidth(int textureSize, int imposto
       {
         Texture *tex = (Texture *)bTex;
         int lastMip = get_last_mip_idx(tex, textureSize);
+#if _TARGET_C1
+
+
+
+
+
+
+#else
         tex->texmiplevel(0, lastMip);
+#endif
       }
 
       release_managed_tex(texId);
@@ -830,7 +840,8 @@ void RendInstGenData::RtData::copyVisibileImpostorsData(const RiGenVisibility &v
 void RendInstGenData::CellRtData::clear()
 {
   rtData->updateVbResetCS.lock();
-  del_it(sysMemData);
+  delete[] sysMemData;
+  sysMemData = nullptr;
   if (cellVbId)
     rtData->cellsVb.free(cellVbId);
   clear_and_shrink(scs);
@@ -1027,32 +1038,6 @@ void RendInstGenData::updateVb(RendInstGenData::CellRtData &crt, int idx)
   crt.update(crt.vbSize, *this);
 }
 
-static void switch_states_for_impostors(RenderStateContext &context, bool is_impostor, bool prev_was_impostor)
-{
-  if (is_impostor)
-  {
-    context.curVertexData = nullptr;
-#if D3D_HAS_QUADS
-    d3d::setind(nullptr);
-    d3d::setvdecl(BAD_VDECL);
-    d3d::setvsrc(0, nullptr, 0);
-#else
-    index_buffer::use_quads_16bit();
-    d3d::setvdecl(BAD_VDECL);
-    d3d::setvsrc(0, nullptr, 0);
-#endif
-  }
-  else
-  {
-    if (prev_was_impostor)
-    {
-      d3d::setind(unitedvdata::riUnitedVdata.getIB());
-      context.curVertexData = nullptr;
-      context.curVertexBuf = nullptr;
-    }
-  }
-}
-
 eastl::array<uint32_t, 2> rendinst::render::getCommonImmediateConstants()
 {
   const auto halfFaloffStart = static_cast<uint32_t>(float_to_half(treeCrownTransmittance.falloffStart));
@@ -1062,296 +1047,42 @@ eastl::array<uint32_t, 2> rendinst::render::getCommonImmediateConstants()
   return {(halfFaloffStart << 16) | halfBrightness, (halfCascade0Dist << 16) | halfFalloffStop};
 }
 
-inline void RendInstGenData::renderInstances(int ri_idx, int realLodI, const vec4f *data, int count, RenderStateContext &context,
-  const int max_instances, const int atest_skip_mask, const int last_stage)
-{
-  if (rtData->isHiddenId(ri_idx))
-  {
-#if 0
-    const vec4f *curData = data;
-    for (int cc = 0; cc < count; cc++)
-    {
-      Point3 pos;
-      v_st(&pos.x, curData[cc]);
-      debug("hidden ri %s [%d] " FMT_P3, rtData->riResName[ri_idx], cc, P3D(pos));
-    }
-#endif
-    return;
-  }
-  int lodTranslation = rendinst::MAX_LOD_COUNT - rtData->riResLodCount(ri_idx);
-  if (lodTranslation > 0 && !rtData->rtPoolData[ri_idx]->hasImpostor())
-    lodTranslation--;
-
-  RenderableInstanceResource *rendInstRes = rtData->riResLodScene(ri_idx, realLodI - lodTranslation);
-  uint32_t atestMask = rtData->riResElemMask[ri_idx * rendinst::MAX_LOD_COUNT + realLodI - lodTranslation].atest;
-  ShaderMesh *mesh = rendInstRes->getMesh()->getMesh()->getMesh();
-  dag::Span<ShaderMesh::RElem> elems = mesh->getElems(mesh->STG_opaque, last_stage);
-
-  int debugValue = realLodI - lodTranslation;
-#if DAGOR_DBGLEVEL > 0
-  if (debug_mesh::is_enabled(debug_mesh::Type::drawElements))
-  {
-    debugValue = 0;
-    uint32_t atestMaskTmp = atestMask;
-    for (unsigned int elemNo = 0; elemNo < elems.size(); elemNo++, atestMask >>= 1)
-    {
-      if (!elems[elemNo].e)
-        continue;
-      if ((atestMaskTmp & 1) == atest_skip_mask)
-        continue;
-      debugValue++;
-    }
-  }
-#endif
-  debug_mesh::set_debug_value(debugValue);
-
-  G_ASSERT(count > 0);
-  if (count <= max_instances)
-  {
-    rendinst::render::RiShaderConstBuffers::setInstancePositions((const float *)data, count);
-  }
-
-  bool prev_impostor = true;
-  const bool isBakedImpostor = rtData->riRes[ri_idx]->isBakedImpostor();
-  const bool isImpostor = !isBakedImpostor && (realLodI == remap_per_instance_lod_inv(RiGenVisibility::PI_IMPOSTOR_LOD));
-
-  for (unsigned int elemNo = 0; elemNo < elems.size(); elemNo++, atestMask >>= 1)
-  {
-    if (!elems[elemNo].e)
-      continue;
-    if ((atestMask & 1) == atest_skip_mask)
-      continue;
-
-    switch_states_for_impostors(context, isImpostor, prev_impostor);
-    prev_impostor = isImpostor;
-
-    ShaderMesh::RElem &elem = elems[elemNo];
-    if (realLodI <= RiGenVisibility::PI_LAST_MESH_LOD || isBakedImpostor || context.curShader != elem.e)
-    {
-      SWITCH_STATES_SHADER() // Render with original vdecl without any instancing elements.
-      SWITCH_STATES_VDATA()
-    }
-    else
-    {
-      G_ASSERT(rtData->riPosInst[ri_idx]); // assumption that we draw with impostor and don't need to switch shader
-    }
-    if (rtData->rtPoolData[ri_idx]->hasImpostor() && !isImpostor)
-    {
-      const auto tcConsts = rendinst::render::getCommonImmediateConstants();
-      const auto cacheOffset =
-        static_cast<uint32_t>(rtData->rtPoolData[ri_idx]->impostorDataOffsetCache & rendinst::gen::CACHE_OFFSET_MASK);
-      uint32_t immediateConsts[] = {cacheOffset, tcConsts[0], tcConsts[1]};
-      d3d::set_immediate_const(STAGE_PS, immediateConsts, sizeof(immediateConsts) / sizeof(immediateConsts[0]));
-    }
-    if (count <= max_instances)
-    {
-      if (isImpostor)
-        render_impostors_ofs(count, 0, 0);
-      else
-        d3d_err(elem.drawIndTriList(count));
-    }
-    else
-    {
-      const vec4f *curData = data;
-      for (int cnt = count; cnt > 0; cnt -= max_instances, curData += max_instances)
-      {
-        int currentCount = min<int>(max_instances, cnt);
-        rendinst::render::RiShaderConstBuffers::setInstancePositions((const float *)curData, currentCount);
-
-        if (isImpostor)
-          render_impostors_ofs(currentCount, 0, 0);
-        else
-        {
-          d3d_err(elem.drawIndTriList(currentCount));
-        }
-      }
-    }
-    if (rtData->rtPoolData[ri_idx]->hasImpostor() && !isImpostor)
-      d3d::set_immediate_const(STAGE_PS, nullptr, 0);
-  }
-  debug_mesh::reset_debug_value();
-}
-
-void RendInstGenData::renderPerInstance(rendinst::RenderPass render_pass, int lodI, int realLodI, const RiGenVisibility &visibility)
-{
-  rendinst::render::RiShaderConstBuffers cb;
-  cb.setOpacity(0.f, 2.f);
-  d3d::set_immediate_const(STAGE_VS, ZERO_PTR<uint32_t>(), 1);
-
-  RenderStateContext context;
-  bool isAlpha = false;
-  if (lodI == visibility.PI_ALPHA_LOD)
-    isAlpha = true;
-  const int max_instances = rendinst::render::MAX_INSTANCES;
-  const int last_stage = (render_pass == rendinst::RenderPass::Normal) ? ShaderMesh::STG_imm_decal : ShaderMesh::STG_atest;
-
-  for (int i = 0; i < (int)visibility.perInstanceVisibilityCells[lodI].size() - 1; ++i)
-  {
-    int ri_idx = visibility.perInstanceVisibilityCells[lodI][i].x;
-    G_ASSERT(rtData->rtPoolData[ri_idx]);
-    if (!rtData->rtPoolData[ri_idx])
-      continue;
-    G_ASSERTF(rtData->riPosInst[ri_idx], "rgLayer[%d]: non-posInst ri[%d]=%s", rtData->layerIdx, ri_idx,
-      rtData->riResName[ri_idx]); // one assumption
-    G_ASSERT(rtData->rtPoolData[ri_idx]->hasImpostor());
-
-    cb.setInstancing(0, 1,
-      rendinst::gen::get_rotation_palette_manager()->getImpostorDataBufferOffset({rtData->layerIdx, ri_idx},
-        rtData->rtPoolData[ri_idx]->impostorDataOffsetCache));
-
-    if (render_pass == rendinst::RenderPass::Normal)
-      cb.setRandomColors(&rtData->riColPair[ri_idx * 2 + 0]);
-
-    float range = rtData->get_trees_last_range(rtData->rtPoolData[ri_idx]->lodRange[rtData->riResLodCount(ri_idx) - 1]);
-    float deltaRcp = rtData->transparencyDeltaRcp / range;
-
-    float lodStartRange = safediv(visibility.crossDissolveRange[ri_idx], rendinst::render::lodsShiftDistMul);
-    cb.setCrossDissolveRange(lodStartRange);
-
-    if (visibility.forcedLod >= 0)
-    {
-      cb.setOpacity(0.f, 1.f, 0.f, 0.f);
-    }
-    else if (isAlpha)
-    {
-      if (render_pass == rendinst::RenderPass::Normal || render_pass == rendinst::RenderPass::Depth)
-      {
-        if (render_pass == rendinst::RenderPass::Normal)
-        {
-          float end_min_start = range / rtData->transparencyDeltaRcp;
-          float start_opacity = range - end_min_start;
-          float shadow_range = start_opacity * SHADOW_APPEAR_PART;
-          cb.setOpacity(-deltaRcp, range * deltaRcp, -(1.f / shadow_range), 1.f / SHADOW_APPEAR_PART);
-        }
-        else
-        {
-          cb.setOpacity(-deltaRcp, range * deltaRcp, 0.f, 0.f);
-        }
-      }
-    }
-    else if (render_pass == rendinst::RenderPass::ToShadow)
-    {
-      cb.setOpacity(-deltaRcp, range * deltaRcp, 0.f, 0.f);
-    }
-
-    if (lodI > visibility.PI_LAST_MESH_LOD || (rtData->rtPoolData[ri_idx]->hasTransitionLod() && lodI == visibility.PI_LAST_MESH_LOD))
-    {
-      rtData->rtPoolData[ri_idx]->setImpostor(cb, render_pass == rendinst::RenderPass::ToShadow);
-    }
-    else
-      rtData->rtPoolData[ri_idx]->setNoImpostor(cb);
-    cb.setInteractionParams(1,
-      rtData->riRes[ri_idx]->hasImpostor() ? rtData->riRes[ri_idx]->bsphRad
-                                           : rtData->riRes[ri_idx]->bbox.lim[1].y - rtData->riRes[ri_idx]->bbox.lim[0].y,
-      0.5 * (rtData->riRes[ri_idx]->bbox.lim[1].x + rtData->riRes[ri_idx]->bbox.lim[0].x),
-      0.5 * (rtData->riRes[ri_idx]->bbox.lim[1].z + rtData->riRes[ri_idx]->bbox.lim[0].z));
-
-    cb.flushPerDraw();
-
-    int start = visibility.perInstanceVisibilityCells[lodI][i].y;
-    int count = visibility.perInstanceVisibilityCells[lodI][i + 1].y - start;
-    G_ASSERT(visibility.max_per_instance_instances >= count);
-    renderInstances(ri_idx, realLodI, &visibility.instanceData[lodI][start], count, context, max_instances, visibility.atest_skip_mask,
-      last_stage);
-  }
-}
-
-void RendInstGenData::renderCrossDissolve(rendinst::RenderPass render_pass, int lodI, int realLodI, const RiGenVisibility &visibility)
-{
-  ShaderGlobal::set_int(rendinst::render::render_cross_dissolved_varId, 1);
-  RenderStateContext context;
-
-  rendinst::render::RiShaderConstBuffers cb;
-  const int max_instances = rendinst::render::MAX_INSTANCES;
-  const int last_stage = (render_pass == rendinst::RenderPass::Normal) ? ShaderMesh::STG_imm_decal : ShaderMesh::STG_atest;
-  d3d::set_immediate_const(STAGE_VS, ZERO_PTR<uint32_t>(), 1);
-
-  for (int i = 0; i < (int)visibility.perInstanceVisibilityCells[lodI].size() - 1; ++i)
-  {
-    int ri_idx = visibility.perInstanceVisibilityCells[lodI][i].x;
-    G_ASSERT(rtData->riPosInst[ri_idx]); // one assumption
-    G_ASSERT(rtData->rtPoolData[ri_idx]->hasImpostor());
-
-    cb.setInstancing(0, 1,
-      rendinst::gen::get_rotation_palette_manager()->getImpostorDataBufferOffset({rtData->layerIdx, ri_idx},
-        rtData->rtPoolData[ri_idx]->impostorDataOffsetCache));
-
-    if (render_pass == rendinst::RenderPass::Normal)
-      cb.setRandomColors(&rtData->riColPair[ri_idx * 2 + 0]);
-
-    float lodStartRange = safediv(visibility.crossDissolveRange[ri_idx], rendinst::render::lodsShiftDistMul);
-    float lodDissolveInvRange = 1.0f / TOTAL_CROSS_DISSOLVE_DIST;
-
-    cb.setCrossDissolveRange(lodStartRange);
-
-    if (render_pass == rendinst::RenderPass::ToShadow)
-    {
-      float range = rtData->get_trees_last_range(rtData->rtPoolData[ri_idx]->lodRange[rtData->riResLodCount(ri_idx) - 1]);
-      float deltaRcp = rtData->transparencyDeltaRcp / range;
-      cb.setOpacity(-deltaRcp, range * deltaRcp, lodDissolveInvRange, -lodStartRange * lodDissolveInvRange);
-    }
-    else
-    {
-      cb.setOpacity(0., 1., lodDissolveInvRange, -lodStartRange * lodDissolveInvRange);
-    }
-    if (lodI > RiGenVisibility::PI_LAST_MESH_LOD)
-    {
-      rtData->rtPoolData[ri_idx]->setImpostor(cb, render_pass == rendinst::RenderPass::ToShadow);
-    }
-    else
-      rtData->rtPoolData[ri_idx]->setNoImpostor(cb);
-
-    cb.setInteractionParams(1,
-      rtData->riRes[ri_idx]->hasImpostor() ? rtData->riRes[ri_idx]->bsphRad
-                                           : rtData->riRes[ri_idx]->bbox.lim[1].y - rtData->riRes[ri_idx]->bbox.lim[0].y,
-      0.5 * (rtData->riRes[ri_idx]->bbox.lim[1].x + rtData->riRes[ri_idx]->bbox.lim[0].x),
-      0.5 * (rtData->riRes[ri_idx]->bbox.lim[1].z + rtData->riRes[ri_idx]->bbox.lim[0].z));
-
-    cb.flushPerDraw();
-
-    int start = visibility.perInstanceVisibilityCells[lodI][i].y;
-    int count = visibility.perInstanceVisibilityCells[lodI][i + 1].y - start;
-    G_ASSERT(visibility.max_per_instance_instances >= count);
-    renderInstances(ri_idx, realLodI, &visibility.instanceData[lodI][start], count, context, max_instances, visibility.atest_skip_mask,
-      last_stage);
-  }
-  ShaderGlobal::set_int(rendinst::render::render_cross_dissolved_varId, 0);
-}
-
 void RendInstGenData::renderOptimizationDepthPrepass(const RiGenVisibility &visibility, const TMatrix &view_itm)
 {
-  if (!visibility.hasOpaque() || !rendinst::render::per_instance_visibility)
+  if (!visibility.hasOpaque())
     return;
-  for (int lodI = 0; lodI < min<int>(rendinst::MAX_LOD_COUNT, RiGenVisibility::PI_DISSOLVE_LOD1); ++lodI)
-  {
-    if (!visibility.perInstanceVisibilityCells[lodI].size())
-      continue;
-    TIME_D3D_PROFILE_NAME(riOptimizationPrepass,
-      rendinst::isRgLayerPrimary(rtData->layerIdx) ? "ri_depth_prepass" : "ri_depth_prepass_sec");
+  TIME_D3D_PROFILE_NAME(riOptimizationPrepass,
+    rendinst::isRgLayerPrimary(rtData->layerIdx) ? "ri_depth_prepass" : "ri_depth_prepass_sec");
 
-    set_up_left_to_shader(view_itm);
-    ShaderGlobal::set_real_fast(rendinst::render::lods_shift_dist_mul_varId,
-      rendinst::render::lodsShiftDistMul / rtData->rendinstDistMulImpostorTrees / rtData->impostorsDistAdditionalMul);
-    ShaderGlobal::setBlock(rendinst::render::rendinstDepthSceneBlockId, ShaderGlobal::LAYER_SCENE);
-    const rendinst::RenderPass renderPass = rendinst::RenderPass::Depth; // even rendinst::RenderPass::Normal WILL optimize pass, due
-                                                                         // to color_write off
-    ShaderGlobal::set_int_fast(rendinst::render::rendinstRenderPassVarId, eastl::to_underlying(renderPass));
+  set_up_left_to_shader(view_itm);
+  ShaderGlobal::set_real_fast(rendinst::render::lods_shift_dist_mul_varId,
+    rendinst::render::lodsShiftDistMul / rtData->rendinstDistMulImpostorTrees / rtData->impostorsDistAdditionalMul);
+  ShaderGlobal::setBlock(rendinst::render::rendinstDepthSceneBlockId, ShaderGlobal::LAYER_SCENE);
+  const rendinst::RenderPass renderPass = rendinst::RenderPass::Depth; // even rendinst::RenderPass::Normal WILL optimize pass, due
+                                                                       // to color_write off
+  ShaderGlobal::set_int_fast(rendinst::render::rendinstRenderPassVarId, eastl::to_underlying(renderPass));
 
-    rendinst::render::startRenderInstancing();
-    rendinst::render::setCoordType(rendinst::render::COORD_TYPE_POS_CB);
-    const int realLodI = remap_per_instance_lod_inv(lodI);
-    renderPerInstance(renderPass, lodI, realLodI, visibility);
-    rendinst::render::endRenderInstancing();
-    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-  }
+  rendinst::render::startRenderInstancing();
+
+  rendinst::render::RiGenRenderer renderer(renderPass, {}, true, false, rendinst::render::depth_prepass_for_impostors,
+    rendinst::render::depth_prepass_for_cells, perInstDataDwords, drawOrderVarId);
+
+  if (rendinst::render::per_instance_visibility)
+    renderer.addInstanceVisibleObjects(*rtData, visibility);
 
   if (rendinst::render::depth_prepass_for_cells)
   {
-    ShaderGlobal::setBlock(rendinst::render::rendinstDepthSceneBlockId, ShaderGlobal::LAYER_SCENE);
-    ShaderGlobal::set_int_fast(rendinst::render::rendinstRenderPassVarId, eastl::to_underlying(rendinst::RenderPass::Depth));
-    renderByCells(rendinst::RenderPass::Depth, {}, visibility, true, false);
-    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
+    ShaderGlobal::set_int_fast(isRenderByCellsVarId, 1);
+
+    WinAutoLock lock(rtData->updateVbResetCS);
+    d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rtData->cellsVb.getHeap().getBuf());
+    renderer.addCellVisibleObjects(*rtData, visibility, cells, {cellNumW, cellNumH});
   }
+
+  renderer.render(*rtData, visibility);
+
+  rendinst::render::endRenderInstancing();
+  ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
 }
 
 void rendinst::applyBurningDecalsToRi(const bbox3f &decal_bbox)
@@ -1382,7 +1113,7 @@ void RendInstGenData::sortRIGenVisibility(RiGenVisibility &visibility, const Poi
   };
   eastl::vector<Instance, framemem_allocator> instances;
 
-  for (int lodI = 0; lodI < min<int>(rendinst::MAX_LOD_COUNT, RiGenVisibility::PI_DISSOLVE_LOD1); ++lodI)
+  for (int lodI = 0; lodI < visibility.PI_IMPOSTOR_LOD; ++lodI)
   {
     if (visibility.perInstanceVisibilityCells[lodI].empty())
       continue;
@@ -1445,34 +1176,12 @@ void RendInstGenData::sortRIGenVisibility(RiGenVisibility &visibility, const Poi
   }
 }
 
-void RendInstGenData::renderPreparedOpaque(rendinst::RenderPass render_pass, const RiGenVisibility &visibility, bool depth_optimized,
-  int lodI, int realLodI, bool &isStarted)
-{
-  if (!visibility.perInstanceVisibilityCells[lodI].size())
-    return;
-  if (!isStarted)
-  {
-    rendinst::render::startRenderInstancing();
-    rendinst::render::setCoordType(rendinst::render::COORD_TYPE_POS_CB);
-    isStarted = true;
-  }
-  if (lodI == visibility.PI_DISSOLVE_LOD1 || lodI == visibility.PI_DISSOLVE_LOD0)
-    renderCrossDissolve(render_pass, lodI, realLodI, visibility);
-  else
-  {
-    if (lodI <= RiGenVisibility::PI_LAST_MESH_LOD && depth_optimized)
-      shaders::overrides::set(rendinst::render::afterDepthPrepassOverride);
-    renderPerInstance(render_pass, lodI, realLodI, visibility);
-    if (lodI <= RiGenVisibility::PI_LAST_MESH_LOD && depth_optimized)
-      shaders::overrides::reset();
-  }
-}
-
-void RendInstGenData::updateHeapVb()
+void RendInstGenData::updateHeapVbNoLock()
 {
   TIME_D3D_PROFILE(updateHeapVb);
 
-  ScopedLockWrite lock(rtData->riRwCs);
+  // To consider: maintain one combined generation for all cels and skip whole this loop when it's equal
+
   auto currentHeapGen = rtData->cellsVb.getManager().getHeapGeneration();
   dag::ConstSpan<int> ld = rtData->loaded.getList();
   for (auto ldi : ld)
@@ -1488,362 +1197,6 @@ void RendInstGenData::updateHeapVb()
   }
 }
 
-void RendInstGenData::renderByCells(rendinst::RenderPass render_pass, const rendinst::LayerFlags layer_flags,
-  const RiGenVisibility &visibility, bool optimization_depth_prepass, bool depth_optimized)
-{
-  TIME_D3D_PROFILE_NAME(render_ri_by_cells, (optimization_depth_prepass ? "render_ri_by_cells_depth" : "render_ri_by_cells"));
-
-  bool compatibilityMode = ::dgs_get_settings()->getBlockByNameEx("video")->getBool("compatibilityMode", false);
-  float grid2worldcellSz = grid2world * cellSz;
-
-  ScopedLockRead lock(rtData->riRwCs);
-
-  rendinst::render::startRenderInstancing();
-  ShaderGlobal::set_int_fast(isRenderByCellsVarId, 1);
-
-  RenderStateContext context;
-  bool isDepthPass = render_pass == rendinst::RenderPass::Depth || render_pass == rendinst::RenderPass::ToShadow;
-  const bool optimizeDepthPass = isDepthPass;
-  bool lastAtest = false;
-  bool lastPosInst = false;
-  bool lastCullNone = 0;
-  bool lastBurned = false;
-  int lastCellId = -1;
-  // render opaque
-  int wasImpostorType = -1;
-
-  rendinst::render::RiShaderConstBuffers cb;
-  cb.setOpacity(0.f, 2.f);
-  cb.setCrossDissolveRange(0);
-
-  float subCellOfsSize = grid2worldcellSz * ((rendinst::render::per_instance_visibility_for_everyone ? 0.75f : 0.25f) *
-                                              (rendinst::render::globalDistMul * 1.f / RendInstGenData::SUBCELL_DIV));
-
-
-  dag::ConstSpan<uint16_t> riResOrder = rtData->riResOrder;
-  if (render_pass == rendinst::RenderPass::Normal && layer_flags == rendinst::LayerFlag::Decals)
-    riResOrder = rtData->riResIdxPerStage[get_layer_index(rendinst::LayerFlag::Decals)];
-
-#if !_TARGET_STATIC_LIB
-  eastl::vector<unsigned, framemem_allocator> redirectionVector;
-  eastl::vector<uint8_t, framemem_allocator> drawOrders;
-#endif
-
-  rtData->updateVbResetCS.lock();
-  d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rtData->cellsVb.getHeap().getBuf());
-  auto currentHeapGen = rtData->cellsVb.getManager().getHeapGeneration();
-  G_UNUSED(currentHeapGen);
-  LinearHeapAllocatorSbuffer::Region lastInfo = {};
-
-  for (unsigned int ri_idx2 = 0; ri_idx2 < riResOrder.size(); ri_idx2++)
-  {
-    int ri_idx = riResOrder[ri_idx2];
-
-    if (!rtData->rtPoolData[ri_idx])
-      continue;
-    if (rtData->isHiddenId(ri_idx))
-      continue;
-
-    if (rendinst::isResHidden(rtData->riResHideMask[ri_idx]))
-      continue;
-
-    if (!visibility.renderRanges[ri_idx].hasOpaque() && !visibility.renderRanges[ri_idx].hasTransparent())
-      continue;
-
-    if (rtData->rtPoolData[ri_idx]->hasImpostor() &&
-        (render_pass == rendinst::RenderPass::Normal && layer_flags == rendinst::LayerFlag::Decals))
-      continue;
-
-    bool posInst = rtData->riPosInst[ri_idx] ? 1 : 0;
-    unsigned int stride = RIGEN_STRIDE_B(posInst, perInstDataDwords);
-    const uint32_t vectorsCnt = posInst ? 1 : 3 + RIGEN_ADD_STRIDE_PER_INST_B(perInstDataDwords) / RENDER_ELEM_SIZE_PACKED;
-
-    rendinst::render::setCoordType(posInst ? rendinst::render::COORD_TYPE_POS : rendinst::render::COORD_TYPE_TM);
-    float range = rtData->rtPoolData[ri_idx]->lodRange[rtData->riResLodCount(ri_idx) - 1];
-    range = rtData->rtPoolData[ri_idx]->hasImpostor() ? rtData->get_trees_last_range(range) : rtData->get_last_range(range);
-    float deltaRcp = rtData->transparencyDeltaRcp / range;
-
-    // set dist to lod1 (impostors for trees)
-    float initialLod0Range = rtData->rtPoolData[ri_idx]->lodRange[0];
-    float lod0Range =
-      rtData->rtPoolData[ri_idx]->hasImpostor() ? rtData->get_trees_range(initialLod0Range) : rtData->get_range(initialLod0Range);
-    ShaderGlobal::set_real_fast(invLod0RangeVarId, 1.f / max(lod0Range + subCellOfsSize, 1.f));
-
-    float lodStartRange = safediv(visibility.crossDissolveRange[ri_idx], rendinst::render::lodsShiftDistMul);
-    cb.setCrossDissolveRange(lodStartRange);
-
-    if (visibility.forcedLod >= 0)
-    {
-      cb.setOpacity(0.f, 1.f, 0.f, 0.f);
-    }
-    else if (render_pass == rendinst::RenderPass::Normal)
-    {
-      float end_min_start = range / rtData->transparencyDeltaRcp;
-      float start_opacity = range - end_min_start;
-      float shadow_range = start_opacity * SHADOW_APPEAR_PART;
-      cb.setOpacity(-deltaRcp, range * deltaRcp, -(1.f / shadow_range), 1.f / SHADOW_APPEAR_PART);
-    }
-    else
-    {
-      cb.setOpacity(-deltaRcp, range * deltaRcp);
-    }
-
-    if (render_pass == rendinst::RenderPass::Normal)
-      cb.setRandomColors(&rtData->riColPair[ri_idx * 2 + 0]);
-
-    rtData->rtPoolData[ri_idx]->setNoImpostor(cb);
-
-    ShaderGlobal::set_int_fast(rendinst::render::render_cross_dissolved_varId, 0);
-
-    const bool isBakedImpostor = rtData->riRes[ri_idx]->isBakedImpostor();
-    for (int lodI = rtData->riResFirstLod(ri_idx), lodCnt = rtData->riResLodCount(ri_idx); lodI <= lodCnt; ++lodI)
-    {
-      const bool isImpostorLod = lodI >= lodCnt - 1 && posInst ? 1 : 0;
-      int isImpostorType = !isBakedImpostor && rtData->rtPoolData[ri_idx]->hasImpostor() && isImpostorLod;
-      const bool isImpostor = (isImpostorType || (isBakedImpostor && isImpostorLod));
-      if (!rendinst::render::depth_prepass_for_impostors && optimization_depth_prepass && isImpostor)
-        continue;
-      int realLodI = remap_per_instance_lod_inv(lodI);
-
-      bool dissolveOut = false;
-      if (lodI == lodCnt && (!rendinst::render::vertical_billboards || !compatibilityMode))
-      {
-        context.curShader = nullptr;
-        ShaderGlobal::set_int_fast(rendinst::render::render_cross_dissolved_varId, 1);
-        dissolveOut = true;
-      }
-
-      G_ASSERT(lodI <= rendinst::MAX_LOD_COUNT);
-      uint32_t atestMask = rtData->riResElemMask[ri_idx * rendinst::MAX_LOD_COUNT + realLodI].atest;
-      uint32_t cullNoneMask = rtData->riResElemMask[ri_idx * rendinst::MAX_LOD_COUNT + realLodI].cullN;
-
-      if (!visibility.hasCells(ri_idx, lodI))
-        continue;
-      RenderableInstanceResource *rendInstRes = rtData->riResLodScene(ri_idx, realLodI);
-      ShaderMesh *mesh = rendInstRes->getMesh()->getMesh()->getMesh();
-      dag::Span<ShaderMesh::RElem> elems =
-        (render_pass == rendinst::RenderPass::Normal && layer_flags == rendinst::LayerFlag::Decals)
-          ? mesh->getElems(mesh->STG_decal)
-          : mesh->getElems(mesh->STG_opaque, render_pass == rendinst::RenderPass::Normal ? mesh->STG_imm_decal : mesh->STG_atest);
-      if (lodI == rtData->riResLodCount(ri_idx) - 1 || // impostor lod, all impostored rendinsts are put to impostor lod only to shadow
-          (rtData->rtPoolData[ri_idx]->hasTransitionLod() && lodI == rtData->riResLodCount(ri_idx) - 2))
-      {
-        rtData->rtPoolData[ri_idx]->setImpostor(cb, render_pass == rendinst::RenderPass::ToShadow);
-
-        // all impostored rendinsts are rendered with impostor only
-      }
-
-      cb.setInstancing(0, vectorsCnt,
-        rendinst::gen::get_rotation_palette_manager()->getImpostorDataBufferOffset({rtData->layerIdx, ri_idx},
-          rtData->rtPoolData[ri_idx]->impostorDataOffsetCache));
-
-      cb.setInteractionParams(0, rtData->riRes[ri_idx]->bbox.lim[1].y - rtData->riRes[ri_idx]->bbox.lim[0].y,
-        0.5 * (rtData->riRes[ri_idx]->bbox.lim[1].x + rtData->riRes[ri_idx]->bbox.lim[0].x),
-        0.5 * (rtData->riRes[ri_idx]->bbox.lim[1].z + rtData->riRes[ri_idx]->bbox.lim[0].z));
-
-      cb.flushPerDraw();
-
-      const bool afterDepthPrepass =
-        render_pass == rendinst::RenderPass::Normal && !isImpostor && depth_optimized && rendinst::render::depth_prepass_for_cells;
-
-      if (afterDepthPrepass)
-        shaders::overrides::set(rendinst::render::afterDepthPrepassOverride);
-
-#if !_TARGET_STATIC_LIB
-      bool isUsedRedirectionVector = VariableMap::isVariablePresent(drawOrderVarId) && render_pass == rendinst::RenderPass::Normal &&
-                                     layer_flags == rendinst::LayerFlag::Decals;
-
-      if (isUsedRedirectionVector)
-      {
-        redirectionVector.resize(elems.size());
-
-        // We assume that there only 3 draw_orders -1, 0, 1
-        const uint32_t MAX_ORDER_VARIANTS = 3;
-        eastl::array<uint32_t, MAX_ORDER_VARIANTS> orderStart = {0, 0, 0};
-
-        drawOrders.resize(elems.size());
-        for (int i = 0; i < elems.size(); ++i)
-        {
-          int drawOrder = 0;
-          elems[i].mat->getIntVariable(drawOrderVarId, drawOrder);
-          drawOrders[i] = sign(drawOrder) + 1;
-          orderStart[drawOrders[i]]++;
-        }
-
-        for (uint32_t i = 1; i < orderStart.size(); ++i)
-          orderStart[i] += orderStart[i - 1];
-        for (uint32_t i = orderStart.size() - 1; i > 0; --i)
-          orderStart[i] = orderStart[i - 1];
-        orderStart[0] = 0;
-
-        for (int i = 0; i < elems.size(); ++i)
-        {
-          int drawOrder = drawOrders[i];
-          redirectionVector[orderStart[drawOrder]] = i;
-          orderStart[drawOrder]++;
-        }
-      }
-#endif
-
-      int debugValue = realLodI;
-#if DAGOR_DBGLEVEL > 0
-      if (debug_mesh::is_enabled(debug_mesh::Type::drawElements)) // -V1051
-      {
-        debugValue = 0;
-        for (unsigned int elemNo = 0; elemNo < elems.size(); elemNo++, atestMask >>= 1, cullNoneMask >>= 1)
-        {
-          if (!elems[elemNo].e)
-            continue;
-          if ((atestMask & 1) == visibility.atest_skip_mask)
-            continue;
-        }
-      }
-#endif
-      debug_mesh::set_debug_value(debugValue);
-
-#if !_TARGET_STATIC_LIB
-      for (unsigned int elemRedir = 0; elemRedir < elems.size(); elemRedir++, atestMask >>= 1, cullNoneMask >>= 1)
-      {
-        unsigned int elemNo = (isUsedRedirectionVector) ? redirectionVector[elemRedir] : elemRedir;
-#else
-      for (unsigned int elemNo = 0; elemNo < elems.size(); elemNo++, atestMask >>= 1, cullNoneMask >>= 1)
-      {
-#endif
-        if (!elems[elemNo].e)
-          continue;
-        if ((atestMask & 1) == visibility.atest_skip_mask)
-          continue;
-        ShaderMesh::RElem &elem = elems[elemNo];
-
-        if (isImpostorType != wasImpostorType || !isImpostorType || !context.curShader)
-        {
-          if (isImpostorType != wasImpostorType)
-            context.curShader = nullptr;
-
-          bool switchVDECL = false;
-          if (optimizeDepthPass)
-          {
-            if (context.curShader && !(atestMask & 1) && !lastAtest && lastCullNone == (cullNoneMask & 1) && context.curShaderValid &&
-                (posInst == lastPosInst))
-            {
-              context.curShader = elem.e;
-            }
-            else
-              switchVDECL = true;
-            lastAtest = atestMask & 1;
-            lastCullNone = cullNoneMask & 1;
-          }
-          SWITCH_STATES_SHADER()
-
-          if (switchVDECL && !lastAtest && !dissolveOut) // tex Instancing sets it's own vdecl all the time, no matter what
-          {
-            d3d::setvdecl(rendinst::render::rendinstDepthOnlyVDECL);
-          }
-
-          lastPosInst = posInst;
-
-          switch_states_for_impostors(context, isImpostorType, wasImpostorType);
-          wasImpostorType = isImpostorType;
-        }
-
-        if (!context.curShader)
-        {
-          G_ASSERT(0);
-          continue;
-        }
-
-        for (int i = visibility.renderRanges[ri_idx].startCell[lodI], ie = visibility.renderRanges[ri_idx].endCell[lodI]; i < ie; i++)
-        {
-          int x = visibility.cellsLod[lodI][i].x;
-          int z = visibility.cellsLod[lodI][i].z;
-          int cellId = x + z * cellNumW;
-          if (cellId >= cells.size())
-          {
-            logerr("RiGenVisibility::cellsLod[%d][%d] contained an invalid cell (%d, %d) while rendering riGen!"
-                   " Cell dimensions were (%d, %d)",
-              lodI, i, x, z, cellNumW, cellNumH);
-            continue;
-          }
-          RendInstGenData::Cell &cell = cells[cellId];
-          RendInstGenData::CellRtData *crt_ptr = cell.isReady();
-          if (!crt_ptr)
-            continue;
-          RendInstGenData::CellRtData &crt = *crt_ptr;
-          G_ASSERT(crt.cellVbId);
-
-          bool burnedChanged = lastBurned != crt.burned;
-          if (lastCellId != cellId || (burnedChanged && rtData->rtPoolData[ri_idx]->hasImpostor()))
-          {
-            if (!RENDINST_FLOAT_POS || burnedChanged)
-            {
-              cb.setInteractionParams(crt.burned ? 1 : 0, rtData->riRes[ri_idx]->bsphRad,
-                0.5 * (rtData->riRes[ri_idx]->bbox.lim[1].x + rtData->riRes[ri_idx]->bbox.lim[0].x),
-                0.5 * (rtData->riRes[ri_idx]->bbox.lim[1].z + rtData->riRes[ri_idx]->bbox.lim[0].z));
-
-              rendinst::render::cell_set_encoded_bbox(cb, crt.cellOrigin, grid2worldcellSz, crt.cellHeight);
-              cb.flushPerDraw();
-            }
-
-            lastBurned = cell.rtData->burned;
-            lastCellId = cellId;
-            lastInfo = rtData->cellsVb.get(crt.cellVbId);
-            if (crt.heapGen != currentHeapGen) // driver is incapable of copy in thread
-              updateVb(crt, cellId);
-          }
-
-          G_ASSERT(visibility.getRangesCount(lodI, i) > 0);
-          for (int ri = 0, re = visibility.getRangesCount(lodI, i); ri < re; ++ri)
-          {
-#if DEBUG_RI
-            instances += visibility.getCount(lodI, i, ri);
-#endif
-            if (!isImpostorType)
-            {
-              SWITCH_STATES_VDATA()
-            }
-            G_ASSERT(crt.cellVbId);
-
-#if _TARGET_PC_WIN && DAGOR_DBGLEVEL > 0
-            d3d::driver_command(DRV3D_COMMAND_AFTERMATH_MARKER, (void *)rtData->riResName[ri_idx], /*copyname*/ (void *)(uintptr_t)1,
-              nullptr);
-#endif
-
-            const uint32_t ofs = visibility.getOfs(lodI, i, ri, stride);
-            const int count = visibility.getCount(lodI, i, ri);
-
-            G_ASSERT(ofs >= crt.pools[ri_idx].baseOfs);
-            G_ASSERT(count <= crt.pools[ri_idx].total);
-            G_ASSERT((count * stride + lastInfo.offset + ofs) <= rtData->cellsVb.getHeap().getBuf()->ressize());
-            G_ASSERT((count * stride + ofs) <= lastInfo.size);
-            G_ASSERT(count > 0);
-
-            uint32_t vecOfs = lastInfo.offset / RENDER_ELEM_SIZE + ofs * vectorsCnt / stride;
-            d3d::set_immediate_const(STAGE_VS, &vecOfs, 1);
-
-            if (isImpostorType)
-              render_impostors_ofs(count, vecOfs, vectorsCnt);
-            else
-              d3d_err(elem.drawIndTriList(count));
-          }
-        }
-      }
-      if (afterDepthPrepass)
-        shaders::overrides::reset();
-    }
-  }
-
-  rtData->updateVbResetCS.unlock();
-  ShaderGlobal::set_int_fast(rendinst::render::render_cross_dissolved_varId, 0);
-
-  rendinst::render::set_no_impostor_tex();
-
-  debug_mesh::reset_debug_value();
-
-  ShaderGlobal::set_int_fast(isRenderByCellsVarId, 0);
-
-  rendinst::render::endRenderInstancing();
-}
-
 void RendInstGenData::renderPreparedOpaque(rendinst::RenderPass render_pass, rendinst::LayerFlags layer_flags,
   const RiGenVisibility &visibility, const TMatrix &view_itm, bool depth_optimized)
 {
@@ -1853,9 +1206,6 @@ void RendInstGenData::renderPreparedOpaque(rendinst::RenderPass render_pass, ren
   if (!visibility.hasOpaque() && !visibility.hasTransparent())
     return;
 
-#if DEBUG_RI
-  int instances = 0;
-#endif
   set_up_left_to_shader(view_itm);
   ShaderGlobal::set_real_fast(rendinst::render::lods_shift_dist_mul_varId,
     rendinst::render::lodsShiftDistMul / rtData->rendinstDistMulImpostorTrees / rtData->impostorsDistAdditionalMul);
@@ -1868,39 +1218,39 @@ void RendInstGenData::renderPreparedOpaque(rendinst::RenderPass render_pass, ren
   ShaderGlobal::set_int_fast(rendinst::render::vertical_impostor_slicesVarId, rendinst::render::vertical_billboards ? 1 : 0);
 
   ShaderGlobal::set_real_fast(globalTranspVarId, 1.f); // Force not-transparent branch.
+
+  rendinst::render::RiGenRenderer renderer(render_pass, layer_flags, false, depth_optimized,
+    rendinst::render::depth_prepass_for_impostors, rendinst::render::depth_prepass_for_cells, perInstDataDwords, drawOrderVarId);
+
+  rendinst::render::startRenderInstancing();
+
   if (rendinst::render::per_instance_visibility &&
       !(render_pass == rendinst::RenderPass::Normal && layer_flags == rendinst::LayerFlag::Decals))
   {
-    bool isStarted = false;
-    for (int realLodI = 0; realLodI < rendinst::MAX_LOD_COUNT - 1; ++realLodI)
-    {
-      renderPreparedOpaque(render_pass, visibility, depth_optimized, realLodI, realLodI, isStarted);
-    }
-    // cross dissolve
-    renderPreparedOpaque(render_pass, visibility, depth_optimized, RiGenVisibility::PI_DISSOLVE_LOD0,
-      remap_per_instance_lod_inv(RiGenVisibility::PI_LAST_MESH_LOD), isStarted);
-    renderPreparedOpaque(render_pass, visibility, depth_optimized, RiGenVisibility::PI_DISSOLVE_LOD1,
-      remap_per_instance_lod_inv(RiGenVisibility::PI_IMPOSTOR_LOD), isStarted);
-    // impostor
-    renderPreparedOpaque(render_pass, visibility, depth_optimized, RiGenVisibility::PI_IMPOSTOR_LOD,
-      remap_per_instance_lod_inv(RiGenVisibility::PI_IMPOSTOR_LOD), isStarted);
-    // alpha
-    renderPreparedOpaque(render_pass, visibility, depth_optimized, RiGenVisibility::PI_ALPHA_LOD,
-      remap_per_instance_lod_inv(RiGenVisibility::PI_IMPOSTOR_LOD), isStarted);
-    if (isStarted)
-      rendinst::render::endRenderInstancing();
+    ShaderGlobal::set_int_fast(isRenderByCellsVarId, 0);
+    renderer.addInstanceVisibleObjects(*rtData, visibility);
   }
 
-  renderByCells(render_pass, layer_flags, visibility, false, depth_optimized);
+  ScopedLockRead lock(rtData->riRwCs);
+
+  updateHeapVbNoLock();
+
+  ShaderGlobal::set_int_fast(isRenderByCellsVarId, 1);
+
+  {
+    WinAutoLock lock(rtData->updateVbResetCS);
+    d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rtData->cellsVb.getHeap().getBuf());
+    renderer.addCellVisibleObjects(*rtData, visibility, cells, {cellNumW, cellNumH});
+  }
+
+  renderer.render(*rtData, visibility);
+
+  rendinst::render::endRenderInstancing();
 
   if (needToSetBlock)
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
 
   ShaderGlobal::set_int_fast(rendinst::render::render_cross_dissolved_varId, 0);
-
-#if DEBUG_RI
-  debug("opaque instances = %d", instances);
-#endif
 }
 
 void RendInstGenData::render(rendinst::RenderPass render_pass, const RiGenVisibility &visibility, const TMatrix &view_itm,
@@ -2238,7 +1588,10 @@ void rendinst::render::before_draw(RenderPass render_pass, const RiGenVisibility
 void rendinst::updateHeapVb()
 {
   FOR_EACH_RG_LAYER_RENDER (rgl, rgRenderMaskO)
-    rgl->updateHeapVb();
+  {
+    ScopedLockRead lock(rgl->rtData->riRwCs);
+    rgl->updateHeapVbNoLock();
+  }
 }
 
 

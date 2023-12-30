@@ -12,7 +12,7 @@ let statusText = {
 
 let logerrCache = persist("logerrCache", @() {})
 
-let function logerrOnce(text, key = null){
+function logerrOnce(text, key = null){
   let k = key ?? text
   if (k in logerrCache) {
     log(text)
@@ -22,7 +22,7 @@ let function logerrOnce(text, key = null){
   logerrCache[k] <- true
 }
 
-let function mkCb(url, onSuccess, onFail = null, isJson = true){
+function mkCb(url, onSuccess, onFail = null, isJson = true){
   return function(response){
     try{
       let status = response.status
@@ -49,10 +49,10 @@ let function mkCb(url, onSuccess, onFail = null, isJson = true){
   }
 }
 
-let function httpGetText(url, onSuccess, onFail = null){
+function httpGetText(url, onSuccess, onFail = null){
   httpRequest({ method = "GET", url, callback = mkCb(url, onSuccess, onFail, false)})
 }
-let function httpGetJson(url, onSuccess, onFail = null){
+function httpGetJson(url, onSuccess, onFail = null){
   httpRequest({ method = "GET", url, callback = mkCb(url, onSuccess, onFail, true)})
 }
 const DOC_ID = "ingame-notice"
@@ -87,13 +87,13 @@ function requestCurVersion(lang, onSuccess, onFail = null) {
   httpGetJson($"{legals_url}/api/v2/document/{DOC_ID}{langstr}", onSuccess, onFail)
 }
 
-let function requestDocument(lang, onSuccess, onFail=null) {
+function requestDocument(lang, onSuccess, onFail=null) {
   let lang_code = languageCodeMap?[lang]
   let lang_code_url = lang!=null ? $"{lang_code}/" : ""
   httpGetText($"{legals_url}/{lang_code_url}/{DOC_ID}?format=plain", onSuccess, onFail)
 }
 
-let function loadConfig(filePath, language, curLangLegalConfig) {
+function loadConfig(filePath, language, curLangLegalConfig) {
   try{
     let config = file_exists(filePath) ? parse_json(read_text_from_file(filePath)) : null
     local curLang = language.value.tolower()

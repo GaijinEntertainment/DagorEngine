@@ -39,7 +39,7 @@ struct RiExtraPool
   unsigned useShadow : 1, posInst : 1, destroyedColl : 1, immortal : 1, hasColoredShaders : 1, isTree : 1;
   unsigned hasOccluder : 1, largeOccluder : 1, isWalls : 1, useVsm : 1, usedInLandmaskHeight : 1;
   unsigned wasSavedToElems : 1, patchesHeightmap : 1, hasDynamicDisplacement : 1, usingClipmap : 1;
-  unsigned killsNearEffects : 1;
+  unsigned killsNearEffects : 1, hasTransitionLod : 1;
   uint8_t hideMask = 0;
   struct ElemMask
   {
@@ -157,6 +157,7 @@ struct RiExtraPool
     hasDynamicDisplacement(false),
     usingClipmap(false),
     killsNearEffects(false),
+    hasTransitionLod(false),
     destrStopsBullets(true)
   {
     memset(distSqLOD, 0, sizeof(distSqLOD));

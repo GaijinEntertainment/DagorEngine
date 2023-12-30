@@ -25,12 +25,6 @@ Tab<CleanupQueue::DelayedCleanup<Image, Image::CLEANUP_DESTROY>> &CleanupQueue::
 }
 
 template <>
-Tab<CleanupQueue::DelayedCleanup<Image, Image::CLEANUP_EVICT>> &CleanupQueue::getQueue()
-{
-  return imageEvictions;
-}
-
-template <>
 Tab<CleanupQueue::DelayedCleanup<Image, Image::CLEANUP_DELAYED_DESTROY>> &CleanupQueue::getQueue()
 {
   return imageDelayedDestructions;
@@ -80,6 +74,12 @@ template <>
 Tab<CleanupQueue::DelayedCleanup<RenderPassResource, RenderPassResource::CLEANUP_DESTROY>> &CleanupQueue::getQueue()
 {
   return renderPassDestructions;
+}
+
+template <>
+Tab<CleanupQueue::DelayedCleanup<SamplerResource, SamplerResource::CLEANUP_DESTROY>> &CleanupQueue::getQueue()
+{
+  return samplerDestructions;
 }
 
 } // namespace drv3d_vulkan

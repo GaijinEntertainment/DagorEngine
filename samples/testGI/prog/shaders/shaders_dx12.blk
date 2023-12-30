@@ -1,4 +1,4 @@
-include "shaders_pc11.blk"
+include "shaders_dx11.blk"
 "@delete-all:packBin":b=false; packBin:b=yes
 
 "@override:source"

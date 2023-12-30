@@ -14,14 +14,14 @@ let statusText = {
   [HTTP_ABORTED] = "ABORTED",
 }
 
-let function httpGet(url, callback){
+function httpGet(url, callback){
   httpRequest({
     url
     method = "GET"
     callback
   })
 }
-let function TaskHttpGet(url) {
+function TaskHttpGet(url) {
   return Task(function(rejectFn, resolveFn) {
     println($"http 'get' requested for '{url}'")
     httpRequest({
@@ -47,7 +47,7 @@ let UNRESOLVED = persist("UNRESOLVED", @() {})
 let RESOLVED = persist("RESOLVED", @() {})
 let REJECTED = persist("REJECTED", @() {})
 
-let function TaskHttpMultiGet(urls, rejectOne=@(x) x, resolveOne=@(x) x) {
+function TaskHttpMultiGet(urls, rejectOne=@(x) x, resolveOne=@(x) x) {
   assert(type(urls) == "array", @() $"expected urls as 'array' got '{type(urls)}'")
   assert(type(rejectOne) == "function" && type(resolveOne) == "function", "incorrect type of arguments")
   return Task(function(rejectFn, resolveFn) {
@@ -55,7 +55,7 @@ let function TaskHttpMultiGet(urls, rejectOne=@(x) x, resolveOne=@(x) x) {
     let res = array(total)
     let statuses = array(total, UNRESOLVED)
     local executed = false
-    let function checkStatus(){
+    function checkStatus(){
       let rejected = statuses.findindex(@(v) v==REJECTED) != null
       let resolved = !rejected && statuses.filter(@(v) v==RESOLVED).len() == total
       if (resolved && !executed){

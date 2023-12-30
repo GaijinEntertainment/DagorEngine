@@ -724,6 +724,8 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(strict_smart_pointers)>("strict_smart_pointers");
             addField<DAS_BIND_MANAGED_FIELD(no_init)>("no_init");
             addField<DAS_BIND_MANAGED_FIELD(strict_unsafe_delete)>("strict_unsafe_delete");
+            addField<DAS_BIND_MANAGED_FIELD(no_members_functions_in_struct)>("no_members_functions_in_struct");
+            addField<DAS_BIND_MANAGED_FIELD(no_local_class_members)>("no_local_class_members");
         // environment
             addField<DAS_BIND_MANAGED_FIELD(no_optimizations)>("no_optimizations");
             addField<DAS_BIND_MANAGED_FIELD(fail_on_no_aot)>("fail_on_no_aot");
@@ -736,6 +738,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(profile_module)>("profile_module");
         // jit
             addField<DAS_BIND_MANAGED_FIELD(jit)>("jit");
+            addField<DAS_BIND_MANAGED_FIELD(jit_module)>("jit_module");
         // threadlock context
             addField<DAS_BIND_MANAGED_FIELD(threadlock_context)>("threadlock_context");
         }
@@ -1161,7 +1164,7 @@ namespace das {
     };
 
     LineInfo getCurrentLineInfo( LineInfoArg * lineInfo ) {
-        return *lineInfo;
+        return lineInfo ? *lineInfo : LineInfo();
     }
 
     char * builtin_print_data ( void * data, const TypeInfo * typeInfo, Bitfield flags, Context * context ) {
@@ -1241,7 +1244,7 @@ namespace das {
                     info = pp->info;
                 }
             }
-            lineAt = info ? pp->line : nullptr;
+            lineAt = info ? pp->line : pp->functionLine;
             sp += info ? info->stackSize : pp->stackSize;
             depth --;
             if ( depth==0 ) return lineAt ? *lineAt : LineInfo();

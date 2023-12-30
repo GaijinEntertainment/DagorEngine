@@ -11,6 +11,7 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector_set.h>
 #include <EASTL/vector_map.h>
+#include <EASTL/string.h>
 #include <memory/dag_framemem.h>
 #include <render/toroidalHelper.h>
 #include <gpuObjects/placingParameters.h>
@@ -57,7 +58,17 @@ private:
   float boundingSphereRadius = 0;
 
   EventQueryHolder updateBboxesFence;
-  eastl::vector<eastl::pair<float, uint32_t>> appendOrder;
+  union AppendOrder
+  {
+    struct
+    {
+      unsigned idx;
+      float distSq;
+    };
+    uint64_t sortKey;
+    bool operator<(const AppendOrder &o) const { return sortKey < o.sortKey; }
+  };
+  eastl::vector<AppendOrder> appendOrder;
   eastl::vector<uint32_t> counters;
   eastl::vector<bbox3f> cellsBboxes;
   eastl::vector<uint32_t> matricesOffsets;
@@ -89,8 +100,7 @@ private:
   void processBboxes(const eastl::span<int32_t> &raw_bboxes);
   void copyMatrices(const eastl::vector<uint32_t> &cells_to_copy, const eastl::vector<uint32_t> &cell_counters, Sbuffer *dst_buffer,
     Sbuffer *src_buffer, uint32_t max_in_cell, uint32_t dst_offset_bytes);
-  eastl::vector<uint32_t> renderOrder;
-  String assetName;
+  eastl::string assetName;
   uint32_t riPoolOffset;
   SharedTexHolder mapTexId;
   int numLods;

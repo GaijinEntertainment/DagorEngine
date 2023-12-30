@@ -106,6 +106,7 @@ dag::Vector<String> get_subinterval_names(Interval interv);
 // returns SHVT_INT, SHVT_REAL, SHVT_COLOR4 or SHVT_TEXTURE
 int get_var_type(int variable_id);
 bool is_var_assumed(int variable_id);
+int get_interval_assumed_value(int variable_id);
 bool has_associated_interval(int variable_id);
 dag::ConstSpan<float> get_interval_ranges(int variable_id);
 dag::ConstSpan<float> get_interval_ranges(Interval interv);

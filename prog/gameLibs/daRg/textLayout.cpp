@@ -461,7 +461,7 @@ void FormattedText::format(const FormatParams &params)
       fontCtx.font = StdGuiRender::get_font(params.defFontId);
     }
     if (!fontCtx.font)
-      fatal("Fonts are broken: block fontId=%d defFontId=%d", block->fontId, params.defFontId);
+      DAG_FATAL("Fonts are broken: block fontId=%d defFontId=%d", block->fontId, params.defFontId);
     fontCtx.fontHt = block->fontHt;
 
     if (block->type == TextBlock::TBT_TEXT)

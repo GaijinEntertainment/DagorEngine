@@ -32,21 +32,10 @@ void Image::onDelayedCleanupFinish<Image::CLEANUP_DESTROY>()
   markDead();
 
   ResourceManager &rm = get_device().resources;
-  if (!isResident())
+  if (hostCopy)
     rm.free(hostCopy);
   rm.free(this);
 }
-
-template <>
-void Image::onDelayedCleanupFinish<Image::CLEANUP_EVICT>()
-{
-  ResourceAlgorithm<Image> alg(*this);
-  alg.evict();
-}
-
-template <>
-void Image::onDelayedCleanupBackend<Image::CLEANUP_EVICT>(ContextBackend &)
-{}
 
 template <>
 void Image::onDelayedCleanupFinish<Image::CLEANUP_DELAYED_DESTROY>()
@@ -73,7 +62,7 @@ void Image::destroyVulkanObject()
 
 SamplerInfo *Image::getSampler(SamplerState sampler_state)
 {
-  if (!cachedSampler || (sampler_state != cachedSamplerState))
+  if (!cachedSampler || !(sampler_state == cachedSamplerState))
   {
     cachedSampler = get_device().getSampler(sampler_state);
     cachedSamplerState = sampler_state;
@@ -146,7 +135,7 @@ void Image::createVulkanObject()
     if (!drvDev.checkImageCreate(ici, linearVariant))
     {
       if (!useFallbackFormat(ici))
-        fatal("vulkan: texture format %s not supported", linearVariant.getNameString());
+        DAG_FATAL("vulkan: texture format %s not supported", linearVariant.getNameString());
       else
         debug("vulkan: using %s format as fallback for %s", desc.format.getNameString(), linearVariant.getNameString());
     }
@@ -179,7 +168,7 @@ MemoryRequirementInfo Image::getMemoryReq()
 
 VkMemoryRequirements Image::getSharedHandleMemoryReq()
 {
-  fatal("vulkan: no image handle suballoc");
+  DAG_FATAL("vulkan: no image handle suballoc");
   return {};
 }
 
@@ -195,29 +184,65 @@ void Image::bindMemory()
   VULKAN_EXIT_ON_FAIL(dev.vkBindImageMemory(dev.get(), getHandle(), mem.deviceMemory(), mem.offset));
 }
 
-void Image::reuseHandle() { fatal("vulkan: no image handle suballoc"); }
+void Image::reuseHandle() { DAG_FATAL("vulkan: no image handle suballoc"); }
 
-void Image::releaseSharedHandle() { fatal("vulkan: no image handle suballoc"); }
+void Image::releaseSharedHandle() { DAG_FATAL("vulkan: no image handle suballoc"); }
 
 void Image::shutdown() { cleanupReferences(); }
 
 bool Image::nonResidentCreation()
 {
-  return false;
-  // TODO: residency is not ready yet
-  // debug("image %s created in non resident state", getDebugName());
-  // getHostCopyBuffer();
+  if (!isEvictable())
+    return false;
+
+  createVulkanObject();
+  return true;
 }
 
 void Image::evict() { cleanupReferences(); }
 
-void Image::restoreFromSysCopy() { doResidencyRestore(get_device().getContext()); }
+void Image::restoreFromSysCopy(ExecutionContext &ctx)
+{
+  // forward patching for layout
+  layout.resetTo(hostCopy ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED);
+  // was not evicted, created non-residently
+  if (!hostCopy)
+    return;
+  ctx.back.imageResidenceRestores.push_back(this);
+}
+
+void Image::delayedRestoreFromSysCopy(ExecutionContext &ctx, VulkanCommandBufferHandle cmdb)
+{
+  G_ASSERT(hostCopy);
+  carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
+  fillImage2BufferCopyData(copies, hostCopy);
+
+
+  ExecutionContext::PrimaryPipelineBarrier layoutSwitch(ctx.vkDev, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+    VK_PIPELINE_STAGE_TRANSFER_BIT);
+  layoutSwitch.modifyImageTemplate(this);
+  layoutSwitch.modifyImageTemplate({VK_ACCESS_NONE, VK_ACCESS_TRANSFER_WRITE_BIT});
+  layoutSwitch.modifyImageTemplate(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  layoutSwitch.modifyImageTemplate(0, (uint8_t)desc.ici.mipLevels, 0, (uint8_t)desc.ici.arrayLayers);
+  layoutSwitch.addImageByTemplate();
+  layoutSwitch.submit(cmdb);
+  VULKAN_LOG_CALL(ctx.vkDev.vkCmdCopyBufferToImage(cmdb, hostCopy->getHandle(), getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    desc.ici.mipLevels, copies.data()));
+
+  // TODO: make sure usage barrier is correct after this operation (should be generated srcless due to layout change)
+
+  ctx.back.contextState.frame.get().cleanups.enqueueFromBackend<Buffer::CLEANUP_DESTROY>(*hostCopy);
+  hostCopy = nullptr;
+}
 
 bool Image::isEvictable()
 {
-  // TODO: residency is not ready yet
-  return false;
-  // return (desc.memFlags & (MEM_DEDICATE_ALLOC | MEM_NOT_EVICTABLE)) == 0;
+  const VkImageUsageFlags transferableMask = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  if ((getUsage() & transferableMask) != transferableMask)
+    return false;
+  if (bindlessSlots.size())
+    return false;
+  return (desc.memFlags & MEM_NOT_EVICTABLE) == 0;
 }
 
 void Image::Description::fillAllocationDesc(AllocationDesc &alloc_desc) const
@@ -232,16 +257,6 @@ void Image::Description::fillAllocationDesc(AllocationDesc &alloc_desc) const
 }
 
 //////////////
-
-
-void Image::doResidencyRestore(DeviceContext &context)
-{
-  G_ASSERT(hostCopy);
-  carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
-  fillImage2BufferCopyData(copies, hostCopy);
-  context.copyHostCopyToImage(hostCopy, this, desc.ici.mipLevels, copies.data());
-  hostCopy = nullptr;
-}
 
 uint32_t Image::getSubresourceMaxSize()
 {
@@ -279,12 +294,12 @@ void Image::fillImage2BufferCopyData(carray<VkBufferImageCopy, MAX_MIPMAPS> &cop
   }
 }
 
-void Image::makeSysCopy()
+void Image::makeSysCopy(ExecutionContext &ctx)
 {
   Buffer *buf = getHostCopyBuffer();
   carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
   fillImage2BufferCopyData(copies, buf);
-  get_device().getContext().copyImageToHostCopyBuffer(this, buf, desc.ici.mipLevels, copies.data());
+  ctx.copyImageToBufferOrdered(buf, this, copies.data(), desc.ici.mipLevels);
 }
 
 void Image::cleanupReferences()

@@ -1549,7 +1549,7 @@ class FunctionReturnTypeEvaluator {
 
   CheckerVisitor *checker;
 
-  bool checkString(const Expr *e);
+  bool canBeString(const Expr *e);
 
 public:
 
@@ -1622,7 +1622,7 @@ void FunctionReturnTypeEvaluator::checkExpr(const Expr *expr) {
     break;
   case TO_MOD: {
     const BinExpr *b = static_cast<const BinExpr *>(expr);
-    if (checkString(b->rhs())) { // this special pattern 'o % "something"'
+    if (canBeString(b->rhs())) { // this special pattern 'o % "something"'
       flags |= RT_UNRECOGNIZED;
       break;
     }
@@ -1675,7 +1675,7 @@ void FunctionReturnTypeEvaluator::checkExpr(const Expr *expr) {
       flags |= RT_NOTHING;
       break;
   default:
-    if (checkString(expr))
+    if (canBeString(expr))
       flags |= RT_STRING;
     else
       flags |= RT_UNRECOGNIZED;
@@ -2254,7 +2254,7 @@ static bool nameLooksLikeFunctionMustReturnResult(const SQChar *funcName) {
   return nameInList;
 }
 
-static bool nameLooksLikeResultMustBeUtilised(const SQChar *name) {
+static bool nameLooksLikeResultMustBeUtilized(const SQChar *name) {
   return hasAnyEqual(name, SQCompilationContext::function_result_must_be_utilized);
 }
 
@@ -2823,7 +2823,7 @@ class CheckerVisitor : public Visitor {
 
   void checkAlwaysTrueOrFalse(const Expr *expr);
 
-  void checkForeachIteratorInClosure(const Id *id, const ValueRef *v);
+  void checkForeachIteratorCapturedByClosure(const Id *id, const ValueRef *v);
   void checkIdUsed(const Id *id, const Node *p, ValueRef *v);
 
   void reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc);
@@ -2832,9 +2832,8 @@ class CheckerVisitor : public Visitor {
   void checkContainerModification(const UnExpr *expr);
   void checkAndOrPriority(const BinExpr *expr);
   void checkBitwiseParenBool(const BinExpr *expr);
-  void checkCoalescingPriority(const BinExpr *expr);
+  void checkNullCoalescingPriority(const BinExpr *expr);
   void checkAssignmentToItself(const BinExpr *expr);
-  void checkGlobalVarCreation(const BinExpr *expr);
   void checkSameOperands(const BinExpr *expr);
   void checkAlwaysTrueOrFalse(const BinExpr *expr);
   void checkDeclarationInArith(const BinExpr *expr);
@@ -3037,8 +3036,8 @@ class CheckerVisitor : public Visitor {
   bool effectsOnly;
 
   void putIntoGlobalNamesMap(std::map<std::string, std::vector<IdLocation>> &map, enum DiagnosticsId diag, const SQChar *name, const Node *d);
-  void reportGlobalDeclaration(const SQChar *name, const Node *d);
-  void reportGlobalUsage(const SQChar *name, const Node *d);
+  void storeGlobalDeclaration(const SQChar *name, const Node *d);
+  void storeGlobalUsage(const SQChar *name, const Node *d);
 
 public:
 
@@ -3177,7 +3176,7 @@ void FunctionReturnTypeEvaluator::checkGetField(const GetFieldExpr *gf) {
 }
 
 void FunctionReturnTypeEvaluator::checkCall(const CallExpr *call) {
-  if (checkString(call)) {
+  if (canBeString(call)) {
     flags |= RT_STRING;
   }
 
@@ -3225,15 +3224,15 @@ void CheckerVisitor::putIntoGlobalNamesMap(std::map<std::string, std::vector<IdL
   }
 }
 
-void CheckerVisitor::reportGlobalDeclaration(const SQChar *name, const Node *d) {
+void CheckerVisitor::storeGlobalDeclaration(const SQChar *name, const Node *d) {
   putIntoGlobalNamesMap(declaredGlobals, DiagnosticsId::DI_GLOBAL_NAME_REDEF, name, d);
 }
 
-void CheckerVisitor::reportGlobalUsage(const SQChar *name, const Node *d) {
+void CheckerVisitor::storeGlobalUsage(const SQChar *name, const Node *d) {
   putIntoGlobalNamesMap(usedGlobals, DiagnosticsId::DI_UNDEFINED_GLOBAL, name, d);
 }
 
-bool FunctionReturnTypeEvaluator::checkString(const Expr *e) { return checker->couldBeString(e); }
+bool FunctionReturnTypeEvaluator::canBeString(const Expr *e) { return checker->couldBeString(e); }
 
 BreakableScope::BreakableScope(CheckerVisitor *v, const SwitchStatement *swtch) : visitor(v), kind(BSK_SWITCH), loopScope(nullptr), exitScope(nullptr), parent(v->breakScope) {
   node.swtch = swtch;
@@ -3302,7 +3301,7 @@ bool CheckerVisitor::isUpperCaseIdentifier(const Expr *e) {
   return true;
 }
 
-void CheckerVisitor::checkForeachIteratorInClosure(const Id *id, const ValueRef *v) {
+void CheckerVisitor::checkForeachIteratorCapturedByClosure(const Id *id, const ValueRef *v) {
   if (effectsOnly)
     return;
 
@@ -3310,7 +3309,6 @@ void CheckerVisitor::checkForeachIteratorInClosure(const Id *id, const ValueRef 
     return;
 
   const FunctionDecl *thisScopeOwner = currentScope->owner;
-  const FunctionDecl *vOwnerScope = v->info->ownedScope->owner;
 
   if (v->info->ownedScope->owner == currentScope->owner)
     return;
@@ -3384,10 +3382,10 @@ void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
   if (e && isAssignExpr(e)) {
     const BinExpr *bin = static_cast<const BinExpr *>(e);
     const Expr *lhs = bin->lhs();
-    const Expr *rhs = bin->rhs();
+    Expr *rhs = bin->rhs();
     bool simpleAsgn = e->op() == TO_ASSIGN || e->op() == TO_INEXPR_ASSIGN;
     if (id == lhs) {
-      bool used = v->info->usedAfterAssign || existsInTree(id, bin->rhs());
+      bool used = v->info->usedAfterAssign || existsInTree(id, rhs);
       //if (!used && assigned && simpleAsgn) {
       //  if (!v->lastAssigneeScope || currentScope->owner == v->lastAssigneeScope->owner)
       //    report(bin, DiagnosticsId::DI_REASSIGN_WITH_NO_USAGE);
@@ -3547,13 +3545,14 @@ void CheckerVisitor::reportModifyIfContainer(const Expr *e, const Expr *mod) {
   report(mod, DiagnosticsId::DI_MODIFIED_CONTAINER);
 }
 
-static bool stringLooksLikePattern(const SQChar *s) {
 
+static bool stringLooksLikeFormatTemplate(const SQChar *s) {
   const SQChar *bracePtr = strchr(s, '{');
   if (bracePtr && (isalpha(bracePtr[1]) || bracePtr[1] == '_'))
   {
-    bool isBlk = (strstr(s, ":i=") || strstr(s, ":r=") || strstr(s, ":t=") || strstr(s, ":p2=") || strstr(s, ":p3=") || strstr(s, ":tm="));
-    return !isBlk && bracePtr[1] && strchr(bracePtr + 2, '}');
+    // check for strings specific to Dagor DataBlock objects
+    bool isDagorBlk = (strstr(s, ":i=") || strstr(s, ":r=") || strstr(s, ":t=") || strstr(s, ":p2=") || strstr(s, ":p3=") || strstr(s, ":tm="));
+    return !isDagorBlk && bracePtr[1] && strchr(bracePtr + 2, '}');
   }
 
   return false;
@@ -3581,7 +3580,7 @@ void CheckerVisitor::checkForgotSubst(const LiteralExpr *l) {
   }
 
   const SQChar *s = l->s();
-  if (!stringLooksLikePattern(s)) {
+  if (!stringLooksLikeFormatTemplate(s)) {
     return;
   }
 
@@ -3656,7 +3655,7 @@ void CheckerVisitor::checkBitwiseParenBool(const BinExpr *expr) {
   }
 }
 
-void CheckerVisitor::checkCoalescingPriority(const BinExpr *expr) {
+void CheckerVisitor::checkNullCoalescingPriority(const BinExpr *expr) {
   if (effectsOnly)
     return;
 
@@ -3665,11 +3664,11 @@ void CheckerVisitor::checkCoalescingPriority(const BinExpr *expr) {
 
   if (expr->op() == TO_NULLC) {
     if (isSuspiciousNeighborOfNullCoalescing(l->op())) {
-      report(l, DiagnosticsId::DI_NULL_COALESCING_PRIOR, treeopStr(l->op()));
+      report(l, DiagnosticsId::DI_NULL_COALESCING_PRIORITY, treeopStr(l->op()));
     }
 
     if (isSuspiciousNeighborOfNullCoalescing(r->op())) {
-      report(r, DiagnosticsId::DI_NULL_COALESCING_PRIOR, treeopStr(r->op()));
+      report(r, DiagnosticsId::DI_NULL_COALESCING_PRIORITY, treeopStr(r->op()));
     }
   }
 }
@@ -3691,18 +3690,6 @@ void CheckerVisitor::checkAssignmentToItself(const BinExpr *expr) {
   }
 }
 
-void CheckerVisitor::checkGlobalVarCreation(const BinExpr *expr) {
-  if (effectsOnly)
-    return;
-
-  const Expr *l = expr->lhs();
-
-  if (expr->op() == TO_NEWSLOT) {
-    if (l->op() == TO_ID) {
-      report(expr, DiagnosticsId::DI_GLOBAL_VAR_CREATE);
-    }
-  }
-}
 
 void CheckerVisitor::checkSameOperands(const BinExpr *expr) {
 
@@ -3749,8 +3736,6 @@ void CheckerVisitor::checkTernaryPriority(const TerExpr *expr) {
     return;
 
   const Expr *cond = expr->a();
-  const Expr *thenExpr = expr->b();
-  const Expr *elseExpr = expr->c();
 
   if (isSuspiciousTernaryConditionOp(cond->op())) {
     const BinExpr *binCond = static_cast<const BinExpr *>(cond);
@@ -4362,7 +4347,7 @@ void CheckerVisitor::checkNewGlobalSlot(const BinExpr *bin) {
   if (gf->receiver()->op() != TO_ROOT)
     return;
 
-  reportGlobalDeclaration(gf->fieldName(), bin);
+  storeGlobalDeclaration(gf->fieldName(), bin);
 }
 
 void CheckerVisitor::checkUselessNullC(const BinExpr *bin) {
@@ -4888,7 +4873,8 @@ void CheckerVisitor::checkContainerModification(const CallExpr *call) {
   reportModifyIfContainer(callee->asAccessExpr()->receiver(), call);
 }
 
-static bool isUnderemnitaed(const Expr *e) {
+// rename it to `isTemporaryObject` ?
+static bool isIndeterminated(const Expr *e) {
   e = deparen(e);
 
   if (e->op() == TO_NULLC) { // -V522
@@ -4930,7 +4916,7 @@ void CheckerVisitor::checkUnwantedModification(const CallExpr *call) {
       return;
   }
 
-  if (isUnderemnitaed(callee->asAccessExpr()->receiver()))
+  if (isIndeterminated(callee->asAccessExpr()->receiver()))
     report(call, DiagnosticsId::DI_UNWANTED_MODIFICATION, name);
 }
 
@@ -5082,7 +5068,7 @@ void CheckerVisitor::visitId(Id *id) {
   if (!v)
     return;
 
-  checkForeachIteratorInClosure(id, v);
+  checkForeachIteratorCapturedByClosure(id, v);
   checkIdUsed(id, parentNode, v);
 }
 
@@ -5095,9 +5081,8 @@ void CheckerVisitor::visitUnExpr(UnExpr *expr) {
 void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkAndOrPriority(expr);
   checkBitwiseParenBool(expr);
-  checkCoalescingPriority(expr);
+  checkNullCoalescingPriority(expr);
   checkAssignmentToItself(expr);
-  //checkGlobalVarCreation(expr); // seems this check is no longer has any sense
   checkSameOperands(expr);
   checkAlwaysTrueOrFalse(expr);
   checkDeclarationInArith(expr);
@@ -5287,7 +5272,7 @@ void CheckerVisitor::checkGlobalAccess(const GetFieldExpr *expr) {
       return;
   }
 
-  reportGlobalUsage(expr->fieldName(), expr);
+  storeGlobalUsage(expr->fieldName(), expr);
 }
 
 void CheckerVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
@@ -5344,7 +5329,7 @@ void CheckerVisitor::checkMissedBreak(const SwitchStatement *swtch) {
 
     const Statement *stmt = c.stmt;
     bool r = false;
-    unsigned f = rtEvaluator.compute(stmt, r);
+    rtEvaluator.compute(stmt, r);
     if (!r) {
       const Statement *uw = unwrapBodyNonEmpty(stmt);
 
@@ -5480,7 +5465,6 @@ void CheckerVisitor::checkVariableMismatchForLoop(ForStatement *loop) {
       BinExpr *bin = static_cast<BinExpr *>(cond);
       Expr *l = bin->lhs();
       Expr *r = bin->rhs();
-      bool idUsed = false;
 
       if (l->op() == TO_ID) {
         if (strcmp(l->asId()->id(), varname) != 0) {
@@ -5721,7 +5705,7 @@ bool CheckerVisitor::isCallResultShouldBeUtilized(const SQChar *name, const Call
   if (!name)
     return false;
 
-  if (nameLooksLikeResultMustBeUtilised(name)) {
+  if (nameLooksLikeResultMustBeUtilized(name)) {
     return true;
   }
 
@@ -6434,9 +6418,6 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     const Expr *lhs = deparen(bin->lhs());
     const Expr *rhs = deparen(bin->rhs());
 
-    const Id *lhs_id = lhs->op() == TO_ID ? lhs->asId() : nullptr; // -V522
-    const Id *rhs_id = rhs->op() == TO_ID ? rhs->asId() : nullptr; // -V522
-
     const LiteralExpr *lhs_lit = lhs->op() == TO_LITERAL ? lhs->asLiteral() : nullptr; // -V522
     const LiteralExpr *rhs_lit = rhs->op() == TO_LITERAL ? rhs->asLiteral() : nullptr; // -V522
 
@@ -7060,7 +7041,6 @@ void CheckerVisitor::applyAssignEqToScope(const BinExpr *bin) {
   assert(TO_PLUSEQ <= bin->op() && bin->op() <= TO_MODEQ);
 
   const Expr *lhs = bin->lhs();
-  const Expr *rhs = bin->rhs();
 
   SQChar buffer[128] = { 0 };
   const SQChar *name = computeNameRef(lhs, buffer, sizeof buffer);
@@ -7649,7 +7629,7 @@ void CheckerVisitor::visitVarDecl(VarDecl *decl) {
 void CheckerVisitor::visitConstDecl(ConstDecl *cnst) {
 
   if (cnst->isGlobal()) {
-    reportGlobalDeclaration(cnst->name(), cnst);
+    storeGlobalDeclaration(cnst->name(), cnst);
   }
 
   SymbolInfo *info = makeSymbolInfo(SK_CONST);
@@ -7668,7 +7648,7 @@ void CheckerVisitor::visitConstDecl(ConstDecl *cnst) {
 void CheckerVisitor::visitEnumDecl(EnumDecl *enm) {
 
   if (enm->isGlobal()) {
-    reportGlobalDeclaration(enm->name(), enm);
+    storeGlobalDeclaration(enm->name(), enm);
   }
 
   SymbolInfo *info = makeSymbolInfo(SK_ENUM);
@@ -7820,7 +7800,6 @@ void NameShadowingChecker::loadBindings(const HSQOBJECT *bindings) {
 
     while ((idx = table->Next(false, pos, key, val)) >= 0) {
       if (sq_isstring(key)) {
-        SQInteger len = _string(key)->_len;
         const SQChar *s = _string(key)->_val;
         SymbolInfo *info = newSymbolInfo(SK_EXTERNAL_BINDING);
         declareSymbol(s, info);

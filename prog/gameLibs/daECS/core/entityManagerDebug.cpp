@@ -331,13 +331,13 @@ struct TrackAccessRecord
 
   ecs::template_t templateId = ecs::INVALID_TEMPLATE_INDEX;
 
-  const bool operator==(const TrackAccessRecord &rhs) const
+  bool operator==(const TrackAccessRecord &rhs) const
   {
     return op == rhs.op && templateId == rhs.templateId && details == rhs.details &&
            eastl::equal(stack.begin(), stack.end(), rhs.stack.begin());
   }
 
-  const uint32_t getHash() const { return ecs::ecs_hash(details) ^ hash_int(templateId) ^ eastl::hash<Callstack>()(stack); }
+  uint32_t getHash() const { return ecs::ecs_hash(details) ^ hash_int(templateId) ^ eastl::hash<Callstack>()(stack); }
 };
 
 struct TrackAccessRecordWithDups : TrackAccessRecord

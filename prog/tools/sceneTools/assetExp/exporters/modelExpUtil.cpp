@@ -4,7 +4,7 @@
 #include <assets/assetMsgPipe.h>
 #include <libTools/dagFileRW/dagUtil.h>
 #include <libTools/dagFileRW/dagFileNode.h>
-#include <libTools/util/makeBinDump.h>
+#include <libTools/util/makeBindump.h>
 #include <libTools/shaderResBuilder/processMat.h>
 #include <libTools/shaderResBuilder/globalVertexDataConnector.h>
 #include <shaders/dag_shaders.h>

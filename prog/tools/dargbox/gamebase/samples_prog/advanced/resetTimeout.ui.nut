@@ -14,7 +14,7 @@ gui_scene.resetTimeout(1, @() addLog("Incorrect func after 1 sec called"))
 gui_scene.resetTimeout(2, @() addLog("Incorrect func after 2 sec called"))
 gui_scene.resetTimeout(3, @() addLog("Incorrect func after 3 sec called"))
 
-let function autoCallback(delay) {
+function autoCallback(delay) {
   let localFunc = @() addLog($"Local anonymous func after {delay} sec called")
   gui_scene.resetTimeout(delay, localFunc)
 }

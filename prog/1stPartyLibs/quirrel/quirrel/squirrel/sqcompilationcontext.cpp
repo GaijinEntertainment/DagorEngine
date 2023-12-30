@@ -398,8 +398,8 @@ bool SQCompilationContext::isDisabled(enum DiagnosticsId id, int line, int pos) 
 
   char suppressFileIntBuf[64] = { 0 };
   char suppressFileTextBuf[128] = { 0 };
-  int fi = snprintf(suppressFileIntBuf, sizeof(suppressFileIntBuf), "-file:%c%d", severityPrefixes[descriptor.severity], descriptor.id);
-  int ft = snprintf(suppressFileTextBuf, sizeof(suppressFileTextBuf), "-file:%s", descriptor.textId);
+  snprintf(suppressFileIntBuf, sizeof(suppressFileIntBuf), "-file:%c%d", severityPrefixes[descriptor.severity], descriptor.id);
+  snprintf(suppressFileTextBuf, sizeof(suppressFileTextBuf), "-file:%s", descriptor.textId);
 
   for (auto &lineComments : _comments->commentsList()) {
     for (auto &comment : lineComments) {
@@ -452,7 +452,7 @@ void SQCompilationContext::vrenderDiagnosticHeader(enum DiagnosticsId diag, std:
   auto &desc = diagnosticDescriptors[diag];
   char tempBuffer[2048] = { 0 };
 
-  int32_t i = snprintf(tempBuffer, sizeof tempBuffer, "%s: ", severityNames[desc.severity]);
+  snprintf(tempBuffer, sizeof tempBuffer, "%s: ", severityNames[desc.severity]);
 
   message.append(tempBuffer);
 
@@ -461,7 +461,7 @@ void SQCompilationContext::vrenderDiagnosticHeader(enum DiagnosticsId diag, std:
     message.append(tempBuffer);
   }
 
-  int len = vsnprintf(tempBuffer, sizeof tempBuffer, desc.format, vargs);
+  vsnprintf(tempBuffer, sizeof tempBuffer, desc.format, vargs);
 
   message.append(tempBuffer);
 }

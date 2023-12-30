@@ -4,9 +4,12 @@
 #include "device_memory.h"
 #include "device_resource.h"
 #include "device_memory_pages.h"
+#include <atomic>
 
 namespace drv3d_vulkan
 {
+
+class ExecutionContext;
 
 enum class AllocationMethodName
 {
@@ -260,7 +263,7 @@ class SuballocPow2Allocator final : public AbstractAllocator
   VkDeviceSize pageSize;
 
 public:
-  ~SuballocPow2Allocator() = default;
+  ~SuballocPow2Allocator() {}
   void init() override;
   void shutdown() override;
 
@@ -291,7 +294,7 @@ class SuballocFreeListAllocator final : public AbstractAllocator
   VkDeviceSize bigBucketMinSize;
 
 public:
-  ~SuballocFreeListAllocator() = default;
+  ~SuballocFreeListAllocator() {}
   void init() override;
   void shutdown() override;
 
@@ -319,7 +322,7 @@ class SuballocRingedAllocator final : public AbstractAllocator
 #endif
 
 public:
-  ~SuballocRingedAllocator() = default;
+  ~SuballocRingedAllocator() {}
   void init() override;
   void shutdown() override;
 
@@ -391,6 +394,8 @@ class ResourceManager
   bool allocMemoryIter(const AllocationDesc &desc, const AllocationMethodPriorityList &list, ResourceMemory &mem,
     const DeviceMemoryTypeRange &mem_types);
 
+  std::atomic<uint32_t> outOfMemorySignal;
+
   //// res storage
 
   template <typename ResType>
@@ -401,6 +406,7 @@ class ResourceManager
     ObjectPool<Image> image;
     ObjectPool<Buffer> buffer;
     ObjectPool<RenderPassResource> renderPass;
+    ObjectPool<SamplerResource> sampler;
 #if D3D_HAS_RAY_TRACING
     ObjectPool<RaytraceAccelerationStructure> as;
 #endif
@@ -411,50 +417,8 @@ class ResourceManager
   WinCritSec *sharedGuard;
 
 public:
-  // TODO: finish this on fly/in frame residency concept
-  //  template<typename TCtx>
-  //  class ResidencyContext
-  //  {
-  //    TCtx& context;
-  //    ResourceManager& resources;
-
-  // public:
-  //   ResidencyContext(TCtx& in_context, ResourceManager& in_resources)
-  //    : context(in_context)
-  //    , resources(in_resources)
-  //   {
-  //     debug("vulkan: residency+");
-  //     context.finishPendingFrames();
-  //   }
-
-  //   ~ResidencyContext()
-  //   {
-  //     debug("vulkan: residency-");
-  //   }
-
-  //   ResidencyContext(const ResidencyContext&) = delete;
-
-  //   template<typename ResType>
-  //   void makeResident(ResType* res)
-  //   {
-  //     SharedGuardedObjectAutoLock lock(resources);
-  //     while (resources.evictResourcesFor(res->getMemory().originalSize))
-  //     {
-  //       ResourceAlgorithm<ResType> alg(*res);
-  //       if (alg.makeResident())
-  //         return;
-  //     }
-
-  //     //we can't make resource resident when we need it
-  //     //this is an OOM
-  //     res->reportOutOfMemory();
-  //   }
-
-  // };
-
-  bool aliasAcquire(ResourceMemoryId memory_id);
-  void aliasRelease(ResourceMemoryId memory_id);
-  bool evictResourcesFor(VkDeviceSize desired_size);
+  bool evictResourcesFor(ExecutionContext &ctx, VkDeviceSize desired_size, bool evict_used);
+  void processPendingEvictions();
 
   //////////
 
@@ -466,12 +430,23 @@ public:
   const ResourceMemory &getMemory(ResourceMemoryId memory_id);
   VulkanDeviceMemoryHandle getDeviceMemoryHandle(ResourceMemoryId memory_id);
 
+  void consumeOutOfMemorySignal()
+  {
+    if (outOfMemorySignal > 0)
+      --outOfMemorySignal;
+  }
+
+  bool isOutOfMemorySignalReceived() { return outOfMemorySignal > 0; }
+
+  void triggerOutOfMemorySignal() { ++outOfMemorySignal; }
+
   template <typename ResType>
   ResType *alloc(const typename ResType::Description desc, bool manage = true)
   {
     ResType *ret = resPool<ResType>().allocate(desc, manage);
     ResourceAlgorithm<ResType> alg(*ret);
-    alg.create();
+    if (alg.create() != ResourceAlgorithm<ResType>::CreateResult::OK)
+      triggerOutOfMemorySignal();
     return ret;
   }
 

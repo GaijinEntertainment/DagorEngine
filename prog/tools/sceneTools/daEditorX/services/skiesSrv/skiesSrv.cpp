@@ -162,7 +162,7 @@ public:
           continue;
         String fn(260, "%s/%s", dir, ff.name);
         dd_simplify_fname_c(fn);
-        strlwr(fn);
+        dd_strlwr(fn);
         weatherPresetFn.push_back() = fn;
       } while (dd_find_next(&ff));
       dd_find_close(&ff);
@@ -172,7 +172,7 @@ public:
     for (int i = 0; i < weatherPresetFn.size(); i++)
     {
       simplify_fname(weatherPresetFn[i]);
-      strlwr(weatherPresetFn[i]);
+      dd_strlwr(weatherPresetFn[i]);
     }
 
     DataBlock wblk(weatherTypesFn);

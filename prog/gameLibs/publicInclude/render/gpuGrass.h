@@ -219,6 +219,8 @@ public:
   int getMaskResolution() const { return maskResolution; }
 
   void invalidate(bool regenerate = true);
+  void invalidateBoxes(const dag::ConstSpan<BBox2> &boxes);
+  void invalidateBoxes(const dag::ConstSpan<BBox3> &boxes);
 
 protected:
   void generateGrass(const Point2 &next_pos, const Point3 &view_dir, float min_ht, float max_ht, IRandomGrassRenderHelper &cb);
@@ -231,6 +233,7 @@ protected:
   TextureIDHolderWithVar maskTex, colorTex;
   ToroidalHelper maskTexHelper;
   shaders::UniqueOverrideStateId flipCullStateId;
+  eastl::vector<BBox2> boxesForInvalidation;
   Point2 lastGenPos = {100000, -10000};
   int maskResolution = 512;
 };

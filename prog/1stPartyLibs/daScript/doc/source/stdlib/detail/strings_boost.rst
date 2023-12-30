@@ -17,3 +17,5 @@
 .. |function-strings_boost-replace_multiple| replace:: Replace multiple substrings in string.
 
 .. |function-strings_boost-is_hex| replace:: Returns true if character is hex digit.
+
+.. |function-strings_boost-is_tab_or_space| replace:: Returns true if character is tab or space.

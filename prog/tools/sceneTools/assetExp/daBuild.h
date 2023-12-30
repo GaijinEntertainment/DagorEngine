@@ -35,8 +35,6 @@ struct AssetPack
 
 #define IMPORTANT_NOTE ((ILogWriter::MessageType)(ILogWriter::NOTE | 0x100))
 
-bool loadAssetBase(DagorAssetMgr &mgr, const char *app_dir, const DataBlock &appblk, IGenericProgressIndicator &pbar, ILogWriter &log);
-
 bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, const char *profile,
   dag::ConstSpan<const char *> pack_to_build, dag::ConstSpan<const char *> folder_restrict, dag::ConstSpan<bool> exp_types_mask,
   const DataBlock &appblk, IGenericProgressIndicator &pbar, ILogWriter &log, bool export_tex = true, bool export_res = true);
@@ -93,6 +91,7 @@ extern bool dabuild_dry_run;
 extern bool dabuild_strip_d3d_res;
 extern bool dabuild_collapse_packs;
 
+extern bool dabuild_stop_on_first_error;
 extern bool dabuild_skip_any_build;
 extern bool dabuild_force_dxp_rebuild;
 extern bool dabuild_build_tex_separate;

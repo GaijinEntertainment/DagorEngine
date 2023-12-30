@@ -4,6 +4,8 @@
 
 namespace das
 {
+    struct ExprClone;
+
     struct ExprReader : Expression {
         ExprReader () { __rtti = "ExprReader"; }
         ExprReader ( const LineInfo & a, const ReaderMacroPtr & rm )
@@ -224,6 +226,7 @@ namespace das
         string              name;
         VariablePtr         variable;
         ExprBlock *         pBlock = nullptr;
+        ExprClone *         underClone = nullptr;
         int                 argumentIndex = -1;
         union {
             struct {
@@ -1372,6 +1375,7 @@ namespace das
             struct {
                 bool useInitializer : 1;
                 bool isNewHandle : 1;
+                bool usedInitializer : 1;
             };
             uint32_t makeStructFlags = 0;
         };

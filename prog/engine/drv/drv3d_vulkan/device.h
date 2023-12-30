@@ -45,6 +45,7 @@
 #include "image_resource.h"
 #include "buffer_resource.h"
 #include "render_pass_resource.h"
+#include "sampler_resource.h"
 
 #if D3D_HAS_RAY_TRACING
 #include "raytrace_as_resource.h"
@@ -135,7 +136,8 @@ public:
   // returns true if a image should be allocated via pool memory or
   // use a dedicated allocation
   bool shouldUsePool(const VkImageCreateInfo &ii);
-  uint32_t getMinimalBufferAlignment() const;
+  VkDeviceSize getMinimalBufferAlignment() const;
+  VkDeviceSize getBufferAligmentForUsageAndFlags(VkBufferCreateFlags flags, VkBufferUsageFlags usage);
   VulkanPipelineCacheHandle getPipeCache() const { return pipelineCache; }
 
   Image *getDummy2DImage() { return dummyImage2D; }
@@ -154,6 +156,14 @@ public:
 private:
   Device(const Device &);
   Device &operator=(const Device &);
+
+  struct
+  {
+    VkDeviceSize min;
+    ska::flat_hash_map<VkBufferUsageFlags, VkDeviceSize> perUsageFlags;
+  } bufferAligments = {};
+  void setupBufferAligments();
+  VkDeviceSize calculateBufferAligmentForUsageAndFlags(VkBufferCreateFlags flags, VkBufferUsageFlags usage);
 
   void setupDummyResources();
   void shutdownDummyResources();
@@ -192,6 +202,7 @@ public:
   Buffer *createBuffer(uint32_t size, DeviceMemoryClass memory_class, uint32_t discard_count, BufferMemoryFlags mem_flags);
   void addBufferView(Buffer *buffer, FormatStore format);
   SamplerInfo *getSampler(SamplerState state);
+  SamplerInfo createSampler(SamplerState state);
   void setShaderModuleName(VulkanShaderModuleHandle shader, const char *name);
   void setPipelineName(VulkanPipelineHandle pipe, const char *name);
   void setPipelineLayoutName(VulkanPipelineLayoutHandle layout, const char *name);

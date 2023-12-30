@@ -73,29 +73,29 @@ static void appendIndexData(const Mesh &m, int sf, int numf, VertToFaceVertMap &
             // this is standart cnannel
             case SCUSAGE_POS:
               if (vDescSrc[c].ui != 0)
-                fatal("unknown pos channel %d", vDescSrc[c].ui);
+                DAG_FATAL("unknown pos channel %d", vDescSrc[c].ui);
               ind = vi;
               break;
             case SCUSAGE_NORM:
               if (vDescSrc[c].ui != 0)
-                fatal("unknown norm channel %d", vDescSrc[c].ui);
+                DAG_FATAL("unknown norm channel %d", vDescSrc[c].ui);
               if (!m.getNormFace().size())
-                fatal("no normals in mesh");
+                DAG_FATAL("no normals in mesh");
               ind = m.getNormFace()[fi][fv];
               break;
             case SCUSAGE_VCOL:
               if (vDescSrc[c].ui != 0)
-                fatal("unknown vcol channel %d", vDescSrc[c].ui);
+                DAG_FATAL("unknown vcol channel %d", vDescSrc[c].ui);
               if (m.getCFace().size())
                 ind = m.getCFace()[fi].t[fv];
               break;
             case SCUSAGE_TC:
               if (vDescSrc[c].ui >= NUMMESHTCH)
-                fatal("unknown tc channel %d", vDescSrc[c].ui);
+                DAG_FATAL("unknown tc channel %d", vDescSrc[c].ui);
               if (m.getTFace(vDescSrc[c].ui).size())
                 ind = m.getTFace(vDescSrc[c].ui)[fi].t[fv];
               break;
-            default: fatal("unknown shader channel #%d", vDescSrc[c].u);
+            default: DAG_FATAL("unknown shader channel #%d", vDescSrc[c].u);
           }
         cvert[c] = ind;
       }
@@ -197,7 +197,7 @@ static int addVertices(Mesh &m, int sf, int numf, VertToFaceVertMap &f2vmap, uin
             case SCUSAGE_VCOL: SETV(m.getCVert()[ind].r, m.getCVert()[ind].g, m.getCVert()[ind].b, m.getCVert()[ind].a); break;
             case SCUSAGE_TC: SETV(m.getTVert(vDescSrc[c].ui)[ind].x, m.getTVert(vDescSrc[c].ui)[ind].y, 0, 1); break;
             default:
-              fatal("unknown shader channel #%d (vbu=%d vbui=%d t=%d)", vDescSrc[c].u, vDescSrc[c].vbu, vDescSrc[c].vbui,
+              DAG_FATAL("unknown shader channel #%d (vbu=%d vbui=%d t=%d)", vDescSrc[c].u, vDescSrc[c].vbu, vDescSrc[c].vbui,
                 vDescSrc[c].t);
           }
       }
@@ -353,7 +353,7 @@ static int addVertices(Mesh &m, int sf, int numf, VertToFaceVertMap &f2vmap, uin
           p += 2;
           break;
         default:
-          fatal("unknown shader channel type #%d (u=%d vbu=%d vbui=%d)", vDescSrc[c].t, vDescSrc[c].u, vDescSrc[c].vbu,
+          DAG_FATAL("unknown shader channel type #%d (u=%d vbu=%d vbui=%d)", vDescSrc[c].t, vDescSrc[c].u, vDescSrc[c].vbu,
             vDescSrc[c].vbui);
       }
       // debug("ch[%d]= %g %g %g %g",c,val[0],val[1],val[2],val[3]);

@@ -73,7 +73,7 @@ DObject::~DObject()
   if (ref_count != 0)
   {
     debug("Attempt to destroy DObject(%X) with ref_count=%d", this, ref_count);
-    fatal("Attempt to destroy DObject(%X) with ref_count=%d", this, ref_count);
+    DAG_FATAL("Attempt to destroy DObject(%X) with ref_count=%d", this, ref_count);
   }
 }
 
@@ -106,7 +106,7 @@ void DObject::delRef()
     DAGOR_TRY { cn = class_name(); }
     DAGOR_CATCH(DagorException) {}
     debug("ref_count already 0 %s %X", cn, this);
-    fatal("ref_count already 0 %s %X", cn, this);
+    DAG_FATAL("ref_count already 0 %s %X", cn, this);
   }
 
   if (dobject_flags & DOBJFLG_DEBUG)

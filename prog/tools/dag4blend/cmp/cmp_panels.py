@@ -9,6 +9,7 @@ from ..helpers.basename         import basename
 from ..helpers.popup            import show_popup
 from ..helpers.texts            import log
 from ..tools.tools_functions    import *
+from ..tools.tools_panel        import apply_modifiers
 
 from .cmp_import                import DAGOR_OP_CmpImport
 from .cmp_export                import DAGOR_OP_CmpExport
@@ -150,15 +151,13 @@ def node_to_geo(node):
     mod.node_group = converter_group
     mod['Input_1'] = node.instance_collection
     #cleanup
-    ctx = bpy.context.copy()
-    ctx['object'] = geo_node
-    bpy.ops.object.modifier_apply(ctx, modifier=mod.name)
+    apply_modifiers(geo_node)
     bpy.data.objects.remove(node)
     #shading
     geo_node.data.use_auto_smooth = True
     geo_node.data.auto_smooth_angle = 2*pi
     #fixing UV order
-    reorder_uvs(geo_node.data)
+    reorder_uv_layers(geo_node.data)
     return
 
 #hides instance_collection, spawns objects of instance_collection instead
@@ -410,11 +409,11 @@ class DAGOR_OT_bbox_to_gameobj(Operator):
 
     @classmethod
     def poll(self, context):
-        P = context.scene.cmp_props
+        P = bpy.data.scenes[0].dag4blend.cmp
         return P.node is not None
 
     def execute(self, context):
-        P=context.scene.cmp_props
+        P = bpy.data.scenes[0].dag4blend.cmp
         err = None
         nodes = [obj for obj in context.selected_objects if obj.type=='MESH']
         if P.node is None:
@@ -625,8 +624,8 @@ class DAGOR_PT_composits(Panel):
         header.label(text='', icon='EXPORT')
         if pref.cmp_exp_maximized:
             exporter.label(text = 'export path:')
-            exporter.prop(P.exporter, 'path_export',text = '')
-            exporter.prop(P.exporter, 'col_export')
+            exporter.prop(P.exporter, 'dirpath',text = '')
+            exporter.prop(P.exporter, 'collection')
             exporter.operator('dt.cmp_export')
 
         tools = l.box()

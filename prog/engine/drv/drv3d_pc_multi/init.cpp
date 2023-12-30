@@ -291,7 +291,7 @@ static inline int get_selected_api()
   const char *drv = ::dgs_get_settings()->getBlockByNameEx("video")->getStr("driver", "auto");
   active_api = detect_api(drv);
   if (active_api == API_NONE) //-V547
-    fatal("D3D API not selected, settings.blk: video { driver:t=\"%s\" }", drv);
+    DAG_FATAL("D3D API not selected, settings.blk: video { driver:t=\"%s\" }", drv);
 
   return active_api;
 }
@@ -578,7 +578,9 @@ void d3d::get_cur_used_res_entries(int &max_tex, int &max_vs, int &max_ps, int &
   max_tex = max_vs = max_ps = max_vdecl = max_vb = max_ib = max_stblk = 0;
 }
 
+#ifdef _MSC_VER
 #pragma warning(disable : 4074)
+#endif
 #pragma init_seg(compiler)
 static class __Drv3dVtableInit
 {
@@ -595,5 +597,5 @@ public:
     d3di.deviceName = "n/a";
     memset(&d3di.drvDesc, 0, sizeof(d3di.drvDesc));
   }
-  static void na_func() { fatal("D3DI function not implemented"); }
+  static void na_func() { DAG_FATAL("D3DI function not implemented"); }
 } __drv3d_vtable_init;

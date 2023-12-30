@@ -58,13 +58,14 @@ struct LoadedScript;
 
 static das::daScriptEnvironment *mainThreadBound = nullptr;
 static das::daScriptEnvironment *debuggerEnvironment = nullptr;
-AotMode globally_aot_mode = AotMode::AOT;
+static AotMode globally_aot_mode = AotMode::AOT;
 HotReload globally_hot_reload = HotReload::ENABLED;
-LogAotErrors globally_log_aot_errors = LogAotErrors::YES;
-int globally_load_threads_num = 1;
-bool globally_loading_in_queue = false;
-ResolveECS globally_resolve_ecs_on_load = ResolveECS::YES;
-int verboseExceptions = 4;
+static LogAotErrors globally_log_aot_errors = LogAotErrors::YES;
+static int globally_load_threads_num = 1;
+static bool globally_loading_in_queue = false;
+static eastl::string globally_thread_init_script;
+static ResolveECS globally_resolve_ecs_on_load = ResolveECS::YES;
+static int verboseExceptions = 4;
 static das::vector<eastl::string> loadingQueue;
 #if DAGOR_DBGLEVEL > 0
 static eastl::vector_set<ecs::hash_str_t> loadingQueueHash;
@@ -1705,12 +1706,12 @@ bool reload_das_debug_script(const char *fname, bool debug)
   const auto script = scripts.scripts.find_as(fname);
   if (script == scripts.scripts.end())
   {
-    debug("dap: %s was not loaded, ignore this file", fname);
+    ::debug("dap: %s was not loaded, ignore this file", fname);
     return true; // it's ok, we just ignore files that were not loaded
   }
   if (script != scripts.scripts.end() && debug == script->second.hasDebugger)
   {
-    debug("dap: %s already was loaded %s debugger", fname, debug ? "with" : "without");
+    ::debug("dap: %s already was loaded %s debugger", fname, debug ? "with" : "without");
     return true;
   }
   ScopedMultipleScripts scope;
@@ -1744,6 +1745,13 @@ struct DascriptLoadJob final : public DaThread
     const bool wasStackFill = DagDbgMem::enable_stack_fill(enableStackFill);
     das::daScriptEnvironment::bound->g_resolve_annotations = false;
     bool ok = true;
+    if (!globally_thread_init_script.empty())
+    {
+      auto file_access = das::make_smart<DagFileAccess>(local_scripts.getFileAccess(), globally_hot_reload);
+      ok = local_scripts.loadScript(globally_thread_init_script, file_access, globally_aot_mode, ResolveECS::NO,
+             globally_log_aot_errors) &&
+           ok;
+    }
     while (true)
     {
       int i = interlocked_increment(shared_counter);
@@ -2384,8 +2392,7 @@ void queryEs(const das::Block &block, das::Context *das_context, das::LineInfoAr
     das::LineInfoArg *line;
     bool failed;
   } queryInfo = {&block, esData, line, false};
-  EsContext *context = (EsContext *)das_context;
-  G_ASSERT(context->magic == context->MAGIC_NOMEM || context->magic == context->MAGIC_HASMEM);
+  EsContext *context = cast_es_context(das_context);
 
   ecs::perform_query(
     context->mgr, queryInfo.esData->query,
@@ -2438,8 +2445,7 @@ bool findQueryEs(const das::Block &block, das::Context *das_context, das::LineIn
     das::LineInfoArg *line;
     bool failed;
   } queryInfo = {&block, esData, line, false};
-  EsContext *context = (EsContext *)das_context;
-  G_ASSERT(context->magic == context->MAGIC_NOMEM || context->magic == context->MAGIC_HASMEM);
+  EsContext *context = cast_es_context(das_context);
 
   const bool res = ecs::perform_query(
                      context->mgr, queryInfo.esData->query,
@@ -2500,8 +2506,7 @@ bool queryEsEid(ecs::EntityId eid, const das::Block &block, das::Context *das_co
     das::LineInfoArg *line;
     bool failed;
   } queryInfo = {&block, esData, line, false};
-  EsContext *context = (EsContext *)das_context;
-  G_ASSERT(context->magic == context->MAGIC_NOMEM || context->magic == context->MAGIC_HASMEM);
+  EsContext *context = cast_es_context(das_context);
 
   const bool res = ecs::perform_query(
     context->mgr, eid, esData->query,
@@ -3100,6 +3105,12 @@ int bind_dascript::set_load_threads_num(int load_threads_num)
 }
 
 int bind_dascript::get_load_threads_num() { return globally_load_threads_num; }
+
+void bind_dascript::set_thread_init_script(const char *file_name)
+{
+  debug("daScript: thread init script: '%s'", file_name);
+  globally_thread_init_script = file_name ? file_name : "";
+}
 
 void bind_dascript::set_resolve_ecs_on_load(ResolveECS resolve_ecs) { globally_resolve_ecs_on_load = resolve_ecs; }
 

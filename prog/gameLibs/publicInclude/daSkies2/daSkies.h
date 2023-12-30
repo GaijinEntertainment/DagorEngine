@@ -383,7 +383,7 @@ public:
 
   float getHazeStrength() const;
 
-  const float getMoonAge() const { return moonAge; } // from 0 to 29.530588853
+  float getMoonAge() const { return moonAge; } // from 0 to 29.530588853
   void setMoonAge(float age);
   float getCurrentMoonEffect() const
   {

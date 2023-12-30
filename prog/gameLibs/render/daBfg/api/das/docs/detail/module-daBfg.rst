@@ -37,7 +37,7 @@ Example:
       if is_forward_rendering()
         registry |> requestRenderPass |> color([[auto[] "target_after_under_water_fog"]]) |> depthRo("depth_for_transparent_effects")
       else
-        registry |> orderMeAfter("transparent_effects_node")
+        registry |> orderMeAfter("tracers_node")
         registry |> orderMeBefore("transparent_scene_late_node")
         registry |> requestRenderPass |> color([[auto[] "opaque_final_target"]]) |> depthRw("depth_for_transparency")
 

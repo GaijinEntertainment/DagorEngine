@@ -44,11 +44,11 @@ shader skies_generate_transmittance_cs//very first call
 {
   TRANSMITTANCE(cs)
   hlsl(cs) {
-    RWTexture2D<float3> OutputTexture:register(u0);
+    RWTexture2D<float4> OutputTexture:register(u0);
     [numthreads(8, 8, 1)]
     void skies_gen_cs(uint2 dtId : SV_DispatchThreadID)
     {
-      OutputTexture[dtId] = saturate(ComputeTransmittanceToTopAtmosphereBoundaryTexture2(theAtmosphere, dtId + 0.5));
+      OutputTexture[dtId] = float4(saturate(ComputeTransmittanceToTopAtmosphereBoundaryTexture2(theAtmosphere, dtId + 0.5)), 0);
     }
   }
   compile("cs_5_0", "skies_gen_cs")
@@ -113,7 +113,7 @@ shader skies_approximate_ms_lut_cs
   hlsl(cs) {
     groupshared float3 MultiScatAs1SharedMem[NUM_RAYS];
     groupshared float3 LSharedMem[NUM_RAYS];
-    RWTexture2D<float3> OutputTexture:register(u0);
+    RWTexture2D<float4> OutputTexture:register(u0);
 
     [numthreads(1, 1, NUM_RAYS)]
     void skies_gen_cs(uint3 dtId : SV_DispatchThreadID)
@@ -184,7 +184,7 @@ shader skies_approximate_ms_lut_cs
       const float3 SumOfAllMultiScatteringEventsContribution = 1.0f / (1.0 - r);
       float3 MS = summedInScatteredLuminance * SumOfAllMultiScatteringEventsContribution;// Equation 10 Psi_ms
 
-      OutputTexture[dtId.xy] = theAtmosphere.multiple_scattering_factor * MS;
+      OutputTexture[dtId.xy] = float4(theAtmosphere.multiple_scattering_factor * MS, 0);
     }
 
   }
@@ -197,7 +197,7 @@ shader skies_approximate_ms_lut_ps
   MS_APPROXIMATE(ps)
   WRITE_TO_TEX2D_TC()
   hlsl(ps) {
-    half3 skies_gen_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    float3 skies_gen_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target0
     {
       float4 sp = GET_SCREEN_POS(input.pos); 
       float2 uv = sp.xy / SKIES_MULTIPLE_SCATTERING_APPROX;
@@ -259,7 +259,7 @@ shader indirect_irradiance_ms_cs
     #define SAMPLE_COUNT 8
     #define NUM_RAYS SAMPLE_COUNT*SAMPLE_COUNT
     groupshared float3 ray[NUM_RAYS];
-    RWTexture2D<float3> OutputTexture:register(u0);
+    RWTexture2D<float4> OutputTexture:register(u0);
 
     [numthreads(NUM_RAYS, 1, 1)]
     void skies_gen_cs(uint threadId : SV_GroupIndex, uint3 gId:SV_GroupID)
@@ -312,7 +312,7 @@ shader indirect_irradiance_ms_cs
       SUM_RAY_TAIL(2)
       if (threadId == 0)
       {
-        OutputTexture[gId.xy] = ray[0] + ray[1];
+        OutputTexture[gId.xy] = float4(ray[0] + ray[1], 0);
       }
     }
 

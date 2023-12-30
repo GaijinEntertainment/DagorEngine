@@ -10,8 +10,10 @@
 #include <3d/dag_textureIDHolder.h>
 #include <generic/dag_span.h>
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4100)
+#endif
 
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN && defined(_DEBUG_TAB_) && !DAGOR_THREAD_SANITIZER
 #define CAN_DEBUG_OCCLUSION 1
@@ -297,7 +299,9 @@ protected:
   mutable int objects[3] = {0};
 #endif
 };
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 #undef CAN_DEBUG_OCCLUSION
 

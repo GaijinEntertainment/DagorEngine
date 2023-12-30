@@ -5,11 +5,11 @@ const SORT_BY_INDEX = " # "
 const SORT_BY_NAMES = " ABC "
 const SORT_BY_EIDS  = " EID "
 
-let function sortEntityByEid(eid1, eid2) {
+function sortEntityByEid(eid1, eid2) {
   return eid1 <=> eid2
 }
 
-let function sortEntityByNames(eid1, eid2) {
+function sortEntityByNames(eid1, eid2) {
   let tplName1 = g_entity_mgr.getEntityTemplateName(eid1)
   let tplName2 = g_entity_mgr.getEntityTemplateName(eid2)
   if (tplName1 < tplName2)
@@ -23,7 +23,7 @@ let function sortEntityByNames(eid1, eid2) {
   return eid1 <=> eid2
 }
 
-let function toggleSortMode(state) {
+function toggleSortMode(state) {
   let sortMode = state.value?.mode ?? SORT_BY_INDEX
   if (sortMode == SORT_BY_INDEX)
     state({
@@ -42,7 +42,7 @@ let function toggleSortMode(state) {
     })
 }
 
-let function mkSortModeButton(state, style={}) {
+function mkSortModeButton(state, style={}) {
   let stateFlags = Watched(0)
   let fillColor = style?.fillColor ?? Color(0,0,0,64)
   return @() {

@@ -1,4 +1,8 @@
+#if _TARGET_PC_WIN | _TARGET_PC_LINUX
 #include <malloc.h>
+#elif _TARGET_PC_MACOSX
+#include <malloc/malloc.h>
+#endif
 #include <util/dag_stdint.h>
 
 #if _TARGET_PC_WIN
@@ -7,6 +11,8 @@
 
 #elif _TARGET_PC_LINUX
 static inline size_t _msize(void *p) { return malloc_usable_size(p); }
+#elif _TARGET_PC_MACOSX
+static inline size_t _msize(void *p) { return malloc_size(p); }
 #endif
 
 class RtlMainAllocator : public IMemAlloc

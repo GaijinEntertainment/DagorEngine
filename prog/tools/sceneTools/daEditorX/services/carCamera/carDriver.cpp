@@ -243,7 +243,7 @@ void TestDriver::updateDrivingControls(float dt)
     else
     {
       float _steer = getSteeringAngle();
-      if (car->getVel().lengthSq() < real_sq(S.minVelForSteer))
+      if (car->getVel().lengthSq() < sqr(S.minVelForSteer))
         _steer = 0;
 
       driveStraightPrev = false;
@@ -328,7 +328,7 @@ void TestDriver::autoReverse()
   if (!machinery->automaticGearBox())
     return;
 
-  if ((getBrakeFactor() > 0.9f) && (lengthSq(car->getVel()) < real_sq(10.0f / 3.6f)) &&
+  if ((getBrakeFactor() > 0.9f) && (lengthSq(car->getVel()) < sqr(10.0f / 3.6f)) &&
       !car->wheelsSlide(10.0f) /*&& (!rc->carPlayer->braked)*/)
   {
     float rpm = machinery->getEngineIdleRPM();

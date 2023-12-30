@@ -1,4 +1,4 @@
-Platform ?= win64 ;
+if $(OS) = NT { Platform ?= win64 ; }
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/assetExp ;
 DriverLinkage ?= dynamic ;
@@ -6,10 +6,13 @@ include $(Root)/prog/tools/tools_setup.jam ;
 ConsoleExe    = yes ;
 
 TargetType  = exe ;
-Target      = tools/sceneTools/daBuild.exe ;
+Target      = tools/sceneTools/daBuild ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
 
 OutDir = $(Root)/tools/dagor3_cdk/bin ;
 if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
+if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
 
 
 AddIncludes =
@@ -43,16 +46,21 @@ UseProgLibs =
   tools/libTools/dtx
   3rdPartyLibs/hash
 ;
+if $(Platform) in linux64 macosx { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 CPPopt = -D_TARGET_DABUILD_STATIC ;
 
 if $(DriverLinkage) = dynamic {
   if $(Sanitize) = address { Exit ASAN requires DriverLinkage=static ; }
   ImportProgLibs = tools/libTools/daKernel ;
-  CoExportProgDlls = $(ImportProgLibs) ;
+  ImportsRelativeDir = . ;
 } else {
   local memory_lib = memory ;
   if $(PlatformSpec) = clang && $(Sanitize) = address { memory_lib = memory/rtlStdMemory ; }
+
+  if [ GLOB $(Root)/prog/gameLibs/vehiclePhys : * ] { DabuildUseOptionalExporters += vehiclePhys ; }
+  if [ GLOB $(Root)/prog/gameLibs/gamePhys/phys/shipSections : * ] { DabuildUseOptionalExporters += shipSections ; }
+  if [ GLOB $(Root)/prog/3rdPartyLibs/phys/fractureTool : * ] { DabuildUseOptionalExporters += apex ; }
 
   UseProgLibs =
     engine/osApiWrappers

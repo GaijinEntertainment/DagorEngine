@@ -52,13 +52,13 @@ shader specular_cube
 
     struct MRT_OUTPUT
     {
-      half4 color0:SV_Target0;
+      float4 color0:SV_Target0;
       ##if integrate_face == integrate_face_all
-      half4 color1:SV_Target1;
-      half4 color2:SV_Target2;
-      half4 color3:SV_Target3;
-      half4 color4:SV_Target4;
-      half4 color5:SV_Target5;
+      float4 color1:SV_Target1;
+      float4 color2:SV_Target2;
+      float4 color3:SV_Target3;
+      float4 color4:SV_Target4;
+      float4 color5:SV_Target5;
       ##endif
     };
 

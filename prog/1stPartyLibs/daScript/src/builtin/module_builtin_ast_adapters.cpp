@@ -1059,6 +1059,7 @@ namespace das {
 
 #define VISIT_EXPR(ExprType) \
        virtual void preVisit ( ExprType * that ) override { \
+            preVisitExpression(that); \
             if ( auto fnPreVisit = get_preVisit##ExprType(classPtr) ) { \
                 runMacroFunction(context, "preVisit", [&]() { \
                     invoke_preVisit##ExprType(context,fnPreVisit,classPtr,that); \
@@ -1066,6 +1067,7 @@ namespace das {
             } \
         } \
         virtual ExpressionPtr visit ( ExprType * that ) override { \
+            visitExpression(that); \
             if ( auto fnVisit = get_visit##ExprType(classPtr) ) { \
                 ExpressionPtr result; \
                 runMacroFunction(context, "visit", [&]() { \

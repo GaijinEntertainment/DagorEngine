@@ -108,7 +108,7 @@ macro SPECIAL_RENDER_ALPHATEST_USE()
   if (dyn_model_render_pass == render_to_depth)
   {
     hlsl(ps) {
-      half4 render_depth_ps(VsOutput input) : SV_Target
+      float4 render_depth_ps(VsOutput input) : SV_Target
       {
         half4 diffuseColor = h4tex2D(diffuse_tex, input.diffuseTexcoord);
         clip_alpha(diffuseColor.a);
@@ -120,10 +120,10 @@ macro SPECIAL_RENDER_ALPHATEST_USE()
   else if (dyn_model_render_pass == render_pass_velocity)
   {
     hlsl(ps) {
-      half4 render_pass_velocity_atest(VsOutput input) : SV_Target
+      float4 render_pass_velocity_atest(VsOutput input) : SV_Target
       {
         half4 diffuse = h4tex2D(diffuse_tex, input.diffuseTexcoord);
-        return half4(1, 1, 1, diffuse.a);
+        return float4(1, 1, 1, diffuse.a);
       }
 
     }
@@ -136,9 +136,9 @@ macro SPECIAL_RENDER_NOALPHATEST()
   if (dyn_model_render_pass == render_to_depth)
   {
     hlsl(ps) {
-      half4 black_ps() : SV_Target
+      float4 black_ps() : SV_Target
       {
-        return half4(0, 0, 0, 0); // Return 0 to be consistent with black_ps. Color output used in tank outlines.
+        return float4(0, 0, 0, 0); // Return 0 to be consistent with black_ps. Color output used in tank outlines.
       }
     }
     compile("target_ps", "black_ps");
@@ -146,9 +146,9 @@ macro SPECIAL_RENDER_NOALPHATEST()
   else if (dyn_model_render_pass == render_pass_velocity)
   {
     hlsl(ps) {
-      half4 render_pass_velocity() : SV_Target
+      float4 render_pass_velocity() : SV_Target
       {
-        return half4(1, 1, 1, 1);
+        return float4(1, 1, 1, 1);
       }
     }
     compile("target_ps", "render_pass_velocity");
@@ -194,7 +194,7 @@ macro XRAY_RENDER_USE(point_to_eye_name, normal_name, color)
   INIT_XRAY_RENDER()
 
   hlsl(ps) {
-    half4 render_pass_xray(VsOutput input) : SV_Target
+    float4 render_pass_xray(VsOutput input) : SV_Target
     {
       float3 worldNormal = normalize(input.normal_name.xyz);
     ##if dyn_model_render_pass == render_pass_normals

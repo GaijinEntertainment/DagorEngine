@@ -29,7 +29,7 @@ GraphicsPipelineVariationStorage::ExtendedVariantDescription &GraphicsPipelineVa
     {
       dsc.print();
       dataRef.base.print();
-      fatal("vulkan: graphics variation hash collision");
+      DAG_FATAL("vulkan: graphics variation hash collision");
     }
 #endif
 

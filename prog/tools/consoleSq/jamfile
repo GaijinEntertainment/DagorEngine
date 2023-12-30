@@ -72,12 +72,6 @@ UseProgLibs =
 if $(Platform) = linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 
-SourceStr =
-  print_sorted_root.nut
-;
-
-for s in $(SourceStr) { StringifySourceFile $(s) : $(s).inl : consoleSq.cpp ; }
-
 if [ GLOB $(Root)/prog/gameLibs/yup_parse : jamfile ] {
   UseProgLibs += gameLibs/yup_parse gameLibs/quirrel/yupfile_parse ;
   CPPopt += -DHAS_YUP_PARSE ;

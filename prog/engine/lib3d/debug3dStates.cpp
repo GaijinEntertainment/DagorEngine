@@ -31,6 +31,8 @@ void CachedStates::setState(const StateKey &key)
 {
   if (!stateOverrides[key.k])
     makeState(key);
+  savedOverride = shaders::overrides::get_current();
+  shaders::overrides::reset();
   shaders::overrides::set(getState(key));
 
   if (!renderStateId)
@@ -41,5 +43,10 @@ void CachedStates::setState(const StateKey &key)
   shaders::render_states::set(renderStateId);
 }
 
-void CachedStates::resetState() { shaders::overrides::reset(); }
+void CachedStates::resetState()
+{
+  shaders::overrides::reset();
+  shaders::overrides::set(savedOverride);
+  savedOverride = shaders::OverrideStateId();
+}
 } // namespace debug3d

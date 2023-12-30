@@ -1502,7 +1502,7 @@ bool EntityManager::createQueuedEntitiesOOL()
   return wereAdded;
 }
 
-#if DAGOR_DBGLEVEL == 0
+#if DAGOR_DBGLEVEL == 0 && defined(_MSC_VER)
 #pragma warning(push, 1)
 #pragma warning(disable : 4701) // compiler is unable to realize that  movedFrom, movedTo, movedAt, movedCount can not be uninited if
                                 // we reach that line
@@ -1597,7 +1597,7 @@ void EntityManager::defragmentArchetypes()
     debug("defrag of archetype = %d took %d us", defragmentArchetypeId, profile_time_usec(reft));
 #endif
 }
-#if DAGOR_DBGLEVEL == 0
+#if DAGOR_DBGLEVEL == 0 && defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 

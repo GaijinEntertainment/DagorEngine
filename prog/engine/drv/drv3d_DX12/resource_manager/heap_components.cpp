@@ -148,17 +148,17 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
 {
   BaseType::setup(info);
 
-  debug("DX12: Checking memory sizes...");
+  logdbg("DX12: Checking memory sizes...");
   DXGI_ADAPTER_DESC2 adapterDesc{};
   info.adapter->GetDesc2(&adapterDesc);
   auto DedicatedVideoMemoryUnits = size_to_unit_table(adapterDesc.DedicatedVideoMemory);
-  debug("DX12: DedicatedVideoMemory %.2f %s", compute_unit_type_size(adapterDesc.DedicatedVideoMemory, DedicatedVideoMemoryUnits),
+  logdbg("DX12: DedicatedVideoMemory %.2f %s", compute_unit_type_size(adapterDesc.DedicatedVideoMemory, DedicatedVideoMemoryUnits),
     get_unit_name(DedicatedVideoMemoryUnits));
   auto DedicatedSystemMemoryUnits = size_to_unit_table(adapterDesc.DedicatedSystemMemory);
-  debug("DX12: DedicatedSystemMemory %.2f %s", compute_unit_type_size(adapterDesc.DedicatedSystemMemory, DedicatedSystemMemoryUnits),
+  logdbg("DX12: DedicatedSystemMemory %.2f %s", compute_unit_type_size(adapterDesc.DedicatedSystemMemory, DedicatedSystemMemoryUnits),
     get_unit_name(DedicatedSystemMemoryUnits));
   auto SharedSystemMemoryUnits = size_to_unit_table(adapterDesc.SharedSystemMemory);
-  debug("DX12: SharedSystemMemory %.2f %s", compute_unit_type_size(adapterDesc.SharedSystemMemory, SharedSystemMemoryUnits),
+  logdbg("DX12: SharedSystemMemory %.2f %s", compute_unit_type_size(adapterDesc.SharedSystemMemory, SharedSystemMemoryUnits),
     get_unit_name(SharedSystemMemoryUnits));
   poolStates[device_local_memory_pool].reportedSize = adapterDesc.DedicatedVideoMemory;
 
@@ -166,10 +166,10 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
   GlobalMemoryStatusEx(&sysdtemMemoryStatus);
 
   auto ullTotalPhysUnits = size_to_unit_table(sysdtemMemoryStatus.ullTotalPhys);
-  debug("DX12: System memory %.2f %s", compute_unit_type_size(sysdtemMemoryStatus.ullTotalPhys, ullTotalPhysUnits),
+  logdbg("DX12: System memory %.2f %s", compute_unit_type_size(sysdtemMemoryStatus.ullTotalPhys, ullTotalPhysUnits),
     get_unit_name(ullTotalPhysUnits));
   auto ullTotalVirtualUnits = size_to_unit_table(sysdtemMemoryStatus.ullTotalVirtual);
-  debug("DX12: Process usable system memory %.2f %s",
+  logdbg("DX12: Process usable system memory %.2f %s",
     compute_unit_type_size(sysdtemMemoryStatus.ullTotalVirtual, ullTotalVirtualUnits), get_unit_name(ullTotalVirtualUnits));
 
   poolStates[host_local_memory_pool].reportedSize = min(sysdtemMemoryStatus.ullTotalPhys, sysdtemMemoryStatus.ullTotalVirtual);
@@ -197,7 +197,7 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
       poolBudgetLevels[j][i] = min(minMemoryReq[j] * (1 + i) * 1024 * 1024, poolStates[j].Budget / (16 / (1 + i)));
 
       auto units = size_to_unit_table(poolBudgetLevels[j][i]);
-      debug("DX12: Budged Level %s for %s set to %.2f %s", as_string(bl), memorySectionNames[j],
+      logdbg("DX12: Budged Level %s for %s set to %.2f %s", as_string(bl), memorySectionNames[j],
         compute_unit_type_size(poolBudgetLevels[j][i], units), get_unit_name(units));
     }
   }
@@ -209,16 +209,16 @@ namespace
 {
 void report_budget_info(const DXGI_QUERY_VIDEO_MEMORY_INFO &info, const char *name)
 {
-  debug("DX12: QueryVideoMemoryInfo of %s:", name);
+  logdbg("DX12: QueryVideoMemoryInfo of %s:", name);
   auto BudgetUnits = size_to_unit_table(info.Budget);
-  debug("DX12: Budget %.2f %s", compute_unit_type_size(info.Budget, BudgetUnits), get_unit_name(BudgetUnits));
+  logdbg("DX12: Budget %.2f %s", compute_unit_type_size(info.Budget, BudgetUnits), get_unit_name(BudgetUnits));
   auto CurrentUsageUnits = size_to_unit_table(info.CurrentUsage);
-  debug("DX12: CurrentUsage %.2f %s", compute_unit_type_size(info.CurrentUsage, CurrentUsageUnits), get_unit_name(CurrentUsageUnits));
+  logdbg("DX12: CurrentUsage %.2f %s", compute_unit_type_size(info.CurrentUsage, CurrentUsageUnits), get_unit_name(CurrentUsageUnits));
   auto AvailableForReservationUnits = size_to_unit_table(info.AvailableForReservation);
-  debug("DX12: AvailableForReservation %.2f %s", compute_unit_type_size(info.AvailableForReservation, AvailableForReservationUnits),
+  logdbg("DX12: AvailableForReservation %.2f %s", compute_unit_type_size(info.AvailableForReservation, AvailableForReservationUnits),
     get_unit_name(AvailableForReservationUnits));
   auto CurrentReservationUnits = size_to_unit_table(info.CurrentReservation);
-  debug("DX12: CurrentReservation %.2f %s", compute_unit_type_size(info.CurrentReservation, CurrentReservationUnits),
+  logdbg("DX12: CurrentReservation %.2f %s", compute_unit_type_size(info.CurrentReservation, CurrentReservationUnits),
     get_unit_name(CurrentReservationUnits));
 }
 
@@ -237,7 +237,7 @@ void update_reservation(DXGIAdapter *adapter, DXGI_QUERY_VIDEO_MEMORY_INFO &info
     }
     if (nextReserve != info.CurrentReservation)
     {
-      debug("DX12: Adjusted %s memory reservation to %.2f %s", name, compute_unit_type_size(nextReserve, nextReserveUnits),
+      logdbg("DX12: Adjusted %s memory reservation to %.2f %s", name, compute_unit_type_size(nextReserve, nextReserveUnits),
         get_unit_name(nextReserveUnits));
       adapter->SetVideoMemoryReservation(0, group, nextReserve);
       info.CurrentReservation = nextReserve;
@@ -283,7 +283,7 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     behaviorStatus.set(BehaviorBits::DISABLE_VIRTUAL_ADDRESS_SPACE_STATUS_QUERY);
 
     auto processVirtualAddressUseUnits = size_to_unit_table(processVirtualAddressUse);
-    debug("DX12: Process virtual memory usage %.2f %s",
+    logdbg("DX12: Process virtual memory usage %.2f %s",
       compute_unit_type_size(processVirtualAddressUse, processVirtualAddressUseUnits), get_unit_name(processVirtualAddressUseUnits));
   }
 
@@ -296,22 +296,22 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
   {
     if (!oldTrimFramePushRingBuffer)
     {
-      debug("DX12: Starting to trim FramePushRingBuffer");
+      logdbg("DX12: Starting to trim FramePushRingBuffer");
     }
     else
     {
-      debug("DX12: Stopped to trim FramePushRingBuffer");
+      logdbg("DX12: Stopped to trim FramePushRingBuffer");
     }
   }
   if (oldTrimUploadRingBuffer != shouldTrimFramePushRingBuffer())
   {
     if (!oldTrimUploadRingBuffer)
     {
-      debug("DX12: Starting to trim UploadRingBuffer");
+      logdbg("DX12: Starting to trim UploadRingBuffer");
     }
     else
     {
-      debug("DX12: Stopped to trim UploadRingBuffer");
+      logdbg("DX12: Stopped to trim UploadRingBuffer");
     }
   }
 }
@@ -415,7 +415,7 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
   size_t gameLimit = 0, gameUsed = 0;
   xbox_get_memory_status(gameUsed, gameLimit);
   auto totalMemoryBudgedUnits = size_to_unit_table(gameLimit);
-  debug("DX12: Game memory budget is %.2f %s (%I64u bytes)", compute_unit_type_size(gameLimit, totalMemoryBudgedUnits),
+  logdbg("DX12: Game memory budget is %.2f %s (%I64u bytes)", compute_unit_type_size(gameLimit, totalMemoryBudgedUnits),
     get_unit_name(totalMemoryBudgedUnits), gameLimit);
 
   memoryBudget = gameLimit;
@@ -429,7 +429,7 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
     poolBudgetLevels[i] = min(budget_limit_base_mib * (1 + i) * 1024 * 1024, memoryBudget / (16 / (1 + i)));
 
     auto units = size_to_unit_table(poolBudgetLevels[i]);
-    debug("DX12: Budged Level %s set to %.2f %s", as_string(bl), compute_unit_type_size(poolBudgetLevels[i], units),
+    logdbg("DX12: Budged Level %s set to %.2f %s", as_string(bl), compute_unit_type_size(poolBudgetLevels[i], units),
       get_unit_name(units));
   }
 
@@ -447,7 +447,7 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     currentUsage = gameUsed;
     auto currentUsageUnits = size_to_unit_table(currentUsage);
     behaviorStatus.set(BehaviorBits::DISABLE_MEMORY_STATUS_QUERY);
-    debug("DX12: Current memory budget usage is %u%% %.2f %s", gameUsed * 100 / gameLimit,
+    logdbg("DX12: Current memory budget usage is %u%% %.2f %s", gameUsed * 100 / gameLimit,
       compute_unit_type_size(currentUsage, currentUsageUnits), get_unit_name(currentUsageUnits));
   }
 
@@ -460,22 +460,22 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
   {
     if (!oldTrimFramePushRingBuffer)
     {
-      debug("DX12: Starting to trim FramePushRingBuffer");
+      logdbg("DX12: Starting to trim FramePushRingBuffer");
     }
     else
     {
-      debug("DX12: Stopped to trim FramePushRingBuffer");
+      logdbg("DX12: Stopped to trim FramePushRingBuffer");
     }
   }
   if (oldTrimUploadRingBuffer != shouldTrimUploadRingBuffer())
   {
     if (!oldTrimUploadRingBuffer)
     {
-      debug("DX12: Starting to trim UploadRingBuffer");
+      logdbg("DX12: Starting to trim UploadRingBuffer");
     }
     else
     {
-      debug("DX12: Stopped to trim UploadRingBuffer");
+      logdbg("DX12: Stopped to trim UploadRingBuffer");
     }
   }
 }
@@ -637,7 +637,6 @@ ResourceMemory ResourceMemoryHeapProvider::allocate(DXGIAdapter *adapter, ID3D12
   TIME_PROFILE_DEV(DX12_AllocateMemory);
   G_UNUSED(adapter);
   ResourceMemory result;
-  HRESULT errorCode = S_OK;
   auto &group = groups[properties.raw];
 
   {
@@ -685,10 +684,10 @@ ResourceMemory ResourceMemoryHeapProvider::allocate(DXGIAdapter *adapter, ID3D12
       ResourceHeap newHeap;
       newHeap.totalSize = newHeapDesc.SizeInBytes;
       G_ASSERT(newHeap.totalSize == newHeapDesc.SizeInBytes);
-      newHeap.freeRanges.push_back(make_value_range(0, newHeap.totalSize));
+      newHeap.freeRanges.push_back(make_value_range(0ull, newHeap.totalSize));
 
-      errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreateHeap(&newHeapDesc, COM_ARGS(&newHeap.heap)));
-      if (newHeap.heap)
+      auto errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreateHeap(&newHeapDesc, COM_ARGS(&newHeap.heap)));
+      if (SUCCEEDED(errorCode) && newHeap.heap)
       {
         addHeapGroupFreeSpace(properties.raw, newHeap.totalSize);
 
@@ -733,11 +732,6 @@ ResourceMemory ResourceMemoryHeapProvider::allocate(DXGIAdapter *adapter, ID3D12
 
       updateHeapGroupGeneration(properties.raw);
     }
-  }
-
-  if (is_oom_error_code(errorCode))
-  {
-    reportOOMInformation();
   }
 
   return result;

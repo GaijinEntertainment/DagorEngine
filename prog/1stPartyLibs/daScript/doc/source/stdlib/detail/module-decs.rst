@@ -1,4 +1,4 @@
-The DECS module implements low level functionality of daScript entity component system.
+The DECS module implements low level functionality of Daslang entity component system.
 
 All functions and symbols are in "decs" module, use require to get access to it. ::
 

@@ -21,7 +21,7 @@ static inline void load_tex_streaming_settings(const char *app_blk, DataBlock *t
   {
     DataBlock appblk;
     if (!appblk.load(app_blk))
-      fatal("failed to load %s", app_blk);
+      DAG_FATAL("failed to load %s", app_blk);
     if (const char *tsfn = appblk.getBlockByNameEx("game")->getStr("texStreamingFile", NULL))
     {
       String abs_tsfn;
@@ -34,11 +34,11 @@ static inline void load_tex_streaming_settings(const char *app_blk, DataBlock *t
       simplify_fname(abs_tsfn);
       DataBlock blk;
       if (!blk.load(abs_tsfn))
-        fatal("failed to load texStreamingFile=%s", abs_tsfn);
+        DAG_FATAL("failed to load texStreamingFile=%s", abs_tsfn);
       if (const char *blknm = appblk.getBlockByNameEx("game")->getStr("texStreamingBlock", NULL))
       {
         if (!blk.getBlockByName(blknm))
-          fatal("failed to get texStreamingBlock=%s in texStreamingFile=%s", blknm, abs_tsfn);
+          DAG_FATAL("failed to get texStreamingBlock=%s in texStreamingFile=%s", blknm, abs_tsfn);
         texStreamingBlk->setFrom(blk.getBlockByName(blknm));
       }
       else

@@ -1106,11 +1106,11 @@ VkResult RenderPassResource::convertAndCreateRenderPass2(VkRenderPass *dst, cons
       {
         if (subpassExtensions.depthStencilResolveAttachmentIdx >= src_refs.size())
         {
-          fatal("vulkan: wrong depthStencilResolveAttachmentIdx: %d", subpassExtensions.depthStencilResolveAttachmentIdx);
+          DAG_FATAL("vulkan: wrong depthStencilResolveAttachmentIdx: %d", subpassExtensions.depthStencilResolveAttachmentIdx);
         }
         if (!drvDev.hasDepthStencilResolve())
         {
-          fatal("vulkan: depth_stencil_resolve is requested, but not supported");
+          DAG_FATAL("vulkan: depth_stencil_resolve is requested, but not supported");
         }
 #if VK_KHR_depth_stencil_resolve
         convertAttachmentRefToVersion2(refs[attRefHead], src_refs[subpassExtensions.depthStencilResolveAttachmentIdx]);
@@ -1202,7 +1202,7 @@ void RenderPassResource::createVulkanObject()
       }
       else
       {
-        fatal("vulkan: trying to use unavailable create_renderpass2 for <%s>", rpDesc.debugName);
+        DAG_FATAL("vulkan: trying to use unavailable create_renderpass2 for <%s>", rpDesc.debugName);
       }
     }
     else

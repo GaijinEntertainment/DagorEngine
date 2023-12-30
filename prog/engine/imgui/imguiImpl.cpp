@@ -37,12 +37,16 @@ static constexpr float MIN_SCALE = 1.0f;
 static constexpr float MAX_SCALE = 4.0f;
 static bool frameEnded = true;
 
+static bool imguiSubmenuEnabled = true;
+
 void imgui_set_override_blk(const DataBlock &imgui_blk_)
 {
   G_ASSERTF(!is_initialized, "imgui_set_override_blk() should be called before init_on_demand()");
   override_imgui_blk = eastl::make_unique<DataBlock>();
   override_imgui_blk->setFrom(&imgui_blk_);
 }
+
+void imgui_enable_imgui_submenu(bool enabled) { imguiSubmenuEnabled = enabled; }
 
 static float get_default_scale()
 {
@@ -74,6 +78,7 @@ static void apply_style_from_blk()
   // FIXME: Non-integer amount of imguiScale produces blurry text with default ImGui font. We should consider using our
   //        own font.
   requested_font_cfg->SizePixels = floor(imgui_blk->getReal("imgui_font_size", 13.0f) * imguiScale);
+  requested_font_cfg->GlyphRanges = ImGui::GetIO().Fonts->GetGlyphRangesCyrillic();
 }
 
 static bool init()
@@ -351,7 +356,7 @@ void imgui_perform_registered()
         ImGui::EndMenu();
     }
 
-    if (ImGui::BeginMenu("ImGui"))
+    if (imguiSubmenuEnabled && ImGui::BeginMenu("ImGui"))
     {
       ImGui::Separator();
 

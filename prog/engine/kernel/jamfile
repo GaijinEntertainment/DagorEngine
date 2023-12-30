@@ -27,6 +27,7 @@ if $(Platform) in win32 win64 {
     cpuFreq.cpp
     dagorHwExcept.cpp
     debug.cpp
+    dagorMinidumpCallback.cpp
   ;
 }
 

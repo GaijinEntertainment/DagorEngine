@@ -55,34 +55,6 @@ This structure contains collection of subsitution rules for a template.
 Call macros
 +++++++++++
 
-.. _call-macro-templates_boost-qmacro_block:
-
-.. das:attribute:: qmacro_block
-
-This macro implements `qmacro_block` expression reification. Expected input is a block expression (ExprMakeBlock over ExprBlock). It applies reification rules to the expression, and returns unquoted `ExprBlock`.
-.. _call-macro-templates_boost-qmacro_function:
-
-.. das:attribute:: qmacro_function
-
-This macro implements `qmacro_function` expression reification. Expected input is a block expression (ExprMakeBlock over ExprBlock). It applies reification rules to the expression, and returns a FunctionPtr. New function matches block signature, as well as the block body.
-.. _call-macro-templates_boost-qmacro_type:
-
-.. das:attribute:: qmacro_type
-
-This macro implements `qmacro_type` expression reification. Expected input is a type expression (type<...>). Result is TypeDeclPtr of a new type matching subtype of the type expression.
-
-.. _call-macro-templates_boost-qmacro:
-
-.. das:attribute:: qmacro
-
-This macro implements `qmacro` expression reification. It applies reification rules to the expression, and returns direct result of the substitution.
-
-.. _call-macro-templates_boost-qmacro_block_to_array:
-
-.. das:attribute:: qmacro_block_to_array
-
-This macro implements `qmacro_block_to_array` expression reification. Expected input is a block expression (ExprMakeBlock over ExprBlock). It applies reification rules to the expression, and returns array with contents of the 'list' section of the block.
-
 .. _call-macro-templates_boost-qmacro_expr:
 
 .. das:attribute:: qmacro_expr
@@ -93,11 +65,39 @@ This macro implements `qmacro_expr` expression reification. Expected input is a 
 .. das:attribute:: qmacro_variable
 
 This macro implements `qmacro_variable` expression reification. Expected input is are variable name and type expression (type<...>). Result is a new VariablePtr with the matching name and type.
+.. _call-macro-templates_boost-qmacro_block_to_array:
+
+.. das:attribute:: qmacro_block_to_array
+
+This macro implements `qmacro_block_to_array` expression reification. Expected input is a block expression (ExprMakeBlock over ExprBlock). It applies reification rules to the expression, and returns array with contents of the 'list' section of the block.
+
+.. _call-macro-templates_boost-qmacro_function:
+
+.. das:attribute:: qmacro_function
+
+This macro implements `qmacro_function` expression reification. Expected input is a block expression (ExprMakeBlock over ExprBlock). It applies reification rules to the expression, and returns a FunctionPtr. New function matches block signature, as well as the block body.
+.. _call-macro-templates_boost-qmacro:
+
+.. das:attribute:: qmacro
+
+This macro implements `qmacro` expression reification. It applies reification rules to the expression, and returns direct result of the substitution.
+
 .. _call-macro-templates_boost-qmacro_method:
 
 .. das:attribute:: qmacro_method
 
 This macro implements expression reification for class methods.
+
+.. _call-macro-templates_boost-qmacro_block:
+
+.. das:attribute:: qmacro_block
+
+This macro implements `qmacro_block` expression reification. Expected input is a block expression (ExprMakeBlock over ExprBlock). It applies reification rules to the expression, and returns unquoted `ExprBlock`.
+.. _call-macro-templates_boost-qmacro_type:
+
+.. das:attribute:: qmacro_type
+
+This macro implements `qmacro_type` expression reification. Expected input is a type expression (type<...>). Result is TypeDeclPtr of a new type matching subtype of the type expression.
 
 ++++++++++++++
 Template rules

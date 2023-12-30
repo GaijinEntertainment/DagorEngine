@@ -80,7 +80,7 @@ static bool default_assertion_handler(bool verify, const char *file, int line, c
 #if DAGOR_DBGLEVEL < 1
   logmessage_fmt(LOGLEVEL_ERR, buf, arg, anum);
 #else
-  _core_fatal_fmt(file, line, true, buf, arg, anum);
+  _core_fatal_fmt(file, line, buf, arg, anum);
 #endif
   return false;
 }

@@ -72,6 +72,7 @@
 
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_stackHlp.h>
+#include <ioSys/dag_dataBlock.h>
 
 #include "dasScripts.h"
 
@@ -144,7 +145,7 @@ public:
 #if THREAD_CHECK_COLLECT_CALL_STACK
       char stkText[4096];
       ::stackhlp_get_call_stack(stkText, sizeof(stkText), scene->threadCheckCallStack, 32);
-      fatal("daRg: Non-safe access from threads %d and %d (main thread = %d)\nFirst access from:\n%s", prevThread, curTid,
+      DAG_FATAL("daRg: Non-safe access from threads %d and %d (main thread = %d)\nFirst access from:\n%s", prevThread, curTid,
         int(::get_main_thread_id()), stkText);
 #else
       G_ASSERTF(0, "daRg: Non-safe access from threads %d and %d (main thread = %d)", prevThread, curTid, int(::get_main_thread_id()));
@@ -197,8 +198,8 @@ GuiScene::GuiScene(StdGuiRender::GuiContext *gui_ctx) : etree(this, nullptr), ga
   else
   {
     ownGuiContext = true;
-    const int numQuads = 64 << 10;
-    const int numExtraIndices = 1024;
+    const int numQuads = ::dgs_get_game_params()->getBlockByNameEx("guiLimits")->getInt("drggs_gui_quads", 64 << 10);
+    const int numExtraIndices = ::dgs_get_game_params()->getBlockByNameEx("guiLimits")->getInt("drggs_gui_extra", 1024);
     guiContext = new StdGuiRender::GuiContext();
     G_VERIFY(guiContext->createBuffer(0, NULL, numQuads, numExtraIndices, "daRg.guibuf"));
   }
@@ -247,7 +248,6 @@ void GuiScene::createNativeWatches()
   create_scene_observable(frpGraph, hoveredClickableInfo);
   create_scene_observable(frpGraph, keyboardLayout);
   create_scene_observable(frpGraph, keyboardLocks);
-  create_scene_observable(frpGraph, sceneIsActive);
   create_scene_observable(frpGraph, isXmbModeOn);
   create_scene_observable(frpGraph, updateCounter);
 
@@ -272,8 +272,6 @@ void GuiScene::createNativeWatches()
     darg_immediate_error(sqvm, errMsg);
   if (!keyboardLocks->setValue(Sqrat::Object(SQInteger(0), sqvm), errMsg))
     darg_immediate_error(sqvm, errMsg);
-  if (!sceneIsActive->setValue(Sqrat::Object(true, sqvm), errMsg))
-    darg_immediate_error(sqvm, errMsg);
   if (!isXmbModeOn->setValue(Sqrat::Object(false, sqvm), errMsg))
     darg_immediate_error(sqvm, errMsg);
   if (!updateCounter->setValue(Sqrat::Object(actsCount, sqvm), errMsg))
@@ -288,7 +286,6 @@ void GuiScene::destroyNativeWatches()
   hoveredClickableInfo.reset();
   keyboardLayout.reset();
   keyboardLocks.reset();
-  sceneIsActive.reset();
   isXmbModeOn.reset();
   updateCounter.reset();
 
@@ -502,14 +499,14 @@ void GuiScene::update(float dt)
   }
 
   bool prevNeedToMoveOnNextFrame = pointerPos.needToMoveOnNextFrame; //==
-  if (isActive())
+  if (isInputActive())
     pointerPos.update(dt);
   if (prevNeedToMoveOnNextFrame) //== This is workaround for XMB hover update on XBox - temporary, to be rewritten
     updateHover();
 
   cursorPresent->setValue(Sqrat::Object(!pointerPos.mouseWasRelativeOnLastUpdate && activeCursor != nullptr, sqvm), frpErrMsg);
 
-  if (isActive())
+  if (isInputActive())
   {
     if (etree.root && activeCursor && config.gamepadCursorControl)
       gamepadCursor.update(dt);
@@ -1409,7 +1406,7 @@ int GuiScene::onMouseEventInternal(InputEvent event, InputDevice device, int dat
     return 0;
   }
 
-  if (status.sceneIsBroken || !isActive())
+  if (status.sceneIsBroken || !isInputActive())
     return 0;
 
   // if (event == INP_EV_PRESS)
@@ -1511,7 +1508,7 @@ int GuiScene::onPanelMouseEvent(Panel *panel, int hand, InputEvent event, InputD
   // Mouse emulation for now
   DEBUG_TRACE_INPDEV("GuiScene::onPanelMouseEvent(hand=%d, event=%d, pos=%d, %d)", hand, event, mx, my);
 
-  if (status.sceneIsBroken || !isActive())
+  if (status.sceneIsBroken || !isInputActive())
     return 0;
 
   if (event == INP_EV_POINTER_MOVE && panel->pointers[hand].isPresent && (fabsf(panel->pointers[hand].pos.x - mx) < 1) &&
@@ -1577,7 +1574,7 @@ int GuiScene::onPanelTouchEvent(Panel *panel, int hand, InputEvent event, short 
 
   DEBUG_TRACE_INPDEV("GuiScene::onPanelTouchEvent(event=%d, hand=%d, pos=%d, %d)", event, hand, tx, ty);
 
-  if (status.sceneIsBroken || !isActive())
+  if (status.sceneIsBroken || !isInputActive())
     return 0;
 
   HumanInput::PointingRawState::Touch touch = fill_touch_data(panel, hand, tx, ty);
@@ -1625,7 +1622,7 @@ int GuiScene::onTouchEvent(InputEvent event, HumanInput::IGenPointing *pnt, int 
 
   DEBUG_TRACE_INPDEV("GuiScene::onTouchEvent(event=%d, touch_idx=%d)", event, touch_idx);
 
-  if (status.sceneIsBroken || !isActive())
+  if (status.sceneIsBroken || !isInputActive())
     return 0;
 
   // if (event == INP_EV_PRESS)
@@ -1709,7 +1706,7 @@ int GuiScene::onKbdEvent(InputEvent event, int key_idx, int shifts, bool repeat,
   G_UNUSED(shifts);
   DEBUG_TRACE_INPDEV("GuiScene::onKbdEvent(event=%d, key_idx=%d, shifts=%d, wc=%d)", event, key_idx, shifts, wc);
 
-  if (status.sceneIsBroken || !isActive())
+  if (status.sceneIsBroken || !isInputActive())
     return 0;
 
   int resFlags = prev_result;
@@ -1789,7 +1786,7 @@ int GuiScene::onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event
 
   // DEBUG_TRACE_INPDEV("GuiScene::onJoystickBtnEvent(event=%d, btn_idx=%d, dev_no=%d)", event, btn_idx, device_number);
 
-  if (status.sceneIsBroken || !isActive())
+  if (status.sceneIsBroken || !isInputActive())
     return 0;
 
   int resFlags = prev_result;
@@ -3050,7 +3047,7 @@ void GuiScene::reloadScript(const char *fn)
     String msg;
     msg.printf(256, "Failed to load script module %s: %s", fnCopy.c_str(), errMsg.c_str());
     errorMessage(msg);
-    // fatal(msg);
+    // DAG_FATAL(msg);
     rootDesc = Sqrat::Table(sqvm);
   }
 
@@ -3121,7 +3118,7 @@ bool GuiScene::hasInteractiveElements()
 
 bool GuiScene::hasInteractiveElements(int bhv_flags)
 {
-  return (inputStack.summaryBhvFlags & bhv_flags) != 0 && !status.sceneIsBroken && isActive();
+  return (inputStack.summaryBhvFlags & bhv_flags) != 0 && !status.sceneIsBroken && isInputActive();
 }
 
 int GuiScene::calcInteractiveFlags()
@@ -3193,21 +3190,39 @@ void GuiScene::rebuildElemStacks(bool refresh_hotkeys_nav)
 }
 
 
-void GuiScene::setSceneActive(bool active)
+void GuiScene::setSceneInputActive(bool active)
 {
   ApiThreadCheck atc(this);
 
-  if (isActive() == active)
-    return;
+  bool inputWasActive = isInputActive();
 
-  String frpErrMsg;
-  sceneIsActive->setValue(Sqrat::Object(active, sqvm), frpErrMsg);
+  isInputEnabledByHost = active;
 
+  if (isInputActive() != inputWasActive)
+    applyInputActivityChange();
+}
+
+
+void GuiScene::scriptSetSceneInputActive(bool active)
+{
+  ApiThreadCheck atc(this);
+
+  bool inputWasActive = isInputActive();
+
+  isInputEnabledByScript = active;
+
+  if (isInputActive() != inputWasActive)
+    applyInputActivityChange();
+}
+
+
+void GuiScene::applyInputActivityChange()
+{
   if (guiSceneCb)
     guiSceneCb->onToggleInteractive(calcInteractiveFlags());
 
-  if (active)
-    pointerPos.onSceneActivate();
+  if (isInputActive())
+    pointerPos.onActivateSceneInput();
 
   notifyInputConsumersCallback();
 }
@@ -4059,9 +4074,6 @@ void GuiScene::queryCurrentScreenResolution()
 }
 
 
-bool GuiScene::isActive() const { return sceneIsActive->getValueRef().Cast<bool>(); }
-
-
 bool GuiScene::useCircleAsActionButton() const
 {
 #if _TARGET_C1 | _TARGET_C2
@@ -4191,7 +4203,7 @@ static float cast_at_hit_panel(const Panel &panel, Point2 &pointerUV, const TMat
   {
     case PanelGeometry::Rectangle: return cast_at_rectangle(panel, pointerUV, aim);
 
-    default: fatal("Implement casting for this type of geometry!"); return max_aim_distance + 1;
+    default: DAG_FATAL("Implement casting for this type of geometry!"); return max_aim_distance + 1;
   }
 }
 
@@ -4224,7 +4236,9 @@ void GuiScene::updateSpatialElements(const VrSceneData &vr_scene)
 
   if (!panelBufferInitialized)
   {
-    G_VERIFY(getGuiContext()->createBuffer(panel_render_buffer_index, NULL, 1000, 0, "dargpanels.guibuf"));
+    const int numQuads = ::dgs_get_game_params()->getBlockByNameEx("guiLimits")->getInt("drggs_panels_quads", 1000);
+    const int numExtraIndices = ::dgs_get_game_params()->getBlockByNameEx("guiLimits")->getInt("drggs_panels_extra", 0);
+    G_VERIFY(getGuiContext()->createBuffer(panel_render_buffer_index, NULL, numQuads, numExtraIndices, "dargpanels.guibuf"));
     panelBufferInitialized = true;
   }
 
@@ -4259,6 +4273,19 @@ void GuiScene::updateSpatialElements(const VrSceneData &vr_scene)
   updateSpatialInteractionState(vr_scene);
   for (int hand : {0, 1})
     onVrInputEvent(INP_EV_POINTER_MOVE, hand);
+}
+
+
+bool GuiScene::hasAnyPanels()
+{
+  ApiThreadCheck atc(this);
+
+  int actualPanels = 0;
+  for (PanelData &panelData : panels)
+    if (panelData.panel)
+      ++actualPanels;
+
+  return actualPanels > 0;
 }
 
 
@@ -4302,9 +4329,10 @@ void GuiScene::updateSpatialInteractionState(const VrSceneData &vr_scene)
       float threshold = psi.canBeTouched ? min(max_touch_distance + 1.f, minHitDistance[hand]) : minHitDistance[hand];
       if (psi.canBeTouched)
       {
-        bool panelInOtherHand =
-          (psi.anchor == PanelAnchor::LeftHand && hand != 0) || (psi.anchor == PanelAnchor::RightHand && hand != 1);
-        if (panelInOtherHand)
+        bool panelCanBeTouchedWithThisHand = (psi.anchor == PanelAnchor::LeftHand && hand != 0) ||
+                                             (psi.anchor == PanelAnchor::RightHand && hand != 1) ||
+                                             psi.anchor == PanelAnchor::VRSpace || psi.anchor == PanelAnchor::Scene;
+        if (panelCanBeTouchedWithThisHand)
           dist = project_at_hit_panel(*panel, vr_scene.indexFingertips[hand].getcol(3), max_touch_distance, uv);
       }
       else if (psi.canBePointedAt)
@@ -4352,7 +4380,7 @@ int GuiScene::onVrInputEvent(InputEvent event, int hand, int prev_result)
   G_ASSERT_RETURN(hand >= 0 && hand < NUM_VR_POINTERS, 0);
 
   int result = 0;
-  if (status.sceneIsBroken || !isActive())
+  if (status.sceneIsBroken || !isInputActive())
     return result;
 
   if (event == INP_EV_PRESS)
@@ -4361,13 +4389,9 @@ int GuiScene::onVrInputEvent(InputEvent event, int hand, int prev_result)
   auto &sis = spatialInteractionState;
   const Point2 &cursorLocation = sis.hitPos[hand];
 
-  if (hand == vrActiveHand)
-  {
-    if (sis.wasVrSurfaceHit(hand) && inputStack.hitTest(cursorLocation, Behavior::F_HANDLE_MOUSE, Element::F_STOP_MOUSE))
-      result = onMouseEventInternal(event, DEVID_VR, 0, cursorLocation.x, cursorLocation.y, 0, 0);
-    else
-      onMouseEventInternal(INP_EV_POINTER_MOVE, DEVID_VR, 0, -99, -99, 0, 0);
-  }
+  if (hand == vrActiveHand && sis.wasVrSurfaceHit(vrActiveHand) &&
+      inputStack.hitTest(cursorLocation, Behavior::F_HANDLE_MOUSE, Element::F_STOP_MOUSE))
+    result = onMouseEventInternal(event, DEVID_VR, 0, cursorLocation.x, cursorLocation.y, 0, 0);
 
   VrPointer &vrPtr = vrPointers[hand];
   int closestPanelIdx = spatialInteractionState.closestHitPanelIdxs[hand];
@@ -4546,10 +4570,10 @@ void GuiScene::bindScriptClasses()
     .Prop("keyboardLayout", &GuiScene::getKeyboardLayoutObservable)
     .Prop("keyboardLocks", &GuiScene::getKeyboardLocksObservable)
     .Prop("updateCounter", &GuiScene::getUpdateCounterObservable)
-    .Prop("isActive", &GuiScene::getSceneIsActiveObservable)
     .Prop("circleButtonAsAction", &GuiScene::useCircleAsActionButton)
     .Prop("xmbMode", &GuiScene::getIsXmbModeOn)
-    .Func("getJoystickAxis", &GuiScene::getJoystickAxis);
+    .Func("getJoystickAxis", &GuiScene::getJoystickAxis)
+    .Func("enableInput", &GuiScene::scriptSetSceneInputActive);
 
 #define V(x) .Var(#x, &SceneConfig::x)
   ///@class daRg/SceneConfig

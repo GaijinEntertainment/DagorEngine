@@ -8,7 +8,8 @@ namespace das {
     float4 das_invoke_code ( void * pfun, vec4f anything, void * cmres, Context * context );
     bool das_is_jit_function ( const Func func );
     bool das_remove_jit ( const Func func );
-    bool das_instrument_jit ( void * pfun, const Func func, Context * context );
+    bool das_instrument_jit ( void * pfun, const Func func, Context & context );
+    void * das_instrument_line_info ( const LineInfo & info, Context * context, LineInfoArg * at );
     void * das_get_jit_exception ();
     void * das_get_jit_call_or_fastcall ();
     void * das_get_jit_call_with_cmres ( );
@@ -26,6 +27,7 @@ namespace das {
     void * das_get_jit_table_erase ( int32_t baseType, Context * context, LineInfoArg * at );
     void * das_get_jit_table_find ( int32_t baseType, Context * context, LineInfoArg * at );
     void * das_get_jit_str_cmp ();
+    void * das_get_jit_str_cat ();
     void * das_get_jit_prologue ();
     void * das_get_jit_epilogue ();
     void * das_get_jit_make_block ();
@@ -36,4 +38,6 @@ namespace das {
     void * das_get_builtin_function_address ( Function * fn, Context * context, LineInfoArg * at );
     void * das_make_interop_node ( Context & ctx, ExprCallFunc * call, Context * context, LineInfoArg * at );
     void * das_sb_make_interop_node ( Context & ctx, ExprStringBuilder * call, Context * context, LineInfoArg * at );
+    void * das_get_jit_new ( TypeDeclPtr htype, Context * context, LineInfoArg * at );
+    void * das_get_jit_delete ( TypeDeclPtr htype, Context * context, LineInfoArg * at );
 }

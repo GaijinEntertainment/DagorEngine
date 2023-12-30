@@ -7,6 +7,9 @@
 
 namespace das
 {
+    static TypeInfo lambda_type_info (Type::tLambda, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, 0, nullptr,
+        TypeInfo::flag_stringHeapGC | TypeInfo::flag_heapGC | TypeInfo::flag_lockCheck, sizeof(Lambda), 0 );
+
     char * presentStr ( char * buf, char * ch, int size );
 
     struct PtrRange {
@@ -630,6 +633,18 @@ namespace das
         walker.reportHeap = rgh;
         walker.heapOnly = rghOnly;
         walker.errorsOnly = errorsOnly;
+        // mark GC roots
+        tp << "GC ROOTS:\n";
+        foreach_gc_root([&](void * _pa, TypeInfo * ti) {
+            char * pa = (char *) _pa;
+            walker.prepare("ext_gc_root");
+            if ( ti ) {
+                walker.walk(pa, ti);
+            } else {
+                Lambda lmb(pa);
+                walker.walk((char *)&lmb, &lambda_type_info);
+            }
+        });
         // mark globals
         if ( sharedOwner ) {
             tp << "SHARED GLOBALS:\n";
@@ -857,6 +872,16 @@ namespace das
         GcMarkStringHeap walker;
         walker.context = this;
         walker.validate = validate;
+        // mark GC roots
+        foreach_gc_root([&](void * _pa, TypeInfo * ti) {
+            char * pa = (char *) _pa;
+            if ( ti ) {
+                walker.walk(pa, ti);
+            } else {
+                Lambda lmb(pa);
+                walker.walk((char *)&lmb, &lambda_type_info);
+            }
+        });
         // mark globals
         if ( sharedOwner ) {
             for ( int i=0, is=totalVariables; i!=is; ++i ) {
@@ -1154,6 +1179,8 @@ namespace das
         }
     };
 
+
+
     void Context::collectHeap ( LineInfo * at, bool sheap, bool validate ) {
         // clean up, so that all small allocations are marked as 'free'
         if ( sheap && !stringHeap->mark() ) return;
@@ -1163,6 +1190,17 @@ namespace das
         walker.markStringHeap = sheap;
         walker.context = this;
         walker.validate = validate;
+        // mark GC roots
+        foreach_gc_root([&](void * _pa, TypeInfo * ti) {
+            char * pa = (char *) _pa;
+            walker.prepare();
+            if ( ti ) {
+                walker.walk(pa, ti);
+            } else {
+                Lambda lmb(pa);
+                walker.walk((char *)&lmb, &lambda_type_info);
+            }
+        });
         // mark globals
         if ( sharedOwner ) {
             for ( int i=0, is=totalVariables; i!=is; ++i ) {

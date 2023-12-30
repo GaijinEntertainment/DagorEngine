@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 let scrollbar = require("samples_prog/_basic/components/scrollbar.nut")
 
-let function messageInLog(entry) {
+function messageInLog(entry) {
   return {
     rendObj = ROBJ_TEXTAREA
     behavior = Behaviors.TextArea
@@ -11,9 +11,9 @@ let function messageInLog(entry) {
     size = [flex(), SIZE_TO_CONTENT]
   }.__merge(entry)
 }
-let function logContent(log_state, scrollHandler) {
+function logContent(log_state, scrollHandler) {
   local lastScrolledTo = null
-  let function scroll(val){
+  function scroll(val){
     local scrollTo = val.len() > 0 ? val.top()?.key : null
     if (scrollTo==null || scrollTo == lastScrolledTo)
       return
@@ -34,7 +34,7 @@ let function logContent(log_state, scrollHandler) {
 let defSz = [flex(), hdpx(300)]
 let defColor = Color(120, 120, 120)
 
-let function textLog(log_state, options) {
+function textLog(log_state, options) {
   let {
     size = defSz,
     color = defColor

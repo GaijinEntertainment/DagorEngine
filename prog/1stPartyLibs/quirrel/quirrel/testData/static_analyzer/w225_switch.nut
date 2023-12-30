@@ -1,3 +1,4 @@
+#allow-switch-statement
 
 function foo(_p) {}
 function _dataToBlk(data) {

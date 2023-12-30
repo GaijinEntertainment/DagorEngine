@@ -52,6 +52,9 @@ enum
   TEX_ZOOM_LIMITER = TEX_DEFAULT_LIMITER + TEX_DEFAULT_LIMITER / 2,
   TEX_ORIGIN_LIMITER = TEX_DEFAULT_LIMITER + (TEX_DEFAULT_LIMITER >> 3),
   TEX_MAX_ZOOM = 64,
+  MAX_FEEDBACK_RESOLUTION = 0xFFFF - 1,
+  FEEDBACK_DEFAULT_WIDTH = 320,
+  FEEDBACK_DEFAULT_HEIGHT = 192
 };
 
 struct TexTileIndirection
@@ -79,6 +82,12 @@ public:
   virtual void renderFeedback(const TMatrix4 &) { G_ASSERT(0); }
 };
 
+struct FeedbackProperties
+{
+  IPoint2 feedbackSize;     // = Clipmap::FEEDBACK_DEFAULT_SIZE
+  int feedbackOversampling; // = 1
+};
+
 class Clipmap
 {
 public:
@@ -88,8 +97,11 @@ public:
     CPU_HW_FEEDBACK
   };
 
-  static const IPoint2 FEEDBACK_SIZE;
+  static const IPoint2 FEEDBACK_DEFAULT_SIZE;
   static const int MAX_TEX_MIP_CNT;
+
+  static FeedbackProperties getSuggestedOversampledFeedbackProperties(IPoint2 target_res);
+  static FeedbackProperties getDefaultFeedbackProperties() { return {FEEDBACK_DEFAULT_SIZE, 1}; };
 
   void initVirtualTexture(int cacheDimX, int cacheDimY, float maxEffectiveTargetResolution);
   void closeVirtualTexture();
@@ -129,7 +141,8 @@ public:
 
   TexTileIndirection &atTile(SmallTab<TexTileIndirection, MidmemAlloc> *tiles, int mip, int addr);
   void setTexMips(int tex_mips);
-  Clipmap(const char *in_postfix = NULL, bool in_use_uav_feedback = true);
+  Clipmap(const char *postfix = NULL, bool use_uav_feedback = true,
+    FeedbackProperties feedback_properties = getDefaultFeedbackProperties());
   ~Clipmap();
   // sz - texture size of each clip, clip_count - number of clipmap stack. multiplayer - size of next clip
   // size in meters of latest clip, virtual_texture_mip_cnt - amount of mips(lods) of virtual texture containing tiles

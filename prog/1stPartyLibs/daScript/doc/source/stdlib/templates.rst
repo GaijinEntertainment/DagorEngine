@@ -7,7 +7,7 @@ decltype macro and template function annotation
 
 .. include:: detail/templates.rst
 
-The templates exposes collection of template-like routines for daScript.
+The templates exposes collection of template-like routines for Daslang.
 
 All functions and symbols are in "templates" module, use require to get access to it. ::
 
@@ -38,12 +38,6 @@ For example::
 Call macros
 +++++++++++
 
-.. _call-macro-templates-decltype_noref:
-
-.. das:attribute:: decltype_noref
-
-This macro returns TypeDecl for the corresponding expression, minus the ref (&) portion.
-
 .. _call-macro-templates-decltype:
 
 .. das:attribute:: decltype
@@ -53,5 +47,11 @@ This macro returns ast::TypeDecl for the corresponding expression. For example::
     let x = 1
     let y <- decltype(x) // [[TypeDecl() baseType==Type tInt, flags=TypeDeclFlags constant | TypeDeclFlags ref]]
 
+
+.. _call-macro-templates-decltype_noref:
+
+.. das:attribute:: decltype_noref
+
+This macro returns TypeDecl for the corresponding expression, minus the ref (&) portion.
 
 

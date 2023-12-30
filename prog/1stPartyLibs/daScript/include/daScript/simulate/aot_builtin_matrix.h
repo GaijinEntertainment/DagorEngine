@@ -24,6 +24,7 @@ namespace das {
     float4x4 float4x4_transpose ( const float4x4 & src );
     float4x4 float4x4_inverse( const float4x4 & src);
     float4x4 float4x4_neg( const float4x4 & src);
+    float float4x4_det(const float4x4 &a);
     inline float3x4 float3x4_inverse( const float3x4 & src ) {
         mat44f mat, invMat;
         v_mat44_make_from_43cu_unsafe(mat, &src.m[0].x);
@@ -32,9 +33,20 @@ namespace das {
         v_mat_43cu_from_mat44(&ret.m[0].x, invMat);
         return ret;
     }
+    inline float3x4 float3x4_orthonormal_inverse( const float3x4 & src) {
+        mat44f mat, invMat;
+        v_mat44_make_from_43cu_unsafe(mat, &src.m[0].x);
+        v_mat44_orthonormal_inverse43(invMat, mat);
+        return reinterpret_cast<float3x4&>(invMat);
+    }
     float3x4 float3x4_neg ( const float3x4 & mat );
-    float float3x4_det ( const float3x4 & mat );
+    inline float float3x4_det ( const float3x4 & mat ) {
+        mat44f res;
+        v_mat44_make_from_43cu_unsafe(res, (const float*)&mat);
+        return v_extract_x(v_mat44_det43(res));
+    }
     float3x3 float3x3_inverse( const float3x3 & src);
+    float3x3 float3x3_orthonormal_inverse( const float3x3 & src);
     float3x3 float3x3_neg ( const float3x3 & mat );
     float float3x3_det ( const float3x3 & a );
     float4x4 float4x4_from_float34 ( const float3x4 & mat );
@@ -42,7 +54,6 @@ namespace das {
     float3x3 float3x3_from_float34 ( const float3x4 & mat );
     float3x4 float3x4_from_float44 ( const float4x4 & mat );
 
-    float4x4 float4x4_orthonormal_inverse( const float4x4 & src);
     float4x4 float4x4_persp_forward(float wk, float hk, float zn, float zf);
     float4x4 float4x4_persp_reverse(float wk, float hk, float zn, float zf);
     float4x4 float4x4_look_at(float3 eye, float3 at, float3 up);
@@ -53,12 +64,15 @@ namespace das {
     float4 quat_from_unit_vec_ang(float3 v, float ang);
     float4 quat_from_euler_vec(float3 v);
     float4 quat_from_euler(float x, float y, float z);
-    float3 euler_from_un_quat(float4 v);
-    float4 un_quat(const float4x4 & m);
+    float3 euler_from_quat(float4 v);
+    float4 quat_from_float3x3(const float3x3 & a);
+    float4 quat_from_float3x4(const float3x4 & a);
+    float4 quat_from_float4x4(const float4x4 & a);
 
     float4 quat_mul(float4 q1, float4 q2);
     float3 quat_mul_vec(float4 q, float3 v);
     float4 quat_conjugate(float4 q);
+    float4 quat_slerp(float t, float4 a, float4 b);
 
     inline float3 float3x4_mul_vec3p(const float3x4 &a, float3 b) {
         mat44f va;
@@ -70,12 +84,6 @@ namespace das {
         mat44f va;
         memcpy(&va,&a,sizeof(float4x4));
         return v_mat44_mul_vec4(va, b);
-    }
-
-    inline float float4x4_det(const float4x4 &a) {
-        mat44f va;
-        memcpy(&va,&a,sizeof(float4x4));
-        return v_extract_x(v_mat44_det(va));
     }
 
     inline float3 float3x3_mul_vec3(const float3x3 &a, float3 b) {

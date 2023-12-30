@@ -137,6 +137,11 @@ void MeshData::removeFacesFast(int at, int n)
     ERASE(extra[c].fc)
 
 #undef ERASE
+  if (n && ntab.size()) // if ntab was build for older faces we shall force rebuilding it
+  {
+    ntab.clear();
+    ngr.clear();
+  }
 }
 
 void MeshData::clampMaterials(uint16_t max_val, int sf, int numf)
@@ -1073,7 +1078,13 @@ void MeshData::removeFacesFast(const Bitarray &used)
 {
   if (used.size() != face.size())
     return;
+  int old_faces = face.size();
   remove_faces(*this, RemoveUnused(used));
+  if (old_faces != face.size() && ntab.size()) // if ntab was build for older faces we shall force rebuilding it
+  {
+    ntab.clear();
+    ngr.clear();
+  }
 }
 
 
@@ -1448,7 +1459,7 @@ bool MeshData::createTangentsData(int usage, int usage_index)
   if (!facenorm.size())
     calc_facenorms();
   if (tface[texChannel].size() != face.size() || facenorm.size() != face.size())
-    fatal("No texture channel or not enough face in texture channel (face=%d norm=%d tface=%d)", face.size(), facenorm.size(),
+    DAG_FATAL("No texture channel or not enough face in texture channel (face=%d norm=%d tface=%d)", face.size(), facenorm.size(),
       tface[texChannel].size());
 
   for (int faceIndex = 0, j = 0; faceIndex < face.size(); ++faceIndex)

@@ -1,5 +1,5 @@
 
-daScript's documentation
+Daslang's documentation
 =========================================
 
 Contents:

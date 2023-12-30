@@ -47,13 +47,13 @@ Handled structures
 float4x4 fields are
 
 +-+------+
-+x+float4+
-+-+------+
 +z+float4+
 +-+------+
 +w+float4+
 +-+------+
 +y+float4+
++-+------+
++x+float4+
 +-+------+
 
 
@@ -66,13 +66,13 @@ float4x4 fields are
 float3x4 fields are
 
 +-+------+
-+x+float3+
-+-+------+
 +z+float3+
 +-+------+
 +w+float3+
 +-+------+
 +y+float3+
++-+------+
++x+float3+
 +-+------+
 
 
@@ -85,11 +85,11 @@ float3x4 fields are
 float3x3 fields are
 
 +-+------+
-+x+float3+
-+-+------+
 +z+float3+
 +-+------+
 +y+float3+
++-+------+
++x+float3+
 +-+------+
 
 
@@ -5339,13 +5339,14 @@ Matrix manipulation
   *  :ref:`transpose (x:math::float4x4 const implicit) : math::float4x4 <function-_at_math_c__c_transpose_CIH_ls_math_c__c_float4x4_gr_>` 
   *  :ref:`persp_forward (wk:float const;hk:float const;zn:float const;zf:float const) : math::float4x4 <function-_at_math_c__c_persp_forward_Cf_Cf_Cf_Cf>` 
   *  :ref:`persp_reverse (wk:float const;hk:float const;zn:float const;zf:float const) : math::float4x4 <function-_at_math_c__c_persp_reverse_Cf_Cf_Cf_Cf>` 
-  *  :ref:`look_at (eye:float4 const;at:float4 const;up:float4 const) : math::float4x4 <function-_at_math_c__c_look_at_Cf4_Cf4_Cf4>` 
-  *  :ref:`compose (pos:float4 const;rot:float4 const;scale:float4 const) : math::float4x4 <function-_at_math_c__c_compose_Cf4_Cf4_Cf4>` 
+  *  :ref:`look_at (eye:float3 const;at:float3 const;up:float3 const) : math::float4x4 <function-_at_math_c__c_look_at_Cf3_Cf3_Cf3>` 
+  *  :ref:`compose (pos:float3 const;rot:float4 const;scale:float3 const) : math::float4x4 <function-_at_math_c__c_compose_Cf3_Cf4_Cf3>` 
   *  :ref:`decompose (mat:math::float4x4 const implicit;pos:float3& implicit;rot:float4& implicit;scale:float3& implicit) : void <function-_at_math_c__c_decompose_CIH_ls_math_c__c_float4x4_gr__&If3_&If4_&If3>` 
   *  :ref:`identity (x:math::float3x4 implicit) : void <function-_at_math_c__c_identity_IH_ls_math_c__c_float3x4_gr_>` 
   *  :ref:`inverse (x:math::float3x4 const implicit) : math::float3x4 <function-_at_math_c__c_inverse_CIH_ls_math_c__c_float3x4_gr_>` 
   *  :ref:`inverse (m:math::float4x4 const implicit) : math::float4x4 <function-_at_math_c__c_inverse_CIH_ls_math_c__c_float4x4_gr_>` 
-  *  :ref:`orthonormal_inverse (m:math::float4x4 const implicit) : math::float4x4 <function-_at_math_c__c_orthonormal_inverse_CIH_ls_math_c__c_float4x4_gr_>` 
+  *  :ref:`orthonormal_inverse (m:math::float3x3 const implicit) : math::float3x3 <function-_at_math_c__c_orthonormal_inverse_CIH_ls_math_c__c_float3x3_gr_>` 
+  *  :ref:`orthonormal_inverse (m:math::float3x4 const implicit) : math::float3x4 <function-_at_math_c__c_orthonormal_inverse_CIH_ls_math_c__c_float3x4_gr_>` 
   *  :ref:`rotate (x:math::float3x4 const implicit;y:float3 const) : float3 <function-_at_math_c__c_rotate_CIH_ls_math_c__c_float3x4_gr__Cf3>` 
   *  :ref:`identity (x:math::float3x3 implicit) : void <function-_at_math_c__c_identity_IH_ls_math_c__c_float3x3_gr_>` 
 
@@ -5445,39 +5446,39 @@ persp_reverse returns  :ref:`math::float4x4 <handle-math-float4x4>`
 
 |function-math-persp_reverse|
 
-.. _function-_at_math_c__c_look_at_Cf4_Cf4_Cf4:
+.. _function-_at_math_c__c_look_at_Cf3_Cf3_Cf3:
 
-.. das:function:: look_at(eye: float4 const; at: float4 const; up: float4 const)
+.. das:function:: look_at(eye: float3 const; at: float3 const; up: float3 const)
 
 look_at returns  :ref:`math::float4x4 <handle-math-float4x4>` 
 
 +--------+-------------+
 +argument+argument type+
 +========+=============+
-+eye     +float4 const +
++eye     +float3 const +
 +--------+-------------+
-+at      +float4 const +
++at      +float3 const +
 +--------+-------------+
-+up      +float4 const +
++up      +float3 const +
 +--------+-------------+
 
 
 |function-math-look_at|
 
-.. _function-_at_math_c__c_compose_Cf4_Cf4_Cf4:
+.. _function-_at_math_c__c_compose_Cf3_Cf4_Cf3:
 
-.. das:function:: compose(pos: float4 const; rot: float4 const; scale: float4 const)
+.. das:function:: compose(pos: float3 const; rot: float4 const; scale: float3 const)
 
 compose returns  :ref:`math::float4x4 <handle-math-float4x4>` 
 
 +--------+-------------+
 +argument+argument type+
 +========+=============+
-+pos     +float4 const +
++pos     +float3 const +
 +--------+-------------+
 +rot     +float4 const +
 +--------+-------------+
-+scale   +float4 const +
++scale   +float3 const +
 +--------+-------------+
 
 
@@ -5545,16 +5546,31 @@ inverse returns  :ref:`math::float4x4 <handle-math-float4x4>`
 
 |function-math-inverse|
 
-.. _function-_at_math_c__c_orthonormal_inverse_CIH_ls_math_c__c_float4x4_gr_:
+.. _function-_at_math_c__c_orthonormal_inverse_CIH_ls_math_c__c_float3x3_gr_:
 
-.. das:function:: orthonormal_inverse(m: float4x4 const implicit)
+.. das:function:: orthonormal_inverse(m: float3x3 const implicit)
 
-orthonormal_inverse returns  :ref:`math::float4x4 <handle-math-float4x4>` 
+orthonormal_inverse returns  :ref:`math::float3x3 <handle-math-float3x3>` 
 
 +--------+-------------------------------------------------------------+
 +argument+argument type                                                +
 +========+=============================================================+
-+m       + :ref:`math::float4x4 <handle-math-float4x4>`  const implicit+
++m       + :ref:`math::float3x3 <handle-math-float3x3>`  const implicit+
++--------+-------------------------------------------------------------+
+
+
+|function-math-orthonormal_inverse|
+
+.. _function-_at_math_c__c_orthonormal_inverse_CIH_ls_math_c__c_float3x4_gr_:
+
+.. das:function:: orthonormal_inverse(m: float3x4 const implicit)
+
+orthonormal_inverse returns  :ref:`math::float3x4 <handle-math-float3x4>` 
+
++--------+-------------------------------------------------------------+
++argument+argument type                                                +
++========+=============================================================+
++m       + :ref:`math::float3x4 <handle-math-float3x4>`  const implicit+
 +--------+-------------------------------------------------------------+
 
 
@@ -5808,6 +5824,36 @@ Uncategorized
 
 |function-math-[]|
 
+.. _function-_at_math_c__c_determinant_CIH_ls_math_c__c_float4x4_gr_:
+
+.. das:function:: determinant(x: float4x4 const implicit)
+
+determinant returns float
+
++--------+-------------------------------------------------------------+
++argument+argument type                                                +
++========+=============================================================+
++x       + :ref:`math::float4x4 <handle-math-float4x4>`  const implicit+
++--------+-------------------------------------------------------------+
+
+
+|function-math-determinant|
+
+.. _function-_at_math_c__c_determinant_CIH_ls_math_c__c_float3x4_gr_:
+
+.. das:function:: determinant(x: float3x4 const implicit)
+
+determinant returns float
+
++--------+-------------------------------------------------------------+
++argument+argument type                                                +
++========+=============================================================+
++x       + :ref:`math::float3x4 <handle-math-float3x4>`  const implicit+
++--------+-------------------------------------------------------------+
+
+
+|function-math-determinant|
+
 .. _function-_at_math_c__c_[]_I_eq_H_ls_math_c__c_float3x4_gr__Ci_C_c_C_l:
 
 .. das:function:: operator [](m: float3x4 implicit ==const; i: int const)
@@ -5924,6 +5970,21 @@ euler_from_un_quat returns float3
 
 
 |function-math-euler_from_un_quat|
+
+.. _function-_at_math_c__c_determinant_CIH_ls_math_c__c_float3x3_gr_:
+
+.. das:function:: determinant(x: float3x3 const implicit)
+
+determinant returns float
+
++--------+-------------------------------------------------------------+
++argument+argument type                                                +
++========+=============================================================+
++x       + :ref:`math::float3x3 <handle-math-float3x3>`  const implicit+
++--------+-------------------------------------------------------------+
+
+
+|function-math-determinant|
 
 .. _function-_at_math_c__c_[]_I_eq_H_ls_math_c__c_float3x3_gr__Ci_C_c_C_l:
 

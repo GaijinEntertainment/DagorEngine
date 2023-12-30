@@ -8,8 +8,10 @@ import sys
 import re
 import subprocess
 import tempfile
+from fs_helpers import decode_fname
 
 PY3K = sys.version_info >= (3, 0)
+
 
 def shell(cmd):
     """do command in shell (like os.system() but with capture output)"""
@@ -23,17 +25,6 @@ def shell(cmd):
     if process.returncode != 0:
         raise RuntimeError(cmd, out, process.returncode)
     return out
-
-def decode_fname(f):
-    if PY3K:
-      try:
-          return f.decode(encoding="utf-8")
-      except UnicodeDecodeError:
-          try:
-              return f.decode('cp1251') #sq3analyzer use such strange codepage
-          except:
-              return f
-    return f
 
 def print_results(failed):
     def print_error(e):
@@ -233,7 +224,7 @@ def gather_files(paths, excluded_dirs, use_configs = True):
 
 nametonummap = {}
 def tidtocmd(tid):
-    return "-W:{0}".format(nametonummap.get(tid, tid))
+    return "--W:{0}".format(nametonummap.get(tid, tid))
 
 def shell_test(cmd, extras=""):
     try:
@@ -256,7 +247,7 @@ def run_tests_on_files(files, cmds):
 
 def check_files(files, cmdchecks = [], inverse_warnings = True, **kwargs):
     numtoname = dict(zip(nametonummap.values(), nametonummap.keys()))
-    namedchecks = [nametonummap.get(k,numtoname.get(k, "-W:{0}".format(k))) for k in cmdchecks]
+    namedchecks = [nametonummap.get(k,numtoname.get(k, "--W:{0}".format(k))) for k in cmdchecks]
     print("Check squirrel files")
     if inverse_warnings:
         print("Checks: {0}".format(" ".join(namedchecks)))
@@ -346,7 +337,6 @@ if __name__ == "__main__":
     parser.add_argument('-gb', '--branch', action="store", default = os.environ.get('GERRIT_BRANCH',"master"), type = str)
     parser.add_argument('-gp', '--project', action="store", default = os.environ.get('GERRIT_PROJECT',"dagor4"), type = str)
     parser.add_argument('-gr', '--revisionid', action="store", default = os.environ.get('GERRIT_PATCHSET_REVISION'), type = str)
-    parser.add_argument('-om', '--output-mode', action="store", default = "full", type = str, choices=["full", "2-lines", "1-line"])
     args = parser.parse_args()
     if len(sys.argv[1:])==0:
             #parser.print_help()
@@ -362,7 +352,7 @@ if __name__ == "__main__":
         use_configs = True
         gerrit_files = gerrit.list_files(args.changeid, args.revisionid, branch=args.branch, project=args.project)
         gerrit_files = [f[0] for f in gerrit_files.items() if f[1].get("status")!="D" and f[0].lower().endswith(".nut")]
-        gerrit_files = [f for f in gerrit_files if not f.startswith("prog/1stPartyLibs/quirrel/quirrel/testData") and not f.startswith("launcher/")]
+        gerrit_files = [f for f in gerrit_files if not f.startswith("prog/1stPartyLibs/quirrel/quirrel/testData") and not f.startswith("prog/commonFx/")]
         gerrit_files = [f for f in gerrit_files if not f.startswith("skyquake/prog/scripts")]
         files = gather_files(gerrit_files, args.exclude, use_configs)
     else:
@@ -370,7 +360,7 @@ if __name__ == "__main__":
         files = gather_files(args.paths, args.exclude, use_configs)
 
     if args.use_configs: # <- may be use_configs, not args.use_configs?
-        check_files_with_configs(files, args.warnings, output_mode = args.output_mode)
+        check_files_with_configs(files, args.warnings)
     else:
-        check_files(files, args.warnings, args.inverse_warnings, output_mode = args.output_mode)
+        check_files(files, args.warnings, args.inverse_warnings)
 

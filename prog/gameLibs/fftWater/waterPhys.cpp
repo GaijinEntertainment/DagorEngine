@@ -709,6 +709,7 @@ vec4f WaterNVPhysics::getRenderedHeight(float x, float z)
 int WaterNVPhysics::getHeightAboveWater(double time, const Point3 &point, float &result, Point3 *out_displacement,
   bool matchRenderGrid)
 {
+  TIME_PROFILE_DEV(getHeightAboveWater);
   if (!cascades)
   {
     if (waterHeightmap)

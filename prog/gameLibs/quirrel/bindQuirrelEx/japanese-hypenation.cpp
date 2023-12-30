@@ -88,7 +88,7 @@ unsigned short read_utf8(const char *&ptr)
   unsigned char c = *ptr++;
 
   if ((c & 0xF0) == 0xF0)
-    fatal("can't process more than 3-byte UTF8");
+    DAG_FATAL("can't process more than 3-byte UTF8");
 
   if ((c & 0x80) == 0)
     ret = c;

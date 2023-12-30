@@ -320,6 +320,10 @@ static bool fill_ddsx_hdr(ddsx::Header &hdr, int cflg, int w, int h, int d, int 
       hdr.bitsPerPixel = 32;
       hdr.d3dFormat = (cflg & TEXFMT_MASK);
       break;
+    case TEXFMT_R32SI:
+      hdr.bitsPerPixel = 32;
+      hdr.d3dFormat = (cflg & TEXFMT_MASK);
+      break;
     case TEXFMT_R11G11B10F:
       hdr.bitsPerPixel = 32;
       hdr.d3dFormat = (cflg & TEXFMT_MASK);

@@ -84,7 +84,7 @@ public:
 };
 
 
-FPObjectPoint::FPObjectPoint(FpdObject *obj, FastPhysEditor &editor) : IFPObject(obj, editor) { __super::setPos(obj->getPos()); }
+FPObjectPoint::FPObjectPoint(FpdObject *obj, FastPhysEditor &editor) : IFPObject(obj, editor) { IFPObject::setPos(obj->getPos()); }
 
 
 void FPObjectPoint::refillPanel(PropPanel2 *panel)
@@ -220,7 +220,7 @@ bool FPObjectPoint::setPos(const Point3 &p)
 
   pointObject->setPos(p);
 
-  return __super::setPos(p);
+  return IFPObject::setPos(p);
 }
 
 

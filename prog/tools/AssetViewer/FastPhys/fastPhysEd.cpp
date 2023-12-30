@@ -109,7 +109,7 @@ void FastPhysEditor::clearAll()
 
 void FastPhysEditor::removeObjects(RenderableEditableObject **obj, int num, bool use_undo)
 {
-  __super::removeObjects(obj, num, use_undo);
+  ObjectEditor::removeObjects(obj, num, use_undo);
 
   // fix actions
   // removeDeadActions(initAction);
@@ -202,7 +202,7 @@ IFPObject *FastPhysEditor::addObject(FpdObject *o)
     return NULL;
 
   objects.push_back(wo);
-  //__super::addObject(wo, true);
+  // ObjectEditor::addObject(wo, true);
 
   FpdPoint *po = rtti_cast<FpdPoint>(o);
   if (po)
@@ -701,7 +701,7 @@ void FastPhysEditor::render()
 {
   ::begin_draw_cached_debug_lines();
 
-  __super::render();
+  ObjectEditor::render();
 
   if (isSimulationActive && isSimDebugVisible && physSystem)
     physSystem->debugRender();
@@ -722,7 +722,7 @@ void FastPhysEditor::update(real dt)
   if (get_app().curPlugin() != &mPlugin)
     return;
 
-  __super::update(dt);
+  ObjectEditor::update(dt);
 
   // updateGizmo();
 
@@ -771,7 +771,7 @@ void FastPhysEditor::selectionChanged() { updateSelection(); }
 
 void FastPhysEditor::updateToolbarButtons()
 {
-  __super::updateToolbarButtons();
+  ObjectEditor::updateToolbarButtons();
 
   if (charRoot)
     setButton(CM_SHOW_CHAR, charRoot->getCharVisible());
@@ -787,7 +787,7 @@ void FastPhysEditor::updateToolbarButtons()
 
 void FastPhysEditor::fillToolBar(PropPanel2 *toolbar)
 {
-  __super::fillToolBar(toolbar);
+  ObjectEditor::fillToolBar(toolbar);
 
   PropertyContainerControlBase *tb = toolbar->createToolbarPanel(0, "");
 
@@ -797,7 +797,7 @@ void FastPhysEditor::fillToolBar(PropPanel2 *toolbar)
   addButton(tb, CM_REVERT, "import_blk", "Revert changes");
   tb->createSeparator();
 
-  //__super::fillToolBar();
+  // ObjectEditor::fillToolBar();
 
   // addButton(tb, CM_ACTION_PANEL, "show_panel_gi", "Show/hide actions panel", true);
   // tb->createSeparator();
@@ -827,7 +827,7 @@ void FastPhysEditor::addButton(PropPanel2 *toolbar, int id, const char *bmp_name
   if (id == CM_OBJED_OBJPROP_PANEL)
     return;
 
-  __super::addButton(toolbar, id, bmp_name, hint, check);
+  ObjectEditor::addButton(toolbar, id, bmp_name, hint, check);
 }
 
 void FastPhysEditor::setWind(const Point3 &vel, float power, float turb)
@@ -855,7 +855,7 @@ void FastPhysEditor::getWind(Point3 &vel, float &power, float &turb)
 
 void FastPhysEditor::onClick(int pcb_id, PropPanel2 *panel)
 {
-  __super::onClick(pcb_id, panel);
+  ObjectEditor::onClick(pcb_id, panel);
 
   switch (pcb_id)
   {

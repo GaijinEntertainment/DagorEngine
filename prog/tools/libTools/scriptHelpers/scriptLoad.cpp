@@ -549,7 +549,7 @@ public:
 
   virtual bool onClick(int pcb_id, PropertyContainerControlBase &panel, IPropPanelCB &ppcb)
   {
-    if (__super::onClick(pcb_id, panel, ppcb))
+    if (TunedElement::onClick(pcb_id, panel, ppcb))
       return true;
 
     if (basePid != -1 && pcb_id == basePid)

@@ -110,7 +110,6 @@ extern HttpPlugin shader_http_plugin;
 extern HttpPlugin screenshot_http_plugin;
 extern HttpPlugin profiler_http_plugin;
 extern HttpPlugin ecsviewer_http_plugin;
-extern HttpPlugin auto_drey_http_plugin;
 extern HttpPlugin editvar_http_plugin;
 extern HttpPlugin color_pipette_http_plugin;
 extern HttpPlugin colorpicker_http_plugin;

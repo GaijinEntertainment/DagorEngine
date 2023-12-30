@@ -356,7 +356,7 @@ shader debug_fill_gbuffer
     ##else
       #define TARGET SV_Target2
     ##endif
-    half4 debug_ps():TARGET { return gbuffer_fix_color; }
+    float4 debug_ps():TARGET { return gbuffer_fix_color; }
   }
   compile("target_ps", "debug_ps");
 }

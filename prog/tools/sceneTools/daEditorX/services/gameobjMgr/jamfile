@@ -6,6 +6,7 @@ Target      = tools/sceneTools/daEditorX/services/gameobjMgr.lib ;
 
 
 AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/tools/sharedInclude
 ;

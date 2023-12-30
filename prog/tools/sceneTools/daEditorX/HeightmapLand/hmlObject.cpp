@@ -168,7 +168,7 @@ HmapLandObjectEditor::HmapLandObjectEditor() :
   generationCount = 0;
 
   selectMode = -1;
-  __super::setEditMode(CM_OBJED_MODE_SELECT);
+  ObjectEditor::setEditMode(CM_OBJED_MODE_SELECT);
 
   debugP1 = debugP2 = NULL;
 
@@ -250,7 +250,7 @@ void HmapLandObjectEditor::fillToolBar(PropertyContainerControlBase *toolbar)
   addButton(tb1, CM_SCRIPT, "terr_script", "Apply script (6)", true);
   tb1->createSeparator();
 
-  __super::fillToolBar(toolbar);
+  ObjectEditor::fillToolBar(toolbar);
 
   PropertyContainerControlBase *tb2 = toolbar->createToolbarPanel(0, "");
 
@@ -303,7 +303,7 @@ void HmapLandObjectEditor::fillToolBar(PropertyContainerControlBase *toolbar)
 
 void HmapLandObjectEditor::updateToolbarButtons()
 {
-  __super::updateToolbarButtons();
+  ObjectEditor::updateToolbarButtons();
 
   setRadioButton(CM_SMOOTH, getEditMode());
   setRadioButton(CM_ALIGN, getEditMode());
@@ -338,7 +338,7 @@ void HmapLandObjectEditor::updateToolbarButtons()
 
 void HmapLandObjectEditor::beforeRender()
 {
-  __super::beforeRender();
+  ObjectEditor::beforeRender();
 
   if (autoUpdateSpline)
     updateSplinesGeom();
@@ -774,7 +774,7 @@ void HmapLandObjectEditor::setSelectionGizmoTranformMode(bool enable)
 
 void HmapLandObjectEditor::gizmoStarted()
 {
-  __super::gizmoStarted();
+  ObjectEditor::gizmoStarted();
   inGizmo = false;
   getAxes(locAx[0], locAx[1], locAx[2]);
   inGizmo = true;
@@ -870,7 +870,7 @@ void HmapLandObjectEditor::gizmoEnded(bool apply)
     isGizmoStarted = false;
   }
   else
-    __super::gizmoEnded(apply);
+    ObjectEditor::gizmoEnded(apply);
   inGizmo = false;
 }
 
@@ -881,7 +881,7 @@ void HmapLandObjectEditor::_addObjects(RenderableEditableObject **obj, int num, 
   for (int i = 0; i < num; i++)
     objs[num - i - 1] = obj[i];
 
-  __super::_addObjects(objs.data(), num, use_undo);
+  ObjectEditor::_addObjects(objs.data(), num, use_undo);
 
   for (int i = 0; i < num; ++i)
     if (RTTI_cast<SnowSourceObject>(objs[i]))
@@ -948,10 +948,10 @@ void HmapLandObjectEditor::_removeObjects(RenderableEditableObject **obj, int nu
       getUndoSystem()->put(undoPointsListSplines[i]->makePointListUndo());
   }
 
-  __super::_removeObjects((RenderableEditableObject **)remPoints.data(), remPoints.size(), use_undo);
-  __super::_removeObjects((RenderableEditableObject **)remSplines.data(), remSplines.size(), use_undo);
-  __super::_removeObjects((RenderableEditableObject **)remPt0.data(), remPt0.size(), use_undo);
-  __super::_removeObjects(remObjs.data(), remObjs.size(), use_undo);
+  ObjectEditor::_removeObjects((RenderableEditableObject **)remPoints.data(), remPoints.size(), use_undo);
+  ObjectEditor::_removeObjects((RenderableEditableObject **)remSplines.data(), remSplines.size(), use_undo);
+  ObjectEditor::_removeObjects((RenderableEditableObject **)remPt0.data(), remPt0.size(), use_undo);
+  ObjectEditor::_removeObjects(remObjs.data(), remObjs.size(), use_undo);
 
 
   // synchronize our splines array with real splines array
@@ -974,7 +974,7 @@ void HmapLandObjectEditor::_removeObjects(RenderableEditableObject **obj, int nu
 
 bool HmapLandObjectEditor::canSelectObj(RenderableEditableObject *o)
 {
-  if (!__super::canSelectObj(o))
+  if (!ObjectEditor::canSelectObj(o))
     return false;
 
   if (o == curPt)
@@ -1382,7 +1382,7 @@ void HmapLandObjectEditor::setEditMode(int cm)
     DAGORED2->repaint();
   }
 
-  __super::setEditMode(cm);
+  ObjectEditor::setEditMode(cm);
   if (getEditMode() != CM_CREATE_ENTITY)
     DAEDITOR3.hideAssetWindow();
   DAGORED2->repaint();
@@ -1632,7 +1632,7 @@ void HmapLandObjectEditor::update(real dt)
       setEditMode(CM_OBJED_MODE_SELECT);
   }
 
-  __super::update(dt);
+  ObjectEditor::update(dt);
 }
 
 void HmapLandObjectEditor::onAvClose()
@@ -1641,7 +1641,7 @@ void HmapLandObjectEditor::onAvClose()
   {
     setCreateBySampleMode(NULL);
     selectNewObjEntity(NULL);
-    __super::setEditMode(CM_OBJED_MODE_SELECT);
+    ObjectEditor::setEditMode(CM_OBJED_MODE_SELECT);
   }
 }
 void HmapLandObjectEditor::onAvSelectAsset(const char *asset_name)
@@ -2302,26 +2302,14 @@ void HmapLandObjectEditor::getPixelPerfectHits(IPixelPerfectSelectionService &se
 
   selection_service.getHits(wnd, x, y, pixelPerfectSelectionHitsCache);
 
-  if (!pixelPerfectSelectionHitsCache.empty())
-  {
-    eastl::sort(pixelPerfectSelectionHitsCache.begin(), pixelPerfectSelectionHitsCache.end(),
-      [](const IPixelPerfectSelectionService::Hit &a, const IPixelPerfectSelectionService::Hit &b) {
-        if (a.z > b.z)
-          return true;
-        if (a.z < b.z)
-          return false;
-        return &a > &b;
-      });
-
-    for (const IPixelPerfectSelectionService::Hit &hit : pixelPerfectSelectionHitsCache)
-      hits.push_back(static_cast<LandscapeEntityObject *>(hit.userData));
-  }
+  for (const IPixelPerfectSelectionService::Hit &hit : pixelPerfectSelectionHitsCache)
+    hits.push_back(static_cast<LandscapeEntityObject *>(hit.userData));
 }
 
 bool HmapLandObjectEditor::pickObjects(IGenViewportWnd *wnd, int x, int y, Tab<RenderableEditableObject *> &objs)
 {
   if (!usePixelPerfectSelection)
-    return __super::pickObjects(wnd, x, y, objs);
+    return ObjectEditor::pickObjects(wnd, x, y, objs);
 
   if (!wnd)
     return false;

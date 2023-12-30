@@ -189,7 +189,7 @@ public:
 #if _TARGET_APPLE && DAGOR_DBGLEVEL > 0
         __builtin_trap();
 #else
-        fatal("Freeze detected");
+        DAG_FATAL("Freeze detected");
 #endif
       }
     }

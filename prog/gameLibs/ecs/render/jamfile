@@ -32,6 +32,7 @@ SourceES =
   postfxRendererES.cpp.inl
   RTPoolES.cpp.inl
   shadersES.cpp.inl
+  computeShaderES.cpp.inl
 ;
 
 if [ GLOB $(Root)/prog/gameLibs/ecs/phys : * ] && [ GLOB $(Root)/prog/gameLibs/gamePhys/ballistics : * ] {

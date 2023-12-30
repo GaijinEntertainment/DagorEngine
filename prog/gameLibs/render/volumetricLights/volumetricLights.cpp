@@ -14,59 +14,64 @@
 #include <math/random/dag_halton.h>
 #include <math/dag_frustum.h>
 #include <math/integer/dag_IPoint2.h>
+#include <poisson/poisson_buffer_helper.h>
 
 #include <util/dag_convar.h> //DEBUG!!!!!
 
-#define GLOBAL_VARS_LIST                                 \
-  VAR(prev_globtm_psf_0)                                 \
-  VAR(prev_globtm_psf_1)                                 \
-  VAR(prev_globtm_psf_2)                                 \
-  VAR(prev_globtm_psf_3)                                 \
-  VAR(prev_world_view_pos)                               \
-  VAR(globtm_psf_0)                                      \
-  VAR(globtm_psf_1)                                      \
-  VAR(globtm_psf_2)                                      \
-  VAR(globtm_psf_3)                                      \
-  VAR(prev_initial_inscatter)                            \
-  VAR(prev_initial_extinction)                           \
-  VAR(initial_inscatter)                                 \
-  VAR(initial_extinction)                                \
-  VAR(volfog_prev_range_ratio)                           \
-  VAR(volfog_froxel_volume_res)                          \
-  VAR(inv_volfog_froxel_volume_res)                      \
-  VAR(volfog_froxel_range_params)                        \
-  VAR(jitter_ray_offset)                                 \
-  VAR(volfog_occlusion)                                  \
-  VAR(prev_volfog_occlusion)                             \
-  VAR(prev_distant_fog_inscatter)                        \
-  VAR(prev_distant_fog_reconstruction_weight)            \
-  VAR(distant_fog_result_inscatter)                      \
-  VAR(distant_fog_raymarch_resolution)                   \
-  VAR(distant_fog_reconstruction_resolution)             \
-  VAR(fog_raymarch_frame_id)                             \
-  VAR(distant_fog_local_view_z)                          \
-  VAR(prev_distant_fog_raymarch_start_weights)           \
-  VAR(volfog_media_fog_input_mul)                        \
-  VAR(volfog_blended_slice_cnt)                          \
-  VAR(mip_gen_input_tex)                                 \
-  VAR(mip_gen_input_tex_size)                            \
-  VAR(volfog_blended_slice_start_depth)                  \
-  VAR(distant_fog_use_smart_raymarching_pattern)         \
-  VAR(distant_fog_reconstruction_params_0)               \
-  VAR(distant_fog_reconstruction_params_1)               \
-  VAR(distant_fog_disable_occlusion_check)               \
-  VAR(distant_fog_disable_temporal_filtering)            \
-  VAR(distant_fog_disable_unfiltered_blurring)           \
-  VAR(distant_fog_reconstruct_current_frame_bilaterally) \
-  VAR(distant_fog_reprojection_type)                     \
-  VAR(distant_fog_use_stable_filtering)                  \
-  VAR(distant_fog_raymarch_params_0)                     \
-  VAR(distant_fog_raymarch_params_1)                     \
-  VAR(distant_fog_raymarch_params_2)                     \
-  VAR(channel_swizzle_indices)                           \
-  VAR(froxel_fog_dispatch_mode)                          \
-  VAR(froxel_fog_fading_params)                          \
-  VAR(froxel_fog_use_debug_media)                        \
+#define GLOBAL_VARS_LIST                                  \
+  VAR(prev_globtm_psf_0)                                  \
+  VAR(prev_globtm_psf_1)                                  \
+  VAR(prev_globtm_psf_2)                                  \
+  VAR(prev_globtm_psf_3)                                  \
+  VAR(prev_world_view_pos)                                \
+  VAR(globtm_psf_0)                                       \
+  VAR(globtm_psf_1)                                       \
+  VAR(globtm_psf_2)                                       \
+  VAR(globtm_psf_3)                                       \
+  VAR(prev_initial_inscatter)                             \
+  VAR(prev_initial_extinction)                            \
+  VAR(initial_inscatter)                                  \
+  VAR(initial_extinction)                                 \
+  VAR(volfog_prev_range_ratio)                            \
+  VAR(volfog_froxel_volume_res)                           \
+  VAR(inv_volfog_froxel_volume_res)                       \
+  VAR(volfog_froxel_range_params)                         \
+  VAR(jitter_ray_offset)                                  \
+  VAR(volfog_occlusion)                                   \
+  VAR(prev_volfog_occlusion)                              \
+  VAR(prev_distant_fog_inscatter)                         \
+  VAR(prev_distant_fog_reconstruction_weight)             \
+  VAR(distant_fog_result_inscatter)                       \
+  VAR(distant_fog_raymarch_resolution)                    \
+  VAR(distant_fog_reconstruction_resolution)              \
+  VAR(fog_raymarch_frame_id)                              \
+  VAR(distant_fog_local_view_z)                           \
+  VAR(prev_distant_fog_raymarch_start_weights)            \
+  VAR(volfog_media_fog_input_mul)                         \
+  VAR(volfog_blended_slice_cnt)                           \
+  VAR(mip_gen_input_tex)                                  \
+  VAR(mip_gen_input_tex_size)                             \
+  VAR(volfog_blended_slice_start_depth)                   \
+  VAR(distant_fog_use_smart_raymarching_pattern)          \
+  VAR(distant_fog_reconstruction_params_0)                \
+  VAR(distant_fog_reconstruction_params_1)                \
+  VAR(distant_fog_disable_occlusion_check)                \
+  VAR(distant_fog_disable_temporal_filtering)             \
+  VAR(distant_fog_disable_unfiltered_blurring)            \
+  VAR(distant_fog_reconstruct_current_frame_bilaterally)  \
+  VAR(distant_fog_reprojection_type)                      \
+  VAR(distant_fog_use_stable_filtering)                   \
+  VAR(distant_fog_raymarch_params_0)                      \
+  VAR(distant_fog_raymarch_params_1)                      \
+  VAR(distant_fog_raymarch_params_2)                      \
+  VAR(channel_swizzle_indices)                            \
+  VAR(froxel_fog_dispatch_mode)                           \
+  VAR(froxel_fog_fading_params)                           \
+  VAR(froxel_fog_use_debug_media)                         \
+  VAR(distant_fog_use_static_shadows)                     \
+  VAR(prev_volfog_weight)                                 \
+  VAR(static_shadows_cascades)                            \
+  VAR(froxel_fog_use_experimental_offscreen_reprojection) \
   VAR(global_time_phase)
 
 #define GLOBAL_VARS_LIST_OPT              \
@@ -74,6 +79,19 @@
   VAR(prev_volfog_shadow)                 \
   VAR(volfog_shadow_prev_frame_tc_offset) \
   VAR(volfog_shadow)
+
+#define VOLFOG_CONST_LIST                        \
+  VAR(AccumulatedInscatter_view_result_const_no) \
+  VAR(volfog_occlusion_const_no)                 \
+  VAR(initial_media_const_no)                    \
+  VAR(AccumulatedInscatter_const_no)             \
+  VAR(initial_phase_const_no)                    \
+  VAR(initial_inscatter_const_no)                \
+  VAR(initial_extinction_const_no)               \
+  VAR(volfog_weight_const_no)
+#define VAR(a) static int a = -1;
+VOLFOG_CONST_LIST
+#undef VAR
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -90,6 +108,14 @@ static void init_shader_vars()
 #undef VAR
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
   GLOBAL_VARS_LIST_OPT
+#undef VAR
+#define VAR(a)                             \
+  {                                        \
+    int tmp = get_shader_variable_id(#a);  \
+    if (tmp >= 0)                          \
+      a = ShaderGlobal::get_int_fast(tmp); \
+  }
+  VOLFOG_CONST_LIST
 #undef VAR
 }
 
@@ -156,6 +182,7 @@ static const eastl::array<float3, 32> POISSON_SAMPLES_32 = {
 #undef NUM_POISSON_SAMPLES
 };
 
+// TODO: make it screen size dependent
 static const IPoint3 VOLFOG_SHADOW_VOLTEX_RES = IPoint3(32, 16, 32);
 
 
@@ -246,12 +273,32 @@ void VolumeLight::resetVolfogShadow()
     volfogShadow[i].close();
 }
 
-static IPoint3 calc_froxel_resolution(const IPoint3 &orig_res, bool is_hq) { return is_hq ? (orig_res * 2) : orig_res; }
+static IPoint3 calc_froxel_resolution(const IPoint3 &orig_res, VolumeLight::VolfogQuality volfog_quality)
+{
+  return volfog_quality == VolumeLight::VolfogQuality::HighQuality ? (orig_res * 2) : orig_res;
+}
 
 bool VolumeLight::hasDistantFog() const { return !!distantFogFrameReconstruct[0]; }
 bool VolumeLight::hasVolfogShadows() const { return !!volfogShadow[0]; }
 
-void VolumeLight::onSettingsChange(bool has_hq_fog, bool has_distant_fog, bool has_volfog_shadow)
+
+static int get_shadervar_interval(int shadervar_id)
+{
+  return ShaderGlobal::is_var_assumed(shadervar_id) ? ShaderGlobal::get_interval_assumed_value(shadervar_id)
+                                                    : ShaderGlobal::get_int(shadervar_id);
+}
+
+static bool has_distant_fog_static_shadows()
+{
+  return get_shadervar_interval(static_shadows_cascadesVarId) == 2; // DF static shadow sampling only works with 2 cascades
+}
+
+static bool has_froxel_fog_experimental_offscreen_reprojection()
+{
+  return get_shadervar_interval(froxel_fog_use_experimental_offscreen_reprojectionVarId) >= 1;
+}
+
+void VolumeLight::onSettingsChange(VolfogQuality volfog_quality, VolfogShadowCasting shadow_casting, DistantFogQuality df_quality)
 {
   if (nodeBasedFillMediaCs)
     nodeBasedFillMediaCs->reset();
@@ -260,29 +307,32 @@ void VolumeLight::onSettingsChange(bool has_hq_fog, bool has_distant_fog, bool h
   if (nodeBasedFogShadowCs)
     nodeBasedFogShadowCs->reset();
 
-  has_volfog_shadow = has_volfog_shadow && canUseVolfogShadow();
+  if (!canUseVolfogShadow())
+    shadow_casting = VolfogShadowCasting::No;
 
   bool bInvalidate = false;
-  if (needsHqVolfog != has_hq_fog)
+  if (volfogQuality != volfog_quality)
   {
-    needsHqVolfog = has_hq_fog;
-    froxelResolution = calc_froxel_resolution(froxelOrigResolution, needsHqVolfog);
+    volfogQuality = volfog_quality;
+    froxelResolution = calc_froxel_resolution(froxelOrigResolution, volfogQuality);
     initFroxelFog();
     bInvalidate = true;
   }
 
-  if (hasVolfogShadows() != has_volfog_shadow)
+  bool enableVolfogShadows = shadow_casting == VolfogShadowCasting::Yes;
+  if (hasVolfogShadows() != enableVolfogShadows)
   {
     resetVolfogShadow();
-    if (has_volfog_shadow)
+    if (enableVolfogShadows)
       initVolfogShadow();
     bInvalidate = true;
   }
 
-  if (hasDistantFog() != has_distant_fog)
+  bool enableDistantFog = df_quality != DistantFogQuality::DisableDistantFog;
+  if (hasDistantFog() != enableDistantFog)
   {
     resetDistantFog();
-    if (has_distant_fog)
+    if (enableDistantFog)
       initDistantFog();
     bInvalidate = true;
   }
@@ -352,11 +402,24 @@ static bool gpuHasUMA()
   return d3d_get_gpu_cfg().integrated; // TODO: use a driver command for UMA instead
 }
 
+void VolumeLight::initExperimentalFeatures()
+{
+  useExperimentalOffscreenReprojection = has_froxel_fog_experimental_offscreen_reprojection();
+  ShaderGlobal::set_int(froxel_fog_use_experimental_offscreen_reprojectionVarId, useExperimentalOffscreenReprojection);
+}
+
 void VolumeLight::init()
 {
+  init_shader_vars();
+
   preferLinearAccumulation = gpuHasUMA(); // can use special optimization for igpus
   close();
+  initExperimentalFeatures();
   shaderHelperUtils = texture_util::get_shader_helper();
+
+  constexpr uint32_t FROXEL_FOG_DITHERING_SEED = 666 * 666;
+  generate_poission_points(froxelFogDitheringSamples, FROXEL_FOG_DITHERING_SEED, VOLFOG_DITHERING_POISSON_SAMPLE_CNT,
+    "froxel_fog_dithering_samples_buf", Point2::ONE, Point2(-0.5f, -0.5f));
 
   viewResultInscatterPs.init("view_initial_inscatter_ps");
 
@@ -369,7 +432,7 @@ void VolumeLight::init()
   fillMediaCs.reset(new_compute_shader("fill_media_cs"));
   G_ASSERT_RETURN(fillMediaCs, );
 
-  // volfog shadow is optional, eg. bare minimum cannot afford it
+  // volfog shadow is optional, eg. bareMinimum cannot afford it
   volfogShadowCs.reset(new_compute_shader("volfog_shadow_cs", true));
   clearVolfogShadowCs.reset(new_compute_shader("clear_volfog_shadow_cs", true));
 
@@ -382,7 +445,6 @@ void VolumeLight::init()
   distantFogFxMipGenerationCs.reset(new_compute_shader("volume_light_distant_mip_gen_cs"));
   G_ASSERT_RETURN(distantFogFxMipGenerationCs, );
 
-  init_shader_vars();
   init_and_get_l8_64_noise();
 
   int poissonCnt = POISSON_SAMPLES_32.count; // in case of multiple arrays in the same texture, it must be the sum of them (and handled
@@ -391,12 +453,10 @@ void VolumeLight::init()
   poissonSamples.getTex2D()->texaddr(TEXADDR_CLAMP);
   poissonSamples.getTex2D()->texfilter(TEXFILTER_POINT);
 
-  int stride;
-  if (auto lockedTex = lock_texture<float>(poissonSamples.getTex2D(), stride, 0, TEXLOCK_WRITE))
+  if (auto lockedTex = lock_texture<float>(poissonSamples.getTex2D(), 0, TEXLOCK_WRITE))
   {
-    float *data = lockedTex.get();
     for (int i = 0, pos = 0; i < POISSON_SAMPLES_32.count; ++i)
-      data[i] = POISSON_SAMPLES_32[i].z * 0.5 + 0.5;
+      lockedTex.at(i, 0) = POISSON_SAMPLES_32[i].z * 0.5 + 0.5;
   }
 
   isReady = true;
@@ -410,8 +470,7 @@ void VolumeLight::initVolfogShadow()
     volfogShadow[i] = dag::create_voltex(VOLFOG_SHADOW_VOLTEX_RES.x, VOLFOG_SHADOW_VOLTEX_RES.y, VOLFOG_SHADOW_VOLTEX_RES.z,
       TEXFMT_L16 | TEXCF_UNORDERED, 1, name);
     volfogShadow[i].getVolTex()->texfilter(TEXFILTER_SMOOTH);
-    volfogShadow[i].getVolTex()->texaddr(TEXADDR_BORDER);
-    volfogShadow[i].getVolTex()->texbordercolor(0xFFFFFFFF); // no shadow outside of voxel range
+    volfogShadow[i].getVolTex()->texaddr(TEXADDR_CLAMP);
     d3d::resource_barrier({volfogShadow[i].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
   }
 }
@@ -464,6 +523,18 @@ void VolumeLight::initFroxelFog()
     volfogOcclusion[i].getTex2D()->texfilter(TEXFILTER_POINT);
     volfogOcclusion[i].getTex2D()->texaddr(TEXADDR_CLAMP);
     d3d::resource_barrier({volfogOcclusion[i].getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+  }
+
+  if (useExperimentalOffscreenReprojection)
+  {
+    for (int i = 0; i < volfogWeight.count; ++i)
+    {
+      String name(128, "volfog_weight%d", i);
+      volfogWeight[i] =
+        dag::create_voltex(froxelResolution.x, froxelResolution.y, froxelResolution.z, TEXFMT_R8 | TEXCF_UNORDERED, 1, name);
+      volfogWeight[i].getVolTex()->texaddr(TEXADDR_CLAMP);
+      d3d::resource_barrier({volfogWeight[i].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+    }
   }
 }
 
@@ -553,7 +624,7 @@ void VolumeLight::setResolution(int resW, int resH, int resD, int screenW, int s
 
   froxelOrigResolution = IPoint3(resW, resH, resD);
 
-  IPoint3 targetFroxelResolution = calc_froxel_resolution(froxelOrigResolution, needsHqVolfog);
+  IPoint3 targetFroxelResolution = calc_froxel_resolution(froxelOrigResolution, volfogQuality);
 
   IPoint2 targetReconstructionFrameRes = IPoint2(screenW, screenH) / 2;
   bool reinitFroxelFog = targetFroxelResolution != froxelResolution;
@@ -596,6 +667,15 @@ void VolumeLight::invalidate()
       d3d::GpuAutoLock gpuLock;
       d3d::clear_rwtexf(volfogOcclusion[i].getTex2D(), clear1, 0, 0);
       d3d::resource_barrier({volfogOcclusion[i].getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
+    }
+  }
+  for (int i = 0; i < volfogWeight.count; ++i)
+  {
+    if (volfogWeight[i])
+    {
+      d3d::GpuAutoLock gpuLock;
+      d3d::clear_rwtexf(volfogWeight[i].getVolTex(), clear0, 0, 0);
+      d3d::resource_barrier({volfogWeight[i].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
     }
   }
   for (int i = 0; i < volfogShadow.count; ++i)
@@ -691,6 +771,8 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, cons
     return false;
   }
 
+  ShaderGlobal::set_int(distant_fog_use_static_shadowsVarId, has_distant_fog_static_shadows());
+
   ShaderGlobal::set_int(froxel_fog_use_debug_mediaVarId, volfog_disable_node_based_input);
 
   if (hasDistantFog() && useNodeBasedInput && !(nodeBasedDistantFogRaymarchCs && nodeBasedDistantFogRaymarchCs->isValid()))
@@ -760,7 +842,7 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, cons
 
   {
     TIME_D3D_PROFILE(occlusion);
-    STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 7, VALUE, 0, 0), volfogOcclusion[nextFrame].getTex2D());
+    STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, volfog_occlusion_const_no, VALUE, 0, 0), volfogOcclusion[nextFrame].getTex2D());
     volfogOcclusionCs->dispatchThreads(froxelResolution.x, froxelResolution.y, 1);
 
     d3d::resource_barrier({volfogOcclusion[nextFrame].getTex2D(), flags, 0, 0});
@@ -773,7 +855,7 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, cons
     TIME_D3D_PROFILE(fill_media);
     IPoint3 dispatchRes =
       IPoint3(froxelResolution.x / MEDIA_WARP_SIZE_X, froxelResolution.y / MEDIA_WARP_SIZE_Y, froxelResolution.z / MEDIA_WARP_SIZE_Z);
-    STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 7, VALUE, 0, 0), initialMedia.getVolTex());
+    STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, initial_media_const_no, VALUE, 0, 0), initialMedia.getVolTex());
     if (useNodeBasedInput)
       nodeBasedFillMediaCs->dispatch(dispatchRes.x, dispatchRes.y, dispatchRes.z);
     else
@@ -929,6 +1011,8 @@ void VolumeLight::performIntegration()
 
     ShaderGlobal::set_texture(prev_initial_inscatterVarId, initialInscatter[prevFrame].getTexId());
     ShaderGlobal::set_texture(prev_initial_extinctionVarId, initialExtinction[prevFrame].getTexId());
+    if (volfogWeight[prevFrame])
+      ShaderGlobal::set_texture(prev_volfog_weightVarId, volfogWeight[prevFrame].getTexId());
 
     ShaderGlobal::set_int(froxel_fog_dispatch_modeVarId, froxel_fog_use_optimized_dispatch ? (canUseLinearAccumulation() ? 2 : 1) : 0);
 
@@ -940,12 +1024,13 @@ void VolumeLight::performIntegration()
         bool usePixelShader = canUsePixelShader();
         int stage = usePixelShader ? STAGE_PS : STAGE_CS;
 
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, 4, VALUE, 0, 0), resultInscatter.getVolTex());
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, volfog_weight_const_no, VALUE, 0, 0), volfogWeight[nextFrame].getVolTex());
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, AccumulatedInscatter_const_no, VALUE, 0, 0), resultInscatter.getVolTex());
 #if USE_SEPARATE_PHASE
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, 5, VALUE, 0, 0), initialPhase.getVolTex());
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, initial_phase_const_no, VALUE, 0, 0), initialPhase.getVolTex());
 #endif
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, 6, VALUE, 0, 0), initialInscatter[nextFrame].getVolTex());
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, 7, VALUE, 0, 0), initialExtinction[nextFrame].getVolTex());
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, initial_inscatter_const_no, VALUE, 0, 0), initialInscatter[nextFrame].getVolTex());
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, initial_extinction_const_no, VALUE, 0, 0), initialExtinction[nextFrame].getVolTex());
 
         if (usePixelShader)
         {
@@ -961,6 +1046,8 @@ void VolumeLight::performIntegration()
 #endif
         d3d::resource_barrier({initialExtinction[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
         d3d::resource_barrier({initialInscatter[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+        if (volfogWeight[nextFrame])
+          d3d::resource_barrier({volfogWeight[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
       }
     }
     else
@@ -968,11 +1055,14 @@ void VolumeLight::performIntegration()
       TIME_D3D_PROFILE(separate_light_calc);
       {
         TIME_D3D_PROFILE(initial);
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, volfog_weight_const_no, VALUE, 0, 0), volfogWeight[nextFrame].getVolTex());
 #if USE_SEPARATE_PHASE
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 5, VALUE, 0, 0), initialPhase.getVolTex());
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, initial_phase_const_no, VALUE, 0, 0), initialPhase.getVolTex());
 #endif
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 6, VALUE, 0, 0), initialInscatter[nextFrame].getVolTex());
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 7, VALUE, 0, 0), initialExtinction[nextFrame].getVolTex());
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, initial_inscatter_const_no, VALUE, 0, 0),
+          initialInscatter[nextFrame].getVolTex());
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, initial_extinction_const_no, VALUE, 0, 0),
+          initialExtinction[nextFrame].getVolTex());
 
         viewInitialInscatterCs->dispatchThreads(froxelResolution.x, froxelResolution.y, froxelResolution.z);
       }
@@ -982,12 +1072,15 @@ void VolumeLight::performIntegration()
 #endif
       d3d::resource_barrier({initialExtinction[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
       d3d::resource_barrier({initialInscatter[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+      if (volfogWeight[nextFrame])
+        d3d::resource_barrier({volfogWeight[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
 
       {
         TIME_D3D_PROFILE(propagate); // and integrate scattering
         ShaderGlobal::set_texture(initial_inscatterVarId, initialInscatter[nextFrame].getTexId());
         ShaderGlobal::set_texture(initial_extinctionVarId, initialExtinction[nextFrame].getTexId());
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 7, VALUE, 0, 0), resultInscatter.getVolTex());
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, AccumulatedInscatter_view_result_const_no, VALUE, 0, 0),
+          resultInscatter.getVolTex());
         viewResultInscatterCs->dispatchThreads(froxelResolution.x, froxelResolution.y, 1);
       }
     }

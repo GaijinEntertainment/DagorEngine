@@ -151,9 +151,9 @@ void AnimV20::MultiChainFABRIKCtrl::init(IPureAnimStateHolder &st, const GeomNod
       S.bodyTri[i].sub = tree.findNodeIndex(bodyTriNames[i].sub);
       if (!S.bodyTri[i].node0 || !S.bodyTri[i].node1 || !S.bodyTri[i].add || !S.bodyTri[i].sub)
       {
-        fatal("MultiChainFABRIKCtrl<%s> bad bodyTri[%d]: %s->%d %s->%d %s->%d", graph.getBlendNodeName(this), i, bodyTriNames[i].node0,
-          (int)S.bodyTri[i].node0, bodyTriNames[i].node1, (int)S.bodyTri[i].node1, bodyTriNames[i].add, (int)S.bodyTri[i].add,
-          bodyTriNames[i].sub, (int)S.bodyTri[i].sub);
+        DAG_FATAL("MultiChainFABRIKCtrl<%s> bad bodyTri[%d]: %s->%d %s->%d %s->%d", graph.getBlendNodeName(this), i,
+          bodyTriNames[i].node0, (int)S.bodyTri[i].node0, bodyTriNames[i].node1, (int)S.bodyTri[i].node1, bodyTriNames[i].add,
+          (int)S.bodyTri[i].add, bodyTriNames[i].sub, (int)S.bodyTri[i].sub);
         // disable tri
         S.bodyTri[i].node0 = S.bodyTri[i].node1 = S.bodyTri[i].add = S.bodyTri[i].sub = dag::Index16();
       }
@@ -448,7 +448,7 @@ void AnimV20::MultiChainFABRIKCtrl::createNode(AnimationGraph &graph, const Data
     const char *end_nm = b.getStr("end", NULL);
     if ((!start_nm || !*start_nm) || (!end_nm || !*end_nm) || (!eff_nm || !*eff_nm))
     {
-      fatal("MultiChainFABRIKCtrl<%s> bad chain params: start=%s end=%s effector=%s", name, start_nm, end_nm, eff_nm);
+      DAG_FATAL("MultiChainFABRIKCtrl<%s> bad chain params: start=%s end=%s effector=%s", name, start_nm, end_nm, eff_nm);
       continue;
     }
     if (strcmp(eff_nm, "start") == 0)
@@ -461,7 +461,7 @@ void AnimV20::MultiChainFABRIKCtrl::createNode(AnimationGraph &graph, const Data
       eff_nm = eff_nm + 4;
     else
     {
-      fatal("MultiChainFABRIKCtrl<%s> bad chain params: effector=%s", name, eff_nm);
+      DAG_FATAL("MultiChainFABRIKCtrl<%s> bad chain params: effector=%s", name, eff_nm);
       continue;
     }
     node->chainEndsNames.push_back() = start_nm;
@@ -480,7 +480,7 @@ void AnimV20::MultiChainFABRIKCtrl::createNode(AnimationGraph &graph, const Data
     const char *end_nm = b->getStr("end", NULL);
     if ((!start_nm || !*start_nm) || (!end_nm || !*end_nm) || (!eff_nm || !*eff_nm))
     {
-      fatal("MultiChainFABRIKCtrl<%s> bad main chain params: start=%s end=%s effector=%s", name, start_nm, end_nm, eff_nm);
+      DAG_FATAL("MultiChainFABRIKCtrl<%s> bad main chain params: start=%s end=%s effector=%s", name, start_nm, end_nm, eff_nm);
       goto skip_main_chain;
     }
     node->bodyChainEffectorEnd = 0;
@@ -494,7 +494,7 @@ void AnimV20::MultiChainFABRIKCtrl::createNode(AnimationGraph &graph, const Data
       eff_nm = eff_nm + 4, node->bodyChainEffectorEnd = 1;
     else
     {
-      fatal("MultiChainFABRIKCtrl<%s> bad chain params: effector=%s", name, eff_nm);
+      DAG_FATAL("MultiChainFABRIKCtrl<%s> bad chain params: effector=%s", name, eff_nm);
       goto skip_main_chain;
     }
     node->bodyChainEndsNames[0] = start_nm;

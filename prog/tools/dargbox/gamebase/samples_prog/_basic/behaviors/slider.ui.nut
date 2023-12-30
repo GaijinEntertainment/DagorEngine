@@ -4,7 +4,7 @@ let cursors = require("samples_prog/_cursors.nut")
 
 let sliderVal = Watched(150)
 
-let function slider() {
+function slider() {
   let fValue = sliderVal.value
   let minVal = 60
   let maxVal = 160

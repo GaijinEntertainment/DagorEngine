@@ -30,6 +30,7 @@ void ExecutionStateStorage::makeDirty()
 #if D3D_HAS_RAY_TRACING
   raytrace.makeDirty();
 #endif
+  invalidateResBinds();
 }
 
 void ExecutionState::interruptRenderPass(const char *why)

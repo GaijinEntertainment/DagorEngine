@@ -75,7 +75,7 @@ static __inline uint64_t wrap_crc32_u64(uint64_t crc, uint64_t val)
 #endif
 
 #endif
-#elif _TARGET_PC && !_TARGET_SIMD_NEON
+#elif _TARGET_PC && !_TARGET_SIMD_NEON && !defined(__e2k__)
 
 
 #define CRC32_INLINE inline

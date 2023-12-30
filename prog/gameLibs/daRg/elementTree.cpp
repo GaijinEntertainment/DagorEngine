@@ -10,6 +10,7 @@
 #include <perfMon/dag_statDrv.h>
 
 #include <util/dag_bitArray.h>
+#include <util/dag_delayedAction.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_mathUtils.h>
 
@@ -43,9 +44,11 @@ static bool is_same_tbl_component(const Element *elem, const Component &new_comp
 
 static void enable_kb_ime(bool on)
 {
-  if (global_cls_drv_kbd && global_cls_drv_kbd->getDeviceCount())
-    if (HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd->getDevice(0))
+  auto enableIme = [on]() {
+    if (auto kbd = global_cls_drv_kbd ? global_cls_drv_kbd->getDevice(0) : nullptr)
       kbd->enableIme(on);
+  };
+  run_action_on_main_thread(enableIme);
 }
 
 ElementTree::ElementTree(GuiScene *gui_scene, Panel *panel_) : guiScene(gui_scene), panel(panel_)

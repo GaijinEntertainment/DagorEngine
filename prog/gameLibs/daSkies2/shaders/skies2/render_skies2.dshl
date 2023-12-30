@@ -182,8 +182,8 @@ shader skies_view_lut_tex_prepare_ps
   hlsl(ps) {
     struct MRT
     {
-      half4 ret0:SV_Target0;
-      half4 ret1:SV_Target1;
+      float4 ret0:SV_Target0;
+      float4 ret1:SV_Target1;
     };
     MRT daskies_sky_ps(VsOutput input HW_USE_SCREEN_POS)
     {
@@ -191,7 +191,7 @@ shader skies_view_lut_tex_prepare_ps
       RetSkiesLut res = daskies_sky(input.viewVect, input.texcoord, screenpos.xy);
       MRT ret;
       ret.ret0 = res.noPhaseScatter;
-      ret.ret1 = half4(res.miePhaseScatter,0);
+      ret.ret1 = float4(res.miePhaseScatter,0);
       return ret;
     }
   }
@@ -395,7 +395,7 @@ shader skies_render_screen
       #endif
       return renderSkyWithGround(data, r, skyInscatter, view, scatteringLutTC, true);
     }
-    half4 daskies_sky_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    float4 daskies_sky_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
       float2 screenTC = input.texcoord;
@@ -456,7 +456,7 @@ shader skies_render_screen
       }
 
       float4 res4 = float4(res, 0);
-      return half4(pack_hdr(res4.rgb).rgb, 0);
+      return float4(pack_hdr(res4.rgb).rgb, 0);
     }
   }
   compile("target_ps", "daskies_sky_ps");
@@ -501,7 +501,7 @@ shader skyPanorama
     }
   }
   hlsl(ps) {
-    half3 daskies_sky_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    float3 daskies_sky_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
       float2 texcoord = input.tc.xy;
       GENERATE_PANORAMA_VIEWVECT(texcoord)

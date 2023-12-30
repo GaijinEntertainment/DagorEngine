@@ -101,8 +101,8 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
     Driver3dRenderTarget observedRts;
     d3d::get_render_target(observedRts);
 
-    const auto validateRt = [&registry, nodeId](const VirtualSubresourceRef &expected, const Driver3dRenderTarget::RTState &observed,
-                              const char *slot_name) {
+    const auto validateRt = [&registry, nodeId](const VirtualSubresourceRef &expected,
+                              const eastl::optional<Driver3dRenderTarget::RTState> &maybeObserved, const char *slot_name) {
       const auto &provided = registry.resourceProviderReference.providedResources;
       const auto it = provided.find(expected.nameId);
 
@@ -112,7 +112,13 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
           expectedTex = view->getTex2D();
 
       const auto expectedName = expectedTex ? expectedTex->getTexName() : "NULL";
-      const auto observedName = observed.tex ? observed.tex->getTexName() : "NULL";
+      const auto observedName = maybeObserved.has_value() && maybeObserved->tex ? maybeObserved->tex->getTexName() : "NULL";
+
+      // avoid the checks below for backbuffer
+      if (maybeObserved.has_value() && maybeObserved->tex == nullptr)
+        return;
+
+      auto observed = maybeObserved.value_or(Driver3dRenderTarget::RTState{});
 
       if (expectedTex != observed.tex)
       {
@@ -150,14 +156,14 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
       // We must validate that nothing was set into RT slots that were not requested
       VirtualSubresourceRef expectedRt = rtIdx < expectedRts.colorAttachments.size() ? expectedRts.colorAttachments[rtIdx]
                                                                                      : VirtualSubresourceRef{ResNameId::Invalid, 0, 0};
-      Driver3dRenderTarget::RTState observedRt{};
+      eastl::optional<Driver3dRenderTarget::RTState> observedRt{};
       if (observedRts.isColorUsed(rtIdx))
         observedRt = observedRts.getColor(rtIdx);
       validateRt(expectedRt, observedRt, SLOT_NAMES[rtIdx]);
     }
 
     {
-      Driver3dRenderTarget::RTState observedDepth{};
+      eastl::optional<Driver3dRenderTarget::RTState> observedDepth{};
       if (observedRts.isDepthUsed())
         observedDepth = observedRts.getDepth();
       validateRt(expectedRts.depthAttachment, observedDepth, "depth");

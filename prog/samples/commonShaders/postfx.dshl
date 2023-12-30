@@ -93,7 +93,7 @@ shader postfx
 
     #define tonemap UnchartedMain
     half3 sampleSceneColor(float2 tc) {return tex2Dlod(frame_tex, float4(tc,0,0)).xyz;}
-    half4 postfx_ps(VsOutput input) : SV_Target
+    float4 postfx_ps(VsOutput input) : SV_Target
     {
       //#define USE_COLOR_FRINGE 1
       //#define USE_GRAIN_JITTER 1

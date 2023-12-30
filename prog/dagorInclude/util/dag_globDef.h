@@ -5,15 +5,6 @@
 //
 #pragma once
 
-// include these before dag_fatal.h and dag_debug.h
-#if (defined(__GNUC__) || defined(__clang__)) && !defined(__MACOSX__)
-#define PRINTF_LIKE  __attribute__((format(printf, 1, 2)))
-#define PRINTF_LIKE2 __attribute__((format(printf, 2, 3)))
-#else
-#define PRINTF_LIKE
-#define PRINTF_LIKE2
-#endif
-
 /// localized character type
 typedef char TCHR;
 typedef TCHR *PTCHR;

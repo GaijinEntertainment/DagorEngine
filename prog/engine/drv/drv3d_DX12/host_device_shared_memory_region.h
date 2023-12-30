@@ -43,12 +43,12 @@ struct HostDeviceSharedMemoryRegion
 #endif
   // offset range of this allocation
   // gpuPointer and pointer already have the start of the range added to it
-  ValueRange<size_t> range;
+  ValueRange<uint64_t> range;
   Source source = Source::TEMPORARY;
 
   explicit constexpr operator bool() const { return nullptr != buffer; }
   constexpr bool isTemporary() const { return Source::TEMPORARY == source; }
-  void flushRegion(ValueRange<uint32_t> sub_range) const
+  void flushRegion(ValueRange<uint64_t> sub_range) const
   {
     D3D12_RANGE r = {};
     uint8_t *ptr = nullptr;
@@ -57,7 +57,7 @@ struct HostDeviceSharedMemoryRegion
     r = asDx12Range(sub_range.shiftBy(range.front()));
     buffer->Unmap(0, &r);
   }
-  void invalidateRegion(ValueRange<uint32_t> sub_range) const
+  void invalidateRegion(ValueRange<uint64_t> sub_range) const
   {
     D3D12_RANGE r = asDx12Range(sub_range.shiftBy(range.front()));
     uint8_t *ptr = nullptr;

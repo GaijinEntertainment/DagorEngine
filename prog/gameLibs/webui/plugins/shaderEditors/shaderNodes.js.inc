@@ -14,6 +14,7 @@ var GE_typeColors =
     "float4": "#f0f",
     "texture2D": "#f81",
     "texture3D": "#f81",
+    "texture2D_shdArray": "#f81",
     "BiomeData": "#f90"
   };
 
@@ -2343,6 +2344,7 @@ var GE_defaultExternals =
     {type: "float4", name:"from_sun_direction"},
     {type: "float4", name:"volfog_shadow_res"},
     {type: "float4", name:"volfog_shadow_prev_frame_tc_offset"},
+    {type: "float", name:"volfog_prev_range_ratio"},
 
 
     // for distant fog:
@@ -2374,7 +2376,20 @@ var GE_defaultExternals =
     {type: "float4",  name:"clouds_origin_offset"},
     {type: "texture2D", name:"clouds_shadows_2d"},
     {type: "float4",  name:"clouds_hole_pos"},
-    {type: "float4",  name:"distant_fog_local_view_z"}
+    {type: "float4",  name:"distant_fog_local_view_z"},
+
+    {type: "texture2D_shdArray", name:"static_shadow_tex"},
+    {type: "float4", name:"static_shadow_matrix_0_0"},
+    {type: "float4", name:"static_shadow_matrix_1_0"},
+    {type: "float4", name:"static_shadow_matrix_2_0"},
+    {type: "float4", name:"static_shadow_matrix_3_0"},
+    {type: "float4", name:"static_shadow_matrix_0_1"},
+    {type: "float4", name:"static_shadow_matrix_1_1"},
+    {type: "float4", name:"static_shadow_matrix_2_1"},
+    {type: "float4", name:"static_shadow_matrix_3_1"},
+    {type: "float4", name:"static_shadow_cascade_0_scale_ofs_z_tor"},
+    {type: "float4", name:"static_shadow_cascade_1_scale_ofs_z_tor"},
+    {type: "int", name:"distant_fog_use_static_shadows"},
   ];
 
 
@@ -2812,6 +2827,7 @@ function generateAdditionalText(graph, useVarPool)
     "texture3D": [],
     "texture2D_nosampler": [],
     "texture3D_nosampler": [],
+    "texture2D_shdArray": [],
     "Buffer": [],
   };
 
@@ -2825,7 +2841,7 @@ function generateAdditionalText(graph, useVarPool)
       externalName: d.name
     });
 
-    if (d.type === "texture2D" || d.type === "texture3D" || d.type === "texture2D_nosampler" || d.type === "texture3D_nosampler")
+    if (d.type === "texture2D" || d.type === "texture3D" || d.type === "texture2D_shdArray" || d.type === "texture2D_nosampler" || d.type === "texture3D_nosampler")
       inputs[d.type][inputs[d.type].length - 1].customSamplerName = d.name;
 
     if (d.type === "Buffer")
@@ -2865,7 +2881,7 @@ function generateAdditionalText(graph, useVarPool)
           for (var k = 0; k < GE_defaultExternals.length; k++)
             if (GE_defaultExternals[k].name === name
               && GE_defaultExternals[k].type === pinType
-              && (pinType === "texture2D" || pinType === "texture3D" || pinType === "texture2D_nosampler" || pinType === "texture2D_nosampler")
+              && (pinType === "texture2D" || pinType === "texture3D"  || pinType === "texture2D_shdArray"|| pinType === "texture2D_nosampler" || pinType === "texture3D_nosampler")
               )
             {
               p.customVarName = name;
@@ -2875,7 +2891,7 @@ function generateAdditionalText(graph, useVarPool)
 
           if (!foundInExternals)
           {
-            if (pinType === "texture2D" || pinType === "texture3D" || pinType === "texture2D_nosampler" || pinType === "texture2D_nosampler")
+            if (pinType === "texture2D" || pinType === "texture3D" || pinType === "texture2D_shdArray" || pinType === "texture2D_nosampler" || pinType === "texture3D_nosampler")
               p.customVarName = "sampler" + inputs[pinType].length;
 
             inputs[pinType].push({
@@ -3107,7 +3123,7 @@ function generateAdditionalText(graph, useVarPool)
   blk += "}" + newLine + newLine;
 
   var inputTypes = ["int", "float", "float2", "float3", "float4",
-    "texture2D", "texture3D", "texture2D_nosampler", "texture3D_nosampler", "Buffer"];
+    "texture2D", "texture3D", "texture2D_shdArray", "texture2D_nosampler", "texture3D_nosampler", "Buffer"];
   var cbufferTypes = ["int", "float", "float2", "float3", "float4"];
 
   var addedExtNames = [];
@@ -3161,7 +3177,7 @@ function generateAdditionalText(graph, useVarPool)
   mrtOutputsDecl += "};" + newLine;
 
 
-  var fillBlkTexture = function(typeStr, codeStr, registerOffset, has_sampler)
+  var fillBlkTexture = function(typeStr, codeStr, registerOffset, samplerType)
   {
     for (var i = 0; i < inputs[typeStr].length; i++)
     {
@@ -3170,24 +3186,29 @@ function generateAdditionalText(graph, useVarPool)
       if (d.customSamplerName)
       {
         blk += indent + codeStr + " " + d.customSamplerName + ":register(t" + registerId + ");" + newLine;
-        if (has_sampler)
+        if (samplerType == 1)
           blk += indent + "SamplerState " + d.customSamplerName + "_samplerstate:register(s" + registerId + ");" + newLine;
+        else if (samplerType == 2)
+          blk += indent + "SamplerComparisonState " + d.customSamplerName + "_cmpSampler:register(s" + registerId + ");" + newLine;
       }
       else
       {
         blk += indent + codeStr + " sampler" + i + ":register(t" + registerId + ");" + newLine;
-        if (has_sampler)
+        if (samplerType == 1)
           blk += indent + "SamplerState sampler" + i + "_samplerstate:register(s" + registerId + ");" + newLine;
+        else if (samplerType == 2)
+          blk += indent + "SamplerComparisonState sampler" + i + "_cmpSampler:register(s" + registerId + ");" + newLine;
       }
     }
     return inputs[typeStr].length;
   }
 
   var registerOffset = 0;
-  registerOffset += fillBlkTexture("texture2D", "Texture2D", registerOffset, true);
-  registerOffset += fillBlkTexture("texture3D", "Texture3D", registerOffset, true);
-  registerOffset += fillBlkTexture("texture2D_nosampler", "Texture2D", registerOffset, false);
-  registerOffset += fillBlkTexture("texture3D_nosampler", "Texture3D", registerOffset, false);
+  registerOffset += fillBlkTexture("texture2D", "Texture2D", registerOffset, 1);
+  registerOffset += fillBlkTexture("texture3D", "Texture3D", registerOffset, 1);
+  registerOffset += fillBlkTexture("texture2D_shdArray", "Texture2DArray", registerOffset, 2);
+  registerOffset += fillBlkTexture("texture2D_nosampler", "Texture2D", registerOffset, 0);
+  registerOffset += fillBlkTexture("texture3D_nosampler", "Texture3D", registerOffset, 0);
 
   for (var i = 0; i < inputs["Buffer"].length; i++)
   {

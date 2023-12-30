@@ -1,7 +1,7 @@
 .. _theembedding:
 
 *******************************
-  Embedding daScript into C++
+  Embedding Daslang into C++
 *******************************
 
 .. toctree::

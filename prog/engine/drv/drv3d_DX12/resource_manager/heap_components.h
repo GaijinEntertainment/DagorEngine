@@ -48,18 +48,18 @@ protected:
   {
     BaseType::setup(info);
 
-    debug("DX12: Checking resource heap properties...");
+    logdbg("DX12: Checking resource heap properties...");
     D3D12_FEATURE_DATA_ARCHITECTURE archInfo{};
     if (DX12_DEBUG_FAIL(info.device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &archInfo, sizeof(archInfo))))
     {
       // assume NUMA system
       features.reset(Features::IS_UMA);
-      debug("DX12: Assuming NUMA memory architecture...");
+      logdbg("DX12: Assuming NUMA memory architecture...");
     }
     else
     {
       features.set(Features::IS_UMA, FALSE != archInfo.UMA);
-      debug("DX12: %s memory architecture...", archInfo.UMA ? "UMA" : "NUMA");
+      logdbg("DX12: %s memory architecture...", archInfo.UMA ? "UMA" : "NUMA");
     }
 
     D3D12_FEATURE_DATA_D3D12_OPTIONS featureInfo{};
@@ -67,12 +67,12 @@ protected:
     {
       // assume D3D12_RESOURCE_HEAP_TIER_1
       features.reset(Features::CAN_MIX_RESOURCES);
-      debug("DX12: Assuming resource heap tier 1...");
+      logdbg("DX12: Assuming resource heap tier 1...");
     }
     else
     {
       features.set(Features::CAN_MIX_RESOURCES, D3D12_RESOURCE_HEAP_TIER_2 <= featureInfo.ResourceHeapTier);
-      debug("DX12: Resource heap tier %u...", static_cast<uint32_t>(featureInfo.ResourceHeapTier));
+      logdbg("DX12: Resource heap tier %u...", static_cast<uint32_t>(featureInfo.ResourceHeapTier));
     }
   }
 
@@ -107,16 +107,16 @@ protected:
   };
 
   static constexpr uint64_t page_size = 0x10000;
-  static constexpr uint64_t static_texture_page_count = 0x1000;
-  static constexpr uint64_t rtdsv_texture_page_count = 0x800;
+  static constexpr uint64_t static_texture_page_count = 0x400;
+  static constexpr uint64_t rtdsv_texture_page_count = 0x400;
   static constexpr uint64_t buffer_page_count = 0x400;
   static constexpr uint64_t upload_page_count = 0x400;
   static constexpr uint64_t read_back_page_count = 0x100;
-  static constexpr uint64_t static_texture_heap_size_scale = 16;
-  static constexpr uint64_t rtdsv_texture_heap_size_scale = 4;
-  static constexpr uint64_t buffer_heap_size_scale = 8;
-  static constexpr uint64_t upload_heap_size_scale = 4;
-  static constexpr uint64_t read_back_heap_size_scale = 4;
+  static constexpr uint64_t static_texture_heap_size_scale = 2;
+  static constexpr uint64_t rtdsv_texture_heap_size_scale = 2;
+  static constexpr uint64_t buffer_heap_size_scale = 2;
+  static constexpr uint64_t upload_heap_size_scale = 2;
+  static constexpr uint64_t read_back_heap_size_scale = 2;
   static constexpr uint64_t budget_scale_range = static_texture_heap_size_scale * 8;
 
   union ResourceHeapProperties
@@ -567,7 +567,7 @@ protected:
 
     uint64_t freeSize() const
     {
-      return eastl::accumulate(begin(freeRanges), end(freeRanges), 0, [](uint64_t v, auto range) { return v + range.size(); });
+      return eastl::accumulate(begin(freeRanges), end(freeRanges), 0ull, [](uint64_t v, auto range) { return v + range.size(); });
     }
 
     uint64_t allocatedSize() const { return totalSize - freeSize(); }
@@ -600,6 +600,7 @@ protected:
         usedRanges.erase(rangeRef);
       }
       free_list_insert_and_coalesce(freeRanges, range);
+      G_ASSERT(freeRanges.back().stop <= totalSize);
       updateFragmentation();
     }
 
@@ -677,8 +678,9 @@ protected:
 
     ValueRange<uint64_t> allocateFromRange(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, FreeRangeSetType::iterator selected)
     {
+      G_ASSERT(isValidRange(selected));
+
       auto alignedStart = align_value<uint64_t>(selected->front(), alloc_info.Alignment);
-      ;
       auto possibleAllocRange = make_value_range(alignedStart, alloc_info.SizeInBytes);
 
       if (!possibleAllocRange.isSubRangeOf(*selected))
@@ -686,16 +688,16 @@ protected:
         return {};
       }
 
-      auto folowup = selected->cutOut(possibleAllocRange);
-      if (!folowup.empty())
+      auto followup = selected->cutOut(possibleAllocRange);
+      if (!followup.empty())
       {
         if (selected->empty())
         {
-          *selected = folowup;
+          *selected = followup;
         }
         else
         {
-          freeRanges.insert(selected + 1, folowup);
+          freeRanges.insert(selected + 1, followup);
         }
       }
       else if (selected->empty())
@@ -703,6 +705,7 @@ protected:
         freeRanges.erase(selected);
       }
 
+      G_ASSERT(freeRanges.empty() || freeRanges.back().stop <= totalSize);
       updateFragmentation();
 
       // Add tracking info now, user of memory has to update the entry with its usage info
@@ -934,13 +937,12 @@ protected:
     void free(ResourceMemory mem)
     {
       auto offset = mem.asPointer() - heap.get();
-      auto range = make_value_range(offset, mem.size());
+      auto range = make_value_range<uint64_t>(offset, mem.size());
       freeRange(range);
     }
 
     ResourceMemory allocate(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, HeapID heap_id, FreeRangeSetType::iterator selected)
     {
-      G_ASSERT(isValidRange(selected));
       auto range = allocateFromRange(alloc_info, selected);
       G_ASSERT(!range.empty());
       return {heap.get() + range.front(), range.size(), heap_id};
@@ -963,7 +965,7 @@ protected:
 
       void visitHeapGroup(uint32_t ident, size_t count, bool is_cpu_visible, bool is_cpu_cached, bool is_gpu_executable)
       {
-        debug("DX12: Heap Group %08X (%s, %s%s) with %d heaps", ident, is_cpu_visible ? "CPU visible" : "dedicated GPU",
+        logdbg("DX12: Heap Group %08X (%s, %s%s) with %d heaps", ident, is_cpu_visible ? "CPU visible" : "dedicated GPU",
           is_cpu_visible ? is_cpu_cached ? "CPU cached, " : "CPU write combine, " : "",
           is_gpu_executable ? "GPU executable" : "Not GPU executable", count);
         totalHeapCount += count;
@@ -973,12 +975,20 @@ protected:
       {
         totalSize += total_size;
         freeSize += free_size;
-        debug("DX12: Size %6.2f %7s Free %6.2f %7s, %3u%% fragmentation", total_size.units(), total_size.name(), free_size.units(),
+        logdbg("DX12: Size %6.2f %7s Free %6.2f %7s, %3u%% fragmentation", total_size.units(), total_size.name(), free_size.units(),
           free_size.name(), fragmentation_percent);
+      }
+
+      void visitHeapUsedRange(ValueRange<uint64_t>) {}
+
+      void visitHeapFreeRange(ValueRange<uint64_t> range)
+      {
+        ByteUnits sizeBytes{range.size()};
+        logdbg("DX12: Free segment at %016X with %6.2f %7s", range.front(), sizeBytes.units(), sizeBytes.name());
       }
     };
     visitHeaps(ResourceHeapVisitor{totalSize, freeSize, totalHeapCount});
-    debug("DX12: %u resource heaps, with %6.2f %7s in total and %6.2f %7s free", totalHeapCount, totalSize.units(), totalSize.name(),
+    logdbg("DX12: %u resource heaps, with %6.2f %7s in total and %6.2f %7s free", totalHeapCount, totalSize.units(), totalSize.name(),
       freeSize.units(), freeSize.name());
   }
 
@@ -1064,12 +1074,20 @@ public:
       clb.visitHeapGroup(properties.raw, group.size(), true, 0 != properties.isCPUCoherent, 0 != properties.isGPUExecutable);
       for (auto &heap : group)
       {
-        size_t freeSize = 0;
+        uint64_t freeSize = 0;
         for (auto r : heap.freeRanges)
         {
           freeSize += r.size();
         }
         clb.visitHeap(heap.totalSize, freeSize, free_list_calculate_fragmentation(heap.freeRanges));
+        for (auto &r : heap.usedRanges)
+        {
+          clb.visitHeapUsedRange(r.range);
+        }
+        for (auto &r : heap.freeRanges)
+        {
+          clb.visitHeapFreeRange(r);
+        }
       }
     }
   }
@@ -1104,7 +1122,6 @@ protected:
 
     ResourceMemory allocate(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, HeapID heap_id, FreeRangeSetType::iterator selected)
     {
-      G_ASSERT(isValidRange(selected));
       auto range = allocateFromRange(alloc_info, selected);
       G_ASSERT(!range.empty());
       return {heap.Get(), range, heap_id};
@@ -1185,12 +1202,20 @@ public:
         props.getCpuPageProperty(isUMASystem()) == D3D12_CPU_PAGE_PROPERTY_WRITE_BACK, true);
       for (auto &heap : group)
       {
-        size_t freeSize = 0;
+        uint64_t freeSize = 0;
         for (auto r : heap.freeRanges)
         {
           freeSize += r.size();
         }
         clb.visitHeap(heap.totalSize, freeSize, free_list_calculate_fragmentation(heap.freeRanges));
+        for (auto &r : heap.usedRanges)
+        {
+          clb.visitHeapUsedRange(r.range);
+        }
+        for (auto &r : heap.freeRanges)
+        {
+          clb.visitHeapFreeRange(r);
+        }
       }
     }
   }

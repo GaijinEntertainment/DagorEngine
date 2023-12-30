@@ -319,33 +319,33 @@ apply returns bool
 
 |method-ast_boost-SetupAnyAnnotation.setup_call|
 
-.. _struct-ast_boost-SetupFunctionAnnotatoin:
+.. _struct-ast_boost-SetupFunctionAnnotation:
 
-.. das:attribute:: SetupFunctionAnnotatoin : SetupAnyAnnotation
+.. das:attribute:: SetupFunctionAnnotation : SetupAnyAnnotation
 
-|class-ast_boost-SetupFunctionAnnotatoin|
-
-it defines as follows
-
-  | annotation_function_call : string
-  | name                     : string
-
-.. _struct-ast_boost-SetupBlockAnnotatoin:
-
-.. das:attribute:: SetupBlockAnnotatoin : SetupAnyAnnotation
-
-|class-ast_boost-SetupBlockAnnotatoin|
+|class-ast_boost-SetupFunctionAnnotation|
 
 it defines as follows
 
   | annotation_function_call : string
   | name                     : string
 
-.. _struct-ast_boost-SetupStructureAnnotatoin:
+.. _struct-ast_boost-SetupBlockAnnotation:
 
-.. das:attribute:: SetupStructureAnnotatoin : SetupAnyAnnotation
+.. das:attribute:: SetupBlockAnnotation : SetupAnyAnnotation
 
-|class-ast_boost-SetupStructureAnnotatoin|
+|class-ast_boost-SetupBlockAnnotation|
+
+it defines as follows
+
+  | annotation_function_call : string
+  | name                     : string
+
+.. _struct-ast_boost-SetupStructureAnnotation:
+
+.. das:attribute:: SetupStructureAnnotation : SetupAnyAnnotation
+
+|class-ast_boost-SetupStructureAnnotation|
 
 it defines as follows
 
@@ -363,11 +363,11 @@ it defines as follows
   | annotation_function_call : string
   | name                     : string
 
-.. _struct-ast_boost-SetupContractAnnotatoin:
+.. _struct-ast_boost-SetupContractAnnotation:
 
-.. das:attribute:: SetupContractAnnotatoin : SetupAnyAnnotation
+.. das:attribute:: SetupContractAnnotation : SetupAnyAnnotation
 
-|class-ast_boost-SetupContractAnnotatoin|
+|class-ast_boost-SetupContractAnnotation|
 
 it defines as follows
 

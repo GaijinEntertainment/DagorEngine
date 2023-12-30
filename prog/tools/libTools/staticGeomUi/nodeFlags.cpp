@@ -908,7 +908,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropertyContainerControlBase &panel, int p
         case StaticGeometryNode::LIGHT_NONE: setPids.push_back(PID_LT_NONE); break;
         case StaticGeometryNode::LIGHT_LIGHTMAP: setPids.push_back(PID_LT_LIGHTMAP); break;
         case StaticGeometryNode::LIGHT_VLTMAP: setPids.push_back(PID_LT_VLTMAP); break;
-        default: fatal("Unknown node lighting");
+        default: DAG_FATAL("Unknown node lighting");
       }
     }
 

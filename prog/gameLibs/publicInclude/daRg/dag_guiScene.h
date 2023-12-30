@@ -173,8 +173,7 @@ public:
   virtual IEventList &getEvents() = 0;
   virtual void setSceneErrorRenderMode(SceneErrorRenderMode mode) = 0;
 
-  // workaround against multiple UI VMs
-  virtual void setSceneActive(bool active) = 0;
+  virtual void setSceneInputActive(bool active) = 0;
   virtual void notifyInputConsumersCallback() = 0;
   virtual void skipRender() = 0;
 
@@ -200,6 +199,7 @@ public:
     EntityTransformResolver entityTmResolver = nullptr;
   };
   virtual void updateSpatialElements(const VrSceneData &vr_scene) = 0;
+  virtual bool hasAnyPanels() = 0;
 };
 
 

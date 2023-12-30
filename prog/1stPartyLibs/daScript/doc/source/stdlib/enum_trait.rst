@@ -17,16 +17,16 @@ All functions and symbols are in "enum_trait" module, use require to get access 
 Typeinfo macros
 +++++++++++++++
 
-.. _call-macro-enum_trait-enum_length:
-
-.. das:attribute:: enum_length
-
-Implements typeinfo(enum_length EnumOrEnumType) which returns total number of elements in enumeration.
-
 .. _call-macro-enum_trait-enum_names:
 
 .. das:attribute:: enum_names
 
 Implements typeinfo(enum_names EnumOrEnumType) which returns array of strings with enumValue names.
+
+.. _call-macro-enum_trait-enum_length:
+
+.. das:attribute:: enum_length
+
+Implements typeinfo(enum_length EnumOrEnumType) which returns total number of elements in enumeration.
 
 

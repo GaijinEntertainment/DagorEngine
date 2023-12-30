@@ -126,13 +126,13 @@ static inline void calc_cp(RotKey &k0, RotKey &k1, Quat p13, Quat p23)
 static inline bool rot_equal(Quat a, Quat b, double t)
 {
   return fabs(double(a.x) * b.x + double(a.y) * b.y + double(a.z) * b.z + double(a.w) * b.w) >= t ||
-         SQR(double(a.x) - b.x) + SQR(double(a.y) - b.y) + SQR(double(a.z) - b.z) + SQR(double(a.w) - b.w) <=
+         sqr(double(a.x) - b.x) + sqr(double(a.y) - b.y) + sqr(double(a.z) - b.z) + sqr(double(a.w) - b.w) <=
            max(2.0 - 2.0 * t, 1e-14);
 }
 
 static inline bool pos_equal(Point3 a, Point3 b, float t)
 {
-  return SQR(double(a.x) - b.x) + SQR(double(a.y) - b.y) + SQR(double(a.z) - b.z) <= t * t;
+  return sqr(double(a.x) - b.x) + sqr(double(a.y) - b.y) + sqr(double(a.z) - b.z) <= t * t;
 }
 
 static bool key_is_same(const RotKey &key1, const RotKey &key2, double treshold)

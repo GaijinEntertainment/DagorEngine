@@ -309,7 +309,7 @@ struct QuantizedQuat
       {
         float v = FValQuantizer<Bits, InvertedSqrt2Scale>::unpackSigned((qquat >> (j * Bits)) & IntType((1LL << Bits) - 1));
         q[i] = v;
-        qv -= SQR(v);
+        qv -= sqr(v);
         ++j;
       }
     // Note: negative qv mostly likely caused by serialization of non-normalized quaternion or ill-formed data

@@ -75,12 +75,12 @@ void ClusterWindRenderer::updateClusterWindGridsBuffer(const Tab<ClusterWindCasc
 {
   int numOfBox = 0;
   for (int i = 0; i < clustersGrids.size(); ++i)
-    numOfBox += SQR(clustersGrids[i].boxWidthNum);
+    numOfBox += sqr(clustersGrids[i].boxWidthNum);
   gridsIdArr[currentClusterIndex].resize(numOfBox / 4);
   for (int i = 0; i < clustersGrids.size(); ++i)
-    for (int j = 0; j < SQR(clustersGrids[i].boxWidthNum); ++j)
-      gridsIdArr[currentClusterIndex][(j + i * SQR(clustersGrids[max(0, i - 1)].boxWidthNum)) / 4]
-                [(j + i * SQR(clustersGrids[max(0, i - 1)].boxWidthNum)) % 4] = clustersGrids[i].getAllClusterId(j);
+    for (int j = 0; j < sqr(clustersGrids[i].boxWidthNum); ++j)
+      gridsIdArr[currentClusterIndex][(j + i * sqr(clustersGrids[max(0, i - 1)].boxWidthNum)) / 4]
+                [(j + i * sqr(clustersGrids[max(0, i - 1)].boxWidthNum)) % 4] = clustersGrids[i].getAllClusterId(j);
 }
 
 void ClusterWindRenderer::updateClusterWindGridsDesc(const Tab<ClusterWindCascade> &clustersGrids)

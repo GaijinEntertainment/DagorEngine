@@ -5,10 +5,18 @@
 //
 #pragma once
 
-#include <ecs/core/entityManager.h>
+#include <EASTL/string.h>
+#include <generic/dag_tab.h>
 #include <math/dag_color.h>
 #include <util/dag_string.h>
+#include <math/dag_Point2.h>
+#include <math/dag_Point3.h>
+#include <math/dag_Point4.h>
 
+namespace ecs
+{
+class Array;
+};
 
 namespace gpu_objects
 {
@@ -21,7 +29,7 @@ struct PlacingParameters
   Color4 slopeFactor;
   Point2 rotate = Point2(0, 0);
   Point2 weightRange = Point2(0, 1);
-  String map;
+  eastl::string map;
   Point4 mapSizeOffset;
   Color4 colorFrom;
   Color4 colorTo;
@@ -38,6 +46,6 @@ struct PlacingParameters
   bool faceCoast = false;
 };
 PlacingParameters prepare_gpu_object_parameters(int, const Point3 &, float, const Point2 &, const Point2 &, const Point4 &, const bool,
-  const String &, const Point2 &, const Point2 &, const E3DCOLOR &, const E3DCOLOR &, const Point2 &, const ecs::Array &,
+  const eastl::string &, const Point2 &, const Point2 &, const E3DCOLOR &, const E3DCOLOR &, const Point2 &, const ecs::Array &,
   const float &, const bool, const bool, const bool, const float &, const bool, const bool, const bool, const Point2 &, const bool);
 } // namespace gpu_objects

@@ -65,7 +65,7 @@ public:
   static const int SCHEDULE_FRAME_WINDOW = 2; // even and odd frames
 
   using NodeEventsRef = eastl::span<const Event>;
-  using FrameEventsRef = dag::Vector<NodeEventsRef>;
+  using FrameEventsRef = eastl::span<const NodeEventsRef>;
   using EventsCollectionRef = eastl::array<FrameEventsRef, SCHEDULE_FRAME_WINDOW>;
 
 
@@ -183,6 +183,7 @@ protected:
   // recalculated on each compilation
 
   dag::Vector<Event> eventStorage;
+  eastl::array<dag::Vector<eastl::span<const Event>>, SCHEDULE_FRAME_WINDOW> eventRefStorage;
   eastl::array<IdIndexedMapping<intermediate::ResourceIndex, uint32_t>, SCHEDULE_FRAME_WINDOW> resourceIndexInCollection;
 
   static constexpr uint32_t UNSCHEDULED = eastl::numeric_limits<uint32_t>::max();

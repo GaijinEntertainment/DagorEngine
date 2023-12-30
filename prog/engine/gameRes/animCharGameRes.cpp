@@ -350,7 +350,7 @@ public:
       String name;
       get_game_resource_name(res_id, name);
       rr.resId = res_id;
-      fatal("Obsolete format %c%c%c%c for AnimChar resource %s\nReexport resources, please", _DUMP4C(ver), name.str());
+      DAG_FATAL("Obsolete format %c%c%c%c for AnimChar resource %s\nReexport resources, please", _DUMP4C(ver), name.str());
       return;
     }
     rr.ver = ver;

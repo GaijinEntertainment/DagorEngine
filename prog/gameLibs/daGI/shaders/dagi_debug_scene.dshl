@@ -249,7 +249,7 @@ shader ssgi_debug_rasterize_voxels
       return half4(ret.rgb, 1-ret.a);
     }
 
-    half4 debug_rasterize_ps(VsOutput IN) : SV_Target
+    float4 debug_rasterize_ps(VsOutput IN) : SV_Target
     {
       float3 view = normalize(IN.viewVect);
       ##if ssgi_debug_rasterize_scene == raycast

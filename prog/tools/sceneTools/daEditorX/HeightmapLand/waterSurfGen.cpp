@@ -22,6 +22,7 @@
 #include <math/DelaunayTriangulator/source/Util.h>
 #include <math/clipper-4.x/clipper.hpp>
 #include <math/misc/polyLineReduction.h>
+#include <math/dag_math2d.h>
 #include <algorithm>
 
 extern bool allow_debug_bitmap_dump;
@@ -136,6 +137,9 @@ static void draw_solution(const char *svg_fn, const ClipperLib::ExPolygons &sol,
   svg_close(fp);
 }
 #endif
+
+static float select_smallest_inner_t(float min_t, float max_t) { return min_t > 0 ? min_t : max_t; }
+static float select_largest_inner_t(float min_t, float max_t) { return max_t < 1 ? max_t : min_t; }
 
 static void optimize_polygon(ClipperLib::Polygon &poly, float tolerance = 0.01)
 {
@@ -331,6 +335,7 @@ static void add_border_segments(Tab<Point3> &water_border_polys, const ClipperLi
 {
   int st_id = -1, num;
   bool whole = true;
+  BBox2 hmap_bb2(Point2::xz(hmap_bb.lim[0]), Point2::xz(hmap_bb.lim[1]));
 
   for (int k = 0; k < poly.size(); k++)
   {
@@ -349,6 +354,17 @@ static void add_border_segments(Tab<Point3> &water_border_polys, const ClipperLi
     {
       whole = false;
       num = water_border_polys.size() - st_id;
+      if (num > 0)
+      {
+        Point3 p0 = water_border_polys.back(), dir = bp - p0;
+        float min_t, max_t;
+        if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t))
+        {
+          water_border_polys.push_back(p0 + dir * select_smallest_inner_t(min_t, max_t));
+          debug("outbound W-segment %@-%@ clip by bb=%@ -> p=%@ (t=%g %g)", p0, bp, hmap_bb2, water_border_polys.back(), min_t, max_t);
+          num++;
+        }
+      }
       if (num > 1)
       {
         water_border_polys[st_id - 1].y = num;
@@ -363,13 +379,42 @@ static void add_border_segments(Tab<Point3> &water_border_polys, const ClipperLi
       st_id = -1;
     }
     else
+    {
+      if (k + 1 < poly.size())
+      {
+        Point3 p0 = bp, p1 = Point3(poly[k + 1].X * 0.001f, waterSurfaceLevel, poly[k + 1].Y * 0.001f), dir = p1 - p0;
+        float min_t, max_t;
+        if ((hmap_bb & p1) && isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t))
+        {
+          water_border_polys.push_back().set(1.1e12f, 0, 1);
+          st_id = water_border_polys.size();
+          water_border_polys.push_back(p0 + dir * select_largest_inner_t(min_t, max_t));
+          debug("inbound W-segment %@-%@ clip by bb=%@ -> p=%@ (t=%g %g)", p0, p1, hmap_bb2, water_border_polys.back(), min_t, max_t);
+        }
+      }
       whole = false;
+    }
   }
   if (!whole && st_id >= 0)
   {
     Point3 bp(poly[0].X * 0.001f, waterSurfaceLevel, poly[0].Y * 0.001f);
     if (hmap_bb & bp)
       water_border_polys.push_back(bp);
+    else
+    {
+      num = water_border_polys.size() - st_id;
+      if (num > 0)
+      {
+        Point3 p0 = water_border_polys.back(), dir = bp - p0;
+        float min_t, max_t;
+        if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t))
+        {
+          water_border_polys.push_back(p0 + dir * select_smallest_inner_t(min_t, max_t));
+          num++;
+          debug("outbound W-segment %@-%@ clip by bb=%@ -> p=%@ (t=%g %g)", p0, bp, hmap_bb2, water_border_polys.back(), min_t, max_t);
+        }
+      }
+    }
   }
 
   if (st_id < 0)
@@ -448,7 +493,8 @@ void HmapLandPlugin::rebuildWaterSurface(Tab<Point3> *p_loft_pt, Tab<Point3> *p_
 
   BBox3 hmap_bb;
   hmap_bb.lim[0].set(heightMapOffset.x, waterSurfaceLevel - 4000, heightMapOffset.y);
-  hmap_bb.lim[1] = hmap_bb.lim[0] + Point3(getHeightmapSizeX() * gridCellSize, 16000, getHeightmapSizeY() * gridCellSize);
+  hmap_bb.lim[1] = hmap_bb.lim[0] + Point3((getHeightmapSizeX() - 1) * gridCellSize, 16000, (getHeightmapSizeY() - 1) * gridCellSize);
+  BBox2 hmap_bb2(Point2::xz(hmap_bb.lim[0]), Point2::xz(hmap_bb.lim[1]));
   ClipperLib::ExPolygons waterPoly;
   ClipperLib::ExPolygons waterPoly_non_ocean;
   Ptr<MaterialData> sm = NULL;
@@ -966,10 +1012,10 @@ void HmapLandPlugin::rebuildWaterSurface(Tab<Point3> *p_loft_pt, Tab<Point3> *p_
     bb[1] += Point2(1, 1);
 
     ctl::PointList boundary;
-    boundary.push_back({bb[0].x, bb[0].y});
-    boundary.push_back({bb[1].x, bb[0].y});
-    boundary.push_back({bb[1].x, bb[1].y});
-    boundary.push_back({bb[0].x, bb[1].y});
+    boundary.push_back({bb[0].x, bb[0].y, waterSurfaceLevel});
+    boundary.push_back({bb[1].x, bb[0].y, waterSurfaceLevel});
+    boundary.push_back({bb[1].x, bb[1].y, waterSurfaceLevel});
+    boundary.push_back({bb[0].x, bb[1].y, waterSurfaceLevel});
 
     ctl::DelaunayTriangulation dt{boundary, 16 << 10};
 
@@ -1139,6 +1185,18 @@ process_loft_pt:
         else if (st_id >= 0)
         {
           num = water_border_polys.size() - st_id;
+          if (num > 0)
+          {
+            Point3 p0 = water_border_polys.back(), dir = loft_pt_cloud[i] - p0;
+            float min_t, max_t;
+            if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t))
+            {
+              water_border_polys.push_back(p0 + dir * select_smallest_inner_t(min_t, max_t));
+              num++;
+              debug("outbound L-segment %@-%@ clip by bb=%@ -> p=%@ (t=%g %g)", //
+                p0, loft_pt_cloud[i], hmap_bb2, water_border_polys.back(), min_t, max_t);
+            }
+          }
           if (num > 1)
             water_border_polys[st_id - 1].y = num;
           else
@@ -1148,6 +1206,19 @@ process_loft_pt:
             water_border_polys.pop_back();
           }
           st_id = -1;
+        }
+        else if (j + 1 < je && (hmap_bb & loft_pt_cloud[i + 1]))
+        {
+          Point3 p0 = loft_pt_cloud[i], dir = loft_pt_cloud[i + 1] - p0;
+          float min_t, max_t;
+          if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t))
+          {
+            water_border_polys.push_back().set(1.1e12f, 0, 1);
+            st_id = water_border_polys.size();
+            water_border_polys.push_back(p0 + dir * select_largest_inner_t(min_t, max_t));
+            debug("inbound L-segment %@-%@ clip by bb=%@ -> p=%@ (t=%g %g)", //
+              p0, loft_pt_cloud[i + 1], hmap_bb2, water_border_polys.back(), min_t, max_t);
+          }
         }
       }
 

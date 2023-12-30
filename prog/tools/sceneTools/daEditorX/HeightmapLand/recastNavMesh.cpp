@@ -14,7 +14,7 @@
 #include <dllPluginCore/core.h>
 #include <de3_genObjUtil.h>
 #include <de3_splineClassData.h>
-#include <de3_groundHole.h>
+#include <landMesh/lmeshManager.h>
 #include <libTools/util/makeBindump.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <math/dag_bezierPrec.h>
@@ -33,6 +33,7 @@
 #include <util/dag_threadPool.h>
 #include <math/dag_adjpow2.h>
 #include <memory/dag_MspaceAlloc.h>
+#include <EASTL/array.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <recastTools/recastBuildEdges.h>
 #include <recastTools/recastBuildCovers.h>
@@ -249,6 +250,8 @@ static void init(const DataBlock &blk, int nav_mesh_idx)
   const float typoDefJumpLinksLength = blk.getReal("jumpLinksLenght", 2.5f);
   nmParams.jlkParams.jumpLength = blk.getReal("jumpLinksLength", typoDefJumpLinksLength);
   nmParams.jlkParams.width = blk.getReal("jumpLinksWidth", 1.0f);
+  nmParams.jlkParams.agentHeight = blk.getReal("jumpLinksAgentHeight", 2.0f);
+  nmParams.jlkParams.agentMinSpace = blk.getReal("jumpLinksAgentMinSpace", 1.0f);
   nmParams.jlkParams.deltaHeightThreshold = blk.getReal("jumpLinksDeltaHeightTreshold", 0.5f);
   nmParams.jlkParams.complexJumpTheshold = blk.getReal("complexJumpTheshold", 0.0f);
   nmParams.jlkParams.linkDegAngle = cosf(DegToRad(blk.getReal("jumpLinksMergeAngle", 15.0f)));
@@ -282,7 +285,6 @@ static void init(const DataBlock &blk, int nav_mesh_idx)
     covParams.testPos.z = blk.getReal("coversTestZ", 0.0f);
   }
 
-  auto sqr = [](float val) -> float { return val * val; };
   nmParams.mergeParams.enabled = blk.getBool("simplificationEdgeEnabled", true);
   nmParams.mergeParams.walkPrecision = blk.getPoint2("walkPrecision", Point2(nmParams.agentRadius, nmParams.agentMaxClimb));
   nmParams.mergeParams.maxExtrudeErrorSq = sqr(blk.getReal("extrudeError", 0.4f));
@@ -1646,7 +1648,7 @@ static void calc_colliders_buffer_size(int &vert, int &ind, const StaticGeometry
 
 static void gather_colliders_meshes(Tab<Point3> &vertices, Tab<int> &indices, Tab<IPoint2> &transparent,
   Tab<NavMeshObstacle> &obstacles, const ska::flat_hash_map<uint32_t, uint32_t> *&obstacle_flags_by_res_name_hash,
-  const StaticGeometryContainer &cont, const BBox3 &box)
+  const StaticGeometryContainer &cont, const BBox3 &box, const char *nav_mesh_kind)
 {
   for (int i = 0; i < cont.nodes.size(); ++i)
   {
@@ -1680,7 +1682,7 @@ static void gather_colliders_meshes(Tab<Point3> &vertices, Tab<int> &indices, Ta
     if (!gatherColl)
       continue;
     int64_t refdet = ref_time_ticks_qpc();
-    gatherColl->gatherCollision(box, vertices, indices, transparent, obstacles, riBlockers);
+    gatherColl->gatherCollision(box, vertices, indices, transparent, obstacles, riBlockers, nav_mesh_kind);
     DAEDITOR3.conNote("Gathered geom for %.2f sec", get_time_usec_qpc(refdet) / 1000000.0);
     gatherColl->getObstaclesFlags(obstacle_flags_by_res_name_hash);
   }
@@ -1690,6 +1692,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
 {
   NavMeshParams &nmParams = navMeshParams[nav_mesh_idx];
   DataBlock &nmProps = navMeshProps[nav_mesh_idx];
+  const char *navMeshKind = nmProps.getStr("kind", "");
   const bool needsDebugEdges = nav_mesh_idx == 0;
 
   if (!nmProps.getBool("export", false) && cwr.getTarget())
@@ -1775,7 +1778,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
     vertices.reserve(vertCount);
     indices.reserve(indCount);
 
-    gather_colliders_meshes(vertices, indices, transparent, obstacles, obstacleFlags, geoCont, collidersBox);
+    gather_colliders_meshes(vertices, indices, transparent, obstacles, obstacleFlags, geoCont, collidersBox, navMeshKind);
 
     for (int i = 0; i < coll.size(); ++i)
       coll[i]->setupColliderParams(0, BBox3());
@@ -1948,23 +1951,22 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
       IGatherGroundHoles *holesMgr = plugin->queryInterface<IGatherGroundHoles>();
       if (!holesMgr)
         continue;
-      Tab<GroundHole> holes;
-      holesMgr->gatherGroundHoles(holes);
-      DAEDITOR3.conNote("Ground holes: %d", holes.size());
+      LandMeshHolesCell holesCell;
+      holesMgr->gatherGroundHoles(holesCell);
+      DAEDITOR3.conNote("Ground holes: %d", holesCell.count());
+
       int64_t refholes = ref_time_ticks_qpc();
-      int *indicesEnd = indices.end();
-      for (int *indPtr = &indices[indicesBase]; indPtr < indicesEnd; indPtr += 3)
-        for (const GroundHole &hole : holes)
-          if (hole.check(Point2::xz(vertices[indPtr[0]])) || hole.check(Point2::xz(vertices[indPtr[1]])) ||
-              hole.check(Point2::xz(vertices[indPtr[2]])))
-          {
-            indicesEnd -= 3;
-            indPtr[0] = indicesEnd[0];
-            indPtr[1] = indicesEnd[1];
-            indPtr[2] = indicesEnd[2];
-            break;
-          }
-      indices.resize(indicesEnd - &indices[0]);
+      G_ASSERT((indices.end() - &indices[indicesBase]) % 3 == 0);
+      int *indDstPtr = &indices[indicesBase];
+      for (int *indPtr = indDstPtr; indPtr < indices.end(); indPtr += 3)
+        if (!holesCell.check(vertices[indPtr[0]]) && !holesCell.check(vertices[indPtr[1]]) && !holesCell.check(vertices[indPtr[2]]))
+        {
+          indDstPtr[0] = indPtr[0];
+          indDstPtr[1] = indPtr[1];
+          indDstPtr[2] = indPtr[2];
+          indDstPtr += 3;
+        }
+      indices.resize(indDstPtr - indices.begin());
       DAEDITOR3.conNote("Cut ground holes for %.2f sec", get_time_usec_qpc(refholes) / 1000000.0);
     }
   }

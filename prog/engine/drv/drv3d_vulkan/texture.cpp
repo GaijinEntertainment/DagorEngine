@@ -58,7 +58,7 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
   desc.mips = levels;
   tex.realMipLevels = levels;
   desc.arrays = (cube ? 6 : 1) * array_size;
-  desc.residencyFlags = Image::MEM_NOT_EVICTABLE;
+  desc.residencyFlags = Image::MEM_NORMAL;
 
   bool multisample = flg & (TEXCF_SAMPLECOUNT_MASK);
   bool transient = flg & TEXCF_TRANSIENT;
@@ -104,10 +104,6 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
   if (!temp_alloc)
     TEXQL_PRE_CLEAN(bt_in->ressize());
 
-  // allocate image without forced device residency if it is streamable & not GPU writable
-  if (!(isRT | isDepth | (flg & TEXCF_UNORDERED)) && (bt_in->stubTexIdx >= 0))
-    desc.residencyFlags = 0;
-
   tex.image = device.createImage(desc);
   if (!tex.image)
   {
@@ -118,7 +114,7 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
   if ((flg & (TEXCF_READABLE | TEXCF_SYSMEM)) == TEXCF_READABLE)
     tex.useStaging(desc.format, desc.size.width, desc.size.height, desc.size.depth, desc.mips, desc.arrays);
 
-  if (initial_data && tex.image->isResident())
+  if (initial_data)
   {
     bool tempStage = tex.stagingBuffer == nullptr;
     if (tempStage)
@@ -170,7 +166,7 @@ bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
       }
     }
   }
-  else if ((flg & TEXCF_CLEAR_ON_CREATE) && tex.image->isResident())
+  else if (flg & TEXCF_CLEAR_ON_CREATE)
   {
     bool tempStage = tex.stagingBuffer == nullptr;
     if (tempStage)
@@ -213,7 +209,7 @@ bool create_tex3d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_
   tex.realMipLevels = levels;
   desc.arrays = 1;
   desc.format = FormatStore::fromCreateFlags(flg);
-  desc.residencyFlags = Image::MEM_NOT_EVICTABLE;
+  desc.residencyFlags = Image::MEM_NORMAL;
   desc.samples = VK_SAMPLE_COUNT_1_BIT;
 
   desc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -391,15 +387,9 @@ void BaseTex::copy(Image *dst)
   }
 
   get_device().getContext().copyImage(tex.image, dst, regions.data(), mipLevels, 0, 0, mipLevels);
-
-  setUsed();
 }
 
-void BaseTex::resolve(Image *dst)
-{
-  get_device().getContext().resolveMultiSampleImage(tex.image, dst);
-  setUsed();
-}
+void BaseTex::resolve(Image *dst) { get_device().getContext().resolveMultiSampleImage(tex.image, dst); }
 
 int BaseTex::updateSubRegionInternal(BaseTex *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h,
   int src_d, int dest_subres_idx, int dest_x, int dest_y, int dest_z)
@@ -445,8 +435,6 @@ int BaseTex::updateSubRegionInternal(BaseTex *src, int src_subres_idx, int src_x
 
   get_device().getContext().copyImage(src->tex.image, tex.image, &region, 1, src_subres_idx % src->mipLevels,
     dest_subres_idx % mipLevels, 1);
-
-  src->setUsed();
   return 1;
 }
 
@@ -613,17 +601,6 @@ int BaseTex::updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, in
 void BaseTex::destroy()
 {
   release();
-#if DAGOR_DBGLEVEL > 1
-  if (!wasUsed)
-    logwarn("texture %p, of size %dx%dx%d total=%dbytes, name=%s was destroyed but was never used "
-            "in rendering",
-      this, width, height, depth, tex.memSize, getResName());
-#elif DAGOR_DBGLEVEL > 0
-  if (!wasUsed)
-    debug("texture %p, of size %dx%dx%d total=%dbytes, name=%s was destroyed but was never used in "
-          "rendering",
-      this, width, height, depth, tex.memSize, getResName());
-#endif
   destroyObject();
 }
 
@@ -771,8 +748,6 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
     eastl::swap(mipLevels, other->mipLevels);
     eastl::swap(minMipLevel, other->minMipLevel);
     eastl::swap(maxMipLevel, other->maxMipLevel);
-
-    other->setUsed();
   }
   del_d3dres(other_tex);
 }
@@ -811,7 +786,6 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
   uint32_t prevFlags = lockFlags;
   if (cflg & (TEXCF_RTARGET | TEXCF_UNORDERED))
   {
-    setUsed();
     bool resourceCopied = (lockFlags == TEX_COPIED);
     lockFlags = 0;
     if ((getFormat().getAspektFlags() & VK_IMAGE_ASPECT_DEPTH_BIT) && !(flags & TEXLOCK_COPY_STAGING))
@@ -1246,7 +1220,7 @@ Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, con
   w = clamp<int>(w, dd.mintexw, dd.maxtexw);
   h = clamp<int>(h, dd.mintexh, dd.maxtexh);
 
-  eastl::tie(flg, levels) = add_srgb_read_flag_and_count_mips(w, h, flg, levels);
+  levels = count_mips_if_needed(w, h, flg, levels);
 
   if (img)
   {
@@ -1355,7 +1329,7 @@ CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat
   const Driver3dDesc &dd = d3d::get_driver_desc();
   size = get_bigger_pow2(clamp<int>(size, dd.mincubesize, dd.maxcubesize));
 
-  eastl::tie(flg, levels) = add_srgb_read_flag_and_count_mips(size, size, flg, levels);
+  levels = count_mips_if_needed(size, size, flg, levels);
 
   auto tex = allocate_texture(RES3D_CUBETEX, flg);
   tex->setParams(size, size, 1, levels, stat_name);
@@ -1376,7 +1350,7 @@ VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const c
     return nullptr;
   }
 
-  eastl::tie(flg, levels) = add_srgb_read_flag_and_count_mips(w, h, flg, levels);
+  levels = count_mips_if_needed(w, h, flg, levels);
 
   auto tex = allocate_texture(RES3D_VOLTEX, flg);
   tex->setParams(w, h, d, levels, stat_name);
@@ -1418,7 +1392,7 @@ VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const c
 
 ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name)
 {
-  eastl::tie(flg, levels) = add_srgb_read_flag_and_count_mips(w, h, flg, levels);
+  levels = count_mips_if_needed(w, h, flg, levels);
 
   auto tex = allocate_texture(RES3D_ARRTEX, flg);
   tex->setParams(w, h, d, levels, stat_name);
@@ -1433,11 +1407,12 @@ ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, co
 
 ArrayTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name)
 {
-  eastl::tie(flg, levels) = add_srgb_read_flag_and_count_mips(side, side, flg, levels);
+  levels = count_mips_if_needed(side, side, flg, levels);
 
   auto tex = allocate_texture(RES3D_ARRTEX, flg);
   tex->setParams(side, side, d, levels, stat_name);
   tex->isArrayCube = true;
+  tex->setInitialImageViewState();
 
   if (!create_tex2d(tex->tex, tex, side, side, levels, true, nullptr, d))
     return nullptr;

@@ -7,6 +7,7 @@
 #include <debug/dag_fatal.h>
 #include <math/dag_mathUtils.h>
 #include <util/dag_string.h>
+#include <osApiWrappers/dag_spinlock.h>
 #include <util/dag_generationReferencedData.h>
 
 #include "driver.h"
@@ -34,8 +35,6 @@ static RenderState &g_frameState = g_render_state; // ok for strict aliasing?
 #define CHECK_SHADOW_BUFFERS_CONSISTENCY 1
 #endif
 
-shaders::DriverRenderStateId d3d::create_render_state(const shaders::RenderState &state);
-
 namespace drv3d_dx11
 {
 static bool is_depth_bounds_test_enabled = false;
@@ -54,6 +53,9 @@ struct DriverRenderState
   shaders::RenderState sourceShaderRenderState;
 };
 
+// We can use NonRelocatableCont<DriverRenderState> here to avoid using mutex, but since it's cached in engine
+// (shaders/renderStates.cpp) there no much point as it's created rarely
+static OSSpinlock render_states_mutex;
 static GenerationReferencedData<shaders::DriverRenderStateId, DriverRenderState> render_states;
 shaders::DriverRenderStateId current_render_state;
 shaders::DriverRenderStateId stretch_prepare_render_state;
@@ -112,16 +114,24 @@ void resolve_msaa_and_gen_mips(BaseTex *tex)
   tex->dirtyRt = 0;
 }
 
-bool init_states(RenderState &rs)
+static DriverRenderState create_default_rstate()
 {
   DriverRenderState state;
   state.enableDepthBounds = false;
   state.rasterState = RasterizerState().getStateObject();
   state.blendState = BlendState().getStateObject();
   state.depthStencilState = DepthStencilState().getStateObject();
-  current_render_state = render_states.emplaceOne(state);
+  return state;
+}
+
+bool init_states(RenderState &rs)
+{
+  OSSpinlockScopedLock lock(render_states_mutex);
+  current_render_state = render_states.emplaceOne(create_default_rstate());
   return true;
 }
+
+static DriverRenderState shader_render_state_to_driver_render_state(const shaders::RenderState &state);
 
 void flush_states(RenderState &rs)
 {
@@ -131,6 +141,7 @@ void flush_states(RenderState &rs)
   {
     rs.rasterizerModified = false;
 
+    OSSpinlockScopedLock lock(render_states_mutex);
     const auto currentState = render_states.get(current_render_state);
     ID3D11RasterizerState *s = currentState->rasterState;
 
@@ -142,7 +153,7 @@ void flush_states(RenderState &rs)
       logerr("Forced sample count is used when depth RT is set! FSC will be disabled");
       shaders::RenderState fixedState = currentState->sourceShaderRenderState;
       fixedState.forcedSampleCount = 0;
-      s = render_states.get(d3d::create_render_state(fixedState))->rasterState;
+      s = render_states.get(render_states.emplaceOne(shader_render_state_to_driver_render_state(fixedState)))->rasterState;
     }
 #endif
     if (s != NULL)
@@ -474,11 +485,16 @@ ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const BaseTex *b
   if (basetex == NULL)
     return NULL;
 
-  uint8_t anisotropyLevel = override_max_anisotropy_level > 0 ? min(override_max_anisotropy_level, (uint8_t)basetex->anisotropyLevel)
-                                                              : basetex->anisotropyLevel;
+  SamplerState::Key key = SamplerState::makeKey(basetex);
+  return getStateObject(key);
+}
 
-  SamplerState::Key k = SamplerState::makeKey(basetex, anisotropyLevel);
-  COMProxyPtr<ID3D11SamplerState> *proxy = texture_fetch_state_cache.find(k);
+ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const SamplerState::Key &key)
+{
+  uint8_t anisotropyLevel =
+    override_max_anisotropy_level > 0 ? min(override_max_anisotropy_level, uint8_t(key.anisotropyLevel)) : key.anisotropyLevel;
+
+  COMProxyPtr<ID3D11SamplerState> *proxy = texture_fetch_state_cache.find(key);
   if (proxy != NULL)
   {
     G_ASSERT(proxy->obj != NULL);
@@ -488,8 +504,8 @@ ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const BaseTex *b
   COMProxyPtr<ID3D11SamplerState> p;
   D3D11_SAMPLER_DESC desc;
 
-  int texFilter = basetex->texFilter;
-  int mipFilter = basetex->mipFilter;
+  int texFilter = key.texFilter;
+  int mipFilter = key.mipFilter;
 
   G_ASSERT(texFilter < 5);
   G_ASSERT(mipFilter < 4);
@@ -529,16 +545,16 @@ ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const BaseTex *b
   };
 
   desc.Filter = (D3D11_FILTER)filterMode[mipFilter][texFilter];
-  desc.AddressU = (D3D11_TEXTURE_ADDRESS_MODE)basetex->addrU;
-  desc.AddressV = (D3D11_TEXTURE_ADDRESS_MODE)basetex->addrV;
-  desc.AddressW = (D3D11_TEXTURE_ADDRESS_MODE)basetex->addrW;
-  desc.MipLODBias = basetex->lodBias;
+  desc.AddressU = (D3D11_TEXTURE_ADDRESS_MODE)key.addrU;
+  desc.AddressV = (D3D11_TEXTURE_ADDRESS_MODE)key.addrV;
+  desc.AddressW = (D3D11_TEXTURE_ADDRESS_MODE)key.addrW;
+  desc.MipLODBias = key.lodBias;
   desc.MaxAnisotropy = anisotropyLevel;
   desc.ComparisonFunc = texFilter == TEXFILTER_COMPARE ? D3D11_COMPARISON_LESS_EQUAL : D3D11_COMPARISON_ALWAYS;
-  desc.BorderColor[0] = normalizeColor(basetex->borderColor.r);
-  desc.BorderColor[1] = normalizeColor(basetex->borderColor.g);
-  desc.BorderColor[2] = normalizeColor(basetex->borderColor.b);
-  desc.BorderColor[3] = normalizeColor(basetex->borderColor.a);
+  desc.BorderColor[0] = normalizeColor(key.borderColor.r);
+  desc.BorderColor[1] = normalizeColor(key.borderColor.g);
+  desc.BorderColor[2] = normalizeColor(key.borderColor.b);
+  desc.BorderColor[3] = normalizeColor(key.borderColor.a);
   // set in resview
   desc.MinLOD = 0;
   desc.MaxLOD = FLT_MAX;
@@ -547,7 +563,7 @@ ID3D11SamplerState *TextureFetchState::Samplers::getStateObject(const BaseTex *b
     HRESULT hr = dx_device->CreateSamplerState(&desc, &p.obj);
     if (hr == S_OK)
     {
-      texture_fetch_state_cache.add(k, p);
+      texture_fetch_state_cache.add(key, p);
       return p.obj;
     }
   }
@@ -571,7 +587,11 @@ bool TextureFetchState::Samplers::flush(unsigned shader_stage, bool force, ID3D1
   for (SamplerState &ss : resources)
   {
     BaseTex *bt = (BaseTex *)ss.texture;
-    if ((modifiedMask & bit) != 0 || (bt && bt->getModified(shader_stage)))
+
+    bool slotModified = (modifiedMask & bit) != 0;
+    bool textureStateModified = (bt && bt->getModified(shader_stage));
+
+    if (slotModified || textureStateModified)
     {
       if (bt)
       {
@@ -582,22 +602,43 @@ bool TextureFetchState::Samplers::flush(unsigned shader_stage, bool force, ID3D1
         if (bt->dirtyRt)
           resolve_msaa_and_gen_mips(bt);
         const uint32_t maxMip = bt->maxMipLevel;
-        ss.viewObject = bt->getResView(0, maxMip, bt->minMipLevel - maxMip + 1);
         // WARNING! if we set both sampler LOD and resView, we effeciently move min mip TWICE
-        if (ss.viewObject)
-          ss.stateObject = getStateObject(bt);
-        else
-          ss.stateObject = NULL;
+        ss.viewObject = bt->getResView(0, maxMip, bt->minMipLevel - maxMip + 1);
       }
       else if (ss.buffer != NULL)
       {
         ss.viewObject = ss.buffer->getResView();
-        ss.stateObject = NULL;
       }
       else
       {
         ss.viewObject = NULL;
-        ss.stateObject = NULL;
+      }
+
+      if (!ss.buffer && (bt || ss.sampler) && (ss.samplerSource != SamplerState::SamplerSource::None))
+      {
+        if (ss.samplerSource == SamplerState::SamplerSource::Texture)
+        {
+          G_ASSERTF(bt, "bt (texture object) must be valid here!");
+          if (bt)
+          {
+            ss.latestSamplerKey = SamplerState::makeKey(bt);
+            ss.samplerSource = SamplerState::SamplerSource::Latest;
+          }
+        }
+        else if (ss.samplerSource == SamplerState::SamplerSource::Sampler)
+        {
+          G_ASSERTF(ss.sampler, "ss.sampler (sampler object) must be valid here!");
+          if (ss.sampler)
+          {
+            ss.latestSamplerKey = ss.sampler->getSamplerKey();
+            ss.samplerSource = SamplerState::SamplerSource::Latest;
+          }
+        }
+        ss.stateObject = getStateObject(ss.latestSamplerKey);
+      }
+      else
+      {
+        ss.stateObject = nullptr;
       }
 
       firstUsed = min<int>(firstUsed, i);
@@ -911,7 +952,7 @@ bool d3d::set_blend_factor(E3DCOLOR c)
   return true;
 }
 
-static DriverRenderState shader_render_state_to_driver_render_state(const shaders::RenderState &state)
+DriverRenderState drv3d_dx11::shader_render_state_to_driver_render_state(const shaders::RenderState &state)
 {
   BlendState blendState;
   blendState.independentBlendEnabled = state.independentBlendEnabled;
@@ -981,12 +1022,14 @@ static DriverRenderState shader_render_state_to_driver_render_state(const shader
 shaders::DriverRenderStateId d3d::create_render_state(const shaders::RenderState &state)
 {
   DriverRenderState renderState = shader_render_state_to_driver_render_state(state);
+  OSSpinlockScopedLock lock(render_states_mutex);
   return render_states.emplaceOne(renderState);
 }
 
 
 void drv3d_dx11::recreate_render_states()
 {
+  OSSpinlockScopedLock lock(render_states_mutex);
   for (int renderStateNo = 0; renderStateNo < render_states.totalSize(); renderStateNo++)
   {
     shaders::DriverRenderStateId renderStateRef = render_states.createReferenceFromIdx(renderStateNo);
@@ -1001,6 +1044,8 @@ void drv3d_dx11::recreate_render_states()
 
 bool d3d::set_render_state(shaders::DriverRenderStateId state_id)
 {
+  OSSpinlockScopedLock lock(render_states_mutex);
+
   DriverRenderState driverState = *render_states.get(state_id);
   ::enable_depth_bounds(driverState.enableDepthBounds);
 
@@ -1022,13 +1067,9 @@ bool d3d::set_render_state(shaders::DriverRenderStateId state_id)
 
 void d3d::clear_render_states()
 {
+  OSSpinlockScopedLock lock(render_states_mutex);
   render_states.clear();
-  DriverRenderState state;
-  state.enableDepthBounds = false;
-  state.rasterState = RasterizerState().getStateObject();
-  state.blendState = BlendState().getStateObject();
-  state.depthStencilState = DepthStencilState().getStateObject();
-  current_render_state = render_states.emplaceOne(state);
+  current_render_state = render_states.emplaceOne(create_default_rstate());
   clear_view_states.clear();
   stretch_prepare_render_state.reset();
 }
@@ -1043,7 +1084,7 @@ static void check_content_loaded(BaseTexture *tex)
   if (bt && bt->ddsxNotLoaded)
   {
 #if DAGOR_DBGLEVEL > 0
-    fatal("ddsxTex <%s> allocated, but contents was not loaded before usage in d3d::settex()", bt->getResName());
+    DAG_FATAL("ddsxTex <%s> allocated, but contents was not loaded before usage in d3d::settex()", bt->getResName());
 #else
     logerr("ddsxTex <%s> allocated, but contents was not loaded before usage in d3d::settex()", bt->getResName());
 #endif
@@ -1081,22 +1122,39 @@ bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool u
   ResAutoLock resLock;
   TextureFetchState::Samplers &resources = g_render_state.texFetchState.resources[shader_stage];
   resources.resources.resize(max(resources.resources.size(), slot + 1));
-  resources.modifiedMask |= resources.resources[slot].setTex(tex, shader_stage) ? (1 << slot) : 0;
+  resources.modifiedMask |= resources.resources[slot].setTex(tex, shader_stage, use_sampler) ? (1 << slot) : 0;
+
   g_render_state.modified = true;
 
   if (shader_stage == STAGE_CS && d3d::get_driver_desc().caps.hasAsyncCompute)
   {
     TextureFetchState::Samplers &resources = g_render_state.texFetchState.resources[STAGE_CS_ASYNC_STATE];
     resources.resources.resize(max(resources.resources.size(), slot + 1));
-    resources.modifiedMask |= resources.resources[slot].setTex(tex, shader_stage) ? (1 << slot) : 0;
+    resources.modifiedMask |= resources.resources[slot].setTex(tex, shader_stage, use_sampler) ? (1 << slot) : 0;
   }
   return true;
 }
 
-d3d::SamplerHandle d3d::create_sampler(const d3d::SamplerInfo &sampler_info) { return 0; }
-void d3d::destroy_sampler(d3d::SamplerHandle sampler) {}
 
-void d3d::set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle sampler) {}
+void d3d::set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle sampler)
+{
+  auto *samplerObject = reinterpret_cast<SamplerStateObject *>(sampler);
+
+  ResAutoLock resLock;
+  TextureFetchState::Samplers &resources = g_render_state.texFetchState.resources[shader_stage];
+  resources.resources.resize(max(resources.resources.size(), slot + 1));
+  resources.modifiedMask |= resources.resources[slot].setSampler(samplerObject) ? (1 << slot) : 0;
+
+  if (shader_stage == STAGE_CS && d3d::get_driver_desc().caps.hasAsyncCompute)
+  {
+    TextureFetchState::Samplers &resources = g_render_state.texFetchState.resources[STAGE_CS_ASYNC_STATE];
+    resources.resources.resize(max(resources.resources.size(), slot + 1));
+    resources.modifiedMask |= resources.resources[slot].setSampler(samplerObject) ? (1 << slot) : 0;
+  }
+
+  g_render_state.modified = true;
+}
+
 
 uint32_t d3d::register_bindless_sampler(BaseTexture *)
 {

@@ -95,30 +95,6 @@ bool DeserializedStaticSceneRayTracerT<FI>::_serializedLoad(IGenLoad &cb, unsign
     StaticSceneRayTracerT<FI>::rearrangeLegacyDump(loadedDump, n);
 
   v_rtBBox = v_ldu_bbox3(getBox());
-
-  const int vsize = dump.vertsCount * sizeof(Point3_vec4);
-  const int fsize = dump.facesCount * sizeof(RTface);
-  const int ffsize = 0;
-  const int fisize = dump.faceIndicesCount * sizeof(FaceIndex);
-  const int gsize = n - (vsize + fsize + ffsize + fisize + sizeof(Dump));
-  const float ft = n ? (float)n : 1.f;
-  debug("ray tracer data loaded, total size = %dK, vertex cnt = %d, size = %dK (%.1f%%),\n"
-        "faces cnt = %d, size %dK (%.1f%%), faceBounds flags size %dK (%.1f%%),\n"
-        "faceIndices cnt = %d, size %dK (%.1f%%), grid size = %dK (%.1f%%) ",
-    n >> 10, dump.vertsCount, vsize >> 10, (float)(vsize / ft) * 100.f, dump.facesCount, fsize >> 10, (float)(fsize / ft) * 100.f,
-    ffsize >> 10, (float)(ffsize / ft) * 100.f, dump.faceIndicesCount, fisize >> 10, (float)(fisize / ft) * 100.f, gsize >> 10,
-    (float)(gsize / ft) * 100.f);
-
-  /*for (int i = 0; i < 1; ++i)
-  {
-    int64_t reft = ref_time_ticks();
-    BuildableStaticSceneRayTracer *brt = create_buildable_staticmeshscene_raytracer ( dump.leafSize, 8 );
-    brt->addmesh((uint8_t*)&dump.vertsPtr[0], sizeof(dump.vertsPtr[0]), dump.vertsCount,
-                 (unsigned*)&dump.facesPtr[0].v[0], sizeof(RTface), dump.facesCount, NULL, true);
-    debug("cooking time %dusec", get_time_usec(reft));
-    del_it(brt);
-  }*/
-
   return true;
 }
 

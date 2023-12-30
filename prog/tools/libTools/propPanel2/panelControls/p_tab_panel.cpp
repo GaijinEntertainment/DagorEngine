@@ -47,7 +47,7 @@ void CTabPanel::onControlAdd(PropertyControlBase *control) { G_ASSERT(false && "
 
 void CTabPanel::clear()
 {
-  __super::clear();
+  PropertyContainerControlBase::clear();
   mTab.deleteAllPages();
 }
 
@@ -73,7 +73,7 @@ void CTabPanel::onWcChange(WindowBase *source)
   if (source == &mTab)
     onPageActivated();
 
-  __super::onWcChange(source);
+  PropertyContainerControlBase::onWcChange(source);
 }
 
 

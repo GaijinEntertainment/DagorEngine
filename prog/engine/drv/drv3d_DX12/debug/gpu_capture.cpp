@@ -36,13 +36,13 @@ RENDERDOC_API_1_5_0 *debug::gpu_capture::RenderDoc::try_connect_interface()
     return nullptr;
   }
 
-  debug("DX12: ...found, acquiring interface...");
+  logdbg("DX12: ...found, acquiring interface...");
   pRENDERDOC_GetAPI RENDERDOC_GetAPI;
   reinterpret_cast<FARPROC &>(RENDERDOC_GetAPI) = GetProcAddress(module, "RENDERDOC_GetAPI");
   RENDERDOC_API_1_5_0 *api = nullptr;
   if (RENDERDOC_GetAPI)
   {
-    debug("DX12: ...requesting API table for version %u...", (unsigned)eRENDERDOC_API_Version_1_5_0);
+    logdbg("DX12: ...requesting API table for version %u...", (unsigned)eRENDERDOC_API_Version_1_5_0);
     RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_5_0, (void **)&api);
   }
   return api;
@@ -72,20 +72,20 @@ void debug::gpu_capture::RenderDoc::marker(ID3D12GraphicsCommandList *cmd, eastl
 
 ComPtr<IDXGraphicsAnalysis> debug::gpu_capture::LegacyPIX::try_connect_interface(Direct3D12Enviroment &d3d_env)
 {
-  debug("DX12: ...GPA for 'DXGIGetDebugInterface1'...");
+  logdbg("DX12: ...GPA for 'DXGIGetDebugInterface1'...");
   ComPtr<IDXGraphicsAnalysis> result;
   PFN_DXGI_GET_DEBUG_INTERFACE1 DXGIGetDebugInterface1 = nullptr;
   reinterpret_cast<FARPROC &>(DXGIGetDebugInterface1) = d3d_env.getDXGIProcAddress("DXGIGetDebugInterface1");
 
   if (DXGIGetDebugInterface1)
   {
-    debug("DX12: ...calling DXGIGetDebugInterface1 for IDXGraphicsAnalysis...");
+    logdbg("DX12: ...calling DXGIGetDebugInterface1 for IDXGraphicsAnalysis...");
     HRESULT hr = DXGIGetDebugInterface1(0, COM_ARGS(&result));
-    debug("DX12: ...DXGIGetDebugInterface1 returned %p - 0x%08x...", result.Get(), hr);
+    logdbg("DX12: ...DXGIGetDebugInterface1 returned %p - 0x%08x...", result.Get(), hr);
   }
   else
   {
-    debug("DX12: ...failed...");
+    logdbg("DX12: ...failed...");
   }
   return result;
 }
@@ -220,22 +220,22 @@ void debug::gpu_capture::PIX::marker(ID3D12GraphicsCommandList *, eastl::span<co
 
 bool debug::gpu_capture::nvidia::NSight::try_connect_interface()
 {
-  debug("DX12: ...looking for Nomad.Injection.dll...");
+  logdbg("DX12: ...looking for Nomad.Injection.dll...");
   if (GetModuleHandleW(L"Nomad.Injection.dll"))
   {
-    debug("DX12: ...found...");
+    logdbg("DX12: ...found...");
     return true;
   }
-  debug("DX12: ...nothing, looking for Nvda.Graphics.Interception.dll...");
+  logdbg("DX12: ...nothing, looking for Nvda.Graphics.Interception.dll...");
   if (GetModuleHandleW(L"Nvda.Graphics.Interception.dll"))
   {
-    debug("DX12: ...found...");
+    logdbg("DX12: ...found...");
     return true;
   }
-  debug("DX12: ...nothing, looking for NvLog.dll...");
+  logdbg("DX12: ...nothing, looking for NvLog.dll...");
   if (GetModuleHandleW(L"NvLog.dll"))
   {
-    debug("DX12: ...found...");
+    logdbg("DX12: ...found...");
     return true;
   }
   return false;

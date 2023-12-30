@@ -41,7 +41,7 @@ public:
                                                                               // fixed frame for video or real fps) or adjusted value
   void renderTrans();
   int createTracer(const Point3 &start_pos, const Point3 &normalized_dir, float smoke_radius, const Color4 &smoke_color,
-    const Color4 &head_color, float time_to_live);
+    const Color4 &head_color, float time_to_live, const Color3 &start_head_color, float start_time);
   int updateTracerPos(unsigned id, const Point3 &pos); // we guide tracer, until it is off
   void leaveTracer(unsigned id);                       // we don't auto destroy tracers, which are referenced by someone
   void init(const DataBlock &settings) { initGPU(settings); }

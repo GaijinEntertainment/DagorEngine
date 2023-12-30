@@ -1,3 +1,4 @@
+#allow-switch-statement
 
 const MB = 3
 function foo() {}

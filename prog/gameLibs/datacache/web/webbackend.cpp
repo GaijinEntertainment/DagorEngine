@@ -677,7 +677,7 @@ void WebBackend::onHttpReqCompleteCb(const char *url, int error, IGenLoad *strea
   if (req->backend->UBMagic == INIT_UB_MAGIC)
     req->backend->onHttpReqComplete(req, url, error, stream, last_modified, req_id);
   else
-    fatal("attempt to access to deleted instance!");
+    DAG_FATAL("attempt to access to deleted instance!");
 }
 
 streamio::ProcessResult WebBackend::onHttpDataCb(dag::ConstSpan<char> data, void *arg, intptr_t req_id)
@@ -686,7 +686,7 @@ streamio::ProcessResult WebBackend::onHttpDataCb(dag::ConstSpan<char> data, void
   if (req->backend->UBMagic == INIT_UB_MAGIC)
     return req->backend->onHttpData(req, data, req_id);
   else
-    fatal("attempt to access to deleted instance!");
+    DAG_FATAL("attempt to access to deleted instance!");
   return streamio::ProcessResult::Discarded;
 }
 
@@ -696,7 +696,7 @@ void WebBackend::onHttpRespHeadersCb(streamio::StringMap const &resp_headers, vo
   if (req->backend->UBMagic == INIT_UB_MAGIC)
     req->backend->onHttpRespHeaders(resp_headers, req);
   else
-    fatal("attempt to access to deleted instance!");
+    DAG_FATAL("attempt to access to deleted instance!");
 }
 
 void WebBackend::setIndexState(IndexState is)

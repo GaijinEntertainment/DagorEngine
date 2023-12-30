@@ -27,7 +27,7 @@ let DEF_SIDE_SCROLL_OPTIONS = freeze({
 
 let defFontStyle = freeze({font = Fonts?.fontawesome, fontSize = sh(5)})
 
-let function mkBtn(handler, style = null){
+function mkBtn(handler, style = null){
   let {up=true, fontStyle = defFontStyle, trigger= {}} = style
   let animations = [
     { prop=AnimProp.translate, from=[0, up ? fsh(1) : -fsh(1)], to=[0,0], duration=0.25, trigger, easing=InOutCubic}
@@ -64,7 +64,7 @@ let function mkBtn(handler, style = null){
   }.__update(style ?? {})
 }
 
-local function makeScroll(content, options = DEF_SIDE_SCROLL_OPTIONS) {
+function makeScroll(content, options = DEF_SIDE_SCROLL_OPTIONS) {
   options = DEF_SIDE_SCROLL_OPTIONS.__merge(options)
   let {percentToScroll} = options
   let scrollHandler = options?.scrollHandler ?? ScrollHandler()

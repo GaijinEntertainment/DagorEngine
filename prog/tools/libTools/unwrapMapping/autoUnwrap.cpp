@@ -470,7 +470,7 @@ void FaceGroup::calc_histograms()
   }
 
   if (wd > LIGHTMAPSZ || ht > LIGHTMAPSZ /*|| wd < MINMAPSZ || ht < MINMAPSZ*/)
-    fatal_x("out contracts failed: wd=%d ht=%d", wd, ht);
+    DAG_FATAL("out contracts failed: wd=%d ht=%d", wd, ht);
   // if ( wd < MINMAPSZ || ht < MINMAPSZ ) debug ( "*TS* w=%d h=%d", wd, ht );
   if (wd == 0 || ht == 0)
   {
@@ -627,7 +627,7 @@ struct Lightmap
       bool found = false;
 
       if (w == 0)
-        fatal("w=0");
+        DAG_FATAL("w=0");
 
       // debug ( "%p.find_bestxy", this );
       bestx = -1;
@@ -950,7 +950,7 @@ struct Lightmap
   void restore_from_copy(Lightmap *lm)
   {
     if (!lm->copy)
-      fatal("copy!= true!!!");
+      DAG_FATAL("copy!= true!!!");
 
     bad = lm->bad;
     int i;
@@ -1013,7 +1013,7 @@ struct Lightmap
           debug("   v%d: %d %d", z, fg.leftmost[z], fg.rightmost[z]);
         debug("  ltmap dimensions:");
         lmp[i]->dbglog();
-        fatal("stop point");
+        DAG_FATAL("stop point");
       }
     }
     return found;
@@ -1324,7 +1324,7 @@ int AutoUnwrapMapping::repack_facegroups(float samplesize_scale, float *out_lm_a
           }
 
           if (!ltmap[lm]->add_block(g.wd, g.ht, g.transf, g.ox, g.oy, g))
-            fatal("cannot fit %d,%d into newly added map", g.wd, g.ht);
+            DAG_FATAL("cannot fit %d,%d into newly added map", g.wd, g.ht);
 
           g.lmid = lm;
         }

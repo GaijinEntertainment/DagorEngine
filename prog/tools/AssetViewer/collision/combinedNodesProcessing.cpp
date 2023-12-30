@@ -141,4 +141,5 @@ void CombinedNodesProcessing::updateSeletectedSettings()
   selectedSettings.isTraceable = panel->getBool(PID_TRACEABLE_FLAG);
   selectedSettings.isPhysCollidable = panel->getBool(PID_PHYS_COLLIDABLE_FLAG);
   selectedSettings.replaceNodes = panel->getBool(PID_REPLACE_NODE);
+  selectedSettings.physMat = panel->getText(PID_MATERIAL_TYPE);
 }

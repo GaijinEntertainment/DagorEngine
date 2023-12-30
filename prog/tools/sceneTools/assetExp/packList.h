@@ -37,7 +37,7 @@ public:
       return false;
     String tmpStr(fn);
     simplify_fname(tmpStr);
-    strlwr(tmpStr);
+    dd_strlwr(tmpStr);
     int id = fs->files.getNameId(tmpStr);
     if (id >= 0)
     {
@@ -172,7 +172,7 @@ public:
           p++;
         tmpStr = p;
         simplify_fname(tmpStr);
-        strlwr(tmpStr);
+        dd_strlwr(tmpStr);
         int id = names.addNameId(tmpStr);
         G_ASSERT(id == names.nameCount() - 1);
         if (list[i].grp)
@@ -193,7 +193,7 @@ public:
       else
         tmpStr.printf(260, "%s/%s", game_base, name);
       simplify_fname(tmpStr);
-      strlwr(tmpStr);
+      dd_strlwr(tmpStr);
       cwr.writeRaw(tmpStr, (int)strlen(tmpStr) + 1);
       i++;
     });

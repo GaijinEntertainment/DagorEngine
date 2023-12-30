@@ -719,19 +719,11 @@ int DagorWinMain(bool debugmode)
     return do_split_pass(cfgBlk, quiet);
 
   char start_dir[260];
-#if _TARGET_PC_WIN
-  if (_fullpath(start_dir, dgs_argv[0], 260))
-#else
-  strncpy(start_dir, dgs_argv[0], 260);
-#endif
-  {
-    dd_simplify_fname_c(start_dir);
-    char *p = strrchr(start_dir, '/');
-    if (p)
-      *p = '\0';
-  }
+  dag_get_appmodule_dir(start_dir, sizeof(start_dir));
 #if _TARGET_PC_LINUX
   int pc = ddsx::load_plugins(String(260, "%s/../bin-linux64/plugins/ddsx", start_dir));
+#elif _TARGET_PC_MACOSX
+  int pc = ddsx::load_plugins(String(260, "%s/../bin-macosx/plugins/ddsx", start_dir));
 #elif _TARGET_64BIT
   int pc = ddsx::load_plugins(String(260, "%s/../bin64/plugins/ddsx", start_dir));
 #else

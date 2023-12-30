@@ -12,7 +12,7 @@ let iconWidgetDef = {
 let playPause = persist("playPause", @() Watched(true)) //or model
 let cachedPictures = persist("cachedPictures", @() Watched({}))
 
-let function getPicture(source) {
+function getPicture(source) {
   local pic = cachedPictures.value?[source]
   if (pic)
     return pic
@@ -21,7 +21,7 @@ let function getPicture(source) {
   return pic
 }
 
-let function lottieWidget(item, params=iconWidgetDef) {
+function lottieWidget(item, params=iconWidgetDef) {
   let children = params?.children
   let lottie = item?.lottie ?? ""
   let width = item?.width ?? iconWidgetDef.width

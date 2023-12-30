@@ -6,29 +6,10 @@
 #pragma once
 
 #include <3d/dag_drv3d.h>
-#include <EASTL/unique_ptr.h>
 #include <math/integer/dag_IPoint2.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/optional.h>
 #include <generic/dag_span.h>
-
-template <typename T>
-class UnlockDeleter
-{
-  T *lockedObject = nullptr;
-
-public:
-  UnlockDeleter() = default;
-  UnlockDeleter(T *locked_object) : lockedObject{locked_object} {}
-  void operator()(void *data)
-  {
-    G_ASSERTF((data != nullptr) == (lockedObject != nullptr),
-      "Pointer to data and a stored locked object should be both nullptr or both valid pointers.");
-    G_UNUSED(data);
-    if (lockedObject)
-      lockedObject->unlock();
-  }
-};
 
 template <typename ElementType>
 class Image2DView;
@@ -56,14 +37,16 @@ public:
     readElems(dst.data(), row, offset_in_elems * sizeof(T), elems_count * sizeof(T));
   }
 
+  // copies data from image to dst. dst should have enougth space to store row_count * widthInElems * bytesPerElement bytes
   template <typename T>
   void readRows(dag::Span<T> dst, uint32_t first_row, uint32_t row_count) const
   {
     const uint32_t bytesPerRow = widthInElems * bytesPerElement;
-    G_ASSERT(dst.size() * sizeof(T) <= row_count * bytesPerRow && bytesPerRow % sizeof(T) == 0);
+    G_ASSERT(dst.size() * sizeof(T) >= row_count * bytesPerRow && bytesPerRow % sizeof(T) == 0);
     readRows(dst.data(), first_row, row_count, bytesPerRow);
   }
 
+  // copies data from image to dst. dst should have enougth space to store whole image contents
   template <typename T>
   void readRows(dag::Span<T> dst) const
   {
@@ -153,14 +136,16 @@ public:
     writeElems(src.data(), row, offset_in_elems * sizeof(T), elems_count * sizeof(T));
   }
 
+  // copies data from src to image. src should have enougth space to store row_count * widthInElems * bytesPerElement
   template <typename T>
   void writeRows(const dag::Span<T> &src, uint32_t first_row, uint32_t row_count)
   {
     const uint32_t bytesPerRow = widthInElems * bytesPerElement;
-    G_ASSERT(src.size() * sizeof(T) <= row_count * bytesPerRow && bytesPerRow % sizeof(T) == 0);
+    G_ASSERT(src.size() * sizeof(T) >= row_count * bytesPerRow && bytesPerRow % sizeof(T) == 0);
     writeRows(src.data(), first_row, row_count, bytesPerRow);
   }
 
+  // copies data from src to image. src should have enougth space to store whole image content
   template <typename T>
   void writeRows(const dag::Span<T> &src)
   {
@@ -341,32 +326,10 @@ using LockedImage2D = LockedImage<Image2D>;
 template <typename T>
 using LockedImage2DView = LockedImage<Image2DView<T>>;
 
-template <typename T>
-using LockedTexture = eastl::unique_ptr<T[], UnlockDeleter<BaseTexture>>;
-
-template <typename T>
-LockedTexture<T> lock_texture(BaseTexture *tex, int &stride_bytes, int level, unsigned flags)
-{
-  T *ptr = nullptr;
-  if (tex->lockimg((void **)&ptr, stride_bytes, level, flags) && ptr)
-    return {ptr, UnlockDeleter<BaseTexture>(tex)};
-  return {};
-}
-
-template <typename T>
-LockedTexture<T> lock_texture(BaseTexture *tex, int &stride_bytes, int layer, int level, unsigned flags)
-{
-  T *ptr = nullptr;
-  if (tex->lockimg((void **)&ptr, stride_bytes, layer, level, flags) && ptr)
-    return {ptr, UnlockDeleter<BaseTexture>(tex)};
-  return {};
-}
-
 // per-element access wrapper. sizeof(T) should match Texture element size
 // use const T with readonly flags
-// todo: remove old api and rename to lock_texture
 template <typename T>
-LockedImage2DView<T> lock_texture_safe(BaseTexture *tex, int layer, int level, unsigned flags)
+LockedImage2DView<T> lock_texture(BaseTexture *tex, int layer, int level, unsigned flags)
 {
   if (eastl::is_const_v<T>)
     flags |= TEXLOCK_READ;
@@ -374,7 +337,7 @@ LockedImage2DView<T> lock_texture_safe(BaseTexture *tex, int layer, int level, u
 }
 
 template <typename T>
-LockedImage2DView<T> lock_texture_safe(BaseTexture *tex, int level, unsigned flags)
+LockedImage2DView<T> lock_texture(BaseTexture *tex, int level, unsigned flags)
 {
   if (eastl::is_const_v<T>)
     flags |= TEXLOCK_READ;
@@ -382,12 +345,12 @@ LockedImage2DView<T> lock_texture_safe(BaseTexture *tex, int level, unsigned fla
 }
 
 // read-write access to image, no per-element access
-inline LockedImage2D lock_texture_safe(BaseTexture *tex, int level, unsigned flags)
+inline LockedImage2D lock_texture(BaseTexture *tex, int level, unsigned flags)
 {
   return LockedImage2D::lock_texture(tex, level, flags | TEXLOCK_WRITE);
 }
 
-inline LockedImage2D lock_texture_safe(BaseTexture *tex, int layer, int level, unsigned flags)
+inline LockedImage2D lock_texture(BaseTexture *tex, int layer, int level, unsigned flags)
 {
   return LockedImage2D::lock_texture(tex, layer, level, flags | TEXLOCK_WRITE);
 }

@@ -4,7 +4,7 @@ from "%darg/ui_imports.nut" import *
 
 let cursors = require("samples_prog/_cursors.nut")
 
-let function button(params) {
+function button(params) {
   let text = params?.text ?? ""
   let onClick = params?.onClick
   let onHover = params?.onHover
@@ -27,7 +27,7 @@ let function button(params) {
 }
 
 
-let function makeBtn(hk, params={}) {
+function makeBtn(hk, params={}) {
   return button({text=hk, onClick = @() vlog(hk), hotkeys=[hk]}.__merge(params))
 }
 

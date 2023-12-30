@@ -145,7 +145,7 @@ public:
   INLINE bool operator!=(const IPoint4 &a) const { return (x != a.x || y != a.y || z != a.z || w != a.w); }
   INLINE int lengthSq() const { return x * x + y * y + z * z + w * w; }
   INLINE float length() const { return sqrtf(lengthSq()); }
-  INLINE real lengthF() const { return rsqrt(lengthSq()); }
+  INLINE real lengthF() const { return fastsqrt(lengthSq()); }
 };
 
 INLINE IPoint4 operator*(int a, const IPoint4 &p) { return IPoint4(p.x * a, p.y * a, p.z * a, p.w * a); }

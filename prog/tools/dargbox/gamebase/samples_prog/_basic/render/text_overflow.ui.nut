@@ -19,7 +19,7 @@ let textFrameState = Watched({
   pos    = [0, 0]
 })
 
-let function text_element(text) {
+function text_element(text) {
   return {
     rendObj = ROBJ_TEXT
     ellipsis = true
@@ -28,15 +28,15 @@ let function text_element(text) {
   }.__update({text=text})
 }
 
-let function dText(text,params={}) {
+function dText(text,params={}) {
   return text_element(text).__update(params).__update({rendObj = ROBJ_TEXT})
 }
 
-let function sText(text, params={}) {
+function sText(text, params={}) {
   return text_element(text).__update(params).__update({rendObj = ROBJ_INSCRIPTION})
 }
 
-let function dTextFrame(params={}) {
+function dTextFrame(params={}) {
   let text = dText("Съешь ещё этих мягких французских булок, да выпей же чаю").__update(params).__update({size=flex()})
 
   return @() {

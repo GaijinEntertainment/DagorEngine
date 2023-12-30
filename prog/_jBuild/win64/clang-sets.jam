@@ -13,6 +13,7 @@ include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: \"$(_VC_DIR)\" not found!  Please, update DEVTOOLS ; }
 if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: \"$(_WIN_SDK)\" not found!  Please, update DEVTOOLS ; }
 if ! [ GLOB $(_DEVTOOL)/win.sdk.100/Include/10.0.19041.0 : * ] { exit FATAL\: \"$(_DEVTOOL)/win.sdk.100/Include/10.0.19041.0\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_DEVTOOL)/nasm : * ] { exit FATAL\: \"$(_DEVTOOL)/nasm\" not found!  Please, update DEVTOOLS ; }
 
 local _DEF_C_CMDLINE =
   -fms-compatibility-version=19.29.30038.1
@@ -46,7 +47,6 @@ local _DEF_C_CMDLINE =
   -Wno-constant-conversion
   -Wno-unused-local-typedef
   -Wno-ignored-pragmas
-  -Wno-deprecated-declarations
   -Wno-switch
   -Werror=invalid-noreturn
   -Werror=return-type

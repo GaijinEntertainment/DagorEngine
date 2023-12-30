@@ -45,19 +45,19 @@ showLogsWindow.subscribe(function(v) {
   }
 })
 
-let function scrollBySelection() {
+function scrollBySelection() {
   scrollHandler.scrollToChildren(function(desc) {
     return desc?.idx == selectedLogIndex.value
   }, 2, false, true)
 }
 
-let function selectedLogCopy() {
+function selectedLogCopy() {
   if (selectedLogIndex.value == -1)
     return
   set_clipboard_text(logList.value[selectedLogIndex.value])
 }
 
-let function statusLine() {
+function statusLine() {
   return {
     watch = logCount
     size = [flex(), SIZE_TO_CONTENT]
@@ -74,7 +74,7 @@ let function statusLine() {
   }
 }
 
-let function listRow(msg, idx) {
+function listRow(msg, idx) {
   return watchElemState(function(sf) {
     let isSelected = selectedLogIndex.value == idx
     let color = isSelected ? colors.GridRowHover
@@ -101,7 +101,7 @@ let function listRow(msg, idx) {
   })
 }
 
-let function listRowMoreLeft(num) {
+function listRowMoreLeft(num) {
   return watchElemState(function(sf) {
     let color = sf & S_TOP_HOVER ? colors.GridRowHover : logTableColColor
     return {
@@ -118,7 +118,7 @@ let function listRowMoreLeft(num) {
   })
 }
 
-let function selectedLogExpanded() {
+function selectedLogExpanded() {
   if (selectedLogIndex.value == -1)
     return { watch = selectedLogIndex }
 
@@ -144,9 +144,9 @@ let function selectedLogExpanded() {
 }
 
 
-let function logsRoot() {
+function logsRoot() {
 
-  let function listContent() {
+  function listContent() {
     const maxVisibleItems = 500
     let rows = logList.value.slice(0, maxVisibleItems).map(@(msg, idx) listRow(msg, idx))
     if (rows.len() < logList.value.len())

@@ -40,7 +40,7 @@ shader water_normals
   (ps) { water_normals_cascade_no@f1 = float4(water_normals_cascade_no, 0, 0, 0); }
 
   hlsl(ps) {
-    half4 water_normals_ps(VsOutput input): SV_Target
+    float4 water_normals_ps(VsOutput input): SV_Target
     {
 ##if support_texture_array == on
       #define GET_NORMAL(normal, offs) \
@@ -73,7 +73,7 @@ shader water_normals
       GET_NORMAL(normal1, float2(-0.5 * water_normals_size.x, 0.5 * water_normals_size.x));
       GET_NORMAL(normal2, float2(0.5 * water_normals_size.x, 0.5 * water_normals_size.x));
       GET_NORMAL(normal3, float2(0.5 * water_normals_size.x, -0.5 * water_normals_size.x));
-      return half4((normal0 + normal1 + normal2 + normal3) * 0.25, 0);
+      return float4((normal0 + normal1 + normal2 + normal3) * 0.25, 0);
     }
   }
 

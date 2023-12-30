@@ -5,11 +5,11 @@ let cursors = require("samples_prog/_cursors.nut")
 let mkPieMenu = require("mkPieMenu.nut")
 let math = require("math")
 
-let function isCurrent(curIdx,i){
+function isCurrent(curIdx,i){
   return curIdx==i
 }
 let m = @(curIdx, idx, sf) (sf & S_HOVER) || isCurrent(curIdx, idx) ? 2:1
-let function s(idx){
+function s(idx){
   let c = Color(math.rand(),math.rand(),math.rand(),255)
   let onSelect = @() dlog($"{idx} do it")
   return {
@@ -69,7 +69,7 @@ let pieMenu = mkPieMenu({
 
 })
 
-let function root() {
+function root() {
   return {
     key = "showPieMenu"
     hplace = ALIGN_CENTER

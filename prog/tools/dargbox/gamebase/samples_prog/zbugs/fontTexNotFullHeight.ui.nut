@@ -40,7 +40,7 @@ let gradient = mkBitmapPicture(2, gradient_ht,
     }
   })
 
-let function full_font_line_ht(fontSize) {
+function full_font_line_ht(fontSize) {
   let mx = get_font_metrics(0, fontSize)
   return mx.ascent+mx.descent
 }

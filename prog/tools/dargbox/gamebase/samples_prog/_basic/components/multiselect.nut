@@ -6,7 +6,7 @@ let calcColor = @(sf) (sf & S_HOVER) ? 0xFFFFFFFF : 0xA0A0A0A0
 let lineWidth = hdpx(2)
 let boxSize = hdpx(20)
 
-let function box(isSelected, sf) {
+function box(isSelected, sf) {
   let color = calcColor(sf)
   return {
     size = [boxSize, boxSize]
@@ -32,7 +32,7 @@ let label = @(text, sf) {
   text = text
 }
 
-let function optionCtor(option, isSelected, onClick) {
+function optionCtor(option, isSelected, onClick) {
   let stateFlags = Watched(0)
   return function() {
     let sf = stateFlags.value

@@ -1,4 +1,5 @@
 if $(OS) = MACOSX { Platform ?= macosx ; }
+else if $(OS) = LINUX { Platform ?= linux64 ; }
 else { Platform ?= win64 ; PlatformSpec_win64 ?= clang ; }
 if ! $(Location) { Exit Location must be defined before including jamfile-common ; }
 
@@ -19,7 +20,7 @@ TargetType  = exe ;
 
 OutDir      = $(Root)/tools/dagor3_cdk/util ;
 if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) = macosx { OutDir = $(OutDir)-macosx ; }
+if $(Platform) in linux64 macosx { OutDir = $(OutDir)-$(Platform) ; }
 
 Sources =
   shaderVariantSrc.cpp
@@ -79,7 +80,7 @@ AddIncludes     = $(Root)/prog/tools/ShaderCompiler2
 ;
 
 UseProgLibs =
-  3rdPartyLibs/EASTL
+  3rdPartyLibs/eastl
   engine/osApiWrappers
   engine/kernel
   engine/ioSys
@@ -93,7 +94,7 @@ UseProgLibs =
   tools/libTools/util
 ;
 
-if $(Platform) != macosx && $(Sanitize) != address { UseProgLibs += engine/memory/mimallocMem ; }
+if ( ! $(Platform) in macosx linux64 ) && $(Sanitize) != address { UseProgLibs += engine/memory/mimallocMem ; }
 else { UseProgLibs += engine/memory ; }
 UseMemoryDebugLevel = off ;
 
@@ -116,6 +117,10 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 if $(PlatformSpec) in clang clang64 {
   CPPopt += -Wno-comment -Wno-int-to-pointer-cast -Wno-writable-strings ;
 }
+if $(PlatformSpec) in gcc {
+  opt on shlex.cpp = -Wno-write-strings ;
+}
+if $(Platform) in linux64 { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 if $(GLOBAL_DependOnJam) {
   INCLUDES $(JAMFILESRC) : $(Root)/$(Location)/jamfile-common ;
@@ -133,9 +138,10 @@ include $(Root)/prog/gameLibs/spirv/jamfile-dxc-ver ;
 if $(CopyDxcLib) = yes {
   if ! [ GLOB $(_DEVTOOL)/DXC-$(DXC_VERSION)/lib/$(Platform) : * ] { exit FATAL\: \"DXC-$(DXC_VERSION)/lib/$(Platform)\" not found! Please, update DEVTOOLS ; }
   ExplicitLicenseUsed += $(_DEVTOOL)/DXC-$(DXC_VERSION) ;
-  local library = [ AutoCompleteTargetName dxcompiler : dll ] ;
+  local library = [ AutoCompleteTargetName dxcompiler : dll : macosx-shortform ] ;
   local src = $(_DEVTOOL)/DXC-$(DXC_VERSION)/lib/$(Platform)/$(library) ;
   local dst = $(OutDir)/$(library) ;
+  MakeDirectory $(dst) : $(dst:D) ;
   Depends $(dst) : $(src) ;
   copy_file $(dst) : $(src) ;
   Depends all : $(dst) ;

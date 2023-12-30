@@ -25,7 +25,6 @@ struct AnimObjCtrlBlender;
 struct AnimObjCtrlBIS;
 
 // animation graph
-enum AnimGraphBrachType;
 struct AnimGraphCondition;
 struct AnimGraphTimedAction;
 struct AnimGraphState;

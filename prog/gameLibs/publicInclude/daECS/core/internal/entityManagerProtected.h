@@ -13,7 +13,7 @@ const component_index_t *replicatedComponentsList(template_t t, uint32_t &cnt) c
 {
   return templates.replicatedComponentsList(t, cnt);
 }
-const bool isReplicatedComponent(template_t t, component_index_t cidx) const { return templates.isReplicatedComponent(t, cidx); }
+bool isReplicatedComponent(template_t t, component_index_t cidx) const { return templates.isReplicatedComponent(t, cidx); }
 void forceServerEidGeneration(EntityId); // only for replication, create server eid on client
 static inline entity_id_t make_eid(uint32_t index, uint32_t gen) { return index | (gen << ENTITY_INDEX_BITS); }
 

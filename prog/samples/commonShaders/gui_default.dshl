@@ -148,7 +148,7 @@ shader gui_default
     struct VsInput
     {
       int2 pos: POSITION;
-      half4 col: COLOR0;
+      float4 col: COLOR0;
     ##if hasTexture != texOff
       int2 tc0: TEXCOORD0;
       ##if hasTexture >= texFontL8 && fontFxType != no
@@ -204,7 +204,7 @@ shader gui_default
   {
     hlsl(ps) {
 
-      half4 gui_default_ps_1(VsOutput input) : SV_Target
+      float4 gui_default_ps_1(VsOutput input) : SV_Target
       {
         OGL_DEPTH_TEST(input)
         fixed4 result = fx4tex2D(tex, input.tc) * input.col;
@@ -219,7 +219,7 @@ shader gui_default
     hlsl(ps) {
 
     ##if fontFxType == no
-      fixed4 font_draw_ps(VsOutput v): SV_Target
+      float4 font_draw_ps(VsOutput v): SV_Target
       {
         OGL_DEPTH_TEST(v)
         fixed font_alpha = fx4tex2D(font,v.tc).r;
@@ -258,7 +258,7 @@ shader gui_default
       }
 
       ##if fontFxType == outline
-        half4 font_draw_ps(VsOutput v /*HW_USE_SCREEN_POS*/): SV_Target
+        float4 font_draw_ps(VsOutput v /*HW_USE_SCREEN_POS*/): SV_Target
         {
           // float4 screenpos = GET_SCREEN_POS(v.pos);
           OGL_DEPTH_TEST(v)
@@ -302,7 +302,7 @@ shader gui_default
           return result;
         }
       ##else
-        half4 font_draw_ps(VsOutput v): SV_Target
+        float4 font_draw_ps(VsOutput v): SV_Target
         {
           OGL_DEPTH_TEST(v)
         half l_font = select(v.tc.xyxy, v.tc2, h4tex2D(font, v.tc).r, 0);
@@ -382,7 +382,7 @@ shader gui_default
   else
   {
     hlsl(ps) {
-      half4 gui_default_ps_3(VsOutput input) : SV_Target
+      float4 gui_default_ps_3(VsOutput input) : SV_Target
       {
         return input.col;
       }

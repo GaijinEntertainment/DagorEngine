@@ -340,7 +340,8 @@ BufferImageCopy calculate_texture_subresource_copy_info(const Image &texture, ui
 
 using TextureMipsCopyInfo = eastl::fixed_vector<BufferImageCopy, MAX_MIPMAPS, false>;
 
-TextureMipsCopyInfo calculate_texture_mips_copy_info(const Image &texture, uint32_t mip_levels);
+TextureMipsCopyInfo calculate_texture_mips_copy_info(const Image &texture, uint32_t mip_levels, uint32_t array_slice = 0,
+  uint32_t array_size = 1, uint64_t initial_offset = 0);
 
 struct ImageCopy
 {
@@ -500,8 +501,7 @@ struct FramebufferState
   void bindColorTarget(uint32_t index, Image *image, ImageViewState ivs, D3D12_CPU_DESCRIPTOR_HANDLE view)
   {
     frontendFrameBufferInfo.setColorAttachment(index, image, ivs);
-    framebufferLayout.colorTargetMask |= 1 << index;
-    framebufferLayout.colorFormats[index] = ivs.getFormat();
+    framebufferLayout.setColorAttachment(index, image->getMsaaLevel(), ivs.getFormat());
     frameBufferInfo.colorAttachments[index] = view;
     framebufferDirtyState.setColorAttachment(index);
   }
@@ -509,8 +509,7 @@ struct FramebufferState
   void clearColorTarget(uint32_t index, D3D12_CPU_DESCRIPTOR_HANDLE null_handle)
   {
     frontendFrameBufferInfo.clearColorAttachment(index);
-    framebufferLayout.colorTargetMask &= ~(1 << index);
-    framebufferLayout.colorFormats[index] = FormatStore(0);
+    framebufferLayout.clearColorAttachment(index);
     frameBufferInfo.colorAttachments[index] = null_handle;
     framebufferDirtyState.resetColorAttachment(index);
   }
@@ -518,8 +517,7 @@ struct FramebufferState
   void bindDepthStencilTarget(Image *image, ImageViewState ivs, D3D12_CPU_DESCRIPTOR_HANDLE view, bool read_only)
   {
     frontendFrameBufferInfo.setDepthStencilAttachment(image, ivs, read_only);
-    framebufferLayout.hasDepth = 1;
-    framebufferLayout.depthStencilFormat = ivs.getFormat();
+    framebufferLayout.setDepthStencilAttachment(image->getMsaaLevel(), ivs.getFormat());
     frameBufferInfo.depthStencilAttachment = view;
     framebufferDirtyState.setDepthStencilAttachment(read_only);
   }
@@ -527,8 +525,7 @@ struct FramebufferState
   void clearDepthStencilTarget()
   {
     frontendFrameBufferInfo.clearDepthStencilAttachment();
-    framebufferLayout.hasDepth = 0;
-    framebufferLayout.depthStencilFormat = FormatStore(0);
+    framebufferLayout.clearDepthStencilAttachment();
     frameBufferInfo.depthStencilAttachment.ptr = 0;
     framebufferDirtyState.resetDepthStencilAttachment();
   }
@@ -1426,7 +1423,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debu
 #if _TARGET_PC_WIN
     void beginTileMapping(Image *image, ID3D12Heap *heap, size_t heap_base, size_t mapping_count);
 #else
-    void beginTileMapping(Image *image, uintptr_t address, uint32_t size, size_t mapping_count);
+    void beginTileMapping(Image *image, uintptr_t address, uint64_t size, size_t mapping_count);
 #endif
     void addTileMappings(const TileMapping *mapping, size_t mapping_count);
     void endTileMapping();

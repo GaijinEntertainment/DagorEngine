@@ -7,7 +7,7 @@ Target          = 3rdPartyLibs/vulkan/hlslcc.lib ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes = 
-  $(Root)/$(Location)/Include
+  $(Root)/$(Location)/include
   $(Root)/$(Location)/src/cbstring
   $(Root)/$(Location)/src/internal_includes
   $(Root)/$(Location)/src
@@ -64,7 +64,11 @@ if $(Platform) = win64 { CPPopt += -wd4267 ; }
 
 if $(Platform) in macosx {
   CPPopt += -Wno-comment -Wno-switch -Wno-null-conversion -Wno-c++11-narrowing -Wno-deprecated-declarations -Wno-error ;
-} else {
+} else if $(Platform) in linux64 {
+  CPPopt += -Wno-narrowing -Wno-unused-result ;
+  if $(PlatformSpec) = clang { CPPopt += -Wno-sometimes-uninitialized -Wno-switch ; }
+  opt on src/toGLSLInstruction.cpp = -Wno-conversion-null ;
+} else if $(Platform) in win32 win64 {
   if $(PlatformSpec) != clang { CPPopt += /TP ; }
 }
 

@@ -874,7 +874,7 @@ BBox3 HumanPhys::calcBBox(HUStandState cur_state) const
 {
   dacoll::tmp_collisions_t objects;
   Point2 oriParam = calc_ori_param(currentState, appliedCT);
-  dacoll::generate_collisions(TMatrix::IDENT, currentState.gunAngles.y, oriParam, collisionLinks[cur_state], objects);
+  dacoll::generate_collisions(TMatrix::IDENT, oriParam, collisionLinks[cur_state], objects);
   BBox3 res;
   for (auto &obj : objects)
     if (obj.haveCollision)
@@ -1489,12 +1489,11 @@ HumanPhys::TorsoCollisionResults HumanPhys::processTorsoCollision(TMatrix &tm, i
     Point3 torsoPosOffs = ZERO<Point3>();
     dacoll::tmp_collisions_t objects;
     Point2 oriParam = calc_ori_param(currentState, appliedCT);
-    dacoll::generate_collisions(tm, currentState.gunAngles.y, oriParam, collisionLinks[currentState.collisionLinksStateTo], objects);
+    dacoll::generate_collisions(tm, oriParam, collisionLinks[currentState.collisionLinksStateTo], objects);
     if (currentState.collisionLinkProgress >= 0.f)
     {
       dacoll::tmp_collisions_t prevObjects;
-      dacoll::generate_collisions(tm, currentState.gunAngles.y, oriParam, collisionLinks[currentState.collisionLinksStateFrom],
-        prevObjects);
+      dacoll::generate_collisions(tm, oriParam, collisionLinks[currentState.collisionLinksStateFrom], prevObjects);
       dacoll::lerp_collisions(objects, prevObjects, currentState.collisionLinkProgress);
     }
     for (int k = 0; k < objects.size(); ++k)
@@ -1812,7 +1811,7 @@ void HumanPhys::updateHeight(const TMatrix &tm, float dt, float wishHeight, bool
       HUStandState wishState = isCrawling ? ESS_CRAWL : isCrouching ? ESS_CROUCH : ESS_STAND;
       if (wishHeight > currentState.height)
       {
-        dacoll::generate_collisions(tm, currentState.gunAngles.y, Point2(0.f, 0.f), collisionLinks[wishState], objects);
+        dacoll::generate_collisions(tm, Point2(0.f, 0.f), collisionLinks[wishState], objects);
         Tab<gamephys::CollisionContactData> contacts(framemem_ptr());
         for (int i = 0; i < objects.size() && !forbidStateChange; ++i)
         {
@@ -2816,7 +2815,7 @@ void HumanPhys::updatePhysInWorld(const TMatrix &tm)
   isTorsoInWorld = shouldTorsoBeInWorld;
   dacoll::tmp_collisions_t objects;
   Point2 oriParam = calc_ori_param(currentState, appliedCT);
-  dacoll::generate_collisions(tm, currentState.gunAngles.y, oriParam, collisionLinks[currentState.getStandState()], objects);
+  dacoll::generate_collisions(tm, oriParam, collisionLinks[currentState.getStandState()], objects);
   for (const dacoll::CollisionCapsuleProperties &obj : objects)
   {
     if (!obj.haveCollision)
@@ -2833,7 +2832,7 @@ TMatrix HumanPhys::getCollisionObjectsMatrix() const
   TMatrix curTm = currentState.location.makeTM();
   dacoll::tmp_collisions_t objects;
   Point2 oriParam = calc_ori_param(currentState, appliedCT);
-  dacoll::generate_collisions(curTm, currentState.gunAngles.y, oriParam, collisionLinks[currentState.getStandState()], objects);
+  dacoll::generate_collisions(curTm, oriParam, collisionLinks[currentState.getStandState()], objects);
   for (const dacoll::CollisionCapsuleProperties &obj : objects)
   {
     if (!obj.haveCollision)
@@ -2930,12 +2929,11 @@ void HumanPhys::drawDebug()
   if (draw_proc_collision)
   {
     Point2 oriParam = calc_ori_param(currentState, appliedCT);
-    generate_collisions(tm, currentState.gunAngles.y, oriParam, collisionLinks[currentState.collisionLinksStateTo], objects);
+    generate_collisions(tm, oriParam, collisionLinks[currentState.collisionLinksStateTo], objects);
     if (currentState.collisionLinkProgress >= 0.f)
     {
       dacoll::tmp_collisions_t prevObjects;
-      dacoll::generate_collisions(tm, currentState.gunAngles.y, oriParam, collisionLinks[currentState.collisionLinksStateFrom],
-        prevObjects);
+      dacoll::generate_collisions(tm, oriParam, collisionLinks[currentState.collisionLinksStateFrom], prevObjects);
       dacoll::lerp_collisions(objects, prevObjects, currentState.collisionLinkProgress);
     }
   }

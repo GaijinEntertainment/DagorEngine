@@ -365,13 +365,13 @@ public:
       if (l >= MAX_KEY_LEN)
       {
         if (l > 4096)
-          fatal("key longer than 4096 bytes in CSV");
+          DAG_FATAL("key longer than 4096 bytes in CSV");
         else
         {
           char tmp[4096];
           l = parseCsvString(ptr, tmp, true);
           tmp[4095] = 0;
-          fatal("Too long key in CSV, len = %d, key = %s", l, tmp);
+          DAG_FATAL("Too long key in CSV, len = %d, key = %s", l, tmp);
         }
       }
       l = parseCsvString(ptr, key_buffer, true);
@@ -548,13 +548,13 @@ public:
       if (l >= MAX_KEY_LEN)
       {
         if (l > 4096)
-          fatal("key longer than 4096 bytes in CSV");
+          DAG_FATAL("key longer than 4096 bytes in CSV");
         else
         {
           char tmp[4096];
           l = parseCsvString(ptr, tmp, true);
           tmp[4095] = 0;
-          fatal("Too long key in CSV, len = %d, key = %s", l, tmp);
+          DAG_FATAL("Too long key in CSV, len = %d, key = %s", l, tmp);
         }
       }
       l = parseCsvString(ptr, key_buffer, true);
@@ -1084,7 +1084,7 @@ bool load_col_from_csv(const char *file_name, int col_no, NameMap *ids, Tab<char
     virtual void onKeyProcessed(int n, char *data, bool)
     {
       if (ids->getNameId(data) >= 0)
-        fatal("Duplicate localization table entry '%s'", data);
+        DAG_FATAL("Duplicate localization table entry '%s'", data);
 
       G_VERIFY(ids->addNameId(data) == n);
       delete[] data;

@@ -17,7 +17,7 @@ shader create_tracer_commands_cs
 
     float currentTime: register(c2);
     uint commandsCount: register(c3);
-    TracerCreateCommand commands[TRACER_MAX_CREATE_COMMANDS] : register(c4);
+    TracerCreateCommand commands[TRACER_SMOKE_MAX_CREATE_COMMANDS] : register(c4);
 
     [numthreads( TRACER_COMMAND_WARP_SIZE, 1, 1 )]
     void main( uint3 dtId : SV_DispatchThreadID )
@@ -32,6 +32,8 @@ shader create_tracer_commands_cs
       structuredBufferAt(tracers, cmd.id).ttl = cmd.ttl;
       structuredBufferAt(tracers, cmd.id).smoke_color_density = cmd.smoke_color;
       structuredBufferAt(tracers, cmd.id).head_color = cmd.head_color__burnTime.rgb;
+      structuredBufferAt(tracers, cmd.id).start_head_color = cmd.start_head_color;
+      structuredBufferAt(tracers, cmd.id).start_mult = cmd.start_mult;
       structuredBufferAt(tracers, cmd.id).burnTime = cmd.head_color__burnTime.a;
       structuredBufferAt(tracers, cmd.id).radiusStart = len;
       structuredBufferAt(tracers, cmd.id).dir = ndir;//actually it will be always constant for tracer
@@ -57,7 +59,7 @@ shader update_tracer_commands_cs
     StructuredBuffer<GPUSmokeTracer>  tracers : register(t0);
     float currentTime: register(c2);
     uint commandsCount: register(c3);
-    TracerUpdateCommand commands[TRACER_MAX_UPDATE_COMMANDS] : register(c4);
+    TracerUpdateCommand commands[TRACER_SMOKE_MAX_UPDATE_COMMANDS] : register(c4);
 
     [numthreads( TRACER_COMMAND_WARP_SIZE, 1, 1 )]
     void main( uint3 dtId : SV_DispatchThreadID )
@@ -270,7 +272,11 @@ shader cull_tracers_cs
         float time_opacity = 1;//-saturate(decayTime/exposure_time);
         time_opacity *= burnEffect;
         float density = time_opacity*fade;
-        float3 tracer_color = 8*tracers[id].head_color.xyz;//==
+        float3 tracer_color = tracers[id].head_color.xyz;
+        float startFade = saturate(tracerTime * tracers[id].start_mult);
+        tracer_color = lerp(tracers[id].start_head_color, tracer_color, startFade);
+        const float HEAD_COLOR_MULT_BY = 8.0;
+        tracer_color *= HEAD_COLOR_MULT_BY;
         renderBox.color = float4(tracer_color*burnEffect, density);
         float3 boxMin = min(renderBox.p0.xyz, renderBox.p1.xyz), boxMax = max(renderBox.p0.xyz, renderBox.p1.xyz);
         boxMin -= boxRadius; boxMax += boxRadius;

@@ -15,7 +15,7 @@ Donec urna nisi, cursus eget mauris at, congue bibendum mauris. Nunc porta dui i
 Quisque ipsum purus,  hendrerit eget  ex  eget, tempus  condimentum ligula. Morbi sed urna felis. Integer semper sollicitudin eros at aliquam. Aliquam erat volutpat. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque laoreet est in nisi euismod commodo. Sed at tellus at lacus ultricies tempor nec vel sem. Quisque urna nisi, pretium et dolor ac, tempus laoreet lorem. Aenean magna ante, tempus id lacinia non, faucibus a ante. Integer condimentum et libero at blandit. Aenean in elementum est.
 "
 
-let function sText(text, params={}) {
+function sText(text, params={}) {
   return {
     rendObj = ROBJ_TEXT
     ellipsis = true
@@ -33,7 +33,7 @@ let textAreaFrameState_default = {
 
 let state = persist("state", @() Watched(null))
 
-let function textAreaContainer() {
+function textAreaContainer() {
   let w = state.value ?? textAreaFrameState_default
   return {
     rendObj = ROBJ_BOX

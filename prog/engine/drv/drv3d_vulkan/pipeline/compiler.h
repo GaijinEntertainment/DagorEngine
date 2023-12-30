@@ -57,7 +57,7 @@ class PipelineCompiler
 {
   struct PrimaryWorkerThread : public DaThread
   {
-    PrimaryWorkerThread(PipelineCompiler &c) : DaThread("VkPipeCompilerPrimary"), compiler(c) {}
+    PrimaryWorkerThread(PipelineCompiler &c) : DaThread("VkPipeComp"), compiler(c) {}
     void execute() override;
 
   private:
@@ -68,7 +68,7 @@ class PipelineCompiler
   {
     static const char *getWorkerName(int idx);
 
-    SecondaryWorkerThread(PipelineCompiler &c, int idx) : DaThread(String(32, "VkPipeCompilerSecondary%u", idx)), compiler(c)
+    SecondaryWorkerThread(PipelineCompiler &c, int idx) : DaThread(String(16, "VkPipeComp%u", idx)), compiler(c)
     {
       os_event_create(&wakeEvent);
     }

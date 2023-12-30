@@ -4,27 +4,27 @@
 Values and Data Types
 =====================
 
-daScript is a strong, statically typed language.  All variables have a type.
-daScript's basic POD (plain old data) data types are::
+Daslang is a strong, statically typed language.  All variables have a type.
+Daslang's basic POD (plain old data) data types are::
 
     int, uint, float, bool, double, int64, uint64
     int2, int3, int4, uint2, uint3, uint4, float2, float3, float4
 
 All PODs are represented with machine register/word. All PODs are passed to functions by value.
 
-daScript's storage types are::
+Daslang's storage types are::
 
     int8, uint8, int16, uint16 - 8/16-bits signed and unsigned integers
 
 They can't be manipulated, but can be used as storage type within structs, classes, etc.
 
-daScript's other types are::
+Daslang's other types are::
 
     string, das_string, struct, pointers, references, block, lambda, function pointer,
     array, table, tuple, variant, iterator, bitfield
 
 
-All daScript's types are initialized with zeroed memory by default.
+All Daslang's types are initialized with zeroed memory by default.
 
 .. _userdata-index:
 
@@ -72,7 +72,7 @@ String
 Strings are an immutable sequence of characters. In order to modify a
 string, it is necessary to create a new one.
 
-daScript's strings are similar to strings in C or C++.  They are
+Daslang's strings are similar to strings in C or C++.  They are
 delimited by quotation marks(``"``) and can contain escape
 sequences (``\t``, ``\a``, ``\b``, ``\n``, ``\r``, ``\v``, ``\f``,
 ``\\``, ``\"``, ``\'``, ``\0``, ``\x<hh>``, ``\u<hhhh>`` and
@@ -86,7 +86,7 @@ sequences (``\t``, ``\a``, ``\b``, ``\n``, ``\r``, ``\v``, ``\f``,
 Strings type can be thought of as a 'pointer to the actual string', like a 'const char \*' in C.
 As such, they will be passed to functions by value (but this value is just a reference to the immutable string in memory).
 
-``das_string`` is a mutable string, whose content can be changed. It is simply a builtin handled type, i.e., a std::string bound to daScript.
+``das_string`` is a mutable string, whose content can be changed. It is simply a builtin handled type, i.e., a std::string bound to Daslang.
 As such, it passed as reference.
 
 --------

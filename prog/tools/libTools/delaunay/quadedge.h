@@ -1,5 +1,4 @@
-#ifndef QUADEDGE_INCLUDED // -*- C++ -*-
-#define QUADEDGE_INCLUDED
+#pragma once
 
 #include "geom.h"
 
@@ -76,5 +75,3 @@ inline boolean leftOf(const Vec2 &x, const Edge *e) { return leftOf(x, e->Org(),
 inline ostream &operator<<(ostream &out, const Edge *e) { return out << "{ " << e->Org() << " ---> " << e->Dest() << " }"; }
 #endif
 }; // namespace delaunay
-
-#endif

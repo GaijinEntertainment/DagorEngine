@@ -7,7 +7,7 @@ C++ bindings generator
 
 .. include:: detail/cpp_bind.rst
 
-The cpp_bind module implements generation of C++ bindings for the daScript interfaces.
+The cpp_bind module implements generation of C++ bindings for the Daslang interfaces.
 
 All functions and symbols are in "cpp_bind" module, use require to get access to it. ::
 
@@ -28,7 +28,7 @@ For example, from tutorial04.das ::
 Generation of bindings
 ++++++++++++++++++++++
 
-  *  :ref:`log_cpp_class_adapter (cpp_file:fio::FILE const? const;name:string const;cinfo:smart_ptr\<ast::TypeDecl\> const) : void <function-_at_cpp_bind_c__c_log_cpp_class_adapter_CY_ls_file_gr_1_ls_CH_ls_fio_c__c_FILE_gr__gr_?_Cs_CY_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M>` 
+  *  :ref:`log_cpp_class_adapter (cpp_file:fio::FILE const? const;name:string const;cinfo:smart_ptr\<ast::TypeDecl\> const) : void <function-_at_cpp_bind_c__c_log_cpp_class_adapter_CY_ls_file_gr_1_ls_CH_ls_fio_c__c_FILE_gr__gr_?_Cs_CY_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M>`
 
 .. _function-_at_cpp_bind_c__c_log_cpp_class_adapter_CY_ls_file_gr_1_ls_CH_ls_fio_c__c_FILE_gr__gr_?_Cs_CY_ls_TypeDeclPtr_gr_1_ls_H_ls_ast_c__c_TypeDecl_gr__gr_?M:
 
@@ -45,9 +45,9 @@ Generation of bindings
 +--------+----------------------------------------+
 
 
-Generates C++ class adapter for the daScript class.
+Generates C++ class adapter for the Daslang class.
 Intended use::
 
-    log_cpp_class_adapter(cppFileNameDotInc, "daScriptClassName", typeinfo(ast_typedecl type<daScriptClassName>))
+    log_cpp_class_adapter(cppFileNameDotInc, "DaslangClassName", typeinfo(ast_typedecl type<DaslangClassName>))
 
 

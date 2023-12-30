@@ -29,7 +29,7 @@ counter4x.subscribe(@(x) vlog($"4x = {x}"))
 counter5x.subscribe(@(x) vlog($"5x = {x}"))
 counter20xAbs.subscribe(@(x) vlog($"|20x| = {x}"))
 
-let function button(params) {
+function button(params) {
   let text = params?.text ?? ""
   let onClick = params?.onClick
   let onHover = params?.onHover
@@ -61,10 +61,10 @@ counter.subscribe(function(new_val) {
   prev_val = new_val
 })
 
-let function increment() {
+function increment() {
   counter(counter.value + 1)
 }
-let function decrement() {
+function decrement() {
   counter(counter.value - 1)
 }
 

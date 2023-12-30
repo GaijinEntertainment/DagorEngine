@@ -25,16 +25,16 @@ shader debug_ri
   }
 
   hlsl(ps) {
-    half4 xray_lighting(float3 point_to_eye, float4 hatching_color, float3 world_normal)
+    float4 xray_lighting(float3 point_to_eye, float4 hatching_color, float3 world_normal)
     {
       float4 hatching_type = float4(0.5,1,0,0);
       float fresnel = saturate(1 - abs(dot(world_normal, normalize(point_to_eye).xyz)));
       fresnel = saturate(lerp(hatching_type.y, hatching_type.z, pow4(fresnel)) + hatching_type.x * world_normal.y);
       float4 hatching_fresnel = hatching_color*0.5;
       half4 colorRet = lerp(hatching_color, hatching_fresnel, fresnel);
-      return half4(colorRet.rgb, hatching_color.a);
+      return float4(colorRet.rgb, hatching_color.a);
     }
-    half4 debug_ps(VsOutput input) : SV_Target
+    float4 debug_ps(VsOutput input) : SV_Target
     {
       float3 normal = normalize(cross(normalize(ddy(input.pointToEye.xyz)), normalize(ddx(input.pointToEye.xyz))));
       return xray_lighting(input.pointToEye.xyz, input.debug_ri_color, normal);

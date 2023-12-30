@@ -116,7 +116,7 @@ public:
 
   virtual void setKbFocus(Element *elem) override;
 
-  virtual void setSceneActive(bool active) override;
+  virtual void setSceneInputActive(bool active) override;
   virtual void skipRender() override;
 
   virtual IWndProcComponent::RetCode process(void *hwnd, unsigned msg, uintptr_t wParam, intptr_t lParam, intptr_t &result) override;
@@ -185,7 +185,7 @@ public:
   static HumanInput::IGenJoystick *getJoystick();
 
   bool useCircleAsActionButton() const;
-  bool isActive() const;
+  bool isInputActive() const { return isInputEnabledByHost && isInputEnabledByScript; }
 
   void setXmbFocus(Element *elem);
   bool trySetXmbFocus(Element *elem);
@@ -199,6 +199,7 @@ public:
   IPoint2 getDeviceScreenSize() const { return deviceScreenSize; }
 
   void updateSpatialElements(const VrSceneData &vr_scene) override;
+  bool hasAnyPanels() override;
 
   const eastl::vector<PanelData> &getPanels() const { return panels; }
 
@@ -280,7 +281,6 @@ private:
   JoystickAxisObservable *getJoystickAxis(int axis);
   sqfrp::ScriptValueObservable *getKeyboardLayoutObservable() { return keyboardLayout.get(); }
   sqfrp::ScriptValueObservable *getKeyboardLocksObservable() { return keyboardLocks.get(); }
-  sqfrp::ScriptValueObservable *getSceneIsActiveObservable() { return sceneIsActive.get(); }
   sqfrp::ScriptValueObservable *getIsXmbModeOn() { return isXmbModeOn.get(); }
   sqfrp::ScriptValueObservable *getUpdateCounterObservable() { return updateCounter.get(); }
 
@@ -293,6 +293,9 @@ private:
   void drawDebugRenderBoxes();
 
   void queryCurrentScreenResolution();
+
+  void scriptSetSceneInputActive(bool active);
+  void applyInputActivityChange();
 
 public:
   eastl::unique_ptr<sqfrp::ObservablesGraph> frpGraph;
@@ -373,8 +376,8 @@ private:
 
   SceneStatus status;
 
-  // workaround against multi-VM UI
-  eastl::unique_ptr<sqfrp::ScriptValueObservable> sceneIsActive;
+  bool isInputEnabledByHost = true;
+  bool isInputEnabledByScript = true;
 
   bool shouldIgnoreDeviceCursorPos = false;
 

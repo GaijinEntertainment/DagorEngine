@@ -5,6 +5,7 @@
 //
 #pragma once
 
+#include <EASTL/type_traits.h>
 #include <util/dag_stdint.h>
 
 
@@ -12,9 +13,9 @@
 namespace dabfg
 {
 
-enum class NodeNameId : uint32_t
+enum class NodeNameId : uint16_t
 {
-  Invalid = ~0u
+  Invalid = static_cast<eastl::underlying_type_t<NodeNameId>>(-1)
 };
 
 } // namespace dabfg

@@ -121,7 +121,7 @@ let freePanelLayout = {
 }
 
 
-let function root() {
+function root() {
   return {
     size = flex()
     function onAttach() {

@@ -8,6 +8,10 @@
 
 .. |function-jobque-with_job_status| replace:: Creates `JobStatus`, makes it available inside the scope of the block.
 
+.. |function-jobque-job_status_create| replace:: Creates job status.
+
+.. |function-jobque-job_status_remove| replace:: Destroys job status.
+
 .. |function-jobque-new_job_invoke| replace:: Creates clone of the current context, moves attached lambda to it.
     Adds a job to a job que, which once invoked will execute the lambda on the context clone.
     `new_job_invoke` is part of the low level (internal) job infrastructure. Recommended approach is to use `jobque_boost::new_job`.
@@ -42,4 +46,38 @@
 .. |function-jobque-channel_create| replace:: Creates channel.
 
 .. |function-jobque-channel_remove| replace:: Destroys channel.
+
+.. |structure_annotation-jobque-LockBox| replace:: Lockbox. Similar to channel, only for single object.
+
+.. |function-jobque-lock_box_create| replace:: Creates lockbox.
+
+.. |function-jobque-lock_box_remove| replace:: Destroys lockbox.
+
+.. |function-jobque-with_lock_box| replace:: Creates `LockBox`, makes it available inside the scope of the block.
+
+.. |structure_annotation-jobque-Atomic32| replace:: Atomic 32 bit integer.
+
+.. |function-jobque-atomic32_create| replace:: Creates atomic 32 bit integer.
+
+.. |function-jobque-atomic32_remove| replace:: Destroys atomic 32 bit integer.
+
+.. |function-jobque-with_atomic32| replace:: Creates `Atomic32`, makes it available inside the scope of the block.
+
+.. |function-jobque-set| replace:: Set atomic integer value.
+
+.. |function-jobque-get| replace:: Get atomic integer value.
+
+.. |function-jobque-inc| replace:: Increase atomic integer value and returns result.
+
+.. |function-jobque-dec| replace:: Decrease atomic integer value and returns result.
+
+.. |structure_annotation-jobque-Atomic64| replace:: Atomic 64 bit integer.
+
+.. |function-jobque-atomic64_create| replace:: Creates atomic 64 bit integer.
+
+.. |function-jobque-atomic64_remove| replace:: Destroys atomic 64 bit integer.
+
+.. |function-jobque-with_atomic64| replace:: Creates `Atomic64`, makes it available inside the scope of the block.
+
+
 

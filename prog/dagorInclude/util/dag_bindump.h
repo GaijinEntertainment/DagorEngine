@@ -107,8 +107,10 @@
 // for all members of this class in the order of their declaration. This is what we need to implement this library.
 // All wrapper types have this operator
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4505) // unreferenced local function has been removed
+#endif
 
 namespace bindump
 {
@@ -1301,7 +1303,9 @@ bool streamRead(Master<LayoutClass> &layout, IReader &reader)
 }
 } // namespace bindump
 
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 #ifdef _MSC_VER
 #define BINDUMP_PRAGMA_PACK_PUSH __pragma(pack(push, 1))

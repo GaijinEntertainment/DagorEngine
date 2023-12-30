@@ -502,6 +502,72 @@ void mergerCommonJumpLink(Tab<JumpLink> &outSegs, const JumpLinksParams &params)
   }
 }
 
+bool check_jump_max_height(const rcHeightfield *solid, const Point3 &sp, const Point3 &sq, const float &agentHeight,
+  const float &agentMinSpace, float &maxHeight)
+{
+  const int nsamples = (int)ceilf(length(Point3(sp.x - sq.x, 0.f, sp.z - sq.z)) / solid->cs) + 1;
+  const float cellRadiusSq = solid->cs * solid->cs;
+
+  float curFloor = -FLT_MAX;
+  float curCeiling = FLT_MAX;
+  float prevFloor = -FLT_MAX;
+  float prevCeiling = FLT_MAX;
+
+  for (int i = 0; i < nsamples; i++)
+  {
+    const float u = (float)i / (float)(nsamples - 1);
+    const Point3 pt = lerp(sp, sq, u);
+    const int ix = (int)floorf((pt.x - solid->bmin[0]) / solid->cs);
+    const int iz = (int)floorf((pt.z - solid->bmin[2]) / solid->cs);
+    if (ix < 0 || iz < 0 || ix >= solid->width || iz >= solid->height)
+      continue;
+
+    const rcSpan *span = solid->spans[ix + iz * solid->width];
+    const float topHeight = pt.y + agentHeight;
+    const bool isLinkEndpoint = lengthSq(pt - sp) < cellRadiusSq || lengthSq(pt - sq) < cellRadiusSq;
+    bool fit = false;
+    curFloor = -FLT_MAX;
+    curCeiling = FLT_MAX;
+
+    float atFloor = -FLT_MAX;
+    for (;;)
+    {
+      const float atCeiling = span ? (solid->bmin[1] + span->smin * solid->ch) : FLT_MAX;
+
+      // if link endpoints and head collides
+      if (isLinkEndpoint && atCeiling > pt.y && atCeiling < topHeight)
+      {
+        return false;
+      }
+
+      // keep highest fit
+      const float fitFloor = max(atFloor, prevFloor);
+      const float fitCeiling = min(atCeiling, prevCeiling);
+      if (fitFloor < topHeight && fitCeiling > topHeight && fitCeiling - fitFloor > agentMinSpace)
+      {
+        fit = true;
+        curFloor = atFloor;
+        curCeiling = atCeiling;
+      }
+
+      if (!span || atFloor > topHeight)
+        break;
+
+      atFloor = solid->bmin[1] + span->smax * solid->ch;
+      if (atFloor > prevCeiling)
+        break;
+
+      span = span->next;
+    }
+    if (!fit)
+      return false;
+    prevFloor = curFloor;
+    prevCeiling = curCeiling;
+    maxHeight = max(maxHeight, curFloor);
+  }
+  return true;
+}
+
 struct EdgeSampler
 {
   LineSampler start;
@@ -529,7 +595,8 @@ struct EdgeSampler
   }
 
 
-  void sampleTrace(const rcHeightfield *m_solid, const float jumpHeight, const float agentRadius)
+  void sampleTrace(const rcHeightfield *m_solid, const float jumpHeight, const float agentRadius, const float agentHeight,
+    const float agentMinSpace)
   {
     for (int i = 0; i < (int)link.points.size(); ++i)
     {
@@ -554,10 +621,11 @@ struct EdgeSampler
       Point3 agentSpt = spt - agentOffset;
       Point3 agentEpt = ept + agentOffset;
 
-      float height = recastcoll::get_line_max_height(m_solid, agentSpt, agentEpt, 1.f);
-      float maxHeight = min(start.points[i].height, end.points[i].height) + jumpHeight;
+      float height = 0.0f;
+      bool isSpaceFree = check_jump_max_height(m_solid, agentSpt, agentEpt, agentHeight, agentMinSpace, height);
+      float maxHeight = min(start.points[i].height, end.points[i].height) + jumpHeight + agentHeight;
 
-      if (height < maxHeight && height > min(spt.y, ept.y) - m_solid->ch)
+      if (isSpaceFree && height < maxHeight)
       {
         link.points[i].height = height;
         link.points[i].AddBit(HEIGHT_CHECKED);
@@ -577,8 +645,10 @@ struct EdgeSampler
     {
       JumpLink jlk;
       jlk.link = edge;
-      jlk.start = cutEdgeFromEdge(jlk.link, start.edge);
-      jlk.end = cutEdgeFromEdge(jlk.link, end.edge);
+      Edge cutLink = edge;
+      cutLink.sq.y = cutLink.sp.y;
+      jlk.start = cutEdgeFromEdge(cutLink, start.edge);
+      jlk.end = cutEdgeFromEdge(cutLink, end.edge);
       ret.push_back(jlk);
     }
   }
@@ -695,7 +765,7 @@ void buildJumpLink(const rcHeightfield *m_solid, const rcCompactHeightfield *m_c
     return;
 
   EdgeSampler es(m_chf, jampLink.link, jampLink.start, jampLink.end, params.width);
-  es.sampleTrace(m_solid, params.jumpHeight * 0.5f, params.agentRadius);
+  es.sampleTrace(m_solid, params.jumpHeight * 0.5f, params.agentRadius, params.agentHeight, params.agentMinSpace);
 
   Tab<JumpLink> links(tmpmem);
   links.reserve(5);

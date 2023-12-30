@@ -18,9 +18,9 @@ void win32_set_window_title_utf8(const char *title)
     if (used && used < 4096)
       SetWindowTextW(hwnd, wTitle);
     else
-      fatal("title is incorrect or too big (srclen=%d, title=%s, err=%08X)", i_strlen(title), title, GetLastError());
+      DAG_FATAL("title is incorrect or too big (srclen=%d, title=%s, err=%08X)", i_strlen(title), title, GetLastError());
   }
 }
 
-#define EXPORT_PULL dll_pull_osapiwrappers_winSetTitle
+#define EXPORT_PULL dll_pull_osapiwrappers_setTitle
 #include <supp/exportPull.h>

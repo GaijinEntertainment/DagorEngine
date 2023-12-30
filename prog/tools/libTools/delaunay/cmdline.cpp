@@ -11,7 +11,6 @@ namespace delaunay
 IMemAlloc *delmem = NULL;
 
 GreedySubdivision *mesh = NULL;
-// Map *DEM;
 
 static ImportMask default_mask;
 ImportMask *MASK = &default_mask;

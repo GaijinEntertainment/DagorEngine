@@ -182,7 +182,7 @@ public:
     if (!nm)
       nm = "(operation)";
     if (stack.size() <= 1)
-      fatal("accept '%s' without begin in '%s'", nm, (char *)name);
+      DAG_FATAL("accept '%s' without begin in '%s'", nm, name);
 
     UndoRedoHolder *h = stack.back();
 
@@ -218,7 +218,7 @@ public:
   void cancel()
   {
     if (stack.size() <= 1)
-      fatal("cancel without begin in '%s'", (char *)name);
+      DAG_FATAL("cancel without begin in '%s'", name);
     UndoRedoHolder *h = stack.back();
     h->accepted();
     h->restore(false);

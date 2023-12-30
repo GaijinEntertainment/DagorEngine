@@ -34,18 +34,18 @@ local lastErr = null
 local curLangPluralFormsCount = 0
 local verboseOutput = false
 
-local function getPluralFormsCount(lang) {
+function getPluralFormsCount(lang) {
   foreach (pluralFormsCount, langs in langsByPluralFormsCount)
     if (langs.indexof(lang) != null)
       return pluralFormsCount
   return 0
 }
 
-local function padText(multilineText, firstLinePad, nextLinesPad) {
+function padText(multilineText, firstLinePad, nextLinesPad) {
   return "".concat(firstLinePad, $"\n{nextLinesPad}".join(multilineText.split("\n")))
 }
 
-local function _printErr(errorId, isError, filename, row, fileLn, fileCol, tableRow, tableCol, msg, fieldText) {
+function _printErr(errorId, isError, filename, row, fileLn, fileCol, tableRow, tableCol, msg, fieldText) {
   local shouldSkip = lastErr?.filename == filename && lastErr?.fileLn == fileLn &&
     lastErr?.fileCol == fileCol-1 && lastErr?.errorId == errorId
   lastErr = { filename = filename, fileLn = fileLn, fileCol = fileCol, errorId = errorId }
@@ -86,19 +86,19 @@ local function _printErr(errorId, isError, filename, row, fileLn, fileCol, table
     print("".concat("DEBUG: ", tostring_r(row), "\n"))
 }
 
-local function printParsingError(filename, fileLn, fileCol, id, msg) {
+function printParsingError(filename, fileLn, fileCol, id, msg) {
   _printErr(id, true,  filename, null, fileLn, fileCol, -1, -1, msg, "")
 }
 
-local function printError(filename, row, field, id, msg) {
+function printError(filename, row, field, id, msg) {
   _printErr(id, true,  filename, row, field.fileLn, field.fileCol, field.tr, field.tc, msg, field.val)
 }
 
-local function printWarning(filename, row, field, id, msg) {
+function printWarning(filename, row, field, id, msg) {
   _printErr(id, false, filename, row, field.fileLn, field.fileCol, field.tr, field.tc, msg, field.val)
 }
 
-local function arraySubstract(from, what) {
+function arraySubstract(from, what) {
   local res = []
   foreach (v in from)
     if(what.indexof(v) == null)
@@ -106,14 +106,14 @@ local function arraySubstract(from, what) {
   return res
 }
 
-local function reduceToDiff(arr1, arr2) {
+function reduceToDiff(arr1, arr2) {
   foreach (v in [].extend(arr1).extend(arr2))
     if (arr1.indexof(v) != null && arr2.indexof(v) != null)
       foreach (arr in [ arr1, arr2 ])
         arr.remove(arr.indexof(v))
 }
 
-local function readTextFileTo2DCharArray(fileName) {
+function readTextFileTo2DCharArray(fileName) {
   local lines = [ [] ]
   local fp = file(fileName, "rb")
   if (fp.len()) {
@@ -148,7 +148,7 @@ local utf8Idx = @(idx, charArr) utf8("".join(charArr.slice(0, idx)).replace("\r\
  * to silently fix all errors, and sometimes it leads to unexpected results.
  */
 
-local function readCsvFile(filePath, fn, shouldPrintWeakErrors = true) {
+function readCsvFile(filePath, fn, shouldPrintWeakErrors = true) {
   local rows = []
   local cols = []
   local cell = []
@@ -214,7 +214,7 @@ local function readCsvFile(filePath, fn, shouldPrintWeakErrors = true) {
  * Writes data to disk as CSV file.
  */
 
-local function writeCsvFile(rows, filePath) {
+function writeCsvFile(rows, filePath) {
   local reIsFieldNumeric = regexp2(@"^\d+$")
   local fp = file(filePath, "wb")
   foreach(row in rows) {
@@ -250,7 +250,7 @@ local reIsUrlShort = regexp2(@"^[\w\-]+\.[\w\-:%&;\?\#\/\.=]+$")
 local reIsCurlyVar = regexp2(@"^\{\w+?\}$")
 local reIsLocalizationKey = regexp2(@"^[\w\-\+\.\/<>&:\s]+$")
 
-local function checkLocalizationSyntax(csv, fn) {
+function checkLocalizationSyntax(csv, fn) {
   foreach (tr, row in csv) {
     if (row?[3].val.contains("SKIP_VALIDATION"))
       continue
@@ -465,7 +465,7 @@ local function checkLocalizationSyntax(csv, fn) {
 
 //-------------------------------------------------------------------------------------------------
 
-local function validateLangs(cfg) {
+function validateLangs(cfg) {
   local rootDir     = cfg?.root ?? "."
   local scanDirs    = cfg?.scan ?? [ "" ]
   local excludeDirs = cfg?.exclude ?? []

@@ -54,7 +54,7 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *de
 
   // we allow any size of buffers in case there are no other allocations
   uint32_t oldSize = device.allocated_upload_buffer_size.fetch_add(size);
-  if ((oldSize > 0) && (oldSize + size > device.getTexUploadLimit()))
+  if (((oldSize > 0) && (oldSize + size > device.getTexUploadLimit())) || device.resources.isOutOfMemorySignalReceived())
   {
     return nullptr;
   }

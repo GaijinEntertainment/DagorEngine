@@ -1,11 +1,4 @@
-class Foo
-    static a : int
-    def static bar ( A : auto )
-        a = int(A)
-        print("set to {a}\n")
-
 [export]
 def main
-    Foo`bar(13.1)
-
-
+	var t = ULONG_MAX
+	print("{ULONG_MAX} {t} {t>>16UL} {typeinfo(sizeof t)}\n")

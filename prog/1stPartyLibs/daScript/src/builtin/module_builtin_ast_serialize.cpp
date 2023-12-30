@@ -181,6 +181,8 @@ namespace das {
         return *this;
     }
 
+    template AstSerializer & AstSerializer::operator << ( vector<int64_t> & value );
+
     AstSerializer & AstSerializer::operator << ( string & str ) {
         tag("string");
         if ( writing ) {
@@ -853,8 +855,7 @@ namespace das {
         tag("ReaderMacroPtr");
         if ( writing ) {
             DAS_ASSERTF(ptr, "did not expext to see null ReaderMacroPtr");
-            bool inThisModule = ptr->module == thisModule;
-            DAS_ASSERTF(!inThisModule, "did not expect to find macro from the current module");
+            DAS_ASSERTF(!(ptr->module == thisModule), "did not expect to find macro from the current module");
             *this << ptr->module->name;
             *this << ptr->name;
         } else {
@@ -1610,8 +1611,7 @@ namespace das {
         tag("CallMacro *");
         if ( writing ) {
             DAS_ASSERTF ( ptr, "did not expect to see a nullptr CallMacro *" );
-            bool inThisModule = ptr->module == thisModule;
-            DAS_ASSERTF ( !inThisModule, "did not expect to find macro from the current module" );
+            DAS_ASSERTF ( !(ptr->module == thisModule), "did not expect to find macro from the current module" );
             *this << ptr->module->name;
             *this << ptr->name;
         } else {
@@ -1639,7 +1639,7 @@ namespace das {
     }
 
     // Restores the internal state of macro module
-    Module * reinstantiateMacroModuleState ( AstSerializer & ser, ProgramPtr program ) {
+    Module * reinstantiateMacroModuleState ( AstSerializer & /*ser*/, ProgramPtr program ) {
         TextWriter ignore_logs;
     // set the current module
     // create the module macro state
@@ -1665,7 +1665,7 @@ namespace das {
             ReuseCacheGuard rcg;
         // initialize program
             program = make_smart<Program>();
-            program->promoteToBuiltin = false;
+            program->promoteToBuiltin = this_mod->promoted;;
             program->isDependency = true;
             program->thisModuleGroup = ser.thisModuleGroup;
             program->thisModuleName.clear();
@@ -2061,11 +2061,7 @@ namespace das {
                 ser << *deser;
             }
 
-            for ( auto & m : program->library.getModules() ) {
-                if ( m->name == program->thisModuleName ) {
-                    program->thisModule.reset(m);
-                }
-            }
+            program->thisModule.reset(program->library.getModules().back());
         }
     }
 
@@ -2145,7 +2141,7 @@ namespace das {
                 // pass
             } else if ( builtin && promoted ) {
                 bool isNew = false; ser << isNew;
-                if ( isNew) {
+                if ( isNew ) {
                     auto deser = new Module;
                     library.addModule(deser);
                     ser << *deser;

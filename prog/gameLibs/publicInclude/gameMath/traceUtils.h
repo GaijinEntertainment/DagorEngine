@@ -242,10 +242,16 @@ inline void prepare_traces(dag::Span<Trace> traces, bbox3f &box, dag::Span<vec4f
     ray_start_pos.size(), out_norm.size());
 #endif
   v_bbox3_init(box, ray_start_pos[0] = v_ld(&traces[0].pos.x));
+  G_ASSERTF(
+    !check_nan(v_extract_x(v_length3_sq_x(ray_start_pos[0]))) && v_test_vec_x_lt(v_length3_sq_x(ray_start_pos[0]), v_set_x(1e11f)),
+    "traces[0].pos=%@", traces[0].pos);
   v_bbox3_add_pt(box, v_madd(v_ld(&traces[0].dir.x), v_splat_w(ray_start_pos[0]), ray_start_pos[0]));
   for (int i = 1; i < traces.size(); ++i)
   {
     v_bbox3_add_pt(box, ray_start_pos[i] = v_ld(&traces[i].pos.x));
+    G_ASSERTF(
+      !check_nan(v_extract_x(v_length3_sq_x(ray_start_pos[i]))) && v_test_vec_x_lt(v_length3_sq_x(ray_start_pos[i]), v_set_x(1e11f)),
+      "traces[%d].pos=%@", i, traces[i].pos);
     v_bbox3_add_pt(box, v_madd(v_ld(&traces[i].dir.x), v_splat_w(ray_start_pos[i]), ray_start_pos[i]));
   }
   if (expand_down)

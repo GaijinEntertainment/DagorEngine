@@ -18,7 +18,7 @@ let sqEvents = {}
 const VERBOSE_PRINT = false //getroottable()?.__is_stub__
 let verbose_print = VERBOSE_PRINT ? @(val) print(val) : @(_) null
 
-let function mkEsFuncNamed(esname, func) {
+function mkEsFuncNamed(esname, func) {
   assert(["function", "instance", "table"].indexof(type(func)) != null, $"esHandler can be only function or callable, for ES '{esname}', got type: {type(func)}")
   let infos = func?.getfuncinfos?()
   assert(infos!=null, "esHandler can be only function or callable, ES:{0}".subst(esname))
@@ -33,7 +33,7 @@ let function mkEsFuncNamed(esname, func) {
     return function(_evt, eid, comp) {func(eid, comp)}
 }
 
-let function gatherComponentNames(component_list){
+function gatherComponentNames(component_list){
   let res = []
   foreach (component in component_list){
     if (type(component) =="string")
@@ -52,7 +52,7 @@ if (INTERNAL_REGISTER_ECS not in ecs) {
 
 let ecs_register_entity_system = ecs[INTERNAL_REGISTER_ECS]
 
-local function register_es(name, onEvents={}, compsDesc={}, params = {}) {
+function register_es(name, onEvents={}, compsDesc={}, params = {}) {
   const DOTS_ERROR = "dots in ES components"
   try{
     foreach (k, _v in compsDesc)
@@ -161,7 +161,7 @@ local function register_es(name, onEvents={}, compsDesc={}, params = {}) {
   }
 }
 
-let function makeTemplate(params={}){
+function makeTemplate(params={}){
   let addTemplates = params?.addTemplates ?? []
   let removeTemplates = [].extend(params?.removeTemplates ?? [], addTemplates)
   let baseTemplates = params?.baseTemplate.split("+") ?? []
@@ -235,7 +235,7 @@ let recreateEntityWithTemplates = kwarg(function(eid=ecs.INVALID_ENTITY_ID, remo
     ecs.g_entity_mgr.reCreateEntityFrom(eid, newTemplatesName, comps, callback)
 })
 
-let function query_map(query, func, filter_str = null){
+function query_map(query, func, filter_str = null){
   assert(query instanceof ecs.SqQuery, "need SqQuery instance as first argument")
   assert(filter_str == null  || type(filter_str) == "string", "filter string should be string or null")
   let res = []
@@ -246,7 +246,7 @@ let function query_map(query, func, filter_str = null){
   return res
 }
 
-let function list2array(list){
+function list2array(list){
   let res = []
   foreach (v in list){
     res.append(v)
@@ -254,14 +254,14 @@ let function list2array(list){
   return res
 }
 
-let function set_array2list(array_, list){
+function set_array2list(array_, list){
   list.clear()
   foreach (v in array_)
     list.append(v)
   return list
 }
 
-let function register_event(name, eventType, structure=null){
+function register_event(name, eventType, structure=null){
 
   assert(ecs.EVCAST_UNICAST == eventType || ecs.EVCAST_BROADCAST == eventType,
             "eventType should be ecs.EVCAST_UNICAST or ecs.EVCAST_BROADCAST")
@@ -270,7 +270,7 @@ let function register_event(name, eventType, structure=null){
   assert(!(name in sqEvents), @() $"event: '{name}' already registered!")
   sqEvents[name] <- name
   let eventRegisteredName = ecs.register_sq_event(name, eventType)
-  let function mkEvent(payload=null){
+  function mkEvent(payload=null){
 //  todo - add type checking
     if (structure == null) {
       assert (payload == null)
@@ -292,7 +292,7 @@ let mkRegisterEventByType = @(eventType) function(payload, eventName){
 }
 let _registerUnicastEvent = mkRegisterEventByType(ecs.EVCAST_UNICAST)
 unicastSqEvents.clear()
-let function registerUnicastEvent(payload, eventName){
+function registerUnicastEvent(payload, eventName){
   unicastSqEvents[eventName] <- payload
   return _registerUnicastEvent(payload, eventName)
 }

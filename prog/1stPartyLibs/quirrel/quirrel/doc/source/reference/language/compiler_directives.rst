@@ -156,6 +156,39 @@ Allow using 'delete' operator (let a = delete {foo = 2}["foo"] //2)
 Forbid using 'delete' operator use .$rawdelete instead (let a = {foo=2}.$rawdelete("foo") //2)
 'delete' is not a keyword in this case and you call variables with it for example.
 
+
+----------------------------------------------
+`extends` keyword
+----------------------------------------------
+
+  ::
+
+    #allow-extends-keyword
+
+Allow using 'extends' keyword (``class A extends B {}``) (deprecated)
+
+  ::
+
+    #forbid-extends-keyword
+
+Forbid using 'extends' keyword use ``()`` syntax instead (``class A(B) {}``)
+
+----------------------------------------------
+`switch` statement
+----------------------------------------------
+
+  ::
+
+    #allow-switch-statement
+
+Allow 'switch' statement in syntax (deprecated)
+
+  ::
+
+    #forbid-switch-statement
+
+Exclude ``switch`` statement and ``switch`` / ``case`` / ``default`` keywords from syntax
+
 ------------------
 #strict
 ------------------

@@ -28,7 +28,12 @@
 #include <stdio.h>
 
 #include <3d/ddsFormat.h>
+#if _TARGET_PC_WIN
 #include <direct.h>
+#elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <unistd.h>
+#include <ctype.h>
+#endif
 
 
 //==============================================================================

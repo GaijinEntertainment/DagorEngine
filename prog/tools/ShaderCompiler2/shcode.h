@@ -15,6 +15,7 @@
 #include "varMap.h"
 #include "namedConst.h"
 #include <shaders/dag_shaderCommon.h>
+#include "shVarVecTypes.h"
 
 #define codemem midmem
 
@@ -116,18 +117,12 @@ public:
 
   union StVarValue
   {
-    struct
-    {
-      Color4 c4;
-    };
-    struct
-    {
-      IPoint4 i4;
-    };
+    shc::Col4 c4;
+    shc::Int4 i4;
     real r;
     int i;
-    TEXTUREID texId;
-    StVarValue() {}
+    unsigned texId;
+    StVarValue() : i4{0, 0, 0, 0} {}
   };
 
   class Var

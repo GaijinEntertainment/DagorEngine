@@ -7,8 +7,9 @@
 #include <wchar.h>
 #include <string.h>
 #include <debug/dag_debug.h>
+#include <osApiWrappers/dag_shellExecute.h>
 
-void os_shell_execute(const char *op, const char *file, const char *params, const char *dir, bool force_sync)
+void os_shell_execute(const char *op, const char *file, const char *params, const char *dir, bool force_sync, OpenConsoleMode)
 {
   if (!op || strcmp(op, "open") == 0)
     [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:[NSString stringWithUTF8String:file]]];
@@ -25,7 +26,7 @@ void os_shell_execute(const char *op, const char *file, const char *params, cons
     logerr("unsupported: shell_execute(%s, %s, %s, %s)", op, file, params, dir);
 }
 void os_shell_execute_w(const wchar_t *op, const wchar_t *file, const wchar_t *params, const wchar_t *dir,
-  bool force_sync)
+  bool force_sync, OpenConsoleMode)
 {
   if (!op || wcscmp(op, L"open") == 0)
     [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:[[NSString alloc]
@@ -45,3 +46,6 @@ void os_shell_execute_w(const wchar_t *op, const wchar_t *file, const wchar_t *p
   else
     logerr("unsupported: shell_execute_w()");
 }
+
+#define EXPORT_PULL dll_pull_osapiwrappers_shellExecute
+#include <supp/exportPull.h>

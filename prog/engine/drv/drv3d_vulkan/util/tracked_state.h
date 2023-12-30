@@ -2,6 +2,7 @@
 #include <EASTL/bitset.h>
 #include "type_lists.h"
 #include <debug/dag_debug.h>
+#include <math/dag_lsbVisitor.h>
 
 #define VULKAN_TRACKED_STATE_FIELD_CB_NON_CONST_DEFENITIONS() \
   template <typename Storage, typename Context>               \
@@ -89,16 +90,18 @@ struct TrackedStateIndexedDataRORef
   const Field &val;
 };
 
-template <typename T, uint32_t N, bool AllowDiff, bool BranchOnDiff>
+template <typename T, uint32_t N, bool AllowDiff, bool BranchOnDiff, typename MaskType = uint32_t>
 struct TrackedStateFieldArray
 {
+  typedef eastl::bitset<N, MaskType> DirtyMaskBitset;
   TrackedStateFieldArray() = default;
   static constexpr bool allow_diff() { return AllowDiff; }
   static constexpr bool branch_on_diff() { return BranchOnDiff; }
   static constexpr bool is_nested_field() { return true; }
 
   T data[N];
-  eastl::bitset<N> df;
+  DirtyMaskBitset df;
+  static_assert(DirtyMaskBitset::kWordCount == 1, "amount of elements must fit in single word of dirty mask bitset");
 
   template <typename Storage>
   void reset(Storage &storage)
@@ -130,9 +133,8 @@ struct TrackedStateFieldArray
     if (!df.any())
       return;
 
-    for (uint32_t i = 0; i < N; ++i)
-      if (df.test(i))
-        data[i].applyTo(i, storage, target);
+    for (uint32_t i : LsbVisitor{df.DoGetWord(0)})
+      data[i].applyTo(i, storage, target);
     df.reset();
   }
 
@@ -149,9 +151,8 @@ struct TrackedStateFieldArray
     if (!df.any())
       return;
 
-    for (uint32_t i = 0; i < N; ++i)
-      if (df.test(i))
-        data[i].transit(i, storage, target);
+    for (uint32_t i : LsbVisitor{df.DoGetWord(0)})
+      data[i].transit(i, storage, target);
     df.reset();
   }
 
@@ -223,6 +224,7 @@ struct TrackedStateFieldGenericPOD
   void set(const PodType &value) { data = value; }
   bool diff(const PodType &value) const { return data != value; }
   PodType &getValue() { return data; }
+  const PodType &getValueRO() const { return data; }
 };
 
 template <typename HandleType>
@@ -266,6 +268,7 @@ class TrackedState
   typedef TrackedState<StateStorage, FieldTypes...> ThisType;
   typedef eastl::bitset<sizeof...(FieldTypes)> DiffBits;
   typedef TypePack<FieldTypes...> FieldTypesPack;
+  static_assert(DiffBits::kWordCount == 1, "amount of elements must fit in single word of dirty mask bitset");
 
   StateStorage data;
   DiffBits diff;
@@ -445,10 +448,8 @@ public:
   template <typename T>
   void transit(T &target)
   {
-    if (diff.any())
-      for (int i = 0; i != sizeof...(FieldTypes); ++i)
-        if (diff.test(i))
-          dispatch(i, target, [this](T &ctx, auto &data_ref) { data_ref.transit(this->data, ctx); });
+    for (int i : LsbVisitor{diff.DoGetWord(0)})
+      dispatch(i, target, [this](T &ctx, auto &data_ref) { data_ref.transit(this->data, ctx); });
     data.transit(target);
     diff.reset();
   }
@@ -461,10 +462,8 @@ public:
 
     DiffBits ldiff = diff | nestedFields;
 
-    if (ldiff.any())
-      for (int i = 0; i != sizeof...(FieldTypes); ++i)
-        if (ldiff.test(i))
-          dispatch(i, target, [this](T &ctx, auto &data_ref) { data_ref.applyTo(this->data, ctx); });
+    for (int i : LsbVisitor{ldiff.DoGetWord(0)})
+      dispatch(i, target, [this](T &ctx, auto &data_ref) { data_ref.applyTo(this->data, ctx); });
     data.applyTo(target);
     diff.reset();
   }

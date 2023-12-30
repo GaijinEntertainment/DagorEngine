@@ -12,7 +12,7 @@ bool DeBrush::calcCenterFromIface(IGenViewportWnd *wnd)
   const bool prevUseVisible = DagorPhys::use_only_visible_colliders;
   DagorPhys::use_only_visible_colliders = true;
 
-  const bool ret = __super::calcCenter(wnd);
+  const bool ret = Brush::calcCenter(wnd);
 
   DagorPhys::use_only_visible_colliders = prevUseVisible;
 
@@ -28,7 +28,7 @@ bool DeBrush::traceDownFromIface(const Point3 &pos, Point3 &clip_pos, IGenViewpo
   const bool prevUseVisible = DagorPhys::use_only_visible_colliders;
   DagorPhys::use_only_visible_colliders = true;
 
-  const bool ret = __super::traceDown(pos, clip_pos, wnd);
+  const bool ret = Brush::traceDown(pos, clip_pos, wnd);
 
   DagorPhys::use_only_visible_colliders = prevUseVisible;
 

@@ -100,7 +100,7 @@ public:
   {
     if (api.disableGpuCrashDumps)
     {
-      debug("DX12: Shutting down NVIDIA Aftermath API");
+      logdbg("DX12: Shutting down NVIDIA Aftermath API");
       api.disableGpuCrashDumps();
     }
   }
@@ -141,22 +141,22 @@ public:
   {
     if (!config.enableAftermath)
     {
-      debug("DX12: NVIDIA Aftermath is disabled by configuration...");
+      logdbg("DX12: NVIDIA Aftermath is disabled by configuration...");
       return false;
     }
-    debug("DX12: Loading NVIDIA Aftermath library...");
+    logdbg("DX12: Loading NVIDIA Aftermath library...");
     auto lib = try_load_library();
     if (!lib)
     {
-      debug("DX12: ...failed");
+      logdbg("DX12: ...failed");
       return false;
     }
 
-    debug("DX12: ...loading NVIDIA Aftermath API...");
+    logdbg("DX12: ...loading NVIDIA Aftermath API...");
     auto api = try_load_api(lib.get());
     if (!api)
     {
-      debug("DX12: ...failed");
+      logdbg("DX12: ...failed");
       return false;
     }
 
@@ -170,7 +170,7 @@ public:
     {
       return false;
     }
-    debug("DX12: ...using NVIDIA Aftermath API for GPU postmortem trace");
+    logdbg("DX12: ...using NVIDIA Aftermath API for GPU postmortem trace");
     return true;
   }
 };

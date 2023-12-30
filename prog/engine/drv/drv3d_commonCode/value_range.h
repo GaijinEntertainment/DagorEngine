@@ -1,4 +1,5 @@
 #pragma once
+#include <EASTL/type_traits.h>
 // duplicated in vulkan backend
 
 template <typename T>
@@ -43,10 +44,6 @@ struct ValueRange
   ValueRange &operator=(const ValueRange &) = default;
 
   constexpr ValueRange(T s, T e) : start(s), stop(e) {} // -V730
-  // allow base type conversion
-  template <typename U>
-  constexpr ValueRange(const ValueRange<U> &o) : start(T(o.start)), stop(T(o.stop))
-  {}
 
   void clear() { start = stop = {}; }
 

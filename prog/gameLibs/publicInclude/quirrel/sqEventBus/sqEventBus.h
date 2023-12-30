@@ -22,6 +22,8 @@ class SqModules;
 namespace sqeventbus
 {
 
+using NativeEventHandler = void (*)(const char *event_name, const Json::Value &data, const char *source_id, bool immediate);
+
 enum class ProcessingMode
 {
   IMMEDIATE,
@@ -37,5 +39,7 @@ void send_immediate_event(const char *event_name, const Json::Value &data, const
 bool has_listeners(const char *event_name, const char *source_id = "native");
 void process_events(HSQUIRRELVM vm);
 HSQUIRRELVM get_vm();
+
+void set_native_event_handler(NativeEventHandler handler);
 
 } // namespace sqeventbus

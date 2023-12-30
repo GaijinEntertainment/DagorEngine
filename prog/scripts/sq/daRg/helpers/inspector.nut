@@ -22,7 +22,7 @@ let curData        = Computed(@() pickedList.value?[viewIdx.value])
 let fontSize = sh(1.5)
 let valColor = Color(155,255,50)
 
-let function inspectorToggle() {
+function inspectorToggle() {
   shown(!shown.value)
   pickerActive(false)
   pickedList([])
@@ -30,7 +30,7 @@ let function inspectorToggle() {
   highlight(null)
 }
 
-let function textButton(text, action, isEnabled = true) {
+function textButton(text, action, isEnabled = true) {
   let stateFlags = Watched(0)
 
   let override = isEnabled
@@ -64,7 +64,7 @@ let function textButton(text, action, isEnabled = true) {
   }
 }
 
-let function mkDirBtn(text, dir) {
+function mkDirBtn(text, dir) {
   let isVisible = Computed(@() pickedList.value.len() > 1)
   let isEnabled = Computed(@() (viewIdx.value + dir) in pickedList.value)
   return @() {
@@ -82,7 +82,7 @@ let closeBtn = textButton("Close", inspectorToggle)
 
 let invAlign = @(align) align == ALIGN_LEFT ? ALIGN_RIGHT : ALIGN_LEFT
 
-let function panelToolbar() {
+function panelToolbar() {
   let alignBtn = textButton(wndHalign.value == ALIGN_RIGHT ? "<|" : "|>",
     @() wndHalign(invAlign(wndHalign.value)))
   return {
@@ -127,7 +127,7 @@ let mkImageCtor = @(image) @(content) {
 
 let IMAGE_KEYS = ["image", "fallbackImage"]
 
-let function getPropValueTexts(desc, key, textLimit = 0) {
+function getPropValueTexts(desc, key, textLimit = 0) {
   let val = desc[key]
   let tp = type(val)
 
@@ -165,7 +165,7 @@ let textColor = @(sf) sf & S_ACTIVE ? 0xFFFFFF00
   : sf & S_HOVER ? 0xFF80A0FF
   : 0xFFFFFFFF
 
-let function mkPropContent(desc, key, sf) {
+function mkPropContent(desc, key, sf) {
   let { text, valCtor } = getPropValueTexts(desc, key, 200)
   local keyValue = $"{key.tostring()} = <color={valColor}>{text}</color>"
   if (type(valCtor) == "string")
@@ -184,7 +184,7 @@ let function mkPropContent(desc, key, sf) {
   return content
 }
 
-let function propPanel(desc) {
+function propPanel(desc) {
   local pKeys = []
   if (type(desc) == "class")
     foreach (key, _ in desc)
@@ -206,7 +206,7 @@ let function propPanel(desc) {
   })
 }
 
-let function elemLocationText(elem, builder, builder_func_name) {
+function elemLocationText(elem, builder, builder_func_name) {
   local text = "Source: unknown"
 
   let location = locate_element_source(elem)
@@ -215,7 +215,7 @@ let function elemLocationText(elem, builder, builder_func_name) {
   return builder ? $"{text}\n(Function)\n{builder_func_name}" : $"{text}\n(Table)"
 }
 
-let function updatePickedList(data) {
+function updatePickedList(data) {
   pickedList((data ?? [])
     .map(@(d) d.__merge({
       locationText = elemLocationText(d.elem, d.builder, d.builderFuncName)
@@ -228,7 +228,7 @@ let function updatePickedList(data) {
 let prepareCallstackText = @(text) //add /t for line wraps
   text.replace("/", "/\t")
 
-let function clickableText(labelText, valueText, onClick = null, highlightBB = null) {
+function clickableText(labelText, valueText, onClick = null, highlightBB = null) {
   let elemSF = Watched(0)
   return @() {
     watch = elemSF
@@ -247,7 +247,7 @@ let function clickableText(labelText, valueText, onClick = null, highlightBB = n
   }
 }
 
-let function rootsPanel(roots) {
+function rootsPanel(roots) {
   let rootsList = []
   foreach (root in roots) {
     let rootInfo = [get_element_info(root.elem)]
@@ -264,7 +264,7 @@ let function rootsPanel(roots) {
   }
 }
 
-let function childrenPanel(children) {
+function childrenPanel(children) {
   let childrenList = []
   foreach (child in children) {
     let childInfo = [get_element_info(child.elem)]
@@ -284,7 +284,7 @@ let function childrenPanel(children) {
   }
 }
 
-let function details() {
+function details() {
   let res = {
     watch = curData
     size = flex()
@@ -356,7 +356,7 @@ let inspectorPanel = @() {
 }
 
 
-let function highlightRect() {
+function highlightRect() {
   let res = { watch = highlight }
   let hv = highlight.value
   if (hv == null)
@@ -375,7 +375,7 @@ let function highlightRect() {
   })
 }
 
-let function animHighlightRect() {
+function animHighlightRect() {
   let res = {
     watch = animHighlight
     animations = [{
@@ -407,7 +407,7 @@ let elementPicker = @() {
 }
 
 
-let function inspectorRoot() {
+function inspectorRoot() {
   let res = {
     watch = [pickerActive, shown]
     size = [sw(100), sh(100)]

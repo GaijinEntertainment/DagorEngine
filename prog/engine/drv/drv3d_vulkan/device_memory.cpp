@@ -105,7 +105,7 @@ const char *memory_class_name(DeviceMemoryClass cls)
 #endif
     case DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER: return "device resident host write only buffer";
     case DeviceMemoryClass::TRANSIENT_IMAGE: return "transient image";
-    case DeviceMemoryClass::INVALID: fatal("passed DeviceMemoryClass::INVALID"); return "";
+    case DeviceMemoryClass::INVALID: DAG_FATAL("passed DeviceMemoryClass::INVALID"); return "";
   }
   return 0;
 }

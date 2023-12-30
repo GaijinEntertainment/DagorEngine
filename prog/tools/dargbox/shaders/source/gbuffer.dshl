@@ -1,6 +1,6 @@
 macro WRITE_GBUFFER()
 hlsl(ps) {
-  struct GBUFFER_OUTPUT { half4 dummy : SV_Target0; };
+  struct GBUFFER_OUTPUT { float4 dummy : SV_Target0; };
 }
 endmacro
 
@@ -19,5 +19,12 @@ hlsl(ps) {
 
   GBUFFER_OUTPUT encode_gbuffer(UnpackedGbuffer gbuf, float3 pointToEye) { return (GBUFFER_OUTPUT)0; }
   #define encode_gbuffer3(a,b,c) encode_gbuffer(a, b)  // For compatibility of shared shaders with WT which has 3 parameters.
+}
+endmacro
+
+macro USE_NO_LIGHTING_EMISSIVE_SHADING(code)
+hlsl(code) {
+  void init_no_lighting_emissive_shading(inout UnpackedGbuffer gbuffer, float3 albedo, float emission_strength) {}
+  void init_no_lighting_emissive_shading(inout UnpackedGbuffer gbuffer, float3 albedo) {}
 }
 endmacro

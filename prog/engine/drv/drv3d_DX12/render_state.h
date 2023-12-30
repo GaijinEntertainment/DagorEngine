@@ -152,6 +152,59 @@ public:
       return result;
     }
 
+    eastl::string toStringForPipelineName() const
+    {
+      eastl::string result;
+
+      // the string is every long
+      result.reserve(0x4000);
+
+      result = "[";
+
+      result.append_sprintf("enableDepthTest=%u,", enableDepthTest);
+      result.append_sprintf("enableDepthWrite=%u,", enableDepthWrite);
+      result.append_sprintf("enableDepthClip=%u,", enableDepthClip);
+      result.append_sprintf("enableDepthBounds=%u,", enableDepthBounds);
+      result.append_sprintf("enableStencil=%u,", enableStencil);
+      result.append_sprintf("enableIndependentBlend=%u,", enableIndependentBlend);
+      result.append_sprintf("enableAlphaToCoverage=%u,", enableAlphaToCoverage);
+
+      result.append_sprintf("depthFunc=%u,", depthFunc);
+      result.append_sprintf("stencilReadMask=%u,", stencilReadMask);
+      result.append_sprintf("stencilWriteMask=%u,", stencilWriteMask);
+      result.append_sprintf("stencilFunction=%u,", stencilFunction);
+      result.append_sprintf("stencilOnFail=%u,", stencilOnFail);
+      result.append_sprintf("stencilOnDepthFail=%u,", stencilOnDepthFail);
+      result.append_sprintf("stencilOnPass=%u,", stencilOnPass);
+      result.append_sprintf("forcedSampleCountShift=%u,", forcedSampleCountShift);
+      result.append_sprintf("enableConservativeRaster=%u,", enableConservativeRaster);
+
+      result.append_sprintf("viewInstanceCount=%u,", viewInstanceCount);
+      result.append_sprintf("cullMode=%u,", cullMode);
+      result.append_sprintf("colorWriteMask=%08x,", colorWriteMask);
+      result.append_sprintf("depthBias=%08x,", *reinterpret_cast<const uint32_t *>(&depthBias));
+      result.append_sprintf("depthBiasSloped=%08x,", *reinterpret_cast<const uint32_t *>(&depthBiasSloped));
+
+      result += "blendParams";
+      for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
+      {
+        auto &param = blendParams[i];
+        result.append_sprintf("[%d][", i);
+        result.append_sprintf("enableBlending=%u,", param.enableBlending);
+        result.append_sprintf("blendFactors.Source=%u,", param.blendFactors.Source);
+        result.append_sprintf("blendFactors.Destination=%u,", param.blendFactors.Destination);
+        result.append_sprintf("blendAlphaFactors.Source=%u,", param.blendAlphaFactors.Source);
+        result.append_sprintf("blendAlphaFactors.Destination=%u,", param.blendAlphaFactors.Destination);
+        result.append_sprintf("blendFunction=%u,", param.blendFunction);
+        result.append_sprintf("blendAlphaFunction=%u", param.blendAlphaFunction);
+        result += "]";
+      }
+
+      result += "]";
+
+      return result;
+    }
+
     friend bool operator==(const StaticState &l, const StaticState &r)
     {
       const auto blendBytesToCompare = l.enableIndependentBlend ? sizeof(blendParams) : sizeof(BlendParams);
@@ -161,6 +214,54 @@ public:
              l.depthBiasSloped == r.depthBiasSloped;
     }
     friend bool operator!=(const StaticState &l, const StaticState &r) { return !(l == r); }
+
+    inline uint32_t distance(const StaticState &other) const
+    {
+      uint32_t d = 0;
+#define CMP(name)         \
+  if (name != other.name) \
+  {                       \
+    ++d;                  \
+  }
+      CMP(enableDepthTest);
+      CMP(enableDepthWrite);
+      CMP(enableDepthClip);
+      CMP(enableDepthBounds);
+      CMP(enableStencil);
+      CMP(enableIndependentBlend);
+      CMP(enableAlphaToCoverage);
+
+      CMP(depthFunc);
+      CMP(forcedSampleCountShift);
+      CMP(enableConservativeRaster);
+      CMP(viewInstanceCount);
+      CMP(cullMode);
+
+      CMP(stencilReadMask);
+      CMP(stencilWriteMask);
+      CMP(stencilFunction);
+      CMP(stencilOnFail);
+      CMP(stencilOnDepthFail);
+      CMP(stencilOnPass);
+
+      CMP(colorWriteMask);
+
+      CMP(depthBias);
+      CMP(depthBiasSloped);
+
+      for (uint32_t i = 0; i < countof(blendParams); ++i)
+      {
+        CMP(blendParams[i].blendFactors.Source);
+        CMP(blendParams[i].blendFactors.Destination);
+        CMP(blendParams[i].blendAlphaFactors.Source);
+        CMP(blendParams[i].blendAlphaFactors.Destination);
+        CMP(blendParams[i].blendFunction);
+        CMP(blendParams[i].blendAlphaFunction);
+        CMP(blendParams[i].enableBlending);
+      }
+#undef CMP
+      return d;
+    }
     static StaticState fromRenderState(const shaders::RenderState &def)
     {
       StaticState result = {};
@@ -281,15 +382,6 @@ public:
 
       result.colorWriteMask = def.colorWr;
 
-      return result;
-    }
-
-    shaders::RenderState toRenderState(const DynamicState &dynamic_state) const
-    {
-      shaders::RenderState result;
-      // TODO
-      result.stencilRef = dynamic_state.stencilRef;
-      result.scissorEnabled = dynamic_state.enableScissor ? 1 : 0;
       return result;
     }
 

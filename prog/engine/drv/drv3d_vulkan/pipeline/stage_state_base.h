@@ -7,60 +7,65 @@
 #include "image_resource.h"
 #include "state_field_resource_binds.h"
 #include "util/backtrace.h"
+#include <math/dag_lsbVisitor.h>
+#include "descriptor_table.h"
 
 namespace drv3d_vulkan
 {
 
+struct ReducedSRegister
+{
+  const SamplerInfo *si;
+  void clear() { si = nullptr; }
+};
+
 struct PipelineStageStateBase
 {
-  BufferRef bRegisters[spirv::B_REGISTER_INDEX_MAX] = {};
-  TRegister tRegisters[spirv::T_REGISTER_INDEX_MAX] = {};
-  URegister uRegisters[spirv::U_REGISTER_INDEX_MAX] = {};
-  uint32_t bRegisterValidMask = 0;
-  uint32_t tRegisterValidMask = 0;
-  uint32_t uRegisterValidMask = 0;
+  template <typename Element, size_t Count>
+  struct TrackedBindArray
+  {
+    Element regs[Count] = {};
+    static_assert(Count <= 32);
+    static constexpr uint32_t FULL_MASK = (uint32_t)((1ull << Count) - 1);
+    uint32_t dirtyMask = FULL_MASK;
+    uint32_t emptyMask = FULL_MASK;
+
+    void markDirty() { dirtyMask = FULL_MASK; }
+    uint32_t validMask() { return FULL_MASK & ~emptyMask; }
+    uint32_t validDirtyMask() { return dirtyMask & ~emptyMask; }
+    void resetDirtyBits(uint32_t bits) { dirtyMask &= ~bits; }
+
+    void clear(uint32_t unit)
+    {
+      dirtyMask |= (1 << unit);
+      emptyMask |= (1 << unit);
+      regs[unit].clear();
+    }
+
+    Element &set(uint32_t unit)
+    {
+      dirtyMask |= (1 << unit);
+      emptyMask &= ~(1 << unit);
+      return regs[unit];
+    }
+
+    Element &operator[](uint32_t unit) { return regs[unit]; }
+  };
+
+  TrackedBindArray<BufferRef, spirv::B_REGISTER_INDEX_MAX> bBinds;
+  TrackedBindArray<TRegister, spirv::T_REGISTER_INDEX_MAX> tBinds;
+  TrackedBindArray<URegister, spirv::U_REGISTER_INDEX_MAX> uBinds;
+  TrackedBindArray<ReducedSRegister, spirv::S_REGISTER_INDEX_MAX> sBinds;
   eastl::bitset<spirv::T_REGISTER_INDEX_MAX> isConstDepthStencil;
-  VulkanBufferHandle constRegisterLastBuffer;
-  uint32_t constRegisterLastBufferOffset = 0;
-  uint32_t constRegisterLastBufferRange = 0;
+  uint32_t bOffsetDirtyMask = 0;
+
+  // empty b0 bind is replaced with global const buffer;
+  static constexpr uint32_t GCBSlot = 0; // will not work properly if we want non 0 slot!
+  bool bGCBActive = true;
+
+  DescriptorTable dtab;
+
   VulkanDescriptorSetHandle lastDescriptorSet;
-
-  VkAnyDescriptorInfo registerTable[spirv::TOTAL_REGISTER_COUNT] = {};
-
-  static constexpr VkDescriptorImageInfo emptyImageDescriptorInfo()
-  {
-    return {VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-  }
-
-  inline VkAnyDescriptorInfo &getConstBufferRegister(uint32_t index) { return registerTable[index + spirv::B_CONST_BUFFER_OFFSET]; }
-  inline VkAnyDescriptorInfo &getSampledImageRegister(uint32_t index) { return registerTable[index + spirv::T_SAMPLED_IMAGE_OFFSET]; }
-  inline VkAnyDescriptorInfo &getInputAttachmentRegister(uint32_t index)
-  {
-    return registerTable[index + spirv::T_INPUT_ATTACHMENT_OFFSET];
-  }
-  inline VkAnyDescriptorInfo &getSampledImageWithCompareRegister(uint32_t index)
-  {
-    return registerTable[index + spirv::T_SAMPLED_IMAGE_WITH_COMPARE_OFFSET];
-  }
-  inline VkAnyDescriptorInfo &getBufferAsSampledImageRegister(uint32_t index)
-  {
-    return registerTable[index + spirv::T_BUFFER_SAMPLED_IMAGE_OFFSET];
-  }
-  inline VkAnyDescriptorInfo &getReadOnlyBufferRegister(uint32_t index) { return registerTable[index + spirv::T_BUFFER_OFFSET]; }
-  inline VkAnyDescriptorInfo &getStorageImageRegister(uint32_t index) { return registerTable[index + spirv::U_IMAGE_OFFSET]; }
-  inline VkAnyDescriptorInfo &getStorageBufferAsImageRegister(uint32_t index)
-  {
-    return registerTable[index + spirv::U_BUFFER_IMAGE_OFFSET];
-  }
-  inline VkAnyDescriptorInfo &getStorageBufferRegister(uint32_t index) { return registerTable[index + spirv::U_BUFFER_OFFSET]; }
-  inline VkAnyDescriptorInfo &getStorageBufferWithCounterRegister(uint32_t index)
-  {
-    return registerTable[index + spirv::U_BUFFER_WITH_COUNTER_OFFSET];
-  }
-  inline VkAnyDescriptorInfo &getRaytraceAccelerationStructureRegister(uint32_t index)
-  {
-    return registerTable[index + spirv::T_ACCELERATION_STRUCTURE_OFFSET];
-  }
 
   PipelineStageStateBase();
 
@@ -69,8 +74,7 @@ struct PipelineStageStateBase
   void setUbuffer(uint32_t unit, BufferRef buffer);
 
   void setTempty(uint32_t unit);
-  void setTtexture(uint32_t unit, Image *image, ImageViewState view_state, SamplerInfo *sampler, bool as_const_ds,
-    VulkanImageViewHandle view);
+  void setTtexture(uint32_t unit, Image *image, ImageViewState view_state, bool as_const_ds, VulkanImageViewHandle view);
   void setTinputAttachment(uint32_t unit, Image *image, bool as_const_ds, VulkanImageViewHandle view);
   void setTbuffer(uint32_t unit, BufferRef buffer);
 #if D3D_HAS_RAY_TRACING
@@ -80,9 +84,12 @@ struct PipelineStageStateBase
   void setBempty(uint32_t unit);
   void setBbuffer(uint32_t unit, BufferRef buffer);
 
+  void setSempty(uint32_t unit);
+  void setSSampler(uint32_t unit, const SamplerInfo *sampler);
+  void applySamplers(uint32_t unit);
+
   // set RO DS if matches and drop RO DS if not
   void syncDepthROStateInT(Image *image, uint32_t mip, uint32_t face, bool ro_ds);
-  void validateBinds(const spirv::ShaderHeader &hdr, bool t_diff, bool u_diff, bool b_diff);
   // extensive checks only in dev builds
   // hard conflict = sure buggy binding recived from caller
   // dead resource = resource that was removed but still bound somehow
@@ -91,64 +98,98 @@ struct PipelineStageStateBase
   // TODO: promote this method do dev only! (need to invest time and cleanup many places)
   void checkForMissingBinds(const spirv::ShaderHeader &hdr, const ResourceDummySet &dummy_resource_table, ExecutionContext &ctx,
     ShaderStage stage);
-#if DAGOR_DBGLEVEL > 0
-  void checkForHardConflicts(const spirv::ShaderHeader &hdr);
-  void checkForDeadResources(const spirv::ShaderHeader &hdr, bool t_diff, bool u_diff, bool b_diff);
+
+#if VULKAN_TRACK_DEAD_RESOURCE_USAGE > 0
+  void checkForDeadResources(const spirv::ShaderHeader &hdr);
 #else
-  void checkForHardConflicts(const spirv::ShaderHeader &){};
-  void checkForDeadResources(const spirv::ShaderHeader &, bool, bool, bool){};
+  void checkForDeadResources(const spirv::ShaderHeader &){};
 #endif
+
+  void clearDirty(const spirv::ShaderHeader &hdr)
+  {
+    tBinds.resetDirtyBits(hdr.tRegisterUseMask);
+    sBinds.resetDirtyBits(hdr.tRegisterUseMask);
+    uBinds.resetDirtyBits(hdr.uRegisterUseMask);
+    bBinds.resetDirtyBits(hdr.bRegisterUseMask);
+    bOffsetDirtyMask &= ~hdr.bRegisterUseMask;
+  }
+
+  VkImageLayout getImgLayout(bool as_const_ds)
+  {
+    return as_const_ds ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  }
 
   void invalidateState();
   template <typename T>
-  void apply(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, uint32_t frame_index, DescriptorSet &registers,
+  void apply(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
     ExecutionContext &ctx, ShaderStage target_stage, T bind);
+
+  template <typename T>
+  void applyNoDiff(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
+    ExecutionContext &ctx, ShaderStage target_stage, T bind);
+
+
+  template <typename T>
+  void bindDescriptor(const spirv::ShaderHeader &hdr, VulkanDescriptorSetHandle ds_handle, T cb)
+  {
+    uint32_t dynamicOffsets[spirv::B_REGISTER_INDEX_MAX];
+    uint32_t dynamicOffsetCount = 0;
+    for (uint32_t i : LsbVisitor{hdr.bRegisterUseMask})
+      dynamicOffsets[dynamicOffsetCount++] = bBinds[i].buffer ? bBinds[i].bufOffset(0) : 0;
+    cb(ds_handle, dynamicOffsets, dynamicOffsetCount);
+  }
 };
 
 // this needs to be here, or it will fail to compile because of incomplete types
 template <typename T>
-void PipelineStageStateBase::apply(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, uint32_t frame_index,
+void PipelineStageStateBase::apply(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index,
   DescriptorSet &registers, ExecutionContext &ctx, ShaderStage target_stage, T bind)
 {
   const auto &header = registers.header;
 
-  bool tDiff = (tRegisterValidMask & header.tRegisterUseMask) != header.tRegisterUseMask;
-  bool uDiff = (uRegisterValidMask & header.uRegisterUseMask) != header.uRegisterUseMask;
-  bool bDiff = (bRegisterValidMask & header.bRegisterUseMask) != header.bRegisterUseMask;
-  if (tDiff || uDiff || bDiff || is_null(lastDescriptorSet))
+  // frequency sorted jump outs
+  for (;;)
   {
-    validateBinds(header, tDiff, uDiff, bDiff);
-
-    tRegisterValidMask = header.tRegisterUseMask;
-    uRegisterValidMask = header.uRegisterUseMask;
-    bRegisterValidMask = header.bRegisterUseMask;
-
-    // empty b0 bind is replaced with global const buffer;
-    // GCB == global const buffer
-    const uint32_t GCBSlot = 0; // will not work properly if we want non 0 slot!
-    bool useGCB = (header.bRegisterUseMask & (1 << GCBSlot)) && (bRegisters[GCBSlot].buffer == nullptr);
-    uint32_t GCBshift = useGCB ? GCBSlot + 1 : GCBSlot;
-    uint32_t dynamicOffsets[spirv::B_REGISTER_INDEX_MAX];
-    uint32_t dynamicOffsetCount = GCBshift;
-
-    if (useGCB)
+    if (bBinds.dirtyMask & header.bRegisterUseMask)
+      break;
+    if (is_null(lastDescriptorSet))
+      break;
+    if (tBinds.dirtyMask & header.tRegisterUseMask)
+      break;
+    if (sBinds.dirtyMask & header.tRegisterUseMask)
+      break;
+    if (uBinds.dirtyMask & header.uRegisterUseMask)
+      break;
+    if (bOffsetDirtyMask & header.bRegisterUseMask)
     {
-      VkAnyDescriptorInfo &GCBReg = getConstBufferRegister(GCBSlot);
-      dynamicOffsets[GCBSlot] = constRegisterLastBufferOffset;
-      GCBReg.buffer.buffer = constRegisterLastBuffer;
-      GCBReg.buffer.range = constRegisterLastBufferRange;
-      GCBReg.type = VkAnyDescriptorInfo::TYPE_BUF;
+      bindDescriptor(header, lastDescriptorSet, bind);
+      bOffsetDirtyMask &= ~header.bRegisterUseMask;
     }
+    return;
+  }
+  checkForDeadResources(header);
 
-    for (uint32_t i = GCBshift; i < spirv::B_REGISTER_INDEX_MAX; ++i)
-      if (header.bRegisterUseMask & (1ul << i))
-        dynamicOffsets[dynamicOffsetCount++] = bRegisters[i] ? bRegisters[i].bufOffset(0) : 0;
-
+  if ((header.tRegisterUseMask & tBinds.emptyMask) || (header.uRegisterUseMask & uBinds.emptyMask) ||
+      (header.bRegisterUseMask & bBinds.emptyMask))
     checkForMissingBinds(header, dummy_resource_table, ctx, target_stage);
 
-    lastDescriptorSet = registers.getSet(device, frame_index, registerTable);
-    bind(lastDescriptorSet, dynamicOffsets, dynamicOffsetCount);
-  }
+  lastDescriptorSet = registers.getSet(device, frame_index, &dtab.arr[0]);
+  clearDirty(header);
+  bindDescriptor(header, lastDescriptorSet, bind);
+}
+
+template <typename T>
+void PipelineStageStateBase::applyNoDiff(VulkanDevice &device, const ResourceDummySet &dummy_resource_table, size_t frame_index,
+  DescriptorSet &registers, ExecutionContext &ctx, ShaderStage target_stage, T bind)
+{
+  const auto &header = registers.header;
+  checkForDeadResources(header);
+
+  if ((header.tRegisterUseMask & tBinds.emptyMask) || (header.uRegisterUseMask & uBinds.emptyMask) ||
+      (header.bRegisterUseMask & bBinds.emptyMask))
+    checkForMissingBinds(header, dummy_resource_table, ctx, target_stage);
+
+  bindDescriptor(header, registers.getSet(device, frame_index, &dtab.arr[0]), bind);
 }
 
 } // namespace drv3d_vulkan

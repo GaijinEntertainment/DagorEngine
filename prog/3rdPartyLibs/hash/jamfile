@@ -26,9 +26,7 @@ CPPopt += -DOPENSSL_SUPPRESS_DEPRECATED ;
 
 if $(UseSystemOpenSSL) != yes {
   AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
-  local sha_lib = 3rdPartyLibs/openssl-$(OpenSSLVer)/crypto ;
-  if $(OpenSSLVer) = 1.1 { sha_lib = $(sha_lib)/sha ; }
-  UseProgLibs += $(sha_lib) ;
+  UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer)/crypto/sha ;
 }
 
 # warning 6386| Buffer overrun: accessing 'argument 1', the writable size is '64' bytes, but '746' bytes might be written:

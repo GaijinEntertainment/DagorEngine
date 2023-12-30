@@ -9,20 +9,20 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
 
-void visuallog::logmsg(char const *, bool (*)(int, visuallog::LogItem *), void *, struct E3DCOLOR, int) { fatal("stub"); }
+void visuallog::logmsg(char const *, bool (*)(int, visuallog::LogItem *), void *, struct E3DCOLOR, int) { DAG_FATAL("stub"); }
 
 namespace wingw
 {
 String file_open_dlg(void *phandle, const char caption[], const char filter[], const char def_ext[], const char init_path[],
   const char init_fn[])
 {
-  fatal("stub");
+  DAG_FATAL("stub");
   return String();
 }
 
 int message_box(int flags, const char *caption, const char *text, const DagorSafeArg *arg, int anum)
 {
-  fatal("stub");
+  DAG_FATAL("stub");
   return 0;
 }
 } // namespace wingw

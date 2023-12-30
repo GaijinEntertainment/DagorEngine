@@ -188,7 +188,9 @@ enum
 enum RenderMode
 {
   WATER_SHADER = 0,
-  WATER_SSR_SHADER
+  WATER_DEPTH_SHADER,
+  WATER_SSR_SHADER,
+  MAX
 };
 FFTWater *create_water(RenderQuality quality, float period = 1000.f, int res_bits = 7, bool ssr_renderer = false,
   bool one_to_four_cascades = false, int min_render_res_bits = 6, RenderQuality geom_quality = (RenderQuality)-1);

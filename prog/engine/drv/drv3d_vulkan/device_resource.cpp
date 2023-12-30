@@ -22,31 +22,21 @@ bool Resource::tryAllocMemory(const AllocationDesc &dsc)
   memoryId = get_device().resources.allocMemory(dsc);
   resident = memoryId != -1 ? getMemory().isValid() : false;
   resident |= dsc.objectBaked && getBaseHandle();
+  if (!resident && memoryId != -1)
+  {
+    get_device().resources.freeMemory(memoryId);
+    memoryId = -1;
+  }
   return resident;
 }
 
 bool Resource::tryReuseHandle(const AllocationDesc &dsc)
 {
   sharedHandle = tryAllocMemory(dsc);
-  if (!sharedHandle && memoryId != -1)
-  {
-    get_device().resources.freeMemory(memoryId);
-    memoryId = -1;
-  }
   return sharedHandle;
 }
 
-bool Resource::restoreResidency()
-{
-  resident = get_device().resources.aliasAcquire(memoryId);
-  return resident;
-}
-
-void Resource::evictMemory()
-{
-  get_device().resources.aliasRelease(memoryId);
-  resident = false;
-}
+void Resource::markForEviction() { evicting = true; }
 
 void Resource::freeMemory()
 {
@@ -56,6 +46,8 @@ void Resource::freeMemory()
   G_ASSERT(memoryId != -1);
   get_device().resources.freeMemory(memoryId);
   memoryId = -1;
+  resident = false;
+  evicting = false;
 }
 
 bool Resource::isResident() { return resident || !managed; }
@@ -88,15 +80,29 @@ String Resource::printStatLog()
 {
   if (managed)
   {
-    const ResourceMemory &mem = getMemory();
-    String dimensionStr;
-    if (isImage())
+    if (resident)
     {
-      VkExtent3D extent = static_cast<Image *>(this)->getMipExtents(0);
-      dimensionStr = String(0, "%dx%d", extent.width, extent.height);
+      const ResourceMemory &mem = getMemory();
+      String dimensionStr;
+      if (isImage())
+      {
+        VkExtent3D extent = static_cast<Image *>(this)->getMipExtents(0);
+        dimensionStr = String(0, "%dx%d", extent.width, extent.height);
+      }
+      return String(256, "%016p | %016p | %9s | %04i | %02i | %02i | %06uK | {%08lX} | %9s | %6s | %s", this, handle, resTypeString(),
+        memoryId, (int)mem.memType, (int)mem.allocator, mem.size >> 10, mem.allocatorIndex, dimensionStr,
+        isUsedInRendering() ? "used" : "unused", getDebugName());
     }
-    return String(256, "%016p | %016p | %9s | %04i | %02i | %02i | %06uK | {%08lX} | %9s | %s", this, handle, resTypeString(),
-      memoryId, (int)mem.memType, (int)mem.allocator, mem.size >> 10, mem.allocatorIndex, dimensionStr, getDebugName());
+    else
+    {
+      String dimensionStr;
+      if (isImage())
+      {
+        VkExtent3D extent = static_cast<Image *>(this)->getMipExtents(0);
+        dimensionStr = String(0, "%dx%d", extent.width, extent.height);
+      }
+      return String(256, "%016p | %016p | %9s | <evicted> | %9s | %s", this, handle, resTypeString(), dimensionStr, getDebugName());
+    }
   }
   else
   {
@@ -108,5 +114,5 @@ void Resource::reportOutOfMemory()
 {
   // print full info dump so crash can be analyzed for good
   get_device().resources.printStats(true, true);
-  fatal("vulkan: Out of memory. Try lowering graphics settings and/or closing other memory consuming applications");
+  DAG_FATAL("vulkan: Out of memory. Try lowering graphics settings and/or closing other memory consuming applications");
 }

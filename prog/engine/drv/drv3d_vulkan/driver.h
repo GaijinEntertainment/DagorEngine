@@ -37,6 +37,7 @@ inline intptr_t GetCurrentThreadId() { return (intptr_t)pthread_self(); }
 #include "extension_utils.h"
 #include "shader_stage_traits.h"
 #include "drv_log_defs.h"
+#include "vk_wrapped_handles.h"
 
 #ifndef UINT64_MAX
 #define UINT64_MAX 0xFFFFFFFFFFFFFFFFull
@@ -75,125 +76,6 @@ WindowState &get_window_state();
 void on_front_flush();
 bool is_global_lock_acquired();
 } // namespace drv3d_vulkan
-
-// meta type, represents VK_NULL_HANDLE
-struct VulkanNullHandle
-{};
-// typedef to able casting handles to general type
-typedef uint64_t VulkanHandle;
-
-template <typename ValueType, typename TagType>
-struct VulkanWrappedHandle
-{
-  ValueType value;
-
-  inline operator ValueType() const { return value; }
-  inline VulkanWrappedHandle() : value(VK_NULL_HANDLE) {}
-  inline VulkanWrappedHandle(VulkanHandle v) : value((ValueType)v) {}
-  inline VulkanWrappedHandle &operator=(VulkanNullHandle)
-  {
-    value = VK_NULL_HANDLE;
-    return *this;
-  }
-  friend inline bool operator==(VulkanWrappedHandle l, VulkanWrappedHandle r) { return l.value == r.value; }
-  friend inline bool operator!=(VulkanWrappedHandle l, VulkanWrappedHandle r) { return l.value != r.value; }
-  friend inline bool operator==(ValueType l, VulkanWrappedHandle r) { return l == r.value; }
-  friend inline bool operator!=(ValueType l, VulkanWrappedHandle r) { return l != r.value; }
-  friend inline bool operator==(VulkanWrappedHandle l, ValueType r) { return l.value == r; }
-  friend inline bool operator!=(VulkanWrappedHandle l, ValueType r) { return l.value != r; }
-  VulkanWrappedHandle(const VulkanWrappedHandle &) = default;
-  VulkanWrappedHandle &operator=(const VulkanWrappedHandle &) = default;
-
-  // we use this to avoid mixing handles, but it will break
-  // generalized -> typed handle conversions on 32bit builds
-#if _TARGET_64BIT
-  VulkanWrappedHandle(ValueType v) = delete; // default construct and assign
-#endif
-  VulkanWrappedHandle(VulkanNullHandle) = delete; // use default constructor
-  bool operator!() const = delete;                // use is_null()
-
-  friend void swap(VulkanWrappedHandle &l, VulkanWrappedHandle &r)
-  {
-    ValueType t = l.value;
-    l.value = r.value;
-    r.value = t;
-  }
-};
-
-// needed this way, as overloading the & operator breaks container (may update them to use addressof?)
-template <typename V, typename T>
-inline V *ptr(VulkanWrappedHandle<V, T> &w)
-{
-  return &w.value;
-}
-template <typename V, typename T>
-inline const V *ptr(const VulkanWrappedHandle<V, T> &w)
-{
-  return &w.value;
-}
-template <typename V, typename T>
-inline V *ary(VulkanWrappedHandle<V, T> *w)
-{
-  return &w->value;
-}
-template <typename V, typename T>
-inline const V *ary(const VulkanWrappedHandle<V, T> *w)
-{
-  return &w->value;
-}
-// less typing...
-template <typename V, typename T>
-inline bool is_null(VulkanWrappedHandle<V, T> w)
-{
-  return w.value == VK_NULL_HANDLE;
-}
-// all handles can be cast to uint64_t, needed for debug layer
-template <typename V, typename T>
-inline VulkanHandle generalize(VulkanWrappedHandle<V, T> w)
-{
-  return (VulkanHandle)w.value;
-}
-
-
-// this crap is needed, as in 32bit build all DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE will be
-// uint64_t and will break overloading, because then there are multiple uint64_t variants,
-// on 64 bit build this will just work, as they are pointers to opaque structs.
-#define DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(Name, vk_name) \
-  struct Name##Tag                                           \
-  {};                                                        \
-  typedef VulkanWrappedHandle<vk_name, Name##Tag> Name
-
-#define DEFINE_VULKAN_HANDLE(Name, vk_name) \
-  struct Name##Tag                          \
-  {};                                       \
-  typedef VulkanWrappedHandle<vk_name, Name##Tag> Name
-
-DEFINE_VULKAN_HANDLE(VulkanInstanceHandle, VkInstance);
-DEFINE_VULKAN_HANDLE(VulkanPhysicalDeviceHandle, VkPhysicalDevice);
-DEFINE_VULKAN_HANDLE(VulkanDeviceHandle, VkDevice);
-DEFINE_VULKAN_HANDLE(VulkanQueueHandle, VkQueue);
-DEFINE_VULKAN_HANDLE(VulkanCommandBufferHandle, VkCommandBuffer);
-
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanSemaphoreHandle, VkSemaphore);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanFenceHandle, VkFence);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanDeviceMemoryHandle, VkDeviceMemory);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanBufferHandle, VkBuffer);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanImageHandle, VkImage);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanEventHandle, VkEvent);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanQueryPoolHandle, VkQueryPool);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanBufferViewHandle, VkBufferView);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanImageViewHandle, VkImageView);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanShaderModuleHandle, VkShaderModule);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanPipelineCacheHandle, VkPipelineCache);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanPipelineLayoutHandle, VkPipelineLayout);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanRenderPassHandle, VkRenderPass);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanPipelineHandle, VkPipeline);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanDescriptorSetLayoutHandle, VkDescriptorSetLayout);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanSamplerHandle, VkSampler);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanDescriptorPoolHandle, VkDescriptorPool);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanDescriptorSetHandle, VkDescriptorSet);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanFramebufferHandle, VkFramebuffer);
-DEFINE_VULKAN_NON_DISPATCHABLE_HANDLE(VulkanCommandPoolHandle, VkCommandPool);
 
 #define VK_LOADER_ENTRY_POINT_LIST                              \
   VK_DEFINE_ENTRY_POINT(vkCreateInstance)                       \
@@ -510,7 +392,7 @@ template <typename T> inline T log_and_return_internal(T c, const char *cstr)
   if (VULKAN_CHECK_FAIL(r))    \
   {                            \
     generateFaultReport();     \
-    fatal(#r " failed");       \
+    DAG_FATAL(#r " failed");   \
   }
 
 // borrowed from ps4 backend
@@ -557,6 +439,16 @@ enum D3DFORMAT
 };
 
 inline VkSamplerAddressMode translate_texture_address_mode_to_vulkan(int mode) { return (VkSamplerAddressMode)(mode - 1); }
+
+inline VkFilter translate_filter_type_to_vulkan(int m)
+{
+  return (m == TEXFILTER_POINT || m == TEXFILTER_NONE) ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
+}
+
+inline VkSamplerMipmapMode translate_mip_filter_type_to_vulkan(int m)
+{
+  return (m == TEXMIPMAP_POINT || m == TEXMIPMAP_NONE) ? VK_SAMPLER_MIPMAP_MODE_NEAREST : VK_SAMPLER_MIPMAP_MODE_LINEAR;
+}
 
 inline VkCompareOp translate_compare_func_to_vulkan(int mode) { return (VkCompareOp)(mode - 1); }
 
@@ -823,6 +715,7 @@ inline bool operator==(FormatStore l, FormatStore r) { return l.index == r.index
 inline bool operator!=(FormatStore l, FormatStore r) { return l.index != r.index; }
 // packs a complete sampler state into 64 bits
 BEGIN_BITFIELD_TYPE(SamplerState, uint64_t)
+  static constexpr StorageType Invalid = -1;
   enum
   {
     BIAS_BITS = 32,
@@ -998,7 +891,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
           return VK_IMAGE_VIEW_TYPE_3D;
         }
       default:
-        fatal("Unexpected image type %u", type);
+        DAG_FATAL("Unexpected image type %u", type);
         return VK_IMAGE_VIEW_TYPE_2D;
         break;
     }
@@ -1237,67 +1130,6 @@ inline uint64_t nextPowerOfTwo(uint64_t u)
   return ++u;
 }
 
-struct VkAnyDescriptorInfo
-{
-  union
-  {
-    VkDescriptorImageInfo image;
-    VkDescriptorBufferInfo buffer;
-    VkBufferView texelBuffer;
-#if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
-    VkAccelerationStructureKHR raytraceAccelerationStructure;
-#endif
-  };
-
-  enum
-  {
-    TYPE_NULL = 0,
-    TYPE_IMG = 1,
-    TYPE_BUF = 2,
-    TYPE_BUF_VIEW = 3,
-    TYPE_AS = 4
-  };
-
-  uint8_t type : 3;
-
-  VkAnyDescriptorInfo &operator=(const VkDescriptorImageInfo &i)
-  {
-    image = i;
-    type = TYPE_IMG;
-    return *this;
-  };
-  VkAnyDescriptorInfo &operator=(const VkDescriptorBufferInfo &i)
-  {
-    buffer = i;
-    type = TYPE_BUF;
-    return *this;
-  };
-  VkAnyDescriptorInfo &operator=(VulkanBufferViewHandle i)
-  {
-    texelBuffer = i;
-    type = TYPE_BUF_VIEW;
-    return *this;
-  };
-#if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
-  VkAnyDescriptorInfo &operator=(VkAccelerationStructureKHR as)
-  {
-    raytraceAccelerationStructure = as;
-    type = TYPE_AS;
-    return *this;
-  }
-#endif
-
-  void clear() { type = TYPE_NULL; }
-};
-
-struct ResourceDummyRef
-{
-  VkAnyDescriptorInfo descriptor;
-  void *resource;
-};
-
-typedef ResourceDummyRef ResourceDummySet[spirv::MISSING_IS_FATAL_INDEX + 1];
-
 static constexpr VkStencilFaceFlags VK_STENCIL_FACE_BOTH_BIT = VK_STENCIL_FACE_FRONT_BIT | VK_STENCIL_FACE_BACK_BIT;
 
 constexpr VkColorComponentFlags VK_COLOR_COMPONENT_RGBA_BIT =
@@ -1402,6 +1234,7 @@ VkBufferImageCopy make_copy_info(FormatStore format, uint32_t mip, uint32_t base
   VkDeviceSize src_offset);
 
 String formatImageUsageFlags(VkImageUsageFlags flags);
+String formatBufferUsageFlags(VkBufferUsageFlags flags);
 String formatPipelineStageFlags(VkPipelineStageFlags flags);
 String formatMemoryAccessFlags(VkAccessFlags flags);
 const char *formatImageLayout(VkImageLayout layout);

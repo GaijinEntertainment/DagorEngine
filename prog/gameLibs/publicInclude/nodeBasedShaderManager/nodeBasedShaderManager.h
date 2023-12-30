@@ -57,7 +57,8 @@ private:
   bool lastCompileIsSuccess = false;
   String lastErrors;
   eastl::unique_ptr<DataBlock> currentIntParametersBlk, currentFloatParametersBlk, currentFloat4ParametersBlk, currentTextures2dBlk,
-    currentTextures3dBlk, currentTextures2dNoSamplerBlk, currentTextures3dNoSamplerBlk, currentBuffersBlk, metadataBlk;
+    currentTextures3dBlk, currentTextures2dShdArrayBlk, currentTextures2dNoSamplerBlk, currentTextures3dNoSamplerBlk,
+    currentBuffersBlk, metadataBlk;
 
   template <class T>
   struct CachedVariable

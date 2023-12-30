@@ -48,7 +48,7 @@ void occplugin::ObjEd::fillToolBar(PropertyContainerControlBase *toolbar)
   addButton(tb1, CM_CREATE_OCCLUDER_BOX, "create_box", "Create box Occluder (1)", true);
   addButton(tb1, CM_CREATE_OCCLUDER_QUAD, "create_plane", "Create quad Occluder (2)", true);
 
-  __super::fillToolBar(toolbar);
+  ObjectEditor::fillToolBar(toolbar);
 
   PropertyContainerControlBase *tb2 = toolbar->createToolbarPanel(0, "");
 
@@ -65,13 +65,13 @@ void occplugin::ObjEd::addButton(PropertyContainerControlBase *tb, int id, const
 {
   if (id == CM_OBJED_DROP || id == CM_OBJED_MODE_SURF_MOVE)
     return;
-  __super::addButton(tb, id, bmp_name, hint, check);
+  ObjectEditor::addButton(tb, id, bmp_name, hint, check);
 }
 
 
 void occplugin::ObjEd::updateToolbarButtons()
 {
-  __super::updateToolbarButtons();
+  ObjectEditor::updateToolbarButtons();
   setRadioButton(CM_CREATE_OCCLUDER_BOX, getEditMode());
   setRadioButton(CM_CREATE_OCCLUDER_QUAD, getEditMode());
   setButton(CM_SHOW_LOCAL_OCCLUDERS, showLocalOccluders);
@@ -88,7 +88,7 @@ void occplugin::ObjEd::reset()
 
 void occplugin::ObjEd::beforeRender()
 {
-  __super::beforeRender();
+  ObjectEditor::beforeRender();
 
   for (int i = 0; i < objects.size(); i++)
   {
@@ -214,7 +214,7 @@ void occplugin::ObjEd::objRenderTr(dag::ConstSpan<TMatrix> ob, dag::ConstSpan<IO
 
 void occplugin::ObjEd::gizmoStarted()
 {
-  __super::gizmoStarted();
+  ObjectEditor::gizmoStarted();
 
   for (int i = 0; i < selection.size(); ++i)
     if (!RTTI_cast<Occluder>(selection[i]))
@@ -264,7 +264,7 @@ void occplugin::ObjEd::gizmoEnded(bool apply)
     isGizmoStarted = false;
   }
   else
-    __super::gizmoEnded(apply);
+    ObjectEditor::gizmoEnded(apply);
 }
 
 
@@ -405,7 +405,7 @@ bool occplugin::ObjEd::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool 
     // return objCreator->handleMouseMove(wnd, x, y, inside, buttons, key_modif^CTRL_PRESSED, true);
     return objCreator->handleMouseMove(wnd, x, y, inside, buttons, !wingw::is_key_pressed(wingw::V_CONTROL), true);
   }
-  return __super::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseMove(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -413,7 +413,7 @@ bool occplugin::ObjEd::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bo
 {
   if (objCreator)
     return objCreator->handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
-  return __super::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseLBPress(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -421,7 +421,7 @@ bool occplugin::ObjEd::handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, 
 {
   if (objCreator)
     return objCreator->handleMouseLBRelease(wnd, x, y, inside, buttons, key_modif);
-  return __super::handleMouseLBRelease(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseLBRelease(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -429,7 +429,7 @@ bool occplugin::ObjEd::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bo
 {
   if (objCreator)
     return objCreator->handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
-  return __super::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
+  return ObjectEditor::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
 }
 
 
@@ -463,7 +463,7 @@ void occplugin::ObjEd::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
       onClick(CM_SHOW_ALL_OCCLUDERS, NULL);
   }
 
-  __super::handleKeyPress(wnd, vk, modif);
+  ObjectEditor::handleKeyPress(wnd, vk, modif);
 }
 
 void occplugin::ObjEd::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif)
@@ -475,7 +475,7 @@ void occplugin::ObjEd::handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif)
       objCreator->handleMouseMove(wnd, last_mx, last_my, true, 0, !wingw::is_key_pressed(wingw::V_CONTROL), true);
     return;
   }
-  __super::handleKeyRelease(wnd, vk, modif);
+  ObjectEditor::handleKeyRelease(wnd, vk, modif);
 }
 
 
@@ -538,5 +538,5 @@ void occplugin::ObjEd::onClick(int pcb_id, PropPanel2 *panel)
   updateGizmo();
   updateToolbarButtons();
 
-  __super::onClick(pcb_id, panel);
+  ObjectEditor::onClick(pcb_id, panel);
 }

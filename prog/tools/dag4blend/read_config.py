@@ -18,7 +18,7 @@ def cfg_upd():
 
 def read_config():
     cfg_upd()
-    shader_classes = []
+    shader_categories = []
 
     config = configparser.ConfigParser()
     config.read(os.path.join(os.path.dirname(__file__), 'fixed_dagorShaders.cfg'))
@@ -32,16 +32,16 @@ def read_config():
     for section in config.sections():
         if section.startswith("--"):
             category=section
-            shader_classes.append([category,[]])         #[shader_class,  [shaders]]
+            shader_categories.append([category,[]])         #[shader_class,  [shaders]]
         elif category is not None:
-            shader_classes[-1][1].append([section,[]])#[shader_name,[parameters]]
+            shader_categories[-1][1].append([section,[]])#[shader_name,[parameters]]
 
             for item in config[section].items():
                 values = item[1].split()
                 if len(values) < 2:
                     values = item[1].split("_")
-                shader_classes[-1][1][-1][1].append([item[0], values[0]])
+                shader_categories[-1][1][-1][1].append([item[0], values[0]])
             for param in global_params:
-                shader_classes[-1][1][-1][1].append(param)
+                shader_categories[-1][1][-1][1].append(param)
 
-    return shader_classes
+    return shader_categories

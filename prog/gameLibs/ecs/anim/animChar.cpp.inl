@@ -9,7 +9,7 @@
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <debug/dag_assert.h>
-#include <EASTL/fixed_vector.h>
+#include <generic/dag_relocatableFixedVector.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_mathUtils.h>
 #include <perfMon/dag_statDrv.h>
@@ -102,7 +102,8 @@ public:
     animCharSource->baseComp().cloneTo(this, false);
     ::release_game_resource(handle);
 
-    setTraceContext((ecs::entity_id_t)eid); // Note: for debugging
+
+    // Don't set `eid` setTraceContext here - as might be (incorrectly) used as pointer on actual `trace_static_ray_down/dir` calls
 
     const TMatrix &tm = mgr.getOr(eid, ECS_HASH("transform"), TMatrix::IDENT);
     bool turnDir = mgr.getOr(eid, ECS_HASH("animchar__turnDir"), false);
@@ -210,41 +211,38 @@ inline void animchar_update_ecs_query(Callable ECS_CAN_PARALLEL_FOR(c, 1));
 struct AnimcharAttachRec
 {
   AnimV20::AnimcharBaseComponent *animCharAttachedTo;
-  int slotId;
+  int attachmentId;
 #if DAGOR_DBGLEVEL > 0 && defined(_DEBUG_TAB_)
   ecs::EntityId attachedTo;
 #endif
-  AnimcharAttachRec(AnimV20::AnimcharBaseComponent *a, int s, ecs::EntityId aeid)
+  AnimcharAttachRec(AnimV20::AnimcharBaseComponent *a, int aid, ecs::EntityId aeid)
   {
     animCharAttachedTo = a;
-    slotId = s;
+    attachmentId = aid;
     G_UNUSED(aeid);
 #if DAGOR_DBGLEVEL > 0 && defined(_DEBUG_TAB_)
     attachedTo = aeid;
 #endif
   }
-  AnimcharAttachRec &operator=(AnimcharAttachRec &&) = delete;
-  AnimcharAttachRec(AnimcharAttachRec &&rhs)
-  {
-    memcpy(this, &rhs, sizeof(*this));
-    rhs.animCharAttachedTo = nullptr;
-  }
+  AnimcharAttachRec &operator=(const AnimcharAttachRec &) = delete;
+  AnimcharAttachRec(AnimcharAttachRec &&rhs) = delete;
   ~AnimcharAttachRec()
   {
-    if (!animCharAttachedTo)
-      return;
 #if DAGOR_DBGLEVEL > 0 && defined(_DEBUG_TAB_)
     G_ASSERTF(g_entity_mgr->doesEntityExist(attachedTo), "Attached to entity %d does not exist!", (ecs::entity_id_t)attachedTo);
 #endif
-    animCharAttachedTo->setAttachedChar(slotId, AnimV20::INVALID_ATTACHMENT_UID, NULL);
+    animCharAttachedTo->releaseAttachment(attachmentId);
   }
 };
+DAG_DECLARE_RELOCATABLE(AnimcharAttachRec);
 
 #define ANIMCHAR_ACT(dt, accum_dt, dt_threshold) \
   anim::animchar_act(dt, accum_dt, dt_threshold, animchar, animchar__turnDir, transform, animchar_node_wtm, animchar_render__root_pos)
 void anim::animchar_act(float dt, float *accum_dt, const float *dt_threshold, AnimV20::AnimcharBaseComponent &animchar,
   bool animchar__turnDir, const TMatrix &transform, AnimcharNodesMat44 *animchar_node_wtm, vec3f *animchar_render__root_pos)
 {
+  TIME_PROFILE_DEV(animchar_act);
+
   animchar_set_tm(animchar, animchar__turnDir, transform);
   if (!accum_dt)
     animchar.act(dt, /*calc_anim*/ true);
@@ -257,11 +255,17 @@ void anim::animchar_act(float dt, float *accum_dt, const float *dt_threshold, An
       *accum_dt = 0.f;
     }
     else
+    {
+      TIME_PROFILE_DEV(animchar_recalc_wtm);
       animchar.recalcWtm();
+    }
   }
   if (!animchar_node_wtm)
     return;
+
+  TIME_PROFILE_DEV(animchar_copy_nodes);
   animchar_copy_nodes(animchar, *animchar_node_wtm, *animchar_render__root_pos);
+
 #if DAECS_EXTENSIVE_CHECKS
   for (auto &n : animchar_node_wtm->nwtm)
     ANIMCHAR_VERIFY_NODE_POS(n.col3, eastl::distance(animchar_node_wtm->nwtm.data(), &n), animchar);
@@ -274,20 +278,23 @@ ECS_AFTER(before_animchar_update_sync)
 ECS_BEFORE(after_animchar_update_sync)
 static __forceinline void animchar__updater_es(const UpdateAnimcharEvent &info)
 {
-  eastl::fixed_vector<AnimcharAttachRec, 128, /*bOverflow*/ true, framemem_allocator> attachRecords; // detaches itself in dtor
+  dag::RelocatableFixedVector<AnimcharAttachRec, 128, /*bOverflow*/ true, framemem_allocator> attachRecords;
 
-  // set attachement to the slot for update time
-  animchar_pre_update_ecs_query([&](ecs::EntityId eid, int slot_attach__slotId, AnimV20::AnimcharBaseComponent &animchar,
-                                  ecs::EntityId slot_attach__attachedTo ECS_REQUIRE(ecs::Tag attachmentUpdate)) {
-    if (slot_attach__slotId < 0)
-      return;
-    ECS_GET_ENTITY_COMPONENT_RW(AnimV20::AnimcharBaseComponent, animCharAttachedTo, slot_attach__attachedTo, animchar);
-    if (animCharAttachedTo)
-    {
-      attachRecords.emplace_back(animCharAttachedTo, slot_attach__slotId, slot_attach__attachedTo);
-      animCharAttachedTo->setAttachedChar(slot_attach__slotId, ecs::entity_id_t(eid), &animchar, /*recalcable*/ false);
-    }
-  });
+  // Set attachement to the slot for update time
+  {
+    TIME_PROFILE_DEV(assemble_attaches);
+    animchar_pre_update_ecs_query([&](ecs::EntityId eid, int slot_attach__slotId, AnimV20::AnimcharBaseComponent &animchar,
+                                    ecs::EntityId slot_attach__attachedTo ECS_REQUIRE(ecs::Tag attachmentUpdate)) {
+      if (slot_attach__slotId < 0)
+        return;
+      ECS_GET_ENTITY_COMPONENT_RW(AnimV20::AnimcharBaseComponent, animCharAttachedTo, slot_attach__attachedTo, animchar);
+      if (animCharAttachedTo)
+      {
+        int aid = animCharAttachedTo->setAttachedChar(slot_attach__slotId, ecs::entity_id_t(eid), &animchar, /*recalcable*/ false);
+        attachRecords.emplace_back(animCharAttachedTo, aid, slot_attach__attachedTo);
+      }
+    });
+  }
 
   // update animchars with attachments
   animchar_update_ecs_query(

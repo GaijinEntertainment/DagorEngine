@@ -248,7 +248,7 @@ struct HashedKeyMap
     }
   }
   template <class ValCB = oa_hashmap_util::DefaultValCB<val_t>>
-  const val_t findOr(key_t key, val_t def, ValCB cb = ValCB()) const
+  val_t findOr(key_t key, val_t def, ValCB cb = ValCB()) const
   {
     return oa_hashmap_util::find_or<key_t, EmptyKey, Hasher>(key, keys.first(), vals, def, mask, [&](const auto &v) { return cb(v); });
   }
@@ -741,7 +741,7 @@ struct FixedCapacityHashedKeyMap
   }
 
   template <class ValCB = oa_hashmap_util::DefaultValCB<val_t>>
-  const val_t findOr(key_t key, val_t def, ValCB cb = ValCB()) const
+  val_t findOr(key_t key, val_t def, ValCB cb = ValCB()) const
   {
     return oa_hashmap_util::find_or<key_t, EmptyKey, Hasher>(key, keys, vals, def, mask, [&](const auto &v) { return cb(v); });
   }

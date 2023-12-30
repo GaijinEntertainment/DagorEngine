@@ -201,7 +201,7 @@ shader applyCloudsPanorama
     }
     #endif
 
-    half4 envi_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    float4 envi_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
 
@@ -353,14 +353,14 @@ shader clouds_panorama_mip
   }
 
   hlsl(ps) {
-    half4 samplePanorama(float2 uv)
+    float4 samplePanorama(float2 uv)
     {
       float4 ret = tex2D(clouds_panorama_tex, uv);
       // if compressed panorama is active this decodes rgbm, else it does nothing because .a = 1, factor = 1
       return decode_rgbm(ret, rgbm_panorama_scale_factor);
     }
 
-    half3 downsample_panorama_ps(VsOutput IN) : SV_Target
+    float3 downsample_panorama_ps(VsOutput IN) : SV_Target
     {
       float4 tc0 = IN.baseTC0;
       float4 tc1 = IN.baseTC1;
@@ -392,7 +392,7 @@ shader clouds_panorama_blend
   blend_dst = isa;
 
   hlsl(ps) {
-    half4 update_panorama_ps(VsOutput IN) : SV_Target
+    float4 update_panorama_ps(VsOutput IN) : SV_Target
     {
       half4 result = tex2Dlod(clouds_panorama_blend_from, float4(IN.texcoord,0,0));
       result.a = clouds_panorama_blend;
@@ -417,7 +417,7 @@ shader clouds_panorama_update_subpixel
   blend_dst = isa;
 
   hlsl(ps) {
-    half4 update_panorama_ps(VsOutput IN) : SV_Target
+    float4 update_panorama_ps(VsOutput IN) : SV_Target
     {
       float4 screenpos = GET_SCREEN_POS(IN.pos);
       int2 screenposi = int2(screenpos.xy);

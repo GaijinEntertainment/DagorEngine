@@ -149,7 +149,7 @@ public:
   {
     G_ASSERT((acquireCnt + pending) < HistoryLength);
     if (pending >= HistoryLength) // atomic read needed for proper sync
-      fatal("vulkan: no element to acquire in timeline");
+      DAG_FATAL("vulkan: no element to acquire in timeline");
     SyncType::sync_point_acquire();
 
     TimelineHistoryIndex ret;
@@ -324,7 +324,7 @@ struct TimelineSyncPartNonConcurrent
 
 struct TimelineSyncPartNonWaitable
 {
-  void nonWaitableError() { fatal("vulkan: timeline is not waitable"); }
+  void nonWaitableError() { DAG_FATAL("vulkan: timeline is not waitable"); }
 
   void signal(){};
   void wait() { nonWaitableError(); };

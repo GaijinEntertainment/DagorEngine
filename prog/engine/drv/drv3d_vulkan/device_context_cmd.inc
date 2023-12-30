@@ -1,13 +1,11 @@
 
 VULKAN_BEGIN_CONTEXT_COMMAND(SetConstRegisterBuffer)
-  VULKAN_CONTEXT_COMMAND_PARAM(VulkanBufferHandle, buffer)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, offset)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, size)
+  VULKAN_CONTEXT_COMMAND_PARAM(BufferRef, buffer)
   VULKAN_CONTEXT_COMMAND_PARAM(ShaderStage, stage)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   auto &resBinds = ctx.back.pipelineState.getStageResourceBinds(stage);
-  resBinds.set_raw<StateFieldGlobalConstBuffer, StateFieldGlobalConstBuffer::BufferRangedRef>({buffer, offset, size});
+  resBinds.set_raw<StateFieldGlobalConstBuffer, BufferRef>(buffer);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -110,7 +108,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(CopyBufferToImageOrdered)
   VULKAN_CONTEXT_COMMAND_PARAM(VkBufferImageCopy, region)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.beginCustomStage("orderedBufferToImageCopy");
-  ctx.copyBufferToImageOrdered(image, buf, region);
+  ctx.copyBufferToImageOrdered(image, buf, &region, 1);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -833,6 +831,15 @@ VULKAN_BEGIN_CONTEXT_COMMAND(DestroyRenderPassResource)
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
+VULKAN_BEGIN_CONTEXT_COMMAND(DestroySamplerResource)
+  VULKAN_CONTEXT_COMMAND_PARAM(SamplerResource *, sampler)
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  sampler->markDead();
+  if (ctx.back.pipelineStatePendingCleanups.removeWithReferenceCheck(sampler, ctx.back.pipelineState))
+    ctx.back.contextState.frame.get().cleanups.enqueueFromBackend<SamplerResource::CLEANUP_DESTROY>(*sampler);
+#endif
+VULKAN_END_CONTEXT_COMMAND
+
 VULKAN_BEGIN_CONTEXT_COMMAND(DestroyBuffer)
   VULKAN_CONTEXT_COMMAND_PARAM(Buffer *, buffer)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
@@ -911,6 +918,16 @@ VULKAN_BEGIN_CONTEXT_COMMAND(TransitBRegister)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   auto &resBinds = ctx.back.pipelineState.getStageResourceBinds(stage);
   resBinds.set_raw<StateFieldBRegisterSet, StateFieldBRegister::Indexed>({index, bReg});
+#endif
+VULKAN_END_CONTEXT_COMMAND
+
+VULKAN_BEGIN_CONTEXT_COMMAND(TransitSRegister)
+  VULKAN_CONTEXT_COMMAND_PARAM(ShaderStage, stage)
+  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, index)
+  VULKAN_CONTEXT_COMMAND_PARAM(SRegister, sReg)
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  auto &resBinds = ctx.back.pipelineState.getStageResourceBinds(stage);
+  resBinds.set_raw<StateFieldSRegisterSet, StateFieldSRegister::Indexed>({index, sReg});
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -1009,25 +1026,6 @@ VULKAN_BEGIN_CONTEXT_COMMAND(PipelineCompilationTimeBudget)
   VULKAN_CONTEXT_COMMAND_PARAM(unsigned, usecs)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   drv3d_vulkan::get_device().pipeMan.setAsyncCompile(usecs == 0);
-#endif
-VULKAN_END_CONTEXT_COMMAND
-
-VULKAN_BEGIN_CONTEXT_COMMAND(UpdateBindlessTexture)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, index)
-  VULKAN_CONTEXT_COMMAND_PARAM(Image *, image)
-  VULKAN_CONTEXT_COMMAND_PARAM(ImageViewState, view)
-#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  if (image)
-    ctx.trackBindlessRead(image);
-  ctx.back.contextState.bindlessManagerBackend.updateBindlessTexture(index, image, view);
-#endif
-VULKAN_END_CONTEXT_COMMAND
-
-VULKAN_BEGIN_CONTEXT_COMMAND(UpdateBindlessSampler)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, index)
-  VULKAN_CONTEXT_COMMAND_PARAM(SamplerInfo *, samplerInfo)
-#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.back.contextState.bindlessManagerBackend.updateBindlessSampler(index, samplerInfo);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 

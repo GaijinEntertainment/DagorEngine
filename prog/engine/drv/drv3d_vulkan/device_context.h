@@ -24,6 +24,7 @@
 #include "bindless.h"
 #include "execution_sync.h"
 #include "pipeline/compiler.h"
+#include "sampler_resource.h"
 
 namespace drv3d_vulkan
 {
@@ -84,8 +85,6 @@ public:
 
 struct ContextState
 {
-  PipelineStageStateBase stageState[STAGE_MAX_EXT];
-
   eastl::vector<VulkanCommandBufferHandle> cmdListsToSubmit;
   TimelineSpan<TimelineManager::GpuExecute> frame;
   eastl::vector<eastl::unique_ptr<ShaderModule>> shaderModules;
@@ -93,12 +92,6 @@ struct ContextState
   BindlessManagerBackend bindlessManagerBackend{};
 
   ContextState(TimelineManager &tl_man) : frame(tl_man) {}
-
-  void onFrameStateInvalidate()
-  {
-    for (auto &&stage : stageState)
-      stage.invalidateState();
-  }
 };
 
 struct ContextFrontend
@@ -138,6 +131,8 @@ struct ContextBackend
   ExecutionSyncTracker syncTrack;
 
   eastl::vector<FrameEvents *> frameEventCallbacks;
+
+  eastl::vector<Image *> imageResidenceRestores;
 
   struct DiscardNotify
   {
@@ -213,8 +208,10 @@ public:
   void reportMissingPipelineComponent(const char *component);
 
 private:
+  void finishAllGPUWorkItems();
   void writeExectionChekpoint(VulkanCommandBufferHandle cb, VkPipelineStageFlagBits stage);
 
+  void restoreImageResidencies(VulkanCommandBufferHandle cmd);
   VulkanCommandBufferHandle allocAndBeginCommandBuffer();
   VulkanCommandBufferHandle flushTimestampQueryResets(VulkanCommandBufferHandle cmd);
   VulkanCommandBufferHandle flushImageDownloads(VulkanCommandBufferHandle cmd);
@@ -272,6 +269,7 @@ public:
 
   // processes out-of-order parts of frame that can affect orderd frame
   void prepareFrameCore();
+  void cleanupMemory();
   void queueBufferDiscard(Buffer *old_buf, const BufferRef &new_buf, uint32_t flags);
   uint32_t beginVertexUserData(uint32_t stride);
   void endVertexUserData(uint32_t stride);
@@ -333,10 +331,12 @@ public:
   void dispatch(uint32_t x, uint32_t y, uint32_t z);
   void dispatchIndirect(BufferRef buffer, uint32_t offset);
   void copyBuffer(Buffer *src, Buffer *dst, uint32_t src_offset, uint32_t dst_offset, uint32_t size);
-  void copyBufferToImageOrdered(Image *dst, Buffer *src, const VkBufferImageCopy &region);
+  void copyBufferToImageOrdered(Image *dst, Buffer *src, const VkBufferImageCopy *regions, int count);
+  void copyImageToBufferOrdered(Buffer *dst, Image *src, const VkBufferImageCopy *regions, int count);
   void fillBuffer(Buffer *buffer, uint32_t offset, uint32_t size, uint32_t value);
   void clearDepthStencilImage(Image *image, const VkImageSubresourceRange &area, const VkClearDepthStencilValue &value);
   void clearColorImage(Image *image, const VkImageSubresourceRange &area, const VkClearColorValue &value);
+  void processBindlessUpdates();
   void processFillEmptySubresources();
   void copyImage(Image *src, Image *dst, uint32_t src_mip, uint32_t dst_mip, uint32_t mip_count, uint32_t region_count,
     uint32_t first_region);
@@ -392,9 +392,18 @@ public:
   // no stop node for now, as it is not yet needed (redo with RAII if needed)
   void startNode(ExecutionNode cp);
 
-  void trackStageResAccesses(const spirv::ShaderHeader &header, ShaderStage stageIndex);
+  void trackTResAccesses(uint32_t slot, PipelineStageStateBase &state, ShaderStage stage);
+  void trackUResAccesses(uint32_t slot, PipelineStageStateBase &state, ShaderStage stage);
+  void trackBResAccesses(uint32_t slot, PipelineStageStateBase &state, ShaderStage stage);
+  void trackStageResAccesses(const spirv::ShaderHeader &header, ShaderStage stage);
+  // ignores dirty mask to track executions, that are not parallel treatable (like a dispatch-dispatch pairs)
+  void trackStageResAccessesNonParallel(const spirv::ShaderHeader &header, ShaderStage stage);
+
   void trackIndirectArgAccesses(BufferRef buffer, uint32_t offset, uint32_t count, uint32_t stride);
   void trackBindlessRead(Image *img);
+
+  template <typename ResType>
+  void verifyResident(ResType *obj);
 };
 
 #define VULKAN_LOCK_FRONT() OSSpinlockScopedLock lockedDevice(getFrontGuard())
@@ -535,7 +544,7 @@ public:
   void updateDebugUIPipelinesData();
   void setPipelineUsability(ProgramID program, bool value);
   void captureRenderPasses(bool capture_call_stack);
-  void setConstRegisterBuffer(VulkanBufferHandle buffer, uint32_t offset, uint32_t size, ShaderStage stage);
+  void setConstRegisterBuffer(Buffer *buffer, uint32_t offset, uint32_t size, ShaderStage stage);
 
   void bindVertexBuffer(uint32_t stream, Buffer *buffer, uint32_t offset);
   void bindVertexStride(uint32_t stream, uint32_t stride);
@@ -567,9 +576,7 @@ public:
   void fillEmptySubresources(Image *image);
   void resolveMultiSampleImage(Image *src, Image *dst);
   void flushDraws();
-  void copyImageToHostCopyBuffer(Image *image, Buffer *buffer, uint32_t region_count, VkBufferImageCopy *regions);
   void copyImageToBuffer(Image *image, Buffer *buffer, uint32_t region_count, VkBufferImageCopy *regions, AsyncCompletionState *sync);
-  void copyHostCopyToImage(Buffer *src, Image *dst_id, uint32_t region_count, VkBufferImageCopy *regions);
   void copyBufferToImage(Buffer *src, Image *dst_id, uint32_t region_count, VkBufferImageCopy *regions, bool seal);
   void copyBufferToImageOrdered(Buffer *src, Image *dst_id, uint32_t region_count, VkBufferImageCopy *regions);
   void blitImage(Image *src, Image *dst, const VkImageBlit &region);
@@ -584,9 +591,9 @@ public:
   void destroyBuffer(Buffer *buffer);
   Buffer *discardBuffer(Buffer *to_discared, DeviceMemoryClass memory_class, FormatStore view_format, uint32_t bufFlags);
   void destroyRenderPassResource(RenderPassResource *rp);
+  void destroySamplerResource(SamplerResource *sampler);
   void destroyImageDelayed(Image *img);
   void destroyImage(Image *img);
-  void evictImage(Image *img);
   void present();
   void changeSwapchainMode(const SwapchainMode &new_mode);
   void shutdownSwapchain();
@@ -604,7 +611,7 @@ public:
   void resourceBarrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline);
 
   void updateBindlessResource(uint32_t index, D3dResource *res);
-  void updateBindlessSampler(uint32_t index, SamplerInfo *samplerInfo);
+  void updateBindlessSampler(uint32_t index, SamplerState samplerInfo);
   void copyBindlessTextureDescriptors(uint32_t src, uint32_t dst, uint32_t count);
   void updateBindlessResourcesToNull(uint32_t resource_type, uint32_t index, uint32_t count);
 

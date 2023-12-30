@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 let cursors = require("samples_prog/_cursors.nut")
 
-let function item(text) {
+function item(text) {
   return {
     color = Color(200, 50, 50)
     size = [flex(), SIZE_TO_CONTENT]

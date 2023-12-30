@@ -75,9 +75,9 @@ bool DynShaderMeshBuf::fillRawFaces(void **__restrict vdata, int num_v, uint16_t
 
   int vdata_sz = num_v * stride;
   if (vdata_sz > data_size(vBuf))
-    fatal("too many verts: %d, max=%u", num_v, unsigned(data_size(vBuf) / stride));
+    DAG_FATAL("too many verts: %d, max=%u", num_v, unsigned(data_size(vBuf) / stride));
   if (num_f * 3 > iBuf.size())
-    fatal("too many faces: %d, max=%d", num_f, iBuf.size() / 3);
+    DAG_FATAL("too many faces: %d, max=%d", num_f, iBuf.size() / 3);
 
   if ((vUsed + num_v) * stride > data_size(vBuf) || iUsed + num_f * 3 > iBuf.size())
     flush();
@@ -121,7 +121,7 @@ void DynShaderMeshBuf::flush(bool clear_used)
   last_start_v = vb->addData(vBuf.data(), vUsed);
   last_start_i = ib->addData(iBuf.data(), iUsed);
   if (last_start_v < 0 || last_start_i < 0)
-    fatal("start_v=%d start_i=%d, when add faces (%d vert, %d ind); buf size=%d, %d", last_start_v, last_start_i, vUsed, iUsed,
+    DAG_FATAL("start_v=%d start_i=%d, when add faces (%d vert, %d ind); buf size=%d, %d", last_start_v, last_start_i, vUsed, iUsed,
       vb->bufSize(), ib->bufSize());
 
   render(vUsed, iUsed);
@@ -214,7 +214,7 @@ bool DynShaderQuadBuf::fillRawQuads(void **vdata, int num_q)
 
   int vdata_sz = num_q * qStride;
   if (vdata_sz > data_size(vBuf))
-    fatal("too many quads: %d, max=%u", num_q, unsigned(data_size(vBuf) / qStride));
+    DAG_FATAL("too many quads: %d, max=%u", num_q, unsigned(data_size(vBuf) / qStride));
 
   if ((qUsed + num_q) * qStride > data_size(vBuf))
     flush();
@@ -278,7 +278,7 @@ void DynShaderQuadBuf::flush()
 
   int start_v = vb->addData(vBuf.data(), qUsed * 4);
   if (start_v < 0)
-    fatal("start_v=%d when %d vertices; buf size=%d", start_v, qUsed * 4, vb->bufSize());
+    DAG_FATAL("start_v=%d when %d vertices; buf size=%d", start_v, qUsed * 4, vb->bufSize());
 
 #define D3D_SAFE(c)                                                          \
   {                                                                          \
@@ -373,7 +373,7 @@ bool DynShaderStripBuf::fillRawVertPairs(void **vdata, int v_pair_num)
 
   int vdata_sz = v_pair_num * pStride;
   if (vdata_sz > data_size(vBuf))
-    fatal("too many vert pairs: %d, max=%u", v_pair_num, unsigned(data_size(vBuf) / pStride));
+    DAG_FATAL("too many vert pairs: %d, max=%u", v_pair_num, unsigned(data_size(vBuf) / pStride));
 
   if ((pUsed + v_pair_num) * pStride > data_size(vBuf))
     flush();
@@ -416,7 +416,7 @@ void DynShaderStripBuf::flush()
 
   int start_v = vb->addData(vBuf.data(), pUsed * 2);
   if (start_v < 0)
-    fatal("start_v=%d when %d vertices; buf size=%d", start_v, pUsed * 4, vb->bufSize());
+    DAG_FATAL("start_v=%d when %d vertices; buf size=%d", start_v, pUsed * 4, vb->bufSize());
 
   d3d_err(d3d::setvsrc(0, vb->getBuf(), pStride / 2));
   d3d_err(d3d::draw(PRIM_TRISTRIP, start_v, (pUsed - 1) * 2));

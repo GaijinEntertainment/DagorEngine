@@ -9,7 +9,7 @@ CContainer::CContainer(ControlEventHandler *event_handler, PropertyContainerCont
 
   PropertyContainerVert(id, event_handler, parent, x, y, w, h), mRect(this, parent->getWindow(), x, y, _px(w), _px(h)), mWResize(false)
 {
-  __super::setVerticalInterval(interval);
+  PropertyContainerVert::setVerticalInterval(interval);
 }
 
 
@@ -72,5 +72,5 @@ void CContainer::setWidth(hdpi::Px w)
 void CContainer::onChildResize(int id)
 {
   if (!mWResize)
-    __super::onChildResize(id);
+    PropertyContainerVert::onChildResize(id);
 }

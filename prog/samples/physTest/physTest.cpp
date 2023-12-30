@@ -241,7 +241,7 @@ class SampleWheelForces : public IPhysVehicle::ICalcWheelContactForces
 
 static inline Point3 calc_box_moi(float mass, const Point3 &sz)
 {
-  return (mass / 12.0f) * Point3(SQR(sz.y) + SQR(sz.z), SQR(sz.x) + SQR(sz.z), SQR(sz.x) + SQR(sz.y));
+  return (mass / 12.0f) * Point3(sqr(sz.y) + sqr(sz.z), sqr(sz.x) + sqr(sz.z), sqr(sz.x) + sqr(sz.y));
 }
 
 #if ALLOW_PHYS_CAR
@@ -476,7 +476,7 @@ public:
     {
       Material *subMat=mat.getsubmat(i);
       if (!subMat)
-        fatal("invalid sub-material #%d of '%s'", i+1, mat.name);
+        DAG_FATAL("invalid sub-material #%d of '%s'", i+1, mat.name);
 
       shmats[i]=new_shader_material(*subMat);
       G_ASSERT(shmats[i]);
@@ -826,11 +826,11 @@ static void loadPhysTestScene(const char *filename)
   DynamicSceneWithTreeResSrc::registerFactory(DynamicRenderableSceneLodsResourceClassName, DynamicSceneWithTreeResourceCID);
   ResourceSourceFactory *factory = get_resource_source_factory("dynobj");
   if (!factory)
-    fatal("can't get resource source factory");
+    DAG_FATAL("can't get resource source factory");
 
   ResourceSource *src = factory->create(filename);
   if (!src)
-    fatal("can't create resource source");
+    DAG_FATAL("can't create resource source");
   src->build();
   src->saveToFile(resFilename, _MAKE4C('PC'));
   del_it(src);
@@ -861,11 +861,11 @@ static void loadPhysTestScene(const char *filename)
   {
     FullFileLoadCB crd(frt_file);
     if (!crd.fileHandle)
-      fatal("cannot open: <%s>", frt_file);
+      DAG_FATAL("cannot open: <%s>", frt_file);
 
     frt_mgr = new FastRtDumpManager;
     if (frt_mgr->loadRtDump(crd, 0) < 0)
-      fatal("cannot load frtdump from: <%s>", frt_file);
+      DAG_FATAL("cannot load frtdump from: <%s>", frt_file);
 
     ::create_visclipmesh(CfgReader(""));
     ::set_vcm_rad(mainBlk.getReal("visClipMeshVisibilityRad", 200));
@@ -880,14 +880,14 @@ static void loadPhysTestScene(const char *filename)
   {
     FullFileLoadCB crd(phys_file);
     if (!crd.fileHandle)
-      fatal("cannot open: <%s>", phys_file);
+      DAG_FATAL("cannot open: <%s>", phys_file);
 
     crd.beginFullFileBlock();
 #if defined(USE_BULLET_PHYSICS)
     if (!physWorld->loadSceneCollision(crd, -1))
-      fatal("cannot load static scene collision");
+      DAG_FATAL("cannot load static scene collision");
 #else
-    fatal("ALLOW_STATIC_SCENE_DUMP not supported");
+    DAG_FATAL("ALLOW_STATIC_SCENE_DUMP not supported");
 #endif
   }
 #endif
@@ -1153,7 +1153,7 @@ public:
           }*/
 
       //    uint32_t newtime = timeGetTime();
-      //    fatal("time %d", (int)newtime - time);
+      //    DAG_FATAL("time %d", (int)newtime - time);
 
 #if ALLOW_DYNMODEL_RENDER
     if (dynamicScene)

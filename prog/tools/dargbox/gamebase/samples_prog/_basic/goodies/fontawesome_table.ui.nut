@@ -28,7 +28,7 @@ let mkCell = @(key, cellSize) {
   }
 }
 
-let function mkTable() {
+function mkTable() {
   let count = fa.len()
   let cols = (availWidth / sqrt(availWidth * availHeight / count)).tointeger()
   let rows = ceil(count / cols)

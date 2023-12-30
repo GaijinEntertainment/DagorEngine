@@ -321,6 +321,10 @@ def operator ?as(child : ChildComponent const? const == const; name : string)
       return get_ecs_object(child)
     static_elif name == "Array"
       return get_ecs_array(child)
+    static_elif name == "IntList"
+      return get_ecs_IntList(child)
+    static_elif name == "FloatList"
+      return get_ecs_FloatList(child)
     static_elif name == "int4"
       return get_IPoint4(child)
     static_elif name == "int2"
@@ -372,6 +376,10 @@ def operator ?as(child : ChildComponent const? const# == const; name : string)
       return get_ecs_object(child)
     static_elif name == "Array"
       return get_ecs_array(child)
+    static_elif name == "IntList"
+      return get_ecs_IntList(child)
+    static_elif name == "FloatList"
+      return get_ecs_FloatList(child)
     static_elif name == "int4"
       return get_IPoint4(child)
     static_elif name == "int2"
@@ -423,6 +431,10 @@ def operator as(child : ChildComponent const == const; name : string)
       return get_ecs_object(child)
     static_elif name == "Array"
       return get_ecs_array(child)
+    static_elif name == "IntList"
+      return get_ecs_IntList(child)
+    static_elif name == "FloatList"
+      return get_ecs_FloatList(child)
     static_elif name == "int4"
       return get_IPoint4(child)
     static_elif name == "int2"
@@ -474,6 +486,10 @@ def operator as(child : ChildComponent const# == const; name : string)
       return get_ecs_object(child)
     static_elif name == "Array"
       return get_ecs_array(child)
+    static_elif name == "IntList"
+      return get_ecs_IntList(child)
+    static_elif name == "FloatList"
+      return get_ecs_FloatList(child)
     static_elif name == "int4"
       return get_IPoint4(child)
     static_elif name == "int2"
@@ -525,6 +541,10 @@ def operator ?as(var child : ChildComponent? == const; name : string)
       return getRW_ecs_object(child)
     static_elif name == "Array"
       return getRW_ecs_array(child)
+    static_elif name == "IntList"
+      return getRW_ecs_IntList(child)
+    static_elif name == "FloatList"
+      return getRW_ecs_FloatList(child)
     static_elif name == "int4"
       return getRW_IPoint4(child)
     static_elif name == "int2"
@@ -576,6 +596,10 @@ def operator ?as(var child : ChildComponent?# == const; name : string)
       return getRW_ecs_object(child)
     static_elif name == "Array"
       return getRW_ecs_array(child)
+    static_elif name == "IntList"
+      return getRW_ecs_IntList(child)
+    static_elif name == "FloatList"
+      return getRW_ecs_FloatList(child)
     static_elif name == "int4"
       return getRW_IPoint4(child)
     static_elif name == "int2"
@@ -627,6 +651,10 @@ def operator as(var child : ChildComponent == const; name : string)
       return getRW_ecs_object(child)
     static_elif name == "Array"
       return getRW_ecs_array(child)
+    static_elif name == "IntList"
+      return getRW_ecs_IntList(child)
+    static_elif name == "FloatList"
+      return getRW_ecs_FloatList(child)
     static_elif name == "int4"
       return getRW_IPoint4(child)
     static_elif name == "int2"
@@ -678,6 +706,10 @@ def operator as(var child : ChildComponent# == const; name : string)
       return getRW_ecs_object(child)
     static_elif name == "Array"
       return getRW_ecs_array(child)
+    static_elif name == "IntList"
+      return getRW_ecs_IntList(child)
+    static_elif name == "FloatList"
+      return getRW_ecs_FloatList(child)
     static_elif name == "int4"
       return getRW_IPoint4(child)
     static_elif name == "int2"
@@ -787,7 +819,11 @@ def operator ?as(child : ChildComponent const? const ==const; name : string)
     static_if name == \"Object\"
       return get_ecs_object(child)
     static_elif name == \"Array\"
-      return get_ecs_array(child)")
+      return get_ecs_array(child)
+    static_elif name == \"IntList\"
+      return get_ecs_IntList(child)
+    static_elif name == \"FloatList\"
+      return get_ecs_FloatList(child)")
 
   for dasType, cType in keys(allTypes), values(allTypes)
     print("    static_elif name == \"{dasType}\"
@@ -803,7 +839,11 @@ def operator ?as(child : ChildComponent const? const# ==const; name : string)
     static_if name == \"Object\"
       return get_ecs_object(child)
     static_elif name == \"Array\"
-      return get_ecs_array(child)")
+      return get_ecs_array(child)
+    static_elif name == \"IntList\"
+      return get_ecs_IntList(child)
+    static_elif name == \"FloatList\"
+      return get_ecs_FloatList(child)")
 
   for dasType, cType in keys(allTypes), values(allTypes)
     print("    static_elif name == \"{dasType}\"
@@ -819,7 +859,11 @@ def operator as(child : ChildComponent const ==const; name : string)
     static_if name == \"Object\"
       return get_ecs_object(child)
     static_elif name == \"Array\"
-      return get_ecs_array(child)")
+      return get_ecs_array(child)
+    static_elif name == \"IntList\"
+      return get_ecs_IntList(child)
+    static_elif name == \"FloatList\"
+      return get_ecs_FloatList(child)")
 
   for dasType, cType in keys(allTypes), values(allTypes)
     print("    static_elif name == \"{dasType}\"
@@ -835,7 +879,11 @@ def operator as(child : ChildComponent const# ==const; name : string)
     static_if name == \"Object\"
       return get_ecs_object(child)
     static_elif name == \"Array\"
-      return get_ecs_array(child)")
+      return get_ecs_array(child)
+    static_elif name == \"IntList\"
+      return get_ecs_IntList(child)
+    static_elif name == \"FloatList\"
+      return get_ecs_FloatList(child)")
 
   for dasType, cType in keys(allTypes), values(allTypes)
     print("    static_elif name == \"{dasType}\"
@@ -851,7 +899,11 @@ def operator ?as(var child : ChildComponent? ==const; name : string)
     static_if name == \"Object\"
       return getRW_ecs_object(child)
     static_elif name == \"Array\"
-      return getRW_ecs_array(child)")
+      return getRW_ecs_array(child)
+    static_elif name == \"IntList\"
+      return getRW_ecs_IntList(child)
+    static_elif name == \"FloatList\"
+      return getRW_ecs_FloatList(child)")
 
   for dasType, cType in keys(allTypes), values(allTypes)
     print("    static_elif name == \"{dasType}\"
@@ -867,7 +919,11 @@ def operator ?as(var child : ChildComponent?# ==const; name : string)
     static_if name == \"Object\"
       return getRW_ecs_object(child)
     static_elif name == \"Array\"
-      return getRW_ecs_array(child)")
+      return getRW_ecs_array(child)
+    static_elif name == \"IntList\"
+      return getRW_ecs_IntList(child)
+    static_elif name == \"FloatList\"
+      return getRW_ecs_FloatList(child)")
 
   for dasType, cType in keys(allTypes), values(allTypes)
     print("    static_elif name == \"{dasType}\"
@@ -883,7 +939,11 @@ def operator as(var child : ChildComponent ==const; name : string)
     static_if name == \"Object\"
       return getRW_ecs_object(child)
     static_elif name == \"Array\"
-      return getRW_ecs_array(child)")
+      return getRW_ecs_array(child)
+    static_elif name == \"IntList\"
+      return getRW_ecs_IntList(child)
+    static_elif name == \"FloatList\"
+      return getRW_ecs_FloatList(child)")
 
   for dasType, cType in keys(allTypes), values(allTypes)
     print("    static_elif name == \"{dasType}\"
@@ -899,7 +959,11 @@ def operator as(var child : ChildComponent# ==const; name : string)
     static_if name == \"Object\"
       return getRW_ecs_object(child)
     static_elif name == \"Array\"
-      return getRW_ecs_array(child)")
+      return getRW_ecs_array(child)
+    static_elif name == \"IntList\"
+      return getRW_ecs_IntList(child)
+    static_elif name == \"FloatList\"
+      return getRW_ecs_FloatList(child)")
 
   for dasType, cType in keys(allTypes), values(allTypes)
     print("    static_elif name == \"{dasType}\"

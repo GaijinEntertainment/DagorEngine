@@ -1,5 +1,6 @@
 #include <rendInst/debugCollisionVisualization.h>
 #include <rendInst/rendInstCollision.h>
+#include <rendInst/rendInstAccess.h>
 
 #include <util/dag_console.h>
 #include <shaders/dag_shaderVar.h>
@@ -147,14 +148,11 @@ static void draw_collision_info(const rendinst::CollisionInfo &coll, const Point
         BBox3 worldBox(worldBoxMin, worldBoxMax);
 
         BBox3 canopyBox; // synthetical tree canopy box
-        float canopyWidth = riProp.canopyWidthPart * (worldBox[1].y - worldBox[0].y) * 0.5f;
-        float boxHeight = worldBox[1].y - worldBox[0].y;
-        Point3 boxCenter = worldBox.center();
-        canopyBox[0].set(boxCenter.x - canopyWidth, worldBox[1].y - boxHeight * (riProp.canopyTopPart + riProp.canopyTopOffset),
-          boxCenter.z - canopyWidth);
-        canopyBox[1].set(boxCenter.x + canopyWidth, worldBox[1].y - boxHeight * riProp.canopyTopOffset, boxCenter.z + canopyWidth);
+        getRIGenCanopyBBox(riProp, worldBox, canopyBox);
+
         if (riProp.canopyTriangle)
         {
+          float canopyWidth = canopyBox.width().x * 0.5f;
           Point3 bottomCenter = {canopyBox.center().x, canopyBox.boxMin().y, canopyBox.center().z};
           float canopyHeight = canopyBox.boxMax().y - canopyBox.boxMin().y;
           draw_debug_solid_cone(bottomCenter, Point3(0, 1, 0), canopyWidth, canopyHeight, 8, color * sphereColor);

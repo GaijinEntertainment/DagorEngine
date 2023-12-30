@@ -143,7 +143,7 @@ void PointerPosition::update(float dt)
 }
 
 
-void PointerPosition::onSceneActivate()
+void PointerPosition::onActivateSceneInput()
 {
   if (HumanInput::IGenPointing *mouse = getMouse())
   {
@@ -156,7 +156,7 @@ void PointerPosition::onSceneActivate()
 }
 
 
-void PointerPosition::onAppActivate() { onSceneActivate(); }
+void PointerPosition::onAppActivate() { onActivateSceneInput(); }
 
 
 void PointerPosition::debugRender(StdGuiRender::GuiContext *ctx)

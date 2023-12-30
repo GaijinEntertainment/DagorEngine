@@ -22,17 +22,6 @@
 
 #define REPLICATE(v) v, v, v, v
 
-#if _TARGET_SIMD_VMX|_TARGET_SIMD_SPU
-  #define V_PERM_X 0x00010203
-  #define V_PERM_Y 0x04050607
-  #define V_PERM_Z 0x08090a0b
-  #define V_PERM_W 0x0c0d0e0f
-  #define V_PERM_A 0x10111213
-  #define V_PERM_B 0x14151617
-  #define V_PERM_C 0x18191a1b
-  #define V_PERM_D 0x1c1d1e1f
-#endif
-
 #if _TARGET_SIMD_SSE
   DECL_VEC_CONST vec4f_const V_C_HALF = { REPLICATE(0.5f) };
   DECL_VEC_CONST vec4f_const V_C_HALF_MINUS_EPS = { REPLICATE(0.5f - 1.192092896e-07f * 32) };

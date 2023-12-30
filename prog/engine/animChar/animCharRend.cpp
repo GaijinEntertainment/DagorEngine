@@ -385,7 +385,7 @@ bool AnimcharRendComponent::validateNodeMap() const
         logwarn("%s", err);
 #endif
 #if _TARGET_PC_WIN && !_TARGET_STATIC_LIB
-        fatal_x("%s", err);
+        DAG_FATAL(err);
 #endif
       }
   }

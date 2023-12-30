@@ -1,7 +1,7 @@
 #define __UNLIMITED_BASE_PATH     1
 #define __SUPPRESS_BLK_VALIDATION 1
 #include <startup/dag_mainCon.inc.cpp>
-#include <iosys/dag_findFiles.h>
+#include <ioSys/dag_findFiles.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <util/dag_strUtil.h>
 #include <util/dag_oaHashNameMap.h>
@@ -24,7 +24,7 @@ static bool clean_extra_res_files(const char *root_dir, const char *vrom_name, c
     return false;
   }
 
-  add_vromfs(vfs, true, "");
+  add_vromfs(vfs, true, nullptr);
   DataBlock resList;
   if (!resList.load(res_blk_name))
   {

@@ -1,4 +1,4 @@
-#include "../exporters/dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 #include <assets/assetPlugin.h>
 #include "../asset_ref_hlp.h"
 #include <debug/dag_debug.h>

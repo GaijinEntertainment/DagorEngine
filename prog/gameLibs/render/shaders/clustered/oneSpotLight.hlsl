@@ -54,7 +54,7 @@
 
   #if DYNAMIC_LIGHTS_SSS
     NoL = saturate(NoL);
-    half3 lightBRDF = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal);
+    half3 lightBRDF = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal, gbuffer.translucencyColor, gbuffer.translucency);
 
     #if USE_SSSS && SPOT_SHADOWS
       BRANCH if (gbuffer.material == SHADING_SUBSURFACE)

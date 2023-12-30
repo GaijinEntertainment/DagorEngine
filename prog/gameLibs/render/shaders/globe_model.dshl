@@ -442,7 +442,7 @@ shader globe_model
       return ret;
     }
 
-    half4 globe_model_ps(VsOutput input) : SV_Target
+    float4 globe_model_ps(VsOutput input) : SV_Target
     {
       float3 view = normalize(input.dir).xyz;
       float3 camera = bruneton_camera_position;
@@ -467,7 +467,7 @@ shader globe_model
       //inscatterColor = lerp(inscatterColor, luminance(inscatterColor) * globe_saturate_color.rgb, globe_saturate_color.a);//NOT needed. Was introduced because there was no mie
 
       half4 groundColor = calc_ground_color(bruneton_camera_position.xzy, view.xzy, skies_primary_sun_light_dir.xyz, skies_sun_color.rgb * globe_sun_light_mul * scatterLoss / PI);
-      return half4(groundColor.rgb * scatterLoss + inscatterColor.rgb, 1.0 - groundColor.a);
+      return float4(groundColor.rgb * scatterLoss + inscatterColor.rgb, 1.0 - groundColor.a);
     }
   }
   compile("target_ps", "globe_model_ps");
@@ -498,7 +498,7 @@ shader globe_model_apply_low
   }
 
   hlsl(ps) {
-    half4 globe_model_apply_low_ps(VsOutput input) : SV_Target
+    float4 globe_model_apply_low_ps(VsOutput input) : SV_Target
     {
       return tex2Dlod(source_tex, float4(input.screenUV, 0, 0));
     }

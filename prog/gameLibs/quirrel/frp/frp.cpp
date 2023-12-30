@@ -262,7 +262,7 @@ ObservablesGraph::ObservablesGraph(HSQUIRRELVM vm_) : vm(vm_)
   if (SQ_SUCCEEDED(sq_rawget(vm, -2)))
   {
     sq_pop(vm, 1);
-    fatal("Only one FRP graph per VM is allowed");
+    DAG_FATAL("Only one FRP graph per VM is allowed");
   }
 
   sq_pushuserpointer(vm, (SQUserPointer)observable_graph_key);

@@ -69,7 +69,7 @@ inline int ZlibLoadCB::tryReadImpl(void *ptr, int size)
       {
         if (dag_on_zlib_error_cb)
           dag_on_zlib_error_cb(getTargetName(), 0x10000 | ((unsigned)err & 0xFF));
-        fatal("zlib error %d in %s\nsource: '%s'\n", err, "inflateInit", getTargetName());
+        DAG_FATAL("zlib error %d in %s\nsource: '%s'\n", err, "inflateInit", getTargetName());
       }
       return -1;
     }
@@ -88,7 +88,7 @@ inline int ZlibLoadCB::tryReadImpl(void *ptr, int size)
       if (dag_on_zlib_error_cb)
         dag_on_zlib_error_cb(getTargetName(), 0x20000 | ((unsigned)res & 0xFF));
 
-      fatal("zlib error %d (%s) in %s\nsource: '%s'\n", res, ((z_stream *)&strm)->msg, "inflate", getTargetName());
+      DAG_FATAL("zlib error %d (%s) in %s\nsource: '%s'\n", res, ((z_stream *)&strm)->msg, "inflate", getTargetName());
     }
     return -1;
   }
@@ -153,7 +153,7 @@ bool ZlibLoadCB::ceaseReading()
     if (dag_on_zlib_error_cb)
       dag_on_zlib_error_cb(getTargetName(), 0x30000 | ((unsigned)err & 0xFF));
 
-    fatal("zlib error %d in %s\nsource: '%s'\n", err, "inflateEnd", getTargetName());
+    DAG_FATAL("zlib error %d in %s\nsource: '%s'\n", err, "inflateEnd", getTargetName());
   }
 
   isFinished = true;

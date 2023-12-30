@@ -21,15 +21,18 @@ public:
   {
     int minLevel;
     int maxLevel;
+    bool is_uav = false;
     id<MTLTexture> tex;
   };
 
   struct ApiTexture
   {
     Texture *base = nullptr;
-    id<MTLTexture> texture;
-    id<MTLTexture> sub_texture;
-    id<MTLTexture> rt_texture;
+    id<MTLTexture> texture = nil;
+    id<MTLTexture> texture_no_srgb = nil;
+    id<MTLTexture> sub_texture = nil;
+    id<MTLTexture> sub_texture_no_srgb = nil;
+    id<MTLTexture> rt_texture = nil;
     id<MTLTexture> stencil_read_texture = nil;
     eastl::vector<SubMip> sub_mip_textures;
     int tid = -1;
@@ -38,7 +41,7 @@ public:
     ApiTexture(id<MTLTexture> tex, const char *name);
     ApiTexture(Texture *base);
     void release(bool immediate);
-    id<MTLTexture> allocateOrCreateSubmip(int set_minlevel, int set_maxlevel);
+    id<MTLTexture> allocateOrCreateSubmip(int set_minlevel, int set_maxlevel, bool is_uav);
     void destroyObject() {}
   };
 
@@ -205,7 +208,7 @@ public:
   void doSetFilter(int filter, int mipfilter);
   void doSetAnisotropy(int level);
 
-  void apply(id<MTLTexture> &out_tex, bool is_read_stencil, int mip_level);
+  void apply(id<MTLTexture> &out_tex, bool is_read_stencil, int mip_level, bool is_uav);
   void applySampler(id<MTLSamplerState> &out_smp);
 
   virtual void destroy();

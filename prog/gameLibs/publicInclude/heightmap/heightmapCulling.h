@@ -36,6 +36,8 @@ struct LodGridVertexData
 class HeightmapHeightCulling
 {
 public:
+  static constexpr float NO_WATER_ON_LEVEL = -10000.0f;
+
   bool init(HeightmapHandler *handler);
   void updateMinMaxHeights(HeightmapHandler *handler, const IBBox2 &ib);
   void getMinMax(int lod, const Point2 &patch_corner, const real &patch_size, real &hMin, real &hMax) const;
@@ -93,4 +95,5 @@ class HMapTesselationData;
 void cull_lod_grid(const LodGrid &lodGrid, int max_lod, float originPosX, float originPosY, float scaleX, float scaleY, float alignX,
   float alignY, float hMin, float hMax, const Frustum *frustum, const BBox2 *clip, LodGridCullData &cull_data,
   const Occlusion *occlusion, float &out_lod0_area_radius, int dim = default_patch_dim, bool fight_t_junctions = true,
-  const HeightmapHeightCulling *handler = NULL, const HMapTesselationData *hmap_tdata = NULL, BBox2 *lodsRegion = nullptr);
+  const HeightmapHeightCulling *handler = NULL, const HMapTesselationData *hmap_tdata = NULL, BBox2 *lodsRegion = nullptr,
+  float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL, const Point3 *viewPos = nullptr);

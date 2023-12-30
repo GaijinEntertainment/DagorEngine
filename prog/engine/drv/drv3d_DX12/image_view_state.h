@@ -75,6 +75,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
   {
     D3D12_SHADER_RESOURCE_VIEW_DESC result;
     const auto fmt = getFormat();
+    G_ASSERT(!fmt.isDepth() || !is_multisampled || d3d::get_driver_desc().caps.hasReadMultisampledDepth);
     result.Format = fmt.asDxGiFormat();
     uint32_t planeSlice = 0;
     if (DXGI_FORMAT_D24_UNORM_S8_UINT == result.Format)
@@ -113,7 +114,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
     switch (dim)
     {
       case D3D12_RESOURCE_DIMENSION_BUFFER:
-      case D3D12_RESOURCE_DIMENSION_UNKNOWN: fatal("Usage error!"); return {};
+      case D3D12_RESOURCE_DIMENSION_UNKNOWN: DAG_FATAL("Usage error!"); return {};
       case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
         if (isArray)
         {
@@ -215,7 +216,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
     switch (dim)
     {
       case D3D12_RESOURCE_DIMENSION_BUFFER:
-      case D3D12_RESOURCE_DIMENSION_UNKNOWN: fatal("Usage error!"); return {};
+      case D3D12_RESOURCE_DIMENSION_UNKNOWN: DAG_FATAL("Usage error!"); return {};
       case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
         if (isArray)
         {
@@ -269,7 +270,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
     switch (dim)
     {
       case D3D12_RESOURCE_DIMENSION_BUFFER:
-      case D3D12_RESOURCE_DIMENSION_UNKNOWN: fatal("Usage error!"); return {};
+      case D3D12_RESOURCE_DIMENSION_UNKNOWN: DAG_FATAL("Usage error!"); return {};
       case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
         if (isArray)
         {
@@ -349,7 +350,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
     switch (dim)
     {
       case D3D12_RESOURCE_DIMENSION_BUFFER:
-      case D3D12_RESOURCE_DIMENSION_UNKNOWN: fatal("Usage error!"); return {};
+      case D3D12_RESOURCE_DIMENSION_UNKNOWN: DAG_FATAL("Usage error!"); return {};
       case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
         if (isArray)
         {
@@ -399,7 +400,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
           }
         }
         break;
-      case D3D12_RESOURCE_DIMENSION_TEXTURE3D: fatal("DX12: Volume depth stencil view not supported"); break;
+      case D3D12_RESOURCE_DIMENSION_TEXTURE3D: DAG_FATAL("DX12: Volume depth stencil view not supported"); break;
     }
     return result;
   }

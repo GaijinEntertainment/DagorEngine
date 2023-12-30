@@ -5,9 +5,9 @@ Modules
 =======
 
 Modules provide infrastructure for code reuse,
-as well as mechanism to expose C++ functionality to daScript.
+as well as mechanism to expose C++ functionality to Daslang.
 A module is a collection of types, constants, and functions.
-Modules can be native to daScript, as well as built-in.
+Modules can be native to Daslang, as well as built-in.
 
 To request a module, use the ``require`` keyword::
 
@@ -24,7 +24,7 @@ The project is responsible for resolving module names into file names (see :ref:
 Native modules
 --------------
 
-A native module is a separate daScript file, with an optional ``module`` name::
+A native module is a separate Daslang file, with an optional ``module`` name::
 
     module custom       // specifies module name
     ...
@@ -46,7 +46,7 @@ Default publicity of the functions, structures, or enumerations are that of the 
 Builtin modules
 ---------------
 
-Builtin modules are the way to expose C++ functionality to daScript (see :ref:`Builtin modules <embedding_modules>`).
+Builtin modules are the way to expose C++ functionality to Daslang (see :ref:`Builtin modules <embedding_modules>`).
 
 --------------
 Shared modules

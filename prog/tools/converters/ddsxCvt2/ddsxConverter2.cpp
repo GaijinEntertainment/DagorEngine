@@ -1,5 +1,6 @@
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/util/conLogWriter.h>
+#include <libTools/util/fileUtils.h>
 #include <assets/assetHlp.h>
 #include <assets/assetMgr.h>
 #include <assets/asset.h>
@@ -9,6 +10,13 @@
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
+#include <ioSys/dag_memIo.h>
+#include <ioSys/dag_ioUtils.h>
+#include <ioSys/dag_zlibIo.h>
+#include <ioSys/dag_lzmaIo.h>
+#include <ioSys/dag_zstdIo.h>
+#include <ioSys/dag_oodleIo.h>
+#include <3d/ddsxTex.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_globDef.h>
 #include <util/dag_string.h>
@@ -196,19 +204,11 @@ int DagorWinMain(bool debugmode)
   }
 
   char start_dir[260];
-#if _TARGET_PC_WIN
-  if (_fullpath(start_dir, dgs_argv[0], 260))
-#else
-  strncpy(start_dir, dgs_argv[0], 260);
-#endif
-  {
-    dd_simplify_fname_c(start_dir);
-    char *p = strrchr(start_dir, '/');
-    if (p)
-      *p = '\0';
-  }
+  dag_get_appmodule_dir(start_dir, sizeof(start_dir));
 #if _TARGET_PC_LINUX
   int pc = ddsx::load_plugins(String(260, "%s/../bin-linux64/plugins/ddsx", start_dir));
+#elif _TARGET_PC_MACOSX
+  int pc = ddsx::load_plugins(String(260, "%s/../bin-macosx/plugins/ddsx", start_dir));
 #elif _TARGET_64BIT
   int pc = ddsx::load_plugins(String(260, "%s/../bin64/plugins/ddsx", start_dir));
 #else
@@ -294,8 +294,6 @@ int DagorWinMain(bool debugmode)
       printf("ERR: texconvcache::init failed\n");
       return 13;
     }
-    if (!cp.canPack)
-      printf("WARNING: -pack- switch is ignored (DDSx will be packed)\n");
     if (!texconvcache::get_tex_asset_built_ddsx(*a, buf, four_cc, "ddsx", &log))
     {
       printf("ERR: Can't export image: %s, err=%s\n", argv[1], ddsx::get_last_error_text());
@@ -335,7 +333,47 @@ int DagorWinMain(bool debugmode)
       printf("ERR: cannot open output <%s>\n", (char *)out_fn);
     return 1;
   }
-  df_write(fp, buf.ptr, buf.len);
+  InPlaceMemLoadCB crd(buf.ptr, buf.len);
+  ddsx::Header hdr;
+  crd.read(&hdr, sizeof(hdr));
+
+  if (cp.canPack || !hdr.packedSz)
+    df_write(fp, buf.ptr, buf.len);
+  else
+  {
+    ddsx::Header hdr2 = hdr;
+    hdr2.flags &= ~ddsx::Header::FLG_COMPR_MASK;
+    hdr2.packedSz = 0;
+
+    LFileGeneralSaveCB cwr(fp);
+    cwr.write(&hdr2, sizeof(hdr2));
+    if (hdr.isCompressionZSTD())
+    {
+      ZstdLoadCB zcrd(crd, hdr.packedSz);
+      copy_stream_to_stream(zcrd, cwr, hdr.memSz);
+      zcrd.ceaseReading();
+    }
+    else if (hdr.isCompressionOODLE())
+    {
+      OodleLoadCB zcrd(crd, hdr.packedSz, hdr.memSz);
+      copy_stream_to_stream(zcrd, cwr, hdr.memSz);
+      zcrd.ceaseReading();
+    }
+    else if (hdr.isCompressionZLIB())
+    {
+      ZlibLoadCB zlib_crd(crd, hdr.packedSz);
+      copy_stream_to_stream(zlib_crd, cwr, hdr.memSz);
+      zlib_crd.ceaseReading();
+    }
+    else if (hdr.isCompression7ZIP())
+    {
+      LzmaLoadCB lzma_crd(crd, hdr.packedSz);
+      copy_stream_to_stream(lzma_crd, cwr, hdr.memSz);
+      lzma_crd.ceaseReading();
+    }
+    else
+      copy_stream_to_stream(crd, cwr, hdr.memSz);
+  }
   df_close(fp);
   buf.free();
 

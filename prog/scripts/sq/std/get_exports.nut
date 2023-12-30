@@ -1,7 +1,7 @@
 local argv = require_optional("dagor.system")?.argv ?? ::__argv
 
 
-let function get_arg_value_by_name(name){
+function get_arg_value_by_name(name){
   name = $"-{name}"
   foreach (a in argv){
     let l = name.len()
@@ -15,7 +15,7 @@ let function get_arg_value_by_name(name){
   return null
 }
 
-let function get_all_exports_for_file(fpath){
+function get_all_exports_for_file(fpath){
   let m = require(fpath.replace("\\","/"))
   if (type(m) != "table")
     return null
@@ -23,7 +23,7 @@ let function get_all_exports_for_file(fpath){
 }
 
 let __file__ = __filename__
-let function get_all_exports_in_folder(root = "."){
+function get_all_exports_in_folder(root = "."){
   let {scan_folder} = require("dagor.fs")
   let res = {}
   foreach (file in scan_folder({root, vromfs = false, realfs = true, recursive = true, files_suffix=".nut"})){

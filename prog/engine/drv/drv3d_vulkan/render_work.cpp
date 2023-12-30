@@ -81,6 +81,7 @@ struct CmdDumpContext
 } // namespace
 
 bool RenderWork::recordCommandCallers = false;
+bool RenderWork::cleanUpMemoryEveryWorkItem = false;
 
 void RenderWork::dumpData(FaultReportDump &dump) const
 {
@@ -226,6 +227,8 @@ void RenderWork::cleanup()
   unorderedImageColorClears.clear();
   unorderedImageDepthStencilClears.clear();
   imagesToFillEmptySubresources.clear();
+  bindlessTexUpdates.clear();
+  bindlessSamplerUpdates.clear();
 #if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
   raytraceBuildRangeInfoKHRStore.clear();
   raytraceGeometryKHRStore.clear();
@@ -254,6 +257,7 @@ void RenderWork::process()
   TIME_PROFILE(vulkan_render_work_process);
 
   ExecutionContext executionContext(*this);
+  executionContext.cleanupMemory();
   executionContext.prepareFrameCore();
   processCommands(executionContext);
   cleanups.backendAfterReplayCleanup(get_device().getContext().getBackend());

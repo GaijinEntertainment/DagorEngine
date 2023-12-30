@@ -23,6 +23,7 @@ struct PreparedSkies
   uint32_t frame = 0;
   uint32_t lastSkiesPrepareFrame = 0;
   uint32_t resetGen = 0;
+  bool skiesLutRestartTemporal = false;
   bool panoramic = false;
 
   Color4 skiesParams = {0, 0, 0, -1};

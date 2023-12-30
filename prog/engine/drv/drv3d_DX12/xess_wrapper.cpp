@@ -52,7 +52,7 @@ public:
     libxess.reset(os_dll_load("libxess.dll"));
     if (!libxess)
     {
-      debug("DX12: XeSS: Failed to load libxess.dll, xess will be disabled");
+      logdbg("DX12: XeSS: Failed to load libxess.dll, xess will be disabled");
       return false;
     }
 

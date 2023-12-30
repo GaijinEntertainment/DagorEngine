@@ -28,6 +28,11 @@ static int mkdir(const char *path) { return mkdir(path, 0777); }
 
 
 #endif
+#if _TARGET_PC_WIN
+#include <windows.h>
+#elif _TARGET_PC_MACOSX
+#include <libproc.h>
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -470,3 +475,25 @@ bool dag_rmtree(const char *path)
 
   return (bool)::dd_rmdir(realPath);
 }
+
+#if _TARGET_PC
+char *dag_get_appmodule_dir(char *dirbuf, size_t dirbufsz)
+{
+#if _TARGET_PC_WIN
+  GetModuleFileNameA(NULL, dirbuf, dirbufsz);
+#elif _TARGET_PC_MACOSX
+  char buf[PROC_PIDPATHINFO_MAXSIZE];
+  if (proc_pidpath(getpid(), buf, sizeof(buf)) < 0)
+    dirbuf[0] = '\0';
+  else
+    snprintf(dirbuf, dirbufsz, "%s", buf);
+#else
+  if (readlink("/proc/self/exe", dirbuf, dirbufsz) < 0)
+    dirbuf[0] = '\0';
+#endif
+  dd_simplify_fname_c(dirbuf);
+  if (char *p = strrchr(dirbuf, '/'))
+    *p = '\0';
+  return dirbuf;
+}
+#endif

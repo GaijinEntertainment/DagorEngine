@@ -12,13 +12,15 @@ namespace dabfg
 {
 struct InternalRegistry;
 class NameResolver;
+struct DependencyData;
 } // namespace dabfg
 
 namespace dabfg
 {
 class NodeTracker;
 
-void update_graph_visualization(const NodeTracker *, eastl::span<const NodeNameId> node_execution_order);
+void update_graph_visualization(InternalRegistry &registry, const DependencyData &deps,
+  eastl::span<const NodeNameId> node_execution_order);
 void invalidate_graph_visualization();
 void reset_texture_visualization();
 
@@ -33,4 +35,6 @@ void validation_of_external_resources_duplication(
   const IdIndexedMapping<intermediate::ResourceIndex, intermediate::Resource> &resources,
   const IdIndexedMapping<intermediate::ResourceIndex, intermediate::DebugResourceName> &resourceNames);
 void validate_global_state(const InternalRegistry &registry, NodeNameId node);
+
+void dump_ir_graph(const intermediate::Graph &graph);
 } // namespace dabfg

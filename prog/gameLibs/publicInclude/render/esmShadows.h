@@ -10,6 +10,7 @@
 #include <3d/dag_resPtr.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_overrideStates.h>
+#include <shaders/dag_DynamicShaderHelper.h>
 
 class EsmShadows
 {
@@ -22,6 +23,8 @@ public:
   void beginRenderSlice(int slice_id);
   void endRenderSlice();
 
+  ShaderElement *getShader() const { return esmDepthShader.shader.get(); }
+
 private:
   void blur(int slice);
   void initEsmShadowsStateId();
@@ -29,6 +32,7 @@ private:
   UniqueTex esmShadowBlurTmp;
   UniqueTexHolder esmShadowArray;
   PostFxRenderer esmBlurRenderer;
+  DynamicShaderHelper esmDepthShader;
 
   int currentSlice = -1;
   shaders::UniqueOverrideStateId esmShadowsStateId;

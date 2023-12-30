@@ -9,14 +9,17 @@
 #include <libTools/util/makeBindump.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/util/strUtil.h>
+#include <libTools/util/fileUtils.h>
 #include <generic/dag_smallTab.h>
 #include <startup/dag_globalSettings.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "mutexAA.h"
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <unistd.h>
+#endif
 
 static void loadDdsxPluginsOnce();
-extern SimpleString pvrtexOpt;
 
 
 BinFormat::BinFormat() : fonts(midmem_ptr()), ims(midmem_ptr()), texws(midmem_ptr()), texhs(midmem_ptr()) {}
@@ -426,16 +429,13 @@ static void loadDdsxPluginsOnce()
     return;
 
   char start_dir[260];
-  if (_fullpath(start_dir, __argv[0], 260))
-  {
-    char *p = strrchr(start_dir, '\\');
-    if (!p)
-      p = strrchr(start_dir, '/');
-    if (p)
-      *p = '\0';
-  }
+  dag_get_appmodule_dir(start_dir, sizeof(start_dir));
 
-#if _TARGET_64BIT
+#if _TARGET_PC_LINUX
+  ddsx::load_plugins(String(260, "%s/../bin-linux64/plugins/ddsx", start_dir));
+#elif _TARGET_PC_MACOSX
+  ddsx::load_plugins(String(260, "%s/../bin-macosx/plugins/ddsx", start_dir));
+#elif _TARGET_64BIT
   ddsx::load_plugins(String(260, "%s/../bin64/plugins/ddsx", start_dir));
 #else
   ddsx::load_plugins(String(260, "%s/../bin/plugins/ddsx", start_dir));

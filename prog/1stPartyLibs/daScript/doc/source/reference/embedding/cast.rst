@@ -8,13 +8,13 @@ C++ ABI and type factory infrastructure
 Cast
 ----
 
-When C++ interfaces with daScript, the `cast` ABI is followed.
+When C++ interfaces with Daslang, the `cast` ABI is followed.
 
  * Value types are converted to and from `vec4f`, in specific memory layout
  * Reference types have their address converted to and from `vec4f`
 
 It is expected that vec4f * can be pruned to a by value type by simple pointer cast
-becase the daScript interpreter will in certain cases access pre-cast data via the v_ldu intrinsic::
+becase the Daslang interpreter will in certain cases access pre-cast data via the v_ldu intrinsic::
 
     template <typename TT>
     TT get_data ( vec4f * dasData ) {           // default version
@@ -27,12 +27,12 @@ becase the daScript interpreter will in certain cases access pre-cast data via t
 
 ABI infrastructure is implemented via the C++ cast template, which serves two primary functions:
 
- * Casting ``from`` C++ to daScript
- * Casting ``to`` C++ from daScript
+ * Casting ``from`` C++ to Daslang
+ * Casting ``to`` C++ from Daslang
 
-The ``from`` function expects a daScript type as an input, and outputs a vec4f.
+The ``from`` function expects a Daslang type as an input, and outputs a vec4f.
 
-The ``to`` function expects a vec4f, and outputs a daScript type.
+The ``to`` function expects a vec4f, and outputs a Daslang type.
 
 Let's review the following example::
 
@@ -58,14 +58,14 @@ Here, a pointer to the data is packed in a vec4f using multiplatform intrinsics.
 Type factory
 ------------
 
-When C++ types are exposed to daScript, type factory infrastructure is employed.
+When C++ types are exposed to Daslang, type factory infrastructure is employed.
 
 To expose any custom C++ type, use the ``MAKE_TYPE_FACTORY`` macro,
 or the ``MAKE_EXTERNAL_TYPE_FACTORY`` and ``IMPLEMENT_EXTERNAL_TYPE_FACTORY`` macro pair::
 
     MAKE_TYPE_FACTORY(clock, das::Time)
 
-The example above tells daScript that the C++ type `das::Time` will be exposed to daScript with the name `clock`.
+The example above tells Daslang that the C++ type `das::Time` will be exposed to Daslang with the name `clock`.
 
 Let's look at the implementation of the ``MAKE_TYPE_FACTORY`` macro::
 
@@ -87,7 +87,7 @@ What happens in the example above is that two templated policies are exposed to 
 
 The ``typeName`` policy has a single static function ``name``, which returns the string name of the type.
 
-The ``typeFactory`` policy creates a smart pointer to daScript the `das::TypeDecl` type, which corresponds to C++ type.
+The ``typeFactory`` policy creates a smart pointer to Daslang the `das::TypeDecl` type, which corresponds to C++ type.
 It expects to find the type somewhere in the provided ModuleLibrary (see :ref:`Modules <modules>`).
 
 ------------
@@ -110,11 +110,11 @@ A custom type factory is the preferable way to create aliases::
 
     template <> struct typeName<Point3>   { constexpr static const char * name() { return "Point3"; } };
 
-In the example above, the C++ application already has a `Point3` type, which is very similar to daScript's float3.
+In the example above, the C++ application already has a `Point3` type, which is very similar to Daslang's float3.
 Exposing C++ functions which operate on Point3 is preferable, so the implementation creates an alias named `Point3`
 which corresponds to the das Type::tFloat3.
 
-Sometimes, a custom implementation of ``typeFactory`` is required to expose C++ to a daScript
+Sometimes, a custom implementation of ``typeFactory`` is required to expose C++ to a Daslang
 type in a more native fashion. Let's review the following example::
 
     struct SampleVariant {
@@ -145,5 +145,5 @@ type in a more native fashion. Let's review the following example::
       }
   };
 
-Here, C++ type `SomeVariant` matches the daScript variant type with its memory layout.
+Here, C++ type `SomeVariant` matches the Daslang variant type with its memory layout.
 The code above exposes a C++ type alias and creates a corresponding TypeDecl.

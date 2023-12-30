@@ -85,7 +85,6 @@
       <word name="DefFile"/>
       <word name="UseRootLibs"/>
       <word name="ImportProgLibs"/>
-      <word name="CoExportProgDlls"/>
       <word name="SrcFiles"/>
       <word name="SrcDir"/>
       <word name="SrcFilesEx"/>

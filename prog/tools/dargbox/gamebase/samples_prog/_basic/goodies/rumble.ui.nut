@@ -9,7 +9,7 @@ let rumbleVals = {
 }
 
 
-let function slider(rumble_field) {
+function slider(rumble_field) {
   let minVal = 0.0
   let maxVal = 1.0
 
@@ -19,7 +19,7 @@ let function slider(rumble_field) {
     pos = [-10,0]
   }
 
-   let function onChange(val) {
+   function onChange(val) {
      vlog($"rumble_field ->{val}")
      rumbleVals[rumble_field](val)
 //     get_rumble()[rumble_field] = val

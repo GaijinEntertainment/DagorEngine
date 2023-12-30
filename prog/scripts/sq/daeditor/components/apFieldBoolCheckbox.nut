@@ -6,7 +6,7 @@ let {setValToObj, getValFromObj, isCompReadOnly} = require("attrUtil.nut")
 let entity_editor = require("entity_editor")
 
 let getVal = @(eid, comp_name, path) path==null ? _dbg_get_comp_val_inspect(eid, comp_name) : getValFromObj(eid, comp_name, path)
-let function fieldBoolCheckbox(params = {}) {
+function fieldBoolCheckbox(params = {}) {
   let {eid, comp_name, path, rawComponentName=null} = params
   local curRO = isCompReadOnly(eid, rawComponentName)
   local curVal = getVal(eid, rawComponentName, path)
@@ -16,11 +16,11 @@ let function fieldBoolCheckbox(params = {}) {
   let stateFlags = Watched(0)
   let hoverFlag = Computed(@() stateFlags.value & S_HOVER)
 
-  let function updateTextFromEcs() {
+  function updateTextFromEcs() {
     let val = getVal(eid, rawComponentName, path)
     curVal.update(val)
   }
-  let function onClick() {
+  function onClick() {
     if (curRO)
       return
     let val = !getVal(eid, rawComponentName, path)

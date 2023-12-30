@@ -148,7 +148,7 @@ struct DrvBuffer
       if (autoRealloc)
         setBufSize(size, ti);
       else
-        fatal("need buffer size = %dK | exist buffer size = %dK", size >> 10, bufSz[ti] >> 10);
+        DAG_FATAL("need buffer size = %dK | exist buffer size = %dK", size >> 10, bufSz[ti] >> 10);
     }
     if (!buf[ti])
       buf[ti] = new char[bufSz[ti]];

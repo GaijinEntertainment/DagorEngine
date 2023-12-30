@@ -86,7 +86,7 @@ protected:
         result.gpuPointer = getGPUPointer() + allocationBegin;
 #endif
         result.pointer = getCPUPointer() + allocationBegin;
-        result.range = {allocationBegin, allocationEnd};
+        result.range = ValueRange<uint64_t>{allocationBegin, allocationEnd};
 
         allocationOffset = allocationEnd;
         allocationSize += extra + result.range.size();
@@ -175,10 +175,6 @@ protected:
 
       RingSegment newSegment;
       auto errorCode = newSegment.create(device, desc, allocation, initialState, true);
-      if (is_oom_error_code(errorCode))
-      {
-        heap->reportOOMInformation();
-      }
       if (DX12_CHECK_FAIL(errorCode))
       {
         heap->free(allocation);
@@ -308,7 +304,10 @@ public:
   HostDeviceSharedMemoryRegion allocatePushMemory(DXGIAdapter *adapter, ID3D12Device *device, uint32_t size, uint32_t alignment)
   {
     auto result = pushRing.access()->allocate(this, adapter, device, size, alignment);
-    recordConstantRingUsed(size);
+    if (checkForOOM(static_cast<bool>(result), "DX12: OOM during %s", "allocatePushMemory"))
+    {
+      recordConstantRingUsed(size);
+    }
     return result;
   }
 
@@ -375,7 +374,10 @@ public:
   HostDeviceSharedMemoryRegion allocateUploadRingMemory(DXGIAdapter *adapter, ID3D12Device *device, uint32_t size, uint32_t alignment)
   {
     auto result = uploadRing.access()->allocate(this, adapter, device, size, alignment);
-    recordUploadRingUsed(size);
+    if (checkForOOM(static_cast<bool>(result), "DX12: OOM during %s", "allocateUploadRingMemory"))
+    {
+      recordUploadRingUsed(size);
+    }
     return result;
   }
 
@@ -478,19 +480,13 @@ protected:
 
           if (!allocation)
           {
-            currentBuffer.fillSize = 0;
             return result;
           }
 
           auto errorCode = currentBuffer.create(device, desc, allocation, initialState, true);
-          if (is_oom_error_code(errorCode))
-          {
-            heap->reportOOMInformation();
-          }
           if (DX12_CHECK_FAIL(errorCode))
           {
             heap->free(allocation);
-            currentBuffer.fillSize = 0;
             return result;
           }
 
@@ -511,7 +507,7 @@ protected:
       currentBufferUse += currentBuffer.fillSize - oldFill;
       G_ASSERT(result.pointer);
       G_ASSERT(result.buffer);
-      result.range = make_value_range(offset, size);
+      result.range = make_value_range<uint64_t>(offset, size);
       return result;
     }
 
@@ -648,7 +644,7 @@ protected:
       bool anySeen = false;
       if (currentBuffer.allocations > 0)
       {
-        debug("DX12: Buffer %p has still %u allocations...", currentBuffer.buffer.Get(), currentBuffer.allocations);
+        logdbg("DX12: Buffer %p has still %u allocations...", currentBuffer.buffer.Get(), currentBuffer.allocations);
         anySeen = true;
       }
       // Scan all pending buffers and see if any of them has still some allocations pending.
@@ -656,7 +652,7 @@ protected:
       {
         if (buffer.allocations > 0)
         {
-          debug("DX12: Buffer %p has still %u allocations...", buffer.buffer.Get(), buffer.allocations);
+          logdbg("DX12: Buffer %p has still %u allocations...", buffer.buffer.Get(), buffer.allocations);
           anySeen = true;
         }
       }
@@ -785,14 +781,16 @@ public:
   {
     should_flush = false;
     HostDeviceSharedMemoryRegion result;
+    auto oomCheckOnExit =
+      checkForOOMOnExit([&result]() { return static_cast<bool>(result); }, "DX12: OOM during %s", "allocateTempUpload");
     {
       auto tempBufferAccess = tempBuffer.access();
       result = tempBufferAccess->allocate(this, adapter, device, size, alignment);
       if (!result)
       {
         ByteUnits reqSize{size};
-        debug("TemporaryUploadMemoryProvider::allocateTempUpload: Allocation failed, let's trim "
-              "heaps and try again. Size: %.2f %s, Error code: 0x%08X",
+        logdbg("TemporaryUploadMemoryProvider::allocateTempUpload: Allocation failed, let's trim "
+               "heaps and try again. Size: %.2f %s, Error code: 0x%08X",
           reqSize.units(), reqSize.name(), GetLastError());
         tempBufferAccess->trim(this);
         result = tempBufferAccess->allocate(this, adapter, device, size, alignment);
@@ -805,7 +803,7 @@ public:
         ByteUnits currentUsage{tempBufferAccess->tempUsage};
         ByteUnits usageLimit{tempBufferAccess->tempUsageLimit};
         ByteUnits reqSize{size};
-        debug("DX12: Out of temp upload pool budget, usage %.2f %s of %.2f %s, while allocating %.2f %s, flushing.",
+        logdbg("DX12: Out of temp upload pool budget, usage %.2f %s of %.2f %s, while allocating %.2f %s, flushing.",
           currentUsage.units(), currentUsage.name(), usageLimit.units(), usageLimit.name(), reqSize.units(), reqSize.name());
       }
     }
@@ -817,6 +815,9 @@ public:
     size_t alignment)
   {
     HostDeviceSharedMemoryRegion result;
+    bool wasOutOfBudget = false;
+    auto oomCheckOnExit = checkForOOMOnExit([&result, &wasOutOfBudget]() { return static_cast<bool>(result) || wasOutOfBudget; },
+      "DX12: OOM during %s", "allocateTempUploadForUploadBuffer");
     {
       auto tempBufferAccess = tempBuffer.access();
       if (tempBufferAccess->uploadBufferUsage > tempBufferAccess->uploadBufferUsageLimit)
@@ -825,9 +826,10 @@ public:
         ByteUnits usageLimit{tempBufferAccess->uploadBufferUsageLimit};
         ByteUnits reqSize{size};
         // Out of budget, return empty region
-        debug("DX12: Out of upload buffer pool, usage %.2f %s of %.2f %s, while trying to allocate "
-              "%.2f %s",
+        logdbg("DX12: Out of upload buffer pool, usage %.2f %s of %.2f %s, while trying to allocate "
+               "%.2f %s",
           currentUsage.units(), currentUsage.name(), usageLimit.units(), usageLimit.name(), reqSize.units(), reqSize.name());
+        wasOutOfBudget = true;
 
         return result;
       }
@@ -897,7 +899,7 @@ protected:
 
     struct MemoryBufferHeap : BasicBuffer
     {
-      eastl::vector<ValueRange<size_t>> freeRanges;
+      eastl::vector<ValueRange<uint64_t>> freeRanges;
 
       HostDeviceSharedMemoryRegion allocate(size_t size, size_t alignment)
       {
@@ -905,7 +907,7 @@ protected:
         auto at = free_list_find_smallest_fit_aligned(freeRanges, size, alignment);
         if (at != end(freeRanges))
         {
-          auto range = make_value_range<size_t>(align_value(at->front(), alignment), size);
+          auto range = make_value_range<uint64_t>(align_value<size_t>(at->front(), alignment), size);
           auto p2 = at->cutOut(range);
           if (at->empty())
           {
@@ -934,7 +936,7 @@ protected:
         }
         return result;
       }
-      bool free(ValueRange<size_t> range)
+      bool free(ValueRange<uint64_t> range)
       {
         free_list_insert_and_coalesce(freeRanges, range);
         return freeRanges.size() == 1 && freeRanges.front().size() == bufferMemory.size();
@@ -943,7 +945,7 @@ protected:
 
     eastl::vector<MemoryBufferHeap> buffers;
 
-    void free(HeapType *heap, ID3D12Resource *res, ValueRange<size_t> range)
+    void free(HeapType *heap, ID3D12Resource *res, ValueRange<uint64_t> range)
     {
       auto heapRef = eastl::find_if(begin(buffers), end(buffers),
         [res](const auto &heap) //
@@ -1004,10 +1006,6 @@ protected:
       }
 
       auto errorCode = newHeap.create(device, desc, allocation, initialState, true);
-      if (is_oom_error_code(errorCode))
-      {
-        heap->reportOOMInformation();
-      }
       if (DX12_CHECK_FAIL(errorCode))
       {
         heap->free(allocation);
@@ -1016,7 +1014,7 @@ protected:
 
       T::onSegmentAdd(heap, newHeap.bufferMemory, newHeap.buffer.Get());
 
-      newHeap.freeRanges.push_back(make_value_range<size_t>(0, desc.Width));
+      newHeap.freeRanges.push_back(make_value_range(0ull, desc.Width));
       result = newHeap.allocate(size, alignment);
       G_ASSERT(static_cast<bool>(result));
       buffers.push_back(eastl::move(newHeap));
@@ -1102,7 +1100,10 @@ public:
     size_t alignment)
   {
     auto result = uploadMemory.access()->allocate(this, adapter, device, size, alignment);
-    recordPersistentUploadMemoryAllocated(size);
+    if (checkForOOM(static_cast<bool>(result), "DX12: OOM during %s", "allocatePersistentUploadMemory"))
+    {
+      recordPersistentUploadMemoryAllocated(size);
+    }
     return result;
   }
 
@@ -1182,7 +1183,10 @@ public:
   HostDeviceSharedMemoryRegion allocatePersistentReadBack(DXGIAdapter *adapter, ID3D12Device *device, size_t size, size_t alignment)
   {
     auto result = readBackMemory.access()->allocate(this, adapter, device, size, alignment);
-    recordPersistentReadBackMemoryAllocated(size);
+    if (checkForOOM(static_cast<bool>(result), "DX12: OOM during %s", "allocatePersistentReadBack"))
+    {
+      recordPersistentReadBackMemoryAllocated(size);
+    }
     return result;
   }
 
@@ -1263,7 +1267,10 @@ public:
     size_t alignment)
   {
     auto result = bidirectionalMemory.access()->allocate(this, adapter, device, size, alignment);
-    recordPersistentBidirectionalMemoryAllocated(size);
+    if (checkForOOM(static_cast<bool>(result), "DX12: OOM during %s", "allocatePersistentBidirectional"))
+    {
+      recordPersistentBidirectionalMemoryAllocated(size);
+    }
     return result;
   }
 

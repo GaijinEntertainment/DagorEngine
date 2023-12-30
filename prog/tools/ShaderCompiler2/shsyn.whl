@@ -220,7 +220,7 @@ code_in_h_after_all            = {
 
 code_in_cpp            = {
   #include "shsem.h"
-  #include "ShLog.h"
+  #include "shLog.h"
   using namespace ShaderParser;
   #pragma optimize("", off)
   #pragma optimize("ityb2", on)
@@ -234,7 +234,7 @@ declaration(declaration) ->
   shader-decl=shader |
   block-decl=block |
   global-decl=global_decl |
-  sampler-decl=sampler_decl |
+  sampler-decl=smp_decl |
   (interval-decl=inteval_decl {add_global_interval(*(n->inteval_decl));}) |
   hlsl-global-decl |
   (assume-stat=global_assume {add_global_assume(*(n->global_assume));}) |
@@ -253,10 +253,10 @@ block-decl(block_decl) ->
 
 shader-stat(shader_stat) ->
   sh-if-stat=if_stat |
-  bool-decl=bool_decl |
+  bool-decl=boolean_decl |
   zbias-state-stat=zbias_state | state-stat=state |
   external-state-block = external_block |
-  immediate-const-block = immediate_const_block |
+  immediate-const-block = imm_const_block |
   supports-stat=supports |
   render-stage-stat=render_stage |
   assume-stat=assume |
@@ -271,7 +271,7 @@ shader-stat(shader_stat) ->
 
 block-stat(block_stat) ->
   block-if-stat=if_stat | local-decl=local_decl |
-  state-stat=state | immediate-const-block = immediate_const_block |
+  state-stat=state | immediate-const-block = imm_const_block |
   external-state-block=external_block | supports-stat=supports;
 
 
@@ -506,12 +506,12 @@ external-variable-array(external_variable_array) ->
   [";"=nothing];
 
 external-state-block(external_state_block) -> "("=nothing ident=scope ")"=nothing "{"=nothing
-  (state-block-stat=state_block_stat)*
+  (state-block-stat=stblock_stat)*
   "}"=nothing
   [";"=nothing];
 
 state-block-stat(state_block_stat) ->
-  state-block-if-stat=state_block_if_stat |
+  state-block-if-stat=stblock_if_stat |
   (external-variable = var) | (external-variable-array = arr) | (external-register = reg);
 
 state-block-if-stat(state_block_if_stat) -> "if"=nothing "("=nothing bool-expr=expr ")"=nothing

@@ -33,6 +33,13 @@ void PipelineStatePendingReferenceList::cleanupObj(RenderPassResource *obj)
 }
 
 template <>
+void PipelineStatePendingReferenceList::cleanupObj(SamplerResource *obj)
+{
+  FrameInfo &frame = get_device().getContext().getBackend().contextState.frame.get();
+  frame.cleanups.enqueueFromBackend<SamplerResource::CLEANUP_DESTROY>(*obj);
+}
+
+template <>
 eastl::vector<Image *> &PipelineStatePendingReferenceList::getArray()
 {
   return images;
@@ -54,6 +61,12 @@ template <>
 eastl::vector<RenderPassResource *> &PipelineStatePendingReferenceList::getArray()
 {
   return renderPasses;
+}
+
+template <>
+eastl::vector<SamplerResource *> &PipelineStatePendingReferenceList::getArray()
+{
+  return samplers;
 }
 
 } // namespace drv3d_vulkan

@@ -1,0 +1,34 @@
+
+float4 prev_globtm_psf_0 always_referenced;
+float4 prev_globtm_psf_1 always_referenced;
+float4 prev_globtm_psf_2 always_referenced;
+float4 prev_globtm_psf_3 always_referenced;
+
+macro USE_PREV_TC(code)
+  (code) {
+    prev_globtm_psf@f44 = { prev_globtm_psf_0, prev_globtm_psf_1, prev_globtm_psf_2, prev_globtm_psf_3 };
+  }
+  hlsl(code) {
+    float2 getPrevTc(float3 world_pos, out float3 prev_clipSpace)
+    {
+      float4 lastClipSpacePos = mulPointTm(world_pos, prev_globtm_psf);
+      prev_clipSpace = lastClipSpacePos.w < 0.0001 ? float3(2,2,2) : lastClipSpacePos.xyz/lastClipSpacePos.w;
+      return prev_clipSpace.xy*float2(0.5,-0.5) + float2(0.5,0.5);
+    }
+    float2 getPrevTc(float3 world_pos)
+    {
+      float3 prevClip;
+      return getPrevTc(world_pos, prevClip);
+    }
+
+    bool checkOffscreenTc3d(float3 screen_tc)
+    {
+      return any(abs(screen_tc - 0.5) >= 0.4999);
+    }
+    bool checkOffscreenTc2d(float2 screen_tc)
+    {
+      return checkOffscreenTc3d(float3(screen_tc, 0.5));
+    }
+  }
+endmacro
+

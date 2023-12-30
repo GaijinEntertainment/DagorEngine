@@ -51,7 +51,7 @@ shader debug_ri_shaded
       return tex2Dlod(downsampled_far_depth_tex, float4(tc, 0, 0)).x;
     }
 
-    half4 debug_shaded_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target
+    float4 debug_shaded_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target
     {
       if (wireframe == 1)
         return wire_color;

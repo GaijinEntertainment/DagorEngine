@@ -57,6 +57,7 @@ static PhysWorld *phys_world = NULL;
 static danet::BitStream cachedDestr;
 static WinCritSec delayed_ri_extra_destr_mutex;
 static dag::Vector<rendinst::RendInstDesc> delayed_ri_extra_destruction;
+static int delayed_ri_extra_destruction_destr_count = 0;
 static Tab<RendInstPhys> riPhys(midmem);
 static Tab<CachedCollisionObjectInfo *> cachedCollisionObjects(midmem);
 static CollisionObject tree_collision;
@@ -226,6 +227,7 @@ void rendinstdestr::shutdown()
   endSession();
   destroy_refl_object();
   ri_effect_cb = nullptr;
+  rendinst::sweep_rendinst_cb = nullptr;
   decltype(on_rendinst_destroyed_callbacks)().swap(on_rendinst_destroyed_callbacks);
 }
 
@@ -251,6 +253,7 @@ void rendinstdestr::endSession()
 
   WinAutoLock lock(delayed_ri_extra_destr_mutex);
   clear_and_shrink(delayed_ri_extra_destruction);
+  delayed_ri_extra_destruction_destr_count = 0;
 }
 
 mpi::IObject *rendinstdestr::getReflectionObject() { return get_refl_object(); }
@@ -865,8 +868,9 @@ static void do_delayed_ri_extra_destruction_impl()
     if (const auto idx = rendinst::find_restorable_data_index(desc); idx >= 0)
     {
       desc.idx = idx;
-      destroyRendinst(desc, false, ZERO<Point3>(), ZERO<Point3>(), 0.f, NULL, get_ri_damage_effect_cb() != nullptr,
-        get_ri_damage_effect_cb(), get_destr_settings().isClient);
+      destroyRendinst(desc, false, ZERO<Point3>(), ZERO<Point3>(), 0.f, nullptr,
+        get_ri_damage_effect_cb() != nullptr && (--delayed_ri_extra_destruction_destr_count > 0), get_ri_damage_effect_cb(),
+        get_destr_settings().isClient);
       it = delayed_ri_extra_destruction.erase_unsorted(it);
     }
     else
@@ -874,6 +878,8 @@ static void do_delayed_ri_extra_destruction_impl()
       ++it;
     }
   }
+  delayed_ri_extra_destruction_destr_count =
+    eastl::min(delayed_ri_extra_destruction_destr_count, int(delayed_ri_extra_destruction.size()));
 }
 
 void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply_flags, int max_simultaneous_destrs)
@@ -1149,6 +1155,7 @@ void rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
           delayed_ri_extra_destruction.end())
         delayed_ri_extra_destruction.push_back(desc);
     }
+    delayed_ri_extra_destruction_destr_count += newDestrs;
   }
 }
 

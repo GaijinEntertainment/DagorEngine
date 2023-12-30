@@ -13,7 +13,7 @@ static bool def_app_console_handler(const char *argv[], int argc) // use it only
   if (argc < 1)
     return false;
   int found = 0;
-  CONSOLE_CHECK_NAME("app", "fatal", 1, 1) { fatal("Manual fatal from console"); }
+  CONSOLE_CHECK_NAME("app", "fatal", 1, 1) { DAG_FATAL("Manual fatal from console"); }
   CONSOLE_CHECK_NAME("app", "dflush", 1, 2) { debug_flush(argc > 1 ? to_bool(argv[1]) : false); }
   CONSOLE_CHECK_NAME("app", "crash", 1, 1) { *(volatile int *)0 = 0; }
   CONSOLE_CHECK_NAME("app", "sleep_msec_once", 2, 2) { sleep_msec(atoi(argv[1])); }

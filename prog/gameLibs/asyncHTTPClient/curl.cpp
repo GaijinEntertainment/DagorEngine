@@ -590,7 +590,7 @@ void abort_request(RequestId req_id)
       return;
     }
   }
-  G_ASSERTF(false, "HTTP: trying to abort non-existent http request %p", (void *)req_id);
+  debug("HTTP: trying to abort non-existent http request %p", (void *)req_id);
 }
 
 void abort_all_requests(AbortMode mode)

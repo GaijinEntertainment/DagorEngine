@@ -265,10 +265,10 @@ void DynamicShadersBuffer::addFaces(const void *vertex_data, int num_verts, cons
   G_ASSERT(num_verts && num_faces);
 
   if (num_verts > maxVerts)
-    fatal("num_verts > maxVerts!\nnum_verts=%d maxVerts=%d num_faces=%d maxFaces=%d", num_verts, maxVerts, num_faces, maxFaces);
+    DAG_FATAL("num_verts > maxVerts!\nnum_verts=%d maxVerts=%d num_faces=%d maxFaces=%d", num_verts, maxVerts, num_faces, maxFaces);
 
   if (num_faces > maxFaces)
-    fatal("num_faces > maxFaces!\nnum_verts=%d maxVerts=%d num_faces=%d maxFaces=%d", num_verts, maxVerts, num_faces, maxFaces);
+    DAG_FATAL("num_faces > maxFaces!\nnum_verts=%d maxVerts=%d num_faces=%d maxFaces=%d", num_verts, maxVerts, num_faces, maxFaces);
 
   if ((usedVerts + num_verts > maxVerts) || (usedFaces + num_faces > maxFaces))
   {
@@ -300,10 +300,10 @@ void DynamicShadersBuffer::fillRawFaces(void **vertex_data, int num_verts, uint3
   G_ASSERT(vBuf);
 
   if (num_verts > maxVerts)
-    fatal("num_verts > maxVerts!\nnum_verts=%d maxVerts=%d num_faces=%d maxFaces=%d", num_verts, maxVerts, num_faces, maxFaces);
+    DAG_FATAL("num_verts > maxVerts!\nnum_verts=%d maxVerts=%d num_faces=%d maxFaces=%d", num_verts, maxVerts, num_faces, maxFaces);
 
   if (num_faces > maxFaces)
-    fatal("num_faces > maxFaces!\nnum_verts=%d maxVerts=%d num_faces=%d maxFaces=%d", num_verts, maxVerts, num_faces, maxFaces);
+    DAG_FATAL("num_faces > maxFaces!\nnum_verts=%d maxVerts=%d num_faces=%d maxFaces=%d", num_verts, maxVerts, num_faces, maxFaces);
 
   if ((usedVerts + num_verts > maxVerts) || (usedFaces + num_faces > maxFaces))
   {

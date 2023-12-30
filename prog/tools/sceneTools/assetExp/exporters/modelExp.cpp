@@ -6,7 +6,7 @@
 #include <assets/assetMgr.h>
 #include <assets/assetMsgPipe.h>
 #include <libTools/dagFileRW/textureNameResolver.h>
-#include <libTools/util/makeBinDump.h>
+#include <libTools/util/makeBindump.h>
 #include <libTools/shaderResBuilder/dynSceneResSrc.h>
 #include <libTools/shaderResBuilder/rendInstResSrc.h>
 #include <libTools/shaderResBuilder/globalVertexDataConnector.h>
@@ -96,7 +96,7 @@ void load_shaders_for_target(unsigned tc)
   if (::load_shaders_bindump(String(0, "%.*s", strlen(fn) - suffix_len, fn), ver, true))
     debug("loaded dabuild-specific shader dump (%c%c%c%c): %s", _DUMP4C(tc), fn);
   else
-    fatal("failed to load shaders: %s", fn);
+    DAG_FATAL("failed to load shaders: %s", fn);
 
   if (appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("preferZSTD", false))
   {
@@ -353,7 +353,7 @@ public:
     if (tex_a)
     {
       out_str.printf(64, "%s%s*", q_prefix, tex_a->getName());
-      strlwr(out_str);
+      dd_strlwr(out_str);
     }
     else
     {

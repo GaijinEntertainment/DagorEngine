@@ -12,7 +12,7 @@ void debug::GlobalState::setup(const DataBlock *settings, Direct3D12Enviroment &
 
   if (!config.anyValidation())
   {
-    debug("DX12: Debugging is turned off");
+    logdbg("DX12: Debugging is turned off");
     return;
   }
 
@@ -21,9 +21,9 @@ void debug::GlobalState::setup(const DataBlock *settings, Direct3D12Enviroment &
 
   if (DXGIGetDebugInterface1)
   {
-    debug("DX12: DXGIGetDebugInterface1 for IDXGIDebug...");
+    logdbg("DX12: DXGIGetDebugInterface1 for IDXGIDebug...");
     HRESULT hr = DXGIGetDebugInterface1(0, COM_ARGS(&dxgiDebug));
-    debug("DX12: DXGIGetDebugInterface1 returns 0x%08x", hr);
+    logdbg("DX12: DXGIGetDebugInterface1 returns 0x%08x", hr);
   }
 
   PFN_D3D12_GET_DEBUG_INTERFACE D3D12GetDebugInterface = nullptr;
@@ -33,19 +33,19 @@ void debug::GlobalState::setup(const DataBlock *settings, Direct3D12Enviroment &
   {
     if (config.anyValidation())
     {
-      debug("DX12: D3D12GetDebugInterface validation layer");
+      logdbg("DX12: D3D12GetDebugInterface validation layer");
 
       ComPtr<ID3D12Debug> debug0;
       if (SUCCEEDED(D3D12GetDebugInterface(COM_ARGS(&debug0))))
       {
         config.enableCPUValidation = true;
-        debug("DX12: Validation layer enabled");
+        logdbg("DX12: Validation layer enabled");
         // debug layer always implies cpu validation
         debug0->EnableDebugLayer();
         ComPtr<ID3D12Debug1> debug1;
         if (SUCCEEDED(debug0.As(&debug1)))
         {
-          debug("DX12: Synchronized queues enabled");
+          logdbg("DX12: Synchronized queues enabled");
           // Always try to enable queue sync, this allows for better state tracking of resources,
           // otherwise false errors can be generated as some dependencies are unavailable and some
           // state is assumed.
@@ -54,9 +54,9 @@ void debug::GlobalState::setup(const DataBlock *settings, Direct3D12Enviroment &
           // so don't be surprised if that happens if this is on
           if (config.enableGPUValidation)
           {
-            debug("DX12: GPU based validation enabled");
-            debug("DX12: NONE: GPU based validation may induce TDRs, you might need to adjust "
-                  "timeout value for video drivers");
+            logdbg("DX12: GPU based validation enabled");
+            logdbg("DX12: NONE: GPU based validation may induce TDRs, you might need to adjust "
+                   "timeout value for video drivers");
 
             debug1->SetEnableGPUBasedValidation(TRUE);
           }
@@ -72,7 +72,7 @@ void debug::GlobalState::setup(const DataBlock *settings, Direct3D12Enviroment &
       else
       {
         G_ASSERTF(false, "DX12: User requested debug layer to be enabled, but it seems not to be installed.");
-        debug("DX12: No validation layer available");
+        logdbg("DX12: No validation layer available");
         config.enableCPUValidation = false;
         config.enableGPUValidation = false;
       }
@@ -80,7 +80,7 @@ void debug::GlobalState::setup(const DataBlock *settings, Direct3D12Enviroment &
   }
   else
   {
-    debug("DX12: d3d12.dll does not export D3D12GetDebugInterface");
+    logdbg("DX12: d3d12.dll does not export D3D12GetDebugInterface");
     config.enableCPUValidation = false;
     config.enableGPUValidation = false;
   }

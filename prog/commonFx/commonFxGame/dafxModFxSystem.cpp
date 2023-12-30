@@ -8,7 +8,7 @@
 #include <3d/dag_texMgr.h>
 #include <daFx/dafx_loaders.hlsli>
 #include <daFx/dafx_packers.hlsli>
-#include "dafxModfx_decl.h"
+#include "dafxModFx_decl.h"
 #include "dafxSystemDesc.h"
 #include "dafxQuality.h"
 #include "modfx/modfx_decl.hlsl"
@@ -57,9 +57,9 @@ enum
 
 enum
 {
-  RSHADER_BBOARD = 0,
+  RSHADER_DEFAULT = 0,
   RSHADER_BBOARD_ATEST = 1,
-  RSHADER_BBOARD_DISTORTION = 2,
+  RSHADER_DISTORTION = 2,
   RSHADER_BBOARD_VOLSHAPE = 3,
   RSHADER_BBOARD_RAIN = 4,
   RSHADER_BBOARD_RAIN_DISTORTION = 5,
@@ -118,6 +118,12 @@ enum
 {
   RSHAPE_RIBBON_SIDE_ONLY = 0,
   RSHAPE_RIBBON_SIDE_AND_HEAD = 1,
+};
+
+enum
+{
+  RSHAPE_RIBBON_UV_RELATIVE = 0,
+  RSHAPE_RIBBON_UV_STATIC = 1,
 };
 
 enum
@@ -461,23 +467,44 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   if (g_modfx_convert_rtag_cb)
     rtag = g_modfx_convert_rtag_cb(rtag);
 
-  if (parRenderShape.type == RSHAPE_TYPE_RIBBON && parRenderShape.ribbon.type == RSHAPE_RIBBON_SIDE_ONLY)
-    ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_ribbon_render_side_only"});
-  else if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
-    ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_ribbon_render"});
-  else if (parRenderShader.shader == RSHADER_BBOARD)
-    ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_render"});
-  else if (parRenderShader.shader == RSHADER_BBOARD_ATEST)
+  auto logerr_if_ribbon = [&](const char *name) {
+    if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
+    {
+      logerr("fx: modfx: Unsupported ribbon shader: %s", name);
+      return false;
+    }
+    return true;
+  };
+
+  if (parRenderShader.shader == RSHADER_DEFAULT)
+  {
+    if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
+      if (parRenderShape.ribbon.type == RSHAPE_RIBBON_SIDE_ONLY)
+        ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_ribbon_render_side_only"});
+      else
+        ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_ribbon_render"});
+    else
+      ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_render"});
+  }
+  else if (parRenderShader.shader == RSHADER_BBOARD_ATEST && logerr_if_ribbon("modfx_bboard_atest"))
     ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_render_atest"});
-  else if (parRenderShader.shader == RSHADER_BBOARD_DISTORTION)
-    ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_distortion"});
-  else if (parRenderShader.shader == RSHADER_BBOARD_RAIN)
+  else if (parRenderShader.shader == RSHADER_DISTORTION)
+  {
+    if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
+      if (parRenderShape.ribbon.type == RSHAPE_RIBBON_SIDE_ONLY)
+        ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_ribbon_distortion_side_only"});
+      else
+        ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_ribbon_distortion"});
+    else
+      ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_distortion"});
+  }
+  else if (parRenderShader.shader == RSHADER_BBOARD_RAIN && logerr_if_ribbon("modfx_bboard_rain"))
     ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_rain"});
-  else if (parRenderShader.shader == RSHADER_BBOARD_RAIN_DISTORTION)
+  else if (parRenderShader.shader == RSHADER_BBOARD_RAIN_DISTORTION && logerr_if_ribbon("modfx_bboard_rain_distortion"))
     ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_rain_distortion"});
-  else if (parRenderShader.shader == RSHADER_BBOARD_ABOVE_DEPTH_PLACEMENT)
+  else if (parRenderShader.shader == RSHADER_BBOARD_ABOVE_DEPTH_PLACEMENT && logerr_if_ribbon("modfx_bboard_above_depth_placement"))
     ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_above_depth_placement"});
-  else if (parRenderShader.shader == RSHADER_BBOARD_VOLSHAPE)
+  else if (parRenderShader.shader == RSHADER_BBOARD_VOLSHAPE && logerr_if_ribbon("modfx_vol_shape"))
   {
     ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_volshape_render"});
     ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_VOL_WBOIT], "dafx_modfx_volshape_wboit_render"});
@@ -485,19 +512,21 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     // ddesc.customDepth = true;
   }
   else
-    G_ASSERT(false);
+    logerr("fx: modfx: Could not find proper render shader.");
 
-  if (parRenderShader.shadow_caster)
+  if (parRenderShader.shadow_caster && logerr_if_ribbon("FOM shadow"))
+  {
     ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_FOM], "dafx_modfx_bboard_render_fom"});
+  }
 
-  if (parRenderShader.shader != RSHADER_BBOARD_DISTORTION && parRenderShader.shader != RSHADER_BBOARD_RAIN_DISTORTION &&
-      (!parThermalEmission.enabled || parThermalEmission.value >= 0))
+  if (parRenderShader.shader != RSHADER_DISTORTION && parRenderShader.shader != RSHADER_BBOARD_RAIN_DISTORTION &&
+      parRenderShape.type != RSHAPE_TYPE_RIBBON && (!parThermalEmission.enabled || parThermalEmission.value >= 0))
   {
     ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_THERMAL],
       parRenderShader.shader == RSHADER_BBOARD_VOLSHAPE ? "dafx_modfx_volshape_thermal" : "dafx_modfx_bboard_thermals"});
   }
 
-  if (parVolfogInjection.enabled)
+  if (parVolfogInjection.enabled && logerr_if_ribbon("dafx_modfx_bboard_volfog_injection"))
     ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_VOLFOG_INJECTION], "dafx_modfx_bboard_volfog_injection"});
 
 #if DAGOR_DBGLEVEL > 0
@@ -783,6 +812,14 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       if (parColor.curve_over_part_life.use_part_idx_as_key)
         ENABLE_FLAG(sflags, MODFX_SFLAG_COLOR_CURVE_USE_PART_IDX_AS_KEY);
     }
+
+    if (parColor.curve_over_part_idx.enabled)
+    {
+      simOffsets[MODFX_SMOD_COLOR_OVER_PART_IDX_CURVE] = push_system_data(simulationData, parColor.curve_over_part_idx.mask);
+
+      push_prebake_curve(simulationData, parColor.curve_over_part_idx.curve);
+      ENABLE_MOD(smods, MODFX_SMOD_COLOR_OVER_PART_IDX_CURVE);
+    }
   }
 
   // emission
@@ -804,7 +841,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   }
 
   // thermal
-  if (parThermalEmission.enabled && parRenderShader.shader != RSHADER_BBOARD_DISTORTION &&
+  if (parThermalEmission.enabled && parRenderShader.shader != RSHADER_DISTORTION &&
       parRenderShader.shader != RSHADER_BBOARD_RAIN_DISTORTION)
   {
     renOffsets[MODFX_RMOD_THERMAL_EMISSION] = push_system_data(renderData, parThermalEmission.value);
@@ -1446,6 +1483,12 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
 
     renOffsets[MODFX_RMOD_RIBBON_PARAMS] = push_system_data(renderData, pp);
     ENABLE_MOD(rmods, MODFX_RMOD_RIBBON_PARAMS);
+
+    if (parRenderShape.ribbon.uv_mapping == RSHAPE_RIBBON_UV_STATIC)
+    {
+      ENABLE_FLAG(rflags, MODFX_RFLAG_RIBBON_UV_STATIC);
+      ENABLE_DECL(rdecl, MODFX_RDECL_UNIQUE_ID);
+    }
   }
 
   if (parLighting.type != LIGHT_NONE)
@@ -1531,16 +1574,16 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   if (parRenderShader.reverse_part_order)
     ENABLE_FLAG(rflags, MODFX_RFLAG_REVERSE_ORDER);
 
-  if (parRenderShader.shader == RSHADER_BBOARD_DISTORTION || parRenderShader.shader == RSHADER_BBOARD_RAIN_DISTORTION)
+  if (parRenderShader.shader == RSHADER_DISTORTION || parRenderShader.shader == RSHADER_BBOARD_RAIN_DISTORTION)
   {
-    float strength = parRenderShader.shader == RSHADER_BBOARD_DISTORTION
+    float strength = parRenderShader.shader == RSHADER_DISTORTION
                        ? (float)parRenderShader.modfx_bboard_distortion.distortion_strength
                        : (float)parRenderShader.modfx_bboard_rain_distortion.distortion_strength;
     renOffsets[MODFX_RMOD_DISTORTION_STRENGTH] = push_system_data(renderData, strength);
     ENABLE_MOD(rmods, MODFX_RMOD_DISTORTION_STRENGTH);
   }
 
-  if (parRenderShader.shader == RSHADER_BBOARD_DISTORTION)
+  if (parRenderShader.shader == RSHADER_DISTORTION)
   {
     ModfxDeclDistortionFadeColorColorStrength pp;
     pp.fadeRange = (float)parRenderShader.modfx_bboard_distortion.distortion_fade_range;
@@ -1564,9 +1607,11 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
 
   if (parRenderShader.shader == RSHADER_BBOARD_ABOVE_DEPTH_PLACEMENT)
   {
-    float threshold = (float)parRenderShader.modfx_bboard_above_depth_placement.placement_threshold;
-    renOffsets[MODFX_RMOD_ABOVE_DEPTH_PLACEMENT_THRESHOLD] = push_system_data(renderData, threshold);
-    ENABLE_MOD(rmods, MODFX_RMOD_ABOVE_DEPTH_PLACEMENT_THRESHOLD);
+    ModfxDeclRenderPlacementParams pp;
+    pp.terrain_only = parRenderShader.modfx_bboard_above_depth_placement.terrain_only ? 1 : 0;
+    pp.placement_threshold = parRenderShader.modfx_bboard_above_depth_placement.placement_threshold;
+    renOffsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS] = push_system_data(renderData, pp);
+    ENABLE_MOD(rmods, MODFX_RMOD_RENDER_PLACEMENT_PARAMS);
   }
 
   // part trimming
@@ -1596,11 +1641,17 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     par.flags = 0;
 
     ENABLE_FLAG(sflags, MODFX_SFLAG_TRAIL_ENABLED);
-
-    ddesc.serviceDataSize += sizeof(ModfxDeclServiceTrail);
-    ddesc.serviceData.resize(ddesc.serviceDataSize);
-    memcpy(ddesc.serviceData.data(), &par, sizeof(ModfxDeclServiceTrail));
+    push_system_data(ddesc.serviceData, par);
   }
+  if (MODFX_RDECL_UNIQUE_ID_ENABLED(rdecl))
+  {
+    ModfxDeclServiceUniqueId par;
+    par.particles_emitted = 0;
+
+    push_system_data(ddesc.serviceData, par);
+  }
+
+  ddesc.serviceDataSize = ddesc.serviceData.size();
 
   //
   // params prepare done
@@ -1630,6 +1681,9 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
 
   if (MODFX_RDECL_VELOCITY_LENGTH_ENABLED(rdecl))
     ddesc.renderElemSize += MODFX_RDECL_VELOCITY_LENGTH_SIZE;
+
+  if (MODFX_RDECL_UNIQUE_ID_ENABLED(rdecl))
+    ddesc.renderElemSize += MODFX_RDECL_UNIQUE_ID_SIZE;
 
   if (MODFX_RDECL_FRAME_IDX_ENABLED(rdecl))
     ddesc.renderElemSize += MODFX_RDECL_FRAME_IDX_SIZE;

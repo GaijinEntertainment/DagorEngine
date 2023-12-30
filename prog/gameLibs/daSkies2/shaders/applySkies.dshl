@@ -18,7 +18,7 @@ shader applySkies
 
   (ps) { lowres_sky@smp2d = lowres_sky;}
   hlsl(ps) {
-    half4 apply_skies_ps(VsOutput input):SV_Target
+    float4 apply_skies_ps(VsOutput input):SV_Target
     {
       float2 tc = input.texcoord;
 ##if use_bounding_vr_reprojection == on

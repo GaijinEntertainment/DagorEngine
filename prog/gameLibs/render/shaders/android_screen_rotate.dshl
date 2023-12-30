@@ -28,7 +28,7 @@ shader android_screen_rotate
         float2 tc = float2(-IN.tc.y, IN.tc.x);
       ##endif
 
-      return tex2D(internal_backbuffer, tc).rgba;
+      return float4(tex2D(internal_backbuffer, tc).rgb, 1);
     }
   }
 

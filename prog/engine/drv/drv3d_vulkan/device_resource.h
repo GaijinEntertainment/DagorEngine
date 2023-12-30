@@ -10,12 +10,14 @@ namespace drv3d_vulkan
 struct ResourceMemory;
 class Resource;
 struct ContextBackend;
+class ExecutionContext;
 
 enum class ResourceType
 {
   BUFFER,
   IMAGE,
   RENDER_PASS,
+  SAMPLER,
 #if D3D_HAS_RAY_TRACING
   AS,
 #endif
@@ -52,10 +54,8 @@ class ResourceAlgorithm
 
   void freeVulkanResource()
   {
-    if (!res.isManaged())
+    if (!res.isManaged() || !res.getBaseHandle())
       return;
-
-    G_ASSERT(res.getBaseHandle());
 
     if (!res.isHandleShared())
       destroyVkObj();
@@ -71,14 +71,14 @@ class ResourceAlgorithm
       return false;
 
     allocDsc.reqs.requirements = res.getSharedHandleMemoryReq();
+    if (allocDsc.reqs.requirements.size == 0)
+      return false;
     return res.tryReuseHandle(allocDsc);
   }
 
   bool allocVulkanResource(const typename ResourceImpl::Description &desc)
   {
-    if (!res.isManaged())
-      return true;
-
+    G_ASSERT(res.isManaged());
     G_ASSERT(!res.getBaseHandle());
 
     AllocationDesc allocDsc{res};
@@ -112,14 +112,29 @@ class ResourceAlgorithm
 public:
   ResourceAlgorithm(ResourceImpl &target) : res(target) { G_ASSERT(res.getResType() == res.getImplType()); }
 
-  void create()
+  enum class CreateResult
   {
+    OK,
+    NON_RESIDENT,
+    FAILED
+  };
+
+  CreateResult create()
+  {
+    if (!res.isManaged())
+      return CreateResult::OK;
+
     if (!allocVulkanResource(res.getDescription()))
     {
       // if possible, keep object non resident at creation
       if (!res.nonResidentCreation())
+      {
         res.reportOutOfMemory();
+        return CreateResult::FAILED;
+      }
+      return CreateResult::NON_RESIDENT;
     }
+    return CreateResult::OK;
   }
 
   void shutdown()
@@ -128,44 +143,68 @@ public:
     freeVulkanResource();
   }
 
-  // should be called in exec context
-  VkDeviceSize evict()
+  VkDeviceSize tryEvict(ExecutionContext &ctx, bool evict_used)
   {
-    if (!res.isResident() || !res.isManaged())
+    if (!res.isResident() || !res.isManaged() || !res.isEvictable() || res.isEvicting())
       return 0;
 
-    if (!res.isEvictable())
-      return 0;
+    if (res.isUsedInRendering())
+    {
+      res.clearUsedInRendering();
+      if (!evict_used)
+        return 0;
+    }
 
+    res.makeSysCopy(ctx);
+    res.markForEviction();
+    return res.getMemory().size;
+  }
+
+  void evict()
+  {
 #if DAGOR_DBGLEVEL > 0
     debug("vulkan: evicting %p:%s:%s [%u Kb]", &res, res.resTypeString(), res.getDebugName(), res.getMemory().size >> 10);
 #endif
 
-    res.makeSysCopy();
-    VkDeviceSize evictAmount = res.getMemory().size;
-    res.evictMemory();
-    return evictAmount;
+    G_ASSERT(res.isResident());
+    G_ASSERT(res.isManaged());
+    G_ASSERT(res.isEvictable());
+
+
+    res.evict();
+    freeVulkanResource();
+
+    if (!res.nonResidentCreation())
+    {
+      G_ASSERTF(0, "vulkan: resource evictable but non resident creation failed");
+    }
   }
 
-  // should be called in exec context
-  bool makeResident()
+  bool makeResident(ExecutionContext &ctx)
   {
     G_ASSERT(!res.isResident());
     G_ASSERT(res.isManaged());
+    G_ASSERT(res.getBaseHandle());
+    // object allocated memory is not supported in residency logic
+    G_ASSERT(res.getMemoryId() == -1);
 
-    // true = we reused old memory
-    if (!res.restoreResidency())
+    const typename ResourceImpl::Description &desc = res.getDescription();
+    AllocationDesc allocDsc{res};
+    desc.fillAllocationDesc(allocDsc);
+    allocDsc.canUseSharedHandle = false;
+    allocDsc.reqs = res.getMemoryReq();
+    if (res.tryAllocMemory(allocDsc))
     {
-      // otherwise we need to recreate object
-      if (res.getBaseHandle() && !res.isHandleShared())
-        destroyVkObj();
-
-      freeVulkanResource();
-      if (!allocVulkanResource(res.getDescription()))
-        return false;
+      // prevent possible misaligment
+      // before memory bind, as vk will fail binding if misaligned
+      G_ASSERT((res.getMemory().offset % allocDsc.reqs.requirements.alignment) == 0);
+      res.bindMemory();
     }
+    else
+      return false;
 
-    res.restoreFromSysCopy();
+    G_ASSERT(res.isResident());
+    res.restoreFromSysCopy(ctx);
     return true;
   }
 };
@@ -177,6 +216,10 @@ class Resource
   ResourceMemoryId memoryId = -1;
   bool managed : 1;
   bool resident : 1;
+  bool evicting : 1;
+#if DAGOR_DBGLEVEL > 0
+  bool usedInRendering : 1;
+#endif
   bool sharedHandle : 1;
 #if VULKAN_TRACK_DEAD_RESOURCE_USAGE
   bool markedDead : 1;
@@ -195,6 +238,10 @@ public:
     tid(resource_type),
     managed(manage),
     resident(false),
+    evicting(false),
+#if DAGOR_DBGLEVEL > 0
+    usedInRendering(false),
+#endif
     sharedHandle(false)
 #if VULKAN_TRACK_DEAD_RESOURCE_USAGE
     ,
@@ -218,8 +265,7 @@ public:
 #endif
   bool tryAllocMemory(const AllocationDesc &dsc);
   bool tryReuseHandle(const AllocationDesc &dsc);
-  bool restoreResidency();
-  void evictMemory();
+  void markForEviction();
   void freeMemory();
   ResourceMemoryId getMemoryId() { return memoryId; }
   // this call is thread unsafe, resource manager / res algo should be in calling stack
@@ -230,6 +276,16 @@ public:
   bool isResident();
   bool isManaged();
   bool isHandleShared() { return sharedHandle; }
+  bool isEvicting() { return evicting; }
+#if DAGOR_DBGLEVEL > 0
+  void setUsedInRendering() { usedInRendering = true; }
+  void clearUsedInRendering() { usedInRendering = false; }
+  bool isUsedInRendering() { return usedInRendering; }
+#else
+  void setUsedInRendering() {}
+  void clearUsedInRendering() {}
+  bool isUsedInRendering() { return true; }
+#endif
 
 #if VULKAN_TRACK_DEAD_RESOURCE_USAGE
   bool checkDead() const
@@ -262,8 +318,9 @@ public:
 
 class ResourceExecutionSyncableExtend
 {
-  static constexpr size_t invalid_sync_op = -1;
-  size_t lastSyncOp = invalid_sync_op;
+  static constexpr uint32_t invalid_sync_op = -1;
+  uint32_t firstSyncOp = invalid_sync_op;
+  uint32_t lastSyncOp = invalid_sync_op;
 
   struct RoSeal
   {
@@ -289,9 +346,22 @@ public:
   ~ResourceExecutionSyncableExtend() {}
 
   void clearLastSyncOp() { lastSyncOp = invalid_sync_op; }
-  void setLastSyncOpIndex(size_t v) { lastSyncOp = v; }
+  void setLastSyncOpIndex(size_t v)
+  {
+    G_ASSERT(v <= UINT32_MAX);
+    lastSyncOp = v;
+  }
+  size_t getFirstSyncOpIndex() { return firstSyncOp; }
   size_t getLastSyncOpIndex() { return lastSyncOp; }
   bool hasLastSyncOpIndex() { return lastSyncOp != invalid_sync_op; }
+
+  void setLastSyncOpRange(size_t s, size_t e)
+  {
+    G_ASSERT(s <= UINT32_MAX);
+    G_ASSERT(e <= UINT32_MAX);
+    firstSyncOp = s;
+    lastSyncOp = e;
+  }
 
   void requestRoSeal(size_t gpu_work_id)
   {

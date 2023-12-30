@@ -153,7 +153,7 @@ public:
 
     int version = cb.readInt();
     if (version != rrd.carData->RES_VERSION)
-      fatal("Invalid Vehicle resource version %d (%d required)", version, rrd.carData->RES_VERSION);
+      DAG_FATAL("Invalid Vehicle resource version %d (%d required)", version, rrd.carData->RES_VERSION);
 
     cb.read(rrd.carData, sizeof(*rrd.carData));
     rrd.resId = res_id;
@@ -388,7 +388,7 @@ bool load_raywheel_car_info(const char *res_name, const char *car_name, class Ph
     String descResName = String(res_name) + "_vehicleDesc";
     GameResource *descRes = get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(descResName), VehicleDescGameResClassId);
     if (!descRes)
-      fatal("Error loading vehicle description resource '%s'", descResName.str());
+      DAG_FATAL("Error loading vehicle description resource '%s'", descResName.str());
 
     PhysCarSettings2 *carSettings = (PhysCarSettings2 *)descRes;
 
@@ -403,7 +403,7 @@ bool load_raywheel_car_info(const char *res_name, const char *car_name, class Ph
     const DataBlock *gbBlk = carsBlk.getBlockByNameEx("gearboxes")->getBlockByName(b->getStr("gearbox", "standard"));
 
     if (!gbBlk)
-      fatal("can't load gearbox preset <%s>", b->getStr("gearbox", "standard"));
+      DAG_FATAL("can't load gearbox preset <%s>", b->getStr("gearbox", "standard"));
 
     gbox->load(gbBlk);
   }
@@ -468,7 +468,7 @@ const DataBlock &load_car_params_data_block(const char *car_name, const DataBloc
   {
     car_blk = globalCarParamsBlk->getBlockByName("default");
     if (!car_blk)
-      fatal("block <%s> not found, and <default> is also missing", blkName.str());
+      DAG_FATAL("block <%s> not found, and <default> is also missing", blkName.str());
 
     G_ASSERT(car_blk);
     logerr_ctx("no block '%s' in file '%s', using default", blkName.str(), global_car_params_blk_fn);

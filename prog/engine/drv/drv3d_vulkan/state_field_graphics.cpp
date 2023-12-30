@@ -367,8 +367,32 @@ void StateFieldGraphicsRenderPassClass::dumpLog(const BackGraphicsStateStorage &
 template <>
 void StateFieldGraphicsBasePipeline::applyTo(BackGraphicsStateStorage &state, ExecutionContext &target)
 {
-  if (!ptr && state.flush.needPipeline)
+  if (!state.flush.needPipeline)
+    return;
+
+  if (!ptr)
+  {
     target.reportMissingPipelineComponent("base");
+    return;
+  }
+
+  auto &regs = ptr->getLayout()->registers;
+  if (regs.fs().header.inputAttachmentCount)
+  {
+    G_ASSERTF(state.nativeRenderPass.ptr,
+      "vulkan: trying to use pipeline with input attachment while render pass is not bound. Additional info %s",
+      ptr->printDebugInfoBuffered());
+    const auto &header = regs.fs().header;
+    uint32_t iaCnt = regs.fs().header.inputAttachmentCount;
+    for (uint32_t i = 0; i < header.registerCount && iaCnt > 0; ++i)
+    {
+      if (header.inputAttachmentIndex[i] == spirv::INVALID_INPUT_ATTACHMENT_INDEX)
+        continue;
+      state.nativeRenderPass.ptr->bindInputAttachments(target, target.back.executionState.getResBinds(STAGE_PS),
+        header.inputAttachmentIndex[i], header.registerIndex[i], ptr);
+      --iaCnt;
+    }
+  }
 }
 
 template <>
@@ -447,9 +471,8 @@ void StateFieldGraphicsPipelineLayout::applyTo(BackGraphicsStateStorage &state, 
   }
 
   target.back.contextState.bindlessManagerBackend.bindSets(target, VK_PIPELINE_BIND_POINT_GRAPHICS, ptr->handle);
-  ContextState &ctx = target.back.contextState;
-  ctx.stageState[STAGE_VS].invalidateState();
-  ctx.stageState[STAGE_PS].invalidateState();
+  target.back.executionState.getResBinds(STAGE_VS).invalidateState();
+  target.back.executionState.getResBinds(STAGE_PS).invalidateState();
 }
 
 template <>
@@ -989,10 +1012,10 @@ void StateFieldGraphicsVertexBufferStride::applyTo(uint32_t index, FrontGraphics
 ///
 
 template <>
-void StateFieldGraphicsPrimitiveTopology::applyTo(BackGraphicsStateStorage &state, ExecutionContext &) const
+void StateFieldGraphicsPrimitiveTopology::applyTo(BackGraphicsStateStorage &state, ExecutionContext &ctx) const
 {
 #if DAGOR_DBGLEVEL > 0
-  if (!state.basePipeline.ptr)
+  if (!state.basePipeline.ptr || !state.flush.needPipeline)
     return;
 
   VkPrimitiveTopology actual = useTessOverride ? VK_PRIMITIVE_TOPOLOGY_PATCH_LIST : data;
@@ -1002,11 +1025,12 @@ void StateFieldGraphicsPrimitiveTopology::applyTo(BackGraphicsStateStorage &stat
   if (!validate_primitive_topology(actual, hasGS, hasTesselation))
   {
     logerr("Invalid primitive topology %s for draw call encountered. Geometry stage active %s, "
-           "Tessellation stage active %s.",
-      formatPrimitiveTopology(actual), hasGS ? "yes" : "no", hasTesselation ? "yes" : "no");
+           "Tessellation stage active %s. Caller: %s",
+      formatPrimitiveTopology(actual), hasGS ? "yes" : "no", hasTesselation ? "yes" : "no", ctx.getCurrentCmdCaller());
   }
 #else
   G_UNUSED(state);
+  G_UNUSED(ctx);
 #endif
 }
 
@@ -1025,33 +1049,16 @@ void StateFieldGraphicsFlush::syncTLayoutsToRenderPass(BackGraphicsStateStorage 
 void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, ExecutionContext &target) const
 {
   VariatedGraphicsPipeline *ptr = state.basePipeline.ptr;
-  auto &regs = ptr->getLayout()->registers;
-  VulkanPipelineLayoutHandle layoutHandle = ptr->getLayout()->handle;
+  GraphicsPipelineLayout &layout = *ptr->getLayout();
+  VulkanPipelineLayoutHandle layoutHandle = layout.handle;
+  auto &regs = layout.registers;
 
-  bool withGS = ptr->hasGeometryStage();
-  bool withTC = ptr->hasTessControlStage();
-  bool withTE = ptr->hasTessEvaluationStage();
+  VulkanDevice &vkDev = target.vkDev;
+  const ResourceDummySet &dummyResTbl = target.device.getDummyResourceTable();
+  size_t frameIndex = target.back.contextState.frame->index;
+  PipelineStageStateBase &vsResBinds = target.back.executionState.getResBinds(STAGE_VS);
 
-  Device &drvDev = get_device();
-  VulkanDevice &vkDev = get_device().getVkDevice();
-
-  ContextState &ctx = target.back.contextState;
-  if (regs.fs().header.inputAttachmentCount)
-  {
-    G_ASSERTF(state.nativeRenderPass.ptr,
-      "vulkan: trying to use pipeline with input attachment while render pass is not bound. Additional info %s",
-      ptr->printDebugInfoBuffered());
-    const auto &header = regs.fs().header;
-    for (uint32_t i = 0; i < header.registerCount; ++i)
-    {
-      if (header.inputAttachmentIndex[i] == spirv::INVALID_INPUT_ATTACHMENT_INDEX)
-        continue;
-      state.nativeRenderPass.ptr->bindInputAttachments(target, ctx.stageState[STAGE_PS], header.inputAttachmentIndex[i],
-        header.registerIndex[i], ptr);
-    }
-  }
-
-  ctx.stageState[STAGE_VS].apply(vkDev, drvDev.getDummyResourceTable(), ctx.frame->index, regs.vs(), target, STAGE_VS,
+  vsResBinds.apply(vkDev, dummyResTbl, frameIndex, regs.vs(), target, STAGE_VS,
     [&target, layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
     {
       VULKAN_LOG_CALL(target.vkDev.vkCmdBindDescriptorSets(target.frameCore, VK_PIPELINE_BIND_POINT_GRAPHICS, layoutHandle,
@@ -1059,7 +1066,7 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
         offset_count, offsets));
     });
 
-  ctx.stageState[STAGE_PS].apply(vkDev, drvDev.getDummyResourceTable(), ctx.frame->index, regs.fs(), target, STAGE_PS,
+  target.back.executionState.getResBinds(STAGE_PS).apply(vkDev, dummyResTbl, frameIndex, regs.fs(), target, STAGE_PS,
     [&target, layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
     {
       VULKAN_LOG_CALL(target.vkDev.vkCmdBindDescriptorSets(target.frameCore, VK_PIPELINE_BIND_POINT_GRAPHICS, layoutHandle,
@@ -1067,10 +1074,9 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
         offset_count, offsets));
     });
 
-  if (withGS)
+  if (layout.hasGS())
   {
-    ctx.stageState[STAGE_VS].invalidateState();
-    ctx.stageState[STAGE_VS].apply(vkDev, drvDev.getDummyResourceTable(), ctx.frame->index, regs.gs(), target, STAGE_VS,
+    vsResBinds.applyNoDiff(vkDev, dummyResTbl, frameIndex, regs.gs(), target, STAGE_VS,
       [&target, layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
       {
         VULKAN_LOG_CALL(target.vkDev.vkCmdBindDescriptorSets(target.frameCore, VK_PIPELINE_BIND_POINT_GRAPHICS, layoutHandle,
@@ -1079,10 +1085,9 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
       });
   }
 
-  if (withTC)
+  if (layout.hasTC())
   {
-    ctx.stageState[STAGE_VS].invalidateState();
-    ctx.stageState[STAGE_VS].apply(vkDev, drvDev.getDummyResourceTable(), ctx.frame->index, regs.tc(), target, STAGE_VS,
+    vsResBinds.applyNoDiff(vkDev, dummyResTbl, frameIndex, regs.tc(), target, STAGE_VS,
       [&target, layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
       {
         VULKAN_LOG_CALL(target.vkDev.vkCmdBindDescriptorSets(target.frameCore, VK_PIPELINE_BIND_POINT_GRAPHICS, layoutHandle,
@@ -1091,10 +1096,9 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
       });
   }
 
-  if (withTE)
+  if (layout.hasTE())
   {
-    ctx.stageState[STAGE_VS].invalidateState();
-    ctx.stageState[STAGE_VS].apply(vkDev, drvDev.getDummyResourceTable(), ctx.frame->index, regs.te(), target, STAGE_VS,
+    vsResBinds.applyNoDiff(vkDev, dummyResTbl, frameIndex, regs.te(), target, STAGE_VS,
       [&target, layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
       {
         VULKAN_LOG_CALL(target.vkDev.vkCmdBindDescriptorSets(target.frameCore, VK_PIPELINE_BIND_POINT_GRAPHICS, layoutHandle,
@@ -1102,26 +1106,21 @@ void StateFieldGraphicsFlush::applyDescriptors(BackGraphicsStateStorage &state, 
           ary(&set), offset_count, offsets));
       });
   }
-  // as we are sharing VS stage state, invalidate it in order to not break up followup rendering
-  if (withTE || withTC || withGS)
-    ctx.stageState[STAGE_VS].invalidateState();
 }
 
 void StateFieldGraphicsFlush::applyBarriers(BackGraphicsStateStorage &state, ExecutionContext &target) const
 {
   VariatedGraphicsPipeline *ptr = state.basePipeline.ptr;
-  auto &regs = ptr->getLayout()->registers;
-  bool withGS = ptr->hasGeometryStage();
-  bool withTC = ptr->hasTessControlStage();
-  bool withTE = ptr->hasTessEvaluationStage();
+  GraphicsPipelineLayout &layout = *ptr->getLayout();
+  auto &regs = layout.registers;
 
   target.trackStageResAccesses(regs.vs().header, STAGE_VS);
   target.trackStageResAccesses(regs.fs().header, STAGE_PS);
-  if (withGS)
+  if (layout.hasGS())
     target.trackStageResAccesses(regs.gs().header, STAGE_VS);
-  if (withTC)
+  if (layout.hasTC())
     target.trackStageResAccesses(regs.tc().header, STAGE_VS);
-  if (withTE)
+  if (layout.hasTE())
     target.trackStageResAccesses(regs.te().header, STAGE_VS);
 }
 

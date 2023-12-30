@@ -75,15 +75,15 @@ shader water_gradient, water_foam_blur
     hlsl(ps) {
       struct PsOut
       {
-        half4 color0 : SV_Target0;
+        float4 color0 : SV_Target0;
         ##if water_cascades != one_to_four
-          half4 color1 : SV_Target1;
+          float4 color1 : SV_Target1;
           ##if (water_cascades != two)
-            half4 color2 : SV_Target2;
+            float4 color2 : SV_Target2;
             ##if (water_cascades != three)
-              half4 color3 : SV_Target3;
+              float4 color3 : SV_Target3;
               ##if (water_cascades != four)
-                half4 color4 : SV_Target4;
+                float4 color4 : SV_Target4;
               ##endif
             ##endif
           ##endif
@@ -195,9 +195,9 @@ shader water_gradient, water_foam_blur
       hlsl(ps) {
         struct PsOut
         {
-          half4 color0 : SV_Target0;
+          float4 color0 : SV_Target0;
           ##if water_cascades == five
-            half4 color1 : SV_Target1;
+            float4 color1 : SV_Target1;
           ##endif
         };
       }
@@ -208,15 +208,15 @@ shader water_gradient, water_foam_blur
       hlsl(ps) {
         struct PsOut
         {
-          half4 color0 : SV_Target0;
+          float4 color0 : SV_Target0;
           ##if water_cascades != one_to_four
-            half4 color1 : SV_Target1;
+            float4 color1 : SV_Target1;
             ##if water_cascades != two
-              half4 color2 : SV_Target2;
+              float4 color2 : SV_Target2;
               ##if water_cascades != three
-                half4 color3 : SV_Target3;
+                float4 color3 : SV_Target3;
                 ##if water_cascades != four
-                  half4 color4 : SV_Target4;
+                  float4 color4 : SV_Target4;
                 ##endif
               ##endif
             ##endif
@@ -348,15 +348,15 @@ shader water_gradient_mip
   hlsl(ps) {
     struct PsOut
     {
-      half4 color0 : SV_Target0;
+      float4 color0 : SV_Target0;
       ##if water_cascades != one_to_four
-        half4 color1 : SV_Target1;
+        float4 color1 : SV_Target1;
         ##if (water_cascades != two)
-          half4 color2 : SV_Target2;
+          float4 color2 : SV_Target2;
           ##if (water_cascades != three)
-            half4 color3 : SV_Target3;
+            float4 color3 : SV_Target3;
             ##if (water_cascades != four)
-              half4 color4 : SV_Target4;
+              float4 color4 : SV_Target4;
             ##endif
           ##endif
         ##endif

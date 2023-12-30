@@ -40,7 +40,7 @@ namespace das {
 
     Func adapt ( const char * funcName, char * pClass, const StructInfo * info ) {
         char * field = adapt_field(funcName, pClass, info);
-        return field ? *(Func*)field : Func(0);
+        return field ? *(Func*)field : Func((void *)nullptr);
     }
 
     bool addModuleFunction ( Module * module, FunctionPtr & _func, Context * context, LineInfoArg * lineInfo ) {
@@ -495,6 +495,7 @@ namespace das {
         if ( !fn->builtIn || !fn->interopFn ) context->throw_error_at(at, "expecting built-in interop function");
         if ( !ctx.thisHelper ) context->throw_error_at(at, "missing debug info helper. get_aot_interop_node can only be called in the SimulateMacro");
         auto node = ctx.code->makeNode<SimNode_AotInteropBase>();
+        node->debugInfo = call->at;
         node->nArguments = (int) call->arguments.size();
         node->argumentValues = nullptr;
         if ( node->nArguments ) {
@@ -518,6 +519,7 @@ namespace das {
         if ( !call ) context->throw_error_at(at, "expecting string builder");
         if ( !ctx.thisHelper ) context->throw_error_at(at, "missing debug info helper. get_aot_interop_node can only be called in the SimulateMacro");
         auto node = ctx.code->makeNode<SimNode_AotInteropBase>();
+        node->debugInfo = call->at;
         node->nArguments = (int) call->elements.size();
         node->argumentValues = nullptr;
         if ( node->nArguments ) {
@@ -563,6 +565,12 @@ namespace das {
         if ( !name ) context->throw_error_at(at, "expecting field name");
         if ( !annotation ) context->throw_error_at(at, "expecting type annotation");
         return annotation->getFieldType(name);
+    }
+
+    TypeDeclPtr getHandledTypeFieldTypeDecl ( smart_ptr_raw<TypeAnnotation> annotation, char * name, bool isConst, Context * context, LineInfoArg * at ) {
+        if ( !name ) context->throw_error_at(at, "expecting field name");
+        if ( !annotation ) context->throw_error_at(at, "expecting type annotation");
+        return annotation->makeFieldType(name,isConst);
     }
 
     uint32_t getHandledTypeFieldOffset ( smart_ptr_raw<TypeAnnotation> annotation, char * name, Context * context, LineInfoArg * at ) {
@@ -749,6 +757,9 @@ namespace das {
         addExtern<DAS_BIND_FUN(getHandledTypeFieldType)>(*this, lib,  "get_handled_type_field_type",
             SideEffects::none, "getHandledTypeFieldType")
                 ->args({"type","field","context","line"});
+        addExtern<DAS_BIND_FUN(getHandledTypeFieldTypeDecl)>(*this, lib,  "get_handled_type_field_type_declaration",
+            SideEffects::none, "getHandledTypeFieldTypeDecl")
+                ->args({"type","field","isConst","context","line"});
         // module
         addExtern<DAS_BIND_FUN(for_each_typedef)>(*this, lib,  "for_each_typedef",
             SideEffects::modifyExternal, "for_each_typedef")

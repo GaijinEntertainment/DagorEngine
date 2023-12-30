@@ -49,7 +49,7 @@ local Point2_manual = class {
 
 let pp = @(...) print(" ".join(vargv.append("\n")))
 
-local function unpackfield(field){
+function unpackfield(field){
   local def = null
   if (type(field) == "array") {
     def = field[1]
@@ -57,10 +57,10 @@ local function unpackfield(field){
   }
   return [field, def]
 }
-let function _cfield(fieldname, def){
+function _cfield(fieldname, def){
   return $"{fieldname} = {def}"
 }
-let function mkAddNewline(indent=""){
+function mkAddNewline(indent=""){
   return @(a,b) $"{a}\n{indent}{b}"
 }
 
@@ -71,31 +71,31 @@ let addNewline1 = mkAddNewline("  ")
 //local addNewline2 = mkAddNewline("    ")
 let addNewline3 = mkAddNewline("      ")
 
-local function valToStr(val){
+function valToStr(val){
   assert(["string","null","float","integer", "bool"].indexof(type(val))!=null, "only simple immutable types currently supported")
   if (type(val)=="string")
     val = $"\"{val}\""
   return val
 }
 
-let function mkClassFields(fields){
+function mkClassFields(fields){
   return fields.map(@(v) _cfield(v[0], valToStr(v[1]))).reduce(addNewline1)
 }
 
-local mkPosFieldInit = @(fieldname, def) $"this.{fieldname} = {valToStr(def)}"
+let mkPosFieldInit = @(fieldname, def) $"this.{fieldname} = {valToStr(def)}"
 
-local function mkTableFieldInit(fieldname, firstarg, def){
+function mkTableFieldInit(fieldname, firstarg, def){
   def = valToStr(def)
   def = (def != null)
     ? $" ?? {def}"
     : ""
   return $"this.{fieldname} = {firstarg}?.{fieldname}{def}"
 }
-let function mkArg(name, def){
+function mkArg(name, def){
   return $"{name} = {def}"
 }
 
-let function mkCtor(fields, args){
+function mkCtor(fields, args){
   let firstarg = fields[0][0]
   pp(tostring_r(fields))
   let kwargs_inits = fields.map(@(v) mkTableFieldInit(v[0], firstarg, v[1])).reduce(addNewline3)
@@ -115,7 +115,7 @@ let function mkCtor(fields, args){
 }
 
 let defParams = {name=null, verbose=false}
-local function Dataclass(fields, params = defParams){
+function Dataclass(fields, params = defParams){
   local name = defParams?.name
   name = (type(name)=="string")
     ? $"static __name__ = \"{name}\"\n"

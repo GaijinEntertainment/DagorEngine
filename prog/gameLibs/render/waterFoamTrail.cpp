@@ -46,6 +46,11 @@ struct Segment
   int owner; // which cascade is already claimed it
 };
 
+static float get_segment_fade_out_time(Segment *p)
+{
+  return g_settings.fadeOutTime * (get_settings().enableGenMuls ? p->genMul * p->forcedGenMul : 1.f);
+}
+
 template <typename Ctx>
 struct Emitter
 {
@@ -214,8 +219,9 @@ struct Emitter
     Vertex &v1 = points.back();
 
     float genMulRcp = 1.f / seg->genMul;
-    float st = step ? 1.f : -1.f;
+    float st = (step ? 1.f : -1.f) / get_segment_fade_out_time(seg);
     alpha *= alphaMul;
+    alpha *= min(len / max(g_settings.tailFadeInLength, 1e-3f), 1.0f);
 
     alpha = max(alpha, FLT_EPSILON);
 
@@ -288,7 +294,7 @@ struct Renderer
     shMat = new_shader_material(*shMatTemp);
 
     if (!shMat)
-      fatal("waterFoamTrail::init - unable to load shader '%s'", shMatTemp->className);
+      DAG_FATAL("waterFoamTrail::init - unable to load shader '%s'", shMatTemp->className);
 
     Tab<CompiledShaderChannelId> shChannels;
     shChannels.resize(3);
@@ -306,7 +312,7 @@ struct Renderer
 
     if (!shMat->checkChannels(shChannels.data(), shChannels.size()))
     {
-      fatal("waterFoamTrail::init - invalid channels for shader '%s'", shMatTemp->className);
+      DAG_FATAL("waterFoamTrail::init - invalid channels for shader '%s'", shMatTemp->className);
     }
 
     shElem = shMat->make_elem();
@@ -733,11 +739,12 @@ struct Context
     if (p->totalTurns * g_turns_to_points_ratio >= g_settings.maxPointsPerSegment)
     {
       p->forcedGenMul = 0.25f;
+      float fadeOutTime = get_segment_fade_out_time(p);
 
       for (int i = 0; i < p->points.size(); ++i)
       {
         Vertex &v = p->points[i];
-        v.prm.w *= 1.f + currentGen;
+        v.prm.w = (v.prm.w > 0.0f ? 1.0f : -1.0f) / fadeOutTime;
       }
     }
 
@@ -755,8 +762,7 @@ struct Context
     for (int i = 0; i < finalizedSegments.size(); ++i)
     {
       Segment *seg = finalizedSegments[i];
-      float fade = g_settings.fadeOutTime * (get_settings().enableGenMuls ? seg->genMul * seg->forcedGenMul : 1.f);
-      if (currentGen > seg->lastGen + fade)
+      if (currentGen > seg->lastGen + get_segment_fade_out_time(seg))
       {
         G_ASSERT(i == finalizedSegments[i]->id);
         destroySegment(seg);

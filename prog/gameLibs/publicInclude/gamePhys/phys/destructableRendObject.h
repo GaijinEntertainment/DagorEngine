@@ -31,7 +31,7 @@ struct DestrRendDataDeleter
   void operator()(DestrRendData *rd) { rd ? clear_rend_data(rd) : (void)0; }
 };
 
-void before_render(const Point3 &view_pos);
+void before_render(const Point3 &view_pos, bool has_motion_vectors);
 // Objects with a bounding box radius < min_bbox_radius will be skipped.
 void render(dynrend::ContextId inst_ctx, const Frustum &frustum, float min_bbox_radius);
 } // namespace destructables

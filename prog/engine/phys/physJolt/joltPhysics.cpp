@@ -702,14 +702,15 @@ PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TM
       api().AddBody(bodyId, JPH::EActivation::Activate);
   }
   else
-    logerr("Failed to create body with collType=%d @ %@. cur/maxBodies=%d/%d", coll->collType, tm,
+    LOGERR_ONCE("Failed to create body with collType=%d @ %@. cur/maxBodies=%d/%d", coll->collType, tm,
       PhysWorld::getScene()->GetNumBodies(), PhysWorld::getScene()->GetMaxBodies());
 }
 PhysBody::~PhysBody()
 {
   if (api().IsAdded(bodyId))
     api().RemoveBody(bodyId);
-  api().DestroyBody(bodyId);
+  if (isValid())
+    api().DestroyBody(bodyId);
 }
 
 void PhysBody::setTm(const TMatrix &wtm)
@@ -792,7 +793,7 @@ void PhysCollision::clearNativeShapeData(PhysCollision &c) { static_cast<JoltPhy
 JPH::RefConst<JPH::Shape> check_and_return_shape(JPH::ShapeSettings::ShapeResult res, int ln)
 {
   if (res.HasError())
-    _core_fatal(__FILE__, ln, true, "Shape error: %s", res.GetError().c_str());
+    _core_fatal(__FILE__, ln, "Shape error: %s", res.GetError().c_str());
   return res.Get();
 }
 
@@ -1080,7 +1081,7 @@ void PhysBody::setSphereShapeRad(float rad)
 {
   if (auto shape = getShape())
     if (shape->GetSubType() == JPH::EShapeSubType::Sphere &&
-        fabsf(static_cast<const JPH::SphereShape *>(shape.GetPtr())->GetRadius() - rad) > 1e-6)
+        fabsf(static_cast<const JPH::SphereShape *>(shape.GetPtr())->GetRadius() - rad) > 1e-6f)
       api().SetShape(bodyId, new JPH::SphereShape(rad), false,
         isInWorld() ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
 }
@@ -1088,17 +1089,17 @@ void PhysBody::setBoxShapeExtents(const Point3 &ext)
 {
   if (auto shape = getShape())
     if (shape->GetSubType() == JPH::EShapeSubType::Box &&
-        lengthSq(to_point3(static_cast<const JPH::BoxShape *>(shape.GetPtr())->GetHalfExtent()) - ext / 2) > 1e-12)
-      api().SetShape(bodyId, new JPH::BoxShape(to_jVec3(ext / 2), jolt_api::min_convex_rad_for_box(ext)), false,
+        lengthSq(to_point3(static_cast<const JPH::BoxShape *>(shape.GetPtr())->GetHalfExtent()) - ext * 0.5f) > 1e-12f)
+      api().SetShape(bodyId, new JPH::BoxShape(to_jVec3(ext * 0.5f), jolt_api::min_convex_rad_for_box(ext)), false,
         isInWorld() ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
 }
 void PhysBody::setVertCapsuleShapeSize(float cap_rad, float cap_cyl_ht)
 {
   if (auto shape = getShape())
     if (shape->GetSubType() == JPH::EShapeSubType::Capsule &&
-        ((fabsf(static_cast<const JPH::CapsuleShape *>(shape.GetPtr())->GetHalfHeightOfCylinder() - cap_cyl_ht / 2) > 1e-6) ||
-          fabsf(static_cast<const JPH::CapsuleShape *>(shape.GetPtr())->GetRadius() - cap_rad) > 1e-6))
-      api().SetShape(bodyId, new JPH::CapsuleShape(cap_cyl_ht / 2, cap_rad), false,
+        ((fabsf(static_cast<const JPH::CapsuleShape *>(shape.GetPtr())->GetHalfHeightOfCylinder() - cap_cyl_ht * 0.5f) > 1e-6f) ||
+          fabsf(static_cast<const JPH::CapsuleShape *>(shape.GetPtr())->GetRadius() - cap_rad) > 1e-6f))
+      api().SetShape(bodyId, new JPH::CapsuleShape(cap_cyl_ht * 0.5f, cap_rad), false,
         isInWorld() ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
 }
 

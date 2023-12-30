@@ -4,6 +4,11 @@ shader hang_gpu_cs
 {
   supports none;
   supports global_frame;
+
+  if (hardware.metal)
+  {
+    dont_render;
+  }
   
   hlsl(cs) {
     RWTexture2D< uint > gpu_hang_uav : register(u7);

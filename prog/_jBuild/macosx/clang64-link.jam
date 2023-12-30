@@ -1,5 +1,17 @@
 #  to be included in jBuild.jam
 
+rule AddPostLinkCmdForImports # target : shared_libs : rel_shared_libs_path
+{
+  local install_name_call = ;
+  for t in $(2) {
+    install_name_call += -change $(t) @loader_path$(3)$(t:D=) ;
+  }
+  if $(install_name_call) {
+    $(1)__POSTLINK_CMD += $(_INSTALL_NAME_TOOL) $(install_name_call) $($(1)__OutDir)/$(1) "
+  " ;
+  }
+}
+
 rule ProcessLinkTarget
 {
   local _MACOSX_LIBS = ;
@@ -43,7 +55,7 @@ rule ProcessLinkTarget
       Depends $(OutDir)/$(Target) : $(dest) ;
     }
     if $(install_name_call) {
-      $(Target)__POSTLINK_CMD = $(_INSTALL_NAME_TOOL) $(install_name_call) $(OutDir)/$(Target) ;
+      $(Target)__POSTLINK_CMD += $(_INSTALL_NAME_TOOL) $(install_name_call) $(OutDir)/$(Target) ;
     }
 
     # setup frameworks used by main APP
@@ -102,7 +114,12 @@ rule ProcessLinkTarget
   }
   else if $(TargetType) = dll
   {
-    Exit DLL (.dylib) is not handled for $(Platform)-$(PlatformSpec) ;
+    _LINK = $(_LINK_DLL) ;
+    $(Target)__LINK     = $(_LINK) ;
+    $(Target)__LINK_OPT = $(LINKopt) ; #-lpthread ;
+    $(Target)__IMGBUILD = rem ;
+    $(Target)__POSTLINK_CMD += $(_INSTALL_NAME_TOOL) -id $(Target:D=) $(OutDir)/$(Target) "
+  " ;
   }
 
   local _ADD_LIBS = $(1) ;

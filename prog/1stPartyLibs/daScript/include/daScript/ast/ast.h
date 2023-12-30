@@ -517,6 +517,9 @@ namespace das
         virtual bool isYetAnotherVectorTemplate() const { return false; }   // has [], there is length(x), data is linear in memory
         // factory
         virtual void * factory () const { return nullptr; }
+        // new and delete, jit versions
+        virtual void * jitGetNew () const { return nullptr; }
+        virtual void * jitGetDelete () const { return nullptr; }
     };
 
     struct StructureAnnotation : Annotation {
@@ -877,6 +880,9 @@ namespace das
                 bool    pinvoke : 1;
                 bool    jitOnly : 1;
                 bool    isStaticClassMethod : 1;
+
+                bool    requestNoJit : 1;
+                bool    jitContextAndLineInfo : 1;
             };
             uint32_t moreFlags = 0;
         };
@@ -1346,6 +1352,7 @@ namespace das
         bool no_init = false;                           // if true, then no [init] is allowed in any shape or form
         bool strict_unsafe_delete = false;              // if true, delete of type which contains 'unsafe' delete is unsafe // TODO: enable when need be
         bool no_members_functions_in_struct = false;    // structures can't have member functions
+        bool no_local_class_members = false;            // members of the class can't be classes
     // environment
         bool no_optimizations = false;                  // disable optimizations, regardless of settings
         bool fail_on_no_aot = true;                     // AOT link failure is error
@@ -1367,6 +1374,7 @@ namespace das
         string profile_module;
     // jit
         bool jit = false;
+        string jit_module;
     // pinvoke
         bool threadlock_context = false;               // has context mutex
     };

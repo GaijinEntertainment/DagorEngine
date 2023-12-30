@@ -352,7 +352,7 @@ String builder
 ++++++++++++++
 
   *  :ref:`build_string (block:block\<(var arg0:strings::StringBuilderWriter):void\> const implicit;context:__context const;lineinfo:__lineInfo const) : string <function-_at_strings_c__c_build_string_CI0_ls_H_ls_strings_c__c_StringBuilderWriter_gr__gr_1_ls_v_gr__builtin__C_c_C_l>` 
-  *  :ref:`write (writer:strings::StringBuilderWriter;anything:any const) : strings::StringBuilderWriter& <function-_at_strings_c__c_write_H_ls_strings_c__c_StringBuilderWriter_gr__C*>` 
+  *  :ref:`write (writer:strings::StringBuilderWriter;anything:any) : strings::StringBuilderWriter& <function-_at_strings_c__c_write_H_ls_strings_c__c_StringBuilderWriter_gr__*>` 
   *  :ref:`write_char (writer:strings::StringBuilderWriter implicit;ch:int const) : strings::StringBuilderWriter& <function-_at_strings_c__c_write_char_IH_ls_strings_c__c_StringBuilderWriter_gr__Ci>` 
   *  :ref:`write_chars (writer:strings::StringBuilderWriter implicit;ch:int const;count:int const) : strings::StringBuilderWriter& <function-_at_strings_c__c_write_chars_IH_ls_strings_c__c_StringBuilderWriter_gr__Ci_Ci>` 
   *  :ref:`write_escape_string (writer:strings::StringBuilderWriter implicit;str:string const implicit) : strings::StringBuilderWriter& <function-_at_strings_c__c_write_escape_string_IH_ls_strings_c__c_StringBuilderWriter_gr__CIs>` 
@@ -384,9 +384,9 @@ build_string returns string
 
 |function-strings-build_string|
 
-.. _function-_at_strings_c__c_write_H_ls_strings_c__c_StringBuilderWriter_gr__C*:
+.. _function-_at_strings_c__c_write_H_ls_strings_c__c_StringBuilderWriter_gr__*:
 
-.. das:function:: write(writer: StringBuilderWriter; anything: any const)
+.. das:function:: write(writer: StringBuilderWriter; anything: any)
 
 write returns  :ref:`strings::StringBuilderWriter <handle-strings-StringBuilderWriter>` &
 
@@ -395,7 +395,7 @@ write returns  :ref:`strings::StringBuilderWriter <handle-strings-StringBuilderW
 +========+==========================================================================+
 +writer  + :ref:`strings::StringBuilderWriter <handle-strings-StringBuilderWriter>` +
 +--------+--------------------------------------------------------------------------+
-+anything+any const                                                                 +
++anything+any                                                                       +
 +--------+--------------------------------------------------------------------------+
 
 

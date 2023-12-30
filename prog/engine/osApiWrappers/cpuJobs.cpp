@@ -503,7 +503,7 @@ static struct CpuJobsData //-V730
 static void android_apply_thread_affinity(cpujobs::JobMgrCtx &ctx)
 {
   if (ctx.affinity == 0)
-    fatal("For thread <%s> try set zero affinity mask");
+    DAG_FATAL("For thread <%s> try set zero affinity mask");
   const int online_cores = sysconf(_SC_NPROCESSORS_ONLN);
 
   const uint64_t validMask = ((uint64_t)1 << online_cores) - 1;

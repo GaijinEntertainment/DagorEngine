@@ -1,4 +1,4 @@
-#include "dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 #include <assets/assetPlugin.h>
 #include <assets/assetExporter.h>
 #include <libTools/util/makeBindump.h>
@@ -6,7 +6,7 @@
 #include <libTools/util/binDumpHierBitmap.h>
 #include <libTools/util/iLogWriter.h>
 #include <libTools/util/hash.h>
-#include <math/dag_point2.h>
+#include <math/dag_Point2.h>
 #include <de3_bitMaskMgr.h>
 #include <ioSys/dag_lzmaIo.h>
 #include <ioSys/dag_zstdIo.h>

@@ -1,5 +1,5 @@
 #include <render/daBfg/bfg.h>
-#include <runtime/backend.h>
+#include <runtime/runtime.h>
 
 
 namespace dabfg
@@ -8,14 +8,16 @@ namespace dabfg
 detail::NodeUid detail::register_node(NameSpaceNameId nsId, const char *name, const char *node_source,
   DeclarationCallback &&declaration_callback)
 {
-  auto &tracker = NodeTracker::get();
+  auto &runtime = Runtime::get();
+  auto &tracker = runtime.getNodeTracker();
+  auto &registry = runtime.getInternalRegistry();
 
-  const auto nodeId = tracker.registry.knownNames.addNameId<NodeNameId>(nsId, name);
+  const auto nodeId = registry.knownNames.addNameId<NodeNameId>(nsId, name);
 
-  tracker.unregisterNode(nodeId, tracker.registry.nodes.get(nodeId).generation);
-  tracker.registerNode(nodeId);
+  tracker.unregisterNode(nodeId, registry.nodes.get(nodeId).generation);
+  tracker.registerNode(nullptr, nodeId);
 
-  auto &nodeData = tracker.registry.nodes[nodeId];
+  auto &nodeData = registry.nodes[nodeId];
   nodeData.declare = eastl::move(declaration_callback);
   nodeData.nodeSource = node_source;
 
@@ -24,20 +26,20 @@ detail::NodeUid detail::register_node(NameSpaceNameId nsId, const char *name, co
 
 void detail::unregister_node(detail::NodeUid uid)
 {
-  auto &tracker = NodeTracker::get();
+  auto &tracker = Runtime::get().getNodeTracker();
   tracker.unregisterNode(uid.nodeId, uid.generation);
 }
 
 NameSpace root() { return {}; }
 
-void update_external_state(ExternalState state) { Backend::get().updateExternalState(state); }
+void update_external_state(ExternalState state) { Runtime::get().updateExternalState(state); }
 
-void set_multiplexing_extents(multiplexing::Extents extents) { Backend::get().setMultiplexingExtents(extents); }
+void set_multiplexing_extents(multiplexing::Extents extents) { Runtime::get().setMultiplexingExtents(extents); }
 
-void run_nodes() { Backend::get().runNodes(); }
+void run_nodes() { Runtime::get().runNodes(); }
 
-void startup() { Backend::startup(); }
+void startup() { Runtime::startup(); }
 
-void shutdown() { Backend::shutdown(); }
+void shutdown() { Runtime::shutdown(); }
 
 } // namespace dabfg

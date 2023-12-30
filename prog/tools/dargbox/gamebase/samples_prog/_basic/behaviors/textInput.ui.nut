@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 
-let function input(text_state, state_flags, group, options = {}) {
+function input(text_state, state_flags, group, options = {}) {
   let sf = state_flags.value
   return @() {
     rendObj = ROBJ_BOX
@@ -43,7 +43,7 @@ let function input(text_state, state_flags, group, options = {}) {
 let textMsg = Watched("")
 let textPwd = Watched("")
 
-let function inputElem(state, params={options={}, title=null}){
+function inputElem(state, params={options={}, title=null}){
   let stateFlags = Watched(0)
   let group = ElemGroup()
   let title = params?.title

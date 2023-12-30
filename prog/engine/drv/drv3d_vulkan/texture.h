@@ -159,7 +159,7 @@ struct BaseTex final : public BaseTexture
     return ret;
   }
 
-  inline static VkBorderColor remap_boder_color(E3DCOLOR color, bool as_float)
+  inline static VkBorderColor remap_border_color(E3DCOLOR color, bool as_float)
   {
     bool isBlack = (color.r == 0) && (color.g == 0) && (color.b == 0);
     bool isTransparent = color.a == 0;
@@ -224,12 +224,6 @@ struct BaseTex final : public BaseTexture
   ImageMem lockMsr;
 
   uint32_t dirtyRt : 6;
-#if DAGOR_DBGLEVEL > 0
-  uint32_t wasUsed : 1;
-  void setUsed() { wasUsed = 1; }
-#else
-  void setUsed() {}
-#endif
   DECLARE_TQL_TID_AND_STUB()
 
   void setParams(int w, int h, int d, int levels, const char *stat_name);
@@ -276,9 +270,6 @@ struct BaseTex final : public BaseTexture
     delayedCreate(false),
     debugLockData(nullptr),
     dirtyRt(0),
-#if DAGOR_DBGLEVEL > 0
-    wasUsed(0),
-#endif
     depth(1),
     width(0),
     height(0)
@@ -404,7 +395,7 @@ struct BaseTex final : public BaseTexture
   int texbordercolor(E3DCOLOR c) override
   {
     SamplerState newSampler = samplerState;
-    newSampler.setBorder(remap_boder_color(c, getFormat().isSampledAsFloat()));
+    newSampler.setBorder(remap_border_color(c, getFormat().isSampledAsFloat()));
     rebindTRegs(newSampler);
     return 1;
   }
@@ -412,7 +403,7 @@ struct BaseTex final : public BaseTexture
   int texfilter(int m) override
   {
     SamplerState newSampler = samplerState;
-    newSampler.setFilter((m == TEXFILTER_POINT || m == TEXFILTER_NONE) ? VK_FILTER_NEAREST : VK_FILTER_LINEAR);
+    newSampler.setFilter(translate_filter_type_to_vulkan(m));
     newSampler.setIsCompare(m == TEXFILTER_COMPARE);
     rebindTRegs(newSampler);
     return 1;
@@ -421,7 +412,7 @@ struct BaseTex final : public BaseTexture
   int texmipmap(int m) override
   {
     SamplerState newSampler = samplerState;
-    newSampler.setMip((m == TEXMIPMAP_POINT || m == TEXMIPMAP_NONE) ? VK_SAMPLER_MIPMAP_MODE_NEAREST : VK_SAMPLER_MIPMAP_MODE_LINEAR);
+    newSampler.setMip(translate_mip_filter_type_to_vulkan(m));
     rebindTRegs(newSampler);
     return 1;
   }

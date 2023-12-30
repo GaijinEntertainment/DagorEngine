@@ -65,7 +65,7 @@ public:
   Trace(Trace &&) = delete;
   Trace &operator=(Trace &&) = delete;
   Trace() = default;
-  ~Trace() { debug("DX12: Shutting down DAGOR GPU Trace"); }
+  ~Trace() { logdbg("DX12: Shutting down DAGOR GPU Trace"); }
   void configure();
   void beginCommandBuffer(ID3D12Device3 *device, ID3D12GraphicsCommandList *);
   void endCommandBuffer(ID3D12GraphicsCommandList *);

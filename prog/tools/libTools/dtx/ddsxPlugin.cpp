@@ -41,11 +41,7 @@ typedef IDdsxCreatorPlugin *(__stdcall *get_plugin_t)(IDdsxCreatorPlugin::IAlloc
 int ddsx::load_plugins(const char *dirpath)
 {
   alefind_t ff;
-#if _TARGET_PC_WIN
-  const String mask(260, "%s/*.dll", dirpath);
-#else
-  const String mask(260, "%s/*.so", dirpath);
-#endif
+  const String mask(260, "%s/*" DAGOR_PC_OS_DLL_SUFFIX, dirpath);
   String fname;
   int num = 0;
 

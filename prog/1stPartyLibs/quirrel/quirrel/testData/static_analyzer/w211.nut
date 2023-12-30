@@ -1,3 +1,5 @@
+#allow-switch-statement
+
 //expect:w211
 local MODE = {
   MODE_1 = 1

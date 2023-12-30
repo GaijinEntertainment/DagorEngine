@@ -367,9 +367,9 @@ protected:
     {
       case 11:
       case 12:
-      case 21: fatal("PM: internal error #%d: pic=%08X (%s)", reportErr, picId, name); break;
-      case 13: fatal("PM: load failed, name='%s', pic=%08X (%d pics missing)", name, picId, tr.ad->missingPicHash.size()); break;
-      case 22: fatal("PM: load failed, name='%s', pic=%08X texId=0x%x", name, picId, outTexId); break;
+      case 21: DAG_FATAL("PM: internal error #%d: pic=%08X (%s)", reportErr, picId, name); break;
+      case 13: DAG_FATAL("PM: load failed, name='%s', pic=%08X (%d pics missing)", name, picId, tr.ad->missingPicHash.size()); break;
+      case 22: DAG_FATAL("PM: load failed, name='%s', pic=%08X texId=0x%x", name, picId, outTexId); break;
       case 100:
         debug("PM: async load aborted, name='%s', pic=%08X texId=0x%x", name, picId, outTexId);
         if (done_cb && tr.ad)
@@ -1151,7 +1151,7 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
     if (!tr.ad && !tr.initAtlas())
     {
       if (doFatalOnPictureLoadFailed)
-        fatal("PM: atlas '%s' init failed (for %s)", tr.getName(), file_name);
+        DAG_FATAL("PM: atlas '%s' init failed (for %s)", tr.getName(), file_name);
       return done_cb != NULL;
     }
 
@@ -1180,7 +1180,7 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
         {
           logerr("PM: missing picture '%s' in static atlas '%s'", file_name, tr.getName());
           if (doFatalOnPictureLoadFailed)
-            fatal("PM: missing picture '%s' in static atlas '%s' (%d pics missing)", file_name, tr.getName(),
+            DAG_FATAL("PM: missing picture '%s' in static atlas '%s' (%d pics missing)", file_name, tr.getName(),
               tr.ad->missingPicHash.size());
         }
         return done_cb != NULL; // missing picture in atlas
@@ -1753,7 +1753,7 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
       logerr("PM: load failed, name='%s', pic=%08X, d=%p tex_rec_idx=%d ad=%p", name, picId, d, tex_idx,
         tex_idx >= 0 ? texRec[tex_idx]->ad : NULL);
       if (doFatalOnPictureLoadFailed && is_main_thread())
-        fatal("PM: internal error: pic=%08X (%s)", picId, name);
+        DAG_FATAL("PM: internal error: pic=%08X (%s)", picId, name);
       else if (doFatalOnPictureLoadFailed)
         reportErr = 11;
       return;
@@ -1802,7 +1802,7 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
     logerr("PM: load failed, name='%s', pic=%08X, d=%p tex_rec_idx=%d ad=%p", name, picId, d, tex_idx,
       tex_idx >= 0 ? texRec[tex_idx]->ad : NULL);
     if (doFatalOnPictureLoadFailed && is_main_thread())
-      fatal("PM: internal error: pic=%08X (%s)", picId, name);
+      DAG_FATAL("PM: internal error: pic=%08X (%s)", picId, name);
     else if (doFatalOnPictureLoadFailed)
       reportErr = 12;
     return;
@@ -1817,7 +1817,7 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
     finalizePic(d, tr);
     d->dx = 0; // prevent futher load attemps
     if (new_missing && doFatalOnPictureLoadFailed && is_main_thread())
-      fatal("PM: load failed, name='%s', pic=%08X (%d pics missing)", name, picId, tr.ad->missingPicHash.size());
+      DAG_FATAL("PM: load failed, name='%s', pic=%08X (%d pics missing)", name, picId, tr.ad->missingPicHash.size());
     else if (new_missing && doFatalOnPictureLoadFailed)
       reportErr = 13;
     return;
@@ -1964,7 +1964,7 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
     release_managed_tex(outTexId);
     outTexId = BAD_TEXTUREID;
     if (doFatalOnPictureLoadFailed && is_main_thread())
-      fatal("PM: internal error: pic=%08X (%s)", picId, name);
+      DAG_FATAL("PM: internal error: pic=%08X (%s)", picId, name);
     else if (doFatalOnPictureLoadFailed)
       reportErr = 21;
     return;
@@ -1984,7 +1984,7 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
     outSz->set(1, 1);
 
     if (new_missing && doFatalOnPictureLoadFailed && is_main_thread())
-      fatal("PM: load failed, name='%s', pic=%08X texId=0x%x", name, picId, outTexId);
+      DAG_FATAL("PM: load failed, name='%s', pic=%08X texId=0x%x", name, picId, outTexId);
     else if (new_missing && doFatalOnPictureLoadFailed)
       reportErr = 22;
     outTexId = BAD_TEXTUREID;

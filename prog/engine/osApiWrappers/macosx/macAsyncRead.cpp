@@ -220,3 +220,6 @@ bool dfa_check_complete(int asyncdata_handle, int *read_len)
   *read_len = p.code == 0 ? aio_return(&p) : -1;
   return true;
 }
+
+#define EXPORT_PULL dll_pull_osapiwrappers_asyncRead
+#include <supp/exportPull.h>

@@ -4,10 +4,11 @@
 #include <EASTL/sort.h>
 #include <EASTL/variant.h>
 #include <EASTL/unordered_set.h>
-#include <EASTL/set.h>
-#include <EASTL/bitset.h>
+#include <generic/dag_bitset.h>
+#include <dag/dag_vectorSet.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_rwLock.h>
+#include <memory/dag_framemem.h>
 #include <util/dag_hashedKeyMap.h>
 #include <dxil/compiled_shader_header.h>
 #include <dxil/utility.h>
@@ -20,6 +21,7 @@
 #include "dynamic_array.h"
 #include "byte_units.h"
 #include "bitfield.h"
+#include "render_state.h"
 
 
 inline constexpr uint32_t MAX_VERTEX_ATTRIBUTES = 16;
@@ -317,10 +319,10 @@ using RaytraceShaderModule = StageShaderModule;
 
 struct ShaderStageResouceUsageMask
 {
-  eastl::bitset<dxil::MAX_B_REGISTERS> bRegisterMask;
-  eastl::bitset<dxil::MAX_T_REGISTERS> tRegisterMask;
-  eastl::bitset<dxil::MAX_S_REGISTERS> sRegisterMask;
-  eastl::bitset<dxil::MAX_U_REGISTERS> uRegisterMask;
+  Bitset<dxil::MAX_B_REGISTERS> bRegisterMask;
+  Bitset<dxil::MAX_T_REGISTERS> tRegisterMask;
+  Bitset<dxil::MAX_S_REGISTERS> sRegisterMask;
+  Bitset<dxil::MAX_U_REGISTERS> uRegisterMask;
 
   ShaderStageResouceUsageMask() = default;
   ShaderStageResouceUsageMask(const ShaderStageResouceUsageMask &) = default;
@@ -496,20 +498,16 @@ void inspect_scripted_shader_bin_dump(ScriptedShadersBinDumpOwner *dump, T inspe
   }
   inspector.vertexShaderCount(v2->vprId.size());
   inspector.pixelOrComputeShaderCount(v2->fshId.size());
-  eastl::conditional_t<VisitOnce, eastl::set<eastl::pair<uint16_t, uint16_t>>, int32_t> visited;
+  eastl::conditional_t<VisitOnce, dag::VectorSet<uint32_t, eastl::less<uint32_t>, framemem_allocator>, uint32_t> visited;
   for (auto &cls : v2->classes)
   {
+    if constexpr (VisitOnce)
+      visited.reserve(visited.capacity() + cls.shrefStorage.size());
     for (auto &prog : cls.shrefStorage)
     {
       if constexpr (VisitOnce)
-      {
-        eastl::pair<uint16_t, uint16_t> prIds(prog.vprId, prog.fshId);
-        if (visited.count(prIds) != 0)
-        {
+        if (!visited.insert((uint32_t(prog.vprId) << 16) | prog.fshId).second)
           continue;
-        }
-        visited.insert(prIds);
-      }
 
       if (prog.vprId != 0xFFFF)
       {
@@ -605,7 +603,7 @@ protected:
     dump = d;
     inspect_scripted_shader_bin_dump(d, ScriptedShaderBinDumpInspector{getGroupID(base), null_pixel_shader, this});
     graphicsProgramTemplates.shrink_to_fit();
-    debug("DX12: Shader bindump %p contains %u vertex shaders, %u pixel shaders, %u graphics programs, %u compute programs", d,
+    logdbg("DX12: Shader bindump %p contains %u vertex shaders, %u pixel shaders, %u graphics programs, %u compute programs", d,
       vertexShaderCount, pixelShaderCount, graphicsProgramTemplates.size(), computeShaderCount);
   }
 
@@ -1404,6 +1402,7 @@ class ScriptedShadersBinDumpManager
   ScriptedShadersBinDumpState dumps[max_scripted_shaders_bin_groups]{};
 
 public:
+  ScriptedShadersBinDumpOwner *getDump(uint32_t group) { return dumps[group].owner; }
   template <typename T>
   void enumerateShaderFromHash(const dxil::HashValue &hash, T reciever) const
   {
@@ -1453,11 +1452,11 @@ public:
     auto &compGroup = dump.decompressedGroups[compression_group];
     if (!compGroup.shaderGroup)
     {
-      debug("DX12: Decompressing shader shaderGroup %u of dump %p...", compression_group, dump.owner);
+      logdbg("DX12: Decompressing shader shaderGroup %u of dump %p...", compression_group, dump.owner);
       compGroup.shaderGroup = dump.owner->getDump()->shGroups[compression_group].decompress(compGroup.uncompressed,
         bindump::BehaviorOnUncompressed::Reference, dump.owner->getDecompressionDict());
       ByteUnits uncompressedByteSize = compGroup.uncompressed.size();
-      debug("DX12: ...decompressed into %.2f %s...", uncompressedByteSize.units(), uncompressedByteSize.name());
+      logdbg("DX12: ...decompressed into %.2f %s...", uncompressedByteSize.units(), uncompressedByteSize.name());
     }
     auto &shader = compGroup.shaderGroup->shaders[compression_index];
     return {shader.begin(), shader.end()};
@@ -1475,6 +1474,170 @@ public:
         dump.decompressedGroups[i].shaderGroup = nullptr;
       }
     }
+  }
+
+  eastl::string_view getShaderClassName(uint32_t group, uint32_t class_index) const
+  {
+    if (group >= max_scripted_shaders_bin_groups)
+    {
+      return {"<group index out of range>"};
+    }
+    if (!dumps[group].owner)
+    {
+      return "<dump owner was null>";
+    }
+    auto v2 = dumps[group].owner->getDumpV2();
+    if (!v2)
+    {
+      return {"<dump v2 was null>"};
+    }
+    if (class_index >= v2->classes.size())
+    {
+      return {"<class index out of range>"};
+    }
+
+    auto &name = v2->classes[class_index].name;
+    return {static_cast<const char *>(name), name.size() - 1};
+  }
+
+  struct ShaderInGroupIndex
+  {
+    uint32_t group;
+    uint32_t shader;
+  };
+
+  ShaderInGroupIndex findVertexShader(uint32_t start_group, const dxil::HashValue &hash) const
+  {
+    for (uint32_t groupIndex = start_group; groupIndex < max_scripted_shaders_bin_groups; ++groupIndex)
+    {
+      auto &group = dumps[groupIndex];
+      if (!group.owner)
+      {
+        continue;
+      }
+      auto v2 = group.owner->getDumpV2();
+      if (!v2)
+      {
+        continue;
+      }
+      auto shaderCount = v2->vprId.size();
+      for (uint32_t shaderIndex = 0; shaderIndex < shaderCount; ++shaderIndex)
+      {
+        if (v2->shaderHashes[shaderIndex] == hash)
+        {
+          return {groupIndex, shaderIndex};
+        }
+      }
+    }
+    return {max_scripted_shaders_bin_groups, 0};
+  }
+
+  ShaderInGroupIndex findPixelShader(uint32_t start_group, const dxil::HashValue &hash) const
+  {
+    // pixel and compute shaders occupy the same second part of the shader table
+    return findComputeShader(start_group, hash);
+  }
+
+  ShaderInGroupIndex findComputeShader(uint32_t start_group, const dxil::HashValue &hash) const
+  {
+    for (uint32_t groupIndex = start_group; groupIndex < max_scripted_shaders_bin_groups; ++groupIndex)
+    {
+      auto &group = dumps[groupIndex];
+      if (!group.owner)
+      {
+        continue;
+      }
+      auto v2 = group.owner->getDumpV2();
+      if (!v2)
+      {
+        continue;
+      }
+      auto shaderIndexOffset = v2->vprId.size();
+      auto shaderCount = v2->shGroupsMapping.size() - shaderIndexOffset;
+      for (uint32_t shaderIndex = 0; shaderIndex < shaderCount; ++shaderIndex)
+      {
+        if (v2->shaderHashes[shaderIndexOffset + shaderIndex] == hash)
+        {
+          return {groupIndex, shaderIndex};
+        }
+      }
+    }
+    return {max_scripted_shaders_bin_groups, 0};
+  }
+
+  struct RenderStateIterationInfo
+  {
+    uint32_t group;
+    uint32_t index;
+    uint32_t distance;
+  };
+
+  RenderStateIterationInfo walkRenderStates(uint32_t start_group, uint32_t search_start, uint32_t current_distance,
+    const RenderStateSystem::StaticState &static_state)
+  {
+    for (uint32_t groupIndex = start_group; groupIndex < max_scripted_shaders_bin_groups; ++groupIndex)
+    {
+      auto &group = dumps[groupIndex];
+      if (!group.owner)
+      {
+        continue;
+      }
+      auto v2 = group.owner->getDumpV2();
+      if (!v2)
+      {
+        continue;
+      }
+
+      constexpr uint32_t max_distance = 0xFFFFFFFF;
+      uint32_t nextDistance = max_distance;
+      uint32_t nextDistanceIndex = 0;
+      for (uint32_t stateIndex = search_start; stateIndex < v2->renderStates.size(); ++stateIndex)
+      {
+        auto inDriver = RenderStateSystem::StaticState::fromRenderState(v2->renderStates[stateIndex]);
+        auto distance = inDriver.distance(static_state);
+        if (distance < current_distance)
+        {
+          continue;
+        }
+        if (distance > current_distance)
+        {
+          if (distance < nextDistance)
+          {
+            nextDistanceIndex = stateIndex;
+            nextDistance = distance;
+          }
+          continue;
+        }
+        return {groupIndex, stateIndex, current_distance};
+      }
+      for (uint32_t stateIndex = 0; stateIndex < search_start; ++stateIndex)
+      {
+        auto inDriver = RenderStateSystem::StaticState::fromRenderState(v2->renderStates[stateIndex]);
+        auto distance = inDriver.distance(static_state);
+        if (distance < current_distance)
+        {
+          continue;
+        }
+        if (distance == nextDistance)
+        {
+          nextDistanceIndex = min(nextDistanceIndex, stateIndex);
+          continue;
+        }
+        if (distance > current_distance)
+        {
+          if (distance < nextDistance)
+          {
+            nextDistanceIndex = stateIndex;
+            nextDistance = distance;
+          }
+        }
+      }
+      if (max_distance != nextDistance)
+      {
+        return {groupIndex, nextDistanceIndex, nextDistance};
+      }
+    }
+    return {max_scripted_shaders_bin_groups, 0, 0};
   }
 };
 
@@ -1593,8 +1756,475 @@ struct PixelShaderModuleRefStore
   eastl::variant<PixelShaderModuleBytecodeRef, PixelShaderModuleBytcodeInDumpRef> bytecode;
 };
 
-class ShaderModuleManager : public ScriptedShadersBinDumpManager
+class PipelineNameGenerator : public ScriptedShadersBinDumpManager
 {
+  using BaseType = ScriptedShadersBinDumpManager;
+
+  void iterateShaderClassesForComputeShader(const dxil::HashValue &hash, eastl::string &out_name)
+  {
+    auto [group, index] = findComputeShader(0, hash);
+    if (group >= max_scripted_shaders_bin_groups)
+    {
+      return;
+    }
+
+    auto v2 = getDump(group)->getDumpV2();
+    for (auto &cls : v2->classes)
+    {
+      auto ref = eastl::find_if(eastl::begin(cls.shrefStorage), eastl::end(cls.shrefStorage),
+        [fsh = index](auto &def) { return fsh == def.fshId; });
+      if (ref == eastl::end(cls.shrefStorage))
+      {
+        continue;
+      }
+
+      for (uint32_t si = 0; si < cls.code.size(); ++si)
+      {
+        auto &sVar = cls.code[si];
+        for (uint32_t di = 0; di < sVar.passes.size(); ++di)
+        {
+          auto &dVar = sVar.passes[di];
+          if (dVar.rpass->fshId != index)
+          {
+            continue;
+          }
+
+          generateNamesForShaderClassCodes(v2, cls, si, di, {}, {}, out_name);
+        }
+      }
+    }
+  }
+
+  bool decodeCode(ScriptedShadersBinDumpV2 *v2, const shaderbindump::VariantTable &variants, uint32_t code, eastl::string &target)
+  {
+    if (0 == variants.codePieces.size())
+    {
+      return false;
+    }
+    auto resSize = target.size() + 2;
+    for (auto [intervalID, intervalMul] : variants.codePieces)
+    {
+      G_UNUSED(intervalMul);
+      resSize += v2->varMap[v2->intervals[intervalID].nameId].length();
+      resSize += 4;
+    }
+    target.reserve(resSize);
+    target += "(";
+    for (auto [intervalID, intervalMul] : variants.codePieces)
+    {
+      auto &interval = v2->intervals[intervalID];
+      auto value = (code / intervalMul) % interval.getValCount();
+      auto name = static_cast<eastl::string_view>(v2->varMap[interval.nameId]);
+      target.append(begin(name), end(name));
+      target += "=";
+      char buf[64];
+      sprintf_s(buf, "%u", value);
+      target += buf;
+      target += ",";
+    }
+    target.pop_back();
+    target += ")";
+    return true;
+  }
+
+  void decodeShaderClassIntoString(ScriptedShadersBinDumpV2 *v2, const shaderbindump::ShaderClass &shader_class, uint32_t static_code,
+    uint32_t dynamic_code, eastl::string &target)
+  {
+    // size included null terminator
+    target.append(static_cast<const char *>(shader_class.name), shader_class.name.size() - 1);
+
+    decodeCode(v2, shader_class.stVariants, static_code, target);
+    auto staticVariantIndex = shader_class.stVariants.findVariant(static_code);
+    auto &staticVariant = shader_class.code[staticVariantIndex];
+    decodeCode(v2, staticVariant.dynVariants, dynamic_code, target);
+    // auto dynamicVariantIndex = staticVariant.dynVariants.findVariant(dynamic_code);
+  }
+
+  void generateNamesForShaderClassCodes(ScriptedShadersBinDumpV2 *v2, const shaderbindump::ShaderClass &shader_class,
+    uint32_t static_code, uint32_t dynamic_code, eastl::string_view post_fix, eastl::string_view post_fix_2, eastl::string &out_name)
+  {
+    auto &sVar = shader_class.code[static_code];
+
+    shader_class.stVariants.enumerateCodesForVariant(static_code,
+      [v2, &shader_class, post_fix, post_fix_2, &out_name, &sVar, this, dynamic_code](uint32_t s_code) {
+        sVar.dynVariants.enumerateCodesForVariant(dynamic_code,
+          [v2, &shader_class, post_fix, post_fix_2, &out_name, this, s_code](uint32_t d_code) {
+            if (!out_name.empty())
+            {
+              out_name += "\n";
+            }
+            this->decodeShaderClassIntoString(v2, shader_class, s_code, d_code, out_name);
+            out_name.append(begin(post_fix), end(post_fix));
+            out_name.append(begin(post_fix_2), end(post_fix_2));
+          });
+      });
+  }
+
+  template <typename T>
+  uint32_t generateNamesForMatchingRenderPasses(uint32_t group, eastl::string_view post_fix, eastl::string_view post_fix_2,
+    eastl::string &out_name, T clb)
+  {
+    uint32_t visitCount = 0;
+    auto v2 = getDump(group)->getDumpV2();
+    for (auto &cls : v2->classes)
+    {
+      // shrefStorage stores all the unique combinations of shaders used by this class
+      auto ref = eastl::find_if(eastl::begin(cls.shrefStorage), eastl::end(cls.shrefStorage), clb);
+      if (ref == eastl::end(cls.shrefStorage))
+      {
+        continue;
+      }
+
+      for (uint32_t si = 0; si < cls.code.size(); ++si)
+      {
+        auto &sVar = cls.code[si];
+        for (uint32_t di = 0; di < sVar.passes.size(); ++di)
+        {
+          auto &dVar = sVar.passes[di];
+          if (clb(*dVar.rpass))
+          {
+            generateNamesForShaderClassCodes(v2, cls, si, di, post_fix, post_fix_2, out_name);
+            ++visitCount;
+          }
+        }
+      }
+    }
+    return visitCount;
+  }
+
+  void iterateShaderClassesForGraphicsShadersWithNullPixelShader(const dxil::HashValue &vertex_shader,
+    const RenderStateSystem::StaticState &static_state, eastl::string &out_name)
+  {
+    auto renderStateString = static_state.toStringForPipelineName();
+    eastl::string_view renderStateStringView{renderStateString.c_str(), renderStateString.length()};
+
+    uint32_t totalCount = 0;
+    uint32_t lastGroup = 0;
+    while (lastGroup < max_scripted_shaders_bin_groups)
+    {
+      auto [vGroup, vShader] = findVertexShader(lastGroup, vertex_shader);
+      if (vGroup >= max_scripted_shaders_bin_groups)
+      {
+        break;
+      }
+
+      auto [rGroup, rState, rDist] = walkRenderStates(vGroup, 0, 0, static_state);
+      if (rGroup != vGroup)
+      {
+        lastGroup = rGroup;
+        continue;
+      }
+
+      auto count = generateNamesForMatchingRenderPasses(vGroup, {}, {}, out_name, [shader = vShader, state = rState](auto &pass) {
+        return shader == pass.vprId && 0xFFFF == pass.fshId && state == pass.renderStateNo;
+      });
+      while (0 == count)
+      {
+        auto [crGroup, crState, crDist] = walkRenderStates(vGroup, rState + 1, rDist, static_state);
+        if (crGroup != vGroup)
+        {
+          break;
+        }
+        rState = crState;
+        rDist = crDist;
+        count = generateNamesForMatchingRenderPasses(vGroup, renderStateStringView, {}, out_name,
+          [shader = vShader, state = crState](auto &pass) {
+            return shader == pass.vprId && 0xFFFF == pass.fshId && state == pass.renderStateNo;
+          });
+      }
+
+      if (0 == count)
+      {
+        count = generateNamesForMatchingRenderPasses(vGroup, renderStateStringView, {}, out_name,
+          [shader = vShader](auto &pass) { return shader == pass.vprId && 0xFFFF == pass.fshId; });
+      }
+      totalCount += count;
+      lastGroup = vGroup + 1;
+    }
+
+    if (0 != totalCount)
+    {
+      // found at least one instance, we are done here
+      return;
+    }
+
+    // we where unable to find anything, so this uses some shader class combined with the null pixel shader as an "override"
+    lastGroup = 0;
+    while (lastGroup < max_scripted_shaders_bin_groups)
+    {
+      auto [vGroup, vShader] = findVertexShader(lastGroup, vertex_shader);
+      if (vGroup >= max_scripted_shaders_bin_groups)
+      {
+        break;
+      }
+
+      auto [rGroup, rState, rDist] = walkRenderStates(vGroup, 0, 0, static_state);
+      if (rGroup != vGroup)
+      {
+        lastGroup = rGroup;
+        continue;
+      }
+
+      auto count = generateNamesForMatchingRenderPasses(vGroup, {}, "[null pixel shader override]", out_name,
+        [shader = vShader, state = rState](auto &pass) { return shader == pass.vprId && state == pass.renderStateNo; });
+      while (0 == count)
+      {
+        auto [crGroup, crState, crDist] = walkRenderStates(vGroup, rState + 1, rDist, static_state);
+        if (crGroup != vGroup)
+        {
+          break;
+        }
+        rState = crState;
+        rDist = crDist;
+        count = generateNamesForMatchingRenderPasses(vGroup, renderStateStringView, "[null pixel shader override]", out_name,
+          [shader = vShader, state = crState](auto &pass) { return shader == pass.vprId && state == pass.renderStateNo; });
+      }
+
+      if (0 == count)
+      {
+        count = generateNamesForMatchingRenderPasses(vGroup, renderStateStringView, "[null pixel shader override]", out_name,
+          [shader = vShader](auto &pass) { return shader == pass.vprId; });
+      }
+      totalCount += count;
+      lastGroup = vGroup + 1;
+    }
+  }
+
+  void iterateShaderClassesForGraphicsShaders(const dxil::HashValue &vertex_shader, const dxil::HashValue &pixel_shader,
+    const RenderStateSystem::StaticState &static_state, eastl::string &out_name)
+  {
+    auto renderStateString = static_state.toStringForPipelineName();
+    eastl::string_view renderStateStringView{renderStateString.c_str(), renderStateString.length()};
+
+    uint32_t totalCount = 0;
+    uint32_t lastGroup = 0;
+    while (lastGroup < max_scripted_shaders_bin_groups)
+    {
+      auto [vGroup, vShader] = findVertexShader(lastGroup, vertex_shader);
+      if (vGroup >= max_scripted_shaders_bin_groups)
+      {
+        break;
+      }
+
+      auto [pGroup, pShader] = findPixelShader(vGroup, pixel_shader);
+      if (pGroup != vGroup)
+      {
+        lastGroup = pGroup;
+        continue;
+      }
+
+      auto [rGroup, rState, rDist] = walkRenderStates(vGroup, 0, 0, static_state);
+      if (rGroup != vGroup)
+      {
+        lastGroup = rGroup;
+        continue;
+      }
+
+      auto count =
+        generateNamesForMatchingRenderPasses(vGroup, {}, {}, out_name, [vert = vShader, pix = pShader, state = rState](auto &pass) {
+          return vert == pass.vprId && pix == pass.fshId && state == pass.renderStateNo;
+        });
+      while (0 == count)
+      {
+        auto [crGroup, crState, crDist] = walkRenderStates(vGroup, rState + 1, rDist, static_state);
+        if (crGroup != vGroup)
+        {
+          break;
+        }
+        rState = crState;
+        rDist = crDist;
+        count = generateNamesForMatchingRenderPasses(vGroup, renderStateStringView, {}, out_name,
+          [vert = vShader, pix = pShader, state = crState](auto &pass) {
+            return vert == pass.vprId && pix == pass.fshId && state == pass.renderStateNo;
+          });
+      }
+
+      if (0 == count)
+      {
+        count = generateNamesForMatchingRenderPasses(vGroup, renderStateStringView, {}, out_name,
+          [vert = vShader, pix = pShader](auto &pass) { return vert == pass.vprId && pix == pass.fshId; });
+      }
+      totalCount = count;
+      lastGroup = vGroup + 1;
+    }
+
+    if (0 != totalCount)
+    {
+      return;
+    }
+
+    // we where unable to find anything, so this uses some shader class combined with the null pixel shader as an "override"
+    lastGroup = 0;
+    while (lastGroup < max_scripted_shaders_bin_groups)
+    {
+      auto [vGroup, vShader] = findVertexShader(lastGroup, vertex_shader);
+      if (vGroup >= max_scripted_shaders_bin_groups)
+      {
+        break;
+      }
+
+      auto [rGroup, rState, rDist] = walkRenderStates(vGroup, 0, 0, static_state);
+      if (rGroup != vGroup)
+      {
+        lastGroup = rGroup;
+        continue;
+      }
+
+      auto count = generateNamesForMatchingRenderPasses(vGroup, {}, "[with pixel shader override]", out_name,
+        [shader = vShader, state = rState](auto &pass) { return shader == pass.vprId && state == pass.renderStateNo; });
+      while (0 == count)
+      {
+        auto [crGroup, crState, crDist] = walkRenderStates(vGroup, rState + 1, rDist, static_state);
+        if (crGroup != vGroup)
+        {
+          break;
+        }
+        rState = crState;
+        rDist = crDist;
+        count = generateNamesForMatchingRenderPasses(vGroup, renderStateStringView, "[with pixel shader override]", out_name,
+          [shader = vShader, state = crState](auto &pass) { return shader == pass.vprId && state == pass.renderStateNo; });
+      }
+
+      if (0 == count)
+      {
+        count = generateNamesForMatchingRenderPasses(vGroup, renderStateStringView, "[with pixel shader override]", out_name,
+          [shader = vShader](auto &pass) { return shader == pass.vprId; });
+      }
+      totalCount += count;
+      lastGroup = vGroup + 1;
+    }
+
+    if (0 == totalCount)
+    {
+      // if we end up here, something in the shader dump is broken, as a vertex shader is in the dump, but is not used by
+      // and shader class / pass.
+      return;
+    }
+
+    totalCount = 0;
+
+    // now try to find paired pixel shader
+    lastGroup = 0;
+    while (lastGroup < max_scripted_shaders_bin_groups)
+    {
+      auto [pGroup, pShader] = findPixelShader(lastGroup, pixel_shader);
+      if (pGroup >= max_scripted_shaders_bin_groups)
+      {
+        break;
+      }
+
+      auto [rGroup, rState, rDist] = walkRenderStates(pGroup, 0, 0, static_state);
+      if (rGroup != pGroup)
+      {
+        lastGroup = rGroup;
+        continue;
+      }
+
+      auto count = generateNamesForMatchingRenderPasses(pGroup, {}, {}, out_name,
+        [shader = pShader, state = rState](auto &pass) { return shader == pass.fshId && state == pass.renderStateNo; });
+      while (0 == count)
+      {
+        auto [crGroup, crState, crDist] = walkRenderStates(pGroup, rState + 1, rDist, static_state);
+        if (crGroup != pGroup)
+        {
+          break;
+        }
+        rState = crState;
+        rDist = crDist;
+        count = generateNamesForMatchingRenderPasses(pGroup, renderStateStringView, {}, out_name,
+          [shader = pShader, state = crState](auto &pass) { return shader == pass.fshId && state == pass.renderStateNo; });
+      }
+
+      if (0 == count)
+      {
+        count = generateNamesForMatchingRenderPasses(pGroup, renderStateStringView, {}, out_name,
+          [shader = pShader](auto &pass) { return shader == pass.fshId; });
+      }
+      totalCount += count;
+      lastGroup = pGroup + 1;
+    }
+
+    if (0 == totalCount)
+    {
+      out_name += "[pixel shader not in dump]";
+      char buf[sizeof(dxil::HashValue) * 2 + 1];
+      pixel_shader.convertToString(buf, sizeof(buf));
+      out_name += "{";
+      out_name += buf;
+      out_name += "}";
+      vertex_shader.convertToString(buf, sizeof(buf));
+      out_name += "{";
+      out_name += buf;
+      out_name += "}";
+    }
+  }
+
+  bool isNullPixelShader(const PixelShaderModuleRefStore &pixel_shader) const
+  {
+    // TODO: this assumption is not correct
+    return eastl::holds_alternative<PixelShaderModuleBytecodeRef>(pixel_shader.bytecode);
+  }
+
+public:
+  eastl::string generateComputePipelineName(const ComputeShaderModule &module)
+  {
+    eastl::string outName;
+    iterateShaderClassesForComputeShader(module.ident.shaderHash, outName);
+
+    if (outName.empty() && !module.debugName.empty())
+    {
+      outName = module.debugName;
+    }
+
+    if (outName.empty())
+    {
+      // so engine gave it no name and we were unable to locate it in the bin dumps, we give it a hash name then
+      outName.resize(sizeof(dxil::HashValue) * 2, ' ');
+      module.ident.shaderHash.convertToString(outName.data(), outName.size() + 1);
+    }
+
+    return outName;
+  }
+
+  eastl::string generateGraphicsPipelineName(const VertexShaderModuleRefStore &vertex_shader,
+    const PixelShaderModuleRefStore &pixel_shader, const RenderStateSystem::StaticState &static_state)
+  {
+    eastl::string outName;
+    if (isNullPixelShader(pixel_shader))
+    {
+      iterateShaderClassesForGraphicsShadersWithNullPixelShader(vertex_shader.header.hash, static_state, outName);
+    }
+    else
+    {
+      iterateShaderClassesForGraphicsShaders(vertex_shader.header.hash, pixel_shader.header.hash, static_state, outName);
+    }
+
+    if (outName.empty())
+    {
+      outName = "NotInDump={";
+      char buf[sizeof(dxil::HashValue) * 2 + 1];
+      vertex_shader.header.hash.convertToString(buf, sizeof(buf));
+      outName += buf;
+      bool isRaw = eastl::holds_alternative<VertexShaderModuleBytecodeRef>(vertex_shader.bytecode);
+      outName += isRaw ? "[raw]" : "[dump]";
+      outName += "}{";
+      pixel_shader.header.hash.convertToString(buf, sizeof(buf));
+      outName += buf;
+      isRaw = eastl::holds_alternative<PixelShaderModuleBytecodeRef>(pixel_shader.bytecode);
+      outName += isRaw ? "[raw]" : "[dump]";
+      outName += "}";
+      auto stateText = static_state.toString();
+      outName += stateText;
+    }
+
+    return outName;
+  }
+};
+
+class ShaderModuleManager : public PipelineNameGenerator
+{
+  using BaseType = PipelineNameGenerator;
+
   struct GroupZeroVertexShaderModule
   {
     VertexShaderModuleHeader header;

@@ -12,7 +12,7 @@ let statusText = {
 }
 
 //const url ="https://auth.gaijinent.com/login.php/proxy/api/gameSession/getGsid"
-let function mkCb(url, onSuccess, onFail = null, isJson = true){
+function mkCb(url, onSuccess, onFail = null, isJson = true){
   return function(response){
     try{
       let status = response.status
@@ -37,7 +37,7 @@ let function mkCb(url, onSuccess, onFail = null, isJson = true){
   }
 }
 
-let function httpPostJson(url, onSuccess, onFail = null, data=null){
+function httpPostJson(url, onSuccess, onFail = null, data=null){
   httpRequest({ method = "POST", url, callback = mkCb(url, onSuccess, onFail, true), data})
 }
 
@@ -64,7 +64,7 @@ let { loginData, gsidData } = function mkLogin(){
       }
     }, null, {gsid=gsid.value})
 
-  let function stopReqResults(){
+  function stopReqResults(){
       gui_scene.clearTimer(getResults)
       time_wating = 0
       timeToNextReq = 2

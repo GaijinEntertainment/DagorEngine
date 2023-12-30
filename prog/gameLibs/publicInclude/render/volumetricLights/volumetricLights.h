@@ -27,6 +27,22 @@ class NodeBasedShader;
 class VolumeLight
 {
 public:
+  enum class VolfogQuality
+  {
+    Default,
+    HighQuality,
+  };
+  enum class VolfogShadowCasting
+  {
+    No,
+    Yes,
+  };
+  enum class DistantFogQuality
+  {
+    DisableDistantFog,
+    EnableDistantFog,
+  };
+
   VolumeLight();
   ~VolumeLight();
   void close();
@@ -53,7 +69,7 @@ public:
   void initShaders(const DataBlock &shader_blk);
   void enableOptionalShader(const String &shader_name, bool enable);
   const UniqueTexHolder &getInitialMedia() const { return initialMedia; }
-  void onSettingsChange(bool has_hq_fog, bool has_distant_fog, bool has_volfog_shadow);
+  void onSettingsChange(VolfogQuality volfog_quality, VolfogShadowCasting shadow_casting, DistantFogQuality df_quality);
 
   Frustum calcFrustum(const TMatrix4 &view_tm, const Driver3dPerspective &persp) const;
 
@@ -69,6 +85,7 @@ protected:
   void resetDistantFog();
   void initVolfogShadow();
   void resetVolfogShadow();
+  void initExperimentalFeatures();
 
   int getBlendedSliceCnt() const;
   float calcBlendedStartDepth(int blended_slice_cnt) const;
@@ -88,10 +105,12 @@ protected:
   UniqueTexHolder resultInscatter;
   UniqueTexHolder initialPhase; // for local lights (if present)
   eastl::array<UniqueTex, FRAME_HISTORY> volfogOcclusion;
+  eastl::array<UniqueTex, FRAME_HISTORY> volfogWeight;
 
   eastl::array<UniqueTex, FRAME_HISTORY> volfogShadow;
 
-  UniqueTexHolder poissonSamples;
+  UniqueTexHolder poissonSamples; // TODO: refactor and optimize it
+  UniqueBufHolder froxelFogDitheringSamples;
 
   UniqueTexHolder distantFogFrameRaymarchInscatter;
   UniqueTexHolder distantFogFrameRaymarchExtinction;
@@ -144,5 +163,7 @@ protected:
   bool fogIsValid = false; // was ever performed
   bool isReady = false;
   bool preferLinearAccumulation = false;
-  bool needsHqVolfog = false;
+  VolfogQuality volfogQuality = VolfogQuality::Default;
+
+  bool useExperimentalOffscreenReprojection = false;
 };

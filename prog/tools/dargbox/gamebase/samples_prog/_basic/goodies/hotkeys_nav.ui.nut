@@ -10,7 +10,7 @@ let counter_doubled = Computed(@() observable_counter.value*2)
 
 let hotkeysNavState = Watched([])
 
-let function hotkeysButtonsBar() {
+function hotkeysButtonsBar() {
   let tips = []
 
   foreach (hotkey in hotkeysNavState.value) {
@@ -49,7 +49,7 @@ gui_scene.setHotkeysNavHandler(function(state) {
 })
 
 
-let function button(params) {
+function button(params) {
   let text = params?.text ?? ""
   let onClick = params?.onClick
   let onHover = params?.onHover
@@ -81,10 +81,10 @@ observable_counter.subscribe(function(new_val) {
   prev_val = new_val
 })
 
-let function increment() {
+function increment() {
   observable_counter.update(observable_counter.value + 1)
 }
-let function decrement() {
+function decrement() {
   observable_counter.update(observable_counter.value - 1)
 }
 
@@ -120,7 +120,7 @@ let container = {
   ]
 }
 
-let function msgboxes() {
+function msgboxes() {
   return {
     size = flex()
     children = msgbox.getCurMsgbox()

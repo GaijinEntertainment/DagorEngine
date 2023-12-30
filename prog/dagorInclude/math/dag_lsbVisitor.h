@@ -36,7 +36,7 @@ struct LeastSignificantSetBitVisitor
     {
       // value = 0 means it is an end iterator, and in normal behaving code before dereferencing the iterator should check
       // with it != end(), so this operator will never be called when value is 0
-      G_ASSERT(value);
+      G_FAST_ASSERT(value);
 
       return __ctz_unsafe(value);
     }

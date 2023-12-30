@@ -341,7 +341,7 @@ public:
   }
 };
 
-template <typename ManagedResType>
+template <typename ManagedResType, typename Deleter = Helper<typename ManagedResType::resource_t>>
 class SharedRes : public ManagedResType, public MoveAssignable
 {
 public:
@@ -375,7 +375,7 @@ public:
 
   static void release(typename Helper<ResType>::resid_t &res_id, ResType *res)
   {
-    Helper<ResType>::release(res_id, res);
+    Deleter::release(res_id, res);
     if (Helper<ResType>::getManagedRefCount(res_id) >= 0)
       evict_managed_tex_id(res_id);
   }
@@ -407,8 +407,8 @@ eastl::unordered_set<int> gUsedShaderVarIds;
 static void acquireShaderVarId(int new_id)
 {
   if (new_id != VariableMap::BAD_ID && !gUsedShaderVarIds<>.emplace(new_id).second)
-    fatal("You are trying to bind resource to a shaderVar with id = %d"
-          " to which another resource is already bound, this can lead to unpredictable bugs",
+    DAG_FATAL("You are trying to bind resource to a shaderVar with id = %d"
+              " to which another resource is already bound, this can lead to unpredictable bugs",
       new_id);
 }
 
@@ -715,8 +715,8 @@ static inline BufPtr place_buffer_in_resource_heap(ResourceHeap *heap, const Res
   return resptr_detail::ResPtrFactory(d3d::place_buffere_in_resource_heap(heap, desc, offset, alloc_info, name));
 }
 
-static inline ExternalTex get_backbuffer() { return resptr_detail::ResPtrFactory(d3d::get_backbuffer_tex()); }
-static inline ExternalTex get_backbuffer_depth() { return resptr_detail::ResPtrFactory(d3d::get_backbuffer_tex_depth()); }
+static inline ExternalTex get_backbuffer() { return ExternalTex(resptr_detail::ResPtrFactory(d3d::get_backbuffer_tex())); }
+static inline ExternalTex get_backbuffer_depth() { return ExternalTex(resptr_detail::ResPtrFactory(d3d::get_backbuffer_tex_depth())); }
 
 static inline TexPtr make_texture_raw(Drv3dMakeTextureParams &makeParams)
 {

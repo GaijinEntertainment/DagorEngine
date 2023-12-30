@@ -89,7 +89,7 @@ static SQInteger base_getconsttable(HSQUIRRELVM v)
     return 1;
 }
 
-SQInteger __getcallstackinfos(HSQUIRRELVM v,SQInteger level)
+SQInteger __sq_getcallstackinfos(HSQUIRRELVM v,SQInteger level)
 {
     SQStackInfos si;
     SQInteger seq = 0;
@@ -2206,7 +2206,7 @@ static SQInteger thread_getstackinfos(HSQUIRRELVM v)
         SQInteger threadtop = sq_gettop(thread);
         SQInteger level;
         sq_getinteger(v,-1,&level);
-        SQRESULT res = __getcallstackinfos(thread,level);
+        SQRESULT res = __sq_getcallstackinfos(thread,level);
         if(SQ_FAILED(res))
         {
             sq_settop(thread,threadtop);

@@ -24,8 +24,8 @@ namespace das {
     void DataWalker::walk_struct ( char * ps, StructInfo * si ) {
         if ( ps && (si->flags & StructInfo::flag_class) ) {
             auto ti = *(TypeInfo **) ps;
-            DAS_ASSERT(ti);
-            si = ti->structType;
+            if ( ti!=nullptr ) si = ti->structType;
+            else invalidData(); // we are walking uninitialized class here
         }
         if ( canVisitStructure(ps, si) ) {
             beforeStructure(ps, si);

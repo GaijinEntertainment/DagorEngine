@@ -94,7 +94,7 @@ static ConstSizeBitArrayBase<BS_OFS_end> btState, btStatePrev;
 static carray<PressTimeAndClickCount, BS_OFS_end> clState;
 static carray<float, AS_OFS_end> axState, axStatePrev;
 static UsedControlsMask start_umask;
-static constexpr int START_UM_LAYERS = 4;
+static constexpr int START_UM_LAYERS = 8;
 static Tab<dainput::SingleButtonId> start_ubtn_layered[START_UM_LAYERS];
 static int pending_cnt_start_ubtn[START_UM_LAYERS] = {0};
 

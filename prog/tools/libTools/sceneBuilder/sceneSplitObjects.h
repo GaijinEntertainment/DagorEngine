@@ -272,7 +272,7 @@ void recalc_sphere_and_bbox(ObjectType &object, Tab<Point3> &tmp_points)
         }
         break;
 
-      default: fatal("POS0 channel is of unsupported type 0x%08X", pos_type);
+      default: DAG_FATAL("POS0 channel is of unsupported type 0x%08X", pos_type);
     }
   }
   object.bsph = ::mesh_fast_bounding_sphere(tmp_points.data(), tmp_points.size());
@@ -558,7 +558,7 @@ void split_objects_by_triangles(Tab<ObjectType> &objectList, unsigned int triang
             }
             break;
 
-          default: fatal("POS0 channel is of unsupported type 0x%08X", pos_type);
+          default: DAG_FATAL("POS0 channel is of unsupported type 0x%08X", pos_type);
         }
 
 
@@ -590,7 +590,7 @@ void split_objects_by_triangles(Tab<ObjectType> &objectList, unsigned int triang
               qsort((void *)&vd.iData[initialElem->si], initialElem->numf, 3 * sizeof(unsigned short int), &sort_along_axis16_half4);
             break;
 
-          default: fatal("POS0 channel is of unsupported type 0x%08X", pos_type);
+          default: DAG_FATAL("POS0 channel is of unsupported type 0x%08X", pos_type);
         }
 
         // Split.

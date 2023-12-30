@@ -815,6 +815,8 @@ void rendinst::set_sun_dir_for_global_shadows(const Point3 &sun_dir)
 }
 void rendinst::set_global_shadows_needed(bool need)
 {
+  if (!RendInstGenData::renderResRequired)
+    need = false;
   if (!globalShadowsNeeded && need)
     rendinst::render::renderRIGenGlobalShadowsToTextures(curSunDir);
   globalShadowsNeeded = need;

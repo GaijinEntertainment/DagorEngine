@@ -30,6 +30,7 @@
 #include <EASTL/vector_map.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/string.h>
+#include <EASTL/span.h>
 #include <workCycle/dag_workCycle.h>
 #include <landMesh/lmeshRenderer.h>
 #include <3d/dag_gpuConfig.h>
@@ -70,14 +71,15 @@ class RingDynamicVB;
 
 struct TexTileFeedback
 {
-  uint8_t x, y;
-  uint8_t mip;
 #if MAX_RI_VTEX_CNT_BITS > 0
   uint8_t ri_index;
 #else
   uint8_t _unused;
   static constexpr uint8_t ri_index = 0;
 #endif
+  uint8_t y;
+  uint8_t x;
+  uint8_t mip;
 };
 typedef Tab<TexTileFeedback> TexTileFeedbackVector;
 
@@ -171,21 +173,26 @@ struct MipContext
 
   bool invalidateIndirection;
 
-  using InCacheBitmap = eastl::bitset<TEX_TOTAL_ELEMENTS>;
+  using InCacheBitmap = eastl::bitset<CLIPMAP_HIST_TOTAL_ELEMENTS>;
   InCacheBitmap inCacheBitmap;
 
   carray<EventQueryHolder, MAX_FRAMES_AHEAD> captureTexFence;
-  carray<UniqueTex, MAX_FRAMES_AHEAD> captureTex;
+  carray<UniqueTex, MAX_FRAMES_AHEAD> captureTexRt;
+  carray<UniqueBuf, MAX_FRAMES_AHEAD> captureBuf;
   carray<UniqueBuf, MAX_FRAMES_AHEAD> captureTileInfoBuf;
   UniqueBuf intermediateHistBuf;
+  UniqueBuf captureStagingBuf;
 
   carray<carray<int, 3>, MAX_FRAMES_AHEAD> captureWorldOffset;
   carray<Point4, MAX_FRAMES_AHEAD> captureUV2landscape;
   carray<int, MAX_FRAMES_AHEAD> debugHWFeedbackConvar;
 
   bool use_uav_feedback;
+  IPoint2 feedbackSize;
+  int feedbackOversampling;
+  uint32_t maxTilesFeedback;
 
-  void init(bool in_use_uav_feedback);
+  void init(bool use_uav_feedback, IPoint2 feedback_size, int feedback_oversampling, uint32_t max_tiles_feedback);
   void initIndirection(int tex_mips);
   void closeIndirection();
   void closeHWFeedback();
@@ -211,7 +218,7 @@ private:
   bool canUseUAVFeedback() const;
 };
 
-static constexpr int calc_squared_area_around(int tile_width) { return SQR(tile_width * 2 + 1); }
+static constexpr int calc_squared_area_around(int tile_width) { return sqr(tile_width * 2 + 1); }
 
 class ClipmapImpl
 {
@@ -239,9 +246,7 @@ public:
     CPU_HW_FEEDBACK
   };
 
-  static constexpr uint32_t MAX_TILE_CAPTURE_INFO_BUF_ELEMENTS =
-    min(TILE_WIDTH * TILE_WIDTH * MAX_VTEX_CNT, FEEDBACK_WIDTH *FEEDBACK_HEIGHT);
-  static constexpr uint32_t MAX_TILE_INFO_ELEMENT_CNT = MAX_TILE_CAPTURE_INFO_BUF_ELEMENTS * 2 + MAX_FAKE_TILE_CNT;
+  uint32_t getMaxTileInfoElementCount() const { return maxTileCaptureInfoBufElements * 2 + MAX_FAKE_TILE_CNT; }
 
   void initVirtualTexture(int cacheDimX, int cacheDimY, float maxEffectiveTargetResolution);
   void closeVirtualTexture();
@@ -298,7 +303,8 @@ public:
     return tiles[mip][addr];
   }
   void setTexMips(int tex_mips);
-  ClipmapImpl(const char *in_postfix = NULL, bool in_use_uav_feedback = true) : // same as TEXFMT_A8R8G8B8
+  ClipmapImpl(const char *in_postfix, bool in_use_uav_feedback,
+    FeedbackProperties in_feedback_properties) : // same as TEXFMT_A8R8G8B8
     postfix(in_postfix),
     viewerPosition(0.f, 0.f, 0.f),
     tileInfoSize(0),
@@ -309,9 +315,16 @@ public:
     cacheDimY(0),
     tileLimit(0),
     maxTileUpdateCount(1024),
-    use_uav_feedback(in_use_uav_feedback)
+    use_uav_feedback(in_use_uav_feedback),
+    feedbackSize(in_feedback_properties.feedbackSize),
+    feedbackOversampling(in_feedback_properties.feedbackOversampling),
+    moreThanFeedback(feedbackSize.x * feedbackSize.y + 1),
+    moreThanFeedbackInv(0xFFFF - moreThanFeedback),
+    maxTileCaptureInfoBufElements(min(TILE_WIDTH * TILE_WIDTH * MAX_VTEX_CNT, feedbackSize.x * feedbackSize.y))
   {
     G_STATIC_ASSERT((1 << TILE_WIDTH_BITS) == TILE_WIDTH);
+    G_ASSERT(feedbackSize.x * feedbackSize.y <= MAX_FEEDBACK_RESOLUTION);
+    G_ASSERT((feedbackOversampling == 1 || canUseUAVFeedback()) && is_pow_of2(feedbackOversampling));
 
     mem_set_0(compressor);
     texTileBorder = 1; // bilinear only
@@ -327,7 +340,7 @@ public:
     // END OF VIRTUAL TEXTURE INITIALIZATION
 
     mem_set_0(updatedClipmaps);
-    mem_set_0(tileInfo);
+    tileInfo.resize(getMaxTileInfoElementCount());
 
 #if MAX_RI_VTEX_CNT_BITS > 0
     mem_set_0(riInvMatrices);
@@ -396,8 +409,6 @@ public:
   static bool is_uav_supported();
 
 private:
-  using TileInfoArr = carray<TexTileInfo, MAX_TILE_INFO_ELEMENT_CNT>;
-
   void beginUpdateTiles();
   void updateTileBlock(int mip, int cx, int cy, int x, int y, int ri_index);
   void updateTileBlockRaw(int cx, int cy, const BBox2 &region);
@@ -406,7 +417,7 @@ private:
 
   bool canUseUAVFeedback() const;
 
-  void dispatchTileFeedback(int captureTargetIdx);
+  void processUAVFeedback(int captureTargetIdx);
 
   void copyAndAdvanceCaptureTarget(int captureTargetIdx);
   void prepareSoftwareFeedback(int zoomPow2, const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm,
@@ -462,13 +473,13 @@ private:
 
   void updateRendinstLandclassParams();
 
-  void processTileFeedback(TileInfoArr &result_arr, int &result_size, char *feedback_tile_ptr, int feedback_tile_cnt,
+  void processTileFeedback(dag::Vector<TexTileInfo> &result_arr, int &result_size, char *feedback_tile_ptr, int feedback_tile_cnt,
     const TMatrix4 &globtm, const Point4 &uv2l);
 
 private:
   SimpleString postfix;
   vec4f align_hist; /// aligns histogramm to 128 bit!
-  carray<uint16_t, TEX_TOTAL_ELEMENTS> hist;
+  carray<uint16_t, CLIPMAP_HIST_TOTAL_ELEMENTS> hist;
   ClipmapRenderer *pClipmapRenderer = 0;
   UniqueTex feedbackDepthTex;
   eastl::unique_ptr<MipContext> currentContext;
@@ -481,12 +492,8 @@ private:
   eastl::array<int, MAX_RI_VTEX_CNT> changedRiIndices;
 #endif
 
-  PostFxRenderer clearHistogramPs;
-  PostFxRenderer fillHistogramPs;
-  PostFxRenderer buildTileInfoPs;
-
   eastl::unique_ptr<ComputeShaderElement> clearHistogramCs;
-  eastl::unique_ptr<ComputeShaderElement> fillHistogramCs;
+  eastl::unique_ptr<ComputeShaderElement> processFeedbackCs;
   eastl::unique_ptr<ComputeShaderElement> buildTileInfoCs;
 
   static constexpr int COMPRESS_QUEUE_SIZE = 4;
@@ -497,16 +504,17 @@ private:
   int failLockCount = 0;
 
   int cacheWidth = 0, cacheHeight = 0, cacheDimX = 0, cacheDimY = 0;
-  TileInfoArr tileInfo;
+  static constexpr uint32_t tileInfo_stride = 8;
+  dag::Vector<TexTileInfo> tileInfo; // used as array
   int tileInfoSize = 0;
+
+  // for debug comparison
+  dag::Vector<TexTileInfo> debugTileInfo;
+  int debugTileInfoSize = 0;
 
   IPoint2 targetSize = {-1, -1};
   float targetMipBias = 0.f;
   float maxEffectiveTargetResolution = float(-1);
-
-  // for debug comparison
-  TileInfoArr debugTileInfo;
-  int debugTileInfoSize = 0;
 
   float pixelRatio = 0, maxTexelSize = 0;
   int tileLimit = 0, maxTileLimit = 0, zoomTileLimit = 0;
@@ -530,13 +538,18 @@ private:
   int fallback_info0VarId = -1, fallback_info1VarId = -1;
 
   bool use_uav_feedback = true;
+  const IPoint2 feedbackSize;
+  const uint16_t moreThanFeedback;
+  const uint16_t moreThanFeedbackInv;
+  const int feedbackOversampling;
+
+  const int maxTileCaptureInfoBufElements;
 
   void initCurrentContext();
   void freeCurrentContext();
 };
 
-
-const IPoint2 Clipmap::FEEDBACK_SIZE = IPoint2(FEEDBACK_WIDTH, FEEDBACK_HEIGHT);
+const IPoint2 Clipmap::FEEDBACK_DEFAULT_SIZE = IPoint2(FEEDBACK_DEFAULT_WIDTH, FEEDBACK_DEFAULT_HEIGHT);
 const int Clipmap::MAX_TEX_MIP_CNT = TEX_MIPS;
 
 void Clipmap::initVirtualTexture(int cacheDimX, int cacheDimY, float maxEffectiveTargetResolution)
@@ -594,8 +607,8 @@ TexTileIndirection &Clipmap::atTile(SmallTab<TexTileIndirection, MidmemAlloc> *t
 }
 void Clipmap::setTexMips(int tex_mips) { clipmapImpl->setTexMips(tex_mips); }
 
-Clipmap::Clipmap(const char *in_postfix, bool in_use_uav_feedback) :
-  clipmapImpl(eastl::make_unique<ClipmapImpl>(in_postfix, in_use_uav_feedback))
+Clipmap::Clipmap(const char *in_postfix, bool in_use_uav_feedback, FeedbackProperties in_feedback_properties) :
+  clipmapImpl(eastl::make_unique<ClipmapImpl>(in_postfix, in_use_uav_feedback, in_feedback_properties))
 {}
 Clipmap::~Clipmap() { close(); }
 
@@ -656,42 +669,32 @@ bool Clipmap::is_uav_supported() { return ClipmapImpl::is_uav_supported(); }
 
 
 #define VTEX_VARS_LIST                               \
-  VAR(clipmap_feedback_tex)                          \
+  VAR(clipmap_feedback_calc_histogram_on_gpu)        \
+  VAR(clipmap_feedback_sride)                        \
+  VAR(clipmap_feedback_readback_sride)               \
+  VAR(clipmap_feedback_readback_size)                \
+  VAR(clipmap_feedback_buf)                          \
+  VAR(clipmap_feedback_readback_buf_rw)              \
   VAR(clipmap_tex_mips)                              \
   VAR(clipmap_ri_landscape2uv_arr)                   \
-  VAR(ri_landclass_closest_indices_0)                \
-  VAR(ri_landclass_closest_indices_1)                \
+  VAR(ri_landclass_closest_indices_arr)              \
   VAR(ri_landclass_changed_indicex_bits)             \
   VAR(tex_hmap_inv_sizes)                            \
   VAR(rendinst_landscape_area_left_top_right_bottom) \
-  VAR(clipmap_histogram_buf)
+  VAR(clipmap_histogram_buf)                         \
+  VAR(feedback_downsample_dim)                       \
+  VAR(clipmap_histogram_buf_rw)                      \
+  VAR(clipmap_tile_info_buf_rw)                      \
+  VAR(feedback_downsample_in)                        \
+  VAR(feedback_downsample_out)
 #define VAR(a) static int a##VarId = -1;
 VTEX_VARS_LIST
-#undef VAR
-
-#define VTEX_CONST_LIST               \
-  VAR(clipmap_clear_histogram_buf_rw) \
-  VAR(clipmap_clear_tile_info_buf_rw) \
-  VAR(clipmap_histogram_buf_rw)       \
-  VAR(clipmap_tile_info_cnt_rw)       \
-  VAR(clipmap_tile_info_buf_rw)
-#define VAR(a) static int a##_const_no = -1;
-VTEX_CONST_LIST
 #undef VAR
 
 static void init_shader_vars()
 {
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
   VTEX_VARS_LIST
-#undef VAR
-
-#define VAR(a)                                              \
-  {                                                         \
-    int tmp = get_shader_variable_id(#a "_const_no", true); \
-    if (tmp >= 0)                                           \
-      a##_const_no = ShaderGlobal::get_int_fast(tmp);       \
-  }
-  VTEX_CONST_LIST
 #undef VAR
 }
 
@@ -707,10 +710,6 @@ CONSOLE_BOOL_VAL("clipmap", log_ri_indirection_change, false);
 
 static constexpr float RI_LANDCLASS_FIXED_ZOOM = 1;
 
-
-// CS is a bit faster when isolated, but PS can interleave with neighboring calls, making it overall faster
-// BUT: PS is broken on Vulkan for some reason // TODO: fix it
-CONSOLE_BOOL_VAL("clipmap", use_cs_for_hw_feedback_process, true);
 
 #if _TARGET_ANDROID
 // some Adreno devices go mad about this
@@ -739,10 +738,6 @@ using TempMap = eastl::vector_map<K, T, eastl::less<K>, framemem_allocator,
 
 #define RESTORE_IN_INDIRECTION_ONLY_USED_LRU \
   0 // change this to 1, if we need only used LRU tiles in indirection. However, on SLI/Crossfire we always restore only used
-
-static constexpr uint16_t MORE_THAN_FEEDBACK = FEEDBACK_WIDTH * FEEDBACK_HEIGHT + 1;
-static constexpr uint16_t MORE_THAN_FEEDBACK_INV = 0xFFFF - MORE_THAN_FEEDBACK;
-
 
 static const uint4 TILE_PACKED_BITS = uint4(TILE_PACKED_X_BITS, TILE_PACKED_Y_BITS, TILE_PACKED_MIP_BITS, TILE_PACKED_COUNT_BITS);
 static const uint4 TILE_PACKED_SHIFT =
@@ -806,13 +801,17 @@ static uint64_t calc_tile_sort_order(const TexTileInfo &tile)
   return ~(uint64_t)count << 32 | index;
 }
 
-void MipContext::init(bool in_use_uav_feedback)
+void MipContext::init(bool in_use_uav_feedback, IPoint2 in_feedback_size, int in_feedback_oversampling, uint32_t in_max_tiles_feedback)
 {
   use_uav_feedback = in_use_uav_feedback;
+  feedbackSize = in_feedback_size;
+  feedbackOversampling = in_feedback_oversampling;
+  maxTilesFeedback = in_max_tiles_feedback;
 
   for (int i = 0; i < MAX_FRAMES_AHEAD; ++i)
   {
-    captureTex[i].close();
+    captureTexRt[i].close();
+    captureBuf[i].close();
     captureTileInfoBuf[i].close();
     captureWorldOffset[i][0] = 0;
     captureWorldOffset[i][1] = 0;
@@ -821,6 +820,7 @@ void MipContext::init(bool in_use_uav_feedback)
     debugHWFeedbackConvar[i] = 0;
   }
   intermediateHistBuf.close();
+  captureStagingBuf.close();
   captureTarget = oldestCaptureTargetIdx = 0;
 }
 
@@ -1015,22 +1015,22 @@ __forceinline bool is_2d_frustum_visible(vec4f pos, vec4f width, vec4f height, c
 
 
 template <typename T>
-static void sort_tile_info_list(T &tileInfo, int tileInfoSize)
+static void sort_tile_info_list(const eastl::span<T> tileInfo0)
 {
-  for (int tileNo = 0; tileNo < tileInfoSize; tileNo++)
-    tileInfo[tileNo].sortOrder = calc_tile_sort_order(tileInfo[tileNo]);
-  stlsort::sort(tileInfo.data(), tileInfo.data() + tileInfoSize, SortBySortOrder());
+  for (T &tile : tileInfo0)
+    tile.sortOrder = calc_tile_sort_order(tile);
+  stlsort::sort(tileInfo0.begin(), tileInfo0.end(), SortBySortOrder());
 }
 
-static bool compare_tile_info_results(carray<TexTileInfo, ClipmapImpl::MAX_TILE_INFO_ELEMENT_CNT> &tileInfo0, int tileInfoSize0,
-  carray<TexTileInfo, ClipmapImpl::MAX_TILE_INFO_ELEMENT_CNT> &tileInfo1, int tileInfoSize1, int &firstMismatchId)
+static bool compare_tile_info_results(const eastl::span<TexTileInfo> tileInfo0, const eastl::span<TexTileInfo> tileInfo1,
+  int &firstMismatchId)
 {
   firstMismatchId = -1;
-  if (tileInfoSize0 != tileInfoSize1)
+  if (tileInfo0.size() != tileInfo1.size())
     return false;
-  if (tileInfoSize0 == 0)
+  if (tileInfo0.size() == 0)
     return true;
-  for (int i = 0; i < tileInfoSize0; ++i)
+  for (int i = 0; i < tileInfo0.size(); ++i)
     if (tileInfo0[i] != tileInfo1[i])
     {
       firstMismatchId = i;
@@ -1145,6 +1145,7 @@ void ClipmapImpl::updateFromFeedback(HWFeedbackMode hw_feedback_mode, TMatrix4 &
     TIME_PROFILE_DEV(clipmap_updateFromFeedback);
     if (hw_feedback_mode == HWFeedbackMode::DEBUG_COMPARE)
     {
+      debugTileInfo.resize(getMaxTileInfoElementCount());
       processTileFeedback(debugTileInfo, debugTileInfoSize, feedbackTilePtr, feedbackTileCnt, globtm, uv2l);
       prepareTileInfoFromTextureFeedback(hw_feedback_mode, globtm, feedbackCharPtr, oldXOffset, oldYOffset, oldZoom, uv2l,
         force_update);
@@ -1178,8 +1179,7 @@ void ClipmapImpl::prepareTileInfoFromTextureFeedback(HWFeedbackMode hw_feedback_
   TIME_PROFILE_DEV(clipmap_updateFromReadPixels);
 
   const TexTileFeedback *feedbackPtr = (const TexTileFeedback *)feedbackCharPtr;
-  int width = FEEDBACK_WIDTH, height = FEEDBACK_HEIGHT;
-  int total = width * height;
+  int total = feedbackSize.x * feedbackSize.y;
 
   if (disable_feedback)
     total = 0;
@@ -1189,7 +1189,7 @@ void ClipmapImpl::prepareTileInfoFromTextureFeedback(HWFeedbackMode hw_feedback_
 
   auto appendHist = [this](int x, int y, int mip, int ri_index) {
     int hist_ofs = TagOfTile(mip, x, y, ri_index);
-    G_ASSERTF(hist_ofs < TEX_TOTAL_ELEMENTS, "%d, %d, %d, %d", x, y, mip, ri_index);
+    G_ASSERTF(hist_ofs < CLIPMAP_HIST_TOTAL_ELEMENTS, "%d, %d, %d, %d", x, y, mip, ri_index);
 #if CHECK_MEMGUARD
     hist[hist_ofs]++;
 #else
@@ -1288,12 +1288,12 @@ void ClipmapImpl::prepareTileInfoFromTextureFeedback(HWFeedbackMode hw_feedback_
   if (!disable_fake_tiles && currentContext->tileZoom <= MAX_ZOOM_TO_ALLOW_FAKE_AROUND_CAMERA)
   {
     auto funct = [this](int x, int y, int mip, int ri_index, int hist_ofs) {
-      if (hist[hist_ofs] >= MORE_THAN_FEEDBACK) // only apply fake tiles once (overlapping can cause issues otherwise)
+      if (hist[hist_ofs] >= moreThanFeedback) // only apply fake tiles once (overlapping can cause issues otherwise)
         return;
 #if CHECK_MEMGUARD
-      hist[hist_ofs] = min(hist[hist_ofs], MORE_THAN_FEEDBACK_INV) + MORE_THAN_FEEDBACK;
+      hist[hist_ofs] = min(hist[hist_ofs], moreThanFeedbackInv) + moreThanFeedback;
 #else
-      hist.data()[hist_ofs] = min(hist.data()[hist_ofs], MORE_THAN_FEEDBACK_INV) + MORE_THAN_FEEDBACK;
+      hist.data()[hist_ofs] = min(hist.data()[hist_ofs], moreThanFeedbackInv) + moreThanFeedback;
 #endif
     };
     for (int riIndex = 0; riIndex < MAX_VTEX_CNT; ++riIndex) // -V1008
@@ -1412,15 +1412,18 @@ void ClipmapImpl::prepareTileInfoFromTextureFeedback(HWFeedbackMode hw_feedback_
   // when we know we need to apply it
 }
 
-void ClipmapImpl::processTileFeedback(TileInfoArr &result_arr, int &result_size, char *feedback_tile_ptr, int feedback_tile_cnt,
-  const TMatrix4 &globtm, const Point4 &uv2l)
+void ClipmapImpl::processTileFeedback(dag::Vector<TexTileInfo> &result_arr, int &result_size, char *feedback_tile_ptr,
+  int feedback_tile_cnt, const TMatrix4 &globtm, const Point4 &uv2l)
 {
   TempMap<uint32_t, TexTileInfo, MAX_FAKE_TILE_CNT> aroundCameraTileIndexMap;
   if (!disable_fake_tiles && currentContext->tileZoom <= MAX_ZOOM_TO_ALLOW_FAKE_AROUND_CAMERA)
   {
-    auto funct = [&aroundCameraTileIndexMap](int x, int y, int mip, int ri_index, int hist_ofs) {
-      TexTileInfo tile = TexTileInfo(x, y, mip, MORE_THAN_FEEDBACK, ri_index);
+    auto funct = [&aroundCameraTileIndexMap, moreThanFeedback = this->moreThanFeedback](int x, int y, int mip, int ri_index,
+                   int hist_ofs) {
+      TexTileInfo tile = TexTileInfo(x, y, mip, moreThanFeedback, ri_index);
       aroundCameraTileIndexMap.insert(eastl::pair(hist_ofs, tile));
+      if (aroundCameraTileIndexMap.size() > MAX_FAKE_TILE_CNT) // TempMap can overflow
+        logerr("clipmap: Max fake tiles count exceeded: %d > %d", aroundCameraTileIndexMap.size(), MAX_FAKE_TILE_CNT);
     };
     for (int riIndex = 0; riIndex < MAX_VTEX_CNT; ++riIndex) // -V1008
     {
@@ -1454,7 +1457,7 @@ void ClipmapImpl::processTileFeedback(TileInfoArr &result_arr, int &result_size,
       if (it != aroundCameraTileIndexMap.end())
       {
         TexTileInfo &taggedTileRef = it->second;
-        taggedTileRef.count = min(tile.count, MORE_THAN_FEEDBACK_INV) + MORE_THAN_FEEDBACK;
+        taggedTileRef.count = min(tile.count, moreThanFeedbackInv) + moreThanFeedback;
       }
       else
       {
@@ -1603,15 +1606,16 @@ void ClipmapImpl::updateMip(HWFeedbackMode hw_feedback_mode, bool force_update)
 
   if (feedbackType != SOFTWARE_FEEDBACK) // no reasonable count
   {
-    sort_tile_info_list(tileInfo, tileInfoSize);
+    sort_tile_info_list(eastl::span(tileInfo.begin(), tileInfoSize));
 
     if (hw_feedback_mode == HWFeedbackMode::DEBUG_COMPARE)
     {
-      sort_tile_info_list(debugTileInfo, debugTileInfoSize);
+      sort_tile_info_list(eastl::span(debugTileInfo.begin(), debugTileInfoSize));
 
       int firstMismatchId;
       if (getHWFeedbackMode(currentContext->captureTarget % MAX_FRAMES_AHEAD) == HWFeedbackMode::DEBUG_COMPARE &&
-          !compare_tile_info_results(tileInfo, tileInfoSize, debugTileInfo, debugTileInfoSize, firstMismatchId))
+          !compare_tile_info_results(eastl::span(tileInfo.begin(), tileInfoSize),
+            eastl::span(debugTileInfo.begin(), debugTileInfoSize), firstMismatchId))
       {
         if (firstMismatchId >= 0)
         {
@@ -1667,7 +1671,7 @@ void ClipmapImpl::updateMip(HWFeedbackMode hw_feedback_mode, bool force_update)
       inTag.insert(TagOfTile(fb.mip, fb.x, fb.y, fb.ri_index));
       if (hide_invisible_tiles)
       {
-        if (fb.count == MORE_THAN_FEEDBACK)
+        if (fb.count == moreThanFeedback)
           fakeTag.insert(TagOfTile(fb.mip, fb.x, fb.y, fb.ri_index));
       }
     }
@@ -1794,26 +1798,39 @@ void MipContext::initHWFeedback()
   oldestCaptureTargetIdx = 0;
 
   for (int i = 0; i < MAX_FRAMES_AHEAD; ++i)
-  {
     captureTexFence[i].reset(d3d::create_event_query());
-    String captureTexName(128, "capture_tex%p_%d", this, i);
-    uint32_t uavFlag = canUseUAVFeedback() ? (TEXCF_UNORDERED | TEXFMT_R8G8B8A8) : (TEXCF_RTARGET | TEXFMT_A8R8G8B8);
 
-    captureTex[i] = dag::create_tex(nullptr, FEEDBACK_WIDTH, FEEDBACK_HEIGHT,
-      TEXCF_CPU_CACHED_MEMORY | TEXCF_LINEAR_LAYOUT | // PS4
-        uavFlag,
-      1, captureTexName.str());
-    d3d_err(captureTex[i].getTex2D());
+  if (!canUseUAVFeedback())
+  {
+    for (int i = 0; i < MAX_FRAMES_AHEAD; ++i)
+    {
+      String captureTexName(128, "capture_tex_rt_%p_%d", this, i);
+      captureTexRt[i] =
+        dag::create_tex(nullptr, feedbackSize.x, feedbackSize.y, TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, captureTexName.str());
+      d3d_err(captureTexRt[i].getTex2D());
+    }
+    return;
+  }
+
+  IPoint2 oversampledFeedbackSize = feedbackSize * feedbackOversampling;
+  captureStagingBuf =
+    dag::buffers::create_ua_sr_byte_address(oversampledFeedbackSize.x * oversampledFeedbackSize.y, "capture_staging_buf");
+  d3d_err(captureStagingBuf.getBuf());
+
+  for (int i = 0; i < MAX_FRAMES_AHEAD; ++i)
+  {
+    String captureBufName(128, "capture_buf%p_%d", this, i);
+    captureBuf[i] = dag::buffers::create_ua_byte_address_readback(feedbackSize.x * feedbackSize.y, captureBufName.str());
+    d3d_err(captureBuf[i].getBuf());
 
     String tileInfoName(128, "clipmap_tile_info_buf%p_%d", this, i);
     static constexpr uint32_t subElementCnt = sizeof(ClipmapImpl::PackedTile) / d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE;
     G_STATIC_ASSERT(subElementCnt > 0);
     G_STATIC_ASSERT(sizeof(ClipmapImpl::PackedTile) % sizeof(uint32_t) == 0);
-    captureTileInfoBuf[i] = dag::buffers::create_ua_byte_address_readback(
-      subElementCnt * (ClipmapImpl::MAX_TILE_CAPTURE_INFO_BUF_ELEMENTS + 1u), tileInfoName.str());
+    captureTileInfoBuf[i] = dag::buffers::create_ua_byte_address_readback(subElementCnt * (maxTilesFeedback + 1u), tileInfoName.str());
     d3d_err(captureTileInfoBuf[i].getBuf());
   }
-  intermediateHistBuf = dag::buffers::create_ua_sr_byte_address(TEX_TOTAL_ELEMENTS, "clipmap_histogram_buf");
+  intermediateHistBuf = dag::buffers::create_ua_sr_byte_address(CLIPMAP_HIST_TOTAL_ELEMENTS, "clipmap_histogram_buf");
   d3d_err(intermediateHistBuf.getBuf());
 }
 
@@ -1821,7 +1838,8 @@ void MipContext::closeHWFeedback()
 {
   for (int i = 0; i < MAX_FRAMES_AHEAD; ++i)
   {
-    captureTex[i].close();
+    captureTexRt[i].close();
+    captureBuf[i].close();
     captureTileInfoBuf[i].close();
     captureTexFence[i].reset();
   }
@@ -1831,10 +1849,13 @@ void MipContext::closeHWFeedback()
 
 void ClipmapImpl::initHWFeedback()
 {
-  String texName(30, "feedback_depth_tex_%p", this);
-  feedbackDepthTex =
-    dag::create_tex(nullptr, FEEDBACK_WIDTH, FEEDBACK_HEIGHT, TEXFMT_DEPTH32 | TEXCF_RTARGET | TEXCF_TC_COMPATIBLE, 1, texName);
-  d3d_err(feedbackDepthTex.getTex2D());
+  if (!use_uav_feedback)
+  {
+    String texName(30, "feedback_depth_tex_%p", this);
+    feedbackDepthTex =
+      dag::create_tex(nullptr, feedbackSize.x, feedbackSize.y, TEXFMT_DEPTH32 | TEXCF_RTARGET | TEXCF_TC_COMPATIBLE, 1, texName);
+    d3d_err(feedbackDepthTex.getTex2D());
+  }
   if (currentContext)
     currentContext->initHWFeedback();
 }
@@ -1958,7 +1979,7 @@ void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, float a
   constantFillerBuf->setCurrentShader(constantFillerElement);
 
   currentContext.reset(new MipContext());
-  currentContext->init(use_uav_feedback);
+  currentContext->init(use_uav_feedback, feedbackSize, feedbackOversampling, maxTileCaptureInfoBufElements);
   currentContext->xOffset = currentContext->yOffset = 0;
   currentContext->tileZoom = 1;
   currentContext->initIndirection(texMips);
@@ -1967,8 +1988,8 @@ void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, float a
   if (feedbackType == CPU_HW_FEEDBACK)
     initHWFeedback();
 
-  clear_and_resize(lockedPixels, FEEDBACK_HEIGHT * FEEDBACK_WIDTH);
-  clear_and_resize(lockedTileInfo, ClipmapImpl::MAX_TILE_CAPTURE_INFO_BUF_ELEMENTS);
+  clear_and_resize(lockedPixels, feedbackSize.x * feedbackSize.y);
+  clear_and_resize(lockedTileInfo, maxTileCaptureInfoBufElements);
 
   setTileSizeVars();
 }
@@ -2035,7 +2056,7 @@ public:
   {
     if (updateFeedbackType == FeedbackType::UPDATE_FROM_READPIXELS)
     {
-      G_ASSERT(clipmap->lockedTileInfoCnt <= ClipmapImpl::MAX_TILE_CAPTURE_INFO_BUF_ELEMENTS); // should never happen
+      G_ASSERT(clipmap->lockedTileInfoCnt <= clipmap->maxTileCaptureInfoBufElements); // should never happen
       clipmap->updateFromFeedback(hwFeedbackMode, globtm, (char *)clipmap->lockedPixels.data(), (char *)clipmap->lockedTileInfo.data(),
         (int)clipmap->lockedTileInfoCnt, oldXOffset, oldYOffset, oldZoom, uv2l, forceUpdate);
     }
@@ -2702,6 +2723,35 @@ bool ClipmapImpl::updateOrigin(const Point3 &cameraPosition, bool update_snap)
 
 bool Clipmap::isCompressionAvailable(uint32_t format) { return BcCompressor::isAvailable((BcCompressor::ECompressionType)format); }
 
+FeedbackProperties Clipmap::getSuggestedOversampledFeedbackProperties(IPoint2 target_res)
+{
+  // Compare storing 2x2 vs 3x3 per feedback texel
+  int feedbackOversampling = 1;
+  int feedbackRegion = -1;
+  {
+    while (feedbackRegion < 0)
+    {
+      if (
+        div_ceil(target_res.x, 2 * feedbackOversampling) * div_ceil(target_res.y, 2 * feedbackOversampling) <= MAX_FEEDBACK_RESOLUTION)
+        feedbackRegion = 2;
+      else if (
+        div_ceil(target_res.x, 3 * feedbackOversampling) * div_ceil(target_res.y, 3 * feedbackOversampling) <= MAX_FEEDBACK_RESOLUTION)
+        feedbackRegion = 3;
+      else
+        feedbackOversampling *= 2;
+    }
+
+    G_ASSERT(feedbackOversampling >= 1 && is_pow_of2(feedbackOversampling) && (feedbackRegion == 2 || feedbackRegion == 3));
+  }
+
+  FeedbackProperties feedbackProperties;
+  feedbackProperties.feedbackSize = IPoint2(div_ceil(target_res.x, feedbackOversampling * feedbackRegion),
+    div_ceil(target_res.y, feedbackOversampling * feedbackRegion));
+  feedbackProperties.feedbackOversampling = feedbackOversampling;
+
+  return feedbackProperties;
+}
+
 void ClipmapImpl::centerOffset(const Point3 &position, int &xofs, int &yofs, float zoom) const
 {
   float pRatio = zoom * pixelRatio;
@@ -3008,19 +3058,17 @@ void ClipmapImpl::init(float texel_size, uint32_t feedback_type, int tex_mips, i
   pixelRatio = texel_size;
   feedbackType = feedback_type;
 
-  if (shader_exists("clipmap_clear_histogram_ps"))
-  {
-    clearHistogramPs.init("clipmap_clear_histogram_ps");
-    fillHistogramPs.init("clipmap_fill_histogram_ps");
-    buildTileInfoPs.init("clipmap_build_tile_info_ps");
-  }
-
-  if (shader_exists("clipmap_clear_histogram_cs"))
+  if (shader_exists("clipmap_process_feedback_cs"))
   {
     clearHistogramCs.reset(new_compute_shader("clipmap_clear_histogram_cs", true));
-    fillHistogramCs.reset(new_compute_shader("clipmap_fill_histogram_cs", true));
+    processFeedbackCs.reset(new_compute_shader("clipmap_process_feedback_cs", true));
     buildTileInfoCs.reset(new_compute_shader("clipmap_build_tile_info_cs", true));
   }
+
+  ShaderGlobal::set_int(feedback_downsample_dimVarId, feedbackOversampling);
+  ShaderGlobal::set_int(clipmap_feedback_srideVarId, feedbackSize.x * feedbackOversampling);
+  ShaderGlobal::set_int(clipmap_feedback_readback_srideVarId, feedbackSize.x);
+  ShaderGlobal::set_int(clipmap_feedback_readback_sizeVarId, feedbackSize.x * feedbackSize.y);
 }
 
 void ClipmapImpl::invalidate(bool force_redraw)
@@ -3342,8 +3390,8 @@ void ClipmapImpl::setDDScale()
 {
   G_ASSERT(targetSize.x > 0 && targetSize.y > 0);
 
-  float ddw = float(FEEDBACK_WIDTH) / float(targetSize.x);
-  float ddh = float(FEEDBACK_HEIGHT) / float(targetSize.y);
+  float ddw = float(feedbackSize.x * feedbackOversampling) / float(targetSize.x);
+  float ddh = float(feedbackSize.y * feedbackOversampling) / float(targetSize.y);
 
   float targetResolution = float(targetSize.x * targetSize.y);
   float effectiveTargetResolution = targetResolution * exp2f(-2 * targetMipBias);
@@ -3462,13 +3510,21 @@ void ClipmapImpl::prepareFeedback(ClipmapRenderer &renderer, const Point3 &cente
         {
           TIME_D3D_PROFILE(lockAndCopyTex);
           int stride;
-          if (auto lockedTex = lock_texture<uint8_t>(currentContext->captureTex[captureTargetIdx].getTex2D(), stride, 0,
-                TEXLOCK_READ | TEXLOCK_RAWDATA))
+          if (canUseUAVFeedback())
           {
-            const uint8_t *data = lockedTex.get();
-            for (int y = 0; y < FEEDBACK_HEIGHT; ++y, data += stride)
-              memcpy(lockedPixels.data() + y * FEEDBACK_WIDTH, data, FEEDBACK_WIDTH * sizeof(TexTileFeedback));
-            canStartJob = true;
+            if (auto lockedBuf = lock_sbuffer<const TexTileFeedback>(currentContext->captureBuf[captureTargetIdx].getBuf(), 0, 0, 0))
+            {
+              eastl::copy_n(lockedBuf.get(), lockedPixels.size(), lockedPixels.data());
+              canStartJob = true;
+            }
+          }
+          else
+          {
+            if (auto lockedTex = lock_texture_ro(currentContext->captureTexRt[captureTargetIdx].getTex2D(), 0, TEXLOCK_RAWDATA))
+            {
+              lockedTex.readRows(make_span(lockedPixels));
+              canStartJob = true;
+            }
           }
         }
 
@@ -3484,9 +3540,9 @@ void ClipmapImpl::prepareFeedback(ClipmapRenderer &renderer, const Point3 &cente
 #else
             lockedTileInfoCnt = lockedBuf[0];
 #endif
-            if (lockedTileInfoCnt > MAX_TILE_CAPTURE_INFO_BUF_ELEMENTS)
+            if (lockedTileInfoCnt > maxTileCaptureInfoBufElements)
             {
-              logerr("lockedTileInfoCnt is out of bounds: %d > %d", lockedTileInfoCnt, MAX_TILE_CAPTURE_INFO_BUF_ELEMENTS);
+              logerr("lockedTileInfoCnt is out of bounds: %d > %d", lockedTileInfoCnt, maxTileCaptureInfoBufElements);
               lockedTileInfoCnt = 0;
             }
             if (lockedTileInfoCnt > 0)
@@ -3518,9 +3574,8 @@ void ClipmapImpl::prepareFeedback(ClipmapRenderer &renderer, const Point3 &cente
     int captureTargetIdx = (currentContext->captureTarget % MAX_FRAMES_AHEAD);
     if (canUseUAVFeedback())
     {
-      Texture *tex = currentContext->captureTex[captureTargetIdx].getTex2D();
-      float one[4] = {1.0, 1.0, 1.0, 1.0};
-      d3d::clear_rwtexf(tex, one, 0, 0);
+      unsigned clearbits[4] = {CLIPMAP_INVALID_FEEDBACK_CLEAR, 0x0, 0x0, 0x0};
+      d3d::clear_rwbufi(currentContext->captureStagingBuf.getBuf(), clearbits);
     }
     else
     {
@@ -3535,7 +3590,7 @@ void ClipmapImpl::prepareFeedback(ClipmapRenderer &renderer, const Point3 &cente
       Driver3dPerspective p;
       bool prevPerspValid = d3d::getpersp(p);
 
-      d3d::set_render_target(currentContext->captureTex[captureTargetIdx].getTex2D(), 0);
+      d3d::set_render_target(currentContext->captureTexRt[captureTargetIdx].getTex2D(), 0);
       d3d::set_depth(feedbackDepthTex.getTex2D(), DepthAccess::RW);
       TMatrix4 scaledGlobTm = globtm * TMatrix4(feedback_view_scale, 0, 0, 0, 0, feedback_view_scale, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
       d3d::settm(TM_PROJ, &scaledGlobTm);
@@ -3587,9 +3642,17 @@ void ClipmapImpl::copyAndAdvanceCaptureTarget(int captureTargetIdx)
     {
       TIME_PROFILE(copyImg);
       int stride;
-      if (
-        currentContext->captureTex[captureTargetIdx]->lockimg(nullptr, stride, 0, TEXLOCK_READ | TEXLOCK_NOSYSLOCK | TEXLOCK_RAWDATA))
-        currentContext->captureTex[captureTargetIdx]->unlockimg();
+      if (canUseUAVFeedback())
+      {
+        if (currentContext->captureBuf[captureTargetIdx]->lock(0, 0, static_cast<void **>(nullptr), VBLOCK_READONLY))
+          currentContext->captureBuf[captureTargetIdx]->unlock();
+      }
+      else
+      {
+        if (currentContext->captureTexRt[captureTargetIdx]->lockimg(nullptr, stride, 0,
+              TEXLOCK_READ | TEXLOCK_NOSYSLOCK | TEXLOCK_RAWDATA))
+          currentContext->captureTexRt[captureTargetIdx]->unlockimg();
+      }
     }
 
     if (canUseOptimizedReadback(captureTargetIdx))
@@ -3617,79 +3680,64 @@ void ClipmapImpl::startUAVFeedback(int reg_no)
   if (feedbackType != CPU_HW_FEEDBACK || !canUseUAVFeedback())
     return;
 
-  d3d::set_rwtex(STAGE_PS, reg_no, currentContext->captureTex[currentContext->captureTarget % MAX_FRAMES_AHEAD].getTex2D(), 0, 0);
+  d3d::set_rwbuffer(STAGE_PS, reg_no, currentContext->captureStagingBuf.getBuf());
 }
 
-void ClipmapImpl::dispatchTileFeedback(int captureTargetIdx)
+void ClipmapImpl::processUAVFeedback(int captureTargetIdx)
 {
-  G_ASSERT(clearHistogramPs.getElem() && fillHistogramPs.getElem() && buildTileInfoPs.getElem()); // PS is mandatory
-
+  G_ASSERT(clearHistogramCs && processFeedbackCs && buildTileInfoCs);
+  G_ASSERT(feedbackOversampling >= 1 && is_pow_of2(feedbackOversampling));
   TIME_D3D_PROFILE(clipmap_feedback_transform);
 
-  bool useCS = use_cs_for_hw_feedback_process && fillHistogramCs && buildTileInfoCs;
-  if (!useCS)
-    use_cs_for_hw_feedback_process = false; // just so it's not a silent fallback
-
+  bool useGpuHistogramCalc = canUseOptimizedReadback(captureTargetIdx);
+  ShaderGlobal::set_int(clipmap_feedback_calc_histogram_on_gpuVarId, useGpuHistogramCalc);
   ShaderGlobal::set_int(clipmap_tex_mipsVarId, texMips);
-  SCOPE_VIEWPORT;
+
+  if (useGpuHistogramCalc)
   {
     TIME_D3D_PROFILE(clear_histogram);
-    int stage = useCS ? STAGE_CS : STAGE_PS;
-    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(stage, clipmap_clear_tile_info_buf_rw_const_no, VALUE),
-      currentContext->captureTileInfoBuf[captureTargetIdx].getBuf());
-    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(stage, clipmap_clear_histogram_buf_rw_const_no, VALUE),
-      currentContext->intermediateHistBuf.getBuf());
-    if (useCS)
-    {
-      clearHistogramCs->dispatchThreads(TEX_TOTAL_ELEMENTS, 1, 1);
-    }
-    else
-    {
-      d3d::setview(0, 0, TILE_WIDTH * TEX_MIPS, TILE_WIDTH, 0, 1);
-      clearHistogramPs.render();
-    }
+    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_tile_info_buf_rwVarId, VALUE),
+      currentContext->captureTileInfoBuf[captureTargetIdx].getBufId(), BAD_TEXTUREID);
+    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_histogram_buf_rwVarId, VALUE), currentContext->intermediateHistBuf.getBufId(),
+      BAD_TEXTUREID);
+    clearHistogramCs->dispatchThreads(CLIPMAP_HIST_TOTAL_ELEMENTS, 1, 1);
   }
-  ResourceBarrier barrierStage = useCS ? RB_STAGE_COMPUTE : RB_STAGE_PIXEL;
-  ResourceBarrier sourceStage = useCS ? RB_SOURCE_STAGE_COMPUTE : RB_SOURCE_STAGE_PIXEL;
-  d3d::resource_barrier({currentContext->captureTex[captureTargetIdx].getTex2D(), RB_RO_SRV | barrierStage, 0, 0});
-  d3d::resource_barrier({currentContext->intermediateHistBuf.getBuf(), RB_FLUSH_UAV | sourceStage | barrierStage});
-  d3d::resource_barrier({currentContext->captureTileInfoBuf[captureTargetIdx].getBuf(), RB_FLUSH_UAV | sourceStage | barrierStage});
+
   {
-    TIME_D3D_PROFILE(fill_histogram);
-    int stage = useCS ? STAGE_CS : STAGE_PS;
-    ShaderGlobal::set_texture(clipmap_feedback_texVarId, currentContext->captureTex[captureTargetIdx]);
-    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(stage, clipmap_histogram_buf_rw_const_no, VALUE),
-      currentContext->intermediateHistBuf.getBuf());
-    if (useCS)
+    TIME_D3D_PROFILE(process_feedback);
+
+    d3d::resource_barrier({currentContext->captureStagingBuf.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+    if (useGpuHistogramCalc)
     {
-      fillHistogramCs->dispatchThreads(FEEDBACK_WIDTH, FEEDBACK_HEIGHT, 1);
+      d3d::resource_barrier({currentContext->intermediateHistBuf.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+      d3d::resource_barrier(
+        {currentContext->captureTileInfoBuf[captureTargetIdx].getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
     }
-    else
-    {
-      d3d::setview(0, 0, FEEDBACK_WIDTH, FEEDBACK_HEIGHT, 0, 1);
-      fillHistogramPs.render();
-    }
+
+    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_feedback_bufVarId, VALUE), currentContext->captureStagingBuf.getBufId(),
+      BAD_TEXTUREID);
+    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_feedback_readback_buf_rwVarId, VALUE),
+      currentContext->captureBuf[captureTargetIdx].getBufId(), BAD_TEXTUREID);
+    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_histogram_buf_rwVarId, VALUE),
+      useGpuHistogramCalc ? currentContext->intermediateHistBuf.getBufId() : BAD_D3DRESID, BAD_TEXTUREID);
+
+    processFeedbackCs->dispatchThreads(feedbackSize.x * feedbackSize.y, 1, 1);
   }
-  d3d::resource_barrier({currentContext->intermediateHistBuf.getBuf(), RB_RO_SRV | barrierStage});
+
+  if (useGpuHistogramCalc)
   {
+    d3d::resource_barrier({currentContext->intermediateHistBuf.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+
     TIME_D3D_PROFILE(build_tile_info);
-    int stage = useCS ? STAGE_CS : STAGE_PS;
     ShaderGlobal::set_buffer(clipmap_histogram_bufVarId, currentContext->intermediateHistBuf);
-    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(stage, clipmap_tile_info_buf_rw_const_no, VALUE),
-      currentContext->captureTileInfoBuf[captureTargetIdx].getBuf());
-    if (useCS)
-    {
-      buildTileInfoCs->dispatchThreads(TILE_WIDTH, TILE_WIDTH, 1);
-    }
-    else
-    {
-      d3d::setview(0, 0, TILE_WIDTH, TILE_WIDTH, 0, 1);
-      buildTileInfoPs.render();
-    }
+    STATE_GUARD(ShaderGlobal::set_buffer(clipmap_tile_info_buf_rwVarId, VALUE),
+      currentContext->captureTileInfoBuf[captureTargetIdx].getBufId(), BAD_TEXTUREID);
+    buildTileInfoCs->dispatchThreads(TILE_WIDTH, TILE_WIDTH, 1);
   }
+
   // transfer texture to UAV state, to avoid slow autogenerated barrier inside driver
   // when binding this texture as RW_UAV later on in startUAVFeedback
-  d3d::resource_barrier({currentContext->captureTex[captureTargetIdx].getTex2D(), RB_RW_UAV | RB_STAGE_PIXEL, 0, 0});
+  d3d::resource_barrier({currentContext->captureStagingBuf.getBuf(), RB_RW_UAV | RB_STAGE_PIXEL});
 }
 
 void ClipmapImpl::endUAVFeedback(int reg_no)
@@ -3709,13 +3757,12 @@ void ClipmapImpl::copyUAVFeedback()
   int captureTargetIdx = currentContext->captureTarget % MAX_FRAMES_AHEAD;
 
   int feedbackTargetMode = hw_feedback_target_mode;
-  if (feedbackTargetMode != 0 && !(clearHistogramPs.getElem() && fillHistogramPs.getElem() && buildTileInfoPs.getElem()))
+  if (feedbackTargetMode != 0 && !(clearHistogramCs && processFeedbackCs && buildTileInfoCs))
     feedbackTargetMode = hw_feedback_target_mode = 0; // just so it's not a silent fallback
 
   currentContext->debugHWFeedbackConvar[captureTargetIdx] = feedbackTargetMode;
 
-  if (canUseOptimizedReadback(captureTargetIdx))
-    dispatchTileFeedback(captureTargetIdx);
+  processUAVFeedback(captureTargetIdx);
 
   copyAndAdvanceCaptureTarget(currentContext->captureTarget % MAX_FRAMES_AHEAD);
 }
@@ -3888,15 +3935,13 @@ void ClipmapImpl::updateRendinstLandclassParams()
 
   ShaderGlobal::set_int(ri_landclass_changed_indicex_bitsVarId, changedRiIndexBits);
 
-  G_STATIC_ASSERT(MAX_RI_VTEX_CNT <= 8);
-  IPoint4 riIndices0 = IPoint4(RI_INVALID_ID, RI_INVALID_ID, RI_INVALID_ID, RI_INVALID_ID);
-  IPoint4 riIndices1 = IPoint4(RI_INVALID_ID, RI_INVALID_ID, RI_INVALID_ID, RI_INVALID_ID);
-  for (int i = 0; i < min(4, MAX_RI_VTEX_CNT); ++i)
-    riIndices0[i] = tmpRiIndices[i];
-  for (int i = 4; i < min(8, MAX_RI_VTEX_CNT); ++i)
-    riIndices1[i - 4] = tmpRiIndices[i];
-  ShaderGlobal::set_int4(ri_landclass_closest_indices_0VarId, riIndices0);
-  ShaderGlobal::set_int4(ri_landclass_closest_indices_1VarId, riIndices1);
+  G_STATIC_ASSERT(MAX_RI_VTEX_CNT < 32); // limitation due to firstbithigh in get_clipmap_indirection_offset(but it's also expensive)
+  auto getRiIndex = [&tmpRiIndices](int i) { return i < tmpRiIndices.size() ? tmpRiIndices[i] : RI_INVALID_ID; };
+  carray<IPoint4, (MAX_RI_VTEX_CNT + 4 - 1) / 4> riIndicesArr4;
+  for (int i = 0; i < riIndicesArr4.size(); ++i)
+    riIndicesArr4[i] = IPoint4(getRiIndex(i * 4 + 0), getRiIndex(i * 4 + 1), getRiIndex(i * 4 + 2), getRiIndex(i * 4 + 3));
+
+  ShaderGlobal::set_int4_array(ri_landclass_closest_indices_arrVarId, riIndicesArr4.data(), riIndicesArr4.size());
 
 #endif
 }

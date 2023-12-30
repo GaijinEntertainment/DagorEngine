@@ -96,7 +96,7 @@ void PhysCarCenterDiffParams::load(const DataBlock &blk)
   }
 
   if (!found)
-    fatal("unknown center diff type: %s", typeName);
+    DAG_FATAL("unknown center diff type: %s", typeName);
 
   fixedRatio = blk.getReal("fixedRatio", 0.5);
   viscousK = blk.getReal("viscousK", 4);

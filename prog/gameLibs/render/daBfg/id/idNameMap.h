@@ -10,7 +10,12 @@ struct IdNameMap : OAHashNameMap<false>
   using Container = OAHashNameMap<false>;
   using Container::Container;
 
-  EnumType addNameId(eastl::string_view view) { return static_cast<EnumType>(Container::addNameId(view.data(), view.size())); }
+  EnumType addNameId(eastl::string_view view)
+  {
+    const auto result = Container::addNameId(view.data(), view.size());
+    G_FAST_ASSERT(result < eastl::numeric_limits<eastl::underlying_type_t<EnumType>>::max());
+    return static_cast<EnumType>(result);
+  }
 
   EnumType getNameId(eastl::string_view view) const
   {

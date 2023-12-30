@@ -134,7 +134,7 @@ extern "C" void dag_qsort(void *p, intptr_t n, int w, int (*f)(const void *, con
   else if (w == 1)
     __sort<tabsorted::Swap<uint8_t>>((char *)p, n, w, f);
   else
-    fatal("dag_qsort not implemented for w=%d", w);
+    DAG_FATAL("dag_qsort not implemented for w=%d", w);
 }
 
 #define EXPORT_PULL dll_pull_baseutil_tabSorted

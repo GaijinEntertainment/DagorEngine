@@ -8,7 +8,6 @@
 #include <generic/dag_sort.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
-
 #include <EASTL/algorithm.h>
 
 namespace unitedvdata
@@ -21,6 +20,15 @@ enum
   ALIGN_64K = 0xFFFF,
   ALIGN_1M = 0xFFFFF
 };
+
+static int get_inst_count(DynamicRenderableSceneLodsResource *r)
+{
+  int refs = 0;
+  for (const auto *rx = r->getFirstOriginal(); rx; rx = rx->getNextClone())
+    refs += rx->getInstanceRefCount();
+  return refs;
+}
+static int get_inst_count(RenderableInstanceLodsResource *) { return 1; }
 } // namespace unitedvdata
 
 using namespace unitedvdata;
@@ -788,7 +796,7 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
   ctx.reqLod = ctx.res->getQlReqLodEff();
   if (ctx.reqLod >= prev_lod)
   {
-    std::lock_guard<std::mutex> scopedLock(appendMutex);
+    // std::lock_guard<std::mutex> scopedLock(appendMutex);
     // if (ctx.reqLod > prev_lod)
     //   downgradeRes(ctx.res, ctx.reqLod);
     ceaseUpdateJob(ctx);
@@ -859,11 +867,12 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
 template <class RES>
 inline void ShaderResUnitedVdata<RES>::releaseUpdateJob(UpdateModelCtx &ctx)
 {
-  if (!ctx.res)
+  if (!ctx.res) // Was it already ceased?
     return;
+
   if (!ctx.dviOfs.size()) // doUpdateJob() was not called
   {
-    std::lock_guard<std::mutex> scopedLock(appendMutex);
+    // std::lock_guard<std::mutex> scopedLock(appendMutex);
     ceaseUpdateJob(ctx);
     return;
   }
@@ -918,7 +927,7 @@ bool ShaderResUnitedVdata<RES>::reloadRes(RES *res)
   if ((vbSizeToFree > 0 || ibSizeToFree > 0) && find_value_idx(failedVdataReloadResList, res) >= 0)
     return false;
 
-  struct UpdateModelVdataJob : public cpujobs::IJob, public UpdateModelCtx
+  struct UpdateModelVdataJob final : public cpujobs::IJob, public UpdateModelCtx
   {
     ShaderResUnitedVdata<RES> *unitedVdata = nullptr;
     UpdateModelVdataJob(ShaderResUnitedVdata<RES> *self, RES *r)
@@ -929,7 +938,16 @@ bool ShaderResUnitedVdata<RES>::reloadRes(RES *res)
     void doJob() override final { unitedVdata->doUpdateJob(*this); }
     void releaseJob() override final
     {
-      unitedVdata->releaseUpdateJob(*this);
+      // Delay apply one frame if driver defrag is requested (in order to be able to perform it in next present)
+#if _TARGET_C1 | _TARGET_C2
+
+
+
+
+
+
+#endif
+        unitedVdata->releaseUpdateJob(*this);
       delete this;
     }
   };
@@ -947,14 +965,20 @@ void ShaderResUnitedVdata<RES>::downgradeRes(RES *res, int upper_lod)
   if (upper_lod <= res->getQlBestLod() || res->getResLoadingFlag())
     return;
 
-  G_ASSERTF(is_main_thread(), "res=%p upper_lod=%d res->getQlBestLod()=%d", res, upper_lod, res->getQlBestLod());
+  G_ASSERTF(is_main_thread() || res->getQlReqLFU() + 120 <= dagor_frame_no() || res->getRefCount() <= 2 || get_inst_count(res) == 0,
+    "res=%p upper_lod=%d res->getQlBestLod()=%d relLFU=%d rc=%d inst=%d", res, upper_lod, res->getQlBestLod(),
+    int(dagor_frame_no() - res->getQlReqLFU()), res->getRefCount(), get_inst_count(res));
+  if (upper_lod < res->getQlReqLodEff())
+    res->updateReqLod(upper_lod);
   BufChunkTab out_c1, out_c2;
   int idx = find_value_idx(resList, res);
   buf.getSeparateChunks(res->getSmvd(), upper_lod, make_span(resUsedChunks[idx]), out_c1, out_c2);
   resUsedChunks[idx] = out_c1;
   if (upper_lod >= res->lods.size())
   {
-    logerr("upper_lod=%d while res->lods.size()=%d", upper_lod, res->lods.size());
+    if (upper_lod != RES::qlReqLodInitialValue) // It is an initial value of qlReqLod, meaning that the resource
+                                                // was not rendered in any way yet.
+      logerr("upper_lod=%d while res->lods.size()=%d", upper_lod, res->lods.size());
     upper_lod = res->lods.size() - 1;
   }
   for (RES *rx = res->getFirstOriginal(); rx; rx = rx->getNextClone())
@@ -978,9 +1002,14 @@ void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMem()
   }
 
   std::lock_guard<std::mutex> scopedLock(appendMutex);
+  discardUnusedResToFreeReqMemNoLock(false);
+}
+template <class RES>
+void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemNoLock(bool forced)
+{
   int prev_vb_to_free = vbSizeToFree, prev_ib_to_free = ibSizeToFree;
 
-  if (!failedVdataReloadResList.size())
+  if (!failedVdataReloadResList.size() && !forced)
   {
     interlocked_release_store(vbSizeToFree, 0);
     interlocked_release_store(ibSizeToFree, 0);
@@ -993,17 +1022,32 @@ void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMem()
     Ptr<RES> res = resList[idx];
     if (res->lods.size() < 2 || res->getQlBestLod() >= res->lods.size() - 1 || !res->areLodsSplit())
       continue;
-    if (res->getQlReqLFU() + 120 > dagor_frame_no())
-      continue;
-    if (res->getQlReqLodEff() <= res->getQlBestLod() && res->getQlReqLFU() + 600 > dagor_frame_no())
-      continue;
-    if (res->getQlReqLFU() + 600 <= dagor_frame_no())
-      res->updateReqLod(res->lods.size() - 1);
+    bool discard_at_all = res->getRefCount() <= 2 || get_inst_count(res) == 0; // no instances created
+    if (!discard_at_all)
+    {
+      if (res->getQlReqLFU() + 120 > dagor_frame_no())
+        continue;
+      if (res->getQlReqLodEff() <= res->getQlBestLod() && res->getQlReqLFU() + 600 > dagor_frame_no())
+        continue;
+    }
 
-    downgradeRes(res, res->getQlReqLodEff());
+    downgradeRes(res, (discard_at_all || res->getQlReqLFU() + 600 <= dagor_frame_no()) ? res->lods.size() - 1 : res->getQlReqLodEff());
     if (vbSizeToFree <= 0 && ibSizeToFree <= 0)
       break;
   }
+  if ((vbSizeToFree > 0 || ibSizeToFree > 0) && is_main_thread()) // here we can safely downgrade to reqLod
+    for (int idx = 0; idx < resList.size(); idx++)
+    {
+      Ptr<RES> res = resList[idx];
+      if (res->lods.size() < 2 || res->getQlBestLod() >= res->lods.size() - 1 || !res->areLodsSplit())
+        continue;
+      if (res->getQlReqLodEff() <= res->getQlBestLod())
+        continue;
+
+      downgradeRes(res, res->getQlReqLodEff());
+      if (vbSizeToFree <= 0 && ibSizeToFree <= 0)
+        break;
+    }
 
   if (prev_vb_to_free <= vbSizeToFree && prev_ib_to_free <= ibSizeToFree)
     uselessDiscardAttempts++;
@@ -1027,14 +1071,17 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
   Tab<int> dviOfs;
   Tab<uint8_t> buf_stor;
   int prev_pools = buf.pool.size();
+  int vb_to_free = 0, ib_to_free = 0;
 
   for (RES *r : res)
   {
     BufChunkTab c;
-    if (!buf.arrangeVdata(r->getSmvd(), c, buf.getIB(), true, local_hints))
+    if (!buf.arrangeVdata(r->getSmvd(), c, buf.getIB(), true, local_hints, &vb_to_free, &ib_to_free))
       continue;
     if (!c.size())
     {
+      interlocked_add(vbSizeToFree, vb_to_free);
+      interlocked_add(ibSizeToFree, ib_to_free);
       unarranged_res.push_back(r);
       continue;
     }
@@ -1061,6 +1108,28 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
         resList.size() - prev_res_count, resList.size(), buf.getVbCount(), buf.getStatStr(), get_time_usec(reft));
   }
 
+  if (unarranged_res.size() && buf.allowDelRes) // not enough free mem, discard unused res and retry
+  {
+    debug("unitedVdata<%s>: IB/VB shortage in addRes(%d res), unarranged_res=%d, needIB=%dK, needVB=%dK), trying to discard unused",
+      RES::getStaticClassName(), res.size(), unarranged_res.size(), ibSizeToFree >> 10, vbSizeToFree >> 10);
+    discardUnusedResToFreeReqMemNoLock(true);
+    Tab<RES *> res2(eastl::move(unarranged_res));
+    for (RES *r : res2)
+    {
+      BufChunkTab c;
+      if (!buf.arrangeVdata(r->getSmvd(), c, buf.getIB(), true, local_hints))
+        continue;
+      if (!c.size())
+      {
+        unarranged_res.push_back(r);
+        continue;
+      }
+
+      resList.push_back(r);
+      if (buf.allowDelRes)
+        resUsedChunks.push_back() = c;
+    }
+  }
   if (unarranged_res.size() == 0)
   {
     ShaderMatVdata::closeTlsReloadCrd();
@@ -1223,6 +1292,10 @@ void ShaderResUnitedVdata<RES>::stopPendingJobs()
   if (reloadJobMgrId >= 0)
   {
     int t0 = get_time_msec();
+#if _TARGET_C1 | _TARGET_C2 // Currently only PSX has reason to delay update jobs apply
+
+
+#endif
     cpujobs::reset_job_queue(reloadJobMgrId);
     for (int cnt = 1000; cnt > 0; cnt--)
       if (cpujobs::is_job_manager_busy(reloadJobMgrId))
@@ -1324,7 +1397,7 @@ void ShaderResUnitedVdata<RES>::buildStatusStr(String &out_str, bool full_res_li
       if (resList[i]->getQlReqLFU() && resList[i]->lods.size() > 1)
       {
         bool know_name = resolve_res_name ? resolve_res_name(tmp_nm, resList[i]) : false;
-        debug("%c%cres[%3d]=%p ldLod=%d (%d lods)  qlReqLod=%u  qlReqLFU=%-5u %s LFU.rel=%-4d%c%*s",
+        debug("%c%cres[%3d]=%p ldLod=%d (%d lods)  qlReqLod=%u  qlReqLFU=%-5u %s LFU.rel=%-4d%c%*s rc=%d inst=%d",
           resList[i]->getResLoadingFlag() ? '*' : ' ', find_value_idx(failedVdataReloadResList, resList[i]) >= 0 ? '-' : ' ', i,
           resList[i], resList[i]->getQlBestLod(), resList[i]->lods.size(), resList[i]->getQlReqLodEff(), resList[i]->getQlReqLFU(),
           BufPool::calcUsedSizeStr(getBufChunks(i), tmp_stor), dagor_frame_no() - resList[i]->getQlReqLFU(),
@@ -1332,14 +1405,14 @@ void ShaderResUnitedVdata<RES>::buildStatusStr(String &out_str, bool full_res_li
               (dagor_frame_no() > resList[i]->getQlReqLFU() + 120 && resList[i]->getQlBestLod() < resList[i]->getQlReqLodEff())
             ? '*'
             : ' ',
-          know_name ? tmp_nm.length() + 2 : 0, know_name ? tmp_nm : "");
+          know_name ? tmp_nm.length() + 2 : 0, know_name ? tmp_nm.str() : "", resList[i]->getRefCount(), get_inst_count(resList[i]));
       }
     for (int i = 0; i < resList.size(); i++)
       if (!resList[i]->getQlReqLFU() || resList[i]->lods.size() <= 1)
       {
         bool know_name = resolve_res_name ? resolve_res_name(tmp_nm, resList[i]) : false;
         debug("  res[%3d]=%p ldLod=%d (%d lods) %s%*s", i, resList[i], resList[i]->getQlBestLod(), resList[i]->lods.size(),
-          BufPool::calcUsedSizeStr(getBufChunks(i), tmp_stor), know_name ? tmp_nm.length() + 2 : 0, know_name ? tmp_nm : "");
+          BufPool::calcUsedSizeStr(getBufChunks(i), tmp_stor), know_name ? tmp_nm.length() + 2 : 0, know_name ? tmp_nm.str() : "");
       }
   }
 }

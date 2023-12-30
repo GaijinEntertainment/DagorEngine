@@ -51,7 +51,7 @@ extern bool fatal_on_net_assert;
       NET_EVENT_STRING(str, #expression);                       \
       event_log::send_udp("assert", str.str(), str.length());   \
       if (event_log::fatal_on_net_assert)                       \
-        fatal("%s", str.str());                                 \
+        DAG_FATAL(str);                                         \
       else                                                      \
         event_log::send_udp("assert", str.str(), str.length()); \
     }                                                           \
@@ -69,7 +69,7 @@ extern bool fatal_on_net_assert;
       String str2(256, "%s (%s)", #expression, str1.str());     \
       NET_EVENT_STRING(str, str2.str());                        \
       if (event_log::fatal_on_net_assert)                       \
-        fatal("%s", str.str());                                 \
+        DAG_FATAL("%s", str.str());                             \
       else                                                      \
         event_log::send_udp("assert", str.str(), str.length()); \
     }                                                           \

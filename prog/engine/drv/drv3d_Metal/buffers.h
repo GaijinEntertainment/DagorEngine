@@ -20,11 +20,12 @@ public:
     BufTex *next;
     int bufsize = 0;
     int tid = -1;
+    int flags = 0;
     bool initialized = false;
 
-    BufTex(int bufsize) : bufsize(bufsize) {}
+    BufTex(int bufsize, int flags) : bufsize(bufsize), flags(flags) {}
 
-    void create(MTLResourceOptions storage, MTLTextureDescriptor *pTexDesc, int flags, int aligment, int tex_format, const char *name);
+    void create(MTLResourceOptions storage, MTLTextureDescriptor *pTexDesc, int aligment, int tex_format, const char *name);
     void release();
 
     int ressize() { return bufsize; }

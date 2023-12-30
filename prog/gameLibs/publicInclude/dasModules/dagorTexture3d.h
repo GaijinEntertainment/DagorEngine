@@ -35,6 +35,7 @@ struct WrapType<D3DRESID>
     value = false
   };
   typedef unsigned type;
+  typedef unsigned rettype;
 };
 
 template <>

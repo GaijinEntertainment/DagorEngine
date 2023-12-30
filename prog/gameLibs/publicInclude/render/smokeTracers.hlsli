@@ -4,9 +4,13 @@
 #define TRACER_SEGMENTS_COUNT 16
 #define TRACER_COMMAND_WARP_SIZE 16
 #define TRACER_CULL_WARP_SIZE 16
-#define TRACER_MAX_UPDATE_COMMANDS (4096-4)
-#define TRACER_MAX_CREATE_COMMANDS ((4096-4)/4)
-#define TRACER_MAX_CULL_COMMANDS (4096-14)
+#define CONST_BUF_MAX_SIZE 4096 /* in float4 */
+#define TRACER_CMD_BUF_MAX_SIZE (CONST_BUF_MAX_SIZE-4)
+#define TRACER_SMOKE_UPDATE_COMMAND_SIZE 1 /* TracerUpdateCommand in float4 */
+#define TRACER_SMOKE_MAX_UPDATE_COMMANDS (TRACER_CMD_BUF_MAX_SIZE / TRACER_SMOKE_UPDATE_COMMAND_SIZE)
+#define TRACER_SMOKE_CREATE_COMMAND_SIZE 5 /* TracerCreateCommand in float4 */
+#define TRACER_SMOKE_MAX_CREATE_COMMANDS (TRACER_CMD_BUF_MAX_SIZE / TRACER_SMOKE_CREATE_COMMAND_SIZE)
+#define TRACER_MAX_CULL_COMMANDS (CONST_BUF_MAX_SIZE-14)
 
 #ifndef GPU_TARGET
 #pragma pack(push, 1)
@@ -21,6 +25,9 @@ struct GPUSmokeTracer//todo: compress.
 
   float3 head_color;//changes on create only, needed for culling only (creates head)
   float burnTime;// for head
+
+  float3 start_head_color;
+  float start_mult;
 
   float4 smoke_color_density;//changes on create only, needed for culling only(creates tail)
 
@@ -85,10 +92,11 @@ struct TracerCreateCommand
   float3 dir; uint id;
   float4 smoke_color;
   float4 head_color__burnTime;
+  float3 start_head_color; float start_mult;
   #ifndef GPU_TARGET
   TracerCreateCommand() = default;
-  TracerCreateCommand(int id_, const float3 &p0, const float3 &d, float ttl_, const float4 &smoke_color_, const float4 &head_color_):
-    id(id_), pos0(p0), dir(d), ttl(ttl_), smoke_color(smoke_color_), head_color__burnTime(head_color_){}
+  TracerCreateCommand(int id_, const float3 &p0, const float3 &d, float ttl_, const float4 &smoke_color_, const float4 &head_color_, const float3 &start_head_color_, float start_mult_):
+    id(id_), pos0(p0), dir(d), ttl(ttl_), smoke_color(smoke_color_), head_color__burnTime(head_color_), start_head_color(start_head_color_), start_mult(start_mult_){}
   #endif
 };
 

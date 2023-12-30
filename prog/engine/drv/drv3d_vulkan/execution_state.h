@@ -6,6 +6,7 @@
 #include "raytrace_state.h"
 #include "state_field_execution_context.h"
 #include "back_scope_state.h"
+#include "pipeline/stage_state_base.h"
 
 namespace drv3d_vulkan
 {
@@ -19,8 +20,15 @@ struct ExecutionStateStorage
 #endif
   StateFieldActiveExecutionStage activeExecutionStage;
   BackScopeState scopes;
+  PipelineStageStateBase stageState[STAGE_MAX_EXT];
 
-  void reset() {}
+  void invalidateResBinds()
+  {
+    for (PipelineStageStateBase &stage : stageState)
+      stage.invalidateState();
+  }
+
+  void reset() { invalidateResBinds(); }
   void dumpLog() const { debug("ExecutionStateStorage end"); }
 
   template <typename T>
@@ -49,6 +57,7 @@ class ExecutionState
 public:
   ExecutionContext &getExecutionContext() { return *executionContext; }
   void setExecutionContext(ExecutionContext *ctx) { executionContext = ctx; }
+  PipelineStageStateBase &getResBinds(ShaderStage stage) { return getData().stageState[stage]; }
 
   // interrupt without immediate apply!
   void interruptRenderPass(const char *reason);

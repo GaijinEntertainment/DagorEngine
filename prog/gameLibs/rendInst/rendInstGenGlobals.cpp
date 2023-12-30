@@ -45,3 +45,4 @@ void (*RendInstGenData::riGenPrepareAddPregenCB)(RendInstGenData::CellRtData &cr
 RendInstGenData::CellRtData *(*RendInstGenData::riGenValidateGeneratedCell)(RendInstGenData *rgl, RendInstGenData::CellRtData *crt,
   int idx, int cx, int cz) = nullptr;
 void (*rendinst::do_delayed_ri_extra_destruction)() = nullptr;
+void (*rendinst::sweep_rendinst_cb)(const RendInstDesc &) = nullptr;

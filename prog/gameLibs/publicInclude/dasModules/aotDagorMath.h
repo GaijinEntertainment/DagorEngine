@@ -53,6 +53,7 @@ struct WrapType<Quat>
     value = true
   };
   typedef Point4 type;
+  typedef Point4 rettype;
 };
 template <>
 struct WrapRetType<Quat>

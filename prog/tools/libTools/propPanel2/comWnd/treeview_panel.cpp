@@ -339,7 +339,7 @@ void TreeListWindow::onWcChange(WindowBase *source)
     mEventHandler->onTvListSelection(*this, getListSelIndex());
   }
 
-  __super::onWcChange(source);
+  TreeViewWindow::onWcChange(source);
 }
 
 

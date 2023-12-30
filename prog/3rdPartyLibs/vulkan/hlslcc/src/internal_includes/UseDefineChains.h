@@ -7,6 +7,7 @@
 #include <list>
 #include <vector>
 #include <algorithm>
+#include <limits>
 
 #include <stdint.h>
 #include <string.h>

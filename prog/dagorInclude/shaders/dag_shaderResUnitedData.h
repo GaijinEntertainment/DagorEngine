@@ -11,6 +11,7 @@
 #include <generic/dag_tab.h>
 #include <generic/dag_smallTab.h>
 #include <shaders/dag_shaderMesh.h>
+#include <util/dag_delayedAction.h>
 #include <mutex>
 #include <util/dag_multicastEvent.h>
 
@@ -197,6 +198,7 @@ protected:
   }
 
   void updateLocalMaximum(bool out_peak_to_debug);
+  void discardUnusedResToFreeReqMemNoLock(bool forced);
 
   struct UpdateModelCtx
   {
@@ -206,12 +208,35 @@ protected:
     Ptr<RES> res = nullptr;
     unsigned reqLod = 16;
   };
+  struct ReleaseUpdateDA final : public DelayedAction, public UpdateModelCtx
+  {
+    ShaderResUnitedVdata *unitedVdata;
+    ReleaseUpdateDA *prev = nullptr;
+    static inline ReleaseUpdateDA *slist_tail = nullptr;
+    ReleaseUpdateDA(UpdateModelCtx &&ctx, ShaderResUnitedVdata *uvd) : UpdateModelCtx(eastl::move(ctx)), unitedVdata(uvd)
+    {
+      prev = slist_tail;
+      slist_tail = this;
+    }
+    ~ReleaseUpdateDA()
+    {
+      for (ReleaseUpdateDA **pcur = &slist_tail; *pcur; pcur = &(*pcur)->prev) // Erase from slist
+        if (*pcur == this)
+        {
+          *pcur = prev;
+          return;
+        }
+      G_ASSERT(0); // Can't happen - DA wasn't found in slist?
+    }
+    void performAction() override { unitedVdata->releaseUpdateJob(*this); }
+    void ceaseUpdateJob() { UpdateModelCtx::res.get() ? unitedVdata->ceaseUpdateJob(*this) : (void)0; }
+  };
   inline void initUpdateJob(UpdateModelCtx &ctx, RES *r);
   inline void doUpdateJob(UpdateModelCtx &ctx);
   inline void releaseUpdateJob(UpdateModelCtx &ctx);
   inline void ceaseUpdateJob(UpdateModelCtx &ctx)
   {
-    interlocked_decrement(pendingVdataReloadResCount);
+    G_VERIFY(interlocked_decrement(pendingVdataReloadResCount) >= 0);
     ctx.res->setResLoadingFlag(false);
     ctx.res = nullptr;
   }

@@ -61,9 +61,8 @@ public:
     {
       if (word)
       {
-        auto tmp = __blsr(word);
         const size_type fbiw = __ctz_unsafe(word);
-        word = tmp;
+        word = __blsr(word);
         return eastl::distance(mWord, eastl::addressof(word)) * kBitsPerWord + fbiw;
       }
     }
@@ -84,7 +83,7 @@ private:
     {
       // value = 0 means it is an end iterator, and in normal behaving code before dereferencing the iterator should check
       // with it != end(), so this operator will never be called when value is 0
-      G_ASSERT(value);
+      G_FAST_ASSERT(value);
 
       return __ctz_unsafe(value);
     }
@@ -112,35 +111,42 @@ private:
 
   struct IteratorBaseB : IteratorBaseA
   {
+    using base_type = IteratorBaseA;
     using this_type = IteratorBaseB;
-    using value_type = typename IteratorBaseA::value_type;
-    using pointer = typename IteratorBaseA::pointer;
+    using value_type = typename base_type::value_type;
+    using pointer = typename base_type::pointer;
 
-    using IteratorBaseA::value;
+    using base_type::value;
 
-    value_type operator*() const
-    {
-      if (value == 0)
-      {
-        value = *ptr;
-      }
-      return __ctz_unsafe(value);
-    }
+    value_type operator*() const { return index * kBitsPerWord + base_type::operator*(); }
 
     this_type &operator++()
     {
       value = __blsr(value);
       if (value == 0)
       {
-        ptr++;
+        for (;;)
+        {
+          index++;
+
+          if (index == NW)
+            break;
+
+          if (bitset.mWord[index])
+          {
+            value = bitset.mWord[index];
+            break;
+          }
+        }
       }
       return *this;
     }
 
-    constexpr bool operator==(const this_type &other) const { return ptr == other.ptr; }
-    constexpr bool operator!=(const this_type &other) const { return ptr != other.ptr; }
+    constexpr bool operator==(const this_type &other) const { return value == other.value && index == other.index; }
+    constexpr bool operator!=(const this_type &other) const { return !(*this == other); }
 
-    pointer ptr = nullptr;
+    size_t index = 0;
+    const Bitset &bitset;
   };
 
 public:
@@ -152,7 +158,14 @@ public:
     if constexpr (NW == 1)
       return {mWord[0]};
     else
-      return {mWord[0], mWord};
+    {
+      const size_t firstWordWithValue =
+        eastl::distance(mWord, eastl::find_if(eastl::begin(mWord), eastl::end(mWord), [](const auto &x) { return x; }));
+      if (firstWordWithValue < NW)
+        return {mWord[firstWordWithValue], firstWordWithValue, *this};
+      else
+        return end();
+    }
   }
 
   constexpr Iterator end() const
@@ -160,7 +173,7 @@ public:
     if constexpr (NW == 1)
       return {0};
     else
-      return {0, mWord + NW};
+      return {0, NW, *this};
   }
 };
 

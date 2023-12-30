@@ -26,7 +26,6 @@
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <assets/asset.h>
 
-#include "editableShader.h"
 #include "assetUserFlags.h"
 
 extern void *get_generic_dyn_render_service();
@@ -421,8 +420,6 @@ void AssetViewerApp::actObjects(real dt)
     perfmonstat::dump_stat();
     last_t = get_time_msec();
   }
-
-  update_editable_shader();
 }
 
 

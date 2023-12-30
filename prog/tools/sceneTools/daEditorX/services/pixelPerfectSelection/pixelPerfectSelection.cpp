@@ -57,11 +57,10 @@ bool PixelPerfectSelection::getHitFromDepthBuffer(float &hitZ)
   Texture *depthTexture = depthRt.getTex2D();
   if (depthTexture)
   {
-    int stride = 0;
-    LockedTexture<float> lockedTexture = lock_texture<float>(depthTexture, stride, 0, TEXLOCK_READ);
+    LockedImage2DView<const float> lockedTexture = lock_texture<const float>(depthTexture, 0, TEXLOCK_READ);
     if (lockedTexture)
     {
-      hitZ = lockedTexture[0];
+      hitZ = lockedTexture.at(0, 0);
       hasBeenHit = hitZ != 0.0f;
     }
   }
@@ -189,4 +188,16 @@ void PixelPerfectSelection::getHitsAt(IGenViewportWnd &wnd, int pickX, int pickY
 
   d3d::setview(prevViewX, prevViewY, prevViewWidth, prevViewHeight, prevViewMinZ, prevViewMaxZ);
   d3d::set_render_target(prevRT);
+
+  eastl::sort(hits.begin(), hits.end(), [](const IPixelPerfectSelectionService::Hit &a, const IPixelPerfectSelectionService::Hit &b) {
+    if (a.z > b.z)
+      return true;
+    if (a.z < b.z)
+      return false;
+    if (a.userData > b.userData)
+      return true;
+    if (a.userData < b.userData)
+      return false;
+    return &a > &b;
+  });
 }

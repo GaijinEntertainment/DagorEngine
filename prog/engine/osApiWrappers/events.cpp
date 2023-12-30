@@ -45,7 +45,7 @@ void os_event_create(os_event_t *e, const char *name)
   e->raised = 0;
 #endif
   if (ret != 0)
-    fatal("failed to create os event '%s' with error %d (0x%x)", name, ret, ret);
+    DAG_FATAL("failed to create os event '%s' with error %d (0x%x)", name, ret, ret);
 }
 
 int os_event_destroy(os_event_t *e)

@@ -21,6 +21,8 @@ struct JumpLinksParams
   float jumpHeight; // up + down
   float jumpLength;
   float width;
+  float agentHeight;
+  float agentMinSpace;
 
   float deltaHeightThreshold;
 

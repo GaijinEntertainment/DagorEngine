@@ -189,7 +189,7 @@ bool optimizeDag(const char *base_path, const char *file)
   _snprintf(fileNameBuf, 260, "%s/resdb/%s.rdbres.blk", base_path, file);
   resBlk.load(fileNameBuf);
   if (stricmp(resBlk.getStr("resName", ""), file) != 0)
-    fatal("not compare resource name: '%s' '%s'", resBlk.getStr("resName", ""), file);
+    DAG_FATAL("not compare resource name: '%s' '%s'", resBlk.getStr("resName", ""), file);
 
   const int refId = resBlk.getNameId("ref");
   for (int i = resBlk.blockCount() - 1; i >= 0; i--)
@@ -437,7 +437,7 @@ static bool processDag(const char *fn, const char *base_path, bool fast_tex_cvt)
 
             FullFileSaveCB cwr(String(260, "%s/p_Texture/missing_tex.dds", res_base.str()));
             if (!cwr.fileHandle)
-              fatal("%s/p_Texture/missing_tex.dds", res_base.str());
+              DAG_FATAL("%s/p_Texture/missing_tex.dds", res_base.str());
             cwr.write(__missing_tex_dds, sizeof(__missing_tex_dds));
 
             resStr = "missing_tex";

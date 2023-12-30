@@ -83,6 +83,23 @@ inline void gather_ri_gen_extra_collidable(const BBox3 &viewBB,
   context->invoke(block, &arg, nullptr, at);
 }
 
+inline void gather_ri_gen_extra_collidable_in_transformed_box(const TMatrix &transform, const BBox3 &viewBB,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<rendinst::riex_handle_t>>> &block, das::Context *context,
+  das::LineInfoArg *at)
+{
+  rendinst::riex_collidable_t handles;
+  rendinst::gatherRIGenExtraCollidable(handles, transform, viewBB, true /*read_lock*/);
+
+  das::Array arr;
+  arr.data = (char *)handles.data();
+  arr.size = uint32_t(handles.size());
+  arr.capacity = arr.size;
+  arr.lock = 1;
+  arr.flags = 0;
+  vec4f arg = das::cast<das::Array *>::from(&arr);
+  context->invoke(block, &arg, nullptr, at);
+}
+
 inline void get_ri_gen_extra_instances(int res_idx,
   const das::TBlock<void, const das::TTemporary<const das::TArray<rendinst::riex_handle_t>>> &block, das::Context *context,
   das::LineInfoArg *at)
@@ -138,7 +155,7 @@ inline void damage_ri_in_sphere(const Point3 &pos, float rad, const Point2 &dmg_
 
 inline void doRIGenDamage(const BSphere3 &sphere, unsigned frame_no, const Point3 &axis)
 {
-  rendinst::doRIGenDamage(sphere, frame_no, nullptr, axis);
+  rendinst::doRIGenDamage(sphere, frame_no, axis);
 }
 
 inline void doRendinstDamage(const BSphere3 &sphere, uint32_t frame_no, float at_time, bool is_client, bool create_destr,

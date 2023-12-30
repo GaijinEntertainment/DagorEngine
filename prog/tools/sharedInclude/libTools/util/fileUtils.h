@@ -32,3 +32,6 @@ bool dag_file_compare(const char *path1, const char *path2);
 bool dag_read_file_to_mem(const char *path, Tab<char> &buffer);
 // load file to memory as string (zero-character ended)
 bool dag_read_file_to_mem_str(const char *path, String &buffer);
+
+//! retrives directory where application module located to buffer and returns pointer to buffer
+char *dag_get_appmodule_dir(char *dirbuf, size_t dirbufsz);

@@ -188,16 +188,12 @@ public:
     if (relTime <= 1.0f)
       result = v_quat_qslerp(relTime, curKey, nextKey);
     else
-      ((Quat &)result) = normalize(qinterp((const Quat &)curKey, (const Quat &)nextKey, relTime));
+      result = v_quat_slerp(v_splats(relTime), curKey, nextKey);
 
     alignas(16) Matrix3 ret;
     mat33f vRet;
     v_mat33_from_quat(vRet, result);
-    v_st(ret.m[0], vRet.col0);
-    v_stu(ret.m[1], vRet.col1);
-    Point3_vec4 lastCol;
-    v_st(&lastCol.x, vRet.col2);
-    ret.setcol(2, lastCol);
+    v_mat_33cu_from_mat33(ret.m[0], vRet);
     return ret;
   }
 };

@@ -98,7 +98,7 @@ let curImageWithPoints = @() {
   ]
 }
 
-let function sqBtn(text, onClick) {
+function sqBtn(text, onClick) {
   let stateFlags = Watched(0)
   return @() {
     watch = stateFlags

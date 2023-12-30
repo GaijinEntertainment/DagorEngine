@@ -17,7 +17,7 @@ let decodeBeh = {
   [Behaviors.DragAndDrop] = "Behaviors.DragAndDrop",
 }
 
-let function mkBtn(behavior) {
+function mkBtn(behavior) {
   let stateFlags = Watched(0)
   let text = ",".join((typeof behavior == "array" ? behavior : [behavior]).map(@(b) decodeBeh?[b] ?? b.tostring()))
   return @() {

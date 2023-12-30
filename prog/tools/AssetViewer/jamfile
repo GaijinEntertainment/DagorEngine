@@ -56,7 +56,6 @@ Sources =
 
   badRefFinder.cpp
   compositeAssetCreator.cpp
-  editableShader.cpp
 ;
 
 UseProgLibs =
@@ -178,7 +177,6 @@ UseProgLibs =
   tools/AssetViewer/Custom
   tools/AssetViewer/RandomGrass
   tools/AssetViewer/csgEntity
-  tools/AssetViewer/shaderGraph
   tools/AssetViewer/A2d
   tools/AssetViewer/animTree
 
@@ -219,7 +217,6 @@ gamePulls_action = make_module_pull_cpp ;
 Sources += gamePulls.jamvar ;
 
 ImportProgLibs = tools/libTools/daKernel ;
-CoExportProgDlls = $(ImportProgLibs) ;
 
 if ! $(DagoredRel) {
   LINKopt = -opt:noref ;

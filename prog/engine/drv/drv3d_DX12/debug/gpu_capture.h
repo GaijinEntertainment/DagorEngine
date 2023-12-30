@@ -31,7 +31,7 @@ namespace gpu_capture
 class NoTool
 {
 public:
-  void configure() { debug("DX12: ...no frame capturing tool is active..."); }
+  void configure() { logdbg("DX12: ...no frame capturing tool is active..."); }
   void beginCapture() {}
   void endCapture() {}
   void onPresent() {}
@@ -62,15 +62,15 @@ public:
   template <typename T>
   static bool connect(const Configuration &, Direct3D12Enviroment &, T &target)
   {
-    debug("DX12: Looking for RenderDoc capture attachment...");
+    logdbg("DX12: Looking for RenderDoc capture attachment...");
     auto iface = try_connect_interface();
     if (!iface)
     {
-      debug("DX12: ...nothing found");
+      logdbg("DX12: ...nothing found");
       return false;
     }
 
-    debug("DX12: ...found, using RenderDoc interface for frame capturing");
+    logdbg("DX12: ...found, using RenderDoc interface for frame capturing");
     target = RenderDoc{iface};
     return true;
   }
@@ -99,15 +99,15 @@ public:
   template <typename T>
   static bool connect(const Configuration &, Direct3D12Enviroment &d3d_env, T &target)
   {
-    debug("DX12: Looking for legacy PIX capture attachment...");
+    logdbg("DX12: Looking for legacy PIX capture attachment...");
     auto iface = try_connect_interface(d3d_env);
     if (!iface)
     {
-      debug("DX12: ...nothing found");
+      logdbg("DX12: ...nothing found");
       return false;
     }
 
-    debug("DX12: ...found, using legacy PIX interface for frame capturing");
+    logdbg("DX12: ...found, using legacy PIX interface for frame capturing");
     target = LegacyPIX{eastl::move(iface)};
     return true;
   }
@@ -138,21 +138,21 @@ public:
   template <typename T>
   static bool connect(const Configuration &, Direct3D12Enviroment &, T &target)
   {
-    debug("DX12: Loading PIX runtime library...");
+    logdbg("DX12: Loading PIX runtime library...");
     auto runtime = try_load_runtime_interface();
     if (!runtime)
     {
-      debug("DX12: ...failed, using fallback event and marker reporting...");
+      logdbg("DX12: ...failed, using fallback event and marker reporting...");
     }
-    debug("DX12: Looking for PIX capture attachment...");
+    logdbg("DX12: Looking for PIX capture attachment...");
     auto capture = try_connect_capture_interface();
     if (!capture)
     {
-      debug("DX12: ...nothing found");
+      logdbg("DX12: ...nothing found");
       return false;
     }
 
-    debug("DX12: ...found, using PIX interface for frame capturing");
+    logdbg("DX12: ...found, using PIX interface for frame capturing");
     target = PIX{eastl::move(runtime), eastl::move(capture)};
     return true;
   }
@@ -161,21 +161,21 @@ public:
   template <typename T>
   static bool load(const Configuration &, Direct3D12Enviroment &, T &target)
   {
-    debug("DX12: Loading PIX runtime library...");
+    logdbg("DX12: Loading PIX runtime library...");
     auto runtime = try_load_runtime_interface();
     if (!runtime)
     {
-      debug("DX12: ...failed, using fallback event and marker reporting...");
+      logdbg("DX12: ...failed, using fallback event and marker reporting...");
     }
-    debug("DX12: Loading PIX capture interface...");
+    logdbg("DX12: Loading PIX capture interface...");
     auto capture = try_load_capture_interface();
     if (!capture)
     {
-      debug("DX12: ...failed");
+      logdbg("DX12: ...failed");
       return false;
     }
 
-    debug("DX12: ...success, using PIX interface for frame capturing");
+    logdbg("DX12: ...success, using PIX interface for frame capturing");
     target = PIX{eastl::move(runtime), eastl::move(capture)};
     return true;
   }
@@ -202,13 +202,13 @@ public:
   template <typename T>
   static bool connect(const Configuration &, Direct3D12Enviroment &, T &target)
   {
-    debug("DX12: Looking for Nvidia NSight...");
+    logdbg("DX12: Looking for Nvidia NSight...");
     if (!try_connect_interface())
     {
-      debug("DX12: ...nothing found");
+      logdbg("DX12: ...nothing found");
       return false;
     }
-    debug("DX12: ...found, using fallback event and marker reporting...");
+    logdbg("DX12: ...found, using fallback event and marker reporting...");
     target = NSight{};
     return true;
   }

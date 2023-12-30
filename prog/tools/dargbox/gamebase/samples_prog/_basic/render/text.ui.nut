@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 let cursors = require("samples_prog/_cursors.nut")
 
-let function sampleSText(params={}) {
+function sampleSText(params={}) {
   return {
     rendObj = ROBJ_INSCRIPTION
     color = Color(255,255,55)
@@ -13,7 +13,7 @@ let function sampleSText(params={}) {
   }.__update(params)
 }
 
-let function sampleDText(params={}) {
+function sampleDText(params={}) {
   return {
     rendObj = ROBJ_TEXT
     color = Color(105,255,155)
@@ -23,7 +23,7 @@ let function sampleDText(params={}) {
 }
 
 
-let function labeledElem(elem,text,vert_size=36) {
+function labeledElem(elem,text,vert_size=36) {
   return {
     flow = FLOW_HORIZONTAL
     gap = 20
@@ -58,7 +58,7 @@ let sampleSTextFxGlow = @() {
   padding = 5
 }
 
-let function sampleHAlignedCenterDText(text) {
+function sampleHAlignedCenterDText(text) {
   return {
     rendObj = ROBJ_TEXT
     halign = ALIGN_CENTER
@@ -67,7 +67,7 @@ let function sampleHAlignedCenterDText(text) {
   }
 }
 
-let function sampleHAlignedRightSText(text) {
+function sampleHAlignedRightSText(text) {
   return {
     rendObj = ROBJ_INSCRIPTION
     halign = ALIGN_RIGHT
@@ -77,7 +77,7 @@ let function sampleHAlignedRightSText(text) {
   }
 }
 
-let function basicsRoot() {
+function basicsRoot() {
   return {
     rendObj = ROBJ_SOLID
     size = flex()

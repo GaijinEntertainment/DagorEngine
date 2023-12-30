@@ -54,4 +54,5 @@ struct RendInstDesc
 
 bool isRiGenDescValid(const RendInstDesc &desc);
 float getTtl(const RendInstDesc &desc);
+bool isRgLayerPrimary(const RendInstDesc &desc);
 } // namespace rendinst

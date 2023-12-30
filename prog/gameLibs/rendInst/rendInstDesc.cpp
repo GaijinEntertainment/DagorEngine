@@ -20,3 +20,5 @@ float rendinst::getTtl(const rendinst::RendInstDesc &desc)
 
   return desc.pool < rendinst::riExtra.size() ? rendinst::riExtra[desc.pool].ttl : -1.f;
 }
+
+bool rendinst::isRgLayerPrimary(const RendInstDesc &desc) { return rendinst::isRgLayerPrimary(desc.layer); }

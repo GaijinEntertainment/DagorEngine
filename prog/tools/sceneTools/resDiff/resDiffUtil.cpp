@@ -15,6 +15,7 @@
 #include <supp/dag_zstdObfuscate.h>
 #include <libTools/util/fileUtils.h>
 #include <libTools/util/genericCache.h>
+#include <libTools/util/strUtil.h>
 #include <debug/dag_debug.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -460,6 +461,16 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
         "\n    cache_fn=<%s> res_list_fn=<%s>\n",
     dryRun ? " [DRY RUN]" : "", base_root_dir, new_root_dir, rel_mount_dir, vrom_name, res_blk_name);
 
+  String eff_rel_mount_dir(rel_mount_dir);
+  bool is_root_mount = strcmp(rel_mount_dir, ".") == 0 && dd_get_fname(res_blk_name) != res_blk_name;
+  if (is_root_mount)
+  {
+    char dirbuf[DAGOR_MAX_PATH];
+    dd_get_fname_location(dirbuf, res_blk_name);
+    eff_rel_mount_dir = dirbuf;
+    remove_trailing_string(eff_rel_mount_dir, "/");
+  }
+
   String new_vfs_fn(0, "%s/%s/%s", new_root_dir, rel_mount_dir, vrom_name);
   VirtualRomFsData *new_vfs = load_vromfs_dump(new_vfs_fn, tmpmem);
   if (!new_vfs)
@@ -490,10 +501,10 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
   int new_grp_changed_files = 0, new_dxp_changed_files = 0;
 
   String mnt(0, "%s/", base_root_dir);
-  String mnt_dir(0, "%s/%s", base_root_dir, rel_mount_dir);
-  String res_list_fn(0, "%s/%s", mnt_dir.str(), res_blk_name);
+  String mnt_dir(0, "%s/%s", base_root_dir, eff_rel_mount_dir);
+  String res_list_fn(0, "%s/%s/%s", base_root_dir, rel_mount_dir, res_blk_name);
   String eff_mnt = mnt;
-  if (strcmp(rel_mount_dir, "res") != 0)
+  if (strcmp(rel_mount_dir, "res") != 0 && !is_root_mount)
     eff_mnt.aprintf(0, "%s/", rel_mount_dir);
 
   add_vromfs(old_vfs, true, eff_mnt);
@@ -507,11 +518,12 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
   }
   remove_vromfs(old_vfs);
 
-  String new_mnt_dir(0, "%s/%s", new_root_dir, rel_mount_dir);
-  String new_res_list_fn(0, "%s/%s", new_mnt_dir.str(), res_blk_name);
+  String new_mnt_dir(0, "%s/%s", new_root_dir, eff_rel_mount_dir);
+  String new_res_list_fn(0, "%s/%s/%s", new_root_dir, rel_mount_dir, res_blk_name);
   String new_eff_mnt(0, "%s/", new_root_dir);
-  if (strcmp(rel_mount_dir, "res") != 0)
+  if (strcmp(rel_mount_dir, "res") != 0 && !is_root_mount)
     new_eff_mnt.aprintf(0, "%s/", rel_mount_dir);
+
   add_vromfs(new_vfs, true, new_eff_mnt);
   if (!load_packs(new_res_list_fn, new_mnt_dir, new_grp, new_dxp, false, false))
   {
@@ -781,9 +793,9 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
       if (GenericBuildCache::getFileHash(old_vfs_fn, hash))
         resList_blk.setStr("base_grpHdr_md5", data_to_str_hex(tmpStr, hash, sizeof(hash)));
 
-      if (!make_gameres_desc_diff("riDesc.bin", mnt_dir, new_mnt_dir, patch_dest_dir, rel_mount_dir, total_changed))
+      if (!make_gameres_desc_diff("riDesc.bin", mnt_dir, new_mnt_dir, patch_dest_dir, eff_rel_mount_dir, total_changed))
         return -1;
-      if (!make_gameres_desc_diff("dynModelDesc.bin", mnt_dir, new_mnt_dir, patch_dest_dir, rel_mount_dir, total_changed))
+      if (!make_gameres_desc_diff("dynModelDesc.bin", mnt_dir, new_mnt_dir, patch_dest_dir, eff_rel_mount_dir, total_changed))
         return -1;
     }
 
@@ -800,7 +812,7 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
       {
         tmpStr = new_grp[i].fn + prefix_len;
         simplify_fname(tmpStr);
-        strlwr(tmpStr);
+        dd_strlwr(tmpStr);
         int id = names.addNameId(tmpStr);
         G_ASSERT(id == names.nameCount() - 1);
         grpNids.addInt(id);
@@ -810,7 +822,7 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
       {
         tmpStr = new_dxp[i].fn + prefix_len;
         simplify_fname(tmpStr);
-        strlwr(tmpStr);
+        dd_strlwr(tmpStr);
         int id = names.addNameId(tmpStr);
         G_ASSERT(id == names.nameCount() - 1);
       }
@@ -825,7 +837,12 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
     iterate_names_in_order(names, sorted_ids, [&](int id, const char *name) {
       cwr.writeInt32eAt(cwr.tell(), pt_names.resvDataPos + i * cwr.PTR_SZ);
       if (id != reslist_id)
-        tmpStr.printf(260, "%scache.bin", name);
+      {
+        if (is_root_mount)
+          tmpStr.printf(260, "%s/%scache.bin", eff_rel_mount_dir, name);
+        else
+          tmpStr.printf(260, "%scache.bin", name);
+      }
       else
         tmpStr = name;
       simplify_fname(tmpStr);
@@ -860,7 +877,7 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
       int p_start = cwr.tell();
       if (grpNids.hasInt(id))
       {
-        if (!GrpBinData::writeGrpHdr(cwr, String(260, "%s/%s/%s", patch_dest_dir, rel_mount_dir, name)))
+        if (!GrpBinData::writeGrpHdr(cwr, String(260, "%s/%s/%s", patch_dest_dir, eff_rel_mount_dir, name)))
         {
           debug("\nERR: failed write GRP hdr for %s/%s/%s", patch_dest_dir, rel_mount_dir, name);
           failed = true;
@@ -869,7 +886,7 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
       }
       else
       {
-        if (!DxpBinData::writeDxpHdr(cwr, String(260, "%s/%s/%s", patch_dest_dir, rel_mount_dir, name)))
+        if (!DxpBinData::writeDxpHdr(cwr, String(260, "%s/%s/%s", patch_dest_dir, eff_rel_mount_dir, name)))
         {
           debug("\nERR: failed write DxP hdr for %s/%s/%s", patch_dest_dir, rel_mount_dir, name);
           failed = true;

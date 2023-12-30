@@ -23,8 +23,8 @@ Sources =
   getRealFname.cpp
   wndProcComponent.cpp
   miscApi.cpp
-  winProgGlobals.cpp
-  winSetThreadName.cpp
+  progGlobals.cpp
+  setThreadName.cpp
   ip2str.cpp
   vromfs.cpp
   unicode.cpp

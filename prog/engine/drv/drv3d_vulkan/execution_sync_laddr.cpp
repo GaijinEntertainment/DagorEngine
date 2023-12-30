@@ -18,11 +18,15 @@ bool ExecutionSyncTracker::LogicAddress::isNonConflictingUAVAccess(const LogicAd
 
 bool ExecutionSyncTracker::LogicAddress::conflicting(const LogicAddress &cmp) const
 {
+  // if we have W op with following R ops on different possible async stages (CS/transfer/RP),
+  // W-R sync to last encountered stage (in ops order) will be lost, causing this async stage to executed without waiting for W
+  // so treat any ops between this async stages as conflict
+  bool asyncStages = isComputeOrTransfer() != cmp.isComputeOrTransfer();
   // W-R, W-W, R-W
   bool anyWrite = isWrite() || cmp.isWrite();
   bool bothWrite = isWrite() && cmp.isWrite();
   bool anyRead = isRead() || cmp.isRead();
-  return bothWrite || (anyWrite && anyRead);
+  return bothWrite || (anyWrite && anyRead) || asyncStages;
 }
 
 bool ExecutionSyncTracker::LogicAddress::mergeConflicting(const LogicAddress &cmp) const
@@ -40,6 +44,11 @@ bool ExecutionSyncTracker::LogicAddress::mergeConflicting(const LogicAddress &cm
     return false;
   else
     return true;
+}
+
+bool ExecutionSyncTracker::LogicAddress::isComputeOrTransfer() const
+{
+  return stage & (VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT);
 }
 
 bool ExecutionSyncTracker::LogicAddress::isWrite() const
@@ -115,7 +124,7 @@ ExecutionSyncTracker::LogicAddress ExecutionSyncTracker::LogicAddress::forAttach
 static VkAccessFlags accessForImageAtRegisterType[RegisterType::COUNT] = {
   VK_ACCESS_SHADER_READ_BIT,                              // T
   VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, // U
-  VK_PIPELINE_STAGE_NONE                                  // B
+  VK_ACCESS_NONE                                          // B
 };
 
 ExecutionSyncTracker::LogicAddress ExecutionSyncTracker::LogicAddress::forImageOnExecStage(ShaderStage stage, RegisterType reg_type)
@@ -133,8 +142,8 @@ ExecutionSyncTracker::LogicAddress ExecutionSyncTracker::LogicAddress::forImageB
 
 static VkAccessFlags accessForAccelerationStructureAtRegisterType[RegisterType::COUNT] = {
   VK_ACCESS_SHADER_READ_BIT, // T
-  VK_PIPELINE_STAGE_NONE,    // U
-  VK_PIPELINE_STAGE_NONE     // B
+  VK_ACCESS_NONE,            // U
+  VK_ACCESS_NONE             // B
 };
 
 ExecutionSyncTracker::LogicAddress ExecutionSyncTracker::LogicAddress::forAccelerationStructureOnExecStage(ShaderStage stage,

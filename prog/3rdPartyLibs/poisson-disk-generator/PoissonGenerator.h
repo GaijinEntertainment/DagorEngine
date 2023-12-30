@@ -44,13 +44,15 @@
  *		1.0     May  6, 2014
 */
 
+#pragma once
+
 #include <vector>
 #include <stdint.h>
 
 namespace PoissonGenerator
 {
 
-const char* Version = "1.4.1 (12/12/2021)";
+static const char* Version = "1.4.1 (12/12/2021)";
 
 class DefaultPRNG
 {
@@ -126,12 +128,12 @@ struct GridPoint
 	int y;
 };
 
-float getDistance( const Point& P1, const Point& P2 )
+inline float getDistance( const Point& P1, const Point& P2 )
 {
 	return sqrt( ( P1.x - P2.x ) * ( P1.x - P2.x ) + ( P1.y - P2.y ) * ( P1.y - P2.y ) );
 }
 
-GridPoint imageToGrid( const Point& P, float cellSize )
+inline GridPoint imageToGrid( const Point& P, float cellSize )
 {
 	return GridPoint( ( int )( P.x / cellSize ), ( int )( P.y / cellSize ) );
 }
@@ -184,7 +186,7 @@ private:
 };
 
 template <typename PRNG>
-Point popRandom( std::vector<Point>& points, PRNG& generator )
+inline Point popRandom( std::vector<Point>& points, PRNG& generator )
 {
 	const int idx = generator.randomInt( static_cast<int>(points.size())-1 );
 	const Point p = points[ idx ];
@@ -193,7 +195,7 @@ Point popRandom( std::vector<Point>& points, PRNG& generator )
 }
 
 template <typename PRNG>
-Point generateRandomPointAround( const Point& p, float minDist, PRNG& generator )
+inline Point generateRandomPointAround( const Point& p, float minDist, PRNG& generator )
 {
 	// start with non-uniform distribution
 	const float R1 = generator.randomFloat();
@@ -220,7 +222,7 @@ Point generateRandomPointAround( const Point& p, float minDist, PRNG& generator 
 	MinDist - minimal distance estimator, use negative value for default
 **/
 template <typename PRNG = DefaultPRNG>
-std::vector<Point> generatePoissonPoints(
+inline std::vector<Point> generatePoissonPoints(
 	uint32_t numPoints,
 	PRNG& generator,
 	bool isCircle = true,
@@ -310,7 +312,7 @@ std::vector<Point> generatePoissonPoints(
 	return samplePoints;
 }
 
-Point sampleVogelDisk(uint32_t idx, uint32_t numPoints, float phi)
+inline Point sampleVogelDisk(uint32_t idx, uint32_t numPoints, float phi)
 {
 	const float kGoldenAngle = 2.4f;
 
@@ -323,7 +325,7 @@ Point sampleVogelDisk(uint32_t idx, uint32_t numPoints, float phi)
 /**
 	Return a vector of generated points
 **/
-std::vector<Point> generateVogelPoints(uint32_t numPoints, bool isCircle = true, float phi = 0.0f, Point center = Point(0.5f, 0.5f))
+inline std::vector<Point> generateVogelPoints(uint32_t numPoints, bool isCircle = true, float phi = 0.0f, Point center = Point(0.5f, 0.5f))
 {
 	std::vector<Point> samplePoints;
 
@@ -344,7 +346,7 @@ std::vector<Point> generateVogelPoints(uint32_t numPoints, bool isCircle = true,
 	Return a vector of generated points
 **/
 template <typename PRNG = DefaultPRNG>
-std::vector<Point> generateJitteredGridPoints(
+inline std::vector<Point> generateJitteredGridPoints(
 	uint32_t numPoints,
 	PRNG& generator,
 	bool isCircle = false,

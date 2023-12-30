@@ -12,9 +12,11 @@ namespace das {
     // C++ impl
 	string GetSaveFileFromUser ( const char * initialFileName , const char * initialPath, const char * filter );
 	string GetOpenFileFromUser ( const char * initialPath, const char * filter );
+	string GetOpenFolderFromUser ( const char * initialPath );
 
     // and das bindings
     class Context;
     char * GetSaveFileDlg ( const char * initialFileName , const char * initialPath, const char * filter, Context * ctx );
     char * GetOpenFileDlg ( const char * initialPath, const char * filter, Context * ctx );
+    char * GetOpenFolderDlg ( const char * initialPath, Context * ctx );
 }

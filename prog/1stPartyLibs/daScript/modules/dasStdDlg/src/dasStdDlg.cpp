@@ -24,6 +24,13 @@ char * GetOpenFileDlg ( const char * initialPath, const char * filter, Context *
     return ctx->stringHeap->allocateString(sf);
 }
 
+char * GetOpenFolderDlg ( const char * initialPath, Context * ctx ) {
+    auto sf = GetOpenFolderFromUser(
+        initialPath ? initialPath : ""
+    );
+    return ctx->stringHeap->allocateString(sf);
+}
+
 class Module_StdDlg : public Module {
 public:
     Module_StdDlg() : Module("stddlg") {
@@ -39,6 +46,8 @@ public:
             SideEffects::worstDefault, "GetSaveFileDlg");
         addExtern<DAS_BIND_FUN(GetOpenFileDlg)> (*this, lib, "get_dlg_open_file",
             SideEffects::worstDefault, "GetOpenFileDlg");
+        addExtern<DAS_BIND_FUN(GetOpenFolderDlg)> (*this, lib, "get_dlg_open_folder",
+            SideEffects::worstDefault, "GetOpenFolderDlg");
     }
     virtual ModuleAotType aotRequire ( TextWriter & tw ) const override {
         tw << "#include \"../modules/dasStdDlg/src/dasStdDlg.h\"\n";

@@ -38,11 +38,18 @@ void listUpdate()
   auto statPrintCb = [](Resource *i) {
     if (i->isManaged())
     {
-      const ResourceMemory &rm = i->getMemory();
-      uiResList.push_back(
-        {i->resTypeString(), String(i->getDebugName()), byte_size_unit(rm.originalSize), byte_size_unit(rm.size - rm.originalSize)});
-      summary[(int)i->getResType()].size += rm.originalSize;
-      summary[(int)i->getResType()].overhead += rm.size - rm.originalSize;
+      if (i->isResident())
+      {
+        const ResourceMemory &rm = i->getMemory();
+        uiResList.push_back(
+          {i->resTypeString(), String(i->getDebugName()), byte_size_unit(rm.originalSize), byte_size_unit(rm.size - rm.originalSize)});
+        summary[(int)i->getResType()].size += rm.originalSize;
+        summary[(int)i->getResType()].overhead += rm.size - rm.originalSize;
+      }
+      else
+      {
+        uiResList.push_back({i->resTypeString(), String(i->getDebugName()), String("Evicted"), String("Evicted")});
+      }
     }
     else
     {

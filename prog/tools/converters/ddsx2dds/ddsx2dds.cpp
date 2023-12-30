@@ -231,6 +231,149 @@ static bool dump_ddsx(IGenLoad &crd)
 
   return true;
 }
+
+#include <libTools/dtx/astcenc.h>
+ASTCENC_DECLARE_STATIC_DATA();
+static bool decode_ddsx_astc(IGenLoad &crd, const char *base_nm)
+{
+  ddsx::Header hdr;
+  crd.read(&hdr, sizeof(hdr));
+  if (!hdr.checkLabel())
+  {
+    printf("invalid DDSx format\n");
+    return false;
+  }
+
+  ddsx::Header hdr_e;
+  memset(&hdr_e, 0, sizeof(hdr_e));
+  hdr_e.label = hdr.label;
+  if (memcmp(&hdr, &hdr_e, sizeof(hdr)) == 0)
+  {
+    printf("--- %s dump: empty DDSx\n", crd.getTargetName());
+    return true;
+  }
+
+  printf("--- %s dump:\n"
+         "D3D fmt 0x%08X (%c%c%c%c)  bpp=%d code=%d\n"
+         "mem sz  %d,  packed sz %d,  compr=%d%%\n",
+    crd.getTargetName(), hdr.d3dFormat, _DUMP4C(hdr.d3dFormat),
+    hdr.bitsPerPixel ? hdr.bitsPerPixel : (hdr.getSurfaceSz(0) * 8 / hdr.w / hdr.h), hdr.dxtShift, hdr.memSz, hdr.packedSz,
+    hdr.memSz ? hdr.packedSz * 100 / hdr.memSz : 0);
+  if (hdr.flags & hdr.FLG_CUBTEX)
+    printf("texCube %dx%d\n", hdr.w, hdr.h);
+  else if (hdr.flags & hdr.FLG_VOLTEX)
+    printf("tex3D   %dx%dx%d\n", hdr.w, hdr.h, hdr.depth);
+  else
+    printf("tex2D   %dx%d\n", hdr.w, hdr.h);
+  printf("mips    %d (hqPartMips=%d)\n", hdr.levels, hdr.hqPartLevels);
+  printf("quality mqMip=%d  lqMip=%d  uqMip=%d\n", hdr.mQmip, hdr.lQmip, hdr.uQmip);
+  printf("flags   ");
+#define PRN_FLG(X)             \
+  if (hdr.flags & hdr.FLG_##X) \
+  printf(#X "  ")
+  PRN_FLG(CONTIGUOUS_MIP);
+  PRN_FLG(NONPACKED);
+  PRN_FLG(HASBORDER);
+  PRN_FLG(CUBTEX);
+  PRN_FLG(VOLTEX);
+  PRN_FLG(ARRTEX);
+  PRN_FLG(GENMIP_BOX);
+  PRN_FLG(GENMIP_KAIZER);
+  PRN_FLG(GAMMA_EQ_1);
+  PRN_FLG(HOLD_SYSMEM_COPY);
+  PRN_FLG(NEED_PAIRED_BASETEX);
+  PRN_FLG(REV_MIP_ORDER);
+  PRN_FLG(HQ_PART);
+  PRN_FLG(GLES3_TC_FMT);
+#undef PRN_FLG
+  printf("\n");
+#define PRN_COMPR(X)                        \
+  if (hdr.compressionType() == hdr.FLG_##X) \
+  printf("compr   " #X "\n")
+  PRN_COMPR(7ZIP);
+  PRN_COMPR(ZLIB);
+  PRN_COMPR(ZSTD);
+  PRN_COMPR(OODLE);
+#undef PRN_COMPR
+  if (hdr.d3dFormat != _MAKE4C('AST4') && hdr.d3dFormat != _MAKE4C('AST8') && hdr.d3dFormat != _MAKE4C('ASTC'))
+  {
+    printf("ERR: DDSx is not ASTC format, decoding skipped\n");
+    return false;
+  }
+  ASTCEncoderHelperContext::setupAstcEncExePathname();
+  ASTCEncoderHelperContext astc_context;
+  if (!astc_context.prepareTmpFilenames("decode"))
+  {
+    printf("ERR: can't arrange tmp files for astcenc\n");
+    return false;
+  }
+
+  alignas(16) union
+  {
+    char zstd[sizeof(ZstdLoadCB)];
+    char oodle[sizeof(OodleLoadCB)];
+    char zlib[sizeof(BufferedZlibLoadCB)];
+    char lzma[sizeof(BufferedLzmaLoadCB)];
+  } zcrd_stor;
+  IGenLoad *zcrd = &crd;
+  if (hdr.isCompressionZSTD())
+    zcrd = new (zcrd_stor.zstd, _NEW_INPLACE) ZstdLoadCB(crd, hdr.packedSz);
+  else if (hdr.isCompressionOODLE())
+    zcrd = new (zcrd_stor.oodle, _NEW_INPLACE) OodleLoadCB(crd, hdr.packedSz, hdr.memSz);
+  else if (hdr.isCompressionZLIB())
+    zcrd = new (zcrd_stor.zlib, _NEW_INPLACE) ZlibLoadCB(crd, hdr.packedSz);
+  else if (hdr.isCompression7ZIP())
+    zcrd = new (zcrd_stor.lzma, _NEW_INPLACE) LzmaLoadCB(crd, hdr.packedSz);
+
+  printf("\nmip data chain%s:\n",
+    (hdr.flags & hdr.FLG_CUBTEX) && !(hdr.flags & hdr.FLG_REV_MIP_ORDER) ? " (6 faces consisted of full mip chain each)" : "");
+
+  unsigned blk_w = 0, blk_h = 0, blk_d = 0;
+  switch (hdr.d3dFormat)
+  {
+    case _MAKE4C('AST4'): blk_w = 4, blk_h = 4, blk_d = 1; break;
+    case _MAKE4C('AST8'): blk_w = 8, blk_h = 8, blk_d = 1; break;
+    case _MAKE4C('ASTC'): blk_w = 12, blk_h = 12, blk_d = 1; break;
+    default: break;
+  }
+  Tab<char> pdata;
+  for (int i = 0; i < hdr.levels; i++)
+  {
+    int level = (hdr.flags & hdr.FLG_REV_MIP_ORDER) ? hdr.levels - 1 - i : i;
+    int mipw = max(hdr.w >> level, 1), miph = max(hdr.h >> level, 1), mipd = max(hdr.depth >> level, 1);
+    unsigned slices = (hdr.flags & hdr.FLG_CUBTEX) ? 6 : ((hdr.flags & hdr.FLG_VOLTEX) ? mipd : 1);
+    printf("  mip %2d: ", level);
+    if (hdr.flags & hdr.FLG_VOLTEX)
+      printf("%4dx%-4dx%-3d   %4d (pitch) * %4d (lines) * %3d (slices) = %8d%s", mipw, miph, mipd, hdr.getSurfacePitch(level),
+        hdr.getSurfaceScanlines(level), mipd, hdr.getSurfaceSz(level) * mipd, slices > 1 ? "\n" : "");
+    else if (hdr.flags & hdr.FLG_CUBTEX)
+      printf("%4dx%-4d   %4d (pitch) * %4d (lines) * 6 (faces) = %8d%s", mipw, miph, hdr.getSurfacePitch(level),
+        hdr.getSurfaceScanlines(level), hdr.getSurfaceSz(level) * 6, slices > 1 ? "\n" : "");
+    else
+      printf("%4dx%-4d   %4d (pitch) * %4d (lines) = %8d%s", mipw, miph, hdr.getSurfacePitch(level), hdr.getSurfaceScanlines(level),
+        hdr.getSurfaceSz(level), slices > 1 ? "\n" : "");
+
+    for (unsigned s = 0; s < slices; s++)
+    {
+      String fn(0, "%s_mip%d", base_nm, level);
+      if (slices > 1)
+        fn.aprintf(0, "_s%d", s);
+      fn += ".tga";
+      pdata.resize(hdr.getSurfaceSz(level));
+      zcrd->read(pdata.data(), pdata.size());
+      if (astc_context.decodeOneSurface(fn, pdata, mipw, miph, mipd, blk_w, blk_h, blk_d))
+        printf("%s%s\n", slices > 1 ? "         " : "  -> ", fn.c_str());
+    }
+  }
+  printf("\n");
+  if (zcrd != &crd)
+  {
+    zcrd->ceaseReading();
+    zcrd->~IGenLoad();
+  }
+
+  return true;
+}
 static bool check_ddsx(IGenLoad &crd, int compr_flg)
 {
   ddsx::Header hdr;
@@ -402,6 +545,8 @@ int DagorWinMain(bool debugmode)
 
   if (out_fn == "-dump")
     return dump_ddsx(crd) ? 0 : -1;
+  if (out_fn == "-decodeASTC")
+    return decode_ddsx_astc(crd, dgs_argv[1]) ? 0 : -1;
   if (out_fn.empty())
   {
     out_fn = dgs_argv[1];

@@ -83,7 +83,7 @@ struct Binding
   bool history = false;
 
   ResourceSubtypeTag projectedTag = ResourceSubtypeTag::Invalid;
-  detail::TypeErasedProjector projector = +[](void *data) { return data; };
+  detail::TypeErasedProjector projector = +[](const void *data) { return data; };
 };
 
 using BindingsMap = dag::FixedVectorMap<int, Binding, 8>;
@@ -97,7 +97,7 @@ struct NodeData
   bool enabled = true;
 
   // Keeps track of how many times the node was recreated
-  uint32_t generation{0};
+  uint16_t generation{0};
   detail::DeclarationCallback declare;
   detail::ExecutionCallback execute;
 
@@ -145,8 +145,8 @@ struct ResourceData
 
 struct AutoResType
 {
-  IPoint2 staticResolution;
-  IPoint2 dynamicResolution;
+  IPoint2 staticResolution{};
+  IPoint2 dynamicResolution{};
   // This counts down the frames we need to fully change the dynamic resolution.
   // Only non-history physical resources are resized on each frame, so 2 are needed
   // to change everything.
@@ -157,8 +157,6 @@ struct SlotData
 {
   ResNameId contents;
 };
-struct NotASlot
-{};
 
 struct InternalRegistry
 {

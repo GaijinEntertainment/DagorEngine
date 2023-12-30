@@ -38,17 +38,17 @@ bool fullScreenMovieSkipped = false;
 
 static IGenVideoPlayer *stub_theora(const char *fn)
 {
-  fatal("cannot show %s\ntheora player not inited, call init_player_for_ogg_theora()\n", fn);
+  DAG_FATAL("cannot show %s\ntheora player not inited, call init_player_for_ogg_theora()\n", fn);
   RETURN_X_AFTER_FATAL(NULL);
 }
 static IGenVideoPlayer *stub_native(const char *fn, int, int, float)
 {
-  fatal("cannot show %s\nnative player not inited, call init_player_for_native_video()\n", fn);
+  DAG_FATAL("cannot show %s\nnative player not inited, call init_player_for_native_video()\n", fn);
   RETURN_X_AFTER_FATAL(NULL);
 }
 static IGenVideoPlayer *stub_dagui(const char *fn)
 {
-  fatal("cannot show %s\ndagui player not inited, call init_player_for_dagui()\n", fn);
+  DAG_FATAL("cannot show %s\ndagui player not inited, call init_player_for_dagui()\n", fn);
   RETURN_X_AFTER_FATAL(NULL);
 }
 

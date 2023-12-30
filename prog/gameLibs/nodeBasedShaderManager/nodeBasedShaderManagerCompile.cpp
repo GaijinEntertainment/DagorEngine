@@ -163,6 +163,7 @@ void NodeBasedShaderManager::saveToFile(const String &shader_path, PLATFORM plat
       parameters.addNewBlock(currentFloat4ParametersBlk.get(), "inputs_float4");
       parameters.addNewBlock(currentTextures2dBlk.get(), "inputs_texture2D");
       parameters.addNewBlock(currentTextures3dBlk.get(), "inputs_texture3D");
+      parameters.addNewBlock(currentTextures2dShdArrayBlk.get(), "inputs_texture2D_shdArray");
       parameters.addNewBlock(currentTextures2dNoSamplerBlk.get(), "inputs_texture2D_nosampler");
       parameters.addNewBlock(currentTextures3dNoSamplerBlk.get(), "inputs_texture3D_nosampler");
       parameters.addNewBlock(currentBuffersBlk.get(), "inputs_Buffer");

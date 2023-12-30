@@ -68,7 +68,7 @@ void *MspaceAlloc::alloc(size_t sz)
   else
   {
     if (!p)
-      fatal("Not enough memory to alloc %llu bytes", sz);
+      DAG_FATAL("Not enough memory to alloc %llu bytes", sz);
   }
 
   return p;
@@ -112,7 +112,7 @@ void *MspaceAlloc::realloc(void *p, size_t sz)
   else
   {
     if (!p)
-      fatal("Not enough memory to realloc %llu bytes", sz);
+      DAG_FATAL("Not enough memory to realloc %llu bytes", sz);
   }
   return p;
 }

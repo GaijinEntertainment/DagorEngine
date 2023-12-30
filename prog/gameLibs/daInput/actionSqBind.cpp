@@ -452,52 +452,101 @@ static void sq_install_digital_event_progress_monitor(Sqrat::Function func)
 
 #define SQ_BIND_MEMBER_VAR(STRUCT, MEMBER) .Var(#MEMBER, &STRUCT::MEMBER)
 
+/// @module dainput2
+///@class SingleButtonId
+/// @property devId integer
 SQ_IMPLEMENT_PROP_INT(SingleButtonId, devId);
+/// @property btnId integer
 SQ_IMPLEMENT_PROP_INT(SingleButtonId, btnId);
 
+///@class DigitalActionBinding
+/// @property devId integer
 SQ_IMPLEMENT_PROP_INT(DigitalActionBinding, devId)
+/// @property ctrlId integer
 SQ_IMPLEMENT_PROP_INT(DigitalActionBinding, ctrlId)
+/// @property eventType integer
 SQ_IMPLEMENT_PROP_INT(DigitalActionBinding, eventType)
+/// @property axisCtrlThres integer
 SQ_IMPLEMENT_PROP_INT(DigitalActionBinding, axisCtrlThres)
+/// @property btnCtrl bool
 SQ_IMPLEMENT_PROP_BOOL(DigitalActionBinding, btnCtrl)
+/// @property stickyToggle bool
 SQ_IMPLEMENT_PROP_BOOL(DigitalActionBinding, stickyToggle)
+/// @property unordCombo bool
 SQ_IMPLEMENT_PROP_BOOL(DigitalActionBinding, unordCombo)
+/// @property modCnt integer
 SQ_IMPLEMENT_PROP_INT(DigitalActionBinding, modCnt)
+/// @property mod array
 SQ_IMPLEMENT_PROP_SB_ARR(DigitalActionBinding, mod)
 
+///@class AnalogAxisActionBinding
+/// @property devId integer
 SQ_IMPLEMENT_PROP_INT(AnalogAxisActionBinding, devId)
+/// @property axisId integer
 SQ_IMPLEMENT_PROP_INT(AnalogAxisActionBinding, axisId)
+/// @property invAxis bool
 SQ_IMPLEMENT_PROP_BOOL(AnalogAxisActionBinding, invAxis)
+/// @property axisRelativeVal bool
 SQ_IMPLEMENT_PROP_BOOL(AnalogAxisActionBinding, axisRelativeVal)
+/// @property instantIncDecBtn bool
 SQ_IMPLEMENT_PROP_BOOL(AnalogAxisActionBinding, instantIncDecBtn)
+/// @property quantizeValOnIncDecBtn bool
 SQ_IMPLEMENT_PROP_BOOL(AnalogAxisActionBinding, quantizeValOnIncDecBtn)
+/// @property modCnt integer
 SQ_IMPLEMENT_PROP_INT(AnalogAxisActionBinding, modCnt)
+/// @property mod array
 SQ_IMPLEMENT_PROP_SB_ARR(AnalogAxisActionBinding, mod)
+/// @property minBtn
 SQ_IMPLEMENT_PROP_SB(AnalogAxisActionBinding, minBtn)
+/// @property maxBtn
 SQ_IMPLEMENT_PROP_SB(AnalogAxisActionBinding, maxBtn)
+/// @property incBtn
 SQ_IMPLEMENT_PROP_SB(AnalogAxisActionBinding, incBtn)
+/// @property decBtn
 SQ_IMPLEMENT_PROP_SB(AnalogAxisActionBinding, decBtn)
+/// @property deadZoneThres float
 SQ_IMPLEMENT_PROP_FLOAT(AnalogAxisActionBinding, deadZoneThres)
+/// @property nonLin float
 SQ_IMPLEMENT_PROP_FLOAT(AnalogAxisActionBinding, nonLin)
+/// @property maxVal float
 SQ_IMPLEMENT_PROP_FLOAT(AnalogAxisActionBinding, maxVal)
+/// @property relIncScale float
 SQ_IMPLEMENT_PROP_FLOAT(AnalogAxisActionBinding, relIncScale)
 
+///@class AnalogStickActionBinding
+/// @property devId integer
 SQ_IMPLEMENT_PROP_INT(AnalogStickActionBinding, devId)
+/// @property axisXId integer
 SQ_IMPLEMENT_PROP_INT(AnalogStickActionBinding, axisXId)
+/// @property axisYId integer
 SQ_IMPLEMENT_PROP_INT(AnalogStickActionBinding, axisYId)
+/// @property axisXinv bool
 SQ_IMPLEMENT_PROP_BOOL(AnalogStickActionBinding, axisXinv)
+/// @property axisYinv bool
 SQ_IMPLEMENT_PROP_BOOL(AnalogStickActionBinding, axisYinv)
+/// @property modCnt integer
 SQ_IMPLEMENT_PROP_INT(AnalogStickActionBinding, modCnt)
+/// @property mod array
 SQ_IMPLEMENT_PROP_SB_ARR(AnalogStickActionBinding, mod)
+/// @property minXBtn
 SQ_IMPLEMENT_PROP_SB(AnalogStickActionBinding, minXBtn)
+/// @property maxXBtn
 SQ_IMPLEMENT_PROP_SB(AnalogStickActionBinding, maxXBtn)
+/// @property minYBtn
 SQ_IMPLEMENT_PROP_SB(AnalogStickActionBinding, minYBtn)
+/// @property maxYBtn
 SQ_IMPLEMENT_PROP_SB(AnalogStickActionBinding, maxYBtn)
+/// @property deadZoneThres float
 SQ_IMPLEMENT_PROP_FLOAT(AnalogStickActionBinding, deadZoneThres)
+/// @property axisSnapAngK float
 SQ_IMPLEMENT_PROP_FLOAT(AnalogStickActionBinding, axisSnapAngK)
+/// @property nonLin float
 SQ_IMPLEMENT_PROP_FLOAT(AnalogStickActionBinding, nonLin)
+/// @property maxVal float
 SQ_IMPLEMENT_PROP_FLOAT(AnalogStickActionBinding, maxVal)
+/// @property sensScale float
 SQ_IMPLEMENT_PROP_FLOAT(AnalogStickActionBinding, sensScale)
+
 
 void dainput::bind_sq_api(SqModules *moduleMgr)
 {
@@ -506,162 +555,200 @@ void dainput::bind_sq_api(SqModules *moduleMgr)
   Sqrat::Table dainp(vm);
 #define DEF_CONSTANT_EX(name, nsp) dainp.SetValue(#name, nsp::name)
 #define DEF_CONSTANT(name)         DEF_CONSTANT_EX(name, dainput)
-#define DEF_FUNC(name)             .Func(#name, name)
 
   // clang-format off
+  /// @const DEV_none
   DEF_CONSTANT(DEV_none);
+  /// @const DEV_kbd
   DEF_CONSTANT(DEV_kbd);
+  /// @const DEV_pointing
   DEF_CONSTANT(DEV_pointing);
+  /// @const DEV_gamepad
   DEF_CONSTANT(DEV_gamepad);
+  /// @const DEV_joy
   DEF_CONSTANT(DEV_joy);
+  /// @const DEV_nullstub
   DEF_CONSTANT(DEV_nullstub);
 
+  /// @const DEV_USED_mouse
   DEF_CONSTANT(DEV_USED_mouse);
+  /// @const DEV_USED_kbd
   DEF_CONSTANT(DEV_USED_kbd);
+  /// @const DEV_USED_gamepad
   DEF_CONSTANT(DEV_USED_gamepad);
+  /// @const DEV_USED_touch
   DEF_CONSTANT(DEV_USED_touch);
 
+  /// @const TYPEGRP__MASK
   DEF_CONSTANT(TYPEGRP__MASK);
+  /// @const TYPEGRP_DIGITAL
   DEF_CONSTANT(TYPEGRP_DIGITAL);
+  /// @const TYPE_BUTTON
   DEF_CONSTANT(TYPE_BUTTON);
+  /// @const TYPEGRP_AXIS
   DEF_CONSTANT(TYPEGRP_AXIS);
+  /// @const TYPE_TRIGGER
   DEF_CONSTANT(TYPE_TRIGGER);
+  /// @const TYPE_STEERWHEEL
   DEF_CONSTANT(TYPE_STEERWHEEL);
+  /// @const TYPEGRP_STICK
   DEF_CONSTANT(TYPEGRP_STICK);
+  /// @const TYPE_SYSMOUSE
   DEF_CONSTANT(TYPE_SYSMOUSE);
+  /// @const TYPE_ABSMOUSE
   DEF_CONSTANT(TYPE_ABSMOUSE);
+  /// @const TYPE_STICK
   DEF_CONSTANT(TYPE_STICK);
+  /// @const TYPE_STICK_DELTA
   DEF_CONSTANT(TYPE_STICK_DELTA);
 
+  /// @const BAD_ACTION_HANDLE
   DEF_CONSTANT(BAD_ACTION_HANDLE);
+  /// @const BAD_ACTION_SET_HANDLE
   DEF_CONSTANT(BAD_ACTION_SET_HANDLE);
 
+  /// @const AXIS_NULL_ID
   DEF_CONSTANT(AXIS_NULL_ID);
+  /// @const BTN_NULL_ID
   DEF_CONSTANT(BTN_NULL_ID);
 
+  /// @const BTN_pressed
   DEF_CONSTANT_EX(BTN_pressed, DigitalActionBinding);
+  /// @const BTN_pressed_long
   DEF_CONSTANT_EX(BTN_pressed_long, DigitalActionBinding);
+  /// @const BTN_pressed2
   DEF_CONSTANT_EX(BTN_pressed2, DigitalActionBinding);
+  /// @const BTN_pressed3
   DEF_CONSTANT_EX(BTN_pressed3, DigitalActionBinding);
+  /// @const BTN_released
   DEF_CONSTANT_EX(BTN_released, DigitalActionBinding);
+  /// @const BTN_released_short
   DEF_CONSTANT_EX(BTN_released_short, DigitalActionBinding);
+  /// @const BTN_released_long
   DEF_CONSTANT_EX(BTN_released_long, DigitalActionBinding);
 
+  /// @const ST_in_progress
   DEF_CONSTANT_EX(ST_in_progress, DigitalActionProgress);
+  /// @const ST_finished
   DEF_CONSTANT_EX(ST_finished, DigitalActionProgress);
+  /// @const ST_cancelled
   DEF_CONSTANT_EX(ST_cancelled, DigitalActionProgress);
 
+  /// @const GAMEPAD_VENDOR_UNKNOWN
   DEF_CONSTANT_EX(GAMEPAD_VENDOR_UNKNOWN, HumanInput);
+  /// @const GAMEPAD_VENDOR_MICROSOFT
   DEF_CONSTANT_EX(GAMEPAD_VENDOR_MICROSOFT, HumanInput);
+  /// @const GAMEPAD_VENDOR_SONY
   DEF_CONSTANT_EX(GAMEPAD_VENDOR_SONY, HumanInput);
+  /// @const GAMEPAD_VENDOR_NINTENDO
   DEF_CONSTANT_EX(GAMEPAD_VENDOR_NINTENDO, HumanInput);
 
   dainp
-    DEF_FUNC(set_long_press_time)
-    DEF_FUNC(get_long_press_time)
-    DEF_FUNC(set_double_click_time)
-    DEF_FUNC(get_double_click_time)
+    .Func("set_long_press_time", set_long_press_time)
+    .Func("get_long_press_time", get_long_press_time)
+    .Func("set_double_click_time", set_double_click_time)
+    .Func("get_double_click_time", get_double_click_time)
 
-    DEF_FUNC(get_actions_config_version)
-    DEF_FUNC(reset_actions_binding)
-    DEF_FUNC(append_actions_binding)
-    DEF_FUNC(clear_actions_binding)
+    .Func("get_actions_config_version", get_actions_config_version)
+    .Func("reset_actions_binding", reset_actions_binding)
+    .Func("append_actions_binding", append_actions_binding)
+    .Func("clear_actions_binding", clear_actions_binding)
     .Func("load_actions_binding", sq_load_actions_binding)
-    DEF_FUNC(save_actions_binding)
-    DEF_FUNC(get_actions_binding_columns)
-    DEF_FUNC(get_tag_str)
-    DEF_FUNC(set_actions_binding_column_active)
-    DEF_FUNC(get_actions_binding_column_active)
+    .Func("save_actions_binding", save_actions_binding)
+    .Func("get_actions_binding_columns", get_actions_binding_columns)
+    .Func("get_tag_str", get_tag_str)
+    .Func("set_actions_binding_column_active", set_actions_binding_column_active)
+    .Func("get_actions_binding_column_active", get_actions_binding_column_active)
 
-    DEF_FUNC(get_digital_action_state)
-    DEF_FUNC(get_analog_axis_action_state)
-    DEF_FUNC(get_analog_stick_action_state)
+    .Func("get_digital_action_state", get_digital_action_state)
+    .Func("get_analog_axis_action_state", get_analog_axis_action_state)
+    .Func("get_analog_stick_action_state", get_analog_stick_action_state)
 
-    DEF_FUNC(set_analog_axis_action_state)
+    .Func("set_analog_axis_action_state", set_analog_axis_action_state)
 
-    DEF_FUNC(get_digital_action_binding)
-    DEF_FUNC(get_analog_axis_action_binding)
-    DEF_FUNC(get_analog_stick_action_binding)
-    DEF_FUNC(is_action_binding_set)
+    .Func("get_digital_action_binding", get_digital_action_binding)
+    .Func("get_analog_axis_action_binding", get_analog_axis_action_binding)
+    .Func("get_analog_stick_action_binding", get_analog_stick_action_binding)
+    .Func("is_action_binding_set", is_action_binding_set)
 
-    DEF_FUNC(get_analog_stick_action_smooth_value)
-    DEF_FUNC(set_analog_stick_action_smooth_value)
+    .Func("get_analog_stick_action_smooth_value", get_analog_stick_action_smooth_value)
+    .Func("set_analog_stick_action_smooth_value", set_analog_stick_action_smooth_value)
 
-    DEF_FUNC(get_action_handle)
-    DEF_FUNC(get_action_type)
-    DEF_FUNC(get_action_name)
-    DEF_FUNC(is_action_active)
-    DEF_FUNC(is_action_internal)
+    .Func("get_action_handle", get_action_handle)
+    .Func("get_action_type", get_action_type)
+    .Func("get_action_name", get_action_name)
+    .Func("is_action_active", is_action_active)
+    .Func("is_action_internal", is_action_internal)
     .Func("is_action_stateful", sq_is_action_stateful)
-    DEF_FUNC(get_group_tag_for_action)
-    DEF_FUNC(get_group_tag_str_for_action)
+    .Func("get_group_tag_for_action", get_group_tag_for_action)
+    .Func("get_group_tag_str_for_action", get_group_tag_str_for_action)
 
-    DEF_FUNC(get_action_set_handle)
-    DEF_FUNC(get_action_set_name)
+    .Func("get_action_set_handle", get_action_set_handle)
+    .Func("get_action_set_name", get_action_set_name)
     .SquirrelFunc("get_action_set_actions", sq_get_action_set_actions, 2, ".i")
 
     .SquirrelFunc("setup_action_set", sq_setup_action_set, 3, ".sa")
-    DEF_FUNC(clear_action_set_actions)
+    .Func("clear_action_set_actions", clear_action_set_actions)
 
-    DEF_FUNC(reset_action_set_stack)
-    DEF_FUNC(activate_action_set)
-    DEF_FUNC(get_action_set_stack_depth)
-    DEF_FUNC(get_action_set_stack_item)
-    DEF_FUNC(get_current_action_set)
-    DEF_FUNC(set_breaking_action_set)
+    .Func("reset_action_set_stack", reset_action_set_stack)
+    .Func("activate_action_set", activate_action_set)
+    .Func("get_action_set_stack_depth", get_action_set_stack_depth)
+    .Func("get_action_set_stack_item", get_action_set_stack_item)
+    .Func("get_current_action_set", get_current_action_set)
+    .Func("set_breaking_action_set", set_breaking_action_set)
 
-    DEF_FUNC(get_action_binding)
-    DEF_FUNC(set_action_binding)
-    DEF_FUNC(reset_action_binding)
+    .Func("get_action_binding", get_action_binding)
+    .Func("set_action_binding", set_action_binding)
+    .Func("reset_action_binding", reset_action_binding)
 
-    DEF_FUNC(get_actions_count)
-    DEF_FUNC(get_action_handle_by_ord)
-    DEF_FUNC(get_action_sets_count)
-    DEF_FUNC(get_action_set_handle_by_ord)
+    .Func("get_actions_count", get_actions_count)
+    .Func("get_action_handle_by_ord", get_action_handle_by_ord)
+    .Func("get_action_sets_count", get_action_sets_count)
+    .Func("get_action_set_handle_by_ord", get_action_set_handle_by_ord)
 
-    DEF_FUNC(start_recording_bindings)
-    DEF_FUNC(start_recording_bindings_for_single_button)
-    DEF_FUNC(is_recording_in_progress)
-    DEF_FUNC(is_recording_complete)
-    DEF_FUNC(finish_recording_bindings)
+    .Func("start_recording_bindings", start_recording_bindings)
+    .Func("start_recording_bindings_for_single_button", start_recording_bindings_for_single_button)
+    .Func("is_recording_in_progress", is_recording_in_progress)
+    .Func("is_recording_complete", is_recording_complete)
+    .Func("finish_recording_bindings", finish_recording_bindings)
 
-    DEF_FUNC(reset_digital_action_sticky_toggle)
-    DEF_FUNC(get_last_used_device_mask)
+    .Func("reset_digital_action_sticky_toggle", reset_digital_action_sticky_toggle)
+    .Func("get_last_used_device_mask", get_last_used_device_mask)
 
-    DEF_FUNC(get_overall_button_clicks_count)
-    DEF_FUNC(enable_darg_events_for_button_clicks)
+    .Func("get_overall_button_clicks_count", get_overall_button_clicks_count)
+    .Func("enable_darg_events_for_button_clicks", enable_darg_events_for_button_clicks)
 
-    DEF_FUNC(send_action_event)
-    DEF_FUNC(send_action_terminated_event)
+    .Func("send_action_event", send_action_event)
+    .Func("send_action_terminated_event", send_action_terminated_event)
 
     .Func("set_digital_event_progress_monitor", sq_install_digital_event_progress_monitor)
-    DEF_FUNC(enable_debug_traces)
+    .Func("enable_debug_traces", enable_debug_traces)
 
     .SquirrelFunc("check_bindings_conflicts", sq_check_bindings_conflicts, 3, ".ix")
     .SquirrelFunc("check_bindings_hides_action", sq_check_bindings_hides_action, 3, ".ix")
-    DEF_FUNC(check_bindings_conflicts_one)
+    .Func("check_bindings_conflicts_one", check_bindings_conflicts_one)
 
     .SquirrelFunc("get_action_bindings_text", sq_get_action_bindings_text, 2, ".s")
     .SquirrelFunc("format_ctrl_name", sq_format_ctrl_name, -3, ".iib")
 
-    DEF_FUNC(set_main_gamepad_stick_dead_zone)
-    DEF_FUNC(set_joystick_stick_dead_zone)
-    DEF_FUNC(get_main_gamepad_stick_dead_zone)
-    DEF_FUNC(get_joystick_stick_dead_zone)
-    DEF_FUNC(get_main_gamepad_stick_dead_zone_abs)
-    DEF_FUNC(get_joystick_stick_dead_zone_abs)
-    DEF_FUNC(enable_joystick_gyroscope)
+    .Func("set_main_gamepad_stick_dead_zone", set_main_gamepad_stick_dead_zone)
+    .Func("set_joystick_stick_dead_zone", set_joystick_stick_dead_zone)
+    .Func("get_main_gamepad_stick_dead_zone", get_main_gamepad_stick_dead_zone)
+    .Func("get_joystick_stick_dead_zone", get_joystick_stick_dead_zone)
+    .Func("get_main_gamepad_stick_dead_zone_abs", get_main_gamepad_stick_dead_zone_abs)
+    .Func("get_joystick_stick_dead_zone_abs", get_joystick_stick_dead_zone_abs)
+    .Func("enable_joystick_gyroscope", enable_joystick_gyroscope)
 
-    DEF_FUNC(set_default_preset_prefix)
-    DEF_FUNC(get_default_preset_prefix)
-    DEF_FUNC(load_user_config)
-    DEF_FUNC(save_user_config)
-    DEF_FUNC(get_user_config_base_preset)
-    DEF_FUNC(is_user_config_customized)
-    DEF_FUNC(reset_user_config_to_preset)
-    DEF_FUNC(reset_user_config_to_currest_preset)
-    DEF_FUNC(get_user_props)
-    DEF_FUNC(is_user_props_customized)
+    .Func("set_default_preset_prefix", set_default_preset_prefix)
+    .Func("get_default_preset_prefix", get_default_preset_prefix)
+    .Func("load_user_config", load_user_config)
+    .Func("save_user_config", save_user_config)
+    .Func("get_user_config_base_preset", get_user_config_base_preset)
+    .Func("is_user_config_customized", is_user_config_customized)
+    .Func("reset_user_config_to_preset", reset_user_config_to_preset)
+    .Func("reset_user_config_to_currest_preset", reset_user_config_to_currest_preset)
+    .Func("get_user_props", get_user_props)
+    .Func("is_user_props_customized", is_user_props_customized)
 
 #if DAGOR_DBGLEVEL > 0
     .Func("dump_action_sets", sq_dump_action_sets)
@@ -732,11 +819,13 @@ void dainput::bind_sq_api(SqModules *moduleMgr)
     SQ_BIND_MEMBER_VAR(DigitalAction, bActive)
     SQ_BIND_MEMBER_VAR(DigitalAction, bActivePrev)
   ;
+
   Sqrat::Class<AnalogAxisAction>(vm, "AnalogAxisAction")
     SQ_BIND_MEMBER_VAR(AnalogAxisAction, x)
     SQ_BIND_MEMBER_VAR(AnalogAxisAction, bActive)
     SQ_BIND_MEMBER_VAR(AnalogAxisAction, bActivePrev)
   ;
+
   Sqrat::Class<AnalogStickAction>(vm, "AnalogStickAction")
     SQ_BIND_MEMBER_VAR(AnalogStickAction, x)
     SQ_BIND_MEMBER_VAR(AnalogStickAction, y)

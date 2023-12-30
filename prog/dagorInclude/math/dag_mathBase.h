@@ -10,6 +10,7 @@
 #include <math/dag_half.h>
 #include <math/dag_declAlign.h>
 #include <math/dag_bits.h>
+#include <math/dag_rectInt.h>
 #include <util/dag_bitwise_cast.h>
 #include <util/dag_compilerDefs.h>
 #include <math/dag_check_nan.h>
@@ -43,16 +44,6 @@ class TMatrix;
 class TMatrix4;
 
 struct Frustum;
-
-
-// Replacement for windows RECT.
-struct RectInt
-{
-  int left;
-  int top;
-  int right;
-  int bottom;
-};
 
 
 /// Common real number type, defined as float.
@@ -102,17 +93,12 @@ INLINE float rabs(float a) { return fabsf(a); }
 INLINE float fsel(float a, float b, float c) { return (a >= 0.0f) ? b : c; }
 INLINE double fsel(double a, double b, double c) { return (a >= 0.0) ? b : c; }
 
-// (a >= 0) ? x : y
-template <typename T>
-INLINE T isel(T a, T x, T y)
+template <class T>
+constexpr T sqr(T x)
 {
-  int mask = a >> (sizeof(T) * 8 - 1); // arithmetic shift right, splat out the sign bit
-  // mask is 0xFFFFFFFF if (a < 0) and 0x00 otherwise.
-  return x + ((y - x) & mask);
+  return x * x;
 }
 
-/// returns real sqrt(n) (approximate, undefined results for n<0)
-#define rsqrt(a) fastsqrt(a)
 
 /// normalize angle to the range [0;2*PI)
 INLINE real norm_ang(real a)
@@ -170,8 +156,6 @@ INLINE int signbitf(float x) { return FP_SIGN_BIT(x); }
 INLINE bool float_nonzero(float x) { return rabs(x) >= FLT_EPSILON; }
 INLINE float flt_epsion_threshold(float v) { return fabsf(v) < FLT_EPSILON ? 0.f : v; }
 INLINE double flt_epsion_threshold(double v) { return fabs(v) < FLT_EPSILON ? 0.0 : v; }
-
-#define SQR(a) ((a) * (a))
 
 /// @endcond
 
@@ -301,8 +285,6 @@ INLINE int real2int(float f)
 
 
 INLINE real qterm(real a) { return (a <= 0) ? 0 : sqrtf(a) * 0.5f; }
-
-INLINE real real_sq(real a) { return a * a; }
 
 // Warning!: Does not perform clipping,if box.center.z<0 always false
 bool is_pt_inscreen_box(class Point2 &p, class BBox3 &b, class TMatrix4 &gtm);

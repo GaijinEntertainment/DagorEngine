@@ -44,7 +44,7 @@ struct typeFactory<IdIndexedMapping<K, V>>
       mod->addAnnotation(ann);
 
       addExtern<DAS_BIND_FUN((id_indexed_mapping_get<K, V>)), SimNode_ExtFuncCallRef>(*mod, library, //
-        "[]", SideEffects::none, "id_indexed_mapping_get")
+        "[]", SideEffects::modifyArgument, "id_indexed_mapping_get")
         ->generated = true;
       addExtern<DAS_BIND_FUN((id_indexed_mapping_get<K, V>))>(*mod, library, //
         "get", SideEffects::modifyArgument, "id_indexed_mapping_get")

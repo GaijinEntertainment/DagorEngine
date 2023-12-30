@@ -141,7 +141,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
           found = all_passid.size();
           all_passid.push_back(p);
         }
-        currPasses->rpass = (ShaderCode::Pass *)found;
+        currPasses->rpass = (ShaderCode::Pass *)intptr_t(found);
       }
     }
   }

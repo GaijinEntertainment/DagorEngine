@@ -246,7 +246,7 @@ public:
   void diag_message(int type, int file, int ln, int col, const char *, int code = -1);
   // called by diag_message(), default is fatal on DIAG_ERROR and DIAG_SYNTAX_ERROR
   void diag_text(int type, const char *, int code);
-  char *get_diag_name(int type);
+  const char *get_diag_name(int type);
   void error(const char *msg = NULL) override;
   void warning(const char *) override;
   void set_error(const char *) override;
@@ -277,7 +277,7 @@ void MyShaderLexParser::set_error(int file, int ln, int col, const char *txt) { 
 
 void MyShaderLexParser::set_warning(int file, int ln, int col, const char *txt) { diag_message(DIAG_WARNING, file, ln, col, txt); }
 
-char *MyShaderLexParser::get_diag_name(int type)
+const char *MyShaderLexParser::get_diag_name(int type)
 {
   switch (type)
   {
@@ -386,7 +386,11 @@ void MyShaderLexParser::begin_shader()
   mShaderId = mCountShaders;
 }
 
-void MyShaderLexParser::end_shader() { mShaderId = 0; }
+void MyShaderLexParser::end_shader()
+{
+  mShaderId = 0;
+  mSymbols.clear();
+}
 
 const char *MyShaderLexParser::get_filename(int f) { return input_stream->get_filename(f); }
 

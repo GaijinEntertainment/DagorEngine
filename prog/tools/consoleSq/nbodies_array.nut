@@ -68,7 +68,7 @@ local function advance(bodies, nbody){
       local dy = bi[1]-bj[1]
       local dz = bi[2]-bj[2]
       local distance2 = (dx*dx + dy*dy + dz*dz)
-      local mag = 1 / (distance2 * sqrt(distance2))
+      local mag = 1 / (distance2 * math.sqrt(distance2))
       local bim = bi[6]*mag,
             bjm = bj[6]*mag;
       bi[3] -= (dx * bjm)
@@ -98,7 +98,7 @@ local function energy(bodies, nbody){
       local dx=bi[0]-bj[0]
       local dy=bi[1]-bj[1]
       local dz=bi[2]-bj[2]
-      local distance = sqrt(dx*dx + dy*dy + dz*dz)
+      local distance = math.sqrt(dx*dx + dy*dy + dz*dz)
       e = e - ((bim * bj[6]) / distance)
     }
   }

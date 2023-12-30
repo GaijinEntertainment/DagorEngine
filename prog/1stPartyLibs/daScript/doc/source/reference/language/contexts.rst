@@ -7,7 +7,7 @@ Context
 .. index::
     single: contexts
 
-daScript environments are organized into contexts. Compiling daScript program produces the 'Program' object, which can then be simulated into the 'Context'.
+Daslang environments are organized into contexts. Compiling Daslang program produces the 'Program' object, which can then be simulated into the 'Context'.
 
 `Context` consists of
     * name and flags
@@ -22,7 +22,7 @@ daScript environments are organized into contexts. Compiling daScript program pr
     * locks
     * miscellaneous lookup infrastructure
 
-In some sense `Context` can be viewed as daScript virtual machine. It is the object that is responsible for executing the code and keeping the state.
+In some sense `Context` can be viewed as Daslang virtual machine. It is the object that is responsible for executing the code and keeping the state.
 It can also be viewed as an instance of the class, which methods can be accessed when marked as [export].
 
 Function code, constant string heap, runtime debug information, and shared global variables are shared between cloned contexts.
@@ -94,5 +94,5 @@ Cross context calls `invoke_in_context` automatically lock the target context.
 Lookups
 =======
 
-Global variables and functions can be looked up by name or by mangled name hash on both daScript and C++ side.
+Global variables and functions can be looked up by name or by mangled name hash on both Daslang and C++ side.
 

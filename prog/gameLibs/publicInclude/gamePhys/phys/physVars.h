@@ -31,7 +31,7 @@ public:
   void setVar(int var_id, float val);
   void setupVar(const char *name, float val);
 
-  const int getVarsCount() const { return vars.size(); }
+  int getVarsCount() const { return vars.size(); }
   const char *getVarName(const int var_id) const { return names.getNameSlow(var_id); }
 };
 

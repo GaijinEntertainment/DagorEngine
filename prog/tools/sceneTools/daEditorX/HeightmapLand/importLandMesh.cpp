@@ -567,6 +567,29 @@ static bool delaunayGenerateCached(LandMeshMap &land, HeightMapStorage &heightma
     int old_fc = mesh_out.face.size();
     int old_vc = mesh_out.vert.size();
 
+    ctl::PointList boundary;
+    if (need_re_delaunay)
+    {
+      float min_y = 1e6f;
+      for (const auto &v : mesh_out.vert)
+        inplace_min(min_y, v.y);
+
+      boundary.push_back({ofs.x, ofs.z, min_y});
+      boundary.push_back({ofs.x + (heightmap.getMapSizeX() - 1) * cell, ofs.z, min_y});
+      boundary.push_back({ofs.x + (heightmap.getMapSizeX() - 1) * cell, ofs.z + (heightmap.getMapSizeY() - 1) * cell, min_y});
+      boundary.push_back({ofs.x, ofs.z + (heightmap.getMapSizeY() - 1) * cell, min_y});
+
+      for (const auto &v : mesh_out.vert)
+        for (auto &bv : boundary)
+          if (lengthSq(Point2::xz(v) - Point2::xy(bv)) < 1e-4f)
+            bv.z = v.y;
+
+      DEBUG_DUMP_VAR(min_y);
+      DEBUG_DUMP_VAR(boundary.size());
+      for (const auto &v : boundary)
+        DEBUG_DUMP_VAR(Point3::xzy(v));
+    }
+
     while (need_re_delaunay && re_delaunay_iter < 10)
     {
       debug_flush(true);
@@ -574,19 +597,25 @@ static bool delaunayGenerateCached(LandMeshMap &land, HeightMapStorage &heightma
       int time0l = dagTools->getTimeMsec();
       mesh_out.face.resize(0);
 
-      ctl::PointList boundary;
-      boundary.push_back({ofs.x, ofs.z});
-      boundary.push_back({ofs.x + heightmap.getMapSizeX() * cell, ofs.z});
-      boundary.push_back({ofs.x + heightmap.getMapSizeX() * cell, ofs.z + heightmap.getMapSizeY() * cell});
-      boundary.push_back({ofs.x, ofs.z + heightmap.getMapSizeY() * cell});
-
       ctl::DelaunayTriangulation dt{boundary, 64 << 10};
+      bool detected_errors = false;
+
+      // add land boundary points first to force proper sides
+      for (const auto &v : mesh_out.vert)
+        if (fabsf(v.x - boundary[0].x) < 1e-6f || fabsf(v.z - boundary[0].y) < 1e-6f || //
+            fabsf(v.x - boundary[2].x) < 1e-6f || fabsf(v.z - boundary[2].y) < 1e-6f)
+          dt.InsertConstrainedPoint({v.x, v.z, v.y});
 
       ctl::PointList poly_pts;
       for (int i = 0; i < water_border_polys.size(); i++)
         if (water_border_polys[i].x > 1e12f)
         {
           auto points = make_span_const(&water_border_polys[i + 1], unsigned(water_border_polys[i].y));
+          if (water_border_polys[i].z >= 2)
+          {
+            debug("skip corrupted border %d pts", points.size());
+            continue;
+          }
           bool closed = water_border_polys[i].z < 0.5f;
           // debug("add new border %d pts, closed=%d", points.size(), closed);
           poly_pts.clear();
@@ -596,8 +625,19 @@ static bool delaunayGenerateCached(LandMeshMap &land, HeightMapStorage &heightma
           if (closed)
             poly_pts.push_back({poly_pts[0]});
           dt.InsertConstrainedLineString(poly_pts);
+          if (dt.error())
+          {
+            detected_errors = true;
+            logerr("detected corrupted border %d pts, closed=%d", points.size(), closed);
+            const_cast<float &>(water_border_polys[i].z) = 2; // mark corrupted
+            // reinit DelaunayTriangulation
+            dt.~DelaunayTriangulation();
+            new (&dt, _NEW_INPLACE) ctl::DelaunayTriangulation{boundary, 64 << 10};
+          }
           i += points.size();
         }
+      if (detected_errors) // restart with skipping corrupted borders
+        continue;
 
       for (const auto &v : mesh_out.vert)
         dt.InsertConstrainedPoint({v.x, v.z, v.y});

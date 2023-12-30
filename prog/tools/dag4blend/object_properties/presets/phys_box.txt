@@ -1,5 +1,0 @@
-renderable:b=no
-collidable:b=yes
-collision:t=box
-isPhysCollidable:b=yes
-isTraceable:b=no

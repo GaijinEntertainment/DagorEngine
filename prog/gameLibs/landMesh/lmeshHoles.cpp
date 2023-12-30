@@ -1,7 +1,7 @@
 #include <landMesh/lmeshHoles.h>
 #include <heightmap/heightmapHandler.h>
 
-LandMeshHolesManager::LandMeshHolesCell::HoleData::HoleData(const TMatrix &tm, bool is_round, bool shape_intesection) :
+LandMeshHolesCell::HoleData::HoleData(const TMatrix &tm, bool is_round, bool shape_intesection) :
   round(is_round), shapeIntersection(shape_intesection)
 {
   if (!shapeIntersection)
@@ -18,35 +18,60 @@ LandMeshHolesManager::LandMeshHolesCell::HoleData::HoleData(const TMatrix &tm, b
   }
 }
 
-bool LandMeshHolesManager::LandMeshHolesCell::check(const Point2 &position, const HeightmapHandler *hmapHandler) const
+void LandMeshHolesCell::addHole(const HoleData &hole)
+{
+  holes.push_back(hole);
+  needsValidHeight = needsValidHeight || hole.shapeIntersection;
+}
+void LandMeshHolesCell::clear()
+{
+  holes.clear();
+  needsValidHeight = false;
+}
+
+static bool checkHoleProjection(const Matrix3 &inverse_proj_tm, bool is_round, const Point2 &pos)
+{
+  Point3 relativePos = inverse_proj_tm * Point3(pos.x, pos.y, 1.f);
+  Point2 lenNorm = abs(Point2(relativePos.x, relativePos.y));
+  if (lenNorm.x > 1 || lenNorm.y > 1)
+    return false;
+  if (is_round && (dot(lenNorm, lenNorm) > 1))
+    return false;
+  return true;
+}
+static bool checkHoleShapeIntersection(const TMatrix &inverse_tm, bool is_round, const Point3 &pos)
+{
+  Point3 relativePos = inverse_tm * pos;
+  Point3 lenNorm = abs(relativePos);
+  if (lenNorm.x > 1 || lenNorm.y > 1 || lenNorm.z > 1)
+    return false;
+  if (is_round && (dot(lenNorm, lenNorm) > 1))
+    return false;
+  return true;
+}
+bool LandMeshHolesCell::check(const Point2 &posXZ, const HeightmapHandler *hmapHandler) const
 {
   float height = MIN_REAL;
+  if (needsValidHeight)
+    hmapHandler->getHeight(posXZ, height, nullptr);
+
+  Point3 posXYZ = Point3(posXZ.x, height, posXZ.y);
+  return check(posXYZ);
+}
+bool LandMeshHolesCell::check(const Point3 &posXYZ) const
+{
   for (const auto &hole : holes)
   {
     if (!hole.shapeIntersection)
     {
-      Point3 relativePos = hole.inverseProjTm * Point3(position.x, position.y, 1.f);
-      Point2 lenNorm = abs(Point2(relativePos.x, relativePos.y));
-      if (lenNorm.x > 1 || lenNorm.y > 1)
-        continue;
-      if (hole.round && (dot(lenNorm, lenNorm) > 1))
-        continue;
+      if (checkHoleProjection(hole.inverseProjTm, hole.round, Point2::xz(posXYZ)))
+        return true;
     }
     else
     {
-      // Get height lazily. Note: `getPosOfNearestTexel` has moved sampling position
-      if (height == MIN_REAL && !hmapHandler->getHeight(position, height, nullptr))
-        continue; // Then, result is up to ground holes from projection.
-
-      Point3 posXYZ = Point3(position.x, height, position.y);
-      Point3 relativePos = hole.inverseTm * posXYZ;
-      Point3 lenNorm = abs(relativePos);
-      if (lenNorm.x > 1 || lenNorm.y > 1 || lenNorm.z > 1)
-        continue;
-      if (hole.round && (dot(lenNorm, lenNorm) > 1))
-        continue;
+      if (checkHoleShapeIntersection(hole.inverseTm, hole.round, posXYZ))
+        return true;
     }
-    return true;
   }
   return false;
 }
@@ -94,26 +119,37 @@ void LandMeshHolesManager::clearAndAddHoles(const eastl::vector<HoleArgs> &holes
       for (j = 0, lb.x = holesRegion[0].x; j < holeCellsCount; j++, lb.x += cellSize.x)
       {
         if (holeBBox & BBox2(lb, lb + cellSize))
-          cells[i * holeCellsCount + j].holes.push_back(holeData);
+          cells[i * holeCellsCount + j].addHole(holeData);
       }
   }
 }
 void LandMeshHolesManager::clearHoles()
 {
   for (int i = 0; i < holeCellsCount * holeCellsCount; i++)
-    cells[i].holes.clear();
+    cells[i].clear();
 
   holesRegion.setempty();
   cellSize = Point2(0, 0);
   cellSizeInv = Point2(0, 0);
 }
-bool LandMeshHolesManager::check(const Point2 &point) const
+
+size_t LandMeshHolesManager::getCellIndex(const Point2 &point) const
 {
-  if (!hmapHandler || !(holesRegion & point))
-    return false;
   Point2 pOfs = (point - holesRegion[0]);
   Point2 cellPos = Point2(pOfs.x * cellSizeInv.x, pOfs.y * cellSizeInv.y);
   int y = min(int(cellPos.y), holeCellsCount - 1);
   int x = min(int(cellPos.x), holeCellsCount - 1);
-  return cells[y * holeCellsCount + x].check(point, hmapHandler);
+  return y * holeCellsCount + x;
+}
+bool LandMeshHolesManager::check(const Point2 &posXZ) const
+{
+  if (!hmapHandler || !(holesRegion & posXZ))
+    return false;
+  return cells[getCellIndex(posXZ)].check(posXZ, hmapHandler);
+}
+bool LandMeshHolesManager::check(const Point2 &posXZ, float hmap_height) const
+{
+  if (!hmapHandler || !(holesRegion & posXZ))
+    return false;
+  return cells[getCellIndex(posXZ)].check(Point3(posXZ.x, hmap_height, posXZ.y));
 }

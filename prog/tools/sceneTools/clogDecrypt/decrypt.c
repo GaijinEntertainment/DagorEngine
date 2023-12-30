@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#include <malloc.h>
 #include <stdlib.h>
 
 extern const unsigned char *get_log_crypt_key();
@@ -58,7 +57,7 @@ int main(int argc, char **argv)
         cur++;
     }
     if (std_out)
-      puts(buf);
+      puts((const char *)buf);
     else
       fwrite(buf, 1, sz, fp2);
   }

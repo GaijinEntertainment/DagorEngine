@@ -7,7 +7,6 @@
 
 #include <generic/dag_tabFwd.h>
 #include <de3_navmeshObstacle.h>
-#include <de3_groundHole.h>
 #include <de3_gameLadder.h>
 #include <util/dag_oaHashNameMap.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
@@ -20,6 +19,7 @@ class ILogWriter;
 class StaticGeometryContainer;
 
 class LandMeshMap;
+class LandMeshHolesCell;
 
 namespace ddsx
 {
@@ -200,7 +200,7 @@ public:
   static constexpr unsigned HUID = 0xA1D88598u;
 
   virtual void gatherCollision(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices, Tab<IPoint2> &transparent,
-    Tab<NavMeshObstacle> &obstacles, const Tab<BBox3> &exclude_boxes) = 0;
+    Tab<NavMeshObstacle> &obstacles, const Tab<BBox3> &exclude_boxes, const char *nav_mesh_kind) = 0;
   virtual void getObstaclesFlags(const ska::flat_hash_map<uint32_t, uint32_t> *&obstacle_flags_by_res_name_hash) = 0;
 };
 
@@ -210,7 +210,7 @@ class IGatherGroundHoles
 public:
   static constexpr unsigned HUID = 0x0D508A8Eu; // IGatherGroundHoles
 
-  virtual void gatherGroundHoles(Tab<GroundHole> &obstacles) = 0;
+  virtual void gatherGroundHoles(LandMeshHolesCell &obstacles) = 0;
 };
 
 class IGatherRiNavmeshBlockers

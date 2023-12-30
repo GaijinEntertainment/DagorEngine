@@ -14,7 +14,7 @@ Identifiers
 .. index:: single: identifiers
 
 Identifiers start with an alphabetic character (and not the symbol '_') followed by any number
-of alphabetic characters, '_' or digits ([0-9]). daScript is a case sensitive language
+of alphabetic characters, '_' or digits ([0-9]). Daslang is a case sensitive language
 meaning that the lowercase and uppercase representation of the same alphabetic
 character are considered different characters. For instance, "foo", "Foo" and "fOo" are
 treated as 3 distinct identifiers.
@@ -48,7 +48,7 @@ The following words are reserved as keywords and cannot be used as identifiers:
 +------------+------------+-----------+------------+------------+-------------+
 | shared     | private    | smart_ptr | generator  | yield      | unsafe      |
 +------------+------------+-----------+------------+------------+-------------+
-| assume     | explicit   | sealed    |            |            |             |
+| assume     | explicit   | sealed    | static     | inscope    |             |
 +------------+------------+-----------+------------+------------+-------------+
 
 The following words are reserved as type names and cannot be used as identifiers:
@@ -75,7 +75,7 @@ Operators
 
 .. index:: single: operators
 
-daScript recognizes the following operators:
+Daslang recognizes the following operators:
 
 +----------+----------+----------+----------+----------+----------+----------+----------+
 | ``+=``   | ``-=``   | ``/=``   | ``*=``   | ``%=``   | ``|=``   | ``^=``   | ``<<``   |
@@ -123,7 +123,7 @@ Literals
     single: string literals
     single: numeric literals
 
-daScript accepts integer numbers, unsigned integers, floating and double point numbers and string literals.
+Daslang accepts integer numbers, unsigned integers, floating and double point numbers and string literals.
 
 +-------------------------------+------------------------------------------+
 | ``34``                        | Integer number(base 10)                  |
@@ -195,7 +195,7 @@ Semantic Indenting
 
 .. index:: single: indenting
 
-daScript follows semantic indenting (much like Python).
+Daslang follows semantic indenting (much like Python).
 That means that logical blocks are arranged with the same indenting, and if a control statement requires the nesting of a block (such as the body of a function, block, if, for, etc.), it has to be indented one step more.
 The indenting step is part of the options of the program.  It is either 2, 4 or 8, but always the same for whole file.
 The default indenting is 4, but can be globally overridden per project.

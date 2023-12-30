@@ -3,7 +3,6 @@
 #include <dag/dag_vector.h>
 #include <supp/dag_comPtr.h>
 #include <osApiWrappers/dag_spinlock.h>
-#include <EASTL/intrusive_ptr.h>
 
 #include "driver.h"
 #include "constants.h"
@@ -18,6 +17,10 @@
 #include "resource_manager/esram_resource_xbox.h"
 #endif
 
+#if _TARGET_XBOX
+#include "resource_manager/texture_access_computer_xbox.h"
+#endif
+
 
 namespace drv3d_dx12
 {
@@ -27,6 +30,9 @@ class Image
 {
 public:
   using ViewInfo = ImageViewInfo;
+#if _TARGET_XBOX
+  using TexAccessComputer = TextureAccessComputer::NativeType;
+#endif
 
 private:
   ComPtr<ID3D12Resource> image;
@@ -40,7 +46,7 @@ private:
   EsramResource esramResource{};
 #endif
   ContainerMutexWrapper<String, OSSpinlock> debugName;
-  bool isMultisampledImage = false;
+  uint8_t msaaLevel = 0;
 
   D3D12_RESOURCE_DIMENSION imageType = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
   ArrayLayerCount layerCount{};
@@ -48,7 +54,7 @@ private:
   FormatStore format{};
   ExtendedImageGlobalSubresouceId globalSubResBase;
 #if _TARGET_XBOX
-  eastl::intrusive_ptr<XGTextureAddressComputer> textureAccessComputer;
+  TextureAccessComputer textureAccessComputer;
   D3D12_TEXTURE_LAYOUT textureLayout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 #endif
   uint64_t lastFrameAccess = 0;
@@ -67,17 +73,12 @@ public:
   }
   bool wasAccessedThisFrame(uint64_t index) const { return lastFrameAccess == index; }
 #if _TARGET_XBOX
-  XGTextureAddressComputer *getAccessComputer()
+  TexAccessComputer *getAccessComputer()
   {
     if (!textureAccessComputer)
     {
-      auto desc = image->GetDesc();
-      G_STATIC_ASSERT(sizeof(XG_RESOURCE_DESC) == sizeof(D3D12_RESOURCE_DESC));
-      desc.Layout = textureLayout;
-      XGTextureAddressComputer *ptr = nullptr;
-      // XG_RESOURCE_DESC is a replication of D3D12_RESOURCE_DESC
-      XGCreateTextureComputer(reinterpret_cast<XG_RESOURCE_DESC *>(&desc), &ptr);
-      textureAccessComputer.attach(ptr);
+      D3D12_RESOURCE_DESC desc = image->GetDesc();
+      textureAccessComputer.initialize(desc, textureLayout);
     }
     return textureAccessComputer.get();
   }
@@ -148,8 +149,8 @@ public:
     }
   }
 
-  bool isMultisampled() const { return isMultisampledImage; }
-  void setMultisampled(bool is_multisampled) { isMultisampledImage = is_multisampled; }
+  bool isMultisampled() const { return msaaLevel > 0; }
+  uint8_t getMsaaLevel() const { return msaaLevel; }
 
   ExtendedImageGlobalSubresouceId getGlobalSubResourceIdBase() const { return globalSubResBase; }
   bool hasTrackedState() const { return globalSubResBase.isValid(); }
@@ -203,9 +204,9 @@ public:
   }
 
   Image(ResourceMemory mem, ComPtr<ID3D12Resource> img, D3D12_RESOURCE_DIMENSION type, D3D12_TEXTURE_LAYOUT layout, FormatStore fmt,
-    Extent3D ext, MipMapCount levels, ArrayLayerCount layers, ImageGlobalSubresouceId sub_res_base, bool is_multisampled) :
+    Extent3D ext, MipMapCount levels, ArrayLayerCount layers, ImageGlobalSubresouceId sub_res_base, uint8_t msaa_level) :
     memory{mem},
-    isMultisampledImage{is_multisampled},
+    msaaLevel{msaa_level},
     imageType{type},
 #ifdef _TARGET_XBOX
     textureLayout{layout},
@@ -223,9 +224,9 @@ public:
 #if DX12_USE_ESRAM
   Image(ResourceMemory mem, ComPtr<ID3D12Resource> img, D3D12_RESOURCE_DIMENSION type, FormatStore fmt, Extent3D ext,
     MipMapCount levels, ArrayLayerCount layers, ImageGlobalSubresouceId sub_res_base, const EsramResource &esram_resource,
-    bool is_multisampled) :
+    uint8_t msaa_level) :
     memory{mem},
-    isMultisampledImage{is_multisampled},
+    msaaLevel{msaa_level},
     imageType{type},
     layerCount{layers},
     image{eastl::move(img)},
@@ -258,7 +259,7 @@ public:
   {
     switch (imageType)
     {
-      default: fatal("Unreachable switch case"); return D3D_SRV_DIMENSION_TEXTURE2D;
+      default: DAG_FATAL("Unreachable switch case"); return D3D_SRV_DIMENSION_TEXTURE2D;
       case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
         return layerCount.count() > 1 ? D3D_SRV_DIMENSION_TEXTURE1DARRAY : D3D_SRV_DIMENSION_TEXTURE1D;
       case D3D12_RESOURCE_DIMENSION_TEXTURE2D:

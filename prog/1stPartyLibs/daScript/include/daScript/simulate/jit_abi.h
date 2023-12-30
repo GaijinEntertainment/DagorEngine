@@ -4,19 +4,28 @@
 
 namespace das {
 
-template <> struct WrapType<float2> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<float3> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<float4> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<int2> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<int3> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<int4> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<uint2> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<uint3> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<uint4> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<range> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<urange> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<range64> { enum { value = true }; typedef vec4f type; };
-template <> struct WrapType<urange64> { enum { value = true }; typedef vec4f type; };
+template <> struct WrapType<float2> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<float3> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<float4> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<int2> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<int3> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<int4> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<uint2> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<uint3> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<uint4> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<range> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<urange> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<range64> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+template <> struct WrapType<urange64> { enum { value = true }; typedef vec4f type; typedef vec4f rettype; };
+
+template <> struct WrapType<Func> { enum { value = true }; typedef void * type; typedef void * rettype; };
+
+template <typename T>
+struct WrapType<smart_ptr_raw<T>> { enum { value = true }; typedef smart_ptr_jit & type; typedef smart_ptr_jit * rettype; };
+
+template <typename T>
+struct WrapType<smart_ptr<T>> { enum { value = true }; typedef smart_ptr_jit & type; typedef smart_ptr_jit * rettype; };
+
 
 template <typename... Ts> struct AnyVectorType;
 template <> struct AnyVectorType<> { enum { value = false }; };
@@ -57,10 +66,10 @@ struct ImplWrapCall<true,wrap,RetT(*)(Args...),fn> {                        // w
 
 template <typename RetT, typename ...Args, RetT(*fn)(Args...)>
 struct ImplWrapCall<false,true,RetT(*)(Args...),fn> {   // no cmres, wrap
-    static typename WrapType<RetT>::type static_call (typename WrapType<Args>::type... args ) {
+    static typename WrapType<RetT>::rettype static_call (typename WrapType<Args>::type... args ) {
         typedef typename WrapRetType<RetT>::type (* FuncType)(typename WrapArgType<Args>::type...);
         auto fnPtr = reinterpret_cast<FuncType>(fn);
-        return fnPtr(args...);
+        return (typename WrapType<RetT>::rettype) fnPtr(args...);   // note explicit cast
     };
     static void * get_builtin_address() { return (void *) &static_call; }
 };

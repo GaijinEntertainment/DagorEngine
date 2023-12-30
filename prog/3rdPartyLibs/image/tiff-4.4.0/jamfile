@@ -67,5 +67,6 @@ UseProgLibs =
 ;
 
 Copt = ;
+if $(PlatformSpec) in clang clang64 { Copt += -Wno-format-extra-args ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -13,7 +13,7 @@ let statusText = {
 
 let logerrCache = persist("logerrCache", @() {})
 
-let function logerrOnce(text, key = null){
+function logerrOnce(text, key = null){
   let k = key ?? text
   if (k in logerrCache) {
     log(text)

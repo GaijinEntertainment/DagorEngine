@@ -8,7 +8,7 @@ Struct
 .. index::
     single: Structs
 
-daScript uses a structure mechanism similar to languages like C/C++, Java, C#, etc.
+Daslang uses a structure mechanism similar to languages like C/C++, Java, C#, etc.
 However, there are some important difference.
 Structures are first class objects like integers or strings and can be stored in
 table slots, other structures, local variables, arrays, tuples, variants, etc., and passed as function parameters.
@@ -96,7 +96,7 @@ The "Clone initializer" is useful pattern for creating a clone of an existing st
 Structure Function Members
 --------------------------
 
-daScript doesn't have embedded structure member functions, virtual (that can be overridden in inherited structures) or non-virtual.
+Daslang doesn't have embedded structure member functions, virtual (that can be overridden in inherited structures) or non-virtual.
 Those features are implemented for classes.
 For ease of Objected Oriented Programming, non-virtual member functions can be easily emulated with the pipe operator ``|>``::
 
@@ -129,7 +129,7 @@ Since function pointers are a thing, one can emulate 'virtual' functions by stor
     invoke(foo.set, foo, 1, 2)  // exactly same thing as above
 
 This makes the difference between virtual and non-virtual calls in the OOP paradigm explicit.
-In fact, daScript classes implement virtual functions in exactly this manner.
+In fact, Daslang classes implement virtual functions in exactly this manner.
 
 -----------
 Inheritance
@@ -139,13 +139,13 @@ Inheritance
     pair: inheritance; Struct
     single: Inheritance
 
-daScript's structures support single inheritance by adding a ' : ', followed by the parent structure's name in the structure declaration.
+Daslang's structures support single inheritance by adding a ' : ', followed by the parent structure's name in the structure declaration.
 The syntax for a derived struct is the following::
 
     struct Bar: Foo
         yf: float
 
-When a derived structure is declared, daScript first copies all base's members to the
+When a derived structure is declared, Daslang first copies all base's members to the
 new structure and then proceeds with evaluating the rest of the declaration.
 
 A derived structure has all members of its base structure. It is just syntactic sugar for copying all the members manually first.

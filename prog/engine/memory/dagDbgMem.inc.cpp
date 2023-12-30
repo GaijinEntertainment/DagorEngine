@@ -856,7 +856,7 @@ protected:
 #else
     if (chk <= -6)
       debug("invalid ptr %p, allocated: %s", dataptr, getCallStack(DebugChunk::getChunk(dataptr)->stack));
-    fatal("invalid pointer=%p in %s (chk=%d)", dataptr, label, chk);
+    DAG_FATAL("invalid pointer=%p in %s (chk=%d)", dataptr, label, chk);
 #endif
 }
 
@@ -942,7 +942,7 @@ inline void integrityCheck()
       if (chk <= -6)
         debug("  %s", getCallStack(dc->stack));
       debug_flush(false);
-      fatal("invalid pointer");
+      DAG_FATAL("invalid pointer");
       return;
     }
     num++;
@@ -953,7 +953,7 @@ inline void integrityCheck()
   {
     debug("  inconsistent number of pointers: %d != %d", num, ptrNum);
     debug_flush(false);
-    fatal("inconsistent number of pointers: %d != %d", num, ptrNum);
+    DAG_FATAL("inconsistent number of pointers: %d != %d", num, ptrNum);
     return;
   }
 
@@ -1099,7 +1099,7 @@ void DagDbgMem::enable_thorough_checks(bool enable)
     return;
   if (enable)
     if (!check_memory(false))
-      fatal("memory is corrupted!");
+      DAG_FATAL("memory is corrupted!");
 
   DagDebugMemAllocator::thoroughChecks = enable;
 }

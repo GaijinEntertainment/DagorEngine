@@ -2,7 +2,9 @@
 #include <generic/dag_tab.h>
 #include <util/dag_simpleString.h>
 #include <debug/dag_debug.h>
+#if _TARGET_PC_WIN
 #include <windows.h>
+#endif
 #include <ctype.h>
 
 struct MutexAutoAcquire
@@ -10,7 +12,11 @@ struct MutexAutoAcquire
   MutexAutoAcquire(const char *_fn)
   {
     char fn[4096];
+#if _TARGET_PC_WIN
     if (!GetFullPathName(_fn, 4096, fn, NULL))
+#else
+    if (!realpath(_fn, fn))
+#endif
       strncpy(fn, _fn, 4096);
     for (char *p = fn; *p; p++)
       *p = (*p == ':' || *p == '/' || *p == '\\') ? '_' : tolower(*p);

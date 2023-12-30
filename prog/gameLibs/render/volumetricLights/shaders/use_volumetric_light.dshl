@@ -4,7 +4,7 @@ texture distant_fog_result_inscatter;
 int volfog_blended_slice_cnt = 4;
 float volfog_blended_slice_start_depth = 0.001;
 
-int initial_media_no = 7;
+int initial_media_const_no = 7 always_referenced; // must use the same register as NBS!
 
 float4 volfog_froxel_volume_res = (128,128,64,0);
 float4 inv_volfog_froxel_volume_res = (1/128.0,1/128.0,1/64.0,0);
@@ -549,30 +549,7 @@ endmacro
 
 
 
-macro USE_VOLFOG_POISSON_SAMPLES(code)
-hlsl(code) {
-#ifndef USE_VOLFOG_POISSON_SAMPLES_INCLUDE
-#define USE_VOLFOG_POISSON_SAMPLES_INCLUDE 1
-
-  #define VOLFOG_POISSON_SAMPLES_CNT 8
-  static const float2 VOLFOG_POISSON_SAMPLES[VOLFOG_POISSON_SAMPLES_CNT] =
-  {
-    float2(0.228132254148f-0.5f, 0.67232428631f-0.5f),
-    float2(0.848556554824f-0.5f, 0.135723477704f-0.5f),
-    float2(0.74820789575f-0.5f, 0.63965073852f-0.5f),
-    float2(0.203231652569f-0.5f, 0.12436704431f-0.5f),
-    float2(0.472544801767f-0.5f, 0.351474129111f-0.5f),
-    float2(0.962881642535f-0.5f, 0.387342871273f-0.5f),
-    float2(0.0875977149838f-0.5f, 0.896250211998f-0.5f),
-    float2(0.56452806916f-0.5f, 0.974024350484f-0.5f),
-  };
-
-#endif
-}
-endmacro
-
 macro CUSTOM_FOG_INC(code)
-  USE_VOLFOG_POISSON_SAMPLES(code)
   hlsl(code) {
     #include <interleavedGradientNoise.hlsl>
 
@@ -600,18 +577,54 @@ macro CUSTOM_FOG(code)
   CUSTOM_FOG_INC(code)
 endmacro
 
+
+buffer froxel_fog_dithering_samples_buf;
+
 macro USE_VOLFOG_DITHERING_NOISE(code)
-  USE_VOLFOG_POISSON_SAMPLES(code)
   (code) {
-    shadow_params@f4 = (shadow_frame, 0, inv_volfog_froxel_volume_res.x, inv_volfog_froxel_volume_res.y);
+    shadow_frame@f1 = shadow_frame;
+    inv_volfog_froxel_volume_res@f2 = inv_volfog_froxel_volume_res.xy;
   }
+
+  if (hardware.vulkan || hardware.dx12) // we can't afford another cb in vulkan and dx12 right now
+  {
+    hlsl(code)
+    {
+      #include "volume_lights_common_def.hlsli"
+      static const float2 VOLFOG_POISSON_SAMPLES[VOLFOG_DITHERING_POISSON_SAMPLE_CNT] =
+      {
+        float2(0.344232, 0.158913),
+        float2(-0.11986, 0.237984),
+        float2(0.140987, -0.215187),
+        float2(0.071006, 0.0669111),
+        float2(-0.118614, -0.465347),
+        float2(-0.324175, -0.243478),
+        float2(-0.371288, 0.0573753),
+        float2(0.197676, 0.40383),
+      };
+      #define froxel_fog_dithering_samples VOLFOG_POISSON_SAMPLES
+    }
+  }
+  else
+  {
+    (code) {
+      froxel_fog_dithering_samples_buf@cbuf = froxel_fog_dithering_samples_buf hlsl {
+        #include "volume_lights_common_def.hlsli"
+        cbuffer froxel_fog_dithering_samples_buf@cbuf
+        {
+          float4 froxel_fog_dithering_samples[VOLFOG_DITHERING_POISSON_SAMPLE_CNT];
+        };
+      };
+    }
+  }
+
   hlsl(code) {
     #include <interleavedGradientNoise.hlsl>
 
     float2 get_volfog_dithered_screen_tc(float2 screenpos, float2 tc)
     {
-      float dither = interleavedGradientNoiseFramed( screenpos, shadow_params.x);
-      return tc + VOLFOG_POISSON_SAMPLES[uint(dither*VOLFOG_POISSON_SAMPLES_CNT)]*shadow_params.zw;
+      float dither = interleavedGradientNoiseFramed( screenpos, shadow_frame.x);
+      return tc + froxel_fog_dithering_samples[uint(dither*VOLFOG_DITHERING_POISSON_SAMPLE_CNT)].xy*inv_volfog_froxel_volume_res;
     }
   }
 endmacro

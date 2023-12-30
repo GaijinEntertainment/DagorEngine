@@ -1,5 +1,4 @@
-#ifndef VEC3_INCLUDED // -*- C++ -*-
-#define VEC3_INCLUDED
+#pragma once
 
 #ifdef IOSTREAMH
 #include <iostream>
@@ -175,5 +174,3 @@ inline real Vec3::unitize()
 }
 
 }; // namespace delaunay
-
-#endif

@@ -43,6 +43,7 @@ Sources =
   render/depthShadows.cpp
   render/riShaderConstBuffers.cpp
   render/extra/consoleHandler.cpp
+  render/riGenRenderer.cpp
 
   visibility/genVisibility.cpp
   visibility/extraVisibility.cpp
@@ -62,6 +63,7 @@ CPPopt = -DUSE_GRID_FOR_RI=true ;
 if $(Platform) = linux64 || $(PlatformSpec) = clang {
   if $(Platform) in win32 win64 xboxOne scarlett {
     CPPopt += /clang:-fno-reciprocal-math ;
+  } else if $(Platform) = linux64 && $(LinuxArch) = e2k {
   } else {
     CPPopt += -fno-reciprocal-math ;
   }

@@ -85,7 +85,7 @@ public:
   INLINE real length() const { return sqrtf(lengthSq()); }
   INLINE void normalize() { *this *= safeinv(length()); }
 
-  INLINE real lengthF() const { return rsqrt(lengthSq()); }
+  INLINE real lengthF() const { return fastsqrt(lengthSq()); }
   INLINE void normalizeF() { *this *= safeinvsqrtfast(lengthSq()); }
 
   template <class T>
@@ -139,7 +139,7 @@ INLINE Point2 operator*(real a, const Point2 &p) { return Point2(p.x * a, p.y * 
 INLINE real lengthSq(const Point2 &a) { return a.x * a.x + a.y * a.y; }
 INLINE real length(const Point2 &a) { return sqrtf(lengthSq(a)); }
 INLINE Point2 normalize(const Point2 &a) { return a * safeinv(length(a)); }
-INLINE real lengthF(const Point2 &a) { return rsqrt(lengthSq(a)); }
+INLINE real lengthF(const Point2 &a) { return fastsqrt(lengthSq(a)); }
 INLINE Point2 normalizeF(const Point2 &a)
 {
   real il = safeinvsqrtfast(lengthSq(a));

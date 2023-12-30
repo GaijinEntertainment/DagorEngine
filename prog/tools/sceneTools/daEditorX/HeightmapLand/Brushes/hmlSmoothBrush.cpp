@@ -15,7 +15,7 @@ void HmapSmoothLandBrush::fillParams(PropPanel2 &panel)
 
 void HmapSmoothLandBrush::updateToPanel(PropPanel2 &panel)
 {
-  __super::updateToPanel(panel);
+  HmapLandBrush::updateToPanel(panel);
   panel.setInt(PID_BRUSH_SIGMA, sigma * 100);
   panel.setInt(PID_BRUSH_KERNEL_SIZE, halfKernelSize);
 }

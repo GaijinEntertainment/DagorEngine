@@ -44,26 +44,15 @@ macro INIT_AND_USE_VOLFOG_MODIFIERS(code)
   }
 endmacro
 
-
-float4 prev_globtm_psf_0;
-float4 prev_globtm_psf_1;
-float4 prev_globtm_psf_2;
-float4 prev_globtm_psf_3;
-
-macro USE_PREV_TC(code)
-  (code) {
-    prev_globtm_psf@f44 = { prev_globtm_psf_0, prev_globtm_psf_1, prev_globtm_psf_2, prev_globtm_psf_3 };
-  }
-  hlsl(code) {
-    float2 getPrevTc(float3 world_pos, out float3 prev_clipSpace)
+macro INIT_TRANSFORMED_ZNZFAR_STAGE(code)
+  INIT_ZNZFAR_STAGE(code)
+  hlsl(code){
+    float4 get_transformed_zn_zfar()
     {
-      float4 lastClipSpacePos = mulPointTm(world_pos, prev_globtm_psf);
-      prev_clipSpace = lastClipSpacePos.w<=0.01 ? float3(2,2,2) : lastClipSpacePos.xyz/lastClipSpacePos.w;
-      return prev_clipSpace.xy*float2(0.5,-0.5) + float2(0.5,0.5);
+      return zn_zfar;
     }
   }
 endmacro
-
 
 float4 jitter_ray_offset;
 

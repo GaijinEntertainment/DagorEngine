@@ -75,6 +75,7 @@ ManagedResView<typename ResType::BaseType> NativeResourceScheduler::getResource(
   G_ASSERT_RETURN(it != placedResources.end(), {});
 
   ManagedResView<typename ResType::BaseType> resView = eastl::get<ResType>(it->second.resource);
+  G_ASSERT_RETURN(resView, {});
   resView->setResName(cachedIntermediateResourceNames[res_id].c_str());
   return resView;
 }
@@ -140,6 +141,9 @@ ResourceScheduler::DestroyedHeapSet NativeResourceScheduler::allocateHeaps(const
 
   FRAMEMEM_VALIDATE;
 
+  debug("daBfg: attempting to reuse %d heaps and allocate %d new ones (%d total):", heaps.size(), heap_requests.size() - heaps.size(),
+    heap_requests.size());
+
   if (heaps.size() < heap_requests.size())
   {
     heaps.resize(heap_requests.size());
@@ -161,6 +165,8 @@ ResourceScheduler::DestroyedHeapSet NativeResourceScheduler::allocateHeaps(const
     if (allocatedHeaps.isMapped(i) && req.size <= allocatedHeaps[i].size &&
         static_cast<float>(req.size) / static_cast<float>(allocatedHeaps[i].size) > MIN_OCCUPANCY_RATIO)
     {
+      debug("daBfg: Reusing heap %d of size %dKB instead of allocating a new %dKB heap", eastl::to_underlying(i),
+        allocatedHeaps[i].size >> 10, req.size >> 10);
       continue;
     }
 
@@ -171,9 +177,17 @@ ResourceScheduler::DestroyedHeapSet NativeResourceScheduler::allocateHeaps(const
       for (auto &heapHintedResources : hintedResources[i])
         heapHintedResources.clear();
       d3d::destroy_resource_heap(eastl::exchange(heaps[i], nullptr));
+      debug("daBfg: Destroyed heap %d because it was too small/big (size was %dKB, but %dKB are required)", eastl::to_underlying(i),
+        allocatedHeaps[i].size >> 10, req.size >> 10);
     }
     if (req.size > 0)
+    {
       heaps[i] = d3d::create_resource_heap(req.group, req.size, RHCF_REQUIRES_DEDICATED_HEAP);
+      if (DAGOR_UNLIKELY(!heaps[i]))
+        DAG_FATAL("daBfg: Failed to allocate resource heap %d of size %dKB", eastl::to_underlying(i), req.size >> 10);
+      else
+        debug("daBfg: Successfully allocated a new heap %d of size %dKB", eastl::to_underlying(i), req.size >> 10);
+    }
     allocatedHeaps[i].size = req.size;
   }
 
@@ -201,7 +215,11 @@ static auto generate_name(uint32_t heap_idx, size_t hash_value)
   constexpr const char *HEX_DIGITS = "0123456789ABCDEF";
   // WARNING: sizes for the fixed string and the name template must match!
   eastl::fixed_string<char, 32> result = "fg_resource_heap$$_hash$$$$$$$$";
-  G_ASSERT(heap_idx <= 0xFF);
+  if (EASTL_UNLIKELY(heap_idx >= 0xFF))
+  {
+    logerr("daBfg has allocated more than 255 resource heaps! This shouldn't be happening!");
+    heap_idx &= 0xFF;
+  }
   result[16] = HEX_DIGITS[heap_idx & 0xf];
   result[17] = HEX_DIGITS[heap_idx >> 4];
   for (uint32_t i = 30; i >= 23; --i)

@@ -15,8 +15,8 @@ Known issues and questions:
 let draggedData = Watched(null)
 
 
-let function draggable(data) {
-  let function builder(sf) {
+function draggable(data) {
+  function builder(sf) {
     return {
       rendObj = ROBJ_BOX
       fillColor = (sf & S_HOVER) ? Color(200,200,200) : Color(200,20,20)
@@ -44,7 +44,7 @@ let function draggable(data) {
 }
 
 
-let function target(label, color, can_drop) {
+function target(label, color, can_drop) {
   let labelText = {
     rendObj = ROBJ_TEXT text=label hplace=ALIGN_CENTER vplace=ALIGN_CENTER
   }
@@ -58,7 +58,7 @@ let function target(label, color, can_drop) {
     ]
   }
 
-  let function builder(sf) {
+  function builder(sf) {
     let needMark = draggedData.value && (!can_drop || can_drop(draggedData.value))
     return {
       rendObj = ROBJ_BOX
@@ -84,7 +84,7 @@ let function target(label, color, can_drop) {
 }
 
 
-let function pane(items) {
+function pane(items) {
   return {
     padding = sh(2)
     gap = sh(2)

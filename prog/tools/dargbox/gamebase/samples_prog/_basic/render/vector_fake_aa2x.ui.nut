@@ -3,9 +3,9 @@ from "%darg/ui_imports.nut" import *
 let cursors = require("samples_prog/_cursors.nut")
 //let math = require("math")
 
-local cmd = [VECTOR_POLY, 50, 0, 50, 16, 36, 26, 34,  49,  0, 60,  52, 56,  110, 125, 110, 120]
+let cmd = [VECTOR_POLY, 50, 0, 50, 16, 36, 26, 34,  49,  0, 60,  52, 56,  110, 125, 110, 120]
 
-local vectorCanvasFakeAA2x = {
+let vectorCanvasFakeAA2x = {
   rendObj = ROBJ_VECTOR_CANVAS
   flow = FLOW_HORIZONTAL
   halign = ALIGN_CENTER
@@ -22,7 +22,7 @@ local vectorCanvasFakeAA2x = {
   ]
 }
 
-local vectorCanvas = {
+let vectorCanvas = {
   rendObj = ROBJ_VECTOR_CANVAS
   flow = FLOW_HORIZONTAL
   halign = ALIGN_CENTER
@@ -38,7 +38,7 @@ local vectorCanvas = {
 
 
 
-local function basicsRoot() {
+function basicsRoot() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(30, 40, 50)

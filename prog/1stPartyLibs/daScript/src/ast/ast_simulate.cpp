@@ -1481,7 +1481,11 @@ namespace das
                 int32_t bytes = type->firstType->getBaseSizeOf();
                 auto pCall = static_cast<SimNode_CallBase *>(func->makeSimNode(context,arguments));
                 ExprCall::simulateCall(func, this, context, pCall);
-                pCall->cmresEval = context.code->makeNode<SimNode_New>(at,bytes,true);
+                pCall->cmresEval = typeexpr->annotation->simulateGetNew(context, at);
+                if ( !pCall->cmresEval ) {
+                    context.thisProgram->error("integration error, simulateGetNew returned null", "", "",
+                                            at, CompilationError::missing_node );
+                }
                 return pCall;
             } else {
                 newNode = typeexpr->annotation->simulateGetNew(context, at);

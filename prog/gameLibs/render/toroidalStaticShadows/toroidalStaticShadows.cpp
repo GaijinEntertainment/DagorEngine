@@ -225,6 +225,20 @@ void ToroidalStaticShadows::setWorldBox(const BBox3 &box)
     c.setWorldBox(worldBox);
 }
 
+float ToroidalStaticShadows::getMaxWorldDistance() const { return 0.55f * max(worldBox.width().x, worldBox.width().z); }
+
+float ToroidalStaticShadows::calculateCascadeDistance(int cascade, int cascade_count, float max_distance) const
+{
+  G_ASSERT_RETURN(cascade < cascade_count, 0.f);
+  const bool isArray = cascade_count > 1;
+  cascade_count = isArray ? clamp(cascade_count, 1, 4) : 1;
+  const bool isLastCascade = (cascade == cascade_count - 1);
+  const float cDist = max_distance * (isLastCascade ? 1.f : (cascade + 1.f) / (cascade_count + 1.f));
+
+  const float maxWorldDistance = worldBox.isempty() ? cDist : getMaxWorldDistance();
+  return min(cDist, maxWorldDistance);
+};
+
 void ToroidalStaticShadows::setDistance(float distance)
 {
   maxDistance = distance; //?

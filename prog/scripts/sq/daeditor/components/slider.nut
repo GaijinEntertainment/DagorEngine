@@ -28,7 +28,7 @@ scales.logarithmicWithZero <- {
 let sliderLeftLoc = "Reduce value"
 let sliderRightLoc = "Increase value"
 
-let function slider(orient, var, options={}) {
+function slider(orient, var, options={}) {
   let minval = options?.min ?? 0
   let maxval = options?.max ?? 1
   let group = options?.group ?? ElemGroup()
@@ -44,7 +44,7 @@ let function slider(orient, var, options={}) {
   let knobStateFlags = Watched(0)
   let sliderStateFlags = Watched(0)
 
-  let function knob() {
+  function knob() {
     return {
       rendObj = ROBJ_SOLID
       size  = [fsh(1), fsh(2)]
@@ -56,7 +56,7 @@ let function slider(orient, var, options={}) {
   }
 
   let setValue = options?.setValue ?? @(v) var(v)
-  let function onChange(factor){
+  function onChange(factor){
     let value = scaling.from(factor, minval, maxval)
     setValue(value)
   }

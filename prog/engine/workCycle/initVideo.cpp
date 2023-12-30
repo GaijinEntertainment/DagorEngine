@@ -126,7 +126,7 @@ public:
     const DataBlock *pblk_gr = ::dgs_get_settings()->getBlockByNameEx("graphics");
     const DataBlock &blk_wc = *::dgs_get_settings()->getBlockByNameEx("workcycle");
     bool fatal_on_init_failed = pblk_video->getBool("fatalOnInitFailure", true);
-#define RETURN_FATAL(...) return fatal_on_init_failed ? fatal(__VA_ARGS__) : logerr_ctx(__VA_ARGS__)
+#define RETURN_FATAL(...) return fatal_on_init_failed ? DAG_FATAL(__VA_ARGS__) : logerr_ctx(__VA_ARGS__)
 
     if (blk_wc.getInt("act_rate", 0))
     {

@@ -28,7 +28,7 @@ using D3DCopyCommandList = ID3D12GraphicsCommandList;
 #define DX12_PROCESS_USER_BARRIERS         1
 #define DX12_RECORD_TIMING_DATA            1
 #define DX12_CAPTURE_AFTER_LONG_FRAMES     (DX12_RECORD_TIMING_DATA && (DAGOR_DBGLEVEL > 0))
-#define DX12_REPORT_PIPELINE_CREATE_TIMING 1
+#define DX12_REPORT_PIPELINE_CREATE_TIMING 0
 // TODO no real gamma control on dx12...
 #define DX12_HAS_GAMMA_CONTROL             1
 

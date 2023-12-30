@@ -104,7 +104,7 @@ void GeomNodeTreeBuilder::buildFromDagNodes(Node *sc_root, const char *unimporta
     as_point4(&n.wtm.col3).set(dn.wtm.m[3][0], dn.wtm.m[3][1], dn.wtm.m[3][2], 1);
 
     n.name = namePtr + bd.nameOfs;
-    strcpy(namePtr + bd.nameOfs, dn.name ? dn.name : "");
+    strcpy(namePtr + bd.nameOfs, dn.name ? dn.name.c_str() : "");
   }
 
   lastValidWtmIndex = -1;

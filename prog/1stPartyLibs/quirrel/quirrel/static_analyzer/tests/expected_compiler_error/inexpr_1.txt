@@ -1,3 +1,0 @@
-//expect:error
-
-local x := 1

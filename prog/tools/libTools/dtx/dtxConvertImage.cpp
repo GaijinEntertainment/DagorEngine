@@ -10,18 +10,14 @@
 
 #include <ioSys/dag_genIo.h>
 
-#include <PVRTexture.h>
-#include <PVRTextureFormat.h>
-#undef PVR_DLL
-#define PVR_DLL __cdecl
-#include <PVRTextureUtilities.h>
-#undef PVR_DLL
-
 #include <3d/ddsFormat.h>
 #undef ERROR // after #include <supp/_platform.h>
 #include <image/dag_texPixel.h>
 #include <math/dag_adjpow2.h>
 #include <debug/dag_debug.h>
+
+#include <libTools/dtx/astcenc.h>
+ASTCENC_DECLARE_STATIC_DATA();
 
 struct ErrorHandler : public nvtt::ErrorHandler
 {
@@ -197,6 +193,12 @@ bool ddstexture::Converter::convertImage(IGenSave &cb, TexPixel32 *pix, int w, i
 
   int orig_w = w, orig_h = h;
   nv::AutoPtr<nv::Image> r_image(new nv::Image);
+  struct ImageMips
+  {
+    Tab<nv::Image *> mips;
+    ImageMips() { mips.reserve(16); }
+    ~ImageMips() { clear_all_ptr_items_and_shrink(mips); }
+  } imageMips;
   nv::AutoPtr<nv::Filter> filter;
 
   if (mipmapFilter == filterBox)
@@ -261,7 +263,31 @@ bool ddstexture::Converter::convertImage(IGenSave &cb, TexPixel32 *pix, int w, i
     pix = (TexPixel32 *)r_image->pixels();
   }
 
-#if _TARGET_PC_WIN
+  if (mipmapType == mipmapGenerate && (w > 1 || h > 1))
+  {
+    nv::Image *image = r_image.ptr();
+    if (!image->pixels())
+    {
+      image->allocate(w, h);
+      image->setFormat(image->Format_ARGB);
+      memcpy(image->pixels(), pix, w * h * 4);
+    }
+
+    for (unsigned img_w = eastl::max<unsigned>(w >> 1, 1), img_h = eastl::max<unsigned>(h >> 1, 1);;) // loop with explicit break
+    {
+      nv::FloatImage fimage(image);
+      fimage.toLinear(0, 3, mipmapFilterGamma);
+
+      nv::AutoPtr<nv::FloatImage> fresult(fimage.resize(*filter, img_w, img_h, nv::FloatImage::WrapMode_Clamp));
+      imageMips.mips.push_back(fresult->createImageGammaCorrect(mipmapFilterGamma));
+      image = imageMips.mips.back();
+      if (img_w == 1 && img_h == 1)
+        break;
+      img_w = eastl::max(img_w >> 1, 1u);
+      img_h = eastl::max(img_h >> 1, 1u);
+    }
+  }
+
   if (format == fmtASTC4 || format == fmtASTC8)
   {
     if (!is_pow_of2(w))
@@ -270,27 +296,23 @@ bool ddstexture::Converter::convertImage(IGenSave &cb, TexPixel32 *pix, int w, i
       format = fmtARGB;
       return convertImageFast(cb, pix, w, h, stride, make_pow_2, pow2_strategy);
     }
-    using namespace pvrtexture;
 
-    Tab<TexPixel32> pix_argb(tmpmem);
+    ASTCEncoderHelperContext astcenc_ctx;
+    if (!astcenc_ctx.prepareTmpFilenames("img"))
+      return false;
+    ASTCEncoderHelperContext::setupAstcEncExePathname();
+
     Tab<char> packed(tmpmem);
-    pix_argb.resize(w * h);
-    for (TexPixel32 *s = pix, *se = s + w * h, *d = pix_argb.data(); s < se; s++, d++)
-      d->u = s->r | (unsigned(s->g) << 8) | (unsigned(s->b) << 16) | (unsigned(s->a) << 24);
-
-    CPVRTextureHeader thdr(PVRStandard8PixelType.PixelTypeID, h, w, 1, 1);
-    CPVRTexture tex(thdr, pix_argb.data());
-    if (mipmapType == mipmapGenerate)
-      GenerateMIPMaps(tex, eResizeLinear);
-    Transcode(tex, format == fmtASTC4 ? ePVRTPF_ASTC_4x4 : ePVRTPF_ASTC_8x8, ePVRTVarTypeUnsignedByteNorm,
-      ePVRTCSpacelRGB /*, ePVRTCBest*/);
-
-    packed.reserve(tex.getDataSize(PVRTEX_ALLMIPLEVELS));
-    int mips = tex.getHeader().getNumMIPLevels();
-    for (int j = 0; j < mips; j++)
-      append_items(packed, tex.getDataSize(j), (char *)tex.getDataPtr(j));
-
-    clear_and_shrink(pix_argb);
+    const char *astc_block_str = format == fmtASTC4 ? "4x4" : "8x8";
+    for (unsigned i = 0, mipw = w, miph = h; i <= imageMips.mips.size(); i++)
+    {
+      if (nv::Image *mip = i > 0 ? imageMips.mips[i - 1] : nullptr)
+        pix = (TexPixel32 *)mip->pixels(), mipw = mip->width(), miph = mip->height();
+      if (!astcenc_ctx.writeTga(pix, mipw, miph))
+        return false;
+      if (!astcenc_ctx.buildOneSurface(packed, astc_block_str))
+        return false;
+    }
 
     DDSURFACEDESC2 targetHeader;
     DDPIXELFORMAT &pf = targetHeader.ddpfPixelFormat;
@@ -301,7 +323,7 @@ bool ddstexture::Converter::convertImage(IGenSave &cb, TexPixel32 *pix, int w, i
     targetHeader.dwHeight = h;
     targetHeader.dwWidth = w;
     targetHeader.dwDepth = 0;
-    targetHeader.dwMipMapCount = mips;
+    targetHeader.dwMipMapCount = imageMips.mips.size() + 1;
     targetHeader.ddsCaps.dwCaps = DDSCAPS_TEXTURE;
     targetHeader.ddsCaps.dwCaps2 = 0;
     pf.dwSize = sizeof(DDPIXELFORMAT);
@@ -314,75 +336,30 @@ bool ddstexture::Converter::convertImage(IGenSave &cb, TexPixel32 *pix, int w, i
     cb.write(packed.data(), data_size(packed));
     return true;
   }
-  else
-#endif
-    if (format == fmtRGBA4444 || format == fmtRGBA5551 || format == fmtRGB565 || format == fmtA8L8)
+  else if (format == fmtRGBA4444 || format == fmtRGBA5551 || format == fmtRGB565 || format == fmtA8L8)
   {
     Tab<Tab<unsigned short> *> pix16(tmpmem);
-
-    if (mipmapType == mipmapGenerate)
+    for (unsigned i = 0, mipw = w, miph = h; i <= imageMips.mips.size(); i++)
     {
-      nv::AutoPtr<nv::Image> image(new nv::Image);
+      if (nv::Image *mip = i > 0 ? imageMips.mips[i - 1] : nullptr)
+        pix = (TexPixel32 *)mip->pixels(), mipw = mip->width(), miph = mip->height();
 
-      int img_w = w, img_h = h;
-      image->allocate(img_w, img_h);
-      image->setFormat(image->Format_ARGB);
-      memcpy(image->pixels(), pix, img_w * img_h * 4);
-
-      for (;;)
-      {
-        Tab<unsigned short> *p16 = new Tab<unsigned short>(tmpmem);
-        p16->resize(img_w * img_h);
-        pix16.push_back(p16);
-        unsigned short *ptr16 = p16->data();
-
-        if (format == fmtRGBA4444)
-          for (TexPixel32 *s = (TexPixel32 *)image->pixels(), *se = s + img_w * img_h; s < se; s++, ptr16++)
-            *ptr16 = to_4444(s->r, s->g, s->b, s->a);
-        else if (format == fmtRGBA5551)
-          for (TexPixel32 *s = (TexPixel32 *)image->pixels(), *se = s + img_w * img_h; s < se; s++, ptr16++)
-            *ptr16 = to_5551(s->r, s->g, s->b, s->a);
-        else if (format == fmtRGB565)
-          for (TexPixel32 *s = (TexPixel32 *)image->pixels(), *se = s + img_w * img_h; s < se; s++, ptr16++)
-            *ptr16 = to_565(s->r, s->g, s->b);
-        else if (format == fmtA8L8)
-          for (TexPixel32 *s = (TexPixel32 *)image->pixels(), *se = s + img_w * img_h; s < se; s++, ptr16++)
-            *ptr16 = to_a8l8(s->r, s->a);
-
-
-        if (img_w == 1 && img_h == 1)
-          break;
-
-        if (img_w > 1)
-          img_w >>= 1;
-        if (img_h > 1)
-          img_h >>= 1;
-
-        nv::FloatImage fimage(image.ptr());
-        fimage.toLinear(0, 3, mipmapFilterGamma);
-
-        nv::AutoPtr<nv::FloatImage> fresult(fimage.resize(*filter, img_w, img_h, nv::FloatImage::WrapMode_Clamp));
-        image = fresult->createImageGammaCorrect(mipmapFilterGamma);
-      }
-    }
-    else
-    {
       Tab<unsigned short> *p16 = new Tab<unsigned short>(tmpmem);
-      p16->resize(w * h);
+      p16->resize(mipw * miph);
       pix16.push_back(p16);
       unsigned short *ptr16 = p16->data();
 
       if (format == fmtRGBA4444)
-        for (TexPixel32 *s = pix, *se = s + w * h; s < se; s++, ptr16++)
+        for (TexPixel32 *s = pix, *se = s + mipw * miph; s < se; s++, ptr16++)
           *ptr16 = to_4444(s->r, s->g, s->b, s->a);
       else if (format == fmtRGBA5551)
-        for (TexPixel32 *s = pix, *se = s + w * h; s < se; s++, ptr16++)
+        for (TexPixel32 *s = pix, *se = s + mipw * miph; s < se; s++, ptr16++)
           *ptr16 = to_5551(s->r, s->g, s->b, s->a);
       else if (format == fmtRGB565)
-        for (TexPixel32 *s = pix, *se = s + w * h; s < se; s++, ptr16++)
+        for (TexPixel32 *s = pix, *se = s + mipw * miph; s < se; s++, ptr16++)
           *ptr16 = to_565(s->r, s->g, s->b);
       else if (format == fmtA8L8)
-        for (TexPixel32 *s = pix, *se = s + w * h; s < se; s++, ptr16++)
+        for (TexPixel32 *s = pix, *se = s + mipw * miph; s < se; s++, ptr16++)
           *ptr16 = to_a8l8(s->r, s->a);
     }
 
@@ -446,52 +423,18 @@ bool ddstexture::Converter::convertImage(IGenSave &cb, TexPixel32 *pix, int w, i
   else if (format == fmtL8)
   {
     Tab<Tab<unsigned char> *> pix8(tmpmem);
-
-    if (mipmapType == mipmapGenerate)
+    for (unsigned i = 0, mipw = w, miph = h; i <= imageMips.mips.size(); i++)
     {
-      nv::AutoPtr<nv::Image> image(new nv::Image);
+      if (nv::Image *mip = i > 0 ? imageMips.mips[i - 1] : nullptr)
+        pix = (TexPixel32 *)mip->pixels(), mipw = mip->width(), miph = mip->height();
 
-      int img_w = w, img_h = h;
-      image->allocate(img_w, img_h);
-      image->setFormat(image->Format_ARGB);
-      memcpy(image->pixels(), pix, img_w * img_h * 4);
-
-      for (;;)
-      {
-        Tab<unsigned char> *p8 = new Tab<unsigned char>(tmpmem);
-        p8->resize(img_w * img_h);
-        pix8.push_back(p8);
-        unsigned char *ptr8 = p8->data();
-
-        if (format == fmtL8)
-          for (TexPixel32 *s = (TexPixel32 *)image->pixels(), *se = s + img_w * img_h; s < se; s++, ptr8++)
-            *ptr8 = s->r;
-
-
-        if (img_w == 1 && img_h == 1)
-          break;
-
-        if (img_w > 1)
-          img_w >>= 1;
-        if (img_h > 1)
-          img_h >>= 1;
-
-        nv::FloatImage fimage(image.ptr());
-        fimage.toLinear(0, 3, mipmapFilterGamma);
-
-        nv::AutoPtr<nv::FloatImage> fresult(fimage.resize(*filter, img_w, img_h, nv::FloatImage::WrapMode_Clamp));
-        image = fresult->createImageGammaCorrect(mipmapFilterGamma);
-      }
-    }
-    else
-    {
       Tab<unsigned char> *p8 = new Tab<unsigned char>(tmpmem);
-      p8->resize(w * h);
+      p8->resize(mipw * miph);
       pix8.push_back(p8);
       unsigned char *ptr8 = p8->data();
 
       if (format == fmtL8)
-        for (TexPixel32 *s = pix, *se = s + w * h; s < se; s++, ptr8++)
+        for (TexPixel32 *s = pix, *se = s + mipw * miph; s < se; s++, ptr8++)
           *ptr8 = s->r;
     }
 

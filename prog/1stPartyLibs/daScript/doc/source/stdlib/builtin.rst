@@ -41,6 +41,12 @@ Type aliases
 Constants
 +++++++++
 
+.. _global-builtin-DAS_MAX_FUNCTION_ARGUMENTS:
+
+.. das:attribute:: DAS_MAX_FUNCTION_ARGUMENTS = 32
+
+|variable-builtin-DAS_MAX_FUNCTION_ARGUMENTS|
+
 .. _global-builtin-INT_MIN:
 
 .. das:attribute:: INT_MIN = -2147483648
@@ -323,53 +329,11 @@ Function annotations
 Call macros
 +++++++++++
 
-.. _call-macro-builtin-debug:
-
-.. das:attribute:: debug
-
-|function_annotation-builtin-debug|
-
-.. _call-macro-builtin-memzero:
-
-.. das:attribute:: memzero
-
-|function_annotation-builtin-memzero|
-
-.. _call-macro-builtin-invoke:
-
-.. das:attribute:: invoke
-
-|function_annotation-builtin-invoke|
-
-.. _call-macro-builtin-assert:
-
-.. das:attribute:: assert
-
-|function_annotation-builtin-assert|
-
-.. _call-macro-builtin-__builtin_table_key_exists:
-
-.. das:attribute:: __builtin_table_key_exists
-
-|function_annotation-builtin-__builtin_table_key_exists|
-
 .. _call-macro-builtin-concept_assert:
 
 .. das:attribute:: concept_assert
 
 |function_annotation-builtin-concept_assert|
-
-.. _call-macro-builtin-__builtin_table_erase:
-
-.. das:attribute:: __builtin_table_erase
-
-|function_annotation-builtin-__builtin_table_erase|
-
-.. _call-macro-builtin-static_assert:
-
-.. das:attribute:: static_assert
-
-|function_annotation-builtin-static_assert|
 
 .. _call-macro-builtin-__builtin_table_set_insert:
 
@@ -377,17 +341,59 @@ Call macros
 
 |function_annotation-builtin-__builtin_table_set_insert|
 
+.. _call-macro-builtin-__builtin_table_key_exists:
+
+.. das:attribute:: __builtin_table_key_exists
+
+|function_annotation-builtin-__builtin_table_key_exists|
+
+.. _call-macro-builtin-static_assert:
+
+.. das:attribute:: static_assert
+
+|function_annotation-builtin-static_assert|
+
 .. _call-macro-builtin-verify:
 
 .. das:attribute:: verify
 
 |function_annotation-builtin-verify|
 
+.. _call-macro-builtin-debug:
+
+.. das:attribute:: debug
+
+|function_annotation-builtin-debug|
+
+.. _call-macro-builtin-assert:
+
+.. das:attribute:: assert
+
+|function_annotation-builtin-assert|
+
+.. _call-macro-builtin-memzero:
+
+.. das:attribute:: memzero
+
+|function_annotation-builtin-memzero|
+
 .. _call-macro-builtin-__builtin_table_find:
 
 .. das:attribute:: __builtin_table_find
 
 |function_annotation-builtin-__builtin_table_find|
+
+.. _call-macro-builtin-invoke:
+
+.. das:attribute:: invoke
+
+|function_annotation-builtin-invoke|
+
+.. _call-macro-builtin-__builtin_table_erase:
+
+.. das:attribute:: __builtin_table_erase
+
+|function_annotation-builtin-__builtin_table_erase|
 
 +++++++++++++
 Reader macros
@@ -2850,8 +2856,8 @@ System infastructure
   *  :ref:`panic (text:string const implicit;context:__context const;at:__lineInfo const) : void <function-_at__builtin__c__c_panic_CIs_C_c_C_l>` 
   *  :ref:`print (text:string const implicit;context:__context const;at:__lineInfo const) : void <function-_at__builtin__c__c_print_CIs_C_c_C_l>` 
   *  :ref:`error (text:string const implicit;context:__context const;at:__lineInfo const) : void <function-_at__builtin__c__c_error_CIs_C_c_C_l>` 
-  *  :ref:`sprint (value:any const;flags:bitfield\<escapeString;namesAndDimensions;typeQualifiers;refAddresses;humanReadable;singleLine\> const) : string <function-_at__builtin__c__c_sprint_C*_CY_ls_print_flags_gr_N_ls_escapeString;namesAndDimensions;typeQualifiers;refAddresses;humanReadable;singleLine_gr_t>` 
-  *  :ref:`sprint_json (value:any const;humanReadable:bool const) : string <function-_at__builtin__c__c_sprint_json_C*_Cb>` 
+  *  :ref:`sprint (value:any;flags:bitfield\<escapeString;namesAndDimensions;typeQualifiers;refAddresses;humanReadable;singleLine\> const) : string <function-_at__builtin__c__c_sprint_*_CY_ls_print_flags_gr_N_ls_escapeString;namesAndDimensions;typeQualifiers;refAddresses;humanReadable;singleLine_gr_t>` 
+  *  :ref:`sprint_json (value:any;humanReadable:bool const) : string <function-_at__builtin__c__c_sprint_json_*_Cb>` 
   *  :ref:`terminate (context:__context const;at:__lineInfo const) : void <function-_at__builtin__c__c_terminate_C_c_C_l>` 
   *  :ref:`breakpoint () : void <function-_at__builtin__c__c_breakpoint>` 
   *  :ref:`stackwalk (args:bool const;vars:bool const;context:__context const;lineinfo:__lineInfo const) : void <function-_at__builtin__c__c_stackwalk_Cb_Cb_C_c_C_l>` 
@@ -2906,16 +2912,16 @@ get_das_root returns string
 
 |function-builtin-error|
 
-.. _function-_at__builtin__c__c_sprint_C*_CY_ls_print_flags_gr_N_ls_escapeString;namesAndDimensions;typeQualifiers;refAddresses;humanReadable;singleLine_gr_t:
+.. _function-_at__builtin__c__c_sprint_*_CY_ls_print_flags_gr_N_ls_escapeString;namesAndDimensions;typeQualifiers;refAddresses;humanReadable;singleLine_gr_t:
 
-.. das:function:: sprint(value: any const; flags: print_flags)
+.. das:function:: sprint(value: any; flags: print_flags)
 
 sprint returns string
 
 +--------+----------------------------------------+
 +argument+argument type                           +
 +========+========================================+
-+value   +any const                               +
++value   +any                                     +
 +--------+----------------------------------------+
 +flags   + :ref:`print_flags <alias-print_flags>` +
 +--------+----------------------------------------+
@@ -2923,16 +2929,16 @@ sprint returns string
 
 |function-builtin-sprint|
 
-.. _function-_at__builtin__c__c_sprint_json_C*_Cb:
+.. _function-_at__builtin__c__c_sprint_json_*_Cb:
 
-.. das:function:: sprint_json(value: any const; humanReadable: bool const)
+.. das:function:: sprint_json(value: any; humanReadable: bool const)
 
 sprint_json returns string
 
 +-------------+-------------+
 +argument     +argument type+
 +=============+=============+
-+value        +any const    +
++value        +any          +
 +-------------+-------------+
 +humanReadable+bool const   +
 +-------------+-------------+
@@ -3009,7 +3015,7 @@ Memory manipulation
 
   *  :ref:`variant_index (arg0:variant\<\> const implicit) : int <function-_at__builtin__c__c_variant_index_CIV>` 
   *  :ref:`set_variant_index (variant:variant\<\> implicit;index:int const) : void <function-_at__builtin__c__c_set_variant_index_IV_Ci>` 
-  *  :ref:`hash (data:any const) : uint64 <function-_at__builtin__c__c_hash_C*>` 
+  *  :ref:`hash (data:any) : uint64 <function-_at__builtin__c__c_hash_*>` 
   *  :ref:`hash (data:string const implicit) : uint64 <function-_at__builtin__c__c_hash_CIs>` 
   *  :ref:`memcpy (left:void? const implicit;right:void? const implicit;size:int const) : void <function-_at__builtin__c__c_memcpy_CI?_CI?_Ci>` 
   *  :ref:`memcmp (left:void? const implicit;right:void? const implicit;size:int const) : int <function-_at__builtin__c__c_memcmp_CI?_CI?_Ci>` 
@@ -3053,16 +3059,16 @@ variant_index returns int
 
 |function-builtin-set_variant_index|
 
-.. _function-_at__builtin__c__c_hash_C*:
+.. _function-_at__builtin__c__c_hash_*:
 
-.. das:function:: hash(data: any const)
+.. das:function:: hash(data: any)
 
 hash returns uint64
 
 +--------+-------------+
 +argument+argument type+
 +========+=============+
-+data    +any const    +
++data    +any          +
 +--------+-------------+
 
 
@@ -3906,32 +3912,13 @@ Memset
 
 |function-builtin-memset128|
 
-+++++++++++++
-Uncategorized
-+++++++++++++
+++++++
+Malloc
+++++++
 
-.. _function-_at__builtin__c__c_is_intern_strings_C_c:
-
-.. das:function:: is_intern_strings()
-
-is_intern_strings returns bool
-
-|function-builtin-is_intern_strings|
-
-.. _function-_at__builtin__c__c_build_hash_CI0_ls_H_ls__builtin__c__c_HashBuilder_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
-
-.. das:function:: build_hash(block: block<(var arg0:HashBuilder):void> const implicit)
-
-build_hash returns uint64
-
-+--------+---------------------------------------------------------------------------------------+
-+argument+argument type                                                                          +
-+========+=======================================================================================+
-+block   +block<( :ref:`builtin::HashBuilder <handle-builtin-HashBuilder>` ):void> const implicit+
-+--------+---------------------------------------------------------------------------------------+
-
-
-|function-builtin-build_hash|
+  *  :ref:`malloc (size:uint64 const) : void? <function-_at__builtin__c__c_malloc_Cu64>` 
+  *  :ref:`free (ptr:void? const implicit) : void <function-_at__builtin__c__c_free_CI?>` 
+  *  :ref:`malloc_usable_size (ptr:void? const implicit) : uint64 <function-_at__builtin__c__c_malloc_usable_size_CI?>` 
 
 .. _function-_at__builtin__c__c_malloc_Cu64:
 
@@ -3985,6 +3972,33 @@ malloc_usable_size returns uint64
 
 |function-builtin-malloc_usable_size|
 
++++++++++++++
+Uncategorized
++++++++++++++
+
+.. _function-_at__builtin__c__c_is_intern_strings_C_c:
+
+.. das:function:: is_intern_strings()
+
+is_intern_strings returns bool
+
+|function-builtin-is_intern_strings|
+
+.. _function-_at__builtin__c__c_build_hash_CI0_ls_H_ls__builtin__c__c_HashBuilder_gr__gr_1_ls_v_gr__builtin__C_c_C_l:
+
+.. das:function:: build_hash(block: block<(var arg0:HashBuilder):void> const implicit)
+
+build_hash returns uint64
+
++--------+---------------------------------------------------------------------------------------+
++argument+argument type                                                                          +
++========+=======================================================================================+
++block   +block<( :ref:`builtin::HashBuilder <handle-builtin-HashBuilder>` ):void> const implicit+
++--------+---------------------------------------------------------------------------------------+
+
+
+|function-builtin-build_hash|
+
 .. _function-_at__builtin__c__c_eval_main_loop_CI1_ls_b_gr__builtin__C_c_C_l:
 
 .. das:function:: eval_main_loop(block: block<bool> const implicit)
@@ -3997,5 +4011,22 @@ malloc_usable_size returns uint64
 
 
 |function-builtin-eval_main_loop|
+
+.. _function-_at__builtin__c__c_remove_value_0_ls_1_ls_Y_ls_TT_gr_._gr_A;_hh_1_ls_Y_ls_TT_gr_._gr_A_gr_|_CY_ls_TT_gr_L:
+
+.. das:function:: remove_value(arr: array<auto(TT)> -const|array<auto(TT)># -const; key: TT const)
+
+remove_value returns bool
+
++--------+-------------+
++argument+argument type+
++========+=============+
++arr     +option       +
++--------+-------------+
++key     +TT const     +
++--------+-------------+
+
+
+|function-builtin-remove_value|
 
 

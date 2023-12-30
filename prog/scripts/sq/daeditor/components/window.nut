@@ -12,7 +12,7 @@ let mkWindow = kwarg(function(id, content,
   }
   let windowState = saveState ? mkWatched(persist, $"{id}_state", initialState) : Watched(initialState)
 
-  let function onMoveResize(dx, dy, dw, dh) {
+  function onMoveResize(dx, dy, dw, dh) {
     let w = windowState.value
     let pos = clone w.pos
     let size = clone w.size

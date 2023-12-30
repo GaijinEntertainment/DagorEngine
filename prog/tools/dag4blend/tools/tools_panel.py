@@ -106,18 +106,17 @@ def pack_orphans(col):
     return
 
 def apply_modifiers(obj):
-    ctx=bpy.context.copy()
-    ctx['object'] = obj
-    was_linked = False
-    if bpy.context.scene.collection.objects.get(obj.name) is None:
-        bpy.context.scene.collection.objects.link(obj)
-        was_linked = True
-    for mod in obj.modifiers:
-        if mod.show_viewport:
-            bpy.ops.object.modifier_apply(ctx, modifier=mod.name)
+    with bpy.context.temp_override(object = obj):
+        for mod in obj.modifiers:
+            if mod.show_viewport:
+                try:
+                    bpy.ops.object.modifier_apply(modifier=mod.name)
+                except:
+                    node_name = obj['og_name'] if 'name' in obj.keys() else obj.name
+                    message = f'"{mod.name}" modifier can not be applyed to "{node_name}" object\n'
+                    log(message, type = 'ERROR', show = True)
     obj.modifiers.clear()
-    if was_linked:
-        bpy.context.scene.collection.objects.unlink(obj)
+    return
 
 def get_autonamed():
     mat=bpy.data.materials.get('autoNamedMat_0')

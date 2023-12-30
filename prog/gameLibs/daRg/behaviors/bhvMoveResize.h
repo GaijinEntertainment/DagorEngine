@@ -36,6 +36,8 @@ public:
 
   virtual int mouseEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent event, int pointer_id, int data, short mx,
     short my, int buttons, int /*accum_res*/) override;
+  virtual int touchEvent(ElementTree *, Element *, InputEvent event, HumanInput::IGenPointing *pnt, int touch_idx,
+    const HumanInput::PointingRawState::Touch &touch, int accum_res) override;
   virtual int onDeactivateInput(Element *, InputDevice device, int pointer_id) override;
 
   HandlePos findHandle(Element *elem, const Point2 &pt);

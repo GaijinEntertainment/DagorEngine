@@ -9,7 +9,7 @@ DriverCode d3d::get_driver_code() { return DriverCode::make(d3d::null); }
 
 static void *na_func()
 {
-  fatal("D3DI function not implemented");
+  DAG_FATAL("D3DI function not implemented");
   return nullptr;
 }
 bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)

@@ -109,7 +109,7 @@ static void issue_error_unhappy_path(bool do_fatal, int line, const char *errTex
   if (tls_reporter)
     return tls_reporter->reportError(errText, do_fatal);
   if (do_fatal)
-    _core_fatal(__FILE__, line, true, errText);
+    _core_fatal(__FILE__, line, errText);
   else
   {
     __log_set_ctx(__FILE__, line, LOGLEVEL_ERR);

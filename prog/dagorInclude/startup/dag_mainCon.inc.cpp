@@ -96,7 +96,9 @@ int __cdecl main(int argc, char **argv)
   }
   else
   {
+#ifdef _MSC_VER
 #pragma warning(push, 0) // to avoid C4297 in VC8
+#endif
     DAGOR_TRY { retcode = dagor_program_exec(argc, argv, debugmode); }
     DAGOR_CATCH(...)
     {
@@ -105,7 +107,9 @@ int __cdecl main(int argc, char **argv)
       flush_debug_file();
       DAGOR_RETHROW();
     }
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
   }
 
   flush_debug_file();

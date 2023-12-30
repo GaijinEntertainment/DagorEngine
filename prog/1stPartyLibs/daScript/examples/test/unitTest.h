@@ -244,7 +244,7 @@ namespace das {
         static __forceinline EntityId to ( vec4f x )            { return make_EntityId(v_extract_xi(v_cast_vec4i(x))); }
         static __forceinline vec4f from ( EntityId x )          { return v_cast_vec4f(v_seti_x(x.value)); }
     };
-    template <> struct WrapType<EntityId> { enum { value = true }; typedef int32_t type; };
+    template <> struct WrapType<EntityId> { enum { value = true }; typedef int32_t type; typedef int32_t rettype; };
     template <> struct WrapArgType<EntityId> { typedef EntityId_WrapArg type; };
 }
 __forceinline EntityId make_invalid_id() {

@@ -3,7 +3,7 @@
 #include <generic/dag_tabFwd.h>
 #include <libTools/util/iLogWriter.h>
 #include <assets/assetRefs.h>
-#include "dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 
 struct IProcessMaterialData;
 class IDagorAssetExporter;

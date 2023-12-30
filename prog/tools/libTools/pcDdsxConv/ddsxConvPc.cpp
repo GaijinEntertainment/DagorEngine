@@ -42,6 +42,8 @@ static const int dxgi_format_bc5_unorm = 83; // DXGI_FORMAT_BC5_UNORM
 static char errBuf[256] = "";
 static IDdsxCreatorPlugin::IAlloc *alloc = NULL;
 
+#define ERR_PRINTF(...) snprintf(errBuf, sizeof(errBuf), __VA_ARGS__)
+
 struct BitMaskFormat
 {
   uint32_t bitCount;
@@ -111,7 +113,7 @@ SwizzledBitMaskFormat bitMaskFormatSw[] = {
 
 static DDSURFACEDESC2 *unsupported_dx10(const DDSHDR_DXT10 &dx10hdr, int pidx)
 {
-  sprintf(errBuf, "unsupported DX10: dxgiFormat=%d%s resourceDimension=%d%s arraySize=%d%s miscFlag=%08X%s miscFlag2=%08X%s",
+  ERR_PRINTF("unsupported DX10: dxgiFormat=%d%s resourceDimension=%d%s arraySize=%d%s miscFlag=%08X%s miscFlag2=%08X%s",
     (int)dx10hdr.dxgiFormat, pidx == 0 ? "*" : "", (int)dx10hdr.resourceDimension, pidx == 1 ? "*" : "", (int)dx10hdr.arraySize,
     pidx == 2 ? "*" : "", (int)dx10hdr.miscFlag, pidx == 3 ? "*" : "", (int)dx10hdr.miscFlags2, pidx == 4 ? "*" : "");
   return NULL;
@@ -126,7 +128,7 @@ static DDSURFACEDESC2 *parse_dds_header(void *dds_data, int dds_len, int &out_da
   }
   if (dds_len < sizeof(DDSURFACEDESC2) + 4)
   {
-    sprintf(errBuf, "dds_len=%d is too short", dds_len);
+    ERR_PRINTF("dds_len=%d is too short", dds_len);
     return NULL;
   }
   if (*(uint32_t *)dds_data != MAKEFOURCC('D', 'D', 'S', ' '))
@@ -247,7 +249,7 @@ static DDSURFACEDESC2 *parse_dds_header(void *dds_data, int dds_len, int &out_da
 
     if (out_fmt == D3DFMT_UNKNOWN)
     {
-      sprintf(errBuf, "Unknown DDPF_RGB format: %d bit, %08X %08X %08X %08X", (int)dsc.ddpfPixelFormat.dwRGBBitCount,
+      ERR_PRINTF("Unknown DDPF_RGB format: %d bit, %08X %08X %08X %08X", (int)dsc.ddpfPixelFormat.dwRGBBitCount,
         (int)dsc.ddpfPixelFormat.dwRGBAlphaBitMask, (int)dsc.ddpfPixelFormat.dwRBitMask, (int)dsc.ddpfPixelFormat.dwGBitMask,
         (int)dsc.ddpfPixelFormat.dwBBitMask);
       return NULL;
@@ -263,7 +265,7 @@ static DDSURFACEDESC2 *parse_dds_header(void *dds_data, int dds_len, int &out_da
 
   if (out_fmt == D3DFMT_UNKNOWN)
   {
-    sprintf(errBuf, "Unknown format (neither RGB nor FOURCC) flg=%08X", (int)dsc.ddpfPixelFormat.dwFlags);
+    ERR_PRINTF("Unknown format (neither RGB nor FOURCC) flg=%08X", (int)dsc.ddpfPixelFormat.dwFlags);
     return NULL;
   }
 
@@ -280,7 +282,7 @@ static DDSURFACEDESC2 *parse_dds_header(void *dds_data, int dds_len, int &out_da
           out_fmt == D3DFMT_DXT5 || out_fmt == _MAKE4C('ATI1') || out_fmt == _MAKE4C('ATI2') || out_fmt == dxgi_format_bc4_unorm ||
           out_fmt == dxgi_format_bc5_unorm || out_fmt == _MAKE4C('BC6H') || out_fmt == _MAKE4C('BC7 ')))
     {
-      sprintf(errBuf, "bad image size %dx%d, should be %d-aligned for fmt=0x%08X, %d mips", w, h, align, out_fmt, mip_cnt - 1);
+      ERR_PRINTF("bad image size %dx%d, should be %d-aligned for fmt=0x%08X, %d mips", w, h, align, out_fmt, mip_cnt - 1);
       return NULL;
     }
   }
@@ -475,17 +477,17 @@ static bool convert_dds_voltex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t 
   }
   if (!is_pow_2(w) || !is_pow_2(h) || depth < 0 || !is_pow_2(depth))
   {
-    sprintf(errBuf, "non-pow-2 voltex size : %dx%dx%d", w, h, depth);
+    ERR_PRINTF("non-pow-2 voltex size : %dx%dx%d", w, h, depth);
     return false;
   }
   if (levels <= 0)
   {
-    sprintf(errBuf, "invalid number of mipmaps in DDS: %d", levels);
+    ERR_PRINTF("invalid number of mipmaps in DDS: %d", levels);
     return false;
   }
   if (params.hQMip != 0)
   {
-    sprintf(errBuf, "invalid number hqMip: %d, must be 0", params.hQMip);
+    ERR_PRINTF("invalid number hqMip: %d, must be 0", params.hQMip);
     return false;
   }
   if (params.splitAt != 0 && params.splitHigh || (w == 0 && h == 0 && depth == 0))
@@ -513,7 +515,7 @@ static bool convert_dds_voltex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t 
   bpp = get_bpp_for_format(fmt, bpp);
   if (!bpp && !dxt_shift)
   {
-    sprintf(errBuf, "format 0x%08X not supported: bits-per-pixel is not determined", fmt);
+    ERR_PRINTF("format 0x%08X not supported: bits-per-pixel is not determined", fmt);
     return false;
   }
 
@@ -571,7 +573,7 @@ static bool convert_dds_voltex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t 
 
   if (hdr.memSz > dds_len)
   {
-    sprintf(errBuf, "invalid DDS: need %d bytes, only %d available", hdr.memSz, dds_len);
+    ERR_PRINTF("invalid DDS: need %d bytes, only %d available", hdr.memSz, dds_len);
     return NULL;
   }
 
@@ -605,12 +607,12 @@ static bool convert_dds_cubetex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t
   }
   if (w != h)
   {
-    sprintf(errBuf, "non-square DDS cubemap: %dx%d", w, h);
+    ERR_PRINTF("non-square DDS cubemap: %dx%d", w, h);
     return false;
   }
   if (levels <= 0)
   {
-    sprintf(errBuf, "invalid number of mipmaps in DDS: %d", levels);
+    ERR_PRINTF("invalid number of mipmaps in DDS: %d", levels);
     return NULL;
   }
 
@@ -618,7 +620,7 @@ static bool convert_dds_cubetex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t
 
   if ((dsc.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_ALLFACES) != DDSCAPS2_CUBEMAP_ALLFACES)
   {
-    sprintf(errBuf, "Cannot create partial cubtex: %08X", unsigned(dsc.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_ALLFACES));
+    ERR_PRINTF("Cannot create partial cubtex: %08X", unsigned(dsc.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP_ALLFACES));
     return false;
   }
 
@@ -635,14 +637,14 @@ static bool convert_dds_cubetex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t
 #ifdef IOS_EXP
   else if (fmt == D3DFMT_DXT1 || fmt == D3DFMT_DXT2 || fmt == D3DFMT_DXT3 || fmt == D3DFMT_DXT4 || fmt == D3DFMT_DXT5)
   {
-    sprintf(errBuf, "Cannot transcode cubemap DXT format=%08X %c%c%c%c", fmt, _DUMP4C(fmt));
+    ERR_PRINTF("Cannot transcode cubemap DXT format=%08X %c%c%c%c", fmt, _DUMP4C(fmt));
     return false;
   }
   else if (fmt == D3DFMT_R32F || fmt == D3DFMT_R16F)
     ; // ok
   else if (dsc.ddpfPixelFormat.dwFlags & DDPF_FOURCC)
   {
-    sprintf(errBuf, "Unknown FOURCC format=%08X %c%c%c%c", fmt, _DUMP4C(fmt));
+    ERR_PRINTF("Unknown FOURCC format=%08X %c%c%c%c", fmt, _DUMP4C(fmt));
     return false;
   }
 #else
@@ -657,7 +659,7 @@ static bool convert_dds_cubetex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t
   bpp = get_bpp_for_format(fmt, bpp);
   if (!bpp && !dxt_shift)
   {
-    sprintf(errBuf, "format 0x%08X not supported: bits-per-pixel is not determined", fmt);
+    ERR_PRINTF("format 0x%08X not supported: bits-per-pixel is not determined", fmt);
     return false;
   }
 
@@ -795,14 +797,14 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
 #ifdef IOS_EXP
   else if (fmt == D3DFMT_DXT1 || fmt == D3DFMT_DXT2 || fmt == D3DFMT_DXT3 || fmt == D3DFMT_DXT4 || fmt == D3DFMT_DXT5)
   {
-    sprintf(errBuf, "Cannot transcode DXT format=%08X %c%c%c%c", fmt, _DUMP4C(fmt));
+    ERR_PRINTF("Cannot transcode DXT format=%08X %c%c%c%c", fmt, _DUMP4C(fmt));
     return false;
   }
   else if (fmt == D3DFMT_R32F || fmt == D3DFMT_R16F || fmt == D3DFMT_A32B32G32R32F)
     ; // ok
   else if (dsc.ddpfPixelFormat.dwFlags & DDPF_FOURCC)
   {
-    sprintf(errBuf, "Unknown FOURCC format=%08X %c%c%c%c", fmt, _DUMP4C(fmt));
+    ERR_PRINTF("Unknown FOURCC format=%08X %c%c%c%c", fmt, _DUMP4C(fmt));
     return false;
   }
 #else
@@ -818,7 +820,7 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
   bpp = get_bpp_for_format(fmt, bpp);
   if (!bpp && !dxt_shift)
   {
-    sprintf(errBuf, "format 0x%08X not supported: bits-per-pixel is not determined", fmt);
+    ERR_PRINTF("format 0x%08X not supported: bits-per-pixel is not determined", fmt);
     return false;
   }
 
@@ -883,8 +885,8 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
   {
     if (!params.rtGenMipsBox && !params.rtGenMipsKaizer)
     {
-      _snprintf(errBuf, sizeof(errBuf) - 1, "bad combo rtGenMipsBox=%d rtGenMipsKaizer=%d needBaseTex=%d", params.rtGenMipsBox,
-        params.rtGenMipsKaizer, params.needBaseTex);
+      ERR_PRINTF("bad combo rtGenMipsBox=%d rtGenMipsKaizer=%d needBaseTex=%d", params.rtGenMipsBox, params.rtGenMipsKaizer,
+        params.needBaseTex);
       return false;
     }
     hdr.flags |= hdr.FLG_NEED_PAIRED_BASETEX;
@@ -908,7 +910,7 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
 
     if (dp - (char *)dest.ptr != hdr.memSz + sizeof(hdr))
     {
-      _snprintf(errBuf, sizeof(errBuf) - 1, "IE: dp-dest.ptr=%d hdr.memSz=%d", int(dp - (char *)dest.ptr), hdr.memSz);
+      ERR_PRINTF("IE: dp-dest.ptr=%d hdr.memSz=%d", int(dp - (char *)dest.ptr), hdr.memSz);
       return false;
     }
     return true;

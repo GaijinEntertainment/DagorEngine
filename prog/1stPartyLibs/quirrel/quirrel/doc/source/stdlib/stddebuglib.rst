@@ -10,10 +10,6 @@ the library implements some basic debug routines.
 Squirrel API
 --------------
 
-++++++++++++++
-Global Symbols
-++++++++++++++
-
 
 .. sq:function:: getbuildinfo(x)
 
@@ -49,20 +45,25 @@ returns the stack informations of a given call stack level. returns a table form
 
     {
         func="DoStuff", //function name
-
         src="test.nut", //source file
-
         line=10,        //line number
-
         locals = {      //a table containing the local variables
-
             a=10,
-
             testy="I'm a string"
         }
     }
 
-level = 0 is getstackinfos() itself! level = 1 is the current function, level = 2 is the caller of the current function, and so on. If the stack level doesn't exist the function returns null.
+level = 0 is getstackinfos() itself! level = 1 is the current function, level = 2 is the caller of the current function, and so on.
+If the stack level doesn't exist the function returns null.
+
+
+.. sq:function:: getlocals([level=1], [include_internal=false])
+
+Returns a table containing the local variables of a given call stack level.
+(level = 1 is the current function, level = 2 is the caller of the current function, and so on).
+If the stack level doesn't exist the function returns null.
+If include_internal is true, the table will also contain the internal variables (``foreach`` iterators, ``this`` and ``vargv``).
+Very similar to ``getstackinfos()``, added for convenience.
 
 
 .. sq:function:: collectgarbage()

@@ -54,8 +54,7 @@ vec4f _builtin_send_net_blobevent(das::Context &context, das::SimNode_CallBase *
   const ecs::EntityId eid = das::cast<ecs::EntityId>::to(args[0]);
   char *data = das::cast<char *>::to(args[1]);
   char *evtTypeName = das::cast<char *>::to(args[2]);
-  bind_dascript::EsContext &ctx = static_cast<bind_dascript::EsContext &>(context);
-  G_ASSERT(ctx.magic == bind_dascript::EsContext::MAGIC_NOMEM || ctx.magic == bind_dascript::EsContext::MAGIC_HASMEM);
+  bind_dascript::EsContext &ctx = cast_es_context(context);
 
   bind_dascript::DasEvent *evt = (bind_dascript::DasEvent *)data;
   net::send_dasevent(ctx.mgr, /*bcast*/ false, eid, evt, evtTypeName, /*explicitConnections*/ eastl::nullopt,
@@ -74,8 +73,7 @@ vec4f _builtin_send_net_blobevent_with_recipients(das::Context &context, das::Si
   dag::ConstSpan<net::IConnection *> recipientsSlice{
     reinterpret_cast<net::IConnection **>(recipients.data), static_cast<intptr_t>(recipients.size)};
 
-  bind_dascript::EsContext &ctx = static_cast<bind_dascript::EsContext &>(context);
-  G_ASSERT(ctx.magic == bind_dascript::EsContext::MAGIC_NOMEM || ctx.magic == bind_dascript::EsContext::MAGIC_HASMEM);
+  bind_dascript::EsContext &ctx = cast_es_context(context);
 
   bind_dascript::DasEvent *evt = (bind_dascript::DasEvent *)data;
   net::send_dasevent(ctx.mgr, /*bcast*/ false, eid, evt, evtTypeName, /*explicitConnections*/ recipientsSlice,
@@ -90,8 +88,7 @@ vec4f _builtin_broadcast_net_blobevent(das::Context &context, das::SimNode_CallB
   char *evtTypeName = das::cast<char *>::to(args[1]);
 
   bind_dascript::DasEvent *evt = (bind_dascript::DasEvent *)data;
-  bind_dascript::EsContext &ctx = static_cast<bind_dascript::EsContext &>(context);
-  G_ASSERT(ctx.magic == bind_dascript::EsContext::MAGIC_NOMEM || ctx.magic == bind_dascript::EsContext::MAGIC_HASMEM);
+  bind_dascript::EsContext &ctx = cast_es_context(context);
 
   net::send_dasevent(ctx.mgr, /*bcast*/ true, ecs::INVALID_ENTITY_ID, evt, evtTypeName, /*explicitConnections*/ eastl::nullopt,
     [call]() { return call ? call->debugInfo.describe() : das::string{}; });
@@ -109,8 +106,7 @@ vec4f _builtin_broadcast_net_blobevent_with_recipients(das::Context &context, da
     reinterpret_cast<net::IConnection **>(recipients.data), static_cast<intptr_t>(recipients.size)};
 
   bind_dascript::DasEvent *evt = (bind_dascript::DasEvent *)data;
-  bind_dascript::EsContext &ctx = static_cast<bind_dascript::EsContext &>(context);
-  G_ASSERT(ctx.magic == bind_dascript::EsContext::MAGIC_NOMEM || ctx.magic == bind_dascript::EsContext::MAGIC_HASMEM);
+  bind_dascript::EsContext &ctx = cast_es_context(context);
 
   net::send_dasevent(ctx.mgr, /*bcast*/ true, ecs::INVALID_ENTITY_ID, evt, evtTypeName, /*explicitConnections*/ recipientsSlice,
     [call]() { return call ? call->debugInfo.describe() : das::string{}; });

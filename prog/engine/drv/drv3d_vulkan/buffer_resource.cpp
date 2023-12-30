@@ -120,37 +120,15 @@ MemoryRequirementInfo Buffer::getMemoryReq()
   return ret;
 }
 
-// TODO: improve this, aligment should be, per spec, same for usage&flags combo
 VkMemoryRequirements Buffer::getSharedHandleMemoryReq()
 {
   Device &drvDev = get_device();
   VulkanDevice &vkDev = drvDev.getVkDevice();
 
   VkMemoryRequirements ret;
-  ret.alignment = drvDev.getMinimalBufferAlignment();
-  ret.size = getTotalSize();
+  ret.alignment = drvDev.getBufferAligmentForUsageAndFlags(0, Buffer::getUsage(vkDev, desc.memoryClass));
+  ret.size = ret.alignment > 0 ? getTotalSize() : 0;
   ret.memoryTypeBits = drvDev.memory->getMemoryTypeMaskForClass(desc.memoryClass);
-
-  {
-    VulkanBufferHandle tmpBuf;
-    VkBufferCreateInfo bci;
-    bci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bci.pNext = NULL;
-    bci.flags = 0;
-    bci.size = getTotalSize();
-    bci.usage = Buffer::getUsage(vkDev, desc.memoryClass);
-    bci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    bci.queueFamilyIndexCount = 0;
-    bci.pQueueFamilyIndices = NULL;
-    const VkResult resCode = VULKAN_CHECK_RESULT(vkDev.vkCreateBuffer(vkDev.get(), &bci, NULL, ptr(tmpBuf)));
-    if (resCode != VK_SUCCESS)
-    {
-      MemoryRequirementInfo ret2 = get_memory_requirements(vkDev, tmpBuf);
-      ret = ret2.requirements;
-      vkDev.vkDestroyBuffer(vkDev.get(), tmpBuf, nullptr);
-    }
-  }
-
 #if VULKAN_MAPPED_BUFFER_OVERRUN_WRITE_CHECK > 0
   ret.size *= 2;
 #endif
@@ -212,13 +190,13 @@ void Buffer::fillPointers(const ResourceMemory &mem)
     nonCoherentMemoryHandle = mem.isDeviceMemory() ? mem.deviceMemory() : mem.deviceMemorySlow();
 }
 
-void Buffer::evict() { fatal("vulkan: buffers are not evictable"); }
+void Buffer::evict() { DAG_FATAL("vulkan: buffers are not evictable"); }
 
-void Buffer::restoreFromSysCopy() { fatal("vulkan: buffers are not evictable"); }
+void Buffer::restoreFromSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: buffers are not evictable"); }
 
 bool Buffer::nonResidentCreation() { return (desc.memFlags & BufferMemoryFlags::FAILABLE) != 0; }
 
-void Buffer::makeSysCopy() { fatal("vulkan: buffers are not evictable"); }
+void Buffer::makeSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: buffers are not evictable"); }
 
 bool Buffer::isEvictable() { return false; }
 

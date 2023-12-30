@@ -57,7 +57,7 @@ ValueType TypeTable::normalizeValue(int index, real val) const
   else
   {
     if (!t.interval)
-      fatal("normalize value %.4f: no interval ptr for interval type #%d in %s", val, index, (char *)getStringInfo());
+      DAG_FATAL("normalize value %.4f: no interval ptr for interval type #%d in %s", val, index, (char *)getStringInfo());
     return t.interval->normalizeValue(val);
   }
 }
@@ -77,24 +77,24 @@ void TypeTable::updateTypeValRange(VariantType &t)
     case VARTYPE_GL_OVERRIDE_INTERVAL:
     {
       if (!iList || (t.extType == INTERVAL_NOT_INIT))
-        fatal("interval type not initialized!");
+        DAG_FATAL("interval type not initialized!");
 
       t.interval = iList->getInterval(t.extType);
       if (!t.interval)
-        fatal("interval not found!");
+        DAG_FATAL("interval not found!");
     }
     break;
     case VARTYPE_GLOBAL_INTERVAL:
     {
       if (t.extType == INTERVAL_NOT_INIT)
-        fatal("interval type not initialized!");
+        DAG_FATAL("interval type not initialized!");
 
       t.interval = ShaderGlobal::getIntervalList().getInterval(t.extType);
       if (!t.interval)
-        fatal("interval not found!");
+        DAG_FATAL("interval not found!");
     }
     break;
-    default: fatal("unknown variant type - %d!", t.type);
+    default: DAG_FATAL("unknown variant type - %d!", t.type);
   }
 
   if (t.interval)

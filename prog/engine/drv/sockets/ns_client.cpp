@@ -125,7 +125,7 @@ public:
     else if (stricmp(s, "PF_UNSPEC") == 0)
       family = PF_UNSPEC;
     else
-      fatal_x("family=%s", s);
+      DAG_FATAL("family=%s", s);
 
     s = blk.getStr("socket_type", "TCP");
     if (stricmp(s, "TCP") == 0)
@@ -133,7 +133,7 @@ public:
     else if (stricmp(s, "UDP") == 0)
       socketType = SOCK_DGRAM;
     else
-      fatal_x("socket_type=%s", s);
+      DAG_FATAL("socket_type=%s", s);
 
     s = blk.getStr("address", ServerAddress);
     if (s)
@@ -504,7 +504,7 @@ public:
       if (!waitThreadTermination(3500))
       {
         if (_fatal)
-          fatal("can't wait for client termination for more than %d ms", 4000);
+          DAG_FATAL("can't wait for client termination for more than %d ms", 4000);
         else
         {
           mt_debug_ctx("can't wait for client termination for more than %d ms", 4000);
@@ -528,7 +528,7 @@ public:
   int sendPacket(const NetMsgPacket *p)
   {
     if (rawMode)
-      fatal("packet");
+      DAG_FATAL("packet");
     if (TRACE_PACKETS)
       mt_debug("CLIENT: send packet (size=%d gen=%p queryId=%d", p->hdr.size, p->hdr.generation, p->queryId);
     return sendBytes(p, p->hdr.size + sizeof(p->hdr), true);

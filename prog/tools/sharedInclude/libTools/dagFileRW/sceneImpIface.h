@@ -12,8 +12,6 @@ class SplineShape;
 
 #define IMP_MF_2SIDED 1
 
-#define IMPTEXNUM 8
-
 struct D3dLight
 {
   enum
@@ -42,8 +40,8 @@ struct ImpMat
   ImpColor amb, diff, spec, emis;
   float power;
   uint32_t flags;
-  uint16_t texid[IMPTEXNUM];
-  float param[IMPTEXNUM];
+  uint16_t texid[16];
+  uint16_t _resv[8];
   char *name;
   char *classname;
   char *script;

@@ -93,6 +93,8 @@ static Bitset failed_banks;
 
 static eastl::fixed_string<char, 8> locale;
 static eastl::fixed_string<char, 8> master_preset_name;
+static eastl::string g_banks_folder;
+static const char *mod_path = "mod/";
 
 static bool g_was_inited = false;
 
@@ -156,6 +158,16 @@ static inline FMOD_RESULT load_bank_memory(const char *filename, FMOD_STUDIO_LOA
   return fmodapi::get_studio_system()->loadBankMemory(ptrAligned, filesize, FMOD_STUDIO_LOAD_MEMORY, flags, fmod_bank);
 }
 
+static inline void patch_path_with_mod(FrameStr &path)
+{
+  FrameStr moddedPath;
+  moddedPath.sprintf("%s/%s", g_banks_folder.c_str(), mod_path);
+  FrameStr fullModdedPath = path;
+  fullModdedPath.replace(0, g_banks_folder.size() + 1, moddedPath);
+  if (df_get_real_name(fullModdedPath.c_str()) != nullptr)
+    path = fullModdedPath;
+}
+
 static inline void load_bank(Bank &bank, const PathTags &path_tags)
 {
   G_ASSERT_RETURN(!is_loaded_or_pending(bank.id), );
@@ -165,6 +177,9 @@ static inline void load_bank(Bank &bank, const PathTags &path_tags)
   FrameStr taggedPath = bank.path.c_str();
   for (auto &tag : path_tags)
     replace(taggedPath, tag.first, tag.second);
+
+  if (bank.isMod && taggedPath.find(mod_path) == FrameStr::npos)
+    patch_path_with_mod(taggedPath);
 
   const char *realPath = df_get_real_name(taggedPath.c_str());
   if (!realPath)
@@ -431,18 +446,22 @@ static void add_bank(const char *name, const DataBlock &blk, const char *banks_f
 
   FrameStr path;
 
+  bool isModAndTagged = false;
+
   if (enable_mod)
   {
     if (overridedPath)
-      path.sprintf("%s/mod/%s%s", overridedPath, name, extension);
+      path.sprintf("%s/%s%s%s", overridedPath, mod_path, name, extension);
     else if (banks_folder && *banks_folder)
-      path.sprintf("%s/mod/%s%s", banks_folder, name, extension);
+      path.sprintf("%s/%s%s%s", banks_folder, mod_path, name, extension);
     else
-      path.sprintf("mod/%s%s", name, extension);
+      path.sprintf("%s%s%s", mod_path, name, extension);
 
     make_localized(path);
 
     isMod = df_get_real_name(path.c_str()) != nullptr;
+    if (path.find("<") != FrameStr::npos)
+      isModAndTagged = true;
   }
 
   if (!isMod)
@@ -458,7 +477,7 @@ static void add_bank(const char *name, const DataBlock &blk, const char *banks_f
   }
 
   append_bank(path.c_str(), blk.getBool("async", false), blk.getBool("preload", false), blk.getBool("loadToMemory", false),
-    blk.getBool("optional", false), isMod, preset);
+    blk.getBool("optional", false), isMod || isModAndTagged, preset);
 };
 
 void init(const DataBlock &blk)
@@ -476,6 +495,7 @@ void init(const DataBlock &blk)
   debug_trace_log("locale is \"%s\"", locale.c_str());
 
   const char *folder = banksBlk.getStr("folder", "sound");
+  g_banks_folder = eastl::string(folder);
   const char *extension = banksBlk.getStr("extension", ".bank");
   master_preset_name = banksBlk.getStr("preset", "master");
 

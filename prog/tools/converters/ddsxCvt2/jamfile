@@ -14,11 +14,15 @@ include $(Root)/prog/tools/tools_setup.jam ;
 TargetType  = exe ;
 Target      = util/ddsxCvt2 ;
 
+include $(Root)/prog/_jBuild/defaults.jam ;
 OutDir = $(Root)/tools/dagor3_cdk/bin ;
 if $(Platform) = win64 { OutDir = $(OutDir)64 ; }
-if $(Platform) = linux64 { OutDir = $(Root)/tools/dagor3_cdk/bin-linux64 ; }
+if $(Platform) in linux64 macosx { OutDir = $(Root)/tools/dagor3_cdk/bin-$(Platform) ; }
 
-AddIncludes     = $(Root)/prog/tools/sharedInclude ;
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine/sharedInclude
+;
 
 Sources =
   ddsxConverter2.cpp
@@ -34,7 +38,6 @@ UseProgLibs =
   tools/libTools/util
 ;
 ImportProgLibs = tools/libTools/daKernel ;
-CoExportProgDlls = $(ImportProgLibs) ;
-if $(Platform) = linux64 { ImportsRelativeDir = . ; }
+ImportsRelativeDir = . ;
 
 include $(Root)/prog/_jBuild/build.jam ;

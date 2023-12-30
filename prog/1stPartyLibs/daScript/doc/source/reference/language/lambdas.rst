@@ -123,7 +123,7 @@ Let's review an example with a singled captured variable::
     let counter <- @ <| (extra:int) : int
         return CNT++ + extra
 
-daScript will generated the following code:
+Daslang will generated the following code:
 
 Capture structure::
 

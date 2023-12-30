@@ -12,8 +12,6 @@ shader sphereMaterial
 {
   no_ablend;
 
-  channel float3 pos = pos;
-
   hlsl {
     struct VsOutput
     {
@@ -32,12 +30,8 @@ shader sphereMaterial
   }
 
   hlsl(vs) {
-    struct VsInput
-    {
-      float3 pos: POSITION;
-    };
-
-    VsOutput test_vs(VsInput input, uint id : SV_InstanceID)
+    #include "spheres_vertices.hlsl"
+    VsOutput test_vs(uint id : SV_InstanceID, uint vertId : SV_VertexID)
     {
       VsOutput output;
       ##if plane == isSphere
@@ -46,11 +40,14 @@ shader sphereMaterial
       totalOfs.xz += met_roughness;
       //totalOfs.y += 0.5+0.5*sin(time*2*PI+id*0.4);
       met_roughness*=float2(1./3, 1./9);
-      float3 pos = input.pos*0.5f + totalOfs;
-      float3 normal = normalize(input.pos);
+      float3 inputPos = get_sphere_vertex_pos(vertId);
+      float3 pos = inputPos*0.5f + totalOfs;
+      float3 normal = inputPos;
       ##else
       float3 color = float3(0,0,0);
-      float3 pos = input.pos*350;
+      float2 planeVertex[6] = {float2(-1, -1), float2(-1, +1), float2(+1, -1), float2(+1, -1), float2(-1, +1), float2(+1, +1)};
+      float3 inputPos = float3(planeVertex[min(vertId, 5)], 0).xzy;
+      float3 pos = inputPos*350;
       pos.y = -1;
       float3 normal = float3(0,1,0);
       float2 met_roughness = 0;
@@ -85,6 +82,7 @@ shader sphereMaterial
       float3 normal = normalize(input.norm);// + float3(0.005*(2*rand2(floor(input.worldPos.xz*2111)/2111)-1),0) );
       float2 metallness_roghness = input.metallness_roghness;
       float3 color = sphere_color;
+      init_dynamic(result, true);
       ##else
       //clip(-1);
       float3 pos = input.worldPos;

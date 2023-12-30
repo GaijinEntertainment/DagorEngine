@@ -149,4 +149,4 @@ clone_to_move implementation
         clone_dest := clone_src
         return <- clone_dest
 
-Note that for non-cloneable types, daScript will not promote ``:=`` initialize into ``clone_to_move``.
+Note that for non-cloneable types, Daslang will not promote ``:=`` initialize into ``clone_to_move``.

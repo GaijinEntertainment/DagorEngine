@@ -649,10 +649,10 @@ void DeviceContext::dumpCommandLog()
   {
     FrameCommandLog &frameCmdLog = frameLogs[(activeLogId + i + 1) % NumFrameCommandLogs];
 
-    debug("Frame %d log begin", frameCmdLog.frameId);
-    debug("--------------------");
-    frameCmdLog.log.visitAll([&buffer, this](const auto &value) { debug(cmdToStr(buffer, back.sharedContextState, value)); });
-    debug("Frame %d log end", frameCmdLog.frameId);
+    logdbg("Frame %d log begin", frameCmdLog.frameId);
+    logdbg("--------------------");
+    frameCmdLog.log.visitAll([&buffer, this](const auto &value) { logdbg(cmdToStr(buffer, back.sharedContextState, value)); });
+    logdbg("Frame %d log end", frameCmdLog.frameId);
   }
 }
 

@@ -59,6 +59,9 @@ def get_node_group(group_name):
     node_group = bpy.data.node_groups.get(group_name)
     if node_group is not None:
         return node_group
+    start_mode = bpy.context.mode
+    if start_mode == 'EDIT_MESH':
+        bpy.ops.object.editmode_toggle()
     group_name = check_remap(group_name)
     addon_name = basename(__package__)
     lib_path = user_resource('SCRIPTS') + f'\\addons\\{addon_name}\\extras\\library.blend\\NodeTree'
@@ -77,6 +80,8 @@ def get_node_group(group_name):
             if node_group is None:
                 bpy.ops.wm.append(filepath = lib_path+"\\default", directory = lib_path,filename = 'default', do_reuse_local_id = True)
                 node_group = bpy.data.node_groups.get('default')
+    if start_mode == 'EDIT_MESH':
+        bpy.ops.object.editmode_toggle()
     return node_group
 
 def buildMaterial(mat):
@@ -186,7 +191,7 @@ def buildMaterial(mat):
 
 
 #BACKFACE_CULLING
-    mat.use_backface_culling = (mat.dagormat.sides == '0')#'0' is "single_sided"
+    mat.use_backface_culling = (mat.dagormat.sides == 0)#'0' is "single_sided"
 
 
 #DESELECT

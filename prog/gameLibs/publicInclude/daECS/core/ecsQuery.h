@@ -175,7 +175,7 @@ struct Query
   {
     return getView(mgr, user_data, chunk, 0, chunkEntitiesCnt[chunk]);
   }
-  const uint32_t allComponentsCount() const { return roCount + rwCount; }
+  uint32_t allComponentsCount() const { return roCount + rwCount; }
   uint32_t chunksCount() const { return chunks; }
 
 protected:

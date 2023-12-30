@@ -79,7 +79,7 @@ static bool init()
   debugCollisionMat->addRef();
   if (!debugCollisionMat->checkChannels(chan, sizeof(chan) / sizeof(chan[0])))
   {
-    fatal("invalid channels for this material!");
+    DAG_FATAL("invalid channels for this material!");
     return false;
   }
 
@@ -107,7 +107,7 @@ static bool init_shaded()
   debugCollisionMatShaded->addRef();
   if (!debugCollisionMatShaded->checkChannels(chan, sizeof(chan) / sizeof(chan[0])))
   {
-    fatal("invalid channels for this material!");
+    DAG_FATAL("invalid channels for this material!");
     return false;
   }
   debugCollisionElemShaded.shElem = debugCollisionMatShaded->make_elem();
@@ -118,7 +118,7 @@ static bool init_shaded()
   debugTex = dag::get_tex_gameres(texName, "debug_triplanar_tex");
   if (debugTex.getTexId() == BAD_TEXTUREID)
   {
-    fatal("Couldn't get tex gameres %s", texName);
+    DAG_FATAL("Couldn't get tex gameres %s", texName);
     return false;
   }
 

@@ -1,4 +1,4 @@
-#include "dabuild_exp_plugin_chain.h"
+#include <assets/daBuildExpPluginChain.h>
 #include <util/dag_string.h>
 #include <assets/assetPlugin.h>
 #include <assets/assetExporter.h>
@@ -22,27 +22,12 @@
 #include <util/dag_base32.h>
 #include <math/dag_Point3.h>
 #include "roughnessMipMapping.h"
-
-#if _TARGET_PC_WIN
-#include "ispc_texcomp.h"
-#ifndef _TARGET_EXPORTERS_STATIC
-#include <PVRTexture.h>
-#include <PVRTextureFormat.h>
-
-// Unfortunately, the file <PVRTexture.h> also includes the <crtdbg.h> file,
-// which define the realloc macro in _DEBUG mode,
-// so nv::mem::realloc replacing into nv::mem::_realloc_dbg and is not compiled
-#if defined(_DEBUG) && defined(_CRTDBG_MAP_ALLOC)
-#undef realloc
-#undef free
+#include <ispc_texcomp.h>
+#include <libTools/dtx/astcenc.h>
+#if !_TARGET_STATIC_LIB
+ASTCENC_DECLARE_STATIC_DATA();
 #endif
-
-#undef PVR_DLL
-#define PVR_DLL __cdecl
-#include <PVRTextureUtilities.h>
-#undef PVR_DLL
-#endif
-#endif
+static unsigned astcenc_jobs_limit = 0;
 
 #include <3d/ddsFormat.h>
 #undef ERROR // after #include <supp/_platform.h>
@@ -54,6 +39,7 @@
 #include <math/dag_color.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_cpuJobs.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
 #include <libTools/dtx/makeDDS.h>
@@ -992,7 +978,12 @@ public:
     if (texType == nvtt::TextureType_Cube)
       eff_img_h = eff_img_h / 6;
     else if (texType == nvtt::TextureType_3D)
-      eff_img_h = eff_img_h / GET_PROP(Int, "texDepth", 1);
+    {
+      int d = GET_PROP(Int, "texDepth", 1);
+      eff_img_h = eff_img_h / d;
+      if (mipCnt == -1)
+        mipCnt = max(max(get_log2i(eff_img_w), get_log2i(eff_img_h)), get_log2i(d));
+    }
 
     const char *pow2mode = is_uncompressed_fmt(fmt) && (!is_pow_of2(eff_img_h) || !is_pow_of2(eff_img_w)) ? "none" : "round";
     pow2mode = GET_PROP(Str, "pow2", pow2mode);
@@ -2055,18 +2046,10 @@ public:
       }
     }
 
-#if _TARGET_PC_WIN
     if (bc67_fmt == BC67_FORMAT_BC6H)
       return convert_to_bc6(cwr.getRawWriter(), imgSurf, texType, voltex_depth, quality, outHandler.hqPartLev);
     else if (bc67_fmt == BC67_FORMAT_BC7)
       return convert_to_bc7(cwr.getRawWriter(), imgSurf, texType, voltex_depth, quality, outHandler.hqPartLev);
-#else
-    if (bc67_fmt != BC67_FORMAT_NONE)
-    {
-      log.addMessage(log.ERROR, "%s: format %s not supported", a.getName(), fmt);
-      return false;
-    }
-#endif
     if (tc_format)
     {
       nv::Image *image = imgSurf[0].image.ptr();
@@ -2077,8 +2060,8 @@ public:
       }
       // save_tga32(String(0, "%s-pre.tga", a.getName()),(TexPixel32*)image->pixels(), image->width(), image->height(),
       // image->width()*4);
-      return convert_to_pvrtc(cwr.getRawWriter(), imgSurf, texType, voltex_depth, fabs(gamma - 1.0) < 1e-3, tc_format,
-        GET_PROP(Int, "pvrtcQuality", 1), outHandler.hqPartLev, mipCnt < 0);
+      return convert_to_astc(cwr.getRawWriter(), imgSurf, texType, voltex_depth, fabs(gamma - 1.0) < 1e-3, tc_format,
+        outHandler.hqPartLev, a.getName());
     }
 
     if (texType == nvtt::TextureType_3D)
@@ -2191,7 +2174,6 @@ public:
     return (bw * bh) << 4;
   }
 
-#if _TARGET_PC_WIN
   void chooseBC6HEncodeSettings(bc6h_enc_settings *settings, const char *quality)
   {
     if (strcmp(quality, "") == 0)
@@ -2408,85 +2390,68 @@ public:
     save2DDS(cwr, ttype, w, h / voltex_d, voltex_d, mips, MAKEFOURCC('B', 'C', '7', ' '), packed, hq_part);
     return true;
   }
-#endif
 #ifdef _TARGET_EXPORTERS_STATIC
-  bool convert_to_pvrtc(IGenSave &, dag::ConstSpan<ImageSurface>, nvtt::TextureType, int, bool, unsigned, int, int, bool)
+  bool convert_to_astc(IGenSave &, dag::ConstSpan<ImageSurface>, nvtt::TextureType, int, bool, unsigned, int, const char *)
   {
     return false;
   }
 #else
-  bool convert_to_pvrtc(IGenSave &cwr, dag::ConstSpan<ImageSurface> imgSurf, nvtt::TextureType ttype, int voltex_d, bool gamma1,
-    unsigned tc_format, int pvrtc_quality, int hq_part, bool auto_gen_mips)
+  bool convert_to_astc(IGenSave &cwr, dag::ConstSpan<ImageSurface> imgSurf, nvtt::TextureType ttype, int voltex_d, bool gamma1,
+    unsigned astc_format, int hq_part, const char *a_name)
   {
-#if _TARGET_PC_WIN
-    using namespace pvrtexture;
-
-    Tab<TexPixel32> pix_argb(tmpmem);
     Tab<char> packed(tmpmem);
     int w = imgSurf[0].image->width(), h = imgSurf[0].image->height(), mips = imgSurf[0].imageMips.size() + 1;
-    int target_fmt = 0, fourcc = 0;
-    switch (tc_format)
+    int fourcc = 0, blk_w = 0, blk_h = 0;
+    switch (astc_format)
     {
       case 0x114:
-        target_fmt = ePVRTPF_ASTC_4x4;
         fourcc = MAKEFOURCC('A', 'S', 'T', '4');
+        blk_w = blk_h = 4;
         break;
       case 0x118:
-        target_fmt = ePVRTPF_ASTC_8x8;
         fourcc = MAKEFOURCC('A', 'S', 'T', '8');
+        blk_w = blk_h = 8;
         break;
       case 0x11C:
-        target_fmt = ePVRTPF_ASTC_12x12;
         fourcc = MAKEFOURCC('A', 'S', 'T', 'C');
+        blk_w = blk_h = 12;
         break;
       default: return false;
     }
 
-    {
-      CPVRTextureHeader thdr(PVRStandard8PixelType.PixelTypeID, h, w, 1, mips);
-      CPVRTexture tex(thdr);
-      packed.reserve(tex.getDataSize(PVRTEX_ALLMIPLEVELS) * imgSurf.size());
-    }
+    ASTCEncoderHelperContext astcenc_ctx;
+    if (!astcenc_ctx.prepareTmpFilenames(a_name))
+      return false;
+    packed.reserve(((w + blk_w - 1) / blk_w) * ((h + blk_h - 1) / blk_w) * 16 * 3 / 2);
 
+    String astc_block_str(0, "%dx%d", blk_w, blk_h);
     for (int f = 0; f < imgSurf.size(); f++)
     {
       nv::Image *image = imgSurf[f].image.ptr();
 
-      pix_argb.resize(w * h);
-      for (TexPixel32 *s = (TexPixel32 *)image->pixels(), *se = s + w * h, *d = pix_argb.data(); s < se; s++, d++)
-        d->u = s->r | (unsigned(s->g) << 8) | (unsigned(s->b) << 16) | (unsigned(s->a) << 24);
-
-      CPVRTextureHeader thdr(PVRStandard8PixelType.PixelTypeID, h / voltex_d, w, voltex_d, mips);
-      CPVRTexture tex(thdr);
-      memcpy(tex.getDataPtr(0), pix_argb.data(), data_size(pix_argb));
-      if (!imgSurf[f].imageMips.size() && auto_gen_mips)
-        GenerateMIPMaps(tex, eResizeLinear);
-      else
-        for (int i = 0; i < imgSurf[f].imageMips.size(); i++)
+      for (int y0 = 0, slice_h = h / voltex_d; y0 < h; y0 += slice_h)
+      {
+        if (!astcenc_ctx.writeTga(((TexPixel32 *)image->pixels()) + w * y0, w, slice_h))
+          return false;
+        if (!astcenc_ctx.buildOneSurface(packed, astc_block_str, astcenc_jobs_limit))
+          return false;
+      }
+      for (int i = 0; i < imgSurf[f].imageMips.size(); i++)
+      {
+        nv::Image *mip = imgSurf[f].imageMips[i];
+        int mipw = mip->width(), miph = mip->height();
+        for (int y0 = 0, slice_h = miph / eastl::max(voltex_d >> (i + 1), 1); y0 < miph; y0 += slice_h)
         {
-          nv::Image *mip = imgSurf[f].imageMips[i];
-          TexPixel32 *d = (TexPixel32 *)tex.getDataPtr(i + 1);
-          for (TexPixel32 *s = (TexPixel32 *)mip->pixels(), *se = s + mip->width() * mip->height(); s < se; s++, d++)
-            d->u = s->r | (unsigned(s->g) << 8) | (unsigned(s->b) << 16) | (unsigned(s->a) << 24);
+          if (!astcenc_ctx.writeTga(((TexPixel32 *)mip->pixels()) + mipw * y0, mipw, slice_h))
+            return false;
+          if (!astcenc_ctx.buildOneSurface(packed, astc_block_str, astcenc_jobs_limit))
+            return false;
         }
-
-      if (!Transcode(tex, target_fmt, ePVRTVarTypeUnsignedByteNorm, ePVRTCSpacelRGB)) // gamma1 ? ePVRTCSpacelRGB : ePVRTCSpacesRGB,
-                                                                                      // ePVRTCBest
-        return false;
-
-      if (tex.getHeader().getNumMIPLevels() != mips)
-        return false;
-      for (int j = 0; j < mips; j++)
-        append_items(packed, tex.getDataSize(j), (char *)tex.getDataPtr(j));
+      }
     }
-    clear_and_shrink(pix_argb);
-    packed.shrink_to_fit();
 
     save2DDS(cwr, ttype, w, h / voltex_d, voltex_d, mips, fourcc, packed, hq_part);
     return true;
-#else
-    return false;
-#endif
   }
 #endif
   bool pixelDiffLessThan(nv::AutoPtr<nv::Image> &image, TexPixel32 *base_img, int x0, int y0, E3DCOLOR diff_tolerance)
@@ -2640,6 +2605,7 @@ public:
           for (int j = num_pix; j > 0; j--)
             cwr.writeIntP<2>(to_r8g8(crd.readInt()));
           break;
+        default: return false;
       }
       if (w > 1)
         w >>= 1;
@@ -3535,6 +3501,22 @@ public:
       allowOodlePacking = true;
       debug("texExp allows OODLE");
     }
+
+    ASTCEncoderHelperContext::setupAstcEncExePathname();
+    if (int jobs = appblk.getInt("dabuildJobCount", 0))
+    {
+      unsigned core_count = 0;
+      if (cpujobs::is_inited())
+        core_count = cpujobs::get_core_count();
+      else
+      {
+        cpujobs::init(0, false);
+        core_count = cpujobs::get_core_count();
+        cpujobs::term(true, 0);
+      }
+      astcenc_jobs_limit = core_count / jobs;
+    }
+    DEBUG_DUMP_VAR(astcenc_jobs_limit);
     return true;
   }
   virtual void __stdcall destroy() { delete this; }

@@ -63,7 +63,7 @@ unsigned int ShaderCode::getVertexStride() const
       case SCTYPE_USHORT4N: vertexStride += 8; break;
       case SCTYPE_UDEC3: vertexStride += 4; break;
       case SCTYPE_DEC3N: vertexStride += 4; break;
-      default: fatal("Unknown channel #%d type: 0x%p", channelNo, channel[channelNo].t);
+      default: DAG_FATAL("Unknown channel #%d type: 0x%p", channelNo, channel[channelNo].t);
     }
   }
   return vertexStride;

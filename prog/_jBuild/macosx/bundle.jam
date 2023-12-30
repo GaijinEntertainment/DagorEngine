@@ -146,7 +146,7 @@ rule ProcessBundleCopy
   local dest = $(1[2]) ;
 
   MakeDirectory $(OutDir)/$(dest) : $(OutDir)/$(dest:D) ;
-  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; }
+  if $(SignTarget) { Depends $(SignTarget) : $(OutDir)/$(dest) ; } else { Depends all : $(OutDir)/$(dest) ; }
   Depends $(OutDir)/$(dest) : $(src) ;
   file on $(OutDir)/$(dest) = $(dest) ;
   raw_copy_file $(OutDir)/$(dest) : $(src) ;

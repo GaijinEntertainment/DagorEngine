@@ -8,5 +8,5 @@ void assert_tex_size(Texture *tex, int w, int h)
   TextureInfo ti;
   d3d_err(tex->getinfo(ti));
   if (ti.w != w || ti.h != h)
-    fatal("can't create %dx%d render target (%dx%d created)", w, h, ti.w, ti.h);
+    DAG_FATAL("can't create %dx%d render target (%dx%d created)", w, h, ti.w, ti.h);
 }

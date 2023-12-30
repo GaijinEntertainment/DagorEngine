@@ -172,8 +172,8 @@ public:
       {
         debug("face %d, edge 0: v2_y=%.3f, v0=" FMT_P3 ", v1=" FMT_P3 ", v2=" FMT_P3 " face.v=%d,%d,%d", i, mf[i].e[0].v2_y, P3D(v0),
           P3D(v1), P3D(v2), face[i].v[0], face[i].v[1], face[i].v[2]);
-        // fatal("face %d, edge 0: v2_y=%.3f, v0=" FMT_P3 ", v1=" FMT_P3 ", v2=" FMT_P3 "", i, mf[i].e[0].v2_y, P3D(v0), P3D(v1),
-        // P3D(v2));
+        // DAG_FATAL("face %d, edge 0: v2_y=%.3f, v0=" FMT_P3 ", v1=" FMT_P3 ", v2=" FMT_P3 "",
+        //   i, mf[i].e[0].v2_y, P3D(v0), P3D(v1), P3D(v2));
       }
 
       mf[i].e[1].fIndex = -1;
@@ -186,8 +186,8 @@ public:
       {
         debug("face %d, edge 1: v2_y=%.3f, v0=" FMT_P3 ", v1=" FMT_P3 ", v2=" FMT_P3 " face.v=%d,%d,%d", i, mf[i].e[0].v2_y, P3D(v0),
           P3D(v1), P3D(v2), face[i].v[0], face[i].v[1], face[i].v[2]);
-        // fatal("face %d, edge 1: v2_y=%.3f, v0=" FMT_P3 ", v1=" FMT_P3 ", v2=" FMT_P3 "", i, mf[i].e[0].v2_y, P3D(v0), P3D(v1),
-        // P3D(v2));
+        // DAG_FATAL("face %d, edge 1: v2_y=%.3f, v0=" FMT_P3 ", v1=" FMT_P3 ", v2=" FMT_P3 "",
+        //   i, mf[i].e[0].v2_y, P3D(v0), P3D(v1), P3D(v2));
       }
       mf[i].e[2].fIndex = -1;
       mf[i].e[2].eIndex = -1;
@@ -199,8 +199,8 @@ public:
       {
         debug("face %d, edge 2: v2_y=%.3f, v0=" FMT_P3 ", v1=" FMT_P3 ", v2=" FMT_P3 " face.v=%d,%d,%d", i, mf[i].e[0].v2_y, P3D(v0),
           P3D(v1), P3D(v2), face[i].v[0], face[i].v[1], face[i].v[2]);
-        // fatal("face %d, edge 2: v2_y=%.3f, v0=" FMT_P3 ", v1=" FMT_P3 ", v2=" FMT_P3 "", i, mf[i].e[0].v2_y, P3D(v0), P3D(v1),
-        // P3D(v2));
+        // DAG_FATAL("face %d, edge 2: v2_y=%.3f, v0=" FMT_P3 ", v1=" FMT_P3 ", v2=" FMT_P3 "",
+        //   i, mf[i].e[0].v2_y, P3D(v0), P3D(v1), P3D(v2));
       }
 
       mf[i].av_len = (mf[i].e[0].len + mf[i].e[1].len + mf[i].e[2].len) / 3;
@@ -496,7 +496,7 @@ protected:
   {
     moe.clear();
     if (fi < 0 || fi >= mf.size() || (mf[fi].flags & MUFF_INVALID))
-      fatal("IN contract failed in MU_StartFromFace, fi=%d, facenum=%d", fi, mf.size());
+      DAG_FATAL("IN contract failed in MU_StartFromFace, fi=%d, facenum=%d", fi, mf.size());
     MU_Face &f = mf[fi];
 
     Point2 v0, v1, v2;
@@ -633,7 +633,7 @@ protected:
     }
 
     if (!g.faces.size())
-      fatal("faces count = 0");
+      DAG_FATAL("faces count = 0");
     g.tfaces.resize(g.faces.size());
     for (i = 0; i < g.faces.size(); i++)
     {

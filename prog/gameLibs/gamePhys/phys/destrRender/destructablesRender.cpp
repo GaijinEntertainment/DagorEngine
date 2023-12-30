@@ -8,12 +8,22 @@
 #include <gamePhys/phys/destructableObject.h>
 #include <math/dag_frustum.h>
 
-void destructables::before_render(const Point3 &view_pos)
+void destructables::before_render(const Point3 &view_pos, bool has_motion_vectors)
 {
   for (const auto destr : destructables::getDestructableObjects())
   {
     if (destr->isAlive())
+    {
       destr->physObj->beforeRender(view_pos);
+      if (has_motion_vectors)
+      {
+        for (const DestrRendData::RendData &rdata : destr->rendData->rendData)
+        {
+          if (rdata.inst)
+            rdata.inst->savePrevNodeWtm();
+        }
+      }
+    }
   }
 }
 

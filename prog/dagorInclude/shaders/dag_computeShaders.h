@@ -10,6 +10,7 @@
 #include <generic/dag_DObject.h>
 #include <memory/dag_mem.h>
 #include <EASTL/array.h>
+#include <EASTL/unique_ptr.h>
 
 class ScriptedShaderMaterial;
 class ScriptedShaderElement;
@@ -58,3 +59,16 @@ protected:
 
 
 ComputeShaderElement *new_compute_shader(const char *shader_name, bool optional = false);
+
+class ComputeShader
+{
+  eastl::unique_ptr<ComputeShaderElement> elem;
+
+public:
+  ComputeShader() = default;
+  ComputeShader(const char *shader_name) : elem(shader_name ? new_compute_shader(shader_name) : nullptr) {}
+  bool dispatchThreads(int threads_x, int threads_y, int threads_z) const
+  {
+    return elem->dispatchThreads(threads_x, threads_y, threads_z);
+  }
+};

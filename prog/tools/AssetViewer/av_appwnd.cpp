@@ -6,8 +6,6 @@
 #include "av_cm.h"
 #include "av_viewportWindow.h"
 
-#include "editableShader.h"
-
 #include "assetUserFlags.h"
 #include "assetBuildCache.h"
 #include "badRefFinder.h"
@@ -317,8 +315,6 @@ AssetViewerApp::~AssetViewerApp()
   ged.curEH = NULL;
   ged.setEH(appEH);
 
-  shutdown_editable_shader();
-
   mManager->unregisterWindowHandler(this);
 
   ::set_global_tex_name_resolver(NULL);
@@ -345,7 +341,7 @@ void AssetViewerApp::init()
   p2util::set_icon_path(imgPath.str());
   p2util::set_main_parent_handle(mManager->getMainWindow());
 
-  __super::init();
+  GenericEditorAppWindow::init();
 
   IGenViewportWnd *curVP = ged.getViewport(0);
   if (curVP)
@@ -381,9 +377,6 @@ void AssetViewerApp::init()
 
   mManager->addAccelerator(CM_UNDO, 'Z', true);
   mManager->addAccelerator(CM_REDO, 'Y', true);
-
-
-  init_editable_shader();
 }
 
 

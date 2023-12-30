@@ -10,7 +10,7 @@ Constants, Enumerations, Global variables
 
 
 
-daScript allows you to bind constant values to a global variable identifier.
+Daslang allows you to bind constant values to a global variable identifier.
 Whenever possible, all constant global variables will be evaluated at compile time.
 There are also enumerations, which are strongly typed constant collections similar to enum classes in C++.
 

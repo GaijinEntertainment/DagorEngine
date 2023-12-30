@@ -326,6 +326,7 @@ WMultiSelListBox::WMultiSelListBox(WindowControlEventHandler *event_handler, Win
   UpdateWindow((HWND)this->getHandle());
   this->setFont(WindowBase::getSmallPrettyFont());
   this->setStrings(vals);
+  this->resizeWindow(w, h);
 }
 
 

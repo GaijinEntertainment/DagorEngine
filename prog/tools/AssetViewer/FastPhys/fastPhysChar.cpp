@@ -41,7 +41,7 @@ void FastPhysCharRoot::updateNodeTm()
 
 bool FastPhysCharRoot::setPos(const Point3 &p)
 {
-  __super::setPos(p);
+  RenderableEditableObject::setPos(p);
   updateNodeTm();
   return true;
 }
@@ -49,13 +49,13 @@ bool FastPhysCharRoot::setPos(const Point3 &p)
 
 void FastPhysCharRoot::setMatrix(const Matrix3 &tm)
 {
-  __super::setMatrix(tm);
+  RenderableEditableObject::setMatrix(tm);
   updateNodeTm();
 }
 
 void FastPhysCharRoot::setWtm(const TMatrix &wtm)
 {
-  __super::setWtm(wtm);
+  RenderableEditableObject::setWtm(wtm);
   updateNodeTm();
 }
 

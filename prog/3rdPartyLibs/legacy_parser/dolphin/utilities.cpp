@@ -81,7 +81,7 @@ const char *printable_increment(int x)
 	if(x<0)
 		sprintf(buf, "%d", x);
 	else if(x==0)
-		sprintf(buf, "");
+		strcpy(buf, "");
 	else if(x>0)
 		sprintf(buf, "+%u", x);
 	else

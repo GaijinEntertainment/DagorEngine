@@ -62,4 +62,13 @@ void was_initialized_externally(bool value)
 }
 
 
+void set_requests_limit(uint32_t limit)
+{
+  G_UNUSED(limit);
+#if defined(USE_XCURL)
+  xcurl_global_set_request_limit(limit);
+  TRACE("XCurl requests limit was set to: %u", limit);
+#endif
+}
+
 } // namespace curl_global

@@ -30,19 +30,19 @@ let defStyling = {
 }
 
 
-let function resolveBarClass(bar, has_scroll) {
+function resolveBarClass(bar, has_scroll) {
   if (type(bar) == "function") {
     return bar(has_scroll)
   }
   return bar
 }
 
-let function calcBarSize(bar_class, axis) {
+function calcBarSize(bar_class, axis) {
   return axis == 0 ? [flex(), bar_class._height] : [bar_class._width, flex()]
 }
 
 
-let function scrollbar(scroll_handler, options={}) {
+function scrollbar(scroll_handler, options={}) {
   let stateFlags = Watched(0)
   let styling   = options?.styling ?? defStyling
   let barClass  = options?.barStyle ?? styling.Bar
@@ -152,7 +152,7 @@ let DEF_SIDE_SCROLL_OPTIONS = { //const
   joystickScroll = true
 }
 
-let function makeSideScroll(content, options = DEF_SIDE_SCROLL_OPTIONS) {
+function makeSideScroll(content, options = DEF_SIDE_SCROLL_OPTIONS) {
   options = DEF_SIDE_SCROLL_OPTIONS.__merge(options)
 
   let styling = options.styling
@@ -160,7 +160,7 @@ let function makeSideScroll(content, options = DEF_SIDE_SCROLL_OPTIONS) {
   let rootBase = options.rootBase ?? styling.ContentRoot
   let scrollAlign = options.scrollAlign
 
-  let function contentRoot() {
+  function contentRoot() {
     local bhv = rootBase?.behavior ?? []
     if (typeof(bhv) != "array")
       bhv = [bhv]
@@ -197,12 +197,12 @@ let function makeSideScroll(content, options = DEF_SIDE_SCROLL_OPTIONS) {
 }
 
 
-let function makeHVScrolls(content, options={}) {
+function makeHVScrolls(content, options={}) {
   let styling = options?.styling ?? defStyling
   let scrollHandler = options?.scrollHandler ?? ScrollHandler()
   let rootBase = options?.rootBase ?? styling.ContentRoot
 
-  let function contentRoot() {
+  function contentRoot() {
     local bhv = rootBase?.behavior ?? []
     if (typeof(bhv)!="array")
       bhv = [bhv]
@@ -239,7 +239,7 @@ let function makeHVScrolls(content, options={}) {
 }
 
 
-let function makeVertScroll(content, options={}) {
+function makeVertScroll(content, options={}) {
   let o = clone options
   o.orientation <- O_VERTICAL
   o.scrollAlign <- o?.scrollAlign ?? ALIGN_RIGHT
@@ -247,7 +247,7 @@ let function makeVertScroll(content, options={}) {
 }
 
 
-let function makeHorizScroll(content, options={}) {
+function makeHorizScroll(content, options={}) {
   let o = clone options
   o.orientation <- O_HORIZONTAL
   o.scrollAlign <- o?.scrollAlign ?? ALIGN_BOTTOM

@@ -147,8 +147,12 @@ float calc_approx_path_length(dtNavMeshQuery *nav_query, FindRequest &req, const
 
 bool traceray_navmesh(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, Point3 &out_pos,
   const CustomNav *custom_nav = nullptr);
+bool traceray_navmesh(const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents, Point3 &out_pos, dtPolyRef &out_poly,
+  const CustomNav *custom_nav = nullptr);
 bool traceray_navmesh(dtNavMeshQuery *nav_query, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
   const NavParams &nav_params, Point3 &out_pos, const CustomNav *custom_nav = nullptr);
+bool traceray_navmesh(dtNavMeshQuery *nav_query, const Point3 &start_pos, const Point3 &end_pos, const Point3 &extents,
+  const NavParams &nav_params, Point3 &out_pos, dtPolyRef &out_poly, const CustomNav *custom_nav = nullptr);
 bool project_to_nearest_navmesh_point_ref(Point3 &pos, const Point3 &extents, dtPolyRef &nearestPoly);
 bool project_to_nearest_navmesh_point(Point3 &pos, const Point3 &extents, const CustomNav *custom_nav = nullptr);
 bool project_to_nearest_navmesh_point(Point3 &pos, float horz_extents, const CustomNav *custom_nav = nullptr);
@@ -156,6 +160,8 @@ bool project_to_nearest_navmesh_point_no_obstacles(Point3 &pos, const Point3 &ex
 bool navmesh_point_has_obstacle(const Point3 &pos, const CustomNav *custom_nav = nullptr);
 bool query_navmesh_projections(const Point3 &pos, const Point3 &extents, Tab<Point3> &projections, int points_num = 8,
   const CustomNav *custom_nav = nullptr);
+bool query_navmesh_projections(const Point3 &pos, const Point3 &extents, Tab<Point3> &projections, Tab<dtPolyRef> &out_polys,
+  int points_num = 8, const CustomNav *custom_nav = nullptr);
 float get_distance_to_wall(const Point3 &pos, float horz_extents, float search_rad, const CustomNav *custom_nav = nullptr);
 float get_distance_to_wall(const Point3 &pos, float horz_extents, float search_rad, Point3 &hit_norm,
   const CustomNav *custom_nav = nullptr);

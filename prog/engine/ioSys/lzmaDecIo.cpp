@@ -55,7 +55,7 @@ inline int LzmaLoadCB::tryReadImpl(void *ptr, int _size)
 
     if (err != SZ_OK)
     {
-      fatal("7zip error %d in %s\nsource: '%s'\n", err, "LzmaDec_Allocate", getTargetName());
+      DAG_FATAL("7zip error %d in %s\nsource: '%s'\n", err, "LzmaDec_Allocate", getTargetName());
 #if _TARGET_PC
       RETURN_X_AFTER_FATAL(0);
 #endif
@@ -78,7 +78,7 @@ inline int LzmaLoadCB::tryReadImpl(void *ptr, int _size)
     if (res != SZ_OK)
     {
       outProcessed = inProcessed = 0;
-      fatal("7zip error %d status %d in %s\nsource: '%s'\n", res, status, "LzmaDec_DecodeToBuf", getTargetName());
+      DAG_FATAL("7zip error %d status %d in %s\nsource: '%s'\n", res, status, "LzmaDec_DecodeToBuf", getTargetName());
 #if _TARGET_PC
       RETURN_X_AFTER_FATAL(0);
 #endif

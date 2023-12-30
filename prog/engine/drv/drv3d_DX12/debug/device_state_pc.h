@@ -53,11 +53,18 @@ public:
   void captureNextFrames(const wchar_t *filename, int count);
   void handlePresentToPresentCapture();
   void sendGPUCrashDump(const char *type, const void *data, uintptr_t size);
-  void processDebugLog();
+  void processDebugLog()
+  {
+    if (DAGOR_UNLIKELY(debugQueue))
+      processDebugLogImpl();
+  }
 
   using event_marker::Tracker::currentEvent;
   using event_marker::Tracker::currentEventPath;
   using event_marker::Tracker::currentMarker;
+
+private:
+  void processDebugLogImpl();
 };
 } // namespace pc
 } // namespace debug

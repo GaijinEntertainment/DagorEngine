@@ -110,5 +110,5 @@ public:
   int getPoints(FpdPoint *&p1, FpdPoint *&p2, IFpdExport &exp) const;
   int getPointsLd(FpdPoint *&p1, FpdPoint *&p2, IFpdLoad &ld) const;
 
-  virtual bool isSubOf(DClassID id) { return id == FpdBone::HUID || __super::isSubOf(id); }
+  virtual bool isSubOf(DClassID id) { return id == FpdBone::HUID || FpdObject::isSubOf(id); }
 };

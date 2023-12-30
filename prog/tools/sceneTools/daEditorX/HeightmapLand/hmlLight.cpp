@@ -353,14 +353,14 @@ void SphereLightObject::load(const DataBlock &blk)
   propsChanged();
 }
 
-void SphereLightObject::setWtm(const TMatrix &wtm) { __super::setWtm(wtm); }
+void SphereLightObject::setWtm(const TMatrix &wtm) { RenderableEditableObject::setWtm(wtm); }
 
 void SphereLightObject::onRemove(ObjectEditor *) {}
 void SphereLightObject::onAdd(ObjectEditor *objEditor) { propsChanged(); }
 
 bool SphereLightObject::setPos(const Point3 &p)
 {
-  if (!__super::setPos(p))
+  if (!RenderableEditableObject::setPos(p))
     return false;
   return true;
 }
@@ -385,7 +385,7 @@ void SphereLightObject::putMoveUndo()
 {
   HmapLandObjectEditor *ed = (HmapLandObjectEditor *)getObjEditor();
   if (!ed->isCloneMode())
-    __super::putMoveUndo();
+    RenderableEditableObject::putMoveUndo();
 }
 
 void SphereLightObject::buildGeom()

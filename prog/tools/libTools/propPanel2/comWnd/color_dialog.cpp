@@ -228,7 +228,7 @@ void ColorDialog::show()
 {
   autoSize();
 
-  __super::show();
+  CDialogWindow::show();
 }
 
 

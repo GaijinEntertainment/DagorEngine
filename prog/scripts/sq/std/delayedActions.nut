@@ -14,7 +14,7 @@ let {add_cycle_action} = require("dagor.workcycle")
 let delayedActionsList = persist("delayedActionsList", @() [])
 local instantActionsList = persist("instantActionsList", @() [])
 
-let function runDelayedActions() {
+function runDelayedActions() {
   if (delayedActionsList.len() == 0)
     return
 
@@ -36,7 +36,7 @@ let function runDelayedActions() {
     action()
 }
 
-let function runInstantActions() {
+function runInstantActions() {
   if (instantActionsList.len() == 0)
     return
 
@@ -47,7 +47,7 @@ let function runInstantActions() {
     action()
 }
 
-let function addDelayedAction(action, delay_ms) {
+function addDelayedAction(action, delay_ms) {
   if (delay_ms > 0) {
     let callTime = get_time_msec() + delay_ms
     delayedActionsList.append({action = action, time = callTime})

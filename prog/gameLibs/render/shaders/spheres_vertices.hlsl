@@ -8,4 +8,9 @@ float3 get_sphere_vertex_pos(uint vertex_id)
   return get_general_sphere_vertex_pos(vertex_id, SPHERE_SLICES, SPHERE_STACKS);
 }
 
+float3 get_sphere_vertex_pos_low(uint vertex_id)
+{
+  return get_general_sphere_vertex_pos(vertex_id, LOW_SPHERE_SLICES, LOW_SPHERE_STACKS);
+}
+
 #endif

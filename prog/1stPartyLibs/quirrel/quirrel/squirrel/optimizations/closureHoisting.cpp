@@ -95,7 +95,7 @@ int ClosureHoistingOpt::computeScopes(RootBlock *root) {
   return std::max(scopeComputer.maxFrameSize, rootScope->symbols.size());
 }
 
-int ClosureHoistingOpt::findCantidates(RootBlock *root) {
+int ClosureHoistingOpt::findCandidates(RootBlock *root) {
   CandidateCounterVisitor visitor(scopeMap, &arena);
 
   root->visit(&visitor);
@@ -404,7 +404,7 @@ void ClosureHoistingOpt::run(RootBlock *root, const char *fname) {
     int maxFrameSize = computeScopes(root);
 
     // 2. Second once we have scope info we could figure out what closures could be hoistied. Do that.
-    int numOfCandidates = findCantidates(root);
+    int numOfCandidates = findCandidates(root);
 
     // 2.1 If no candidates found - finish
     // 2.2 If after hoisting the total number of locals exceeds 256 skip optimization since that code become uncompilable

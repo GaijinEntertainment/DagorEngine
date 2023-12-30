@@ -95,7 +95,7 @@ struct alignas(16) ArchetypesQuery
 
   size_t memUsage() const;
 
-  const uint32_t getQueriesCount() const { return queriesCount; }
+  uint32_t getQueriesCount() const { return queriesCount; }
 
   static constexpr int inplace_offsets_count_bits = 4; // 1<<bits max, and 0 is impossible, so we check bits for cnt-1
   static __forceinline bool isInplaceOffsets(int cnt) { return ((cnt - 1) >> inplace_offsets_count_bits) == 0; }
@@ -105,7 +105,7 @@ struct alignas(16) ArchetypesQuery
   static __forceinline bool isInplaceQueries(int cnt) { return (cnt >> inplace_arch_count_bits) == 0; }
 
   __forceinline bool isInplaceQueries() const { return isInplaceQueries(queriesCount); }
-  const uint32_t getAllComponentsArchOffsetsCount() const { return getQueriesCount() * getComponentsCount(); }
+  uint32_t getAllComponentsArchOffsetsCount() const { return getQueriesCount() * getComponentsCount(); }
 
   __forceinline archetype_t *queriesInplace() { return &firstArch; }
   __forceinline const archetype_t *queriesInplace() const { return &firstArch; }
@@ -212,11 +212,11 @@ public:
   Range getRQ() const { return Range{uint16_t(rwCnt + roCnt), rqCnt}; }
   Range getRO() const { return Range{rwCnt, roCnt}; }
   Range getRW() const { return Range{0, rwCnt}; }
-  const uint16_t getNoStart() const { return uint16_t(rwCnt + roCnt + rqCnt); }
-  const uint8_t getNoCnt() const { return uint8_t(components.size() - getNoStart()); }
-  const uint8_t getRqCnt() const { return rqCnt; }
-  const uint8_t getRwCnt() const { return rwCnt; }
-  const uint8_t getRoCnt() const { return roCnt; }
+  uint16_t getNoStart() const { return uint16_t(rwCnt + roCnt + rqCnt); }
+  uint8_t getNoCnt() const { return uint8_t(components.size() - getNoStart()); }
+  uint8_t getRqCnt() const { return rqCnt; }
+  uint8_t getRwCnt() const { return rwCnt; }
+  uint8_t getRoCnt() const { return roCnt; }
   uint8_t &getRqCnt() { return rqCnt; }
   uint8_t &getRwCnt() { return rwCnt; }
   uint8_t &getRoCnt() { return roCnt; }

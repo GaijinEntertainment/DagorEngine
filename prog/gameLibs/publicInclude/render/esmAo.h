@@ -36,6 +36,8 @@ public:
   void addDecal(int tex_id, const Point3 &pos, const Point3 &up, const Point3 &frustum_dir, const Point3 &frustum_size);
   void applyAoDecals(int target_width, int target_height, const Point3 &view_pos);
 
+  ShaderElement *getShader() const { return esmShadows.getShader(); }
+
 private:
   TMatrix getInvViewTm(const Point3 &center, const Point3 &up, const Point3 &frustum_dir);
   TMatrix getProjTm(const Point3 &frustum_size);

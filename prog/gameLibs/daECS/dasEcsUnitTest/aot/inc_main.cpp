@@ -57,7 +57,7 @@ int DagorWinMain(bool debugmode)
   dgs_report_fatal_error = stderr_report_fatal_error;
   if (dgs_argc < 3)
   {
-    debug("dasAot <in_script.das> <out_script.das.cpp> [-q] [-j] -- [--config aot_config.blk]\n");
+    ::debug("dasAot <in_script.das> <out_script.das.cpp> [-q] [-j] -- [--config aot_config.blk]\n");
     return -1;
   }
   debug_set_log_callback(&log_callback);
@@ -95,7 +95,7 @@ int DagorWinMain(bool debugmode)
       }
       else
       {
-        fatal("config path expected\n");
+        DAG_FATAL("config path expected\n");
         return -1;
       }
     }

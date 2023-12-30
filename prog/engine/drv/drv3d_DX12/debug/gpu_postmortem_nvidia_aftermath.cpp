@@ -328,7 +328,7 @@ public:
 template <typename T>
 void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t size, time_t time_stamp, bool manually_send)
 {
-  debug("DX12: Preparing to send GPU dump...");
+  logdbg("DX12: Preparing to send GPU dump...");
   Json::Value meta;
   // we may support vulkan in the future, so reporting which api the error occurred is useful
   meta["api"] = "DX12";
@@ -359,9 +359,9 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
       meta["was-adapter-reset"] = deviceInfo->adapterReset;
       meta["was-engine-reset"] = deviceInfo->engineReset;
 
-      debug("DX12: Device status %u - %s...", deviceInfo->status, to_string(deviceInfo->status));
-      debug("DX12: Was adapter reset %s...", deviceInfo->adapterReset ? "Yes" : "No");
-      debug("DX12: Was engine reset %s...", deviceInfo->engineReset ? "Yes" : "No");
+      logdbg("DX12: Device status %u - %s...", deviceInfo->status, to_string(deviceInfo->status));
+      logdbg("DX12: Was adapter reset %s...", deviceInfo->adapterReset ? "Yes" : "No");
+      logdbg("DX12: Was engine reset %s...", deviceInfo->engineReset ? "Yes" : "No");
     }
 
     if (auto systemInfo = ctx.getSystemInfo())
@@ -373,8 +373,8 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
       _snprintf(vstring, sizeof(vstring), "%d.%02d", systemInfo->displayDriver.major, systemInfo->displayDriver.minor);
       meta["driver-version"] = vstring;
 
-      debug("DX12: OS version %u...", systemInfo->osVersion);
-      debug("DX12: Driver version %s...", vstring);
+      logdbg("DX12: OS version %u...", systemInfo->osVersion);
+      logdbg("DX12: Driver version %s...", vstring);
     }
 
     uint32_t gpuInfoCount = ctx.forEachGPUInfo([&meta](uint32_t index, auto &info) {
@@ -388,9 +388,9 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
       _snprintf(keyName, sizeof(keyName), "gpu-LUID-%u", index);
       meta[keyName] = info.adapterLUID;
 
-      debug("DX12: GPU %u name %s...", index, info.adapterName);
-      debug("DX12: GPU %u generation name %s...", index, info.generationName);
-      debug("DX12: GPU %u LUID %s...", index, info.adapterLUID);
+      logdbg("DX12: GPU %u name %s...", index, info.adapterName);
+      logdbg("DX12: GPU %u generation name %s...", index, info.generationName);
+      logdbg("DX12: GPU %u LUID %s...", index, info.adapterLUID);
     });
     meta["gpu-count"] = gpuInfoCount;
 
@@ -402,11 +402,11 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
       meta["page-fault-engine"] = to_string(pageFaultInfo->engine);
       meta["page-fault-client"] = to_string(pageFaultInfo->client);
 
-      debug("DX12: GPU page fault address %016X", pageFaultInfo->faultingGpuVA);
-      debug("DX12: GPU page fault type %s", to_string(pageFaultInfo->faultType));
-      debug("DX12: GPU page fault access type %s", to_string(pageFaultInfo->accessType));
-      debug("DX12: GPU page engine %s", to_string(pageFaultInfo->engine));
-      debug("DX12: GPU page client %s", to_string(pageFaultInfo->client));
+      logdbg("DX12: GPU page fault address %016X", pageFaultInfo->faultingGpuVA);
+      logdbg("DX12: GPU page fault type %s", to_string(pageFaultInfo->faultType));
+      logdbg("DX12: GPU page fault access type %s", to_string(pageFaultInfo->accessType));
+      logdbg("DX12: GPU page engine %s", to_string(pageFaultInfo->engine));
+      logdbg("DX12: GPU page client %s", to_string(pageFaultInfo->client));
       if (pageFaultInfo->bHasResourceInfo)
       {
         meta["page-fault-resource-virtual-gpu-address"] = pageFaultInfo->resourceInfo.gpuVa;
@@ -425,25 +425,25 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
         meta["page-fault-resource-was-destroyed"] = pageFaultInfo->resourceInfo.bWasDestroyed;
         meta["page-fault-resource-create-destroy-tick-count"] = pageFaultInfo->resourceInfo.createDestroyTickCount;
 
-        debug("DX12: Resource address %016X", pageFaultInfo->resourceInfo.gpuVa);
-        debug("DX12: Resource size %u", pageFaultInfo->resourceInfo.size);
-        debug("DX12: Resource width %u", pageFaultInfo->resourceInfo.width);
-        debug("DX12: Resource height %u", pageFaultInfo->resourceInfo.height);
-        debug("DX12: Resource depth %u", pageFaultInfo->resourceInfo.depth);
-        debug("DX12: Resource mip levels %u", pageFaultInfo->resourceInfo.mipLevels);
-        debug("DX12: Resource format id %u", pageFaultInfo->resourceInfo.format);
-        debug("DX12: Resource DXGI format %s", dxgi_format_name(static_cast<DXGI_FORMAT>(pageFaultInfo->resourceInfo.format)));
-        debug("DX12: Resource is BufferHeap %s", pageFaultInfo->resourceInfo.bIsBufferHeap ? "Yes" : "NO");
-        debug("DX12: Resource is StaticTextureHeap", pageFaultInfo->resourceInfo.bIsStaticTextureHeap ? "Yes" : "No");
-        debug("DX12: Resource is RenderTargetViewHeap or DepthStencilViewHeap",
+        logdbg("DX12: Resource address %016X", pageFaultInfo->resourceInfo.gpuVa);
+        logdbg("DX12: Resource size %u", pageFaultInfo->resourceInfo.size);
+        logdbg("DX12: Resource width %u", pageFaultInfo->resourceInfo.width);
+        logdbg("DX12: Resource height %u", pageFaultInfo->resourceInfo.height);
+        logdbg("DX12: Resource depth %u", pageFaultInfo->resourceInfo.depth);
+        logdbg("DX12: Resource mip levels %u", pageFaultInfo->resourceInfo.mipLevels);
+        logdbg("DX12: Resource format id %u", pageFaultInfo->resourceInfo.format);
+        logdbg("DX12: Resource DXGI format %s", dxgi_format_name(static_cast<DXGI_FORMAT>(pageFaultInfo->resourceInfo.format)));
+        logdbg("DX12: Resource is BufferHeap %s", pageFaultInfo->resourceInfo.bIsBufferHeap ? "Yes" : "NO");
+        logdbg("DX12: Resource is StaticTextureHeap", pageFaultInfo->resourceInfo.bIsStaticTextureHeap ? "Yes" : "No");
+        logdbg("DX12: Resource is RenderTargetViewHeap or DepthStencilViewHeap",
           pageFaultInfo->resourceInfo.bIsRenderTargetOrDepthStencilViewHeap ? "Yes" : "No");
-        debug("DX12: Resource is PlacedResource %s", pageFaultInfo->resourceInfo.bPlacedResource ? "Yes" : "No");
-        debug("DX12: Resource wasDestroyed %s", pageFaultInfo->resourceInfo.bWasDestroyed ? "Yes" : "No");
-        debug("DX12: Resource create destroy tick count", pageFaultInfo->resourceInfo.createDestroyTickCount);
+        logdbg("DX12: Resource is PlacedResource %s", pageFaultInfo->resourceInfo.bPlacedResource ? "Yes" : "No");
+        logdbg("DX12: Resource wasDestroyed %s", pageFaultInfo->resourceInfo.bWasDestroyed ? "Yes" : "No");
+        logdbg("DX12: Resource create destroy tick count", pageFaultInfo->resourceInfo.createDestroyTickCount);
       }
       else
       {
-        debug("DX12: No resource info available...");
+        logdbg("DX12: No resource info available...");
       }
     }
 
@@ -464,10 +464,10 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
       _snprintf(keyName, sizeof(keyName), "shader-type-%u", index);
       meta[keyName] = to_string(info.shaderType);
 
-      debug("DX12: Shader %u hash %016X", index, info.shaderHash);
-      debug("DX12: Shader %u instance %u", index, info.shaderInstance);
-      debug("DX12: Shader %u is internal %s", index, info.isInternal ? "Yes" : "No");
-      debug("DX12: Shader %u shader type %u %u", index, info.shaderType, to_string(info.shaderType));
+      logdbg("DX12: Shader %u hash %016X", index, info.shaderHash);
+      logdbg("DX12: Shader %u instance %u", index, info.shaderInstance);
+      logdbg("DX12: Shader %u is internal %s", index, info.isInternal ? "Yes" : "No");
+      logdbg("DX12: Shader %u shader type %u %u", index, info.shaderType, to_string(info.shaderType));
     });
     meta["shader-count"] = shaderCount;
 
@@ -486,9 +486,9 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
       auto cp = (const char *)info.markerData;
       meta[keyName] = {cp, cp + info.markerDataSize};
 
-      debug("DX12: Event marker %u context id %u", index, info.contextId);
-      debug("DX12: Event marker %u context status %s", index, to_string(info.contextStatus));
-      debug("DX12: Event marker %u '%s'", index, eastl::string_view(cp, info.markerDataSize));
+      logdbg("DX12: Event marker %u context id %u", index, info.contextId);
+      logdbg("DX12: Event marker %u context status %s", index, to_string(info.contextStatus));
+      logdbg("DX12: Event marker %u '%s'", index, eastl::string_view(cp, info.markerDataSize));
     });
     meta["event-marker-count"] = eventMarkerCount;
   }
@@ -506,7 +506,7 @@ LibPointer debug::gpu_postmortem::nvidia::Aftermath::try_load_library()
 #else
     "GFSDK_2022.2.0.22145\\GFSDK_Aftermath_Lib.x86.dll";
 #endif
-  debug("DX12: ...loading '%s'...", libName);
+  logdbg("DX12: ...loading '%s'...", libName);
   return {LoadLibraryA(libName), {}};
 }
 
@@ -559,14 +559,14 @@ debug::gpu_postmortem::nvidia::Aftermath::ApiTable debug::gpu_postmortem::nvidia
 
 bool debug::gpu_postmortem::nvidia::Aftermath::tryEnableDumps()
 {
-  debug("DX12: ...enabling GPU crash dumps...");
+  logdbg("DX12: ...enabling GPU crash dumps...");
   // let Aftermath store data that might be needed for dumps
   auto result = api.enableGpuCrashDumps(GFSDK_Aftermath_Version_API, GFSDK_Aftermath_GpuCrashDumpWatchedApiFlags_DX,
     GFSDK_Aftermath_GpuCrashDumpFeatureFlags_DeferDebugInfoCallbacks, &onCrashDumpGenerateProxy, &onShaderDebugInfoProxy,
     &onCrashDumpDescriptionProxy, &onResolveMarkerCallbackProxy, this);
   if (GFSDK_Aftermath_Result_Success != result)
   {
-    debug("DX12: ...failed with %s...", to_string(result));
+    logdbg("DX12: ...failed with %s...", to_string(result));
     // indicated dumps are not active
     api.disableGpuCrashDumps = nullptr;
     return false;
@@ -582,7 +582,7 @@ void debug::gpu_postmortem::nvidia::Aftermath::onCrashDumpGenerate(const void *d
   // same format as regular program crash dumps, just with .nv-gpudmp extension which can be opened with NVIDIA Nsight Graphics
   _snprintf(path, sizeof(path), "%scrashDump-%.02d.%.02d.%.02d.nv-gpudmp", get_log_directory(), time->tm_hour, time->tm_min,
     time->tm_sec);
-  debug("DX12: Trying to write GPU crash dump to '%s'...", path);
+  logdbg("DX12: Trying to write GPU crash dump to '%s'...", path);
   auto file = fopen(path, "wb");
   if (!file)
   {
@@ -591,13 +591,13 @@ void debug::gpu_postmortem::nvidia::Aftermath::onCrashDumpGenerate(const void *d
   }
   fwrite(dump, 1, size, file);
   fclose(file);
-  debug("DX12: ...finished");
+  logdbg("DX12: ...finished");
 
   WinAutoLock lock{crashWriteMutex};
-  debug("DX12: Added GPU crash dump to crash report file...");
+  logdbg("DX12: Added GPU crash dump to crash report file...");
   breakpad::add_file_to_report(path);
 
-  debug("DX12: Preparing to send GPU dump...");
+  logdbg("DX12: Preparing to send GPU dump...");
   AftermathCrashDumpDecoder<decltype(api.crashDump)> crashDumpDecoder{api.crashDump, dump, size};
   send_dump_context(&crashDumpDecoder, dump, "nv-gpudmp", size, rawTime, manually_send);
 }
@@ -609,7 +609,7 @@ void debug::gpu_postmortem::nvidia::Aftermath::onShaderDebugInfo(const void *dum
   auto rawTime = time(nullptr);
   char path[DAGOR_MAX_PATH];
   _snprintf(path, sizeof(path), "%sshader-%016I64x-%016I64x.nvdbg", get_log_directory(), ident.id[0], ident.id[1]);
-  debug("DX12: Trying to write shader debug info to '%s'...", path);
+  logdbg("DX12: Trying to write shader debug info to '%s'...", path);
   auto file = fopen(path, "wb");
   if (!file)
   {
@@ -618,13 +618,13 @@ void debug::gpu_postmortem::nvidia::Aftermath::onShaderDebugInfo(const void *dum
   }
   fwrite(dump, 1, size, file);
   fclose(file);
-  debug("DX12: ...finished");
+  logdbg("DX12: ...finished");
 
   WinAutoLock lock{crashWriteMutex};
-  debug("DX12: Added shader debug info to crash report file...");
+  logdbg("DX12: Added shader debug info to crash report file...");
   breakpad::add_file_to_report(path);
 
-  debug("DX12: Preparing to send shader debug info...");
+  logdbg("DX12: Preparing to send shader debug info...");
   send_dump_context<AftermathCrashDumpDecoder<decltype(api.crashDump)>>(nullptr, dump, "nvdbg", size, rawTime, false);
 }
 
@@ -757,12 +757,12 @@ void debug::gpu_postmortem::nvidia::Aftermath::onDeviceRemoved(D3DDevice *, HRES
     return;
   }
 
-  debug("DX12: Checking for NVIDIA Aftermath crash dumps...");
+  logdbg("DX12: Checking for NVIDIA Aftermath crash dumps...");
   GFSDK_Aftermath_CrashDump_Status crashDumpStatus = GFSDK_Aftermath_CrashDump_Status_Unknown;
   AFTHERMATH_CALL(api.getCrashDumpStatus(&crashDumpStatus));
   if (GFSDK_Aftermath_CrashDump_Status_NotStarted == crashDumpStatus)
   {
-    debug("DX12: ...reported no crash dump was generated");
+    logdbg("DX12: ...reported no crash dump was generated");
     return;
   }
 
@@ -778,24 +778,24 @@ void debug::gpu_postmortem::nvidia::Aftermath::onDeviceRemoved(D3DDevice *, HRES
     AFTHERMATH_CALL(api.getCrashDumpStatus(&crashDumpStatus));
     if (GFSDK_Aftermath_CrashDump_Status_CollectingData == crashDumpStatus)
     {
-      debug("DX12: ...collecting data, waiting for %ums...", collectingDataWait);
+      logdbg("DX12: ...collecting data, waiting for %ums...", collectingDataWait);
       watchdog_kick();
       sleep_msec(collectingDataWait);
     }
     else if (GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed == crashDumpStatus)
     {
-      debug("DX12: ...collecting data failed, no dump was produced");
+      logdbg("DX12: ...collecting data failed, no dump was produced");
       break;
     }
     else if (GFSDK_Aftermath_CrashDump_Status_InvokingCallback == crashDumpStatus)
     {
-      debug("DX12: ...processing crash dump, waiting for %ums...", invokingCallbackWait);
+      logdbg("DX12: ...processing crash dump, waiting for %ums...", invokingCallbackWait);
       watchdog_kick();
       sleep_msec(invokingCallbackWait);
     }
     else if (GFSDK_Aftermath_CrashDump_Status_Finished == crashDumpStatus)
     {
-      debug("DX12: ...finished");
+      logdbg("DX12: ...finished");
       break;
     }
     else if (GFSDK_Aftermath_CrashDump_Status_Unknown == crashDumpStatus)
@@ -803,18 +803,18 @@ void debug::gpu_postmortem::nvidia::Aftermath::onDeviceRemoved(D3DDevice *, HRES
       // For driver that do not fully support the query the lib will return unknown and may
       // return either finished or failed.
       // To be sure we have also a max iteration count and exit when reached.
-      debug("DX12: ...working, waiting for %ums...", unkownWait);
+      logdbg("DX12: ...working, waiting for %ums...", unkownWait);
       watchdog_kick();
       sleep_msec(unkownWait);
       if (++unkownWaitCount > maxUnkownWaitCount)
       {
-        debug("DX12: ...max waiting reached, aborting");
+        logdbg("DX12: ...max waiting reached, aborting");
         break;
       }
     }
     else
     {
-      debug("DX12: ...unexpected return code %u, aborting", crashDumpStatus);
+      logdbg("DX12: ...unexpected return code %u, aborting", crashDumpStatus);
       break;
     }
   }
@@ -839,7 +839,7 @@ bool debug::gpu_postmortem::nvidia::Aftermath::onDeviceSetup(ID3D12Device *devic
   // device reset for example
   commandListTable.reset();
 
-  debug("DX12: Initializing NVIDA Aftermath for device %p...", device);
+  logdbg("DX12: Initializing NVIDA Aftermath for device %p...", device);
   uint32_t flags = GFSDK_Aftermath_FeatureFlags_Minimum | GFSDK_Aftermath_FeatureFlags_EnableMarkers |
                    GFSDK_Aftermath_FeatureFlags_EnableResourceTracking | GFSDK_Aftermath_FeatureFlags_GenerateShaderDebugInfo;
 
@@ -847,16 +847,16 @@ bool debug::gpu_postmortem::nvidia::Aftermath::onDeviceSetup(ID3D12Device *devic
   // operation mode of the GPU for better error reporting. Nothing about the impact, but its probably not cheap.
   if (config.enableShaderErrorReporting)
   {
-    debug("DX12: ...enabling shader error reporting...");
+    logdbg("DX12: ...enabling shader error reporting...");
     flags |= GFSDK_Aftermath_FeatureFlags_EnableShaderErrorReporting;
   }
 
   auto result = api.initialize(GFSDK_Aftermath_Version_API, flags, device);
   if (GFSDK_Aftermath_Result_Success != result)
   {
-    debug("DX12: ...failed with %s...", to_string(result));
+    logdbg("DX12: ...failed with %s...", to_string(result));
     return false;
   }
-  debug("DX12: ...NVIDIA Aftermath GPU postmortem trace enabled for device %p", device);
+  logdbg("DX12: ...NVIDIA Aftermath GPU postmortem trace enabled for device %p", device);
   return true;
 }

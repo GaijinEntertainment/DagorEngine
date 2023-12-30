@@ -48,7 +48,6 @@ public:
   {
     TIME_PROFILE(parallel_ri_cull_job);
 
-    dag::ConstSpan<RendinstTiledScene> scenes = info->scenes;
     mat44f globtm = info->globtm;
     vec4f vpos_distscale = info->vpos_distscale;
     auto use_occlusion = info->use_occlusion;
@@ -60,18 +59,18 @@ public:
     std::atomic<uint32_t> *riexDataCnt = info->riexDataCnt;
     std::atomic<uint32_t> *riexLargeCnt = info->riexLargeCnt;
 
-    for (int tiled_scene_idx = 0; tiled_scene_idx < scenes.size(); tiled_scene_idx++)
+    [[maybe_unused]] int tiled_scene_idx = 0;
+    scene::TiledSceneCullContext *ctx = info->sceneContexts;
+    for (const RendinstTiledScene &tiled_scene : info->scenes)
     {
-      const auto &tiled_scene = scenes[tiled_scene_idx];
-      scene::TiledSceneCullContext &ctx = info->sceneContexts[tiled_scene_idx];
-      while (!ctx.tilesPassDone.load() || ctx.nextIdxToProcess.load(std::memory_order_relaxed) < ctx.tilesCount)
+      while (!ctx->tilesPassDone.load() || ctx->nextIdxToProcess.load(std::memory_order_relaxed) < ctx->tilesCount)
       {
-        const int next_idx = ctx.nextIdxToProcess.fetch_add(1);
-        spin_wait([&] { return next_idx >= ctx.tilesCount && !ctx.tilesPassDone.load(); });
-        if (next_idx >= ctx.tilesCount)
+        const int next_idx = ctx->nextIdxToProcess.fetch_add(1);
+        spin_wait([&] { return next_idx >= ctx->tilesCount && !ctx->tilesPassDone.load(); });
+        if (next_idx >= ctx->tilesCount)
           break;
 
-        int tile_idx = ctx.tilesPtr[next_idx];
+        int tile_idx = ctx->tilesPtr[next_idx];
         // debug("  cull %d:[%d]=%d", tiled_scene_idx, next_idx, tile_idx);
         auto cb = [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) {
           static constexpr int LARGE_LOD_CNT = RiGenExtraVisibility::LARGE_LOD_CNT;
@@ -147,11 +146,14 @@ public:
           }
         };
 
-        if (ctx.test_flags)
-          tiled_scene.frustumCullOneTile<true, true, true>(ctx, globtm, vpos_distscale, use_occlusion, tile_idx, cb);
+        if (ctx->test_flags)
+          tiled_scene.frustumCullOneTile<true, true, true>(*ctx, globtm, vpos_distscale, use_occlusion, tile_idx, cb);
         else
-          tiled_scene.frustumCullOneTile<false, true, true>(ctx, globtm, vpos_distscale, use_occlusion, tile_idx, cb);
+          tiled_scene.frustumCullOneTile<false, true, true>(*ctx, globtm, vpos_distscale, use_occlusion, tile_idx, cb);
       }
+      ctx++;
+
+      G_FAST_ASSERT(ctx == &info->sceneContexts[++tiled_scene_idx]);
     }
   }
   virtual void doJob() override
