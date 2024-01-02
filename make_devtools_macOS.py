@@ -132,7 +132,7 @@ else:
 
     pathlib.Path(fmod_dest_folder+'/studio/macosx').mkdir(parents=True, exist_ok=True)
     make_directory_symlink('"{0}/api/studio/inc"'.format(fmod_src_folder), fmod_dest_folder+'/studio/macosx/inc')
-    make_directory_symlink('"{0}/api/studio/inc"'.format(fmod_src_folder), fmod_dest_folder+'/studio/macosx/lib')
+    make_directory_symlink('"{0}/api/studio/lib"'.format(fmod_src_folder), fmod_dest_folder+'/studio/macosx/lib')
     run('cp "{0}/doc/LICENSE.TXT" {1}'.format(fmod_src_folder, fmod_dest_folder))
     run('cp "{0}/doc/revision.txt" {1}'.format(fmod_src_folder, fmod_dest_folder))
   else:
