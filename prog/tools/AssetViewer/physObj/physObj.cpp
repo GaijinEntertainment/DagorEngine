@@ -26,6 +26,7 @@
 #include <gui/dag_stdGuiRenderEx.h>
 
 #include <winGuiWrapper/wgw_input.h>
+#include <render/dag_cur_view.h>
 
 using hdpi::_pxActual;
 using hdpi::_pxScaled;
@@ -802,7 +803,7 @@ public:
 
     switch (stage)
     {
-      case STG_BEFORE_RENDER: carRender->beforeRender(); break;
+      case STG_BEFORE_RENDER: carRender->beforeRender(::grs_cur_view.pos); break;
 
       case STG_RENDER_SHADOWS:
       case STG_RENDER_DYNAMIC_OPAQUE:

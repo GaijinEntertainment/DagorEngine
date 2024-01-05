@@ -6239,3 +6239,5 @@ void DeviceContext::ExecutionContext::compilePipelineSet(DynamicArray<InputLayou
     eastl::forward<DynamicArray<MeshPipelinePreloadInfo>>(mesh_pipelines),
     eastl::forward<DynamicArray<ComputePipelinePreloadInfo>>(compute_pipelines));
 }
+
+void DeviceContext::ExecutionContext::switchActivePipeline(ActivePipeline pipeline) { contextState.switchActivePipeline(pipeline); }

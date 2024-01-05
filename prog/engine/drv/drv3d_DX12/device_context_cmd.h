@@ -9,6 +9,7 @@ DX12_BEGIN_CONTEXT_COMMAND(DrawIndexed)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, instanceCount)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
   ctx.flushIndexBuffer();
   ctx.flushVertexBuffers();
@@ -192,6 +193,7 @@ DX12_BEGIN_CONTEXT_COMMAND(Draw)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, instanceCount)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
   ctx.flushVertexBuffers();
   ctx.flushGraphicsStateRessourceBindings();
@@ -252,6 +254,7 @@ DX12_BEGIN_CONTEXT_COMMAND(Dispatch)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, z)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchActivePipeline(ActivePipeline::Compute);
   ctx.flushComputeState();
   ctx.dispatch(x, y, z);
 #endif
@@ -312,6 +315,7 @@ DX12_BEGIN_CONTEXT_COMMAND(DispatchIndirect)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, buffer)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchActivePipeline(ActivePipeline::Compute);
   ctx.flushComputeState();
   ctx.dispatchIndirect(buffer);
 #endif
@@ -325,6 +329,7 @@ DX12_BEGIN_CONTEXT_COMMAND(DispatchMesh)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, z)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
   ctx.flushGraphicsStateRessourceBindings();
   ctx.flushGraphicsMeshState();
@@ -340,6 +345,7 @@ DX12_BEGIN_CONTEXT_COMMAND(DispatchMeshIndirect)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, maxCount)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
   ctx.flushGraphicsStateRessourceBindings();
   ctx.flushGraphicsMeshState();
@@ -427,6 +433,7 @@ DX12_BEGIN_CONTEXT_COMMAND(DrawIndirect)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, stride)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
   ctx.flushVertexBuffers();
   ctx.flushGraphicsStateRessourceBindings();
@@ -555,6 +562,7 @@ DX12_BEGIN_CONTEXT_COMMAND(DrawIndexedIndirect)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, stride)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
   ctx.flushIndexBuffer();
   ctx.flushVertexBuffers();
@@ -571,6 +579,7 @@ DX12_BEGIN_CONTEXT_COMMAND(DrawUserData)
   DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, userData)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
   ctx.bindVertexUserData(userData, stride);
   ctx.flushGraphicsStateRessourceBindings();
@@ -587,6 +596,7 @@ DX12_BEGIN_CONTEXT_COMMAND(DrawIndexedUserData)
   DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, indexData)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
   ctx.bindIndexUser(indexData);
   ctx.bindVertexUserData(vertexData, vertexStride);

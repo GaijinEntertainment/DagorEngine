@@ -58,10 +58,6 @@ namespace drv3d_metal
       case TEXFMT_BC6H:       return MTLPixelFormatBC6H_RGBFloat;
       case TEXFMT_BC7:      return MTLPixelFormatBC7_RGBAUnorm;
 #else
-      case TEXFMT_PVRTC2X:        return MTLPixelFormatPVRTC_RGB_2BPP;
-      case TEXFMT_PVRTC2A:        return MTLPixelFormatPVRTC_RGBA_2BPP;
-      case TEXFMT_PVRTC4X:        return MTLPixelFormatPVRTC_RGB_4BPP;
-      case TEXFMT_PVRTC4A:        return MTLPixelFormatPVRTC_RGBA_4BPP;
       case TEXFMT_ASTC4:          return MTLPixelFormatASTC_4x4_LDR;
       case TEXFMT_ASTC8:          return MTLPixelFormatASTC_8x8_LDR;
       case TEXFMT_ASTC12:         return MTLPixelFormatASTC_12x12_LDR;
@@ -147,10 +143,6 @@ namespace drv3d_metal
       case TEXFMT_ASTC12:    return MTLPixelFormatASTC_12x12_sRGB;
       case TEXFMT_A8R8G8B8:  return MTLPixelFormatBGRA8Unorm_sRGB;
       case TEXFMT_A4R4G4B4:  return MTLPixelFormatABGR4Unorm;
-      case TEXFMT_PVRTC2X:   return MTLPixelFormatPVRTC_RGB_2BPP_sRGB;
-      case TEXFMT_PVRTC2A:   return MTLPixelFormatPVRTC_RGBA_2BPP_sRGB;
-      case TEXFMT_PVRTC4X:   return MTLPixelFormatPVRTC_RGB_4BPP_sRGB;
-      case TEXFMT_PVRTC4A:   return MTLPixelFormatPVRTC_RGBA_4BPP_sRGB;
 #endif
       case TEXFMT_ETC2_RGBA:
         if (@available(iOS 13, macOS 11.0, *))
@@ -199,18 +191,11 @@ namespace drv3d_metal
     bool is_copmressed = false;
     int  block_size = 1;
 
-    if (fmt == TEXFMT_ASTC4 || fmt == TEXFMT_ASTC8 ||
-        fmt == TEXFMT_PVRTC2X || fmt == TEXFMT_PVRTC2A ||
-        fmt == TEXFMT_PVRTC4X || fmt == TEXFMT_PVRTC4A)
+    if (fmt == TEXFMT_ASTC4 || fmt == TEXFMT_ASTC8)
     {
       int block_width, block_height;
       int block_byte_count = 8;
 
-      if (fmt == TEXFMT_PVRTC4X || fmt == TEXFMT_PVRTC4A)
-      {
-        block_width = block_height = 4;
-      }
-      else
       if (fmt == TEXFMT_ASTC4)
       {
         block_width = block_height = 4;
@@ -572,9 +557,6 @@ namespace drv3d_metal
       case TEXFMT_DXT1:
       case TEXFMT_DXT3:
       case TEXFMT_ATI1N:
-            logerr("unsupported texture format %d is used for texture %s", fmt, getResName());
-            fmt = TEXFMT_PVRTC4X;
-            break;
       case TEXFMT_DXT5:
       case TEXFMT_ATI2N:
       case TEXFMT_BC6H:
@@ -681,8 +663,7 @@ namespace drv3d_metal
       use_dxt = 1;
     }
 
-    if (fmt == TEXFMT_PVRTC2X || fmt == TEXFMT_PVRTC2A ||
-        fmt == TEXFMT_PVRTC4X || fmt == TEXFMT_PVRTC4A || (cflg & TEXCF_READABLE))
+    if (cflg & TEXCF_READABLE)
       use_upload_buffer = false;
     else
       use_upload_buffer = true;
@@ -1270,12 +1251,6 @@ namespace drv3d_metal
         }
       }
 
-      if (base_format == TEXFMT_PVRTC2X || base_format == TEXFMT_PVRTC2A ||
-          base_format == TEXFMT_PVRTC4X || base_format == TEXFMT_PVRTC4A)
-      {
-        sys_image->widBytes = 0;
-        sys_image->nBytes = 0;
-      }
       force_readback = true;
     }
 
@@ -1522,10 +1497,6 @@ static const char* format2String(uint32_t fmt)
       case TEXFMT_ATI2N:      return "ATI2N";
       case TEXFMT_BC6H:       return "BC6H";
       case TEXFMT_BC7:      return "BC7";
-      case TEXFMT_PVRTC2X:        return "PVRTC2X";
-      case TEXFMT_PVRTC2A:        return "PVRTC2A";
-      case TEXFMT_PVRTC4X:        return "PVRTC4X";
-      case TEXFMT_PVRTC4A:        return "PVRTC4A";
       case TEXFMT_ASTC4:          return "ASTC4";
       case TEXFMT_ASTC8:          return "ASTC8";
       case TEXFMT_ASTC12:         return "ASTC12";

@@ -364,7 +364,7 @@ namespace spv {
     {
         // Strip instructions in the stripOp set: debug info.
         process(
-            [&](spv::Op opCode, unsigned start) {
+            [&,this](spv::Op opCode, unsigned start) {
                 // remember opcodes we want to strip later
                 if (isStripOp(opCode))
                     stripInst(start);
@@ -377,7 +377,7 @@ namespace spv {
     void spirvbin_t::stripDeadRefs()
     {
         process(
-            [&](spv::Op opCode, unsigned start) {
+            [&,this](spv::Op opCode, unsigned start) {
                 // strip opcodes pointing to removed data
                 switch (opCode) {
                 case spv::OpName:
@@ -420,7 +420,7 @@ namespace spv {
 
         // build local Id and name maps
         process(
-            [&](spv::Op opCode, unsigned start) {
+            [&,this](spv::Op opCode, unsigned start) {
                 unsigned word = start+1;
                 spv::Id  typeId = spv::NoResult;
 
@@ -784,7 +784,7 @@ namespace spv {
         fnId = spv::NoResult;
 
         process(
-            [&](spv::Op opCode, unsigned start) {
+            [&,this](spv::Op opCode, unsigned start) {
                 switch (opCode) {
                 case spv::OpFunction:
                     // Reset counters at each function
@@ -824,7 +824,7 @@ namespace spv {
                 return false;
             },
 
-            [&](spv::Id& id) {
+            [&,this](spv::Id& id) {
                 if (thisOpCode != spv::OpNop) {
                     ++idCounter;
                     const std::uint32_t hashval = opCounter[thisOpCode] * thisOpCode * 50047 + idCounter + fnId * 117;
@@ -844,7 +844,7 @@ namespace spv {
 
         // EXPERIMENTAL: Forward input and access chain loads into consumptions
         process(
-            [&](spv::Op opCode, unsigned start) {
+            [&,this](spv::Op opCode, unsigned start) {
                 // Add inputs and uniforms to the map
                 if ((opCode == spv::OpVariable && asWordCount(start) == 4) &&
                     (spv[start+3] == spv::StorageClassUniform ||
@@ -874,7 +874,7 @@ namespace spv {
         idMap.clear();
 
         process(
-            [&](spv::Op opCode, unsigned start) {
+            [&,this](spv::Op opCode, unsigned start) {
                 // Add inputs and uniforms to the map
                 if ((opCode == spv::OpVariable && asWordCount(start) == 4) &&
                     (spv[start+3] == spv::StorageClassOutput))
@@ -913,7 +913,7 @@ namespace spv {
 
         // Find all the function local pointers stored at most once, and not via access chains
         process(
-            [&](spv::Op opCode, unsigned start) {
+            [&,this](spv::Op opCode, unsigned start) {
                 const int wordCount = asWordCount(start);
 
                 // Count blocks, so we can avoid crossing flow control
@@ -1003,7 +1003,7 @@ namespace spv {
             return;
 
         process(
-            [&](spv::Op opCode, unsigned start) {
+            [&,this](spv::Op opCode, unsigned start) {
                 if (opCode == spv::OpLoad && fnLocalVars.count(asId(start+3)) > 0)
                     idMap[asId(start+2)] = idMap[asId(start+3)];
                 return false;
@@ -1029,7 +1029,7 @@ namespace spv {
 
         // Remove the load/store/variables for the ones we've discovered
         process(
-            [&](spv::Op opCode, unsigned start) {
+            [&,this](spv::Op opCode, unsigned start) {
                 if ((opCode == spv::OpLoad  && fnLocalVars.count(asId(start+3)) > 0) ||
                     (opCode == spv::OpStore && fnLocalVars.count(asId(start+1)) > 0) ||
                     (opCode == spv::OpVariable && fnLocalVars.count(asId(start+2)) > 0)) {
@@ -1077,7 +1077,7 @@ namespace spv {
 
                     // decrease counts of called functions
                     process(
-                        [&](spv::Op opCode, unsigned start) {
+                        [&,this](spv::Op opCode, unsigned start) {
                             if (opCode == spv::Op::OpFunctionCall) {
                                 const auto call_it = fnCalls.find(asId(start + 3));
                                 if (call_it != fnCalls.end()) {
@@ -1110,7 +1110,7 @@ namespace spv {
 
         // Count function variable use
         process(
-            [&](spv::Op opCode, unsigned start) {
+            [&,this](spv::Op opCode, unsigned start) {
                 if (opCode == spv::OpVariable) {
                     ++varUseCount[asId(start+2)];
                     return true;
@@ -1132,7 +1132,7 @@ namespace spv {
 
         // Remove single-use function variables + associated decorations and names
         process(
-            [&](spv::Op opCode, unsigned start) {
+            [&,this](spv::Op opCode, unsigned start) {
                 spv::Id id = spv::NoResult;
                 if (opCode == spv::OpVariable)
                     id = asId(start+2);

@@ -401,7 +401,7 @@ struct ComplexDataContainer
   uint32_t addDataId(const char *val, uint32_t len, hash_t hash)
   {
     int it = hashToKeyId.findOr(hash, -1,
-      [&](uint32_t id) { return keys[id].sz == len && memcmp(data.data() + keys[id].ofs, val, len) == 0; });
+      [&, this](uint32_t id) { return keys[id].sz == len && memcmp(data.data() + keys[id].ofs, val, len) == 0; });
     if (it != -1)
       return keys[it].ofs;
     const uint32_t ofs = data.size();
@@ -814,16 +814,16 @@ namespace dblk
 static bool save_to_text_file_ex(const DataBlock &blk, const char *filename, bool compact);
 struct OpenDataBlock : public DataBlock
 {
-  friend dblk::ReadFlags dblk::get_flags(const DataBlock &blk);
-  friend void dblk::set_flag(DataBlock &blk, dblk::ReadFlags flg_to_add);
-  friend void dblk::clr_flag(DataBlock &blk, dblk::ReadFlags flg_to_clr);
-  friend bool dblk::load(DataBlock &blk, const char *fname, dblk::ReadFlags flg, DataBlock::IFileNotify *fnotify);
-  friend bool dblk::load_text(DataBlock &blk, dag::ConstSpan<char> text, dblk::ReadFlags flg, const char *fname,
+  friend ReadFlags get_flags(const DataBlock &blk);
+  friend void set_flag(DataBlock &blk, dblk::ReadFlags flg_to_add);
+  friend void clr_flag(DataBlock &blk, dblk::ReadFlags flg_to_clr);
+  friend bool load(DataBlock &blk, const char *fname, dblk::ReadFlags flg, DataBlock::IFileNotify *fnotify);
+  friend bool load_text(DataBlock &blk, dag::ConstSpan<char> text, dblk::ReadFlags flg, const char *fname,
     DataBlock::IFileNotify *fnotify);
-  friend bool dblk::load_from_stream(DataBlock &blk, IGenLoad &crd, dblk::ReadFlags flg, const char *fname,
-    DataBlock::IFileNotify *fnotify, unsigned hint_size);
-  friend bool dblk::save_to_text_file_ex(const DataBlock &blk, const char *filename, bool compact);
-  friend bool dblk::print_to_text_stream_limited(const DataBlock &blk, IGenSave &cwr, int max_ln, int max_lev, int init_lev);
+  friend bool load_from_stream(DataBlock &blk, IGenLoad &crd, dblk::ReadFlags flg, const char *fname, DataBlock::IFileNotify *fnotify,
+    unsigned hint_size);
+  friend bool save_to_text_file_ex(const DataBlock &blk, const char *filename, bool compact);
+  friend bool print_to_text_stream_limited(const DataBlock &blk, IGenSave &cwr, int max_ln, int max_lev, int init_lev);
 };
 } // namespace dblk
 

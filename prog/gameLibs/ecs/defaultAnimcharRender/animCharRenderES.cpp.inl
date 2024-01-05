@@ -9,19 +9,19 @@
 #include <ecs/render/updateStageRender.h>
 
 // this is for demo purposes only, should not be used in production.
-// no occlusion, unoptimal culling check, relues on grs_cur_view!
+// no occlusion, unoptimal culling check!
 // just a sample!
 
 ECS_TAG(render)
 ECS_AFTER(after_camera_sync)
-static __forceinline void animchar_render_es(const UpdateStageInfoBeforeRender &, AnimV20::AnimcharRendComponent &animchar_render,
+static __forceinline void animchar_render_es(const UpdateStageInfoBeforeRender &stg, AnimV20::AnimcharRendComponent &animchar_render,
   const AnimcharNodesMat44 &animchar_node_wtm, vec4f &animchar_bsph, bbox3f &animchar_bbox, uint8_t &animchar_visbits,
   bool animchar_render__enabled = true)
 {
   mat44f globtm;
   d3d::getglobtm(globtm);
   animchar_render.setVisible(animchar_render__enabled);
-  animchar_render.beforeRender(animchar_node_wtm, animchar_bsph, animchar_bbox, Frustum(globtm), 1.0f, nullptr, ::grs_cur_view.pos);
+  animchar_render.beforeRender(animchar_node_wtm, animchar_bsph, animchar_bbox, Frustum(globtm), 1.0f, nullptr, stg.camPos);
   animchar_visbits = animchar_render.getVisBits();
 }
 

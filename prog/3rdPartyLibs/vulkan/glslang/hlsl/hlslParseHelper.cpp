@@ -277,7 +277,7 @@ TIntermTyped* HlslParseContext::handleLvalue(const TSourceLoc& loc, const char* 
     // *** If we get here, we're going to apply some conversion to an l-value.
 
     // Helper to create a load.
-    const auto makeLoad = [&](TIntermSymbol* rhsTmp, TIntermTyped* object, TIntermTyped* coord, const TType& derefType) {
+    const auto makeLoad = [&,this](TIntermSymbol* rhsTmp, TIntermTyped* object, TIntermTyped* coord, const TType& derefType) {
         TIntermAggregate* loadOp = new TIntermAggregate(EOpImageLoad);
         loadOp->setLoc(loc);
         loadOp->getSequence().push_back(object);
@@ -290,7 +290,7 @@ TIntermTyped* HlslParseContext::handleLvalue(const TSourceLoc& loc, const char* 
     };
 
     // Helper to create a store.
-    const auto makeStore = [&](TIntermTyped* object, TIntermTyped* coord, TIntermSymbol* rhsTmp) {
+    const auto makeStore = [&,this](TIntermTyped* object, TIntermTyped* coord, TIntermSymbol* rhsTmp) {
         TIntermAggregate* storeOp = new TIntermAggregate(EOpImageStore);
         storeOp->getSequence().push_back(object);
         storeOp->getSequence().push_back(coord);
@@ -302,14 +302,14 @@ TIntermTyped* HlslParseContext::handleLvalue(const TSourceLoc& loc, const char* 
     };
 
     // Helper to create an assign.
-    const auto makeBinary = [&](TOperator op, TIntermTyped* lhs, TIntermTyped* rhs) {
+    const auto makeBinary = [&,this](TOperator op, TIntermTyped* lhs, TIntermTyped* rhs) {
         sequence = intermediate.growAggregate(sequence,
                                               intermediate.addBinaryNode(op, lhs, rhs, loc, lhs->getType()),
                                               loc);
     };
 
     // Helper to complete sequence by adding trailing variable, so we evaluate to the right value.
-    const auto finishSequence = [&](TIntermSymbol* rhsTmp, const TType& derefType) -> TIntermAggregate* {
+    const auto finishSequence = [&,this](TIntermSymbol* rhsTmp, const TType& derefType) -> TIntermAggregate* {
         // Add a trailing use of the temp, so the sequence returns the proper value.
         sequence = intermediate.growAggregate(sequence, intermediate.addSymbol(*rhsTmp));
         sequence->setOperator(EOpSequence);
@@ -320,7 +320,7 @@ TIntermTyped* HlslParseContext::handleLvalue(const TSourceLoc& loc, const char* 
     };
 
     // Helper to add unary op
-    const auto makeUnary = [&](TOperator op, TIntermSymbol* rhsTmp) {
+    const auto makeUnary = [&,this](TOperator op, TIntermSymbol* rhsTmp) {
         sequence = intermediate.growAggregate(sequence,
                                               intermediate.addUnaryNode(op, intermediate.addSymbol(*rhsTmp), loc,
                                                                         rhsTmp->getType()),
@@ -356,7 +356,7 @@ TIntermTyped* HlslParseContext::handleLvalue(const TSourceLoc& loc, const char* 
     };
 
     // Create swizzle matching input swizzle
-    const auto addSwizzle = [&](TIntermSymbol* var, TIntermBinary* swizzle) -> TIntermTyped* {
+    const auto addSwizzle = [&,this](TIntermSymbol* var, TIntermBinary* swizzle) -> TIntermTyped* {
         if (swizzle)
             return intermediate.addBinaryNode(swizzle->getOp(), var, swizzle->getRight(), loc, swizzle->getType());
         else
@@ -1539,7 +1539,7 @@ void HlslParseContext::fixBuiltInIoType(TType& type)
 // Assumes it is called in the order in which locations should be assigned.
 void HlslParseContext::assignToInterface(TVariable& variable)
 {
-    const auto assignLocation = [&](TVariable& variable) {
+    const auto assignLocation = [&,this](TVariable& variable) {
         TType& type = variable.getWritableType();
         if (!type.isStruct() || type.getStruct()->size() > 0) {
             TQualifier& qualifier = type.getQualifier();
@@ -2015,7 +2015,7 @@ TIntermNode* HlslParseContext::transformEntryPoint(const TSourceLoc& loc, TFunct
     remapEntryPointIO(userFunction, entryPointOutput, inputs, outputs);
 
     // Further this return/in/out transform by flattening, splitting, and assigning locations
-    const auto makeVariableInOut = [&](TVariable& variable) {
+    const auto makeVariableInOut = [&,this](TVariable& variable) {
         if (variable.getType().isStruct()) {
             if (variable.getType().getQualifier().isArrayedIo(language)) {
                 if (variable.getType().containsBuiltIn())
@@ -2780,7 +2780,7 @@ TIntermTyped* HlslParseContext::handleAssign(const TSourceLoc& loc, TOperator op
     int leftOffset = findSubtreeOffset(*left);
     int rightOffset = findSubtreeOffset(*right);
 
-    const auto getMember = [&](bool isLeft, const TType& type, int member, TIntermTyped* splitNode, int splitMember,
+    const auto getMember = [&,this](bool isLeft, const TType& type, int member, TIntermTyped* splitNode, int splitMember,
                                bool flattened)
                            -> TIntermTyped * {
         const bool split     = isLeft ? isSplitLeft   : isSplitRight;
@@ -2850,7 +2850,7 @@ TIntermTyped* HlslParseContext::handleAssign(const TSourceLoc& loc, TOperator op
     // whole thing.  So, we'll resort to an explicit type via std::function.
     const std::function<void(TIntermTyped* left, TIntermTyped* right, TIntermTyped* splitLeft, TIntermTyped* splitRight,
                              bool topLevel)>
-    traverse = [&](TIntermTyped* left, TIntermTyped* right, TIntermTyped* splitLeft, TIntermTyped* splitRight,
+    traverse = [&,this](TIntermTyped* left, TIntermTyped* right, TIntermTyped* splitLeft, TIntermTyped* splitRight,
                    bool topLevel) -> void {
         // If we get here, we are assigning to or from a whole array or struct that must be
         // flattened, so have to do member-by-member assignment:
@@ -3278,7 +3278,7 @@ void HlslParseContext::decomposeStructBufferMethods(const TSourceLoc& loc, TInte
 
     // Some methods require a hidden internal counter, obtained via getStructBufferCounter().
     // This lambda adds something to it and returns the old value.
-    const auto incDecCounter = [&](int incval) -> TIntermTyped* {
+    const auto incDecCounter = [&,this](int incval) -> TIntermTyped* {
         TIntermTyped* counter = getStructBufferCounter(loc, bufferObj); // obtain the counter member
 
         if (counter == nullptr)
@@ -4593,7 +4593,7 @@ void HlslParseContext::decomposeIntrinsic(const TSourceLoc& loc, TIntermTyped*& 
         return imageAggregate != nullptr && imageAggregate->getOp() == EOpImageLoad;
     };
 
-    const auto lookupBuiltinVariable = [&](const char* name, TBuiltInVariable builtin, TType& type) -> TIntermTyped* {
+    const auto lookupBuiltinVariable = [&,this](const char* name, TBuiltInVariable builtin, TType& type) -> TIntermTyped* {
         TSymbol* symbol = symbolTable.find(name);
         if (nullptr == symbol) {
             type.getQualifier().builtIn = builtin;
@@ -5607,14 +5607,14 @@ void HlslParseContext::expandArguments(const TSourceLoc& loc, const TFunction& f
     };
 
     // Replace a single argument with a list of arguments
-    const auto setArgList = [&](int paramNum, const TVector<TIntermTyped*>& args) {
+    const auto setArgList = [&,this](int paramNum, const TVector<TIntermTyped*>& args) {
         if (args.size() == 1)
             setArg(paramNum, args.front());
         else if (args.size() > 1) {
             if (function.getParamCount() + functionParamNumberOffset == 1) {
                 arguments = intermediate.makeAggregate(args.front());
                 std::for_each(args.begin() + 1, args.end(), 
-                    [&](TIntermTyped* arg) {
+                    [&,this](TIntermTyped* arg) {
                         arguments = intermediate.growAggregate(arguments, arg);
                     });
             } else {
@@ -5675,7 +5675,7 @@ TIntermTyped* HlslParseContext::addOutputArgumentConversions(const TFunction& fu
 
     TIntermSequence& arguments = argSequence.empty() ? intermNode.getAsAggregate()->getSequence() : argSequence;
 
-    const auto needsConversion = [&](int argNum) {
+    const auto needsConversion = [&,this](int argNum) {
         return function[argNum].type->getQualifier().isParamOutput() &&
                (*function[argNum].type != arguments[argNum]->getAsTyped()->getType() ||
                 shouldConvertLValue(arguments[argNum]) ||
@@ -7299,7 +7299,7 @@ const TFunction* HlslParseContext::findFunction(const TSourceLoc& loc, TFunction
     bool allowOnlyUpConversions = true;
 
     // can 'from' convert to 'to'?
-    const auto convertible = [&](const TType& from, const TType& to, TOperator op, int arg) -> bool {
+    const auto convertible = [&,this](const TType& from, const TType& to, TOperator op, int arg) -> bool {
         if (from == to)
             return true;
 
@@ -8397,7 +8397,7 @@ TIntermTyped* HlslParseContext::convertArray(TIntermTyped* node, const TType& ty
     int constructeeComponent = 0;
 
     // bump up to the next component to consume
-    const auto getNextComponent = [&]() {
+    const auto getNextComponent = [&,this]() {
         TIntermTyped* component;
         component = handleBracketDereference(node->getLoc(), constructee, 
                                              intermediate.addConstantUnion(constructeeElement, node->getLoc()));
@@ -9549,7 +9549,7 @@ void HlslParseContext::addPatchConstantInvocation()
     };
 
     // If we synthesize a built-in interface variable, we must add it to the linkage.
-    const auto addToLinkage = [&](const TType& type, const TString* name, TIntermSymbol** symbolNode) {
+    const auto addToLinkage = [&,this](const TType& type, const TString* name, TIntermSymbol** symbolNode) {
         if (name == nullptr) {
             error(loc, "unable to locate patch function parameter name", "", "");
             return;
@@ -9923,7 +9923,7 @@ struct DiscoverStructuredBufferWithCounters : public TIntermTraverser {
         }
         name = name.substr(0, postFixAt);
         auto ref = std::find_if(buffersWithCounters.begin(), buffersWithCounters.end(),
-                                [&](const BufferWithCounterInfo &info) {
+                                [&,this](const BufferWithCounterInfo &info) {
                                     if (info.function != activeFunction)
                                         return false;
 
@@ -9942,7 +9942,7 @@ struct DiscoverStructuredBufferWithCounters : public TIntermTraverser {
         else
         {
             ref = std::find_if(buffersWithCounters.begin(), buffersWithCounters.end(),
-                               [&](const BufferWithCounterInfo &info) {
+                               [&,this](const BufferWithCounterInfo &info) {
                                    // only globals
                                    if (info.function)
                                        return false;
@@ -9990,7 +9990,7 @@ struct DiscoverStructuredBufferWithCounters : public TIntermTraverser {
         }
         name = name.substr(0, postFixAt);
         auto ref = std::find_if(buffersWithCounters.begin(), buffersWithCounters.end(),
-                                [&](const BufferWithCounterInfo &info) {
+                                [&,this](const BufferWithCounterInfo &info) {
                                     if (info.function != activeFunction)
                                         return false;
 

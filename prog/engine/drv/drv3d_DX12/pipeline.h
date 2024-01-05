@@ -2103,6 +2103,12 @@ struct PipelineStageStateBase
   DescriptorHeapRange uRegisterDescriptorRange;
 
   PipelineStageStateBase() = default;
+  void invalidateResourceStates()
+  {
+    bRegisterStateDirtyMask = ~0ul;
+    tRegisterStateDirtyMask = ~0ul;
+    uRegisterStateDirtyMask = ~0ul;
+  }
   void resetDescriptorRanges()
   {
     bRegisterDescribtorRange = {};

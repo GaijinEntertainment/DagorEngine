@@ -143,7 +143,7 @@ public:
         {
           logwarn("WatchDog: no kick in %d ms", e_time);
 
-          for (intptr_t thread_id : [&] {
+          for (intptr_t thread_id : [&, this] {
                  OSSpinlockScopedLock lock{dumpThreadIdMutex};
                  return dumpThreadIds;
                }())

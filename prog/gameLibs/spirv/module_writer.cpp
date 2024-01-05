@@ -13748,7 +13748,7 @@ struct CanWriteTypeCheckVisitor
   bool operator()(T *value)
   {
     canWrite = true;
-    value->visitRefs([&](auto node) //
+    value->visitRefs([&, this](auto node) //
       {
         if (writtenTypes.has(node->resultId))
           return;

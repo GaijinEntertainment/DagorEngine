@@ -30,7 +30,9 @@ static struct InitGamma2_2
 
 static void preZero(uint8_t *, unsigned) {}
 
+#ifdef _MSC_VER
 #pragma optimize("gt", on)
+#endif
 
 
 template <typename t_type>

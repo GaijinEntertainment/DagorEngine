@@ -63,11 +63,6 @@ static const TextureFormatDesc format_descs[] = {
   {TEXFMT_DEPTH32, 4, false, 1, 1, ChannelDType::SFLOAT, {}, {}, {}, {}, {}, {32, 0, 1, 1, 0}, {}},
   {TEXFMT_DEPTH32_S8, 5, false, 1, 1, ChannelDType::SFLOAT, ChannelDType::UINT, {}, {}, {}, {}, {32, 0, 1, 1, 0}, {8, 32, 0, 0, 1}},
 
-  {TEXFMT_PVRTC2X, 8, true, 8, 4, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {}, {}, {}},
-  {TEXFMT_PVRTC2A, 8, true, 8, 4, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {8, 0}, {}, {}},
-  {TEXFMT_PVRTC4X, 8, true, 4, 4, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {}, {}, {}},
-  {TEXFMT_PVRTC4A, 8, true, 4, 4, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {8, 0}, {}, {}},
-
   {TEXFMT_ASTC4, 16, true, 4, 4, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {}, {}, {}},
   {TEXFMT_ASTC8, 16, true, 8, 8, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {}, {}, {}},
   {TEXFMT_ASTC12, 16, true, 12, 12, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {}, {}, {}},
@@ -126,11 +121,6 @@ static const TextureFormatName format_names[] = {
   {TEXFMT_DEPTH16, "DEPTH16", nullptr},
   {TEXFMT_DEPTH32, "DEPTH32", nullptr},
   {TEXFMT_DEPTH32_S8, "DEPTH32_S8", nullptr},
-
-  {TEXFMT_PVRTC2X, "PVRTC2X", nullptr},
-  {TEXFMT_PVRTC2A, "PVRTC2A", nullptr},
-  {TEXFMT_PVRTC4X, "PVRTC4X", nullptr},
-  {TEXFMT_PVRTC4A, "PVRTC4A", nullptr},
 
   {TEXFMT_ASTC4, "ASTC4", nullptr},
   {TEXFMT_ASTC8, "ASTC8", nullptr},

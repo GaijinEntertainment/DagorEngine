@@ -50,7 +50,6 @@ Sources =
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/3rdPartyLibs/convert/nvtt-2.0.7
-  $(Root)/prog/3rdPartyLibs/convert/ispc_texcomp
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/gameLibs/publicInclude
@@ -87,7 +86,6 @@ UseProgLibs =
 
   3rdPartyLibs/math/srcc_msu
   3rdPartyLibs/convert/nvtt-2.0.7
-  3rdPartyLibs/convert/ispc_texcomp
   3rdPartyLibs/image/avif
   3rdPartyLibs/image/jpeg-6b
   3rdPartyLibs/image/psdRead
@@ -139,6 +137,13 @@ if $(DabuildEmbeddedInGame) != yes {
 } else {
   Target  = $(Target:S=~emb.lib) ;
   CPPopt += -D_TARGET_EXPORTERS_STATIC ;
+}
+
+if $(Platform) = linux64 && $(LinuxArch) = e2k {
+  CPPopt += -DTEX_CANNOT_USE_ISPC ;
+} else {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/convert/ispc_texcomp ;
+  UseProgLibs += 3rdPartyLibs/convert/ispc_texcomp ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -41,6 +41,7 @@ if $(Platform) in ps4 ps5 {
 
 if $(Platform) = linux64 {
   AddIncludes += $(Root)/$(Location)/generated/linux ;
+  AddLibs += -lpthread ;
 }
 
 if $(Platform) in android nswitch {

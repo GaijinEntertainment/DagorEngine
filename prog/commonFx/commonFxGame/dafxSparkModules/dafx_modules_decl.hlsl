@@ -1,6 +1,8 @@
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
 #pragma warning(disable:4189)
+#endif
 
 #ifdef __cplusplus
   #define SimData_ref SimData&
@@ -345,4 +347,6 @@ void pack_ren_data(RenData_ref p, BufferData_ref buf, uint ofs)
   G_STATIC_ASSERT(sizeof(RenData) == DAFX_REN_DATA_SIZE);
 #endif
 
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif

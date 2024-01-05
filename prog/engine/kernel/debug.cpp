@@ -330,7 +330,8 @@ static void out_file(write_stream_t fp, int lc, int t, bool term, int ik, const 
   {
     WinAutoLock lock(writeCS); // both operations of crypto & file write should be not only atomic, but strictly ordered as well
 #if DAGOR_DBGLEVEL > 0
-    out_debug_str(final_sbuf);
+    if (ik == LOGLEVEL_DEBUG)
+      out_debug_str(final_sbuf);
 #endif
 #if DAGOR_FORCE_LOGS
     crypt_out_str((unsigned char *)final_sbuf, sz, ik);

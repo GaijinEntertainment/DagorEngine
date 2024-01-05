@@ -86,8 +86,10 @@ uint8_t * DETEX_RESTRICT pixel_buffer) {
 
 /* Decompress a 64-bit 4x4 pixel texture block compressed using the ETC1 */
 /* format. */
+#ifdef _MSC_VER
 #pragma warning(push, 0)
 #pragma warning(disable: 4028)
+#endif
 bool detexDecompressBlockETC1(const uint8_t * DETEX_RESTRICT bitstring, uint32_t mode_mask,
 uint32_t flags, uint8_t * DETEX_RESTRICT pixel_buffer) {
 	int differential_mode = bitstring[3] & 2;
@@ -717,7 +719,9 @@ uint32_t mode_mask, uint32_t flags, uint8_t * DETEX_RESTRICT pixel_buffer) {
 		return true;
 	}
 }
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 /* Return the internal mode of a ETC2_PUNCHTROUGH block. */
 uint32_t detexGetModeETC2_PUNCHTHROUGH(const uint8_t *bitstring) {

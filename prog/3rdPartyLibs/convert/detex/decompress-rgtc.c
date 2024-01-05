@@ -61,8 +61,10 @@ int offset, uint8_t * DETEX_RESTRICT pixel_buffer) {
 
 /* Decompress a 64-bit 4x4 pixel texture block compressed using the */
 /* unsigned RGTC1 (BC4) format. */
+#ifdef _MSC_VER
 #pragma warning(push, 0)
 #pragma warning(disable: 4028)
+#endif
 bool detexDecompressBlockRGTC1(const uint8_t * DETEX_RESTRICT bitstring, uint32_t mode_mask,
 uint32_t flags, uint8_t * DETEX_RESTRICT pixel_buffer) {
 	DecodeBlockRGTC(bitstring, 0, 0, pixel_buffer);
@@ -147,4 +149,6 @@ uint32_t flags, uint8_t * DETEX_RESTRICT pixel_buffer) {
 		return false;
 	return DecodeBlockSignedRGTC(&bitstring[8], 1, 1, pixel_buffer);
 }
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif

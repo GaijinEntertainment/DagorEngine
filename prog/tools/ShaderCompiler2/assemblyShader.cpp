@@ -961,7 +961,7 @@ void AssembleShaderEvalCB::eval_external_block(external_state_block &state_block
   auto eval_if_stat = [this, stage](state_block_if_stat &s, auto &&eval_if_stat) -> void {
     G_ASSERT(s.expr);
 
-    auto eval_stats = [&](auto &stats) {
+    auto eval_stats = [&, this](auto &stats) {
       for (auto &stat : stats)
       {
         if (stat->stblock_if_stat)
@@ -1056,7 +1056,7 @@ void AssembleShaderEvalCB::eval_external_block_stat(state_block_stat &state_bloc
 
   if (state_block.var->val->expr)
   {
-    auto is_expr_dynamic = [&]() {
+    auto is_expr_dynamic = [&, this]() {
       ExpressionParser::getStatic().setOwner(this);
       ComplexExpression colorExpr(shexpr::VT_COLOR4);
 
@@ -2462,7 +2462,7 @@ void AssembleShaderEvalCB::merge_external_blocks()
       vars[components].emplace_back(&stat);
     }
 
-    auto merge = [&](VarsByDimension &vars, int dim1, int dim2, auto &merge) {
+    auto merge = [&, this](VarsByDimension &vars, int dim1, int dim2, auto &merge) {
       if (dim1 != dim2)
       {
         if (vars[dim1].empty() || vars[dim2].empty())

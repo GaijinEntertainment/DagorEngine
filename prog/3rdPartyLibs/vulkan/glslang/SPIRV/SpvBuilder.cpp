@@ -2021,7 +2021,7 @@ Id Builder::createCompositeConstruct(Id typeId, const std::vector<Id>& constitue
         // vector should be created as a spec constant.
         return makeCompositeConstant(typeId, constituents,
                                      std::any_of(constituents.begin(), constituents.end(),
-                                                 [&](spv::Id id) { return isSpecConstant(id); }));
+                                                 [&,this](spv::Id id) { return isSpecConstant(id); }));
     }
 
     Instruction* op = new Instruction(getUniqueId(), typeId, OpCompositeConstruct);
@@ -2058,7 +2058,7 @@ Id Builder::createConstructor(Decoration precision, const std::vector<Id>& sourc
     };
 
     // lambda to visit a vector argument's components
-    const auto accumulateVectorConstituents = [&](Id sourceArg) {
+    const auto accumulateVectorConstituents = [&,this](Id sourceArg) {
         unsigned int sourceSize = getNumComponents(sourceArg);
         unsigned int sourcesToUse = sourceSize;
         if (sourcesToUse + targetComponent > numTargetComponents)
@@ -2072,7 +2072,7 @@ Id Builder::createConstructor(Decoration precision, const std::vector<Id>& sourc
     };
 
     // lambda to visit a matrix argument's components
-    const auto accumulateMatrixConstituents = [&](Id sourceArg) {
+    const auto accumulateMatrixConstituents = [&,this](Id sourceArg) {
         unsigned int sourceSize = getNumColumns(sourceArg) * getNumRows(sourceArg);
         unsigned int sourcesToUse = sourceSize;
         if (sourcesToUse + targetComponent > numTargetComponents)

@@ -56,10 +56,6 @@ enum class FormatClass
   ASTC_10x10,
   ASTC_12x10,
   ASTC_12x12,
-  PVRTC_1_2BPP,
-  PVRTC_1_4BPP,
-  PVRTC_2_2BPP,
-  PVRTC_2_4BPP,
   D16,
   D24,
   D32,
@@ -218,10 +214,6 @@ struct FormatClassTraitETC2_EAC : FormatClassTraitBlock<C, 128, 4, 4, 1>
 
 template <FormatClass C, unsigned X, unsigned Y>
 struct FormatClassTraitASTC : FormatClassTraitBlock<C, 128, X, Y, 1>
-{};
-
-template <FormatClass C, unsigned B>
-struct FormatClassTraitPVRTC : FormatClassTraitBlock<C, 64, 16 / B, 4, 1>
 {};
 
 template <>
@@ -471,20 +463,6 @@ struct FormatClassTraits<FormatClass::BIT_16_2_PLANE_422>
 template <>
 struct FormatClassTraits<FormatClass::BIT_16_3_PLANE_444>
   : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_444, 3, PlanarType::P422, 16, 16, 16>
-{};
-
-template <>
-struct FormatClassTraits<FormatClass::PVRTC_1_2BPP> : FormatClassTraitPVRTC<FormatClass::PVRTC_1_2BPP, 2>
-{};
-template <>
-struct FormatClassTraits<FormatClass::PVRTC_1_4BPP> : FormatClassTraitPVRTC<FormatClass::PVRTC_1_4BPP, 4>
-{};
-
-template <>
-struct FormatClassTraits<FormatClass::PVRTC_2_2BPP> : FormatClassTraitPVRTC<FormatClass::PVRTC_2_2BPP, 2>
-{};
-template <>
-struct FormatClassTraits<FormatClass::PVRTC_2_4BPP> : FormatClassTraitPVRTC<FormatClass::PVRTC_2_4BPP, 4>
 {};
 
 template <DXGI_FORMAT>

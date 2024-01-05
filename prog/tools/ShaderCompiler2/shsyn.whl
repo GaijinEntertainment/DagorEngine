@@ -222,8 +222,10 @@ code_in_cpp            = {
   #include "shsem.h"
   #include "shLog.h"
   using namespace ShaderParser;
+  #ifdef _MSC_VER
   #pragma optimize("", off)
   #pragma optimize("ityb2", on)
+  #endif
 };
 
 //----- Syntax description -------------------------------------------------

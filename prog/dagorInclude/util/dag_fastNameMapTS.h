@@ -44,7 +44,8 @@ public:
       }
     }
     else
-      it = BaseNameMap::hashToStringId.findOr(hash, -1, [&](uint32_t id) { return BaseNameMap::string_equal(name, name_len, id); });
+      it =
+        BaseNameMap::hashToStringId.findOr(hash, -1, [&, this](uint32_t id) { return BaseNameMap::string_equal(name, name_len, id); });
     unlockRd();
 
     if (it == -1)
@@ -81,7 +82,8 @@ public:
       }
     }
     else
-      it = BaseNameMap::hashToStringId.findOr(hash, -1, [&](uint32_t id) { return BaseNameMap::string_equal(name, name_len, id); });
+      it =
+        BaseNameMap::hashToStringId.findOr(hash, -1, [&, this](uint32_t id) { return BaseNameMap::string_equal(name, name_len, id); });
     if (it != -1)
       name = BaseNameMap::getName(it);
     unlockRd();

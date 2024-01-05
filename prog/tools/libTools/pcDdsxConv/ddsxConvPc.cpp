@@ -56,7 +56,7 @@ struct BitMaskFormat
 
 BitMaskFormat bitMaskFormat[] = {
   {32, 0xff000000, 0xff0000, 0xff00, 0xff, D3DFMT_A8R8G8B8},
-#if BUILD_FOR_GLES3
+#if BUILD_FOR_MOBILE_TEXFMT
   {16, 0x00000000, 0x00f800, 0x07e0, 0x1f, D3DFMT_R5G6B5},
   {16, 0x00000001, 0x00f800, 0x07c0, 0x3e, D3DFMT_A1R5G5B5},
   {16, 0x0000000f, 0x00f000, 0x0f00, 0xf0, D3DFMT_A4R4G4B4},
@@ -96,7 +96,7 @@ struct SwizzledBitMaskFormat
   }
 };
 SwizzledBitMaskFormat bitMaskFormatSw[] = {
-#if BUILD_FOR_GLES3
+#if BUILD_FOR_MOBILE_TEXFMT
   {32, {0xff000000, 0xff0000, 0xff00, 0xff}, D3DFMT_A8B8G8R8, {0, -16, 0, 16}, 0xFFFFFFFF, 0},
   {32, {0x00000000, 0xff0000, 0xff00, 0xff}, D3DFMT_A8B8G8R8, {0, -16, 0, 16}, 0x00FFFFFF, 0xFF000000},
   {32, {0x00000000, 0xff, 0xff00, 0xff0000}, D3DFMT_A8B8G8R8, {0, 0, 0, 0}, 0x00FFFFFF, 0xFF000000},
@@ -347,19 +347,6 @@ void SwizzledBitMaskFormat::swizzle(void *data, int sz) const
 
 static inline uint32_t get_surface_sz(int w, int h, int dxt_shift, int bpp)
 {
-  /*
-  if (dxt_shift == 1 || dxt_shift == 2) // PVRTC case (discontinued)
-  {
-    int wAdd = dxt_shift==1 ? 7 : 3;
-    int wShift = dxt_shift==1 ? 3 : 2;
-    uint32_t bw = (w+wAdd)>>(wShift), bh = (h+3)>>2;
-    if (bw < 2)
-      bw = 2;
-    if (bh < 2)
-      bh = 2;
-    return bh * bw * (4<<wShift) * bpp/8;
-  }
-  */
   if (dxt_shift >= 5 && dxt_shift <= 7) // ASTC 4x4, 8x8, 12x12 case
   {
     int bsz = 4 * (dxt_shift - 5 + 1);
@@ -504,13 +491,13 @@ static bool convert_dds_voltex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t 
   else if (fmt == D3DFMT_DXT2 || fmt == D3DFMT_DXT3 || fmt == D3DFMT_DXT4 || fmt == D3DFMT_DXT5 || fmt == _MAKE4C('ATI2') ||
            fmt == dxgi_format_bc5_unorm || fmt == _MAKE4C('BC6H') || fmt == _MAKE4C('BC7 '))
     dxt_shift = 4;
-#if BUILD_FOR_GLES3
+#if BUILD_FOR_MOBILE_TEXFMT
   if (fmt == MAKEFOURCC('A', 'S', 'T', '4'))
-    dxt_shift = 5, bpp = 8, flg |= ddsx::Header::FLG_GLES3_TC_FMT;
+    dxt_shift = 5, bpp = 8, flg |= ddsx::Header::FLG_MOBILE_TEXFMT;
   else if (fmt == MAKEFOURCC('A', 'S', 'T', '8'))
-    dxt_shift = 6, bpp = 2, flg |= ddsx::Header::FLG_GLES3_TC_FMT;
+    dxt_shift = 6, bpp = 2, flg |= ddsx::Header::FLG_MOBILE_TEXFMT;
   else if (fmt == MAKEFOURCC('A', 'S', 'T', 'C'))
-    dxt_shift = 7, bpp = 0, flg |= ddsx::Header::FLG_GLES3_TC_FMT;
+    dxt_shift = 7, bpp = 0, flg |= ddsx::Header::FLG_MOBILE_TEXFMT;
 #endif
   bpp = get_bpp_for_format(fmt, bpp);
   if (!bpp && !dxt_shift)
@@ -626,13 +613,13 @@ static bool convert_dds_cubetex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t
 
   int dxt_shift = 0;
   int flg = ddsx::Header::FLG_CUBTEX;
-#if BUILD_FOR_GLES3
+#if BUILD_FOR_MOBILE_TEXFMT
   if (fmt == MAKEFOURCC('A', 'S', 'T', '4'))
-    dxt_shift = 5, bpp = 8, flg |= ddsx::Header::FLG_GLES3_TC_FMT;
+    dxt_shift = 5, bpp = 8, flg |= ddsx::Header::FLG_MOBILE_TEXFMT;
   else if (fmt == MAKEFOURCC('A', 'S', 'T', '8'))
-    dxt_shift = 6, bpp = 2, flg |= ddsx::Header::FLG_GLES3_TC_FMT;
+    dxt_shift = 6, bpp = 2, flg |= ddsx::Header::FLG_MOBILE_TEXFMT;
   else if (fmt == MAKEFOURCC('A', 'S', 'T', 'C'))
-    dxt_shift = 7, bpp = 0, flg |= ddsx::Header::FLG_GLES3_TC_FMT;
+    dxt_shift = 7, bpp = 0, flg |= ddsx::Header::FLG_MOBILE_TEXFMT;
 #endif
 #ifdef IOS_EXP
   else if (fmt == D3DFMT_DXT1 || fmt == D3DFMT_DXT2 || fmt == D3DFMT_DXT3 || fmt == D3DFMT_DXT4 || fmt == D3DFMT_DXT5)
@@ -786,13 +773,13 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
 
   int dxt_shift = 0;
   int flg = 0;
-#if BUILD_FOR_GLES3
+#if BUILD_FOR_MOBILE_TEXFMT
   if (fmt == MAKEFOURCC('A', 'S', 'T', '4'))
-    dxt_shift = 5, bpp = 8, flg |= ddsx::Header::FLG_GLES3_TC_FMT;
+    dxt_shift = 5, bpp = 8, flg |= ddsx::Header::FLG_MOBILE_TEXFMT;
   else if (fmt == MAKEFOURCC('A', 'S', 'T', '8'))
-    dxt_shift = 6, bpp = 2, flg |= ddsx::Header::FLG_GLES3_TC_FMT;
+    dxt_shift = 6, bpp = 2, flg |= ddsx::Header::FLG_MOBILE_TEXFMT;
   else if (fmt == MAKEFOURCC('A', 'S', 'T', 'C'))
-    dxt_shift = 7, bpp = 0, flg |= ddsx::Header::FLG_GLES3_TC_FMT;
+    dxt_shift = 7, bpp = 0, flg |= ddsx::Header::FLG_MOBILE_TEXFMT;
 #endif
 #ifdef IOS_EXP
   else if (fmt == D3DFMT_DXT1 || fmt == D3DFMT_DXT2 || fmt == D3DFMT_DXT3 || fmt == D3DFMT_DXT4 || fmt == D3DFMT_DXT5)
@@ -861,7 +848,7 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
   if (hdr.lQmip < hdr.mQmip)
     hdr.lQmip = hdr.mQmip;
 
-#if !BUILD_FOR_GLES3
+#if !BUILD_FOR_MOBILE_TEXFMT
   if ((levels_to_store > 1 || params.needSysMemCopy || params.needBaseTex) &&
       (fmt == D3DFMT_DXT1 || fmt == D3DFMT_DXT5 || fmt == D3DFMT_A8R8G8B8 || fmt == D3DFMT_X8R8G8B8 || fmt == _MAKE4C('ATI1') ||
         fmt == _MAKE4C('ATI2') || fmt == dxgi_format_bc4_unorm || fmt == dxgi_format_bc5_unorm))

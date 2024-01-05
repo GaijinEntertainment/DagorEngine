@@ -371,7 +371,8 @@ OpenXRDevice::OpenXRDevice(RenderingAPI rendering_api, const ApplicationData &ap
   if (isExtensionSupported(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME))
     requiredExtensions.emplace_back(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME);
 
-  if (isExtensionSupported(XR_EXT_HAND_TRACKING_EXTENSION_NAME))
+  enableHandTracking = ::dgs_get_settings()->getBlockByNameEx("xr")->getBool("enableHandTracking", false);
+  if (enableHandTracking && isExtensionSupported(XR_EXT_HAND_TRACKING_EXTENSION_NAME))
     requiredExtensions.emplace_back(XR_EXT_HAND_TRACKING_EXTENSION_NAME);
 
   applicationName = application_data.name;
@@ -452,9 +453,7 @@ bool OpenXRDevice::setUpInstance()
   XR_REPORT_RETURN(xrGetSystemProperties(oxrInstance, oxrSystemId, &systemProperties), false);
   logdbg("[XR][device] System info. VendorId %d, SystemName: '%s'", systemProperties.vendorId, systemProperties.systemName);
 
-
-  enableHandTracking =
-    handTrackingProperties.supportsHandTracking && ::dgs_get_settings()->getBlockByNameEx("xr")->getBool("enableHandTracking", false);
+  enableHandTracking = enableHandTracking && handTrackingProperties.supportsHandTracking;
   logdbg("[XR][device] System info. Hand tracking: %s", enableHandTracking ? "yes" : "no");
 
   bool disableDepthByConfig = false;

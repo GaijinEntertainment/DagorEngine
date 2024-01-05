@@ -453,9 +453,11 @@ ALIGN16( static unsigned short SIMD_SSE2_word_noalpha[8] ) = { 0xFFFF, 0xFFFF, 0
 __forceinline vec4f v_perm_yyzz(vec4f a) { return _mm_shuffle_ps(a, a, _MM_SHUFFLE(2,2,1,1)); }
 __forceinline vec4f v_perm_yzzz(vec4f a) { return _mm_shuffle_ps(a, a, _MM_SHUFFLE(1,2,2,2)); }
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4700)
 #pragma runtime_checks( "u", off )
+#endif
 template<int nIterPower>
 static __forceinline void stb__OptimizeColorsBlockIntrinsics(unsigned char *__restrict block, unsigned *__restrict maxmin32)
 {
@@ -589,8 +591,10 @@ static __forceinline void stb__OptimizeColorsBlockIntrinsics(unsigned char *__re
   maxcolor = fastDXT::cvt32bit_to16bit32(maxcolor);
   _mm_storel_epi64((__m128i*)maxmin32, maxcolor);
 }
+#ifdef _MSC_VER
 #pragma warning(pop)
 #pragma runtime_checks( "u", restore )
+#endif
 
 
 template<int nIterPower>

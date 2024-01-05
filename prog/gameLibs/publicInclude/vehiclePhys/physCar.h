@@ -243,7 +243,7 @@ public:
   };
 
   virtual void resetLastLodNo() = 0;
-  virtual bool beforeRender() = 0;
+  virtual bool beforeRender(const Point3 &view_pos) = 0;
   virtual void render(int parts_flags) = 0;
   virtual void renderTrans(int parts_flags) = 0;
   virtual bool getRenderWtms(TMatrix &wtm_body, TMatrix *wtm_wheels) = 0;

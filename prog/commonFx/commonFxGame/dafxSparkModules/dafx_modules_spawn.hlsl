@@ -1,6 +1,8 @@
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
 #pragma warning(disable:4189)
+#endif
 
 #define SPAWN_MODULE_DATA_DISPATCH_SEED (SPAWN_MODULE_NOISE_VELOCITY|SPAWN_MODULE_NOISE_POS)
 
@@ -194,4 +196,6 @@ float4 dafx_emission_shader_cb( ComputeCallDesc_cref cdesc, BufferData_ref ldata
   return cull;
 }
 
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif

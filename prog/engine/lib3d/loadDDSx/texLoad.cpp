@@ -354,9 +354,10 @@ static bool load_ddsx_to_slice(BaseTexture *tex, int slice, const ddsx::Header &
   return load_tex_data_2d(tex, BAD_TEXTUREID, BAD_TEXTUREID, hdr, *ucrd, start_lev, rd_lev, skip_lev, ti.cflg, q_id, slice);
 }
 
-#include <detex/detex.h>
 #include <image/dag_dxtCompress.h>
 #include <image/dag_texPixel.h>
+#if _TARGET_PC_WIN
+#include <convert/detex/detex.h>
 static void convert_bc7_to_dxt5(void *ref_data, int width, int height, int faces)
 {
   int pitch = max(width / 4, 1) * 16;
@@ -390,6 +391,9 @@ static void convert_bc7_to_dxt5(void *ref_data, int width, int height, int faces
     memfree(image, tmpmem);
   }
 }
+#else
+static void convert_bc7_to_dxt5(void *, int, int, int) { logerr("bc7->dxt5 conversion shall not be needed and n/a"); }
+#endif
 
 static bool convert_16b_to_argb(IGenLoad &crd, char *dst, int dst_pitch, int mip_level, int mip_data_pitch, int mip_data_lines,
   unsigned d3d_fmt)

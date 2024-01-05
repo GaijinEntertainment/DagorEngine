@@ -1,7 +1,6 @@
 #include "ioSys/dag_dataBlock.h"
 #include <3d/dag_render.h>
 #include <3d/dag_drv3d.h>
-#include <render/dag_cur_view.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_shaders.h>
 #include "shaders/dag_shaderBlock.h"

@@ -266,7 +266,7 @@ struct TPWorkerThread final : public DaThread
       else
       {
         std::unique_lock<std::mutex> lock(tpctx.condVarMtx);
-        tpctx.condVar.wait(lock, [&]() { return num_wakes.load() != nwakeslocal; }); // Predicate prevents lost wake ups
+        tpctx.condVar.wait(lock, [&, this]() { return num_wakes.load() != nwakeslocal; }); // Predicate prevents lost wake ups
         nwakeslocal = num_wakes.load(std::memory_order_relaxed);
         jelem = pop_job(tpctx.taskQueue, PRIO_LOW, maxPrio); // Try to pop job under mutex since we already holding it at this point
       }

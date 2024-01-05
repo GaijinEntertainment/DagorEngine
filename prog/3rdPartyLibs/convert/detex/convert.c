@@ -760,8 +760,10 @@ typedef struct {
 	detexConversionFunc conversion_func;
 } detexConversionType;
 
+#ifdef _MSC_VER
 #pragma warning(push, 0)
 #pragma warning(disable: 4028)
+#endif
 // Conversion table. Conversions for which the source pixel size is equal to the
 // target pixel size are performed in-place on the source pixel buffer.
 detexConversionType detex_conversion_table[] = {
@@ -864,7 +866,9 @@ detexConversionType detex_conversion_table[] = {
 	{ DETEX_PIXEL_FORMAT_FLOAT_RGB32_HDR, DETEX_PIXEL_FORMAT_FLOAT_RGBX32_HDR, ConvertPixel96RGB32ToPixel128RGBX32 },
 	{ DETEX_PIXEL_FORMAT_FLOAT_RGBX32_HDR, DETEX_PIXEL_FORMAT_FLOAT_RGB32_HDR, ConvertPixel128RGBX32ToPixel96RGB32 },
 };
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 #define NU_CONVERSION_TYPES (sizeof(detex_conversion_table) / sizeof(detex_conversion_table[0]))
 
@@ -1083,12 +1087,16 @@ static void FreeTemporaryPixelBuffers(TempPixelBufferInfo *info) {
 // If target_pixel_format is NULL, the conversion will be attempted in-place, without
 // allocating any temporary buffer.
 
+#ifdef _MSC_VER
 #pragma warning(push, 0)
 #pragma warning(disable: 4028)
+#endif
 bool detexConvertPixels(uint8_t * DETEX_RESTRICT source_pixel_buffer, uint32_t nu_pixels,
 uint32_t source_pixel_format, uint8_t * DETEX_RESTRICT target_pixel_buffer,
 uint32_t target_pixel_format) {
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 //	printf("Converting between %s and %s (0x%08X and 0x%08X).\n", detexGetTextureFormatText(source_pixel_format),
 //		detexGetTextureFormatText(target_pixel_format), source_pixel_format, target_pixel_format);
 	if (source_pixel_format == target_pixel_format) {

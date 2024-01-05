@@ -93,7 +93,7 @@ bool GenericBuildCache::save(const char *cache_fname, mkbindump::BinDumpSaveCB *
 
   cwr.writeInt(rec.size());
   iterate_names(fnames, [&](int, const char *name) { cwr.writeString(name); });
-  iterate_names(fnames, [&](int id, const char *) { cwr.write(rec.data() + id, elem_size(rec)); });
+  iterate_names(fnames, [&, this](int id, const char *) { cwr.write(rec.data() + id, elem_size(rec)); });
 
   cwr.writeInt(_MAKE4C('.end'));
 

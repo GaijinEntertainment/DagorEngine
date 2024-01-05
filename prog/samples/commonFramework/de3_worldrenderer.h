@@ -14,6 +14,7 @@
 #include <render/waterObjects.h>
 #include <render/rain.h>
 #include <fx/dag_leavesWind.h>
+#include <render/dag_cur_view.h>
 #include "de3_envi.h"
 #include <shaders/dag_overrideStateId.h>
 

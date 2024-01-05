@@ -78,8 +78,8 @@ AddIncludes =
 
 UseProgLibs =
   3rdPartyLibs/eastl
-  3rdPartyLibs/detex
 ;
+if $(Platform) in win32 win64 { UseProgLibs += 3rdPartyLibs/convert/detex ; }
 if $(Config) in dev dbg { UseProgLibs += engine/consoleProc ; }
 
 if $(Platform) in win64 linux64 && $(SSEVersion) != 2 && $(SSEVersion) != 3)

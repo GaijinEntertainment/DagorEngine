@@ -19,6 +19,7 @@
 #include <perfMon/dag_cpuFreq.h>
 
 #include <gui/dag_stdGuiRenderEx.h>
+#include <render/dag_cur_view.h>
 
 #define USE_BULLET_PHYSICS 1
 #include <phys/dag_vehicle.h>
@@ -184,7 +185,7 @@ void VehicleViewer::beforeRenderObjects()
   if (!carRender)
     return;
   carphyssimulator::beforeRender();
-  carRender->beforeRender();
+  carRender->beforeRender(::grs_cur_view.pos);
 }
 
 

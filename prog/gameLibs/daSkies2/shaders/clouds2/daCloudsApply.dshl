@@ -215,7 +215,6 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
       float2 texcoord = input.tc;
       ##if use_bounding_vr_reprojection == on
         texcoord = vr_bounding_view_reproject_tc(texcoord,0);
-        depth_texcoord = texcoord;
       ##endif
 
       #if SIMPLE_APPLY

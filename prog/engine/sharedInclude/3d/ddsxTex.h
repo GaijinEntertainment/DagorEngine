@@ -43,7 +43,7 @@ struct Header
     FLG_REV_MIP_ORDER = 0x00040000,
     FLG_HQ_PART = 0x00080000,
 
-    FLG_GLES3_TC_FMT = 0x00100000,
+    FLG_MOBILE_TEXFMT = 0x00100000,
     FLG_ARRTEX = 0x00200000,
 
     FLG_COMPR_MASK = 0xE0000000,
@@ -87,16 +87,10 @@ struct Header
     if (!dxtShift)
       return sh * sw * bitsPerPixel / 8;
 
-    if (flags & FLG_GLES3_TC_FMT)
+    if (flags & FLG_MOBILE_TEXFMT)
     {
       int tcType = dxtShift;
-      if (tcType == 1 || tcType == 2)
-      {
-        int wAdd = tcType == 1 ? 7 : 3;
-        int wShift = tcType == 1 ? 3 : 2;
-        return max((sw + wAdd) >> wShift, 2) * max((sh + 3) >> 2, 2) * (4 << wShift) * bitsPerPixel / 8;
-      }
-      if (tcType == 5 || tcType == 6 || tcType == 7)
+      if (tcType == 5 || tcType == 6 || tcType == 7) // ASTC
       {
         if (tcType == 5)
           sw /= 4, sh /= 4;
@@ -127,19 +121,10 @@ struct Header
       return bw * bitsPerPixel / 8;
     }
 
-    if (flags & FLG_GLES3_TC_FMT)
+    if (flags & FLG_MOBILE_TEXFMT)
     {
       int tcType = dxtShift;
-      if (tcType == 1 || tcType == 2)
-      {
-        int wAdd = tcType == 1 ? 7 : 3;
-        int wShift = tcType == 1 ? 3 : 2;
-        uint32_t bw = (w + wAdd) >> (level + wShift);
-        if (bw < 2)
-          bw = 2;
-        return bw * (4 << wShift) * bitsPerPixel / 8;
-      }
-      if (tcType == 5 || tcType == 6 || tcType == 7)
+      if (tcType == 5 || tcType == 6 || tcType == 7) // ASTC
       {
         uint32_t bw = w >> level;
         if (tcType == 5)
@@ -170,17 +155,10 @@ struct Header
       return bh;
     }
 
-    if (flags & FLG_GLES3_TC_FMT)
+    if (flags & FLG_MOBILE_TEXFMT)
     {
       int tcType = dxtShift;
-      if (tcType == 1 || tcType == 2)
-      {
-        uint32_t bh = (h + 3) >> (level + 2);
-        if (bh < 2)
-          bh = 2;
-        return bh;
-      }
-      if (tcType == 5 || tcType == 6 || tcType == 7)
+      if (tcType == 5 || tcType == 6 || tcType == 7) // ASTC
       {
         uint32_t bh = h >> level;
         if (tcType == 5)

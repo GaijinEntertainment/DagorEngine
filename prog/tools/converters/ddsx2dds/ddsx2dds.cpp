@@ -196,7 +196,7 @@ static bool dump_ddsx(IGenLoad &crd)
   PRN_FLG(NEED_PAIRED_BASETEX);
   PRN_FLG(REV_MIP_ORDER);
   PRN_FLG(HQ_PART);
-  PRN_FLG(GLES3_TC_FMT);
+  PRN_FLG(MOBILE_TEXFMT);
 #undef PRN_FLG
   printf("\n");
 #define PRN_COMPR(X)                        \
@@ -284,7 +284,7 @@ static bool decode_ddsx_astc(IGenLoad &crd, const char *base_nm)
   PRN_FLG(NEED_PAIRED_BASETEX);
   PRN_FLG(REV_MIP_ORDER);
   PRN_FLG(HQ_PART);
-  PRN_FLG(GLES3_TC_FMT);
+  PRN_FLG(MOBILE_TEXFMT);
 #undef PRN_FLG
   printf("\n");
 #define PRN_COMPR(X)                        \

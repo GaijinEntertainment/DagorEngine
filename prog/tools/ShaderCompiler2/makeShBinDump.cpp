@@ -206,7 +206,7 @@ struct Variables
       if (v.array_size == 1 || v.index != 0)
         continue;
 
-      auto find_var = [&](const ShaderGlobal::Var &v) -> shader_layout::Var<> * {
+      auto find_var = [&, this](const ShaderGlobal::Var &v) -> shader_layout::Var<> * {
         for (auto &var : vl.v)
           if (var.nameId == varMap.xmap[v.nameId])
             return &var;

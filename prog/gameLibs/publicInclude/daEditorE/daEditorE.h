@@ -7,6 +7,7 @@
 
 class ObjectEditor;
 class TMatrix;
+class TMatrix4;
 class Point3;
 class SqModules;
 class EditableObject;
@@ -31,7 +32,7 @@ struct IDaEditor4EmbeddedComponent
   virtual const TMatrix *getCameraForcedItm() const = 0;
 
   virtual void act(float dt) = 0;
-  virtual void beforeRender() = 0;
+  virtual void beforeRender(const TMatrix &view_tm, const TMatrix &view_itm, const TMatrix4 &proj_tm, const Point3 &view_pos) = 0;
   virtual void render3d(const Frustum &, const Point3 &) = 0;
   virtual void renderUi() = 0;
 };
@@ -54,7 +55,7 @@ struct IDaEditor4StubEC : public IDaEditor4EmbeddedComponent
   virtual const TMatrix *getCameraForcedItm() const { return NULL; }
 
   virtual void act(float /*dt*/) {}
-  virtual void beforeRender() {}
+  virtual void beforeRender(const TMatrix &, const TMatrix &, const TMatrix4 &, const Point3 &) {}
   virtual void render3d(const Frustum &, const Point3 &) {}
   virtual void renderUi() {}
 };

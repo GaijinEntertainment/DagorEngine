@@ -11,7 +11,7 @@
 void mkbindump::StrCollector::writeStrings(BinDumpSaveCB &cwr)
 {
   clear_and_resize(ofs, str.nameCount());
-  iterate_names_in_lexical_order(str, [&](int id, const char *name) {
+  iterate_names_in_lexical_order(str, [&, this](int id, const char *name) {
     int len = i_strlen(name);
     ofs[id] = cwr.tell();
     cwr.writeRaw(name, len + 1);
@@ -20,7 +20,7 @@ void mkbindump::StrCollector::writeStrings(BinDumpSaveCB &cwr)
 void mkbindump::StrCollector::writeStringsEx(BinDumpSaveCB &cwr, dag::Span<StrCollector> wr_str)
 {
   clear_and_resize(ofs, str.nameCount());
-  iterate_names_in_lexical_order(str, [&](int m_id, const char *m_name) {
+  iterate_names_in_lexical_order(str, [&, this](int m_id, const char *m_name) {
     bool found = false;
     for (int j = 0; j < wr_str.size(); j++)
     {
@@ -48,7 +48,7 @@ void mkbindump::RoNameMapBuilder::prepare(StrCollector &direct_namemap)
   noIdxRemap = false;
   map.reset();
 
-  iterate_names_in_lexical_order(direct_namemap.getMap(), [&](int, const char *name) { map.addNameId(name); });
+  iterate_names_in_lexical_order(direct_namemap.getMap(), [&, this](int, const char *name) { map.addNameId(name); });
 
   map.prepareXmap();
 }
@@ -67,7 +67,7 @@ void mkbindump::RoNameMapBuilder::writeMap(BinDumpSaveCB &cwr)
 
   Tab<int> sorted_ids;
   gather_ids_in_lexical_order(sorted_ids, map);
-  iterate_names_in_order(map, sorted_ids, [&](int, const char *name) { cwr.writePtr64e(strNames->getOffset(name)); });
+  iterate_names_in_order(map, sorted_ids, [&, this](int, const char *name) { cwr.writePtr64e(strNames->getOffset(name)); });
   ptStr.finishTab(cwr);
 
   if (noIdxRemap)

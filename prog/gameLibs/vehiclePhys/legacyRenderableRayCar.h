@@ -3,7 +3,6 @@
 #include "rayCar.h"
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameResId.h>
-#include <render/dag_cur_view.h>
 
 #ifndef NO_3D_GFX
 #include <vehiclePhys/tireTracks.h>
@@ -111,7 +110,7 @@ public:
     release_game_resource((GameResource *)model);
   }
   void resetLastLodNo() override { lastLodNo = -1; }
-  bool beforeRender() override
+  bool beforeRender(const Point3 &view_pos) override
   {
     if (carPhysMode == CPM_DISABLED)
       return false;
@@ -149,7 +148,7 @@ public:
     }
 #endif
 
-    setMatrices();
+    setMatrices(view_pos);
     return true;
   }
   void render(int parts_flags) override
@@ -244,11 +243,11 @@ public:
 
   bool isVisibleInMainCamera() { return isVisible; }
   void getLighting(SH3Lighting &light_sh) const { light_sh = lighting.getSH3(); }
-  void renderForShadow()
+  void renderForShadow(const Point3 &view_pos)
   {
     bool lastLod = true;
     if (!isVisible)
-      setMatrices();
+      setMatrices(view_pos);
     if (lastLod)
       body->getModel()->setLod(body->getModel()->getLodsCount() - 1);
     body->getModel()->render();
@@ -283,7 +282,7 @@ private:
   int vinyls_tex_var_id = -1, planar_vinyls_tex_var_id = -1, planar_norm_var_id = -1;
 
 #ifndef NO_3D_GFX
-  void beforeRenderGhost(const TMatrix &vtm)
+  void beforeRenderGhost(const TMatrix &vtm, const Point3 &view_pos)
   {
     DynamicRenderableSceneInstance *model = body->getModel();
 
@@ -298,7 +297,7 @@ private:
       for (int i = 0; i < nodeMap.size(); i++)
         model->setNodeWtm(nodeMap[i].id, nodeTree->getNodeWtmRel(nodeMap[i].nodeIdx));
     }
-    model->beforeRender(::grs_cur_view.pos);
+    model->beforeRender(view_pos);
     lastLodNo = model->getCurrentLodNo();
 
     for (int i = 0; i < wheels.size(); i++)
@@ -306,11 +305,11 @@ private:
       if (!wheels[i].rendObj)
         continue;
       setWheelRenderTm(i, vtm);
-      wheels[i].rendObj->beforeRender(::grs_cur_view.pos);
+      wheels[i].rendObj->beforeRender(view_pos);
     }
   }
 
-  void setMatrices()
+  void setMatrices(const Point3 &view_pos)
   {
     if (fakeShakeTm)
     {
@@ -324,13 +323,13 @@ private:
     }
 
     if (externalDraw)
-      beforeRenderGhost(externalTm);
+      beforeRenderGhost(externalTm, view_pos);
     else if (carPhysMode == CPM_GHOST)
-      beforeRenderGhost(virtualCarTm);
+      beforeRenderGhost(virtualCarTm, view_pos);
     else
     {
       body->updateModelTms();
-      body->getModel()->beforeRender(::grs_cur_view.pos);
+      body->getModel()->beforeRender(view_pos);
     }
 
     lastLodNo = body->getModel()->getCurrentLodNo();
@@ -347,7 +346,7 @@ private:
       if (!wheels[i].rendObj)
         continue;
       setWheelRenderTm(i, visualTm);
-      wheels[i].rendObj->beforeRender(::grs_cur_view.pos);
+      wheels[i].rendObj->beforeRender(view_pos);
     }
   }
   float getVisibilityRange() const
@@ -370,14 +369,14 @@ private:
     calcCached();
 #ifndef NO_3D_GFX
     if (externalDraw)
-      beforeRenderGhost(externalTm);
+      beforeRenderGhost(externalTm, {0, 0, 0});
     else if (carPhysMode != CPM_GHOST)
     {
       body->updateModelTms();
-      body->getModel()->beforeRender(::grs_cur_view.pos);
+      body->getModel()->beforeRender({0, 0, 0});
     }
     else
-      beforeRenderGhost(virtualCarTm);
+      beforeRenderGhost(virtualCarTm, {0, 0, 0});
 #endif
   }
 };

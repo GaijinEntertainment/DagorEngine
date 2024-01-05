@@ -525,10 +525,10 @@ FormatInfo<TEXFMT_DEPTH24,        DXGI_FORMAT_R24G8_TYPELESS,         DXGI_FORMA
 // xbox is amd chip, no native d24 formats
 FormatInfo<TEXFMT_DEPTH24,        DXGI_FORMAT_R32G8X24_TYPELESS,      DXGI_FORMAT_D32_FLOAT_S8X24_UINT, DXGI_FORMAT_D32_FLOAT_S8X24_UINT>,
 #endif
-DummyFormatInfo<TEXFMT_PVRTC2X>,
-DummyFormatInfo<TEXFMT_PVRTC2A>,
-DummyFormatInfo<TEXFMT_PVRTC4X>,
-DummyFormatInfo<TEXFMT_PVRTC4A>,
+DummyFormatInfo<0x2A000000U>,
+DummyFormatInfo<0x2B000000U>,
+DummyFormatInfo<0x2C000000U>,
+DummyFormatInfo<0x2D000000U>,
 DummyFormatInfo<TEXFMT_ASTC4>,
 DummyFormatInfo<TEXFMT_ASTC8>,
 DummyFormatInfo<TEXFMT_ASTC12>,

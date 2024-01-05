@@ -19,7 +19,6 @@
 #include <3d/dag_drv3dCmd.h>
 #include <3d/dag_drv3d_platform.h>
 #include <3d/dag_dynAtlas.h>
-#include <render/dag_cur_view.h>
 #include <supp/dag_prefetch.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_rendInstRes.h>

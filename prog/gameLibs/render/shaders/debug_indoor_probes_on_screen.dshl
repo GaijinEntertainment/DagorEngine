@@ -11,6 +11,7 @@ shader debug_indoor_probes_on_screen
   cull_mode = none;
   z_write = false;
   z_test = false;
+  color_write = rgb;
 
   USE_AND_INIT_VIEW_VEC_VS()
   POSTFX_VS_TEXCOORD_VIEWVEC(1, texcoord, viewVect)

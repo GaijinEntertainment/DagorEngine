@@ -125,7 +125,7 @@ static struct DelayedActionsContext
     }
     DA_PROFILE_EVENT("perform_delayed_actions");
     int i = 0, actionsLeft = 0, cnt = 0;
-    auto getNextAction = [&]() {
+    auto getNextAction = [&, this]() {
       DelayedRecord act;
       for (; i < delayed_actions.size(); ++i)
         if (delayed_actions[i].precondition())

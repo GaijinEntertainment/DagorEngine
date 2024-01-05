@@ -38,10 +38,6 @@ uint32_t d3dformat_to_texfmt(/*D3DFORMAT*/ uint32_t fmt)
     case _MAKE4C('ATI2'): return TEXFMT_ATI2N;
     case _MAKE4C('BC6H'): return TEXFMT_BC6H;
     case _MAKE4C('BC7 '): return TEXFMT_BC7;
-    case _MAKE4C('PC2X'): return TEXFMT_PVRTC2X;
-    case _MAKE4C('PC2A'): return TEXFMT_PVRTC2A;
-    case _MAKE4C('PC4X'): return TEXFMT_PVRTC4X;
-    case _MAKE4C('PC4A'): return TEXFMT_PVRTC4A;
     case _MAKE4C('AST4'): return TEXFMT_ASTC4;
     case _MAKE4C('AST8'): return TEXFMT_ASTC8;
     case _MAKE4C('ASTC'): return TEXFMT_ASTC12;

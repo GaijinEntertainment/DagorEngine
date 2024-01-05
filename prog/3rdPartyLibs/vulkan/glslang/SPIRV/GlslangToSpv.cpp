@@ -2479,7 +2479,7 @@ bool TGlslangToSpvTraverser::visitSelection(glslang::TVisit /* visit */, glslang
     spv::Id condition = accessChainLoad(node->getCondition()->getType());
 
     // Find a way of executing both sides and selecting the right result.
-    const auto executeBothSides = [&]() -> void {
+    const auto executeBothSides = [&,this]() -> void {
         // execute both sides
         node->getTrueBlock()->traverse(this);
         spv::Id trueValue = accessChainLoad(node->getTrueBlock()->getAsTyped()->getType());
@@ -2537,7 +2537,7 @@ bool TGlslangToSpvTraverser::visitSelection(glslang::TVisit /* visit */, glslang
     };
 
     // Execute the one side needed, as per the condition
-    const auto executeOneSide = [&]() {
+    const auto executeOneSide = [&,this]() {
         // Always emit control flow.
         if (node->getBasicType() != glslang::EbtVoid)
             result = builder.createVariable(spv::StorageClassFunction, convertGlslangToSpvType(node->getType()));

@@ -1,6 +1,8 @@
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
 #pragma warning(disable:4189)
+#endif
 
 #define SIM_MODULE_DATA_AGE_NORM (SIM_MODULE_LIFE)
 #define SIM_MODULE_DATA_COLLISION (SIM_MODULE_DEPTH_COLLISION)
@@ -288,4 +290,6 @@ float4 dafx_simulation_shader_cb( ComputeCallDesc_cref cdesc, BufferData_ref lda
   return cull;
 }
 
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif

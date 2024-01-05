@@ -239,7 +239,6 @@ public:
     (calc_squared_area_around(NUM_TILES_AROUND_RI_FIXED_MIP) + calc_squared_area_around(NUM_TILES_AROUND_RI_FIXED_MIP)) *
       MAX_RI_VTEX_CNT;
 
-  static constexpr int MAX_CLIPMAP = 9;
   enum
   {
     SOFTWARE_FEEDBACK,
@@ -339,7 +338,6 @@ public:
     failLockCount = 0;
     // END OF VIRTUAL TEXTURE INITIALIZATION
 
-    mem_set_0(updatedClipmaps);
     tileInfo.resize(getMaxTileInfoElementCount());
 
 #if MAX_RI_VTEX_CNT_BITS > 0
@@ -428,7 +426,6 @@ private:
   BBox2 currentLRUBox;
   void checkUpload();
   uint32_t feedbackType;
-  carray<bool, MAX_CLIPMAP> updatedClipmaps;
   static constexpr int MAX_CACHE_TILES = 1024; // 8192x8192
   carray<TexLRU, MAX_CACHE_TILES * 2> changedLRUs;
   int changedLRUscount;
@@ -1843,6 +1840,7 @@ void MipContext::closeHWFeedback()
     captureTileInfoBuf[i].close();
     captureTexFence[i].reset();
   }
+  captureStagingBuf.close();
   intermediateHistBuf.close();
 }
 

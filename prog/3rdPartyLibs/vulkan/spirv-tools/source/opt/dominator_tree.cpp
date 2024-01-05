@@ -206,7 +206,7 @@ void BasicBlockSuccessorHelper<BBType>::CreateSuccessorMap(
       BasicBlockListTy& succ_list = successors_[&bb];
 
       const auto& const_bb = bb;
-      const_bb.ForEachSuccessorLabel([&](const uint32_t successor_id) {
+      const_bb.ForEachSuccessorLabel([&,this](const uint32_t successor_id) {
         BasicBlock* succ = GetSuccessorBasicBlock(successor_id);
         succ_list.push_back(succ);
         predecessors_[succ].push_back(&bb);

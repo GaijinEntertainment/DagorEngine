@@ -229,7 +229,11 @@ struct ASTCEncoderHelperContext
     else if (cpu_feature_sse41_checked && cpu_feature_popcnt_checked)
       strcat(astcencExePath, "-sse4.1");
     else
+#if __e2k__
+      strcat(astcencExePath, "-native");
+#else
       strcat(astcencExePath, "-sse2");
+#endif
 #endif
 #if _TARGET_PC_WIN
     strcat(astcencExePath, ".exe");

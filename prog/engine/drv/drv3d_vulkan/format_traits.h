@@ -50,10 +50,6 @@ enum class FormatClass
   ASTC_10x10,
   ASTC_12x10,
   ASTC_12x12,
-  PVRTC_1_2BPP,
-  PVRTC_1_4BPP,
-  PVRTC_2_2BPP,
-  PVRTC_2_4BPP,
   D16,
   D24,
   D32,
@@ -212,10 +208,6 @@ struct FormatClassTraitETC2_EAC : FormatClassTraitBlock<C, 128, 4, 4, 1>
 
 template <FormatClass C, unsigned X, unsigned Y>
 struct FormatClassTraitASTC : FormatClassTraitBlock<C, 128, X, Y, 1>
-{};
-
-template <FormatClass C, unsigned B>
-struct FormatClassTraitPVRTC : FormatClassTraitBlock<C, 64, 16 / B, 4, 1>
 {};
 
 template <>
@@ -462,20 +454,6 @@ struct FormatClassTraits<FormatClass::BIT_16_2_PLANE_422>
 template <>
 struct FormatClassTraits<FormatClass::BIT_16_3_PLANE_444>
   : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_444, 3, PlanarType::P422, 16, 16, 16>
-{};
-
-template <>
-struct FormatClassTraits<FormatClass::PVRTC_1_2BPP> : FormatClassTraitPVRTC<FormatClass::PVRTC_1_2BPP, 2>
-{};
-template <>
-struct FormatClassTraits<FormatClass::PVRTC_1_4BPP> : FormatClassTraitPVRTC<FormatClass::PVRTC_1_4BPP, 4>
-{};
-
-template <>
-struct FormatClassTraits<FormatClass::PVRTC_2_2BPP> : FormatClassTraitPVRTC<FormatClass::PVRTC_2_2BPP, 2>
-{};
-template <>
-struct FormatClassTraits<FormatClass::PVRTC_2_4BPP> : FormatClassTraitPVRTC<FormatClass::PVRTC_2_4BPP, 4>
 {};
 
 template <VkFormat>
@@ -755,15 +733,5 @@ DECL_FORMAT_TRAIT(VK_FORMAT_G16_B16R16_2PLANE_420_UNORM_KHR, FormatClass::BIT_16
 DECL_FORMAT_TRAIT(VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM_KHR, FormatClass::BIT_16_3_PLANE_422);
 DECL_FORMAT_TRAIT(VK_FORMAT_G16_B16R16_2PLANE_422_UNORM_KHR, FormatClass::BIT_16_2_PLANE_422);
 DECL_FORMAT_TRAIT(VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM_KHR, FormatClass::BIT_16_3_PLANE_444);
-
-// NOTE: those formant are still not documented in the vulkan spec
-DECL_FORMAT_TRAIT(VK_FORMAT_PVRTC1_2BPP_UNORM_BLOCK_IMG, FormatClass::PVRTC_1_2BPP);
-DECL_FORMAT_TRAIT(VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG, FormatClass::PVRTC_1_4BPP);
-DECL_FORMAT_TRAIT(VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG, FormatClass::PVRTC_2_2BPP);
-DECL_FORMAT_TRAIT(VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG, FormatClass::PVRTC_2_4BPP);
-DECL_FORMAT_TRAIT(VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG, FormatClass::PVRTC_1_2BPP);
-DECL_FORMAT_TRAIT(VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG, FormatClass::PVRTC_1_4BPP);
-DECL_FORMAT_TRAIT(VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG, FormatClass::PVRTC_2_2BPP);
-DECL_FORMAT_TRAIT(VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG, FormatClass::PVRTC_2_4BPP);
 
 #undef DECL_FORMAT_TRAIT

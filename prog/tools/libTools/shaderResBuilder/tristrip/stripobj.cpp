@@ -1,6 +1,3 @@
-
-#pragma warning(disable : 4786)
-
 #include <assert.h>
 #include <set>
 #include "stripobj.h"

@@ -10,12 +10,12 @@ Target     = tools/libTools/pcDdsxConv ;
 
 if $(iOS_exp) = yes {
   Target = tools/libTools/iosDdsxConv ;
-  CPPopt = -DIOS_EXP -DBUILD_FOR_GLES3  ;
+  CPPopt = -DIOS_EXP -DBUILD_FOR_MOBILE_TEXFMT  ;
 }
 
 if $(Tegra_exp) = yes {
   Target = tools/libTools/andDdsxConv ;
-  CPPopt = -DTEGRA_EXP -DBUILD_FOR_GLES3  ;
+  CPPopt = -DTEGRA_EXP -DBUILD_FOR_MOBILE_TEXFMT  ;
 }
 
 include $(Root)/prog/_jBuild/defaults.jam ;

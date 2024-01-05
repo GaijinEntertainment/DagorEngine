@@ -1,6 +1,5 @@
 #include <render/waterProjFx.h>
 #include <render/viewVecs.h>
-#include <render/dag_cur_view.h>
 #include <ioSys/dag_dataBlock.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_drv3dCmd.h>

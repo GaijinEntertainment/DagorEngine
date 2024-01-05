@@ -817,7 +817,7 @@ public:
     // sort first, so that the meta data of shaders with the same layout is exactly the
     // same
     sort(begin(compiled), end(compiled),
-      [=](const glslang::TType *l, const glslang::TType *r) //
+      [=, this](const glslang::TType *l, const glslang::TType *r) //
       {
         const auto li = static_cast<uint32_t>(getSourceRegisterType(*l));
         const auto ri = static_cast<uint32_t>(getSourceRegisterType(*r));

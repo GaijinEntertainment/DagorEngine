@@ -22,7 +22,9 @@
 #include <util/dag_base32.h>
 #include <math/dag_Point3.h>
 #include "roughnessMipMapping.h"
+#if !TEX_CANNOT_USE_ISPC
 #include <ispc_texcomp.h>
+#endif
 #include <libTools/dtx/astcenc.h>
 #if !_TARGET_STATIC_LIB
 ASTCENC_DECLARE_STATIC_DATA();
@@ -2046,10 +2048,12 @@ public:
       }
     }
 
+#if !TEX_CANNOT_USE_ISPC
     if (bc67_fmt == BC67_FORMAT_BC6H)
       return convert_to_bc6(cwr.getRawWriter(), imgSurf, texType, voltex_depth, quality, outHandler.hqPartLev);
     else if (bc67_fmt == BC67_FORMAT_BC7)
       return convert_to_bc7(cwr.getRawWriter(), imgSurf, texType, voltex_depth, quality, outHandler.hqPartLev);
+#endif
     if (tc_format)
     {
       nv::Image *image = imgSurf[0].image.ptr();
@@ -2174,6 +2178,7 @@ public:
     return (bw * bh) << 4;
   }
 
+#if !TEX_CANNOT_USE_ISPC
   void chooseBC6HEncodeSettings(bc6h_enc_settings *settings, const char *quality)
   {
     if (strcmp(quality, "") == 0)
@@ -2227,6 +2232,7 @@ public:
 
     CompressBlocksBC6H(&input, dst, settings);
   }
+#endif
 
   void save2DDS(IGenSave &cwr, nvtt::TextureType ttype, int w, int h, int d, int mips, DWORD fourcc, Tab<char> &packed, int hq_part)
   {
@@ -2265,6 +2271,7 @@ public:
     cwr.write(packed.data(), data_size(packed));
   }
 
+#if !TEX_CANNOT_USE_ISPC
   bool convert_to_bc6(IGenSave &cwr, dag::ConstSpan<ImageSurface> imgSurf, nvtt::TextureType ttype, int voltex_d, const char *quality,
     int hq_part)
   {
@@ -2390,6 +2397,7 @@ public:
     save2DDS(cwr, ttype, w, h / voltex_d, voltex_d, mips, MAKEFOURCC('B', 'C', '7', ' '), packed, hq_part);
     return true;
   }
+#endif
 #ifdef _TARGET_EXPORTERS_STATIC
   bool convert_to_astc(IGenSave &, dag::ConstSpan<ImageSurface>, nvtt::TextureType, int, bool, unsigned, int, const char *)
   {
@@ -3393,11 +3401,11 @@ public:
         }
 
     if (hdr.d3dFormat == MAKEFOURCC('A', 'S', 'T', '4'))
-      hdr.dxtShift = 5, hdr.bitsPerPixel = 8, hdr.flags |= ddsx::Header::FLG_GLES3_TC_FMT;
+      hdr.dxtShift = 5, hdr.bitsPerPixel = 8, hdr.flags |= ddsx::Header::FLG_MOBILE_TEXFMT;
     else if (hdr.d3dFormat == MAKEFOURCC('A', 'S', 'T', '8'))
-      hdr.dxtShift = 6, hdr.bitsPerPixel = 2, hdr.flags |= ddsx::Header::FLG_GLES3_TC_FMT;
+      hdr.dxtShift = 6, hdr.bitsPerPixel = 2, hdr.flags |= ddsx::Header::FLG_MOBILE_TEXFMT;
     else if (hdr.d3dFormat == MAKEFOURCC('A', 'S', 'T', 'C'))
-      hdr.dxtShift = 7, hdr.bitsPerPixel = 0, hdr.flags |= ddsx::Header::FLG_GLES3_TC_FMT;
+      hdr.dxtShift = 7, hdr.bitsPerPixel = 0, hdr.flags |= ddsx::Header::FLG_MOBILE_TEXFMT;
     if (hdr.d3dFormat == D3DFMT_DXT1 || hdr.d3dFormat == _MAKE4C('ATI1') || hdr.d3dFormat == dxgi_format_bc4_unorm)
       hdr.dxtShift = 3;
     else if (hdr.d3dFormat == D3DFMT_DXT2 || hdr.d3dFormat == D3DFMT_DXT3 || hdr.d3dFormat == D3DFMT_DXT4 ||

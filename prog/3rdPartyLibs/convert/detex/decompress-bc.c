@@ -20,8 +20,10 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 /* Decompress a 64-bit 4x4 pixel texture block compressed using the BC1 */
 /* format. */
+#ifdef _MSC_VER
 #pragma warning(push, 0)
 #pragma warning(disable: 4028)
+#endif
 bool detexDecompressBlockBC1(const uint8_t * DETEX_RESTRICT bitstring, uint32_t mode_mask,
 uint32_t flags, uint8_t * DETEX_RESTRICT pixel_buffer) {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ || !defined(__BYTE_ORDER__)
@@ -240,4 +242,6 @@ uint32_t flags, uint8_t * DETEX_RESTRICT pixel_buffer) {
 	}
 	return true;
 }
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif

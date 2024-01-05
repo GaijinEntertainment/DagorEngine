@@ -709,7 +709,7 @@ void RendInstGenData::applyLodRanges()
       rtData->applyImpostorRange(i, ri_ovr, subCellOfsSize);
     }
     int lastLodNo = rtData->riResLodCount(i) - 1;
-    float last_lod_range = min(rtData->rtPoolData[i]->lodRange[lastLodNo], rtData->preloadDistance);
+    float last_lod_range = min(rtData->rtPoolData[i]->lodRange[lastLodNo], rtData->settingsPreloadDistance);
     maxDist = max(maxDist, last_lod_range);
     averageFarPlane += last_lod_range;
     averageFarPlaneCount++;
@@ -1563,8 +1563,15 @@ void rendinst::getLodCounter(int lod, const RiGenVisibility *visibility, int &su
 
 void rendinst::set_per_instance_visibility_for_any_tree(bool on)
 {
+  bool updateLodRanges = rendinst::render::per_instance_visibility_for_everyone != on;
   rendinst::render::per_instance_visibility_for_everyone = on;
   rendinst::render::use_cross_dissolve = (on && VariableMap::isVariablePresent(rendinst::render::render_cross_dissolved_varId));
+
+  if (updateLodRanges)
+  {
+    FOR_EACH_RG_LAYER_DO (rgl)
+      rgl->applyLodRanges();
+  }
 }
 
 void rendinst::render::setRIGenRenderMode(int mode)

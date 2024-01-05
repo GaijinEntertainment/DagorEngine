@@ -205,6 +205,12 @@ else:
 astcenc_dest_folder = dest_dir+'/astcenc-4.6.1'
 if pathlib.Path(astcenc_dest_folder).exists():
   print('=== ASTC encoder 4.6.1 {0}, skipping setup'.format(astcenc_dest_folder))
+elif linux_arch_type == 'e2k':
+  pathlib.Path(astcenc_dest_folder+'/linux64').mkdir(parents=True, exist_ok=True)
+  print('+++ ASTC encoder 4.6.1 folder created at {0}'.format(astcenc_dest_folder))
+  print('!!! arch={0} differs from x86_64, you should rebuild {1}\n'
+        '    for your arch and place result binary to {2}/linux64/astcenc-native\n\n'
+        .format(linux_arch_type, 'https://github.com/ARM-software/astc-encoder', astcenc_dest_folder))
 else:
   download_url('https://github.com/ARM-software/astc-encoder/releases/download/4.6.1/astcenc-4.6.1-linux-x64.zip')
   with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/astcenc-4.6.1-linux-x64.zip'), 'r') as zip_file:
@@ -212,25 +218,23 @@ else:
     os.rename(os.path.normpath(dest_dir+'/astcenc-4.6.1/bin'), os.path.normpath(dest_dir+'/astcenc-4.6.1/linux64'));
     run('chmod 755 '+dest_dir+'/astcenc-4.6.1/linux64/astcenc*')
     print('+++ ASTC encoder 4.6.1 installed at {0}'.format(astcenc_dest_folder))
-    if linux_arch_type == 'e2k':
-      print('!!! arch={0} differs from x86_64, you should rebuild {1}\n'
-            '    for your arch and place result binary to {2}/linux64/astcenc-sse2\n\n'
-            .format(linux_arch_type, 'https://github.com/ARM-software/astc-encoder', astcenc_dest_folder))
 
 # ispc-v1.22.0
 ispc_dest_folder = dest_dir+'/ispc-v1.22.0-linux'
 if pathlib.Path(ispc_dest_folder).exists():
   print('=== ISPC v1.22.0 {0}, skipping setup'.format(ispc_dest_folder))
+elif linux_arch_type == 'e2k':
+  pathlib.Path(ispc_dest_folder).mkdir(parents=True, exist_ok=True)
+  print('+++ ISPC v1.22.0 skipped (stub created at {0})'.format(ispc_dest_folder))
+  print('!!! arch={0} differs from x86_64, you should rebuild {1}\n'
+        '    for your arch and place result binary to {2}/bin/ispc\n\n'
+        .format(linux_arch_type, 'https://github.com/ispc/ispc', ispc_dest_folder))
 else:
   download_url('https://github.com/ispc/ispc/releases/download/v1.22.0/ispc-v1.22.0-linux.tar.gz')
   with tarfile.open(os.path.normpath(dest_dir+'/.packages/ispc-v1.22.0-linux.tar.gz'), 'r:gz') as tar_file:
     tar_file.extractall(dest_dir)
     tar_file.close()
     print('+++ ISPC v1.22.0 installed at {0}'.format(ispc_dest_folder))
-    if linux_arch_type == 'e2k':
-      print('!!! arch={0} differs from x86_64, you should rebuild {1}\n'
-            '    for your arch and place result binary to {2}/bin/ispc\n\n'
-            .format(linux_arch_type, 'https://github.com/ispc/ispc', ispc_dest_folder))
 
 
 try:

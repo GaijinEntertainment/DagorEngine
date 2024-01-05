@@ -33,6 +33,11 @@
 
 namespace drv3d_dx12
 {
+enum class ActivePipeline
+{
+  Graphics,
+  Compute
+};
 template <typename T, size_t N>
 class ForwardRing
 {
@@ -578,6 +583,17 @@ struct GraphicsState
   BufferResourceReferenceAndOffset predicationBuffer;
   BufferResourceReferenceAndOffset activePredicationBuffer;
 
+  void invalidateResourceStates()
+  {
+    statusBits.set(INDEX_BUFFER_STATE_DIRTY);
+    statusBits.set(VERTEX_BUFFER_STATE_0_DIRTY);
+    statusBits.set(VERTEX_BUFFER_STATE_1_DIRTY);
+    statusBits.set(VERTEX_BUFFER_STATE_2_DIRTY);
+    statusBits.set(VERTEX_BUFFER_STATE_3_DIRTY);
+    statusBits.set(PREDICATION_BUFFER_STATE_DIRTY);
+    framebufferState.dirtyAllTexturesState();
+  }
+
   void dirtyBufferState(BufferGlobalId ident)
   {
     if (indexBuffer.resourceId == ident)
@@ -1112,6 +1128,27 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debu
     StatefulCommandBuffer cmdBuffer = {};
     eastl::vector<eastl::pair<size_t, size_t>> renderTargetSplitStarts;
 
+    ActivePipeline activePipeline = ActivePipeline::Graphics;
+
+    void switchActivePipeline(ActivePipeline active_pipeline)
+    {
+      if (activePipeline == active_pipeline)
+      {
+        return;
+      }
+      activePipeline = active_pipeline;
+      if (ActivePipeline::Graphics == active_pipeline)
+      {
+        graphicsState.invalidateResourceStates();
+        stageState[STAGE_VS].invalidateResourceStates();
+        stageState[STAGE_PS].invalidateResourceStates();
+      }
+      else // if (ActivePipeline::Compute == active_pipeline)
+      {
+        stageState[STAGE_CS].invalidateResourceStates();
+      }
+    }
+
     void onFlush()
     {
       graphicsState.onFlush();
@@ -1458,6 +1495,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debu
     void compilePipelineSet(DynamicArray<InputLayoutID> &&input_layouts, DynamicArray<StaticRenderStateID> &&static_render_states,
       DynamicArray<FramebufferLayout> &&framebuffer_layouts, DynamicArray<GraphicsPipelinePreloadInfo> &&graphics_pipelines,
       DynamicArray<MeshPipelinePreloadInfo> &&mesh_pipelines, DynamicArray<ComputePipelinePreloadInfo> &&compute_pipelines);
+
+    void switchActivePipeline(ActivePipeline pipeline);
   };
 
 #if DAGOR_DBGLEVEL > 0

@@ -51,8 +51,10 @@ uint8_t * DETEX_RESTRICT pixel_buffer) {
 
 /* Decompress a 128-bit 4x4 pixel texture block compressed using the ETC2_EAC */
 /* format. */
+#ifdef _MSC_VER
 #pragma warning(push, 0)
 #pragma warning(disable: 4028)
+#endif
 bool detexDecompressBlockETC2_EAC(const uint8_t * DETEX_RESTRICT bitstring, uint32_t mode_mask,
 uint32_t flags, uint8_t * DETEX_RESTRICT pixel_buffer) {
 	bool r = detexDecompressBlockETC2(&bitstring[8], mode_mask, flags, pixel_buffer);
@@ -231,4 +233,6 @@ uint32_t mode_mask, uint32_t flags, uint8_t * DETEX_RESTRICT pixel_buffer) {
 		((uint64_t)bitstring[13] << 16) | ((uint64_t)bitstring[14] << 8) | bitstring[15];
 	return DecodeBlockEACSigned11Bit(green_qword, 1, 1, pixel_buffer);
 }
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif

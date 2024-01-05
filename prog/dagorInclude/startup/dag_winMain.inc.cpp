@@ -64,6 +64,9 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLi
   if (debugmode)
     noeh = 1;
 
+  if (::dgs_get_argv("no_level_file"))
+    debug_allow_level_files(false);
+
   symhlp_init_default();
 
   signal(SIGABRT, &abort_handler);

@@ -968,7 +968,7 @@ void Shader::FindUnusedGlobals(uint32_t flags)
     ShaderPhase &phase = asPhases[i];
 
     // Loop through every operand and pick up usages
-    HLSLcc::ForEachOperand(phase.psInst.begin(), phase.psInst.end(), FEO_FLAG_SRC_OPERAND | FEO_FLAG_SUBOPERAND, [&](std::vector<Instruction>::iterator inst, Operand *op, uint32_t /*flags*/)
+    HLSLcc::ForEachOperand(phase.psInst.begin(), phase.psInst.end(), FEO_FLAG_SRC_OPERAND | FEO_FLAG_SUBOPERAND, [&,this](std::vector<Instruction>::iterator inst, Operand *op, uint32_t /*flags*/)
     {
       // Not a constant buffer read? continue
       if (op->eType != OPERAND_TYPE_CONSTANT_BUFFER)

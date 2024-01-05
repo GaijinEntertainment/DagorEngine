@@ -2,7 +2,6 @@
 #include <ecs/core/entityManager.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_render.h>
-#include <render/dag_cur_view.h>
 #include <math/dag_mathBase.h>
 #include <math/dag_mathUtils.h>
 #include <startup/dag_globalSettings.h>
@@ -174,18 +173,14 @@ void calc_camera_values(const CameraSetup &camera_setup, TMatrix &view_tm, Drive
   view_tm = calc_camera_view_tm(camera_setup.transform);
 }
 
-void apply_camera_setup(const TMatrix &view_itm, const TMatrix &view_tm, const Driver3dPerspective &persp, int view_w, int view_h)
+void apply_camera_setup(const TMatrix &, const TMatrix &view_tm, const Driver3dPerspective &persp, int view_w, int view_h)
 {
-  ::grs_cur_view.itm = view_itm;
-  ::grs_cur_view.tm = view_tm;
-  ::grs_cur_view.pos = ::grs_cur_view.itm.getcol(3);
-
-  d3d::settm(TM_VIEW, ::grs_cur_view.tm);
+  d3d::settm(TM_VIEW, view_tm);
   d3d::setpersp(persp);
   d3d::setview(0, 0, view_w, view_h, 0, 1);
 }
 
-void apply_camera_setup(const CameraSetup &camera_setup)
+void apply_camera_setup(const CameraSetup &camera_setup, TMatrix &out_view_tm, TMatrix &out_view_itm)
 {
   TMatrix viewTm;
   Driver3dPerspective persp;
@@ -193,4 +188,6 @@ void apply_camera_setup(const CameraSetup &camera_setup)
   calc_camera_values(camera_setup, viewTm, persp, view_w, view_h);
 
   apply_camera_setup(camera_setup.transform, viewTm, persp, view_w, view_h);
+  out_view_tm = viewTm;
+  out_view_itm = camera_setup.transform;
 }

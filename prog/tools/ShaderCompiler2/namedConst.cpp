@@ -261,7 +261,7 @@ int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space,
     case NamedConstSpace::csf:
     case NamedConstSpace::uav:
     {
-      auto handle_consts = [&](auto pred) {
+      auto handle_consts = [&, this](auto pred) {
         for (NamedConst &nc : pixelProps.sc)
         {
           if (nc.nameSpace == name_space && pred(nc))

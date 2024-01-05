@@ -628,8 +628,10 @@ const uint8_t * DETEX_RESTRICT pixel_buffer) {
 /* Decompress a 128-bit 4x4 pixel texture block compressed using the */
 /* BPTC_FLOAT (BC6H) format. The output format is */
 /* DETEX_PIXEL_FORMAT_FLOAT_RGBX16. */
+#ifdef _MSC_VER
 #pragma warning(push, 0)
 #pragma warning(disable: 4028)
+#endif
 bool detexDecompressBlockBPTC_FLOAT(const uint8_t * DETEX_RESTRICT bitstring, uint32_t mode_mask,
 uint32_t flags, uint8_t * DETEX_RESTRICT pixel_buffer) {
 	return DecompressBlockBPTCFloatShared(bitstring, mode_mask, flags, false,
@@ -644,7 +646,9 @@ uint32_t mode_mask, uint32_t flags, uint8_t * DETEX_RESTRICT pixel_buffer) {
 	return DecompressBlockBPTCFloatShared(bitstring, mode_mask, flags, true,
 		pixel_buffer);
 }
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 
 /* Return the internal mode of the BPTC_FLOAT block. */
 uint32_t detexGetModeBPTC_FLOAT(const uint8_t *bitstring) {

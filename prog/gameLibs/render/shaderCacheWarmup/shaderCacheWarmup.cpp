@@ -8,6 +8,7 @@
 #include <osApiWrappers/dag_atomic.h>
 #include <perfMon/dag_perfTimer.h>
 #include <shaders/dag_shaderBlock.h>
+#include <shaders/mapBinarySearch.h>
 #include <shaders/scriptSElem.h>
 #include <shaders/scriptSMat.h>
 #include <shaders/shStateBlk.h>
@@ -17,8 +18,10 @@
 #include <util/dag_string.h>
 #include <workCycle/dag_delayedAction.h>
 
+#include <EASTL/bitvector.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
 #if _TARGET_ANDROID || _TARGET_IOS
 #include <crashlytics/firebase_crashlytics.h>
 #endif
@@ -184,13 +187,16 @@ public:
     }
   }
 
-  void acquireGpu()
+  bool acquireGpu()
   {
     if (!gpuLocked)
     {
       d3d::driver_command(DRV3D_COMMAND_ACQUIRE_OWNERSHIP, NULL, NULL, NULL);
       gpuLocked = true;
+
+      return true;
     }
+    return false;
   }
 
 private:
@@ -236,7 +242,8 @@ private:
 class ShadersWarmup
 {
 public:
-  ShadersWarmup(DynamicD3DFlusher &flusher) : d3dFlusher(flusher) {}
+  using InvalidIntervalsSet = ska::flat_hash_map<uint16_t, uint64_t>; // [intervalId, normalizedValuesMask]
+  ShadersWarmup(DynamicD3DFlusher &flusher, InvalidIntervalsSet &intervals) : d3dFlusher(flusher), invalidIntervals(intervals) {}
 
   void warmupShaders(const eastl::vector<const shaderbindump::ShaderClass *> &shader_classes)
   {
@@ -246,15 +253,57 @@ public:
 
 private:
   PtrTab<ScriptedShaderMaterial> materials;
-  PtrTab<ScriptedShaderElement> elemetns;
+  PtrTab<ScriptedShaderElement> elements;
+  eastl::bitvector<> usedStVariants;
+  eastl::bitvector<> usedDynVariants;
   DynamicD3DFlusher &d3dFlusher;
-
+  const InvalidIntervalsSet &invalidIntervals;
 
   virtual ScriptedShaderMaterial *initMaterial(const shaderbindump::ShaderClass &sc) = 0;
-  virtual bool isNotValidShader(const int vpr, const int fsh) const = 0;
+  virtual bool isValidShader(const int vpr, const int fsh) const = 0;
   virtual void onStaticVariant(ScriptedShaderElement &el) = 0;
   virtual void onDynamicVariant(const shaderbindump::ShaderCode::Pass &variant, const size_t variant_id,
-    const ScriptedShaderElement &el) = 0;
+    const ScriptedShaderElement &el, bool gpuWasAcquired) = 0;
+
+  void enumerateVariants(const shaderbindump::VariantTable &vt, int code_num, eastl::bitvector<> &usedVariants)
+  {
+    usedVariants.resize(code_num);
+    eastl::fill(usedVariants.begin(), usedVariants.end(), false);
+
+    int totalVariants = code_num ? 1 : 0;
+    if (vt.codePieces.size())
+    {
+      const auto &ib = vt.codePieces.back();
+      totalVariants = shBinDump().intervals[ib.intervalId].getValCount() * ib.totalMul;
+    }
+
+    for (int variantCode = 0; variantCode < totalVariants;)
+    {
+      bool variantValid = true;
+      for (const auto &cp : vt.codePieces)
+      {
+        const auto &interval = shBinDump().intervals[cp.intervalId];
+        unsigned ival = (variantCode / cp.totalMul) % interval.getValCount();
+        uint64_t ivalBit = uint64_t(1) << ival;
+
+        auto invalidInterval = invalidIntervals.find(interval.nameId);
+        if (invalidInterval != invalidIntervals.end() && (invalidInterval->second & ivalBit))
+        {
+          variantCode += cp.totalMul;
+          variantValid = false;
+          break;
+        }
+      }
+
+      if (variantValid)
+      {
+        int variantId = vt.findVariant(variantCode);
+        if (variantId != shaderbindump::VariantTable::FIND_NOTFOUND && variantId != shaderbindump::VariantTable::FIND_NULL)
+          usedVariants[variantId] = true;
+        ++variantCode;
+      }
+    }
+  }
 
   void warmup(const shaderbindump::ShaderClass &shaderClass)
   {
@@ -269,36 +318,77 @@ private:
     }
     materials.push_back(ssm);
 
-    for (size_t staticVariantId = 0; staticVariantId < shaderClass.code.size(); ++staticVariantId)
+    if (invalidIntervals.empty())
     {
-      const shaderbindump::ShaderCode &code = shaderClass.code[staticVariantId];
-
-      debug("shaders warmup: static variant #%d:  %d dynamic variants", staticVariantId, code.passes.size());
-      ScriptedShaderElement *el = ScriptedShaderElement::create(code, *ssm, "");
-      elemetns.push_back(el);
-      onStaticVariant(*el);
-
-      for (size_t dynamicVariantId = 0; dynamicVariantId < code.passes.size(); ++dynamicVariantId)
+      for (size_t stVariantId = 0; stVariantId < shaderClass.code.size(); ++stVariantId)
       {
-        const shaderbindump::ShaderCode::Pass &variantPasses = code.passes[dynamicVariantId];
-        const int vpr = code.passes[dynamicVariantId].rpass->vprId;
-        const int fsh = code.passes[dynamicVariantId].rpass->fshId;
+        const shaderbindump::ShaderCode &code = shaderClass.code[stVariantId];
+        ScriptedShaderElement *el = elements.push_back(ScriptedShaderElement::create(code, *ssm, ""));
 
-        if (isNotValidShader(vpr, fsh))
-          continue;
+        onStaticVariant(*el);
 
-        d3dFlusher.acquireGpu();
-        onDynamicVariant(variantPasses, dynamicVariantId, *el);
-        d3dFlusher.afterPipelineCreation();
+        uint32_t dynWarmedup = 0u;
+        for (size_t dynVariantId = 0; dynVariantId < code.passes.size(); ++dynVariantId)
+        {
+          if (warmupDynamicVariant(code.passes[dynVariantId], dynVariantId, *el))
+            ++dynWarmedup;
+        }
+        debug("shaders warmup: static variant #%d:  %d/%d dynamic variants", stVariantId, dynWarmedup, code.passes.size());
       }
     }
+    else
+    {
+      enumerateVariants(shaderClass.stVariants, shaderClass.code.size(), usedStVariants);
+      for (int stVariantId = 0; stVariantId < shaderClass.code.size(); ++stVariantId)
+      {
+        if (!usedStVariants[stVariantId])
+          continue;
+
+        const shaderbindump::ShaderCode &code = shaderClass.code[stVariantId];
+        ScriptedShaderElement *el = elements.push_back(ScriptedShaderElement::create(code, *ssm, ""));
+
+        onStaticVariant(*el);
+        enumerateVariants(code.dynVariants, code.passes.size(), usedDynVariants);
+
+        uint32_t dynWarmedup = 0u;
+        for (int dynVariantId = 0; dynVariantId < code.passes.size(); ++dynVariantId)
+        {
+          if (!usedDynVariants[dynVariantId])
+            continue;
+
+          if (warmupDynamicVariant(code.passes[dynVariantId], dynVariantId, *el))
+            ++dynWarmedup;
+        }
+
+        debug("shaders warmup: static variant #%d:  %d/%d dynamic variants", stVariantId, dynWarmedup, code.passes.size());
+      }
+    }
+  }
+
+  bool warmupDynamicVariant(const shaderbindump::ShaderCode::Pass &variantPasses, const size_t variantId,
+    const ScriptedShaderElement &el)
+  {
+    if (isValidShader(variantPasses.rpass->vprId, variantPasses.rpass->fshId))
+    {
+      bool gpuAcquired = d3dFlusher.acquireGpu();
+      onDynamicVariant(variantPasses, variantId, el, gpuAcquired);
+      d3dFlusher.afterPipelineCreation();
+
+      return true;
+    }
+
+    return false;
   }
 };
 
 class GraphicsShadersWarmup final : public ShadersWarmup
 {
 public:
-  GraphicsShadersWarmup(DynamicD3DFlusher &flusher) : ShadersWarmup(flusher) { initResources(); }
+  GraphicsShadersWarmup(DynamicD3DFlusher &flusher, InvalidIntervalsSet &intervals, BaseTexture *color, BaseTexture *depth) :
+    ShadersWarmup(flusher, intervals), colorTarget(color), depthTarget(depth)
+  {
+    initResources();
+  }
 
   ~GraphicsShadersWarmup()
   {
@@ -326,13 +416,22 @@ private:
 
   virtual void onStaticVariant(ScriptedShaderElement &el) override { el.preCreateStateBlocks(); }
 
-  virtual void onDynamicVariant(const shaderbindump::ShaderCode::Pass &, const size_t variant_id,
-    const ScriptedShaderElement &el) override
+  virtual void onDynamicVariant(const shaderbindump::ShaderCode::Pass &, const size_t variant_id, const ScriptedShaderElement &el,
+    bool gpuWasAcquired) override
   {
     const int variantStateIndex = el.passes[variant_id].id.v;
     const ShaderStateBlock *variantState = ShaderStateBlock::blocks.at(variantStateIndex);
 
-    d3d::set_render_target();
+    if (gpuWasAcquired)
+    {
+      d3d::set_render_target();
+      if (colorTarget)
+        d3d::set_render_target(colorTarget, 0);
+      if (depthTarget)
+        d3d::set_depth(depthTarget, DepthAccess::RW);
+      d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0.f, 0);
+    }
+
     d3d::set_program(el.passes[variant_id].id.pr);
     if (variantState)
       shaders::render_states::set(variantState->stateIdx);
@@ -342,15 +441,17 @@ private:
     d3d::driver_command(DRV3D_COMMAND_COMPILE_PIPELINE, (void *)pipelineType, (void *)topology, nullptr);
   }
 
-  virtual bool isNotValidShader(const int vpr, const int fsh) const override
+  virtual bool isValidShader(const int vpr, const int fsh) const override
   {
-    return (vpr < 0) || (fsh < 0) || (vpr == shaderbindump::ShaderCode::INVALID_FSH_VPR_ID) ||
-           (fsh == shaderbindump::ShaderCode::INVALID_FSH_VPR_ID);
+    using namespace shaderbindump;
+    return (vpr >= 0) && (fsh >= 0) && (vpr != ShaderCode::INVALID_FSH_VPR_ID) && (fsh != ShaderCode::INVALID_FSH_VPR_ID);
   }
 
 private:
   eastl::vector<const shaderbindump::ShaderClass *> shaderClasses;
   const ScriptedShadersBinDump *sbd = nullptr;
+  BaseTexture *colorTarget = nullptr;
+  BaseTexture *depthTarget = nullptr;
 
   TEXTUREID texBlobId = BAD_TEXTUREID;
 };
@@ -358,7 +459,7 @@ private:
 class ComputeShadersWarmup final : public ShadersWarmup
 {
 public:
-  ComputeShadersWarmup(DynamicD3DFlusher &flusher) : ShadersWarmup(flusher) {}
+  ComputeShadersWarmup(DynamicD3DFlusher &flusher, InvalidIntervalsSet &intervals) : ShadersWarmup(flusher, intervals) {}
 
 private:
   virtual ScriptedShaderMaterial *initMaterial(const shaderbindump::ShaderClass &sc) override
@@ -370,10 +471,8 @@ private:
 
   virtual void onStaticVariant(ScriptedShaderElement &) override {}
 
-  virtual void onDynamicVariant(const shaderbindump::ShaderCode::Pass &variant, const size_t variant_id,
-    const ScriptedShaderElement &el)
+  virtual void onDynamicVariant(const shaderbindump::ShaderCode::Pass &variant, const size_t, const ScriptedShaderElement &el, bool)
   {
-    G_UNUSED(variant_id);
     const PROGRAM program = el.getComputeProgram(&variant.rpass.get());
 
     d3d::set_program(program);
@@ -381,16 +480,16 @@ private:
     d3d::driver_command(DRV3D_COMMAND_COMPILE_PIPELINE, (void *)pipelineType, nullptr, nullptr);
   }
 
-  virtual bool isNotValidShader(const int vpr, const int fsh) const override
+  virtual bool isValidShader(const int vpr, const int fsh) const override
   {
-    return (vpr < 0) || (fsh < 0) || (vpr != shaderbindump::ShaderCode::INVALID_FSH_VPR_ID) ||
-           (fsh == shaderbindump::ShaderCode::INVALID_FSH_VPR_ID);
+    using namespace shaderbindump;
+    return (vpr >= 0) && (fsh >= 0) && (vpr == ShaderCode::INVALID_FSH_VPR_ID) && (fsh != ShaderCode::INVALID_FSH_VPR_ID);
   }
 };
 } // namespace
 
 void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names, const Tab<const char *> &compute_shader_names,
-  const bool is_loading_thrd)
+  const WarmupParams &params, const bool is_loading_thrd)
 {
   TIME_PROFILE(warmup_shaders);
 #if _TARGET_ANDROID || _TARGET_IOS
@@ -411,11 +510,19 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
     DynamicD3DFlusher d3dFlusher;
     d3d::driver_command(DRV3D_COMMAND_SET_PIPELINE_COMPILATION_TIME_BUDGET, (void *)0, nullptr, nullptr);
 
+    ShadersWarmup::InvalidIntervalsSet invalidIntervals;
+    for (const auto &[name, val] : params.invalidVars)
+    {
+      G_ASSERT(val < 64);
+      if (int found = mapbinarysearch::bfindStrId(::shBinDump().varMap, name); found >= 0)
+        invalidIntervals[static_cast<uint16_t>(found)] |= uint64_t(1) << val;
+    }
+
     const auto graphicsShaderClasses = gather_shader_classes(graphics_shader_names);
     if (!graphicsShaderClasses.empty())
     {
       TIME_PROFILE(warmup_shaders_gr);
-      GraphicsShadersWarmup graphics(d3dFlusher);
+      GraphicsShadersWarmup graphics(d3dFlusher, invalidIntervals, params.colorTarget, params.depthTarget);
       graphics.warmupShaders(graphicsShaderClasses);
     }
 
@@ -423,7 +530,7 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
     if (!computeShaderClasses.empty())
     {
       TIME_PROFILE(warmup_shaders_cs);
-      ComputeShadersWarmup compute(d3dFlusher);
+      ComputeShadersWarmup compute(d3dFlusher, invalidIntervals);
       compute.warmupShaders(computeShaderClasses);
     }
 

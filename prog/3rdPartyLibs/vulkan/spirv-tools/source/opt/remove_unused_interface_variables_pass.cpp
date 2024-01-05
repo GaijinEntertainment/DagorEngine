@@ -28,7 +28,7 @@ class RemoveUnusedInterfaceVariablesContext {
   bool processFunction(Function* func) {
     for (const auto& basic_block : *func)
       for (const auto& instruction : basic_block)
-        instruction.ForEachInId([&](const uint32_t* id) {
+        instruction.ForEachInId([&,this](const uint32_t* id) {
           if (used_variables_.count(*id)) return;
           auto* var = parent_.get_def_use_mgr()->GetDef(*id);
           if (!var || var->opcode() != SpvOpVariable) return;

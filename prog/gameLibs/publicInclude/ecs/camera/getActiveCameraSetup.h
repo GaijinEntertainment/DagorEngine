@@ -49,5 +49,5 @@ TMatrix calc_camera_view_tm(const TMatrix &view_itm);
 Driver3dPerspective calc_camera_perspective(const CameraSetup &camera_setup, int view_w, int view_h);
 
 //! sets camera parameters to D3D
-void apply_camera_setup(const CameraSetup &camera_setup);
+void apply_camera_setup(const CameraSetup &camera_setup, TMatrix &out_view_tm, TMatrix &out_view_itm);
 void apply_camera_setup(const TMatrix &view_itm, const TMatrix &view_tm, const Driver3dPerspective &persp, int view_w, int view_h);

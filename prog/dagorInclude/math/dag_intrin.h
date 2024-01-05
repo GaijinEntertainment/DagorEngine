@@ -97,7 +97,7 @@ inline unsigned __clz_unsafe(unsigned long long value)
   return _lzcnt_u64(value); // lzcnt
 #else
   unsigned long r;
-  _BitScanForward64(&r, value); // bsr
+  _BitScanReverse64(&r, value); // bsr
   return r ^ 63;
 #endif
 #endif
@@ -137,7 +137,7 @@ inline unsigned __clz_unsafe(unsigned int value)
   return _lzcnt_u32(value); // lzcnt
 #else
   unsigned long r;
-  _BitScanForward(&r, value); // bsr
+  _BitScanReverse(&r, value); // bsr
   return r ^ 31;
 #endif
 #endif

@@ -24,12 +24,12 @@ Dependencies =
   $(Root)/prog/3rdPartyLibs/codecs/speexdsp-1.2.0/jamfile
 
   $(Root)/prog/3rdPartyLibs/convert/fastDXT/jamfile
+  $(Root)/prog/3rdPartyLibs/convert/detex/jamfile
 
   $(Root)/prog/3rdPartyLibs/phys/bullet-$(BulletSdkVer)/jamfile
 
   $(Root)/prog/3rdPartyLibs/freetype/freetype-2.8/jamfile
 
-  $(Root)/prog/3rdPartyLibs/detex/jamfile
   $(Root)/prog/3rdPartyLibs/meshoptimizer/jamfile
 ;
 

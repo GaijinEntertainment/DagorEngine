@@ -13,7 +13,6 @@
 #include <gui/dag_stdGuiRenderEx.h>
 #include <gui/dag_baseCursor.h>
 #include <3d/dag_render.h>
-#include <render/dag_cur_view.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
@@ -42,12 +41,13 @@ static void reset_gui_cursor()
 static struct De4ViewSetts
 {
   TMatrix4 projTm, globTm;
-  DagorCurView view;
+  TMatrix viewTm, viewItm;
+  Point3 viewPos;
   void setPos(const Point3 &p)
   {
-    view.pos = p;
-    view.itm.setcol(3, p);
-    view.tm = inverse(view.itm);
+    viewPos = p;
+    viewItm.setcol(3, p);
+    viewTm = inverse(viewItm);
   }
 } cur_view;
 
@@ -372,33 +372,33 @@ protected:
 
   void moveCamera(float deltaX, float deltaY, float deltaZ)
   {
-    cur_view.setPos(cur_view.view.pos + cur_view.view.itm % Point3(deltaX, deltaY, deltaZ));
+    cur_view.setPos(cur_view.viewPos + cur_view.viewItm % Point3(deltaX, deltaY, deltaZ));
   }
   void rotateCamera(float deltaX, float deltaY, bool aroundSelection)
   {
     BBox3 box;
     bool selection = DAEDITOR4.getSelectionBoxFocused(box);
-    Point3 rotationCenter = (selection && aroundSelection) ? box.center() : cur_view.view.itm.getcol(3);
+    Point3 rotationCenter = (selection && aroundSelection) ? box.center() : cur_view.viewItm.getcol(3);
 
     TMatrix rotSpaceTm;
     rotSpaceTm.identity();
     rotSpaceTm.setcol(3, rotationCenter);
 
-    TMatrix camRotTm = cur_view.view.itm;
+    TMatrix camRotTm = cur_view.viewItm;
     camRotTm.setcol(3, Point3(0.f, 0.f, 0.f));
 
     TMatrix rot = rotyTM(deltaX) * camRotTm * rotxTM(deltaY) * inverse(camRotTm);
-    TMatrix newItm = rotSpaceTm * rot * inverse(rotSpaceTm) * cur_view.view.itm;
+    TMatrix newItm = rotSpaceTm * rot * inverse(rotSpaceTm) * cur_view.viewItm;
 
     const real PINCH_MIN_LIMIT = 0.1;
     if (::fabs(newItm.getcol(2).y) > cos(PINCH_MIN_LIMIT) || newItm.getcol(1).y < 0)
-      newItm = rotSpaceTm * rotyTM(deltaX) * inverse(rotSpaceTm) * cur_view.view.itm;
+      newItm = rotSpaceTm * rotyTM(deltaX) * inverse(rotSpaceTm) * cur_view.viewItm;
 
     newItm.orthonormalize();
 
-    cur_view.view.itm = newItm;
-    cur_view.view.tm = inverse(cur_view.view.itm);
-    cur_view.view.pos = cur_view.view.itm.getcol(3);
+    cur_view.viewItm = newItm;
+    cur_view.viewTm = inverse(cur_view.viewItm);
+    cur_view.viewPos = cur_view.viewItm.getcol(3);
   }
 };
 struct De4InpHandler de4_inp_handler;
@@ -456,7 +456,7 @@ public:
 
   virtual bool worldToClient(const Point3 &world, Point2 &screen, float *screen_z = NULL)
   {
-    Point4 sp4 = Point4::xyz1(cur_view.view.tm * world) * cur_view.projTm;
+    Point4 sp4 = Point4::xyz1(cur_view.viewTm * world) * cur_view.projTm;
 
     if (sp4.w != 0.f)
       sp4 *= 1.0 / sp4.w;
@@ -473,7 +473,7 @@ public:
     normalizedScreen.x = 2.f * screen.x / scrW - 1.f;
     normalizedScreen.y = -(2.f * screen.y / scrH - 1.f);
 
-    TMatrix &camera = cur_view.view.itm;
+    TMatrix &camera = cur_view.viewItm;
     world = camera.getcol(3);
     world_dir = camera.getcol(0) * normalizedScreen.x / cur_view.projTm[0][0] +
                 camera.getcol(1) * normalizedScreen.y / cur_view.projTm[1][1] + camera.getcol(2);
@@ -485,10 +485,10 @@ public:
     G_UNUSED(x);
     G_UNUSED(y);
   }
-  virtual void getCameraTransform(TMatrix &m) const { m = cur_view.view.itm; }
+  virtual void getCameraTransform(TMatrix &m) const { m = cur_view.viewItm; }
   virtual float getLinearSizeSq(const Point3 &pos, float world_rad, int xy)
   {
-    Point3 x = pos + cur_view.view.itm.getcol(xy) * world_rad;
+    Point3 x = pos + cur_view.viewItm.getcol(xy) * world_rad;
 
     Point2 coord;
     Point2 xs;
@@ -550,7 +550,7 @@ public:
       box[1] - Point3(width.x, 0, width.z),
     };
 
-    const Point3 dir = cur_view.view.itm.getcol(2);
+    const Point3 dir = cur_view.viewItm.getcol(2);
     Point3 pos = box.center();
     float step = width.length();
 
@@ -743,7 +743,7 @@ public:
   }
   virtual bool isActive() const { return de4_active; }
   virtual bool isFreeCameraActive() const override { return de4_active && de4_freecam_active; }
-  virtual const TMatrix *getCameraForcedItm() const { return (de4_active && !de4_freecam_active) ? &cur_view.view.itm : NULL; }
+  virtual const TMatrix *getCameraForcedItm() const { return (de4_active && !de4_freecam_active) ? &cur_view.viewItm : NULL; }
   virtual void act(float dt)
   {
     if (!de4_active)
@@ -752,16 +752,18 @@ public:
       objEd->update(dt);
     de4_on_update(dt);
   }
-  virtual void beforeRender()
+  virtual void beforeRender(const TMatrix &view_tm, const TMatrix &view_itm, const TMatrix4 &proj_tm, const Point3 &view_pos) override
   {
-    d3d::gettm(TM_PROJ, &cur_view.projTm);
-    cur_view.view = grs_cur_view;
-    if (cur_view.view.itm.getcol(0).lengthSq() < 1e-3)
+    cur_view.viewTm = view_tm;
+    cur_view.viewItm = view_itm;
+    cur_view.projTm = proj_tm;
+    cur_view.viewPos = view_pos;
+    if (cur_view.viewItm.getcol(0).lengthSq() < 1e-3)
     {
       if (de4_active)
-        logwarn("bad itm=%@ detected, changed to IDENT", cur_view.view.itm);
-      cur_view.view.itm = cur_view.view.tm = TMatrix::IDENT;
-      cur_view.view.pos.set(0, 0, 0);
+        logwarn("bad itm=%@ detected, changed to IDENT", cur_view.viewItm);
+      cur_view.viewItm = cur_view.viewTm = TMatrix::IDENT;
+      cur_view.viewPos.set(0, 0, 0);
     }
     if (!de4_active || !objEd)
       return;

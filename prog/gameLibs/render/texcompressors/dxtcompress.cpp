@@ -6,7 +6,9 @@
 #include <render/dxtcompress.h>
 #include <math/dag_imageFunctions.h>
 
+#ifdef _MSC_VER
 #pragma optimize("gt", on)
+#endif
 
 
 void software_downsample_2x(unsigned char *dstPixel, unsigned char *srcPixel, unsigned int dstWidth, unsigned int dstHeight)

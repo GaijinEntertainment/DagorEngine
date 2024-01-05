@@ -351,11 +351,15 @@ uint8_t * DETEX_RESTRICT pixel_buffer) {
 
 /* Decompress a 128-bit 4x4 pixel texture block compressed using the BPTC */
 /* (BC7) format. */
+#ifdef _MSC_VER
 #pragma warning(push, 0)
 #pragma warning(disable: 4028)
+#endif
 bool detexDecompressBlockBPTC(const uint8_t * DETEX_RESTRICT bitstring, uint32_t mode_mask,
 uint32_t flags, uint8_t * DETEX_RESTRICT pixel_buffer) {
+#ifdef _MSC_VER
 #pragma warning(pop)
+#endif
 	detexBlock128 block;
 	block.data0 = *(uint64_t *)&bitstring[0];
 	block.data1 = *(uint64_t *)&bitstring[8];

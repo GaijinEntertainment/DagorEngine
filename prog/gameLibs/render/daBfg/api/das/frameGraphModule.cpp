@@ -161,7 +161,7 @@ DaBfgModule::DaBfgModule() : das::Module("daBfg")
 
   // When hot-reloading stuff, we need to wipe nodes preemptively, as
   // we will get stale das lambda references inside nodes otherwise.
-  das::onDestroyCppDebugAgent(name.c_str(), [this](das::Context *ctx) {
+  das::onDestroyCppDebugAgent(name.c_str(), [](das::Context *ctx) {
     das::lock_guard<das::mutex> lock{dabfgRuntimeMutex};
     // Note that this is a global callback that we never unregister,
     // so it might be called after the runtime is destroyed.
