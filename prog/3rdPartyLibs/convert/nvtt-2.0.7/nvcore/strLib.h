@@ -17,7 +17,7 @@ namespace nv
 	/// String hash based on Bernstein's hash.
 	inline uint strHash(const char * data, uint h = 5381)
 	{
-		uint i;
+		uint i = 0;
 		while(data[i] != 0) {
 			h = (33 * h) ^ uint(data[i]);
 			i++;

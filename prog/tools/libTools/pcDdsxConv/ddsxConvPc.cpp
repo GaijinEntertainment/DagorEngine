@@ -561,7 +561,7 @@ static bool convert_dds_voltex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t 
   if (hdr.memSz > dds_len)
   {
     ERR_PRINTF("invalid DDS: need %d bytes, only %d available", hdr.memSz, dds_len);
-    return NULL;
+    return false;
   }
 
   // allocate buffer
@@ -600,7 +600,7 @@ static bool convert_dds_cubetex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t
   if (levels <= 0)
   {
     ERR_PRINTF("invalid number of mipmaps in DDS: %d", levels);
-    return NULL;
+    return false;
   }
 
   auto *swizzle = resolve_swizzle(fmt, dsc);

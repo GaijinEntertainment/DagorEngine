@@ -1613,7 +1613,7 @@ static bool get_split_not_sep_for_asset(DagorAsset *a)
       return folder->exportProps.getBool("splitNotSeparate");
     fidx = folder->parentIdx;
   }
-  return NULL;
+  return false;
 }
 
 bool DagorAssetMgr::mountFmodEvents(const char *mount_folder_name)

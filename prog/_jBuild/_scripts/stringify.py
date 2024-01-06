@@ -47,7 +47,7 @@ else :
     line = line.rstrip("\n\r")
     substrings = int(len(line) / 80 + 1)
     for i in range(substrings):
-      s = "\"" + line[i * 80 : (i + 1) * 80].replace("\\", "\\\\").replace("\"", "\\\"")
+      s = "\"" + line[i * 80 : (i + 1) * 80].replace("\\", "\\\\").replace("\"", "\\\"").replace("??", "\\?\\?")
       if i == substrings - 1:
         s = s + "\\n\"\n"
       else:

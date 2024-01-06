@@ -53,7 +53,7 @@ if $(Platform) in linux64 {
     engine/osApiWrappers/messageBox/stub
     engine/workCycle/stub
   ;
-  AddLibs = -ldl -lpthread -lrt --no-undefined ;
+  AddLibs = -ldl -lpthread -lrt -lm -lstdc++ --no-undefined ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -259,4 +259,6 @@ if pathlib.Path("prog").exists():
       fd.write('PlatformSpec = gcc ;\n')
       fd.write('WError = no ;\n')
       fd.write('RemoveCompilerSwitches_linux64/gcc = -minline-all-stringops -fconserve-space ;\n')
+    if is_astra_linux:
+      fd.write('PlatformSpec = clang ;\n')
     fd.close()
