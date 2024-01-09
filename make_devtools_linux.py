@@ -47,6 +47,7 @@ is_astra_linux = "Astra Linux" in linux_release_name
 is_ubuntu = ("Ubuntu" in linux_release_name)
 is_centos = ('centos' in linux_release_id)
 is_altlinux = (linux_release_id == 'altlinux')
+is_elbrus_linux = ('elbrus' in linux_release_id)
 print('Detected linux: {0} {1}  ({2}) arch={3}'.format(linux_release_name, linux_release_ver, linux_release_id, linux_arch_type))
 
 def error(s):
@@ -120,6 +121,10 @@ elif is_altlinux:
   pkg_install_cmd = 'apt-get install'
   pkg_to_install += ['python3-module-pip']
   pkg_to_install += ['libX11-devel', 'libXrandr-devel', 'libfltk-devel', 'libxkbfile-devel', 'libudev-devel', 'libpulseaudio-devel', 'libalsa-devel']
+elif is_elbrus_linux:
+  pkg_install_cmd = 'apt install'
+  pkg_to_install  = ['python3-pip']
+  pkg_to_install += ['libx11', 'libxrandr', 'fltk', 'libxkbfile', 'pulseaudio', 'alsa-lib']
 elif is_ubuntu:
   pkg_install_cmd = 'apt install'
   pkg_to_install += ['python3-pip', 'gcc', 'clang']
