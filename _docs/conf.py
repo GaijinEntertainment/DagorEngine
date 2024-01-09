@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Quirrel documentation build configuration file, created by
+# Dagor documentation build configuration file, created by
 # sphinx-quickstart on Sun Jan 31 00:26:52 2016.
 #
 # This file is execfile()d with the current directory set to its
@@ -69,7 +69,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Quirrel documentation'
+project = u'Dagor documentation'
 copyright = 'Gaijin Entertainment %s' % time.strftime('%Y')
 author = u'Gaijin Entertainment'
 
