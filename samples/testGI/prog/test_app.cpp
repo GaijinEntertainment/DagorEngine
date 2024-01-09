@@ -110,7 +110,8 @@ typedef BaseStreamingSceneHolder scene_type_t;
   VAR(downsampled_far_depth_tex)      \
   VAR(prev_downsampled_far_depth_tex) \
   VAR(from_sun_direction)             \
-  VAR(downsample_depth_type)
+  VAR(downsample_depth_type)          \
+  VAR(envi_probe_specular)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -1599,6 +1600,9 @@ public:
     {
       return initEnviProbe();
     }
+    // skies render can use envi probe for ground-skies interaction on some of skies configs,
+    // causing RW conflict (SRV vs RT usages) workaround this by removing texture from shader var
+    ShaderGlobal::set_texture(envi_probe_specularVarId, BAD_TEXTUREID);
     SCOPE_RENDER_TARGET;
     SCOPE_VIEW_PROJ_MATRIX;
     float zn = 0.1, zf = 1000;
@@ -1615,6 +1619,7 @@ public:
       renderLightProbeEnvi();
     }
     enviProbe.getCubeTex()->generateMips();
+    ShaderGlobal::set_texture(envi_probe_specularVarId, enviProbe);
   }
 
   void reloadCube(bool first = false)
