@@ -902,11 +902,11 @@ void RandomGrass::initWebTools()
   {
     GrassLayer *layer = layers[i];
     int foundIdx = -1;
-    for (int i = 0; i < grassNameCount.size(); ++i)
+    for (int j = 0; j < grassNameCount.size(); ++j)
     {
-      if (strcmp(grassNameCount[i].name, layer->info.resName.str()) == 0)
+      if (strcmp(grassNameCount[j].name, layer->info.resName.str()) == 0)
       {
-        foundIdx = i;
+        foundIdx = j;
         break;
       }
     }

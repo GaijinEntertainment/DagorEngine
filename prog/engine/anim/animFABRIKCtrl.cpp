@@ -279,10 +279,10 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
     {
       chain_vec_tab_t &chain = chains.push_back();
       dag::Span<chain_node_t> nodeIds = S.chainNodeIds(i);
-      for (int i = 1; i < nodeIds.size(); i++)
+      for (int j = 1; j < nodeIds.size(); j++)
       {
-        add_bone(chain, tree.getNodeWposRel(nodeIds[i - 1]), tree.getNodeWposRel(nodeIds[i]));
-        // debug("add bone* %s - %s", tree.getNodeName(nodeIds[i-1]), tree.getNodeName(nodeIds[i]));
+        add_bone(chain, tree.getNodeWposRel(nodeIds[j - 1]), tree.getNodeWposRel(nodeIds[j]));
+        // debug("add bone* %s - %s", tree.getNodeName(nodeIds[j-1]), tree.getNodeName(nodeIds[j]));
       }
       mat44f &n0_wtm = tree.getNodeWtmRel(nodeIds.back());
       add_last_bone_point(chain, n0_wtm.col3);

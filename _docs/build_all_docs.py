@@ -4,7 +4,7 @@ import subprocess
 
 _DIR = os.path.dirname(os.path.realpath(__file__))
 def shell(cmd):
-  subprocess.check_call(cmd, shell=True, stdout=sys.stdout, stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True)
+  subprocess.check_call(cmd, shell=False, stdout=sys.stdout, stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True)
 
 def main():
   prevd = os.getcwd()

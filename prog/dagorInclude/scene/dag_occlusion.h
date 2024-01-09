@@ -27,7 +27,7 @@
 class Occlusion
 {
 public:
-  Occlusion() : curView(), curProj(), curViewProj(), curViewPos(), cockpitAnim(){};
+  Occlusion() = default;
   void init()
   {
     occ = OcclusionSystem::create();
@@ -282,14 +282,14 @@ public:
   inline int getRasterizedQuadOccluders() const { return 0; }
 #endif
 protected:
-  mat44f curViewProj;
-  mat44f curView;
-  mat44f curProj;
-  vec3f curViewPos;
+  mat44f curViewProj = {};
+  mat44f curView = {};
+  mat44f curProj = {};
+  vec3f curViewPos = v_zero();
   OcclusionSystem *occ = 0;
   float cockpitDistance = 0;
   CockpitReprojectionMode cockpitMode = COCKPIT_NO_REPROJECT;
-  mat44f cockpitAnim;
+  mat44f cockpitAnim = {};
   int rasterizedBoxOccluders = 0, rasterizedQuadOccluders = 0, rasterizedTriOccluders = 0;
   bool hasMergedOcclusion = false;
 #if CAN_DEBUG_OCCLUSION
