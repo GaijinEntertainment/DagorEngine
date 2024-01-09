@@ -1,0 +1,37 @@
+name: documentation
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
+      - name: Install dependencies
+        run: |
+          sudo apt install -y doxygen
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r _docs/requirements.txt
+      - name: Build documentation
+        run: |
+          python3 _docs/build_all_docs.py
+          cd _docs
+          sphinx-build . _build
+      - name: Deploy documentation
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _docs/_build
+          force_orphan: true
