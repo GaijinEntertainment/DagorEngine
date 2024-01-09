@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="auto_resolution_request_8h" kind="file" language="C++">
+    <compoundname>autoResolutionRequest.h</compoundname>
+    <includes local="no">render/daBfg/detail/autoResTypeNameId.h</includes>
+    <includes local="no">math/integer/dag_IPoint2.h</includes>
+    <includedby refid="resource_creation_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h</includedby>
+    <incdepgraph>
+      <node id="3">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h</label>
+        <link refid="auto_resolution_request_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>render/daBfg/detail/autoResTypeNameId.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h</label>
+        <link refid="auto_resolution_request_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h</label>
+        <link refid="resource_creation_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classdabfg_1_1_auto_resolution_request" prot="public">dabfg::AutoResolutionRequest</innerclass>
+    <innernamespace refid="namespacedabfg">dabfg</innernamespace>
+    <innernamespace refid="namespacedabfg_1_1detail">dabfg::detail</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/detail/autoResTypeNameId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">dabfg</highlight></codeline>
+<codeline lineno="9"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">ResourceProvider;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">detail</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">VirtualResourceRequestBase;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="classdabfg_1_1_auto_resolution_request" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_auto_resolution_request" kindref="compound">AutoResolutionRequest</ref></highlight></codeline>
+<codeline lineno="30"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_name_space_request" kindref="compound">NameSpaceRequest</ref>;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">detail::VirtualResourceRequestBase;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_auto_resolution_request" kindref="compound">AutoResolutionRequest</ref>(AutoResTypeNameId<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>mult,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ResourceProvider<sp/>*p)<sp/>:<sp/>autoResTypeId{</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">},<sp/>multiplier{mult},<sp/>provider{p}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="46" refid="classdabfg_1_1_auto_resolution_request_1ac78ae973ce598997a928441925e79706" refkind="member"><highlight class="normal"><sp/><sp/>IPoint2<sp/><ref refid="classdabfg_1_1_auto_resolution_request_1ac78ae973ce598997a928441925e79706" kindref="member">get</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>AutoResTypeNameId<sp/>autoResTypeId;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>multiplier<sp/>=<sp/>1.f;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ResourceProvider<sp/>*provider;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dabfg</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="variable_rate_shading_8h" kind="file" language="C++">
+    <compoundname>variableRateShading.h</compoundname>
+    <includes refid="virtual_resource_semi_request_8h" local="no">render/daBfg/virtualResourceSemiRequest.h</includes>
+    <includes local="no">3d/dag_drv3dConsts.h</includes>
+    <includes local="no">EASTL/optional.h</includes>
+    <includedby refid="state_request_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h</includedby>
+    <incdepgraph>
+      <node id="4">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="7">
+        <label>render/daBfg/stage.h</label>
+        <link refid="stage_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>render/daBfg/virtualResourceHandle.h</label>
+        <link refid="virtual_resource_handle_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>render/daBfg/virtualResourceSemiRequest.h</label>
+        <link refid="virtual_resource_semi_request_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h</label>
+        <link refid="variable_rate_shading_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>render/daBfg/detail/resourceRequestPolicy.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="3">
+        <label>render/daBfg/virtualResourceRequest.h</label>
+        <link refid="virtual_resource_request_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>3d/dag_drv3dConsts.h</label>
+      </node>
+      <node id="5">
+        <label>render/daBfg/usage.h</label>
+        <link refid="usage_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>render/daBfg/detail/virtualResourceRequestBase.h</label>
+      </node>
+      <node id="11">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="8">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="10">
+        <label>render/daBfg/detail/virtualResourceHandleBase.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h</label>
+        <link refid="variable_rate_shading_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/registry.h</label>
+        <link refid="registry_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h</label>
+        <link refid="state_request_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h</label>
+        <link refid="bfg_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structdabfg_1_1_vrs_requirements" prot="public">dabfg::VrsRequirements</innerclass>
+    <innernamespace refid="namespacedabfg">dabfg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>2023<sp/><sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>(for<sp/>conditions<sp/>of<sp/>use<sp/>see<sp/>prog/license.txt)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/virtualResourceSemiRequest.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_drv3dConsts.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">dabfg</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>VrsRateTextureRequest<sp/>=<sp/>VirtualResourceSemiRequest&lt;detail::ResourceRequestPolicy::Readonly&gt;;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="structdabfg_1_1_vrs_requirements" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structdabfg_1_1_vrs_requirements" kindref="compound">VrsRequirements</ref></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28" refid="structdabfg_1_1_vrs_requirements_1a3db5c151da8f9a7f10073cba978dd51e" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdabfg_1_1_vrs_requirements_1a3db5c151da8f9a7f10073cba978dd51e" kindref="member">rateX</ref><sp/>=<sp/>1;<sp/></highlight></codeline>
+<codeline lineno="29" refid="structdabfg_1_1_vrs_requirements_1a2048d2932962cbcb956c987079cc17f2" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structdabfg_1_1_vrs_requirements_1a2048d2932962cbcb956c987079cc17f2" kindref="member">rateY</ref><sp/>=<sp/>1;<sp/></highlight></codeline>
+<codeline lineno="34" refid="structdabfg_1_1_vrs_requirements_1aa3bc958172217926e7032bf23b71bfe9" refkind="member"><highlight class="normal"><sp/><sp/>eastl::optional&lt;VrsRateTextureRequest&gt;<sp/><ref refid="structdabfg_1_1_vrs_requirements_1aa3bc958172217926e7032bf23b71bfe9" kindref="member">rateTexture</ref>;</highlight></codeline>
+<codeline lineno="36" refid="structdabfg_1_1_vrs_requirements_1a32dfb4ae8f2da5c26b9e528447e19687" refkind="member"><highlight class="normal"><sp/><sp/>VariableRateShadingCombiner<sp/><ref refid="structdabfg_1_1_vrs_requirements_1a32dfb4ae8f2da5c26b9e528447e19687" kindref="member">vertexCombiner</ref><sp/>=<sp/>VariableRateShadingCombiner::VRS_PASSTHROUGH;</highlight></codeline>
+<codeline lineno="38" refid="structdabfg_1_1_vrs_requirements_1a2bdd4866d1abfa6577439cc49a33ff8b" refkind="member"><highlight class="normal"><sp/><sp/>VariableRateShadingCombiner<sp/><ref refid="structdabfg_1_1_vrs_requirements_1a2bdd4866d1abfa6577439cc49a33ff8b" kindref="member">pixelCombiner</ref><sp/>=<sp/>VariableRateShadingCombiner::VRS_PASSTHROUGH;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dabfg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h"/>
+  </compounddef>
+</doxygen>

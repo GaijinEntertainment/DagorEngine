@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_driver3d_init_callback_1_1_render_size" kind="struct" language="C++" prot="public">
+    <compoundname>Driver3dInitCallback::RenderSize</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_driver3d_init_callback_1_1_render_size_1a56e85ce940d574ce8a6eb781589270a2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dInitCallback::RenderSize::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="50" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_driver3d_init_callback_1_1_render_size_1a2a826ae26910f509edc9cecc4b923ed0" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dInitCallback::RenderSize::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="51" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="48" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="49" bodyend="52"/>
+    <listofallmembers>
+      <member refid="struct_driver3d_init_callback_1_1_render_size_1a2a826ae26910f509edc9cecc4b923ed0" prot="public" virt="non-virtual"><scope>Driver3dInitCallback::RenderSize</scope><name>height</name></member>
+      <member refid="struct_driver3d_init_callback_1_1_render_size_1a56e85ce940d574ce8a6eb781589270a2" prot="public" virt="non-virtual"><scope>Driver3dInitCallback::RenderSize</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

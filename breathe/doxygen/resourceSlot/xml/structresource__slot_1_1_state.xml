@@ -1,0 +1,248 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structresource__slot_1_1_state" kind="struct" language="C++" prot="public">
+    <compoundname>resource_slot::State</compoundname>
+    <includes refid="state_8h" local="no">state.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="structresource__slot_1_1_state_1a6df0f65564951b80a2c1d2991a30ba58" prot="private" static="no" mutable="no">
+        <type>dabfg::NameSpace</type>
+        <definition>dabfg::NameSpace resource_slot::State::nameSpace</definition>
+        <argsstring></argsstring>
+        <name>nameSpace</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="42" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structresource__slot_1_1_state_1a8666edac86e2892232009983fc488a3c" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int resource_slot::State::nodeId</definition>
+        <argsstring></argsstring>
+        <name>nodeId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="43" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structresource__slot_1_1_state_1a473e5aa7397f87043f2b4bd4b59185f2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::State::State</definition>
+        <argsstring>()=delete</argsstring>
+        <name>State</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="15" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_state_1a62a5295a923429a71f86456317ca2275" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::State::State</definition>
+        <argsstring>(const State &amp;)=default</argsstring>
+        <name>State</name>
+        <param>
+          <type>const <ref refid="structresource__slot_1_1_state" kindref="compound">State</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="16" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_state_1a175732da7fccf8eb448ccd7cd49bbeba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structresource__slot_1_1_state" kindref="compound">State</ref> &amp;</type>
+        <definition>State&amp; resource_slot::State::operator=</definition>
+        <argsstring>(const State &amp;)=default</argsstring>
+        <name>operator=</name>
+        <param>
+          <type>const <ref refid="structresource__slot_1_1_state" kindref="compound">State</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="17" column="9"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_state_1ac462e14dd9304f2a400bcfca3135fe29" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::State::State</definition>
+        <argsstring>(State &amp;&amp;)=default</argsstring>
+        <name>State</name>
+        <param>
+          <type><ref refid="structresource__slot_1_1_state" kindref="compound">State</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="18" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_state_1a4cd441ede3c76d5043cfdf5b7bd2a9d1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structresource__slot_1_1_state" kindref="compound">State</ref> &amp;</type>
+        <definition>State&amp; resource_slot::State::operator=</definition>
+        <argsstring>(State &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <param>
+          <type><ref refid="structresource__slot_1_1_state" kindref="compound">State</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="19" column="9"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_state_1a7c115a4c18755452173c3c8707ead590" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::State::~State</definition>
+        <argsstring>()=default</argsstring>
+        <name>~State</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="20" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_state_1a0d3c4e7b5713266f01b2bcda8ef03e10" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* resource_slot::State::resourceToReadFrom</definition>
+        <argsstring>(const char *slot_name) const</argsstring>
+        <name>resourceToReadFrom</name>
+        <param>
+          <type>const char *</type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get name of resource in slot before the node.</para>
+<para>This function can be called several times inside the node.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slot_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>name of slot; should be requested in action_list </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>current resource </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="29" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_state_1a01ef17c1c8309c738449b095787769e5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* resource_slot::State::resourceToCreateFor</definition>
+        <argsstring>(const char *slot_name) const</argsstring>
+        <name>resourceToCreateFor</name>
+        <param>
+          <type>const char *</type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get name of resource from declaration of <ref refid="structresource__slot_1_1_create" kindref="compound">Create</ref> or <ref refid="structresource__slot_1_1_update" kindref="compound">Update</ref> for using after the node.</para>
+<para>This function can be called several times inside the node. For example, for using in readTextureHistory().</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slot_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>name of slot; should be requested in action_list </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>resource after node </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="39" column="14"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="structresource__slot_1_1_state_1ae31b334d13584278095a363b2163c897" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::State::State</definition>
+        <argsstring>(dabfg::NameSpace ns, int node_id)</argsstring>
+        <name>State</name>
+        <param>
+          <type>dabfg::NameSpace</type>
+          <declname>ns</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>node_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="45" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="structresource__slot_1_1_state_1ac4fb741b41c6fd7c65afd1caa48e9f3b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void resource_slot::resolve_access</definition>
+        <argsstring>()</argsstring>
+        <name>resource_slot::resolve_access</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="46" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><ref refid="structresource__slot_1_1_state" kindref="compound">State</ref> of slots storage.</para>
+<para>Size is 1 int, can be copied to declaration_callback. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" line="13" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/state.h" bodystart="14" bodyend="47"/>
+    <listofallmembers>
+      <member refid="structresource__slot_1_1_state_1a6df0f65564951b80a2c1d2991a30ba58" prot="private" virt="non-virtual"><scope>resource_slot::State</scope><name>nameSpace</name></member>
+      <member refid="structresource__slot_1_1_state_1a8666edac86e2892232009983fc488a3c" prot="private" virt="non-virtual"><scope>resource_slot::State</scope><name>nodeId</name></member>
+      <member refid="structresource__slot_1_1_state_1a175732da7fccf8eb448ccd7cd49bbeba" prot="public" virt="non-virtual"><scope>resource_slot::State</scope><name>operator=</name></member>
+      <member refid="structresource__slot_1_1_state_1a4cd441ede3c76d5043cfdf5b7bd2a9d1" prot="public" virt="non-virtual"><scope>resource_slot::State</scope><name>operator=</name></member>
+      <member refid="structresource__slot_1_1_state_1ac4fb741b41c6fd7c65afd1caa48e9f3b" prot="private" virt="non-virtual"><scope>resource_slot::State</scope><name>resource_slot::resolve_access</name></member>
+      <member refid="structresource__slot_1_1_state_1a01ef17c1c8309c738449b095787769e5" prot="public" virt="non-virtual"><scope>resource_slot::State</scope><name>resourceToCreateFor</name></member>
+      <member refid="structresource__slot_1_1_state_1a0d3c4e7b5713266f01b2bcda8ef03e10" prot="public" virt="non-virtual"><scope>resource_slot::State</scope><name>resourceToReadFrom</name></member>
+      <member refid="structresource__slot_1_1_state_1a473e5aa7397f87043f2b4bd4b59185f2" prot="public" virt="non-virtual"><scope>resource_slot::State</scope><name>State</name></member>
+      <member refid="structresource__slot_1_1_state_1a62a5295a923429a71f86456317ca2275" prot="public" virt="non-virtual"><scope>resource_slot::State</scope><name>State</name></member>
+      <member refid="structresource__slot_1_1_state_1ac462e14dd9304f2a400bcfca3135fe29" prot="public" virt="non-virtual"><scope>resource_slot::State</scope><name>State</name></member>
+      <member refid="structresource__slot_1_1_state_1ae31b334d13584278095a363b2163c897" prot="private" virt="non-virtual"><scope>resource_slot::State</scope><name>State</name></member>
+      <member refid="structresource__slot_1_1_state_1a7c115a4c18755452173c3c8707ead590" prot="public" virt="non-virtual"><scope>resource_slot::State</scope><name>~State</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

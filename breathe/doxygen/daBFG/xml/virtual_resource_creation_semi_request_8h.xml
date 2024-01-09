@@ -1,0 +1,214 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="virtual_resource_creation_semi_request_8h" kind="file" language="C++">
+    <compoundname>virtualResourceCreationSemiRequest.h</compoundname>
+    <includes refid="virtual_resource_request_8h" local="no">render/daBfg/virtualResourceRequest.h</includes>
+    <includedby refid="registry_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/registry.h</includedby>
+    <incdepgraph>
+      <node id="3">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="6">
+        <label>render/daBfg/stage.h</label>
+        <link refid="stage_8h_source"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>render/daBfg/virtualResourceHandle.h</label>
+        <link refid="virtual_resource_handle_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>render/daBfg/detail/resourceRequestPolicy.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h</label>
+        <link refid="virtual_resource_creation_semi_request_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>render/daBfg/virtualResourceRequest.h</label>
+        <link refid="virtual_resource_request_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>render/daBfg/usage.h</label>
+        <link refid="usage_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>render/daBfg/detail/virtualResourceRequestBase.h</label>
+      </node>
+      <node id="10">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="7">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="9">
+        <label>render/daBfg/detail/virtualResourceHandleBase.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/registry.h</label>
+        <link refid="registry_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h</label>
+        <link refid="virtual_resource_creation_semi_request_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h</label>
+        <link refid="bfg_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classdabfg_1_1_virtual_resource_creation_semi_request" prot="public">dabfg::VirtualResourceCreationSemiRequest</innerclass>
+    <innernamespace refid="namespacedabfg">dabfg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>2023<sp/><sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>(for<sp/>conditions<sp/>of<sp/>use<sp/>see<sp/>prog/license.txt)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/virtualResourceRequest.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">dabfg</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="classdabfg_1_1_virtual_resource_creation_semi_request" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_virtual_resource_creation_semi_request" kindref="compound">VirtualResourceCreationSemiRequest</ref></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>:<sp/></highlight><highlight class="keyword">private</highlight><highlight class="normal"><sp/>detail::VirtualResourceRequestBase</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>Base<sp/>=<sp/>detail::VirtualResourceRequestBase;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>RRP<sp/>=<sp/>detail::ResourceRequestPolicy;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_registry" kindref="compound">Registry</ref>;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_creation_semi_request" kindref="compound">VirtualResourceCreationSemiRequest</ref>(detail::ResUid<sp/>resId,<sp/>NodeNameId<sp/>node,<sp/>InternalRegistry<sp/>*reg)<sp/>:<sp/>Base{resId,<sp/>node,<sp/>reg}<sp/>{}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="38" refid="classdabfg_1_1_virtual_resource_creation_semi_request_1acbfc44540682addd184f4fd1638e1eee" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest&lt;BaseTexture, RRP::None&gt;</ref><sp/><ref refid="classdabfg_1_1_virtual_resource_creation_semi_request_1acbfc44540682addd184f4fd1638e1eee" kindref="member">texture</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structdabfg_1_1_texture2d_create_info" kindref="compound">Texture2dCreateInfo</ref><sp/>&amp;info)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::texture(info);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="classdabfg_1_1_virtual_resource_creation_semi_request_1a33b548b646511d06dc07d2cc3f50a4e3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest&lt;BaseTexture, RRP::None&gt;</ref><sp/><ref refid="classdabfg_1_1_virtual_resource_creation_semi_request_1a33b548b646511d06dc07d2cc3f50a4e3" kindref="member">buffer</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structdabfg_1_1_buffer_create_info" kindref="compound">BufferCreateInfo</ref><sp/>&amp;info)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(info);</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest&lt;Sbuffer, RRP::None&gt;</ref><sp/>bufferCb(uint32_t<sp/>register_count)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structdabfg_1_1_buffer_create_info" kindref="compound">BufferCreateInfo</ref><sp/>ci{d3d::buffers::CBUFFER_REGISTER_SIZE,<sp/>register_count,<sp/>SBCF_CB_ONE_FRAME,<sp/>0};</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>VirtualResourceRequest&lt;Sbuffer,<sp/>RRP::None&gt;<sp/>byteAddressBufferUaSr(uint32_t<sp/>size_in_dwords)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>BufferCreateInfo<sp/>ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE,<sp/>size_in_dwords,<sp/>SBCF_UA_SR_BYTE_ADDRESS,<sp/>0};</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>VirtualResourceRequest&lt;Sbuffer,<sp/>RRP::None&gt;<sp/>byteAddressBufferUa(uint32_t<sp/>size_in_dwords)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>BufferCreateInfo<sp/>ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE,<sp/>size_in_dwords,<sp/>SBCF_UA_BYTE_ADDRESS,<sp/>0};</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>VirtualResourceRequest&lt;Sbuffer,<sp/>RRP::None&gt;<sp/>structuredBufferUaSr(uint32_t<sp/>element_count)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>BufferCreateInfo<sp/>ci{</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T),<sp/>element_count,<sp/>SBCF_UA_SR_STRUCTURED,<sp/>0};</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/>VirtualResourceRequest&lt;Sbuffer,<sp/>RRP::None&gt;<sp/>structuredBufferUa(uint32_t<sp/>element_count)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/>BufferCreateInfo<sp/>ci{</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T),<sp/>element_count,<sp/>SBCF_UA_STRUCTURED,<sp/>0};</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>VirtualResourceRequest&lt;Sbuffer,<sp/>RRP::None&gt;<sp/>indirectBufferUa(d3d::buffers::Indirect<sp/>indirect_type,<sp/>uint32_t<sp/>call_count)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/>BufferCreateInfo<sp/>ci{</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE,<sp/>call_count<sp/>*<sp/>dword_count_per_call(indirect_type),<sp/>SBCF_UA_INDIRECT,<sp/>0};</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>VirtualResourceRequest&lt;Sbuffer,<sp/>RRP::None&gt;<sp/>indirectBuffer(d3d::buffers::Indirect<sp/>indirect_type,<sp/>uint32_t<sp/>call_count)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/>BufferCreateInfo<sp/>ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE,<sp/>call_count<sp/>*<sp/>dword_count_per_call(indirect_type),<sp/>SBCF_INDIRECT,<sp/>0};</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/>VirtualResourceRequest&lt;Sbuffer,<sp/>RRP::None&gt;<sp/>stagingBuffer(uint32_t<sp/>size_in_bytes)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>BufferCreateInfo<sp/>ci{1,<sp/>size_in_bytes,<sp/>SBCF_STAGING_BUFFER,<sp/>0};</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::buffer(ci);</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="132" refid="classdabfg_1_1_virtual_resource_creation_semi_request_1adb401fba5d0aa5c78dd5748edc9bad06" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest&lt;T, RRP::None&gt;</ref><sp/><ref refid="classdabfg_1_1_virtual_resource_creation_semi_request_1adb401fba5d0aa5c78dd5748edc9bad06" kindref="member">blob</ref>()<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/>Base::blob(BlobDescription{tag_for&lt;T&gt;(),<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T),<sp/></highlight><highlight class="keyword">alignof</highlight><highlight class="normal">(T),</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>IMPORTANT:<sp/>{}<sp/>zero-initializes<sp/>structs</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>+[](</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*ptr)<sp/>{<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>(ptr)<sp/>T{};<sp/>},<sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>+[](</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*ptr)<sp/>{<sp/>eastl::destroy_at&lt;T&gt;(</highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="normal">T<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(ptr));<sp/>}});</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>{resUid,<sp/>nodeId,<sp/>registry};</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="141"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dabfg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h"/>
+  </compounddef>
+</doxygen>

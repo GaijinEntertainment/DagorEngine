@@ -1,0 +1,180 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="state_request_8h" kind="file" language="C++">
+    <compoundname>stateRequest.h</compoundname>
+    <includes local="no">shaders/dag_overrideStates.h</includes>
+    <includes refid="variable_rate_shading_8h" local="no">render/daBfg/variableRateShading.h</includes>
+    <includes local="no">render/daBfg/detail/nodeNameId.h</includes>
+    <includedby refid="registry_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/registry.h</includedby>
+    <incdepgraph>
+      <node id="6">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="2">
+        <label>shaders/dag_overrideStates.h</label>
+      </node>
+      <node id="18">
+        <label>render/daBfg/detail/nodeNameId.h</label>
+      </node>
+      <node id="9">
+        <label>render/daBfg/stage.h</label>
+        <link refid="stage_8h_source"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>render/daBfg/virtualResourceHandle.h</label>
+        <link refid="virtual_resource_handle_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>render/daBfg/virtualResourceSemiRequest.h</label>
+        <link refid="virtual_resource_semi_request_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>render/daBfg/variableRateShading.h</label>
+        <link refid="variable_rate_shading_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>render/daBfg/detail/resourceRequestPolicy.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h</label>
+        <link refid="state_request_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="5">
+        <label>render/daBfg/virtualResourceRequest.h</label>
+        <link refid="virtual_resource_request_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>3d/dag_drv3dConsts.h</label>
+      </node>
+      <node id="7">
+        <label>render/daBfg/usage.h</label>
+        <link refid="usage_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>render/daBfg/detail/virtualResourceRequestBase.h</label>
+      </node>
+      <node id="13">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="12">
+        <label>render/daBfg/detail/virtualResourceHandleBase.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/registry.h</label>
+        <link refid="registry_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h</label>
+        <link refid="state_request_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h</label>
+        <link refid="bfg_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classdabfg_1_1_state_request" prot="public">dabfg::StateRequest</innerclass>
+    <innernamespace refid="namespacedabfg">dabfg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>2023<sp/><sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>(for<sp/>conditions<sp/>of<sp/>use<sp/>see<sp/>prog/license.txt)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_overrideStates.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/variableRateShading.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/detail/nodeNameId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">dabfg</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">InternalRegistry;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classdabfg_1_1_state_request" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_registry" kindref="compound">Registry</ref>;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref>(InternalRegistry<sp/>*reg,<sp/>NodeNameId<sp/>nodeId);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="33" refid="classdabfg_1_1_state_request_1a1c787d19a0e522afaf96004837589441" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref><sp/><ref refid="classdabfg_1_1_state_request_1a1c787d19a0e522afaf96004837589441" kindref="member">setFrameBlock</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*block)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="classdabfg_1_1_state_request_1a1fb4450aa485d1df67f499f37ebf6b8d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref><sp/><ref refid="classdabfg_1_1_state_request_1a1fb4450aa485d1df67f499f37ebf6b8d" kindref="member">setSceneBlock</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*block)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="classdabfg_1_1_state_request_1a792887e62a294c8b9f390a0293d0e410" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref><sp/><ref refid="classdabfg_1_1_state_request_1a792887e62a294c8b9f390a0293d0e410" kindref="member">setObjectBlock</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*block)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="classdabfg_1_1_state_request_1a2cbacbe33faf7eb180aceb294f6e8592" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref><sp/><ref refid="classdabfg_1_1_state_request_1a2cbacbe33faf7eb180aceb294f6e8592" kindref="member">allowWireframe</ref>()<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69" refid="classdabfg_1_1_state_request_1ae96dc3a3db30a467547bd7ce3bb2225e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref><sp/><ref refid="classdabfg_1_1_state_request_1ae96dc3a3db30a467547bd7ce3bb2225e" kindref="member">allowVrs</ref>(<ref refid="structdabfg_1_1_vrs_requirements" kindref="compound">VrsRequirements</ref><sp/>vrs)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="classdabfg_1_1_state_request_1a7062632f30213423573b47c0308cd694" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref><sp/><ref refid="classdabfg_1_1_state_request_1a7062632f30213423573b47c0308cd694" kindref="member">enableOverride</ref>(shaders::OverrideState<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>NodeNameId<sp/>id;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>InternalRegistry<sp/>*registry;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dabfg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h"/>
+  </compounddef>
+</doxygen>

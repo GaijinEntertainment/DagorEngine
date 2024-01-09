@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dir_dfe6bed94bcf04987b38a6f8493ab81c" kind="dir">
+    <compoundname>/home/runner/work/DagorEngine/DagorEngine/prog</compoundname>
+    <innerdir refid="dir_60c44b399b02e309c83119e434d4c2e5">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude</innerdir>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/"/>
+  </compounddef>
+</doxygen>

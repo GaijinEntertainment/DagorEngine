@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structdabfg_1_1_vrs_requirements" kind="struct" language="C++" prot="public">
+    <compoundname>dabfg::VrsRequirements</compoundname>
+    <includes refid="variable_rate_shading_8h" local="no">variableRateShading.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdabfg_1_1_vrs_requirements_1a3db5c151da8f9a7f10073cba978dd51e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::VrsRequirements::rateX</definition>
+        <argsstring></argsstring>
+        <name>rateX</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+<para>horizontal rate </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" line="28" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1_vrs_requirements_1a2048d2932962cbcb956c987079cc17f2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::VrsRequirements::rateY</definition>
+        <argsstring></argsstring>
+        <name>rateY</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+<para>vertical rate </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" line="29" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1_vrs_requirements_1aa3bc958172217926e7032bf23b71bfe9" prot="public" static="no" mutable="no">
+        <type>eastl::optional&lt; <ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VrsRateTextureRequest</ref> &gt;</type>
+        <definition>eastl::optional&lt;VrsRateTextureRequest&gt; dabfg::VrsRequirements::rateTexture</definition>
+        <argsstring></argsstring>
+        <name>rateTexture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>FG-managed rate texture, as in <computeroutput>registry.read(&quot;your_rate_tex_name&quot;)</computeroutput>. <simplesect kind="note"><para>eastl::nullopt means &quot;no VRS, please&quot; </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" line="34" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1_vrs_requirements_1a32dfb4ae8f2da5c26b9e528447e19687" prot="public" static="no" mutable="no">
+        <type>VariableRateShadingCombiner</type>
+        <definition>VariableRateShadingCombiner dabfg::VrsRequirements::vertexCombiner</definition>
+        <argsstring></argsstring>
+        <name>vertexCombiner</name>
+        <initializer>= VariableRateShadingCombiner::VRS_PASSTHROUGH</initializer>
+        <briefdescription>
+<para>Vertex combiner. See VariableRateShadingCombiner for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" line="36" column="31" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1_vrs_requirements_1a2bdd4866d1abfa6577439cc49a33ff8b" prot="public" static="no" mutable="no">
+        <type>VariableRateShadingCombiner</type>
+        <definition>VariableRateShadingCombiner dabfg::VrsRequirements::pixelCombiner</definition>
+        <argsstring></argsstring>
+        <name>pixelCombiner</name>
+        <initializer>= VariableRateShadingCombiner::VRS_PASSTHROUGH</initializer>
+        <briefdescription>
+<para>Pixel combiner. See VariableRateShadingCombiner for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" line="38" column="31" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Describes the settings with which variable rate shading should be enabled for a particular node. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>See<verbatim>embed:rst:inline :cpp:func:`d3d::set_variable_rate_shading` </verbatim> and<verbatim>embed:rst:inline :cpp:func:`d3d::set_variable_rate_shading_texture` </verbatim> for further explanation of what these parameters do. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" line="26" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/variableRateShading.h" bodystart="27" bodyend="39"/>
+    <listofallmembers>
+      <member refid="structdabfg_1_1_vrs_requirements_1a2bdd4866d1abfa6577439cc49a33ff8b" prot="public" virt="non-virtual"><scope>dabfg::VrsRequirements</scope><name>pixelCombiner</name></member>
+      <member refid="structdabfg_1_1_vrs_requirements_1aa3bc958172217926e7032bf23b71bfe9" prot="public" virt="non-virtual"><scope>dabfg::VrsRequirements</scope><name>rateTexture</name></member>
+      <member refid="structdabfg_1_1_vrs_requirements_1a3db5c151da8f9a7f10073cba978dd51e" prot="public" virt="non-virtual"><scope>dabfg::VrsRequirements</scope><name>rateX</name></member>
+      <member refid="structdabfg_1_1_vrs_requirements_1a2048d2932962cbcb956c987079cc17f2" prot="public" virt="non-virtual"><scope>dabfg::VrsRequirements</scope><name>rateY</name></member>
+      <member refid="structdabfg_1_1_vrs_requirements_1a32dfb4ae8f2da5c26b9e528447e19687" prot="public" virt="non-virtual"><scope>dabfg::VrsRequirements</scope><name>vertexCombiner</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

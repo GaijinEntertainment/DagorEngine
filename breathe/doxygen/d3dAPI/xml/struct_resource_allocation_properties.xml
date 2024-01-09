@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_resource_allocation_properties" kind="struct" language="C++" prot="public">
+    <compoundname>ResourceAllocationProperties</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_resource_allocation_properties_1a3b74c437cd5d2d69e142716aced8722c" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t ResourceAllocationProperties::sizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>sizeInBytes</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="652" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="652" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_allocation_properties_1a04ab5b6356d85fb503e6850243ede40f" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t ResourceAllocationProperties::offsetAlignment</definition>
+        <argsstring></argsstring>
+        <name>offsetAlignment</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="653" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="653" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_allocation_properties_1ad44697aab8e294bc9318abd4c8ea407b" prot="public" static="no" mutable="no">
+        <type>ResourceHeapGroup *</type>
+        <definition>ResourceHeapGroup* ResourceAllocationProperties::heapGroup</definition>
+        <argsstring></argsstring>
+        <name>heapGroup</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="654" column="21" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="654" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="650" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="651" bodyend="655"/>
+    <listofallmembers>
+      <member refid="struct_resource_allocation_properties_1ad44697aab8e294bc9318abd4c8ea407b" prot="public" virt="non-virtual"><scope>ResourceAllocationProperties</scope><name>heapGroup</name></member>
+      <member refid="struct_resource_allocation_properties_1a04ab5b6356d85fb503e6850243ede40f" prot="public" virt="non-virtual"><scope>ResourceAllocationProperties</scope><name>offsetAlignment</name></member>
+      <member refid="struct_resource_allocation_properties_1a3b74c437cd5d2d69e142716aced8722c" prot="public" virt="non-virtual"><scope>ResourceAllocationProperties</scope><name>sizeInBytes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

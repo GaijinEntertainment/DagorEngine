@@ -1,0 +1,146 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classdabfg_1_1_auto_resolution_request" kind="class" language="C++" prot="public">
+    <compoundname>dabfg::AutoResolutionRequest</compoundname>
+    <includes refid="auto_resolution_request_8h" local="no">autoResolutionRequest.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdabfg_1_1_auto_resolution_request_1af224c83d458368ae6a14843794518f16" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class NameSpaceRequest</definition>
+        <argsstring></argsstring>
+        <name>NameSpaceRequest</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_name_space_request" kindref="compound">NameSpaceRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" line="31" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdabfg_1_1_auto_resolution_request_1a54e9924205db745e6c6fdb8e7b4c174c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct</type>
+        <definition>friend struct detail::VirtualResourceRequestBase</definition>
+        <argsstring></argsstring>
+        <name>detail::VirtualResourceRequestBase</name>
+        <param>
+          <type>detail::VirtualResourceRequestBase</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" line="32" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdabfg_1_1_auto_resolution_request_1ac86d4108863c70fc5b6a3e173f616d44" prot="private" static="no" mutable="no">
+        <type>AutoResTypeNameId</type>
+        <definition>AutoResTypeNameId dabfg::AutoResolutionRequest::autoResTypeId</definition>
+        <argsstring></argsstring>
+        <name>autoResTypeId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" line="49" column="21" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdabfg_1_1_auto_resolution_request_1a7acbcb2d9082c3ae79daa141e73d24ac" prot="private" static="no" mutable="no">
+        <type>float</type>
+        <definition>float dabfg::AutoResolutionRequest::multiplier</definition>
+        <argsstring></argsstring>
+        <name>multiplier</name>
+        <initializer>= 1.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" line="50" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdabfg_1_1_auto_resolution_request_1a4a5f059b39c0461d6af251441c7f52ce" prot="private" static="no" mutable="no">
+        <type>const ResourceProvider *</type>
+        <definition>const ResourceProvider* dabfg::AutoResolutionRequest::provider</definition>
+        <argsstring></argsstring>
+        <name>provider</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" line="51" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdabfg_1_1_auto_resolution_request_1ae627ccba54dab612147158a7cfeb8dcd" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::AutoResolutionRequest::AutoResolutionRequest</definition>
+        <argsstring>(AutoResTypeNameId id, float mult, const ResourceProvider *p)</argsstring>
+        <name>AutoResolutionRequest</name>
+        <param>
+          <type>AutoResTypeNameId</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>mult</declname>
+        </param>
+        <param>
+          <type>const ResourceProvider *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" line="34" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" bodystart="34" bodyend="35"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdabfg_1_1_auto_resolution_request_1ac78ae973ce598997a928441925e79706" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>IPoint2</type>
+        <definition>IPoint2 dabfg::AutoResolutionRequest::get</definition>
+        <argsstring>() const</argsstring>
+        <name>get</name>
+        <briefdescription>
+<para>Returns the current dynamic resolution for this auto-res type. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>Should only be used for setting the d3d viewport/scissor, NEVER create textures with this resolution, as it might be changing every single frame!!! Also never call this outside of the execution callback for the same reason!</para>
+</simplesect>
+<simplesect kind="return"><para>The current dynamic resolution for this type. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" line="46" column="11"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>This class represents a daBfg-managed automatic resolution type for a 2D texture. If this resolution is specified for a texture, the actual texture&apos;s resolution at runtime will be the dynamic resolution scaled by the multiplier, but the consumed memory will always be equal to the static resolution times the multiplier. See <ref refid="classdabfg_1_1_name_space_1a1d87ca408e9a423e07dac31fc890e1a3" kindref="member">NameSpace::setResolution</ref> and <ref refid="classdabfg_1_1_name_space_1ab42aceabe2cf00d9ca3a7a4196353449" kindref="member">NameSpace::setDynamicResolution</ref>. Note that objects of this type MAY be captured into the execution callback and used to access the actual resolution on a particular frame, but the resolution should NEVER be accessed in the declaration callback, as the value will be undefined. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" line="29" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/autoResolutionRequest.h" bodystart="30" bodyend="52"/>
+    <listofallmembers>
+      <member refid="classdabfg_1_1_auto_resolution_request_1ae627ccba54dab612147158a7cfeb8dcd" prot="private" virt="non-virtual"><scope>dabfg::AutoResolutionRequest</scope><name>AutoResolutionRequest</name></member>
+      <member refid="classdabfg_1_1_auto_resolution_request_1ac86d4108863c70fc5b6a3e173f616d44" prot="private" virt="non-virtual"><scope>dabfg::AutoResolutionRequest</scope><name>autoResTypeId</name></member>
+      <member refid="classdabfg_1_1_auto_resolution_request_1a54e9924205db745e6c6fdb8e7b4c174c" prot="public" virt="non-virtual"><scope>dabfg::AutoResolutionRequest</scope><name>detail::VirtualResourceRequestBase</name></member>
+      <member refid="classdabfg_1_1_auto_resolution_request_1ac78ae973ce598997a928441925e79706" prot="public" virt="non-virtual"><scope>dabfg::AutoResolutionRequest</scope><name>get</name></member>
+      <member refid="classdabfg_1_1_auto_resolution_request_1a7acbcb2d9082c3ae79daa141e73d24ac" prot="private" virt="non-virtual"><scope>dabfg::AutoResolutionRequest</scope><name>multiplier</name></member>
+      <member refid="classdabfg_1_1_auto_resolution_request_1af224c83d458368ae6a14843794518f16" prot="private" virt="non-virtual"><scope>dabfg::AutoResolutionRequest</scope><name>NameSpaceRequest</name></member>
+      <member refid="classdabfg_1_1_auto_resolution_request_1a4a5f059b39c0461d6af251441c7f52ce" prot="private" virt="non-virtual"><scope>dabfg::AutoResolutionRequest</scope><name>provider</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,137 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="union_resource_clear_value" kind="union" language="C++" prot="public">
+    <compoundname>ResourceClearValue</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="union_resource_clear_value_1aad4f2bb05d2d6bddb2ab55e32ab02ab5" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ResourceClearValue::asUint[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>asUint</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="402" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="402" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="union_resource_clear_value_1a879bb140b8474629952bc3d5e874e15c" prot="public" static="no" mutable="no">
+        <type>struct ResourceClearValue::@12</type>
+        <definition>struct ResourceClearValue::@12 ResourceClearValue::@13</definition>
+        <argsstring></argsstring>
+        <name>@13</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="403" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="union_resource_clear_value_1a975ca8adf1aa4246abdb6ede72a3a5fe" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t ResourceClearValue::asInt[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>asInt</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="406" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="406" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="union_resource_clear_value_1a630908409121baf214b0d6cdf20958e2" prot="public" static="no" mutable="no">
+        <type>struct ResourceClearValue::@14</type>
+        <definition>struct ResourceClearValue::@14 ResourceClearValue::@15</definition>
+        <argsstring></argsstring>
+        <name>@15</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="407" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="union_resource_clear_value_1a04a959c9cec083c3dbcb9343ed62b19e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ResourceClearValue::asFloat[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>asFloat</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="410" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="410" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="union_resource_clear_value_1ad5a9ac9f5b3130734920d2a622872ac0" prot="public" static="no" mutable="no">
+        <type>struct ResourceClearValue::@16</type>
+        <definition>struct ResourceClearValue::@16 ResourceClearValue::@17</definition>
+        <argsstring></argsstring>
+        <name>@17</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="411" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="union_resource_clear_value_1aab4ceb61c7e108640fb94b5b72f9a5a8" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ResourceClearValue::asDepth</definition>
+        <argsstring></argsstring>
+        <name>asDepth</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="414" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="414" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="union_resource_clear_value_1acadc2926673037b02d7e16b5c96a4236" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ResourceClearValue::asStencil</definition>
+        <argsstring></argsstring>
+        <name>asStencil</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="415" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="415" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="union_resource_clear_value_1af8705c2b63480db6bcbeffecbc3b878d" prot="public" static="no" mutable="no">
+        <type>struct ResourceClearValue::@18</type>
+        <definition>struct ResourceClearValue::@18 ResourceClearValue::@19</definition>
+        <argsstring></argsstring>
+        <name>@19</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="416" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="398" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="399" bodyend="417"/>
+    <listofallmembers>
+      <member refid="union_resource_clear_value_1aab4ceb61c7e108640fb94b5b72f9a5a8" prot="public" virt="non-virtual"><scope>ResourceClearValue</scope><name>asDepth</name></member>
+      <member refid="union_resource_clear_value_1a04a959c9cec083c3dbcb9343ed62b19e" prot="public" virt="non-virtual"><scope>ResourceClearValue</scope><name>asFloat</name></member>
+      <member refid="union_resource_clear_value_1a975ca8adf1aa4246abdb6ede72a3a5fe" prot="public" virt="non-virtual"><scope>ResourceClearValue</scope><name>asInt</name></member>
+      <member refid="union_resource_clear_value_1acadc2926673037b02d7e16b5c96a4236" prot="public" virt="non-virtual"><scope>ResourceClearValue</scope><name>asStencil</name></member>
+      <member refid="union_resource_clear_value_1aad4f2bb05d2d6bddb2ab55e32ab02ab5" prot="public" virt="non-virtual"><scope>ResourceClearValue</scope><name>asUint</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

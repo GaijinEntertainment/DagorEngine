@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structdabfg_1_1_named_slot" kind="struct" language="C++" prot="public">
+    <compoundname>dabfg::NamedSlot</compoundname>
+    <includes refid="resource_creation_8h" local="no">resourceCreation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdabfg_1_1_named_slot_1a5f28c14ce2ac9839989ce2e56d8135a3" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* dabfg::NamedSlot::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <briefdescription>
+<para>String name for this slot, must not match any other resource&apos;s name. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="25" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structdabfg_1_1_named_slot_1a5df3273574f8dc09b9bd715eeb08de36" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::NamedSlot::NamedSlot</definition>
+        <argsstring>(const char *slot_name)</argsstring>
+        <name>NamedSlot</name>
+        <param>
+          <type>const char *</type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+<para>Enables using regular parentheses for construction. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="28" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Named slots do not represent any resource by default and must be explicitly set to point to a different resource through dabfg::fill_slot. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="22" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="23" bodyend="29"/>
+    <listofallmembers>
+      <member refid="structdabfg_1_1_named_slot_1a5f28c14ce2ac9839989ce2e56d8135a3" prot="public" virt="non-virtual"><scope>dabfg::NamedSlot</scope><name>name</name></member>
+      <member refid="structdabfg_1_1_named_slot_1a5df3273574f8dc09b9bd715eeb08de36" prot="public" virt="non-virtual"><scope>dabfg::NamedSlot</scope><name>NamedSlot</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

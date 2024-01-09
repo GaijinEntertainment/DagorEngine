@@ -1,0 +1,348 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_device_driver_issues_base" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverIssuesBase</compoundname>
+    <derivedcompoundref refid="struct_device_driver_issues_android" prot="public" virt="non-virtual">DeviceDriverIssuesAndroid</derivedcompoundref>
+    <derivedcompoundref refid="struct_device_driver_issues_no_issues" prot="public" virt="non-virtual">DeviceDriverIssuesNoIssues</derivedcompoundref>
+    <includes refid="dag__drv3d_consts_8h" local="no">dag_drv3dConsts.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1a4155a0570f12968d78e323e26304929f" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasComputeTimeLimited</definition>
+        <argsstring></argsstring>
+        <name>hasComputeTimeLimited</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some devices have issues with long running compute stages and may cause a TDR (Timeout Detection and Recovery) to reset the device. <simplesect kind="note"><para>Known on the following devices:<itemizedlist>
+<listitem><para>Qualcomm Adreno</para>
+</listitem><listitem><para>ARM Mali </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1ae6caf227f4bccdfa2c09d6804453546b" kindref="member">DeviceDriverIssuesNoIssues::hasComputeTimeLimited</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1676" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1676" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1a47992c604a6c9348ed72906e2faa9c9e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasComputeCanNotWrite3DTex</definition>
+        <argsstring></argsstring>
+        <name>hasComputeCanNotWrite3DTex</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some device have issues with writing to 3D textures in the compute stage. <simplesect kind="note"><para>Known on the following devices:<itemizedlist>
+<listitem><para>Qualcomm Adreno </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1aa9d9c365a819126923c0bbbb7ac3f299" kindref="member">DeviceDriverIssuesNoIssues::hasComputeCanNotWrite3DTex</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1686" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1686" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1a0cadf2df929f3c2ea141d7f7a338bfd9" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasStrictRenderPassesOnly</definition>
+        <argsstring></argsstring>
+        <name>hasStrictRenderPassesOnly</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some device drivers have issues with unused render pass attachments and my crash during pipeline creation. <simplesect kind="note"><para>Known on the following devices:<itemizedlist>
+<listitem><para>Qualcomm Adreno </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1ada3d9838abbb1e20461a948e422b7774" kindref="member">DeviceDriverIssuesNoIssues::hasStrictRenderPassesOnly</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1696" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1696" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1af41da6d79519916b216c91c8c0b16c26" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasSmallSampledBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasSmallSampledBuffers</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some device driver have a very limited size for sampled buffers. This indicates that device driver only works reliably with buffers not exceeding the 64KiByte size limit. <simplesect kind="note"><para>Some mobile device are actually limited and also fall in this category, even when this is expected behavior. Known to be a bug on the following devices, as they report larger supported sizes, but fail to work with those limits:<itemizedlist>
+<listitem><para>Qualcomm Adreno</para>
+</listitem><listitem><para>ARM Mali </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1abd52c2de043dfcf58caa6646a40e56ab" kindref="member">DeviceDriverIssuesNoIssues::hasSmallSampledBuffers</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1709" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1709" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1a0c0e9635e0bd509ed6febe7bf41b1037" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasRenderPassClearDataRace</definition>
+        <argsstring></argsstring>
+        <name>hasRenderPassClearDataRace</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some devices have issues in render passes properly scheduling clears before render, which may result in random flickering. <simplesect kind="note"><para>Known on the following devices:<itemizedlist>
+<listitem><para>Qualcomm Adreno with certain driver versions </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1ab8ddca62e4d4750413931dfdfedde3fb" kindref="member">DeviceDriverIssuesNoIssues::hasRenderPassClearDataRace</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1719" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1719" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1a8790663fe4f7235912359d786149f822" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasLimitedDXCShaders</definition>
+        <argsstring></argsstring>
+        <name>hasLimitedDXCShaders</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some device drivers have some issues with shader byte code generated by our DXC shader compiler stack. <simplesect kind="note"><para>Known on the following devices:<itemizedlist>
+<listitem><para>Qualcomm Adreno with certain driver versions </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1ab38015f852c1421caeab303bee81c9af" kindref="member">DeviceDriverIssuesNoIssues::hasLimitedDXCShaders</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1729" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1729" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1aed100b8cc04c55fb5a645a31b4f6f1bd" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasBrokenBaseInstanceID</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenBaseInstanceID</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some device drivers have broken base instance ids in shaders. <simplesect kind="note"><para>Known on the following devices:<itemizedlist>
+<listitem><para>ARM Mali with certain driver versions </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1ad5264656df88fc66ebfe205572632954" kindref="member">DeviceDriverIssuesNoIssues::hasBrokenBaseInstanceID</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1739" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1739" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1ad502c03e9b8bc5f466439ede61f20a9c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasMultisampledAndInstancingHang</definition>
+        <argsstring></argsstring>
+        <name>hasMultisampledAndInstancingHang</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some device drivers may hang during instanced rendering with multisampled rastering. <simplesect kind="note"><para>Known for certain device driver combinations. </para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1a0574c8df0c0ea9244a4c8850fd271038" kindref="member">DeviceDriverIssuesNoIssues::hasMultisampledAndInstancingHang</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1748" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1748" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1a73a3b06020df31b84570b6e073204237" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasIgnoreDeviceLost</definition>
+        <argsstring></argsstring>
+        <name>hasIgnoreDeviceLost</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some device drivers spam device lost error codes while the device still remains functional normally. <simplesect kind="note"><para>Known for certain device driver combinations. </para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1a3277fe24fdb8ba5618447eb18b291f61" kindref="member">DeviceDriverIssuesNoIssues::hasIgnoreDeviceLost</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1757" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1757" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1ad14daea5fce019300ab5227acdf12886" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasPollDeviceFences</definition>
+        <argsstring></argsstring>
+        <name>hasPollDeviceFences</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some device drivers may randomly fail with a device reset on fence waits, the driver falls back to polling the state of fences instead. <simplesect kind="note"><para>Known for certain device driver combinations. </para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1a2abeae923cc9ce8c98872dbfa0924187" kindref="member">DeviceDriverIssuesNoIssues::hasPollDeviceFences</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1767" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1767" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1a87b8f7dbb696e20077e9bffacbefaa3c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasMultisampledAndBlendingHang</definition>
+        <argsstring></argsstring>
+        <name>hasMultisampledAndBlendingHang</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some device drivers may hang during rendering with multisampled rastering and blending enabled. <simplesect kind="note"><para>Known for certain device driver combinations. </para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1a04fc1b38f538260063e7c557e575c061" kindref="member">DeviceDriverIssuesNoIssues::hasMultisampledAndBlendingHang</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1776" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1776" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_issues_base_1a3928aca35169986ebd34a4e811c54f62" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DeviceDriverIssuesBase::hasBrokenShadersAfterAppSwitch</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenShadersAfterAppSwitch</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some device drivers may not render some long shaders after switching from the application and back. <simplesect kind="note"><para>Known for certain device driver combinations. </para>
+</simplesect>
+<simplesect kind="note"><para><itemizedlist>
+<listitem><para>Is constant true on Xbox One, Xbox Series X / S, PlayStation 4, PlayStation 5, iOS, tvOS, Nintendo Switch, macOS, Linux and Windows. <ref refid="struct_device_driver_issues_no_issues_1a99f90893fcdd5b76948a1e100272ab30" kindref="member">DeviceDriverIssuesNoIssues::hasBrokenShadersAfterAppSwitch</ref></para>
+</listitem><listitem><para>Runtime defined on Android. <ref refid="struct_device_driver_issues_android" kindref="compound">DeviceDriverIssuesAndroid</ref> </para>
+</listitem></itemizedlist>
+</para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1785" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1785" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>A boolean bitfield that describes which known issues the used device / driver combination has. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="struct_device_driver_issues_base"/>
+      </node>
+      <node id="3">
+        <label>DeviceDriverIssuesNoIssues</label>
+        <link refid="struct_device_driver_issues_no_issues"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverIssuesAndroid</label>
+        <link refid="struct_device_driver_issues_android"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1663" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1664" bodyend="1786"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_issues_base_1aed100b8cc04c55fb5a645a31b4f6f1bd" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasBrokenBaseInstanceID</name></member>
+      <member refid="struct_device_driver_issues_base_1a3928aca35169986ebd34a4e811c54f62" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasBrokenShadersAfterAppSwitch</name></member>
+      <member refid="struct_device_driver_issues_base_1a47992c604a6c9348ed72906e2faa9c9e" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasComputeCanNotWrite3DTex</name></member>
+      <member refid="struct_device_driver_issues_base_1a4155a0570f12968d78e323e26304929f" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasComputeTimeLimited</name></member>
+      <member refid="struct_device_driver_issues_base_1a73a3b06020df31b84570b6e073204237" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasIgnoreDeviceLost</name></member>
+      <member refid="struct_device_driver_issues_base_1a8790663fe4f7235912359d786149f822" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasLimitedDXCShaders</name></member>
+      <member refid="struct_device_driver_issues_base_1a87b8f7dbb696e20077e9bffacbefaa3c" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasMultisampledAndBlendingHang</name></member>
+      <member refid="struct_device_driver_issues_base_1ad502c03e9b8bc5f466439ede61f20a9c" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasMultisampledAndInstancingHang</name></member>
+      <member refid="struct_device_driver_issues_base_1ad14daea5fce019300ab5227acdf12886" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasPollDeviceFences</name></member>
+      <member refid="struct_device_driver_issues_base_1a0c0e9635e0bd509ed6febe7bf41b1037" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasRenderPassClearDataRace</name></member>
+      <member refid="struct_device_driver_issues_base_1af41da6d79519916b216c91c8c0b16c26" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasSmallSampledBuffers</name></member>
+      <member refid="struct_device_driver_issues_base_1a0cadf2df929f3c2ea141d7f7a338bfd9" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesBase</scope><name>hasStrictRenderPassesOnly</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

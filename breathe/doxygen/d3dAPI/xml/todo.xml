@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="todo" kind="page">
+    <compoundname>todo</compoundname>
+    <title>Todo List</title>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><variablelist>
+<varlistentry><term>Member <ref refid="dag__drv3d__buffers_8h_1a57d6e15ac4e84021c42ca3ff0294f252" kindref="member">d3d::buffers::create_ua_byte_address</ref>  (uint32_t size_in_dwords, const char *name)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000002"/>Use registers instead of dwords for size because of alignment.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="dag__drv3d__buffers_8h_1a47fd8b1352f7d4914f1ac38019e2e3e0" kindref="member">d3d::buffers::create_ua_byte_address_readback</ref>  (uint32_t size_in_dwords, const char *name, Init buffer_init=<ref refid="dag__drv3d__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref>)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000003"/>Use registers instead of dwords for size because of alignment.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="dag__drv3d__buffers_8h_1adaf527a53632f46d7887eed1fbd5665b" kindref="member">d3d::buffers::create_ua_sr_byte_address</ref>  (uint32_t size_in_dwords, const char *name, Init buffer_init=<ref refid="dag__drv3d__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref>)</term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000001"/>Use registers instead of dwords for size because of alignment.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="struct_device_driver_capabilities_base_1a743899e2f26692b8e09a379c35379894" kindref="member">DeviceDriverCapabilitiesBase::hasAlphaCoverage</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000004"/>Candidate for removal if situation for PS4/5 is clarified, there it seems to be not implemented.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="struct_device_driver_capabilities_base_1ad952e7b7a5b7b522dceed7748323a9cf" kindref="member">DeviceDriverCapabilitiesBase::hasBindless</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000006"/>May need to split into multiple caps as some drivers do not support buffers.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="struct_device_driver_capabilities_base_1ab155f75785b7aa42470b2a460535a488" kindref="member">DeviceDriverCapabilitiesBase::hasRaytracingT11</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000005"/>This may needs to be split into several caps, as it bundles a few features that may not be fully supported by all platforms.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="struct_device_driver_capabilities_p_s4_1ac5bd05642d65e301dc4e34cfa3d0fede" kindref="member">DeviceDriverCapabilitiesPS4::hasGather4</ref>  </term></varlistentry>
+<listitem><para><anchor id="todo_1_todo000007"/>Clarify why no support is advertised. </para>
+</listitem>
+</variablelist>
+</para>
+    </detaileddescription>
+    <location file="todo"/>
+  </compounddef>
+</doxygen>

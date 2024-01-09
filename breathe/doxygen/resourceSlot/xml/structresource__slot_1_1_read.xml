@@ -1,0 +1,138 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structresource__slot_1_1_read" kind="struct" language="C++" prot="public">
+    <compoundname>resource_slot::Read</compoundname>
+    <includes refid="actions_8h" local="no">actions.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="structresource__slot_1_1_read_1ac759762dda15aeaf23ac92d63d783dcd" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* resource_slot::Read::slotName</definition>
+        <argsstring></argsstring>
+        <name>slotName</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="78" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structresource__slot_1_1_read_1a6c3d4781dbefd4670a2c81f544828b3a" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int resource_slot::Read::priority</definition>
+        <argsstring></argsstring>
+        <name>priority</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="79" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="structresource__slot_1_1_read_1a00e917e7262e2f34ac0ef1baaa376c27" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int resource_slot::Read::DEFAULT_READ_PRIORITY</definition>
+        <argsstring></argsstring>
+        <name>DEFAULT_READ_PRIORITY</name>
+        <initializer>= INT_MAX</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="80" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structresource__slot_1_1_read_1a5b9c7c4d1d8c8b4d02c858b35b33203a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::Read::Read</definition>
+        <argsstring>(const char *slot_name, int read_priority=DEFAULT_READ_PRIORITY)</argsstring>
+        <name>Read</name>
+        <param>
+          <type>const char *</type>
+          <declname>slot_name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>read_priority</declname>
+          <defval>DEFAULT_READ_PRIORITY</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slot_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>name of the slot </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>read_priority</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>priority of read; nodes with LOWER priority will be scheduled BEFORE current node. By default <ref refid="structresource__slot_1_1_read" kindref="compound">Read</ref> will be scheduled after all <ref refid="structresource__slot_1_1_update" kindref="compound">Update</ref> of this slot. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="75" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" bodystart="75" bodyend="75"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="structresource__slot_1_1_read_1a9768f6c2e92f7e76be5cede6cf32ebe0" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref></type>
+        <definition>NodeHandleWithSlotsAccess resource_slot::detail::register_access</definition>
+        <argsstring>(dabfg::NameSpace, const char *, const char *, resource_slot::detail::ActionList &amp;&amp;, resource_slot::detail::AccessCallback &amp;&amp;)</argsstring>
+        <name>resource_slot::detail::register_access</name>
+        <param>
+          <type>dabfg::NameSpace</type>
+        </param>
+        <param>
+          <type>const char *</type>
+        </param>
+        <param>
+          <type>const char *</type>
+        </param>
+        <param>
+          <type>resource_slot::detail::ActionList &amp;&amp;</type>
+        </param>
+        <param>
+          <type>resource_slot::detail::AccessCallback &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="82" column="36"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><ref refid="structresource__slot_1_1_read" kindref="compound">Read</ref> request</para>
+<para>Requested slot CAN be read in the node </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="65" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" bodystart="66" bodyend="84"/>
+    <listofallmembers>
+      <member refid="structresource__slot_1_1_read_1a00e917e7262e2f34ac0ef1baaa376c27" prot="private" virt="non-virtual"><scope>resource_slot::Read</scope><name>DEFAULT_READ_PRIORITY</name></member>
+      <member refid="structresource__slot_1_1_read_1a6c3d4781dbefd4670a2c81f544828b3a" prot="private" virt="non-virtual"><scope>resource_slot::Read</scope><name>priority</name></member>
+      <member refid="structresource__slot_1_1_read_1a5b9c7c4d1d8c8b4d02c858b35b33203a" prot="public" virt="non-virtual"><scope>resource_slot::Read</scope><name>Read</name></member>
+      <member refid="structresource__slot_1_1_read_1a9768f6c2e92f7e76be5cede6cf32ebe0" prot="private" virt="non-virtual"><scope>resource_slot::Read</scope><name>resource_slot::detail::register_access</name></member>
+      <member refid="structresource__slot_1_1_read_1ac759762dda15aeaf23ac92d63d783dcd" prot="private" virt="non-virtual"><scope>resource_slot::Read</scope><name>slotName</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_render_target" kind="struct" language="C++" prot="public">
+    <compoundname>RenderTarget</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_render_target_1a4a161583287ebfadccf0d054d6ee0b0d" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* RenderTarget::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="679" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="679" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_target_1af5a772cc1ad472fc0dc44d737c6bd197" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderTarget::mip_level</definition>
+        <argsstring></argsstring>
+        <name>mip_level</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="680" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="680" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_target_1abbc128112606626b4a390dd23398eee3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderTarget::layer</definition>
+        <argsstring></argsstring>
+        <name>layer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="681" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="681" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+      </node>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>RenderTarget</label>
+        <link refid="struct_render_target"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>tex</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="677" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="678" bodyend="682"/>
+    <listofallmembers>
+      <member refid="struct_render_target_1abbc128112606626b4a390dd23398eee3" prot="public" virt="non-virtual"><scope>RenderTarget</scope><name>layer</name></member>
+      <member refid="struct_render_target_1af5a772cc1ad472fc0dc44d737c6bd197" prot="public" virt="non-virtual"><scope>RenderTarget</scope><name>mip_level</name></member>
+      <member refid="struct_render_target_1a4a161583287ebfadccf0d054d6ee0b0d" prot="public" virt="non-virtual"><scope>RenderTarget</scope><name>tex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

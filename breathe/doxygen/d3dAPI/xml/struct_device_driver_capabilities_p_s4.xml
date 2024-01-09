@@ -1,0 +1,1063 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_device_driver_capabilities_p_s4" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesPS4</compoundname>
+    <basecompoundref refid="struct_device_driver_capabilities_base" prot="public" virt="non-virtual">DeviceDriverCapabilitiesBase</basecompoundref>
+    <derivedcompoundref refid="struct_device_driver_capabilities_p_s5" prot="public" virt="non-virtual">DeviceDriverCapabilitiesPS5</derivedcompoundref>
+    <includes refid="dag__drv3d_consts_8h" local="no">dag_drv3dConsts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a4674236ffdb840049ae70999fd857e3c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasAnisotropicFilter</definition>
+        <argsstring></argsstring>
+        <name>hasAnisotropicFilter</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports anisotropic filtering of textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ae16465605571449cdaa401557c4730fc" kindref="member">DeviceDriverCapabilitiesBase::hasAnisotropicFilter</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="842" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="842" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a1070edb832bc097a159ca91574e52981" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasDepthReadOnly</definition>
+        <argsstring></argsstring>
+        <name>hasDepthReadOnly</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports constant depth stencil targets that allow simultaneous sampling as a shader resource. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1aa0f3c5d16e0868323a12940250cd1a39" kindref="member">DeviceDriverCapabilitiesBase::hasDepthReadOnly</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="844" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="844" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a44196b849ac85246cd50928d9b64572f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasStructuredBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasStructuredBuffers</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports structured buffer types. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a20407785ef1e8f4efde8f5f5ba093569" kindref="member">DeviceDriverCapabilitiesBase::hasStructuredBuffers</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="846" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="846" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a1d0cbb70a9c5e3fe77c72465cd5e4174" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasNoOverwriteOnShaderResourceBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasNoOverwriteOnShaderResourceBuffers</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports locking of structured buffers with the no-overwrite method. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac092d99b3a894db094a2c80af9e33ca8" kindref="member">DeviceDriverCapabilitiesBase::hasNoOverwriteOnShaderResourceBuffers</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="848" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="848" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1aa5fa3b064ee2248cef62525de3bfad6d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasForcedSamplerCount</definition>
+        <argsstring></argsstring>
+        <name>hasForcedSamplerCount</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports forced multi-sample count during raster phase. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abdaed640d68bcbc1b926f133d9d2465a" kindref="member">DeviceDriverCapabilitiesBase::hasForcedSamplerCount</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="850" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="850" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a27ff2ff40ca0493e24112d6416743f15" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasVolMipMap</definition>
+        <argsstring></argsstring>
+        <name>hasVolMipMap</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports mipmaps for vol (eg 3D) textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a97d97eed28fac297ea5042de79ea48a5" kindref="member">DeviceDriverCapabilitiesBase::hasVolMipMap</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="852" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="852" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1abad2e39863c0db33fd3993086c83ad8b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasOcclusionQuery</definition>
+        <argsstring></argsstring>
+        <name>hasOcclusionQuery</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports occlusion queries. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7717801667587b0dc2e2744030722791" kindref="member">DeviceDriverCapabilitiesBase::hasOcclusionQuery</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="854" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="854" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1adc8dd9131e3c1d19f6407cf9d7463a45" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasConstBufferOffset</definition>
+        <argsstring></argsstring>
+        <name>hasConstBufferOffset</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports values other than 0 for <computeroutput>consts_offset</computeroutput> of d3d::set_const_buffer. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5c94dd02ee82ff737873cdd9f9404be0" kindref="member">DeviceDriverCapabilitiesBase::hasConstBufferOffset</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="857" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="857" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1adadba44e1e64f113bec60133cf26c8c0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasDepthBoundsTest</definition>
+        <argsstring></argsstring>
+        <name>hasDepthBoundsTest</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports depth bounds testing. See d3d::set_depth_bounds for details of depth bounds testing. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abda4bbbdebdb5c18b289e9053895e193" kindref="member">DeviceDriverCapabilitiesBase::hasDepthBoundsTest</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="859" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="859" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1abb692518a4faa0127eae563b89e952bb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasConditionalRender</definition>
+        <argsstring></argsstring>
+        <name>hasConditionalRender</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports conditional rendering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1afe2a9e7878afb130d24e36d28f7355d6" kindref="member">DeviceDriverCapabilitiesBase::hasConditionalRender</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="861" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="861" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a98b9ca25fe714387119b4636bb9f413d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasResourceCopyConversion</definition>
+        <argsstring></argsstring>
+        <name>hasResourceCopyConversion</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports copy of textures of different but compatible formats. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a45e3ac7640df3354d5baef8e7fa1c4c7" kindref="member">DeviceDriverCapabilitiesBase::hasResourceCopyConversion</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="863" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="863" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a0210852996a58ff65c087e88ff6237d5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasAsyncCopy</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCopy</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports asynchronously issued copy operations. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a014bd49e2e0103c34524f0da355be4ea" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="865" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="865" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1afdc778bb90dfcd42ebf6ca2bc3fe9895" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasReadMultisampledDepth</definition>
+        <argsstring></argsstring>
+        <name>hasReadMultisampledDepth</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports reading from multi-sampled depth stencil targets. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1acf749555446d427feee38076de754d83" kindref="member">DeviceDriverCapabilitiesBase::hasReadMultisampledDepth</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="867" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="867" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1add62d30de8cc4c995d6072c3a492b071" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasInstanceID</definition>
+        <argsstring></argsstring>
+        <name>hasInstanceID</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports instance id system variable in shaders. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a2ca9ae722f66c5f6f0c3b76cd0424c07" kindref="member">DeviceDriverCapabilitiesBase::hasInstanceID</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="869" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="869" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a2d35fdf8f9937fe7a3661ae2dbca327b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasConservativeRassterization</definition>
+        <argsstring></argsstring>
+        <name>hasConservativeRassterization</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports conservative rastering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a903377bb582a3da6b2b8c276d6cbc463" kindref="member">DeviceDriverCapabilitiesBase::hasConservativeRassterization</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="871" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="871" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a2ff63833ace337beae8f701697707c57" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasQuadTessellation</definition>
+        <argsstring></argsstring>
+        <name>hasQuadTessellation</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports quad tessellation. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a3cdee766ed89fafff0f7804eaa4c2ab1" kindref="member">DeviceDriverCapabilitiesBase::hasQuadTessellation</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="873" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="873" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1ac5bd05642d65e301dc4e34cfa3d0fede" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasGather4</definition>
+        <argsstring></argsstring>
+        <name>hasGather4</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports gather intrinsic in shaders. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a575b7ccfb7413bbb1246e526bc2608ab" kindref="member">DeviceDriverCapabilitiesBase::hasGather4</ref> </para>
+</simplesect>
+<xrefsect id="todo_1_todo000007"><xreftitle>Todo</xreftitle><xrefdescription><para>Clarify why no support is advertised. </para>
+</xrefdescription></xrefsect></para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="876" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="876" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a7fd54152680618c70886305aa551d907" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasAlphaCoverage</definition>
+        <argsstring></argsstring>
+        <name>hasAlphaCoverage</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the alpha to coverage raster feature. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a743899e2f26692b8e09a379c35379894" kindref="member">DeviceDriverCapabilitiesBase::hasAlphaCoverage</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="879" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="879" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a1ae734392e834bec22f31bb5b5cc1f94" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasWellSupportedIndirect</definition>
+        <argsstring></argsstring>
+        <name>hasWellSupportedIndirect</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports indirect drawing. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac087fa09d2db1f17bff24b8fa09ccb64" kindref="member">DeviceDriverCapabilitiesBase::hasWellSupportedIndirect</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="881" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="881" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a5561869786a84b8be4b5ac83997277f6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasRaytracing</definition>
+        <argsstring></argsstring>
+        <name>hasRaytracing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports raytracing. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a880e3c20caa009187ce288f0d7d02179" kindref="member">DeviceDriverCapabilitiesBase::hasRaytracing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="883" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="883" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1aacee18519e996042abf7116fc83f553b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasRaytracingT11</definition>
+        <argsstring></argsstring>
+        <name>hasRaytracingT11</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports extended raytracing features, like inline raytracing (aka RayQuery). <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ab155f75785b7aa42470b2a460535a488" kindref="member">DeviceDriverCapabilitiesBase::hasRaytracingT11</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="885" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="885" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1aa218c22109e1b5247d26623e1a9c62f4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasBindless</definition>
+        <argsstring></argsstring>
+        <name>hasBindless</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the bindless API and resource access in shaders. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ad952e7b7a5b7b522dceed7748323a9cf" kindref="member">DeviceDriverCapabilitiesBase::hasBindless</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="887" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="887" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a06ae3b80b7b29309f5978dd45837c73f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasNVApi</definition>
+        <argsstring></argsstring>
+        <name>hasNVApi</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has detected that the Nvidia driver API is available for the render device. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a70f1d993da596178f563efe1b9d1a0d3" kindref="member">DeviceDriverCapabilitiesBase::hasNVApi</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="889" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="889" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a0c5b752117119e2e4845ebfed626f1db" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasATIApi</definition>
+        <argsstring></argsstring>
+        <name>hasATIApi</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has detected that the AMD / ATI driver API is available for the render device. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7ecec7232a1c179b81acf6a1837ca525" kindref="member">DeviceDriverCapabilitiesBase::hasATIApi</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="891" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="891" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1ac291a985e22c8f5d0aad144100dc4c5d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasVariableRateShading</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShading</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports basic per draw shading rates. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a361352040deb2285dfcb2b47a1acca29" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShading</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="893" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="893" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a4f7d827305f0c18dda14aafa1dcaf441" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasVariableRateShadingTexture</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingTexture</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports shading rate textures as a source of shading rate information. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1aaf2ce88f773e67be7d02c2f7ccf2b70b" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingTexture</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="895" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="895" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1ac2a7792d5279a8d57201fad57b9b5a44" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasVariableRateShadingShaderOutput</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingShaderOutput</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports shader generated shading rates. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7ce9b3abe5faade3dcff505c9eac93eb" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingShaderOutput</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="897" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="897" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1af9177eeed750ea64a90d29124a07c911" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasVariableRateShadingCombiners</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingCombiners</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports combiners for variable rate shading to select the final shading rate. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5d97ef345373aa5c4378dc310c328bf8" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingCombiners</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="899" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="899" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a0ef8819f6c03789337616b77b09a7d3f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasVariableRateShadingBy4</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingBy4</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports variable rate shading blocks with sizes of 4 in X and Y direction. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a435cca220d7b33031869f4bf83e3c212" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="901" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="901" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1ae68d9dd5180d2b80d6e5d0e6f4242880" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasAliasedTextures</definition>
+        <argsstring></argsstring>
+        <name>hasAliasedTextures</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports creation of aliased textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a047263b73dcac68b784f2640c9c6e6c8" kindref="member">DeviceDriverCapabilitiesBase::hasAliasedTextures</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="903" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="903" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1ab674178b61c1e774fb492dde535e4025" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasBufferOverlapCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapCopy</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports overlapping buffer copies. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ae5831194a86c0c053c638a41ae7e51c0" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="905" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="905" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1ab38cef0542667cc561a24e8ca0e60d1d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasBufferOverlapRegionsCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapRegionsCopy</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver uses region based copies when overlapping copies are executed. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a98747b0ded147a7dd1d42851c0e813bf" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="907" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="907" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1adc1344863b6db84867114639869ef352" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasUAVOnlyForcedSampleCount</definition>
+        <argsstring></argsstring>
+        <name>hasUAVOnlyForcedSampleCount</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports forced multisample count without render targets and only outputting to UAVs. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5d1ae04840c96746888e1c476d4544e4" kindref="member">DeviceDriverCapabilitiesBase::hasUAVOnlyForcedSampleCount</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="909" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="909" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a97c960eefd9141cd6a661506552f541f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasShader64BitIntegerResources</definition>
+        <argsstring></argsstring>
+        <name>hasShader64BitIntegerResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports 64 bit integers shader resource types. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1af3cfbb31804f081b404e6c40b51597e8" kindref="member">DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="911" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="911" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1ab161d0c3117f96078cb7f5f3e477425e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasNativeRenderPassSubPasses</definition>
+        <argsstring></argsstring>
+        <name>hasNativeRenderPassSubPasses</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver is not emulating render sup-passes. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a088d0cfbb513e08dd419ae745e40640b" kindref="member">DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="913" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="913" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a4f29a551bb8686f7fbf224d382f6d591" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasTiled2DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled2DResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports tiled 2D textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a1256aefcb50fe90f33131b96e4ab8604" kindref="member">DeviceDriverCapabilitiesBase::hasTiled2DResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="915" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="915" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1ac0d9de56c5ed00808134a009486fb75a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasTiled3DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled3DResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports tiled 3D textures;. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ad941e8c9ddcc176912cdaf700baacedc" kindref="member">DeviceDriverCapabilitiesBase::hasTiled3DResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="917" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="917" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a817f27b38b01e2e58c4a757cfb74ed81" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasTiledSafeResourcesAccess</definition>
+        <argsstring></argsstring>
+        <name>hasTiledSafeResourcesAccess</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports safe read and write access for not mapped tiles of tiled resources. Such reads return 0 and writes are ignored. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a35c0a7730631d8d76e0a6c743c013687" kindref="member">DeviceDriverCapabilitiesBase::hasTiledSafeResourcesAccess</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="919" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="919" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1ab1085a3d606d2b2c5a39e8cb0eea7032" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasTiledMemoryAliasing</definition>
+        <argsstring></argsstring>
+        <name>hasTiledMemoryAliasing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports memory aliasing of multiple tiles. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1af2bdf1eeee49a8ce966d270d0cda8912" kindref="member">DeviceDriverCapabilitiesBase::hasTiledMemoryAliasing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="921" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="921" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1ada94a6f2a6293f56c4b0b10ff3aeee06" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasDLSS</definition>
+        <argsstring></argsstring>
+        <name>hasDLSS</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports Nvidia DLSS. DLSS stand for Deep Learning Super Sampling. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5b72be5df4ac92123cb5fdadc8c5fd26" kindref="member">DeviceDriverCapabilitiesBase::hasDLSS</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="923" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="923" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a394e5b75e0a66a76d7a14ea0e6fc267b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasXESS</definition>
+        <argsstring></argsstring>
+        <name>hasXESS</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports Intel XESS. XESS stands for Xe Super Sampling. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a85f03c7770a69873ee823471624e2eb0" kindref="member">DeviceDriverCapabilitiesBase::hasXESS</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="925" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="925" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1aa4ac205303ad5bfbbf7d85861cb8701e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasDrawID</definition>
+        <argsstring></argsstring>
+        <name>hasDrawID</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports draw id in shaders. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac55b9335193037fe5418fe78360b6007" kindref="member">DeviceDriverCapabilitiesBase::hasDrawID</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="927" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="927" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a133f227e1f355bbbc544667cf0b5969a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasMeshShader</definition>
+        <argsstring></argsstring>
+        <name>hasMeshShader</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the mesh shader pipeline. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac81371eb952342553cb264f9a693e299" kindref="member">DeviceDriverCapabilitiesBase::hasMeshShader</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="929" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="929" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1aadbdbff7d15825aff2748c039a0a7b4d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasBasicViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasBasicViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports basic view instancing. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a502c6dc246d193bbc994f965b66557be" kindref="member">DeviceDriverCapabilitiesBase::hasBasicViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="931" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="931" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a1068ec8914f496d2a409cd24890c47cc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasOptimizedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasOptimizedViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has some optimizations for view instanced rendering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a823d60c14bb74e8026a6f1f6cc86add4" kindref="member">DeviceDriverCapabilitiesBase::hasOptimizedViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="933" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="933" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a0bcae62814a425663c7fb3650ad73e01" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasAcceleratedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasAcceleratedViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has hardware acceleration to natively support view instanced rendering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a77ded90a2500a44d0a83d80ce2098067" kindref="member">DeviceDriverCapabilitiesBase::hasAcceleratedViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="935" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="935" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1ad90b982edc6d06c3cf27954f17fa4734" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasRenderPassDepthResolve</definition>
+        <argsstring></argsstring>
+        <name>hasRenderPassDepthResolve</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver can resolve multi-sampled depth stencil render targets in a render pass. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ab44fea56b8cf5eb698c3b63b3b5b25ab" kindref="member">DeviceDriverCapabilitiesBase::hasRenderPassDepthResolve</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="937" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="937" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a578bf1adead9dfcb93e2c2f24680e77c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasStereoExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasStereoExpansion</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports stereo render expansion. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abb3185b7ae25ba49f1f8acf86cf3c10c" kindref="member">DeviceDriverCapabilitiesBase::hasStereoExpansion</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="939" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="939" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1afc80eb0d6a6394b7abfdb4f9305dee72" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasTileBasedArchitecture</definition>
+        <argsstring></argsstring>
+        <name>hasTileBasedArchitecture</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver architecture is known to be a tile renderer. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a77e1bec0aeab74ee052cd9e631c8a5eb" kindref="member">DeviceDriverCapabilitiesBase::hasTileBasedArchitecture</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="941" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="941" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1adb60798ee71218919afc6ce3e5595973" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasLazyMemory</definition>
+        <argsstring></argsstring>
+        <name>hasLazyMemory</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports lazily allocated memory. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a1714da16235832e261182e86645e3e33" kindref="member">DeviceDriverCapabilitiesBase::hasLazyMemory</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="943" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="943" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a534907bb1d093fcb0dbe32f98ca4f288" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasIndirectSupport</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectSupport</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver set when hw doesn&apos;t support indirect calls. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a337e032527346eef4e0b46025419c508" kindref="member">DeviceDriverCapabilitiesBase::hasIndirectSupport</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="945" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="945" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a4b05c0afe729043a40d046b229514b76" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasCompareSampler</definition>
+        <argsstring></argsstring>
+        <name>hasCompareSampler</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver set when hw doesn&apos;t support comparison samplers. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a351b50cc43e2279a4a7ccde48e885d90" kindref="member">DeviceDriverCapabilitiesBase::hasCompareSampler</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="947" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="947" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_p_s4_1a3e6dc57b31308f099fadc2bb4135652e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesPS4::hasShaderFloat16Support</definition>
+        <argsstring></argsstring>
+        <name>hasShaderFloat16Support</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports 16-bit floating-point types in shaders for arithmetic operations. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7588b357693368f73ca7b1c8c3a2fe2c" kindref="member">DeviceDriverCapabilitiesBase::hasShaderFloat16Support</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="949" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="949" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for PlayStation 4. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesPS4</label>
+        <link refid="struct_device_driver_capabilities_p_s4"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>DeviceDriverCapabilitiesPS5</label>
+        <link refid="struct_device_driver_capabilities_p_s5"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesPS4</label>
+        <link refid="struct_device_driver_capabilities_p_s4"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="839" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="840" bodyend="950"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_capabilities_p_s4_1a0bcae62814a425663c7fb3650ad73e01" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ae68d9dd5180d2b80d6e5d0e6f4242880" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasAliasedTextures</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a7fd54152680618c70886305aa551d907" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasAlphaCoverage</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a4674236ffdb840049ae70999fd857e3c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ae421f36c3e5e3382c12c9189b6ebc0b0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasAsyncCompute</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a0210852996a58ff65c087e88ff6237d5" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasAsyncCopy</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a0c5b752117119e2e4845ebfed626f1db" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasATIApi</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1aadbdbff7d15825aff2748c039a0a7b4d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1aa218c22109e1b5247d26623e1a9c62f4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasBindless</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ab674178b61c1e774fb492dde535e4025" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ab38cef0542667cc561a24e8ca0e60d1d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a4b05c0afe729043a40d046b229514b76" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasCompareSampler</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1abb692518a4faa0127eae563b89e952bb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasConditionalRender</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a2d35fdf8f9937fe7a3661ae2dbca327b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasConservativeRassterization</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1adc8dd9131e3c1d19f6407cf9d7463a45" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasConstBufferOffset</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1adadba44e1e64f113bec60133cf26c8c0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a1070edb832bc097a159ca91574e52981" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasDepthReadOnly</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ada94a6f2a6293f56c4b0b10ff3aeee06" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasDLSS</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1aa4ac205303ad5bfbbf7d85861cb8701e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasDrawID</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1aa5fa3b064ee2248cef62525de3bfad6d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ac5bd05642d65e301dc4e34cfa3d0fede" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasGather4</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a534907bb1d093fcb0dbe32f98ca4f288" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasIndirectSupport</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1add62d30de8cc4c995d6072c3a492b071" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasInstanceID</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1adb60798ee71218919afc6ce3e5595973" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasLazyMemory</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a133f227e1f355bbbc544667cf0b5969a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasMeshShader</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ab161d0c3117f96078cb7f5f3e477425e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a1d0cbb70a9c5e3fe77c72465cd5e4174" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a06ae3b80b7b29309f5978dd45837c73f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasNVApi</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1abad2e39863c0db33fd3993086c83ad8b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasOcclusionQuery</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a1068ec8914f496d2a409cd24890c47cc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a2ff63833ace337beae8f701697707c57" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasQuadTessellation</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a5561869786a84b8be4b5ac83997277f6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasRaytracing</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1aacee18519e996042abf7116fc83f553b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasRaytracingT11</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1afdc778bb90dfcd42ebf6ca2bc3fe9895" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ad90b982edc6d06c3cf27954f17fa4734" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a98b9ca25fe714387119b4636bb9f413d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a43f7898db5a17c29a9acb8767d66353c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasResourceHeaps</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a97c960eefd9141cd6a661506552f541f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a3e6dc57b31308f099fadc2bb4135652e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a578bf1adead9dfcb93e2c2f24680e77c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasStereoExpansion</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a44196b849ac85246cd50928d9b64572f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasStructuredBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1afc80eb0d6a6394b7abfdb4f9305dee72" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a4f29a551bb8686f7fbf224d382f6d591" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasTiled2DResources</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ac0d9de56c5ed00808134a009486fb75a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasTiled3DResources</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ab1085a3d606d2b2c5a39e8cb0eea7032" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a817f27b38b01e2e58c4a757cfb74ed81" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1adc1344863b6db84867114639869ef352" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ac291a985e22c8f5d0aad144100dc4c5d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasVariableRateShading</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a0ef8819f6c03789337616b77b09a7d3f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1af9177eeed750ea64a90d29124a07c911" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1ac2a7792d5279a8d57201fad57b9b5a44" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a4f7d827305f0c18dda14aafa1dcaf441" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a27ff2ff40ca0493e24112d6416743f15" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasVolMipMap</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a1ae734392e834bec22f31bb5b5cc1f94" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="struct_device_driver_capabilities_p_s4_1a394e5b75e0a66a76d7a14ea0e6fc267b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesPS4</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,129 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_resource_heap_group_properties" kind="struct" language="C++" prot="public">
+    <compoundname>ResourceHeapGroupProperties</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_resource_heap_group_properties_1a188f2f6b002b1d74a368b08919d8707d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ResourceHeapGroupProperties::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="617" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="617" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_heap_group_properties_1a4a19a9d780667c6df1b4412636dcbcbe" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceHeapGroupProperties::isCPUVisible</definition>
+        <argsstring></argsstring>
+        <name>isCPUVisible</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="623" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="623" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_heap_group_properties_1a2a8dfde8145b597d570b2a1cb1d48667" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceHeapGroupProperties::isGPULocal</definition>
+        <argsstring></argsstring>
+        <name>isGPULocal</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="628" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="628" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_heap_group_properties_1a3a536dcabdfbac90b0f5ab7936f9d252" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceHeapGroupProperties::isOnChip</definition>
+        <argsstring></argsstring>
+        <name>isOnChip</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="630" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="630" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_heap_group_properties_1a3c8b925a13646575fda494ef04cb1c67" prot="public" static="no" mutable="no">
+        <type>union ResourceHeapGroupProperties::@22</type>
+        <definition>union ResourceHeapGroupProperties::@22 ResourceHeapGroupProperties::@23</definition>
+        <argsstring></argsstring>
+        <name>@23</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="632" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_heap_group_properties_1a9011fd2273a88332d26679255b308860" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t ResourceHeapGroupProperties::maxResourceSize</definition>
+        <argsstring></argsstring>
+        <name>maxResourceSize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="634" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="634" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_heap_group_properties_1a3c6625f815c0e0e39e9f87f48fbf9562" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t ResourceHeapGroupProperties::maxHeapSize</definition>
+        <argsstring></argsstring>
+        <name>maxHeapSize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="637" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="637" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_heap_group_properties_1af670b82f1185edeb424e091784c59aca" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t ResourceHeapGroupProperties::optimalMaxHeapSize</definition>
+        <argsstring></argsstring>
+        <name>optimalMaxHeapSize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="647" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="647" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" line="613" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3d.h" bodystart="614" bodyend="648"/>
+    <listofallmembers>
+      <member refid="struct_resource_heap_group_properties_1a188f2f6b002b1d74a368b08919d8707d" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>flags</name></member>
+      <member refid="struct_resource_heap_group_properties_1a4a19a9d780667c6df1b4412636dcbcbe" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>isCPUVisible</name></member>
+      <member refid="struct_resource_heap_group_properties_1a2a8dfde8145b597d570b2a1cb1d48667" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>isGPULocal</name></member>
+      <member refid="struct_resource_heap_group_properties_1a3a536dcabdfbac90b0f5ab7936f9d252" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>isOnChip</name></member>
+      <member refid="struct_resource_heap_group_properties_1a3c6625f815c0e0e39e9f87f48fbf9562" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>maxHeapSize</name></member>
+      <member refid="struct_resource_heap_group_properties_1a9011fd2273a88332d26679255b308860" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>maxResourceSize</name></member>
+      <member refid="struct_resource_heap_group_properties_1af670b82f1185edeb424e091784c59aca" prot="public" virt="non-virtual"><scope>ResourceHeapGroupProperties</scope><name>optimalMaxHeapSize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

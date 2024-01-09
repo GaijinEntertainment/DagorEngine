@@ -1,0 +1,853 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_device_driver_capabilities_android" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesAndroid</compoundname>
+    <basecompoundref refid="struct_device_driver_capabilities_base" prot="public" virt="non-virtual">DeviceDriverCapabilitiesBase</basecompoundref>
+    <includes refid="dag__drv3d_consts_8h" local="no">dag_drv3dConsts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1aa7e0b87e5d11c1e9470e7d1b6e900d8e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasDepthReadOnly</definition>
+        <argsstring></argsstring>
+        <name>hasDepthReadOnly</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports constant depth stencil targets that allow simultaneous sampling as a shader resource. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1aa0f3c5d16e0868323a12940250cd1a39" kindref="member">DeviceDriverCapabilitiesBase::hasDepthReadOnly</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1307" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1307" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1afc96291055d5dbaeb274c119a8594b40" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasStructuredBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasStructuredBuffers</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports structured buffer types. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a20407785ef1e8f4efde8f5f5ba093569" kindref="member">DeviceDriverCapabilitiesBase::hasStructuredBuffers</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1309" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1309" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a3dc63edcd1da57e9585c4bbb93d4c052" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasNoOverwriteOnShaderResourceBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasNoOverwriteOnShaderResourceBuffers</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports locking of structured buffers with the no-overwrite method. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac092d99b3a894db094a2c80af9e33ca8" kindref="member">DeviceDriverCapabilitiesBase::hasNoOverwriteOnShaderResourceBuffers</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1311" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1311" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1aab694a2f1b88963da21bf07270a74810" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasForcedSamplerCount</definition>
+        <argsstring></argsstring>
+        <name>hasForcedSamplerCount</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports forced multi-sample count during raster phase. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abdaed640d68bcbc1b926f133d9d2465a" kindref="member">DeviceDriverCapabilitiesBase::hasForcedSamplerCount</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1313" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1313" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a6ee84c1a3dac120636bfb224094f78ab" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasVolMipMap</definition>
+        <argsstring></argsstring>
+        <name>hasVolMipMap</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports mipmaps for vol (eg 3D) textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a97d97eed28fac297ea5042de79ea48a5" kindref="member">DeviceDriverCapabilitiesBase::hasVolMipMap</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1315" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1315" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a5910c669c606c2e42a227594fa017bcd" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasAsyncCompute</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCompute</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports GpuPipeline::ASYNC_COMPUTE as selected pipeline when applicable. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ae421f36c3e5e3382c12c9189b6ebc0b0" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCompute</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1317" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1317" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a78004183cbe572abb7bb3cee215c6b6a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasOcclusionQuery</definition>
+        <argsstring></argsstring>
+        <name>hasOcclusionQuery</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports occlusion queries. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7717801667587b0dc2e2744030722791" kindref="member">DeviceDriverCapabilitiesBase::hasOcclusionQuery</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1319" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1319" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1aa2cfaa231c060434ab001875cf324e71" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasConstBufferOffset</definition>
+        <argsstring></argsstring>
+        <name>hasConstBufferOffset</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports values other than 0 for <computeroutput>consts_offset</computeroutput> of d3d::set_const_buffer. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5c94dd02ee82ff737873cdd9f9404be0" kindref="member">DeviceDriverCapabilitiesBase::hasConstBufferOffset</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1322" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1322" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a165f17d01fce465fbe56dd2bc501c347" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasAsyncCopy</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCopy</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports asynchronously issued copy operations. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a014bd49e2e0103c34524f0da355be4ea" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1324" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1324" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a47ee4b8b1326d921a427addf663495a1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasReadMultisampledDepth</definition>
+        <argsstring></argsstring>
+        <name>hasReadMultisampledDepth</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports reading from multi-sampled depth stencil targets. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1acf749555446d427feee38076de754d83" kindref="member">DeviceDriverCapabilitiesBase::hasReadMultisampledDepth</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1326" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1326" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a7b511dc86ad8ff2e2903be4e533816aa" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasQuadTessellation</definition>
+        <argsstring></argsstring>
+        <name>hasQuadTessellation</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports quad tessellation. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a3cdee766ed89fafff0f7804eaa4c2ab1" kindref="member">DeviceDriverCapabilitiesBase::hasQuadTessellation</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1329" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1329" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a6df99cd945e887f248ab24ca546b01d8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasGather4</definition>
+        <argsstring></argsstring>
+        <name>hasGather4</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports gather intrinsic in shaders. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a575b7ccfb7413bbb1246e526bc2608ab" kindref="member">DeviceDriverCapabilitiesBase::hasGather4</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1331" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1331" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1ab4170ad5f4d192cd6743eeeff4931dc6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasAlphaCoverage</definition>
+        <argsstring></argsstring>
+        <name>hasAlphaCoverage</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the alpha to coverage raster feature. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a743899e2f26692b8e09a379c35379894" kindref="member">DeviceDriverCapabilitiesBase::hasAlphaCoverage</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1333" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1333" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a60bbe599d659efb5ec65d4b2621fd8ec" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasNVApi</definition>
+        <argsstring></argsstring>
+        <name>hasNVApi</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has detected that the Nvidia driver API is available for the render device. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a70f1d993da596178f563efe1b9d1a0d3" kindref="member">DeviceDriverCapabilitiesBase::hasNVApi</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1335" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1335" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a5562520164fe2a159bc82dc5d225e275" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasATIApi</definition>
+        <argsstring></argsstring>
+        <name>hasATIApi</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has detected that the AMD / ATI driver API is available for the render device. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7ecec7232a1c179b81acf6a1837ca525" kindref="member">DeviceDriverCapabilitiesBase::hasATIApi</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1337" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1337" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1ac8b2d5c33b61c999f3aaa42a29e77da6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasVariableRateShading</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShading</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports basic per draw shading rates. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a361352040deb2285dfcb2b47a1acca29" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShading</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1340" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1340" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1aae663c29e13c7822815dc3f13c46ef52" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasVariableRateShadingTexture</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingTexture</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports shading rate textures as a source of shading rate information. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1aaf2ce88f773e67be7d02c2f7ccf2b70b" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingTexture</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1343" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1343" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a5206091fed2e96720e579a837f4ccae4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasVariableRateShadingShaderOutput</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingShaderOutput</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports shader generated shading rates. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7ce9b3abe5faade3dcff505c9eac93eb" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingShaderOutput</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1346" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1346" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1aaa7120aecd1ca99a555d8b793ee2be07" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasVariableRateShadingCombiners</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingCombiners</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports combiners for variable rate shading to select the final shading rate. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5d97ef345373aa5c4378dc310c328bf8" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingCombiners</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1349" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1349" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1afd5c0a67e60363c82ae99f0e26a08df1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasVariableRateShadingBy4</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingBy4</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports variable rate shading blocks with sizes of 4 in X and Y direction. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a435cca220d7b33031869f4bf83e3c212" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1352" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1352" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1acaed751ad6692a2c7a78ef8c028c2910" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasAliasedTextures</definition>
+        <argsstring></argsstring>
+        <name>hasAliasedTextures</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports creation of aliased textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a047263b73dcac68b784f2640c9c6e6c8" kindref="member">DeviceDriverCapabilitiesBase::hasAliasedTextures</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1355" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1355" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a5e56b324fc6dd813278df96196f4f035" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasResourceHeaps</definition>
+        <argsstring></argsstring>
+        <name>hasResourceHeaps</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the resource heap API. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a43f7898db5a17c29a9acb8767d66353c" kindref="member">DeviceDriverCapabilitiesBase::hasResourceHeaps</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1358" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1358" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1af8c3c2f2374cb508e7512d26cbab07e7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasBufferOverlapCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapCopy</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports overlapping buffer copies. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ae5831194a86c0c053c638a41ae7e51c0" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1360" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1360" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1aea4bb82f41a57d2fc090e5384bf989a4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasBufferOverlapRegionsCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapRegionsCopy</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver uses region based copies when overlapping copies are executed. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a98747b0ded147a7dd1d42851c0e813bf" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1362" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1362" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a7459f8499ba1a4f4f0a41ccb752834a0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasResourceCopyConversion</definition>
+        <argsstring></argsstring>
+        <name>hasResourceCopyConversion</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports copy of textures of different but compatible formats. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a45e3ac7640df3354d5baef8e7fa1c4c7" kindref="member">DeviceDriverCapabilitiesBase::hasResourceCopyConversion</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1364" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1364" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1aa74e4893618f963313e51540c2c5a43a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasShader64BitIntegerResources</definition>
+        <argsstring></argsstring>
+        <name>hasShader64BitIntegerResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports 64 bit integers shader resource types. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1af3cfbb31804f081b404e6c40b51597e8" kindref="member">DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1366" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1366" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a5979b451394783b147fce4e17ea573bf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasNativeRenderPassSubPasses</definition>
+        <argsstring></argsstring>
+        <name>hasNativeRenderPassSubPasses</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver is not emulating render sup-passes. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a088d0cfbb513e08dd419ae745e40640b" kindref="member">DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1368" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1368" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1af2db1bf577f971abc53165bad122ed91" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasTiled2DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled2DResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports tiled 2D textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a1256aefcb50fe90f33131b96e4ab8604" kindref="member">DeviceDriverCapabilitiesBase::hasTiled2DResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1370" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1370" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1abce2b8b9ec83f879a2d45ee0e20e029a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasTiled3DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled3DResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports tiled 3D textures;. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ad941e8c9ddcc176912cdaf700baacedc" kindref="member">DeviceDriverCapabilitiesBase::hasTiled3DResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1372" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1372" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a31dd0739b9dd070d86bafad6e486ef9c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasTiledSafeResourcesAccess</definition>
+        <argsstring></argsstring>
+        <name>hasTiledSafeResourcesAccess</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports safe read and write access for not mapped tiles of tiled resources. Such reads return 0 and writes are ignored. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a35c0a7730631d8d76e0a6c743c013687" kindref="member">DeviceDriverCapabilitiesBase::hasTiledSafeResourcesAccess</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1374" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1374" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a67d7f87e61864a8de0b3a9af92b87339" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasTiledMemoryAliasing</definition>
+        <argsstring></argsstring>
+        <name>hasTiledMemoryAliasing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports memory aliasing of multiple tiles. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1af2bdf1eeee49a8ce966d270d0cda8912" kindref="member">DeviceDriverCapabilitiesBase::hasTiledMemoryAliasing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1376" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1376" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1ae2c191edfc34c77ec707a1513d9dfc65" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasDLSS</definition>
+        <argsstring></argsstring>
+        <name>hasDLSS</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports Nvidia DLSS. DLSS stand for Deep Learning Super Sampling. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5b72be5df4ac92123cb5fdadc8c5fd26" kindref="member">DeviceDriverCapabilitiesBase::hasDLSS</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1378" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1378" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a37a4bd2e8ace8371385525d983b0f687" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasXESS</definition>
+        <argsstring></argsstring>
+        <name>hasXESS</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports Intel XESS. XESS stands for Xe Super Sampling. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a85f03c7770a69873ee823471624e2eb0" kindref="member">DeviceDriverCapabilitiesBase::hasXESS</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1380" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1380" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a176fd49b1688b0d0c1677a0c7a2cc0db" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasDrawID</definition>
+        <argsstring></argsstring>
+        <name>hasDrawID</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports draw id in shaders. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac55b9335193037fe5418fe78360b6007" kindref="member">DeviceDriverCapabilitiesBase::hasDrawID</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1382" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1382" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1abc0018a21fd4924ea9d9d6086af9d046" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasMeshShader</definition>
+        <argsstring></argsstring>
+        <name>hasMeshShader</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the mesh shader pipeline. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac81371eb952342553cb264f9a693e299" kindref="member">DeviceDriverCapabilitiesBase::hasMeshShader</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1384" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1384" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1ac4872e3307204781464e4c6c22859051" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasBasicViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasBasicViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports basic view instancing. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a502c6dc246d193bbc994f965b66557be" kindref="member">DeviceDriverCapabilitiesBase::hasBasicViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1386" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1386" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a4d20335d37f8c5a8a7ee6ead57ac61a6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasOptimizedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasOptimizedViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has some optimizations for view instanced rendering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a823d60c14bb74e8026a6f1f6cc86add4" kindref="member">DeviceDriverCapabilitiesBase::hasOptimizedViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1388" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1388" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1ac3f24086dc567eb11feb2622e83bbc05" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasAcceleratedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasAcceleratedViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has hardware acceleration to natively support view instanced rendering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a77ded90a2500a44d0a83d80ce2098067" kindref="member">DeviceDriverCapabilitiesBase::hasAcceleratedViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1390" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1390" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1a67275a2694a66f1ab744efbeae9793b7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasStereoExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasStereoExpansion</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports stereo render expansion. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abb3185b7ae25ba49f1f8acf86cf3c10c" kindref="member">DeviceDriverCapabilitiesBase::hasStereoExpansion</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1392" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1392" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1ad21501ac99a3022d704f443ff3a4a4f7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasIndirectSupport</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectSupport</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver set when hw doesn&apos;t support indirect calls. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a337e032527346eef4e0b46025419c508" kindref="member">DeviceDriverCapabilitiesBase::hasIndirectSupport</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1394" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1394" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_android_1aeeb562836d4fafd9becdd87d8d2b1a47" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesAndroid::hasCompareSampler</definition>
+        <argsstring></argsstring>
+        <name>hasCompareSampler</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver set when hw doesn&apos;t support comparison samplers. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a351b50cc43e2279a4a7ccde48e885d90" kindref="member">DeviceDriverCapabilitiesBase::hasCompareSampler</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1396" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1396" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for Android. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesAndroid</label>
+        <link refid="struct_device_driver_capabilities_android"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesAndroid</label>
+        <link refid="struct_device_driver_capabilities_android"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1304" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1305" bodyend="1397"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_capabilities_android_1ac3f24086dc567eb11feb2622e83bbc05" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_android_1acaed751ad6692a2c7a78ef8c028c2910" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasAliasedTextures</name></member>
+      <member refid="struct_device_driver_capabilities_android_1ab4170ad5f4d192cd6743eeeff4931dc6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasAlphaCoverage</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ae16465605571449cdaa401557c4730fc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a5910c669c606c2e42a227594fa017bcd" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasAsyncCompute</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a165f17d01fce465fbe56dd2bc501c347" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasAsyncCopy</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a5562520164fe2a159bc82dc5d225e275" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasATIApi</name></member>
+      <member refid="struct_device_driver_capabilities_android_1ac4872e3307204781464e4c6c22859051" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ad952e7b7a5b7b522dceed7748323a9cf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasBindless</name></member>
+      <member refid="struct_device_driver_capabilities_android_1af8c3c2f2374cb508e7512d26cbab07e7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="struct_device_driver_capabilities_android_1aea4bb82f41a57d2fc090e5384bf989a4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="struct_device_driver_capabilities_android_1aeeb562836d4fafd9becdd87d8d2b1a47" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasCompareSampler</name></member>
+      <member refid="struct_device_driver_capabilities_base_1afe2a9e7878afb130d24e36d28f7355d6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasConditionalRender</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a903377bb582a3da6b2b8c276d6cbc463" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasConservativeRassterization</name></member>
+      <member refid="struct_device_driver_capabilities_android_1aa2cfaa231c060434ab001875cf324e71" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasConstBufferOffset</name></member>
+      <member refid="struct_device_driver_capabilities_base_1abda4bbbdebdb5c18b289e9053895e193" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="struct_device_driver_capabilities_android_1aa7e0b87e5d11c1e9470e7d1b6e900d8e" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasDepthReadOnly</name></member>
+      <member refid="struct_device_driver_capabilities_android_1ae2c191edfc34c77ec707a1513d9dfc65" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasDLSS</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a176fd49b1688b0d0c1677a0c7a2cc0db" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasDrawID</name></member>
+      <member refid="struct_device_driver_capabilities_android_1aab694a2f1b88963da21bf07270a74810" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a6df99cd945e887f248ab24ca546b01d8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasGather4</name></member>
+      <member refid="struct_device_driver_capabilities_android_1ad21501ac99a3022d704f443ff3a4a4f7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasIndirectSupport</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a2ca9ae722f66c5f6f0c3b76cd0424c07" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasInstanceID</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a1714da16235832e261182e86645e3e33" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasLazyMemory</name></member>
+      <member refid="struct_device_driver_capabilities_android_1abc0018a21fd4924ea9d9d6086af9d046" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasMeshShader</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a5979b451394783b147fce4e17ea573bf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a3dc63edcd1da57e9585c4bbb93d4c052" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a60bbe599d659efb5ec65d4b2621fd8ec" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasNVApi</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a78004183cbe572abb7bb3cee215c6b6a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasOcclusionQuery</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a4d20335d37f8c5a8a7ee6ead57ac61a6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a7b511dc86ad8ff2e2903be4e533816aa" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasQuadTessellation</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a880e3c20caa009187ce288f0d7d02179" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasRaytracing</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ab155f75785b7aa42470b2a460535a488" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasRaytracingT11</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a47ee4b8b1326d921a427addf663495a1" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ab44fea56b8cf5eb698c3b63b3b5b25ab" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a7459f8499ba1a4f4f0a41ccb752834a0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a5e56b324fc6dd813278df96196f4f035" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasResourceHeaps</name></member>
+      <member refid="struct_device_driver_capabilities_android_1aa74e4893618f963313e51540c2c5a43a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a7588b357693368f73ca7b1c8c3a2fe2c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a67275a2694a66f1ab744efbeae9793b7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasStereoExpansion</name></member>
+      <member refid="struct_device_driver_capabilities_android_1afc96291055d5dbaeb274c119a8594b40" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasStructuredBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a77e1bec0aeab74ee052cd9e631c8a5eb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="struct_device_driver_capabilities_android_1af2db1bf577f971abc53165bad122ed91" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasTiled2DResources</name></member>
+      <member refid="struct_device_driver_capabilities_android_1abce2b8b9ec83f879a2d45ee0e20e029a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasTiled3DResources</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a67d7f87e61864a8de0b3a9af92b87339" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a31dd0739b9dd070d86bafad6e486ef9c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a5d1ae04840c96746888e1c476d4544e4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="struct_device_driver_capabilities_android_1ac8b2d5c33b61c999f3aaa42a29e77da6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasVariableRateShading</name></member>
+      <member refid="struct_device_driver_capabilities_android_1afd5c0a67e60363c82ae99f0e26a08df1" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="struct_device_driver_capabilities_android_1aaa7120aecd1ca99a555d8b793ee2be07" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a5206091fed2e96720e579a837f4ccae4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="struct_device_driver_capabilities_android_1aae663c29e13c7822815dc3f13c46ef52" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a6ee84c1a3dac120636bfb224094f78ab" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasVolMipMap</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ac087fa09d2db1f17bff24b8fa09ccb64" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="struct_device_driver_capabilities_android_1a37a4bd2e8ace8371385525d983b0f687" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesAndroid</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

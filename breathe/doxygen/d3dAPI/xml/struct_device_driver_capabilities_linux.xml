@@ -1,0 +1,907 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_device_driver_capabilities_linux" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesLinux</compoundname>
+    <basecompoundref refid="struct_device_driver_capabilities_base" prot="public" virt="non-virtual">DeviceDriverCapabilitiesBase</basecompoundref>
+    <includes refid="dag__drv3d_consts_8h" local="no">dag_drv3dConsts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a2d3255e9fd7ad3d72eb8b1fc3592edb9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasAnisotropicFilter</definition>
+        <argsstring></argsstring>
+        <name>hasAnisotropicFilter</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports anisotropic filtering of textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ae16465605571449cdaa401557c4730fc" kindref="member">DeviceDriverCapabilitiesBase::hasAnisotropicFilter</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1514" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1514" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1acf5ec8d18d853f8a76883c1ed4e47b97" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasDepthReadOnly</definition>
+        <argsstring></argsstring>
+        <name>hasDepthReadOnly</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports constant depth stencil targets that allow simultaneous sampling as a shader resource. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1aa0f3c5d16e0868323a12940250cd1a39" kindref="member">DeviceDriverCapabilitiesBase::hasDepthReadOnly</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1516" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1516" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a3cf020806a37eb51ae576256e5f62360" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasStructuredBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasStructuredBuffers</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports structured buffer types. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a20407785ef1e8f4efde8f5f5ba093569" kindref="member">DeviceDriverCapabilitiesBase::hasStructuredBuffers</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1518" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1518" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1aa6023c7160e9eaba4299a08bd382ba92" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasNoOverwriteOnShaderResourceBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasNoOverwriteOnShaderResourceBuffers</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports locking of structured buffers with the no-overwrite method. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac092d99b3a894db094a2c80af9e33ca8" kindref="member">DeviceDriverCapabilitiesBase::hasNoOverwriteOnShaderResourceBuffers</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1520" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1520" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a2f9fcea855919284abcc3870b4359866" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasForcedSamplerCount</definition>
+        <argsstring></argsstring>
+        <name>hasForcedSamplerCount</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports forced multi-sample count during raster phase. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abdaed640d68bcbc1b926f133d9d2465a" kindref="member">DeviceDriverCapabilitiesBase::hasForcedSamplerCount</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1522" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1522" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a0955725201dd8847713e8db420cb485b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasVolMipMap</definition>
+        <argsstring></argsstring>
+        <name>hasVolMipMap</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports mipmaps for vol (eg 3D) textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a97d97eed28fac297ea5042de79ea48a5" kindref="member">DeviceDriverCapabilitiesBase::hasVolMipMap</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1524" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1524" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a8c6dc9ec17db99559188d6ce0bd12e28" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasReadMultisampledDepth</definition>
+        <argsstring></argsstring>
+        <name>hasReadMultisampledDepth</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports reading from multi-sampled depth stencil targets. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1acf749555446d427feee38076de754d83" kindref="member">DeviceDriverCapabilitiesBase::hasReadMultisampledDepth</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1526" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1526" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a34d77ff0d392d87e4fa9209888aecd63" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasQuadTessellation</definition>
+        <argsstring></argsstring>
+        <name>hasQuadTessellation</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports quad tessellation. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a3cdee766ed89fafff0f7804eaa4c2ab1" kindref="member">DeviceDriverCapabilitiesBase::hasQuadTessellation</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1529" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1529" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a2e19f626be7cb2c1213e6917d3cdfd9f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasGather4</definition>
+        <argsstring></argsstring>
+        <name>hasGather4</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports gather intrinsic in shaders. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a575b7ccfb7413bbb1246e526bc2608ab" kindref="member">DeviceDriverCapabilitiesBase::hasGather4</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1531" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1531" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a0510da961bfd5ff728e5d2154936fbbc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasAlphaCoverage</definition>
+        <argsstring></argsstring>
+        <name>hasAlphaCoverage</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the alpha to coverage raster feature. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a743899e2f26692b8e09a379c35379894" kindref="member">DeviceDriverCapabilitiesBase::hasAlphaCoverage</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1533" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1533" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1aaff7d3359916aa9fca3e92a93d20cb70" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasShader64BitIntegerResources</definition>
+        <argsstring></argsstring>
+        <name>hasShader64BitIntegerResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports 64 bit integers shader resource types. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1af3cfbb31804f081b404e6c40b51597e8" kindref="member">DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1535" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1535" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1ae568488bd07876ec559a545c651ef7ec" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasNativeRenderPassSubPasses</definition>
+        <argsstring></argsstring>
+        <name>hasNativeRenderPassSubPasses</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver is not emulating render sup-passes. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a088d0cfbb513e08dd419ae745e40640b" kindref="member">DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1537" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1537" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1aaa0383eda2fc27f14684cb38d11918b0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasTiled2DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled2DResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports tiled 2D textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a1256aefcb50fe90f33131b96e4ab8604" kindref="member">DeviceDriverCapabilitiesBase::hasTiled2DResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1539" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1539" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a00bc328ddce20f411d69a8d83740df42" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasTiled3DResources</definition>
+        <argsstring></argsstring>
+        <name>hasTiled3DResources</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports tiled 3D textures;. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ad941e8c9ddcc176912cdaf700baacedc" kindref="member">DeviceDriverCapabilitiesBase::hasTiled3DResources</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1541" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1541" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a4e896aa626efb3d33d464135e2e48fa4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasTiledSafeResourcesAccess</definition>
+        <argsstring></argsstring>
+        <name>hasTiledSafeResourcesAccess</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports safe read and write access for not mapped tiles of tiled resources. Such reads return 0 and writes are ignored. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a35c0a7730631d8d76e0a6c743c013687" kindref="member">DeviceDriverCapabilitiesBase::hasTiledSafeResourcesAccess</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1543" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1543" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a4a34c5f28107f6006b39a8b710e14910" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasTiledMemoryAliasing</definition>
+        <argsstring></argsstring>
+        <name>hasTiledMemoryAliasing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports memory aliasing of multiple tiles. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1af2bdf1eeee49a8ce966d270d0cda8912" kindref="member">DeviceDriverCapabilitiesBase::hasTiledMemoryAliasing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1545" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1545" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a2ec2a344becd2c69f1919a712928b2f8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasDLSS</definition>
+        <argsstring></argsstring>
+        <name>hasDLSS</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports Nvidia DLSS. DLSS stand for Deep Learning Super Sampling. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5b72be5df4ac92123cb5fdadc8c5fd26" kindref="member">DeviceDriverCapabilitiesBase::hasDLSS</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1547" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1547" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1acc62a60e9ff6d86b055dfdbcf1eecb2b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasXESS</definition>
+        <argsstring></argsstring>
+        <name>hasXESS</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports Intel XESS. XESS stands for Xe Super Sampling. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a85f03c7770a69873ee823471624e2eb0" kindref="member">DeviceDriverCapabilitiesBase::hasXESS</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1549" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1549" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a826ca88fcfa793a8fe1d5a3b6c5ab803" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasDrawID</definition>
+        <argsstring></argsstring>
+        <name>hasDrawID</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports draw id in shaders. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac55b9335193037fe5418fe78360b6007" kindref="member">DeviceDriverCapabilitiesBase::hasDrawID</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1551" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1551" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a5c632ff66df30bd503c22575f14eeff3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasMeshShader</definition>
+        <argsstring></argsstring>
+        <name>hasMeshShader</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the mesh shader pipeline. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ac81371eb952342553cb264f9a693e299" kindref="member">DeviceDriverCapabilitiesBase::hasMeshShader</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1553" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1553" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a313992b26c0120090fb715365e22f708" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasBasicViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasBasicViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports basic view instancing. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a502c6dc246d193bbc994f965b66557be" kindref="member">DeviceDriverCapabilitiesBase::hasBasicViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1555" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1555" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1aa4e6a8ef78eb09c0d588ecd3793b7ea2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasOptimizedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasOptimizedViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has some optimizations for view instanced rendering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a823d60c14bb74e8026a6f1f6cc86add4" kindref="member">DeviceDriverCapabilitiesBase::hasOptimizedViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1557" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1557" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a3c6df3d610bcf007ce816553e72bfdaf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasAcceleratedViewInstancing</definition>
+        <argsstring></argsstring>
+        <name>hasAcceleratedViewInstancing</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has hardware acceleration to natively support view instanced rendering. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a77ded90a2500a44d0a83d80ce2098067" kindref="member">DeviceDriverCapabilitiesBase::hasAcceleratedViewInstancing</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1559" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1559" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1ad26b88fbc180552819946b0344890d33" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasAsyncCompute</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCompute</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports GpuPipeline::ASYNC_COMPUTE as selected pipeline when applicable. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ae421f36c3e5e3382c12c9189b6ebc0b0" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCompute</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1561" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1561" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1aebe12d2582651bc51bf22aaa459047ac" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasOcclusionQuery</definition>
+        <argsstring></argsstring>
+        <name>hasOcclusionQuery</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports occlusion queries. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7717801667587b0dc2e2744030722791" kindref="member">DeviceDriverCapabilitiesBase::hasOcclusionQuery</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1563" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1563" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a4f10f7adec228a5413ce0f31637a0ef2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasNVApi</definition>
+        <argsstring></argsstring>
+        <name>hasNVApi</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has detected that the Nvidia driver API is available for the render device. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a70f1d993da596178f563efe1b9d1a0d3" kindref="member">DeviceDriverCapabilitiesBase::hasNVApi</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1565" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1565" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a11054184c0803043db058ae870cfdcb2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasATIApi</definition>
+        <argsstring></argsstring>
+        <name>hasATIApi</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver has detected that the AMD / ATI driver API is available for the render device. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7ecec7232a1c179b81acf6a1837ca525" kindref="member">DeviceDriverCapabilitiesBase::hasATIApi</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1567" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1567" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a87c02bcb1f9ede3124bc05d57e5bae9c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasVariableRateShading</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShading</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports basic per draw shading rates. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a361352040deb2285dfcb2b47a1acca29" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShading</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1570" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1570" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a6c745846cad2bfb957b2709984a484e9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasVariableRateShadingTexture</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingTexture</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports shading rate textures as a source of shading rate information. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1aaf2ce88f773e67be7d02c2f7ccf2b70b" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingTexture</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1573" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1573" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a08d144442e47bdc2029a0598e7627b9d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasVariableRateShadingShaderOutput</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingShaderOutput</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports shader generated shading rates. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a7ce9b3abe5faade3dcff505c9eac93eb" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingShaderOutput</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1576" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1576" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a77cdcd3fbae00b415db49fb5d83e94ca" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasVariableRateShadingCombiners</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingCombiners</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports combiners for variable rate shading to select the final shading rate. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5d97ef345373aa5c4378dc310c328bf8" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingCombiners</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1579" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1579" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a80c804a9e902d79ef9b58df2db36aca2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasVariableRateShadingBy4</definition>
+        <argsstring></argsstring>
+        <name>hasVariableRateShadingBy4</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports variable rate shading blocks with sizes of 4 in X and Y direction. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a435cca220d7b33031869f4bf83e3c212" kindref="member">DeviceDriverCapabilitiesBase::hasVariableRateShadingBy4</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1582" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1582" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1aa304e1fcb307a7aa29fa5c74e52db0ee" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasAliasedTextures</definition>
+        <argsstring></argsstring>
+        <name>hasAliasedTextures</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports creation of aliased textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a047263b73dcac68b784f2640c9c6e6c8" kindref="member">DeviceDriverCapabilitiesBase::hasAliasedTextures</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1585" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1585" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a2450bead1c8e48cdf27de18e6d534432" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasResourceHeaps</definition>
+        <argsstring></argsstring>
+        <name>hasResourceHeaps</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the resource heap API. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a43f7898db5a17c29a9acb8767d66353c" kindref="member">DeviceDriverCapabilitiesBase::hasResourceHeaps</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1588" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1588" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a7949d3dc872f67aa6dd7197a4b47d4b1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasBufferOverlapCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapCopy</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports overlapping buffer copies. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ae5831194a86c0c053c638a41ae7e51c0" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1590" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1590" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1af3bfc98656dbbf36fa5cd309eaad40df" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasBufferOverlapRegionsCopy</definition>
+        <argsstring></argsstring>
+        <name>hasBufferOverlapRegionsCopy</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver uses region based copies when overlapping copies are executed. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a98747b0ded147a7dd1d42851c0e813bf" kindref="member">DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1592" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1592" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a907d96e56dfad35ca0860e07980e36b8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasConstBufferOffset</definition>
+        <argsstring></argsstring>
+        <name>hasConstBufferOffset</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports values other than 0 for <computeroutput>consts_offset</computeroutput> of d3d::set_const_buffer. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a5c94dd02ee82ff737873cdd9f9404be0" kindref="member">DeviceDriverCapabilitiesBase::hasConstBufferOffset</ref> </para>
+</simplesect>
+<simplesect kind="remark"><para>This feature can be supported, but is not yet implemented. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1595" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1595" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1abad1f2b34b937a58dc25c30a3a848730" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasAsyncCopy</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCopy</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports asynchronously issued copy operations. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a014bd49e2e0103c34524f0da355be4ea" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1597" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1597" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a1e4235299b55295290104b722fe15660" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasResourceCopyConversion</definition>
+        <argsstring></argsstring>
+        <name>hasResourceCopyConversion</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports copy of textures of different but compatible formats. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a45e3ac7640df3354d5baef8e7fa1c4c7" kindref="member">DeviceDriverCapabilitiesBase::hasResourceCopyConversion</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1599" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1599" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a56ea865f6fe127efb422ae4fd572ea84" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasStereoExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasStereoExpansion</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports stereo render expansion. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abb3185b7ae25ba49f1f8acf86cf3c10c" kindref="member">DeviceDriverCapabilitiesBase::hasStereoExpansion</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1601" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1601" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a004a272f94bbc005217275a79eef3749" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasTileBasedArchitecture</definition>
+        <argsstring></argsstring>
+        <name>hasTileBasedArchitecture</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver architecture is known to be a tile renderer. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a77e1bec0aeab74ee052cd9e631c8a5eb" kindref="member">DeviceDriverCapabilitiesBase::hasTileBasedArchitecture</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1603" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1603" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1a951ccc6e95c7af1efdfe4afb59fae8ed" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasLazyMemory</definition>
+        <argsstring></argsstring>
+        <name>hasLazyMemory</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports lazily allocated memory. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a1714da16235832e261182e86645e3e33" kindref="member">DeviceDriverCapabilitiesBase::hasLazyMemory</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1605" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1605" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1ab3a6c947c7b37124332f881303f6efc4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasIndirectSupport</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectSupport</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver set when hw doesn&apos;t support indirect calls. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a337e032527346eef4e0b46025419c508" kindref="member">DeviceDriverCapabilitiesBase::hasIndirectSupport</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1607" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1607" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_linux_1aaab199a66785660e211d3c88b13de5d0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesLinux::hasCompareSampler</definition>
+        <argsstring></argsstring>
+        <name>hasCompareSampler</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver set when hw doesn&apos;t support comparison samplers. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a351b50cc43e2279a4a7ccde48e885d90" kindref="member">DeviceDriverCapabilitiesBase::hasCompareSampler</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1609" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1609" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for Linux. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesLinux</label>
+        <link refid="struct_device_driver_capabilities_linux"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesLinux</label>
+        <link refid="struct_device_driver_capabilities_linux"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1511" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1512" bodyend="1610"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_capabilities_linux_1a3c6df3d610bcf007ce816553e72bfdaf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1aa304e1fcb307a7aa29fa5c74e52db0ee" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasAliasedTextures</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a0510da961bfd5ff728e5d2154936fbbc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasAlphaCoverage</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a2d3255e9fd7ad3d72eb8b1fc3592edb9" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1ad26b88fbc180552819946b0344890d33" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasAsyncCompute</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1abad1f2b34b937a58dc25c30a3a848730" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasAsyncCopy</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a11054184c0803043db058ae870cfdcb2" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasATIApi</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a313992b26c0120090fb715365e22f708" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ad952e7b7a5b7b522dceed7748323a9cf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasBindless</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a7949d3dc872f67aa6dd7197a4b47d4b1" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1af3bfc98656dbbf36fa5cd309eaad40df" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1aaab199a66785660e211d3c88b13de5d0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasCompareSampler</name></member>
+      <member refid="struct_device_driver_capabilities_base_1afe2a9e7878afb130d24e36d28f7355d6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasConditionalRender</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a903377bb582a3da6b2b8c276d6cbc463" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasConservativeRassterization</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a907d96e56dfad35ca0860e07980e36b8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasConstBufferOffset</name></member>
+      <member refid="struct_device_driver_capabilities_base_1abda4bbbdebdb5c18b289e9053895e193" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1acf5ec8d18d853f8a76883c1ed4e47b97" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasDepthReadOnly</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a2ec2a344becd2c69f1919a712928b2f8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasDLSS</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a826ca88fcfa793a8fe1d5a3b6c5ab803" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasDrawID</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a2f9fcea855919284abcc3870b4359866" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a2e19f626be7cb2c1213e6917d3cdfd9f" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasGather4</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1ab3a6c947c7b37124332f881303f6efc4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasIndirectSupport</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a2ca9ae722f66c5f6f0c3b76cd0424c07" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasInstanceID</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a951ccc6e95c7af1efdfe4afb59fae8ed" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasLazyMemory</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a5c632ff66df30bd503c22575f14eeff3" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasMeshShader</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1ae568488bd07876ec559a545c651ef7ec" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1aa6023c7160e9eaba4299a08bd382ba92" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a4f10f7adec228a5413ce0f31637a0ef2" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasNVApi</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1aebe12d2582651bc51bf22aaa459047ac" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasOcclusionQuery</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1aa4e6a8ef78eb09c0d588ecd3793b7ea2" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a34d77ff0d392d87e4fa9209888aecd63" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasQuadTessellation</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a880e3c20caa009187ce288f0d7d02179" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasRaytracing</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ab155f75785b7aa42470b2a460535a488" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasRaytracingT11</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a8c6dc9ec17db99559188d6ce0bd12e28" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ab44fea56b8cf5eb698c3b63b3b5b25ab" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a1e4235299b55295290104b722fe15660" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a2450bead1c8e48cdf27de18e6d534432" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasResourceHeaps</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1aaff7d3359916aa9fca3e92a93d20cb70" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a7588b357693368f73ca7b1c8c3a2fe2c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a56ea865f6fe127efb422ae4fd572ea84" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasStereoExpansion</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a3cf020806a37eb51ae576256e5f62360" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasStructuredBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a004a272f94bbc005217275a79eef3749" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1aaa0383eda2fc27f14684cb38d11918b0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasTiled2DResources</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a00bc328ddce20f411d69a8d83740df42" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasTiled3DResources</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a4a34c5f28107f6006b39a8b710e14910" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a4e896aa626efb3d33d464135e2e48fa4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a5d1ae04840c96746888e1c476d4544e4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a87c02bcb1f9ede3124bc05d57e5bae9c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasVariableRateShading</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a80c804a9e902d79ef9b58df2db36aca2" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a77cdcd3fbae00b415db49fb5d83e94ca" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a08d144442e47bdc2029a0598e7627b9d" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a6c745846cad2bfb957b2709984a484e9" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1a0955725201dd8847713e8db420cb485b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasVolMipMap</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ac087fa09d2db1f17bff24b8fa09ccb64" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="struct_device_driver_capabilities_linux_1acc62a60e9ff6d86b055dfdbcf1eecb2b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesLinux</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

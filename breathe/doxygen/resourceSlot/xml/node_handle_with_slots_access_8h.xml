@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="node_handle_with_slots_access_8h" kind="file" language="C++">
+    <compoundname>nodeHandleWithSlotsAccess.h</compoundname>
+    <includes local="no">render/daBfg/nameSpace.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>render/daBfg/nameSpace.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h</label>
+        <link refid="node_handle_with_slots_access_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structresource__slot_1_1_node_handle_with_slots_access" prot="public">resource_slot::NodeHandleWithSlotsAccess</innerclass>
+    <innernamespace refid="namespaceresource__slot">resource_slot</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/nameSpace.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">resource_slot</highlight></codeline>
+<codeline lineno="7"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="structresource__slot_1_1_node_handle_with_slots_access" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref></highlight></codeline>
+<codeline lineno="26"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref>();</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref>(<ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref><sp/>&amp;&amp;h);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref><sp/>&amp;operator=(<ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref><sp/>&amp;&amp;h);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref><sp/>&amp;operator=(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="structresource__slot_1_1_node_handle_with_slots_access_1ac64a7b11fdb53aee52bff75ba9ba59b2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structresource__slot_1_1_node_handle_with_slots_access_1ac64a7b11fdb53aee52bff75ba9ba59b2" kindref="member">reset</ref>();</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="structresource__slot_1_1_node_handle_with_slots_access_1a0af3b823b0da20fc0ce3f6b0e74ea006" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structresource__slot_1_1_node_handle_with_slots_access_1a0af3b823b0da20fc0ce3f6b0e74ea006" kindref="member">~NodeHandleWithSlotsAccess</ref>();</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref>(dabfg::NameSpace<sp/>ns,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>handle_id,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>generation_number);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>dabfg::NameSpace<sp/>nameSpace;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>id;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>generation<sp/>:<sp/>31;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>valid<sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal">static_assert(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref>)<sp/>==<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">)<sp/>*<sp/>3);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>resource_slot</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h"/>
+  </compounddef>
+</doxygen>

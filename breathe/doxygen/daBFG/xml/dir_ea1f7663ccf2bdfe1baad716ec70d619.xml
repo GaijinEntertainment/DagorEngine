@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dir_ea1f7663ccf2bdfe1baad716ec70d619" kind="dir">
+    <compoundname>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render</compoundname>
+    <innerdir refid="dir_969cd38e26b2d824905221b9b88e71e5">/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg</innerdir>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/"/>
+  </compounddef>
+</doxygen>

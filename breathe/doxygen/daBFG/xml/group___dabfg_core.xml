@@ -1,0 +1,155 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group___dabfg_core" kind="group">
+    <compoundname>DabfgCore</compoundname>
+    <title>Core daBfg functionality</title>
+    <innerclass refid="classdabfg_1_1_name_space" prot="public">dabfg::NameSpace</innerclass>
+    <innerclass refid="structdabfg_1_1_external_state" prot="public">dabfg::ExternalState</innerclass>
+    <innergroup refid="group___dabfg_core_aliases">Core daBfg aliases</innergroup>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group___dabfg_core_1gab2a08b825a0e112212fb41e1249d682c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>NameSpace</type>
+        <definition>NameSpace dabfg::root</definition>
+        <argsstring>()</argsstring>
+        <name>root</name>
+        <briefdescription>
+<para>Creates a namespace object for the root frame graph namespace. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The object representing the root namespace. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="30" column="11" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="30" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1gac09324b07f826b0accb38c9e5126a229" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::set_multiplexing_extents</definition>
+        <argsstring>(multiplexing::Extents extents)</argsstring>
+        <name>set_multiplexing_extents</name>
+        <param>
+          <type>multiplexing::Extents</type>
+          <declname>extents</declname>
+        </param>
+        <briefdescription>
+<para>Sets the multiplexing extents for the following frames. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>May safely be called every frame, only triggers a recompilation when the values actually change </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="37" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="37" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1gafb08b997cd8883e445148336ec97fd67" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::run_nodes</definition>
+        <argsstring>()</argsstring>
+        <name>run_nodes</name>
+        <briefdescription>
+<para>Executes the frame graph, possibly recompiling it. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="40" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="40" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1ga649d48c3ba1690f0cb81553d0e18e7a5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::startup</definition>
+        <argsstring>()</argsstring>
+        <name>startup</name>
+        <briefdescription>
+<para>Initializes the daBfg backend. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="43" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="43" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1ga441273e564147def3a01e045558f69a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::shutdown</definition>
+        <argsstring>()</argsstring>
+        <name>shutdown</name>
+        <briefdescription>
+<para>Frees resources held by the daBfg backend. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="46" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="46" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1ga8006e9745ff18cb20d38eb4ac5b815a7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::update_external_state</definition>
+        <argsstring>(ExternalState state)</argsstring>
+        <name>update_external_state</name>
+        <param>
+          <type>ExternalState</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+<para>Sets various global state that is external to daBfg. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="49" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="49" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___dabfg_core_1gacfb39ee2361920d78e56a0a4941c04ec" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::mark_external_resource_for_validation</definition>
+        <argsstring>(const D3dResource *resource)</argsstring>
+        <name>mark_external_resource_for_validation</name>
+        <param>
+          <type>const D3dResource *</type>
+          <declname>resource</declname>
+        </param>
+        <briefdescription>
+<para>Marks an external resource to be validated for illegal access within nodes. Note that daBfg-managed resources are always automatically validated for illegal access through sneaky global variables, but external are often used for gradual migration to FG, at which point they are indeed illegally accessed through global state and that is intended. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>resource</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the resource to be validated. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" line="60" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h" declline="60" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="group___dabfg_core_1ga364daeb9af9d0cd66d660bf7c0f612c6" prot="public" static="no">
+        <name>DABFG_PP_NODE_SRC</name>
+        <initializer>(__FILE__ &quot;:&quot; DABFG_PP_STRINGIZE(__LINE__))</initializer>
+        <briefdescription>
+<para>A macro that expands to the current source location. Should always be provided to dabfg::register_node as the <computeroutput>source_location</computeroutput> parameter. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="29" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Core dabfg functions that everything else is accessed through. </para>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

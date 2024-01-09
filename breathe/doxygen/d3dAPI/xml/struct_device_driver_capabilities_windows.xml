@@ -1,0 +1,241 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_device_driver_capabilities_windows" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverCapabilitiesWindows</compoundname>
+    <basecompoundref refid="struct_device_driver_capabilities_base" prot="public" virt="non-virtual">DeviceDriverCapabilitiesBase</basecompoundref>
+    <includes refid="dag__drv3d_consts_8h" local="no">dag_drv3dConsts.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_device_driver_capabilities_windows_1aaaebf20a24626aa0f113f3b17fac0668" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesWindows::hasAnisotropicFilter</definition>
+        <argsstring></argsstring>
+        <name>hasAnisotropicFilter</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports anisotropic filtering of textures. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1ae16465605571449cdaa401557c4730fc" kindref="member">DeviceDriverCapabilitiesBase::hasAnisotropicFilter</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1618" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1618" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_windows_1acb671d2931d02ff4eb1d50caa24bb3ef" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesWindows::hasAlphaCoverage</definition>
+        <argsstring></argsstring>
+        <name>hasAlphaCoverage</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports the alpha to coverage raster feature. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a743899e2f26692b8e09a379c35379894" kindref="member">DeviceDriverCapabilitiesBase::hasAlphaCoverage</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1620" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1620" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_windows_1a6c022f4e7ff01c7579adb4f4413ab438" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesWindows::hasAsyncCopy</definition>
+        <argsstring></argsstring>
+        <name>hasAsyncCopy</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports asynchronously issued copy operations. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a014bd49e2e0103c34524f0da355be4ea" kindref="member">DeviceDriverCapabilitiesBase::hasAsyncCopy</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1622" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1622" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_windows_1a654d87ca2eb99742e661a56ec7dcb8ed" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesWindows::hasStereoExpansion</definition>
+        <argsstring></argsstring>
+        <name>hasStereoExpansion</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports stereo render expansion. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1abb3185b7ae25ba49f1f8acf86cf3c10c" kindref="member">DeviceDriverCapabilitiesBase::hasStereoExpansion</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1624" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1624" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_windows_1ac4919fd3b38019485ed9cfdbaf2fca07" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesWindows::hasTileBasedArchitecture</definition>
+        <argsstring></argsstring>
+        <name>hasTileBasedArchitecture</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver architecture is known to be a tile renderer. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a77e1bec0aeab74ee052cd9e631c8a5eb" kindref="member">DeviceDriverCapabilitiesBase::hasTileBasedArchitecture</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1626" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1626" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_windows_1a028471786ade556f32fd9ffdf82162ed" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesWindows::hasLazyMemory</definition>
+        <argsstring></argsstring>
+        <name>hasLazyMemory</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Constant false. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver supports lazily allocated memory. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a1714da16235832e261182e86645e3e33" kindref="member">DeviceDriverCapabilitiesBase::hasLazyMemory</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1628" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1628" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_windows_1aa2f12e1781f4a7a6e17915e2d7fe8596" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesWindows::hasIndirectSupport</definition>
+        <argsstring></argsstring>
+        <name>hasIndirectSupport</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver set when hw doesn&apos;t support indirect calls. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a337e032527346eef4e0b46025419c508" kindref="member">DeviceDriverCapabilitiesBase::hasIndirectSupport</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1630" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1630" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_capabilities_windows_1afd244bd8fec77a3a3a9acb9ac88fa0ce" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverCapabilitiesWindows::hasCompareSampler</definition>
+        <argsstring></argsstring>
+        <name>hasCompareSampler</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Constant true. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates that the device driver set when hw doesn&apos;t support comparison samplers. <simplesect kind="see"><para><ref refid="struct_device_driver_capabilities_base_1a351b50cc43e2279a4a7ccde48e885d90" kindref="member">DeviceDriverCapabilitiesBase::hasCompareSampler</ref> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1632" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1632" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for Windows. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesWindows</label>
+        <link refid="struct_device_driver_capabilities_windows"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DeviceDriverCapabilitiesWindows</label>
+        <link refid="struct_device_driver_capabilities_windows"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>DeviceDriverCapabilitiesBase</label>
+        <link refid="struct_device_driver_capabilities_base"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" line="1615" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_drv3dConsts.h" bodystart="1616" bodyend="1633"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_capabilities_base_1a77ded90a2500a44d0a83d80ce2098067" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasAcceleratedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a047263b73dcac68b784f2640c9c6e6c8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasAliasedTextures</name></member>
+      <member refid="struct_device_driver_capabilities_windows_1acb671d2931d02ff4eb1d50caa24bb3ef" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasAlphaCoverage</name></member>
+      <member refid="struct_device_driver_capabilities_windows_1aaaebf20a24626aa0f113f3b17fac0668" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasAnisotropicFilter</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ae421f36c3e5e3382c12c9189b6ebc0b0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasAsyncCompute</name></member>
+      <member refid="struct_device_driver_capabilities_windows_1a6c022f4e7ff01c7579adb4f4413ab438" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasAsyncCopy</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a7ecec7232a1c179b81acf6a1837ca525" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasATIApi</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a502c6dc246d193bbc994f965b66557be" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasBasicViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ad952e7b7a5b7b522dceed7748323a9cf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasBindless</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ae5831194a86c0c053c638a41ae7e51c0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasBufferOverlapCopy</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a98747b0ded147a7dd1d42851c0e813bf" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasBufferOverlapRegionsCopy</name></member>
+      <member refid="struct_device_driver_capabilities_windows_1afd244bd8fec77a3a3a9acb9ac88fa0ce" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasCompareSampler</name></member>
+      <member refid="struct_device_driver_capabilities_base_1afe2a9e7878afb130d24e36d28f7355d6" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasConditionalRender</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a903377bb582a3da6b2b8c276d6cbc463" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasConservativeRassterization</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a5c94dd02ee82ff737873cdd9f9404be0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasConstBufferOffset</name></member>
+      <member refid="struct_device_driver_capabilities_base_1abda4bbbdebdb5c18b289e9053895e193" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasDepthBoundsTest</name></member>
+      <member refid="struct_device_driver_capabilities_base_1aa0f3c5d16e0868323a12940250cd1a39" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasDepthReadOnly</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a5b72be5df4ac92123cb5fdadc8c5fd26" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasDLSS</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ac55b9335193037fe5418fe78360b6007" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasDrawID</name></member>
+      <member refid="struct_device_driver_capabilities_base_1abdaed640d68bcbc1b926f133d9d2465a" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasForcedSamplerCount</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a575b7ccfb7413bbb1246e526bc2608ab" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasGather4</name></member>
+      <member refid="struct_device_driver_capabilities_windows_1aa2f12e1781f4a7a6e17915e2d7fe8596" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasIndirectSupport</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a2ca9ae722f66c5f6f0c3b76cd0424c07" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasInstanceID</name></member>
+      <member refid="struct_device_driver_capabilities_windows_1a028471786ade556f32fd9ffdf82162ed" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasLazyMemory</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ac81371eb952342553cb264f9a693e299" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasMeshShader</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a088d0cfbb513e08dd419ae745e40640b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasNativeRenderPassSubPasses</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ac092d99b3a894db094a2c80af9e33ca8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasNoOverwriteOnShaderResourceBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a70f1d993da596178f563efe1b9d1a0d3" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasNVApi</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a7717801667587b0dc2e2744030722791" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasOcclusionQuery</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a823d60c14bb74e8026a6f1f6cc86add4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasOptimizedViewInstancing</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a3cdee766ed89fafff0f7804eaa4c2ab1" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasQuadTessellation</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a880e3c20caa009187ce288f0d7d02179" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasRaytracing</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ab155f75785b7aa42470b2a460535a488" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasRaytracingT11</name></member>
+      <member refid="struct_device_driver_capabilities_base_1acf749555446d427feee38076de754d83" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasReadMultisampledDepth</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ab44fea56b8cf5eb698c3b63b3b5b25ab" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasRenderPassDepthResolve</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a45e3ac7640df3354d5baef8e7fa1c4c7" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasResourceCopyConversion</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a43f7898db5a17c29a9acb8767d66353c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasResourceHeaps</name></member>
+      <member refid="struct_device_driver_capabilities_base_1af3cfbb31804f081b404e6c40b51597e8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasShader64BitIntegerResources</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a7588b357693368f73ca7b1c8c3a2fe2c" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasShaderFloat16Support</name></member>
+      <member refid="struct_device_driver_capabilities_windows_1a654d87ca2eb99742e661a56ec7dcb8ed" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasStereoExpansion</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a20407785ef1e8f4efde8f5f5ba093569" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasStructuredBuffers</name></member>
+      <member refid="struct_device_driver_capabilities_windows_1ac4919fd3b38019485ed9cfdbaf2fca07" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasTileBasedArchitecture</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a1256aefcb50fe90f33131b96e4ab8604" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasTiled2DResources</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ad941e8c9ddcc176912cdaf700baacedc" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasTiled3DResources</name></member>
+      <member refid="struct_device_driver_capabilities_base_1af2bdf1eeee49a8ce966d270d0cda8912" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasTiledMemoryAliasing</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a35c0a7730631d8d76e0a6c743c013687" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasTiledSafeResourcesAccess</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a5d1ae04840c96746888e1c476d4544e4" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasUAVOnlyForcedSampleCount</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a361352040deb2285dfcb2b47a1acca29" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasVariableRateShading</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a435cca220d7b33031869f4bf83e3c212" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasVariableRateShadingBy4</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a5d97ef345373aa5c4378dc310c328bf8" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasVariableRateShadingCombiners</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a7ce9b3abe5faade3dcff505c9eac93eb" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasVariableRateShadingShaderOutput</name></member>
+      <member refid="struct_device_driver_capabilities_base_1aaf2ce88f773e67be7d02c2f7ccf2b70b" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasVariableRateShadingTexture</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a97d97eed28fac297ea5042de79ea48a5" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasVolMipMap</name></member>
+      <member refid="struct_device_driver_capabilities_base_1ac087fa09d2db1f17bff24b8fa09ccb64" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasWellSupportedIndirect</name></member>
+      <member refid="struct_device_driver_capabilities_base_1a85f03c7770a69873ee823471624e2eb0" prot="public" virt="non-virtual"><scope>DeviceDriverCapabilitiesWindows</scope><name>hasXESS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
