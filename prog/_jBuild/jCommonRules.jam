@@ -8,7 +8,7 @@ if $(OS) in MACOSX && $(PYTHON_EXE) = python3 && ! [ GLOB /usr/bin : $(PYTHON_EX
   PYTHON_EXE = python ;
 }
 
-actions together quietly ignore null_action
+actions together quietly updated null_action
 {
 }
 
