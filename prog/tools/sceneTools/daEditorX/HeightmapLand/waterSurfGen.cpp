@@ -140,6 +140,7 @@ static void draw_solution(const char *svg_fn, const ClipperLib::ExPolygons &sol,
 
 static float select_smallest_inner_t(float min_t, float max_t) { return min_t > 0 ? min_t : max_t; }
 static float select_largest_inner_t(float min_t, float max_t) { return max_t < 1 ? max_t : min_t; }
+static bool is_in_range_0_1(float t) { return t >= 0 && t <= 1; }
 
 static void optimize_polygon(ClipperLib::Polygon &poly, float tolerance = 0.01)
 {
@@ -341,7 +342,7 @@ static void add_border_segments(Tab<Point3> &water_border_polys, const ClipperLi
   {
     Point3 bp(poly[k].X * 0.001f, waterSurfaceLevel, poly[k].Y * 0.001f);
 
-    if (hmap_bb & bp)
+    if (hmap_bb2 & Point2::xz(bp))
     {
       if (st_id < 0)
       {
@@ -358,7 +359,8 @@ static void add_border_segments(Tab<Point3> &water_border_polys, const ClipperLi
       {
         Point3 p0 = water_border_polys.back(), dir = bp - p0;
         float min_t, max_t;
-        if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t))
+        if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t) &&
+            is_in_range_0_1(select_smallest_inner_t(min_t, max_t)))
         {
           water_border_polys.push_back(p0 + dir * select_smallest_inner_t(min_t, max_t));
           debug("outbound W-segment %@-%@ clip by bb=%@ -> p=%@ (t=%g %g)", p0, bp, hmap_bb2, water_border_polys.back(), min_t, max_t);
@@ -384,7 +386,8 @@ static void add_border_segments(Tab<Point3> &water_border_polys, const ClipperLi
       {
         Point3 p0 = bp, p1 = Point3(poly[k + 1].X * 0.001f, waterSurfaceLevel, poly[k + 1].Y * 0.001f), dir = p1 - p0;
         float min_t, max_t;
-        if ((hmap_bb & p1) && isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t))
+        if ((hmap_bb2 & Point2::xz(p1)) && isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t) &&
+            is_in_range_0_1(select_largest_inner_t(min_t, max_t)))
         {
           water_border_polys.push_back().set(1.1e12f, 0, 1);
           st_id = water_border_polys.size();
@@ -398,7 +401,7 @@ static void add_border_segments(Tab<Point3> &water_border_polys, const ClipperLi
   if (!whole && st_id >= 0)
   {
     Point3 bp(poly[0].X * 0.001f, waterSurfaceLevel, poly[0].Y * 0.001f);
-    if (hmap_bb & bp)
+    if (hmap_bb2 & Point2::xz(bp))
       water_border_polys.push_back(bp);
     else
     {
@@ -407,7 +410,8 @@ static void add_border_segments(Tab<Point3> &water_border_polys, const ClipperLi
       {
         Point3 p0 = water_border_polys.back(), dir = bp - p0;
         float min_t, max_t;
-        if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t))
+        if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t) &&
+            is_in_range_0_1(select_smallest_inner_t(min_t, max_t)))
         {
           water_border_polys.push_back(p0 + dir * select_smallest_inner_t(min_t, max_t));
           num++;
@@ -1173,7 +1177,7 @@ process_loft_pt:
             if (loft_pt_cloud[i].y >= waterSurfaceLevel - 0.01)
               expel = true;
 
-        if (!expel && (hmap_bb & loft_pt_cloud[i]))
+        if (!expel && (hmap_bb2 & Point2::xz(loft_pt_cloud[i])))
         {
           if (st_id < 0)
           {
@@ -1189,7 +1193,8 @@ process_loft_pt:
           {
             Point3 p0 = water_border_polys.back(), dir = loft_pt_cloud[i] - p0;
             float min_t, max_t;
-            if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t))
+            if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t) &&
+                is_in_range_0_1(select_smallest_inner_t(min_t, max_t)))
             {
               water_border_polys.push_back(p0 + dir * select_smallest_inner_t(min_t, max_t));
               num++;
@@ -1207,11 +1212,12 @@ process_loft_pt:
           }
           st_id = -1;
         }
-        else if (j + 1 < je && (hmap_bb & loft_pt_cloud[i + 1]))
+        else if (j + 1 < je && (hmap_bb2 & Point2::xz(loft_pt_cloud[i + 1])))
         {
           Point3 p0 = loft_pt_cloud[i], dir = loft_pt_cloud[i + 1] - p0;
           float min_t, max_t;
-          if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t))
+          if (isect_line_box(Point2::xz(p0), Point2::xz(dir), hmap_bb2, min_t, max_t) &&
+              is_in_range_0_1(select_largest_inner_t(min_t, max_t)))
           {
             water_border_polys.push_back().set(1.1e12f, 0, 1);
             st_id = water_border_polys.size();
