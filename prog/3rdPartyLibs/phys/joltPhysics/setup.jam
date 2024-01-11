@@ -10,3 +10,4 @@ if ! $(Platform) in iOS tvOS nswitch android && ( $(Platform) != macosx || $(Mac
 if $(Sanitize) = address { CPPopt += -DJPH_DISABLE_TEMP_ALLOCATOR -DJPH_DISABLE_CUSTOM_ALLOCATOR ; }
 if $(Platform) = nswitch { CPPopt += -DJPH_PLATFORM_LINUX ; }
 if $(Platform) in ps4 ps5 { CPPopt += -DJPH_PLATFORM_LINUX ; }
+if $(Platform) = linux64 && $(LinuxArch) = e2k { CPPopt += -w2810 ; }
