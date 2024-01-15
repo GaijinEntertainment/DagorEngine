@@ -251,10 +251,6 @@ public:
     VirtualDynModelEntity::setTm(_tm);
     tm = _tm;
 
-    if (ltService)
-      ltService->getSHLighting(tm.getcol(3), lt);
-    else
-      lt.getSH3().clear();
     current_dynmodel_gen++;
   }
 
@@ -288,11 +284,6 @@ public:
 
     sceneInstance = new DynamicRenderableSceneInstance(res);
     origSkeleton = geomNodeTree = e.origSkeleton;
-
-    if (ltService)
-      ltService->getSHLighting(tm.getcol(3), lt);
-    else
-      lt.getSH3().clear();
   }
 
   bool prepareCollRes()
@@ -412,7 +403,6 @@ public:
 
   unsigned idx;
   TMatrix tm;
-  SHUnifiedLighting lt;
   int texQ;
   CollisionResource *collision;
   bool collisionTried;
@@ -499,13 +489,7 @@ public:
 
   // ILightingChangeClient
   virtual void onLightingChanged() {}
-  virtual void onLightingSettingsChanged()
-  {
-    dag::ConstSpan<DynModelEntity *> ent = objPool.getEntities();
-    for (int i = 0; i < ent.size(); i++)
-      if (ent[i] && ent[i]->isNonVirtual())
-        ltService->getSHLighting(ent[i]->tm.getcol(3), ent[i]->lt);
-  }
+  void onLightingSettingsChanged() override {}
 
   // IRenderingService interface
   virtual void renderGeometry(Stage stage)

@@ -1,6 +1,5 @@
 #include <ioSys/dag_dataBlock.h>
 #include <sceneBuilder/nsb_StdTonemapper.h>
-#include <libTools/util/sHmathUtil.h>
 #include <debug/dag_debug.h>
 
 
@@ -133,53 +132,4 @@ void StaticSceneBuilder::Splitter::load(const DataBlock &blk, bool init_def)
   splitObjects = blk.getBool("splitObjects", splitObjects);
   optimizeForVertexCache = blk.getBool("optimizeForVertexCache", optimizeForVertexCache);
   buildShadowSD = blk.getBool("buildShadowSD", buildShadowSD);
-}
-
-void StaticSceneBuilder::StdTonemapper::mapSphHarm(Color3 sh[SPHHARM_NUM3]) const
-{
-  // gamma-correct resulting diffuse lighting =)
-  Color3 ish[SPHHARM_NUM3];
-
-  memcpy(ish, sh, sizeof(ish));
-
-  ish[SPHHARM_00] *= PI;
-
-  ish[SPHHARM_1m1] *= 2.094395f;
-  ish[SPHHARM_10] *= 2.094395f;
-  ish[SPHHARM_1p1] *= 2.094395f;
-
-  ish[SPHHARM_2m2] *= 0.785398f;
-  ish[SPHHARM_2m1] *= 0.785398f;
-  ish[SPHHARM_20] *= 0.785398f;
-  ish[SPHHARM_2p1] *= 0.785398f;
-  ish[SPHHARM_2p2] *= 0.785398f;
-
-  class GammaTransformCB : public SH3Color3TransformCB
-  {
-  public:
-    const StdTonemapper &m;
-
-    GammaTransformCB(const StdTonemapper &_m) : m(_m) {}
-    Color3 transform(const Color3 &c)
-    {
-      Color4 c2 = Color4(c.r, c.g, c.b, 1.0);
-      c2.clamp0();
-      c2 = m.mapColor(c2);
-      return Color3(c2.r, c2.g, c2.b);
-    }
-  } cb(*this);
-
-  transform_sphharm(ish, sh, cb);
-
-  sh[SPHHARM_00] /= PI;
-
-  sh[SPHHARM_1m1] /= 2.094395f;
-  sh[SPHHARM_10] /= 2.094395f;
-  sh[SPHHARM_1p1] /= 2.094395f;
-
-  sh[SPHHARM_2m2] /= 0.785398f;
-  sh[SPHHARM_2m1] /= 0.785398f;
-  sh[SPHHARM_20] /= 0.785398f;
-  sh[SPHHARM_2p1] /= 0.785398f;
-  sh[SPHHARM_2p2] /= 0.785398f;
 }

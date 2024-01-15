@@ -10,9 +10,7 @@
 #include <generic/dag_smallTab.h>
 #include <util/dag_string.h>
 #include <math/dag_math3d.h>
-#include <math/dag_SHmath.h>
 #include <3d/dag_materialData.h>
-#include <math/dag_SHlight.h>
 #include <libTools/dagFileRW/dagFileFormat.h>
 #include <libTools/util/strUtil.h>
 #include <debug/dag_debug.h>

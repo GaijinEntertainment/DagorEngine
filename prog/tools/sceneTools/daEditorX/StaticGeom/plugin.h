@@ -10,7 +10,6 @@
 #include <de3_occluderGeomProvider.h>
 #include <de3_collisionPreview.h>
 
-#include <math/dag_SHlight.h>
 #include <de3_fileTracker.h>
 
 
@@ -112,7 +111,7 @@ public:
 
   // ILightingChangeClient
   virtual void onLightingChanged() {}
-  virtual void onLightingSettingsChanged();
+  void onLightingSettingsChanged() override {}
 
   // IFileChangedNotify
   virtual void onFileChanged(int file_name_id);
@@ -133,8 +132,6 @@ private:
   bool doResetGeometry;
   bool loadingFailed;
   collisionpreview::Collision collision;
-
-  SH3Lighting sh3Light;
 
   String StaticGeometryPlugin::getPluginFilePath(const char *fileName);
 

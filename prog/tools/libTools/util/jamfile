@@ -16,7 +16,6 @@ Sources =
   hash.cpp
   hashSaveCb.cpp
   undosys.cpp
-  sHmathUtil.cpp
   conProgressIndicator.cpp
   fileUtils.cpp
   conLogWriter.cpp

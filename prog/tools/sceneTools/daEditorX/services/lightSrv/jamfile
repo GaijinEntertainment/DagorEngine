@@ -13,8 +13,6 @@ AddIncludes =
 
 Sources =
   lightSrv.cpp
-  ltMgr.cpp
-  exportSHLT.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

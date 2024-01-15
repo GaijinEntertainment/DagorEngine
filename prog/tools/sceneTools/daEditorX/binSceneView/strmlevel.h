@@ -24,7 +24,6 @@
 
 class DataBlock;
 class LandMeshRenderer;
-class SH3LightingManager;
 class RendInstShadowsManager;
 class DynamicRenderableSceneInstance;
 class AcesResource;

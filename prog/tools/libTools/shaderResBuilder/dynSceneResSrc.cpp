@@ -9,7 +9,6 @@
 #include <libTools/dagFileRW/normalizeNodeTm.h>
 #include <shaders/dag_shaderMesh.h>
 #include <math/dag_mesh.h>
-#include <math/dag_SHmath.h>
 #include <math/dag_boundingSphere.h>
 #include <generic/dag_tabUtils.h>
 #include <generic/dag_initOnDemand.h>
@@ -119,17 +118,6 @@ void DynamicRenderableSceneLodsResSrc::splitRealTwoSided(Mesh &m, Bitarray &is_m
 {
   split_real_two_sided(m, is_material_real_two_sided_array, side_channel_id);
 }
-
-struct PrtSamples
-{
-  struct Sample
-  {
-    float prtWeights[SPHHARM_NUM3];
-    Point3 pt;
-  };
-  float ledge;
-  SmallTab<Sample, TmpmemAlloc> samples;
-};
 
 class HasAOChanCB : public ShaderChannelsEnumCB
 {

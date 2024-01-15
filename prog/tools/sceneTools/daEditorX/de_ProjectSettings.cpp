@@ -13,7 +13,6 @@
 #include <osApiWrappers/dag_files.h>
 #include <libTools/util/strUtil.h>
 #include <ioSys/dag_dataBlock.h>
-#include <math/dag_SHlight.h>
 #include <libTools/dtx/dtxHeader.h>
 #include <workCycle/dag_gameSettings.h>
 #include <debug/dag_debug.h>

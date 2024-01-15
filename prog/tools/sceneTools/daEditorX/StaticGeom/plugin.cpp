@@ -22,8 +22,6 @@
 
 #include <coolConsole/coolConsole.h>
 
-#include <math/dag_SHmath.h>
-
 #include <shaders/dag_shaders.h>
 // #include <texConverter/TextureConverterDlg.h>
 #include <debug/dag_debug.h>
@@ -532,15 +530,6 @@ void StaticGeometryPlugin::unregistered()
     tracker->unsubscribeUpdateNotify(dagFileNameId, this);
 
   DAGORED2->unregisterCustomCollider(this);
-}
-
-
-void StaticGeometryPlugin::onLightingSettingsChanged()
-{
-  ISceneLightService *ltService = DAGORED2->queryEditorInterface<ISceneLightService>();
-
-  if (!ltService || !ltService->calcSHLighting(sh3Light))
-    sh3Light.clear();
 }
 
 

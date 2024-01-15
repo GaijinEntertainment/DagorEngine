@@ -169,11 +169,6 @@ public:
     if (!pd)
       return;
 
-    if (ltService)
-      ltService->getSHLighting(tm.getcol(3), lt);
-    else
-      lt.getSH3().clear();
-
     if (scenes.size() == 1 && pd->physRes->getBodies().size() == 1 && scenes[0])
     {
       // single-node model;  in fact, during real simulation matrix must be:
@@ -253,11 +248,6 @@ public:
         scenes[cnt]->setCurrentLod(pd->models[i]->lods.size() - 1);
         cnt++;
       }
-
-    if (ltService)
-      ltService->getSHLighting(tm.getcol(3), lt);
-    else
-      lt.getSH3().clear();
   }
 
   void beforeRender()
@@ -340,7 +330,6 @@ public:
 
   unsigned idx;
   TMatrix tm;
-  SHUnifiedLighting lt;
   GeomNodeTree *nodeTree;
 };
 
@@ -504,13 +493,7 @@ public:
 
   // ILightingChangeClient
   virtual void onLightingChanged() {}
-  virtual void onLightingSettingsChanged()
-  {
-    dag::ConstSpan<PhysObjEntity *> ent = objPool.getEntities();
-    for (int i = 0; i < ent.size(); i++)
-      if (ent[i] && ent[i]->pd && ent[i]->isNonVirtual())
-        ltService->getSHLighting(ent[i]->tm.getcol(3), ent[i]->lt);
-  }
+  void onLightingSettingsChanged() override {}
 
   // IBinaryDataBuilder interface
   virtual bool validateBuild(int target, ILogWriter &log, PropPanel2 *params)

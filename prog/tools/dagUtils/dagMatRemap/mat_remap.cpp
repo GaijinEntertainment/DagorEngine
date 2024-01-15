@@ -10,9 +10,7 @@
 #include <generic/dag_smallTab.h>
 #include <util/dag_string.h>
 #include <math/dag_math3d.h>
-#include <math/dag_SHmath.h>
 #include <3d/dag_materialData.h>
-#include <math/dag_SHlight.h>
 #include <libTools/dagFileRW/dagFileFormat.h>
 #include <libTools/util/strUtil.h>
 #include <debug/dag_debug.h>
@@ -29,19 +27,6 @@ static DagColor dagcolor(const IPoint3 &i) { return DagColor(i[0], i[1], i[2]); 
 
 int _cdecl main(int argc, char **argv)
 {
-  /*for (int i = 0; i < 10; ++i)
-  {
-    SH3Lighting lighting;
-    lighting.clear();
-    float cosa = cos(DegToRad(i*i+1));
-    add_hemisphere_sphharm(lighting.sh, Point3(0,1,0), cosa,
-      Color3(1,1,1)*2500*0.66666);
-    //cos(DegToRad(2.5))
-    Color3 color = lighting.getDiffuseLighting(Point3(0,1,0));
-    printf("color cosa = %g %g (%g/%g = %g)\n",
-      cosa, (1-cosa)*(1-cosa), color.r, PI*(1-cosa)*2500, color.r/(PI*(1-cosa)*2500));
-  }*/
-
   if (argc < 3)
   {
     ::show_usage();

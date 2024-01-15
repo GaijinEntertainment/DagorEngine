@@ -15,7 +15,6 @@
 class IGenSave;
 class IGenLoad;
 class ILogWriter;
-class SH3Lighting;
 class IslLightObject;
 class DataBlock;
 class ILogWriter;

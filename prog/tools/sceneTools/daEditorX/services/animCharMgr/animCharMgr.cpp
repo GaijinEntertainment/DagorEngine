@@ -25,7 +25,6 @@
 #include <render/dag_cur_view.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_TMatrix.h>
-#include <math/dag_SHlight.h>
 #include <debug/dag_debug.h>
 #include <de3_writeObjsToPlaceDump.h>
 #include <oldEditor/de_interface.h>
@@ -638,12 +637,6 @@ public:
   {
     if (!ac)
       return;
-
-    SHUnifiedLighting lt;
-    if (ltService)
-      ltService->getSHLighting(_tm.getcol(3), lt);
-    else
-      lt.getSH3().clear();
 
     ac->setTm(_tm);
   }

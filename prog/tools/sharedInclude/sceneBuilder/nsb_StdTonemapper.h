@@ -6,7 +6,6 @@
 
 #include <supp/dag_math.h>
 #include <math/dag_color.h>
-#include <math/dag_SHmath.h>
 #include <math/dag_Point3.h>
 #include <sceneBuilder/nsb_decl.h>
 
@@ -58,8 +57,6 @@ public:
 
     return res;
   }
-
-  void mapSphHarm(Color3 sh[SPHHARM_NUM3]) const;
 
   __forceinline Color4 mapHdrtoLdrColor(const Color4 &hdrTransformedColor) const
   {

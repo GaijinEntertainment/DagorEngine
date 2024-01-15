@@ -44,7 +44,6 @@ class ILogWriter;
 class Bitarray;
 class CoolConsole;
 class DataBlock;
-class SH3Lighting;
 class DynamicShadersBuffer;
 class ShaderElement;
 class ShaderMaterial;

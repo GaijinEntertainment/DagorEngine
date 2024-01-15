@@ -46,7 +46,6 @@ extern TEXTUREID load_land_micro_details(const DataBlock &micro);
 static inline void updateLight(bool update_var_before = false)
 {
   ISceneLightService *ltSrv = EDITORCORE->queryEditorInterface<ISceneLightService>();
-  ltSrv->calcDefaultSHLighting();
 
   if (update_var_before)
     ltSrv->updateShaderVars();
@@ -1075,8 +1074,6 @@ void load_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *al
   ald->rdbgUseChrome = blk.getBool("rdbgUseChrome", ald_def->rdbgUseChrome);
 
   DataBlock appBlk(::get_app().getWorkspace().getAppPath());
-  ltSrv->installSHLightingProvider(NULL,
-    appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("l2d")->getBool("make_sun_lt", false));
 
   updateLight();
   detectRenderDebug();

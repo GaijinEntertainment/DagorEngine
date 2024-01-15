@@ -11,7 +11,6 @@
 #include <libTools/shaderResBuilder/matSubst.h>
 #include <libTools/util/prepareBillboardMesh.h>
 #include <libTools/util/progressInd.h>
-#include <libTools/util/sHmathUtil.h>
 #include <sceneBuilder/nsb_StdTonemapper.h>
 
 #include <shaders/dag_shaders.h>

@@ -15,8 +15,6 @@
 class DataBlock;
 class IGenSave;
 class StaticGeometryContainer;
-class SH3Lighting;
-class SHUnifiedLighting;
 class GeomObject;
 class RenderableInstanceLodsResource;
 class TMatrix;

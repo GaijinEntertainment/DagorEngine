@@ -11,8 +11,6 @@
 
 #include "Brushes/hmlBrush.h"
 
-#include <math/dag_SHlight.h>
-
 #include <math/dag_adjpow2.h>
 #include <image/dag_tga.h>
 #include <image/dag_texPixel.h>

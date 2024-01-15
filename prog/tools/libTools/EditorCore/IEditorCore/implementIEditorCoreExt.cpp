@@ -4,7 +4,6 @@
 #include <EditorCore/ec_ObjectCreator.h>
 
 #include <3d/dag_drv3d.h>
-#include <math/dag_SHlight.h>
 #include <3d/dag_render.h>
 
 #include <shaders/dag_dynSceneRes.h>

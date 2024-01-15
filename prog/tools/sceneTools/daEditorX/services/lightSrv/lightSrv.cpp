@@ -1,21 +1,14 @@
 #include <de3_lightService.h>
 #include <de3_lightProps.h>
 #include <de3_interface.h>
-#include "ltMgr.h"
 #include <sceneBuilder/nsb_StdTonemapper.h>
 #include <libTools/util/colorUtil.h>
 #include <libTools/staticGeom/geomObject.h>
-#include <scene/dag_sh3LtMgr.h>
 #include <shaders/dag_shaderVar.h>
-#include <math/dag_SHlight.h>
 #include <math/dag_mathAng.h>
 #include <generic/dag_tab.h>
 #include <util/dag_globDef.h>
 #include <shaders/dag_shaderBlock.h>
-
-static const char *sphHarmWorldCoordVarName[9] = {"light_sphharm_world_00", "light_sphharm_world_1m1", "light_sphharm_world_10",
-  "light_sphharm_world_1p1", "light_sphharm_world_2m2", "light_sphharm_world_2m1", "light_sphharm_world_20", "light_sphharm_world_2p1",
-  "light_sphharm_world_2p2"};
 
 static E3DCOLOR color4ToE3dcolor(Color4 col, float &brightness)
 {
@@ -35,10 +28,8 @@ static E3DCOLOR color4ToE3dcolor(Color4 col, float &brightness)
 class GenericLightService : public ISceneLightService
 {
 public:
-  GenericLightService() : sun(midmem), sh3(*this)
+  GenericLightService() : sun(midmem)
   {
-    sh3LtProv = NULL;
-    sh3SunLt = false;
     reset();
 
     memset(&nullSun, 0, sizeof(nullSun));
@@ -68,9 +59,6 @@ public:
     sunColLtmapGvid = ShaderGlobal::get_glob_var_id(VariableMap::getVariableId("sun_color_lightmap"));
     sunDirLtmapGvid = ShaderGlobal::get_glob_var_id(VariableMap::getVariableId("sun_direction_lightmap"));
 
-    for (int i = 0; i < 9; ++i)
-      dlGvId.sphHarmWorld[i] = ShaderGlobal::get_glob_var_id(VariableMap::getVariableId(sphHarmWorldCoordVarName[i]));
-
     dlGvId.lightDir = ShaderGlobal::get_glob_var_id(VariableMap::getVariableId("light_dir"));
 
     dlGvId.lightSpecularColor = ShaderGlobal::get_glob_var_id(VariableMap::getVariableId("light_specular_color"));
@@ -79,16 +67,7 @@ public:
     dlGvId.worldLt.col0 = ShaderGlobal::get_glob_var_id(VariableMap::getVariableId("world_lt_color_0"));
     dlGvId.worldLt.dir1 = ShaderGlobal::get_glob_var_id(VariableMap::getVariableId("world_lt_dir_1"));
     dlGvId.worldLt.col1 = ShaderGlobal::get_glob_var_id(VariableMap::getVariableId("world_lt_color_1"));
-
-    calcDefaultSHLighting();
   }
-
-  virtual void installSHLightingProvider(IShLightingProvider *lt, bool sh3_sun_lt)
-  {
-    sh3LtProv = lt;
-    sh3SunLt = sh3_sun_lt;
-  }
-  virtual bool isSHSunLtUsed() const { return sh3SunLt; }
 
   virtual void setSunCount(int sun_count)
   {
@@ -203,8 +182,6 @@ public:
       ShaderGlobal::set_color4_fast(dlGvId.worldLt.col1, ::color4(sun[1].ltCol, 0));
     }
     setupSkyLighting();
-    for (int i = 0; i < 9; ++i)
-      ShaderGlobal::set_color4_fast(dlGvId.sphHarmWorld[i], color4(defLt.sh[i], 1));
   }
 
   virtual bool applyLightingToGeometry() const { return applySunLighting() || applySkyLighting(); }
@@ -212,131 +189,6 @@ public:
   virtual StaticSceneBuilder::StdTonemapper &toneMapper() { return tonemap; }
   virtual void saveToneMapper(DataBlock &blk) const { tonemap.save(blk); }
   virtual void loadToneMapper(const DataBlock &blk) { tonemap.load(blk); }
-
-  virtual void tonemapSHLighting(SH3Lighting &inout_lt) const { tonemap.mapSphHarm(inout_lt.sh); }
-
-  virtual bool calcSHLighting(SH3Lighting &out_lt, bool add_sky, bool add_suns, bool tone_map) const
-  {
-    SH3Lighting sh;
-    bool anything_added = add_sky;
-    sh.clear();
-
-    if (add_suns)
-      for (int i = sh3SunLt ? 1 : 0; i < sun.size(); i++)
-      {
-        const SunLightProps &s = sun[i];
-        Point3 dir = sph_ang_to_dir(Point2((s.azimuth), s.zenith));
-        real cosSunHalfAngle = cosf(s.angSize);
-
-        Color4 lightColor = ::color4(s.color) * s.brightness;
-
-        ::add_hemisphere_sphharm(sh.sh, dir, cosSunHalfAngle, color3(lightColor));
-        anything_added = true;
-      }
-
-    if (add_sky)
-    {
-      Color4 skyColor = ::color4(sky.color) * sky.brightness;
-      Color4 earthColor = ::color4(sky.earthColor) * sky.earthBrightness;
-
-      sh.sh[SPHHARM_00] = color3(skyColor + earthColor) / (SPHHARM_COEF_0 * TWOPI);
-
-      real k1 = 1.0f / (PI * SPHHARM_COEF_1);
-      sh.sh[SPHHARM_1m1] = color3(skyColor - earthColor) * k1;
-      anything_added = true;
-    }
-
-    if (!anything_added)
-    {
-      if (sh3SunLt)
-        sh.sh[SPHHARM_NUM3 - 1].b = 1.0;
-      return false;
-    }
-
-    if (tone_map)
-    {
-      tonemap.mapSphHarm(sh.sh);
-      // 2 empiric value. maybe need because of 4x overbright in dyn light (2 by postmultiplier)
-      sh.sh[SPHHARM_00] = sh.sh[SPHHARM_00] / 2;
-      sh.sh[SPHHARM_1p1] = sh.sh[SPHHARM_1p1] / 2;
-      sh.sh[SPHHARM_1m1] = sh.sh[SPHHARM_1m1] / 2;
-      sh.sh[SPHHARM_10] = sh.sh[SPHHARM_10] / 2;
-    }
-
-    if (sh3SunLt)
-    {
-      sh.sh[SPHHARM_NUM3 - 1].g = (sh.sh[SPHHARM_NUM3 - 1].g + sh.sh[SPHHARM_NUM3 - 1].b) * 0.5;
-      sh.sh[SPHHARM_NUM3 - 1].b = 1.0;
-    }
-
-    out_lt = sh;
-    return true;
-  }
-  virtual void calcDefaultSHLighting()
-  {
-    defLt.clear();
-    calcSHLighting(defLt, true, true, true);
-  }
-
-  virtual void getSHLighting(const Point3 &p, SHUnifiedLighting &out_lt, bool dir_lt = false, bool sun_as_dir1 = false) const
-  {
-    if (sh3LtProv && !dir_lt)
-    {
-      if (!sh3LtProv->getLighting(p, out_lt.getSH3()))
-        out_lt.getSH3() = defLt;
-    }
-    else if (sh3.mgr)
-    {
-      if (dir_lt)
-        sh3.mgr->getLighting(p, out_lt.getDirLt(), sun_as_dir1, NULL, NULL);
-      else
-        sh3.mgr->getLighting(p, out_lt.getSH3());
-    }
-    else
-      out_lt.getSH3() = defLt;
-  }
-
-  virtual void getSHLighting(dag::ConstSpan<Point3> pt, SHUnifiedLighting &out_lt, bool dir_lt = false, bool sun_as_dir1 = false) const
-  {
-    if (!dir_lt && (sh3LtProv || sh3.mgr))
-    {
-      SH3Lighting &lt = out_lt.getSH3();
-      for (int j = 0; j < SPHHARM_NUM3; j++)
-        lt.sh[j] = Color3(0, 0, 0);
-
-      for (int i = 0; i < pt.size(); i++)
-      {
-        SHUnifiedLighting plt;
-        if (sh3LtProv)
-        {
-          if (!sh3LtProv->getLighting(pt[i], plt.getSH3()))
-            out_lt.getSH3() = defLt;
-        }
-        else
-          sh3.mgr->getLighting(pt[i], plt.getSH3());
-
-        for (int j = 0; j < SPHHARM_NUM3; j++)
-        {
-          lt.sh[j].r += plt.getSH3().sh[j].r / pt.size();
-          lt.sh[j].g += plt.getSH3().sh[j].g / pt.size();
-          lt.sh[j].b += plt.getSH3().sh[j].b / pt.size();
-        }
-      }
-    }
-    else if (sh3.mgr)
-    {
-      SH3LightingManager::LightingContext *ctx = sh3.mgr->createContext();
-
-      sh3.mgr->startGetLighting(ctx);
-      for (int i = 0; i < pt.size(); i++)
-        sh3.mgr->addLightingToCtx(pt[i], ctx, sun_as_dir1);
-
-      sh3.mgr->getLighting(ctx, out_lt.getDirLt());
-      sh3.mgr->destroyContext(ctx);
-    }
-    else
-      out_lt.getSH3() = defLt;
-  }
 
   // direct lighting
   virtual void getDirectLight(Point3 &sun1_dir, Color3 &sun1_col, Point3 &sun2_dir, Color3 &sun2_col, Color3 &sky_col, bool native)
@@ -390,12 +242,6 @@ public:
       }
     }
   }
-
-  virtual void buildLightManager(const char *fname, StaticGeometryContainer &ltgeom) { sh3.save(fname, ltgeom); }
-  virtual void buildLightManager(mkbindump::BinDumpSaveCB &cwr, StaticGeometryContainer &ltgeom) { sh3.exportShlt(cwr, ltgeom); }
-
-  virtual bool loadLightManager(const char *fname) { return sh3.load(fname); }
-  virtual void destroyLightManager() { del_it(sh3.mgr); }
 
   virtual void saveSunsAndSky(DataBlock &blk) const
   {
@@ -523,10 +369,6 @@ protected:
   SkyLightProps sky;
   SunLightProps nullSun;
   StaticSceneBuilder::StdTonemapper tonemap;
-  LtMgrForLightService sh3;
-  SH3Lighting defLt;
-  IShLightingProvider *sh3LtProv;
-  bool sh3SunLt;
   bool syncLtColors, syncLtDirs;
   bool writeNumberedSuns;
 
@@ -540,7 +382,6 @@ protected:
 
   struct DynLtVarIds
   {
-    int sphHarmWorld[9];
     DirLtVarIds worldLt;
     int lightDir;
     int lightSpecularColor;

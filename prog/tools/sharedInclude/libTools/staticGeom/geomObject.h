@@ -3,7 +3,6 @@
 #pragma once
 
 
-#include <math/dag_SHlight.h>
 #include <3d/dag_materialData.h>
 
 #include <util/dag_bitArray.h>
