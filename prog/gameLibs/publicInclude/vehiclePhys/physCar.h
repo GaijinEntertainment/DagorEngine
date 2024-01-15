@@ -21,7 +21,6 @@ class DataBlock;
 class IPhysCar;
 class IPhysCarLegacyRender;
 class GeomNodeTree;
-struct SHDirLighting;
 class Point4;
 class PhysCarParams;
 class PhysCarGearBoxParams;
@@ -36,9 +35,7 @@ class ILightingCB
 {
 public:
   virtual void setPos(const Point3 &pos, bool jump = false) = 0;
-  virtual const SHDirLighting &getLighting() = 0;
   virtual void destroy() = 0;
-  virtual void setPosAndLight(const Point3 &pos, const SHDirLighting &) { setPos(pos, true); }
 };
 
 

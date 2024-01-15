@@ -21,9 +21,6 @@ public:
 #ifndef NO_3D_GFX
     if (nodeTree)
       nodeMap.init(*nodeTree, body->getModel()->getLodsResource()->getNames().node);
-    lighting.getDirLt().clear();
-    lighting.getDirLt().shAmb[SPHHARM_00] = Color3(1, 1, 1) * 1;
-    // lighting.getDirLt().sh[SPHHARM_1m1]=Color3(1,1,1)*.5f;
 
     TMatrix logicTm;
     getTm(logicTm);
@@ -132,22 +129,6 @@ public:
       return false;
     }
 
-#ifndef NO_3D_GFX
-    if (getLtCb)
-    {
-      lighting.getDirLt() = getLtCb->getLighting();
-      if (lightingK != 1.0)
-      {
-        for (int i = 0; i < 4; i++)
-          lighting.getDirLt().shAmb[i] *= lightingK;
-        lighting.getDirLt().col1 *= lightingK;
-        lighting.getDirLt().col2 *= lightingK;
-      }
-      // debug ("car1 %g %g %g", lighting.col1.r, lighting.col1.g, lighting.col1.b);
-      // debug ("amb %g %g %g", lighting.shAmb[0].r, lighting.shAmb[0].g, lighting.shAmb[0].b);
-    }
-#endif
-
     setMatrices(view_pos);
     return true;
   }
@@ -238,11 +219,10 @@ public:
     getLtCb = cb;
   }
   ILightingCB *getLightingCb() const override { return getLtCb; }
-  void setLightingK(real k) override { lightingK = k; }
+  void setLightingK(real) override {}
   GeomNodeTree *getCarBodyNodeTree() const override { return nodeTree; }
 
   bool isVisibleInMainCamera() { return isVisible; }
-  void getLighting(SH3Lighting &light_sh) const { light_sh = lighting.getSH3(); }
   void renderForShadow(const Point3 &view_pos)
   {
     bool lastLod = true;
@@ -269,16 +249,13 @@ public:
 private:
 #ifndef NO_3D_GFX
   GeomTreeIdxMap nodeMap;
-  SHUnifiedLighting lighting;
   TMatrix tmLogic2Render;
   int lastLodNo = -1;
   bool isVisible = false;
-
   ILightingCB *getLtCb = nullptr;
 #endif
   SimplePhysObject *body = nullptr;
   GeomNodeTree *nodeTree = nullptr;
-  real lightingK = 1;
   int vinyls_tex_var_id = -1, planar_vinyls_tex_var_id = -1, planar_norm_var_id = -1;
 
 #ifndef NO_3D_GFX

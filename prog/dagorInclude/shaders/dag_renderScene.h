@@ -9,7 +9,6 @@
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_IRenderWrapperControl.h>
 #include <3d/dag_render.h>
-#include <math/dag_SHlight.h>
 #include <generic/dag_smallTab.h>
 #include <generic/dag_patchTab.h>
 #include <math/dag_bounds3.h>

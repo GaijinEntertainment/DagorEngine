@@ -1,39 +1,6 @@
 #include <math/dag_SHmath.h>
-#include <math/dag_SHlight.h>
 #include <math/dag_TMatrix.h>
 #include <debug/dag_debug.h>
-
-
-const SH3Lighting SH3Lighting::ZERO(Color3(0, 0, 0));
-const SHDirLighting SHDirLighting::ZERO;
-
-Color3 SH3Lighting::getDiffuseLighting(const Point3 &n) const
-{
-  const real c1 = 0.429043f;
-  const real c2 = 0.511664f;
-  const real c3 = 0.743125f;
-  const real c4 = 0.886227f;
-  const real c5 = 0.247708f;
-
-  return (c1 * (n.x * n.x - n.y * n.y)) * sh[SPHHARM_2p2] + (c3 * n.z * n.z - c5) * sh[SPHHARM_20] + c4 * sh[SPHHARM_00] +
-         (2 * c1 * n.x * n.z) * sh[SPHHARM_2p1] + (2 * c1 * n.y * n.z) * sh[SPHHARM_2m1] + (2 * c1 * n.x * n.y) * sh[SPHHARM_2m2] +
-         (2 * c2 * n.x) * sh[SPHHARM_1p1] + (2 * c2 * n.z) * sh[SPHHARM_10] + (2 * c2 * n.y) * sh[SPHHARM_1m1];
-}
-
-
-Color3 SH3Lighting::getSample(const Point3 &n) const
-{
-  return sh[SPHHARM_00] * SPHHARM_COEF_0 + (sh[SPHHARM_1m1] * n.y + sh[SPHHARM_10] * n.z + sh[SPHHARM_1p1] * n.x) * SPHHARM_COEF_1 +
-         (sh[SPHHARM_2m2] * n.x * n.y + sh[SPHHARM_2m1] * n.y * n.z + sh[SPHHARM_2p1] * n.x * n.z) * SPHHARM_COEF_21 +
-
-         sh[SPHHARM_20] * (3 * n.z * n.z - 1) * SPHHARM_COEF_20 + sh[SPHHARM_2p2] * (n.x * n.x - n.y * n.y) * SPHHARM_COEF_22;
-}
-
-void SH3StoredLighting::dump()
-{
-  for (int i = 0; i < SPHHARM_NUM3; ++i)
-    debug("  % f  % f  % f", sh[i].r, sh[i].g, sh[i].b);
-}
 
 
 void rotate_sphharm(const Color3 worldSH[SPHHARM_NUM3], Color3 localSH[SPHHARM_NUM3], const TMatrix &tm)

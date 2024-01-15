@@ -9,7 +9,6 @@
 #include <shaders/dag_IRenderWrapperControl.h>
 #include <generic/dag_smallTab.h>
 #include <math/dag_TMatrix.h>
-#include <math/dag_SHlight.h>
 #include <math/dag_bounds3.h>
 #include <math/dag_Point4.h>
 #include <math/dag_vecMathCompatibility.h>

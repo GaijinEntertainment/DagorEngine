@@ -2,7 +2,6 @@
 #include <gameRes/dag_stdGameResId.h>
 #include <ioSys/dag_dataBlock.h>
 #include <shaders/dag_IRenderWrapperControl.h>
-#include <math/dag_SHlight.h>
 #include <3d/dag_render.h>
 #include <3d/dag_drv3d.h>
 #include <3d/dag_resMgr.h>

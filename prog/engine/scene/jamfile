@@ -16,11 +16,9 @@ Sources =
   frtdumpMgr.cpp
   renderSceneMgr.cpp
   staticFxObjs.cpp
-  sh3LtGridManager.cpp
   visibility.cpp
   occlusionMap.cpp
   #rendInstMgr.cpp
-  sh3LtMgr.cpp
   objsToPlace.cpp
   kdtree.cpp
   occlusionIo.cpp

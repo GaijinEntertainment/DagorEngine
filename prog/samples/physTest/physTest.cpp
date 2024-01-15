@@ -492,13 +492,6 @@ public:
     scene=new DynamicRenderableSceneInstance(
       new DynamicRenderableSceneLodsResource(
         new DynamicRenderableSceneResource(shmesh, "body")));
-
-    SH3Lighting lt;
-    lt.clear();
-    lt.sh[SPHHARM_00]=Color3(1,1,1)*1.0f;
-    lt.sh[SPHHARM_1m1]=Color3(1,1,1)*0.5f;
-
-    scene->setSceneLighting(lt);
   }
 
 
