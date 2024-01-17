@@ -1177,9 +1177,7 @@ void EntityObjEditor::addTemplatesGroupRequire(const char *group_name, const cha
     [&group_name](const TemplatesGroup &group) { return group.name == group_name; });
   TemplatesGroup &group = (it != orderedTemplatesGroups.end()) ? *it : orderedTemplatesGroups.push_back();
   group.name = group_name;
-  group.
-    requires
-    .push_back(require);
+  group.reqs.push_back(require);
 }
 
 void EntityObjEditor::addTemplatesGroupVariant(const char *group_name, const char *variant)
@@ -1267,7 +1265,7 @@ bool EntityObjEditor::testEcsTemplateCondition(const ecs::Template &ecs_template
       {
         if (&checkgroup == &group)
           break;
-        if (checkgroup.requires.empty() && checkgroup.variants.empty())
+        if (checkgroup.reqs.empty() && checkgroup.variants.empty())
           continue;
         if (testEcsTemplateByTemplatesGroup(ecs_template, nullptr, checkgroup, 1))
         {
@@ -1332,7 +1330,7 @@ bool EntityObjEditor::testEcsTemplateByTemplatesGroup(const ecs::Template &ecs_t
   if (!ecs_template.canInstantiate())
     return false;
 
-  for (auto &condition : group.requires)
+  for (auto &condition : group.reqs)
     if (!testEcsTemplateCondition(ecs_template, condition, group, depth))
       return false;
 
@@ -1388,7 +1386,7 @@ Sqrat::Array EntityObjEditor::getEcsTemplates(HSQUIRRELVM vm)
   templates.reserve(db.size());
 
   bool filterNonCreatable = true;
-  if (pTemplatesGroup && !pTemplatesGroup->requires.empty() && pTemplatesGroup->requires[0] == "~noncreatable")
+  if (pTemplatesGroup && !pTemplatesGroup->reqs.empty() && pTemplatesGroup->reqs[0] == "~noncreatable")
     filterNonCreatable = false;
 
   eastl::vector<eastl::string> variants;

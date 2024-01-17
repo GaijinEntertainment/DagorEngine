@@ -149,8 +149,7 @@ private:
   struct TemplatesGroup
   {
     eastl::string name;
-    eastl::vector<eastl::string>
-      requires;
+    eastl::vector<eastl::string> reqs;
     eastl::vector<eastl::pair<eastl::string, eastl::string>> variants;
   };
   eastl::vector<TemplatesGroup> orderedTemplatesGroups;
