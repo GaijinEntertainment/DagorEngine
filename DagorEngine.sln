@@ -1,0 +1,127 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Code", "Code", "{FEF3A269-1AD5-4BC8-BF57-94213689F668}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{3515D005-B190-45AD-91FF-742F5CE1EC82}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{05423D57-B211-4110-8BED-FFD0CF21C94A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "skiesSample", "samples\skiesSample\prog\skiesSample.vcxproj", "{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testGI", "samples\testGI\prog\testGI.vcxproj", "{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "prog", "prog\prog.vcxproj", "{89D18E89-8553-4D5B-842E-EE8D4F78043F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F} = {9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "natvis", "prog\_jBuild\msbuild\natvis.vcxproj", "{4EE8CF3A-7339-4469-A8B9-E62584192C8E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		dbg|_default = dbg|_default
+		dbg|Android = dbg|Android
+		dbg|linux64 = dbg|linux64
+		dbg|win32 = dbg|win32
+		dbg|win64 = dbg|win64
+		dev|_default = dev|_default
+		dev|Android = dev|Android
+		dev|linux64 = dev|linux64
+		dev|win32 = dev|win32
+		dev|win64 = dev|win64
+		rel|_default = rel|_default
+		rel|Android = rel|Android
+		rel|linux64 = rel|linux64
+		rel|win32 = rel|win32
+		rel|win64 = rel|win64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dbg|_default.ActiveCfg = dbg_win64|x64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dbg|Android.ActiveCfg = dbg_android|ARM64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dbg|linux64.ActiveCfg = dbg_linux64|x64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dbg|win32.ActiveCfg = dbg_win32|Win32
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dbg|win32.Build.0 = dbg_win32|Win32
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dbg|win64.ActiveCfg = dbg_win64|x64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dbg|win64.Build.0 = dbg_win64|x64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dev|_default.ActiveCfg = dev_win64|x64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dev|Android.ActiveCfg = dev_android|ARM64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dev|linux64.ActiveCfg = dev_linux64|x64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dev|win32.ActiveCfg = dev_win32|Win32
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dev|win32.Build.0 = dev_win32|Win32
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dev|win64.ActiveCfg = dev_win64|x64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.dev|win64.Build.0 = dev_win64|x64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.rel|_default.ActiveCfg = rel_win64|x64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.rel|Android.ActiveCfg = rel_android|ARM64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.rel|linux64.ActiveCfg = rel_linux64|x64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.rel|win32.ActiveCfg = rel_win32|Win32
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.rel|win32.Build.0 = rel_win32|Win32
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.rel|win64.ActiveCfg = rel_win64|x64
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F}.rel|win64.Build.0 = rel_win64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dbg|_default.ActiveCfg = dbg_win64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dbg|Android.ActiveCfg = dbg_android|ARM64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dbg|linux64.ActiveCfg = dbg_linux64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dbg|win32.ActiveCfg = dbg_win32|Win32
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dbg|win32.Build.0 = dbg_win32|Win32
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dbg|win64.ActiveCfg = dbg_win64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dbg|win64.Build.0 = dbg_win64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dev|_default.ActiveCfg = dev_win64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dev|Android.ActiveCfg = dev_android|ARM64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dev|linux64.ActiveCfg = dev_linux64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dev|win32.ActiveCfg = dev_win32|Win32
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dev|win32.Build.0 = dev_win32|Win32
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dev|win64.ActiveCfg = dev_win64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.dev|win64.Build.0 = dev_win64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.rel|_default.ActiveCfg = rel_win64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.rel|Android.ActiveCfg = rel_android|ARM64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.rel|linux64.ActiveCfg = rel_linux64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.rel|win32.ActiveCfg = rel_win32|Win32
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.rel|win32.Build.0 = rel_win32|Win32
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.rel|win64.ActiveCfg = rel_win64|x64
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75}.rel|win64.Build.0 = rel_win64|x64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.dbg|_default.ActiveCfg = dbg_win64|x64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.dbg|Android.ActiveCfg = dbg_android|ARM64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.dbg|linux64.ActiveCfg = dbg_linux64|x64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.dbg|win32.ActiveCfg = dbg_win32|Win32
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.dbg|win64.ActiveCfg = dbg_win64|x64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.dev|_default.ActiveCfg = dev_win64|x64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.dev|Android.ActiveCfg = dev_android|ARM64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.dev|linux64.ActiveCfg = dev_linux64|x64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.dev|win32.ActiveCfg = dev_win32|Win32
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.dev|win64.ActiveCfg = dev_win64|x64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.rel|_default.ActiveCfg = rel_win64|x64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.rel|Android.ActiveCfg = rel_android|ARM64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.rel|linux64.ActiveCfg = rel_linux64|x64
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.rel|win32.ActiveCfg = rel_win32|Win32
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F}.rel|win64.ActiveCfg = rel_win64|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.dbg|_default.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.dbg|Android.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.dbg|linux64.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.dbg|win32.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.dbg|win64.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.dev|_default.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.dev|Android.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.dev|linux64.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.dev|win32.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.dev|win64.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.rel|_default.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.rel|Android.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.rel|linux64.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.rel|win32.ActiveCfg = Any|x64
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E}.rel|win64.ActiveCfg = Any|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9A8E7914-B5F0-4E32-9F9C-E7D1B9F5040F} = {3515D005-B190-45AD-91FF-742F5CE1EC82}
+		{85EAEB4C-3C9B-4058-B97F-3A92B4A2EF75} = {3515D005-B190-45AD-91FF-742F5CE1EC82}
+		{89D18E89-8553-4D5B-842E-EE8D4F78043F} = {FEF3A269-1AD5-4BC8-BF57-94213689F668}
+		{4EE8CF3A-7339-4469-A8B9-E62584192C8E} = {05423D57-B211-4110-8BED-FFD0CF21C94A}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2582E9D2-2C2C-4D13-A629-9CCAC4373CB9}
+	EndGlobalSection
+EndGlobal

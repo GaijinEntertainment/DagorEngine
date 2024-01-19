@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="BuildGeneral"
+      DisplayName="Build"
+      PageTemplate="generic"
+      Description="Build"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.Categories>
+    <Category Name="Intellisense" />
+  </Rule.Categories>
+
+  <Rule.DataSource>
+    <DataSource Persistence="UserFile" HasConfigurationCondition="true"/>
+  </Rule.DataSource>
+
+  <EnumProperty Name="Sanitize" DisplayName="-sSanitize=" Description="Sanitizer" Category="Intellisense">
+    <EnumValue Name="" />
+    <EnumValue Name="address" />
+    <EnumValue Name="thread" />
+  </EnumProperty>
+
+  <EnumProperty Name="UseD3DMulti" DisplayName="-sUseD3DMulti=" Description="_TARGET_D3D_MULTI" Category="Intellisense">
+    <EnumValue Name="" />
+    <EnumValue Name="yes" />
+    <EnumValue Name="no" />
+  </EnumProperty>
+
+  <EnumProperty Name="Exceptions" DisplayName="-sExceptions=" Description="_HAS_EXCEPTIONS=0;DEA_COMPILER_NO_NOEXCEPT" Category="Intellisense">
+    <EnumValue Name="" />
+    <EnumValue Name="yes" />
+    <EnumValue Name="no" />
+  </EnumProperty>
+
+  <EnumProperty Name="DriverLinkage" DisplayName="-sDriverLinkage=" Description="_TARGET_STATIC_LIB" Category="Intellisense">
+    <EnumValue Name="" />
+    <EnumValue Name="static" />
+    <EnumValue Name="dynamic" />
+  </EnumProperty>
+
+  <StringListProperty Name="NMakePreprocessorDefinitions" DisplayName="Defines for Intellisense" Description="These defines will be applied only for Intellisense." Category="Intellisense" Separator=";" Subtype="folder" />
+</Rule>

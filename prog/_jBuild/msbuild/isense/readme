@@ -1,0 +1,18 @@
+To set valid values in the .json file this steps needed.
+
+- extract relevant C and C++ command line arguments from jam build.
+  e.g. jam -sPlatform=win64 -sConfig=dev -sGame=enlisted -a -n > win64.log
+- create empty files 
+  type nul > temp.c
+  type nul > temp.cpp
+- call the compiler with -dM -E
+  e.g. 
+  clang.exe -c -MD -ffunction-sections -fdata-sections -ffast-math -fdiagnostics-absolute-paths -g -dM -E temp.c > c.defines
+  clang.exe -c -MD -ffunction-sections -fdata-sections -ffast-math -fdiagnostics-absolute-paths -std=c++14 -fno-rtti -fno-exceptions -Wno-c++1z-compat -O3 -g -dM -E temp.cpp > cpp.defines
+ convert json from defines
+- replace all `"` to `\"` in .defines file
+- in notepad++ execute this regex replace. 
+  from: \S+.(\S+).(.+)
+  to: "\1": "\2",
+- copy the result json elements to the corresponding json file, corresponding json array 
+  e.g win64.json , { "predefines": { "cpp_compiler_defines": {...

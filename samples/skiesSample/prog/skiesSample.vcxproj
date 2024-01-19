@@ -13,8 +13,24 @@
   <PropertyGroup />
   <Import Project="$(MSBuildToolsDir)common.targets" />
   <ItemGroup Label="Wildcard">
-    <CppSource Include="**\*.cpp" />
-    <CppHeader Include="**\*.h;**\*.inl" />
-    <bat Include="**\*.bat;**\*.cmd" />
+    <CppSource Include="perlinNoise\coherentNoise.cpp" />
+    <CppSource Include="perlinNoise\noise1234.cpp" />
+    <CppSource Include="perlinNoise\perlinNoise.cpp" />
+    <CppSource Include="test_app.cpp" />
+    <CppSource Include="test_main.cpp" />
+    <bat Include="shaders\compile_shaders.bat" />
+    <bat Include="shaders\compile_shaders_dx11.bat" />
+    <bat Include="shaders\compile_shaders_dx12.bat" />
+    <bat Include="shaders\compile_shaders_metal.bat" />
+    <bat Include="shaders\compile_shaders_metal_ios.bat" />
+    <bat Include="shaders\compile_shaders_spirv.bat" />
+    <bat Include="shaders\compile_shaders_tools.bat" />
+    <bat Include="s.cmd" />
+    <bat Include="shaders\s.cmd" />
+    <CppHeader Include="dargInput.h" />
+    <CppHeader Include="perlinNoise\coherentNoise.h" />
+    <CppHeader Include="perlinNoise\noise1234.h" />
+    <CppHeader Include="perlinNoise\perlinNoise.h" />
+    <CppHeader Include="test_main.h" />
   </ItemGroup>
 </Project>

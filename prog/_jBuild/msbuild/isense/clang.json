@@ -1,0 +1,20 @@
+{
+  "predefines": {
+    "cpp_compiler_defines": {
+      "__building_module(X)": "false",
+      "__has_warning(X)": "false",
+      "_HAS_CONDITIONAL_EXPLICIT": "0",
+      "_CRT_USE_BUILTIN_OFFSETOF": ""
+    },
+    "cpp_user_defines": {},
+    "cpp_user_undefines": [],
+    "c_compiler_defines": {
+      "__building_module(X)": "false",
+      "__has_warning(X)": "false",
+      "_HAS_CONDITIONAL_EXPLICIT": "0",
+      "_CRT_USE_BUILTIN_OFFSETOF": ""
+    },
+    "c_user_defines": {},
+    "c_user_undefines": []
+  }
+}

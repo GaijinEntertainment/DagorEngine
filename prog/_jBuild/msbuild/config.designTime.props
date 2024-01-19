@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <JamBuildCommandLine Condition="'$(JamBuildCommandLine)' == '' and !$(GameNameIsSet)">jam -sPlatform=$(daPlatform) -sConfig=$(daConfig) $(AdjunctOptions) $(daBuildAdditionalOptions)</JamBuildCommandLine>
+    <JamBuildCommandLine Condition="'$(JamBuildCommandLine)' == '' and $(GameNameIsSet)">jam -sGame=$(GameName) -sPlatform=$(daPlatform) -sConfig=$(daConfig) $(AdjunctOptions) $(daBuildAdditionalOptions)</JamBuildCommandLine>
+    <JamReBuildCommandLine Condition="'$(JamReBuildCommandLine)' == ''">$(JamBuildCommandLine) -a</JamReBuildCommandLine>
+    <JamCleanCommandLine Condition="'$(JamCleanCommandLine)' == ''">$(JamBuildCommandLine) clean_all</JamCleanCommandLine>
+    <LocalDebuggerCommand>$(JamOutput)</LocalDebuggerCommand>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(daPlatform)' == 'win32' or '$(daPlatform)' == 'win64'">
+    <RemoteDebuggerCommand Condition="'$(RemoteDebuggerCommand)' == ''">$(RemoteRootDir)$(RelativeExeDir)$(ExeName)</RemoteDebuggerCommand>
+    <OriginalRemoteDebuggerCommand>$(RemoteDebuggerCommand)</OriginalRemoteDebuggerCommand>
+    <DeploymentDirectory Condition="'$(DeploymentDirectory)' == ''">$(RemoteRootDir)$(RelativeExeDir)</DeploymentDirectory>
+    <OriginalDeploymentDirectory>$(DeploymentDirectory)</OriginalDeploymentDirectory>
+    <AdditionalFiles Condition="'$(AdditionalFiles)' == ''">$(JamOutput)</AdditionalFiles>
+    <OriginalAdditionalFiles>$(AdditionalFiles)</OriginalAdditionalFiles>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(daPlatform)' == 'linux64'">
+    <RemoteGDEVTOOL>/opt/devtools/</RemoteGDEVTOOL>
+    <RemoteDeployDir>/opt/dagor2/</RemoteDeployDir>
+    <RemoteGameDir>$(RemoteDeployDir)$(RelativeGameDir.Replace('\', '/'))</RemoteGameDir>
+    <RemoteOutDir>$(RemoteGameDir)$(daPlatform)/</RemoteOutDir>
+    <RemoteDebuggerCommand>$(JamOutput)</RemoteDebuggerCommand>
+    <RemoteDebuggerWorkingDirectory>$(RemoteGameDir)</RemoteDebuggerWorkingDirectory>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildProjectFullPath).user" Condition="Exists('$(MSBuildProjectFullPath).user')"/>
+  <Import Project="$(MSBuildThisFileDirectory)config.internal.props" />
+</Project>

@@ -1,0 +1,145 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
+  <PropertyGroup>
+    <NoPropertyPages Condition="'$(NoPropertyPages)' == ''" >false</NoPropertyPages>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(NoPropertyPages)">
+    <UseDefaultPropertyPageSchemas>false</UseDefaultPropertyPageSchemas>
+    <UseORBISDefaultPropertyPageSchemas>false</UseORBISDefaultPropertyPageSchemas>
+    <UseProsperoDefaultPropertyPageSchemas>false</UseProsperoDefaultPropertyPageSchemas>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+
+  <PropertyGroup>
+    <ConfigurationType>Makefile</ConfigurationType>
+
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    <PlatformToolset Condition="'$(daPlatform)' == 'linux64'"></PlatformToolset>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+
+  <PropertyGroup>
+    <Platform>$(OriginPlatform)</Platform>
+    <CustomBeforeMicrosoftCommonTargets>$(MSBuildThisFileDirectory)after_user_import.props</CustomBeforeMicrosoftCommonTargets>
+
+    <GameNameIsSet>false</GameNameIsSet>
+    <GameNameIsSet Condition="'$(GameName)' != ''">true</GameNameIsSet>
+    <GameName Condition="!$(GameNameIsSet)">$(ProjectName)</GameName>
+
+    <ProjectRootDir Condition="'$(ProjectRootDir)' == ''">$(ProjectDir)</ProjectRootDir>
+    <CommonProgDir Condition="'$(ProjectDir)' != '$(SolutionDir)prog\'">$(SolutionDir)prog\</CommonProgDir>
+    <_1stPartyDir Condition="'$(_1stPartyDir)' == ''">$(CommonProgDir)1stPartyLibs\</_1stPartyDir>
+    <_3rdPartyDir Condition="'$(_3rdPartyDir)' == ''">$(CommonProgDir)3rdPartyLibs\</_3rdPartyDir>
+
+    <OutDir>$(SolutionDir)_output\</OutDir>
+    <IntDir>$(OutDir)msbuild\</IntDir>
+    <ExecutablePath>$(GDEVTOOL);$(PATH);$(GDEVTOOL)\python3</ExecutablePath>
+    <IncludePath />
+    <ReferencePath />
+    <ExcludePath>$(GDEVTOOL)</ExcludePath>
+
+    <RemoteRootDir>C:\Games\$(ProjectName)\</RemoteRootDir>
+    <RemoteDebuggerDeployCppRuntime>false</RemoteDebuggerDeployCppRuntime>
+    <PreLaunchCommand>export DISPLAY=:0</PreLaunchCommand>
+    <RemoteGDEVTOOL>/opt/devtools/</RemoteGDEVTOOL>
+    <RemoteDeployDir>/opt/dagor2/</RemoteDeployDir>
+    <SkipDataFilesCopy>yes</SkipDataFilesCopy>
+
+    <TLogLocation>$(IntDir)$(ProjectName)\$(Configuration).tlog\</TLogLocation>
+    <LastBuildUnsuccessful>$(TLogLocation)unsuccessfulbuild</LastBuildUnsuccessful>
+    <LastBuildState>$(TLogLocation)$(ProjectName).lastbuildstate</LastBuildState>
+
+    <VCUpdateVer>16.10.3</VCUpdateVer>
+    <VCRoot>$(GDEVTOOL)\vc2019_$(VCUpdateVer)\</VCRoot>
+    <ClangVer>15.0.7</ClangVer>
+    <ClangRoot>$(GDEVTOOL)\LLVM-$(ClangVer)\lib\clang\$(ClangVer)\</ClangRoot>
+    <WinSDKROOT>$(GDEVTOOL)\win.sdk.100\Include\10.0.19041.0\</WinSDKROOT>
+    <NDKROOT>$(GDEVTOOL)\android-ndk-r23b\</NDKROOT>
+    <OpenXrVer>1.0.16</OpenXrVer>
+    <Fmod-studioVer>2.01.06</Fmod-studioVer>
+    <ApexDir>$(_3rdPartyDir)apex\</ApexDir>
+    <PhysXDir>$(_3rdPartyDir)physx\</PhysXDir>
+
+    <Exceptions>no</Exceptions>
+    <DriverLinkage>static</DriverLinkage>
+  </PropertyGroup>
+
+  <Choose>
+    <When Condition="'$(daPlatform)' == 'android'">
+      <PropertyGroup>
+        <NMakeIncludeSearchPath>$(NDKROOT)sources\cxx-stl\llvm-libc++\include;$(NDKROOT)sources\cxx-stl\llvm-libc++abi\include;$(NDKROOT)sysroot;$(NDKROOT)toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\12.0.8\include;$(NDKROOT)sysroot\usr\include;$(NDKROOT)toolchains\llvm\prebuilt\windows-x86_64\sysroot\usr\include;$(NDKROOT)toolchains\llvm\prebuilt\windows-x86_64\sysroot\usr\include\aarch64-linux-android;$(NDKROOT)sysroot\usr\include\aarch64-linux-android;$(CommonProgDir)dagorInclude;$(_1stPartyDir);$(_3rdPartyDir)eastl\include;$(_3rdPartyDir);$(NDKROOT)sources\android\support\include;$(NDKROOT)sources\android\native_app_glue</NMakeIncludeSearchPath>
+        <NMakePreprocessorDefinitions>_TARGET_ANDROID=1;_TARGET_64BIT=1;_TARGET_SIMD_NEON=1;_TARGET_STATIC_LIB=1;__ANDROID_API__=28;ANDROID_NDK;ANDROID;__ANDROID__;__ARM_EABI__;__STDC_INT64__;__forceinline=;__cdecl=;__stdcall=;__fastcall=;_snprintf=snprintf;_vsnprintf=vsnprintf;stricmp=strcasecmp;strnicmp=strncasecmp;i_strlen=strlen;strcpy_s=strcpy;_countof=countof;EA_COMPILER_RVCT;FMOD_SRC_VERSION=0</NMakePreprocessorDefinitions>
+        <NMakeForcedIncludes>$(MSBuildThisFileDirectory)isense\android.h</NMakeForcedIncludes>
+        <ToolsetISenseIdentifier>Android;$(MSBuildThisFileDirectory)isense\android.json</ToolsetISenseIdentifier>
+
+        <AdditionalSourceSearchPaths>$(ProjectDir)platform\android.bundle\common\;$(ProjectDir)platform\android.bundle\$(GameName)\</AdditionalSourceSearchPaths>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(daPlatform)' == 'linux64'">
+      <PropertyGroup>
+        <LinuxIncludePath>/usr/include</LinuxIncludePath>
+        <NMakePreprocessorDefinitions>__LINUX__=64;_TARGET_PC_LINUX=3;_TARGET_PC=3;_TARGET_64BIT=1;_TARGET_SIMD_SSE=2;_TARGET_STATIC_LIB=1;_POSIX_C_SOURCE=200809L;_GNU_SOURCE;__STDC_CONSTANT_MACROS;__forceinline=inline __attribute__((always_inline));__cdecl=;__stdcall=;__fastcall=;_snprintf=snprintf;_vsnprintf=vsnprintf;stricmp=strcasecmp;strnicmp=strncasecmp;i_strlen=(int)strlen;_TARGET_D3D_MULTI</NMakePreprocessorDefinitions>
+        <ToolsetISenseIdentifier>Linux;$(IntDir)iconfig.json</ToolsetISenseIdentifier>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(daPlatform)' == 'win32'">
+      <PropertyGroup>
+        <NMakeIncludeSearchPath>$(CommonProgDir)dagorInclude;$(_1stPartyDir);$(_3rdPartyDir);$(_3rdPartyDir)eastl\include;$(WinSDKROOT)um;$(WinSDKROOT)shared;$(VCRoot)include;$(WinSDKROOT)ucrt</NMakeIncludeSearchPath>
+        <NMakePreprocessorDefinitions>_TARGET_PC=1;_TARGET_PC_WIN=1;_TARGET_CPU_IA32=1;__IA32__=1;WIN32;_TARGET_SIMD_SSE=2;WIN32_LEAN_AND_MEAN=;_USE_MATH_DEFINES;NOMINMAX;i_strlen=(int)strlen;asm=__asm</NMakePreprocessorDefinitions>
+
+        <UseD3DMulti>yes</UseD3DMulti>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(daPlatform)' == 'win64'">
+      <PropertyGroup>
+        <NMakeIncludeSearchPath>$(MSBuildToolsDir)isense\workaround;$(ClangRoot)include;$(CommonProgDir)dagorInclude;$(_1stPartyDir);$(_3rdPartyDir);$(_3rdPartyDir)eastl\include;$(WinSDKROOT)ucrt;$(WinSDKROOT)um;$(WinSDKROOT)shared;$(VCRoot)include</NMakeIncludeSearchPath>
+        <NMakePreprocessorDefinitions>_TARGET_PC=1;_TARGET_PC_WIN=1;_TARGET_64BIT=1;WIN64;_TARGET_SIMD_SSE=4;WIN32_LEAN_AND_MEAN=;_USE_MATH_DEFINES;NOMINMAX;i_strlen=(int)strlen;asm=__asm;__cdecl=;__vectorcall=;VECTORCALL=;_CRT_DECLARE_NONSTDC_NAMES=1</NMakePreprocessorDefinitions>
+        <NMakeForcedIncludes>$(MSBuildThisFileDirectory)isense\win64.h</NMakeForcedIncludes>
+        <ToolsetISenseIdentifier>Clang.Windows;$(MSBuildThisFileDirectory)isense\win64.json</ToolsetISenseIdentifier>
+
+        <UseD3DMulti>yes</UseD3DMulti>
+      </PropertyGroup>
+    </When>
+  </Choose>
+
+  <Choose>
+    <When Condition="'$(GameType)' == 'sample'">
+      <PropertyGroup>
+        <NMakeIncludeSearchPath>$(NMakeIncludeSearchPath);$(CommonProgDir)samples\commonFramework;.</NMakeIncludeSearchPath>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup />
+    </Otherwise>
+  </Choose>
+
+  <PropertyGroup>
+    <_1stPartyLibs>$(_1stPartyDir)quirrel;$(_1stPartyDir)quirrel\quirrel;$(_1stPartyDir)quirrel\quirrel\include;$(_1stPartyDir)quirrel\sqplus;$(_1stPartyDir)quirrel\sqrat\include;$(_1stPartyDir)jsoncpp\include;$(_1stPartyDir)daScript\include;$(_1stPartyDir)daScript\modules\dasQuirrel\src;$(_1stPartyDir)yuload\include;$(_1stPartyDir)yuplay2;$(_1stPartyDir)yuplay2\include;$(_1stPartyDir)sysinfo;$(_1stPartyDir)rapidJsonUtils\include</_1stPartyLibs>
+    <_3rdPartyLibs>$(_3rdPartyLibs);$(_3rdPartyDir)phys\bullet-$(BulletSdkVer)\src;$(_3rdPartyDir)hash;$(_3rdPartyDir)libcurl\include;$(_3rdPartyDir)Detour\Include;$(_3rdPartyDir)Recast\Include;$(_3rdPartyDir)arc;$(_3rdPartyDir)arc\brotli\include;$(_3rdPartyDir)arc\lz4;$(_3rdPartyDir)arc\zlib-ng;$(_3rdPartyDir)arc\libzip\lib;$(_3rdPartyDir)arc\zstd-1.4.5;$(_3rdPartyDir)libb64\include;$(_3rdPartyDir)rapidjson\include;$(_3rdPartyDir)openssl-1.1\include;$(_3rdPartyDir)codecs\include;$(_3rdPartyDir)codecs\dav1d\include;$(_3rdPartyDir)ska_hash_map;$(_3rdPartyDir)mongoose;$(_3rdPartyDir)enet\include;$(_3rdPartyDir)libircclient\include;$(_3rdPartyDir)cef3\v3538;$(_3rdPartyDir)cef3\v3538\include;$(_3rdPartyDir)binPack2D\include;$(_3rdPartyDir)breakpad;$(_3rdPartyDir)pcre\pcre;$(_3rdPartyDir)utf8;$(_3rdPartyDir)libev;$(_3rdPartyDir)freetype\freetype-2.8\include;$(_3rdPartyDir)freetype\harfbuzz-2.6.4\src;$(_3rdPartyDir)scripts\angelscript\include;$(_3rdPartyDir)scripts\angelscript\add_on;$(_3rdPartyDir)convert\fastDXT;$(_3rdPartyDir)bencode;$(_3rdPartyDir)imgui;$(GDEVTOOL)\oodle.2.8\include;$(GDEVTOOL)\fltk-1.3.4</_3rdPartyLibs>
+
+    <NMakeIncludeSearchPath>$(NMakeIncludeSearchPath);$(CommonProgDir)engine\sharedInclude;$(CommonProgDir)tools\sharedInclude;$(CommonProgDir)gameLibs\publicInclude;$(CommonProgDir)gameLibs\publicInclude\quirrel;$(CommonProgDir)gameLibs\ecs\input;$(CommonProgDir)commonFx\commonFxGame;$(_1stPartyLibs);$(_3rdPartyLibs);$(CommonProgDir)engine;$(SolutionDir)launcher\client\updater\include</NMakeIncludeSearchPath>
+    <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);USE_SQRAT_CONFIG</NMakePreprocessorDefinitions>
+    <NMakeForcedIncludes>$(NMakeForcedIncludes);memory\dag_memBase.h</NMakeForcedIncludes>
+
+    <ClangMode>false</ClangMode>
+    <ClangMode Condition="$(ToolsetISenseIdentifier.Contains('Clang')) or $(ToolsetISenseIdentifier.Contains('Linux')) or $(ToolsetISenseIdentifier.Contains('Android'))">true</ClangMode>
+    <CppLanguageStandard>stdcpp17</CppLanguageStandard>
+    <CppLanguageStandard Condition="'$(ClangMode)' == 'true'">c++17</CppLanguageStandard>
+
+    <GameDir>$([MSBuild]::NormalizePath('$(GameDir)'))</GameDir>
+    <RelativeGameDir>$([MSBuild]::MakeRelative($(SolutionDir), $(GameDir)))</RelativeGameDir>
+
+    <DesignTimeBuild Condition="'$(DesignTimeBuild)' != 'true'">false</DesignTimeBuild>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <BuildLog>
+      <Path>$(IntDir)$(ProjectName)\$(Configuration).log</Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+</Project>

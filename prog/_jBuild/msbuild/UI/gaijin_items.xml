@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
+
+  <ItemType Name="None" DisplayName="Does not participate in build"/>
+
+  <ContentType Name="ShaderSource" DisplayName="Shader Source File" ItemType="ShaderSource" />
+  <ItemType Name="ShaderSource" DisplayName="Shader Source File" />
+  <FileExtension Name=".dshl" ContentType="ShaderSource" />
+  <FileExtension Name=".hlsl" ContentType="ShaderSource" />
+  <FileExtension Name=".hlsli" ContentType="ShaderSource" />
+
+  <ContentType Name="Bat" DisplayName="Batch Script" ItemType="Bat" />
+  <ItemType Name="Bat" DisplayName="Batch Script" />
+  <FileExtension Name=".bat" ContentType="Bat" />
+  <FileExtension Name=".cmd" ContentType="Bat" />
+
+  <ContentType Name="CppHeader" DisplayName="C/C++ Header File" ItemType="CppHeader" />
+  <ItemType Name="CppHeader" DisplayName="C/C++ Header File" />
+  <FileExtension Name=".h" ContentType="CppHeader"/>
+  <FileExtension Name=".h++" ContentType="CppHeader"/>
+  <FileExtension Name=".hh" ContentType="CppHeader"/>
+  <FileExtension Name=".hpp" ContentType="CppHeader"/>
+  <FileExtension Name=".hxx" ContentType="CppHeader"/>
+  <FileExtension Name=".ipp" ContentType="CppHeader"/>
+
+  <ContentType Name="CCode" DisplayName="C Source File" ItemType="CppSource" />
+  <ContentType Name="CppCode" DisplayName="Cpp Source File" ItemType="CppSource" />
+  <ItemType Name="CppSource" DisplayName="C/C++ Compile" />
+  <FileExtension Name=".c" ContentType="CCode"/>
+  <FileExtension Name=".cc" ContentType="CppCode"/>
+  <FileExtension Name=".c++" ContentType="CppCode"/>
+  <FileExtension Name=".cpp" ContentType="CppCode"/>
+  <FileExtension Name=".cxx" ContentType="CppCode"/>
+
+  <ContentType Name="JamFile" DisplayName="Jam build file" ItemType="None" />
+  <FileExtension Name=".jam" ContentType="JamFile"/>
+  <FileExtension Name="jamfile" ContentType="JamFile"/>
+
+</ProjectSchemaDefinitions>

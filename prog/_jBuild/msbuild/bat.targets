@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- This part for Ctrl+F7 compile for .bat -->
+  <ItemGroup>
+    <AvailableItemName Include="Bat">
+      <Targets>SelectedBat</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+
+  <UsingTask TaskName="Gaijin.MSBuild.Utilities.Exec" AssemblyFile="Gaijin.MSBuild.Utilities.dll" />
+
+  <Target Name="SelectedBat" DependsOnTargets="$(BatExecDependsOn)">
+    <ItemGroup>
+      <SelectedFiles Include="$(SelectedFiles)" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <SelectedBat Include="@(Bat)" Condition="'%(Identity)' == '@(SelectedFiles)'" />
+    </ItemGroup>
+
+    <Gaijin.MSBuild.Utilities.Exec Command="%(SelectedBat.Filename)%(SelectedBat.Extension) %(SelectedBat.CommandLineArgs)" WorkingDirectory="%(SelectedBat.RootDir)%(SelectedBat.Directory)" />
+  </Target>
+</Project>

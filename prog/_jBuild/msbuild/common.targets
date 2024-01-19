@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+
+  <Import Project="pc.targets" Condition="'$(daPlatform)' == 'win32' or '$(daPlatform)' == 'win64'" />
+  <Import Project="android.targets" Condition="'$(daPlatform)' == 'android'" />
+  <Import Project="linux64.targets" Condition="'$(daPlatform)' == 'linux64'" />
+
+  <!-- Use the same targets for Android PS build as for Windows. -->
+  <Import Project="pc.targets" Condition="'$(daPlatform)' == 'android'" />
+
+  <PropertyGroup Condition="'$(daPlatform)' == 'win32' or '$(daPlatform)' == 'win64'">
+    <RemoteDebuggerWorkingDirectory>$(RemoteRootDir)</RemoteDebuggerWorkingDirectory>
+    <RemoteDebuggerCommand Condition="'$(RemoteDebuggerCommand)' == '$(OriginalRemoteDebuggerCommand)'">$(RemoteRootDir)$(RelativeExeDir)$(ExeName)</RemoteDebuggerCommand>
+    <DeploymentDirectory Condition="'$(DeploymentDirectory)' == '$(OriginalDeploymentDirectory)'">$(RemoteRootDir)$(RelativeExeDir)</DeploymentDirectory>
+    <AdditionalFiles Condition="'$(AdditionalFiles)' == '$(OriginalAdditionalFiles)'">$(JamOutput)</AdditionalFiles>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NMakeBuildCommandLine>$(JamBuildCommandLine)</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>$(JamReBuildCommandLine)</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>$(JamCleanCommandLine)</NMakeCleanCommandLine>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <UseCppSource2>false</UseCppSource2>
+    <!-- There is a bug with PCH, when it's enabled, then the include at line 1 is skipped -->
+    <PrecompiledHeader Condition="'$(PrecompiledHeaderFile)' != ''">Use</PrecompiledHeader>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <ExplicitCppSource>
+      <AdditionalOptions>$(AdditionalOptions)</AdditionalOptions>
+      <ForcedIncludeFiles>$(NMakeForcedIncludes);$(PrecompiledHeaderFile)</ForcedIncludeFiles>
+      <ForcedUsingFiles>$(NMakeForcedUsingAssemblies)</ForcedUsingFiles>
+      <PreprocessorDefinitions>$(NMakePreprocessorDefinitions)</PreprocessorDefinitions>
+    </ExplicitCppSource>
+  </ItemDefinitionGroup>
+
+  <Target Name="GetGeneratedFiles" />
+  <Target Name="GetProjectReferencesInfo" />
+  <Target Name="GetAssemblyReferences" />
+  <Target Name="GetClCommandLineForReference" />
+  <Target Name="GetWinMDReferences" />
+  <Target Name="GetComReferences" />
+  <Target Name="GetSDKReferences" />
+  <Target Name="GetProjectReferences" />
+  <Target Name="GetForeignReferences" />
+  <Target Name="GetResolvedReferences" />
+  <Target Name="GetResolvedSDKReferences" />
+  <Target Name="ResolveProjectReferencesDesignTime" />
+  <Target Name="SatelliteDllsProjectOutputGroup" />
+
+  <PropertyGroup>
+    <DetermineProjectTypeTargets />
+    <CppItems>false</CppItems>
+  </PropertyGroup>
+
+  <Target Name="GetProjectDirectories" Returns="@(_ProjectDirectories)" DependsOnTargets="$(DetermineProjectTypeTargets)">
+    <ItemGroup>
+      <_ProjectDirectories Include="dummy">
+        <IncludePath>$(NMakeIncludeSearchPath);$(CommonIncludeDirs)</IncludePath>
+        <FrameworkIncludePath />
+        <ExcludePath>$(ExcludePath)</ExcludePath>
+        <ReferencePath>$(NMakeAssemblySearchPath)</ReferencePath>
+        <ProjectDir>$(ProjectRootDir)</ProjectDir>
+        <ToolsetISenseIdentifier>$(ToolsetISenseIdentifier)</ToolsetISenseIdentifier>
+      </_ProjectDirectories>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="HideWildCardChanges" AfterTargets="GetProjectDirectories" Condition="'$(ReplaceWildcardsInProjectItems)' == 'true'">
+    <PropertyGroup>
+      <AssumeUnchangedApplyMarkerFile>$(IntDir)$(ProjectGuid)</AssumeUnchangedApplyMarkerFile>
+      <RelativeProjectPath>$([MSBuild]::MakeRelative($(SolutionDir), $(ProjectPath)))</RelativeProjectPath>
+    </PropertyGroup>
+
+    <Exec Command="git update-index --assume-unchanged $(RelativeProjectPath)" WorkingDirectory="$(SolutionDir)" Condition="!Exists('$(AssumeUnchangedApplyMarkerFile)')" IgnoreExitCode="true"/>
+    <WriteLinesToFile File="$(AssumeUnchangedApplyMarkerFile)" Condition="!Exists('$(AssumeUnchangedApplyMarkerFile)')"/>
+  </Target>
+
+  <Target Name="InitGetClCommandLines">
+    <ItemGroup>
+      <GenericCppSource Include="__temporary.cpp">
+        <AdditionalOptions Condition="'$(AdditionalOptions)' != ''">$(AdditionalOptions)</AdditionalOptions>
+        <CompileAs>CompileAsCpp</CompileAs>
+        <ConfigurationOptions>true</ConfigurationOptions>
+        <ForcedIncludeFiles Condition="'$(NMakeForcedIncludes);$(PrecompiledHeaderFile)' != ''">$(NMakeForcedIncludes);$(PrecompiledHeaderFile)</ForcedIncludeFiles>
+        <ForcedUsingFiles Condition="'$(NMakeForcedUsingAssemblies)' != ''">$(NMakeForcedUsingAssemblies)</ForcedUsingFiles>
+        <PreprocessorDefinitions Condition="'$(NMakePreprocessorDefinitions)' != ''">$(NMakePreprocessorDefinitions)</PreprocessorDefinitions>
+      </GenericCppSource>
+    </ItemGroup>
+  </Target>
+
+  <UsingTask TaskName="Gaijin.MSBuild.Utilities.UpdateExplicitCppSources" AssemblyFile="Gaijin.MSBuild.Utilities.dll" />
+
+  <Target Name="PrepareExplicitCppSource" Condition="'@(ExplicitCppSource)' != ''" BeforeTargets="PrepareCppSource">
+    <ItemGroup>
+      <CppSource Remove="@(ExplicitCppSource->'%(Identity)')" />
+    </ItemGroup>
+
+    <Gaijin.MSBuild.Utilities.UpdateExplicitCppSources CppSource="@(ExplicitCppSource)" ConfigPerDirectory="@(ConfigPerDirectory)">
+      <Output TaskParameter="CppSource" ItemName="CppItem" />
+    </Gaijin.MSBuild.Utilities.UpdateExplicitCppSources>
+
+    <PropertyGroup>
+      <CppItems>true</CppItems>
+    </PropertyGroup>
+  </Target>
+
+  <UsingTask TaskName="Gaijin.MSBuild.Utilities.CreateCppItems" AssemblyFile="Gaijin.MSBuild.Utilities.dll" />
+
+  <Target Name="PrepareCppSource" Condition="'@(ConfigPerDirectory)' != ''" DependsOnTargets="InitGetClCommandLines">
+    <Gaijin.MSBuild.Utilities.CreateCppItems CppSource="@(CppSource)" ConfigPerDirectory="@(ConfigPerDirectory)" GenericCppSource="@(GenericCppSource)">
+      <Output TaskParameter="CppSource" ItemName="CppItem" />
+    </Gaijin.MSBuild.Utilities.CreateCppItems>
+
+    <PropertyGroup>
+      <CppItems>true</CppItems>
+    </PropertyGroup>
+  </Target>
+
+  <UsingTask TaskName="CLCommandLine" AssemblyFile="$(CurrentVCTargetsPath)\Microsoft.Build.CPPTasks.Common.dll"/>
+  <Target Name="GetClCommandLines" Returns="@(ClCommandLines)" DependsOnTargets="InitGetClCommandLines;PrepareExplicitCppSource;PrepareCppSource" Condition="'$(PlatformToolset)' != 'v141'">
+    <CLCommandLine
+            BuildingInIDE                      ="true"
+            Sources                            ="@(GenericCppSource)"
+
+            AdditionalOptions                  ="%(GenericCppSource.AdditionalOptions)"
+            CompileAs                          ="%(GenericCppSource.CompileAs)"
+
+            ForcedIncludeFiles                 ="%(GenericCppSource.ForcedIncludeFiles)"
+
+            PreprocessorDefinitions            ="%(GenericCppSource.PreprocessorDefinitions)"
+
+            PrecompiledHeader                  ="$(PrecompiledHeader)"
+            PrecompiledHeaderFile              ="$(PrecompiledHeaderFile)"
+
+            ClangMode                          ="$(ClangMode)"
+
+            CLanguageStandard                  ="$(CLanguageStandard)"
+            CppLanguageStandard                ="$(CppLanguageStandard)"
+            LanguageStandard_C                 ="$(CLanguageStandard)"
+            LanguageStandard                   ="$(CppLanguageStandard)"
+    >
+      <Output TaskParameter="CommandLines" ItemName="ClCommandLines"/>
+    </CLCommandLine>
+
+    <CLCommandLine
+            Condition                          ="$(CppItems)"
+
+            BuildingInIDE                      ="true"
+            Sources                            ="@(CppItem)"
+
+            AdditionalIncludeDirectories       ="%(CppItem.AdditionalIncludeDirectories)"
+            AdditionalOptions                  ="%(CppItem.AdditionalOptions)"
+            CompileAs                          ="%(CppItem.CompileAs)"
+
+            ForcedIncludeFiles                 ="%(CppItem.ForcedIncludeFiles)"
+
+            PreprocessorDefinitions            ="%(CppItem.PreprocessorDefinitions)"
+
+            PrecompiledHeader                  ="$(PrecompiledHeader)"
+            PrecompiledHeaderFile              ="$(PrecompiledHeaderFile)"
+
+            UndefinePreprocessorDefinitions    ="%(CppItem.UndefinePreprocessorDefinitions)"
+
+            ClangMode                          ="$(ClangMode)"
+
+            CLanguageStandard                  ="$(CLanguageStandard)"
+            CppLanguageStandard                ="$(CppLanguageStandard)"
+            LanguageStandard_C                 ="$(CLanguageStandard)"
+            LanguageStandard                   ="$(CppLanguageStandard)"
+    >
+      <Output TaskParameter="CommandLines" ItemName="ClCommandLines"/>
+    </CLCommandLine>
+  </Target>
+
+  <UsingTask TaskName="SetEnv" AssemblyFile="$(CurrentVCTargetsPath)\Microsoft.Build.CPPTasks.Common.dll"/>
+  <!-- In case of GDEVTOOL is set as lower case this fix the build -->
+  <Target Name="Set_DEVTOOLEnvironmentVariables">
+    <SetEnv Name="_DEVTOOL" Value="$(GDEVTOOL)" Prefix="false" >
+      <Output TaskParameter="OutputEnvironmentVariable" PropertyName="GDEVTOOL"/>
+    </SetEnv>
+  </Target>
+
+  <PropertyGroup>
+    <SetBuildDefaultEnvironmentVariablesDependsOn>
+      Set_DEVTOOLEnvironmentVariables;
+      $(SetBuildDefaultEnvironmentVariablesDependsOn)
+    </SetBuildDefaultEnvironmentVariablesDependsOn>
+
+    <BatExecDependsOn>
+      SetBuildDefaultEnvironmentVariables
+    </BatExecDependsOn>
+  </PropertyGroup>
+
+  <!-- This part for Ctrl+F7 compile -->
+  <PropertyGroup Condition="$(DesignTimeBuild)">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvailableItemName Include="CppSource">
+      <Targets>CompileSelectedFiles</Targets>
+    </AvailableItemName>
+    <!--
+    <AvailableItemName Include="ShaderSource">
+      <Targets>CompileSelectedShader</Targets>
+    </AvailableItemName>
+-->
+
+    <PropertyPageSchema Remove="@(PropertyPageSchema)" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)UI\gaijin_items.xml" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)UI\bat.xml;
+                                 $(VCTargetsPath)$(LangID)\general_file.xml">
+      <Context>File</Context>
+    </PropertyPageSchema>
+  </ItemGroup>
+
+  <ItemGroup Condition="!$(NoPropertyPages)">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)UI\general$(ReplaceWildcardsInProjectItems).xml">
+      <Context>Project</Context>
+    </PropertyPageSchema>
+  </ItemGroup>
+
+  <Choose>
+    <When Condition="!$(NoPropertyPages)">
+      <Choose>
+        <When Condition="'$(daPlatform)' == 'android'">
+          <ItemGroup>
+            <PropertyPageSchema Include="$(VCTargetsPath)\$(LangID)\debugger_general.xml;
+                                         $(AndroidCommonTargetsPath)$(LangID)\AndroidDebugger.xml" />
+          </ItemGroup>
+        </When>
+
+        <When Condition="'$(daPlatform)' == 'linux64'">
+          <ItemGroup>
+            <PropertyPageSchema Include="$(VCTargetsPath)$(LangID)\debugger_general.xml;
+                                         $(LinuxCommonTargetsPath)$(LangID)\remote_debugger_linux.xml;
+                                         $(MSBuildThisFileDirectory)UI\linux.xml"/>
+          </ItemGroup>
+        </When>
+
+        <When Condition="'$(daPlatform)' == 'win32' or '$(daPlatform)' == 'win64'">
+          <ItemGroup>
+            <PropertyPageSchema Include="$(VCTargetsPath)\$(LangID)\debugger_general.xml;
+                                         $(VCTargetsPath)\$(LangID)\debugger_local_windows.xml;
+                                         $(MSBuildThisFileDirectory)UI\debugger_remote_windows.xml" />
+          </ItemGroup>
+        </When>
+
+        <Otherwise>
+          <ItemGroup>
+            <PropertyPageSchema Include="$(VCTargetsPath)$(LangID)\debugger_*.xml" />
+          </ItemGroup>
+        </Otherwise>
+      </Choose>
+    </When>
+  </Choose>
+
+  <UsingTask TaskName="Gaijin.MSBuild.Utilities.Exec" AssemblyFile="Gaijin.MSBuild.Utilities.dll" />
+  <UsingTask TaskName="Gaijin.MSBuild.Utilities.GetCompileCmdOfSelectedFiles" AssemblyFile="Gaijin.MSBuild.Utilities.dll" />
+
+  <Target Name="CompileSelectedFiles">
+    <PropertyGroup>
+      <BuildCommandLine Condition="'$(NMakeBuildCommandLine)' != ''">$(NMakeBuildCommandLine.Replace('jam', ''))</BuildCommandLine>
+      <BuildCommandLine Condition="'$(NMakeBuildCommandLine)' == ''">-sPlatform=$(daPlatform) -sConfig=$(daConfig) $(AdjunctOptions) $(daBuildAdditionalOptions)</BuildCommandLine>
+
+      <WorkDirectory Condition="Exists('$(ProjectRootDir)jamfile')">$(ProjectRootDir)</WorkDirectory>
+      <WorkDirectory Condition="!Exists('$(ProjectRootDir)jamfile')">$(DefaultProjectDir)</WorkDirectory>
+    </PropertyGroup>
+
+    <Gaijin.MSBuild.Utilities.GetCompileCmdOfSelectedFiles BuildCommand="$(BuildCommandLine)" WorkDirectory="$(WorkDirectory)" SelectedFiles="$(SelectedFiles)" ExcludeArgs="-showIncludes">
+      <Output TaskParameter="Commands" ItemName="Commands"/>
+      <Output TaskParameter="SkippedFiles" ItemName="SkippedFiles"/>
+    </Gaijin.MSBuild.Utilities.GetCompileCmdOfSelectedFiles>
+
+    <Message Text="%(Commands.File)" Importance="High" Condition="'%(Commands.File)' != '' and '$(ClangMode)' == 'true'"/>
+
+    <Gaijin.MSBuild.Utilities.Exec Command="%(Commands.Identity)" WorkingDirectory="$(WorkDirectory)" Condition="'%(Commands.Identity)' != ''"/>
+
+    <Message Text="Skipped files:" Importance="High" Condition="'@(SkippedFiles)' != ''"/>
+    <Message Text="%(SkippedFiles.Identity)" Importance="High" Condition="'%(SkippedFiles.Identity)' != ''"/>
+  </Target>
+
+  <!--
+  <Target Name="CompileSelectedShader">
+    <PropertyGroup>
+      <Config>$(daConfig.Replace('dev', 'rel'))</Config>
+    </PropertyGroup>
+
+    <MSBuild Projects="$(MSBuildThisFileDirectory)shaders.vcxproj" Targets="CompileShaderSources" Properties="Configuration=$(Config);Platform=x64;SelectedShader=$(GameType)\$(ShaderCompiler);SelectedFiles=$(SelectedFiles);ShaderCompilerArguments=$(ShaderCompilerArguments)"/>
+  </Target>
+-->
+  <Import Project="$(MSBuildThisFileDirectory)bat.targets"/>
+
+  <Target Name="InitializeBuildStatus" BeforeTargets="" Condition="'$(DesignTimeBuild)' != 'true'">
+    <!-- Global up-to-date check support -->
+    <PropertyGroup Condition="'$(UseSolutionDirInProjectEvaluationFingerprint)' != 'false'">
+      <ProjectEvaluationFingerprint>$(Configuration)|$(Platform)|$(SolutionDir)|$(ProjectEvaluationFingerprint)</ProjectEvaluationFingerprint>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(UseSolutionDirInProjectEvaluationFingerprint)' == 'false'">
+      <ProjectEvaluationFingerprint>$(Configuration)|$(Platform)|$(ProjectEvaluationFingerprint)</ProjectEvaluationFingerprint>
+    </PropertyGroup>
+
+    <WriteLinesToFile Overwrite="true" File="$(LastBuildState)" Lines="$(ProjectEvaluationFingerprint)"/>
+
+    <!-- Touch and create this file to indicate that the build has start.
+    In case of an error, this will remain on disk as quick indication to the IDE that the project still needs building. -->
+    <Touch AlwaysCreate="true" Files="$(LastBuildUnsuccessful)"/>
+  </Target>
+
+  <Target Name="FinalizeBuildStatus" AfterTargets="" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Delete Files="$(LastBuildUnsuccessful)" Condition="Exists($(LastBuildUnsuccessful))"/>
+    <Touch Files="$(LastBuildState)" Condition="Exists($(LastBuildState))"/>
+  </Target>
+</Project>

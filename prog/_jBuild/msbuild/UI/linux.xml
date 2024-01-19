@@ -1,0 +1,181 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Rule
+      Name="ConfigurationGeneral"
+      DisplayName="Linux"
+      PageTemplate="generic"
+      Description="Linux"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.Categories>
+    <Category Name="General" DisplayName="General" Description="General" />
+    <Category Name="RemoteDagorSettings" DisplayName="Remote settings"/>
+    <Category Name="Intellisense" DisplayName="Intellisense"/>
+  </Rule.Categories>
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" Label="Configuration" />
+  </Rule.DataSource>
+  <StringProperty Name="OutDir" DisplayName="Output Directory"
+                  Description="Specifies a relative path to the output file directory; can include environment variables."
+                  Category="General" Default="$(SolutionDir)$(ConfigurationName)"
+                  Subtype="folder"
+                  F1Keyword="VC.Project.VCConfiguration.OutputDirectory" Visible="false">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="IntDir" DisplayName="Intermediate Directory"
+                  Description="Specifies a relative path to the intermediate file directory; can include environment variables."
+                  Category="General" Default="$(ConfigurationName)"
+                  Subtype="folder"
+                  F1Keyword="VC.Project.VCConfiguration.IntermediateDirectory" Visible="false">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="BuildLogFile" DisplayName="Build Log File"
+                  Description="Specifies the build log file to write to when build logging is enabled."
+                  F1Keyword="VC.Project.VCConfiguration.BuildLogFile"
+                  Category="General" Default="$(ProjectDir)\$(MSBuildProjectName).log"
+                  Subtype="file" Visible="false">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" ItemType="BuildLog" PersistedName="Path" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <EnumProperty Name="ConfigurationType" DisplayName="Configuration Type"
+                Description="Specifies the type of output this configuration generates."
+                Category="General"
+                F1Keyword="VC.Project.VCConfiguration.ConfigurationType" Visible="false">
+    <EnumValue Name="DynamicLibrary" DisplayName="Dynamic Library (.so)" Description="Dynamic Library (.so)"/>
+    <EnumValue Name="StaticLibrary" DisplayName="Static library (.a)" Description="Static Library (.a)" />
+    <EnumValue Name="Application" DisplayName="Application (.out)" Description="Application (.out)" />
+    <EnumValue Name="Makefile" DisplayName="Makefile" Description="Makefile" />
+  </EnumProperty>
+  <DynamicEnumProperty Name="RemoteTarget" DisplayName="Remote Build Machine"
+                  Description="The target machine or device to use for remote build, deploy and debug."
+                  F1Keyword="VC.Project.VCConfiguration.BuildLogFile"
+                  Category="General" Default="" EnumProvider="RemoteTargets">
+    <DynamicEnumProperty.DataSource>
+      <DataSource Persistence="UserFile" Label="" HasConfigurationCondition="false"/>
+    </DynamicEnumProperty.DataSource>
+  </DynamicEnumProperty>
+  <StringProperty Name="RemoteRootDir" DisplayName="Remote Build Root Directory"
+                  Description="Specifies a path to a directory on the remote machine or device."
+                  F1Keyword="VC.Project.VCConfiguration.BuildLogFile"
+                  Category="General" Default="" Visible="false">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="Configuration" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="RemoteProjectRelDir" DisplayName="Remote Project Relative Directory"
+                  Description="Specifies a path to a directory on the remote machine relative to the remote root directory for the project."
+                  F1Keyword="VC.Project.VCConfiguration.BuildLogFile"
+                  Category="General" Default="" Visible="false">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="Configuration" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="RemoteProjectDir" DisplayName="Remote Project Directory"
+                  Description="Specifies a path to a directory on the remote machine relative to the remote root directory for the project."
+                  F1Keyword="VC.Project.VCConfiguration.BuildLogFile"
+                  Category="General" Default="" Visible="false">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="RemoteIntRelDir" DisplayName="Remote Intermediate Relative Directory"
+                  Description="Specifies a path to a directory on the remote machine relative to the remote root directory for the intermediate directory."
+                  F1Keyword="VC.Project.VCConfiguration.BuildLogFile"
+                  Category="General" Default="" Visible="false">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="RemoteOutRelDir" DisplayName="Remote Output Relative Directory"
+                  Description="Specifies a path to a directory on the remote machine relative to the remote root directory for the output directory."
+                  F1Keyword="VC.Project.VCConfiguration.BuildLogFile"
+                  Category="General" Default="" Visible="false">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <!--
+  <StringProperty Name="RemoteDeployDir" DisplayName="Remote Deploy Directory"
+                  Description="Specifies a path to a directory on the remote machine or device for the project to deploy to."
+                  F1Keyword="VC.Project.VCConfiguration.BuildLogFile"
+                  Category="General" Default="" Visible="false">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="" />
+    </StringProperty.DataSource>
+  </StringProperty>
+-->
+  <BoolProperty Name="IncrementalBuild" DisplayName="Incremental Build"
+                Description="Enable incremental build based on project items. Skips Build and Remote Build if inputs have not changed."
+                Category="General"
+                Default="false"
+                F1Keyword="VC.Project.VCConfiguration.IncrementalBuildAndDeploy" Visible="false">
+    <BoolProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="" />
+    </BoolProperty.DataSource>
+  </BoolProperty>
+
+  <StringProperty Name="LinuxProjectType" Visible="false">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="Globals" HasConfigurationCondition="false" />
+    </StringProperty.DataSource>
+  </StringProperty>
+
+  <StringProperty Name="ProjectName" ReadOnly="true" Visible="false">
+  </StringProperty>
+  <StringProperty Name="EnableASAN" ReadOnly="true" Visible="false">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="" />
+    </StringProperty.DataSource>
+  </StringProperty>
+
+  <StringProperty Name ="RemoteCCompileToolExe" DisplayName="Remote C Compiler Name" Category="Intellisense">
+    <StringProperty.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="false"/>
+    </StringProperty.DataSource>
+  </StringProperty>
+
+  <StringProperty Name ="RemoteCppCompileToolExe" DisplayName="Remote C++ Compiler Name" Category="Intellisense">
+    <StringProperty.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="false"/>
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringListProperty Subtype="folder" Name="RemoteCopyIncludeDirectories" DisplayName="Remote Copy Include Directories" Description="Specifies one or more directories to copy from the remote linux target for intellisense; separate with semi-colons if more than one." Category="General" F1Keyword="VC.Project.VCClangCompilerTool.RemoteCopyIncludeDirectories" Visible="false">
+  </StringListProperty>
+  <StringListProperty Subtype="folder" Name="RemoteCopyExcludeDirectories" DisplayName="Remote Copy Exclude Directories" Description="Specifies one or more directories NOT to copy from the remote linux target for intellisense; separate with semi-colons if more than one." Category="General" F1Keyword="VC.Project.VCClangCompilerTool.RemoteCopyExcludeDirectories" Visible="false">
+  </StringListProperty>
+  <BoolProperty Name="UseCompiler" DisplayName="Intellisense Uses Compiler Defaults"
+                Description="Specifies whether intellisense should use the compiler default defines and include locations. Should only be false when using a compiler that does not support gcc-like command options."
+                Category="General" Visible="false" Default="true">
+  </BoolProperty>
+
+  <StringProperty Name="RemoteGDEVTOOL" DisplayName="Remote GDEVTOOL path" Description="Paht of the GDEVTOOL on the remote machine" Category="RemoteDagorSettings">
+    <StringProperty.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="false"/>
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="RemoteDeployDir" DisplayName="Remote dagor2 directory" Description="Paht of the dagor2 project on the remote machine" Category="RemoteDagorSettings">
+    <StringProperty.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="false"/>
+    </StringProperty.DataSource>
+  </StringProperty>
+
+  <EnumProperty Name="RemoteCopySourceMethod" DisplayName="Remote Copy Source Method"
+                Description="Specifies the method used for copying source from the remote linux target."
+                Category="RemoteDagorSettings"
+                F1Keyword="VC.Project.VCConfiguration.RemoteCopySourceMethod" Default="rsync">
+    <EnumValue Name="rsync" DisplayName="rsync"/>
+    <EnumValue Name="sftp" DisplayName="sftp"/>
+    <EnumProperty.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="false"/>
+    </EnumProperty.DataSource>
+  </EnumProperty>
+
+  <BoolProperty Name="SkipDataFilesCopy" DisplayName="Skip Data Files Copy" Description="Specifies whether to copy the content files to the remote system." Category="RemoteDagorSettings" F1Keyword="">
+    <BoolProperty.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="false"/>
+    </BoolProperty.DataSource>
+  </BoolProperty>
+</Rule>

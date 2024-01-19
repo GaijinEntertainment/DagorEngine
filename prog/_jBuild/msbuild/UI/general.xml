@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="BuildGeneral"
+      DisplayName="Build"
+      PageTemplate="generic"
+      Description="Build"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.Categories>
+    <Category Name="Arguments" />
+    <Category Name="Command" />
+  </Rule.Categories>
+
+  <Rule.DataSource>
+    <DataSource Persistence="UserFile" HasConfigurationCondition="true"/>
+  </Rule.DataSource>
+
+  <StringProperty Name="GameName" DisplayName="-sGame=" Description="Game" ReadOnly="true" Category="Arguments">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile"/>
+    </StringProperty.DataSource>
+  </StringProperty>
+
+  <EnumProperty Name="daPlatform" DisplayName="-sPlatform=" Description="Platform" ReadOnly="true" Category="Arguments">
+    <EnumValue Name="android" />
+    <EnumValue Name="linux64" />
+    <EnumValue Name="win32" />
+    <EnumValue Name="win64" />
+    <EnumProperty.DataSource>
+      <DataSource Persistence="ProjectFile"/>
+    </EnumProperty.DataSource>
+  </EnumProperty>
+
+  <EnumProperty Name="daConfig" DisplayName="-sConfig=" Description="BuildType" ReadOnly="true" Category="Arguments">
+    <EnumValue Name="dbg" />
+    <EnumValue Name="dev" />
+    <EnumValue Name="rel" />
+    <EnumProperty.DataSource>
+      <DataSource Persistence="ProjectFile"/>
+    </EnumProperty.DataSource>
+  </EnumProperty>
+
+  <EnumProperty Name="Dedicated" DisplayName="-sDedicated=" Description="Build as dedicated server" ReadOnly="true" Category="Arguments">
+    <EnumValue Name="" />
+    <EnumValue Name="yes" />
+    <EnumValue Name="no" />
+    <EnumProperty.DataSource>
+      <DataSource Persistence="ProjectFile"/>
+    </EnumProperty.DataSource>
+  </EnumProperty>
+
+  <EnumProperty Name="Sanitize" DisplayName="-sSanitize=" Description="Sanitizer" Category="Arguments">
+    <EnumValue Name="" />
+    <EnumValue Name="address" />
+    <EnumValue Name="thread" />
+  </EnumProperty>
+
+  <EnumProperty Name="NeedDasAotCompile" DisplayName="-sNeedDasAotCompile=" Description="NeedDasAotCompile" Category="Arguments">
+    <EnumValue Name="" />
+    <EnumValue Name="yes" />
+    <EnumValue Name="no" />
+  </EnumProperty>
+
+  <StringProperty Name="daBuildAdditionalOptions" DisplayName="Additional Options" Description="Additional Options." Category="Arguments" />
+
+  <StringProperty Name="JamBuildCommandLine" DisplayName="Build Command Line"
+                  Description="Specifies the command line to run for the 'Build' command."
+                  Category="Command"
+                  F1Keyword="VC.Project.VCNMakeTool.BuildCommandLine" />
+  <StringProperty Name="JamReBuildCommandLine" DisplayName="Rebuild All Command Line"
+                  Description="Specifies the command line to run for the 'Rebuild All' command."
+                  Category="Command"
+                  F1Keyword="VC.Project.VCNMakeTool.ReBuildCommandLine" />
+  <StringProperty Name="JamCleanCommandLine" DisplayName="Clean Command Line"
+                  Description="Specifies the command line to run for the 'Clean' command."
+                  Category="Command"
+                  F1Keyword="VC.Project.VCNMakeTool.CleanCommandLine" />
+  <StringProperty Name="JamOutput" DisplayName="Output"
+                  Description='Specifies the output file to generate.'
+                  Category="Command"
+                  F1Keyword="VC.Project.VCNMakeTool.Output">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile"/>
+    </StringProperty.DataSource>
+  </StringProperty>
+</Rule>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Any|x64">
+      <Configuration>Any</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup>
+    <ProjectGuid>{4ee8cf3a-7339-4469-a8b9-e62584192c8e}</ProjectGuid>
+    <ConfigurationType>Makefile</ConfigurationType>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <BuildLog>
+      <Path>$(TEMP)\$(ProjectGuid).log</Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <PropertyPageSchema Include="UI\natvis.xml" />
+    <Natvis Include="$(SolutionDir)tools\util\natvis\dagor_types.natvis" />
+    <Natvis Include="$(SolutionDir)tools\util\natvis\eastl.natvis" />
+  </ItemGroup>
+  <Target Name="GetProjectDirectories" Returns="@(_ProjectDirectories)">
+    <ItemGroup>
+      <_ProjectDirectories Include="dummy">
+        <ProjectDir>$(ProjectDir)</ProjectDir>
+      </_ProjectDirectories>
+    </ItemGroup>
+  </Target>
+  <Target Name="GetClCommandLines" Returns="@(ClCommandLines)">
+    <ItemGroup>
+      <ClCommandLines Include="/c">
+        <ConfigurationOptions>true</ConfigurationOptions>
+        <Files />
+        <WorkingDirectory>$(ProjectDir)</WorkingDirectory>
+      </ClCommandLines>
+    </ItemGroup>
+  </Target>
+  <Target Name="GetGeneratedFiles" />
+  <Target Name="GetProjectReferencesInfo" />
+  <Target Name="GetAssemblyReferences" />
+  <Target Name="GetClCommandLineForReference" />
+  <Target Name="GetWinMDReferences" />
+  <Target Name="GetComReferences" />
+  <Target Name="GetSDKReferences" />
+  <Target Name="GetProjectReferences" />
+  <Target Name="GetForeignReferences" />
+  <Target Name="GetResolvedReferences" />
+  <Target Name="GetResolvedSDKReferences" />
+  <Target Name="ResolveProjectReferencesDesignTime" />
+  <Target Name="Build" />
+  <Target Name="Rebuild" />
+  <Target Name="Clean" />
+</Project>

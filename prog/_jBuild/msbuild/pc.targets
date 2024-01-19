@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <UsingTask TaskName="Gaijin.MSBuild.Utilities.Exec" AssemblyFile="Gaijin.MSBuild.Utilities.dll" />
+
+  <Target Name="CoreClean" DependsOnTargets="PrepareForNMakeBuild">
+    <VCMessage Code="MSB8005" Type="Warning" Arguments="NMakeCleanCommandLine" Condition="'$(NMakeCleanCommandLine)'==''"/>
+    <Exec Command="$(NMakeCleanCommandLine)" UseUtf8Encoding="Always" StdErrEncoding="UTF-8" StdOutEncoding="UTF-8" WorkingDirectory="$(ProjectRootDir)" Condition="'$(NMakeCleanCommandLine)'!=''" />
+  </Target>
+
+  <Target Name="Build" DependsOnTargets="PrepareForNMakeBuild;ResolveReferences;GetTargetPath;$(PreNMakeBuildTarget)" Returns="$(NMakeManagedOutput)">
+    <VCMessage Code="MSB8005" Type="Warning" Arguments="NMakeBuildCommandLine" Condition="'$(NMakeBuildCommandLine)'==''"/>
+    <Gaijin.MSBuild.Utilities.Exec Command="$(NMakeBuildCommandLine)" UseUtf8Encoding="Always" StdErrEncoding="UTF-8" StdOutEncoding="UTF-8" WorkingDirectory="$(ProjectRootDir)" Condition="'$(NMakeBuildCommandLine)'!=''" />
+  </Target>
+
+  <Target Name="Rebuild" DependsOnTargets="PrepareForNMakeBuild;_SetRebuildReferences;ResolveReferences;GetTargetPath;$(PreNMakeBuildTarget)" Returns="$(NMakeManagedOutput)">
+    <Gaijin.MSBuild.Utilities.Exec Command="$(NMakeReBuildCommandLine)" UseUtf8Encoding="Always" StdErrEncoding="UTF-8" StdOutEncoding="UTF-8" WorkingDirectory="$(ProjectRootDir)" Condition="'$(NMakeReBuildCommandLine)'!=''"/>
+  </Target>
+
+</Project>

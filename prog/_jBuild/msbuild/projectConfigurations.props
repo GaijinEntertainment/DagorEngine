@@ -1,0 +1,120 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
+  <ItemGroup Label="ProjectConfigurations" Condition="'$(SkipProjectConfiguration)' != 'true'">
+    <ProjectConfiguration Include="dbg_android|ARM64">
+      <Configuration>dbg_android</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="dev_android|ARM64">
+      <Configuration>dev_android</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="rel_android|ARM64">
+      <Configuration>rel_android</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+
+    <ProjectConfiguration Include="dbg_linux64|x64">
+      <Configuration>dbg_linux64</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="dev_linux64|x64">
+      <Configuration>dev_linux64</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="rel_linux64|x64">
+      <Configuration>rel_linux64</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+
+    <ProjectConfiguration Include="dbg_win32|Win32">
+      <Configuration>dbg_win32</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="dev_win32|Win32">
+      <Configuration>dev_win32</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="rel_win32|Win32">
+      <Configuration>rel_win32</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+
+    <ProjectConfiguration Include="dbg_win64|x64">
+      <Configuration>dbg_win64</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="dev_win64|x64">
+      <Configuration>dev_win64</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="rel_win64|x64">
+      <Configuration>rel_win64</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <Choose>
+    <When Condition="$(Configuration.Contains('android'))">
+      <PropertyGroup>
+        <daPlatform>android</daPlatform>
+        <MSPlatform>ARM64</MSPlatform>
+      </PropertyGroup>
+    </When>
+    <When Condition="$(Configuration.Contains('linux64'))">
+      <PropertyGroup>
+        <daPlatform>linux64</daPlatform>
+        <MSPlatform>x64</MSPlatform>
+      </PropertyGroup>
+    </When>
+    <When Condition="$(Configuration.Contains('win32'))">
+      <PropertyGroup>
+        <daPlatform>win32</daPlatform>
+        <MSPlatform>Win32</MSPlatform>
+      </PropertyGroup>
+    </When>
+    <When Condition="$(Configuration.Contains('win64'))">
+      <PropertyGroup>
+        <daPlatform>win64</daPlatform>
+        <MSPlatform>x64</MSPlatform>
+      </PropertyGroup>
+    </When>
+  </Choose>
+
+  <PropertyGroup>
+    <OriginPlatform>$(Platform)</OriginPlatform>
+    <Platform>$(MSPlatform)</Platform>
+
+    <daConfig Condition="$(Configuration.Contains('dbg'))">dbg</daConfig>
+    <daConfig Condition="$(Configuration.Contains('dev'))">dev</daConfig>
+    <daConfig Condition="$(Configuration.Contains('rel'))">rel</daConfig>
+
+    <MSBuildToolsDir>$(MSBuildThisFileDirectory)</MSBuildToolsDir>
+    <ProjectDir>$(MSBuildProjectDirectory)\</ProjectDir>
+  </PropertyGroup>
+
+  <Choose>
+    <When Condition="'$(daPlatform)' == 'android'">
+      <PropertyGroup>
+        <ApplicationType>Android</ApplicationType>
+        <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
+        <TargetAndroidABI>arm64-v8a</TargetAndroidABI>
+        <AndroidAPILevel>android-30</AndroidAPILevel>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(daPlatform)' == 'linux64'">
+      <PropertyGroup>
+        <ApplicationType>Linux</ApplicationType>
+        <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
+        <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
+        <LinuxProjectType>{FC1A4D80-50E9-41DA-9192-61C0DBAA00D2}</LinuxProjectType>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <VCProjectVersion>16.0</VCProjectVersion>
+        <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+</Project>

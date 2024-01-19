@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Choose>
+    <When Condition="'$(Dedicated)' == 'no'">
+      <PropertyGroup>
+        <AdjunctOptions>$(AdjunctOptions) -sDedicated=no</AdjunctOptions>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(Dedicated)' == 'yes'">
+      <PropertyGroup>
+        <AdjunctOptions>$(AdjunctOptions) -sDedicated=yes</AdjunctOptions>
+        <NameSuffix>$(NameSuffix)-ded</NameSuffix>
+      </PropertyGroup>
+    </When>
+  </Choose>
+
+  <Choose>
+    <When Condition="'$(Sanitize)' == 'address'">
+      <PropertyGroup>
+        <AdjunctOptions>$(AdjunctOptions) -sSanitize=address</AdjunctOptions>
+        <NameSuffix>$(NameSuffix)-asan</NameSuffix>
+        <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);DAGOR_PREFER_HEAP_ALLOCATION=1;DAGOR_ADDRESS_SANITIZER=1;__SANITIZE_ADDRESS__=1</NMakePreprocessorDefinitions>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(Sanitize)' == 'thread'">
+      <PropertyGroup>
+        <AdjunctOptions>$(AdjunctOptions) -sSanitize=thread</AdjunctOptions>
+        <NameSuffix>$(NameSuffix)-tsan</NameSuffix>
+        <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);__SANITIZE_THREAD__</NMakePreprocessorDefinitions>
+      </PropertyGroup>
+    </When>
+  </Choose>
+
+  <PropertyGroup>
+    <AdjunctOptions Condition="'$(NeedDasAotCompile)' == 'no'">$(AdjunctOptions) -sNeedDasAotCompile=no</AdjunctOptions>
+    <AdjunctOptions Condition="'$(NeedDasAotCompile)' == 'yes'">$(AdjunctOptions) -sNeedDasAotCompile=yes</AdjunctOptions>
+  </PropertyGroup>
+
+  <Choose>
+    <When Condition="'$(daConfig)' == 'dbg'">
+      <PropertyGroup>
+        <NameSuffix>$(NameSuffix)-dbg</NameSuffix>
+        <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);DAGOR_DBGLEVEL=2;_DEBUG_TAB_</NMakePreprocessorDefinitions>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(daConfig)' == 'dev'">
+      <PropertyGroup>
+        <NameSuffix>$(NameSuffix)-dev</NameSuffix>
+        <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);DAGOR_DBGLEVEL=1</NMakePreprocessorDefinitions>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(daConfig)' == 'rel'">
+      <PropertyGroup>
+        <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);DAGOR_DBGLEVEL=0;NDEBUG=1;DAGOR_FORCE_LOGS=1</NMakePreprocessorDefinitions>
+      </PropertyGroup>
+    </When>
+  </Choose>
+
+  <PropertyGroup>
+    <JamBuildCommandLine Condition="'$(JamBuildCommandLine)' == '' and !$(GameNameIsSet)">jam -sPlatform=$(daPlatform) -sConfig=$(daConfig) $(AdjunctOptions) $(daBuildAdditionalOptions)</JamBuildCommandLine>
+    <JamBuildCommandLine Condition="'$(JamBuildCommandLine)' == '' and $(GameNameIsSet)">jam -sGame=$(GameName) -sPlatform=$(daPlatform) -sConfig=$(daConfig) $(AdjunctOptions) $(daBuildAdditionalOptions)</JamBuildCommandLine>
+    <JamReBuildCommandLine Condition="'$(JamReBuildCommandLine)' == ''">$(JamBuildCommandLine) -a</JamReBuildCommandLine>
+    <JamCleanCommandLine Condition="'$(JamCleanCommandLine)' == ''">$(JamBuildCommandLine) clean_all</JamCleanCommandLine>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NMakePreprocessorDefinitions Condition="'$(UseD3DMulti)' == 'yes'">$(NMakePreprocessorDefinitions);_TARGET_D3D_MULTI</NMakePreprocessorDefinitions>
+    <NMakePreprocessorDefinitions Condition="'$(DriverLinkage)' != 'dynamic'">$(NMakePreprocessorDefinitions);_TARGET_STATIC_LIB</NMakePreprocessorDefinitions>
+    <NMakePreprocessorDefinitions Condition="'$(Exceptions)' != 'yes'">$(NMakePreprocessorDefinitions);_HAS_EXCEPTIONS=0;DEA_COMPILER_NO_NOEXCEPT</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+
+  <Import Condition="'$(GameType)' != ''" Project="$(MSBuildThisFileDirectory)config.internal.$(GameType).props" />
+
+  <PropertyGroup>
+    <NMakeOutput>$(JamOutput)</NMakeOutput>
+    <LocalDebuggerCommand>$(JamOutput)</LocalDebuggerCommand>
+  </PropertyGroup>
+</Project>

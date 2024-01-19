@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Choose>
+    <When Condition="'$(daPlatform)' == 'android'" />
+    <When Condition="'$(daPlatform)' == 'linux64'" />
+    <When Condition="'$(daPlatform)' == 'win32' or '$(daPlatform)' == 'win64'">
+      <PropertyGroup>
+        <OutDir>$(GameDir)\</OutDir>
+        <JamOutput>$(OutDir)$(GameName)-$(daPlatform)$(NameSuffix).exe</JamOutput>
+        <ExeName>$(GameName)$(NameSuffix).exe</ExeName>
+      </PropertyGroup>
+    </When>
+  </Choose>
+</Project>
