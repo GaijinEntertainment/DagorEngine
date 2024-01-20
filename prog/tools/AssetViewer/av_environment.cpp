@@ -1204,10 +1204,13 @@ void environment::load_skies_settings(const DataBlock &blk)
 
   av_skies_srv->fillPresets(preset, env, wtype);
 
-  String ps(::make_full_path(get_app().getWorkspace().getSdkDir(), blk.getStr("preset", "")));
+  const char *preset_str = blk.getStr("preset", nullptr);
+  if (!preset_str)
+    preset_str = preset.size() > 0 ? preset[0].c_str() : "";
+  String ps(::make_full_path(get_app().getWorkspace().getSdkDir(), preset_str));
   if (!dd_file_exists(ps))
   {
-    ps = blk.getStr("preset", "");
+    ps = preset_str;
     if (!dd_file_exists(ps))
       ps = "";
   }
