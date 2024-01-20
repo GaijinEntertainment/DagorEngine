@@ -1,4 +1,4 @@
-  <type descr="sh" name="sh" exts="/\.sh$/i">
-    <load name="base/sh.hrc"/>
+  <type descr="dshl" name="dshl" exts="/\.dshl$/i">
+    <load name="base/dshl.hrc"/>
     <scheme name="shader"/>
   </type>
