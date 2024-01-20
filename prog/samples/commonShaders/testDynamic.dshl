@@ -1,0 +1,142 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "psh_derivate.dshl"
+include "psh_tangent.dshl"
+
+float4 carpaint_color=(0.8, 0.7, 0.3, 0);
+float vinyl_metallic = 0.8;
+
+shader dynamic_simple, dynamic_simple_atest, dynamic_simple_paint, dynamic_simple_glass
+{
+  if (shader == dynamic_simple_glass) { dont_render; }
+
+  no_ablend;
+
+  channel float3 pos = pos;
+  channel float3 norm = norm;
+
+  if (shader == dynamic_simple_paint)
+  {
+    (ps) { diff_relief@f4 = (carpaint_color.x,carpaint_color.y,carpaint_color.z, vinyl_metallic); }
+  }
+  else
+  {
+    channel float2 tc[0] = tc[0];
+
+    texture tex = material.texture.diffuse;
+    texture normalMap = material.texture[2];
+
+    (ps) { tex@static = tex; }
+    if (normalMap != NULL) { (ps) { normalmap@static = normalMap; } }
+  }
+
+  (vs) {
+    globtm@f44 = globtm;
+    world_view_pos@f3 = world_view_pos;
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 norm:  NORMAL;
+    ##if shader != dynamic_simple_paint
+      float2 tc:  TEXCOORD0;
+    ##endif
+      float3 p2e:  TEXCOORD1;
+    };
+  }
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos: POSITION;
+      float3 norm: NORMAL;
+    ##if shader != dynamic_simple_paint
+      float2 tc: TEXCOORD0;
+    ##endif
+    };
+
+    VsOutput test_vs(VsInput input, uint id : SV_InstanceID)
+    {
+      VsOutput output;
+      float3 pos = input.pos;
+      output.pos = mul(float4(pos, 1), globtm);
+      output.p2e = world_view_pos-pos;
+      float3 vertexNormal = input.norm;
+      output.norm = vertexNormal;
+    ##if shader != dynamic_simple_paint
+      output.tc.xy  = input.tc;
+    ##endif
+      return output;
+    }
+  }
+  USE_PIXEL_TANGENT_SPACE()
+  WRITE_GBUFFER()
+  USE_PIXEL_TANGENT_SPACE()
+  hlsl(ps) {
+  ##if shader != dynamic_simple_paint
+    #define PARALLAX_TEX tex
+    #define PARALLAX_ATTR a
+    #define num_parallax_iterations 5
+    #define parallax_tex2dlod(tex, tc) tex2DLodBindless(get_##tex(), tc)
+    #define parallax_tex2d(tex, tc) tex2DBindless(get_##tex(), tc)
+    #include "parallax.hlsl"
+  ##endif
+
+    GBUFFER_OUTPUT test_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      float3 inputNormal = normalize(input.norm);
+    ##if shader != dynamic_simple_paint
+      half3x3 tangent = cotangent_frame( inputNormal, input.p2e, input.tc );
+      float3 viewDir;
+      viewDir.x = dot(input.p2e, tangent[0]);
+      viewDir.y = dot(input.p2e, tangent[1]);
+      viewDir.z = dot(input.p2e, tangent[2]);
+      viewDir = normalize(viewDir);
+      float2 texCoord = get_parallax(viewDir.xy, input.tc, 0.05);
+      //float2 texCoord = input.tc;
+    ##endif
+      half4 albedo;
+    ##if shader == dynamic_simple_paint
+      albedo = float4(diff_relief.rgb, 0);
+    ##else
+      albedo = tex2DBindless(get_tex(), texCoord);
+    ##if shader == dynamic_simple_atest
+      clip(albedo.a-0.5);
+    ##endif
+    ##endif
+
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+
+      half metallness = 0;
+
+      init_albedo(result, albedo.xyz);
+    ##if shader == dynamic_simple_paint
+      init_smoothness(result, 0.5);
+      init_normal(result, inputNormal);
+      metallness = diff_relief.a;
+    ##else
+      half4 normal_glossiness = half4(0.5,0.5,0,0.5);
+      ##if normalMap != NULL
+      normal_glossiness = tex2DBindless(get_normalmap(), texCoord);
+      ##endif
+      float3 normal;
+      normal.xy = (normal_glossiness.ag*2-1);
+      normal.z = sqrt(saturate(1-dot(normal.xy, normal.xy)));
+      init_smoothness(result, normal_glossiness.r);
+      init_normal(result, perturb_normal( normal, inputNormal, input.p2e, input.tc));
+    ##endif
+
+      init_metalness(result, metallness);
+      init_ao(result, 0.6+0.4*albedo.a*albedo.a);
+      init_material(result, 0);
+      return encode_gbuffer(result, screenpos);
+    }
+  }
+
+  compile("target_vs", "test_vs");
+  compile("target_ps", "test_ps");
+}
+
