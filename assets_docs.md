@@ -43,7 +43,7 @@ Inside the `.blk` file resource are all the parameters the exporter needs for ea
 Each resource is its own plugin for the build\tools and a separate code in the game.
 
 
-Sometimes, the description is minimal – for example, for a texture, you need the texture name if it is in `.dds` format.
+Sometimes, the description is minimal. For example, for a texture, you need the texture name if it is in `.dds` format.
 
 In some cases, for example, in Effects, it is the whole asset, and AssetViewer is its editor.
 
