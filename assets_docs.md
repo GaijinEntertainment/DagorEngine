@@ -70,7 +70,7 @@ For assemblies, the `.res.blk` rules are applied first:
 - the rules from `.folder.blk` next to the asset are applied;
 - the rules from `.folder.blk` higher in the folder hierarchy until the directive, `don't process this file anymore, stopProcessing` is received.
 
-To understand which rules apply to your file - for example, texture `my_texture.tga` or model `my_model.dag` - you need to start from the folder where the asset is located and look for the nearest `.folder.blk` up the hierarchy.
+To understand which rules apply to your file – for example, texture `my_texture.tga` or model `my_model.dag` - you need to start from the folder where the asset is located and look for the nearest `.folder.blk` up the hierarchy.
 
 Read also [BLK](https://info.gaijin.lan/display/DAG/BLK).
                                                              
