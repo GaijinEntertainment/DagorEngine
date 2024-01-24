@@ -93,6 +93,9 @@
 #include "de3_benchmark.h"
 #include "lruCollision.h"
 
+//#include <3rdPartyLibs/SnapdragonSuperResolution/SnapdragonSuperResolution.h>
+#include <SnapdragonSuperResolution/SnapdragonSuperResolution.h>
+
 typedef BaseStreamingSceneHolder scene_type_t;
 
 #define SKY_GUI  1
@@ -152,6 +155,10 @@ enum
   NUM_ROUGHNESS = 10,
   NUM_METALLIC = 10
 };
+
+static bool enable_taa_override = false;
+static bool use_snapdragon_super_resolution = false;
+static float snapdragon_super_resolution_scale = 0.75f;
 
 static void init_webui(const DataBlock *debug_block)
 {
@@ -380,6 +387,8 @@ public:
   eastl::unique_ptr<SSAORenderer> ssao;
   eastl::unique_ptr<GTAORenderer> gtao;
   DebugTexOverlay debugTexOverlay;
+
+  UniqueTex superResolutionOutput;
 
   ///*
   void downsampleDepth(bool downsample_normals)
@@ -690,6 +699,11 @@ public:
     d3d::GpuAutoLock gpu_al;
     int w, h;
     d3d::get_target_size(w, h);
+    if (use_snapdragon_super_resolution)
+    {
+      w = (int)((float)w * snapdragon_super_resolution_scale);
+      h = (int)((float)h * snapdragon_super_resolution_scale);
+    }
     postfx.init("postfx");
     target = eastl::make_unique<DeferredRenderTarget>("deferred_shadow_to_buffer", "main", w, h,
       DeferredRT::StereoMode::MonoOrMultipass, 0, gbuf_rt, gbuf_fmts, TEXFMT_DEPTH32);
@@ -778,6 +792,14 @@ public:
       global_cls_drv_pnt->getDevice(0)->setClipRect(0, 0, w, h);
     localProbe = NULL;
 
+    if (use_snapdragon_super_resolution)
+    {
+      int fw, fh;
+      d3d::get_target_size(fw, fh);
+      superResolutionOutput = dag::create_tex(NULL, fw, fh, rtFmt | TEXCF_RTARGET, 1, "SuperResolutionOutput");
+      snapdragonSuperResolutionRender.SetViewport(w, h);
+    }
+
 #define VAR(a) a##VarId = get_shader_variable_id(#a);
     GLOBAL_VARS_LIST
 #undef VAR
@@ -789,6 +811,7 @@ public:
                                                      // center)
   }
   PostFxRenderer taaRender;
+  SnapdragonSuperResolution snapdragonSuperResolutionRender;
   enum
   {
     CLOUD_VOLUME_W = 32,
@@ -983,7 +1006,8 @@ public:
     // set_shader_global_time(gameTime);
     set_shader_global_time(realTime);
     static int taaFrame = 0;
-    bool renderTaa = taa.get();
+    bool renderTaa = taa.get() || enable_taa_override;
+    logwarn("[hmatthew] renderTaa = %s", renderTaa ? "TRUE" : "FALSE");
 
     Driver3dPerspective p;
     d3d::getpersp(p);
@@ -1051,6 +1075,13 @@ public:
     }
     else
       frame.setVar();
+
+    if (use_snapdragon_super_resolution)
+    {
+      snapdragonSuperResolutionRender.render(frame, superResolutionOutput.getTex2D());
+      ShaderGlobal::set_texture(frame.getVarId(), superResolutionOutput);
+    }
+
     if (::grs_draw_wire)
       d3d::setwire(0);
 
@@ -1608,14 +1639,15 @@ public:
     float zn = 0.1, zf = 1000;
     for (int i = 0; i < 6; ++i)
     {
+      d3d::set_render_target(enviProbe.getCubeTex(), i, 0);
+      d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+
       target->setRt();
       d3d::setpersp(Driver3dPerspective(1, 1, zn, zf, 0, 0));
       TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, i);
       cameraMatrix.setcol(3, 0, 100, 0);
       d3d::settm(TM_VIEW, orthonormalized_inverse(cameraMatrix));
 
-      d3d::set_render_target(enviProbe.getCubeTex(), i, 0);
-      d3d::clearview(CLEAR_TARGET, 0, 0, 0);
       renderLightProbeEnvi();
     }
     enviProbe.getCubeTex()->generateMips();
@@ -2348,6 +2380,17 @@ void game_demo_init()
   const DataBlock &blk = *dgs_get_settings();
   ::set_gameres_sys_ver(2);
 
+  DataBlock* global_settings_blk = new DataBlock;
+  global_settings_blk->load("settings.blk");
+  enable_taa_override = global_settings_blk->getBlockByNameEx("render")->getBool("taa", false);
+
+  auto sgsrBlock = global_settings_blk->getBlockByNameEx("SnapdragonSuperResolution");
+  if (sgsrBlock)
+  {
+    use_snapdragon_super_resolution = sgsrBlock->getBool("enable", false);
+    snapdragon_super_resolution_scale = ((float)sgsrBlock->getInt("scale", 75) / 100.f);
+  }
+
 #define LOAD_RES_PATCH(LOC_NAME)                                                                  \
   if (dd_file_exists("content/patch/" LOC_NAME "/grp_hdr.vromfs.bin") &&                          \
       (vrom = load_vromfs_dump("content/patch/" LOC_NAME "/grp_hdr.vromfs.bin", tmpmem)) != NULL) \
@@ -2391,3 +2434,6 @@ void game_demo_init()
   init_webui(NULL);
   dagor_select_game_scene(new DemoGameScene);
 }
+
+#include <render/dag_cur_view.h>
+DagorCurView grs_cur_view;

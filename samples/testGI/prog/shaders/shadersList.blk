@@ -17,3 +17,5 @@
   file:t = "./source/sponza.dshl"
   //file:t = "./source/layered.dshl"
   file:t = "../../../engine/imgui/imgui.dshl"
+  file:t = "../../../3rdPartyLibs/SnapdragonSuperResolution/shaders/SnapdragonSuperResolution.dshl"
+  
