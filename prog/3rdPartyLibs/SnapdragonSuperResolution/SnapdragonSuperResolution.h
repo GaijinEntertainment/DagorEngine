@@ -20,10 +20,10 @@ public:
 
     inline void SetViewport(int32_t x, int32_t y)
     {
-        viewport[0] = (float)x;
-        viewport[1] = (float)y;
-        viewport[2] = viewport[0] != 0.f ? (1.f / viewport[0]) : 0.f;
-        viewport[3] = viewport[1] != 0.f ? (1.f / viewport[1]) : 0.f;
+        viewport[2] = (float)x;
+        viewport[3] = (float)y;
+        viewport[0] = viewport[2] != 0.f ? (1.f / viewport[2]) : 0.f;
+        viewport[1] = viewport[3] != 0.f ? (1.f / viewport[3]) : 0.f;
     }
 
     inline void render(const ManagedTex &input, BaseTexture* output)
