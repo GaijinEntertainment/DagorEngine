@@ -41,12 +41,19 @@ extern bool phys_bullet_get_phys_tm(int body_id, TMatrix &phys_tm, bool &obj_act
 extern void phys_bullet_add_impulse(int body_ind, const Point3 &pos, const Point3 &delta, real spring_factor, real damper_factor,
   real dt);
 extern bool phys_bullet_load_collision(IGenLoad &crd);
+extern void phys_bullet_install_tracer(bool (*traceray)(const Point3 &p, const Point3 &d, float &mt, Point3 &out_n, int &out_pmid));
 
 
 static bool needSimulate = false;
 static int physType = 0;
 static Ptr<PhysicsResource> simObjRes = NULL;
 static float curSimDt = 0.01;
+
+static FastRtDumpManager phys_frt;
+static inline bool phys_traceray_normal(const Point3 &p, const Point3 &dir, real &t, Point3 &n, int &pmid)
+{
+  return phys_frt.traceray(p, dir, t, pmid, n);
+}
 
 
 namespace carphyssimulator
@@ -144,7 +151,6 @@ bool setCollisionsToWorld(mkbindump::BinDumpSaveCB &cwr)
 
   MemoryLoadCB crd(cwr.getRawWriter().getMem(), false);
   int tag = 0;
-  FastRtDumpManager frt;
   unsigned bindump_id = 0xFFFFFFFF;
 
   for (;;)
@@ -156,9 +162,10 @@ bool setCollisionsToWorld(mkbindump::BinDumpSaveCB &cwr)
     {
       case _MAKE4C('FRT'):
       {
-        int id = frt.loadRtDump(crd, bindump_id);
+        int id = phys_frt.loadRtDump(crd, bindump_id);
         if (id == -1)
           break;
+        phys_bullet_install_tracer(&phys_traceray_normal);
       }
       break;
 
@@ -255,6 +262,8 @@ void end()
 
   needSimulate = false;
 
+  phys_bullet_install_tracer(nullptr);
+  phys_frt.delAllRtDumps();
   phys_bullet_close();
 }
 

@@ -1,6 +1,8 @@
 #define USE_BULLET_PHYSICS 1
 #include <phys/dag_physics.h>
 #include <phys/dag_physObject.h>
+#include <phys/dag_vehicle.h>
+#include <vehiclePhys/physCar.h>
 #undef USE_BULLET_PHYSICS
 
 #include "phys.inc.cpp"
@@ -30,3 +32,8 @@ void phys_bullet_add_impulse(int body_ind, const Point3 &pos, const Point3 &delt
 }
 
 bool phys_bullet_load_collision(IGenLoad &crd) { return pw ? pw->loadSceneCollision(crd, 0) : false; }
+
+void phys_bullet_install_tracer(bool (*traceray)(const Point3 &p, const Point3 &d, float &mt, Point3 &out_n, int &out_pmid))
+{
+  IPhysVehicle::bulletSetStaticTracer(traceray);
+}
