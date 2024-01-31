@@ -5,6 +5,9 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
 #include <workCycle/dag_workCyclePerf.h>
+#if BT_BULLET_VERSION >= 325
+#include <BulletCollision/NarrowPhaseCollision/btRaycastCallback.h>
+#endif
 
 #define U_EPSILON 1e-6
 const btVector3 gravity(0, -9.8, 0);
@@ -83,6 +86,9 @@ void BulletRbRayCar::Wheel::addRayQuery(float ifps)
 
     btVector3 p0 = spring_fixpt, p1 = spring_fixpt + wSpringAxis * hit.distance;
     RayCastCallback resultCallback(p0, p1, body, wheel);
+#if BT_BULLET_VERSION >= 325
+    resultCallback.m_flags |= btTriangleRaycastCallback::kF_UseGjkConvexCastRaytest;
+#endif
     physWorld->getScene()->rayTest(p0, p1, resultCallback);
     if (resultCallback.hasHit())
     {
