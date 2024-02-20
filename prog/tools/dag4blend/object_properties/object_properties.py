@@ -1,6 +1,6 @@
 import bpy, os
 from   bpy.props            import StringProperty, PointerProperty, FloatProperty
-from   bpy.utils            import register_class, unregister_class, user_resource
+from   bpy.utils            import register_class, unregister_class
 from   bpy.types            import Operator, Panel, PropertyGroup
 from ..helpers.texts        import *
 from ..helpers.popup        import show_popup
@@ -54,8 +54,8 @@ def props_to_text(obj):
 
 def get_presets_list():
     addon_name = basename(__package__)
-    path = user_resource('SCRIPTS') + f'\\addons\\{addon_name}\\object_properties\\presets\\'
-    items = []
+    pref = bpy.context.preferences.addons[addon_name].preferences
+    path = pref.props_presets_path
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path,f))]
     return files
 
@@ -108,11 +108,14 @@ class DAGOR_OT_apply_op_preset(Operator):
         addon_name = basename(__package__)
         pref=bpy.context.preferences.addons[addon_name].preferences
         preset = pref.prop_preset
-        path = user_resource('SCRIPTS') + f"\\addons\\{addon_name}\\object_properties\\presets\\{preset}.txt"
-        with open(path,'r') as t:
-            temp.write(t.read())
-            t.close()
-        text_to_props(obj)
+        path = pref.props_presets_path + f"\\{preset}.txt"
+        if os.path.exists(path):
+            with open(path,'r') as t:
+                temp.write(t.read())
+                t.close()
+            text_to_props(obj)
+        else:
+            show_popup(message = f'"{preset}.txt" not found in {pref.props_presets_path}', title='Error', icon='ERROR')
         return {'FINISHED'}
 
 
@@ -132,7 +135,7 @@ class DAGOR_OT_save_op_preset(Operator):
         name = pref.prop_preset_name
         if name == '':
             name = 'unnamed'
-        dirpath = user_resource('SCRIPTS') + f"\\addons\\{addon_name}\\object_properties\\presets"
+        dirpath = pref.props_presets_path
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
         path = f"{dirpath}\\{name}.txt"
@@ -158,7 +161,7 @@ class DAGOR_OT_remove_op_preset(Operator):
         addon_name = basename(__package__)
         pref=bpy.context.preferences.addons[addon_name].preferences
         name = pref.prop_preset
-        path = user_resource('SCRIPTS') + f"\\addons\\{addon_name}\\object_properties\\presets\\{name}.txt"
+        path = pref.props_presets_path + f"\\{name}.txt"
         os.remove(path)
         list = get_presets_list()
         if list.__len__()>0:
@@ -166,7 +169,7 @@ class DAGOR_OT_remove_op_preset(Operator):
         return {'FINISHED'}
 
 
-class DAGOR_invert_dagbool(bpy.types.Operator):
+class DAGOR_invert_dagbool(Operator):
     bl_idname = 'dt.invert_dagbool'
     bl_label = 'Switch value'
     bl_description = 'invert dag_bool value'
@@ -286,22 +289,35 @@ class DAGOR_PT_Properties(Panel):
                     else:
                         rem.prop(C.object.dagorprops,'["'+key+'"]',text='')
                 rem.operator('dt.remove_prop',text='',icon='TRASH').prop=key
+
         presets = l.box()
         header=presets.row()
-        header.prop(pref, 'props_preset_maximized',icon = 'DOWNARROW_HLT'if pref.props_preset_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='Presets')
+        header.prop(pref, 'props_preset_maximized',
+        icon = 'DOWNARROW_HLT'if pref.props_preset_maximized else 'RIGHTARROW_THIN', emboss=False,text='Presets')
         header.label(text='',icon='THREE_DOTS')
+
         if pref.props_preset_maximized:
-            presets.operator('dt.save_op_preset',text = "Save preset as:")
-            presets.prop(pref, 'prop_preset_name', text = '')
-            presets.operator('dt.apply_op_preset', text = 'Apply preset:')
-            act = presets.row()
-            act.prop(pref, 'prop_preset', text = "")
-            act.operator('dt.remove_op_preset', text = "", icon = "TRASH")
-            #no need to use custom operator for each folder
+
             addon_name = basename(__package__)
-            path = user_resource('SCRIPTS') + f"\\addons\\{addon_name}\\object_properties\\presets"
-            presets.operator('wm.path_open', icon = 'FILE_FOLDER', text = "open presets folder").filepath = path
+            path = pref.props_presets_path
+            path_exists = os.path.exists(path)
+            if path_exists:
+                presets.operator('dt.save_op_preset',text = "Save preset as:")
+                presets.prop(pref, 'prop_preset_name', text = '')
+                presets.operator('dt.apply_op_preset', text = 'Apply preset:')
+                act = presets.row()
+                act.prop(pref, 'prop_preset', text = "")
+                act.operator('dt.remove_op_preset', text = "", icon = "TRASH")
+                #no need to use custom operator for each folder
+                col = presets.column(align = True)
+                row = col.row(align = True)
+                row.operator('wm.path_open', icon = 'FILE_FOLDER', text = "open presets folder").filepath = path
+            else:
+                col = presets.column()
+                col.label(icon = 'ERROR')
+                col.label(text = 'Presets folder not found')
+                col.label(text = 'Please, set existing one')
+                col.label(text = 'in addon preferences!')
 
         tools = l.box()
         header = tools.row()

@@ -48,10 +48,9 @@ def save_textures(sel,path):
     return tex_to_save.__len__()
 
 def clear_normals(objects):
-    ctx = bpy.context.copy()
     for obj in objects:
-        ctx['object']=obj
-        bpy.ops.mesh.customdata_custom_splitnormals_clear(ctx)
+        with bpy.context.temp_override(object = obj):
+            bpy.ops.mesh.customdata_custom_splitnormals_clear()
     return
 
 def sort_collections(COL):

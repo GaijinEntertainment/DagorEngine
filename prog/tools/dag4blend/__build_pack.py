@@ -21,6 +21,7 @@ files = [
   'dag4blend/exporter/export_panel.py', 'dag4blend/exporter/exporter.py', 'dag4blend/exporter/writer.py',
   'dag4blend/importer/import_panel.py', 'dag4blend/importer/importer.py', 'dag4blend/importer/reader.py',
   'dag4blend/object_properties/object_properties.py', 'dag4blend/smooth_groups/smooth_groups.py',
+  'dag4blend/smooth_groups/mesh_calc_smooth_groups.py',
   'dag4blend/colprops/colprops.py',
   'dag4blend/pyparsing.py', 'dag4blend/datablock.py',
 ]

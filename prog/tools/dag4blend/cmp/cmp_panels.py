@@ -523,7 +523,7 @@ class DAGOR_PT_composits(Panel):
         return
 #Node explode n stuff
     def draw_node_converter(self,context,layout):
-        P = bpy.data.scenes[0].dag4blend.cmp
+        P = bpy.data.scenes[0].dag4blend.cmp.tools
         addon_name = basename(__package__)
         pref = bpy.context.preferences.addons[addon_name].preferences
         box = layout.box()

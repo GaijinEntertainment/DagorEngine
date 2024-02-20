@@ -37,6 +37,7 @@ class DAGOR_PT_Import(Panel):
         layout = self.layout
         layout.prop(P, 'with_subfolders')
         layout.prop(P, 'mopt')
+        layout.prop(P, 'preserve_sg')
         layout.prop(P, 'replace_existing')
         layout.prop(P, 'preserve_path')
         layout.prop(P, 'masks')
@@ -91,6 +92,7 @@ class DAGOR_OT_BatchImport(Operator):
             for dag in dags:
                 try:
                     bpy.ops.import_scene.dag(filepath = dag,
+                                            preserve_sg = P.preserve_sg,
                                             replace_existing = P.replace_existing,
                                             mopt = P.mopt,
                                             preserve_path = P.preserve_path)

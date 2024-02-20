@@ -157,7 +157,7 @@ class DagShaderClass(PropertyGroup):
 
 def get_obj_prop_presets(self, context):
     pref=bpy.context.preferences.addons[__package__].preferences
-    path = user_resource('SCRIPTS') + f'\\addons\\{__package__}\\object_properties\\presets\\'
+    path = pref.props_presets_path
     items = []
     files = [f for f in listdir(path) if isfile(join(path,f))]
     for f in files:
@@ -167,13 +167,22 @@ def get_obj_prop_presets(self, context):
 
 #IMPORTER
 class Dag_Import_Props(PropertyGroup):
-    with_subfolders :BoolProperty  (name="Search in subfolders", default=False, description = 'Search for .dags in subfolders as well')
-    mopt            :BoolProperty  (name="Optimize material slots", default=True, description = 'Remove unnecessary material slots')
-    replace_existing:BoolProperty  (name="Reimport existing", default=False, description = 'Replace dags that already exist in scene by imported versions')
-    preserve_path   :BoolProperty  (name="Preserve paths", default=False, description = 'Override export path for each imported dag')
-    dirpath         :StringProperty(name="Path",    default='C:\\tmp\\', subtype = 'DIR_PATH', description = "Where search for .dag files?",update=upd_imp_path)
-    masks           :StringProperty(name="Masks",   default='', description = 'name should contain at least one to be imported. Split by";"')
-    excludes        :StringProperty(name="Excludes",default='', description = 'name should not contain any to be imported. Split by";"')
+    with_subfolders :BoolProperty  (name="Search in subfolders", default=False,
+                        description = 'Search for .dags in subfolders as well')
+    mopt            :BoolProperty  (name="Optimize material slots", default=True,
+                        description = 'Remove unnecessary material slots')
+    preserve_sg     :BoolProperty  (name="Preserve Smoothing Groups", default=False,
+                        description = "Store Smoothing Groups in a integer face attribute called 'SG'")
+    replace_existing:BoolProperty  (name="Reimport existing", default=False,
+                        description = 'Replace dags that already exist in scene by imported versions')
+    preserve_path   :BoolProperty  (name="Preserve paths", default=False,
+                        description = 'Override export path for each imported dag')
+    dirpath         :StringProperty(name="Path",    default='C:\\tmp\\', subtype = 'DIR_PATH',
+                        description = "Where search for .dag files?",update=upd_imp_path)
+    masks           :StringProperty(name="Masks",   default='',
+                        description = 'name should contain at least one to be imported. Split by";"')
+    excludes        :StringProperty(name="Excludes",default='',
+                        description = 'name should not contain any to be imported. Split by";"')
 
 #EXPORTER
 class Dag_Export_Props(PropertyGroup):
@@ -249,10 +258,12 @@ class dag4blend_props(PropertyGroup):
 class DagSettings(AddonPreferences):
     bl_idname = __package__
     def_path='C:\\replace_by_correct_path\\'
-    def_cfg_path='D:\\dagor2\tools\\dagor3_cdk\\plugin3dsMax-x64\\dagorShaders.cfg'
+    def_cfg_path=bpy.utils.user_resource('SCRIPTS') + f"\\addons\\{__package__}\\dagorShaders.cfg"
 #global
     assets_path:        StringProperty(default=def_path,     subtype = 'DIR_PATH', description = 'assets location')
-    #cfg_path:           StringProperty(default=def_cfg_path, subtype = 'FILE_PATH',description = 'dagorShaders.cfg location')
+    props_presets_path: StringProperty(subtype = 'DIR_PATH',
+            default = bpy.utils.user_resource('SCRIPTS') + f"\\addons\\{__package__}\\object_properties\\presets")
+    cfg_path:           StringProperty(default=def_cfg_path, subtype = 'FILE_PATH',description = 'dagorShaders.cfg location')
 
     new_project_name:   StringProperty(description = 'name of project')
     new_project_path:   StringProperty(description = 'where assets(dags, textures, composits) of that project stored?',
@@ -322,16 +333,19 @@ class DagSettings(AddonPreferences):
 
     def draw(self, context):
         l = self.layout
-        proj=l.box()
-        new=proj.row()
-        new.prop (self,'new_project_name',text='Name')
-        new.prop (self,'new_project_path',text='Path')
-        new.operator('dt.add_project',icon='ADD',text='ADD Project')
+        paths = l.box()
+        paths.prop(self, 'props_presets_path', text = "ObjProps presets")
+        paths.prop(self, 'cfg_path', text = "dagorShaders.cfg")
         projects = l.box()
         header = projects.row()
         header.prop(self, 'projects_maximized', text = 'Projects',icon = 'DOWNARROW_HLT'if self.projects_maximized else 'RIGHTARROW_THIN',
                 emboss=False,expand=True)
         if self.projects_maximized:
+            box = projects.box()
+            new=box.row()
+            new.prop (self,'new_project_name',text='Name')
+            new.prop (self,'new_project_path',text='Path')
+            new.operator('dt.add_project',icon='ADD',text='ADD Project')
             index=0
             for project in self.projects:
                 box = projects.box()

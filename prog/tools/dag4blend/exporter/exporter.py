@@ -22,7 +22,8 @@ from ..helpers.texts                import log
 from ..tools.tools_panel            import apply_modifiers, fix_mat_slots, optimize_mat_slots, preserve_sharp
 from ..tools.tools_functions        import *
 
-from ..smooth_groups.smooth_groups  import int_to_uint,precalc_sg
+from ..smooth_groups.smooth_groups              import int_to_uint
+from ..smooth_groups.mesh_calc_smooth_groups    import mesh_calc_smooth_groups
 
 
 SUPPORTED_TYPES = ('MESH', 'CURVE')  # ,'CURVE','EMPTY','TEXT','CAMERA','LAMP')
@@ -364,7 +365,7 @@ class DagExporter(Operator, ExportHelper):
         fix_mat_slots(exp_obj)
         reorder_uv_layers(me)
         if exp_obj.data.attributes.get('SG') is None:
-            precalc_sg(exp_obj.data)
+            mesh_calc_smooth_groups(exp_obj.data)
     #collecting from pre-triangulated mesh to make it reversable on import
         edge_keys = self.getEdgeKeys(exp_obj, scene)
     #dag contains only triangles

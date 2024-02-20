@@ -74,6 +74,8 @@ def dagormat_to_text(mat,text):
     text.write('\n  twosided:b=')
     if DM.sides == 1:
         text.write('yes\n')
+    elif DM.sides == 2:
+        text.write('\n  script:t="real_two_sided=yes"\n')
     else:
         text.write('no\n')
     text.write('\n  tex16support:b=yes')
@@ -94,8 +96,6 @@ def dagormat_to_text(mat,text):
     text.write(str(int(DM.emissive[0]*255))+',')
     text.write(str(int(DM.emissive[1]*255))+',')
     text.write(str(int(DM.emissive[2]*255)))
-    if DM.sides == 2:
-        text.write('\n  script:t="real_two_sided=yes"\n')
     for param in list(DM.optional.keys()):
         text.write('\n  script:t="'+param+'=')
         try:

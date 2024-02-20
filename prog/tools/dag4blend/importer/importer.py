@@ -210,6 +210,11 @@ class DagImporter(Operator, ImportHelper):
         description = 'Override export path for imported files',
         default = False)
 
+    preserve_sg: BoolProperty(
+        name = "Preserve Smoothing Groups",
+        description = "Store Smoothing Groups in a integer face attribute called 'SG'",
+        default = False)
+
 
     rootNode = None
     reader = reader.DagReader()
@@ -355,6 +360,8 @@ class DagImporter(Operator, ImportHelper):
             sg.value=uint_to_int(SG[i])
             i+=1
         sg_to_sharp_edges(me)
+        if not self.preserve_sg:
+            me.attributes.remove(me.attributes.get('SG'))
 
         if len(node.mesh.normals_ver_list):
             normals = []
@@ -975,7 +982,8 @@ class DagImporter(Operator, ImportHelper):
         msg = f'IMPORTING {filepath}\n'
         pref = context.preferences.addons[basename(__package__)].preferences
         if not pref.project_active:
-            show_popup(message='Please configure at least one project in addon preferences',title='ERROR!', icon='ERROR')
+            show_popup(message='Please configure at least one project in addon preferences',
+                title='ERROR!', icon='ERROR')
             return {'CANCELLED'}
         log(msg)#isn't necessary in the info panel
         if self.with_dmgs is False and self.with_dps is False and self.with_lods is False:
