@@ -12,7 +12,7 @@ shutil.copy2('pythonCommon/datablock.py', 'dag4blend/datablock.py')
 
 # Files to compress
 files = [
-  'dag4blend/__init__.py', 'dag4blend/dagorShaders.cfg', 'dag4blend/fixed_dagorShaders.cfg', 'dag4blend/settings.py',
+  'dag4blend/__init__.py', 'dag4blend/dagorShaders.cfg', 'dag4blend/settings.py',
   'dag4blend/constants.py', 'dag4blend/face.py', 'dag4blend/mesh.py', 'dag4blend/node.py',
   'dag4blend/material.py', 'dag4blend/nodeMaterial.py', 'dag4blend/dagMath.py',
   'dag4blend/read_config.py',
