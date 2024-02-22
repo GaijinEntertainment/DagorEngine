@@ -31,7 +31,7 @@ modules=[settings,
 bl_info = {"name": "dag4blend",
            "description": "Tools for editing dag files",
            "author": "Gaijin Entertainment",
-           "version": (2, 1, 7),#2024.02.20
+           "version": (2, 1, 8),#2024.02.22
            "blender": (4, 0, 2),
            "location": "File > Export",
            "wiki_url": "",

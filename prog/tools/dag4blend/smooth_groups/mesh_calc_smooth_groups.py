@@ -66,7 +66,7 @@ def uint_to_int(int):
         return int-SG_MAX_UINT
 
 def int_to_uint(int):
-    if int>0:
+    if int>=0:
         return int
     else:
         return SG_MAX_UINT+int#2**32-something
@@ -157,6 +157,7 @@ def mesh_calc_smooth_groups(mesh):
         Attr = bm.faces.layers.int.new("SG")
     for face in bm.faces:
         face[Attr] = SmoothGroups[face.index] if face.smooth else 0
+    bmesh_to_mesh(bm, mesh)
     return
 
 def init_sg_attribute(object):
@@ -172,8 +173,6 @@ def init_sg_attribute(object):
 #Calculates SG attribute for input 'MESH' objects
 def objects_calc_smooth_groups(objects):
     current_mode = bpy.context.mode
-    for obj in objects:
-        init_sg_attribute(obj)
     #applying edit_mesh changes to meshes if necessary
     if current_mode == 'EDIT_MESH':
         needs_update = False
@@ -185,5 +184,6 @@ def objects_calc_smooth_groups(objects):
             bpy.ops.object.editmode_toggle()# "edit_mesh" might not match "mesh", it updates only on switching
             bpy.ops.object.editmode_toggle()# keepeng user in the same mode by switching back to edit
     for obj in objects:
+        init_sg_attribute(obj)
         mesh_calc_smooth_groups(obj.data)
     return
