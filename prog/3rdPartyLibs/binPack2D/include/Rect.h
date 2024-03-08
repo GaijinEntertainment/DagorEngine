@@ -1,5 +1,5 @@
 /** @file Rect.h
-	@author Jukka Jylänki
+	@author Jukka Jylanki
 
 	This work is released to Public Domain, do whatever you want with it.
 */

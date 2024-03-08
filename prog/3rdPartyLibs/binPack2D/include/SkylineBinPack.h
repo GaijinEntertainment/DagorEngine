@@ -1,5 +1,5 @@
 /** @file SkylineBinPack.h
-	@author Jukka Jylänki
+	@author Jukka Jylanki
 
 	@brief Implements different bin packer algorithms that use the SKYLINE data structure.
 
