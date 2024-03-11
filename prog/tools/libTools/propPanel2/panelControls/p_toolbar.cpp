@@ -11,8 +11,7 @@ CToolbar::CToolbar(ControlEventHandler *event_handler, PropertyContainerControlB
   const char *caption) :
   PropertyContainerControlBase(id, event_handler, parent, x, y, w, _pxScaled(DEFAULT_TOOLBAR_HEIGHT)),
   mContainer(this, parent->getWindow(), x, y, _px(w), _pxS(DEFAULT_TOOLBAR_HEIGHT)),
-  mToolbar(this, &mContainer, 0, -_pxS(2) /* -2 для скрытия линии над тулбаром */, _px(w), _pxS(DEFAULT_TOOLBAR_BUTTON_HEIGHT),
-    caption)
+  mToolbar(this, &mContainer, 0, -_pxS(2) /* -2 to hide line under toolbar */, _px(w), _pxS(DEFAULT_TOOLBAR_BUTTON_HEIGHT), caption)
 {}
 
 

@@ -1,6 +1,6 @@
 /***********      .---.         .-"-.      *******************\
-* -------- *     /   ._.       / ґ ` \     * ---------------- *
-* Author's *     \_  (__\      \_°v°_/     * humus@rogers.com *
+* -------- *     /   ._.       / Т‘ ` \     * ---------------- *
+* Author's *     \_  (__\      \_В°vВ°_/     * humus@rogers.com *
 *   note   *     //   \\       //   \\     * ICQ #47010716    *
 * -------- *    ((     ))     ((     ))    * ---------------- *
 *          ****--""---""-------""---""--****                  ********\
@@ -160,39 +160,33 @@ void CreateBmp24(char *fname, RGBTRIPLE *color, int u_size, int v_size)
   DWORD RW;
   int i, j;
 
-  // Объявим нужные структуры
   BITMAPFILEHEADER bfh;
   BITMAPINFOHEADER bih;
-  BYTE Palette[1024]; // Палитра
+  BYTE Palette[1024];
 
-  // Пусть у нас будет картинка размером 35 x 50 пикселей
   int Width = u_size;
   int Height = v_size;
-  memset(Palette, 0, 1024); // В палитре у нас нули
+  memset(Palette, 0, 1024);
 
-  // Заполним их
   memset(&bfh, 0, sizeof(bfh));
-  bfh.bfType = 0x4D42;                              // Обозначим, что это bmp 'BM'
-  bfh.bfOffBits = sizeof(bfh) + sizeof(bih) + 1024; // Палитра занимает 1Kb, но мы его испоьзовать не будем
-  bfh.bfSize = bfh.bfOffBits + sizeof(color[0]) * Width * Height + Height * (Width % 4); // Посчитаем размер конечного файла
+  bfh.bfType = 0x4D42;                                                                   // mark as bmp 'BM'
+  bfh.bfOffBits = sizeof(bfh) + sizeof(bih) + 1024;                                      // palette takes 1K (but is not used)
+  bfh.bfSize = bfh.bfOffBits + sizeof(color[0]) * Width * Height + Height * (Width % 4); // final file size
 
   memset(&bih, 0, sizeof(bih));
-  bih.biSize = sizeof(bih);   // Так положено
-  bih.biBitCount = 24;        // 16 бит на пиксель
-  bih.biCompression = BI_RGB; // Без сжатия
+  bih.biSize = sizeof(bih);
+  bih.biBitCount = 24;
+  bih.biCompression = BI_RGB; // no compression
   bih.biHeight = Height;
   bih.biWidth = Width;
-  bih.biPlanes = 1; // Должно быть 1
-                    // А остальные поля остаются 0
+  bih.biPlanes = 1;
   hFile = CreateFile(fname, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
   if (hFile == INVALID_HANDLE_VALUE)
     return;
 
-  // Запишем заголовки
   WriteFile(hFile, &bfh, sizeof(bfh), &RW, NULL);
   WriteFile(hFile, &bih, sizeof(bih), &RW, NULL);
 
-  // Запишем палитру
   WriteFile(hFile, Palette, 1024, &RW, NULL);
   for (i = 0; i < Height; i++)
   {
@@ -200,7 +194,6 @@ void CreateBmp24(char *fname, RGBTRIPLE *color, int u_size, int v_size)
     {
       WriteFile(hFile, &color[i * Width + j], sizeof(color[0]), &RW, NULL);
     }
-    // Выровняем по границе
     WriteFile(hFile, Palette, Width % 4, &RW, NULL);
   }
 
