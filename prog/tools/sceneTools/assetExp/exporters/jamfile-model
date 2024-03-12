@@ -33,8 +33,6 @@ UseProgLibs =
   tools/libTools/ambientOcclusion
 ;
 
-#Sources += geomSimplify.cpp ;
-
 CPPopt = -D_DEBUG_TAB_ ;
 
 include $(Root)/prog/_jBuild/build.jam ;

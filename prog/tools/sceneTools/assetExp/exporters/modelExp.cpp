@@ -20,8 +20,6 @@
 #include <util/dag_strUtil.h>
 
 extern bool shadermeshbuilder_strip_d3dres;
-extern void init_simplygon();
-extern void term_simplygon();
 
 BEGIN_DABUILD_PLUGIN_NAMESPACE(modelExp)
 namespace modelexp
@@ -246,7 +244,6 @@ public:
     set_missing_texture_name("", false);
     GlobalVertexDataConnector::allowVertexMerge = true;
     GlobalVertexDataConnector::allowBaseVertex = true;
-    // init_simplygon();
     if (appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("preferZSTD", false))
     {
       ShaderMeshData::preferZstdPacking = true;
@@ -260,7 +257,7 @@ public:
     enable_tex_mgr_mt(true, 64 << 10);
     return true;
   }
-  virtual void __stdcall destroy() { delete this; /*term_simplygon();*/ }
+  virtual void __stdcall destroy() { delete this; }
 
   virtual int __stdcall getExpCount() { return 4; }
   virtual const char *__stdcall getExpType(int idx)
