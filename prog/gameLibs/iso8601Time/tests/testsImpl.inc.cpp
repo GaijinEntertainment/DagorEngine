@@ -83,9 +83,9 @@ TEST_CASE(parse_iso8601_timestamps)
   TEST_CHECK(iso8601_parse("2023-08-01T11:22:33Z") == iso8601_parse("20230801T112233"));
   // YYYY-MM-DDThh:mm:ss
   TEST_CHECK(iso8601_parse("2023-08-01T11:22:33Z") == iso8601_parse("2023-08-01T11:22:33"));
-  // YYYYMMDDThhmmss±hh
+  // YYYYMMDDThhmmssÂ±hh
   TEST_CHECK(iso8601_parse("2023-08-01T11:22:33Z") == iso8601_parse("20230801T152233+04"));
-  // YYYYMMDDThhmmss±hhmm
+  // YYYYMMDDThhmmssÂ±hhmm
   TEST_CHECK(iso8601_parse("2023-08-01T11:22:33Z") == iso8601_parse("20230801T154233+0420"));
   // YYYY-MM-DDThh:mm:ss[.SSS]
   TEST_CHECK(iso8601_parse("2023-08-01T11:22:33.123Z") == iso8601_parse("2023-08-01T11:22:33.123"));

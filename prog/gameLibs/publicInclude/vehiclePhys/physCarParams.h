@@ -30,10 +30,10 @@ struct PhysCarSuspensionParams
   float springK;                  //< Spring stiffness [N/m]
   float springKdUp, springKdDown; //< Spring damping [N*sec/m]
   float arbK;                     //< Antirollbar stiffness [N/m]
-                                  // уже приведенное значение жесткости антироллбара на метр разницы текущих положений
-                                  // пружин колес, связанных этим стабилизатором.
-                                  // вообще оно зависит от углов, но если брать плечи стабилизатора 30 см,
-                                  // то при наших ходах подвески sin a ~= a
+              // the given value of the anti-rollbar stiffness per meter of the difference in the current positions of the wheel
+              // springs connected by this stabilizer;
+              // in general, it depends on the angles, but if we take the shoulders of the stabilizer as 30 cm, then with our
+              // suspension moves we have sin a ~= a
   float wRad, wMass;
   int flags;
 

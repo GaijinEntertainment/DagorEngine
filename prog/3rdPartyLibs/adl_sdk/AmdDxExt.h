@@ -3,7 +3,7 @@
 // @file  amddxext.h
 // @brief AMD D3D Exension API include file.
 //
-// Copyright © AMD Corporation. All rights reserved.
+// Copyright Â© AMD Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
 
 #ifndef _AMDDXEXT_H_

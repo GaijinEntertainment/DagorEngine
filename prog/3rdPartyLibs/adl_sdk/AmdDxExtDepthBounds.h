@@ -2,7 +2,7 @@
 // @file  amddxextdepthbounds.h
 // @brief AMD D3D Depth Bounds Extension API include file.
 //
-// Copyright © AMD Corporation. All rights reserved.
+// Copyright Â© AMD Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
 
 #ifndef _AMDDXEXTDEPTHBOUNDS_H_

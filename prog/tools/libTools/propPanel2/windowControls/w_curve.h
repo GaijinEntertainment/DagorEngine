@@ -38,8 +38,7 @@ struct MyRect
 class WCurveControl : public WindowControlBase
 {
 public:
-  /*CtlColor backColor, backCreateColor, ptColor, selPtColor,
-    handleColor, selHandleColor;*/
+  // CtlColor backColor, backCreateColor, ptColor, selPtColor, handleColor, selHandleColor;
 
 
   enum
@@ -56,9 +55,8 @@ public:
 
   virtual ~WCurveControl() { setCB(NULL); }
 
-  // Контрол имеет методы для установки и получения указателя на ICurveControlCallback.
+  // set and get ICurveControlCallback pointer
   ICurveControlCallback *getCB() const { return cb; }
-
   void setCB(ICurveControlCallback *curve_control_cb)
   {
     if (cb)
@@ -71,8 +69,7 @@ public:
   }
 
 
-  // Контрол отображает область кривой, заданную положениями левого нижнего и правого верхнего углов вида в координатах кривой.
-  // Контрол отображает управляющие точки.
+  // shows part of curve set by left-bottom and right-upper corners (and shows control points)
   virtual intptr_t onControlDrawItem(void *info);
   virtual void resizeWindow(int w, int h);
   virtual intptr_t onLButtonDown(long x, long y);
@@ -87,14 +84,12 @@ public:
   void setValue(Tab<Point2> &source);
   void getValue(Tab<Point2> &dest) const;
 
-  // Эти положения могут быть фиксированными, а могут меняться различными способами, в зависимости от того, как используется этот
-  // контрол. Поэтому надо сделать методы для получения и установки положений этих двух углов вида.
+  // set and get viewbox for curve
   void setViewBox(const Point2 &left_bottom, const Point2 &right_top);
   Point2 getLeftBottom() const { return Point2(viewBox.lim[0].x, viewBox.lim[1].y); }
   Point2 getRightTop() const { return Point2(viewBox.lim[1].x, viewBox.lim[0].y); }
 
-  // Контрол может быть переведен в режим создания точек. В этом режиме при нажатии левой кнопки мыши создается точка.
-  // При нажатии правой кнопки мыши происходит выход из этого режима в обычный режим работы.
+  // set and get current mode (creation mode adds new point for each LMB click); RMB click resets mode to default
   void setMode(int _mode = MODE_CREATION)
   {
     mode = _mode;
@@ -111,9 +106,6 @@ public:
   void setCycled(bool cycled);
   void setSelected(bool value) { mSelected = value; }
 
-  // Контрол имеет метод для удаления выбранных точек. Этот метод будет вызываться извне,
-  // при нажатии кнопки в интерфейсе, например.
-  // void delSelection();
   void autoZoom();
 
 protected:
@@ -124,12 +116,10 @@ protected:
 
   ICurveControlCallback *cb;
 
-  // задает размер и положение области вида в координатах кривой.
-  // Это может быть использовано для оптимизации ломаных линий,
-  // например, они могут быть созданы только для этой видимой области или их детализация может зависеть от этого.
+  // sets size and position of view area (in curve coordinates)
   BBox2 defaultViewBox;
   BBox2 viewBox;
-  // задает размер вида в пикселях, может использоваться для определения необходимого уровня детализации кривой.
+  // sets size in pixels, can be used to specify required accuracy of curve
   Point2 viewSize;
   Tab<ICurveControlCallback::PolyLine> cachPolyLines;
   bool cancelMovement;

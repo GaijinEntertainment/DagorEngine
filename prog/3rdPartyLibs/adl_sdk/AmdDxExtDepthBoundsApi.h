@@ -4,7 +4,7 @@
 //    AMD D3D Depth Bounds Extension API include file.
 //   This is the main include file for apps using the Depth Bounds extension.
 //
-// Copyright © AMD Corporation. All rights reserved.
+// Copyright Â© AMD Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
 
 #ifndef _AMDDXEXTDEPTHBOUNDSAPI_H_

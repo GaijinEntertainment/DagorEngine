@@ -1024,7 +1024,7 @@ AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_SetMaxAsyncCompileThreadCount(
 
 ///
 /// This method can be used to determine the total number of asynchronous shader compile jobs that are either
-/// queued for waiting for compilation or being compiled by the driver’s asynchronous compilation threads.
+/// queued for waiting for compilation or being compiled by the driverâ€™s asynchronous compilation threads.
 /// This method can be called at any during the lifetime of the driver.
 ///
 /// \param [in] context                             Pointer to a context.

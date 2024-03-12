@@ -13,7 +13,6 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
 
-// лллллллллллллллллллллллллллллллллллллллллллллллллллллллллллллллллллллллллл//
 template <typename FI>
 DeserializedStaticSceneRayTracerT<FI>::DeserializedStaticSceneRayTracerT() : StaticSceneRayTracerT<FI>(), loadedDump(NULL)
 {}

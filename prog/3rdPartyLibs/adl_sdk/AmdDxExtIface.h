@@ -4,7 +4,7 @@
 //    AMD D3D Exension API include file. This is a helper include file for extensions. It 
 //    provides a common base class for all extension interfaces
 //
-// Copyright © AMD Corporation. All rights reserved.
+// Copyright Â© AMD Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
 
 #ifndef _AMDDXEXTIFACE_H_

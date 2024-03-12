@@ -2,7 +2,7 @@
 // @file  amddxextapi.h
 // @brief AMD D3D Exension API include file. This is the main include file for apps using extensions.
 //
-// Copyright © AMD Corporation. All rights reserved.
+// Copyright Â© AMD Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
 #ifndef _AMDDXEXTAPI_H_
 #define _AMDDXEXTAPI_H_

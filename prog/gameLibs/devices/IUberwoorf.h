@@ -1,74 +1,74 @@
-#ifndef __IUBERURF_INTERFACE_DEFINED__
+п»ї#ifndef __IUBERURF_INTERFACE_DEFINED__
 #define __IUBERURF_INTERFACE_DEFINED__
 
 #include "unknwn.h"
 
 
-#define UW_STATUS_IN_USE               0 // Используется
-#define UW_STATUS_READY                1 // Подключена
-#define UW_STATUS_NOT_CONNECTED        2 // Не подключена
-#define UW_STATUS_TIMER_ERROR          3 // Ошибка создания таймера
-#define UW_STATUS_UNSUPPORTED_PROTOCOL 4 // Ошибка: устройство запрашивает длину протокола больше предусмотренной
+#define UW_STATUS_IN_USE               0 // РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ
+#define UW_STATUS_READY                1 // РџРѕРґРєР»СЋС‡РµРЅР°
+#define UW_STATUS_NOT_CONNECTED        2 // РќРµ РїРѕРґРєР»СЋС‡РµРЅР°
+#define UW_STATUS_TIMER_ERROR          3 // РћС€РёР±РєР° СЃРѕР·РґР°РЅРёСЏ С‚Р°Р№РјРµСЂР°
+#define UW_STATUS_UNSUPPORTED_PROTOCOL 4 // РћС€РёР±РєР°: СѓСЃС‚СЂРѕР№СЃС‚РІРѕ Р·Р°РїСЂР°С€РёРІР°РµС‚ РґР»РёРЅСѓ РїСЂРѕС‚РѕРєРѕР»Р° Р±РѕР»СЊС€Рµ РїСЂРµРґСѓСЃРјРѕС‚СЂРµРЅРЅРѕР№
 
-#define UW_SIT_LEFT       0x200 // Сиденье – слева
-#define UW_SIT_RIGHT      0x002 // Сиденье – справа
-#define UW_BACK_LOW_LEFT  0x400 // Низ спины – слева
-#define UW_BACK_LOW_RIGHT 0x004 // Низ спины – справа
-#define UW_BACK_MID_LEFT  0x800 // Середина спины – слева
-#define UW_BACK_MID_RIGHT 0x008 // Середина спины – справа
-#define UW_LEFT           0xE00 // Левая сторона накидки
-#define UW_RIGHT          0x00E // Правая сторона накидки
-#define UW_SIT            0x202 // Сиденье
-#define UW_BACK_LOW       0x404 // Низ спины
-#define UW_BACK_MID       0x808 // Середина спины
-#define UW_ALL_ZONES      0xE0E // Все зоны
+#define UW_SIT_LEFT       0x200 // РЎРёРґРµРЅСЊРµ вЂ“ СЃР»РµРІР°
+#define UW_SIT_RIGHT      0x002 // РЎРёРґРµРЅСЊРµ вЂ“ СЃРїСЂР°РІР°
+#define UW_BACK_LOW_LEFT  0x400 // РќРёР· СЃРїРёРЅС‹ вЂ“ СЃР»РµРІР°
+#define UW_BACK_LOW_RIGHT 0x004 // РќРёР· СЃРїРёРЅС‹ вЂ“ СЃРїСЂР°РІР°
+#define UW_BACK_MID_LEFT  0x800 // РЎРµСЂРµРґРёРЅР° СЃРїРёРЅС‹ вЂ“ СЃР»РµРІР°
+#define UW_BACK_MID_RIGHT 0x008 // РЎРµСЂРµРґРёРЅР° СЃРїРёРЅС‹ вЂ“ СЃРїСЂР°РІР°
+#define UW_LEFT           0xE00 // Р›РµРІР°СЏ СЃС‚РѕСЂРѕРЅР° РЅР°РєРёРґРєРё
+#define UW_RIGHT          0x00E // РџСЂР°РІР°СЏ СЃС‚РѕСЂРѕРЅР° РЅР°РєРёРґРєРё
+#define UW_SIT            0x202 // РЎРёРґРµРЅСЊРµ
+#define UW_BACK_LOW       0x404 // РќРёР· СЃРїРёРЅС‹
+#define UW_BACK_MID       0x808 // РЎРµСЂРµРґРёРЅР° СЃРїРёРЅС‹
+#define UW_ALL_ZONES      0xE0E // Р’СЃРµ Р·РѕРЅС‹
 
 // FLE - FILE LOAD ERROR
-#define UW_FLE_NO_ERROR           0  // Нет ошибки загрузки эффекта из файла XML
-#define UW_FLE_XML                1  // Ошибка при загрузке эффекта из файла XML
-#define UW_FLE_FILE_OPEN          2  // Не удалось открыть файл
-#define UW_FLE_XML_PARSE          3  // Ошибка разбора XML
-#define UW_FLE_XML_ELEMENT_NAME   4  // Ошибка с именем элемента XML
-#define UW_FLE_XML_ELEMENT_VALUE  5  // Ошибка со значением элемента XML
-#define UW_FLE_XML_ATTRIBUTE      6  // Ошибка с атрибутом XML
-#define UW_FLE_XML_EMPTY_TAG      7  // Пустой тег
-#define UW_FLE_XML_CLOSING_TAG    8  // Не найден закрывающий тег
-#define UW_FLE_XML_TAG_DEFINITION 9  // Ошибка с оформлением тега
-#define UW_FLE_XML_COMMENT        10 // Ошибка с комментарием
-#define UW_FLE_XML_DECLARATION    11 // Ошибка с заголовком XML-документа
-#define UW_FLE_XML_EMPTY_DOCUMENT 12 // Пустой XML документ
-#define UW_FLE_XML_EOF_OR_NULL    13 // Ошибка конца файла или нулевого символа
-#define UW_FLE_XML_CDATA          14 // Ошибка секции CDATA
+#define UW_FLE_NO_ERROR           0  // РќРµС‚ РѕС€РёР±РєРё Р·Р°РіСЂСѓР·РєРё СЌС„С„РµРєС‚Р° РёР· С„Р°Р№Р»Р° XML
+#define UW_FLE_XML                1  // РћС€РёР±РєР° РїСЂРё Р·Р°РіСЂСѓР·РєРµ СЌС„С„РµРєС‚Р° РёР· С„Р°Р№Р»Р° XML
+#define UW_FLE_FILE_OPEN          2  // РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ С„Р°Р№Р»
+#define UW_FLE_XML_PARSE          3  // РћС€РёР±РєР° СЂР°Р·Р±РѕСЂР° XML
+#define UW_FLE_XML_ELEMENT_NAME   4  // РћС€РёР±РєР° СЃ РёРјРµРЅРµРј СЌР»РµРјРµРЅС‚Р° XML
+#define UW_FLE_XML_ELEMENT_VALUE  5  // РћС€РёР±РєР° СЃРѕ Р·РЅР°С‡РµРЅРёРµРј СЌР»РµРјРµРЅС‚Р° XML
+#define UW_FLE_XML_ATTRIBUTE      6  // РћС€РёР±РєР° СЃ Р°С‚СЂРёР±СѓС‚РѕРј XML
+#define UW_FLE_XML_EMPTY_TAG      7  // РџСѓСЃС‚РѕР№ С‚РµРі
+#define UW_FLE_XML_CLOSING_TAG    8  // РќРµ РЅР°Р№РґРµРЅ Р·Р°РєСЂС‹РІР°СЋС‰РёР№ С‚РµРі
+#define UW_FLE_XML_TAG_DEFINITION 9  // РћС€РёР±РєР° СЃ РѕС„РѕСЂРјР»РµРЅРёРµРј С‚РµРіР°
+#define UW_FLE_XML_COMMENT        10 // РћС€РёР±РєР° СЃ РєРѕРјРјРµРЅС‚Р°СЂРёРµРј
+#define UW_FLE_XML_DECLARATION    11 // РћС€РёР±РєР° СЃ Р·Р°РіРѕР»РѕРІРєРѕРј XML-РґРѕРєСѓРјРµРЅС‚Р°
+#define UW_FLE_XML_EMPTY_DOCUMENT 12 // РџСѓСЃС‚РѕР№ XML РґРѕРєСѓРјРµРЅС‚
+#define UW_FLE_XML_EOF_OR_NULL    13 // РћС€РёР±РєР° РєРѕРЅС†Р° С„Р°Р№Р»Р° РёР»Рё РЅСѓР»РµРІРѕРіРѕ СЃРёРјРІРѕР»Р°
+#define UW_FLE_XML_CDATA          14 // РћС€РёР±РєР° СЃРµРєС†РёРё CDATA
 
-#define UW_FLE_PATH_CHAR_CONVERSION  50 // Ошибка преобразования заданного пути к однобайтовой строке
-#define UW_FLE_ROOT                  51 // Неверный корневой элемент (не 'uberwoorf_vibro_effect')
-#define UW_FLE_ZONES_MISSING         52 // Атрибут виброзон не найден
-#define UW_FLE_ZONES_INCORRECT       53 // Значение атрибута виброзон не распознано
-#define UW_FLE_VPOINT_INCORRECT      54 // Элемент точки вибрации не распознан
-#define UW_FLE_VPOINT_NOT_UNIQUE     55 // Элемент точки вибрации не уникален
-#define UW_FLE_AMPL_TIME_MISSING     56 // Атрибут амплитуды и/или времени не найден
-#define UW_FLE_AMPL_TIME_INCORRECT   57 // Значение атрибута амплитуды и/или времени не распознано
-#define UW_FLE_VPOINT_UNKNOWN_TAG    58 // Неизвестный тег в описании точки вибрации
-#define UW_FLE_VPOINT_MISSING        59 // Элемент одной из точек вибрации не найден
-#define UW_FLE_VIBRATION_UNKNOWN_TAG 60 // Неизвестный тег в описании вибрации
-#define UW_FLE_NO_VIBRATIONS         61 // Эффект не содержит вибраций
-#define UW_FLE_EFFECT_NOT_FOUND      62 // Эффект с таким дескриптором не найден
-#define UW_FLE_EFFECT_ZERO_LENGTH    63 // Эффект имеет нулевую длительность
+#define UW_FLE_PATH_CHAR_CONVERSION  50 // РћС€РёР±РєР° РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ Р·Р°РґР°РЅРЅРѕРіРѕ РїСѓС‚Рё Рє РѕРґРЅРѕР±Р°Р№С‚РѕРІРѕР№ СЃС‚СЂРѕРєРµ
+#define UW_FLE_ROOT                  51 // РќРµРІРµСЂРЅС‹Р№ РєРѕСЂРЅРµРІРѕР№ СЌР»РµРјРµРЅС‚ (РЅРµ 'uberwoorf_vibro_effect')
+#define UW_FLE_ZONES_MISSING         52 // РђС‚СЂРёР±СѓС‚ РІРёР±СЂРѕР·РѕРЅ РЅРµ РЅР°Р№РґРµРЅ
+#define UW_FLE_ZONES_INCORRECT       53 // Р—РЅР°С‡РµРЅРёРµ Р°С‚СЂРёР±СѓС‚Р° РІРёР±СЂРѕР·РѕРЅ РЅРµ СЂР°СЃРїРѕР·РЅР°РЅРѕ
+#define UW_FLE_VPOINT_INCORRECT      54 // Р­Р»РµРјРµРЅС‚ С‚РѕС‡РєРё РІРёР±СЂР°С†РёРё РЅРµ СЂР°СЃРїРѕР·РЅР°РЅ
+#define UW_FLE_VPOINT_NOT_UNIQUE     55 // Р­Р»РµРјРµРЅС‚ С‚РѕС‡РєРё РІРёР±СЂР°С†РёРё РЅРµ СѓРЅРёРєР°Р»РµРЅ
+#define UW_FLE_AMPL_TIME_MISSING     56 // РђС‚СЂРёР±СѓС‚ Р°РјРїР»РёС‚СѓРґС‹ Рё/РёР»Рё РІСЂРµРјРµРЅРё РЅРµ РЅР°Р№РґРµРЅ
+#define UW_FLE_AMPL_TIME_INCORRECT   57 // Р—РЅР°С‡РµРЅРёРµ Р°С‚СЂРёР±СѓС‚Р° Р°РјРїР»РёС‚СѓРґС‹ Рё/РёР»Рё РІСЂРµРјРµРЅРё РЅРµ СЂР°СЃРїРѕР·РЅР°РЅРѕ
+#define UW_FLE_VPOINT_UNKNOWN_TAG    58 // РќРµРёР·РІРµСЃС‚РЅС‹Р№ С‚РµРі РІ РѕРїРёСЃР°РЅРёРё С‚РѕС‡РєРё РІРёР±СЂР°С†РёРё
+#define UW_FLE_VPOINT_MISSING        59 // Р­Р»РµРјРµРЅС‚ РѕРґРЅРѕР№ РёР· С‚РѕС‡РµРє РІРёР±СЂР°С†РёРё РЅРµ РЅР°Р№РґРµРЅ
+#define UW_FLE_VIBRATION_UNKNOWN_TAG 60 // РќРµРёР·РІРµСЃС‚РЅС‹Р№ С‚РµРі РІ РѕРїРёСЃР°РЅРёРё РІРёР±СЂР°С†РёРё
+#define UW_FLE_NO_VIBRATIONS         61 // Р­С„С„РµРєС‚ РЅРµ СЃРѕРґРµСЂР¶РёС‚ РІРёР±СЂР°С†РёР№
+#define UW_FLE_EFFECT_NOT_FOUND      62 // Р­С„С„РµРєС‚ СЃ С‚Р°РєРёРј РґРµСЃРєСЂРёРїС‚РѕСЂРѕРј РЅРµ РЅР°Р№РґРµРЅ
+#define UW_FLE_EFFECT_ZERO_LENGTH    63 // Р­С„С„РµРєС‚ РёРјРµРµС‚ РЅСѓР»РµРІСѓСЋ РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ
 
-#define UW_VALIDATION_NO_ERROR                         0  // Нет ошибки проверки вибрации
-#define UW_VALIDATION_FAILURE                          80 // Ошибка (exception) в процессе проверки вибрации
-#define UW_VALIDATION_NO_ZONES                         81 // Для вибрации не указано ни одной виброзоны
-#define UW_VALIDATION_ZERO_LENGTH                      82 // Нулевая длительность вибрации
-#define UW_VALIDATION_LESS_THAN_2_POINTS_OR_1_INFINITE 83 // Должно быть минимум 2 точки вибрации, или 1 со временем бесконечность
-#define UW_VALIDATION_INFINITY_NOT_LAST_OR_SINGLE      84 // Бесконечность может быть последней или единственной засечкой времени
+#define UW_VALIDATION_NO_ERROR                         0 // РќРµС‚ РѕС€РёР±РєРё РїСЂРѕРІРµСЂРєРё РІРёР±СЂР°С†РёРё
+#define UW_VALIDATION_FAILURE                          80 // РћС€РёР±РєР° (exception) РІ РїСЂРѕС†РµСЃСЃРµ РїСЂРѕРІРµСЂРєРё РІРёР±СЂР°С†РёРё
+#define UW_VALIDATION_NO_ZONES                         81 // Р”Р»СЏ РІРёР±СЂР°С†РёРё РЅРµ СѓРєР°Р·Р°РЅРѕ РЅРё РѕРґРЅРѕР№ РІРёР±СЂРѕР·РѕРЅС‹
+#define UW_VALIDATION_ZERO_LENGTH                      82 // РќСѓР»РµРІР°СЏ РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ РІРёР±СЂР°С†РёРё
+#define UW_VALIDATION_LESS_THAN_2_POINTS_OR_1_INFINITE 83 // Р”РѕР»Р¶РЅРѕ Р±С‹С‚СЊ РјРёРЅРёРјСѓРј 2 С‚РѕС‡РєРё РІРёР±СЂР°С†РёРё, РёР»Рё 1 СЃРѕ РІСЂРµРјРµРЅРµРј Р±РµСЃРєРѕРЅРµС‡РЅРѕСЃС‚СЊ
+#define UW_VALIDATION_INFINITY_NOT_LAST_OR_SINGLE      84 // Р‘РµСЃРєРѕРЅРµС‡РЅРѕСЃС‚СЊ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїРѕСЃР»РµРґРЅРµР№ РёР»Рё РµРґРёРЅСЃС‚РІРµРЅРЅРѕР№ Р·Р°СЃРµС‡РєРѕР№ РІСЂРµРјРµРЅРё
 #define UW_VALIDATION_INFINITY_AMPLITUDE_NOT_AS_PREVIOUS \
-  85 // Если бесконечность есть, то амплитуда должна быть такой же, как на предыдущей засечке
-#define UW_VALIDATION_INFINITY_AMPLITUDE_ZERO     86 // Амплитуда у бесконечной вибрации нулевая
-#define UW_VALIDATION_NEXT_TIME_NOT_EQUAL_OR_MORE 87 // Последующая засечка должна быть равной предыдущей или больше ее
-#define UW_VALIDATION_THREE_OR_MORE_EQUAL_TIMES   88 // Не допускается подряд три и более одинаковых засечек времени
-#define UW_VALIDATION_TIME_OUT_OF_RANGE           89 // Время вне диапазона (0... 1 000 000 мс)
+  85 // Р•СЃР»Рё Р±РµСЃРєРѕРЅРµС‡РЅРѕСЃС‚СЊ РµСЃС‚СЊ, С‚Рѕ Р°РјРїР»РёС‚СѓРґР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ С‚Р°РєРѕР№ Р¶Рµ, РєР°Рє РЅР° РїСЂРµРґС‹РґСѓС‰РµР№ Р·Р°СЃРµС‡РєРµ
+#define UW_VALIDATION_INFINITY_AMPLITUDE_ZERO     86 // РђРјРїР»РёС‚СѓРґР° Сѓ Р±РµСЃРєРѕРЅРµС‡РЅРѕР№ РІРёР±СЂР°С†РёРё РЅСѓР»РµРІР°СЏ
+#define UW_VALIDATION_NEXT_TIME_NOT_EQUAL_OR_MORE 87 // РџРѕСЃР»РµРґСѓСЋС‰Р°СЏ Р·Р°СЃРµС‡РєР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ СЂР°РІРЅРѕР№ РїСЂРµРґС‹РґСѓС‰РµР№ РёР»Рё Р±РѕР»СЊС€Рµ РµРµ
+#define UW_VALIDATION_THREE_OR_MORE_EQUAL_TIMES   88 // РќРµ РґРѕРїСѓСЃРєР°РµС‚СЃСЏ РїРѕРґСЂСЏРґ С‚СЂРё Рё Р±РѕР»РµРµ РѕРґРёРЅР°РєРѕРІС‹С… Р·Р°СЃРµС‡РµРє РІСЂРµРјРµРЅРё
+#define UW_VALIDATION_TIME_OUT_OF_RANGE           89 // Р’СЂРµРјСЏ РІРЅРµ РґРёР°РїР°Р·РѕРЅР° (0... 1 000 000 РјСЃ)
 
-#define UW_LANG_RUSSIAN 0x0419 // Код русского языка
+#define UW_LANG_RUSSIAN 0x0419 // РљРѕРґ СЂСѓСЃСЃРєРѕРіРѕ СЏР·С‹РєР°
 
 
 struct IUberwoorf : public IUnknown
