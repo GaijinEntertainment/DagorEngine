@@ -165,7 +165,7 @@ void CreateBmp24(char *fname, RGBTRIPLE *color, int u_size, int v_size)
   BITMAPINFOHEADER bih;
   BYTE Palette[1024]; // Палитра
 
-  // Пусть у нас буaет картинка размером 35 x 50 пикселей
+  // Пусть у нас будет картинка размером 35 x 50 пикселей
   int Width = u_size;
   int Height = v_size;
   memset(Palette, 0, 1024); // В палитре у нас нули
@@ -173,7 +173,7 @@ void CreateBmp24(char *fname, RGBTRIPLE *color, int u_size, int v_size)
   // Заполним их
   memset(&bfh, 0, sizeof(bfh));
   bfh.bfType = 0x4D42;                              // Обозначим, что это bmp 'BM'
-  bfh.bfOffBits = sizeof(bfh) + sizeof(bih) + 1024; // Палитра занимает 1Kb, но мы его испоьзовать не буaем
+  bfh.bfOffBits = sizeof(bfh) + sizeof(bih) + 1024; // Палитра занимает 1Kb, но мы его испоьзовать не будем
   bfh.bfSize = bfh.bfOffBits + sizeof(color[0]) * Width * Height + Height * (Width % 4); // Посчитаем размер конечного файла
 
   memset(&bih, 0, sizeof(bih));
