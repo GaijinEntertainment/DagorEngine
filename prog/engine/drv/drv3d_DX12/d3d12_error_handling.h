@@ -4,18 +4,45 @@
 
 #include "driver.h"
 #include "d3d12_utils.h"
-
+/*!
+* @file
+* @brief This file contains function used to manage different DirectX error codes.
+*/
 
 namespace drv3d_dx12
 {
-
+//@cond
 #define D3D12_ERROR_INVALID_HOST_EXE_SDK_VERSION _HRESULT_TYPEDEF_(0x887E0003L)
+//@endcond
 
+/**
+ * @brief Logs memory information in case of out-of-memory error.
+ */
 void report_oom_info();
+
+/**
+ * @brief Sets API's last error code to the requested value.
+ * 
+ * @param [in] error The code new value.
+ */
 void set_last_error(HRESULT error);
+
+/**
+ * @brief Returns API's last error code value.
+ * 
+ * @return The code value.
+ */
 HRESULT get_last_error_code();
+
+/**
+ * @brief Translates DirectX error code to an error message.
+ * 
+ * @param [in] ec   The error code.
+ * @return          A character array containing null-terminated error message.
+ */
 inline const char *dxgi_error_code_to_string(HRESULT ec)
 {
+    //@cond
 #define ENUM_CASE(Name) \
   case Name: return #Name
   switch (ec)
@@ -55,10 +82,22 @@ inline const char *dxgi_error_code_to_string(HRESULT ec)
 #endif
   }
 #undef ENUM_CASE
-
+  // @endcond
   return "";
 }
 
+/**
+ * @brief Checks expression result code for error. 
+ * 
+ * @param [in] result   The expression result code.
+ * @param [in] expr     The string representation of the checked expression.
+ * @param [in] file     The name of the file containing the expression.
+ * @param [in] line     The number of the line containing the expression.
+ * @return              The result code.
+ * 
+ * Whatever the check result is, the function does not report OOM info. 
+ * In case of error, it is logged (via \c ERROR level) and API's last error code is set accordingly.
+ */
 inline HRESULT dx12_check_result_no_oom_report(HRESULT result, const char *DAGOR_HAS_LOGS(expr), const char *DAGOR_HAS_LOGS(file),
   int DAGOR_HAS_LOGS(line))
 {
@@ -80,8 +119,25 @@ inline HRESULT dx12_check_result_no_oom_report(HRESULT result, const char *DAGOR
   return result;
 }
 
+/**
+ * @brief Checks result code for out-of-memory error.
+ * 
+ * @param [in] result   result code
+ * @return               \c true if \b result is the out-of-memory error code.
+ */
 inline bool is_oom_error_code(HRESULT result) { return E_OUTOFMEMORY == result; }
 
+/**
+ * @brief Checks an expression result code for error.
+ * 
+ * @param [in] result   The expression result code
+ * @param [in] expr     The string representation of the checked expression.
+ * @param [in] file     The name of the file containing the expression.
+ * @param [in] line     The number of the line containing the expression.
+ * @return              The result code
+ *
+ * In case of error, it is logged (via \c ERROR level) and API's last error code is set accordingly. Also, the OOM info is reported.
+ */
 inline HRESULT dx12_check_result(HRESULT result, const char *DAGOR_HAS_LOGS(expr), const char *DAGOR_HAS_LOGS(file),
   int DAGOR_HAS_LOGS(line))
 {
@@ -108,6 +164,14 @@ inline HRESULT dx12_check_result(HRESULT result, const char *DAGOR_HAS_LOGS(expr
   return result;
 }
 
+/**
+ * @brief Checks if an error code corresponds to a recoverable error.
+ * 
+ * @param [in] error    The error code
+ * @return              \c true if \b error corresponds to a recoverable (not device-related) error
+ *
+ * If \b error code is \c success, returns \c true.
+ */
 inline bool is_recoverable_error(HRESULT error)
 {
   switch (error)
@@ -120,6 +184,18 @@ inline bool is_recoverable_error(HRESULT error)
   }
 }
 
+/**
+ * @brief Checks an expression result code for error. 
+ * 
+ * @param [in] result   The expression result code.
+ * @param [in] expr     The checked expression string representation.
+ * @param [in] file     The name of the file containing the expression.
+ * @param [in] line     The number of the line containing the expression.
+ * @return              The result code.
+ *
+ * Whatever the check result is, the OOM info is not reported.
+ * In case of error, it is logged (via \c DEBUG level) and API's last error code is set accordingly.
+ */
 inline HRESULT dx12_debug_result(HRESULT result, const char *DAGOR_HAS_LOGS(expr), const char *DAGOR_HAS_LOGS(file),
   int DAGOR_HAS_LOGS(line))
 {
@@ -141,21 +217,104 @@ inline HRESULT dx12_debug_result(HRESULT result, const char *DAGOR_HAS_LOGS(expr
   return result;
 }
 
-#define DX12_DEBUG_RESULT(r) drv3d_dx12::dx12_debug_result(r, #r, __FILE__, __LINE__)
+/**
+ * @brief Checks an expression result code for error. 
+ * 
+ * @param [in]  result  The expression result code.
+ * @return              The result code.
+ *
+ * Whatever the check result is, the OOM info is not reported.
+ * In case of error, it is logged (via \c DEBUG level) and API's last error code is set accordingly.
+ */
+#define DX12_DEBUG_RESULT(r)drv3d_dx12::dx12_debug_result(r, #r, __FILE__, __LINE__) 
+
+/**
+ * @brief Checks expression result code for error.
+ * 
+ * @param [in] result   The expression result code.
+ * @return              \c true if \b result is \c success.
+ *
+ * Whatever the result is, the OOM info is not reported.
+ * In case of error, it is logged (via \c DEBUG level) and API's last error code is set accordingly.
+ */
 #define DX12_DEBUG_OK(r)     SUCCEEDED(DX12_DEBUG_RESULT(r))
+
+/**
+ * @brief Checks an expression result code for error. Whatever the result is, the OOM info is not reported.
+ * 
+ * @param [in] result   The expression result code.
+ * @return              \c true if \b result is \c failure.
+ *
+ * In case of error, it is logged (via \c DEBUG level) and API's last error code is set accordingly.
+ */
 #define DX12_DEBUG_FAIL(r)   FAILED(DX12_DEBUG_RESULT(r))
 
+/**
+ * @brief Checks an expression result code for error.
+ * 
+ * @param [in] result   The expression result code.
+ * @return              The result code.
+ *
+ * In case of error, it is logged (via \c ERROR level) and API's last error code is set accordingly. Also, the OOM info is reported.
+ */
 #define DX12_CHECK_RESULT(r) drv3d_dx12::dx12_check_result(r, #r, __FILE__, __LINE__)
-#define DX12_CHECK_OK(r)     SUCCEEDED(DX12_CHECK_RESULT(r))
-#define DX12_CHECK_FAIL(r)   FAILED(DX12_CHECK_RESULT(r))
-#define DX12_EXIT_ON_FAIL(r) \
-  if (DX12_CHECK_FAIL(r))    \
-  {                          \
-    /* no-op */              \
-  }
 
+/**
+ * @brief Checks an expression result code.
+ * 
+ * @param [in] result   The expression result code.
+ * @return              \c true if \b result is \c success.
+ *
+ * In case of error, it is logged (via \c ERROR level) and API's last error code is set accordingly. Also, the OOM info is reported.
+ */
+#define DX12_CHECK_OK(r)     SUCCEEDED(DX12_CHECK_RESULT(r))
+
+/**
+ * @brief Checks an expression result code.
+ * 
+ * @param [in] result   The expression result code.
+ * @return              \c true if \b result is \c failure.
+ *
+ * In case of error, it is logged (via \c ERROR level) and API's last error code is set accordingly. Also, the OOM info is reported.
+ */
+#define DX12_CHECK_FAIL(r)   FAILED(DX12_CHECK_RESULT(r))
+
+/**
+* @def DX12_EXIT_ON_FAIL(r)
+* 
+ * @brief Checks an expression result code.
+ * 
+ * @param [in] result   The expression result code.
+ *
+ * In case of error, it is logged (via \c ERROR level) and API's last error code is set accordingly. 
+ * Also, the OOM info is reported. Afterwards, application execution is aborted.
+ * (In fact it is not, abortion is not implemented and this macro is equal to DX12_CHECK_RESULT)
+ */
+
+#define DX12_EXIT_ON_FAIL(r) \
+if (DX12_CHECK_FAIL(r))    \
+{                          \
+    /* no-op */              \
+}
+
+/**
+ * @brief Checks an expression result code for error.
+ * 
+ * @param [in] result   The expression result code.
+ * @return              The result code.
+ *
+ * Whatever the check result is, the function does not report OOM info.
+ * In case of error, it is logged (via \c ERROR level) and API's last error code is set accordingly.
+ */
 #define DX12_CHECK_RESULT_NO_OOM_CHECK(r) drv3d_dx12::dx12_check_result_no_oom_report(r, #r, __FILE__, __LINE__)
 
+/**
+ * @brief Logs resource allocation error info.
+ * 
+ * @param [in] desc The resource description.
+ * 
+ * The error is reported via \c ERROR level.
+ */
 inline void report_resource_alloc_info_error(const D3D12_RESOURCE_DESC &desc)
 {
   logerr("DX12: Error while querying resource allocation info, resource desc: %s, %u, %u x %u x "
