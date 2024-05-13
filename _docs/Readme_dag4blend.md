@@ -40,7 +40,7 @@ Go to **Edit/Preferences/Add-ons**, then click **Install** and fill in the addon
 
 After installation, tick the checkbox next to the addon in the list. Before starting work, do some initial setup without closing Preferences:
 
-![1](JPG\1.jpg )
+![1](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/1.jpg)
 
 
 Manually set the paths for ObjectProperties presets and shader lists to prevent user changes from being unsaved when installing a new addon version. It's recommended to store presets outside the addon folder.
@@ -60,7 +60,7 @@ ________________________________________________________________________________
 
 Starting from version dag4blend2.0, additional parameters are included for projects. You can access them in the Projects panel conveniently.
 
-![2](JPG\2.jpg )
+![2](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/2.jpg)
 
 
 Now, after adding a project, you can edit the path directly. This allows for easy resource transfer for example to another disk without needing to delete and re-add the project with a new path.
@@ -71,12 +71,12 @@ Now, after adding a project, you can edit the path directly. This allows for eas
 
 The "Experimental Features" section includes new tools that are functional but may have some limitations.
 
-![3](JPG\3.jpg )
+![3](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/3.jpg)
 
 
 New additions include a composite editor and texture baking tools.
 
-![4](JPG\4.jpg )
+![4](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/4.jpg)
 
 
 You can set the active project and change palettes through the menu in the scene properties, eliminating the need to access User Preferences repeatedly.
@@ -93,7 +93,7 @@ ________________________________________________________________________________
 In this toolkit, text objects are vital, so it is recommended including a text field in the layout, or creating a new window solely for a text field, especially if you're using multiple monitors.
 
 
-![5](JPG\5.jpg )
+![5](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/5.jpg)
 
 The import/export functions (and future functions) record execution details text in the "log". Remember, it doesn't clear automatically, so periodically clear it yourself, ensuring there are no unchecked errors or warnings. To clear it, simply "delete" the text object; the tools will generate a new one when needed. This method might be quicker than selecting and deleting each line individually with backspace/Delete.
 
@@ -102,7 +102,7 @@ For editing object properties(dagormats) of proximates as text, a special text o
 # Setting up materials
 To set up the material for dagor, utilize a dedicated **dagormat** tab.
 
-![6](JPG\6.jpg )
+![6](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/6.jpg)
 
 
 This tab contains multiple sections that can be minimized when not in use.
@@ -110,7 +110,7 @@ This tab contains multiple sections that can be minimized when not in use.
 ## Main
 
 
-![7](JPG\7_1.jpg ) ![7](JPG\7_2.jpg )
+![7](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/7_1.jpg) ![7](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/7_2.jpg)
 
 
 In this section, you can specify whether the material is double-sided and, if so, what type.
@@ -119,7 +119,7 @@ In this section, you can specify whether the material is double-sided and, if so
 **real_two_sided:** Technically still one-sided, but in the engine, each triangle with this material is duplicated and inverted to be visible from the opposite side. While the shader is lighter, it doubles the mesh's weight, so it's preferable for simpler meshes.
 Below, there's a list of "legacy" properties: ambient, specular, diffuse, emissive, and power. Hovering over each property provides a tooltip explaining its function.
 
-![8](JPG\8_1.jpg ) ![8](JPG\8_2.jpg )
+![8](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/8_1.jpg) ![8](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/8_2.jpg)
 
 Additionally, this tab allows you to choose a shader from the available options or input a value manually if new shaders have been added to the game but not yet updated in the tools.
 
@@ -129,21 +129,21 @@ The list of shaders and their possible parameters is sourced from **dagorShaders
 
 ## Textures
 
-![9](JPG\9.jpg )
+![9](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/9.jpg)
 
 It's straightforward here. This section presents a list of textures being used. Indexes, identical to those stored in dag files, are available in tooltips. You can easily copy and paste paths from AV or Explorer: the quotes will be automatically removed.
 
 ## Optional
 
-![10](JPG\10.jpg )
+![10](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/10.jpg)
 
 
 Visual editing of shader parameters. You can enter it manually or select from a list, similar to how it works with shader selection.
 
 ## Tools
 
-![11](JPG\11_1.jpg ) 
-![11](JPG\11_2.jpg )
+![11](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/11_1.jpg) 
+![11](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/11_2.jpg)
 
 
 In this section, you can modify the active material in text format. If there's no text editing area, it will be added to the left of the viewport; otherwise, it'll open in the first available text zone.
@@ -159,7 +159,7 @@ After conducting a texture search, it's recommended to use **"Update texture pat
 ## Proxy
 As is clear from the above, the addon now includes support for proxymats.
 
-![12](JPG\12.jpg )
+![12](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/12.jpg)
 
 Information regarding proxymats parameters is extracted from the blk file, hence all settings for them remain hidden. Instead, a new tab is being added enabling users to specify the path to the folder containing the proxymats. This path can still be modified either as text or temporarily by unchecking the "is proxymat" checkbox.
 
@@ -175,7 +175,7 @@ ________________________________________________________________________________
 # Object Properties
 Located in the N-panel, in the Dagor tab. Shows the parameters of the active object, so when there are no active objects - it is hidden.
 
-![13](JPG\13.jpg )
+![13](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/13.jpg)
 
 
 ## Properties
@@ -219,18 +219,18 @@ The **Collection** field is also context-sensitive. You are not forced to select
 
 
 | Mode                   | What will it export? | Input data example | Result Example|
-| :---                   |     :---             |        :---:  |:---          |
-| Visible                | export all scene contents to Path\ <Name>.dag | ![14](JPG\14.jpg )  |C:\tmp\asset.dag, Containing all scene objects with custom normals. |
-| Sel. Joined            | exporting selected objects to Path\<Name>.dag | ![15](JPG\15.jpg ) |C:\tmp\asset.dag, Containing only the selected scene objects. |
-| Sel. Separated         | exporting selected objects to different .dag files. The names of these objects are used as the dag name.            | ![16](JPG\16.jpg )|C:\tmp\cube.lod00.dag, C:\tmp\cube.lod01.dag.  |
-| Col. Separated         | Saves collections from the hierarchy starting with the selected one, if there are no nested subcollections inside. The 'export Orphans' checkbox allows you to export objects located next to the collections. It will be clearer with an example ->  | ![17](JPG\17.jpg )|In the same path (C:\tmp\) cube.lod00.dag will be saved, with visible geometry and occluder inside cube.lod01.dag, with visible geometry and collider inside cube.lod02.dagcube_temp.dag, it will not be exported as the exportOrphans checkbox is not active. If you do not specify the collection at all, then in this case the result will be identical, because the check will start with the SceneCollection, and it contains only the same cube collection    |
-| Col. Joined            | Saves the entire contents of the selected collection to a file, named like this collection. Created primarily for viewing asset files created from several files in AV. For example, houses with _dp             |    ![18](JPG\18.jpg )  |C:\tmp\soviet_town_building_5_floors_a_joined.lod00.dag, containing all zero lods related to this building.  The collections were linked (transferred in the outliner with Ctrl), i.e. these are not copies, but the same collections. You can prepare the rest of the temporary lodes in the same way. Much faster than selecting objects and entering a name manually.**Please pay attention:** since these are the same collections, and not copies, do not delete them on DEL, but put them away on RMB/Unlink, so as not to overwrite the excess    |
+| :---                   |     :---             |        :----------------:  |:---          |
+| Visible                | export all scene contents to Path\ <Name>.dag | ![14](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/14.jpg)  |C:\tmp\asset.dag, Containing all scene objects with custom normals. |
+| Sel. Joined            | exporting selected objects to Path\<Name>.dag | ![15](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/15.jpg) |C:\tmp\asset.dag, Containing only the selected scene objects. |
+| Sel. Separated         | exporting selected objects to different .dag files. The names of these objects are used as the dag name.            | ![16](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/16.jpg)|C:\tmp\cube.lod00.dag, C:\tmp\cube.lod01.dag.  |
+| Col. Separated         | Saves collections from the hierarchy starting with the selected one, if there are no nested subcollections inside. The 'export Orphans' checkbox allows you to export objects located next to the collections. It will be clearer with an example ->  | ![17](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/17.jpg)|In the same path (C:\tmp\) cube.lod00.dag will be saved, with visible geometry and occluder inside cube.lod01.dag, with visible geometry and collider inside cube.lod02.dagcube_temp.dag, it will not be exported as the exportOrphans checkbox is not active. If you do not specify the collection at all, then in this case the result will be identical, because the check will start with the SceneCollection, and it contains only the same cube collection    |
+| Col. Joined            | Saves the entire contents of the selected collection to a file, named like this collection. Created primarily for viewing asset files created from several files in AV. For example, houses with _dp             |    ![18](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/18.jpg)  |C:\tmp\soviet_town_building_5_floors_a_joined.lod00.dag, containing all zero lods related to this building.  The collections were linked (transferred in the outliner with Ctrl), i.e. these are not copies, but the same collections. You can prepare the rest of the temporary lodes in the same way. Much faster than selecting objects and entering a name manually.**Please pay attention:** since these are the same collections, and not copies, do not delete them on DEL, but put them away on RMB/Unlink, so as not to overwrite the excess    |
 
 
 # Collection Properties
 
 
-![19](JPG\19.jpg )
+![19](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/19.jpg)
 
 Just like object properties, it is located in the N-panel. Shows properties of the active collection. Unlike object properties, these properties only exist within Blender and are used for internal purposes.
 
@@ -238,24 +238,24 @@ Just like object properties, it is located in the N-panel. Shows properties of t
 This feature allows you to change the name under which the collection will be exported in **"Col.Separated"** mode. By default, this override is disabled.
 When importing .dag files with names longer than 63 characters (blender's limit), the name will be stored in this field to prevent loss of "unfit" characters. However, you can manually reassign it by checking the box and entering a new name:
 
-![20](JPG\20.jpg )
+![20](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/20.jpg)
 
 In the example provided, the contents of the collection will be exported to **"C:\tmp\cube.lod00.dag"** instead of **"C:\tmp\Collection.dag"**. However, this isn't the most practical use.
 A more useful technique involves specifying a subpath if you need to save several files in different subfolders. This subpath will be appended after the main export path. If you don't need to replace the collection name, simply end the sub-path with the **"*"** symbol. During export, this symbol will be replaced with the collection name:
 
-![21](JPG\21.jpg )
+![21](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/21.jpg)
 
 For instance, in this example, the export will occur to **"C:\tmp\subfolder\yet_another_subfolder\cube.lod00.dag"** - a handy approach when dealing with composite assets. For example, with buildings - windows in **"composit_parts\windows\*"**, doors in **"composit_parts\doors\*"**, etc.
 
 But there's more. If desired, you can completely redefine the path by starting it with an appropriate disk letter:
 
-![22](JPG\22.jpg )
+![22](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/22.jpg)
 
 Here the **"Path"** field will be ignored for this collection, and the file will instead be exported to **"D:\EnlistedCDK\develop\assets\rendinst_1lod"**.
 
 ### Type
 
-![23](JPG\23.jpg )
+![23](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/23.jpg)
 
 Utilized by the compositing editor, this field records the type of node during import and is crucial for exact determining the type during export. This helps prevent confusion, particularly with assets that share similar names between compositing and rendering. When creating a composite manually, ensure to specify this field if you plan to export to a composite book.
 
@@ -267,7 +267,7 @@ Although "dynmodel" is included in the list, it's not actively used since dynmod
 
 # Smoothing groups
 
-<![21](JPG\24_1.jpg ) ![24](JPG\24_2.jpg )
+<![21](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/24_1.jpg) ![24](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/24_2.jpg)
 
 
 During the development phase, a bug was uncovered in blender's function for calculating smoothing groups when exporting to formats that utilize them. To address this issue, a smoothing group editor has been incorporated. It becomes accessible in Edit Mode when the selection mode is set to **Faces**.
@@ -287,7 +287,7 @@ ________________________________________________________________________________
 
 If there's an area on the model where hard points don't completely separate the surface into enclosed zones, the calculation of smoothing groups may be incorrect and require manual correction. Additionally, smoothing groups may need adjustment after modifying existing dags following import if the groups were saved to an attribute.
 
-![25](JPG\25.jpg )
+![25](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/25.jpg)
 
 
 The example above illustrates an incorrect calculation. On the right side, there's a single group encompassing everything - the hard edges in the middle will be lost, resulting in shading blurring. Smoothing groups are assigned to each zone delimited by hard edges. However, the specified hard edges will be lost because they don't extend to the opposite side and fail to divide into two separate "islands."
@@ -301,7 +301,7 @@ Texture slots are utilized similar to rendinst_simple, regardless of the selecte
 
 ## File/Import
 
-![26](JPG\26.jpg )
+![26](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/26.jpg)
 
 
 File/Import Options:
@@ -315,7 +315,7 @@ If you need to import much more dags at a time, batch import becomes handy.
 
 ## Batch Import
 
-![27](JPG\27.jpg )
+![27](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/27.jpg)
 
 
 This panel facilitates importing data from a designated folder.
@@ -346,12 +346,12 @@ There are many cases when you may need to import a single asset currently open i
 
 If you only have the asset's name, you can specify it in Masks, then apply the entire project directory as a search path with subfolders using the **"Apply as search path"** button. When the path is unknown, the import may take a couple of seconds longer (search time), but it's often quicker than manually finding the full path.
 
-![28](JPG\28.jpg )
+![28](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/28.jpg)
 
 
 # Tools
 
-![29](JPG\29.jpg )
+![29](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/29.jpg)
 
 
 The panel continues to undergo enhancements. Tools are organized into blocks to prevent overloading the interface when not in use.
@@ -394,7 +394,7 @@ This setup may still require adjustments such as moving and scaling the bboxes t
 # Experimental Features
 ## Bake
 
-![30](JPG\30_1.jpg ) ![30](JPG\30_2.jpg )
+![30](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/30_1.jpg) ![30](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/30_2.jpg)
 
 
 This panel makes it possible to re-bake textures from heavy shaders to rendinst_simple. Typically used for final builds or porting assets to mobile projects.
@@ -404,7 +404,7 @@ This panel makes it possible to re-bake textures from heavy shaders to rendinst_
 ## Composite editor.
 
 
-![31](JPG\31.jpg )
+![31](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/31.jpg)
 
 
 The name speaks for itself. Also discussed in a separate article.
