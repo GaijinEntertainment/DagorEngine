@@ -1,7 +1,7 @@
 # dag4blend
  
  
- **Table of content:**
+ **Table of contents:**
  
 - [Installation ](#Installation)
 - [Log and text editors](#Logandtexteditors)
