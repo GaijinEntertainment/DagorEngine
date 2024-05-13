@@ -245,7 +245,7 @@ A more useful technique involves specifying a subpath if you need to save severa
 
 ![21](https://github.com/arpinarpi/DagorEngine/blob/main/_docs/JPG/21.jpg)
 
-For instance, in this example, the export will occur to **"C:\tmp\subfolder\yet_another_subfolder\cube.lod00.dag"** - a handy approach when dealing with composite assets. For example, with buildings - windows in **"composit_parts\windows\*"**, doors in **"composit_parts\doors\*"**, etc.
+For instance, in this example, the export will occur to **"C:\tmp\subfolder\yet_another_subfolder\cube.lod00.dag"** - a handy approach when dealing with complex assets. For example, with buildings - windows in **"composit_parts\windows\*"**, doors in **"composit_parts\doors\*"**, etc.
 
 But there's more. If desired, you can completely redefine the path by starting it with an appropriate disk letter:
 
