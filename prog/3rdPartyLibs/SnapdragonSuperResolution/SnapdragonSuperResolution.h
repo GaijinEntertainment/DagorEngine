@@ -1,3 +1,15 @@
+//============================================================================================================
+//   DO NOT REMOVE THIS HEADER UNDER QUALCOMM PRODUCT KIT LICENSE AGREEMENT
+//
+//                  Copyright (c) 2023 QUALCOMM Technologies Inc.
+//                              All Rights Reserved.
+//
+//                       Snapdragon™ Game Super Resolution
+//                       Snapdragon™ GSR
+//
+//                       Developed by Snapdragon Studios™ (https://www.qualcomm.com/snapdragon-studios)
+//               
+//============================================================================================================
 #pragma once
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_shaderVar.h>

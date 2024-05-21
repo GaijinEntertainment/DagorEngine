@@ -93,7 +93,6 @@
 #include "de3_benchmark.h"
 #include "lruCollision.h"
 
-//#include <3rdPartyLibs/SnapdragonSuperResolution/SnapdragonSuperResolution.h>
 #include <SnapdragonSuperResolution/SnapdragonSuperResolution.h>
 
 typedef BaseStreamingSceneHolder scene_type_t;
@@ -2434,6 +2433,3 @@ void game_demo_init()
   init_webui(NULL);
   dagor_select_game_scene(new DemoGameScene);
 }
-
-#include <render/dag_cur_view.h>
-DagorCurView grs_cur_view;
