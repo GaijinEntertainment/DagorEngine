@@ -1,0 +1,221 @@
+//============================================================================================================
+//   DO NOT REMOVE THIS HEADER UNDER QUALCOMM PRODUCT KIT LICENSE AGREEMENT
+//
+//                  Copyright (c) 2023 QUALCOMM Technologies Inc.
+//                              All Rights Reserved.
+//
+//                       Snapdragon™ Game Super Resolution
+//                       Snapdragon™ GSR
+//
+//                       Developed by Snapdragon Studios™ (https://www.qualcomm.com/snapdragon-studios)
+//               
+//============================================================================================================
+//============================================================================================================
+//
+//
+//                  Copyright (c) 2023, Qualcomm Innovation Center, Inc. All rights reserved.
+//                              SPDX-License-Identifier: BSD-3-Clause
+//
+//============================================================================================================
+
+include "shader_global.dshl"
+
+float4 snapdragon_super_resolution_ViewportInfo;
+texture snapdragon_super_resolution_input;
+
+shader SnapdragonSuperResolution
+{
+	USE_POSTFX_VERTEX_POSITIONS()
+	z_test = false;
+	z_write = false;
+	cull_mode = none;
+
+	hlsl {
+		struct VsOutput
+		{
+		VS_OUT_POSITION(pos)
+		float2 texcoord     : TEXCOORD0;
+		};
+	}
+
+	hlsl(vs) {
+		VsOutput SnapdragonSuperResolution_vs(uint vertex_id : SV_VertexID)
+		{
+			VsOutput output;
+			float2 pos = getPostfxVertexPositionById(vertex_id);
+			output.pos = float4(pos.xy, 1, 1);
+			output.texcoord = pos*float2(0.5,-0.5) + float2(0.5, 0.5);
+			return output;
+		}
+	}
+
+	(ps)
+	{
+		ViewportInfo@f4 = snapdragon_super_resolution_ViewportInfo;
+		snapdragon_super_resolution_input@smp2d = snapdragon_super_resolution_input;
+	}
+
+	hlsl(ps) {
+		half4 SGSRRH(float2 p)
+		{
+			half4 res = snapdragon_super_resolution_input.GatherRed(snapdragon_super_resolution_input_samplerstate, p);
+			return res;
+		}
+		half4 SGSRGH(float2 p)
+		{
+			half4 res = snapdragon_super_resolution_input.GatherGreen(snapdragon_super_resolution_input_samplerstate, p);
+			return res;
+		}
+		half4 SGSRBH(float2 p)
+		{
+			half4 res = snapdragon_super_resolution_input.GatherBlue(snapdragon_super_resolution_input_samplerstate, p);
+			return res;
+		}
+		half4 SGSRAH(float2 p)
+		{
+			half4 res = snapdragon_super_resolution_input.GatherAlpha(snapdragon_super_resolution_input_samplerstate, p);
+			return res;
+		}
+		half4 SGSRRGBH(float2 p)
+		{
+			half4 res = snapdragon_super_resolution_input.SampleLevel(snapdragon_super_resolution_input_samplerstate, p, 0);
+			return res;
+		}
+
+		half4 SGSRH(float2 p, uint channel)
+		{
+			if (channel == 0)
+				return SGSRRH(p);
+			if (channel == 1)
+				return SGSRGH(p);
+			if (channel == 2)
+				return SGSRBH(p);
+			return SGSRAH(p);
+		}
+
+		////////////////////////
+		// USER CONFIGURATION //
+		////////////////////////
+
+		/*
+		* Operation modes:
+		* RGBA -> 1
+		* RGBY -> 3
+		* LERP -> 4
+		*/
+		#define OperationMode 1
+
+		#define EdgeThreshold 8.0/255.0
+
+		#define EdgeSharpness 2.0
+
+		////////////////////////
+		////////////////////////
+		////////////////////////
+
+		half fastLanczos2(half x)
+		{
+			half wA = x- half(4.0);
+			half wB = x*wA-wA;
+			wA *= wA;
+			return wB*wA;
+		}
+		half2 weightY(half dx, half dy, half c, half std)
+		{
+			half x = ((dx*dx)+(dy* dy))* half(0.5) + clamp(abs(c)*std, 0.0, 1.0);
+			half w = fastLanczos2(x);
+			return half2(w, w * c);
+		}
+
+		void SgsrYuvH(
+			out half4 pix,
+			float2 uv,
+			float4 con1)
+		{
+			int mode = OperationMode;
+			half edgeThreshold = EdgeThreshold;
+			half edgeSharpness = EdgeSharpness;
+			if(mode == 1)
+				pix.xyz = SGSRRGBH(uv).xyz;
+			else
+				pix.xyzw = SGSRRGBH(uv).xyzw;
+			float xCenter;
+			xCenter = abs(uv.x+-0.5);
+			float yCenter;
+			yCenter = abs(uv.y+-0.5);
+			
+			if ( mode!=4)
+			{
+				float2 imgCoord = ((uv.xy*con1.zw)+ float2(-0.5,0.5));
+				float2 imgCoordPixel = floor(imgCoord);
+				float2 coord = (imgCoordPixel*con1.xy);
+				half2 pl = (imgCoord+(-imgCoordPixel));
+				half4  left = SGSRH(coord, mode);
+				
+				half edgeVote = abs(left.z - left.y) + abs(pix[mode] - left.y)  + abs(pix[mode] - left.z) ;
+				if(edgeVote > edgeThreshold)
+				{
+					coord.x += con1.x;
+
+					half4 right = SGSRH(coord + float2(con1.x,  0.0), mode);
+					half4 upDown;
+					upDown.xy = SGSRH(coord + float2(0.0, -con1.y), mode).wz;
+					upDown.zw = SGSRH(coord + float2(0.0,  con1.y), mode).yx;
+
+					half mean = (left.y+left.z+right.x+right.w)* half(0.25);
+					left = left - half4(mean,mean,mean,mean);
+					right = right - half4(mean, mean, mean, mean);
+					upDown = upDown - half4(mean, mean, mean, mean);
+					pix.w =pix[mode] - mean;
+
+					half sum = (((((abs(left.x)+abs(left.y))+abs(left.z))+abs(left.w))+(((abs(right.x)+abs(right.y))+abs(right.z))+abs(right.w)))+(((abs(upDown.x)+abs(upDown.y))+abs(upDown.z))+abs(upDown.w)));
+					half std = half(2.181818)/sum;
+					
+					half2 aWY = weightY(pl.x, pl.y+1.0, upDown.x,std);
+					aWY += weightY(pl.x-1.0, pl.y+1.0, upDown.y,std);
+					aWY += weightY(pl.x-1.0, pl.y-2.0, upDown.z,std);
+					aWY += weightY(pl.x, pl.y-2.0, upDown.w,std);			
+					aWY += weightY(pl.x+1.0, pl.y-1.0, left.x,std);
+					aWY += weightY(pl.x, pl.y-1.0, left.y,std);
+					aWY += weightY(pl.x, pl.y, left.z,std);
+					aWY += weightY(pl.x+1.0, pl.y, left.w,std);
+					aWY += weightY(pl.x-1.0, pl.y-1.0, right.x,std);
+					aWY += weightY(pl.x-2.0, pl.y-1.0, right.y,std);
+					aWY += weightY(pl.x-2.0, pl.y, right.z,std);
+					aWY += weightY(pl.x-1.0, pl.y, right.w,std);
+
+					half finalY = aWY.y/aWY.x;
+
+					half max4 = max(max(left.y,left.z),max(right.x,right.w));
+					half min4 = min(min(left.y,left.z),min(right.x,right.w));
+					finalY = clamp(edgeSharpness*finalY, min4, max4);
+							
+					half deltaY = finalY -pix.w;
+
+					pix.x = saturate((pix.x+deltaY));
+					pix.y = saturate((pix.y+deltaY));
+					pix.z = saturate((pix.z+deltaY));
+				}
+			}
+			pix.w = 1.0;  //assume alpha channel is not used
+
+		}
+
+		// =====================================================================================
+		// 
+		// SNAPDRAGON GAME SUPER RESOLUTION
+		// 
+		// =====================================================================================
+		half4 SnapdragonSuperResolution_ps(VsOutput input) : SV_Target0
+		{
+			half4 OutColor = half4(0, 0, 0, 1);
+			SgsrYuvH(OutColor, input.texcoord, ViewportInfo);
+			return OutColor;
+		}
+	}
+
+	compile("target_ps", "SnapdragonSuperResolution_ps");
+	compile("target_vs", "SnapdragonSuperResolution_vs");
+
+}
+
