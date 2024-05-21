@@ -1006,7 +1006,7 @@ public:
     set_shader_global_time(realTime);
     static int taaFrame = 0;
     bool renderTaa = taa.get() || enable_taa_override;
-    logwarn("[hmatthew] renderTaa = %s", renderTaa ? "TRUE" : "FALSE");
+    // logwarn("[hmatthew] renderTaa = %s", renderTaa ? "TRUE" : "FALSE");
 
     Driver3dPerspective p;
     d3d::getpersp(p);
@@ -2379,16 +2379,14 @@ void game_demo_init()
   const DataBlock &blk = *dgs_get_settings();
   ::set_gameres_sys_ver(2);
 
-  DataBlock* global_settings_blk = new DataBlock;
-  global_settings_blk->load("settings.blk");
-  enable_taa_override = global_settings_blk->getBlockByNameEx("render")->getBool("taa", false);
+  enable_taa_override = dgs_get_settings()->getBlockByNameEx("render")->getBool("taa", false);
 
-  auto sgsrBlock = global_settings_blk->getBlockByNameEx("SnapdragonSuperResolution");
-  if (sgsrBlock)
+  if (auto *sgsrBlock = dgs_get_settings()->getBlockByName("SnapdragonSuperResolution"))
   {
     use_snapdragon_super_resolution = sgsrBlock->getBool("enable", false);
     snapdragon_super_resolution_scale = ((float)sgsrBlock->getInt("scale", 75) / 100.f);
   }
+  debug("[hmatthew] enable_taa_override=%d use_snapdragon_super_resolution=%d", enable_taa_override, use_snapdragon_super_resolution);
 
 #define LOAD_RES_PATCH(LOC_NAME)                                                                  \
   if (dd_file_exists("content/patch/" LOC_NAME "/grp_hdr.vromfs.bin") &&                          \

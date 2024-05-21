@@ -8,7 +8,7 @@
 //                       Snapdragon™ GSR
 //
 //                       Developed by Snapdragon Studios™ (https://www.qualcomm.com/snapdragon-studios)
-//               
+//
 //============================================================================================================
 //============================================================================================================
 //
@@ -143,7 +143,7 @@ shader SnapdragonSuperResolution
 			xCenter = abs(uv.x+-0.5);
 			float yCenter;
 			yCenter = abs(uv.y+-0.5);
-			
+
 			if ( mode!=4)
 			{
 				float2 imgCoord = ((uv.xy*con1.zw)+ float2(-0.5,0.5));
@@ -151,7 +151,7 @@ shader SnapdragonSuperResolution
 				float2 coord = (imgCoordPixel*con1.xy);
 				half2 pl = (imgCoord+(-imgCoordPixel));
 				half4  left = SGSRH(coord, mode);
-				
+
 				half edgeVote = abs(left.z - left.y) + abs(pix[mode] - left.y)  + abs(pix[mode] - left.z) ;
 				if(edgeVote > edgeThreshold)
 				{
@@ -170,11 +170,11 @@ shader SnapdragonSuperResolution
 
 					half sum = (((((abs(left.x)+abs(left.y))+abs(left.z))+abs(left.w))+(((abs(right.x)+abs(right.y))+abs(right.z))+abs(right.w)))+(((abs(upDown.x)+abs(upDown.y))+abs(upDown.z))+abs(upDown.w)));
 					half std = half(2.181818)/sum;
-					
+
 					half2 aWY = weightY(pl.x, pl.y+1.0, upDown.x,std);
 					aWY += weightY(pl.x-1.0, pl.y+1.0, upDown.y,std);
 					aWY += weightY(pl.x-1.0, pl.y-2.0, upDown.z,std);
-					aWY += weightY(pl.x, pl.y-2.0, upDown.w,std);			
+					aWY += weightY(pl.x, pl.y-2.0, upDown.w,std);
 					aWY += weightY(pl.x+1.0, pl.y-1.0, left.x,std);
 					aWY += weightY(pl.x, pl.y-1.0, left.y,std);
 					aWY += weightY(pl.x, pl.y, left.z,std);
@@ -189,7 +189,7 @@ shader SnapdragonSuperResolution
 					half max4 = max(max(left.y,left.z),max(right.x,right.w));
 					half min4 = min(min(left.y,left.z),min(right.x,right.w));
 					finalY = clamp(edgeSharpness*finalY, min4, max4);
-							
+
 					half deltaY = finalY -pix.w;
 
 					pix.x = saturate((pix.x+deltaY));
@@ -202,9 +202,9 @@ shader SnapdragonSuperResolution
 		}
 
 		// =====================================================================================
-		// 
+		//
 		// SNAPDRAGON GAME SUPER RESOLUTION
-		// 
+		//
 		// =====================================================================================
 		half4 SnapdragonSuperResolution_ps(VsOutput input) : SV_Target0
 		{
@@ -218,4 +218,3 @@ shader SnapdragonSuperResolution
 	compile("target_vs", "SnapdragonSuperResolution_vs");
 
 }
-

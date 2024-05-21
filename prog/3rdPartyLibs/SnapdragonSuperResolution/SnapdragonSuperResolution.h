@@ -8,7 +8,7 @@
 //                       Snapdragon™ GSR
 //
 //                       Developed by Snapdragon Studios™ (https://www.qualcomm.com/snapdragon-studios)
-//               
+//
 //============================================================================================================
 #pragma once
 #include <shaders/dag_postFxRenderer.h>
