@@ -13,10 +13,10 @@
 #include <util/dag_globDef.h>
 
 /**
- * @brief A ring dynamic buffer template class.
+ * @brief Ring dynamic buffer template class.
  *
  * @tparam BUF  Managed buffer type.
- * @tparam T    The type of the data stored in the buffer.
+ * @tparam T    Type of the data stored in the buffer.
  * 
  * This class provides a mechanism for managing dynamic buffers in a ring buffer fashion.
  * It is expected, that user will implement initialization themselves, should they derive any classes.
@@ -41,8 +41,8 @@ public:
    * @brief Adds elements to the buffer.
    * 
    * @param [in] data   A pointer to the buffer storing the elements to add.
-   * @param [in] count  The number of elements to add.
-   * @return            The position of the first added element on success, -1 on failure.
+   * @param [in] count  Number of elements to add.
+   * @return            Position of the first added element on success, -1 on failure.
    *
    * The data is placed continuously. In case the data does not fit after the last stored element,
    * the it is added at the start of the buffer and all overlapping elements get erased (i.e. the buffer is reset).
@@ -71,7 +71,7 @@ public:
   /**
    * @brief Unlocks the managed buffer.
    * 
-   * @param [in] used_count The number of elements to unlock memory for.
+   * @param [in] used_count Number of elements to unlock memory for.
    * 
    * If the buffer has been locked, it should be unlocked before adding 
    * new elements. See \ref lockData for details.
@@ -85,7 +85,7 @@ public:
   /**
    * @brief Locks memory block in the buffer.
    * 
-   * @param [in] max_count  The number of elements to lock memory for.
+   * @param [in] max_count  Number of elements to lock memory for.
    * @return                A pointer to the locked memory block on success, NULL on failure.
    *
    * @warning After the buffer has been locked, no data should be added using \ref addData before 
@@ -123,28 +123,28 @@ public:
   /**
    * @brief Returns the size of the buffer.
    * 
-   * @return The size of the buffer.
+   * @return Size of the buffer.
    */
   int bufSize() const { return size; }
 
   /**
    * @brief Evaluates the maximal number of elements that fit between the last stored item and the end of the buffer.
    * 
-   * @return The evaluated number of elements.
+   * @return Evaluated number of elements.
    */
   int bufLeft() const { return size - pos; }
 
   /**
    * @brief Returns the buffer stride.
    * 
-   * @return The buffer stride.
+   * @return Buffer stride.
    */
   int getStride() const { return stride; }
 
   /**
    * @brief Returns the position of the virtual element following the last element of the buffer.
    * 
-   * @return The position after the last stored element.
+   * @return Position after the last stored element.
    */
   int getPos() const { return pos; }
 
@@ -205,7 +205,7 @@ public:
 protected:
 
   /**
-   * @brief The pointer to the stored buffer.
+   * @brief Pointer to the stored buffer.
    */
   BUF *buf;
 
@@ -258,7 +258,7 @@ public:
    *
    * @param [in] v_count    Number of vertices.
    * @param [in] v_stride   Vertex stride.
-   * @param [in] stat_name  The name of the buffer (optional, default is the current file name).
+   * @param [in] stat_name  Name of the buffer (optional, default is the current file name).
    */
   void init(int v_count, int v_stride, const char *stat_name = __FILE__)
   {
@@ -285,19 +285,19 @@ public:
   /**
    * @brief Initializes the ring buffer.
    *
-   * @param [in] v_count    The number of elements in the buffer.
+   * @param [in] v_count    Number of elements in the buffer.
    * @param [in] v_stride   Element stride.
    * @param [in] elem_size  Element size. Must be a multiple of \b v_stride.
    * @param [in] flags      Buffer flags.
    * @param [in] format     Buffer format.
-   * @param [in] stat_name  The name of the buffer (optional, default is the current file name).
+   * @param [in] stat_name  Name of the buffer (optional, default is the current file name).
    * 
    * @todo Staging buffer creation is not optimal due to large GPU memory allocation. Requires optimization.
    * 
    * The function initializes managed buffer as dynamic and CPU-writable, if the following conditions are met:
-   * \li The driver supports locking of shader buffers with the no-overwrite method.
-   * \li The driver used is not DirectX11.
-   * \li The buffer is designed as stream output for indirect draw (indicated by \c SBCF_MISC_DRAWINDIRECT flag).
+   *    \li The driver supports locking of shader buffers with the no-overwrite method.
+   *    \li The driver used is not DirectX11.
+   *    \li The buffer is designed as stream output for indirect draw (indicated by \c SBCF_MISC_DRAWINDIRECT flag).
    * 
    * Otherwise, a staging (dynamic, CPU-writable) and render buffers are created. 
    * The ring buffer instance possesses exclusive ownership of the render buffer.
@@ -331,7 +331,7 @@ public:
   /**
    * @brief Unlocks the managed buffer.
    *
-   * @param [in] used_count The number of elements to unlock memory for.
+   * @param [in] used_count Number of elements to unlock memory for.
    *
    * In case staging buffer was created, the function copies unlocked memory from it to the render buffer.
    */

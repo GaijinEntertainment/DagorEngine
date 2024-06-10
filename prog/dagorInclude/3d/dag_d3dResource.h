@@ -34,21 +34,21 @@ public:
   /**
   * @brief Returns the resource size.
   * 
-  * @return The size of the resource.
+  * @return Size of the resource.
   */
   virtual int ressize() const = 0;
 
   /**
    * @brief Returns the resource name.
    *
-   * @return The name of the resource.
+   * @return Name of the resource.
    */
   const char *getResName() const { return statName.c_str(); }
 
   /**
    * @brief Sets the name of the resource.
    *
-   * @param [in] name The name to set for the resource.
+   * @param [in] name Name to set for the resource.
    */
   void setResName(const char *name) { statName = name; }
 
@@ -57,7 +57,7 @@ public:
    *
    * @warning This method might allocate memory. Avoid calling it frequently.
    *
-   * @param [in] name The API-specific name to set for the resource.
+   * @param [in] name API-specific name to set for the resource.
    */
   virtual void setResApiName(const char * /*name*/) const {}
 
@@ -70,7 +70,7 @@ protected:
 
 private:
   /**
-  * @brief The name of the resource.
+  * @brief Name of the resource.
   */
   String statName;
 };

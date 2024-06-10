@@ -4,9 +4,9 @@
 // (for conditions of use see prog/license.txt)
 //
 
-/*
+/**
  * @file
- * @brief Common interfaces for interacting with the target graphics API.
+ * @brief Common interfaces and functions for interacting with the target graphics API.
  */
 #pragma once
 
@@ -52,8 +52,8 @@ public:
   */
   struct VersionRange
   {
-    uint64_t minVersion; /**< The minimum version number. */
-    uint64_t maxVersion; /**< The maximum version number. */
+    uint64_t minVersion; /**< Minimum version number. */
+    uint64_t maxVersion; /**< Maximum version number. */
   };
   /**
   * @brief Class that represents the size of a render target.
@@ -65,7 +65,7 @@ public:
   };
 
   /**
-   * @brief Function pointer type for determining whether stereo rendering is needed.
+   * @brief Function pointer type for determining whether stereo rendering is necessary.
    */
   using NeedStereoRenderFunc = bool (*)();
 
@@ -92,11 +92,11 @@ public:
   /**
    * @brief Verifies the resolution settings.
    * 
-   * @param [in] ref_scr_wdt    Reference to the screen width.
-   * @param [in] ref_scr_hgt    Reference to the screen height.
+   * @param [in] ref_scr_wdt    Screen width.
+   * @param [in] ref_scr_hgt    Screen height.
    * @param [in] base_scr_wdt   Base screen width.
    * @param [in] base_scr_hgt   Base screen height.
-   * @param [in] window_mode    Flag indicating whether window mode is enabled.
+   * @param [in] window_mode    A flag indicating whether window mode is enabled.
    * 
    * The function performs an implementation-defined check and, depending on its result, 
    * may reset screen width and height to their base values.
@@ -111,9 +111,9 @@ public:
   }
 
   /**
-   * @brief Checks whether driver description is valid.
+   * @brief Checks whether the driver description is valid.
    * 
-   * @param [in] desc   The description to validate.
+   * @param [in] desc   Description to validate.
    * @return            0 if the description is invalid, non-zero otherwise.
    */
   virtual int validateDesc(Driver3dDesc &) const = 0;
@@ -121,7 +121,7 @@ public:
   /**
    * @brief Compares two driver 3D descriptions.
    * 
-   * @param [in] A, B   The descriptions to compare.
+   * @param [in] A, B   Descriptions to compare.
    * @return            -1 if A is better, 1 if B is better, and 0 if they are equivalent.
    */
   virtual int compareDesc(Driver3dDesc &A, Driver3dDesc &B) const = 0;
@@ -130,12 +130,12 @@ public:
   /**
    * @brief Determines if stereo rendering is desired.
    * 
-   * @return \c True if stereo rendering is desired, otherwise \c false.
+   * @return \c true if stereo rendering is desired,\c false otherwise.
    */
   virtual bool desiredStereoRender() const { return false; }
 
   /**
-   * @brief Returns id of the desired adapter for stereo rendering.
+   * @brief Returns the id of the desired adapter for stereo rendering.
    * 
    * @return Id of the desired adapter for stereo rendering.
    */
@@ -144,28 +144,28 @@ public:
   /**
    * @brief Returns the desired renderer size for stereo rendering.
    * 
-   * @return The desired renderer size.
+   * @return Desired renderer size.
    */
   virtual RenderSize desiredRendererSize() const { return {0, 0}; }
 
   /**
    * @brief Returns the desired device extensions for the stereo renderer.
    * 
-   * @return A string, containing the desired device extensions.
+   * @return A string containing the desired device extensions.
    */
   virtual const char *desiredRendererDeviceExtensions() const { return nullptr; }
 
   /**
    * @brief Returns the desired device instance extensions for the stereo renderer.
    *
-   * @return A string, containing the desired device instance extensions.
+   * @return A string containing the desired device instance extensions.
    */
   virtual const char *desiredRendererInstanceExtensions() const { return nullptr; }
 
   /**
    * @brief Returns the desired version range for the stereo renderer.
    * 
-   * @return The desired version range for the stereo renderer.
+   * @return Desired version range for the stereo renderer.
    */
   virtual VersionRange desiredRendererVersionRange() const { return {0, 0}; }
 };
@@ -191,61 +191,61 @@ public:
     virtual ~IReloadData() {}
 
     /**
-     * @brief An implementation-defined function responsible for reloading data to a buffer.
+     * @brief Implementation-defined function responsible for reloading data to a buffer.
      * 
      * @param [in] sb A pointer to the buffer which data is to be reloaded.
      */
     virtual void reloadD3dRes(Sbuffer *sb) = 0;
     /**
-     * @brief An implementation-defined function responsible for destroying the object that implements the IReloadData interface.
+     * @brief Implementation-defined function responsible for destroying the object that implements the IReloadData interface.
      */
     virtual void destroySelf() = 0;
   };
 
   /**
-   * @brief Sets the reload callback for a shader buffer.
+   * @brief Sets reload callback for the shader buffer.
    * 
-   * @param [in] reloadData A pointer to a reload callback instance.
-   * @return                \c True if the reload callback was set successfully, otherwise \c false.
+   * @param [in] reloadData A pointer to the reload callback instance.
+   * @return                \c true if the reload callback was set successfully,\c false otherwise.
    */
   virtual bool setReloadCallback(IReloadData *) { return false; }
 
   /** 
    * @brief Returns the resouce type (\c RES3D_SBUF).
    * 
-   * @return The resouce type (\c RES3D_SBUF).
+   * @return Resouce type (\c RES3D_SBUF).
    */
   int restype() const override final { return RES3D_SBUF; }
 
   /**
    * @brief Locks the buffer.
    * 
-   * @param [in]    ofs_bytes   The offset in bytes from the beginning of the buffer to the position where the locking starts.
-   * @param [in]    size_bytes  The size in bytes of the region to lock.
+   * @param [in]    ofs_bytes   Offset in bytes from the beginning of the buffer to the position where the locking starts.
+   * @param [in]    size_bytes  Size in bytes of the region to lock.
    * @param [out]   p           A pointer to the address of the locked region.
    * @param [in]    flags       Flags specifying the locking behavior.
-   * @return                    0 on error, otherwise a non-zero value.
+   * @return                    0 on error, a non-zero value otherwise.
    */
   virtual int lock(uint32_t ofs_bytes, uint32_t size_bytes, void **p, int flags) = 0;
 
   /**
-   * @brief Unlocks previously locked buffer.
+   * @brief Unlocks the previously locked buffer.
    * 
-   * @return 0 on error, otherwise a non-zero value.
+   * @return 0 on error, a non-zero value otherwise.
    */
   virtual int unlock() = 0;
 
   /*
    * @brief Returns the flags associated with the buffer resource.
    * 
-   * @return The flags associated with the buffer resource.
+   * @return Flags associated with the buffer resource.
    */
   virtual int getFlags() const = 0;
 
   /**
   * @brief Returns the name of the buffer.
   * 
-  * @return The buffer name.
+  * @return Buffer name.
   */
   const char *getBufName() const { return getResName(); }
 
@@ -253,22 +253,22 @@ public:
   /**
    * @brief Gets the size of each element in the structured buffer.
    * 
-   * @return The size of each element in the structured buffer.
+   * @return Size of each element in the structured buffer.
    */
   virtual int getElementSize() const { return 0; }
 
   /**
    * @brief Gets the number of elements in the structured buffer.
    * 
-   * @return The number of elements in the structured buffer.
+   * @return Number of elements in the structured buffer.
    */
   virtual int getNumElements() const { return 0; };
 
   /**
-   * @brief Copies the content to another buffer.
+   * @brief Copies the data to another buffer.
    * 
    * @param [in] dest   A pointer to the destination buffer.
-   * @return            \c True if the data was copied successfully, otherwise \c false.
+   * @return            \c true if the data was copied successfully, otherwise \c false.
    */
   virtual bool copyTo(Sbuffer * /*dest*/) { return false; } // return true, if copied
 
@@ -276,10 +276,10 @@ public:
    * @brief Copies a specified region of the contained data to another buffer.
    * 
    * @param [in] dest           A pointer to the destination buffer.
-   * @param [in] dst_ofs_bytes  The offset in bytes in the destination buffer at which the copied data is added.
-   * @param [in] src_ofs_bytes  The offset in bytes in the source buffer at which the data is copied.
-   * @param [in] size_bytes     The size in bytes of the data to copy.
-   * @return \c True if the data was copied successfully, otherwise \c false.
+   * @param [in] dst_ofs_bytes  Offset in bytes in the destination buffer at which the copied data is added.
+   * @param [in] src_ofs_bytes  Offset in bytes in the source buffer at which the data is copied.
+   * @param [in] size_bytes     Size in bytes of the data to copy.
+   * @return                    \c true if the data was copied successfully, \c false otherwise.
    */
   virtual bool copyTo(Sbuffer * /*dest*/, uint32_t /*dst_ofs_bytes*/, uint32_t /*src_ofs_bytes*/, uint32_t /*size_bytes*/)
   {
@@ -289,13 +289,13 @@ public:
   /**
    * @brief Locks the buffer.
    * 
-   * @tparam T The type of data in the buffer.
+   * @tparam T Type of data in the buffer.
    * 
-   * @param [in]    ofs_bytes   The offset in bytes from the beginning of the buffer to the position where the locking starts.
-   * @param [in]    size_bytes  The size in bytes of the region to lock.
-   * @param [out]   p           A typed pointer to the address of the locked region.
+   * @param [in]    ofs_bytes   Offset in bytes from the beginning of the buffer to the position where the locking starts.
+   * @param [in]    size_bytes  Size in bytes of the region to lock.
+   * @param [out]   p           A pointer to the address of the locked region.
    * @param [in]    flags       Flags specifying the locking behavior.
-   * @return                    1 on success, otherwise 0.
+   * @return                    1 on success, 0 otherwise.
    */
   template <typename T>
   inline int lockEx(uint32_t ofs_bytes, uint32_t size_bytes, T **p, int flags)
@@ -311,14 +311,14 @@ public:
   }
 
   /**
-   * @brief Validates the parameters used for locking the buffer.
+   * @brief Validates parameters used for locking the buffer.
    * 
-   * @param [in] offset     The offset in bytes from the beginning of the buffer to the position where the locking starts.
-   * @param [in] size       The size in bytes of the region to lock.
+   * @param [in] offset     Offset in bytes from the beginning of the buffer to the position where the locking starts.
+   * @param [in] size       Size in bytes of the region to lock.
    * @param [in] flags      Flags specifying the locking behavior.
    * @param [in] bufFlags   Flags associated with the buffer.
    * 
-   * In case the parameters were invalid, the fucntion fails an assertion.
+   * In case the parameters are invalid, the fucntion assert-fails.
    */
   void checkLockParams(uint32_t offset, uint32_t size, int flags, int bufFlags)
   {
@@ -342,11 +342,11 @@ public:
   /**
    * @brief Updates the data in the buffer after locking it.
    *
-   * @param [in]    ofs_bytes   The offset in bytes from the beginning of the buffer to start updating.
-   * @param [in]    size_bytes  The size in bytes of the data to update.
-   * @param [out]   src         Pointer to the source data.
+   * @param [in]    ofs_bytes   Offset in bytes from the beginning of the buffer to start updating.
+   * @param [in]    size_bytes  Size in bytes of the data to update.
+   * @param [out]   src         A pointer to the source data.
    * @param [in]    lockFlags   Flags specifying the locking behavior.
-   * @return                    \c True if the data was updated successfully, otherwise \c false.
+   * @return                    \c true if the data was updated successfully, \c false otherwise.
    *
    * The function locks the buffer and then copies the data from \b src into it.
    */
@@ -367,11 +367,11 @@ public:
   /**
    * @brief Updates the data in the buffer after locking it.
    *
-   * @param [in]    ofs_bytes   The offset in bytes from the beginning of the buffer to start updating.
-   * @param [in]    size_bytes  The size in bytes of the data to update.
-   * @param [out]   src         Pointer to the source data.
+   * @param [in]    ofs_bytes   Offset in bytes from the beginning of the buffer to start updating.
+   * @param [in]    size_bytes  Size in bytes of the data to update.
+   * @param [out]   src         A pointer to the source data.
    * @param [in]    lockFlags   Flags specifying the locking behavior.
-   * @return                    \c True if the data was updated successfully, otherwise \c false.
+   * @return                    \c true if the data was updated successfully, \c false otherwise .
    *
    * The function locks the buffer and then copies the data from \b src into it.
    */
@@ -384,11 +384,11 @@ public:
   /**
    * @brief Locks the buffer (only for index buffers).
    *
-   * @param [in]    ofs_bytes   The offset in bytes from the beginning of the buffer to the position where the locking starts.
-   * @param [in]    size_bytes  The size in bytes of the region to lock.
+   * @param [in]    ofs_bytes   Offset in bytes from the beginning of the buffer to the position where the locking starts.
+   * @param [in]    size_bytes  Size in bytes of the region to lock.
    * @param [out]   p           A pointer to the address of the locked region of the index buffer.
    * @param [in]    flags       Flags specifying the locking behavior.
-   * @return                    1 on success, otherwise 0.
+   * @return                    1 on success, 0 otherwise.
    * 
    * The function locks the index buffer and then copies the data from \b src into it.
    * The buffer must use 16-bit indices i.e. flag \c SBCF_INDEX32 must not be set.
@@ -402,11 +402,11 @@ public:
   /**
    * @brief Locks the buffer (only for index buffers).
    *
-   * @param [in]    ofs_bytes   The offset in bytes from the beginning of the buffer to the position where the locking starts.
-   * @param [in]    size_bytes  The size in bytes of the region to lock.
+   * @param [in]    ofs_bytes   Offset in bytes from the beginning of the buffer to the position where the locking starts.
+   * @param [in]    size_bytes  Size in bytes of the region to lock.
    * @param [out]   p           A pointer to the address of the locked region of the index buffer.
    * @param [in]    flags       Flags specifying the locking behavior.
-   * @return                    1 on success, otherwise 0.
+   * @return                    1 on success, 0 otherwise.
    *
    * The function locks the index buffer and then copies the data from \b src into it.
    * The buffer must use 32-bit indices i.e. flag \c SBCF_INDEX32 must be set.
@@ -443,40 +443,35 @@ typedef Sbuffer Vbuffer;
 * The class is expected to be used as input for \ref d3d::resource_barrier.
 * An instance of the class may be conveniently initialized with a pointer to resource, an array of resource addresses or an intializer list.
 * The resources and the barriers can be visited using \ref enumerateBufferBarriers \ref enumerateTextureBarriers.
+* For more details on resource barriers look <a href="https://info.gaijin.lan/display/DE4/Resource+and+Execution+Barriers">here</a>here</a>.
 */
 class ResourceBarrierDesc
 {
-  // special count value to distinguish array of values from single value
+
   /**
   * @brief A reserved value assigned to \c bufferCount or \c textureCount indicating that there is only one buffer or texture to dispatch a transition to.
   */
   static constexpr unsigned single_element_count = ~0u;
 
-  /**
-  * @brief Either a pointer to the buffer or an array of pointers to the buffers.
-  */
   union
   {
-    Sbuffer *buffer;
-    Sbuffer *const *buffers;
+    Sbuffer *buffer;            /*<< A pointer to the buffer. */
+    Sbuffer *const *buffers;    /*<< An array of pointers to the buffers.*/
   };
 
   /**
-   * @brief Either a pointer to the texture or an array of pointers to the textures.
+   * @brief Either a  or an array of pointers to the textures.
    */
   union
   {
-    BaseTexture *texture;
-    BaseTexture *const *textures;
+    BaseTexture *texture;           /*<< A pointer to the texture.*/
+    BaseTexture *const *textures;   /*<< An array of pointers to the textures.*/
   };
 
-  /**
-   * @brief Either a state or an array of states that the buffer(s) must be transitioned to.
-   */
   union
   {
-    ResourceBarrier bufferState;
-    const ResourceBarrier *bufferStates;
+    ResourceBarrier bufferState;            /*<< State the buffer will be transitioned to.*/
+    const ResourceBarrier *bufferStates;    /*<< An array of states the buffers will be transitioned to.*/
   };
 
   /**
@@ -484,8 +479,8 @@ class ResourceBarrierDesc
    */
   union
   {
-    ResourceBarrier textureState;
-    const ResourceBarrier *textureStates;
+    ResourceBarrier textureState;           /*<< State the texture will be transitioned to.*/
+    const ResourceBarrier *textureStates;   /*<< An array of states the textures will be transitioned to.*/
   };
 
   /**
@@ -493,17 +488,14 @@ class ResourceBarrierDesc
    */
   union
   {
-    unsigned textureSubResIndex;
-    const unsigned *textureSubResIndices;
+    unsigned textureSubResIndex;            /*<< Texture subresource index.*/
+    const unsigned *textureSubResIndices;   /*<< An array of texture subresource indices.*/
   };
 
-  /**
-   * @brief Either a texture subresource range or an array of texture subresource ranges.
-   */
   union
   {
-    unsigned textureSubResRange;
-    const unsigned *textureSubResRanges;
+    unsigned textureSubResRange;            /*<< Texture subresource range. */
+    const unsigned *textureSubResRanges;    /*<< An array of texture subresource ranges. */
   };
 
   /**
@@ -535,7 +527,7 @@ public:
   /**
   * @brief Copy constructor
   * 
-  * @param [in] other An instance to copy from.
+  * @param [in] other Instance to copy from.
   */
   ResourceBarrierDesc(const ResourceBarrierDesc &) = default;
 
@@ -543,18 +535,18 @@ public:
   * @brief Initialization constructor
   * 
   * @param [in] buf A pointer to the buffer to transition.
-  * @param [in] rb  The state to transition the buffer to.
+  * @param [in] rb  State to transition the buffer to.
   */
   ResourceBarrierDesc(Sbuffer *buf, ResourceBarrier rb) : buffer{buf}, bufferState{rb}, bufferCount{single_element_count} {}
 
   /**
    * @brief Initialization constructor
    * 
-   * @param [in] bufs   Array of pointers to the buffers to transition.
-   * @param [in] rb     Array of states to transition the buffers to.
-   * @param [in] count  The number of the buffers.
+   * @param [in] bufs   An array of pointers to the buffers to transition.
+   * @param [in] rb     An array of states to transition the buffers to.
+   * @param [in] count  Number of the buffers.
    * 
-   * An i-th state should correspond to an i-th buffer.
+   * The i-th state should correspond to the i-th buffer.
    */
   ResourceBarrierDesc(Sbuffer *const *bufs, const ResourceBarrier *rb, unsigned count) :
     buffers{bufs}, bufferStates{rb}, bufferCount{count}
@@ -565,10 +557,10 @@ public:
    * 
    * @tparam N Number of buffers.
    * 
-   * @param [in] bufs   Array of pointers to the buffers to transition.
-   * @param [in] rb     Array of states to transition the buffers to.
+   * @param [in] bufs   An array of pointers to the buffers to transition.
+   * @param [in] rb     An array of states to transition the buffers to.
    * 
-   * An i-th state should correspond to an i-th buffer.
+   * The i-th state should correspond to the i-th buffer.
    */
   template <unsigned N>
   ResourceBarrierDesc(Sbuffer *(&bufs)[N], ResourceBarrier (&rb)[N]) : buffers{bufs}, bufferStates{rb}, bufferCount{N}
@@ -580,7 +572,7 @@ public:
    * @param [in] bufs   A list of buffer pointers.
    * @param [in] rb     A list of states to transition to.
    * 
-   * An i-th state should correspond to an i-th buffer.
+   * The i-th state should correspond to the i-th buffer.
    */
   ResourceBarrierDesc(std::initializer_list<Sbuffer *> bufs, std::initializer_list<ResourceBarrier> rb) :
     buffers{bufs.begin()}, bufferStates{rb.begin()}, bufferCount{static_cast<unsigned>(bufs.size())}
@@ -592,7 +584,7 @@ public:
    * @brief Initialization constructor
    *
    * @param [in] tex            A pointer to the texture to dispatch transition(s) to.
-   * @param [in] rb             The state to transition to.
+   * @param [in] rb             State to transition to.
    * @param [in] sub_res_index  Index of the subresource to begin dispatching transitions at.
    * @param [in] sub_res_range  Range of the subresources.
    */
@@ -607,14 +599,14 @@ public:
   /**
    * @brief Initialization constructor
    *
-   * @param [in] texs           Array of pointers to the textures to transition.
-   * @param [in] rb             Array of states to transition the textures to.
-   * @param [in] sub_res_index  Array of subresource indices to begin dispatching transitions at.
-   * @param [in] sub_res_range  Array of subresource ranges.
-   * @param [in] count          The number of the textures.
+   * @param [in] texs           An array of pointers to the textures to transition.
+   * @param [in] rb             An array of states to transition the textures to.
+   * @param [in] sub_res_index  An array of subresource indices to begin dispatching transitions at.
+   * @param [in] sub_res_range  An array of subresource ranges.
+   * @param [in] count          Number of the textures.
    *
-   * An i-th state should correspond to the subresources of 
-   * an i-th buffer specified by an \c sub_res_index[i] and \c sub_res_range[i].
+   * The i-th state should correspond to the subresources of 
+   * the i-th buffer specified by an \c sub_res_index[i] and \c sub_res_range[i].
    */
   ResourceBarrierDesc(BaseTexture *const *texs, const ResourceBarrier *rb, const unsigned *sub_res_index,
     const unsigned *sub_res_range, unsigned count) :
@@ -626,13 +618,13 @@ public:
    *
    * @tparam N Number of textures.
    *
-   * @param [in] texs           Array of pointers to the textures to transition.
-   * @param [in] rb             Array of states to transition the textures to.
-   * @param [in] sub_res_index  Array of subresource indices to begin dispatching transitions at.
-   * @param [in] sub_res_range  Array of subresource ranges.
+   * @param [in] texs           An array of pointers to the textures to transition.
+   * @param [in] rb             An array of states to transition the textures to.
+   * @param [in] sub_res_index  An array of subresource indices to begin dispatching transitions at.
+   * @param [in] sub_res_range  An array of subresource ranges.
    *
-   * An i-th state should correspond to the subresources of
-   * an i-th buffer specified by an \c sub_res_index[i] and \c sub_res_range[i].
+   * The i-th state should correspond to the subresources of
+   * the i-th buffer specified by an \c sub_res_index[i] and \c sub_res_range[i].
    */
   template <unsigned N>
   ResourceBarrierDesc(BaseTexture *(&texs)[N], ResourceBarrier (&rb)[N], unsigned (&sub_res_index)[N], unsigned (&sub_res_range)[N]) :
@@ -647,8 +639,8 @@ public:
    * @param [in] sub_res_index  A list of subresource indices to begin dispatching transitions at.
    * @param [in] sub_res_range  A list of subresource ranges.
    *
-   * An i-th state should correspond to the subresources of
-   * an i-th texture specified by \c sub_res_index[i] and \c sub_res_range[i].
+   * The i-th state should correspond to the subresources of
+   * the i-th texture specified by \c sub_res_index[i] and \c sub_res_range[i].
    */
   ResourceBarrierDesc(std::initializer_list<BaseTexture *> texs, std::initializer_list<ResourceBarrier> rb,
     std::initializer_list<unsigned> sub_res_index, std::initializer_list<unsigned> sub_res_range) :
@@ -666,18 +658,18 @@ public:
   /**
    * @brief Initialization constructor
    *
-   * @param [in] bufs               Array of pointers to the buffers to transition.
-   * @param [in] b_rb               Array of states to transition the buffers to.
-   * @param [in] b_count            The number of the buffers.
-   * @param [in] texs               Array of pointers to the textures to transition.
-   * @param [in] t_rb               Array of states to transition the textures to.
-   * @param [in] t_sub_res_index    Array of texture subresource indices to begin dispatching transitions at.
-   * @param [in] t_sub_res_range    Array of texture subresource ranges.
-   * @param [in] t_count            The number of the textures.
+   * @param [in] bufs               An array of pointers to the buffers to transition.
+   * @param [in] b_rb               An array of states to transition the buffers to.
+   * @param [in] b_count            Number of the buffers.
+   * @param [in] texs               An array of pointers to the textures to transition.
+   * @param [in] t_rb               An array of states to transition the textures to.
+   * @param [in] t_sub_res_index    An array of texture subresource indices to begin dispatching transitions at.
+   * @param [in] t_sub_res_range    An array of texture subresource ranges.
+   * @param [in] t_count            Number of the textures.
    *
-   * An i-th buffer state should correspond to an i-th buffer.
-   * An j-th texture state should correspond to the subresources of
-   * an j-th texture specified by \c sub_res_index[j] and \c sub_res_range[j].
+   * The i-th buffer state should correspond to the i-th buffer.
+   * The j-th texture state should correspond to the subresources of
+   * the j-th texture specified by \c sub_res_index[j] and \c sub_res_range[j].
    */
   ResourceBarrierDesc(Sbuffer *const *bufs, const ResourceBarrier *b_rb, unsigned b_count, BaseTexture *const *texs,
     const ResourceBarrier *t_rb, const unsigned *t_sub_res_index, const unsigned *t_sub_res_range, unsigned t_count) :
@@ -696,14 +688,14 @@ public:
    *
    * @param [in] buf                A pointer to the buffer.
    * @param [in] b_rb               The state to transition the buffer to.
-   * @param [in] texs               Array of pointers to the textures to transition.
-   * @param [in] t_rb               Array of states to transition the textures to.
-   * @param [in] t_sub_res_index    Array of texture subresource indices to begin dispatching transitions at.
-   * @param [in] t_sub_res_range    Array of texture subresource ranges.
+   * @param [in] texs               An array of pointers to the textures to transition.
+   * @param [in] t_rb               An array of states to transition the textures to.
+   * @param [in] t_sub_res_index    An array of texture subresource indices to begin dispatching transitions at.
+   * @param [in] t_sub_res_range    An array of texture subresource ranges.
    * @param [in] t_count            The number of the textures.
    *
-   * An j-th texture state should correspond to the subresources of
-   * an j-th texture specified by \c sub_res_index[j] and \c sub_res_range[j].
+   * The j-th texture state should correspond to the subresources of
+   * the j-th texture specified by \c sub_res_index[j] and \c sub_res_range[j].
    */
   ResourceBarrierDesc(Sbuffer *buf, ResourceBarrier b_rb, BaseTexture *const *texs, const ResourceBarrier *t_rb,
     const unsigned *t_sub_res_index, const unsigned *t_sub_res_range, unsigned t_count) :
@@ -720,15 +712,15 @@ public:
   /**
    * @brief Initialization constructor
    *
-   * @param [in] bufs               Array of pointers to the buffers to transition.
-   * @param [in] b_rb               Array of states to transition the buffers to.
-   * @param [in] b_count            The number of the buffers.
+   * @param [in] bufs               An array of pointers to the buffers to transition.
+   * @param [in] b_rb               An array of states to transition the buffers to.
+   * @param [in] b_count            Number of the buffers.
    * @param [in] tex                A pointer to the texture.
-   * @param [in] t_rb               The state to transition the texture to.
+   * @param [in] t_rb               State to transition the texture to.
    * @param [in] t_sub_res_index    Texture subresource index.
    * @param [in] t_sub_res_range    Texture subresource range.
    *
-   * An i-th buffer state should correspond to an i-th buffer.
+   * The i-th buffer state should correspond to the i-th buffer.
    */
   ResourceBarrierDesc(Sbuffer *const *bufs, const ResourceBarrier *b_rb, unsigned b_count, BaseTexture *tex, ResourceBarrier t_rb,
     unsigned t_sub_res_index, unsigned t_sub_res_range) :
@@ -746,9 +738,9 @@ public:
    * @brief Initialization constructor
    *
    * @param [in] buf                A pointer to the buffer.
-   * @param [in] b_rb               The state to transition the buffer to.
+   * @param [in] b_rb               State to transition the buffer to.
    * @param [in] tex                A pointer to the texture.
-   * @param [in] t_rb               The state to transition the texture to.
+   * @param [in] t_rb               State to transition the texture to.
    * @param [in] t_sub_res_index    Texture subresource index.
    * @param [in] t_sub_res_range    Texture subresource range.
    */
@@ -774,8 +766,8 @@ public:
    * @param [in] sub_res_index  A list of subresource indices to begin dispatching transitions at.
    * @param [in] sub_res_range  A list of subresource ranges.
    *
-   * An i-th state should correspond to the subresources of
-   * an i-th texture specified by \c sub_res_index[i] and \c sub_res_range[i].
+   * The i-th state should correspond to the subresources of
+   * the i-th texture specified by \c sub_res_index[i] and \c sub_res_range[i].
    */
   ResourceBarrierDesc(std::initializer_list<Sbuffer *> bufs, std::initializer_list<ResourceBarrier> buf_rb,
     std::initializer_list<BaseTexture *> texs, std::initializer_list<ResourceBarrier> tex_rb,
@@ -797,14 +789,15 @@ public:
 
   /**
    * @brief Initialization constructor
-   * @param The state to transition a buffer to.
    * 
-   * Expected use case is that 'rb' has the RB_FLUSH_UAV flag set for all pending uav access
+   * @param [in] rb The state to transition a buffer to.
+   * 
+   * Expected use case is that \b rb has the RB_FLUSH_UAV flag set for all pending uav access.
    */
   explicit ResourceBarrierDesc(ResourceBarrier rb) : buffer{nullptr}, bufferState{rb}, bufferCount{single_element_count} {}
 
   /**
-  * @brief Applies a callback to each encompassed buffer.
+  * @brief Calls a callback on each encompassed buffer.
   * 
   * @tparam T The type of the callback.
   * 
@@ -829,7 +822,7 @@ public:
   }
 
   /**
-   * @brief Applies a callback to each encompassed texture.
+   * @brief Calls a callback on each encompassed texture.
    *
    * @tparam T The type of the callback.
    *
@@ -870,7 +863,7 @@ enum class ResourceActivationAction : unsigned
 };
 
 /**
-* Defines how the depth buffer is accessed in a render pass.
+* Defines how the depth buffer is accessed in the render pass.
 */
 enum class DepthAccess
 {
@@ -882,8 +875,9 @@ enum class DepthAccess
   /**
    * @brief Used for read-only depth attachement which can also be sampled as a texture in the same shader.
    * 
-   * @warning If you don't need to sample the depth, use \c z_write=false with \c DepthAccess::RW 
-   * instead instead this option.
+   * @warning   If you don't need to sample the depth, use \c z_write=false with \c DepthAccess::RW 
+   *            instead instead this option.\n
+   * 
    * Using this state will cause HiZ decompression on some hardware and
    * split of renderpass with flush of tile data into memory in a TBR.
    */
@@ -891,7 +885,7 @@ enum class DepthAccess
 };
 
 /**
-* @brief Determines the value a resource is going to be cleaned to.
+* @brief Determines the value the resource is going to be cleaned to.
 */
 union ResourceClearValue
 {
@@ -949,7 +943,7 @@ inline ResourceClearValue make_clear_value(uint32_t r, uint32_t g, uint32_t b, u
  * @brief Constructs a resource clear value from color components.
  *
  * @param r,g,b,a [in]  Color components.
- * @return              A ResourceClearValue initialized as R32G32B32A32_SINT.
+ * @return              ResourceClearValue instance initialized as R32G32B32A32_SINT.
  */
 inline ResourceClearValue make_clear_value(int32_t r, int32_t g, int32_t b, int32_t a)
 {
@@ -965,7 +959,7 @@ inline ResourceClearValue make_clear_value(int32_t r, int32_t g, int32_t b, int3
  * @brief Constructs a resource clear value from color components.
  *
  * @param r,g,b,a [in]  Color components.
- * @return              A ResourceClearValue initialized as R32G32B32A32_FLOAT.
+ * @return              ResourceClearValue instance initialized as R32G32B32A32_FLOAT.
  */
 inline ResourceClearValue make_clear_value(float r, float g, float b, float a)
 {
@@ -982,7 +976,7 @@ inline ResourceClearValue make_clear_value(float r, float g, float b, float a)
  *
  * @param d [in]  The value to clear depth buffer to.
  * @param s [in]  The value to clear stencil buffer to.
- * @return        A ResourceClearValue initialized as D32_FLOAT_S8_UINT.
+ * @return        ResourceClearValue instance initialized as D32_FLOAT_S8_UINT.
  */
 inline ResourceClearValue make_clear_value(float d, uint8_t s)
 {
@@ -999,8 +993,9 @@ struct BasicResourceDescription
 {
   /**
    * @brief Resource creation flags. 
-   * Creation flag names begin with either \c SBCF (for shader buffers) or \c TEXCS (for textures).
-   * Check \ref dag_drv3dConsts.h for options.
+   * 
+   * It must a value from either \c SBCF_ enumeration (for shader buffers) or from \c TEXCS_ enumeration (for textures).
+   * See \ref dag_drv3dConsts.h for options.
    */
   uint32_t cFlags;
 
@@ -1021,12 +1016,12 @@ struct BasicResourceDescription
 struct BufferResourceDescription : BasicResourceDescription
 {
   /**
-   * @brief The byte size of an element in th buffer.
+   * @brief Byte size of an element in th buffer.
    */
   uint32_t elementSizeInBytes;
 
   /**
-   * @brief The number of elements in the buffer.
+   * @brief Number of elements in the buffer.
    */
   uint32_t elementCount;
 
@@ -1042,7 +1037,7 @@ struct BufferResourceDescription : BasicResourceDescription
 struct BasicTextureResourceDescription : BasicResourceDescription
 {
   /**
-   * @brief The number of mipmaps this texture provides.
+   * @brief Number of mipmaps this texture provides.
    */
   uint32_t mipLevels; 
 };
@@ -1080,7 +1075,7 @@ struct VolTextureResourceDescription : TextureResourceDescription
 struct ArrayTextureResourceDescription : TextureResourceDescription
 {
   /**
-   * @brief The number of textures in the array.
+   * @brief Number of textures in the array.
    */
   uint32_t arrayLayers; 
 };
@@ -1102,7 +1097,7 @@ struct CubeTextureResourceDescription : BasicTextureResourceDescription
 struct ArrayCubeTextureResourceDescription : CubeTextureResourceDescription
 {
   /**
-   * @brief The number of cube textures in the array.
+   * @brief Number of cube textures in the array.
    */
   uint32_t cubes;
 };
@@ -1113,13 +1108,14 @@ struct ArrayCubeTextureResourceDescription : CubeTextureResourceDescription
 struct ResourceDescription
 {
   /**
-   * @brief The type of the resource.
+   * @brief Type of the resource.
+   * 
    * See \ref dag_d3dResource.h for options.
    */
   uint32_t resType;
 
   /**
-  * @brief The description of the resource. 
+  * @brief Description of the resource. 
   */
   union
   {
@@ -1141,7 +1137,7 @@ struct ResourceDescription
   /**
    * @brief Copy constructor.
    * 
-   * @param [in] other The description to copy from.
+   * @param [in] other Description to copy from.
    */
   ResourceDescription(const ResourceDescription &) = default;
 
@@ -1202,7 +1198,7 @@ struct ResourceDescription
   /**
    * @brief Checks if two resource descriptions are same.
    * 
-   * @param [in] The description to compare to.
+   * @param [in] Description to compare to.
    */
   bool operator==(const ResourceDescription &r) const
   {
@@ -1231,7 +1227,7 @@ struct ResourceDescription
 #undef FIELD_MATCHES
   }
   /**
-   * @brief The type of hash value.
+   * @brief Type of hash value.
    */
   using HashT = size_t;
 
@@ -1305,7 +1301,7 @@ public:
 struct ResourceHeapGroup;
 
 /**
- * @brief Determines parameters of a group of \ref ResourceHeap "resource heaps".
+ * @brief Determines parameters of a group of resource heaps.
  */
 struct ResourceHeapGroupProperties
 {
@@ -1315,7 +1311,7 @@ struct ResourceHeapGroupProperties
   union
   {
     /**
-     * @brief The flag representation of resource heap group parameters values.
+     * @brief Flag representation of resource heap group parameters values.
      */
     uint32_t flags;
     struct
@@ -1396,12 +1392,12 @@ struct ResourceAllocationProperties
 };
 
 /**
- * @brief A set of flags that steer the behavior of the driver during creation of resource heaps.
+ * @brief Set of flags that steer the behavior of the driver during creation of resource heaps.
  */
 enum ResourceHeapCreateFlag
 {
   /**
-   * @brief The default value.
+   * @brief Default value.
    * 
    * By default the drivers are allowed to use already reserved memory of internal heaps to allocate the needed memory.
    * Drivers are also allowed to allocate larger memory heaps and use the excess memory for their internal resource
@@ -1410,7 +1406,7 @@ enum ResourceHeapCreateFlag
   RHCF_NONE = 0,
 
   /**
-   * @brief The heaps in this group will use their own dedicated memory.
+   * @brief Heaps in this group will use their own dedicated memory.
    * 
    * Resource heaps created with this flag, will use their own dedicate memory heap to supply the memory for resources.
    * When this flag is not used to create a resource heap, the driver is allowed to source the need memory from existing
@@ -1423,7 +1419,7 @@ enum ResourceHeapCreateFlag
 };
 
 /**
- * @brief The type of \ref ResourceHeap creation flags. 
+ * @brief Type of \ref ResourceHeap creation flags. 
  * 
  * See \ref ResourceHeapCreateFlag for options.
  */
@@ -1457,7 +1453,7 @@ struct RenderTarget
  */
 
 /**
- * @brief Description of render target bind inside a render pass.
+ * @brief Description of the render target bind inside a render pass.
  * 
  * Fully defines the operation that will happen with the target at defined subpass slot
  */
@@ -1469,7 +1465,7 @@ struct RenderPassBind
   int32_t target;
 
   /**
-   * @brief Index of the subpass where bind happens.
+   * @brief Index of the subpass where the bind happens.
    */
   int32_t subpass;
 
@@ -1518,7 +1514,7 @@ struct RenderPassTargetDesc
 struct RenderPassTarget
 {
   /**
-   * @brief The actual render target subresource data.
+   * @brief Actual render target subresource data.
    */
   RenderTarget resource;
 
@@ -1549,12 +1545,12 @@ struct RenderPassDesc
   uint32_t bindCount;
 
   /**
-   * @brief Array of \ref \c targetCount elements supplying early descriptions of render targets.
+   * @brief An array of \ref \c targetCount elements supplying early descriptions of render targets.
    */
   const RenderPassTargetDesc *targetsDesc;
 
   /**
-   * @brief Array of \ref \c bindCount elements describing all subpasses.
+   * @brief An array of \ref \c bindCount elements describing all subpasses.
    */
   const RenderPassBind *binds;
 
@@ -1636,8 +1632,8 @@ struct TextureTilingInfo
   /**
    * @brief Number of tiles needed for packed mipmaps.
    * 
-   * @note Even if \c numPackedMips is zero, \c numTilesNeededForPackedMips may be greater than zero, which is a special case,
-   * and \c numTilesNeededForPackedMips tiles still needs to be assigned at \c numUnpackedMips.
+   * @note  Even if \c numPackedMips is zero, \c numTilesNeededForPackedMips may be greater than zero, which is a special case,
+   *        and \c numTilesNeededForPackedMips tiles still needs to be assigned at \c numUnpackedMips.
    */
   size_t numTilesNeededForPackedMips;
 
@@ -1682,7 +1678,7 @@ struct TextureTilingInfo
   size_t subresourceDepthInTiles;
 
   /**
-   * @brief The index of the first tile corresponding to the texture.
+   * @brief Index of the first tile corresponding to the texture.
    */
   size_t subresourceStartTileIndex;
 };
@@ -1693,17 +1689,17 @@ struct TextureTilingInfo
 struct TileMapping
 {
   /**
-   * @brief The tile X-coordinate in tiles.
+   * @brief Tile X-coordinate in tiles.
    */
   size_t texX;
 
   /**
-   * @brief The tile Y-coordinate in tiles,.
+   * @brief Tile Y-coordinate in tiles,.
    */
   size_t texY;
 
   /**
-   * @brief The tile Z-coordinate in tiles.
+   * @brief Tile Z-coordinate in tiles.
    */
   size_t texZ;
 
@@ -1721,9 +1717,9 @@ struct TileMapping
    * @brief Number of tiles to map. 0 is invalid, and unless it is 1, an array of tiles is mapped to the specified location. 
    * 
    * Example usage for this is packed mip tails:
-   * /li Map to subresource \ref \c TextureTilingInfo::numUnpackedMips at 0, 0, 0.
-   * /li Use a span of \ref \c TextureTilingInfo::numTilesNeededForPackedMips so the whole mip tail can be mapped at once.
-   * /li From \ref \c heapTileIndex the given number of tiles will be mapped to the packed mip tail.
+   * /li map to subresource \ref \c TextureTilingInfo::numUnpackedMips at 0, 0, 0.
+   * /li use a span of \ref \c TextureTilingInfo::numTilesNeededForPackedMips so the whole mip tail can be mapped at once.
+   * /li the given number of tiles will be mapped from \ref \c heapTileIndex to the packed mip tail.
    */
   size_t heapTileSpan;   
 };
@@ -1739,7 +1735,9 @@ enum class APISupport
   NO_DEVICE_FOUND
 };
 
-//! opaque class that holds data for resource/texture update
+/**
+ * @brief Opaque class that holds data for resource/texture update.
+ */ 
 namespace d3d
 {
 class ResUpdateBuffer;
@@ -1802,15 +1800,15 @@ int guess_gpu_vendor(String *out_gpu_desc = NULL, uint32_t *out_drv_ver = NULL, 
 /**
  * @brief Returns GPU driver date.
  * 
- * @param [in] vendor   The ID of the GPU vendor providing the driver.
- * @return              The driver date.
+ * @param [in] vendor   ID of the GPU vendor providing the driver.
+ * @return              Driver date.
  */
 DagorDateTime get_gpu_driver_date(int vendor);
 
 /**
  * @brief Determines the size of dedicated GPU memory in KiB.
  * 
- * @return The size of dedicated GPU memory in KiB.
+ * @return Size of dedicated GPU memory in KiB.
  * 
  * The function may be called before \ref d3d::init_driver().
  */
@@ -1819,7 +1817,7 @@ unsigned get_dedicated_gpu_memory_size_kb();
 /**
  * @brief Determines the size of free dedicated GPU memory in KiB.
  *
- * @return The size of free dedicated GPU memory in KiB.
+ * @return Size of free dedicated GPU memory in KiB.
  * The function may be called before \ref d3d::init_driver().
  */
 unsigned get_free_dedicated_gpu_memory_size_kb();
@@ -1845,14 +1843,14 @@ bool get_gpu_freq(String &out_freq);
 /**
  * @brief Determines GPU temperature in degree Celsius.
  *
- * @return The temperature of the GPU.
+ * @return Temperature of the GPU.
  */
 int get_gpu_temperature();
 
 /**
  * @brief Returns a string containing video adapter info.
  *
- * @return The string with video adapter info.
+ * @return String storing video adapter info.
  */
 void get_video_vendor_str(String &out_str);
 
@@ -1919,7 +1917,7 @@ void release_driver();
 /**
  * @brief Fills the function-pointer table for d3d API if supported.
  * 
- * @param [out] d3dit   The table to fill.
+ * @param [out] d3dit   Table to fill.
  * @return              \c true if function-pointer table is supported, \c false otherwise.
  */
 bool fill_interface_table(D3dInterfaceTable &d3dit);
@@ -1934,7 +1932,7 @@ const char *get_driver_name();
 /**
  * @brief Retrieves the code of the active driver.
  * 
- * @return The code of the active driver.
+ * @return Code of the active driver.
  */
 DriverCode get_driver_code();
 
@@ -1969,7 +1967,7 @@ const char *get_last_error();
 /**
  * @brief Retrieves the last error code.
  *
- * @return The last error code.
+ * @return Last error code.
  */
 uint32_t get_last_error_code();
 
@@ -1979,36 +1977,33 @@ uint32_t get_last_error_code();
 void prepare_for_destroy();
 
 /**
- * @brief Performs implementation and platform specific actions at the window destruction.
+ * @brief Performs implementation and platform-specific actions at the window destruction.
  * 
- * @param [in] The destroyed window platform-specific handle.
+ * @param [in] Destroyed window handle.
  */
 void window_destroyed(void *hwnd);
 
 
 // Device management
 
-/// returns raw pointer to device interface
-
 /**
- * @brief Retrieves a raw pointer to the device interface (implementation and platform specific). 
+ * @brief Retrieves a pointer to the device interface (implementation- and platform-specific). 
  * 
- * @return A raw pointer to the device interface.
+ * @return A pointer to the device interface.
  */
 void *get_device();
 
 /**
- * @brief Retrieves a raw pointer to the device context interface (implementation and platform specific).
+ * @brief Retrieves a pointer to the device context interface (implementation- and platform-specific).
  *
- * @return A raw pointer to the device context interface.
+ * @return A pointer to the device context interface.
  * 
  * @note No usage and implementation is found.
  */
 void *get_context();
 
-/// returns driver description (pointer to static object)
 /**
- * @brief Retrieves the acive driver description.
+ * @brief Retrieves the active driver description.
  * @return A reference to the static instance of \c Driver3dDesc class containing the description of the active driver.
  */
 const Driver3dDesc &get_driver_desc();
@@ -2018,7 +2013,7 @@ const Driver3dDesc &get_driver_desc();
  * 
  * @param [in] command          Enumerator (DRD3D_COMMAND_) of the command to set. See \ref dag_drv3dCmd.h for options.
  * @param [in] par1, par2, par3 Implementation-specific parameters.
- * @return                      An implementation-specific value.
+ * @return                      Implementation-specific value.
  */
 int driver_command(int command, void *par1, void *par2, void *par3);
 
@@ -2038,14 +2033,14 @@ bool device_lost(bool *can_reset_now);
 bool reset_device();
 
 /**
- * @brief Checks if the device if lost or being reset.
+ * @brief Checks if the device is lost or being reset.
  * 
  * @return \c true if the device is either lost or being reset now.
  */
 bool is_in_device_reset_now();
 
 /**
- * @brief Checks if the game rendering window is completely occluded now.
+ * @brief Checks if the game rendering window is completely occluded at the moment.
  *
  * @return \c true if the game rendering window is completely occluded now, \c false otherwise.
  */
@@ -2062,10 +2057,10 @@ bool is_window_occluded();
 bool should_use_compute_for_image_processing(std::initializer_list<unsigned> formats);
 
 /**
- * @brief Checks whether a format is available for a simple texture creation.
+ * @brief Checks whether a format is available for simple texture creation.
  * 
  * @param [in] cflg Texture creation flags.
- * @return          \c false if a texture of the specified format can't be created.
+ * @return          \c false if a texture of the specified format can't be created, \c true otherwise.
  */
 bool check_texformat(int cflg);
 
@@ -2073,7 +2068,7 @@ bool check_texformat(int cflg);
  * @brief Retrieves maximum sample count for a given texture format.
  *
  * @param [in] cflg Texture creation flags.
- * @return          The maximum sample format supported by the texture format.   
+ * @return          Maximum sample format supported by the texture format.   
  */
 int get_max_sample_count(int cflg);
 
@@ -2081,7 +2076,7 @@ int get_max_sample_count(int cflg);
  * @brief Retrieves usage flags from creation flags of a texture resource.
  * 
  * @param [in] cflg     Creation flags of a texture resource.
- * @param [in] restype  The resource type. It must be a value from \c ES3D_ enumeration.
+ * @param [in] restype  Resource type. It must be a value from \c ES3D_ enumeration.
  * @return              Texture resource usage flags.
  */
 unsigned get_texformat_usage(int cflg, int restype = RES3D_TEX);
@@ -2095,7 +2090,7 @@ unsigned get_texformat_usage(int cflg, int restype = RES3D_TEX);
 bool issame_texformat(int cflg1, int cflg2);
 
 /**
- * @brief Checks whether a format is available for a cube texture creation.
+ * @brief Checks whether a format is available for cube texture creation.
  * 
  * @param [in] cflg Cube texture creation flags.
  * @return          \c false if a cube texture of the specified format can't be created.
@@ -2111,7 +2106,7 @@ bool check_cubetexformat(int cflg);
 bool issame_cubetexformat(int cflg1, int cflg2);
 
 /**
- * @brief Checks whether a format is available for a volume texture creation.
+ * @brief Checks whether a format is available for volume texture creation.
  *
  * @param [in] cflg Volume texture creation flags.
  * @return          \c false if a volume texture of the specified format can't be created.
@@ -2133,7 +2128,7 @@ bool issame_voltexformat(int cflg1, int cflg2);
  * @param [in] w            Texture width.
  * @param [in] h            Texture height.
  * @param [in] flg          Texture creation flags.
- * @param [in] levels       The number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support. 
+ * @param [in] levels       Number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support. 
  * @param [in] stat_name    Debug name of the texture.
  * @return                  A pointer to the created texture object or NULL on error.
  * 
@@ -2148,7 +2143,7 @@ BaseTexture *create_tex(TexImage32 *img, int w, int h, int flg, int levels, cons
  * @param [in] crd          A callback supporting file read interface.
  * @param [in] flg          Texture creation flags.
  * @param [in] quality_id   Texture quality level index (0=high, 1=medium, 2=low, 3=ultralow).
- * @param [in] levels       The number of mipmaps to load. If 0 is passed, the whole set is loaded, given the device support. 
+ * @param [in] levels       Number of mipmaps to load. If 0 is passed, the whole set is loaded, given the device support. 
  * @param [in] stat_name    Texture debug name.
  * @return                  A pointer to the created texture object or NULL on error.
  * 
@@ -2161,7 +2156,7 @@ BaseTexture *create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int levels 
  * @param [in] hdr          DDSx header to create the texture from.
  * @param [in] flg          Texture creation flags.
  * @param [in] quality_id   Texture quality level index (0=high, 1=medium, 2=low, 3=ultralow).
- * @param [in] levels       The number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support. 
+ * @param [in] levels       Number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support. 
  * @param [in] stat_name    Texture debug name.
  * @param [in] stub_tex_idx Index of the stub texture to use. If \b stub_tex_idx is negative, no stub texture is used.
  * @return                  A pointer to the created texture object or NULL on error.
@@ -2191,7 +2186,7 @@ static inline bool load_ddsx_tex_contents(BaseTexture *t, const ddsx::Header &hd
  * 
  * @param [in] size         Cube texture edge length.
  * @param [in] flg          Texture creation flags.
- * @param [in] levels       The number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support. 
+ * @param [in] levels       Number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support. 
  * @param [in] stat_name    Debug name of the texture.
  * @return                  A pointer to the created texture object or NULL on error.
  */
@@ -2202,7 +2197,7 @@ BaseTexture *create_cubetex(int size, int flg, int levels, const char *stat_name
  * 
  * @param [in] w, h, d      Volume texture dimensions.
  * @param [in] flg          Texture creation flags.
- * @param [in] levels       The number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support. 
+ * @param [in] levels       Number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support. 
  * @param [in] stat_name    Debug name of the texture.
  * @return                  A pointer to the created texture object or NULL on error.
  */
@@ -2214,7 +2209,7 @@ BaseTexture *create_voltex(int w, int h, int d, int flg, int levels, const char 
  * @param [in] w, h         Texture dimensions.
  * @param [in] d            Number of layers in the array.
  * @param [in] flg          Texture creation flags.
- * @param [in] levels       The number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
+ * @param [in] levels       Number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
  * @param [in] stat_name    Debug name of the texture array.
  * @return                  A pointer to the created texture array object or NULL on error.
  */
@@ -2226,7 +2221,7 @@ BaseTexture *create_array_tex(int w, int h, int d, int flg, int levels, const ch
  * @param [in] side         Cube texture edge length.
  * @param [in] d            Number of layers in the array.
  * @param [in] flg          Texture creation flags.
- * @param [in] levels       The number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
+ * @param [in] levels       Number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
  * @param [in] stat_name    Debug name of the texture array.
  * @return                  A pointer to the created texture array object or NULL on error.
  * 
@@ -2241,7 +2236,7 @@ BaseTexture *create_cube_array_tex(int side, int d, int flg, int levels, const c
  * @param [in] img          A pointer to the image to create the texture from. If \c NULL is passed, the texture will be created empty.
  * @param [in] w, h         Texture dimensions.
  * @param [in] flg          Texture creation flags.
- * @param [in] levels       The number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
+ * @param [in] levels       Number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
  * @param [in] stat_name    Debug name of the texture alias.
  * @return                  A pointer to the created alias or NULL on error.
  * 
@@ -2263,12 +2258,12 @@ BaseTexture *alias_tex(BaseTexture *baseTexture, TexImage32 *img, int w, int h, 
  * @param [in] baseTexture  A pointer to the texture to create an alias for.
  * @param [in] size         Cube texture edge length.
  * @param [in] flg          Texture creation flags.
- * @param [in] levels       The number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
+ * @param [in] levels       Number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
  * @param [in] stat_name    Debug name of the texture alias.
  * @return                  A pointer to the created alias or NULL on error.
  *
  * An alias can be considered as a view of or as a cast to its base texture but of a different format.
- * Calling this function has same effects as \ref create_cubetex, except creating alias does not result in memory allocation,
+ * Calling this function has same the effects as \ref create_cubetex, except creating alias does not result in memory allocation,
  * and the GPU memory of the base texture will be used as the backing GPU memory for the alias.
  * For an alias is just a view of the GPU memory area, its lifetime is controlled by the base texture.
  * Hence, no alias texture should be used in the rendering pipeline after its base texture has been deleted.
@@ -2281,12 +2276,12 @@ BaseTexture *alias_cubetex(BaseTexture *baseTexture, int size, int flg, int leve
  * @param [in] baseTexture  A pointer to the texture to create an alias for.
  * @param [in] w, h, d      Texture dimensions.
  * @param [in] flg          Texture creation flags.
- * @param [in] levels       The number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
+ * @param [in] levels       Number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
  * @param [in] stat_name    Debug name of the texture alias.
  * @return                  A pointer to the created alias or NULL on error.
  *
  * An alias can be considered as a view of or as a cast to its base texture but of a different format.
- * Calling this function has same effects as \ref create_voltex, except creating alias does not result in memory allocation,
+ * Calling this function has the same effects as \ref create_voltex, except creating alias does not result in memory allocation,
  * and the GPU memory of the base texture will be used as the backing GPU memory for the alias.
  * For an alias is just a view of the GPU memory area, its lifetime is controlled by the base texture.
  * Hence, no alias texture should be used in the rendering pipeline after its base texture has been deleted.
@@ -2300,12 +2295,12 @@ BaseTexture *alias_voltex(BaseTexture *baseTexture, int w, int h, int d, int flg
  * @param [in] w, h         Texture dimensions.
  * @param [in] d            Number of layers in the array.
  * @param [in] flg          Texture creation flags.
- * @param [in] levels       The number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
+ * @param [in] levels       Number of mipmaps to create. If 0 is passed, the whole set will be created, given the device support.
  * @param [in] stat_name    Debug name of the texture alias.
  * @return                  A pointer to the created alias or NULL on error.
  *
  * An alias can be considered as a view of or as a cast to its base texture but of a different format.
- * Calling this function has same effects as \ref create_array_tex, except creating alias does not result in memory allocation,
+ * Calling this function has the same effects as \ref create_array_tex, except creating alias does not result in memory allocation,
  * and the GPU memory of the base texture will be used as the backing GPU memory for the alias.
  * For an alias is just a view of the GPU memory area, its lifetime is controlled by the base texture.
  * Hence, no alias texture should be used in the rendering pipeline after its base texture has been deleted.
@@ -2324,7 +2319,7 @@ BaseTexture *alias_array_tex(BaseTexture *baseTexture, int w, int h, int d, int 
  * @return                  A pointer to the created alias or NULL on error.
  *
  * An alias can be considered as a view of or as a cast to its base texture but of a different format.
- * Calling this function has same effects as \ref create_cube_array_tex, except creating alias does not result in memory allocation,
+ * Calling this function has the same effects as \ref create_cube_array_tex, except creating alias does not result in memory allocation,
  * and the GPU memory of the base texture will be used as the backing GPU memory for the alias.
  * For an alias is just a view of the GPU memory area, its lifetime is controlled by the base texture.
  * Hence, no alias texture should be used in the rendering pipeline after its base texture has been deleted.
@@ -2339,7 +2334,7 @@ void discard_managed_textures();
 // @endcond
 
 /**
- * @brief Copies and stretches texture.
+ * @brief Copies and stretches the texture.
  * 
  * @param [in]      src     A pointer to the texture to copy from.
  * @param [in, out] dst     A pointer to the texture to copy to.
@@ -2347,9 +2342,9 @@ void discard_managed_textures();
  * @param [in]      rdst    A pointer to the area rectangle to copy to.
  * @return                  \c true on success, \c false otherwise.
  * 
- * @note In case NULL is passed for \b src/\b dst, copy is performed from/to the back buffer texture.
- * @note In case NULL is passed for \b rsrc/\b rdst, missing area data is taken from the source/destination texture.
- * @note In case NULL is passed for \b src/\b dst as well as for \b rsrc/\b rdst, the copy is performed from/to the top left corner of the back buffer.
+ * @note    In case NULL is passed for \b src/\b dst, copy is performed from/to the back buffer texture.
+ * @note    In case NULL is passed for \b rsrc/\b rdst, missing area data is taken from the source/destination texture.
+ * @note    In case NULL is passed for \b src/\b dst as well as for \b rsrc/\b rdst, the copy is performed from/to the top left corner of the back buffer.
  * @warning At least either \b src or \b dst has to be a valid pointer to the texture.
  */
 bool stretch_rect(BaseTexture *src, BaseTexture *dst, RectInt *rsrc = NULL, RectInt *rdst = NULL);
@@ -2376,6 +2371,7 @@ void get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, String 
 // Texture states setup
 
 // r/o and r/w resource slots are independent
+
 /**
  * @brief Binds a texture to a resource slot of a shader stage.
  * 
@@ -2414,30 +2410,28 @@ static inline bool settex_vs(int slot, BaseTexture *tex) { return set_tex(STAGE_
  * @brief Creates a sampler.
  * 
  * @param [in] sampler_info Sampling data to create the sampler from.
- * @return                  A handle of the created sampler.
+ * @return                  A handle to the created sampler.
  * 
- * Identical infos may yield both identical handles and different ones, it depends on driver implementation
- * This call is thread-safe and does not require external synchronization. ???
+ * Identical infos may yield both identical handles and different ones. It depends on driver implementation
+ * This call is thread-safe and does not require external synchronization.
  */
 SamplerHandle create_sampler(const SamplerInfo &sampler_info);
 
-// Destroys given sampler
-// 
 /**
- * @brief Destroys a given sampler.
+ * @brief Destroys the sampler.
  * 
- * @param [in] sampler A handle of the sample to destroy.
+ * @param [in] sampler A handle to the sample to destroy.
  *
  * @warning The driver may not actually destroy the sampler. Using a destroyed sampler after calling this function leads to undefined behavior.
  */
 void destroy_sampler(SamplerHandle sampler);
 
 /**
- * @brief Binds a given sampler to a specified slot.
+ * @brief Binds the sampler to the slot.
  * 
  * @param [in] shader_stage Shader stage to bind sampler to.
  * @param [in] slot         Index of the slot to bind the sampler to.
- * @param [in] sampler      A handle of the sampler to bind.
+ * @param [in] sampler      A handle to the sampler to bind.
  * 
  * @warning This call is not thread-safe, requires global gpu lock to be imposed.
  */
@@ -2465,8 +2459,8 @@ uint32_t allocate_bindless_resource_range(uint32_t resource_type, uint32_t count
 /**
  * @brief Resizes a given bindless slot range.
  *
- * @param [in] resource_type    The resource type the freed slot has been previously allocated with. The type must be one of \c RES3D_ enum values.
- * @param [in] index            The index of the first slot to free. It must be within a previously allocated bindless range.
+ * @param [in] resource_type    Resource type the freed slot has been previously allocated with. The type must be one of \c RES3D_ enum values.
+ * @param [in] index            Index of the first slot to free. It must be within a previously allocated bindless range.
  * @param [in] count            Number of slots to free. It must fit within a previously allocated bindless slot range starting at \b
  * index.
  *
@@ -2480,8 +2474,8 @@ uint32_t resize_bindless_resource_range(uint32_t resource_type, uint32_t index, 
 /**
  * @brief Frees a given bindless slot range. 
  * 
- * @param [in] resource_type    The resource type the freed slot has been previously allocated with. The type must be one of \c RES3D_ enum values.
- * @param [in] index            The index of the first slot to free. It must be within a previously allocated bindless range.
+ * @param [in] resource_type    Resource type the freed slot has been previously allocated with. The type must be one of \c RES3D_ enum values.
+ * @param [in] index            Index of the first slot to free. It must be within a previously allocated bindless range.
  * @param [in] count            Number of slots to free. It must fit within a previously allocated bindless slot range starting at \b index.
  * 
  * @note When \b count is 0, the function does nothing. In that case, any value may be passed for \b index.
@@ -2504,9 +2498,9 @@ void update_bindless_resource(uint32_t index, D3dResource *res);
 /**
  * @brief  Updates one or more bindless slots with a 'null' resource of the given type.
  * 
- * @param [in] resource_type    The resource type to update slots with. It must be one of \c RES3D_ enum values.
+ * @param [in] resource_type    Resource type to update slots with. It must be one of \c RES3D_ enum values.
  * @param [in] index            Index of the first slot to update. It must be within a previously allocated bindless slot range.
- * @param [in] count            The number of slots to update. It must fit within a previously allocated bindless slot range starting at \b index.
+ * @param [in] count            Number of slots to update. It must fit within a previously allocated bindless slot range starting at \b index.
  * 
  * Updates one or more bindless slots with a "null" resource of the given type.
  * Shader access to those slots will read all zeros and writes will be discarded.
@@ -2531,7 +2525,7 @@ bool set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint32_t 
  * @brief Clears a given UAV texture and fills it with specified integer values.
  *
  * @param [in] buf          A pointer to the buffer to clear.
- * @param [in] val          The value to fill the cleared buffer with.
+ * @param [in] val          Value to fill the cleared buffer with.
  * @param [in] face         Texture array index of the texture to clear.
  * @param [in] mip_level    Index of the mipmap level to clear.
  * @return                  \c true on success, \c false otherwise.
@@ -2542,7 +2536,7 @@ bool clear_rwtexi(BaseTexture *tex, const unsigned val[4], uint32_t face, uint32
  * @brief Clears a given UAV texture and fills it with specified float values.
  *
  * @param [in] buf          A pointer to the buffer to clear.
- * @param [in] val          The value to fill the cleared buffer with.
+ * @param [in] val          Value to fill the cleared buffer with.
  * @param [in] face         Texture array index of the texture to clear.
  * @param [in] mip_level    Index of the mipmap level to clear.
  * @return                  \c true on success, \c false otherwise.
@@ -2560,6 +2554,7 @@ bool clear_rwbufi(Sbuffer *buf, const unsigned val[4]);
 
 /**
  * @brief Clears a given UAV buffer and fills it with specified float values.
+ * 
  * @param [in] buf  A pointer to the buffer to clear.
  * @param [in] val  The value to fill the cleared buffer with.
  * @return          \c true on success, \c false otherwise.
@@ -2574,7 +2569,7 @@ bool clear_rwbuff(Sbuffer *buf, const float val[4]);
  * @param [in] vprog    A handle to the \ref VertexShader instance (i.e. vertex program) to use.
  * @param [in] fsh      A handle to the \ref PixelShader instance to use.
  * @param [in] vdecl    A handle to the vertex declaration to use.
- * @param [in] strides  Array of vertex strides, where each element corresponds to a vertex buffer (unimplemented).
+ * @param [in] strides  An array of vertex strides, where each element corresponds to a vertex buffer (unimplemented).
  * @param [in] streams  Number of vertex buffers used (unimplemented).
  * @return              Index of the created program in the programm pool.
  * 
@@ -2592,7 +2587,7 @@ PROGRAM create_program(VPROG vprog, FSHADER fsh, VDECL vdecl, unsigned *strides 
  * @param [in] vpr_native   Vertex program binary data.
  * @param [in] fsh_native   Pixel shader binary data.
  * @param [in] vdecl        A handle to the vertex declaration to use.
- * @param [in] strides      Array of vertex strides, where each element corresponds to a vertex buffer (unimplemented).
+ * @param [in] strides      An array of vertex strides, where each element corresponds to a vertex buffer (unimplemented).
  * @param [in] streams      Number of vertex buffers used (unimplemented).
  * @return                  Index of the created program in the programm pool.
  *
@@ -2626,13 +2621,13 @@ PROGRAM create_program_cs(const uint32_t *cs_native, CSPreloaded preloaded);
 bool set_program(PROGRAM prg);   
 
 /**
-* @brief Deletes the vertex program or a pixel shader.
+* @brief Deletes the vertex program or pixel shader.
 * 
 * @param [in] prg A handle to the program to delete. 
 *   
 * Vertex declaration should be deleted independently
 */
-void delete_program(PROGRAM prg); // deletes vprog and fshader. VDECL 
+void delete_program(PROGRAM prg);
 
 // Vertex programs
 
@@ -2720,16 +2715,22 @@ static inline bool set_ps_const1(unsigned reg, float v0, float v1, float v2, flo
   float v[4] = {v0, v1, v2, v3};
   return set_ps_const(reg, v, 1);
 }
-//???????
-// immediate consts are supposed to be very cheap to set dwords.
-// It is guaranteed to support up to 4 dwords on each stage.
-// Use as less as possible, ideally one or two (or none).
-// on XB1(PS4) implemented as user regs (C|P|V)SSetShaderUserData (user regs)
-// on DX11 (and currently everything else)
-// on VK/DX12 - should be implemented as descriptor/push constants buffers
-// on OpenGL should be implemented as Uniform
-// calling with data = nullptr || num_words == 0, is benign, and currently works as "stop using immediate"(probably have to be replaced
-// with shader system)
+
+/**
+ * @brief Assigns data to the immediate constant buffer slot of the shader stage.
+ * 
+ * @param [in] stage        Index of the shader stage to assign data to.
+ * @param [in] data         A pointer to the data to assign.
+ * @param [in] num_words    Size of the data in dwords.
+ * @return                  \c true on success, \c false otherwise.
+ * 
+ * @note Passing NULL for \b data or 0 for \b num_words unbinds previously bound data from the slot.
+ * 
+ * Immediate constant buffers are cheap to set.
+ * It is guaranteed that immediate constant buffer slot support up to 4 dwords for each stage.
+ * The number of dwords assigned should be minimized ideally to 1 or less.
+ * 
+ */
 bool set_immediate_const(unsigned stage, const uint32_t *data, unsigned num_words);
 // Fragment shader
 
@@ -2748,12 +2749,25 @@ FSHADER create_pixel_shader(const uint32_t *native_code);
  */
 void delete_pixel_shader(FSHADER ps);
 
+//@cond
+// unimplemented
 // Immediate constant buffers - valid within min(driver acquire, frame)
 // to unbind, use set_const_buffer(stage, 0, NULL [,0]) - generic set_const_buffer()
 // if slot = 0 is empty (PS/VS/CS stages), buffered constants are used
 // [PS4 specific]
-//???????
 bool set_const_buffer(unsigned stage, unsigned slot, const float *data, unsigned num_regs);
+//@endcond
+
+/**
+ * @brief Binds the const buffer to the shader stage.
+ * 
+ * @param [in] stage        Index of the shader stage to bind the buffer to.
+ * @param [in] slot         Index of the slot to bind the buffer to.
+ * @param [in] buffer       A pointer to the buffer to bind.
+ * @param [in] const_offset Shader register offset to bind at.
+ * @param [in] consts_size  Size of the buffer.
+ * @return                  \c true on success, \c false otherwise.
+ */
 bool set_const_buffer(unsigned stage, unsigned slot, Sbuffer *buffer, uint32_t consts_offset = 0, uint32_t consts_size = 0);
 
 /**
@@ -2778,7 +2792,6 @@ int set_vs_constbuffer_size(int required_size);
  */
 int set_cs_constbuffer_size(int required_size);
 
-//??????/
 // Set immediate constants to const buffer slot 0 if used in shader explicitly
 static inline bool set_cb0_data(unsigned stage, const float *data, unsigned num_regs)
 {
@@ -2900,7 +2913,7 @@ bool set_backbuf_depth();
 
 /// set texture as render target
 /// if texture is depth texture format, it is the same as call set_depth()
-/// if face is RENDER_TO_WHOLE_ARRAY, then whole Texture Array/Volume Tex will be set as render target
+/// if face is RENDER_TO_WHOLE_ARRAY, then whole Texture An array/Volume Tex will be set as render target
 ///   this is to be used with geom shader (and Metal allows with vertex shader)
 bool set_render_target(int rt_index, BaseTexture *, int fc, int level);
 bool set_render_target(int rt_index, BaseTexture *, int level);
@@ -2930,7 +2943,12 @@ inline void set_render_target(RenderTarget depth, DepthAccess depth_access, cons
  */
 void get_render_target(Driver3dRenderTarget &out_rt);
 
-
+/**
+ * @brief Sets current render target.
+ *
+ * @param [in] rt   Render target to assign.
+ * @return          \c true on success, \c false otherwise.
+ */
 bool set_render_target(const Driver3dRenderTarget &rt);
 
 /**
@@ -3295,7 +3313,7 @@ bool setvdecl(VDECL vdecl);
  *
  * @param [in] type             Primitive topology type to use in this draw call. It must be a value from \c PRIM_ enumeration. See \ref dag_3dConst_base.h for options.
  * @param [in] start            Index of the first primitive to draw.
- * @param [in] numprim          Number of primitives to draw.
+ * @param [in] numprim          Number of primitives to draw per instance.
  * @param [in] num_instances    Number of instances to draw.
  * @param [in] start_instance   Index of the first instance to draw. 
  * @return                      \c true on success, \c false otherwise.
@@ -3321,7 +3339,7 @@ inline bool draw(int type, int start, int numprim) { return draw_base(type, star
  *
  * @param [in] type             Primitive topology type to use in this draw call. It must be a value from \c PRIM_ enumeration. See \ref dag_3dConst_base.h for options.
  * @param [in] start            Index of the first primitive to draw.
- * @param [in] numprim          Number of primitives to draw.
+ * @param [in] numprim          Number of primitives to draw per instance.
  * @param [in] num_instances    Number of instances to draw.
  * @param [in] start_instance   Index of the first instance to draw.
  * @return                      \c true on success, \c false otherwise.
@@ -3340,7 +3358,7 @@ inline bool draw_instanced(int type, int start, int numprim, uint32_t num_instan
  *
  * @param [in] type             Primitive topology type to use in this draw call. It must be a value from \c PRIM_ enumeration. See \ref dag_3dConst_base.h for options.
  * @param [in] startind         Offset of the first index.
- * @param [in] numprim          Number of primitives to draw.
+ * @param [in] numprim          Number of primitives to draw per instance.
  * @param [in] base_vertex      Offset of the first indexed vertex. This value is added to each index in the draw call.
  * @param [in] num_instances    Number of instances to draw.
  * @param [in] start_instance   Index of the first instance to draw.
@@ -3353,7 +3371,7 @@ bool drawind_base(int type, int startind, int numprim, int base_vertex, uint32_t
  *
  * @param [in] type             Primitive topology type to use in this draw call. It must be a value from \c PRIM_ enumeration. See \ref dag_3dConst_base.h for options.
  * @param [in] startind         Offset of the first index.
- * @param [in] numprim          Number of primitives to draw.
+ * @param [in] numprim          Number of primitives to draw per instance.
  * @param [in] base_vertex      Offset of the first indexed vertex. This value is added to each index in the draw call.
  * @param [in] num_instances    Number of instances to draw.
  * @param [in] start_instance   Index of the first instance to draw.
@@ -3392,7 +3410,7 @@ inline bool drawind(int type, int startind, int numprim, int base_vertex)
  *
  * @param [in] type             Primitive topology type to use in this draw call. It must be a value from \c PRIM_ enumeration. See \ref dag_3dConst_base.h for options.
  * @param [in] numprim          Number of primitives to draw.
- * @param [in] ptr              Array of primitives to draw.
+ * @param [in] ptr              An array of primitives to draw.
  * @param [in] stride_bytes     Vertex stride.
  * @return                      \c true on success, \c false otherwise.
  *
@@ -3409,8 +3427,8 @@ bool draw_up(int type, int numprim, const void *ptr, int stride_bytes);
  * @param [in] minvert          (unused; perhaps, it is the index of the first vertex to draw)
  * @param [in] numvert          Number of vertices to draw.
  * @param [in] numprim          Number of primitives to draw.
- * @param [in] ind              Array of vertex indices.
- * @param [in] ptr              Array of vertices to draw.
+ * @param [in] ind              An array of vertex indices.
+ * @param [in] ptr              An array of vertices to draw.
  * @param [in] stride_bytes     Vertex stride.
  * @return                      \c true on success, \c false otherwise.
  *
@@ -3458,7 +3476,7 @@ bool draw_indexed_indirect(int type, Sbuffer *args, uint32_t byte_offset = 0);
  * @brief Performs multiple indirect draw calls on non-indexed vertices.
  *
  * @param [in] prim_type    Primitive topology type to use in draw calls. It must be a value from \c PRIM_ enumeration. See \ref dag_3dConst_base.h for options.
- * @param [in] args         Array of buffers storing draw call arguments.
+ * @param [in] args         An array of buffers storing draw call arguments.
  * @param [in] draw_count   Number of draw calls to perform.
  * @param [in] stride_bytes Stride for iterating through \b args.
  * @param [in] byte_offset  Offset in \b args to the start of the draw call arguments.
@@ -3477,7 +3495,7 @@ bool multi_draw_indirect(int prim_type, Sbuffer *args, uint32_t draw_count, uint
  * @brief Performs multiple indirect draw calls on non-indexed vertices.
  *
  * @param [in] prim_type    Primitive topology type to use in draw calls. It must be a value from \c PRIM_ enumeration. See \ref dag_3dConst_base.h for options.
- * @param [in] args         Array of buffers storing draw call arguments.
+ * @param [in] args         An array of buffers storing draw call arguments.
  * @param [in] draw_count   Number of draw calls to perform.
  * @param [in] stride_bytes Stride for iterating through \b args.
  * @param [in] byte_offset  Offset in \b args to the start of the draw call arguments.
@@ -3512,7 +3530,7 @@ bool dispatch(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t thread_
  * @return                  \c true on success, \c false otherwise.
  */
 bool dispatch_indirect(Sbuffer *args, uint32_t byte_offset = 0, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS);
-// Max value for each direction is 64k, product of all dimensions can not exceed 2^22
+
 
 /**
  * @brief Submits a command list for mesh shading pipeline.
@@ -3529,7 +3547,7 @@ void dispatch_mesh(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t th
 /**
  * @brief Submits a command list for indirect execution in mesh shading pipeline.
  *
- * @param [in] args             Array of buffers to the buffer containing dispatch arguments.
+ * @param [in] args             An array of buffers to the buffer containing dispatch arguments.
  * @param [in] dispatch_count   Number of dispatch calls.
  * @param [in] stride_bytes     Stride for iterating through \b args.
  * @param [in] byte_offset      Offset in \b args to the start of the dispatch arguments.
@@ -3549,7 +3567,7 @@ void dispatch_mesh_indirect(Sbuffer *args, uint32_t dispatch_count, uint32_t str
 /**
  * @brief Submits a command list for indirect execution in mesh shading pipeline.
  *
- * @param [in] args                 Array of buffers containing dispatch arguments.
+ * @param [in] args                 An array of buffers containing dispatch arguments.
  * @param [in] args_stride_bytes    Stride for iterating through \b args. 
  * @param [in] byte_offset          Offset in \b args to the start of the dispatch arguments.
  * @param [in] count                A pointer to the buffer containing the number of dispatch calls.
@@ -3714,7 +3732,7 @@ void end_fast_capture_screen();
  * @param [out] stride_bytes    Stride to iterate through rows of pixels of the capture image.
  * @return                      A pointer to the captured image. NULL is returned on failure.
  * 
- * It is recommended to use \ref for multiple screen captures fast_capture_screen.
+ * It is recommended to use \ref fast_capture_screen for multiple screen captures .
  */
 TexPixel32 *capture_screen(int &w, int &h, int &stride_bytes);
 
@@ -3746,7 +3764,7 @@ void get_screen_size(int &w, int &h);
  * 
  * @return Id of the created predicate or -1 on failure.
  */
-int create_predicate(); // -1 if not supported or something goes wrong
+int create_predicate();
 
 /**
  * @brief Removes previously created predicate.
@@ -3766,6 +3784,11 @@ void end_survey(int id);
 void begin_conditional_render(int id);
 void end_conditional_render(int id);
 
+/**
+ * @brief Returns a handle to the currently set debug program.
+ * 
+ * @return A handle to the currently set debug program.
+ */
 PROGRAM get_debug_program();
 void beginEvent(const char *); // for debugging
 void endEvent();               // for debugging
@@ -4007,7 +4030,7 @@ char *get_update_buffer_addr_for_write(ResUpdateBuffer *rub);
  * @return          The size of the buffer.
  */
 size_t get_update_buffer_size(ResUpdateBuffer *rub);
-//! returns pitch of update buffer (if applicable)
+
 /**
  * @brief Returns the pitch of the resource update buffer (if applicable).
  *
@@ -4015,9 +4038,21 @@ size_t get_update_buffer_size(ResUpdateBuffer *rub);
  * @return          The row pitch of the buffer, 0 if no pitch corresponds to the buffer.
  */
 size_t get_update_buffer_pitch(ResUpdateBuffer *rub);
-// Returns the pitch of one 2d image slice for volumetric textures.
+
+/**
+ * @brief Returns the pitch of the 2d image slice of the resource update buffer (for volumetric textures).
+ *
+ * @param [in] rub  A pointer to the resource update buffer.
+ * @return          The row pitch of the buffer, 0 if no pitch corresponds to the buffer.
+ */
 size_t get_update_buffer_slice_pitch(ResUpdateBuffer *rub);
-//! applies update to target d3dres and releases update buffer (clears pointer afterwards)
+
+/**
+ * @brief Applies update to the target resource, releases the update buffer and clears the pointer afterwards.
+ * 
+ * @param [in] src_rub  A pointer to the update buffer to use.
+ * @return              \c true on success, \c false otherwise.
+ */
 bool update_texture_and_release_update_buffer(ResUpdateBuffer *&src_rub);
 
 /** \defgroup RenderPassD3D
@@ -4052,7 +4087,7 @@ void delete_render_pass(RenderPass *rp);
  * 
  * @param [in] rp       A pointer to the render pass resource to begin with
  * @param [in] area     Rendering area restriction 
- * @param [in] targets  Array of targets that will be used for rendering
+ * @param [in] targets  An array of targets that will be used for rendering
  * 
  * @note    The call must be externally synced (GPU lock is required).
  * @warning When a pass is in action, using any GPU execution functions except from 
@@ -4084,8 +4119,8 @@ void next_subpass();
  * @note    After the function has been called any non-draw operations (see \ref begin_render_pass)
  *          are allowed and render targets are reset to the backbuffer.\n
  * @note    The call must be externally synced.
- * @warning Will assert-fail if subpass is not final
- * @warning Will assert-fail if called  outside of render pass
+ * @warning The function will assert-fail if subpass is not final.\n        
+ * @warning The function will assert-fail if called  outside of render pass.
  * 
  * Processes store&sync operations described in render pass.
  */
@@ -4096,8 +4131,26 @@ void end_render_pass();
 #endif
 
 #if !_TARGET_D3D_MULTI
+
+/**
+ * @brief Registers the render state.
+ * 
+ * @param [in] state    Render state to register.
+ * @return              Index of the registered state.
+ */
 shaders::DriverRenderStateId create_render_state(const shaders::RenderState &state);
+
+/**
+ * @brief Sets current render state.
+ * 
+ * @param [in] state_id Index of the render state to set as current.
+ * @return              \c true on success, \c false otherwise.
+ */
 bool set_render_state(shaders::DriverRenderStateId state_id);
+
+/**
+ * @brief Deletes all currently registered render states.
+ */
 void clear_render_states();
 #endif
 
@@ -4164,7 +4217,7 @@ extern bool dagor_d3d_force_driver_reset;
 * @brief Throws fatal error in case the code contains error.
 * 
 * @param [in] c Code to check.
-* @param [in] m Message to translate to user.* 
+* @param [in] m Message to translate to user.
 */
 #define d3derr(c, m)                                                   \
   do                                                                   \
