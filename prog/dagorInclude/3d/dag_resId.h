@@ -117,7 +117,7 @@ public:
    *
    * @return Generation of the resource.
    * 
-   * Generation is used to differentiate between resources with identical ids. 
+   * Generation is used to differentiate between 2 resources with identical ids. 
    * Only a single generation is valid for a given id.
    */
   unsigned generation() const { return handle & GENERATION_MASK; }

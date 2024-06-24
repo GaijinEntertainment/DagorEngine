@@ -2146,7 +2146,6 @@ BaseTexture *create_tex(TexImage32 *img, int w, int h, int flg, int levels, cons
  * @param [in] levels       Number of mipmaps to load. If 0 is passed, the whole set is loaded, given the device support. 
  * @param [in] stat_name    Texture debug name.
  * @return                  A pointer to the created texture object or NULL on error.
- * 
  */
 BaseTexture *create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int levels = 0, const char *stat_name = NULL);
 
@@ -2225,7 +2224,7 @@ BaseTexture *create_array_tex(int w, int h, int d, int flg, int levels, const ch
  * @param [in] stat_name    Debug name of the texture array.
  * @return                  A pointer to the created texture array object or NULL on error.
  * 
- * @note The function actually creates array of <c>d * 6 <\c> simple textures, where group of 6 layers make up a cube map.
+ * @note The function actually creates array of <c>d * 6 <\c> simple textures, where each group of 6 layers makes up a cube map.
  */
 BaseTexture *create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name); // total layers d*6
 
@@ -2840,7 +2839,7 @@ Sbuffer *create_ib(int size_bytes, int flags, const char *stat_name = "ib");
 
 
 /**
- * @brief Creates structured buffer and adds it to the buffer list.
+ * @brief Creates a structured buffer and adds it to the buffer list.
  * 
  * @param [in] struct_size  Size of the structure.
  * @param [in] elements     Number of elements in the buffer.
